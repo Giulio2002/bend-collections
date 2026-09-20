@@ -5,6 +5,35 @@ Private development snapshot, not a finished or fully verified release.
 Progress: native-array ports for several collections, binary heap implementation
 and ongoing heap invariant/trace proofs. The full <=2.5x C gate is NOT satisfied.
 
+## Full native benchmark — 2026-09-20 23:10 UTC
+
+All 408 workload rows completed in 3592 seconds: **199 <=2.5x C, 200 too slow,
+9 unmeasurable**. The performance gate fails. There are 0 mismatches among the
+209 benchmark source hashes and this export (see SNAPSHOT.json). Reused LRU
+performance rows are still absent; this report covers the twelve new structures.
+
+| Structure | <=2.5x | Too slow | Unmeasurable |
+|---|---:|---:|---:|
+| dynamic_array | 30 | 10 | 0 |
+| deque | 21 | 15 | 0 |
+| queue | 12 | 12 | 0 |
+| doubly_linked_list | 9 | 37 | 2 |
+| binary_heap | 27 | 1 | 0 |
+| balanced_search_tree | 11 | 33 | 0 |
+| bitset | 27 | 15 | 2 |
+| union_find | 16 | 7 | 1 |
+| fenwick_tree | 20 | 4 | 0 |
+| segment_tree | 17 | 10 | 1 |
+| prefix_trie | 4 | 24 | 0 |
+| graph | 5 | 32 | 3 |
+
+Worst measured row: prefix_trie.contains on edge-empty, 120.57x. Imported
+proof annotations and independent semantic audit remain separate outstanding
+work. Earlier reports used different source/harness versions; passing-row count
+differences are not a controlled before/after speedup claim. Raw samples,
+checksums, source manifests and measurement details are in
+`snapshot-evidence/performance-full.json`; failed measurements are not passes.
+
 ## Full validation milestone — 2026-09-20 22:10 UTC
 
 `validation-full.json` records complete=true and no failures in 127.4 seconds:

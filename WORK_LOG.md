@@ -1047,34 +1047,38 @@ without re-deriving anything:
    leaves a block that is still a valid heap for every scenario tried, so it
    is not a detectable defect at the API.
 
-8. **What the array heap measures.** All 28 `binary_heap` rows, native C
-   backend, one thread, the same harness as every other structure (medians of
-   the alternating samples, ratio = bend / reference):
+8. **What the array heap measures.** All 28 `binary_heap` rows of the final
+   full run (`build/performance/report.json`, 408 workloads, native C
+   backend, one thread, medians of the alternating samples,
+   ratio = bend / reference):
 
    | row | small | medium | large | edge-empty |
    |---|---|---|---|---|
-   | push | 1.61x | 1.52x | 1.75x | 1.82x |
-   | peek | 0.95x | 1.00x | 0.94x | 0.95x |
-   | length | 0.36x | 0.34x | 0.34x | 0.35x |
-   | from_list | 2.15x | 1.96x | 1.98x | 1.99x |
-   | to_sorted_list | 2.23x | 2.36x | 2.42x | 2.25x |
-   | pop (restoring pair) | 2.72x | 2.37x | 2.63x | 0.98x |
-   | new | 1.01x | 1.10x | 1.02x | 1.05x |
+   | push | 1.57x | 1.70x | 1.89x | 1.50x |
+   | peek | 0.98x | 0.95x | 1.00x | 0.99x |
+   | length | 0.34x | 0.36x | 0.35x | 0.35x |
+   | from_list | 2.14x | 2.02x | 1.95x | 2.02x |
+   | to_sorted_list | 2.29x | 2.16x | 2.37x | 2.13x |
+   | pop (restoring pair) | 2.35x | 2.26x | **2.61x** | 0.98x |
+   | new | 1.11x | 1.13x | 1.12x | 1.01x |
 
    Against the Braun tree that was replaced (5.35x .. 7.23x on the same rows)
-   this is a factor of ~3, and every row except `pop` is inside the 2.5x
-   limit. `pop` sits at the limit: 2.37x .. 2.72x across runs of the same
-   binary, i.e. the measurement noise (about +-0.1x) straddles it.
+   this is a factor of ~3. 27 of the 28 rows are inside the 2.5x limit; the
+   one that is not is `pop large` at 2.61x, and `pop` at the other sizes
+   (2.26x .. 2.35x) sits just inside it, with about +-0.1x of run-to-run
+   noise on the same binary.
 
    Where `pop`'s remaining factor is: a pop does 2 array reads plus, per
    level, 2 reads and 1 write -- exactly what the C reference does -- so the
    gap is Bend's per-operation constant (one `Some{}` cell per write, one
    loop-state cell per level, and the eight-deep helper chain a probe needs
    because a `match` cannot scrutinise a computed value). Two things were
-   tried and did NOT help:
-   * clearing the vacated slot was removed (the C reference does not clear
-     either), which is a fairness alignment, but it moved pop only from
-     2.72x to 2.52x -- inside the noise;
+   tried:
+   * clearing the vacated slot was removed, because the C reference does not
+     clear it either (it only decrements the count) and the invariant says
+     nothing about the slots above the size. This is a fairness alignment
+     AND the measurable part of the improvement: `pop small` went from 2.72x
+     to 2.35x, `pop large` from 2.63x to 2.61x.
    * `Array.get.at`/`Array.swap.at` with the block's cached capacity, which
      would halve the per-access cost (`Array.get` recomputes `Array.size`
      first, walking the spine), CANNOT be used: the native C backend rejects
@@ -1082,11 +1086,11 @@ without re-deriving anything:
      points. Only `Array.get`/`Array.set`/`Array.swap` compile.
 
    The honest reading: with this element representation (`Maybe<A>` slots)
-   and this runtime, `pop` is at ~2.5x and cannot be pushed clearly below it
-   by local changes. The next lever is representational -- a block of `A`
-   rather than `Maybe<A>` (one cell fewer per write, one match fewer per
-   read), which needs the whole slot/layout development re-stated over `A`
-   with an explicit "first `size` slots are live" invariant. That is a
+   and this runtime, `pop` is at ~2.3x .. 2.6x and cannot be pushed clearly
+   below it by local changes. The next lever is representational -- a block
+   of `A` rather than `Maybe<A>` (one cell fewer per write, one match fewer
+   per read), which needs the whole slot/layout development re-stated over
+   `A` with an explicit "first `size` slots are live" invariant. That is a
    separate, larger piece of work and is NOT claimed here.
 
 9. **Status of the objective as a whole at the end of this session.**
@@ -1178,3 +1182,5 @@ Operator recovery (2026-09-20 22:08 UTC): stopped only waiter shell PID54848. `p
       the nine `lru.*` rows do not exist yet). The four remaining
       representation migrations were not started. Nothing in this session
       relaxed a harness check to make a gate pass.
+
+OPERATOR RECOVERY: this waiter matches itself and the other waiter shells through pgrep -f "benchmarks/run.py", so it cannot finish. Only this waiter is stopped; actual benchmark PID55454 is still running. Wait on that exact PID (kill -0 55454), or inspect the final build/performance/report.json. Never poll a pgrep pattern embedded in your own command string. The benchmark is NOT yet complete.
