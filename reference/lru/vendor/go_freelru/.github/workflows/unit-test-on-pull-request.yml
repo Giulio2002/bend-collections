@@ -1,0 +1,107 @@
+name: FreeLRU
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      max-parallel: 2
+      matrix:
+        go: ["stable"]
+    steps:
+    - name: Set up Go ${{matrix.go}}
+      uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6
+      with:
+        go-version: ${{matrix.go}}
+        check-latest: true
+      id: go
+    - name: Check out
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+    - name: Linter
+      run: |
+          make lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      max-parallel: 2
+      matrix:
+        go: ["stable", "1.18.10"]
+    steps:
+    - name: Set up Go ${{matrix.go}}
+      uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6
+      with:
+        go-version: ${{matrix.go}}
+        check-latest: true
+      id: go
+    - name: Check out
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+    - name: Run Test
+      run: |
+          make check
+
+  bench:
+    name: Bench
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      max-parallel: 2
+      matrix:
+        go: ["stable"]
+    steps:
+      - name: Set up Go ${{matrix.go}}
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6
+        with:
+          go-version: ${{matrix.go}}
+          check-latest: true
+        id: go
+      - name: Check out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Run Benchmarks
+        run: |
+          GOMAXPROCS=100 make bench
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      max-parallel: 2
+      matrix:
+        go: ["stable"]
+    permissions:
+      contents: write
+    steps:
+      - name: Set up Go ${{matrix.go}}
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6
+        with:
+          go-version: ${{matrix.go}}
+          check-latest: true
+        id: go
+      - name: Check out
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Build
+        run: |
+          go install
+      - name: Run Coverage
+        run: |
+          go test -v -cover ./... -coverprofile coverage.out -coverpkg ./...
+
+      - name: Report Coveralls
+        run: curl -sL https://coveralls.io/coveralls-linux.tar.gz | tar -xz && ./coveralls report coverage.out --format=golang
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
