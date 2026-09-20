@@ -258,6 +258,10 @@ def pop_last(~A: Data, ~cmp: A -> A -> Cmp, size: Nat, +m: U32, depth: Nat, cap:
   (arr, ml) = rl
   pop_move(~A, ~cmp, size, m, depth, cap, root, slot_or(~A, root, ml), arr, U32.is_eq(m, 0))
 
+# The last element is READ, not cleared: the invariant says nothing about the
+# slots above the size, so clearing it would be one array write per pop that
+# the algorithm does not need (the C reference does not do it either).
+#
 # The root slot of a nonempty heap is Some; the None case cannot be reached
 # from a well-formed heap and returns the state unchanged.
 def pop_with(~A: Data, ~cmp: A -> A -> Cmp, size: Nat, +n: U32, depth: Nat, cap: U32, arr: Array<Maybe<&2, A>>, mr: Maybe<&2, A>) -> Heap<A> & Result<&2, &2, E.Error, A>:
@@ -265,7 +269,7 @@ def pop_with(~A: Data, ~cmp: A -> A -> Cmp, size: Nat, +n: U32, depth: Nat, cap:
     case None{}:
       (BH{size, n, depth, cap, arr}, Fail{E.EmptyHeap{}})
     case Some{+root}:
-      pop_last(~A, ~cmp, Nat.sub(size, 1n), U32.sub(n, 1), depth, cap, root, Array.swap(Maybe<&2, A>, arr, U32.sub(n, 1), None{}))
+      pop_last(~A, ~cmp, Nat.sub(size, 1n), U32.sub(n, 1), depth, cap, root, Array.get(Maybe<&2, A>, arr, U32.sub(n, 1)))
 
 def pop_root(~A: Data, ~cmp: A -> A -> Cmp, size: Nat, +n: U32, depth: Nat, cap: U32, rr: Array<Maybe<&2, A>> & Maybe<&2, A>) -> Heap<A> & Result<&2, &2, E.Error, A>:
   (arr, mr) = rr
@@ -332,7 +336,7 @@ def drain_root(~A: Data, arr: Array<Maybe<&2, A>>, +m: U32, mr: Maybe<&2, A>) ->
     case None{}:
       DrDone{arr}
     case Some{root}:
-      drain_last(~A, root, m, U32.is_eq(m, 0), Array.swap(Maybe<&2, A>, arr, m, None{}))
+      drain_last(~A, root, m, U32.is_eq(m, 0), Array.get(Maybe<&2, A>, arr, m))
 
 def drain_take(~A: Data, +m: U32, r: Array<Maybe<&2, A>> & Maybe<&2, A>) -> Drain<A>:
   (arr, mr) = r

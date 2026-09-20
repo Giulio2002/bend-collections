@@ -1,0 +1,2127 @@
+{
+ "artifacts": {
+  "build/bench/bend/binary_heap": "7fc49d37330af76d44cff4e0a57cd9a685428e52fdb0b6d35717363e72c476fd",
+  "build/bench/logs/samples.log": "4edd228ac383eb63ed4be18c736350b5fa8c0f6c27567214b120da4a836a63f2",
+  "build/bench/logs/summary.tsv": "5de68d2c801e6d2acf2621b7414c7cb6e14dada842b10d531d0cf0e6cb35871a",
+  "build/bench/ref/binary_heap": "7f73122c1c76dbf5638931c975f4d2f612fc50cd2293fdd5a2a389b3cad84836"
+ },
+ "backend": "native-c",
+ "benchmarks": [
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    1000000.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    183000000.0,
+    194000000.0,
+    200000000.0,
+    196000000.0,
+    188000000.0,
+    208000000.0
+   ],
+   "bend_ns": [
+    14.296875,
+    15.15625,
+    15.625,
+    15.3125,
+    14.6875,
+    16.25
+   ],
+   "checksums": [
+    "192014908",
+    "1297717820",
+    "3838010172"
+   ],
+   "count": 100000,
+   "grow": "reps",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.push",
+   "operations_per_sample": 12800000,
+   "reference_control_ns": [
+    147000.0,
+    167000.0,
+    149000.0,
+    161000.0,
+    137000.0,
+    153000.0
+   ],
+   "reference_delta_ns": [
+    138181000.0,
+    120745000.0,
+    116335000.0,
+    127628000.0,
+    119861000.0,
+    120314000.0
+   ],
+   "reference_ns": [
+    10.795390625,
+    9.433203125,
+    9.088671875,
+    9.9709375,
+    9.364140625,
+    9.39953125
+   ],
+   "reps": 128,
+   "seed": 1148,
+   "size": 64,
+   "verified": true,
+   "workload": "small"
+  },
+  {
+   "bend_control_ns": [
+    64000000.0,
+    65000000.0,
+    68000000.0,
+    67000000.0,
+    69000000.0,
+    65000000.0
+   ],
+   "bend_delta_ns": [
+    139000000.0,
+    160000000.0,
+    158000000.0,
+    153000000.0,
+    144000000.0,
+    154000000.0
+   ],
+   "bend_ns": [
+    14.479166666666666,
+    16.666666666666668,
+    16.458333333333332,
+    15.9375,
+    15.0,
+    16.041666666666668
+   ],
+   "checksums": [
+    "4029709692",
+    "3797747580",
+    "1740261756"
+   ],
+   "count": 50000,
+   "grow": "reps",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.push",
+   "operations_per_sample": 9600000,
+   "reference_control_ns": [
+    19235000.0,
+    18457000.0,
+    18544000.0,
+    18350000.0,
+    18734000.0,
+    19229000.0
+   ],
+   "reference_delta_ns": [
+    91756000.0,
+    97183000.0,
+    91623000.0,
+    94562000.0,
+    90713000.0,
+    107170000.0
+   ],
+   "reference_ns": [
+    9.557916666666667,
+    10.123229166666667,
+    9.5440625,
+    9.850208333333333,
+    9.449270833333333,
+    11.163541666666667
+   ],
+   "reps": 192,
+   "seed": 1149,
+   "size": 4096,
+   "verified": true,
+   "workload": "medium"
+  },
+  {
+   "bend_control_ns": [
+    1243000000.0,
+    1305000000.0,
+    1235000000.0,
+    1241000000.0,
+    1245000000.0,
+    1231000000.0
+   ],
+   "bend_delta_ns": [
+    423000000.0,
+    105000000.0,
+    165000000.0,
+    141000000.0,
+    150000000.0,
+    169000000.0
+   ],
+   "bend_ns": [
+    47.45932186351103,
+    11.780682732077207,
+    18.512501436121322,
+    15.819773954503676,
+    16.829546760110293,
+    18.961289349724264
+   ],
+   "checksums": [
+    "2395779580",
+    "2723452156",
+    "2046150396"
+   ],
+   "count": 131072,
+   "grow": "reps",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.push",
+   "operations_per_sample": 8912896,
+   "reference_control_ns": [
+    333615000.0,
+    322073000.0,
+    334992000.0,
+    327309000.0,
+    331087000.0,
+    328133000.0
+   ],
+   "reference_delta_ns": [
+    105992000.0,
+    94941000.0,
+    85219000.0,
+    95520000.0,
+    93306000.0,
+    107050000.0
+   ],
+   "reference_ns": [
+    11.891982134650736,
+    10.65209332634421,
+    9.561314302332262,
+    10.717055376838236,
+    10.468651266659007,
+    12.010686537798714
+   ],
+   "reps": 68,
+   "seed": 1150,
+   "size": 131072,
+   "verified": true,
+   "workload": "large"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    102000000.0,
+    108000000.0,
+    122000000.0,
+    142000000.0,
+    114000000.0,
+    101000000.0
+   ],
+   "bend_ns": [
+    1.1383928571428572,
+    1.2053571428571428,
+    1.3616071428571428,
+    1.5848214285714286,
+    1.2723214285714286,
+    1.1272321428571428
+   ],
+   "checksums": [
+    "1651629047",
+    "2367728631",
+    "2614066167"
+   ],
+   "count": 89600000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.peek",
+   "operations_per_sample": 89600000,
+   "reference_control_ns": [
+    2000.0,
+    5000.0,
+    2000.0,
+    6000.0,
+    2000.0,
+    4000.0
+   ],
+   "reference_delta_ns": [
+    113389000.0,
+    155815000.0,
+    213459000.0,
+    118981000.0,
+    100297000.0,
+    95312000.0
+   ],
+   "reference_ns": [
+    1.265502232142857,
+    1.7390066964285715,
+    2.3823549107142856,
+    1.3279129464285715,
+    1.1193861607142856,
+    1.06375
+   ],
+   "reps": 1,
+   "seed": 1151,
+   "size": 64,
+   "verified": true,
+   "workload": "small"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    1000000.0,
+    0.0,
+    0.0,
+    1000000.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    149000000.0,
+    123000000.0,
+    139000000.0,
+    119000000.0,
+    123000000.0,
+    120000000.0
+   ],
+   "bend_ns": [
+    1.369485294117647,
+    1.130514705882353,
+    1.2775735294117647,
+    1.09375,
+    1.130514705882353,
+    1.1029411764705883
+   ],
+   "checksums": [
+    "1513181364",
+    "4049602740",
+    "1435418804"
+   ],
+   "count": 108800000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.peek",
+   "operations_per_sample": 108800000,
+   "reference_control_ns": [
+    114000.0,
+    115000.0,
+    118000.0,
+    112000.0,
+    114000.0,
+    113000.0
+   ],
+   "reference_delta_ns": [
+    126681000.0,
+    147737000.0,
+    145113000.0,
+    131272000.0,
+    121685000.0,
+    120972000.0
+   ],
+   "reference_ns": [
+    1.1643474264705882,
+    1.3578768382352941,
+    1.3337591911764706,
+    1.2065441176470588,
+    1.1184283088235294,
+    1.111875
+   ],
+   "reps": 1,
+   "seed": 1152,
+   "size": 4096,
+   "verified": true,
+   "workload": "medium"
+  },
+  {
+   "bend_control_ns": [
+    18000000.0,
+    20000000.0,
+    19000000.0,
+    23000000.0,
+    18000000.0,
+    20000000.0
+   ],
+   "bend_delta_ns": [
+    186000000.0,
+    183000000.0,
+    200000000.0,
+    235000000.0,
+    196000000.0,
+    182000000.0
+   ],
+   "bend_ns": [
+    1.1177884615384615,
+    1.0997596153846154,
+    1.2019230769230769,
+    1.4122596153846154,
+    1.1778846153846154,
+    1.09375
+   ],
+   "checksums": [
+    "2000499331",
+    "1542431363",
+    "614601347"
+   ],
+   "count": 166400000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.peek",
+   "operations_per_sample": 166400000,
+   "reference_control_ns": [
+    5138000.0,
+    4892000.0,
+    5105000.0,
+    5466000.0,
+    5103000.0,
+    4995000.0
+   ],
+   "reference_delta_ns": [
+    184358000.0,
+    196021000.0,
+    188318000.0,
+    196943000.0,
+    184492000.0,
+    199318000.0
+   ],
+   "reference_ns": [
+    1.107920673076923,
+    1.1780108173076924,
+    1.13171875,
+    1.1835516826923076,
+    1.1087259615384615,
+    1.1978245192307693
+   ],
+   "reps": 1,
+   "seed": 1153,
+   "size": 131072,
+   "verified": true,
+   "workload": "large"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    99000000.0,
+    98000000.0,
+    101000000.0,
+    104000000.0,
+    101000000.0,
+    106000000.0
+   ],
+   "bend_ns": [
+    1.1049107142857142,
+    1.09375,
+    1.1272321428571428,
+    1.1607142857142858,
+    1.1272321428571428,
+    1.1830357142857142
+   ],
+   "checksums": [
+    "3515070852",
+    "3029092740",
+    "731175300"
+   ],
+   "count": 89600000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.length",
+   "operations_per_sample": 89600000,
+   "reference_control_ns": [
+    2000.0,
+    4000.0,
+    1000.0,
+    4000.0,
+    1000.0,
+    5000.0
+   ],
+   "reference_delta_ns": [
+    284418000.0,
+    284667000.0,
+    286811000.0,
+    299441000.0,
+    288440000.0,
+    293682000.0
+   ],
+   "reference_ns": [
+    3.1743080357142857,
+    3.1770870535714284,
+    3.201015625,
+    3.3419754464285716,
+    3.2191964285714287,
+    3.2777008928571427
+   ],
+   "reps": 1,
+   "seed": 1154,
+   "size": 64,
+   "verified": true,
+   "workload": "small"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    1000000.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    101000000.0,
+    114000000.0,
+    111000000.0,
+    105000000.0,
+    107000000.0,
+    107000000.0
+   ],
+   "bend_ns": [
+    1.0520833333333333,
+    1.1875,
+    1.15625,
+    1.09375,
+    1.1145833333333333,
+    1.1145833333333333
+   ],
+   "checksums": [
+    "3842049275",
+    "3183324411",
+    "1333417211"
+   ],
+   "count": 96000000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.length",
+   "operations_per_sample": 96000000,
+   "reference_control_ns": [
+    97000.0,
+    124000.0,
+    118000.0,
+    128000.0,
+    108000.0,
+    112000.0
+   ],
+   "reference_delta_ns": [
+    318556000.0,
+    313000000.0,
+    312902000.0,
+    313395000.0,
+    304776000.0,
+    294921000.0
+   ],
+   "reference_ns": [
+    3.3182916666666666,
+    3.2604166666666665,
+    3.2593958333333335,
+    3.26453125,
+    3.17475,
+    3.07209375
+   ],
+   "reps": 1,
+   "seed": 1155,
+   "size": 4096,
+   "verified": true,
+   "workload": "medium"
+  },
+  {
+   "bend_control_ns": [
+    18000000.0,
+    19000000.0,
+    19000000.0,
+    20000000.0,
+    19000000.0,
+    18000000.0
+   ],
+   "bend_delta_ns": [
+    184000000.0,
+    184000000.0,
+    179000000.0,
+    186000000.0,
+    177000000.0,
+    184000000.0
+   ],
+   "bend_ns": [
+    1.1057692307692308,
+    1.1057692307692308,
+    1.0757211538461537,
+    1.1177884615384615,
+    1.0637019230769231,
+    1.1057692307692308
+   ],
+   "checksums": [
+    "3613775868",
+    "3979577340",
+    "385955836"
+   ],
+   "count": 166400000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.length",
+   "operations_per_sample": 166400000,
+   "reference_control_ns": [
+    5034000.0,
+    4897000.0,
+    4832000.0,
+    4945000.0,
+    4846000.0,
+    4881000.0
+   ],
+   "reference_delta_ns": [
+    529473000.0,
+    523429000.0,
+    525602000.0,
+    522032000.0,
+    532960000.0,
+    530668000.0
+   ],
+   "reference_ns": [
+    3.1819290865384615,
+    3.145606971153846,
+    3.1586658653846156,
+    3.1372115384615387,
+    3.2028846153846153,
+    3.1891105769230768
+   ],
+   "reps": 1,
+   "seed": 1156,
+   "size": 131072,
+   "verified": true,
+   "workload": "large"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    137000000.0,
+    206000000.0,
+    136000000.0,
+    113000000.0,
+    108000000.0,
+    109000000.0
+   ],
+   "bend_ns": [
+    130.47619047619048,
+    196.1904761904762,
+    129.52380952380952,
+    107.61904761904762,
+    102.85714285714286,
+    103.80952380952381
+   ],
+   "checksums": [
+    "2546073003",
+    "407658027",
+    "19642795"
+   ],
+   "count": 1050000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.from_list",
+   "operations_per_sample": 1050000,
+   "reference_control_ns": [
+    2000.0,
+    5000.0,
+    1000.0,
+    4000.0,
+    1000.0,
+    4000.0
+   ],
+   "reference_delta_ns": [
+    70991000.0,
+    59540000.0,
+    64815000.0,
+    47163000.0,
+    56908000.0,
+    46605000.0
+   ],
+   "reference_ns": [
+    67.61047619047619,
+    56.7047619047619,
+    61.72857142857143,
+    44.917142857142856,
+    54.198095238095235,
+    44.385714285714286
+   ],
+   "reps": 1,
+   "seed": 1157,
+   "size": 64,
+   "verified": true,
+   "workload": "small"
+  },
+  {
+   "bend_control_ns": [
+    1000000.0,
+    0.0,
+    1000000.0,
+    0.0,
+    0.0,
+    1000000.0
+   ],
+   "bend_delta_ns": [
+    133000000.0,
+    135000000.0,
+    133000000.0,
+    131000000.0,
+    133000000.0,
+    133000000.0
+   ],
+   "bend_ns": [
+    102.3076923076923,
+    103.84615384615384,
+    102.3076923076923,
+    100.76923076923077,
+    102.3076923076923,
+    102.3076923076923
+   ],
+   "checksums": [
+    "732920052",
+    "3653164788",
+    "1802576372"
+   ],
+   "count": 1300000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.from_list",
+   "operations_per_sample": 1300000,
+   "reference_control_ns": [
+    78000.0,
+    102000.0,
+    79000.0,
+    101000.0,
+    77000.0,
+    105000.0
+   ],
+   "reference_delta_ns": [
+    68449000.0,
+    57279000.0,
+    67797000.0,
+    57882000.0,
+    67801000.0,
+    58246000.0
+   ],
+   "reference_ns": [
+    52.653076923076924,
+    44.06076923076923,
+    52.151538461538465,
+    44.52461538461539,
+    52.15461538461538,
+    44.80461538461538
+   ],
+   "reps": 1,
+   "seed": 1158,
+   "size": 4096,
+   "verified": true,
+   "workload": "medium"
+  },
+  {
+   "bend_control_ns": [
+    17000000.0,
+    17000000.0,
+    16000000.0,
+    18000000.0,
+    17000000.0,
+    17000000.0
+   ],
+   "bend_delta_ns": [
+    107000000.0,
+    104000000.0,
+    106000000.0,
+    106000000.0,
+    107000000.0,
+    106000000.0
+   ],
+   "bend_ns": [
+    102.88461538461539,
+    100.0,
+    101.92307692307692,
+    101.92307692307692,
+    102.88461538461539,
+    101.92307692307692
+   ],
+   "checksums": [
+    "3972743125",
+    "2193557717",
+    "1452018389"
+   ],
+   "count": 1040000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.from_list",
+   "operations_per_sample": 1040000,
+   "reference_control_ns": [
+    4329000.0,
+    4582000.0,
+    4366000.0,
+    4404000.0,
+    4370000.0,
+    4394000.0
+   ],
+   "reference_delta_ns": [
+    55173000.0,
+    46038000.0,
+    54441000.0,
+    46416000.0,
+    55226000.0,
+    46607000.0
+   ],
+   "reference_ns": [
+    53.050961538461536,
+    44.26730769230769,
+    52.347115384615385,
+    44.63076923076923,
+    53.10192307692308,
+    44.81442307692308
+   ],
+   "reps": 1,
+   "seed": 1159,
+   "size": 131072,
+   "verified": true,
+   "workload": "large"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    107000000.0,
+    110000000.0,
+    108000000.0,
+    110000000.0,
+    107000000.0,
+    111000000.0
+   ],
+   "bend_ns": [
+    2057.6923076923076,
+    2115.3846153846152,
+    2076.923076923077,
+    2115.3846153846152,
+    2057.6923076923076,
+    2134.6153846153848
+   ],
+   "checksums": [
+    "2885185492",
+    "3423832756",
+    "3989370260"
+   ],
+   "count": 52000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.to_sorted_list",
+   "operations_per_sample": 52000,
+   "reference_control_ns": [
+    1000.0,
+    4000.0,
+    1000.0,
+    6000.0,
+    1000.0,
+    4000.0
+   ],
+   "reference_delta_ns": [
+    25396000.0,
+    25631000.0,
+    24334000.0,
+    25401000.0,
+    25611000.0,
+    25601000.0
+   ],
+   "reference_ns": [
+    488.38461538461536,
+    492.90384615384613,
+    467.96153846153845,
+    488.4807692307692,
+    492.5192307692308,
+    492.3269230769231
+   ],
+   "reps": 1,
+   "seed": 1160,
+   "size": 64,
+   "verified": true,
+   "workload": "small"
+  },
+  {
+   "bend_control_ns": [
+    1000000.0,
+    1000000.0,
+    0.0,
+    1000000.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    110000000.0,
+    109000000.0,
+    110000000.0,
+    111000000.0,
+    108000000.0,
+    110000000.0
+   ],
+   "bend_ns": [
+    275000.0,
+    272500.0,
+    275000.0,
+    277500.0,
+    270000.0,
+    275000.0
+   ],
+   "checksums": [
+    "1433438525",
+    "227053037",
+    "585447069"
+   ],
+   "count": 400,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.to_sorted_list",
+   "operations_per_sample": 400,
+   "reference_control_ns": [
+    87000.0,
+    100000.0,
+    68000.0,
+    101000.0,
+    68000.0,
+    101000.0
+   ],
+   "reference_delta_ns": [
+    22188000.0,
+    22027000.0,
+    22201000.0,
+    21873000.0,
+    21781000.0,
+    22336000.0
+   ],
+   "reference_ns": [
+    55470.0,
+    55067.5,
+    55502.5,
+    54682.5,
+    54452.5,
+    55840.0
+   ],
+   "reps": 1,
+   "seed": 1161,
+   "size": 4096,
+   "verified": true,
+   "workload": "medium"
+  },
+  {
+   "bend_control_ns": [
+    16000000.0,
+    17000000.0,
+    16000000.0,
+    17000000.0,
+    16000000.0,
+    16000000.0
+   ],
+   "bend_delta_ns": [
+    143000000.0,
+    144000000.0,
+    145000000.0,
+    143000000.0,
+    143000000.0,
+    152000000.0
+   ],
+   "bend_ns": [
+    14300000.0,
+    14400000.0,
+    14500000.0,
+    14300000.0,
+    14300000.0,
+    15200000.0
+   ],
+   "checksums": [
+    "4045871642",
+    "4003272712",
+    "2471270086"
+   ],
+   "count": 10,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.to_sorted_list",
+   "operations_per_sample": 10,
+   "reference_control_ns": [
+    4278000.0,
+    4421000.0,
+    4301000.0,
+    4413000.0,
+    4273000.0,
+    4394000.0
+   ],
+   "reference_delta_ns": [
+    32608000.0,
+    32503000.0,
+    33066000.0,
+    33365000.0,
+    33143000.0,
+    32972000.0
+   ],
+   "reference_ns": [
+    3260800.0,
+    3250300.0,
+    3306600.0,
+    3336500.0,
+    3314300.0,
+    3297200.0
+   ],
+   "reps": 1,
+   "seed": 1162,
+   "size": 131072,
+   "verified": true,
+   "workload": "large"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    109000000.0,
+    111000000.0,
+    109000000.0,
+    112000000.0,
+    109000000.0,
+    110000000.0
+   ],
+   "bend_ns": [
+    51.904761904761905,
+    52.857142857142854,
+    51.904761904761905,
+    53.333333333333336,
+    51.904761904761905,
+    52.38095238095238
+   ],
+   "checksums": [
+    "806829823",
+    "161676709",
+    "3849844169"
+   ],
+   "count": 2100000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "pair",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.pop",
+   "operations_per_sample": 2100000,
+   "reference_control_ns": [
+    2000.0,
+    4000.0,
+    0.0,
+    3000.0,
+    1000.0,
+    4000.0
+   ],
+   "reference_delta_ns": [
+    35995000.0,
+    34472000.0,
+    32839000.0,
+    30892000.0,
+    23967000.0,
+    27539000.0
+   ],
+   "reference_ns": [
+    17.14047619047619,
+    16.415238095238095,
+    15.637619047619047,
+    14.710476190476191,
+    11.412857142857144,
+    13.113809523809524
+   ],
+   "reps": 1,
+   "seed": 1163,
+   "size": 64,
+   "verified": true,
+   "workload": "small"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    1000000.0,
+    0.0,
+    0.0,
+    0.0,
+    1000000.0
+   ],
+   "bend_delta_ns": [
+    117000000.0,
+    117000000.0,
+    117000000.0,
+    118000000.0,
+    116000000.0,
+    117000000.0
+   ],
+   "bend_ns": [
+    111.42857142857143,
+    111.42857142857143,
+    111.42857142857143,
+    112.38095238095238,
+    110.47619047619048,
+    111.42857142857143
+   ],
+   "checksums": [
+    "4798942",
+    "2467397615",
+    "3050238982"
+   ],
+   "count": 1050000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "pair",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.pop",
+   "operations_per_sample": 1050000,
+   "reference_control_ns": [
+    79000.0,
+    100000.0,
+    74000.0,
+    98000.0,
+    73000.0,
+    100000.0
+   ],
+   "reference_delta_ns": [
+    31132000.0,
+    32439000.0,
+    32399000.0,
+    32522000.0,
+    32780000.0,
+    32752000.0
+   ],
+   "reference_ns": [
+    29.64952380952381,
+    30.894285714285715,
+    30.856190476190477,
+    30.973333333333333,
+    31.21904761904762,
+    31.19238095238095
+   ],
+   "reps": 1,
+   "seed": 1164,
+   "size": 4096,
+   "verified": true,
+   "workload": "medium"
+  },
+  {
+   "bend_control_ns": [
+    17000000.0,
+    17000000.0,
+    17000000.0,
+    16000000.0,
+    16000000.0,
+    17000000.0
+   ],
+   "bend_delta_ns": [
+    108000000.0,
+    110000000.0,
+    106000000.0,
+    107000000.0,
+    108000000.0,
+    109000000.0
+   ],
+   "bend_ns": [
+    158.8235294117647,
+    161.76470588235293,
+    155.88235294117646,
+    157.35294117647058,
+    158.8235294117647,
+    160.2941176470588
+   ],
+   "checksums": [
+    "3653512470",
+    "1362664378",
+    "3119086517"
+   ],
+   "count": 680000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "pair",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.pop",
+   "operations_per_sample": 680000,
+   "reference_control_ns": [
+    4334000.0,
+    4391000.0,
+    4342000.0,
+    4463000.0,
+    4358000.0,
+    4386000.0
+   ],
+   "reference_delta_ns": [
+    30337000.0,
+    30702000.0,
+    30888000.0,
+    29959000.0,
+    30873000.0,
+    30935000.0
+   ],
+   "reference_ns": [
+    44.61323529411764,
+    45.15,
+    45.423529411764704,
+    44.05735294117647,
+    45.40147058823529,
+    45.49264705882353
+   ],
+   "reps": 1,
+   "seed": 1165,
+   "size": 131072,
+   "verified": true,
+   "workload": "large"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    132000000.0,
+    127000000.0,
+    131000000.0,
+    129000000.0,
+    131000000.0,
+    131000000.0
+   ],
+   "bend_ns": [
+    2.578125,
+    2.48046875,
+    2.55859375,
+    2.51953125,
+    2.55859375,
+    2.55859375
+   ],
+   "checksums": [
+    "1864580286",
+    "743636158",
+    "696433854"
+   ],
+   "count": 51200000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.new",
+   "operations_per_sample": 51200000,
+   "reference_control_ns": [
+    1000.0,
+    3000.0,
+    1000.0,
+    3000.0,
+    1000.0,
+    7000.0
+   ],
+   "reference_delta_ns": [
+    126834000.0,
+    126527000.0,
+    126555000.0,
+    126421000.0,
+    126364000.0,
+    126481000.0
+   ],
+   "reference_ns": [
+    2.4772265625,
+    2.47123046875,
+    2.47177734375,
+    2.46916015625,
+    2.468046875,
+    2.47033203125
+   ],
+   "reps": 1,
+   "seed": 1166,
+   "size": 64,
+   "verified": true,
+   "workload": "small"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    1000000.0,
+    1000000.0,
+    1000000.0
+   ],
+   "bend_delta_ns": [
+    129000000.0,
+    128000000.0,
+    134000000.0,
+    130000000.0,
+    131000000.0,
+    130000000.0
+   ],
+   "bend_ns": [
+    2.51953125,
+    2.5,
+    2.6171875,
+    2.5390625,
+    2.55859375,
+    2.5390625
+   ],
+   "checksums": [
+    "810458209",
+    "2586401889",
+    "1141120097"
+   ],
+   "count": 51200000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.new",
+   "operations_per_sample": 51200000,
+   "reference_control_ns": [
+    72000.0,
+    100000.0,
+    83000.0,
+    100000.0,
+    73000.0,
+    101000.0
+   ],
+   "reference_delta_ns": [
+    127013000.0,
+    131359000.0,
+    126624000.0,
+    127405000.0,
+    128036000.0,
+    126789000.0
+   ],
+   "reference_ns": [
+    2.48072265625,
+    2.56560546875,
+    2.473125,
+    2.48837890625,
+    2.500703125,
+    2.47634765625
+   ],
+   "reps": 1,
+   "seed": 1167,
+   "size": 4096,
+   "verified": true,
+   "workload": "medium"
+  },
+  {
+   "bend_control_ns": [
+    17000000.0,
+    17000000.0,
+    16000000.0,
+    16000000.0,
+    17000000.0,
+    17000000.0
+   ],
+   "bend_delta_ns": [
+    193000000.0,
+    222000000.0,
+    240000000.0,
+    200000000.0,
+    304000000.0,
+    213000000.0
+   ],
+   "bend_ns": [
+    2.5130208333333335,
+    2.890625,
+    3.125,
+    2.6041666666666665,
+    3.9583333333333335,
+    2.7734375
+   ],
+   "checksums": [
+    "1531371156",
+    "1299152532",
+    "2409111188"
+   ],
+   "count": 76800000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.new",
+   "operations_per_sample": 76800000,
+   "reference_control_ns": [
+    4331000.0,
+    4394000.0,
+    4320000.0,
+    4385000.0,
+    4942000.0,
+    4540000.0
+   ],
+   "reference_delta_ns": [
+    191525000.0,
+    189728000.0,
+    189778000.0,
+    191710000.0,
+    195963000.0,
+    192927000.0
+   ],
+   "reference_ns": [
+    2.4938151041666665,
+    2.4704166666666665,
+    2.4710677083333334,
+    2.496223958333333,
+    2.5516015625,
+    2.5120703125
+   ],
+   "reps": 1,
+   "seed": 1168,
+   "size": 131072,
+   "verified": true,
+   "workload": "large"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    119000000.0,
+    130000000.0,
+    123000000.0,
+    128000000.0,
+    123000000.0,
+    144000000.0
+   ],
+   "bend_ns": [
+    2.65625,
+    2.9017857142857144,
+    2.7455357142857144,
+    2.857142857142857,
+    2.7455357142857144,
+    3.2142857142857144
+   ],
+   "checksums": [
+    "2036571025",
+    "1304183697",
+    "2736057233"
+   ],
+   "count": 44800000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.new",
+   "operations_per_sample": 44800000,
+   "reference_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "reference_delta_ns": [
+    118575000.0,
+    111183000.0,
+    127843000.0,
+    123863000.0,
+    127504000.0,
+    118941000.0
+   ],
+   "reference_ns": [
+    2.646763392857143,
+    2.4817633928571428,
+    2.853638392857143,
+    2.7647991071428573,
+    2.8460714285714284,
+    2.6549330357142855
+   ],
+   "reps": 1,
+   "seed": 1169,
+   "size": 0,
+   "verified": true,
+   "workload": "edge-empty"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    94000000.0,
+    100000000.0,
+    100000000.0,
+    101000000.0,
+    102000000.0,
+    98000000.0
+   ],
+   "bend_ns": [
+    0.9791666666666666,
+    1.0416666666666667,
+    1.0416666666666667,
+    1.0520833333333333,
+    1.0625,
+    1.0208333333333333
+   ],
+   "checksums": [
+    "3060185490",
+    "3398615442",
+    "4089366930"
+   ],
+   "count": 96000000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.length",
+   "operations_per_sample": 96000000,
+   "reference_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "reference_delta_ns": [
+    291669000.0,
+    291570000.0,
+    280964000.0,
+    288343000.0,
+    286538000.0,
+    288066000.0
+   ],
+   "reference_ns": [
+    3.03821875,
+    3.0371875,
+    2.9267083333333335,
+    3.0035729166666667,
+    2.984770833333333,
+    3.0006875
+   ],
+   "reps": 1,
+   "seed": 1170,
+   "size": 0,
+   "verified": true,
+   "workload": "edge-empty"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    103000000.0,
+    101000000.0,
+    105000000.0,
+    106000000.0,
+    107000000.0,
+    107000000.0
+   ],
+   "bend_ns": [
+    16.09375,
+    15.78125,
+    16.40625,
+    16.5625,
+    16.71875,
+    16.71875
+   ],
+   "checksums": [
+    "395073248",
+    "2415040224",
+    "930924512"
+   ],
+   "count": 100000,
+   "grow": "reps",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.push",
+   "operations_per_sample": 6400000,
+   "reference_control_ns": [
+    1000.0,
+    1000.0,
+    0.0,
+    0.0,
+    1000.0,
+    1000.0
+   ],
+   "reference_delta_ns": [
+    65767000.0,
+    65462000.0,
+    65450000.0,
+    69728000.0,
+    69115000.0,
+    64828000.0
+   ],
+   "reference_ns": [
+    10.27609375,
+    10.2284375,
+    10.2265625,
+    10.895,
+    10.79921875,
+    10.129375
+   ],
+   "reps": 64,
+   "seed": 1171,
+   "size": 0,
+   "verified": true,
+   "workload": "edge-empty"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    104000000.0,
+    99000000.0,
+    104000000.0,
+    98000000.0,
+    106000000.0,
+    100000000.0
+   ],
+   "bend_ns": [
+    1.0833333333333333,
+    1.03125,
+    1.0833333333333333,
+    1.0208333333333333,
+    1.1041666666666667,
+    1.0416666666666667
+   ],
+   "checksums": [
+    "3581736340",
+    "113753492",
+    "2501019028"
+   ],
+   "count": 96000000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.peek",
+   "operations_per_sample": 96000000,
+   "reference_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "reference_delta_ns": [
+    103852000.0,
+    104508000.0,
+    101593000.0,
+    105303000.0,
+    98876000.0,
+    108545000.0
+   ],
+   "reference_ns": [
+    1.0817916666666667,
+    1.088625,
+    1.0582604166666667,
+    1.09690625,
+    1.0299583333333333,
+    1.1306770833333333
+   ],
+   "reps": 1,
+   "seed": 1172,
+   "size": 0,
+   "verified": true,
+   "workload": "edge-empty"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    1000000.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    118000000.0,
+    163000000.0,
+    135000000.0,
+    142000000.0,
+    118000000.0,
+    132000000.0
+   ],
+   "bend_ns": [
+    3.0729166666666665,
+    4.244791666666667,
+    3.515625,
+    3.6979166666666665,
+    3.0729166666666665,
+    3.4375
+   ],
+   "checksums": [
+    "2970296128",
+    "453902144",
+    "1340137280"
+   ],
+   "count": 100000,
+   "grow": "reps",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.pop",
+   "operations_per_sample": 38400000,
+   "reference_control_ns": [
+    3000.0,
+    2000.0,
+    2000.0,
+    2000.0,
+    2000.0,
+    2000.0
+   ],
+   "reference_delta_ns": [
+    50636000.0,
+    46901000.0,
+    51726000.0,
+    45194000.0,
+    53969000.0,
+    47087000.0
+   ],
+   "reference_ns": [
+    1.3186458333333333,
+    1.2213802083333334,
+    1.34703125,
+    1.1769270833333334,
+    1.4054427083333334,
+    1.2262239583333334
+   ],
+   "reps": 384,
+   "seed": 1173,
+   "size": 0,
+   "verified": true,
+   "workload": "edge-empty"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    93000000.0,
+    102000000.0,
+    94000000.0,
+    127000000.0,
+    121000000.0,
+    125000000.0
+   ],
+   "bend_ns": [
+    116.25,
+    127.5,
+    117.5,
+    158.75,
+    151.25,
+    156.25
+   ],
+   "checksums": [
+    "823287446",
+    "804447638",
+    "912671126"
+   ],
+   "count": 800000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.from_list",
+   "operations_per_sample": 800000,
+   "reference_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    1000.0,
+    0.0,
+    0.0
+   ],
+   "reference_delta_ns": [
+    47407000.0,
+    41162000.0,
+    49180000.0,
+    49548000.0,
+    54629000.0,
+    46839000.0
+   ],
+   "reference_ns": [
+    59.25875,
+    51.4525,
+    61.475,
+    61.935,
+    68.28625,
+    58.54875
+   ],
+   "reps": 1,
+   "seed": 1174,
+   "size": 0,
+   "verified": true,
+   "workload": "edge-empty"
+  },
+  {
+   "bend_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "bend_delta_ns": [
+    103000000.0,
+    109000000.0,
+    98000000.0,
+    106000000.0,
+    98000000.0,
+    108000000.0
+   ],
+   "bend_ns": [
+    10.098039215686274,
+    10.686274509803921,
+    9.607843137254902,
+    10.392156862745098,
+    9.607843137254902,
+    10.588235294117647
+   ],
+   "checksums": [
+    "3326625559",
+    "984224599",
+    "2265980823"
+   ],
+   "count": 10200000,
+   "grow": "count",
+   "measurement": "ok",
+   "method": "batch",
+   "min_bend_delta_ns": 50000000.0,
+   "min_reference_delta_ns": 100000.0,
+   "operation": "binary_heap.to_sorted_list",
+   "operations_per_sample": 10200000,
+   "reference_control_ns": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "reference_delta_ns": [
+    55804000.0,
+    48468000.0,
+    52251000.0,
+    50096000.0,
+    51707000.0,
+    50034000.0
+   ],
+   "reference_ns": [
+    5.4709803921568625,
+    4.751764705882353,
+    5.12264705882353,
+    4.911372549019608,
+    5.069313725490196,
+    4.905294117647059
+   ],
+   "reps": 1,
+   "seed": 1175,
+   "size": 0,
+   "verified": true,
+   "workload": "edge-empty"
+  }
+ ],
+ "environment": {
+  "bend_compiler": "bend 2.0.16 (/Users/monkeair/.bend/bin/bend, sha256 da9bc51449f04a65bf633351fb754cd6f883f5f5d9ab0c4e947f5c6f19eb7386)",
+  "bend_flags": "-o <bin> (native C backend); run with --threads 1",
+  "cpu": "Apple M4 (10 logical cores; benchmarks pinned to one Bend worker thread)",
+  "os": "Darwin 24.6.0 arm64",
+  "reference_compiler": "Apple clang version 17.0.0 (clang-1700.6.3.2)",
+  "reference_flags": "-O3 -march=native -std=c11 -fno-strict-aliasing",
+  "reference_revision": "benchmarks/native/ in this workspace, sha256 of every\nfile recorded in source_sha256"
+ },
+ "failed_measurements": [],
+ "reference": "optimized C same-algorithm implementations",
+ "seconds": 197.7,
+ "source_sha256": {
+  "END_TO_END.bend": "063de758b1b440bfeb5a88e0832a76b9ce2d64ca3fbaef7e8156f87cced6d4dc",
+  "PROOF.bend": "5bf861bc1df4ae533707f53f91b7678d1396f13aded4e77ee776e55873582c4f",
+  "benchmarks/bend/balanced_search_tree.bend": "6c9328877178d47cd25be93275da165e81e75e071d776fcecfdd92bac2c6e96a",
+  "benchmarks/bend/binary_heap.bend": "7e8092a8574af69a47f56070a70807aefb7927a8be209a0b9cc232e87e23c9a3",
+  "benchmarks/bend/bitset.bend": "fb4fd3341d4d37414ac9c84e4e0e619beea56126393af4b5fc03d5c24e8f1eb8",
+  "benchmarks/bend/common.bend": "51bd6a71ee3e00a21db0a186ad24799b432937ff323ac2c2355a19c2d46b5755",
+  "benchmarks/bend/deque.bend": "e385de00e932e676ea0c57b3deff54da4508d2476bb468a1e4ad00743e489d5a",
+  "benchmarks/bend/doubly_linked_list.bend": "8cdb9526d42a54f03028d9ceb62553c0a0d717002fadaceb4e5f9bb4f7e859a7",
+  "benchmarks/bend/dynamic_array.bend": "9902dc7b4ed25427beb776c6bbef8feab4cefa27bc58559d2e5f132b3b6f49cd",
+  "benchmarks/bend/fenwick_tree.bend": "b16ac5e6f0e44a30f80f76da6afecb6f410808a8347ca81b98f561fe96ead3b4",
+  "benchmarks/bend/graph.bend": "901c6a27bca7b6f5f62445bb398020efd7b0458109cbcb39db4e6941903fdb1b",
+  "benchmarks/bend/prefix_trie.bend": "df3b75c32b34b00a64f9c624df24af76e2f6749bd91d140434af3c0aec6afd50",
+  "benchmarks/bend/queue.bend": "25bc0b2ef1ef8fcffa85a1e1ac5127f7ff183d8e82ed07c44622cb7d2990f807",
+  "benchmarks/bend/segment_tree.bend": "a305fc7b0ee384aa00e5c0977e6dab18208ccf8d589a91b73ac40be900790ebf",
+  "benchmarks/bend/union_find.bend": "e0e7bf93f6653ab7446c20e6788a24ac30e4d4d8e3fa4d00f8ad6d351eb4592d",
+  "benchmarks/micro.bend": "41ffabdfc7d04c67006d7e7607e8940a5099101c38f2524eb7d8f3ecd1fcebb3",
+  "benchmarks/native/balanced_search_tree.c": "39bd6aab98c307339dc4b89255614f5aa98c0b574c2a717cb8753eceb0345479",
+  "benchmarks/native/binary_heap.c": "e51783ed25e8563da8b07b5af5b6db4f1b9054fe93299d909f364146f4b0c61f",
+  "benchmarks/native/bitset.c": "2119c395ee38bce90d5a9f811430f34261185534496d6880ccf64d6d766e2623",
+  "benchmarks/native/common.h": "597cce243df971c2771e61f7aa84021157b3f09c08aafb98538492ec585ec0f7",
+  "benchmarks/native/deque.c": "af90caf98ce887de5be2f38a35242260af9907f9ad3e96b75597db557285818e",
+  "benchmarks/native/doubly_linked_list.c": "e6844a4be375e6522a072f54f1c413fc359c14d4ebcc209d99517f760801c365",
+  "benchmarks/native/dynamic_array.c": "1f7b9f9577c48aa0fc35030e3ffdb5b665d103cf80c749a0916aef6a290b53ac",
+  "benchmarks/native/fenwick_tree.c": "a692600802b9b79033b7faff84c28911b1958fecb125b158ff29e15e0f3d1729",
+  "benchmarks/native/graph.c": "8e47098af65e47b0ab0fcb02f2840138efbe57b6aa3704b62cb46e2db619d1ce",
+  "benchmarks/native/micro.c": "1fac6bebb3e796e1ed7f2285299601a72aa08e7effc7112f8e9f756a80b3dd0c",
+  "benchmarks/native/prefix_trie.c": "d536c82e17c19b87684c0bee2545092e5b3bef38995eccccd6abac1ab0309371",
+  "benchmarks/native/queue.c": "741d99073b3c094acd6beb7d9ae853c12c1ee3393b6052eaff07fcd3fe85fc82",
+  "benchmarks/native/redblack.h": "e09b82154fb55c8731536c8a1dd3cfd6a4c8766dc7b58e2a77bd8378c4853b96",
+  "benchmarks/native/segment_tree.c": "3cd32c71db28105ecf24a264de5ebc0e6ed061264a8c3400545fa70f35537aa4",
+  "benchmarks/native/union_find.c": "104fbd48dc2fda00610a169e75aa39b7f0c40cb827a58f16245fb9883d27276f",
+  "benchmarks/run.py": "23c014203470a02988419bfaf1a2a724f0eae951ea125f8185aa5ead098eb819",
+  "benchmarks/workloads.py": "04758dcccfa31438ce55fa78c4c60002b8d30da0cc4038795cd55f6fbfd7217b",
+  "native_bench/balanced_search_tree.c": "c7a6f880dd3e8608df081f3c80c0d3b4e1c3ebdc5be59b580a22af48be1183bc",
+  "native_bench/binary_heap.c": "3c91732ddb08b077475ec61e57f4110dedd5629d8c5b6ae32faf3fbb4ee26ee0",
+  "native_bench/bitset.c": "5c5c7326c19fd2b26d2f58732395f59123542bc3eb59c4cde6c59ab94cd9fb64",
+  "native_bench/common.h": "061a75cd57a39ba9a345830d54f6d4e9b5b2ee762246182b77bbbb8024ad772f",
+  "native_bench/deque.c": "19a69c1827d18675e571af67922a020bd89cf22188841a420aba25ec10267429",
+  "native_bench/doubly_linked_list.c": "cedce0159534441b331a8ecf4d38ba70ca6066dca4e76dd9cf0e3c2e8eeddd29",
+  "native_bench/dynamic_array.c": "194b66aa8ea8355edeb594989335128c40d7a7bafa83a86419031543425ba5f7",
+  "native_bench/fenwick_tree.c": "24a2395726c93ed0883e82f74c6777b00afa801bc939696de77f30a85912eb57",
+  "native_bench/graph.c": "2d9b18d533332e298be1cff217a7d49672aefab365f625cc1431a6fece9397e9",
+  "native_bench/prefix_trie.c": "88054a4737b9c8a2c9e97e35d62d1ec040d2ee4bc47ca7cf98e7b044fb7d348a",
+  "native_bench/queue.c": "53defac1d5bb7171ab0269881bd198d735002cae94f8d9ed42a0a77eb683495a",
+  "native_bench/segment_tree.c": "025aa3b8a8e3cf5c507ac2483ce681860928a1eb7bd0f7d7c09a26e03fbf5959",
+  "native_bench/twothree.h": "57edbfc7c33fe9aafb005dad6d1150b89d6e8155d395a6b04c92af392bf046db",
+  "native_bench/union_find.c": "eb49c640135376ad0a404a0675e1a69008b1fc67ad29fe120c18e603f00278c3",
+  "proofs/balanced_search_tree.bend": "d0b738cfefd082aafd78b896d5fda962bd111c89811a1087c08aa3c454e9e62f",
+  "proofs/balanced_search_tree/api.bend": "a58526e7073ed0f6ca0cffa77d79429da6c1f5d000f6160f658111a0c4fccb45",
+  "proofs/balanced_search_tree/query.bend": "6fd3681c7dba8950fa09a6a064b7827e99132f75ffceb9dba19bc775f0975a49",
+  "proofs/balanced_search_tree/sorted.bend": "8225d3ff71738d6a3b17a4e0237dd3e70dd6e923864729c9e6e7cf4202438b52",
+  "proofs/balanced_search_tree/specops.bend": "043c423a38fffd47c779bcbd8e715aae57d4430e94bc1de402e7ed5058259748",
+  "proofs/balanced_search_tree/steps.bend": "d0fb5e9b329f9618a6ff227dee2adcad9e9fb02d454b23b2093f356433e50e77",
+  "proofs/balanced_search_tree/trace.bend": "3a085e5eb8dc5ed9e657067e000fe65cdc487966f0f5e33f56bdfbe6890bd2fc",
+  "proofs/balanced_search_tree/tree.bend": "c547168f427940e6d0fd1a401053bac3149fa0efc8d2d04c05470e59cf82badc",
+  "proofs/binary_heap.bend": "34861dd5e6e5817596f915e06b6b83fe3aeb0d0f37f266a8fc7fa46a79dad8ff",
+  "proofs/binary_heap/multiset.bend": "073c6f25090e725e1f5da60009cbcc4b11fd6fa46bec3c2224e4731d8188f49c",
+  "proofs/binary_heap/ops.bend": "96105de1e6cbe2bbd06e39653088ffcf157d8b5c40d96a949d027ff1a6018a7e",
+  "proofs/binary_heap/steps.bend": "f0d331845881acb82de9bddbec8cdee86bca2d4fb7106762aa63cf41f0702a49",
+  "proofs/binary_heap/trace.bend": "8dc1c4b5211890062328afd8072b8ddc939918798048ca99ef6a494625ddd6fe",
+  "proofs/binary_heap/tree.bend": "559b14eabd0c3d488e24fe4deb582026e8627750bde04d90011fd1e6889921d5",
+  "proofs/bitset.bend": "46b9a318c8122c777806e16d16597bae38ab7cd699ad200bb4e1a06e9b94e7a4",
+  "proofs/bitset/arr.bend": "1ac43c4b6b360b83230b6de4544e771331b80dd1f68f244b55b6ad1be4dac87c",
+  "proofs/bitset/depth.bend": "f13dbc782f6ad23ebb201a25d908895988c792504ed6443be6f16cf957f5c13d",
+  "proofs/bitset/index.bend": "179dddbe776335d6db38143e1da3b3dccd35d8c6bf27d2c8f14ae0be8f4c9e5f",
+  "proofs/bitset/lists.bend": "ab63a31d1bb7c78491c83c9eb2e1c4d2eaee708bdb85835b754ecd84e24095a4",
+  "proofs/bitset/listx.bend": "fb2b74b200293261ba24189fbd11cc2024b9079aa51eeda447a966adf98ff2f7",
+  "proofs/bitset/loops.bend": "d5c3f05d737cb326e0a15a9e834176c452f1a003465f19afeaccb4ae26f5afd7",
+  "proofs/bitset/model.bend": "64b363d59ff52a1e2b4ded0cb0f71b5d527b486485fd1943433fe660232666ec",
+  "proofs/bitset/state.bend": "a265d74843ac567bed76d9763eaf56da3c8be0b602007cd72271d570f42113cd",
+  "proofs/bitset/steps.bend": "6daec00a49afb4e102fca4b685d38ed3f4b92852d24d128d83a91ce930384422",
+  "proofs/bitset/trace.bend": "24e5e195e9626c7ba944a061498c08956e1a2ae2e2fb7c8376fd29775d67a578",
+  "proofs/bitset/walk.bend": "225e1c95ae7ea7489b05fb57c8f8d27130131198893710b6be85afd1f7e85d6a",
+  "proofs/bitset/word.bend": "10497f09a8f3d51a508d2d1f4aeffcb8f953bec5b3e5cd691ed1a00e51fac73b",
+  "proofs/bitset/zip.bend": "da6b9e3fa5b9629aa557642a54ffdda74b13f2ef1a521bd184de7a67371a45e8",
+  "proofs/deque.bend": "dbfe0c5485e985ed8e314ea98228f4d6877d223306c516a3c726efde5bf6a8b7",
+  "proofs/deque/closed.bend": "3679f4a1ffe26a48b227eb73c5e7c848cd5b18db30bf8d782d42dedbf1dce310",
+  "proofs/deque/init.bend": "4a9409304b253c9946b72cbeb505d44e185318bdfb41935eefeee59e16076eff",
+  "proofs/deque/layout.bend": "ae81a4a634cfd453dd1c909db964316f4ea62357f959bf9db82c643c2fb8c293",
+  "proofs/deque/state.bend": "38c6e87c17281cfeeaacd71c4fc3af28f6a8214d90afec0834ebcd1762f1e32d",
+  "proofs/deque/steps.bend": "ef3bdadd6832fab57db5fd8297023b174acdbea7c690828f42c564e299d1fcd4",
+  "proofs/deque/trace.bend": "9e8b9e535cd2677bdff77f83bc965c9f9ce8ec54e7ea1fb3d439a0c2d421f2dd",
+  "proofs/deque/walk.bend": "8b446ea9c45d43930b684b567ff67ee549c6ba03d7e60805540532a55fd93b0a",
+  "proofs/doubly_linked_list.bend": "cd6c06e41d924fe402f51ac7c5681aa85f9d54d91cf6664a1c48ce8fe55c5d06",
+  "proofs/doubly_linked_list/cores.bend": "041828815e8f09cb44d57630bd6bbe5df0df6860180924aba6e581cc518f9aab",
+  "proofs/doubly_linked_list/cut.bend": "f282799aa9d02cee1ffeceee88fc2c5a186ca725844fccfc6bedca7529b59cc5",
+  "proofs/doubly_linked_list/facts.bend": "bb17f609ee27b4a031db36bf180497075009ff0d10db4ab21fe1f330d7195440",
+  "proofs/doubly_linked_list/links.bend": "03f4d2d1cbc44737bd22c5c42fefbb195820197e418c148b529460777fa35b36",
+  "proofs/doubly_linked_list/nodes.bend": "cb5529976ddbb80991e66c94db2f3819933fdc375b976c1f24c66a909293a24e",
+  "proofs/doubly_linked_list/steps.bend": "3131ca530452835b688eb42ae829082649b596a7d721fbfbcf5f01a196799233",
+  "proofs/doubly_linked_list/trace.bend": "8ff6c9fcef8462c944a0003db0b1e98971e3975fb296e57f66e904248aa8cac1",
+  "proofs/dynamic_array.bend": "3a4658d8e6aa1405858c94cf4018dc864b36488ce911d9291e54d85a56d6c5c7",
+  "proofs/dynamic_array/closed.bend": "bd1ca92e16bf0f86aecf679aa6d6ff7be24fa7b9192007e6fed7d497c43659f6",
+  "proofs/dynamic_array/growth.bend": "734f01aa5d9930e1b7306256236e3cb1d41316605bcb66cfeb06cfb64c70eae3",
+  "proofs/dynamic_array/layout.bend": "a94f7894e78b31cf455af8ac0bfde365730f60037cb83665ea09c2d433913845",
+  "proofs/dynamic_array/state.bend": "c6948de352402c95a79dcedd4cc92f42bc54961d3df273a618dfdc195ffd4e98",
+  "proofs/dynamic_array/steps.bend": "3fb0aeb6559ce7a185cee66bec589ebae03abd1181ae9a6225157d3bc235d314",
+  "proofs/dynamic_array/trace.bend": "1cd7390a6fe6edd995b8e7e47351b55f56f1969b4a55e9c5c7a72b9ff2b4d43a",
+  "proofs/dynamic_array/walk.bend": "595197a9036a8f11980cca1fa3a72d1ccfda3c83f158306be6ce921589efe608",
+  "proofs/fenwick_tree.bend": "be8ffc6af306db031acc32a95c196234d28b3d5b8e3f3e8905a170b6c570fd03",
+  "proofs/fenwick_tree/arr.bend": "5982df2be627ae9196b8b6abd4f402dc093573fd8ee2b4a4127eab0cdf98e21d",
+  "proofs/fenwick_tree/depth.bend": "d62fb48c2fcac9bc6d9a80bbd6ada268719c4087bdcb147c4035f76eca373c86",
+  "proofs/fenwick_tree/init.bend": "f73554b266e222bc0765f0e0c211de4adab76849a8a6347cef309157f67c965b",
+  "proofs/fenwick_tree/model.bend": "09e861ebbd5eb019b6e725a0968a2306b4892c74ceae8814f7cb3922c9f848b2",
+  "proofs/fenwick_tree/state.bend": "dfcf990eba6ce85403d3949fa22d6cbf2b87ad551523d2bd6a61e10f7e61b859",
+  "proofs/fenwick_tree/steps.bend": "aba4c4f146e1b99febba49582a131a34e4e0d9579b60d1b242a406b26bc9d445",
+  "proofs/fenwick_tree/trace.bend": "1b52932577f6806b2469ca063f0a4f3f74874f52e7deea310e1a912b88e9589b",
+  "proofs/fenwick_tree/tree.bend": "33fc5cd297cc19338305043c6d2cc8ac90c80c9a987ebd1b3d91c7cd44eb74e8",
+  "proofs/fenwick_tree/walk.bend": "9c9a7096c5dbe3fd8440b6b3e2f47b3bf446bc68187c22f42a3d44624afb975c",
+  "proofs/graph.bend": "1a492b7309ce3697314006f0c920f5d2abcfa2a04a3a3fcce2b6dc697d096998",
+  "proofs/graph/fmap.bend": "adc77d302c66d86cf93c719f490a2a4cbc5de3c5d0a6539d71f0dfc55f25ee2a",
+  "proofs/graph/model.bend": "0b6713394c450520d8bcc226034c4cca660f314a07edd87a57f305c4c60e0aab",
+  "proofs/graph/steps.bend": "768bfc9dfbbb81be673947a8db835cbbccc8f8aa27878f86b74a203ba95364f3",
+  "proofs/graph/trace.bend": "978be36ca1345469d770bbaa23e6fc895ed4292307a86f42d364e55305ed5348",
+  "proofs/graph/wf.bend": "ba379e24a7a0c9aafbbae6788bdd4f532fe382df917fa3abc932a2311284424f",
+  "proofs/graph/wfops.bend": "ba835132b31c9eaf4afdf466e4f1c0051dbaa619be22c70d59d8ab5863a850cb",
+  "proofs/lib/array.bend": "221a395c504dbcf1278c6d1237c9231ed93b4435c8a9ae0b69c05f90bf7cfeff",
+  "proofs/lib/flat.bend": "432b9d6901f75fbff7c9350742cbb56aec201d2def7c8390ff44858f262cf9bb",
+  "proofs/lib/list.bend": "7128c11c38d0a5c1e9df85690df43cb186300718d4c46b45b854a3631c765f81",
+  "proofs/lib/logic.bend": "3dc41a98af068579ea83a1132b5a2d6bbb1edde1f1dd774253c3683a06a82ad5",
+  "proofs/lib/nat.bend": "c707f24b9414132db278870c317e264db56e891502a761305c07ab0d2c8ac994",
+  "proofs/lib/order.bend": "0ce2e43c96a5162824aadb176fa16195ea7167a6672e92e2185d156d7b8d753c",
+  "proofs/lib/u32.bend": "0cdcfe263d4c9216bfae1340432da81a14e7dccd227e8a0b8374d9419cbf88ef",
+  "proofs/lib/u32alg.bend": "4bbcdea0904b247ae0191956f36c1e6920a02ad13ca1203c2b97a8e9378c99d9",
+  "proofs/lib/u32seq.bend": "7edd0c7458e674f2d79d309270c7c40551f0aac684cdbe1cad9f480fe5b82af2",
+  "proofs/lib/vec.bend": "a7eb768a6490aed64604690f669a2cab3aed96f3638c5672200c6097caff2b46",
+  "proofs/lru.bend": "fae896293f8ed737d322b8bf25e6c77a60fe4107c33df1ed964f2e9984cd0f4d",
+  "proofs/prefix_trie.bend": "51bad1da13b9292d5c9ce30a31c44b1f5737a3ba8c28c58c0bb18ebe9d639ab5",
+  "proofs/prefix_trie/keys.bend": "f2b869b01357500b790d3e6d72534da84b36275e84cd3f7f0263e930ca058ca5",
+  "proofs/prefix_trie/ops.bend": "7855a14464b621b8a2c8085042ac093cb94ecfb7c3d82ff57ac67665da4c3b88",
+  "proofs/prefix_trie/steps.bend": "301b70b473f4a6dbc0a46e8e1ef9f3abe3d6213914a82190410fbb75cf7ccd7f",
+  "proofs/prefix_trie/trace.bend": "181f8634a9543818b8468c4372b16f06e041c3e1fadca746aea05e7877b863f7",
+  "proofs/queue.bend": "bc5378fd8b864e8d857b36e99c5870d722909f3d69a4aeb33adb07e52e123315",
+  "proofs/queue/closed.bend": "f2994cdd0818b99923129891b74041939f0c6c68f0c6341a5b7a935b6c1c5ad4",
+  "proofs/queue/steps.bend": "4593944efc4020838863fc711c3050b51a4dde2265b1495553c8906922e9d1f2",
+  "proofs/queue/trace.bend": "55997b0f3a67e8a1fa805d1fdea49f08712e4d49723f31b00ea856eaf37dbc10",
+  "proofs/segment_tree.bend": "f2b74551747b360a7ae5eddc761dc08fc77ddc3d797da42cbc2613c04c6d61a8",
+  "proofs/segment_tree/arr.bend": "ed5edc3132f3287ebb18d07520afdac83ebf502e6027a250009fc044d56bdc84",
+  "proofs/segment_tree/depth.bend": "fe179f84e985759d616c5226714b1944c644ca284b81078100e3e29682a301d6",
+  "proofs/segment_tree/init.bend": "ff280943f26c5fb802f6fb1591d776b68c10f9bfc4749e6bba54621b5b22f5b9",
+  "proofs/segment_tree/model.bend": "c6e6617ed126c7288d65ea554e87975f40901e61423a4184fc4afb1ab1d5af35",
+  "proofs/segment_tree/node.bend": "4c4b601fa71a34bddbff3dfadc50a3c7ae66ab98f7acf7b47b355ced6a08e23c",
+  "proofs/segment_tree/ops.bend": "090853961e5b82beedeba0096ad38e21bd4c091fd0a02edea4e4f719421c52ef",
+  "proofs/segment_tree/state.bend": "50c2eab7e70d341a2830933bfa464634f7c9740df057d6539bb29adf89f6fff1",
+  "proofs/segment_tree/steps.bend": "cc97fe4173e3a9c40c144b52cfa14aa61a101ca58f6a90f766655745bb16f980",
+  "proofs/segment_tree/trace.bend": "106740d019d77664bba7b3432cfabff40f3c72ede235ff3aee4a06131f48f301",
+  "proofs/segment_tree/walk.bend": "bda845f496f6ef11d841a3ae3354671944817f68c3720f0fa84320bef5ef9c0b",
+  "proofs/union_find.bend": "6f925a3dddb6b9b1886c71eb6dab51a446e222f330aec9df0f29ab68e93a6447",
+  "proofs/union_find/arr.bend": "8e95c8446e6c3e288dad9e82a9321561d71aa3359e5a788aa7516787de5f017f",
+  "proofs/union_find/bridge.bend": "e33af197217f287ee76962b4c75e32375796a6299b0b62bf778088d507357a71",
+  "proofs/union_find/cells.bend": "3359ee571fe18f986b7546f1be7f86713dee6137a49dbbed17697b0d5409cfe1",
+  "proofs/union_find/depth.bend": "a79c7a7bb970dd6b3fba5de7308e5a14393293d620113192ee069457f3f35a1c",
+  "proofs/union_find/init.bend": "607d637e7656549bb3365f31ef3caca2754719e779eaeff7c584e9f18145e3c3",
+  "proofs/union_find/model.bend": "8761d8912bb7e19f284a235b29f891422aa06c6c8a57369f15f0030dc8abf06d",
+  "proofs/union_find/state.bend": "c93442227d84a2876a81a1b504297c747d0f426469b80369c68419dc45da0c91",
+  "proofs/union_find/steps.bend": "2772adfad011a0e735ca487d58cfa2dad4ec00cb1d5ecec3ac61a70cd0252893",
+  "proofs/union_find/trace.bend": "a8955cf0a622b6c679ff7a6fd26e4ff8f6eeb77d5217a3d52f912c9f9395cac1",
+  "proofs/union_find/union.bend": "62c56eefb7abc350ed6e0761cadcf1308b1b86c8073f05ef26b1b8dd327b0491",
+  "spec/balanced_search_tree.bend": "746240799392a9c8f7f752ae8f8d917befeb59f828451a859ff081b038d819c1",
+  "spec/binary_heap.bend": "fa10299ac4ec162aaa905b27927efa5df912ff6cb939a81e8e737154f139ae5c",
+  "spec/bitset.bend": "ce81fe3879bff378310dc13b6403e6a0735444ac2e2daa27d120fe5c6eb7543a",
+  "spec/common.bend": "c99baf8cafa3a2ed1a8121f3c93eff44e4e026984082f8cced26f4ac4b70c2ac",
+  "spec/deque.bend": "eaa3f74dc84cd4c39a0ba54059aa09f202f659ba52abc7a29686f441863d1385",
+  "spec/doubly_linked_list.bend": "169dd1a101415f3512d3be01463ce561c20a424a35bb56274ddd2e47ea7f9153",
+  "spec/dynamic_array.bend": "ac6cbff0d8a727ed89a6816f93d4b0b27751b538b9800af743183ca8147cff56",
+  "spec/fenwick_tree.bend": "be9f7f4e3f1f279f132b0f902da6ab33cc0833576f5b2d870624f785f3b5370e",
+  "spec/graph.bend": "2259a0325aa0e36acc69adffeba31cfe55c8d2dda4221e68118a111af72cbdbf",
+  "spec/prefix_trie.bend": "b134ac7a9440037bec995e30523c2df51d25f1d83bb1529d5b01a43b7ed25d21",
+  "spec/queue.bend": "edf4edfc63fcb44e0c04588b8c082c622f9574eb5fa067e311328733a04d97c2",
+  "spec/segment_tree.bend": "83c26b959d49ce47c4dbb7312a7047ee132e42451220720d5c631d6f747e8431",
+  "spec/u32seq.bend": "9cd783ca0bd024f125f6588691ff5b7f1a780dca051dcd5b400170f61edc3a06",
+  "spec/union_find.bend": "a052d8e3b3972777f740aa52deca7597408b90f6c7e23b000efbab63a89110db",
+  "src/balanced_search_tree.bend": "cc469ed8297611692279fd650b85b06e58c5c994351880fab0974bb54880e4e9",
+  "src/binary_heap.bend": "1103058726b37d73c92dc08a7707bc72c8431a7a9fbdcd3917ff50fa5c80b078",
+  "src/bitset.bend": "2c401f9d72f3625abb6d44208fa05184c269ddc5da7d71ff87f6b4ce3c53c06b",
+  "src/deque.bend": "44c5801ec700db6f951ec0b79dbc81e3d7c1402259fdbe28ffcf917e8e9661b1",
+  "src/doubly_linked_list.bend": "a856bb86123fc55373414870fe35d6261893f46e094adf6eede632e47820e1bd",
+  "src/dynamic_array.bend": "9cccbfcebfcd88f099b376d3dafb412d1202b24427915225c5b41a40472ce950",
+  "src/fenwick_tree.bend": "e17f9ab9ef2d1fbc391a4ee37fa3c52979ccaeb7b58904f0949f96ce6dc245a2",
+  "src/graph.bend": "a2884c1a844d36af73ed6f8b3a71434266ea26a26bf61a4042d16e3e51a0ed98",
+  "src/internal/vec.bend": "cddd5687714bf0a096c29eea0c802abc05f4476074a50e49aab79f12da728d47",
+  "src/lru.bend": "5ae7cb4791c88446810939a18c0d48ea33cf856b1322e7675f8fda68e34cb298",
+  "src/prefix_trie.bend": "1626865303b5fc86473b63977484d5ea750ca05164b5a82d2edc99b0a2080a55",
+  "src/queue.bend": "711356608dd5dede2e776f42df0b213ea9ae94e8f7a269e4603503ffc2eed627",
+  "src/segment_tree.bend": "bc97b38dd2403c17ecb857c5da427cb4f62d486609498f86a9c1677f9367f43a",
+  "src/union_find.bend": "d60bb1f9ec2e271085add8d8892907f68fcc132b60ac60ae7bc14702d403cd3a",
+  "types/balanced_search_tree.bend": "8a8f622ea51bb1be018484ebb8b98faa8cc021699d3d69655d002c2df8c60f64",
+  "types/binary_heap.bend": "c8f87e5ac7ca13719fc43770b81f62134306a0759d491dba5d6daa07c6046acb",
+  "types/bitset.bend": "bc24374cac3deef5bc13892d5eb454479949ebc2e5cf7f76ae41c60a701371ef",
+  "types/deque.bend": "f388c17d9e8a2be1110becce4e76ecc97f4fddc69f195850614aff6ab491445a",
+  "types/doubly_linked_list.bend": "4bf79ff34c0746526016125b16fe645870d5c26bd87ecc73dabf02c39b77ced1",
+  "types/dynamic_array.bend": "3ce5f0237a4681ca8b8290cd6af645ea3d7bfe06018f871e72d1ca61eb64b081",
+  "types/fenwick_tree.bend": "53dc4a669e4c85651aa0b9961ea180ba6edc177495a1d2662187a670c9015aed",
+  "types/graph.bend": "899a2af926d34d3e14446f1162180c8f5d5c4fcdf8fcecddb7112d84f7109726",
+  "types/prefix_trie.bend": "2acd43fcc13afccbc26e3d4e76073d0e66de66813e80180f7d39265de214ea10",
+  "types/queue.bend": "afc14e9714faac7e37d2710ca77ae8208c22d980b9268c0ba516376795bc7106",
+  "types/segment_tree.bend": "65ff0566db81a6ca70351eb388214a819b922b5d46567865d06b8bd722091ec2",
+  "types/union_find.bend": "0d42903693cc0ec55355012de291ab760de71a3936e39898e8490dbd2a58a973"
+ }
+}

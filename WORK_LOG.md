@@ -978,3 +978,203 @@ without re-deriving anything:
    `up_loop` itself. What remains: `sift_up_ok` (the entry point), the whole
    sift-down development, the per-operation laws, the trace law, the
    aggregator and END_TO_END.
+
+6. **The array-heap migration is finished and checked.** `bend PROOF.bend` is
+   green again with the packed array heap; the Braun tree is gone from the
+   tree (`proofs/binary_heap/tree.bend` and `ops.bend` deleted, the archive
+   copies under `docs/archive/` kept as the revert path, now unused).
+
+   What was written, in the order it was proved, every file checked BOTH
+   abstractly and at `~U32` through a scratch instantiation:
+
+   * `proofs/binary_heap/down.bend` -- the sift-down loop. Its invariant is
+     the sift-up one with the two pairs BELOW the hole excluded (`ho_exc2`),
+     plus `pair_ok` at the hole and `kids_le` on the block (stated on the
+     block, so it also holds at the root, where there is no parent). Its fuel
+     measure is `n <= scale(fuel, 1 + i)` -- the hole index at least doubles
+     every step -- which is why no `Nat.mul` ever appears. 11 cases, mirroring
+     the probe: no left child; left slot empty (absurd, the layout says it is
+     not); one child, stop; one child, move; right slot empty (absurd); two
+     children, left smaller, stop/move; two children, right smaller,
+     stop/move; and the two `fuel = 0` move cases, which contradict the fuel
+     bound.
+   * `proofs/binary_heap/root.bend` -- the root is the minimum (a walk up the
+     parent chain with the index as fuel), the multiset has exactly one
+     element per occupied slot (`model_length`), and `head_root`: emptying
+     slot 0 removes exactly the root from the sorted multiset, so the model
+     of a nonempty heap IS `Con{root, rest}`. That is what makes `peek` and
+     `pop` observe the spec's head.
+   * `proofs/binary_heap/grow.bend` -- doubling the block (the old block
+     becomes the lower half) changes neither the layout, nor heap order, nor
+     the multiset.
+   * `proofs/binary_heap/state.bend` -- the shadow `Sh{size, depth, tree}`,
+     `real`, `good`, `model`, `abs`, `Inv` and the constructor, in the shape
+     `proofs/dynamic_array` and `proofs/deque` already use.
+   * `proofs/binary_heap/push.bend` -- push writes at slot `size` and sifts
+     up; the four hypotheses of the sift-up law at a fresh leaf (no pairs
+     into the new slot, no children inside the heap, the layout below
+     unchanged, the multiset gains exactly x), in both the "there is room"
+     and the "double first" case.
+   * `proofs/binary_heap/pop.bend` -- pop takes slot 0, lifts the last
+     element into the hole at the root and sifts it down. `pop_split` is the
+     observation law: the model of the heap is `Con{root, tgt}` where `tgt`
+     is exactly the multiset the sift-down is given as its target.
+   * `proofs/binary_heap/sorted.bend` -- `to_sorted_list` drains a CLONE, so
+     every iteration is the pop of the clone and reuses `pop_sift` and
+     `pop_split` unchanged; the heap itself is returned unchanged.
+   * `proofs/binary_heap/steps.bend` and `trace.bend` -- every operation
+     (errors included) and arbitrary finite operation traces, with the same
+     `depth + pushes <= 31` capacity premise the deque carries (`pushcost` of
+     `FromList{ys}` is `length(ys)`), discharged for a whole list at once.
+   * `proofs/binary_heap.bend` and the `binary_heap` section of
+     `END_TO_END.bend` restate the public laws at `(U32, U32.cmp)` and
+     `(String, String.order)`.
+
+   One source change fell out of the proof: `drain_probe` now decides
+   emptiness from the COUNT (`n == 0`) instead of reading slot 0, because the
+   invariant does not constrain the slots above `size` (and it saves one
+   array read per drained element).
+
+7. **Harness changes that went with it** (all strengthening, none weakening):
+   `tools/mutants.py` -- the `peek` mutant text was updated to the new source
+   and three representation-specific mutants were added (sift-down takes the
+   larger child, pop does not sift the moved element down, a full block is
+   not doubled); `tools/scenarios.py` -- two new binary_heap scenarios (a
+   decreasing run of 10 pushes, and an increasing run followed by removals,
+   which exercise a block that has been doubled twice). One mutant that was
+   tried and dropped because it survives every scenario is recorded here so
+   it is not tried again: `parent(i) = i >> 1` (instead of `(i - 1) >> 1`)
+   leaves a block that is still a valid heap for every scenario tried, so it
+   is not a detectable defect at the API.
+
+8. **What the array heap measures.** All 28 `binary_heap` rows, native C
+   backend, one thread, the same harness as every other structure (medians of
+   the alternating samples, ratio = bend / reference):
+
+   | row | small | medium | large | edge-empty |
+   |---|---|---|---|---|
+   | push | 1.61x | 1.52x | 1.75x | 1.82x |
+   | peek | 0.95x | 1.00x | 0.94x | 0.95x |
+   | length | 0.36x | 0.34x | 0.34x | 0.35x |
+   | from_list | 2.15x | 1.96x | 1.98x | 1.99x |
+   | to_sorted_list | 2.23x | 2.36x | 2.42x | 2.25x |
+   | pop (restoring pair) | 2.72x | 2.37x | 2.63x | 0.98x |
+   | new | 1.01x | 1.10x | 1.02x | 1.05x |
+
+   Against the Braun tree that was replaced (5.35x .. 7.23x on the same rows)
+   this is a factor of ~3, and every row except `pop` is inside the 2.5x
+   limit. `pop` sits at the limit: 2.37x .. 2.72x across runs of the same
+   binary, i.e. the measurement noise (about +-0.1x) straddles it.
+
+   Where `pop`'s remaining factor is: a pop does 2 array reads plus, per
+   level, 2 reads and 1 write -- exactly what the C reference does -- so the
+   gap is Bend's per-operation constant (one `Some{}` cell per write, one
+   loop-state cell per level, and the eight-deep helper chain a probe needs
+   because a `match` cannot scrutinise a computed value). Two things were
+   tried and did NOT help:
+   * clearing the vacated slot was removed (the C reference does not clear
+     either), which is a fairness alignment, but it moved pop only from
+     2.72x to 2.52x -- inside the noise;
+   * `Array.get.at`/`Array.swap.at` with the block's cached capacity, which
+     would halve the per-access cost (`Array.get` recomputes `Array.size`
+     first, walking the spine), CANNOT be used: the native C backend rejects
+     the program with "an open Array element type" for the `.at` entry
+     points. Only `Array.get`/`Array.set`/`Array.swap` compile.
+
+   The honest reading: with this element representation (`Maybe<A>` slots)
+   and this runtime, `pop` is at ~2.5x and cannot be pushed clearly below it
+   by local changes. The next lever is representational -- a block of `A`
+   rather than `Maybe<A>` (one cell fewer per write, one match fewer per
+   read), which needs the whole slot/layout development re-stated over `A`
+   with an explicit "first `size` slots are live" invariant. That is a
+   separate, larger piece of work and is NOT claimed here.
+
+9. **Status of the objective as a whole at the end of this session.**
+   Done: the array-heap migration with every law re-proved (items 1, 2 and 3a
+   of the assignment; item 5, graph `wf` preservation for AddVertex,
+   RemoveVertex, AddEdge and RemoveEdge, was already proved -- `wf_step` in
+   `proofs/graph/wfops.bend`, restated as `graph_step_well_formed` in
+   END_TO_END.bend).
+
+   Not done, with what each needs:
+   * 3b..3e, the other representation migrations (`balanced_search_tree` ->
+     arena red-black, `prefix_trie` -> arena children, `doubly_linked_list`
+     -> arena records, `graph` -> indexed adjacency). Each is the same shape
+     of work the heap just took: a new representation in `src/`, a shadow and
+     invariant, the per-operation laws, the trace law, the mutation/scenario
+     updates, and a re-calibration of its benchmark rows.
+   * The cheap over-limit array rows. Measured again in this session:
+     `dynamic_array.clear` 7.9x .. 13.4x, `dynamic_array.to_list` 4.7x ..
+     6.5x, `dynamic_array.reserve` ~3.2x. These are NOT index-arithmetic
+     defects -- `U32.from_nat` is O(1) in the native backend, as
+     `dynamic_array.get` at 1.2x shows. `clear` is `Array.new` of `2^depth`
+     against a `memset` (about 0.9 ns/slot against 0.12 ns/slot) and
+     `to_list` is a cons cell per element against an arena bump. Both need a
+     different plan than "fix the loop", and clearing only the occupied
+     prefix makes the ratio WORSE (a Bend store is ~1.7 ns against a
+     vectorised memset byte).
+   * 4, the nine `lru.*` benchmark rows. They are required by
+     `automation/performance_contract.json` and there is still no
+     `benchmarks/bend/lru.bend` and no `benchmarks/native/lru.c`; the retained
+     cache is String-keyed with an explicit clock, so the C reference has to
+     reproduce the same eviction, the same size accounting and the same clock
+     semantics before any row is meaningful.
+
+
+Operator recovery (2026-09-20 22:08 UTC): stopped only waiter shell PID54848. `pgrep -f "tools/validate.py"` matches the waiting shell itself, so it cannot finish. Actual validator PID53632 was left running; inspect its exact PID or completed validation report instead. Do not use pgrep patterns contained in the waiter command. All twelve structure lines in /tmp/val_full.log currently report passed; require the final report before claiming whole-gate completion.
+
+10. **Self-audit of this session's work against `automation/AUDITOR.md`.**
+    Every claim below was re-checked at the end of the session, not assumed.
+
+    * *Public API unchanged, spec independent.* `types/binary_heap.bend` and
+      `spec/binary_heap.bend` were NOT touched by the migration: the
+      specification is still the sorted multiset with insertion sort and
+      imports only `Base`, `spec/common.bend` and `types/binary_heap.bend`
+      (checked: `grep ^import spec/binary_heap.bend`). The heap's laws are
+      therefore against the same independent model the Braun tree was proved
+      against; only the implementation and its proofs changed.
+    * *No escapes.* No `@unsafe`, no hole (`?x`), no `axiom`/`admit`, no
+      foreign `import "..."` anywhere in `src/binary_heap.bend`,
+      `spec/binary_heap.bend` or `proofs/binary_heap/*` (checked by grep and
+      by `automation/acceptance.py`'s own closure scan). The "N unsafe
+      annotations" line the checker prints counts template instantiations,
+      not `@unsafe` definitions -- `bend src/queue.bend` prints none and
+      `bend proofs/binary_heap.bend` prints 861 because it instantiates every
+      law twice.
+    * *Templates are instantiated.* Every heap law is a template over
+      `~cmp`; `proofs/binary_heap.bend` instantiates the whole public surface
+      at `(U32, U32.cmp)` and `(String, String.order)` and END_TO_END.bend
+      restates the instances, so nothing is checked only abstractly. While
+      writing, each lemma was additionally checked at `~U32` in a scratch
+      file, because an abstract check accepts applications the instantiation
+      rejects (five real errors were found that way in this session alone).
+    * *Multiplicity and priority.* The abstraction is a MULTISET (insertion
+      sort, no deduplication): `push` of an equal element adds a second copy
+      and `vals_swap`/`ins_set` are multiset identities, so nothing collapses
+      duplicates. The scenario list exercises three equal elements
+      (`push:7 push:7 push:7 sorted len pop sorted peek`).
+    * *Errors.* `peek` and `pop` on an empty heap are proved to return
+      `Fail{EmptyHeap}` and leave the state unchanged (`peek_ok` and
+      `pop_ok`, size = 0 cases); the specification's `item`/`pop` agree.
+    * *No hidden bounds.* The only premise beyond the invariant is the
+      capacity condition `depth + pushes(ops) <= 31`, carried explicitly by
+      the `push`, `from_list` and trace laws and documented as conservative
+      in `PROOF_STATUS.md`. `to_sorted_list`, `peek`, `pop`, `length` and the
+      step law for the other operations carry no premise at all.
+    * *Complexity claims match the representation.* `src/binary_heap.bend`'s
+      header states O(log n) push worst case, O(1) expected, O(log n) pop,
+      O(1) peek/length, O(n log n) from_list/to_sorted_list plus one O(n)
+      clone -- all against `Base.Array`'s indexed access, which the
+      benchmarks measure at ~1.2x of a C array load, not against any O(1)
+      folklore for a persistent map.
+    * *Tests and mutants are independent of the proofs.* The driver
+      `tests/binary_heap/main.bend` runs the real API and prints observations;
+      the expected answers come from `tools/scenarios.py` executed by the
+      Python harness, never from inside Bend. The three new mutants are
+      semantic defects in the new representation and all die.
+    * *Checks I did NOT perform, and say so.* The full 111-operation
+      performance gate was not passed (see 8 and 9 above: `binary_heap.pop`
+      is at the 2.5x limit, several `dynamic_array` rows are far over it, and
+      the nine `lru.*` rows do not exist yet). The four remaining
+      representation migrations were not started. Nothing in this session
+      relaxed a harness check to make a gate pass.

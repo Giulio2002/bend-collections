@@ -40,14 +40,15 @@ Where a structure grows its array, the laws about the growing operations
 carry the representation's capacity condition as an **explicit premise**,
 never a hidden bound: `capacity(n)` for `fenwick_tree`, `segment_tree`,
 `bitset` and `union_find` (a premise of the constructor laws only), and
-`depth + (number of pushes) <= 31` for `deque` and `queue` (a premise of the
-push and trace laws, discharged for a whole operation list at once because
-`StepOK` also yields `depth(sh2) <= depth(sh) + pushcost(op)`). The deque's
-condition is conservative and is documented as such: it charges one doubling
-to every push, where a doubling really happens only when the block has no
-free slot at that end, so the trace law as stated covers runs of at most 31
-pushes rather than the 2^31 elements the representation can hold. The
-sharper, amortized bound is not claimed.
+`depth + (number of pushes) <= 31` for `deque`, `queue` and `binary_heap` (a
+premise of the push, from_list and trace laws, discharged for a whole
+operation list at once because `StepOK` also yields
+`depth(sh2) <= depth(sh) + pushcost(op)`; for the heap `pushcost` of
+`FromList{ys}` is `length(ys)`). That condition is conservative and is
+documented as such: it charges one doubling to every push, where a doubling
+really happens only when the block is full, so the trace law as stated covers
+runs of at most 31 pushes rather than the 2^31 elements the representation
+can hold. The sharper, amortized bound is not claimed.
 
 A generic array-backed structure also exposes executable `*_at`
 specializations, because Bend 2.0.16's native backend miscompiles
@@ -63,7 +64,7 @@ benchmarks run (`deque_trace_at_is_the_trace`,
 | `deque` | the `Some` slots of the window `[lo, lo + len)`, front first | depth <= 31, the slot tree is perfect of that depth, and the `Some` slots are exactly the window |
 | `queue` | the underlying deque's window | the deque invariant (a queue shadow IS a deque shadow) |
 | `doubly_linked_list` | items obtained by walking `next` from `head` | fully bidirectional links, distinct ids below `fresh`, every stored node on the walk |
-| `binary_heap` | sorted multiset of all elements | exact size, heap order |
+| `binary_heap` | the sorted multiset of the slots `[0, size)` of one `Base.Array` block | depth <= 31, the block is a perfect tree of that depth, the elements occupy exactly the slots `[0, size)`, heap order holds over them (`slot((i-1)/2) <= slot(i)`), `size <= 2^depth` |
 | `balanced_search_tree` | in-order entry list | sorted keys, **red-black invariant**, cached size = entry count |
 | `bitset` | first `len` bits of the words of a native `Base.Array` | the depth is the one `depth_for` picks, the word array is a perfect tree of that depth, `len <= stored bits`, every stored bit at a position `>= len` is zero |
 | `union_find` | representative of each element | three perfect `Base.Array` arenas of the depth `depth_for` picks, `n <= 2^depth`, every class exactly listed with its exact size, `count` = number of classes |
@@ -249,6 +250,57 @@ operation to the corresponding deque operation (`dop`), maps the observation
 (`qobs`, which is where `EmptyDeque` becomes `EmptyQueue`), proves the FIFO
 spec step is the deque spec step of that operation (`qspec`), and derives the
 queue's `step_ok` from the deque's.
+
+## binary_heap: the packed array heap
+
+`src/binary_heap.bend` keeps the elements in slots `[0, size)` of one
+`Base.Array` block of `2^depth` slots: element `i` has children `2i+1` and
+`2i+2` and parent `(i - 1) / 2`, and no node or link is allocated per
+element. The shape of the heap IS its index arithmetic, so that is what the
+proofs are about.
+
+Two facts make the development possible at all. First, the block is linear,
+so -- exactly as for `dynamic_array`, `bitset` and `deque` -- every law is
+stated about the heap BUILT from a Data mirror tree (`ST.real` of a shadow
+`Sh{size, depth, tree}`). Second, the implementation does its index
+arithmetic in `U32` (a unary `Nat` index would make a sift loop cost the
+index instead of its logarithm), so each loop step is bridged to the `Nat`
+arithmetic the proofs use. The bridges never name `2^32`: they are stated
+with a variable bound `k <= 32`, because a literal `2^32` would make the
+checker expand a unary `Nat` of four billion successors.
+
+| step | where |
+|---|---|
+| heap index arithmetic (`kidl`, `kidr`, `par`, halving, the `scale` fuel measure) | `proofs/binary_heap/idx.bend` |
+| the `U32` bridges for `inc`, `shl`, `shr`, `sub`, `<`, `==` and for the parent index | `proofs/binary_heap/u32idx.bend` |
+| slots, heap order (`pair_ok`, `ho_upto`), layout (`lay`), and the two "all pairs except..." forms a sift carries (`ho_exc`, `ho_exc2`) | `proofs/binary_heap/slots.bend` |
+| the multiset of a block (`vals`, `msort`) and the one-slot replacement law `ins_set` | `proofs/binary_heap/vals.bend` |
+| a slot swap is invisible to the sorted multiset (`vals_swap`) | `proofs/binary_heap/bag.bend` |
+| the root is the minimum, the multiset has one element per occupied slot, `head_root` | `proofs/binary_heap/root.bend` |
+| sift-up: the loop invariant, every step, and `sift_up_ok` | `proofs/binary_heap/up.bend` |
+| sift-down: the loop invariant (the two pairs below the hole excluded), every step, and `sift_down_ok` | `proofs/binary_heap/down.bend` |
+| doubling the block changes nothing but the capacity | `proofs/binary_heap/grow.bend` |
+| shadow, abstraction, invariant, the constructor | `proofs/binary_heap/state.bend` |
+| `push` (with and without a doubling) | `proofs/binary_heap/push.bend` |
+| `pop` (swap out the last element, sift it down from the root) | `proofs/binary_heap/pop.bend` |
+| `to_sorted_list` (drain a clone; every iteration is the pop of the clone) | `proofs/binary_heap/sorted.bend` |
+| every operation, with the capacity premise for `push`/`from_list` | `proofs/binary_heap/steps.bend` |
+| arbitrary finite traces, with one capacity premise for the whole list | `proofs/binary_heap/trace.bend` |
+
+The sift laws are the heart of it. A sift-up carries, over the logical block
+`update(slots, i, Some x)` with the hole at `i`: every pair except the one
+into `i` holds (`ho_exc`), the parent of `i` is below both children of `i`
+(`kids_le`), the layout is intact, and the sorted multiset is the target --
+and it concludes that the loop lands on a block that is heap-ordered over
+`[0, n)`, keeps the layout and has exactly that multiset. A sift-down carries
+the same shape with the two pairs whose parent is the hole excluded
+(`ho_exc2`) plus the pair above the hole, and its fuel bound is
+`n <= scale(fuel, 1 + i)` (the hole index at least doubles every step), which
+avoids `Nat.mul` entirely.
+
+A wrap-around bug was found by these proofs and fixed in the source: the
+"has a right child" test must be `l < size - 1`, not `l + 1 < size`, because
+the latter wraps at 2^31 slots.
 
 ## Retained LRU
 

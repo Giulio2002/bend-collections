@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-09-20T21:46:42.541426+00:00",
+  "captured_at": "2026-09-20T22:12:26.378284+00:00",
   "repository": "bend-collections",
   "kind": "unverified_development_snapshot",
   "full_acceptance_passed": false,
@@ -237,5 +237,6 @@
   ],
   "evidence_scope": "historical targeted runs; source changed during ongoing development; no current-snapshot pass claimed",
   "source_sha256_file": "SNAPSHOT_SOURCE_SHA256.json",
-  "milestone": "Heap targeted integration validation, trace checks and six rejected mutants; full acceptance incomplete"
+  "milestone": "Full structural validation: 12 structures plus reused LRU; final performance and semantic audit remain incomplete",
+  "validation_source_hash_mismatches": []
 }

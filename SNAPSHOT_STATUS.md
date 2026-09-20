@@ -5,7 +5,20 @@ Private development snapshot, not a finished or fully verified release.
 Progress: native-array ports for several collections, binary heap implementation
 and ongoing heap invariant/trace proofs. The full <=2.5x C gate is NOT satisfied.
 
-## New milestone: heap integration validation
+## Full validation milestone — 2026-09-20 22:10 UTC
+
+`validation-full.json` records complete=true and no failures in 127.4 seconds:
+all twelve structures pass runtime, differential, boundary, mutation and trace
+checks; reused LRU checks also pass. The report contains 193 source hashes, with 0 mismatches against this export (listed in SNAPSHOT.json).
+This is validator completion, not final performance or semantic acceptance.
+Imported graphs still report unsafe annotations (1180 in reused LRU roots);
+their provenance and soundness require independent audit.
+
+`perf-binary-heap-latest.json` retains the more recent heap measurement.
+The worker reported two pop rows above 2.5x (2.72x and 2.63x); the full
+benchmark rerun is in progress. Earlier partial reports below are historical.
+
+## Earlier milestone: heap integration validation
 
 The targeted heap validator now passes runtime, differential/boundary tests,
 trace-proof checking and all six semantic mutation rejections. Raw report:

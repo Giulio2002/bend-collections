@@ -258,15 +258,15 @@ header says so explicitly. Concretely:
 | `union_find` | three parallel `Base.Array`s (parent, size, members) | flat arrays of the same three fields | identical union-by-size relinking |
 | `fenwick_tree` | one `Base.Array` of cells, flat split-point layout | flat array, same index arithmetic | identical walks |
 | `segment_tree` | two `Base.Array`s (sums, lazy tags), same layout | two flat arrays, same recursion | identical lazy propagation |
-| `binary_heap` | Braun tree of `Node{value, left, right}` | flat array heap, same sift order | identical sift order and asymptotics; the Bend side pays a node allocation per level |
+| `binary_heap` | `Base.Array` block, elements in slots `[0, size)`, children `2i+1`/`2i+2`, block doubled when full | flat array heap, same indices, same doubling | identical sift order and identical array operations per level |
 | `balanced_search_tree` | red-black tree of `Node{color, l, entry, r}` | the same red-black algorithm, nodes reused in place (`benchmarks/native/redblack.h`) | identical rotations, identical fixup cases, identical order |
 | `prefix_trie` | trie nodes `TNode{c, val, down, next}` (children as a sibling chain) | the same sibling chains | identical traversal |
 | `doubly_linked_list` | `Base.OrdMap` node store keyed by handle, each node holding prev/next handles | arena of node records + the same ordered map | identical handle semantics (ids never reused, stale/foreign rejected) |
 | `graph` | `Base.OrdMap` of vertex to `Base.OrdMap` neighbour set | the same two ordered maps | identical adjacency representation |
 
-The first six rows are array-backed on both sides and are the rows where the
-two implementations really do the same thing to the same bytes; they are also
-the rows that meet the limit. The last five keep `Data` nodes on the Bend side
+The first seven rows are array-backed on both sides and are the rows where
+the two implementations really do the same thing to the same bytes. The last
+four keep `Data` nodes on the Bend side
 because their algorithm needs the links (tree and trie children, DLL
 prev/next) - `docs/ARCHITECTURE.md` has the full representation table and its
 self-audit - and there the Bend side pays for allocating the nodes on the path

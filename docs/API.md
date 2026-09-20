@@ -113,13 +113,13 @@ to_list(-T: Data, s: DList<T>) -> List<&2, T>
 
 ## `binary_heap`
 
-Min-heap as a Braun tree (a binary heap without an array): heap-ordered (each node <= every element below it) and Braun-shaped (left size = right size or right size + 1), so its height is floor(log2 n) + 1.  The order is a static comparator ~cmp : A -> A -> Cmp (a template parameter); its total-order laws are proof obligations of each instance (proofs/lib/order.bend: U32 and String). Elements equal under cmp are identical under the laws, so multiplicities are exact.  Cost: push, pop O(log n) comparisons; peek, length O(1); from_list O(n log n); to_sorted_list O(n log n) (repeated pop on a copy). Errors: peek/pop on an empty heap -> Fail{EmptyHeap}, heap unchanged.
+Min-heap PACKED IN AN ARRAY: the elements occupy the slots [0, size) of one `Base.Array` block of 2^depth slots, element i having children 2i+1 and 2i+2 and parent (i-1)/2, so the shape of the heap is its index arithmetic and no node or link is allocated per element. push writes at slot `size` and sifts up (early exit at the first parent that is not larger, which is what makes a random push O(1) expected); pop takes slot 0, lifts the last element into the hole and sifts it down through the smaller child; the block doubles when a push finds it full (the old block becomes the lower half, so every element keeps its index). The order is a static comparator ~cmp : A -> A -> Cmp (a template parameter); its total-order laws are proof obligations of each instance (proofs/lib/order.bend: U32 and String). Elements equal under cmp are identical under the laws, so multiplicities are exact.  Cost: push O(log n) worst case and O(1) expected, pop O(log n); peek, length O(1); from_list O(n log n); to_sorted_list O(n log n) plus one O(n) block clone (the heap itself is returned unchanged). Capacity: the block doubles, depth is bounded by 31, so every slot index is a representable U32. Errors: peek/pop on an empty heap -> Fail{EmptyHeap}, heap unchanged.
 
 ```
-new(-A: Data) -> Heap<A>
-length(-A: Data, h: Heap<A>) -> Heap<A> & Nat
+new(~A: Data) -> Heap<A>
+length(~A: Data, h: Heap<A>) -> Heap<A> & Nat
 push(~A: Data, ~cmp: A -> A -> Cmp, h: Heap<A>, x: A) -> Heap<A>
-peek(-A: Data, h: Heap<A>) -> Heap<A> & Result<&2, &2, E.Error, A>
+peek(~A: Data, h: Heap<A>) -> Heap<A> & Result<&2, &2, E.Error, A>
 pop(~A: Data, ~cmp: A -> A -> Cmp, h: Heap<A>) -> Heap<A> & Result<&2, &2, E.Error, A>
 from_list(~A: Data, ~cmp: A -> A -> Cmp, xs: List<&2, A>) -> Heap<A>
 to_sorted_list(~A: Data, ~cmp: A -> A -> Cmp, h: Heap<A>) -> Heap<A> & List<&2, A>

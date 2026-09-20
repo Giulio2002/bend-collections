@@ -59,7 +59,7 @@ and where a genuine link survives:
 | `union_find` | three parallel `Base.Array`s (parent, size, members) | element `i` is slot `i` | none |
 | `fenwick_tree` | one `Base.Array` of `U32` cells, flat split-point layout | value `t` is cell `2^d + t`; a block `[o, o + 2^p)` keeps its partial sum at cell `o + 2^(p-1)` | none |
 | `segment_tree` | two `Base.Array`s of `U32` cells (sums, lazy tags), same split-point layout | as fenwick, plus the tag array at the block's split point | none |
-| `binary_heap` | Braun tree of `Node{value, left, right}` | — | tree children |
+| `binary_heap` | `Base.Array` of `Maybe<A>` slots, capacity `2^depth` (PACKED array heap) | element `i` is slot `i`, children `2i+1`/`2i+2`, parent `(i-1)/2` | none |
 | `balanced_search_tree` | red-black tree of `Node{color, l, entry, r}` | — | tree children |
 | `prefix_trie` | trie nodes `TNode{c, val, down, next}` | `down` = children, `next` = the sibling chain of one node's children | trie children |
 | `doubly_linked_list` | `Base.OrdMap<Nat, Node>` node store (an indexed arena); each node holds `Maybe<Nat>` prev/next handles | node handle (a `Nat`) | DLL prev/next |
@@ -67,13 +67,14 @@ and where a genuine link survives:
 | `lru` (retained) | `reference/lru` snapshot: `Map` + recency order | key | LRU recency order |
 
 The only remaining node-linked storage is where the operator's rule allows
-it: tree/trie children (`binary_heap`, `balanced_search_tree`,
-`prefix_trie`), doubly-linked prev/next (`doubly_linked_list`) and LRU
-recency. `graph` and `doubly_linked_list` use Base's native map, not a
-hand-written list. **`binary_heap` is the exception that is still open**: a
-Braun tree is a heap without an array, and the operator's rule asks for a
-packed array heap; `WORK_LOG.md` records why the migration is not in this
-iteration.
+it: tree/trie children (`balanced_search_tree`, `prefix_trie`),
+doubly-linked prev/next (`doubly_linked_list`) and LRU recency. `graph` and
+`doubly_linked_list` use Base's native map, not a hand-written list.
+`binary_heap` **is now a packed array heap**: the elements occupy slots
+`[0, size)` of one `Base.Array`, the shape IS the index arithmetic, and no
+node or link is allocated per element (`src/binary_heap.bend`, proofs in
+`proofs/binary_heap/`). The migration and its measured effect are recorded
+in `WORK_LOG.md`.
 
 Self-audit: the table above was checked against `src/*.bend` (the `type`
 declaration of each structure) and against the emitted C of the native
