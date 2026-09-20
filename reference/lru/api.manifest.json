@@ -1,0 +1,82 @@
+[
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) SetLifetime(lifetime time.Duration) {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func New[K comparable, V any](capacity uint32, hash HashKeyCallback[K]) (*LRU[K, V], error) {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func NewWithSize[K comparable, V any](capacity, size uint32, hash HashKeyCallback[K]) ("
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) Len() int {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) AddWithLifetime(key K, value V, lifetime time.Duration) (evicted bool) {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) Add(key K, value V) (evicted bool) {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) Get(key K) (value V, ok bool) {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) GetAndRefresh(key K, lifetime time.Duration) (V, bool) {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) Peek(key K) (value V, ok bool) {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) Contains(key K) (ok bool) {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) Remove(key K) (removed bool) {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) RemoveOldest() (key K, value V, removed bool) {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) GetOldest() (key K, value V, ok bool) {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) Keys() []K {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) Values() []V {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) Purge() {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) PurgeExpired() {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) Metrics() Metrics {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) ResetMetrics() Metrics {"
+  },
+  {
+    "file": "lru.go",
+    "declaration": "func (lru *LRU[K, V]) PrintStats() {"
+  }
+]

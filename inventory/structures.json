@@ -1,0 +1,183 @@
+{
+  "bend_version": "2.0.16",
+  "new_structures": [
+    {
+      "id": "dynamic_array",
+      "operations": [
+        "new",
+        "length",
+        "capacity",
+        "get",
+        "set",
+        "push",
+        "pop",
+        "reserve",
+        "clear",
+        "to_list"
+      ]
+    },
+    {
+      "id": "deque",
+      "operations": [
+        "new",
+        "length",
+        "push_front",
+        "push_back",
+        "pop_front",
+        "pop_back",
+        "peek_front",
+        "peek_back",
+        "to_list"
+      ]
+    },
+    {
+      "id": "queue",
+      "operations": [
+        "new",
+        "length",
+        "enqueue",
+        "dequeue",
+        "peek",
+        "to_list"
+      ]
+    },
+    {
+      "id": "doubly_linked_list",
+      "operations": [
+        "new",
+        "length",
+        "push_front",
+        "push_back",
+        "insert_before",
+        "insert_after",
+        "remove",
+        "get",
+        "set",
+        "next",
+        "prev",
+        "to_list"
+      ]
+    },
+    {
+      "id": "binary_heap",
+      "operations": [
+        "new",
+        "length",
+        "push",
+        "peek",
+        "pop",
+        "from_list",
+        "to_sorted_list"
+      ]
+    },
+    {
+      "id": "balanced_search_tree",
+      "operations": [
+        "new",
+        "length",
+        "insert",
+        "remove",
+        "lookup",
+        "contains",
+        "min",
+        "max",
+        "lower_bound",
+        "range",
+        "to_list"
+      ],
+      "required_algorithm": "red-black binary search tree",
+      "required_invariants": [
+        "ordered keys",
+        "black root",
+        "black empty leaves",
+        "no red-red edge",
+        "equal black height"
+      ]
+    },
+    {
+      "id": "bitset",
+      "operations": [
+        "new",
+        "length",
+        "get",
+        "set",
+        "clear",
+        "count",
+        "union",
+        "intersection",
+        "difference",
+        "xor",
+        "to_list"
+      ]
+    },
+    {
+      "id": "union_find",
+      "operations": [
+        "new",
+        "find",
+        "union",
+        "connected",
+        "component_size",
+        "component_count"
+      ]
+    },
+    {
+      "id": "fenwick_tree",
+      "operations": [
+        "new",
+        "from_list",
+        "length",
+        "add",
+        "prefix_sum",
+        "range_sum"
+      ]
+    },
+    {
+      "id": "segment_tree",
+      "operations": [
+        "new",
+        "from_list",
+        "length",
+        "get",
+        "set",
+        "range_query",
+        "range_add"
+      ]
+    },
+    {
+      "id": "prefix_trie",
+      "operations": [
+        "new",
+        "insert",
+        "lookup",
+        "remove",
+        "contains",
+        "prefix_entries",
+        "longest_prefix"
+      ]
+    },
+    {
+      "id": "graph",
+      "operations": [
+        "new",
+        "add_vertex",
+        "remove_vertex",
+        "add_edge",
+        "remove_edge",
+        "has_vertex",
+        "has_edge",
+        "neighbors",
+        "vertices",
+        "edges"
+      ]
+    }
+  ],
+  "excluded_existing": {
+    "hash_map": "Base Map (crit-bit, not hash buckets); native key/value functionality satisfies scope. No hashing implementation.",
+    "hash_set": "Base Set implemented over Map<Unit>.",
+    "stack": "Base List Nil/Con pattern matching supplies empty/push/pop/peek; do not reimplement."
+  },
+  "reuse": {
+    "lru": "reference/lru: completed callback-free native-Map LRU, commit 38d77f4053e33dfa4320b805bdf36e55d15ddc79. Recheck compatibility; do not restart its proof development."
+  }
+}

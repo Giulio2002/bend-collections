@@ -1,0 +1,178 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/list.bend as LL
+import ../../spec/common.bend as SC
+import ../../spec/deque.bend as S
+import ../../src/deque.bend as DQ
+import ../../types/deque.bend as E
+import ./core.bend as C
+
+# Rebalancing preserves the sequence and the invariant, and makes the
+# requested end non-empty unless the deque is empty; then the end operations
+# refine the specification.
+
+# ---- front ----
+
+def rf_abs(-T: Data, +fl: Nat, +f: List<&2, T>, +bl: Nat, +b: List<&2, T>) -> {C.abs(T, DQ.ready_front(T, DQ.DQ{fl, f, bl, b})) == C.abs(T, DQ.DQ{fl, f, bl, b}) : List<&2, T>}:
+  match f:
+    case Con{h, t}:
+      {==}
+    case Nil{}:
+      +k = DQ.half(bl)
+      +dr = List.drop(&2, T, b, k)
+      +tk = List.take(&2, T, b, k)
+      %Equal.sym(List<&2, T>, List.reverse(&2, T, dr), SC.reverse(T, dr), LL.base_rev(T, dr)) : {SC.append(T, _, SC.reverse(T, tk)) == SC.reverse(T, b) : List<&2, T>}
+      %LL.rev_append(T, tk, dr) : {_ == SC.reverse(T, b) : List<&2, T>}
+      %Equal.sym(List<&2, T>, SC.append(T, tk, dr), b, LL.base_take_drop(T, b, k)) : {SC.reverse(T, _) == SC.reverse(T, b) : List<&2, T>}
+      {==}
+
+def rf_inv(-T: Data, +fl: Nat, +f: List<&2, T>, +bl: Nat, +b: List<&2, T>, +g: {C.inv(T, DQ.DQ{fl, f, bl, b}) == True{} : Bool}) -> {C.inv(T, DQ.ready_front(T, DQ.DQ{fl, f, bl, b})) == True{} : Bool}:
+  match f:
+    case Con{h, t}:
+      g
+    case Nil{}:
+      +k = DQ.half(bl)
+      +dr = List.drop(&2, T, b, k)
+      +eb = C.inv_b(T, fl, Nil{}, bl, b, g)
+      C.inv_mk(T, Nat.sub(bl, k), List.reverse(&2, T, dr), k, List.take(&2, T, b, k),
+        Equal.trans(Nat, Nat.sub(bl, k), Nat.sub(SC.length(T, b), k), SC.length(T, List.reverse(&2, T, dr)),
+          Equal.cong(Nat, Nat, x => Nat.sub(x, k), bl, SC.length(T, b), eb),
+          Equal.sym(Nat, SC.length(T, List.reverse(&2, T, dr)), Nat.sub(SC.length(T, b), k), Equal.trans(Nat, SC.length(T, List.reverse(&2, T, dr)), SC.length(T, dr), Nat.sub(SC.length(T, b), k), C.len_brev(T, dr), LL.length_drop(T, b, k)))),
+        Equal.sym(Nat, SC.length(T, List.take(&2, T, b, k)), k, LL.length_take(T, b, k, L.subst(Nat, x => {Nat.is_le(k, x) == True{} : Bool}, bl, SC.length(T, b), eb, C.half_le(bl)))))
+
+def rf_fok(-T: Data, +fl: Nat, +f: List<&2, T>, +bl: Nat, +b: List<&2, T>, +g: {C.inv(T, DQ.DQ{fl, f, bl, b}) == True{} : Bool}) -> {C.fok(T, DQ.ready_front(T, DQ.DQ{fl, f, bl, b})) == True{} : Bool}:
+  match f b:
+    case Con{h, t} _:
+      {==}
+    case Nil{} Nil{}:
+      {==}
+    case Nil{} Con{+h, +t}:
+      +k = DQ.half(bl)
+      +xs = {Con{h, t} : List<&2, T>}
+      +dr = List.drop(&2, T, xs, k)
+      +eb = C.inv_b(T, fl, Nil{}, bl, xs, g)
+      +hk = L.subst(Nat, x => {Nat.is_le(DQ.half(x), SC.length(T, t)) == True{} : Bool}, 1n+SC.length(T, t), bl, Equal.sym(Nat, bl, 1n+SC.length(T, t), eb), C.half_succ_le(SC.length(T, t)))
+      C.len_cons_fok(T, Nat.sub(bl, k), List.reverse(&2, T, dr), k, List.take(&2, T, xs, k), Nat.sub(SC.length(T, t), k),
+        Equal.trans(Nat, SC.length(T, List.reverse(&2, T, dr)), SC.length(T, dr), 1n+Nat.sub(SC.length(T, t), k), C.len_brev(T, dr),
+          Equal.trans(Nat, SC.length(T, dr), Nat.sub(1n+SC.length(T, t), k), 1n+Nat.sub(SC.length(T, t), k), LL.length_drop(T, xs, k), N.sub_succ_left(SC.length(T, t), k, hk))))
+
+def tf_view(-T: Data, +d: DQ.Deque<T>, +gf: {C.fok(T, d) == True{} : Bool}) -> {C.view_item(T, DQ.take_front(T, d)) == S.pop_front(T, C.abs(T, d)) : List<&2, T> & E.Obs<T>}:
+  match d:
+    case DQ.DQ{fl, Nil{}, bl, +b}:
+      %Equal.sym(List<&2, T>, b, Nil{}, C.nil_of(T, b, gf)) : {(SC.reverse(T, _), E.OItem{Fail{E.EmptyDeque{}}}) == S.pop_front(T, SC.reverse(T, _)) : List<&2, T> & E.Obs<T>}
+      {==}
+    case DQ.DQ{fl, Con{x, t}, bl, b}:
+      {==}
+
+def tf_inv(-T: Data, +d: DQ.Deque<T>, +g: {C.inv(T, d) == True{} : Bool}) -> {C.inv(T, Pair.fst(DQ.Deque<T>, Result<&2, &2, E.Error, T>, DQ.take_front(T, d))) == True{} : Bool}:
+  match d:
+    case DQ.DQ{fl, Nil{}, bl, b}:
+      g
+    case DQ.DQ{+fl, Con{+x, +t}, +bl, +b}:
+      C.inv_mk(T, Nat.sub(fl, 1n), t, bl, b,
+        Equal.trans(Nat, Nat.sub(fl, 1n), Nat.sub(1n+SC.length(T, t), 1n), SC.length(T, t), Equal.cong(Nat, Nat, y => Nat.sub(y, 1n), fl, 1n+SC.length(T, t), C.inv_f(T, fl, Con{x, t}, bl, b, g)), C.sub1(SC.length(T, t))),
+        C.inv_b(T, fl, Con{x, t}, bl, b, g))
+
+def pf_view(-T: Data, +d: DQ.Deque<T>, +gf: {C.fok(T, d) == True{} : Bool}) -> {C.view_item(T, DQ.peek_front_at(T, d)) == (C.abs(T, d), E.OItem{S.item(T, SC.head(T, C.abs(T, d)))}) : List<&2, T> & E.Obs<T>}:
+  match d:
+    case DQ.DQ{fl, Nil{}, bl, +b}:
+      %Equal.sym(List<&2, T>, b, Nil{}, C.nil_of(T, b, gf)) : {(SC.reverse(T, _), E.OItem{Fail{E.EmptyDeque{}}}) == (SC.reverse(T, _), E.OItem{S.item(T, SC.head(T, SC.reverse(T, _)))}) : List<&2, T> & E.Obs<T>}
+      {==}
+    case DQ.DQ{fl, Con{x, t}, bl, b}:
+      {==}
+
+def pf_inv(-T: Data, +d: DQ.Deque<T>, +g: {C.inv(T, d) == True{} : Bool}) -> {C.inv(T, Pair.fst(DQ.Deque<T>, Result<&2, &2, E.Error, T>, DQ.peek_front_at(T, d))) == True{} : Bool}:
+  match d:
+    case DQ.DQ{fl, Nil{}, bl, b}:
+      g
+    case DQ.DQ{fl, Con{x, t}, bl, b}:
+      g
+
+# ---- back ----
+
+def rb_abs(-T: Data, +fl: Nat, +f: List<&2, T>, +bl: Nat, +b: List<&2, T>) -> {C.abs(T, DQ.ready_back(T, DQ.DQ{fl, f, bl, b})) == C.abs(T, DQ.DQ{fl, f, bl, b}) : List<&2, T>}:
+  match b:
+    case Con{h, t}:
+      {==}
+    case Nil{}:
+      +k = DQ.half(fl)
+      +dr = List.drop(&2, T, f, k)
+      +tk = List.take(&2, T, f, k)
+      %Equal.sym(List<&2, T>, List.reverse(&2, T, dr), SC.reverse(T, dr), LL.base_rev(T, dr)) : {SC.append(T, tk, SC.reverse(T, _)) == SC.append(T, f, Nil{}) : List<&2, T>}
+      %Equal.sym(List<&2, T>, SC.reverse(T, SC.reverse(T, dr)), dr, LL.spec_rev_rev(T, dr)) : {SC.append(T, tk, _) == SC.append(T, f, Nil{}) : List<&2, T>}
+      %Equal.sym(List<&2, T>, SC.append(T, tk, dr), f, LL.base_take_drop(T, f, k)) : {_ == SC.append(T, f, Nil{}) : List<&2, T>}
+      Equal.sym(List<&2, T>, SC.append(T, f, Nil{}), f, LL.append_nil(T, f))
+
+def rb_inv(-T: Data, +fl: Nat, +f: List<&2, T>, +bl: Nat, +b: List<&2, T>, +g: {C.inv(T, DQ.DQ{fl, f, bl, b}) == True{} : Bool}) -> {C.inv(T, DQ.ready_back(T, DQ.DQ{fl, f, bl, b})) == True{} : Bool}:
+  match b:
+    case Con{h, t}:
+      g
+    case Nil{}:
+      +k = DQ.half(fl)
+      +dr = List.drop(&2, T, f, k)
+      +ef = C.inv_f(T, fl, f, bl, Nil{}, g)
+      C.inv_mk(T, k, List.take(&2, T, f, k), Nat.sub(fl, k), List.reverse(&2, T, dr),
+        Equal.sym(Nat, SC.length(T, List.take(&2, T, f, k)), k, LL.length_take(T, f, k, L.subst(Nat, x => {Nat.is_le(k, x) == True{} : Bool}, fl, SC.length(T, f), ef, C.half_le(fl)))),
+        Equal.trans(Nat, Nat.sub(fl, k), Nat.sub(SC.length(T, f), k), SC.length(T, List.reverse(&2, T, dr)),
+          Equal.cong(Nat, Nat, x => Nat.sub(x, k), fl, SC.length(T, f), ef),
+          Equal.sym(Nat, SC.length(T, List.reverse(&2, T, dr)), Nat.sub(SC.length(T, f), k), Equal.trans(Nat, SC.length(T, List.reverse(&2, T, dr)), SC.length(T, dr), Nat.sub(SC.length(T, f), k), C.len_brev(T, dr), LL.length_drop(T, f, k)))))
+
+def rb_bok(-T: Data, +fl: Nat, +f: List<&2, T>, +bl: Nat, +b: List<&2, T>, +g: {C.inv(T, DQ.DQ{fl, f, bl, b}) == True{} : Bool}) -> {C.bok(T, DQ.ready_back(T, DQ.DQ{fl, f, bl, b})) == True{} : Bool}:
+  match f b:
+    case _ Con{h, t}:
+      {==}
+    case Nil{} Nil{}:
+      {==}
+    case Con{+h, +t} Nil{}:
+      +k = DQ.half(fl)
+      +xs = {Con{h, t} : List<&2, T>}
+      +dr = List.drop(&2, T, xs, k)
+      +ef = C.inv_f(T, fl, xs, bl, Nil{}, g)
+      +hk = L.subst(Nat, x => {Nat.is_le(DQ.half(x), SC.length(T, t)) == True{} : Bool}, 1n+SC.length(T, t), fl, Equal.sym(Nat, fl, 1n+SC.length(T, t), ef), C.half_succ_le(SC.length(T, t)))
+      C.len_cons_bok(T, k, List.take(&2, T, xs, k), Nat.sub(fl, k), List.reverse(&2, T, dr), Nat.sub(SC.length(T, t), k),
+        Equal.trans(Nat, SC.length(T, List.reverse(&2, T, dr)), SC.length(T, dr), 1n+Nat.sub(SC.length(T, t), k), C.len_brev(T, dr),
+          Equal.trans(Nat, SC.length(T, dr), Nat.sub(1n+SC.length(T, t), k), 1n+Nat.sub(SC.length(T, t), k), LL.length_drop(T, xs, k), N.sub_succ_left(SC.length(T, t), k, hk))))
+
+def pop_back_snoc(-T: Data, +ys: List<&2, T>, +x: T) -> {S.pop_back(T, SC.snoc(T, ys, x)) == (ys, E.OItem{Done{x}}) : List<&2, T> & E.Obs<T>}:
+  match ys:
+    case Nil{}:
+      {==}
+    case Con{+h, +t}:
+      %Equal.sym(List<&2, T>, SC.init(T, SC.snoc(T, Con{h, t}, x)), Con{h, t}, LL.init_snoc(T, Con{h, t}, x)) : {(_, E.OItem{S.item(T, SC.last(T, Con{h, SC.snoc(T, t, x)}))}) == (Con{h, t}, E.OItem{Done{x}}) : List<&2, T> & E.Obs<T>}
+      %Equal.sym(Maybe<&2, T>, SC.last(T, SC.snoc(T, Con{h, t}, x)), Some{x}, LL.last_snoc(T, Con{h, t}, x)) : {(Con{h, t}, E.OItem{S.item(T, _)}) == (Con{h, t}, E.OItem{Done{x}}) : List<&2, T> & E.Obs<T>}
+      {==}
+
+def tb_view(-T: Data, +d: DQ.Deque<T>, +gb: {C.bok(T, d) == True{} : Bool}) -> {C.view_item(T, DQ.take_back(T, d)) == S.pop_back(T, C.abs(T, d)) : List<&2, T> & E.Obs<T>}:
+  match d:
+    case DQ.DQ{fl, +f, bl, Nil{}}:
+      %Equal.sym(List<&2, T>, f, Nil{}, C.nil_of(T, f, gb)) : {(SC.append(T, _, Nil{}), E.OItem{Fail{E.EmptyDeque{}}}) == S.pop_back(T, SC.append(T, _, Nil{})) : List<&2, T> & E.Obs<T>}
+      {==}
+    case DQ.DQ{fl, +f, bl, Con{+x, +t}}:
+      %Equal.sym(List<&2, T>, SC.append(T, f, SC.snoc(T, SC.reverse(T, t), x)), SC.snoc(T, SC.append(T, f, SC.reverse(T, t)), x), LL.append_snoc(T, f, SC.reverse(T, t), x)) : {(SC.append(T, f, SC.reverse(T, t)), E.OItem{Done{x}}) == S.pop_back(T, _) : List<&2, T> & E.Obs<T>}
+      Equal.sym(List<&2, T> & E.Obs<T>, S.pop_back(T, SC.snoc(T, SC.append(T, f, SC.reverse(T, t)), x)), (SC.append(T, f, SC.reverse(T, t)), E.OItem{Done{x}}), pop_back_snoc(T, SC.append(T, f, SC.reverse(T, t)), x))
+
+def tb_inv(-T: Data, +d: DQ.Deque<T>, +g: {C.inv(T, d) == True{} : Bool}) -> {C.inv(T, Pair.fst(DQ.Deque<T>, Result<&2, &2, E.Error, T>, DQ.take_back(T, d))) == True{} : Bool}:
+  match d:
+    case DQ.DQ{fl, f, bl, Nil{}}:
+      g
+    case DQ.DQ{+fl, +f, +bl, Con{+x, +t}}:
+      C.inv_mk(T, fl, f, Nat.sub(bl, 1n), t, C.inv_f(T, fl, f, bl, Con{x, t}, g),
+        Equal.trans(Nat, Nat.sub(bl, 1n), Nat.sub(1n+SC.length(T, t), 1n), SC.length(T, t), Equal.cong(Nat, Nat, y => Nat.sub(y, 1n), bl, 1n+SC.length(T, t), C.inv_b(T, fl, f, bl, Con{x, t}, g)), C.sub1(SC.length(T, t))))
+
+def pb_view(-T: Data, +d: DQ.Deque<T>, +gb: {C.bok(T, d) == True{} : Bool}) -> {C.view_item(T, DQ.peek_back_at(T, d)) == (C.abs(T, d), E.OItem{S.item(T, SC.last(T, C.abs(T, d)))}) : List<&2, T> & E.Obs<T>}:
+  match d:
+    case DQ.DQ{fl, +f, bl, Nil{}}:
+      %Equal.sym(List<&2, T>, f, Nil{}, C.nil_of(T, f, gb)) : {(SC.append(T, _, Nil{}), E.OItem{Fail{E.EmptyDeque{}}}) == (SC.append(T, _, Nil{}), E.OItem{S.item(T, SC.last(T, SC.append(T, _, Nil{})))}) : List<&2, T> & E.Obs<T>}
+      {==}
+    case DQ.DQ{fl, +f, bl, Con{+x, +t}}:
+      %Equal.sym(List<&2, T>, SC.append(T, f, SC.snoc(T, SC.reverse(T, t), x)), SC.snoc(T, SC.append(T, f, SC.reverse(T, t)), x), LL.append_snoc(T, f, SC.reverse(T, t), x)) : {(_, E.OItem{Done{x}}) == (_, E.OItem{S.item(T, SC.last(T, _))}) : List<&2, T> & E.Obs<T>}
+      %Equal.sym(Maybe<&2, T>, SC.last(T, SC.snoc(T, SC.append(T, f, SC.reverse(T, t)), x)), Some{x}, LL.last_snoc(T, SC.append(T, f, SC.reverse(T, t)), x)) : {(SC.snoc(T, SC.append(T, f, SC.reverse(T, t)), x), E.OItem{Done{x}}) == (SC.snoc(T, SC.append(T, f, SC.reverse(T, t)), x), E.OItem{S.item(T, _)}) : List<&2, T> & E.Obs<T>}
+      {==}
+
+def pb_inv(-T: Data, +d: DQ.Deque<T>, +g: {C.inv(T, d) == True{} : Bool}) -> {C.inv(T, Pair.fst(DQ.Deque<T>, Result<&2, &2, E.Error, T>, DQ.peek_back_at(T, d))) == True{} : Bool}:
+  match d:
+    case DQ.DQ{fl, f, bl, Nil{}}:
+      g
+    case DQ.DQ{fl, f, bl, Con{x, t}}:
+      g

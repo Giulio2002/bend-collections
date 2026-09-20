@@ -1,0 +1,236 @@
+{
+  "status": "excluded",
+  "authorization": "callback-exclusions.json",
+  "note": "Historical callback-enabled evidence. Not executable coverage, not passing assertions, not a completion blocker.",
+  "files": {
+    "tests/new/trace.ts": "import {LRU,stringCodec,integer} from '../../src/adapter.ts';\nconst input=await Bun.stdin.json();\nif(!input || !Array.isArray(input.ops) || !Number.isInteger(input.capacity))throw new Error('invalid trace');\nlet now=0n,stride=0n,reads=0n;let events:any[]=[];let observations:any[]=[];\nclass CallbackFixture extends Error {}\nconst c=new LRU(BigInt(input.capacity),stringCodec,()=>{\n  const value=BigInt.asIntN(64,now+(reads++)*stride);\n  switch(input.clock_mode) {\n    case undefined:break;\n    case 'reset':c.ResetMetrics();break;\n    case 'configure':c.SetLifetime(7000000n);c.SetOnEvict(null);break;\n    default:throw new Error('unknown clock mode');\n  }\n  return value;\n},'',0n);\nconst cb=(k:string,v:bigint)=>{\n  events.push([k,v]);\n  if(input.callback_mode==='throw') {c.SetOnEvict(null);throw new CallbackFixture('callback fixture');}\n  if(input.callback_mode?.startsWith('nested-')) {\n    // Disable further callbacks, not cache operations, to bound the directed\n    // probe. No observation here implicitly expires or reorders another key.\n    c.SetOnEvict(null);\n    const obs:any={key:k,value:v,len:c.Len(),metrics:c.Metrics()};\n    switch(input.callback_mode) {\n      case 'nested-add':obs.nested=c.Add('nested',91n);break;\n      case 'nested-remove':obs.nested=c.Remove('survivor');break;\n      case 'nested-purge':c.Purge();obs.nested=null;break;\n      case 'nested-expire':obs.nested=c.Get('survivor');break;\n      default:throw new Error('unknown nested callback mode');\n    }\n    observations.push(obs);return;\n  }\n  if(input.callback_mode) {\n    const obs:any={key:k,value:v,len:c.Len(),metrics:c.Metrics(),keys:c.Keys(),values:c.Values(),contains_removed:c.Contains(k)};\n    switch(input.callback_mode) {\n      case 'observe':break;\n      case 'reset':obs.reset=c.ResetMetrics();break;\n      case 'disable':c.SetOnEvict(null);break;\n      case 'replace':c.SetOnEvict((k,v)=>events.push(['replacement:'+k,v]));break;\n      case 'read':obs.get=c.Get('survivor');c.SetLifetime(7000000n);break;\n      case 'clock':now=777n;break;\n      default:throw new Error('unknown callback mode');\n    }\n    observations.push(obs);\n  }\n};c.SetOnEvict(cb);\n// Test-only counter fixture: bypassing billions of public calls, never results.\nif(input.seed_metrics) {\n  if(!Array.isArray(input.seed_metrics)||input.seed_metrics.length!==5)throw new Error('metric fixture');\n  const names=['inserts','evictions','removals','hits','misses'];\n  input.seed_metrics.forEach((s:any,i:number)=>{\n    if(typeof s!=='string'||! /^(0|[1-9][0-9]*)$/.test(s))throw new Error('uint64 transport');\n    const n=BigInt(s);if(n>=1n<<64n)throw new Error('uint64 range');\n    (c as any).state.counts[names[i]]=integer(BigInt.asIntN(64,n)).bits;\n  });\n}\nfunction i64(s:any,defaultValue='0') {\n  if(s===undefined)s=defaultValue;\n  if(typeof s!=='string'||! /^(0|-?[1-9][0-9]*)$/.test(s))throw new Error('int64 decimal-string transport');\n  const n=BigInt(s);integer(n);return n;\n}\nconst out=[];\nfor(const o of input.ops){\n  now=i64(o.now);stride=i64(o.stride);reads=0n;events=[];observations=[];\n  const key=o.key??'';let result:any=null;\n  let failure:any;\n  try { switch(o.op){\n    case 'Add':result=c.Add(key,i64(o.value));break;\n    case 'AddWithLifetime':result=c.AddWithLifetime(key,i64(o.value),i64(o.ns));break;\n    case 'Get':result=c.Get(key);break;\n    case 'Peek':result=c.Peek(key);break;\n    case 'GetAndRefresh':result=c.GetAndRefresh(key,i64(o.ns));break;\n    case 'Contains':result=c.Contains(key);break;\n    case 'Remove':result=c.Remove(key);break;\n    case 'RemoveOldest':result=c.RemoveOldest();break;\n    case 'GetOldest':result=c.GetOldest();break;\n    case 'Purge':c.Purge();break;\n    case 'PurgeExpired':c.PurgeExpired();break;\n    case 'Keys':result=c.Keys();break;\n    case 'Values':result=c.Values();break;\n    case 'Len':result=c.Len();break;\n    case 'SetLifetime':c.SetLifetime(i64(o.ns));break;\n    case 'SetOnEvict':c.SetOnEvict(o.enabled?cb:null);break;\n    case 'Metrics':result=c.Metrics();break;\n    case 'ResetMetrics':result=c.ResetMetrics();break;\n    default:throw new Error('unsupported operation '+o.op);\n  }\n  } catch(e) {\n    if(!(e instanceof CallbackFixture))throw e;\n    failure={kind:'callback_exception'};\n  }\n  c.CheckInvariants();out.push({result,metrics:c.Metrics(),len:c.Len(),events,reads,callback_observations:observations,...(failure?{failure}:{})});\n}\nconsole.log(JSON.stringify(out,(_,v)=>typeof v==='bigint'?v.toString():v));\n",
+    "tools/reference_main.go": "// Clock-only reference adapter. Validation copies the pinned lru.go/cache.go to\n// build/reference, changes package name, and replaces only now()'s time source.\npackage main\nimport(\"encoding/json\";\"fmt\";\"os\";\"time\";\"reflect\";\"strconv\";\"strings\";\"runtime\")\nvar tick int64\nvar stride int64\nvar reads int64\nvar clockEffect func()\nfunc referenceNow() int64 { v:=tick+reads*stride;reads++;if clockEffect!=nil{clockEffect()};return v }\ntype callbackFixture struct{}\ntype Op struct { Name string `json:\"op\"`; Key string `json:\"key\"`; Value int64 `json:\"value,string\"`; NS int64 `json:\"ns,string\"`; Now int64 `json:\"now,string\"`; Stride int64 `json:\"stride,string\"`; Enabled bool `json:\"enabled\"` }\ntype Input struct { Capacity uint32 `json:\"capacity\"`; Ops []Op `json:\"ops\"`; Seed []string `json:\"seed_metrics\"`; ClockMode string `json:\"clock_mode\"`; CallbackMode string `json:\"callback_mode\"` }\n// Encode every integer as a decimal string, without a float64 intermediate.\nfunc exact(v reflect.Value) any {\n if !v.IsValid(){return nil}\n if v.Kind()==reflect.Interface {if v.IsNil(){return nil};return exact(v.Elem())}\n switch v.Kind(){\n case reflect.Int,reflect.Int64: return strconv.FormatInt(v.Int(),10)\n case reflect.Uint,reflect.Uint32,reflect.Uint64:return strconv.FormatUint(v.Uint(),10)\n case reflect.Bool:return v.Bool()\n case reflect.String:return v.String()\n case reflect.Slice:out:=make([]any,v.Len());for i:=range out{out[i]=exact(v.Index(i))};return out\n case reflect.Map:out:=map[string]any{};iter:=v.MapRange();for iter.Next(){out[iter.Key().String()]=exact(iter.Value())};return out\n case reflect.Struct:out:=map[string]any{};for i:=0;i<v.NumField();i++{out[v.Type().Field(i).Name]=exact(v.Field(i))};return out\n default:panic(\"unsupported output type\")\n }\n}\nfunc main(){\n var input Input;if err:=json.NewDecoder(os.Stdin).Decode(&input);err!=nil{panic(err)}\n c,err:=New[string,int64](input.Capacity,func(string)uint32{return 0});if err!=nil{panic(err)}\n if input.Seed!=nil {\n  if len(input.Seed)!=5{panic(\"metric fixture\")};var nums [5]uint64\n  for i,s:=range input.Seed{n,e:=strconv.ParseUint(s,10,64);if e!=nil{panic(e)};nums[i]=n}\n  c.metrics=Metrics{Inserts:nums[0],Evictions:nums[1],Removals:nums[2],Hits:nums[3],Misses:nums[4]}\n }\n switch input.ClockMode {\n case \"\":\n case \"reset\":clockEffect=func(){c.ResetMetrics()}\n case \"configure\":clockEffect=func(){c.SetLifetime(7000000);c.SetOnEvict(nil)}\n default:panic(\"unknown clock mode\")\n }\n events:=make([]any,0);observations:=make([]any,0)\n var cb func(string,int64)\n cb=func(k string,v int64){\n  events=append(events,[]any{k,v})\n  if input.CallbackMode==\"throw\" {c.SetOnEvict(nil);panic(callbackFixture{})}\n  if strings.HasPrefix(input.CallbackMode,\"nested-\") {\n   c.SetOnEvict(nil)\n   m:=c.Metrics();m.Collisions=0\n   obs:=map[string]any{\"key\":k,\"value\":v,\"len\":c.Len(),\"metrics\":m}\n   switch input.CallbackMode {\n   case \"nested-add\":obs[\"nested\"]=c.Add(\"nested\",91)\n   case \"nested-remove\":obs[\"nested\"]=c.Remove(\"survivor\")\n   case \"nested-purge\":c.Purge();obs[\"nested\"]=nil\n   case \"nested-expire\":v,ok:=c.Get(\"survivor\");obs[\"nested\"]=[]any{v,ok}\n   default:panic(\"unknown nested callback mode\")\n   }\n   observations=append(observations,obs);return\n  }\n  if input.CallbackMode!=\"\" {\n   m:=c.Metrics();m.Collisions=0\n   obs:=map[string]any{\"key\":k,\"value\":v,\"len\":c.Len(),\"metrics\":m,\"keys\":c.Keys(),\"values\":c.Values(),\"contains_removed\":c.Contains(k)}\n   switch input.CallbackMode {\n   case \"observe\":\n   case \"reset\":old:=c.ResetMetrics();old.Collisions=0;obs[\"reset\"]=old\n   case \"disable\":c.SetOnEvict(nil)\n   case \"replace\":c.SetOnEvict(func(k string,v int64){events=append(events,[]any{\"replacement:\"+k,v})})\n   case \"read\":v,ok:=c.Get(\"survivor\");obs[\"get\"]=[]any{v,ok};c.SetLifetime(7000000)\n   case \"clock\":tick=777\n   default:panic(\"unknown callback mode\")\n   }\n   observations=append(observations,obs)\n  }\n };c.SetOnEvict(cb)\n out:=make([]any,0)\n for _,o:=range input.Ops {\n  tick=o.Now;stride=o.Stride;reads=0;events=make([]any,0);observations=make([]any,0);var result any\n  var failure map[string]any\n  func(){\n   defer func(){\n    if e:=recover();e!=nil {\n     switch v:=e.(type) {\n     case callbackFixture:failure=map[string]any{\"kind\":\"callback_exception\"}\n     case runtime.Error:\n      if !strings.HasPrefix(v.Error(),\"runtime error: index out of range\"){panic(e)}\n      failure=map[string]any{\"kind\":\"saved_slot_bounds\",\"detail\":v.Error()}\n     default:panic(e)\n     }\n    }\n   }()\n  switch o.Name {\n  case \"Add\":result=c.Add(o.Key,o.Value)\n  case \"AddWithLifetime\":result=c.AddWithLifetime(o.Key,o.Value,time.Duration(o.NS))\n  case \"Get\":v,ok:=c.Get(o.Key);result=[]any{v,ok}\n  case \"Peek\":v,ok:=c.Peek(o.Key);result=[]any{v,ok}\n  case \"GetAndRefresh\":v,ok:=c.GetAndRefresh(o.Key,time.Duration(o.NS));result=[]any{v,ok}\n  case \"Contains\":result=c.Contains(o.Key)\n  case \"Remove\":result=c.Remove(o.Key)\n  case \"RemoveOldest\":k,v,ok:=c.RemoveOldest();result=[]any{k,v,ok}\n  case \"GetOldest\":k,v,ok:=c.GetOldest();result=[]any{k,v,ok}\n  case \"Purge\":c.Purge()\n  case \"PurgeExpired\":c.PurgeExpired()\n  case \"Keys\":result=c.Keys()\n  case \"Values\":result=c.Values()\n  case \"Len\":result=c.Len()\n  case \"SetLifetime\":c.SetLifetime(time.Duration(o.NS))\n  case \"SetOnEvict\":if o.Enabled{c.SetOnEvict(cb)}else{c.SetOnEvict(nil)}\n  case \"Metrics\":m:=c.Metrics();m.Collisions=0;result=m\n  case \"ResetMetrics\":m:=c.ResetMetrics();m.Collisions=0;result=m\n  default:panic(\"unsupported operation: \"+o.Name)\n  }\n  }()\n  m:=c.Metrics();m.Collisions=0\n  row:=map[string]any{\"result\":result,\"metrics\":m,\"len\":c.Len(),\"events\":events,\"reads\":reads,\"callback_observations\":observations}\n  if failure!=nil{row[\"failure\"]=failure}\n  out=append(out,row)\n  // A saved-slot bounds panic terminates the semantic trace. Do not attempt\n  // iteration on corrupted storage or classify a process failure as an outcome.\n  if failure!=nil && failure[\"kind\"]==\"saved_slot_bounds\"{break}\n }\n if err:=json.NewEncoder(os.Stdout).Encode(exact(reflect.ValueOf(out)));err!=nil{panic(fmt.Sprint(err))}\n}\n",
+    "tests/new/upstream.ts": "import assert from 'node:assert/strict';\nimport {LRU,uint64Codec,stringCodec,int64Codec} from '../../src/adapter.ts';\nlet checks=0;\nfunction ok(b: unknown, message='assertion') { ++checks; assert.ok(b,message); }\nfunction eq(a: unknown,b: unknown) { ++checks; assert.deepEqual(a,b); }\nconst ms=1000000n;\nlet now=1000n;\nfunction make(cap: bigint) {\n  let evictions=0n;\n  let cache!: LRU<bigint,bigint>;\n  ++checks;assert.doesNotThrow(()=>{cache=new LRU(cap,uint64Codec,()=>now,0n,0n);});\n  cache.SetOnEvict((k,v)=>{eq(k+1n,v);++evictions;});\n  return {cache,count:()=>evictions};\n}\nexport const cases: Record<string,()=>void> = {\n  TestLRU() {\n    const {cache:c,count}=make(32n);\n    for(let i=0n;i<64n;++i)c.Add(i,i+1n);\n    eq(c.Len(),32n);eq(count(),32n);\n    c.Keys().forEach((k,i)=>{const [v,found]=c.Get(k);ok(found&&v===k+1n&&v===BigInt(i)+33n);});\n    for(let i=0n;i<32n;++i)ok(!c.Get(i)[1]);\n    for(let i=32n;i<64n;++i)ok(c.Get(i)[1]);\n    ok(!c.Remove(64n));ok(c.Remove(63n));ok(c.Remove(32n));eq(count(),34n);eq(c.Len(),30n);\n    c.CheckInvariants();\n  },\n  TestLRU_Add() {\n    const {cache:c,count}=make(1n);\n    ok(!c.Add(1n,2n)&&count()===0n);ok(c.Add(3n,4n)&&count()===1n);c.CheckInvariants();\n  },\n  TestLRU_Purge() {\n    const {cache:c,count}=make(3n);\n    ok(!c.Add(1n,2n)&&count()===0n);ok(!c.Add(3n,4n)&&count()===0n);ok(!c.Add(4n,5n)&&count()===0n);\n    eq(c.Len(),3n);c.Purge();eq(c.Len(),0n);c.CheckInvariants();\n  },\n  TestLRU_Remove() {\n    const {cache:c,count}=make(2n);c.Add(1n,2n);c.Add(3n,4n);\n    ok(c.Remove(1n));ok(c.Remove(3n));eq(count(),2n);eq(c.Len(),0n);c.CheckInvariants();\n  },\n  TestLRU_RemoveOldest() {\n    const {cache:c,count}=make(2n);c.Add(1n,2n);c.Add(3n,4n);\n    let [k,v,found]=c.RemoveOldest();ok(found);eq(k,1n);eq(v,2n);\n    [k,v,found]=c.RemoveOldest();ok(found);eq(k,3n);eq(v,4n);\n    ok(!c.RemoveOldest()[2]);eq(count(),2n);eq(c.Len(),0n);c.CheckInvariants();\n  },\n  TestLRU_AddWithExpire() {\n    const {cache:c}=make(2n);c.SetLifetime(100n*ms);c.Add(1n,2n);c.AddWithLifetime(3n,4n,200n*ms);\n    ok(c.Get(1n)[1]);now+=101n;ok(!c.Get(1n)[1]);ok(c.Get(3n)[1]);now+=100n;ok(!c.Get(3n)[1]);eq(c.Len(),0n);\n    c.Add(1n,2n);c.Purge();eq(c.Len(),0n);\n    c.AddWithLifetime(1n,2n,100n*ms);c.PurgeExpired();eq(c.Len(),1n);now+=101n;c.PurgeExpired();eq(c.Len(),0n);\n    c.SetLifetime(0n);c.AddWithLifetime(1n,2n,100n*ms);ok(c.Get(1n)[1]);now+=101n;ok(!c.Get(1n)[1]);c.CheckInvariants();\n  },\n  TestLRU_AddWithRefresh() {\n    const {cache:c}=make(2n);c.AddWithLifetime(1n,2n,100n*ms);c.AddWithLifetime(2n,3n,100n*ms);\n    ok(c.Get(1n)[1]);now+=101n;ok(c.GetAndRefresh(1n,0n)[1]);ok(c.GetAndRefresh(2n,0n)[1]);c.CheckInvariants();\n  },\n  TestLRUMatch() {\n    const {cache:c}=make(2n);const backup=new Map<bigint,bigint>();\n    c.SetOnEvict((k,v)=>{eq(k,v);backup.delete(k);});\n    let seed=0x12345678;\n    for(let i=0n;i<100000n;++i) {\n      c.Add(i,i);backup.set(i,i);\n      seed=(Math.imul(seed,1664525)+1013904223)>>>0;\n      const r=BigInt.asUintN(64,i-BigInt(seed%384));c.Remove(r);\n      eq(c.Len(),BigInt(backup.size));const keys=c.Keys();eq(keys.length,backup.size);\n      for(const k of keys){ok(backup.has(k));const [v,found]=c.Peek(k);ok(found);eq(v,backup.get(k));}\n      for(const [k,v] of backup){const [actual,found]=c.Peek(k);ok(found);eq(actual,v);}\n      c.CheckInvariants();\n    }\n  },\n  TestLRUAdd() {const {cache:c}=make(1000n);for(let i=0n;i<1000n;++i)c.Add(i,0n);c.CheckInvariants();},\n  TestLRUMetrics() {\n    const {cache:c}=make(1n);c.Add(1n,2n);c.Add(3n,4n);c.Get(1n);c.Get(3n);c.Remove(3n);\n    const m=c.Metrics();eq(m.Inserts,2n);eq(m.Hits,1n);eq(m.Misses,1n);eq(m.Evictions,1n);eq(m.Removals,1n);eq(m.Collisions,0n);\n  },\n  TestLRU_Values() {\n    const {cache:c}=make(1000n);const want=[];\n    for(let i=0n;i<1000n;++i){c.Add(i,i+1n);want.push(i+1n);}\n    eq(c.Values().sort((a,b)=>a<b?-1:a>b?1:0),want);c.CheckInvariants();\n  },\n  TestLRU_GetOldest() {\n    const {cache:c}=make(1000n);c.Add(1n,2n);c.Add(3n,4n);c.Add(5n,6n);\n    const [k,v,found]=c.GetOldest();ok(found);eq(k,1n);eq(v,2n);c.CheckInvariants();\n  }\n};\nexport function boundary() {\n  let reads=0;let t=10n;\n  const c=new LRU(3n,stringCodec,()=>{++reads;return t;},'',0n);const ev:any[]=[];\n  c.SetOnEvict((k,v)=>ev.push([k,v]));\n  c.Add('',1n);c.Add('\\0',2n);c.Add('a\\0b',3n);eq(reads,0);eq(c.Keys(),['','\\0','a\\0b']);\n  eq(c.Get('\\0'),[2n,true]);eq(c.Keys(),['','a\\0b','\\0']);\n  c.Purge();eq(ev,[['',1n],['a\\0b',3n],['\\0',2n]]);eq(c.Metrics().Removals,0n);\n  c.AddWithLifetime('old',4n,1n);eq(reads,1);eq(c.Len(),1n);eq(c.GetOldest(),['old',0n,false]);eq(reads,2);\n  c.AddWithLifetime('revive',5n,-1000001n);ok(c.GetAndRefresh('revive',0n)[1]);eq(c.Get('revive'),[5n,true]);\n  c.Purge();c.Add('immortal',7n);c.AddWithLifetime('expired',8n,-1n);const before=reads;\n  c.PurgeExpired();eq(reads,before);eq(c.Keys(),['immortal','expired']);eq(c.Len(),2n);\n  eq(c.Get('expired'),[0n,false]);c.CheckInvariants();\n  c.Purge();c.AddWithLifetime('replace',1n,-1n);const beforeEvents=ev.length;\n  ok(!c.Add('replace',9n));eq(ev.length,beforeEvents);eq(c.Metrics().Inserts,2n);eq(c.Get('replace'),[9n,true]);\n  const old=c.Metrics();eq(c.ResetMetrics(),old);eq(c.Metrics().Hits,0n);\n  // Zero deadline sentinel, even when obtained from nonzero duration arithmetic.\n  c.Purge();t=1n;c.AddWithLifetime('sentinel',1n,-1000000n);t=100n;ok(c.Get('sentinel')[1]);\n  for(const [cap,size] of [[0n,0n],[2n,1n],[1n,0xffffffffn],[0x100000000n,0x100000000n]])\n    assert.throws(()=>new LRU(cap,stringCodec,()=>0n,'',0n,size));\n  const i=new LRU(3n,int64Codec,()=>0n,0n,0n);i.Add(-(1n<<63n),1n);i.Add((1n<<63n)-1n,2n);i.Add(0n,3n);\n  eq(i.Keys(),[-(1n<<63n),(1n<<63n)-1n,0n]);i.CheckInvariants();\n  assert.throws(()=>c.GetAndRefresh('sentinel',1n<<63n));\n  assert.throws(()=>c.Add('\\ud800',1n));\n}\nexport function run(name: string) {\n  now=1000n;checks=0;\n  const fn = name==='boundary' ? boundary : cases[name];\n  if(!fn)throw new Error('unsupported case '+name);\n  fn();return {name,status:'passed',assertions:checks};\n}\nif(import.meta.main) {\n  try {console.log(JSON.stringify(run(process.argv[2])));}\n  catch(e){console.error(e);process.exit(1);}\n}\n"
+  },
+  "prior_checks": {
+    "callback_boundaries": {
+      "status": "passed",
+      "operations": 44,
+      "modes": [
+        "observe",
+        "reset",
+        "disable",
+        "replace",
+        "read",
+        "clock"
+      ],
+      "remaining": "reentrant structural mutations and arbitrary clock callbacks are not yet equivalent"
+    },
+    "reentrant_boundaries": {
+      "status": "failed",
+      "cases": [
+        {
+          "name": "nested-add-Remove",
+          "status": "failed"
+        },
+        {
+          "name": "nested-add-Add",
+          "status": "failed"
+        },
+        {
+          "name": "nested-add-Purge",
+          "status": "failed"
+        },
+        {
+          "name": "nested-add-PurgeExpired",
+          "status": "failed"
+        },
+        {
+          "name": "nested-remove-Remove",
+          "status": "failed"
+        },
+        {
+          "name": "nested-remove-Add",
+          "status": "failed"
+        },
+        {
+          "name": "nested-remove-Purge",
+          "status": "failed"
+        },
+        {
+          "name": "nested-remove-PurgeExpired",
+          "status": "failed"
+        },
+        {
+          "name": "nested-purge-Remove",
+          "status": "failed"
+        },
+        {
+          "name": "nested-purge-Add",
+          "status": "failed"
+        },
+        {
+          "name": "nested-purge-Purge",
+          "status": "failed"
+        },
+        {
+          "name": "nested-purge-PurgeExpired",
+          "status": "failed"
+        },
+        {
+          "name": "nested-expire-Remove",
+          "status": "failed"
+        },
+        {
+          "name": "nested-expire-Add",
+          "status": "failed"
+        },
+        {
+          "name": "nested-expire-Purge",
+          "status": "failed"
+        },
+        {
+          "name": "nested-expire-PurgeExpired",
+          "status": "failed"
+        }
+      ],
+      "evidence": "build/reentrant-boundaries.json",
+      "coverage": "nested Add/Remove/Purge/expired Get with callback disabled inside callback; four outer continuations"
+    }
+  },
+  "counterexample": {
+    "trace": {
+      "capacity": 2,
+      "callback_mode": "nested-add",
+      "ops": [
+        {
+          "op": "Add",
+          "key": "old",
+          "value": 1
+        },
+        {
+          "op": "Add",
+          "key": "survivor",
+          "value": 2
+        },
+        {
+          "op": "Add",
+          "key": "new",
+          "value": 3
+        },
+        {
+          "op": "Len"
+        },
+        {
+          "op": "Metrics"
+        }
+      ]
+    },
+    "reference": [
+      {
+        "callback_observations": [],
+        "events": [],
+        "len": "1",
+        "metrics": {
+          "Collisions": "0",
+          "Evictions": "0",
+          "Hits": "0",
+          "Inserts": "1",
+          "Misses": "0",
+          "Removals": "0"
+        },
+        "reads": "0",
+        "result": false
+      },
+      {
+        "callback_observations": [],
+        "events": [],
+        "len": "2",
+        "metrics": {
+          "Collisions": "0",
+          "Evictions": "0",
+          "Hits": "0",
+          "Inserts": "2",
+          "Misses": "0",
+          "Removals": "0"
+        },
+        "reads": "0",
+        "result": false
+      },
+      {
+        "callback_observations": [
+          {
+            "key": "old",
+            "len": "1",
+            "metrics": {
+              "Collisions": "0",
+              "Evictions": "0",
+              "Hits": "0",
+              "Inserts": "2",
+              "Misses": "0",
+              "Removals": "0"
+            },
+            "nested": false,
+            "value": "1"
+          }
+        ],
+        "events": [
+          [
+            "old",
+            "1"
+          ]
+        ],
+        "len": "3",
+        "metrics": {
+          "Collisions": "0",
+          "Evictions": "1",
+          "Hits": "0",
+          "Inserts": "4",
+          "Misses": "0",
+          "Removals": "0"
+        },
+        "reads": "0",
+        "result": true
+      },
+      {
+        "callback_observations": [],
+        "events": [],
+        "len": "3",
+        "metrics": {
+          "Collisions": "0",
+          "Evictions": "1",
+          "Hits": "0",
+          "Inserts": "4",
+          "Misses": "0",
+          "Removals": "0"
+        },
+        "reads": "0",
+        "result": "3"
+      },
+      {
+        "callback_observations": [],
+        "events": [],
+        "len": "3",
+        "metrics": {
+          "Collisions": "0",
+          "Evictions": "1",
+          "Hits": "0",
+          "Inserts": "4",
+          "Misses": "0",
+          "Removals": "0"
+        },
+        "reads": "0",
+        "result": {
+          "Collisions": "0",
+          "Evictions": "1",
+          "Hits": "0",
+          "Inserts": "4",
+          "Misses": "0",
+          "Removals": "0"
+        }
+      }
+    ],
+    "conclusion": "Exact successful Go Len=3 at capacity 2 conflicts with capacity preservation for every reentrant reachable state. No narrowing or rejection policy has been adopted.",
+    "user_clarification": "pending: preserve corrupted Go states with conditional invariants, or explicitly reject structural reentrancy and preserve invariants"
+  },
+  "removed_bend_declarations": {
+    "src/cache.bend": "def set_on_evict(-K: Data, -V: Data, +c: Cache<K, V>, enabled: Bool) -> Cache<K, V>:\n  State{cap, m, order, life, counts, cb} = c\n  State{cap, m, order, life, counts, enabled}\n\n",
+    "spec/cache.bend": "def set_callback(-K: Data, -V: Data, s: Model<K, V>, enabled: Bool) -> Model<K, V>:\n  Abstract{cap, bindings, recency, life, counts, cb} = s\n  Abstract{cap, bindings, recency, life, counts, enabled}\n\n",
+    "proofs/refinement.bend": "law set_callback_refines:\n  for -K: Data\n  for -V: Data\n  for c: C.Cache<K, V>\n  for enabled: Bool\n  {abstract(K, V, C.set_on_evict(K, V, c, enabled)) == S.set_callback(K, V, abstract(K, V, c), enabled) : S.Model<K, V>}\ndef set_callback_refines(K, V, c, enabled):\n  match c:\n    case C.State{cap, table, order, life, counts, cb}:\n      {==}\n\n"
+  }
+}

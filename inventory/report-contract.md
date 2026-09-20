@@ -1,0 +1,3 @@
+# Runtime report contract
+
+`tools/validate.py --report PATH` must execute the tests itself, exit nonzero on any failure and write JSON with `structures` (exactly one row per inventory id), `lru_reuse` and `complete`. Each row contains `id`, exact `operations_passed`, and runtime/boundaries/differential/mutations/trace_proof statuses. Completion statuses are `passed`; missing/skipped/error fails acceptance. Include additional per-test logs, seeds, counters, concrete theorem instances and hashes as evidence. Frozen acceptance enforces minimum coverage and checker linkage; semantic reviewers must verify actual assertions, error paths, mutation diagnostics and proof meaning. A report is not itself a proof.

@@ -1,0 +1,102 @@
+# Proof map: public operation -> specification -> theorem -> tests
+
+One row per structure. "Operations" are the ones listed in
+`inventory/structures.json`; all of them are covered by the same three
+theorems, so the map is given per structure rather than per operation.
+
+| structure | spec model (`spec/<id>.bend`) | per-operation theorem | trace theorem | public laws in `END_TO_END.bend` | tests |
+|---|---|---|---|---|---|
+| `dynamic_array` | item sequence + capacity | `proofs/dynamic_array/steps.bend` `step_ok` | `trace_new`, `trace_with_limit` | `dynamic_array_*` | `tests/dynamic_array/` |
+| `deque` | item sequence | `proofs/deque/steps.bend` `step_ok` (shadow form: the slot array is linear) | `proofs/deque/trace.bend` `trace_from`, exposed as `deque_trace` | `deque_*` | `tests/deque/` |
+| `queue` | item sequence (FIFO) | `proofs/queue/steps.bend` `step_ok` (each step is the deque's step of the corresponding deque operation) | `proofs/queue/trace.bend` `trace_from`, exposed as `queue_trace` | `queue_*` | `tests/queue/` |
+| `doubly_linked_list` | item sequence + handles | `proofs/doubly_linked_list/steps.bend` `step_ok` | `trace_new` | `doubly_linked_list_*` | `tests/doubly_linked_list/` |
+| `binary_heap` | sorted multiset | `proofs/binary_heap/…` `step_ok` (template, instantiated at U32 and String) | `trace_new` | `binary_heap_u32_*`, `binary_heap_string_*` | `tests/binary_heap/` |
+| `balanced_search_tree` | key-sorted entry list (finite map) | `proofs/balanced_search_tree/steps.bend` `step_ok` (template, instantiated at U32 and String) | `trace_from`, `inv_from` | `balanced_search_tree_u32_*`, `balanced_search_tree_string_*` | `tests/balanced_search_tree/` incl. the `rb32`/`rbstr` structural kinds |
+| `bitset` | bit list | `proofs/bitset/steps.bend` `step_ok` (shadow form: the word array is linear) | `proofs/bitset/trace.bend` `trace_from`, exposed as `bitset_trace` | `bitset_*` | `tests/bitset/` |
+| `union_find` | representative map | `proofs/union_find/steps.bend` `step_ok` | `trace_new` | `union_find_*` | `tests/union_find/` |
+| `fenwick_tree` | U32 value list with prefix sums | `proofs/fenwick_tree/steps.bend` `step_ok` | from `new(n)` and `from_list(xs)` | `fenwick_tree_*` | `tests/fenwick_tree/` |
+| `segment_tree` | U32 value list with range sums and range add | `proofs/segment_tree/steps.bend` `step_ok` | from `new(n)` and `from_list(xs)` | `segment_tree_*` | `tests/segment_tree/` |
+| `prefix_trie` | String-ordered finite map | `proofs/prefix_trie/steps.bend` `step_ok` | `trace_new` | `prefix_trie_*` | `tests/prefix_trie/` |
+| `graph` | vertex -> key-sorted neighbour list | `proofs/graph/steps.bend` `step_ok` | `trace_new` (both directed and undirected) | `graph_*` | `tests/graph/` |
+| retained `lru` | `reference/lru/spec` | the retained cache's own theorems, re-checked under 2.0.16 | `lru_entry_string_trace` | `lru_entry_string_trace` | `tests/lru/` (run mode) |
+
+`step_ok` always has the shape
+
+```
+StepOK(s, op) :=  { view(step(s, op)) == spec_step(abs(s), op) }
+               &  { inv(fst(step(s, op))) == True }
+```
+
+for *every* `s` with `inv(s) == True` — every error path included — and the
+trace theorem composes it over an arbitrary finite list of operations from the
+real constructor.
+
+For the array-backed structures the same shape is stated in *shadow* form,
+because `Base.Array` is linear and cannot appear twice in a proof term: the
+law is about `real(sh)`, the structure whose array is built from a Data mirror
+tree, and it *names the shadow the operation lands on*
+(`Sigma<Shadow, sh2 => step(real(sh), op) == (real(sh2), o) & good(sh2) & …>`).
+`shadow_unique` (`real(a) == real(b) -> a == b`) is proved for each of them,
+so naming the shadow pins the abstract state. Where a structure grows its
+array, the law carries the representation's capacity condition as an explicit
+premise (for the deque and the queue: `depth + (number of pushes) <= 31`,
+i.e. at most 2^31 slots), never a hidden bound.
+
+## balanced_search_tree: the red-black properties
+
+| property | theorem | law in `END_TO_END.bend` |
+|---|---|---|
+| black root | `tree.bend` `bal_root_black` | `balanced_search_tree_{u32,string}_root_black` |
+| black empty leaves | `tree.bend` `leaf_black` | `balanced_search_tree_{u32,string}_leaf_black` |
+| no red-red parent/child edge | `tree.bend` `nrr_all` / `ok_nrr` | `balanced_search_tree_{u32,string}_no_red_red` |
+| equal black height on every root-to-leaf path | `tree.bend` `paths` / `all_eq` / `ok_paths` | `balanced_search_tree_{u32,string}_uniform_black_height` |
+| the empty tree satisfies all of it | `tree.bend` `new_bal` | `balanced_search_tree_{u32,string}_new_balanced` |
+| insertion preserves it | `tree.bend` `ins_ok` / `insert_bal` | `balanced_search_tree_{u32,string}_insert_balanced` |
+| deletion preserves it | `tree.bend` `del_ok` / `remove_bal` | `balanced_search_tree_{u32,string}_remove_balanced` |
+| BST ordering | `steps.bend` `inv` (`SO.sorted` of the in-order list) | inside `…_step` and `…_trace_invariant` |
+| finite-map refinement of each operation | `steps.bend` `step_ok` | `balanced_search_tree_{u32,string}_step` |
+| arbitrary finite traces | `trace.bend` `trace_from` / `inv_from` | `balanced_search_tree_{u32,string}_trace(_invariant)` |
+
+The same properties are re-derived at runtime, after every operation, by the
+`rb32`/`rbstr` kinds of `tests/balanced_search_tree/main.bend`, so a proof that
+did not match the compiled code would be caught by the test suite as well.
+
+## graph: model well-formedness
+
+| property | status |
+|---|---|
+| `wf` defined (endpoint closure, self-loop policy, undirected symmetry) | `spec/graph.bend` |
+| finite-map laws it rests on | `proofs/graph/fmap.bend` (proved) |
+| graph-level `hasv`/`nbrs`/`smem` laws under `put`/`del`/`strip`/`sadd`/`sdel` | `proofs/graph/wf.bend` (proved) |
+| `wf(new d)` | `wf.bend` `wf_new`, laws `graph_new_well_formed`, `graph_new_abs_well_formed` |
+| `AddVertex` preserves `wf` | `wfops.bend` `wf_add_vertex` |
+| `RemoveVertex` preserves `wf` | `wfops.bend` `wf_remove_vertex` |
+| `AddEdge` preserves `wf` (directed and undirected) | `wfops.bend` `wf_add_edge` |
+| `RemoveEdge` preserves `wf` (directed and undirected) | `wfops.bend` `wf_remove_edge`, under the sortedness side condition |
+| the five observation-only operations preserve `wf` | `wf.bend` `wf_*` |
+| **every** operation at once | `wfops.bend` `wf_step` |
+| connected to the runtime invariant | `proofs/graph.bend` `step_wf` discharges the sortedness side condition from `ST.inv`; public law `graph_step_well_formed` |
+
+`RemoveEdge`'s sortedness premise is a real side condition, not a proof
+convenience: `GS.put` inserts before the first greater key, so on an unsorted
+list it could leave a stale duplicate entry that still claims the deleted edge.
+The runtime invariant guarantees sortedness, so the public law carries no
+leftover assumption.
+
+## bitset: the packed `Base.Array` representation
+
+| step | theorem |
+|---|---|
+| `i / 32` and `i % 32` peel 32 bits at a time | `proofs/bitset/index.bend` `wordix_small` / `wordix_step` / `bitix_small` / `bitix_step` |
+| a word-list walk is one indexed access | `proofs/bitset/walk.bend` `get_index` / `put_index` |
+| `Base.Array` get/set against the slot list | `proofs/bitset/arr.bend` `read_ok` / `write_ok` / `ws_upd` |
+| `count` / `to_list` loops equal the list folds | `proofs/bitset/loops.bend` `count_ok` / `to_list_ok` |
+| the word-wise combine loop equals `zip_words` | `proofs/bitset/zip.bend` `zip_go_ok` / `ztree_ws` / `zl_full` |
+| the chosen depth is below 32 | `proofs/bitset/depth.bend` `depth_lt` |
+| every operation, every error path | `proofs/bitset/steps.bend` `step_ok` |
+| arbitrary finite traces from `new(n)` | `proofs/bitset/trace.bend` `trace_from`, law `bitset_trace` |
+
+The laws about `new(n)` carry the explicit capacity premise
+`Nat.is_le(n, 32 * 2^depth_for(n))` (2^36 bits); `step_ok` and the trace law
+from any invariant-satisfying state are unconditional, and the invariant
+implies the premise (`proofs/bitset/state.bend` `rep_fits`).

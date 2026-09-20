@@ -1,0 +1,222 @@
+/* Optimized C reference for src/binary_heap.bend.
+ *
+ * Same algorithm and representation: a min-heap kept as a Braun tree (a
+ * heap-ordered binary tree with left size = right size or right size + 1),
+ * not an array heap.
+ *
+ *   push              Braun insertion: the smaller value stays at the node,
+ *                     the larger goes down the right subtree and the subtrees
+ *                     swap sides,
+ *   peek              the root,
+ *   pop               remove the root: the leftmost element is lifted to the
+ *                     root of Node{x, r, drop_leftmost(l)} and sifted down by
+ *                     the same three-way `choice`,
+ *   from_list         repeated push,
+ *   to_sorted_list    repeated root removal on a copy (the heap is unchanged),
+ *   length            the cached size.
+ *
+ * Nodes come from a bump arena; the scratch a to_sorted_list needs is rewound
+ * afterwards, which is the normal efficient C choice here.
+ */
+#include "common.h"
+
+#define NULL_OP 99u
+
+typedef struct Node {
+  uint32_t v;
+  struct Node *l, *r;
+} Node;
+
+typedef struct {
+  uint32_t rng, chk;
+  uint32_t n;
+  Node *t;
+} St;
+
+static inline Node *node_new(uint32_t v, Node *l, Node *r) {
+  Node *n = (Node *)arena_alloc(sizeof(Node));
+  n->v = v;
+  n->l = l;
+  n->r = r;
+  return n;
+}
+
+static Node *ins(Node *t, uint32_t x) {
+  if (!t) return node_new(x, NULL, NULL);
+  uint32_t y = t->v;
+  uint32_t keep = (x <= y) ? x : y;
+  uint32_t down = (x <= y) ? y : x;
+  Node *nr = ins(t->r, down);
+  Node *ol = t->l;
+  t->v = keep;
+  t->l = nr;
+  t->r = ol;
+  return t;
+}
+
+static uint32_t leftmost(uint32_t d, const Node *t) {
+  if (!t) return d;
+  while (t->l) t = t->l;
+  return t->v;
+}
+
+static Node *drop_leftmost(Node *t) {
+  if (!t) return NULL;
+  if (!t->l) return t->r;
+  Node *nl = drop_leftmost(t->l);
+  Node *orr = t->r;
+  t->r = nl;
+  t->l = orr;
+  return t;
+}
+
+static inline int choice(uint32_t y, const Node *l, const Node *r) {
+  if (!l && !r) return 0;
+  if (l && !r) return (y <= l->v) ? 0 : 1;
+  if (!l && r) return (y <= r->v) ? 0 : 2;
+  if (y <= l->v && y <= r->v) return 0;
+  return (l->v <= r->v) ? 1 : 2;
+}
+
+static void sift(Node *t, uint32_t y, int c) {
+  while (t) {
+    if (c == 0) {
+      t->v = y;
+      return;
+    }
+    if (c == 1) {
+      Node *l = t->l;
+      t->v = l->v;
+      t = l;
+      c = choice(y, l->l, l->r);
+    } else {
+      Node *r = t->r;
+      t->v = r->v;
+      t = r;
+      c = choice(y, r->l, r->r);
+    }
+  }
+}
+
+static Node *del_root(Node *l, Node *r) {
+  if (!l) return r;
+  uint32_t x = l->v;
+  uint32_t y = leftmost(x, l);
+  Node *l2 = drop_leftmost(l);
+  Node *t = node_new(x, r, l2);
+  sift(t, y, choice(y, r, l2));
+  return t;
+}
+
+static Node *clone(const Node *t) {
+  if (!t) return NULL;
+  return node_new(t->v, clone(t->l), clone(t->r));
+}
+
+static void bh_init(St *s, uint32_t seed) {
+  s->rng = seed;
+  s->chk = 0;
+  s->n = 0;
+  s->t = NULL;
+}
+
+static inline void bh_push(St *s) {
+  uint32_t r = lcg(s->rng);
+  s->rng = r;
+  s->t = ins(s->t, r);
+  s->n++;
+  s->chk = mix(s->chk, 1);
+}
+
+static inline void bh_pop(St *s) {
+  s->rng = lcg(s->rng);
+  uint32_t code = 9;
+  if (s->t) {
+    code = s->t->v;
+    s->t = del_root(s->t->l, s->t->r);
+    s->n--;
+  }
+  s->chk = mix(s->chk, code);
+}
+
+static inline void bh_peek(St *s) {
+  s->rng = lcg(s->rng);
+  s->chk = mix(s->chk, s->t ? s->t->v : 9u);
+}
+
+static inline void bh_len(St *s) {
+  s->rng = lcg(s->rng);
+  s->chk = mix(s->chk, s->n);
+}
+
+/* fold the heap in ascending order (to_sorted_list, leaving the heap intact) */
+static uint32_t fold_sorted(const St *s, uint32_t c) {
+  size_t mark = arena_off;
+  Node *t = clone(s->t);
+  for (uint32_t i = 0; i < s->n && t; i++) {
+    c = mix(c, t->v);
+    t = del_root(t->l, t->r);
+  }
+  arena_off = mark;
+  return c;
+}
+
+static inline void bh_sorted(St *s) {
+  s->rng = lcg(s->rng);
+  s->chk = fold_sorted(s, s->chk);
+}
+
+static inline void bh_from(St *s) {
+  /* eight draws from the same stream, consed newest first, then from_list */
+  uint32_t vals[8];
+  uint32_t r = s->rng;
+  for (int i = 0; i < 8; i++) {
+    r = lcg(r);
+    vals[i] = r;
+  }
+  s->rng = r;
+  Node *t = NULL;
+  uint32_t n = 0;
+  for (int i = 7; i >= 0; i--) {
+    t = ins(t, vals[i]);
+    n++;
+  }
+  s->t = t;
+  s->n = n;
+  s->chk = mix(s->chk, 5);
+}
+
+static inline void bh_new(St *s) {
+  s->rng = lcg(s->rng);
+  s->chk = mix(s->chk, 0);
+}
+
+static inline void bh_null(St *s) {
+  uint32_t r = lcg(s->rng);
+  s->rng = r;
+  s->chk = mix(s->chk, r);
+}
+
+static uint32_t round_bh(uint32_t op, uint32_t size, uint32_t count, uint32_t seed) {
+  arena_reset();
+  St s;
+  bh_init(&s, seed);
+  for (uint32_t i = 0; i < size; i++) bh_push(&s);
+  s.chk = fold_sorted(&s, s.chk); /* settle */
+  switch (op) {
+    case 0: for (uint32_t i = 0; i < count; i++) bh_push(&s); break;
+    case 1: for (uint32_t i = 0; i < count; i++) bh_pop(&s); break;
+    case 2: for (uint32_t i = 0; i < count; i++) bh_peek(&s); break;
+    case 3: for (uint32_t i = 0; i < count; i++) bh_len(&s); break;
+    case 4: for (uint32_t i = 0; i < count; i++) bh_from(&s); break;
+    case 5: for (uint32_t i = 0; i < count; i++) bh_sorted(&s); break;
+    case 6: for (uint32_t i = 0; i < count; i++) bh_new(&s); break;
+    default: for (uint32_t i = 0; i < count; i++) bh_null(&s); break;
+  }
+  uint32_t c = mix(s.chk, s.rng);
+  s.chk = c;
+  for (int i = 0; i < 16; i++) bh_peek(&s);
+  return s.chk;
+}
+
+BENCH_MAIN(round_bh, 1536ull * 1024ull * 1024ull)

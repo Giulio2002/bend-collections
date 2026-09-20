@@ -1,0 +1,19 @@
+{
+  "decision": "approve",
+  "reason": "This iteration fixes the one low-severity finding from the last audit, and I found no new substantive issue. The converse range lemma is now a checked theorem. `fits_bound` shows that `fits(n, v)` implies `v < 2^n`, for every n and v. It is built from existing checked lemmas: the recursive `WordBounds.unsigned_bound`, `Magnitude.scale_power` (which proves `scale_binary(n, 1) == 2^n` by induction) and `eq_sound`. `END_TO_END.bend` exposes it as `host_fits_bound`, so it is inside the `PROOF.bend` import closure. The `full_scope` gate now requires that exact signature. The statement is about the same `spec/host.bend` `fits` (unsigned(from_nat(v)) == v) that the proved host readers use. It is not vacuous: the new `host-range-wraps` mutant changes `fits` to accept every value, and the checker rejects that at `Location: fits_bound`. The rejection is a type mismatch at the proof step, not a compile failure. README, PROOF_STATUS, self_audit and the END_TO_END comment now name both directions accurately. The WORK_LOG correction note owns up to the earlier overclaim. The PROOF_STATUS header now says the Bend model `HostLoop.loop` is what is proved equal to the driver, and that the TypeScript loop matches it by inspection. That is more accurate than before. Everything else, including the documented trusted residue, is unchanged from the last audit, which approved it. This approval covers only this audit gate. It does not replace the orchestrator's own required checks.",
+  "evidence": [
+    "proofs/host_numeric.bend:44-52: `unsigned_below` (unsigned(n, w) < 2^n, from `WordBounds.unsigned_bound` with `scale_power` rewriting the bound) and `fits_bound` (rewrites through `eq_sound` on the `fits` hypothesis, then applies `unsigned_below` to `from_nat(n, v)`). There are no holes or escapes.",
+    "proofs/word_bounds.bend:41 and proofs/negation_magnitude.bend:39: both are genuine structural-recursion proofs.",
+    "spec/host.bend:62-63: `fits` is `Nat.is_eq(N.unsigned(width, N.from_nat(width, v)), v)`. That is the definition used by the new lemma and targeted by the mutant.",
+    "END_TO_END.bend:389-397: `host_fits_meaning` and `host_fits_bound` sit together, and the comment states the equivalence.",
+    "build/mutation-host-range-wraps.log: the expected/observed mismatch is reported at `Location: fits_bound`.",
+    "tools/validate.py:302-305 adds the mutant; tools/validate.py:423 adds the required `host_fits_bound` signature to full_scope.",
+    "README.md:194-197, PROOF_STATUS.md:26-28, tests/new/self_audit.md:17-19 and WORK_LOG.md:1643-1650 all describe the two directions accurately.",
+    "Runner record: acceptance exits 0, `PROOF.bend` and `END_TO_END.bend` both report 'All terms check', and all 12 upstream groups and every independent check pass, including full_scope. I am read-only, so I did not rerun it."
+  ],
+  "next_steps": [
+    "The orchestrator must still perform its own independent substantive checks. This approval does not replace them.",
+    "If `src/adapter.ts` or the host boundary changes, update the trusted-residue documentation and the residue gate to match."
+  ],
+  "findings": []
+}

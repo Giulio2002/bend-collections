@@ -1,0 +1,292 @@
+{
+  "upstream_cases": [
+    {
+      "name": "TestLRU",
+      "status": "passed",
+      "assertions": 102
+    },
+    {
+      "name": "TestLRU_Add",
+      "status": "passed",
+      "assertions": 3
+    },
+    {
+      "name": "TestLRU_Purge",
+      "status": "passed",
+      "assertions": 6
+    },
+    {
+      "name": "TestLRU_Remove",
+      "status": "passed",
+      "assertions": 4
+    },
+    {
+      "name": "TestLRU_RemoveOldest",
+      "status": "passed",
+      "assertions": 9
+    },
+    {
+      "name": "TestLRU_AddWithExpire",
+      "status": "passed",
+      "assertions": 11
+    },
+    {
+      "name": "TestLRU_AddWithRefresh",
+      "status": "passed",
+      "assertions": 4
+    },
+    {
+      "name": "TestLRUMatch",
+      "status": "passed",
+      "assertions": 1297281
+    },
+    {
+      "name": "TestLRUAdd",
+      "status": "passed",
+      "assertions": 1
+    },
+    {
+      "name": "TestLRUMetrics",
+      "status": "passed",
+      "assertions": 7
+    },
+    {
+      "name": "TestLRU_Values",
+      "status": "passed",
+      "assertions": 2
+    },
+    {
+      "name": "TestLRU_GetOldest",
+      "status": "passed",
+      "assertions": 4
+    }
+  ],
+  "checks": {
+    "checker": {
+      "status": "passed",
+      "output": "All terms check.\n"
+    },
+    "assertion_inventory": {
+      "status": "passed",
+      "groups": 12,
+      "retained_source_assertions": 57,
+      "excluded_source_assertions": [
+        "setupCache:1",
+        "testCache:2",
+        "testCache:9",
+        "TestLRU_Remove:3",
+        "testCacheRemoveOldest:8",
+        "testCacheMatch:1"
+      ],
+      "partially_excluded_source_assertions": [
+        "TestLRU_Add:1",
+        "TestLRU_Add:2",
+        "TestLRU_Purge:1",
+        "TestLRU_Purge:2",
+        "TestLRU_Purge:3"
+      ],
+      "authorization": "callback-exclusions.json",
+      "excluded_counted_as_passes": false
+    },
+    "spec_templates": {
+      "status": "passed",
+      "output": "All terms check.\n"
+    },
+    "boundary": {
+      "name": "boundary",
+      "status": "passed",
+      "assertions": 26
+    },
+    "clock_failures": {
+      "name": "clock_failures",
+      "status": "passed",
+      "assertions": 51
+    },
+    "host_bridge": {
+      "name": "host_bridge",
+      "status": "passed",
+      "assertions": 12079
+    },
+    "differential": {
+      "status": "passed",
+      "operations": 9600,
+      "seed": 583,
+      "capacities": [
+        1,
+        2,
+        7,
+        32
+      ],
+      "integer_key_capacities": [
+        1,
+        3,
+        16
+      ],
+      "key_types": [
+        "string",
+        "int64",
+        "uint64"
+      ],
+      "time_adapter": "only pinned now() return expression replaced; every clock read counted",
+      "projection": "Collisions set to zero on reference output only: native storage adaptation"
+    },
+    "numeric_boundaries": {
+      "status": "passed",
+      "operations": 1141,
+      "full_width_values": "canonical decimal strings",
+      "coverage": "int64 min/max, signed submillisecond truncation, wrapping deadline addition, zero sentinel, all five uint64 counter wraps",
+      "counter_fixture": "test-only initial counter seeding in both drivers; not a public cache operation"
+    },
+    "sensitivity": {
+      "status": "passed",
+      "mutants": [
+        "full-cache specification requires overflow instead of equality: actual full Add dispatch correspondence fails",
+        "refresh specification returns old deadline: actual refreshed observation correspondence fails",
+        "removal specification omits Removals increment: actual removal state correspondence fails",
+        "live read specification omits Hits increment: actual live state correspondence fails",
+        "absent read specification omits Misses increment: actual absent branch correspondence fails",
+        "negative duration divides unsigned bits: signed magnitude linkage fails",
+        "zero-duration specification returns clock sample: actual deadline correspondence fails",
+        "divider clears selected quotient bit: actual result conservation linkage fails",
+        "divider omits remainder subtraction: actual recursive bound theorem fails",
+        "divider triples prior remainder: actual digit recurrence theorem fails",
+        "reset specification retains counters: actual clear_metrics observation refinement fails",
+        "native negation omits complement: actual twos-complement theorem fails",
+        "core refresh resets capacity to zero: actual refresh representation theorem fails",
+        "independent addition specification changed to subtraction: actual Time.add refinement fails",
+        "refresh miss resets capacity to zero: full representation preparation theorem fails",
+        "refresh preparation queries wrong code: actual returned-state lookup law fails",
+        "store loses retained recency: existing recency-uniqueness linkage rejects changed implementation",
+        "full preparation skips eviction: existing protocol storage theorem fails",
+        "entry enumeration reverses recency: exact abstraction sequence theorem fails",
+        "store appends duplicate recency code: actual store uniqueness theorem fails",
+        "populated predicate permits stored None: native no-None preservation proof fails",
+        "abstraction discards present binding: actual abstraction retention theorem fails",
+        "native store uses put instead of set: actual store/lookup theorem fails",
+        "prefix predicate omits a bit: skipped-prefix rejection theorem fails",
+        "lost completed prefix on clock failure: specification law fails (not implementation refinement)",
+        "expired predicate forced false: boundary assertion fails",
+        "binary bit encoder collapses bits: round-trip theorem fails",
+        "comparison tag forced EQ: comparator preservation theorem fails",
+        "Get omits recency movement: order assertion fails",
+        "native Map deletion omitted: map/recency invariant fails",
+        "newest-first removal: RemoveOldest result assertion fails",
+        "store writes None: actual store/lookup theorem fails",
+        "routing predicate forced true: predicate-to-routing theorem fails",
+        "core deletion omitted: actual removal/lookup theorem fails",
+        "expired oldest returns stale value: public observation theorem fails",
+        "64-bit addition changed to subtraction: conservation theorem fails",
+        "expired oldest loses original key: public observation theorem fails",
+        "native lookup queries empty key: actual store/lookup linkage fails",
+        "reversed discriminator ordering: native deletion ordering proof fails",
+        "eviction miscounted before failed clock: actual public Bend machine state assertion fails",
+        "public Add reply ignores pre-clock eviction: public Add refinement fails",
+        "expiry walk counts removals as evictions: public aggregate refinement fails",
+        "driver drops unused provider events between requests: trace refinement fails",
+        "diagnostics count raw binding list: specification congruence fails",
+        "refresh failure specification drops committed hit: public refresh refinement fails",
+        "Purge resets capacity to zero: public reachability fails",
+        "Integer specification key equality identifies opposite signs: equality soundness proof fails",
+        "Word64 specification bit equality identifies distinct bits: equality soundness proof fails",
+        "host decimal halving table wrong digit: halving value proof fails",
+        "host binary conversion starts with a carry: binary reconstruction proof fails",
+        "host range check accepts nonzero leftover: zero-leftover proof fails",
+        "host int64 reader accepts values at or above 2^63: nonnegative range proof fails",
+        "host int64 reader drops the two's-complement negation: negative mapping proof fails",
+        "host decimal rendering emits a wrong digit: character value proof fails",
+        "host invalid clock sample treated as a sample: sample boundary proof fails",
+        "host step ignores the provider event: host loop equals D.drive proof fails",
+        "host range condition accepts every value (wrapping): fits-implies-bound proof fails"
+      ]
+    },
+    "transport_sensitivity": {
+      "status": "passed",
+      "rejected": [
+        "missing output",
+        "malformed output",
+        "backend failure",
+        "timeout",
+        "unsupported operation",
+        "unknown input field",
+        "null operation",
+        "unknown operation field",
+        "numeric token loses exactness",
+        "null string key",
+        "excluded callback registration"
+      ]
+    },
+    "full_scope": {
+      "status": "passed",
+      "theorems": [
+        "actual_limb_decoding",
+        "actual_limb_encoding",
+        "actual_limb_roundtrip",
+        "drive_advance",
+        "drive_finished",
+        "host_create",
+        "host_fits_bound",
+        "host_fits_meaning",
+        "host_int64_key",
+        "host_int64_roundtrip",
+        "host_int64_text",
+        "host_loop_drive",
+        "host_loop_string",
+        "host_loop_word64",
+        "host_sample",
+        "host_string_key",
+        "host_thrown",
+        "host_time",
+        "host_uint64_key",
+        "host_uint64_roundtrip",
+        "host_uint64_text",
+        "public_initialization",
+        "public_integer_trace",
+        "public_string_request",
+        "public_string_request_safe",
+        "public_string_trace",
+        "public_word64_trace",
+        "spec_integer_equality_reflexive",
+        "spec_integer_equality_sound",
+        "spec_word64_equality_reflexive",
+        "spec_word64_equality_sound"
+      ],
+      "adapter_calls": {
+        "uint64_key": "host_uint64_key",
+        "int64_key": "host_int64_key",
+        "uint64_text": "host_uint64_text",
+        "int64_text": "host_int64_text",
+        "string_key": "host_string_key",
+        "time": "host_time",
+        "sample": "host_sample",
+        "thrown": "host_thrown",
+        "create": "host_create",
+        "begin": "host_loop_string",
+        "answer": "host_loop_drive"
+      },
+      "test_only_calls": [
+        "consistent",
+        "keys"
+      ],
+      "gate_probes_rejected": [
+        "add",
+        "asUintN",
+        "import",
+        "mask",
+        "negate",
+        "shift",
+        "uncovered call"
+      ],
+      "trusted": [
+        "Bend 2.0.5 checker and primitive Base semantics; Bun/JS runtime, compiler and hardware",
+        "JS runtime decimal text conversion of integers: String(bigint) into Bend and BigInt(text) out of Bend (compiled Bend Nat holds at most 2^48-1, so 64-bit values cannot cross as Nat); validated by tests/new/host_bridge.ts",
+        "the clock provider call and catching its exception (src/adapter.ts run), identity passing of Bend values and constructor-tag checks"
+      ]
+    }
+  },
+  "complete": true,
+  "exclusions": {
+    "authorization": "callback-exclusions.json",
+    "archive": "tests/new/callback-archive.json",
+    "counted_as_passes": false
+  }
+}

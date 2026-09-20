@@ -1,0 +1,236 @@
+reference/lru/END_TO_END.bend	All terms check, with 1180 unsafe annotations.
+reference/lru/PROOF.bend	All terms check, with 1180 unsafe annotations.
+reference/lru/proofs/absent_read.bend	All terms check, with 120 unsafe annotations.
+reference/lru/proofs/absent_remove.bend	All terms check, with 115 unsafe annotations.
+reference/lru/proofs/abstraction_bindings.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/abstraction_identity.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/abstraction_lookup.bend	All terms check, with 92 unsafe annotations.
+reference/lru/proofs/abstraction_recency.bend	All terms check, with 26 unsafe annotations.
+reference/lru/proofs/abstraction_size.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/add_refinement.bend	All terms check, with 314 unsafe annotations.
+reference/lru/proofs/add_representation.bend	All terms check, with 227 unsafe annotations.
+reference/lru/proofs/addition.bend	All terms check.
+reference/lru/proofs/addition_bounds.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/aggregate_failure.bend	All terms check, with 8 unsafe annotations.
+reference/lru/proofs/aggregate_representation.bend	All terms check, with 230 unsafe annotations.
+reference/lru/proofs/cache_add_capacity.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/cache_delete_identities.bend	All terms check, with 86 unsafe annotations.
+reference/lru/proofs/cache_delete_membership.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/cache_key_identity.bend	All terms check, with 41 unsafe annotations.
+reference/lru/proofs/cache_oldest_available.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/cache_order.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/cache_populated.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/cache_prepare_capacity.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/cache_refresh_identity.bend	All terms check, with 95 unsafe annotations.
+reference/lru/proofs/cache_refresh_membership.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/cache_refresh_prepare.bend	All terms check, with 26 unsafe annotations.
+reference/lru/proofs/cache_storage_preservation.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/cache_store_identities.bend	All terms check, with 92 unsafe annotations.
+reference/lru/proofs/cache_store_identity.bend	All terms check, with 47 unsafe annotations.
+reference/lru/proofs/cache_store_membership.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/canonical.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/canonical_native.bend	All terms check, with 92 unsafe annotations.
+reference/lru/proofs/canonical_remove.bend	All terms check, with 49 unsafe annotations.
+reference/lru/proofs/canonical_string.bend	All terms check, with 167 unsafe annotations.
+reference/lru/proofs/capacity_preservation.bend	All terms check.
+reference/lru/proofs/clock_failure_spec.bend	All terms check, with 12 unsafe annotations.
+reference/lru/proofs/configuration_observations.bend	All terms check, with 80 unsafe annotations.
+reference/lru/proofs/configuration_representation.bend	All terms check, with 203 unsafe annotations.
+reference/lru/proofs/constructor_safety.bend	All terms check, with 407 unsafe annotations.
+reference/lru/proofs/core_refresh_representation.bend	All terms check, with 254 unsafe annotations.
+reference/lru/proofs/counter.bend	All terms check.
+reference/lru/proofs/disabled.bend	All terms check.
+reference/lru/proofs/division_bounds.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/division_candidate.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/division_candidate_bound.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/division_invariant.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/division_no_overflow.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/division_quotient.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/division_remainder.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/division_shift.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/division_value.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/duration_refinement.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/empty_events.bend	All terms check.
+reference/lru/proofs/enumeration_suffix.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/evict_then_write.bend	All terms check, with 299 unsafe annotations.
+reference/lru/proofs/eviction_state.bend	All terms check, with 285 unsafe annotations.
+reference/lru/proofs/expired_read.bend	All terms check, with 294 unsafe annotations.
+reference/lru/proofs/extensional_states.bend	All terms check, with 25 unsafe annotations.
+reference/lru/proofs/full_add.bend	All terms check, with 306 unsafe annotations.
+reference/lru/proofs/full_add_head.bend	All terms check, with 305 unsafe annotations.
+reference/lru/proofs/host_binary.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/host_boundary.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/host_decimal.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/host_loop.bend	All terms check.
+reference/lru/proofs/host_numeric.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/host_render.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/host_step.bend	All terms check.
+reference/lru/proofs/invariants.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/key_equality.bend	All terms check, with 109 unsafe annotations.
+reference/lru/proofs/limb_decoding.bend	All terms check.
+reference/lru/proofs/live_peek.bend	All terms check, with 121 unsafe annotations.
+reference/lru/proofs/live_read_state.bend	All terms check, with 261 unsafe annotations.
+reference/lru/proofs/lookup_refinement.bend	All terms check, with 109 unsafe annotations.
+reference/lru/proofs/map_bits.bend	All terms check.
+reference/lru/proofs/map_character_prefix.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_critbit_parts.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_delete.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_delete_below.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_delete_common.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_delete_critbit.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_delete_frame.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_delete_membership.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_delete_populated.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_delete_prefix.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_delete_routes.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_descent_frame.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_difference.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_difference_char.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_difference_order.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_enumeration.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_index.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_insert.bend	All terms check.
+reference/lru/proofs/map_insert_before.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_insert_below.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_insert_common.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_insert_critbit.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_insert_descent.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_insert_frame.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_insert_inverse.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_insert_membership.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_insert_nonempty.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_insert_prefix.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_insert_routes.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_key_disjoint.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_key_lookup.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_key_membership.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_key_presence.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_keys_unique.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_lookup.bend	All terms check.
+reference/lru/proofs/map_msb.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_pop.bend	All terms check.
+reference/lru/proofs/map_populated.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_populated_inverse.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_prefix_algebra.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_prefix_bounds.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_prefix_join.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_prefix_routing.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_put_frame.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_route_boolean.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_routing.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_seek.bend	All terms check.
+reference/lru/proofs/map_seek_discriminator.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_seek_empty.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_seek_prefix.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_seek_routes.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_selected_prefix.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_set_critbit.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_set_frame.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_set_membership.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_shape.bend	All terms check.
+reference/lru/proofs/map_shape_invariants.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_splice_critbit.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_splice_frame.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/map_string_prefix.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/modular_addition.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/modular_negation.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/multiplication_bounds.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/nat_algebra.bend	All terms check.
+reference/lru/proofs/native_map.bend	All terms check.
+reference/lru/proofs/natural_division.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/natural_products.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/negation_magnitude.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/nonfull_add.bend	All terms check, with 302 unsafe annotations.
+reference/lru/proofs/numeric.bend	All terms check.
+reference/lru/proofs/oldest_refinement.bend	All terms check, with 363 unsafe annotations.
+reference/lru/proofs/ordered_entries.bend	All terms check, with 112 unsafe annotations.
+reference/lru/proofs/protocol.bend	All terms check.
+reference/lru/proofs/protocol_remove_refinement.bend	All terms check, with 292 unsafe annotations.
+reference/lru/proofs/protocol_storage.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/public_add.bend	All terms check, with 368 unsafe annotations.
+reference/lru/proofs/public_aggregate.bend	All terms check, with 359 unsafe annotations.
+reference/lru/proofs/public_config.bend	All terms check, with 103 unsafe annotations.
+reference/lru/proofs/public_diagnostics.bend	All terms check, with 360 unsafe annotations.
+reference/lru/proofs/public_drive.bend	All terms check.
+reference/lru/proofs/public_finish.bend	All terms check, with 122 unsafe annotations.
+reference/lru/proofs/public_keys.bend	All terms check, with 603 unsafe annotations.
+reference/lru/proofs/public_oldest.bend	All terms check, with 12 unsafe annotations.
+reference/lru/proofs/public_oldest_ops.bend	All terms check, with 408 unsafe annotations.
+reference/lru/proofs/public_phase_safety.bend	All terms check, with 395 unsafe annotations.
+reference/lru/proofs/public_read.bend	All terms check, with 368 unsafe annotations.
+reference/lru/proofs/public_refresh.bend	All terms check, with 412 unsafe annotations.
+reference/lru/proofs/public_relation.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/public_requests.bend	All terms check, with 456 unsafe annotations.
+reference/lru/proofs/public_safety.bend	All terms check, with 458 unsafe annotations.
+reference/lru/proofs/public_simple.bend	All terms check, with 334 unsafe annotations.
+reference/lru/proofs/public_trace.bend	All terms check, with 603 unsafe annotations.
+reference/lru/proofs/read_refinement.bend	All terms check, with 359 unsafe annotations.
+reference/lru/proofs/read_representation.bend	All terms check, with 245 unsafe annotations.
+reference/lru/proofs/recency_bounds.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/recency_capacity.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/recency_head_removal.bend	All terms check, with 306 unsafe annotations.
+reference/lru/proofs/recency_membership.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/recency_move_inclusion.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/recency_unique.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/recency_update_membership.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/refinement.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/refresh_complete_representation.bend	All terms check, with 131 unsafe annotations.
+reference/lru/proofs/refresh_lookup.bend	All terms check.
+reference/lru/proofs/refresh_refinement.bend	All terms check, with 365 unsafe annotations.
+reference/lru/proofs/refresh_representation.bend	All terms check, with 92 unsafe annotations.
+reference/lru/proofs/refresh_state.bend	All terms check, with 354 unsafe annotations.
+reference/lru/proofs/removal_lookup.bend	All terms check, with 112 unsafe annotations.
+reference/lru/proofs/removal_representation.bend	All terms check, with 185 unsafe annotations.
+reference/lru/proofs/removal_state.bend	All terms check, with 282 unsafe annotations.
+reference/lru/proofs/remove_refinement.bend	All terms check, with 292 unsafe annotations.
+reference/lru/proofs/rename_machine.bend	All terms check, with 6 unsafe annotations.
+reference/lru/proofs/rename_map.bend	103 |   Nat.is_gt(cap, 0n) && Nat.is_le(List.length(&2, String, order), cap) && unique(order) && unique(keys) && included(order, keys) && included(keys, order) && critbit(Maybe<&2, T.Entry<K, V>>, table) && identities(~K, ~encode, V, Map.to_list(&2, Maybe<&2, T.Entry<K, V>>, table))
+reference/lru/proofs/rename_spec.bend	All terms check, with 62 unsafe annotations.
+reference/lru/proofs/replacement_refinement.bend	All terms check, with 296 unsafe annotations.
+reference/lru/proofs/representation_access.bend	All terms check, with 74 unsafe annotations.
+reference/lru/proofs/representation_nonempty.bend	All terms check, with 47 unsafe annotations.
+reference/lru/proofs/representation_parts.bend	All terms check, with 74 unsafe annotations.
+reference/lru/proofs/signed_division.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/size_length.bend	All terms check, with 306 unsafe annotations.
+reference/lru/proofs/spec_congruence.bend	All terms check, with 226 unsafe annotations.
+reference/lru/proofs/spec_erase_lookup.bend	All terms check, with 14 unsafe annotations.
+reference/lru/proofs/spec_lookup.bend	All terms check, with 11 unsafe annotations.
+reference/lru/proofs/spec_write_lookup.bend	All terms check, with 114 unsafe annotations.
+reference/lru/proofs/store_lookup_refinement.bend	All terms check, with 114 unsafe annotations.
+reference/lru/proofs/store_representation.bend	All terms check, with 131 unsafe annotations.
+reference/lru/proofs/store_state.bend	All terms check, with 288 unsafe annotations.
+reference/lru/proofs/string_order.bend	All terms check, with 84 unsafe annotations.
+reference/lru/proofs/subtraction_bounds.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/transition_reachability.bend	All terms check, with 341 unsafe annotations.
+reference/lru/proofs/word_addition.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/word_bounds.bend	All terms check.
+reference/lru/proofs/word_comparison.bend	All terms check.
+reference/lru/proofs/word_multiplication.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/word_shift.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/word_subtraction.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/word_value.bend	All terms check, with 2 unsafe annotations.
+reference/lru/proofs/write_congruence.bend	All terms check, with 179 unsafe annotations.
+reference/lru/spec/cache.bend	All terms check.
+reference/lru/spec/clock.bend	9 |   Sample{milliseconds: T.Int64}
+reference/lru/spec/effectful_aggregate.bend	All terms check.
+reference/lru/spec/effectful_operations.bend	All terms check.
+reference/lru/spec/equivalence.bend	All terms check.
+reference/lru/spec/host.bend	All terms check.
+reference/lru/spec/keys.bend	All terms check.
+reference/lru/spec/numeric.bend	All terms check.
+reference/lru/spec/operations.bend	All terms check.
+reference/lru/spec/public_commands.bend	14 |   Boolean{value: Bool}
+reference/lru/spec/public_oldest.bend	All terms check.
+reference/lru/spec/traces.bend	All terms check.
+reference/lru/spec/unsigned_division.bend	All terms check.
+reference/lru/src/cache.bend	All terms check.
+reference/lru/src/codec.bend	All terms check.
+reference/lru/src/driver.bend	All terms check.
+reference/lru/src/entry_ops.bend	All terms check.
+reference/lru/src/host.bend	All terms check.
+reference/lru/src/protocol.bend	All terms check.
+reference/lru/src/public.bend	All terms check.
+reference/lru/src/time.bend	All terms check.
+reference/lru/src/wide.bend	All terms check.
+reference/lru/tests/new/spec_smoke.bend	All terms check, with 259 unsafe annotations.
+reference/lru/types/model.bend	18 |   Evicted{key: K, value: V}

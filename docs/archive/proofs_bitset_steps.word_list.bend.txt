@@ -1,0 +1,205 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/list.bend as LL
+import ../../spec/common.bend as SC
+import ../../spec/bitset.bend as S
+import ../../src/bitset.bend as B
+import ../../types/bitset.bend as E
+import ./lists.bend as BL
+import ./state.bend as ST
+
+# Every public operation (errors included) refines the spec step and keeps
+# the invariant; from_bools builds exactly the requested bit sequence.
+
+def view1(r: B.Bitset & E.Obs) -> List<&2, Bool> & E.Obs:
+  match r:
+    case Tuple{s, o}:
+      (ST.abs(s), o)
+
+def StepOK(s: B.Bitset, op: E.Op) -> Type:
+  {view1(B.step(s, op)) == S.step(ST.abs(s), op) : List<&2, Bool> & E.Obs} & {ST.inv(Pair.fst(B.Bitset, E.Obs, B.step(s, op))) == True{} : Bool}
+
+# ---- reading and assigning bit i ----
+
+def nth_in(+n: Nat, +ws: List<&2, U32>, +i: Nat, +h: {Nat.is_lt(i, n) == True{} : Bool}, +g: {ST.invf(n, ST.flat(ws)) == True{} : Bool}) -> {Some{B.get_walk(ws, i)} == SC.nth(Bool, SC.take(Bool, ST.flat(ws), n), i) : Maybe<&2, Bool>}:
+  Equal.trans(Maybe<&2, Bool>, Some{B.get_walk(ws, i)}, SC.nth(Bool, ST.flat(ws), i), SC.nth(Bool, SC.take(Bool, ST.flat(ws), n), i),
+    ST.get_walk(ws, i, N.lt_le_trans(i, n, SC.length(Bool, ST.flat(ws)), h, ST.inv_le(n, ST.flat(ws), g))),
+    Equal.sym(Maybe<&2, Bool>, SC.nth(Bool, SC.take(Bool, ST.flat(ws), n), i), SC.nth(Bool, ST.flat(ws), i), BL.nth_take(ST.flat(ws), n, i, h)))
+
+def nth_out(+n: Nat, +ws: List<&2, U32>, +i: Nat, +h: {Nat.is_lt(i, n) == False{} : Bool}, +g: {ST.invf(n, ST.flat(ws)) == True{} : Bool}) -> {None{} == SC.nth(Bool, SC.take(Bool, ST.flat(ws), n), i) : Maybe<&2, Bool>}:
+  Equal.sym(Maybe<&2, Bool>, SC.nth(Bool, SC.take(Bool, ST.flat(ws), n), i), None{},
+    LL.nth_none(Bool, SC.take(Bool, ST.flat(ws), n), i, L.subst(Nat, k => {Nat.is_le(k, i) == True{} : Bool}, n, SC.length(Bool, SC.take(Bool, ST.flat(ws), n)), Equal.sym(Nat, SC.length(Bool, SC.take(Bool, ST.flat(ws), n)), n, ST.length_abs(n, ST.flat(ws), g)), N.not_lt_le(i, n, h))))
+
+def get_ok(+n: Nat, +ws: List<&2, U32>, +i: Nat, b: Bool, +eb: {Nat.is_lt(i, n) == b : Bool}, +g: {ST.invf(n, ST.flat(ws)) == True{} : Bool}) -> {B.get_if(b, ws, i) == S.bit(SC.nth(Bool, SC.take(Bool, ST.flat(ws), n), i)) : Result<&2, &2, E.Error, Bool>}:
+  match b:
+    case True{}:
+      %nth_in(n, ws, i, eb, g) : {Done{B.get_walk(ws, i)} == S.bit(_) : Result<&2, &2, E.Error, Bool>}
+      {==}
+    case False{}:
+      %nth_out(n, ws, i, eb, g) : {Fail{E.IndexOutOfRange{}} == S.bit(_) : Result<&2, &2, E.Error, Bool>}
+      {==}
+
+def AssignOK(+n: Nat, +ws: List<&2, U32>, +i: Nat, +v: Bool, b: Bool) -> Type:
+  {view1(B.obs_unit(B.assign_if(b, n, ws, i, v))) == S.assign_at(SC.nth(Bool, SC.take(Bool, ST.flat(ws), n), i), SC.take(Bool, ST.flat(ws), n), i, v) : List<&2, Bool> & E.Obs} & {ST.inv(Pair.fst(B.Bitset, E.Obs, B.obs_unit(B.assign_if(b, n, ws, i, v)))) == True{} : Bool}
+
+def assign_ok(+n: Nat, +ws: List<&2, U32>, +i: Nat, +v: Bool, b: Bool, +eb: {Nat.is_lt(i, n) == b : Bool}, +g: {ST.invf(n, ST.flat(ws)) == True{} : Bool}) -> AssignOK(n, ws, i, v, b):
+  match b:
+    case True{}:
+      (%nth_in(n, ws, i, eb, g) : {(SC.take(Bool, ST.flat(B.put_walk(ws, i, v)), n), E.OUnit{Done{Unit{}}}) == S.assign_at(_, SC.take(Bool, ST.flat(ws), n), i, v) : List<&2, Bool> & E.Obs}
+       %Equal.sym(List<&2, Bool>, SC.take(Bool, ST.flat(B.put_walk(ws, i, v)), n), SC.update(Bool, SC.take(Bool, ST.flat(ws), n), i, v), ST.put_abs(n, ws, i, v)) : {(_, E.OUnit{Done{Unit{}}}) == (SC.update(Bool, SC.take(Bool, ST.flat(ws), n), i, v), E.OUnit{Done{Unit{}}}) : List<&2, Bool> & E.Obs}
+       {==},
+       ST.put_inv(n, ws, i, v, eb, g))
+    case False{}:
+      (%nth_out(n, ws, i, eb, g) : {(SC.take(Bool, ST.flat(ws), n), E.OUnit{Fail{E.IndexOutOfRange{}}}) == S.assign_at(_, SC.take(Bool, ST.flat(ws), n), i, v) : List<&2, Bool> & E.Obs}
+       {==},
+       g)
+
+# ---- count and enumeration see only the logical bits ----
+
+def count_abs(+n: Nat, +xs: List<&2, Bool>, +g: {ST.invf(n, xs) == True{} : Bool}) -> {S.count(xs) == S.count(SC.take(Bool, xs, n)) : Nat}:
+  Equal.trans(Nat, S.count(xs), S.count(SC.append(Bool, SC.take(Bool, xs, n), SC.drop(Bool, xs, n))), S.count(SC.take(Bool, xs, n)),
+    Equal.cong(List<&2, Bool>, Nat, z => S.count(z), xs, SC.append(Bool, SC.take(Bool, xs, n), SC.drop(Bool, xs, n)), ST.split(n, xs)),
+    %Equal.sym(Nat, S.count(SC.append(Bool, SC.take(Bool, xs, n), SC.drop(Bool, xs, n))), Nat.add(S.count(SC.take(Bool, xs, n)), S.count(SC.drop(Bool, xs, n))), BL.count_append(SC.take(Bool, xs, n), SC.drop(Bool, xs, n))) : {_ == S.count(SC.take(Bool, xs, n)) : Nat}
+    %Equal.sym(Nat, S.count(SC.drop(Bool, xs, n)), 0n, BL.count_allf(SC.drop(Bool, xs, n), ST.inv_tail(n, xs, g))) : {Nat.add(S.count(SC.take(Bool, xs, n)), _) == S.count(SC.take(Bool, xs, n)) : Nat}
+    N.add_zero(S.count(SC.take(Bool, xs, n))))
+
+def members_abs(+n: Nat, +xs: List<&2, Bool>, +g: {ST.invf(n, xs) == True{} : Bool}) -> {S.members(xs, 0n) == S.members(SC.take(Bool, xs, n), 0n) : List<&2, Nat>}:
+  Equal.trans(List<&2, Nat>, S.members(xs, 0n), S.members(SC.append(Bool, SC.take(Bool, xs, n), SC.drop(Bool, xs, n)), 0n), S.members(SC.take(Bool, xs, n), 0n),
+    Equal.cong(List<&2, Bool>, List<&2, Nat>, z => S.members(z, 0n), xs, SC.append(Bool, SC.take(Bool, xs, n), SC.drop(Bool, xs, n)), ST.split(n, xs)),
+    %Equal.sym(List<&2, Nat>, S.members(SC.append(Bool, SC.take(Bool, xs, n), SC.drop(Bool, xs, n)), 0n), SC.append(Nat, S.members(SC.take(Bool, xs, n), 0n), S.members(SC.drop(Bool, xs, n), Nat.add(SC.length(Bool, SC.take(Bool, xs, n)), 0n))), BL.members_append(SC.take(Bool, xs, n), SC.drop(Bool, xs, n), 0n)) : {_ == S.members(SC.take(Bool, xs, n), 0n) : List<&2, Nat>}
+    %Equal.sym(List<&2, Nat>, S.members(SC.drop(Bool, xs, n), Nat.add(SC.length(Bool, SC.take(Bool, xs, n)), 0n)), Nil{}, BL.members_allf(SC.drop(Bool, xs, n), Nat.add(SC.length(Bool, SC.take(Bool, xs, n)), 0n), ST.inv_tail(n, xs, g))) : {SC.append(Nat, S.members(SC.take(Bool, xs, n), 0n), _) == S.members(SC.take(Bool, xs, n), 0n) : List<&2, Nat>}
+    LL.append_nil(Nat, S.members(SC.take(Bool, xs, n), 0n)))
+
+# ---- binary operations ----
+
+def CombB(+k: B.WordOp, +n: Nat, +ws: List<&2, U32>, +m: Nat, +vs: List<&2, U32>, b: Bool) -> Type:
+  {view1(B.obs_unit(B.combine_if(b, k, n, ws, vs))) == S.combine_if(b, SC.take(Bool, ST.flat(ws), n), BL.zipk(k, SC.take(Bool, ST.flat(ws), n), SC.take(Bool, ST.flat(vs), m))) : List<&2, Bool> & E.Obs} & {ST.inv(Pair.fst(B.Bitset, E.Obs, B.obs_unit(B.combine_if(b, k, n, ws, vs)))) == True{} : Bool}
+
+def comb_case(+k: B.WordOp, +n: Nat, +ws: List<&2, U32>, +m: Nat, +vs: List<&2, U32>, b: Bool, +eb: {Nat.is_eq(n, m) == b : Bool}, +g: {ST.invf(n, ST.flat(ws)) == True{} : Bool}, +gv: {ST.invf(m, ST.flat(vs)) == True{} : Bool}) -> CombB(k, n, ws, m, vs, b):
+  match b:
+    case True{}:
+      +e = N.eq_from_is_eq(n, m, eb)
+      (%Equal.sym(List<&2, Bool>, ST.flat(B.zip_words(k, ws, vs)), BL.zipk(k, ST.flat(ws), ST.flat(vs)), ST.zip_words(k, ws, vs)) : {(SC.take(Bool, _, n), E.OUnit{Done{Unit{}}}) == (BL.zipk(k, SC.take(Bool, ST.flat(ws), n), SC.take(Bool, ST.flat(vs), m)), E.OUnit{Done{Unit{}}}) : List<&2, Bool> & E.Obs}
+       %Equal.sym(List<&2, Bool>, SC.take(Bool, BL.zipk(k, ST.flat(ws), ST.flat(vs)), n), BL.zipk(k, SC.take(Bool, ST.flat(ws), n), SC.take(Bool, ST.flat(vs), n)), BL.take_zipk(k, ST.flat(ws), ST.flat(vs), n)) : {(_, E.OUnit{Done{Unit{}}}) == (BL.zipk(k, SC.take(Bool, ST.flat(ws), n), SC.take(Bool, ST.flat(vs), m)), E.OUnit{Done{Unit{}}}) : List<&2, Bool> & E.Obs}
+       %e : {(BL.zipk(k, SC.take(Bool, ST.flat(ws), n), SC.take(Bool, ST.flat(vs), n)), E.OUnit{Done{Unit{}}}) == (BL.zipk(k, SC.take(Bool, ST.flat(ws), n), SC.take(Bool, ST.flat(vs), _)), E.OUnit{Done{Unit{}}}) : List<&2, Bool> & E.Obs}
+       {==},
+       L.subst(List<&2, Bool>, x => {ST.invf(n, x) == True{} : Bool}, BL.zipk(k, ST.flat(ws), ST.flat(vs)), ST.flat(B.zip_words(k, ws, vs)), Equal.sym(List<&2, Bool>, ST.flat(B.zip_words(k, ws, vs)), BL.zipk(k, ST.flat(ws), ST.flat(vs)), ST.zip_words(k, ws, vs)),
+         ST.invf_zipk(k, n, ST.flat(ws), ST.flat(vs), g, L.subst(Nat, q => {ST.invf(q, ST.flat(vs)) == True{} : Bool}, m, n, Equal.sym(Nat, n, m, e), gv))))
+    case False{}:
+      ({==}, g)
+
+def CombV(+k: B.WordOp, +n: Nat, +ws: List<&2, U32>, +m: Nat, +vs: List<&2, U32>, ys: List<&2, Bool>) -> Type:
+  {view1(B.obs_unit(B.combine(k, B.BS{n, ws}, B.BS{m, vs}))) == S.combine(SC.take(Bool, ST.flat(ws), n), ys, BL.zipk(k, SC.take(Bool, ST.flat(ws), n), ys)) : List<&2, Bool> & E.Obs} & {ST.inv(Pair.fst(B.Bitset, E.Obs, B.obs_unit(B.combine(k, B.BS{n, ws}, B.BS{m, vs})))) == True{} : Bool}
+
+def comb_view(+k: B.WordOp, +n: Nat, +ws: List<&2, U32>, +m: Nat, +vs: List<&2, U32>, +g: {ST.invf(n, ST.flat(ws)) == True{} : Bool}, +gv: {ST.invf(m, ST.flat(vs)) == True{} : Bool}) -> CombV(k, n, ws, m, vs, SC.take(Bool, ST.flat(vs), m)):
+  %Equal.sym(Nat, SC.length(Bool, SC.take(Bool, ST.flat(ws), n)), n, ST.length_abs(n, ST.flat(ws), g)) : {view1(B.obs_unit(B.combine_if(Nat.is_eq(n, m), k, n, ws, vs))) == S.combine_if(Nat.is_eq(_, SC.length(Bool, SC.take(Bool, ST.flat(vs), m))), SC.take(Bool, ST.flat(ws), n), BL.zipk(k, SC.take(Bool, ST.flat(ws), n), SC.take(Bool, ST.flat(vs), m))) : List<&2, Bool> & E.Obs} & {ST.inv(Pair.fst(B.Bitset, E.Obs, B.obs_unit(B.combine_if(Nat.is_eq(n, m), k, n, ws, vs)))) == True{} : Bool}
+  %Equal.sym(Nat, SC.length(Bool, SC.take(Bool, ST.flat(vs), m)), m, ST.length_abs(m, ST.flat(vs), gv)) : {view1(B.obs_unit(B.combine_if(Nat.is_eq(n, m), k, n, ws, vs))) == S.combine_if(Nat.is_eq(n, _), SC.take(Bool, ST.flat(ws), n), BL.zipk(k, SC.take(Bool, ST.flat(ws), n), SC.take(Bool, ST.flat(vs), m))) : List<&2, Bool> & E.Obs} & {ST.inv(Pair.fst(B.Bitset, E.Obs, B.obs_unit(B.combine_if(Nat.is_eq(n, m), k, n, ws, vs)))) == True{} : Bool}
+  comb_case(k, n, ws, m, vs, Nat.is_eq(n, m), {==}, g, gv)
+
+def OpOK(+k: B.WordOp, +n: Nat, +ws: List<&2, U32>, fb: B.Bitset, ys: List<&2, Bool>, z: List<&2, Bool>) -> Type:
+  {view1(B.obs_unit(B.combine(k, B.BS{n, ws}, fb))) == S.combine(SC.take(Bool, ST.flat(ws), n), ys, z) : List<&2, Bool> & E.Obs} & {ST.inv(Pair.fst(B.Bitset, E.Obs, B.obs_unit(B.combine(k, B.BS{n, ws}, fb)))) == True{} : Bool}
+
+def op_ok(+k: B.WordOp, +n: Nat, +ws: List<&2, U32>, +fb: B.Bitset, +ys: List<&2, Bool>, +z: List<&2, Bool>, +ez: {BL.zipk(k, SC.take(Bool, ST.flat(ws), n), ys) == z : List<&2, Bool>}, +e: {ST.abs(fb) == ys : List<&2, Bool>}, +g: {ST.invf(n, ST.flat(ws)) == True{} : Bool}, +gv: {ST.inv(fb) == True{} : Bool}) -> OpOK(k, n, ws, fb, ys, z):
+  match fb:
+    case B.BS{+m, +vs}:
+      %ez : OpOK(k, n, ws, B.BS{m, vs}, ys, _)
+      L.subst(List<&2, Bool>, y => CombV(k, n, ws, m, vs, y), SC.take(Bool, ST.flat(vs), m), ys, e, comb_view(k, n, ws, m, vs, g, gv))
+
+# ---- from_bools builds the requested sequence ----
+
+def lt_add_succ(+a: Nat, +x: Nat) -> {Nat.is_lt(a, Nat.add(a, 1n+x)) == True{} : Bool}:
+  %Equal.sym(Nat, Nat.add(a, 1n+x), 1n+Nat.add(a, x), N.add_succ(a, x)) : {Nat.is_lt(a, _) == True{} : Bool}
+  N.le_lt_succ(a, Nat.add(a, x), N.le_add_right(a, x))
+
+def PickOK(b: Bool, +s: B.Bitset, +p: List<&2, Bool>, +r: List<&2, Bool>) -> Type:
+  {ST.abs(B.fill_pick(b, s, SC.length(Bool, p))) == SC.append(Bool, SC.snoc(Bool, p, b), BL.rep(SC.length(Bool, r))) : List<&2, Bool>} & {ST.inv(B.fill_pick(b, s, SC.length(Bool, p))) == True{} : Bool}
+
+def pick_true(+n: Nat, +ws: List<&2, U32>, +p: List<&2, Bool>, +r: List<&2, Bool>, +h: {Nat.is_lt(SC.length(Bool, p), n) == True{} : Bool}, +gs: {ST.invf(n, ST.flat(ws)) == True{} : Bool}, +ea: {SC.take(Bool, ST.flat(ws), n) == SC.append(Bool, p, Con{False{}, BL.rep(SC.length(Bool, r))}) : List<&2, Bool>}) -> {SC.take(Bool, ST.flat(B.put_walk(ws, SC.length(Bool, p), True{})), n) == SC.append(Bool, SC.snoc(Bool, p, True{}), BL.rep(SC.length(Bool, r))) : List<&2, Bool>}:
+  %Equal.sym(List<&2, Bool>, SC.take(Bool, ST.flat(B.put_walk(ws, SC.length(Bool, p), True{})), n), SC.update(Bool, SC.take(Bool, ST.flat(ws), n), SC.length(Bool, p), True{}), ST.put_abs(n, ws, SC.length(Bool, p), True{})) : {_ == SC.append(Bool, SC.snoc(Bool, p, True{}), BL.rep(SC.length(Bool, r))) : List<&2, Bool>}
+  %Equal.sym(List<&2, Bool>, SC.take(Bool, ST.flat(ws), n), SC.append(Bool, p, Con{False{}, BL.rep(SC.length(Bool, r))}), ea) : {SC.update(Bool, _, SC.length(Bool, p), True{}) == SC.append(Bool, SC.snoc(Bool, p, True{}), BL.rep(SC.length(Bool, r))) : List<&2, Bool>}
+  %Equal.sym(List<&2, Bool>, SC.update(Bool, SC.append(Bool, p, Con{False{}, BL.rep(SC.length(Bool, r))}), SC.length(Bool, p), True{}), SC.append(Bool, p, SC.update(Bool, Con{False{}, BL.rep(SC.length(Bool, r))}, Nat.sub(SC.length(Bool, p), SC.length(Bool, p)), True{})), LL.update_append_right(Bool, p, Con{False{}, BL.rep(SC.length(Bool, r))}, SC.length(Bool, p), True{}, N.le_refl(SC.length(Bool, p)))) : {_ == SC.append(Bool, SC.snoc(Bool, p, True{}), BL.rep(SC.length(Bool, r))) : List<&2, Bool>}
+  %Equal.sym(Nat, Nat.sub(SC.length(Bool, p), SC.length(Bool, p)), 0n, N.sub_self(SC.length(Bool, p))) : {SC.append(Bool, p, SC.update(Bool, Con{False{}, BL.rep(SC.length(Bool, r))}, _, True{})) == SC.append(Bool, SC.snoc(Bool, p, True{}), BL.rep(SC.length(Bool, r))) : List<&2, Bool>}
+  Equal.sym(List<&2, Bool>, SC.append(Bool, SC.snoc(Bool, p, True{}), BL.rep(SC.length(Bool, r))), SC.append(Bool, p, Con{True{}, BL.rep(SC.length(Bool, r))}), LL.snoc_append_cons(Bool, p, True{}, BL.rep(SC.length(Bool, r))))
+
+def pick_ok(b: Bool, +s: B.Bitset, +p: List<&2, Bool>, +r: List<&2, Bool>, +gs: {ST.inv(s) == True{} : Bool}, +ea: {ST.abs(s) == SC.append(Bool, p, Con{False{}, BL.rep(SC.length(Bool, r))}) : List<&2, Bool>}) -> PickOK(b, s, p, r):
+  match b s:
+    case True{} B.BS{+n, +ws}:
+      +el = Equal.trans(Nat, n, SC.length(Bool, SC.take(Bool, ST.flat(ws), n)), SC.length(Bool, SC.append(Bool, p, Con{False{}, BL.rep(SC.length(Bool, r))})),
+        Equal.sym(Nat, SC.length(Bool, SC.take(Bool, ST.flat(ws), n)), n, ST.length_abs(n, ST.flat(ws), gs)),
+        Equal.cong(List<&2, Bool>, Nat, z => SC.length(Bool, z), SC.take(Bool, ST.flat(ws), n), SC.append(Bool, p, Con{False{}, BL.rep(SC.length(Bool, r))}), ea))
+      +el2 = Equal.trans(Nat, n, SC.length(Bool, SC.append(Bool, p, Con{False{}, BL.rep(SC.length(Bool, r))})), Nat.add(SC.length(Bool, p), 1n+SC.length(Bool, BL.rep(SC.length(Bool, r)))), el, LL.length_append(Bool, p, Con{False{}, BL.rep(SC.length(Bool, r))}))
+      +h = L.subst(Nat, q => {Nat.is_lt(SC.length(Bool, p), q) == True{} : Bool}, Nat.add(SC.length(Bool, p), 1n+SC.length(Bool, BL.rep(SC.length(Bool, r)))), n, Equal.sym(Nat, n, Nat.add(SC.length(Bool, p), 1n+SC.length(Bool, BL.rep(SC.length(Bool, r)))), el2), lt_add_succ(SC.length(Bool, p), SC.length(Bool, BL.rep(SC.length(Bool, r)))))
+      L.subst(Bool, c => ({ST.abs(Pair.fst(B.Bitset, Result<&2, &2, E.Error, Unit>, B.assign_if(c, n, ws, SC.length(Bool, p), True{}))) == SC.append(Bool, SC.snoc(Bool, p, True{}), BL.rep(SC.length(Bool, r))) : List<&2, Bool>} & {ST.inv(Pair.fst(B.Bitset, Result<&2, &2, E.Error, Unit>, B.assign_if(c, n, ws, SC.length(Bool, p), True{}))) == True{} : Bool}), True{}, Nat.is_lt(SC.length(Bool, p), n), Equal.sym(Bool, Nat.is_lt(SC.length(Bool, p), n), True{}, h),
+        (pick_true(n, ws, p, r, h, gs, ea), ST.put_inv(n, ws, SC.length(Bool, p), True{}, h, gs)))
+    case False{} _:
+      (Equal.trans(List<&2, Bool>, ST.abs(s), SC.append(Bool, p, Con{False{}, BL.rep(SC.length(Bool, r))}), SC.append(Bool, SC.snoc(Bool, p, False{}), BL.rep(SC.length(Bool, r))), ea,
+         Equal.sym(List<&2, Bool>, SC.append(Bool, SC.snoc(Bool, p, False{}), BL.rep(SC.length(Bool, r))), SC.append(Bool, p, Con{False{}, BL.rep(SC.length(Bool, r))}), LL.snoc_append_cons(Bool, p, False{}, BL.rep(SC.length(Bool, r))))),
+       gs)
+
+def FillOK(t: List<&2, Bool>, +p: List<&2, Bool>, +s: B.Bitset) -> Type:
+  {ST.abs(B.fill(t, SC.length(Bool, p), s)) == SC.append(Bool, p, t) : List<&2, Bool>} & {ST.inv(B.fill(t, SC.length(Bool, p), s)) == True{} : Bool}
+
+def fill_ok(+t: List<&2, Bool>, +p: List<&2, Bool>, +s: B.Bitset, +gs: {ST.inv(s) == True{} : Bool}, +ea: {ST.abs(s) == SC.append(Bool, p, BL.rep(SC.length(Bool, t))) : List<&2, Bool>}) -> FillOK(t, p, s):
+  match t:
+    case Nil{}:
+      (ea, gs)
+    case Con{+b, +r}:
+      -A1 = {ST.abs(B.fill_pick(b, s, SC.length(Bool, p))) == SC.append(Bool, SC.snoc(Bool, p, b), BL.rep(SC.length(Bool, r))) : List<&2, Bool>}
+      -I1 = {ST.inv(B.fill_pick(b, s, SC.length(Bool, p))) == True{} : Bool}
+      +s1 = B.fill_pick(b, s, SC.length(Bool, p))
+      ih = fill_ok(r, SC.snoc(Bool, p, b), s1, Pair.snd(A1, I1, pick_ok(b, s, p, r, gs, ea)), Pair.fst(A1, I1, pick_ok(b, s, p, r, gs, ea)))
+      L.subst(Nat, q => ({ST.abs(B.fill(r, q, s1)) == SC.append(Bool, p, Con{b, r}) : List<&2, Bool>} & {ST.inv(B.fill(r, q, s1)) == True{} : Bool}), SC.length(Bool, SC.snoc(Bool, p, b)), 1n+SC.length(Bool, p), LL.length_snoc(Bool, p, b),
+        L.subst(List<&2, Bool>, z => ({ST.abs(B.fill(r, SC.length(Bool, SC.snoc(Bool, p, b)), s1)) == z : List<&2, Bool>} & {ST.inv(B.fill(r, SC.length(Bool, SC.snoc(Bool, p, b)), s1)) == True{} : Bool}), SC.append(Bool, SC.snoc(Bool, p, b), r), SC.append(Bool, p, Con{b, r}), LL.snoc_append_cons(Bool, p, b, r), ih))
+
+def bool_count(+ys: List<&2, Bool>) -> {B.bool_count(ys) == SC.length(Bool, ys) : Nat}:
+  match ys:
+    case Nil{}:
+      {==}
+    case Con{b, t}:
+      N.succ_cong(B.bool_count(t), SC.length(Bool, t), bool_count(t))
+
+def FromOK(ys: List<&2, Bool>) -> Type:
+  {ST.abs(B.from_bools(ys)) == ys : List<&2, Bool>} & {ST.inv(B.from_bools(ys)) == True{} : Bool}
+
+def from_bools(+ys: List<&2, Bool>) -> FromOK(ys):
+  +c = B.bool_count(ys)
+  +ea = L.subst(Nat, q => {ST.abs(B.new(c)) == BL.rep(q) : List<&2, Bool>}, c, SC.length(Bool, ys), bool_count(ys), ST.new_abs(c))
+  fill_ok(ys, Nil{}, B.new(c), ST.new_inv(c), ea)
+
+def from_abs(+ys: List<&2, Bool>) -> {ST.abs(B.from_bools(ys)) == ys : List<&2, Bool>}:
+  Pair.fst({ST.abs(B.from_bools(ys)) == ys : List<&2, Bool>}, {ST.inv(B.from_bools(ys)) == True{} : Bool}, from_bools(ys))
+
+def from_inv(+ys: List<&2, Bool>) -> {ST.inv(B.from_bools(ys)) == True{} : Bool}:
+  Pair.snd({ST.abs(B.from_bools(ys)) == ys : List<&2, Bool>}, {ST.inv(B.from_bools(ys)) == True{} : Bool}, from_bools(ys))
+
+# ---- every operation ----
+
+def step_ok(+s: B.Bitset, +op: E.Op, +g: {ST.inv(s) == True{} : Bool}) -> StepOK(s, op):
+  match s op:
+    case B.BS{+n, +ws} E.Length{}:
+      (%Equal.sym(Nat, SC.length(Bool, SC.take(Bool, ST.flat(ws), n)), n, ST.length_abs(n, ST.flat(ws), g)) : {(SC.take(Bool, ST.flat(ws), n), E.ONat{n}) == (SC.take(Bool, ST.flat(ws), n), E.ONat{_}) : List<&2, Bool> & E.Obs}
+       {==}, g)
+    case B.BS{+n, +ws} E.Get{+i}:
+      (%Equal.sym(Result<&2, &2, E.Error, Bool>, B.get_if(Nat.is_lt(i, n), ws, i), S.bit(SC.nth(Bool, SC.take(Bool, ST.flat(ws), n), i)), get_ok(n, ws, i, Nat.is_lt(i, n), {==}, g)) : {(SC.take(Bool, ST.flat(ws), n), E.OBit{_}) == (SC.take(Bool, ST.flat(ws), n), E.OBit{S.bit(SC.nth(Bool, SC.take(Bool, ST.flat(ws), n), i))}) : List<&2, Bool> & E.Obs}
+       {==}, g)
+    case B.BS{+n, +ws} E.Set{+i}:
+      assign_ok(n, ws, i, True{}, Nat.is_lt(i, n), {==}, g)
+    case B.BS{+n, +ws} E.Clear{+i}:
+      assign_ok(n, ws, i, False{}, Nat.is_lt(i, n), {==}, g)
+    case B.BS{+n, +ws} E.Count{}:
+      (%Equal.sym(Nat, B.count_words(ws), S.count(ST.flat(ws)), ST.count_words(ws)) : {(SC.take(Bool, ST.flat(ws), n), E.ONat{_}) == (SC.take(Bool, ST.flat(ws), n), E.ONat{S.count(SC.take(Bool, ST.flat(ws), n))}) : List<&2, Bool> & E.Obs}
+       %Equal.sym(Nat, S.count(ST.flat(ws)), S.count(SC.take(Bool, ST.flat(ws), n)), count_abs(n, ST.flat(ws), g)) : {(SC.take(Bool, ST.flat(ws), n), E.ONat{_}) == (SC.take(Bool, ST.flat(ws), n), E.ONat{S.count(SC.take(Bool, ST.flat(ws), n))}) : List<&2, Bool> & E.Obs}
+       {==}, g)
+    case B.BS{+n, +ws} E.Union{+ys}:
+      op_ok(B.KOr{}, n, ws, B.from_bools(ys), ys, S.zip_or(SC.take(Bool, ST.flat(ws), n), ys), Equal.sym(List<&2, Bool>, S.zip_or(SC.take(Bool, ST.flat(ws), n), ys), BL.zipk(B.KOr{}, SC.take(Bool, ST.flat(ws), n), ys), BL.spec_or(SC.take(Bool, ST.flat(ws), n), ys)), from_abs(ys), g, from_inv(ys))
+    case B.BS{+n, +ws} E.Intersection{+ys}:
+      op_ok(B.KAnd{}, n, ws, B.from_bools(ys), ys, S.zip_and(SC.take(Bool, ST.flat(ws), n), ys), Equal.sym(List<&2, Bool>, S.zip_and(SC.take(Bool, ST.flat(ws), n), ys), BL.zipk(B.KAnd{}, SC.take(Bool, ST.flat(ws), n), ys), BL.spec_and(SC.take(Bool, ST.flat(ws), n), ys)), from_abs(ys), g, from_inv(ys))
+    case B.BS{+n, +ws} E.Difference{+ys}:
+      op_ok(B.KDiff{}, n, ws, B.from_bools(ys), ys, S.zip_diff(SC.take(Bool, ST.flat(ws), n), ys), Equal.sym(List<&2, Bool>, S.zip_diff(SC.take(Bool, ST.flat(ws), n), ys), BL.zipk(B.KDiff{}, SC.take(Bool, ST.flat(ws), n), ys), BL.spec_diff(SC.take(Bool, ST.flat(ws), n), ys)), from_abs(ys), g, from_inv(ys))
+    case B.BS{+n, +ws} E.Xor{+ys}:
+      op_ok(B.KXor{}, n, ws, B.from_bools(ys), ys, S.zip_xor(SC.take(Bool, ST.flat(ws), n), ys), Equal.sym(List<&2, Bool>, S.zip_xor(SC.take(Bool, ST.flat(ws), n), ys), BL.zipk(B.KXor{}, SC.take(Bool, ST.flat(ws), n), ys), BL.spec_xor(SC.take(Bool, ST.flat(ws), n), ys)), from_abs(ys), g, from_inv(ys))
+    case B.BS{+n, +ws} E.ToList{}:
+      (%Equal.sym(List<&2, Nat>, B.members_words(ws, 0n), S.members(ST.flat(ws), 0n), ST.members_words(ws, 0n)) : {(SC.take(Bool, ST.flat(ws), n), E.OList{_}) == (SC.take(Bool, ST.flat(ws), n), E.OList{S.members(SC.take(Bool, ST.flat(ws), n), 0n)}) : List<&2, Bool> & E.Obs}
+       %Equal.sym(List<&2, Nat>, S.members(ST.flat(ws), 0n), S.members(SC.take(Bool, ST.flat(ws), n), 0n), members_abs(n, ST.flat(ws), g)) : {(SC.take(Bool, ST.flat(ws), n), E.OList{_}) == (SC.take(Bool, ST.flat(ws), n), E.OList{S.members(SC.take(Bool, ST.flat(ws), n), 0n)}) : List<&2, Bool> & E.Obs}
+       {==}, g)

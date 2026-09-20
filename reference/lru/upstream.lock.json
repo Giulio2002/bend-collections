@@ -1,0 +1,53 @@
+{
+  "upstream": {
+    "repository": "https://github.com/elastic/go-freelru.git",
+    "commit": "3a0a715f3309fbbaed5d9afd402d53ff5e1efd81"
+  },
+  "bend": "2.0.5",
+  "files": {
+    "CODE_OF_CONDUCT.md": "f4c4b7eb127e9a435fb2893f36e9fe1d814461086e81c2e8502e7f3a343a8e4b",
+    "syncedlru.go": "832e054452089afbe6383c20494c7e369411d8150648ca6a5473b3dc5590e695",
+    "go.mod": "c0e83c55bd18f7fb444685b382deb3ba956916603ac187db3884c4a3d8da84d4",
+    "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "renovate.json": "ed0f28af077b624b54e6bd20a807be3acdb3b027cb29e7ea8e12349b2ef60537",
+    "Makefile": "117e7cc03582dd4b07dbc5cedc88a353e0ed4ecbda98f9bfebb2acbd6f9175f8",
+    "lru_test.go": "eb573d4827508c7a064a0c1a4b37a7db6d375984df53fa94202177df5187c235",
+    "shardedlru_test.go": "50999f4f7ca7351d66fe98e6551b0e8518317d365fd2cebb23c1691a514dacc1",
+    "cache.go": "8d9e179787b4c9f8804560f40a4d6aaf92bf08d4a722ad276c1b36f1a1591e37",
+    "go.sum": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".golangci.yml": "7fa9cdfe5e63a56d06a85f353c48254588a0ebfc2d181e3b1decdc54b719a8d5",
+    "NOTICE": "0ff9ab6ed7706295e43814a14122085ea139755d065f0ad835317403d4043b00",
+    "README.md": "fe5032d1384e7a9336f14db71542742b6fd82d5736c9a29449bcc582d22295eb",
+    ".gitignore": "8697374d2ca500580b66e11b355a1497466ff94ee113561f800f6cf3595c7649",
+    "lru.go": "8fd4e4be76781843dc2c8392be8f446f46beced475df5a9b9696b09aefb8fa9c",
+    "syncedlru_test.go": "b7c100cafb5f3d4009a068f4574369024e3c0149b2a96df6268346a27bbfbfa3",
+    "shardedlru.go": "6405dab9a5c22b083d7e4b5ee3966da38e3dea5b5e3548ce7fedfe2d3968d9c7",
+    "bench/go.mod": "f59d27cbc41a923582337629b9d38ed5e3ce6bc3f6d03d22490bb25f11299fde",
+    "bench/plot.py": "054c061334f6d92bc19c8725089a4378560c51a7ab6243679300ec7334220683",
+    "bench/parallel_test.go": "184d562257f6f49a900d4296b5302fe5db6ad3d3f43dd492304d455392555eec",
+    "bench/lru_test.go": "771f1cd4009c5e3252b974f4b9686982b0ec171028fae9f36fbd908b910b4165",
+    "bench/go.sum": "5c76f2e87892f9f4efeaed466783eb24cee8ff4442fbecd7ab257c9522e47a40",
+    "bench/README.md": "0803ea7733c6775d7fb4e608018d3528ede24e4feef16250835526de43a0043d",
+    "bench/hash_test.go": "81e187ce5b33a869f282074bb33f02e98ee083e16ff0cc0ac9349cc13fe6d194",
+    "bench/hash.go": "f96ab6e49d427941f5d465e46a07ec27f46a2afa8cd96c14b02f08f7dcdaab72",
+    "bench/get_test.go": "12dbca00fab4325297252d8063966fd02b2b58cf5bcef8f1946a43e70450d124",
+    "bench/asm_amd64.s": "7341b67e42894ecf7943696bc994faefc04a079bf084dd0d19d32451433a0d24",
+    ".github/workflows/unit-test-on-pull-request.yml": "63a9c92f76c73225fdc0ebf657a2b417d6c9b3f81542e935d786e7e8b4dc3c1f"
+  },
+  "scope": {
+    "variants": [
+      "LRU"
+    ],
+    "storage": "Bend Base Map",
+    "excluded": [
+      "SyncedLRU",
+      "ShardedLRU",
+      "concurrency",
+      "AESENC",
+      "custom hashing",
+      "eviction callbacks",
+      "callback adapters and proofs",
+      "callback reentrancy"
+    ]
+  }
+}

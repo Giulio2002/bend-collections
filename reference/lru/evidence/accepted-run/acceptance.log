@@ -1,0 +1,29 @@
+CHECK: ['/Users/monkeair/.bend/bin/bend', 'PROOF.bend']
+All terms check.
+CHECK: ['/Users/monkeair/auto-implementer/.venv/bin/python', 'tools/validate.py', '--report', '/Users/monkeair/auto-implementer/.autoimplementer/lru-runs/20260919T020431Z-813e4c41/iterations/0024/workspace/build/validation.json']
+TestLRU passed
+TestLRU_Add passed
+TestLRU_Purge passed
+TestLRU_Remove passed
+TestLRU_RemoveOldest passed
+TestLRU_AddWithExpire passed
+TestLRU_AddWithRefresh passed
+TestLRUMatch passed
+TestLRUAdd passed
+TestLRUMetrics passed
+TestLRU_Values passed
+TestLRU_GetOldest passed
+checker passed
+assertion_inventory passed
+spec_templates passed
+boundary passed
+clock_failures passed
+host_bridge passed
+differential passed
+numeric_boundaries passed
+sensitivity passed
+transport_sensitivity passed
+full_scope passed
+CHECK: ['/Users/monkeair/.bend/bin/bend', 'END_TO_END.bend']
+All terms check.
+EXIT=0

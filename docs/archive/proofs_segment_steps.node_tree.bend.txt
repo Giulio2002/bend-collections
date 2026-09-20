@@ -1,0 +1,242 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/list.bend as LL
+import ../lib/u32alg.bend as UA
+import ../lib/u32seq.bend as QS
+import ../lib/vec.bend as VL
+import ../../spec/common.bend as SC
+import ../../spec/u32seq.bend as Q
+import ../../spec/segment_tree.bend as S
+import ../../src/segment_tree.bend as T
+import ../../src/internal/vec.bend as V
+import ../../types/segment_tree.bend as E
+import ./model.bend as M
+import ./ops.bend as O
+
+# Abstraction: the first n values (vals of the root). Invariant: perfect
+# tree covering n whose nodes store the sums of their subtrees.
+
+def invf(+n: Nat, +d: Nat, +t: T.Node) -> Bool:
+  Bool.and(M.perfect(d, t), Bool.and(Nat.is_le(n, V.pow2(d)), M.goods(t)))
+
+def inv(s: T.SegTree) -> Bool:
+  match s:
+    case T.ST{n, d, t}:
+      invf(n, d, t)
+
+def abs(s: T.SegTree) -> List<&2, U32>:
+  match s:
+    case T.ST{n, d, t}:
+      SC.take(U32, M.vals(t), n)
+
+def view1(r: T.SegTree & E.Obs) -> List<&2, U32> & E.Obs:
+  match r:
+    case Tuple{s, o}:
+      (abs(s), o)
+
+def StepOK(s: T.SegTree, op: E.Op) -> Type:
+  {view1(T.step(s, op)) == S.step(abs(s), op) : List<&2, U32> & E.Obs} & {inv(Pair.fst(T.SegTree, E.Obs, T.step(s, op))) == True{} : Bool}
+
+def i_pf(+n: Nat, +d: Nat, +t: T.Node, +g: {invf(n, d, t) == True{} : Bool}) -> {M.perfect(d, t) == True{} : Bool}:
+  L.and_left(M.perfect(d, t), Bool.and(Nat.is_le(n, V.pow2(d)), M.goods(t)), g)
+
+def i_cap(+n: Nat, +d: Nat, +t: T.Node, +g: {invf(n, d, t) == True{} : Bool}) -> {Nat.is_le(n, V.pow2(d)) == True{} : Bool}:
+  L.and_left(Nat.is_le(n, V.pow2(d)), M.goods(t), L.and_right(M.perfect(d, t), Bool.and(Nat.is_le(n, V.pow2(d)), M.goods(t)), g))
+
+def i_good(+n: Nat, +d: Nat, +t: T.Node, +g: {invf(n, d, t) == True{} : Bool}) -> {M.goods(t) == True{} : Bool}:
+  L.and_right(Nat.is_le(n, V.pow2(d)), M.goods(t), L.and_right(M.perfect(d, t), Bool.and(Nat.is_le(n, V.pow2(d)), M.goods(t)), g))
+
+def i_mk(+n: Nat, +d: Nat, +t: T.Node, +a: {M.perfect(d, t) == True{} : Bool}, +b: {Nat.is_le(n, V.pow2(d)) == True{} : Bool}, +c: {M.goods(t) == True{} : Bool}) -> {invf(n, d, t) == True{} : Bool}:
+  L.and_intro(M.perfect(d, t), Bool.and(Nat.is_le(n, V.pow2(d)), M.goods(t)), a, L.and_intro(Nat.is_le(n, V.pow2(d)), M.goods(t), b, c))
+
+def len_abs(+n: Nat, +d: Nat, +t: T.Node, +g: {invf(n, d, t) == True{} : Bool}) -> {SC.length(U32, SC.take(U32, M.vals(t), n)) == n : Nat}:
+  LL.sc_length_take(U32, M.vals(t), n, L.subst(Nat, q => {Nat.is_le(n, q) == True{} : Bool}, V.pow2(d), SC.length(U32, M.vals(t)), Equal.sym(Nat, SC.length(U32, M.vals(t)), V.pow2(d), M.vals_length(d, t, i_pf(n, d, t, g))), i_cap(n, d, t, g)))
+
+def vals0(+t: T.Node) -> {Q.add_each(M.vals(t), 0) == M.vals(t) : List<&2, U32>}:
+  M.each_zero(M.vals(t))
+
+# ---- get ----
+
+def get_ok(+n: Nat, +d: Nat, +t: T.Node, +g: {invf(n, d, t) == True{} : Bool}, +i: Nat, b: Bool, +eb: {Nat.is_lt(i, n) == b : Bool}) -> {T.get_if(b, d, t, i) == S.item(SC.nth(U32, SC.take(U32, M.vals(t), n), i)) : Result<&2, &2, E.Error, U32>}:
+  match b:
+    case True{}:
+      +hi = N.lt_le_trans(i, n, V.pow2(d), eb, i_cap(n, d, t, g))
+      %Equal.sym(Maybe<&2, U32>, SC.nth(U32, SC.take(U32, M.vals(t), n), i), SC.nth(U32, M.vals(t), i), LL.sc_nth_take(U32, M.vals(t), n, i, eb)) : {Done{T.get_go(d, t, i, 0, V.dec(d, i))} == S.item(_) : Result<&2, &2, E.Error, U32>}
+      %Equal.cong(List<&2, U32>, Maybe<&2, U32>, xs => SC.nth(U32, xs, i), Q.add_each(M.vals(t), 0), M.vals(t), vals0(t)) : {Done{T.get_go(d, t, i, 0, V.dec(d, i))} == S.item(_) : Result<&2, &2, E.Error, U32>}
+      %O.get_ok(d, t, i, 0, hi, V.dec(d, i), {==}, i_pf(n, d, t, g)) : {Done{T.get_go(d, t, i, 0, V.dec(d, i))} == S.item(_) : Result<&2, &2, E.Error, U32>}
+      {==}
+    case False{}:
+      +hn = L.subst(Nat, q => {Nat.is_le(q, i) == True{} : Bool}, n, SC.length(U32, SC.take(U32, M.vals(t), n)), Equal.sym(Nat, SC.length(U32, SC.take(U32, M.vals(t), n)), n, len_abs(n, d, t, g)), N.not_lt_le(i, n, eb))
+      %Equal.sym(Maybe<&2, U32>, SC.nth(U32, SC.take(U32, M.vals(t), n), i), None{}, LL.nth_none(U32, SC.take(U32, M.vals(t), n), i, hn)) : {Fail{E.IndexOutOfRange{}} == S.item(_) : Result<&2, &2, E.Error, U32>}
+      {==}
+
+# ---- set ----
+
+def spec_set_m(+xs: List<&2, U32>, +i: Nat, +v: U32, +hi: {Nat.is_lt(i, SC.length(U32, xs)) == True{} : Bool}, m: Maybe<&2, U32>, +em: {SC.nth(U32, xs, i) == m : Maybe<&2, U32>}) -> {S.assign(m, xs, i, v) == (SC.update(U32, xs, i, v), E.OUnit{Done{Unit{}}}) : List<&2, U32> & E.Obs}:
+  match m:
+    case None{}:
+      Empty.absurd({(xs, E.OUnit{Fail{E.IndexOutOfRange{}}}) == (SC.update(U32, xs, i, v), E.OUnit{Done{Unit{}}}) : List<&2, U32> & E.Obs}, LL.sc_nth_some(U32, xs, i, hi, em))
+    case Some{y}:
+      {==}
+
+def set_vals(+d: Nat, +t: T.Node, +i: Nat, +v: U32, +hi: {Nat.is_lt(i, V.pow2(d)) == True{} : Bool}, +pf: {M.perfect(d, t) == True{} : Bool}) -> {M.vals(T.set_go(d, t, i, v, 0, V.dec(d, i))) == SC.update(U32, M.vals(t), i, v) : List<&2, U32>}:
+  Equal.trans(List<&2, U32>, M.vals(T.set_go(d, t, i, v, 0, V.dec(d, i))), Q.add_each(M.vals(T.set_go(d, t, i, v, 0, V.dec(d, i))), 0), SC.update(U32, M.vals(t), i, v),
+    Equal.sym(List<&2, U32>, Q.add_each(M.vals(T.set_go(d, t, i, v, 0, V.dec(d, i))), 0), M.vals(T.set_go(d, t, i, v, 0, V.dec(d, i))), vals0(T.set_go(d, t, i, v, 0, V.dec(d, i)))),
+    %Equal.sym(List<&2, U32>, Q.add_each(M.vals(T.set_go(d, t, i, v, 0, V.dec(d, i))), 0), SC.update(U32, Q.add_each(M.vals(t), 0), i, v), O.set_ok(d, t, i, v, 0, hi, V.dec(d, i), {==}, pf)) : {_ == SC.update(U32, M.vals(t), i, v) : List<&2, U32>}
+    Equal.cong(List<&2, U32>, List<&2, U32>, xs => SC.update(U32, xs, i, v), Q.add_each(M.vals(t), 0), M.vals(t), vals0(t)))
+
+def SetOK(+n: Nat, +d: Nat, +t: T.Node, +i: Nat, +v: U32, b: Bool) -> Type:
+  {view1(T.obs_unit(T.set_if(b, n, d, t, i, v))) == S.assign(SC.nth(U32, SC.take(U32, M.vals(t), n), i), SC.take(U32, M.vals(t), n), i, v) : List<&2, U32> & E.Obs} & {inv(Pair.fst(T.SegTree, E.Obs, T.obs_unit(T.set_if(b, n, d, t, i, v)))) == True{} : Bool}
+
+def set_ok(+n: Nat, +d: Nat, +t: T.Node, +g: {invf(n, d, t) == True{} : Bool}, +i: Nat, +v: U32, b: Bool, +eb: {Nat.is_lt(i, n) == b : Bool}) -> SetOK(n, d, t, i, v, b):
+  match b:
+    case True{}:
+      +A = SC.take(U32, M.vals(t), n)
+      +hi = N.lt_le_trans(i, n, V.pow2(d), eb, i_cap(n, d, t, g))
+      +hA = L.subst(Nat, q => {Nat.is_lt(i, q) == True{} : Bool}, n, SC.length(U32, A), Equal.sym(Nat, SC.length(U32, A), n, len_abs(n, d, t, g)), eb)
+      (%Equal.sym(List<&2, U32> & E.Obs, S.assign(SC.nth(U32, A, i), A, i, v), (SC.update(U32, A, i, v), E.OUnit{Done{Unit{}}}), spec_set_m(A, i, v, hA, SC.nth(U32, A, i), {==})) : {(SC.take(U32, M.vals(T.set_go(d, t, i, v, 0, V.dec(d, i))), n), E.OUnit{Done{Unit{}}}) == _ : List<&2, U32> & E.Obs}
+       %Equal.sym(List<&2, U32>, M.vals(T.set_go(d, t, i, v, 0, V.dec(d, i))), SC.update(U32, M.vals(t), i, v), set_vals(d, t, i, v, hi, i_pf(n, d, t, g))) : {(SC.take(U32, _, n), E.OUnit{Done{Unit{}}}) == (SC.update(U32, A, i, v), E.OUnit{Done{Unit{}}}) : List<&2, U32> & E.Obs}
+       %Equal.sym(List<&2, U32>, SC.take(U32, SC.update(U32, M.vals(t), i, v), n), SC.update(U32, A, i, v), LL.sc_take_update(U32, M.vals(t), i, v, n)) : {(_, E.OUnit{Done{Unit{}}}) == (SC.update(U32, A, i, v), E.OUnit{Done{Unit{}}}) : List<&2, U32> & E.Obs}
+       {==},
+       i_mk(n, d, T.set_go(d, t, i, v, 0, V.dec(d, i)), O.set_perfect(d, t, i, v, 0, V.dec(d, i), i_pf(n, d, t, g)), i_cap(n, d, t, g), O.set_good(d, t, i, v, 0, V.dec(d, i), i_pf(n, d, t, g), i_good(n, d, t, g))))
+    case False{}:
+      +A = SC.take(U32, M.vals(t), n)
+      +hn = L.subst(Nat, q => {Nat.is_le(q, i) == True{} : Bool}, n, SC.length(U32, A), Equal.sym(Nat, SC.length(U32, A), n, len_abs(n, d, t, g)), N.not_lt_le(i, n, eb))
+      (%Equal.sym(Maybe<&2, U32>, SC.nth(U32, A, i), None{}, LL.nth_none(U32, A, i, hn)) : {(A, E.OUnit{Fail{E.IndexOutOfRange{}}}) == S.assign(_, A, i, v) : List<&2, U32> & E.Obs}
+       {==}, g)
+
+# ---- range queries ----
+
+def prefix_eq(+n: Nat, +d: Nat, +t: T.Node, +g: {invf(n, d, t) == True{} : Bool}, +e: Nat, +he: {Nat.is_le(e, n) == True{} : Bool}) -> {T.prefix(d, t, e) == Q.sum(SC.take(U32, M.vals(t), e)) : U32}:
+  Equal.trans(U32, T.prefix(d, t, e), Q.sum(SC.take(U32, Q.add_each(M.vals(t), 0), e)), Q.sum(SC.take(U32, M.vals(t), e)),
+    O.prefix_ok(d, t, e, 0, N.le_trans(e, n, V.pow2(d), he, i_cap(n, d, t, g)), V.dec(d, e), {==}, i_pf(n, d, t, g), i_good(n, d, t, g)),
+    Equal.cong(List<&2, U32>, U32, xs => Q.sum(SC.take(U32, xs, e)), Q.add_each(M.vals(t), 0), M.vals(t), vals0(t)))
+
+def query_ok(+n: Nat, +d: Nat, +t: T.Node, +g: {invf(n, d, t) == True{} : Bool}, +l: Nat, +r: Nat, b: Bool, +eb: {Bool.and(Nat.is_le(l, r), Nat.is_le(r, n)) == b : Bool}) -> {T.query_if(b, d, t, l, r) == S.query_if(b, SC.take(U32, M.vals(t), n), l, r) : Result<&2, &2, E.Error, U32>}:
+  match b:
+    case True{}:
+      +hlr = L.and_left(Nat.is_le(l, r), Nat.is_le(r, n), eb)
+      +hrn = L.and_right(Nat.is_le(l, r), Nat.is_le(r, n), eb)
+      %Equal.sym(U32, T.prefix(d, t, r), Q.sum(SC.take(U32, M.vals(t), r)), prefix_eq(n, d, t, g, r, hrn)) : {Done{U32.sub(_, T.prefix(d, t, l))} == Done{Q.sum(Q.slice(SC.take(U32, M.vals(t), n), l, r))} : Result<&2, &2, E.Error, U32>}
+      %Equal.sym(U32, T.prefix(d, t, l), Q.sum(SC.take(U32, M.vals(t), l)), prefix_eq(n, d, t, g, l, N.le_trans(l, r, n, hlr, hrn))) : {Done{U32.sub(Q.sum(SC.take(U32, M.vals(t), r)), _)} == Done{Q.sum(Q.slice(SC.take(U32, M.vals(t), n), l, r))} : Result<&2, &2, E.Error, U32>}
+      %Equal.sym(U32, U32.sub(Q.sum(SC.take(U32, M.vals(t), r)), Q.sum(SC.take(U32, M.vals(t), l))), Q.sum(Q.slice(M.vals(t), l, r)), QS.sum_slice(M.vals(t), l, r, hlr)) : {Done{_} == Done{Q.sum(Q.slice(SC.take(U32, M.vals(t), n), l, r))} : Result<&2, &2, E.Error, U32>}
+      %Equal.sym(List<&2, U32>, Q.slice(SC.take(U32, M.vals(t), n), l, r), Q.slice(M.vals(t), l, r), QS.slice_take(M.vals(t), n, l, r, hrn, hlr)) : {Done{Q.sum(Q.slice(M.vals(t), l, r))} == Done{Q.sum(_)} : Result<&2, &2, E.Error, U32>}
+      {==}
+    case False{}:
+      {==}
+
+# ---- lazy range addition ----
+
+def AddOK(+n: Nat, +d: Nat, +t: T.Node, +l: Nat, +r: Nat, +v: U32, b: Bool) -> Type:
+  {view1(T.obs_unit(T.add_if(b, n, d, t, l, r, v))) == S.add_if(b, SC.take(U32, M.vals(t), n), l, r, v) : List<&2, U32> & E.Obs} & {inv(Pair.fst(T.SegTree, E.Obs, T.obs_unit(T.add_if(b, n, d, t, l, r, v)))) == True{} : Bool}
+
+def add_ok(+n: Nat, +d: Nat, +t: T.Node, +g: {invf(n, d, t) == True{} : Bool}, +l: Nat, +r: Nat, +v: U32, b: Bool, +eb: {Bool.and(Nat.is_le(l, r), Nat.is_le(r, n)) == b : Bool}) -> AddOK(n, d, t, l, r, v, b):
+  match b:
+    case True{}:
+      +hlr = L.and_left(Nat.is_le(l, r), Nat.is_le(r, n), eb)
+      +hrn = L.and_right(Nat.is_le(l, r), Nat.is_le(r, n), eb)
+      +pf = i_pf(n, d, t, g)
+      +hr = N.le_trans(r, n, V.pow2(d), hrn, i_cap(n, d, t, g))
+      +hl = N.le_trans(l, r, V.pow2(d), hlr, hr)
+      +w = U32.sub(0, v)
+      +t1 = T.padd(d, t, r, v)
+      +p1 = O.padd_perfect(d, t, r, v, V.dec(d, r), pf)
+      +g1 = O.padd_good(d, t, r, v, V.dec(d, r), pf, i_good(n, d, t, g))
+      +ev = Equal.trans(List<&2, U32>, M.vals(T.padd(d, t1, l, w)), M.addfirst(M.vals(t1), l, w), M.addfirst(M.addfirst(M.vals(t), r, v), l, w),
+        O.padd_vals(d, t1, l, w, hl, V.dec(d, l), {==}, p1),
+        Equal.cong(List<&2, U32>, List<&2, U32>, xs => M.addfirst(xs, l, w), M.vals(t1), M.addfirst(M.vals(t), r, v), O.padd_vals(d, t, r, v, hr, V.dec(d, r), {==}, pf)))
+      (Equal.cong(List<&2, U32>, List<&2, U32> & E.Obs, xs => (xs, E.OUnit{Done{Unit{}}}), SC.take(U32, M.vals(T.padd(d, t1, l, w)), n), S.added(SC.take(U32, M.vals(t), n), l, r, v),
+         %Equal.sym(List<&2, U32>, M.vals(T.padd(d, t1, l, w)), M.addfirst(M.addfirst(M.vals(t), r, v), l, w), ev) : {SC.take(U32, _, n) == S.added(SC.take(U32, M.vals(t), n), l, r, v) : List<&2, U32>}
+         %Equal.sym(List<&2, U32>, SC.take(U32, M.addfirst(M.addfirst(M.vals(t), r, v), l, w), n), M.addfirst(SC.take(U32, M.addfirst(M.vals(t), r, v), n), l, w), M.take_addfirst(M.addfirst(M.vals(t), r, v), l, w, n)) : {_ == S.added(SC.take(U32, M.vals(t), n), l, r, v) : List<&2, U32>}
+         %Equal.sym(List<&2, U32>, SC.take(U32, M.addfirst(M.vals(t), r, v), n), M.addfirst(SC.take(U32, M.vals(t), n), r, v), M.take_addfirst(M.vals(t), r, v, n)) : {M.addfirst(_, l, w) == S.added(SC.take(U32, M.vals(t), n), l, r, v) : List<&2, U32>}
+         M.range_add(SC.take(U32, M.vals(t), n), l, r, v, hlr)),
+       i_mk(n, d, T.padd(d, t1, l, w), O.padd_perfect(d, t1, l, w, V.dec(d, l), p1), i_cap(n, d, t, g), O.padd_good(d, t1, l, w, V.dec(d, l), p1, g1)))
+    case False{}:
+      ({==}, g)
+
+# ---- every operation ----
+
+def step_ok(+s: T.SegTree, +op: E.Op, +g: {inv(s) == True{} : Bool}) -> StepOK(s, op):
+  match s op:
+    case T.ST{+n, +d, +t} E.Length{}:
+      (%Equal.sym(Nat, SC.length(U32, SC.take(U32, M.vals(t), n)), n, len_abs(n, d, t, g)) : {(SC.take(U32, M.vals(t), n), E.ONat{n}) == (SC.take(U32, M.vals(t), n), E.ONat{_}) : List<&2, U32> & E.Obs}
+       {==}, g)
+    case T.ST{+n, +d, +t} E.Get{+i}:
+      (Equal.cong(Result<&2, &2, E.Error, U32>, List<&2, U32> & E.Obs, x => (SC.take(U32, M.vals(t), n), E.OItem{x}), T.get_if(Nat.is_lt(i, n), d, t, i), S.item(SC.nth(U32, SC.take(U32, M.vals(t), n), i)), get_ok(n, d, t, g, i, Nat.is_lt(i, n), {==})), g)
+    case T.ST{+n, +d, +t} E.Set{+i, +v}:
+      set_ok(n, d, t, g, i, v, Nat.is_lt(i, n), {==})
+    case T.ST{+n, +d, +t} E.RangeQuery{+l, +r}:
+      (%Equal.sym(Nat, SC.length(U32, SC.take(U32, M.vals(t), n)), n, len_abs(n, d, t, g)) : {(SC.take(U32, M.vals(t), n), E.OItem{T.query_if(Bool.and(Nat.is_le(l, r), Nat.is_le(r, n)), d, t, l, r)}) == (SC.take(U32, M.vals(t), n), E.OItem{S.query_if(Bool.and(Nat.is_le(l, r), Nat.is_le(r, _)), SC.take(U32, M.vals(t), n), l, r)}) : List<&2, U32> & E.Obs}
+       Equal.cong(Result<&2, &2, E.Error, U32>, List<&2, U32> & E.Obs, x => (SC.take(U32, M.vals(t), n), E.OItem{x}), T.query_if(Bool.and(Nat.is_le(l, r), Nat.is_le(r, n)), d, t, l, r), S.query_if(Bool.and(Nat.is_le(l, r), Nat.is_le(r, n)), SC.take(U32, M.vals(t), n), l, r), query_ok(n, d, t, g, l, r, Bool.and(Nat.is_le(l, r), Nat.is_le(r, n)), {==})), g)
+    case T.ST{+n, +d, +t} E.RangeAdd{+l, +r, +v}:
+      %Equal.sym(Nat, SC.length(U32, SC.take(U32, M.vals(t), n)), n, len_abs(n, d, t, g)) : {view1(T.obs_unit(T.add_if(Bool.and(Nat.is_le(l, r), Nat.is_le(r, n)), n, d, t, l, r, v))) == S.add_if(Bool.and(Nat.is_le(l, r), Nat.is_le(r, _)), SC.take(U32, M.vals(t), n), l, r, v) : List<&2, U32> & E.Obs} & {inv(Pair.fst(T.SegTree, E.Obs, T.obs_unit(T.add_if(Bool.and(Nat.is_le(l, r), Nat.is_le(r, n)), n, d, t, l, r, v)))) == True{} : Bool}
+      add_ok(n, d, t, g, l, r, v, Bool.and(Nat.is_le(l, r), Nat.is_le(r, n)), {==})
+
+# ---- constructors ----
+
+def new_inv(+n: Nat) -> {inv(T.new(n)) == True{} : Bool}:
+  i_mk(n, V.depth_for(n), T.zeros(V.depth_for(n)), M.zeros_perfect(V.depth_for(n)), VL.depth_for(n), M.zeros_good(V.depth_for(n)))
+
+def new_abs(+n: Nat) -> {abs(T.new(n)) == S.new(n) : List<&2, U32>}:
+  %Equal.sym(List<&2, U32>, M.vals(T.zeros(V.depth_for(n))), Q.zeros(V.pow2(V.depth_for(n))), M.zeros_vals(V.depth_for(n))) : {SC.take(U32, _, n) == Q.zeros(n) : List<&2, U32>}
+  LL.sc_take_rep(U32, V.pow2(V.depth_for(n)), 0, n, VL.depth_for(n))
+
+def count_len(+xs: List<&2, U32>) -> {T.count(xs) == SC.length(U32, xs) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{x, t}:
+      N.succ_cong(T.count(t), SC.length(U32, t), count_len(t))
+
+def lt_add_succ(+a: Nat, +x: Nat) -> {Nat.is_lt(a, Nat.add(a, 1n+x)) == True{} : Bool}:
+  %Equal.sym(Nat, Nat.add(a, 1n+x), 1n+Nat.add(a, x), N.add_succ(a, x)) : {Nat.is_lt(a, _) == True{} : Bool}
+  N.le_lt_succ(a, Nat.add(a, x), N.le_add_right(a, x))
+
+def PutOK(+n: Nat, +d: Nat, +t: T.Node, +p: List<&2, U32>, +x: U32, +r: List<&2, U32>) -> Type:
+  {abs(T.ST{n, d, T.set_go(d, t, SC.length(U32, p), x, 0, V.dec(d, SC.length(U32, p)))}) == SC.append(U32, SC.snoc(U32, p, x), Q.zeros(SC.length(U32, r))) : List<&2, U32>} & {inv(T.ST{n, d, T.set_go(d, t, SC.length(U32, p), x, 0, V.dec(d, SC.length(U32, p)))}) == True{} : Bool}
+
+def put_ok(+n: Nat, +d: Nat, +t: T.Node, +g: {invf(n, d, t) == True{} : Bool}, +p: List<&2, U32>, +x: U32, +r: List<&2, U32>, +ea: {SC.take(U32, M.vals(t), n) == SC.append(U32, p, Con{0, Q.zeros(SC.length(U32, r))}) : List<&2, U32>}, +hlt: {Nat.is_lt(SC.length(U32, p), n) == True{} : Bool}) -> PutOK(n, d, t, p, x, r):
+  +i = SC.length(U32, p)
+  +hi = N.lt_le_trans(i, n, V.pow2(d), hlt, i_cap(n, d, t, g))
+  (%Equal.sym(List<&2, U32>, M.vals(T.set_go(d, t, i, x, 0, V.dec(d, i))), SC.update(U32, M.vals(t), i, x), set_vals(d, t, i, x, hi, i_pf(n, d, t, g))) : {SC.take(U32, _, n) == SC.append(U32, SC.snoc(U32, p, x), Q.zeros(SC.length(U32, r))) : List<&2, U32>}
+   %Equal.sym(List<&2, U32>, SC.take(U32, SC.update(U32, M.vals(t), i, x), n), SC.update(U32, SC.take(U32, M.vals(t), n), i, x), LL.sc_take_update(U32, M.vals(t), i, x, n)) : {_ == SC.append(U32, SC.snoc(U32, p, x), Q.zeros(SC.length(U32, r))) : List<&2, U32>}
+   %Equal.sym(List<&2, U32>, SC.take(U32, M.vals(t), n), SC.append(U32, p, Con{0, Q.zeros(SC.length(U32, r))}), ea) : {SC.update(U32, _, i, x) == SC.append(U32, SC.snoc(U32, p, x), Q.zeros(SC.length(U32, r))) : List<&2, U32>}
+   %Equal.sym(List<&2, U32>, SC.update(U32, SC.append(U32, p, Con{0, Q.zeros(SC.length(U32, r))}), i, x), SC.append(U32, p, SC.update(U32, Con{0, Q.zeros(SC.length(U32, r))}, Nat.sub(i, SC.length(U32, p)), x)), LL.update_append_right(U32, p, Con{0, Q.zeros(SC.length(U32, r))}, i, x, N.le_refl(i))) : {_ == SC.append(U32, SC.snoc(U32, p, x), Q.zeros(SC.length(U32, r))) : List<&2, U32>}
+   %Equal.sym(Nat, Nat.sub(i, i), 0n, N.sub_self(i)) : {SC.append(U32, p, SC.update(U32, Con{0, Q.zeros(SC.length(U32, r))}, _, x)) == SC.append(U32, SC.snoc(U32, p, x), Q.zeros(SC.length(U32, r))) : List<&2, U32>}
+   Equal.sym(List<&2, U32>, SC.append(U32, SC.snoc(U32, p, x), Q.zeros(SC.length(U32, r))), SC.append(U32, p, Con{x, Q.zeros(SC.length(U32, r))}), LL.snoc_append_cons(U32, p, x, Q.zeros(SC.length(U32, r)))),
+   i_mk(n, d, T.set_go(d, t, i, x, 0, V.dec(d, i)), O.set_perfect(d, t, i, x, 0, V.dec(d, i), i_pf(n, d, t, g)), i_cap(n, d, t, g), O.set_good(d, t, i, x, 0, V.dec(d, i), i_pf(n, d, t, g), i_good(n, d, t, g))))
+
+def FillOK(xs: List<&2, U32>, +p: List<&2, U32>, +s: T.SegTree) -> Type:
+  {abs(T.fill(xs, SC.length(U32, p), s)) == SC.append(U32, p, xs) : List<&2, U32>} & {inv(T.fill(xs, SC.length(U32, p), s)) == True{} : Bool}
+
+def fill_ok(+xs: List<&2, U32>, +p: List<&2, U32>, +s: T.SegTree, +gs: {inv(s) == True{} : Bool}, +ea: {abs(s) == SC.append(U32, p, Q.zeros(SC.length(U32, xs))) : List<&2, U32>}) -> FillOK(xs, p, s):
+  match xs s:
+    case Nil{} _:
+      (ea, gs)
+    case Con{+x, +r} T.ST{+n, +d, +t}:
+      +i = SC.length(U32, p)
+      +el = Equal.trans(Nat, n, SC.length(U32, SC.take(U32, M.vals(t), n)), Nat.add(i, 1n+SC.length(U32, Q.zeros(SC.length(U32, r)))),
+        Equal.sym(Nat, SC.length(U32, SC.take(U32, M.vals(t), n)), n, len_abs(n, d, t, gs)),
+        Equal.trans(Nat, SC.length(U32, SC.take(U32, M.vals(t), n)), SC.length(U32, SC.append(U32, p, Con{0, Q.zeros(SC.length(U32, r))})), Nat.add(i, 1n+SC.length(U32, Q.zeros(SC.length(U32, r)))),
+          Equal.cong(List<&2, U32>, Nat, z => SC.length(U32, z), SC.take(U32, M.vals(t), n), SC.append(U32, p, Con{0, Q.zeros(SC.length(U32, r))}), ea),
+          LL.length_append(U32, p, Con{0, Q.zeros(SC.length(U32, r))})))
+      +hlt = L.subst(Nat, q => {Nat.is_lt(i, q) == True{} : Bool}, Nat.add(i, 1n+SC.length(U32, Q.zeros(SC.length(U32, r)))), n, Equal.sym(Nat, n, Nat.add(i, 1n+SC.length(U32, Q.zeros(SC.length(U32, r)))), el), lt_add_succ(i, SC.length(U32, Q.zeros(SC.length(U32, r)))))
+      -A1 = {abs(T.ST{n, d, T.set_go(d, t, i, x, 0, V.dec(d, i))}) == SC.append(U32, SC.snoc(U32, p, x), Q.zeros(SC.length(U32, r))) : List<&2, U32>}
+      -I1 = {inv(T.ST{n, d, T.set_go(d, t, i, x, 0, V.dec(d, i))}) == True{} : Bool}
+      +s1 = {T.ST{n, d, T.set_go(d, t, i, x, 0, V.dec(d, i))} : T.SegTree}
+      %Equal.sym(Bool, Nat.is_lt(i, n), True{}, hlt) : {abs(T.fill(r, 1n+i, Pair.fst(T.SegTree, Result<&2, &2, E.Error, Unit>, T.set_if(_, n, d, t, i, x)))) == SC.append(U32, p, Con{x, r}) : List<&2, U32>} & {inv(T.fill(r, 1n+i, Pair.fst(T.SegTree, Result<&2, &2, E.Error, Unit>, T.set_if(_, n, d, t, i, x)))) == True{} : Bool}
+      L.subst(Nat, q => ({abs(T.fill(r, q, s1)) == SC.append(U32, p, Con{x, r}) : List<&2, U32>} & {inv(T.fill(r, q, s1)) == True{} : Bool}), SC.length(U32, SC.snoc(U32, p, x)), 1n+i, LL.length_snoc(U32, p, x),
+        L.subst(List<&2, U32>, z => ({abs(T.fill(r, SC.length(U32, SC.snoc(U32, p, x)), s1)) == z : List<&2, U32>} & {inv(T.fill(r, SC.length(U32, SC.snoc(U32, p, x)), s1)) == True{} : Bool}), SC.append(U32, SC.snoc(U32, p, x), r), SC.append(U32, p, Con{x, r}), LL.snoc_append_cons(U32, p, x, r),
+          fill_ok(r, SC.snoc(U32, p, x), s1, Pair.snd(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt)), Pair.fst(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt)))))
+
+def from_ok(+xs: List<&2, U32>) -> FillOK(xs, Nil{}, T.new(T.count(xs))):
+  fill_ok(xs, Nil{}, T.new(T.count(xs)), new_inv(T.count(xs)),
+    %count_len(xs) : {abs(T.new(T.count(xs))) == Q.zeros(_) : List<&2, U32>}
+    new_abs(T.count(xs)))
+
+def from_abs(+xs: List<&2, U32>) -> {abs(T.from_list(xs)) == S.from_list(xs) : List<&2, U32>}:
+  Pair.fst({abs(T.from_list(xs)) == xs : List<&2, U32>}, {inv(T.from_list(xs)) == True{} : Bool}, from_ok(xs))
+
+def from_inv(+xs: List<&2, U32>) -> {inv(T.from_list(xs)) == True{} : Bool}:
+  Pair.snd({abs(T.from_list(xs)) == xs : List<&2, U32>}, {inv(T.from_list(xs)) == True{} : Bool}, from_ok(xs))

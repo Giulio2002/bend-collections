@@ -1,0 +1,256 @@
+import Base
+import ../types/binary_heap.bend as E
+
+# Min-heap as a Braun tree (a binary heap without an array): heap-ordered
+# (each node <= every element below it) and Braun-shaped (left size = right
+# size or right size + 1), so its height is floor(log2 n) + 1.
+#
+# The order is a static comparator ~cmp : A -> A -> Cmp (a template
+# parameter); its total-order laws are proof obligations of each instance
+# (proofs/lib/order.bend: U32 and String). Elements equal under cmp are
+# identical under the laws, so multiplicities are exact.
+#
+# Cost: push, pop O(log n) comparisons; peek, length O(1); from_list
+# O(n log n); to_sorted_list O(n log n) (repeated pop on a copy).
+# Errors: peek/pop on an empty heap -> Fail{EmptyHeap}, heap unchanged.
+
+type Tree<-A: Data> is Data:
+  Leaf{}
+  Node{value: A, left: Tree<A>, right: Tree<A>}
+
+type Heap<-A: Data> is Data:
+  BH{size: Nat, tree: Tree<A>}
+
+def le(~A: Data, ~cmp: A -> A -> Cmp, x: A, y: A) -> Bool:
+  Cmp.is_le(cmp(x, y))
+
+def smaller(-A: Data, x: A, y: A, b: Bool) -> A:
+  match b:
+    case True{}:
+      x
+    case False{}:
+      y
+
+def larger(-A: Data, x: A, y: A, b: Bool) -> A:
+  match b:
+    case True{}:
+      y
+    case False{}:
+      x
+
+# Braun insertion: the smaller value stays, the larger goes into the right
+# subtree, and the subtrees swap sides.
+def ins(~A: Data, ~cmp: A -> A -> Cmp, t: Tree<A>, +x: A) -> Tree<A>:
+  match t:
+    case Leaf{}:
+      Node{x, Leaf{}, Leaf{}}
+    case Node{+y, l, r}:
+      Node{smaller(A, x, y, le(~A, ~cmp, x, y)), ins(~A, ~cmp, r, larger(A, x, y, le(~A, ~cmp, x, y))), l}
+
+# Leftmost-descent removal (keeps the Braun shape).
+def leftmost(-A: Data, +d: A, t: Tree<A>) -> A:
+  match t:
+    case Leaf{}:
+      d
+    case Node{x, Leaf{}, r}:
+      x
+    case Node{x, Node{y, ll, lr}, r}:
+      leftmost(A, d, Node{y, ll, lr})
+
+def drop_leftmost(-A: Data, t: Tree<A>) -> Tree<A>:
+  match t:
+    case Leaf{}:
+      Leaf{}
+    case Node{x, Leaf{}, r}:
+      r
+    case Node{x, Node{y, ll, lr}, r}:
+      Node{x, r, drop_leftmost(A, Node{y, ll, lr})}
+
+def root(-A: Data, +d: A, t: Tree<A>) -> A:
+  match t:
+    case Leaf{}:
+      d
+    case Node{x, l, r}:
+      x
+
+# Where a value y placed at a node with children l, r must go:
+# 0n stays, 1n swaps with the left child's root, 2n with the right one's.
+def pick3(a_le_b: Bool) -> Nat:
+  match a_le_b:
+    case True{}:
+      1n
+    case False{}:
+      2n
+
+def choose2(y_le_a: Bool, y_le_b: Bool, a_le_b: Bool) -> Nat:
+  match y_le_a y_le_b:
+    case True{} True{}:
+      0n
+    case _ _:
+      pick3(a_le_b)
+
+def stay_or(y_le: Bool, go: Nat) -> Nat:
+  match y_le:
+    case True{}:
+      0n
+    case False{}:
+      go
+
+def choice(~A: Data, ~cmp: A -> A -> Cmp, +y: A, l: Tree<A>, r: Tree<A>) -> Nat:
+  match l r:
+    case Leaf{} Leaf{}:
+      0n
+    case Node{+a, ll, lr} Leaf{}:
+      stay_or(le(~A, ~cmp, y, a), 1n)
+    case Leaf{} Node{+b, rl, rr}:
+      stay_or(le(~A, ~cmp, y, b), 2n)
+    case Node{+a, ll, lr} Node{+b, rl, rr}:
+      choose2(le(~A, ~cmp, y, a), le(~A, ~cmp, y, b), le(~A, ~cmp, a, b))
+
+def choice_at(~A: Data, ~cmp: A -> A -> Cmp, +y: A, t: Tree<A>) -> Nat:
+  match t:
+    case Leaf{}:
+      0n
+    case Node{x, l, r}:
+      choice(~A, ~cmp, y, l, r)
+
+# Replace the root of t by y and restore heap order (c = choice at t).
+def sift(~A: Data, ~cmp: A -> A -> Cmp, t: Tree<A>, +y: A, c: Nat) -> Tree<A>:
+  match t c:
+    case Leaf{} _:
+      Leaf{}
+    case Node{x, l, r} 0n:
+      Node{y, l, r}
+    case Node{x, Node{+a, +ll, +lr}, r} 1n:
+      Node{a, sift(~A, ~cmp, Node{a, ll, lr}, y, choice(~A, ~cmp, y, ll, lr)), r}
+    case Node{x, l, Node{+b, +rl, +rr}} 2n:
+      Node{b, l, sift(~A, ~cmp, Node{b, rl, rr}, y, choice(~A, ~cmp, y, rl, rr))}
+    case Node{x, l, r} _:
+      Node{y, l, r}
+
+# The heap without its root.
+def del_move(~A: Data, ~cmp: A -> A -> Cmp, +x: A, +r: Tree<A>, +l2: Tree<A>, +y: A) -> Tree<A>:
+  sift(~A, ~cmp, Node{x, r, l2}, y, choice(~A, ~cmp, y, r, l2))
+
+def del_root(~A: Data, ~cmp: A -> A -> Cmp, l: Tree<A>, r: Tree<A>) -> Tree<A>:
+  match l:
+    case Leaf{}:
+      r
+    case Node{+x, +ll, +lr}:
+      del_move(~A, ~cmp, x, r, drop_leftmost(A, Node{x, ll, lr}), leftmost(A, x, Node{x, ll, lr}))
+
+def new(-A: Data) -> Heap<A>:
+  BH{0n, Leaf{}}
+
+def length(-A: Data, h: Heap<A>) -> Heap<A> & Nat:
+  BH{+n, t} = h
+  (BH{n, t}, n)
+
+def push(~A: Data, ~cmp: A -> A -> Cmp, h: Heap<A>, x: A) -> Heap<A>:
+  BH{n, t} = h
+  BH{1n+n, ins(~A, ~cmp, t, x)}
+
+def peek_go(-A: Data, n: Nat, t: Tree<A>) -> Heap<A> & Result<&2, &2, E.Error, A>:
+  match t:
+    case Leaf{}:
+      (BH{n, Leaf{}}, Fail{E.EmptyHeap{}})
+    case Node{+x, l, r}:
+      (BH{n, Node{x, l, r}}, Done{x})
+
+def peek(-A: Data, h: Heap<A>) -> Heap<A> & Result<&2, &2, E.Error, A>:
+  BH{n, t} = h
+  peek_go(A, n, t)
+
+def pop_go(~A: Data, ~cmp: A -> A -> Cmp, n: Nat, t: Tree<A>) -> Heap<A> & Result<&2, &2, E.Error, A>:
+  match t:
+    case Leaf{}:
+      (BH{n, Leaf{}}, Fail{E.EmptyHeap{}})
+    case Node{x, l, r}:
+      (BH{Nat.sub(n, 1n), del_root(~A, ~cmp, l, r)}, Done{x})
+
+def pop(~A: Data, ~cmp: A -> A -> Cmp, h: Heap<A>) -> Heap<A> & Result<&2, &2, E.Error, A>:
+  BH{n, t} = h
+  pop_go(~A, ~cmp, n, t)
+
+def from_list_go(~A: Data, ~cmp: A -> A -> Cmp, xs: List<&2, A>, h: Heap<A>) -> Heap<A>:
+  match xs:
+    case Nil{}:
+      h
+    case Con{x, rest}:
+      from_list_go(~A, ~cmp, rest, push(~A, ~cmp, h, x))
+
+def from_list(~A: Data, ~cmp: A -> A -> Cmp, xs: List<&2, A>) -> Heap<A>:
+  from_list_go(~A, ~cmp, xs, new(A))
+
+# All elements, ascending: repeated root removal (fuel = size).
+def drain(~A: Data, ~cmp: A -> A -> Cmp, n: Nat, t: Tree<A>) -> List<&2, A>:
+  match n t:
+    case 0n _:
+      Nil{}
+    case 1n+m Leaf{}:
+      Nil{}
+    case 1n+m Node{x, l, r}:
+      Con{x, drain(~A, ~cmp, m, del_root(~A, ~cmp, l, r))}
+
+def to_sorted_list(~A: Data, ~cmp: A -> A -> Cmp, h: Heap<A>) -> Heap<A> & List<&2, A>:
+  BH{+n, +t} = h
+  (BH{n, t}, drain(~A, ~cmp, n, t))
+
+# ---- operation traces ----
+
+def obs_nat(-A: Data, r: Heap<A> & Nat) -> Heap<A> & E.Obs<A>:
+  (h, n) = r
+  (h, E.ONat{n})
+
+def obs_item(-A: Data, r: Heap<A> & Result<&2, &2, E.Error, A>) -> Heap<A> & E.Obs<A>:
+  (h, x) = r
+  (h, E.OItem{x})
+
+def obs_list(-A: Data, r: Heap<A> & List<&2, A>) -> Heap<A> & E.Obs<A>:
+  (h, xs) = r
+  (h, E.OList{xs})
+
+def step(~A: Data, ~cmp: A -> A -> Cmp, h: Heap<A>, op: E.Op<A>) -> Heap<A> & E.Obs<A>:
+  match op:
+    case E.Length{}:
+      obs_nat(A, length(A, h))
+    case E.Push{x}:
+      (push(~A, ~cmp, h, x), E.OUnit{})
+    case E.Peek{}:
+      obs_item(A, peek(A, h))
+    case E.Pop{}:
+      obs_item(A, pop(~A, ~cmp, h))
+    case E.FromList{xs}:
+      (from_list(~A, ~cmp, xs), E.OUnit{})
+    case E.ToSortedList{}:
+      obs_list(A, to_sorted_list(~A, ~cmp, h))
+
+def record(-A: Data, acc: List<&2, E.Obs<A>>, r: Heap<A> & E.Obs<A>) -> Heap<A> & List<&2, E.Obs<A>>:
+  (h, o) = r
+  (h, Con{o, acc})
+
+def step_acc(~A: Data, ~cmp: A -> A -> Cmp, op: E.Op<A>, st: Heap<A> & List<&2, E.Obs<A>>) -> Heap<A> & List<&2, E.Obs<A>>:
+  (h, acc) = st
+  record(A, acc, step(~A, ~cmp, h, op))
+
+def run_acc(~A: Data, ~cmp: A -> A -> Cmp, ops: List<&2, E.Op<A>>, st: Heap<A> & List<&2, E.Obs<A>>) -> Heap<A> & List<&2, E.Obs<A>>:
+  match ops:
+    case Nil{}:
+      st
+    case Con{op, rest}:
+      run_acc(~A, ~cmp, rest, step_acc(~A, ~cmp, op, st))
+
+def finish(-A: Data, st: Heap<A> & List<&2, E.Obs<A>>) -> Heap<A> & List<&2, E.Obs<A>>:
+  (h, acc) = st
+  (h, List.reverse(&2, E.Obs<A>, acc))
+
+def run(~A: Data, ~cmp: A -> A -> Cmp, ops: List<&2, E.Op<A>>, h: Heap<A>) -> Heap<A> & List<&2, E.Obs<A>>:
+  finish(A, run_acc(~A, ~cmp, ops, (h, Nil{})))
+
+# ---- checked instances (proofs/binary_heap.bend) ----
+
+def run_u32(ops: List<&2, E.Op<U32>>, h: Heap<U32>) -> Heap<U32> & List<&2, E.Obs<U32>>:
+  run(~U32, ~U32.cmp, ops, h)
+
+def run_string(ops: List<&2, E.Op<String>>, h: Heap<String>) -> Heap<String> & List<&2, E.Obs<String>>:
+  run(~String, ~String.order, ops, h)

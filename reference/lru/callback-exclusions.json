@@ -1,0 +1,13 @@
+{
+  "authorization": "User: actually put callbacks out of scope for now",
+  "excluded_api": [
+    {
+      "file": "lru.go",
+      "declaration": "func (lru *LRU[K, V]) SetOnEvict(onEvict OnEvictCallback[K, V]) {"
+    }
+  ],
+  "excluded_assertions": "Only callback registration, invocation, events/counts and reentrancy assertions; retain all other assertions in every test group",
+  "reference_mode": "Go LRU with nil OnEvict",
+  "proof_scope": "supported callback-free Bend API and all reachable cache/map/clock/transport behavior",
+  "excluded_probes": "callback reentrancy and callback-driven clock/state changes; do not count as passes"
+}

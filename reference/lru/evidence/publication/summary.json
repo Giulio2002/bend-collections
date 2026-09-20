@@ -1,0 +1,7 @@
+{
+  "acceptance_exit_code": 0,
+  "source_hashes_verified": 253,
+  "complete_under_documented_trust_boundary": true,
+  "validation_sha256": "ff6c2e5484b4303e69e59827cbeec654b502e1fb2ef5a35491e73d242380aaa6",
+  "acceptance_log_sha256": "ab01437a4cc6108cf940f47c61d46faae533567bcdc32d9b5d31a5347e19e888"
+}

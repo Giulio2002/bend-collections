@@ -1,0 +1,548 @@
+import Base
+import ../types/balanced_search_tree.bend as E
+
+# Ordered map with a comparator ~cmp (a total order, see proofs/lib/order),
+# implemented as a 2-3 tree: every internal node has 2 or 3 children and
+# all leaves are at the same depth, so the height is at most log2(n + 1).
+# Insertion splits overflowing nodes upwards; deletion repairs underflow by
+# borrowing from or merging with a sibling. Both keep the uniform depth.
+#
+# The comparison of the searched key with a node's keys is computed by the
+# caller and passed down (a, b), so every recursive call is on a subtree.
+#
+# Errors never change the state: remove/lookup of a missing key give
+# KeyNotFound; min/max of an empty map give EmptyTree; lower_bound with no
+# key >= k gives KeyNotFound.
+#
+# Cost (n entries, comparisons): insert/remove/lookup/contains/lower_bound/
+# min/max O(log n); range O(log n + m) for m results; to_list O(n);
+# length O(1).
+#
+# Checked instances: keys U32 (U32.cmp) and String (String.order); values
+# are an erased type parameter.
+
+type Tree<-K: Data, -V: Data> is Data:
+  Leaf{}
+  Node2{l: Tree<K, V>, e: E.Entry<K, V>, r: Tree<K, V>}
+  Node3{l: Tree<K, V>, e1: E.Entry<K, V>, m: Tree<K, V>, e2: E.Entry<K, V>, r: Tree<K, V>}
+
+# Result of inserting into a subtree: same height, or an overflow node.
+type UpI<-K: Data, -V: Data> is Data:
+  TI{t: Tree<K, V>}
+  OF{l: Tree<K, V>, e: E.Entry<K, V>, r: Tree<K, V>}
+
+# Result of deleting from a subtree: same height, or one level shorter.
+type UpD<-K: Data, -V: Data> is Data:
+  TD{t: Tree<K, V>}
+  UF{t: Tree<K, V>}
+
+type SM<-K: Data, -V: Data> is Data:
+  SMNone{}
+  SMSome{e: E.Entry<K, V>, rest: UpD<K, V>}
+
+type OrdMap<-K: Data, -V: Data> is Data:
+  BST{size: Nat, root: Tree<K, V>}
+
+# cmp(k, first key of the root) and cmp(k, second key of the root).
+def c1(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, +k: K, t: Tree<K, V>) -> Cmp:
+  match t:
+    case Leaf{}:
+      EQ{}
+    case Node2{l, e, r}:
+      cmp(k, E.key(K, V, e))
+    case Node3{l, e1, m, e2, r}:
+      cmp(k, E.key(K, V, e1))
+
+def c2(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, +k: K, t: Tree<K, V>) -> Cmp:
+  match t:
+    case Node3{l, e1, m, e2, r}:
+      cmp(k, E.key(K, V, e2))
+    case _:
+      EQ{}
+
+# cmp(first key of the root, k) and cmp(second key of the root, k).
+def d1(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, +k: K, t: Tree<K, V>) -> Cmp:
+  match t:
+    case Leaf{}:
+      EQ{}
+    case Node2{l, e, r}:
+      cmp(E.key(K, V, e), k)
+    case Node3{l, e1, m, e2, r}:
+      cmp(E.key(K, V, e1), k)
+
+def d2(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, +k: K, t: Tree<K, V>) -> Cmp:
+  match t:
+    case Node3{l, e1, m, e2, r}:
+      cmp(E.key(K, V, e2), k)
+    case _:
+      EQ{}
+
+# ---- insertion ----
+
+def treeI(-K: Data, -V: Data, u: UpI<K, V>) -> Tree<K, V>:
+  match u:
+    case TI{t}:
+      t
+    case OF{l, e, r}:
+      Node2{l, e, r}
+
+def up2l(-K: Data, -V: Data, u: UpI<K, V>, e: E.Entry<K, V>, r: Tree<K, V>) -> UpI<K, V>:
+  match u:
+    case TI{l}:
+      TI{Node2{l, e, r}}
+    case OF{l1, x, l2}:
+      TI{Node3{l1, x, l2, e, r}}
+
+def up2r(-K: Data, -V: Data, l: Tree<K, V>, e: E.Entry<K, V>, u: UpI<K, V>) -> UpI<K, V>:
+  match u:
+    case TI{r}:
+      TI{Node2{l, e, r}}
+    case OF{r1, x, r2}:
+      TI{Node3{l, e, r1, x, r2}}
+
+def up3l(-K: Data, -V: Data, u: UpI<K, V>, e1: E.Entry<K, V>, m: Tree<K, V>, e2: E.Entry<K, V>, r: Tree<K, V>) -> UpI<K, V>:
+  match u:
+    case TI{l}:
+      TI{Node3{l, e1, m, e2, r}}
+    case OF{l1, x, l2}:
+      OF{Node2{l1, x, l2}, e1, Node2{m, e2, r}}
+
+def up3m(-K: Data, -V: Data, l: Tree<K, V>, e1: E.Entry<K, V>, u: UpI<K, V>, e2: E.Entry<K, V>, r: Tree<K, V>) -> UpI<K, V>:
+  match u:
+    case TI{m}:
+      TI{Node3{l, e1, m, e2, r}}
+    case OF{m1, x, m2}:
+      OF{Node2{l, e1, m1}, x, Node2{m2, e2, r}}
+
+def up3r(-K: Data, -V: Data, l: Tree<K, V>, e1: E.Entry<K, V>, m: Tree<K, V>, e2: E.Entry<K, V>, u: UpI<K, V>) -> UpI<K, V>:
+  match u:
+    case TI{r}:
+      TI{Node3{l, e1, m, e2, r}}
+    case OF{r1, x, r2}:
+      OF{Node2{l, e1, m}, e2, Node2{r1, x, r2}}
+
+# a = cmp(k, first key), b = cmp(k, second key) of t's root.
+def ins(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, t: Tree<K, V>, +k: K, +v: V, a: Cmp, b: Cmp) -> UpI<K, V>:
+  match t a b:
+    case Leaf{} _ _:
+      OF{Leaf{}, E.Entry{k, v}, Leaf{}}
+    case Node2{+l, e, r} LT{} _:
+      up2l(K, V, ins(~K, ~cmp, V, l, k, v, c1(~K, ~cmp, V, k, l), c2(~K, ~cmp, V, k, l)), e, r)
+    case Node2{l, e, r} EQ{} _:
+      TI{Node2{l, E.Entry{k, v}, r}}
+    case Node2{l, e, +r} GT{} _:
+      up2r(K, V, l, e, ins(~K, ~cmp, V, r, k, v, c1(~K, ~cmp, V, k, r), c2(~K, ~cmp, V, k, r)))
+    case Node3{+l, e1, m, e2, r} LT{} _:
+      up3l(K, V, ins(~K, ~cmp, V, l, k, v, c1(~K, ~cmp, V, k, l), c2(~K, ~cmp, V, k, l)), e1, m, e2, r)
+    case Node3{l, e1, m, e2, r} EQ{} _:
+      TI{Node3{l, E.Entry{k, v}, m, e2, r}}
+    case Node3{l, e1, +m, e2, r} GT{} LT{}:
+      up3m(K, V, l, e1, ins(~K, ~cmp, V, m, k, v, c1(~K, ~cmp, V, k, m), c2(~K, ~cmp, V, k, m)), e2, r)
+    case Node3{l, e1, m, e2, r} GT{} EQ{}:
+      TI{Node3{l, e1, m, E.Entry{k, v}, r}}
+    case Node3{l, e1, m, e2, +r} GT{} GT{}:
+      up3r(K, V, l, e1, m, e2, ins(~K, ~cmp, V, r, k, v, c1(~K, ~cmp, V, k, r), c2(~K, ~cmp, V, k, r)))
+
+def insert_tree(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, +t: Tree<K, V>, +k: K, +v: V) -> Tree<K, V>:
+  treeI(K, V, ins(~K, ~cmp, V, t, k, v, c1(~K, ~cmp, V, k, t), c2(~K, ~cmp, V, k, t)))
+
+# ---- deletion ----
+
+def treeD(-K: Data, -V: Data, u: UpD<K, V>) -> Tree<K, V>:
+  match u:
+    case TD{t}:
+      t
+    case UF{t}:
+      t
+
+def node21(-K: Data, -V: Data, u: UpD<K, V>, e: E.Entry<K, V>, r: Tree<K, V>) -> UpD<K, V>:
+  match u r:
+    case TD{l} _:
+      TD{Node2{l, e, r}}
+    case UF{l} Node2{r1, x, r2}:
+      UF{Node3{l, e, r1, x, r2}}
+    case UF{l} Node3{r1, x, r2, y, r3}:
+      TD{Node2{Node2{l, e, r1}, x, Node2{r2, y, r3}}}
+    case UF{l} Leaf{}:
+      TD{Node2{l, e, Leaf{}}}
+
+def node22(-K: Data, -V: Data, l: Tree<K, V>, e: E.Entry<K, V>, u: UpD<K, V>) -> UpD<K, V>:
+  match l u:
+    case _ TD{r}:
+      TD{Node2{l, e, r}}
+    case Node2{l1, x, l2} UF{r}:
+      UF{Node3{l1, x, l2, e, r}}
+    case Node3{l1, x, l2, y, l3} UF{r}:
+      TD{Node2{Node2{l1, x, l2}, y, Node2{l3, e, r}}}
+    case Leaf{} UF{r}:
+      TD{Node2{Leaf{}, e, r}}
+
+def node31(-K: Data, -V: Data, u: UpD<K, V>, e1: E.Entry<K, V>, m: Tree<K, V>, e2: E.Entry<K, V>, r: Tree<K, V>) -> UpD<K, V>:
+  match u m:
+    case TD{l} _:
+      TD{Node3{l, e1, m, e2, r}}
+    case UF{l} Node2{m1, x, m2}:
+      TD{Node2{Node3{l, e1, m1, x, m2}, e2, r}}
+    case UF{l} Node3{m1, x, m2, y, m3}:
+      TD{Node3{Node2{l, e1, m1}, x, Node2{m2, y, m3}, e2, r}}
+    case UF{l} Leaf{}:
+      TD{Node3{l, e1, Leaf{}, e2, r}}
+
+def node32(-K: Data, -V: Data, l: Tree<K, V>, e1: E.Entry<K, V>, u: UpD<K, V>, e2: E.Entry<K, V>, r: Tree<K, V>) -> UpD<K, V>:
+  match u r:
+    case TD{m} _:
+      TD{Node3{l, e1, m, e2, r}}
+    case UF{m} Node2{r1, x, r2}:
+      TD{Node2{l, e1, Node3{m, e2, r1, x, r2}}}
+    case UF{m} Node3{r1, x, r2, y, r3}:
+      TD{Node3{l, e1, Node2{m, e2, r1}, x, Node2{r2, y, r3}}}
+    case UF{m} Leaf{}:
+      TD{Node3{l, e1, m, e2, Leaf{}}}
+
+def node33(-K: Data, -V: Data, l: Tree<K, V>, e1: E.Entry<K, V>, m: Tree<K, V>, e2: E.Entry<K, V>, u: UpD<K, V>) -> UpD<K, V>:
+  match m u:
+    case _ TD{r}:
+      TD{Node3{l, e1, m, e2, r}}
+    case Node2{m1, x, m2} UF{r}:
+      TD{Node2{l, e1, Node3{m1, x, m2, e2, r}}}
+    case Node3{m1, x, m2, y, m3} UF{r}:
+      TD{Node3{l, e1, Node2{m1, x, m2}, y, Node2{m3, e2, r}}}
+    case Leaf{} UF{r}:
+      TD{Node3{l, e1, Leaf{}, e2, r}}
+
+def sm2(-K: Data, -V: Data, s: SM<K, V>, e: E.Entry<K, V>, r: Tree<K, V>) -> SM<K, V>:
+  match s:
+    case SMNone{}:
+      SMSome{e, UF{r}}
+    case SMSome{x, l}:
+      SMSome{x, node21(K, V, l, e, r)}
+
+def sm3(-K: Data, -V: Data, s: SM<K, V>, e1: E.Entry<K, V>, m: Tree<K, V>, e2: E.Entry<K, V>, r: Tree<K, V>) -> SM<K, V>:
+  match s:
+    case SMNone{}:
+      SMSome{e1, TD{Node2{m, e2, r}}}
+    case SMSome{x, l}:
+      SMSome{x, node31(K, V, l, e1, m, e2, r)}
+
+# The smallest entry and the rest of the tree.
+def split_min(-K: Data, -V: Data, t: Tree<K, V>) -> SM<K, V>:
+  match t:
+    case Leaf{}:
+      SMNone{}
+    case Node2{l, e, r}:
+      sm2(K, V, split_min(K, V, l), e, r)
+    case Node3{l, e1, m, e2, r}:
+      sm3(K, V, split_min(K, V, l), e1, m, e2, r)
+
+def d2eq(-K: Data, -V: Data, s: SM<K, V>, l: Tree<K, V>) -> UpD<K, V>:
+  match s:
+    case SMNone{}:
+      UF{l}
+    case SMSome{x, r}:
+      node22(K, V, l, x, r)
+
+def d3a(-K: Data, -V: Data, s: SM<K, V>, l: Tree<K, V>, e2: E.Entry<K, V>, r: Tree<K, V>) -> UpD<K, V>:
+  match s:
+    case SMNone{}:
+      TD{Node2{l, e2, r}}
+    case SMSome{x, m}:
+      node32(K, V, l, x, m, e2, r)
+
+def d3b(-K: Data, -V: Data, s: SM<K, V>, l: Tree<K, V>, e1: E.Entry<K, V>, m: Tree<K, V>) -> UpD<K, V>:
+  match s:
+    case SMNone{}:
+      TD{Node2{l, e1, m}}
+    case SMSome{x, r}:
+      node33(K, V, l, e1, m, x, r)
+
+def del(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, t: Tree<K, V>, +k: K, a: Cmp, b: Cmp) -> UpD<K, V>:
+  match t a b:
+    case Leaf{} _ _:
+      TD{Leaf{}}
+    case Node2{+l, e, r} LT{} _:
+      node21(K, V, del(~K, ~cmp, V, l, k, c1(~K, ~cmp, V, k, l), c2(~K, ~cmp, V, k, l)), e, r)
+    case Node2{l, e, r} EQ{} _:
+      d2eq(K, V, split_min(K, V, r), l)
+    case Node2{l, e, +r} GT{} _:
+      node22(K, V, l, e, del(~K, ~cmp, V, r, k, c1(~K, ~cmp, V, k, r), c2(~K, ~cmp, V, k, r)))
+    case Node3{+l, e1, m, e2, r} LT{} _:
+      node31(K, V, del(~K, ~cmp, V, l, k, c1(~K, ~cmp, V, k, l), c2(~K, ~cmp, V, k, l)), e1, m, e2, r)
+    case Node3{l, e1, m, e2, r} EQ{} _:
+      d3a(K, V, split_min(K, V, m), l, e2, r)
+    case Node3{l, e1, +m, e2, r} GT{} LT{}:
+      node32(K, V, l, e1, del(~K, ~cmp, V, m, k, c1(~K, ~cmp, V, k, m), c2(~K, ~cmp, V, k, m)), e2, r)
+    case Node3{l, e1, m, e2, r} GT{} EQ{}:
+      d3b(K, V, split_min(K, V, r), l, e1, m)
+    case Node3{l, e1, m, e2, +r} GT{} GT{}:
+      node33(K, V, l, e1, m, e2, del(~K, ~cmp, V, r, k, c1(~K, ~cmp, V, k, r), c2(~K, ~cmp, V, k, r)))
+
+def remove_tree(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, +t: Tree<K, V>, +k: K) -> Tree<K, V>:
+  treeD(K, V, del(~K, ~cmp, V, t, k, c1(~K, ~cmp, V, k, t), c2(~K, ~cmp, V, k, t)))
+
+# ---- queries ----
+
+def find(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, t: Tree<K, V>, +k: K, a: Cmp, b: Cmp) -> Maybe<&2, V>:
+  match t a b:
+    case Leaf{} _ _:
+      None{}
+    case Node2{+l, e, r} LT{} _:
+      find(~K, ~cmp, V, l, k, c1(~K, ~cmp, V, k, l), c2(~K, ~cmp, V, k, l))
+    case Node2{l, e, r} EQ{} _:
+      Some{E.val(K, V, e)}
+    case Node2{l, e, +r} GT{} _:
+      find(~K, ~cmp, V, r, k, c1(~K, ~cmp, V, k, r), c2(~K, ~cmp, V, k, r))
+    case Node3{+l, e1, m, e2, r} LT{} _:
+      find(~K, ~cmp, V, l, k, c1(~K, ~cmp, V, k, l), c2(~K, ~cmp, V, k, l))
+    case Node3{l, e1, m, e2, r} EQ{} _:
+      Some{E.val(K, V, e1)}
+    case Node3{l, e1, +m, e2, r} GT{} LT{}:
+      find(~K, ~cmp, V, m, k, c1(~K, ~cmp, V, k, m), c2(~K, ~cmp, V, k, m))
+    case Node3{l, e1, m, e2, r} GT{} EQ{}:
+      Some{E.val(K, V, e2)}
+    case Node3{l, e1, m, e2, +r} GT{} GT{}:
+      find(~K, ~cmp, V, r, k, c1(~K, ~cmp, V, k, r), c2(~K, ~cmp, V, k, r))
+
+def lookup_tree(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, +t: Tree<K, V>, +k: K) -> Maybe<&2, V>:
+  find(~K, ~cmp, V, t, k, c1(~K, ~cmp, V, k, t), c2(~K, ~cmp, V, k, t))
+
+def orelse(-K: Data, -V: Data, m: Maybe<&2, E.Entry<K, V>>, e: E.Entry<K, V>) -> Maybe<&2, E.Entry<K, V>>:
+  match m:
+    case None{}:
+      Some{e}
+    case Some{x}:
+      Some{x}
+
+def min_go(-K: Data, -V: Data, t: Tree<K, V>) -> Maybe<&2, E.Entry<K, V>>:
+  match t:
+    case Leaf{}:
+      None{}
+    case Node2{l, e, r}:
+      orelse(K, V, min_go(K, V, l), e)
+    case Node3{l, e1, m, e2, r}:
+      orelse(K, V, min_go(K, V, l), e1)
+
+def max_go(-K: Data, -V: Data, t: Tree<K, V>) -> Maybe<&2, E.Entry<K, V>>:
+  match t:
+    case Leaf{}:
+      None{}
+    case Node2{l, e, r}:
+      orelse(K, V, max_go(K, V, r), e)
+    case Node3{l, e1, m, e2, r}:
+      orelse(K, V, max_go(K, V, r), e2)
+
+# a = cmp(first key, k), b = cmp(second key, k): first entry with key >= k.
+def lb(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, t: Tree<K, V>, +k: K, a: Cmp, b: Cmp) -> Maybe<&2, E.Entry<K, V>>:
+  match t a b:
+    case Leaf{} _ _:
+      None{}
+    case Node2{l, e, +r} LT{} _:
+      lb(~K, ~cmp, V, r, k, d1(~K, ~cmp, V, k, r), d2(~K, ~cmp, V, k, r))
+    case Node2{l, e, r} EQ{} _:
+      Some{e}
+    case Node2{+l, e, r} GT{} _:
+      orelse(K, V, lb(~K, ~cmp, V, l, k, d1(~K, ~cmp, V, k, l), d2(~K, ~cmp, V, k, l)), e)
+    case Node3{l, e1, m, e2, +r} LT{} LT{}:
+      lb(~K, ~cmp, V, r, k, d1(~K, ~cmp, V, k, r), d2(~K, ~cmp, V, k, r))
+    case Node3{l, e1, m, e2, r} LT{} EQ{}:
+      Some{e2}
+    case Node3{l, e1, +m, e2, r} LT{} GT{}:
+      orelse(K, V, lb(~K, ~cmp, V, m, k, d1(~K, ~cmp, V, k, m), d2(~K, ~cmp, V, k, m)), e2)
+    case Node3{l, e1, m, e2, r} EQ{} _:
+      Some{e1}
+    case Node3{+l, e1, m, e2, r} GT{} _:
+      orelse(K, V, lb(~K, ~cmp, V, l, k, d1(~K, ~cmp, V, k, l), d2(~K, ~cmp, V, k, l)), e1)
+
+def lower_tree(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, +t: Tree<K, V>, +k: K) -> Maybe<&2, E.Entry<K, V>>:
+  lb(~K, ~cmp, V, t, k, d1(~K, ~cmp, V, k, t), d2(~K, ~cmp, V, k, t))
+
+def in_range(~K: Data, ~cmp: K -> K -> Cmp, +lo: K, +hi: K, +k: K) -> Bool:
+  Bool.and(Bool.not(Cmp.is_gt(cmp(lo, k))), Cmp.is_lt(cmp(k, hi)))
+
+def cons_if(-K: Data, -V: Data, b: Bool, e: E.Entry<K, V>, rest: List<&2, E.Entry<K, V>>) -> List<&2, E.Entry<K, V>>:
+  match b:
+    case True{}:
+      Con{e, rest}
+    case False{}:
+      rest
+
+# Entries of t with lo <= key < hi (in order), followed by acc; go = False
+# skips a subtree that cannot contain such keys.
+def rng(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, t: Tree<K, V>, +lo: K, +hi: K, acc: List<&2, E.Entry<K, V>>, go: Bool) -> List<&2, E.Entry<K, V>>:
+  match t go:
+    case _ False{}:
+      acc
+    case Leaf{} True{}:
+      acc
+    case Node2{l, +e, r} True{}:
+      rng(~K, ~cmp, V, l, lo, hi, cons_if(K, V, in_range(~K, ~cmp, lo, hi, E.key(K, V, e)), e, rng(~K, ~cmp, V, r, lo, hi, acc, Cmp.is_lt(cmp(E.key(K, V, e), hi)))), Cmp.is_lt(cmp(lo, E.key(K, V, e))))
+    case Node3{l, +e1, m, +e2, r} True{}:
+      rng(~K, ~cmp, V, l, lo, hi, cons_if(K, V, in_range(~K, ~cmp, lo, hi, E.key(K, V, e1)), e1, rng(~K, ~cmp, V, m, lo, hi, cons_if(K, V, in_range(~K, ~cmp, lo, hi, E.key(K, V, e2)), e2, rng(~K, ~cmp, V, r, lo, hi, acc, Cmp.is_lt(cmp(E.key(K, V, e2), hi)))), Bool.and(Cmp.is_lt(cmp(E.key(K, V, e1), hi)), Cmp.is_lt(cmp(lo, E.key(K, V, e2)))))), Cmp.is_lt(cmp(lo, E.key(K, V, e1))))
+
+# In-order entries followed by acc.
+def entries(-K: Data, -V: Data, t: Tree<K, V>, acc: List<&2, E.Entry<K, V>>) -> List<&2, E.Entry<K, V>>:
+  match t:
+    case Leaf{}:
+      acc
+    case Node2{l, e, r}:
+      entries(K, V, l, Con{e, entries(K, V, r, acc)})
+    case Node3{l, e1, m, e2, r}:
+      entries(K, V, l, Con{e1, entries(K, V, m, Con{e2, entries(K, V, r, acc)})})
+
+# ---- public API ----
+
+def new(-K: Data, -V: Data) -> OrdMap<K, V>:
+  BST{0n, Leaf{}}
+
+def length(-K: Data, -V: Data, s: OrdMap<K, V>) -> Nat:
+  match s:
+    case BST{n, t}:
+      n
+
+def grow(-V: Data, m: Maybe<&2, V>, +n: Nat) -> Nat:
+  match m:
+    case None{}:
+      1n+n
+    case Some{v}:
+      n
+
+# Map k to v (replacing any previous value).
+def insert(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +k: K, +v: V) -> OrdMap<K, V>:
+  match s:
+    case BST{+n, +t}:
+      BST{grow(V, lookup_tree(~K, ~cmp, V, t, k), n), insert_tree(~K, ~cmp, V, t, k, v)}
+
+def remove_at(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, m: Maybe<&2, V>, +n: Nat, +t: Tree<K, V>, +k: K) -> OrdMap<K, V> & Result<&2, &2, E.Error, V>:
+  match m:
+    case None{}:
+      (BST{n, t}, Fail{E.KeyNotFound{}})
+    case Some{v}:
+      (BST{Nat.sub(n, 1n), remove_tree(~K, ~cmp, V, t, k)}, Done{v})
+
+# Remove key k, returning its value.
+def remove(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +k: K) -> OrdMap<K, V> & Result<&2, &2, E.Error, V>:
+  match s:
+    case BST{+n, +t}:
+      remove_at(~K, ~cmp, V, lookup_tree(~K, ~cmp, V, t, k), n, t, k)
+
+def result(-V: Data, m: Maybe<&2, V>) -> Result<&2, &2, E.Error, V>:
+  match m:
+    case None{}:
+      Fail{E.KeyNotFound{}}
+    case Some{v}:
+      Done{v}
+
+def lookup(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +k: K) -> Result<&2, &2, E.Error, V>:
+  match s:
+    case BST{n, +t}:
+      result(V, lookup_tree(~K, ~cmp, V, t, k))
+
+# The value stored at k, if any (Maybe form of lookup, for client structures).
+def get(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +k: K) -> Maybe<&2, V>:
+  match s:
+    case BST{n, +t}:
+      lookup_tree(~K, ~cmp, V, t, k)
+
+def present(-V: Data, m: Maybe<&2, V>) -> Bool:
+  match m:
+    case None{}:
+      False{}
+    case Some{v}:
+      True{}
+
+def contains(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +k: K) -> Bool:
+  match s:
+    case BST{n, +t}:
+      present(V, lookup_tree(~K, ~cmp, V, t, k))
+
+def entry(-K: Data, -V: Data, m: Maybe<&2, E.Entry<K, V>>, err: E.Error) -> Result<&2, &2, E.Error, E.Entry<K, V>>:
+  match m:
+    case None{}:
+      Fail{err}
+    case Some{e}:
+      Done{e}
+
+def min(-K: Data, -V: Data, s: OrdMap<K, V>) -> Result<&2, &2, E.Error, E.Entry<K, V>>:
+  match s:
+    case BST{n, t}:
+      entry(K, V, min_go(K, V, t), E.EmptyTree{})
+
+def max(-K: Data, -V: Data, s: OrdMap<K, V>) -> Result<&2, &2, E.Error, E.Entry<K, V>>:
+  match s:
+    case BST{n, t}:
+      entry(K, V, max_go(K, V, t), E.EmptyTree{})
+
+# First entry with key >= k.
+def lower_bound(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +k: K) -> Result<&2, &2, E.Error, E.Entry<K, V>>:
+  match s:
+    case BST{n, +t}:
+      entry(K, V, lower_tree(~K, ~cmp, V, t, k), E.KeyNotFound{})
+
+# Entries with lo <= key < hi, in key order.
+def range(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +lo: K, +hi: K) -> List<&2, E.Entry<K, V>>:
+  match s:
+    case BST{n, t}:
+      rng(~K, ~cmp, V, t, lo, hi, Nil{}, True{})
+
+def to_list(-K: Data, -V: Data, s: OrdMap<K, V>) -> List<&2, E.Entry<K, V>>:
+  match s:
+    case BST{n, t}:
+      entries(K, V, t, Nil{})
+
+# ---- trace runner ----
+
+def obs_val(-K: Data, -V: Data, r: OrdMap<K, V> & Result<&2, &2, E.Error, V>) -> OrdMap<K, V> & E.Obs<K, V>:
+  (s, x) = r
+  (s, E.OVal{x})
+
+def step(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, +s: OrdMap<K, V>, op: E.Op<K, V>) -> OrdMap<K, V> & E.Obs<K, V>:
+  match op:
+    case E.Length{}:
+      (s, E.ONat{length(K, V, s)})
+    case E.Insert{k, v}:
+      (insert(~K, ~cmp, V, s, k, v), E.OUnit{})
+    case E.Remove{k}:
+      obs_val(K, V, remove(~K, ~cmp, V, s, k))
+    case E.Lookup{k}:
+      (s, E.OVal{lookup(~K, ~cmp, V, s, k)})
+    case E.Contains{k}:
+      (s, E.OBool{contains(~K, ~cmp, V, s, k)})
+    case E.Min{}:
+      (s, E.OEntry{min(K, V, s)})
+    case E.Max{}:
+      (s, E.OEntry{max(K, V, s)})
+    case E.LowerBound{k}:
+      (s, E.OEntry{lower_bound(~K, ~cmp, V, s, k)})
+    case E.Range{lo, hi}:
+      (s, E.OList{range(~K, ~cmp, V, s, lo, hi)})
+    case E.ToList{}:
+      (s, E.OList{to_list(K, V, s)})
+
+def record(-K: Data, -V: Data, acc: List<&2, E.Obs<K, V>>, r: OrdMap<K, V> & E.Obs<K, V>) -> OrdMap<K, V> & List<&2, E.Obs<K, V>>:
+  (s, o) = r
+  (s, Con{o, acc})
+
+def step_acc(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, op: E.Op<K, V>, st: OrdMap<K, V> & List<&2, E.Obs<K, V>>) -> OrdMap<K, V> & List<&2, E.Obs<K, V>>:
+  (s, acc) = st
+  record(K, V, acc, step(~K, ~cmp, V, s, op))
+
+def run_acc(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, ops: List<&2, E.Op<K, V>>, st: OrdMap<K, V> & List<&2, E.Obs<K, V>>) -> OrdMap<K, V> & List<&2, E.Obs<K, V>>:
+  match ops:
+    case Nil{}:
+      st
+    case Con{op, rest}:
+      run_acc(~K, ~cmp, V, rest, step_acc(~K, ~cmp, V, op, st))
+
+def finish(-K: Data, -V: Data, st: OrdMap<K, V> & List<&2, E.Obs<K, V>>) -> OrdMap<K, V> & List<&2, E.Obs<K, V>>:
+  (s, acc) = st
+  (s, List.reverse(&2, E.Obs<K, V>, acc))
+
+def run(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, ops: List<&2, E.Op<K, V>>, s: OrdMap<K, V>) -> OrdMap<K, V> & List<&2, E.Obs<K, V>>:
+  finish(K, V, run_acc(~K, ~cmp, V, ops, (s, Nil{})))
+
+# ---- checked instances (proofs/balanced_search_tree.bend) ----
+
+def run_u32(-V: Data, ops: List<&2, E.Op<U32, V>>, s: OrdMap<U32, V>) -> OrdMap<U32, V> & List<&2, E.Obs<U32, V>>:
+  run(~U32, ~U32.cmp, V, ops, s)
+
+def run_string(-V: Data, ops: List<&2, E.Op<String, V>>, s: OrdMap<String, V>) -> OrdMap<String, V> & List<&2, E.Obs<String, V>>:
+  run(~String, ~String.order, V, ops, s)

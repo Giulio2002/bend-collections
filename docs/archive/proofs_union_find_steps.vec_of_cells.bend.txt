@@ -1,0 +1,283 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/list.bend as LL
+import ../lib/vec.bend as VL
+import ../../spec/common.bend as SC
+import ../../spec/union_find.bend as S
+import ../../src/union_find.bend as U
+import ../../src/internal/vec.bend as V
+import ../../types/union_find.bend as E
+import ./model.bend as M
+import ./union.bend as UN
+
+# Abstraction, invariant and per-operation refinement for src/union_find.
+
+def invf(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat) -> Bool:
+  Bool.and(VL.perfect(U.Cell, d, t), Bool.and(Nat.is_le(n, V.pow2(d)), Bool.and(M.good(VL.slots(U.Cell, t), n, n), Nat.is_eq(c, M.cnt_fix(VL.slots(U.Cell, t), n)))))
+
+def inv(s: U.UnionFind) -> Bool:
+  match s:
+    case U.UF{n, d, t, c}:
+      invf(n, d, t, c)
+
+def abs(s: U.UnionFind) -> List<&2, Nat>:
+  match s:
+    case U.UF{n, d, t, c}:
+      M.labs(VL.slots(U.Cell, t), n)
+
+def view1(r: U.UnionFind & E.Obs) -> List<&2, Nat> & E.Obs:
+  match r:
+    case Tuple{s, o}:
+      (abs(s), o)
+
+def StepOK(s: U.UnionFind, op: E.Op) -> Type:
+  {view1(U.step(s, op)) == S.step(abs(s), op) : List<&2, Nat> & E.Obs} & {inv(Pair.fst(U.UnionFind, E.Obs, U.step(s, op))) == True{} : Bool}
+
+# ---- invariant parts ----
+
+def i_pf(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}) -> {VL.perfect(U.Cell, d, t) == True{} : Bool}:
+  L.and_left(VL.perfect(U.Cell, d, t), Bool.and(Nat.is_le(n, V.pow2(d)), Bool.and(M.good(VL.slots(U.Cell, t), n, n), Nat.is_eq(c, M.cnt_fix(VL.slots(U.Cell, t), n)))), g)
+
+def i_r1(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}) -> {Bool.and(Nat.is_le(n, V.pow2(d)), Bool.and(M.good(VL.slots(U.Cell, t), n, n), Nat.is_eq(c, M.cnt_fix(VL.slots(U.Cell, t), n)))) == True{} : Bool}:
+  L.and_right(VL.perfect(U.Cell, d, t), Bool.and(Nat.is_le(n, V.pow2(d)), Bool.and(M.good(VL.slots(U.Cell, t), n, n), Nat.is_eq(c, M.cnt_fix(VL.slots(U.Cell, t), n)))), g)
+
+def i_cap(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}) -> {Nat.is_le(n, V.pow2(d)) == True{} : Bool}:
+  L.and_left(Nat.is_le(n, V.pow2(d)), Bool.and(M.good(VL.slots(U.Cell, t), n, n), Nat.is_eq(c, M.cnt_fix(VL.slots(U.Cell, t), n))), i_r1(n, d, t, c, g))
+
+def i_good(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}) -> {M.good(VL.slots(U.Cell, t), n, n) == True{} : Bool}:
+  L.and_left(M.good(VL.slots(U.Cell, t), n, n), Nat.is_eq(c, M.cnt_fix(VL.slots(U.Cell, t), n)), L.and_right(Nat.is_le(n, V.pow2(d)), Bool.and(M.good(VL.slots(U.Cell, t), n, n), Nat.is_eq(c, M.cnt_fix(VL.slots(U.Cell, t), n))), i_r1(n, d, t, c, g)))
+
+def i_cnt(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}) -> {c == M.cnt_fix(VL.slots(U.Cell, t), n) : Nat}:
+  N.eq_from_is_eq(c, M.cnt_fix(VL.slots(U.Cell, t), n), L.and_right(M.good(VL.slots(U.Cell, t), n, n), Nat.is_eq(c, M.cnt_fix(VL.slots(U.Cell, t), n)), L.and_right(Nat.is_le(n, V.pow2(d)), Bool.and(M.good(VL.slots(U.Cell, t), n, n), Nat.is_eq(c, M.cnt_fix(VL.slots(U.Cell, t), n))), i_r1(n, d, t, c, g))))
+
+def i_mk(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +a: {VL.perfect(U.Cell, d, t) == True{} : Bool}, +b: {Nat.is_le(n, V.pow2(d)) == True{} : Bool}, +e: {M.good(VL.slots(U.Cell, t), n, n) == True{} : Bool}, +f: {c == M.cnt_fix(VL.slots(U.Cell, t), n) : Nat}) -> {invf(n, d, t, c) == True{} : Bool}:
+  L.and_intro(VL.perfect(U.Cell, d, t), Bool.and(Nat.is_le(n, V.pow2(d)), Bool.and(M.good(VL.slots(U.Cell, t), n, n), Nat.is_eq(c, M.cnt_fix(VL.slots(U.Cell, t), n)))), a,
+    L.and_intro(Nat.is_le(n, V.pow2(d)), Bool.and(M.good(VL.slots(U.Cell, t), n, n), Nat.is_eq(c, M.cnt_fix(VL.slots(U.Cell, t), n))), b,
+      L.and_intro(M.good(VL.slots(U.Cell, t), n, n), Nat.is_eq(c, M.cnt_fix(VL.slots(U.Cell, t), n)), e, M.eq_true(c, M.cnt_fix(VL.slots(U.Cell, t), n), f))))
+
+def cap(+n: Nat, +d: Nat, +x: Nat, +hx: {Nat.is_lt(x, n) == True{} : Bool}, +hc: {Nat.is_le(n, V.pow2(d)) == True{} : Bool}) -> {Nat.is_lt(x, V.pow2(d)) == True{} : Bool}:
+  N.lt_le_trans(x, n, V.pow2(d), hx, hc)
+
+def len_slots(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}) -> {Nat.is_le(n, SC.length(U.Cell, VL.slots(U.Cell, t))) == True{} : Bool}:
+  L.subst(Nat, q => {Nat.is_le(n, q) == True{} : Bool}, V.pow2(d), SC.length(U.Cell, VL.slots(U.Cell, t)), Equal.sym(Nat, SC.length(U.Cell, VL.slots(U.Cell, t)), V.pow2(d), VL.slots_length(U.Cell, d, t, i_pf(n, d, t, c, g))), i_cap(n, d, t, c, g))
+
+# ---- reading cells ----
+
+def cell_eq(+d: Nat, +t: V.Vec<U.Cell>, +x: Nat, +hx: {Nat.is_lt(x, V.pow2(d)) == True{} : Bool}, +pf: {VL.perfect(U.Cell, d, t) == True{} : Bool}) -> {U.cell(d, t, x) == M.lc(VL.slots(U.Cell, t), x) : U.Cell}:
+  Equal.cong(Maybe<&2, U.Cell>, U.Cell, m => U.cell_of(m, x), V.get(U.Cell, d, t, x), SC.nth(U.Cell, VL.slots(U.Cell, t), x), VL.get(U.Cell, d, t, x, hx, pf))
+
+def root_eq(+d: Nat, +t: V.Vec<U.Cell>, +x: Nat, +hx: {Nat.is_lt(x, V.pow2(d)) == True{} : Bool}, +pf: {VL.perfect(U.Cell, d, t) == True{} : Bool}) -> {U.root(d, t, x) == M.rt(VL.slots(U.Cell, t), x) : Nat}:
+  Equal.cong(U.Cell, Nat, c => U.croot(c), U.cell(d, t, x), M.lc(VL.slots(U.Cell, t), x), cell_eq(d, t, x, hx, pf))
+
+# ---- relinking and merging on the real vector ----
+
+def relink_perfect(+ms: List<&2, Nat>, +d: Nat, +t: V.Vec<U.Cell>, +big: Nat, +pf: {VL.perfect(U.Cell, d, t) == True{} : Bool}) -> {VL.perfect(U.Cell, d, U.relink(ms, d, t, big)) == True{} : Bool}:
+  match ms:
+    case Nil{}:
+      pf
+    case Con{m, rest}:
+      relink_perfect(rest, d, V.set(U.Cell, d, t, m, U.with_root(U.cell(d, t, m), big)), big, VL.set_perfect(U.Cell, d, t, m, U.with_root(U.cell(d, t, m), big), pf))
+
+def relink_slots(+ms: List<&2, Nat>, +d: Nat, +t: V.Vec<U.Cell>, +big: Nat, +pf: {VL.perfect(U.Cell, d, t) == True{} : Bool}, +hb: {M.below(ms, V.pow2(d)) == True{} : Bool}) -> {VL.slots(U.Cell, U.relink(ms, d, t, big)) == UN.rl(ms, VL.slots(U.Cell, t), big) : List<&2, U.Cell>}:
+  match ms:
+    case Nil{}:
+      {==}
+    case Con{m, rest}:
+      +hm = L.and_left(Nat.is_lt(m, V.pow2(d)), M.below(rest, V.pow2(d)), hb)
+      +t1 = V.set(U.Cell, d, t, m, U.with_root(U.cell(d, t, m), big))
+      +e1 = Equal.trans(List<&2, U.Cell>, VL.slots(U.Cell, t1), SC.update(U.Cell, VL.slots(U.Cell, t), m, U.with_root(U.cell(d, t, m), big)), SC.update(U.Cell, VL.slots(U.Cell, t), m, U.with_root(M.lc(VL.slots(U.Cell, t), m), big)),
+        VL.set(U.Cell, d, t, m, U.with_root(U.cell(d, t, m), big), hm, pf),
+        Equal.cong(U.Cell, List<&2, U.Cell>, c => SC.update(U.Cell, VL.slots(U.Cell, t), m, U.with_root(c, big)), U.cell(d, t, m), M.lc(VL.slots(U.Cell, t), m), cell_eq(d, t, m, hm, pf)))
+      Equal.trans(List<&2, U.Cell>, VL.slots(U.Cell, U.relink(rest, d, t1, big)), UN.rl(rest, VL.slots(U.Cell, t1), big), UN.rl(rest, SC.update(U.Cell, VL.slots(U.Cell, t), m, U.with_root(M.lc(VL.slots(U.Cell, t), m), big)), big),
+        relink_slots(rest, d, t1, big, VL.set_perfect(U.Cell, d, t, m, U.with_root(U.cell(d, t, m), big), pf), L.and_right(Nat.is_lt(m, V.pow2(d)), M.below(rest, V.pow2(d)), hb)),
+        Equal.cong(List<&2, U.Cell>, List<&2, U.Cell>, x => UN.rl(rest, x, big), VL.slots(U.Cell, t1), SC.update(U.Cell, VL.slots(U.Cell, t), m, U.with_root(M.lc(VL.slots(U.Cell, t), m), big)), e1))
+
+def below_mono(+m: List<&2, Nat>, +n: Nat, +k: Nat, +h: {M.below(m, n) == True{} : Bool}, +le: {Nat.is_le(n, k) == True{} : Bool}) -> {M.below(m, k) == True{} : Bool}:
+  match m:
+    case Nil{}:
+      {==}
+    case Con{x, t}:
+      L.and_intro(Nat.is_lt(x, k), M.below(t, k), N.lt_le_trans(x, n, k, L.and_left(Nat.is_lt(x, n), M.below(t, n), h), le), below_mono(t, n, k, L.and_right(Nat.is_lt(x, n), M.below(t, n), h), le))
+
+def merge_perfect(+d: Nat, +t: V.Vec<U.Cell>, +big: Nat, +small: Nat, +pf: {VL.perfect(U.Cell, d, t) == True{} : Bool}) -> {VL.perfect(U.Cell, d, U.merge(d, t, big, small)) == True{} : Bool}:
+  VL.set_perfect(U.Cell, d, U.relink(U.cmembers(U.cell(d, t, small)), d, t, big), big, U.Cell{big, Nat.add(U.csize(U.cell(d, t, big)), U.csize(U.cell(d, t, small))), List.append(&2, Nat, U.cmembers(U.cell(d, t, small)), U.cmembers(U.cell(d, t, big)))}, relink_perfect(U.cmembers(U.cell(d, t, small)), d, t, big, pf))
+
+def merge_slots(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}, +big: Nat, +small: Nat, +h: {UN.H(VL.slots(U.Cell, t), n, big, small) == True{} : Bool}) -> {VL.slots(U.Cell, U.merge(d, t, big, small)) == UN.cl2(VL.slots(U.Cell, t), big, small) : List<&2, U.Cell>}:
+  +cl = VL.slots(U.Cell, t)
+  +pf = i_pf(n, d, t, c, g)
+  +hc = i_cap(n, d, t, c, g)
+  +hbig = cap(n, d, big, UN.h_big(cl, n, big, small, h), hc)
+  +hsmall = cap(n, d, small, UN.h_small(cl, n, big, small, h), hc)
+  +bel = below_mono(M.ms(cl, small), n, V.pow2(d), M.root_below(cl, n, small, UN.root_of_small(cl, n, big, small, h)), hc)
+  %Equal.sym(U.Cell, U.cell(d, t, small), M.lc(cl, small), cell_eq(d, t, small, hsmall, pf)) : {VL.slots(U.Cell, V.set(U.Cell, d, U.relink(U.cmembers(_), d, t, big), big, U.Cell{big, Nat.add(U.csize(U.cell(d, t, big)), U.csize(_)), List.append(&2, Nat, U.cmembers(_), U.cmembers(U.cell(d, t, big)))})) == UN.cl2(cl, big, small) : List<&2, U.Cell>}
+  %Equal.sym(U.Cell, U.cell(d, t, big), M.lc(cl, big), cell_eq(d, t, big, hbig, pf)) : {VL.slots(U.Cell, V.set(U.Cell, d, U.relink(M.ms(cl, small), d, t, big), big, U.Cell{big, Nat.add(U.csize(_), M.sz(cl, small)), List.append(&2, Nat, M.ms(cl, small), U.cmembers(_))})) == UN.cl2(cl, big, small) : List<&2, U.Cell>}
+  %Equal.sym(List<&2, Nat>, List.append(&2, Nat, M.ms(cl, small), M.ms(cl, big)), SC.append(Nat, M.ms(cl, small), M.ms(cl, big)), LL.base_append(Nat, M.ms(cl, small), M.ms(cl, big))) : {VL.slots(U.Cell, V.set(U.Cell, d, U.relink(M.ms(cl, small), d, t, big), big, U.Cell{big, Nat.add(M.sz(cl, big), M.sz(cl, small)), _})) == UN.cl2(cl, big, small) : List<&2, U.Cell>}
+  %Equal.sym(List<&2, U.Cell>, VL.slots(U.Cell, V.set(U.Cell, d, U.relink(M.ms(cl, small), d, t, big), big, UN.newcell(cl, big, small))), SC.update(U.Cell, VL.slots(U.Cell, U.relink(M.ms(cl, small), d, t, big)), big, UN.newcell(cl, big, small)), VL.set(U.Cell, d, U.relink(M.ms(cl, small), d, t, big), big, UN.newcell(cl, big, small), hbig, relink_perfect(M.ms(cl, small), d, t, big, pf))) : {_ == UN.cl2(cl, big, small) : List<&2, U.Cell>}
+  %Equal.sym(List<&2, U.Cell>, VL.slots(U.Cell, U.relink(M.ms(cl, small), d, t, big)), UN.rl(M.ms(cl, small), cl, big), relink_slots(M.ms(cl, small), d, t, big, pf, bel)) : {SC.update(U.Cell, _, big, UN.newcell(cl, big, small)) == UN.cl2(cl, big, small) : List<&2, U.Cell>}
+  {==}
+
+def MergeOK(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +big: Nat, +small: Nat) -> Type:
+  {abs(U.UF{n, d, U.merge(d, t, big, small), Nat.sub(c, 1n)}) == S.relabel(M.labs(VL.slots(U.Cell, t), n), small, big) : List<&2, Nat>} & {inv(U.UF{n, d, U.merge(d, t, big, small), Nat.sub(c, 1n)}) == True{} : Bool}
+
+def merge_ok(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}, +big: Nat, +small: Nat, +h: {UN.H(VL.slots(U.Cell, t), n, big, small) == True{} : Bool}) -> MergeOK(n, d, t, c, big, small):
+  +cl = VL.slots(U.Cell, t)
+  +es = Equal.sym(List<&2, U.Cell>, VL.slots(U.Cell, U.merge(d, t, big, small)), UN.cl2(cl, big, small), merge_slots(n, d, t, c, g, big, small, h))
+  +ec = Equal.trans(Nat, Nat.sub(c, 1n), Nat.sub(1n+M.cnt_fix(UN.cl2(cl, big, small), n), 1n), M.cnt_fix(UN.cl2(cl, big, small), n),
+    Equal.cong(Nat, Nat, q => Nat.sub(q, 1n), c, 1n+M.cnt_fix(UN.cl2(cl, big, small), n), Equal.trans(Nat, c, M.cnt_fix(cl, n), 1n+M.cnt_fix(UN.cl2(cl, big, small), n), i_cnt(n, d, t, c, g), UN.fix_count(cl, n, big, small, h))),
+    N.sub_zero(M.cnt_fix(UN.cl2(cl, big, small), n)))
+  (%es : {M.labs(_, n) == S.relabel(M.labs(cl, n), small, big) : List<&2, Nat>}
+   UN.labs_relabel(cl, n, big, small, h, n, N.le_refl(n)),
+   i_mk(n, d, U.merge(d, t, big, small), Nat.sub(c, 1n), merge_perfect(d, t, big, small, i_pf(n, d, t, c, g)), i_cap(n, d, t, c, g),
+     %es : {M.good(_, n, n) == True{} : Bool}
+     UN.good2(cl, n, big, small, h, n, N.le_refl(n)),
+     %es : {Nat.sub(c, 1n) == M.cnt_fix(_, n) : Nat}
+     ec))
+
+# ---- queries ----
+
+def labs_in(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +x: Nat, +h: {Nat.is_lt(x, n) == True{} : Bool}) -> {Some{M.rt(VL.slots(U.Cell, t), x)} == SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), x) : Maybe<&2, Nat>}:
+  Equal.sym(Maybe<&2, Nat>, SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), x), Some{M.rt(VL.slots(U.Cell, t), x)}, M.nth_labs(VL.slots(U.Cell, t), n, x, h))
+
+def labs_out(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +x: Nat, +h: {Nat.is_lt(x, n) == False{} : Bool}) -> {None{} == SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), x) : Maybe<&2, Nat>}:
+  Equal.sym(Maybe<&2, Nat>, SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), x), None{}, M.nth_labs_out(VL.slots(U.Cell, t), n, x, h))
+
+def root_at(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}, +x: Nat, +h: {Nat.is_lt(x, n) == True{} : Bool}) -> {M.rt(VL.slots(U.Cell, t), x) == U.root(d, t, x) : Nat}:
+  Equal.sym(Nat, U.root(d, t, x), M.rt(VL.slots(U.Cell, t), x), root_eq(d, t, x, cap(n, d, x, h, i_cap(n, d, t, c, g)), i_pf(n, d, t, c, g)))
+
+def find_ok(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}, +x: Nat, b: Bool, +eb: {Nat.is_lt(x, n) == b : Bool}) -> {U.find_if(b, d, t, x) == S.label(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), x)) : Result<&2, &2, E.Error, Nat>}:
+  match b:
+    case True{}:
+      %labs_in(n, d, t, x, eb) : {U.find_if(True{}, d, t, x) == S.label(_) : Result<&2, &2, E.Error, Nat>}
+      %root_at(n, d, t, c, g, x, eb) : {Done{_} == Done{M.rt(VL.slots(U.Cell, t), x)} : Result<&2, &2, E.Error, Nat>}
+      {==}
+    case False{}:
+      %labs_out(n, d, t, x, eb) : {U.find_if(False{}, d, t, x) == S.label(_) : Result<&2, &2, E.Error, Nat>}
+      {==}
+
+def conn_ok(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}, +a: Nat, +b: Nat, ba: Bool, +eba: {Nat.is_lt(a, n) == ba : Bool}, bb: Bool, +ebb: {Nat.is_lt(b, n) == bb : Bool}) -> {U.connected_if(U.both(n, a, b), d, t, a, b) == S.same_class(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), a), SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b)) : Result<&2, &2, E.Error, Bool>}:
+  match ba bb:
+    case True{} True{}:
+      %Equal.sym(Bool, Nat.is_lt(a, n), True{}, eba) : {U.connected_if(Bool.and(_, Nat.is_lt(b, n)), d, t, a, b) == S.same_class(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), a), SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b)) : Result<&2, &2, E.Error, Bool>}
+      %Equal.sym(Bool, Nat.is_lt(b, n), True{}, ebb) : {U.connected_if(Bool.and(True{}, _), d, t, a, b) == S.same_class(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), a), SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b)) : Result<&2, &2, E.Error, Bool>}
+      %labs_in(n, d, t, a, eba) : {Done{Nat.is_eq(U.root(d, t, a), U.root(d, t, b))} == S.same_class(_, SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b)) : Result<&2, &2, E.Error, Bool>}
+      %labs_in(n, d, t, b, ebb) : {Done{Nat.is_eq(U.root(d, t, a), U.root(d, t, b))} == S.same_class(Some{M.rt(VL.slots(U.Cell, t), a)}, _) : Result<&2, &2, E.Error, Bool>}
+      %root_at(n, d, t, c, g, a, eba) : {Done{Nat.is_eq(_, U.root(d, t, b))} == Done{Nat.is_eq(M.rt(VL.slots(U.Cell, t), a), M.rt(VL.slots(U.Cell, t), b))} : Result<&2, &2, E.Error, Bool>}
+      %root_at(n, d, t, c, g, b, ebb) : {Done{Nat.is_eq(M.rt(VL.slots(U.Cell, t), a), _)} == Done{Nat.is_eq(M.rt(VL.slots(U.Cell, t), a), M.rt(VL.slots(U.Cell, t), b))} : Result<&2, &2, E.Error, Bool>}
+      {==}
+    case True{} False{}:
+      %Equal.sym(Bool, Nat.is_lt(a, n), True{}, eba) : {U.connected_if(Bool.and(_, Nat.is_lt(b, n)), d, t, a, b) == S.same_class(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), a), SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b)) : Result<&2, &2, E.Error, Bool>}
+      %Equal.sym(Bool, Nat.is_lt(b, n), False{}, ebb) : {U.connected_if(Bool.and(True{}, _), d, t, a, b) == S.same_class(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), a), SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b)) : Result<&2, &2, E.Error, Bool>}
+      %labs_in(n, d, t, a, eba) : {Fail{E.OutOfRange{}} == S.same_class(_, SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b)) : Result<&2, &2, E.Error, Bool>}
+      %labs_out(n, d, t, b, ebb) : {Fail{E.OutOfRange{}} == S.same_class(Some{M.rt(VL.slots(U.Cell, t), a)}, _) : Result<&2, &2, E.Error, Bool>}
+      {==}
+    case False{} True{}:
+      %Equal.sym(Bool, Nat.is_lt(a, n), False{}, eba) : {U.connected_if(Bool.and(_, Nat.is_lt(b, n)), d, t, a, b) == S.same_class(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), a), SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b)) : Result<&2, &2, E.Error, Bool>}
+      %labs_out(n, d, t, a, eba) : {Fail{E.OutOfRange{}} == S.same_class(_, SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b)) : Result<&2, &2, E.Error, Bool>}
+      %labs_in(n, d, t, b, ebb) : {Fail{E.OutOfRange{}} == S.same_class(None{}, _) : Result<&2, &2, E.Error, Bool>}
+      {==}
+    case False{} False{}:
+      %Equal.sym(Bool, Nat.is_lt(a, n), False{}, eba) : {U.connected_if(Bool.and(_, Nat.is_lt(b, n)), d, t, a, b) == S.same_class(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), a), SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b)) : Result<&2, &2, E.Error, Bool>}
+      %labs_out(n, d, t, a, eba) : {Fail{E.OutOfRange{}} == S.same_class(_, SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b)) : Result<&2, &2, E.Error, Bool>}
+      %labs_out(n, d, t, b, ebb) : {Fail{E.OutOfRange{}} == S.same_class(None{}, _) : Result<&2, &2, E.Error, Bool>}
+      {==}
+
+def size_ok(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}, +x: Nat, b: Bool, +eb: {Nat.is_lt(x, n) == b : Bool}) -> {U.size_if(b, d, t, x) == S.class_size(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), x), M.labs(VL.slots(U.Cell, t), n)) : Result<&2, &2, E.Error, Nat>}:
+  match b:
+    case True{}:
+      +cl = VL.slots(U.Cell, t)
+      +gx = M.good_elim(cl, n, n, x, i_good(n, d, t, c, g), eb)
+      +hr = M.at_lt(cl, n, x, gx)
+      +gr = M.good_elim(cl, n, n, M.rt(cl, x), i_good(n, d, t, c, g), hr)
+      +isr = M.eq_true(M.rt(cl, M.rt(cl, x)), M.rt(cl, x), M.at_idem(cl, n, x, gx))
+      %labs_in(n, d, t, x, eb) : {U.size_if(True{}, d, t, x) == S.class_size(_, M.labs(cl, n)) : Result<&2, &2, E.Error, Nat>}
+      %root_at(n, d, t, c, g, x, eb) : {Done{U.csize(U.cell(d, t, _))} == Done{S.count_eq(M.labs(cl, n), M.rt(cl, x))} : Result<&2, &2, E.Error, Nat>}
+      %Equal.sym(U.Cell, U.cell(d, t, M.rt(cl, x)), M.lc(cl, M.rt(cl, x)), cell_eq(d, t, M.rt(cl, x), cap(n, d, M.rt(cl, x), hr, i_cap(n, d, t, c, g)), i_pf(n, d, t, c, g))) : {Done{U.csize(_)} == Done{S.count_eq(M.labs(cl, n), M.rt(cl, x))} : Result<&2, &2, E.Error, Nat>}
+      %Equal.sym(Nat, S.count_eq(M.labs(cl, n), M.rt(cl, x)), M.cnt_r(cl, M.rt(cl, x), n), M.count_labs(cl, M.rt(cl, x), n)) : {Done{M.sz(cl, M.rt(cl, x))} == Done{_} : Result<&2, &2, E.Error, Nat>}
+      %M.root_size(cl, n, M.rt(cl, x), M.at_root(cl, n, M.rt(cl, x), gr, isr)) : {Done{M.sz(cl, M.rt(cl, x))} == Done{_} : Result<&2, &2, E.Error, Nat>}
+      {==}
+    case False{}:
+      %labs_out(n, d, t, x, eb) : {U.size_if(False{}, d, t, x) == S.class_size(_, M.labs(VL.slots(U.Cell, t), n)) : Result<&2, &2, E.Error, Nat>}
+      {==}
+
+# ---- union ----
+
+def JoinOK(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, r: U.UnionFind & Result<&2, &2, E.Error, Bool>, sp: List<&2, Nat> & E.Obs) -> Type:
+  {view1(U.obs_bool(r)) == sp : List<&2, Nat> & E.Obs} & {inv(Pair.fst(U.UnionFind, E.Obs, U.obs_bool(r))) == True{} : Bool}
+
+def merged(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}, +big: Nat, +small: Nat, +h: {UN.H(VL.slots(U.Cell, t), n, big, small) == True{} : Bool}) -> JoinOK(n, d, t, c, (U.UF{n, d, U.merge(d, t, big, small), Nat.sub(c, 1n)}, Done{True{}}), (S.relabel(M.labs(VL.slots(U.Cell, t), n), small, big), E.OBool{Done{True{}}})):
+  -A1 = {abs(U.UF{n, d, U.merge(d, t, big, small), Nat.sub(c, 1n)}) == S.relabel(M.labs(VL.slots(U.Cell, t), n), small, big) : List<&2, Nat>}
+  -I1 = {inv(U.UF{n, d, U.merge(d, t, big, small), Nat.sub(c, 1n)}) == True{} : Bool}
+  (Equal.cong(List<&2, Nat>, List<&2, Nat> & E.Obs, xs => (xs, E.OBool{Done{True{}}}), abs(U.UF{n, d, U.merge(d, t, big, small), Nat.sub(c, 1n)}), S.relabel(M.labs(VL.slots(U.Cell, t), n), small, big), Pair.fst(A1, I1, merge_ok(n, d, t, c, g, big, small, h))),
+   Pair.snd(A1, I1, merge_ok(n, d, t, c, g, big, small, h)))
+
+def keep_ok(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}, +ra: Nat, +rb: Nat, +hab: {UN.H(VL.slots(U.Cell, t), n, ra, rb) == True{} : Bool}, +hba: {UN.H(VL.slots(U.Cell, t), n, rb, ra) == True{} : Bool}, keep: Bool) -> JoinOK(n, d, t, c, (U.UF{n, d, U.merge_keep(keep, d, t, ra, rb), Nat.sub(c, 1n)}, Done{True{}}), (S.join_keep(keep, M.labs(VL.slots(U.Cell, t), n), ra, rb), E.OBool{Done{True{}}})):
+  match keep:
+    case True{}:
+      merged(n, d, t, c, g, ra, rb, hab)
+    case False{}:
+      merged(n, d, t, c, g, rb, ra, hba)
+
+def roots_ok(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}, +ra: Nat, +rb: Nat, +hra: {Nat.is_lt(ra, n) == True{} : Bool}, +hrb: {Nat.is_lt(rb, n) == True{} : Bool}, +rra: {Nat.is_eq(M.rt(VL.slots(U.Cell, t), ra), ra) == True{} : Bool}, +rrb: {Nat.is_eq(M.rt(VL.slots(U.Cell, t), rb), rb) == True{} : Bool}, same: Bool, +es: {Nat.is_eq(ra, rb) == same : Bool}) -> JoinOK(n, d, t, c, U.union_roots(same, n, d, t, c, ra, rb), S.join_labels(same, M.labs(VL.slots(U.Cell, t), n), ra, rb)):
+  match same:
+    case True{}:
+      ({==}, g)
+    case False{}:
+      +cl = VL.slots(U.Cell, t)
+      +pf = i_pf(n, d, t, c, g)
+      +hc = i_cap(n, d, t, c, g)
+      +hab = UN.h_mk(cl, n, ra, rb, i_good(n, d, t, c, g), len_slots(n, d, t, c, g), hra, hrb, rra, rrb, es)
+      +hba = UN.h_mk(cl, n, rb, ra, i_good(n, d, t, c, g), len_slots(n, d, t, c, g), hrb, hra, rrb, rra, Equal.trans(Bool, Nat.is_eq(rb, ra), Nat.is_eq(ra, rb), False{}, M.is_eq_sym(rb, ra), es))
+      %Equal.sym(U.Cell, U.cell(d, t, rb), M.lc(cl, rb), cell_eq(d, t, rb, cap(n, d, rb, hrb, hc), pf)) : JoinOK(n, d, t, c, (U.UF{n, d, U.merge_keep(Nat.is_le(U.csize(_), U.csize(U.cell(d, t, ra))), d, t, ra, rb), Nat.sub(c, 1n)}, Done{True{}}), (S.join_keep(Nat.is_le(S.count_eq(M.labs(cl, n), rb), S.count_eq(M.labs(cl, n), ra)), M.labs(cl, n), ra, rb), E.OBool{Done{True{}}}))
+      %Equal.sym(U.Cell, U.cell(d, t, ra), M.lc(cl, ra), cell_eq(d, t, ra, cap(n, d, ra, hra, hc), pf)) : JoinOK(n, d, t, c, (U.UF{n, d, U.merge_keep(Nat.is_le(M.sz(cl, rb), U.csize(_)), d, t, ra, rb), Nat.sub(c, 1n)}, Done{True{}}), (S.join_keep(Nat.is_le(S.count_eq(M.labs(cl, n), rb), S.count_eq(M.labs(cl, n), ra)), M.labs(cl, n), ra, rb), E.OBool{Done{True{}}}))
+      %Equal.sym(Nat, S.count_eq(M.labs(cl, n), rb), M.sz(cl, rb), Equal.trans(Nat, S.count_eq(M.labs(cl, n), rb), M.cnt_r(cl, rb, n), M.sz(cl, rb), M.count_labs(cl, rb, n), Equal.sym(Nat, M.sz(cl, rb), M.cnt_r(cl, rb, n), M.root_size(cl, n, rb, UN.root_of_small(cl, n, ra, rb, hab))))) : JoinOK(n, d, t, c, (U.UF{n, d, U.merge_keep(Nat.is_le(M.sz(cl, rb), M.sz(cl, ra)), d, t, ra, rb), Nat.sub(c, 1n)}, Done{True{}}), (S.join_keep(Nat.is_le(_, S.count_eq(M.labs(cl, n), ra)), M.labs(cl, n), ra, rb), E.OBool{Done{True{}}}))
+      %Equal.sym(Nat, S.count_eq(M.labs(cl, n), ra), M.sz(cl, ra), Equal.trans(Nat, S.count_eq(M.labs(cl, n), ra), M.cnt_r(cl, ra, n), M.sz(cl, ra), M.count_labs(cl, ra, n), Equal.sym(Nat, M.sz(cl, ra), M.cnt_r(cl, ra, n), M.root_size(cl, n, ra, UN.root_of_big(cl, n, ra, rb, hab))))) : JoinOK(n, d, t, c, (U.UF{n, d, U.merge_keep(Nat.is_le(M.sz(cl, rb), M.sz(cl, ra)), d, t, ra, rb), Nat.sub(c, 1n)}, Done{True{}}), (S.join_keep(Nat.is_le(M.sz(cl, rb), _), M.labs(cl, n), ra, rb), E.OBool{Done{True{}}}))
+      keep_ok(n, d, t, c, g, ra, rb, hab, hba, Nat.is_le(M.sz(cl, rb), M.sz(cl, ra)))
+
+def union_ok(+n: Nat, +d: Nat, +t: V.Vec<U.Cell>, +c: Nat, +g: {invf(n, d, t, c) == True{} : Bool}, +a: Nat, +b: Nat, ba: Bool, +eba: {Nat.is_lt(a, n) == ba : Bool}, bb: Bool, +ebb: {Nat.is_lt(b, n) == bb : Bool}) -> JoinOK(n, d, t, c, U.union_if(U.both(n, a, b), n, d, t, c, a, b), S.join(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), a), SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b), M.labs(VL.slots(U.Cell, t), n))):
+  match ba bb:
+    case True{} True{}:
+      +cl = VL.slots(U.Cell, t)
+      +gg = i_good(n, d, t, c, g)
+      +ga = M.good_elim(cl, n, n, a, gg, eba)
+      +gb = M.good_elim(cl, n, n, b, gg, ebb)
+      %Equal.sym(Bool, Nat.is_lt(a, n), True{}, eba) : JoinOK(n, d, t, c, U.union_if(Bool.and(_, Nat.is_lt(b, n)), n, d, t, c, a, b), S.join(SC.nth(Nat, M.labs(cl, n), a), SC.nth(Nat, M.labs(cl, n), b), M.labs(cl, n)))
+      %Equal.sym(Bool, Nat.is_lt(b, n), True{}, ebb) : JoinOK(n, d, t, c, U.union_if(Bool.and(True{}, _), n, d, t, c, a, b), S.join(SC.nth(Nat, M.labs(cl, n), a), SC.nth(Nat, M.labs(cl, n), b), M.labs(cl, n)))
+      %labs_in(n, d, t, a, eba) : JoinOK(n, d, t, c, U.union_if(True{}, n, d, t, c, a, b), S.join(_, SC.nth(Nat, M.labs(cl, n), b), M.labs(cl, n)))
+      %labs_in(n, d, t, b, ebb) : JoinOK(n, d, t, c, U.union_if(True{}, n, d, t, c, a, b), S.join(Some{M.rt(cl, a)}, _, M.labs(cl, n)))
+      %root_at(n, d, t, c, g, a, eba) : JoinOK(n, d, t, c, U.union_roots(Nat.is_eq(_, U.root(d, t, b)), n, d, t, c, _, U.root(d, t, b)), S.join_labels(Nat.is_eq(M.rt(cl, a), M.rt(cl, b)), M.labs(cl, n), M.rt(cl, a), M.rt(cl, b)))
+      %root_at(n, d, t, c, g, b, ebb) : JoinOK(n, d, t, c, U.union_roots(Nat.is_eq(M.rt(cl, a), _), n, d, t, c, M.rt(cl, a), _), S.join_labels(Nat.is_eq(M.rt(cl, a), M.rt(cl, b)), M.labs(cl, n), M.rt(cl, a), M.rt(cl, b)))
+      roots_ok(n, d, t, c, g, M.rt(cl, a), M.rt(cl, b), M.at_lt(cl, n, a, ga), M.at_lt(cl, n, b, gb), M.eq_true(M.rt(cl, M.rt(cl, a)), M.rt(cl, a), M.at_idem(cl, n, a, ga)), M.eq_true(M.rt(cl, M.rt(cl, b)), M.rt(cl, b), M.at_idem(cl, n, b, gb)), Nat.is_eq(M.rt(cl, a), M.rt(cl, b)), {==})
+    case True{} False{}:
+      %Equal.sym(Bool, Nat.is_lt(a, n), True{}, eba) : JoinOK(n, d, t, c, U.union_if(Bool.and(_, Nat.is_lt(b, n)), n, d, t, c, a, b), S.join(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), a), SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b), M.labs(VL.slots(U.Cell, t), n)))
+      %Equal.sym(Bool, Nat.is_lt(b, n), False{}, ebb) : JoinOK(n, d, t, c, U.union_if(Bool.and(True{}, _), n, d, t, c, a, b), S.join(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), a), SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b), M.labs(VL.slots(U.Cell, t), n)))
+      %labs_in(n, d, t, a, eba) : JoinOK(n, d, t, c, U.union_if(False{}, n, d, t, c, a, b), S.join(_, SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b), M.labs(VL.slots(U.Cell, t), n)))
+      %labs_out(n, d, t, b, ebb) : JoinOK(n, d, t, c, U.union_if(False{}, n, d, t, c, a, b), S.join(Some{M.rt(VL.slots(U.Cell, t), a)}, _, M.labs(VL.slots(U.Cell, t), n)))
+      ({==}, g)
+    case False{} True{}:
+      %Equal.sym(Bool, Nat.is_lt(a, n), False{}, eba) : JoinOK(n, d, t, c, U.union_if(Bool.and(_, Nat.is_lt(b, n)), n, d, t, c, a, b), S.join(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), a), SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b), M.labs(VL.slots(U.Cell, t), n)))
+      %labs_out(n, d, t, a, eba) : JoinOK(n, d, t, c, U.union_if(False{}, n, d, t, c, a, b), S.join(_, SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b), M.labs(VL.slots(U.Cell, t), n)))
+      %labs_in(n, d, t, b, ebb) : JoinOK(n, d, t, c, U.union_if(False{}, n, d, t, c, a, b), S.join(None{}, _, M.labs(VL.slots(U.Cell, t), n)))
+      ({==}, g)
+    case False{} False{}:
+      %Equal.sym(Bool, Nat.is_lt(a, n), False{}, eba) : JoinOK(n, d, t, c, U.union_if(Bool.and(_, Nat.is_lt(b, n)), n, d, t, c, a, b), S.join(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), a), SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b), M.labs(VL.slots(U.Cell, t), n)))
+      %labs_out(n, d, t, a, eba) : JoinOK(n, d, t, c, U.union_if(False{}, n, d, t, c, a, b), S.join(_, SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b), M.labs(VL.slots(U.Cell, t), n)))
+      %labs_out(n, d, t, b, ebb) : JoinOK(n, d, t, c, U.union_if(False{}, n, d, t, c, a, b), S.join(None{}, _, M.labs(VL.slots(U.Cell, t), n)))
+      ({==}, g)
+
+# ---- every operation ----
+
+def step_ok(+s: U.UnionFind, +op: E.Op, +g: {inv(s) == True{} : Bool}) -> StepOK(s, op):
+  match s op:
+    case U.UF{+n, +d, +t, +c} E.Find{+x}:
+      (Equal.cong(Result<&2, &2, E.Error, Nat>, List<&2, Nat> & E.Obs, r => (M.labs(VL.slots(U.Cell, t), n), E.OItem{r}), U.find_if(Nat.is_lt(x, n), d, t, x), S.label(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), x)), find_ok(n, d, t, c, g, x, Nat.is_lt(x, n), {==})), g)
+    case U.UF{+n, +d, +t, +c} E.Union{+a, +b}:
+      union_ok(n, d, t, c, g, a, b, Nat.is_lt(a, n), {==}, Nat.is_lt(b, n), {==})
+    case U.UF{+n, +d, +t, +c} E.Connected{+a, +b}:
+      (Equal.cong(Result<&2, &2, E.Error, Bool>, List<&2, Nat> & E.Obs, r => (M.labs(VL.slots(U.Cell, t), n), E.OBool{r}), U.connected_if(U.both(n, a, b), d, t, a, b), S.same_class(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), a), SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), b)), conn_ok(n, d, t, c, g, a, b, Nat.is_lt(a, n), {==}, Nat.is_lt(b, n), {==})), g)
+    case U.UF{+n, +d, +t, +c} E.ComponentSize{+x}:
+      (Equal.cong(Result<&2, &2, E.Error, Nat>, List<&2, Nat> & E.Obs, r => (M.labs(VL.slots(U.Cell, t), n), E.OItem{r}), U.size_if(Nat.is_lt(x, n), d, t, x), S.class_size(SC.nth(Nat, M.labs(VL.slots(U.Cell, t), n), x), M.labs(VL.slots(U.Cell, t), n)), size_ok(n, d, t, c, g, x, Nat.is_lt(x, n), {==})), g)
+    case U.UF{+n, +d, +t, +c} E.ComponentCount{}:
+      (%Equal.sym(Nat, S.fixed(M.labs(VL.slots(U.Cell, t), n), 0n), M.cnt_fix(VL.slots(U.Cell, t), n), M.fixed_labs(VL.slots(U.Cell, t), n)) : {(M.labs(VL.slots(U.Cell, t), n), E.ONat{c}) == (M.labs(VL.slots(U.Cell, t), n), E.ONat{_}) : List<&2, Nat> & E.Obs}
+       %i_cnt(n, d, t, c, g) : {(M.labs(VL.slots(U.Cell, t), n), E.ONat{c}) == (M.labs(VL.slots(U.Cell, t), n), E.ONat{_}) : List<&2, Nat> & E.Obs}
+       {==}, g)

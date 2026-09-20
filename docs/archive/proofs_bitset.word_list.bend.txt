@@ -1,0 +1,35 @@
+import Base
+import ../spec/bitset.bend as S
+import ../src/bitset.bend as B
+import ../types/bitset.bend as E
+import ./bitset/lists.bend as BL
+import ./bitset/word.bend as W
+import ./bitset/state.bend as ST
+import ./bitset/steps.bend as BS
+import ./bitset/trace.bend as BT
+
+# Packed bitset: public proof entry point.
+#   abstraction  ST.abs  (first len bits of the U32 words, bit 0 first)
+#   invariant    ST.inv  (len <= stored bits < len + 32; tail bits zero)
+#   word facts   W.*     (U32 and/or/xor/not/shifts from Base's Word defs)
+#   operations   BS.step_ok (every op; IndexOutOfRange / LengthMismatch keep state)
+#   traces       trace_new / trace_new_inv (arbitrary op lists from B.new(n))
+
+def new_abs(+n: Nat) -> {ST.abs(B.new(n)) == S.new(n) : List<&2, Bool>}:
+  ST.new_abs(n)
+
+def new_inv(+n: Nat) -> {ST.inv(B.new(n)) == True{} : Bool}:
+  ST.new_inv(n)
+
+def from_bools(+ys: List<&2, Bool>) -> BS.FromOK(ys):
+  BS.from_bools(ys)
+
+def step_ok(+s: B.Bitset, +op: E.Op, +g: {ST.inv(s) == True{} : Bool}) -> BS.StepOK(s, op):
+  BS.step_ok(s, op, g)
+
+def trace_new(+n: Nat, +ops: List<&2, E.Op>) -> {BT.view(B.run(ops, B.new(n))) == S.run(ops, S.new(n)) : List<&2, Bool> & List<&2, E.Obs>}:
+  %ST.new_abs(n) : {BT.view(B.run(ops, B.new(n))) == S.run(ops, _) : List<&2, Bool> & List<&2, E.Obs>}
+  BT.trace_from(ops, B.new(n), ST.new_inv(n))
+
+def trace_new_inv(+n: Nat, +ops: List<&2, E.Op>) -> {ST.inv(Pair.fst(B.Bitset, List<&2, E.Obs>, B.run(ops, B.new(n)))) == True{} : Bool}:
+  BT.inv_from(ops, B.new(n), ST.new_inv(n))

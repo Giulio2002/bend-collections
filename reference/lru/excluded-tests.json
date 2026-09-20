@@ -1,0 +1,97 @@
+[
+  {
+    "file": "lru_test.go",
+    "name": "TestSyncedLRU",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "lru_test.go",
+    "name": "TestSyncedLRU_Add",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "lru_test.go",
+    "name": "TestSyncedLRU_Remove",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "lru_test.go",
+    "name": "TestSyncedLRU_AddWithExpire",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "lru_test.go",
+    "name": "TestSyncedLRU_AddWithRefresh",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "lru_test.go",
+    "name": "TestSyncedLRUMatch",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "lru_test.go",
+    "name": "TestMapAdd",
+    "reason": "Go map baseline, not LRU implementation"
+  },
+  {
+    "file": "lru_test.go",
+    "name": "TestSyncedLRUAdd",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "shardedlru_test.go",
+    "name": "TestShardedRaceCondition",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "shardedlru_test.go",
+    "name": "TestShardedLRUMetrics",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "shardedlru_test.go",
+    "name": "TestStressWithLifetime",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "shardedlru_test.go",
+    "name": "TestShardedLRU_RemoveOldest",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "shardedlru_test.go",
+    "name": "TestShardedLRU_Values",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "shardedlru_test.go",
+    "name": "TestShardedLRU_GetOldest",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "syncedlru_test.go",
+    "name": "TestSyncedRaceCondition",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "syncedlru_test.go",
+    "name": "TestSyncedLRU_Metrics",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "syncedlru_test.go",
+    "name": "TestSyncedLRU_RemoveOldest",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "syncedlru_test.go",
+    "name": "TestSyncedLRU_Values",
+    "reason": "concurrency variant excluded by user"
+  },
+  {
+    "file": "syncedlru_test.go",
+    "name": "TestSyncedLRU_GetOldest",
+    "reason": "concurrency variant excluded by user"
+  }
+]

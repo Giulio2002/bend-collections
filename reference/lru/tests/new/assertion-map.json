@@ -1,0 +1,1745 @@
+[
+  {
+    "name": "TestLRU",
+    "port": "tests/new/upstream.ts::cases.TestLRU",
+    "functions": {
+      "TestLRU": {
+        "line": 88,
+        "assertions": [],
+        "source": "func TestLRU(t *testing.T) {\n\tconst CAP = 32\n\n\tevictCounter := uint64(0)\n\ttestCache(t, CAP, makeCache(t, CAP, &evictCounter), &evictCounter)\n}\n\n"
+      },
+      "makeCache": {
+        "line": 67,
+        "assertions": [
+          {
+            "id": "makeCache:1",
+            "line": 69,
+            "source": "FatalIf(t, err != nil, \"Failed to create LRU: %v\", err)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 10,
+                "expression": "assert.doesNotThrow"
+              }
+            ]
+          }
+        ],
+        "source": "func makeCache(t *testing.T, capacity uint32, evictCounter *uint64) Cache[uint64, uint64] {\n\tcache, err := New[uint64, uint64](capacity, hashUint64)\n\tFatalIf(t, err != nil, \"Failed to create LRU: %v\", err)\n\n\treturn setupCache(t, cache, evictCounter)\n}\n\n"
+      },
+      "setupCache": {
+        "line": 53,
+        "assertions": [
+          {
+            "id": "setupCache:1",
+            "line": 56,
+            "source": "FatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          }
+        ],
+        "source": "func setupCache(t *testing.T, cache Cache[uint64, uint64],\n\tevictCounter *uint64) Cache[uint64, uint64] {\n\tonEvict := func(k uint64, v uint64) {\n\t\tFatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)\n\t\tif evictCounter != nil {\n\t\t\t*evictCounter++\n\t\t}\n\t}\n\n\tcache.SetOnEvict(onEvict)\n\n\treturn cache\n}\n\n"
+      },
+      "FatalIf": {
+        "line": 338,
+        "assertions": [],
+        "source": "func FatalIf(t *testing.T, fail bool, fmt string, args ...any) {\n\tif fail {\n\t\tt.Logf(fmt, args...)\n\t\tpanic(fail)\n\t}\n}\n\n// This following tests are for memory comparison.\n// See also TestSimpleLRUAdd in the bench/ directory.\n\nconst count = 1000\n\n// GOGC=off go test -memprofile=mem.out -test.memprofilerate=1 -count 1 -run TestMapAdd\n// go tool pprof mem.out\n// (then check the top10).\n"
+      },
+      "testCache": {
+        "line": 102,
+        "assertions": [
+          {
+            "id": "testCache:1",
+            "line": 106,
+            "source": "FatalIf(t, cache.Len() != int(cAP), \"Unexpected number of entries: %v (!= %d)\", cache.Len(),\n\t\tcAP)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 17,
+                "expression": "eq(c.Len(),32n)"
+              }
+            ]
+          },
+          {
+            "id": "testCache:2",
+            "line": 108,
+            "source": "FatalIf(t, *evictCounter != cAP, \"Unexpected number of evictions: %v (!= %d)\", evictCounter,\n\t\tcAP)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          },
+          {
+            "id": "testCache:3",
+            "line": 114,
+            "source": "t.Fatalf(\"Mismatch of key %v (ok=%v v=%v)\\n%v\", k, ok, v, keys)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 18,
+                "expression": "ok(found&&v===k+1n&&v===BigInt(i)+33n)"
+              }
+            ]
+          },
+          {
+            "id": "testCache:4",
+            "line": 120,
+            "source": "t.Fatalf(\"Missing eviction of %d\", i)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 19,
+                "expression": "ok(!c.Get(i)[1])"
+              }
+            ]
+          },
+          {
+            "id": "testCache:5",
+            "line": 126,
+            "source": "t.Fatalf(\"Unexpected eviction of %d\", i)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 20,
+                "expression": "ok(c.Get(i)[1])"
+              }
+            ]
+          },
+          {
+            "id": "testCache:6",
+            "line": 130,
+            "source": "FatalIf(t, cache.Remove(cAP*2), \"Unexpected success removing %d\", cAP*2)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 21,
+                "expression": "ok(!c.Remove(64n))"
+              }
+            ]
+          },
+          {
+            "id": "testCache:7",
+            "line": 131,
+            "source": "FatalIf(t, !cache.Remove(cAP*2-1), \"Failed to remove most recent entry %d\", cAP*2-1)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 21,
+                "expression": "ok(c.Remove(63n))"
+              }
+            ]
+          },
+          {
+            "id": "testCache:8",
+            "line": 132,
+            "source": "FatalIf(t, !cache.Remove(cAP), \"Failed to remove oldest entry %d\", cAP)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 21,
+                "expression": "ok(c.Remove(32n))"
+              }
+            ]
+          },
+          {
+            "id": "testCache:9",
+            "line": 133,
+            "source": "FatalIf(t, *evictCounter != cAP+2, \"Unexpected # of evictions: %d (!= %d)\", evictCounter, cAP+2)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          },
+          {
+            "id": "testCache:10",
+            "line": 134,
+            "source": "FatalIf(t, cache.Len() != int(cAP-2), \"Unexpected # of entries: %d (!= %d)\", cache.Len(), cAP-2)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 21,
+                "expression": "eq(c.Len(),30n)"
+              }
+            ]
+          }
+        ],
+        "source": "func testCache(t *testing.T, cAP uint64, cache Cache[uint64, uint64], evictCounter *uint64) {\n\tfor i := uint64(0); i < cAP*2; i++ {\n\t\tcache.Add(i, i+1)\n\t}\n\tFatalIf(t, cache.Len() != int(cAP), \"Unexpected number of entries: %v (!= %d)\", cache.Len(),\n\t\tcAP)\n\tFatalIf(t, *evictCounter != cAP, \"Unexpected number of evictions: %v (!= %d)\", evictCounter,\n\t\tcAP)\n\n\tkeys := cache.Keys()\n\tfor i, k := range keys {\n\t\tif v, ok := cache.Get(k); !ok || v != k+1 || v != uint64(i+int(cAP)+1) {\n\t\t\tt.Fatalf(\"Mismatch of key %v (ok=%v v=%v)\\n%v\", k, ok, v, keys)\n\t\t}\n\t}\n\n\tfor i := uint64(0); i < cAP; i++ {\n\t\tif _, ok := cache.Get(i); ok {\n\t\t\tt.Fatalf(\"Missing eviction of %d\", i)\n\t\t}\n\t}\n\n\tfor i := cAP; i < cAP*2; i++ {\n\t\tif _, ok := cache.Get(i); !ok {\n\t\t\tt.Fatalf(\"Unexpected eviction of %d\", i)\n\t\t}\n\t}\n\n\tFatalIf(t, cache.Remove(cAP*2), \"Unexpected success removing %d\", cAP*2)\n\tFatalIf(t, !cache.Remove(cAP*2-1), \"Failed to remove most recent entry %d\", cAP*2-1)\n\tFatalIf(t, !cache.Remove(cAP), \"Failed to remove oldest entry %d\", cAP)\n\tFatalIf(t, *evictCounter != cAP+2, \"Unexpected # of evictions: %d (!= %d)\", evictCounter, cAP+2)\n\tFatalIf(t, cache.Len() != int(cAP-2), \"Unexpected # of entries: %d (!= %d)\", cache.Len(), cAP-2)\n}\n\n"
+      }
+    },
+    "excluded_registration_sites": [
+      {
+        "file": "vendor/go_freelru/lru_test.go",
+        "line": 62,
+        "source": "cache.SetOnEvict(onEvict)",
+        "authorization": "callback-exclusions.json",
+        "status": "excluded"
+      }
+    ],
+    "mechanical_adaptations": [
+      "hash callback omitted",
+      "sleep replaced by injected millisecond clock",
+      "deterministic seeded random source for TestLRUMatch; uint64 underflow retained",
+      "callbacks excluded by callback-exclusions.json; all other clauses retained",
+      "TestLRUMatch backup uses an independent input-driven oldest-first list and finite map, never callback/implementation observations"
+    ]
+  },
+  {
+    "name": "TestLRU_Add",
+    "port": "tests/new/upstream.ts::cases.TestLRU_Add",
+    "functions": {
+      "TestLRU_Add": {
+        "line": 137,
+        "assertions": [
+          {
+            "id": "TestLRU_Add:1",
+            "line": 141,
+            "source": "FatalIf(t, cache.Add(1, 2) == true || evictCounter != 0, \"Unexpected eviction\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 26,
+                "expression": "ok(!c.Add(1n,2n))"
+              }
+            ],
+            "excluded_clauses": [
+              {
+                "source": "evictCounter != 0",
+                "authorization": "callback-exclusions.json",
+                "status": "excluded"
+              }
+            ]
+          },
+          {
+            "id": "TestLRU_Add:2",
+            "line": 142,
+            "source": "FatalIf(t, cache.Add(3, 4) == false || evictCounter != 1, \"Missing eviction\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 26,
+                "expression": "ok(c.Add(3n,4n))"
+              }
+            ],
+            "excluded_clauses": [
+              {
+                "source": "evictCounter != 1",
+                "authorization": "callback-exclusions.json",
+                "status": "excluded"
+              }
+            ]
+          }
+        ],
+        "source": "func TestLRU_Add(t *testing.T) {\n\tevictCounter := uint64(0)\n\tcache := makeCache(t, 1, &evictCounter)\n\n\tFatalIf(t, cache.Add(1, 2) == true || evictCounter != 0, \"Unexpected eviction\")\n\tFatalIf(t, cache.Add(3, 4) == false || evictCounter != 1, \"Missing eviction\")\n}\n\n"
+      },
+      "makeCache": {
+        "line": 67,
+        "assertions": [
+          {
+            "id": "makeCache:1",
+            "line": 69,
+            "source": "FatalIf(t, err != nil, \"Failed to create LRU: %v\", err)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 10,
+                "expression": "assert.doesNotThrow"
+              }
+            ]
+          }
+        ],
+        "source": "func makeCache(t *testing.T, capacity uint32, evictCounter *uint64) Cache[uint64, uint64] {\n\tcache, err := New[uint64, uint64](capacity, hashUint64)\n\tFatalIf(t, err != nil, \"Failed to create LRU: %v\", err)\n\n\treturn setupCache(t, cache, evictCounter)\n}\n\n"
+      },
+      "setupCache": {
+        "line": 53,
+        "assertions": [
+          {
+            "id": "setupCache:1",
+            "line": 56,
+            "source": "FatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          }
+        ],
+        "source": "func setupCache(t *testing.T, cache Cache[uint64, uint64],\n\tevictCounter *uint64) Cache[uint64, uint64] {\n\tonEvict := func(k uint64, v uint64) {\n\t\tFatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)\n\t\tif evictCounter != nil {\n\t\t\t*evictCounter++\n\t\t}\n\t}\n\n\tcache.SetOnEvict(onEvict)\n\n\treturn cache\n}\n\n"
+      },
+      "FatalIf": {
+        "line": 338,
+        "assertions": [],
+        "source": "func FatalIf(t *testing.T, fail bool, fmt string, args ...any) {\n\tif fail {\n\t\tt.Logf(fmt, args...)\n\t\tpanic(fail)\n\t}\n}\n\n// This following tests are for memory comparison.\n// See also TestSimpleLRUAdd in the bench/ directory.\n\nconst count = 1000\n\n// GOGC=off go test -memprofile=mem.out -test.memprofilerate=1 -count 1 -run TestMapAdd\n// go tool pprof mem.out\n// (then check the top10).\n"
+      }
+    },
+    "excluded_registration_sites": [
+      {
+        "file": "vendor/go_freelru/lru_test.go",
+        "line": 62,
+        "source": "cache.SetOnEvict(onEvict)",
+        "authorization": "callback-exclusions.json",
+        "status": "excluded"
+      }
+    ],
+    "mechanical_adaptations": [
+      "hash callback omitted",
+      "sleep replaced by injected millisecond clock",
+      "deterministic seeded random source for TestLRUMatch; uint64 underflow retained",
+      "callbacks excluded by callback-exclusions.json; all other clauses retained",
+      "TestLRUMatch backup uses an independent input-driven oldest-first list and finite map, never callback/implementation observations"
+    ]
+  },
+  {
+    "name": "TestLRU_Purge",
+    "port": "tests/new/upstream.ts::cases.TestLRU_Purge",
+    "functions": {
+      "TestLRU_Purge": {
+        "line": 153,
+        "assertions": [
+          {
+            "id": "TestLRU_Purge:1",
+            "line": 157,
+            "source": "FatalIf(t, cache.Add(1, 2) == true || evictCounter != 0, \"Unexpected eviction\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 30,
+                "expression": "ok(!c.Add(1n,2n))"
+              }
+            ],
+            "excluded_clauses": [
+              {
+                "source": "evictCounter != 0",
+                "authorization": "callback-exclusions.json",
+                "status": "excluded"
+              }
+            ]
+          },
+          {
+            "id": "TestLRU_Purge:2",
+            "line": 158,
+            "source": "FatalIf(t, cache.Add(3, 4) == true || evictCounter != 0, \"Unexpected eviction\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 30,
+                "expression": "ok(!c.Add(3n,4n))"
+              }
+            ],
+            "excluded_clauses": [
+              {
+                "source": "evictCounter != 0",
+                "authorization": "callback-exclusions.json",
+                "status": "excluded"
+              }
+            ]
+          },
+          {
+            "id": "TestLRU_Purge:3",
+            "line": 159,
+            "source": "FatalIf(t, cache.Add(4, 5) == true || evictCounter != 0, \"Unexpected eviction\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 30,
+                "expression": "ok(!c.Add(4n,5n))"
+              }
+            ],
+            "excluded_clauses": [
+              {
+                "source": "evictCounter != 0",
+                "authorization": "callback-exclusions.json",
+                "status": "excluded"
+              }
+            ]
+          },
+          {
+            "id": "TestLRU_Purge:4",
+            "line": 160,
+            "source": "FatalIf(t, cache.Len() != 3, \"Unexpected length\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 31,
+                "expression": "eq(c.Len(),3n)"
+              }
+            ]
+          },
+          {
+            "id": "TestLRU_Purge:5",
+            "line": 163,
+            "source": "FatalIf(t, cache.Len() != 0, \"Unexpected length\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 31,
+                "expression": "eq(c.Len(),0n)"
+              }
+            ]
+          }
+        ],
+        "source": "func TestLRU_Purge(t *testing.T) {\n\tevictCounter := uint64(0)\n\tcache := makeCache(t, 3, &evictCounter)\n\n\tFatalIf(t, cache.Add(1, 2) == true || evictCounter != 0, \"Unexpected eviction\")\n\tFatalIf(t, cache.Add(3, 4) == true || evictCounter != 0, \"Unexpected eviction\")\n\tFatalIf(t, cache.Add(4, 5) == true || evictCounter != 0, \"Unexpected eviction\")\n\tFatalIf(t, cache.Len() != 3, \"Unexpected length\")\n\n\tcache.Purge()\n\tFatalIf(t, cache.Len() != 0, \"Unexpected length\")\n}\n\n"
+      },
+      "makeCache": {
+        "line": 67,
+        "assertions": [
+          {
+            "id": "makeCache:1",
+            "line": 69,
+            "source": "FatalIf(t, err != nil, \"Failed to create LRU: %v\", err)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 10,
+                "expression": "assert.doesNotThrow"
+              }
+            ]
+          }
+        ],
+        "source": "func makeCache(t *testing.T, capacity uint32, evictCounter *uint64) Cache[uint64, uint64] {\n\tcache, err := New[uint64, uint64](capacity, hashUint64)\n\tFatalIf(t, err != nil, \"Failed to create LRU: %v\", err)\n\n\treturn setupCache(t, cache, evictCounter)\n}\n\n"
+      },
+      "setupCache": {
+        "line": 53,
+        "assertions": [
+          {
+            "id": "setupCache:1",
+            "line": 56,
+            "source": "FatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          }
+        ],
+        "source": "func setupCache(t *testing.T, cache Cache[uint64, uint64],\n\tevictCounter *uint64) Cache[uint64, uint64] {\n\tonEvict := func(k uint64, v uint64) {\n\t\tFatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)\n\t\tif evictCounter != nil {\n\t\t\t*evictCounter++\n\t\t}\n\t}\n\n\tcache.SetOnEvict(onEvict)\n\n\treturn cache\n}\n\n"
+      },
+      "FatalIf": {
+        "line": 338,
+        "assertions": [],
+        "source": "func FatalIf(t *testing.T, fail bool, fmt string, args ...any) {\n\tif fail {\n\t\tt.Logf(fmt, args...)\n\t\tpanic(fail)\n\t}\n}\n\n// This following tests are for memory comparison.\n// See also TestSimpleLRUAdd in the bench/ directory.\n\nconst count = 1000\n\n// GOGC=off go test -memprofile=mem.out -test.memprofilerate=1 -count 1 -run TestMapAdd\n// go tool pprof mem.out\n// (then check the top10).\n"
+      }
+    },
+    "excluded_registration_sites": [
+      {
+        "file": "vendor/go_freelru/lru_test.go",
+        "line": 62,
+        "source": "cache.SetOnEvict(onEvict)",
+        "authorization": "callback-exclusions.json",
+        "status": "excluded"
+      }
+    ],
+    "mechanical_adaptations": [
+      "hash callback omitted",
+      "sleep replaced by injected millisecond clock",
+      "deterministic seeded random source for TestLRUMatch; uint64 underflow retained",
+      "callbacks excluded by callback-exclusions.json; all other clauses retained",
+      "TestLRUMatch backup uses an independent input-driven oldest-first list and finite map, never callback/implementation observations"
+    ]
+  },
+  {
+    "name": "TestLRU_Remove",
+    "port": "tests/new/upstream.ts::cases.TestLRU_Remove",
+    "functions": {
+      "TestLRU_Remove": {
+        "line": 166,
+        "assertions": [
+          {
+            "id": "TestLRU_Remove:1",
+            "line": 172,
+            "source": "FatalIf(t, !cache.Remove(1), \"Failed to remove most recent entry %d\", 1)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 35,
+                "expression": "ok(c.Remove(1n))"
+              }
+            ]
+          },
+          {
+            "id": "TestLRU_Remove:2",
+            "line": 173,
+            "source": "FatalIf(t, !cache.Remove(3), \"Failed to remove most recent entry %d\", 3)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 35,
+                "expression": "ok(c.Remove(3n))"
+              }
+            ]
+          },
+          {
+            "id": "TestLRU_Remove:3",
+            "line": 174,
+            "source": "FatalIf(t, evictCounter != 2, \"Unexpected # of evictions: %d (!= %d)\", evictCounter, 2)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          },
+          {
+            "id": "TestLRU_Remove:4",
+            "line": 175,
+            "source": "FatalIf(t, cache.Len() != 0, \"Unexpected # of entries: %d (!= %d)\", cache.Len(), 0)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 35,
+                "expression": "eq(c.Len(),0n)"
+              }
+            ]
+          }
+        ],
+        "source": "func TestLRU_Remove(t *testing.T) {\n\tevictCounter := uint64(0)\n\tcache := makeCache(t, 2, &evictCounter)\n\tcache.Add(1, 2)\n\tcache.Add(3, 4)\n\n\tFatalIf(t, !cache.Remove(1), \"Failed to remove most recent entry %d\", 1)\n\tFatalIf(t, !cache.Remove(3), \"Failed to remove most recent entry %d\", 3)\n\tFatalIf(t, evictCounter != 2, \"Unexpected # of evictions: %d (!= %d)\", evictCounter, 2)\n\tFatalIf(t, cache.Len() != 0, \"Unexpected # of entries: %d (!= %d)\", cache.Len(), 0)\n}\n\n"
+      },
+      "makeCache": {
+        "line": 67,
+        "assertions": [
+          {
+            "id": "makeCache:1",
+            "line": 69,
+            "source": "FatalIf(t, err != nil, \"Failed to create LRU: %v\", err)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 10,
+                "expression": "assert.doesNotThrow"
+              }
+            ]
+          }
+        ],
+        "source": "func makeCache(t *testing.T, capacity uint32, evictCounter *uint64) Cache[uint64, uint64] {\n\tcache, err := New[uint64, uint64](capacity, hashUint64)\n\tFatalIf(t, err != nil, \"Failed to create LRU: %v\", err)\n\n\treturn setupCache(t, cache, evictCounter)\n}\n\n"
+      },
+      "setupCache": {
+        "line": 53,
+        "assertions": [
+          {
+            "id": "setupCache:1",
+            "line": 56,
+            "source": "FatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          }
+        ],
+        "source": "func setupCache(t *testing.T, cache Cache[uint64, uint64],\n\tevictCounter *uint64) Cache[uint64, uint64] {\n\tonEvict := func(k uint64, v uint64) {\n\t\tFatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)\n\t\tif evictCounter != nil {\n\t\t\t*evictCounter++\n\t\t}\n\t}\n\n\tcache.SetOnEvict(onEvict)\n\n\treturn cache\n}\n\n"
+      },
+      "FatalIf": {
+        "line": 338,
+        "assertions": [],
+        "source": "func FatalIf(t *testing.T, fail bool, fmt string, args ...any) {\n\tif fail {\n\t\tt.Logf(fmt, args...)\n\t\tpanic(fail)\n\t}\n}\n\n// This following tests are for memory comparison.\n// See also TestSimpleLRUAdd in the bench/ directory.\n\nconst count = 1000\n\n// GOGC=off go test -memprofile=mem.out -test.memprofilerate=1 -count 1 -run TestMapAdd\n// go tool pprof mem.out\n// (then check the top10).\n"
+      }
+    },
+    "excluded_registration_sites": [
+      {
+        "file": "vendor/go_freelru/lru_test.go",
+        "line": 62,
+        "source": "cache.SetOnEvict(onEvict)",
+        "authorization": "callback-exclusions.json",
+        "status": "excluded"
+      }
+    ],
+    "mechanical_adaptations": [
+      "hash callback omitted",
+      "sleep replaced by injected millisecond clock",
+      "deterministic seeded random source for TestLRUMatch; uint64 underflow retained",
+      "callbacks excluded by callback-exclusions.json; all other clauses retained",
+      "TestLRUMatch backup uses an independent input-driven oldest-first list and finite map, never callback/implementation observations"
+    ]
+  },
+  {
+    "name": "TestLRU_RemoveOldest",
+    "port": "tests/new/upstream.ts::cases.TestLRU_RemoveOldest",
+    "functions": {
+      "TestLRU_RemoveOldest": {
+        "line": 190,
+        "assertions": [],
+        "source": "func TestLRU_RemoveOldest(t *testing.T) {\n\tevictCounter := uint64(0)\n\ttestCacheRemoveOldest(t, makeCache(t, 2, &evictCounter), &evictCounter)\n}\n\n"
+      },
+      "makeCache": {
+        "line": 67,
+        "assertions": [
+          {
+            "id": "makeCache:1",
+            "line": 69,
+            "source": "FatalIf(t, err != nil, \"Failed to create LRU: %v\", err)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 10,
+                "expression": "assert.doesNotThrow"
+              }
+            ]
+          }
+        ],
+        "source": "func makeCache(t *testing.T, capacity uint32, evictCounter *uint64) Cache[uint64, uint64] {\n\tcache, err := New[uint64, uint64](capacity, hashUint64)\n\tFatalIf(t, err != nil, \"Failed to create LRU: %v\", err)\n\n\treturn setupCache(t, cache, evictCounter)\n}\n\n"
+      },
+      "setupCache": {
+        "line": 53,
+        "assertions": [
+          {
+            "id": "setupCache:1",
+            "line": 56,
+            "source": "FatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          }
+        ],
+        "source": "func setupCache(t *testing.T, cache Cache[uint64, uint64],\n\tevictCounter *uint64) Cache[uint64, uint64] {\n\tonEvict := func(k uint64, v uint64) {\n\t\tFatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)\n\t\tif evictCounter != nil {\n\t\t\t*evictCounter++\n\t\t}\n\t}\n\n\tcache.SetOnEvict(onEvict)\n\n\treturn cache\n}\n\n"
+      },
+      "FatalIf": {
+        "line": 338,
+        "assertions": [],
+        "source": "func FatalIf(t *testing.T, fail bool, fmt string, args ...any) {\n\tif fail {\n\t\tt.Logf(fmt, args...)\n\t\tpanic(fail)\n\t}\n}\n\n// This following tests are for memory comparison.\n// See also TestSimpleLRUAdd in the bench/ directory.\n\nconst count = 1000\n\n// GOGC=off go test -memprofile=mem.out -test.memprofilerate=1 -count 1 -run TestMapAdd\n// go tool pprof mem.out\n// (then check the top10).\n"
+      },
+      "testCacheRemoveOldest": {
+        "line": 195,
+        "assertions": [
+          {
+            "id": "testCacheRemoveOldest:1",
+            "line": 200,
+            "source": "FatalIf(t, !ok, \"Failed to remove oldest entry\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 39,
+                "expression": "ok(found)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheRemoveOldest:2",
+            "line": 201,
+            "source": "FatalIf(t, k != 1, \"Unexpected key=%d (!= %d)\", k, 1)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 39,
+                "expression": "eq(k,1n)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheRemoveOldest:3",
+            "line": 202,
+            "source": "FatalIf(t, v != 2, \"Unexpected value: %d (!= %d)\", v, 2)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 39,
+                "expression": "eq(v,2n)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheRemoveOldest:4",
+            "line": 205,
+            "source": "FatalIf(t, !ok, \"Failed to remove oldest entry\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 40,
+                "expression": "ok(found)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheRemoveOldest:5",
+            "line": 206,
+            "source": "FatalIf(t, k != 3, \"Unexpected key=%d (!= %d)\", k, 3)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 40,
+                "expression": "eq(k,3n)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheRemoveOldest:6",
+            "line": 207,
+            "source": "FatalIf(t, v != 4, \"Unexpected value: %d (!= %d)\", v, 4)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 40,
+                "expression": "eq(v,4n)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheRemoveOldest:7",
+            "line": 210,
+            "source": "FatalIf(t, ok, \"Unexpectedly removing oldest entry was ok\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 41,
+                "expression": "ok(!c.RemoveOldest()[2])"
+              }
+            ]
+          },
+          {
+            "id": "testCacheRemoveOldest:8",
+            "line": 212,
+            "source": "FatalIf(t, *evictCounter != 2, \"Unexpected # of evictions: %d (!= %d)\", evictCounter, 2)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          },
+          {
+            "id": "testCacheRemoveOldest:9",
+            "line": 213,
+            "source": "FatalIf(t, cache.Len() != 0, \"Unexpected # of entries: %d (!= %d)\", cache.Len(), 0)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 41,
+                "expression": "eq(c.Len(),0n)"
+              }
+            ]
+          }
+        ],
+        "source": "func testCacheRemoveOldest(t *testing.T, cache Cache[uint64, uint64], evictCounter *uint64) {\n\tcache.Add(1, 2)\n\tcache.Add(3, 4)\n\n\tk, v, ok := cache.RemoveOldest()\n\tFatalIf(t, !ok, \"Failed to remove oldest entry\")\n\tFatalIf(t, k != 1, \"Unexpected key=%d (!= %d)\", k, 1)\n\tFatalIf(t, v != 2, \"Unexpected value: %d (!= %d)\", v, 2)\n\n\tk, v, ok = cache.RemoveOldest()\n\tFatalIf(t, !ok, \"Failed to remove oldest entry\")\n\tFatalIf(t, k != 3, \"Unexpected key=%d (!= %d)\", k, 3)\n\tFatalIf(t, v != 4, \"Unexpected value: %d (!= %d)\", v, 4)\n\n\t_, _, ok = cache.RemoveOldest()\n\tFatalIf(t, ok, \"Unexpectedly removing oldest entry was ok\")\n\n\tFatalIf(t, *evictCounter != 2, \"Unexpected # of evictions: %d (!= %d)\", evictCounter, 2)\n\tFatalIf(t, cache.Len() != 0, \"Unexpected # of entries: %d (!= %d)\", cache.Len(), 0)\n}\n\n"
+      }
+    },
+    "excluded_registration_sites": [
+      {
+        "file": "vendor/go_freelru/lru_test.go",
+        "line": 62,
+        "source": "cache.SetOnEvict(onEvict)",
+        "authorization": "callback-exclusions.json",
+        "status": "excluded"
+      }
+    ],
+    "mechanical_adaptations": [
+      "hash callback omitted",
+      "sleep replaced by injected millisecond clock",
+      "deterministic seeded random source for TestLRUMatch; uint64 underflow retained",
+      "callbacks excluded by callback-exclusions.json; all other clauses retained",
+      "TestLRUMatch backup uses an independent input-driven oldest-first list and finite map, never callback/implementation observations"
+    ]
+  },
+  {
+    "name": "TestLRU_AddWithExpire",
+    "port": "tests/new/upstream.ts::cases.TestLRU_AddWithExpire",
+    "functions": {
+      "TestLRU_AddWithExpire": {
+        "line": 254,
+        "assertions": [],
+        "source": "func TestLRU_AddWithExpire(t *testing.T) {\n\ttestCacheAddWithExpire(t, makeCache(t, 2, nil))\n}\n\n"
+      },
+      "makeCache": {
+        "line": 67,
+        "assertions": [
+          {
+            "id": "makeCache:1",
+            "line": 69,
+            "source": "FatalIf(t, err != nil, \"Failed to create LRU: %v\", err)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 10,
+                "expression": "assert.doesNotThrow"
+              }
+            ]
+          }
+        ],
+        "source": "func makeCache(t *testing.T, capacity uint32, evictCounter *uint64) Cache[uint64, uint64] {\n\tcache, err := New[uint64, uint64](capacity, hashUint64)\n\tFatalIf(t, err != nil, \"Failed to create LRU: %v\", err)\n\n\treturn setupCache(t, cache, evictCounter)\n}\n\n"
+      },
+      "setupCache": {
+        "line": 53,
+        "assertions": [
+          {
+            "id": "setupCache:1",
+            "line": 56,
+            "source": "FatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          }
+        ],
+        "source": "func setupCache(t *testing.T, cache Cache[uint64, uint64],\n\tevictCounter *uint64) Cache[uint64, uint64] {\n\tonEvict := func(k uint64, v uint64) {\n\t\tFatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)\n\t\tif evictCounter != nil {\n\t\t\t*evictCounter++\n\t\t}\n\t}\n\n\tcache.SetOnEvict(onEvict)\n\n\treturn cache\n}\n\n"
+      },
+      "FatalIf": {
+        "line": 338,
+        "assertions": [],
+        "source": "func FatalIf(t *testing.T, fail bool, fmt string, args ...any) {\n\tif fail {\n\t\tt.Logf(fmt, args...)\n\t\tpanic(fail)\n\t}\n}\n\n// This following tests are for memory comparison.\n// See also TestSimpleLRUAdd in the bench/ directory.\n\nconst count = 1000\n\n// GOGC=off go test -memprofile=mem.out -test.memprofilerate=1 -count 1 -run TestMapAdd\n// go tool pprof mem.out\n// (then check the top10).\n"
+      },
+      "testCacheAddWithExpire": {
+        "line": 216,
+        "assertions": [
+          {
+            "id": "testCacheAddWithExpire:1",
+            "line": 222,
+            "source": "FatalIf(t, !ok, \"Failed to get\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 45,
+                "expression": "ok(c.Get(1n)[1])"
+              }
+            ]
+          },
+          {
+            "id": "testCacheAddWithExpire:2",
+            "line": 225,
+            "source": "FatalIf(t, ok, \"Expected expiration did not happen\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 45,
+                "expression": "ok(!c.Get(1n)[1])"
+              }
+            ]
+          },
+          {
+            "id": "testCacheAddWithExpire:3",
+            "line": 227,
+            "source": "FatalIf(t, !ok, \"Failed to get\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 45,
+                "expression": "ok(c.Get(3n)[1])"
+              }
+            ]
+          },
+          {
+            "id": "testCacheAddWithExpire:4",
+            "line": 230,
+            "source": "FatalIf(t, ok, \"Expected expiration did not happen\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 45,
+                "expression": "ok(!c.Get(3n)[1])"
+              }
+            ]
+          },
+          {
+            "id": "testCacheAddWithExpire:5",
+            "line": 231,
+            "source": "FatalIf(t, cache.Len() != 0, \"Cache not empty\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 45,
+                "expression": "eq(c.Len(),0n)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheAddWithExpire:6",
+            "line": 235,
+            "source": "FatalIf(t, cache.Len() != 0, \"Cache not empty\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 46,
+                "expression": "eq(c.Len(),0n)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheAddWithExpire:7",
+            "line": 239,
+            "source": "FatalIf(t, cache.Len() != 1, \"Expected PurgeExpired to be a no-op\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 47,
+                "expression": "eq(c.Len(),1n)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheAddWithExpire:8",
+            "line": 242,
+            "source": "FatalIf(t, cache.Len() != 0, \"Cache not empty\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 47,
+                "expression": "eq(c.Len(),0n)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheAddWithExpire:9",
+            "line": 248,
+            "source": "FatalIf(t, !ok, \"Failed to get\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 48,
+                "expression": "ok(c.Get(1n)[1])"
+              }
+            ]
+          },
+          {
+            "id": "testCacheAddWithExpire:10",
+            "line": 251,
+            "source": "FatalIf(t, ok, \"Expected expiration did not happen\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 48,
+                "expression": "ok(!c.Get(1n)[1])"
+              }
+            ]
+          }
+        ],
+        "source": "func testCacheAddWithExpire(t *testing.T, cache Cache[uint64, uint64]) {\n\t// check for LRU default lifetime + element specific override\n\tcache.SetLifetime(100 * time.Millisecond)\n\tcache.Add(1, 2)\n\tcache.AddWithLifetime(3, 4, 200*time.Millisecond)\n\t_, ok := cache.Get(1)\n\tFatalIf(t, !ok, \"Failed to get\")\n\ttime.Sleep(101 * time.Millisecond)\n\t_, ok = cache.Get(1)\n\tFatalIf(t, ok, \"Expected expiration did not happen\")\n\t_, ok = cache.Get(3)\n\tFatalIf(t, !ok, \"Failed to get\")\n\ttime.Sleep(100 * time.Millisecond)\n\t_, ok = cache.Get(3)\n\tFatalIf(t, ok, \"Expected expiration did not happen\")\n\tFatalIf(t, cache.Len() != 0, \"Cache not empty\")\n\n\tcache.Add(1, 2)\n\tcache.Purge()\n\tFatalIf(t, cache.Len() != 0, \"Cache not empty\")\n\n\tcache.AddWithLifetime(1, 2, 100*time.Millisecond)\n\tcache.PurgeExpired() // should be a no-op\n\tFatalIf(t, cache.Len() != 1, \"Expected PurgeExpired to be a no-op\")\n\ttime.Sleep(101 * time.Millisecond)\n\tcache.PurgeExpired()\n\tFatalIf(t, cache.Len() != 0, \"Cache not empty\")\n\n\t// check for element specific lifetime\n\tcache.SetLifetime(0)\n\tcache.AddWithLifetime(1, 2, 100*time.Millisecond)\n\t_, ok = cache.Get(1)\n\tFatalIf(t, !ok, \"Failed to get\")\n\ttime.Sleep(101 * time.Millisecond)\n\t_, ok = cache.Get(1)\n\tFatalIf(t, ok, \"Expected expiration did not happen\")\n}\n\n"
+      }
+    },
+    "excluded_registration_sites": [
+      {
+        "file": "vendor/go_freelru/lru_test.go",
+        "line": 62,
+        "source": "cache.SetOnEvict(onEvict)",
+        "authorization": "callback-exclusions.json",
+        "status": "excluded"
+      }
+    ],
+    "mechanical_adaptations": [
+      "hash callback omitted",
+      "sleep replaced by injected millisecond clock",
+      "deterministic seeded random source for TestLRUMatch; uint64 underflow retained",
+      "callbacks excluded by callback-exclusions.json; all other clauses retained",
+      "TestLRUMatch backup uses an independent input-driven oldest-first list and finite map, never callback/implementation observations"
+    ]
+  },
+  {
+    "name": "TestLRU_AddWithRefresh",
+    "port": "tests/new/upstream.ts::cases.TestLRU_AddWithRefresh",
+    "functions": {
+      "TestLRU_AddWithRefresh": {
+        "line": 275,
+        "assertions": [],
+        "source": "func TestLRU_AddWithRefresh(t *testing.T) {\n\ttestCacheAddWithRefresh(t, makeCache(t, 2, nil))\n}\n\n"
+      },
+      "makeCache": {
+        "line": 67,
+        "assertions": [
+          {
+            "id": "makeCache:1",
+            "line": 69,
+            "source": "FatalIf(t, err != nil, \"Failed to create LRU: %v\", err)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 10,
+                "expression": "assert.doesNotThrow"
+              }
+            ]
+          }
+        ],
+        "source": "func makeCache(t *testing.T, capacity uint32, evictCounter *uint64) Cache[uint64, uint64] {\n\tcache, err := New[uint64, uint64](capacity, hashUint64)\n\tFatalIf(t, err != nil, \"Failed to create LRU: %v\", err)\n\n\treturn setupCache(t, cache, evictCounter)\n}\n\n"
+      },
+      "setupCache": {
+        "line": 53,
+        "assertions": [
+          {
+            "id": "setupCache:1",
+            "line": 56,
+            "source": "FatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          }
+        ],
+        "source": "func setupCache(t *testing.T, cache Cache[uint64, uint64],\n\tevictCounter *uint64) Cache[uint64, uint64] {\n\tonEvict := func(k uint64, v uint64) {\n\t\tFatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)\n\t\tif evictCounter != nil {\n\t\t\t*evictCounter++\n\t\t}\n\t}\n\n\tcache.SetOnEvict(onEvict)\n\n\treturn cache\n}\n\n"
+      },
+      "FatalIf": {
+        "line": 338,
+        "assertions": [],
+        "source": "func FatalIf(t *testing.T, fail bool, fmt string, args ...any) {\n\tif fail {\n\t\tt.Logf(fmt, args...)\n\t\tpanic(fail)\n\t}\n}\n\n// This following tests are for memory comparison.\n// See also TestSimpleLRUAdd in the bench/ directory.\n\nconst count = 1000\n\n// GOGC=off go test -memprofile=mem.out -test.memprofilerate=1 -count 1 -run TestMapAdd\n// go tool pprof mem.out\n// (then check the top10).\n"
+      },
+      "testCacheAddWithRefresh": {
+        "line": 262,
+        "assertions": [
+          {
+            "id": "testCacheAddWithRefresh:1",
+            "line": 266,
+            "source": "FatalIf(t, !ok, \"Failed to get\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 52,
+                "expression": "ok(c.Get(1n)[1])"
+              }
+            ]
+          },
+          {
+            "id": "testCacheAddWithRefresh:2",
+            "line": 270,
+            "source": "FatalIf(t, !ok, \"Unexpected expiration\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 52,
+                "expression": "ok(c.GetAndRefresh(1n,0n)[1])"
+              }
+            ]
+          },
+          {
+            "id": "testCacheAddWithRefresh:3",
+            "line": 272,
+            "source": "FatalIf(t, !ok, \"Unexpected expiration\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 52,
+                "expression": "ok(c.GetAndRefresh(2n,0n)[1])"
+              }
+            ]
+          }
+        ],
+        "source": "func testCacheAddWithRefresh(t *testing.T, cache Cache[uint64, uint64]) {\n\tcache.AddWithLifetime(1, 2, 100*time.Millisecond)\n\tcache.AddWithLifetime(2, 3, 100*time.Millisecond)\n\t_, ok := cache.Get(1)\n\tFatalIf(t, !ok, \"Failed to get\")\n\n\ttime.Sleep(101 * time.Millisecond)\n\t_, ok = cache.GetAndRefresh(1, 0)\n\tFatalIf(t, !ok, \"Unexpected expiration\")\n\t_, ok = cache.GetAndRefresh(2, 0)\n\tFatalIf(t, !ok, \"Unexpected expiration\")\n}\n\n"
+      }
+    },
+    "excluded_registration_sites": [
+      {
+        "file": "vendor/go_freelru/lru_test.go",
+        "line": 62,
+        "source": "cache.SetOnEvict(onEvict)",
+        "authorization": "callback-exclusions.json",
+        "status": "excluded"
+      }
+    ],
+    "mechanical_adaptations": [
+      "hash callback omitted",
+      "sleep replaced by injected millisecond clock",
+      "deterministic seeded random source for TestLRUMatch; uint64 underflow retained",
+      "callbacks excluded by callback-exclusions.json; all other clauses retained",
+      "TestLRUMatch backup uses an independent input-driven oldest-first list and finite map, never callback/implementation observations"
+    ]
+  },
+  {
+    "name": "TestLRUMatch",
+    "port": "tests/new/upstream.ts::cases.TestLRUMatch",
+    "functions": {
+      "TestLRUMatch": {
+        "line": 283,
+        "assertions": [],
+        "source": "func TestLRUMatch(t *testing.T) {\n\ttestCacheMatch(t, makeCache(t, 2, nil), 128)\n}\n\n"
+      },
+      "makeCache": {
+        "line": 67,
+        "assertions": [
+          {
+            "id": "makeCache:1",
+            "line": 69,
+            "source": "FatalIf(t, err != nil, \"Failed to create LRU: %v\", err)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 10,
+                "expression": "assert.doesNotThrow"
+              }
+            ]
+          }
+        ],
+        "source": "func makeCache(t *testing.T, capacity uint32, evictCounter *uint64) Cache[uint64, uint64] {\n\tcache, err := New[uint64, uint64](capacity, hashUint64)\n\tFatalIf(t, err != nil, \"Failed to create LRU: %v\", err)\n\n\treturn setupCache(t, cache, evictCounter)\n}\n\n"
+      },
+      "setupCache": {
+        "line": 53,
+        "assertions": [
+          {
+            "id": "setupCache:1",
+            "line": 56,
+            "source": "FatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          }
+        ],
+        "source": "func setupCache(t *testing.T, cache Cache[uint64, uint64],\n\tevictCounter *uint64) Cache[uint64, uint64] {\n\tonEvict := func(k uint64, v uint64) {\n\t\tFatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)\n\t\tif evictCounter != nil {\n\t\t\t*evictCounter++\n\t\t}\n\t}\n\n\tcache.SetOnEvict(onEvict)\n\n\treturn cache\n}\n\n"
+      },
+      "FatalIf": {
+        "line": 338,
+        "assertions": [],
+        "source": "func FatalIf(t *testing.T, fail bool, fmt string, args ...any) {\n\tif fail {\n\t\tt.Logf(fmt, args...)\n\t\tpanic(fail)\n\t}\n}\n\n// This following tests are for memory comparison.\n// See also TestSimpleLRUAdd in the bench/ directory.\n\nconst count = 1000\n\n// GOGC=off go test -memprofile=mem.out -test.memprofilerate=1 -count 1 -run TestMapAdd\n// go tool pprof mem.out\n// (then check the top10).\n"
+      },
+      "testCacheMatch": {
+        "line": 293,
+        "assertions": [
+          {
+            "id": "testCacheMatch:1",
+            "line": 297,
+            "source": "FatalIf(t, k != v, \"Evict value not matching (%v != %v)\", k, v)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          },
+          {
+            "id": "testCacheMatch:2",
+            "line": 312,
+            "source": "FatalIf(t, cache.Len() != len(backup), \"Len does not match (%d vs %d)\",\n\t\t\tcache.Len(), len(backup))",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 64,
+                "expression": "eq(c.Len(),BigInt(backup.size))"
+              }
+            ]
+          },
+          {
+            "id": "testCacheMatch:3",
+            "line": 316,
+            "source": "FatalIf(t, len(keys) != len(backup), \"Number of keys does not match (%d vs %d)\",\n\t\t\tlen(keys), len(backup))",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 64,
+                "expression": "eq(keys.length,backup.size)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheMatch:4",
+            "line": 321,
+            "source": "FatalIf(t, !ok, \"Failed to find key %d in map\", key)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 65,
+                "expression": "ok(backup.has(k))"
+              }
+            ]
+          },
+          {
+            "id": "testCacheMatch:5",
+            "line": 324,
+            "source": "FatalIf(t, !ok, \"Failed to find key %d in Cache\", key)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 65,
+                "expression": "ok(found)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheMatch:6",
+            "line": 326,
+            "source": "FatalIf(t, backupVal != val, \"Unexpected mismatch of values: %#v %#v\",\n\t\t\t\tbackupVal, val)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 65,
+                "expression": "eq(v,backup.get(k))"
+              }
+            ]
+          },
+          {
+            "id": "testCacheMatch:7",
+            "line": 332,
+            "source": "FatalIf(t, !ok, \"Failed to find key %d in Cache (i=%d)\", k, i)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 66,
+                "expression": "ok(found)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheMatch:8",
+            "line": 333,
+            "source": "FatalIf(t, v != val, \"Unexpected mismatch of values: %#v %#v\", v, val)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 66,
+                "expression": "eq(actual,v)"
+              }
+            ]
+          }
+        ],
+        "source": "func testCacheMatch(t *testing.T, cache Cache[uint64, uint64], cAP int) {\n\tbackup := make(map[uint64]uint64, cAP)\n\n\tonEvict := func(k uint64, v uint64) {\n\t\tFatalIf(t, k != v, \"Evict value not matching (%v != %v)\", k, v)\n\t\tdelete(backup, k)\n\t}\n\n\tcache.SetOnEvict(onEvict)\n\n\tfor i := uint64(0); i < 100000; i++ {\n\t\tcache.Add(i, i)\n\t\tbackup[i] = i\n\n\t\t// ~33% chance to remove a random element\n\t\t//nolint:gosec // weak random is okay for testing\n\t\tr := i - uint64(rand.Int()%(cAP*3))\n\t\tcache.Remove(r)\n\n\t\tFatalIf(t, cache.Len() != len(backup), \"Len does not match (%d vs %d)\",\n\t\t\tcache.Len(), len(backup))\n\n\t\tkeys := cache.Keys()\n\t\tFatalIf(t, len(keys) != len(backup), \"Number of keys does not match (%d vs %d)\",\n\t\t\tlen(keys), len(backup))\n\n\t\tfor _, key := range keys {\n\t\t\tbackupVal, ok := backup[key]\n\t\t\tFatalIf(t, !ok, \"Failed to find key %d in map\", key)\n\n\t\t\tval, ok := cache.Peek(key)\n\t\t\tFatalIf(t, !ok, \"Failed to find key %d in Cache\", key)\n\n\t\t\tFatalIf(t, backupVal != val, \"Unexpected mismatch of values: %#v %#v\",\n\t\t\t\tbackupVal, val)\n\t\t}\n\n\t\tfor k, v := range backup {\n\t\t\tval, ok := cache.Peek(k)\n\t\t\tFatalIf(t, !ok, \"Failed to find key %d in Cache (i=%d)\", k, i)\n\t\t\tFatalIf(t, v != val, \"Unexpected mismatch of values: %#v %#v\", v, val)\n\t\t}\n\t}\n}\n\n"
+      }
+    },
+    "excluded_registration_sites": [
+      {
+        "file": "vendor/go_freelru/lru_test.go",
+        "line": 62,
+        "source": "cache.SetOnEvict(onEvict)",
+        "authorization": "callback-exclusions.json",
+        "status": "excluded"
+      },
+      {
+        "file": "vendor/go_freelru/lru_test.go",
+        "line": 301,
+        "source": "cache.SetOnEvict(onEvict)",
+        "authorization": "callback-exclusions.json",
+        "status": "excluded"
+      }
+    ],
+    "mechanical_adaptations": [
+      "hash callback omitted",
+      "sleep replaced by injected millisecond clock",
+      "deterministic seeded random source for TestLRUMatch; uint64 underflow retained",
+      "callbacks excluded by callback-exclusions.json; all other clauses retained",
+      "TestLRUMatch backup uses an independent input-driven oldest-first list and finite map, never callback/implementation observations"
+    ]
+  },
+  {
+    "name": "TestLRUAdd",
+    "port": "tests/new/upstream.ts::cases.TestLRUAdd",
+    "functions": {
+      "TestLRUAdd": {
+        "line": 365,
+        "assertions": [],
+        "source": "func TestLRUAdd(t *testing.T) {\n\tcache := makeCache(t, count, nil)\n\n\tvar val uint64\n\tfor i := uint64(0); i < count; i++ {\n\t\tcache.Add(i, val)\n\t}\n}\n\n// GOGC=off go test -memprofile=mem.out -test.memprofilerate=1 -count 1 -run TestSyncedLRUAdd\n// go tool pprof mem.out\n// (then check the top10).\n"
+      },
+      "makeCache": {
+        "line": 67,
+        "assertions": [
+          {
+            "id": "makeCache:1",
+            "line": 69,
+            "source": "FatalIf(t, err != nil, \"Failed to create LRU: %v\", err)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 10,
+                "expression": "assert.doesNotThrow"
+              }
+            ]
+          }
+        ],
+        "source": "func makeCache(t *testing.T, capacity uint32, evictCounter *uint64) Cache[uint64, uint64] {\n\tcache, err := New[uint64, uint64](capacity, hashUint64)\n\tFatalIf(t, err != nil, \"Failed to create LRU: %v\", err)\n\n\treturn setupCache(t, cache, evictCounter)\n}\n\n"
+      },
+      "setupCache": {
+        "line": 53,
+        "assertions": [
+          {
+            "id": "setupCache:1",
+            "line": 56,
+            "source": "FatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          }
+        ],
+        "source": "func setupCache(t *testing.T, cache Cache[uint64, uint64],\n\tevictCounter *uint64) Cache[uint64, uint64] {\n\tonEvict := func(k uint64, v uint64) {\n\t\tFatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)\n\t\tif evictCounter != nil {\n\t\t\t*evictCounter++\n\t\t}\n\t}\n\n\tcache.SetOnEvict(onEvict)\n\n\treturn cache\n}\n\n"
+      },
+      "FatalIf": {
+        "line": 338,
+        "assertions": [],
+        "source": "func FatalIf(t *testing.T, fail bool, fmt string, args ...any) {\n\tif fail {\n\t\tt.Logf(fmt, args...)\n\t\tpanic(fail)\n\t}\n}\n\n// This following tests are for memory comparison.\n// See also TestSimpleLRUAdd in the bench/ directory.\n\nconst count = 1000\n\n// GOGC=off go test -memprofile=mem.out -test.memprofilerate=1 -count 1 -run TestMapAdd\n// go tool pprof mem.out\n// (then check the top10).\n"
+      }
+    },
+    "excluded_registration_sites": [
+      {
+        "file": "vendor/go_freelru/lru_test.go",
+        "line": 62,
+        "source": "cache.SetOnEvict(onEvict)",
+        "authorization": "callback-exclusions.json",
+        "status": "excluded"
+      }
+    ],
+    "mechanical_adaptations": [
+      "hash callback omitted",
+      "sleep replaced by injected millisecond clock",
+      "deterministic seeded random source for TestLRUMatch; uint64 underflow retained",
+      "callbacks excluded by callback-exclusions.json; all other clauses retained",
+      "TestLRUMatch backup uses an independent input-driven oldest-first list and finite map, never callback/implementation observations"
+    ]
+  },
+  {
+    "name": "TestLRUMetrics",
+    "port": "tests/new/upstream.ts::cases.TestLRUMetrics",
+    "functions": {
+      "TestLRUMetrics": {
+        "line": 386,
+        "assertions": [],
+        "source": "func TestLRUMetrics(t *testing.T) {\n\tcache := makeCache(t, 1, nil)\n\ttestMetrics(t, cache)\n}\n\n"
+      },
+      "makeCache": {
+        "line": 67,
+        "assertions": [
+          {
+            "id": "makeCache:1",
+            "line": 69,
+            "source": "FatalIf(t, err != nil, \"Failed to create LRU: %v\", err)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 10,
+                "expression": "assert.doesNotThrow"
+              }
+            ]
+          }
+        ],
+        "source": "func makeCache(t *testing.T, capacity uint32, evictCounter *uint64) Cache[uint64, uint64] {\n\tcache, err := New[uint64, uint64](capacity, hashUint64)\n\tFatalIf(t, err != nil, \"Failed to create LRU: %v\", err)\n\n\treturn setupCache(t, cache, evictCounter)\n}\n\n"
+      },
+      "setupCache": {
+        "line": 53,
+        "assertions": [
+          {
+            "id": "setupCache:1",
+            "line": 56,
+            "source": "FatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          }
+        ],
+        "source": "func setupCache(t *testing.T, cache Cache[uint64, uint64],\n\tevictCounter *uint64) Cache[uint64, uint64] {\n\tonEvict := func(k uint64, v uint64) {\n\t\tFatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)\n\t\tif evictCounter != nil {\n\t\t\t*evictCounter++\n\t\t}\n\t}\n\n\tcache.SetOnEvict(onEvict)\n\n\treturn cache\n}\n\n"
+      },
+      "FatalIf": {
+        "line": 338,
+        "assertions": [],
+        "source": "func FatalIf(t *testing.T, fail bool, fmt string, args ...any) {\n\tif fail {\n\t\tt.Logf(fmt, args...)\n\t\tpanic(fail)\n\t}\n}\n\n// This following tests are for memory comparison.\n// See also TestSimpleLRUAdd in the bench/ directory.\n\nconst count = 1000\n\n// GOGC=off go test -memprofile=mem.out -test.memprofilerate=1 -count 1 -run TestMapAdd\n// go tool pprof mem.out\n// (then check the top10).\n"
+      },
+      "testMetrics": {
+        "line": 391,
+        "assertions": [
+          {
+            "id": "testMetrics:1",
+            "line": 399,
+            "source": "FatalIf(t, m.Inserts != 2, \"Unexpected inserts: %d (!= %d)\", m.Inserts, 2)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 73,
+                "expression": "eq(m.Inserts,2n)"
+              }
+            ]
+          },
+          {
+            "id": "testMetrics:2",
+            "line": 400,
+            "source": "FatalIf(t, m.Hits != 1, \"Unexpected hits: %d (!= %d)\", m.Hits, 1)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 73,
+                "expression": "eq(m.Hits,1n)"
+              }
+            ]
+          },
+          {
+            "id": "testMetrics:3",
+            "line": 401,
+            "source": "FatalIf(t, m.Misses != 1, \"Unexpected misses: %d (!= %d)\", m.Misses, 1)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 73,
+                "expression": "eq(m.Misses,1n)"
+              }
+            ]
+          },
+          {
+            "id": "testMetrics:4",
+            "line": 402,
+            "source": "FatalIf(t, m.Evictions != 1, \"Unexpected evictions: %d (!= %d)\", m.Evictions, 1)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 73,
+                "expression": "eq(m.Evictions,1n)"
+              }
+            ]
+          },
+          {
+            "id": "testMetrics:5",
+            "line": 403,
+            "source": "FatalIf(t, m.Removals != 1, \"Unexpected evictions: %d (!= %d)\", m.Removals, 1)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 73,
+                "expression": "eq(m.Removals,1n)"
+              }
+            ]
+          },
+          {
+            "id": "testMetrics:6",
+            "line": 404,
+            "source": "FatalIf(t, m.Collisions != 0, \"Unexpected collisions: %d (!= %d)\", m.Collisions, 0)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 73,
+                "expression": "eq(m.Collisions,0n)"
+              }
+            ]
+          }
+        ],
+        "source": "func testMetrics(t *testing.T, cache Cache[uint64, uint64]) {\n\tcache.Add(1, 2) // insert\n\tcache.Add(3, 4) // insert and eviction\n\tcache.Get(1)    // miss\n\tcache.Get(3)    // hit\n\tcache.Remove(3) // removal\n\n\tm := cache.Metrics()\n\tFatalIf(t, m.Inserts != 2, \"Unexpected inserts: %d (!= %d)\", m.Inserts, 2)\n\tFatalIf(t, m.Hits != 1, \"Unexpected hits: %d (!= %d)\", m.Hits, 1)\n\tFatalIf(t, m.Misses != 1, \"Unexpected misses: %d (!= %d)\", m.Misses, 1)\n\tFatalIf(t, m.Evictions != 1, \"Unexpected evictions: %d (!= %d)\", m.Evictions, 1)\n\tFatalIf(t, m.Removals != 1, \"Unexpected evictions: %d (!= %d)\", m.Removals, 1)\n\tFatalIf(t, m.Collisions != 0, \"Unexpected collisions: %d (!= %d)\", m.Collisions, 0)\n}\n\n"
+      }
+    },
+    "excluded_registration_sites": [
+      {
+        "file": "vendor/go_freelru/lru_test.go",
+        "line": 62,
+        "source": "cache.SetOnEvict(onEvict)",
+        "authorization": "callback-exclusions.json",
+        "status": "excluded"
+      }
+    ],
+    "mechanical_adaptations": [
+      "hash callback omitted",
+      "sleep replaced by injected millisecond clock",
+      "deterministic seeded random source for TestLRUMatch; uint64 underflow retained",
+      "callbacks excluded by callback-exclusions.json; all other clauses retained",
+      "TestLRUMatch backup uses an independent input-driven oldest-first list and finite map, never callback/implementation observations"
+    ]
+  },
+  {
+    "name": "TestLRU_Values",
+    "port": "tests/new/upstream.ts::cases.TestLRU_Values",
+    "functions": {
+      "TestLRU_Values": {
+        "line": 407,
+        "assertions": [],
+        "source": "func TestLRU_Values(t *testing.T) {\n\ttestCacheValues(t, makeCache(t, 1000, nil))\n}\n\n"
+      },
+      "makeCache": {
+        "line": 67,
+        "assertions": [
+          {
+            "id": "makeCache:1",
+            "line": 69,
+            "source": "FatalIf(t, err != nil, \"Failed to create LRU: %v\", err)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 10,
+                "expression": "assert.doesNotThrow"
+              }
+            ]
+          }
+        ],
+        "source": "func makeCache(t *testing.T, capacity uint32, evictCounter *uint64) Cache[uint64, uint64] {\n\tcache, err := New[uint64, uint64](capacity, hashUint64)\n\tFatalIf(t, err != nil, \"Failed to create LRU: %v\", err)\n\n\treturn setupCache(t, cache, evictCounter)\n}\n\n"
+      },
+      "setupCache": {
+        "line": 53,
+        "assertions": [
+          {
+            "id": "setupCache:1",
+            "line": 56,
+            "source": "FatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          }
+        ],
+        "source": "func setupCache(t *testing.T, cache Cache[uint64, uint64],\n\tevictCounter *uint64) Cache[uint64, uint64] {\n\tonEvict := func(k uint64, v uint64) {\n\t\tFatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)\n\t\tif evictCounter != nil {\n\t\t\t*evictCounter++\n\t\t}\n\t}\n\n\tcache.SetOnEvict(onEvict)\n\n\treturn cache\n}\n\n"
+      },
+      "FatalIf": {
+        "line": 338,
+        "assertions": [],
+        "source": "func FatalIf(t *testing.T, fail bool, fmt string, args ...any) {\n\tif fail {\n\t\tt.Logf(fmt, args...)\n\t\tpanic(fail)\n\t}\n}\n\n// This following tests are for memory comparison.\n// See also TestSimpleLRUAdd in the bench/ directory.\n\nconst count = 1000\n\n// GOGC=off go test -memprofile=mem.out -test.memprofilerate=1 -count 1 -run TestMapAdd\n// go tool pprof mem.out\n// (then check the top10).\n"
+      },
+      "testCacheValues": {
+        "line": 411,
+        "assertions": [
+          {
+            "id": "testCacheValues:1",
+            "line": 421,
+            "source": "FatalIf(t, !reflect.DeepEqual(needValues, values), \"Unexpected values: %v (!= %v)\", needValues, values)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 78,
+                "expression": "eq(c.Values().sort((a,b)=>a<b?-1:a>b?1:0),want)"
+              }
+            ]
+          }
+        ],
+        "source": "func testCacheValues(t *testing.T, cache Cache[uint64, uint64]) {\n\tneedValues := make([]uint64, 0, count)\n\tfor i := uint64(0); i < count; i++ {\n\t\tval := i + 1\n\t\tcache.Add(i, val)\n\t\tneedValues = append(needValues, val)\n\t}\n\tvalues := cache.Values()\n\tsort.Slice(needValues, func(i, j int) bool { return needValues[i] < needValues[j] })\n\tsort.Slice(values, func(i, j int) bool { return values[i] < values[j] })\n\tFatalIf(t, !reflect.DeepEqual(needValues, values), \"Unexpected values: %v (!= %v)\", needValues, values)\n}\n\n"
+      }
+    },
+    "excluded_registration_sites": [
+      {
+        "file": "vendor/go_freelru/lru_test.go",
+        "line": 62,
+        "source": "cache.SetOnEvict(onEvict)",
+        "authorization": "callback-exclusions.json",
+        "status": "excluded"
+      }
+    ],
+    "mechanical_adaptations": [
+      "hash callback omitted",
+      "sleep replaced by injected millisecond clock",
+      "deterministic seeded random source for TestLRUMatch; uint64 underflow retained",
+      "callbacks excluded by callback-exclusions.json; all other clauses retained",
+      "TestLRUMatch backup uses an independent input-driven oldest-first list and finite map, never callback/implementation observations"
+    ]
+  },
+  {
+    "name": "TestLRU_GetOldest",
+    "port": "tests/new/upstream.ts::cases.TestLRU_GetOldest",
+    "functions": {
+      "TestLRU_GetOldest": {
+        "line": 424,
+        "assertions": [],
+        "source": "func TestLRU_GetOldest(t *testing.T) {\n\ttestCacheGetOldest(t, makeCache(t, 1000, nil))\n}\n\n"
+      },
+      "makeCache": {
+        "line": 67,
+        "assertions": [
+          {
+            "id": "makeCache:1",
+            "line": 69,
+            "source": "FatalIf(t, err != nil, \"Failed to create LRU: %v\", err)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 10,
+                "expression": "assert.doesNotThrow"
+              }
+            ]
+          }
+        ],
+        "source": "func makeCache(t *testing.T, capacity uint32, evictCounter *uint64) Cache[uint64, uint64] {\n\tcache, err := New[uint64, uint64](capacity, hashUint64)\n\tFatalIf(t, err != nil, \"Failed to create LRU: %v\", err)\n\n\treturn setupCache(t, cache, evictCounter)\n}\n\n"
+      },
+      "setupCache": {
+        "line": 53,
+        "assertions": [
+          {
+            "id": "setupCache:1",
+            "line": 56,
+            "source": "FatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "excluded",
+            "authorization": "callback-exclusions.json",
+            "reason": "callback argument/count assertion",
+            "retained_locations": []
+          }
+        ],
+        "source": "func setupCache(t *testing.T, cache Cache[uint64, uint64],\n\tevictCounter *uint64) Cache[uint64, uint64] {\n\tonEvict := func(k uint64, v uint64) {\n\t\tFatalIf(t, k+1 != v, \"Evict value not matching (%v+1 != %v)\", k, v)\n\t\tif evictCounter != nil {\n\t\t\t*evictCounter++\n\t\t}\n\t}\n\n\tcache.SetOnEvict(onEvict)\n\n\treturn cache\n}\n\n"
+      },
+      "FatalIf": {
+        "line": 338,
+        "assertions": [],
+        "source": "func FatalIf(t *testing.T, fail bool, fmt string, args ...any) {\n\tif fail {\n\t\tt.Logf(fmt, args...)\n\t\tpanic(fail)\n\t}\n}\n\n// This following tests are for memory comparison.\n// See also TestSimpleLRUAdd in the bench/ directory.\n\nconst count = 1000\n\n// GOGC=off go test -memprofile=mem.out -test.memprofilerate=1 -count 1 -run TestMapAdd\n// go tool pprof mem.out\n// (then check the top10).\n"
+      },
+      "testCacheGetOldest": {
+        "line": 428,
+        "assertions": [
+          {
+            "id": "testCacheGetOldest:1",
+            "line": 433,
+            "source": "FatalIf(t, !ok, \"Failed to find Oldest in Cache\")",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 82,
+                "expression": "ok(found)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheGetOldest:2",
+            "line": 434,
+            "source": "FatalIf(t, k != 1, \"Unexpected key: %d\", k)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 82,
+                "expression": "eq(k,1n)"
+              }
+            ]
+          },
+          {
+            "id": "testCacheGetOldest:3",
+            "line": 435,
+            "source": "FatalIf(t, v != 2, \"Unexpected value: %d\", v)",
+            "source_file": "vendor/go_freelru/lru_test.go",
+            "status": "retained",
+            "retained_locations": [
+              {
+                "file": "tests/new/upstream.ts",
+                "line": 82,
+                "expression": "eq(v,2n)"
+              }
+            ]
+          }
+        ],
+        "source": "func testCacheGetOldest(t *testing.T, cache Cache[uint64, uint64]) {\n\tcache.Add(1, 2)\n\tcache.Add(3, 4)\n\tcache.Add(5, 6)\n\tk, v, ok := cache.GetOldest()\n\tFatalIf(t, !ok, \"Failed to find Oldest in Cache\")\n\tFatalIf(t, k != 1, \"Unexpected key: %d\", k)\n\tFatalIf(t, v != 2, \"Unexpected value: %d\", v)\n}\n"
+      }
+    },
+    "excluded_registration_sites": [
+      {
+        "file": "vendor/go_freelru/lru_test.go",
+        "line": 62,
+        "source": "cache.SetOnEvict(onEvict)",
+        "authorization": "callback-exclusions.json",
+        "status": "excluded"
+      }
+    ],
+    "mechanical_adaptations": [
+      "hash callback omitted",
+      "sleep replaced by injected millisecond clock",
+      "deterministic seeded random source for TestLRUMatch; uint64 underflow retained",
+      "callbacks excluded by callback-exclusions.json; all other clauses retained",
+      "TestLRUMatch backup uses an independent input-driven oldest-first list and finite map, never callback/implementation observations"
+    ]
+  }
+]

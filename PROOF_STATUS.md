@@ -1,0 +1,281 @@
+# Proof status
+
+Checked with the pinned toolchain in `inventory/toolchain.json`
+(bend 2.0.16, sha256 `da9bc514…`, base sha256 `e149828c…`).
+
+Single root: `PROOF.bend` imports `END_TO_END.bend`, which imports every
+`proofs/<id>.bend` entry plus `proofs/lru.bend`. `bend PROOF.bend` reports
+**All terms check**. No `@unsafe`, no holes, no axioms, no `?`-terms anywhere
+in the closure (`automation/acceptance.py` re-checks this by scanning the
+import graph).
+
+"Unsafe annotations" in the checker's summary line count *template
+instantiations*, not unchecked terms: every instance is fully checked.
+
+## What each structure proves
+
+Every structure follows the same shape:
+
+* an **abstraction** from the runtime representation to the independent model
+  in `spec/<id>.bend` (which imports only `spec/` and `types/` and `Base`);
+* a **representation invariant** that the constructor establishes;
+* `step_ok`: for **every inventoried operation, including every error path**,
+  the runtime step refines the spec step *and* preserves the invariant, from
+  *any* state satisfying the invariant (not only reachable ones);
+* a **trace law**: for an *arbitrary finite list of operations* run from the
+  real constructor, the runtime run equals the spec run, and the final state
+  still satisfies the invariant.
+
+Seven structures — `dynamic_array`, `deque`, `queue`, `bitset`,
+`union_find`, `fenwick_tree` and `segment_tree` — store their elements in
+native `Base.Array`, which is a **linear** type. Their laws are therefore
+stated in the *shadow* form: about `real(sh)`, the structure built from Data
+mirror trees, with the law naming the shadow the operation lands on and
+asserting its model and its invariant. `proofs/<id>/state.bend` proves
+`real_inj` for each of them — a runtime structure determines its shadow — so
+that form pins the abstract state rather than merely asserting the existence
+of some shadow (laws `*_shadow_unique`).
+
+Where a structure grows its array, the laws about the growing operations
+carry the representation's capacity condition as an **explicit premise**,
+never a hidden bound: `capacity(n)` for `fenwick_tree`, `segment_tree`,
+`bitset` and `union_find` (a premise of the constructor laws only), and
+`depth + (number of pushes) <= 31` for `deque` and `queue` (a premise of the
+push and trace laws, discharged for a whole operation list at once because
+`StepOK` also yields `depth(sh2) <= depth(sh) + pushcost(op)`). The deque's
+condition is conservative and is documented as such: it charges one doubling
+to every push, where a doubling really happens only when the block has no
+free slot at that end, so the trace law as stated covers runs of at most 31
+pushes rather than the 2^31 elements the representation can hold. The
+sharper, amortized bound is not claimed.
+
+A generic array-backed structure also exposes executable `*_at`
+specializations, because Bend 2.0.16's native backend miscompiles
+`Base.Array` at an open element type; `proofs/<id>/closed.bend` proves each
+specialization equal to the parametric definition the laws are about, and
+`END_TO_END.bend` restates that equality at the instance the tests and
+benchmarks run (`deque_trace_at_is_the_trace`,
+`queue_trace_at_is_the_trace`).
+
+| structure | abstraction | invariant |
+|---|---|---|
+| `dynamic_array` | `Base.Array` slots → item sequence | the array realises a shadow satisfying `good` (depth <= limit <= 31, perfect tree, first `length` slots `Some` and the rest `None`) |
+| `deque` | the `Some` slots of the window `[lo, lo + len)`, front first | depth <= 31, the slot tree is perfect of that depth, and the `Some` slots are exactly the window |
+| `queue` | the underlying deque's window | the deque invariant (a queue shadow IS a deque shadow) |
+| `doubly_linked_list` | items obtained by walking `next` from `head` | fully bidirectional links, distinct ids below `fresh`, every stored node on the walk |
+| `binary_heap` | sorted multiset of all elements | exact size, heap order |
+| `balanced_search_tree` | in-order entry list | sorted keys, **red-black invariant**, cached size = entry count |
+| `bitset` | first `len` bits of the words of a native `Base.Array` | the depth is the one `depth_for` picks, the word array is a perfect tree of that depth, `len <= stored bits`, every stored bit at a position `>= len` is zero |
+| `union_find` | representative of each element | three perfect `Base.Array` arenas of the depth `depth_for` picks, `n <= 2^depth`, every class exactly listed with its exact size, `count` = number of classes |
+| `fenwick_tree` | the first `n` values of the tree the flat cells realise | the cell array is a perfect tree of depth d+1 (so every cell index is a representable U32), `n <= 2^d`, and every internal cell holds the exact U32 sum of its block's left half |
+| `segment_tree` | first `n` values of the tree the two flat cell arrays realise (a node's tag applies to everything below it) | the sum array is a perfect tree of depth d+1 and the tag array one of depth d, `n <= 2^d`, and every node stores the exact sum of its subtree |
+| `prefix_trie` | preorder enumeration, keys rebuilt character by character | every sibling list strictly increasing by code |
+| `graph` | spec adjacency (vertex → key-sorted neighbour list) | vertex map and every neighbour set satisfy the ordered-map invariant |
+
+Comparator-parameterised structures (`binary_heap`, `balanced_search_tree`)
+state their laws as templates over `~cmp` with the total-order laws
+`O.Order(~K, ~cmp)` and instantiate them — and therefore check them — at both
+instances `src/` exposes: `(U32, U32.cmp)` and `(String, String.order)`.
+
+## balanced_search_tree: the red-black proof
+
+`src/balanced_search_tree.bend` is an actual **red-black binary search tree**:
+`type Tree = Leaf | Node{color, l, e, r}`, Okasaki insertion with the four
+rotation cases, and the conventional functional deletion fixup (`TD`/`UF`,
+`fix_left`/`fix_right`, `split_min`). `proofs/balanced_search_tree/tree.bend`
+proves, generically in the comparator and instantiated at U32 and String:
+
+| property | where |
+|---|---|
+| BST ordering (the in-order key list is strictly increasing) | `steps.bend` `inv`, via `SO.sorted` and `SP.sorted_ins` / `SP.sorted_del` |
+| finite-map refinement of **every** inventoried operation | `steps.bend` `step_ok`, using `tree.bend` `insert_io` / `remove_io` and `query.bend` `find_ok` / `min_ok` / `max_ok` / `lb_ok` / `range_ok` / `entries_ok` |
+| black root | `bal_root_black` (`bal t = and(not(is_red t), ok t)`) |
+| black empty leaves | `leaf_black` (`is_red Leaf = False` by definition) |
+| no red-red parent/child edge anywhere | `nrr_all` + `ok_nrr` |
+| the same number of black nodes on **every** root-to-leaf path | `paths` (one entry per root-to-leaf path) + `all_eq` + `ok_paths` |
+| initialisation establishes all of it | `new_bal` |
+| insertion preserves it (incl. `balance` and all four rotations) | `balance_okl` / `balance_okr` → `ins_ok` → `insert_bal` |
+| deletion preserves it (incl. the whole fixup path) | `fl_b3_ok` … `fix_left_ok`, `fr_b3_ok` … `fix_right_ok`, `rm_leaf_ok`, `rm_left_leaf_ok`, `split_min_ok`, `del_here_ok`, `del_ok` → `remove_bal` |
+| arbitrary finite reachable traces | `trace.bend` `trace_from` / `inv_from`, exposed as `u32_trace` / `string_trace` |
+
+All of these are restated as named laws in `END_TO_END.bend` at **both**
+instances (`balanced_search_tree_u32_*`, `balanced_search_tree_string_*`).
+
+The deletion proof is the CLRS fixup made explicit: `DelOK`/`FixOK` carry four
+facts — the black height the parent should see (`dbh`), `ok` of the returned
+tree, "a result that replaces a black subtree is never red", and "a fixup
+under a red parent never propagates a deficiency". The impossible branches
+(`fl_u` with an empty sibling, `fl_red` with an empty inner child, `dh_pick`
+with `SMNone` under a non-empty right subtree) are discharged as `Empty`, not
+assumed away.
+
+The replaced 2-3 tree implementation and its proofs are archived verbatim in
+`docs/archive/` for provenance.
+
+## graph: well-formedness
+
+`spec/graph.bend` defines the model-level well-formedness predicate `wf`:
+
+* **closure** - every neighbour of every vertex is itself a vertex
+  (`closed` / `all_vertices`), so every stored edge has both endpoints in the
+  vertex set;
+* **self-loop policy** - no vertex is one of its own neighbours (`loopfree`);
+* **undirected symmetry** - an undirected model stores every edge at both
+  endpoints (`symmetric` / `sym_set`).
+
+**Status: PROVED.** `proofs/graph/wf.bend` establishes `wf(new d)`;
+`proofs/graph/wfops.bend` `wf_step` proves that **every** spec operation
+preserves it (`AddVertex`, `RemoveVertex`, `AddEdge`, `RemoveEdge` and the
+five observation-only operations), and `proofs/graph.bend` `step_wf` connects
+it to the runtime: for any graph satisfying the runtime invariant
+`ST.inv`, the model of the state after any operation is well formed. Both are
+exposed in `END_TO_END.bend` as `graph_step_well_formed` and
+`graph_new_abs_well_formed`.
+
+`RemoveEdge` genuinely needs the sortedness half of the runtime invariant:
+without it the symmetry statement is false, not merely unproved (two entries
+for the same vertex would let `sdel` remove only the first).
+
+## union_find: three parallel arenas
+
+`src/union_find.bend` keeps the roots, the class sizes and the class member
+lists in three separate native `Base.Array`s of the same depth, indexed by
+element. Narrow arenas are deliberate: a measured 3-field record read out of
+an array cost 6.5 ns against 1.5 ns for a 1-field read, so `find` — one
+indexed read of the roots arena — must not have to look at the other two.
+Every law is in the same shadow style, over `Sh{n, depth, tr, tz, tm, count}`.
+
+| step | where |
+|---|---|
+| the proof-level `Cell` and the **zip** of the three slot lists into one cell list | `proofs/union_find/cells.bend` |
+| the partition mathematics: roots, classes, sizes, `labs`, `cnt_fix` | `proofs/union_find/model.bend` |
+| merging two classes = the spec relabelling (`good2`, `labs_relabel`, `fix_count`) | `proofs/union_find/union.bend` |
+| `Base.Array` get/set, `relink`, and the update of a slot against the slot lists | `proofs/union_find/arr.bend` |
+| the zip commutes with a relink (`cells(rlr(...)) == rl(cells(...))`) | `proofs/union_find/bridge.bend` |
+| the depth `depth_for` picks is below 32 | `proofs/union_find/depth.bend` |
+| abstraction, invariant, shadow, `real_inj` | `proofs/union_find/state.bend` |
+| every operation, including every OutOfRange case | `proofs/union_find/steps.bend` |
+| the constructor's arenas (`iota_arr`, `Array.new`, `solo_arr`) | `proofs/union_find/init.bend` |
+| arbitrary finite traces | `proofs/union_find/trace.bend` |
+
+`spec/union_find.bend` and the two largest proof files (`model.bend`,
+`union.bend`) are unchanged from the vector-of-cells version: the migration
+replaced the bridge to the representation, not the mathematics.
+
+**Capacity.** The arenas' depth is capped at 31 (2^31 slots), so every slot
+index is a representable U32. The laws about `new(n)` carry the explicit
+premise that `n` fits that capacity (`proofs/union_find.bend` `capacity`);
+`step_ok` and the trace law from any invariant-satisfying state are
+unconditional, and the invariant implies the premise.
+
+## bitset: the packed array representation
+
+`src/bitset.bend` stores its words in a native `Base.Array`, which is a
+**linear** fixed-capacity array with O(1) indexed read and write. Every law is
+therefore stated in the shadow style `proofs/dynamic_array` uses: about
+`ST.real(sh)`, the array built from a Data mirror tree.
+
+| step | where |
+|---|---|
+| `i / 32` and `i % 32` peel 32 bits at a time (from Base's own `Nat.divmod.go`) | `proofs/bitset/index.bend` |
+| the word walks of the list model are one indexed access | `proofs/bitset/walk.bend` |
+| `Base.Array` get/set against the slot list | `proofs/bitset/arr.bend` (on `proofs/lib/array.bend`) |
+| the whole-array loops (`count`, `to_list`) equal the list folds | `proofs/bitset/loops.bend` |
+| the word-wise combine loop equals `zip_words` | `proofs/bitset/zip.bend` |
+| the depth `depth_for` picks is below 32 | `proofs/bitset/depth.bend` |
+| abstraction, invariant, shadow, the all-zero array | `proofs/bitset/state.bend` |
+| every operation, `from_bools` | `proofs/bitset/steps.bend` |
+| arbitrary finite traces | `proofs/bitset/trace.bend` |
+
+The independent bit-sequence specification (`spec/bitset.bend`) and all of the
+Boolean-sequence mathematics (`proofs/bitset/lists.bend`, `word.bend`) are
+unchanged from the list-backed version; `proofs/bitset/model.bend` keeps the
+old word-list walks as the *proof model* that the array operations are shown
+to implement.
+
+**Capacity.** The word array depth is capped at 31 (2^31 words = 2^36 bits),
+so every word index is a representable U32 and Base's index masking is the
+identity. The laws about `new(n)` therefore carry the explicit premise that n
+fits that capacity; every other law, including `step_ok` and the trace law
+from any invariant-satisfying state, is unconditional, and the invariant
+implies the premise (`ST.rep_fits`). This is a real, documented narrowing
+compared with the earlier list-of-words representation, which had no capacity
+bound: it is the price of O(1) indexed access, and it is the same bound the C
+reference has.
+
+## fenwick_tree and segment_tree: the flat split-point layout
+
+Both store their cells in native `Base.Array`s (one for `fenwick_tree`; a sum
+array and a lazy-tag array for `segment_tree`) in the layout described in
+`docs/ARCHITECTURE.md`: the value at index `t` is cell `2^d + t`, and the
+block `[o, o + 2^p)` with `p >= 1` keeps its total (and its tag) at its split
+point `o + 2^(p-1)`.
+
+| step | where |
+|---|---|
+| the interval arithmetic of the layout (which cells a block can occupy, and that sibling blocks are disjoint) | `proofs/lib/flat.bend` |
+| the tree the flat cells realise, the frame lemmas, and that each index walk of the source IS the model's tree walk | `proofs/fenwick_tree/walk.bend`, `proofs/segment_tree/walk.bend` |
+| the model itself, unchanged from the tree-shaped implementation | `proofs/fenwick_tree/model.bend`, `proofs/segment_tree/node.bend` + `model.bend` + `ops.bend` |
+| `Base.Array` get/set/swap against the cell list | `proofs/<id>/arr.bend` (on `proofs/lib/array.bend`) |
+| abstraction, invariant, shadow, `real_inj` | `proofs/<id>/state.bend` |
+| every operation, including every error path | `proofs/<id>/steps.bend` |
+| the constructors (`new`, `from_list`) | `proofs/<id>/init.bend` |
+| arbitrary finite traces | `proofs/<id>/trace.bend` |
+
+The point of the split-point layout is provability: the cells a block can
+occupy are exactly `o+1 .. o+2^p-1`, so the frame lemmas ("this write does not
+disturb that block") are interval arithmetic rather than a descendant
+predicate over a heap-shaped layout.
+
+## deque and queue: the window layout
+
+`src/deque.bend` keeps the elements in the window `[lo, lo + len)` of a block
+of `2^depth` slots. `proofs/deque/layout.bend` defines `win(xs, lo, n)` on the
+slot list and reduces every window lemma at offset `lo` to the dynamic array's
+lemmas at offset 0, so the two share their `somes`/`lay` mathematics.
+
+| step | where |
+|---|---|
+| the window predicate and every end operation on it (push/pop at both ends, growth at both ends) | `proofs/deque/layout.bend` |
+| the indexed read walk of `to_list` | `proofs/deque/walk.bend` |
+| abstraction, invariant, shadow, `real_inj` | `proofs/deque/state.bend` |
+| every operation, with the capacity premise for pushes | `proofs/deque/steps.bend` |
+| the constructor | `proofs/deque/init.bend` |
+| arbitrary finite traces, with one capacity premise for the whole list | `proofs/deque/trace.bend` |
+| the executable `*_at` specializations compute the same thing | `proofs/deque/closed.bend` |
+
+`queue` adds no new mathematics: `proofs/queue/steps.bend` maps each queue
+operation to the corresponding deque operation (`dop`), maps the observation
+(`qobs`, which is where `EmptyDeque` becomes `EmptyQueue`), proves the FIFO
+spec step is the deque spec step of that operation (`qspec`), and derives the
+queue's `step_ok` from the deque's.
+
+## Retained LRU
+
+`proofs/lru.bend` pulls the retained cache's own end-to-end theorems into the
+`PROOF.bend` closure and restates the public trace law for the reuse entry
+`src/lru.bend`. Nothing in `reference/lru` is modified; `automation/
+acceptance.py` re-verifies every file's sha256 against
+`inventory/reference-sha256.json`.
+
+The LRU cannot be compiled to a **native** binary with this toolchain — see
+the blocker in `WORK_LOG.md` and `tests/runtime_defects/wide_arity.bend` — so
+it is validated in `bend` run mode and has no native benchmark rows.
+
+## Not proved / out of scope
+
+* Asymptotic costs are documented in the source headers but are not machine
+  checked; nothing in the proof closure depends on them.
+* Performance is a separate, measured claim: see `BENCHMARKS.md`. It is **not**
+  met (408 workloads: 120 within 2.5x, 267 over, 21 not measurable above the
+  clock minima), and the nine required `lru.*` operations have no native rows
+  at all because the retained LRU cannot be compiled natively with this
+  toolchain. The proofs are unaffected.
+
+  `bitset` is the structure that moved this iteration: median 1.24x, 25 of its
+  44 rows within the limit, after its words were moved from a cons list to a
+  native `Base.Array` (the list made `get`/`set` O(words) against an O(1) C
+  reference, which was not the same algorithm). `BENCHMARKS.md` opens with the
+  measured cost model that says which of the remaining structures can be
+  brought within the limit the same way and which need a different
+  representation entirely.

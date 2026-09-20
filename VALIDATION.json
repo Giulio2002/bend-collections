@@ -1,0 +1,954 @@
+{
+ "complete": true,
+ "environment": {
+  "machine": "arm64",
+  "platform": "macOS-15.6-arm64-arm-64bit-Mach-O",
+  "python": "3.14.6"
+ },
+ "failures": [],
+ "logs": "build/validation-logs",
+ "lru_detail": {
+  "checks": [
+   {
+    "checked": true,
+    "file": "reference/lru/PROOF.bend",
+    "output": [
+     "All terms check, with 1180 unsafe annotations."
+    ]
+   },
+   {
+    "checked": true,
+    "file": "reference/lru/END_TO_END.bend",
+    "output": [
+     "All terms check, with 1180 unsafe annotations."
+    ]
+   },
+   {
+    "checked": true,
+    "file": "src/lru.bend",
+    "output": [
+     "All terms check, with 2 unsafe annotations."
+    ]
+   },
+   {
+    "checked": true,
+    "file": "proofs/lru.bend",
+    "output": [
+     "All terms check, with 1180 unsafe annotations."
+    ]
+   }
+  ],
+  "smoke": [
+   {
+    "args": [
+     "3",
+     "len",
+     "keys",
+     "add:a:1",
+     "add:b:2",
+     "add:c:3",
+     "len",
+     "keys",
+     "get:a",
+     "keys",
+     "add:d:4",
+     "keys",
+     "peek:b",
+     "has:b",
+     "has:a",
+     "rm:a",
+     "keys",
+     "len",
+     "oldest",
+     "rmold",
+     "keys",
+     "len"
+    ],
+    "lines": 21
+   },
+   {
+    "args": [
+     "1",
+     "add:x:1",
+     "add:y:2",
+     "keys",
+     "get:x",
+     "get:y",
+     "len",
+     "rm:z",
+     "rm:y",
+     "len",
+     "keys",
+     "oldest"
+    ],
+    "lines": 11
+   },
+   {
+    "args": [
+     "2",
+     "get:missing",
+     "peek:missing",
+     "has:missing",
+     "rm:missing",
+     "oldest",
+     "rmold",
+     "len",
+     "keys"
+    ],
+    "lines": 8
+   }
+  ]
+ },
+ "lru_reuse": "passed",
+ "seconds": 131.0,
+ "source_sha256": {
+  "END_TO_END.bend": "c937897803cfc00a9590d649cc1b8250e79ff028e826877ed1ac33e3cb0fd368",
+  "PROOF.bend": "5bf861bc1df4ae533707f53f91b7678d1396f13aded4e77ee776e55873582c4f",
+  "proofs/balanced_search_tree.bend": "d0b738cfefd082aafd78b896d5fda962bd111c89811a1087c08aa3c454e9e62f",
+  "proofs/balanced_search_tree/api.bend": "a58526e7073ed0f6ca0cffa77d79429da6c1f5d000f6160f658111a0c4fccb45",
+  "proofs/balanced_search_tree/query.bend": "6fd3681c7dba8950fa09a6a064b7827e99132f75ffceb9dba19bc775f0975a49",
+  "proofs/balanced_search_tree/sorted.bend": "8225d3ff71738d6a3b17a4e0237dd3e70dd6e923864729c9e6e7cf4202438b52",
+  "proofs/balanced_search_tree/specops.bend": "043c423a38fffd47c779bcbd8e715aae57d4430e94bc1de402e7ed5058259748",
+  "proofs/balanced_search_tree/steps.bend": "d0fb5e9b329f9618a6ff227dee2adcad9e9fb02d454b23b2093f356433e50e77",
+  "proofs/balanced_search_tree/trace.bend": "3a085e5eb8dc5ed9e657067e000fe65cdc487966f0f5e33f56bdfbe6890bd2fc",
+  "proofs/balanced_search_tree/tree.bend": "c547168f427940e6d0fd1a401053bac3149fa0efc8d2d04c05470e59cf82badc",
+  "proofs/binary_heap.bend": "34861dd5e6e5817596f915e06b6b83fe3aeb0d0f37f266a8fc7fa46a79dad8ff",
+  "proofs/binary_heap/multiset.bend": "073c6f25090e725e1f5da60009cbcc4b11fd6fa46bec3c2224e4731d8188f49c",
+  "proofs/binary_heap/ops.bend": "96105de1e6cbe2bbd06e39653088ffcf157d8b5c40d96a949d027ff1a6018a7e",
+  "proofs/binary_heap/steps.bend": "f0d331845881acb82de9bddbec8cdee86bca2d4fb7106762aa63cf41f0702a49",
+  "proofs/binary_heap/trace.bend": "8dc1c4b5211890062328afd8072b8ddc939918798048ca99ef6a494625ddd6fe",
+  "proofs/binary_heap/tree.bend": "559b14eabd0c3d488e24fe4deb582026e8627750bde04d90011fd1e6889921d5",
+  "proofs/bitset.bend": "46b9a318c8122c777806e16d16597bae38ab7cd699ad200bb4e1a06e9b94e7a4",
+  "proofs/bitset/arr.bend": "1ac43c4b6b360b83230b6de4544e771331b80dd1f68f244b55b6ad1be4dac87c",
+  "proofs/bitset/depth.bend": "f13dbc782f6ad23ebb201a25d908895988c792504ed6443be6f16cf957f5c13d",
+  "proofs/bitset/index.bend": "179dddbe776335d6db38143e1da3b3dccd35d8c6bf27d2c8f14ae0be8f4c9e5f",
+  "proofs/bitset/lists.bend": "ab63a31d1bb7c78491c83c9eb2e1c4d2eaee708bdb85835b754ecd84e24095a4",
+  "proofs/bitset/listx.bend": "fb2b74b200293261ba24189fbd11cc2024b9079aa51eeda447a966adf98ff2f7",
+  "proofs/bitset/loops.bend": "d5c3f05d737cb326e0a15a9e834176c452f1a003465f19afeaccb4ae26f5afd7",
+  "proofs/bitset/model.bend": "64b363d59ff52a1e2b4ded0cb0f71b5d527b486485fd1943433fe660232666ec",
+  "proofs/bitset/state.bend": "4343f534bf06c44478b0f37a0b13433d16690d499ad6550fd16966873770a46d",
+  "proofs/bitset/steps.bend": "6daec00a49afb4e102fca4b685d38ed3f4b92852d24d128d83a91ce930384422",
+  "proofs/bitset/trace.bend": "24e5e195e9626c7ba944a061498c08956e1a2ae2e2fb7c8376fd29775d67a578",
+  "proofs/bitset/walk.bend": "225e1c95ae7ea7489b05fb57c8f8d27130131198893710b6be85afd1f7e85d6a",
+  "proofs/bitset/word.bend": "10497f09a8f3d51a508d2d1f4aeffcb8f953bec5b3e5cd691ed1a00e51fac73b",
+  "proofs/bitset/zip.bend": "da6b9e3fa5b9629aa557642a54ffdda74b13f2ef1a521bd184de7a67371a45e8",
+  "proofs/deque.bend": "85a30a2bb5744aa4ca1b801bf6a981b91ad83829ea06c8a3b0e988d38257d10c",
+  "proofs/deque/core.bend": "095ed34e89776f9f8fc9ee7484e7918e7a21060101e1ad025e715a684e216adb",
+  "proofs/deque/ends.bend": "8f428070d8fe735e57065e2d4ee604dddf561e9bf85cd9335217253cd8fd51e2",
+  "proofs/doubly_linked_list.bend": "cd6c06e41d924fe402f51ac7c5681aa85f9d54d91cf6664a1c48ce8fe55c5d06",
+  "proofs/doubly_linked_list/cores.bend": "041828815e8f09cb44d57630bd6bbe5df0df6860180924aba6e581cc518f9aab",
+  "proofs/doubly_linked_list/cut.bend": "f282799aa9d02cee1ffeceee88fc2c5a186ca725844fccfc6bedca7529b59cc5",
+  "proofs/doubly_linked_list/facts.bend": "bb17f609ee27b4a031db36bf180497075009ff0d10db4ab21fe1f330d7195440",
+  "proofs/doubly_linked_list/links.bend": "03f4d2d1cbc44737bd22c5c42fefbb195820197e418c148b529460777fa35b36",
+  "proofs/doubly_linked_list/nodes.bend": "cb5529976ddbb80991e66c94db2f3819933fdc375b976c1f24c66a909293a24e",
+  "proofs/doubly_linked_list/steps.bend": "3131ca530452835b688eb42ae829082649b596a7d721fbfbcf5f01a196799233",
+  "proofs/doubly_linked_list/trace.bend": "8ff6c9fcef8462c944a0003db0b1e98971e3975fb296e57f66e904248aa8cac1",
+  "proofs/dynamic_array.bend": "3a4658d8e6aa1405858c94cf4018dc864b36488ce911d9291e54d85a56d6c5c7",
+  "proofs/dynamic_array/closed.bend": "23af5f165fa1e9ffa09e649447c5734f529fbc6d9029054fcf66d92af710e77a",
+  "proofs/dynamic_array/growth.bend": "c4274fbf0300a739f32311c27e7e147c288dc2f76a0e285d19c4d42cf139f2ea",
+  "proofs/dynamic_array/layout.bend": "a94f7894e78b31cf455af8ac0bfde365730f60037cb83665ea09c2d433913845",
+  "proofs/dynamic_array/state.bend": "c9d91aff041c1475ea194288660057e1402756e5b189ee745103a4be7e4ad01e",
+  "proofs/dynamic_array/steps.bend": "c003f3a8f0345d8cc4cde5709baf5928367be5f5aa27b93b77d6f00c8c827708",
+  "proofs/dynamic_array/trace.bend": "1cd7390a6fe6edd995b8e7e47351b55f56f1969b4a55e9c5c7a72b9ff2b4d43a",
+  "proofs/fenwick_tree.bend": "c8832c1a3899d9e83a9f95038d3d0d7c912bd1655ea1962b7cd7272389f5e3d1",
+  "proofs/fenwick_tree/steps.bend": "1dad12342453084fcdeec6b04eb53eb391d87b849de861c8d38fe9863b73865b",
+  "proofs/fenwick_tree/trace.bend": "d59cf53bd14521d49181a2e9d3bef7e00fc58b03c62988a4c09f28c50029e5b0",
+  "proofs/fenwick_tree/tree.bend": "41bf0adbe4ee094e8ecc068012beddacccfea44fec6e69b24e999851774974e6",
+  "proofs/graph.bend": "1a492b7309ce3697314006f0c920f5d2abcfa2a04a3a3fcce2b6dc697d096998",
+  "proofs/graph/fmap.bend": "adc77d302c66d86cf93c719f490a2a4cbc5de3c5d0a6539d71f0dfc55f25ee2a",
+  "proofs/graph/model.bend": "0b6713394c450520d8bcc226034c4cca660f314a07edd87a57f305c4c60e0aab",
+  "proofs/graph/steps.bend": "768bfc9dfbbb81be673947a8db835cbbccc8f8aa27878f86b74a203ba95364f3",
+  "proofs/graph/trace.bend": "978be36ca1345469d770bbaa23e6fc895ed4292307a86f42d364e55305ed5348",
+  "proofs/graph/wf.bend": "ba379e24a7a0c9aafbbae6788bdd4f532fe382df917fa3abc932a2311284424f",
+  "proofs/graph/wfops.bend": "ba835132b31c9eaf4afdf466e4f1c0051dbaa619be22c70d59d8ab5863a850cb",
+  "proofs/lib/array.bend": "221a395c504dbcf1278c6d1237c9231ed93b4435c8a9ae0b69c05f90bf7cfeff",
+  "proofs/lib/list.bend": "7128c11c38d0a5c1e9df85690df43cb186300718d4c46b45b854a3631c765f81",
+  "proofs/lib/logic.bend": "3dc41a98af068579ea83a1132b5a2d6bbb1edde1f1dd774253c3683a06a82ad5",
+  "proofs/lib/nat.bend": "e22bb874a76403fff0013030b92e9c5628ed7587400c68e1d9364a015194ad9a",
+  "proofs/lib/order.bend": "0ce2e43c96a5162824aadb176fa16195ea7167a6672e92e2185d156d7b8d753c",
+  "proofs/lib/u32.bend": "0cdcfe263d4c9216bfae1340432da81a14e7dccd227e8a0b8374d9419cbf88ef",
+  "proofs/lib/u32alg.bend": "4bbcdea0904b247ae0191956f36c1e6920a02ad13ca1203c2b97a8e9378c99d9",
+  "proofs/lib/u32seq.bend": "7edd0c7458e674f2d79d309270c7c40551f0aac684cdbe1cad9f480fe5b82af2",
+  "proofs/lib/vec.bend": "a7eb768a6490aed64604690f669a2cab3aed96f3638c5672200c6097caff2b46",
+  "proofs/lru.bend": "fae896293f8ed737d322b8bf25e6c77a60fe4107c33df1ed964f2e9984cd0f4d",
+  "proofs/prefix_trie.bend": "51bad1da13b9292d5c9ce30a31c44b1f5737a3ba8c28c58c0bb18ebe9d639ab5",
+  "proofs/prefix_trie/keys.bend": "f2b869b01357500b790d3e6d72534da84b36275e84cd3f7f0263e930ca058ca5",
+  "proofs/prefix_trie/ops.bend": "7855a14464b621b8a2c8085042ac093cb94ecfb7c3d82ff57ac67665da4c3b88",
+  "proofs/prefix_trie/steps.bend": "301b70b473f4a6dbc0a46e8e1ef9f3abe3d6213914a82190410fbb75cf7ccd7f",
+  "proofs/prefix_trie/trace.bend": "181f8634a9543818b8468c4372b16f06e041c3e1fadca746aea05e7877b863f7",
+  "proofs/queue.bend": "eecb7068c660ed86d4ccbb12a090ece93bf5afcd064fedd79e2ce08ecce74deb",
+  "proofs/queue/steps.bend": "aedf5518ef7f3463917ab1005f126caa6cf2f93dce6aeb6ce7d873863ff8df70",
+  "proofs/queue/trace.bend": "fd703c942f377798844aadfbd4402418ad06b4f84047a9d34e8a0edcf2f67d8c",
+  "proofs/segment_tree.bend": "39adb6dc0b0212d9a706346ef2f7f10efd8e01bdcefc33753a941f44f564e38b",
+  "proofs/segment_tree/model.bend": "4851311065cb98c672ccd02583bcdbd6e23e235a9f4456fd1f53af69e257fb6f",
+  "proofs/segment_tree/ops.bend": "bb7b1976429c16df2ef2a968269fbe197dfc3f6ad9a1ffa40b76261b151e75b0",
+  "proofs/segment_tree/steps.bend": "8fb9090803c7c379f0231e441a1e69eb4a95d5d01b6d5810d0b8b7c91bac3c4e",
+  "proofs/segment_tree/trace.bend": "8c260470ef0baef4da30aa95da3abd05228cc84f0de618cecff3b6a1d6081be5",
+  "proofs/union_find.bend": "6f925a3dddb6b9b1886c71eb6dab51a446e222f330aec9df0f29ab68e93a6447",
+  "proofs/union_find/arr.bend": "8e95c8446e6c3e288dad9e82a9321561d71aa3359e5a788aa7516787de5f017f",
+  "proofs/union_find/bridge.bend": "e33af197217f287ee76962b4c75e32375796a6299b0b62bf778088d507357a71",
+  "proofs/union_find/cells.bend": "3359ee571fe18f986b7546f1be7f86713dee6137a49dbbed17697b0d5409cfe1",
+  "proofs/union_find/depth.bend": "a79c7a7bb970dd6b3fba5de7308e5a14393293d620113192ee069457f3f35a1c",
+  "proofs/union_find/init.bend": "607d637e7656549bb3365f31ef3caca2754719e779eaeff7c584e9f18145e3c3",
+  "proofs/union_find/model.bend": "8761d8912bb7e19f284a235b29f891422aa06c6c8a57369f15f0030dc8abf06d",
+  "proofs/union_find/state.bend": "c93442227d84a2876a81a1b504297c747d0f426469b80369c68419dc45da0c91",
+  "proofs/union_find/steps.bend": "2772adfad011a0e735ca487d58cfa2dad4ec00cb1d5ecec3ac61a70cd0252893",
+  "proofs/union_find/trace.bend": "a8955cf0a622b6c679ff7a6fd26e4ff8f6eeb77d5217a3d52f912c9f9395cac1",
+  "proofs/union_find/union.bend": "62c56eefb7abc350ed6e0761cadcf1308b1b86c8073f05ef26b1b8dd327b0491",
+  "spec/balanced_search_tree.bend": "746240799392a9c8f7f752ae8f8d917befeb59f828451a859ff081b038d819c1",
+  "spec/binary_heap.bend": "fa10299ac4ec162aaa905b27927efa5df912ff6cb939a81e8e737154f139ae5c",
+  "spec/bitset.bend": "ce81fe3879bff378310dc13b6403e6a0735444ac2e2daa27d120fe5c6eb7543a",
+  "spec/common.bend": "c99baf8cafa3a2ed1a8121f3c93eff44e4e026984082f8cced26f4ac4b70c2ac",
+  "spec/deque.bend": "eaa3f74dc84cd4c39a0ba54059aa09f202f659ba52abc7a29686f441863d1385",
+  "spec/doubly_linked_list.bend": "169dd1a101415f3512d3be01463ce561c20a424a35bb56274ddd2e47ea7f9153",
+  "spec/dynamic_array.bend": "ac6cbff0d8a727ed89a6816f93d4b0b27751b538b9800af743183ca8147cff56",
+  "spec/fenwick_tree.bend": "be9f7f4e3f1f279f132b0f902da6ab33cc0833576f5b2d870624f785f3b5370e",
+  "spec/graph.bend": "2259a0325aa0e36acc69adffeba31cfe55c8d2dda4221e68118a111af72cbdbf",
+  "spec/prefix_trie.bend": "b134ac7a9440037bec995e30523c2df51d25f1d83bb1529d5b01a43b7ed25d21",
+  "spec/queue.bend": "edf4edfc63fcb44e0c04588b8c082c622f9574eb5fa067e311328733a04d97c2",
+  "spec/segment_tree.bend": "83c26b959d49ce47c4dbb7312a7047ee132e42451220720d5c631d6f747e8431",
+  "spec/u32seq.bend": "9cd783ca0bd024f125f6588691ff5b7f1a780dca051dcd5b400170f61edc3a06",
+  "spec/union_find.bend": "a052d8e3b3972777f740aa52deca7597408b90f6c7e23b000efbab63a89110db",
+  "src/balanced_search_tree.bend": "cc469ed8297611692279fd650b85b06e58c5c994351880fab0974bb54880e4e9",
+  "src/binary_heap.bend": "0cc700e2bf385046443d5c00bac08e1f6855a7745ce96a214db6334003ee30cd",
+  "src/bitset.bend": "52e262ae5f517cc8e8fbddcf7ef0f6510abd79e9de7c883c9882a30c2d4e05a7",
+  "src/deque.bend": "195f32c45a116832ec69d9800a4c637054cc9f88383d1f031845dca04d54cb5b",
+  "src/doubly_linked_list.bend": "a856bb86123fc55373414870fe35d6261893f46e094adf6eede632e47820e1bd",
+  "src/dynamic_array.bend": "0f5e0feec7e96d9f1eacf87baea04678a69b29be56b17f586a1eeee8d31fee2d",
+  "src/fenwick_tree.bend": "5684c5d736699f108183fa43fd18d90cbb5856740488a40673a3816fac9fc683",
+  "src/graph.bend": "a2884c1a844d36af73ed6f8b3a71434266ea26a26bf61a4042d16e3e51a0ed98",
+  "src/internal/vec.bend": "cddd5687714bf0a096c29eea0c802abc05f4476074a50e49aab79f12da728d47",
+  "src/lru.bend": "5ae7cb4791c88446810939a18c0d48ea33cf856b1322e7675f8fda68e34cb298",
+  "src/prefix_trie.bend": "1626865303b5fc86473b63977484d5ea750ca05164b5a82d2edc99b0a2080a55",
+  "src/queue.bend": "28943774632561f7a5c5ad1e3630d69574c6815ffa7b9083658929e8f05d0212",
+  "src/segment_tree.bend": "2ef9441e2122228669d264a02de1208e088fe62ea59577515852df23e641dc71",
+  "src/union_find.bend": "8094807311e1902eee64adc450ec5e250d5d22d1d6704fddec7ebc4d55f2ae9e",
+  "tests/balanced_search_tree/main.bend": "bf8543d1ef6fcf43f67ff23c2e4586e6406977e3d89a19555ebb6c169f23a093",
+  "tests/binary_heap/main.bend": "9615b99133dee2d8241f1541a32fbad0e5661e389a43f4f38b5f6aad56b9ca27",
+  "tests/bitset/main.bend": "07bcbcf80c59cd1f53dd4c7ff400abd68beb163586551c005fbd664f85584a7c",
+  "tests/deque/main.bend": "8c1eb304e4971405ac46e820e7b0f2aad2f145e5cc850be6565fbc847ee3c458",
+  "tests/doubly_linked_list/main.bend": "d1f26b3e09307dcce534cdd9946d700be2485040c8a4ab5755ec20afdba80cd9",
+  "tests/dynamic_array/main.bend": "2696b0b4833afdc0965497779e9122ed2b08759d67251cd67c7341933bf46d41",
+  "tests/fenwick_tree/main.bend": "b54f777f5bdf1ac9825e2a9fec7d1fac4f75e6851e91c11adb0179e44dc7f0ad",
+  "tests/graph/main.bend": "8636db4d7488562f74067cba472c49b106a766bf4cf86f2a85355fbeaa94e21d",
+  "tests/lru/main.bend": "134dd72e40a82d7228ede698853b30a7577a0bbfb5333e0d30a43a6bf3963252",
+  "tests/prefix_trie/main.bend": "6062d0bcfb135db383e7f35102f3f87ffd8ce2591026495ecda3c6db4edcd8c9",
+  "tests/queue/main.bend": "9785f3818903d5e468ed50e6d6e3a92a9d434f8912cfb2029a24c702240434dd",
+  "tests/runtime_defects/generic_u32.bend": "cdbde193304c4bfcbd9a60a5a5a45069624538298d6856317304b52f3d2e03e9",
+  "tests/runtime_defects/wide_arity.bend": "c155fbd607610c1f14d0074b444c7fb9178d3888ba059dcd130ce05c76e3025c",
+  "tests/segment_tree/main.bend": "a03a895e0f5e9c8ad7d747c976785227c80a555b7a5e5c7d93f0107408103043",
+  "tests/support/oracles.py": "45ec78cf7d8d3e5db6d475afff04d0f7de9233655417dd55536df582ca57ea85",
+  "tests/support/text.bend": "d580799e509e4535609ed07ac01ac6ecbb932a369280a55b55e14dae0a028a4a",
+  "tests/union_find/main.bend": "0b399b9f152ba9adcabc9d14c378588435828e55b9d0630b3e868722eccdd108",
+  "tools/bench_report.py": "30c83c4238dffd37b37d7d3a35bae34f8c7601922ff96df5fe32a9d541b7978e",
+  "tools/costmodel.py": "484a2383be03e7791eeac164680a388e7b6eabfa0d49013bb1cd92ecbf98f13e",
+  "tools/dev/bisect_defs.py": "14828e12a0181a35ffd910ec02195036731951757286baac732c43236edbc457",
+  "tools/dev/macros.py": "c9871ae1235b731668035ce5795e2eea3d99f4506250b437b3748104d77d61ca",
+  "tools/dev/order_defs.py": "b0e684847b7df86ea7d420ddfa356c31b826d94cb8301988532b165f1bde8602",
+  "tools/dev/permute_args.py": "52ebf48b9b0d3ba434aa191f1b6a78e66a1556aa62ff92c6e0eb2e05dbec6c26",
+  "tools/dev/plusify.py": "025b771b58625b56e6e55cedd50d2d9ce7eeeb3220cd99d4b64f82e6a30e4b56",
+  "tools/generators/trace_data.py": "2676b9f7c5163152dad2bb1299f686ad7da081fb5f96f97af19a66007ae0dd57",
+  "tools/mutants.py": "c97f53dfa2c6fd5672f3994eb8459102e1cb97de9e140fbb586728c0c564afcb",
+  "tools/scenarios.py": "c34f55f6eadc6e6691c2fb7315afdab8e8a333e99fd717c39c5df49b12047129",
+  "tools/validate.py": "54339ea8341f5355b13ac192b1d619c8487fa5517ad880088f0a8e10224f2ff3",
+  "types/balanced_search_tree.bend": "8a8f622ea51bb1be018484ebb8b98faa8cc021699d3d69655d002c2df8c60f64",
+  "types/binary_heap.bend": "c8f87e5ac7ca13719fc43770b81f62134306a0759d491dba5d6daa07c6046acb",
+  "types/bitset.bend": "bc24374cac3deef5bc13892d5eb454479949ebc2e5cf7f76ae41c60a701371ef",
+  "types/deque.bend": "f388c17d9e8a2be1110becce4e76ecc97f4fddc69f195850614aff6ab491445a",
+  "types/doubly_linked_list.bend": "4bf79ff34c0746526016125b16fe645870d5c26bd87ecc73dabf02c39b77ced1",
+  "types/dynamic_array.bend": "3ce5f0237a4681ca8b8290cd6af645ea3d7bfe06018f871e72d1ca61eb64b081",
+  "types/fenwick_tree.bend": "53dc4a669e4c85651aa0b9961ea180ba6edc177495a1d2662187a670c9015aed",
+  "types/graph.bend": "899a2af926d34d3e14446f1162180c8f5d5c4fcdf8fcecddb7112d84f7109726",
+  "types/prefix_trie.bend": "2acd43fcc13afccbc26e3d4e76073d0e66de66813e80180f7d39265de214ea10",
+  "types/queue.bend": "afc14e9714faac7e37d2710ca77ae8208c22d980b9268c0ba516376795bc7106",
+  "types/segment_tree.bend": "65ff0566db81a6ca70351eb388214a819b922b5d46567865d06b8bd722091ec2",
+  "types/union_find.bend": "0d42903693cc0ec55355012de291ab760de71a3936e39898e8490dbd2a58a973"
+ },
+ "structures": [
+  {
+   "binary_sha256": "9996b4d78e8a2da20c4148239ea0ff31a16f2f3fe0b2576c42126a4265afdeeb",
+   "boundaries": "passed",
+   "checker_output": "All terms check, with 2 unsafe annotations.",
+   "differential": "passed",
+   "driver_sha256": "2696b0b4833afdc0965497779e9122ed2b08759d67251cd67c7341933bf46d41",
+   "id": "dynamic_array",
+   "mutants": [
+    {
+     "mutant": "get reads the next slot",
+     "status": "rejected"
+    },
+    {
+     "mutant": "push ignores the capacity limit",
+     "status": "rejected"
+    },
+    {
+     "mutant": "clear drops the capacity",
+     "status": "rejected"
+    },
+    {
+     "mutant": "set writes at the next index",
+     "status": "rejected"
+    }
+   ],
+   "mutations": "passed",
+   "operations_passed": [
+    "capacity",
+    "clear",
+    "get",
+    "length",
+    "new",
+    "pop",
+    "push",
+    "reserve",
+    "set",
+    "to_list"
+   ],
+   "runtime": "passed",
+   "scenarios": {
+    "boundary": 4,
+    "differential": 5,
+    "functional": 3,
+    "structural": 0
+   },
+   "seconds": 9.7,
+   "structural": "n/a",
+   "trace_proof": "passed",
+   "trace_seeds": [
+    11,
+    23,
+    37,
+    59,
+    101
+   ]
+  },
+  {
+   "binary_sha256": "99b3d70124580b74b9fb6d511d712bcee0675e5cff4a9bba0b4667b1fc066581",
+   "boundaries": "passed",
+   "checker_output": "All terms check.",
+   "differential": "passed",
+   "driver_sha256": "8c1eb304e4971405ac46e820e7b0f2aad2f145e5cc850be6565fbc847ee3c458",
+   "id": "deque",
+   "mutants": [
+    {
+     "mutant": "push_back pushes at the front",
+     "status": "rejected"
+    },
+    {
+     "mutant": "length counts the front twice",
+     "status": "rejected"
+    },
+    {
+     "mutant": "to_list forgets to reverse the back",
+     "status": "rejected"
+    },
+    {
+     "mutant": "rebalance forgets to reverse the moved half",
+     "status": "rejected"
+    }
+   ],
+   "mutations": "passed",
+   "operations_passed": [
+    "length",
+    "new",
+    "peek_back",
+    "peek_front",
+    "pop_back",
+    "pop_front",
+    "push_back",
+    "push_front",
+    "to_list"
+   ],
+   "runtime": "passed",
+   "scenarios": {
+    "boundary": 2,
+    "differential": 5,
+    "functional": 2,
+    "structural": 0
+   },
+   "seconds": 5.2,
+   "structural": "n/a",
+   "trace_proof": "passed",
+   "trace_seeds": [
+    11,
+    23,
+    37,
+    59,
+    101
+   ]
+  },
+  {
+   "binary_sha256": "5acd6eb214d0b23875b789897adcac2605510f37f61cb5706b21f719e2c6d027",
+   "boundaries": "passed",
+   "checker_output": "All terms check.",
+   "differential": "passed",
+   "driver_sha256": "9785f3818903d5e468ed50e6d6e3a92a9d434f8912cfb2029a24c702240434dd",
+   "id": "queue",
+   "mutants": [
+    {
+     "mutant": "enqueue at the front",
+     "status": "rejected"
+    },
+    {
+     "mutant": "dequeue does not remove",
+     "status": "rejected"
+    },
+    {
+     "mutant": "peek looks at the back",
+     "status": "rejected"
+    }
+   ],
+   "mutations": "passed",
+   "operations_passed": [
+    "dequeue",
+    "enqueue",
+    "length",
+    "new",
+    "peek",
+    "to_list"
+   ],
+   "runtime": "passed",
+   "scenarios": {
+    "boundary": 2,
+    "differential": 5,
+    "functional": 2,
+    "structural": 0
+   },
+   "seconds": 4.3,
+   "structural": "n/a",
+   "trace_proof": "passed",
+   "trace_seeds": [
+    11,
+    23,
+    37,
+    59,
+    101
+   ]
+  },
+  {
+   "binary_sha256": "b173d03bee74b44779f80f146b3f1e431b329010cdda95a140eb19c7d2d036d9",
+   "boundaries": "passed",
+   "checker_output": "All terms check, with 157 unsafe annotations.",
+   "differential": "passed",
+   "driver_sha256": "d1f26b3e09307dcce534cdd9946d700be2485040c8a4ab5755ec20afdba80cd9",
+   "id": "doubly_linked_list",
+   "mutants": [
+    {
+     "mutant": "push_front appends instead",
+     "status": "rejected"
+    },
+    {
+     "mutant": "insert_before inserts after",
+     "status": "rejected"
+    },
+    {
+     "mutant": "prev follows the next link",
+     "status": "rejected"
+    },
+    {
+     "mutant": "handle ids are reused",
+     "status": "rejected"
+    },
+    {
+     "mutant": "foreign handles are accepted",
+     "status": "rejected"
+    }
+   ],
+   "mutations": "passed",
+   "operations_passed": [
+    "get",
+    "insert_after",
+    "insert_before",
+    "length",
+    "new",
+    "next",
+    "prev",
+    "push_back",
+    "push_front",
+    "remove",
+    "set",
+    "to_list"
+   ],
+   "runtime": "passed",
+   "scenarios": {
+    "boundary": 3,
+    "differential": 5,
+    "functional": 2,
+    "structural": 0
+   },
+   "seconds": 14.7,
+   "structural": "n/a",
+   "trace_proof": "passed",
+   "trace_seeds": [
+    11,
+    23,
+    37,
+    59,
+    101
+   ]
+  },
+  {
+   "binary_sha256": "97a33eafd725422d05da12da3b4c02627a7680740b0d154bb89a080063f81c18",
+   "boundaries": "passed",
+   "checker_output": "All terms check, with 213 unsafe annotations.",
+   "differential": "passed",
+   "driver_sha256": "9615b99133dee2d8241f1541a32fbad0e5661e389a43f4f38b5f6aad56b9ca27",
+   "id": "binary_heap",
+   "mutants": [
+    {
+     "mutant": "comparator reversed",
+     "status": "rejected"
+    },
+    {
+     "mutant": "peek does not report the minimum",
+     "status": "rejected"
+    },
+    {
+     "mutant": "push drops the element",
+     "status": "rejected"
+    }
+   ],
+   "mutations": "passed",
+   "operations_passed": [
+    "from_list",
+    "length",
+    "new",
+    "peek",
+    "pop",
+    "push",
+    "to_sorted_list"
+   ],
+   "runtime": "passed",
+   "scenarios": {
+    "boundary": 2,
+    "differential": 5,
+    "functional": 3,
+    "structural": 0
+   },
+   "seconds": 8.1,
+   "structural": "n/a",
+   "trace_proof": "passed",
+   "trace_seeds": [
+    11,
+    23,
+    37,
+    59,
+    101
+   ]
+  },
+  {
+   "binary_sha256": "fd302359702c15b4d3303db8c4dade6f6b3a6ffff5c9905871d6a7398718b11a",
+   "boundaries": "passed",
+   "checker_output": "All terms check, with 315 unsafe annotations.",
+   "differential": "passed",
+   "driver_sha256": "bf8543d1ef6fcf43f67ff23c2e4586e6406977e3d89a19555ebb6c169f23a093",
+   "id": "balanced_search_tree",
+   "mutants": [
+    {
+     "mutant": "range becomes inclusive at the top",
+     "status": "rejected"
+    },
+    {
+     "mutant": "min returns the maximum",
+     "status": "rejected"
+    },
+    {
+     "mutant": "contains is negated",
+     "status": "rejected"
+    },
+    {
+     "mutant": "lower_bound skips an equal key",
+     "status": "rejected"
+    }
+   ],
+   "mutations": "passed",
+   "operations_passed": [
+    "contains",
+    "insert",
+    "length",
+    "lookup",
+    "lower_bound",
+    "max",
+    "min",
+    "new",
+    "range",
+    "remove",
+    "to_list"
+   ],
+   "runtime": "passed",
+   "scenarios": {
+    "boundary": 2,
+    "differential": 5,
+    "functional": 3,
+    "structural": 9
+   },
+   "seconds": 14.5,
+   "structural": "passed",
+   "trace_proof": "passed",
+   "trace_seeds": [
+    11,
+    23,
+    37,
+    59,
+    101
+   ]
+  },
+  {
+   "binary_sha256": "b6c6e580d5e5f43d0743d5f5bb106f7c10a26cd12d1ded5504f3f4f2fa055f76",
+   "boundaries": "passed",
+   "checker_output": "All terms check, with 4 unsafe annotations.",
+   "differential": "passed",
+   "driver_sha256": "07bcbcf80c59cd1f53dd4c7ff400abd68beb163586551c005fbd664f85584a7c",
+   "id": "bitset",
+   "mutants": [
+    {
+     "mutant": "difference becomes intersection",
+     "status": "rejected"
+    },
+    {
+     "mutant": "xor becomes or",
+     "status": "rejected"
+    },
+    {
+     "mutant": "length mismatch is accepted instead of rejected",
+     "status": "rejected"
+    },
+    {
+     "mutant": "an out-of-range index is not rejected",
+     "status": "rejected"
+    },
+    {
+     "mutant": "set and clear are swapped",
+     "status": "rejected"
+    },
+    {
+     "mutant": "the bit index inside the word is dropped",
+     "status": "rejected"
+    },
+    {
+     "mutant": "a whole-array combine stops one word short",
+     "status": "rejected"
+    }
+   ],
+   "mutations": "passed",
+   "operations_passed": [
+    "clear",
+    "count",
+    "difference",
+    "get",
+    "intersection",
+    "length",
+    "new",
+    "set",
+    "to_list",
+    "union",
+    "xor"
+   ],
+   "runtime": "passed",
+   "scenarios": {
+    "boundary": 3,
+    "differential": 5,
+    "functional": 4,
+    "structural": 0
+   },
+   "seconds": 12.6,
+   "structural": "n/a",
+   "trace_proof": "passed",
+   "trace_seeds": [
+    11,
+    23,
+    37,
+    59,
+    101
+   ]
+  },
+  {
+   "binary_sha256": "5b2d5a50a47fc1cd19953b15e220cc221684e8350fc09c7039a1a7c4c90ff467",
+   "boundaries": "passed",
+   "checker_output": "All terms check, with 6 unsafe annotations.",
+   "differential": "passed",
+   "driver_sha256": "0b399b9f152ba9adcabc9d14c378588435828e55b9d0630b3e868722eccdd108",
+   "id": "union_find",
+   "mutants": [
+    {
+     "mutant": "union-by-size tie-break flipped",
+     "status": "rejected"
+    },
+    {
+     "mutant": "component count is not decremented",
+     "status": "rejected"
+    },
+    {
+     "mutant": "merging an existing class reports a change",
+     "status": "rejected"
+    },
+    {
+     "mutant": "the merged size arena keeps the big class size",
+     "status": "rejected"
+    },
+    {
+     "mutant": "relink skips the first member of the small class",
+     "status": "rejected"
+    },
+    {
+     "mutant": "the merged member list drops the small class",
+     "status": "rejected"
+    },
+    {
+     "mutant": "component_size reads slot 0 of the size arena",
+     "status": "rejected"
+    }
+   ],
+   "mutations": "passed",
+   "operations_passed": [
+    "component_count",
+    "component_size",
+    "connected",
+    "find",
+    "new",
+    "union"
+   ],
+   "runtime": "passed",
+   "scenarios": {
+    "boundary": 2,
+    "differential": 5,
+    "functional": 2,
+    "structural": 0
+   },
+   "seconds": 11.4,
+   "structural": "n/a",
+   "trace_proof": "passed",
+   "trace_seeds": [
+    11,
+    23,
+    37,
+    59,
+    101
+   ]
+  },
+  {
+   "binary_sha256": "32a3c489a2b8c1dc5b220db6b2bef0823fc98cf23d8864bb8c6f67f797de3ef1",
+   "boundaries": "passed",
+   "checker_output": "All terms check, with 2 unsafe annotations.",
+   "differential": "passed",
+   "driver_sha256": "b54f777f5bdf1ac9825e2a9fec7d1fac4f75e6851e91c11adb0179e44dc7f0ad",
+   "id": "fenwick_tree",
+   "mutants": [
+    {
+     "mutant": "point update subtracts",
+     "status": "rejected"
+    },
+    {
+     "mutant": "prefix bound off by one",
+     "status": "rejected"
+    },
+    {
+     "mutant": "range endpoints swapped",
+     "status": "rejected"
+    }
+   ],
+   "mutations": "passed",
+   "operations_passed": [
+    "add",
+    "from_list",
+    "length",
+    "new",
+    "prefix_sum",
+    "range_sum"
+   ],
+   "runtime": "passed",
+   "scenarios": {
+    "boundary": 2,
+    "differential": 5,
+    "functional": 3,
+    "structural": 0
+   },
+   "seconds": 7.0,
+   "structural": "n/a",
+   "trace_proof": "passed",
+   "trace_seeds": [
+    11,
+    23,
+    37,
+    59,
+    101
+   ]
+  },
+  {
+   "binary_sha256": "ecedfd393b0a56561034d5a498ba7278baadc8e2d7913ded4583d6250051f4e3",
+   "boundaries": "passed",
+   "checker_output": "All terms check, with 2 unsafe annotations.",
+   "differential": "passed",
+   "driver_sha256": "a03a895e0f5e9c8ad7d747c976785227c80a555b7a5e5c7d93f0107408103043",
+   "id": "segment_tree",
+   "mutants": [
+    {
+     "mutant": "lazy range add is not closed off",
+     "status": "rejected"
+    },
+    {
+     "mutant": "range query accepts one past the end",
+     "status": "rejected"
+    },
+    {
+     "mutant": "point assignment ignores the pending lazy tag",
+     "status": "rejected"
+    },
+    {
+     "mutant": "get ignores accumulated lazy tags",
+     "status": "rejected"
+    }
+   ],
+   "mutations": "passed",
+   "operations_passed": [
+    "from_list",
+    "get",
+    "length",
+    "new",
+    "range_add",
+    "range_query",
+    "set"
+   ],
+   "runtime": "passed",
+   "scenarios": {
+    "boundary": 2,
+    "differential": 5,
+    "functional": 3,
+    "structural": 0
+   },
+   "seconds": 8.0,
+   "structural": "n/a",
+   "trace_proof": "passed",
+   "trace_seeds": [
+    11,
+    23,
+    37,
+    59,
+    101
+   ]
+  },
+  {
+   "binary_sha256": "af19f8a2e2780fe5d2d4146e849d999498883ad2c59c89d1a0b2961f45f86747",
+   "boundaries": "passed",
+   "checker_output": "All terms check, with 84 unsafe annotations.",
+   "differential": "passed",
+   "driver_sha256": "6062d0bcfb135db383e7f35102f3f87ffd8ce2591026495ecda3c6db4edcd8c9",
+   "id": "prefix_trie",
+   "mutants": [
+    {
+     "mutant": "longest_prefix returns the shortest",
+     "status": "rejected"
+    },
+    {
+     "mutant": "prefix_entries drops the exact match",
+     "status": "rejected"
+    },
+    {
+     "mutant": "contains is negated",
+     "status": "rejected"
+    },
+    {
+     "mutant": "remove keeps the value",
+     "status": "rejected"
+    }
+   ],
+   "mutations": "passed",
+   "operations_passed": [
+    "contains",
+    "insert",
+    "longest_prefix",
+    "lookup",
+    "new",
+    "prefix_entries",
+    "remove"
+   ],
+   "runtime": "passed",
+   "scenarios": {
+    "boundary": 2,
+    "differential": 5,
+    "functional": 2,
+    "structural": 0
+   },
+   "seconds": 8.3,
+   "structural": "n/a",
+   "trace_proof": "passed",
+   "trace_seeds": [
+    11,
+    23,
+    37,
+    59,
+    101
+   ]
+  },
+  {
+   "binary_sha256": "8acf200c1640c3d5d12fe6c19e4344b3f2e7fac2a223f808594fbc01d24cb0c2",
+   "boundaries": "passed",
+   "checker_output": "All terms check, with 166 unsafe annotations.",
+   "differential": "passed",
+   "driver_sha256": "8636db4d7488562f74067cba472c49b106a766bf4cf86f2a85355fbeaa94e21d",
+   "id": "graph",
+   "mutants": [
+    {
+     "mutant": "self-loops are accepted",
+     "status": "rejected"
+    },
+    {
+     "mutant": "undirected edges are stored one way",
+     "status": "rejected"
+    },
+    {
+     "mutant": "undirected removal is one way",
+     "status": "rejected"
+    },
+    {
+     "mutant": "has_vertex is negated",
+     "status": "rejected"
+    }
+   ],
+   "mutations": "passed",
+   "operations_passed": [
+    "add_edge",
+    "add_vertex",
+    "edges",
+    "has_edge",
+    "has_vertex",
+    "neighbors",
+    "new",
+    "remove_edge",
+    "remove_vertex",
+    "vertices"
+   ],
+   "runtime": "passed",
+   "scenarios": {
+    "boundary": 3,
+    "differential": 5,
+    "functional": 2,
+    "structural": 0
+   },
+   "seconds": 11.7,
+   "structural": "n/a",
+   "trace_proof": "passed",
+   "trace_seeds": [
+    11,
+    23,
+    37,
+    59,
+    101
+   ]
+  }
+ ],
+ "toolchain": {
+  "backend": "native-c (bend <file> -o <bin>)",
+  "base_sha256": "e149828ca05581f61d1b06cf2a7d1a744e394d29a4c8e1942e5062ecbf30f5b8",
+  "bend": "/Users/monkeair/.bend/bin/bend",
+  "bend_sha256": "da9bc51449f04a65bf633351fb754cd6f883f5f5d9ab0c4e947f5c6f19eb7386",
+  "bend_version": "2.0.16",
+  "lru_backend": "bend run mode; native build blocked, see WORK_LOG.md"
+ },
+ "trace_seeds": [
+  11,
+  23,
+  37,
+  59,
+  101
+ ]
+}

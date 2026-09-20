@@ -1,0 +1,184 @@
+import Base
+import ../types/deque.bend as E
+
+# Double-ended queue as two lists (banker's deque).
+#
+# Representation: DQ{flen, front, blen, back}; the sequence is
+# front ++ reverse(back) (back holds the rear, last element first); flen/blen
+# cache the two lengths. Pushes are O(1). A pop/peek at an end whose list is
+# empty first rebalances: half of the other list (rounded down) stays, the rest
+# is reversed onto the empty side, O(n) for that one call. There is no
+# per-push full-list append. Amortized O(1) per operation holds for
+# single-threaded use (potential |flen - blen|); reusing an old version of a
+# persistent value can repeat a rebalance, so no worst-case bound beyond O(n)
+# per pop/peek is claimed. See docs/API.md.
+#
+# Errors: pop/peek on an empty deque return Fail{EmptyDeque} and the deque
+# unchanged (as a sequence; a rebalance never happens on an empty deque).
+
+type Deque<-T: Data> is Data:
+  DQ{flen: Nat, front: List<&2, T>, blen: Nat, back: List<&2, T>}
+
+def new(-T: Data) -> Deque<T>:
+  DQ{0n, Nil{}, 0n, Nil{}}
+
+def half(n: Nat) -> Nat:
+  match n:
+    case 0n:
+      0n
+    case 1n:
+      0n
+    case 2n+q:
+      1n+half(q)
+
+def length(-T: Data, d: Deque<T>) -> Deque<T> & Nat:
+  DQ{+fl, f, +bl, b} = d
+  (DQ{fl, f, bl, b}, Nat.add(fl, bl))
+
+def push_front(-T: Data, d: Deque<T>, x: T) -> Deque<T>:
+  DQ{fl, f, bl, b} = d
+  DQ{1n+fl, Con{x, f}, bl, b}
+
+def push_back(-T: Data, d: Deque<T>, x: T) -> Deque<T>:
+  DQ{fl, f, bl, b} = d
+  DQ{fl, f, 1n+bl, Con{x, b}}
+
+# Moves half of the back onto an empty front (no change otherwise).
+def ready_front_go(-T: Data, fl: Nat, f: List<&2, T>, +bl: Nat, +b: List<&2, T>) -> Deque<T>:
+  match f:
+    case Nil{}:
+      +k = half(bl)
+      DQ{Nat.sub(bl, k), List.reverse(&2, T, List.drop(&2, T, b, k)), k, List.take(&2, T, b, k)}
+    case Con{h, t}:
+      DQ{fl, Con{h, t}, bl, b}
+
+def ready_front(-T: Data, d: Deque<T>) -> Deque<T>:
+  DQ{fl, f, bl, b} = d
+  ready_front_go(T, fl, f, bl, b)
+
+def ready_back_go(-T: Data, +fl: Nat, +f: List<&2, T>, bl: Nat, b: List<&2, T>) -> Deque<T>:
+  match b:
+    case Nil{}:
+      +k = half(fl)
+      DQ{k, List.take(&2, T, f, k), Nat.sub(fl, k), List.reverse(&2, T, List.drop(&2, T, f, k))}
+    case Con{h, t}:
+      DQ{fl, f, bl, Con{h, t}}
+
+def ready_back(-T: Data, d: Deque<T>) -> Deque<T>:
+  DQ{fl, f, bl, b} = d
+  ready_back_go(T, fl, f, bl, b)
+
+def take_front_go(-T: Data, fl: Nat, f: List<&2, T>, bl: Nat, b: List<&2, T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  match f:
+    case Nil{}:
+      (DQ{fl, Nil{}, bl, b}, Fail{E.EmptyDeque{}})
+    case Con{x, t}:
+      (DQ{Nat.sub(fl, 1n), t, bl, b}, Done{x})
+
+def peek_front_go(-T: Data, fl: Nat, f: List<&2, T>, bl: Nat, b: List<&2, T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  match f:
+    case Nil{}:
+      (DQ{fl, Nil{}, bl, b}, Fail{E.EmptyDeque{}})
+    case Con{+x, t}:
+      (DQ{fl, Con{x, t}, bl, b}, Done{x})
+
+def take_back_go(-T: Data, fl: Nat, f: List<&2, T>, bl: Nat, b: List<&2, T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  match b:
+    case Nil{}:
+      (DQ{fl, f, bl, Nil{}}, Fail{E.EmptyDeque{}})
+    case Con{x, t}:
+      (DQ{fl, f, Nat.sub(bl, 1n), t}, Done{x})
+
+def peek_back_go(-T: Data, fl: Nat, f: List<&2, T>, bl: Nat, b: List<&2, T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  match b:
+    case Nil{}:
+      (DQ{fl, f, bl, Nil{}}, Fail{E.EmptyDeque{}})
+    case Con{+x, t}:
+      (DQ{fl, f, bl, Con{x, t}}, Done{x})
+
+def take_front(-T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  DQ{fl, f, bl, b} = d
+  take_front_go(T, fl, f, bl, b)
+
+def peek_front_at(-T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  DQ{fl, f, bl, b} = d
+  peek_front_go(T, fl, f, bl, b)
+
+def take_back(-T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  DQ{fl, f, bl, b} = d
+  take_back_go(T, fl, f, bl, b)
+
+def peek_back_at(-T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  DQ{fl, f, bl, b} = d
+  peek_back_go(T, fl, f, bl, b)
+
+def pop_front(-T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  take_front(T, ready_front(T, d))
+
+def pop_back(-T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  take_back(T, ready_back(T, d))
+
+def peek_front(-T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  peek_front_at(T, ready_front(T, d))
+
+def peek_back(-T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  peek_back_at(T, ready_back(T, d))
+
+def to_list(-T: Data, d: Deque<T>) -> Deque<T> & List<&2, T>:
+  DQ{fl, +f, bl, +b} = d
+  (DQ{fl, f, bl, b}, List.append(&2, T, f, List.reverse(&2, T, b)))
+
+# ---- operation traces ----
+
+def obs_nat(-T: Data, r: Deque<T> & Nat) -> Deque<T> & E.Obs<T>:
+  (d, n) = r
+  (d, E.ONat{n})
+
+def obs_item(-T: Data, r: Deque<T> & Result<&2, &2, E.Error, T>) -> Deque<T> & E.Obs<T>:
+  (d, x) = r
+  (d, E.OItem{x})
+
+def obs_list(-T: Data, r: Deque<T> & List<&2, T>) -> Deque<T> & E.Obs<T>:
+  (d, xs) = r
+  (d, E.OList{xs})
+
+def step(-T: Data, d: Deque<T>, op: E.Op<T>) -> Deque<T> & E.Obs<T>:
+  match op:
+    case E.Length{}:
+      obs_nat(T, length(T, d))
+    case E.PushFront{x}:
+      (push_front(T, d, x), E.OUnit{})
+    case E.PushBack{x}:
+      (push_back(T, d, x), E.OUnit{})
+    case E.PopFront{}:
+      obs_item(T, pop_front(T, d))
+    case E.PopBack{}:
+      obs_item(T, pop_back(T, d))
+    case E.PeekFront{}:
+      obs_item(T, peek_front(T, d))
+    case E.PeekBack{}:
+      obs_item(T, peek_back(T, d))
+    case E.ToList{}:
+      obs_list(T, to_list(T, d))
+
+def record(-T: Data, acc: List<&2, E.Obs<T>>, r: Deque<T> & E.Obs<T>) -> Deque<T> & List<&2, E.Obs<T>>:
+  (d, o) = r
+  (d, Con{o, acc})
+
+def step_acc(-T: Data, op: E.Op<T>, st: Deque<T> & List<&2, E.Obs<T>>) -> Deque<T> & List<&2, E.Obs<T>>:
+  (d, acc) = st
+  record(T, acc, step(T, d, op))
+
+def run_acc(-T: Data, ops: List<&2, E.Op<T>>, st: Deque<T> & List<&2, E.Obs<T>>) -> Deque<T> & List<&2, E.Obs<T>>:
+  match ops:
+    case Nil{}:
+      st
+    case Con{op, rest}:
+      run_acc(T, rest, step_acc(T, op, st))
+
+def finish(-T: Data, st: Deque<T> & List<&2, E.Obs<T>>) -> Deque<T> & List<&2, E.Obs<T>>:
+  (d, acc) = st
+  (d, List.reverse(&2, E.Obs<T>, acc))
+
+def run(-T: Data, ops: List<&2, E.Op<T>>, d: Deque<T>) -> Deque<T> & List<&2, E.Obs<T>>:
+  finish(T, run_acc(T, ops, (d, Nil{})))

@@ -1,0 +1,168 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/list.bend as LL
+import ../lib/vec.bend as VL
+import ../../spec/common.bend as SC
+import ../../spec/union_find.bend as S
+import ../../src/union_find.bend as U
+import ../../src/internal/vec.bend as V
+import ./model.bend as M
+import ./union.bend as UN
+import ./steps.bend as ST
+
+# The constructor: new(n) holds singleton classes for every slot, so it
+# satisfies the invariant and abstracts to the spec's [0, ..., n-1].
+
+def cell0(+y: Nat) -> U.Cell:
+  U.Cell{y, 1n, Con{y, Nil{}}}
+
+def sing_perfect(+d: Nat, +off: Nat) -> {VL.perfect(U.Cell, d, U.singletons(d, off)) == True{} : Bool}:
+  match d:
+    case 0n:
+      {==}
+    case 1n+p:
+      L.and_intro(VL.perfect(U.Cell, p, U.singletons(p, off)), VL.perfect(U.Cell, p, U.singletons(p, Nat.add(off, V.pow2(p)))), sing_perfect(p, off), sing_perfect(p, Nat.add(off, V.pow2(p))))
+
+def sing_case(+p: Nat, +off: Nat, +j: Nat, +hj: {Nat.is_lt(j, V.pow2(1n+p)) == True{} : Bool}, b: Bool, +eb: {Nat.is_lt(j, V.pow2(p)) == b : Bool}, ihl: @+q: {Nat.is_lt(j, V.pow2(p)) == True{} : Bool} -> {SC.nth(U.Cell, VL.slots(U.Cell, U.singletons(p, off)), j) == Some{cell0(Nat.add(off, j))} : Maybe<&2, U.Cell>}, ihr: @+q: {Nat.is_lt(Nat.sub(j, V.pow2(p)), V.pow2(p)) == True{} : Bool} -> {SC.nth(U.Cell, VL.slots(U.Cell, U.singletons(p, Nat.add(off, V.pow2(p)))), Nat.sub(j, V.pow2(p))) == Some{cell0(Nat.add(Nat.add(off, V.pow2(p)), Nat.sub(j, V.pow2(p))))} : Maybe<&2, U.Cell>}) -> {SC.nth(U.Cell, SC.append(U.Cell, VL.slots(U.Cell, U.singletons(p, off)), VL.slots(U.Cell, U.singletons(p, Nat.add(off, V.pow2(p))))), j) == Some{cell0(Nat.add(off, j))} : Maybe<&2, U.Cell>}:
+  match b:
+    case True{}:
+      +el = VL.left_len(U.Cell, p, U.singletons(p, off), sing_perfect(p, off))
+      Equal.trans(Maybe<&2, U.Cell>, SC.nth(U.Cell, SC.append(U.Cell, VL.slots(U.Cell, U.singletons(p, off)), VL.slots(U.Cell, U.singletons(p, Nat.add(off, V.pow2(p))))), j), SC.nth(U.Cell, VL.slots(U.Cell, U.singletons(p, off)), j), Some{cell0(Nat.add(off, j))},
+        LL.nth_append_left(U.Cell, VL.slots(U.Cell, U.singletons(p, off)), VL.slots(U.Cell, U.singletons(p, Nat.add(off, V.pow2(p)))), j, L.subst(Nat, k => {Nat.is_lt(j, k) == True{} : Bool}, V.pow2(p), SC.length(U.Cell, VL.slots(U.Cell, U.singletons(p, off))), el, eb)),
+        ihl(eb))
+    case False{}:
+      +el = VL.left_len(U.Cell, p, U.singletons(p, off), sing_perfect(p, off))
+      +le = N.not_lt_le(j, V.pow2(p), eb)
+      +ea = Equal.trans(Nat, Nat.add(Nat.add(off, V.pow2(p)), Nat.sub(j, V.pow2(p))), Nat.add(off, Nat.add(V.pow2(p), Nat.sub(j, V.pow2(p)))), Nat.add(off, j), N.add_assoc(off, V.pow2(p), Nat.sub(j, V.pow2(p))), Equal.cong(Nat, Nat, q => Nat.add(off, q), Nat.add(V.pow2(p), Nat.sub(j, V.pow2(p))), j, N.sub_add(j, V.pow2(p), le)))
+      Equal.trans(Maybe<&2, U.Cell>, SC.nth(U.Cell, SC.append(U.Cell, VL.slots(U.Cell, U.singletons(p, off)), VL.slots(U.Cell, U.singletons(p, Nat.add(off, V.pow2(p))))), j), SC.nth(U.Cell, VL.slots(U.Cell, U.singletons(p, Nat.add(off, V.pow2(p)))), Nat.sub(j, V.pow2(p))), Some{cell0(Nat.add(off, j))},
+        %Equal.sym(Nat, V.pow2(p), SC.length(U.Cell, VL.slots(U.Cell, U.singletons(p, off))), el) : {SC.nth(U.Cell, SC.append(U.Cell, VL.slots(U.Cell, U.singletons(p, off)), VL.slots(U.Cell, U.singletons(p, Nat.add(off, V.pow2(p))))), j) == SC.nth(U.Cell, VL.slots(U.Cell, U.singletons(p, Nat.add(off, V.pow2(p)))), Nat.sub(j, _)) : Maybe<&2, U.Cell>}
+        LL.nth_append_right(U.Cell, VL.slots(U.Cell, U.singletons(p, off)), VL.slots(U.Cell, U.singletons(p, Nat.add(off, V.pow2(p)))), j, L.subst(Nat, k => {Nat.is_le(k, j) == True{} : Bool}, V.pow2(p), SC.length(U.Cell, VL.slots(U.Cell, U.singletons(p, off))), el, le)),
+        %ea : {SC.nth(U.Cell, VL.slots(U.Cell, U.singletons(p, Nat.add(off, V.pow2(p)))), Nat.sub(j, V.pow2(p))) == Some{cell0(_)} : Maybe<&2, U.Cell>}
+        ihr(VL.upper_lt(j, p, hj, le)))
+
+def sing_nth(+d: Nat, +off: Nat, +j: Nat, +hj: {Nat.is_lt(j, V.pow2(d)) == True{} : Bool}) -> {SC.nth(U.Cell, VL.slots(U.Cell, U.singletons(d, off)), j) == Some{cell0(Nat.add(off, j))} : Maybe<&2, U.Cell>}:
+  match d:
+    case 0n:
+      match j:
+        case 0n:
+          %Equal.sym(Nat, Nat.add(off, 0n), off, N.add_zero(off)) : {Some{cell0(off)} == Some{cell0(_)} : Maybe<&2, U.Cell>}
+          {==}
+        case 1n+q:
+          Empty.absurd({SC.nth(U.Cell, Con{cell0(off), Nil{}}, 1n+q) == Some{cell0(Nat.add(off, 1n+q))} : Maybe<&2, U.Cell>}, N.lt_zero_absurd(q, hj))
+    case 1n+ +p:
+      sing_case(p, off, j, hj, Nat.is_lt(j, V.pow2(p)), {==}, q => sing_nth(p, off, j, q), q => sing_nth(p, Nat.add(off, V.pow2(p)), Nat.sub(j, V.pow2(p)), q))
+
+def cl0(+d: Nat) -> List<&2, U.Cell>:
+  VL.slots(U.Cell, U.singletons(d, 0n))
+
+def lc0(+d: Nat, +y: Nat, +hy: {Nat.is_lt(y, V.pow2(d)) == True{} : Bool}) -> {M.lc(cl0(d), y) == cell0(y) : U.Cell}:
+  Equal.cong(Maybe<&2, U.Cell>, U.Cell, m => U.cell_of(m, y), SC.nth(U.Cell, cl0(d), y), Some{cell0(y)}, sing_nth(d, 0n, y, hy))
+
+def rt0(+d: Nat, +y: Nat, +hy: {Nat.is_lt(y, V.pow2(d)) == True{} : Bool}) -> {M.rt(cl0(d), y) == y : Nat}:
+  Equal.cong(U.Cell, Nat, c => U.croot(c), M.lc(cl0(d), y), cell0(y), lc0(d, y, hy))
+
+def or_false(+a: Bool) -> {Bool.or(a, False{}) == a : Bool}:
+  match a:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+def mem0(+n: Nat, +d: Nat, +hc: {Nat.is_le(n, V.pow2(d)) == True{} : Bool}, +y: Nat, +k: Nat, +hk: {Nat.is_le(k, n) == True{} : Bool}) -> {M.mem_ok(cl0(d), y, Con{y, Nil{}}, k) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+j:
+      +hj = N.lt_le_trans(j, n, V.pow2(d), N.succ_le_lt(j, n, hk), hc)
+      L.and_intro(M.mem_ok(cl0(d), y, Con{y, Nil{}}, j), M.beq(M.elem(Con{y, Nil{}}, j), Nat.is_eq(M.rt(cl0(d), j), y)),
+        mem0(n, d, hc, y, j, N.lt_le(j, n, N.succ_le_lt(j, n, hk))),
+        M.beq_of(Bool.or(Nat.is_eq(y, j), False{}), Nat.is_eq(M.rt(cl0(d), j), y),
+          Equal.trans(Bool, Bool.or(Nat.is_eq(y, j), False{}), Nat.is_eq(j, y), Nat.is_eq(M.rt(cl0(d), j), y),
+            Equal.trans(Bool, Bool.or(Nat.is_eq(y, j), False{}), Nat.is_eq(y, j), Nat.is_eq(j, y), or_false(Nat.is_eq(y, j)), M.is_eq_sym(y, j)),
+            Equal.cong(Nat, Bool, q => Nat.is_eq(q, y), j, M.rt(cl0(d), j), Equal.sym(Nat, M.rt(cl0(d), j), j, rt0(d, j, hj))))))
+
+def cnt0_case(+y: Nat, +j: Nat, b: Bool, +eb: {Nat.is_eq(j, y) == b : Bool}) -> {Nat.add(S.eq_bit(Nat.is_lt(y, j)), S.eq_bit(Nat.is_eq(j, y))) == S.eq_bit(Nat.is_lt(y, 1n+j)) : Nat}:
+  match b:
+    case True{}:
+      %Equal.sym(Nat, j, y, N.eq_from_is_eq(j, y, eb)) : {Nat.add(S.eq_bit(Nat.is_lt(y, _)), S.eq_bit(Nat.is_eq(_, y))) == S.eq_bit(Nat.is_lt(y, 1n+_)) : Nat}
+      %Equal.sym(Bool, Nat.is_lt(y, y), False{}, N.lt_irrefl(y)) : {Nat.add(S.eq_bit(_), S.eq_bit(Nat.is_eq(y, y))) == S.eq_bit(Nat.is_lt(y, 1n+y)) : Nat}
+      %Equal.sym(Bool, Nat.is_eq(y, y), True{}, N.is_eq_refl(y)) : {Nat.add(0n, S.eq_bit(_)) == S.eq_bit(Nat.is_lt(y, 1n+y)) : Nat}
+      %Equal.sym(Bool, Nat.is_lt(y, 1n+y), True{}, N.lt_succ(y)) : {1n == S.eq_bit(_) : Nat}
+      {==}
+    case False{}:
+      %Equal.sym(Bool, Nat.is_eq(j, y), False{}, eb) : {Nat.add(S.eq_bit(Nat.is_lt(y, j)), S.eq_bit(_)) == S.eq_bit(Nat.is_lt(y, 1n+j)) : Nat}
+      %UN.lt_succ_ne(y, j, Equal.trans(Bool, Nat.is_eq(y, j), Nat.is_eq(j, y), False{}, M.is_eq_sym(y, j), eb)) : {Nat.add(S.eq_bit(Nat.is_lt(y, j)), 0n) == S.eq_bit(_) : Nat}
+      N.add_zero(S.eq_bit(Nat.is_lt(y, j)))
+
+def cnt0(+n: Nat, +d: Nat, +hc: {Nat.is_le(n, V.pow2(d)) == True{} : Bool}, +y: Nat, +k: Nat, +hk: {Nat.is_le(k, n) == True{} : Bool}) -> {M.cnt_r(cl0(d), y, k) == S.eq_bit(Nat.is_lt(y, k)) : Nat}:
+  match k:
+    case 0n:
+      %Equal.sym(Bool, Nat.is_lt(y, 0n), False{}, N.not_lt_zero(y)) : {0n == S.eq_bit(_) : Nat}
+      {==}
+    case 1n+j:
+      +hj = N.lt_le_trans(j, n, V.pow2(d), N.succ_le_lt(j, n, hk), hc)
+      %Equal.sym(Nat, M.cnt_r(cl0(d), y, j), S.eq_bit(Nat.is_lt(y, j)), cnt0(n, d, hc, y, j, N.lt_le(j, n, N.succ_le_lt(j, n, hk)))) : {Nat.add(_, S.eq_bit(Nat.is_eq(M.rt(cl0(d), j), y))) == S.eq_bit(Nat.is_lt(y, 1n+j)) : Nat}
+      %Equal.sym(Nat, M.rt(cl0(d), j), j, rt0(d, j, hj)) : {Nat.add(S.eq_bit(Nat.is_lt(y, j)), S.eq_bit(Nat.is_eq(_, y))) == S.eq_bit(Nat.is_lt(y, 1n+j)) : Nat}
+      cnt0_case(y, j, Nat.is_eq(j, y), {==})
+
+def good0_at(+n: Nat, +d: Nat, +hc: {Nat.is_le(n, V.pow2(d)) == True{} : Bool}, +y: Nat, +hy: {Nat.is_lt(y, n) == True{} : Bool}) -> {M.good_at(cl0(d), n, y) == True{} : Bool}:
+  +hy2 = N.lt_le_trans(y, n, V.pow2(d), hy, hc)
+  +er = rt0(d, y, hy2)
+  %Equal.sym(Nat, M.rt(cl0(d), y), y, er) : {Bool.and(Nat.is_lt(_, n), Bool.and(Nat.is_eq(M.rt(cl0(d), _), _), M.root_ok(Nat.is_eq(_, y), cl0(d), n, y))) == True{} : Bool}
+  %Equal.sym(Nat, M.rt(cl0(d), y), y, er) : {Bool.and(Nat.is_lt(y, n), Bool.and(Nat.is_eq(_, y), M.root_ok(Nat.is_eq(y, y), cl0(d), n, y))) == True{} : Bool}
+  %Equal.sym(Bool, Nat.is_eq(y, y), True{}, N.is_eq_refl(y)) : {Bool.and(Nat.is_lt(y, n), Bool.and(_, M.root_ok(_, cl0(d), n, y))) == True{} : Bool}
+  L.and_intro(Nat.is_lt(y, n), Bool.and(True{}, M.root_ok(True{}, cl0(d), n, y)), hy,
+    L.subst(U.Cell, c => {UN.RK(cl0(d), n, y, c) == True{} : Bool}, cell0(y), M.lc(cl0(d), y), Equal.sym(U.Cell, M.lc(cl0(d), y), cell0(y), lc0(d, y, hy2)),
+      L.and_intro(Bool.and(Nat.is_lt(y, n), True{}), Bool.and(M.mem_ok(cl0(d), y, Con{y, Nil{}}, n), Nat.is_eq(1n, M.cnt_r(cl0(d), y, n))), L.and_intro(Nat.is_lt(y, n), True{}, hy, {==}),
+        L.and_intro(M.mem_ok(cl0(d), y, Con{y, Nil{}}, n), Nat.is_eq(1n, M.cnt_r(cl0(d), y, n)), mem0(n, d, hc, y, n, N.le_refl(n)),
+          %Equal.sym(Nat, M.cnt_r(cl0(d), y, n), S.eq_bit(Nat.is_lt(y, n)), cnt0(n, d, hc, y, n, N.le_refl(n))) : {Nat.is_eq(1n, _) == True{} : Bool}
+          %Equal.sym(Bool, Nat.is_lt(y, n), True{}, hy) : {Nat.is_eq(1n, S.eq_bit(_)) == True{} : Bool}
+          {==}))))
+
+def good0(+n: Nat, +d: Nat, +hc: {Nat.is_le(n, V.pow2(d)) == True{} : Bool}, +k: Nat, +hk: {Nat.is_le(k, n) == True{} : Bool}) -> {M.good(cl0(d), n, k) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+j:
+      L.and_intro(M.good(cl0(d), n, j), M.good_at(cl0(d), n, j), good0(n, d, hc, j, N.lt_le(j, n, N.succ_le_lt(j, n, hk))), good0_at(n, d, hc, j, N.succ_le_lt(j, n, hk)))
+
+def fix0(+n: Nat, +d: Nat, +hc: {Nat.is_le(n, V.pow2(d)) == True{} : Bool}, +k: Nat, +hk: {Nat.is_le(k, n) == True{} : Bool}) -> {M.cnt_fix(cl0(d), k) == k : Nat}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+j:
+      +hj = N.lt_le_trans(j, n, V.pow2(d), N.succ_le_lt(j, n, hk), hc)
+      %Equal.sym(Nat, M.cnt_fix(cl0(d), j), j, fix0(n, d, hc, j, N.lt_le(j, n, N.succ_le_lt(j, n, hk)))) : {Nat.add(_, S.eq_bit(Nat.is_eq(M.rt(cl0(d), j), j))) == 1n+j : Nat}
+      %Equal.sym(Nat, M.rt(cl0(d), j), j, rt0(d, j, hj)) : {Nat.add(j, S.eq_bit(Nat.is_eq(_, j))) == 1n+j : Nat}
+      %Equal.sym(Bool, Nat.is_eq(j, j), True{}, N.is_eq_refl(j)) : {Nat.add(j, S.eq_bit(_)) == 1n+j : Nat}
+      Equal.trans(Nat, Nat.add(j, 1n), Nat.add(1n, j), 1n+j, N.add_comm(j, 1n), {==})
+
+def iota_snoc(+k: Nat, +off: Nat) -> {S.iota(1n+k, off) == SC.snoc(Nat, S.iota(k, off), Nat.add(off, k)) : List<&2, Nat>}:
+  match k:
+    case 0n:
+      %Equal.sym(Nat, Nat.add(off, 0n), off, N.add_zero(off)) : {Con{off, Nil{}} == Con{_, Nil{}} : List<&2, Nat>}
+      {==}
+    case 1n+q:
+      %Equal.sym(List<&2, Nat>, S.iota(1n+q, 1n+off), SC.snoc(Nat, S.iota(q, 1n+off), Nat.add(1n+off, q)), iota_snoc(q, 1n+off)) : {Con{off, _} == SC.snoc(Nat, Con{off, S.iota(q, 1n+off)}, Nat.add(off, 1n+q)) : List<&2, Nat>}
+      %Equal.sym(Nat, Nat.add(off, 1n+q), 1n+Nat.add(off, q), N.add_succ(off, q)) : {Con{off, SC.snoc(Nat, S.iota(q, 1n+off), 1n+Nat.add(off, q))} == Con{off, SC.snoc(Nat, S.iota(q, 1n+off), _)} : List<&2, Nat>}
+      {==}
+
+def labs0(+n: Nat, +d: Nat, +hc: {Nat.is_le(n, V.pow2(d)) == True{} : Bool}, +k: Nat, +hk: {Nat.is_le(k, n) == True{} : Bool}) -> {M.labs(cl0(d), k) == S.iota(k, 0n) : List<&2, Nat>}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+j:
+      +hj = N.lt_le_trans(j, n, V.pow2(d), N.succ_le_lt(j, n, hk), hc)
+      %Equal.sym(List<&2, Nat>, S.iota(1n+j, 0n), SC.snoc(Nat, S.iota(j, 0n), j), iota_snoc(j, 0n)) : {SC.snoc(Nat, M.labs(cl0(d), j), M.rt(cl0(d), j)) == _ : List<&2, Nat>}
+      %Equal.sym(List<&2, Nat>, M.labs(cl0(d), j), S.iota(j, 0n), labs0(n, d, hc, j, N.lt_le(j, n, N.succ_le_lt(j, n, hk)))) : {SC.snoc(Nat, _, M.rt(cl0(d), j)) == SC.snoc(Nat, S.iota(j, 0n), j) : List<&2, Nat>}
+      %Equal.sym(Nat, M.rt(cl0(d), j), j, rt0(d, j, hj)) : {SC.snoc(Nat, S.iota(j, 0n), _) == SC.snoc(Nat, S.iota(j, 0n), j) : List<&2, Nat>}
+      {==}
+
+def new_inv(+n: Nat) -> {ST.inv(U.new(n)) == True{} : Bool}:
+  +d = V.depth_for(n)
+  +hc = VL.depth_for(n)
+  ST.i_mk(n, d, U.singletons(d, 0n), n, sing_perfect(d, 0n), hc, good0(n, d, hc, n, N.le_refl(n)), Equal.sym(Nat, M.cnt_fix(cl0(d), n), n, fix0(n, d, hc, n, N.le_refl(n))))
+
+def new_abs(+n: Nat) -> {ST.abs(U.new(n)) == S.new(n) : List<&2, Nat>}:
+  labs0(n, V.depth_for(n), VL.depth_for(n), n, N.le_refl(n))
