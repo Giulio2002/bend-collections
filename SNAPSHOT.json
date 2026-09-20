@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-09-20T21:03:13.271457+00:00",
+  "captured_at": "2026-09-20T21:46:42.541426+00:00",
   "repository": "bend-collections",
   "kind": "unverified_development_snapshot",
   "full_acceptance_passed": false,
@@ -10,7 +10,13 @@
       "too_slow": 1,
       "unmeasurable": 1,
       "source_hash_mismatches": [
+        "END_TO_END.bend",
         "benchmarks/run.py",
+        "proofs/binary_heap.bend",
+        "proofs/binary_heap/ops.bend",
+        "proofs/binary_heap/steps.bend",
+        "proofs/binary_heap/trace.bend",
+        "proofs/binary_heap/tree.bend",
         "src/binary_heap.bend"
       ],
       "current_snapshot_validated": false
@@ -21,6 +27,7 @@
       "too_slow": 9,
       "unmeasurable": 4,
       "source_hash_mismatches": [
+        "END_TO_END.bend",
         "benchmarks/bend/balanced_search_tree.bend",
         "benchmarks/bend/binary_heap.bend",
         "benchmarks/bend/deque.bend",
@@ -37,6 +44,11 @@
         "benchmarks/native/redblack.h",
         "benchmarks/run.py",
         "benchmarks/workloads.py",
+        "proofs/binary_heap.bend",
+        "proofs/binary_heap/ops.bend",
+        "proofs/binary_heap/steps.bend",
+        "proofs/binary_heap/trace.bend",
+        "proofs/binary_heap/tree.bend",
         "proofs/deque.bend",
         "src/binary_heap.bend"
       ],
@@ -65,6 +77,11 @@
         "benchmarks/native/redblack.h",
         "benchmarks/run.py",
         "benchmarks/workloads.py",
+        "proofs/binary_heap.bend",
+        "proofs/binary_heap/ops.bend",
+        "proofs/binary_heap/steps.bend",
+        "proofs/binary_heap/trace.bend",
+        "proofs/binary_heap/tree.bend",
         "proofs/bitset/state.bend",
         "proofs/deque.bend",
         "proofs/deque/core.bend",
@@ -94,6 +111,7 @@
       "too_slow": 4,
       "unmeasurable": 0,
       "source_hash_mismatches": [
+        "END_TO_END.bend",
         "benchmarks/bend/balanced_search_tree.bend",
         "benchmarks/bend/binary_heap.bend",
         "benchmarks/bend/deque.bend",
@@ -110,6 +128,11 @@
         "benchmarks/native/redblack.h",
         "benchmarks/run.py",
         "benchmarks/workloads.py",
+        "proofs/binary_heap.bend",
+        "proofs/binary_heap/ops.bend",
+        "proofs/binary_heap/steps.bend",
+        "proofs/binary_heap/trace.bend",
+        "proofs/binary_heap/tree.bend",
         "proofs/deque.bend",
         "proofs/dynamic_array/closed.bend",
         "proofs/dynamic_array/steps.bend",
@@ -124,6 +147,7 @@
       "too_slow": 5,
       "unmeasurable": 5,
       "source_hash_mismatches": [
+        "END_TO_END.bend",
         "benchmarks/bend/balanced_search_tree.bend",
         "benchmarks/bend/binary_heap.bend",
         "benchmarks/bend/deque.bend",
@@ -140,6 +164,11 @@
         "benchmarks/native/redblack.h",
         "benchmarks/run.py",
         "benchmarks/workloads.py",
+        "proofs/binary_heap.bend",
+        "proofs/binary_heap/ops.bend",
+        "proofs/binary_heap/steps.bend",
+        "proofs/binary_heap/trace.bend",
+        "proofs/binary_heap/tree.bend",
         "proofs/bitset/state.bend",
         "proofs/deque.bend",
         "proofs/dynamic_array/closed.bend",
@@ -177,6 +206,11 @@
         "benchmarks/native/redblack.h",
         "benchmarks/run.py",
         "benchmarks/workloads.py",
+        "proofs/binary_heap.bend",
+        "proofs/binary_heap/ops.bend",
+        "proofs/binary_heap/steps.bend",
+        "proofs/binary_heap/trace.bend",
+        "proofs/binary_heap/tree.bend",
         "proofs/bitset/state.bend",
         "proofs/deque.bend",
         "proofs/deque/core.bend",
@@ -202,5 +236,6 @@
     }
   ],
   "evidence_scope": "historical targeted runs; source changed during ongoing development; no current-snapshot pass claimed",
-  "source_sha256_file": "SNAPSHOT_SOURCE_SHA256.json"
+  "source_sha256_file": "SNAPSHOT_SOURCE_SHA256.json",
+  "milestone": "Heap targeted integration validation, trace checks and six rejected mutants; full acceptance incomplete"
 }

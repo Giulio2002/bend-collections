@@ -1,4 +1,4 @@
-> **Development snapshot:** implementation/proofs are incomplete and performance acceptance has not passed. See [current snapshot status and benchmark evidence](SNAPSHOT_STATUS.md).
+> **Development snapshot:** implementation/proofs are incomplete and performance acceptance has not passed. See [snapshot status and benchmark evidence](SNAPSHOT_STATUS.md).
 
 # bend-dsa
 

@@ -5,6 +5,16 @@ Private development snapshot, not a finished or fully verified release.
 Progress: native-array ports for several collections, binary heap implementation
 and ongoing heap invariant/trace proofs. The full <=2.5x C gate is NOT satisfied.
 
+## New milestone: heap integration validation
+
+The targeted heap validator now passes runtime, differential/boundary tests,
+trace-proof checking and all six semantic mutation rejections. Raw report:
+`snapshot-evidence/validation-binary-heap.json`. It is a subset, so complete=false
+is expected. Checker output contains 861 unsafe annotations across dependencies;
+this is not an independent end-to-end proof/trust audit. Performance remains
+separate: the earlier heap benchmark had 26/28 within 2.5x, one over and one
+unmeasurable, and predates these latest proof/API edits.
+
 ## Retained benchmark evidence
 
 These are historical targeted runs from this work session, NOT a fresh test of

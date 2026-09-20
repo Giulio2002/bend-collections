@@ -32,6 +32,7 @@ import ./src/binary_heap.bend as BH
 import ./spec/binary_heap.bend as BHS
 import ./types/binary_heap.bend as BHT
 import ./proofs/binary_heap.bend as BHP
+import ./proofs/binary_heap/state.bend as BHSH
 import ./proofs/binary_heap/steps.bend as BHST
 import ./proofs/binary_heap/trace.bend as BHTR
 import ./src/bitset.bend as BI
@@ -506,47 +507,90 @@ def queue_trace_at_is_the_trace(ops, room):
   QUP.trace_new_at(~Nat, ops, room)
 
 # =========================== binary_heap ==============================
-# Generic over a comparator; restated at both checked instances.
+# The block is a linear Base.Array, so -- as for dynamic_array, bitset and
+# deque -- the laws are about the heap BUILT from a Data mirror tree
+# (BHSH.real of a shadow). Generic over a comparator; restated at both
+# checked instances. `room` is the representation's capacity condition (a
+# push doubles the block at most once; 2^31 slots).
+
+law binary_heap_u32_new:
+  {BHSH.model(~U32, ~U32.cmp, BHSH.initial(~U32)) == Nil{} : List<&2, U32>}
+def binary_heap_u32_new():
+  BHP.new_abs(~U32, ~U32.cmp)
+
+law binary_heap_u32_new_good:
+  {BHSH.good(~U32, ~U32.cmp, BHSH.initial(~U32)) == True{} : Bool}
+def binary_heap_u32_new_good():
+  BHP.new_inv(~U32, ~U32.cmp)
+
+law binary_heap_u32_new_is_the_constructor:
+  {BH.new(~U32) == BHSH.real(~U32, BHSH.initial(~U32)) : BH.Heap<U32>}
+def binary_heap_u32_new_is_the_constructor():
+  BHP.new_real(~U32, ~U32.cmp)
+
+law binary_heap_u32_abstraction_of_a_real_heap:
+  for +sh: BHSH.Shadow<U32>
+  {BHSH.abs(~U32, ~U32.cmp, BHSH.real(~U32, sh)) == BHSH.model(~U32, ~U32.cmp, sh) : List<&2, U32>}
+def binary_heap_u32_abstraction_of_a_real_heap(sh):
+  BHP.abs_real(~U32, ~U32.cmp, sh)
+
+law binary_heap_string_new:
+  {BHSH.model(~String, ~String.order, BHSH.initial(~String)) == Nil{} : List<&2, String>}
+def binary_heap_string_new():
+  BHP.new_abs(~String, ~String.order)
+
+law binary_heap_string_new_is_the_constructor:
+  {BH.new(~String) == BHSH.real(~String, BHSH.initial(~String)) : BH.Heap<String>}
+def binary_heap_string_new_is_the_constructor():
+  BHP.new_real(~String, ~String.order)
+
+law binary_heap_string_abstraction_of_a_real_heap:
+  for +sh: BHSH.Shadow<String>
+  {BHSH.abs(~String, ~String.order, BHSH.real(~String, sh)) == BHSH.model(~String, ~String.order, sh) : List<&2, String>}
+def binary_heap_string_abstraction_of_a_real_heap(sh):
+  BHP.abs_real(~String, ~String.order, sh)
 
 law binary_heap_u32_step:
-  for +h: BH.Heap<U32>
-  for +op: BHT.Op<U32>
-  for +g: {BHST.inv(~U32, ~U32.cmp, h) == True{} : Bool}
-  BHST.StepOK(~U32, ~U32.cmp, h, op)
-def binary_heap_u32_step(h, op, g):
-  BHP.u32_step_ok(h, op, g)
+  for sh: BHSH.Shadow<U32>
+  for op: BHT.Op<U32>
+  for +g: {BHSH.good(~U32, ~U32.cmp, sh) == True{} : Bool}
+  for +room: {Nat.is_le(Nat.add(BHSH.sh_depth(~U32, sh), BHST.pushcost(~U32, op)), 31n) == True{} : Bool}
+  BHST.StepOK(~U32, ~U32.cmp, sh, op)
+def binary_heap_u32_step(sh, op, g, room):
+  BHP.u32_step_ok(sh, op, g, room)
 
 law binary_heap_u32_trace:
   for +ops: List<&2, BHT.Op<U32>>
-  {BHTR.view(~U32, ~U32.cmp, ~O.u32_order, BH.run_u32(ops, BH.new(U32))) == BHS.run(~U32, ~U32.cmp, ops, Nil{}) : List<&2, U32> & List<&2, BHT.Obs<U32>>}
-def binary_heap_u32_trace(ops):
-  BHP.u32_trace(ops)
+  for +room: {Nat.is_le(Nat.add(0n, BHTR.pushes(~U32, ops)), 31n) == True{} : Bool}
+  BHTR.TraceOK(~U32, ~U32.cmp, ops, BHSH.initial(~U32))
+def binary_heap_u32_trace(ops, room):
+  BHP.u32_trace(ops, room)
 
-law binary_heap_u32_trace_invariant:
-  for +ops: List<&2, BHT.Op<U32>>
-  {BHST.inv(~U32, ~U32.cmp, Pair.fst(BH.Heap<U32>, List<&2, BHT.Obs<U32>>, BH.run_u32(ops, BH.new(U32)))) == True{} : Bool}
-def binary_heap_u32_trace_invariant(ops):
-  BHP.u32_trace_inv(ops)
+law binary_heap_u32_new_invariant:
+  BHSH.Inv(~U32, ~U32.cmp, BH.new(~U32))
+def binary_heap_u32_new_invariant():
+  BHP.u32_new_inv()
 
 law binary_heap_string_step:
-  for +h: BH.Heap<String>
-  for +op: BHT.Op<String>
-  for +g: {BHST.inv(~String, ~String.order, h) == True{} : Bool}
-  BHST.StepOK(~String, ~String.order, h, op)
-def binary_heap_string_step(h, op, g):
-  BHP.string_step_ok(h, op, g)
+  for sh: BHSH.Shadow<String>
+  for op: BHT.Op<String>
+  for +g: {BHSH.good(~String, ~String.order, sh) == True{} : Bool}
+  for +room: {Nat.is_le(Nat.add(BHSH.sh_depth(~String, sh), BHST.pushcost(~String, op)), 31n) == True{} : Bool}
+  BHST.StepOK(~String, ~String.order, sh, op)
+def binary_heap_string_step(sh, op, g, room):
+  BHP.string_step_ok(sh, op, g, room)
 
 law binary_heap_string_trace:
   for +ops: List<&2, BHT.Op<String>>
-  {BHTR.view(~String, ~String.order, ~O.string_order, BH.run_string(ops, BH.new(String))) == BHS.run(~String, ~String.order, ops, Nil{}) : List<&2, String> & List<&2, BHT.Obs<String>>}
-def binary_heap_string_trace(ops):
-  BHP.string_trace(ops)
+  for +room: {Nat.is_le(Nat.add(0n, BHTR.pushes(~String, ops)), 31n) == True{} : Bool}
+  BHTR.TraceOK(~String, ~String.order, ops, BHSH.initial(~String))
+def binary_heap_string_trace(ops, room):
+  BHP.string_trace(ops, room)
 
-law binary_heap_string_trace_invariant:
-  for +ops: List<&2, BHT.Op<String>>
-  {BHST.inv(~String, ~String.order, Pair.fst(BH.Heap<String>, List<&2, BHT.Obs<String>>, BH.run_string(ops, BH.new(String)))) == True{} : Bool}
-def binary_heap_string_trace_invariant(ops):
-  BHP.string_trace_inv(ops)
+law binary_heap_string_new_invariant:
+  BHSH.Inv(~String, ~String.order, BH.new(~String))
+def binary_heap_string_new_invariant():
+  BHP.string_new_inv()
 
 # ============================== bitset ================================
 

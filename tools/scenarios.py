@@ -143,6 +143,16 @@ FUNCTIONAL = {
          'pop', 'len'],
         ['u32', 'push:7', 'push:7', 'push:7', 'sorted', 'len', 'pop',
          'sorted', 'peek'],
+        # a decreasing run: every push climbs the whole block, so a wrong
+        # parent or child index is visible in the drained order
+        ['u32', 'push:10', 'push:9', 'push:8', 'push:7', 'push:6', 'push:5',
+         'push:4', 'push:3', 'push:2', 'push:1', 'len', 'peek', 'sorted',
+         'pop', 'peek', 'pop', 'sorted', 'len'],
+        # an increasing run followed by removals: exercises sift-down over a
+        # block that has been grown twice
+        ['u32', 'push:1', 'push:2', 'push:3', 'push:4', 'push:5', 'push:6',
+         'push:7', 'push:8', 'push:9', 'pop', 'peek', 'pop', 'pop', 'sorted',
+         'push:0', 'peek', 'sorted', 'len'],
     ],
     'balanced_search_tree': [
         ['u32', 'len', 'ins:5:50', 'ins:2:20', 'ins:8:80', 'ins:1:10',

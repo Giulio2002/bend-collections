@@ -3,158 +3,263 @@ import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../lib/order.bend as O
+import ../lib/u32.bend as U
+import ../lib/array.bend as AR
 import ../../spec/common.bend as SC
 import ../../spec/binary_heap.bend as S
 import ../../src/binary_heap.bend as H
 import ../../types/binary_heap.bend as E
-import ./multiset.bend as M
-import ./tree.bend as TR
-import ./ops.bend as OP
+import ./idx.bend as IX
+import ./u32idx.bend as UX
+import ./slots.bend as SL
+import ./vals.bend as V
+import ./root.bend as RT
+import ./state.bend as ST
+import ./push.bend as PU
+import ./pop.bend as PO
+import ./sorted.bend as SO
 
-# Heap state: abstraction, invariant and every public operation.
+# One actual public operation on a good shadow's block yields the block of a
+# new good shadow, and (abstract state, observation) equals the spec step.
+#
+# The fourth component bounds the new depth: a push doubles the block at most
+# once and from_list charges one doubling per element it pushes; every other
+# operation leaves the depth alone. That is what lets the trace law carry a
+# single capacity premise for a whole operation list (trace.bend).
 
-def abs(~A: Data, ~cmp: A -> A -> Cmp, h: H.Heap<A>) -> List<&2, A>:
-  match h:
-    case H.BH{n, t}:
-      TR.ab(~A, ~cmp, t, Nil{})
+def pushcost(~A: Data, op: E.Op<A>) -> Nat:
+  match op:
+    case E.Length{}:
+      0n
+    case E.Push{x}:
+      1n
+    case E.Peek{}:
+      0n
+    case E.Pop{}:
+      0n
+    case E.FromList{items}:
+      SC.length(A, items)
+    case E.ToSortedList{}:
+      0n
 
-# Invariant: the cached size is the element count, and the tree is heap-ordered.
-def inv(~A: Data, ~cmp: A -> A -> Cmp, h: H.Heap<A>) -> Bool:
-  match h:
-    case H.BH{+n, +t}:
-      Bool.and(Nat.is_eq(n, SC.length(A, TR.ab(~A, ~cmp, t, Nil{}))), TR.ho(~A, ~cmp, t))
+def StepOK(~A: Data, ~cmp: A -> A -> Cmp, sh: ST.Shadow<A>, op: E.Op<A>) -> Type:
+  Sigma<&1, &1, ST.Shadow<A>, sh2 => Sigma<&1, &1, E.Obs<A>, o => {H.step(~A, ~cmp, ST.real(~A, sh), op) == (ST.real(~A, sh2), o) : H.Heap<A> & E.Obs<A>} & ({ST.good(~A, ~cmp, sh2) == True{} : Bool} & ({(ST.model(~A, ~cmp, sh2), o) == S.step(~A, ~cmp, ST.model(~A, ~cmp, sh), op) : List<&2, A> & E.Obs<A>} & {Nat.is_le(ST.sh_depth(~A, sh2), Nat.add(ST.sh_depth(~A, sh), pushcost(~A, op))) == True{} : Bool}))>>
 
-def view1(~A: Data, ~cmp: A -> A -> Cmp, r: H.Heap<A> & E.Obs<A>) -> List<&2, A> & E.Obs<A>:
-  match r:
-    case Tuple{h, o}:
-      (abs(~A, ~cmp, h), o)
+def mk(~A: Data, ~cmp: A -> A -> Cmp, -sh: ST.Shadow<A>, -op: E.Op<A>, sh2: ST.Shadow<A>, o: E.Obs<A>, e1: {H.step(~A, ~cmp, ST.real(~A, sh), op) == (ST.real(~A, sh2), o) : H.Heap<A> & E.Obs<A>}, e2: {ST.good(~A, ~cmp, sh2) == True{} : Bool}, e3: {(ST.model(~A, ~cmp, sh2), o) == S.step(~A, ~cmp, ST.model(~A, ~cmp, sh), op) : List<&2, A> & E.Obs<A>}, e4: {Nat.is_le(ST.sh_depth(~A, sh2), Nat.add(ST.sh_depth(~A, sh), pushcost(~A, op))) == True{} : Bool}) -> StepOK(~A, ~cmp, sh, op):
+  (sh2, (o, (e1, (e2, (e3, e4)))))
 
-def StepOK(~A: Data, ~cmp: A -> A -> Cmp, h: H.Heap<A>, op: E.Op<A>) -> Type:
-  {view1(~A, ~cmp, H.step(~A, ~cmp, h, op)) == S.step(~A, ~cmp, abs(~A, ~cmp, h), op) : List<&2, A> & E.Obs<A>} & {inv(~A, ~cmp, Pair.fst(H.Heap<A>, E.Obs<A>, H.step(~A, ~cmp, h, op))) == True{} : Bool}
+def le_same(+d: Nat) -> {Nat.is_le(d, Nat.add(d, 0n)) == True{} : Bool}:
+  %Equal.sym(Nat, Nat.add(d, 0n), d, N.add_zero(d)) : {Nat.is_le(d, _) == True{} : Bool}
+  N.le_refl(d)
 
-def inv_n(~A: Data, ~cmp: A -> A -> Cmp, +n: Nat, +t: H.Tree<A>, +g: {inv(~A, ~cmp, H.BH{n, t}) == True{} : Bool}) -> {n == SC.length(A, TR.ab(~A, ~cmp, t, Nil{})) : Nat}:
-  N.eq_from_is_eq(n, SC.length(A, TR.ab(~A, ~cmp, t, Nil{})), L.and_left(Nat.is_eq(n, SC.length(A, TR.ab(~A, ~cmp, t, Nil{}))), TR.ho(~A, ~cmp, t), g))
+def le_succ_add(+d: Nat) -> {Nat.is_le(1n+d, Nat.add(d, 1n)) == True{} : Bool}:
+  %Equal.sym(Nat, Nat.add(d, 1n), 1n+Nat.add(d, 0n), N.add_succ(d, 0n)) : {Nat.is_le(1n+d, _) == True{} : Bool}
+  %Equal.sym(Nat, Nat.add(d, 0n), d, N.add_zero(d)) : {Nat.is_le(1n+d, 1n+_) == True{} : Bool}
+  N.le_refl(1n+d)
 
-def inv_ho(~A: Data, ~cmp: A -> A -> Cmp, +n: Nat, +t: H.Tree<A>, +g: {inv(~A, ~cmp, H.BH{n, t}) == True{} : Bool}) -> {TR.ho(~A, ~cmp, t) == True{} : Bool}:
-  L.and_right(Nat.is_eq(n, SC.length(A, TR.ab(~A, ~cmp, t, Nil{}))), TR.ho(~A, ~cmp, t), g)
+# the empty/nonempty decision the implementation makes, in Nat
+def empty_bridge(+size: Nat, +depth: Nat, +hd: {Nat.is_le(depth, 31n) == True{} : Bool}, +hs: {Nat.is_le(size, SC.pow2(depth)) == True{} : Bool}) -> {U32.is_eq(U32.from_nat(size), U32.from_nat(0n)) == Nat.is_eq(size, 0n) : Bool}:
+  UX.eq_bridge(size, 0n, 1n+depth, hd,
+    N.le_lt_trans(size, SC.pow2(depth), SC.pow2(1n+depth), hs, N.pow2_lt_succ(depth)),
+    N.lt_le_trans(0n, SC.pow2(depth), SC.pow2(1n+depth), N.succ_le_lt(0n, SC.pow2(depth), N.pow2_pos(depth)), N.lt_le(SC.pow2(depth), SC.pow2(1n+depth), N.pow2_lt_succ(depth))))
 
-def inv_mk(~A: Data, ~cmp: A -> A -> Cmp, +n: Nat, +t: H.Tree<A>, +en: {n == SC.length(A, TR.ab(~A, ~cmp, t, Nil{})) : Nat}, +h: {TR.ho(~A, ~cmp, t) == True{} : Bool}) -> {inv(~A, ~cmp, H.BH{n, t}) == True{} : Bool}:
-  L.and_intro(Nat.is_eq(n, SC.length(A, TR.ab(~A, ~cmp, t, Nil{}))), TR.ho(~A, ~cmp, t), L.subst(Nat, k => {Nat.is_eq(n, k) == True{} : Bool}, n, SC.length(A, TR.ab(~A, ~cmp, t, Nil{})), en, N.is_eq_refl(n)), h)
+# ---- length ----
 
-def length_ins_c(~A: Data, ~cmp: A -> A -> Cmp, +x: A, +h: A, +t: List<&2, A>, +b: Bool, +e: {S.le(~A, ~cmp, x, h) == b : Bool}, +ih: {SC.length(A, S.ins(~A, ~cmp, x, t)) == 1n+SC.length(A, t) : Nat}) -> {SC.length(A, S.ins(~A, ~cmp, x, Con{h, t})) == 2n+SC.length(A, t) : Nat}:
+def length_ok(~A: Data, ~cmp: A -> A -> Cmp, +size: Nat, +depth: Nat, +t: AR.Tree<Maybe<&2, A>>, +g: {ST.good(~A, ~cmp, ST.Sh{size, depth, t}) == True{} : Bool}) -> StepOK(~A, ~cmp, ST.Sh{size, depth, t}, E.Length{}):
+  mk(~A, ~cmp, ST.Sh{size, depth, t}, E.Length{}, ST.Sh{size, depth, t}, E.ONat{size}, {==}, g,
+    Equal.cong(Nat, List<&2, A> & E.Obs<A>, k => (ST.model(~A, ~cmp, ST.Sh{size, depth, t}), E.ONat{k}), size, SC.length(A, ST.model(~A, ~cmp, ST.Sh{size, depth, t})),
+      Equal.sym(Nat, SC.length(A, ST.model(~A, ~cmp, ST.Sh{size, depth, t})), size, RT.model_length(~A, ~cmp, AR.slots(Maybe<&2, A>, t), size, ST.g_lay(~A, ~cmp, size, depth, t, g)))),
+    le_same(depth))
+
+# ---- peek ----
+
+def peek_at(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +m: Nat, +depth: Nat, +t: AR.Tree<Maybe<&2, A>>, +root: A, +g: {ST.good(~A, ~cmp, ST.Sh{1n+m, depth, t}) == True{} : Bool}, +h0: {SL.slot(~A, AR.slots(Maybe<&2, A>, t), 0n) == Some{root} : Maybe<&2, A>}) -> StepOK(~A, ~cmp, ST.Sh{1n+m, depth, t}, E.Peek{}):
+  +hd = ST.g_depth(~A, ~cmp, 1n+m, depth, t, g)
+  +pf = ST.g_perfect(~A, ~cmp, 1n+m, depth, t, g)
+  +hs = ST.g_size(~A, ~cmp, 1n+m, depth, t, g)
+  mk(~A, ~cmp, ST.Sh{1n+m, depth, t}, E.Peek{}, ST.Sh{1n+m, depth, t}, E.OItem{Done{root}},
+    %Equal.sym(Bool, U32.is_eq(U32.from_nat(1n+m), U32.from_nat(0n)), Nat.is_eq(1n+m, 0n), empty_bridge(1n+m, depth, hd, hs)) : {H.obs_item(~A, H.peek_go(~A, 1n+m, U32.from_nat(1n+m), depth, U.pow2u(depth), AR.thaw(Maybe<&2, A>, t), _)) == (ST.real(~A, ST.Sh{1n+m, depth, t}), E.OItem{Done{root}}) : H.Heap<A> & E.Obs<A>}
+    %Equal.sym(Array<Maybe<&2, A>> & Maybe<&2, A>, Array.get(Maybe<&2, A>, AR.thaw(Maybe<&2, A>, t), 0), (AR.thaw(Maybe<&2, A>, t), Some{root}), PO.get_root(~A, depth, t, root, ST.depth_lt32(depth, hd), pf, h0)) : {H.obs_item(~A, H.peek_found(~A, 1n+m, U32.from_nat(1n+m), depth, U.pow2u(depth), _)) == (ST.real(~A, ST.Sh{1n+m, depth, t}), E.OItem{Done{root}}) : H.Heap<A> & E.Obs<A>}
+    {==},
+    g,
+    Equal.cong(List<&2, A>, List<&2, A> & E.Obs<A>, zs => (ST.model(~A, ~cmp, ST.Sh{1n+m, depth, t}), E.OItem{S.item(A, SC.head(A, zs))}), Con{root, V.msort(~A, ~cmp, V.vals(~A, SC.update(Maybe<&2, A>, AR.slots(Maybe<&2, A>, t), 0n, None{}), 1n+m))}, ST.model(~A, ~cmp, ST.Sh{1n+m, depth, t}),
+      Equal.sym(List<&2, A>, ST.model(~A, ~cmp, ST.Sh{1n+m, depth, t}), Con{root, V.msort(~A, ~cmp, V.vals(~A, SC.update(Maybe<&2, A>, AR.slots(Maybe<&2, A>, t), 0n, None{}), 1n+m))},
+        RT.head_root(~A, ~cmp, ~o, AR.slots(Maybe<&2, A>, t), 1n+m, root, N.succ_le_lt(0n, 1n+m, N.zero_le(m)), ST.g_ho(~A, ~cmp, 1n+m, depth, t, g), ST.g_lay(~A, ~cmp, 1n+m, depth, t, g), h0))),
+    le_same(depth))
+
+def peek_some(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +m: Nat, +depth: Nat, +t: AR.Tree<Maybe<&2, A>>, +g: {ST.good(~A, ~cmp, ST.Sh{1n+m, depth, t}) == True{} : Bool}, sig: Sigma<&1, &1, A, v => {SL.slot(~A, AR.slots(Maybe<&2, A>, t), 0n) == Some{v} : Maybe<&2, A>}>) -> StepOK(~A, ~cmp, ST.Sh{1n+m, depth, t}, E.Peek{}):
+  match sig:
+    case Tuple{+root, +h0}:
+      peek_at(~A, ~cmp, ~o, m, depth, t, root, g, h0)
+
+def peek_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), size: Nat, +depth: Nat, +t: AR.Tree<Maybe<&2, A>>, +g: {ST.good(~A, ~cmp, ST.Sh{size, depth, t}) == True{} : Bool}) -> StepOK(~A, ~cmp, ST.Sh{size, depth, t}, E.Peek{}):
+  match size:
+    case 0n:
+      mk(~A, ~cmp, ST.Sh{0n, depth, t}, E.Peek{}, ST.Sh{0n, depth, t}, E.OItem{Fail{E.EmptyHeap{}}}, {==}, g, {==}, le_same(depth))
+    case 1n+ +m:
+      peek_some(~A, ~cmp, ~o, m, depth, t, g,
+        SL.slot_some(~A, SL.slot(~A, AR.slots(Maybe<&2, A>, t), 0n), SL.lay_at(~A, AR.slots(Maybe<&2, A>, t), 1n+m, 0n, ST.g_lay(~A, ~cmp, 1n+m, depth, t, g), N.succ_le_lt(0n, 1n+m, N.zero_le(m)))))
+
+def or_true(b: Bool) -> {Bool.or(b, True{}) == True{} : Bool}:
   match b:
     case True{}:
-      %Equal.sym(List<&2, A>, S.ins(~A, ~cmp, x, Con{h, t}), Con{x, Con{h, t}}, M.ins_cons(~A, ~cmp, x, h, t, True{}, e)) : {SC.length(A, _) == 2n+SC.length(A, t) : Nat}
       {==}
     case False{}:
-      %Equal.sym(List<&2, A>, S.ins(~A, ~cmp, x, Con{h, t}), Con{h, S.ins(~A, ~cmp, x, t)}, M.ins_cons(~A, ~cmp, x, h, t, False{}, e)) : {SC.length(A, _) == 2n+SC.length(A, t) : Nat}
-      N.succ_cong(SC.length(A, S.ins(~A, ~cmp, x, t)), 1n+SC.length(A, t), ih)
-
-def length_ins(~A: Data, ~cmp: A -> A -> Cmp, +x: A, +xs: List<&2, A>) -> {SC.length(A, S.ins(~A, ~cmp, x, xs)) == 1n+SC.length(A, xs) : Nat}:
-  match xs:
-    case Nil{}:
       {==}
-    case Con{+h, +t}:
-      length_ins_c(~A, ~cmp, x, h, t, S.le(~A, ~cmp, x, h), {==}, length_ins(~A, ~cmp, x, t))
 
-# The root of a heap-ordered tree comes first in its sorted multiset.
-def heap_top(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +x: A, +l: H.Tree<A>, +r: H.Tree<A>, +h: {TR.ho(~A, ~cmp, H.Node{x, l, r}) == True{} : Bool}) -> {TR.ab(~A, ~cmp, H.Node{x, l, r}, Nil{}) == Con{x, TR.ab(~A, ~cmp, l, TR.ab(~A, ~cmp, r, Nil{}))} : List<&2, A>}:
-  +s = TR.ab(~A, ~cmp, l, TR.ab(~A, ~cmp, r, Nil{}))
-  M.ins_min(~A, ~cmp, ~o, x, s,
-    L.subst(Bool, c => {c == True{} : Bool}, Bool.and(TR.allt(~A, ~cmp, x, l), M.all_ge(~A, ~cmp, x, TR.ab(~A, ~cmp, r, Nil{}))), M.all_ge(~A, ~cmp, x, s), Equal.sym(Bool, M.all_ge(~A, ~cmp, x, s), Bool.and(TR.allt(~A, ~cmp, x, l), M.all_ge(~A, ~cmp, x, TR.ab(~A, ~cmp, r, Nil{}))), TR.all_ge_ab(~A, ~cmp, ~o, x, l, TR.ab(~A, ~cmp, r, Nil{}))),
-      L.and_intro(TR.allt(~A, ~cmp, x, l), M.all_ge(~A, ~cmp, x, TR.ab(~A, ~cmp, r, Nil{})), TR.ho_l(~A, ~cmp, x, l, r, h),
-        L.subst(Bool, c => {c == True{} : Bool}, TR.allt(~A, ~cmp, x, r), M.all_ge(~A, ~cmp, x, TR.ab(~A, ~cmp, r, Nil{})), TR.allt_ab(~A, ~cmp, ~o, x, r), TR.ho_r(~A, ~cmp, x, l, r, h)))))
+# ---- push ----
 
-# ---- push (also used by from_list) ----
+def push_step(~A: Data, ~cmp: A -> A -> Cmp, +size: Nat, +depth: Nat, +t: AR.Tree<Maybe<&2, A>>, +x: A, r: PU.PushOK(~A, ~cmp, ST.Sh{size, depth, t}, x)) -> StepOK(~A, ~cmp, ST.Sh{size, depth, t}, E.Push{x}):
+  match r:
+    case Tuple{+sh2, Tuple{ereal, Tuple{g2, Tuple{ems, edd}}}}:
+      mk(~A, ~cmp, ST.Sh{size, depth, t}, E.Push{x}, sh2, E.OUnit{},
+        Equal.cong(H.Heap<A>, H.Heap<A> & E.Obs<A>, hh => (hh, E.OUnit{}), H.push(~A, ~cmp, ST.real(~A, ST.Sh{size, depth, t}), x), ST.real(~A, sh2), ereal),
+        g2,
+        Equal.cong(List<&2, A>, List<&2, A> & E.Obs<A>, zs => (zs, E.OUnit{}), ST.model(~A, ~cmp, sh2), S.ins(~A, ~cmp, x, ST.model(~A, ~cmp, ST.Sh{size, depth, t})), ems),
+        N.le_trans(ST.sh_depth(~A, sh2), 1n+depth, Nat.add(depth, 1n), edd, le_succ_add(depth)))
 
-def push_abs(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +h: H.Heap<A>, +x: A) -> {abs(~A, ~cmp, H.push(~A, ~cmp, h, x)) == S.ins(~A, ~cmp, x, abs(~A, ~cmp, h)) : List<&2, A>}:
-  match h:
-    case H.BH{+n, +t}:
-      OP.hins_ab(~A, ~cmp, ~o, t, x, Nil{})
+def push_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +size: Nat, +depth: Nat, +t: AR.Tree<Maybe<&2, A>>, +x: A, +g: {ST.good(~A, ~cmp, ST.Sh{size, depth, t}) == True{} : Bool}, +room: {Nat.is_lt(depth, 31n) == True{} : Bool}) -> StepOK(~A, ~cmp, ST.Sh{size, depth, t}, E.Push{x}):
+  push_step(~A, ~cmp, size, depth, t, x,
+    PU.push_ok(~A, ~cmp, ~o, size, depth, t, x, g,
+      L.subst(Bool, c => {Bool.or(Nat.is_lt(size, SC.pow2(depth)), c) == True{} : Bool}, True{}, Nat.is_lt(depth, 31n), Equal.sym(Bool, Nat.is_lt(depth, 31n), True{}, room), or_true(Nat.is_lt(size, SC.pow2(depth)))),
+      Nat.is_lt(size, SC.pow2(depth)), {==}))
 
-def push_inv(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +h: H.Heap<A>, +x: A, +g: {inv(~A, ~cmp, h) == True{} : Bool}) -> {inv(~A, ~cmp, H.push(~A, ~cmp, h, x)) == True{} : Bool}:
-  match h:
-    case H.BH{+n, +t}:
-      inv_mk(~A, ~cmp, 1n+n, H.ins(~A, ~cmp, t, x),
-        Equal.trans(Nat, 1n+n, 1n+SC.length(A, TR.ab(~A, ~cmp, t, Nil{})), SC.length(A, TR.ab(~A, ~cmp, H.ins(~A, ~cmp, t, x), Nil{})),
-          N.succ_cong(n, SC.length(A, TR.ab(~A, ~cmp, t, Nil{})), inv_n(~A, ~cmp, n, t, g)),
-          Equal.sym(Nat, SC.length(A, TR.ab(~A, ~cmp, H.ins(~A, ~cmp, t, x), Nil{})), 1n+SC.length(A, TR.ab(~A, ~cmp, t, Nil{})),
-            %Equal.sym(List<&2, A>, TR.ab(~A, ~cmp, H.ins(~A, ~cmp, t, x), Nil{}), S.ins(~A, ~cmp, x, TR.ab(~A, ~cmp, t, Nil{})), OP.hins_ab(~A, ~cmp, ~o, t, x, Nil{})) : {SC.length(A, _) == 1n+SC.length(A, TR.ab(~A, ~cmp, t, Nil{})) : Nat}
-            length_ins(~A, ~cmp, x, TR.ab(~A, ~cmp, t, Nil{})))),
-        OP.hins_ho(~A, ~cmp, ~o, t, x, inv_ho(~A, ~cmp, n, t, g)))
+# ---- pop ----
 
-def from_list_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ys: List<&2, A>, +h: H.Heap<A>, +g: {inv(~A, ~cmp, h) == True{} : Bool}) -> {abs(~A, ~cmp, H.from_list_go(~A, ~cmp, ys, h)) == S.from_list(~A, ~cmp, ys, abs(~A, ~cmp, h)) : List<&2, A>} & {inv(~A, ~cmp, H.from_list_go(~A, ~cmp, ys, h)) == True{} : Bool}:
-  match ys:
-    case Nil{}:
-      ({==}, g)
-    case Con{+y, +rest}:
-      +h1 = H.push(~A, ~cmp, h, y)
-      -P = {abs(~A, ~cmp, H.from_list_go(~A, ~cmp, rest, h1)) == S.from_list(~A, ~cmp, rest, abs(~A, ~cmp, h1)) : List<&2, A>}
-      -Q = {inv(~A, ~cmp, H.from_list_go(~A, ~cmp, rest, h1)) == True{} : Bool}
-      (%push_abs(~A, ~cmp, ~o, h, y) : {abs(~A, ~cmp, H.from_list_go(~A, ~cmp, rest, h1)) == S.from_list(~A, ~cmp, rest, _) : List<&2, A>}
-       Pair.fst(P, Q, from_list_ok(~A, ~cmp, ~o, rest, h1, push_inv(~A, ~cmp, ~o, h, y, g))),
-       Pair.snd(P, Q, from_list_ok(~A, ~cmp, ~o, rest, h1, push_inv(~A, ~cmp, ~o, h, y, g))))
+def pop_step(~A: Data, ~cmp: A -> A -> Cmp, +size: Nat, +depth: Nat, +t: AR.Tree<Maybe<&2, A>>, r: PO.PopRes(~A, ~cmp, ST.Sh{size, depth, t})) -> StepOK(~A, ~cmp, ST.Sh{size, depth, t}, E.Pop{}):
+  match r:
+    case Tuple{+sh2, Tuple{+res, Tuple{ereal, Tuple{g2, Tuple{espec, edep}}}}}:
+      mk(~A, ~cmp, ST.Sh{size, depth, t}, E.Pop{}, sh2, E.OItem{res},
+        Equal.cong(H.Heap<A> & Result<&2, &2, E.Error, A>, H.Heap<A> & E.Obs<A>, rr => H.obs_item(~A, rr), H.pop(~A, ~cmp, ST.real(~A, ST.Sh{size, depth, t})), (ST.real(~A, sh2), res), ereal),
+        g2,
+        espec,
+        L.subst(Nat, z => {Nat.is_le(z, Nat.add(depth, 0n)) == True{} : Bool}, depth, ST.sh_depth(~A, sh2), Equal.sym(Nat, ST.sh_depth(~A, sh2), depth, edep), le_same(depth)))
 
-# ---- to_sorted_list: draining returns the sorted multiset ----
+def pop_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +size: Nat, +depth: Nat, +t: AR.Tree<Maybe<&2, A>>, +g: {ST.good(~A, ~cmp, ST.Sh{size, depth, t}) == True{} : Bool}) -> StepOK(~A, ~cmp, ST.Sh{size, depth, t}, E.Pop{}):
+  pop_step(~A, ~cmp, size, depth, t, PO.pop_ok(~A, ~cmp, ~o, size, depth, t, g))
 
-def drain_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +n: Nat, +t: H.Tree<A>, +en: {n == SC.length(A, TR.ab(~A, ~cmp, t, Nil{})) : Nat}, +h: {TR.ho(~A, ~cmp, t) == True{} : Bool}) -> {H.drain(~A, ~cmp, n, t) == TR.ab(~A, ~cmp, t, Nil{}) : List<&2, A>}:
-  match n t:
-    case 0n _:
-      Equal.sym(List<&2, A>, TR.ab(~A, ~cmp, t, Nil{}), Nil{}, LL.length_zero_nil(A, TR.ab(~A, ~cmp, t, Nil{}), Equal.sym(Nat, 0n, SC.length(A, TR.ab(~A, ~cmp, t, Nil{})), en)))
-    case 1n+m H.Leaf{}:
-      Empty.absurd({Nil{} == Nil{} : List<&2, A>}, N.succ_zero(m, en))
-    case 1n+ +m H.Node{+x, +l, +r}:
-      +s = TR.ab(~A, ~cmp, l, TR.ab(~A, ~cmp, r, Nil{}))
-      +ht = heap_top(~A, ~cmp, ~o, x, l, r, h)
-      +em = N.succ_inj(m, SC.length(A, s), Equal.trans(Nat, 1n+m, SC.length(A, TR.ab(~A, ~cmp, H.Node{x, l, r}, Nil{})), 1n+SC.length(A, s), en, Equal.cong(List<&2, A>, Nat, ys => SC.length(A, ys), TR.ab(~A, ~cmp, H.Node{x, l, r}, Nil{}), Con{x, s}, ht)))
-      +ed = OP.del_ab(~A, ~cmp, ~o, l, r, Nil{})
-      %Equal.sym(List<&2, A>, TR.ab(~A, ~cmp, H.Node{x, l, r}, Nil{}), Con{x, s}, ht) : {Con{x, H.drain(~A, ~cmp, m, H.del_root(~A, ~cmp, l, r))} == _ : List<&2, A>}
-      LL.cons_cong(A, x, H.drain(~A, ~cmp, m, H.del_root(~A, ~cmp, l, r)), s,
-        Equal.trans(List<&2, A>, H.drain(~A, ~cmp, m, H.del_root(~A, ~cmp, l, r)), TR.ab(~A, ~cmp, H.del_root(~A, ~cmp, l, r), Nil{}), s,
-          drain_ok(~A, ~cmp, ~o, m, H.del_root(~A, ~cmp, l, r),
-            Equal.trans(Nat, m, SC.length(A, s), SC.length(A, TR.ab(~A, ~cmp, H.del_root(~A, ~cmp, l, r), Nil{})), em, Equal.cong(List<&2, A>, Nat, ys => SC.length(A, ys), s, TR.ab(~A, ~cmp, H.del_root(~A, ~cmp, l, r), Nil{}), Equal.sym(List<&2, A>, TR.ab(~A, ~cmp, H.del_root(~A, ~cmp, l, r), Nil{}), s, ed))),
-            OP.del_ho(~A, ~cmp, ~o, l, r, TR.ho_hl(~A, ~cmp, x, l, r, h), TR.ho_hr(~A, ~cmp, x, l, r, h))),
-          ed))
+# ---- to_sorted_list ----
+
+def sorted_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +size: Nat, +depth: Nat, +t: AR.Tree<Maybe<&2, A>>, +g: {ST.good(~A, ~cmp, ST.Sh{size, depth, t}) == True{} : Bool}) -> StepOK(~A, ~cmp, ST.Sh{size, depth, t}, E.ToSortedList{}):
+  mk(~A, ~cmp, ST.Sh{size, depth, t}, E.ToSortedList{}, ST.Sh{size, depth, t}, E.OList{ST.model(~A, ~cmp, ST.Sh{size, depth, t})},
+    Equal.cong(H.Heap<A> & List<&2, A>, H.Heap<A> & E.Obs<A>, rr => H.obs_list(~A, rr), H.to_sorted_list(~A, ~cmp, ST.real(~A, ST.Sh{size, depth, t})), (ST.real(~A, ST.Sh{size, depth, t}), ST.model(~A, ~cmp, ST.Sh{size, depth, t})),
+      SO.to_sorted_ok(~A, ~cmp, ~o, size, depth, t, g)),
+    g, {==}, le_same(depth))
+
+# ---- from_list ----
+#
+# from_list replaces the heap by repeated push, so the capacity premise it
+# carries is one doubling per element (the same conservative accounting the
+# deque uses for its push budget).
+
+def add_le_r(+a: Nat, +b: Nat, +c: Nat, +h: {Nat.is_le(a, b) == True{} : Bool}) -> {Nat.is_le(Nat.add(a, c), Nat.add(b, c)) == True{} : Bool}:
+  %Equal.sym(Nat, Nat.add(a, c), Nat.add(c, a), N.add_comm(a, c)) : {Nat.is_le(_, Nat.add(b, c)) == True{} : Bool}
+  %Equal.sym(Nat, Nat.add(b, c), Nat.add(c, b), N.add_comm(b, c)) : {Nat.is_le(Nat.add(c, a), _) == True{} : Bool}
+  N.le_add_left(a, b, c, h)
+
+def add_succ_l(+d: Nat, +l: Nat) -> {Nat.add(1n+d, l) == 1n+Nat.add(d, l) : Nat}:
+  Equal.trans(Nat, Nat.add(1n+d, l), Nat.add(l, 1n+d), 1n+Nat.add(d, l),
+    N.add_comm(1n+d, l),
+    Equal.trans(Nat, Nat.add(l, 1n+d), 1n+Nat.add(l, d), 1n+Nat.add(d, l),
+      N.add_succ(l, d),
+      N.succ_cong(Nat.add(l, d), Nat.add(d, l), N.add_comm(l, d))))
+
+def add_shift(+d: Nat, +l: Nat) -> {Nat.add(d, 1n+l) == Nat.add(1n+d, l) : Nat}:
+  Equal.trans(Nat, Nat.add(d, 1n+l), 1n+Nat.add(d, l), Nat.add(1n+d, l),
+    N.add_succ(d, l),
+    Equal.sym(Nat, Nat.add(1n+d, l), 1n+Nat.add(d, l), add_succ_l(d, l)))
+
+def budget_push(+d: Nat, +l: Nat, +h: {Nat.is_le(Nat.add(d, 1n+l), 31n) == True{} : Bool}) -> {Nat.is_lt(d, 31n) == True{} : Bool}:
+  N.succ_le_lt(d, 31n,
+    N.le_trans(1n+d, Nat.add(d, 1n+l), 31n,
+      L.subst(Nat, z => {Nat.is_le(1n+d, z) == True{} : Bool}, 1n+Nat.add(d, l), Nat.add(d, 1n+l), Equal.sym(Nat, Nat.add(d, 1n+l), 1n+Nat.add(d, l), N.add_succ(d, l)), N.le_add_right(d, l)),
+      h))
+
+def budget_rest(+d: Nat, +d1: Nat, +l: Nat, +hd1: {Nat.is_le(d1, 1n+d) == True{} : Bool}, +h: {Nat.is_le(Nat.add(d, 1n+l), 31n) == True{} : Bool}) -> {Nat.is_le(Nat.add(d1, l), 31n) == True{} : Bool}:
+  N.le_trans(Nat.add(d1, l), Nat.add(1n+d, l), 31n,
+    add_le_r(d1, 1n+d, l, hd1),
+    L.subst(Nat, z => {Nat.is_le(z, 31n) == True{} : Bool}, Nat.add(d, 1n+l), Nat.add(1n+d, l), add_shift(d, l), h))
+
+def budget_shift(+d: Nat, +l: Nat) -> {Nat.is_le(Nat.add(1n+d, l), Nat.add(d, 1n+l)) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_le(z, Nat.add(d, 1n+l)) == True{} : Bool}, Nat.add(d, 1n+l), Nat.add(1n+d, l), add_shift(d, l), N.le_refl(Nat.add(d, 1n+l)))
+
+def FromOK(~A: Data, ~cmp: A -> A -> Cmp, ys: List<&2, A>, sh: ST.Shadow<A>) -> Type:
+  Sigma<&1, &1, ST.Shadow<A>, sh2 => {H.from_list_go(~A, ~cmp, ys, ST.real(~A, sh)) == ST.real(~A, sh2) : H.Heap<A>} & ({ST.good(~A, ~cmp, sh2) == True{} : Bool} & ({ST.model(~A, ~cmp, sh2) == S.from_list(~A, ~cmp, ys, ST.model(~A, ~cmp, sh)) : List<&2, A>} & {Nat.is_le(ST.sh_depth(~A, sh2), Nat.add(ST.sh_depth(~A, sh), SC.length(A, ys))) == True{} : Bool}))>
+
+def FromRec(~A: Data, ~cmp: A -> A -> Cmp, rest: List<&2, A>) -> Type:
+  @+sh1: ST.Shadow<A> -> @+g1: {ST.good(~A, ~cmp, sh1) == True{} : Bool} -> @+r1: {Nat.is_le(Nat.add(ST.sh_depth(~A, sh1), SC.length(A, rest)), 31n) == True{} : Bool} -> FromOK(~A, ~cmp, rest, sh1)
+
+def from_rest(~A: Data, ~cmp: A -> A -> Cmp, +y: A, +rest: List<&2, A>, +sh: ST.Shadow<A>, +sh1: ST.Shadow<A>, +ereal: {H.push(~A, ~cmp, ST.real(~A, sh), y) == ST.real(~A, sh1) : H.Heap<A>}, +ems: {ST.model(~A, ~cmp, sh1) == S.ins(~A, ~cmp, y, ST.model(~A, ~cmp, sh)) : List<&2, A>}, +edd: {Nat.is_le(ST.sh_depth(~A, sh1), 1n+ST.sh_depth(~A, sh)) == True{} : Bool}, r: FromOK(~A, ~cmp, rest, sh1)) -> FromOK(~A, ~cmp, Con{y, rest}, sh):
+  match r:
+    case Tuple{+sh2, Tuple{ereal2, Tuple{g2, Tuple{ems2, edd2}}}}:
+      (sh2,
+       (Equal.trans(H.Heap<A>, H.from_list_go(~A, ~cmp, Con{y, rest}, ST.real(~A, sh)), H.from_list_go(~A, ~cmp, rest, ST.real(~A, sh1)), ST.real(~A, sh2),
+          Equal.cong(H.Heap<A>, H.Heap<A>, hh => H.from_list_go(~A, ~cmp, rest, hh), H.push(~A, ~cmp, ST.real(~A, sh), y), ST.real(~A, sh1), ereal),
+          ereal2),
+        (g2,
+         (Equal.trans(List<&2, A>, ST.model(~A, ~cmp, sh2), S.from_list(~A, ~cmp, rest, ST.model(~A, ~cmp, sh1)), S.from_list(~A, ~cmp, Con{y, rest}, ST.model(~A, ~cmp, sh)),
+            ems2,
+            Equal.cong(List<&2, A>, List<&2, A>, zs => S.from_list(~A, ~cmp, rest, zs), ST.model(~A, ~cmp, sh1), S.ins(~A, ~cmp, y, ST.model(~A, ~cmp, sh)), ems)),
+          N.le_trans(ST.sh_depth(~A, sh2), Nat.add(ST.sh_depth(~A, sh1), SC.length(A, rest)), Nat.add(ST.sh_depth(~A, sh), 1n+SC.length(A, rest)),
+            edd2,
+            N.le_trans(Nat.add(ST.sh_depth(~A, sh1), SC.length(A, rest)), Nat.add(1n+ST.sh_depth(~A, sh), SC.length(A, rest)), Nat.add(ST.sh_depth(~A, sh), 1n+SC.length(A, rest)),
+              add_le_r(ST.sh_depth(~A, sh1), 1n+ST.sh_depth(~A, sh), SC.length(A, rest), edd),
+              budget_shift(ST.sh_depth(~A, sh), SC.length(A, rest))))))))
+
+def from_push(~A: Data, ~cmp: A -> A -> Cmp, +y: A, +rest: List<&2, A>, +sh: ST.Shadow<A>, +room: {Nat.is_le(Nat.add(ST.sh_depth(~A, sh), 1n+SC.length(A, rest)), 31n) == True{} : Bool}, rec: FromRec(~A, ~cmp, rest), +sh1: ST.Shadow<A>, +ereal: {H.push(~A, ~cmp, ST.real(~A, sh), y) == ST.real(~A, sh1) : H.Heap<A>}, +g1: {ST.good(~A, ~cmp, sh1) == True{} : Bool}, +ems: {ST.model(~A, ~cmp, sh1) == S.ins(~A, ~cmp, y, ST.model(~A, ~cmp, sh)) : List<&2, A>}, +edd: {Nat.is_le(ST.sh_depth(~A, sh1), 1n+ST.sh_depth(~A, sh)) == True{} : Bool}) -> FromOK(~A, ~cmp, Con{y, rest}, sh):
+  from_rest(~A, ~cmp, y, rest, sh, sh1, ereal, ems, edd,
+    rec(sh1, g1, budget_rest(ST.sh_depth(~A, sh), ST.sh_depth(~A, sh1), SC.length(A, rest), edd, room)))
+
+def from_cons(~A: Data, ~cmp: A -> A -> Cmp, +y: A, +rest: List<&2, A>, +sh: ST.Shadow<A>, +room: {Nat.is_le(Nat.add(ST.sh_depth(~A, sh), 1n+SC.length(A, rest)), 31n) == True{} : Bool}, rec: FromRec(~A, ~cmp, rest), r: PU.PushOK(~A, ~cmp, sh, y)) -> FromOK(~A, ~cmp, Con{y, rest}, sh):
+  match r:
+    case Tuple{sh1, Tuple{ereal, Tuple{g1, Tuple{ems, edd}}}}:
+      from_push(~A, ~cmp, y, rest, sh, room, rec, sh1, ereal, g1, ems, edd)
+
+def from_list_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), ys: List<&2, A>, sh: ST.Shadow<A>, +g: {ST.good(~A, ~cmp, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(ST.sh_depth(~A, sh), SC.length(A, ys)), 31n) == True{} : Bool}) -> FromOK(~A, ~cmp, ys, sh):
+  match ys sh:
+    case Nil{} ST.Sh{+size, +depth, +t}:
+      (ST.Sh{size, depth, t}, ({==}, (g, ({==}, le_same(depth)))))
+    case Con{+y, +rest} ST.Sh{+size, +depth, +t}:
+      from_cons(~A, ~cmp, y, rest, ST.Sh{size, depth, t}, room,
+        sh1 => g1 => r1 => from_list_ok(~A, ~cmp, ~o, rest, sh1, g1, r1),
+        PU.push_ok(~A, ~cmp, ~o, size, depth, t, y, g,
+          L.subst(Bool, c => {Bool.or(Nat.is_lt(size, SC.pow2(depth)), c) == True{} : Bool}, True{}, Nat.is_lt(depth, 31n), Equal.sym(Bool, Nat.is_lt(depth, 31n), True{}, budget_push(depth, SC.length(A, rest), room)), or_true(Nat.is_lt(size, SC.pow2(depth)))),
+          Nat.is_lt(size, SC.pow2(depth)), {==}))
+
+def le_add_zero(+l: Nat, +d: Nat) -> {Nat.is_le(Nat.add(0n, l), Nat.add(d, l)) == True{} : Bool}:
+  add_le_r(0n, d, l, N.zero_le(d))
+
+def from_list_step(~A: Data, ~cmp: A -> A -> Cmp, +size: Nat, +depth: Nat, +t: AR.Tree<Maybe<&2, A>>, +ys: List<&2, A>, r: FromOK(~A, ~cmp, ys, ST.initial(~A))) -> StepOK(~A, ~cmp, ST.Sh{size, depth, t}, E.FromList{ys}):
+  match r:
+    case Tuple{+sh2, Tuple{ereal, Tuple{g2, Tuple{ems, edd}}}}:
+      mk(~A, ~cmp, ST.Sh{size, depth, t}, E.FromList{ys}, sh2, E.OUnit{},
+        %Equal.sym(H.Heap<A>, H.new(~A), ST.real(~A, ST.initial(~A)), ST.new_real(~A)) : {(H.from_list_go(~A, ~cmp, ys, _), E.OUnit{}) == (ST.real(~A, sh2), E.OUnit{}) : H.Heap<A> & E.Obs<A>}
+        Equal.cong(H.Heap<A>, H.Heap<A> & E.Obs<A>, hh => (hh, E.OUnit{}), H.from_list_go(~A, ~cmp, ys, ST.real(~A, ST.initial(~A))), ST.real(~A, sh2), ereal),
+        g2,
+        Equal.cong(List<&2, A>, List<&2, A> & E.Obs<A>, zs => (zs, E.OUnit{}), ST.model(~A, ~cmp, sh2), S.from_list(~A, ~cmp, ys, Nil{}), ems),
+        N.le_trans(ST.sh_depth(~A, sh2), Nat.add(0n, SC.length(A, ys)), Nat.add(depth, SC.length(A, ys)), edd, le_add_zero(SC.length(A, ys), depth)))
 
 # ---- every operation ----
+#
+# `room` is the capacity condition of the representation for this step: a
+# push doubles the block at most once, so the depth after it is still below
+# 32 and every slot index stays a representable U32. It is the only premise
+# besides the invariant, and trace.bend discharges it for a whole operation
+# list at once.
 
-def step_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +h: H.Heap<A>, +op: E.Op<A>, +g: {inv(~A, ~cmp, h) == True{} : Bool}) -> StepOK(~A, ~cmp, h, op):
-  match h op:
-    case H.BH{+n, +t} E.Length{}:
-      (%inv_n(~A, ~cmp, n, t, g) : {(TR.ab(~A, ~cmp, t, Nil{}), E.ONat{n}) == (TR.ab(~A, ~cmp, t, Nil{}), E.ONat{_}) : List<&2, A> & E.Obs<A>}
-       {==}, g)
-    case H.BH{+n, +t} E.Push{+x}:
-      (Equal.cong(List<&2, A>, List<&2, A> & E.Obs<A>, xs => (xs, E.OUnit{}), TR.ab(~A, ~cmp, H.ins(~A, ~cmp, t, x), Nil{}), S.ins(~A, ~cmp, x, TR.ab(~A, ~cmp, t, Nil{})), OP.hins_ab(~A, ~cmp, ~o, t, x, Nil{})),
-       push_inv(~A, ~cmp, ~o, H.BH{n, t}, x, g))
-    case H.BH{+n, H.Leaf{}} E.Peek{}:
-      ({==}, g)
-    case H.BH{+n, H.Node{+x, +l, +r}} E.Peek{}:
-      +nd = {H.Node{x, l, r} : H.Tree<A>}
-      +s = TR.ab(~A, ~cmp, l, TR.ab(~A, ~cmp, r, Nil{}))
-      (%Equal.sym(List<&2, A>, TR.ab(~A, ~cmp, nd, Nil{}), Con{x, s}, heap_top(~A, ~cmp, ~o, x, l, r, inv_ho(~A, ~cmp, n, nd, g))) : {(TR.ab(~A, ~cmp, nd, Nil{}), E.OItem{Done{x}}) == (TR.ab(~A, ~cmp, nd, Nil{}), E.OItem{S.item(A, SC.head(A, _))}) : List<&2, A> & E.Obs<A>}
-       {==}, g)
-    case H.BH{+n, H.Leaf{}} E.Pop{}:
-      ({==}, g)
-    case H.BH{+n, H.Node{+x, +l, +r}} E.Pop{}:
-      +nd = {H.Node{x, l, r} : H.Tree<A>}
-      +s = TR.ab(~A, ~cmp, l, TR.ab(~A, ~cmp, r, Nil{}))
-      +hn = inv_ho(~A, ~cmp, n, nd, g)
-      +ht = heap_top(~A, ~cmp, ~o, x, l, r, hn)
-      +ed = OP.del_ab(~A, ~cmp, ~o, l, r, Nil{})
-      +en = Equal.trans(Nat, n, SC.length(A, TR.ab(~A, ~cmp, nd, Nil{})), 1n+SC.length(A, s), inv_n(~A, ~cmp, n, nd, g), Equal.cong(List<&2, A>, Nat, ys => SC.length(A, ys), TR.ab(~A, ~cmp, nd, Nil{}), Con{x, s}, ht))
-      (%Equal.sym(List<&2, A>, TR.ab(~A, ~cmp, nd, Nil{}), Con{x, s}, ht) : {(TR.ab(~A, ~cmp, H.del_root(~A, ~cmp, l, r), Nil{}), E.OItem{Done{x}}) == S.pop(A, _) : List<&2, A> & E.Obs<A>}
-       %Equal.sym(List<&2, A>, TR.ab(~A, ~cmp, H.del_root(~A, ~cmp, l, r), Nil{}), s, ed) : {(_, E.OItem{Done{x}}) == (s, E.OItem{Done{x}}) : List<&2, A> & E.Obs<A>}
-       {==},
-       inv_mk(~A, ~cmp, Nat.sub(n, 1n), H.del_root(~A, ~cmp, l, r),
-         Equal.trans(Nat, Nat.sub(n, 1n), SC.length(A, s), SC.length(A, TR.ab(~A, ~cmp, H.del_root(~A, ~cmp, l, r), Nil{})),
-           Equal.trans(Nat, Nat.sub(n, 1n), Nat.sub(1n+SC.length(A, s), 1n), SC.length(A, s), Equal.cong(Nat, Nat, k => Nat.sub(k, 1n), n, 1n+SC.length(A, s), en), N.sub_zero(SC.length(A, s))),
-           Equal.cong(List<&2, A>, Nat, ys => SC.length(A, ys), s, TR.ab(~A, ~cmp, H.del_root(~A, ~cmp, l, r), Nil{}), Equal.sym(List<&2, A>, TR.ab(~A, ~cmp, H.del_root(~A, ~cmp, l, r), Nil{}), s, ed))),
-         OP.del_ho(~A, ~cmp, ~o, l, r, TR.ho_hl(~A, ~cmp, x, l, r, hn), TR.ho_hr(~A, ~cmp, x, l, r, hn))))
-    case H.BH{+n, +t} E.FromList{+ys}:
-      -P = {abs(~A, ~cmp, H.from_list_go(~A, ~cmp, ys, H.new(A))) == S.from_list(~A, ~cmp, ys, Nil{}) : List<&2, A>}
-      -Q = {inv(~A, ~cmp, H.from_list_go(~A, ~cmp, ys, H.new(A))) == True{} : Bool}
-      (Equal.cong(List<&2, A>, List<&2, A> & E.Obs<A>, xs => (xs, E.OUnit{}), abs(~A, ~cmp, H.from_list_go(~A, ~cmp, ys, H.new(A))), S.from_list(~A, ~cmp, ys, Nil{}), Pair.fst(P, Q, from_list_ok(~A, ~cmp, ~o, ys, H.new(A), {==}))),
-       Pair.snd(P, Q, from_list_ok(~A, ~cmp, ~o, ys, H.new(A), {==})))
-    case H.BH{+n, +t} E.ToSortedList{}:
-      (%Equal.sym(List<&2, A>, H.drain(~A, ~cmp, n, t), TR.ab(~A, ~cmp, t, Nil{}), drain_ok(~A, ~cmp, ~o, n, t, inv_n(~A, ~cmp, n, t, g), inv_ho(~A, ~cmp, n, t, g))) : {(TR.ab(~A, ~cmp, t, Nil{}), E.OList{_}) == (TR.ab(~A, ~cmp, t, Nil{}), E.OList{TR.ab(~A, ~cmp, t, Nil{})}) : List<&2, A> & E.Obs<A>}
-       {==}, g)
+def step_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), sh: ST.Shadow<A>, op: E.Op<A>, +g: {ST.good(~A, ~cmp, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(ST.sh_depth(~A, sh), pushcost(~A, op)), 31n) == True{} : Bool}) -> StepOK(~A, ~cmp, sh, op):
+  match sh op:
+    case ST.Sh{+size, +depth, +t} E.Length{}:
+      length_ok(~A, ~cmp, size, depth, t, g)
+    case ST.Sh{+size, +depth, +t} E.Push{+x}:
+      push_ok(~A, ~cmp, ~o, size, depth, t, x, g, budget_push(depth, 0n, room))
+    case ST.Sh{+size, +depth, +t} E.Peek{}:
+      peek_ok(~A, ~cmp, ~o, size, depth, t, g)
+    case ST.Sh{+size, +depth, +t} E.Pop{}:
+      pop_ok(~A, ~cmp, ~o, size, depth, t, g)
+    case ST.Sh{+size, +depth, +t} E.FromList{+ys}:
+      from_list_step(~A, ~cmp, size, depth, t, ys,
+        from_list_ok(~A, ~cmp, ~o, ys, ST.initial(~A), ST.new_good(~A, ~cmp),
+          N.le_trans(Nat.add(0n, SC.length(A, ys)), Nat.add(depth, SC.length(A, ys)), 31n, le_add_zero(SC.length(A, ys), depth), room)))
+    case ST.Sh{+size, +depth, +t} E.ToSortedList{}:
+      sorted_ok(~A, ~cmp, ~o, size, depth, t, g)

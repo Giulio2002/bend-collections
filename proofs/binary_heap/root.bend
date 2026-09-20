@@ -146,3 +146,65 @@ def model_length(~A: Data, ~cmp: A -> A -> Cmp, +ss: List<&2, Maybe<&2, A>>, +n:
   Equal.trans(Nat, SC.length(A, V.msort(~A, ~cmp, V.vals(~A, ss, n))), SC.length(A, V.vals(~A, ss, n)), n,
     msort_length(~A, ~cmp, V.vals(~A, ss, n)),
     vals_length(~A, ss, n, hlay))
+
+# ---- taking one element out of the multiset ----
+#
+# The mirror of vals.ins_set: emptying slot i removes exactly its value from
+# the sorted multiset. This is what makes the root observable: it is the
+# element the sorted multiset starts with.
+
+def ins_del_cons(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), s: Maybe<&2, A>, +old: A, +xs: List<&2, A>, +ys: List<&2, A>, +ih: {V.msort(~A, ~cmp, xs) == S.ins(~A, ~cmp, old, V.msort(~A, ~cmp, ys)) : List<&2, A>}) -> {V.msort(~A, ~cmp, V.cons_slot(~A, s, xs)) == S.ins(~A, ~cmp, old, V.msort(~A, ~cmp, V.cons_slot(~A, s, ys))) : List<&2, A>}:
+  match s:
+    case None{}:
+      ih
+    case Some{+w}:
+      Equal.trans(List<&2, A>, S.ins(~A, ~cmp, w, V.msort(~A, ~cmp, xs)), S.ins(~A, ~cmp, w, S.ins(~A, ~cmp, old, V.msort(~A, ~cmp, ys))), S.ins(~A, ~cmp, old, S.ins(~A, ~cmp, w, V.msort(~A, ~cmp, ys))),
+        Equal.cong(List<&2, A>, List<&2, A>, zs => S.ins(~A, ~cmp, w, zs), V.msort(~A, ~cmp, xs), S.ins(~A, ~cmp, old, V.msort(~A, ~cmp, ys)), ih),
+        M.ins_comm(~A, ~cmp, ~o, w, old, V.msort(~A, ~cmp, ys)))
+
+def ins_del_top(~A: Data, ~cmp: A -> A -> Cmp, +ss: List<&2, Maybe<&2, A>>, +m: Nat, +i: Nat, +old: A, +ei: {i == m : Nat}, +hold: {SL.slot(~A, ss, i) == Some{old} : Maybe<&2, A>}) -> {V.msort(~A, ~cmp, V.vals(~A, ss, 1n+m)) == S.ins(~A, ~cmp, old, V.msort(~A, ~cmp, V.vals(~A, SC.update(Maybe<&2, A>, ss, i, None{}), 1n+m))) : List<&2, A>}:
+  %ei : {V.msort(~A, ~cmp, V.vals(~A, ss, 1n+_)) == S.ins(~A, ~cmp, old, V.msort(~A, ~cmp, V.vals(~A, SC.update(Maybe<&2, A>, ss, i, None{}), 1n+_))) : List<&2, A>}
+  Equal.trans(List<&2, A>, V.msort(~A, ~cmp, V.cons_slot(~A, SL.slot(~A, ss, i), V.vals(~A, ss, i))), S.ins(~A, ~cmp, old, V.msort(~A, ~cmp, V.vals(~A, ss, i))), S.ins(~A, ~cmp, old, V.msort(~A, ~cmp, V.vals(~A, SC.update(Maybe<&2, A>, ss, i, None{}), 1n+i))),
+    Equal.cong(Maybe<&2, A>, List<&2, A>, ms => V.msort(~A, ~cmp, V.cons_slot(~A, ms, V.vals(~A, ss, i))), SL.slot(~A, ss, i), Some{old}, hold),
+    Equal.cong(List<&2, A>, List<&2, A>, zs => S.ins(~A, ~cmp, old, V.msort(~A, ~cmp, zs)), V.vals(~A, ss, i), V.vals(~A, SC.update(Maybe<&2, A>, ss, i, None{}), 1n+i),
+      Equal.trans(List<&2, A>, V.vals(~A, ss, i), V.vals(~A, SC.update(Maybe<&2, A>, ss, i, None{}), i), V.vals(~A, SC.update(Maybe<&2, A>, ss, i, None{}), 1n+i),
+        Equal.sym(List<&2, A>, V.vals(~A, SC.update(Maybe<&2, A>, ss, i, None{}), i), V.vals(~A, ss, i), V.vals_above(~A, ss, i, None{}, i, N.le_refl(i))),
+        Equal.cong(Maybe<&2, A>, List<&2, A>, ms => V.cons_slot(~A, ms, V.vals(~A, SC.update(Maybe<&2, A>, ss, i, None{}), i)), None{}, SL.slot(~A, SC.update(Maybe<&2, A>, ss, i, None{}), i),
+          Equal.sym(Maybe<&2, A>, SL.slot(~A, SC.update(Maybe<&2, A>, ss, i, None{}), i), None{}, SL.slot_same(~A, ss, i, None{}, V.slot_in_range(~A, ss, i, old, hold)))))))
+
+def ins_del(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ss: List<&2, Maybe<&2, A>>, n: Nat, +i: Nat, +old: A, +hi: {Nat.is_lt(i, n) == True{} : Bool}, +hold: {SL.slot(~A, ss, i) == Some{old} : Maybe<&2, A>}, b: Bool, +eb: {Nat.is_eq(i, N.pred(n)) == b : Bool}) -> {V.msort(~A, ~cmp, V.vals(~A, ss, n)) == S.ins(~A, ~cmp, old, V.msort(~A, ~cmp, V.vals(~A, SC.update(Maybe<&2, A>, ss, i, None{}), n))) : List<&2, A>}:
+  match n b:
+    case 0n _:
+      Empty.absurd({V.msort(~A, ~cmp, V.vals(~A, ss, 0n)) == S.ins(~A, ~cmp, old, V.msort(~A, ~cmp, V.vals(~A, SC.update(Maybe<&2, A>, ss, i, None{}), 0n))) : List<&2, A>}, N.lt_zero_absurd(i, hi))
+    case 1n+m True{}:
+      ins_del_top(~A, ~cmp, ss, m, i, old, N.eq_from_is_eq(i, m, eb), hold)
+    case 1n+ +m False{}:
+      +hi2 = N.lt_or_eq(i, m, N.lt_succ_le(i, m, hi), eb)
+      %Equal.sym(Maybe<&2, A>, SL.slot(~A, SC.update(Maybe<&2, A>, ss, i, None{}), m), SL.slot(~A, ss, m), SL.slot_other(~A, ss, i, m, None{}, N.is_eq_lt(i, m, hi2))) : {V.msort(~A, ~cmp, V.vals(~A, ss, 1n+m)) == S.ins(~A, ~cmp, old, V.msort(~A, ~cmp, V.cons_slot(~A, _, V.vals(~A, SC.update(Maybe<&2, A>, ss, i, None{}), m)))) : List<&2, A>}
+      ins_del_cons(~A, ~cmp, ~o, SL.slot(~A, ss, m), old, V.vals(~A, ss, m), V.vals(~A, SC.update(Maybe<&2, A>, ss, i, None{}), m),
+        ins_del(~A, ~cmp, ~o, ss, m, i, old, hi2, hold, Nat.is_eq(i, N.pred(m)), {==}))
+
+# ---- the sorted multiset of a heap-ordered block starts with its root ----
+
+def low_del_at(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ss: List<&2, Maybe<&2, A>>, +n: Nat, j: Nat, +root: A, +hjn: {Nat.is_lt(j, n) == True{} : Bool}, +hho: {SL.ho_upto(~A, ~cmp, ss, n) == True{} : Bool}, +hlay: {SL.lay(~A, ss, n) == True{} : Bool}, +h0: {SL.slot(~A, ss, 0n) == Some{root} : Maybe<&2, A>}) -> {SL.mle(~A, ~cmp, Some{root}, SL.slot(~A, SC.update(Maybe<&2, A>, ss, 0n, None{}), j)) == True{} : Bool}:
+  match j:
+    case 0n:
+      %Equal.sym(Maybe<&2, A>, SL.slot(~A, SC.update(Maybe<&2, A>, ss, 0n, None{}), 0n), None{}, SL.slot_same(~A, ss, 0n, None{}, V.slot_in_range(~A, ss, 0n, root, h0))) : {SL.mle(~A, ~cmp, Some{root}, _) == True{} : Bool}
+      SL.mle_none_r(~A, ~cmp, Some{root})
+    case 1n+ +p:
+      %Equal.sym(Maybe<&2, A>, SL.slot(~A, SC.update(Maybe<&2, A>, ss, 0n, None{}), 1n+p), SL.slot(~A, ss, 1n+p), SL.slot_other(~A, ss, 0n, 1n+p, None{}, {==})) : {SL.mle(~A, ~cmp, Some{root}, _) == True{} : Bool}
+      root_le(~A, ~cmp, ~o, ss, n, 1n+p, root, 1n+p, hjn, N.le_refl(1n+p), hho, hlay, h0)
+
+def low_del(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ss: List<&2, Maybe<&2, A>>, +n: Nat, k: Nat, +root: A, +hk: {Nat.is_le(k, n) == True{} : Bool}, +hho: {SL.ho_upto(~A, ~cmp, ss, n) == True{} : Bool}, +hlay: {SL.lay(~A, ss, n) == True{} : Bool}, +h0: {SL.slot(~A, ss, 0n) == Some{root} : Maybe<&2, A>}) -> {low_all(~A, ~cmp, SC.update(Maybe<&2, A>, ss, 0n, None{}), k, root) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+ +m:
+      L.and_intro(SL.mle(~A, ~cmp, Some{root}, SL.slot(~A, SC.update(Maybe<&2, A>, ss, 0n, None{}), m)), low_all(~A, ~cmp, SC.update(Maybe<&2, A>, ss, 0n, None{}), m, root),
+        low_del_at(~A, ~cmp, ~o, ss, n, m, root, N.succ_le_lt(m, n, hk), hho, hlay, h0),
+        low_del(~A, ~cmp, ~o, ss, n, m, root, N.le_trans(m, 1n+m, n, N.le_succ(m), hk), hho, hlay, h0))
+
+def head_root(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ss: List<&2, Maybe<&2, A>>, +n: Nat, +root: A, +hn: {Nat.is_lt(0n, n) == True{} : Bool}, +hho: {SL.ho_upto(~A, ~cmp, ss, n) == True{} : Bool}, +hlay: {SL.lay(~A, ss, n) == True{} : Bool}, +h0: {SL.slot(~A, ss, 0n) == Some{root} : Maybe<&2, A>}) -> {V.msort(~A, ~cmp, V.vals(~A, ss, n)) == Con{root, V.msort(~A, ~cmp, V.vals(~A, SC.update(Maybe<&2, A>, ss, 0n, None{}), n))} : List<&2, A>}:
+  Equal.trans(List<&2, A>, V.msort(~A, ~cmp, V.vals(~A, ss, n)), S.ins(~A, ~cmp, root, V.msort(~A, ~cmp, V.vals(~A, SC.update(Maybe<&2, A>, ss, 0n, None{}), n))), Con{root, V.msort(~A, ~cmp, V.vals(~A, SC.update(Maybe<&2, A>, ss, 0n, None{}), n))},
+    ins_del(~A, ~cmp, ~o, ss, n, 0n, root, hn, h0, Nat.is_eq(0n, N.pred(n)), {==}),
+    front(~A, ~cmp, ~o, SC.update(Maybe<&2, A>, ss, 0n, None{}), n, root, low_del(~A, ~cmp, ~o, ss, n, n, root, N.le_refl(n), hho, hlay, h0)))

@@ -94,6 +94,11 @@ def good_intro(~A: Data, ~cmp: A -> A -> Cmp, +size: Nat, +depth: Nat, +t: AR.Tr
       L.and_intro(SL.lay(~A, AR.slots(Maybe<&2, A>, t), size), Bool.and(SL.ho_upto(~A, ~cmp, AR.slots(Maybe<&2, A>, t), size), Nat.is_le(size, SC.pow2(depth))), hlay,
         L.and_intro(SL.ho_upto(~A, ~cmp, AR.slots(Maybe<&2, A>, t), size), Nat.is_le(size, SC.pow2(depth)), hho, hs))))
 
+def sh_depth(~A: Data, sh: Shadow<A>) -> Nat:
+  match sh:
+    case Sh{+size, +depth, +t}:
+      depth
+
 # depth <= 31 in the form the U32 bridges want it
 def depth_lt32(+depth: Nat, +hd: {Nat.is_le(depth, 31n) == True{} : Bool}) -> {Nat.is_lt(depth, 32n) == True{} : Bool}:
   N.le_lt_succ(depth, 31n, hd)

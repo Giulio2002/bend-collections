@@ -89,18 +89,18 @@ def ms_push(~A: Data, ~cmp: A -> A -> Cmp, +d: Nat, +t: AR.Tree<Maybe<&2, A>>, +
 # ---- one sift-up at the fresh leaf ----
 
 def PushOK(~A: Data, ~cmp: A -> A -> Cmp, sh: ST.Shadow<A>, x: A) -> Type:
-  Sigma<&1, &1, ST.Shadow<A>, sh2 => {H.push(~A, ~cmp, ST.real(~A, sh), x) == ST.real(~A, sh2) : H.Heap<A>} & ({ST.good(~A, ~cmp, sh2) == True{} : Bool} & {ST.model(~A, ~cmp, sh2) == S.ins(~A, ~cmp, x, ST.model(~A, ~cmp, sh)) : List<&2, A>})>
+  Sigma<&1, &1, ST.Shadow<A>, sh2 => {H.push(~A, ~cmp, ST.real(~A, sh), x) == ST.real(~A, sh2) : H.Heap<A>} & ({ST.good(~A, ~cmp, sh2) == True{} : Bool} & ({ST.model(~A, ~cmp, sh2) == S.ins(~A, ~cmp, x, ST.model(~A, ~cmp, sh)) : List<&2, A>} & {Nat.is_le(ST.sh_depth(~A, sh2), 1n+ST.sh_depth(~A, sh)) == True{} : Bool}))>
 
 # The sift-up result, packaged as the new shadow. `d` is the depth of the
 # block the element is written into (the grown depth if the block was full).
-def push_from(~A: Data, ~cmp: A -> A -> Cmp, +size: Nat, +d: Nat, +t: AR.Tree<Maybe<&2, A>>, +x: A, +tgt: List<&2, A>, +hd: {Nat.is_le(d, 31n) == True{} : Bool}, +hs: {Nat.is_le(1n+size, SC.pow2(d)) == True{} : Bool}, +eq0: {H.push(~A, ~cmp, ST.real(~A, ST.Sh{size, d, t}), x) == H.BH{1n+size, U32.from_nat(1n+size), d, U.pow2u(d), H.sift_up(~A, ~cmp, d, U32.from_nat(size), x, AR.thaw(Maybe<&2, A>, t))} : H.Heap<A>}, r: UPS.SiftOK(~A, ~cmp, d, 1n+size, tgt, d, t, size, x)) -> Sigma<&1, &1, ST.Shadow<A>, sh2 => {H.push(~A, ~cmp, ST.real(~A, ST.Sh{size, d, t}), x) == ST.real(~A, sh2) : H.Heap<A>} & ({ST.good(~A, ~cmp, sh2) == True{} : Bool} & {ST.model(~A, ~cmp, sh2) == tgt : List<&2, A>})>:
+def push_from(~A: Data, ~cmp: A -> A -> Cmp, +sh0: ST.Shadow<A>, +size: Nat, +d: Nat, +t: AR.Tree<Maybe<&2, A>>, +x: A, +tgt: List<&2, A>, +hd: {Nat.is_le(d, 31n) == True{} : Bool}, +hs: {Nat.is_le(1n+size, SC.pow2(d)) == True{} : Bool}, +hdd: {Nat.is_le(d, 1n+ST.sh_depth(~A, sh0)) == True{} : Bool}, +eq0: {H.push(~A, ~cmp, ST.real(~A, sh0), x) == H.BH{1n+size, U32.from_nat(1n+size), d, U.pow2u(d), H.sift_up(~A, ~cmp, d, U32.from_nat(size), x, AR.thaw(Maybe<&2, A>, t))} : H.Heap<A>}, r: UPS.SiftOK(~A, ~cmp, d, 1n+size, tgt, d, t, size, x)) -> Sigma<&1, &1, ST.Shadow<A>, sh2 => {H.push(~A, ~cmp, ST.real(~A, sh0), x) == ST.real(~A, sh2) : H.Heap<A>} & ({ST.good(~A, ~cmp, sh2) == True{} : Bool} & ({ST.model(~A, ~cmp, sh2) == tgt : List<&2, A>} & {Nat.is_le(ST.sh_depth(~A, sh2), 1n+ST.sh_depth(~A, sh0)) == True{} : Bool}))>:
   match r:
     case Tuple{+t2, Tuple{esift, Tuple{pf2, Tuple{hho2, Tuple{hlay2, hms2}}}}}:
       (ST.Sh{1n+size, d, t2},
-       (Equal.trans(H.Heap<A>, H.push(~A, ~cmp, ST.real(~A, ST.Sh{size, d, t}), x), H.BH{1n+size, U32.from_nat(1n+size), d, U.pow2u(d), H.sift_up(~A, ~cmp, d, U32.from_nat(size), x, AR.thaw(Maybe<&2, A>, t))}, ST.real(~A, ST.Sh{1n+size, d, t2}), eq0,
+       (Equal.trans(H.Heap<A>, H.push(~A, ~cmp, ST.real(~A, sh0), x), H.BH{1n+size, U32.from_nat(1n+size), d, U.pow2u(d), H.sift_up(~A, ~cmp, d, U32.from_nat(size), x, AR.thaw(Maybe<&2, A>, t))}, ST.real(~A, ST.Sh{1n+size, d, t2}), eq0,
           Equal.cong(Array<Maybe<&2, A>>, H.Heap<A>, a => H.BH{1n+size, U32.from_nat(1n+size), d, U.pow2u(d), a}, H.sift_up(~A, ~cmp, d, U32.from_nat(size), x, AR.thaw(Maybe<&2, A>, t)), AR.thaw(Maybe<&2, A>, t2), esift)),
         (ST.good_intro(~A, ~cmp, 1n+size, d, t2, hd, pf2, hlay2, hho2, hs),
-         hms2)))
+         (hms2, hdd))))
 
 # ---- the capacity decision, in Nat ----
 
@@ -122,10 +122,10 @@ def succ_le_double(+p: Nat, +h: {Nat.is_le(1n, p) == True{} : Bool}) -> {Nat.is_
 def push_room_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +size: Nat, +depth: Nat, +t: AR.Tree<Maybe<&2, A>>, +x: A, +g: {ST.good(~A, ~cmp, ST.Sh{size, depth, t}) == True{} : Bool}, +hlt: {Nat.is_lt(size, SC.pow2(depth)) == True{} : Bool}) -> PushOK(~A, ~cmp, ST.Sh{size, depth, t}, x):
   +hd = ST.g_depth(~A, ~cmp, size, depth, t, g)
   +pf = ST.g_perfect(~A, ~cmp, size, depth, t, g)
-  push_from(~A, ~cmp, size, depth, t, x, S.ins(~A, ~cmp, x, ST.model(~A, ~cmp, ST.Sh{size, depth, t})), hd,
-    N.lt_succ_le_succ(size, SC.pow2(depth), hlt),
+  push_from(~A, ~cmp, ST.Sh{size, depth, t}, size, depth, t, x, S.ins(~A, ~cmp, x, ST.model(~A, ~cmp, ST.Sh{size, depth, t})), hd,
+    N.lt_succ_le_succ(size, SC.pow2(depth), hlt), N.le_succ(depth),
     %Equal.sym(Bool, U32.is_lt(U32.from_nat(size), U.pow2u(depth)), Nat.is_lt(size, SC.pow2(depth)), room_bridge(size, depth, hd, ST.g_size(~A, ~cmp, size, depth, t, g))) : {H.push_room(~A, ~cmp, size, U32.from_nat(size), depth, U.pow2u(depth), AR.thaw(Maybe<&2, A>, t), x, _) == H.BH{1n+size, U32.from_nat(1n+size), depth, U.pow2u(depth), H.sift_up(~A, ~cmp, depth, U32.from_nat(size), x, AR.thaw(Maybe<&2, A>, t))} : H.Heap<A>}
-    %hlt : {H.push_room(~A, ~cmp, size, U32.from_nat(size), depth, U.pow2u(depth), AR.thaw(Maybe<&2, A>, t), x, _) == H.BH{1n+size, U32.from_nat(1n+size), depth, U.pow2u(depth), H.sift_up(~A, ~cmp, depth, U32.from_nat(size), x, AR.thaw(Maybe<&2, A>, t))} : H.Heap<A>}
+    %Equal.sym(Bool, Nat.is_lt(size, SC.pow2(depth)), True{}, hlt) : {H.push_room(~A, ~cmp, size, U32.from_nat(size), depth, U.pow2u(depth), AR.thaw(Maybe<&2, A>, t), x, _) == H.BH{1n+size, U32.from_nat(1n+size), depth, U.pow2u(depth), H.sift_up(~A, ~cmp, depth, U32.from_nat(size), x, AR.thaw(Maybe<&2, A>, t))} : H.Heap<A>}
     {==},
     UPS.sift_up_ok(~A, ~cmp, ~o, depth, depth, 1n+size, S.ins(~A, ~cmp, x, ST.model(~A, ~cmp, ST.Sh{size, depth, t})), t, size, x,
       ST.depth_lt32(depth, hd), hlt, N.lt_succ(size), hlt, pf,
@@ -144,10 +144,10 @@ def push_grow_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +size: Na
   +pf2 = GR.gtree_perfect(~A, depth, t, pf)
   +hi2 = N.le_lt_trans(size, SC.pow2(depth), SC.pow2(1n+depth), hs, N.pow2_lt_succ(depth))
   +hs2 = N.le_trans(1n+size, 1n+SC.pow2(depth), SC.pow2(1n+depth), hs, succ_le_double(SC.pow2(depth), N.pow2_pos(depth)))
-  push_from(~A, ~cmp, size, 1n+depth, t2, x, S.ins(~A, ~cmp, x, ST.model(~A, ~cmp, ST.Sh{size, depth, t})), N.lt_succ_le_succ(depth, 31n, hroom), hs2,
-    %Equal.sym(Array<Maybe<&2, A>>, H.grown(~A, depth, AR.thaw(Maybe<&2, A>, t)), AR.thaw(Maybe<&2, A>, t2), GR.gtree_real(~A, depth, t)) : {H.push_room(~A, ~cmp, size, U32.from_nat(size), depth, U.pow2u(depth), AR.thaw(Maybe<&2, A>, t), x, False{}) == H.BH{1n+size, U32.from_nat(1n+size), 1n+depth, U.pow2u(1n+depth), H.sift_up(~A, ~cmp, 1n+depth, U32.from_nat(size), x, _)} : H.Heap<A>}
+  push_from(~A, ~cmp, ST.Sh{size, depth, t}, size, 1n+depth, t2, x, S.ins(~A, ~cmp, x, ST.model(~A, ~cmp, ST.Sh{size, depth, t})), N.lt_succ_le_succ(depth, 31n, hroom), hs2, N.le_refl(1n+depth),
+    %AR.new(Maybe<&2, A>, depth, None{}) : {H.push_room(~A, ~cmp, size, U32.from_nat(size), depth, U.pow2u(depth), AR.thaw(Maybe<&2, A>, t), x, U32.is_lt(U32.from_nat(size), U.pow2u(depth))) == H.BH{1n+size, U32.from_nat(1n+size), 1n+depth, U.pow2u(1n+depth), H.sift_up(~A, ~cmp, 1n+depth, U32.from_nat(size), x, ANode{AR.thaw(Maybe<&2, A>, t), _})} : H.Heap<A>}
     %Equal.sym(Bool, U32.is_lt(U32.from_nat(size), U.pow2u(depth)), Nat.is_lt(size, SC.pow2(depth)), room_bridge(size, depth, hd, hs)) : {H.push_room(~A, ~cmp, size, U32.from_nat(size), depth, U.pow2u(depth), AR.thaw(Maybe<&2, A>, t), x, _) == H.BH{1n+size, U32.from_nat(1n+size), 1n+depth, U.pow2u(1n+depth), H.sift_up(~A, ~cmp, 1n+depth, U32.from_nat(size), x, H.grown(~A, depth, AR.thaw(Maybe<&2, A>, t)))} : H.Heap<A>}
-    %hfull : {H.push_room(~A, ~cmp, size, U32.from_nat(size), depth, U.pow2u(depth), AR.thaw(Maybe<&2, A>, t), x, _) == H.BH{1n+size, U32.from_nat(1n+size), 1n+depth, U.pow2u(1n+depth), H.sift_up(~A, ~cmp, 1n+depth, U32.from_nat(size), x, H.grown(~A, depth, AR.thaw(Maybe<&2, A>, t)))} : H.Heap<A>}
+    %Equal.sym(Bool, Nat.is_lt(size, SC.pow2(depth)), False{}, hfull) : {H.push_room(~A, ~cmp, size, U32.from_nat(size), depth, U.pow2u(depth), AR.thaw(Maybe<&2, A>, t), x, _) == H.BH{1n+size, U32.from_nat(1n+size), 1n+depth, U.pow2u(1n+depth), H.sift_up(~A, ~cmp, 1n+depth, U32.from_nat(size), x, H.grown(~A, depth, AR.thaw(Maybe<&2, A>, t)))} : H.Heap<A>}
     {==},
     L.subst(List<&2, A>, zs => UPS.SiftOK(~A, ~cmp, 1n+depth, 1n+size, S.ins(~A, ~cmp, x, V.msort(~A, ~cmp, zs)), 1n+depth, t2, size, x), V.vals(~A, AR.slots(Maybe<&2, A>, t2), size), V.vals(~A, AR.slots(Maybe<&2, A>, t), size), GR.gtree_vals(~A, depth, t, size, pf, hs),
       UPS.sift_up_ok(~A, ~cmp, ~o, 1n+depth, 1n+depth, 1n+size, S.ins(~A, ~cmp, x, V.msort(~A, ~cmp, V.vals(~A, AR.slots(Maybe<&2, A>, t2), size))), t2, size, x,

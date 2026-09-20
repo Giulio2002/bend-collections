@@ -164,9 +164,9 @@ def out_s(r: H.Heap<String> & List<&2, E.Obs<String>>) -> List<&2, String>:
 def dispatch(is_u: Bool, ops: List<&2, String>) -> List<&2, String>:
   match is_u:
     case True{}:
-      out_u(H.run_u32(all_u(ops), H.new(U32)))
+      out_u(H.run_u32(all_u(ops), H.new(~U32)))
     case False{}:
-      out_s(H.run_string(all_s(ops), H.new(String)))
+      out_s(H.run_string(all_s(ops), H.new(~String)))
 
 def start(args: List<&2, String>) -> List<&2, String>:
   match args:

@@ -1,52 +1,94 @@
 import Base
 import ./lib/logic.bend as L
+import ./lib/list.bend as LL
+import ./lib/nat.bend as N
+import ./lib/array.bend as AR
 import ./lib/order.bend as O
 import ../spec/binary_heap.bend as S
 import ../src/binary_heap.bend as H
 import ../types/binary_heap.bend as E
-import ./binary_heap/multiset.bend as M
-import ./binary_heap/tree.bend as TR
-import ./binary_heap/steps.bend as HS
-import ./binary_heap/trace.bend as HT
+import ./binary_heap/state.bend as ST
+import ./binary_heap/steps.bend as SP
+import ./binary_heap/trace.bend as TR
 
-# Binary heap: public proof entry point. Laws are templates over a comparator
-# ~cmp with total-order laws ~o : O.Order(~A, ~cmp); each is instantiated and
-# thereby checked below for (U32, U32.cmp, O.u32_order) and
-# (String, String.order, O.string_order), the instances src/ exposes.
-#   abstraction  HS.abs (sorted multiset of all elements)
-#   invariant    HS.inv (exact size, heap order)
+# Binary heap: public proof entry point.
+#   representation  a PACKED Base.Array block, element i with children 2i+1
+#                   and 2i+2 (src/binary_heap.bend). The block is linear, so
+#                   -- as in proofs/dynamic_array, proofs/bitset and
+#                   proofs/deque -- every law is about the heap BUILT from a
+#                   Data mirror tree (ST.real of a shadow).
+#   abstraction     ST.model / ST.abs (the sorted multiset of the occupied
+#                   slots; ST.abs reads an actual block through AR.freeze)
+#   invariant       ST.good / ST.Inv (perfect block, elements exactly in
+#                   [0, size), heap order over them, size <= 2^depth)
+#   operations      SP.step_ok (every operation, errors included)
+#   traces          trace_from / trace_new (arbitrary finite op lists)
+#
+# Laws are templates over a comparator ~cmp with total-order laws
+# ~o : O.Order(~A, ~cmp); each is instantiated and thereby checked below for
+# (U32, U32.cmp, O.u32_order) and (String, String.order, O.string_order), the
+# instances src/ exposes.
+#
+# The capacity condition of the representation. A push doubles the block at
+# most once, so `depth + (number of pushes in ops) <= 31` is enough for every
+# slot index to stay a representable U32 (2^31 slots), and that is the
+# premise the push, from_list and trace laws carry. It is a premise only of
+# those laws; every other law holds at every state satisfying the invariant.
+#
+# The condition is deliberately CONSERVATIVE and says so: it charges one
+# doubling to every push, while a doubling actually happens only when the
+# block is full (so k pushes cause about log2(k) doublings, not k). Proving
+# the tighter bound needs the amortized slack argument; what is claimed here
+# is the weaker, checked statement, not the sharper one.
 
-def new_abs(~A: Data, ~cmp: A -> A -> Cmp) -> {HS.abs(~A, ~cmp, H.new(A)) == Nil{} : List<&2, A>}:
-  {==}
+# ---- the constructor ----
 
-def new_inv(~A: Data, ~cmp: A -> A -> Cmp) -> {HS.inv(~A, ~cmp, H.new(A)) == True{} : Bool}:
-  {==}
+def new_real(~A: Data, ~cmp: A -> A -> Cmp) -> {H.new(~A) == ST.real(~A, ST.initial(~A)) : H.Heap<A>}:
+  ST.new_real(~A)
 
-def step_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +h: H.Heap<A>, +op: E.Op<A>, +g: {HS.inv(~A, ~cmp, h) == True{} : Bool}) -> HS.StepOK(~A, ~cmp, h, op):
-  HS.step_ok(~A, ~cmp, ~o, h, op, g)
+def new_inv(~A: Data, ~cmp: A -> A -> Cmp) -> {ST.good(~A, ~cmp, ST.initial(~A)) == True{} : Bool}:
+  ST.new_good(~A, ~cmp)
 
-def trace_new(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ops: List<&2, E.Op<A>>) -> {HT.view(~A, ~cmp, ~o, H.run(~A, ~cmp, ops, H.new(A))) == S.run(~A, ~cmp, ops, Nil{}) : List<&2, A> & List<&2, E.Obs<A>>}:
-  HT.trace_from(~A, ~cmp, ~o, ops, H.new(A), {==})
+def new_abs(~A: Data, ~cmp: A -> A -> Cmp) -> {ST.model(~A, ~cmp, ST.initial(~A)) == Nil{} : List<&2, A>}:
+  ST.new_model(~A, ~cmp)
 
-def trace_new_inv(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ops: List<&2, E.Op<A>>) -> {HS.inv(~A, ~cmp, Pair.fst(H.Heap<A>, List<&2, E.Obs<A>>, H.run(~A, ~cmp, ops, H.new(A)))) == True{} : Bool}:
-  HT.inv_from(~A, ~cmp, ~o, ops, H.new(A), {==})
+# ---- every operation (errors included), on every reachable representation ----
+
+def step_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), sh: ST.Shadow<A>, op: E.Op<A>, +g: {ST.good(~A, ~cmp, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(ST.sh_depth(~A, sh), SP.pushcost(~A, op)), 31n) == True{} : Bool}) -> SP.StepOK(~A, ~cmp, sh, op):
+  SP.step_ok(~A, ~cmp, ~o, sh, op, g, room)
+
+# The abstraction of an actual heap is the model of its shadow: the laws
+# above, stated on shadows, are laws about actual heaps.
+def abs_real(~A: Data, ~cmp: A -> A -> Cmp, +sh: ST.Shadow<A>) -> {ST.abs(~A, ~cmp, ST.real(~A, sh)) == ST.model(~A, ~cmp, sh) : List<&2, A>}:
+  ST.abs_real(~A, ~cmp, sh)
+
+def new_heap_inv(~A: Data, ~cmp: A -> A -> Cmp) -> ST.Inv(~A, ~cmp, H.new(~A)):
+  (ST.initial(~A), (ST.new_real(~A), ST.new_good(~A, ~cmp)))
+
+# ---- arbitrary finite traces ----
+
+def trace_from(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ops: List<&2, E.Op<A>>, +sh0: ST.Shadow<A>, +g0: {ST.good(~A, ~cmp, sh0) == True{} : Bool}, +room: {Nat.is_le(Nat.add(ST.sh_depth(~A, sh0), TR.pushes(~A, ops)), 31n) == True{} : Bool}) -> TR.TraceOK(~A, ~cmp, ops, sh0):
+  TR.trace_from(~A, ~cmp, ~o, ops, sh0, g0, room)
+
+def trace_new(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ops: List<&2, E.Op<A>>, +room: {Nat.is_le(Nat.add(0n, TR.pushes(~A, ops)), 31n) == True{} : Bool}) -> TR.TraceOK(~A, ~cmp, ops, ST.initial(~A)):
+  TR.trace_from(~A, ~cmp, ~o, ops, ST.initial(~A), ST.new_good(~A, ~cmp), room)
 
 # ---- checked instances ----
 
-def u32_step_ok(+h: H.Heap<U32>, +op: E.Op<U32>, +g: {HS.inv(~U32, ~U32.cmp, h) == True{} : Bool}) -> HS.StepOK(~U32, ~U32.cmp, h, op):
-  step_ok(~U32, ~U32.cmp, ~O.u32_order, h, op, g)
+def u32_step_ok(sh: ST.Shadow<U32>, op: E.Op<U32>, +g: {ST.good(~U32, ~U32.cmp, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(ST.sh_depth(~U32, sh), SP.pushcost(~U32, op)), 31n) == True{} : Bool}) -> SP.StepOK(~U32, ~U32.cmp, sh, op):
+  step_ok(~U32, ~U32.cmp, ~O.u32_order, sh, op, g, room)
 
-def u32_trace(+ops: List<&2, E.Op<U32>>) -> {HT.view(~U32, ~U32.cmp, ~O.u32_order, H.run_u32(ops, H.new(U32))) == S.run(~U32, ~U32.cmp, ops, Nil{}) : List<&2, U32> & List<&2, E.Obs<U32>>}:
-  trace_new(~U32, ~U32.cmp, ~O.u32_order, ops)
+def u32_trace(+ops: List<&2, E.Op<U32>>, +room: {Nat.is_le(Nat.add(0n, TR.pushes(~U32, ops)), 31n) == True{} : Bool}) -> TR.TraceOK(~U32, ~U32.cmp, ops, ST.initial(~U32)):
+  trace_new(~U32, ~U32.cmp, ~O.u32_order, ops, room)
 
-def u32_trace_inv(+ops: List<&2, E.Op<U32>>) -> {HS.inv(~U32, ~U32.cmp, Pair.fst(H.Heap<U32>, List<&2, E.Obs<U32>>, H.run_u32(ops, H.new(U32)))) == True{} : Bool}:
-  trace_new_inv(~U32, ~U32.cmp, ~O.u32_order, ops)
+def u32_new_inv() -> ST.Inv(~U32, ~U32.cmp, H.new(~U32)):
+  new_heap_inv(~U32, ~U32.cmp)
 
-def string_step_ok(+h: H.Heap<String>, +op: E.Op<String>, +g: {HS.inv(~String, ~String.order, h) == True{} : Bool}) -> HS.StepOK(~String, ~String.order, h, op):
-  step_ok(~String, ~String.order, ~O.string_order, h, op, g)
+def string_step_ok(sh: ST.Shadow<String>, op: E.Op<String>, +g: {ST.good(~String, ~String.order, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(ST.sh_depth(~String, sh), SP.pushcost(~String, op)), 31n) == True{} : Bool}) -> SP.StepOK(~String, ~String.order, sh, op):
+  step_ok(~String, ~String.order, ~O.string_order, sh, op, g, room)
 
-def string_trace(+ops: List<&2, E.Op<String>>) -> {HT.view(~String, ~String.order, ~O.string_order, H.run_string(ops, H.new(String))) == S.run(~String, ~String.order, ops, Nil{}) : List<&2, String> & List<&2, E.Obs<String>>}:
-  trace_new(~String, ~String.order, ~O.string_order, ops)
+def string_trace(+ops: List<&2, E.Op<String>>, +room: {Nat.is_le(Nat.add(0n, TR.pushes(~String, ops)), 31n) == True{} : Bool}) -> TR.TraceOK(~String, ~String.order, ops, ST.initial(~String)):
+  trace_new(~String, ~String.order, ~O.string_order, ops, room)
 
-def string_trace_inv(+ops: List<&2, E.Op<String>>) -> {HS.inv(~String, ~String.order, Pair.fst(H.Heap<String>, List<&2, E.Obs<String>>, H.run_string(ops, H.new(String)))) == True{} : Bool}:
-  trace_new_inv(~String, ~String.order, ~O.string_order, ops)
+def string_new_inv() -> ST.Inv(~String, ~String.order, H.new(~String)):
+  new_heap_inv(~String, ~String.order)

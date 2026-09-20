@@ -338,9 +338,18 @@ def drain_take(~A: Data, +m: U32, r: Array<Maybe<&2, A>> & Maybe<&2, A>) -> Drai
   (arr, mr) = r
   drain_root(~A, arr, m, mr)
 
-# Take the root out of a copy holding `n` elements.
+# Take the root out of a copy holding `n` elements. Emptiness is decided by
+# the count, not by reading slot 0: the drain must stop at `n = 0` whatever
+# the slots above the heap hold (and it saves one array read per element).
+def drain_take_go(~A: Data, +n: U32, arr: Array<Maybe<&2, A>>, empty: Bool) -> Drain<A>:
+  match empty:
+    case True{}:
+      DrDone{arr}
+    case False{}:
+      drain_take(~A, U32.sub(n, 1), Array.get(Maybe<&2, A>, arr, 0))
+
 def drain_probe(~A: Data, +n: U32, arr: Array<Maybe<&2, A>>) -> Drain<A>:
-  drain_take(~A, U32.sub(n, 1), Array.get(Maybe<&2, A>, arr, 0))
+  drain_take_go(~A, n, arr, U32.is_eq(n, 0))
 
 def drain_go(~A: Data, ~cmp: A -> A -> Cmp, fuel: Nat, +depth: Nat, st: Drain<A>) -> List<&2, A>:
   match fuel st:
