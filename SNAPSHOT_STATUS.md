@@ -97,3 +97,12 @@ the pinned dependencies. C sources and harness are included. Some tree/trie C
 references were found to traverse twice where Bend traverses once; these need
 correction/review before final acceptance. Full proof closure and concrete
 instances remain incomplete, and unsafe annotation trust boundaries need review.
+
+## Follow-up validation evidence
+
+The active worker's full validation run reported graph runtime, boundary,
+differential and mutation tests passing, but overall complete=false:
+DLL driver handle formatting expects Nat instead of the new U32, and the
+graph trace proof still expects the old state shape. This evidence is from
+the ongoing workspace; source differences against this snapshot are explicitly
+listed in SNAPSHOT.json. It does not certify this exact snapshot or complete proofs.

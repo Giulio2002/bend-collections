@@ -324,5 +324,21 @@
     "proofs/lib/u32add.bend",
     "src/doubly_linked_list.bend",
     "src/graph.bend"
-  ]
+  ],
+  "indexed_graph_validation": {
+    "complete": false,
+    "failures": [
+      "doubly_linked_list: driver did not build: Error:\n- expected : Nat\n- observed : U32\nContext:\n- l : U32\n- i : U32\nLocation: htext\n21 |     case E.H{l, i}:\n22>|       \"H \" ++ Nat.show(l) ++ \":\" ++ Nat.show(i)\n23 |",
+      "graph: proofs/graph.bend did not check: Error:\n- message  : a ../src/graph.G pattern with 7 fields\nLocation:\n391 |   match g:\n392>|     case G.G{d, adj}:\n393 |       adj\n"
+    ],
+    "source_hash_mismatches": [
+      "proofs/graph/search.bend",
+      "proofs/graph/shift.bend",
+      "proofs/graph/state.bend",
+      "proofs/graph/window.bend",
+      "tools/mutants.py",
+      "tools/scenarios.py"
+    ],
+    "current_snapshot_validated": false
+  }
 }

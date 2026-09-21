@@ -1,0 +1,29 @@
+dynamic_array          runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+deque                  runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+queue                  runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+FAIL doubly_linked_list: driver did not build: Error:
+- expected : Nat
+- observed : U32
+Context:
+- l : U32
+- i : U32
+Location: htext
+21 |     case E.H{l, i}:
+22>|       "H " ++ Nat.show(l) ++ ":" ++ Nat.show(i)
+23 |
+binary_heap            runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+balanced_search_tree   runtime=passed boundaries=passed differential=passed structural=passed mutations=passed trace_proof=passed
+bitset                 runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+union_find             runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+fenwick_tree           runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+segment_tree           runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+prefix_trie            runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+FAIL graph: proofs/graph.bend did not check: Error:
+- message  : a ../src/graph.G pattern with 7 fields
+Location:
+391 |   match g:
+392>|     case G.G{d, adj}:
+393 |       adj
+
+graph                  runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=failed
+report: /tmp/val_all.json (complete=False, 2 failures)
