@@ -1,4 +1,4 @@
-> Development snapshot: performance acceptance and full proof audit are incomplete. The new LRU trace checks cover U32/String with capacities at most 2^31; the public constructor accepts a wider range. See [SNAPSHOT_STATUS.md](SNAPSHOT_STATUS.md).
+> Development snapshot: full acceptance is incomplete. LRU trace/uniqueness laws check at U32/String with capacities <=2^31, while the public constructor accepts larger capacities. Performance targets are not met. See [SNAPSHOT_STATUS.md](SNAPSHOT_STATUS.md).
 
 # bend-dsa
 

@@ -219,3 +219,43 @@ presented as a baseline anywhere. The 18 pinned files are unchanged.
    2.5x target against a hash-table reference.** This is reported for the
    operator's decision; nothing has been relaxed and the C reference has not
    been slowed.
+
+## Worker notes, iteration 0008
+
+1. **The indexed LRU is now proven** (`proofs/lru_fast.bend`; laws
+   `lru_fast_*` in END_TO_END.bend). The proposal in section 1 is unchanged:
+   the nine `lru.*` rows still need the operator to add them to the protected
+   workload table. Re-measured today with `tools/lru_measure.py` (table in
+   docs/C_EQUIVALENCE.md): keyed rows 4-185x, len 0.3x, new 2.1x, keys
+   3.2-6.3x, purge / resize restoring pairs 40-77x. The keyed rows are
+   bounded by the native crit-bit Map, as measured in isolation before.
+2. **prefix_trie representation versus its pinned reference (DECISION NEEDED).**
+   The operator's representation rule forbids linked-list storage merely to
+   hold trie children. `src/prefix_trie.bend` still keeps each node's children
+   as a first-child/next-sibling chain. The pinned C reference
+   `benchmarks/native/prefix_trie.c` (protected) implements that SAME chain. So
+   migrating the Bend trie to indexed children (for example a node arena whose
+   children are a sorted `U32` block searched by character, as the graph's
+   adjacency blocks are) would make the pinned reference a different
+   algorithm, and the rows would compare unlike things. Proposal: when the
+   Bend trie migrates, add a matching C reference
+   (`benchmarks/native/prefix_trie_indexed.c`: node arena, per-node sorted
+   child arrays, the same doubling policy) and point the `prefix_trie.*` rows
+   at it, keeping the old file for provenance. No change has been made; the
+   migration and its re-proof are the next representation item.
+3. **Structural limits met in the 0008 triage** (not requests to relax
+   anything, recorded so the operator can see why rows are still over):
+   * `to_list`-style rows build and consume a `List<&2, T>`, measured at
+     about 10.9 ns per cell on the Bend side (`tools/costmodel.py` `fresh`)
+     against about 2 ns in the C arena. That bounds them near 5x whatever the
+     structure's representation is.
+   * `prefix_trie` edge-empty rows (50-110x): the driver spells a
+     10-character `String` key (20 cells: `SCon` plus `Chr`) inside the timed
+     loop on both sides; C writes 10 words to a stack buffer. Spelling the
+     key costs about 66 ns on the Bend side, and dropping the unread tail in
+     `contains` on an empty trie brings it to about 127 ns
+     (`tools/dev/quick_bench.py`).
+   * `balanced_search_tree` reads walk retained `&2` nodes (about 9 ns per
+     node against about 1 ns in C). An arena red-black tree would move the
+     reads to indexed `Base.Array` loads, which are at parity with C, but it
+     means re-proving the whole tree.

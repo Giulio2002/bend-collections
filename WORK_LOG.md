@@ -1872,3 +1872,51 @@ Read docs/OPERATOR_LRU_SCOPE_CORRECTION.md. Missing canonical LRU rows do not ex
 
 ## Operator final-proof audit note
 Read docs/OPERATOR_CAPACITY_PROOF_AUDIT.md before claiming full API/trace coverage. Checked q<=31/cap<=2^q premises must connect to the actual public contract,not become an implicit exemption.
+* LRU FAST PROOF COMPLETE. The trace theorem checks at V = U32, and END_TO_END.bend states the
+  lru_fast_{u32,string}_* laws: new_is_the_constructor, new_accepts / new_rejects_{zero,reserved}
+  (runtime and spec), new, new_invariant, step, trace, trace_from. `bend PROOF.bend` -> All terms
+  check (3623 template instances).
+  - simple.bend: metrics readout (the ten limbs back as mets), len observation, purge
+    (real / inv / model).
+  - resize.bend: shrink loop ghost sr_g (single recursion; the IH is passed as a Pi so there is
+    no mutual recursion). The invariant is carried at the OLD capacity c0 while the loop runs;
+    recap restores it at the new capacity at the end. rmc_real / evc_real remove at capn using
+    the invariant at c0. Runtime (sr_real), model (sr_model: dropn / bumpn with k = len - cap),
+    invariant (sr_inv).
+  - keys.bend + kwalk.bend: expiry loop ghost st_g (st_real / st_model / st_inv) and klist_ok
+    (the backward prev-walk yields keys_at = S.keys(ents)).
+  - steps.bend: StepOK record per operation; capstep.bend: every spec step keeps the capacity
+    bound, except Resize, which installs a bounded one (op_ok). trace.bend: dispatcher,
+    projections, run_ok / run_from / trace_from / trace_new with premise all_ok(q, ops) and
+    cb(q, sh).
+  - proofs/lru_fast.bend: public entry. PROOF_STATUS.md and docs/PROOF_MAP.md were updated (they
+    were stale about graph / DLL being under construction). tools/validate.py now also runs
+    tests/lru_fast/spec_diff.bend (runtime vs spec, 6 x 300 ops, 0 mismatches, ~3 min).
+* LRU shadow uniqueness: proofs/lru_fast/inj.bend real_inj (walk_lk / walk_fk recover the
+  ghost order and free list from the links; thaw_inj, life_inj, from_nat_inj; sh_eq congruence).
+  END_TO_END gains lru_fast_{u32,string}_shadow_unique. PROOF.bend -> All terms check (3655).
+* 0008 acceptance (before the shadow_unique addition): automation/acceptance.py passed, with
+  validation complete=True and 0 failures, including the LRU spec differential.
+  Supplemental LRU rows (tools/lru_measure.py, build/performance/lru_experiment.json): keyed ops
+  are 4-185x because of the native crit-bit Map (documented in C_EQUIVALENCE); len 0.3x, new
+  2.1x, keys 3.2-6.3x, purge / resize 40-77x.
+* Final sequence started: acceptance -> benchmarks/run.py (report.json) -> tools/bench_report.py.
+* Second acceptance run (after shadow_unique) failed in tools/validate.py: build/bin/
+  balanced_search_tree existed when built and exercised, but was missing when hashed. The
+  validator crashed on the missing file. It now records a failure ("driver binary disappeared")
+  instead of crashing. The same build passed an hour earlier, and the benchmark run that
+  followed built the BST driver fine, so this looks transient (a shared machine, with a
+  concurrent multi-GB bend job from another project). Acceptance is re-run after the benchmark.
+* SELF-AUDIT (AUDITOR.md), iteration 0008:
+  - All twelve structures: proofs check via PROOF.bend (graph and DLL completed in 0006 / 0007;
+    PROOF_MAP / PROOF_STATUS were stale and are fixed). Retained LRU: re-checked; sha-pinned.
+    Indexed LRU: now proven (trace from the constructor, every operation, shadow_unique).
+  - Hidden bounds: only the capacity conditions, as explicit premises (LRU: every capacity
+    within 2^q, q <= 31).
+  - Static instantiations: the LRU laws at U32 and String. Benchmarks and tests use U32.
+  - Representation rule: prefix_trie children are still a sibling chain (ARCHITECTURE.md says so).
+    Migrating needs a matching C reference (the pinned one is the sibling chain), so it is
+    recorded as a decision in docs/BENCHMARK_CHANGE_PROPOSAL.md (iteration 0008 notes).
+  - Performance: NOT met. 162 of 408 frozen rows are over 2.5x (0008 triage). The frozen gate
+    has no lru.* rows; the supplemental LRU rows are 4-185x for keyed ops (native Map bound).
+  - Unperformed: independent reproduction on an idle machine (the machine is shared, load ~5).

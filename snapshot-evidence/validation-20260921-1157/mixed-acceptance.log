@@ -1,0 +1,27 @@
+All terms check, with 3655 unsafe annotations.
+
+All terms check, with 3655 unsafe annotations.
+
+dynamic_array          runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+deque                  runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+queue                  runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+doubly_linked_list     runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+binary_heap            runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+balanced_search_tree   runtime=passed boundaries=passed differential=passed structural=passed mutations=passed trace_proof=passed
+bitset                 runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+union_find             runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+fenwick_tree           runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+segment_tree           runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+prefix_trie            runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+graph                  runtime=passed boundaries=passed differential=passed structural=n/a mutations=passed trace_proof=passed
+report: /Users/monkeair/work/dsa-performance/runs/20260920T133039Z-075758e5/iterations/0008/workspace/build/validation.json (complete=True, 0 failures)
+Mechanical gates passed; independent full semantic audit still required.
+0m as f:
+         [31m~~~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  File [35m"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py"[0m, line [35m771[0m, in [35mopen[0m
+    return [31mio.open[0m[1;31m(self, mode, buffering, encoding, errors, newline)[0m
+           [31m~~~~~~~[0m[1;31m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+[1;35mFileNotFoundError[0m: [35m[Errno 2] No such file or directory: '/Users/monkeair/work/dsa-performance/runs/20260920T133039Z-075758e5/iterations/0008/workspace/build/bin/balanced_search_tree'[0m
+Command '['/opt/homebrew/opt/python@3.14/bin/python3.14', 'tools/validate.py', '--report', '/Users/monkeair/work/dsa-performance/runs/20260920T133039Z-075758e5/iterations/0008/workspace/build/validation.json']' returned non-zero exit status 1.
+exit=1
+exit=0

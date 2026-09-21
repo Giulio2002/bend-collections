@@ -1,0 +1,17 @@
+{
+  "at": "2026-09-21T09:59:49.734645+00:00",
+  "entry": "END_TO_END.bend",
+  "exit": 0,
+  "seconds": 30.708207541,
+  "sampled_peak_footprint_bytes": 3308817480,
+  "annotations": 3655,
+  "explicit_unsafe": 0,
+  "template_instances": 3655,
+  "full_acceptance_passed": false,
+  "checked_value_types": [
+    "U32",
+    "String"
+  ],
+  "capacity_limit": 2147483648,
+  "scope": "Adds shadow uniqueness for native indexed LRU, on top of capacity-bounded trace laws. Larger accepted constructor capacities and full generic-type coverage remain unproven by these instances."
+}

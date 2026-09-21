@@ -9,7 +9,7 @@ theorems, so the map is given per structure rather than per operation.
 | `dynamic_array` | item sequence + capacity | `proofs/dynamic_array/steps.bend` `step_ok` | `trace_new`, `trace_with_limit` | `dynamic_array_*` | `tests/dynamic_array/` |
 | `deque` | item sequence | `proofs/deque/steps.bend` `step_ok` (shadow form: the slot array is linear) | `proofs/deque/trace.bend` `trace_from`, exposed as `deque_trace` | `deque_*` | `tests/deque/` |
 | `queue` | item sequence (FIFO) | `proofs/queue/steps.bend` `step_ok` (each step is the deque's step of the corresponding deque operation) | `proofs/queue/trace.bend` `trace_from`, exposed as `queue_trace` | `queue_*` | `tests/queue/` |
-| `doubly_linked_list` | item sequence + handles | **under construction** (the node store became parallel indexed arenas; the existing modules describe the ordered-map arena) | **under construction** | **under construction** | `tests/doubly_linked_list/` |
+| `doubly_linked_list` | item sequence + handles | `proofs/dlist/trace.bend` `step_ok` (shadow form over the three parallel arenas; template, instantiated at U32 and String) | `trace_new`, `trace_from` | `doubly_linked_list_u32_*`, `doubly_linked_list_string_*` | `tests/doubly_linked_list/` |
 | `binary_heap` | sorted multiset | `proofs/binary_heap/…` `step_ok` (template, instantiated at U32 and String) | `trace_new` | `binary_heap_u32_*`, `binary_heap_string_*` | `tests/binary_heap/` |
 | `balanced_search_tree` | key-sorted entry list (finite map) | `proofs/balanced_search_tree/steps.bend` `step_ok` (template, instantiated at U32 and String) | `trace_from`, `inv_from` | `balanced_search_tree_u32_*`, `balanced_search_tree_string_*` | `tests/balanced_search_tree/` incl. the `rb32`/`rbstr` structural kinds |
 | `bitset` | bit list | `proofs/bitset/steps.bend` `step_ok` (shadow form: the word array is linear) | `proofs/bitset/trace.bend` `trace_from`, exposed as `bitset_trace` | `bitset_*` | `tests/bitset/` |
@@ -17,8 +17,9 @@ theorems, so the map is given per structure rather than per operation.
 | `fenwick_tree` | U32 value list with prefix sums | `proofs/fenwick_tree/steps.bend` `step_ok` | from `new(n)` and `from_list(xs)` | `fenwick_tree_*` | `tests/fenwick_tree/` |
 | `segment_tree` | U32 value list with range sums and range add | `proofs/segment_tree/steps.bend` `step_ok` | from `new(n)` and `from_list(xs)` | `segment_tree_*` | `tests/segment_tree/` |
 | `prefix_trie` | String-ordered finite map | `proofs/prefix_trie/steps.bend` `step_ok` | `trace_new` | `prefix_trie_*` | `tests/prefix_trie/` |
-| `graph` | vertex -> key-sorted neighbour list | **under construction** (the representation changed to indexed slots; see below) | **under construction** | **under construction** | `tests/graph/` |
+| `graph` | vertex -> key-sorted neighbour list | `proofs/graph/gtrace.bend` `step_ok` (shadow form over the vertex slots and adjacency blocks; per-operation cores in `gstep.bend` and the operation modules) | `proofs/graph/gtrace.bend` `trace_new`, `trace_from` | `graph_*` (incl. `graph_*_well_formed`) | `tests/graph/` |
 | retained `lru` | `reference/lru/spec` | the retained cache's own theorems, re-checked under 2.0.16 | `lru_entry_string_trace` | `lru_entry_string_trace` | `tests/lru/` (run mode) |
+| indexed `lru` (`src/lru/fast.bend`) | `spec/lru_fast.bend`: recency-ordered entries with deadlines + five 64-bit counters | `proofs/lru_fast/trace.bend` `step_ok` (every `types/lru_fast.bend` operation; shadow form; template, instantiated at U32 and String) | `trace_new`, `trace_from` (capacity condition: every capacity within 2^q, q <= 31) | `lru_fast_u32_*`, `lru_fast_string_*` | `tests/lru_fast/main.bend` (vs the retained cache), `tests/lru_fast/spec_diff.bend` (vs the spec), `tools/lru_diff.py` (vs C) |
 
 `step_ok` always has the shape
 
@@ -102,27 +103,13 @@ from any invariant-satisfying state are unconditional, and the invariant
 implies the premise (`proofs/bitset/state.bend` `rep_fits`).
 
 
-## graph: the proof after the representation change (iteration 0005)
+## graph: the proof after the representation change
 
-`src/graph.bend` was rewritten on indexed vertex slots plus adjacency
-blocks, so the ordered-map proofs that used to discharge the `graph_*` laws
-no longer describe the implementation. They are archived with the
-implementation they describe (`docs/archive/graph.ordmap.bend.txt`). What is
-proved against the NEW representation today, each module checking on its own:
-
-| module | statement |
-|---|---|
-| `proofs/lib/array2.bend` | `Array.swap` / `Array.set` at `Array<Array<U32>>`, against the real Base algorithms (the generic lemmas of `proofs/lib/array.bend` do not apply: the element type is linear) |
-| `proofs/lib/u32half.bend` | `U32.shr` is exact halving; the midpoint bounds; the `U32.sub` bridge; the narrowing measure. The implementation contains NO `U32.add` because an addition bridge needs a `2^32` bound the checker cannot expand |
-| `proofs/graph/lb.bend` | lower bound of a key in a sorted association list: `ins_at` at that index IS the specification's `ins`; `find` succeeds exactly when the entry there has that key |
-| `proofs/graph/search.bend` | the REAL binary search loop finds the lower bound, and `locate` reports it together with "the entry there is v" |
-| `proofs/graph/shift.bend` | `shr_go` / `shl_go` equal their mirror loops and move exactly the intended index range |
-| `proofs/graph/state.bend` | shadow state, `real`, invariant `good`, abstraction `model`, and the three constructor laws |
-| `proofs/graph/window.bend` | window reads, the slot-counted lower bound and its two split predicates from sortedness, and the keys of the abstraction |
-
-Still to assemble: the nine operation refinements, `step_ok`, the trace law,
-`proofs/graph.bend` and the `graph_*` laws in END_TO_END.bend. Until then
-`bend PROOF.bend` does not check. The model well-formedness development
-below (`wf`) is unaffected: it is a property of the SPEC, not of the runtime
-representation, except for `step_wf`, whose side condition was discharged
-from the old runtime invariant and must be re-derived from `good`.
+`src/graph.bend` runs on indexed vertex slots plus adjacency blocks. The proof
+against this representation is complete: `proofs/graph/state.bend` (shadow,
+`real`, `good`, `model`), the search / shift / window / block lemmas, the nine
+operation refinements, `gtrace.bend` `step_ok` and traces, exposed
+as the `graph_*` laws. The archived ordered-map proofs
+(`docs/archive/graph.ordmap.bend.txt`) describe the previous implementation
+only. The model well-formedness development (`wf`) is a property of the spec;
+`graph_step_well_formed` connects it to the runtime through `good`.

@@ -1,3 +1,11 @@
+## Latest: indexed LRU model uniqueness checked
+
+The frozen END_TO_END entry including new LRU shadow-uniqueness laws checks independently on pinned stock Bend in 30.71 seconds, sampled peak footprint 3.31 GB. All 3,655 CLI annotations classify as template instances, zero explicit @unsafe declarations. This does not replace a semantic/soundness audit.
+
+Trace laws are still instantiated only at U32/String and require capacities <=2^31; the constructor accepts a wider range. No final proof or performance acceptance is claimed.
+
+The worker validation report records all twelve structures and LRU passing, including 24,000 retained-runtime parity operations and 1,568 native differential cases with zero mismatches. Its 318 end-of-run source hashes match this export. However, two gate sequences shared binaries and logs until the operator removed the duplicate: the mixed log and report are retained with that limitation under snapshot-evidence/validation-20260921-1157. A clean isolated acceptance rerun is required.
+
 ## Indexed LRU trace milestone — partial acceptance only
 
 Independent stock Bend 2.0.16 checks of this frozen snapshot passed: END_TO_END in 22.85 seconds / 2.84 GB sampled peak footprint, PROOF in 24.00 seconds / 2.84 GB. The new indexed native-Map LRU laws are instantiated at U32 and String and compose all twelve operation variants into finite traces.

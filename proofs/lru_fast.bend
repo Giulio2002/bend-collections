@@ -8,6 +8,7 @@ import ../types/lru_fast.bend as E
 import ./lru_fast/state.bend as ST
 import ./lru_fast/steps.bend as SP
 import ./lru_fast/trace.bend as TR
+import ./lru_fast/inj.bend as IJ
 
 # Indexed LRU (src/lru/fast.bend): public proof entry point, values of an
 # erased type V.
@@ -74,3 +75,7 @@ def trace_new(~V: Data, +cap: U32, +ops: List<&2, E.Op<V>>, +hc0: {U32.is_eq(cap
 
 def trace_from(~V: Data, +ops: List<&2, E.Op<V>>, +sh: ST.Shadow<V>, +h: {ST.good(~V, sh) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +hc: {TR.cb(V, q, sh) == True{} : Bool}, +hops: {TR.all_ok(V, q, ops) == True{} : Bool}) -> TR.TraceOK(~V, ops, sh):
   TR.trace_from(~V, ops, sh, h, q, hq, hc, hops)
+
+# a good shadow is determined by the cache it builds
+def shadow_unique(~V: Data, +a: ST.Shadow<V>, +b: ST.Shadow<V>, +ga: {ST.good(~V, a) == True{} : Bool}, +gb: {ST.good(~V, b) == True{} : Bool}, +e: {ST.real(~V, a) == ST.real(~V, b) : F.Fast<V>}) -> {a == b : ST.Shadow<V>}:
+  IJ.real_inj(~V, a, b, ga, gb, e)

@@ -336,6 +336,11 @@ def main():
         mut_ok, mut_results = check_mutants(
             name, scenarios.FUNCTIONAL[name] + diff_cases + struct_cases, log)
 
+        if not binary.exists():
+            # The driver was built and exercised above; its disappearance
+            # afterwards is recorded as a failure, never skipped silently.
+            fail(name, 'driver binary %s disappeared during validation' % binary)
+            func_ok = False
         p = run([BEND, 'proofs/%s.bend' % name], timeout=7200)
         proof_ok = p.returncode == 0 and 'All terms check' in p.stdout
         proof_line = (p.stdout.strip().splitlines() or [''])[-1]
@@ -359,7 +364,7 @@ def main():
                           'structural': len(struct_cases)},
             'trace_seeds': scenarios.SEEDS,
             'driver_sha256': sha(ROOT / 'tests' / name / 'main.bend'),
-            'binary_sha256': sha(binary),
+            'binary_sha256': sha(binary) if binary.exists() else None,
             'seconds': round(time.time() - t0, 1),
         })
         rows.append(row)

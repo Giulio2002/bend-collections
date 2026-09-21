@@ -6,26 +6,12 @@ Checked with the pinned toolchain in `inventory/toolchain.json`
 Single root: `PROOF.bend` imports `END_TO_END.bend`, which imports every
 `proofs/<id>.bend` entry plus `proofs/lru.bend`.
 
-> **CURRENT STATE (iteration 0005): `bend PROOF.bend` DOES NOT CHECK.**
-> `src/graph.bend` was rewritten on indexed vertex slots plus adjacency
-> blocks (the operator's representation requirement). The ordered-map proofs
-> that used to discharge the graph laws describe the previous
-> representation and were archived with it
-> (`docs/archive/graph.ordmap.bend.txt`); the replacements are under
-> construction. What is already proved against the NEW representation:
-> `proofs/lib/array2.bend` (Base.Array swap/set at the nested element type),
-> `proofs/lib/u32half.bend` (halving and subtraction bridges),
-> `proofs/graph/lb.bend` (lower-bound index versus the specification's
-> `ins`) and `proofs/graph/search.bend` (the real binary search and
-> `locate`). Missing: the shift loops, the adjacency block operations, the
-> mirror state, the nine operation refinements and the trace law. Every
-> OTHER structure's proofs are unchanged and still check on their own
-> (`bend proofs/<id>.bend`). This is recorded here rather than papered over;
-> see WORK_LOG.md for the plan.
-
-Before that change `bend PROOF.bend` reported **All terms check**. No `@unsafe`, no holes, no axioms, no `?`-terms anywhere
-in the closure (`automation/acceptance.py` re-checks this by scanning the
-import graph).
+**Current state (iteration 0008): `bend PROOF.bend` reports `All terms check`**
+(3655 template instances). The closure covers all twelve structures, the
+retained LRU (`proofs/lru.bend`) and the benchmarked indexed LRU
+(`proofs/lru_fast.bend`, laws `lru_fast_*` in `END_TO_END.bend`). No
+`@unsafe`, no holes, no axioms, no `?`-terms anywhere in the closure
+(`automation/acceptance.py` re-checks this by scanning the import graph).
 
 "Unsafe annotations" in the checker's summary line count *template
 instantiations*, not unchecked terms: every instance is fully checked.
@@ -89,7 +75,8 @@ benchmarks run (`deque_trace_at_is_the_trace`,
 | `fenwick_tree` | the first `n` values of the tree the flat cells realise | the cell array is a perfect tree of depth d+1 (so every cell index is a representable U32), `n <= 2^d`, and every internal cell holds the exact U32 sum of its block's left half |
 | `segment_tree` | first `n` values of the tree the two flat cell arrays realise (a node's tag applies to everything below it) | the sum array is a perfect tree of depth d+1 and the tag array one of depth d, `n <= 2^d`, and every node stores the exact sum of its subtree |
 | `prefix_trie` | preorder enumeration, keys rebuilt character by character | every sibling list strictly increasing by code |
-| `graph` | spec adjacency (vertex → key-sorted neighbour list) | vertex map and every neighbour set satisfy the ordered-map invariant |
+| `graph` | spec adjacency list of the vertex window `[lo, hi)` (vertex → key-sorted neighbour list) | perfect slot and block trees, ascending vertex ids, well-formed adjacency blocks, and spec well-formedness of the model |
+| `lru` (indexed, `src/lru/fast.bend`) | capacity, lifetime, entries in recency order with deadlines, five 64-bit counters (`spec/lru_fast.bend`) | perfect arenas of depth <= 31, the ghost order and free list partition the slots below `fresh <= 2^depth`, prev/next links agree with the order, the free chain with the free list, every ordered slot occupied and mapped to by the table, the table's keys exactly the order's, crit-bit shape of the table, length <= capacity |
 
 Comparator-parameterised structures (`binary_heap`, `balanced_search_tree`)
 state their laws as templates over `~cmp` with the total-order laws
@@ -326,24 +313,65 @@ the latter wraps at 2^31 slots.
 `PROOF.bend` closure and restates the public trace law for the reuse entry
 `src/lru.bend`. Nothing in `reference/lru` is modified; `automation/
 acceptance.py` re-verifies every file's sha256 against
-`inventory/reference-sha256.json`.
+`inventory/reference-sha256.json`. The retained cache cannot be compiled to a
+native binary with this toolchain (its Word(64n) metrics exceed the native
+arity limit; `tests/runtime_defects/wide_arity.bend`), so it is validated in
+`bend` run mode.
 
-The LRU cannot be compiled to a **native** binary with this toolchain — see
-the blocker in `WORK_LOG.md` and `tests/runtime_defects/wide_arity.bend` — so
-it is validated in `bend` run mode and has no native benchmark rows.
+## Indexed LRU (`src/lru/fast.bend`, the benchmarked cache)
+
+The operator's scope correction (`docs/OPERATOR_LRU_SCOPE_CORRECTION.md`) puts
+the natively compiled cache in scope. It is proven against its own independent
+model `spec/lru_fast.bend` (entries in recency order with deadlines, the five
+counters as 64-bit words; expiry and deadlines by the retained numeric
+semantics, ported under `spec/lru_numeric.bend` and `proofs/lru_fast/num/`):
+
+* `state.bend`: shadow, abstraction `model`, invariant `inv` / `good`, and the
+  constructor (`init(cap)` is `real(initial cap)`, whose model is the spec's
+  empty cache; `new` accepts and rejects exactly the capacities spec `new`
+  does, laws `lru_fast_*_new_*`).
+* The operation cores, each proven for the runtime result, the invariant and
+  the model: slot removal `rs.bend`; `remove.bend`; touch `touch.bend` /
+  `touch2.bend`; reads (get / peek / contains, including expiry) `read.bend`;
+  add (replace, and insert from the free list, a fresh slot, or after growing
+  every arena; eviction of the oldest when full) `add.bend`, `insert.bend`,
+  `addop.bend`; purge / metrics / len / capacity / set_lifetime `simple.bend`;
+  resize (a shrink loop with its own ghost; the invariant is carried at the old
+  capacity while the loop runs) `resize.bend`; keys (the expired-prefix loop
+  and the backward key walk) `keys.bend`, `kwalk.bend`.
+* `steps.bend` / `trace.bend`: `step_ok` for every operation of
+  `types/lru_fast.bend`, and traces of arbitrary length from the constructor.
+  The premise is the capacity condition: every capacity the cache takes
+  (initial and every Resize argument) is within `2^q`, `q <= 31`. The arrays
+  only grow while the cache holds fewer entries than its capacity, so they stay
+  below `2^31` slots (`capstep.bend` proves each spec step keeps the bound).
+* The laws are stated at V = U32 and V = String (`END_TO_END.bend`);
+  `inst_*.bend` instantiate every template at U32 for fast local checks.
+* `inj.bend` `real_inj` (law `lru_fast_*_shadow_unique`): a good shadow is
+  determined by the cache it builds. The arrays come back by thaw/freeze, the
+  lifetime by the Stamp round trip, the ghost recency order by walking the next
+  links from the head, and the ghost free list by walking the free chain. So,
+  as for the seven structures with `*_shadow_unique`, the shadow-form laws pin
+  the abstract state.
+* Runtime evidence: `tests/lru_fast/spec_diff.bend` runs the runtime against the spec on
+  six seeded 300-operation traces (0 mismatches), next to the existing
+  differential against the retained cache (`tests/lru_fast/main.bend`) and the
+  native C differential (`tools/lru_diff.py`). All three are in `tools/validate.py`.
 
 ## Not proved / out of scope
 
 * Asymptotic costs are documented in the source headers but are not machine
   checked; nothing in the proof closure depends on them.
 * Performance is a separate, measured claim: see `BENCHMARKS.md`. It is **not**
-  met (408 workloads: 120 within 2.5x, 267 over, 21 not measurable above the
-  clock minima), and the nine required `lru.*` operations have no native rows
-  at all because the retained LRU cannot be compiled natively with this
-  toolchain. The proofs are unaffected.
+  met. In the 0008 triage run of the frozen gate (`build/performance/triage.json`,
+  median-of-samples ratio) 243 of 408 workloads are within 2.5x, 162 are over,
+  and 3 were not measurable above the clock minima. The frozen gate has no
+  `lru.*` rows. The indexed LRU has a native C reference (`benchmarks/native/lru.c`)
+  and a Bend driver; the rows are proposed additively in
+  `docs/BENCHMARK_CHANGE_PROPOSAL.md`. The proofs are unaffected.
 
-  `bitset` is the structure that moved this iteration: median 1.24x, 25 of its
-  44 rows within the limit, after its words were moved from a cons list to a
+  `bitset` moved in an earlier iteration (median 1.24x at the time, 25 of its
+  44 rows within the limit then), after its words were moved from a cons list to a
   native `Base.Array` (the list made `get`/`set` O(words) against an O(1) C
   reference, which was not the same algorithm). `BENCHMARKS.md` opens with the
   measured cost model that says which of the remaining structures can be

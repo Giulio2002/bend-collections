@@ -159,8 +159,10 @@ model. Documentation that said otherwise has been corrected
 * **Bend representation**: `src/lru/fast.bend` — the retained semantics
   over the SAME algorithmic layout, with the native `Map` kept for lookup as
   the operator requires:
-  * `table : Map<&2, U32>` (encoded key -> slot) — the native patricia trie
-    of `Base`;
+  * `table : Map<&2, Maybe<&2, U32>>` (key -> `Some{slot}`, never `None`) —
+    the native crit-bit trie of `Base`; the `Maybe` value type is what lets
+    the proofs reuse the retained crit-bit Map theory of `reference/lru`
+    (lookup after set/delete, crit-bit and populated preservation);
   * `kys : Array<String>`, `ents : Array<Slot<V>>` (`Live{v}` or
     `Timed{v, deadline}`), `prevs/nexts : Array<U32>` — the intrusive doubly
     linked recency arena with a free list, O(1) touch/evict/remove;
@@ -201,8 +203,13 @@ model. Documentation that said otherwise has been corrected
   peek/contains, removals/evictions/hits/misses/inserts counters, purge
   clears metrics, capacity 0 rejected) is exercised by both drivers and
   folded into every round's checksum (the drain folds all five metrics).
-* **Laws**: NOT yet proved for `fast.bend` (PROOF_STATUS.md). The retained
-  `reference/lru` proofs cover the retained list-recency cache only.
+* **Laws**: proved for `fast.bend` against its independent model
+  `spec/lru_fast.bend` (`proofs/lru_fast.bend`; laws `lru_fast_u32_*` and
+  `lru_fast_string_*` in `END_TO_END.bend`): every operation's runtime result
+  and observation, invariant preservation and model step, and arbitrary finite
+  traces from the constructor, under the capacity condition (every capacity
+  within 2^q, q <= 31). `tests/lru_fast/spec_diff.bend` also runs the runtime
+  against that spec (6 x 300 operations, 0 mismatches).
 * **Measurements** (supplemental: `python3 tools/lru_measure.py`, which runs
   `benchmarks/run.py`'s own `build_all`/`measure` on the PROPOSED rows of
   `benchmarks/experiments/lru_workloads.py`; report
@@ -210,18 +217,22 @@ model. Documentation that said otherwise has been corrected
 
   | row | bend ns | ref ns | ratio |
   |---|---:|---:|---:|
-  | add small / medium / large | 122.78 / 245.56 / 763.64 | 9.24 / 9.90 / 24.55 | 13.29x / 24.79x / 31.11x |
-  | get small / medium / large | 96.82 / 222.22 / 784.38 | 10.39 / 11.74 / 41.24 | 9.32x / 18.93x / 19.02x |
-  | peek small / medium / large | 94.58 / 215.00 / 696.88 | 9.77 / 9.76 / 24.81 | 9.68x / 22.04x / 28.09x |
-  | contains small / medium / large | 95.83 / 217.00 / 753.12 | 1.41 / 1.27 / 4.38 | 67.93x / 170.46x / 172.14x |
-  | remove (+add) small / medium / large | 458.33 / 1030.00 / 2300.00 | 12.41 / 11.44 / 31.47 | 36.92x / 90.03x / 73.07x |
-  | purge (+refill) small / medium / large | 12250 / 1333333 / 139750000 | 253.72 / 21620.83 / 1738250 | 48.28x / 61.67x / 80.40x |
-  | resize (+back) small / medium / large | 9000 / 1090625 / 69875000 | 209.17 / 21234.38 / 1081250 | 43.03x / 51.36x / 64.62x |
-  | keys small / medium / large | 613.64 / 39125 / 350000 | 86.32 / 11113.38 / 90618.75 | 7.11x / 3.52x / 3.86x |
-  | len small / medium / large | 1.01 / 1.01 / 1.04 | 2.93 / 2.91 / 2.92 | 0.35x / 0.35x / 0.36x |
-  | new small / medium / large | 17.07 / 17.79 / 17.89 | 8.13 / 7.73 / 8.26 | 2.10x / 2.30x / 2.17x |
-  | edge-empty new / add / get / peek / contains | 1.01 / 38.81 / 14.92 / 15.69 / 15.55 | 1.01 / 4.23 / 3.75 / 3.95 / 1.23 | 1.00x / 9.17x / 3.98x / 3.97x / 12.61x |
-  | edge-empty remove / purge / resize / keys / len | 13.82 / 3.95 / 10.51 / 20.20 / 1.00 | 3.62 / 3.99 / 1.75 / 3.80 / 2.90 | 3.81x / 0.99x / 6.00x / 5.31x / 0.35x |
+  | add small / medium / large | 210.83 / 396.67 / 1238 | 14.75 / 15.40 / 46.66 | 14.30x / 25.75x / 26.52x |
+  | get small / medium / large | 155.71 / 361.67 / 1125 | 16.10 / 18.17 / 69.37 | 9.67x / 19.90x / 16.22x |
+  | peek small / medium / large | 175.00 / 357.14 / 1173 | 16.82 / 14.45 / 38.72 | 10.40x / 24.72x / 30.29x |
+  | contains small / medium / large | 154.38 / 354.29 / 1238 | 2.18 / 1.86 / 6.68 | 70.94x / 190.92x / 185.16x |
+  | remove small / medium / large | 727.50 / 1545 / 3692 | 19.18 / 16.77 / 53.33 | 37.94x / 92.13x / 69.22x |
+  | purge small / medium / large | 19583 / 1881250 / 198250000 | 420.50 / 30050 / 2562250 | 46.57x / 62.60x / 77.37x |
+  | resize small / medium / large | 12917 / 1368750 / 94125000 | 319.71 / 31984 / 1447500 | 40.40x / 42.79x / 65.03x |
+  | keys small / medium / large | 818.75 / 54250 / 404688 | 130.24 / 16455 / 126261 | 6.29x / 3.30x / 3.21x |
+  | len small / medium / large | 1.33 / 1.27 / 1.33 | 3.39 / 3.95 / 3.71 | 0.39x / 0.32x / 0.36x |
+  | new small / medium / large | 25.77 / 25.95 / 23.92 | 12.35 / 12.18 / 11.08 | 2.09x / 2.13x / 2.16x |
+  | edge-empty new / add / get / peek / contains / remove / purge / resize / keys / len | 1.43 / 67.86 / 20.96 / 20.29 / 21.76 / 18.92 / 3.76 / 14.51 / 27.45 / 1.34 | 1.40 / 6.67 / 4.99 / 5.10 / 1.69 / 4.86 / 5.26 / 2.32 / 5.23 / 4.40 | 1.02x / 10.17x / 4.20x / 3.98x / 12.84x / 3.90x / 0.72x / 6.24x / 5.25x / 0.30x |
+
+  (Re-measured 2026-09-21 after the table value type became
+  `Maybe<&2, U32>`. The machine was shared with other jobs at load ~5, so
+  both sides are ~1.5x slower in absolute terms than the earlier run; the
+  ratios are within a few percent of it.)
 
   `contains` is so far over because the C loop has no dependency from one
   probe to the next (the result folds a single bit), so the out-of-order

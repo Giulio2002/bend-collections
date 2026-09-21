@@ -1522,3 +1522,23 @@ law lru_fast_string_trace_from:
   LRUFTR.TraceOK(~String, ops, sh)
 def lru_fast_string_trace_from(ops, sh, h, q, hq, hc, hops):
   LRUFP.trace_from(~String, ops, sh, h, q, hq, hc, hops)
+
+law lru_fast_u32_shadow_unique:
+  for +a: LRUFSH.Shadow<U32>
+  for +b: LRUFSH.Shadow<U32>
+  for +ga: {LRUFSH.good(~U32, a) == True{} : Bool}
+  for +gb: {LRUFSH.good(~U32, b) == True{} : Bool}
+  for +e: {LRUFSH.real(~U32, a) == LRUFSH.real(~U32, b) : LRUF.Fast<U32>}
+  {a == b : LRUFSH.Shadow<U32>}
+def lru_fast_u32_shadow_unique(a, b, ga, gb, e):
+  LRUFP.shadow_unique(~U32, a, b, ga, gb, e)
+
+law lru_fast_string_shadow_unique:
+  for +a: LRUFSH.Shadow<String>
+  for +b: LRUFSH.Shadow<String>
+  for +ga: {LRUFSH.good(~String, a) == True{} : Bool}
+  for +gb: {LRUFSH.good(~String, b) == True{} : Bool}
+  for +e: {LRUFSH.real(~String, a) == LRUFSH.real(~String, b) : LRUF.Fast<String>}
+  {a == b : LRUFSH.Shadow<String>}
+def lru_fast_string_shadow_unique(a, b, ga, gb, e):
+  LRUFP.shadow_unique(~String, a, b, ga, gb, e)
