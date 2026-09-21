@@ -1,0 +1,365 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "structure": "deque",
+      "selector": 0,
+      "order": 0,
+      "checksums": [
+        "1517875223",
+        "2598509335",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 0,
+      "order": 1,
+      "checksums": [
+        "1517875223",
+        "2598509335",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 1,
+      "order": 0,
+      "checksums": [
+        "1517875223",
+        "2598509335",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 1,
+      "order": 1,
+      "checksums": [
+        "1517875223",
+        "2598509335",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 2,
+      "order": 0,
+      "checksums": [
+        "571451367",
+        "1294435079",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 2,
+      "order": 1,
+      "checksums": [
+        "571451367",
+        "1294435079",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 3,
+      "order": 0,
+      "checksums": [
+        "3299718535",
+        "1717833895",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 3,
+      "order": 1,
+      "checksums": [
+        "3299718535",
+        "1717833895",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 4,
+      "order": 0,
+      "checksums": [
+        "2576382935",
+        "3669614839",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 4,
+      "order": 1,
+      "checksums": [
+        "2576382935",
+        "3669614839",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 5,
+      "order": 0,
+      "checksums": [
+        "2073186263",
+        "3670985463",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 5,
+      "order": 1,
+      "checksums": [
+        "2073186263",
+        "3670985463",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 6,
+      "order": 0,
+      "checksums": [
+        "30534615",
+        "2806683895",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 6,
+      "order": 1,
+      "checksums": [
+        "30534615",
+        "2806683895",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 7,
+      "order": 0,
+      "checksums": [
+        "30534615",
+        "2806683895",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 7,
+      "order": 1,
+      "checksums": [
+        "30534615",
+        "2806683895",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 8,
+      "order": 0,
+      "checksums": [
+        "2397137879",
+        "4115814647",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 8,
+      "order": 1,
+      "checksums": [
+        "2397137879",
+        "4115814647",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 9,
+      "order": 0,
+      "checksums": [
+        "1308042263",
+        "1987496215",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 9,
+      "order": 1,
+      "checksums": [
+        "1308042263",
+        "1987496215",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 10,
+      "order": 0,
+      "checksums": [
+        "1308042263",
+        "1987496215",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "deque",
+      "selector": 10,
+      "order": 1,
+      "checksums": [
+        "1308042263",
+        "1987496215",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "queue",
+      "selector": 0,
+      "order": 0,
+      "checksums": [
+        "1517875223",
+        "2598509335",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "queue",
+      "selector": 0,
+      "order": 1,
+      "checksums": [
+        "1517875223",
+        "2598509335",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "queue",
+      "selector": 1,
+      "order": 0,
+      "checksums": [
+        "571451367",
+        "1294435079",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "queue",
+      "selector": 1,
+      "order": 1,
+      "checksums": [
+        "571451367",
+        "1294435079",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "queue",
+      "selector": 2,
+      "order": 0,
+      "checksums": [
+        "2576382935",
+        "3669614839",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "queue",
+      "selector": 2,
+      "order": 1,
+      "checksums": [
+        "2576382935",
+        "3669614839",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "queue",
+      "selector": 3,
+      "order": 0,
+      "checksums": [
+        "30534615",
+        "2806683895",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "queue",
+      "selector": 3,
+      "order": 1,
+      "checksums": [
+        "30534615",
+        "2806683895",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "queue",
+      "selector": 4,
+      "order": 0,
+      "checksums": [
+        "2397137879",
+        "4115814647",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "queue",
+      "selector": 4,
+      "order": 1,
+      "checksums": [
+        "2397137879",
+        "4115814647",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "queue",
+      "selector": 5,
+      "order": 0,
+      "checksums": [
+        "30534615",
+        "2806683895",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "queue",
+      "selector": 5,
+      "order": 1,
+      "checksums": [
+        "30534615",
+        "2806683895",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "queue",
+      "selector": 6,
+      "order": 0,
+      "checksums": [
+        "1013791815",
+        "3738822983",
+        "3053041175"
+      ]
+    },
+    {
+      "structure": "queue",
+      "selector": 6,
+      "order": 1,
+      "checksums": [
+        "1013791815",
+        "3738822983",
+        "3053041175"
+      ]
+    }
+  ]
+}

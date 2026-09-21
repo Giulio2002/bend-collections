@@ -1,0 +1,15 @@
+{
+  "sanitizers": [
+    "address",
+    "undefined"
+  ],
+  "differential_operations": 200000,
+  "fifo_pairs": 10000000,
+  "live_occupancy": 262144,
+  "max_used_slots": 262145,
+  "allocated_capacity": 524288,
+  "node_storage_bytes": 6291456,
+  "release_peak_rss_bytes": 4587520,
+  "passed": true,
+  "note": "Node storage is allocated capacity; RSS is process residency. Checks compare full contents and both links; performance is a separate diagnostic."
+}

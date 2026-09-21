@@ -1,6 +1,6 @@
 {
-  "source": "/Users/monkeair/work/dsa-performance/runs/20260920T133039Z-075758e5/iterations/0014/workspace",
-  "at": "2026-09-21T19:39:00.896562+00:00",
+  "at": "2026-09-21T23:05:09.566598+00:00",
+  "source": "/Users/monkeair/work/dsa-c-deque-review",
   "status": "work_in_progress",
-  "description": "Recovered work-in-progress snapshot, not final acceptance. All proof/performance claims require matching source evidence. Prior snapshot reports are historical. Current iteration 14 preserves eager constructors. Historical iteration 13 benchmark: 408 rows, 310 passing, 95 slow, 3 nonnumeric. Current full gates pending."
+  "description": "Operator C deque/queue DLL repair. Diagnostic: 58/60 rows <=2.5x C; all 60 checksums match and no failed measurements. Bend deque remains a ring, so this is NOT matching-algorithm acceptance. Paused worker DLL and owning-value changes are incomplete and no new full proof acceptance is claimed. Historical original reference files retained."
 }
