@@ -243,7 +243,31 @@ def check_lru(log):
                  % (' '.join(args), got, want))
             ok = False
         smoke.append({'args': list(args), 'lines': len(got)})
-    return ok, {'checks': checks, 'smoke': smoke}
+    # The benchmarked port (src/lru/fast.bend: native Map + indexed doubly
+    # linked recency arena) against the retained cache, request by request,
+    # including lifetimes, expiry, purge and keys; every step compares the
+    # observation, the length and all five metrics.
+    p = run([BEND, 'tests/lru_fast/main.bend'])
+    lines = [ln for ln in p.stdout.splitlines() if ln and not ln.startswith('All terms check')]
+    log.append('[lru] tests/lru_fast/main.bend -> %s' % lines)
+    port_ok = (p.returncode == 0 and 'constructor mismatches 0' in lines
+               and sum(1 for ln in lines if ln.startswith('steps ')) == 8
+               and all(ln.endswith(' mismatches 0') for ln in lines if ln.startswith('steps ')))
+    if not port_ok:
+        fail('lru', 'fast port differential failed: %r' % (p.stdout + p.stderr)[-500:])
+        ok = False
+    # The optimized C reference against the Bend driver, plus an
+    # ASan/UBSan build of the reference (tools/lru_diff.py --quick).
+    p = run(['python3', 'tools/lru_diff.py', '--quick'], timeout=3600)
+    tail = p.stdout.strip().splitlines()[-1:] or ['']
+    log.append('[lru] tools/lru_diff.py --quick -> %s' % tail)
+    native_ok = p.returncode == 0 and tail[0].endswith(' 0 mismatches')
+    if not native_ok:
+        fail('lru', 'native differential failed: %r' % (p.stdout + p.stderr)[-500:])
+        ok = False
+    return ok, {'checks': checks, 'smoke': smoke,
+                'fast_port_differential': lines,
+                'native_differential': tail[0]}
 
 
 # ---------------------------------------------------------------------- main
@@ -357,7 +381,7 @@ def main():
         'toolchain': {'bend': BEND, 'bend_version': LOCK['version'],
                       'bend_sha256': sha(BEND), 'base_sha256': sha(LOCK['base']),
                       'backend': 'native-c (bend <file> -o <bin>)',
-                      'lru_backend': 'bend run mode; native build blocked, see WORK_LOG.md'},
+                      'lru_backend': 'retained reference: bend run mode (its Word(64n) metrics exceed the native arity limit); benchmarked port src/lru/fast.bend: native-c'},
         'environment': {'platform': platform.platform(),
                         'machine': platform.machine(),
                         'python': platform.python_version()},

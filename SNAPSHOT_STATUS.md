@@ -1,3 +1,23 @@
+Independent exported-snapshot rerun: constructor mismatches 0; eight seeds x 3000 steps, all zero mismatches. Checker reports 52 imported unsafe annotations; trust-boundary review remains required. Raw output: snapshot-evidence/lru-fast-snapshot-differential.log.
+
+## Latest: redesigned native-Map LRU runtime (proof incomplete)
+
+The new runtime combines native Map lookup with an indexed doubly linked recency
+arena and native-array counters. The C reference uses efficient open addressing
+and intrusive indexed links; the rejected linear-recency C baseline is archived
+only and is not an acceptance reference. Three recorded quick differential runs
+report 1568 cases / zero mismatches, including sanitizer-enabled C. New behavioral
+checks compare to the retained LRU, including expiry and maximum-capacity behavior.
+The new runtime refinement proof remains unproved; the retained LRU proof does
+not automatically cover this port. Graph/DLL proof migration also remains open.
+
+The 40-row LRU performance report is EXPERIMENTAL, not canonical acceptance.
+Keyed operations remain far above 2.5x C (get 9–19x, add 13–31x, contains up to
+172x in this run). Purge/resize rows include refills and cannot establish isolated
+operation performance. Correct destructive A/B workload design remains under
+operator review. Existing canonical rows/references are unchanged. The report
+predates subsequent source changes; mismatches are listed in SNAPSHOT.json.
+
 ## Latest: first indexed graph public operation refinement
 
 `proofs/graph/ops.bend` now proves `has_vertex_ok` by connecting the actual

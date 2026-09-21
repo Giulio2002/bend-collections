@@ -131,6 +131,104 @@ model. Documentation that said otherwise has been corrected
 * **Laws**: the proofs still describe the previous ordered-map arena and are
   being ported (PROOF_STATUS.md).
 
+## lru
+
+* **C reference**: `benchmarks/native/lru.c` (NEW, rebuilt 2026-09-21 after
+  the operator rejected the linear-recency version, which is quarantined at
+  `docs/archive/lru-rejected-linear-reference.c.txt` and is NOT a baseline).
+  The standard efficient LRU:
+  * slot arena `key[] val[] dl[] prev[] next[]`; the recency order is an
+    INTRUSIVE DOUBLY LINKED LIST through `prev/next` (head = oldest), so
+    touch, detach, evict and remove are O(1); freed slots are reused from a
+    free list chained through `next[]`;
+  * lookup is an open-addressing hash table (linear probing, power-of-two
+    size, load <= 1/2, backward-shift deletion, no tombstones) whose buckets
+    hold `{key, slot}`, so a probe reads one cache line and never touches the
+    arena;
+  * arena and table grow geometrically; purge memsets the table and resets
+    the arena cursor; resize evicts from the head.
+  * Keys are `uint32_t` (the Bend key is the one-character String `Chr{65536 + i}`,
+    the same 32-bit identity), so there is no key buffer at all: the
+    rejected version's partially initialised `KEYMAX` buffer
+    (`key_of` wrote a prefix, `memcpy`/`first_diff` read all of it) cannot
+    recur. Validated by `tools/lru_diff.py`: the benchmark build and a
+    `-fsanitize=address,undefined -fno-sanitize-recover=all` build agree with
+    the Bend driver on all three region checksums for every selector over
+    sizes 0-257, counts 0-200, two seeds and both region orders (1568 cases,
+    0 mismatches, no sanitizer report).
+* **Bend representation**: `src/lru/fast.bend` — the retained semantics
+  over the SAME algorithmic layout, with the native `Map` kept for lookup as
+  the operator requires:
+  * `table : Map<&2, U32>` (encoded key -> slot) — the native patricia trie
+    of `Base`;
+  * `kys : Array<String>`, `ents : Array<Slot<V>>` (`Live{v}` or
+    `Timed{v, deadline}`), `prevs/nexts : Array<U32>` — the intrusive doubly
+    linked recency arena with a free list, O(1) touch/evict/remove;
+  * the five 64-bit metrics as ten `U32` limbs in one `Array<U32>`
+    (`to_metrics` rebuilds the retained `T.Metrics`); a 64-bit time is a
+    `Stamp{lo, hi}` (`stamp_int`/`int_stamp` = `W.pack`/`W.unpack`); an
+    immortal entry never consults the clock. The first version stored
+    `Word(64n)` (a 64-node bit list) for times and counters and was 20x
+    slower (peek 1.3 us); the representation change is what an optimized C
+    implementation does (`int64_t`, `uint64_t`).
+* **The lookup difference (documented, not hidden)**: C looks a key up with
+  ONE hash probe; Bend's native `Map.get` descends the patricia trie
+  (`Map.bit` = `Nat.divmod(pos, 33)` plus a character-bit extraction per
+  level) and REBUILDS the path it walked (the map is a persistent value), and
+  an insertion is `Map.get` + `Map.set`, an eviction adds `Map.del`. Measured
+  floor in isolation (probe `benchmarks/experiments/map_get_floor.bend`, 1-character keys, 10^6 gets):
+  `Map.get` alone costs 40 ns at 64 keys — four times the ENTIRE C `get`
+  (10.4 ns) — and about 250 ns at 262144 keys. No arena change can remove
+  this: with the native Map retained, the keyed `lru.*` rows cannot reach
+  2.5x of a hash-table C reference. The non-lookup work (arena, recency,
+  metrics) is at C shape.
+* **Conformance to the retained cache**: `tests/lru_fast/main.bend` runs
+  `fast.bend` and the retained cache (`src/lru/cache.bend`, the compilable
+  copy of `reference/lru/src/cache.bend`) on eight seeded 3000-request
+  sequences of add/get/peek/contains/remove/purge/keys/len/set_lifetime and
+  clock advances (lifetimes 0, 5 ms, 20 ms; capacity 3; six keys) and
+  compares every observation, the length and all five metrics after every
+  request, plus constructor acceptance at capacities 0, 1, 3, 0xFFFFFFFF:
+  0 mismatches. It found two real divergences of the first port, both
+  fixed: `new(0xFFFFFFFF)` must be rejected (retained `new` is
+  `new_with_size(cap, cap)`), and `keys` must first remove the oldest
+  expired prefix (retained public `Keys`). Sensitivity: five planted bugs
+  (peek touching, keys without expiry, eviction counted as removal, replace
+  without touch, expiry ignored) are each detected on 8 of 8 seeds.
+  `tools/validate.py` runs it. The benchmark drivers: `tools/lru_diff.py`
+  (above); the retained behaviour
+  (capacity eviction of the oldest, touch on get, no touch/no metric on
+  peek/contains, removals/evictions/hits/misses/inserts counters, purge
+  clears metrics, capacity 0 rejected) is exercised by both drivers and
+  folded into every round's checksum (the drain folds all five metrics).
+* **Laws**: NOT yet proved for `fast.bend` (PROOF_STATUS.md). The retained
+  `reference/lru` proofs cover the retained list-recency cache only.
+* **Measurements** (supplemental: `python3 tools/lru_measure.py`, which runs
+  `benchmarks/run.py`'s own `build_all`/`measure` on the PROPOSED rows of
+  `benchmarks/experiments/lru_workloads.py`; report
+  `build/performance/lru_experiment.json`; all rows checksum-verified):
+
+  | row | bend ns | ref ns | ratio |
+  |---|---:|---:|---:|
+  | add small / medium / large | 122.78 / 245.56 / 763.64 | 9.24 / 9.90 / 24.55 | 13.29x / 24.79x / 31.11x |
+  | get small / medium / large | 96.82 / 222.22 / 784.38 | 10.39 / 11.74 / 41.24 | 9.32x / 18.93x / 19.02x |
+  | peek small / medium / large | 94.58 / 215.00 / 696.88 | 9.77 / 9.76 / 24.81 | 9.68x / 22.04x / 28.09x |
+  | contains small / medium / large | 95.83 / 217.00 / 753.12 | 1.41 / 1.27 / 4.38 | 67.93x / 170.46x / 172.14x |
+  | remove (+add) small / medium / large | 458.33 / 1030.00 / 2300.00 | 12.41 / 11.44 / 31.47 | 36.92x / 90.03x / 73.07x |
+  | purge (+refill) small / medium / large | 12250 / 1333333 / 139750000 | 253.72 / 21620.83 / 1738250 | 48.28x / 61.67x / 80.40x |
+  | resize (+back) small / medium / large | 9000 / 1090625 / 69875000 | 209.17 / 21234.38 / 1081250 | 43.03x / 51.36x / 64.62x |
+  | keys small / medium / large | 613.64 / 39125 / 350000 | 86.32 / 11113.38 / 90618.75 | 7.11x / 3.52x / 3.86x |
+  | len small / medium / large | 1.01 / 1.01 / 1.04 | 2.93 / 2.91 / 2.92 | 0.35x / 0.35x / 0.36x |
+  | new small / medium / large | 17.07 / 17.79 / 17.89 | 8.13 / 7.73 / 8.26 | 2.10x / 2.30x / 2.17x |
+  | edge-empty new / add / get / peek / contains | 1.01 / 38.81 / 14.92 / 15.69 / 15.55 | 1.01 / 4.23 / 3.75 / 3.95 / 1.23 | 1.00x / 9.17x / 3.98x / 3.97x / 12.61x |
+  | edge-empty remove / purge / resize / keys / len | 13.82 / 3.95 / 10.51 / 20.20 / 1.00 | 3.62 / 3.99 / 1.75 / 3.80 / 2.90 | 3.81x / 0.99x / 6.00x / 5.31x / 0.35x |
+
+  `contains` is so far over because the C loop has no dependency from one
+  probe to the next (the result folds a single bit), so the out-of-order
+  core overlaps successive probes down to 1.3-4.4 ns; the Bend side pays the
+  full `Map.get` each time. purge/resize rows are restoring pairs (the
+  refill is identical work on both sides and is charged to the operation).
+
 ## The systematic gap: operations whose result is an allocation
 
 `to_list`-shaped operations (deque, queue, dynamic_array, DLL, graph

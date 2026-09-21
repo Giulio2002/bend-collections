@@ -1,4 +1,4 @@
-> **Development snapshot:** indexed graph has_vertex refinement checks, with 15 imported unsafe annotations reported. Other operation/trace proofs and performance acceptance remain incomplete. See [status](SNAPSHOT_STATUS.md).
+> **Development snapshot:** redesigned native-Map LRU has differential evidence, but its refinement proof and performance acceptance are incomplete. See [status](SNAPSHOT_STATUS.md).
 
 # bend-dsa
 

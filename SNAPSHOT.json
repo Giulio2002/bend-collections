@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-09-21T02:25:25.426016+00:00",
+  "captured_at": "2026-09-21T03:29:32.048438+00:00",
   "repository": "bend-collections",
   "kind": "unverified_development_snapshot",
   "full_acceptance_passed": false,
@@ -237,7 +237,7 @@
   ],
   "evidence_scope": "historical targeted runs; source changed during ongoing development; no current-snapshot pass claimed",
   "source_sha256_file": "SNAPSHOT_SOURCE_SHA256.json",
-  "milestone": "First indexed graph operation refinement has_vertex checked; imported unsafe boundary and remaining operations unfinished",
+  "milestone": "Redesigned LRU runtime + differential evidence; refinement proof and performance targets unfinished",
   "validation_source_hash_mismatches": [
     "proofs/balanced_search_tree/steps.bend",
     "src/doubly_linked_list.bend",
@@ -317,7 +317,7 @@
       3
     ]
   },
-  "source_workspace": "/Users/monkeair/work/dsa-performance/runs/20260920T133039Z-075758e5/iterations/0005/workspace",
+  "source_workspace": "/Users/monkeair/work/dsa-performance/runs/20260920T133039Z-075758e5/iterations/0006/workspace",
   "indexed_graph_benchmark_source_mismatches": [
     "benchmarks/bend/doubly_linked_list.bend",
     "benchmarks/bend/graph.bend",
@@ -350,6 +350,7 @@
       "tests/doubly_linked_list/main.bend",
       "tools/mutants.py",
       "tools/scenarios.py",
+      "tools/validate.py",
       "types/doubly_linked_list.bend"
     ],
     "perf-dq3.json": [
@@ -433,6 +434,7 @@
       "tools/bench_report.py",
       "tools/mutants.py",
       "tools/scenarios.py",
+      "tools/validate.py",
       "types/doubly_linked_list.bend"
     ],
     "perf-binary-heap-latest.json": [
@@ -481,6 +483,7 @@
       "tools/bench_report.py",
       "tools/mutants.py",
       "tools/scenarios.py",
+      "tools/validate.py",
       "types/doubly_linked_list.bend"
     ],
     "perf-qu.json": [
@@ -629,9 +632,11 @@
     ],
     "indexed-graph-full-validation.json": [
       "proofs/graph/lb.bend",
+      "proofs/graph/state.bend",
       "proofs/graph/window.bend",
       "tests/doubly_linked_list/main.bend",
-      "tools/mutants.py"
+      "tools/mutants.py",
+      "tools/validate.py"
     ],
     "perf-fen2.json": [
       "END_TO_END.bend",

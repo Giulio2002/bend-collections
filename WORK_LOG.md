@@ -1547,3 +1547,91 @@ through `array2`), `remove_vertex`, the four edge operations, `neighbors`,
 
 The same treatment is then needed for `doubly_linked_list` (its proofs still
 describe the ordered-map arena).
+
+### The native LRU blocker is SOLVED (iteration 0005)
+
+The operator's review of docs/BENCHMARK_CHANGE_PROPOSAL.md confirmed that a
+NEW `benchmarks/native/lru.c` is editable and asked for the additive workload
+rows as `benchmarks/experiments/lru_workloads.py`.
+
+The blocker was never the workloads: `reference/lru` could not be COMPILED by
+the native backend at all ("an arity over 255"). Diagnosed exactly:
+
+* the backend FLATTENS a constructor's fields, and `Word(64n)` flattens to 64
+  slots, so `Counts{inserts, evictions, removals, hits, misses}` needs 320;
+* measured in this workspace: three `Word(64n)` fields compile (192 slots),
+  four do not (256);
+* nesting the counters in another record, or in a two-constructor wrapper,
+  does NOT help -- the flattening is recursive;
+* a RECURSIVE container does, because it cannot be unrolled.
+
+`src/lru/model.bend` therefore keeps the five counters in a
+`List<&2, Word(64n)>` with positional accessors (`inserts`, `evictions`,
+`removals`, `hits`, `misses`, `bump`). The counter VALUES and their 64-bit
+wrap-around are unchanged; only where the five words live changes.
+`src/lru/{wide,time,codec,cache}.bend` are byte-identical copies of the
+snapshot's modules except for that import and the eleven `T.Counts{...}`
+sites, which now call `T.bump`.
+
+Verified natively: a capacity-2 cache with `add a, add b, add c` reports
+`len = 2` and `get "b" = 2` (i.e. `a` was evicted, recency order preserved)
+after `bend -o` plus `cc -O3`. `reference/lru` itself is untouched and still
+hash-pinned.
+
+NEXT for the lru rows: `benchmarks/bend/lru.bend` (driver over the ported
+cache), `benchmarks/native/lru.c` (optimized C twin of the SAME algorithm --
+a map plus a recency list of encoded keys, since that is what the retained
+snapshot does; an intrusive O(1) LRU would be a different algorithm and is
+recorded as the representation difference), and
+`benchmarks/experiments/lru_workloads.py` with the row table for operator
+review. The proofs for the ported modules still have to be transported from
+the snapshot along the Metrics isomorphism.
+
+## Iteration 0006 — operator rejection of the linear LRU reference
+
+The operator REJECTED the 0005 `benchmarks/native/lru.c` (an O(n) recency
+list copied from the old Bend cache). Its copy is quarantined at
+docs/archive/lru-rejected-linear-reference.c.txt and is NOT presented as
+accepted anywhere.
+
+Done in 0006 (recovery notes):
+
+* `src/lru/fast.bend`: the retained LRU semantics over a native `Map<&2,U32>`
+  (key -> slot) plus an INDEXED DOUBLY LINKED recency arena (prevs/nexts
+  arrays, free list through nexts), O(1) touch/detach/evict/remove, O(1)
+  purge, golang-lru `resize`. NOTE: checking fast.bend alone says "All terms
+  check" without instantiating `~V` templates; the real check is through
+  the driver (`bend benchmarks/bend/lru.bend`). That exposed two bugs, now
+  fixed: `+ch` duplication of an array-holding record in evict_oldest, and
+  `Result<.., Fast<V>>` (Result needs Data) -> new type `Made{f}|Rejected{..}`.
+  The binder `keys` was renamed `kys` (clashes with def `keys` on import).
+* `benchmarks/bend/lru.bend`: driver, selectors 0..12 (10/11/12 are the
+  restoring pairs remove+add, purge+refill, resize-down+back+refill). The
+  contract is in the file header.
+* `benchmarks/native/lru.c`: REBUILT. Open-addressing hash (linear probing,
+  load <= 1/2, backward-shift deletion, buckets hold key+slot) + intrusive
+  indexed doubly linked recency list + free list; uint32 keys (no
+  partially-initialised key buffer exists any more).
+* `tools/lru_diff.py`: Bend vs C vs C(ASan+UBSan) checksum differential.
+
+### 0006 LRU, continued
+
+* `fast.bend` v2: Stamp{lo,hi} times, `Slot<V>` = Vacant|Live{v}|Timed{v,dl},
+  metrics as ten U32 limbs in ONE `Array<U32>` (a 10-field U32 record
+  exceeds the native arity limit: a U32 field flattens to 32 slots; found by
+  bisecting on a scratch copy). ~20x faster than v1 (Word(64n) everywhere).
+* Keys moved to Chr{65536 + i} (i >= 0xD800 gave surrogates; the interpreter
+  rejects them, native did not care).
+* Two semantic divergences from the retained cache found by the new
+  `tests/lru_fast/main.bend` and FIXED: new(0xFFFFFFFF) rejected; keys(now)
+  drops the expired oldest prefix first. C twin updated the same way.
+* Test-harness lesson: the first version of the port test used `mod 40`
+  with purge as the default case (28/40 purges) and compared `item` instead
+  of the retained `flag`; both fixed; five mutants now detected 8/8.
+* Measured all 40 proposed rows (tools/lru_measure.py): keyed rows 9x-172x,
+  purge/resize 43x-80x, keys 3.5x-7x, new ~2.2x, len 0.35x. Cause: the
+  native Map (41 ns per get at 64 keys vs 10 ns for the whole C get). This
+  is reported in docs/C_EQUIVALENCE.md and BENCHMARK_CHANGE_PROPOSAL.md; not
+  hidden, nothing relaxed.
+* NEXT: graph proofs (PROOF.bend red), DLL proofs, fast.bend refinement
+  proof, performance work on the other structures.

@@ -82,10 +82,8 @@ def model(sh: Shadow) -> GS.Model:
     case Sh{+dir, +lo, +hi, +depth, +it, +at}:
       GS.GM{dir, amodel(win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)), win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo)))}
 
-# ---- the representation invariant ----
+# ---- list-level order helpers (used by proofs/graph/window.bend) ----
 
-# A block is well formed: its header agrees with its shape, its entries fit
-# and are strictly ascending.
 def above(+w: U32, +ws: List<&2, U32>) -> Bool:
   match ws:
     case Nil{}:
@@ -100,54 +98,41 @@ def asc(+ws: List<&2, U32>) -> Bool:
     case Con{+w, +t}:
       Bool.and(above(w, t), asc(t))
 
+# ---- the representation invariant ----
+
+# A block is well formed: its header agrees with its shape (2^lcap words,
+# lcap between 2 and 31), its deg entries fit after the three header words,
+# and they are strictly ascending (index-level, the same formulation as the
+# vertex ids, so the same search lemmas apply).
 def blk_ok(+b: AR.Tree<U32>) -> Bool:
   Bool.and(AR.perfect(U32, blcap(b), b),
-    Bool.and(Nat.is_le(blcap(b), 31n),
-      Bool.and(Nat.is_eq(bsize(b), SC.pow2(blcap(b))),
-        Bool.and(Nat.is_le(Nat.add(3n, bdeg(b)), bsize(b)), asc(bents(b))))))
+    Bool.and(Nat.is_le(2n, blcap(b)),
+      Bool.and(Nat.is_le(blcap(b), 31n),
+        Bool.and(Nat.is_eq(bsize(b), SC.pow2(blcap(b))),
+          Bool.and(Nat.is_le(Nat.add(3n, bdeg(b)), bsize(b)), SE.asc_at(bdeg(b), AR.slots(U32, b), 3n))))))
 
-# Every neighbour of every vertex is a vertex, and no vertex is its own
-# neighbour (the SelfLoop policy).
-def mem(+w: U32, +ws: List<&2, U32>) -> Bool:
-  match ws:
-    case Nil{}:
-      False{}
-    case Con{+x, t}:
-      Bool.or(Cmp.is_eq(U32.cmp(w, x)), mem(w, t))
-
-def closed_in(+ws: List<&2, U32>, +ks: List<&2, U32>) -> Bool:
-  match ws:
+def blocks_ok(+bs: List<&2, AR.Tree<U32>>) -> Bool:
+  match bs:
     case Nil{}:
       True{}
-    case Con{+w, t}:
-      Bool.and(mem(w, ks), closed_in(t, ks))
+    case Con{+b, t}:
+      Bool.and(blk_ok(b), blocks_ok(t))
 
-def loopfree_at(+k: U32, +ws: List<&2, U32>) -> Bool:
-  match ws:
-    case Nil{}:
-      True{}
-    case Con{+w, t}:
-      Bool.and(Bool.not(Cmp.is_eq(U32.cmp(k, w))), loopfree_at(k, t))
-
-def blocks_ok(+ks: List<&2, U32>, +bs: List<&2, AR.Tree<U32>>, +all: List<&2, U32>) -> Bool:
-  match ks bs:
-    case Con{+k, kt} Con{+b, bt}:
-      Bool.and(blk_ok(b), Bool.and(closed_in(bents(b), all), Bool.and(loopfree_at(k, bents(b)), blocks_ok(kt, bt, all))))
-    case Nil{} Nil{}:
-      True{}
-    case _ _:
-      False{}
-
+# The representation invariant. Closure, loop-freedom and (undirected)
+# symmetry are stated ONCE, on the abstraction, as the specification's own
+# well-formedness `GS.wf`; proofs/graph/wfops.bend proves that every
+# specification step preserves it.
 def good(sh: Shadow) -> Bool:
   match sh:
-    case Sh{dir, +lo, +hi, +depth, +it, +at}:
+    case Sh{+dir, +lo, +hi, +depth, +it, +at}:
       Bool.and(Nat.is_le(depth, 31n),
         Bool.and(AR.perfect(U32, depth, it),
           Bool.and(AR.perfect(AR.Tree<U32>, depth, at),
             Bool.and(Nat.is_le(lo, hi),
               Bool.and(Nat.is_le(hi, SC.pow2(depth)),
                 Bool.and(SE.asc_at(Nat.sub(hi, lo), AR.slots(U32, it), lo),
-                  blocks_ok(win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)), win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo)), win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)))))))))
+                  Bool.and(blocks_ok(win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo))),
+                    GS.wf(GS.GM{dir, amodel(win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)), win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo)))}))))))))
 
 # ---- the empty graph ----
 
@@ -166,4 +151,8 @@ def new_model(+dir: Bool) -> {model(empty_shadow(dir)) == GS.new(dir) : GS.Model
   {==}
 
 def new_good(+dir: Bool) -> {good(empty_shadow(dir)) == True{} : Bool}:
-  {==}
+  match dir:
+    case True{}:
+      {==}
+    case False{}:
+      {==}

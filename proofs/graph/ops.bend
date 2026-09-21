@@ -23,64 +23,65 @@ import ./lb.bend as LB
 
 # ---- projections of the invariant ----
 
-def g_body(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>) -> Bool:
-  Bool.and(AR.perfect(U32, depth, it),
-    Bool.and(AR.perfect(AR.Tree<U32>, depth, at),
-      Bool.and(Nat.is_le(lo, hi),
-        Bool.and(Nat.is_le(hi, SC.pow2(depth)),
-          Bool.and(SE.asc_at(Nat.sub(hi, lo), AR.slots(U32, it), lo),
-            ST.blocks_ok(ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)), ST.win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo)), ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo))))))))
+def t6(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>) -> Bool:
+  Bool.and(ST.blocks_ok(ST.win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo))), GS.wf(GS.GM{dir, ST.amodel(ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)), ST.win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo)))}))
+
+def t5(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>) -> Bool:
+  Bool.and(SE.asc_at(Nat.sub(hi, lo), AR.slots(U32, it), lo), t6(dir, lo, hi, depth, it, at))
+
+def t4(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>) -> Bool:
+  Bool.and(Nat.is_le(hi, SC.pow2(depth)), t5(dir, lo, hi, depth, it, at))
+
+def t3(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>) -> Bool:
+  Bool.and(Nat.is_le(lo, hi), t4(dir, lo, hi, depth, it, at))
+
+def t2(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>) -> Bool:
+  Bool.and(AR.perfect(AR.Tree<U32>, depth, at), t3(dir, lo, hi, depth, it, at))
+
+def t1(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>) -> Bool:
+  Bool.and(AR.perfect(U32, depth, it), t2(dir, lo, hi, depth, it, at))
+
+def r1(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {t1(dir, lo, hi, depth, it, at) == True{} : Bool}:
+  L.and_right(Nat.is_le(depth, 31n), t1(dir, lo, hi, depth, it, at), h)
+
+def r2(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {t2(dir, lo, hi, depth, it, at) == True{} : Bool}:
+  L.and_right(AR.perfect(U32, depth, it), t2(dir, lo, hi, depth, it, at), r1(dir, lo, hi, depth, it, at, h))
+
+def r3(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {t3(dir, lo, hi, depth, it, at) == True{} : Bool}:
+  L.and_right(AR.perfect(AR.Tree<U32>, depth, at), t3(dir, lo, hi, depth, it, at), r2(dir, lo, hi, depth, it, at, h))
+
+def r4(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {t4(dir, lo, hi, depth, it, at) == True{} : Bool}:
+  L.and_right(Nat.is_le(lo, hi), t4(dir, lo, hi, depth, it, at), r3(dir, lo, hi, depth, it, at, h))
+
+def r5(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {t5(dir, lo, hi, depth, it, at) == True{} : Bool}:
+  L.and_right(Nat.is_le(hi, SC.pow2(depth)), t5(dir, lo, hi, depth, it, at), r4(dir, lo, hi, depth, it, at, h))
+
+def r6(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {t6(dir, lo, hi, depth, it, at) == True{} : Bool}:
+  L.and_right(SE.asc_at(Nat.sub(hi, lo), AR.slots(U32, it), lo), t6(dir, lo, hi, depth, it, at), r5(dir, lo, hi, depth, it, at, h))
 
 def g_depth(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {Nat.is_le(depth, 31n) == True{} : Bool}:
-  L.and_left(Nat.is_le(depth, 31n), g_body(dir, lo, hi, depth, it, at), h)
-
-def g_rest(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {g_body(dir, lo, hi, depth, it, at) == True{} : Bool}:
-  L.and_right(Nat.is_le(depth, 31n), g_body(dir, lo, hi, depth, it, at), h)
-
-def g_body2(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>) -> Bool:
-  Bool.and(AR.perfect(AR.Tree<U32>, depth, at),
-    Bool.and(Nat.is_le(lo, hi),
-      Bool.and(Nat.is_le(hi, SC.pow2(depth)),
-        Bool.and(SE.asc_at(Nat.sub(hi, lo), AR.slots(U32, it), lo),
-          ST.blocks_ok(ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)), ST.win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo)), ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)))))))
+  L.and_left(Nat.is_le(depth, 31n), t1(dir, lo, hi, depth, it, at), h)
 
 def g_ids(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {AR.perfect(U32, depth, it) == True{} : Bool}:
-  L.and_left(AR.perfect(U32, depth, it), g_body2(dir, lo, hi, depth, it, at), g_rest(dir, lo, hi, depth, it, at, h))
+  L.and_left(AR.perfect(U32, depth, it), t2(dir, lo, hi, depth, it, at), r1(dir, lo, hi, depth, it, at, h))
 
-def g_rest2(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {g_body2(dir, lo, hi, depth, it, at) == True{} : Bool}:
-  L.and_right(AR.perfect(U32, depth, it), g_body2(dir, lo, hi, depth, it, at), g_rest(dir, lo, hi, depth, it, at, h))
-
-def g_body3(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>) -> Bool:
-  Bool.and(Nat.is_le(lo, hi),
-    Bool.and(Nat.is_le(hi, SC.pow2(depth)),
-      Bool.and(SE.asc_at(Nat.sub(hi, lo), AR.slots(U32, it), lo),
-        ST.blocks_ok(ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)), ST.win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo)), ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo))))))
-
-def g_rest3(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {g_body3(dir, lo, hi, depth, it, at) == True{} : Bool}:
-  L.and_right(AR.perfect(AR.Tree<U32>, depth, at), g_body3(dir, lo, hi, depth, it, at), g_rest2(dir, lo, hi, depth, it, at, h))
-
-def g_body4(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>) -> Bool:
-  Bool.and(Nat.is_le(hi, SC.pow2(depth)),
-    Bool.and(SE.asc_at(Nat.sub(hi, lo), AR.slots(U32, it), lo),
-      ST.blocks_ok(ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)), ST.win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo)), ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)))))
+def g_adj(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {AR.perfect(AR.Tree<U32>, depth, at) == True{} : Bool}:
+  L.and_left(AR.perfect(AR.Tree<U32>, depth, at), t3(dir, lo, hi, depth, it, at), r2(dir, lo, hi, depth, it, at, h))
 
 def g_lohi(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {Nat.is_le(lo, hi) == True{} : Bool}:
-  L.and_left(Nat.is_le(lo, hi), g_body4(dir, lo, hi, depth, it, at), g_rest3(dir, lo, hi, depth, it, at, h))
-
-def g_rest4(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {g_body4(dir, lo, hi, depth, it, at) == True{} : Bool}:
-  L.and_right(Nat.is_le(lo, hi), g_body4(dir, lo, hi, depth, it, at), g_rest3(dir, lo, hi, depth, it, at, h))
-
-def g_body5(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>) -> Bool:
-  Bool.and(SE.asc_at(Nat.sub(hi, lo), AR.slots(U32, it), lo),
-    ST.blocks_ok(ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)), ST.win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo)), ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo))))
+  L.and_left(Nat.is_le(lo, hi), t4(dir, lo, hi, depth, it, at), r3(dir, lo, hi, depth, it, at, h))
 
 def g_cap(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {Nat.is_le(hi, SC.pow2(depth)) == True{} : Bool}:
-  L.and_left(Nat.is_le(hi, SC.pow2(depth)), g_body5(dir, lo, hi, depth, it, at), g_rest4(dir, lo, hi, depth, it, at, h))
+  L.and_left(Nat.is_le(hi, SC.pow2(depth)), t5(dir, lo, hi, depth, it, at), r4(dir, lo, hi, depth, it, at, h))
 
 def g_asc(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {SE.asc_at(Nat.sub(hi, lo), AR.slots(U32, it), lo) == True{} : Bool}:
-  L.and_left(SE.asc_at(Nat.sub(hi, lo), AR.slots(U32, it), lo),
-    ST.blocks_ok(ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)), ST.win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo)), ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo))),
-    L.and_right(Nat.is_le(hi, SC.pow2(depth)), g_body5(dir, lo, hi, depth, it, at), g_rest4(dir, lo, hi, depth, it, at, h)))
+  L.and_left(SE.asc_at(Nat.sub(hi, lo), AR.slots(U32, it), lo), t6(dir, lo, hi, depth, it, at), r5(dir, lo, hi, depth, it, at, h))
+
+def g_blocks(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {ST.blocks_ok(ST.win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo))) == True{} : Bool}:
+  L.and_left(ST.blocks_ok(ST.win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo))), GS.wf(GS.GM{dir, ST.amodel(ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)), ST.win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo)))}), r6(dir, lo, hi, depth, it, at, h))
+
+def g_wf(+dir: Bool, +lo: Nat, +hi: Nat, +depth: Nat, +it: AR.Tree<U32>, +at: AR.Tree<AR.Tree<U32>>, +h: {ST.good(ST.Sh{dir, lo, hi, depth, it, at}) == True{} : Bool}) -> {GS.wf(GS.GM{dir, ST.amodel(ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)), ST.win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo)))}) == True{} : Bool}:
+  L.and_right(ST.blocks_ok(ST.win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo))), GS.wf(GS.GM{dir, ST.amodel(ST.win(U32, AR.slots(U32, it), lo, Nat.sub(hi, lo)), ST.win(AR.Tree<U32>, AR.slots(AR.Tree<U32>, at), lo, Nat.sub(hi, lo)))}), r6(dir, lo, hi, depth, it, at, h))
 
 # ---- has_vertex ----
 #
