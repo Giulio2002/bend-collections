@@ -1,3 +1,18 @@
+## Latest: indexed graph enumeration refinement
+
+Independent checks of `proofs/graph/nbrs.bend` and `proofs/graph/edges.bend`
+pass on this exported snapshot, each reporting 15 unsafe annotations. These
+modules connect neighbors, vertices and edges enumeration to their abstract
+models under representation invariants. Raw checker output is in
+`snapshot-evidence/graph-enumeration-*-check.log`. The imported unsafe boundary
+still requires review. This is not whole-graph or whole-library acceptance.
+
+Graph updates and trace composition, indexed DLL proofs and the new LRU proof
+remain unfinished. These enumeration APIs currently return lists; permission to
+introduce efficient public array/view results does not mean that migration is
+already implemented. Historical benchmark results below are not new performance
+measurements and do not certify this source revision.
+
 Independent exported-snapshot rerun: constructor mismatches 0; eight seeds x 3000 steps, all zero mismatches. Checker reports 52 imported unsafe annotations; trust-boundary review remains required. Raw output: snapshot-evidence/lru-fast-snapshot-differential.log.
 
 ## Latest: redesigned native-Map LRU runtime (proof incomplete)

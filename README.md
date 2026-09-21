@@ -1,5 +1,3 @@
-> **Development snapshot:** redesigned native-Map LRU has differential evidence, but its refinement proof and performance acceptance are incomplete. See [status](SNAPSHOT_STATUS.md).
-
 # bend-dsa
 
 A pure [Bend](https://github.com/HigherOrderCO/Bend) data-structure library with

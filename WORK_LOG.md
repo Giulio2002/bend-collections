@@ -1635,3 +1635,37 @@ Done in 0006 (recovery notes):
   hidden, nothing relaxed.
 * NEXT: graph proofs (PROOF.bend red), DLL proofs, fast.bend refinement
   proof, performance work on the other structures.
+
+### 0006 graph proofs (restart after LRU)
+
+* `good` restructured (proofs/graph/state.bend): blk_ok uses index-level
+  asc_at over [3, 3+deg) and 2 <= lcap <= 31; blocks_ok ranges over the
+  window's blocks only; closure/loop-freedom/symmetry are now ONE conjunct
+  `GS.wf(model)` (preservation is already proved spec-side in wfops.bend).
+  ops.bend projections rewritten (g_depth/ids/adj/lohi/cap/asc/blocks/wf);
+  has_vertex_ok still checks.
+* NEW proofs/graph/blk.bend: tupd_self/tupd_tupd/upd_back (swap-out and
+  put-back is the identity), from_to (U32 round trip under a symbolic
+  2^k bound), win_locate (generic search of a sorted window), blk_find_ok,
+  header_ok, swap_back, mem_nbr_ok.
+* lb.bend: find_val (find returns the value at the lower bound).
+* NEW proofs/graph/edge.bend: uset lemmas, blk_found, amodel_at, am_find,
+  gfind, block projections bk_*, blocks_nth, win_len/win_fits,
+  **has_edge_ok fully proved**.
+* NEXT: neighbors_ok (nb_go loop), vertices_ok, edges_ok, then the
+  state-changing ops, then StepOK/trace and END_TO_END.
+
+### 0007 graph proofs, continued
+
+* nbrs.bend: rd mirror, nb_go_ok (tolerates the loop's discarded final read,
+  via BK.get_any: a read at ANY index returns the array unchanged), rd_win,
+  rd_win1 (start-indexed), **neighbors_ok**, **vertices_ok** proved.
+  (A mutual recursion rd_win1/rd_win1_go made /tmp/reorder.py loop forever
+  and the process was killed; single self-recursive lemma now.)
+* NEW edges.bend: keep_if/out_edges/all_edges append algebra, ri (inner
+  mirror) + ed_inner_ok + ri_rd/ri_blk, ro (outer mirror) + ro_all,
+  ed_step_ok, ed_loop_ok (final wrapped index tracked as ui(m, i)),
+  **edges_ok** proved.
+* All five read-only graph operations are now proved against real(sh).
+* NEXT: remove_edge_ok, add_edge_ok (block shift/grow), add_vertex_ok
+  (4 branches), remove_vertex_ok (strip), then StepOK/trace/END_TO_END.

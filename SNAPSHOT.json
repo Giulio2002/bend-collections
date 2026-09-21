@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-09-21T03:29:32.048438+00:00",
+  "captured_at": "2026-09-21T04:04:12.119183+00:00",
   "repository": "bend-collections",
   "kind": "unverified_development_snapshot",
   "full_acceptance_passed": false,
@@ -11,13 +11,21 @@
       "unmeasurable": 1,
       "source_hash_mismatches": [
         "END_TO_END.bend",
+        "benchmarks/bend/doubly_linked_list.bend",
+        "benchmarks/bend/graph.bend",
+        "benchmarks/native/doubly_linked_list.c",
         "benchmarks/run.py",
+        "proofs/balanced_search_tree/steps.bend",
         "proofs/binary_heap.bend",
         "proofs/binary_heap/ops.bend",
         "proofs/binary_heap/steps.bend",
         "proofs/binary_heap/trace.bend",
         "proofs/binary_heap/tree.bend",
-        "src/binary_heap.bend"
+        "src/binary_heap.bend",
+        "src/doubly_linked_list.bend",
+        "src/dynamic_array.bend",
+        "src/graph.bend",
+        "types/doubly_linked_list.bend"
       ],
       "current_snapshot_validated": false
     },
@@ -31,12 +39,15 @@
         "benchmarks/bend/balanced_search_tree.bend",
         "benchmarks/bend/binary_heap.bend",
         "benchmarks/bend/deque.bend",
+        "benchmarks/bend/doubly_linked_list.bend",
         "benchmarks/bend/dynamic_array.bend",
+        "benchmarks/bend/graph.bend",
         "benchmarks/bend/prefix_trie.bend",
         "benchmarks/bend/queue.bend",
         "benchmarks/native/balanced_search_tree.c",
         "benchmarks/native/binary_heap.c",
         "benchmarks/native/deque.c",
+        "benchmarks/native/doubly_linked_list.c",
         "benchmarks/native/dynamic_array.c",
         "benchmarks/native/graph.c",
         "benchmarks/native/prefix_trie.c",
@@ -44,13 +55,18 @@
         "benchmarks/native/redblack.h",
         "benchmarks/run.py",
         "benchmarks/workloads.py",
+        "proofs/balanced_search_tree/steps.bend",
         "proofs/binary_heap.bend",
         "proofs/binary_heap/ops.bend",
         "proofs/binary_heap/steps.bend",
         "proofs/binary_heap/trace.bend",
         "proofs/binary_heap/tree.bend",
         "proofs/deque.bend",
-        "src/binary_heap.bend"
+        "src/binary_heap.bend",
+        "src/doubly_linked_list.bend",
+        "src/dynamic_array.bend",
+        "src/graph.bend",
+        "types/doubly_linked_list.bend"
       ],
       "current_snapshot_validated": false
     },
@@ -64,12 +80,15 @@
         "benchmarks/bend/balanced_search_tree.bend",
         "benchmarks/bend/binary_heap.bend",
         "benchmarks/bend/deque.bend",
+        "benchmarks/bend/doubly_linked_list.bend",
         "benchmarks/bend/dynamic_array.bend",
+        "benchmarks/bend/graph.bend",
         "benchmarks/bend/prefix_trie.bend",
         "benchmarks/bend/queue.bend",
         "benchmarks/native/balanced_search_tree.c",
         "benchmarks/native/binary_heap.c",
         "benchmarks/native/deque.c",
+        "benchmarks/native/doubly_linked_list.c",
         "benchmarks/native/dynamic_array.c",
         "benchmarks/native/graph.c",
         "benchmarks/native/prefix_trie.c",
@@ -77,6 +96,7 @@
         "benchmarks/native/redblack.h",
         "benchmarks/run.py",
         "benchmarks/workloads.py",
+        "proofs/balanced_search_tree/steps.bend",
         "proofs/binary_heap.bend",
         "proofs/binary_heap/ops.bend",
         "proofs/binary_heap/steps.bend",
@@ -99,9 +119,12 @@
         "proofs/segment_tree/state.bend",
         "src/binary_heap.bend",
         "src/bitset.bend",
+        "src/doubly_linked_list.bend",
         "src/dynamic_array.bend",
         "src/fenwick_tree.bend",
-        "src/segment_tree.bend"
+        "src/graph.bend",
+        "src/segment_tree.bend",
+        "types/doubly_linked_list.bend"
       ],
       "current_snapshot_validated": false
     },
@@ -115,12 +138,15 @@
         "benchmarks/bend/balanced_search_tree.bend",
         "benchmarks/bend/binary_heap.bend",
         "benchmarks/bend/deque.bend",
+        "benchmarks/bend/doubly_linked_list.bend",
         "benchmarks/bend/dynamic_array.bend",
+        "benchmarks/bend/graph.bend",
         "benchmarks/bend/prefix_trie.bend",
         "benchmarks/bend/queue.bend",
         "benchmarks/native/balanced_search_tree.c",
         "benchmarks/native/binary_heap.c",
         "benchmarks/native/deque.c",
+        "benchmarks/native/doubly_linked_list.c",
         "benchmarks/native/dynamic_array.c",
         "benchmarks/native/graph.c",
         "benchmarks/native/prefix_trie.c",
@@ -128,6 +154,7 @@
         "benchmarks/native/redblack.h",
         "benchmarks/run.py",
         "benchmarks/workloads.py",
+        "proofs/balanced_search_tree/steps.bend",
         "proofs/binary_heap.bend",
         "proofs/binary_heap/ops.bend",
         "proofs/binary_heap/steps.bend",
@@ -137,7 +164,10 @@
         "proofs/dynamic_array/closed.bend",
         "proofs/dynamic_array/steps.bend",
         "src/binary_heap.bend",
-        "src/dynamic_array.bend"
+        "src/doubly_linked_list.bend",
+        "src/dynamic_array.bend",
+        "src/graph.bend",
+        "types/doubly_linked_list.bend"
       ],
       "current_snapshot_validated": false
     },
@@ -151,12 +181,15 @@
         "benchmarks/bend/balanced_search_tree.bend",
         "benchmarks/bend/binary_heap.bend",
         "benchmarks/bend/deque.bend",
+        "benchmarks/bend/doubly_linked_list.bend",
         "benchmarks/bend/dynamic_array.bend",
+        "benchmarks/bend/graph.bend",
         "benchmarks/bend/prefix_trie.bend",
         "benchmarks/bend/queue.bend",
         "benchmarks/native/balanced_search_tree.c",
         "benchmarks/native/binary_heap.c",
         "benchmarks/native/deque.c",
+        "benchmarks/native/doubly_linked_list.c",
         "benchmarks/native/dynamic_array.c",
         "benchmarks/native/graph.c",
         "benchmarks/native/prefix_trie.c",
@@ -164,6 +197,7 @@
         "benchmarks/native/redblack.h",
         "benchmarks/run.py",
         "benchmarks/workloads.py",
+        "proofs/balanced_search_tree/steps.bend",
         "proofs/binary_heap.bend",
         "proofs/binary_heap/ops.bend",
         "proofs/binary_heap/steps.bend",
@@ -177,9 +211,12 @@
         "proofs/segment_tree/state.bend",
         "src/binary_heap.bend",
         "src/bitset.bend",
+        "src/doubly_linked_list.bend",
         "src/dynamic_array.bend",
         "src/fenwick_tree.bend",
-        "src/segment_tree.bend"
+        "src/graph.bend",
+        "src/segment_tree.bend",
+        "types/doubly_linked_list.bend"
       ],
       "current_snapshot_validated": false
     },
@@ -193,12 +230,15 @@
         "benchmarks/bend/balanced_search_tree.bend",
         "benchmarks/bend/binary_heap.bend",
         "benchmarks/bend/deque.bend",
+        "benchmarks/bend/doubly_linked_list.bend",
         "benchmarks/bend/dynamic_array.bend",
+        "benchmarks/bend/graph.bend",
         "benchmarks/bend/prefix_trie.bend",
         "benchmarks/bend/queue.bend",
         "benchmarks/native/balanced_search_tree.c",
         "benchmarks/native/binary_heap.c",
         "benchmarks/native/deque.c",
+        "benchmarks/native/doubly_linked_list.c",
         "benchmarks/native/dynamic_array.c",
         "benchmarks/native/graph.c",
         "benchmarks/native/prefix_trie.c",
@@ -206,6 +246,7 @@
         "benchmarks/native/redblack.h",
         "benchmarks/run.py",
         "benchmarks/workloads.py",
+        "proofs/balanced_search_tree/steps.bend",
         "proofs/binary_heap.bend",
         "proofs/binary_heap/ops.bend",
         "proofs/binary_heap/steps.bend",
@@ -227,17 +268,20 @@
         "src/binary_heap.bend",
         "src/bitset.bend",
         "src/deque.bend",
+        "src/doubly_linked_list.bend",
         "src/dynamic_array.bend",
         "src/fenwick_tree.bend",
+        "src/graph.bend",
         "src/queue.bend",
-        "src/segment_tree.bend"
+        "src/segment_tree.bend",
+        "types/doubly_linked_list.bend"
       ],
       "current_snapshot_validated": false
     }
   ],
   "evidence_scope": "historical targeted runs; source changed during ongoing development; no current-snapshot pass claimed",
   "source_sha256_file": "SNAPSHOT_SOURCE_SHA256.json",
-  "milestone": "Redesigned LRU runtime + differential evidence; refinement proof and performance targets unfinished",
+  "milestone": "Indexed graph neighbors, vertices and edges refinement modules independently check; 15 unsafe annotations each; full acceptance false",
   "validation_source_hash_mismatches": [
     "proofs/balanced_search_tree/steps.bend",
     "src/doubly_linked_list.bend",
@@ -317,7 +361,7 @@
       3
     ]
   },
-  "source_workspace": "/Users/monkeair/work/dsa-performance/runs/20260920T133039Z-075758e5/iterations/0006/workspace",
+  "source_workspace": "/Users/monkeair/work/dsa-performance/runs/20260920T133039Z-075758e5/iterations/0007/workspace",
   "indexed_graph_benchmark_source_mismatches": [
     "benchmarks/bend/doubly_linked_list.bend",
     "benchmarks/bend/graph.bend",
@@ -674,5 +718,9 @@
       "src/graph.bend",
       "types/doubly_linked_list.bend"
     ]
+  },
+  "enumeration_checks": {
+    "nbrs": "All terms check, with 15 unsafe annotations.",
+    "edges": "All terms check, with 15 unsafe annotations."
   }
 }

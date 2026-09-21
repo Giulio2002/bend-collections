@@ -213,3 +213,47 @@ def find_some(-V: Data, +es: List<&2, BE.Entry<U32, V>>, +v: U32, +hs: {SO.sorte
     case Con{BE.Entry{+k, +val}, +t}:
       find_some_c(V, k, val, t, v, hs, U32.cmp(v, k), {==},
         find_some(V, t, v, L.and_right(SO.above(~U32, ~U32.cmp, V, t, k), SO.sorted(~U32, ~U32.cmp, V, t), hs)))
+
+# ---- `find` returns the value stored at the lower bound ----
+
+def pickv(-V: Data, b: Bool, x: V) -> Maybe<&2, V>:
+  match b:
+    case True{}:
+      Some{x}
+    case False{}:
+      None{}
+
+def ent_val(-V: Data, m: Maybe<&2, BE.Entry<U32, V>>, +v: U32) -> Maybe<&2, V>:
+  match m:
+    case None{}:
+      None{}
+    case Some{BE.Entry{+k, x}}:
+      pickv(V, Cmp.is_eq(U32.cmp(k, v)), x)
+
+def at_val(-V: Data, +es: List<&2, BE.Entry<U32, V>>, +i: Nat, +v: U32) -> Maybe<&2, V>:
+  ent_val(V, SC.nth(BE.Entry<U32, V>, es, i), v)
+
+def find_val_c(-V: Data, +k: U32, +val: V, +t: List<&2, BE.Entry<U32, V>>, +v: U32, +hs: {SO.sorted(~U32, ~U32.cmp, V, Con{BE.Entry{k, val}, t}) == True{} : Bool}, c: Cmp, +ec: {U32.cmp(v, k) == c : Cmp}, +ih: {S.find(~U32, ~U32.cmp, V, v, t) == at_val(V, t, lbx(V, v, t), v) : Maybe<&2, V>}) -> {S.find(~U32, ~U32.cmp, V, v, Con{BE.Entry{k, val}, t}) == at_val(V, Con{BE.Entry{k, val}, t}, lbx(V, v, Con{BE.Entry{k, val}, t}), v) : Maybe<&2, V>}:
+  match c:
+    case EQ{}:
+      L.subst(Cmp, z => {S.find_at(U32, V, z, BE.Entry{k, val}, S.find(~U32, ~U32.cmp, V, v, t)) == at_val(V, Con{BE.Entry{k, val}, t}, lbx(V, v, Con{BE.Entry{k, val}, t}), v) : Maybe<&2, V>}, EQ{}, U32.cmp(v, k), Equal.sym(Cmp, U32.cmp(v, k), EQ{}, ec),
+        L.subst(Bool, b => {Some{val} == at_val(V, Con{BE.Entry{k, val}, t}, lbx_step(b, lbx(V, v, t)), v) : Maybe<&2, V>}, False{}, Cmp.is_lt(U32.cmp(k, v)), Equal.sym(Bool, Cmp.is_lt(U32.cmp(k, v)), False{}, eq_not_lt(k, v, flip_eq(v, k, ec))),
+          L.subst(Bool, b => {Some{val} == pickv(V, b, val) : Maybe<&2, V>}, True{}, Cmp.is_eq(U32.cmp(k, v)), Equal.sym(Bool, Cmp.is_eq(U32.cmp(k, v)), True{}, eq_is_eq(k, v, flip_eq(v, k, ec))), {==})))
+    case LT{}:
+      L.subst(Cmp, z => {S.find_at(U32, V, z, BE.Entry{k, val}, S.find(~U32, ~U32.cmp, V, v, t)) == at_val(V, Con{BE.Entry{k, val}, t}, lbx(V, v, Con{BE.Entry{k, val}, t}), v) : Maybe<&2, V>}, LT{}, U32.cmp(v, k), Equal.sym(Cmp, U32.cmp(v, k), LT{}, ec),
+        L.subst(Bool, b => {S.find(~U32, ~U32.cmp, V, v, t) == at_val(V, Con{BE.Entry{k, val}, t}, lbx_step(b, lbx(V, v, t)), v) : Maybe<&2, V>}, False{}, Cmp.is_lt(U32.cmp(k, v)), Equal.sym(Bool, Cmp.is_lt(U32.cmp(k, v)), False{}, lt_not_gt(v, k, ec)),
+          Equal.trans(Maybe<&2, V>, S.find(~U32, ~U32.cmp, V, v, t), None{}, pickv(V, Cmp.is_eq(U32.cmp(k, v)), val),
+            find_none_above(V, t, v, k, L.and_left(SO.above(~U32, ~U32.cmp, V, t, k), SO.sorted(~U32, ~U32.cmp, V, t), hs), ec),
+            L.subst(Bool, b => {None{} == pickv(V, b, val) : Maybe<&2, V>}, False{}, Cmp.is_eq(U32.cmp(k, v)), Equal.sym(Bool, Cmp.is_eq(U32.cmp(k, v)), False{}, lt_not_eq(v, k, ec)), {==}))))
+    case GT{}:
+      L.subst(Cmp, z => {S.find_at(U32, V, z, BE.Entry{k, val}, S.find(~U32, ~U32.cmp, V, v, t)) == at_val(V, Con{BE.Entry{k, val}, t}, lbx(V, v, Con{BE.Entry{k, val}, t}), v) : Maybe<&2, V>}, GT{}, U32.cmp(v, k), Equal.sym(Cmp, U32.cmp(v, k), GT{}, ec),
+        L.subst(Bool, b => {S.find(~U32, ~U32.cmp, V, v, t) == at_val(V, Con{BE.Entry{k, val}, t}, lbx_step(b, lbx(V, v, t)), v) : Maybe<&2, V>}, True{}, Cmp.is_lt(U32.cmp(k, v)), Equal.sym(Bool, Cmp.is_lt(U32.cmp(k, v)), True{}, gt_flip(v, k, ec)),
+          ih))
+
+def find_val(-V: Data, +es: List<&2, BE.Entry<U32, V>>, +v: U32, +hs: {SO.sorted(~U32, ~U32.cmp, V, es) == True{} : Bool}) -> {S.find(~U32, ~U32.cmp, V, v, es) == at_val(V, es, lbx(V, v, es), v) : Maybe<&2, V>}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{BE.Entry{+k, +val}, +t}:
+      find_val_c(V, k, val, t, v, hs, U32.cmp(v, k), {==},
+        find_val(V, t, v, L.and_right(SO.above(~U32, ~U32.cmp, V, t, k), SO.sorted(~U32, ~U32.cmp, V, t), hs)))
