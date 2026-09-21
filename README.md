@@ -1,4 +1,4 @@
-> **Unfinished development snapshot:** indexed graph and DLL validation/trace checks pass; whole-library proof and performance acceptance remain incomplete. See [snapshot status](SNAPSHOT_STATUS.md).
+> **Unfinished development snapshot:** graph/DLL component milestones are preserved. Latest 408-row triage has 162 slow and 3 unmeasurable workloads; LRU coverage and whole-library proof/performance acceptance remain incomplete. See [snapshot status](SNAPSHOT_STATUS.md).
 
 # bend-dsa
 

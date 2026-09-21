@@ -1,5 +1,5 @@
 import Base
-import ./model.bend as T
+import ../../types/lru_model.bend as T
 
 # Identity preserves all Base String characters, including Chr{0}.
 def string_encode(s: String) -> String:

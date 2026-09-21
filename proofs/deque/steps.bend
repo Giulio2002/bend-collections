@@ -12,13 +12,15 @@ import ../dynamic_array/layout.bend as LY
 import ./layout.bend as WN
 import ./state.bend as ST
 import ./walk.bend as W
+import ./budget.bend as BU
 
 # One actual public operation on a good shadow's array yields the array of a
 # new good shadow, and (abstract state, observation) equals the spec step.
 #
-# The fourth component bounds the new depth: a push doubles the block at most
-# once, every other operation leaves the depth alone. That is what lets the
-# trace law carry a single capacity premise for a whole operation list.
+# The fourth component transfers the capacity budget (budget.bend): if the
+# old shadow is within budget for P pushes, the new one is within budget for
+# P + pushcost(op) pushes. That is what lets the trace law carry a single
+# capacity premise for a whole operation list.
 
 def sh_depth(-T: Data, sh: ST.Shadow<T>) -> Nat:
   match sh:
@@ -44,10 +46,13 @@ def pushcost(-T: Data, op: E.Op<T>) -> Nat:
     case E.ToList{}:
       0n
 
-def StepOK(-T: Data, sh: ST.Shadow<T>, op: E.Op<T>) -> Type:
-  Sigma<&1, &1, ST.Shadow<T>, sh2 => Sigma<&1, &1, E.Obs<T>, o => {DQ.step(T, ST.real(T, sh), op) == (ST.real(T, sh2), o) : DQ.Deque<T> & E.Obs<T>} & ({ST.good(T, sh2) == True{} : Bool} & ({(ST.model(T, sh2), o) == S.step(T, ST.model(T, sh), op) : List<&2, T> & E.Obs<T>} & {Nat.is_le(sh_depth(T, sh2), Nat.add(sh_depth(T, sh), pushcost(T, op))) == True{} : Bool}))>>
+def BT(-T: Data, sh: ST.Shadow<T>, sh2: ST.Shadow<T>, +c: Nat) -> Type:
+  @+P: Nat -> @+hb: {BU.bud(T, sh, P) == True{} : Bool} -> {BU.bud(T, sh2, Nat.add(P, c)) == True{} : Bool}
 
-def mk(-T: Data, -sh: ST.Shadow<T>, -op: E.Op<T>, sh2: ST.Shadow<T>, o: E.Obs<T>, e1: {DQ.step(T, ST.real(T, sh), op) == (ST.real(T, sh2), o) : DQ.Deque<T> & E.Obs<T>}, e2: {ST.good(T, sh2) == True{} : Bool}, e3: {(ST.model(T, sh2), o) == S.step(T, ST.model(T, sh), op) : List<&2, T> & E.Obs<T>}, e4: {Nat.is_le(sh_depth(T, sh2), Nat.add(sh_depth(T, sh), pushcost(T, op))) == True{} : Bool}) -> StepOK(T, sh, op):
+def StepOK(-T: Data, sh: ST.Shadow<T>, op: E.Op<T>) -> Type:
+  Sigma<&1, &1, ST.Shadow<T>, sh2 => Sigma<&1, &1, E.Obs<T>, o => {DQ.step(T, ST.real(T, sh), op) == (ST.real(T, sh2), o) : DQ.Deque<T> & E.Obs<T>} & ({ST.good(T, sh2) == True{} : Bool} & ({(ST.model(T, sh2), o) == S.step(T, ST.model(T, sh), op) : List<&2, T> & E.Obs<T>} & BT(T, sh, sh2, pushcost(T, op))))>>
+
+def mk(-T: Data, -sh: ST.Shadow<T>, -op: E.Op<T>, sh2: ST.Shadow<T>, o: E.Obs<T>, e1: {DQ.step(T, ST.real(T, sh), op) == (ST.real(T, sh2), o) : DQ.Deque<T> & E.Obs<T>}, e2: {ST.good(T, sh2) == True{} : Bool}, e3: {(ST.model(T, sh2), o) == S.step(T, ST.model(T, sh), op) : List<&2, T> & E.Obs<T>}, e4: BT(T, sh, sh2, pushcost(T, op))) -> StepOK(T, sh, op):
   (sh2, (o, (e1, (e2, (e3, e4)))))
 
 # ---- small arithmetic and list facts ----
@@ -124,7 +129,7 @@ def length_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +
     g,
     %Equal.sym(Nat, SC.length(T, ys), n, WN.win_len(T, AR.slots(Maybe<&2, T>, t), lo, n, ST.g_win(T, d, lo, n, t, g))) : {(ys, E.ONat{n}) == (ys, E.ONat{_}) : List<&2, T> & E.Obs<T>}
     {==},
-    le_same(d))
+    P => hb => BU.bud_zero(d, lo, n, P, hb))
 
 # ---- peek_front / peek_back ----
 
@@ -151,7 +156,7 @@ def peek_front_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>
         g,
         %Equal.sym(List<&2, T>, LY.somes(T, ss), Nil{}, empty_model(T, d, lo, t, g)) : {(LY.somes(T, ss), E.OItem{Fail{E.EmptyDeque{}}}) == (LY.somes(T, ss), E.OItem{S.item(T, SC.head(T, _))}) : List<&2, T> & E.Obs<T>}
         {==},
-        le_same(d))
+        P => hb => BU.bud_zero(d, lo, 0n, P, hb))
     case 1n+ +m:
       +ss = AR.slots(Maybe<&2, T>, t)
       +ys = LY.somes(T, ss)
@@ -164,7 +169,7 @@ def peek_front_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>
         g,
         %nth0_head(T, ys) : {(ys, E.OItem{S.item(T, x)}) == (ys, E.OItem{S.item(T, _)}) : List<&2, T> & E.Obs<T>}
         {==},
-        le_same(d))
+        P => hb => BU.bud_zero(d, lo, 1n+m, P, hb))
 
 def peek_back_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +g: {ST.good(T, ST.Sh{d, lo, n, t}) == True{} : Bool}) -> StepOK(T, ST.Sh{d, lo, n, t}, E.PeekBack{}):
   match n:
@@ -175,7 +180,7 @@ def peek_back_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>
         g,
         %Equal.sym(List<&2, T>, LY.somes(T, ss), Nil{}, empty_model(T, d, lo, t, g)) : {(LY.somes(T, ss), E.OItem{Fail{E.EmptyDeque{}}}) == (LY.somes(T, ss), E.OItem{S.item(T, SC.last(T, _))}) : List<&2, T> & E.Obs<T>}
         {==},
-        le_same(d))
+        P => hb => BU.bud_zero(d, lo, 0n, P, hb))
     case 1n+ +m:
       +ss = AR.slots(Maybe<&2, T>, t)
       +ys = LY.somes(T, ss)
@@ -188,7 +193,7 @@ def peek_back_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>
         g,
         %LY.nth_last(T, ys, m, WN.win_len(T, ss, lo, 1n+m, ST.g_win(T, d, lo, 1n+m, t, g))) : {(ys, E.OItem{S.item(T, x)}) == (ys, E.OItem{S.item(T, _)}) : List<&2, T> & E.Obs<T>}
         {==},
-        le_same(d))
+        P => hb => BU.bud_zero(d, lo, 1n+m, P, hb))
 
 # ---- pop_front / pop_back ----
 
@@ -217,7 +222,7 @@ def pop_front_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>
         %Equal.sym(List<&2, T>, LY.somes(T, ss), Nil{}, empty_model(T, d, lo, t, g)) : {(LY.somes(T, ss), E.OItem{Fail{E.EmptyDeque{}}}) == S.pop_front(T, _) : List<&2, T> & E.Obs<T>}
         %Equal.sym(List<&2, T>, LY.somes(T, ss), Nil{}, empty_model(T, d, lo, t, g)) : {(_, E.OItem{Fail{E.EmptyDeque{}}}) == S.pop_front(T, Nil{}) : List<&2, T> & E.Obs<T>}
         {==},
-        le_same(d))
+        P => hb => BU.bud_zero(d, lo, 0n, P, hb))
     case 1n+ +m:
       +ss = AR.slots(Maybe<&2, T>, t)
       +ys = LY.somes(T, ss)
@@ -238,7 +243,7 @@ def pop_front_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>
         %Equal.sym(List<&2, Maybe<&2, T>>, AR.slots(Maybe<&2, T>, t2), SC.update(Maybe<&2, T>, ss, lo, None{}), hs) : {(LY.somes(T, _), E.OItem{S.item(T, x)}) == S.pop_front(T, ys) : List<&2, T> & E.Obs<T>}
         %Equal.sym(List<&2, T>, LY.somes(T, SC.update(Maybe<&2, T>, ss, lo, None{})), SC.tail(T, ys), WN.somes_pop_front(T, ss, lo, m, hw)) : {(_, E.OItem{S.item(T, x)}) == S.pop_front(T, ys) : List<&2, T> & E.Obs<T>}
         Equal.sym(List<&2, T> & E.Obs<T>, S.pop_front(T, ys), (SC.tail(T, ys), E.OItem{S.item(T, x)}), pf_spec(T, ys, m, WN.win_len(T, ss, lo, 1n+m, hw))),
-        le_same(d))
+        P => hb => BU.bud_zero(d, 1n+lo, m, P, BU.t_popf(d, lo, m, P, hb)))
 
 def pop_back_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +g: {ST.good(T, ST.Sh{d, lo, n, t}) == True{} : Bool}) -> StepOK(T, ST.Sh{d, lo, n, t}, E.PopBack{}):
   match n:
@@ -250,7 +255,7 @@ def pop_back_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>,
         %Equal.sym(List<&2, T>, LY.somes(T, ss), Nil{}, empty_model(T, d, lo, t, g)) : {(LY.somes(T, ss), E.OItem{Fail{E.EmptyDeque{}}}) == S.pop_back(T, _) : List<&2, T> & E.Obs<T>}
         %Equal.sym(List<&2, T>, LY.somes(T, ss), Nil{}, empty_model(T, d, lo, t, g)) : {(_, E.OItem{Fail{E.EmptyDeque{}}}) == S.pop_back(T, Nil{}) : List<&2, T> & E.Obs<T>}
         {==},
-        le_same(d))
+        P => hb => BU.bud_zero(d, lo, 0n, P, hb))
     case 1n+ +m:
       +ss = AR.slots(Maybe<&2, T>, t)
       +ys = LY.somes(T, ss)
@@ -271,7 +276,7 @@ def pop_back_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>,
         %Equal.sym(List<&2, Maybe<&2, T>>, AR.slots(Maybe<&2, T>, t2), SC.update(Maybe<&2, T>, ss, Nat.add(lo, m), None{}), hs) : {(LY.somes(T, _), E.OItem{S.item(T, x)}) == S.pop_back(T, ys) : List<&2, T> & E.Obs<T>}
         %Equal.sym(List<&2, T>, LY.somes(T, SC.update(Maybe<&2, T>, ss, Nat.add(lo, m), None{})), SC.init(T, ys), WN.somes_pop_back(T, ss, lo, m, hw)) : {(_, E.OItem{S.item(T, x)}) == S.pop_back(T, ys) : List<&2, T> & E.Obs<T>}
         Equal.sym(List<&2, T> & E.Obs<T>, S.pop_back(T, ys), (SC.init(T, ys), E.OItem{S.item(T, x)}), pb_spec(T, ys, m, WN.win_len(T, ss, lo, 1n+m, hw))),
-        le_same(d))
+        P => hb => BU.bud_zero(d, lo, m, P, BU.t_popb(d, lo, m, P, hb)))
 
 # ---- push_back ----
 
@@ -283,7 +288,7 @@ def le_add1(+d: Nat) -> {Nat.is_le(d, Nat.add(d, 1n)) == True{} : Bool}:
 def len_bound(-T: Data, +d: Nat, +t: AR.Tree<Maybe<&2, T>>, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool}, +pf: {AR.perfect(Maybe<&2, T>, d, t) == True{} : Bool}) -> {Nat.is_lt(j, SC.length(Maybe<&2, T>, AR.slots(Maybe<&2, T>, t))) == True{} : Bool}:
   L.subst(Nat, z => {Nat.is_lt(j, z) == True{} : Bool}, SC.pow2(d), SC.length(Maybe<&2, T>, AR.slots(Maybe<&2, T>, t)), Equal.sym(Nat, SC.length(Maybe<&2, T>, AR.slots(Maybe<&2, T>, t)), SC.pow2(d), AR.slots_length(Maybe<&2, T>, d, t, pf)), hj)
 
-def push_back_case(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +v: T, +g: {ST.good(T, ST.Sh{d, lo, n, t}) == True{} : Bool}, +room: {Nat.is_le(1n+d, 31n) == True{} : Bool}, b: Bool, +eb: {Nat.is_lt(Nat.add(lo, n), SC.pow2(d)) == b : Bool}) -> StepOK(T, ST.Sh{d, lo, n, t}, E.PushBack{v}):
+def push_back_case(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +v: T, +g: {ST.good(T, ST.Sh{d, lo, n, t}) == True{} : Bool}, +room0: {Bool.or(Nat.is_lt(Nat.add(lo, n), SC.pow2(d)), Nat.is_le(1n+d, 31n)) == True{} : Bool}, b: Bool, +eb: {Nat.is_lt(Nat.add(lo, n), SC.pow2(d)) == b : Bool}) -> StepOK(T, ST.Sh{d, lo, n, t}, E.PushBack{v}):
   match b:
     case True{}:
       +ss = AR.slots(Maybe<&2, T>, t)
@@ -304,8 +309,9 @@ def push_back_case(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T
         %Equal.sym(List<&2, Maybe<&2, T>>, AR.slots(Maybe<&2, T>, t2), SC.update(Maybe<&2, T>, ss, j, Some{v}), hs) : {(LY.somes(T, _), E.OUnit{}) == (SC.snoc(T, ys, v), E.OUnit{}) : List<&2, T> & E.Obs<T>}
         %Equal.sym(List<&2, T>, LY.somes(T, SC.update(Maybe<&2, T>, ss, j, Some{v})), SC.snoc(T, ys, v), WN.somes_push_back(T, ss, lo, n, v, hw, hn)) : {(_, E.OUnit{}) == (SC.snoc(T, ys, v), E.OUnit{}) : List<&2, T> & E.Obs<T>}
         {==},
-        le_add1(d))
+        P => hb => BU.bud_one(d, lo, 1n+n, P, BU.t_pb_room(d, lo, n, P, hb)))
     case False{}:
+      +room = L.subst(Bool, z => {Bool.or(z, Nat.is_le(1n+d, 31n)) == True{} : Bool}, Nat.is_lt(Nat.add(lo, n), SC.pow2(d)), False{}, eb, room0)
       +ss = AR.slots(Maybe<&2, T>, t)
       +ys = LY.somes(T, ss)
       +hw = ST.g_win(T, d, lo, n, t, g)
@@ -332,14 +338,14 @@ def push_back_case(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T
         %Equal.sym(List<&2, Maybe<&2, T>>, ss2, SC.append(Maybe<&2, T>, ss, SC.replicate(Maybe<&2, T>, SC.pow2(d), None{})), ST.slots_back(T, d, t)) : {(SC.snoc(T, LY.somes(T, _), v), E.OUnit{}) == (SC.snoc(T, ys, v), E.OUnit{}) : List<&2, T> & E.Obs<T>}
         %Equal.sym(List<&2, T>, LY.somes(T, SC.append(Maybe<&2, T>, ss, SC.replicate(Maybe<&2, T>, SC.pow2(d), None{}))), ys, LY.somes_grow(T, ss, SC.pow2(d))) : {(SC.snoc(T, _, v), E.OUnit{}) == (SC.snoc(T, ys, v), E.OUnit{}) : List<&2, T> & E.Obs<T>}
         {==},
-        le_succ_add(d))
+        P => hb => BU.bud_one(1n+d, lo, 1n+n, P, BU.t_pb_grow(d, lo, n, P, hb, N.not_lt_le(Nat.add(lo, n), SC.pow2(d), eb), win_cap(T, d, lo, n, t, g))))
 
-def push_back_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +v: T, +g: {ST.good(T, ST.Sh{d, lo, n, t}) == True{} : Bool}, +room: {Nat.is_le(1n+d, 31n) == True{} : Bool}) -> StepOK(T, ST.Sh{d, lo, n, t}, E.PushBack{v}):
+def push_back_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +v: T, +g: {ST.good(T, ST.Sh{d, lo, n, t}) == True{} : Bool}, +room: {Bool.or(Nat.is_lt(Nat.add(lo, n), SC.pow2(d)), Nat.is_le(1n+d, 31n)) == True{} : Bool}) -> StepOK(T, ST.Sh{d, lo, n, t}, E.PushBack{v}):
   push_back_case(T, d, lo, n, t, v, g, room, Nat.is_lt(Nat.add(lo, n), SC.pow2(d)), {==})
 
 # ---- push_front ----
 
-def push_front_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +v: T, +g: {ST.good(T, ST.Sh{d, lo, n, t}) == True{} : Bool}, +room: {Nat.is_le(1n+d, 31n) == True{} : Bool}) -> StepOK(T, ST.Sh{d, lo, n, t}, E.PushFront{v}):
+def push_front_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +v: T, +g: {ST.good(T, ST.Sh{d, lo, n, t}) == True{} : Bool}, +room: {Bool.or(Nat.is_lt(0n, lo), Nat.is_le(1n+d, 31n)) == True{} : Bool}) -> StepOK(T, ST.Sh{d, lo, n, t}, E.PushFront{v}):
   match lo:
     case 1n+ +k:
       +ss = AR.slots(Maybe<&2, T>, t)
@@ -358,7 +364,7 @@ def push_front_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>
         %Equal.sym(List<&2, Maybe<&2, T>>, AR.slots(Maybe<&2, T>, t2), SC.update(Maybe<&2, T>, ss, k, Some{v}), hs) : {(LY.somes(T, _), E.OUnit{}) == (Con{v, ys}, E.OUnit{}) : List<&2, T> & E.Obs<T>}
         %Equal.sym(List<&2, T>, LY.somes(T, SC.update(Maybe<&2, T>, ss, k, Some{v})), Con{v, ys}, WN.somes_push_front(T, ss, k, n, v, hw)) : {(_, E.OUnit{}) == (Con{v, ys}, E.OUnit{}) : List<&2, T> & E.Obs<T>}
         {==},
-        le_add1(d))
+        P => hb => BU.bud_one(d, k, 1n+n, P, BU.t_pf_room(d, k, n, P, hb)))
     case 0n:
       +ss = AR.slots(Maybe<&2, T>, t)
       +ys = LY.somes(T, ss)
@@ -385,7 +391,7 @@ def push_front_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>
         %Equal.sym(List<&2, Maybe<&2, T>>, ss2, SC.append(Maybe<&2, T>, SC.replicate(Maybe<&2, T>, SC.pow2(d), None{}), ss), ST.slots_front(T, d, t)) : {(Con{v, LY.somes(T, _)}, E.OUnit{}) == (Con{v, ys}, E.OUnit{}) : List<&2, T> & E.Obs<T>}
         %Equal.sym(List<&2, T>, LY.somes(T, SC.append(Maybe<&2, T>, SC.replicate(Maybe<&2, T>, SC.pow2(d), None{}), ss)), ys, WN.somes_pad_front(T, ss, SC.pow2(d))) : {(Con{v, _}, E.OUnit{}) == (Con{v, ys}, E.OUnit{}) : List<&2, T> & E.Obs<T>}
         {==},
-        le_succ_add(d))
+        P => hb => BU.bud_one(1n+d, j, 1n+n, P, BU.t_pf_grow(d, n, P, hb)))
 
 # ---- to_list ----
 
@@ -398,7 +404,7 @@ def to_list_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, 
         g,
         %Equal.sym(List<&2, T>, LY.somes(T, ss), Nil{}, empty_model(T, d, lo, t, g)) : {(LY.somes(T, ss), E.OList{Nil{}}) == (LY.somes(T, ss), E.OList{_}) : List<&2, T> & E.Obs<T>}
         {==},
-        le_same(d))
+        P => hb => BU.bud_zero(d, lo, 0n, P, hb))
     case 1n+ +m:
       +ss = AR.slots(Maybe<&2, T>, t)
       +ys = LY.somes(T, ss)
@@ -413,24 +419,24 @@ def to_list_ok(-T: Data, +d: Nat, +lo: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, 
         {==},
         g,
         {==},
-        le_same(d))
+        P => hb => BU.bud_zero(d, lo, 1n+m, P, hb))
 
 # ---- every operation ----
 #
-# `room` is the capacity condition of the representation for this step: a
-# push doubles the block at most once, so the depth after it is still below
-# 32 and every slot index stays a representable U32. It is the only premise
-# besides the invariant, and it is discharged for a whole operation list by
-# proofs/deque/trace.bend.
+# The capacity condition of the representation for this step: the shadow is
+# within budget for P pushes (budget.bend) and 1 + 2P < 2^q with q <= 31, so
+# a doubling push still leaves the depth below 32 and every slot index a
+# representable U32. It is the only premise besides the invariant, and it is
+# discharged for a whole operation list by proofs/deque/trace.bend.
 
-def step_ok(-T: Data, +sh: ST.Shadow<T>, op: E.Op<T>, +g: {ST.good(T, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(sh_depth(T, sh), pushcost(T, op)), 31n) == True{} : Bool}) -> StepOK(T, sh, op):
+def step_ok(-T: Data, +sh: ST.Shadow<T>, op: E.Op<T>, +g: {ST.good(T, sh) == True{} : Bool}, +P: Nat, +hb: {BU.bud(T, sh, P) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(1n+Nat.double(P), SC.pow2(q)) == True{} : Bool}) -> StepOK(T, sh, op):
   match sh op:
     case ST.Sh{+d, +lo, +n, +t} E.Length{}:
       length_ok(T, d, lo, n, t, g)
     case ST.Sh{+d, +lo, +n, +t} E.PushFront{+v}:
-      push_front_ok(T, d, lo, n, t, v, g, N.le_trans(1n+d, Nat.add(d, 1n), 31n, le_succ_add(d), room))
+      push_front_ok(T, d, lo, n, t, v, g, BU.pf_or(d, lo, n, P, q, hq, hb, room))
     case ST.Sh{+d, +lo, +n, +t} E.PushBack{+v}:
-      push_back_ok(T, d, lo, n, t, v, g, N.le_trans(1n+d, Nat.add(d, 1n), 31n, le_succ_add(d), room))
+      push_back_ok(T, d, lo, n, t, v, g, BU.pb_or(d, lo, n, P, q, hq, hb, room))
     case ST.Sh{+d, +lo, +n, +t} E.PopFront{}:
       pop_front_ok(T, d, lo, n, t, g)
     case ST.Sh{+d, +lo, +n, +t} E.PopBack{}:

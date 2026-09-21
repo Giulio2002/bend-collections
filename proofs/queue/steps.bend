@@ -12,6 +12,7 @@ import ../../types/deque.bend as DE
 import ../../types/queue.bend as E
 import ../deque/state.bend as DST
 import ../deque/steps.bend as DPS
+import ../deque/budget.bend as BU
 
 # Queue: the back-in/front-out specialization of the deque. A queue shadow IS
 # a deque shadow; every step law below is the deque's law for the
@@ -135,16 +136,13 @@ def step_lift(-T: Data, D: DQ.Deque<T>, op: E.Op<T>) -> {Q.step(T, Q.QU{D}, op) 
       list_lift(T, DQ.to_list(T, D))
 
 def StepOK(-T: Data, sh: DST.Shadow<T>, op: E.Op<T>) -> Type:
-  Sigma<&1, &1, DST.Shadow<T>, sh2 => Sigma<&1, &1, E.Obs<T>, o => {Q.step(T, real(T, sh), op) == (real(T, sh2), o) : Q.Queue<T> & E.Obs<T>} & ({DST.good(T, sh2) == True{} : Bool} & ({(DST.model(T, sh2), o) == S.step(T, DST.model(T, sh), op) : List<&2, T> & E.Obs<T>} & {Nat.is_le(DPS.sh_depth(T, sh2), Nat.add(DPS.sh_depth(T, sh), pushcost(T, op))) == True{} : Bool}))>>
+  Sigma<&1, &1, DST.Shadow<T>, sh2 => Sigma<&1, &1, E.Obs<T>, o => {Q.step(T, real(T, sh), op) == (real(T, sh2), o) : Q.Queue<T> & E.Obs<T>} & ({DST.good(T, sh2) == True{} : Bool} & ({(DST.model(T, sh2), o) == S.step(T, DST.model(T, sh), op) : List<&2, T> & E.Obs<T>} & DPS.BT(T, sh, sh2, pushcost(T, op))))>>
 
-def mk(-T: Data, -sh: DST.Shadow<T>, -op: E.Op<T>, sh2: DST.Shadow<T>, o: E.Obs<T>, e1: {Q.step(T, real(T, sh), op) == (real(T, sh2), o) : Q.Queue<T> & E.Obs<T>}, e2: {DST.good(T, sh2) == True{} : Bool}, e3: {(DST.model(T, sh2), o) == S.step(T, DST.model(T, sh), op) : List<&2, T> & E.Obs<T>}, e4: {Nat.is_le(DPS.sh_depth(T, sh2), Nat.add(DPS.sh_depth(T, sh), pushcost(T, op))) == True{} : Bool}) -> StepOK(T, sh, op):
+def mk(-T: Data, -sh: DST.Shadow<T>, -op: E.Op<T>, sh2: DST.Shadow<T>, o: E.Obs<T>, e1: {Q.step(T, real(T, sh), op) == (real(T, sh2), o) : Q.Queue<T> & E.Obs<T>}, e2: {DST.good(T, sh2) == True{} : Bool}, e3: {(DST.model(T, sh2), o) == S.step(T, DST.model(T, sh), op) : List<&2, T> & E.Obs<T>}, e4: DPS.BT(T, sh, sh2, pushcost(T, op))) -> StepOK(T, sh, op):
   (sh2, (o, (e1, (e2, (e3, e4)))))
 
 
 # ---- the queue step law, derived from the deque's ----
-
-def dq_room(-T: Data, +sh: DST.Shadow<T>, +op: E.Op<T>, +room: {Nat.is_le(Nat.add(DPS.sh_depth(T, sh), pushcost(T, op)), 31n) == True{} : Bool}) -> {Nat.is_le(Nat.add(DPS.sh_depth(T, sh), DPS.pushcost(T, dop(T, op))), 31n) == True{} : Bool}:
-  L.subst(Nat, z => {Nat.is_le(Nat.add(DPS.sh_depth(T, sh), z), 31n) == True{} : Bool}, pushcost(T, op), DPS.pushcost(T, dop(T, op)), Equal.sym(Nat, DPS.pushcost(T, dop(T, op)), pushcost(T, op), cost_eq(T, op)), room)
 
 def so_sh(-T: Data, -sh: DST.Shadow<T>, -op: DE.Op<T>, so: DPS.StepOK(T, sh, op)) -> DST.Shadow<T>:
   match so:
@@ -171,21 +169,20 @@ def so_spec(-T: Data, -sh: DST.Shadow<T>, -op: DE.Op<T>, so: DPS.StepOK(T, sh, o
     case Tuple{sh2, Tuple{o, Tuple{e, Tuple{g, Tuple{s, dd}}}}}:
       s
 
-def so_depth(-T: Data, -sh: DST.Shadow<T>, -op: DE.Op<T>, so: DPS.StepOK(T, sh, op)) -> {Nat.is_le(DPS.sh_depth(T, so_sh(T, sh, op, so)), Nat.add(DPS.sh_depth(T, sh), DPS.pushcost(T, op))) == True{} : Bool}:
+def so_bud(-T: Data, -sh: DST.Shadow<T>, -op: DE.Op<T>, so: DPS.StepOK(T, sh, op), +P: Nat, +hb: {BU.bud(T, sh, P) == True{} : Bool}) -> {BU.bud(T, so_sh(T, sh, op, so), Nat.add(P, DPS.pushcost(T, op))) == True{} : Bool}:
   match so:
-    case Tuple{sh2, Tuple{o, Tuple{e, Tuple{g, Tuple{s, dd}}}}}:
-      dd
+    case Tuple{sh2, Tuple{o, Tuple{e, Tuple{g, Tuple{s, bt}}}}}:
+      bt(P, hb)
 
-def step_ok(-T: Data, +sh: DST.Shadow<T>, +op: E.Op<T>, +g: {DST.good(T, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(DPS.sh_depth(T, sh), pushcost(T, op)), 31n) == True{} : Bool}) -> StepOK(T, sh, op):
-  +dr = dq_room(T, sh, op, room)
-  +sh2 = so_sh(T, sh, dop(T, op), DPS.step_ok(T, sh, dop(T, op), g, dr))
-  +o = so_obs(T, sh, dop(T, op), DPS.step_ok(T, sh, dop(T, op), g, dr))
+def step_ok(-T: Data, +sh: DST.Shadow<T>, +op: E.Op<T>, +g: {DST.good(T, sh) == True{} : Bool}, +P: Nat, +hb: {BU.bud(T, sh, P) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(1n+Nat.double(P), SC.pow2(q)) == True{} : Bool}) -> StepOK(T, sh, op):
+  +sh2 = so_sh(T, sh, dop(T, op), DPS.step_ok(T, sh, dop(T, op), g, P, hb, q, hq, room))
+  +o = so_obs(T, sh, dop(T, op), DPS.step_ok(T, sh, dop(T, op), g, P, hb, q, hq, room))
   mk(T, sh, op, sh2, qobs(T, o),
     %Equal.sym(Q.Queue<T> & E.Obs<T>, Q.step(T, Q.QU{DST.real(T, sh)}, op), qpair(T, DQ.step(T, DST.real(T, sh), dop(T, op))), step_lift(T, DST.real(T, sh), op)) : {_ == (real(T, sh2), qobs(T, o)) : Q.Queue<T> & E.Obs<T>}
-    %Equal.sym(DQ.Deque<T> & DE.Obs<T>, DQ.step(T, DST.real(T, sh), dop(T, op)), (DST.real(T, sh2), o), so_step(T, sh, dop(T, op), DPS.step_ok(T, sh, dop(T, op), g, dr))) : {qpair(T, _) == (real(T, sh2), qobs(T, o)) : Q.Queue<T> & E.Obs<T>}
+    %Equal.sym(DQ.Deque<T> & DE.Obs<T>, DQ.step(T, DST.real(T, sh), dop(T, op)), (DST.real(T, sh2), o), so_step(T, sh, dop(T, op), DPS.step_ok(T, sh, dop(T, op), g, P, hb, q, hq, room))) : {qpair(T, _) == (real(T, sh2), qobs(T, o)) : Q.Queue<T> & E.Obs<T>}
     {==},
-    so_good(T, sh, dop(T, op), DPS.step_ok(T, sh, dop(T, op), g, dr)),
+    so_good(T, sh, dop(T, op), DPS.step_ok(T, sh, dop(T, op), g, P, hb, q, hq, room)),
     %Equal.sym(List<&2, T> & E.Obs<T>, S.step(T, DST.model(T, sh), op), qmap(T, SD.step(T, DST.model(T, sh), dop(T, op))), qspec(T, DST.model(T, sh), op)) : {(DST.model(T, sh2), qobs(T, o)) == _ : List<&2, T> & E.Obs<T>}
-    %so_spec(T, sh, dop(T, op), DPS.step_ok(T, sh, dop(T, op), g, dr)) : {(DST.model(T, sh2), qobs(T, o)) == qmap(T, _) : List<&2, T> & E.Obs<T>}
+    %so_spec(T, sh, dop(T, op), DPS.step_ok(T, sh, dop(T, op), g, P, hb, q, hq, room)) : {(DST.model(T, sh2), qobs(T, o)) == qmap(T, _) : List<&2, T> & E.Obs<T>}
     {==},
-    L.subst(Nat, z => {Nat.is_le(DPS.sh_depth(T, sh2), Nat.add(DPS.sh_depth(T, sh), z)) == True{} : Bool}, DPS.pushcost(T, dop(T, op)), pushcost(T, op), cost_eq(T, op), so_depth(T, sh, dop(T, op), DPS.step_ok(T, sh, dop(T, op), g, dr))))
+    P1 => hb1 => L.subst(Nat, z => {BU.bud(T, sh2, Nat.add(P1, z)) == True{} : Bool}, DPS.pushcost(T, dop(T, op)), pushcost(T, op), cost_eq(T, op), so_bud(T, sh, dop(T, op), DPS.step_ok(T, sh, dop(T, op), g, P, hb, q, hq, room), P1, hb1)))

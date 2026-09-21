@@ -99,6 +99,11 @@ def sh_depth(~A: Data, sh: Shadow<A>) -> Nat:
     case Sh{+size, +depth, +t}:
       depth
 
+def sh_size(~A: Data, sh: Shadow<A>) -> Nat:
+  match sh:
+    case Sh{+size, +depth, +t}:
+      size
+
 # depth <= 31 in the form the U32 bridges want it
 def depth_lt32(+depth: Nat, +hd: {Nat.is_le(depth, 31n) == True{} : Bool}) -> {Nat.is_lt(depth, 32n) == True{} : Bool}:
   N.le_lt_succ(depth, 31n, hd)

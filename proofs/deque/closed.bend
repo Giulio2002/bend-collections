@@ -9,6 +9,7 @@ import ../../types/deque.bend as E
 import ./state.bend as ST
 import ./steps.bend as PS
 import ./trace.bend as TR
+import ./budget.bend as BU
 
 # The executable specializations DQ.*_at (template element type, so every
 # Base.Array call is compiled at a closed type) compute exactly what the
@@ -99,22 +100,23 @@ def step_eq(~T: Data, +sh: ST.Shadow<T>, +op: E.Op<T>) -> {DQ.step_at(~T, ST.rea
     case ST.Sh{+d, +lo, +n, +t} E.ToList{}:
       to_list_eq(~T, d, lo, n, t)
 
-def run_acc_eq(~T: Data, +ops: List<&2, E.Op<T>>, +sh: ST.Shadow<T>, +acc: List<&2, E.Obs<T>>, +g: {ST.good(T, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(PS.sh_depth(T, sh), TR.pushes(T, ops)), 31n) == True{} : Bool}) -> {DQ.run_acc_at(~T, ops, (ST.real(T, sh), acc)) == DQ.run_acc(T, ops, (ST.real(T, sh), acc)) : DQ.Deque<T> & List<&2, E.Obs<T>>}:
+def run_acc_eq(~T: Data, +ops: List<&2, E.Op<T>>, +sh: ST.Shadow<T>, +acc: List<&2, E.Obs<T>>, +g: {ST.good(T, sh) == True{} : Bool}, +P: Nat, +hb: {BU.bud(T, sh, P) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(1n+Nat.double(Nat.add(P, TR.pushes(T, ops))), SC.pow2(q)) == True{} : Bool}) -> {DQ.run_acc_at(~T, ops, (ST.real(T, sh), acc)) == DQ.run_acc(T, ops, (ST.real(T, sh), acc)) : DQ.Deque<T> & List<&2, E.Obs<T>>}:
   match ops:
     case Nil{}:
       {==}
     case Con{+op, +rest}:
-      +hh = TR.budget_head(T, PS.sh_depth(T, sh), op, rest, room)
-      +sh1 = TR.so_sh(T, sh, op, PS.step_ok(T, sh, op, g, hh))
-      +o = TR.so_obs(T, sh, op, PS.step_ok(T, sh, op, g, hh))
-      +g1 = TR.so_good(T, sh, op, PS.step_ok(T, sh, op, g, hh))
-      +r1 = TR.budget_tail(T, PS.sh_depth(T, sh), PS.sh_depth(T, sh1), op, rest, TR.so_depth(T, sh, op, PS.step_ok(T, sh, op, g, hh)), room)
+      +hh = TR.budget_head(T, P, Con{op, rest}, q, room)
+      +sh1 = TR.so_sh(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh))
+      +o = TR.so_obs(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh))
+      +g1 = TR.so_good(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh))
+      +r1 = TR.budget_tail(T, P, op, rest, q, room)
+      +hb1 = TR.so_bud(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh), P, hb)
       %Equal.sym(DQ.Deque<T> & E.Obs<T>, DQ.step_at(~T, ST.real(T, sh), op), DQ.step(T, ST.real(T, sh), op), step_eq(~T, sh, op)) : {DQ.run_acc_at(~T, rest, DQ.record(T, acc, _)) == DQ.run_acc(T, rest, DQ.record(T, acc, DQ.step(T, ST.real(T, sh), op))) : DQ.Deque<T> & List<&2, E.Obs<T>>}
-      %Equal.sym(DQ.Deque<T> & E.Obs<T>, DQ.step(T, ST.real(T, sh), op), (ST.real(T, sh1), o), TR.so_step(T, sh, op, PS.step_ok(T, sh, op, g, hh))) : {DQ.run_acc_at(~T, rest, DQ.record(T, acc, _)) == DQ.run_acc(T, rest, DQ.record(T, acc, _)) : DQ.Deque<T> & List<&2, E.Obs<T>>}
-      run_acc_eq(~T, rest, sh1, Con{o, acc}, g1, r1)
+      %Equal.sym(DQ.Deque<T> & E.Obs<T>, DQ.step(T, ST.real(T, sh), op), (ST.real(T, sh1), o), TR.so_step(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh))) : {DQ.run_acc_at(~T, rest, DQ.record(T, acc, _)) == DQ.run_acc(T, rest, DQ.record(T, acc, _)) : DQ.Deque<T> & List<&2, E.Obs<T>>}
+      run_acc_eq(~T, rest, sh1, Con{o, acc}, g1, Nat.add(P, PS.pushcost(T, op)), hb1, q, hq, r1)
 
-def run_eq(~T: Data, +ops: List<&2, E.Op<T>>, +sh: ST.Shadow<T>, +g: {ST.good(T, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(PS.sh_depth(T, sh), TR.pushes(T, ops)), 31n) == True{} : Bool}) -> {DQ.run_at(~T, ops, ST.real(T, sh)) == DQ.run(T, ops, ST.real(T, sh)) : DQ.Deque<T> & List<&2, E.Obs<T>>}:
-  Equal.cong(DQ.Deque<T> & List<&2, E.Obs<T>>, DQ.Deque<T> & List<&2, E.Obs<T>>, r => DQ.finish(T, r), DQ.run_acc_at(~T, ops, (ST.real(T, sh), Nil{})), DQ.run_acc(T, ops, (ST.real(T, sh), Nil{})), run_acc_eq(~T, ops, sh, Nil{}, g, room))
+def run_eq(~T: Data, +ops: List<&2, E.Op<T>>, +sh: ST.Shadow<T>, +g: {ST.good(T, sh) == True{} : Bool}, +P: Nat, +hb: {BU.bud(T, sh, P) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(1n+Nat.double(Nat.add(P, TR.pushes(T, ops))), SC.pow2(q)) == True{} : Bool}) -> {DQ.run_at(~T, ops, ST.real(T, sh)) == DQ.run(T, ops, ST.real(T, sh)) : DQ.Deque<T> & List<&2, E.Obs<T>>}:
+  Equal.cong(DQ.Deque<T> & List<&2, E.Obs<T>>, DQ.Deque<T> & List<&2, E.Obs<T>>, r => DQ.finish(T, r), DQ.run_acc_at(~T, ops, (ST.real(T, sh), Nil{})), DQ.run_acc(T, ops, (ST.real(T, sh), Nil{})), run_acc_eq(~T, ops, sh, Nil{}, g, P, hb, q, hq, room))
 
 def new_eq(~T: Data) -> {DQ.new_at(~T) == DQ.new(T) : DQ.Deque<T>}:
   {==}

@@ -1,7 +1,7 @@
 import Base
 import ./common.bend as B
 import ../../src/lru/fast.bend as L
-import ../../src/lru/model.bend as T
+import ../../types/lru_model.bend as T
 import ../../src/lru/wide.bend as W
 
 # Native benchmark driver for src/lru/fast.bend (the retained LRU semantics

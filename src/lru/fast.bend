@@ -1,7 +1,8 @@
 import Base
-import ./model.bend as T
+import ../../types/lru_model.bend as T
 import ./time.bend as Time
 import ./wide.bend as W
+import ../../types/lru_fast.bend as E
 
 # The retained LRU cache with an EFFICIENT recency structure.
 #
@@ -15,13 +16,16 @@ import ./wide.bend as W
 # no-touch-and-no-count peek/contains) but stores the recency order as an
 # INDEXED DOUBLY LINKED ARENA, the layout an optimized C LRU uses:
 #
-#   table : Map<&2, U32>          encoded key -> arena slot (native Map, as
-#                                  the retained design requires)
+#   table : Map<&2, Maybe<U32>>   encoded key -> arena slot (native Map, as
+#                                  the retained design requires; values are
+#                                  always Some, the Maybe lets the retained
+#                                  crit-bit Map lemmas apply unchanged)
 #   kys   : Array<String>          the encoded key of each slot (to delete it
 #                                  from the table on eviction)
 #   ents  : Array<Slot<V>>         the value of each live slot, with its
 #                                  deadline when the entry is mortal
-#   prevs, nexts : Array<U32>      recency links, oldest = head, newest = tail
+#   prevs, nexts : Array<U32>      recency links (slot + 1; 0 = none),
+#                                  oldest = head, newest = tail
 #   free                           slots released by removal/eviction, chained
 #                                  through `nexts`; reused before fresh slots
 #
@@ -46,8 +50,17 @@ import ./wide.bend as W
 # the oldest entries are evicted (each counted as an eviction) until the
 # cache fits; capacity 0 is rejected and the cache returned unchanged.
 
+# Links are slot + 1, and 0 is the "no neighbour" link (head, tail and the
+# free-list head use the same encoding), so testing for a neighbour is a
+# comparison with 0 and following a link is one subtraction.
 def nil() -> U32:
-  4294967295
+  0
+
+def link(+s: U32) -> U32:
+  U32.inc(s)
+
+def slot(+l: U32) -> U32:
+  U32.sub(l, 1)
 
 type Chain is Type:
   CH{head: U32, tail: U32, free: U32, prevs: Array<U32>, nexts: Array<U32>}
@@ -62,19 +75,20 @@ def pick(b: Bool, +x: U32, +y: U32) -> U32:
     case False{}:
       y
 
-def set_or(a: Array<U32>, +i: U32, +x: U32, skip: Bool) -> Array<U32>:
-  match skip:
+# Point the link stored at the element link l refers to (if any) at x.
+def set_at_link(a: Array<U32>, +l: U32, +x: U32, none: Bool) -> Array<U32>:
+  match none:
     case True{}:
       a
     case False{}:
-      Array.set(U32, a, i, x)
+      Array.set(U32, a, slot(l), x)
 
 # ---- the recency chain ----
 
 def ul_fin(+head: U32, +tail: U32, +free: U32, prevs: Array<U32>, nexts: Array<U32>, +p: U32, +q: U32) -> Chain:
   CH{pick(U32.is_eq(p, nil()), q, head), pick(U32.is_eq(q, nil()), p, tail), free,
-     set_or(prevs, q, p, U32.is_eq(q, nil())),
-     set_or(nexts, p, q, U32.is_eq(p, nil()))}
+     set_at_link(prevs, q, p, U32.is_eq(q, nil())),
+     set_at_link(nexts, p, q, U32.is_eq(p, nil()))}
 
 def ul_q(+head: U32, +tail: U32, +free: U32, prevs: Array<U32>, +p: U32, r: Array<U32> & U32) -> Chain:
   (nexts, +q) = r
@@ -92,9 +106,9 @@ def unlink(c: Chain, +s: U32) -> Chain:
 # Attach slot s as the newest element.
 def link_tail(c: Chain, +s: U32) -> Chain:
   CH{+head, +tail, +free, prevs, nexts} = c
-  CH{pick(U32.is_eq(tail, nil()), s, head), s, free,
+  CH{pick(U32.is_eq(tail, nil()), link(s), head), link(s), free,
      Array.set(U32, prevs, s, tail),
-     set_or(Array.set(U32, nexts, s, nil()), tail, s, U32.is_eq(tail, nil()))}
+     set_at_link(Array.set(U32, nexts, s, nil()), tail, link(s), U32.is_eq(tail, nil()))}
 
 def touch_go(c: Chain, +s: U32, newest: Bool) -> Chain:
   match newest:
@@ -106,19 +120,19 @@ def touch_go(c: Chain, +s: U32, newest: Bool) -> Chain:
 # Make slot s the newest element.
 def touch(c: Chain, +s: U32) -> Chain:
   CH{+head, +tail, +free, prevs, nexts} = c
-  touch_go(CH{head, tail, free, prevs, nexts}, s, U32.is_eq(s, tail))
+  touch_go(CH{head, tail, free, prevs, nexts}, s, U32.is_eq(link(s), tail))
 
 # Release slot s (already unlinked) to the free list.
 def push_free(c: Chain, +s: U32) -> Chain:
   CH{head, tail, +free, prevs, nexts} = c
-  CH{head, tail, s, prevs, Array.set(U32, nexts, s, free)}
+  CH{head, tail, link(s), prevs, Array.set(U32, nexts, s, free)}
 
 def chain_head(c: Chain) -> U32:
   CH{head, tail, free, prevs, nexts} = c
   head
 
 def empty_chain() -> Chain:
-  CH{nil(), nil(), nil(), Array.new(U32, 0n, 4294967295), Array.new(U32, 0n, 4294967295)}
+  CH{nil(), nil(), nil(), Array.new(U32, 0n, 0), Array.new(U32, 0n, 0)}
 
 # ---- scalar representations ----
 
@@ -227,12 +241,12 @@ def to_metrics(k: Array<U32>) -> Array<U32> & T.Metrics:
 # ---- the cache ----
 
 type Fast<-V: Data> is Type:
-  F{cap: U32, n: U32, fresh: U32, size: U32, depth: Nat, ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, U32>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain}
+  F{cap: U32, n: U32, fresh: U32, size: U32, depth: Nat, ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, Maybe<&2, U32>>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain}
 
 # ---- construction ----
 
 def init(~V: Data, +cap: U32) -> Fast<V>:
-  F{cap, 0, 0, 1, 0n, False{}, zero_stamp(), zero_ctr(), Map.new(&2, U32),
+  F{cap, 0, 0, 1, 0n, False{}, zero_stamp(), zero_ctr(), Map.new(&2, Maybe<&2, U32>),
     Array.new(String, 0n, ""), Array.new(Slot<V>, 0n, Vacant{}), empty_chain()}
 
 # The retained constructor's validation: capacity 0 is rejected. (`Result`
@@ -268,7 +282,7 @@ def set_lifetime(~V: Data, f: Fast<V>, +ns: T.Int64) -> Fast<V>:
   F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch} = f
   F{cap, n, fresh, size, depth, Bool.not(Time.is_zero(ns)), int_stamp(ns), counts, table, kys, ents, ch}
 
-def metrics_fin(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, table: Map<&2, U32>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, r: Array<U32> & T.Metrics) -> Fast<V> & T.Metrics:
+def metrics_fin(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, table: Map<&2, Maybe<&2, U32>>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, r: Array<U32> & T.Metrics) -> Fast<V> & T.Metrics:
   (counts, m) = r
   (F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch}, m)
 
@@ -278,14 +292,14 @@ def metrics(~V: Data, f: Fast<V>) -> Fast<V> & T.Metrics:
 
 # ---- removing a live slot (shared by remove, expiry and eviction) ----
 
-def rm_val(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, U32>, kys: Array<String>, ch: Chain, +s: U32, +metric: Nat, r: Array<Slot<V>> & Slot<V>) -> Fast<V> & Maybe<&2, V>:
+def rm_val(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, Maybe<&2, U32>>, kys: Array<String>, ch: Chain, +s: U32, +metric: Nat, r: Array<Slot<V>> & Slot<V>) -> Fast<V> & Maybe<&2, V>:
   (ents, old) = r
   (F{cap, U32.sub(n, 1), fresh, size, depth, ttl, life, bump_drop(metric, counts), table, kys, ents, push_free(unlink(ch, s), s)}, slot_val(~V, old))
 
 # Remove live slot s; `metric` is 1 for a capacity eviction, 2 otherwise.
-def rm_key(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, U32>, ents: Array<Slot<V>>, ch: Chain, +s: U32, +metric: Nat, r: Array<String> & String) -> Fast<V> & Maybe<&2, V>:
+def rm_key(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, Maybe<&2, U32>>, ents: Array<Slot<V>>, ch: Chain, +s: U32, +metric: Nat, r: Array<String> & String) -> Fast<V> & Maybe<&2, V>:
   (kys, key) = r
-  rm_val(~V, cap, n, fresh, size, depth, ttl, life, counts, Map.del(&2, U32, table, key), kys, ch, s, metric, Array.swap(Slot<V>, ents, s, Vacant{}))
+  rm_val(~V, cap, n, fresh, size, depth, ttl, life, counts, Map.del(&2, Maybe<&2, U32>, table, key), kys, ch, s, metric, Array.swap(Slot<V>, ents, s, Vacant{}))
 
 def remove_slot(~V: Data, f: Fast<V>, +s: U32, +metric: Nat) -> Fast<V> & Maybe<&2, V>:
   F{+cap, +n, +fresh, +size, +depth, +ttl, life, counts, table, kys, ents, ch} = f
@@ -298,7 +312,7 @@ def drop_val(~V: Data, r: Fast<V> & Maybe<&2, V>) -> Fast<V>:
 def evict_oldest(~V: Data, f: Fast<V>) -> Fast<V>:
   F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch} = f
   CH{+head, tail, free, prevs, nexts} = ch
-  drop_val(~V, remove_slot(~V, F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, CH{head, tail, free, prevs, nexts}}, head, 1n))
+  drop_val(~V, remove_slot(~V, F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, CH{head, tail, free, prevs, nexts}}, slot(head), 1n))
 
 # ---- add ----
 
@@ -306,7 +320,7 @@ def grow_str(+d: Nat, a: Array<String>) -> Array<String>:
   ANode{a, Array.new(String, d, "")}
 
 def grow_u32(+d: Nat, a: Array<U32>) -> Array<U32>:
-  ANode{a, Array.new(U32, d, 4294967295)}
+  ANode{a, Array.new(U32, d, 0)}
 
 def grow_ents(~V: Data, +d: Nat, a: Array<Slot<V>>) -> Array<Slot<V>>:
   ANode{a, Array.new(Slot<V>, d, Vacant{})}
@@ -316,11 +330,11 @@ def grow_chain(+d: Nat, c: Chain) -> Chain:
   CH{head, tail, free, grow_u32(d, prevs), grow_u32(d, nexts)}
 
 # Store a new key in slot s (already allocated) and link it newest.
-def put_new(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, U32>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, +s: U32, +key: String, e: Slot<V>) -> Fast<V>:
-  F{cap, U32.inc(n), fresh, size, depth, ttl, life, bump_ins(counts), Map.set(&2, U32, table, key, s),
+def put_new(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, Maybe<&2, U32>>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, +s: U32, +key: String, e: Slot<V>) -> Fast<V>:
+  F{cap, U32.inc(n), fresh, size, depth, ttl, life, bump_ins(counts), Map.set(&2, Maybe<&2, U32>, table, key, Some{s}),
     Array.set(String, kys, s, key), Array.set(Slot<V>, ents, s, e), link_tail(ch, s)}
 
-def alloc_fresh(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, U32>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, +key: String, e: Slot<V>, room: Bool) -> Fast<V>:
+def alloc_fresh(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, Maybe<&2, U32>>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, +key: String, e: Slot<V>, room: Bool) -> Fast<V>:
   match room:
     case True{}:
       put_new(~V, cap, n, U32.inc(fresh), size, depth, ttl, life, counts, table, kys, ents, ch, fresh, key, e)
@@ -328,16 +342,16 @@ def alloc_fresh(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: N
       put_new(~V, cap, n, U32.inc(fresh), U32.shl(size), 1n+depth, ttl, life, counts, table,
         grow_str(depth, kys), grow_ents(~V, depth, ents), grow_chain(depth, ch), fresh, key, e)
 
-def alloc_free(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, U32>, kys: Array<String>, ents: Array<Slot<V>>, +head: U32, +tail: U32, +s: U32, prevs: Array<U32>, +key: String, e: Slot<V>, r: Array<U32> & U32) -> Fast<V>:
+def alloc_free(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, Maybe<&2, U32>>, kys: Array<String>, ents: Array<Slot<V>>, +head: U32, +tail: U32, +s: U32, prevs: Array<U32>, +key: String, e: Slot<V>, r: Array<U32> & U32) -> Fast<V>:
   (nexts, +next_free) = r
   put_new(~V, cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, CH{head, tail, next_free, prevs, nexts}, s, key, e)
 
-def alloc_pick(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, U32>, kys: Array<String>, ents: Array<Slot<V>>, +head: U32, +tail: U32, +free: U32, prevs: Array<U32>, nexts: Array<U32>, +key: String, e: Slot<V>, none: Bool) -> Fast<V>:
+def alloc_pick(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, Maybe<&2, U32>>, kys: Array<String>, ents: Array<Slot<V>>, +head: U32, +tail: U32, +free: U32, prevs: Array<U32>, nexts: Array<U32>, +key: String, e: Slot<V>, none: Bool) -> Fast<V>:
   match none:
     case True{}:
       alloc_fresh(~V, cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, CH{head, tail, free, prevs, nexts}, key, e, U32.is_lt(fresh, size))
     case False{}:
-      alloc_free(~V, cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, head, tail, free, prevs, key, e, Array.get(U32, nexts, free))
+      alloc_free(~V, cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, head, tail, slot(free), prevs, key, e, Array.get(U32, nexts, slot(free)))
 
 def insert_new(~V: Data, f: Fast<V>, +key: String, e: Slot<V>) -> Fast<V>:
   F{+cap, +n, +fresh, +size, +depth, +ttl, life, counts, table, kys, ents, ch} = f
@@ -357,16 +371,16 @@ def replace(~V: Data, f: Fast<V>, +s: U32, e: Slot<V>) -> Fast<V>:
   F{cap, n, fresh, size, depth, ttl, life, bump_ins(counts), table, kys,
     Array.set(Slot<V>, ents, s, e), touch(ch, s)}
 
-def add_pick(~V: Data, f: Fast<V>, +s: U32, +key: String, e: Slot<V>, absent: Bool, full: Bool) -> Fast<V> & Bool:
-  match absent:
-    case True{}:
+def add_pick(~V: Data, f: Fast<V>, +key: String, e: Slot<V>, m: Maybe<&2, U32>, full: Bool) -> Fast<V> & Bool:
+  match m:
+    case None{}:
       room_then_insert(~V, f, key, e, full)
-    case False{}:
+    case Some{+s}:
       (replace(~V, f, s, e), False{})
 
-def add_found(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, +key: String, e: Slot<V>, r: Map<&2, U32> & U32) -> Fast<V> & Bool:
-  (table, +s) = r
-  add_pick(~V, F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch}, s, key, e, U32.is_eq(s, nil()), U32.is_le(cap, n))
+def add_found(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, +key: String, e: Slot<V>, r: Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>) -> Fast<V> & Bool:
+  (table, m) = r
+  add_pick(~V, F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch}, key, e, m, U32.is_le(cap, n))
 
 # The retained deadline: zero (immortal) when the lifetime is zero, else
 # now + lifetime in milliseconds, computed by the retained Time functions.
@@ -380,7 +394,7 @@ def entry_of(~V: Data, +ttl: Bool, +life: Stamp, v: V, now: Stamp) -> Slot<V>:
 # Insert or replace key; the Bool reports whether an entry was evicted.
 def add(~V: Data, f: Fast<V>, +key: String, v: V, now: Stamp) -> Fast<V> & Bool:
   F{+cap, +n, +fresh, +size, +depth, +ttl, +life, counts, table, kys, ents, ch} = f
-  add_found(~V, cap, n, fresh, size, depth, ttl, life, counts, kys, ents, ch, key, entry_of(~V, ttl, life, v, now), Map.get(U32, nil(), table, key))
+  add_found(~V, cap, n, fresh, size, depth, ttl, life, counts, kys, ents, ch, key, entry_of(~V, ttl, life, v, now), Map.get(Maybe<&2, U32>, None{}, table, key))
 
 # ---- reads ----
 
@@ -428,24 +442,24 @@ def read_slot(~V: Data, f: Fast<V>, +s: U32, now: Stamp, +tracked: Bool, e: Slot
     case Timed{v, d}:
       read_expiry(~V, f, s, tracked, v, Time.expired(stamp_int(d), stamp_int(now)))
 
-def read_got(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, U32>, kys: Array<String>, ch: Chain, +s: U32, now: Stamp, +tracked: Bool, r: Array<Slot<V>> & Slot<V>) -> Fast<V> & Maybe<&2, V>:
+def read_got(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, Maybe<&2, U32>>, kys: Array<String>, ch: Chain, +s: U32, now: Stamp, +tracked: Bool, r: Array<Slot<V>> & Slot<V>) -> Fast<V> & Maybe<&2, V>:
   (ents, e) = r
   read_slot(~V, F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch}, s, now, tracked, e)
 
-def read_pick(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, U32>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, +s: U32, now: Stamp, +tracked: Bool, absent: Bool) -> Fast<V> & Maybe<&2, V>:
-  match absent:
-    case True{}:
+def read_pick(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, Maybe<&2, U32>>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, now: Stamp, +tracked: Bool, m: Maybe<&2, U32>) -> Fast<V> & Maybe<&2, V>:
+  match m:
+    case None{}:
       (F{cap, n, fresh, size, depth, ttl, life, hit_counts(counts, tracked, False{}), table, kys, ents, ch}, None{})
-    case False{}:
+    case Some{+s}:
       read_got(~V, cap, n, fresh, size, depth, ttl, life, counts, table, kys, ch, s, now, tracked, Array.get(Slot<V>, ents, s))
 
-def read_found(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, now: Stamp, +tracked: Bool, r: Map<&2, U32> & U32) -> Fast<V> & Maybe<&2, V>:
-  (table, +s) = r
-  read_pick(~V, cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch, s, now, tracked, U32.is_eq(s, nil()))
+def read_found(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, now: Stamp, +tracked: Bool, r: Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>) -> Fast<V> & Maybe<&2, V>:
+  (table, m) = r
+  read_pick(~V, cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch, now, tracked, m)
 
 def read(~V: Data, f: Fast<V>, +key: String, now: Stamp, +tracked: Bool) -> Fast<V> & Maybe<&2, V>:
   F{+cap, +n, +fresh, +size, +depth, +ttl, life, counts, table, kys, ents, ch} = f
-  read_found(~V, cap, n, fresh, size, depth, ttl, life, counts, kys, ents, ch, now, tracked, Map.get(U32, nil(), table, key))
+  read_found(~V, cap, n, fresh, size, depth, ttl, life, counts, kys, ents, ch, now, tracked, Map.get(Maybe<&2, U32>, None{}, table, key))
 
 # get touches recency and counts a hit or a miss; peek and contains do neither.
 def get(~V: Data, f: Fast<V>, +key: String, now: Stamp) -> Fast<V> & Maybe<&2, V>:
@@ -467,20 +481,20 @@ def contains(~V: Data, f: Fast<V>, +key: String, now: Stamp) -> Fast<V> & Bool:
 
 # ---- remove ----
 
-def rm_pick(~V: Data, f: Fast<V>, +s: U32, absent: Bool) -> Fast<V> & Maybe<&2, V>:
-  match absent:
-    case True{}:
+def rm_pick(~V: Data, f: Fast<V>, m: Maybe<&2, U32>) -> Fast<V> & Maybe<&2, V>:
+  match m:
+    case None{}:
       (f, None{})
-    case False{}:
+    case Some{+s}:
       remove_slot(~V, f, s, 2n)
 
-def rm_found(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, r: Map<&2, U32> & U32) -> Fast<V> & Maybe<&2, V>:
-  (table, +s) = r
-  rm_pick(~V, F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch}, s, U32.is_eq(s, nil()))
+def rm_found(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, r: Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>) -> Fast<V> & Maybe<&2, V>:
+  (table, m) = r
+  rm_pick(~V, F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch}, m)
 
 def remove(~V: Data, f: Fast<V>, +key: String) -> Fast<V> & Maybe<&2, V>:
   F{+cap, +n, +fresh, +size, +depth, +ttl, life, counts, table, kys, ents, ch} = f
-  rm_found(~V, cap, n, fresh, size, depth, ttl, life, counts, kys, ents, ch, Map.get(U32, nil(), table, key))
+  rm_found(~V, cap, n, fresh, size, depth, ttl, life, counts, kys, ents, ch, Map.get(Maybe<&2, U32>, None{}, table, key))
 
 # ---- purge / resize ----
 
@@ -489,7 +503,7 @@ def remove(~V: Data, f: Fast<V>, +key: String) -> Fast<V> & Maybe<&2, V>:
 def purge(~V: Data, f: Fast<V>) -> Fast<V> & U32:
   F{cap, +n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch} = f
   CH{head, tail, free, prevs, nexts} = ch
-  (F{cap, 0, 0, size, depth, ttl, life, zero_ctr(), Map.new(&2, U32), kys, ents, CH{nil(), nil(), nil(), prevs, nexts}}, n)
+  (F{cap, 0, 0, size, depth, ttl, life, zero_ctr(), Map.new(&2, Maybe<&2, U32>), kys, ents, CH{nil(), nil(), nil(), prevs, nexts}}, n)
 
 type Shr<-V: Data> is Type:
   SR{f: Fast<V>, ev: U32}
@@ -548,11 +562,11 @@ def wk_p(kys: Array<String>, acc: List<&2, String>, r: Array<U32> & U32) -> Walk
 
 def wk_k(prevs: Array<U32>, acc: List<&2, String>, +at: U32, r: Array<String> & String) -> Walk:
   (kys, k) = r
-  wk_p(kys, Con{k, acc}, Array.get(U32, prevs, at))
+  wk_p(kys, Con{k, acc}, Array.get(U32, prevs, slot(at)))
 
 def wk_step(w: Walk) -> Walk:
   WK{kys, prevs, acc, +at} = w
-  wk_k(prevs, acc, at, Array.get(String, kys, at))
+  wk_k(prevs, acc, at, Array.get(String, kys, slot(at)))
 
 def wk_loop(fuel: Nat, w: Walk) -> Walk:
   match fuel:
@@ -561,7 +575,7 @@ def wk_loop(fuel: Nat, w: Walk) -> Walk:
     case 1n+p:
       wk_loop(p, wk_step(w))
 
-def keys_fin(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, U32>, ents: Array<Slot<V>>, +head: U32, +tail: U32, +free: U32, nexts: Array<U32>, w: Walk) -> Fast<V> & List<&2, String>:
+def keys_fin(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, Maybe<&2, U32>>, ents: Array<Slot<V>>, +head: U32, +tail: U32, +free: U32, nexts: Array<U32>, w: Walk) -> Fast<V> & List<&2, String>:
   WK{kys, prevs, acc, at} = w
   (F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, CH{head, tail, free, prevs, nexts}}, acc)
 
@@ -588,16 +602,16 @@ def ex_slot(~V: Data, f: Fast<V>, +s: U32, now: Stamp, e: Slot<V>) -> Fast<V> & 
     case Timed{v, d}:
       ex_drop(~V, f, s, Time.expired(stamp_int(d), stamp_int(now)))
 
-def ex_got(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, U32>, kys: Array<String>, ch: Chain, +s: U32, now: Stamp, r: Array<Slot<V>> & Slot<V>) -> Fast<V> & Bool:
+def ex_got(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, Maybe<&2, U32>>, kys: Array<String>, ch: Chain, +s: U32, now: Stamp, r: Array<Slot<V>> & Slot<V>) -> Fast<V> & Bool:
   (ents, e) = r
   ex_slot(~V, F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch}, s, now, e)
 
-def ex_pick(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, U32>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, +head: U32, now: Stamp, empty: Bool) -> Fast<V> & Bool:
+def ex_pick(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, Maybe<&2, U32>>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, +head: U32, now: Stamp, empty: Bool) -> Fast<V> & Bool:
   match empty:
     case True{}:
       (F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch}, False{})
     case False{}:
-      ex_got(~V, cap, n, fresh, size, depth, ttl, life, counts, table, kys, ch, head, now, Array.get(Slot<V>, ents, head))
+      ex_got(~V, cap, n, fresh, size, depth, ttl, life, counts, table, kys, ch, slot(head), now, Array.get(Slot<V>, ents, slot(head)))
 
 def ex_head(~V: Data, f: Fast<V>, now: Stamp) -> Fast<V> & Bool:
   F{+cap, +n, +fresh, +size, +depth, +ttl, life, counts, table, kys, ents, ch} = f
@@ -620,3 +634,81 @@ def expire_len(~V: Data, now: Stamp, r: Fast<V> & U32) -> Fast<V>:
 # The keys in recency order, oldest first, after the expired prefix is gone.
 def keys(~V: Data, f: Fast<V>, now: Stamp) -> Fast<V> & List<&2, String>:
   keys_list(~V, expire_len(~V, now, len(~V, f)))
+
+# ---- one public operation, and operation traces ----
+#
+# The trace vocabulary types/lru_fast.bend carries times as the retained
+# 64-bit Int64; the API takes the two-limb Stamp (int_stamp is the isomorphism).
+
+def obs_num(~V: Data, r: Fast<V> & U32) -> Fast<V> & E.Obs<V>:
+  (f, n) = r
+  (f, E.ONum{n})
+
+def obs_flag(~V: Data, r: Fast<V> & Bool) -> Fast<V> & E.Obs<V>:
+  (f, b) = r
+  (f, E.OFlag{b})
+
+def obs_val(~V: Data, r: Fast<V> & Maybe<&2, V>) -> Fast<V> & E.Obs<V>:
+  (f, v) = r
+  (f, E.OVal{v})
+
+def obs_metrics(~V: Data, r: Fast<V> & T.Metrics) -> Fast<V> & E.Obs<V>:
+  (f, m) = r
+  (f, E.OMetrics{m})
+
+def obs_resized(~V: Data, r: Fast<V> & Result<&2, &2, String, U32>) -> Fast<V> & E.Obs<V>:
+  (f, x) = r
+  (f, E.OResized{x})
+
+def obs_keys(~V: Data, r: Fast<V> & List<&2, String>) -> Fast<V> & E.Obs<V>:
+  (f, ks) = r
+  (f, E.OKeys{ks})
+
+def step(~V: Data, f: Fast<V>, op: E.Op<V>) -> Fast<V> & E.Obs<V>:
+  match op:
+    case E.Len{}:
+      obs_num(~V, len(~V, f))
+    case E.Capacity{}:
+      obs_num(~V, capacity(~V, f))
+    case E.SetLifetime{+ns}:
+      (set_lifetime(~V, f, ns), E.OUnit{})
+    case E.Metrics{}:
+      obs_metrics(~V, metrics(~V, f))
+    case E.Add{+key, v, now}:
+      obs_flag(~V, add(~V, f, key, v, int_stamp(now)))
+    case E.Get{+key, now}:
+      obs_val(~V, get(~V, f, key, int_stamp(now)))
+    case E.Peek{+key, now}:
+      obs_val(~V, peek(~V, f, key, int_stamp(now)))
+    case E.Contains{+key, now}:
+      obs_flag(~V, contains(~V, f, key, int_stamp(now)))
+    case E.Remove{+key}:
+      obs_val(~V, remove(~V, f, key))
+    case E.Purge{}:
+      obs_num(~V, purge(~V, f))
+    case E.Resize{+cap}:
+      obs_resized(~V, resize(~V, f, cap))
+    case E.Keys{now}:
+      obs_keys(~V, keys(~V, f, int_stamp(now)))
+
+def record(~V: Data, acc: List<&2, E.Obs<V>>, r: Fast<V> & E.Obs<V>) -> Fast<V> & List<&2, E.Obs<V>>:
+  (f, o) = r
+  (f, Con{o, acc})
+
+def step_acc(~V: Data, op: E.Op<V>, st: Fast<V> & List<&2, E.Obs<V>>) -> Fast<V> & List<&2, E.Obs<V>>:
+  (f, acc) = st
+  record(~V, acc, step(~V, f, op))
+
+def run_acc(~V: Data, ops: List<&2, E.Op<V>>, st: Fast<V> & List<&2, E.Obs<V>>) -> Fast<V> & List<&2, E.Obs<V>>:
+  match ops:
+    case Nil{}:
+      st
+    case Con{op, rest}:
+      run_acc(~V, rest, step_acc(~V, op, st))
+
+def finish(~V: Data, st: Fast<V> & List<&2, E.Obs<V>>) -> Fast<V> & List<&2, E.Obs<V>>:
+  (f, acc) = st
+  (f, List.reverse(&2, E.Obs<V>, acc))
+
+def run(~V: Data, ops: List<&2, E.Op<V>>, f: Fast<V>) -> Fast<V> & List<&2, E.Obs<V>>:
+  finish(~V, run_acc(~V, ops, (f, Nil{})))

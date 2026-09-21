@@ -10,6 +10,7 @@ import ../../types/deque.bend as DE
 import ../../types/queue.bend as E
 import ../deque/state.bend as ST
 import ../deque/steps.bend as DPS
+import ../deque/budget.bend as BU
 import ./steps.bend as PS
 import ../deque/walk.bend as W
 import ../deque/trace.bend as DTR
@@ -36,16 +37,11 @@ def pushes(-T: Data, ops: List<&2, E.Op<T>>) -> Nat:
     case Con{op, rest}:
       Nat.add(PS.pushcost(T, op), pushes(T, rest))
 
-def budget_head(-T: Data, +d: Nat, +op: E.Op<T>, +rest: List<&2, E.Op<T>>, +h: {Nat.is_le(Nat.add(d, pushes(T, Con{op, rest})), 31n) == True{} : Bool}) -> {Nat.is_le(Nat.add(d, PS.pushcost(T, op)), 31n) == True{} : Bool}:
-  N.le_trans(Nat.add(d, PS.pushcost(T, op)), Nat.add(d, Nat.add(PS.pushcost(T, op), pushes(T, rest))), 31n,
-    W.add_le(d, PS.pushcost(T, op), Nat.add(PS.pushcost(T, op), pushes(T, rest)), N.le_add_right(PS.pushcost(T, op), pushes(T, rest))), h)
+def budget_head(-T: Data, +P: Nat, +ops: List<&2, E.Op<T>>, +q: Nat, +h: {Nat.is_lt(1n+Nat.double(Nat.add(P, pushes(T, ops))), SC.pow2(q)) == True{} : Bool}) -> {Nat.is_lt(1n+Nat.double(P), SC.pow2(q)) == True{} : Bool}:
+  N.le_lt_trans(1n+Nat.double(P), 1n+Nat.double(Nat.add(P, pushes(T, ops))), SC.pow2(q), N.double_le(P, Nat.add(P, pushes(T, ops)), N.le_add_right(P, pushes(T, ops))), h)
 
-def budget_tail(-T: Data, +d: Nat, +d2: Nat, +op: E.Op<T>, +rest: List<&2, E.Op<T>>, +hd2: {Nat.is_le(d2, Nat.add(d, PS.pushcost(T, op))) == True{} : Bool}, +h: {Nat.is_le(Nat.add(d, pushes(T, Con{op, rest})), 31n) == True{} : Bool}) -> {Nat.is_le(Nat.add(d2, pushes(T, rest)), 31n) == True{} : Bool}:
-  N.le_trans(Nat.add(d2, pushes(T, rest)), Nat.add(Nat.add(d, PS.pushcost(T, op)), pushes(T, rest)), 31n,
-    DTR.add_le_l(d2, Nat.add(d, PS.pushcost(T, op)), pushes(T, rest), hd2),
-    L.subst(Nat, z => {Nat.is_le(z, 31n) == True{} : Bool}, Nat.add(d, Nat.add(PS.pushcost(T, op), pushes(T, rest))), Nat.add(Nat.add(d, PS.pushcost(T, op)), pushes(T, rest)), Equal.sym(Nat, Nat.add(Nat.add(d, PS.pushcost(T, op)), pushes(T, rest)), Nat.add(d, Nat.add(PS.pushcost(T, op), pushes(T, rest))), N.add_assoc(d, PS.pushcost(T, op), pushes(T, rest))), h))
-
-# ---- projections of a step ----
+def budget_tail(-T: Data, +P: Nat, +op: E.Op<T>, +rest: List<&2, E.Op<T>>, +q: Nat, +h: {Nat.is_lt(1n+Nat.double(Nat.add(P, pushes(T, Con{op, rest}))), SC.pow2(q)) == True{} : Bool}) -> {Nat.is_lt(1n+Nat.double(Nat.add(Nat.add(P, PS.pushcost(T, op)), pushes(T, rest))), SC.pow2(q)) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_lt(1n+Nat.double(z), SC.pow2(q)) == True{} : Bool}, Nat.add(P, Nat.add(PS.pushcost(T, op), pushes(T, rest))), Nat.add(Nat.add(P, PS.pushcost(T, op)), pushes(T, rest)), Equal.sym(Nat, Nat.add(Nat.add(P, PS.pushcost(T, op)), pushes(T, rest)), Nat.add(P, Nat.add(PS.pushcost(T, op), pushes(T, rest))), N.add_assoc(P, PS.pushcost(T, op), pushes(T, rest))), h)
 
 def so_sh(-T: Data, -sh: ST.Shadow<T>, -op: E.Op<T>, so: PS.StepOK(T, sh, op)) -> ST.Shadow<T>:
   match so:
@@ -72,10 +68,10 @@ def so_spec(-T: Data, -sh: ST.Shadow<T>, -op: E.Op<T>, so: PS.StepOK(T, sh, op))
     case Tuple{sh2, Tuple{o, Tuple{e, Tuple{g, Tuple{s, dd}}}}}:
       s
 
-def so_depth(-T: Data, -sh: ST.Shadow<T>, -op: E.Op<T>, so: PS.StepOK(T, sh, op)) -> {Nat.is_le(DPS.sh_depth(T, so_sh(T, sh, op, so)), Nat.add(DPS.sh_depth(T, sh), PS.pushcost(T, op))) == True{} : Bool}:
+def so_bud(-T: Data, -sh: ST.Shadow<T>, -op: E.Op<T>, so: PS.StepOK(T, sh, op), +P: Nat, +hb: {BU.bud(T, sh, P) == True{} : Bool}) -> {BU.bud(T, so_sh(T, sh, op, so), Nat.add(P, PS.pushcost(T, op))) == True{} : Bool}:
   match so:
-    case Tuple{sh2, Tuple{o, Tuple{e, Tuple{g, Tuple{s, dd}}}}}:
-      dd
+    case Tuple{sh2, Tuple{o, Tuple{e, Tuple{g, Tuple{s, bt}}}}}:
+      bt(P, hb)
 
 # ---- the run ----
 
@@ -113,43 +109,45 @@ def ro_model(-T: Data, -ops: List<&2, E.Op<T>>, -sh: ST.Shadow<T>, -acc: List<&2
     case Tuple{sh2, Tuple{e, Tuple{g, m}}}:
       m
 
-def run_ok(-T: Data, +ops: List<&2, E.Op<T>>, +sh: ST.Shadow<T>, +acc: List<&2, E.Obs<T>>, +g: {ST.good(T, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(DPS.sh_depth(T, sh), pushes(T, ops)), 31n) == True{} : Bool}) -> RunOK(T, ops, sh, acc):
+def run_ok(-T: Data, +ops: List<&2, E.Op<T>>, +sh: ST.Shadow<T>, +acc: List<&2, E.Obs<T>>, +g: {ST.good(T, sh) == True{} : Bool}, +P: Nat, +hb: {BU.bud(T, sh, P) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(1n+Nat.double(Nat.add(P, pushes(T, ops))), SC.pow2(q)) == True{} : Bool}) -> RunOK(T, ops, sh, acc):
   match ops:
     case Nil{}:
       (sh, ({==}, (g, {==})))
     case Con{+op, +rest}:
       +m = ST.model(T, sh)
-      +hh = budget_head(T, DPS.sh_depth(T, sh), op, rest, room)
-      +sh1 = so_sh(T, sh, op, PS.step_ok(T, sh, op, g, hh))
-      +o = so_obs(T, sh, op, PS.step_ok(T, sh, op, g, hh))
-      +g1 = so_good(T, sh, op, PS.step_ok(T, sh, op, g, hh))
-      +r1 = budget_tail(T, DPS.sh_depth(T, sh), DPS.sh_depth(T, sh1), op, rest, so_depth(T, sh, op, PS.step_ok(T, sh, op, g, hh)), room)
+      +hh = budget_head(T, P, Con{op, rest}, q, room)
+      +sh1 = so_sh(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh))
+      +o = so_obs(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh))
+      +g1 = so_good(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh))
+      +r1 = budget_tail(T, P, op, rest, q, room)
+      +P1 = Nat.add(P, PS.pushcost(T, op))
+      +hb1 = so_bud(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh), P, hb)
       +m1 = ST.model(T, sh1)
       +acc1 = {Con{o, acc} : List<&2, E.Obs<T>>}
-      +sh2 = ro_sh(T, rest, sh1, acc1, run_ok(T, rest, sh1, acc1, g1, r1))
-      +es = spec_run_cons(T, op, rest, m, m1, o, so_spec(T, sh, op, PS.step_ok(T, sh, op, g, hh)))
+      +sh2 = ro_sh(T, rest, sh1, acc1, run_ok(T, rest, sh1, acc1, g1, P1, hb1, q, hq, r1))
+      +es = spec_run_cons(T, op, rest, m, m1, o, so_spec(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh)))
       -R = S.run(T, rest, m1)
       (sh2, (
-        %Equal.sym(Q.Queue<T> & E.Obs<T>, Q.step(T, PS.real(T, sh), op), (PS.real(T, sh1), o), so_step(T, sh, op, PS.step_ok(T, sh, op, g, hh))) : {Q.run_acc(T, rest, Q.record(T, acc, _)) == (PS.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, Con{op, rest}, m), acc)) : Q.Queue<T> & List<&2, E.Obs<T>>}
-        %Equal.sym(Q.Queue<T> & List<&2, E.Obs<T>>, Q.run_acc(T, rest, (PS.real(T, sh1), acc1)), (PS.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, rest, m1), acc1)), ro_run(T, rest, sh1, acc1, run_ok(T, rest, sh1, acc1, g1, r1))) : {_ == (PS.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, Con{op, rest}, m), acc)) : Q.Queue<T> & List<&2, E.Obs<T>>}
+        %Equal.sym(Q.Queue<T> & E.Obs<T>, Q.step(T, PS.real(T, sh), op), (PS.real(T, sh1), o), so_step(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh))) : {Q.run_acc(T, rest, Q.record(T, acc, _)) == (PS.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, Con{op, rest}, m), acc)) : Q.Queue<T> & List<&2, E.Obs<T>>}
+        %Equal.sym(Q.Queue<T> & List<&2, E.Obs<T>>, Q.run_acc(T, rest, (PS.real(T, sh1), acc1)), (PS.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, rest, m1), acc1)), ro_run(T, rest, sh1, acc1, run_ok(T, rest, sh1, acc1, g1, P1, hb1, q, hq, r1))) : {_ == (PS.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, Con{op, rest}, m), acc)) : Q.Queue<T> & List<&2, E.Obs<T>>}
         %Equal.sym(List<&2, T> & List<&2, E.Obs<T>>, S.run(T, Con{op, rest}, m), (Pair.fst(List<&2, T>, List<&2, E.Obs<T>>, R), Con{o, Pair.snd(List<&2, T>, List<&2, E.Obs<T>>, R)}), es) : {(PS.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, rest, m1), acc1)) == (PS.real(T, sh2), List.reverse.go(&2, E.Obs<T>, Pair.snd(List<&2, T>, List<&2, E.Obs<T>>, _), acc)) : Q.Queue<T> & List<&2, E.Obs<T>>}
         {==},
-        (ro_good(T, rest, sh1, acc1, run_ok(T, rest, sh1, acc1, g1, r1)),
+        (ro_good(T, rest, sh1, acc1, run_ok(T, rest, sh1, acc1, g1, P1, hb1, q, hq, r1)),
          %Equal.sym(List<&2, T> & List<&2, E.Obs<T>>, S.run(T, Con{op, rest}, m), (Pair.fst(List<&2, T>, List<&2, E.Obs<T>>, R), Con{o, Pair.snd(List<&2, T>, List<&2, E.Obs<T>>, R)}), es) : {ST.model(T, sh2) == Pair.fst(List<&2, T>, List<&2, E.Obs<T>>, _) : List<&2, T>}
-         ro_model(T, rest, sh1, acc1, run_ok(T, rest, sh1, acc1, g1, r1)))))
+         ro_model(T, rest, sh1, acc1, run_ok(T, rest, sh1, acc1, g1, P1, hb1, q, hq, r1)))))
 
-def run_from(-T: Data, +ops: List<&2, E.Op<T>>, +sh0: ST.Shadow<T>, +g0: {ST.good(T, sh0) == True{} : Bool}, +room: {Nat.is_le(Nat.add(DPS.sh_depth(T, sh0), pushes(T, ops)), 31n) == True{} : Bool}) -> {Q.run(T, ops, PS.real(T, sh0)) == (PS.real(T, ro_sh(T, ops, sh0, Nil{}, run_ok(T, ops, sh0, Nil{}, g0, room))), srun_obs(T, ops, ST.model(T, sh0))) : Q.Queue<T> & List<&2, E.Obs<T>>}:
-  +sh2 = ro_sh(T, ops, sh0, Nil{}, run_ok(T, ops, sh0, Nil{}, g0, room))
+def run_from(-T: Data, +ops: List<&2, E.Op<T>>, +sh0: ST.Shadow<T>, +g0: {ST.good(T, sh0) == True{} : Bool}, +P: Nat, +hb: {BU.bud(T, sh0, P) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(1n+Nat.double(Nat.add(P, pushes(T, ops))), SC.pow2(q)) == True{} : Bool}) -> {Q.run(T, ops, PS.real(T, sh0)) == (PS.real(T, ro_sh(T, ops, sh0, Nil{}, run_ok(T, ops, sh0, Nil{}, g0, P, hb, q, hq, room))), srun_obs(T, ops, ST.model(T, sh0))) : Q.Queue<T> & List<&2, E.Obs<T>>}:
+  +sh2 = ro_sh(T, ops, sh0, Nil{}, run_ok(T, ops, sh0, Nil{}, g0, P, hb, q, hq, room))
   +os = srun_obs(T, ops, ST.model(T, sh0))
-  %Equal.sym(Q.Queue<T> & List<&2, E.Obs<T>>, Q.run_acc(T, ops, (PS.real(T, sh0), Nil{})), (PS.real(T, sh2), List.reverse.go(&2, E.Obs<T>, os, Nil{})), ro_run(T, ops, sh0, Nil{}, run_ok(T, ops, sh0, Nil{}, g0, room))) : {Q.finish(T, _) == (PS.real(T, sh2), os) : Q.Queue<T> & List<&2, E.Obs<T>>}
+  %Equal.sym(Q.Queue<T> & List<&2, E.Obs<T>>, Q.run_acc(T, ops, (PS.real(T, sh0), Nil{})), (PS.real(T, sh2), List.reverse.go(&2, E.Obs<T>, os, Nil{})), ro_run(T, ops, sh0, Nil{}, run_ok(T, ops, sh0, Nil{}, g0, P, hb, q, hq, room))) : {Q.finish(T, _) == (PS.real(T, sh2), os) : Q.Queue<T> & List<&2, E.Obs<T>>}
   %Equal.sym(List<&2, E.Obs<T>>, List.reverse(&2, E.Obs<T>, List.reverse.go(&2, E.Obs<T>, os, Nil{})), os, LL.rev_rev(E.Obs<T>, os)) : {(PS.real(T, sh2), _) == (PS.real(T, sh2), os) : Q.Queue<T> & List<&2, E.Obs<T>>}
   {==}
 
 def TraceOK(-T: Data, ops: List<&2, E.Op<T>>, sh0: ST.Shadow<T>) -> Type:
   Sigma<&1, &1, ST.Shadow<T>, sh2 => {Q.run(T, ops, PS.real(T, sh0)) == (PS.real(T, sh2), srun_obs(T, ops, ST.model(T, sh0))) : Q.Queue<T> & List<&2, E.Obs<T>>} & ({ST.good(T, sh2) == True{} : Bool} & {ST.model(T, sh2) == srun_state(T, ops, ST.model(T, sh0)) : List<&2, T>})>
 
-def trace_from(-T: Data, +ops: List<&2, E.Op<T>>, +sh0: ST.Shadow<T>, +g0: {ST.good(T, sh0) == True{} : Bool}, +room: {Nat.is_le(Nat.add(DPS.sh_depth(T, sh0), pushes(T, ops)), 31n) == True{} : Bool}) -> TraceOK(T, ops, sh0):
-  (ro_sh(T, ops, sh0, Nil{}, run_ok(T, ops, sh0, Nil{}, g0, room)),
-   (run_from(T, ops, sh0, g0, room),
-    (ro_good(T, ops, sh0, Nil{}, run_ok(T, ops, sh0, Nil{}, g0, room)),
-     ro_model(T, ops, sh0, Nil{}, run_ok(T, ops, sh0, Nil{}, g0, room)))))
+def trace_from(-T: Data, +ops: List<&2, E.Op<T>>, +sh0: ST.Shadow<T>, +g0: {ST.good(T, sh0) == True{} : Bool}, +P: Nat, +hb: {BU.bud(T, sh0, P) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(1n+Nat.double(Nat.add(P, pushes(T, ops))), SC.pow2(q)) == True{} : Bool}) -> TraceOK(T, ops, sh0):
+  (ro_sh(T, ops, sh0, Nil{}, run_ok(T, ops, sh0, Nil{}, g0, P, hb, q, hq, room)),
+   (run_from(T, ops, sh0, g0, P, hb, q, hq, room),
+    (ro_good(T, ops, sh0, Nil{}, run_ok(T, ops, sh0, Nil{}, g0, P, hb, q, hq, room)),
+     ro_model(T, ops, sh0, Nil{}, run_ok(T, ops, sh0, Nil{}, g0, P, hb, q, hq, room)))))

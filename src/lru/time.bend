@@ -1,5 +1,5 @@
 import Base
-import ./model.bend as T
+import ../../types/lru_model.bend as T
 import ./wide.bend as W
 
 def add(a: T.Int64, b: T.Int64) -> T.Int64:

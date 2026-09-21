@@ -1,7 +1,7 @@
 import Base
 import ../../src/lru/fast.bend as F
 import ../../src/lru/cache.bend as C
-import ../../src/lru/model.bend as T
+import ../../types/lru_model.bend as T
 import ../../src/lru/time.bend as Time
 import ../../src/lru/wide.bend as W
 

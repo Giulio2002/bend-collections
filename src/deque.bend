@@ -26,10 +26,14 @@ import ../types/deque.bend as E
 # the amortized cost of a push is O(1). No element is ever copied and no
 # index arithmetic is modular.
 #
-# Capacity: `depth` grows by one per doubling, so a deque of n elements uses
-# depth <= n + 1 and the laws about pushes carry the representation's
-# capacity condition (depth < 31, so every slot index is a representable U32
-# and Base's index masking is the identity). See docs/API.md.
+# Capacity: `depth` grows by one per doubling. Pops move the window, so the
+# depth follows the number of PUSHES, not the number of elements: when a
+# push doubles the block after P earlier pushes, the old block has at most
+# 2P + 1 slots (proofs/deque/budget.bend) -- the same behaviour as the C
+# reference, which uses the same window algorithm. The laws about pushes
+# carry that capacity condition (every doubled block stays within 2^31
+# slots, so every slot index is a representable U32 and Base's index masking
+# is the identity). See docs/API.md.
 #
 # Errors: pop/peek on an empty deque return Fail{EmptyDeque} and the deque
 # unchanged.

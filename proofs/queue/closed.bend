@@ -10,6 +10,7 @@ import ../../types/deque.bend as DE
 import ../../types/queue.bend as E
 import ../deque/state.bend as DST
 import ../deque/steps.bend as DPS
+import ../deque/budget.bend as BU
 import ../deque/closed.bend as DCL
 import ./steps.bend as PS
 import ./trace.bend as TR
@@ -70,22 +71,24 @@ def step_eq(~T: Data, +sh: DST.Shadow<T>, +op: E.Op<T>) -> {Q.step_at(~T, PS.rea
       Equal.cong(DQ.Deque<T> & List<&2, T>, Q.Queue<T> & E.Obs<T>, r => Q.obs_list(T, Q.lift_list(T, r)),
         DQ.to_list_at(~T, DST.real(T, sh)), DQ.to_list(T, DST.real(T, sh)), to_list_eq(~T, sh))
 
-def run_acc_eq(~T: Data, +ops: List<&2, E.Op<T>>, +sh: DST.Shadow<T>, +acc: List<&2, E.Obs<T>>, +g: {DST.good(T, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(DPS.sh_depth(T, sh), TR.pushes(T, ops)), 31n) == True{} : Bool}) -> {Q.run_acc_at(~T, ops, (PS.real(T, sh), acc)) == Q.run_acc(T, ops, (PS.real(T, sh), acc)) : Q.Queue<T> & List<&2, E.Obs<T>>}:
+def run_acc_eq(~T: Data, +ops: List<&2, E.Op<T>>, +sh: DST.Shadow<T>, +acc: List<&2, E.Obs<T>>, +g: {DST.good(T, sh) == True{} : Bool}, +P: Nat, +hb: {BU.bud(T, sh, P) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(1n+Nat.double(Nat.add(P, TR.pushes(T, ops))), SC.pow2(q)) == True{} : Bool}) -> {Q.run_acc_at(~T, ops, (PS.real(T, sh), acc)) == Q.run_acc(T, ops, (PS.real(T, sh), acc)) : Q.Queue<T> & List<&2, E.Obs<T>>}:
   match ops:
     case Nil{}:
       {==}
     case Con{+op, +rest}:
-      +hh = TR.budget_head(T, DPS.sh_depth(T, sh), op, rest, room)
-      +sh1 = TR.so_sh(T, sh, op, PS.step_ok(T, sh, op, g, hh))
-      +o = TR.so_obs(T, sh, op, PS.step_ok(T, sh, op, g, hh))
-      +g1 = TR.so_good(T, sh, op, PS.step_ok(T, sh, op, g, hh))
-      +r1 = TR.budget_tail(T, DPS.sh_depth(T, sh), DPS.sh_depth(T, sh1), op, rest, TR.so_depth(T, sh, op, PS.step_ok(T, sh, op, g, hh)), room)
+      +hh = TR.budget_head(T, P, Con{op, rest}, q, room)
+      +sh1 = TR.so_sh(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh))
+      +o = TR.so_obs(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh))
+      +g1 = TR.so_good(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh))
+      +r1 = TR.budget_tail(T, P, op, rest, q, room)
+      +P1 = Nat.add(P, PS.pushcost(T, op))
+      +hb1 = TR.so_bud(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh), P, hb)
       %Equal.sym(Q.Queue<T> & E.Obs<T>, Q.step_at(~T, PS.real(T, sh), op), Q.step(T, PS.real(T, sh), op), step_eq(~T, sh, op)) : {Q.run_acc_at(~T, rest, Q.record(T, acc, _)) == Q.run_acc(T, rest, Q.record(T, acc, Q.step(T, PS.real(T, sh), op))) : Q.Queue<T> & List<&2, E.Obs<T>>}
-      %Equal.sym(Q.Queue<T> & E.Obs<T>, Q.step(T, PS.real(T, sh), op), (PS.real(T, sh1), o), TR.so_step(T, sh, op, PS.step_ok(T, sh, op, g, hh))) : {Q.run_acc_at(~T, rest, Q.record(T, acc, _)) == Q.run_acc(T, rest, Q.record(T, acc, _)) : Q.Queue<T> & List<&2, E.Obs<T>>}
-      run_acc_eq(~T, rest, sh1, Con{o, acc}, g1, r1)
+      %Equal.sym(Q.Queue<T> & E.Obs<T>, Q.step(T, PS.real(T, sh), op), (PS.real(T, sh1), o), TR.so_step(T, sh, op, PS.step_ok(T, sh, op, g, P, hb, q, hq, hh))) : {Q.run_acc_at(~T, rest, Q.record(T, acc, _)) == Q.run_acc(T, rest, Q.record(T, acc, _)) : Q.Queue<T> & List<&2, E.Obs<T>>}
+      run_acc_eq(~T, rest, sh1, Con{o, acc}, g1, P1, hb1, q, hq, r1)
 
-def run_eq(~T: Data, +ops: List<&2, E.Op<T>>, +sh: DST.Shadow<T>, +g: {DST.good(T, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(DPS.sh_depth(T, sh), TR.pushes(T, ops)), 31n) == True{} : Bool}) -> {Q.run_at(~T, ops, PS.real(T, sh)) == Q.run(T, ops, PS.real(T, sh)) : Q.Queue<T> & List<&2, E.Obs<T>>}:
-  Equal.cong(Q.Queue<T> & List<&2, E.Obs<T>>, Q.Queue<T> & List<&2, E.Obs<T>>, r => Q.finish(T, r), Q.run_acc_at(~T, ops, (PS.real(T, sh), Nil{})), Q.run_acc(T, ops, (PS.real(T, sh), Nil{})), run_acc_eq(~T, ops, sh, Nil{}, g, room))
+def run_eq(~T: Data, +ops: List<&2, E.Op<T>>, +sh: DST.Shadow<T>, +g: {DST.good(T, sh) == True{} : Bool}, +P: Nat, +hb: {BU.bud(T, sh, P) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(1n+Nat.double(Nat.add(P, TR.pushes(T, ops))), SC.pow2(q)) == True{} : Bool}) -> {Q.run_at(~T, ops, PS.real(T, sh)) == Q.run(T, ops, PS.real(T, sh)) : Q.Queue<T> & List<&2, E.Obs<T>>}:
+  Equal.cong(Q.Queue<T> & List<&2, E.Obs<T>>, Q.Queue<T> & List<&2, E.Obs<T>>, r => Q.finish(T, r), Q.run_acc_at(~T, ops, (PS.real(T, sh), Nil{})), Q.run_acc(T, ops, (PS.real(T, sh), Nil{})), run_acc_eq(~T, ops, sh, Nil{}, g, P, hb, q, hq, room))
 
 def new_eq(~T: Data) -> {Q.new_at(~T) == Q.new(T) : Q.Queue<T>}:
   {==}

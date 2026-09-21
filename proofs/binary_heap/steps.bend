@@ -18,14 +18,16 @@ import ./state.bend as ST
 import ./push.bend as PU
 import ./pop.bend as PO
 import ./sorted.bend as SO
+import ./budget.bend as BG
 
 # One actual public operation on a good shadow's block yields the block of a
 # new good shadow, and (abstract state, observation) equals the spec step.
 #
 # The fourth component bounds the new depth: a push doubles the block at most
-# once and from_list charges one doubling per element it pushes; every other
-# operation leaves the depth alone. That is what lets the trace law carry a
-# single capacity premise for a whole operation list (trace.bend).
+# once and from_list at most once per element it pushes; every other
+# operation leaves the depth alone. The capacity premise itself is stated in
+# terms of the heap's size (see step_ok below), which is what lets the trace
+# law carry a single premise for a whole operation list (trace.bend).
 
 def pushcost(~A: Data, op: E.Op<A>) -> Nat:
   match op:
@@ -118,11 +120,9 @@ def push_step(~A: Data, ~cmp: A -> A -> Cmp, +size: Nat, +depth: Nat, +t: AR.Tre
         Equal.cong(List<&2, A>, List<&2, A> & E.Obs<A>, zs => (zs, E.OUnit{}), ST.model(~A, ~cmp, sh2), S.ins(~A, ~cmp, x, ST.model(~A, ~cmp, ST.Sh{size, depth, t})), ems),
         N.le_trans(ST.sh_depth(~A, sh2), 1n+depth, Nat.add(depth, 1n), edd, le_succ_add(depth)))
 
-def push_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +size: Nat, +depth: Nat, +t: AR.Tree<Maybe<&2, A>>, +x: A, +g: {ST.good(~A, ~cmp, ST.Sh{size, depth, t}) == True{} : Bool}, +room: {Nat.is_lt(depth, 31n) == True{} : Bool}) -> StepOK(~A, ~cmp, ST.Sh{size, depth, t}, E.Push{x}):
+def push_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +size: Nat, +depth: Nat, +t: AR.Tree<Maybe<&2, A>>, +x: A, +g: {ST.good(~A, ~cmp, ST.Sh{size, depth, t}) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +hs: {Nat.is_lt(size, SC.pow2(q)) == True{} : Bool}) -> StepOK(~A, ~cmp, ST.Sh{size, depth, t}, E.Push{x}):
   push_step(~A, ~cmp, size, depth, t, x,
-    PU.push_ok(~A, ~cmp, ~o, size, depth, t, x, g,
-      L.subst(Bool, c => {Bool.or(Nat.is_lt(size, SC.pow2(depth)), c) == True{} : Bool}, True{}, Nat.is_lt(depth, 31n), Equal.sym(Bool, Nat.is_lt(depth, 31n), True{}, room), or_true(Nat.is_lt(size, SC.pow2(depth)))),
-      Nat.is_lt(size, SC.pow2(depth)), {==}))
+    PU.push_ok(~A, ~cmp, ~o, size, depth, t, x, g, BG.room_or(size, depth, q, hq, hs), Nat.is_lt(size, SC.pow2(depth)), {==}))
 
 # ---- pop ----
 
@@ -169,16 +169,10 @@ def add_shift(+d: Nat, +l: Nat) -> {Nat.add(d, 1n+l) == Nat.add(1n+d, l) : Nat}:
     N.add_succ(d, l),
     Equal.sym(Nat, Nat.add(1n+d, l), 1n+Nat.add(d, l), add_succ_l(d, l)))
 
-def budget_push(+d: Nat, +l: Nat, +h: {Nat.is_le(Nat.add(d, 1n+l), 31n) == True{} : Bool}) -> {Nat.is_lt(d, 31n) == True{} : Bool}:
-  N.succ_le_lt(d, 31n,
-    N.le_trans(1n+d, Nat.add(d, 1n+l), 31n,
-      L.subst(Nat, z => {Nat.is_le(1n+d, z) == True{} : Bool}, 1n+Nat.add(d, l), Nat.add(d, 1n+l), Equal.sym(Nat, Nat.add(d, 1n+l), 1n+Nat.add(d, l), N.add_succ(d, l)), N.le_add_right(d, l)),
-      h))
-
-def budget_rest(+d: Nat, +d1: Nat, +l: Nat, +hd1: {Nat.is_le(d1, 1n+d) == True{} : Bool}, +h: {Nat.is_le(Nat.add(d, 1n+l), 31n) == True{} : Bool}) -> {Nat.is_le(Nat.add(d1, l), 31n) == True{} : Bool}:
-  N.le_trans(Nat.add(d1, l), Nat.add(1n+d, l), 31n,
-    add_le_r(d1, 1n+d, l, hd1),
-    L.subst(Nat, z => {Nat.is_le(z, 31n) == True{} : Bool}, Nat.add(d, 1n+l), Nat.add(1n+d, l), add_shift(d, l), h))
+# the size budget after pushing y onto sh
+def budget_rest(~A: Data, ~cmp: A -> A -> Cmp, +y: A, +rest: List<&2, A>, +sh: ST.Shadow<A>, +sh1: ST.Shadow<A>, +q: Nat, +g: {ST.good(~A, ~cmp, sh) == True{} : Bool}, +g1: {ST.good(~A, ~cmp, sh1) == True{} : Bool}, +ems: {ST.model(~A, ~cmp, sh1) == S.ins(~A, ~cmp, y, ST.model(~A, ~cmp, sh)) : List<&2, A>}, +h: {Nat.is_lt(Nat.add(ST.sh_size(~A, sh), 1n+SC.length(A, rest)), SC.pow2(q)) == True{} : Bool}) -> {Nat.is_lt(Nat.add(ST.sh_size(~A, sh1), SC.length(A, rest)), SC.pow2(q)) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_lt(Nat.add(z, SC.length(A, rest)), SC.pow2(q)) == True{} : Bool}, 1n+ST.sh_size(~A, sh), ST.sh_size(~A, sh1), Equal.sym(Nat, ST.sh_size(~A, sh1), 1n+ST.sh_size(~A, sh), BG.push_size(~A, ~cmp, y, sh, sh1, g, g1, ems)),
+    L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(q)) == True{} : Bool}, Nat.add(ST.sh_size(~A, sh), 1n+SC.length(A, rest)), Nat.add(1n+ST.sh_size(~A, sh), SC.length(A, rest)), add_shift(ST.sh_size(~A, sh), SC.length(A, rest)), h))
 
 def budget_shift(+d: Nat, +l: Nat) -> {Nat.is_le(Nat.add(1n+d, l), Nat.add(d, 1n+l)) == True{} : Bool}:
   L.subst(Nat, z => {Nat.is_le(z, Nat.add(d, 1n+l)) == True{} : Bool}, Nat.add(d, 1n+l), Nat.add(1n+d, l), add_shift(d, l), N.le_refl(Nat.add(d, 1n+l)))
@@ -186,8 +180,8 @@ def budget_shift(+d: Nat, +l: Nat) -> {Nat.is_le(Nat.add(1n+d, l), Nat.add(d, 1n
 def FromOK(~A: Data, ~cmp: A -> A -> Cmp, ys: List<&2, A>, sh: ST.Shadow<A>) -> Type:
   Sigma<&1, &1, ST.Shadow<A>, sh2 => {H.from_list_go(~A, ~cmp, ys, ST.real(~A, sh)) == ST.real(~A, sh2) : H.Heap<A>} & ({ST.good(~A, ~cmp, sh2) == True{} : Bool} & ({ST.model(~A, ~cmp, sh2) == S.from_list(~A, ~cmp, ys, ST.model(~A, ~cmp, sh)) : List<&2, A>} & {Nat.is_le(ST.sh_depth(~A, sh2), Nat.add(ST.sh_depth(~A, sh), SC.length(A, ys))) == True{} : Bool}))>
 
-def FromRec(~A: Data, ~cmp: A -> A -> Cmp, rest: List<&2, A>) -> Type:
-  @+sh1: ST.Shadow<A> -> @+g1: {ST.good(~A, ~cmp, sh1) == True{} : Bool} -> @+r1: {Nat.is_le(Nat.add(ST.sh_depth(~A, sh1), SC.length(A, rest)), 31n) == True{} : Bool} -> FromOK(~A, ~cmp, rest, sh1)
+def FromRec(~A: Data, ~cmp: A -> A -> Cmp, rest: List<&2, A>, +q: Nat) -> Type:
+  @+sh1: ST.Shadow<A> -> @+g1: {ST.good(~A, ~cmp, sh1) == True{} : Bool} -> @+r1: {Nat.is_lt(Nat.add(ST.sh_size(~A, sh1), SC.length(A, rest)), SC.pow2(q)) == True{} : Bool} -> FromOK(~A, ~cmp, rest, sh1)
 
 def from_rest(~A: Data, ~cmp: A -> A -> Cmp, +y: A, +rest: List<&2, A>, +sh: ST.Shadow<A>, +sh1: ST.Shadow<A>, +ereal: {H.push(~A, ~cmp, ST.real(~A, sh), y) == ST.real(~A, sh1) : H.Heap<A>}, +ems: {ST.model(~A, ~cmp, sh1) == S.ins(~A, ~cmp, y, ST.model(~A, ~cmp, sh)) : List<&2, A>}, +edd: {Nat.is_le(ST.sh_depth(~A, sh1), 1n+ST.sh_depth(~A, sh)) == True{} : Bool}, r: FromOK(~A, ~cmp, rest, sh1)) -> FromOK(~A, ~cmp, Con{y, rest}, sh):
   match r:
@@ -206,24 +200,24 @@ def from_rest(~A: Data, ~cmp: A -> A -> Cmp, +y: A, +rest: List<&2, A>, +sh: ST.
               add_le_r(ST.sh_depth(~A, sh1), 1n+ST.sh_depth(~A, sh), SC.length(A, rest), edd),
               budget_shift(ST.sh_depth(~A, sh), SC.length(A, rest))))))))
 
-def from_push(~A: Data, ~cmp: A -> A -> Cmp, +y: A, +rest: List<&2, A>, +sh: ST.Shadow<A>, +room: {Nat.is_le(Nat.add(ST.sh_depth(~A, sh), 1n+SC.length(A, rest)), 31n) == True{} : Bool}, rec: FromRec(~A, ~cmp, rest), +sh1: ST.Shadow<A>, +ereal: {H.push(~A, ~cmp, ST.real(~A, sh), y) == ST.real(~A, sh1) : H.Heap<A>}, +g1: {ST.good(~A, ~cmp, sh1) == True{} : Bool}, +ems: {ST.model(~A, ~cmp, sh1) == S.ins(~A, ~cmp, y, ST.model(~A, ~cmp, sh)) : List<&2, A>}, +edd: {Nat.is_le(ST.sh_depth(~A, sh1), 1n+ST.sh_depth(~A, sh)) == True{} : Bool}) -> FromOK(~A, ~cmp, Con{y, rest}, sh):
+def from_push(~A: Data, ~cmp: A -> A -> Cmp, +y: A, +rest: List<&2, A>, +sh: ST.Shadow<A>, +g: {ST.good(~A, ~cmp, sh) == True{} : Bool}, +q: Nat, +room: {Nat.is_lt(Nat.add(ST.sh_size(~A, sh), 1n+SC.length(A, rest)), SC.pow2(q)) == True{} : Bool}, rec: FromRec(~A, ~cmp, rest, q), +sh1: ST.Shadow<A>, +ereal: {H.push(~A, ~cmp, ST.real(~A, sh), y) == ST.real(~A, sh1) : H.Heap<A>}, +g1: {ST.good(~A, ~cmp, sh1) == True{} : Bool}, +ems: {ST.model(~A, ~cmp, sh1) == S.ins(~A, ~cmp, y, ST.model(~A, ~cmp, sh)) : List<&2, A>}, +edd: {Nat.is_le(ST.sh_depth(~A, sh1), 1n+ST.sh_depth(~A, sh)) == True{} : Bool}) -> FromOK(~A, ~cmp, Con{y, rest}, sh):
   from_rest(~A, ~cmp, y, rest, sh, sh1, ereal, ems, edd,
-    rec(sh1, g1, budget_rest(ST.sh_depth(~A, sh), ST.sh_depth(~A, sh1), SC.length(A, rest), edd, room)))
+    rec(sh1, g1, budget_rest(~A, ~cmp, y, rest, sh, sh1, q, g, g1, ems, room)))
 
-def from_cons(~A: Data, ~cmp: A -> A -> Cmp, +y: A, +rest: List<&2, A>, +sh: ST.Shadow<A>, +room: {Nat.is_le(Nat.add(ST.sh_depth(~A, sh), 1n+SC.length(A, rest)), 31n) == True{} : Bool}, rec: FromRec(~A, ~cmp, rest), r: PU.PushOK(~A, ~cmp, sh, y)) -> FromOK(~A, ~cmp, Con{y, rest}, sh):
+def from_cons(~A: Data, ~cmp: A -> A -> Cmp, +y: A, +rest: List<&2, A>, +sh: ST.Shadow<A>, +g: {ST.good(~A, ~cmp, sh) == True{} : Bool}, +q: Nat, +room: {Nat.is_lt(Nat.add(ST.sh_size(~A, sh), 1n+SC.length(A, rest)), SC.pow2(q)) == True{} : Bool}, rec: FromRec(~A, ~cmp, rest, q), r: PU.PushOK(~A, ~cmp, sh, y)) -> FromOK(~A, ~cmp, Con{y, rest}, sh):
   match r:
     case Tuple{sh1, Tuple{ereal, Tuple{g1, Tuple{ems, edd}}}}:
-      from_push(~A, ~cmp, y, rest, sh, room, rec, sh1, ereal, g1, ems, edd)
+      from_push(~A, ~cmp, y, rest, sh, g, q, room, rec, sh1, ereal, g1, ems, edd)
 
-def from_list_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), ys: List<&2, A>, sh: ST.Shadow<A>, +g: {ST.good(~A, ~cmp, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(ST.sh_depth(~A, sh), SC.length(A, ys)), 31n) == True{} : Bool}) -> FromOK(~A, ~cmp, ys, sh):
+def from_list_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), ys: List<&2, A>, sh: ST.Shadow<A>, +g: {ST.good(~A, ~cmp, sh) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(Nat.add(ST.sh_size(~A, sh), SC.length(A, ys)), SC.pow2(q)) == True{} : Bool}) -> FromOK(~A, ~cmp, ys, sh):
   match ys sh:
     case Nil{} ST.Sh{+size, +depth, +t}:
       (ST.Sh{size, depth, t}, ({==}, (g, ({==}, le_same(depth)))))
     case Con{+y, +rest} ST.Sh{+size, +depth, +t}:
-      from_cons(~A, ~cmp, y, rest, ST.Sh{size, depth, t}, room,
-        sh1 => g1 => r1 => from_list_ok(~A, ~cmp, ~o, rest, sh1, g1, r1),
+      from_cons(~A, ~cmp, y, rest, ST.Sh{size, depth, t}, g, q, room,
+        sh1 => g1 => r1 => from_list_ok(~A, ~cmp, ~o, rest, sh1, g1, q, hq, r1),
         PU.push_ok(~A, ~cmp, ~o, size, depth, t, y, g,
-          L.subst(Bool, c => {Bool.or(Nat.is_lt(size, SC.pow2(depth)), c) == True{} : Bool}, True{}, Nat.is_lt(depth, 31n), Equal.sym(Bool, Nat.is_lt(depth, 31n), True{}, budget_push(depth, SC.length(A, rest), room)), or_true(Nat.is_lt(size, SC.pow2(depth)))),
+          BG.room_or(size, depth, q, hq, N.le_lt_trans(size, Nat.add(size, 1n+SC.length(A, rest)), SC.pow2(q), N.le_add_right(size, 1n+SC.length(A, rest)), room)),
           Nat.is_lt(size, SC.pow2(depth)), {==}))
 
 def le_add_zero(+l: Nat, +d: Nat) -> {Nat.is_le(Nat.add(0n, l), Nat.add(d, l)) == True{} : Bool}:
@@ -241,25 +235,25 @@ def from_list_step(~A: Data, ~cmp: A -> A -> Cmp, +size: Nat, +depth: Nat, +t: A
 
 # ---- every operation ----
 #
-# `room` is the capacity condition of the representation for this step: a
-# push doubles the block at most once, so the depth after it is still below
-# 32 and every slot index stays a representable U32. It is the only premise
-# besides the invariant, and trace.bend discharges it for a whole operation
-# list at once.
+# `room` is the capacity condition of the representation for this step, in
+# terms of the heap's size: size + pushcost(op) < 2^q with q <= 31. A push
+# doubles only a full block, where 2^depth = size < 2^q forces depth < 31, so
+# every slot index stays a representable U32. It is the only premise besides
+# the invariant, and trace.bend discharges it for a whole operation list.
 
-def step_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), sh: ST.Shadow<A>, op: E.Op<A>, +g: {ST.good(~A, ~cmp, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(ST.sh_depth(~A, sh), pushcost(~A, op)), 31n) == True{} : Bool}) -> StepOK(~A, ~cmp, sh, op):
+def step_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), sh: ST.Shadow<A>, op: E.Op<A>, +g: {ST.good(~A, ~cmp, sh) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(Nat.add(ST.sh_size(~A, sh), pushcost(~A, op)), SC.pow2(q)) == True{} : Bool}) -> StepOK(~A, ~cmp, sh, op):
   match sh op:
     case ST.Sh{+size, +depth, +t} E.Length{}:
       length_ok(~A, ~cmp, size, depth, t, g)
     case ST.Sh{+size, +depth, +t} E.Push{+x}:
-      push_ok(~A, ~cmp, ~o, size, depth, t, x, g, budget_push(depth, 0n, room))
+      push_ok(~A, ~cmp, ~o, size, depth, t, x, g, q, hq, N.le_lt_trans(size, Nat.add(size, 1n), SC.pow2(q), N.le_add_right(size, 1n), room))
     case ST.Sh{+size, +depth, +t} E.Peek{}:
       peek_ok(~A, ~cmp, ~o, size, depth, t, g)
     case ST.Sh{+size, +depth, +t} E.Pop{}:
       pop_ok(~A, ~cmp, ~o, size, depth, t, g)
     case ST.Sh{+size, +depth, +t} E.FromList{+ys}:
       from_list_step(~A, ~cmp, size, depth, t, ys,
-        from_list_ok(~A, ~cmp, ~o, ys, ST.initial(~A), ST.new_good(~A, ~cmp),
-          N.le_trans(Nat.add(0n, SC.length(A, ys)), Nat.add(depth, SC.length(A, ys)), 31n, le_add_zero(SC.length(A, ys), depth), room)))
+        from_list_ok(~A, ~cmp, ~o, ys, ST.initial(~A), ST.new_good(~A, ~cmp), q, hq,
+          N.le_lt_trans(Nat.add(0n, SC.length(A, ys)), Nat.add(size, SC.length(A, ys)), SC.pow2(q), le_add_zero(SC.length(A, ys), size), room)))
     case ST.Sh{+size, +depth, +t} E.ToSortedList{}:
       sorted_ok(~A, ~cmp, ~o, size, depth, t, g)

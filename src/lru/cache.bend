@@ -1,5 +1,5 @@
 import Base
-import ./model.bend as T
+import ../../types/lru_model.bend as T
 import ./time.bend as Time
 
 # The list is oldest first; it contains only encoded keys, never values.

@@ -1,3 +1,13 @@
+## Latest: complete canonical triage, performance gate still failing
+
+The 408-row development run measures243 rows within2.5xC,162 over limit and
+3 unmeasurable. Worst measured row: empty-trie lookup109.6x; small red-black
+maximum39.8x. LRU is not in these408rows and remains mandatory scope.
+Run overlapped other local work; no isolated-release benchmark claim is made.
+Source provenance limits/mismatches are recorded in
+`snapshot-evidence/triage-20260921-1008/`. Native LRU proof/spec work is in
+progress and is not accepted merely because it is preserved in this snapshot.
+
 ## Latest: indexed DLL runtime and trace validation
 
 All 12 DLL operations, boundary cases, five seeded differential histories,

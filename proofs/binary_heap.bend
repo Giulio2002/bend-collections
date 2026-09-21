@@ -4,6 +4,7 @@ import ./lib/list.bend as LL
 import ./lib/nat.bend as N
 import ./lib/array.bend as AR
 import ./lib/order.bend as O
+import ../spec/common.bend as SC
 import ../spec/binary_heap.bend as S
 import ../src/binary_heap.bend as H
 import ../types/binary_heap.bend as E
@@ -29,17 +30,13 @@ import ./binary_heap/trace.bend as TR
 # (U32, U32.cmp, O.u32_order) and (String, String.order, O.string_order), the
 # instances src/ exposes.
 #
-# The capacity condition of the representation. A push doubles the block at
-# most once, so `depth + (number of pushes in ops) <= 31` is enough for every
-# slot index to stay a representable U32 (2^31 slots), and that is the
-# premise the push, from_list and trace laws carry. It is a premise only of
-# those laws; every other law holds at every state satisfying the invariant.
-#
-# The condition is deliberately CONSERVATIVE and says so: it charges one
-# doubling to every push, while a doubling actually happens only when the
-# block is full (so k pushes cause about log2(k) doublings, not k). Proving
-# the tighter bound needs the amortized slack argument; what is claimed here
-# is the weaker, checked statement, not the sharper one.
+# The capacity condition of the representation, in terms of the heap's
+# SIZE: size + (elements the operations can add) < 2^q with q <= 31. A push
+# doubles the block only when it is full, and then 2^depth = size < 2^q
+# forces depth < 31, so every slot index stays a representable U32 (Base
+# arrays have at most 2^31 slots). It is a premise only of the step and
+# trace laws, it does not bound the length of a trace, and every other law
+# holds at every state satisfying the invariant.
 
 # ---- the constructor ----
 
@@ -54,8 +51,8 @@ def new_abs(~A: Data, ~cmp: A -> A -> Cmp) -> {ST.model(~A, ~cmp, ST.initial(~A)
 
 # ---- every operation (errors included), on every reachable representation ----
 
-def step_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), sh: ST.Shadow<A>, op: E.Op<A>, +g: {ST.good(~A, ~cmp, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(ST.sh_depth(~A, sh), SP.pushcost(~A, op)), 31n) == True{} : Bool}) -> SP.StepOK(~A, ~cmp, sh, op):
-  SP.step_ok(~A, ~cmp, ~o, sh, op, g, room)
+def step_ok(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), sh: ST.Shadow<A>, op: E.Op<A>, +g: {ST.good(~A, ~cmp, sh) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(Nat.add(ST.sh_size(~A, sh), SP.pushcost(~A, op)), SC.pow2(q)) == True{} : Bool}) -> SP.StepOK(~A, ~cmp, sh, op):
+  SP.step_ok(~A, ~cmp, ~o, sh, op, g, q, hq, room)
 
 # The abstraction of an actual heap is the model of its shadow: the laws
 # above, stated on shadows, are laws about actual heaps.
@@ -67,28 +64,28 @@ def new_heap_inv(~A: Data, ~cmp: A -> A -> Cmp) -> ST.Inv(~A, ~cmp, H.new(~A)):
 
 # ---- arbitrary finite traces ----
 
-def trace_from(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ops: List<&2, E.Op<A>>, +sh0: ST.Shadow<A>, +g0: {ST.good(~A, ~cmp, sh0) == True{} : Bool}, +room: {Nat.is_le(Nat.add(ST.sh_depth(~A, sh0), TR.pushes(~A, ops)), 31n) == True{} : Bool}) -> TR.TraceOK(~A, ~cmp, ops, sh0):
-  TR.trace_from(~A, ~cmp, ~o, ops, sh0, g0, room)
+def trace_from(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ops: List<&2, E.Op<A>>, +sh0: ST.Shadow<A>, +g0: {ST.good(~A, ~cmp, sh0) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(Nat.add(ST.sh_size(~A, sh0), TR.pushes(~A, ops)), SC.pow2(q)) == True{} : Bool}) -> TR.TraceOK(~A, ~cmp, ops, sh0):
+  TR.trace_from(~A, ~cmp, ~o, ops, sh0, g0, q, hq, room)
 
-def trace_new(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ops: List<&2, E.Op<A>>, +room: {Nat.is_le(Nat.add(0n, TR.pushes(~A, ops)), 31n) == True{} : Bool}) -> TR.TraceOK(~A, ~cmp, ops, ST.initial(~A)):
-  TR.trace_from(~A, ~cmp, ~o, ops, ST.initial(~A), ST.new_good(~A, ~cmp), room)
+def trace_new(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ops: List<&2, E.Op<A>>, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(TR.pushes(~A, ops), SC.pow2(q)) == True{} : Bool}) -> TR.TraceOK(~A, ~cmp, ops, ST.initial(~A)):
+  TR.trace_from(~A, ~cmp, ~o, ops, ST.initial(~A), ST.new_good(~A, ~cmp), q, hq, room)
 
 # ---- checked instances ----
 
-def u32_step_ok(sh: ST.Shadow<U32>, op: E.Op<U32>, +g: {ST.good(~U32, ~U32.cmp, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(ST.sh_depth(~U32, sh), SP.pushcost(~U32, op)), 31n) == True{} : Bool}) -> SP.StepOK(~U32, ~U32.cmp, sh, op):
-  step_ok(~U32, ~U32.cmp, ~O.u32_order, sh, op, g, room)
+def u32_step_ok(sh: ST.Shadow<U32>, op: E.Op<U32>, +g: {ST.good(~U32, ~U32.cmp, sh) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(Nat.add(ST.sh_size(~U32, sh), SP.pushcost(~U32, op)), SC.pow2(q)) == True{} : Bool}) -> SP.StepOK(~U32, ~U32.cmp, sh, op):
+  step_ok(~U32, ~U32.cmp, ~O.u32_order, sh, op, g, q, hq, room)
 
-def u32_trace(+ops: List<&2, E.Op<U32>>, +room: {Nat.is_le(Nat.add(0n, TR.pushes(~U32, ops)), 31n) == True{} : Bool}) -> TR.TraceOK(~U32, ~U32.cmp, ops, ST.initial(~U32)):
-  trace_new(~U32, ~U32.cmp, ~O.u32_order, ops, room)
+def u32_trace(+ops: List<&2, E.Op<U32>>, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(TR.pushes(~U32, ops), SC.pow2(q)) == True{} : Bool}) -> TR.TraceOK(~U32, ~U32.cmp, ops, ST.initial(~U32)):
+  trace_new(~U32, ~U32.cmp, ~O.u32_order, ops, q, hq, room)
 
 def u32_new_inv() -> ST.Inv(~U32, ~U32.cmp, H.new(~U32)):
   new_heap_inv(~U32, ~U32.cmp)
 
-def string_step_ok(sh: ST.Shadow<String>, op: E.Op<String>, +g: {ST.good(~String, ~String.order, sh) == True{} : Bool}, +room: {Nat.is_le(Nat.add(ST.sh_depth(~String, sh), SP.pushcost(~String, op)), 31n) == True{} : Bool}) -> SP.StepOK(~String, ~String.order, sh, op):
-  step_ok(~String, ~String.order, ~O.string_order, sh, op, g, room)
+def string_step_ok(sh: ST.Shadow<String>, op: E.Op<String>, +g: {ST.good(~String, ~String.order, sh) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(Nat.add(ST.sh_size(~String, sh), SP.pushcost(~String, op)), SC.pow2(q)) == True{} : Bool}) -> SP.StepOK(~String, ~String.order, sh, op):
+  step_ok(~String, ~String.order, ~O.string_order, sh, op, g, q, hq, room)
 
-def string_trace(+ops: List<&2, E.Op<String>>, +room: {Nat.is_le(Nat.add(0n, TR.pushes(~String, ops)), 31n) == True{} : Bool}) -> TR.TraceOK(~String, ~String.order, ops, ST.initial(~String)):
-  trace_new(~String, ~String.order, ~O.string_order, ops, room)
+def string_trace(+ops: List<&2, E.Op<String>>, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +room: {Nat.is_lt(TR.pushes(~String, ops), SC.pow2(q)) == True{} : Bool}) -> TR.TraceOK(~String, ~String.order, ops, ST.initial(~String)):
+  trace_new(~String, ~String.order, ~O.string_order, ops, q, hq, room)
 
 def string_new_inv() -> ST.Inv(~String, ~String.order, H.new(~String)):
   new_heap_inv(~String, ~String.order)

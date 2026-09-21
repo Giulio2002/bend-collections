@@ -20,6 +20,7 @@ import ./proofs/deque.bend as DQP
 import ./proofs/deque/state.bend as DQSH
 import ./proofs/deque/steps.bend as DQST
 import ./proofs/deque/init.bend as DQIN
+import ./proofs/deque/budget.bend as DQBU
 import ./proofs/deque/trace.bend as DQTR
 import ./src/queue.bend as QU
 import ./spec/queue.bend as QUS
@@ -408,6 +409,10 @@ def dynamic_array_trace_limited_at_invariant_string(k, ops):
   DAP.trace_with_limit_at_inv(~String, k, ops)
 
 # ============================== deque =================================
+# `room` is the capacity condition (proofs/deque/budget.bend): a shadow
+# within budget for P pushes, and 1 + 2(P + pushes still to come) < 2^q with
+# q <= 31 (Base arrays have at most 2^31 slots). The window can drift, so the
+# budget counts pushes, not elements; it does not bound the trace length.
 
 law deque_new:
   for -T: Data
@@ -432,10 +437,14 @@ law deque_step:
   for +sh: DQSH.Shadow<T>
   for op: DQT.Op<T>
   for +g: {DQSH.good(T, sh) == True{} : Bool}
-  for +room: {Nat.is_le(Nat.add(DQST.sh_depth(T, sh), DQST.pushcost(T, op)), 31n) == True{} : Bool}
+  for +P: Nat
+  for +hb: {DQBU.bud(T, sh, P) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(1n+Nat.double(P), SCOM.pow2(q)) == True{} : Bool}
   DQST.StepOK(T, sh, op)
-def deque_step(T, sh, op, g, room):
-  DQP.step_ok(T, sh, op, g, room)
+def deque_step(T, sh, op, g, P, hb, q, hq, room):
+  DQP.step_ok(T, sh, op, g, P, hb, q, hq, room)
 
 law deque_shadow_unique:
   for -T: Data
@@ -449,19 +458,23 @@ def deque_shadow_unique(T, a, b, e):
 law deque_trace:
   for -T: Data
   for +ops: List<&2, DQT.Op<T>>
-  for +room: {Nat.is_le(Nat.add(0n, DQTR.pushes(T, ops)), 31n) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(1n+Nat.double(DQTR.pushes(T, ops)), SCOM.pow2(q)) == True{} : Bool}
   DQTR.TraceOK(T, ops, DQIN.initial(T))
-def deque_trace(T, ops, room):
-  DQP.trace_new(T, ops, room)
+def deque_trace(T, ops, q, hq, room):
+  DQP.trace_new(T, ops, q, hq, room)
 
 # The executable specialization (the entry point tests and benchmarks run)
 # computes exactly what the parametric definition the laws are about computes.
 law deque_trace_at_is_the_trace:
   for +ops: List<&2, DQT.Op<Nat>>
-  for +room: {Nat.is_le(Nat.add(0n, DQTR.pushes(Nat, ops)), 31n) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(1n+Nat.double(DQTR.pushes(Nat, ops)), SCOM.pow2(q)) == True{} : Bool}
   {DQ.run_at(~Nat, ops, DQSH.real(Nat, DQIN.initial(Nat))) == DQ.run(Nat, ops, DQSH.real(Nat, DQIN.initial(Nat))) : DQ.Deque<Nat> & List<&2, DQT.Obs<Nat>>}
-def deque_trace_at_is_the_trace(ops, room):
-  DQP.trace_new_at(~Nat, ops, room)
+def deque_trace_at_is_the_trace(ops, q, hq, room):
+  DQP.trace_new_at(~Nat, ops, q, hq, room)
 
 # ============================== queue =================================
 
@@ -488,32 +501,41 @@ law queue_step:
   for +sh: DQSH.Shadow<T>
   for +op: QUT.Op<T>
   for +g: {DQSH.good(T, sh) == True{} : Bool}
-  for +room: {Nat.is_le(Nat.add(DQST.sh_depth(T, sh), QUST.pushcost(T, op)), 31n) == True{} : Bool}
+  for +P: Nat
+  for +hb: {DQBU.bud(T, sh, P) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(1n+Nat.double(P), SCOM.pow2(q)) == True{} : Bool}
   QUST.StepOK(T, sh, op)
-def queue_step(T, sh, op, g, room):
-  QUP.step_ok(T, sh, op, g, room)
+def queue_step(T, sh, op, g, P, hb, q, hq, room):
+  QUP.step_ok(T, sh, op, g, P, hb, q, hq, room)
 
 law queue_trace:
   for -T: Data
   for +ops: List<&2, QUT.Op<T>>
-  for +room: {Nat.is_le(Nat.add(0n, QUTR.pushes(T, ops)), 31n) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(1n+Nat.double(QUTR.pushes(T, ops)), SCOM.pow2(q)) == True{} : Bool}
   QUTR.TraceOK(T, ops, DQIN.initial(T))
-def queue_trace(T, ops, room):
-  QUP.trace_new(T, ops, room)
+def queue_trace(T, ops, q, hq, room):
+  QUP.trace_new(T, ops, q, hq, room)
 
 law queue_trace_at_is_the_trace:
   for +ops: List<&2, QUT.Op<Nat>>
-  for +room: {Nat.is_le(Nat.add(0n, QUTR.pushes(Nat, ops)), 31n) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(1n+Nat.double(QUTR.pushes(Nat, ops)), SCOM.pow2(q)) == True{} : Bool}
   {QU.run_at(~Nat, ops, QUST.real(Nat, DQIN.initial(Nat))) == QU.run(Nat, ops, QUST.real(Nat, DQIN.initial(Nat))) : QU.Queue<Nat> & List<&2, QUT.Obs<Nat>>}
-def queue_trace_at_is_the_trace(ops, room):
-  QUP.trace_new_at(~Nat, ops, room)
+def queue_trace_at_is_the_trace(ops, q, hq, room):
+  QUP.trace_new_at(~Nat, ops, q, hq, room)
 
 # =========================== binary_heap ==============================
 # The block is a linear Base.Array, so -- as for dynamic_array, bitset and
 # deque -- the laws are about the heap BUILT from a Data mirror tree
 # (BHSH.real of a shadow). Generic over a comparator; restated at both
-# checked instances. `room` is the representation's capacity condition (a
-# push doubles the block at most once; 2^31 slots).
+# checked instances. `room` is the representation's capacity condition: the
+# size plus the elements still to be added stays below 2^q, q <= 31 (Base
+# arrays have at most 2^31 slots); it does not bound the trace length.
 
 law binary_heap_u32_new:
   {BHSH.model(~U32, ~U32.cmp, BHSH.initial(~U32)) == Nil{} : List<&2, U32>}
@@ -556,17 +578,21 @@ law binary_heap_u32_step:
   for sh: BHSH.Shadow<U32>
   for op: BHT.Op<U32>
   for +g: {BHSH.good(~U32, ~U32.cmp, sh) == True{} : Bool}
-  for +room: {Nat.is_le(Nat.add(BHSH.sh_depth(~U32, sh), BHST.pushcost(~U32, op)), 31n) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(Nat.add(BHSH.sh_size(~U32, sh), BHST.pushcost(~U32, op)), SCOM.pow2(q)) == True{} : Bool}
   BHST.StepOK(~U32, ~U32.cmp, sh, op)
-def binary_heap_u32_step(sh, op, g, room):
-  BHP.u32_step_ok(sh, op, g, room)
+def binary_heap_u32_step(sh, op, g, q, hq, room):
+  BHP.u32_step_ok(sh, op, g, q, hq, room)
 
 law binary_heap_u32_trace:
   for +ops: List<&2, BHT.Op<U32>>
-  for +room: {Nat.is_le(Nat.add(0n, BHTR.pushes(~U32, ops)), 31n) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(BHTR.pushes(~U32, ops), SCOM.pow2(q)) == True{} : Bool}
   BHTR.TraceOK(~U32, ~U32.cmp, ops, BHSH.initial(~U32))
-def binary_heap_u32_trace(ops, room):
-  BHP.u32_trace(ops, room)
+def binary_heap_u32_trace(ops, q, hq, room):
+  BHP.u32_trace(ops, q, hq, room)
 
 law binary_heap_u32_new_invariant:
   BHSH.Inv(~U32, ~U32.cmp, BH.new(~U32))
@@ -577,17 +603,21 @@ law binary_heap_string_step:
   for sh: BHSH.Shadow<String>
   for op: BHT.Op<String>
   for +g: {BHSH.good(~String, ~String.order, sh) == True{} : Bool}
-  for +room: {Nat.is_le(Nat.add(BHSH.sh_depth(~String, sh), BHST.pushcost(~String, op)), 31n) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(Nat.add(BHSH.sh_size(~String, sh), BHST.pushcost(~String, op)), SCOM.pow2(q)) == True{} : Bool}
   BHST.StepOK(~String, ~String.order, sh, op)
-def binary_heap_string_step(sh, op, g, room):
-  BHP.string_step_ok(sh, op, g, room)
+def binary_heap_string_step(sh, op, g, q, hq, room):
+  BHP.string_step_ok(sh, op, g, q, hq, room)
 
 law binary_heap_string_trace:
   for +ops: List<&2, BHT.Op<String>>
-  for +room: {Nat.is_le(Nat.add(0n, BHTR.pushes(~String, ops)), 31n) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(BHTR.pushes(~String, ops), SCOM.pow2(q)) == True{} : Bool}
   BHTR.TraceOK(~String, ~String.order, ops, BHSH.initial(~String))
-def binary_heap_string_trace(ops, room):
-  BHP.string_trace(ops, room)
+def binary_heap_string_trace(ops, q, hq, room):
+  BHP.string_trace(ops, q, hq, room)
 
 law binary_heap_string_new_invariant:
   BHSH.Inv(~String, ~String.order, BH.new(~String))
@@ -842,6 +872,184 @@ law segment_tree_trace_from_list:
   SGTR.TraceOK(ops, SGP.from_list_shadow(xs, h))
 def segment_tree_trace_from_list(xs, ops, h):
   SGP.trace_from_list(xs, ops, h)
+
+# ======================== balanced_search_tree ========================
+# Red-black binary tree ordered map (src/balanced_search_tree.bend). The
+# proofs are templates over a comparator with total-order laws; the laws are
+# stated at the two instances src/ exposes: (U32, U32.cmp) and
+# (String, String.order). Values are an erased type. The invariant
+# (strictly increasing keys, red-black balance, cached size) is kept by
+# every operation, and balance is also restated in textbook form.
+
+law balanced_search_tree_new_balanced:
+  for -K: Data
+  for -V: Data
+  {BTTR.bal(K, V, BT.Leaf{}) == True{} : Bool}
+def balanced_search_tree_new_balanced(K, V):
+  BTP.new_balanced(K, V)
+
+law balanced_search_tree_leaf_black:
+  for -K: Data
+  for -V: Data
+  {BT.is_red(K, V, BT.Leaf{}) == False{} : Bool}
+def balanced_search_tree_leaf_black(K, V):
+  BTP.leaf_black(K, V)
+
+law balanced_search_tree_u32_new:
+  for -V: Data
+  {BTST.abs(~U32, ~U32.cmp, V, BT.new(U32, V)) == Nil{} : List<&2, BTT.Entry<U32, V>>}
+def balanced_search_tree_u32_new(V):
+  BTP.new_abs(~U32, ~U32.cmp, V)
+
+law balanced_search_tree_u32_new_invariant:
+  for -V: Data
+  {BTST.inv(~U32, ~U32.cmp, V, BT.new(U32, V)) == True{} : Bool}
+def balanced_search_tree_u32_new_invariant(V):
+  BTP.new_inv(~U32, ~U32.cmp, V)
+
+law balanced_search_tree_u32_step:
+  for -V: Data
+  for +s: BT.OrdMap<U32, V>
+  for +op: BTT.Op<U32, V>
+  for +g: {BTST.inv(~U32, ~U32.cmp, V, s) == True{} : Bool}
+  BTST.StepOK(~U32, ~U32.cmp, V, s, op)
+def balanced_search_tree_u32_step(V, s, op, g):
+  BTP.u32_step_ok(V, s, op, g)
+
+law balanced_search_tree_u32_trace:
+  for -V: Data
+  for +ops: List<&2, BTT.Op<U32, V>>
+  {BTTC.view(~U32, ~U32.cmp, ~O.u32_order, V, BT.run_u32(V, ops, BT.new(U32, V))) == BTS.run(~U32, ~U32.cmp, V, ops, Nil{}) : List<&2, BTT.Entry<U32, V>> & List<&2, BTT.Obs<U32, V>>}
+def balanced_search_tree_u32_trace(V, ops):
+  BTP.u32_trace(V, ops)
+
+law balanced_search_tree_u32_trace_invariant:
+  for -V: Data
+  for +ops: List<&2, BTT.Op<U32, V>>
+  {BTST.inv(~U32, ~U32.cmp, V, Pair.fst(BT.OrdMap<U32, V>, List<&2, BTT.Obs<U32, V>>, BT.run_u32(V, ops, BT.new(U32, V)))) == True{} : Bool}
+def balanced_search_tree_u32_trace_invariant(V, ops):
+  BTP.u32_trace_inv(V, ops)
+
+law balanced_search_tree_u32_insert_balanced:
+  for -V: Data
+  for +t: BT.Tree<U32, V>
+  for +k: U32
+  for +v: V
+  for +b: {BTTR.bal(U32, V, t) == True{} : Bool}
+  {BTTR.bal(U32, V, BT.insert_tree(~U32, ~U32.cmp, V, t, k, v)) == True{} : Bool}
+def balanced_search_tree_u32_insert_balanced(V, t, k, v, b):
+  BTP.u32_insert_balanced(V, t, k, v, b)
+
+law balanced_search_tree_u32_remove_balanced:
+  for -V: Data
+  for +t: BT.Tree<U32, V>
+  for +k: U32
+  for +b: {BTTR.bal(U32, V, t) == True{} : Bool}
+  {BTTR.bal(U32, V, BT.remove_tree(~U32, ~U32.cmp, V, t, k)) == True{} : Bool}
+def balanced_search_tree_u32_remove_balanced(V, t, k, b):
+  BTP.u32_remove_balanced(V, t, k, b)
+
+law balanced_search_tree_u32_root_black:
+  for -V: Data
+  for +t: BT.Tree<U32, V>
+  for +b: {BTTR.bal(U32, V, t) == True{} : Bool}
+  {BT.is_red(U32, V, t) == False{} : Bool}
+def balanced_search_tree_u32_root_black(V, t, b):
+  BTP.u32_root_black(V, t, b)
+
+law balanced_search_tree_u32_no_red_red:
+  for -V: Data
+  for +t: BT.Tree<U32, V>
+  for +b: {BTTR.bal(U32, V, t) == True{} : Bool}
+  {BTTR.nrr_all(U32, V, t) == True{} : Bool}
+def balanced_search_tree_u32_no_red_red(V, t, b):
+  BTP.u32_no_red_red(V, t, b)
+
+law balanced_search_tree_u32_uniform_black_height:
+  for -V: Data
+  for +t: BT.Tree<U32, V>
+  for +b: {BTTR.bal(U32, V, t) == True{} : Bool}
+  {BTTR.all_eq(BTTR.bh(U32, V, t), BTTR.paths(U32, V, t)) == True{} : Bool}
+def balanced_search_tree_u32_uniform_black_height(V, t, b):
+  BTP.u32_uniform_black_height(V, t, b)
+
+law balanced_search_tree_string_new:
+  for -V: Data
+  {BTST.abs(~String, ~String.order, V, BT.new(String, V)) == Nil{} : List<&2, BTT.Entry<String, V>>}
+def balanced_search_tree_string_new(V):
+  BTP.new_abs(~String, ~String.order, V)
+
+law balanced_search_tree_string_new_invariant:
+  for -V: Data
+  {BTST.inv(~String, ~String.order, V, BT.new(String, V)) == True{} : Bool}
+def balanced_search_tree_string_new_invariant(V):
+  BTP.new_inv(~String, ~String.order, V)
+
+law balanced_search_tree_string_step:
+  for -V: Data
+  for +s: BT.OrdMap<String, V>
+  for +op: BTT.Op<String, V>
+  for +g: {BTST.inv(~String, ~String.order, V, s) == True{} : Bool}
+  BTST.StepOK(~String, ~String.order, V, s, op)
+def balanced_search_tree_string_step(V, s, op, g):
+  BTP.string_step_ok(V, s, op, g)
+
+law balanced_search_tree_string_trace:
+  for -V: Data
+  for +ops: List<&2, BTT.Op<String, V>>
+  {BTTC.view(~String, ~String.order, ~O.string_order, V, BT.run_string(V, ops, BT.new(String, V))) == BTS.run(~String, ~String.order, V, ops, Nil{}) : List<&2, BTT.Entry<String, V>> & List<&2, BTT.Obs<String, V>>}
+def balanced_search_tree_string_trace(V, ops):
+  BTP.string_trace(V, ops)
+
+law balanced_search_tree_string_trace_invariant:
+  for -V: Data
+  for +ops: List<&2, BTT.Op<String, V>>
+  {BTST.inv(~String, ~String.order, V, Pair.fst(BT.OrdMap<String, V>, List<&2, BTT.Obs<String, V>>, BT.run_string(V, ops, BT.new(String, V)))) == True{} : Bool}
+def balanced_search_tree_string_trace_invariant(V, ops):
+  BTP.string_trace_inv(V, ops)
+
+law balanced_search_tree_string_insert_balanced:
+  for -V: Data
+  for +t: BT.Tree<String, V>
+  for +k: String
+  for +v: V
+  for +b: {BTTR.bal(String, V, t) == True{} : Bool}
+  {BTTR.bal(String, V, BT.insert_tree(~String, ~String.order, V, t, k, v)) == True{} : Bool}
+def balanced_search_tree_string_insert_balanced(V, t, k, v, b):
+  BTP.string_insert_balanced(V, t, k, v, b)
+
+law balanced_search_tree_string_remove_balanced:
+  for -V: Data
+  for +t: BT.Tree<String, V>
+  for +k: String
+  for +b: {BTTR.bal(String, V, t) == True{} : Bool}
+  {BTTR.bal(String, V, BT.remove_tree(~String, ~String.order, V, t, k)) == True{} : Bool}
+def balanced_search_tree_string_remove_balanced(V, t, k, b):
+  BTP.string_remove_balanced(V, t, k, b)
+
+law balanced_search_tree_string_root_black:
+  for -V: Data
+  for +t: BT.Tree<String, V>
+  for +b: {BTTR.bal(String, V, t) == True{} : Bool}
+  {BT.is_red(String, V, t) == False{} : Bool}
+def balanced_search_tree_string_root_black(V, t, b):
+  BTP.string_root_black(V, t, b)
+
+law balanced_search_tree_string_no_red_red:
+  for -V: Data
+  for +t: BT.Tree<String, V>
+  for +b: {BTTR.bal(String, V, t) == True{} : Bool}
+  {BTTR.nrr_all(String, V, t) == True{} : Bool}
+def balanced_search_tree_string_no_red_red(V, t, b):
+  BTP.string_no_red_red(V, t, b)
+
+law balanced_search_tree_string_uniform_black_height:
+  for -V: Data
+  for +t: BT.Tree<String, V>
+  for +b: {BTTR.bal(String, V, t) == True{} : Bool}
+  {BTTR.all_eq(BTTR.bh(String, V, t), BTTR.paths(String, V, t)) == True{} : Bool}
+def balanced_search_tree_string_uniform_black_height(V, t, b):
+  BTP.string_uniform_black_height(V, t, b)
 
 # ================================ graph ===============================
 # Indexed vertex slots plus adjacency blocks (src/graph.bend). Both tables are

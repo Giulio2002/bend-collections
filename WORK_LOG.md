@@ -1762,3 +1762,70 @@ Done in 0006 (recovery notes):
   `+`-bound - inline them into the consumer call.
 * FOUND: END_TO_END has NO balanced_search_tree laws (imports only; also absent in 0005/0006).
   To add next.
+* END_TO_END now has balanced_search_tree laws (u32 + string: new, new_invariant, step,
+  trace, trace_invariant, insert/remove balanced, root_black, no_red_red,
+  uniform_black_height; generic new_balanced/leaf_black). All check.
+* TRACE BOUNDS FIXED (they only covered <= 31 pushes before):
+  - binary_heap: step premise is now size + pushcost < 2^q, q <= 31 (push needs depth room
+    only when the block is full: budget.bend room_or). The trace derives the size measure
+    from the spec step (sz_len: size = length(model); slen_step), budget
+    size + pushes(ops) < 2^q. from_list's internal budget is size-based too.
+  - deque/queue: the window DRIFTS (pops move lo; a push doubles when the window touches
+    its end), so depth is bounded by pushes, not size. New proofs/deque/budget.bend:
+    invariant budg(d, lo, n, P): 1 + 2(lo+n) <= 2^d + 2P, 2^d <= 1 + 2(P+lo), n <= P
+    (found by exhaustive search /tmp/dq.py, then proved). StepOK's 4th component is now
+    the transfer BT: bud(sh, P) -> bud(sh2, P + pushcost). Step premise 1 + 2P < 2^q,
+    trace premise 1 + 2(P + pushes(ops)) < 2^q (from new: P = 0). Push room premises are
+    conditional on growth (pb_or / pf_or). queue derives its transfer via dop/cost_eq.
+  - src/deque.bend header comment corrected (it claimed depth <= n + 1).
+
+
+## Operator scope-correction restart
+
+Read docs/OPERATOR_LRU_SCOPE_CORRECTION.md. Missing canonical LRU rows do not exempt the new native runtime from proof or performance scope. Current candidate is being preserved in full before same-session resume.
+
+## Iteration 0008 — fast LRU refinement proof (operator scope correction)
+
+* src/lru/fast.bend runtime changes (validated: tests/lru_fast/main.bend 0 mismatches vs the
+  retained cache): recency/free links are slot + 1 with nil = 0 (as in the DLL; avoids the closed
+  2^32-1 sentinel the checker would normalise); the table is Map<&2, Maybe<U32>> (always Some) so
+  the retained crit-bit Map lemmas (critbit preservation, set_same, set/del frames, lookup_presence,
+  membership) apply with V = U32. Added step/run over types/lru_fast.bend Op/Obs.
+* src/lru/model.bend moved to types/lru_model.bend (the spec needs Int64/Metrics).
+* spec/lru_numeric.bend + spec/lru_unsigned_division.bend: ports of the retained SPEC numerics.
+  proofs/lru_fast/num/*: the 26 retained proof files of the deadline/expiry refinement closure,
+  unchanged text, imports retargeted to src/lru/{wide,time}, types/lru_model, spec/lru_*.
+  Gives Time.expired == N.expired (numeric.expiration_refines) and Time.deadline == N.deadline
+  (duration_refinement.deadline). Checks.
+* spec/lru_fast.bend: independent list model LM{cap, life, ents (recency order, En{key, value,
+  deadline}), counts}; step/run over the shared Op type. tests/lru_fast/spec_diff.bend: runtime vs
+  spec, 6 seeds x 300 ops (expiry, purge, resize, keys, metrics): 0 mismatches (interpreted, ~3 min;
+  the spec's ms division is unary-Nat, keep test lifetimes small; native build rejects WCon matches).
+* PLAN for the proof (proofs/lru_fast/): shadow Sh{cap, fresh, depth, ttl, life, tc (counts tree),
+  table, tk (keys tree), te (slots tree), tp, tn (link trees), ord (ghost recency slots), fl (ghost
+  free list)}; n and head/tail/free derived. good: arrays perfect, depth <= 31, fresh <= 2^depth,
+  ord ++ fl nodup and all < fresh with length(ord ++ fl) = fresh (partition), lk(ord) links (reuse
+  proofs/dlist link lemmas), free chain fk(fl) on nexts, ents Live/Timed on ord, table T1 (keys of
+  table included in keys of ord) + T2 (lookup(table, kys[s]) = Some s for s in ord) + critbit +
+  populated, n <= cap, 1 <= cap. Capacity premise cap <= 2^q, q <= 31 (fresh = n < cap at growth).
+* LRU proof progress (all check): proofs/lru_fast/state.bend (shadow Sh, real, model, inv via
+  tools/dev/andgen.py with 20 projections g_*, initial/new_real/new_model/new_good), inst.bend (U32
+  instances), chain.bend (unlink_ok / link_tail_ok / push_free_ok on mirror trees, bridged to the
+  DLL's set_next/pick_end and reusing hd_cut/tl_cut/sn_first/sn_last/hd_ins), table.bend (get_pair,
+  none_key/nomap/nk_all, firstk + locate, incl_del/am_del, incl_set/am_set -- all from retained
+  Map lemmas), counts.bend (carry/winc_join/pack_inc: limb-pair increment = Word.inc 64; bump_ok
+  runtime; slots_bt/pk_same/pk_other; mets_bump_0..4 = T.bump). NEXT: ents.bend (spec find/drop/
+  snoc/len/keys over ents), then op cores (remove_slot, insert_new with alloc free/fresh/grow,
+  replace/touch, reads, purge, resize loop, keys loop), step dispatch, trace, END_TO_END.
+* 0008 triage (build/performance/triage.json, full gate run, 408 rows, 3117s): about 160 rows
+  are above 2.5x. Worst families: balanced_search_tree (every op 3-40x; min/max 26-40x,
+  insert/remove 10-15x), prefix_trie (edge-empty 50-110x, the rest 4-31x), union_find.new 19x,
+  bitset.count 12-15x, graph.new/vertices 7x, to_list 4-15x on every structure, deque/queue
+  push 4-5.6x, segment_tree get/set 4-7x. Near misses (2.5-3.0x): deque.new, queue.new,
+  binary_heap.pop large, DLL push/insert, union_find.union, graph.edges.
+  Diagnosis with tools/dev/quick_bench.py (a dev timer, never evidence): trie edge-empty is the
+  driver's String key. Spelling 10 SCon/Chr cells and folding them costs 66ns, and contains on
+  the empty trie brings it to 127ns because it drops the unread 9-cell tail. C writes the key into
+  a stack buffer. U32 shift arithmetic in char_at did not help (150ns). union_find.new is about 7
+  boxed allocations plus frees against C's arena bump. These gaps come from allocation and
+  boxing, not from algorithms. Closing them needs representation changes, each with a re-proof.
