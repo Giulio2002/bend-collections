@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-09-20T23:12:03.333520+00:00",
+  "captured_at": "2026-09-21T01:15:13.090791+00:00",
   "repository": "bend-collections",
   "kind": "unverified_development_snapshot",
   "full_acceptance_passed": false,
@@ -237,9 +237,24 @@
   ],
   "evidence_scope": "historical targeted runs; source changed during ongoing development; no current-snapshot pass claimed",
   "source_sha256_file": "SNAPSHOT_SOURCE_SHA256.json",
-  "milestone": "Full native benchmark: 199 within target, 200 too slow, 9 failed measurements; performance gate fails",
-  "validation_source_hash_mismatches": [],
-  "latest_performance_source_hash_mismatches": [],
+  "milestone": "Indexed graph prototype and independently rechecked search proof; full graph proofs incomplete",
+  "validation_source_hash_mismatches": [
+    "proofs/balanced_search_tree/steps.bend",
+    "src/doubly_linked_list.bend",
+    "src/dynamic_array.bend",
+    "src/graph.bend",
+    "types/doubly_linked_list.bend"
+  ],
+  "latest_performance_source_hash_mismatches": [
+    "benchmarks/bend/doubly_linked_list.bend",
+    "benchmarks/bend/graph.bend",
+    "benchmarks/native/doubly_linked_list.c",
+    "proofs/balanced_search_tree/steps.bend",
+    "src/doubly_linked_list.bend",
+    "src/dynamic_array.bend",
+    "src/graph.bend",
+    "types/doubly_linked_list.bend"
+  ],
   "latest_performance_counts": {
     "dynamic_array": [
       30,
@@ -301,5 +316,13 @@
       32,
       3
     ]
-  }
+  },
+  "source_workspace": "/Users/monkeair/work/dsa-performance/runs/20260920T133039Z-075758e5/iterations/0005/workspace",
+  "indexed_graph_benchmark_source_mismatches": [
+    "benchmarks/bend/doubly_linked_list.bend",
+    "benchmarks/bend/graph.bend",
+    "proofs/lib/u32add.bend",
+    "src/doubly_linked_list.bend",
+    "src/graph.bend"
+  ]
 }

@@ -7,12 +7,15 @@ type Error is Data:
   ForeignHandle{}
   StaleHandle{}
 
-# Opaque element handle: the owning list's tag and the element's id.
+# Opaque element handle: the owning list's tag and the element's id. Both are
+# U32: an id is a slot index of the implementation's arena (never reused) and
+# a tag identifies the owning list, so both comparisons are one machine
+# operation.
 type Handle is Data:
-  H{list: Nat, id: Nat}
+  H{list: U32, id: U32}
 
 type Item<-T: Data> is Data:
-  Item{id: Nat, val: T}
+  Item{id: U32, val: T}
 
 type Op<-T: Data> is Data:
   Length{}

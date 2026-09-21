@@ -26,7 +26,9 @@ laws are about.
 Growable, bounds-checked array over native Base.Array. Representation:
 DA{limit, depth, cap, length, slots} with cap = 2^depth kept in the record
 (recomputing 2^depth per operation would make every push, capacity and
-reserve cost O(depth)). `slots` is a Base.Array of 2^depth slots; slots
+reserve cost O(depth)). `slots` is a Base.Array of 2^depth slots, which the
+native backend lowers to one indexed memory block (the ALeaf/ANode tree is
+the logical model, not the runtime layout -- see docs/C_EQUIVALENCE.md); slots
 [0, length) hold Some{x}, the rest hold None. `limit` (<= 31) caps depth, so
 every index passed to Base is < 2^31 and Base's masking is the identity.
 Errors return the state unchanged: get/set out of range -> IndexOutOfRange;

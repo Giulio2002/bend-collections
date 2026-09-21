@@ -100,7 +100,7 @@
   ]
  },
  "lru_reuse": "passed",
- "seconds": 127.4,
+ "seconds": 149.3,
  "source_sha256": {
   "END_TO_END.bend": "7607950f4e0153ab13244cb58a9f3b24c1f3d7508065808e96819dddc78291c5",
   "PROOF.bend": "5bf861bc1df4ae533707f53f91b7678d1396f13aded4e77ee776e55873582c4f",
@@ -346,7 +346,7 @@
     "functional": 3,
     "structural": 0
    },
-   "seconds": 7.0,
+   "seconds": 15.9,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -413,7 +413,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 6.7,
+   "seconds": 10.4,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -465,7 +465,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 5.4,
+   "seconds": 6.9,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -527,7 +527,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 10.7,
+   "seconds": 12.8,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -588,7 +588,7 @@
     "functional": 5,
     "structural": 0
    },
-   "seconds": 11.8,
+   "seconds": 12.1,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -645,7 +645,7 @@
     "functional": 3,
     "structural": 9
    },
-   "seconds": 12.1,
+   "seconds": 13.3,
    "structural": "passed",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -714,7 +714,7 @@
     "functional": 4,
     "structural": 0
    },
-   "seconds": 10.0,
+   "seconds": 10.4,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -778,7 +778,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 9.4,
+   "seconds": 10.0,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -842,7 +842,7 @@
     "functional": 3,
     "structural": 0
    },
-   "seconds": 9.1,
+   "seconds": 9.7,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -964,7 +964,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 8.7,
+   "seconds": 8.8,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -1020,7 +1020,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 10.7,
+   "seconds": 13.5,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [

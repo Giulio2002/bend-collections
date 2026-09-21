@@ -11,7 +11,7 @@ import ../../types/graph.bend as E
 # 5 has_edge, 6 neighbors, 7 vertices, 8 edges, 9 new, else stream only.
 # The graph is undirected (the harder case: both endpoint sets are updated).
 
-type St is Data:
+type St is Type:
   S{rng: U32, chk: U32, g: GR.Graph}
 
 def init(+seed: U32) -> St:
@@ -105,38 +105,66 @@ def do_re(st: St, +n: Nat) -> St:
   S{r, c, g} = st
   re_with(B.lcg(r), c, g, n)
 
-def hv_with(+r: U32, c: U32, +g: GR.Graph, +n: Nat) -> St:
-  S{r, B.mix(c, bool_bit(GR.has_vertex(g, B.below(r, U32.from_nat(1n+n))))), g}
+def fin_bool(r: U32, c: U32, p: GR.Graph & Bool) -> St:
+  (g, b) = p
+  S{r, B.mix(c, bool_bit(b)), g}
+
+def hv_with(+r: U32, c: U32, g: GR.Graph, +n: Nat) -> St:
+  fin_bool(r, c, GR.has_vertex(g, B.below(r, U32.from_nat(1n+n))))
 
 def do_hv(st: St, +n: Nat) -> St:
-  S{r, c, +g} = st
+  S{r, c, g} = st
   hv_with(B.lcg(r), c, g, n)
 
-def he_with(+r: U32, c: U32, +g: GR.Graph, +n: Nat) -> St:
-  S{r, B.mix(c, flag_code(GR.has_edge(g, B.below(r, U32.from_nat(1n+n)), B.below(hi(r), U32.from_nat(1n+n))))), g}
+def fin_flag(r: U32, c: U32, p: GR.Graph & Result<&2, &2, E.Error, Bool>) -> St:
+  (g, x) = p
+  S{r, B.mix(c, flag_code(x)), g}
+
+def he_with(+r: U32, c: U32, g: GR.Graph, +n: Nat) -> St:
+  fin_flag(r, c, GR.has_edge(g, B.below(r, U32.from_nat(1n+n)), B.below(hi(r), U32.from_nat(1n+n))))
 
 def do_he(st: St, +n: Nat) -> St:
-  S{r, c, +g} = st
+  S{r, c, g} = st
   he_with(B.lcg(r), c, g, n)
 
-def nb_with(+r: U32, c: U32, +g: GR.Graph, +n: Nat) -> St:
-  S{r, nbr_code(c, GR.neighbors(g, B.below(r, U32.from_nat(1n+n)))), g}
+def fin_nbr(r: U32, c: U32, p: GR.Graph & Result<&2, &2, E.Error, List<&2, U32>>) -> St:
+  (g, x) = p
+  S{r, nbr_code(c, x), g}
+
+def nb_with(+r: U32, c: U32, g: GR.Graph, +n: Nat) -> St:
+  fin_nbr(r, c, GR.neighbors(g, B.below(r, U32.from_nat(1n+n))))
 
 def do_nb(st: St, +n: Nat) -> St:
-  S{r, c, +g} = st
+  S{r, c, g} = st
   nb_with(B.lcg(r), c, g, n)
 
+def fin_vs(r: U32, c: U32, p: GR.Graph & List<&2, U32>) -> St:
+  (g, xs) = p
+  S{r, fold_u32(xs, c), g}
+
 def do_vs(st: St) -> St:
-  S{r, c, +g} = st
-  S{B.lcg(r), fold_u32(GR.vertices(g), c), g}
+  S{r, c, g} = st
+  fin_vs(B.lcg(r), c, GR.vertices(g))
+
+def fin_es(r: U32, c: U32, p: GR.Graph & List<&2, E.Edge>) -> St:
+  (g, es) = p
+  S{r, fold_edges(es, c), g}
 
 def do_es(st: St) -> St:
-  S{r, c, +g} = st
-  S{B.lcg(r), fold_edges(GR.edges(g), c), g}
+  S{r, c, g} = st
+  fin_es(B.lcg(r), c, GR.edges(g))
+
+def drop_graph(g: GR.Graph, c: U32) -> U32:
+  GR.G{d, glo, ghi, cap, depth, ids, adj} = g
+  c
+
+def drop_new(p: GR.Graph & List<&2, U32>, c: U32) -> U32:
+  (g, xs) = p
+  drop_graph(g, fold_u32(xs, c))
 
 def do_new(st: St) -> St:
   S{r, c, g} = st
-  S{B.lcg(r), fold_u32(GR.vertices(GR.new(False{})), c), g}
+  S{B.lcg(r), drop_new(GR.vertices(GR.new(False{})), c), g}
 
 def do_null(st: St) -> St:
   S{r, c, g} = st
@@ -266,8 +294,8 @@ def seed_vs(k: Nat, st: St) -> St:
       seed_vs(p, add_at(p, st))
 
 def settle(st: St) -> St:
-  S{r, c, +g} = st
-  S{r, fold_edges(GR.edges(g), c), g}
+  S{r, c, g} = st
+  fin_es(r, c, GR.edges(g))
 
 # The drain is deliberately independent of how many elements the measured
 # operation added or removed, so region A and region B pay the same

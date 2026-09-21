@@ -11,17 +11,19 @@ import ../../types/doubly_linked_list.bend as E
 # 0 push_front, 1 push_back, 2 insert_before, 3 insert_after, 4 remove, 5 get,
 # 6 set, 7 next, 8 prev, 9 length, 10 to_list, 11 new, else stream only.
 
-type St is Data:
+type St is Type:
   S{rng: U32, chk: U32, l: DL.DList<U32>}
 
-def tag() -> Nat:
-  1n
+def tag() -> U32:
+  1
 
 def init(+seed: U32) -> St:
-  S{seed, 0, DL.new(U32, tag())}
+  S{seed, 0, DL.new(~U32, tag())}
 
-def handle_of(+r: U32, +n: Nat) -> E.Handle:
-  E.H{tag(), B.nat_below(r, 1n+n)}
+# A handle id drawn from 0 .. n: live when it is below the number of elements
+# the build pushed, stale otherwise. Ids are U32, so this is one modulo.
+def handle_of(+r: U32, +m: U32) -> E.Handle:
+  E.H{tag(), B.below(r, m)}
 
 def err_code(e: E.Error) -> U32:
   match e:
@@ -46,8 +48,8 @@ def unit_code(x: Result<&2, &2, E.Error, Unit>) -> U32:
 
 def handle_code(h: E.Handle) -> U32:
   match h:
-    case E.H{l, i}:
-      B.mix(U32.from_nat(l), U32.from_nat(i))
+    case E.H{+l, +i}:
+      B.mix(l, i)
 
 def ins_code(x: Result<&2, &2, E.Error, E.Handle>) -> U32:
   match x:
@@ -82,71 +84,79 @@ def fin_unit(r: U32, c: U32, p: DL.DList<U32> & Result<&2, &2, E.Error, Unit>) -
   S{r, B.mix(c, unit_code(x)), l}
 
 def pf_with(+r: U32, c: U32, l: DL.DList<U32>) -> St:
-  fin_handle(r, c, DL.push_front(U32, l, r))
+  fin_handle(r, c, DL.push_front(~U32, l, r))
 
 def do_pf(st: St) -> St:
   S{r, c, l} = st
   pf_with(B.lcg(r), c, l)
 
 def pb_with(+r: U32, c: U32, l: DL.DList<U32>) -> St:
-  fin_handle(r, c, DL.push_back(U32, l, r))
+  fin_handle(r, c, DL.push_back(~U32, l, r))
 
 def do_pb(st: St) -> St:
   S{r, c, l} = st
   pb_with(B.lcg(r), c, l)
 
-def ib_with(+r: U32, c: U32, l: DL.DList<U32>, +n: Nat) -> St:
-  fin_ins(r, c, DL.insert_before(U32, l, handle_of(r, n), r))
+def ib_with(+r: U32, c: U32, l: DL.DList<U32>, +m: U32) -> St:
+  fin_ins(r, c, DL.insert_before(~U32, l, handle_of(r, m), r))
 
-def do_ib(st: St, +n: Nat) -> St:
+def do_ib(st: St, +m: U32) -> St:
   S{r, c, l} = st
-  ib_with(B.lcg(r), c, l, n)
+  ib_with(B.lcg(r), c, l, m)
 
-def ia_with(+r: U32, c: U32, l: DL.DList<U32>, +n: Nat) -> St:
-  fin_ins(r, c, DL.insert_after(U32, l, handle_of(r, n), r))
+def ia_with(+r: U32, c: U32, l: DL.DList<U32>, +m: U32) -> St:
+  fin_ins(r, c, DL.insert_after(~U32, l, handle_of(r, m), r))
 
-def do_ia(st: St, +n: Nat) -> St:
+def do_ia(st: St, +m: U32) -> St:
   S{r, c, l} = st
-  ia_with(B.lcg(r), c, l, n)
+  ia_with(B.lcg(r), c, l, m)
 
-def rm_with(+r: U32, c: U32, l: DL.DList<U32>, +n: Nat) -> St:
-  fin_val(r, c, DL.remove(U32, l, handle_of(r, n)))
+def rm_with(+r: U32, c: U32, l: DL.DList<U32>, +m: U32) -> St:
+  fin_val(r, c, DL.remove(~U32, l, handle_of(r, m)))
 
-def do_rm(st: St, +n: Nat) -> St:
+def do_rm(st: St, +m: U32) -> St:
   S{r, c, l} = st
-  rm_with(B.lcg(r), c, l, n)
+  rm_with(B.lcg(r), c, l, m)
 
-def get_with(+r: U32, c: U32, +l: DL.DList<U32>, +n: Nat) -> St:
-  S{r, B.mix(c, val_code(DL.get(U32, l, handle_of(r, n)))), l}
+def get_with(+r: U32, c: U32, l: DL.DList<U32>, +m: U32) -> St:
+  fin_val(r, c, DL.get(~U32, l, handle_of(r, m)))
 
-def do_get(st: St, +n: Nat) -> St:
-  S{r, c, +l} = st
-  get_with(B.lcg(r), c, l, n)
-
-def set_with(+r: U32, c: U32, l: DL.DList<U32>, +n: Nat) -> St:
-  fin_unit(r, c, DL.set(U32, l, handle_of(r, n), r))
-
-def do_set(st: St, +n: Nat) -> St:
+def do_get(st: St, +m: U32) -> St:
   S{r, c, l} = st
-  set_with(B.lcg(r), c, l, n)
+  get_with(B.lcg(r), c, l, m)
 
-def next_with(+r: U32, c: U32, +l: DL.DList<U32>, +n: Nat) -> St:
-  S{r, B.mix(c, nbr_code(DL.next(U32, l, handle_of(r, n)))), l}
+def set_with(+r: U32, c: U32, l: DL.DList<U32>, +m: U32) -> St:
+  fin_unit(r, c, DL.set(~U32, l, handle_of(r, m), r))
 
-def do_next(st: St, +n: Nat) -> St:
-  S{r, c, +l} = st
-  next_with(B.lcg(r), c, l, n)
+def do_set(st: St, +m: U32) -> St:
+  S{r, c, l} = st
+  set_with(B.lcg(r), c, l, m)
 
-def prev_with(+r: U32, c: U32, +l: DL.DList<U32>, +n: Nat) -> St:
-  S{r, B.mix(c, nbr_code(DL.prev(U32, l, handle_of(r, n)))), l}
+def fin_nbr(r: U32, c: U32, p: DL.DList<U32> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>) -> St:
+  (l, x) = p
+  S{r, B.mix(c, nbr_code(x)), l}
 
-def do_prev(st: St, +n: Nat) -> St:
-  S{r, c, +l} = st
-  prev_with(B.lcg(r), c, l, n)
+def next_with(+r: U32, c: U32, l: DL.DList<U32>, +m: U32) -> St:
+  fin_nbr(r, c, DL.next(~U32, l, handle_of(r, m)))
+
+def do_next(st: St, +m: U32) -> St:
+  S{r, c, l} = st
+  next_with(B.lcg(r), c, l, m)
+
+def prev_with(+r: U32, c: U32, l: DL.DList<U32>, +m: U32) -> St:
+  fin_nbr(r, c, DL.prev(~U32, l, handle_of(r, m)))
+
+def do_prev(st: St, +m: U32) -> St:
+  S{r, c, l} = st
+  prev_with(B.lcg(r), c, l, m)
+
+def fin_nat(r: U32, c: U32, p: DL.DList<U32> & Nat) -> St:
+  (l, n) = p
+  S{r, B.mix(c, U32.from_nat(n)), l}
 
 def do_len(st: St) -> St:
-  S{r, c, +l} = st
-  S{B.lcg(r), B.mix(c, U32.from_nat(DL.length(U32, l))), l}
+  S{r, c, l} = st
+  fin_nat(B.lcg(r), c, DL.length(~U32, l))
 
 def fold_vals(xs: List<&2, U32>, c: U32) -> U32:
   match xs:
@@ -155,13 +165,21 @@ def fold_vals(xs: List<&2, U32>, c: U32) -> U32:
     case Con{x, t}:
       fold_vals(t, B.mix(c, x))
 
+def fin_list(r: U32, c: U32, p: DL.DList<U32> & List<&2, U32>) -> St:
+  (l, xs) = p
+  S{r, fold_vals(xs, c), l}
+
 def do_to_list(st: St) -> St:
-  S{r, c, +l} = st
-  S{B.lcg(r), fold_vals(DL.to_list(U32, l), c), l}
+  S{r, c, l} = st
+  fin_list(B.lcg(r), c, DL.to_list(~U32, l))
+
+def new_code(p: DL.DList<U32> & Nat) -> U32:
+  (l2, n) = p
+  U32.from_nat(n)
 
 def do_new(st: St) -> St:
   S{r, c, l} = st
-  S{B.lcg(r), B.mix(c, U32.from_nat(DL.length(U32, DL.new(U32, tag())))), l}
+  S{B.lcg(r), B.mix(c, new_code(DL.length(~U32, DL.new(~U32, tag())))), l}
 
 def do_null(st: St) -> St:
   S{r, c, l} = st
@@ -191,54 +209,54 @@ def loop_pb(k: Nat, st: St) -> St:
     case 1n+p:
       loop_pb(p, do_pb(st))
 
-def loop_ib(k: Nat, +n: Nat, st: St) -> St:
+def loop_ib(k: Nat, +m: U32, st: St) -> St:
   match k:
     case 0n:
       st
     case 1n+p:
-      loop_ib(p, n, do_ib(st, n))
+      loop_ib(p, m, do_ib(st, m))
 
-def loop_ia(k: Nat, +n: Nat, st: St) -> St:
+def loop_ia(k: Nat, +m: U32, st: St) -> St:
   match k:
     case 0n:
       st
     case 1n+p:
-      loop_ia(p, n, do_ia(st, n))
+      loop_ia(p, m, do_ia(st, m))
 
-def loop_rm(k: Nat, +n: Nat, st: St) -> St:
+def loop_rm(k: Nat, +m: U32, st: St) -> St:
   match k:
     case 0n:
       st
     case 1n+p:
-      loop_rm(p, n, do_rm(st, n))
+      loop_rm(p, m, do_rm(st, m))
 
-def loop_get(k: Nat, +n: Nat, st: St) -> St:
+def loop_get(k: Nat, +m: U32, st: St) -> St:
   match k:
     case 0n:
       st
     case 1n+p:
-      loop_get(p, n, do_get(st, n))
+      loop_get(p, m, do_get(st, m))
 
-def loop_set(k: Nat, +n: Nat, st: St) -> St:
+def loop_set(k: Nat, +m: U32, st: St) -> St:
   match k:
     case 0n:
       st
     case 1n+p:
-      loop_set(p, n, do_set(st, n))
+      loop_set(p, m, do_set(st, m))
 
-def loop_next(k: Nat, +n: Nat, st: St) -> St:
+def loop_next(k: Nat, +m: U32, st: St) -> St:
   match k:
     case 0n:
       st
     case 1n+p:
-      loop_next(p, n, do_next(st, n))
+      loop_next(p, m, do_next(st, m))
 
-def loop_prev(k: Nat, +n: Nat, st: St) -> St:
+def loop_prev(k: Nat, +m: U32, st: St) -> St:
   match k:
     case 0n:
       st
     case 1n+p:
-      loop_prev(p, n, do_prev(st, n))
+      loop_prev(p, m, do_prev(st, m))
 
 def loop_len(k: Nat, st: St) -> St:
   match k:
@@ -261,26 +279,26 @@ def loop_new(k: Nat, st: St) -> St:
     case 1n+p:
       loop_new(p, do_new(st))
 
-def measured(+op: U32, +k: Nat, +n: Nat, st: St) -> St:
+def measured(+op: U32, +k: Nat, +m: U32, st: St) -> St:
   match op:
     case 0:
       loop_pf(k, st)
     case 1:
       loop_pb(k, st)
     case 2:
-      loop_ib(k, n, st)
+      loop_ib(k, m, st)
     case 3:
-      loop_ia(k, n, st)
+      loop_ia(k, m, st)
     case 4:
-      loop_rm(k, n, st)
+      loop_rm(k, m, st)
     case 5:
-      loop_get(k, n, st)
+      loop_get(k, m, st)
     case 6:
-      loop_set(k, n, st)
+      loop_set(k, m, st)
     case 7:
-      loop_next(k, n, st)
+      loop_next(k, m, st)
     case 8:
-      loop_prev(k, n, st)
+      loop_prev(k, m, st)
     case 9:
       loop_len(k, st)
     case 10:
@@ -292,37 +310,55 @@ def measured(+op: U32, +k: Nat, +n: Nat, st: St) -> St:
 
 # ---- settle / drain ----
 
+def settle_fin(+r: U32, c: U32, p: DL.DList<U32> & List<&2, U32>) -> St:
+  (l, xs) = p
+  S{r, fold_vals(xs, c), l}
+
 def settle(st: St) -> St:
-  S{r, c, +l} = st
-  S{r, fold_vals(DL.to_list(U32, l), c), l}
+  S{r, c, l} = st
+  settle_fin(r, c, DL.to_list(~U32, l))
 
 # The drain is deliberately independent of how many elements the measured
 # operation added or removed, so region A and region B pay the same
 # observation cost and the difference is the measured operation alone. Every
 # measured operation folds its own result into the checksum inside the loop,
 # and `settle` forces the built structure before the loop starts.
-def drain_loop(k: Nat, +n: Nat, st: St) -> St:
+def drain_loop(k: Nat, +m: U32, st: St) -> St:
   match k:
     case 0n:
       st
     case 1n+p:
-      drain_loop(p, n, do_get(st, n))
+      drain_loop(p, m, do_get(st, m))
+
+def drop_blocks(vals: Array<Maybe<&2, U32>>, prevs: Array<U32>, nexts: Array<U32>, +c: U32) -> U32:
+  c
+
+def drop_list(l: DL.DList<U32>, +c: U32) -> U32:
+  DL.DL{t0, f0, c0, h0, t1, d0, k0, vals, prevs, nexts} = l
+  drop_blocks(vals, prevs, nexts, c)
+
+def drain_fin(c: U32, p: DL.DList<U32> & Nat) -> U32:
+  (l, n) = p
+  drop_list(l, B.mix(c, U32.from_nat(n)))
 
 def drain_end(st: St) -> U32:
-  S{r, c, +l} = st
-  B.mix(c, U32.from_nat(DL.length(U32, l)))
+  S{r, c, l} = st
+  drain_fin(c, DL.length(~U32, l))
 
-def drain(+size: Nat, st: St) -> U32:
+def drain(+m: U32, st: St) -> U32:
   S{+r, c, l} = st
-  drain_end(drain_loop(16n, size, S{r, B.mix(c, r), l}))
+  drain_end(drain_loop(16n, m, S{r, B.mix(c, r), l}))
 
 # One round: build a structure of `size`, settle it, run `k` measured
 # operations, then `kn` value-stream steps, then destroy it. The three timed
 # regions below run this same round with the SAME total number of loop
 # iterations, so the build, the settle, the loop barrier, the argument
 # generation and the destruction all cancel in the differences.
+def round_with(+op: U32, +k: Nat, +kn: Nat, +seed: U32, +m: U32, +size: Nat) -> U32:
+  drain(m, loop_null(kn, measured(op, k, m, settle(loop_pb(size, init(seed))))))
+
 def round(+op: U32, +size: Nat, +k: Nat, +kn: Nat, +seed: U32) -> U32:
-  drain(size, loop_null(kn, measured(op, k, size, settle(loop_pb(size, init(seed))))))
+  round_with(op, k, kn, seed, U32.from_nat(1n+size), size)
 
 def reps_go(reps: Nat, +op: U32, +size: Nat, +k: Nat, +kn: Nat, +seed: U32, acc: U32) -> U32:
   match reps:

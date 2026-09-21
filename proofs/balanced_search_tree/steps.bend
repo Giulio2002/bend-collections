@@ -19,8 +19,9 @@ def abs(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: B.OrdMap<K, V>) -> List<&2, 
     case B.BST{n, t}:
       T.io(K, V, t)
 
-# Invariant: in-order keys strictly increasing, all leaves at one depth
-# (the red-black invariant), and the cached size is the entry count.
+# Invariant: in-order keys strictly increasing, the red-black invariant
+# (black root, no red-red parent/child edge, equal black height on every
+# root-to-leaf path: `T.bal`), and the cached size is the entry count.
 def inv(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: B.OrdMap<K, V>) -> Bool:
   match s:
     case B.BST{+n, +t}:

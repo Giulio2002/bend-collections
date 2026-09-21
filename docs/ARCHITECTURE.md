@@ -79,7 +79,13 @@ in `WORK_LOG.md`.
 Self-audit: the table above was checked against `src/*.bend` (the `type`
 declaration of each structure) and against the emitted C of the native
 benchmark binaries (`build/bench/bend/<id>`), which is where `Base.Array`
-shows up as a flat block and a `Data` node as a heap-allocated cell.
+shows up as a flat block and a `Data` node as a heap-allocated cell. The
+`binary_heap` row was re-checked after its migration: `type Heap` is the
+single record `BH{size, n, depth, cap, slots: Array<Maybe<A>>}` with no node
+type left in the file, and the emitted C of `benchmarks/bend/binary_heap.bend`
+says of a block that it "owns one allocation in its physical class (an ARR of
+class c 2^c Terms in 2^c words)" and that "get, set, swap, size and new open
+no half" -- one flat allocation, indexed access, no per-element node.
 
 ## Linear versus persistent state
 

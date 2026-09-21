@@ -6,7 +6,10 @@ import ../types/dynamic_array.bend as E
 # Representation: DA{limit, depth, cap, length, slots} with cap = 2^depth kept
 # in the record (recomputing 2^depth per operation would make every push,
 # capacity and reserve cost O(depth)). `slots` is a Base.Array of
-# 2^depth slots (a perfect binary tree, not contiguous memory). Slots [0, length)
+# 2^depth slots. ALeaf/ANode is the LOGICAL model the checker reasons about;
+# stock Bend 2.0.16 lowers a Base.Array to one indexed memory block, and
+# get/set/swap compile to a `blk_at` index computation plus a direct
+# `blk_read`/`blk_write` (docs/C_EQUIVALENCE.md). Slots [0, length)
 # hold Some{x}; the rest hold None. Capacity is 2^depth. `limit` (<= 31) caps
 # depth, so every capacity is representable as the U32 size Base computes, and
 # every index passed to Base is < 2^depth <= 2^31 (so Base's masking is the
@@ -15,9 +18,10 @@ import ../types/dynamic_array.bend as E
 # Errors return the state unchanged (see docs/API.md):
 #   get/set out of range -> IndexOutOfRange; pop on empty -> EmptyArray;
 #   push/reserve beyond 2^limit -> CapacityExceeded.
-# Cost (n = length, c = capacity): get/set/push/pop O(log c) Base tree
-# descent + O(index) Nat->U32 conversion, growth O(c) (a new half is
-# allocated), reserve O(target capacity), clear O(c), to_list O(c).
+# Cost (n = length, c = capacity): get/set/push/pop are one indexed load or
+# store into the block (no tree descent in the native lowering), growth O(c)
+# (a fresh half is allocated and the merged block copied, like a C realloc),
+# reserve O(target capacity), clear O(c), to_list O(c).
 
 type DynArray<-T: Data> is Type:
   DA{limit: Nat, depth: Nat, cap: Nat, length: Nat, slots: Array<Maybe<&2, T>>}

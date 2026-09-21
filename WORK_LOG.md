@@ -1184,3 +1184,296 @@ Operator recovery (2026-09-20 22:08 UTC): stopped only waiter shell PID54848. `p
       relaxed a harness check to make a gate pass.
 
 OPERATOR RECOVERY: this waiter matches itself and the other waiter shells through pgrep -f "benchmarks/run.py", so it cannot finish. Only this waiter is stopped; actual benchmark PID55454 is still running. Wait on that exact PID (kill -0 55454), or inspect the final build/performance/report.json. Never poll a pgrep pattern embedded in your own command string. The benchmark is NOT yet complete.
+
+11. **The gates, in the order the assignment asks for, at the end of this
+    session.**
+
+    | gate | result |
+    |---|---|
+    | `bend PROOF.bend` | passes (`All terms check`, 2688 template instantiations) |
+    | `bend END_TO_END.bend` | passes (2694) |
+    | `python3 tools/validate.py` | complete, 0 failures, all 12 structures + LRU reuse (`VALIDATION.json` refreshed from it) |
+    | `python3 automation/acceptance.py` | "Mechanical gates passed; independent full semantic audit still required." |
+    | `python3 benchmarks/run.py` | 408 workloads in 3592 s, 9 rows under the measurement minimum, written to `build/performance/report.json` |
+    | `python3 tools/bench_report.py` | `BENCHMARKS.md` regenerated: 199 within, 200 over, 9 failed |
+    | `automation/performance_gate.py` | **fails**: the first row it rejects is `dynamic_array.reserve small` at 3.1643x |
+
+    The performance gate's `validate()` was applied to the report the runner
+    had just written rather than letting the gate re-measure for another
+    hour; the frozen file was not modified and its source-hash check passed,
+    which is what says the report belongs to this source tree. 200 of the 399
+    measured rows are over 2.5x; the largest are the four structures whose
+    representation migration has NOT been done (`prefix_trie` up to 120x on
+    its edge-empty rows, `doubly_linked_list` up to 53x, `balanced_search_tree`
+    up to 40x, `graph` up to 28x), plus `union_find.new` (~18x) and
+    `bitset.count` (~16x). `binary_heap` now contributes exactly one over-limit
+    row (`pop large`, 2.61x) where before the migration it contributed all of
+    its rows at 5.35x .. 7.23x.
+
+## Iteration 0002 — recovery note (read this first)
+
+The previous invocation ended on a harness error ("Claude must emit exactly one
+terminal result"), so its iteration was recorded as `retained=false` and this
+workspace was seeded from an OLDER retained state: `src/deque.bend` was back to
+two cons lists, `src/binary_heap.bend` back to the Braun tree, `fenwick_tree`
+and `segment_tree` back to node trees, and `proofs/binary_heap/` back to the
+Braun proofs.
+
+The discarded work was still on disk in the sibling iteration directory, so the
+first action of this session was to port it forward file by file into this
+workspace (`src`, `spec`, `proofs`, `types`, `tests`, `tools`, `benchmarks`,
+`docs` and the root evidence files). `automation/`, `inventory/`, `reference/`
+and `native_bench/` were verified byte-identical between the two trees before
+and after the port, so nothing outside the editable scope moved. `spec/` and
+`types/` were already identical in both trees, i.e. the independent
+specifications were not touched by any migration.
+
+Confirmed in THIS workspace after the port:
+
+* `bend PROOF.bend` -> `All terms check` (2688 template instantiations).
+
+What the ported state contains (all re-verified here, not taken on trust):
+array-backed `dynamic_array`, ring-buffer `deque`/`queue`, packed-word
+`bitset`, arena `union_find`, flat `fenwick_tree` and `segment_tree`, the
+packed-array `binary_heap` with its full proof development, and the red-black
+`balanced_search_tree`.
+
+Still to do (the rest of this session): `prefix_trie`, `doubly_linked_list` and
+`graph` representations; the nine `lru.*` benchmark rows; the remaining
+over-limit rows; and the final gate sequence.
+
+
+USER BENCHMARK INTEGRITY CORRECTION — 2026-09-21
+The user explicitly rejected slowing the C reference to mimic Bend overhead as cheating.
+The graph C reference has been restored byte-for-byte to the version measured in the
+published 408-row report. The analogous extra output-list allocation was removed
+from the in-progress doubly-linked-list C reference while retaining its indexed arena.
+Unrelated implementation, proofs, and worker session were preserved.
+
+The target remains <=2.5x genuinely optimized C. Improve Bend, its representation,
+and generated code. Never make C slower, add dummy allocations/work/barriers, remove
+optimizations, change timing boundaries/counts/checksums, drop hard workloads, or
+reinterpret an invalid measurement as a pass to improve the ratio. No FFI or custom
+compiler. No changes that weaken proofs, omit runtime bridges, or narrow the goal.
+
+Existing C references, common headers, timing runner and workload definitions are
+now mechanically protected. The optimized graph fold is intentional and MUST remain.
+Do not route around these files with replacement references or alternate timing paths.
+If a genuine harness defect or new LRU coverage requires a change, write a concrete
+proposal with evidence in docs/BENCHMARK_CHANGE_PROPOSAL.md, leave canonical files
+unchanged, and continue implementation/proofs while the operator reviews it. An
+unfavorable ratio is not a harness defect. New references must be optimized C and
+reviewed before acceptance. Never weaken a baseline silently.
+
+The ~10.6x graph.vertices result from the slowed reference is REJECTED. The retained
+original measurement was ~28.26x (150 us Bend / 5.31 us C). Correct documentation
+and keep experimental reports explicitly disqualified from acceptance.
+
+Continue the ENTIRE remaining objective, not just a small checkpoint: all remaining
+representation migrations, actual refinement/invariant/trace proofs, honest native
+benchmarks including LRU, every existing workload <=2.5x, final independent audit.
+Self-audit the generated C, reference provenance and actual operation counts. Report
+Bend and C absolute timings alongside every claimed ratio improvement.
+
+
+USER GRAPH IMPLEMENTATION DIRECTION — 2026-09-21
+The user explicitly chose indexed vertex storage plus adjacency blocks and asked
+for the equivalent of a genuinely optimized C implementation, written in Bend.
+Prioritize this graph implementation now; preserve unfinished DLL work and all
+other completed implementation/proofs. Continue the whole remaining objective.
+
+CRITICAL VERIFIED CORRECTION: Base.Array's tree-shaped definition is its logical
+model, NOT the native C layout. Stock Bend 2.0.16 lowers Array<U32> to indexed
+memory blocks. The operator compiled control/array-lowering-probe/probe.bend with
+stock /Users/monkeair/.bend/bin/bend -o probe.c and cc -O3; it prints 42.
+Generated C contains blk_new, blk_at, and direct blk_read/blk_write (no tree descent
+for get/set). The evidence is at /Users/monkeair/work/dsa-performance/control/array-lowering-probe/.
+Read the generated C. Do NOT repeat claims that native Base.Array indexing is
+O(log capacity) merely from base.bend; distinguish checker model, native lowering,
+construction/growth, element boxing and ownership. Correct misleading library docs.
+
+Use optimized C-style indexed vertex slots and adjacency blocks in pure stock Bend:
+- Prefer packed Array<U32> fields / suitable fixed records, checking actual C
+  lowering before choosing AoS versus SoA. No cons-cell arrays, foreign algorithms,
+  compiler forks, hand-edited generated C, or parallel benchmarking.
+- Use machine-sized IDs/indices and cached lengths/capacities in hot loops;
+  preserve full external U32 vertex-ID support with a proper ID-to-slot mapping.
+  Do not assume only benchmark-dense IDs or reserve an existing legal ID silently.
+- Preserve directed/undirected semantics, sorted observable enumeration, duplicate
+  edges, self-loop and missing-vertex errors, and unchanged state on failures.
+- Design efficient adjacency updates/traversal and vertex deletion; assess reverse
+  adjacency against its cost. Prevent whole-graph cloning through affine ownership.
+- Keep input/output paths efficient. Remove intermediate list materialization
+  where the public contract permits; prove equivalent observable sequences and
+  full runtime refinement rather than changing the specification to fit code.
+- Build a small end-to-end graph prototype, inspect emitted C and test real graph
+  operations against the unchanged optimized baseline before expanding the proof
+  development. No claim of speed from line counts or theoretical layout alone.
+
+REFERENCE INTEGRITY REQUIREMENTS STILL APPLY. All 18 pinned files remain frozen.
+The existing optimized C reference is NOT to be slowed or replaced to improve ratios.
+If the new algorithm needs its own C twin for same-algorithm measurement, implement
+an independently optimized supplemental C reference under benchmarks/experiments/,
+record checksums and absolute timings, and submit docs/BENCHMARK_CHANGE_PROPOSAL.md
+for operator review before it can affect acceptance. Retain measurements against
+the original baseline; never count a worse reference as a Bend speedup.
+
+Prove slot validity, ID mapping, adjacency contents, undirected symmetry, absence
+of stale edges on deletion, error-state preservation, and all public operation/trace
+refinements. Keep existing independent specs and laws. Complete all remaining
+structures and benchmarks after graph; do not stop at a prototype or checkpoint.
+
+
+USER REQUIREMENT FOR EVERY DATA STRUCTURE — 2026-09-21
+For ALL data structures, not just graph, implement the equivalent of genuinely
+optimized C or the closest efficient stock-Bend representation. This extends the
+graph direction and supplements every earlier assignment. Preserve graph priority
+and all sound existing work; complete the entire library afterward.
+
+Read the optimized C implementation and trace its algorithm, storage layout,
+ownership, indexing, updates, traversal and output paths. Reproduce those choices
+in Bend where supported; do not choose a slower representation just for easy proofs.
+Use native block-lowered arrays and machine words in hot paths, deliberate affine
+ownership, and appropriate fixed records. Avoid unnecessary boxing, copying,
+unary Nat conversions, intermediate lists, persistent maps where indexed slots
+suffice, or excessive helper transitions. Linked links are allowed when inherent
+in the algorithm, e.g. prev/next indices for a doubly linked list. The balanced
+search tree remains a genuine red-black tree; represent its nodes efficiently.
+Native Map/Set/stack exclusions and the callback/concurrency exclusions remain.
+Respect the retained native-Map LRU requirement; document unavoidable differences.
+No FFI, custom compiler, patched generated C, weakened laws or restricted domains.
+
+For each structure maintain docs/C_EQUIVALENCE.md with: C source and algorithm;
+Bend representation; generated-C load/store/allocation/ownership evidence; any
+remaining discrepancy and why; actual runtime-connected laws; absolute Bend/C
+measurements and all failed rows. Distinguish the Base logical tree model from
+native Array memory-block lowering. Stock 2.0.16 probe has established direct
+indexed Array<U32> loads/stores; validate lowering for the actual element layout.
+
+All existing pinned C references/timing/workloads remain unchanged. Do not make
+C imitate Bend overhead. Supplemental genuinely optimized C twins for a new
+algorithm may be proposed for operator review, with original results retained.
+A reference slowdown is never implementation progress. Target <=2.5x C on every
+required workload, including LRU, with no hidden conversions outside the timer.
+Finish implementation + proofs + tests + native measurements + self-audit against
+the independent auditor, keeping partial checkpoints inside ongoing work.
+
+## Iteration 0005 (run 20260920T133039Z) — graph on indexed vertex slots
+
+Recovery notes, written while the work is in progress.
+
+### What changed in this iteration
+
+1. **`src/doubly_linked_list.bend` now checks again.** The parallel-arena
+   prototype carried over from iteration 0003 failed to parse: several helper
+   defs were used before they were defined (Bend has no forward references)
+   and `nbr_fin` matched its scrutinees out of parameter order. Both are
+   fixed; the file checks. `tools/reorder.py`-style mechanical reordering was
+   used (see /tmp/reorder.py in the session; the transformation is just
+   "move the callee's def above the caller's").
+
+2. **`src/graph.bend` was rewritten on indexed vertex slots plus adjacency
+   blocks**, as the operator directed. The previous red-black-ordered-map
+   implementation is archived at `docs/archive/graph.ordmap.bend.txt`.
+
+   Representation:
+   - `ids : Array<U32>` — the vertex ids, ascending, in the window
+     `[base, base + n)` of a power-of-two block.
+   - `adj : Array<Array<U32>>` — slot i holds the adjacency block of `ids[i]`.
+   - An adjacency block is one power-of-two U32 block with a three word
+     header `deg | size | lcap` followed by the ascending neighbour ids.
+   - Vertex ids stay EXTERNAL U32; the id-to-slot map is the sorted `ids`
+     block searched by binary search. No id is reserved, no density assumed.
+   - Neighbour entries are external ids, so moving a vertex slot never
+     renumbers an edge.
+   - The window FLOATS (`base`): an insertion or deletion moves only the
+     shorter side, and at either end it moves nothing. Doubling happens on
+     the side that needs room (the old block becomes the upper half when the
+     front needs room), which keeps front insertion O(1) amortised.
+
+3. **Why the floating window matters (measured).** With a fixed window the
+   benchmark build (`add_vertex` of size-1 .. 0, i.e. descending) was
+   O(V^2): 4096 descending inserts took 28 ms versus 1 ms ascending
+   (/tmp/gp/gbuild.bend probe). That made seven graph rows unmeasurable —
+   the per-round build dominated the A-B difference. With the floating
+   window the same descending build is below the millisecond clock tick.
+
+4. **Checksum conformance.** The Bend driver and the PROTECTED
+   `benchmarks/native/graph.c` produce identical checksums for all ten
+   operations at sizes 1, 2, 7, 32 and 512 (three regions each). The C
+   reference was NOT touched.
+
+5. **First measured result (before the floating-window fix, full run
+   /tmp/bench_graph.json):** 20 rows within 2.5x, 13 over, 7 unmeasurable,
+   against 0 within / 38 over / 3 unmeasurable for the old ordered-map
+   implementation. Examples (bend ns / ref ns): has_edge large 50.98 / 96.38
+   = 0.53x (was 833 / 124 = 6.73x); add_edge medium 158.09 / 387.98 = 0.41x
+   (was 4625 / 428 = 10.81x); has_vertex large 35.55 / 40.30 = 0.88x (was
+   399 / 51 = 7.78x); neighbors large 47.27 / 52.14 = 0.91x.
+
+### Known remaining graph problems
+
+- `vertices` and `edges` still exceed 2.5x. They must MATERIALISE a
+  `List` (the public contract), while the C reference folds its tree with no
+  allocation at all. Measured in isolation: 300 x vertices(4096) + fold =
+  4 ms, i.e. 3.25 ns per vertex against the reference's 1.01 ns per vertex,
+  so about 3.2x even with a tight loop. The cons cell allocation is the
+  whole difference (a plain array fold of the same block is under 1 ns per
+  element). Options under consideration: a public indexed enumeration
+  (`vertex_at`) proved equal to `vertices`, measured beside the list row,
+  with both numbers reported.
+- `new` is 11.95 ns against 1.74 ns: the Bend constructor allocates two
+  blocks where the C reference sets a null pointer. Placeholder blocks for
+  unused slots (one word instead of four) are now used, which should reduce
+  it; re-measurement pending.
+- The PROOFS for the new representation are NOT written yet. `proofs/graph/*`
+  and the `graph_*` laws in END_TO_END.bend still describe the ordered-map
+  representation, so `bend PROOF.bend` does NOT pass at the time of writing.
+  The array lemma library `proofs/lib/array.bend` (mirror `Tree<T>`,
+  thaw/freeze, get/set/swap at U32 indices) is the intended foundation; the
+  outer `Array<Array<U32>>` needs its own thaw (its element type is not
+  `Data`, so the existing generic lemmas do not apply unchanged).
+
+### Graph proof development (iteration 0005, in progress)
+
+Architecture, so that a resumed session does not re-derive it:
+
+- `proofs/lib/array2.bend` (NEW, checks): `Array<Array<U32>>` is the outer
+  adjacency block. Its element type is not `Data`, so the generic lemmas of
+  `proofs/lib/array.bend` do not apply; the MIRROR is still Data
+  (`AR.Tree<AR.Tree<U32>>`), so only the realization `thaw2` and the two Base
+  algorithms that touch it (`Array.swap`, `Array.set`) are re-proved by the
+  same induction. `Array.get` is not applicable at a linear element type and
+  is not needed: the implementation swaps blocks out and back.
+
+- `proofs/lib/u32half.bend` (NEW, checks): `U32.shr` is exact halving
+  (`hlf`), the midpoint bounds, and the `U32.sub` bridge. The implementation
+  deliberately contains NO `U32.add`: an addition bridge needs a `2^32`
+  bound, and the checker cannot expand `SC.pow2(32n)` (it stack-overflows on
+  a four-billion successor literal). Every index computation in
+  src/graph.bend is therefore sub/shr/inc, whose Nat meanings hold under a
+  variable bound `< 2^k`, `k <= 32`. THIS IS WHY the graph record stores the
+  window as `lo`/`hi` rather than `base`/`n`, and why the midpoint is
+  `hi - (d - d/2)` rather than `(lo + hi)/2`.
+
+- `proofs/graph/lb.bend` (NEW, checks): the lower-bound index of a key in a
+  sorted association list, and `ins_new`: inserting a NEW key at the lower
+  bound index equals the specification's `ins`. Pure list mathematics.
+
+- `proofs/graph/search.bend` (NEW, checks): the real binary search of
+  src/graph.bend, proved against the real `Base.Array` algorithms.
+  `loop` carries the invariant "the lower bound lies in [lo, hi)" with the
+  window split predicates `alllt`/`allge`, narrows by the proved midpoint
+  bounds, and terminates because the range size is below `2^fuel`
+  (`H.step_bound`, `gap_le`). `locate_ok` is the public statement: `locate`
+  returns the lower bound index together with "the entry there is v".
+  The induction hypothesis is threaded as a parameter (`IH`) because Bend
+  allows no mutual recursion.
+
+STILL TO DO for the graph proof: the shift-loop lemmas (`shr_go`/`shl_go`
+against list insertion/deletion), the adjacency block lemmas (header read,
+`blk_find` via `locate_ok`, `blk_put`/`blk_del`), the mirror state
+(Shadow/real/good/model), the nine operation refinements with their error
+paths, and the trace law; then `proofs/graph.bend` and the `graph_*` laws in
+END_TO_END.bend. Until those land, `bend PROOF.bend` FAILS on graph -- the
+old ordered-map proofs were archived with the old implementation.

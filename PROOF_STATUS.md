@@ -4,8 +4,26 @@ Checked with the pinned toolchain in `inventory/toolchain.json`
 (bend 2.0.16, sha256 `da9bc514…`, base sha256 `e149828c…`).
 
 Single root: `PROOF.bend` imports `END_TO_END.bend`, which imports every
-`proofs/<id>.bend` entry plus `proofs/lru.bend`. `bend PROOF.bend` reports
-**All terms check**. No `@unsafe`, no holes, no axioms, no `?`-terms anywhere
+`proofs/<id>.bend` entry plus `proofs/lru.bend`.
+
+> **CURRENT STATE (iteration 0005): `bend PROOF.bend` DOES NOT CHECK.**
+> `src/graph.bend` was rewritten on indexed vertex slots plus adjacency
+> blocks (the operator's representation requirement). The ordered-map proofs
+> that used to discharge the graph laws describe the previous
+> representation and were archived with it
+> (`docs/archive/graph.ordmap.bend.txt`); the replacements are under
+> construction. What is already proved against the NEW representation:
+> `proofs/lib/array2.bend` (Base.Array swap/set at the nested element type),
+> `proofs/lib/u32half.bend` (halving and subtraction bridges),
+> `proofs/graph/lb.bend` (lower-bound index versus the specification's
+> `ins`) and `proofs/graph/search.bend` (the real binary search and
+> `locate`). Missing: the shift loops, the adjacency block operations, the
+> mirror state, the nine operation refinements and the trace law. Every
+> OTHER structure's proofs are unchanged and still check on their own
+> (`bend proofs/<id>.bend`). This is recorded here rather than papered over;
+> see WORK_LOG.md for the plan.
+
+Before that change `bend PROOF.bend` reported **All terms check**. No `@unsafe`, no holes, no axioms, no `?`-terms anywhere
 in the closure (`automation/acceptance.py` re-checks this by scanning the
 import graph).
 

@@ -1,3 +1,21 @@
+# Current milestone: indexed graph prototype and search proof
+
+This development snapshot is NOT a finished or fully verified release.
+Graph storage now uses indexed vertex slots and adjacency blocks. The 40-row
+prototype benchmark has 25 rows within 2.5x C, 15 slow, zero unmeasurable.
+References remain unchanged. Source changed after benchmarking; exact mismatches
+are recorded in SNAPSHOT.json, so the report is historical evidence, not a
+certification of this snapshot's speed. Old full-suite results below are also
+historical and no longer certify this source.
+
+The actual array-backed binary-search and locate proof module checked separately,
+with 7 unsafe annotations reported from its dependency graph. Trust-boundary
+review remains required. Full graph PROOF/END_TO_END migration is incomplete:
+shift loops, adjacency updates, operation refinements and traces remain.
+No whole-library correctness or performance acceptance is claimed.
+
+---
+
 # Snapshot status — bend-collections
 
 Private development snapshot, not a finished or fully verified release.

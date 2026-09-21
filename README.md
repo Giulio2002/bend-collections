@@ -1,4 +1,4 @@
-> **Development snapshot:** structural validation passes; native speed gate fails (199/408 rows within 2.5x C). Final proof audit remains incomplete. See [snapshot status](SNAPSHOT_STATUS.md).
+> **Development snapshot:** indexed graph implementation and search proof in progress; full graph proofs and performance gate incomplete. See [status](SNAPSHOT_STATUS.md).
 
 # bend-dsa
 
