@@ -1,0 +1,17 @@
+{
+  "file": "/Users/monkeair/work/published-snapshots/bend-collections/proofs/lib/array.bend",
+  "flagged": [
+    {
+      "name": "../../reference/lru/proofs/invariants.representation~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../../reference/lru/proofs/invariants.identities~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    }
+  ],
+  "explicitUnsafe": 0,
+  "templateInstances": 2
+}

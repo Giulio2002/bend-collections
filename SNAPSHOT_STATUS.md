@@ -1,3 +1,12 @@
+## Annotation-count clarification
+
+Pinned v2.0.16 source inspection classifies the graph's94flags as template
+specializations, with0explicit @unsafe definitions; the array helper's2flags
+are likewise imported template instances. Evidence and exact names are in
+snapshot-evidence/template-annotation-audit. This refines the CLI wording, not
+the completion status: template soundness and full proof linkage still require
+review. We have not suppressed warnings or relaxed acceptance criteria.
+
 ## Latest: indexed graph proof and runtime validation integration
 
 The graph-only validation passes all ten operations, boundary/oracle scenarios,
