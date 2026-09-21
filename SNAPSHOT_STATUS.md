@@ -1,3 +1,11 @@
+## Latest: clean functional acceptance; performance still fails
+
+A fresh serial functional acceptance run after removing the duplicate gate sequence exits 0: all twelve structures and LRU pass, complete=True, zero failures. All 318 recorded source hashes match this export. It supersedes the earlier mixed-log run as functional evidence only; independent semantic audit and the LRU capacity/type proof limitations remain. Raw evidence: snapshot-evidence/acceptance-20260921-1254.
+
+The complete 408-row development benchmark reports **245 within 2.5× C, 160 too slow, 3 unmeasurable**, in 2,878 seconds. All 331 recorded end-of-run source hashes match this export. The 68 timed runtime/reference files are unchanged from the earlier 243/162/3 triage, so the two-row difference is timing variation, not an algorithmic speedup. SSZ benchmarking overlapped; no isolated release-performance acceptance is claimed. Worst: empty-trie lookup 110.14×; small red-black max 38.61×.
+
+Supplemental LRU 40 rows remain 9 within / 31 over and incomplete:capacity, set_lifetime, metrics are absent; destructive operations include restoration work. They are not an approved canonical per-operation acceptance suite. Raw reports and limitations: snapshot-evidence/performance-20260921-1246.
+
 ## Latest: indexed LRU model uniqueness checked
 
 The frozen END_TO_END entry including new LRU shadow-uniqueness laws checks independently on pinned stock Bend in 30.71 seconds, sampled peak footprint 3.31 GB. All 3,655 CLI annotations classify as template instances, zero explicit @unsafe declarations. This does not replace a semantic/soundness audit.

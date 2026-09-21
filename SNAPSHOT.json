@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-09-21T09:59:49.734645+00:00",
+  "captured_at": "2026-09-21T10:55:22.130195+00:00",
   "repository": "bend-collections",
   "kind": "unverified_development_snapshot",
   "full_acceptance_passed": false,
@@ -902,10 +902,68 @@
     "scope": "Adds shadow uniqueness for native indexed LRU, on top of capacity-bounded trace laws. Larger accepted constructor capacities and full generic-type coverage remain unproven by these instances."
   },
   "latest_functional_validation": {
+    "functional_gate_passed": true,
     "source_hash_count": 318,
     "source_hash_mismatches": [],
-    "complete_report": true,
     "full_acceptance_passed": false,
-    "caveat": "Two validation sequences shared binaries/logs until operator killed duplicate. Report hashes are end-of-run only; final isolated acceptance must be rerun. Do not treat this report as clean release acceptance."
+    "performance_gate_passed": false,
+    "caveat": "Clean functional rerun after duplicate sequence removed; independent full semantic audit and capacity coverage remain. Later benchmark report fails160rows and has3unmeasurable."
+  },
+  "latest_complete_performance": {
+    "at": "2026-09-21T10:48:36.738637+00:00",
+    "workloads": 408,
+    "within_2_5x": 245,
+    "too_slow": 160,
+    "unmeasurable": 3,
+    "source_hash_count": 331,
+    "source_hash_mismatches": [],
+    "full_acceptance_passed": false,
+    "concurrent_ssz_benchmark": true,
+    "canonical_lru_coverage": false,
+    "runtime_benchmark_hashes_unchanged_from_previous_triage": 68,
+    "no_algorithmic_speedup_claimed": true,
+    "worst_rows": [
+      [
+        110.14492753623188,
+        "prefix_trie.lookup",
+        "edge-empty"
+      ],
+      [
+        107.14285714285715,
+        "prefix_trie.contains",
+        "edge-empty"
+      ],
+      [
+        74.11566535654127,
+        "prefix_trie.remove",
+        "edge-empty"
+      ],
+      [
+        50.895381715362866,
+        "prefix_trie.longest_prefix",
+        "edge-empty"
+      ],
+      [
+        38.61471861471862,
+        "balanced_search_tree.max",
+        "small"
+      ],
+      [
+        34.507969001315985,
+        "balanced_search_tree.min",
+        "small"
+      ],
+      [
+        33.161599303388726,
+        "balanced_search_tree.max",
+        "medium"
+      ],
+      [
+        29.119413840476252,
+        "balanced_search_tree.max",
+        "large"
+      ]
+    ],
+    "provenance": "Report records end-of-run hashes only. Earlier duplicate process sequence was stopped before this surviving benchmark started. Other local SSZ benchmark overlapped."
   }
 }

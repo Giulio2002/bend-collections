@@ -1,0 +1,7 @@
+# LRU benchmark review — incomplete acceptance coverage
+
+The 40 supplemental rows remain diagnostic, not approved replacement or complete coverage of the public API. Preserve pinned C/workload files. The faster open-addressing C reference is a real improvement over the previously rejected linear-scan reference; do not slow it to improve ratios. Bend native Map is a crit-bit implementation and the key representation difference must stay disclosed.
+
+1. Restoring pairs measure remove+add, purge+refill and shrink+grow+refill, not the named isolated destructive operation. Keep them as explicitly labeled composite workloads if useful. Add isolated operation rows using independent, nonempty states prepared outside timing for every measured destructive call. For A/B/control measurements prepare equivalent input pools for each region; consume outputs; never re-purge an empty cache. Batch size can vary with cache size to bound benchmark RAM.
+2. Add dedicated coverage for capacity, set_lifetime and metrics; the current ten families (new/add/get/peek/contains/remove/purge/resize/keys/len) are not every public operation. Include meaningful expiry cases for affected reads/keys rather than only immortal entries.
+3. Keep exact workloads, setup inclusion/exclusion, output ownership/consumption, key mapping, limits and reference parity reviewable. New experimental paths are authorized; protected-reference replacement still requires review of the concrete result. Current high LRU ratios are real experimental warnings, not final per-operation acceptance ratios.

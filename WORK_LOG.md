@@ -1920,3 +1920,23 @@ Read docs/OPERATOR_CAPACITY_PROOF_AUDIT.md before claiming full API/trace covera
   - Performance: NOT met. 162 of 408 frozen rows are over 2.5x (0008 triage). The frozen gate
     has no lru.* rows; the supplemental LRU rows are 4-185x for keyed ops (native Map bound).
   - Unperformed: independent reproduction on an idle machine (the machine is shared, load ~5).
+
+### Operator monitoring handoff: continue optimization, 2026-09-21 12:43
+
+Please read docs/OPERATOR_DUPLICATE_GATE.md (the missing binary was concurrent gate writers, not unexplained machine load), docs/OPERATOR_ACCEPTANCE_PROVENANCE.md, and docs/OPERATOR_CONTINUE_OPTIMIZATION.md before reporting this iteration. The old orphan was stopped; newer sequence retained. Operator already authorizes an indexed-child trie plus a NEW experimental matching optimized C prototype; preserve all protected references and obtain review before replacing one. Continue all known missing work after measurements; no need to stop on a benchmark-table decision. All 68 runtime/benchmark source hashes in the earlier triage still match as of this note, so do not describe repeated timing variation as runtime optimization. Checked snapshots c022bce/50ab35f preserve LRU proof progress with capacity/type/provenance limitations.
+
+### Operator LRU measurement review, 2026-09-21 12:50
+See docs/OPERATOR_LRU_BENCHMARK_REVIEW.md. Restoring pairs remain composite measurements, and capacity/set_lifetime/metrics coverage is missing. Prepare genuinely independent nonempty caches outside timing for isolated destructive rows; keep optimized C intact. This is concrete remaining work, not a reason to pause waiting for new user authorization.
+* 0008 FINAL SEQUENCE (on the final sources):
+  - bend PROOF.bend -> All terms check (3655 template instances), including the lru_fast_* laws
+    and shadow_unique.
+  - automation/acceptance.py -> exit 0; build/validation.json complete=True with 0 failures
+    (twelve structures; retained LRU; fast port vs retained cache; fast port vs spec; native C
+    differential).
+  - benchmarks/run.py --report build/performance/report.json -> 408 rows (2878 s): 245 within
+    2.5x, 160 over, 3 failed measurements. python3 tools/bench_report.py -> BENCHMARKS.md
+    (its LRU paragraph is corrected: the fast port is native, proven and measured supplementally).
+  - Performance contract NOT met. Next items: the prefix_trie children representation (needs a
+    matching C reference first; see the proposal's 0008 notes); an arena red-black tree for the
+    BST read rows; the lru.* rows need the operator's workload-table change; to_list / String /
+    Map-bound rows are limited by backend costs, measured in the cost model.

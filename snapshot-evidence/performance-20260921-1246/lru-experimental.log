@@ -1,0 +1,42 @@
+built lru
+lru.add          small       size=64      bend=    210.83ns ref=     14.75ns  14.30x ok
+lru.add          medium      size=4096    bend=    396.67ns ref=     15.40ns  25.75x ok
+lru.add          large       size=262144  bend=   1237.50ns ref=     46.66ns  26.52x ok
+lru.get          small       size=64      bend=    155.71ns ref=     16.10ns   9.67x ok
+lru.get          medium      size=4096    bend=    361.67ns ref=     18.17ns  19.90x ok
+lru.get          large       size=262144  bend=   1125.00ns ref=     69.37ns  16.22x ok
+lru.peek         small       size=64      bend=    175.00ns ref=     16.82ns  10.40x ok
+lru.peek         medium      size=4096    bend=    357.14ns ref=     14.45ns  24.72x ok
+lru.peek         large       size=262144  bend=   1172.73ns ref=     38.72ns  30.29x ok
+lru.contains     small       size=64      bend=    154.38ns ref=      2.18ns  70.94x ok
+lru.contains     medium      size=4096    bend=    354.29ns ref=      1.86ns 190.92x ok
+lru.contains     large       size=262144  bend=   1237.50ns ref=      6.68ns 185.16x ok
+lru.remove       small       size=64      bend=    727.50ns ref=     19.18ns  37.94x ok
+lru.remove       medium      size=4096    bend=   1545.00ns ref=     16.77ns  92.13x ok
+lru.remove       large       size=262144  bend=   3691.67ns ref=     53.33ns  69.22x ok
+lru.purge        small       size=64      bend=  19583.33ns ref=    420.50ns  46.57x ok
+lru.purge        medium      size=4096    bend=1881250.00ns ref=  30050.00ns  62.60x ok
+lru.purge        large       size=262144  bend=198250000.00ns ref=2562250.00ns  77.37x ok
+lru.resize       small       size=64      bend=  12916.67ns ref=    319.71ns  40.40x ok
+lru.resize       medium      size=4096    bend=1368750.00ns ref=  31984.38ns  42.79x ok
+lru.resize       large       size=262144  bend=94125000.00ns ref=1447500.00ns  65.03x ok
+lru.keys         small       size=64      bend=    818.75ns ref=    130.24ns   6.29x ok
+lru.keys         medium      size=4096    bend=  54250.00ns ref=  16454.75ns   3.30x ok
+lru.keys         large       size=32768   bend= 404687.50ns ref= 126260.94ns   3.21x ok
+lru.len          small       size=64      bend=      1.33ns ref=      3.39ns   0.39x ok
+lru.len          medium      size=4096    bend=      1.27ns ref=      3.95ns   0.32x ok
+lru.len          large       size=262144  bend=      1.33ns ref=      3.71ns   0.36x ok
+lru.new          small       size=64      bend=     25.77ns ref=     12.35ns   2.09x ok
+lru.new          medium      size=4096    bend=     25.95ns ref=     12.18ns   2.13x ok
+lru.new          large       size=262144  bend=     23.92ns ref=     11.08ns   2.16x ok
+lru.new          edge-empty  size=0       bend=      1.43ns ref=      1.40ns   1.02x ok
+lru.add          edge-empty  size=0       bend=     67.86ns ref=      6.67ns  10.17x ok
+lru.get          edge-empty  size=0       bend=     20.96ns ref=      4.99ns   4.20x ok
+lru.peek         edge-empty  size=0       bend=     20.29ns ref=      5.10ns   3.98x ok
+lru.contains     edge-empty  size=0       bend=     21.76ns ref=      1.69ns  12.84x ok
+lru.remove       edge-empty  size=0       bend=     18.92ns ref=      4.86ns   3.90x ok
+lru.purge        edge-empty  size=0       bend=      3.76ns ref=      5.26ns   0.72x ok
+lru.resize       edge-empty  size=0       bend=     14.51ns ref=      2.32ns   6.24x ok
+lru.keys         edge-empty  size=0       bend=     27.45ns ref=      5.23ns   5.25x ok
+lru.len          edge-empty  size=0       bend=      1.34ns ref=      4.40ns   0.30x ok
+report: build/performance/lru_experiment.json

@@ -1,0 +1,8 @@
+{
+  "functional_gate_passed": true,
+  "source_hash_count": 318,
+  "source_hash_mismatches": [],
+  "full_acceptance_passed": false,
+  "performance_gate_passed": false,
+  "caveat": "Clean functional rerun after duplicate sequence removed; independent full semantic audit and capacity coverage remain. Later benchmark report fails160rows and has3unmeasurable."
+}
