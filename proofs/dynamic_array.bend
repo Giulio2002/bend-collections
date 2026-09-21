@@ -117,11 +117,11 @@ def with_limit_at_abs(~T: Data, +k: Nat) -> {ST.abs(T, DA.with_limit_at(~T, k)) 
   with_limit_abs(T, k)
 
 def step_at_refines(~T: Data, +sh: ST.Shadow<T>, +op: E.Op<T>, +g: {ST.good(T, sh) == True{} : Bool}) -> {view1(T, DA.step_at(~T, ST.real(T, sh), op)) == S.step(T, ST.abs(T, ST.real(T, sh)), op) : S.Model<T> & E.Obs<T>}:
-  %Equal.sym(DA.DynArray<T> & E.Obs<T>, DA.step_at(~T, ST.real(T, sh), op), DA.step(T, ST.real(T, sh), op), CL.step_eq(~T, sh, op)) : {view1(T, _) == S.step(T, ST.abs(T, ST.real(T, sh)), op) : S.Model<T> & E.Obs<T>}
+  %Equal.sym(DA.DynArray<T> & E.Obs<T>, DA.step_at(~T, ST.real(T, sh), op), DA.step(T, ST.real(T, sh), op), CL.step_eq(~T, sh, op, g)) : {view1(T, _) == S.step(T, ST.abs(T, ST.real(T, sh)), op) : S.Model<T> & E.Obs<T>}
   step_refines(T, sh, op, g)
 
 def step_at_preserves(~T: Data, +sh: ST.Shadow<T>, +op: E.Op<T>, +g: {ST.good(T, sh) == True{} : Bool}) -> ST.Inv(T, Pair.fst(DA.DynArray<T>, E.Obs<T>, DA.step_at(~T, ST.real(T, sh), op))):
-  %Equal.sym(DA.DynArray<T> & E.Obs<T>, DA.step_at(~T, ST.real(T, sh), op), DA.step(T, ST.real(T, sh), op), CL.step_eq(~T, sh, op)) : ST.Inv(T, Pair.fst(DA.DynArray<T>, E.Obs<T>, _))
+  %Equal.sym(DA.DynArray<T> & E.Obs<T>, DA.step_at(~T, ST.real(T, sh), op), DA.step(T, ST.real(T, sh), op), CL.step_eq(~T, sh, op, g)) : ST.Inv(T, Pair.fst(DA.DynArray<T>, E.Obs<T>, _))
   step_preserves(T, sh, op, g)
 
 def trace_new_at(~T: Data, +ops: List<&2, E.Op<T>>) -> {view(T, DA.run_at(~T, ops, DA.new_at(~T))) == S.run(T, ops, S.new(T)) : S.Model<T> & List<&2, E.Obs<T>>}:

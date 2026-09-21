@@ -5,6 +5,7 @@ import ../lib/list.bend as LL
 import ../lib/array.bend as A
 import ../../spec/common.bend as SC
 import ../../src/bitset.bend as B
+import ./fastcount.bend as FC
 import ./model.bend as MD
 import ./walk.bend as WK
 import ./listx.bend as LX
@@ -44,6 +45,7 @@ def count_go_ok(m: Nat, +d: Nat, +t: A.Tree<B.Wd>, +q: Nat, +acc: Nat, +hd: {Nat
       %Equal.sym(List<&2, U32>, SC.drop(U32, AR.ws(t), q), Con{WK.nthw(AR.ws(t), q), SC.drop(U32, AR.ws(t), 1n+q)}, head_at(d, t, q, pf, hq)) : {B.count_go(1n+r, (A.thaw(B.Wd, t), acc), d, q) == (A.thaw(B.Wd, t), Nat.add(acc, MD.count_words(SC.take(U32, _, 1n+r)))) : Array<B.Wd> & Nat}
       %N.add_assoc(acc, B.word_count(32n, WK.nthw(AR.ws(t), q)), MD.count_words(SC.take(U32, SC.drop(U32, AR.ws(t), 1n+q), r))) : {B.count_go(1n+r, (A.thaw(B.Wd, t), acc), d, q) == (A.thaw(B.Wd, t), _) : Array<B.Wd> & Nat}
       %Equal.sym(Array<B.Wd> & U32, B.read(A.thaw(B.Wd, t), d, q), (A.thaw(B.Wd, t), WK.nthw(AR.ws(t), q)), AR.read_ok(d, t, q, hd, hq, pf)) : {B.count_go(r, B.count_add(_, acc), d, 1n+q) == (A.thaw(B.Wd, t), Nat.add(Nat.add(acc, B.word_count(32n, WK.nthw(AR.ws(t), q))), MD.count_words(SC.take(U32, SC.drop(U32, AR.ws(t), 1n+q), r)))) : Array<B.Wd> & Nat}
+      %Equal.sym(Nat, B.count_word(WK.nthw(AR.ws(t), q), acc, U32.is_eq(WK.nthw(AR.ws(t), q), 0)), Nat.add(acc, B.word_count(32n, WK.nthw(AR.ws(t), q))), FC.count_word_ok(WK.nthw(AR.ws(t), q), acc, U32.is_eq(WK.nthw(AR.ws(t), q), 0), {==})) : {B.count_go(r, (A.thaw(B.Wd, t), _), d, 1n+q) == (A.thaw(B.Wd, t), Nat.add(Nat.add(acc, B.word_count(32n, WK.nthw(AR.ws(t), q))), MD.count_words(SC.take(U32, SC.drop(U32, AR.ws(t), 1n+q), r)))) : Array<B.Wd> & Nat}
       count_go_ok(r, d, t, 1n+q, Nat.add(acc, B.word_count(32n, WK.nthw(AR.ws(t), q))), hd, pf, le_of_sum(q, r, SC.pow2(d), hm))
 
 def full_range(+d: Nat, +t: A.Tree<B.Wd>, +pf: {A.perfect(B.Wd, d, t) == True{} : Bool}) -> {SC.take(U32, SC.drop(U32, AR.ws(t), 0n), SC.pow2(d)) == AR.ws(t) : List<&2, U32>}:
@@ -120,6 +122,7 @@ def members_go_ok(m: Nat, +d: Nat, +t: A.Tree<B.Wd>, +acc: List<&2, Nat>, +hd: {
       %Equal.sym(Nat, SC.length(U32, SC.take(U32, AR.ws(t), r)), r, take_len(d, t, r, pf, hr)) : {B.members_go(1n+r, (A.thaw(B.Wd, t), acc), d) == (A.thaw(B.Wd, t), mw_acc(SC.take(U32, AR.ws(t), r), 0n, B.word_members(32n, WK.nthw(AR.ws(t), r), Nat.add(Nat.mul(_, 32n), 0n), acc))) : Array<B.Wd> & List<&2, Nat>}
       %Equal.sym(Nat, Nat.add(Nat.mul(r, 32n), 0n), Nat.mul(r, 32n), N.add_zero(Nat.mul(r, 32n))) : {B.members_go(1n+r, (A.thaw(B.Wd, t), acc), d) == (A.thaw(B.Wd, t), mw_acc(SC.take(U32, AR.ws(t), r), 0n, B.word_members(32n, WK.nthw(AR.ws(t), r), _, acc))) : Array<B.Wd> & List<&2, Nat>}
       %Equal.sym(Array<B.Wd> & U32, B.read(A.thaw(B.Wd, t), d, r), (A.thaw(B.Wd, t), WK.nthw(AR.ws(t), r)), AR.read_ok(d, t, r, hd, hr, pf)) : {B.members_go(r, B.members_cons(_, Nat.mul(r, 32n), acc), d) == (A.thaw(B.Wd, t), mw_acc(SC.take(U32, AR.ws(t), r), 0n, B.word_members(32n, WK.nthw(AR.ws(t), r), Nat.mul(r, 32n), acc))) : Array<B.Wd> & List<&2, Nat>}
+      %Equal.sym(List<&2, Nat>, B.members_word(WK.nthw(AR.ws(t), r), Nat.mul(r, 32n), acc, U32.is_eq(WK.nthw(AR.ws(t), r), 0)), B.word_members(32n, WK.nthw(AR.ws(t), r), Nat.mul(r, 32n), acc), FC.members_word_ok(WK.nthw(AR.ws(t), r), Nat.mul(r, 32n), acc, U32.is_eq(WK.nthw(AR.ws(t), r), 0), {==})) : {B.members_go(r, (A.thaw(B.Wd, t), _), d) == (A.thaw(B.Wd, t), mw_acc(SC.take(U32, AR.ws(t), r), 0n, B.word_members(32n, WK.nthw(AR.ws(t), r), Nat.mul(r, 32n), acc))) : Array<B.Wd> & List<&2, Nat>}
       members_go_ok(r, d, t, B.word_members(32n, WK.nthw(AR.ws(t), r), Nat.mul(r, 32n), acc), hd, pf, N.lt_le(r, SC.pow2(d), hr))
 
 def to_list_ok(+d: Nat, +t: A.Tree<B.Wd>, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +pf: {A.perfect(B.Wd, d, t) == True{} : Bool}) -> {B.members_go(SC.pow2(d), (A.thaw(B.Wd, t), Nil{}), d) == (A.thaw(B.Wd, t), MD.members_words(AR.ws(t), 0n)) : Array<B.Wd> & List<&2, Nat>}:

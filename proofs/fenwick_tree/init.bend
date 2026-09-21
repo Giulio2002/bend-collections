@@ -20,7 +20,8 @@ import ./state.bend as ST
 import ./steps.bend as PS
 
 # The constructors: `new(n)` is an all-zero cell array, and `from_list(xs)`
-# fills position after position with a real `add`.
+# fills position after position with `add_raw`, the in-range branch of `add`
+# (fill_ok proves every position it adds at is below the length).
 
 def initial(+n: Nat) -> ST.Sh:
   {ST.Sh{n, F.depth_for(n), A.trep(F.Cel, 1n+F.depth_for(n), F.CV{0})} : ST.Sh}
@@ -64,12 +65,17 @@ def new_model(+n: Nat, +h: {Nat.is_le(n, SC.pow2(F.depth_for(n))) == True{} : Bo
 
 # ---- from_list ----
 
-def count_len(+xs: List<&2, U32>) -> {F.count(xs) == SC.length(U32, xs) : Nat}:
+def count_go_len(+xs: List<&2, U32>, +acc: Nat) -> {F.count_go(xs, acc) == Nat.add(SC.length(U32, xs), acc) : Nat}:
   match xs:
     case Nil{}:
       {==}
     case Con{x, +t}:
-      N.succ_cong(F.count(t), SC.length(U32, t), count_len(t))
+      Equal.trans(Nat, F.count_go(t, 1n+acc), Nat.add(SC.length(U32, t), 1n+acc), 1n+Nat.add(SC.length(U32, t), acc),
+        count_go_len(t, 1n+acc),
+        N.add_succ(SC.length(U32, t), acc))
+
+def count_len(+xs: List<&2, U32>) -> {F.count(xs) == SC.length(U32, xs) : Nat}:
+  Equal.trans(Nat, F.count_go(xs, 0n), Nat.add(SC.length(U32, xs), 0n), SC.length(U32, xs), count_go_len(xs, 0n), N.add_zero(SC.length(U32, xs)))
 
 def lt_add_succ(+a: Nat, +x: Nat) -> {Nat.is_lt(a, Nat.add(a, 1n+x)) == True{} : Bool}:
   %Equal.sym(Nat, Nat.add(a, 1n+x), 1n+Nat.add(a, x), N.add_succ(a, x)) : {Nat.is_lt(a, _) == True{} : Bool}
@@ -134,8 +140,7 @@ def fill_ok(xs: List<&2, U32>, +p: List<&2, U32>, sh: ST.Sh, +gs: {ST.good(sh) =
       -A1 = {ST.model(ST.Sh{n, d, PS.added(n, d, t, SC.length(U32, p), x)}) == SC.append(U32, SC.snoc(U32, p, x), Q.zeros(SC.length(U32, r))) : List<&2, U32>}
       -I1 = {ST.good(ST.Sh{n, d, PS.added(n, d, t, SC.length(U32, p), x)}) == True{} : Bool}
       (fo_sh(r, SC.snoc(U32, p, x), ST.Sh{n, d, PS.added(n, d, t, i, x)}, fill_ok(r, SC.snoc(U32, p, x), ST.Sh{n, d, PS.added(n, d, t, i, x)}, Pair.snd(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt)), Pair.fst(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt)))),
-       (%Equal.sym(Bool, Nat.is_lt(i, n), True{}, hlt) : {F.fill(r, 1n+i, Pair.fst(F.Fenwick, Result<&2, &2, E.Error, Unit>, F.add_if(_, n, d, SC.pow2(d), A.thaw(F.Cel, t), i, x))) == ST.real(fo_sh(r, SC.snoc(U32, p, x), ST.Sh{n, d, PS.added(n, d, t, i, x)}, fill_ok(r, SC.snoc(U32, p, x), ST.Sh{n, d, PS.added(n, d, t, i, x)}, Pair.snd(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt)), Pair.fst(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt))))) : F.Fenwick}
-        %Equal.sym(Bool, Nat.is_lt(i, FL.hof(d)), M.dec(d, i), W.dec_h(d, i, FL.hof(d), {==})) : {F.fill(r, 1n+i, F.FT{n, d, SC.pow2(d), F.add_go(d, A.thaw(F.Cel, t), SC.pow2(d), FL.hof(d), Nat.div(FL.hof(d), 2n), 0n, i, x, _)}) == ST.real(fo_sh(r, SC.snoc(U32, p, x), ST.Sh{n, d, PS.added(n, d, t, i, x)}, fill_ok(r, SC.snoc(U32, p, x), ST.Sh{n, d, PS.added(n, d, t, i, x)}, Pair.snd(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt)), Pair.fst(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt))))) : F.Fenwick}
+       (%Equal.sym(Bool, Nat.is_lt(i, FL.hof(d)), M.dec(d, i), W.dec_h(d, i, FL.hof(d), {==})) : {F.fill(r, 1n+i, F.FT{n, d, SC.pow2(d), F.add_go(d, A.thaw(F.Cel, t), SC.pow2(d), FL.hof(d), Nat.div(FL.hof(d), 2n), 0n, i, x, _)}) == ST.real(fo_sh(r, SC.snoc(U32, p, x), ST.Sh{n, d, PS.added(n, d, t, i, x)}, fill_ok(r, SC.snoc(U32, p, x), ST.Sh{n, d, PS.added(n, d, t, i, x)}, Pair.snd(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt)), Pair.fst(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt))))) : F.Fenwick}
         %Equal.sym(Array<F.Cel>, F.add_go(d, A.thaw(F.Cel, t), SC.pow2(d), FL.hof(d), Nat.div(FL.hof(d), 2n), 0n, i, x, M.dec(d, i)), A.thaw(F.Cel, PS.added(n, d, t, i, x)), W.add_thaw(d, t, d, SC.pow2(d), FL.hof(d), Nat.div(FL.hof(d), 2n), 0n, i, x, M.dec(d, i), ST.g_lt(n, d, t, gs), ST.whole(d), ST.g_pf(n, d, t, gs), {==}, {==}, {==})) : {F.fill(r, 1n+i, F.FT{n, d, SC.pow2(d), _}) == ST.real(fo_sh(r, SC.snoc(U32, p, x), ST.Sh{n, d, PS.added(n, d, t, i, x)}, fill_ok(r, SC.snoc(U32, p, x), ST.Sh{n, d, PS.added(n, d, t, i, x)}, Pair.snd(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt)), Pair.fst(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt))))) : F.Fenwick}
         %LL.length_snoc(U32, p, x) : {F.fill(r, _, ST.real(ST.Sh{n, d, PS.added(n, d, t, i, x)})) == ST.real(fo_sh(r, SC.snoc(U32, p, x), ST.Sh{n, d, PS.added(n, d, t, i, x)}, fill_ok(r, SC.snoc(U32, p, x), ST.Sh{n, d, PS.added(n, d, t, i, x)}, Pair.snd(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt)), Pair.fst(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt))))) : F.Fenwick}
         fo_run(r, SC.snoc(U32, p, x), ST.Sh{n, d, PS.added(n, d, t, i, x)}, fill_ok(r, SC.snoc(U32, p, x), ST.Sh{n, d, PS.added(n, d, t, i, x)}, Pair.snd(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt)), Pair.fst(A1, I1, put_ok(n, d, t, gs, p, x, r, ea, hlt)))),

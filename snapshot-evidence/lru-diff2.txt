@@ -1,2 +1,0 @@
-1568 cases, 0 mismatches
-EXIT 0

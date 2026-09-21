@@ -1,4 +1,5 @@
 import Base
+import ./pow2.bend as P2
 import ../types/dynamic_array.bend as E
 
 # Growable, bounds-checked array over native Base.Array.
@@ -402,14 +403,21 @@ def reserve_checked_at(~T: Data, +limit: Nat, +depth: Nat, +cap: Nat, len: Nat, 
     case True{}:
       (DA{limit, depth, cap, len, arr}, Done{Unit{}})
     case False{}:
-      reserve_room_at(~T, limit, depth, cap, len, arr, n, Nat.is_le(n, pow2(limit)))
+      reserve_room_at(~T, limit, depth, cap, len, arr, n, Nat.is_le(n, P2.pow2t(limit)))
 
 def reserve_at(~T: Data, da: DynArray<T>, +n: Nat) -> DynArray<T> & Result<&2, &2, E.Error, Unit>:
   DA{+limit, +depth, +cap, len, arr} = da
   reserve_checked_at(~T, limit, depth, cap, len, arr, n, Nat.is_le(n, cap))
 
+# The executable clear allocates the fresh all-None block, exactly as the
+# parametric `clear` does and exactly as benchmarks/native/dynamic_array.c
+# rewrites the slots: the capacity is kept and every slot is empty again.
+# (An "already empty, keep the block" fast path was tried in iteration 0011
+# and removed in 0013: it only pays off when a benchmark clears the same
+# empty array over and over, and it made the clear rows unmeasurable because
+# the calibration then compares a no-op against the reference's real work.)
 def clear_at(~T: Data, da: DynArray<T>) -> DynArray<T>:
-  DA{limit, +depth, +cap, len, arr} = da
+  DA{+limit, +depth, +cap, len, arr} = da
   DA{limit, depth, cap, 0n, empty_slots_at(~T, depth)}
 
 # The executable to_list is the same indexed walk, compiled at a closed

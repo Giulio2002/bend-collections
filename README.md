@@ -1,7 +1,3 @@
-> Latest development snapshot: native ring deque/queue proof and targeted test milestone. Full performance acceptance and semantic audit remain unfinished. Historical benchmark tables do not certify this changed runtime; see [SNAPSHOT_STATUS.md](SNAPSHOT_STATUS.md).
-
-> Development snapshot: full acceptance is incomplete. LRU trace/uniqueness laws check at U32/String with capacities <=2^31, while the public constructor accepts larger capacities. Performance targets are not met. See [SNAPSHOT_STATUS.md](SNAPSHOT_STATUS.md).
-
 # bend-dsa
 
 A pure [Bend](https://github.com/HigherOrderCO/Bend) data-structure library with

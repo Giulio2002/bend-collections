@@ -12,126 +12,49 @@ import ./union.bend as UN
 import ./depth.bend as DP
 import ./arr.bend as AR
 import ./state.bend as ST
+import ./flat.bend as FL
+import ../lib/pow2t.bend as PT
+import ../../src/pow2.bend as P2
 
-# The constructor: new(n) fills the three arenas with singleton classes, so
-# its shadow satisfies the invariant and its model is the spec's [0 .. n-1].
+# The constructor: new(n) = new_at(n, depth_for(n)) allocates and fills the
+# three arenas, and `initial(n)` is their shadow. This file proves that the
+# shadow really is what the constructor builds, that it satisfies the
+# representation invariant and that its model is the spec's [0 .. n-1].
 #
-# `iota_arr` and `solo_arr` build native arrays directly; the Data mirrors of
-# those arrays are `itree` and `stree`, and the size arena is Base's
-# `Array.new`, whose mirror is `A.trep`.
+# The eager arenas are filled by flat loops (roots0, mems0); their mirror
+# trees are `tfill` of the uniform block (proofs/union_find/flat.bend), and
+# the size arena is Base's `Array.new`, whose mirror is `A.trep`.
 
-def itree(+d: Nat, +off: Nat) -> A.Tree<U.Nt>:
-  match d:
-    case 0n:
-      A.TLeaf{U.N{off}}
-    case 1n+ +p:
-      A.TNode{itree(p, off), itree(p, Nat.add(off, SC.pow2(p)))}
+def i0(+d: Nat) -> A.Tree<U.Nt>:
+  FL.tfill(~U.Nt, ~FL.iota_f, d, SC.pow2(d), A.trep(U.Nt, d, U.N{0n}))
 
-def stree(+d: Nat, +off: Nat) -> A.Tree<U.Ms>:
-  match d:
-    case 0n:
-      A.TLeaf{U.M{Con{off, Nil{}}}}
-    case 1n+ +p:
-      A.TNode{stree(p, off), stree(p, Nat.add(off, SC.pow2(p)))}
+def s0(+d: Nat) -> A.Tree<U.Ms>:
+  FL.tfill(~U.Ms, ~FL.solo_f, d, SC.pow2(d), A.trep(U.Ms, d, U.M{Nil{}}))
 
-# ---- the mirrors really are the arrays the source builds ----
+def i0_perfect(+d: Nat) -> {A.perfect(U.Nt, d, i0(d)) == True{} : Bool}:
+  FL.tfill_perfect(~U.Nt, ~FL.iota_f, d, SC.pow2(d), A.trep(U.Nt, d, U.N{0n}), A.trep_perfect(U.Nt, d, U.N{0n}))
 
-def itree_thaw(+d: Nat, +off: Nat) -> {A.thaw(U.Nt, itree(d, off)) == U.iota_arr(d, off) : Array<U.Nt>}:
-  match d:
-    case 0n:
-      {==}
-    case 1n+ +p:
-      %Equal.sym(Nat, U.pow2(p), SC.pow2(p), DP.pow2_same(p)) : {ANode{A.thaw(U.Nt, itree(p, off)), A.thaw(U.Nt, itree(p, Nat.add(off, SC.pow2(p))))} == ANode{U.iota_arr(p, off), U.iota_arr(p, Nat.add(off, _))} : Array<U.Nt>}
-      Equal.trans(Array<U.Nt>,
-        ANode{A.thaw(U.Nt, itree(p, off)), A.thaw(U.Nt, itree(p, Nat.add(off, SC.pow2(p))))},
-        ANode{U.iota_arr(p, off), A.thaw(U.Nt, itree(p, Nat.add(off, SC.pow2(p))))},
-        ANode{U.iota_arr(p, off), U.iota_arr(p, Nat.add(off, SC.pow2(p)))},
-        Equal.cong(Array<U.Nt>, Array<U.Nt>, q => ANode{q, A.thaw(U.Nt, itree(p, Nat.add(off, SC.pow2(p))))}, A.thaw(U.Nt, itree(p, off)), U.iota_arr(p, off), itree_thaw(p, off)),
-        Equal.cong(Array<U.Nt>, Array<U.Nt>, q => ANode{U.iota_arr(p, off), q}, A.thaw(U.Nt, itree(p, Nat.add(off, SC.pow2(p)))), U.iota_arr(p, Nat.add(off, SC.pow2(p))), itree_thaw(p, Nat.add(off, SC.pow2(p)))))
+def s0_perfect(+d: Nat) -> {A.perfect(U.Ms, d, s0(d)) == True{} : Bool}:
+  FL.tfill_perfect(~U.Ms, ~FL.solo_f, d, SC.pow2(d), A.trep(U.Ms, d, U.M{Nil{}}), A.trep_perfect(U.Ms, d, U.M{Nil{}}))
 
-def stree_thaw(+d: Nat, +off: Nat) -> {A.thaw(U.Ms, stree(d, off)) == U.solo_arr(d, off) : Array<U.Ms>}:
-  match d:
-    case 0n:
-      {==}
-    case 1n+ +p:
-      %Equal.sym(Nat, U.pow2(p), SC.pow2(p), DP.pow2_same(p)) : {ANode{A.thaw(U.Ms, stree(p, off)), A.thaw(U.Ms, stree(p, Nat.add(off, SC.pow2(p))))} == ANode{U.solo_arr(p, off), U.solo_arr(p, Nat.add(off, _))} : Array<U.Ms>}
-      Equal.trans(Array<U.Ms>,
-        ANode{A.thaw(U.Ms, stree(p, off)), A.thaw(U.Ms, stree(p, Nat.add(off, SC.pow2(p))))},
-        ANode{U.solo_arr(p, off), A.thaw(U.Ms, stree(p, Nat.add(off, SC.pow2(p))))},
-        ANode{U.solo_arr(p, off), U.solo_arr(p, Nat.add(off, SC.pow2(p)))},
-        Equal.cong(Array<U.Ms>, Array<U.Ms>, q => ANode{q, A.thaw(U.Ms, stree(p, Nat.add(off, SC.pow2(p))))}, A.thaw(U.Ms, stree(p, off)), U.solo_arr(p, off), stree_thaw(p, off)),
-        Equal.cong(Array<U.Ms>, Array<U.Ms>, q => ANode{U.solo_arr(p, off), q}, A.thaw(U.Ms, stree(p, Nat.add(off, SC.pow2(p)))), U.solo_arr(p, Nat.add(off, SC.pow2(p))), stree_thaw(p, Nat.add(off, SC.pow2(p)))))
+def i0_nth(+d: Nat, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool}) -> {SC.nth(U.Nt, A.slots(U.Nt, i0(d)), j) == Some{U.N{j}} : Maybe<&2, U.Nt>}:
+  FL.tfill_nth(~U.Nt, ~FL.iota_f, d, A.trep(U.Nt, d, U.N{0n}), j, hj, A.trep_perfect(U.Nt, d, U.N{0n}))
 
-def itree_perfect(+d: Nat, +off: Nat) -> {A.perfect(U.Nt, d, itree(d, off)) == True{} : Bool}:
-  match d:
-    case 0n:
-      {==}
-    case 1n+ +p:
-      L.and_intro(A.perfect(U.Nt, p, itree(p, off)), A.perfect(U.Nt, p, itree(p, Nat.add(off, SC.pow2(p)))), itree_perfect(p, off), itree_perfect(p, Nat.add(off, SC.pow2(p))))
+def s0_nth(+d: Nat, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool}) -> {SC.nth(U.Ms, A.slots(U.Ms, s0(d)), j) == Some{U.M{Con{j, Nil{}}}} : Maybe<&2, U.Ms>}:
+  FL.tfill_nth(~U.Ms, ~FL.solo_f, d, A.trep(U.Ms, d, U.M{Nil{}}), j, hj, A.trep_perfect(U.Ms, d, U.M{Nil{}}))
 
-def stree_perfect(+d: Nat, +off: Nat) -> {A.perfect(U.Ms, d, stree(d, off)) == True{} : Bool}:
-  match d:
-    case 0n:
-      {==}
-    case 1n+ +p:
-      L.and_intro(A.perfect(U.Ms, p, stree(p, off)), A.perfect(U.Ms, p, stree(p, Nat.add(off, SC.pow2(p)))), stree_perfect(p, off), stree_perfect(p, Nat.add(off, SC.pow2(p))))
+# The executable arenas are the thawed mirrors.
+def roots0_ok(+d: Nat, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}) -> {U.roots0(d) == A.thaw(U.Nt, i0(d)) : Array<U.Nt>}:
+  %Equal.sym(Nat, P2.pow2t(d), SC.pow2(d), PT.same(d)) : {U.iota_go(_, Array.new(U.Nt, d, U.N{0n})) == A.thaw(U.Nt, i0(d)) : Array<U.Nt>}
+  %Equal.sym(Array<U.Nt>, Array.new(U.Nt, d, U.N{0n}), A.thaw(U.Nt, A.trep(U.Nt, d, U.N{0n})), A.new(U.Nt, d, U.N{0n})) : {U.iota_go(SC.pow2(d), _) == A.thaw(U.Nt, i0(d)) : Array<U.Nt>}
+  FL.iota_go_ok(d, SC.pow2(d), A.trep(U.Nt, d, U.N{0n}), hd, N.le_refl(SC.pow2(d)), A.trep_perfect(U.Nt, d, U.N{0n}))
+
+def mems0_ok(+d: Nat, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}) -> {U.mems0(d) == A.thaw(U.Ms, s0(d)) : Array<U.Ms>}:
+  %Equal.sym(Nat, P2.pow2t(d), SC.pow2(d), PT.same(d)) : {U.solo_go(_, Array.new(U.Ms, d, U.M{Nil{}})) == A.thaw(U.Ms, s0(d)) : Array<U.Ms>}
+  %Equal.sym(Array<U.Ms>, Array.new(U.Ms, d, U.M{Nil{}}), A.thaw(U.Ms, A.trep(U.Ms, d, U.M{Nil{}})), A.new(U.Ms, d, U.M{Nil{}})) : {U.solo_go(SC.pow2(d), _) == A.thaw(U.Ms, s0(d)) : Array<U.Ms>}
+  FL.solo_go_ok(d, SC.pow2(d), A.trep(U.Ms, d, U.M{Nil{}}), hd, N.le_refl(SC.pow2(d)), A.trep_perfect(U.Ms, d, U.M{Nil{}}))
 
 # ---- slot j of each arena ----
-
-def off_shift(+off: Nat, +p: Nat, +j: Nat, +le: {Nat.is_le(SC.pow2(p), j) == True{} : Bool}) -> {Nat.add(Nat.add(off, SC.pow2(p)), Nat.sub(j, SC.pow2(p))) == Nat.add(off, j) : Nat}:
-  Equal.trans(Nat, Nat.add(Nat.add(off, SC.pow2(p)), Nat.sub(j, SC.pow2(p))), Nat.add(off, Nat.add(SC.pow2(p), Nat.sub(j, SC.pow2(p)))), Nat.add(off, j),
-    N.add_assoc(off, SC.pow2(p), Nat.sub(j, SC.pow2(p))),
-    Equal.cong(Nat, Nat, q => Nat.add(off, q), Nat.add(SC.pow2(p), Nat.sub(j, SC.pow2(p))), j, N.sub_add(j, SC.pow2(p), le)))
-
-def itree_case(+p: Nat, +off: Nat, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(1n+p)) == True{} : Bool}, b: Bool, +eb: {Nat.is_lt(j, SC.pow2(p)) == b : Bool}, ihl: @+q: {Nat.is_lt(j, SC.pow2(p)) == True{} : Bool} -> {SC.nth(U.Nt, A.slots(U.Nt, itree(p, off)), j) == Some{U.N{Nat.add(off, j)}} : Maybe<&2, U.Nt>}, ihr: @+q: {Nat.is_lt(Nat.sub(j, SC.pow2(p)), SC.pow2(p)) == True{} : Bool} -> {SC.nth(U.Nt, A.slots(U.Nt, itree(p, Nat.add(off, SC.pow2(p)))), Nat.sub(j, SC.pow2(p))) == Some{U.N{Nat.add(Nat.add(off, SC.pow2(p)), Nat.sub(j, SC.pow2(p)))}} : Maybe<&2, U.Nt>}) -> {SC.nth(U.Nt, SC.append(U.Nt, A.slots(U.Nt, itree(p, off)), A.slots(U.Nt, itree(p, Nat.add(off, SC.pow2(p))))), j) == Some{U.N{Nat.add(off, j)}} : Maybe<&2, U.Nt>}:
-  match b:
-    case True{}:
-      Equal.trans(Maybe<&2, U.Nt>, SC.nth(U.Nt, SC.append(U.Nt, A.slots(U.Nt, itree(p, off)), A.slots(U.Nt, itree(p, Nat.add(off, SC.pow2(p))))), j), SC.nth(U.Nt, A.slots(U.Nt, itree(p, off)), j), Some{U.N{Nat.add(off, j)}},
-        LL.nth_append_left(U.Nt, A.slots(U.Nt, itree(p, off)), A.slots(U.Nt, itree(p, Nat.add(off, SC.pow2(p)))), j, A.len_lt(U.Nt, p, itree(p, off), j, itree_perfect(p, off), eb)),
-        ihl(eb))
-    case False{}:
-      +le = N.not_lt_le(j, SC.pow2(p), eb)
-      Equal.trans(Maybe<&2, U.Nt>, SC.nth(U.Nt, SC.append(U.Nt, A.slots(U.Nt, itree(p, off)), A.slots(U.Nt, itree(p, Nat.add(off, SC.pow2(p))))), j), SC.nth(U.Nt, A.slots(U.Nt, itree(p, Nat.add(off, SC.pow2(p)))), Nat.sub(j, SC.pow2(p))), Some{U.N{Nat.add(off, j)}},
-        A.right_nth(U.Nt, p, itree(p, off), itree(p, Nat.add(off, SC.pow2(p))), j, itree_perfect(p, off), le),
-        %off_shift(off, p, j, le) : {SC.nth(U.Nt, A.slots(U.Nt, itree(p, Nat.add(off, SC.pow2(p)))), Nat.sub(j, SC.pow2(p))) == Some{U.N{_}} : Maybe<&2, U.Nt>}
-        ihr(A.upper_lt(j, p, hj, le)))
-
-def itree_nth(+d: Nat, +off: Nat, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool}) -> {SC.nth(U.Nt, A.slots(U.Nt, itree(d, off)), j) == Some{U.N{Nat.add(off, j)}} : Maybe<&2, U.Nt>}:
-  match d:
-    case 0n:
-      match j:
-        case 0n:
-          %Equal.sym(Nat, Nat.add(off, 0n), off, N.add_zero(off)) : {Some{U.N{off}} == Some{U.N{_}} : Maybe<&2, U.Nt>}
-          {==}
-        case 1n+q:
-          Empty.absurd({SC.nth(U.Nt, Con{U.N{off}, Nil{}}, 1n+q) == Some{U.N{Nat.add(off, 1n+q)}} : Maybe<&2, U.Nt>}, N.lt_zero_absurd(q, hj))
-    case 1n+ +p:
-      itree_case(p, off, j, hj, Nat.is_lt(j, SC.pow2(p)), {==}, q => itree_nth(p, off, j, q), q => itree_nth(p, Nat.add(off, SC.pow2(p)), Nat.sub(j, SC.pow2(p)), q))
-
-def stree_case(+p: Nat, +off: Nat, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(1n+p)) == True{} : Bool}, b: Bool, +eb: {Nat.is_lt(j, SC.pow2(p)) == b : Bool}, ihl: @+q: {Nat.is_lt(j, SC.pow2(p)) == True{} : Bool} -> {SC.nth(U.Ms, A.slots(U.Ms, stree(p, off)), j) == Some{U.M{Con{Nat.add(off, j), Nil{}}}} : Maybe<&2, U.Ms>}, ihr: @+q: {Nat.is_lt(Nat.sub(j, SC.pow2(p)), SC.pow2(p)) == True{} : Bool} -> {SC.nth(U.Ms, A.slots(U.Ms, stree(p, Nat.add(off, SC.pow2(p)))), Nat.sub(j, SC.pow2(p))) == Some{U.M{Con{Nat.add(Nat.add(off, SC.pow2(p)), Nat.sub(j, SC.pow2(p))), Nil{}}}} : Maybe<&2, U.Ms>}) -> {SC.nth(U.Ms, SC.append(U.Ms, A.slots(U.Ms, stree(p, off)), A.slots(U.Ms, stree(p, Nat.add(off, SC.pow2(p))))), j) == Some{U.M{Con{Nat.add(off, j), Nil{}}}} : Maybe<&2, U.Ms>}:
-  match b:
-    case True{}:
-      Equal.trans(Maybe<&2, U.Ms>, SC.nth(U.Ms, SC.append(U.Ms, A.slots(U.Ms, stree(p, off)), A.slots(U.Ms, stree(p, Nat.add(off, SC.pow2(p))))), j), SC.nth(U.Ms, A.slots(U.Ms, stree(p, off)), j), Some{U.M{Con{Nat.add(off, j), Nil{}}}},
-        LL.nth_append_left(U.Ms, A.slots(U.Ms, stree(p, off)), A.slots(U.Ms, stree(p, Nat.add(off, SC.pow2(p)))), j, A.len_lt(U.Ms, p, stree(p, off), j, stree_perfect(p, off), eb)),
-        ihl(eb))
-    case False{}:
-      +le = N.not_lt_le(j, SC.pow2(p), eb)
-      Equal.trans(Maybe<&2, U.Ms>, SC.nth(U.Ms, SC.append(U.Ms, A.slots(U.Ms, stree(p, off)), A.slots(U.Ms, stree(p, Nat.add(off, SC.pow2(p))))), j), SC.nth(U.Ms, A.slots(U.Ms, stree(p, Nat.add(off, SC.pow2(p)))), Nat.sub(j, SC.pow2(p))), Some{U.M{Con{Nat.add(off, j), Nil{}}}},
-        A.right_nth(U.Ms, p, stree(p, off), stree(p, Nat.add(off, SC.pow2(p))), j, stree_perfect(p, off), le),
-        %off_shift(off, p, j, le) : {SC.nth(U.Ms, A.slots(U.Ms, stree(p, Nat.add(off, SC.pow2(p)))), Nat.sub(j, SC.pow2(p))) == Some{U.M{Con{_, Nil{}}}} : Maybe<&2, U.Ms>}
-        ihr(A.upper_lt(j, p, hj, le)))
-
-def stree_nth(+d: Nat, +off: Nat, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool}) -> {SC.nth(U.Ms, A.slots(U.Ms, stree(d, off)), j) == Some{U.M{Con{Nat.add(off, j), Nil{}}}} : Maybe<&2, U.Ms>}:
-  match d:
-    case 0n:
-      match j:
-        case 0n:
-          %Equal.sym(Nat, Nat.add(off, 0n), off, N.add_zero(off)) : {Some{U.M{Con{off, Nil{}}}} == Some{U.M{Con{_, Nil{}}}} : Maybe<&2, U.Ms>}
-          {==}
-        case 1n+q:
-          Empty.absurd({SC.nth(U.Ms, Con{U.M{Con{off, Nil{}}}, Nil{}}, 1n+q) == Some{U.M{Con{Nat.add(off, 1n+q), Nil{}}}} : Maybe<&2, U.Ms>}, N.lt_zero_absurd(q, hj))
-    case 1n+ +p:
-      stree_case(p, off, j, hj, Nat.is_lt(j, SC.pow2(p)), {==}, q => stree_nth(p, off, j, q), q => stree_nth(p, Nat.add(off, SC.pow2(p)), Nat.sub(j, SC.pow2(p)), q))
 
 def nth_rep(-T: Data, +m: Nat, +v: T, +j: Nat, +h: {Nat.is_lt(j, m) == True{} : Bool}) -> {SC.nth(T, SC.replicate(T, m, v), j) == Some{v} : Maybe<&2, T>}:
   match m j:
@@ -151,14 +74,8 @@ def zrep_nth(+d: Nat, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool})
 def cell0(+y: Nat) -> CL.Cell:
   CL.Cell{y, 1n, Con{y, Nil{}}}
 
-def i0(+d: Nat) -> A.Tree<U.Nt>:
-  itree(d, 0n)
-
 def z0(+d: Nat) -> A.Tree<U.Nt>:
   A.trep(U.Nt, d, U.N{1n})
-
-def s0(+d: Nat) -> A.Tree<U.Ms>:
-  stree(d, 0n)
 
 def cl0(+d: Nat) -> List<&2, CL.Cell>:
   ST.clist(d, i0(d), z0(d), s0(d))
@@ -196,29 +113,29 @@ def mslot(+xs: List<&2, U.Ms>, +j: Nat, +v: List<&2, Nat>, +hj: {Nat.is_lt(j, SC
           e))))
 
 def len_i(+d: Nat, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool}) -> {Nat.is_lt(j, SC.length(U.Nt, A.slots(U.Nt, i0(d)))) == True{} : Bool}:
-  A.len_lt(U.Nt, d, i0(d), j, itree_perfect(d, 0n), hj)
+  A.len_lt(U.Nt, d, i0(d), j, i0_perfect(d), hj)
 
 def len_z(+d: Nat, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool}) -> {Nat.is_lt(j, SC.length(U.Nt, A.slots(U.Nt, z0(d)))) == True{} : Bool}:
   A.len_lt(U.Nt, d, z0(d), j, A.trep_perfect(U.Nt, d, U.N{1n}), hj)
 
 def len_s(+d: Nat, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool}) -> {Nat.is_lt(j, SC.length(U.Ms, A.slots(U.Ms, s0(d)))) == True{} : Bool}:
-  A.len_lt(U.Ms, d, s0(d), j, stree_perfect(d, 0n), hj)
+  A.len_lt(U.Ms, d, s0(d), j, s0_perfect(d), hj)
 
 def r_at(+d: Nat, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool}) -> {AR.nthn(AR.rsl(i0(d)), j) == j : Nat}:
-  nslot(A.slots(U.Nt, i0(d)), j, j, len_i(d, j, hj), itree_nth(d, 0n, j, hj))
+  nslot(A.slots(U.Nt, i0(d)), j, j, len_i(d, j, hj), i0_nth(d, j, hj))
 
 def z_at(+d: Nat, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool}) -> {AR.nthn(AR.rsl(z0(d)), j) == 1n : Nat}:
   nslot(A.slots(U.Nt, z0(d)), j, 1n, len_z(d, j, hj), zrep_nth(d, j, hj))
 
 def m_at(+d: Nat, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool}) -> {AR.nthm(AR.msl(s0(d)), j) == Con{j, Nil{}} : List<&2, Nat>}:
-  mslot(A.slots(U.Ms, s0(d)), j, Con{j, Nil{}}, len_s(d, j, hj), stree_nth(d, 0n, j, hj))
+  mslot(A.slots(U.Ms, s0(d)), j, Con{j, Nil{}}, len_s(d, j, hj), s0_nth(d, j, hj))
 
 def cl0_nth(+d: Nat, +j: Nat, +hj: {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool}) -> {SC.nth(CL.Cell, cl0(d), j) == Some{cell0(j)} : Maybe<&2, CL.Cell>}:
   Equal.trans(Maybe<&2, CL.Cell>,
     SC.nth(CL.Cell, cl0(d), j),
     Some{CL.Cell{AR.nthn(AR.rsl(i0(d)), j), AR.nthn(AR.rsl(z0(d)), j), AR.nthm(AR.msl(s0(d)), j)}},
     Some{cell0(j)},
-    ST.cl_nth(d, i0(d), z0(d), s0(d), j, itree_perfect(d, 0n), A.trep_perfect(U.Nt, d, U.N{1n}), stree_perfect(d, 0n), hj),
+    ST.cl_nth(d, i0(d), z0(d), s0(d), j, i0_perfect(d), A.trep_perfect(U.Nt, d, U.N{1n}), s0_perfect(d), hj),
     Equal.trans(Maybe<&2, CL.Cell>,
       Some{CL.Cell{AR.nthn(AR.rsl(i0(d)), j), AR.nthn(AR.rsl(z0(d)), j), AR.nthm(AR.msl(s0(d)), j)}},
       Some{CL.Cell{j, AR.nthn(AR.rsl(z0(d)), j), AR.nthm(AR.msl(s0(d)), j)}},
@@ -338,27 +255,24 @@ def labs0(+n: Nat, +d: Nat, +hc: {Nat.is_le(n, SC.pow2(d)) == True{} : Bool}, +k
 
 # ---- the initial shadow ----
 
+# The shadow of the constructor: the arenas new_at allocates and fills.
 def initial(+n: Nat) -> ST.Sh:
   {ST.Sh{n, U.depth_for(n), i0(U.depth_for(n)), z0(U.depth_for(n)), s0(U.depth_for(n)), n} : ST.Sh}
 
 def new_real(+n: Nat) -> {U.new(n) == ST.real(initial(n)) : U.UnionFind}:
-  Equal.trans(U.UnionFind, U.new(n),
-    U.UF{n, U.depth_for(n), A.thaw(U.Nt, i0(U.depth_for(n))), Array.new(U.Nt, U.depth_for(n), U.N{1n}), U.solo_arr(U.depth_for(n), 0n), n},
-    ST.real(initial(n)),
-    Equal.cong(Array<U.Nt>, U.UnionFind, q => U.UF{n, U.depth_for(n), q, Array.new(U.Nt, U.depth_for(n), U.N{1n}), U.solo_arr(U.depth_for(n), 0n), n}, U.iota_arr(U.depth_for(n), 0n), A.thaw(U.Nt, i0(U.depth_for(n))), Equal.sym(Array<U.Nt>, A.thaw(U.Nt, i0(U.depth_for(n))), U.iota_arr(U.depth_for(n), 0n), itree_thaw(U.depth_for(n), 0n))),
-    Equal.trans(U.UnionFind,
-      U.UF{n, U.depth_for(n), A.thaw(U.Nt, i0(U.depth_for(n))), Array.new(U.Nt, U.depth_for(n), U.N{1n}), U.solo_arr(U.depth_for(n), 0n), n},
-      U.UF{n, U.depth_for(n), A.thaw(U.Nt, i0(U.depth_for(n))), A.thaw(U.Nt, z0(U.depth_for(n))), U.solo_arr(U.depth_for(n), 0n), n},
-      ST.real(initial(n)),
-      Equal.cong(Array<U.Nt>, U.UnionFind, q => U.UF{n, U.depth_for(n), A.thaw(U.Nt, i0(U.depth_for(n))), q, U.solo_arr(U.depth_for(n), 0n), n}, Array.new(U.Nt, U.depth_for(n), U.N{1n}), A.thaw(U.Nt, z0(U.depth_for(n))), A.new(U.Nt, U.depth_for(n), U.N{1n})),
-      Equal.cong(Array<U.Ms>, U.UnionFind, q => U.UF{n, U.depth_for(n), A.thaw(U.Nt, i0(U.depth_for(n))), A.thaw(U.Nt, z0(U.depth_for(n))), q, n}, U.solo_arr(U.depth_for(n), 0n), A.thaw(U.Ms, s0(U.depth_for(n))), Equal.sym(Array<U.Ms>, A.thaw(U.Ms, s0(U.depth_for(n))), U.solo_arr(U.depth_for(n), 0n), stree_thaw(U.depth_for(n), 0n)))))
+  +d = U.depth_for(n)
+  +hd = DP.depth_lt(n)
+  %Equal.sym(Array<U.Nt>, U.roots0(d), A.thaw(U.Nt, i0(d)), roots0_ok(d, hd)) : {U.UF{n, d, _, U.sizes0(d), U.mems0(d), n} == ST.real(initial(n)) : U.UnionFind}
+  %Equal.sym(Array<U.Nt>, U.sizes0(d), A.thaw(U.Nt, z0(d)), A.new(U.Nt, d, U.N{1n})) : {U.UF{n, d, A.thaw(U.Nt, i0(d)), _, U.mems0(d), n} == ST.real(initial(n)) : U.UnionFind}
+  %Equal.sym(Array<U.Ms>, U.mems0(d), A.thaw(U.Ms, s0(d)), mems0_ok(d, hd)) : {U.UF{n, d, A.thaw(U.Nt, i0(d)), A.thaw(U.Nt, z0(d)), _, n} == ST.real(initial(n)) : U.UnionFind}
+  {==}
 
 def new_good(+n: Nat, +h: {Nat.is_le(n, SC.pow2(U.depth_for(n))) == True{} : Bool}) -> {ST.good(initial(n)) == True{} : Bool}:
   ST.g_mk(n, U.depth_for(n), i0(U.depth_for(n)), z0(U.depth_for(n)), s0(U.depth_for(n)), n,
     N.is_eq_refl(U.depth_for(n)),
-    itree_perfect(U.depth_for(n), 0n),
+    i0_perfect(U.depth_for(n)),
     A.trep_perfect(U.Nt, U.depth_for(n), U.N{1n}),
-    stree_perfect(U.depth_for(n), 0n),
+    s0_perfect(U.depth_for(n)),
     h,
     good0(n, U.depth_for(n), h, n, N.le_refl(n)),
     M.eq_true(n, M.cnt_fix(cl0(U.depth_for(n)), n), Equal.sym(Nat, M.cnt_fix(cl0(U.depth_for(n)), n), n, fix0(n, U.depth_for(n), h, n, N.le_refl(n)))))

@@ -1,5 +1,6 @@
 import Base
 import ../types/union_find.bend as E
+import ./pow2.bend as P2
 
 # Disjoint-set union over the elements 0 .. n-1, stored in a native
 # Base.Array arena.
@@ -78,13 +79,6 @@ def mval(x: Ms) -> List<&2, Nat>:
 
 # ---- capacity ----
 
-def pow2(d: Nat) -> Nat:
-  match d:
-    case 0n:
-      1n
-    case 1n+p:
-      Nat.double(pow2(p))
-
 # 2^31 slots: see the capacity note above. The constant is never materialised
 # as a value; `depth_for` simply stops at this depth.
 def max_depth() -> Nat:
@@ -131,29 +125,13 @@ def write_ms(a: Array<Ms>, +d: Nat, +x: Nat, +v: List<&2, Nat>) -> Array<Ms>:
 
 # ---- release and copy ----
 
-def burn_nt(xs: List<Nt>) -> Unit:
-  match xs:
-    case Nil{}:
-      Unit{}
-    case Con{x, t}:
-      burn_nt(t)
-
-def burn_ms(xs: List<Ms>) -> Unit:
-  match xs:
-    case Nil{}:
-      Unit{}
-    case Con{x, t}:
-      burn_ms(t)
-
-def unit3(a: Unit, b: Unit, c: Unit) -> Unit:
-  match a b c:
-    case Unit{} Unit{} Unit{}:
-      Unit{}
-
+# Releasing the arenas is dropping them: `Base.Array` is linear, so the
+# runtime frees each block when its last reference is erased (as in
+# src/bitset.bend).
 def dispose(s: UnionFind) -> Unit:
   match s:
     case UF{n, d, r, z, m, c}:
-      unit3(burn_nt(Array.to_list(~Nt, r)), burn_nt(Array.to_list(~Nt, z)), burn_ms(Array.to_list(~Ms, m)))
+      Unit{}
 
 def clone_m(pr: Array<Nt> & Array<Nt>, pz: Array<Nt> & Array<Nt>, pm: Array<Ms> & Array<Ms>, +n: Nat, +d: Nat, +c: Nat) -> UnionFind & UnionFind:
   (r1, r2) = pr
@@ -170,24 +148,38 @@ def clone(s: UnionFind) -> UnionFind & UnionFind:
 
 # ---- the constructor ----
 
-# Slot i of the roots arena starts at i; both other arenas start uniform.
-def iota_arr(d: Nat, +off: Nat) -> Array<Nt>:
-  match d:
+# `new` allocates and initialises all three arenas immediately. Slot j of
+# the roots arena holds j and slot j of the member arena holds [j]; the size
+# arena is uniformly 1. The first two are filled by flat loops over a
+# uniform block (slot j := value for j = k-1 .. 0), so the constructor
+# compiles to native loops over blocks rather than a segmented continuation
+# (proofs/union_find/flat.bend proves what the loops build).
+def iota_go(k: Nat, a: Array<Nt>) -> Array<Nt>:
+  match k:
     case 0n:
-      ALeaf{N{off}}
-    case 1n+ +p:
-      ANode{iota_arr(p, off), iota_arr(p, Nat.add(off, pow2(p)))}
+      a
+    case 1n+ +j:
+      iota_go(j, Array.set(Nt, a, U32.from_nat(j), N{j}))
 
-def solo_arr(d: Nat, +off: Nat) -> Array<Ms>:
-  match d:
+def solo_go(k: Nat, a: Array<Ms>) -> Array<Ms>:
+  match k:
     case 0n:
-      ALeaf{M{Con{off, Nil{}}}}
-    case 1n+ +p:
-      ANode{solo_arr(p, off), solo_arr(p, Nat.add(off, pow2(p)))}
+      a
+    case 1n+ +j:
+      solo_go(j, Array.set(Ms, a, U32.from_nat(j), M{Con{j, Nil{}}}))
 
-# Every element of 0 .. n-1 in its own class.
+# Every element of 0 .. n-1 in its own class, arenas allocated.
+def roots0(+d: Nat) -> Array<Nt>:
+  iota_go(P2.pow2t(d), Array.new(Nt, d, N{0n}))
+
+def sizes0(+d: Nat) -> Array<Nt>:
+  Array.new(Nt, d, N{1n})
+
+def mems0(+d: Nat) -> Array<Ms>:
+  solo_go(P2.pow2t(d), Array.new(Ms, d, M{Nil{}}))
+
 def new_at(+n: Nat, +d: Nat) -> UnionFind:
-  UF{n, d, iota_arr(d, 0n), Array.new(Nt, d, N{1n}), solo_arr(d, 0n), n}
+  UF{n, d, roots0(d), sizes0(d), mems0(d), n}
 
 def new(+n: Nat) -> UnionFind:
   new_at(n, depth_for(n))
@@ -279,7 +271,7 @@ def relink(ms: List<&2, Nat>, r: Array<Nt>, +d: Nat, +big: Nat) -> Array<Nt>:
 # The two roots and their sizes are known; `msb` and `mss` are the member
 # lists of the big and small classes.
 def union_write(+n: Nat, +d: Nat, r: Array<Nt>, z: Array<Nt>, m: Array<Ms>, +c: Nat, +big: Nat, +tot: Nat, +msb: List<&2, Nat>, +mss: List<&2, Nat>) -> UnionFind & Result<&2, &2, E.Error, Bool>:
-  (UF{n, d, relink(mss, r, d, big), write_nat(z, d, big, tot), write_ms(m, d, big, List.append(&2, Nat, mss, msb)), Nat.sub(c, 1n)}, Done{True{}})
+  (UF{n, d, relink(mss, r, d, big), write_nat(z, d, big, tot), write_ms(m, d, big, List.reverse.go(&2, Nat, List.reverse.go(&2, Nat, mss, Nil{}), msb)), Nat.sub(c, 1n)}, Done{True{}})
 
 def union_msb(p: Array<Ms> & List<&2, Nat>, +n: Nat, +d: Nat, r: Array<Nt>, z: Array<Nt>, +c: Nat, +big: Nat, +tot: Nat, +mss: List<&2, Nat>) -> UnionFind & Result<&2, &2, E.Error, Bool>:
   (m, msb) = p

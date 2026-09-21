@@ -149,166 +149,29 @@ def g_len(+n: Nat, +d: Nat, +tr: A.Tree<U.Nt>, +tz: A.Tree<U.Nt>, +tm: A.Tree<U.
 # Because a runtime UnionFind determines its shadow, that pins the abstract
 # state: the laws cannot be satisfied by naming a different shadow.
 
-def burn_nt_any(xs: List<U.Nt>) -> {U.burn_nt(xs) == Unit{} : Unit}:
-  match xs:
-    case Nil{}:
-      {==}
-    case Con{x, t}:
-      burn_nt_any(t)
-
-def burn_ms_any(xs: List<U.Ms>) -> {U.burn_ms(xs) == Unit{} : Unit}:
-  match xs:
-    case Nil{}:
-      {==}
-    case Con{x, t}:
-      burn_ms_any(t)
-
-def unit2(a: Unit, b: Unit) -> Unit:
-  match a b:
-    case Unit{} Unit{}:
-      Unit{}
-
-def uburn(r: Array<U.Nt>, z: Array<U.Nt>, m: Array<U.Ms>) -> Unit:
-  U.unit3(U.burn_nt(Array.to_list(~U.Nt, r)), U.burn_nt(Array.to_list(~U.Nt, z)), U.burn_ms(Array.to_list(~U.Ms, m)))
-
-def uburn_ok(+tr: A.Tree<U.Nt>, +tz: A.Tree<U.Nt>, +tm: A.Tree<U.Ms>) -> {uburn(A.thaw(U.Nt, tr), A.thaw(U.Nt, tz), A.thaw(U.Ms, tm)) == Unit{} : Unit}:
-  %Equal.sym(Unit, U.burn_nt(Array.to_list(~U.Nt, A.thaw(U.Nt, tr))), Unit{}, burn_nt_any(Array.to_list(~U.Nt, A.thaw(U.Nt, tr)))) : {U.unit3(_, U.burn_nt(Array.to_list(~U.Nt, A.thaw(U.Nt, tz))), U.burn_ms(Array.to_list(~U.Ms, A.thaw(U.Ms, tm)))) == Unit{} : Unit}
-  %Equal.sym(Unit, U.burn_nt(Array.to_list(~U.Nt, A.thaw(U.Nt, tz))), Unit{}, burn_nt_any(Array.to_list(~U.Nt, A.thaw(U.Nt, tz)))) : {U.unit3(Unit{}, _, U.burn_ms(Array.to_list(~U.Ms, A.thaw(U.Ms, tm)))) == Unit{} : Unit}
-  %Equal.sym(Unit, U.burn_ms(Array.to_list(~U.Ms, A.thaw(U.Ms, tm))), Unit{}, burn_ms_any(Array.to_list(~U.Ms, A.thaw(U.Ms, tm)))) : {U.unit3(Unit{}, Unit{}, _) == Unit{} : Unit}
-  {==}
-
-def dispose_ok(+n: Nat, +d: Nat, +tr: A.Tree<U.Nt>, +tz: A.Tree<U.Nt>, +tm: A.Tree<U.Ms>, +c: Nat) -> {U.dispose(real(Sh{n, d, tr, tz, tm, c})) == Unit{} : Unit}:
-  uburn_ok(tr, tz, tm)
-
-def npick(+v: Nat, u: Unit) -> Nat:
-  match u:
-    case Unit{}:
-      v
-
-def tpick(-T: Data, t: A.Tree<T>, u: Unit) -> A.Tree<T>:
-  match u:
-    case Unit{}:
-      t
-
-def u_len(s: U.UnionFind) -> Nat:
-  match s:
-    case U.UF{+n, d, r, z, m, c}:
-      npick(n, uburn(r, z, m))
-
-def u_depth(s: U.UnionFind) -> Nat:
-  match s:
-    case U.UF{n, +d, r, z, m, c}:
-      npick(d, uburn(r, z, m))
-
-def u_cnt(s: U.UnionFind) -> Nat:
-  match s:
-    case U.UF{n, d, r, z, m, +c}:
-      npick(c, uburn(r, z, m))
-
-def u_tr(s: U.UnionFind) -> A.Tree<U.Nt>:
-  match s:
-    case U.UF{n, d, r, z, m, c}:
-      tpick(U.Nt, A.freeze(U.Nt, r), unit2(U.burn_nt(Array.to_list(~U.Nt, z)), U.burn_ms(Array.to_list(~U.Ms, m))))
-
-def u_tz(s: U.UnionFind) -> A.Tree<U.Nt>:
-  match s:
-    case U.UF{n, d, r, z, m, c}:
-      tpick(U.Nt, A.freeze(U.Nt, z), unit2(U.burn_nt(Array.to_list(~U.Nt, r)), U.burn_ms(Array.to_list(~U.Ms, m))))
-
-def u_tm(s: U.UnionFind) -> A.Tree<U.Ms>:
-  match s:
-    case U.UF{n, d, r, z, m, c}:
-      tpick(U.Ms, A.freeze(U.Ms, m), unit2(U.burn_nt(Array.to_list(~U.Nt, r)), U.burn_nt(Array.to_list(~U.Nt, z))))
-
-def sh_n(sh: Sh) -> Nat:
-  match sh:
-    case Sh{n, d, tr, tz, tm, c}:
-      n
-
-def sh_d(sh: Sh) -> Nat:
-  match sh:
-    case Sh{n, d, tr, tz, tm, c}:
-      d
-
-def sh_c(sh: Sh) -> Nat:
-  match sh:
-    case Sh{n, d, tr, tz, tm, c}:
-      c
-
-def sh_tr(sh: Sh) -> A.Tree<U.Nt>:
-  match sh:
-    case Sh{n, d, tr, tz, tm, c}:
-      tr
-
-def sh_tz(sh: Sh) -> A.Tree<U.Nt>:
-  match sh:
-    case Sh{n, d, tr, tz, tm, c}:
-      tz
-
-def sh_tm(sh: Sh) -> A.Tree<U.Ms>:
-  match sh:
-    case Sh{n, d, tr, tz, tm, c}:
-      tm
-
-def real_len(+sh: Sh) -> {u_len(real(sh)) == sh_n(sh) : Nat}:
-  match sh:
-    case Sh{+n, d, tr, tz, tm, c}:
-      Equal.cong(Unit, Nat, u => npick(n, u), uburn(A.thaw(U.Nt, tr), A.thaw(U.Nt, tz), A.thaw(U.Ms, tm)), Unit{}, uburn_ok(tr, tz, tm))
-
-def real_depth(+sh: Sh) -> {u_depth(real(sh)) == sh_d(sh) : Nat}:
-  match sh:
-    case Sh{n, +d, tr, tz, tm, c}:
-      Equal.cong(Unit, Nat, u => npick(d, u), uburn(A.thaw(U.Nt, tr), A.thaw(U.Nt, tz), A.thaw(U.Ms, tm)), Unit{}, uburn_ok(tr, tz, tm))
-
-def real_cnt(+sh: Sh) -> {u_cnt(real(sh)) == sh_c(sh) : Nat}:
-  match sh:
-    case Sh{n, d, tr, tz, tm, +c}:
-      Equal.cong(Unit, Nat, u => npick(c, u), uburn(A.thaw(U.Nt, tr), A.thaw(U.Nt, tz), A.thaw(U.Ms, tm)), Unit{}, uburn_ok(tr, tz, tm))
-
-def real_tr(+sh: Sh) -> {u_tr(real(sh)) == sh_tr(sh) : A.Tree<U.Nt>}:
-  match sh:
-    case Sh{n, d, +tr, tz, tm, c}:
-      %Equal.sym(Unit, U.burn_nt(Array.to_list(~U.Nt, A.thaw(U.Nt, tz))), Unit{}, burn_nt_any(Array.to_list(~U.Nt, A.thaw(U.Nt, tz)))) : {tpick(U.Nt, A.freeze(U.Nt, A.thaw(U.Nt, tr)), unit2(_, U.burn_ms(Array.to_list(~U.Ms, A.thaw(U.Ms, tm))))) == tr : A.Tree<U.Nt>}
-      %Equal.sym(Unit, U.burn_ms(Array.to_list(~U.Ms, A.thaw(U.Ms, tm))), Unit{}, burn_ms_any(Array.to_list(~U.Ms, A.thaw(U.Ms, tm)))) : {tpick(U.Nt, A.freeze(U.Nt, A.thaw(U.Nt, tr)), unit2(Unit{}, _)) == tr : A.Tree<U.Nt>}
-      A.freeze_thaw(U.Nt, tr)
-
-def real_tz(+sh: Sh) -> {u_tz(real(sh)) == sh_tz(sh) : A.Tree<U.Nt>}:
-  match sh:
-    case Sh{n, d, tr, +tz, tm, c}:
-      %Equal.sym(Unit, U.burn_nt(Array.to_list(~U.Nt, A.thaw(U.Nt, tr))), Unit{}, burn_nt_any(Array.to_list(~U.Nt, A.thaw(U.Nt, tr)))) : {tpick(U.Nt, A.freeze(U.Nt, A.thaw(U.Nt, tz)), unit2(_, U.burn_ms(Array.to_list(~U.Ms, A.thaw(U.Ms, tm))))) == tz : A.Tree<U.Nt>}
-      %Equal.sym(Unit, U.burn_ms(Array.to_list(~U.Ms, A.thaw(U.Ms, tm))), Unit{}, burn_ms_any(Array.to_list(~U.Ms, A.thaw(U.Ms, tm)))) : {tpick(U.Nt, A.freeze(U.Nt, A.thaw(U.Nt, tz)), unit2(Unit{}, _)) == tz : A.Tree<U.Nt>}
-      A.freeze_thaw(U.Nt, tz)
-
-def real_tm(+sh: Sh) -> {u_tm(real(sh)) == sh_tm(sh) : A.Tree<U.Ms>}:
-  match sh:
-    case Sh{n, d, tr, tz, +tm, c}:
-      %Equal.sym(Unit, U.burn_nt(Array.to_list(~U.Nt, A.thaw(U.Nt, tr))), Unit{}, burn_nt_any(Array.to_list(~U.Nt, A.thaw(U.Nt, tr)))) : {tpick(U.Ms, A.freeze(U.Ms, A.thaw(U.Ms, tm)), unit2(_, U.burn_nt(Array.to_list(~U.Nt, A.thaw(U.Nt, tz))))) == tm : A.Tree<U.Ms>}
-      %Equal.sym(Unit, U.burn_nt(Array.to_list(~U.Nt, A.thaw(U.Nt, tz))), Unit{}, burn_nt_any(Array.to_list(~U.Nt, A.thaw(U.Nt, tz)))) : {tpick(U.Ms, A.freeze(U.Ms, A.thaw(U.Ms, tm)), unit2(Unit{}, _)) == tm : A.Tree<U.Ms>}
-      A.freeze_thaw(U.Ms, tm)
-
-def sh_eta(+sh: Sh) -> {sh == Sh{sh_n(sh), sh_d(sh), sh_tr(sh), sh_tz(sh), sh_tm(sh), sh_c(sh)} : Sh}:
+def dispose_ok(+sh: Sh) -> {U.dispose(real(sh)) == Unit{} : Unit}:
   match sh:
     case Sh{n, d, tr, tz, tm, c}:
       {==}
 
-def real_inj_parts(+a: Sh, +b: Sh, +e: {real(a) == real(b) : U.UnionFind}) -> {Sh{sh_n(a), sh_d(a), sh_tr(a), sh_tz(a), sh_tm(a), sh_c(a)} == Sh{sh_n(b), sh_d(b), sh_tr(b), sh_tz(b), sh_tm(b), sh_c(b)} : Sh}:
-  %real_len(a) : {Sh{_, sh_d(a), sh_tr(a), sh_tz(a), sh_tm(a), sh_c(a)} == Sh{sh_n(b), sh_d(b), sh_tr(b), sh_tz(b), sh_tm(b), sh_c(b)} : Sh}
-  %real_depth(a) : {Sh{u_len(real(a)), _, sh_tr(a), sh_tz(a), sh_tm(a), sh_c(a)} == Sh{sh_n(b), sh_d(b), sh_tr(b), sh_tz(b), sh_tm(b), sh_c(b)} : Sh}
-  %real_tr(a) : {Sh{u_len(real(a)), u_depth(real(a)), _, sh_tz(a), sh_tm(a), sh_c(a)} == Sh{sh_n(b), sh_d(b), sh_tr(b), sh_tz(b), sh_tm(b), sh_c(b)} : Sh}
-  %real_tz(a) : {Sh{u_len(real(a)), u_depth(real(a)), u_tr(real(a)), _, sh_tm(a), sh_c(a)} == Sh{sh_n(b), sh_d(b), sh_tr(b), sh_tz(b), sh_tm(b), sh_c(b)} : Sh}
-  %real_tm(a) : {Sh{u_len(real(a)), u_depth(real(a)), u_tr(real(a)), u_tz(real(a)), _, sh_c(a)} == Sh{sh_n(b), sh_d(b), sh_tr(b), sh_tz(b), sh_tm(b), sh_c(b)} : Sh}
-  %real_cnt(a) : {Sh{u_len(real(a)), u_depth(real(a)), u_tr(real(a)), u_tz(real(a)), u_tm(real(a)), _} == Sh{sh_n(b), sh_d(b), sh_tr(b), sh_tz(b), sh_tm(b), sh_c(b)} : Sh}
-  %real_len(b) : {Sh{u_len(real(a)), u_depth(real(a)), u_tr(real(a)), u_tz(real(a)), u_tm(real(a)), u_cnt(real(a))} == Sh{_, sh_d(b), sh_tr(b), sh_tz(b), sh_tm(b), sh_c(b)} : Sh}
-  %real_depth(b) : {Sh{u_len(real(a)), u_depth(real(a)), u_tr(real(a)), u_tz(real(a)), u_tm(real(a)), u_cnt(real(a))} == Sh{u_len(real(b)), _, sh_tr(b), sh_tz(b), sh_tm(b), sh_c(b)} : Sh}
-  %real_tr(b) : {Sh{u_len(real(a)), u_depth(real(a)), u_tr(real(a)), u_tz(real(a)), u_tm(real(a)), u_cnt(real(a))} == Sh{u_len(real(b)), u_depth(real(b)), _, sh_tz(b), sh_tm(b), sh_c(b)} : Sh}
-  %real_tz(b) : {Sh{u_len(real(a)), u_depth(real(a)), u_tr(real(a)), u_tz(real(a)), u_tm(real(a)), u_cnt(real(a))} == Sh{u_len(real(b)), u_depth(real(b)), u_tr(real(b)), _, sh_tm(b), sh_c(b)} : Sh}
-  %real_tm(b) : {Sh{u_len(real(a)), u_depth(real(a)), u_tr(real(a)), u_tz(real(a)), u_tm(real(a)), u_cnt(real(a))} == Sh{u_len(real(b)), u_depth(real(b)), u_tr(real(b)), u_tz(real(b)), _, sh_c(b)} : Sh}
-  %real_cnt(b) : {Sh{u_len(real(a)), u_depth(real(a)), u_tr(real(a)), u_tz(real(a)), u_tm(real(a)), u_cnt(real(a))} == Sh{u_len(real(b)), u_depth(real(b)), u_tr(real(b)), u_tz(real(b)), u_tm(real(b)), _} : Sh}
-  Equal.cong(U.UnionFind, Sh, s => Sh{u_len(s), u_depth(s), u_tr(s), u_tz(s), u_tm(s), u_cnt(s)}, real(a), real(b), e)
+# A runtime structure determines its shadow: `back` reads the shadow off a
+# structure (freezing its arenas) and undoes `real`.
+def back(s: U.UnionFind) -> Sh:
+  match s:
+    case U.UF{n, d, r, z, m, c}:
+      Sh{n, d, A.freeze(U.Nt, r), A.freeze(U.Nt, z), A.freeze(U.Ms, m), c}
+
+def back_real(+sh: Sh) -> {back(real(sh)) == sh : Sh}:
+  match sh:
+    case Sh{+n, +d, +tr, +tz, +tm, +c}:
+      %Equal.sym(A.Tree<U.Nt>, A.freeze(U.Nt, A.thaw(U.Nt, tr)), tr, A.freeze_thaw(U.Nt, tr)) : {Sh{n, d, _, A.freeze(U.Nt, A.thaw(U.Nt, tz)), A.freeze(U.Ms, A.thaw(U.Ms, tm)), c} == Sh{n, d, tr, tz, tm, c} : Sh}
+      %Equal.sym(A.Tree<U.Nt>, A.freeze(U.Nt, A.thaw(U.Nt, tz)), tz, A.freeze_thaw(U.Nt, tz)) : {Sh{n, d, tr, _, A.freeze(U.Ms, A.thaw(U.Ms, tm)), c} == Sh{n, d, tr, tz, tm, c} : Sh}
+      %Equal.sym(A.Tree<U.Ms>, A.freeze(U.Ms, A.thaw(U.Ms, tm)), tm, A.freeze_thaw(U.Ms, tm)) : {Sh{n, d, tr, tz, _, c} == Sh{n, d, tr, tz, tm, c} : Sh}
+      {==}
 
 def real_inj(+a: Sh, +b: Sh, +e: {real(a) == real(b) : U.UnionFind}) -> {a == b : Sh}:
-  Equal.trans(Sh, a, Sh{sh_n(a), sh_d(a), sh_tr(a), sh_tz(a), sh_tm(a), sh_c(a)}, b,
-    sh_eta(a),
-    Equal.trans(Sh, Sh{sh_n(a), sh_d(a), sh_tr(a), sh_tz(a), sh_tm(a), sh_c(a)}, Sh{sh_n(b), sh_d(b), sh_tr(b), sh_tz(b), sh_tm(b), sh_c(b)}, b,
-      real_inj_parts(a, b, e),
-      Equal.sym(Sh, b, Sh{sh_n(b), sh_d(b), sh_tr(b), sh_tz(b), sh_tm(b), sh_c(b)}, sh_eta(b))))
+  Equal.trans(Sh, a, back(real(a)), b,
+    Equal.sym(Sh, back(real(a)), a, back_real(a)),
+    Equal.trans(Sh, back(real(a)), back(real(b)), b,
+      Equal.cong(U.UnionFind, Sh, s => back(s), real(a), real(b), e),
+      back_real(b)))

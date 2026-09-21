@@ -1,4 +1,5 @@
 import Base
+import ./pow2.bend as P2
 import ../types/bitset.bend as E
 
 # Packed fixed-size bitset over native Base.Array.
@@ -239,9 +240,28 @@ def clear(s: Bitset, +i: Nat) -> Bitset & Result<&2, &2, E.Error, Unit>:
 # ---- whole-array walks ----
 
 # Sum of the populations of words q, q+1, ... (m of them).
-def count_add(p: Array<Wd> & U32, acc: Nat) -> Array<Wd> & Nat:
-  (a, w) = p
-  (a, Nat.add(acc, word_count(32n, w)))
+# Eight bits per iteration: word_count_t unrolled (the same shifts and adds).
+def bv8(+w: U32) -> Nat:
+  Nat.add(bit_value(low(w)), Nat.add(bit_value(low(U32.shr(w))), Nat.add(bit_value(low(U32.shr(U32.shr(w)))), Nat.add(bit_value(low(U32.shr(U32.shr(U32.shr(w))))), Nat.add(bit_value(low(U32.shr(U32.shr(U32.shr(U32.shr(w)))))), Nat.add(bit_value(low(U32.shr(U32.shr(U32.shr(U32.shr(U32.shr(w))))))), Nat.add(bit_value(low(U32.shr(U32.shr(U32.shr(U32.shr(U32.shr(U32.shr(w)))))))), bit_value(low(U32.shr(U32.shr(U32.shr(U32.shr(U32.shr(U32.shr(U32.shr(w))))))))))))))))
+
+def word_count_8(k: Nat, +w: U32, +acc: Nat) -> Nat:
+  match k:
+    case 0n:
+      acc
+    case 1n+p:
+      word_count_8(p, U32.shr(U32.shr(U32.shr(U32.shr(U32.shr(U32.shr(U32.shr(U32.shr(w)))))))), Nat.add(acc, bv8(w)))
+
+# A zero word contributes nothing and is skipped.
+def count_word(+w: U32, +acc: Nat, zero: Bool) -> Nat:
+  match zero:
+    case True{}:
+      acc
+    case False{}:
+      word_count_8(4n, w, acc)
+
+def count_add(p: Array<Wd> & U32, +acc: Nat) -> Array<Wd> & Nat:
+  (a, +w) = p
+  (a, count_word(w, acc, U32.is_eq(w, 0)))
 
 def count_go(m: Nat, p: Array<Wd> & Nat, +d: Nat, +q: Nat) -> Array<Wd> & Nat:
   match m:
@@ -258,13 +278,32 @@ def count_fin(p: Array<Wd> & Nat, +n: Nat, +d: Nat) -> Bitset & Nat:
 def count(s: Bitset) -> Bitset & Nat:
   match s:
     case BS{+n, +d, a}:
-      count_fin(count_go(pow2(d), (a, 0n), d, 0n), n, d)
+      count_fin(count_go(P2.pow2t(d), (a, 0n), d, 0n), n, d)
 
 # Indices of set bits, ascending. Walks the words from the last to the first
 # so the list is built in ascending order without an append.
+# The members of one word, by two TAIL loops: the set offsets are pushed in
+# DESCENDING order onto a scratch list (low bit first), which is then
+# reversed onto rest -- the same list word_members builds, without its
+# non-tail recursion.
+def word_desc(m: Nat, +w: U32, +off: Nat, acc: List<&2, Nat>) -> List<&2, Nat>:
+  match m:
+    case 0n:
+      acc
+    case 1n+p:
+      word_desc(p, U32.shr(w), 1n+off, member_pick(low(w), off, acc))
+
+# A zero word has no members and is skipped.
+def members_word(+w: U32, +off: Nat, rest: List<&2, Nat>, zero: Bool) -> List<&2, Nat>:
+  match zero:
+    case True{}:
+      rest
+    case False{}:
+      List.reverse.go(&2, Nat, word_desc(32n, w, off, Nil{}), rest)
+
 def members_cons(p: Array<Wd> & U32, +off: Nat, rest: List<&2, Nat>) -> Array<Wd> & List<&2, Nat>:
-  (a, w) = p
-  (a, word_members(32n, w, off, rest))
+  (a, +w) = p
+  (a, members_word(w, off, rest, U32.is_eq(w, 0)))
 
 def members_go(m: Nat, p: Array<Wd> & List<&2, Nat>, +d: Nat) -> Array<Wd> & List<&2, Nat>:
   match m:
@@ -281,7 +320,7 @@ def members_fin(p: Array<Wd> & List<&2, Nat>, +n: Nat, +d: Nat) -> Bitset & List
 def to_list(s: Bitset) -> Bitset & List<&2, Nat>:
   match s:
     case BS{+n, +d, a}:
-      members_fin(members_go(pow2(d), (a, Nil{}), d), n, d)
+      members_fin(members_go(P2.pow2t(d), (a, Nil{}), d), n, d)
 
 # ---- binary operations ----
 
@@ -347,7 +386,7 @@ def zip_fin(p: Array<Wd> & Array<Wd>, +n: Nat, +d: Nat, +m: Nat, +e: Nat) -> Bit
 def combine_if(ok: Bool, +k: WordOp, +n: Nat, +d: Nat, a: Array<Wd>, +m: Nat, +e: Nat, b: Array<Wd>) -> Bitset & Bitset & Result<&2, &2, E.Error, Unit>:
   match ok:
     case True{}:
-      zip_fin(zip_go(pow2(d), (a, b), k, d, 0n), n, d, m, e)
+      zip_fin(zip_go(P2.pow2t(d), (a, b), k, d, 0n), n, d, m, e)
     case False{}:
       (BS{n, d, a}, BS{m, e, b}, Fail{E.LengthMismatch{}})
 

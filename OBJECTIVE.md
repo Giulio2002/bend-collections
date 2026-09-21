@@ -206,3 +206,12 @@ The <=2.5x optimized same-algorithm C requirement remains for EVERY required row
 Retain current array-migration work and proofs; use targeted benchmarks during
 changes and complete full gates at meaningful milestones. Continue incomplete
 work immediately instead of treating a checkpoint as completion.
+
+
+# User correction: reject lazy initialization
+
+The user explicitly rejects lazy initialization as an optimization direction. This supersedes prior experimentation with lazy constructors. Do not optimize constructor scores by returning a deferred placeholder and charging initialization/allocation to the first operation.
+
+Remove deferred-initialization variants recently introduced for union-find, graph and doubly linked list; inspect other structures for the same pattern. Constructors must establish the normal usable representation immediately, with required initial storage initialized. Preserve conventional capacity growth on later insertions; this does not require allocating maximum future capacity in an empty structure. Optimize actual constructor work, not movement of that work out of its benchmark.
+
+Preserve valid unrelated improvements (ring buffers, branchless segment-tree access, bitset, Fenwick, efficient native indexed storage). Repair and check proofs for the final eager representation. Archive useful experimental evidence with accurate labels; lazy-only speed claims cannot count as acceptance. Keep original optimized C references, workloads and 2.5x limits unchanged; do not replace them with lazy C twins to claim success. Include constructor-plus-first-use and mixed-operation checks to detect hidden deferred costs. Existing capacity, type/helper proof gaps and every remaining structure remain part of the objective. Continue all missing implementation, proofs and performance work; no early stop after reverting lazy paths.

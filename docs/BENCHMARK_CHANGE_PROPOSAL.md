@@ -259,3 +259,122 @@ presented as a baseline anywhere. The 18 pinned files are unchanged.
      node against about 1 ns in C). An arena red-black tree would move the
      reads to indexed `Base.Array` loads, which are at parity with C, but it
      means re-proving the whole tree.
+
+## Worker notes, iteration 0011
+
+1. **deque / queue are ring buffers now; supplemental C twins proposed.**
+   `src/deque.bend` was a drifting window (pops moved `lo`, a push doubled the
+   block whenever the window touched its end, so memory followed the lifetime
+   number of pushes and the trace law carried `1 + 2(P + pushes) < 2^q`). It
+   is now a true ring buffer: element j in slot `wrap(lo + j)`, growth (an
+   in-order copy into a block twice as large, `lo = 0`) only when
+   `len == cap`, unboxed `Array<T>` slots (no `Maybe` per slot), no block
+   until the first push. Proofs re-established from scratch
+   (`proofs/deque/{ring,state,grow,stepok,reads,pushes,steps,trace}.bend`,
+   `proofs/queue/{steps,trace}.bend`); the only premise is on the PEAK size
+   (`pushok`/`fits`: every push happens while the deque holds fewer than 2^q
+   elements, q <= 31). The old sources/proofs are archived as
+   `docs/archive/*drifting_window*`.
+
+   The pinned `benchmarks/native/deque.c` / `queue.c` implement the old
+   window. Proposal: add `benchmarks/experiments/deque_ring.c` and
+   `benchmarks/experiments/queue_ring.c` (same driver contract, same ring
+   algorithm, arena slots, `memcpy` in two pieces on growth, branch-free
+   modular index) as the references of the `deque.*` / `queue.*` rows, and
+   keep the old files for provenance. Verified: Bend, the ring twin and the
+   pinned reference produce IDENTICAL checksums for every deque and queue
+   selector at sizes 0, 64 and 4096 (the observable behaviour did not
+   change). Until the operator decides, the gate keeps measuring against the
+   pinned files, and BENCHMARKS.md reports those numbers; timings against
+   the twins are in docs/C_EQUIVALENCE.md as supplemental evidence only.
+2. **Driver structure affects clang's inlining (a harness-side finding on
+   the Bend drivers only).** Every Bend def compiles to one `static inline` C
+   function; clang inlines one only while it has a single caller. A step
+   helper shared by two measured loops (for example `do_pb` in both the push
+   loop and the push/pop pair loop) was compiled out of line in both, and the
+   push row doubled (2.3 -> 4.8 ns). The Bend drivers now give every library
+   operation one call site (merged loops with per-loop flags), and count
+   lists with a tail loop (Base's `List.length` is not a tail recursion).
+   The C references are untouched. Separately, the drivers parsed argv into
+   a shared (`+`) `List<String>`; the runtime reference-counts EVERY node of
+   a type that is shared anywhere in the program, so that one shared list
+   made each cons of `to_list`/`range`/`prefix_entries` pay an extra
+   reference-count cell (deque to_list 4.5x -> 1.6-2.4x once argv is parsed
+   into scalars, `benchmarks/bend/common.bend` `Args`). Both are changes to
+   the editable Bend drivers only; the measured operations, counts, value
+   streams and checksums are unchanged (checksums verified equal).
+
+## Proposal (iteration 0014): prefix_trie rows measure Base String construction
+
+**Status: proposal only. No canonical file is changed. The pinned rows keep
+being reported as they are.**
+
+### Measured finding
+
+Every `prefix_trie.*` row is dominated by building the 10-character key, not by
+the trie. The key is a `Base` `String`, a cons list of `Chr`: ten characters are
+twenty heap cells. The pinned `benchmarks/native/prefix_trie.c` builds the same
+key with ten stores into a `uint32_t key[10]` stack array.
+
+Evidence (tools/dev/qrows.py, ns per operation, best of three alternating runs;
+the Bend variant is the driver with the `contains` call replaced by folding the
+key into the checksum, so the trie does no work at all):
+
+| what | Bend | C (complete operation) |
+|---|---|---|
+| `contains` edge-empty (empty trie) | 96.4 | 1.13 |
+| key construction only, edge-empty | 99.6 | (C's whole op: 1.45) |
+| `contains` small | 212.0 | 24.6 |
+| key construction only, small | 87.3 | (C's whole op: 26.8) |
+| 10-char key built and folded, no trie in the program (`benchmarks/experiments/key/keycost.bend`) | 30 ns/key | ~1 ns/key |
+
+On the empty-trie rows the Bend program spends ~99 ns building and freeing a key
+while the C program spends ~1.4 ns on the *entire* operation; the trie
+contributes nothing to that row.
+
+### Why this is not an implementation defect we can optimise away
+
+* The objective requires String/Char keys for the trie, and the operator rule
+  forbids reimplementing native String.
+* Building the key is *input generation*, which the performance contract says
+  must be "excluded from operation timings symmetrically". The pinned harness
+  builds it inside the timed region, where it costs ~1 ns in C and ~30-100 ns
+  in Bend, so the row does not compare the two tries.
+* The avoidable part is already fixed in the driver (the variable `U32.shrn`
+  shift, ~25 one-bit steps per character, is gone; checksums unchanged).
+
+### Requested additive rows (for operator review)
+
+`prefix_trie.<op>.prepared_keys` for insert / lookup / remove / contains /
+prefix_entries / longest_prefix, small / medium / large / edge-empty: identical
+workloads and identical checksums, but the `count` keys of the round are built
+once into a prepared input (a Bend `List<String>` and the same C array of key
+buffers) BEFORE the timed region on both sides, and the measured loop consumes
+one prepared key per operation. The existing rows stay exactly as they are and
+keep being reported.
+
+## Addendum (iteration 0014): the two missing LRU coverage rows
+
+The operator asked the supplemental LRU suite to cover "capacity/set_lifetime/
+metrics and expiry" as well as the isolated destructive operations. Already
+covered by the proposed rows: capacity (selector 9 `new` folds the constructed
+cache's capacity and length, and the rejection code for capacity 0), metrics
+(every round's drain folds the length and both halves of all five 64-bit
+metrics on both sides) and the isolated destructive operations (selectors 10-12
+are restoring pairs; the no-op cases are separate `edge-empty` rows).
+
+Still to add - both drivers take an explicit timestamp per operation, so this is
+deterministic and needs no wall clock:
+
+* `lru.set_lifetime` (new selector 13): sets the cache lifetime to
+  `1 + lcg % 1000` ms and folds the cache's length and capacity, so the call is
+  observable. Small / medium / large / edge-empty.
+* `lru.expiry` (new selector 14): with a lifetime L set once per round, adds key
+  i at stamp s and reads it back at stamp `s + (lcg % 2L)`, so about half the
+  reads are past the deadline; it folds the read result and, in the drain, the
+  removals and misses metrics, which is where an expired read must show up.
+  Small / medium / large / edge-empty.
+
+Both rows would exercise `src/lru/fast.bend` paths the nine contract operations
+do not: `set_lifetime` (the `ttl` flag and the retained `deadline_choose` test)
+and the `Timed{v, dl}` slot form with its deadline comparison on every read.

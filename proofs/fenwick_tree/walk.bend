@@ -1,4 +1,5 @@
 import Base
+import ../lib/pow2t.bend as PT
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
@@ -309,12 +310,8 @@ def add_ok(p: Nat, +cl: List<&2, U32>, +d: Nat, +o: Nat, +i: Nat, +v: U32, left:
 
 # ---- the source's own pow2/dec are the spec's ----
 
-def fpow2(k: Nat) -> {F.pow2(k) == SC.pow2(k) : Nat}:
-  match k:
-    case 0n:
-      {==}
-    case 1n+p:
-      Equal.cong(Nat, Nat, Nat.double, F.pow2(p), SC.pow2(p), fpow2(p))
+def fpow2(+k: Nat) -> {F.pow2(k) == SC.pow2(k) : Nat}:
+  PT.same(k)
 
 def fdec(d: Nat, +j: Nat) -> {F.dec(d, j) == M.dec(d, j) : Bool}:
   match d:

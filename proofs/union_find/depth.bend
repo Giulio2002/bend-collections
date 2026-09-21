@@ -11,13 +11,6 @@ import ../../src/union_find.bend as U
 # That the chosen depth actually holds n elements is the loop's own exit
 # test, carried as the explicit capacity premise of the laws about `new`.
 
-def pow2_same(+d: Nat) -> {U.pow2(d) == SC.pow2(d) : Nat}:
-  match d:
-    case 0n:
-      {==}
-    case 1n+p:
-      Equal.cong(Nat, Nat, Nat.double, U.pow2(p), SC.pow2(p), pow2_same(p))
-
 def depth_go_le(fuel: Nat, +n: Nat, +d: Nat, +cap: Nat, done: Bool, +hd: {Nat.is_le(Nat.add(d, fuel), 31n) == True{} : Bool}) -> {Nat.is_le(U.depth_go(fuel, n, d, cap, done), 31n) == True{} : Bool}:
   match fuel done:
     case 0n _:

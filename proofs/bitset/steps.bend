@@ -1,4 +1,6 @@
 import Base
+import ../../src/pow2.bend as P2
+import ../lib/pow2t.bend as PT
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
@@ -134,7 +136,7 @@ def members_abs(+n: Nat, +xs: List<&2, Bool>, +g: {ST.invf(n, xs) == True{} : Bo
 
 def count_ok(+n: Nat, +d: Nat, +t: A.Tree<B.Wd>, +g: {ST.rep(n, d, t) == True{} : Bool}) -> StepOK(ST.Sh{n, d, t}, E.Count{}):
   (ST.Sh{n, d, t}, (E.ONat{MD.count_words(AR.ws(t))}, (
-    %Equal.sym(Nat, B.pow2(d), SC.pow2(d), DP.pow2_same(d)) : {B.obs_nat(B.count_fin(B.count_go(_, (A.thaw(B.Wd, t), 0n), d, 0n), n, d)) == (ST.real(ST.Sh{n, d, t}), E.ONat{MD.count_words(AR.ws(t))}) : B.Bitset & E.Obs}
+    %Equal.sym(Nat, P2.pow2t(d), SC.pow2(d), PT.same(d)) : {B.obs_nat(B.count_fin(B.count_go(_, (A.thaw(B.Wd, t), 0n), d, 0n), n, d)) == (ST.real(ST.Sh{n, d, t}), E.ONat{MD.count_words(AR.ws(t))}) : B.Bitset & E.Obs}
     %Equal.sym(Array<B.Wd> & Nat, B.count_go(SC.pow2(d), (A.thaw(B.Wd, t), 0n), d, 0n), (A.thaw(B.Wd, t), MD.count_words(AR.ws(t))), LP.count_ok(d, t, ST.rep_lt(n, d, t, g), ST.rep_perfect(n, d, t, g))) : {B.obs_nat(B.count_fin(_, n, d)) == (ST.real(ST.Sh{n, d, t}), E.ONat{MD.count_words(AR.ws(t))}) : B.Bitset & E.Obs}
     {==},
     (g,
@@ -144,7 +146,7 @@ def count_ok(+n: Nat, +d: Nat, +t: A.Tree<B.Wd>, +g: {ST.rep(n, d, t) == True{} 
 
 def tolist_ok(+n: Nat, +d: Nat, +t: A.Tree<B.Wd>, +g: {ST.rep(n, d, t) == True{} : Bool}) -> StepOK(ST.Sh{n, d, t}, E.ToList{}):
   (ST.Sh{n, d, t}, (E.OList{MD.members_words(AR.ws(t), 0n)}, (
-    %Equal.sym(Nat, B.pow2(d), SC.pow2(d), DP.pow2_same(d)) : {B.obs_list(B.members_fin(B.members_go(_, (A.thaw(B.Wd, t), Nil{}), d), n, d)) == (ST.real(ST.Sh{n, d, t}), E.OList{MD.members_words(AR.ws(t), 0n)}) : B.Bitset & E.Obs}
+    %Equal.sym(Nat, P2.pow2t(d), SC.pow2(d), PT.same(d)) : {B.obs_list(B.members_fin(B.members_go(_, (A.thaw(B.Wd, t), Nil{}), d), n, d)) == (ST.real(ST.Sh{n, d, t}), E.OList{MD.members_words(AR.ws(t), 0n)}) : B.Bitset & E.Obs}
     %Equal.sym(Array<B.Wd> & List<&2, Nat>, B.members_go(SC.pow2(d), (A.thaw(B.Wd, t), Nil{}), d), (A.thaw(B.Wd, t), MD.members_words(AR.ws(t), 0n)), LP.to_list_ok(d, t, ST.rep_lt(n, d, t, g), ST.rep_perfect(n, d, t, g))) : {B.obs_list(B.members_fin(_, n, d)) == (ST.real(ST.Sh{n, d, t}), E.OList{MD.members_words(AR.ws(t), 0n)}) : B.Bitset & E.Obs}
     {==},
     (g,
@@ -367,7 +369,7 @@ def comb_at(+k: B.WordOp, +n: Nat, +d: Nat, +t: A.Tree<B.Wd>, +tb: A.Tree<B.Wd>,
     %Equal.sym(B.Bitset, B.from_bools(ys), ST.real(ST.Sh{n, d, tb}), efb) : {B.drop_right(B.combine(k, B.BS{n, d, A.thaw(B.Wd, t)}, _)) == (ST.real(ST.Sh{n, d, ztz(k, d, t, tb)}), Done{Unit{}}) : B.Bitset & Result<&2, &2, E.Error, Unit>}
     %Equal.sym(Bool, Nat.is_eq(n, n), True{}, N.is_eq_refl(n)) : {B.drop_right(B.combine_if(Bool.and(_, Nat.is_eq(d, d)), k, n, d, A.thaw(B.Wd, t), n, d, A.thaw(B.Wd, tb))) == (ST.real(ST.Sh{n, d, ztz(k, d, t, tb)}), Done{Unit{}}) : B.Bitset & Result<&2, &2, E.Error, Unit>}
     %Equal.sym(Bool, Nat.is_eq(d, d), True{}, N.is_eq_refl(d)) : {B.drop_right(B.combine_if(Bool.and(True{}, _), k, n, d, A.thaw(B.Wd, t), n, d, A.thaw(B.Wd, tb))) == (ST.real(ST.Sh{n, d, ztz(k, d, t, tb)}), Done{Unit{}}) : B.Bitset & Result<&2, &2, E.Error, Unit>}
-    %Equal.sym(Nat, B.pow2(d), SC.pow2(d), DP.pow2_same(d)) : {B.drop_right(B.zip_fin(B.zip_go(_, (A.thaw(B.Wd, t), A.thaw(B.Wd, tb)), k, d, 0n), n, d, n, d)) == (ST.real(ST.Sh{n, d, ztz(k, d, t, tb)}), Done{Unit{}}) : B.Bitset & Result<&2, &2, E.Error, Unit>}
+    %Equal.sym(Nat, P2.pow2t(d), SC.pow2(d), PT.same(d)) : {B.drop_right(B.zip_fin(B.zip_go(_, (A.thaw(B.Wd, t), A.thaw(B.Wd, tb)), k, d, 0n), n, d, n, d)) == (ST.real(ST.Sh{n, d, ztz(k, d, t, tb)}), Done{Unit{}}) : B.Bitset & Result<&2, &2, E.Error, Unit>}
     %Equal.sym(Array<B.Wd> & Array<B.Wd>, B.zip_go(SC.pow2(d), (A.thaw(B.Wd, t), A.thaw(B.Wd, tb)), k, d, 0n), (A.thaw(B.Wd, ztz(k, d, t, tb)), A.thaw(B.Wd, tb)), ZP.zip_go_ok(SC.pow2(d), k, d, t, tb, 0n, ST.rep_lt(n, d, t, g), ST.rep_perfect(n, d, t, g), ST.rep_perfect(n, d, tb, gb), N.le_refl(SC.pow2(d)))) : {B.drop_right(B.zip_fin(_, n, d, n, d)) == (ST.real(ST.Sh{n, d, ztz(k, d, t, tb)}), Done{Unit{}}) : B.Bitset & Result<&2, &2, E.Error, Unit>}
     %Equal.sym(Unit, B.dispose(B.BS{n, d, A.thaw(B.Wd, tb)}), Unit{}, ST.dispose_ok(n, d, tb)) : {B.drop_right_go(B.BS{n, d, A.thaw(B.Wd, ztz(k, d, t, tb))}, _, Done{Unit{}}) == (ST.real(ST.Sh{n, d, ztz(k, d, t, tb)}), Done{Unit{}}) : B.Bitset & Result<&2, &2, E.Error, Unit>}
     {==},

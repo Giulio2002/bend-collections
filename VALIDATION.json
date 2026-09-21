@@ -8,6 +8,9 @@
  "failures": [],
  "logs": "build/validation-logs",
  "lru_detail": {
+  "capacity_contract": [
+   "[0, 0, 0, 0, 0, 0]"
+  ],
   "checks": [
    {
     "checked": true,
@@ -38,6 +41,21 @@
     ]
    }
   ],
+  "fast_port_differential": [
+   "constructor mismatches 0",
+   "steps 3000 mismatches 0",
+   "steps 3000 mismatches 0",
+   "steps 3000 mismatches 0",
+   "steps 3000 mismatches 0",
+   "steps 3000 mismatches 0",
+   "steps 3000 mismatches 0",
+   "steps 3000 mismatches 0",
+   "steps 3000 mismatches 0"
+  ],
+  "fast_port_spec_differential": [
+   "[0n, 0n, 0n, 0n, 0n, 0n]"
+  ],
+  "native_differential": "1568 cases, 0 mismatches",
   "smoke": [
    {
     "args": [
@@ -100,20 +118,21 @@
   ]
  },
  "lru_reuse": "passed",
- "seconds": 149.3,
+ "seconds": 505.5,
  "source_sha256": {
-  "END_TO_END.bend": "7607950f4e0153ab13244cb58a9f3b24c1f3d7508065808e96819dddc78291c5",
+  "END_TO_END.bend": "dfc8b548e5019527d3ec83362d58f9a7d3052345d721748a25deec030a69cb1a",
   "PROOF.bend": "5bf861bc1df4ae533707f53f91b7678d1396f13aded4e77ee776e55873582c4f",
   "proofs/balanced_search_tree.bend": "d0b738cfefd082aafd78b896d5fda962bd111c89811a1087c08aa3c454e9e62f",
   "proofs/balanced_search_tree/api.bend": "a58526e7073ed0f6ca0cffa77d79429da6c1f5d000f6160f658111a0c4fccb45",
   "proofs/balanced_search_tree/query.bend": "6fd3681c7dba8950fa09a6a064b7827e99132f75ffceb9dba19bc775f0975a49",
   "proofs/balanced_search_tree/sorted.bend": "8225d3ff71738d6a3b17a4e0237dd3e70dd6e923864729c9e6e7cf4202438b52",
   "proofs/balanced_search_tree/specops.bend": "043c423a38fffd47c779bcbd8e715aae57d4430e94bc1de402e7ed5058259748",
-  "proofs/balanced_search_tree/steps.bend": "d0fb5e9b329f9618a6ff227dee2adcad9e9fb02d454b23b2093f356433e50e77",
+  "proofs/balanced_search_tree/steps.bend": "6b1ce7ffc2d5c4077a66b340668761bf19d78daee6f0e86f363535caaf065a52",
   "proofs/balanced_search_tree/trace.bend": "3a085e5eb8dc5ed9e657067e000fe65cdc487966f0f5e33f56bdfbe6890bd2fc",
   "proofs/balanced_search_tree/tree.bend": "c547168f427940e6d0fd1a401053bac3149fa0efc8d2d04c05470e59cf82badc",
-  "proofs/binary_heap.bend": "4fb0a8449d15332be355a9f43f115e1ab8dff9d5c69e8b09314771356358fb8e",
+  "proofs/binary_heap.bend": "8002366ad8c8d200eb4b239218d38bb7a6cbabc5e16f3168b8a9d32b4a5fb2b1",
   "proofs/binary_heap/bag.bend": "ec6cd13b52b90d03c019d2a32e5bc08ba68fb3669e76b8f053abea4bc0d04dc5",
+  "proofs/binary_heap/budget.bend": "b72e95244da2ae4709fa2105f1ac66746ee3f0d95e322cf82ad9dde052c33e35",
   "proofs/binary_heap/down.bend": "e19f0e4d98a751f1428e3fb7a0093971960e5063547a3f1007518998460e9ca9",
   "proofs/binary_heap/grow.bend": "d595d8da18adb0b7323d63b88795d378ecaca9722d021524b3f6633cfdb14f02",
   "proofs/binary_heap/idx.bend": "aac73d58097135c52a3b0f0733c8093b9906a9d96afcc76e1f8dea53de6f5bd9",
@@ -123,44 +142,66 @@
   "proofs/binary_heap/root.bend": "00a08909a8d0cd814fc68044fe997941b90eba348109e7e22debc349997dd02f",
   "proofs/binary_heap/slots.bend": "4df7bd7f1ace2b5b16205ecf49499aa0eb1a453fa32a1f8b2584e2ef1b2f0e42",
   "proofs/binary_heap/sorted.bend": "6f0cbac230f0bae298e69776d139052a52bd47f1a5e41ee888f4d844720fb87b",
-  "proofs/binary_heap/state.bend": "1768a74866d991666ddebc67adf6d6e76a40bad33656e342f56b647a66e36214",
-  "proofs/binary_heap/steps.bend": "292ba749f9b3f3786ad132913a2977904083c72f497ee977dcc4bae9cea737d1",
-  "proofs/binary_heap/trace.bend": "62f775117aa976fb6e4a3043b3061d8468df5b26889b4eb0206dc94ad509d60d",
+  "proofs/binary_heap/state.bend": "0a2211874aaccfed5f45a575053a29db17321ff6627347724d4baf1bf53e2a56",
+  "proofs/binary_heap/steps.bend": "21698e91463bbc26450ee7d893f4b92ac2060427cd2c9662901183a500c8a490",
+  "proofs/binary_heap/trace.bend": "8c444f358a9d3facad9f1d9058c5bc84ead684656ee38ebf9b906620d93d816b",
   "proofs/binary_heap/u32idx.bend": "7408810342a534a7b4360f120e9445dcfc177fa7ff059a93428ebf0273314d8f",
   "proofs/binary_heap/up.bend": "3be9e54c5216f90e5a228685db9ee13281498910289efbc95793693ac429e5e6",
   "proofs/binary_heap/vals.bend": "899b9ff34e3da8dc43180ca4afbb598982113dc93f4be8366dcda23eb1234c16",
   "proofs/bitset.bend": "46b9a318c8122c777806e16d16597bae38ab7cd699ad200bb4e1a06e9b94e7a4",
   "proofs/bitset/arr.bend": "1ac43c4b6b360b83230b6de4544e771331b80dd1f68f244b55b6ad1be4dac87c",
   "proofs/bitset/depth.bend": "f13dbc782f6ad23ebb201a25d908895988c792504ed6443be6f16cf957f5c13d",
+  "proofs/bitset/fastcount.bend": "38680e540daa6cdbb1837486cb65fe63690b342c8a1fe9a59ac9d040ef17741e",
   "proofs/bitset/index.bend": "179dddbe776335d6db38143e1da3b3dccd35d8c6bf27d2c8f14ae0be8f4c9e5f",
   "proofs/bitset/lists.bend": "ab63a31d1bb7c78491c83c9eb2e1c4d2eaee708bdb85835b754ecd84e24095a4",
   "proofs/bitset/listx.bend": "fb2b74b200293261ba24189fbd11cc2024b9079aa51eeda447a966adf98ff2f7",
-  "proofs/bitset/loops.bend": "d5c3f05d737cb326e0a15a9e834176c452f1a003465f19afeaccb4ae26f5afd7",
+  "proofs/bitset/loops.bend": "27c4a5d54f328f35cbf29c10766e96b5f93e7faaccc0463ffc8a52cf682fa952",
   "proofs/bitset/model.bend": "64b363d59ff52a1e2b4ded0cb0f71b5d527b486485fd1943433fe660232666ec",
   "proofs/bitset/state.bend": "a265d74843ac567bed76d9763eaf56da3c8be0b602007cd72271d570f42113cd",
-  "proofs/bitset/steps.bend": "6daec00a49afb4e102fca4b685d38ed3f4b92852d24d128d83a91ce930384422",
+  "proofs/bitset/steps.bend": "f1830856476ffdc54050a429ba7e4c4b576afa68ef59d4e820ca4fe225572207",
   "proofs/bitset/trace.bend": "24e5e195e9626c7ba944a061498c08956e1a2ae2e2fb7c8376fd29775d67a578",
   "proofs/bitset/walk.bend": "225e1c95ae7ea7489b05fb57c8f8d27130131198893710b6be85afd1f7e85d6a",
   "proofs/bitset/word.bend": "10497f09a8f3d51a508d2d1f4aeffcb8f953bec5b3e5cd691ed1a00e51fac73b",
   "proofs/bitset/zip.bend": "da6b9e3fa5b9629aa557642a54ffdda74b13f2ef1a521bd184de7a67371a45e8",
-  "proofs/deque.bend": "dbfe0c5485e985ed8e314ea98228f4d6877d223306c516a3c726efde5bf6a8b7",
-  "proofs/deque/closed.bend": "3679f4a1ffe26a48b227eb73c5e7c848cd5b18db30bf8d782d42dedbf1dce310",
-  "proofs/deque/init.bend": "4a9409304b253c9946b72cbeb505d44e185318bdfb41935eefeee59e16076eff",
-  "proofs/deque/layout.bend": "ae81a4a634cfd453dd1c909db964316f4ea62357f959bf9db82c643c2fb8c293",
-  "proofs/deque/state.bend": "38c6e87c17281cfeeaacd71c4fc3af28f6a8214d90afec0834ebcd1762f1e32d",
-  "proofs/deque/steps.bend": "ef3bdadd6832fab57db5fd8297023b174acdbea7c690828f42c564e299d1fcd4",
-  "proofs/deque/trace.bend": "9e8b9e535cd2677bdff77f83bc965c9f9ce8ec54e7ea1fb3d439a0c2d421f2dd",
-  "proofs/deque/walk.bend": "8b446ea9c45d43930b684b567ff67ee549c6ba03d7e60805540532a55fd93b0a",
-  "proofs/doubly_linked_list.bend": "cd6c06e41d924fe402f51ac7c5681aa85f9d54d91cf6664a1c48ce8fe55c5d06",
-  "proofs/doubly_linked_list/cores.bend": "041828815e8f09cb44d57630bd6bbe5df0df6860180924aba6e581cc518f9aab",
-  "proofs/doubly_linked_list/cut.bend": "f282799aa9d02cee1ffeceee88fc2c5a186ca725844fccfc6bedca7529b59cc5",
-  "proofs/doubly_linked_list/facts.bend": "bb17f609ee27b4a031db36bf180497075009ff0d10db4ab21fe1f330d7195440",
-  "proofs/doubly_linked_list/links.bend": "03f4d2d1cbc44737bd22c5c42fefbb195820197e418c148b529460777fa35b36",
-  "proofs/doubly_linked_list/nodes.bend": "cb5529976ddbb80991e66c94db2f3819933fdc375b976c1f24c66a909293a24e",
-  "proofs/doubly_linked_list/steps.bend": "3131ca530452835b688eb42ae829082649b596a7d721fbfbcf5f01a196799233",
-  "proofs/doubly_linked_list/trace.bend": "8ff6c9fcef8462c944a0003db0b1e98971e3975fb296e57f66e904248aa8cac1",
-  "proofs/dynamic_array.bend": "3a4658d8e6aa1405858c94cf4018dc864b36488ce911d9291e54d85a56d6c5c7",
-  "proofs/dynamic_array/closed.bend": "bd1ca92e16bf0f86aecf679aa6d6ff7be24fa7b9192007e6fed7d497c43659f6",
+  "proofs/deque.bend": "c3dd2a38a2d678dbfb6091a5d5d29e5a3e429998307b24027edf9281fe6190a6",
+  "proofs/deque/grow.bend": "acd3386afa07598da270840bdc763b675aaa498dbb855c6d0f4bac9ecf2491b6",
+  "proofs/deque/inst.bend": "aefeb6ac40e331b7cf183824a259240b7acee309c9ed0b8e8426533c9e098413",
+  "proofs/deque/pushes.bend": "395546dac515d72bbbf6fc58633a5b570ec0ee248ca3256cf2ffc0d023c670f1",
+  "proofs/deque/reads.bend": "08f543b51b3af348961cf25ad9e400eab1aa7b6a7ddaa00228b3c3b5ecc2f9e9",
+  "proofs/deque/ring.bend": "9b4a608ca56f6cecf254ad6afde7f175b257c9cfc411ea1ecb19f995a58c2bfa",
+  "proofs/deque/state.bend": "e49697b94f51ffbf204b3b44ec2c5243d43c39f19f508778a829076c3cc5d6c6",
+  "proofs/deque/stepok.bend": "ee40b72f32ea385ad24f480c9651ff0a1f8f8acf697f3ae568895daece083a62",
+  "proofs/deque/steps.bend": "458e4218cfe8f751392d7b3df5cd02f7bffba5dcd3e9d29c78b1c5541e48bd44",
+  "proofs/deque/trace.bend": "a7d9e17900708043206b2445d6d5d1667c96a571a1374da62612dc735ece9fca",
+  "proofs/dlist/alive.bend": "0ed68e0065dae0a20d60a2f5eec776921c5097522c39c1bab5d84e691c8482cb",
+  "proofs/dlist/core.bend": "16462776c691054d0aa23e73913694aa9e41f4bd808a3ecf6b5d1b8eeba30577",
+  "proofs/dlist/facts.bend": "f5d35e0b543c55073a3da634183115b867e70cc14ffb611d4a8700194be646a5",
+  "proofs/dlist/grow.bend": "fe9ee53a947379337fd4de2516dd9528df6501d82fd3bf61cee035e31237b1ec",
+  "proofs/dlist/ibcore.bend": "fff6b0216011e8250c42557e326944a185dedad480d2fba5187b8d4465d198ae",
+  "proofs/dlist/insert.bend": "d5e8c62b01a3e4cac319e7a62d18bff7280b2f780a94e08735df5cf9dd1acb2f",
+  "proofs/dlist/insfacts.bend": "e56dd8b3e1afe17108cd338a3fce6d2aff057f86543d29c8b32dfa5f7ecc14d7",
+  "proofs/dlist/insitems.bend": "ca888e55000a3d0e59d4ba619c1d0a61a687801a90b171f7c7fa4db445e6260f",
+  "proofs/dlist/inslk.bend": "b2b43ba0f9c6d0e2a52ed07a1f5abd5907c3fdaee3c0f0feaae3d0ee90ef03b0",
+  "proofs/dlist/insops.bend": "eec577dc4ef2a5a496608714b43d2506168fa59818c8cf39efa2d1a820c0798c",
+  "proofs/dlist/inst.bend": "1e2bd97223e3b15fe2bda70addec65a106381db390171c20cc9be90c740fb597",
+  "proofs/dlist/items.bend": "e6af7fdef95c5250be68f641cbc6b1dd58684b6814ee401518ddfb8b84595da1",
+  "proofs/dlist/links.bend": "e95b9dd68b7629cf52a001303d6e1064f2477c2bb2722d602078384ca9a31ca7",
+  "proofs/dlist/mu0.bend": "22c22e40456bbb9fa85e260fad0c25ee2d36c24c8b4e465594fc7bc94b03db9d",
+  "proofs/dlist/mut.bend": "66e440b0b6730212a06d147848065a9e2872d4ae907b3f50b49f3acfc128b577",
+  "proofs/dlist/nbrs.bend": "82716d3f58272f3e24ed67de58441b6a673bbab5a880329e3b8e739fc0a5a873",
+  "proofs/dlist/reads.bend": "45977a3b92faa1edd4664ec68bc2ebbd129eccee5ecd247eb2c270bc9e41f80d",
+  "proofs/dlist/retarget.bend": "a1a2c68f1c5929cc4cdc348fbb8848288f040ed32189cd2c4be3f06e9fad3594",
+  "proofs/dlist/rm.bend": "49740b5ec835dbef9446509e95efc0abdb7695d39f34b5d760e209d137af920c",
+  "proofs/dlist/rmfacts.bend": "e2cde83439d1baa7d50748690933f1cba9854f329c248242ebc7369806c62e1d",
+  "proofs/dlist/split.bend": "09bd3de563852a648dddab90213a6ca9412171df7d9f09317a6f5e8a7f4db55e",
+  "proofs/dlist/state.bend": "3ed4e58411253d5fc5d990b2a2237353266efa6947fd99acdd85c9a5bf58f355",
+  "proofs/dlist/tolist.bend": "431b0ed29a13574219aed51685dce4dc8c2f83ff22750bc27104d86e4efd1915",
+  "proofs/dlist/trace.bend": "00bf9a99ec0eb8d9aec4593844f793c1223ddb082747f0c03188577a7f59618c",
+  "proofs/dlist/tset.bend": "4834f47ffe858446f59233ea0ce1be7838f2c208b63e2b713c7e7215945d2408",
+  "proofs/doubly_linked_list.bend": "dd2e65d1635fc5e242b1220a253846e89d02856df07f6de7fe1f497daa4150ad",
+  "proofs/dynamic_array.bend": "db4ce3c1ae5bc1bcf0de44e2f336ebb3f8f5cf9c9c20d325d815577f49b36025",
+  "proofs/dynamic_array/clear.bend": "8632abb5dcb497a106931ce73f7bbca7808cc89e637146d5389d179e8303ef3c",
+  "proofs/dynamic_array/closed.bend": "549b27ab7eba23a795cdb2b01c7eeb12311b7077cae8b4e3971e3301cb528ec2",
   "proofs/dynamic_array/growth.bend": "734f01aa5d9930e1b7306256236e3cb1d41316605bcb66cfeb06cfb64c70eae3",
   "proofs/dynamic_array/layout.bend": "a94f7894e78b31cf455af8ac0bfde365730f60037cb83665ea09c2d433913845",
   "proofs/dynamic_array/state.bend": "c6948de352402c95a79dcedd4cc92f42bc54961d3df273a618dfdc195ffd4e98",
@@ -170,60 +211,151 @@
   "proofs/fenwick_tree.bend": "be8ffc6af306db031acc32a95c196234d28b3d5b8e3f3e8905a170b6c570fd03",
   "proofs/fenwick_tree/arr.bend": "5982df2be627ae9196b8b6abd4f402dc093573fd8ee2b4a4127eab0cdf98e21d",
   "proofs/fenwick_tree/depth.bend": "d62fb48c2fcac9bc6d9a80bbd6ada268719c4087bdcb147c4035f76eca373c86",
-  "proofs/fenwick_tree/init.bend": "f73554b266e222bc0765f0e0c211de4adab76849a8a6347cef309157f67c965b",
+  "proofs/fenwick_tree/init.bend": "ac33a1dc3891e84011884f3a294346d5681e6acbf7552db378055a89e2ae1c47",
   "proofs/fenwick_tree/model.bend": "09e861ebbd5eb019b6e725a0968a2306b4892c74ceae8814f7cb3922c9f848b2",
   "proofs/fenwick_tree/state.bend": "dfcf990eba6ce85403d3949fa22d6cbf2b87ad551523d2bd6a61e10f7e61b859",
   "proofs/fenwick_tree/steps.bend": "aba4c4f146e1b99febba49582a131a34e4e0d9579b60d1b242a406b26bc9d445",
   "proofs/fenwick_tree/trace.bend": "1b52932577f6806b2469ca063f0a4f3f74874f52e7deea310e1a912b88e9589b",
   "proofs/fenwick_tree/tree.bend": "33fc5cd297cc19338305043c6d2cc8ac90c80c9a987ebd1b3d91c7cd44eb74e8",
-  "proofs/fenwick_tree/walk.bend": "9c9a7096c5dbe3fd8440b6b3e2f47b3bf446bc68187c22f42a3d44624afb975c",
-  "proofs/graph.bend": "1a492b7309ce3697314006f0c920f5d2abcfa2a04a3a3fcce2b6dc697d096998",
+  "proofs/fenwick_tree/walk.bend": "2fe11fc545883fc52681ffdd0d92ef3177eaec610b5985a7f4a501bd31ed19d3",
+  "proofs/graph.bend": "6e8cbd89af134deb2b667a03c90c9b02a70001fd41d3683b30b2430a3dad16f5",
+  "proofs/graph/addedge.bend": "915a6e89357757589106d6790ba6114b8155033e44092d9646dcada493c9a976",
+  "proofs/graph/addv1.bend": "e697485f2d50335e6f51428c99e2ab8912baecbf0c70da06f51c9989879e323a",
+  "proofs/graph/addv2.bend": "f7fd7dce0dfeb16bc7230604f62fb91fc74f12bfd8d11a032c4cac7efd57df0c",
+  "proofs/graph/addv3.bend": "8c4627bfcf71f13477976fca8f82770415534f556fe2b44eeaf4712b645a8fbc",
+  "proofs/graph/asc.bend": "f7971e5a4cde6e6fd7c415c6caa8e61dc6a3b7057297e16b53ab5802ebf6d96e",
+  "proofs/graph/ashift.bend": "c98034ac7e3cf253044dfe0353a2b6878c4578a9a787adc709eb5b7367175cc6",
+  "proofs/graph/blk.bend": "e90108d539ebdfc43eb9e60e4227ee38466142f50418f37b14387446522ed270",
+  "proofs/graph/blkops.bend": "b22a2352333224a50ced990415185cae897164bbb8506df4f5f161517eb2678e",
+  "proofs/graph/edge.bend": "bec5aec3a4d3df2738991bbdff52e4b523b77cf47f0cb600c30aa0619a7e6788",
+  "proofs/graph/edges.bend": "242a788f0b631cc4aa6464a642b33d84aaed7ada82134e381d48d201bc46f072",
+  "proofs/graph/eops.bend": "313fe4e9a75ac7094142715b88671c45f07397b7e020d38bc6cbaefe3ea104b7",
+  "proofs/graph/ext.bend": "36a3f7a269201c96789322e014d9b6ebe7fab2781dba56d7c53a204decbc4e74",
   "proofs/graph/fmap.bend": "adc77d302c66d86cf93c719f490a2a4cbc5de3c5d0a6539d71f0dfc55f25ee2a",
-  "proofs/graph/model.bend": "0b6713394c450520d8bcc226034c4cca660f314a07edd87a57f305c4c60e0aab",
-  "proofs/graph/steps.bend": "768bfc9dfbbb81be673947a8db835cbbccc8f8aa27878f86b74a203ba95364f3",
-  "proofs/graph/trace.bend": "978be36ca1345469d770bbaa23e6fc895ed4292307a86f42d364e55305ed5348",
+  "proofs/graph/gstep.bend": "8ecb5f2864ebfb277bfca152896f58b97c37a0db27e3a3c98a6ed3f21e0a3837",
+  "proofs/graph/gtrace.bend": "57c91dda19b83b67942d94f546965b8fd6094e12c991cafcb759bbad5ed76883",
+  "proofs/graph/lb.bend": "4db24588bbd9f1122e337d17980168664a3c1836a2b0e80524fb7de3a75c9a6e",
+  "proofs/graph/lists.bend": "a5b5bac01c843349017d13936e300734af0fa72c3020fc8d064513e1f157e147",
+  "proofs/graph/nbrops.bend": "b5d2cc9c16cd94feb866bd33e6751237fabcef86d0c955fc9c3cf8492221509e",
+  "proofs/graph/nbrs.bend": "04c4a82ed9aed8f54002225f6f16e11af17b7888fe2e108cec0a7a48b6e5a9d8",
+  "proofs/graph/ops.bend": "e3ff9e54ed78e0044f107e9b92fffc3f14a20fce9fd59cc8861db16861d06c65",
+  "proofs/graph/rmedge.bend": "d7716005df23d3148335a6fa9e181dbf12b89a420c48479dce516d14df636ae0",
+  "proofs/graph/rmv1.bend": "b4635f06512eecbb512c2950dc65c260df6e58f08cce8555885f4e69cd35f32a",
+  "proofs/graph/rmv2.bend": "3f9a0c333e7f9211c1f07a0ec2e7f037f42dd151de13d998c3206c78b2ca0a99",
+  "proofs/graph/rmv3.bend": "cafb9a5cda73894a3d16a9081fd6bfe7633692b506558b0e4a37113222ef2bc0",
+  "proofs/graph/search.bend": "e7ae5fe860df643cdbb2bded26c33dec77611302c8dad7437150c25a35ff78fa",
+  "proofs/graph/shift.bend": "5139c697c919233062d58fc9879940b20202211634e306c2f42bd5c5ceeb0b5a",
+  "proofs/graph/state.bend": "1154d715e7faaf9927df6ace00c41d63bfebfc3bb8669cbfa3e6b20eebb74871",
+  "proofs/graph/ucore.bend": "282d838ef6f11778fb300d3f680360d89e54de3cfc75bd2d37f7a3b9d42dca34",
   "proofs/graph/wf.bend": "ba379e24a7a0c9aafbbae6788bdd4f532fe382df917fa3abc932a2311284424f",
   "proofs/graph/wfops.bend": "ba835132b31c9eaf4afdf466e4f1c0051dbaa619be22c70d59d8ab5863a850cb",
+  "proofs/graph/window.bend": "8f1090278aaf5683d69389769cf57d5abcfa175fb5fca7e29aab746e89d6c4d2",
+  "proofs/graph/zip.bend": "832c15d43e0548343668a1eb76e8fc9d7cb93566ae2dabd5f9555c4d8fc34253",
   "proofs/lib/array.bend": "221a395c504dbcf1278c6d1237c9231ed93b4435c8a9ae0b69c05f90bf7cfeff",
+  "proofs/lib/array2.bend": "252a59b30f5bfcabbce80b49326b62e2c12a3719cd7fb147805590d30b5369b0",
+  "proofs/lib/array_ext.bend": "7f0a82d9e3f9079eac994a170104590d1f730ac7c671eaf32f2eb7814aa60389",
   "proofs/lib/flat.bend": "432b9d6901f75fbff7c9350742cbb56aec201d2def7c8390ff44858f262cf9bb",
   "proofs/lib/list.bend": "7128c11c38d0a5c1e9df85690df43cb186300718d4c46b45b854a3631c765f81",
   "proofs/lib/logic.bend": "3dc41a98af068579ea83a1132b5a2d6bbb1edde1f1dd774253c3683a06a82ad5",
   "proofs/lib/nat.bend": "c707f24b9414132db278870c317e264db56e891502a761305c07ab0d2c8ac994",
   "proofs/lib/order.bend": "0ce2e43c96a5162824aadb176fa16195ea7167a6672e92e2185d156d7b8d753c",
+  "proofs/lib/pow2t.bend": "4c05679e6aaf2a253edd882169251366645c3f39a8bb82e7279c3665b8d2a88a",
   "proofs/lib/u32.bend": "0cdcfe263d4c9216bfae1340432da81a14e7dccd227e8a0b8374d9419cbf88ef",
   "proofs/lib/u32alg.bend": "4bbcdea0904b247ae0191956f36c1e6920a02ad13ca1203c2b97a8e9378c99d9",
+  "proofs/lib/u32half.bend": "6285a15029e4547bd9a7fe0eb77364537126ebd709bfb8e7fbe18628272299cd",
   "proofs/lib/u32seq.bend": "7edd0c7458e674f2d79d309270c7c40551f0aac684cdbe1cad9f480fe5b82af2",
   "proofs/lib/vec.bend": "a7eb768a6490aed64604690f669a2cab3aed96f3638c5672200c6097caff2b46",
   "proofs/lru.bend": "fae896293f8ed737d322b8bf25e6c77a60fe4107c33df1ed964f2e9984cd0f4d",
+  "proofs/lru_fast.bend": "01b3a02f369d3a779bdd3a3570291d140090d485fd1753d3b41b4f39c4f29beb",
+  "proofs/lru_fast/add.bend": "11165f91d0e59aadd6ef13c999db9cf33cacc1ee459f52e18379b44861dd017c",
+  "proofs/lru_fast/addfacts.bend": "406ac270b2a343fb75347e92882f4533fead7ac71a66fff0aa909e150e92cfbb",
+  "proofs/lru_fast/addop.bend": "2112cac1a66d9a0bcbbbcb9bec40528297eb8975bcbe24a05cbcf591c3c49e43",
+  "proofs/lru_fast/capstep.bend": "925f39f0561f61e3e4d0cc76e259200850b3354cbcb8542d61f9a7e0f360f69f",
+  "proofs/lru_fast/chain.bend": "5e81a2ae7add79f8b1304288f8b5b76f2017d36981d44a47140407f7834ba62d",
+  "proofs/lru_fast/counts.bend": "5c5afeac2483668be96947d9d2fb55e2743ca4a1b805e41ed0f9464d811017ca",
+  "proofs/lru_fast/ents.bend": "505b52160c51e66712fb257ea3b94d2e3cbf876d0821f9246263a8fc58f2cef2",
+  "proofs/lru_fast/inj.bend": "64c585c60a2848360cb4514e125860efa82d33db4d70ff1fcdf7c0e43e55d7de",
+  "proofs/lru_fast/insert.bend": "80554ca6b82cb65193a05a08438fba3c1cd57a8401318015e805148a8ed92402",
+  "proofs/lru_fast/inst.bend": "77a752cea0fa49a01f442b4b8545760fe8c03b8ee2e8009769fc34156abc0d89",
+  "proofs/lru_fast/inst_add.bend": "7c15a29714a33d138aae1ad6fe985e422af76e3242d7a2d9aa3353e9bfbe07f3",
+  "proofs/lru_fast/inst_addop.bend": "22b5898dd6e27ba2edce68022998aa1e61e590fe7dc654fc37d841e1dd0476b5",
+  "proofs/lru_fast/inst_inj.bend": "149b87afc8bb11892eed3e80b7fa2647301b3d34fb1118083f902391d7e1ec02",
+  "proofs/lru_fast/inst_keys.bend": "e6c756077fafb3f7525579e15983e7ee8fc6bc0d9c3410e5c69dc078388ef64d",
+  "proofs/lru_fast/inst_loops.bend": "b925cd590985cda22840369d0870768f9dc204561cc5416578202e4ec37b0908",
+  "proofs/lru_fast/inst_rs.bend": "61c470a4fea2088f33a8a0e9da9c860a285f8904d7bf5c5340b8626fe3befa5d",
+  "proofs/lru_fast/inst_steps.bend": "291c60d1d8c0128aa274191eb81ee2298484c628e97ad5fadc0b0c0b170ab536",
+  "proofs/lru_fast/inst_trace.bend": "b890b7fd7ab76233ea7b28e1e3c32da44cf73c55a173e289ca7f2d290bde0c47",
+  "proofs/lru_fast/keys.bend": "4b5a9d52103fda295272c6fb3dbafc8a6c826b4564be2adc25d71336eabcc9a6",
+  "proofs/lru_fast/kwalk.bend": "4d2f59761410f9dd8092c5f0013255e6c1f5fec093da6d6bbacc49ebf1f1f3df",
+  "proofs/lru_fast/lists.bend": "0cc32d3245b24dfbb3e64fcceb82784f3a230b13f48e1e1fcb86710db100d50c",
+  "proofs/lru_fast/num/addition.bend": "530138244b0fb8ea28bc8996d369891b718ce04870e4227da87b108443ff4958",
+  "proofs/lru_fast/num/addition_bounds.bend": "cd9295adba9b666b8848fffff66e9a5a4b476b1f226eb739ff4899dccb2abee7",
+  "proofs/lru_fast/num/counter.bend": "4a933f3877c05ccc2b6e6e9e46936e2f1c902b3c6c75280db0cb49fe920d5d9f",
+  "proofs/lru_fast/num/division_bounds.bend": "bb7c64f109fad4b99b1244f66fefe16e3a8032710b8dcd7ba8de8f6a07cd4cb6",
+  "proofs/lru_fast/num/division_candidate.bend": "e0c6fac954f792bd30700aab2276afdaf755e2759670b562998244256b44158e",
+  "proofs/lru_fast/num/division_candidate_bound.bend": "b614a8f885b311dd3d11d893130a545ed99911f4844aa50a048f4abcf9b619cc",
+  "proofs/lru_fast/num/division_invariant.bend": "3b7e909d4a77f8dd5680489b1720682653ee5c0882dc60e37cc0ad401b59cab1",
+  "proofs/lru_fast/num/division_no_overflow.bend": "f14d446a8262af55cc3f629d57072cae14870411965fe1f36b1105fb2d9ff1fd",
+  "proofs/lru_fast/num/division_quotient.bend": "043af18f5859cd9987a751d71866b758eab5bcc0af4f33d13d1543966050f125",
+  "proofs/lru_fast/num/division_remainder.bend": "7e7401e01ad3089803517c0fb46e5457edd3c13d144b4623420788aeb4c6b8b5",
+  "proofs/lru_fast/num/division_shift.bend": "88a838427ebfcb55ebc98ac61075388d0777b68328d12dfc09c2982de73813f0",
+  "proofs/lru_fast/num/division_value.bend": "bad41eab622cee5ddae497d139b0acf9d301a95a584145bfc237d267a32fa38b",
+  "proofs/lru_fast/num/duration_refinement.bend": "0f98ca331e191a3187c3a688dd3fb0f380990b7df13c6b2bc0401eb547218dc2",
+  "proofs/lru_fast/num/modular_addition.bend": "fdc3121057d287d7d4b00a717461e6076304ab4effec7347839149b1abc447d4",
+  "proofs/lru_fast/num/modular_negation.bend": "a62b887d272c09cb926a79f903bef23bb1f52f485a49f4be59aa1a54c9707b83",
+  "proofs/lru_fast/num/natural_products.bend": "43d155843ead414c1fb3a809106198ad57c7186d594f683d2edc4ab340981b1d",
+  "proofs/lru_fast/num/negation_magnitude.bend": "71fa1ec64c6c5ca73e48ad72ccd798dc0fc70c611d3beecea5751c2879dbbd88",
+  "proofs/lru_fast/num/numeric.bend": "6a9f08449bcc972d18ef863296e50003e91a9963b6f6c9d8773746559abb72f0",
+  "proofs/lru_fast/num/signed_division.bend": "e1e8250132dd1d259a5974bf8c17a92d58b73e4ab12e0ff6e710a86821f707ee",
+  "proofs/lru_fast/num/subtraction_bounds.bend": "0f47f4a6257b35cad5647e317c77f4f6f0022c307fb7771db608659090d0a8fd",
+  "proofs/lru_fast/num/word_addition.bend": "5c58c6d642e2283873c7f4628475ee8e166ff0e4a826bf34e86827ca9ab53ca4",
+  "proofs/lru_fast/num/word_bounds.bend": "71bf7d9d3707498c6b118a3cdf10ed724cc9f45d0f3f0a18365a3de0e06426e3",
+  "proofs/lru_fast/num/word_comparison.bend": "01aa46b4319ab1c641864b14d076ce6447c8a1568f90c889228a2e6d63ed5294",
+  "proofs/lru_fast/num/word_multiplication.bend": "01d66f186b7c00f0309ba93f18883c7a1a78b02b2945693505c518b5fb618739",
+  "proofs/lru_fast/num/word_shift.bend": "82c91c409254d3865e8762045678f5523fc80d5db8dd97160c08eaba25c84fc8",
+  "proofs/lru_fast/num/word_subtraction.bend": "ef2098836c7cf6e4c6bce92c8c20521d31f7c1bb456476b462a960e975322e30",
+  "proofs/lru_fast/read.bend": "15be9d66d21e022969d3733f39a031625d4124a8ccd97277d8aa83f1c126b891",
+  "proofs/lru_fast/readfacts.bend": "08473ef0569de07c14136e8c1600db5daf17750adbeb47a2cdb01b3b880fac86",
+  "proofs/lru_fast/remove.bend": "fcf5a9b63155894ff94fe874b87d9e633b732d8a5a108a0b8afbe2cf46508153",
+  "proofs/lru_fast/resize.bend": "3ddd7c40721761d7c2ff1444ffd960c24254e1c1a4a4f7013ad460e956a00f20",
+  "proofs/lru_fast/rs.bend": "326d18a032be5fe4aca714e6428aeeb29f42b39a0e8296af3a3cdfb0f056bbd8",
+  "proofs/lru_fast/simple.bend": "d0d5a056842e9aa682f8345ddb1c18c6697890fd9a61793e69a28d6e52650e03",
+  "proofs/lru_fast/state.bend": "077404b951ec5529ae45a39aad9e43035b1653f554fd9cc2ecd21a4672488b10",
+  "proofs/lru_fast/steps.bend": "cbdfc8d912735f12e2fa2367e6c7f9d44998722346b6303b859b7786521bf6cd",
+  "proofs/lru_fast/table.bend": "b059d25b666131947a89785a93cb23b4bb33c977a7ef56e8f7679361c92d69d3",
+  "proofs/lru_fast/touch.bend": "c2e160059e4aa1eb34f090c5a80751d9d4a516da79caacbf5fa2eedb18327a4b",
+  "proofs/lru_fast/touch2.bend": "91828f553f49671b53c435e5f73ed3bc156f4aec52254e2f41d3967c08d6f6ea",
+  "proofs/lru_fast/trace.bend": "015184d44de8a54e31db95aeca56573c2f7179d6189d34c4100a64143231b020",
   "proofs/prefix_trie.bend": "51bad1da13b9292d5c9ce30a31c44b1f5737a3ba8c28c58c0bb18ebe9d639ab5",
   "proofs/prefix_trie/keys.bend": "f2b869b01357500b790d3e6d72534da84b36275e84cd3f7f0263e930ca058ca5",
   "proofs/prefix_trie/ops.bend": "7855a14464b621b8a2c8085042ac093cb94ecfb7c3d82ff57ac67665da4c3b88",
   "proofs/prefix_trie/steps.bend": "301b70b473f4a6dbc0a46e8e1ef9f3abe3d6213914a82190410fbb75cf7ccd7f",
   "proofs/prefix_trie/trace.bend": "181f8634a9543818b8468c4372b16f06e041c3e1fadca746aea05e7877b863f7",
-  "proofs/queue.bend": "bc5378fd8b864e8d857b36e99c5870d722909f3d69a4aeb33adb07e52e123315",
-  "proofs/queue/closed.bend": "f2994cdd0818b99923129891b74041939f0c6c68f0c6341a5b7a935b6c1c5ad4",
-  "proofs/queue/steps.bend": "4593944efc4020838863fc711c3050b51a4dde2265b1495553c8906922e9d1f2",
-  "proofs/queue/trace.bend": "55997b0f3a67e8a1fa805d1fdea49f08712e4d49723f31b00ea856eaf37dbc10",
+  "proofs/queue.bend": "d110d36f61b2e663836327a3f464cc6e7da9dcca7afa758f7168478b3b25dd09",
+  "proofs/queue/inst.bend": "9c5c93580487a1f385babd3fff95670457732f9561958598ac9e34a56a420d68",
+  "proofs/queue/steps.bend": "4708df9db9a317acffe7bf0012bdd3e7fed359733eb5d4ec920edd44cbac6335",
+  "proofs/queue/trace.bend": "4d9bfe7fad4f3eef50eec45da1d80fe9298324d26509862c1b1a4f99c971796e",
   "proofs/segment_tree.bend": "f2b74551747b360a7ae5eddc761dc08fc77ddc3d797da42cbc2613c04c6d61a8",
   "proofs/segment_tree/arr.bend": "ed5edc3132f3287ebb18d07520afdac83ebf502e6027a250009fc044d56bdc84",
   "proofs/segment_tree/depth.bend": "fe179f84e985759d616c5226714b1944c644ca284b81078100e3e29682a301d6",
-  "proofs/segment_tree/init.bend": "ff280943f26c5fb802f6fb1591d776b68c10f9bfc4749e6bba54621b5b22f5b9",
+  "proofs/segment_tree/init.bend": "0edb78bf2d6d0b8d8a443d5d272535a1e96f5b26e2637b5802f0fc45dfb32560",
   "proofs/segment_tree/model.bend": "c6e6617ed126c7288d65ea554e87975f40901e61423a4184fc4afb1ab1d5af35",
   "proofs/segment_tree/node.bend": "4c4b601fa71a34bddbff3dfadc50a3c7ae66ab98f7acf7b47b355ced6a08e23c",
   "proofs/segment_tree/ops.bend": "090853961e5b82beedeba0096ad38e21bd4c091fd0a02edea4e4f719421c52ef",
   "proofs/segment_tree/state.bend": "50c2eab7e70d341a2830933bfa464634f7c9740df057d6539bb29adf89f6fff1",
-  "proofs/segment_tree/steps.bend": "cc97fe4173e3a9c40c144b52cfa14aa61a101ca58f6a90f766655745bb16f980",
+  "proofs/segment_tree/steps.bend": "ce28312d77831d8d6fc78498aca22565da930707a06ab5d324393fc73d78e99a",
   "proofs/segment_tree/trace.bend": "106740d019d77664bba7b3432cfabff40f3c72ede235ff3aee4a06131f48f301",
-  "proofs/segment_tree/walk.bend": "bda845f496f6ef11d841a3ae3354671944817f68c3720f0fa84320bef5ef9c0b",
-  "proofs/union_find.bend": "6f925a3dddb6b9b1886c71eb6dab51a446e222f330aec9df0f29ab68e93a6447",
+  "proofs/segment_tree/walk.bend": "e810779e523344b6c597791f214337f1c275da9c477d9ecf5ef520830363380c",
+  "proofs/union_find.bend": "7a1f68804838b9d6df3cbccb4c601d5f420bf50054a2841541d74029d63c87a0",
   "proofs/union_find/arr.bend": "8e95c8446e6c3e288dad9e82a9321561d71aa3359e5a788aa7516787de5f017f",
   "proofs/union_find/bridge.bend": "e33af197217f287ee76962b4c75e32375796a6299b0b62bf778088d507357a71",
   "proofs/union_find/cells.bend": "3359ee571fe18f986b7546f1be7f86713dee6137a49dbbed17697b0d5409cfe1",
-  "proofs/union_find/depth.bend": "a79c7a7bb970dd6b3fba5de7308e5a14393293d620113192ee069457f3f35a1c",
-  "proofs/union_find/init.bend": "607d637e7656549bb3365f31ef3caca2754719e779eaeff7c584e9f18145e3c3",
+  "proofs/union_find/depth.bend": "731799201b38eb387947d1ad5952768886f25568b2b77d4fd1471bb3cf8d77ce",
+  "proofs/union_find/flat.bend": "b9d72011a92d5029c94abb14862ca2b3abab4418f13c55c21b53abad1099bd54",
+  "proofs/union_find/init.bend": "9af871bad6461f62f12f69e152631c4b4ab44b58e57fec599feb0c5476ba2d28",
   "proofs/union_find/model.bend": "8761d8912bb7e19f284a235b29f891422aa06c6c8a57369f15f0030dc8abf06d",
-  "proofs/union_find/state.bend": "c93442227d84a2876a81a1b504297c747d0f426469b80369c68419dc45da0c91",
-  "proofs/union_find/steps.bend": "2772adfad011a0e735ca487d58cfa2dad4ec00cb1d5ecec3ac61a70cd0252893",
+  "proofs/union_find/state.bend": "f93201498f0a9e4603b9aebbeb30222cea06cc49e0749ea6c0bdaaf75be256fe",
+  "proofs/union_find/steps.bend": "32c54c7a32f9ccc0838485f721d8b6ca4b7029d3f917a75dd0daedb880914dec",
   "proofs/union_find/trace.bend": "a8955cf0a622b6c679ff7a6fd26e4ff8f6eeb77d5217a3d52f912c9f9395cac1",
   "proofs/union_find/union.bend": "62c56eefb7abc350ed6e0761cadcf1308b1b86c8073f05ef26b1b8dd327b0491",
   "spec/balanced_search_tree.bend": "746240799392a9c8f7f752ae8f8d917befeb59f828451a859ff081b038d819c1",
@@ -231,10 +363,13 @@
   "spec/bitset.bend": "ce81fe3879bff378310dc13b6403e6a0735444ac2e2daa27d120fe5c6eb7543a",
   "spec/common.bend": "c99baf8cafa3a2ed1a8121f3c93eff44e4e026984082f8cced26f4ac4b70c2ac",
   "spec/deque.bend": "eaa3f74dc84cd4c39a0ba54059aa09f202f659ba52abc7a29686f441863d1385",
-  "spec/doubly_linked_list.bend": "169dd1a101415f3512d3be01463ce561c20a424a35bb56274ddd2e47ea7f9153",
+  "spec/doubly_linked_list.bend": "6704197187ef995d5f89d3886d0e582e8a7027fa5d10ef64fdd25a8618dfc8b1",
   "spec/dynamic_array.bend": "ac6cbff0d8a727ed89a6816f93d4b0b27751b538b9800af743183ca8147cff56",
   "spec/fenwick_tree.bend": "be9f7f4e3f1f279f132b0f902da6ab33cc0833576f5b2d870624f785f3b5370e",
   "spec/graph.bend": "2259a0325aa0e36acc69adffeba31cfe55c8d2dda4221e68118a111af72cbdbf",
+  "spec/lru_fast.bend": "8df927119359bf8a70f5f103cdf68a4240e6a787ba1fb36cdeb5cb3413a99435",
+  "spec/lru_numeric.bend": "f83eedecd3f25054e2632a6bc9c293a5103ad4572c6b883ed80e84ee72453515",
+  "spec/lru_unsigned_division.bend": "5e955330143c8b84eb5588aaad4866bcfba054edaf31595be0b8f86eadeb6aa2",
   "spec/prefix_trie.bend": "b134ac7a9440037bec995e30523c2df51d25f1d83bb1529d5b01a43b7ed25d21",
   "spec/queue.bend": "edf4edfc63fcb44e0c04588b8c082c622f9574eb5fa067e311328733a04d97c2",
   "spec/segment_tree.bend": "83c26b959d49ce47c4dbb7312a7047ee132e42451220720d5c631d6f747e8431",
@@ -242,55 +377,75 @@
   "spec/union_find.bend": "a052d8e3b3972777f740aa52deca7597408b90f6c7e23b000efbab63a89110db",
   "src/balanced_search_tree.bend": "cc469ed8297611692279fd650b85b06e58c5c994351880fab0974bb54880e4e9",
   "src/binary_heap.bend": "480f4e93f53b063129386dc93eada9cede169625d1a8edc36dd77f61fa468b2d",
-  "src/bitset.bend": "2c401f9d72f3625abb6d44208fa05184c269ddc5da7d71ff87f6b4ce3c53c06b",
-  "src/deque.bend": "44c5801ec700db6f951ec0b79dbc81e3d7c1402259fdbe28ffcf917e8e9661b1",
-  "src/doubly_linked_list.bend": "a856bb86123fc55373414870fe35d6261893f46e094adf6eede632e47820e1bd",
-  "src/dynamic_array.bend": "9cccbfcebfcd88f099b376d3dafb412d1202b24427915225c5b41a40472ce950",
-  "src/fenwick_tree.bend": "e17f9ab9ef2d1fbc391a4ee37fa3c52979ccaeb7b58904f0949f96ce6dc245a2",
-  "src/graph.bend": "a2884c1a844d36af73ed6f8b3a71434266ea26a26bf61a4042d16e3e51a0ed98",
+  "src/bitset.bend": "89e0ed64abc41beb90c232cfd9084dce7dc2c856fcf581334f097d001ab3e700",
+  "src/deque.bend": "5961473e0dfd610c82439cb9d1a7c39e50f7725ca20355ac7f18114ca86a0a7f",
+  "src/doubly_linked_list.bend": "ab9133209f1668614283b1cadd3a65dcfaeffc2868b6da9362fd6895e571fdc3",
+  "src/dynamic_array.bend": "c66d01a7c48f29cb80d31d525d6fc04d04ab6f438b0dbf0107ebd8465fb0c994",
+  "src/fenwick_tree.bend": "d8247cf52dd5315752ee62118d6552240ffc8e7e580260c555cc62044674dedb",
+  "src/graph.bend": "147c8a93d21e3bc8d04c7042275008607714bda5cd161240703aa4f1edc35d46",
   "src/internal/vec.bend": "cddd5687714bf0a096c29eea0c802abc05f4476074a50e49aab79f12da728d47",
   "src/lru.bend": "5ae7cb4791c88446810939a18c0d48ea33cf856b1322e7675f8fda68e34cb298",
+  "src/lru/cache.bend": "31c0ea902bcba611a2d46db655b9aa2cc7a4541b7908f5e6905154669121d393",
+  "src/lru/codec.bend": "a85d6cf13b03e5179738564d0d7a1bdaba2c944c381f28081858625a7771e59a",
+  "src/lru/fast.bend": "ff49485fe9e4ed105cd53afeb4b5d54f960b2e8bfec0bc4588d4a1c5f9329971",
+  "src/lru/time.bend": "cbdb6c00df5c71113ab2d5fd7fb28165280793b8b9a046c0e08c5f4514139e9a",
+  "src/lru/wide.bend": "ccc79f9244df5b8c0da00cc0045309bb4c096e6d464d6656111d65071367eb8c",
+  "src/pow2.bend": "fbc83164c618e829cc98def4ebba30c3b4b899f914fe8131447f23b48d3dd2c2",
   "src/prefix_trie.bend": "1626865303b5fc86473b63977484d5ea750ca05164b5a82d2edc99b0a2080a55",
-  "src/queue.bend": "711356608dd5dede2e776f42df0b213ea9ae94e8f7a269e4603503ffc2eed627",
-  "src/segment_tree.bend": "bc97b38dd2403c17ecb857c5da427cb4f62d486609498f86a9c1677f9367f43a",
-  "src/union_find.bend": "d60bb1f9ec2e271085add8d8892907f68fcc132b60ac60ae7bc14702d403cd3a",
+  "src/queue.bend": "2c4b715ae8e91f878d68fe5038a80af345dcc0032cc689a8bb7a6cb20246170d",
+  "src/segment_tree.bend": "a7ba4658d22f5f46e2e21e40a83f313ddb3cb79436ece66be237cfd55faa2fa8",
+  "src/union_find.bend": "5e60ad22c80ab175c3c0ced116dab6d5e46a8201d578a5b247e7e0010110a50a",
   "tests/balanced_search_tree/main.bend": "bf8543d1ef6fcf43f67ff23c2e4586e6406977e3d89a19555ebb6c169f23a093",
   "tests/binary_heap/main.bend": "a8ec59ddef7df35705dd09f4e3cf860d2a37f21141a90e2f1d9af092c449848f",
   "tests/bitset/main.bend": "07bcbcf80c59cd1f53dd4c7ff400abd68beb163586551c005fbd664f85584a7c",
-  "tests/deque/main.bend": "3371b0d59a5e1f272b04d053ee018b263aa2735b5e54f8f3386fc2c5549eeec4",
-  "tests/doubly_linked_list/main.bend": "d1f26b3e09307dcce534cdd9946d700be2485040c8a4ab5755ec20afdba80cd9",
+  "tests/deque/inst_tmp.bend": "714a790318fc7ae00c058bf5fddfe0df4ffdd7e9791b8e3e20252eaa6d0d85c8",
+  "tests/deque/main.bend": "beb1efa9c4a4e37c9af96115c22d0cdec9afbf611feb9859f9065bbd698d4a47",
+  "tests/doubly_linked_list/main.bend": "038bfbab5054c7b3e2be158e530356972ac1502c5dc411990d7794760cbbc620",
   "tests/dynamic_array/main.bend": "2696b0b4833afdc0965497779e9122ed2b08759d67251cd67c7341933bf46d41",
   "tests/fenwick_tree/main.bend": "9f7884d573e9bdcc746db115d7979431d8373be580e7ec5d3f60417fa47e2c92",
   "tests/graph/main.bend": "8636db4d7488562f74067cba472c49b106a766bf4cf86f2a85355fbeaa94e21d",
   "tests/lru/main.bend": "134dd72e40a82d7228ede698853b30a7577a0bbfb5333e0d30a43a6bf3963252",
+  "tests/lru_fast/capacity_contract.bend": "f52a75adc7bd893d0ed63d6638bfcce2fc60f2ebc5bf88a816f145cff659d6b3",
+  "tests/lru_fast/main.bend": "e7b6586dbdaef9622fe59e5e0c2948d1e407651393afe83d56a24b40984d996c",
+  "tests/lru_fast/spec_diff.bend": "3b73125b322116f8a0e274a190d2c634143fb95d3dc29e649384892decb7434f",
   "tests/microbench/array_cost.bend": "283b35cfa99f6a17fc33d5b713675c6e33e4ee95e16a4f8fb8628c286a2b8e4f",
   "tests/prefix_trie/main.bend": "6062d0bcfb135db383e7f35102f3f87ffd8ce2591026495ecda3c6db4edcd8c9",
-  "tests/queue/main.bend": "5f339c36507a7b1b87d00680e2c9581bab3deae22e468df6ec8b96d35e6e6326",
+  "tests/queue/inst_tmp.bend": "c0529cd354877df3f02146b482e66c2ed81220f53fd6f56f1c42f3bd826a8ed1",
+  "tests/queue/main.bend": "886b1b10d913a4cf63ee70f5732e1ada252a2102c6fdd5e5281ccb8320e5c910",
   "tests/runtime_defects/generic_u32.bend": "cdbde193304c4bfcbd9a60a5a5a45069624538298d6856317304b52f3d2e03e9",
   "tests/runtime_defects/wide_arity.bend": "defba23e34745f78d1933fbf6580bf1ffd26cd85757e1c7547f99e7f1ed62575",
   "tests/segment_tree/main.bend": "c34ebed09770fc0cf3a32cb1a867f153f408671035a068f0ec294ecc191751ad",
   "tests/support/oracles.py": "45ec78cf7d8d3e5db6d475afff04d0f7de9233655417dd55536df582ca57ea85",
   "tests/support/text.bend": "d580799e509e4535609ed07ac01ac6ecbb932a369280a55b55e14dae0a028a4a",
   "tests/union_find/main.bend": "0b399b9f152ba9adcabc9d14c378588435828e55b9d0630b3e868722eccdd108",
-  "tools/bench_report.py": "266458172ad48504ceef4f005c5881fa11403d80817db4c802c2f287f369db59",
+  "tools/bench_report.py": "7bb5ad9e2ae1824bd5b8c5c2d6c1bfabdfc639c2e1f211ac93201495a91661f7",
   "tools/costmodel.py": "484a2383be03e7791eeac164680a388e7b6eabfa0d49013bb1cd92ecbf98f13e",
+  "tools/dev/andgen.py": "b456a2ba7ff6a963d94e0cf2811dd235b2a2d8360962c8b23c9f31f65ab87cff",
   "tools/dev/bisect_defs.py": "14828e12a0181a35ffd910ec02195036731951757286baac732c43236edbc457",
+  "tools/dev/checksums.py": "4458abbfe075f681ba239fbcdb04bb9d6f152eb880db62f5254b746105ab9fa8",
+  "tools/dev/instgen.py": "1ed87761b09c82fb3ec73e156a88bba5f284dd4d709d42725c9981bf07d659f7",
   "tools/dev/macros.py": "c9871ae1235b731668035ce5795e2eea3d99f4506250b437b3748104d77d61ca",
   "tools/dev/order_defs.py": "b0e684847b7df86ea7d420ddfa356c31b826d94cb8301988532b165f1bde8602",
   "tools/dev/permute_args.py": "52ebf48b9b0d3ba434aa191f1b6a78e66a1556aa62ff92c6e0eb2e05dbec6c26",
   "tools/dev/plusify.py": "025b771b58625b56e6e55cedd50d2d9ce7eeeb3220cd99d4b64f82e6a30e4b56",
+  "tools/dev/qrows.py": "0e13b13b1ebc12999fc7a4c8439ec6296d3f06678563049bc9d080d3d20d7f42",
+  "tools/dev/quick_bench.py": "de4e6c5a28e8bc50e23b90d448cd4a60fa934bd124f7f55f129d3cf37ac8a350",
   "tools/generators/trace_data.py": "2676b9f7c5163152dad2bb1299f686ad7da081fb5f96f97af19a66007ae0dd57",
-  "tools/mutants.py": "e24aa201980de9f6f7fe5c39e43222943e31741bb62ce07ceb3e9b86c9e62dcd",
-  "tools/scenarios.py": "a820e36bbe174f5ecbfb282b851328bf7e01348365cdf2e7bdd4184d111fd14d",
-  "tools/validate.py": "54339ea8341f5355b13ac192b1d619c8487fa5517ad880088f0a8e10224f2ff3",
+  "tools/lru_diff.py": "b14dd3fa4d96e9c127b92fd66e0aca034701d5a26d51e18d7ef251c1d4f3bef8",
+  "tools/lru_measure.py": "e69c3f3bf108afa91dab896b39779d83d547241433e6678b69f762bee478b5ce",
+  "tools/mutants.py": "73fc8c8535014bd20f7848691fe08a5ca7f0bc7455a670d8faaad903de676e9d",
+  "tools/scenarios.py": "b7b1b33f50608159650bac8f0e99fb14f54e2d5076218e5dcd3f28154d97cec9",
+  "tools/validate.py": "e6a6a7e1e93b8f01676aa20be3c3581143dbca6cc05180611a1cd115dda73566",
   "types/balanced_search_tree.bend": "8a8f622ea51bb1be018484ebb8b98faa8cc021699d3d69655d002c2df8c60f64",
   "types/binary_heap.bend": "c8f87e5ac7ca13719fc43770b81f62134306a0759d491dba5d6daa07c6046acb",
   "types/bitset.bend": "bc24374cac3deef5bc13892d5eb454479949ebc2e5cf7f76ae41c60a701371ef",
   "types/deque.bend": "f388c17d9e8a2be1110becce4e76ecc97f4fddc69f195850614aff6ab491445a",
-  "types/doubly_linked_list.bend": "4bf79ff34c0746526016125b16fe645870d5c26bd87ecc73dabf02c39b77ced1",
+  "types/doubly_linked_list.bend": "03b9955e20b723852743131d9707907504d5e8d0d2db072e5a7cdc835915b7f7",
   "types/dynamic_array.bend": "3ce5f0237a4681ca8b8290cd6af645ea3d7bfe06018f871e72d1ca61eb64b081",
   "types/fenwick_tree.bend": "53dc4a669e4c85651aa0b9961ea180ba6edc177495a1d2662187a670c9015aed",
   "types/graph.bend": "899a2af926d34d3e14446f1162180c8f5d5c4fcdf8fcecddb7112d84f7109726",
+  "types/lru_fast.bend": "dd9f0b42324f9b97d897603f8908aef45783a51232c675418b917dc1e2d1018e",
+  "types/lru_model.bend": "b78df9954bbed770472bf518831d6a336a5e01ef4f9cb4c91636114b4c18f52d",
   "types/prefix_trie.bend": "2acd43fcc13afccbc26e3d4e76073d0e66de66813e80180f7d39265de214ea10",
   "types/queue.bend": "afc14e9714faac7e37d2710ca77ae8208c22d980b9268c0ba516376795bc7106",
   "types/segment_tree.bend": "65ff0566db81a6ca70351eb388214a819b922b5d46567865d06b8bd722091ec2",
@@ -298,7 +453,7 @@
  },
  "structures": [
   {
-   "binary_sha256": "ec3aab73a29039d01df2cfb918dcf983df158b1ea856ada66f23a0a95c58eafc",
+   "binary_sha256": "0dce345afbf46e1397fe3fba5f74cc8103b2b707c644983aeec4f2ef421c0af2",
    "boundaries": "passed",
    "checker_output": "All terms check, with 2 unsafe annotations.",
    "differential": "passed",
@@ -314,7 +469,7 @@
      "status": "rejected"
     },
     {
-     "mutant": "clear drops the capacity",
+     "mutant": "clear keeps the length",
      "status": "rejected"
     },
     {
@@ -346,7 +501,7 @@
     "functional": 3,
     "structural": 0
    },
-   "seconds": 15.9,
+   "seconds": 6.4,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -358,23 +513,23 @@
    ]
   },
   {
-   "binary_sha256": "fa0bd65f74b78e5981efee8e5e22e10f55deda6d6bccbbd59fa0b985bb216a00",
+   "binary_sha256": "a3e43cc7656585beca38e6a4ba023d33df77a12a77f3b7b75fb22e27b6884ef3",
    "boundaries": "passed",
    "checker_output": "All terms check, with 2 unsafe annotations.",
    "differential": "passed",
-   "driver_sha256": "3371b0d59a5e1f272b04d053ee018b263aa2735b5e54f8f3386fc2c5549eeec4",
+   "driver_sha256": "beb1efa9c4a4e37c9af96115c22d0cdec9afbf611feb9859f9065bbd698d4a47",
    "id": "deque",
    "mutants": [
     {
-     "mutant": "push_back writes the slot in front of the window",
+     "mutant": "push_back writes the ring offset slot",
      "status": "rejected"
     },
     {
-     "mutant": "push_front keeps the window offset",
+     "mutant": "push_front keeps the ring offset",
      "status": "rejected"
     },
     {
-     "mutant": "growing at the front does not move the window up",
+     "mutant": "growing keeps the old offset",
      "status": "rejected"
     },
     {
@@ -386,11 +541,15 @@
      "status": "rejected"
     },
     {
-     "mutant": "to_list reads the window in the wrong direction",
+     "mutant": "to_list reads one ring position too far",
      "status": "rejected"
     },
     {
-     "mutant": "pop_front does not move the window",
+     "mutant": "pop_front does not move the offset",
+     "status": "rejected"
+    },
+    {
+     "mutant": "growth copies the ring from slot 0",
      "status": "rejected"
     }
    ],
@@ -413,7 +572,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 10.4,
+   "seconds": 6.0,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -425,27 +584,27 @@
    ]
   },
   {
-   "binary_sha256": "347c8fdf83120bac5f31bdc4f1cd379e6e3f9bc634e522532c2a14eb23198172",
+   "binary_sha256": "9faf29a5eac8228fab9511e8266df6f2be57970792bf35c34246cb73c945ae12",
    "boundaries": "passed",
    "checker_output": "All terms check, with 2 unsafe annotations.",
    "differential": "passed",
-   "driver_sha256": "5f339c36507a7b1b87d00680e2c9581bab3deae22e468df6ec8b96d35e6e6326",
+   "driver_sha256": "886b1b10d913a4cf63ee70f5732e1ada252a2102c6fdd5e5281ccb8320e5c910",
    "id": "queue",
    "mutants": [
     {
-     "mutant": "the executable enqueue pushes at the front",
+     "mutant": "enqueue pushes at the front",
      "status": "rejected"
     },
     {
-     "mutant": "the executable dequeue takes from the back",
+     "mutant": "dequeue takes from the back",
      "status": "rejected"
     },
     {
-     "mutant": "the executable peek looks at the back",
+     "mutant": "peek looks at the back",
      "status": "rejected"
     },
     {
-     "mutant": "the executable dequeue does not remove",
+     "mutant": "dequeue does not remove",
      "status": "rejected"
     }
    ],
@@ -465,7 +624,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 6.9,
+   "seconds": 3.9,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -477,11 +636,11 @@
    ]
   },
   {
-   "binary_sha256": "b173d03bee74b44779f80f146b3f1e431b329010cdda95a140eb19c7d2d036d9",
+   "binary_sha256": "a47587468ca6a753ff7e266fb3f8635482e9a8d0fc60829dac7e601820cd733c",
    "boundaries": "passed",
-   "checker_output": "All terms check, with 157 unsafe annotations.",
+   "checker_output": "All terms check, with 94 unsafe annotations.",
    "differential": "passed",
-   "driver_sha256": "d1f26b3e09307dcce534cdd9946d700be2485040c8a4ab5755ec20afdba80cd9",
+   "driver_sha256": "038bfbab5054c7b3e2be158e530356972ac1502c5dc411990d7794760cbbc620",
    "id": "doubly_linked_list",
    "mutants": [
     {
@@ -493,7 +652,7 @@
      "status": "rejected"
     },
     {
-     "mutant": "prev follows the next link",
+     "mutant": "prev and next links are swapped on insertion",
      "status": "rejected"
     },
     {
@@ -502,6 +661,10 @@
     },
     {
      "mutant": "foreign handles are accepted",
+     "status": "rejected"
+    },
+    {
+     "mutant": "removal does not relink the neighbours",
      "status": "rejected"
     }
    ],
@@ -527,7 +690,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 12.8,
+   "seconds": 7.7,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -541,7 +704,7 @@
   {
    "binary_sha256": "d9e08c04daac4a83de28fe5c4f315958eca37a58d3cb22774a2930cc718db104",
    "boundaries": "passed",
-   "checker_output": "All terms check, with 855 unsafe annotations.",
+   "checker_output": "All terms check, with 867 unsafe annotations.",
    "differential": "passed",
    "driver_sha256": "a8ec59ddef7df35705dd09f4e3cf860d2a37f21141a90e2f1d9af092c449848f",
    "id": "binary_heap",
@@ -588,7 +751,7 @@
     "functional": 5,
     "structural": 0
    },
-   "seconds": 12.1,
+   "seconds": 7.2,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -645,7 +808,7 @@
     "functional": 3,
     "structural": 9
    },
-   "seconds": 13.3,
+   "seconds": 10.5,
    "structural": "passed",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -657,7 +820,7 @@
    ]
   },
   {
-   "binary_sha256": "2d92269fb795ce61e073d711e1db4ac93abce8970abd7169652b7c26b59e7722",
+   "binary_sha256": "e50680ce9be61308f8fb64e44d7531d6e1a362037d5b7f0af11d5d7294b7c413",
    "boundaries": "passed",
    "checker_output": "All terms check, with 2 unsafe annotations.",
    "differential": "passed",
@@ -691,6 +854,14 @@
     {
      "mutant": "a whole-array combine stops one word short",
      "status": "rejected"
+    },
+    {
+     "mutant": "count ignores the top byte of every word",
+     "status": "rejected"
+    },
+    {
+     "mutant": "to_list drops the top bit of every word",
+     "status": "rejected"
     }
    ],
    "mutations": "passed",
@@ -714,7 +885,7 @@
     "functional": 4,
     "structural": 0
    },
-   "seconds": 10.4,
+   "seconds": 11.2,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -726,9 +897,9 @@
    ]
   },
   {
-   "binary_sha256": "5b2d5a50a47fc1cd19953b15e220cc221684e8350fc09c7039a1a7c4c90ff467",
+   "binary_sha256": "34e91f6fe26188540af59ddb172bd6d287b0cf87f0c473028c1e5747dd5d4e15",
    "boundaries": "passed",
-   "checker_output": "All terms check, with 6 unsafe annotations.",
+   "checker_output": "All terms check, with 18 unsafe annotations.",
    "differential": "passed",
    "driver_sha256": "0b399b9f152ba9adcabc9d14c378588435828e55b9d0630b3e868722eccdd108",
    "id": "union_find",
@@ -760,6 +931,10 @@
     {
      "mutant": "component_size reads slot 0 of the size arena",
      "status": "rejected"
+    },
+    {
+     "mutant": "the materialised roots arena starts at slot 1",
+     "status": "rejected"
     }
    ],
    "mutations": "passed",
@@ -778,7 +953,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 10.0,
+   "seconds": 6.4,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -790,7 +965,7 @@
    ]
   },
   {
-   "binary_sha256": "6a83fcb6788b133f0e10d06c4cd99e3f149b8bc6caa33e34ce543c4d91061783",
+   "binary_sha256": "a9abcd7bfe678f99345cf4879458774b18ec3b49eb454462dbdb36fd13cadf5e",
    "boundaries": "passed",
    "checker_output": "All terms check, with 2 unsafe annotations.",
    "differential": "passed",
@@ -842,7 +1017,7 @@
     "functional": 3,
     "structural": 0
    },
-   "seconds": 9.7,
+   "seconds": 7.5,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -854,7 +1029,7 @@
    ]
   },
   {
-   "binary_sha256": "a5e32d89f170f3e5a80b14a9053c31eb9c9446489851b8bdd0b13a0e86400b81",
+   "binary_sha256": "6fe971a01ed8fc4a329591b091048a48dc2c6a469268ea00affc50f8c1f5ed90",
    "boundaries": "passed",
    "checker_output": "All terms check, with 2 unsafe annotations.",
    "differential": "passed",
@@ -878,7 +1053,11 @@
      "status": "rejected"
     },
     {
-     "mutant": "a left turn of set does not recompute the block sum",
+     "mutant": "a turn of set does not recompute the block sum",
+     "status": "rejected"
+    },
+    {
+     "mutant": "the walk steps to the wrong side",
      "status": "rejected"
     },
     {
@@ -911,7 +1090,7 @@
     "functional": 4,
     "structural": 0
    },
-   "seconds": 12.0,
+   "seconds": 10.6,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -964,7 +1143,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 8.8,
+   "seconds": 4.6,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -976,9 +1155,9 @@
    ]
   },
   {
-   "binary_sha256": "8acf200c1640c3d5d12fe6c19e4344b3f2e7fac2a223f808594fbc01d24cb0c2",
+   "binary_sha256": "3f1f09fb53ac0c79b13b0b0fd1a0a65aca22ba984e54156eaf41e13b9317c4d6",
    "boundaries": "passed",
-   "checker_output": "All terms check, with 166 unsafe annotations.",
+   "checker_output": "All terms check, with 94 unsafe annotations.",
    "differential": "passed",
    "driver_sha256": "8636db4d7488562f74067cba472c49b106a766bf4cf86f2a85355fbeaa94e21d",
    "id": "graph",
@@ -988,7 +1167,7 @@
      "status": "rejected"
     },
     {
-     "mutant": "undirected edges are stored one way",
+     "mutant": "undirected edges are stored at one endpoint only",
      "status": "rejected"
     },
     {
@@ -997,6 +1176,14 @@
     },
     {
      "mutant": "has_vertex is negated",
+     "status": "rejected"
+    },
+    {
+     "mutant": "a new vertex keeps the neighbours of the slot it takes",
+     "status": "rejected"
+    },
+    {
+     "mutant": "the adjacency block is not kept sorted",
      "status": "rejected"
     }
    ],
@@ -1017,10 +1204,10 @@
    "scenarios": {
     "boundary": 3,
     "differential": 5,
-    "functional": 2,
+    "functional": 4,
     "structural": 0
    },
-   "seconds": 13.5,
+   "seconds": 9.3,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -1038,7 +1225,7 @@
   "bend": "/Users/monkeair/.bend/bin/bend",
   "bend_sha256": "da9bc51449f04a65bf633351fb754cd6f883f5f5d9ab0c4e947f5c6f19eb7386",
   "bend_version": "2.0.16",
-  "lru_backend": "bend run mode; native build blocked, see WORK_LOG.md"
+  "lru_backend": "retained reference: bend run mode (its Word(64n) metrics exceed the native arity limit); benchmarked port src/lru/fast.bend: native-c"
  },
  "trace_seeds": [
   11,

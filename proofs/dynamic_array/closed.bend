@@ -1,4 +1,7 @@
 import Base
+import ../../src/pow2.bend as P2
+import ../lib/pow2t.bend as PT
+import ./clear.bend as CLR
 import ../lib/logic.bend as L
 import ../lib/list.bend as LL
 import ../lib/nat.bend as N
@@ -111,15 +114,17 @@ def reserve_eq_case(~T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T
       {==}
     case False{} True{}:
       %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), False{}, ef) : {DA.obs_unit(T, DA.reserve_checked_at(~T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) == DA.obs_unit(T, DA.reserve_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) : DA.DynArray<T> & E.Obs<T>}
+      %Equal.trans(Nat, DA.pow2(l), SC.pow2(l), P2.pow2t(l), ST.pow2_src(l), Equal.sym(Nat, P2.pow2t(l), SC.pow2(l), PT.same(l))) : {DA.obs_unit(T, DA.reserve_room_at(~T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, Nat.is_le(k, _))) == DA.obs_unit(T, DA.reserve_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, Nat.is_le(k, DA.pow2(l)))) : DA.DynArray<T> & E.Obs<T>}
       %Equal.sym(Bool, Nat.is_le(k, DA.pow2(l)), True{}, ep) : {DA.obs_unit(T, DA.reserve_room_at(~T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) == DA.obs_unit(T, DA.reserve_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) : DA.DynArray<T> & E.Obs<T>}
       %Equal.sym(DA.DynArray<T>, DA.grow_until_at(~T, Nat.sub(l, d), k, ST.real(T, ST.Sh{l, d, n, t})), DA.grow_until(T, Nat.sub(l, d), k, ST.real(T, ST.Sh{l, d, n, t})), grow_until_eq(~T, Nat.sub(l, d), k, ST.Sh{l, d, n, t})) : {(_, E.OUnit{Done{Unit{}}}) == (DA.grow_until(T, Nat.sub(l, d), k, DA.DA{l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t)}), E.OUnit{Done{Unit{}}}) : DA.DynArray<T> & E.Obs<T>}
       {==}
     case False{} False{}:
       %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), False{}, ef) : {DA.obs_unit(T, DA.reserve_checked_at(~T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) == DA.obs_unit(T, DA.reserve_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) : DA.DynArray<T> & E.Obs<T>}
+      %Equal.trans(Nat, DA.pow2(l), SC.pow2(l), P2.pow2t(l), ST.pow2_src(l), Equal.sym(Nat, P2.pow2t(l), SC.pow2(l), PT.same(l))) : {DA.obs_unit(T, DA.reserve_room_at(~T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, Nat.is_le(k, _))) == DA.obs_unit(T, DA.reserve_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, Nat.is_le(k, DA.pow2(l)))) : DA.DynArray<T> & E.Obs<T>}
       %Equal.sym(Bool, Nat.is_le(k, DA.pow2(l)), False{}, ep) : {DA.obs_unit(T, DA.reserve_room_at(~T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) == DA.obs_unit(T, DA.reserve_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) : DA.DynArray<T> & E.Obs<T>}
       {==}
 
-def step_eq(~T: Data, +sh: ST.Shadow<T>, +op: E.Op<T>) -> {DA.step_at(~T, ST.real(T, sh), op) == DA.step(T, ST.real(T, sh), op) : DA.DynArray<T> & E.Obs<T>}:
+def step_eq(~T: Data, +sh: ST.Shadow<T>, +op: E.Op<T>, +g: {ST.good(T, sh) == True{} : Bool}) -> {DA.step_at(~T, ST.real(T, sh), op) == DA.step(T, ST.real(T, sh), op) : DA.DynArray<T> & E.Obs<T>}:
   match sh op:
     case ST.Sh{+l, +d, +n, +t} E.Length{}:
       {==}
@@ -136,7 +141,7 @@ def step_eq(~T: Data, +sh: ST.Shadow<T>, +op: E.Op<T>) -> {DA.step_at(~T, ST.rea
     case ST.Sh{+l, +d, +n, +t} E.Reserve{+k}:
       reserve_eq_case(~T, l, d, n, t, k, Nat.is_le(k, SC.pow2(d)), {==}, Nat.is_le(k, DA.pow2(l)), {==})
     case ST.Sh{+l, +d, +n, +t} E.Clear{}:
-      {==}
+      Equal.cong(DA.DynArray<T>, DA.DynArray<T> & E.Obs<T>, z => (z, E.OUnit{Done{Unit{}}}), DA.clear_at(~T, ST.real(T, ST.Sh{l, d, n, t})), DA.clear(T, ST.real(T, ST.Sh{l, d, n, t})), CLR.clear_eq(~T, l, d, n, t, g))
     case ST.Sh{+l, +d, +n, +t} E.ToList{}:
       to_list_eq(~T, l, d, n, t)
 
@@ -150,7 +155,7 @@ def run_acc_eq(~T: Data, +ops: List<&2, E.Op<T>>, +sh: ST.Shadow<T>, +acc: List<
       +sh1 = TR.so_sh(T, sh, op, SP.step_ok(T, sh, op, g))
       +o = TR.so_obs(T, sh, op, SP.step_ok(T, sh, op, g))
       +g1 = TR.so_good(T, sh, op, SP.step_ok(T, sh, op, g))
-      %Equal.sym(DA.DynArray<T> & E.Obs<T>, DA.step_at(~T, ST.real(T, sh), op), DA.step(T, ST.real(T, sh), op), step_eq(~T, sh, op)) : {DA.run_acc_at(~T, rest, DA.record(T, acc, _)) == DA.run_acc(T, rest, DA.record(T, acc, DA.step(T, ST.real(T, sh), op))) : DA.DynArray<T> & List<&2, E.Obs<T>>}
+      %Equal.sym(DA.DynArray<T> & E.Obs<T>, DA.step_at(~T, ST.real(T, sh), op), DA.step(T, ST.real(T, sh), op), step_eq(~T, sh, op, g)) : {DA.run_acc_at(~T, rest, DA.record(T, acc, _)) == DA.run_acc(T, rest, DA.record(T, acc, DA.step(T, ST.real(T, sh), op))) : DA.DynArray<T> & List<&2, E.Obs<T>>}
       %Equal.sym(DA.DynArray<T> & E.Obs<T>, DA.step(T, ST.real(T, sh), op), (ST.real(T, sh1), o), TR.so_step(T, sh, op, SP.step_ok(T, sh, op, g))) : {DA.run_acc_at(~T, rest, DA.record(T, acc, _)) == DA.run_acc(T, rest, DA.record(T, acc, _)) : DA.DynArray<T> & List<&2, E.Obs<T>>}
       run_acc_eq(~T, rest, sh1, Con{o, acc}, g1)
 

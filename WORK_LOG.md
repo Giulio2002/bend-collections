@@ -1973,3 +1973,60 @@ Continue ALL other missing performance,representation,proof and benchmark covera
   Measured (quick_bench, 4096 elements): deque push_back 2.3 ns vs C 1.1; push_front 2.3/1.1; pair
   pops 2.0 vs C 6.2; peeks/length/new at or below C; queue enqueue 2.4/1.13. to_list still ~4x
   (cons allocator).
+
+### Operator ring-reference review
+Read docs/OPERATOR_RING_REFERENCE_REVIEW.md: additional matching C comparisons reviewed,378C/Cchecksumcasesmatch. Original protected gate remains; no replacement/relaxation authorized. Private ring milestonee85353a published with independent proof evidence and explicit limitations. Continue all missing scope.
+* DEQUE/QUEUE RING PROOFS DONE: proofs/deque/{ring,state,grow,stepok,reads,pushes,steps,trace}.bend,
+  proofs/deque.bend, proofs/queue/{steps,trace}.bend, proofs/queue.bend; END_TO_END deque_/queue_{u32,string}_*
+  laws; END_TO_END checks (3861 instances). validate --only deque/queue: all categories passed (new ring
+  mutants in tools/mutants.py). C ring twins benchmarks/experiments/{deque,queue}_ring.c (checksums identical
+  to Bend and to the pinned files for every selector); proposal in docs/BENCHMARK_CHANGE_PROPOSAL.md (0011).
+* FLATNESS (second compiler finding): a def compiles to a flat native loop (spin) only if it calls no
+  non-flat def and has no non-tail self call; otherwise it becomes a segmented continuation (much slower),
+  and so does every caller. Map of non-flat library defs per structure: build/quick/seg_*.c (grep
+  WL_CASE(FID_______SRC_...)). Fix pattern: tail-recursive helper + proof bridge.
+  - src/pow2.bend (tail 2^d) + proofs/lib/pow2t.bend (pow2t == SC.pow2); bitset count/to_list/combine use it
+    -> union/intersection/difference/xor from 4-5x to ~1x.
+  - bitset count: word_count_8 (8 bits per iteration, zero word skipped) bridged by proofs/bitset/fastcount.bend
+    -> count 15x -> 1.3-1.6x (small 3.0x); to_list: word_desc + List.reverse.go (flat), zero word skipped
+    -> to_list small/medium ~2.1-2.3x, empty rows below C. validate --only bitset: all passed.
+* DRIVERS: argv parsed once into B.Args (no shared List -> no sealed List nodes); one call site per library op;
+  tail-loop list length. tools/dev/checksums.py: all 408 rows identical to C.
+
+## Iteration 0014 — USER CORRECTION: lazy initialization reverted (redo of 0013)
+
+Iteration 0013 did this work but its workspace was discarded on resume, so the
+same revert was re-applied here from the retained 0012 state. Constructors again
+build the normal usable representation immediately:
+
+* src/union_find.bend: `U0{n}`, the per-operation `Parts` extraction and
+  `fresh_label` are gone; `new(n) = new_at(n, depth_for(n))` allocates and fills
+  the three arenas. Proofs: `proofs/union_find/fresh.bend` deleted, the `S0`
+  shadow removed from state.bend, `initial(n)` is the eager shadow again
+  (init.bend new_real/new_good/new_model), steps.bend dispatches only the
+  materialised case. `bend proofs/union_find.bend` -> All terms check.
+* src/graph.bend: `GE{dir}`/`first_vertex` gone (restored byte-for-byte from the
+  pre-lazy copy); `new(dir)` allocates the id block and the adjacency block.
+  Proofs: fresh.bend deleted, `S0` removed, mu/gtrace/entry dispatch restored.
+  `bend proofs/graph.bend` -> All terms check.
+* src/doubly_linked_list.bend: `DE{tag}`, `fresh_err`, `first_cell` gone; `new`
+  allocates the three arenas.
+* src/dynamic_array.bend: the iteration-0011 "already empty, keep the block"
+  fast path in `clear` is REMOVED. It only paid off when a benchmark clears the
+  same empty array repeatedly, and it made dynamic_array.clear medium/large
+  UNMEASURABLE (the calibration compared a Bend no-op against the reference's
+  real memset and the C process exceeded the 120 s cap). `clear` now allocates
+  the fresh all-None block, the same work benchmarks/native/dynamic_array.c
+  does; proofs/dynamic_array/clear.bend collapses to `{==}`.
+* tools/mutants.py: the lazy-path mutants were removed with their code and the
+  `clear keeps the length` anchor was updated.
+* Checksums after the revert: union_find 24/24, graph 40/40,
+  doubly_linked_list 48/48, dynamic_array 40/40, prefix_trie 28/28 identical to
+  the pinned C references. `bend PROOF.bend` -> All terms check (3876).
+
+NOT lazy initialization, and retained: src/deque.bend `DE{}` (and queue, which
+wraps it). `Base.Array.new` needs a filler ELEMENT and the deque's element type
+is an arbitrary `Data` with no default value, so an empty generic ring owns no
+block; the first pushed element is the filler. The pinned deque.c does allocate
+one slot in dq_init, so the difference is disclosed in docs/C_EQUIVALENCE.md
+rather than claimed as a speedup.

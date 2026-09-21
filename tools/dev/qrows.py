@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Development helper: time several rows of one structure outside the gate.
 
-  python3 tools/dev/qrows.py bitset [--src FILE] [--filter OPNAME] [--scale X]
+  python3 tools/dev/qrows.py bitset [--src FILE] [--csrc FILE] [--filter OPNAME] [--scale X]
 
 Builds benchmarks/bend/<structure>.bend (or --src) and the pinned C reference
 once, then times every row of that structure in benchmarks/workloads.py with
@@ -37,10 +37,12 @@ def run(cmd):
 
 def main():
     args = sys.argv[1:]
-    src = filt = None
+    src = filt = csrc = None
     scale = 1.0
     if '--src' in args:
         i = args.index('--src'); src = args[i + 1]; del args[i:i + 2]
+    if '--csrc' in args:
+        i = args.index('--csrc'); csrc = args[i + 1]; del args[i:i + 2]
     if '--filter' in args:
         i = args.index('--filter'); filt = args[i + 1]; del args[i:i + 2]
     if '--scale' in args:
@@ -52,7 +54,7 @@ def main():
     p = subprocess.run([BEND, src or 'benchmarks/bend/%s.bend' % name, '-o', str(bbin)], cwd=ROOT, capture_output=True, text=True)
     if p.returncode != 0 or not bbin.exists():
         sys.exit(p.stdout + p.stderr)
-    subprocess.run(['cc'] + CFLAGS + ['-o', str(cbin), 'benchmarks/native/%s.c' % name], cwd=ROOT, check=True)
+    subprocess.run(['cc'] + CFLAGS + ['-o', str(cbin), csrc or 'benchmarks/native/%s.c' % name], cwd=ROOT, check=True)
     rows = [w for w in workloads.TABLE if w['structure'] == name and (not filt or w['operation'].endswith('.' + filt))]
     for w in rows:
         count = w['count']

@@ -21,6 +21,7 @@ import ./union_find/trace.bend as UT
 #   shadow       ST.Sh / ST.real / ST.good / ST.model  (Base.Array is linear,
 #                so every law is about the arenas built from the three Data
 #                mirror trees, exactly as in proofs/bitset)
+#   flat fill    FL.* (the constructor's loops build the mirror trees)
 #   cells        CL.* (the cell list the mathematics talks about, zipped from
 #                the three arenas)
 #   union        UN.* (relinking the smaller class = the spec relabelling)

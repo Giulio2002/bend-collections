@@ -23,21 +23,36 @@ def init(+seed: U32) -> St:
 def klen() -> Nat:
   10n
 
-# Character i of the key spelled by r: two bits of the stream, 'a' = 97.
-# Position i always reads the same bits, so key_of(2, r) really is a prefix of
-# key_of(6, r).
-def char_at(+i: Nat, +r: U32) -> U32:
-  U32.add(97, U32.mod(U32.shrn(r, Nat.mod(Nat.add(16n, Nat.mul(2n, i)), 30n)), 4))
+# Character i of the key spelled by r: two bits of the stream, 'a' = 97,
+# taken at bit position (16 + 2i) mod 30 exactly as benchmarks/native/
+# prefix_trie.c does. The word is carried already shifted and moved on two
+# bits per character: Base's U32.shrn walks its Nat shift ONE BIT at a time,
+# so recomputing a variable shift per character would cost about 25 steps
+# where the C reference uses one instruction. At the wrap (shift 30) the
+# stream restarts from bit 0, which is what (16 + 2i) mod 30 does.
+def wrap0(b: Bool, +s: U32) -> U32:
+  match b:
+    case True{}:
+      0
+    case False{}:
+      s
 
-def key_go(m: Nat, +i: Nat, +r: U32) -> String:
+def key_word(wrap: Bool, +w: U32, +r: U32) -> U32:
+  match wrap:
+    case True{}:
+      r
+    case False{}:
+      U32.shrn(w, 2n)
+
+def key_go(m: Nat, +w: U32, +s: U32, +r: U32) -> String:
   match m:
     case 0n:
       SNil{}
     case 1n+p:
-      SCon{Chr{char_at(i, r)}, key_go(p, 1n+i, r)}
+      SCon{Chr{U32.add(97, U32.and(w, 3))}, key_go(p, key_word(U32.is_eq(U32.add(s, 2), 30), w, r), wrap0(U32.is_eq(U32.add(s, 2), 30), U32.add(s, 2)), r)}
 
 def key_of(m: Nat, +r: U32) -> String:
-  key_go(m, 0n, r)
+  key_go(m, U32.shrn(r, 16n), 16, r)
 
 def val_code(x: Result<&2, &2, E.Error, U32>) -> U32:
   match x:

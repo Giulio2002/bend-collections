@@ -255,3 +255,66 @@ against 1.18 ns per element for the C reference at the same size.
 This is the principal remaining cause of over-limit rows and it is a
 property of the runtime's allocator, not of the representation: no indexing
 change removes it. It is reported here rather than worked around.
+
+## Iteration 0014: eager constructors, and what a constructor costs
+
+The user rejected lazy initialization, so `union_find`, `graph` and
+`doubly_linked_list` again allocate and initialise their storage inside `new`,
+and `dynamic_array.clear` again rewrites the whole block (WORK_LOG.md records
+the revert and the restored proofs). Honest constructor measurements taken
+after the revert with `tools/dev/qrows.py` (ns per operation, best of three
+alternating runs, quick tool - the gate's medians are in BENCHMARKS.md):
+
+| row | Bend | C | ratio |
+|---|---|---|---|
+| `union_find.new` small / medium / large / edge-empty | 21.6 / 22.9 / 7.2 / 19.9 | 1.94 / 1.91 / 2.05 / 1.79 | 11.2x / 12.0x / 3.5x / 11.1x |
+| `graph.new` small / medium / large / edge-empty | 11.1 / 11.3 / 11.2 / 11.3 | 1.74 / 1.74 / 1.08 / 1.87 | 6.4x / 6.5x / 10.4x / 6.0x |
+| `doubly_linked_list.new` small / medium / large / edge-empty | 7.2 / 5.2 / 7.6 / 7.5 | 2.47 / 2.46 / 2.48 / 2.48 | 2.9x / 2.1x / 3.1x / 3.0x |
+| `dynamic_array.clear` small / medium / large / edge-empty | 62 / 3500 / 209000 / 4.2 | 7.6 / 526 / 12996 / 2.2 | 8.1x / 6.7x / 16.1x / 1.9x |
+
+What the two sides do:
+
+* C `new`: one `arena_alloc` bump per table (graph: the id array and one
+  adjacency block; DLL: one `Node`; union-find: one `Cell` array plus one
+  `Member` per element), each about 0.3-0.5 ns, plus a few stores.
+* Bend `new`: one `blk_new` per `Base.Array`, measured at about 3.5 ns each
+  (iteration 0011 probe: a single depth-0 `Array.new` plus its release is
+  4.6 ns including the ~1 ns driver baseline). `union_find` additionally
+  allocates one cons cell per member list (a sealed `Con` is ~8.5 ns).
+* `clear`: both sides are O(capacity) - the C reference memsets the whole slot
+  array, Bend allocates a fresh all-None block. The gap is fill throughput:
+  Bend's block fill writes one 8-byte Term per slot (~0.8 ns/slot) where
+  `memset` is vectorised (~0.05 ns/slot).
+
+So these rows are dominated by the allocator and the block fill, not by the
+algorithm. Getting them under the limit needs FEWER allocations (one
+interleaved record array, the layout the C references use) rather than
+deferred ones; that migration is not done and is listed as remaining work.
+
+## prefix_trie: the rows measure Base String, not the trie
+
+A 10-character key is twenty heap cells in Bend (a `String` is a cons list of
+`Chr`) and ten stack stores in C. A driver variant that only builds and folds
+the key, with the trie call removed, still costs 87 ns (small) and 100 ns
+(edge-empty) against the C reference's COMPLETE operation at 26.8 ns and
+1.45 ns. `benchmarks/experiments/key/keycost.bend` measures the floor for the
+key alone at 30 ns. No trie representation can bring those rows to 2.5x while
+the key is built inside the timed region; docs/BENCHMARK_CHANGE_PROPOSAL.md
+asks for additive rows with prepared keys on both sides.
+
+The driver does remove the avoidable part of that cost: the old `char_at`
+recomputed `U32.shrn(r, (16+2i) mod 30)` per character and Base's `U32.shrn`
+walks its `Nat` shift one bit at a time, so each character paid about 25 shift
+steps. The driver now carries the shifted word and advances it two bits per
+character, exactly as `benchmarks/native/prefix_trie.c` does. Checksums are
+unchanged: 28/28 rows identical to the C reference.
+
+## segment_tree: branch-free descent (retained from iteration 0012)
+
+`get` and `set` pick the child ARITHMETICALLY (`step_of(h <= i, h)`) instead of
+branching on the side, because the index is data and a per-level conditional
+jump mispredicts about half the time. Measured: `get` small 22.8 -> 6.3 ns
+(C 3.24, 1.95x), `get` medium 41.8 -> 12.3 ns (C 5.85, 2.09x), `set` small
+40.6 -> 22.4 ns (C 10.15, 2.21x), `set` medium 102.3 -> 41.8 ns (C 20.7,
+2.01x). The walks are proved in `proofs/segment_tree/walk.bend`
+(`gcase`/`get_ok` for `get`, `unfold_l`/`unfold_r` for `set`).

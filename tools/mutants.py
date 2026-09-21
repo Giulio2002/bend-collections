@@ -16,9 +16,9 @@ MUTANTS = {
         ('push ignores the capacity limit', 'src/dynamic_array.bend',
          'push_room_at(~T, limit, depth, cap, len, arr, v, Nat.is_lt(len, cap), Nat.is_lt(depth, limit))',
          'push_room_at(~T, limit, depth, cap, len, arr, v, Nat.is_lt(len, cap), Nat.is_lt(depth, 1n+limit))'),
-        ('clear drops the capacity', 'src/dynamic_array.bend',
+        ('clear keeps the length', 'src/dynamic_array.bend',
          '  DA{limit, depth, cap, 0n, empty_slots_at(~T, depth)}',
-         '  DA{limit, 0n, 1n, 0n, empty_slots_at(~T, 0n)}'),
+         '  DA{limit, depth, cap, len, empty_slots_at(~T, depth)}'),
         ('set writes at the next index', 'src/dynamic_array.bend',
          'set_checked_at(~T, limit, depth, cap, len, arr, i, v, Nat.is_lt(i, len))',
          'set_checked_at(~T, limit, depth, cap, len, arr, 1n+i, v, Nat.is_lt(i, len))'),
@@ -140,16 +140,22 @@ MUTANTS = {
          'def bitix(i: Nat) -> Nat:\n  Nat.mod(i, 32n)',
          'def bitix(i: Nat) -> Nat:\n  0n'),
         ('a whole-array combine stops one word short', 'src/bitset.bend',
-         '      zip_fin(zip_go(pow2(d), (a, b), k, d, 0n), n, d, m, e)',
-         '      zip_fin(zip_go(Nat.sub(pow2(d), 1n), (a, b), k, d, 0n), n, d, m, e)'),
+         '      zip_fin(zip_go(P2.pow2t(d), (a, b), k, d, 0n), n, d, m, e)',
+         '      zip_fin(zip_go(Nat.sub(P2.pow2t(d), 1n), (a, b), k, d, 0n), n, d, m, e)'),
+        ('count ignores the top byte of every word', 'src/bitset.bend',
+         '      word_count_8(4n, w, acc)',
+         '      word_count_8(3n, w, acc)'),
+        ('to_list drops the top bit of every word', 'src/bitset.bend',
+         '      List.reverse.go(&2, Nat, word_desc(32n, w, off, Nil{}), rest)',
+         '      List.reverse.go(&2, Nat, word_desc(31n, w, off, Nil{}), rest)'),
     ],
     'union_find': [
         ('union-by-size tie-break flipped', 'src/union_find.bend',
          'union_pick(Nat.is_le(zb, za), n, d, r, z, m, c, ra, rb, Nat.add(za, zb))',
          'union_pick(Nat.is_lt(zb, za), n, d, r, z, m, c, ra, rb, Nat.add(za, zb))'),
         ('component count is not decremented', 'src/union_find.bend',
-         'write_ms(m, d, big, List.append(&2, Nat, mss, msb)), Nat.sub(c, 1n)}',
-         'write_ms(m, d, big, List.append(&2, Nat, mss, msb)), c}'),
+         'write_ms(m, d, big, List.reverse.go(&2, Nat, List.reverse.go(&2, Nat, mss, Nil{}), msb)), Nat.sub(c, 1n)}',
+         'write_ms(m, d, big, List.reverse.go(&2, Nat, List.reverse.go(&2, Nat, mss, Nil{}), msb)), c}'),
         ('merging an existing class reports a change', 'src/union_find.bend',
          '      (UF{n, d, r, z, m, c}, Done{False{}})',
          '      (UF{n, d, r, z, m, c}, Done{True{}})'),
@@ -160,11 +166,14 @@ MUTANTS = {
          '    case Con{+q, rest}:\n      relink(rest, write_nat(r, d, q, big), d, big)',
          '    case Con{+q, rest}:\n      relink(rest, r, d, big)'),
         ('the merged member list drops the small class', 'src/union_find.bend',
-         'write_ms(m, d, big, List.append(&2, Nat, mss, msb))',
+         'write_ms(m, d, big, List.reverse.go(&2, Nat, List.reverse.go(&2, Nat, mss, Nil{}), msb))',
          'write_ms(m, d, big, msb)'),
         ('component_size reads slot 0 of the size arena', 'src/union_find.bend',
          '  size_root(read_nat(z, d, v), n, d, r, m, c)',
          '  size_root(read_nat(z, d, 0n), n, d, r, m, c)'),
+        ('the materialised roots arena starts at slot 1', 'src/union_find.bend',
+         'iota_go(j, Array.set(Nt, a, U32.from_nat(j), N{j}))',
+         'iota_go(j, Array.set(Nt, a, U32.from_nat(j), N{1n+j}))'),
     ],
     'fenwick_tree': [
         ('point update subtracts', 'src/fenwick_tree.bend',
@@ -208,9 +217,22 @@ MUTANTS = {
         ('get ignores accumulated lazy tags', 'src/segment_tree.bend',
          '      (c, (g, U32.add(cval(x), acc)))',
          '      (c, (g, cval(x)))'),
-        ('a left turn of set does not recompute the block sum', 'src/segment_tree.bend',
-         '      fix(set_go(q, pre_t(q, c, g, base, hh, o), base, hh, Nat.div(hh, 2n), U32.add(acc, cval(x)), o, i, v, Nat.is_lt(i, hh)), base, h, hh, o, q)',
-         '      set_go(q, pre_t(q, c, g, base, hh, o), base, hh, Nat.div(hh, 2n), U32.add(acc, cval(x)), o, i, v, Nat.is_lt(i, hh))'),
+        ('a turn of set does not recompute the block sum', 'src/segment_tree.bend',
+         '      fix(set_go(q, pre_t(q, c, g, base, hh, Nat.add(o, m)), base, hh, Nat.div(hh, 2n), U32.add(acc, cval(x)), Nat.add(o, m), Nat.sub(i, m), v), base, h, hh, o, q)',
+         '      set_go(q, pre_t(q, c, g, base, hh, Nat.add(o, m)), base, hh, Nat.div(hh, 2n), U32.add(acc, cval(x)), Nat.add(o, m), Nat.sub(i, m), v)'),
+        ('the walk steps to the wrong side', 'src/segment_tree.bend',
+         '''def step_of(right: Bool, +h: Nat) -> Nat:
+  match right:
+    case True{}:
+      h
+    case False{}:
+      0n''',
+         '''def step_of(right: Bool, +h: Nat) -> Nat:
+  match right:
+    case True{}:
+      0n
+    case False{}:
+      h'''),
         ('a tagged block raises its stored sum by one unit only', 'src/segment_tree.bend',
          '      bump(c, Nat.add(o, hq), U32.shln(v, 1n+r))',
          '      bump(c, Nat.add(o, hq), v)'),

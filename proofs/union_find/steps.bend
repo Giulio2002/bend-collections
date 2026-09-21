@@ -213,7 +213,7 @@ def msh_run(+n: Nat, +d: Nat, +tr: A.Tree<U.Nt>, +tz: A.Tree<U.Nt>, +tm: A.Tree<
   +hc = ST.g_cap(n, d, tr, tz, tm, c, g)
   +hb = ST.in_cap(n, d, big, UN.h_big(cl, n, big, small, h), hc)
   +hbel = bel(n, d, cl, big, small, h, hc)
-  %Equal.sym(List<&2, Nat>, List.append(&2, Nat, M.ms(cl, small), M.ms(cl, big)), SC.append(Nat, M.ms(cl, small), M.ms(cl, big)), LL.base_append(Nat, M.ms(cl, small), M.ms(cl, big))) : {(U.UF{n, d, U.relink(M.ms(cl, small), A.thaw(U.Nt, tr), d, big), U.write_nat(A.thaw(U.Nt, tz), d, big, tot_of(cl, big, small)), U.write_ms(A.thaw(U.Ms, tm), d, big, _), Nat.sub(c, 1n)}, Done{True{}}) == (ST.real(msh(n, d, tr, tz, tm, c, big, small)), Done{True{}}) : U.UnionFind & Result<&2, &2, E.Error, Bool>}
+  %Equal.sym(List<&2, Nat>, List.reverse.go(&2, Nat, List.reverse.go(&2, Nat, M.ms(cl, small), Nil{}), M.ms(cl, big)), SC.append(Nat, M.ms(cl, small), M.ms(cl, big)), LL.rev_go_twice(Nat, M.ms(cl, small), Nil{}, M.ms(cl, big))) : {(U.UF{n, d, U.relink(M.ms(cl, small), A.thaw(U.Nt, tr), d, big), U.write_nat(A.thaw(U.Nt, tz), d, big, tot_of(cl, big, small)), U.write_ms(A.thaw(U.Ms, tm), d, big, _), Nat.sub(c, 1n)}, Done{True{}}) == (ST.real(msh(n, d, tr, tz, tm, c, big, small)), Done{True{}}) : U.UnionFind & Result<&2, &2, E.Error, Bool>}
   %Equal.sym(Array<U.Nt>, U.relink(M.ms(cl, small), A.thaw(U.Nt, tr), d, big), A.thaw(U.Nt, AR.rtree(M.ms(cl, small), d, tr, big)), AR.relink_ok(M.ms(cl, small), d, tr, big, hd, pr, hbel)) : {(U.UF{n, d, _, U.write_nat(A.thaw(U.Nt, tz), d, big, tot_of(cl, big, small)), U.write_ms(A.thaw(U.Ms, tm), d, big, nms_of(cl, big, small)), Nat.sub(c, 1n)}, Done{True{}}) == (ST.real(msh(n, d, tr, tz, tm, c, big, small)), Done{True{}}) : U.UnionFind & Result<&2, &2, E.Error, Bool>}
   %Equal.sym(Array<U.Nt>, U.write_nat(A.thaw(U.Nt, tz), d, big, tot_of(cl, big, small)), A.thaw(U.Nt, A.upd(U.Nt, d, tz, big, U.N{tot_of(cl, big, small)})), AR.write_nat_ok(d, tz, big, tot_of(cl, big, small), hd, hb, pz)) : {(U.UF{n, d, A.thaw(U.Nt, AR.rtree(M.ms(cl, small), d, tr, big)), _, U.write_ms(A.thaw(U.Ms, tm), d, big, nms_of(cl, big, small)), Nat.sub(c, 1n)}, Done{True{}}) == (ST.real(msh(n, d, tr, tz, tm, c, big, small)), Done{True{}}) : U.UnionFind & Result<&2, &2, E.Error, Bool>}
   %Equal.sym(Array<U.Ms>, U.write_ms(A.thaw(U.Ms, tm), d, big, nms_of(cl, big, small)), A.thaw(U.Ms, A.upd(U.Ms, d, tm, big, U.M{nms_of(cl, big, small)})), AR.write_ms_ok(d, tm, big, nms_of(cl, big, small), hd, hb, pm)) : {(U.UF{n, d, A.thaw(U.Nt, AR.rtree(M.ms(cl, small), d, tr, big)), A.thaw(U.Nt, A.upd(U.Nt, d, tz, big, U.N{tot_of(cl, big, small)})), _, Nat.sub(c, 1n)}, Done{True{}}) == (ST.real(msh(n, d, tr, tz, tm, c, big, small)), Done{True{}}) : U.UnionFind & Result<&2, &2, E.Error, Bool>}
@@ -326,15 +326,23 @@ def union_case(+n: Nat, +d: Nat, +tr: A.Tree<U.Nt>, +tz: A.Tree<U.Nt>, +tm: A.Tr
 
 # ---- every operation ----
 
-def step_ok(+sh: ST.Sh, op: E.Op, +g: {ST.good(sh) == True{} : Bool}) -> StepOK(sh, op):
-  match sh op:
-    case ST.Sh{+n, +d, +tr, +tz, +tm, +c} E.Find{+x}:
+# A materialised shadow.
+def step_sh(+n: Nat, +d: Nat, +tr: A.Tree<U.Nt>, +tz: A.Tree<U.Nt>, +tm: A.Tree<U.Ms>, +c: Nat, op: E.Op, +g: {ST.repf(n, d, tr, tz, tm, c) == True{} : Bool}) -> StepOK(ST.Sh{n, d, tr, tz, tm, c}, op):
+  match op:
+    case E.Find{+x}:
       find_case(n, d, tr, tz, tm, c, x, Nat.is_lt(x, n), {==}, g)
-    case ST.Sh{+n, +d, +tr, +tz, +tm, +c} E.Union{+a, +b}:
+    case E.Union{+a, +b}:
       union_case(n, d, tr, tz, tm, c, a, b, Nat.is_lt(a, n), {==}, Nat.is_lt(b, n), {==}, g)
-    case ST.Sh{+n, +d, +tr, +tz, +tm, +c} E.Connected{+a, +b}:
+    case E.Connected{+a, +b}:
       conn_case(n, d, tr, tz, tm, c, a, b, Nat.is_lt(a, n), {==}, Nat.is_lt(b, n), {==}, g)
-    case ST.Sh{+n, +d, +tr, +tz, +tm, +c} E.ComponentSize{+x}:
+    case E.ComponentSize{+x}:
       size_case(n, d, tr, tz, tm, c, x, Nat.is_lt(x, n), {==}, g)
-    case ST.Sh{+n, +d, +tr, +tz, +tm, +c} E.ComponentCount{}:
+    case E.ComponentCount{}:
       count_ok(n, d, tr, tz, tm, c, g)
+
+# ---- every operation ----
+
+def step_ok(+sh: ST.Sh, op: E.Op, +g: {ST.good(sh) == True{} : Bool}) -> StepOK(sh, op):
+  match sh:
+    case ST.Sh{+n, +d, +tr, +tz, +tm, +c}:
+      step_sh(n, d, tr, tz, tm, c, op, g)

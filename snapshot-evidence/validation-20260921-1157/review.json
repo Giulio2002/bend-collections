@@ -1,7 +1,0 @@
-{
-  "source_hash_count": 318,
-  "source_hash_mismatches": [],
-  "complete_report": true,
-  "full_acceptance_passed": false,
-  "caveat": "Two validation sequences shared binaries/logs until operator killed duplicate. Report hashes are end-of-run only; final isolated acceptance must be rerun. Do not treat this report as clean release acceptance."
-}

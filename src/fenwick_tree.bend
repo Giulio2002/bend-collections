@@ -1,4 +1,5 @@
 import Base
+import ./pow2.bend as P2
 import ../types/fenwick_tree.bend as E
 
 # Fenwick (binary indexed) tree over n U32 values; all sums wrap modulo 2^32
@@ -57,12 +58,10 @@ def cval(c: Cel) -> U32:
     case CV{v}:
       v
 
-def pow2(k: Nat) -> Nat:
-  match k:
-    case 0n:
-      1n
-    case 1n+p:
-      Nat.double(pow2(p))
+# 2^k by the tail recursion of src/pow2.bend (a flat native loop;
+# proofs/fenwick_tree/walk.bend fpow2 bridges it to the spec's 2^k).
+def pow2(+k: Nat) -> Nat:
+  P2.pow2t(k)
 
 # Branch decision for a node whose children have depth d and whose block
 # starts at index 0: True = the left (lower) child holds index j.
@@ -234,19 +233,32 @@ def range_sum(f: Fenwick, +l: Nat, +r: Nat) -> Fenwick & Result<&2, &2, E.Error,
 
 # ---- from_list ----
 
+# `add` without the range check and without building a Result: `fill` only
+# adds at positions below the length it allocated (proofs/fenwick_tree/
+# init.bend fill_ok carries exactly that bound), so the check could only
+# ever succeed.
+def add_raw(f: Fenwick, +i: Nat, +v: U32) -> Fenwick:
+  match f:
+    case FT{+n, +d, +b, a}:
+      FT{n, d, b, add_go(d, a, b, Nat.div(b, 2n), Nat.div(Nat.div(b, 2n), 2n), 0n, i, v, Nat.is_lt(i, Nat.div(b, 2n)))}
+
 def fill(xs: List<&2, U32>, +i: Nat, f: Fenwick) -> Fenwick:
   match xs:
     case Nil{}:
       f
     case Con{x, rest}:
-      fill(rest, 1n+i, Pair.fst(Fenwick, Result<&2, &2, E.Error, Unit>, add(f, i, x)))
+      fill(rest, 1n+i, add_raw(f, i, x))
 
-def count(xs: List<&2, U32>) -> Nat:
+# Length of a value list, by an accumulator (a flat native loop).
+def count_go(xs: List<&2, U32>, acc: Nat) -> Nat:
   match xs:
     case Nil{}:
-      0n
+      acc
     case Con{x, rest}:
-      1n+count(rest)
+      count_go(rest, 1n+acc)
+
+def count(xs: List<&2, U32>) -> Nat:
+  count_go(xs, 0n)
 
 # Fenwick tree holding exactly the given values.
 def from_list(+xs: List<&2, U32>) -> Fenwick:

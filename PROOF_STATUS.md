@@ -6,8 +6,9 @@ Checked with the pinned toolchain in `inventory/toolchain.json`
 Single root: `PROOF.bend` imports `END_TO_END.bend`, which imports every
 `proofs/<id>.bend` entry plus `proofs/lru.bend`.
 
-**Current state (iteration 0008): `bend PROOF.bend` reports `All terms check`**
-(3655 template instances). The closure covers all twelve structures, the
+**Current state (iteration 0014): `bend PROOF.bend` reports `All terms check`,
+with 3876 template instances** (fresh run after the lazy-constructor revert;
+`bend END_TO_END.bend` prints the same line). The closure covers all twelve structures, the
 retained LRU (`proofs/lru.bend`) and the benchmarked indexed LRU
 (`proofs/lru_fast.bend`, laws `lru_fast_*` in `END_TO_END.bend`). No
 `@unsafe`, no holes, no axioms, no `?`-terms anywhere in the closure
@@ -363,9 +364,10 @@ semantics, ported under `spec/lru_numeric.bend` and `proofs/lru_fast/num/`):
 * Asymptotic costs are documented in the source headers but are not machine
   checked; nothing in the proof closure depends on them.
 * Performance is a separate, measured claim: see `BENCHMARKS.md`. It is **not**
-  met. In the 0008 triage run of the frozen gate (`build/performance/triage.json`,
-  median-of-samples ratio) 243 of 408 workloads are within 2.5x, 162 are over,
-  and 3 were not measurable above the clock minima. The frozen gate has no
+  met. In the final 0008 run of the frozen table
+  (`build/performance/report.json`, rendered into BENCHMARKS.md) 245 of 408
+  workloads are within 2.5x, 160 are over, and 3 were not measurable above the
+  clock minima. The frozen gate has no
   `lru.*` rows. The indexed LRU has a native C reference (`benchmarks/native/lru.c`)
   and a Bend driver; the rows are proposed additively in
   `docs/BENCHMARK_CHANGE_PROPOSAL.md`. The proofs are unaffected.

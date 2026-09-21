@@ -35,11 +35,18 @@ whole checked closure. `automation/acceptance.py` walks it and rejects any
 dynamic_array  -> proofs/lib/array.bend (Base.Array)
 bitset         -> proofs/lib/array.bend (Base.Array of packed U32 words)
 queue          -> deque
-graph          -> balanced_search_tree (U32 instance, twice: vertex map and
-                  neighbour set)
-doubly_linked_list -> balanced_search_tree (Nat instance, node store)
-lru            -> reference/lru (immutable pinned snapshot; src/lru.bend is a
-                  thin reuse entry, nothing is re-implemented)
+graph          -> proofs/lib/{array,array2}.bend (indexed vertex slots and
+                  adjacency blocks; it no longer uses the search tree)
+doubly_linked_list -> proofs/lib/array.bend (parallel index arenas; it no
+                  longer uses the search tree as a node store)
+lru (retained) -> reference/lru (immutable pinned snapshot, re-exported
+                  byte-identical by src/lru.bend and proofs/lru.bend)
+lru (benchmarked) -> src/lru/fast.bend: a DIFFERENT runtime (native Map from
+                  key to slot, plus an indexed arena with an intrusive
+                  doubly linked recency list and U32-limb metrics). It is
+                  proved on its own against spec/lru_fast.bend in
+                  proofs/lru_fast/**; the retained reference proofs do NOT
+                  prove it.
 ```
 
 Nothing re-implements Base's Map, Set or List-as-stack.
@@ -50,22 +57,41 @@ No structure stores in a linked list what its algorithm does not need as
 links. The runtime representation of every structure, what it is indexed by
 and where a genuine link survives:
 
-| structure | runtime storage | indexing | links |
-|---|---|---|---|
-| `dynamic_array` | `Base.Array` of `Maybe<T>` slots, capacity `2^depth` | slot `i` is element `i` | none |
-| `deque` | `Base.Array` of `Maybe<T>` slots; the elements are the window `[lo, lo + len)` | slot `lo + j` is element `j` | none |
-| `queue` | the deque (enqueue = push_back, dequeue = pop_front) | as the deque | none |
-| `bitset` | `Base.Array` of packed `U32` words | bit `i` is word `i / 32`, bit `i % 32` | none |
-| `union_find` | three parallel `Base.Array`s (parent, size, members) | element `i` is slot `i` | none |
-| `fenwick_tree` | one `Base.Array` of `U32` cells, flat split-point layout | value `t` is cell `2^d + t`; a block `[o, o + 2^p)` keeps its partial sum at cell `o + 2^(p-1)` | none |
-| `segment_tree` | two `Base.Array`s of `U32` cells (sums, lazy tags), same split-point layout | as fenwick, plus the tag array at the block's split point | none |
-| `binary_heap` | `Base.Array` of `Maybe<A>` slots, capacity `2^depth` (PACKED array heap) | element `i` is slot `i`, children `2i+1`/`2i+2`, parent `(i-1)/2` | none |
-| `balanced_search_tree` | red-black tree of `Node{color, l, entry, r}` | — | tree children |
-| `prefix_trie` | trie nodes `TNode{c, val, down, next}` | `down` = children, `next` = the sibling chain of one node's children | trie children |
-| `doubly_linked_list` | THREE parallel `Base.Array` blocks (`vals: Maybe<T>`, `prevs: U32`, `nexts: U32`) sharing one index space | the element id IS its slot index (a monotone counter, never reused) | DLL prev/next, as arena indices |
-| `graph` | indexed vertex slots plus adjacency blocks: `ids: Array<U32>` (ascending, in the window `[lo, hi)`) and `adj: Array<Array<U32>>`, each adjacency block one power-of-two `U32` block with a `deg\|size\|lcap` header and ascending neighbour ids | binary search of `ids` maps an EXTERNAL U32 vertex id to its slot; neighbours are external ids, so moving a slot renumbers nothing | none |
-| `lru` (retained) | `reference/lru` snapshot: `Map` + recency order | key | LRU recency order |
-| `lru` (benchmarked, `src/lru/fast.bend`) | native `Map<&2, Maybe<&2, U32>>` (key -> `Some{slot}`) plus an arena: `kys: Array<String>`, `ents: Array<Slot<V>>` (`Live{v}` / `Timed{v, deadline}`), `prevs`/`nexts: Array<U32>`, metrics as ten `U32` limbs in one `Array<U32>` | key -> slot through the native Map (crit-bit trie; the C reference uses a hash table, see docs/C_EQUIVALENCE.md); proofs: `proofs/lru_fast/` (`state.bend` invariant `inv`: links agree with the ghost order, free chain, table <-> order) | intrusive DOUBLY LINKED recency list as arena indices (head = oldest), free list through `nexts`; O(1) touch/evict/remove |
+| structure | runtime storage | indexing | links (why the algorithm needs them) | representation-bridge / invariant proofs |
+|---|---|---|---|---|
+| `dynamic_array` | `Base.Array` of `Maybe<T>` slots, capacity `2^depth` | slot `i` is element `i` | none | `proofs/dynamic_array/{state,layout,walk,closed}.bend` |
+| `deque` | `Base.Array` ring of `T` slots, capacity `2^depth`; an empty deque owns NO block (`DE{}`) because `Array.new` needs a filler element and `T` is an arbitrary `Data` with no default | element `j` is slot `wrap(lo + j)`, `wrap(x) = x < cap ? x : x - cap` | none | `proofs/deque/{ring,state,grow,layout,stepok,reads,pushes,steps}.bend` |
+| `queue` | the deque (enqueue = push_back, dequeue = pop_front) | as the deque | none | `proofs/queue/{steps,trace}.bend` over the deque shadow |
+| `bitset` | `Base.Array` of packed `U32` words | bit `i` is word `i / 32`, bit `i % 32` | none | `proofs/bitset/{state,loops,fastcount,steps}.bend` |
+| `union_find` | three parallel `Base.Array`s (parent, size, members) | element `i` is slot `i` | none (member lists are values, not storage links) | `proofs/union_find/{state,arr,flat,init,steps}.bend` |
+| `fenwick_tree` | one `Base.Array` of `U32` cells, flat split-point layout | value `t` is cell `2^d + t`; a block `[o, o + 2^p)` keeps its partial sum at cell `o + 2^(p-1)` | none | `proofs/fenwick_tree/{state,arr,walk,init,steps}.bend` |
+| `segment_tree` | two `Base.Array`s of `U32` cells (sums, lazy tags), same split-point layout | as fenwick, plus the tag array at the block's split point | none | `proofs/segment_tree/{state,arr,walk,init,steps}.bend` |
+| `binary_heap` | `Base.Array` of `Maybe<A>` slots, capacity `2^depth` (PACKED array heap) | element `i` is slot `i`, children `2i+1`/`2i+2`, parent `(i-1)/2` | none | `proofs/binary_heap/{state,slots,idx,up,down,steps}.bend` |
+| `balanced_search_tree` | red-black tree of `Node{color, l, entry, r}` | — | tree children: a red-black BST is defined by its two-child nodes | `proofs/balanced_search_tree/{sorted,steps,colour}.bend` |
+| `prefix_trie` | trie nodes `TNode{c, val, down, next}` | `down` = children, `next` = the sibling chain of one node's children | trie children: a trie node's children are its genuine edges (the sibling chain is the part still to migrate) | `proofs/prefix_trie/{keys,ops,steps,trace}.bend` |
+| `doubly_linked_list` | THREE parallel `Base.Array` blocks (`vals: Maybe<T>`, `prevs: U32`, `nexts: U32`) sharing one index space | the element id IS its slot index (a monotone counter, never reused) | prev/next as ARENA INDICES: the requested structure is a doubly linked list with stable handles | `proofs/dlist/{state,links,items,alive,ibcore,rm,trace}.bend` |
+| `graph` | indexed vertex slots plus adjacency blocks: `ids: Array<U32>` (ascending, in the window `[lo, hi)`) and `adj: Array<Array<U32>>`, each adjacency block one power-of-two `U32` block with a `deg\|size\| none | `proofs/graph/{state,search,blk,nbrs,gstep,gtrace}.bend` |
+| `lru` (retained) | `reference/lru` snapshot: `Map` + recency order | key | LRU recency order (inherent to the algorithm) | `proofs/lru.bend` (re-export of the pinned snapshot) |
+| `lru` (benchmarked, `src/lru/fast.bend`) | native `Map<&2, Maybe<&2, U32>>` (key -> `Some{slot}`) plus an arena: `kys: Array<String>`, `ents: Array<Slot<V>>` (`Live{v}` / `Timed{v, deadline}`), `prevs`/`nexts: Array<U32>`, metrics as ten `U32` limbs in one `Array<U32>` | key -> slot through the native Map (crit-bit trie; the C reference uses a hash table, see docs/C_EQUIVALENCE.md); proofs: `proofs/lru_fast/` (`state.bend` invariant `inv`: links agree with the ghost order, free chain, table <-> order) | intrusive doubly linked recency as arena indices: O(1) touch/evict is the algorithm | `proofs/lru_fast/{state,table,chain,steps,trace}.bend` |
+
+### Constructors allocate eagerly
+
+Every constructor builds the normal usable representation immediately and
+initialises the storage it needs; none of them returns a deferred placeholder
+that charges its allocation to the first operation. `dynamic_array`, `bitset`,
+`union_find`, `binary_heap`, `fenwick_tree`, `segment_tree`, `graph` and
+`doubly_linked_list` all allocate (and fill) their first block inside `new`.
+Growth on later insertions is the conventional doubling; an empty structure
+does not reserve future capacity. Deferred-initialization variants tried in
+iterations 0011-0012 were removed in 0013/0014 at the user's instruction.
+
+The one structure whose empty state owns no block is `deque` (and `queue`,
+which wraps it): `Base.Array.new` needs a filler ELEMENT, and the deque's
+element type is an arbitrary `Data` with no default value, so an empty
+generic ring cannot allocate one. `DE{}` is that zero-capacity ring, the
+first pushed element is the filler, and the pinned `benchmarks/native/deque.c`
+does allocate one slot in `dq_init` -- the difference is disclosed in
+docs/C_EQUIVALENCE.md rather than claimed as a speedup.
 
 The only remaining node-linked storage is where the operator's rule allows
 it: tree/trie children (`balanced_search_tree`, `prefix_trie`),

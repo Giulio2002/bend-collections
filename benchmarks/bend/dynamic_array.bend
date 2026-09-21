@@ -43,6 +43,39 @@ def fin_unit(r: U32, c: U32, p: DA.DynArray<U32> & Result<&2, &2, E.Error, Unit>
   (a, x) = p
   S{r, B.mix(c, unit_code(x)), a}
 
+# One finisher per operation (not a shared helper): clang inlines a def into
+# its caller only while it has a single caller (see benchmarks/bend/deque.bend).
+# Per-operation copies of the bounded draw (B.nat_below) for the same reason.
+def below_get(v: U32, m: Nat) -> Nat:
+  U32.to_nat(U32.mod(v, U32.from_nat(m)))
+
+def below_set(v: U32, m: Nat) -> Nat:
+  U32.to_nat(U32.mod(v, U32.from_nat(m)))
+
+def below_res(v: U32, m: Nat) -> Nat:
+  U32.to_nat(U32.mod(v, U32.from_nat(m)))
+
+def fin_unit_set(r: U32, c: U32, p: DA.DynArray<U32> & Result<&2, &2, E.Error, Unit>) -> St:
+  (a, x) = p
+  S{r, B.mix(c, unit_code(x)), a}
+
+def fin_unit_res(r: U32, c: U32, p: DA.DynArray<U32> & Result<&2, &2, E.Error, Unit>) -> St:
+  (a, x) = p
+  S{r, B.mix(c, unit_code(x)), a}
+
+def fin_item_get(r: U32, c: U32, p: DA.DynArray<U32> & Result<&2, &2, E.Error, U32>) -> St:
+  (a, x) = p
+  S{r, B.mix(c, item_code(x)), a}
+
+# The list's length, counted with a tail loop (Base's List.length is not a
+# tail recursion, which keeps a def from compiling to a flat native loop).
+def len_acc(xs: List<&2, U32>, +n: Nat) -> Nat:
+  match xs:
+    case Nil{}:
+      n
+    case Con{x, t}:
+      len_acc(t, 1n+n)
+
 def fin_item(r: U32, c: U32, p: DA.DynArray<U32> & Result<&2, &2, E.Error, U32>) -> St:
   (a, x) = p
   S{r, B.mix(c, item_code(x)), a}
@@ -53,7 +86,7 @@ def fin_nat(r: U32, c: U32, p: DA.DynArray<U32> & Nat) -> St:
 
 def fin_list(r: U32, c: U32, p: DA.DynArray<U32> & List<&2, U32>) -> St:
   (a, xs) = p
-  S{r, B.mix(c, nat_code(List.length(&2, U32, xs))), a}
+  S{r, B.mix(c, nat_code(len_acc(xs, 0n))), a}
 
 # ---- one step of each operation ----
 
@@ -69,14 +102,14 @@ def do_pop(st: St) -> St:
   fin_item(B.lcg(r), c, DA.pop_at(~U32, a))
 
 def get_with(+r: U32, c: U32, a: DA.DynArray<U32>, +n: Nat) -> St:
-  fin_item(r, c, DA.get_at(~U32, a, B.nat_below(r, 1n+n)))
+  fin_item_get(r, c, DA.get_at(~U32, a, below_get(r, 1n+n)))
 
 def do_get(st: St, +n: Nat) -> St:
   S{r, c, a} = st
   get_with(B.lcg(r), c, a, n)
 
 def set_with(+r: U32, c: U32, a: DA.DynArray<U32>, +n: Nat) -> St:
-  fin_unit(r, c, DA.set_at(~U32, a, B.nat_below(r, 1n+n), r))
+  fin_unit_set(r, c, DA.set_at(~U32, a, below_set(r, 1n+n), r))
 
 def do_set(st: St, +n: Nat) -> St:
   S{r, c, a} = st
@@ -102,7 +135,7 @@ def do_clear(st: St) -> St:
   clear_with(B.lcg(r), c, a)
 
 def reserve_with(+r: U32, c: U32, a: DA.DynArray<U32>, +n: Nat) -> St:
-  fin_unit(r, c, DA.reserve_at(~U32, a, B.nat_below(r, 1n+n)))
+  fin_unit_res(r, c, DA.reserve_at(~U32, a, below_res(r, 1n+n)))
 
 def do_reserve(st: St, +n: Nat) -> St:
   S{r, c, a} = st
