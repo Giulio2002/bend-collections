@@ -1693,3 +1693,23 @@ Done in 0006 (recovery notes):
   add needs the premise room(bt) || lcap <= 30 (growth stays in U32).
 * NEXT: eops.bend: window-of-update (G1), amodel-of-update (G2), put model
   (G3), remove_edge_ok, add_edge_ok.
+
+### 0007 graph progress (cont.)
+* proofs/graph/rmedge.bend: `so_remove_edge : GT.StepOK(Sh, RemoveEdge{u,v})` for every good
+  shadow (both directed/undirected, all error branches). Checks.
+* proofs/graph/addedge.bend: `so_add_edge(..., h, q, hq: q<=30, hroom: 3+mu(sh) < 2^q)`.
+  The room premise bounds every block's degree, hence a full block has lcap <= 30 and
+  the runtime's doubling stays within 2^31 words. Checks.
+* proofs/graph/ucore.bend: `uc_step` converts the unit-result core (UCore) to StepOK.
+* Checker lesson: a tuple literal as a lambda body cannot be inferred; wrap it in a
+  named def (`gm_done`, `g_done`, `g_fail`).
+* Remaining graph: add_vertex, remove_vertex, step_ok dispatch, trace, graph.bend/END_TO_END.
+* add_vertex: `so_add_vertex(..., h, q, hq, hroom)` in proofs/graph/addv3.bend (checks). Layers:
+  zip.bend (list zippers: left/right shift + write = insertion window), ashift.bend (mirror
+  trees for the swapping adjacency shifts, runtime = mirror), addv1.bend (model/asc/blocks/mu
+  of an absent-key insertion; generic `av_new`), addv2.bend (in-place left/right cores),
+  addv3.bend (doubling left/right via relocated-window lemmas + `uc_conv`, flag dispatch).
+  Doubling happens only for a full table, where the room premise bounds depth <= 29.
+* Checker lessons: `+x = e` needs e's type to be Data (pair types are not) - inline; `as`
+  is a keyword; names like `exs` fail to parse (use `hxs`); a match with a wildcard column in
+  the runtime may not reduce for a variable - split all columns.

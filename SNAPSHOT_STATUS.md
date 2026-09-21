@@ -1,3 +1,13 @@
+## Latest: indexed graph add_edge and add_vertex refinements
+
+Independent exported-snapshot checks of proofs/graph/addedge.bend and
+proofs/graph/addv3.bend pass, each reporting 94 unsafe annotations. Vertex
+insertion covers all six runtime branches, including both table doublings.
+Raw output is in snapshot-evidence/graph-add-{edge,vertex}-check.log.
+The reported imported/generic trust boundary is still an audit obligation.
+Vertex removal, whole-trace integration, DLL/new-LRU proofs and native speed
+targets remain unfinished. No whole-library formal acceptance is claimed.
+
 ## Latest: indexed graph remove_edge refinement
 
 Independent exported-snapshot check of proofs/graph/rmedge.bend passes with

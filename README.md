@@ -1,4 +1,4 @@
-> **Unfinished development snapshot:** indexed graph component proofs are checking; full implementation/proof/performance acceptance is incomplete. See [snapshot status](SNAPSHOT_STATUS.md).
+> **Unfinished development snapshot:** indexed graph component proofs check; whole-library formal and performance acceptance remain incomplete. See [snapshot status](SNAPSHOT_STATUS.md).
 
 # bend-dsa
 

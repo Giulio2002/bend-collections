@@ -39,3 +39,13 @@ def uc_step(-sh: ST.Shadow, -op: E.Op, -rt: G.Graph & Result<&2, &2, E.Error, Un
         Equal.trans(G.Graph & E.Obs, G.step(ST.real(sh), op), G.obs_unit(rt), (ST.real(sh2), E.OUnit{res}), hop,
           Equal.cong(G.Graph & Result<&2, &2, E.Error, Unit>, G.Graph & E.Obs, z => G.obs_unit(z), rt, (ST.real(sh2), res), e1)),
         e2, e3, e4)
+
+# Move a core statement along equal measures, runtime results and specification results.
+def uc_conv(-sh: ST.Shadow, -sh1: ST.Shadow, -rt: G.Graph & Result<&2, &2, E.Error, Unit>, -rt1: G.Graph & Result<&2, &2, E.Error, Unit>, -sp: GS.Model & E.Obs, -sp1: GS.Model & E.Obs, +c: Nat, +emu: {GT.mu(sh1) == GT.mu(sh) : Nat}, +ert: {rt1 == rt : G.Graph & Result<&2, &2, E.Error, Unit>}, +esp: {sp1 == sp : GS.Model & E.Obs}, core: UCore(sh1, rt1, sp1, c)) -> UCore(sh, rt, sp, c):
+  match core:
+    case Tuple{sh2, Tuple{res, Tuple{e1, Tuple{e2, Tuple{e3, e4}}}}}:
+      uc_mk(sh, rt, sp, c, sh2, res,
+        Equal.trans(G.Graph & Result<&2, &2, E.Error, Unit>, rt, rt1, (ST.real(sh2), res), Equal.sym(G.Graph & Result<&2, &2, E.Error, Unit>, rt1, rt, ert), e1),
+        e2,
+        Equal.trans(GS.Model & E.Obs, (ST.model(sh2), E.OUnit{res}), sp1, sp, e3, esp),
+        L.subst(Nat, z => {Nat.is_le(GT.mu(sh2), Nat.add(z, c)) == True{} : Bool}, GT.mu(sh1), GT.mu(sh), emu, e4))
