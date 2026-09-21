@@ -1,0 +1,1957 @@
+{
+  "file": "/Users/monkeair/work/published-snapshots/bend-collections/snapshot-evidence/native-lru-all-inst.bend",
+  "flagged": [
+    {
+      "name": "../reference/lru/proofs/invariants.representation~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/invariants.identities~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.init~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.initial~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.new_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.new_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.good~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.new_good~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.inv_mk~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lib/order.Order~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lib/order.Order~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lib/order.Order~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lib/order.refl~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lib/order.flip~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../spec/balanced_search_tree.find~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../spec/balanced_search_tree.ins~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../spec/balanced_search_tree.ins_at~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../spec/balanced_search_tree.del~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/sorted.above~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/sorted.ab_head~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/sorted.ab_tail~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/sorted.sorted~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/sorted.above_eq~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lib/order.antisym~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.run~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.run_acc~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.step_acc~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.step~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.insert~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.lookup_tree~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.c1~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.find~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.insert_tree~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.ins~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.remove~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.remove_at~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.remove_tree~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.del~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.lookup~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.contains~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.lower_bound~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.lower_tree~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.d1~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.lb~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.range~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.rng~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.in_range~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.run~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.run_acc~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.step_acc~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.step~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.insert~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.lookup_tree~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.c1~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.find~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.insert_tree~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.ins~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.remove~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.remove_at~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.remove_tree~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.del~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.lookup~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.contains~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.lower_bound~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.lower_tree~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.d1~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.lb~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.range~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.rng~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/balanced_search_tree.in_range~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/specops.sorted_ins~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/sorted.so_tail~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/specops.sorted_ins_c~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/sorted.so_above~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/sorted.above_gt~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/sorted.lt_trans~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/sorted.gt_of_lt~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lib/order.trans~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/sorted.lt_case~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/sorted.so_mk~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/sorted.lt_of_gt~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/specops.above_ins~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/balanced_search_tree/specops.above_ins_c~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/spec/cache.find~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/spec_lookup.returned~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/spec_lookup.certificate~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/spec_lookup.sound~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/spec_lookup.choose~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/spec_lookup.lift~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/spec_lookup.member_present~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/spec_lookup.head_present~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/spec_lookup.tail_present~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.cache_identities~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/invariants.identities~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.encode_keys~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.faithful~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.codes~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_identity.entry_code~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.keys_of_codes~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.entries_go_faithful~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.head_step~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_identity.listed_identity~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_identity.head_identity~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_identity.tail_identity~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.cache_identities~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/invariants.identities~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.encode_keys~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.faithful~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.codes~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_identity.entry_code~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.keys_of_codes~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.entries_go_faithful~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.head_step~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_identity.listed_identity~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_identity.head_identity~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_identity.tail_identity~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/cache_key_identity.injective~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/cache_key_identity.lookup_original_key~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/cache_key_identity.lookup_code_identity~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/cache_key_identity.injective~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/cache_key_identity.lookup_original_key~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/cache_key_identity.lookup_code_identity~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.cache_identities~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/invariants.identities~3",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/cache_key_identity.injective~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/cache_key_identity.lookup_original_key~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_identity.entry_code~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/cache_key_identity.lookup_code_identity~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_identity.listed_identity~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_identity.head_identity~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_identity.tail_identity~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/invariants.representation~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.add_bounded~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.components~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.add_bounded_parts~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.identities_packed~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.recency_faithful~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.recency_faithful_parts~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.recency_finish~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.initialized~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/invariants.representation~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.add_bounded~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.components~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.add_bounded_parts~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.identities_packed~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.recency_faithful~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.recency_faithful_parts~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.recency_finish~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.initialized~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/invariants.representation~3",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.add_bounded~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.components~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.add_bounded_parts~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.identities_packed~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.encode_keys~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.recency_faithful~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.recency_faithful_parts~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.recency_finish~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.faithful~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.codes~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.keys_of_codes~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.entries_go_faithful~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_recency.head_step~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_parts.initialized~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_lookup.binding~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_access.get_storage~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_access.storage_parts~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_access.get_identities~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_access.identities_parts~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_lookup.from_origin~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_lookup.binding~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_access.get_storage~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_access.storage_parts~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_access.get_identities~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_access.identities_parts~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_lookup.from_origin~1",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_lookup.binding~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_access.get_storage~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_access.storage_parts~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_access.get_identities~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/representation_access.identities_parts~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/abstraction_lookup.from_origin~2",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/lookup_refinement.reflects~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/lookup_refinement.reflexive~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/lookup_refinement.correspondence~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/lookup_refinement.decision~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/lookup_refinement.native_missing~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/lookup_refinement.native_present~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/lookup_refinement.model_found~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/lookup_refinement.matching~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/spec/equivalence.states~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/spec/equivalence.canonical~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/spec/equivalence.lookups~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/spec/equivalence.stray~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/spec/equivalence.member~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.reflects~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.lookup_agreement~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.canonical_find~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.cfind~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.pick~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.find_canonical~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.find_decide~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.pick_member~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.pick_hit~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.outside_member~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.outside_step~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/spec/operations.all_entries~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/spec/operations.ordered~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.entries_agreement~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.entries_canonical~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.ordered_somes~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/spec/cache.erase~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/spec/cache.unlist~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.c_drop~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.ldrop~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.drop_transform~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.lookups_unlist_erase~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.lookups_unlist_erase_step~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.find_erase_other~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.erase_other_step~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.stray_unlist_erase~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.stray_unlist_erase_step~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.erase_keep_true~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.member_unlist~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.member_unlist_step~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.member_unlist_skip~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.erase_keep_false~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.moved~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.c_write~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.reflexive~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.write_transform~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.lookups_append~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.lookups_prepend~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.lookups_prepend_step~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.symmetric_false~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.symmetric_decide~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.member_moved_key~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.member_append~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.stray_moved_erase~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.stray_moved_erase_step~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.member_moved_other~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.c_move~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.move_transform~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.lookups_unlist~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.lookups_unlist_step~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.stray_moved~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.stray_moved_step~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../reference/lru/proofs/canonical.member_moved_same~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addfacts.entry~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.entry_of~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addfacts.entry_occ~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addfacts.occ_c~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addfacts.entry_ent~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addfacts.ent_c~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.replace~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/add.rep_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.split_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_fresh~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_ordlt~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_nodup~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_depth~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_tp~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_tn~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_lk~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/add.k4~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_tc~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_te~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/add.rep_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_occ~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/touch2.touch_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_count~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_mapped~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_incl~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_n~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_tk~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_fllt~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_fk~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_crit~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_pop~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/state.g_cap~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/add.rep_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.put_new~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/insert.put_ok~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/insert.k5~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/insert.ins_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/insert.ins_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.insert_new~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.alloc_pick~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.alloc_fresh~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.grow_ents~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.alloc_free~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/insert.ins_free_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/insert.ins_fresh_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/insert.ins_grow_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/insert.k6~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/insert.ge_ok~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/insert.grow_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/insert.grow_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.insf_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.insr_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.grow_depth~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.insf_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.insr_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.insf_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.insr_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.room_of~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.len_nat~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.add~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.add_found~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.add_pick~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.room_then_insert~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.evict_oldest~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.remove_slot~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.rm_key~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.rm_val~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.slot_val~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.drop_val~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.ad_ghost~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.ad_none~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.apb~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.add_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.ad_real_m~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.ad_none_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.ad_full_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.rm_at_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/rs.rs_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.evict_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.rm_at_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/rs.rs_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/rs.k3~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/rs.k2~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/rs.k1~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.room_after~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.gpb~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.add_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.ad_inv_m~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.ad_none_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.ad_full_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.mpb~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.add_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.ad_model_m~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.ad_none_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/addop.ad_full_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/rs.rs_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.remove~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.rm_found~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.rm_pick~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.rm_ghost~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.rp~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.remove_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.rm_real_m~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.gp~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.remove_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.remove_inv_m~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.mp~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.remove_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.remove_model_m~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.rm_at_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/remove.rm_found_spec~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.read~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.read_found~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.read_pick~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.read_got~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.read_slot~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.count_read~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.read_live~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.read_expiry~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../src/lru/fast.miss_expired~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.read_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.rd_real_m~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.miss_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.rs_real_slot~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.rl_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.re_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.rx_real~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.read_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.rd_inv_m~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.inv_tc~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.rsl_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.rl_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.re_inv~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.rl_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.rx_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.read_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.rd_model_m~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.rsl_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    },
+    {
+      "name": "../proofs/lru_fast/read.re_model~0",
+      "explicitUnsafe": false,
+      "templateInstance": true
+    }
+  ],
+  "explicitUnsafe": 0,
+  "templateInstances": 390
+}

@@ -1829,3 +1829,41 @@ Read docs/OPERATOR_LRU_SCOPE_CORRECTION.md. Missing canonical LRU rows do not ex
   a stack buffer. U32 shift arithmetic in char_at did not help (150ns). union_find.new is about 7
   boxed allocations plus frees against C's arena bump. These gaps come from allocation and
   boxing, not from algorithms. Closing them needs representation changes, each with a re-proof.
+* LRU proof: lists.bend adds nodup_rm/notin_rm, occ/am append and cut lemmas, and frames (fk,
+  occ, ents, keys, all_mapped under a single update or nupd). rs.bend holds the slot-removal core
+  (F.remove_slot): rs_real (the runtime returns real(rs_sh) and slot_val(sat es s)), rs_model
+  (model = LM{cap, life, S.drop(ents o, kat s), T.bump(mi metric, mets)}), and rs_inv (good
+  preserved). inst_rs.bend checks all three at V = U32. Metric matches in proofs must be
+  explicit nested 0n/1n+p matches, because `case _` does not reduce on an abstract Nat.
+  Dev timer: tools/dev/quick_bench.py.
+* LRU proof, continued. All of the following check at V = U32 via proofs/lru_fast/inst_rs.bend
+  (instances come from tools/dev/instgen.py):
+  - remove.bend: split wrappers rm_at_{real,inv,model} and found_k. remove_real / remove_inv /
+    remove_model are stated against the ghost rm_ghost(..., lk(table, key)).
+  - touch.bend + touch2.bend: the touch ghost t_ord/t_tp/t_tn, split on whether s is already
+    newest. Covers touch_chain, t_lk (DL.lk_ins), t_fk, the moved-order facts (nodup, alllt, len,
+    kmem, incl, am, occ) and touch_inv (generic in tc2/te2) plus touch_ents.
+  - readfacts.bend: stamp_iso (the Stamp round-trips), zero_live, and the hc hit/miss counter
+    ghost with its runtime, perfection and mets lemmas.
+  - read.bend: F.read(key, int_stamp now, tracked) with ghost rd_ghost. read_real / read_inv /
+    read_model cover every branch (miss; Live; Timed live; Timed expired -> removal core plus a
+    miss).
+  NEXT: add (replace = set + touch; insert = alloc free / fresh / grow, after evict_oldest when
+  full), then purge, resize, keys, metrics/len/capacity/set_lifetime, step, trace, END_TO_END.
+* LRU add is proven at V = U32 (inst_add.bend, inst_addop.bend all check):
+  - addfacts.bend: entry(~V, life, v, now) is occupied, and its ent_at carries NS.deadline(now,
+    life), via stamp_iso and duration_refinement.deadline.
+  - add.bend: replacing a present key (rep_sh, rep_real / rep_inv / rep_model; touch_inv with
+    bt(tc, 0) and the entry written at s).
+  - insert.bend: ins_sh; put_ok (put_new); ins_inv; ins_model; the three allocation paths
+    ins_free_real / ins_fresh_real / ins_grow_real; grow frames (occ / am / keys / ents / fk,
+    lk via DL.lk_grow); grow_inv; grow_model.
+  - addop.bend: dispatch ins_fl / ins_g (free list, room, grow). Growth depth < 31 follows from
+    the capacity premise to_nat(cap) <= 2^q with q <= 31. The top-level ghost ad_ghost(..., lk,
+    full) covers replace, insert, and evict-then-insert (evict = removal core at hd_nat(ord),
+    metric 1). add_real / add_inv / add_model are stated against it.
+  Gotchas: constructor literals (Con{..}, S.En{..}, 1n+x) cannot be `+`-bound and must be
+  inlined; Array/Chain are Types (inline them, and use the source's grow_* functions instead of
+  ANode literals); Data pattern variables used twice need `+`.
+  NEXT: purge, resize (shrink loop), keys (expire loop + prev-walk), metrics/len/capacity/
+  set_lifetime, step, trace, END_TO_END.

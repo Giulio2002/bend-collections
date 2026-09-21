@@ -1,3 +1,18 @@
+## Latest: native LRU U32 proof components independently checked
+
+The four instantiation entries inst,inst_rs,inst_add,inst_addop check together
+with stock pinned Bend:exit0,6s,0.86GB sampled footprint. These cover constructor
+and native remove/read/add components, including replacement, eviction and
+allocation cases, under their explicit invariant/capacity premises. The390CLI
+flags classify as template instances,zero explicit @unsafe; soundness and
+semantic parity still need audit. Other operations and whole-trace integration
+remain incomplete. No new performance acceptance is claimed.
+
+See snapshot-evidence/native-lru-check-review.md for exact boundaries and the
+operator toolchain-recovery incident; all reported component checks were rerun
+after restoring the exact pinned binary. Historical benchmark reports do not
+certify this newer proof/runtime snapshot.
+
 ## Latest: complete canonical triage, performance gate still failing
 
 The 408-row development run measures243 rows within2.5xC,162 over limit and

@@ -1,0 +1,7 @@
+{
+  "restored_at": "2026-09-21T08:59:04.931164+00:00",
+  "sha256": "da9bc51449f04a65bf633351fb754cd6f883f5f5d9ab0c4e947f5c6f19eb7386",
+  "source": "official bendlang/bend v2.0.16 darwin-arm64 release",
+  "cause": "operator passed executable as log argument to capped_run.py; executable was truncated",
+  "installed_bytes": 63710306
+}

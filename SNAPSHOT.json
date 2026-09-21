@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-09-21T08:08:16.913274+00:00",
+  "captured_at": "2026-09-21T09:02:16.172463+00:00",
   "repository": "bend-collections",
   "kind": "unverified_development_snapshot",
   "full_acceptance_passed": false,
@@ -781,7 +781,9 @@
       "too_slow": 162,
       "unmeasurable": 3
     },
-    "source_hash_mismatches": [],
+    "source_hash_mismatches": [
+      "proofs/lru_fast/lists.bend"
+    ],
     "worst": [
       {
         "ratio": 109.57683741648107,
@@ -837,5 +839,22 @@
     "canonical_lru_coverage": false,
     "concurrent_local_work": true,
     "full_acceptance_passed": false
+  },
+  "native_lru_component_check": {
+    "entries": [
+      "inst",
+      "inst_rs",
+      "inst_add",
+      "inst_addop"
+    ],
+    "result": "All terms check, with 390 unsafe annotations.",
+    "exit": 0,
+    "elapsed_seconds_rounded": 6,
+    "sampled_peak_gb_rounded": 0.86,
+    "explicit_unsafe": 0,
+    "template_instances": 390,
+    "value_type": "U32",
+    "full_lru_trace_acceptance": false,
+    "checked_after_exact_toolchain_recovery": true
   }
 }
