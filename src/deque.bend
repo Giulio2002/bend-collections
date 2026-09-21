@@ -1,56 +1,52 @@
 import Base
 import ../types/deque.bend as E
 
-# Double-ended queue over a native Base.Array: a window of occupied slots
-# inside a power-of-two block of slots.
+# Double-ended queue: a RING BUFFER over a native Base.Array.
 #
 # Representation: DQ{depth, cap, lo, len, slots} with cap = 2^depth kept in
-# the record (recomputing 2^depth per operation would make every push cost
-# O(depth)). `slots` is a Base.Array of
-# 2^depth slots; the elements are slots [lo, lo + len), front first, so
-# element j is slot lo + j. Slots outside the window hold None.
+# the record. `slots` is a Base.Array of cap unboxed elements; the elements,
+# front first, are the ring positions lo, lo + 1, ..., lo + len - 1 taken
+# modulo cap, so element j lives in slot wrap(lo + j) where
+# wrap(x) = x < cap ? x : x - cap (always applied to x < 2 cap, so it is the
+# remainder mod cap). 0 <= lo < cap and len <= cap. Slots outside the ring
+# hold stale values that are never read. A deque that has never held an
+# element is DE{} and owns no block (Base.Array needs a filler value to
+# allocate, and the first pushed element is it).
 #
-#   push_back   writes slot lo + len                       (O(1))
-#   push_front  writes slot lo - 1                         (O(1))
-#   pop_front   takes slot lo, moves the window right      (O(1))
-#   pop_back    takes slot lo + len - 1                    (O(1))
-#   peek_front  reads slot lo                              (O(1))
-#   peek_back   reads slot lo + len - 1                    (O(1))
-#   to_list     reads the len slots of the window          (O(len))
+#   push_back   writes slot wrap(lo + len)                   (O(1))
+#   push_front  moves lo one slot left (mod cap), writes it (O(1))
+#   pop_front   reads slot lo, moves lo one slot right       (O(1))
+#   pop_back    reads slot wrap(lo + len - 1)                (O(1))
+#   peek_front  reads slot lo                                (O(1))
+#   peek_back   reads slot wrap(lo + len - 1)                (O(1))
+#   to_list     reads the len ring positions, back to front  (O(len))
 #
-# When a push has no free slot at its end the block is doubled, which is one
-# Base.Array node and one fresh empty half: a back push makes the old block
-# the LEFT half (every index is unchanged), a front push makes it the RIGHT
-# half (every index moves up by the old capacity 2^depth, so the new window
-# starts at 2^depth - 1). Doubling gives 2^depth free slots at that end, so
-# the amortized cost of a push is O(1). No element is ever copied and no
-# index arithmetic is modular.
+# A push onto a FULL ring (len == cap) first grows it: a new block of 2 cap
+# slots (filled with the pushed element) receives the len elements in order
+# at slots 0 .. len - 1 and lo becomes 0 -- one O(len) copy after len pushes,
+# so a push costs O(1) amortized. Pops never grow anything, so the block size
+# follows the PEAK number of elements, not the number of pushes: steady
+# push/pop traffic at a fixed size never reallocates.
 #
-# Capacity: `depth` grows by one per doubling. Pops move the window, so the
-# depth follows the number of PUSHES, not the number of elements: when a
-# push doubles the block after P earlier pushes, the old block has at most
-# 2P + 1 slots (proofs/deque/budget.bend) -- the same behaviour as the C
-# reference, which uses the same window algorithm. The laws about pushes
-# carry that capacity condition (every doubled block stays within 2^31
-# slots, so every slot index is a representable U32 and Base's index masking
-# is the identity). See docs/API.md.
+# Capacity: the block has 2^depth slots with depth <= 31 (a Base.Array
+# indexes correctly up to 2^31 slots, every slot index is a representable
+# U32). A push that must grow a full ring of 2^31 elements would need 2^32
+# slots; the push laws therefore carry the condition that the deque holds
+# fewer than 2^31 elements when it is pushed onto (proofs/deque.bend).
+#
+# Every function is a template in the element type (`~T`), so every
+# Base.Array call is compiled at a closed element type; the proofs are about
+# these very definitions, instantiated at the checked element types.
 #
 # Errors: pop/peek on an empty deque return Fail{EmptyDeque} and the deque
 # unchanged.
 
 type Deque<-T: Data> is Type:
-  DQ{depth: Nat, cap: Nat, lo: Nat, len: Nat, slots: Array<Maybe<&2, T>>}
+  DE{}
+  DQ{depth: Nat, cap: Nat, lo: Nat, len: Nat, slots: Array<T>}
 
 def max_depth() -> Nat:
   31n
-
-# 2^d (structural doubling; Base Nat.pow is avoided, see docs/VALIDATION.md).
-def pow2(d: Nat) -> Nat:
-  match d:
-    case 0n:
-      1n
-    case 1n+p:
-      Nat.double(pow2(p))
 
 # n - 1 on a nonzero n (the capacity 2^d is never zero).
 def dec1(n: Nat) -> Nat:
@@ -60,343 +56,240 @@ def dec1(n: Nat) -> Nat:
     case 1n+p:
       p
 
-def empty_slots(-T: Data, +depth: Nat) -> Array<Maybe<&2, T>>:
-  Array.new(Maybe<&2, T>, depth, None{})
+# The slot of ring position x < 2 cap.
+def wrap_go(+x: Nat, +cap: Nat, lt: Bool) -> Nat:
+  match lt:
+    case True{}:
+      x
+    case False{}:
+      Nat.sub(x, cap)
 
-def new(-T: Data) -> Deque<T>:
-  DQ{0n, 1n, 0n, 0n, empty_slots(T, 0n)}
+def wrap(+x: Nat, +cap: Nat) -> Nat:
+  wrap_go(x, cap, Nat.is_lt(x, cap))
 
-def length(-T: Data, d: Deque<T>) -> Deque<T> & Nat:
-  DQ{dep, cp, lo, +len, a} = d
-  (DQ{dep, cp, lo, len, a}, len)
+def new(~T: Data) -> Deque<T>:
+  DE{}
 
-def item(-T: Data, slot: Maybe<&2, T>) -> Result<&2, &2, E.Error, T>:
-  match slot:
-    case None{}:
-      Fail{E.EmptyDeque{}}
-    case Some{x}:
-      Done{x}
+def length(~T: Data, d: Deque<T>) -> Deque<T> & Nat:
+  match d:
+    case DE{}:
+      (DE{}, 0n)
+    case DQ{dep, cp, lo, +len, a}:
+      (DQ{dep, cp, lo, len, a}, len)
+
+# ---- growth ----
+
+# Copy ring positions j .. j + k - 1 of the full ring into slots
+# j .. j + k - 1 of `dst`; `r` is the old block with ring position j already
+# read (the read after the last copy is of a slot of the old block that is
+# then dropped).
+def copy_go(~T: Data, k: Nat, +j: Nat, +lo: Nat, +cap: Nat, dst: Array<T>, r: Array<T> & T) -> Array<T>:
+  match k r:
+    case 0n Tuple{src, x}:
+      dst
+    case 1n+ +p Tuple{src, x}:
+      copy_go(~T, p, 1n+j, lo, cap, Array.set(T, dst, U32.from_nat(j), x), Array.get(T, src, U32.from_nat(wrap(Nat.add(lo, 1n+j), cap))))
+
+# The block of a grown ring: 2 cap slots, the len elements at 0 .. len - 1.
+def grow(~T: Data, +dep: Nat, +cap: Nat, +lo: Nat, +len: Nat, a: Array<T>, +v: T) -> Array<T>:
+  copy_go(~T, len, 0n, lo, cap, Array.new(T, 1n+dep, v), Array.get(T, a, U32.from_nat(wrap(Nat.add(lo, 0n), cap))))
+
+def first(~T: Data, +v: T) -> Deque<T>:
+  DQ{0n, 1n, 0n, 1n, Array.new(T, 0n, v)}
 
 # ---- push_back ----
 
-# The old block becomes the left half: every index is unchanged.
-def grown_back(-T: Data, +depth: Nat, a: Array<Maybe<&2, T>>) -> Array<Maybe<&2, T>>:
-  ANode{a, empty_slots(T, depth)}
-
-# The old block becomes the right half: every index moves up by 2^depth.
-def grown_front(-T: Data, +depth: Nat, a: Array<Maybe<&2, T>>) -> Array<Maybe<&2, T>>:
-  ANode{empty_slots(T, depth), a}
-
-def pb_room(-T: Data, +dep: Nat, +cp: Nat, +lo: Nat, +len: Nat, a: Array<Maybe<&2, T>>, v: T, room: Bool) -> Deque<T>:
+def pb_room(~T: Data, +dep: Nat, +cap: Nat, +lo: Nat, +len: Nat, a: Array<T>, +v: T, room: Bool) -> Deque<T>:
   match room:
     case True{}:
-      DQ{dep, cp, lo, 1n+len, Array.set(Maybe<&2, T>, a, U32.from_nat(Nat.add(lo, len)), Some{v})}
+      DQ{dep, cap, lo, 1n+len, Array.set(T, a, U32.from_nat(wrap(Nat.add(lo, len), cap)), v)}
     case False{}:
-      DQ{1n+dep, Nat.double(cp), lo, 1n+len, Array.set(Maybe<&2, T>, grown_back(T, dep, a), U32.from_nat(Nat.add(lo, len)), Some{v})}
+      DQ{1n+dep, Nat.double(cap), 0n, 1n+len, Array.set(T, grow(~T, dep, cap, lo, len, a, v), U32.from_nat(len), v)}
 
-def push_back(-T: Data, d: Deque<T>, v: T) -> Deque<T>:
-  DQ{+dep, +cp, +lo, +len, a} = d
-  pb_room(T, dep, cp, lo, len, a, v, Nat.is_lt(Nat.add(lo, len), cp))
+def push_back(~T: Data, d: Deque<T>, +v: T) -> Deque<T>:
+  match d:
+    case DE{}:
+      first(~T, v)
+    case DQ{+dep, +cap, +lo, +len, a}:
+      pb_room(~T, dep, cap, lo, len, a, v, Nat.is_lt(len, cap))
 
 # ---- push_front ----
 
-def pf_lo(-T: Data, +dep: Nat, +cp: Nat, lo: Nat, +len: Nat, a: Array<Maybe<&2, T>>, v: T) -> Deque<T>:
+def pf_lo(~T: Data, +dep: Nat, +cap: Nat, lo: Nat, +len: Nat, a: Array<T>, +v: T) -> Deque<T>:
   match lo:
     case 0n:
-      DQ{1n+dep, Nat.double(cp), dec1(cp), 1n+len, Array.set(Maybe<&2, T>, grown_front(T, dep, a), U32.from_nat(dec1(cp)), Some{v})}
+      DQ{dep, cap, dec1(cap), 1n+len, Array.set(T, a, U32.from_nat(dec1(cap)), v)}
     case 1n+ +k:
-      DQ{dep, cp, k, 1n+len, Array.set(Maybe<&2, T>, a, U32.from_nat(k), Some{v})}
+      DQ{dep, cap, k, 1n+len, Array.set(T, a, U32.from_nat(k), v)}
 
-def push_front(-T: Data, d: Deque<T>, v: T) -> Deque<T>:
-  DQ{+dep, +cp, lo, +len, a} = d
-  pf_lo(T, dep, cp, lo, len, a, v)
+def pf_room(~T: Data, +dep: Nat, +cap: Nat, +lo: Nat, +len: Nat, a: Array<T>, +v: T, room: Bool) -> Deque<T>:
+  match room:
+    case True{}:
+      pf_lo(~T, dep, cap, lo, len, a, v)
+    case False{}:
+      DQ{1n+dep, Nat.double(cap), dec1(Nat.double(cap)), 1n+len, Array.set(T, grow(~T, dep, cap, lo, len, a, v), U32.from_nat(dec1(Nat.double(cap))), v)}
+
+def push_front(~T: Data, d: Deque<T>, +v: T) -> Deque<T>:
+  match d:
+    case DE{}:
+      first(~T, v)
+    case DQ{+dep, +cap, +lo, +len, a}:
+      pf_room(~T, dep, cap, lo, len, a, v, Nat.is_lt(len, cap))
 
 # ---- pop_front / pop_back ----
 
-def pop_f_fin(-T: Data, +dep: Nat, +cp: Nat, +lo: Nat, +m: Nat, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
-  (a, old) = r
-  (DQ{dep, cp, 1n+lo, m, a}, item(T, old))
+def popf_fin(~T: Data, +dep: Nat, +cap: Nat, +lo: Nat, +m: Nat, r: Array<T> & T) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  (a, x) = r
+  (DQ{dep, cap, wrap(1n+lo, cap), m, a}, Done{x})
 
-def pop_f_len(-T: Data, +dep: Nat, +cp: Nat, +lo: Nat, len: Nat, a: Array<Maybe<&2, T>>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+def popf_len(~T: Data, +dep: Nat, +cap: Nat, +lo: Nat, len: Nat, a: Array<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
   match len:
     case 0n:
-      (DQ{dep, cp, lo, 0n, a}, Fail{E.EmptyDeque{}})
+      (DQ{dep, cap, lo, 0n, a}, Fail{E.EmptyDeque{}})
     case 1n+ +m:
-      pop_f_fin(T, dep, cp, lo, m, Array.swap(Maybe<&2, T>, a, U32.from_nat(lo), None{}))
+      popf_fin(~T, dep, cap, lo, m, Array.get(T, a, U32.from_nat(lo)))
 
-def pop_front(-T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
-  DQ{+dep, +cp, +lo, len, a} = d
-  pop_f_len(T, dep, cp, lo, len, a)
+def pop_front(~T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  match d:
+    case DE{}:
+      (DE{}, Fail{E.EmptyDeque{}})
+    case DQ{+dep, +cap, +lo, len, a}:
+      popf_len(~T, dep, cap, lo, len, a)
 
-def pop_b_fin(-T: Data, +dep: Nat, +cp: Nat, +lo: Nat, +m: Nat, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
-  (a, old) = r
-  (DQ{dep, cp, lo, m, a}, item(T, old))
+def popb_fin(~T: Data, +dep: Nat, +cap: Nat, +lo: Nat, +m: Nat, r: Array<T> & T) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  (a, x) = r
+  (DQ{dep, cap, lo, m, a}, Done{x})
 
-def pop_b_len(-T: Data, +dep: Nat, +cp: Nat, +lo: Nat, len: Nat, a: Array<Maybe<&2, T>>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+def popb_len(~T: Data, +dep: Nat, +cap: Nat, +lo: Nat, len: Nat, a: Array<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
   match len:
     case 0n:
-      (DQ{dep, cp, lo, 0n, a}, Fail{E.EmptyDeque{}})
+      (DQ{dep, cap, lo, 0n, a}, Fail{E.EmptyDeque{}})
     case 1n+ +m:
-      pop_b_fin(T, dep, cp, lo, m, Array.swap(Maybe<&2, T>, a, U32.from_nat(Nat.add(lo, m)), None{}))
+      popb_fin(~T, dep, cap, lo, m, Array.get(T, a, U32.from_nat(wrap(Nat.add(lo, m), cap))))
 
-def pop_back(-T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
-  DQ{+dep, +cp, +lo, len, a} = d
-  pop_b_len(T, dep, cp, lo, len, a)
+def pop_back(~T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  match d:
+    case DE{}:
+      (DE{}, Fail{E.EmptyDeque{}})
+    case DQ{+dep, +cap, +lo, len, a}:
+      popb_len(~T, dep, cap, lo, len, a)
 
 # ---- peek_front / peek_back ----
 
-def peek_fin(-T: Data, +dep: Nat, +cp: Nat, +lo: Nat, +len: Nat, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+def peek_fin(~T: Data, +dep: Nat, +cap: Nat, +lo: Nat, +len: Nat, r: Array<T> & T) -> Deque<T> & Result<&2, &2, E.Error, T>:
   (a, x) = r
-  (DQ{dep, cp, lo, len, a}, item(T, x))
+  (DQ{dep, cap, lo, len, a}, Done{x})
 
-def peek_f_len(-T: Data, +dep: Nat, +cp: Nat, +lo: Nat, len: Nat, a: Array<Maybe<&2, T>>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+def peekf_len(~T: Data, +dep: Nat, +cap: Nat, +lo: Nat, len: Nat, a: Array<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
   match len:
     case 0n:
-      (DQ{dep, cp, lo, 0n, a}, Fail{E.EmptyDeque{}})
+      (DQ{dep, cap, lo, 0n, a}, Fail{E.EmptyDeque{}})
     case 1n+ +m:
-      peek_fin(T, dep, cp, lo, 1n+m, Array.get(Maybe<&2, T>, a, U32.from_nat(lo)))
+      peek_fin(~T, dep, cap, lo, 1n+m, Array.get(T, a, U32.from_nat(lo)))
 
-def peek_front(-T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
-  DQ{+dep, +cp, +lo, len, a} = d
-  peek_f_len(T, dep, cp, lo, len, a)
+def peek_front(~T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  match d:
+    case DE{}:
+      (DE{}, Fail{E.EmptyDeque{}})
+    case DQ{+dep, +cap, +lo, len, a}:
+      peekf_len(~T, dep, cap, lo, len, a)
 
-def peek_b_len(-T: Data, +dep: Nat, +cp: Nat, +lo: Nat, len: Nat, a: Array<Maybe<&2, T>>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+def peekb_len(~T: Data, +dep: Nat, +cap: Nat, +lo: Nat, len: Nat, a: Array<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
   match len:
     case 0n:
-      (DQ{dep, cp, lo, 0n, a}, Fail{E.EmptyDeque{}})
+      (DQ{dep, cap, lo, 0n, a}, Fail{E.EmptyDeque{}})
     case 1n+ +m:
-      peek_fin(T, dep, cp, lo, 1n+m, Array.get(Maybe<&2, T>, a, U32.from_nat(Nat.add(lo, m))))
+      peek_fin(~T, dep, cap, lo, 1n+m, Array.get(T, a, U32.from_nat(wrap(Nat.add(lo, m), cap))))
 
-def peek_back(-T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
-  DQ{+dep, +cp, +lo, len, a} = d
-  peek_b_len(T, dep, cp, lo, len, a)
+def peek_back(~T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
+  match d:
+    case DE{}:
+      (DE{}, Fail{E.EmptyDeque{}})
+    case DQ{+dep, +cap, +lo, len, a}:
+      peekb_len(~T, dep, cap, lo, len, a)
 
 # ---- to_list ----
 
-def cons_mb(-T: Data, x: Maybe<&2, T>, acc: List<&2, T>) -> List<&2, T>:
-  match x:
-    case None{}:
-      acc
-    case Some{v}:
-      Con{v, acc}
-
-# k slots of the window are still to be read, the last of them first: the
-# pair `r` is slot lo + k - 1, already read.
-def tl_go(k: Nat, -T: Data, +lo: Nat, acc: List<&2, T>, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> Array<Maybe<&2, T>> & List<&2, T>:
+# `r` is ring position k, already read; positions 0 .. k - 1 are still to
+# be read (back to front, so the list is built front first).
+def tl_go(~T: Data, k: Nat, +lo: Nat, +cap: Nat, acc: List<&2, T>, r: Array<T> & T) -> Array<T> & List<&2, T>:
   match k r:
     case 0n Tuple{a, x}:
-      (a, acc)
-    case 1n+ +m Tuple{a, x}:
-      tl_go(m, T, lo, cons_mb(T, x, acc), Array.get(Maybe<&2, T>, a, U32.from_nat(Nat.add(lo, dec1(m)))))
+      (a, Con{x, acc})
+    case 1n+ +p Tuple{a, x}:
+      tl_go(~T, p, lo, cap, Con{x, acc}, Array.get(T, a, U32.from_nat(wrap(Nat.add(lo, p), cap))))
 
-def tl_done(-T: Data, +dep: Nat, +cp: Nat, +lo: Nat, +len: Nat, r: Array<Maybe<&2, T>> & List<&2, T>) -> Deque<T> & List<&2, T>:
+def tl_fin(~T: Data, +dep: Nat, +cap: Nat, +lo: Nat, +len: Nat, r: Array<T> & List<&2, T>) -> Deque<T> & List<&2, T>:
   (a, xs) = r
-  (DQ{dep, cp, lo, len, a}, xs)
+  (DQ{dep, cap, lo, len, a}, xs)
 
-def tl_start(-T: Data, +dep: Nat, +cp: Nat, +lo: Nat, len: Nat, a: Array<Maybe<&2, T>>) -> Deque<T> & List<&2, T>:
+def tl_len(~T: Data, +dep: Nat, +cap: Nat, +lo: Nat, len: Nat, a: Array<T>) -> Deque<T> & List<&2, T>:
   match len:
     case 0n:
-      (DQ{dep, cp, lo, 0n, a}, Nil{})
+      (DQ{dep, cap, lo, 0n, a}, Nil{})
     case 1n+ +m:
-      tl_done(T, dep, cp, lo, 1n+m, tl_go(1n+m, T, lo, Nil{}, Array.get(Maybe<&2, T>, a, U32.from_nat(Nat.add(lo, m)))))
+      tl_fin(~T, dep, cap, lo, 1n+m, tl_go(~T, m, lo, cap, Nil{}, Array.get(T, a, U32.from_nat(wrap(Nat.add(lo, m), cap)))))
 
-def to_list(-T: Data, d: Deque<T>) -> Deque<T> & List<&2, T>:
-  DQ{+dep, +cp, +lo, len, a} = d
-  tl_start(T, dep, cp, lo, len, a)
+def to_list(~T: Data, d: Deque<T>) -> Deque<T> & List<&2, T>:
+  match d:
+    case DE{}:
+      (DE{}, Nil{})
+    case DQ{+dep, +cap, +lo, len, a}:
+      tl_len(~T, dep, cap, lo, len, a)
 
 # ---- operation traces ----
 
-def obs_nat(-T: Data, r: Deque<T> & Nat) -> Deque<T> & E.Obs<T>:
+def obs_nat(~T: Data, r: Deque<T> & Nat) -> Deque<T> & E.Obs<T>:
   (d, n) = r
   (d, E.ONat{n})
 
-def obs_item(-T: Data, r: Deque<T> & Result<&2, &2, E.Error, T>) -> Deque<T> & E.Obs<T>:
+def obs_item(~T: Data, r: Deque<T> & Result<&2, &2, E.Error, T>) -> Deque<T> & E.Obs<T>:
   (d, x) = r
   (d, E.OItem{x})
 
-def obs_list(-T: Data, r: Deque<T> & List<&2, T>) -> Deque<T> & E.Obs<T>:
+def obs_list(~T: Data, r: Deque<T> & List<&2, T>) -> Deque<T> & E.Obs<T>:
   (d, xs) = r
   (d, E.OList{xs})
 
-def step(-T: Data, d: Deque<T>, op: E.Op<T>) -> Deque<T> & E.Obs<T>:
+def step(~T: Data, d: Deque<T>, op: E.Op<T>) -> Deque<T> & E.Obs<T>:
   match op:
     case E.Length{}:
-      obs_nat(T, length(T, d))
-    case E.PushFront{x}:
-      (push_front(T, d, x), E.OUnit{})
-    case E.PushBack{x}:
-      (push_back(T, d, x), E.OUnit{})
+      obs_nat(~T, length(~T, d))
+    case E.PushFront{+x}:
+      (push_front(~T, d, x), E.OUnit{})
+    case E.PushBack{+x}:
+      (push_back(~T, d, x), E.OUnit{})
     case E.PopFront{}:
-      obs_item(T, pop_front(T, d))
+      obs_item(~T, pop_front(~T, d))
     case E.PopBack{}:
-      obs_item(T, pop_back(T, d))
+      obs_item(~T, pop_back(~T, d))
     case E.PeekFront{}:
-      obs_item(T, peek_front(T, d))
+      obs_item(~T, peek_front(~T, d))
     case E.PeekBack{}:
-      obs_item(T, peek_back(T, d))
+      obs_item(~T, peek_back(~T, d))
     case E.ToList{}:
-      obs_list(T, to_list(T, d))
+      obs_list(~T, to_list(~T, d))
 
-def record(-T: Data, acc: List<&2, E.Obs<T>>, r: Deque<T> & E.Obs<T>) -> Deque<T> & List<&2, E.Obs<T>>:
+def record(~T: Data, acc: List<&2, E.Obs<T>>, r: Deque<T> & E.Obs<T>) -> Deque<T> & List<&2, E.Obs<T>>:
   (d, o) = r
   (d, Con{o, acc})
 
-def step_acc(-T: Data, op: E.Op<T>, st: Deque<T> & List<&2, E.Obs<T>>) -> Deque<T> & List<&2, E.Obs<T>>:
+def step_acc(~T: Data, op: E.Op<T>, st: Deque<T> & List<&2, E.Obs<T>>) -> Deque<T> & List<&2, E.Obs<T>>:
   (d, acc) = st
-  record(T, acc, step(T, d, op))
+  record(~T, acc, step(~T, d, op))
 
 # Runs ops left to right; observations are accumulated newest-first.
-def run_acc(-T: Data, ops: List<&2, E.Op<T>>, st: Deque<T> & List<&2, E.Obs<T>>) -> Deque<T> & List<&2, E.Obs<T>>:
+def run_acc(~T: Data, ops: List<&2, E.Op<T>>, st: Deque<T> & List<&2, E.Obs<T>>) -> Deque<T> & List<&2, E.Obs<T>>:
   match ops:
     case Nil{}:
       st
     case Con{op, rest}:
-      run_acc(T, rest, step_acc(T, op, st))
+      run_acc(~T, rest, step_acc(~T, op, st))
 
-def finish(-T: Data, st: Deque<T> & List<&2, E.Obs<T>>) -> Deque<T> & List<&2, E.Obs<T>>:
+def finish(~T: Data, st: Deque<T> & List<&2, E.Obs<T>>) -> Deque<T> & List<&2, E.Obs<T>>:
   (d, acc) = st
   (d, List.reverse(&2, E.Obs<T>, acc))
 
 # Final state and the observation of every operation, in order.
-def run(-T: Data, ops: List<&2, E.Op<T>>, d: Deque<T>) -> Deque<T> & List<&2, E.Obs<T>>:
-  finish(T, run_acc(T, ops, (d, Nil{})))
-
-# ---- executable specializations at a closed element type ----
-#
-# Bend 2.0.16's native C backend miscompiles Base.Array operations whose
-# element type is still open (an erased `-T` parameter); see
-# docs/VALIDATION.md, tests/runtime_defects/ and the same arrangement in
-# src/dynamic_array.bend. The parametric definitions above are what the
-# proofs are about; the `*_at` definitions below are template specializations
-# (`~T` is a compile-time parameter, so every Base.Array call is compiled at a
-# closed element type) and proofs/deque/closed.bend proves each of them equal
-# to its parametric original, so every law transfers.
-
-def empty_slots_at(~T: Data, +depth: Nat) -> Array<Maybe<&2, T>>:
-  Array.new(Maybe<&2, T>, depth, None{})
-
-def new_at(~T: Data) -> Deque<T>:
-  DQ{0n, 1n, 0n, 0n, empty_slots_at(~T, 0n)}
-
-def grown_back_at(~T: Data, +depth: Nat, a: Array<Maybe<&2, T>>) -> Array<Maybe<&2, T>>:
-  ANode{a, empty_slots_at(~T, depth)}
-
-def grown_front_at(~T: Data, +depth: Nat, a: Array<Maybe<&2, T>>) -> Array<Maybe<&2, T>>:
-  ANode{empty_slots_at(~T, depth), a}
-
-def pb_room_at(~T: Data, +dep: Nat, +cp: Nat, +lo: Nat, +len: Nat, a: Array<Maybe<&2, T>>, v: T, room: Bool) -> Deque<T>:
-  match room:
-    case True{}:
-      DQ{dep, cp, lo, 1n+len, Array.set(Maybe<&2, T>, a, U32.from_nat(Nat.add(lo, len)), Some{v})}
-    case False{}:
-      DQ{1n+dep, Nat.double(cp), lo, 1n+len, Array.set(Maybe<&2, T>, grown_back_at(~T, dep, a), U32.from_nat(Nat.add(lo, len)), Some{v})}
-
-def push_back_at(~T: Data, d: Deque<T>, v: T) -> Deque<T>:
-  DQ{+dep, +cp, +lo, +len, a} = d
-  pb_room_at(~T, dep, cp, lo, len, a, v, Nat.is_lt(Nat.add(lo, len), cp))
-
-def pf_lo_at(~T: Data, +dep: Nat, +cp: Nat, lo: Nat, +len: Nat, a: Array<Maybe<&2, T>>, v: T) -> Deque<T>:
-  match lo:
-    case 0n:
-      DQ{1n+dep, Nat.double(cp), dec1(cp), 1n+len, Array.set(Maybe<&2, T>, grown_front_at(~T, dep, a), U32.from_nat(dec1(cp)), Some{v})}
-    case 1n+ +k:
-      DQ{dep, cp, k, 1n+len, Array.set(Maybe<&2, T>, a, U32.from_nat(k), Some{v})}
-
-def push_front_at(~T: Data, d: Deque<T>, v: T) -> Deque<T>:
-  DQ{+dep, +cp, lo, +len, a} = d
-  pf_lo_at(~T, dep, cp, lo, len, a, v)
-
-def pop_f_len_at(~T: Data, +dep: Nat, +cp: Nat, +lo: Nat, len: Nat, a: Array<Maybe<&2, T>>) -> Deque<T> & Result<&2, &2, E.Error, T>:
-  match len:
-    case 0n:
-      (DQ{dep, cp, lo, 0n, a}, Fail{E.EmptyDeque{}})
-    case 1n+ +m:
-      pop_f_fin(T, dep, cp, lo, m, Array.swap(Maybe<&2, T>, a, U32.from_nat(lo), None{}))
-
-def pop_front_at(~T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
-  DQ{+dep, +cp, +lo, len, a} = d
-  pop_f_len_at(~T, dep, cp, lo, len, a)
-
-def pop_b_len_at(~T: Data, +dep: Nat, +cp: Nat, +lo: Nat, len: Nat, a: Array<Maybe<&2, T>>) -> Deque<T> & Result<&2, &2, E.Error, T>:
-  match len:
-    case 0n:
-      (DQ{dep, cp, lo, 0n, a}, Fail{E.EmptyDeque{}})
-    case 1n+ +m:
-      pop_b_fin(T, dep, cp, lo, m, Array.swap(Maybe<&2, T>, a, U32.from_nat(Nat.add(lo, m)), None{}))
-
-def pop_back_at(~T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
-  DQ{+dep, +cp, +lo, len, a} = d
-  pop_b_len_at(~T, dep, cp, lo, len, a)
-
-def peek_f_len_at(~T: Data, +dep: Nat, +cp: Nat, +lo: Nat, len: Nat, a: Array<Maybe<&2, T>>) -> Deque<T> & Result<&2, &2, E.Error, T>:
-  match len:
-    case 0n:
-      (DQ{dep, cp, lo, 0n, a}, Fail{E.EmptyDeque{}})
-    case 1n+ +m:
-      peek_fin(T, dep, cp, lo, 1n+m, Array.get(Maybe<&2, T>, a, U32.from_nat(lo)))
-
-def peek_front_at(~T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
-  DQ{+dep, +cp, +lo, len, a} = d
-  peek_f_len_at(~T, dep, cp, lo, len, a)
-
-def peek_b_len_at(~T: Data, +dep: Nat, +cp: Nat, +lo: Nat, len: Nat, a: Array<Maybe<&2, T>>) -> Deque<T> & Result<&2, &2, E.Error, T>:
-  match len:
-    case 0n:
-      (DQ{dep, cp, lo, 0n, a}, Fail{E.EmptyDeque{}})
-    case 1n+ +m:
-      peek_fin(T, dep, cp, lo, 1n+m, Array.get(Maybe<&2, T>, a, U32.from_nat(Nat.add(lo, m))))
-
-def peek_back_at(~T: Data, d: Deque<T>) -> Deque<T> & Result<&2, &2, E.Error, T>:
-  DQ{+dep, +cp, +lo, len, a} = d
-  peek_b_len_at(~T, dep, cp, lo, len, a)
-
-def tl_go_at(~T: Data, k: Nat, +lo: Nat, acc: List<&2, T>, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> Array<Maybe<&2, T>> & List<&2, T>:
-  match k r:
-    case 0n Tuple{a, x}:
-      (a, acc)
-    case 1n+ +m Tuple{a, x}:
-      tl_go_at(~T, m, lo, cons_mb(T, x, acc), Array.get(Maybe<&2, T>, a, U32.from_nat(Nat.add(lo, dec1(m)))))
-
-def tl_start_at(~T: Data, +dep: Nat, +cp: Nat, +lo: Nat, len: Nat, a: Array<Maybe<&2, T>>) -> Deque<T> & List<&2, T>:
-  match len:
-    case 0n:
-      (DQ{dep, cp, lo, 0n, a}, Nil{})
-    case 1n+ +m:
-      tl_done(T, dep, cp, lo, 1n+m, tl_go_at(~T, 1n+m, lo, Nil{}, Array.get(Maybe<&2, T>, a, U32.from_nat(Nat.add(lo, m)))))
-
-def to_list_at(~T: Data, d: Deque<T>) -> Deque<T> & List<&2, T>:
-  DQ{+dep, +cp, +lo, len, a} = d
-  tl_start_at(~T, dep, cp, lo, len, a)
-
-def step_at(~T: Data, d: Deque<T>, op: E.Op<T>) -> Deque<T> & E.Obs<T>:
-  match op:
-    case E.Length{}:
-      obs_nat(T, length(T, d))
-    case E.PushFront{x}:
-      (push_front_at(~T, d, x), E.OUnit{})
-    case E.PushBack{x}:
-      (push_back_at(~T, d, x), E.OUnit{})
-    case E.PopFront{}:
-      obs_item(T, pop_front_at(~T, d))
-    case E.PopBack{}:
-      obs_item(T, pop_back_at(~T, d))
-    case E.PeekFront{}:
-      obs_item(T, peek_front_at(~T, d))
-    case E.PeekBack{}:
-      obs_item(T, peek_back_at(~T, d))
-    case E.ToList{}:
-      obs_list(T, to_list_at(~T, d))
-
-def step_acc_at(~T: Data, op: E.Op<T>, st: Deque<T> & List<&2, E.Obs<T>>) -> Deque<T> & List<&2, E.Obs<T>>:
-  (d, acc) = st
-  record(T, acc, step_at(~T, d, op))
-
-def run_acc_at(~T: Data, ops: List<&2, E.Op<T>>, st: Deque<T> & List<&2, E.Obs<T>>) -> Deque<T> & List<&2, E.Obs<T>>:
-  match ops:
-    case Nil{}:
-      st
-    case Con{op, rest}:
-      run_acc_at(~T, rest, step_acc_at(~T, op, st))
-
-def run_at(~T: Data, ops: List<&2, E.Op<T>>, d: Deque<T>) -> Deque<T> & List<&2, E.Obs<T>>:
-  finish(T, run_acc_at(~T, ops, (d, Nil{})))
+def run(~T: Data, ops: List<&2, E.Op<T>>, d: Deque<T>) -> Deque<T> & List<&2, E.Obs<T>>:
+  finish(~T, run_acc(~T, ops, (d, Nil{})))

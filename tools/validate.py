@@ -267,6 +267,16 @@ def check_lru(log):
     if not spec_ok:
         fail('lru', 'fast port vs spec differential failed: %r' % (p.stdout + p.stderr)[-500:])
         ok = False
+    # Large empty capacities are valid API inputs even though the current
+    # trace proof only covers capacities <= 2^31. Do not narrow the API to
+    # make that proof premise disappear.
+    p = run([BEND, 'tests/lru_fast/capacity_contract.bend'])
+    capacities = [ln for ln in p.stdout.splitlines() if ln and not ln.startswith('All terms check')]
+    log.append('[lru] public capacity contract -> %s' % capacities)
+    capacity_ok = p.returncode == 0 and capacities == ['[0, 0, 0, 0, 0, 0]']
+    if not capacity_ok:
+        fail('lru', 'public capacity contract failed: %r' % (p.stdout + p.stderr)[-500:])
+        ok = False
     # The optimized C reference against the Bend driver, plus an
     # ASan/UBSan build of the reference (tools/lru_diff.py --quick).
     p = run(['python3', 'tools/lru_diff.py', '--quick'], timeout=3600)
@@ -279,6 +289,7 @@ def check_lru(log):
     return ok, {'checks': checks, 'smoke': smoke,
                 'fast_port_differential': lines,
                 'fast_port_spec_differential': sd,
+                'capacity_contract': capacities,
                 'native_differential': tail[0]}
 
 

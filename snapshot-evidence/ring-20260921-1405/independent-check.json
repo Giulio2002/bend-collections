@@ -1,0 +1,9 @@
+{
+  "exit": 0,
+  "passed": true,
+  "capped": false,
+  "peak_footprint_bytes": 3373288616,
+  "seconds": 44.10522554098861,
+  "checker_sha256": "da9bc51449f04a65bf633351fb754cd6f883f5f5d9ab0c4e947f5c6f19eb7386",
+  "full_semantic_audit": false
+}

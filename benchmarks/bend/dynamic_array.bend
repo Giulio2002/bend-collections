@@ -319,30 +319,20 @@ def reps_go(reps: Nat, +op: U32, +size: Nat, +k: Nat, +kn: Nat, +seed: U32, acc:
     case 1n+ +p:
       reps_go(p, op, size, k, kn, seed, B.mix(acc, round(op, size, k, kn, U32.add(seed, U32.from_nat(p)))))
 
-def regions(+args: List<&2, String>, +k: Nat, +kn: Nat) -> U32:
-  reps_go(U32.to_nat(B.arg(B.field(args, 3n))), B.arg(B.field(args, 0n)),
-          U32.to_nat(B.arg(B.field(args, 1n))), k, kn,
-          B.arg(B.field(args, 4n)), 0)
+def regions(+g: B.Args, +k: Nat, +kn: Nat) -> U32:
+  reps_go(U32.to_nat(B.a_reps(g)), B.a_op(g), U32.to_nat(B.a_size(g)), k, kn, B.a_seed(g), 0)
 
-def kof(+args: List<&2, String>) -> Nat:
-  U32.to_nat(B.arg(B.field(args, 2n)))
+def kof(+g: B.Args) -> Nat:
+  U32.to_nat(B.a_count(g))
 
-# A = 2k measured operations, B = k measured operations, C = none at all (the
-# build-and-destroy control). A - B is exactly k x reps measured operations:
-# the build, the settle and the destruction cancel, and -- unlike a two-region
-# "operations against no operations" difference -- BOTH regions end in a state
-# the operation has been applied to, so a size-changing operation can no
-# longer move deallocation work out of the difference. C is reported next to
-# every row: it is what one region costs with no measured operation at all,
-# so a difference that is small beside its own build is visible as such.
-def run_a(+args: List<&2, String>) -> U32:
-  regions(args, Nat.add(kof(args), kof(args)), 0n)
+def run_a(+g: B.Args) -> U32:
+  regions(g, Nat.add(kof(g), kof(g)), 0n)
 
-def run_b(+args: List<&2, String>) -> U32:
-  regions(args, kof(args), 0n)
+def run_b(+g: B.Args) -> U32:
+  regions(g, kof(g), 0n)
 
-def run_c(+args: List<&2, String>) -> U32:
-  regions(args, 0n, 0n)
+def run_c(+g: B.Args) -> U32:
+  regions(g, 0n, 0n)
 
 # Checksums go to stderr (printing them is what forces each region), the three
 # elapsed millisecond counts to stdout. argv[5] picks the ORDER in which the
@@ -350,47 +340,47 @@ def run_c(+args: List<&2, String>) -> U32:
 # whatever runs last look slower, which is a systematic bias of exactly the
 # shape the A - B difference measures. The runner alternates the order over
 # the samples and reports the median, so a monotone drift cancels.
-def go_abc(+args: List<&2, String>) -> IO(Unit):
+def go_abc(+g: B.Args) -> IO(Unit):
   do IO<Unit>:
     t0 : Nat <- IO.now()
-    IO.print_err(U32.show(run_a(args)))
+    IO.print_err(U32.show(run_a(g)))
     t1 : Nat <- IO.now()
     d1 : Nat = Nat.sub(t1, t0)
     t2 : Nat <- IO.now()
-    IO.print_err(U32.show(run_b(args)))
+    IO.print_err(U32.show(run_b(g)))
     t3 : Nat <- IO.now()
     d2 : Nat = Nat.sub(t3, t2)
     t4 : Nat <- IO.now()
-    IO.print_err(U32.show(run_c(args)))
+    IO.print_err(U32.show(run_c(g)))
     t5 : Nat <- IO.now()
     IO.print(B.times(d1, d2, Nat.sub(t5, t4)))
 
-def go_cba(+args: List<&2, String>) -> IO(Unit):
+def go_cba(+g: B.Args) -> IO(Unit):
   do IO<Unit>:
     t0 : Nat <- IO.now()
-    IO.print_err(U32.show(run_c(args)))
+    IO.print_err(U32.show(run_c(g)))
     t1 : Nat <- IO.now()
     d3 : Nat = Nat.sub(t1, t0)
     t2 : Nat <- IO.now()
-    IO.print_err(U32.show(run_b(args)))
+    IO.print_err(U32.show(run_b(g)))
     t3 : Nat <- IO.now()
     d2 : Nat = Nat.sub(t3, t2)
     t4 : Nat <- IO.now()
-    IO.print_err(U32.show(run_a(args)))
+    IO.print_err(U32.show(run_a(g)))
     t5 : Nat <- IO.now()
     IO.print(B.times(Nat.sub(t5, t4), d2, d3))
 
-def pick(+o: U32, +args: List<&2, String>) -> IO(Unit):
+def pick(+o: U32, +g: B.Args) -> IO(Unit):
   match o:
     case 0:
-      go_abc(args)
+      go_abc(g)
     case _:
-      go_cba(args)
+      go_cba(g)
 
-def go(+args: List<&2, String>) -> IO(Unit):
-  pick(B.arg(B.field(args, 5n)), args)
+def go(+g: B.Args) -> IO(Unit):
+  pick(B.a_order(g), g)
 
 def main() -> IO(Unit):
   do IO<Unit>:
     raw : List<String> <- IO.args()
-    go(B.shared(raw))
+    go(B.parse(raw))

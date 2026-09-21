@@ -1,3 +1,13 @@
+## Latest: native ring deque/queue proof milestone — partial acceptance
+
+Frozen stock-Bend END_TO_END independently checks in44.11s/3.37GB sampled physical footprint. CLI flags classify as3861template instances,zero explicit@unsafe. Targeted queue/deque runtime,boundary,differential,mutation and trace checks pass. See snapshot-evidence/ring-20260921-1405 for raw logs and validation limitations.
+
+The new ring representation bounds storage by peak occupancy, not accumulated pushes. Trace proofs require occupancy within2^q,q<=31 and checked instances areU32/String. This is conditional proof coverage, not unrestricted generic/full-library acceptance. LRU's original public capacity API and regression are preserved; its >2^31 proof gap remains open.
+
+No new canonical benchmark acceptance: the historical245within/160slow/3unmeasurable and full functional acceptance below belong to c18a4bf, not this changed runtime. Worker quick ring timings are preliminary. Fresh complete gates and semantic audit remain required.
+
+--- Historical snapshots below (their hash-match claims refer to their original commits) ---
+
 ## Latest: clean functional acceptance; performance still fails
 
 A fresh serial functional acceptance run after removing the duplicate gate sequence exits 0: all twelve structures and LRU pass, complete=True, zero failures. All 318 recorded source hashes match this export. It supersedes the earlier mixed-log run as functional evidence only; independent semantic audit and the LRU capacity/type proof limitations remain. Raw evidence: snapshot-evidence/acceptance-20260921-1254.

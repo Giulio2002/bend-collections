@@ -74,4 +74,4 @@ def out(r: Q.Queue<Nat> & List<&2, E.Obs<Nat>>) -> List<&2, String>:
 def main() -> IO(Unit):
   do IO<Unit>:
     args : List<String> <- IO.args()
-    X.print_lines(out(Q.run_at(~Nat, parse_all(X.shared(args)), Q.new_at(~Nat))))
+    X.print_lines(out(Q.run(~Nat, parse_all(X.shared(args)), Q.new(~Nat))))

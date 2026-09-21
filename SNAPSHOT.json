@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-09-21T10:55:22.130195+00:00",
+  "captured_at": "2026-09-21T12:07:46.618591+00:00",
   "repository": "bend-collections",
   "kind": "unverified_development_snapshot",
   "full_acceptance_passed": false,
@@ -965,5 +965,24 @@
       ]
     ],
     "provenance": "Report records end-of-run hashes only. Earlier duplicate process sequence was stopped before this surviving benchmark started. Other local SSZ benchmark overlapped."
+  },
+  "latest_ring_review": {
+    "at": "2026-09-21T12:07:46.618591+00:00",
+    "full_acceptance": false,
+    "independent_end_to_end": {
+      "seconds": 44.10522554,
+      "peak_footprint_bytes": 3373288616,
+      "passed": true,
+      "explicit_unsafe": 0,
+      "template_instances": 3861
+    },
+    "source_copy_hashes": 801,
+    "source_copy_mismatches": [],
+    "targeted_queue_deque": "runtime,boundaries,differential,mutations,trace proof passed",
+    "trace_boundary": "peak occupancy bounded by2^q for q<=31; U32/String instances; larger occupancy not covered",
+    "lru_boundary": "capacity API preserved; trace proof beyond2^31 remains missing",
+    "performance": "No current canonical acceptance. Historical c18a4bf245within/160slow/3unmeasurable; quick ring timings are worker diagnostic claims only.",
+    "validation_limitation": "--only validators continue into sharedLRU. Operator stopped second overlapping validator; sharedLRU phase is NOT accepted evidence. Target-specific logs separate; frozen E2E independently passed before validation.",
+    "semantic_audit_complete": false
   }
 }

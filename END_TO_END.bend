@@ -19,8 +19,7 @@ import ./types/deque.bend as DQT
 import ./proofs/deque.bend as DQP
 import ./proofs/deque/state.bend as DQSH
 import ./proofs/deque/steps.bend as DQST
-import ./proofs/deque/init.bend as DQIN
-import ./proofs/deque/budget.bend as DQBU
+import ./proofs/deque/stepok.bend as DQK
 import ./proofs/deque/trace.bend as DQTR
 import ./src/queue.bend as QU
 import ./spec/queue.bend as QUS
@@ -417,125 +416,173 @@ def dynamic_array_trace_limited_at_invariant_string(k, ops):
   DAP.trace_with_limit_at_inv(~String, k, ops)
 
 # ============================== deque =================================
-# `room` is the capacity condition (proofs/deque/budget.bend): a shadow
-# within budget for P pushes, and 1 + 2(P + pushes still to come) < 2^q with
-# q <= 31 (Base arrays have at most 2^31 slots). The window can drift, so the
-# budget counts pushes, not elements; it does not bound the trace length.
+# The ring buffer (src/deque.bend). Base.Array is linear, so the laws are
+# about the deque BUILT from a Data shadow (DQSH.real). The only premise is
+# the representation's capacity condition, on the PEAK size: a push onto a
+# deque holding fewer than 2^q elements, q <= 31 (DQST.pushok); for traces,
+# DQTR.fits (every push happens below 2^q elements). It bounds neither the
+# length of a trace nor the number of pushes. Every law is a template in the
+# element type, restated at both checked instances (U32, String).
 
-law deque_new:
-  for -T: Data
-  {DQSH.model(T, DQIN.initial(T)) == Nil{} : List<&2, T>}
-def deque_new(T):
-  DQP.new_abs(T)
+law deque_u32_new:
+  {DQSH.model(U32, DQSH.initial(U32)) == Nil{} : List<&2, U32>}
+def deque_u32_new():
+  DQP.new_abs(~U32)
 
-law deque_new_invariant:
-  for -T: Data
-  {DQSH.good(T, DQIN.initial(T)) == True{} : Bool}
-def deque_new_invariant(T):
-  DQP.new_inv(T)
+law deque_u32_new_invariant:
+  {DQSH.good(U32, DQSH.initial(U32)) == True{} : Bool}
+def deque_u32_new_invariant():
+  DQP.new_inv(~U32)
 
-law deque_new_is_the_constructor:
-  for -T: Data
-  {DQ.new(T) == DQSH.real(T, DQIN.initial(T)) : DQ.Deque<T>}
-def deque_new_is_the_constructor(T):
-  DQP.new_real(T)
+law deque_u32_new_is_the_constructor:
+  {DQ.new(~U32) == DQSH.real(U32, DQSH.initial(U32)) : DQ.Deque<U32>}
+def deque_u32_new_is_the_constructor():
+  DQP.new_real(~U32)
 
-law deque_step:
-  for -T: Data
-  for +sh: DQSH.Shadow<T>
-  for op: DQT.Op<T>
-  for +g: {DQSH.good(T, sh) == True{} : Bool}
-  for +P: Nat
-  for +hb: {DQBU.bud(T, sh, P) == True{} : Bool}
+law deque_u32_step:
+  for +sh: DQSH.Shadow<U32>
+  for op: DQT.Op<U32>
+  for +g: {DQSH.good(U32, sh) == True{} : Bool}
   for +q: Nat
   for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
-  for +room: {Nat.is_lt(1n+Nat.double(P), SCOM.pow2(q)) == True{} : Bool}
-  DQST.StepOK(T, sh, op)
-def deque_step(T, sh, op, g, P, hb, q, hq, room):
-  DQP.step_ok(T, sh, op, g, P, hb, q, hq, room)
+  for +hp: {DQST.pushok(U32, q, op, DQSH.model(U32, sh)) == True{} : Bool}
+  DQK.StepOK(~U32, sh, op)
+def deque_u32_step(sh, op, g, q, hq, hp):
+  DQP.step_ok(~U32, sh, op, g, q, hq, hp)
 
-law deque_shadow_unique:
-  for -T: Data
-  for +a: DQSH.Shadow<T>
-  for +b: DQSH.Shadow<T>
-  for +e: {DQSH.real(T, a) == DQSH.real(T, b) : DQ.Deque<T>}
-  {a == b : DQSH.Shadow<T>}
-def deque_shadow_unique(T, a, b, e):
-  DQP.shadow_unique(T, a, b, e)
+law deque_u32_shadow_unique:
+  for +a: DQSH.Shadow<U32>
+  for +b: DQSH.Shadow<U32>
+  for +e: {DQSH.real(U32, a) == DQSH.real(U32, b) : DQ.Deque<U32>}
+  {a == b : DQSH.Shadow<U32>}
+def deque_u32_shadow_unique(a, b, e):
+  DQP.shadow_unique(~U32, a, b, e)
 
-law deque_trace:
-  for -T: Data
-  for +ops: List<&2, DQT.Op<T>>
+law deque_u32_trace:
+  for +ops: List<&2, DQT.Op<U32>>
   for +q: Nat
   for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
-  for +room: {Nat.is_lt(1n+Nat.double(DQTR.pushes(T, ops)), SCOM.pow2(q)) == True{} : Bool}
-  DQTR.TraceOK(T, ops, DQIN.initial(T))
-def deque_trace(T, ops, q, hq, room):
-  DQP.trace_new(T, ops, q, hq, room)
+  for +hf: {DQTR.fits(U32, q, ops, Nil{}) == True{} : Bool}
+  DQTR.TraceOK(~U32, ops, DQSH.initial(U32))
+def deque_u32_trace(ops, q, hq, hf):
+  DQP.trace_new(~U32, ops, q, hq, hf)
 
-# The executable specialization (the entry point tests and benchmarks run)
-# computes exactly what the parametric definition the laws are about computes.
-law deque_trace_at_is_the_trace:
-  for +ops: List<&2, DQT.Op<Nat>>
+law deque_string_new:
+  {DQSH.model(String, DQSH.initial(String)) == Nil{} : List<&2, String>}
+def deque_string_new():
+  DQP.new_abs(~String)
+
+law deque_string_new_invariant:
+  {DQSH.good(String, DQSH.initial(String)) == True{} : Bool}
+def deque_string_new_invariant():
+  DQP.new_inv(~String)
+
+law deque_string_new_is_the_constructor:
+  {DQ.new(~String) == DQSH.real(String, DQSH.initial(String)) : DQ.Deque<String>}
+def deque_string_new_is_the_constructor():
+  DQP.new_real(~String)
+
+law deque_string_step:
+  for +sh: DQSH.Shadow<String>
+  for op: DQT.Op<String>
+  for +g: {DQSH.good(String, sh) == True{} : Bool}
   for +q: Nat
   for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
-  for +room: {Nat.is_lt(1n+Nat.double(DQTR.pushes(Nat, ops)), SCOM.pow2(q)) == True{} : Bool}
-  {DQ.run_at(~Nat, ops, DQSH.real(Nat, DQIN.initial(Nat))) == DQ.run(Nat, ops, DQSH.real(Nat, DQIN.initial(Nat))) : DQ.Deque<Nat> & List<&2, DQT.Obs<Nat>>}
-def deque_trace_at_is_the_trace(ops, q, hq, room):
-  DQP.trace_new_at(~Nat, ops, q, hq, room)
+  for +hp: {DQST.pushok(String, q, op, DQSH.model(String, sh)) == True{} : Bool}
+  DQK.StepOK(~String, sh, op)
+def deque_string_step(sh, op, g, q, hq, hp):
+  DQP.step_ok(~String, sh, op, g, q, hq, hp)
+
+law deque_string_shadow_unique:
+  for +a: DQSH.Shadow<String>
+  for +b: DQSH.Shadow<String>
+  for +e: {DQSH.real(String, a) == DQSH.real(String, b) : DQ.Deque<String>}
+  {a == b : DQSH.Shadow<String>}
+def deque_string_shadow_unique(a, b, e):
+  DQP.shadow_unique(~String, a, b, e)
+
+law deque_string_trace:
+  for +ops: List<&2, DQT.Op<String>>
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +hf: {DQTR.fits(String, q, ops, Nil{}) == True{} : Bool}
+  DQTR.TraceOK(~String, ops, DQSH.initial(String))
+def deque_string_trace(ops, q, hq, hf):
+  DQP.trace_new(~String, ops, q, hq, hf)
 
 # ============================== queue =================================
+# The FIFO specialization of the ring deque (enqueue = push_back, dequeue =
+# pop_front, peek = peek_front); same shadow, same capacity condition.
 
-law queue_new:
-  for -T: Data
-  {DQSH.model(T, DQIN.initial(T)) == Nil{} : List<&2, T>}
-def queue_new(T):
-  QUP.new_abs(T)
+law queue_u32_new:
+  {DQSH.model(U32, DQSH.initial(U32)) == Nil{} : List<&2, U32>}
+def queue_u32_new():
+  QUP.new_abs(~U32)
 
-law queue_new_invariant:
-  for -T: Data
-  {DQSH.good(T, DQIN.initial(T)) == True{} : Bool}
-def queue_new_invariant(T):
-  QUP.new_inv(T)
+law queue_u32_new_invariant:
+  {DQSH.good(U32, DQSH.initial(U32)) == True{} : Bool}
+def queue_u32_new_invariant():
+  QUP.new_inv(~U32)
 
-law queue_new_is_the_constructor:
-  for -T: Data
-  {QU.new(T) == QUST.real(T, DQIN.initial(T)) : QU.Queue<T>}
-def queue_new_is_the_constructor(T):
-  QUP.new_real(T)
+law queue_u32_new_is_the_constructor:
+  {QU.new(~U32) == QUST.real(~U32, DQSH.initial(U32)) : QU.Queue<U32>}
+def queue_u32_new_is_the_constructor():
+  QUP.new_real(~U32)
 
-law queue_step:
-  for -T: Data
-  for +sh: DQSH.Shadow<T>
-  for +op: QUT.Op<T>
-  for +g: {DQSH.good(T, sh) == True{} : Bool}
-  for +P: Nat
-  for +hb: {DQBU.bud(T, sh, P) == True{} : Bool}
+law queue_u32_step:
+  for +sh: DQSH.Shadow<U32>
+  for +op: QUT.Op<U32>
+  for +g: {DQSH.good(U32, sh) == True{} : Bool}
   for +q: Nat
   for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
-  for +room: {Nat.is_lt(1n+Nat.double(P), SCOM.pow2(q)) == True{} : Bool}
-  QUST.StepOK(T, sh, op)
-def queue_step(T, sh, op, g, P, hb, q, hq, room):
-  QUP.step_ok(T, sh, op, g, P, hb, q, hq, room)
+  for +hp: {DQST.pushok(U32, q, QUST.dop(U32, op), DQSH.model(U32, sh)) == True{} : Bool}
+  QUST.StepOK(~U32, sh, op)
+def queue_u32_step(sh, op, g, q, hq, hp):
+  QUP.step_ok(~U32, sh, op, g, q, hq, hp)
 
-law queue_trace:
-  for -T: Data
-  for +ops: List<&2, QUT.Op<T>>
+law queue_u32_trace:
+  for +ops: List<&2, QUT.Op<U32>>
   for +q: Nat
   for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
-  for +room: {Nat.is_lt(1n+Nat.double(QUTR.pushes(T, ops)), SCOM.pow2(q)) == True{} : Bool}
-  QUTR.TraceOK(T, ops, DQIN.initial(T))
-def queue_trace(T, ops, q, hq, room):
-  QUP.trace_new(T, ops, q, hq, room)
+  for +hf: {QUTR.fits(U32, q, ops, Nil{}) == True{} : Bool}
+  QUTR.TraceOK(~U32, ops, DQSH.initial(U32))
+def queue_u32_trace(ops, q, hq, hf):
+  QUP.trace_new(~U32, ops, q, hq, hf)
 
-law queue_trace_at_is_the_trace:
-  for +ops: List<&2, QUT.Op<Nat>>
+law queue_string_new:
+  {DQSH.model(String, DQSH.initial(String)) == Nil{} : List<&2, String>}
+def queue_string_new():
+  QUP.new_abs(~String)
+
+law queue_string_new_invariant:
+  {DQSH.good(String, DQSH.initial(String)) == True{} : Bool}
+def queue_string_new_invariant():
+  QUP.new_inv(~String)
+
+law queue_string_new_is_the_constructor:
+  {QU.new(~String) == QUST.real(~String, DQSH.initial(String)) : QU.Queue<String>}
+def queue_string_new_is_the_constructor():
+  QUP.new_real(~String)
+
+law queue_string_step:
+  for +sh: DQSH.Shadow<String>
+  for +op: QUT.Op<String>
+  for +g: {DQSH.good(String, sh) == True{} : Bool}
   for +q: Nat
   for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
-  for +room: {Nat.is_lt(1n+Nat.double(QUTR.pushes(Nat, ops)), SCOM.pow2(q)) == True{} : Bool}
-  {QU.run_at(~Nat, ops, QUST.real(Nat, DQIN.initial(Nat))) == QU.run(Nat, ops, QUST.real(Nat, DQIN.initial(Nat))) : QU.Queue<Nat> & List<&2, QUT.Obs<Nat>>}
-def queue_trace_at_is_the_trace(ops, q, hq, room):
-  QUP.trace_new_at(~Nat, ops, q, hq, room)
+  for +hp: {DQST.pushok(String, q, QUST.dop(String, op), DQSH.model(String, sh)) == True{} : Bool}
+  QUST.StepOK(~String, sh, op)
+def queue_string_step(sh, op, g, q, hq, hp):
+  QUP.step_ok(~String, sh, op, g, q, hq, hp)
+
+law queue_string_trace:
+  for +ops: List<&2, QUT.Op<String>>
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +hf: {QUTR.fits(String, q, ops, Nil{}) == True{} : Bool}
+  QUTR.TraceOK(~String, ops, DQSH.initial(String))
+def queue_string_trace(ops, q, hq, hf):
+  QUP.trace_new(~String, ops, q, hq, hf)
 
 # =========================== binary_heap ==============================
 # The block is a linear Base.Array, so -- as for dynamic_array, bitset and

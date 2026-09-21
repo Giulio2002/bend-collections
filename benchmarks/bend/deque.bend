@@ -11,7 +11,7 @@ type St is Type:
   S{rng: U32, chk: U32, dq: DQ.Deque<U32>}
 
 def init(+seed: U32) -> St:
-  S{seed, 0, DQ.new_at(~U32)}
+  S{seed, 0, DQ.new(~U32)}
 
 def item_code(x: Result<&2, &2, E.Error, U32>) -> U32:
   match x:
@@ -28,19 +28,28 @@ def fin_nat(r: U32, c: U32, p: DQ.Deque<U32> & Nat) -> St:
   (d, n) = p
   S{r, B.mix(c, U32.from_nat(n)), d}
 
+# The list's length, counted with a tail loop (Base's List.length is not a
+# tail recursion, which keeps a def from compiling to a flat native loop).
+def len_acc(xs: List<&2, U32>, +n: Nat) -> Nat:
+  match xs:
+    case Nil{}:
+      n
+    case Con{x, t}:
+      len_acc(t, 1n+n)
+
 def fin_list(r: U32, c: U32, p: DQ.Deque<U32> & List<&2, U32>) -> St:
   (d, xs) = p
-  S{r, B.mix(c, U32.from_nat(List.length(&2, U32, xs))), d}
+  S{r, B.mix(c, U32.from_nat(len_acc(xs, 0n))), d}
 
 def pf_with(+r: U32, c: U32, d: DQ.Deque<U32>) -> St:
-  S{r, B.mix(c, 1), DQ.push_front_at(~U32, d, r)}
+  S{r, B.mix(c, 1), DQ.push_front(~U32, d, r)}
 
 def do_pf(st: St) -> St:
   S{r, c, d} = st
   pf_with(B.lcg(r), c, d)
 
 def pb_with(+r: U32, c: U32, d: DQ.Deque<U32>) -> St:
-  S{r, B.mix(c, 1), DQ.push_back_at(~U32, d, r)}
+  S{r, B.mix(c, 1), DQ.push_back(~U32, d, r)}
 
 def do_pb(st: St) -> St:
   S{r, c, d} = st
@@ -48,34 +57,34 @@ def do_pb(st: St) -> St:
 
 def do_popf(st: St) -> St:
   S{r, c, d} = st
-  fin_item(B.lcg(r), c, DQ.pop_front_at(~U32, d))
+  fin_item(B.lcg(r), c, DQ.pop_front(~U32, d))
 
 def do_popb(st: St) -> St:
   S{r, c, d} = st
-  fin_item(B.lcg(r), c, DQ.pop_back_at(~U32, d))
+  fin_item(B.lcg(r), c, DQ.pop_back(~U32, d))
 
 def do_peekf(st: St) -> St:
   S{r, c, d} = st
-  fin_item(B.lcg(r), c, DQ.peek_front_at(~U32, d))
+  fin_item(B.lcg(r), c, DQ.peek_front(~U32, d))
 
 def do_peekb(st: St) -> St:
   S{r, c, d} = st
-  fin_item(B.lcg(r), c, DQ.peek_back_at(~U32, d))
+  fin_item(B.lcg(r), c, DQ.peek_back(~U32, d))
 
 def do_len(st: St) -> St:
   S{r, c, d} = st
-  fin_nat(B.lcg(r), c, DQ.length(U32, d))
+  fin_nat(B.lcg(r), c, DQ.length(~U32, d))
 
 def do_to_list(st: St) -> St:
   S{r, c, d} = st
-  fin_list(B.lcg(r), c, DQ.to_list_at(~U32, d))
+  fin_list(B.lcg(r), c, DQ.to_list(~U32, d))
 
 def new_len(p: DQ.Deque<U32> & Nat) -> U32:
   (d, n) = p
   U32.from_nat(n)
 
 def new_with(r: U32, c: U32, d: DQ.Deque<U32>) -> St:
-  S{r, B.mix(c, new_len(DQ.length(U32, DQ.new_at(~U32)))), d}
+  S{r, B.mix(c, new_len(DQ.length(~U32, DQ.new(~U32)))), d}
 
 def do_new(st: St) -> St:
   S{r, c, d} = st
@@ -97,33 +106,54 @@ def loop_null(k: Nat, st: St) -> St:
     case 1n+p:
       loop_null(p, do_null(st))
 
-def loop_pf(k: Nat, st: St) -> St:
-  match k:
-    case 0n:
+# Each library operation has ONE call site in this driver: every Bend def
+# compiles to one C function, and clang inlines a function into its caller
+# only while it has a single caller. A push step shared by the push loop and
+# the push/pop pair loop was called out of line in both (measured 2.3 -> 4.8
+# ns per push). So every loop at one end runs the same step, and two
+# per-loop flags select its push and its pop: push only (push_*), pop only
+# (pop_* on an empty deque) or the restoring pair (pop_* on a nonempty one).
+def push_front_if(+push: Bool, st: St) -> St:
+  match push:
+    case True{}:
+      do_pf(st)
+    case False{}:
       st
-    case 1n+p:
-      loop_pf(p, do_pf(st))
 
-def loop_pb(k: Nat, st: St) -> St:
-  match k:
-    case 0n:
+def push_back_if(+push: Bool, st: St) -> St:
+  match push:
+    case True{}:
+      do_pb(st)
+    case False{}:
       st
-    case 1n+p:
-      loop_pb(p, do_pb(st))
 
-def loop_popf(k: Nat, st: St) -> St:
-  match k:
-    case 0n:
+def pop_front_if(+pop: Bool, st: St) -> St:
+  match pop:
+    case True{}:
+      do_popf(st)
+    case False{}:
       st
-    case 1n+p:
-      loop_popf(p, do_popf(st))
 
-def loop_popb(k: Nat, st: St) -> St:
+def pop_back_if(+pop: Bool, st: St) -> St:
+  match pop:
+    case True{}:
+      do_popb(st)
+    case False{}:
+      st
+
+def loop_front(k: Nat, +push: Bool, +pop: Bool, st: St) -> St:
   match k:
     case 0n:
       st
     case 1n+p:
-      loop_popb(p, do_popb(st))
+      loop_front(p, push, pop, pop_front_if(pop, push_front_if(push, st)))
+
+def loop_back(k: Nat, +push: Bool, +pop: Bool, st: St) -> St:
+  match k:
+    case 0n:
+      st
+    case 1n+p:
+      loop_back(p, push, pop, pop_back_if(pop, push_back_if(push, st)))
 
 # ---- restoring pairs ----
 #
@@ -136,26 +166,6 @@ def loop_popb(k: Nat, st: St) -> St:
 # The reported nanoseconds are the PAIR's, charged to the pop: this
 # over-charges the Bend side by one push, it never flatters it, and the C
 # reference runs the identical pair.
-
-def do_pair_popf(st: St) -> St:
-  do_popf(do_pf(st))
-
-def do_pair_popb(st: St) -> St:
-  do_popb(do_pb(st))
-
-def loop_pair_popf(k: Nat, st: St) -> St:
-  match k:
-    case 0n:
-      st
-    case 1n+p:
-      loop_pair_popf(p, do_pair_popf(st))
-
-def loop_pair_popb(k: Nat, st: St) -> St:
-  match k:
-    case 0n:
-      st
-    case 1n+p:
-      loop_pair_popb(p, do_pair_popb(st))
 
 def loop_peekf(k: Nat, st: St) -> St:
   match k:
@@ -195,13 +205,13 @@ def loop_new(k: Nat, st: St) -> St:
 def measured(+op: U32, +k: Nat, st: St) -> St:
   match op:
     case 0:
-      loop_pf(k, st)
+      loop_front(k, True{}, False{}, st)
     case 1:
-      loop_pb(k, st)
+      loop_back(k, True{}, False{}, st)
     case 2:
-      loop_popf(k, st)
+      loop_front(k, False{}, True{}, st)
     case 3:
-      loop_popb(k, st)
+      loop_back(k, False{}, True{}, st)
     case 4:
       loop_peekf(k, st)
     case 5:
@@ -213,9 +223,9 @@ def measured(+op: U32, +k: Nat, st: St) -> St:
     case 8:
       loop_new(k, st)
     case 9:
-      loop_pair_popf(k, st)
+      loop_front(k, True{}, True{}, st)
     case 10:
-      loop_pair_popb(k, st)
+      loop_back(k, True{}, True{}, st)
     case _:
       loop_null(k, st)
 
@@ -239,7 +249,7 @@ def fold_len(c: U32, p: DQ.Deque<U32> & Nat) -> U32:
 
 def drain(st: St) -> U32:
   S{+r, c, d} = st
-  fold_len(B.mix(c, r), DQ.length(U32, d))
+  fold_len(B.mix(c, r), DQ.length(~U32, d))
 
 def settle_fold(r: U32, c: U32, p: DQ.Deque<U32> & List<&2, U32>) -> St:
   (d, xs) = p
@@ -247,7 +257,7 @@ def settle_fold(r: U32, c: U32, p: DQ.Deque<U32> & List<&2, U32>) -> St:
 
 def settle(st: St) -> St:
   S{r, c, d} = st
-  settle_fold(r, c, DQ.to_list_at(~U32, d))
+  settle_fold(r, c, DQ.to_list(~U32, d))
 
 # One round: build a structure of `size`, settle it, run `k` measured
 # operations, then `kn` value-stream steps, then destroy it. The three timed
@@ -255,7 +265,7 @@ def settle(st: St) -> St:
 # iterations, so the build, the settle, the loop barrier, the argument
 # generation and the destruction all cancel in the differences.
 def round(+op: U32, +size: Nat, +k: Nat, +kn: Nat, +seed: U32) -> U32:
-  drain(loop_null(kn, measured(op, k, settle(loop_pb(size, init(seed))))))
+  drain(loop_null(kn, measured(op, k, settle(loop_back(size, True{}, False{}, init(seed))))))
 
 def reps_go(reps: Nat, +op: U32, +size: Nat, +k: Nat, +kn: Nat, +seed: U32, acc: U32) -> U32:
   match reps:
@@ -264,30 +274,20 @@ def reps_go(reps: Nat, +op: U32, +size: Nat, +k: Nat, +kn: Nat, +seed: U32, acc:
     case 1n+ +p:
       reps_go(p, op, size, k, kn, seed, B.mix(acc, round(op, size, k, kn, U32.add(seed, U32.from_nat(p)))))
 
-def regions(+args: List<&2, String>, +k: Nat, +kn: Nat) -> U32:
-  reps_go(U32.to_nat(B.arg(B.field(args, 3n))), B.arg(B.field(args, 0n)),
-          U32.to_nat(B.arg(B.field(args, 1n))), k, kn,
-          B.arg(B.field(args, 4n)), 0)
+def regions(+g: B.Args, +k: Nat, +kn: Nat) -> U32:
+  reps_go(U32.to_nat(B.a_reps(g)), B.a_op(g), U32.to_nat(B.a_size(g)), k, kn, B.a_seed(g), 0)
 
-def kof(+args: List<&2, String>) -> Nat:
-  U32.to_nat(B.arg(B.field(args, 2n)))
+def kof(+g: B.Args) -> Nat:
+  U32.to_nat(B.a_count(g))
 
-# A = 2k measured operations, B = k measured operations, C = none at all (the
-# build-and-destroy control). A - B is exactly k x reps measured operations:
-# the build, the settle and the destruction cancel, and -- unlike a two-region
-# "operations against no operations" difference -- BOTH regions end in a state
-# the operation has been applied to, so a size-changing operation can no
-# longer move deallocation work out of the difference. C is reported next to
-# every row: it is what one region costs with no measured operation at all,
-# so a difference that is small beside its own build is visible as such.
-def run_a(+args: List<&2, String>) -> U32:
-  regions(args, Nat.add(kof(args), kof(args)), 0n)
+def run_a(+g: B.Args) -> U32:
+  regions(g, Nat.add(kof(g), kof(g)), 0n)
 
-def run_b(+args: List<&2, String>) -> U32:
-  regions(args, kof(args), 0n)
+def run_b(+g: B.Args) -> U32:
+  regions(g, kof(g), 0n)
 
-def run_c(+args: List<&2, String>) -> U32:
-  regions(args, 0n, 0n)
+def run_c(+g: B.Args) -> U32:
+  regions(g, 0n, 0n)
 
 # Checksums go to stderr (printing them is what forces each region), the three
 # elapsed millisecond counts to stdout. argv[5] picks the ORDER in which the
@@ -295,47 +295,47 @@ def run_c(+args: List<&2, String>) -> U32:
 # whatever runs last look slower, which is a systematic bias of exactly the
 # shape the A - B difference measures. The runner alternates the order over
 # the samples and reports the median, so a monotone drift cancels.
-def go_abc(+args: List<&2, String>) -> IO(Unit):
+def go_abc(+g: B.Args) -> IO(Unit):
   do IO<Unit>:
     t0 : Nat <- IO.now()
-    IO.print_err(U32.show(run_a(args)))
+    IO.print_err(U32.show(run_a(g)))
     t1 : Nat <- IO.now()
     d1 : Nat = Nat.sub(t1, t0)
     t2 : Nat <- IO.now()
-    IO.print_err(U32.show(run_b(args)))
+    IO.print_err(U32.show(run_b(g)))
     t3 : Nat <- IO.now()
     d2 : Nat = Nat.sub(t3, t2)
     t4 : Nat <- IO.now()
-    IO.print_err(U32.show(run_c(args)))
+    IO.print_err(U32.show(run_c(g)))
     t5 : Nat <- IO.now()
     IO.print(B.times(d1, d2, Nat.sub(t5, t4)))
 
-def go_cba(+args: List<&2, String>) -> IO(Unit):
+def go_cba(+g: B.Args) -> IO(Unit):
   do IO<Unit>:
     t0 : Nat <- IO.now()
-    IO.print_err(U32.show(run_c(args)))
+    IO.print_err(U32.show(run_c(g)))
     t1 : Nat <- IO.now()
     d3 : Nat = Nat.sub(t1, t0)
     t2 : Nat <- IO.now()
-    IO.print_err(U32.show(run_b(args)))
+    IO.print_err(U32.show(run_b(g)))
     t3 : Nat <- IO.now()
     d2 : Nat = Nat.sub(t3, t2)
     t4 : Nat <- IO.now()
-    IO.print_err(U32.show(run_a(args)))
+    IO.print_err(U32.show(run_a(g)))
     t5 : Nat <- IO.now()
     IO.print(B.times(Nat.sub(t5, t4), d2, d3))
 
-def pick(+o: U32, +args: List<&2, String>) -> IO(Unit):
+def pick(+o: U32, +g: B.Args) -> IO(Unit):
   match o:
     case 0:
-      go_abc(args)
+      go_abc(g)
     case _:
-      go_cba(args)
+      go_cba(g)
 
-def go(+args: List<&2, String>) -> IO(Unit):
-  pick(B.arg(B.field(args, 5n)), args)
+def go(+g: B.Args) -> IO(Unit):
+  pick(B.a_order(g), g)
 
 def main() -> IO(Unit):
   do IO<Unit>:
     raw : List<String> <- IO.args()
-    go(B.shared(raw))
+    go(B.parse(raw))
