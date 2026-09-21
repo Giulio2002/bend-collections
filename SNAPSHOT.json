@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-09-21T05:36:48.311624+00:00",
+  "captured_at": "2026-09-21T06:49:07.373974+00:00",
   "repository": "bend-collections",
   "kind": "unverified_development_snapshot",
   "full_acceptance_passed": false,
@@ -764,5 +764,15 @@
     "trace_proof": "passed",
     "independent_checker": "All terms check, with 94 unsafe annotations.",
     "recorded_source_mismatches": []
+  },
+  "indexed_dll_integrated_validation": {
+    "failures": [],
+    "operations_passed": 12,
+    "trace_proof": "passed",
+    "independent_checker": "All terms check, with 94 unsafe annotations.",
+    "explicit_unsafe_declarations": 0,
+    "template_instances": 94,
+    "recorded_source_mismatches": [],
+    "performance_acceptance": false
   }
 }

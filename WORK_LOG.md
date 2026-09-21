@@ -1723,3 +1723,42 @@ Done in 0006 (recovery notes):
   proofs/graph/{steps,trace,model}.bend deleted; END_TO_END graph laws rewritten
   (graph_trace instantiates q = 30).
 * END_TO_END / PROOF.bend still fail only because of the stale DLL proofs (D.N constructor).
+
+### 0007 doubly_linked_list re-proof (parallel arenas)
+* spec/doubly_linked_list.bend moved to U32 ids/tag (the shared types already used U32; the
+  spec no longer checked). fresh stays a Nat; issued ids are U32.from_nat(fresh).
+* RUNTIME: links are now id + 1 with nil = 0 (was nil = 2^32-1). Reason: the checker
+  normalises closed terms, so any lemma about the concrete value 2^32-1 overflows; with
+  nil = 0 every "is this nil" fact is `1 + p != 0`. Observable behaviour unchanged
+  (validate: runtime/boundaries/differential/mutations pass; two mutant anchors in
+  tools/mutants.py updated to the new text).
+* New proof tree proofs/dlist/: state (shadow with ghost order `ord: List<Nat>`), facts,
+  links (lk frame/append), items (getv), core (StepOK, liveness), alive, reads (length, get,
+  handle validation), nbrs (next, prev). All check. Remaining: to_list, set, remove, the four
+  insertions (+ doubling), step dispatch, trace, proofs/doubly_linked_list.bend, END_TO_END.
+* graph END_TO_END law graph_trace now quantifies q (a closed pow2(30n) would be normalised).
+* CHECKER LESSON (important for audit): a def with a static `~T` parameter is a TEMPLATE; its
+  body is only type-checked when instantiated at a concrete type. A deliberately wrong step in
+  an uninstantiated ~T lemma still printed "All terms check". Every ~T proof must therefore be
+  reached from a concrete instantiation (proofs/dlist/inst.bend instantiates the DLL step
+  lemmas at U32; the END_TO_END DLL laws must be stated at concrete instances, as the
+  binary_heap laws are). The graph proofs have no ~T parameters and are checked directly.
+* DLL COMPLETE (checked through PROOF.bend at U32 and String; validate --only
+  doubly_linked_list: all columns passed incl. trace_proof). Files, bottom-up:
+  split/retarget/rmfacts/tset/rm (remove), mut (set), tolist, insfacts (fresh id facts,
+  lv_new), inslk (lk_ins: link splice x ++ [f] ++ y), insitems (items_ins, ib_eq/ia_eq
+  = spec ins_before/ins_after, hd/tl/cnt after the splice), insert (lsh, li_rt/li_good/
+  li_model: link_in with room), grow (gsh: block doubling keeps model/invariant),
+  ibcore (ICore Sigma; ib_core = insert_between with the room/grow split under
+  fresh < 2^q, q <= 31), insops (push_front/back, insert_before/after incl. handle checks),
+  trace (step_ok dispatch, RunOK/TraceOK, trace_new from D.new(tag), budget = fresh +
+  inserts(ops)). inst.bend instantiates every layer at U32 for fast local checking.
+  proofs/doubly_linked_list.bend rewritten; stale proofs/doubly_linked_list/* deleted;
+  END_TO_END DLL laws restated at U32 and String (12 laws).
+* Planted-bug checks confirmed the U32 instantiation really checks the templates (a wrong
+  fresh counter in lsh and a swapped after-flag in insert_after were both rejected).
+* Idioms: `%E : P(_)` rewrites inside a Sigma-producing def are fine but cannot appear in
+  argument position - bind the equation with L.subst instead; Sigma values cannot be
+  `+`-bound - inline them into the consumer call.
+* FOUND: END_TO_END has NO balanced_search_tree laws (imports only; also absent in 0005/0006).
+  To add next.

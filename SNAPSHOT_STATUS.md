@@ -1,3 +1,25 @@
+## Latest: indexed DLL runtime and trace validation
+
+All 12 DLL operations, boundary cases, five seeded differential histories,
+six semantic mutation checks and the trace proof pass. The recorded source
+hashes match this export. An independent stock-checker run of
+`proofs/doubly_linked_list.bend` also passes. Raw evidence is in
+`snapshot-evidence/indexed-dll-{validation.json,check.log}`.
+
+The checker reports 94 unsafe annotations; the pinned parser classifies them
+as 94 template instances and zero explicit @unsafe definitions (see
+`snapshot-evidence/template-annotation-audit/dll.json`). Classification does
+not establish template soundness. The proofs include explicit capacity
+premises; this milestone is not a claim of unbounded machine capacity or
+whole-library semantic audit. Runtime handles remain U32 indices with
+zero-sentinel links encoded as slot+1.
+
+No new DLL timing acceptance is claimed. New native LRU refinement, remaining
+library integration and all <=2.5x optimized-C benchmarks remain unfinished.
+Red-black-tree public-law integration was identified as a remaining gap.
+Historical entries below describe their original milestones, not current
+whole-project acceptance.
+
 ## Annotation-count clarification
 
 Pinned v2.0.16 source inspection classifies the graph's94flags as template

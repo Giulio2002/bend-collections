@@ -1,4 +1,4 @@
-> **Unfinished development snapshot:** indexed graph validation and trace proof check; whole-library proof/performance acceptance remains incomplete. See [snapshot status](SNAPSHOT_STATUS.md).
+> **Unfinished development snapshot:** indexed graph and DLL validation/trace checks pass; whole-library proof and performance acceptance remain incomplete. See [snapshot status](SNAPSHOT_STATUS.md).
 
 # bend-dsa
 

@@ -6,10 +6,12 @@ import ../types/doubly_linked_list.bend as E
 # Representation: PARALLEL INDEXED ARENAS. Three `Base.Array` blocks of
 # 2^depth slots share one index space:
 #   vals   Maybe<T>  the element stored at an id (None: never used or removed)
-#   prevs  U32       the id of the preceding element
-#   nexts  U32       the id of the following element
-# `nil()` = 2^32 - 1 is the "no neighbour" link; ids are slot indices below
-# 2^31, so it never collides with an id. The element id IS its slot index;
+#   prevs  U32       the LINK to the preceding element
+#   nexts  U32       the LINK to the following element
+# A link is id + 1, and `nil()` = 0 is the "no neighbour" link (as are the
+# head and tail fields), so testing for a neighbour is a comparison with 0
+# and following a link is one subtraction. Ids are slot indices below 2^31,
+# so id + 1 never wraps. The element id IS its slot index;
 # ids come from a monotone counter and are never reused, so a handle to a
 # removed element is stale (its `vals` slot is None) and a handle whose tag
 # differs from the list's is foreign. The blocks double when the counter
@@ -35,7 +37,14 @@ type DList<-T: Data> is Type:
   DL{tag: U32, fresh: U32, count: Nat, head: U32, tail: U32, depth: Nat, cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>}
 
 def nil() -> U32:
-  4294967295
+  0
+
+# The link to an element, and the element a (non-nil) link points to.
+def link(+i: U32) -> U32:
+  U32.inc(i)
+
+def slot(+l: U32) -> U32:
+  U32.sub(l, 1)
 
 def new_vals(~T: Data, +depth: Nat) -> Array<Maybe<&2, T>>:
   Array.new(Maybe<&2, T>, depth, None{})
@@ -56,7 +65,7 @@ def pick_link(none: Bool, +l: U32) -> Maybe<&2, U32>:
 
 # ---- relinking ----
 
-# Point the next link of a (if a is an element) at q.
+# Point the link stored at element a (if a is a link, not nil) at q.
 def link_of(+l: U32) -> Maybe<&2, U32>:
   pick_link(U32.is_eq(l, nil()), l)
 
@@ -65,7 +74,7 @@ def set_next_go(nexts: Array<U32>, +a: U32, +q: U32, none: Bool) -> Array<U32>:
     case True{}:
       nexts
     case False{}:
-      Array.set(U32, nexts, a, q)
+      Array.set(U32, nexts, slot(a), q)
 
 # ---- insertion ----
 
@@ -78,12 +87,12 @@ def grown_vals(~T: Data, +depth: Nat, a: Array<Maybe<&2, T>>) -> Array<Maybe<&2,
 def grown_links(+depth: Nat, a: Array<U32>) -> Array<U32>:
   ANode{a, new_links(depth)}
 
-# Store x at slot n between a and b (both links or nil) and relink them.
+# Store x at slot n between the links a and b (either may be nil) and relink them.
 def link_in(~T: Data, +tag: U32, +n: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +a: U32, +b: U32, x: T) -> DList<T> & E.Handle:
-  (DL{tag, U32.inc(n), 1n+count, pick_end(U32.is_eq(a, nil()), n, head), pick_end(U32.is_eq(b, nil()), n, tail), depth, cap,
+  (DL{tag, U32.inc(n), 1n+count, pick_end(U32.is_eq(a, nil()), link(n), head), pick_end(U32.is_eq(b, nil()), link(n), tail), depth, cap,
       Array.set(Maybe<&2, T>, vals, n, Some{x}),
-      set_next(Array.set(U32, prevs, n, a), b, n),
-      set_next(Array.set(U32, nexts, n, b), a, n)}, E.H{tag, n})
+      set_next(Array.set(U32, prevs, n, a), b, link(n)),
+      set_next(Array.set(U32, nexts, n, b), a, link(n))}, E.H{tag, n})
 
 # The end pointer after linking n next to a (nil: n becomes that end).
 def pick_end(none: Bool, +n: U32, +e: U32) -> U32:
@@ -133,9 +142,9 @@ def link_at(links: Array<U32>, +i: U32) -> Array<U32> & U32:
 def ins_side(~T: Data, after: Bool, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, +p: U32, +n: U32, x: T) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
   match after:
     case False{}:
-      done_handle(~T, insert_between(~T, tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, p, i, x))
+      done_handle(~T, insert_between(~T, tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, p, link(i), x))
     case True{}:
-      done_handle(~T, insert_between(~T, tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, i, n, x))
+      done_handle(~T, insert_between(~T, tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, link(i), n, x))
 
 def ins_live2(~T: Data, after: Bool, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, +i: U32, x: T, pr: Array<U32> & U32, nx: Array<U32> & U32) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
   (prevs, p) = pr
@@ -257,7 +266,7 @@ def handle_go(+tag: U32, +l: U32, none: Bool) -> Maybe<&2, E.Handle>:
     case True{}:
       None{}
     case False{}:
-      Some{E.H{tag, l}}
+      Some{E.H{tag, slot(l)}}
 
 def handle(+tag: U32, +l: U32) -> Maybe<&2, E.Handle>:
   handle_go(tag, l, U32.is_eq(l, nil()))
@@ -320,7 +329,7 @@ def step_m(~T: Data, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, acc: List<&2,
     case None{}:
       C{vals, prevs, acc, nil()}
     case Some{v}:
-      step_p(~T, vals, Con{v, acc}, Array.get(U32, prevs, at))
+      step_p(~T, vals, Con{v, acc}, Array.get(U32, prevs, slot(at)))
 
 def step_v(~T: Data, prevs: Array<U32>, acc: List<&2, T>, +at: U32, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> Cur<T>:
   (vals, m) = r
@@ -328,7 +337,7 @@ def step_v(~T: Data, prevs: Array<U32>, acc: List<&2, T>, +at: U32, r: Array<May
 
 def step_back(~T: Data, c: Cur<T>) -> Cur<T>:
   C{vals, prevs, acc, +at} = c
-  step_v(~T, prevs, acc, at, Array.get(Maybe<&2, T>, vals, at))
+  step_v(~T, prevs, acc, at, Array.get(Maybe<&2, T>, vals, slot(at)))
 
 def walk(~T: Data, fuel: Nat, c: Cur<T>) -> Cur<T>:
   match fuel:

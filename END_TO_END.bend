@@ -91,8 +91,9 @@ import ./src/doubly_linked_list.bend as DL
 import ./spec/doubly_linked_list.bend as DLS
 import ./types/doubly_linked_list.bend as DLT
 import ./proofs/doubly_linked_list.bend as DLP
-import ./proofs/doubly_linked_list/steps.bend as DLST
-import ./proofs/doubly_linked_list/trace.bend as DLTR
+import ./proofs/dlist/state.bend as DLSH
+import ./proofs/dlist/core.bend as DLK
+import ./proofs/dlist/trace.bend as DLTR
 
 # Public correctness and trace laws, stated over the real src/ APIs and the
 # independent spec/ models. Each law is discharged by its structure's proof
@@ -882,10 +883,12 @@ def graph_step(sh, op, h, q, hq, room):
 law graph_trace:
   for +d: Bool
   for +ops: List<&2, GRT.Op>
-  for +room: {Nat.is_lt(Nat.add(3n, GRTR.adds(ops)), SCOM.pow2(30n)) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 30n) == True{} : Bool}
+  for +room: {Nat.is_lt(Nat.add(3n, GRTR.adds(ops)), SCOM.pow2(q)) == True{} : Bool}
   GRTR.TraceNew(d, ops)
-def graph_trace(d, ops, room):
-  GRP.trace_new(d, ops, 30n, {==}, room)
+def graph_trace(d, ops, q, hq, room):
+  GRP.trace_new(d, ops, q, hq, room)
 
 law graph_trace_from:
   for +ops: List<&2, GRT.Op>
@@ -1006,43 +1009,109 @@ def prefix_trie_trace_invariant(V, ops):
   PTP.trace_new_inv(V, ops)
 
 # ========================== doubly_linked_list ========================
-# Values are an erased type parameter; the invariant is a proposition.
+# Parallel indexed arenas (src/doubly_linked_list.bend): three linear
+# Base.Arrays, so -- as for the other array-backed structures -- the laws are
+# about the list BUILT from a Data mirror (DLSH.real of a shadow). Values are
+# an erased type parameter; the laws are stated at T = U32 and T = String.
+# `room` is the capacity condition: the ids issued (fresh plus the insertions
+# still to come) stay below 2^q, q <= 31 (ids are Base array slots).
 
-law doubly_linked_list_new:
-  for -T: Data
-  for +tag: Nat
-  {DLST.abs(T, DL.new(T, tag)) == DLS.new(T, tag) : DLS.Model<T>}
-def doubly_linked_list_new(T, tag):
-  DLP.new_abs(T, tag)
+law doubly_linked_list_u32_new_is_the_constructor:
+  for +tag: U32
+  {DL.new(~U32, tag) == DLSH.real(~U32, DLSH.initial(~U32, tag)) : DL.DList<U32>}
+def doubly_linked_list_u32_new_is_the_constructor(tag):
+  DLP.new_real(~U32, tag)
 
-law doubly_linked_list_new_invariant:
-  for -T: Data
-  for +tag: Nat
-  DLST.Inv(T, DL.new(T, tag))
-def doubly_linked_list_new_invariant(T, tag):
-  DLP.new_inv(T, tag)
+law doubly_linked_list_u32_new:
+  for +tag: U32
+  {DLSH.model(~U32, DLSH.initial(~U32, tag)) == DLS.new(U32, tag) : DLS.Model<U32>}
+def doubly_linked_list_u32_new(tag):
+  DLP.new_abs(~U32, tag)
 
-law doubly_linked_list_step:
-  for -T: Data
-  for +s: DL.DList<T>
-  for +op: DLT.Op<T>
-  for g: DLST.Inv(T, s)
-  DLST.StepOK(T, s, op)
-def doubly_linked_list_step(T, s, op, g):
-  DLP.step_ok(T, s, op, g)
+law doubly_linked_list_u32_new_invariant:
+  for +tag: U32
+  {DLSH.good(~U32, DLSH.initial(~U32, tag)) == True{} : Bool}
+def doubly_linked_list_u32_new_invariant(tag):
+  DLP.new_inv(~U32, tag)
 
-law doubly_linked_list_trace:
-  for -T: Data
-  for +tag: Nat
-  for +ops: List<&2, DLT.Op<T>>
-  {DLTR.view(T, DL.run(T, ops, DL.new(T, tag))) == DLS.run(T, ops, DLS.new(T, tag)) : DLS.Model<T> & List<&2, DLT.Obs<T>>}
-def doubly_linked_list_trace(T, tag, ops):
-  DLP.trace_new(T, tag, ops)
+law doubly_linked_list_u32_step:
+  for +sh: DLSH.Shadow<U32>
+  for +op: DLT.Op<U32>
+  for +h: {DLSH.good(~U32, sh) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(DLK.sfresh(~U32, sh), SCOM.pow2(q)) == True{} : Bool}
+  DLK.StepOK(~U32, sh, op)
+def doubly_linked_list_u32_step(sh, op, h, q, hq, room):
+  DLP.step_ok(~U32, sh, op, h, q, hq, room)
 
-law doubly_linked_list_trace_invariant:
-  for -T: Data
-  for +tag: Nat
-  for +ops: List<&2, DLT.Op<T>>
-  DLST.Inv(T, Pair.fst(DL.DList<T>, List<&2, DLT.Obs<T>>, DL.run(T, ops, DL.new(T, tag))))
-def doubly_linked_list_trace_invariant(T, tag, ops):
-  DLP.trace_new_inv(T, tag, ops)
+law doubly_linked_list_u32_trace:
+  for +tag: U32
+  for +ops: List<&2, DLT.Op<U32>>
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(DLTR.inserts(U32, ops), SCOM.pow2(q)) == True{} : Bool}
+  DLTR.TraceNew(~U32, tag, ops)
+def doubly_linked_list_u32_trace(tag, ops, q, hq, room):
+  DLP.trace_new(~U32, tag, ops, q, hq, room)
+
+law doubly_linked_list_u32_trace_from:
+  for +ops: List<&2, DLT.Op<U32>>
+  for +sh: DLSH.Shadow<U32>
+  for +h: {DLSH.good(~U32, sh) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(Nat.add(DLK.sfresh(~U32, sh), DLTR.inserts(U32, ops)), SCOM.pow2(q)) == True{} : Bool}
+  DLTR.TraceOK(~U32, ops, sh)
+def doubly_linked_list_u32_trace_from(ops, sh, h, q, hq, room):
+  DLP.trace_from(~U32, ops, sh, h, q, hq, room)
+
+law doubly_linked_list_string_new_is_the_constructor:
+  for +tag: U32
+  {DL.new(~String, tag) == DLSH.real(~String, DLSH.initial(~String, tag)) : DL.DList<String>}
+def doubly_linked_list_string_new_is_the_constructor(tag):
+  DLP.new_real(~String, tag)
+
+law doubly_linked_list_string_new:
+  for +tag: U32
+  {DLSH.model(~String, DLSH.initial(~String, tag)) == DLS.new(String, tag) : DLS.Model<String>}
+def doubly_linked_list_string_new(tag):
+  DLP.new_abs(~String, tag)
+
+law doubly_linked_list_string_new_invariant:
+  for +tag: U32
+  {DLSH.good(~String, DLSH.initial(~String, tag)) == True{} : Bool}
+def doubly_linked_list_string_new_invariant(tag):
+  DLP.new_inv(~String, tag)
+
+law doubly_linked_list_string_step:
+  for +sh: DLSH.Shadow<String>
+  for +op: DLT.Op<String>
+  for +h: {DLSH.good(~String, sh) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(DLK.sfresh(~String, sh), SCOM.pow2(q)) == True{} : Bool}
+  DLK.StepOK(~String, sh, op)
+def doubly_linked_list_string_step(sh, op, h, q, hq, room):
+  DLP.step_ok(~String, sh, op, h, q, hq, room)
+
+law doubly_linked_list_string_trace:
+  for +tag: U32
+  for +ops: List<&2, DLT.Op<String>>
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(DLTR.inserts(String, ops), SCOM.pow2(q)) == True{} : Bool}
+  DLTR.TraceNew(~String, tag, ops)
+def doubly_linked_list_string_trace(tag, ops, q, hq, room):
+  DLP.trace_new(~String, tag, ops, q, hq, room)
+
+law doubly_linked_list_string_trace_from:
+  for +ops: List<&2, DLT.Op<String>>
+  for +sh: DLSH.Shadow<String>
+  for +h: {DLSH.good(~String, sh) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +room: {Nat.is_lt(Nat.add(DLK.sfresh(~String, sh), DLTR.inserts(String, ops)), SCOM.pow2(q)) == True{} : Bool}
+  DLTR.TraceOK(~String, ops, sh)
+def doubly_linked_list_string_trace_from(ops, sh, h, q, hq, room):
+  DLP.trace_from(~String, ops, sh, h, q, hq, room)
