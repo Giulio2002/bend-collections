@@ -1669,3 +1669,27 @@ Done in 0006 (recovery notes):
 * All five read-only graph operations are now proved against real(sh).
 * NEXT: remove_edge_ok, add_edge_ok (block shift/grow), add_vertex_ok
   (4 branches), remove_vertex_ok (strip), then StepOK/trace/END_TO_END.
+* AUDIT RISK found: binary_heap trace law premise `depth + pushes <= 31`
+  (END_TO_END binary_heap_*_trace) only covers traces with <= 31 pushes.
+  Replace with a size-based measure (as planned for graph) later.
+* NEW lists.bend (dl/il, uset_dl/il, asc_back, del_found, del_absent,
+  ins_old), ext.bend (drop_cons, win_cons, win_step, win_split, drop_drop,
+  dl_app, il_app), asc.bend (asc_at_of_win, asc_dl), blkops.bend: block
+  DELETION fully proved (bdel mirror, blk_del_ok runtime, del_bents =
+  dl(bents, l), del_deg/cap/size, del_ok = blk_ok). Lesson: function-typed
+  hypotheses are linear; static ~h works only as a leading param with a
+  named def, so window equalities are proved by small structural
+  recursions (pre_del/sh_del) calling the shift lemmas directly.
+* NEXT: insertion (bput), growth (bgrow), del_nbr_ok/add_nbr_ok, then
+  remove_edge_ok/add_edge_ok.
+* blkops.bend: block INSERTION (bput: blk_put_ok, put_bents = il(bents,l,w),
+  put_deg/cap/size, put_ok) and GROWTH (bgrow: blk_grow_ok, grow_bents,
+  grow_deg/cap/size, grow_ok) fully proved. All three block edits done.
+* NEXT: nbrops.bend (del_nbr_ok / add_nbr_ok at the adjacency level with
+  spec meaning sdel/sadd), then remove_edge_ok / add_edge_ok.
+* NEW nbrops.bend: dsel/asel mirrors (runtime found/room flags), dsem/asem
+  (entries = GS.sdel / GS.sadd), dsel_ok/asel_ok, and the runtime
+  del_nbr_ok / add_nbr_ok (swap-out, header, search, flag cases, put-back).
+  add needs the premise room(bt) || lcap <= 30 (growth stays in U32).
+* NEXT: eops.bend: window-of-update (G1), amodel-of-update (G2), put model
+  (G3), remove_edge_ok, add_edge_ok.

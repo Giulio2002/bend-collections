@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-09-21T04:04:12.119183+00:00",
+  "captured_at": "2026-09-21T04:41:32.040302+00:00",
   "repository": "bend-collections",
   "kind": "unverified_development_snapshot",
   "full_acceptance_passed": false,
@@ -281,7 +281,7 @@
   ],
   "evidence_scope": "historical targeted runs; source changed during ongoing development; no current-snapshot pass claimed",
   "source_sha256_file": "SNAPSHOT_SOURCE_SHA256.json",
-  "milestone": "Indexed graph neighbors, vertices and edges refinement modules independently check; 15 unsafe annotations each; full acceptance false",
+  "milestone": "Indexed graph remove_edge StepOK independently checks; 94 unsafe annotations; whole-library acceptance false",
   "validation_source_hash_mismatches": [
     "proofs/balanced_search_tree/steps.bend",
     "src/doubly_linked_list.bend",
@@ -722,5 +722,9 @@
   "enumeration_checks": {
     "nbrs": "All terms check, with 15 unsafe annotations.",
     "edges": "All terms check, with 15 unsafe annotations."
+  },
+  "remove_edge_check": {
+    "result": "All terms check, with 94 unsafe annotations.",
+    "full_acceptance": false
   }
 }

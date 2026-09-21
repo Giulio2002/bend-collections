@@ -1,3 +1,18 @@
+## Latest: indexed graph remove_edge refinement
+
+Independent exported-snapshot check of proofs/graph/rmedge.bend passes with
+94 unsafe annotations reported. The final so_remove_edge theorem connects the
+actual indexed runtime to the specification, preserves the representation
+invariant and does not grow the tracked measure. Raw checker output is in
+snapshot-evidence/graph-remove-edge-check.log. No explicit unsafe/assume/postulate
+or placeholder marker was found in the nine newly added graph proof modules;
+this does NOT discharge the reported imported/generic trust boundary. Its
+review remains mandatory, and this snapshot is not fully verified acceptance.
+
+Add-edge, vertex update and whole-trace integration remain incomplete, as do
+DLL/new-LRU proof migration and performance targets. No new timing result is
+claimed for this proof-only milestone.
+
 ## Latest: indexed graph enumeration refinement
 
 Independent checks of `proofs/graph/nbrs.bend` and `proofs/graph/edges.bend`

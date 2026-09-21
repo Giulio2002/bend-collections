@@ -1,3 +1,5 @@
+> **Unfinished development snapshot:** indexed graph component proofs are checking; full implementation/proof/performance acceptance is incomplete. See [snapshot status](SNAPSHOT_STATUS.md).
+
 # bend-dsa
 
 A pure [Bend](https://github.com/HigherOrderCO/Bend) data-structure library with
