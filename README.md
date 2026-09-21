@@ -1,4 +1,4 @@
-> **Development snapshot:** indexed graph implementation and search proof in progress; full graph proofs and performance gate incomplete. See [status](SNAPSHOT_STATUS.md).
+> **Development snapshot:** indexed graph has_vertex refinement checks, with 15 imported unsafe annotations reported. Other operation/trace proofs and performance acceptance remain incomplete. See [status](SNAPSHOT_STATUS.md).
 
 # bend-dsa
 
@@ -18,14 +18,18 @@ the implementation, and proofs (`proofs/<id>.bend`):
 `balanced_search_tree` (a red-black binary search tree), `bitset` (packed
 words), `union_find`, `fenwick_tree`, `segment_tree`, `prefix_trie`, `graph`.
 
-Seven of them store their elements in a native `Base.Array` rather than in
+Ten of them store their elements in native `Base.Array` blocks rather than in
 node links: `dynamic_array` and `bitset` (indexed slots and packed words),
-`deque` and `queue` (a window of a power-of-two block), `union_find` (three
-parallel arenas) and `fenwick_tree`/`segment_tree` (flat cells in a
-split-point layout). The remaining five keep genuine links where the
-algorithm has them - tree and trie children, doubly-linked prev/next - and
-`doubly_linked_list`/`graph` use Base's own ordered map as their store.
-`docs/ARCHITECTURE.md` has the representation table.
+`deque` and `queue` (a window of a power-of-two block), `binary_heap` (a
+packed array heap), `union_find` (three parallel arenas),
+`fenwick_tree`/`segment_tree` (flat cells in a split-point layout),
+`graph` (indexed vertex slots plus one sorted adjacency block per vertex) and
+`doubly_linked_list` (three parallel arena blocks, with prev/next as arena
+indices). The remaining two keep genuine links where the algorithm has them:
+the red-black tree's children and the trie's children -- and `prefix_trie` is
+the one structure whose migration is still outstanding.
+`docs/ARCHITECTURE.md` has the representation table and
+`docs/C_EQUIVALENCE.md` the comparison with each C reference.
 
 Plus the retained LRU cache under `reference/lru` (an immutable, hash-pinned
 snapshot) reused through `src/lru.bend`; nothing in it is re-implemented.
@@ -36,6 +40,13 @@ Base's native `Map`, `Set` and list-as-stack are reused as-is.
 ```sh
 bend PROOF.bend          # the one root: every public law and everything under it
 ```
+
+> **Current state:** `bend PROOF.bend` does NOT check. `graph` and
+> `doubly_linked_list` were re-represented (indexed vertex slots plus
+> adjacency blocks; parallel arena blocks) and their proofs are being rebuilt
+> against the new representations -- see PROOF_STATUS.md and WORK_LOG.md for
+> exactly what is proved today. The other ten structures' proofs check
+> (`bend proofs/<id>.bend`).
 
 For every structure and **every** inventoried operation, including every error
 path, the proofs establish that the runtime step refines the specification step
@@ -52,7 +63,9 @@ the whole delete fixup path.
 
 `graph` additionally proves model well-formedness — endpoint closure, the
 self-loop policy and undirected symmetry — established by the constructor and
-preserved by every operation, connected to the runtime invariant.
+preserved by every operation. That development is about the SPEC and survives
+the representation change; its connection to the new runtime invariant is
+part of the rebuild.
 
 Details: `PROOF_STATUS.md`, `docs/PROOF_MAP.md`.
 

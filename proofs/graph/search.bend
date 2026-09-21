@@ -578,3 +578,32 @@ def locate_ok(+d: Nat, +t: AR.Tree<U32>, +v: U32, +lo: Nat, +hi: Nat, +lb: Nat, 
   %Equal.sym(Bool, U32.is_lt(U32.from_nat(lb), U32.from_nat(hi)), Nat.is_lt(lb, hi),
     IX.lt_bridge(lb, hi, 1n+d, cap_ok(d, hd), in_cap(d, hi, lb, hcap, hlb2), in_cap(d, hi, hi, hcap, N.le_refl(hi)))) : {G.loc_in(v, AR.thaw(U32, t), U32.from_nat(lb), _) == G.LC{AR.thaw(U32, t), U32.from_nat(lb), found_of(t, lb, hi, v)} : G.Loc}
   loc_in_ok(d, t, v, hi, lb, hd, pf, hcap, Nat.is_lt(lb, hi), {==})
+
+
+# ---- sortedness of a window, read through the slots ----
+#
+# Used by proofs/graph/window.bend and by the representation invariant.
+
+def ltm2(a: Maybe<&2, U32>, b: Maybe<&2, U32>) -> Bool:
+  match a b:
+    case Some{+x} Some{+y}:
+      Cmp.is_lt(U32.cmp(x, y))
+    case _ _:
+      False{}
+
+def ltat2(+xs: List<&2, U32>, +i: Nat, +j: Nat) -> Bool:
+  ltm2(SC.nth(U32, xs, i), SC.nth(U32, xs, j))
+
+def above_at(+m: Nat, +xs: List<&2, U32>, +i: Nat, +from: Nat) -> Bool:
+  match m:
+    case 0n:
+      True{}
+    case 1n+r:
+      Bool.and(ltat2(xs, i, from), above_at(r, xs, i, 1n+from))
+
+def asc_at(+k: Nat, +xs: List<&2, U32>, +from: Nat) -> Bool:
+  match k:
+    case 0n:
+      True{}
+    case 1n+m:
+      Bool.and(above_at(m, xs, from, 1n+from), asc_at(m, xs, 1n+from))

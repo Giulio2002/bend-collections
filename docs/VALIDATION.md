@@ -74,6 +74,30 @@ sizes whose word array has a whole padding word:
 the word (`bitix` -> 0) and one that stops the whole-array combine one word
 short, both of which are only observable through the same reports.
 
+### Where the graph's sorted representation is checked at runtime
+
+`graph` keeps its vertex ids ascending in a window of one block and each
+vertex's neighbours ascending in one adjacency block, and it finds both by
+BINARY SEARCH. A representation that silently stopped being sorted would
+still answer many queries correctly, so the scenarios insert both vertices
+and neighbours OUT of order and then observe the sorted enumerations and the
+searches that depend on them:
+
+| scenario | what it exercises |
+|---|---|
+| `av:9 av:3 av:7 av:1 av:5 vs ...` | the vertex window stays sorted when ids arrive in no order; `vs` observes it |
+| `ae:1:9 ae:1:3 ae:1:7 ae:1:5 nb:1 edges` | the adjacency block stays sorted when neighbours arrive descending and interleaved |
+| `he:1:3 he:1:5 he:1:7 he:1:9 he:1:1` | every entry is found by the binary search, and a non-neighbour is not |
+| `re:1:7 nb:1 he:1:7 ae:1:7 nb:1` | deletion closes the gap and re-insertion lands back in order |
+| undirected `ae:4:8 ae:4:2 ae:4:6 nb:2 nb:6 nb:8 rv:4 ...` | symmetry, and that removing a vertex leaves no stale edge in any block |
+
+`tools/mutants.py` kills a mutant that appends a neighbour instead of
+inserting it in order (`blk_put(b, deg, ent_end(deg), w)`), one that keeps
+the previous occupant's neighbours when a new vertex takes a slot, one that
+stores an undirected edge at one endpoint only, one that removes it from one
+endpoint only, one that accepts self-loops and one that negates
+`has_vertex` -- six mutants, all rejected by a scenario, none by a crash.
+
 The LRU is validated in `bend` run mode (see the blocker below) through
 `tests/lru/main.bend` and reported as `lru_reuse`.
 

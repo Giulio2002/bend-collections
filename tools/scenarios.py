@@ -227,6 +227,16 @@ FUNCTIONAL = {
         ['undir', 'av:1', 'av:2', 'av:3', 'ae:1:2', 'ae:2:3', 'edges', 'nb:1',
          'nb:2', 'he:2:1', 'he:1:3', 're:1:2', 'edges', 'nb:2', 'rv:2', 'vs',
          'edges', 'nb:3'],
+        # neighbours arrive OUT of order, and vertices too: the adjacency
+        # block and the vertex table must both stay sorted, which is what
+        # `nb`, `vs`, `edges` and the `he` lookups below observe.
+        ['dir', 'av:9', 'av:3', 'av:7', 'av:1', 'av:5', 'vs',
+         'ae:1:9', 'ae:1:3', 'ae:1:7', 'ae:1:5', 'nb:1', 'edges',
+         'he:1:3', 'he:1:5', 'he:1:7', 'he:1:9', 'he:1:1',
+         're:1:7', 'nb:1', 'he:1:7', 'ae:1:7', 'nb:1', 'vs'],
+        ['undir', 'av:8', 'av:2', 'av:6', 'av:4', 'vs',
+         'ae:4:8', 'ae:4:2', 'ae:4:6', 'nb:4', 'nb:2', 'nb:6', 'nb:8',
+         'edges', 'rv:4', 'vs', 'edges', 'nb:2', 'nb:6', 'nb:8'],
     ],
 }
 

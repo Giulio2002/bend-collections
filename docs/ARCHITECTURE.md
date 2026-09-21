@@ -62,14 +62,17 @@ and where a genuine link survives:
 | `binary_heap` | `Base.Array` of `Maybe<A>` slots, capacity `2^depth` (PACKED array heap) | element `i` is slot `i`, children `2i+1`/`2i+2`, parent `(i-1)/2` | none |
 | `balanced_search_tree` | red-black tree of `Node{color, l, entry, r}` | — | tree children |
 | `prefix_trie` | trie nodes `TNode{c, val, down, next}` | `down` = children, `next` = the sibling chain of one node's children | trie children |
-| `doubly_linked_list` | `Base.OrdMap<Nat, Node>` node store (an indexed arena); each node holds `Maybe<Nat>` prev/next handles | node handle (a `Nat`) | DLL prev/next |
-| `graph` | `Base.OrdMap<U32, Base.OrdMap<U32, Unit>>` adjacency (native map of native sets) | vertex id | none |
+| `doubly_linked_list` | THREE parallel `Base.Array` blocks (`vals: Maybe<T>`, `prevs: U32`, `nexts: U32`) sharing one index space | the element id IS its slot index (a monotone counter, never reused) | DLL prev/next, as arena indices |
+| `graph` | indexed vertex slots plus adjacency blocks: `ids: Array<U32>` (ascending, in the window `[lo, hi)`) and `adj: Array<Array<U32>>`, each adjacency block one power-of-two `U32` block with a `deg\|size\|lcap` header and ascending neighbour ids | binary search of `ids` maps an EXTERNAL U32 vertex id to its slot; neighbours are external ids, so moving a slot renumbers nothing | none |
 | `lru` (retained) | `reference/lru` snapshot: `Map` + recency order | key | LRU recency order |
 
 The only remaining node-linked storage is where the operator's rule allows
 it: tree/trie children (`balanced_search_tree`, `prefix_trie`),
-doubly-linked prev/next (`doubly_linked_list`) and LRU recency. `graph` and
-`doubly_linked_list` use Base's native map, not a hand-written list.
+doubly-linked prev/next (`doubly_linked_list`, as ARENA INDICES in parallel
+`Base.Array` blocks) and LRU recency. `graph` holds no links at all: the
+adjacency of a vertex is a contiguous sorted block of neighbour ids.
+`prefix_trie` is the one structure whose migration is still outstanding (its
+children are a first-child/next-sibling chain of `TNode` records).
 `binary_heap` **is now a packed array heap**: the elements occupy slots
 `[0, size)` of one `Base.Array`, the shape IS the index arithmetic, and no
 node or link is allocated per element (`src/binary_heap.bend`, proofs in

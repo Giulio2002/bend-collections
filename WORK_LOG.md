@@ -1477,3 +1477,73 @@ against list insertion/deletion), the adjacency block lemmas (header read,
 paths, and the trace law; then `proofs/graph.bend` and the `graph_*` laws in
 END_TO_END.bend. Until those land, `bend PROOF.bend` FAILS on graph -- the
 old ordered-map proofs were archived with the old implementation.
+
+### Triage measurement of the whole suite (iteration 0005)
+
+A full `benchmarks/run.py` run was taken WHILE proof checking was running, so
+the numbers are for triage only, not for the report (`/tmp/bench_all_triage.json`).
+It is the first full-suite measurement after the iteration-0002 array
+migrations, and it changes the picture completely: of the first 155 measured
+rows only 45 exceed 2.5x, against 260 of 408 in the last published report.
+
+The remaining over-limit rows fall into exactly three groups, all of them
+ALLOCATION cost, not indexing cost:
+
+1. **`Maybe<T>` slot boxing.** `dynamic_array`, `deque`/`queue`,
+   `binary_heap` and the DLL value block store `Maybe<T>` per slot, because a
+   generic element type has no default value with which `Array.new` could
+   fill a block. Writing a slot therefore allocates a `Some` node:
+   `deque.push_back` 5.76 ns against 1.15 ns, `queue.enqueue` 5.98 against
+   1.31, `deque.push_front` 5.04 against 1.10.
+   FIX (designed, not yet done): hold `slots: Maybe<Array<T>>` in the record
+   -- `None` until the first push, which supplies the filler value -- and let
+   the length alone decide which slots are meaningful. One unwrap per
+   OPERATION instead of one allocation per ELEMENT, and `clear` becomes O(1)
+   (it currently allocates a fresh block: `dynamic_array.clear` 161000 ns
+   against 17776 ns at size 262144). This changes the representation
+   invariant of four proved structures, so it is a substantial re-proof.
+
+2. **List materialisation.** `to_list`-shaped operations return a `List`, so
+   their cost IS allocation: 4.8x - 7.0x. The C references build the same
+   list from a bump arena (about 0.5 ns per cell) while Bend's allocator
+   costs about 2 ns per cons cell. Measured floor in isolation is 2.2 - 2.9
+   ns per element against the reference's 1.18 ns, i.e. about 2.3x before
+   any other cost. See docs/C_EQUIVALENCE.md.
+
+3. **Fresh-block allocation in `new`/`reserve`/`clear`** (3.2x - 9.1x), same
+   cause.
+
+None of these is an indexing or traversal defect: every lookup, update and
+traversal row is at or below 1.3x (graph `has_edge/large` 0.55x,
+`doubly_linked_list.get` 1.13x, `binary_heap.peek` 1.00x).
+
+### Graph proof inventory at the end of iteration 0005
+
+Every module below CHECKS on its own (`bend proofs/graph/<f>.bend`):
+
+| module | what is proved |
+|---|---|
+| `proofs/lib/array2.bend` | `Array.swap`/`Array.set` at the nested element type `Array<Array<U32>>`, against the real Base algorithms |
+| `proofs/lib/u32half.bend` | `U32.shr` is exact halving; midpoint bounds; the `U32.sub` bridge; the narrowing measure |
+| `proofs/graph/lb.bend` | lower bound of a key in a sorted association list: inserting a NEW key there is the specification's `ins`; `find` succeeds exactly when the entry at the lower bound has that key |
+| `proofs/graph/search.bend` | the REAL binary search loop of src/graph.bend finds the lower bound (invariant, narrowing, termination by the halving measure), and `locate` reports it with "the entry there is v"; slot-level sortedness predicates |
+| `proofs/graph/shift.bend` | both shift loops (`shr_go`, `shl_go`) equal their mirror-tree loops and move exactly the intended index range (three index-wise lemmas each) |
+| `proofs/graph/state.bend` | the shadow state, `real`, the representation invariant `good`, the abstraction `model` into spec/graph.bend, and the three constructor laws (`new_real`, `new_model`, `new_good`) |
+| `proofs/graph/window.bend` | window reads (`nth_win`), the slot-counted lower bound `lbs` and its two split predicates from sortedness, `lbs = lbu` on the window list, and the keys of the abstraction |
+
+`proofs/graph/ops.bend` now adds the invariant projections and the FIRST
+complete operation refinement, `has_vertex_ok`: on the array-backed graph,
+`has_vertex` returns the state unchanged and the Bool that the
+specification's `find` gives on the abstraction. It composes `locate_ok`
+(the real binary search), the window lemmas (`lbs`/`lbu`, the sorted-window
+split, `found_bridge`) and `find_some`, so the architecture is validated end
+to end.
+
+NEXT (in order): then
+`add_vertex` (needs: shift lemmas + `ins_new` + the adjacency `Array.set`
+through `array2`), `remove_vertex`, the four edge operations, `neighbors`,
+`vertices`, `edges`, then `step_ok`/trace and the rewrite of
+`proofs/graph.bend` + the `graph_*` laws in END_TO_END.bend.
+
+The same treatment is then needed for `doubly_linked_list` (its proofs still
+describe the ordered-map arena).

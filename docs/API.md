@@ -96,22 +96,48 @@ to_list(-T: Data, q: Queue<T>) -> Queue<T> & List<&2, T>
 
 ## `doubly_linked_list`
 
-Doubly linked list with stable opaque handles, values of an erased type T. Representation: nodes {value, prev id, next id} in an ordered map keyed by element id (the Nat instance of src/balanced_search_tree.bend), plus head, tail, element count, the next fresh id and the list's tag. Ids are never reused, so a handle to a removed element is detected as stale; a handle whose tag differs from the list's is rejected as foreign. (Tags are chosen by the caller of new; lists that must reject each other's handles need distinct tags.) Every failure returns the state unchanged.  Cost (n elements ever inserted): every handle operation, push and length O(log n) (map lookups/updates, a constant number per operation); to_list O(n log n).
+Doubly linked list with stable opaque handles, values of an erased type T.
+
+Representation: PARALLEL INDEXED ARENAS. Three `Base.Array` blocks of
+2^depth slots share one index space -- `vals` (`Maybe<T>`: `None` for a slot
+that was never used or whose element was removed), `prevs` and `nexts`
+(`U32` arena indices, `2^32 - 1` meaning "no neighbour"). The element id IS
+its slot index; ids come from a monotone counter and are never reused, so a
+handle to a removed element is detected as stale (its `vals` slot is `None`)
+and a handle whose tag differs from the list's is rejected as foreign. (Tags
+are chosen by the caller of `new`; lists that must reject each other's
+handles need distinct tags.) The blocks double when the counter reaches the
+capacity, so every id keeps its slot. Keeping prev and next in their own
+blocks makes relinking a neighbour ONE indexed write instead of a
+read-modify-write of a node record.
+
+Every failure returns the state unchanged; every operation, including the
+read-only ones, takes the list by value and returns it (the state is
+linear).
+
+Cost (n = elements ever inserted): every handle operation, push and length
+is O(1) indexed reads and writes; `to_list` reads O(count) slots; a push
+that finds the blocks full doubles them, amortised O(1). Because ids are
+never reused the blocks grow with n, not with the live count -- the same
+trade the reference C implementation makes with its bump arena.
 
 ```
-new(-T: Data, tag: Nat) -> DList<T>
-length(-T: Data, s: DList<T>) -> Nat
-push_front(-T: Data, s: DList<T>, x: T) -> DList<T> & E.Handle
-push_back(-T: Data, s: DList<T>, x: T) -> DList<T> & E.Handle
-insert_before(-T: Data, s: DList<T>, h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, E.Handle>
-insert_after(-T: Data, s: DList<T>, h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, E.Handle>
-remove(-T: Data, s: DList<T>, h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, T>
-get(-T: Data, s: DList<T>, h: E.Handle) -> Result<&2, &2, E.Error, T>
-set(-T: Data, s: DList<T>, h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, Unit>
-next(-T: Data, s: DList<T>, h: E.Handle) -> Result<&2, &2, E.Error, Maybe<&2, E.Handle>>
-prev(-T: Data, s: DList<T>, h: E.Handle) -> Result<&2, &2, E.Error, Maybe<&2, E.Handle>>
-to_list(-T: Data, s: DList<T>) -> List<&2, T>
+new(~T: Data, tag: U32) -> DList<T>
+length(~T: Data, s: DList<T>) -> DList<T> & Nat
+push_front(~T: Data, s: DList<T>, x: T) -> DList<T> & E.Handle
+push_back(~T: Data, s: DList<T>, x: T) -> DList<T> & E.Handle
+insert_before(~T: Data, s: DList<T>, h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, E.Handle>
+insert_after(~T: Data, s: DList<T>, h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, E.Handle>
+remove(~T: Data, s: DList<T>, h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, T>
+get(~T: Data, s: DList<T>, h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, T>
+set(~T: Data, s: DList<T>, h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, Unit>
+next(~T: Data, s: DList<T>, h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>
+prev(~T: Data, s: DList<T>, h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>
+to_list(~T: Data, s: DList<T>) -> DList<T> & List<&2, T>
 ```
+
+Handles are `E.H{list: U32, id: U32}` and element ids are `U32` (they were
+`Nat` while the node store was an ordered map keyed by `Nat`).
 
 ## `binary_heap`
 
@@ -254,7 +280,39 @@ longest_prefix(-V: Data, s: PrefixTrie<V>, text: String) -> Result<&2, &2, E.Err
 
 ## `graph`
 
-Finite simple graph over U32 vertex ids, directed or undirected (fixed at construction). Representation: a red-black tree ordered map (src/ balanced_search_tree.bend, U32 instance) from each vertex to the ordered set (a red-black map to Unit) of its out-neighbours; an undirected edge is stored in both endpoint sets. Policies: isolated vertices are allowed; add_vertex of an existing vertex fails with VertexExists; edge operations fail with VertexNotFound when an endpoint is missing; self-loops fail with SelfLoop; adding an existing edge succeeds and changes nothing; removing a missing edge fails with EdgeNotFound; remove_vertex deletes all incident edges. Every failure returns the state unchanged.  Cost (V vertices, D = max neighbour-set size): has_vertex/add_vertex O(log V); add_edge/remove_edge/has_edge O(log V + log D); neighbors O(log V + D); vertices O(V); edges O(V + E); remove_vertex O(V log D + log V) because every neighbour set is visited (in-edges of directed graphs are not indexed separately).
+Finite simple graph over U32 vertex ids, directed or undirected (fixed at construction).
+
+Representation: INDEXED VERTEX SLOTS plus ADJACENCY BLOCKS. `ids: Array<U32>`
+holds the vertex ids ascending in a floating window `[lo, hi)` of a
+power-of-two block; `adj: Array<Array<U32>>` holds one adjacency block per
+slot, each a power-of-two U32 block with a three word header
+(`deg | size | lcap`) followed by its neighbour ids, ascending. The vertex id
+is EXTERNAL and arbitrary in U32: the id-to-slot map is the sorted `ids`
+block searched by binary search, so no id is reserved and no density is
+assumed, and neighbour entries are external ids too, so moving a slot never
+renumbers an edge.
+
+Policies (unchanged): isolated vertices are allowed; `add_vertex` of an
+existing vertex fails with `VertexExists`; edge operations fail with
+`VertexNotFound` when an endpoint is missing; self-loops fail with
+`SelfLoop`; adding an existing edge succeeds and changes nothing; removing a
+missing edge fails with `EdgeNotFound`; `remove_vertex` deletes all incident
+edges. Every failure returns the state unchanged.
+
+EVERY operation, including the read-only ones, takes the graph by value and
+returns it: the state is linear (it owns two `Base.Array`s), so a query
+cannot silently duplicate the graph.
+
+Cost (V vertices, D = degree of the vertex touched): `has_vertex` and the
+lookup part of every other operation O(log V) indexed loads; `has_edge`
+O(log V + log D); `add_edge`/`remove_edge` O(log V + log D) plus O(D) words
+moved inside the single adjacency block that changes; `neighbors` O(D);
+`vertices` O(V); `edges` O(V + E); `add_vertex`'s insertion and
+`remove_vertex`'s slot removal move the SHORTER side of the window, O(V)
+words worst case and O(1) at either end (the window floats, and the block
+doubles on the side that needs room); `remove_vertex` undirected
+O(D (log V + D)) because only the actual neighbours are visited, directed
+O(V + E) because in-edges are not indexed.
 
 ```
 new(directed: Bool) -> Graph
@@ -262,11 +320,11 @@ add_vertex(g: Graph, +v: U32) -> Graph & Result<&2, &2, E.Error, Unit>
 remove_vertex(g: Graph, +v: U32) -> Graph & Result<&2, &2, E.Error, Unit>
 add_edge(g: Graph, +u: U32, +v: U32) -> Graph & Result<&2, &2, E.Error, Unit>
 remove_edge(g: Graph, +u: U32, +v: U32) -> Graph & Result<&2, &2, E.Error, Unit>
-has_vertex(g: Graph, +v: U32) -> Bool
-has_edge(g: Graph, +u: U32, +v: U32) -> Result<&2, &2, E.Error, Bool>
-neighbors(g: Graph, +v: U32) -> Result<&2, &2, E.Error, List<&2, U32>>
-vertices(g: Graph) -> List<&2, U32>
-edges(g: Graph) -> List<&2, E.Edge>
+has_vertex(g: Graph, +v: U32) -> Graph & Bool
+has_edge(g: Graph, +u: U32, +v: U32) -> Graph & Result<&2, &2, E.Error, Bool>
+neighbors(g: Graph, +v: U32) -> Graph & Result<&2, &2, E.Error, List<&2, U32>>
+vertices(g: Graph) -> Graph & List<&2, U32>
+edges(g: Graph) -> Graph & List<&2, E.Edge>
 ```
 
 ## Retained LRU

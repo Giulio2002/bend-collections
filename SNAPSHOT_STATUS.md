@@ -1,3 +1,13 @@
+## Latest: first indexed graph public operation refinement
+
+`proofs/graph/ops.bend` now proves `has_vertex_ok` by connecting the actual
+binary search to the specification under the representation invariant.
+Independent check passed with 15 unsafe annotations reported in its imports;
+that trust boundary still needs review. Shift, state and window proof modules
+are included. Remaining graph operation/trace proofs and DLL proof migration
+are unfinished. Historical benchmark/validation reports do not certify this
+new snapshot; source differences are recorded in SNAPSHOT.json.
+
 # Current milestone: indexed graph prototype and search proof
 
 This development snapshot is NOT a finished or fully verified release.

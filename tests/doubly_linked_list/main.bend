@@ -19,7 +19,7 @@ def err(e: E.Error) -> String:
 def htext(h: E.Handle) -> String:
   match h:
     case E.H{l, i}:
-      "H " ++ Nat.show(l) ++ ":" ++ Nat.show(i)
+      "H " ++ U32.show(l) ++ ":" ++ U32.show(i)
 
 def show(o: E.Obs<Nat>) -> String:
   match o:
@@ -49,7 +49,7 @@ def show(o: E.Obs<Nat>) -> String:
       "LIST " ++ X.join_nat(xs)
 
 def hd(+p: List<&2, String>) -> E.Handle:
-  E.H{X.nat_field(p, 1n), X.nat_field(p, 2n)}
+  E.H{X.u32_field(p, 1n), X.u32_field(p, 2n)}
 
 def try_pv(hit: Bool, +n: String, +p: List<&2, String>) -> E.Op<Nat>:
   match hit:
@@ -149,7 +149,7 @@ def start(args: List<&2, String>) -> List<&2, String>:
     case Nil{}:
       Nil{}
     case Con{tag, ops}:
-      out(D.run(Nat, parse_all(ops), D.new(Nat, X.nat_of(tag))))
+      out(D.run(~Nat, parse_all(ops), D.new(~Nat, X.u32_of(tag))))
 
 def main() -> IO(Unit):
   do IO<Unit>:
