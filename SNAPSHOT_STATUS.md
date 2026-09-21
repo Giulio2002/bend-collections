@@ -1,3 +1,11 @@
+## Indexed LRU trace milestone — partial acceptance only
+
+Independent stock Bend 2.0.16 checks of this frozen snapshot passed: END_TO_END in 22.85 seconds / 2.84 GB sampled peak footprint, PROOF in 24.00 seconds / 2.84 GB. The new indexed native-Map LRU laws are instantiated at U32 and String and compose all twelve operation variants into finite traces.
+
+The trace theorem requires initial and resize capacities within 2^q for q <= 31. The constructor accepts larger capacities, so this remains a public-API proof coverage gap; no capacity restriction has been silently imposed on the agreed API. Generic template declarations alone do not establish additional concrete value-type coverage. CLI annotations classify as 3,623 template instances, zero explicit @unsafe; this is not a completed soundness/semantic audit.
+
+No new benchmark pass is claimed. The latest historical development triage remains 243 within target, 162 too slow, 3 unmeasurable of 408 rows, with LRU absent and still mandatory. Concurrent work and end-of-run-only hashes limit that benchmark evidence. Complete independent validation, current-source benchmarks and audit remain pending.
+
 ## Latest: native LRU U32 proof components independently checked
 
 The four instantiation entries inst,inst_rs,inst_add,inst_addop check together

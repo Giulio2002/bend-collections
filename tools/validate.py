@@ -256,6 +256,17 @@ def check_lru(log):
     if not port_ok:
         fail('lru', 'fast port differential failed: %r' % (p.stdout + p.stderr)[-500:])
         ok = False
+    # The benchmarked port against its own independent spec (spec/lru_fast.bend,
+    # the model the proofs/lru_fast refinement targets): six seeded traces of
+    # 300 operations each (lifetimes, expiry, purge, resize, keys, metrics);
+    # every observation must agree.
+    p = run([BEND, 'tests/lru_fast/spec_diff.bend'], timeout=3600)
+    sd = [ln for ln in p.stdout.splitlines() if ln and not ln.startswith('All terms check')]
+    log.append('[lru] tests/lru_fast/spec_diff.bend -> %s' % sd)
+    spec_ok = p.returncode == 0 and sd[-1:] == ['[0n, 0n, 0n, 0n, 0n, 0n]']
+    if not spec_ok:
+        fail('lru', 'fast port vs spec differential failed: %r' % (p.stdout + p.stderr)[-500:])
+        ok = False
     # The optimized C reference against the Bend driver, plus an
     # ASan/UBSan build of the reference (tools/lru_diff.py --quick).
     p = run(['python3', 'tools/lru_diff.py', '--quick'], timeout=3600)
@@ -267,6 +278,7 @@ def check_lru(log):
         ok = False
     return ok, {'checks': checks, 'smoke': smoke,
                 'fast_port_differential': lines,
+                'fast_port_spec_differential': sd,
                 'native_differential': tail[0]}
 
 

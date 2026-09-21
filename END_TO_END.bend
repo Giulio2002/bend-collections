@@ -95,6 +95,14 @@ import ./proofs/doubly_linked_list.bend as DLP
 import ./proofs/dlist/state.bend as DLSH
 import ./proofs/dlist/core.bend as DLK
 import ./proofs/dlist/trace.bend as DLTR
+import ./src/lru/fast.bend as LRUF
+import ./spec/lru_fast.bend as LRUFS
+import ./types/lru_model.bend as LRUFT
+import ./types/lru_fast.bend as LRUFE
+import ./proofs/lru_fast.bend as LRUFP
+import ./proofs/lru_fast/state.bend as LRUFSH
+import ./proofs/lru_fast/steps.bend as LRUFSP
+import ./proofs/lru_fast/trace.bend as LRUFTR
 
 # Public correctness and trace laws, stated over the real src/ APIs and the
 # independent spec/ models. Each law is discharged by its structure's proof
@@ -1323,3 +1331,194 @@ law doubly_linked_list_string_trace_from:
   DLTR.TraceOK(~String, ops, sh)
 def doubly_linked_list_string_trace_from(ops, sh, h, q, hq, room):
   DLP.trace_from(~String, ops, sh, h, q, hq, room)
+
+# ============================ indexed LRU =============================
+# src/lru/fast.bend (the runtime the benchmarks measure): a crit-bit key table
+# over slot arenas with an intrusive recency chain, a free list and limb
+# counters. As for the other array-backed structures the laws are about the
+# cache BUILT from a Data mirror (LRUFSH.real of a shadow), against the
+# independent list model spec/lru_fast.bend (entries in recency order with
+# deadlines; expiry by the retained numeric semantics). Values are an erased
+# type parameter; the laws are stated at V = U32 and V = String. `hc` / `hops`
+# are the capacity condition: every capacity the cache takes (initial and
+# Resize) is within 2^q, q <= 31 (slots are Base array indices).
+
+law lru_fast_u32_new_is_the_constructor:
+  for +cap: U32
+  {LRUF.init(~U32, cap) == LRUFSH.real(~U32, LRUFSH.initial(~U32, cap)) : LRUF.Fast<U32>}
+def lru_fast_u32_new_is_the_constructor(cap):
+  LRUFP.new_real(~U32, cap)
+
+law lru_fast_u32_new_accepts:
+  for +cap: U32
+  for +h0: {U32.is_eq(cap, 0) == False{} : Bool}
+  for +h1: {U32.is_eq(cap, 4294967295) == False{} : Bool}
+  {LRUF.new(~U32, cap) == LRUF.Made{LRUF.init(~U32, cap)} : LRUF.Made<U32>}
+def lru_fast_u32_new_accepts(cap, h0, h1):
+  LRUFP.new_accepts(~U32, cap, h0, h1)
+
+law lru_fast_u32_spec_new_accepts:
+  for +cap: U32
+  for +h0: {U32.is_eq(cap, 0) == False{} : Bool}
+  for +h1: {U32.is_eq(cap, 4294967295) == False{} : Bool}
+  {LRUFS.new(U32, cap) == Done{LRUFS.LM{cap, LRUFS.zero_time(), Nil{}, LRUFT.zero_metrics()}} : Result<&2, &2, String, LRUFS.Model<U32>>}
+def lru_fast_u32_spec_new_accepts(cap, h0, h1):
+  LRUFP.spec_new_accepts(U32, cap, h0, h1)
+
+law lru_fast_u32_new_rejects_zero:
+  {LRUF.new(~U32, 0) == LRUF.Rejected{"capacity must be positive"} : LRUF.Made<U32>}
+def lru_fast_u32_new_rejects_zero():
+  LRUFP.new_zero(~U32)
+
+law lru_fast_u32_spec_new_rejects_zero:
+  {LRUFS.new(U32, 0) == Fail{"capacity must be positive"} : Result<&2, &2, String, LRUFS.Model<U32>>}
+def lru_fast_u32_spec_new_rejects_zero():
+  LRUFP.spec_new_zero(U32)
+
+law lru_fast_u32_new_rejects_reserved:
+  {LRUF.new(~U32, 4294967295) == LRUF.Rejected{"size must not be 0XFFFFFFFF"} : LRUF.Made<U32>}
+def lru_fast_u32_new_rejects_reserved():
+  LRUFP.new_reserved(~U32)
+
+law lru_fast_u32_spec_new_rejects_reserved:
+  {LRUFS.new(U32, 4294967295) == Fail{"size must not be 0XFFFFFFFF"} : Result<&2, &2, String, LRUFS.Model<U32>>}
+def lru_fast_u32_spec_new_rejects_reserved():
+  LRUFP.spec_new_reserved(U32)
+
+law lru_fast_u32_new:
+  for +cap: U32
+  {LRUFSH.model(~U32, LRUFSH.initial(~U32, cap)) == LRUFS.LM{cap, LRUFS.zero_time(), Nil{}, LRUFT.zero_metrics()} : LRUFS.Model<U32>}
+def lru_fast_u32_new(cap):
+  LRUFP.new_abs(~U32, cap)
+
+law lru_fast_u32_new_invariant:
+  for +cap: U32
+  for +hc: {U32.is_eq(cap, 0) == False{} : Bool}
+  {LRUFSH.good(~U32, LRUFSH.initial(~U32, cap)) == True{} : Bool}
+def lru_fast_u32_new_invariant(cap, hc):
+  LRUFP.new_inv(~U32, cap, hc)
+
+law lru_fast_u32_step:
+  for +sh: LRUFSH.Shadow<U32>
+  for +op: LRUFE.Op<U32>
+  for +h: {LRUFSH.good(~U32, sh) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +hc: {LRUFTR.cb(U32, q, sh) == True{} : Bool}
+  LRUFSP.StepOK(~U32, sh, op)
+def lru_fast_u32_step(sh, op, h, q, hq, hc):
+  LRUFP.step_ok(~U32, sh, op, h, q, hq, hc)
+
+law lru_fast_u32_trace:
+  for +cap: U32
+  for +ops: List<&2, LRUFE.Op<U32>>
+  for +hc0: {U32.is_eq(cap, 0) == False{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +hc: {Nat.is_le(U32.to_nat(cap), SCOM.pow2(q)) == True{} : Bool}
+  for +hops: {LRUFTR.all_ok(U32, q, ops) == True{} : Bool}
+  LRUFTR.TraceNew(~U32, cap, ops)
+def lru_fast_u32_trace(cap, ops, hc0, q, hq, hc, hops):
+  LRUFP.trace_new(~U32, cap, ops, hc0, q, hq, hc, hops)
+
+law lru_fast_u32_trace_from:
+  for +ops: List<&2, LRUFE.Op<U32>>
+  for +sh: LRUFSH.Shadow<U32>
+  for +h: {LRUFSH.good(~U32, sh) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +hc: {LRUFTR.cb(U32, q, sh) == True{} : Bool}
+  for +hops: {LRUFTR.all_ok(U32, q, ops) == True{} : Bool}
+  LRUFTR.TraceOK(~U32, ops, sh)
+def lru_fast_u32_trace_from(ops, sh, h, q, hq, hc, hops):
+  LRUFP.trace_from(~U32, ops, sh, h, q, hq, hc, hops)
+
+law lru_fast_string_new_is_the_constructor:
+  for +cap: U32
+  {LRUF.init(~String, cap) == LRUFSH.real(~String, LRUFSH.initial(~String, cap)) : LRUF.Fast<String>}
+def lru_fast_string_new_is_the_constructor(cap):
+  LRUFP.new_real(~String, cap)
+
+law lru_fast_string_new_accepts:
+  for +cap: U32
+  for +h0: {U32.is_eq(cap, 0) == False{} : Bool}
+  for +h1: {U32.is_eq(cap, 4294967295) == False{} : Bool}
+  {LRUF.new(~String, cap) == LRUF.Made{LRUF.init(~String, cap)} : LRUF.Made<String>}
+def lru_fast_string_new_accepts(cap, h0, h1):
+  LRUFP.new_accepts(~String, cap, h0, h1)
+
+law lru_fast_string_spec_new_accepts:
+  for +cap: U32
+  for +h0: {U32.is_eq(cap, 0) == False{} : Bool}
+  for +h1: {U32.is_eq(cap, 4294967295) == False{} : Bool}
+  {LRUFS.new(String, cap) == Done{LRUFS.LM{cap, LRUFS.zero_time(), Nil{}, LRUFT.zero_metrics()}} : Result<&2, &2, String, LRUFS.Model<String>>}
+def lru_fast_string_spec_new_accepts(cap, h0, h1):
+  LRUFP.spec_new_accepts(String, cap, h0, h1)
+
+law lru_fast_string_new_rejects_zero:
+  {LRUF.new(~String, 0) == LRUF.Rejected{"capacity must be positive"} : LRUF.Made<String>}
+def lru_fast_string_new_rejects_zero():
+  LRUFP.new_zero(~String)
+
+law lru_fast_string_spec_new_rejects_zero:
+  {LRUFS.new(String, 0) == Fail{"capacity must be positive"} : Result<&2, &2, String, LRUFS.Model<String>>}
+def lru_fast_string_spec_new_rejects_zero():
+  LRUFP.spec_new_zero(String)
+
+law lru_fast_string_new_rejects_reserved:
+  {LRUF.new(~String, 4294967295) == LRUF.Rejected{"size must not be 0XFFFFFFFF"} : LRUF.Made<String>}
+def lru_fast_string_new_rejects_reserved():
+  LRUFP.new_reserved(~String)
+
+law lru_fast_string_spec_new_rejects_reserved:
+  {LRUFS.new(String, 4294967295) == Fail{"size must not be 0XFFFFFFFF"} : Result<&2, &2, String, LRUFS.Model<String>>}
+def lru_fast_string_spec_new_rejects_reserved():
+  LRUFP.spec_new_reserved(String)
+
+law lru_fast_string_new:
+  for +cap: U32
+  {LRUFSH.model(~String, LRUFSH.initial(~String, cap)) == LRUFS.LM{cap, LRUFS.zero_time(), Nil{}, LRUFT.zero_metrics()} : LRUFS.Model<String>}
+def lru_fast_string_new(cap):
+  LRUFP.new_abs(~String, cap)
+
+law lru_fast_string_new_invariant:
+  for +cap: U32
+  for +hc: {U32.is_eq(cap, 0) == False{} : Bool}
+  {LRUFSH.good(~String, LRUFSH.initial(~String, cap)) == True{} : Bool}
+def lru_fast_string_new_invariant(cap, hc):
+  LRUFP.new_inv(~String, cap, hc)
+
+law lru_fast_string_step:
+  for +sh: LRUFSH.Shadow<String>
+  for +op: LRUFE.Op<String>
+  for +h: {LRUFSH.good(~String, sh) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +hc: {LRUFTR.cb(String, q, sh) == True{} : Bool}
+  LRUFSP.StepOK(~String, sh, op)
+def lru_fast_string_step(sh, op, h, q, hq, hc):
+  LRUFP.step_ok(~String, sh, op, h, q, hq, hc)
+
+law lru_fast_string_trace:
+  for +cap: U32
+  for +ops: List<&2, LRUFE.Op<String>>
+  for +hc0: {U32.is_eq(cap, 0) == False{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +hc: {Nat.is_le(U32.to_nat(cap), SCOM.pow2(q)) == True{} : Bool}
+  for +hops: {LRUFTR.all_ok(String, q, ops) == True{} : Bool}
+  LRUFTR.TraceNew(~String, cap, ops)
+def lru_fast_string_trace(cap, ops, hc0, q, hq, hc, hops):
+  LRUFP.trace_new(~String, cap, ops, hc0, q, hq, hc, hops)
+
+law lru_fast_string_trace_from:
+  for +ops: List<&2, LRUFE.Op<String>>
+  for +sh: LRUFSH.Shadow<String>
+  for +h: {LRUFSH.good(~String, sh) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
+  for +hc: {LRUFTR.cb(String, q, sh) == True{} : Bool}
+  for +hops: {LRUFTR.all_ok(String, q, ops) == True{} : Bool}
+  LRUFTR.TraceOK(~String, ops, sh)
+def lru_fast_string_trace_from(ops, sh, h, q, hq, hc, hops):
+  LRUFP.trace_from(~String, ops, sh, h, q, hq, hc, hops)

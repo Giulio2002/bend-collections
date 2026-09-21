@@ -1867,3 +1867,8 @@ Read docs/OPERATOR_LRU_SCOPE_CORRECTION.md. Missing canonical LRU rows do not ex
   ANode literals); Data pattern variables used twice need `+`.
   NEXT: purge, resize (shrink loop), keys (expire loop + prev-walk), metrics/len/capacity/
   set_lifetime, step, trace, END_TO_END.
+* 10:56-10:59 the shared pinned bend binary (~/.bend/bin/bend) was briefly 0 bytes, truncated by something outside this workspace (probably the 2.0.21 self-update check in ~/.bend/check.json from another project). It was restored at 10:59 with the pinned sha256 da9bc514...; nothing was changed from here. Checks run in that window printed nothing and were re-run.
+
+
+## Operator final-proof audit note
+Read docs/OPERATOR_CAPACITY_PROOF_AUDIT.md before claiming full API/trace coverage. Checked q<=31/cap<=2^q premises must connect to the actual public contract,not become an implicit exemption.

@@ -1,4 +1,4 @@
-> **Unfinished development snapshot:** native LRU constructor/read/remove/add proof components independently check at U32; remaining operations, traces, semantic audit and speed targets remain open. See [snapshot status](SNAPSHOT_STATUS.md).
+> Development snapshot: performance acceptance and full proof audit are incomplete. The new LRU trace checks cover U32/String with capacities at most 2^31; the public constructor accepts a wider range. See [SNAPSHOT_STATUS.md](SNAPSHOT_STATUS.md).
 
 # bend-dsa
 
