@@ -324,8 +324,18 @@ has_vertex(g: Graph, +v: U32) -> Graph & Bool
 has_edge(g: Graph, +u: U32, +v: U32) -> Graph & Result<&2, &2, E.Error, Bool>
 neighbors(g: Graph, +v: U32) -> Graph & Result<&2, &2, E.Error, List<&2, U32>>
 vertices(g: Graph) -> Graph & List<&2, U32>
+vertices_block(g: Graph) -> VBlk            # VB{g, blk: Array<U32>, n: U32}
 edges(g: Graph) -> Graph & List<&2, E.Edge>
 ```
+
+`vertices_block` is the INDEXED-VIEW form of `vertices`: the same ascending
+sequence of vertex ids, written into slots `[0, n)` of a fresh `Array<U32>`
+instead of a cons list, so enumerating costs no allocation per vertex. The two
+are proved to denote one sequence (`proofs/graph/vblk.bend
+vertices_block_seq`, exposed as END_TO_END `graph_vertices_block`); both are
+public and both are covered by the runtime tests (`vs` and `vb` tokens of
+`tests/graph/main.bend`). The caller owns the returned block and releases it
+by dropping it.
 
 ## Retained LRU
 

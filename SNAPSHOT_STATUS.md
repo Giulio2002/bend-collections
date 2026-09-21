@@ -1,3 +1,3 @@
-# Recovery snapshot
+# Work in progress, 2026-09-22
 
-Recovered work-in-progress snapshot, not final acceptance. All proof/performance claims require matching source evidence. Prior snapshot reports are historical. Current iteration 14 preserves eager constructors. Historical iteration 13 benchmark: 408 rows, 310 passing, 95 slow, 3 nonnumeric. Current full gates pending.
+Latest interrupted iteration 0017 preserved before operator C reference work. DLL free-list implementation is incomplete and not proof-accepted; deque still uses ring storage. No new benchmark acceptance claimed. Prior reports are historical.

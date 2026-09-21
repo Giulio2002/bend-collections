@@ -378,3 +378,138 @@ deterministic and needs no wall clock:
 Both rows would exercise `src/lru/fast.bend` paths the nine contract operations
 do not: `set_lifetime` (the `ttl` flag and the retained `deadline_choose` test)
 and the `Timed{v, dl}` slot form with its deadline comparison on every read.
+
+## Iteration 0015: the LRU coverage rows are now IMPLEMENTED, not just proposed
+
+**Status: still proposal only for the canonical table. No canonical file is
+changed.** What changed in iteration 0015 is that the additive rows now exist as
+running code in the two editable LRU drivers (`benchmarks/bend/lru.bend` and
+`benchmarks/native/lru.c`, neither of which is one of the 18 pinned files), so
+the operator can review measured rows instead of a description.
+
+### New selectors (both drivers, append-only: selectors 0-12 are untouched)
+
+| sel | row | what one measured step does |
+|---|---|---|
+| 13 | `lru.capacity` | `capacity(c)`; folds it |
+| 14 | `lru.set_lifetime` | `set_lifetime(c, ns)` with `ns = lcg mod (size+1)`; folds `ns` and the length |
+| 15 | `lru.metrics` | `metrics(c)`; folds all five 64-bit counters (ten U32 limbs) |
+| 16 | `lru.expiry` | adds key `i` at stamp 0 with the round's 1 ms lifetime (deadline 1) and gets it back at stamp 2: the read finds it EXPIRED, drops it (a removal) and answers a miss. COMPOSITE (add + get), labelled as one. |
+| 17 | `lru.remove_seq` | ISOLATED removal of the still-present key `(o+j) mod cap`; `count = size/2`, so region A is exactly one full sweep and region B its first half |
+| 18 | `lru.purge_isolated` | ISOLATED purge: every region builds the SAME pool of `2 x (the ROW's count)` independent full caches, so the preparation cancels in A-B; A purges 2k of them and B k, and every measured purge empties a freshly prepared FULL cache |
+| 19 | `lru.resize_isolated` | ISOLATED shrink over the same pool: cache j is resized to `1 + lcg mod cap`; every measured resize really evicts |
+
+This answers the three open points of docs/OPERATOR_LRU_BENCHMARK_REVIEW.md:
+
+1. *Isolated destructive rows on independent nonempty states.* Selectors 17, 18
+   and 19 do exactly that. The C driver cannot see the row's `count` (the
+   frozen `BENCH_REGIONS` macro only hands `round_fn` the REGION's count), so
+   `benchmarks/native/lru.c` now expands `BENCH_MAIN` by hand with one extra
+   line, `g_pool = a.count;`, before the regions run. That is the only reason
+   the macro is not used verbatim; nothing else about the timing changes.
+   The composite rows 10/11/12 are KEPT and stay labelled `remove+add`,
+   `purge+refill`, `resize+back`. They are diagnostics, not isolated acceptance.
+2. *capacity / set_lifetime / metrics / expiry.* Selectors 13-16, with
+   small/medium/large and `edge-empty` rows. All thirteen public operations of
+   `src/lru/fast.bend` (`new, len, capacity, set_lifetime, metrics, add, get,
+   peek, contains, remove, purge, resize, keys`) now have their own row.
+3. *Reviewable parity.* `python3 tools/lru_diff.py` now sweeps selectors 0-19
+   (the pooled ones over a bounded size/count grid, because each of their
+   regions builds `2 x count` whole caches). Bend, the optimized C build and an
+   ASan+UBSan C build must agree on all three region checksums, in both region
+   orders.
+
+### Honest limitation of the pooled rows
+
+Preparing a full cache costs more than purging or shrinking it, and the
+preparation is paid in EVERY region. It therefore cancels in `A - B` but
+inflates both terms, so `A - B` is a small difference of two large numbers and
+these rows need long regions and modest sizes to stay above the harness's noise
+floor. That is the unavoidable price of isolation, and it is why the composite
+rows are kept next to them rather than replaced.
+
+## Iteration 0015: measured floors of the stock Bend runtime
+
+These are reproducible micro-measurements, added so that the per-row analysis in
+docs/C_EQUIVALENCE.md rests on evidence rather than on assertion. They are
+development measurements (`IO.now()` inside the program, milliseconds, one
+sequential thread, shared machine), never acceptance evidence.
+
+| what | program | Bend | optimized C doing the same |
+|---|---|---|---|
+| build + fold one 10-character `Base.String` key | `benchmarks/experiments/key/keycost.bend` | 36-40 ns | ~1-2 ns (ten stores into `uint32_t key[10]`) |
+| one level of a data-dependent descent over a native indexed `Array<U32>` block | `benchmarks/experiments/bstarena/descent.bend` | 1.9 ns | (a dependent L1 chase, ~1 ns) |
+| one level of the SAME descent over a SHARED algebraic tree | `benchmarks/experiments/bstarena/descent_adt.bend` | 13.2 ns | - |
+| filling a fresh 262144-slot `Array<Maybe<U32>>` (what `dynamic_array.clear` does) | `dynamic_array.clear large` | 236 us | 15.3 us (`memset` of the same 2 MB) |
+
+What follows from them:
+
+* **A shared algebraic node costs ~7x an indexed block slot** to walk, because
+  opening a shared constructor has to retain every field and release the ones
+  the walk does not follow (`span_fade` / `term_drop` in the emitted C). This is
+  why the array-backed structures meet the target and the two pointer-shaped
+  ones (`balanced_search_tree`, `prefix_trie`) do not. It is ALSO why moving
+  those two onto an indexed arena is worth doing on its own merits and is
+  recorded as the next representation step - but the same numbers say it would
+  take `balanced_search_tree.min/small` from ~39x to roughly 8-11x of a C walk
+  that costs 1.0 ns, not to 2.5x.
+* **A 10-character `String` key costs more than the whole C operation** on every
+  `prefix_trie` row, which is what the `prepared_keys` proposal above is about.
+* **Bend's block fill is ~15x `memset`**: the emitted `blk_new` writes one word
+  at a time through the `u32a` device pointer type and is not vectorised. Every
+  row whose work is a bulk fill (`dynamic_array.clear`) inherits that factor.
+
+No canonical row, reference, threshold or workload is changed by any of this.
+
+## Harness defect found in iteration 0015: the pinned queue/deque reference can exhaust its arena and ABORT the whole run
+
+**Evidence.** `python benchmarks/run.py --report build/performance/report.json`
+aborted after 90 of 408 rows with
+
+```
+reference run failed: arena exhausted (2147483664 of 2147483648)
+```
+
+on `queue.dequeue large` (size 262144). `benchmarks/run.py:181` raises
+`SystemExit` when the reference process fails, so ONE reference that runs out
+of arena discards the whole 408-row run; it is not recorded as a failed
+measurement for that row.
+
+**Why it happens, and why it is new.** `queue.dequeue` is measured as the
+restoring pair enqueue+dequeue. `benchmarks/native/queue.c` (pinned) is the
+DRIFTING-WINDOW queue: `lo` advances, the block doubles at the end, and the
+arena is a bump allocator, so its memory grows with the LIFETIME number of
+pushes, not with the element count. `src/queue.bend` has been a true RING
+since iteration 0011 (operator review: docs/OPERATOR_RING_REFERENCE_REVIEW.md),
+so its memory is bounded by the peak size and its `dequeue` measures 0.31x of
+the reference. The calibration lengthens the batch until the BEND difference
+exceeds 100 ms; the faster Bend is, the longer the batch, and the more the
+reference allocates:
+
+| run | count x reps | bend ns/op | outcome |
+|---|---|---|---|
+| iteration 0013 | 48,000,000 x 1 | 2.33 | 48 M pairs, arena survived |
+| iteration 0015 | ~96,000,000 x 1 | 2.04-2.20 | arena exhausted at 2 GB, RUN ABORTED |
+
+100 ms / 2.2 ns = 45.5 M operations, so the calibration sits exactly on the
+boundary between 48 M (survives) and 96 M (dies): whether a 408-row run
+completes is currently decided by measurement noise on one row. The same risk
+applies to `deque.pop_front` / `deque.pop_back`.
+
+**What this proposal asks for (operator decision).** Nothing has been changed:
+`benchmarks/run.py`, `benchmarks/workloads.py` and `benchmarks/native/queue.c`
+and `deque.c` are untouched. One of
+
+1. record a reference process failure as `measurement="failed"` for that row
+   (the treatment `Unmeasurable` already gets) instead of aborting the run --
+   this is the smallest change and loses no evidence; or
+2. raise the pinned `queue.c` / `deque.c` arena above 2 GB (they are
+   `BENCH_MAIN(round_qu, 2048 MB)`); or
+3. adopt the supplemental ring twins `benchmarks/experiments/{queue,deque}_ring.c`
+   (checksum-identical to both the Bend driver and the pinned reference for
+   every selector, see the iteration 0011 notes above) as the reference for
+   these rows, which also removes the ring-versus-drifting-window algorithm
+   divergence.
+
+Until then a full run has to be retried until the calibration happens to land
+on the low side, which is what iteration 0015 did.

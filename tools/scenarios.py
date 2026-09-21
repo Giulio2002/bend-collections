@@ -359,6 +359,21 @@ def _adversarial():
 
 
 STRUCTURAL = {
+    # graph: the BLOCK enumeration `vb` (src/graph.bend `vertices_block`)
+    # against the LIST enumeration `vs`, on the states where they are easiest
+    # to get wrong -- empty, one vertex, after a removal from the middle and
+    # from the ends, and with ids far apart so that the id window is not the
+    # identity.
+    'graph': [
+        ['dir', 'vb', 'vs'],
+        ['undir', 'av:7', 'vb', 'vs', 'rv:7', 'vb', 'vs'],
+        ['dir', 'av:3', 'av:1', 'av:2', 'vs', 'vb', 'rv:2', 'vs', 'vb',
+         'rv:1', 'vs', 'vb', 'rv:3', 'vs', 'vb'],
+        ['undir', 'av:1000000', 'av:5', 'av:4294967295', 'av:0', 'vb', 'vs',
+         'ae:5:0', 'vb', 'rv:5', 'vb', 'vs'],
+        ['dir'] + ['av:%d' % (i * 7 % 97) for i in range(40)] + ['vs', 'vb']
+        + ['rv:%d' % (i * 7 % 97) for i in range(0, 40, 3)] + ['vs', 'vb'],
+    ],
     'balanced_search_tree': [
         # empty tree: every query and the failing removal keep it empty
         ['rb32', 'len', 'list', 'min', 'max', 'get:1', 'rm:1', 'lb:0', 'range:0:9'],

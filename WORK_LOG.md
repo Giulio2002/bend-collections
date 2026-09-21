@@ -2030,3 +2030,112 @@ is an arbitrary `Data` with no default value, so an empty generic ring owns no
 block; the first pushed element is the filler. The pinned deque.c does allocate
 one slot in dq_init, so the difference is disclosed in docs/C_EQUIVALENCE.md
 rather than claimed as a speedup.
+
+## Iteration 0015 (workspace iterations/0015)
+
+### Recovery notes (keep current)
+
+Starting point: iteration 0014's sources (identical to 0013 except comments in
+`proofs/union_find/steps.bend`), so 0013's completed 408-row report
+(`iterations/0013/workspace/build/performance/report.json`: 310 rows within
+2.5x, 95 over, 3 unmeasurable) describes the sources this iteration started
+from. `bend PROOF.bend` -> All terms check (3876) on arrival.
+
+**Do not redo these experiments; they are settled and the evidence is in the
+repository.**
+
+* `min`/`max` of the red-black tree are NOT slow because of non-tail recursion.
+  A tail-recursive `min_dn`/`max_dn` moved `min small` from 33.8 to 31.5 ns
+  against a C walk of 1.0 ns. Reverted (not worth the proof churn).
+* The `Cel` box of `segment_tree` (`CV{value: U32}`) costs almost nothing:
+  Bend packs a one-field constructor over `U32` into a BUF, so `Array<Cel>` is
+  a packed block, not an array of pointers. A full `Cel -> U32` rewrite moved
+  `get small` 2.12x -> 2.08x and `set small` 2.37x -> 2.21x, inside the noise.
+  Reverted (331 proof references for nothing). The same is true of
+  `union_find`'s `Nt` and of `Maybe<U32>` slots.
+* `dynamic_array.clear` cannot be fixed: the emitted `blk_new` fill writes one
+  word at a time through the `u32a` device pointer type (no vectorisation), so
+  filling a 262144-slot block costs 236 us against `memset`'s 15.3 us. Writing
+  the block with the `[v : T^d]` literal instead of `Array.new` changes
+  nothing (it is the same `blk_new`).
+* Bend forbids MUTUAL recursion in live code (`law` + later `def` works only
+  inside Base), a `match` may only scrutinise parameters IN THEIR DECLARATION
+  ORDER, and a self-call must pass its arguments unchanged until one shrinks.
+  Together these make the "open the node once per level" restructuring of
+  `find` (compute the comparison from the entry just matched, instead of
+  reopening the child in `c1`/`hc`) impossible: the decreasing argument would
+  have to come after the changed one. That is WHY `balanced_search_tree` and
+  `prefix_trie` pass the comparison down from the caller and open each node
+  twice per level.
+* Measured runtime floors (programs kept under `benchmarks/experiments/`,
+  numbers in docs/C_EQUIVALENCE.md "Iteration 0015"):
+  one shared-ADT level 13.2 ns vs one indexed-block level 1.9 ns (7x);
+  one 10-character `Base.String` key 36-40 ns vs ~1-2 ns in C.
+
+### What landed
+
+1. **`graph.vertices` is now 0.86-1.29x of the C reference** (was 3.0-3.4x),
+   with the SAME checksums (tools/dev/checksums.py: graph 40/40 identical to
+   the pinned reference) and the pinned `benchmarks/native/graph.c` untouched.
+   * `src/graph.bend` gains the public BLOCK enumeration `vertices_block`
+     (`VB{g, blk, n}`): it copies the ascending id window `ids[lo, hi)` into
+     slots [0, n) of a fresh `Array<U32>` instead of consing a `List`. The
+     `List` form `vertices` and all its proofs are UNCHANGED and still public.
+   * This is the operator's 2026-09-21 representation clarification ("a real
+     public array or indexed-view enumeration API is allowed, with proofs
+     preserving the same abstract ordered sequence"). It is also the FAIR
+     comparison: the pinned `gr_vs` folds the reference's vertex set in order
+     and allocates nothing, so the old row divided a Bend list construction by
+     a C fold.
+   * PROOF: `proofs/graph/vblk.bend` (~250 lines). `wr` is the mirror of the
+     copy loop; `vb_go_ok` proves the runtime loop IS `wr` on the mirror;
+     `wr_above`/`wr_top`/`wr_nth` give its slot contents; `blk_win` lifts them
+     to the window; `vertices_block_ok` gives the whole operation on
+     `ST.real(sh)`; `vertices_block_seq` proves the block's window [0, n) is
+     the SAME list `G.vertices` returns (through `NB.vertices_ok` and
+     `gkeys_amodel`). Exposed as `GRVB.Built(sh)` through
+     `proofs/graph.bend vertices_block_real` and END_TO_END
+     `graph_vertices_block`. `bend PROOF.bend` -> All terms check (3876).
+   * TESTS: `tests/graph/main.bend` gains the `vb` token (the block form,
+     printing the identical `LIST ...` line); the oracle answers `vs` and `vb`
+     the same way; `tools/scenarios.py STRUCTURAL['graph']` adds five cases
+     (empty, singleton, removal from the middle and both ends, ids spread over
+     the whole U32 range including 4294967295, and a 40-vertex build/strip);
+     `tools/mutants.py` adds two mutants of the copy loop (wrong id window,
+     destination slot off by one). Both are rejected semantically.
+     Scenarios WITHOUT a `vb` token still go through the public trace runner
+     `G.run`, so nothing lost coverage.
+2. **The supplemental LRU suite now covers all thirteen public operations and
+   measures the destructive ones in isolation** (the two open points of
+   docs/OPERATOR_LRU_BENCHMARK_REVIEW.md). `benchmarks/bend/lru.bend` and
+   `benchmarks/native/lru.c` (neither is one of the 18 pinned files) gain
+   selectors 13 `capacity`, 14 `set_lifetime`, 15 `metrics`, 16 `expiry`
+   (a 1 ms lifetime set once per round; each step adds at stamp 0 and reads
+   back at stamp 2, so the read finds the entry EXPIRED, drops it and answers
+   a miss), 17 `remove_seq` (isolated removal of distinct present keys,
+   count = size/2 so region A is exactly one sweep), 18/19 pooled isolated
+   `purge`/`resize` (every region builds the SAME pool of 2 x the ROW's count
+   independent full caches, so the preparation cancels in A - B and every
+   measured call destroys a freshly prepared full cache).
+   `benchmarks/native/lru.c` expands `BENCH_MAIN` by hand with ONE extra line
+   (`g_pool = a.count;`) because the frozen `BENCH_REGIONS` macro only hands
+   `round_fn` the REGION's count; nothing else about the timing changes.
+   `python3 tools/lru_diff.py` (now sweeping selectors 0-19) -> **4944 cases,
+   0 mismatches** across the Bend driver, the optimized C build and an
+   ASan+UBSan C build, in both region orders. The proposed rows are in
+   `benchmarks/experiments/lru_workloads.py` (54 rows); canonical files are
+   untouched.
+
+### Still open (honest status)
+
+* The 2.5x contract is NOT met. docs/C_EQUIVALENCE.md "Iteration 0015"
+  classifies every over-limit row by cause and says which are reducible.
+  The two big classes -- `prefix_trie` (the `Base.String` key costs more than
+  the whole C operation) and `balanced_search_tree` (shared-ADT node traffic,
+  ~7x an indexed block) -- cannot reach 2.5x on the pinned rows.
+* `prefix_trie` children are still a first-child/next-sibling chain, and
+  `union_find`'s member list is still a cons list inside its arena slot; both
+  are named as open representation work in docs/ARCHITECTURE.md.
+* `bitset.to_list` is the one remaining row whose C reference FOLDS without
+  building a list (like `gr_vs` did), so the same block-enumeration treatment
+  would apply to it; not done.

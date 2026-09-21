@@ -36,6 +36,24 @@ import ../../src/lru/wide.bend as W
 #                   always the rotation o, o+1, ... (mod size) of the build,
 #                   so both drivers track the offset `o` and re-add keys
 #                   o .. o+e-1, restoring a full cache every time.
+# 13 capacity       folds the capacity
+# 14 set_lifetime   sets the lifetime to the drawn nanosecond count; folds it
+#                   and the length
+# 15 metrics        folds the five 64-bit counters (ten U32 limbs)
+# 16 expiry         the round sets a one millisecond lifetime once, before the
+#                   measured region; every step then adds key i at stamp 0
+#                   (deadline 1) and gets it back at stamp 2, so the read
+#                   finds it EXPIRED, drops it and answers a miss (composite:
+#                   add + get)
+# 17 remove_seq     isolated removal of the distinct, present key (o + j) mod
+#                   cap from the cache the round prepared; used only with
+#                   2 * count <= size, so region A never empties the cache
+# 18 purge (pool)  ISOLATED purge: both regions build the SAME pool of
+#                   2 * count full caches, then purge k of them; the
+#                   preparation cancels in A - B and every measured purge
+#                   empties a freshly built, full cache
+# 19 resize (pool)  ISOLATED shrink over the same pool: resize cache j to
+#                   1 + lcg mod cap, folding the target and the evictions
 # else  value-stream step only (the A/B/C control)
 
 type St is Type:
@@ -72,6 +90,15 @@ def key_code(s: String) -> U32:
       0
     case SCon{Chr{x}, t}:
       U32.sub(x, 65536)
+
+# ---- metric folding (shared by the `metrics` row and the drain) ----
+
+def lo_hi(c: U32, p: U32 & U32) -> U32:
+  (lo, hi) = p
+  B.mix(B.mix(c, lo), hi)
+
+def fold_metrics(c: U32, +m: T.Metrics) -> U32:
+  lo_hi(lo_hi(lo_hi(lo_hi(lo_hi(c, W.unpack(T.inserts(m))), W.unpack(T.evictions(m))), W.unpack(T.removals(m))), W.unpack(T.hits(m))), W.unpack(T.misses(m)))
 
 # ---- measured operations ----
 
@@ -240,6 +267,183 @@ def do_null(st: St) -> St:
   +r = B.lcg(r0)
   S{r, B.mix(c, r), o, f}
 
+
+# ---- operations added for full public API coverage (selectors 13-17) ----
+#
+# 13 capacity        folds the capacity (an O(1) field read)
+# 14 set_lifetime    sets the lifetime to the drawn nanosecond count and folds
+#                    it together with the (unchanged) length. `set_lifetime`
+#                    is an O(1) field write whose EFFECT is what selector 16
+#                    measures and what the conformance suite checks; the cache
+#                    is threaded on, so neither side can drop the call.
+# 15 metrics         folds all five 64-bit counters (ten U32 limbs)
+# 16 expiry          the round sets a one MILLISECOND lifetime ONCE, outside
+#                    the measured step; every step then adds key i at stamp 0
+#                    (deadline 1) and reads it back at stamp 2, so the read
+#                    finds an EXPIRED entry, drops it (a removal) and answers
+#                    a miss. This is the expiry path of `read`, which no other
+#                    row reaches; it is a composite (add + get) and is
+#                    labelled as one.
+# 17 remove_seq      ISOLATED removal: step j removes key (o + j) mod cap,
+#                    a distinct key that is still present, from the nonempty
+#                    cache the round prepared before the measured region.
+#                    The row is only used with 2 * count <= size, so region A
+#                    (2k removals) never empties the cache and every measured
+#                    removal in A - B really unlinks a live entry.
+
+def do_capacity(st: St) -> St:
+  S{r0, c, +o, f} = st
+  fin_num(B.lcg(r0), c, o, L.capacity(~U32, f))
+
+def sl_fin(+r: U32, c: U32, +o: U32, +ns: U32, p: L.Fast<U32> & U32) -> St:
+  (f, n) = p
+  S{r, B.mix(B.mix(c, ns), n), o, f}
+
+def do_set_lifetime(st: St, +size: U32) -> St:
+  S{r0, c, +o, f} = st
+  +r = B.lcg(r0)
+  +ns = draw(r, size)
+  sl_fin(r, c, o, ns, L.len(~U32, L.set_lifetime(~U32, f, T.I64{W.pack(ns, 0)})))
+
+def met_fin(+r: U32, c: U32, +o: U32, p: L.Fast<U32> & T.Metrics) -> St:
+  (f, +m) = p
+  S{r, fold_metrics(c, m), o, f}
+
+def do_metrics(st: St) -> St:
+  S{r0, c, +o, f} = st
+  met_fin(B.lcg(r0), c, o, L.metrics(~U32, f))
+
+def stamp(+t: U32) -> L.Stamp:
+  L.ST{t, 0}
+
+def set_ttl1(st: St) -> St:
+  S{r, c, o, f} = st
+  S{r, c, o, L.set_lifetime(~U32, f, T.I64{W.pack(1000000, 0)})}
+
+def ex_get(+r: U32, c: U32, +o: U32, +i: U32, p: L.Fast<U32> & Bool) -> St:
+  (f, b) = p
+  fin_val(r, B.mix(c, bit(b)), o, L.get(~U32, f, key(i), stamp(2)))
+
+def do_expiry(st: St, +size: U32) -> St:
+  S{r0, c, +o, f} = st
+  +r = B.lcg(r0)
+  +i = draw(r, size)
+  ex_get(r, c, o, i, L.add(~U32, f, key(i), U32.inc(i), stamp(0)))
+
+def rsq_fin(+r: U32, c: U32, +o: U32, +m: U32, p: L.Fast<U32> & Maybe<&2, U32>) -> St:
+  (f, v) = p
+  S{r, B.mix(c, val_or(v)), wrap(U32.inc(o), m), f}
+
+def do_remove_seq(st: St, +size: U32) -> St:
+  S{r0, c, +o, f} = st
+  rsq_fin(B.lcg(r0), c, o, capof(size), L.remove(~U32, f, key(o)))
+
+
+# ---- selectors 18/19: ISOLATED purge and resize over a prepared pool ----
+#
+# A purge empties its cache and a shrink evicts from it, so measuring k of
+# them in region B and 2k in region A only works if every measured call gets
+# its OWN full cache. Both regions therefore build the SAME pool of
+# 2 * count independent full caches (the pool size is the row's `count`, NOT
+# the region's k), so the whole preparation cancels in A - B, and then region
+# A destroys 2k of them while region B destroys k: the difference is exactly
+# k destructive calls, each on a freshly prepared, nonempty cache, and no
+# call ever hits an already emptied or already shrunk one. The caches that a
+# region does not reach are dropped unmeasured.
+#
+# The preparation is much more expensive than the operation it isolates, so
+# these rows need long regions (and therefore modest sizes) to keep A - B
+# above the harness's noise floor; that is the price of isolation and it is
+# recorded with the rows.
+
+def pool_one(+size: U32) -> L.Fast<U32>:
+  refill(U32.to_nat(size), L.init(~U32, capof(size)), 0, capof(size))
+
+def pool_go(m: Nat, +size: U32, acc: List<&1, L.Fast<U32>>) -> List<&1, L.Fast<U32>>:
+  match m:
+    case 0n:
+      acc
+    case 1n+p:
+      pool_go(p, size, Con{pool_one(size), acc})
+
+# every element is affine and simply dropped
+def drop_pool(xs: List<&1, L.Fast<U32>>) -> Unit:
+  match xs:
+    case Nil{}:
+      Unit{}
+    case Con{h, t}:
+      drop_pool(t)
+
+type PSt is Type:
+  P{rng: U32, chk: U32, pool: List<&1, L.Fast<U32>>}
+
+def drop_cache(f: L.Fast<U32>, rest: List<&1, L.Fast<U32>>) -> List<&1, L.Fast<U32>>:
+  rest
+
+def pp_one(+r: U32, c: U32, rest: List<&1, L.Fast<U32>>, p: L.Fast<U32> & U32) -> PSt:
+  (f, n) = p
+  P{r, B.mix(c, n), drop_cache(f, rest)}
+
+def pp_pick(+r: U32, c: U32, xs: List<&1, L.Fast<U32>>) -> PSt:
+  match xs:
+    case Nil{}:
+      P{r, B.mix(c, 4294967295), Nil{}}
+    case Con{h, t}:
+      pp_one(r, c, t, L.purge(~U32, h))
+
+def pp_step(ps: PSt) -> PSt:
+  P{r0, c, pool} = ps
+  pp_pick(B.lcg(r0), c, pool)
+
+def pool_purge(k: Nat, ps: PSt) -> PSt:
+  match k:
+    case 0n:
+      ps
+    case 1n+j:
+      pool_purge(j, pp_step(ps))
+
+def pr_one(+r: U32, c: U32, +t: U32, rest: List<&1, L.Fast<U32>>, p: L.Fast<U32> & Result<&2, &2, String, U32>) -> PSt:
+  (f, x) = p
+  P{r, rs_code(c, t, x), drop_cache(f, rest)}
+
+def pr_go(+r: U32, c: U32, +t: U32, rest: List<&1, L.Fast<U32>>, h: L.Fast<U32>) -> PSt:
+  pr_one(r, c, t, rest, L.resize(~U32, h, t))
+
+def pr_pick(+r: U32, c: U32, +size: U32, xs: List<&1, L.Fast<U32>>) -> PSt:
+  match xs:
+    case Nil{}:
+      P{r, B.mix(c, 4294967295), Nil{}}
+    case Con{h, t}:
+      pr_go(r, c, U32.inc(U32.mod(r, capof(size))), t, h)
+
+def pz_step(+size: U32, ps: PSt) -> PSt:
+  P{r0, c, pool} = ps
+  pr_pick(B.lcg(r0), c, size, pool)
+
+def pool_resize(k: Nat, +size: U32, ps: PSt) -> PSt:
+  match k:
+    case 0n:
+      ps
+    case 1n+j:
+      pool_resize(j, size, pz_step(size, ps))
+
+def pool_end(+r: U32, c: U32, +o: U32, f: L.Fast<U32>, z: Unit) -> St:
+  match z:
+    case Unit{}:
+      S{r, c, o, f}
+
+def pool_fin(+o: U32, f: L.Fast<U32>, ps: PSt) -> St:
+  P{r, c, pool} = ps
+  pool_end(r, c, o, f, drop_pool(pool))
+
+def run_pool_purge(+k: Nat, +m: Nat, +size: U32, st: St) -> St:
+  S{r, c, +o, f} = st
+  pool_fin(o, f, pool_purge(k, P{r, c, pool_go(Nat.add(m, m), size, Nil{})}))
+
+def run_pool_resize(+k: Nat, +m: Nat, +size: U32, st: St) -> St:
+  S{r, c, +o, f} = st
+  pool_fin(o, f, pool_resize(k, size, P{r, c, pool_go(Nat.add(m, m), size, Nil{})}))
+
 # ---- loops ----
 
 def loop_add(k: Nat, +n: U32, st: St) -> St:
@@ -340,7 +544,42 @@ def loop_null(k: Nat, st: St) -> St:
     case 1n+p:
       loop_null(p, do_null(st))
 
-def measured(+op: U32, +k: Nat, +n: U32, st: St) -> St:
+def loop_capacity(k: Nat, st: St) -> St:
+  match k:
+    case 0n:
+      st
+    case 1n+p:
+      loop_capacity(p, do_capacity(st))
+
+def loop_set_lifetime(k: Nat, +n: U32, st: St) -> St:
+  match k:
+    case 0n:
+      st
+    case 1n+p:
+      loop_set_lifetime(p, n, do_set_lifetime(st, n))
+
+def loop_metrics(k: Nat, st: St) -> St:
+  match k:
+    case 0n:
+      st
+    case 1n+p:
+      loop_metrics(p, do_metrics(st))
+
+def loop_expiry(k: Nat, +n: U32, st: St) -> St:
+  match k:
+    case 0n:
+      st
+    case 1n+p:
+      loop_expiry(p, n, do_expiry(st, n))
+
+def loop_remove_seq(k: Nat, +n: U32, st: St) -> St:
+  match k:
+    case 0n:
+      st
+    case 1n+p:
+      loop_remove_seq(p, n, do_remove_seq(st, n))
+
+def measured(+op: U32, +k: Nat, +m: Nat, +n: U32, st: St) -> St:
   match op:
     case 0:
       loop_add(k, n, st)
@@ -368,6 +607,20 @@ def measured(+op: U32, +k: Nat, +n: U32, st: St) -> St:
       loop_pr(k, n, st)
     case 12:
       loop_rb(k, n, st)
+    case 13:
+      loop_capacity(k, st)
+    case 14:
+      loop_set_lifetime(k, n, st)
+    case 15:
+      loop_metrics(k, st)
+    case 16:
+      loop_expiry(k, n, set_ttl1(st))
+    case 17:
+      loop_remove_seq(k, n, st)
+    case 18:
+      run_pool_purge(k, m, n, st)
+    case 19:
+      run_pool_resize(k, m, n, st)
     case _:
       loop_null(k, st)
 
@@ -379,13 +632,6 @@ def init(+seed: U32, +size: U32) -> St:
 def settle(st: St) -> St:
   S{r, c, o, f} = st
   fin_keys(r, c, o, L.keys(~U32, f, now()))
-
-def lo_hi(c: U32, p: U32 & U32) -> U32:
-  (lo, hi) = p
-  B.mix(B.mix(c, lo), hi)
-
-def fold_metrics(c: U32, +m: T.Metrics) -> U32:
-  lo_hi(lo_hi(lo_hi(lo_hi(lo_hi(c, W.unpack(T.inserts(m))), W.unpack(T.evictions(m))), W.unpack(T.removals(m))), W.unpack(T.hits(m))), W.unpack(T.misses(m)))
 
 def drain_m(c: U32, p: L.Fast<U32> & T.Metrics) -> U32:
   (f, +m) = p
@@ -412,18 +658,20 @@ def drain(+size: U32, st: St) -> U32:
   S{+r, c, o, f} = st
   drain_end(drain_loop(16n, size, S{r, B.mix(c, r), o, f}))
 
-def round(+op: U32, +size: U32, +k: Nat, +seed: U32) -> U32:
-  drain(size, measured(op, k, size, settle(init(seed, size))))
+def round(+op: U32, +size: U32, +k: Nat, +m: Nat, +seed: U32) -> U32:
+  drain(size, measured(op, k, m, size, settle(init(seed, size))))
 
-def reps_go(reps: Nat, +op: U32, +size: U32, +k: Nat, +seed: U32, acc: U32) -> U32:
+def reps_go(reps: Nat, +op: U32, +size: U32, +k: Nat, +m: Nat, +seed: U32, acc: U32) -> U32:
   match reps:
     case 0n:
       acc
     case 1n+ +p:
-      reps_go(p, op, size, k, seed, B.mix(acc, round(op, size, k, U32.add(seed, U32.from_nat(p)))))
+      reps_go(p, op, size, k, m, seed, B.mix(acc, round(op, size, k, m, U32.add(seed, U32.from_nat(p)))))
 
+# `m` is the row's `count`, identical in every region: the pooled selectors
+# 18/19 build 2 * m caches whatever the region's k is.
 def regions(+g: B.Args, +k: Nat) -> U32:
-  reps_go(U32.to_nat(B.a_reps(g)), B.a_op(g), B.a_size(g), k, B.a_seed(g), 0)
+  reps_go(U32.to_nat(B.a_reps(g)), B.a_op(g), B.a_size(g), k, U32.to_nat(B.a_count(g)), B.a_seed(g), 0)
 
 def kof(+g: B.Args) -> Nat:
   U32.to_nat(B.a_count(g))

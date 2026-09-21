@@ -50,11 +50,16 @@ def main():
     sizes = [0, 1, 2, 3, 7, 64, 257] if quick else [0, 1, 2, 3, 5, 8, 64, 100, 257, 1000, 4096]
     counts = [0, 1, 13, 200] if quick else [0, 1, 2, 13, 200, 1500]
     seeds = [1, 99991]
-    ops = list(range(14))
+    ops = list(range(20))
     n = bad = 0
     for op in ops:
-        for size in sizes:
-            for count in counts:
+        # the pooled selectors 18/19 build 2 * count independent caches of
+        # `size` entries per region, so their grid is bounded to keep the
+        # differential test's memory sane (the operations themselves are the
+        # same lru_purge / lru_resize the other selectors call)
+        pooled = op in (18, 19)
+        for size in ([0, 1, 2, 3, 7, 64] if pooled else sizes):
+            for count in ([0, 1, 13, 40] if pooled else counts):
                 for seed in seeds:
                     for order in (0, 1):
                         args = [str(op), str(size), str(count), '2', str(seed), str(order)]

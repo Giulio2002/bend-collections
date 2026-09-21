@@ -402,6 +402,96 @@ static inline void op_resize_back(St *s, uint32_t size) {
   s->o = (s->o + e) % m;
 }
 
+
+/* ---- selectors 13-17: the rest of the public API (contract in
+ * benchmarks/bend/lru.bend) ---- */
+
+static inline void op_capacity(St *s) {
+  s->rng = lcg(s->rng);
+  s->chk = mix(s->chk, s->c.cap);
+}
+
+static inline void op_set_lifetime(St *s, uint32_t size) {
+  uint32_t ns = draw(s, size);
+  s->c.life = (int64_t)ns;
+  s->chk = mix(mix(s->chk, ns), s->c.n);
+}
+
+static inline uint32_t fold_metrics(const Lru *c, uint32_t k) {
+  uint64_t ms[5] = {c->inserts, c->evictions, c->removals, c->hits, c->misses};
+  for (int i = 0; i < 5; i++) k = mix(mix(k, (uint32_t)ms[i]), (uint32_t)(ms[i] >> 32));
+  return k;
+}
+
+static inline void op_metrics(St *s) {
+  s->rng = lcg(s->rng);
+  s->chk = fold_metrics(&s->c, s->chk);
+}
+
+/* add key i with the round's one millisecond lifetime at stamp 0 (deadline 1),
+ * then read it back at stamp 2: the read finds it EXPIRED, drops it (a
+ * removal) and answers a miss */
+static inline void op_expiry(St *s, uint32_t size) {
+  int f;
+  uint32_t i = draw(s, size);
+  s->chk = mix(s->chk, lru_add(&s->c, i, i + 1u, 0));
+  s->chk = mix(s->chk, lru_read(&s->c, i, 2, 1, &f));
+}
+
+/* isolated removal of the distinct, present key (o + j) mod cap */
+static inline void op_remove_seq(St *s, uint32_t size) {
+  int f;
+  uint32_t i = s->o, m = capof(size);
+  s->rng = lcg(s->rng);
+  s->chk = mix(s->chk, lru_remove(&s->c, i, &f));
+  s->o = i + 1u < m ? i + 1u : 0u;
+}
+
+
+/* ---- selectors 18/19: ISOLATED purge and resize over a prepared pool ----
+ *
+ * Both regions build the SAME pool of 2 * count independent full caches (the
+ * pool size is the row's `count`, not the region's k), so the preparation
+ * cancels in A - B; region A then destroys 2k of them and region B k, and the
+ * difference is exactly k destructive calls, each on its own full cache.
+ * Caches a region does not reach are simply left in the round's arena. */
+
+typedef struct {
+  Lru *v;
+  uint32_t used;
+  uint32_t have;
+} Pool;
+
+/* the row's `count` from argv. round_lru only receives the REGION's count
+ * (2k, k or 0), and selectors 18/19 must build the same pool in all three
+ * regions, so main records the row's count here before the regions run. */
+static uint32_t g_pool = 0;
+
+static void pool_build(Pool *pl, uint32_t m, uint32_t size) {
+  pl->v = (Lru *)arena_alloc((size_t)m * sizeof(Lru));
+  pl->used = 0;
+  pl->have = m;
+  for (uint32_t j = 0; j < m; j++) {
+    lru_init(&pl->v[j], capof(size));
+    refill(&pl->v[j], size, 0, capof(size));
+  }
+}
+
+static inline void op_pool_purge(St *s, Pool *pl) {
+  s->rng = lcg(s->rng);
+  if (pl->used == pl->have) { s->chk = mix(s->chk, 0xFFFFFFFFu); return; }
+  s->chk = mix(s->chk, lru_purge(&pl->v[pl->used++]));
+}
+
+static inline void op_pool_resize(St *s, Pool *pl, uint32_t size) {
+  uint32_t r = lcg(s->rng);
+  s->rng = r;
+  if (pl->used == pl->have) { s->chk = mix(s->chk, 0xFFFFFFFFu); return; }
+  uint32_t t = 1u + r % capof(size), ev = 0;
+  int ok = lru_resize(&pl->v[pl->used++], t, &ev);
+  s->chk = rs_code(s->chk, t, ok, ev);
+}
+
 static inline void op_null(St *s) {
   uint32_t r = lcg(s->rng);
   s->rng = r;
@@ -410,6 +500,7 @@ static inline void op_null(St *s) {
 
 static uint32_t round_lru(uint32_t op, uint32_t size, uint32_t count,
                           uint32_t nulls, uint32_t seed) {
+  uint32_t pool = g_pool; /* the ROW's count: region independent, see main */
   arena_reset();
   St s;
   s.rng = seed;
@@ -435,16 +526,30 @@ static uint32_t round_lru(uint32_t op, uint32_t size, uint32_t count,
     case 10: for (uint32_t i = 0; i < count; i++) { keep(sp); op_remove_add(sp, size); } break;
     case 11: for (uint32_t i = 0; i < count; i++) { keep(sp); op_purge_refill(sp, size); } break;
     case 12: for (uint32_t i = 0; i < count; i++) { keep(sp); op_resize_back(sp, size); } break;
+    case 13: for (uint32_t i = 0; i < count; i++) { keep(sp); op_capacity(sp); } break;
+    case 14: for (uint32_t i = 0; i < count; i++) { keep(sp); op_set_lifetime(sp, size); } break;
+    case 15: for (uint32_t i = 0; i < count; i++) { keep(sp); op_metrics(sp); } break;
+    case 16: s.c.life = 1000000; for (uint32_t i = 0; i < count; i++) { keep(sp); op_expiry(sp, size); } break;
+    case 17: for (uint32_t i = 0; i < count; i++) { keep(sp); op_remove_seq(sp, size); } break;
+    case 18: { Pool pl; pool_build(&pl, 2u * pool, size);
+               for (uint32_t i = 0; i < count; i++) { keep(sp); op_pool_purge(sp, &pl); } break; }
+    case 19: { Pool pl; pool_build(&pl, 2u * pool, size);
+               for (uint32_t i = 0; i < count; i++) { keep(sp); op_pool_resize(sp, &pl, size); } break; }
     default: for (uint32_t i = 0; i < count; i++) { keep(sp); op_null(sp); } break;
   }
   for (uint32_t i = 0; i < nulls; i++) { keep(sp); op_null(sp); }
   /* size-independent drain: sixteen peeks, the length, the five metrics */
   s.chk = mix(s.chk, s.rng);
   for (int i = 0; i < 16; i++) op_read(&s, size, 0);
-  uint32_t c = mix(s.chk, s.c.n);
-  uint64_t ms[5] = {s.c.inserts, s.c.evictions, s.c.removals, s.c.hits, s.c.misses};
-  for (int i = 0; i < 5; i++) c = mix(mix(c, (uint32_t)ms[i]), (uint32_t)(ms[i] >> 32));
-  return c;
+  return fold_metrics(&s.c, mix(s.chk, s.c.n));
 }
 
-BENCH_MAIN(round_lru, 2048ull * 1024ull * 1024ull)
+/* BENCH_MAIN(round_lru, ...) expanded, with the one extra line that records
+ * the row's count for the pooled selectors 18/19 (see g_pool above). */
+int main(int argc, char **argv) {
+  bench_args a = parse_args(argc, argv);
+  arena_init(2048ull * 1024ull * 1024ull);
+  g_pool = a.count;
+  BENCH_REGIONS(round_lru)
+  return 0;
+}

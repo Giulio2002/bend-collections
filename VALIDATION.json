@@ -2,8 +2,8 @@
  "complete": true,
  "environment": {
   "machine": "arm64",
-  "platform": "macOS-15.6-arm64-arm-64bit-Mach-O",
-  "python": "3.14.6"
+  "platform": "macOS-15.6-arm64-arm-64bit",
+  "python": "3.12.12"
  },
  "failures": [],
  "logs": "build/validation-logs",
@@ -55,7 +55,7 @@
   "fast_port_spec_differential": [
    "[0n, 0n, 0n, 0n, 0n, 0n]"
   ],
-  "native_differential": "1568 cases, 0 mismatches",
+  "native_differential": "2208 cases, 0 mismatches",
   "smoke": [
    {
     "args": [
@@ -118,9 +118,9 @@
   ]
  },
  "lru_reuse": "passed",
- "seconds": 505.5,
+ "seconds": 429.4,
  "source_sha256": {
-  "END_TO_END.bend": "dfc8b548e5019527d3ec83362d58f9a7d3052345d721748a25deec030a69cb1a",
+  "END_TO_END.bend": "e508c4d0fee9d46236fdf28799c5c7688775d350873d6e91187f1813aa74ced5",
   "PROOF.bend": "5bf861bc1df4ae533707f53f91b7678d1396f13aded4e77ee776e55873582c4f",
   "proofs/balanced_search_tree.bend": "d0b738cfefd082aafd78b896d5fda962bd111c89811a1087c08aa3c454e9e62f",
   "proofs/balanced_search_tree/api.bend": "a58526e7073ed0f6ca0cffa77d79429da6c1f5d000f6160f658111a0c4fccb45",
@@ -218,7 +218,7 @@
   "proofs/fenwick_tree/trace.bend": "1b52932577f6806b2469ca063f0a4f3f74874f52e7deea310e1a912b88e9589b",
   "proofs/fenwick_tree/tree.bend": "33fc5cd297cc19338305043c6d2cc8ac90c80c9a987ebd1b3d91c7cd44eb74e8",
   "proofs/fenwick_tree/walk.bend": "2fe11fc545883fc52681ffdd0d92ef3177eaec610b5985a7f4a501bd31ed19d3",
-  "proofs/graph.bend": "6e8cbd89af134deb2b667a03c90c9b02a70001fd41d3683b30b2430a3dad16f5",
+  "proofs/graph.bend": "0235503a87df332f2ed210cabad6655cb6b026c25b185ea6f390eb719c8a25c5",
   "proofs/graph/addedge.bend": "915a6e89357757589106d6790ba6114b8155033e44092d9646dcada493c9a976",
   "proofs/graph/addv1.bend": "e697485f2d50335e6f51428c99e2ab8912baecbf0c70da06f51c9989879e323a",
   "proofs/graph/addv2.bend": "f7fd7dce0dfeb16bc7230604f62fb91fc74f12bfd8d11a032c4cac7efd57df0c",
@@ -247,6 +247,7 @@
   "proofs/graph/shift.bend": "5139c697c919233062d58fc9879940b20202211634e306c2f42bd5c5ceeb0b5a",
   "proofs/graph/state.bend": "1154d715e7faaf9927df6ace00c41d63bfebfc3bb8669cbfa3e6b20eebb74871",
   "proofs/graph/ucore.bend": "282d838ef6f11778fb300d3f680360d89e54de3cfc75bd2d37f7a3b9d42dca34",
+  "proofs/graph/vblk.bend": "e4d2bed0d553feb4b32461642493c9cbdf46e5095542638280b3e0bf94c7c1d5",
   "proofs/graph/wf.bend": "ba379e24a7a0c9aafbbae6788bdd4f532fe382df917fa3abc932a2311284424f",
   "proofs/graph/wfops.bend": "ba835132b31c9eaf4afdf466e4f1c0051dbaa619be22c70d59d8ab5863a850cb",
   "proofs/graph/window.bend": "8f1090278aaf5683d69389769cf57d5abcfa175fb5fca7e29aab746e89d6c4d2",
@@ -382,7 +383,7 @@
   "src/doubly_linked_list.bend": "ab9133209f1668614283b1cadd3a65dcfaeffc2868b6da9362fd6895e571fdc3",
   "src/dynamic_array.bend": "c66d01a7c48f29cb80d31d525d6fc04d04ab6f438b0dbf0107ebd8465fb0c994",
   "src/fenwick_tree.bend": "d8247cf52dd5315752ee62118d6552240ffc8e7e580260c555cc62044674dedb",
-  "src/graph.bend": "147c8a93d21e3bc8d04c7042275008607714bda5cd161240703aa4f1edc35d46",
+  "src/graph.bend": "ceff24e0da18fc964cc592c1c24022aacd7d7078cdb5a8759dc736c00ab4819b",
   "src/internal/vec.bend": "cddd5687714bf0a096c29eea0c802abc05f4476074a50e49aab79f12da728d47",
   "src/lru.bend": "5ae7cb4791c88446810939a18c0d48ea33cf856b1322e7675f8fda68e34cb298",
   "src/lru/cache.bend": "31c0ea902bcba611a2d46db655b9aa2cc7a4541b7908f5e6905154669121d393",
@@ -403,7 +404,7 @@
   "tests/doubly_linked_list/main.bend": "038bfbab5054c7b3e2be158e530356972ac1502c5dc411990d7794760cbbc620",
   "tests/dynamic_array/main.bend": "2696b0b4833afdc0965497779e9122ed2b08759d67251cd67c7341933bf46d41",
   "tests/fenwick_tree/main.bend": "9f7884d573e9bdcc746db115d7979431d8373be580e7ec5d3f60417fa47e2c92",
-  "tests/graph/main.bend": "8636db4d7488562f74067cba472c49b106a766bf4cf86f2a85355fbeaa94e21d",
+  "tests/graph/main.bend": "f125f414ea2499556faf3dc1a16bfd61381273600adfbeff96db92a281e656df",
   "tests/lru/main.bend": "134dd72e40a82d7228ede698853b30a7577a0bbfb5333e0d30a43a6bf3963252",
   "tests/lru_fast/capacity_contract.bend": "f52a75adc7bd893d0ed63d6638bfcce2fc60f2ebc5bf88a816f145cff659d6b3",
   "tests/lru_fast/main.bend": "e7b6586dbdaef9622fe59e5e0c2948d1e407651393afe83d56a24b40984d996c",
@@ -415,7 +416,7 @@
   "tests/runtime_defects/generic_u32.bend": "cdbde193304c4bfcbd9a60a5a5a45069624538298d6856317304b52f3d2e03e9",
   "tests/runtime_defects/wide_arity.bend": "defba23e34745f78d1933fbf6580bf1ffd26cd85757e1c7547f99e7f1ed62575",
   "tests/segment_tree/main.bend": "c34ebed09770fc0cf3a32cb1a867f153f408671035a068f0ec294ecc191751ad",
-  "tests/support/oracles.py": "45ec78cf7d8d3e5db6d475afff04d0f7de9233655417dd55536df582ca57ea85",
+  "tests/support/oracles.py": "90a92b09b056afc1bc8ac23d4f0f6497f6c41851bb1ec42279a593bfa4cade1a",
   "tests/support/text.bend": "d580799e509e4535609ed07ac01ac6ecbb932a369280a55b55e14dae0a028a4a",
   "tests/union_find/main.bend": "0b399b9f152ba9adcabc9d14c378588435828e55b9d0630b3e868722eccdd108",
   "tools/bench_report.py": "7bb5ad9e2ae1824bd5b8c5c2d6c1bfabdfc639c2e1f211ac93201495a91661f7",
@@ -431,10 +432,10 @@
   "tools/dev/qrows.py": "0e13b13b1ebc12999fc7a4c8439ec6296d3f06678563049bc9d080d3d20d7f42",
   "tools/dev/quick_bench.py": "de4e6c5a28e8bc50e23b90d448cd4a60fa934bd124f7f55f129d3cf37ac8a350",
   "tools/generators/trace_data.py": "2676b9f7c5163152dad2bb1299f686ad7da081fb5f96f97af19a66007ae0dd57",
-  "tools/lru_diff.py": "b14dd3fa4d96e9c127b92fd66e0aca034701d5a26d51e18d7ef251c1d4f3bef8",
+  "tools/lru_diff.py": "1321d0cb8c0c4a0573b076481672f638940a294ed663982d02406d9441a8dcc2",
   "tools/lru_measure.py": "e69c3f3bf108afa91dab896b39779d83d547241433e6678b69f762bee478b5ce",
-  "tools/mutants.py": "73fc8c8535014bd20f7848691fe08a5ca7f0bc7455a670d8faaad903de676e9d",
-  "tools/scenarios.py": "b7b1b33f50608159650bac8f0e99fb14f54e2d5076218e5dcd3f28154d97cec9",
+  "tools/mutants.py": "8113b2fbebb26f3a7d276e9e0d3bb7769e4b8ab411592e1c2c94216a0458477a",
+  "tools/scenarios.py": "fb76aaefcdcfcfdc077d97a8795ebe0457d81338c5a7ee76f24e075e199182b4",
   "tools/validate.py": "e6a6a7e1e93b8f01676aa20be3c3581143dbca6cc05180611a1cd115dda73566",
   "types/balanced_search_tree.bend": "8a8f622ea51bb1be018484ebb8b98faa8cc021699d3d69655d002c2df8c60f64",
   "types/binary_heap.bend": "c8f87e5ac7ca13719fc43770b81f62134306a0759d491dba5d6daa07c6046acb",
@@ -501,7 +502,7 @@
     "functional": 3,
     "structural": 0
    },
-   "seconds": 6.4,
+   "seconds": 6.3,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -572,7 +573,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 6.0,
+   "seconds": 6.2,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -624,7 +625,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 3.9,
+   "seconds": 4.0,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -690,7 +691,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 7.7,
+   "seconds": 8.4,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -751,7 +752,7 @@
     "functional": 5,
     "structural": 0
    },
-   "seconds": 7.2,
+   "seconds": 8.0,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -808,7 +809,7 @@
     "functional": 3,
     "structural": 9
    },
-   "seconds": 10.5,
+   "seconds": 8.4,
    "structural": "passed",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -885,7 +886,7 @@
     "functional": 4,
     "structural": 0
    },
-   "seconds": 11.2,
+   "seconds": 10.1,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -953,7 +954,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 6.4,
+   "seconds": 7.0,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -1017,7 +1018,7 @@
     "functional": 3,
     "structural": 0
    },
-   "seconds": 7.5,
+   "seconds": 6.5,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -1090,7 +1091,7 @@
     "functional": 4,
     "structural": 0
    },
-   "seconds": 10.6,
+   "seconds": 8.9,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -1143,7 +1144,7 @@
     "functional": 2,
     "structural": 0
    },
-   "seconds": 4.6,
+   "seconds": 5.9,
    "structural": "n/a",
    "trace_proof": "passed",
    "trace_seeds": [
@@ -1155,11 +1156,11 @@
    ]
   },
   {
-   "binary_sha256": "3f1f09fb53ac0c79b13b0b0fd1a0a65aca22ba984e54156eaf41e13b9317c4d6",
+   "binary_sha256": "c748a54ecfb6aa6821a6b5b84d11f957062159e9a4ffec0ca836ed0e4b4edf9f",
    "boundaries": "passed",
    "checker_output": "All terms check, with 94 unsafe annotations.",
    "differential": "passed",
-   "driver_sha256": "8636db4d7488562f74067cba472c49b106a766bf4cf86f2a85355fbeaa94e21d",
+   "driver_sha256": "f125f414ea2499556faf3dc1a16bfd61381273600adfbeff96db92a281e656df",
    "id": "graph",
    "mutants": [
     {
@@ -1185,6 +1186,14 @@
     {
      "mutant": "the adjacency block is not kept sorted",
      "status": "rejected"
+    },
+    {
+     "mutant": "the block enumeration copies the wrong id window",
+     "status": "rejected"
+    },
+    {
+     "mutant": "the block enumeration writes one slot too high",
+     "status": "rejected"
     }
    ],
    "mutations": "passed",
@@ -1205,10 +1214,10 @@
     "boundary": 3,
     "differential": 5,
     "functional": 4,
-    "structural": 0
+    "structural": 5
    },
-   "seconds": 9.3,
-   "structural": "n/a",
+   "seconds": 13.0,
+   "structural": "passed",
    "trace_proof": "passed",
    "trace_seeds": [
     11,

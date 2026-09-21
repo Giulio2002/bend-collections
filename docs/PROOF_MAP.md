@@ -113,3 +113,12 @@ as the `graph_*` laws. The archived ordered-map proofs
 (`docs/archive/graph.ordmap.bend.txt`) describe the previous implementation
 only. The model well-formedness development (`wf`) is a property of the spec;
 `graph_step_well_formed` connects it to the runtime through `good`.
+
+The public BLOCK enumeration `vertices_block` is proved in
+`proofs/graph/vblk.bend`: `wr` is the mirror of the copy loop, `vb_go_ok`
+proves the runtime loop IS that mirror, `wr_above` / `wr_top` / `wr_nth` give
+the resulting slot contents, `blk_win` lifts them to the window, and
+`vertices_block_ok` / `vertices_block_seq` give the whole operation on
+`ST.real(sh)` and prove the block's window `[0, n)` is the SAME list
+`G.vertices` returns. Public law: END_TO_END `graph_vertices_block`
+(`GRVB.Built(sh)`, both facts).

@@ -286,5 +286,13 @@ MUTANTS = {
         ('the adjacency block is not kept sorted', 'src/graph.bend',
          '      blk_put(b, deg, q, w)',
          '      blk_put(b, deg, ent_end(deg), w)'),
+        # the BLOCK enumeration (src/graph.bend vertices_block): the window it
+        # copies is shifted by one, and the destination slot is off by one
+        ('the block enumeration copies the wrong id window', 'src/graph.bend',
+         'vb_go(U32.to_nat(U32.sub(hi, lo)), zeros(depth), U32.sub(hi, 1), Array.get(U32, ids, U32.sub(hi, 1)))',
+         'vb_go(U32.to_nat(U32.sub(hi, lo)), zeros(depth), U32.sub(hi, 2), Array.get(U32, ids, U32.sub(hi, 2)))'),
+        ('the block enumeration writes one slot too high', 'src/graph.bend',
+         'vb_go(m, Array.set(U32, blk, U32.from_nat(m), x), U32.sub(j, 1), Array.get(U32, a, U32.sub(j, 1)))',
+         'vb_go(m, Array.set(U32, blk, U32.inc(U32.from_nat(m)), x), U32.sub(j, 1), Array.get(U32, a, U32.sub(j, 1)))'),
     ],
 }

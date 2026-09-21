@@ -34,7 +34,7 @@ import ../types/doubly_linked_list.bend as E
 # Fail{StaleHandle}; every failure returns the list unchanged.
 
 type DList<-T: Data> is Type:
-  DL{tag: U32, fresh: U32, count: Nat, head: U32, tail: U32, depth: Nat, cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>}
+  DL{tag: U32, fresh: U32, free: U32, count: Nat, head: U32, tail: U32, depth: Nat, cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>}
 
 def nil() -> U32:
   0
@@ -88,8 +88,8 @@ def grown_links(+depth: Nat, a: Array<U32>) -> Array<U32>:
   ANode{a, new_links(depth)}
 
 # Store x at slot n between the links a and b (either may be nil) and relink them.
-def link_in(~T: Data, +tag: U32, +n: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +a: U32, +b: U32, x: T) -> DList<T> & E.Handle:
-  (DL{tag, U32.inc(n), 1n+count, pick_end(U32.is_eq(a, nil()), link(n), head), pick_end(U32.is_eq(b, nil()), link(n), tail), depth, cap,
+def link_in(~T: Data, +tag: U32, +n: U32, +nfresh: U32, +nfree: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +a: U32, +b: U32, x: T) -> DList<T> & E.Handle:
+  (DL{tag, nfresh, nfree, 1n+count, pick_end(U32.is_eq(a, nil()), link(n), head), pick_end(U32.is_eq(b, nil()), link(n), tail), depth, cap,
       Array.set(Maybe<&2, T>, vals, n, Some{x}),
       set_next(Array.set(U32, prevs, n, a), b, link(n)),
       set_next(Array.set(U32, nexts, n, b), a, link(n))}, E.H{tag, n})
@@ -102,27 +102,27 @@ def pick_end(none: Bool, +n: U32, +e: U32) -> U32:
     case False{}:
       e
 
-def insert_room(~T: Data, +tag: U32, +fresh: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +a: U32, +b: U32, x: T, room: Bool) -> DList<T> & E.Handle:
+def insert_room(~T: Data, +tag: U32, +fresh: U32, +free: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +a: U32, +b: U32, x: T, room: Bool) -> DList<T> & E.Handle:
   match room:
     case True{}:
-      link_in(~T, tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, a, b, x)
+      link_in(~T, tag, fresh, U32.inc(fresh), free, count, head, tail, depth, cap, vals, prevs, nexts, a, b, x)
     case False{}:
-      link_in(~T, tag, fresh, count, head, tail, 1n+depth, U32.shl(cap), grown_vals(~T, depth, vals), grown_links(depth, prevs), grown_links(depth, nexts), a, b, x)
+      link_in(~T, tag, fresh, U32.inc(fresh), free, count, head, tail, 1n+depth, U32.shl(cap), grown_vals(~T, depth, vals), grown_links(depth, prevs), grown_links(depth, nexts), a, b, x)
 
-def insert_between(~T: Data, +tag: U32, +fresh: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +a: U32, +b: U32, x: T) -> DList<T> & E.Handle:
-  insert_room(~T, tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, a, b, x, U32.is_lt(fresh, cap))
+def insert_between(~T: Data, +tag: U32, +fresh: U32, +free: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +a: U32, +b: U32, x: T) -> DList<T> & E.Handle:
+  insert_room(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, a, b, x, U32.is_lt(fresh, cap))
 
 def length(~T: Data, s: DList<T>) -> DList<T> & Nat:
-  DL{+tag, +fresh, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
-  (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, count)
+  DL{+tag, +fresh, +free, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, count)
 
 def push_front(~T: Data, s: DList<T>, x: T) -> DList<T> & E.Handle:
-  DL{+tag, +fresh, count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
-  insert_between(~T, tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, nil(), head, x)
+  DL{+tag, +fresh, +free, count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  insert_between(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, nil(), head, x)
 
 def push_back(~T: Data, s: DList<T>, x: T) -> DList<T> & E.Handle:
-  DL{+tag, +fresh, count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
-  insert_between(~T, tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, tail, nil(), x)
+  DL{+tag, +fresh, +free, count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  insert_between(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, tail, nil(), x)
 
 def done_handle(~T: Data, r: DList<T> & E.Handle) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
   (s, h) = r
@@ -132,81 +132,81 @@ def done_handle(~T: Data, r: DList<T> & E.Handle) -> DList<T> & Result<&2, &2, E
 #
 # `live(i)` reads the value slot; every handle operation branches on it.
 
-def fail_same(~T: Data, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, e: E.Error) -> DList<T> & E.Error:
-  (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, e)
+def fail_same(~T: Data, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, e: E.Error) -> DList<T> & E.Error:
+  (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, e)
 
 # The neighbour link on one side of a live element.
 def link_at(links: Array<U32>, +i: U32) -> Array<U32> & U32:
   Array.get(U32, links, i)
 
-def ins_side(~T: Data, after: Bool, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, +p: U32, +n: U32, x: T) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
+def ins_side(~T: Data, after: Bool, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, +p: U32, +n: U32, x: T) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
   match after:
     case False{}:
-      done_handle(~T, insert_between(~T, tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, p, link(i), x))
+      done_handle(~T, insert_between(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, p, link(i), x))
     case True{}:
-      done_handle(~T, insert_between(~T, tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, link(i), n, x))
+      done_handle(~T, insert_between(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, link(i), n, x))
 
-def ins_live2(~T: Data, after: Bool, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, +i: U32, x: T, pr: Array<U32> & U32, nx: Array<U32> & U32) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
+def ins_live2(~T: Data, after: Bool, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, +i: U32, x: T, pr: Array<U32> & U32, nx: Array<U32> & U32) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
   (prevs, p) = pr
   (nexts, n) = nx
-  ins_side(~T, after, tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, i, p, n, x)
+  ins_side(~T, after, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, i, p, n, x)
 
-def ins_found(~T: Data, after: Bool, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, prevs: Array<U32>, nexts: Array<U32>, +i: U32, x: T, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
+def ins_found(~T: Data, after: Bool, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, prevs: Array<U32>, nexts: Array<U32>, +i: U32, x: T, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
   (vals, m) = r
   match m:
     case None{}:
-      (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
     case Some{v}:
-      ins_live2(~T, after, tag, fresh, count, head, tail, depth, cap, vals, i, x, link_at(prevs, i), link_at(nexts, i))
+      ins_live2(~T, after, tag, fresh, free, count, head, tail, depth, cap, vals, i, x, link_at(prevs, i), link_at(nexts, i))
 
-def insert_checked(~T: Data, after: Bool, ok: Bool, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, x: T, same: Bool) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
+def insert_checked(~T: Data, after: Bool, ok: Bool, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, x: T, same: Bool) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
   match ok same:
     case _ False{}:
-      (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.ForeignHandle{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.ForeignHandle{}})
     case False{} True{}:
-      (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
     case True{} True{}:
-      ins_found(~T, after, tag, fresh, count, head, tail, depth, cap, prevs, nexts, i, x, Array.get(Maybe<&2, T>, vals, i))
+      ins_found(~T, after, tag, fresh, free, count, head, tail, depth, cap, prevs, nexts, i, x, Array.get(Maybe<&2, T>, vals, i))
 
 def insert_before(~T: Data, s: DList<T>, h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
-  DL{+tag, +fresh, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  DL{+tag, +fresh, +free, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
   E.H{+l, +i} = h
-  insert_checked(~T, False{}, U32.is_lt(i, fresh), tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, i, x, U32.is_eq(l, tag))
+  insert_checked(~T, False{}, U32.is_lt(i, fresh), tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, i, x, U32.is_eq(l, tag))
 
 def insert_after(~T: Data, s: DList<T>, h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
-  DL{+tag, +fresh, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  DL{+tag, +fresh, +free, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
   E.H{+l, +i} = h
-  insert_checked(~T, True{}, U32.is_lt(i, fresh), tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, i, x, U32.is_eq(l, tag))
+  insert_checked(~T, True{}, U32.is_lt(i, fresh), tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, i, x, U32.is_eq(l, tag))
 
 # ---- removal ----
 
-def rm_links(~T: Data, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, +v: T, pr: Array<U32> & U32, nx: Array<U32> & U32) -> DList<T> & Result<&2, &2, E.Error, T>:
+def rm_links(~T: Data, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, +v: T, pr: Array<U32> & U32, nx: Array<U32> & U32) -> DList<T> & Result<&2, &2, E.Error, T>:
   (prevs, +p) = pr
   (nexts, +n) = nx
-  (DL{tag, fresh, Nat.sub(count, 1n), pick_end(U32.is_eq(p, nil()), n, head), pick_end(U32.is_eq(n, nil()), p, tail), depth, cap,
+  (DL{tag, fresh, free, Nat.sub(count, 1n), pick_end(U32.is_eq(p, nil()), n, head), pick_end(U32.is_eq(n, nil()), p, tail), depth, cap,
       vals, set_next(prevs, n, p), set_next(nexts, p, n)}, Done{v})
 
-def rm_found(~T: Data, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, prevs: Array<U32>, nexts: Array<U32>, +i: U32, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> DList<T> & Result<&2, &2, E.Error, T>:
+def rm_found(~T: Data, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, prevs: Array<U32>, nexts: Array<U32>, +i: U32, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> DList<T> & Result<&2, &2, E.Error, T>:
   (vals, m) = r
   match m:
     case None{}:
-      (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
     case Some{+v}:
-      rm_links(~T, tag, fresh, count, head, tail, depth, cap, Array.set(Maybe<&2, T>, vals, i, None{}), v, link_at(prevs, i), link_at(nexts, i))
+      rm_links(~T, tag, fresh, free, count, head, tail, depth, cap, Array.set(Maybe<&2, T>, vals, i, None{}), v, link_at(prevs, i), link_at(nexts, i))
 
-def remove_checked(~T: Data, ok: Bool, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, same: Bool) -> DList<T> & Result<&2, &2, E.Error, T>:
+def remove_checked(~T: Data, ok: Bool, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, same: Bool) -> DList<T> & Result<&2, &2, E.Error, T>:
   match ok same:
     case _ False{}:
-      (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.ForeignHandle{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.ForeignHandle{}})
     case False{} True{}:
-      (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
     case True{} True{}:
-      rm_found(~T, tag, fresh, count, head, tail, depth, cap, prevs, nexts, i, Array.get(Maybe<&2, T>, vals, i))
+      rm_found(~T, tag, fresh, free, count, head, tail, depth, cap, prevs, nexts, i, Array.get(Maybe<&2, T>, vals, i))
 
 def remove(~T: Data, s: DList<T>, h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, T>:
-  DL{+tag, +fresh, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  DL{+tag, +fresh, +free, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
   E.H{+l, +i} = h
-  remove_checked(~T, U32.is_lt(i, fresh), tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, i, U32.is_eq(l, tag))
+  remove_checked(~T, U32.is_lt(i, fresh), tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, i, U32.is_eq(l, tag))
 
 # ---- reading and writing one element ----
 
@@ -217,47 +217,47 @@ def value_of(~T: Data, m: Maybe<&2, T>) -> Result<&2, &2, E.Error, T>:
     case Some{v}:
       Done{v}
 
-def get_fin(~T: Data, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, prevs: Array<U32>, nexts: Array<U32>, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> DList<T> & Result<&2, &2, E.Error, T>:
+def get_fin(~T: Data, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, prevs: Array<U32>, nexts: Array<U32>, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> DList<T> & Result<&2, &2, E.Error, T>:
   (vals, m) = r
-  (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, value_of(~T, m))
+  (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, value_of(~T, m))
 
-def get_checked(~T: Data, ok: Bool, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, same: Bool) -> DList<T> & Result<&2, &2, E.Error, T>:
+def get_checked(~T: Data, ok: Bool, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, same: Bool) -> DList<T> & Result<&2, &2, E.Error, T>:
   match ok same:
     case _ False{}:
-      (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.ForeignHandle{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.ForeignHandle{}})
     case False{} True{}:
-      (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
     case True{} True{}:
-      get_fin(~T, tag, fresh, count, head, tail, depth, cap, prevs, nexts, Array.get(Maybe<&2, T>, vals, i))
+      get_fin(~T, tag, fresh, free, count, head, tail, depth, cap, prevs, nexts, Array.get(Maybe<&2, T>, vals, i))
 
 def get(~T: Data, s: DList<T>, h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, T>:
-  DL{+tag, +fresh, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  DL{+tag, +fresh, +free, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
   E.H{+l, +i} = h
-  get_checked(~T, U32.is_lt(i, fresh), tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, i, U32.is_eq(l, tag))
+  get_checked(~T, U32.is_lt(i, fresh), tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, i, U32.is_eq(l, tag))
 
-def set_fin(~T: Data, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, prevs: Array<U32>, nexts: Array<U32>, +i: U32, x: T, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> DList<T> & Result<&2, &2, E.Error, Unit>:
+def set_fin(~T: Data, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, prevs: Array<U32>, nexts: Array<U32>, +i: U32, x: T, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> DList<T> & Result<&2, &2, E.Error, Unit>:
   (vals, m) = r
   match m:
     case None{}:
-      (DL{tag, fresh, count, head, tail, depth, cap, Array.set(Maybe<&2, T>, vals, i, None{}), prevs, nexts}, Fail{E.StaleHandle{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, Array.set(Maybe<&2, T>, vals, i, None{}), prevs, nexts}, Fail{E.StaleHandle{}})
     case Some{v}:
-      (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Done{Unit{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Done{Unit{}})
 
 # set swaps the new value in: one indexed access when the element is live;
 # a stale slot is None and is written back as None.
-def set_checked(~T: Data, ok: Bool, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, +x: T, same: Bool) -> DList<T> & Result<&2, &2, E.Error, Unit>:
+def set_checked(~T: Data, ok: Bool, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, +x: T, same: Bool) -> DList<T> & Result<&2, &2, E.Error, Unit>:
   match ok same:
     case _ False{}:
-      (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.ForeignHandle{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.ForeignHandle{}})
     case False{} True{}:
-      (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
     case True{} True{}:
-      set_fin(~T, tag, fresh, count, head, tail, depth, cap, prevs, nexts, i, x, Array.swap(Maybe<&2, T>, vals, i, Some{x}))
+      set_fin(~T, tag, fresh, free, count, head, tail, depth, cap, prevs, nexts, i, x, Array.swap(Maybe<&2, T>, vals, i, Some{x}))
 
 def set(~T: Data, s: DList<T>, h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, Unit>:
-  DL{+tag, +fresh, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  DL{+tag, +fresh, +free, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
   E.H{+l, +i} = h
-  set_checked(~T, U32.is_lt(i, fresh), tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, i, x, U32.is_eq(l, tag))
+  set_checked(~T, U32.is_lt(i, fresh), tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, i, x, U32.is_eq(l, tag))
 
 # ---- neighbours ----
 
@@ -271,45 +271,45 @@ def handle_go(+tag: U32, +l: U32, none: Bool) -> Maybe<&2, E.Handle>:
 def handle(+tag: U32, +l: U32) -> Maybe<&2, E.Handle>:
   handle_go(tag, l, U32.is_eq(l, nil()))
 
-def nbr_n(~T: Data, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, r: Array<U32> & U32) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
+def nbr_n(~T: Data, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, r: Array<U32> & U32) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
   (nexts, +n) = r
-  (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Done{handle(tag, n)})
+  (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Done{handle(tag, n)})
 
-def nbr_p(~T: Data, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, nexts: Array<U32>, r: Array<U32> & U32) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
+def nbr_p(~T: Data, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, nexts: Array<U32>, r: Array<U32> & U32) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
   (prevs, +p) = r
-  (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Done{handle(tag, p)})
+  (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Done{handle(tag, p)})
 
-def nbr_fin(~T: Data, after: Bool, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, m: Maybe<&2, T>) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
+def nbr_fin(~T: Data, after: Bool, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, m: Maybe<&2, T>) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
   match after m:
     case _ None{}:
-      (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
     case True{} Some{v}:
-      nbr_n(~T, tag, fresh, count, head, tail, depth, cap, vals, prevs, link_at(nexts, i))
+      nbr_n(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, link_at(nexts, i))
     case False{} Some{v}:
-      nbr_p(~T, tag, fresh, count, head, tail, depth, cap, vals, nexts, link_at(prevs, i))
+      nbr_p(~T, tag, fresh, free, count, head, tail, depth, cap, vals, nexts, link_at(prevs, i))
 
-def nbr_read(~T: Data, after: Bool, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, prevs: Array<U32>, nexts: Array<U32>, +i: U32, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
+def nbr_read(~T: Data, after: Bool, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, prevs: Array<U32>, nexts: Array<U32>, +i: U32, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
   (vals, m) = r
-  nbr_fin(~T, after, tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, i, m)
+  nbr_fin(~T, after, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, i, m)
 
-def nbr_checked(~T: Data, after: Bool, ok: Bool, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, same: Bool) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
+def nbr_checked(~T: Data, after: Bool, ok: Bool, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +i: U32, same: Bool) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
   match ok same:
     case _ False{}:
-      (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.ForeignHandle{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.ForeignHandle{}})
     case False{} True{}:
-      (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, Fail{E.StaleHandle{}})
     case True{} True{}:
-      nbr_read(~T, after, tag, fresh, count, head, tail, depth, cap, prevs, nexts, i, Array.get(Maybe<&2, T>, vals, i))
+      nbr_read(~T, after, tag, fresh, free, count, head, tail, depth, cap, prevs, nexts, i, Array.get(Maybe<&2, T>, vals, i))
 
 def next(~T: Data, s: DList<T>, h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
-  DL{+tag, +fresh, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  DL{+tag, +fresh, +free, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
   E.H{+l, +i} = h
-  nbr_checked(~T, True{}, U32.is_lt(i, fresh), tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, i, U32.is_eq(l, tag))
+  nbr_checked(~T, True{}, U32.is_lt(i, fresh), tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, i, U32.is_eq(l, tag))
 
 def prev(~T: Data, s: DList<T>, h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
-  DL{+tag, +fresh, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  DL{+tag, +fresh, +free, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
   E.H{+l, +i} = h
-  nbr_checked(~T, False{}, U32.is_lt(i, fresh), tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts, i, U32.is_eq(l, tag))
+  nbr_checked(~T, False{}, U32.is_lt(i, fresh), tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, i, U32.is_eq(l, tag))
 
 # ---- to_list ----
 #
@@ -346,13 +346,107 @@ def walk(~T: Data, fuel: Nat, c: Cur<T>) -> Cur<T>:
     case 1n+f:
       walk(~T, f, step_back(~T, c))
 
-def tl_fin(~T: Data, +tag: U32, +fresh: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, nexts: Array<U32>, c: Cur<T>) -> DList<T> & List<&2, T>:
+def tl_fin(~T: Data, +tag: U32, +fresh: U32, +free: U32, +count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, nexts: Array<U32>, c: Cur<T>) -> DList<T> & List<&2, T>:
   C{vals, prevs, acc, at} = c
-  (DL{tag, fresh, count, head, tail, depth, cap, vals, prevs, nexts}, acc)
+  (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, acc)
 
 def to_list(~T: Data, s: DList<T>) -> DList<T> & List<&2, T>:
-  DL{+tag, +fresh, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
-  tl_fin(~T, tag, fresh, count, head, tail, depth, cap, nexts, walk(~T, count, C{vals, prevs, Nil{}, tail}))
+  DL{+tag, +fresh, +free, +count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  tl_fin(~T, tag, fresh, free, count, head, tail, depth, cap, nexts, walk(~T, count, C{vals, prevs, Nil{}, tail}))
+
+# ---- recycling end operations: the deque's storage API ----
+#
+# `free` is a STACK of retired slots chained through `nexts`: the record's
+# field is the link to the top (nil() = empty) and `nexts[s]` of a retired
+# slot s is the link to the next retired one. A retired slot holds None in
+# `vals` and is not in the list.
+#
+# The handle-stable API above NEVER touches this stack: its ids come from the
+# monotone `fresh` counter and are never reused, so a handle to a removed
+# element stays unambiguously stale (the objective's handle contract). The
+# operations below DO recycle, and they are the storage operations
+# src/deque.bend runs on: a deque exposes no handles at all, so reissuing an
+# id is unobservable through it, and the arenas then grow with the PEAK
+# number of live elements instead of with the number of pushes. They are not
+# members of `Op`, so the list's trace laws are unaffected by them; they have
+# their own laws in proofs/dlist/free.bend, used by the deque's refinement.
+#
+# Every one of them is O(1) indexed reads and writes.
+
+# Allocate the top of the free stack: `nx` is the link it stored, which
+# becomes the new top. `nexts[i]` is overwritten by `link_in`, after the read.
+def ins_free_pop(~T: Data, +tag: U32, +fresh: U32, +f: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, +a: U32, +b: U32, x: T, r: Array<U32> & U32) -> DList<T> & E.Handle:
+  (nexts, +nx) = r
+  link_in(~T, tag, slot(f), fresh, nx, count, head, tail, depth, cap, vals, prevs, nexts, a, b, x)
+
+def ins_free_pick(~T: Data, +tag: U32, +fresh: U32, +free: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +a: U32, +b: U32, x: T, empty: Bool) -> DList<T> & E.Handle:
+  match empty:
+    case True{}:
+      insert_between(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, a, b, x)
+    case False{}:
+      ins_free_pop(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, a, b, x, link_at(nexts, slot(free)))
+
+def insert_between_free(~T: Data, +tag: U32, +fresh: U32, +free: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +a: U32, +b: U32, x: T) -> DList<T> & E.Handle:
+  ins_free_pick(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, a, b, x, U32.is_eq(free, nil()))
+
+def push_front_free(~T: Data, s: DList<T>, x: T) -> DList<T> & E.Handle:
+  DL{+tag, +fresh, +free, count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  insert_between_free(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, nil(), head, x)
+
+def push_back_free(~T: Data, s: DList<T>, x: T) -> DList<T> & E.Handle:
+  DL{+tag, +fresh, +free, count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  insert_between_free(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, tail, nil(), x)
+
+# Unlink the element at slot i and push i on the free stack. `set_next` writes
+# at the NEIGHBOUR slots (both different from i), so the last write, which
+# stores the old top in nexts[i], cannot be overwritten.
+def rmf_links(~T: Data, +tag: U32, +fresh: U32, +free: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, +i: U32, v: T, pr: Array<U32> & U32, nx: Array<U32> & U32) -> DList<T> & Maybe<&2, T>:
+  (prevs, +p) = pr
+  (nexts, +n) = nx
+  (DL{tag, fresh, link(i), Nat.sub(count, 1n), pick_end(U32.is_eq(p, nil()), n, head), pick_end(U32.is_eq(n, nil()), p, tail), depth, cap,
+      vals, set_next(prevs, n, p), Array.set(U32, set_next(nexts, p, n), i, free)}, Some{v})
+
+def rmf_found(~T: Data, +tag: U32, +fresh: U32, +free: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, prevs: Array<U32>, nexts: Array<U32>, +i: U32, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> DList<T> & Maybe<&2, T>:
+  (vals, m) = r
+  match m:
+    case None{}:
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, None{})
+    case Some{v}:
+      rmf_links(~T, tag, fresh, free, count, head, tail, depth, cap, Array.set(Maybe<&2, T>, vals, i, None{}), i, v, link_at(prevs, i), link_at(nexts, i))
+
+def pop_end(~T: Data, +tag: U32, +fresh: U32, +free: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +l: U32, empty: Bool) -> DList<T> & Maybe<&2, T>:
+  match empty:
+    case True{}:
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, None{})
+    case False{}:
+      rmf_found(~T, tag, fresh, free, count, head, tail, depth, cap, prevs, nexts, slot(l), Array.get(Maybe<&2, T>, vals, slot(l)))
+
+def pop_front_free(~T: Data, s: DList<T>) -> DList<T> & Maybe<&2, T>:
+  DL{+tag, +fresh, +free, count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  pop_end(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, head, U32.is_eq(head, nil()))
+
+def pop_back_free(~T: Data, s: DList<T>) -> DList<T> & Maybe<&2, T>:
+  DL{+tag, +fresh, +free, count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  pop_end(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, tail, U32.is_eq(tail, nil()))
+
+def peek_fin(~T: Data, +tag: U32, +fresh: U32, +free: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, prevs: Array<U32>, nexts: Array<U32>, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> DList<T> & Maybe<&2, T>:
+  (vals, m) = r
+  (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, m)
+
+def peek_end(~T: Data, +tag: U32, +fresh: U32, +free: U32, count: Nat, +head: U32, +tail: U32, +depth: Nat, +cap: U32, vals: Array<Maybe<&2, T>>, prevs: Array<U32>, nexts: Array<U32>, +l: U32, empty: Bool) -> DList<T> & Maybe<&2, T>:
+  match empty:
+    case True{}:
+      (DL{tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts}, None{})
+    case False{}:
+      peek_fin(~T, tag, fresh, free, count, head, tail, depth, cap, prevs, nexts, Array.get(Maybe<&2, T>, vals, slot(l)))
+
+def peek_front(~T: Data, s: DList<T>) -> DList<T> & Maybe<&2, T>:
+  DL{+tag, +fresh, +free, count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  peek_end(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, head, U32.is_eq(head, nil()))
+
+def peek_back(~T: Data, s: DList<T>) -> DList<T> & Maybe<&2, T>:
+  DL{+tag, +fresh, +free, count, +head, +tail, +depth, +cap, vals, prevs, nexts} = s
+  peek_end(~T, tag, fresh, free, count, head, tail, depth, cap, vals, prevs, nexts, tail, U32.is_eq(tail, nil()))
 
 # ---- trace runner ----
 

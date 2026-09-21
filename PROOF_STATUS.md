@@ -6,9 +6,12 @@ Checked with the pinned toolchain in `inventory/toolchain.json`
 Single root: `PROOF.bend` imports `END_TO_END.bend`, which imports every
 `proofs/<id>.bend` entry plus `proofs/lru.bend`.
 
-**Current state (iteration 0014): `bend PROOF.bend` reports `All terms check`,
-with 3876 template instances** (fresh run after the lazy-constructor revert;
-`bend END_TO_END.bend` prints the same line). The closure covers all twelve structures, the
+**Current state (iteration 0015): `bend PROOF.bend` reports `All terms check`,
+with 3876 template instances** (fresh run; `bend END_TO_END.bend` prints the
+same line, and `automation/acceptance.py` re-ran both plus the full
+`tools/validate.py` suite: `build/validation.json` complete=True, 0 failures,
+all twelve structures runtime/boundaries/differential/mutations/trace_proof
+passed, `balanced_search_tree` and `graph` also structural). The closure covers all twelve structures, the
 retained LRU (`proofs/lru.bend`) and the benchmarked indexed LRU
 (`proofs/lru_fast.bend`, laws `lru_fast_*` in `END_TO_END.bend`). No
 `@unsafe`, no holes, no axioms, no `?`-terms anywhere in the closure
@@ -16,6 +19,13 @@ retained LRU (`proofs/lru.bend`) and the benchmarked indexed LRU
 
 "Unsafe annotations" in the checker's summary line count *template
 instantiations*, not unchecked terms: every instance is fully checked.
+
+New in iteration 0015: `graph.vertices_block`, the public block (indexed
+view) enumeration of the vertex ids, is proved in `proofs/graph/vblk.bend`
+and exposed as END_TO_END `graph_vertices_block`: the graph comes back
+unchanged, the produced block is exactly the one the mirror builds, and its
+window `[0, n)` is the SAME ordered list `graph.vertices` returns. Both
+enumerations stay public and both are exercised at runtime.
 
 ## What each structure proves
 
@@ -346,6 +356,13 @@ semantics, ported under `spec/lru_numeric.bend` and `proofs/lru_fast/num/`):
   (initial and every Resize argument) is within `2^q`, `q <= 31`. The arrays
   only grow while the cache holds fewer entries than its capacity, so they stay
   below `2^31` slots (`capstep.bend` proves each spec step keeps the bound).
+  **This premise is narrower than the public API.** `new` accepts every
+  capacity in `1 .. 4294967294` and `resize` every positive `U32` (pinned by
+  `tests/lru_fast/capacity_contract.bend`, wired into `tools/validate.py`);
+  capacities above `2^31` are therefore an OPEN, documented proof gap, not an
+  API limit, and narrowing the API to close it was explicitly rejected by the
+  operator (`docs/OPERATOR_KEEP_CAPACITY_API.md`). `Base.Array` itself indexes
+  correctly only below depth 32, so covering them needs a two-block arena.
 * The laws are stated at V = U32 and V = String (`END_TO_END.bend`);
   `inst_*.bend` instantiate every template at U32 for fast local checks.
 * `inj.bend` `real_inj` (law `lru_fast_*_shadow_unique`): a good shadow is

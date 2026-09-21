@@ -12,6 +12,7 @@ import ./graph/gstep.bend as GT
 import ./graph/gtrace.bend as TR
 import ./graph/wf.bend as WF
 import ./graph/wfops.bend as WFO
+import ./graph/vblk.bend as VB
 
 # Graph: public proof entry point.
 #
@@ -44,6 +45,18 @@ def trace_new(+d: Bool, +ops: List<&2, E.Op>, +q: Nat, +hq: {Nat.is_le(q, 30n) =
 
 def trace_from(+ops: List<&2, E.Op>, +sh: ST.Shadow, +h: {ST.good(sh) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 30n) == True{} : Bool}, +room: {Nat.is_lt(Nat.add(3n, Nat.add(GT.mu(sh), TR.adds(ops))), SC.pow2(q)) == True{} : Bool}) -> TR.TraceOK(ops, sh):
   TR.trace_from(ops, sh, h, q, hq, room)
+
+# ---- the block enumeration of the vertices ----
+#
+# `vertices_block` is the indexed-view form of `vertices`: it copies the
+# ascending vertex-id window into slots [0, n) of a fresh block instead of
+# consing a List. The graph comes back unchanged, and the block's window is
+# the SAME ordered sequence the List form returns (proofs/graph/vblk.bend).
+
+def vertices_block_real(+sh: ST.Shadow, +h: {ST.good(sh) == True{} : Bool}) -> VB.Built(sh):
+  match sh:
+    case ST.Sh{+dir, +lo, +hi, +depth, +it, +at}:
+      VB.built(dir, lo, hi, depth, it, at, h)
 
 # ---- model well-formedness (spec/graph.bend `wf`) ----
 

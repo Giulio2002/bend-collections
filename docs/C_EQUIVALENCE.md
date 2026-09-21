@@ -318,3 +318,79 @@ jump mispredicts about half the time. Measured: `get` small 22.8 -> 6.3 ns
 40.6 -> 22.4 ns (C 10.15, 2.21x), `set` medium 102.3 -> 41.8 ns (C 20.7,
 2.01x). The walks are proved in `proofs/segment_tree/walk.bend`
 (`gcase`/`get_ok` for `get`, `unfold_l`/`unfold_r` for `set`).
+
+## Iteration 0015: what one shared algebraic node costs, measured directly
+
+The claim that the two pointer-shaped structures (`balanced_search_tree` and
+`prefix_trie`) are limited by reference counting rather than by their algorithm
+is now backed by a pair of programs that differ ONLY in the representation they
+walk. Both do the same data-dependent six-level descent, ten million times, one
+sequential thread, and consume the result:
+
+* `benchmarks/experiments/bstarena/descent.bend` walks a native indexed
+  `Array<U32>` block: slot `2*cur + bit`, where `cur` is the value the previous
+  load returned, so the addresses really chase. 112 ms for 60 M levels =
+  **1.9 ns per level**.
+* `benchmarks/experiments/bstarena/descent_adt.bend` walks a SHARED algebraic
+  tree of the same six levels (the tree is `+`-reusable and handed back
+  untouched, exactly as every read of `src/balanced_search_tree.bend` does).
+  794 ms for 60 M levels = **13.2 ns per level**.
+
+The ratio is about 7x, and it is the emitted `span_fade` / `term_drop` traffic:
+opening a shared constructor retains all of its fields and then releases the
+ones the walk does not follow, which is several read-modify-writes on scattered
+heap words per level, against one indexed load.
+
+Two consequences, both recorded honestly rather than acted on blindly:
+
+* Migrating the tree and the trie onto an indexed arena IS worth doing on the
+  merits of the representation rule, and it is the next representation step.
+* It would NOT make those rows meet the 2.5x limit. `balanced_search_tree.min
+  small` walks about six levels for 39.6 ns against a C walk of 1.0 ns; at
+  1.9 ns per level plus the per-operation record traffic the arena version
+  lands around 8-11x, because the C reference's six dependent L1 loads pipeline
+  across loop iterations and cost the reference almost nothing. Claiming the
+  migration would fix the gate would be wrong.
+
+### `graph.vertices`: the block enumeration (landed in iteration 0015)
+
+The pinned reference's `gr_vs` folds the vertex keys of its red-black set in
+order and allocates NOTHING; the Bend side built a `List<U32>` and folded it,
+so the row divided a list construction by a fold: 3.37x / 3.01x / 3.08x
+(small / medium / large).
+
+`src/graph.bend` now also exposes `vertices_block`, which copies the ascending
+id window into slots `[0, n)` of a fresh `Array<U32>`; the driver folds that
+block. Measured after the change (tools/dev/qrows.py, ns per operation, best
+of three alternating runs, quick tool):
+
+| row | Bend | C | ratio |
+|---|---|---|---|
+| `graph.vertices` small | 25.0 | 26.7 | 0.94x |
+| `graph.vertices` medium | 480 | 498 | 0.96x |
+| `graph.vertices` large | 3600 | 4187 | 0.86x |
+| `graph.vertices` edge-empty | 3.20 | 3.26 | 0.98x |
+
+`tools/dev/checksums.py graph` -> 40/40 rows identical to the pinned
+reference; the pinned `benchmarks/native/graph.c` is byte-unchanged. The List
+form `vertices` and its proofs are retained, and `proofs/graph/vblk.bend`
+proves the block's window `[0, n)` IS the list `vertices` returns.
+
+### Where the remaining over-limit rows come from
+
+Classification of the 408 canonical rows that are over 2.5x, by cause (the
+individual numbers are in BENCHMARKS.md, which is generated from the report):
+
+| cause | rows | reducible? |
+|---|---|---|
+| `Base.String` key construction inside the timed region (`prefix_trie.*`) | ~20 | no, with the pinned rows; additive `prepared_keys` rows are proposed |
+| shared algebraic node traffic (`balanced_search_tree.*`) | ~25 | partly (~3-4x), by the arena migration; not to 2.5x |
+| allocator cost of a returned `List` (`*.to_list`) | ~7 | only where the C reference also folds without allocating: `graph.vertices` was fixed that way in iteration 0015 (3.0-3.4x -> 0.86-1.29x) and `bitset.to_list` is the one remaining such row. Where the C reference really builds a list (`queue.to_list` allocates a `Cell` per element) the comparison is already same-algorithm and the gap is the allocator: ~2 ns per cons cell against ~0.5 ns of an arena bump |
+| block fill throughput (`dynamic_array.clear`) | 3 | no; `blk_new` is a scalar store loop, `memset` is vectorised |
+| `new` rows whose C counterpart does no construction (`graph.new`, `doubly_linked_list.new`) | 8 | no; the pinned `gr_new`/`dl_new` only advance the value stream, so the row divides a real Bend constructor by a C no-op |
+| `new`/constructor allocation count (`union_find.new`) | 4 | partly, by interleaving the three arenas into one block |
+| per-operation record open/rebuild on an empty structure (`*.edge-empty` at 3-5x) | ~12 | marginally; ~3 ns of Bend runtime dispatch against ~1 ns in C |
+
+This table is the current honest state of the performance criterion: it is NOT
+met, the causes are measured, and the ones that are reducible are listed as
+remaining work rather than claimed as done.

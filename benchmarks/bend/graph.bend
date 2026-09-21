@@ -138,13 +138,33 @@ def do_nb(st: St, +n: Nat) -> St:
   S{r, c, g} = st
   nb_with(B.lcg(r), c, g, n)
 
-def fin_vs(r: U32, c: U32, p: GR.Graph & List<&2, U32>) -> St:
-  (g, xs) = p
-  S{r, fold_u32(xs, c), g}
+# `vertices` is folded through the public BLOCK enumeration
+# `GR.vertices_block`, not through the `List` form: the reference's `gr_vs`
+# folds the vertex keys in order and allocates nothing either, and the
+# operator's representation clarification allows a public array/indexed-view
+# enumeration as long as the observable sequence and checksum are the same.
+# They are: the block holds exactly the ascending ids `GR.vertices` lists
+# (src/graph.bend `vertices_block`, proofs/graph/vblk.bend), the whole
+# enumeration is consumed here, and tools/dev/checksums.py verifies every
+# graph row against the pinned C reference.
+def fold_blk(k: Nat, c: U32, +j: U32, r: Array<U32> & U32) -> Array<U32> & U32:
+  match k r:
+    case 0n Tuple{a, x}:
+      (a, c)
+    case 1n+m Tuple{a, +x}:
+      fold_blk(m, B.mix(c, x), U32.inc(j), Array.get(U32, a, U32.inc(j)))
+
+def fin_blk(r: U32, g: GR.Graph, p: Array<U32> & U32) -> St:
+  (a, c) = p
+  S{r, c, g}
+
+def fin_vs(r: U32, c: U32, v: GR.VBlk) -> St:
+  GR.VB{g, blk, +n} = v
+  fin_blk(r, g, fold_blk(U32.to_nat(n), c, 0, Array.get(U32, blk, 0)))
 
 def do_vs(st: St) -> St:
   S{r, c, g} = st
-  fin_vs(B.lcg(r), c, GR.vertices(g))
+  fin_vs(B.lcg(r), c, GR.vertices_block(g))
 
 def fin_es(r: U32, c: U32, p: GR.Graph & List<&2, E.Edge>) -> St:
   (g, es) = p

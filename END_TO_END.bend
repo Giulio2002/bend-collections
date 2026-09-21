@@ -81,6 +81,7 @@ import ./proofs/graph.bend as GRP
 import ./proofs/graph/state.bend as GRSH
 import ./proofs/graph/gstep.bend as GRGS
 import ./proofs/graph/gtrace.bend as GRTR
+import ./proofs/graph/vblk.bend as GRVB
 import ./src/prefix_trie.bend as PT
 import ./spec/prefix_trie.bend as PTS
 import ./types/prefix_trie.bend as PTT
@@ -1163,6 +1164,19 @@ law graph_trace_from:
   GRTR.TraceOK(ops, sh)
 def graph_trace_from(ops, sh, h, q, hq, room):
   GRP.trace_from(ops, sh, h, q, hq, room)
+
+# The BLOCK enumeration of the vertices. `vertices_block` is the public
+# indexed-view form of `vertices`: it copies the ascending vertex-id window
+# into slots [0, n) of a fresh block instead of consing a List. The law says
+# the graph comes back unchanged, the block is exactly the one the mirror
+# builds, and its window [0, n) is the SAME ordered sequence `vertices`
+# returns -- so the two public enumerations denote one sequence.
+law graph_vertices_block:
+  for +sh: GRSH.Shadow
+  for +h: {GRSH.good(sh) == True{} : Bool}
+  GRVB.Built(sh)
+def graph_vertices_block(sh, h):
+  GRP.vertices_block_real(sh, h)
 
 # Model well-formedness (spec/graph.bend `wf`): endpoint closure, the
 # self-loop policy and undirected symmetry, established by `new`, held by

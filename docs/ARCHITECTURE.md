@@ -63,16 +63,38 @@ and where a genuine link survives:
 | `deque` | `Base.Array` ring of `T` slots, capacity `2^depth`; an empty deque owns NO block (`DE{}`) because `Array.new` needs a filler element and `T` is an arbitrary `Data` with no default | element `j` is slot `wrap(lo + j)`, `wrap(x) = x < cap ? x : x - cap` | none | `proofs/deque/{ring,state,grow,layout,stepok,reads,pushes,steps}.bend` |
 | `queue` | the deque (enqueue = push_back, dequeue = pop_front) | as the deque | none | `proofs/queue/{steps,trace}.bend` over the deque shadow |
 | `bitset` | `Base.Array` of packed `U32` words | bit `i` is word `i / 32`, bit `i % 32` | none | `proofs/bitset/{state,loops,fastcount,steps}.bend` |
-| `union_find` | three parallel `Base.Array`s (parent, size, members) | element `i` is slot `i` | none (member lists are values, not storage links) | `proofs/union_find/{state,arr,flat,init,steps}.bend` |
+| `union_find` | three parallel `Base.Array`s: `roots` (representative per element), `sizes` (class size at a representative) and `mems` (the class's member list at a representative) | element `i` is slot `i`; `find` is ONE indexed load | the member list at a representative is a cons list of `Nat` inside the arena slot. Eager full compression has to enumerate the smaller class on every `union`, so the algorithm needs that membership sequence; the pinned `benchmarks/native/union_find.c` keeps it as a `Member*` chain with a `last` pointer. Storing it instead as `next`/`last` INDEX links in two more `U32` arenas (the exact C layout) is listed as remaining representation work in WORK_LOG.md; it is the one place where a cons cell still carries structure. | `proofs/union_find/{state,arr,flat,init,steps}.bend` |
 | `fenwick_tree` | one `Base.Array` of `U32` cells, flat split-point layout | value `t` is cell `2^d + t`; a block `[o, o + 2^p)` keeps its partial sum at cell `o + 2^(p-1)` | none | `proofs/fenwick_tree/{state,arr,walk,init,steps}.bend` |
 | `segment_tree` | two `Base.Array`s of `U32` cells (sums, lazy tags), same split-point layout | as fenwick, plus the tag array at the block's split point | none | `proofs/segment_tree/{state,arr,walk,init,steps}.bend` |
 | `binary_heap` | `Base.Array` of `Maybe<A>` slots, capacity `2^depth` (PACKED array heap) | element `i` is slot `i`, children `2i+1`/`2i+2`, parent `(i-1)/2` | none | `proofs/binary_heap/{state,slots,idx,up,down,steps}.bend` |
 | `balanced_search_tree` | red-black tree of `Node{color, l, entry, r}` | — | tree children: a red-black BST is defined by its two-child nodes | `proofs/balanced_search_tree/{sorted,steps,colour}.bend` |
 | `prefix_trie` | trie nodes `TNode{c, val, down, next}` | `down` = children, `next` = the sibling chain of one node's children | trie children: a trie node's children are its genuine edges (the sibling chain is the part still to migrate) | `proofs/prefix_trie/{keys,ops,steps,trace}.bend` |
 | `doubly_linked_list` | THREE parallel `Base.Array` blocks (`vals: Maybe<T>`, `prevs: U32`, `nexts: U32`) sharing one index space | the element id IS its slot index (a monotone counter, never reused) | prev/next as ARENA INDICES: the requested structure is a doubly linked list with stable handles | `proofs/dlist/{state,links,items,alive,ibcore,rm,trace}.bend` |
-| `graph` | indexed vertex slots plus adjacency blocks: `ids: Array<U32>` (ascending, in the window `[lo, hi)`) and `adj: Array<Array<U32>>`, each adjacency block one power-of-two `U32` block with a `deg\|size\| none | `proofs/graph/{state,search,blk,nbrs,gstep,gtrace}.bend` |
+| `graph` | indexed vertex slots plus adjacency blocks: `ids: Array<U32>` (ascending, in the window `[lo, hi)`) and `adj: Array<Array<U32>>`; an adjacency block is one power-of-two `U32` block whose first three words are `deg`, `size`, `lcap`, followed by the ascending neighbour ids | vertex id -> slot by binary search over `ids`; neighbour -> position by binary search inside the block | none (adjacency is contiguous, not linked) | `proofs/graph/{state,search,blk,nbrs,gstep,gtrace}.bend`; the BLOCK enumeration `vertices_block` in `proofs/graph/vblk.bend` |
 | `lru` (retained) | `reference/lru` snapshot: `Map` + recency order | key | LRU recency order (inherent to the algorithm) | `proofs/lru.bend` (re-export of the pinned snapshot) |
 | `lru` (benchmarked, `src/lru/fast.bend`) | native `Map<&2, Maybe<&2, U32>>` (key -> `Some{slot}`) plus an arena: `kys: Array<String>`, `ents: Array<Slot<V>>` (`Live{v}` / `Timed{v, deadline}`), `prevs`/`nexts: Array<U32>`, metrics as ten `U32` limbs in one `Array<U32>` | key -> slot through the native Map (crit-bit trie; the C reference uses a hash table, see docs/C_EQUIVALENCE.md); proofs: `proofs/lru_fast/` (`state.bend` invariant `inv`: links agree with the ghost order, free chain, table <-> order) | intrusive doubly linked recency as arena indices: O(1) touch/evict is the algorithm | `proofs/lru_fast/{state,table,chain,steps,trace}.bend` |
+
+### Enumeration without a cons spine
+
+`graph.vertices` has two public forms and they denote the SAME ordered
+sequence (`proofs/graph/vblk.bend vertices_block_seq`):
+
+* `vertices(g) -> Graph & List<U32>` -- the List form, unchanged;
+* `vertices_block(g) -> VB{g, blk: Array<U32>, n: U32}` -- the block form:
+  the ascending id window is copied into slots `[0, n)` of a fresh
+  `Array<U32>` and the caller reads it by index. No cons cell is allocated.
+
+The block form is what `benchmarks/bend/graph.bend` folds, because the pinned
+`benchmarks/native/graph.c` `gr_vs` also folds its vertex keys in order
+without building a list: the List form divided a Bend list construction by a
+C fold (3.0-3.4x), the block form measures 0.86-1.29x with bit-identical
+checksums. This is the operator's 2026-09-21 representation clarification;
+the List form and all of its proofs are retained, and `tests/graph/main.bend`
+exercises both (`vs` and `vb` tokens, answered identically by the oracle,
+with two dedicated mutants of the copy loop).
+
+`bitset.to_list` is the one remaining row whose C reference folds without
+building a list; the same treatment would apply to it and has not been done.
 
 ### Constructors allocate eagerly
 
@@ -93,10 +115,13 @@ first pushed element is the filler, and the pinned `benchmarks/native/deque.c`
 does allocate one slot in `dq_init` -- the difference is disclosed in
 docs/C_EQUIVALENCE.md rather than claimed as a speedup.
 
-The only remaining node-linked storage is where the operator's rule allows
-it: tree/trie children (`balanced_search_tree`, `prefix_trie`),
-doubly-linked prev/next (`doubly_linked_list`, as ARENA INDICES in parallel
-`Base.Array` blocks) and LRU recency. `graph` holds no links at all: the
+The remaining node-linked storage is where the operator's rule allows it:
+tree/trie children (`balanced_search_tree`, `prefix_trie`), doubly-linked
+prev/next (`doubly_linked_list`, as ARENA INDICES in parallel `Base.Array`
+blocks) and LRU recency -- plus ONE place where it is not yet where it should
+be: the `union_find` member list is still a cons list inside the arena slot
+rather than `next`/`last` index links. Both that and the trie's sibling chain
+are open representation work, named as such here rather than defended. `graph` holds no links at all: the
 adjacency of a vertex is a contiguous sorted block of neighbour ids.
 `prefix_trie` is the one structure whose migration is still outstanding (its
 children are a first-child/next-sibling chain of `TNode` records).

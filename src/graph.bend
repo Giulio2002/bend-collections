@@ -686,6 +686,41 @@ def vertices(g: Graph) -> Graph & List<&2, U32>:
   G{+dir, +lo, +hi, +cap, +depth, ids, adj} = g
   vs_fin(dir, lo, hi, cap, depth, adj, vs_start(ids, lo, hi))
 
+# ---- vertices as a BLOCK (the indexed enumeration view) ----
+#
+# `vertices` above materialises a `List`, which costs one cons cell per
+# vertex. The vertex ids are ALREADY an ascending run of a native block, so
+# the enumeration does not need a cons spine at all: `vertices_block` copies
+# the window `ids[lo, hi)` into a fresh `Array<U32>` of `n = hi - lo` used
+# slots and hands it back with its length. The caller reads it by index.
+#
+# Both APIs are public, both are proved, and they denote the SAME ascending
+# sequence of vertex ids (proofs/graph/vblk.bend). The block form is what the
+# benchmark driver folds, because benchmarks/native/graph.c's `gr_vs` folds
+# the vertex keys in order without building a list either.
+
+type VBlk is Type:
+  VB{g: Graph, blk: Array<U32>, n: U32}
+
+# Copies backwards: with k values left to place, the value just read at ids[j]
+# belongs in slot k-1 of the new block (j = lo + k - 1), so the destination is
+# the remaining count and no index arithmetic on `lo` is needed in the loop.
+def vb_go(k: Nat, blk: Array<U32>, +j: U32, r: Array<U32> & U32) -> Array<U32> & Array<U32>:
+  match k r:
+    case 0n Tuple{a, x}:
+      (a, blk)
+    case 1n+ +m Tuple{a, +x}:
+      vb_go(m, Array.set(U32, blk, U32.from_nat(m), x), U32.sub(j, 1), Array.get(U32, a, U32.sub(j, 1)))
+
+def vb_fin(+dir: Bool, +lo: U32, +hi: U32, +cap: U32, +depth: Nat, adj: Array<Array<U32>>, +n: U32, r: Array<U32> & Array<U32>) -> VBlk:
+  (ids, blk) = r
+  VB{G{dir, lo, hi, cap, depth, ids, adj}, blk, n}
+
+# The vertex ids, ascending, in slots [0, n) of a fresh block.
+def vertices_block(g: Graph) -> VBlk:
+  G{+dir, +lo, +hi, +cap, +depth, ids, adj} = g
+  vb_fin(dir, lo, hi, cap, depth, adj, U32.sub(hi, lo), vb_go(U32.to_nat(U32.sub(hi, lo)), zeros(depth), U32.sub(hi, 1), Array.get(U32, ids, U32.sub(hi, 1))))
+
 # ---- edges ----
 
 type Ed is Type:

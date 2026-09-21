@@ -487,7 +487,9 @@ def graph(args):
                 out.append('OK true' if v in adj[u] else 'OK false')
         elif n == 'nb':
             out.append('LIST ' + join(sorted(adj[u])) if u in adj else 'ERR VertexNotFound')
-        elif n == 'vs':
+        elif n == 'vs' or n == 'vb':
+            # `vs` reads the vertices through the List enumeration and `vb`
+            # through the public block enumeration: the same ordered sequence
             out.append('LIST ' + join(sorted(adj)))
         else:
             es = [(a, b) for a in sorted(adj) for b in sorted(adj[a]) if directed or a < b]
