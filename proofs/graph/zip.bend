@@ -353,3 +353,193 @@ def ins_right_win(-T: Data, +c: Bool, +f: T, +d: T, +xs: List<&2, T>, +lo: Nat, 
   +w1 = L.subst(Nat, n => {SC.take(T, SC.drop(T, r2, n), 1n+Nat.add(SC.length(T, a), SC.length(T, b))) == SC.append(T, a, Con{v, b}) : List<&2, T>}, SC.length(T, t0), lo, lent0, wt(T, t0, a, v, b, r))
   +w2 = L.subst(Nat, n => {SC.take(T, SC.drop(T, r2, lo), 1n+n) == SC.append(T, a, Con{v, b}) : List<&2, T>}, Nat.add(SC.length(T, a), SC.length(T, b)), k, lenab, w1)
   L.subst(List<&2, T>, z => {SC.take(T, SC.drop(T, z, lo), 1n+k) == SC.append(T, a, Con{v, b}) : List<&2, T>}, r2, lhs, Equal.sym(List<&2, T>, lhs, r2, e12), w2)
+
+# ---- updates outside a window ----
+
+def upd_oob(-T: Data, +ys: List<&2, T>, +i: Nat, +x: T, +h: {Nat.is_le(SC.length(T, ys), i) == True{} : Bool}) -> {SC.update(T, ys, i, x) == ys : List<&2, T>}:
+  match ys i:
+    case Nil{} i0:
+      {==}
+    case Con{+hh, +t} 0n:
+      Empty.absurd({SC.update(T, Con{hh, t}, 0n, x) == Con{hh, t} : List<&2, T>}, L.false_true(h))
+    case Con{+hh, +t} 1n+p:
+      LL.cons_cong(T, hh, SC.update(T, t, p, x), t, upd_oob(T, t, p, x, h))
+
+def len_take_le(-T: Data, +xs: List<&2, T>, +n: Nat) -> {Nat.is_le(SC.length(T, SC.take(T, xs, n)), n) == True{} : Bool}:
+  match xs n:
+    case Nil{} n0:
+      N.le_add_right(0n, n0)
+    case Con{+hh, +t} 0n:
+      {==}
+    case Con{+hh, +t} 1n+p:
+      len_take_le(T, t, p)
+
+def take_upd_ge(-T: Data, +xs: List<&2, T>, +i: Nat, +x: T, +n: Nat, +h: {Nat.is_le(n, i) == True{} : Bool}) -> {SC.take(T, SC.update(T, xs, i, x), n) == SC.take(T, xs, n) : List<&2, T>}:
+  Equal.trans(List<&2, T>, SC.take(T, SC.update(T, xs, i, x), n), SC.update(T, SC.take(T, xs, n), i, x), SC.take(T, xs, n),
+    LL.sc_take_update(T, xs, i, x, n),
+    upd_oob(T, SC.take(T, xs, n), i, x, N.le_trans(SC.length(T, SC.take(T, xs, n)), n, i, len_take_le(T, xs, n), h)))
+
+def drop_upd(-T: Data, +xs: List<&2, T>, +lo: Nat, +j: Nat, +x: T) -> {SC.drop(T, SC.update(T, xs, Nat.add(lo, j), x), lo) == SC.update(T, SC.drop(T, xs, lo), j, x) : List<&2, T>}:
+  match xs lo:
+    case Nil{} l0:
+      {==}
+    case Con{+hh, +t} 0n:
+      drop0(T, SC.update(T, Con{hh, t}, j, x))
+    case Con{+hh, +t} 1n+p:
+      drop_upd(T, t, p, j, x)
+
+def win_upd_ge(-T: Data, +xs: List<&2, T>, +lo: Nat, +j: Nat, +x: T, +k: Nat, +h: {Nat.is_le(k, j) == True{} : Bool}) -> {SC.take(T, SC.drop(T, SC.update(T, xs, Nat.add(lo, j), x), lo), k) == SC.take(T, SC.drop(T, xs, lo), k) : List<&2, T>}:
+  Equal.trans(List<&2, T>, SC.take(T, SC.drop(T, SC.update(T, xs, Nat.add(lo, j), x), lo), k), SC.take(T, SC.update(T, SC.drop(T, xs, lo), j, x), k), SC.take(T, SC.drop(T, xs, lo), k),
+    Equal.cong(List<&2, T>, List<&2, T>, z => SC.take(T, z, k), SC.drop(T, SC.update(T, xs, Nat.add(lo, j), x), lo), SC.update(T, SC.drop(T, xs, lo), j, x), drop_upd(T, xs, lo, j, x)),
+    take_upd_ge(T, SC.drop(T, xs, lo), j, x, k, h))
+
+def DulIH(-T: Data, +t: List<&2, T>, +x: T, +p: Nat) -> Type:
+  @+q: Nat -> @+hq: {Nat.is_lt(q, p) == True{} : Bool} -> {SC.drop(T, SC.update(T, t, q, x), p) == SC.drop(T, t, p) : List<&2, T>}
+
+def drop_upd_lt_c(-T: Data, +hh: T, +t: List<&2, T>, +p: Nat, +i: Nat, +x: T, +h: {Nat.is_lt(i, 1n+p) == True{} : Bool}, ih: DulIH(T, t, x, p)) -> {SC.drop(T, SC.update(T, Con{hh, t}, i, x), 1n+p) == SC.drop(T, Con{hh, t}, 1n+p) : List<&2, T>}:
+  match i:
+    case 0n:
+      {==}
+    case 1n+q:
+      ih(q, h)
+
+def drop_upd_lt(-T: Data, +xs: List<&2, T>, +i: Nat, +x: T, +n: Nat, +h: {Nat.is_lt(i, n) == True{} : Bool}) -> {SC.drop(T, SC.update(T, xs, i, x), n) == SC.drop(T, xs, n) : List<&2, T>}:
+  match xs n:
+    case Nil{} n0:
+      {==}
+    case Con{+hh, +t} 0n:
+      Empty.absurd({SC.drop(T, SC.update(T, Con{hh, t}, i, x), 0n) == SC.drop(T, Con{hh, t}, 0n) : List<&2, T>}, L.false_true(Equal.trans(Bool, False{}, Nat.is_lt(i, 0n), True{}, Equal.sym(Bool, Nat.is_lt(i, 0n), False{}, N.not_lt_zero(i)), h)))
+    case Con{+hh, +t} 1n+p:
+      drop_upd_lt_c(T, hh, t, p, i, x, h, q => hq => drop_upd_lt(T, t, q, x, p, hq))
+
+def drop_app_len1(-T: Data, +p: List<&2, T>, +y: T, +w: List<&2, T>) -> {SC.drop(T, SC.append(T, p, Con{y, w}), 1n+SC.length(T, p)) == w : List<&2, T>}:
+  match p:
+    case Nil{}:
+      drop0(T, w)
+    case Con{+hh, +t}:
+      drop_app_len1(T, t, y, w)
+
+# ---- the window after a deletion by shifting ----
+
+# The window [lo, lo + 1 + k1) split around position l.
+def dsplit(-T: Data, +d: T, +xs: List<&2, T>, +lo: Nat, +k1: Nat, +l: Nat, +hl: {Nat.is_le(l, k1) == True{} : Bool}, +hk: {Nat.is_le(Nat.add(lo, 1n+k1), SC.length(T, xs)) == True{} : Bool}) -> {xs == SC.append(T, SC.take(T, xs, lo), SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), Con{vget(T, d, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.append(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), SC.drop(T, SC.drop(T, xs, lo), 1n+k1))})) : List<&2, T>}:
+  +t0 = SC.take(T, xs, lo)
+  +dd = SC.drop(T, xs, lo)
+  +ks = SC.take(T, dd, 1n+k1)
+  +e = SC.drop(T, dd, 1n+k1)
+  +a = SC.take(T, ks, l)
+  +b = SC.drop(T, ks, 1n+l)
+  +y = vget(T, d, ks, l)
+  +hle = N.le_trans(lo, Nat.add(lo, 1n+k1), SC.length(T, xs), N.le_add_right(lo, 1n+k1), hk)
+  +hkd = le_cancel(lo, 1n+k1, SC.length(T, dd), L.subst(Nat, z => {Nat.is_le(Nat.add(lo, 1n+k1), z) == True{} : Bool}, SC.length(T, xs), Nat.add(lo, SC.length(T, dd)), Equal.sym(Nat, Nat.add(lo, SC.length(T, dd)), SC.length(T, xs), len_split(T, xs, lo, hle)), hk))
+  +lenks = LL.sc_length_take(T, dd, 1n+k1, hkd)
+  +hl1 = L.subst(Nat, z => {Nat.is_lt(l, z) == True{} : Bool}, 1n+k1, SC.length(T, ks), Equal.sym(Nat, SC.length(T, ks), 1n+k1, lenks), N.le_lt_trans(l, k1, 1n+k1, hl, N.lt_succ(k1)))
+  Equal.trans(List<&2, T>, xs, SC.append(T, t0, dd), SC.append(T, t0, SC.append(T, a, Con{y, SC.append(T, b, e)})),
+    Equal.sym(List<&2, T>, SC.append(T, t0, dd), xs, take_drop_app(T, xs, lo)),
+    Equal.cong(List<&2, T>, List<&2, T>, z => SC.append(T, t0, z), dd, SC.append(T, a, Con{y, SC.append(T, b, e)}),
+      Equal.trans(List<&2, T>, dd, SC.append(T, ks, e), SC.append(T, a, Con{y, SC.append(T, b, e)}),
+        Equal.sym(List<&2, T>, SC.append(T, ks, e), dd, take_drop_app(T, dd, 1n+k1)),
+        Equal.trans(List<&2, T>, SC.append(T, ks, e), SC.append(T, SC.append(T, a, Con{y, b}), e), SC.append(T, a, Con{y, SC.append(T, b, e)}),
+          Equal.cong(List<&2, T>, List<&2, T>, z => SC.append(T, z, e), ks, SC.append(T, a, Con{y, b}),
+            Equal.trans(List<&2, T>, ks, SC.append(T, a, SC.drop(T, ks, l)), SC.append(T, a, Con{y, b}),
+              Equal.sym(List<&2, T>, SC.append(T, a, SC.drop(T, ks, l)), ks, take_drop_app(T, ks, l)),
+              Equal.cong(List<&2, T>, List<&2, T>, z => SC.append(T, a, z), SC.drop(T, ks, l), Con{y, b}, drop_cons_g(T, ks, l, d, hl1)))),
+          LL.append_assoc(T, a, Con{y, b}, e)))))
+
+def dlens(-T: Data, +d: T, +xs: List<&2, T>, +lo: Nat, +k1: Nat, +l: Nat, +hl: {Nat.is_le(l, k1) == True{} : Bool}, +hk: {Nat.is_le(Nat.add(lo, 1n+k1), SC.length(T, xs)) == True{} : Bool}) -> {Nat.add(SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l))) == k1 : Nat}:
+  +dd = SC.drop(T, xs, lo)
+  +ks = SC.take(T, dd, 1n+k1)
+  +a = SC.take(T, ks, l)
+  +b = SC.drop(T, ks, 1n+l)
+  +y = vget(T, d, ks, l)
+  +hle = N.le_trans(lo, Nat.add(lo, 1n+k1), SC.length(T, xs), N.le_add_right(lo, 1n+k1), hk)
+  +hkd = le_cancel(lo, 1n+k1, SC.length(T, dd), L.subst(Nat, z => {Nat.is_le(Nat.add(lo, 1n+k1), z) == True{} : Bool}, SC.length(T, xs), Nat.add(lo, SC.length(T, dd)), Equal.sym(Nat, Nat.add(lo, SC.length(T, dd)), SC.length(T, xs), len_split(T, xs, lo, hle)), hk))
+  +lenks = LL.sc_length_take(T, dd, 1n+k1, hkd)
+  +hl1 = L.subst(Nat, z => {Nat.is_lt(l, z) == True{} : Bool}, 1n+k1, SC.length(T, ks), Equal.sym(Nat, SC.length(T, ks), 1n+k1, lenks), N.le_lt_trans(l, k1, 1n+k1, hl, N.lt_succ(k1)))
+  +eks = Equal.trans(List<&2, T>, ks, SC.append(T, a, SC.drop(T, ks, l)), SC.append(T, a, Con{y, b}), Equal.sym(List<&2, T>, SC.append(T, a, SC.drop(T, ks, l)), ks, take_drop_app(T, ks, l)), Equal.cong(List<&2, T>, List<&2, T>, z => SC.append(T, a, z), SC.drop(T, ks, l), Con{y, b}, drop_cons_g(T, ks, l, d, hl1)))
+  +e1 = Equal.trans(Nat, 1n+Nat.add(SC.length(T, a), SC.length(T, b)), Nat.add(SC.length(T, a), 1n+SC.length(T, b)), 1n+k1,
+    Equal.sym(Nat, Nat.add(SC.length(T, a), 1n+SC.length(T, b)), 1n+Nat.add(SC.length(T, a), SC.length(T, b)), N.add_succ(SC.length(T, a), SC.length(T, b))),
+    Equal.trans(Nat, Nat.add(SC.length(T, a), 1n+SC.length(T, b)), SC.length(T, ks), 1n+k1,
+      Equal.trans(Nat, Nat.add(SC.length(T, a), 1n+SC.length(T, b)), SC.length(T, SC.append(T, a, Con{y, b})), SC.length(T, ks), Equal.sym(Nat, SC.length(T, SC.append(T, a, Con{y, b})), Nat.add(SC.length(T, a), 1n+SC.length(T, b)), LL.length_append(T, a, Con{y, b})), Equal.cong(List<&2, T>, Nat, z => SC.length(T, z), SC.append(T, a, Con{y, b}), ks, Equal.sym(List<&2, T>, ks, SC.append(T, a, Con{y, b}), eks))),
+      lenks))
+  Equal.cong(Nat, Nat, z => N.pred(z), 1n+Nat.add(SC.length(T, a), SC.length(T, b)), 1n+k1, e1)
+
+def dlena(-T: Data, +xs: List<&2, T>, +lo: Nat, +k1: Nat, +l: Nat, +hl: {Nat.is_le(l, k1) == True{} : Bool}, +hk: {Nat.is_le(Nat.add(lo, 1n+k1), SC.length(T, xs)) == True{} : Bool}) -> {SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)) == l : Nat}:
+  +dd = SC.drop(T, xs, lo)
+  +hle = N.le_trans(lo, Nat.add(lo, 1n+k1), SC.length(T, xs), N.le_add_right(lo, 1n+k1), hk)
+  +hkd = le_cancel(lo, 1n+k1, SC.length(T, dd), L.subst(Nat, z => {Nat.is_le(Nat.add(lo, 1n+k1), z) == True{} : Bool}, SC.length(T, xs), Nat.add(lo, SC.length(T, dd)), Equal.sym(Nat, Nat.add(lo, SC.length(T, dd)), SC.length(T, xs), len_split(T, xs, lo, hle)), hk))
+  +lenks = LL.sc_length_take(T, dd, 1n+k1, hkd)
+  LL.sc_length_take(T, SC.take(T, dd, 1n+k1), l, L.subst(Nat, z => {Nat.is_le(l, z) == True{} : Bool}, 1n+k1, SC.length(T, SC.take(T, dd, 1n+k1)), Equal.sym(Nat, SC.length(T, SC.take(T, dd, 1n+k1)), 1n+k1, lenks), N.le_trans(l, k1, 1n+k1, hl, N.le_succ(k1))))
+
+# Head removal: shift the l entries before position l one slot right; the
+# window then starts one later.
+def del_right_win(-T: Data, +c: Bool, +f: T, +d: T, +xs: List<&2, T>, +lo: Nat, +k1: Nat, +l: Nat, +hl: {Nat.is_le(l, k1) == True{} : Bool}, +hk: {Nat.is_le(Nat.add(lo, 1n+k1), SC.length(T, xs)) == True{} : Bool}) -> {SC.take(T, SC.drop(T, lsr(T, c, f, d, l, xs, Nat.add(lo, l)), 1n+lo), k1) == SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)) : List<&2, T>}:
+  +t0 = SC.take(T, xs, lo)
+  +y = vget(T, d, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)
+  +e = SC.drop(T, SC.drop(T, xs, lo), 1n+k1)
+  +r = SC.append(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), e)
+  +hle = N.le_trans(lo, Nat.add(lo, 1n+k1), SC.length(T, xs), N.le_add_right(lo, 1n+k1), hk)
+  +lent0 = LL.sc_length_take(T, xs, lo, hle)
+  +lena = dlena(T, xs, lo, k1, l, hl, hk)
+  +x0 = SC.append(T, t0, SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), Con{y, r}))
+  +r0 = SC.append(T, t0, Con{y, SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), r)})
+  +zr0 = zr(T, c, f, d, SC.reverse(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), t0, y, r, y)
+  +zr1 = L.subst(List<&2, T>, z => {SC.update(T, lsr(T, c, f, d, SC.length(T, SC.reverse(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l))), SC.append(T, t0, SC.append(T, z, Con{y, r})), Nat.add(SC.length(T, t0), SC.length(T, SC.reverse(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l))))), SC.length(T, t0), y) == SC.append(T, t0, Con{y, SC.append(T, z, r)}) : List<&2, T>}, SC.reverse(T, SC.reverse(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l))), SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), LL.spec_rev_rev(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), zr0)
+  +zr2 = L.subst(Nat, n => {SC.update(T, lsr(T, c, f, d, n, x0, Nat.add(SC.length(T, t0), n)), SC.length(T, t0), y) == r0 : List<&2, T>}, SC.length(T, SC.reverse(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l))), SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), LL.length_rev(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), zr1)
+  +zr3 = L.subst(Nat, n => {SC.update(T, lsr(T, c, f, d, n, x0, Nat.add(SC.length(T, t0), n)), SC.length(T, t0), y) == r0 : List<&2, T>}, SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), l, lena, zr2)
+  +zr4 = L.subst(Nat, m => {SC.update(T, lsr(T, c, f, d, l, x0, Nat.add(m, l)), m, y) == r0 : List<&2, T>}, SC.length(T, t0), lo, lent0, zr3)
+  +zr5 = L.subst(List<&2, T>, z => {SC.update(T, lsr(T, c, f, d, l, z, Nat.add(lo, l)), lo, y) == r0 : List<&2, T>}, x0, xs, Equal.sym(List<&2, T>, xs, x0, dsplit(T, d, xs, lo, k1, l, hl, hk)), zr4)
+  +xx = lsr(T, c, f, d, l, xs, Nat.add(lo, l))
+  +ed = Equal.trans(List<&2, T>, SC.drop(T, xx, 1n+lo), SC.drop(T, SC.update(T, xx, lo, y), 1n+lo), SC.drop(T, r0, 1n+lo),
+    Equal.sym(List<&2, T>, SC.drop(T, SC.update(T, xx, lo, y), 1n+lo), SC.drop(T, xx, 1n+lo), drop_upd_lt(T, xx, lo, y, 1n+lo, N.lt_succ(lo))),
+    Equal.cong(List<&2, T>, List<&2, T>, z => SC.drop(T, z, 1n+lo), SC.update(T, xx, lo, y), r0, zr5))
+  +ew = L.subst(Nat, m => {SC.drop(T, r0, 1n+m) == SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), r) : List<&2, T>}, SC.length(T, t0), lo, lent0, drop_app_len1(T, t0, y, SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), r)))
+  +et = Equal.trans(List<&2, T>, SC.take(T, SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), r), k1), SC.take(T, SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), r), Nat.add(SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)))), SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)),
+    Equal.cong(Nat, List<&2, T>, n => SC.take(T, SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), r), n), k1, Nat.add(SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l))), Equal.sym(Nat, Nat.add(SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l))), k1, dlens(T, d, xs, lo, k1, l, hl, hk))),
+    Equal.trans(List<&2, T>, SC.take(T, SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), r), Nat.add(SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)))), SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.take(T, r, SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)))), SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)),
+      take_app_len(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), r, SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l))),
+      Equal.cong(List<&2, T>, List<&2, T>, z => SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), z), SC.take(T, r, SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l))), SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), take_app_exact(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), e))))
+  Equal.trans(List<&2, T>, SC.take(T, SC.drop(T, xx, 1n+lo), k1), SC.take(T, SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), r), k1), SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)),
+    Equal.cong(List<&2, T>, List<&2, T>, z => SC.take(T, z, k1), SC.drop(T, xx, 1n+lo), SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), r), Equal.trans(List<&2, T>, SC.drop(T, xx, 1n+lo), SC.drop(T, r0, 1n+lo), SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), r), ed, ew)),
+    et)
+
+# Tail removal: shift the k1 - l entries after position l one slot left; the
+# window then ends one earlier.
+def del_left_win(-T: Data, +c: Bool, +f: T, +d: T, +xs: List<&2, T>, +lo: Nat, +k1: Nat, +l: Nat, +hl: {Nat.is_le(l, k1) == True{} : Bool}, +hk: {Nat.is_le(Nat.add(lo, 1n+k1), SC.length(T, xs)) == True{} : Bool}) -> {SC.take(T, SC.drop(T, lsl(T, c, f, d, Nat.sub(k1, l), xs, Nat.add(lo, l)), lo), k1) == SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)) : List<&2, T>}:
+  +t0 = SC.take(T, xs, lo)
+  +p = SC.append(T, t0, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l))
+  +y = vget(T, d, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)
+  +e = SC.drop(T, SC.drop(T, xs, lo), 1n+k1)
+  +hle = N.le_trans(lo, Nat.add(lo, 1n+k1), SC.length(T, xs), N.le_add_right(lo, 1n+k1), hk)
+  +lent0 = LL.sc_length_take(T, xs, lo, hle)
+  +lena = dlena(T, xs, lo, k1, l, hl, hk)
+  +lab = dlens(T, d, xs, lo, k1, l, hl, hk)
+  +elk = L.subst(Nat, z => {Nat.add(z, SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l))) == k1 : Nat}, SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), l, lena, lab)
+  +lenb = Equal.sym(Nat, Nat.sub(k1, l), SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)), Equal.trans(Nat, Nat.sub(k1, l), Nat.sub(Nat.add(l, SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l))), l), SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)), Equal.cong(Nat, Nat, z => Nat.sub(z, l), k1, Nat.add(l, SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l))), Equal.sym(Nat, Nat.add(l, SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l))), k1, elk)), N.add_sub_cancel(l, SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)))))
+  +lenp = Equal.trans(Nat, SC.length(T, p), Nat.add(SC.length(T, t0), SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l))), Nat.add(lo, l), LL.length_append(T, t0, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)),
+    Equal.trans(Nat, Nat.add(SC.length(T, t0), SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l))), Nat.add(lo, SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l))), Nat.add(lo, l), Equal.cong(Nat, Nat, z => Nat.add(z, SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l))), SC.length(T, t0), lo, lent0), Equal.cong(Nat, Nat, z => Nat.add(lo, z), SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), l, lena)))
+  +x0 = SC.append(T, p, Con{y, SC.append(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), e)})
+  +yy = SC.append(T, p, SC.append(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), Con{y, e}))
+  +ex0 = Equal.trans(List<&2, T>, xs, SC.append(T, t0, SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), Con{y, SC.append(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), e)})), x0, dsplit(T, d, xs, lo, k1, l, hl, hk), Equal.sym(List<&2, T>, x0, SC.append(T, t0, SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), Con{y, SC.append(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), e)})), LL.append_assoc(T, t0, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), Con{y, SC.append(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), e)})))
+  +zl1 = L.subst(Nat, n => {SC.update(T, lsl(T, c, f, d, n, x0, SC.length(T, p)), Nat.add(SC.length(T, p), n), y) == yy : List<&2, T>}, SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)), Nat.sub(k1, l), lenb, zl(T, c, f, d, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), p, y, e, y))
+  +zl2 = L.subst(Nat, m => {SC.update(T, lsl(T, c, f, d, Nat.sub(k1, l), x0, m), Nat.add(m, Nat.sub(k1, l)), y) == yy : List<&2, T>}, SC.length(T, p), Nat.add(lo, l), lenp, zl1)
+  +zl3 = L.subst(List<&2, T>, z => {SC.update(T, lsl(T, c, f, d, Nat.sub(k1, l), z, Nat.add(lo, l)), Nat.add(Nat.add(lo, l), Nat.sub(k1, l)), y) == yy : List<&2, T>}, x0, xs, Equal.sym(List<&2, T>, xs, x0, ex0), zl2)
+  +eix = Equal.trans(Nat, Nat.add(Nat.add(lo, l), Nat.sub(k1, l)), Nat.add(lo, Nat.add(l, Nat.sub(k1, l))), Nat.add(lo, k1), N.add_assoc(lo, l, Nat.sub(k1, l)), Equal.cong(Nat, Nat, z => Nat.add(lo, z), Nat.add(l, Nat.sub(k1, l)), k1, N.sub_add(k1, l, hl)))
+  +zl4 = L.subst(Nat, n => {SC.update(T, lsl(T, c, f, d, Nat.sub(k1, l), xs, Nat.add(lo, l)), n, y) == yy : List<&2, T>}, Nat.add(Nat.add(lo, l), Nat.sub(k1, l)), Nat.add(lo, k1), eix, zl3)
+  +xx = lsl(T, c, f, d, Nat.sub(k1, l), xs, Nat.add(lo, l))
+  +w0 = SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.append(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), Con{y, e}))
+  +ew = Equal.trans(List<&2, T>, SC.drop(T, yy, lo), SC.drop(T, SC.append(T, t0, w0), lo), w0,
+    Equal.cong(List<&2, T>, List<&2, T>, z => SC.drop(T, z, lo), yy, SC.append(T, t0, w0), LL.append_assoc(T, t0, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.append(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), Con{y, e}))),
+    L.subst(Nat, m => {SC.drop(T, SC.append(T, t0, w0), m) == w0 : List<&2, T>}, SC.length(T, t0), lo, lent0, drop_app_len(T, t0, w0)))
+  +et = Equal.trans(List<&2, T>, SC.take(T, w0, k1), SC.take(T, w0, Nat.add(SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)))), SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)),
+    Equal.cong(Nat, List<&2, T>, n => SC.take(T, w0, n), k1, Nat.add(SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l))), Equal.sym(Nat, Nat.add(SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l))), k1, lab)),
+    Equal.trans(List<&2, T>, SC.take(T, w0, Nat.add(SC.length(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l)), SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)))), SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.take(T, SC.append(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), Con{y, e}), SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)))), SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)),
+      take_app_len(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.append(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), Con{y, e}), SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l))),
+      Equal.cong(List<&2, T>, List<&2, T>, z => SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), z), SC.take(T, SC.append(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), Con{y, e}), SC.length(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l))), SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), take_app_exact(T, SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l), Con{y, e}))))
+  Equal.trans(List<&2, T>, SC.take(T, SC.drop(T, xx, lo), k1), SC.take(T, SC.drop(T, SC.update(T, xx, Nat.add(lo, k1), y), lo), k1), SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)),
+    Equal.sym(List<&2, T>, SC.take(T, SC.drop(T, SC.update(T, xx, Nat.add(lo, k1), y), lo), k1), SC.take(T, SC.drop(T, xx, lo), k1), win_upd_ge(T, xx, lo, k1, y, k1, N.le_refl(k1))),
+    Equal.trans(List<&2, T>, SC.take(T, SC.drop(T, SC.update(T, xx, Nat.add(lo, k1), y), lo), k1), SC.take(T, SC.drop(T, yy, lo), k1), SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)),
+      Equal.cong(List<&2, T>, List<&2, T>, z => SC.take(T, SC.drop(T, z, lo), k1), SC.update(T, xx, Nat.add(lo, k1), y), yy, zl4),
+      Equal.trans(List<&2, T>, SC.take(T, SC.drop(T, yy, lo), k1), SC.take(T, w0, k1), SC.append(T, SC.take(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), l), SC.drop(T, SC.take(T, SC.drop(T, xs, lo), 1n+k1), 1n+l)),
+        Equal.cong(List<&2, T>, List<&2, T>, z => SC.take(T, z, k1), SC.drop(T, yy, lo), w0, ew),
+        et)))

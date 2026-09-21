@@ -1713,3 +1713,13 @@ Done in 0006 (recovery notes):
 * Checker lessons: `+x = e` needs e's type to be Data (pair types are not) - inline; `as`
   is a keyword; names like `exs` fail to parse (use `hxs`); a match with a wildcard column in
   the runtime may not reduce for a variable - split all columns.
+* remove_vertex: runtime CHANGED to strip v from every slot's block in both modes (the C
+  reference `strip` walks every vertex's set; the neighbour-only undirected walk and its
+  `Strip` state are gone). Proofs: rmv1 (model/list facts of deleting a present key; `rv_new`),
+  rmv2 (head/tail slot removal cores via zip.bend deletion windows), rmv3 (strip mirror
+  `sd_tree`, runtime = mirror, window = map ds; dispatch; `so_remove_vertex`). All check.
+* proofs/graph/gtrace.bend: `step_ok` for all ten operations and `trace_new` / `trace_from`
+  (RunOK/TraceOK, adds(ops) budget). proofs/graph.bend rewritten on the shadow form; stale
+  proofs/graph/{steps,trace,model}.bend deleted; END_TO_END graph laws rewritten
+  (graph_trace instantiates q = 30).
+* END_TO_END / PROOF.bend still fail only because of the stale DLL proofs (D.N constructor).

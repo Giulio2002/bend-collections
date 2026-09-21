@@ -47,11 +47,12 @@ import ../types/graph.bend as E
 #                            the one adjacency block that changes
 #   add_vertex insert / remove_vertex slot removal            O(V) words moved
 #   neighbors O(D), vertices O(V), edges O(V + E)
-#   remove_vertex undirected O(D (log V + D)) - only the actual neighbours
-#     are visited, using the symmetry invariant; directed O(V + E), since
-#     in-edges are not indexed (docs/C_EQUIVALENCE.md explains why a reverse
-#     adjacency index is not maintained: it doubles every edge update to
-#     speed up only directed vertex deletion).
+#   remove_vertex strip O(V log D) - v is removed from EVERY block, in both
+#     directions, exactly as the C reference's `strip` walks every vertex's
+#     set (benchmarks/native/graph.c); in-edges are not indexed
+#     (docs/C_EQUIVALENCE.md explains why a reverse adjacency index is not
+#     maintained: it doubles every edge update to speed up only vertex
+#     deletion).
 # The sorted-block choice trades O(log V) tree insertion for O(V) contiguous
 # moves, the same trade a C flat_map / CSR adjacency makes; every lookup,
 # every traversal and every edge update is a contiguous indexed access.
@@ -422,62 +423,14 @@ def add_vertex(g: Graph, +v: U32) -> Graph & Result<&2, &2, E.Error, Unit>:
 
 # ---- remove_vertex ----
 #
-# Undirected: the neighbours of v are exactly the vertices whose blocks
-# mention v (the symmetry invariant), so only those blocks are touched.
-# Directed: in-edges are not indexed, so every block is visited, which is
-# what the reference implementation does as well.
-
-type Strip is Type:
-  ST{ids: Array<U32>, adj: Array<Array<U32>>, blk: Array<U32>, j: U32}
-
-def st_done(ids: Array<U32>, blk: Array<U32>, +j: U32, u: Upd) -> Strip:
-  UP{adj, ok} = u
-  ST{ids, adj, blk, U32.inc(j)}
-
-def st_pick(ids: Array<U32>, adj: Array<Array<U32>>, blk: Array<U32>, +j: U32, +v: U32, +i: U32, found: Bool) -> Strip:
-  match found:
-    case True{}:
-      st_done(ids, blk, j, del_nbr(adj, i, v))
-    case False{}:
-      ST{ids, adj, blk, U32.inc(j)}
-
-def st_loc(adj: Array<Array<U32>>, blk: Array<U32>, +j: U32, +v: U32, s: Loc) -> Strip:
-  LC{ids, +i, found} = s
-  st_pick(ids, adj, blk, j, v, i, found)
-
-def st_read(+depth: Nat, +lo: U32, +hi: U32, +v: U32, ids: Array<U32>, adj: Array<Array<U32>>, +j: U32, r: Array<U32> & U32) -> Strip:
-  (blk, +w) = r
-  st_loc(adj, blk, j, v, locate(depth, w, lo, hi, ids))
-
-def st_one(+depth: Nat, +lo: U32, +hi: U32, +v: U32, s: Strip) -> Strip:
-  ST{ids, adj, blk, +j} = s
-  st_read(depth, lo, hi, v, ids, adj, j, Array.get(U32, blk, j))
-
-def st_loop(k: Nat, +depth: Nat, +lo: U32, +hi: U32, +v: U32, s: Strip) -> Strip:
-  match k:
-    case 0n:
-      s
-    case 1n+m:
-      st_loop(m, depth, lo, hi, v, st_one(depth, lo, hi, v, s))
+# v is removed from every slot's block, in both directions, as the C
+# reference's `strip` removes it from every vertex's set; v's own block is
+# visited too (a no-op: no vertex is its own neighbour) and is then dropped
+# when its slot is closed.
 
 type Pair2 is Type:
   P2{ids: Array<U32>, adj: Array<Array<U32>>}
 
-def st_fin(s: Strip) -> Pair2:
-  ST{ids, adj, blk, j} = s
-  P2{ids, adj}
-
-def st_start(+depth: Nat, +lo: U32, +hi: U32, +v: U32, ids: Array<U32>, adj: Array<Array<U32>>, h: Hdr) -> Pair2:
-  HD{b, +deg, size, lcap} = h
-  st_fin(st_loop(U32.to_nat(deg), depth, lo, hi, v, ST{ids, adj, b, 3}))
-
-# v's own block is taken out of the table; it is dropped after the strip,
-# and the slot is removed immediately afterwards.
-def st_take(+depth: Nat, +lo: U32, +hi: U32, +v: U32, ids: Array<U32>, r: Array<Array<U32>> & Array<U32>) -> Pair2:
-  (adj, b) = r
-  st_start(depth, lo, hi, v, ids, adj, header(b))
-
-# Every slot's block gets v removed (the directed case).
 def sd_loop(k: Nat, +v: U32, +idx: U32, adj: Array<Array<U32>>) -> Array<Array<U32>>:
   match k:
     case 0n:
@@ -501,13 +454,9 @@ def keep_if(b: Bool, x: E.Edge, rest: List<&2, E.Edge>) -> List<&2, E.Edge>:
     case False{}:
       rest
 
-# Strip v from the incident blocks, then close the gap at slot i.
-def strip_all(+dir: Bool, +depth: Nat, +lo: U32, +hi: U32, +i: U32, +v: U32, ids: Array<U32>, adj: Array<Array<U32>>) -> Pair2:
-  match dir:
-    case True{}:
-      P2{ids, sd_loop(U32.to_nat(U32.sub(hi, lo)), v, lo, adj)}
-    case False{}:
-      st_take(depth, lo, hi, v, ids, Array.swap(Array<U32>, adj, i, zeros(0n)))
+# Strip v from every block of the window [lo, hi); the caller then closes the gap.
+def strip_all(+lo: U32, +hi: U32, +v: U32, ids: Array<U32>, adj: Array<Array<U32>>) -> Pair2:
+  P2{ids, sd_loop(U32.to_nat(U32.sub(hi, lo)), v, lo, adj)}
 
 # Close the gap by moving the TAIL down one slot (the back is the shorter side).
 def rv_tail(+dir: Bool, +lo: U32, +hi: U32, +cap: U32, +depth: Nat, +i: U32, ids: Array<U32>, adj: Array<Array<U32>>) -> Graph:
@@ -534,7 +483,7 @@ def rv_drop(+dir: Bool, +lo: U32, +hi: U32, +cap: U32, +depth: Nat, +i: U32, p: 
           U32.is_lt(U32.sub(i, lo), U32.sub(U32.sub(hi, 1), i)))
 
 def rv_go(+dir: Bool, +lo: U32, +hi: U32, +cap: U32, +depth: Nat, ids: Array<U32>, adj: Array<Array<U32>>, +i: U32, +v: U32) -> Graph:
-  rv_drop(dir, lo, hi, cap, depth, i, strip_all(dir, depth, lo, hi, i, v, ids, adj))
+  rv_drop(dir, lo, hi, cap, depth, i, strip_all(lo, hi, v, ids, adj))
 
 def rv_pick(+dir: Bool, +lo: U32, +hi: U32, +cap: U32, +depth: Nat, ids: Array<U32>, adj: Array<Array<U32>>, +i: U32, +v: U32, found: Bool) -> Graph & Result<&2, &2, E.Error, Unit>:
   match found:

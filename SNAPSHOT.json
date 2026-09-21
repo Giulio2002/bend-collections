@@ -1,5 +1,5 @@
 {
-  "captured_at": "2026-09-21T05:13:18.801425+00:00",
+  "captured_at": "2026-09-21T05:36:48.311624+00:00",
   "repository": "bend-collections",
   "kind": "unverified_development_snapshot",
   "full_acceptance_passed": false,
@@ -21,6 +21,7 @@
         "proofs/binary_heap/steps.bend",
         "proofs/binary_heap/trace.bend",
         "proofs/binary_heap/tree.bend",
+        "proofs/graph.bend",
         "src/binary_heap.bend",
         "src/doubly_linked_list.bend",
         "src/dynamic_array.bend",
@@ -62,6 +63,7 @@
         "proofs/binary_heap/trace.bend",
         "proofs/binary_heap/tree.bend",
         "proofs/deque.bend",
+        "proofs/graph.bend",
         "src/binary_heap.bend",
         "src/doubly_linked_list.bend",
         "src/dynamic_array.bend",
@@ -113,6 +115,7 @@
         "proofs/dynamic_array/state.bend",
         "proofs/dynamic_array/steps.bend",
         "proofs/fenwick_tree/state.bend",
+        "proofs/graph.bend",
         "proofs/queue.bend",
         "proofs/queue/steps.bend",
         "proofs/queue/trace.bend",
@@ -163,6 +166,7 @@
         "proofs/deque.bend",
         "proofs/dynamic_array/closed.bend",
         "proofs/dynamic_array/steps.bend",
+        "proofs/graph.bend",
         "src/binary_heap.bend",
         "src/doubly_linked_list.bend",
         "src/dynamic_array.bend",
@@ -208,6 +212,7 @@
         "proofs/dynamic_array/closed.bend",
         "proofs/dynamic_array/steps.bend",
         "proofs/fenwick_tree/state.bend",
+        "proofs/graph.bend",
         "proofs/segment_tree/state.bend",
         "src/binary_heap.bend",
         "src/bitset.bend",
@@ -261,6 +266,7 @@
         "proofs/dynamic_array/state.bend",
         "proofs/dynamic_array/steps.bend",
         "proofs/fenwick_tree/state.bend",
+        "proofs/graph.bend",
         "proofs/queue.bend",
         "proofs/queue/steps.bend",
         "proofs/queue/trace.bend",
@@ -281,7 +287,7 @@
   ],
   "evidence_scope": "historical targeted runs; source changed during ongoing development; no current-snapshot pass claimed",
   "source_sha256_file": "SNAPSHOT_SOURCE_SHA256.json",
-  "milestone": "Indexed add_edge/add_vertex StepOK independently check,94unsafe annotations each; vertex removal and final acceptance incomplete",
+  "milestone": "Indexed graph all10operations/runtime/boundaries/differential6mutations/trace proof pass; independent graph checker94unsafe; whole-library acceptance incomplete",
   "validation_source_hash_mismatches": [
     "proofs/balanced_search_tree/steps.bend",
     "src/doubly_linked_list.bend",
@@ -387,7 +393,9 @@
   },
   "historical_report_source_mismatches": {
     "validation-full.json": [
+      "END_TO_END.bend",
       "proofs/balanced_search_tree/steps.bend",
+      "proofs/graph.bend",
       "src/doubly_linked_list.bend",
       "src/dynamic_array.bend",
       "src/graph.bend",
@@ -435,6 +443,7 @@
       "proofs/dynamic_array/state.bend",
       "proofs/dynamic_array/steps.bend",
       "proofs/fenwick_tree/state.bend",
+      "proofs/graph.bend",
       "proofs/queue.bend",
       "proofs/queue/steps.bend",
       "proofs/queue/trace.bend",
@@ -460,6 +469,7 @@
       "proofs/binary_heap/steps.bend",
       "proofs/binary_heap/trace.bend",
       "proofs/binary_heap/tree.bend",
+      "proofs/graph.bend",
       "src/binary_heap.bend",
       "src/doubly_linked_list.bend",
       "src/dynamic_array.bend",
@@ -467,9 +477,11 @@
       "types/doubly_linked_list.bend"
     ],
     "validation-binary-heap.json": [
+      "END_TO_END.bend",
       "proofs/balanced_search_tree/steps.bend",
       "proofs/binary_heap/pop.bend",
       "proofs/binary_heap/sorted.bend",
+      "proofs/graph.bend",
       "src/binary_heap.bend",
       "src/doubly_linked_list.bend",
       "src/dynamic_array.bend",
@@ -492,6 +504,7 @@
       "proofs/binary_heap/steps.bend",
       "proofs/binary_heap/trace.bend",
       "proofs/binary_heap/tree.bend",
+      "proofs/graph.bend",
       "src/binary_heap.bend",
       "src/doubly_linked_list.bend",
       "src/dynamic_array.bend",
@@ -513,6 +526,7 @@
       "proofs/dynamic_array/state.bend",
       "proofs/dynamic_array/steps.bend",
       "proofs/fenwick_tree/state.bend",
+      "proofs/graph.bend",
       "proofs/segment_tree/state.bend",
       "src/binary_heap.bend",
       "src/bitset.bend",
@@ -562,6 +576,7 @@
       "proofs/dynamic_array/closed.bend",
       "proofs/dynamic_array/steps.bend",
       "proofs/fenwick_tree/state.bend",
+      "proofs/graph.bend",
       "proofs/segment_tree/state.bend",
       "src/binary_heap.bend",
       "src/bitset.bend",
@@ -600,6 +615,7 @@
       "proofs/binary_heap/trace.bend",
       "proofs/binary_heap/tree.bend",
       "proofs/deque.bend",
+      "proofs/graph.bend",
       "src/binary_heap.bend",
       "src/doubly_linked_list.bend",
       "src/dynamic_array.bend",
@@ -607,18 +623,22 @@
       "types/doubly_linked_list.bend"
     ],
     "performance-full.json": [
+      "END_TO_END.bend",
       "benchmarks/bend/doubly_linked_list.bend",
       "benchmarks/bend/graph.bend",
       "benchmarks/native/doubly_linked_list.c",
       "proofs/balanced_search_tree/steps.bend",
+      "proofs/graph.bend",
       "src/doubly_linked_list.bend",
       "src/dynamic_array.bend",
       "src/graph.bend",
       "types/doubly_linked_list.bend"
     ],
     "indexed-graph-benchmark.json": [
+      "END_TO_END.bend",
       "benchmarks/bend/doubly_linked_list.bend",
       "benchmarks/bend/graph.bend",
+      "proofs/graph.bend",
       "proofs/lib/u32add.bend",
       "src/doubly_linked_list.bend",
       "src/graph.bend"
@@ -659,6 +679,7 @@
       "proofs/dynamic_array/state.bend",
       "proofs/dynamic_array/steps.bend",
       "proofs/fenwick_tree/state.bend",
+      "proofs/graph.bend",
       "proofs/queue.bend",
       "proofs/queue/steps.bend",
       "proofs/queue/trace.bend",
@@ -675,13 +696,17 @@
       "types/doubly_linked_list.bend"
     ],
     "indexed-graph-full-validation.json": [
+      "END_TO_END.bend",
+      "proofs/graph.bend",
       "proofs/graph/lb.bend",
       "proofs/graph/state.bend",
       "proofs/graph/window.bend",
+      "src/graph.bend",
       "tests/doubly_linked_list/main.bend",
       "tools/mutants.py",
       "tools/validate.py"
     ],
+    "indexed-graph-integrated-validation.json": [],
     "perf-fen2.json": [
       "END_TO_END.bend",
       "benchmarks/bend/balanced_search_tree.bend",
@@ -712,6 +737,7 @@
       "proofs/deque.bend",
       "proofs/dynamic_array/closed.bend",
       "proofs/dynamic_array/steps.bend",
+      "proofs/graph.bend",
       "src/binary_heap.bend",
       "src/doubly_linked_list.bend",
       "src/dynamic_array.bend",
@@ -730,5 +756,13 @@
   "add_checks": {
     "add_edge": "All terms check, with 94 unsafe annotations.",
     "add_vertex": "All terms check, with 94 unsafe annotations."
+  },
+  "indexed_graph_integrated_validation": {
+    "failures": [],
+    "operations_passed": 10,
+    "mutation_checks": 6,
+    "trace_proof": "passed",
+    "independent_checker": "All terms check, with 94 unsafe annotations.",
+    "recorded_source_mismatches": []
   }
 }

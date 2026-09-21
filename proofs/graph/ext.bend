@@ -90,3 +90,4 @@ def nth_take_ge(-A: Data, +ys: List<&2, A>, +k: Nat, +i: Nat, +h: {Nat.is_le(k, 
       Empty.absurd({SC.nth(A, SC.take(A, Con{y, t}, 1n+q), 0n) == None{} : Maybe<&2, A>}, L.false_true(h))
     case Con{+y, +t} 1n+q 1n+j:
       nth_take_ge(A, t, q, j, h)
+

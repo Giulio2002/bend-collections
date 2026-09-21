@@ -78,8 +78,9 @@ import ./src/graph.bend as GR
 import ./spec/graph.bend as GRS
 import ./types/graph.bend as GRT
 import ./proofs/graph.bend as GRP
-import ./proofs/graph/steps.bend as GRST
-import ./proofs/graph/trace.bend as GRTR
+import ./proofs/graph/state.bend as GRSH
+import ./proofs/graph/gstep.bend as GRGS
+import ./proofs/graph/gtrace.bend as GRTR
 import ./src/prefix_trie.bend as PT
 import ./spec/prefix_trie.bend as PTS
 import ./types/prefix_trie.bend as PTT
@@ -842,44 +843,65 @@ def segment_tree_trace_from_list(xs, ops, h):
   SGP.trace_from_list(xs, ops, h)
 
 # ================================ graph ===============================
+# Indexed vertex slots plus adjacency blocks (src/graph.bend). Both tables are
+# linear Base.Arrays, so -- as for the other array-backed structures -- the
+# laws are about the graph BUILT from a Data mirror (GRSH.real of a shadow).
+# `room` is the representation's capacity condition: 3 + mu < 2^q, q <= 30,
+# where mu is the window size plus the maximum degree (every add_vertex /
+# add_edge raises it by at most one).
+
+law graph_new_is_the_constructor:
+  for +d: Bool
+  {GR.new(d) == GRSH.real(GRSH.empty_shadow(d)) : GR.Graph}
+def graph_new_is_the_constructor(d):
+  GRP.new_real(d)
 
 law graph_new:
   for +d: Bool
-  {GRST.abs(GR.new(d)) == GRS.new(d) : GRS.Model}
+  {GRSH.model(GRSH.empty_shadow(d)) == GRS.new(d) : GRS.Model}
 def graph_new(d):
   GRP.new_abs(d)
 
 law graph_new_invariant:
   for +d: Bool
-  {GRST.inv(GR.new(d)) == True{} : Bool}
+  {GRSH.good(GRSH.empty_shadow(d)) == True{} : Bool}
 def graph_new_invariant(d):
   GRP.new_inv(d)
 
 law graph_step:
-  for +g: GR.Graph
+  for +sh: GRSH.Shadow
   for +op: GRT.Op
-  for +h: {GRST.inv(g) == True{} : Bool}
-  GRST.StepOK(g, op)
-def graph_step(g, op, h):
-  GRP.step_ok(g, op, h)
+  for +h: {GRSH.good(sh) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 30n) == True{} : Bool}
+  for +room: {Nat.is_lt(Nat.add(3n, GRGS.mu(sh)), SCOM.pow2(q)) == True{} : Bool}
+  GRGS.StepOK(sh, op)
+def graph_step(sh, op, h, q, hq, room):
+  GRP.step_ok(sh, op, h, q, hq, room)
 
 law graph_trace:
   for +d: Bool
   for +ops: List<&2, GRT.Op>
-  {GRTR.view(GR.run(ops, GR.new(d))) == GRS.run(ops, GRS.new(d)) : GRS.Model & List<&2, GRT.Obs>}
-def graph_trace(d, ops):
-  GRP.trace_new(d, ops)
+  for +room: {Nat.is_lt(Nat.add(3n, GRTR.adds(ops)), SCOM.pow2(30n)) == True{} : Bool}
+  GRTR.TraceNew(d, ops)
+def graph_trace(d, ops, room):
+  GRP.trace_new(d, ops, 30n, {==}, room)
 
-law graph_trace_invariant:
-  for +d: Bool
+law graph_trace_from:
   for +ops: List<&2, GRT.Op>
-  {GRST.inv(Pair.fst(GR.Graph, List<&2, GRT.Obs>, GR.run(ops, GR.new(d)))) == True{} : Bool}
-def graph_trace_invariant(d, ops):
-  GRP.trace_new_inv(d, ops)
+  for +sh: GRSH.Shadow
+  for +h: {GRSH.good(sh) == True{} : Bool}
+  for +q: Nat
+  for +hq: {Nat.is_le(q, 30n) == True{} : Bool}
+  for +room: {Nat.is_lt(Nat.add(3n, Nat.add(GRGS.mu(sh), GRTR.adds(ops))), SCOM.pow2(q)) == True{} : Bool}
+  GRTR.TraceOK(ops, sh)
+def graph_trace_from(ops, sh, h, q, hq, room):
+  GRP.trace_from(ops, sh, h, q, hq, room)
 
 # Model well-formedness (spec/graph.bend `wf`): endpoint closure, the
-# self-loop policy and undirected symmetry, established by `new` and preserved
-# by EVERY operation of the spec step (graph_step_well_formed below).
+# self-loop policy and undirected symmetry, established by `new`, held by
+# the model of every good shadow and preserved by EVERY operation of the spec
+# step.
 law graph_new_well_formed:
   for +d: Bool
   {GRS.wf(GRS.new(d)) == True{} : Bool}
@@ -930,20 +952,20 @@ law graph_has_edge_well_formed:
 def graph_has_edge_well_formed(d, adj, u, v, h):
   GRP.has_edge_wf(d, adj, u, v, h)
 
-law graph_step_well_formed:
-  for +g: GR.Graph
-  for +op: GRT.Op
-  for +hinv: {GRST.inv(g) == True{} : Bool}
-  for +hwf: {GRS.wf(GRST.abs(g)) == True{} : Bool}
-  {GRS.wf(Pair.fst(GRS.Model, GRT.Obs, GRS.step(GRST.abs(g), op))) == True{} : Bool}
-def graph_step_well_formed(g, op, hinv, hwf):
-  GRP.step_wf(g, op, hinv, hwf)
+law graph_good_well_formed:
+  for +sh: GRSH.Shadow
+  for +h: {GRSH.good(sh) == True{} : Bool}
+  {GRS.wf(GRSH.model(sh)) == True{} : Bool}
+def graph_good_well_formed(sh, h):
+  GRP.good_wf(sh, h)
 
-law graph_new_abs_well_formed:
-  for +d: Bool
-  {GRS.wf(GRST.abs(GR.new(d))) == True{} : Bool}
-def graph_new_abs_well_formed(d):
-  GRP.new_abs_wf(d)
+law graph_step_well_formed:
+  for +sh: GRSH.Shadow
+  for +op: GRT.Op
+  for +h: {GRSH.good(sh) == True{} : Bool}
+  {GRS.wf(Pair.fst(GRS.Model, GRT.Obs, GRS.step(GRSH.model(sh), op))) == True{} : Bool}
+def graph_step_well_formed(sh, op, h):
+  GRP.step_wf(sh, op, h)
 
 # ============================= prefix_trie ============================
 # String keys; values are an erased type parameter.

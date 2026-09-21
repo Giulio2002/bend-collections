@@ -1,3 +1,18 @@
+## Latest: indexed graph proof and runtime validation integration
+
+The graph-only validation passes all ten operations, boundary/oracle scenarios,
+five seeded differential histories, six semantic mutation checks and the trace
+proof. It reports no failures. The top-level complete flag is false because
+this is a graph-only run, not whole-library acceptance. All recorded source
+hashes matched this exported code when independently reviewed.
+
+An independent run of proofs/graph.bend on the export also passes, reporting
+94 unsafe annotations. Raw check and validation evidence is in
+snapshot-evidence/indexed-graph-integrated-{check.log,validation.json}.
+The unsafe boundary still needs semantic audit. DLL and new native-LRU proofs,
+whole-library audit and all native performance targets remain unfinished.
+No new graph timing improvement is claimed by this proof milestone.
+
 ## Latest: indexed graph add_edge and add_vertex refinements
 
 Independent exported-snapshot checks of proofs/graph/addedge.bend and
