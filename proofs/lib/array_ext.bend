@@ -3,7 +3,7 @@ import ./logic.bend as L
 import ./nat.bend as N
 import ./list.bend as LL
 import ./array.bend as AR
-import ../../spec/common.bend as SC
+import ../spec/common.bend as SC
 
 # Two perfect mirror trees of the same depth with the same slot lists are
 # the same tree (the slots determine a perfect tree).

@@ -1,8 +1,8 @@
 import Base
 import ./common.bend as B
-import ../../src/dlist_iterator.bend as I
-import ../../src/doubly_linked_list.bend as D
-import ../../types/doubly_linked_list.bend as E
+import ../../src/containers/dlist_iterator.bend as I
+import ../../src/containers/doubly_linked_list.bend as D
+import ../../src/containers/types/doubly_linked_list.bend as E
 
 type St is Type:
   S{rng: U32, chk: U32, it: I.Iterator<U32>}

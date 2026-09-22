@@ -2,7 +2,7 @@ import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
-import ../../spec/common.bend as SC
+import ../spec/common.bend as SC
 
 # List facts about take / drop / update at one position, used to describe the
 # effect of an indexed loop over an array on the list of its slots.

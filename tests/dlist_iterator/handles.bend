@@ -1,8 +1,8 @@
 import Base
-import ../../src/dlist_iterator.bend as I
-import ../../src/doubly_linked_list.bend as D
-import ../../src/internal/dlist_storage.bend as R
-import ../../types/doubly_linked_list.bend as E
+import ../../src/containers/dlist_iterator.bend as I
+import ../../src/containers/doubly_linked_list.bend as D
+import ../../src/containers/internal/dlist_storage.bend as R
+import ../../src/containers/types/doubly_linked_list.bend as E
 
 # Retained public handles must survive cursor compaction correctly: the
 # removed slot's handle is stale even after recycling; a survivor stays live.

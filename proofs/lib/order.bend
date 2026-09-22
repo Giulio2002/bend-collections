@@ -2,7 +2,7 @@ import Base
 import ./logic.bend as L
 import ./nat.bend as N
 import ./u32.bend as U
-import ../../reference/lru/proofs/native_map.bend as NM
+import ../lemmas/proofs/native_map.bend as NM
 
 # Total-order laws for a static comparator ~cmp : A -> A -> Cmp, and their
 # checked U32 (U32.cmp) and String (String.order) instances.

@@ -1,11 +1,11 @@
 import Base
 import ../lib/list.bend as LL
 import ../lib/nat.bend as N
-import ../../spec/common.bend as S
-import ../../src/deque.bend as D
-import ../../src/queue.bend as Q
-import ../../types/deque.bend as DE
-import ../../types/queue.bend as QE
+import ../spec/common.bend as S
+import ../../src/containers/deque.bend as D
+import ../../src/containers/queue.bend as Q
+import ../../src/containers/types/deque.bend as DE
+import ../../src/containers/types/queue.bend as QE
 
 # Component laws tied to the real two-list implementation. These do not
 # replace universal public-operation trace refinement or a cost proof.

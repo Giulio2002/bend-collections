@@ -1,9 +1,9 @@
 import Base
 import ./lib/array.bend as A
-import ../spec/common.bend as SC
-import ../spec/bitset.bend as S
-import ../src/bitset.bend as B
-import ../types/bitset.bend as E
+import ./spec/common.bend as SC
+import ./spec/bitset.bend as S
+import ../src/containers/bitset.bend as B
+import ../src/containers/types/bitset.bend as E
 import ./bitset/lists.bend as BL
 import ./bitset/word.bend as W
 import ./bitset/index.bend as IX

@@ -3,9 +3,9 @@ import ./lib/logic.bend as L
 import ./lib/list.bend as LL
 import ./lib/nat.bend as N
 import ./lib/array.bend as AR
-import ../spec/dynamic_array.bend as S
-import ../src/dynamic_array.bend as DA
-import ../types/dynamic_array.bend as E
+import ./spec/dynamic_array.bend as S
+import ../src/containers/dynamic_array.bend as DA
+import ../src/containers/types/dynamic_array.bend as E
 import ./dynamic_array/state.bend as ST
 import ./dynamic_array/steps.bend as SP
 import ./dynamic_array/trace.bend as TR

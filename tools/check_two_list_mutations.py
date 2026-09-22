@@ -5,11 +5,11 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/'tools'),str(ROOT/'tests/support')]
 from mutants import MUTANTS
 import scenarios,oracles
-BEND=json.loads((ROOT/'inventory/toolchain.json').read_text())['binary']
+BEND=json.loads((ROOT/'tools/toolchain.json').read_text())['binary']
 report=[]
 with tempfile.TemporaryDirectory(prefix='bend-two-list-mutants-') as directory:
  root=Path(directory)
- for folder in ['src','types','tests']:
+ for folder in ['src','tests']:
   shutil.copytree(ROOT/folder,root/folder)
  for name in ['deque','queue']:
   cases=scenarios.FUNCTIONAL[name]+scenarios.BOUNDARY[name]+[scenarios.differential(name,11)]

@@ -2,7 +2,7 @@ import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
-import ../../spec/common.bend as SC
+import ../spec/common.bend as SC
 
 # Slot layout of a dynamic array: the first n slots are Some, the rest None.
 

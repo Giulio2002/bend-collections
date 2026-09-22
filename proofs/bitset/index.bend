@@ -1,7 +1,7 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../../src/bitset.bend as B
+import ../../src/containers/bitset.bend as B
 
 # The two facts about the word index `B.wordix(i) = i / 32` and the bit
 # position `B.bitix(i) = i % 32` that the packed representation needs:

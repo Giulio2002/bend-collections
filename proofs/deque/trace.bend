@@ -2,10 +2,10 @@ import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
-import ../../spec/common.bend as SC
-import ../../spec/deque.bend as S
-import ../../src/deque.bend as DQ
-import ../../types/deque.bend as E
+import ../spec/common.bend as SC
+import ../spec/deque.bend as S
+import ../../src/containers/deque.bend as DQ
+import ../../src/containers/types/deque.bend as E
 import ./state.bend as ST
 import ./stepok.bend as K
 import ./steps.bend as PS

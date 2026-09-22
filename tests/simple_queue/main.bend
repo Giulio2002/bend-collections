@@ -1,7 +1,7 @@
 import Base
-import ../../src/simple_queue.bend as Q
-import ../../src/queue.bend as K
-import ../../types/queue.bend as E
+import ../../src/containers/simple_queue.bend as Q
+import ../../src/containers/queue.bend as K
+import ../../src/containers/types/queue.bend as E
 import ../support/text.bend as X
 
 def obs_nat(~T: Data, r: K.Queue<T> & Nat) -> K.Queue<T> & E.Obs<T>:

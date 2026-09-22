@@ -1,7 +1,7 @@
 import Base
-import ../../src/dlist_iterator.bend as I
-import ../../src/doubly_linked_list.bend as D
-import ../../types/doubly_linked_list.bend as E
+import ../../src/containers/dlist_iterator.bend as I
+import ../../src/containers/doubly_linked_list.bend as D
+import ../../src/containers/types/doubly_linked_list.bend as E
 import ../support/text.bend as X
 
 type Op is Data:

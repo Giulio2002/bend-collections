@@ -3,10 +3,10 @@ import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../lib/order.bend as O
-import ../../spec/common.bend as SC
-import ../../spec/binary_heap.bend as S
-import ../../src/binary_heap.bend as H
-import ../../types/binary_heap.bend as E
+import ../spec/common.bend as SC
+import ../spec/binary_heap.bend as S
+import ../../src/containers/binary_heap.bend as H
+import ../../src/containers/types/binary_heap.bend as E
 import ./state.bend as ST
 import ./steps.bend as SP
 import ./root.bend as RT

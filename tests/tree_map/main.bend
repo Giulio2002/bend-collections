@@ -1,6 +1,6 @@
 import Base
-import ../../src/balanced_search_tree.bend as M
-import ../../src/dynamic_array.bend as D
+import ../../src/containers/balanced_search_tree.bend as M
+import ../../src/containers/dynamic_array.bend as D
 import ../support/text.bend as X
 
 def rev(a: U32, b: U32) -> Cmp:

@@ -1,6 +1,6 @@
 import Base
-import ../../src/deque.bend as Q
-import ../../types/deque.bend as E
+import ../../src/containers/deque.bend as Q
+import ../../src/containers/types/deque.bend as E
 import ../support/text.bend as X
 
 # Test driver: argv = op tokens; values are Nat.

@@ -1,1 +1,0 @@
-PASS: 200000 differential operations; 10000000 constant-occupancy FIFO pairs; live=262144 used=262145 cap=524288 storage_bytes=6291456

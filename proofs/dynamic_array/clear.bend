@@ -3,8 +3,8 @@ import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../lib/array.bend as AR
-import ../../spec/common.bend as SC
-import ../../src/dynamic_array.bend as DA
+import ../spec/common.bend as SC
+import ../../src/containers/dynamic_array.bend as DA
 import ./layout.bend as LY
 import ./state.bend as ST
 import ../lib/array_ext.bend as AX

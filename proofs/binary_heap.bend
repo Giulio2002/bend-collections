@@ -4,10 +4,10 @@ import ./lib/list.bend as LL
 import ./lib/nat.bend as N
 import ./lib/array.bend as AR
 import ./lib/order.bend as O
-import ../spec/common.bend as SC
-import ../spec/binary_heap.bend as S
-import ../src/binary_heap.bend as H
-import ../types/binary_heap.bend as E
+import ./spec/common.bend as SC
+import ./spec/binary_heap.bend as S
+import ../src/containers/binary_heap.bend as H
+import ../src/containers/types/binary_heap.bend as E
 import ./binary_heap/state.bend as ST
 import ./binary_heap/steps.bend as SP
 import ./binary_heap/trace.bend as TR

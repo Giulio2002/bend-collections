@@ -3,8 +3,8 @@ import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../lib/array.bend as A
-import ../../spec/common.bend as SC
-import ../../src/bitset.bend as B
+import ../spec/common.bend as SC
+import ../../src/containers/bitset.bend as B
 import ./fastcount.bend as FC
 import ./model.bend as MD
 import ./walk.bend as WK

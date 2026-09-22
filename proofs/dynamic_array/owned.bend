@@ -1,6 +1,6 @@
 import Base
-import ../../src/dynamic_array.bend as A
-import ../../types/dynamic_array.bend as E
+import ../../src/containers/dynamic_array.bend as A
+import ../../src/containers/types/dynamic_array.bend as E
 
 # Owning storage laws quantify over Type, not just Data. They do not copy
 # elements at runtime: repeated terms occur only in erased equality types.

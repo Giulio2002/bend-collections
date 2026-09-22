@@ -2,10 +2,10 @@ import Base
 import ../lib/logic.bend as L
 import ../lib/list.bend as LL
 import ../lib/array.bend as A
-import ../../spec/common.bend as SC
-import ../../src/bitset.bend as B
-import ../../spec/bitset.bend as S
-import ../../types/bitset.bend as E
+import ../spec/common.bend as SC
+import ../../src/containers/bitset.bend as B
+import ../spec/bitset.bend as S
+import ../../src/containers/types/bitset.bend as E
 import ./state.bend as ST
 import ./steps.bend as BS
 

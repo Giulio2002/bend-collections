@@ -344,4 +344,4 @@ def lru(args):
         else:
             out.append('LEN %d' % len(d))
     return out
-ORACLES = {'dynamic_array': dynamic_array, 'deque': deque, 'queue': queue, 'doubly_linked_list': doubly_linked_list, 'binary_heap': binary_heap, 'balanced_search_tree': balanced_search_tree, 'bitset': bitset, 'lru': lru}
+ORACLES = {'dynamic_array': dynamic_array, 'stack': stack, 'deque': deque, 'queue': queue, 'doubly_linked_list': doubly_linked_list, 'binary_heap': binary_heap, 'balanced_search_tree': balanced_search_tree, 'bitset': bitset, 'lru': lru}

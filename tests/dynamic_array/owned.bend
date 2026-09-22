@@ -1,6 +1,6 @@
 import Base
-import ../../src/dynamic_array.bend as A
-import ../../types/dynamic_array.bend as E
+import ../../src/containers/dynamic_array.bend as A
+import ../../src/containers/types/dynamic_array.bend as E
 import ./main.bend as D
 import ../support/text.bend as X
 

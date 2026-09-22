@@ -1,8 +1,8 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../../spec/common.bend as SC
-import ../../src/bitset.bend as B
+import ../spec/common.bend as SC
+import ../../src/containers/bitset.bend as B
 import ./index.bend as IX
 
 # `B.depth_for(n)` picks the depth of the word array of an n-bit bitset: the

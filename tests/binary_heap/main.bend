@@ -1,6 +1,6 @@
 import Base
-import ../../src/binary_heap.bend as H
-import ../../types/binary_heap.bend as E
+import ../../src/containers/binary_heap.bend as H
+import ../../src/containers/types/binary_heap.bend as E
 import ../support/text.bend as X
 
 # Test driver: argv = [kind, op tokens...], kind "u32" or "str".

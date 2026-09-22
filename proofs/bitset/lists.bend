@@ -2,9 +2,9 @@ import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
-import ../../spec/common.bend as SC
-import ../../spec/bitset.bend as S
-import ../../src/bitset.bend as B
+import ../spec/common.bend as SC
+import ../spec/bitset.bend as S
+import ../../src/containers/bitset.bend as B
 
 # Boolean-sequence facts used by the bitset proof: element-wise combination
 # (zipk, indexed by the implementation's word-operation tag), all-False

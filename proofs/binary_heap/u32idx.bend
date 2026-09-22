@@ -2,8 +2,8 @@ import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/u32.bend as U
-import ../../spec/common.bend as SC
-import ../../reference/lru/spec/numeric.bend as S
+import ../spec/common.bend as SC
+import ../lemmas/spec/numeric.bend as S
 import ./idx.bend as IX
 
 # The index arithmetic the heap performs is done in U32 (a unary Nat in a sift

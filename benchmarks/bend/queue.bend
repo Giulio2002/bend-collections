@@ -1,7 +1,7 @@
 import Base
 import ./common.bend as B
-import ../../src/queue.bend as QU
-import ../../types/queue.bend as E
+import ../../src/containers/queue.bend as QU
+import ../../src/containers/types/queue.bend as E
 
 # Native benchmark driver for src/queue.bend (U32 elements).
 # argv = [op, size, count, reps, seed]; see benchmarks/bend/common.bend and

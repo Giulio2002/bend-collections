@@ -1,10 +1,10 @@
 import Base
 import ./core.bend as P
-import ../../spec/common.bend as S
-import ../../src/deque.bend as D
-import ../../src/queue.bend as Q
-import ../../types/deque.bend as DE
-import ../../types/queue.bend as QE
+import ../spec/common.bend as S
+import ../../src/containers/deque.bend as D
+import ../../src/containers/queue.bend as Q
+import ../../src/containers/types/deque.bend as DE
+import ../../src/containers/types/queue.bend as QE
 
 def reconstruct_cons_u32(+x: U32, r: List<&2, U32> & List<&2, U32>) -> {P.reconstruct(U32, D.split_cons(~U32, x, r)) == Con{x, P.reconstruct(U32, r)} : List<&2, U32>}:
   P.reconstruct_cons(~U32, x, r)

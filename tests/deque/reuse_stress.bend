@@ -1,6 +1,6 @@
 import Base
-import ../../src/deque.bend as Q
-import ../../types/deque.bend as E
+import ../../src/containers/deque.bend as Q
+import ../../src/containers/types/deque.bend as E
 
 type State is Type:
   S{q: Q.Deque<U32>, checksum: U32, errors: U32}

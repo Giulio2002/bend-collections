@@ -1,7 +1,7 @@
 import Base
-import ../../src/priority_queue.bend as Q
-import ../../src/binary_heap.bend as K
-import ../../types/binary_heap.bend as E
+import ../../src/containers/priority_queue.bend as Q
+import ../../src/containers/binary_heap.bend as K
+import ../../src/containers/types/binary_heap.bend as E
 import ../support/text.bend as X
 
 def obs_nat(~A: Data, r: K.Heap<A> & Nat) -> K.Heap<A> & E.Obs<A>:

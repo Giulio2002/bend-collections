@@ -1,8 +1,8 @@
 import Base
 import ./common.bend as B
-import ../../src/lifo_queue.bend as QU
-import ../../src/stack.bend as K
-import ../../types/stack.bend as E
+import ../../src/containers/lifo_queue.bend as QU
+import ../../src/containers/stack.bend as K
+import ../../src/containers/types/stack.bend as E
 
 # Native benchmark driver for src/stack.bend (U32 elements).
 # argv = [op, size, count, reps, seed]; see benchmarks/bend/common.bend and

@@ -1,9 +1,0 @@
-vendor/
-build/
-.venv/
-__pycache__/
-.pytest_cache/
-*.pyc
-
-# Local agent runtime logs
-.nanocodex/

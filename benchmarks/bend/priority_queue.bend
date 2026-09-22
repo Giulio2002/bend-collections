@@ -1,8 +1,8 @@
 import Base
 import ./common.bend as B
-import ../../src/priority_queue.bend as H
-import ../../src/binary_heap.bend as K
-import ../../types/binary_heap.bend as E
+import ../../src/containers/priority_queue.bend as H
+import ../../src/containers/binary_heap.bend as K
+import ../../src/containers/types/binary_heap.bend as E
 
 # Native benchmark driver for src/binary_heap.bend at the checked U32 instance.
 # argv = [op, size, count, reps, seed]; benchmarks/native/binary_heap.c performs the

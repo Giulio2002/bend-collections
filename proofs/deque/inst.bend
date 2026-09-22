@@ -1,7 +1,7 @@
 import Base
 import ../lib/array.bend as AR
-import ../../spec/common.bend as SC
-import ../../src/deque.bend as DQ
+import ../spec/common.bend as SC
+import ../../src/containers/deque.bend as DQ
 import ./state.bend as ST
 import ./grow.bend as G
 import ./stepok.bend as K
@@ -9,7 +9,7 @@ import ./reads.bend as RD
 import ./pushes.bend as PU
 import ./steps.bend as SP
 import ./trace.bend as TR
-import ../../types/deque.bend as E
+import ../../src/containers/types/deque.bend as E
 
 # Instantiations of the ~T templates at U32 (a template is only checked when
 # it is instantiated); END_TO_END.bend instantiates the public laws.

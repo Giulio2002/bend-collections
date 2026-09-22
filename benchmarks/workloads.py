@@ -280,7 +280,7 @@ empties('bitset', [('new', 10), ('length', 4), ('get', 2), ('set', 0),
 
 # Include the existing LRU driver workloads in full sweeps. These were
 # previously measured only by the supplemental lru_measure tool.
-from experiments.lru_workloads import rows as _lru_rows
+from lru_workloads import rows as _lru_rows
 _lru_rows(add, three, pair, empties, SIZE_CHANGING_FULL)
 
 # Queue facades exercise their public API using identical underlying workloads.
@@ -310,6 +310,18 @@ three('dlist_iterator', 'has_next', 6, (64, 4096, 65536), (50000, 20000, 10000),
 three('dlist_iterator', 'has_previous', 7, (64, 4096, 65536), (50000, 20000, 10000), method='batch')
 three('dlist_iterator', 'position', 8, (64, 4096, 65536), (50000, 20000, 10000), method='batch')
 three('dlist_iterator', 'finish', 0, (64, 4096, 65536), (50000, 20000, 10000), method='finish+create')
+
+# String-keyed hash table (src/hash_table.bend, Base.Map-style API) against
+# benchmarks/native/hash_table.c; selectors are documented in the C file.
+# pop is measured inside the restoring pop+set pair; build creates a fresh
+# table of `size` keys per operation (growth included).
+three('hash_table', 'set', 0, (64, 4096, 262144), (100000, 50000, 20000))
+three('hash_table', 'get', 1, (64, 4096, 262144), (100000, 50000, 20000))
+three('hash_table', 'has', 2, (64, 4096, 262144), (100000, 50000, 20000))
+pair('hash_table', 'pop', 3, (64, 4096, 262144), (100000, 50000, 20000))
+three('hash_table', 'size', 4, (64, 4096, 262144), (200000, 200000, 200000))
+three('hash_table', 'keys', 5, (64, 4096, 32768), (20000, 500, 40))
+three('hash_table', 'build', 6, (64, 4096, 32768), (2000, 40, 4))
 
 # Explicit user scope change, 2026-09-22: no empty-structure timing gates.
 # Assign seeds before filtering so removing empties does not change RNG inputs

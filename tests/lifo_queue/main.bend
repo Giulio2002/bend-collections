@@ -1,7 +1,7 @@
 import Base
-import ../../src/lifo_queue.bend as Q
-import ../../src/stack.bend as K
-import ../../types/stack.bend as E
+import ../../src/containers/lifo_queue.bend as Q
+import ../../src/containers/stack.bend as K
+import ../../src/containers/types/stack.bend as E
 import ../support/text.bend as X
 
 def obs_nat(~T: Data, r: K.Stack<T> & Nat) -> K.Stack<T> & E.Obs<T>:

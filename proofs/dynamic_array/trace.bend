@@ -3,10 +3,10 @@ import ../lib/logic.bend as L
 import ../lib/list.bend as LL
 import ../lib/nat.bend as N
 import ../lib/array.bend as AR
-import ../../spec/common.bend as SC
-import ../../spec/dynamic_array.bend as S
-import ../../src/dynamic_array.bend as DA
-import ../../types/dynamic_array.bend as E
+import ../spec/common.bend as SC
+import ../spec/dynamic_array.bend as S
+import ../../src/containers/dynamic_array.bend as DA
+import ../../src/containers/types/dynamic_array.bend as E
 import ./layout.bend as LY
 import ./state.bend as ST
 import ./steps.bend as SP

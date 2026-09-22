@@ -1,7 +1,7 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../../spec/common.bend as SC
+import ../spec/common.bend as SC
 
 # Heap index arithmetic: the shape of an array heap IS its index arithmetic.
 # Element i has children 2i+1 and 2i+2 and, for i >= 1, parent (i - 1) / 2.

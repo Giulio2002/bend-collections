@@ -2,8 +2,8 @@ import Base
 import ../lib/logic.bend as L
 import ../lib/order.bend as O
 import ../lib/list.bend as LL
-import ../../spec/common.bend as SC
-import ../../spec/binary_heap.bend as S
+import ../spec/common.bend as SC
+import ../spec/binary_heap.bend as S
 
 # Insertion-sorted lists as canonical multisets, under a total order ~o.
 # All lemmas are templates over (~A, ~cmp, ~o); they are checked through the

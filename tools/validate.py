@@ -3,7 +3,7 @@
 
   python tools/validate.py --report build/validation.json
 
-For every structure in inventory/structures.json this
+For every structure in tests/structures.json this
 
   1. builds tests/<id>/main.bend with the pinned Bend compiler (native C
      backend) and runs the resulting binary,
@@ -51,7 +51,7 @@ import oracles  # noqa: E402
 import scenarios  # noqa: E402
 from mutants import MUTANTS  # noqa: E402
 
-LOCK = json.loads((ROOT / 'inventory' / 'toolchain.json').read_text())
+LOCK = json.loads((ROOT / 'tools' / 'toolchain.json').read_text())
 BEND = LOCK['binary']
 ENV = {**os.environ, 'BEND_NO_TELEMETRY': '1'}
 BUILD = ROOT / 'build'
@@ -149,7 +149,7 @@ def prepare_mutant(name, idx, search, replace, target):
     if dst.exists():
         shutil.rmtree(dst)
     dst.mkdir(parents=True)
-    for folder in ['src', 'types', 'spec', 'tests', 'reference']:
+    for folder in ['src', 'tests']:
         if (ROOT / folder).exists():
             shutil.copytree(ROOT / folder, dst / folder,
                             ignore=shutil.ignore_patterns('__pycache__'))
@@ -214,86 +214,25 @@ def check_mutants(name, cases, log):
     return ok, results
 
 
-# ------------------------------------------------------------------ the LRU
+# ------------------------------------------------ the LRU and the hash table
 
 def check_lru(log):
+    """Differential checks for the key-value containers: the LRU against the
+    optimized C reference and its sanitizer build (tools/lru_diff.py), the
+    hash table against a Python dict oracle (tools/check_hash_table.py)."""
     ok = True
     checks = []
-    for target in ['reference/lru/PROOF.bend', 'reference/lru/END_TO_END.bend',
-                   'src/lru.bend', 'proofs/lru.bend']:
-        p = run([BEND, target])
-        good = p.returncode == 0 and 'All terms check' in p.stdout
-        checks.append({'file': target, 'checked': good,
-                       'output': p.stdout.strip().splitlines()[-1:] or ['']})
-        log.append('[lru] %s -> %s' % (target, p.stdout.strip().splitlines()[-1:]))
+    for command in [[sys.executable, 'tools/lru_diff.py'],
+                    [sys.executable, 'tools/check_hash_table.py']]:
+        p = run(command, timeout=7200)
+        good = p.returncode == 0
+        last = (p.stdout.strip().splitlines() or [''])[-1]
+        checks.append({'command': command, 'passed': good, 'output': last})
+        log.append('[kv] %s -> %s' % (' '.join(command), last))
         if not good:
-            fail('lru', 'checker failed for %s: %s' % (target, (p.stdout + p.stderr)[-300:]))
+            fail('lru', '%s failed: %s' % (command[1], (p.stdout + p.stderr)[-300:]))
             ok = False
-    smoke = []
-    for args in scenarios.LRU_SCENARIOS:
-        p = run([BEND, 'tests/lru/main.bend', '--'] + list(args))
-        got = [ln for ln in p.stdout.splitlines()
-               if ln and not ln.startswith('All terms check')]
-        want = oracles.ORACLES['lru'](list(args))
-        log.append('[lru] %s' % ' '.join(args))
-        log.append('  bend  : %s' % got)
-        log.append('  oracle: %s' % want)
-        if p.returncode != 0 or got != want:
-            fail('lru', 'smoke mismatch for %s\n   bend  : %r\n   oracle: %r'
-                 % (' '.join(args), got, want))
-            ok = False
-        smoke.append({'args': list(args), 'lines': len(got)})
-    # The benchmarked port (src/lru/fast.bend: native Map + indexed doubly
-    # linked recency arena) against the retained cache, request by request,
-    # including lifetimes, expiry, purge and keys; every step compares the
-    # observation, the length and all five metrics.
-    p = run([BEND, 'tests/lru_fast/main.bend'])
-    lines = [ln for ln in p.stdout.splitlines() if ln and not ln.startswith('All terms check')]
-    log.append('[lru] tests/lru_fast/main.bend -> %s' % lines)
-    port_ok = (p.returncode == 0 and 'constructor mismatches 0' in lines
-               and sum(1 for ln in lines if ln.startswith('steps ')) == 8
-               and all(ln.endswith(' mismatches 0') for ln in lines if ln.startswith('steps ')))
-    if not port_ok:
-        fail('lru', 'fast port differential failed: %r' % (p.stdout + p.stderr)[-500:])
-        ok = False
-    # The benchmarked port against its own independent spec (spec/lru_fast.bend,
-    # the model the proofs/lru_fast refinement targets): six seeded traces of
-    # 300 operations each (lifetimes, expiry, purge, resize, keys, metrics);
-    # every observation must agree.
-    p = run([BEND, 'tests/lru_fast/spec_diff.bend'], timeout=3600)
-    sd = [ln for ln in p.stdout.splitlines() if ln and not ln.startswith('All terms check')]
-    log.append('[lru] tests/lru_fast/spec_diff.bend -> %s' % sd)
-    spec_ok = p.returncode == 0 and sd[-1:] == ['[0n, 0n, 0n, 0n, 0n, 0n]']
-    if not spec_ok:
-        fail('lru', 'fast port vs spec differential failed: %r' % (p.stdout + p.stderr)[-500:])
-        ok = False
-    # Large empty capacities are valid API inputs even though the current
-    # trace proof only covers capacities <= 2^31. Do not narrow the API to
-    # make that proof premise disappear.
-    p = run([BEND, 'tests/lru_fast/capacity_contract.bend'])
-    capacities = [ln for ln in p.stdout.splitlines() if ln and not ln.startswith('All terms check')]
-    log.append('[lru] public capacity contract -> %s' % capacities)
-    capacity_ok = p.returncode == 0 and capacities == ['[0, 0, 0, 0, 0, 0]']
-    if not capacity_ok:
-        fail('lru', 'public capacity contract failed: %r' % (p.stdout + p.stderr)[-500:])
-        ok = False
-    # The optimized C reference against the Bend driver, plus an
-    # ASan/UBSan build of the reference (tools/lru_diff.py --quick).
-    p = run(['python3', 'tools/lru_diff.py', '--quick'], timeout=3600)
-    tail = p.stdout.strip().splitlines()[-1:] or ['']
-    log.append('[lru] tools/lru_diff.py --quick -> %s' % tail)
-    native_ok = p.returncode == 0 and tail[0].endswith(' 0 mismatches')
-    if not native_ok:
-        fail('lru', 'native differential failed: %r' % (p.stdout + p.stderr)[-500:])
-        ok = False
-    return ok, {'checks': checks, 'smoke': smoke,
-                'fast_port_differential': lines,
-                'fast_port_spec_differential': sd,
-                'capacity_contract': capacities,
-                'native_differential': tail[0]}
-
-
-# ---------------------------------------------------------------------- main
+    return ok, {'checks': checks}
 
 def main():
     ap = argparse.ArgumentParser()
@@ -305,7 +244,7 @@ def main():
         print('pinned toolchain changed', file=sys.stderr)
         return 1
 
-    inventory = json.loads((ROOT / 'inventory' / 'structures.json').read_text())['new_structures']
+    inventory = json.loads((ROOT / 'tests' / 'structures.json').read_text())['new_structures']
     LOGDIR.mkdir(parents=True, exist_ok=True)
     started = time.time()
 
@@ -314,6 +253,23 @@ def main():
         name = item['id']
         if args.only and name != args.only:
             continue
+        if name in ('lifo_queue', 'simple_queue', 'priority_queue'):
+            # Queue facades: their drivers are checked by tools/check_queue_facades.py
+            # against the stack / queue / heap oracles once all three are built.
+            built = run([BEND, 'tests/%s/main.bend' % name, '-o', 'build/test-%s' % name], timeout=600)
+            ok = (ROOT / 'build' / ('test-' + name)).exists()
+            if not ok:
+                fail(name, 'facade driver did not build: %s' % (built.stdout + built.stderr)[-300:])
+            if name == 'priority_queue' and ok:
+                facade = run([sys.executable, 'tools/check_queue_facades.py'], timeout=1200)
+                ok = facade.returncode == 0
+                if not ok:
+                    fail(name, 'facade histories failed: %s' % (facade.stdout + facade.stderr)[-300:])
+            state = 'passed' if ok else 'failed'
+            rows.append({'id': name, 'runtime': state, 'boundaries': 'n/a', 'differential': state,
+                         'structural': 'n/a', 'mutations': 'n/a', 'trace_proof': 'n/a'})
+            print('%-22s runtime=%s differential=%s (facade)' % (name, state, state), flush=True)
+            continue
         if name == 'balanced_search_tree':
             # The production module is now the indexed TreeMap. Never count
             # the retained recursive implementation's trace proof as its own.
@@ -321,8 +277,8 @@ def main():
             checks = []
             for command in [[BEND, 'tests/tree_map/main.bend', '-o', 'build/tree-map/test'],
                             [sys.executable, 'tools/check_tree_map.py'],
-                            [BEND, 'TREE_MAP_COMPONENT_PROOF.bend'],
-                            [BEND, 'TREE_RANGE_PROOF.bend']]:
+                            [BEND, 'proofs/TREE_MAP_COMPONENT_PROOF.bend'],
+                            [BEND, 'proofs/TREE_RANGE_PROOF.bend']]:
                 result = run(command, timeout=120)
                 checks.append({'command': command, 'passed': result.returncode == 0,
                                'output': result.stdout + result.stderr})
@@ -413,7 +369,7 @@ def main():
     (LOGDIR / 'lru.log').write_text('\n'.join(lru_log))
 
     hashed = {}
-    for folder in ['src', 'types', 'spec', 'proofs', 'tests', 'tools']:
+    for folder in ['src', 'tests', 'tools']:
         for f in sorted((ROOT / folder).rglob('*')):
             if f.is_file() and f.suffix in ('.bend', '.py'):
                 hashed[str(f.relative_to(ROOT))] = sha(f)

@@ -1,6 +1,6 @@
 import Base
 import ./common.bend as B
-import ../../src/balanced_search_tree.bend as BT
+import ../../src/containers/balanced_search_tree.bend as BT
 
 # Same workloads, stream, checksums, and timing harness as the unchanged C RB
 # reference. Iteration folds entries directly, as C does; no output list.

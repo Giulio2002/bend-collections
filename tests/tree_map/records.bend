@@ -1,5 +1,5 @@
 import Base
-import ../../src/balanced_search_tree.bend as M
+import ../../src/containers/balanced_search_tree.bend as M
 
 type Payload is Data:
   Payload{name: String, score: U32}

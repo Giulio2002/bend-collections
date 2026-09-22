@@ -1,8 +1,8 @@
 import Base
-import ../../src/internal/dlist_storage.bend as R
+import ../../src/containers/internal/dlist_storage.bend as R
 import ./common.bend as B
-import ../../src/doubly_linked_list.bend as DL
-import ../../types/doubly_linked_list.bend as E
+import ../../src/containers/doubly_linked_list.bend as DL
+import ../../src/containers/types/doubly_linked_list.bend as E
 
 # Native benchmark driver for src/doubly_linked_list.bend (U32 values).
 # argv = [op, size, count, reps, seed]; the build pushes `size` elements at the

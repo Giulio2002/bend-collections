@@ -3,8 +3,8 @@ import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/u32alg.bend as UA
 import ../lib/list.bend as LL
-import ../../spec/common.bend as SC
-import ../../src/bitset.bend as B
+import ../spec/common.bend as SC
+import ../../src/containers/bitset.bend as B
 
 # The counting loop of src/bitset.bend (eight bits per iteration, a zero word
 # skipped) computes exactly word_count(32, w), the count proofs/bitset/word

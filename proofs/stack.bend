@@ -1,8 +1,8 @@
 import Base
-import ../src/stack.bend as D
-import ../spec/stack.bend as S
-import ../spec/common.bend as C
-import ../types/stack.bend as E
+import ../src/containers/stack.bend as D
+import ./spec/stack.bend as S
+import ./spec/common.bend as C
+import ../src/containers/types/stack.bend as E
 import ./lib/nat.bend as N
 
 # Universal one-step refinement, including cached count preservation and

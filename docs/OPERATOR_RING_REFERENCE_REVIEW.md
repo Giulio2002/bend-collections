@@ -1,7 +1,0 @@
-# Operator review of additional ring C references — 2026-09-21 14:17
-
-The matching native ring C implementations may be used as ADDITIONAL comparisons. Source review found ordinary indexed ring storage, branch/select wrap, memcpy growth, and unchanged value streams/timing regions. Independent clang-O3 builds of pinned and new references matched378checksum cases across deque11selectors/queue7selectors, sizes0,1,3,63,64,65,4096 and counts1,7,65 (2rounds,seed12345). Evidence: /Users/monkeair/work/dsa-performance/control/ring-c-review-20260921/review.json. This is finite C-versus-C parity, not proof of Bend/C equivalence or speed acceptance.
-
-Do not replace or slow protected references or relax workloads/limits. Keep both original and ring-C timings visible, and do not claim an acceptance win solely because the new C version is slower on a row. Every row must still meet the existing frozen gate; matching-ring results must also meet2.5x and add scrutiny, not remove it. Continue all missing implementation/proof/benchmark work: no need to wait for permission to develop and measure new matching optimized C prototypes in experimental paths.
-
-Publication e85353a preserves the ring proof milestone: frozen END_TO_END independently checks44.11s/3.37GB with3861templateinstances/zeroexplicitunsafe; target-specificdeque/queuechecks pass. Full canonical/current-source acceptance remains undone. Retain all stated occupancy and LRU capacity proof limits honestly.

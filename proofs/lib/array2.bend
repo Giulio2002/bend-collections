@@ -4,7 +4,7 @@ import ./nat.bend as N
 import ./u32.bend as U
 import ./list.bend as LL
 import ./array.bend as AR
-import ../../spec/common.bend as SC
+import ../spec/common.bend as SC
 
 # Functional correctness of the installed Base.Array swap/set algorithms at a
 # NESTED element type: `Array<Array<U32>>`, the block of adjacency blocks the

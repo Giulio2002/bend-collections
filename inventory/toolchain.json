@@ -1,7 +1,0 @@
-{
-  "version": "2.0.16",
-  "binary": "/Users/monkeair/.bend/bin/bend",
-  "binary_sha256": "da9bc51449f04a65bf633351fb754cd6f883f5f5d9ab0c4e947f5c6f19eb7386",
-  "base": "/Users/monkeair/.bend/bend2/base.bend",
-  "base_sha256": "e149828ca05581f61d1b06cf2a7d1a744e394d29a4c8e1942e5062ecbf30f5b8"
-}

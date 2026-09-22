@@ -1,6 +1,6 @@
 import Base
-import ../../src/queue.bend as Q
-import ../../types/queue.bend as E
+import ../../src/containers/queue.bend as Q
+import ../../src/containers/types/queue.bend as E
 import ../support/text.bend as X
 
 # Test driver: argv = op tokens; values are Nat.

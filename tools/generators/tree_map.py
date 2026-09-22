@@ -831,5 +831,5 @@ def emit():
         ready=[k for k,v in defs.items() if not (set(re.findall(r'(?<![.\w])(\w+)\(',v.split('\n',1)[1])) & (defs.keys()-{k}))]
         if not ready:raise RuntimeError('cyclic helper dependency: '+str(list(defs)))
         for k in ready:out.append(defs.pop(k))
-    (ROOT/'src/balanced_search_tree.bend').write_text(re.sub(r'\b(left|right|parent|red)\(', lambda m:'node_'+m[1]+'(', re.sub(r'\bvalues\b(?!\()', 'payloads', ''.join(out))).rstrip()+'\n')
+    (ROOT/'src/containers/balanced_search_tree.bend').write_text(re.sub(r'\b(left|right|parent|red)\(', lambda m:'node_'+m[1]+'(', re.sub(r'\bvalues\b(?!\()', 'payloads', ''.join(out))).rstrip()+'\n')
 if __name__=='__main__':emit()

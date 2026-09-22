@@ -1,5 +1,5 @@
 import Base
-import ../../src/balanced_search_tree.bend as M
+import ../../src/containers/balanced_search_tree.bend as M
 
 def finish(r: M.TreeMap<U32, U32, U32.cmp> & Maybe<&2, U32>) -> U32:
   match r:

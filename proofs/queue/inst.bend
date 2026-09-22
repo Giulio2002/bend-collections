@@ -1,6 +1,6 @@
 import Base
 import ../deque/state.bend as DST
-import ../../types/queue.bend as E
+import ../../src/containers/types/queue.bend as E
 import ./steps.bend as PS
 import ../deque/steps.bend as DPS
 import ./trace.bend as TR

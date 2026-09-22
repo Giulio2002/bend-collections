@@ -82,8 +82,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'benchmarks'))
 from workloads import TABLE  # noqa: E402
 
-LOCK = json.loads((ROOT / 'inventory' / 'toolchain.json').read_text())
-CONTRACT = json.loads((ROOT / 'automation' / 'performance_contract.json').read_text())
+LOCK = json.loads((ROOT / 'tools' / 'toolchain.json').read_text())
+CONTRACT = json.loads((ROOT / 'benchmarks' / 'contract.json').read_text())
 BEND = LOCK['binary']
 ENV = {**os.environ, 'BEND_NO_TELEMETRY': '1'}
 
@@ -366,12 +366,8 @@ def environment():
 
 def source_hashes():
     hashes = {}
-    # Exactly the folder list automation/performance_gate.py hashes. The live
-    # C references are benchmarks/native/; native_bench/ is a stale copy left
-    # over from an earlier iteration that the worker scope check forbids
-    # deleting (a deletion counts as an out-of-scope change), so it is still
-    # hashed here to keep the report consistent with the gate.
-    for folder in ['src', 'types', 'proofs', 'spec', 'benchmarks', 'native_bench']:
+    # Every source the measurements depend on.
+    for folder in ['src', 'benchmarks']:
         p = ROOT / folder
         if not p.exists():
             continue

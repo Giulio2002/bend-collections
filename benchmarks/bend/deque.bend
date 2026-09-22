@@ -1,7 +1,7 @@
 import Base
 import ./common.bend as B
-import ../../src/deque.bend as DQ
-import ../../types/deque.bend as E
+import ../../src/containers/deque.bend as DQ
+import ../../src/containers/types/deque.bend as E
 
 # Native benchmark driver for src/deque.bend (U32 elements).
 # argv = [op, size, count, reps, seed]; see benchmarks/bend/common.bend and

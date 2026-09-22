@@ -4,8 +4,8 @@ import ./nat.bend as N
 import ./list.bend as LL
 import ./u32.bend as U
 import ./u32alg.bend as UA
-import ../../spec/common.bend as SC
-import ../../spec/u32seq.bend as Q
+import ../spec/common.bend as SC
+import ../spec/u32seq.bend as Q
 
 # Wrapping sums of U32 sequences and point additions (addat).
 

@@ -1,5 +1,5 @@
 import Base
-import ../../src/bitset.bend as B
+import ../../src/containers/bitset.bend as B
 
 # The word-list model of the packed representation.
 #

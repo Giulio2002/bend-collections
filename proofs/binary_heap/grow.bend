@@ -3,9 +3,9 @@ import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../lib/array.bend as AR
-import ../../spec/common.bend as SC
-import ../../spec/binary_heap.bend as S
-import ../../src/binary_heap.bend as H
+import ../spec/common.bend as SC
+import ../spec/binary_heap.bend as S
+import ../../src/containers/binary_heap.bend as H
 import ./idx.bend as IX
 import ./slots.bend as SL
 import ./vals.bend as V

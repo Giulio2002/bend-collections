@@ -1,9 +1,9 @@
 import Base
 import ./lib/logic.bend as L
-import ../spec/queue.bend as S
-import ../src/queue.bend as Q
-import ../src/deque.bend as DQ
-import ../types/queue.bend as E
+import ./spec/queue.bend as S
+import ../src/containers/queue.bend as Q
+import ../src/containers/deque.bend as DQ
+import ../src/containers/types/queue.bend as E
 import ./deque/state.bend as DST
 import ./deque/steps.bend as DPS
 import ./queue/steps.bend as PS

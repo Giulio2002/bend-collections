@@ -1,6 +1,6 @@
 import Base
-import ../../src/dynamic_array.bend as DA
-import ../../types/dynamic_array.bend as E
+import ../../src/containers/dynamic_array.bend as DA
+import ../../src/containers/types/dynamic_array.bend as E
 import ../support/text.bend as X
 
 # Test driver: argv = [kind, limit, op tokens...], kind "nat" or "u32".

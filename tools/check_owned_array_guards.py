@@ -3,13 +3,13 @@
 from pathlib import Path
 import json,shutil,subprocess,tempfile
 ROOT=Path(__file__).resolve().parents[1]
-BEND=json.loads((ROOT/'inventory/toolchain.json').read_text())['binary']
+BEND=json.loads((ROOT/'tools/toolchain.json').read_text())['binary']
 results=[]
 with tempfile.TemporaryDirectory(prefix='owned-array-') as directory:
     root=Path(directory)
-    for name in ['src/dynamic_array.bend','src/pow2.bend','types/dynamic_array.bend','proofs/dynamic_array/owned.bend','proofs/dynamic_array/owned_instances.bend']:
+    for name in ['src/containers/dynamic_array.bend','src/math/pow2.bend','src/containers/types/dynamic_array.bend','proofs/dynamic_array/owned.bend','proofs/dynamic_array/owned_instances.bend']:
         p=root/name;p.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/name,p)
-    source=root/'src/dynamic_array.bend';original=source.read_text()
+    source=root/'src/containers/dynamic_array.bend';original=source.read_text()
     cmd=[BEND,str(root/'proofs/dynamic_array/owned_instances.bend')]
     control=subprocess.run(cmd,capture_output=True,text=True,timeout=30)
     assert control.returncode==0,control.stderr+control.stdout

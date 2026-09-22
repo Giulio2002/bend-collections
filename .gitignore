@@ -1,4 +1,5 @@
 build/
+automation/
 __pycache__/
 *.pyc
 .nanocodex/

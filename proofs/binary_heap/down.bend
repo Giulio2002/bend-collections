@@ -5,9 +5,9 @@ import ../lib/list.bend as LL
 import ../lib/order.bend as O
 import ../lib/array.bend as AR
 import ../lib/u32.bend as U
-import ../../spec/common.bend as SC
-import ../../spec/binary_heap.bend as S
-import ../../src/binary_heap.bend as H
+import ../spec/common.bend as SC
+import ../spec/binary_heap.bend as S
+import ../../src/containers/binary_heap.bend as H
 import ./idx.bend as IX
 import ./u32idx.bend as UX
 import ./slots.bend as SL

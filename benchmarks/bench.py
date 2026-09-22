@@ -12,7 +12,7 @@ MANIFEST=ROOT/'build/bench/build-manifest.json'
 
 def fingerprints():
     paths=[]
-    for directory in ['src','types','benchmarks/bend','benchmarks/native']:
+    for directory in ['src','benchmarks/bend','benchmarks/native']:
         paths += [p for p in (ROOT/directory).rglob('*') if p.suffix in ['.bend','.c','.h']]
     paths += [ROOT/'benchmarks/workloads.py', ROOT/'benchmarks/workload-seeds.json']
     return {str(p.relative_to(ROOT)):bench.sha(p) for p in sorted(paths)}

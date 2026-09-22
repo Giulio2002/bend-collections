@@ -1,7 +1,7 @@
 import Base
 import ./common.bend as B
-import ../../src/bitset.bend as BI
-import ../../types/bitset.bend as E
+import ../../src/containers/bitset.bend as BI
+import ../../src/containers/types/bitset.bend as E
 
 # Native benchmark driver for src/bitset.bend.
 # argv = [op, size, count, reps, seed]; benchmarks/native/bitset.c performs the

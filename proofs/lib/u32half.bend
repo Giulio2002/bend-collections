@@ -2,8 +2,8 @@ import Base
 import ./logic.bend as L
 import ./nat.bend as N
 import ./u32.bend as U
-import ../../spec/common.bend as SC
-import ../../reference/lru/spec/numeric.bend as S
+import ../spec/common.bend as SC
+import ../lemmas/spec/numeric.bend as S
 
 # U32 halving as a Nat operation, and the midpoint bounds.
 #

@@ -1,6 +1,6 @@
 import Base
-import ../../src/dynamic_array.bend as A
-import ../../types/dynamic_array.bend as E
+import ../../src/containers/dynamic_array.bend as A
+import ../../src/containers/types/dynamic_array.bend as E
 
 def call(r: A.DynArray<(U32 -> U32)> & Result<&2, &1, E.Error, (U32 -> U32)>) -> U32:
   match r:

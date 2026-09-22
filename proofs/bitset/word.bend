@@ -2,9 +2,9 @@ import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
-import ../../spec/common.bend as SC
-import ../../spec/bitset.bend as S
-import ../../src/bitset.bend as B
+import ../spec/common.bend as SC
+import ../spec/bitset.bend as S
+import ../../src/containers/bitset.bend as B
 import ./lists.bend as BL
 
 # Bit-level meaning of the native U32 operations used by src/bitset.bend,

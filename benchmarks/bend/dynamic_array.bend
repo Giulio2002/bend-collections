@@ -1,7 +1,7 @@
 import Base
 import ./common.bend as B
-import ../../src/dynamic_array.bend as DA
-import ../../types/dynamic_array.bend as E
+import ../../src/containers/dynamic_array.bend as DA
+import ../../src/containers/types/dynamic_array.bend as E
 
 # Native benchmark driver for src/dynamic_array.bend (U32 elements, through
 # the executable DA.*_at API).

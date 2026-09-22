@@ -2,8 +2,8 @@ import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
-import ../../spec/common.bend as SC
-import ../../src/deque.bend as DQ
+import ../spec/common.bend as SC
+import ../../src/containers/deque.bend as DQ
 
 # List facts behind the ring buffer (src/deque.bend).
 #

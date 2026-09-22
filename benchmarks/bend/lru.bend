@@ -1,11 +1,10 @@
 import Base
 import ./common.bend as B
-import ../../src/lru/fast.bend as L
-import ../../types/lru_model.bend as T
-import ../../src/lru/wide.bend as W
+import ../../src/containers/lru.bend as L
+import ../../src/math/u64.bend as W
 
-# Native benchmark driver for src/lru/fast.bend (the retained LRU semantics
-# over a native Map plus an indexed doubly linked recency arena).
+# Native benchmark driver for src/lru.bend (open-addressing table plus an
+# indexed doubly linked recency arena).
 # argv = [op, size, count, reps, seed, order]. benchmarks/native/lru.c
 # performs the identical work and folds the identical checksum.
 #
@@ -57,15 +56,15 @@ import ../../src/lru/wide.bend as W
 # else  value-stream step only (the A/B/C control)
 
 type St is Type:
-  S{rng: U32, chk: U32, o: U32, c: L.Fast<U32>}
+  S{rng: U32, chk: U32, o: U32, c: L.Fast<&2, U32>}
 
 # Key i is the one-character String Chr{65536 + i}: a valid Unicode scalar
 # for every benchmark size (the supplementary planes have no surrogates).
 def key(+i: U32) -> String:
   SCon{Chr{U32.add(i, 65536)}, SNil{}}
 
-def now() -> L.Stamp:
-  L.ST{0, 0}
+def now() -> W.U64:
+  W.U64{0, 0}
 
 def capof(+size: U32) -> U32:
   L.pick(U32.is_eq(size, 0), 1, size)
@@ -97,9 +96,6 @@ def lo_hi(c: U32, p: U32 & U32) -> U32:
   (lo, hi) = p
   B.mix(B.mix(c, lo), hi)
 
-def fold_metrics(c: U32, +m: T.Metrics) -> U32:
-  lo_hi(lo_hi(lo_hi(lo_hi(lo_hi(c, W.unpack(T.inserts(m))), W.unpack(T.evictions(m))), W.unpack(T.removals(m))), W.unpack(T.hits(m))), W.unpack(T.misses(m)))
-
 # ---- measured operations ----
 
 def fold_keys(ks: List<&2, String>, c: U32) -> U32:
@@ -109,15 +105,15 @@ def fold_keys(ks: List<&2, String>, c: U32) -> U32:
     case Con{k, t}:
       fold_keys(t, B.mix(c, key_code(k)))
 
-def fin_bit(+r: U32, c: U32, +o: U32, p: L.Fast<U32> & Bool) -> St:
+def fin_bit(+r: U32, c: U32, +o: U32, p: L.Fast<&2, U32> & Bool) -> St:
   (f, b) = p
   S{r, B.mix(c, bit(b)), o, f}
 
-def fin_val(+r: U32, c: U32, +o: U32, p: L.Fast<U32> & Maybe<&2, U32>) -> St:
+def fin_val(+r: U32, c: U32, +o: U32, p: L.Fast<&2, U32> & Maybe<&2, U32>) -> St:
   (f, m) = p
   S{r, B.mix(c, val_or(m)), o, f}
 
-def fin_num(+r: U32, c: U32, +o: U32, p: L.Fast<U32> & U32) -> St:
+def fin_num(+r: U32, c: U32, +o: U32, p: L.Fast<&2, U32> & U32) -> St:
   (f, x) = p
   S{r, B.mix(c, x), o, f}
 
@@ -128,31 +124,31 @@ def do_add(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st
   +r = B.lcg(r0)
   +i = draw(r, size)
-  fin_bit(r, c, o, L.add(~U32, f, key(i), U32.inc(i), now()))
+  fin_bit(r, c, o, L.add(&2, U32, f, key(i), U32.inc(i), now()))
 
 def do_get(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st
   +r = B.lcg(r0)
-  fin_val(r, c, o, L.get(~U32, f, key(draw(r, size)), now()))
+  fin_val(r, c, o, L.get(U32, f, key(draw(r, size)), now()))
 
 def do_peek(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st
   +r = B.lcg(r0)
-  fin_val(r, c, o, L.peek(~U32, f, key(draw(r, size)), now()))
+  fin_val(r, c, o, L.peek(U32, f, key(draw(r, size)), now()))
 
 def do_contains(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st
   +r = B.lcg(r0)
-  fin_bit(r, c, o, L.contains(~U32, f, key(draw(r, size)), now()))
+  fin_bit(r, c, o, L.contains(&2, U32, f, key(draw(r, size)), now()))
 
 def do_remove(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st
   +r = B.lcg(r0)
-  fin_val(r, c, o, L.remove(~U32, f, key(draw(r, size))))
+  fin_val(r, c, o, L.remove(&2, U32, f, key(draw(r, size))))
 
 def do_purge(st: St) -> St:
   S{r0, c, +o, f} = st
-  fin_num(B.lcg(r0), c, o, L.purge(~U32, f))
+  fin_num(B.lcg(r0), c, o, L.purge(&2, U32, f))
 
 def rs_code(c: U32, +t: U32, x: Result<&2, &2, String, U32>) -> U32:
   match x:
@@ -161,7 +157,7 @@ def rs_code(c: U32, +t: U32, x: Result<&2, &2, String, U32>) -> U32:
     case Done{e}:
       B.mix(B.mix(c, t), e)
 
-def fin_rs(+r: U32, c: U32, +o: U32, +t: U32, p: L.Fast<U32> & Result<&2, &2, String, U32>) -> St:
+def fin_rs(+r: U32, c: U32, +o: U32, +t: U32, p: L.Fast<&2, U32> & Result<&2, &2, String, U32>) -> St:
   (f, x) = p
   S{r, rs_code(c, t, x), o, f}
 
@@ -169,74 +165,74 @@ def do_resize(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st
   +r = B.lcg(r0)
   +t = draw(r, size)
-  fin_rs(r, c, o, t, L.resize(~U32, f, t))
+  fin_rs(r, c, o, t, L.resize(&2, U32, f, t))
 
-def fin_keys(+r: U32, c: U32, +o: U32, p: L.Fast<U32> & List<&2, String>) -> St:
+def fin_keys(+r: U32, c: U32, +o: U32, p: L.Fast<&2, U32> & List<&2, String>) -> St:
   (f, ks) = p
   S{r, fold_keys(ks, c), o, f}
 
 def do_keys(st: St) -> St:
   S{r0, c, +o, f} = st
-  fin_keys(B.lcg(r0), c, o, L.keys(~U32, f, now()))
+  fin_keys(B.lcg(r0), c, o, L.keys(&2, U32, f, now()))
 
 def do_len(st: St) -> St:
   S{r0, c, +o, f} = st
-  fin_num(B.lcg(r0), c, o, L.len(~U32, f))
+  fin_num(B.lcg(r0), c, o, L.len(&2, U32, f))
 
-def new_len(c: U32, p: L.Fast<U32> & U32) -> U32:
+def new_len(c: U32, p: L.Fast<&2, U32> & U32) -> U32:
   (g, n) = p
   B.mix(c, n)
 
-def new_cap(c: U32, p: L.Fast<U32> & U32) -> U32:
+def new_cap(c: U32, p: L.Fast<&2, U32> & U32) -> U32:
   (g, k) = p
-  new_len(B.mix(c, k), L.len(~U32, g))
+  new_len(B.mix(c, k), L.len(&2, U32, g))
 
-def new_code(c: U32, x: L.Made<U32>) -> U32:
+def new_code(c: U32, x: L.Made<&2, U32>) -> U32:
   match x:
     case L.Rejected{e}:
       B.mix(c, 4294967295)
     case L.Made{g}:
-      new_cap(c, L.capacity(~U32, g))
+      new_cap(c, L.capacity(&2, U32, g))
 
 def do_new(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st
-  S{B.lcg(r0), new_code(c, L.new(~U32, size)), o, f}
+  S{B.lcg(r0), new_code(c, L.new(&2, U32, size)), o, f}
 
-def drop_bit(p: L.Fast<U32> & Bool) -> L.Fast<U32>:
+def drop_bit(p: L.Fast<&2, U32> & Bool) -> L.Fast<&2, U32>:
   (f, b) = p
   f
 
-def put(f: L.Fast<U32>, +i: U32) -> L.Fast<U32>:
-  drop_bit(L.add(~U32, f, key(i), U32.inc(i), now()))
+def put(f: L.Fast<&2, U32>, +i: U32) -> L.Fast<&2, U32>:
+  drop_bit(L.add(&2, U32, f, key(i), U32.inc(i), now()))
 
-def ra_fin(+r: U32, c: U32, +o: U32, +i: U32, p: L.Fast<U32> & Maybe<&2, U32>) -> St:
+def ra_fin(+r: U32, c: U32, +o: U32, +i: U32, p: L.Fast<&2, U32> & Maybe<&2, U32>) -> St:
   (f, m) = p
-  fin_bit(r, B.mix(c, val_or(m)), o, L.add(~U32, f, key(i), U32.inc(i), now()))
+  fin_bit(r, B.mix(c, val_or(m)), o, L.add(&2, U32, f, key(i), U32.inc(i), now()))
 
 # add keys (from + j) mod m for j = 0 .. k-1
 def do_remove_add(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st
   +r = B.lcg(r0)
   +i = draw(r, size)
-  ra_fin(r, c, o, i, L.remove(~U32, f, key(i)))
+  ra_fin(r, c, o, i, L.remove(&2, U32, f, key(i)))
 
 def wrap(+x: U32, +m: U32) -> U32:
   L.pick(U32.is_lt(x, m), x, 0)
 
-def refill(k: Nat, f: L.Fast<U32>, +at: U32, +m: U32) -> L.Fast<U32>:
+def refill(k: Nat, f: L.Fast<&2, U32>, +at: U32, +m: U32) -> L.Fast<&2, U32>:
   match k:
     case 0n:
       f
     case 1n+p:
       refill(p, put(f, at), wrap(U32.inc(at), m), m)
 
-def pr_fin(+r: U32, c: U32, +size: U32, p: L.Fast<U32> & U32) -> St:
+def pr_fin(+r: U32, c: U32, +size: U32, p: L.Fast<&2, U32> & U32) -> St:
   (f, n) = p
   S{r, B.mix(c, n), 0, refill(U32.to_nat(size), f, 0, capof(size))}
 
 def do_purge_refill(st: St, +size: U32) -> St:
   S{r0, c, o, f} = st
-  pr_fin(B.lcg(r0), c, size, L.purge(~U32, f))
+  pr_fin(B.lcg(r0), c, size, L.purge(&2, U32, f))
 
 def ev_of(x: Result<&2, &2, String, U32>) -> U32:
   match x:
@@ -248,19 +244,32 @@ def ev_of(x: Result<&2, &2, String, U32>) -> U32:
 def wrap_add(+o: U32, +e: U32, +m: U32) -> U32:
   U32.mod(U32.add(o, e), m)
 
-def rb_back(+r: U32, c: U32, +o: U32, +e: U32, +size: U32, p: L.Fast<U32> & Result<&2, &2, String, U32>) -> St:
+def rb_back(+r: U32, c: U32, +o: U32, +e: U32, +size: U32, p: L.Fast<&2, U32> & Result<&2, &2, String, U32>) -> St:
   (f, x) = p
   S{r, B.mix(c, ev_of(x)), wrap_add(o, e, capof(size)), refill(U32.to_nat(e), f, o, capof(size))}
 
-def rb_down(+r: U32, c: U32, +o: U32, +t: U32, +size: U32, p: L.Fast<U32> & Result<&2, &2, String, U32>) -> St:
-  (f, +x) = p
-  rb_back(r, rs_code(c, t, x), o, ev_of(x), size, L.resize(~U32, f, capof(size)))
+# rs_code and ev_of in one pass: sharing (`+`) the Result would make the
+# runtime reference-count every Result and, through Fail, every String.
+def rs_pair(c: U32, +t: U32, x: Result<&2, &2, String, U32>) -> U32 & U32:
+  match x:
+    case Fail{e}:
+      (B.mix(c, 4294967295), 0)
+    case Done{+e}:
+      (B.mix(B.mix(c, t), e), e)
+
+def rb_mid(+r: U32, +o: U32, +size: U32, f: L.Fast<&2, U32>, ce: U32 & U32) -> St:
+  (c2, +e) = ce
+  rb_back(r, c2, o, e, size, L.resize(&2, U32, f, capof(size)))
+
+def rb_down(+r: U32, c: U32, +o: U32, +t: U32, +size: U32, p: L.Fast<&2, U32> & Result<&2, &2, String, U32>) -> St:
+  (f, x) = p
+  rb_mid(r, o, size, f, rs_pair(c, t, x))
 
 def do_resize_back(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st
   +r = B.lcg(r0)
   +t = U32.inc(U32.mod(r, capof(size)))
-  rb_down(r, c, o, t, size, L.resize(~U32, f, t))
+  rb_down(r, c, o, t, size, L.resize(&2, U32, f, t))
 
 def do_null(st: St) -> St:
   S{r0, c, o, f} = st
@@ -293,9 +302,9 @@ def do_null(st: St) -> St:
 
 def do_capacity(st: St) -> St:
   S{r0, c, +o, f} = st
-  fin_num(B.lcg(r0), c, o, L.capacity(~U32, f))
+  fin_num(B.lcg(r0), c, o, L.capacity(&2, U32, f))
 
-def sl_fin(+r: U32, c: U32, +o: U32, +ns: U32, p: L.Fast<U32> & U32) -> St:
+def sl_fin(+r: U32, c: U32, +o: U32, +ns: U32, p: L.Fast<&2, U32> & U32) -> St:
   (f, n) = p
   S{r, B.mix(B.mix(c, ns), n), o, f}
 
@@ -303,40 +312,55 @@ def do_set_lifetime(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st
   +r = B.lcg(r0)
   +ns = draw(r, size)
-  sl_fin(r, c, o, ns, L.len(~U32, L.set_lifetime(~U32, f, T.I64{W.pack(ns, 0)})))
+  sl_fin(r, c, o, ns, L.len(&2, U32, L.set_lifetime_packed(&2, U32, f, W.U64{ns, 0})))
 
-def met_fin(+r: U32, c: U32, +o: U32, p: L.Fast<U32> & T.Metrics) -> St:
-  (f, +m) = p
-  S{r, fold_metrics(c, m), o, f}
+def lstep_fin(c: U32, r: Array<U32> & U32) -> Array<U32> & U32:
+  (a, x) = r
+  (a, B.mix(c, x))
+
+def lstep(+i: U32, st: Array<U32> & U32) -> Array<U32> & U32:
+  (a, c) = st
+  lstep_fin(c, Array.get(U32, a, i))
+
+def lsnd(st: Array<U32> & U32) -> U32:
+  (a, c) = st
+  c
+
+def fold_limbs(c: U32, a: Array<U32>) -> U32:
+  lsnd(lstep(25, lstep(24, lstep(23, lstep(22, lstep(21, lstep(20, lstep(19, lstep(18, lstep(17, lstep(16, (a, c))))))))))))
+
+def met_fin(+r: U32, c: U32, +o: U32, p: L.Fast<&2, U32> & Array<U32>) -> St:
+  (f, a) = p
+  S{r, fold_limbs(c, a), o, f}
 
 def do_metrics(st: St) -> St:
   S{r0, c, +o, f} = st
-  met_fin(B.lcg(r0), c, o, L.metrics(~U32, f))
+  met_fin(B.lcg(r0), c, o, L.counters(&2, U32, f))
 
-def stamp(+t: U32) -> L.Stamp:
-  L.ST{t, 0}
+def stamp(+t: U32) -> W.U64:
+  W.U64{t, 0}
 
 def set_ttl1(st: St) -> St:
   S{r, c, o, f} = st
-  S{r, c, o, L.set_lifetime(~U32, f, T.I64{W.pack(1000000, 0)})}
+  S{r, c, o, L.set_lifetime_packed(&2, U32, f, W.U64{1000000, 0})}
 
-def ex_get(+r: U32, c: U32, +o: U32, +i: U32, p: L.Fast<U32> & Bool) -> St:
+def ex_get(+r: U32, c: U32, +o: U32, +i: U32, p: L.Fast<&2, U32> & Bool) -> St:
   (f, b) = p
-  fin_val(r, B.mix(c, bit(b)), o, L.get(~U32, f, key(i), stamp(2)))
+  fin_val(r, B.mix(c, bit(b)), o, L.get(U32, f, key(i), stamp(2)))
 
 def do_expiry(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st
   +r = B.lcg(r0)
   +i = draw(r, size)
-  ex_get(r, c, o, i, L.add(~U32, f, key(i), U32.inc(i), stamp(0)))
+  ex_get(r, c, o, i, L.add(&2, U32, f, key(i), U32.inc(i), stamp(0)))
 
-def rsq_fin(+r: U32, c: U32, +o: U32, +m: U32, p: L.Fast<U32> & Maybe<&2, U32>) -> St:
+def rsq_fin(+r: U32, c: U32, +o: U32, +m: U32, p: L.Fast<&2, U32> & Maybe<&2, U32>) -> St:
   (f, v) = p
   S{r, B.mix(c, val_or(v)), wrap(U32.inc(o), m), f}
 
 def do_remove_seq(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st
-  rsq_fin(B.lcg(r0), c, o, capof(size), L.remove(~U32, f, key(o)))
+  rsq_fin(B.lcg(r0), c, o, capof(size), L.remove(&2, U32, f, key(o)))
 
 
 # ---- selectors 18/19: ISOLATED purge and resize over a prepared pool ----
@@ -356,10 +380,10 @@ def do_remove_seq(st: St, +size: U32) -> St:
 # above the harness's noise floor; that is the price of isolation and it is
 # recorded with the rows.
 
-def pool_one(+size: U32) -> L.Fast<U32>:
-  refill(U32.to_nat(size), L.init(~U32, capof(size)), 0, capof(size))
+def pool_one(+size: U32) -> L.Fast<&2, U32>:
+  refill(U32.to_nat(size), L.init(&2, U32, capof(size)), 0, capof(size))
 
-def pool_go(m: Nat, +size: U32, acc: List<&1, L.Fast<U32>>) -> List<&1, L.Fast<U32>>:
+def pool_go(m: Nat, +size: U32, acc: List<&1, L.Fast<&2, U32>>) -> List<&1, L.Fast<&2, U32>>:
   match m:
     case 0n:
       acc
@@ -367,7 +391,7 @@ def pool_go(m: Nat, +size: U32, acc: List<&1, L.Fast<U32>>) -> List<&1, L.Fast<U
       pool_go(p, size, Con{pool_one(size), acc})
 
 # every element is affine and simply dropped
-def drop_pool(xs: List<&1, L.Fast<U32>>) -> Unit:
+def drop_pool(xs: List<&1, L.Fast<&2, U32>>) -> Unit:
   match xs:
     case Nil{}:
       Unit{}
@@ -375,21 +399,21 @@ def drop_pool(xs: List<&1, L.Fast<U32>>) -> Unit:
       drop_pool(t)
 
 type PSt is Type:
-  P{rng: U32, chk: U32, pool: List<&1, L.Fast<U32>>}
+  P{rng: U32, chk: U32, pool: List<&1, L.Fast<&2, U32>>}
 
-def drop_cache(f: L.Fast<U32>, rest: List<&1, L.Fast<U32>>) -> List<&1, L.Fast<U32>>:
+def drop_cache(f: L.Fast<&2, U32>, rest: List<&1, L.Fast<&2, U32>>) -> List<&1, L.Fast<&2, U32>>:
   rest
 
-def pp_one(+r: U32, c: U32, rest: List<&1, L.Fast<U32>>, p: L.Fast<U32> & U32) -> PSt:
+def pp_one(+r: U32, c: U32, rest: List<&1, L.Fast<&2, U32>>, p: L.Fast<&2, U32> & U32) -> PSt:
   (f, n) = p
   P{r, B.mix(c, n), drop_cache(f, rest)}
 
-def pp_pick(+r: U32, c: U32, xs: List<&1, L.Fast<U32>>) -> PSt:
+def pp_pick(+r: U32, c: U32, xs: List<&1, L.Fast<&2, U32>>) -> PSt:
   match xs:
     case Nil{}:
       P{r, B.mix(c, 4294967295), Nil{}}
     case Con{h, t}:
-      pp_one(r, c, t, L.purge(~U32, h))
+      pp_one(r, c, t, L.purge(&2, U32, h))
 
 def pp_step(ps: PSt) -> PSt:
   P{r0, c, pool} = ps
@@ -402,14 +426,14 @@ def pool_purge(k: Nat, ps: PSt) -> PSt:
     case 1n+j:
       pool_purge(j, pp_step(ps))
 
-def pr_one(+r: U32, c: U32, +t: U32, rest: List<&1, L.Fast<U32>>, p: L.Fast<U32> & Result<&2, &2, String, U32>) -> PSt:
+def pr_one(+r: U32, c: U32, +t: U32, rest: List<&1, L.Fast<&2, U32>>, p: L.Fast<&2, U32> & Result<&2, &2, String, U32>) -> PSt:
   (f, x) = p
   P{r, rs_code(c, t, x), drop_cache(f, rest)}
 
-def pr_go(+r: U32, c: U32, +t: U32, rest: List<&1, L.Fast<U32>>, h: L.Fast<U32>) -> PSt:
-  pr_one(r, c, t, rest, L.resize(~U32, h, t))
+def pr_go(+r: U32, c: U32, +t: U32, rest: List<&1, L.Fast<&2, U32>>, h: L.Fast<&2, U32>) -> PSt:
+  pr_one(r, c, t, rest, L.resize(&2, U32, h, t))
 
-def pr_pick(+r: U32, c: U32, +size: U32, xs: List<&1, L.Fast<U32>>) -> PSt:
+def pr_pick(+r: U32, c: U32, +size: U32, xs: List<&1, L.Fast<&2, U32>>) -> PSt:
   match xs:
     case Nil{}:
       P{r, B.mix(c, 4294967295), Nil{}}
@@ -427,12 +451,12 @@ def pool_resize(k: Nat, +size: U32, ps: PSt) -> PSt:
     case 1n+j:
       pool_resize(j, size, pz_step(size, ps))
 
-def pool_end(+r: U32, c: U32, +o: U32, f: L.Fast<U32>, z: Unit) -> St:
+def pool_end(+r: U32, c: U32, +o: U32, f: L.Fast<&2, U32>, z: Unit) -> St:
   match z:
     case Unit{}:
       S{r, c, o, f}
 
-def pool_fin(+o: U32, f: L.Fast<U32>, ps: PSt) -> St:
+def pool_fin(+o: U32, f: L.Fast<&2, U32>, ps: PSt) -> St:
   P{r, c, pool} = ps
   pool_end(r, c, o, f, drop_pool(pool))
 
@@ -627,19 +651,19 @@ def measured(+op: U32, +k: Nat, +m: Nat, +n: U32, st: St) -> St:
 # ---- build / settle / drain ----
 
 def init(+seed: U32, +size: U32) -> St:
-  S{seed, 0, 0, refill(U32.to_nat(size), L.init(~U32, capof(size)), 0, capof(size))}
+  S{seed, 0, 0, refill(U32.to_nat(size), L.init(&2, U32, capof(size)), 0, capof(size))}
 
 def settle(st: St) -> St:
   S{r, c, o, f} = st
-  fin_keys(r, c, o, L.keys(~U32, f, now()))
+  fin_keys(r, c, o, L.keys(&2, U32, f, now()))
 
-def drain_m(c: U32, p: L.Fast<U32> & T.Metrics) -> U32:
-  (f, +m) = p
-  fold_metrics(c, m)
+def drain_m(c: U32, p: L.Fast<&2, U32> & Array<U32>) -> U32:
+  (f, a) = p
+  fold_limbs(c, a)
 
-def drain_n(c: U32, p: L.Fast<U32> & U32) -> U32:
+def drain_n(c: U32, p: L.Fast<&2, U32> & U32) -> U32:
   (f, n) = p
-  drain_m(B.mix(c, n), L.metrics(~U32, f))
+  drain_m(B.mix(c, n), L.counters(&2, U32, f))
 
 def drain_loop(k: Nat, +n: U32, st: St) -> St:
   match k:
@@ -650,7 +674,7 @@ def drain_loop(k: Nat, +n: U32, st: St) -> St:
 
 def drain_end(st: St) -> U32:
   S{r, c, o, f} = st
-  drain_n(c, L.len(~U32, f))
+  drain_n(c, L.len(&2, U32, f))
 
 # The drain is independent of the measured operation: sixteen peeks, the
 # length and the five metrics (so every side effect on them is checked).

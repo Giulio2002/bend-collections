@@ -1,9 +1,0 @@
-> User scope update (2026-09-22): standalone DLL retired; queue/deque use the two-list design. Empty timing rows excluded for all structures; empty correctness/proof obligations remain. Full sweep includes LRU and retains the 2.5x threshold. See docs/NONEMPTY_BENCHMARK_SCOPE.md.
-
-# Independent bend-dsa completion audit
-
-Read the frozen objective, inventory and installed-Base audit. Inspect every actual public API, independent spec, theorem statement, dependency, instance and runtime test. Audit all twelve structures and the reused LRU compatibility; do not approve partial work. No empty/finite-only/vacuous/circular specs, extra hidden bounds, assumed high-level Map/Array correctness, unsafe escapes, or missing error behavior. Prove arbitrary finite traces from constructors. Static generic templates require checked real instantiations.
-
-Check data-structure invariants: dynamic-array bounds/growth, DLL handle ownership and bidirectional links, FIFO/deque order, heap multiplicity and priority, search ordering/balance, bitset tail masks, DSU equivalence classes and sizes, graph endpoint/symmetry rules, prefix trie enumeration, Fenwick sums, lazy-segment updates. Compare independent models, legal domains and numeric overflow rules to documented APIs. Complexity claims must match Bend's actual representation; no O(1) array/Map folklore.
-
-Trace tools/validate.py report claims to executable independent tests and semantic mutants. Ensure expected answers never enter the tested Bend backend. Read checker logs, source fingerprints and proof closure. Frozen acceptance performs minimum mechanical checks; report booleans and theorem-name presence are not semantic evidence. Worker and orchestrator self-audit never replace this independent audit. Note unperformed checks and preserve honest partial status. Approve only with no substantive remaining finding. Review only; no edits, commits, pushes, delegation, or scope waivers.

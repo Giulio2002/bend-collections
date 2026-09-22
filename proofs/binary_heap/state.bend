@@ -5,10 +5,10 @@ import ../lib/list.bend as LL
 import ../lib/order.bend as O
 import ../lib/u32.bend as U
 import ../lib/array.bend as AR
-import ../../spec/common.bend as SC
-import ../../spec/binary_heap.bend as S
-import ../../src/binary_heap.bend as H
-import ../../types/binary_heap.bend as E
+import ../spec/common.bend as SC
+import ../spec/binary_heap.bend as S
+import ../../src/containers/binary_heap.bend as H
+import ../../src/containers/types/binary_heap.bend as E
 import ./idx.bend as IX
 import ./slots.bend as SL
 import ./vals.bend as V

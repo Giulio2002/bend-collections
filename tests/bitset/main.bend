@@ -1,6 +1,6 @@
 import Base
-import ../../src/bitset.bend as B
-import ../../types/bitset.bend as E
+import ../../src/containers/bitset.bend as B
+import ../../src/containers/types/bitset.bend as E
 import ../support/text.bend as X
 
 # Test driver: argv = [size, op tokens...].

@@ -1,6 +1,6 @@
 import Base
-import ../../src/doubly_linked_list.bend as D
-import ../../types/doubly_linked_list.bend as E
+import ../../src/containers/doubly_linked_list.bend as D
+import ../../src/containers/types/doubly_linked_list.bend as E
 import ../support/text.bend as X
 
 # Test driver: argv = [tag, op tokens...]; values are Nat, handles "list:id".
