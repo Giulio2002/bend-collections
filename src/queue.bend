@@ -1,57 +1,53 @@
 import Base
-import ./deque.bend as DQ
-import ../types/deque.bend as DE
 import ../types/queue.bend as E
 
-# FIFO queue: the back-in/front-out specialization of src/deque.bend
-# (enqueue = push_back, dequeue = pop_front, peek = peek_front). It reuses the
-# deque's ring buffer and costs; see src/deque.bend. dequeue/peek on an
-# empty queue return Fail{EmptyQueue} and the queue unchanged.
-
+# Two-list FIFO queue: front ++ reverse(back). Reverse back only when front
+# is empty. Enqueue/dequeue/peek are amortized O(1) on consumed histories.
+# length is cached; to_list is O(n). Independent of the deque and DLL.
 type Queue<-T: Data> is Type:
-  QU{items: DQ.Deque<T>}
+  QU{front: List<&2, T>, back: List<&2, T>, count: Nat}
 
 def new(~T: Data) -> Queue<T>:
-  QU{DQ.new(~T)}
-
-def result_of(-T: Data, r: Result<&2, &2, DE.Error, T>) -> Result<&2, &2, E.Error, T>:
-  match r:
-    case Fail{e}:
-      Fail{E.EmptyQueue{}}
-    case Done{x}:
-      Done{x}
-
-def lift(~T: Data, r: DQ.Deque<T> & Result<&2, &2, DE.Error, T>) -> Queue<T> & Result<&2, &2, E.Error, T>:
-  (d, x) = r
-  (QU{d}, result_of(T, x))
-
-def lift_nat(~T: Data, r: DQ.Deque<T> & Nat) -> Queue<T> & Nat:
-  (d, n) = r
-  (QU{d}, n)
-
-def lift_list(~T: Data, r: DQ.Deque<T> & List<&2, T>) -> Queue<T> & List<&2, T>:
-  (d, xs) = r
-  (QU{d}, xs)
+  QU{Nil{}, Nil{}, 0n}
 
 def length(~T: Data, q: Queue<T>) -> Queue<T> & Nat:
-  QU{d} = q
-  lift_nat(~T, DQ.length(~T, d))
+  QU{f, b, +n} = q
+  (QU{f, b, n}, n)
 
-def enqueue(~T: Data, q: Queue<T>, +x: T) -> Queue<T>:
-  QU{d} = q
-  QU{DQ.push_back(~T, d, x)}
+def enqueue(~T: Data, q: Queue<T>, x: T) -> Queue<T>:
+  QU{f, b, n} = q
+  QU{f, Con{x, b}, 1n+n}
+
+def ready(~T: Data, q: Queue<T>) -> Queue<T>:
+  match q:
+    case QU{Nil{}, b, n}:
+      QU{List.reverse(&2, T, b), Nil{}, n}
+    case QU{Con{x, f}, b, n}:
+      QU{Con{x, f}, b, n}
+
+def dequeue_ready(~T: Data, q: Queue<T>) -> Queue<T> & Result<&2, &2, E.Error, T>:
+  match q:
+    case QU{Nil{}, b, n}:
+      (QU{Nil{}, b, n}, Fail{E.EmptyQueue{}})
+    case QU{Con{x, f}, b, n}:
+      (QU{f, b, Nat.sub(n, 1n)}, Done{x})
+
+def peek_ready(~T: Data, q: Queue<T>) -> Queue<T> & Result<&2, &2, E.Error, T>:
+  match q:
+    case QU{Nil{}, b, n}:
+      (QU{Nil{}, b, n}, Fail{E.EmptyQueue{}})
+    case QU{Con{+x, f}, b, n}:
+      (QU{Con{x, f}, b, n}, Done{x})
 
 def dequeue(~T: Data, q: Queue<T>) -> Queue<T> & Result<&2, &2, E.Error, T>:
-  QU{d} = q
-  lift(~T, DQ.pop_front(~T, d))
+  dequeue_ready(~T, ready(~T, q))
 
 def peek(~T: Data, q: Queue<T>) -> Queue<T> & Result<&2, &2, E.Error, T>:
-  QU{d} = q
-  lift(~T, DQ.peek_front(~T, d))
+  peek_ready(~T, ready(~T, q))
 
 def to_list(~T: Data, q: Queue<T>) -> Queue<T> & List<&2, T>:
-  QU{d} = q
-  lift_list(~T, DQ.to_list(~T, d))
+  QU{+f, +b, n} = q
+  (QU{f, b, n}, List.append(&2, T, f, List.reverse(&2, T, b)))
 
 # ---- operation traces ----
 

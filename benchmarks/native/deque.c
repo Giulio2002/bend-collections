@@ -1,8 +1,5 @@
-/* Operator-authorized DLL reference migration, 2026-09-22.
- * Original selectors, RNG, checksums and timing regions preserved.
- * C DLL vs Bend ring is diagnostic until Bend DLL migration is complete.
- */
-#include "dll_deque.h"
+/* User-requested two-list algorithm; selectors, RNG and checksums retained. */
+#include "two_list.h"
 #define NULL_OP 99u
 
 static uint32_t round_dq(uint32_t op, uint32_t size, uint32_t count,

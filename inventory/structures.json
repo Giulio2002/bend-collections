@@ -42,23 +42,6 @@
       ]
     },
     {
-      "id": "doubly_linked_list",
-      "operations": [
-        "new",
-        "length",
-        "push_front",
-        "push_back",
-        "insert_before",
-        "insert_after",
-        "remove",
-        "get",
-        "set",
-        "next",
-        "prev",
-        "to_list"
-      ]
-    },
-    {
       "id": "binary_heap",
       "operations": [
         "new",
@@ -179,5 +162,11 @@
   },
   "reuse": {
     "lru": "reference/lru: completed callback-free native-Map LRU, commit 38d77f4053e33dfa4320b805bdf36e55d15ddc79. Recheck compatibility; do not restart its proof development."
-  }
+  },
+  "removed_structures": [
+    {
+      "id": "doubly_linked_list",
+      "reason": "User replaced DLL-based queue/deque with the supplied two-list design, 2026-09-22."
+    }
+  ]
 }

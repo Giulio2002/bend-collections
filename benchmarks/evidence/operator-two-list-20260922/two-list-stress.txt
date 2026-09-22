@@ -1,0 +1,1 @@
+front=92544 back=169600 len=262144 errors=0 checksum=762746048

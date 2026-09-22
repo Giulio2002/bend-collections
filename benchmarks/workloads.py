@@ -350,3 +350,6 @@ empties('graph', [('new', 9), ('add_vertex', 0), ('remove_vertex', 1),
                   ('add_edge', 2), ('remove_edge', 3), ('has_vertex', 4),
                   ('has_edge', 5), ('neighbors', 6), ('vertices', 7),
                   ('edges', 8)], 100000)
+
+# User removed the standalone DLL from scope on 2026-09-22.
+TABLE = [row for row in TABLE if row["structure"] != "doubly_linked_list"]

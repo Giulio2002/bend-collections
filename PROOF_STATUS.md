@@ -1,3 +1,18 @@
+# Current two-list migration status
+
+`TWO_LIST_COMPONENT_PROOF.bend` passes; full `PROOF.bend` remains incomplete. Queue/deque trace proofs below describe superseded representations. Standalone DLL was removed from scope. See `docs/TWO_LIST_MIGRATION.md` for exact current coverage.
+
+---
+
+# Current operator migration: DLL-backed deque
+
+The deque and queue runtime now use the shared indexed doubly linked list.
+The former ring-specific proof is inapplicable and remains a failing integrated
+gate, rather than being removed or relabeled as a pass. See
+`docs/DLL_DEQUE_MIGRATION.md` for the precise checked components and open work.
+
+The notes below predate this operator change.
+
 # Proof status
 
 Checked with the pinned toolchain in `inventory/toolchain.json`

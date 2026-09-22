@@ -1,0 +1,28 @@
+{
+  "bend": "2.0.16",
+  "histories": 94,
+  "operations": 39858,
+  "compiled_semantic_mutants_detected": 10,
+  "c_randomized_operations_per_mode": 100000,
+  "c_sanitizers": [
+    "address",
+    "undefined"
+  ],
+  "c_bend_checksum_cases": 240,
+  "component_proof": "passes; U32 and String",
+  "full_proof": "fails; old ring representation remains in trace proofs",
+  "benchmark_rows": 60,
+  "rows_at_most_2_5x": 58,
+  "failing_rows": [
+    {
+      "operation": "deque.to_list",
+      "workload": "edge-empty",
+      "ratio": 3.8129052176597718
+    },
+    {
+      "operation": "queue.to_list",
+      "workload": "edge-empty",
+      "ratio": 3.2824024611582376
+    }
+  ]
+}

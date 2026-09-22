@@ -1,6 +1,6 @@
 {
-  "at": "2026-09-21T23:05:09.566598+00:00",
-  "source": "/Users/monkeair/work/dsa-c-deque-review",
+  "at": "2026-09-22T00:40:25.351585+00:00",
+  "source": "/Users/monkeair/work/dsa-generational-list",
   "status": "work_in_progress",
-  "description": "Operator C deque/queue DLL repair. Diagnostic: 58/60 rows <=2.5x C; all 60 checksums match and no failed measurements. Bend deque remains a ring, so this is NOT matching-algorithm acceptance. Paused worker DLL and owning-value changes are incomplete and no new full proof acceptance is claimed. Historical original reference files retained."
+  "description": "User-requested two-list queue/deque with matching C reference; standalone DLL retired and archived. 94 oracle histories/39858 operations and 10 mutants pass; 60 benchmark checksums match, 58 rows meet 2.5x. Component proofs check for U32/String; full trace proofs remain incomplete and PROOF.bend fails. DSA worker remains stopped."
 }

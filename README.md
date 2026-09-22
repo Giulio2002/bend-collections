@@ -1,5 +1,12 @@
 # bend-dsa
 
+> **Two-list migration (2026-09-22):** Queue and deque now use the user's
+> two-list design, with matching C implementations. The standalone DLL is
+> retired. Runtime/oracle checks and new component proofs pass; **full trace
+> proofs are still being migrated and `PROOF.bend` does not pass**.
+> See [the migration report](docs/TWO_LIST_MIGRATION.md) for scope, tests,
+> limitations and reproducible commands.
+
 A pure [Bend](https://github.com/HigherOrderCO/Bend) data-structure library with
 machine-checked functional correctness proofs against independent mathematical
 specifications.
@@ -8,24 +15,19 @@ Toolchain: Bend 2.0.16, pinned by sha256 in `inventory/toolchain.json`.
 
 ## What is here
 
-Twelve structures (`inventory/structures.json`), each with a public API
+Eleven structures (`inventory/structures.json`), each with a public API
 (`src/<id>.bend`), an independent model (`spec/<id>.bend`) that never mentions
 the implementation, and proofs (`proofs/<id>.bend`):
 
-`dynamic_array`, `deque`, `queue`, `doubly_linked_list`, `binary_heap`,
+`dynamic_array`, `deque`, `queue`, `binary_heap`,
 `balanced_search_tree` (a red-black binary search tree), `bitset` (packed
 words), `union_find`, `fenwick_tree`, `segment_tree`, `prefix_trie`, `graph`.
 
-Ten of them store their elements in native `Base.Array` blocks rather than in
-node links: `dynamic_array` and `bitset` (indexed slots and packed words),
-`deque` and `queue` (a window of a power-of-two block), `binary_heap` (a
-packed array heap), `union_find` (three parallel arenas),
-`fenwick_tree`/`segment_tree` (flat cells in a split-point layout),
-`graph` (indexed vertex slots plus one sorted adjacency block per vertex) and
-`doubly_linked_list` (three parallel arena blocks, with prev/next as arena
-indices). The remaining two keep genuine links where the algorithm has them:
-the red-black tree's children and the trie's children -- and `prefix_trie` is
-the one structure whose migration is still outstanding.
+Queue and deque use ordinary singly linked lists where their algorithms need
+links. Their stored order is front followed by reversed back. The other
+structures retain their current representations; the standalone doubly linked
+list is no longer in scope. Historical representation tables are superseded
+for queue/deque by `docs/TWO_LIST_MIGRATION.md`.
 `docs/ARCHITECTURE.md` has the representation table and
 `docs/C_EQUIVALENCE.md` the comparison with each C reference.
 
@@ -39,19 +41,15 @@ Base's native `Map`, `Set` and list-as-stack are reused as-is.
 bend PROOF.bend          # the one root: every public law and everything under it
 ```
 
-> **Current state:** `bend PROOF.bend` does NOT check. `graph` and
-> `doubly_linked_list` were re-represented (indexed vertex slots plus
-> adjacency blocks; parallel arena blocks) and their proofs are being rebuilt
-> against the new representations -- see PROOF_STATUS.md and WORK_LOG.md for
-> exactly what is proved today. The other ten structures' proofs check
-> (`bend proofs/<id>.bend`).
+> **Current state:** `bend PROOF.bend` does NOT check. The two-list queue
+> and deque have checked component laws, but their previous ring-buffer trace
+> proofs need replacement. See `PROOF_STATUS.md`; do not interpret historical
+> acceptance or proofs for earlier representations as current coverage.
 
-For every structure and **every** inventoried operation, including every error
-path, the proofs establish that the runtime step refines the specification step
-and preserves the representation invariant from *any* invariant-satisfying
-state, and that an *arbitrary finite* list of operations run from the real
-constructor agrees with the specification run. No `@unsafe`, no holes, no
-axioms, no finite enumeration standing in for a universal statement.
+The intended proof contract is universal public-operation refinement and
+invariant preservation against independent specifications, including errors
+and arbitrary finite traces. This migration has not yet re-established that
+whole contract.
 
 `balanced_search_tree` additionally proves the red-black invariants themselves:
 black root, black empty leaves, no red-red parent/child edge, the same number

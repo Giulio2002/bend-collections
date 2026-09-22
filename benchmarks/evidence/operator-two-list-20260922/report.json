@@ -1,0 +1,4562 @@
+{
+  "note": "C and Bend two-list queue and deque. FIFO full reversal and deque half split; no DLL dependency. Original workloads, calibration, six samples, thresholds and checksums retained. Formal migration status is tracked separately.",
+  "environment": {
+    "cpu": "Apple M4 (10 logical cores; benchmarks pinned to one Bend worker thread)",
+    "os": "Darwin 24.6.0 arm64",
+    "bend_compiler": "bend 2.0.16 (/Users/monkeair/.bend/bin/bend, sha256 da9bc51449f04a65bf633351fb754cd6f883f5f5d9ab0c4e947f5c6f19eb7386)",
+    "reference_compiler": "Apple clang version 17.0.0 (clang-1700.6.3.2)",
+    "bend_flags": "-o <bin> (native C backend); run with --threads 1",
+    "reference_flags": "-O3 -march=native -std=c11 -fno-strict-aliasing",
+    "reference_revision": "benchmarks/native/ in this workspace, sha256 of every\nfile recorded in source_sha256"
+  },
+  "source_sha256": {
+    "src/balanced_search_tree.bend": "cc469ed8297611692279fd650b85b06e58c5c994351880fab0974bb54880e4e9",
+    "src/binary_heap.bend": "480f4e93f53b063129386dc93eada9cede169625d1a8edc36dd77f61fa468b2d",
+    "src/bitset.bend": "89e0ed64abc41beb90c232cfd9084dce7dc2c856fcf581334f097d001ab3e700",
+    "src/deque.bend": "62a7cff990418e6815930a01a19dcab80549f6b6930e2f13a94fe9161d2b020f",
+    "src/doubly_linked_list.bend": "ceadde870ff5f06ec368e1ebe69077121e0b1c46fbba4dac6a098631c297b37a",
+    "src/dynamic_array.bend": "c66d01a7c48f29cb80d31d525d6fc04d04ab6f438b0dbf0107ebd8465fb0c994",
+    "src/fenwick_tree.bend": "d8247cf52dd5315752ee62118d6552240ffc8e7e580260c555cc62044674dedb",
+    "src/graph.bend": "ceff24e0da18fc964cc592c1c24022aacd7d7078cdb5a8759dc736c00ab4819b",
+    "src/internal/dlist_storage.bend": "aac9c22913df6f5ac53ecadd50b6ed84a2bcbaedf9ba2c3267c659a673e37166",
+    "src/internal/vec.bend": "cddd5687714bf0a096c29eea0c802abc05f4476074a50e49aab79f12da728d47",
+    "src/lru/cache.bend": "31c0ea902bcba611a2d46db655b9aa2cc7a4541b7908f5e6905154669121d393",
+    "src/lru/codec.bend": "a85d6cf13b03e5179738564d0d7a1bdaba2c944c381f28081858625a7771e59a",
+    "src/lru/fast.bend": "ff49485fe9e4ed105cd53afeb4b5d54f960b2e8bfec0bc4588d4a1c5f9329971",
+    "src/lru/time.bend": "cbdb6c00df5c71113ab2d5fd7fb28165280793b8b9a046c0e08c5f4514139e9a",
+    "src/lru/wide.bend": "ccc79f9244df5b8c0da00cc0045309bb4c096e6d464d6656111d65071367eb8c",
+    "src/lru.bend": "5ae7cb4791c88446810939a18c0d48ea33cf856b1322e7675f8fda68e34cb298",
+    "src/pow2.bend": "fbc83164c618e829cc98def4ebba30c3b4b899f914fe8131447f23b48d3dd2c2",
+    "src/prefix_trie.bend": "1626865303b5fc86473b63977484d5ea750ca05164b5a82d2edc99b0a2080a55",
+    "src/queue.bend": "36e1db3f2724612f081a4de1362d299a2e239b0087bb9b9cfae590f19296427b",
+    "src/segment_tree.bend": "a7ba4658d22f5f46e2e21e40a83f313ddb3cb79436ece66be237cfd55faa2fa8",
+    "src/union_find.bend": "5e60ad22c80ab175c3c0ced116dab6d5e46a8201d578a5b247e7e0010110a50a",
+    "types/balanced_search_tree.bend": "8a8f622ea51bb1be018484ebb8b98faa8cc021699d3d69655d002c2df8c60f64",
+    "types/binary_heap.bend": "c8f87e5ac7ca13719fc43770b81f62134306a0759d491dba5d6daa07c6046acb",
+    "types/bitset.bend": "bc24374cac3deef5bc13892d5eb454479949ebc2e5cf7f76ae41c60a701371ef",
+    "types/deque.bend": "f388c17d9e8a2be1110becce4e76ecc97f4fddc69f195850614aff6ab491445a",
+    "types/doubly_linked_list.bend": "4af259699ffcd3f6c32d1fbc338b3415a65eb3c7e8d211965eea64cd60fd2c28",
+    "types/dynamic_array.bend": "3ce5f0237a4681ca8b8290cd6af645ea3d7bfe06018f871e72d1ca61eb64b081",
+    "types/fenwick_tree.bend": "53dc4a669e4c85651aa0b9961ea180ba6edc177495a1d2662187a670c9015aed",
+    "types/graph.bend": "899a2af926d34d3e14446f1162180c8f5d5c4fcdf8fcecddb7112d84f7109726",
+    "types/internal_dlist.bend": "03b9955e20b723852743131d9707907504d5e8d0d2db072e5a7cdc835915b7f7",
+    "types/lru_fast.bend": "dd9f0b42324f9b97d897603f8908aef45783a51232c675418b917dc1e2d1018e",
+    "types/lru_model.bend": "b78df9954bbed770472bf518831d6a336a5e01ef4f9cb4c91636114b4c18f52d",
+    "types/prefix_trie.bend": "2acd43fcc13afccbc26e3d4e76073d0e66de66813e80180f7d39265de214ea10",
+    "types/queue.bend": "afc14e9714faac7e37d2710ca77ae8208c22d980b9268c0ba516376795bc7106",
+    "types/segment_tree.bend": "65ff0566db81a6ca70351eb388214a819b922b5d46567865d06b8bd722091ec2",
+    "types/union_find.bend": "0d42903693cc0ec55355012de291ab760de71a3936e39898e8490dbd2a58a973",
+    "proofs/balanced_search_tree/api.bend": "a58526e7073ed0f6ca0cffa77d79429da6c1f5d000f6160f658111a0c4fccb45",
+    "proofs/balanced_search_tree/query.bend": "6fd3681c7dba8950fa09a6a064b7827e99132f75ffceb9dba19bc775f0975a49",
+    "proofs/balanced_search_tree/sorted.bend": "8225d3ff71738d6a3b17a4e0237dd3e70dd6e923864729c9e6e7cf4202438b52",
+    "proofs/balanced_search_tree/specops.bend": "043c423a38fffd47c779bcbd8e715aae57d4430e94bc1de402e7ed5058259748",
+    "proofs/balanced_search_tree/steps.bend": "6b1ce7ffc2d5c4077a66b340668761bf19d78daee6f0e86f363535caaf065a52",
+    "proofs/balanced_search_tree/trace.bend": "3a085e5eb8dc5ed9e657067e000fe65cdc487966f0f5e33f56bdfbe6890bd2fc",
+    "proofs/balanced_search_tree/tree.bend": "c547168f427940e6d0fd1a401053bac3149fa0efc8d2d04c05470e59cf82badc",
+    "proofs/balanced_search_tree.bend": "d0b738cfefd082aafd78b896d5fda962bd111c89811a1087c08aa3c454e9e62f",
+    "proofs/binary_heap/bag.bend": "ec6cd13b52b90d03c019d2a32e5bc08ba68fb3669e76b8f053abea4bc0d04dc5",
+    "proofs/binary_heap/budget.bend": "b72e95244da2ae4709fa2105f1ac66746ee3f0d95e322cf82ad9dde052c33e35",
+    "proofs/binary_heap/down.bend": "e19f0e4d98a751f1428e3fb7a0093971960e5063547a3f1007518998460e9ca9",
+    "proofs/binary_heap/grow.bend": "d595d8da18adb0b7323d63b88795d378ecaca9722d021524b3f6633cfdb14f02",
+    "proofs/binary_heap/idx.bend": "aac73d58097135c52a3b0f0733c8093b9906a9d96afcc76e1f8dea53de6f5bd9",
+    "proofs/binary_heap/multiset.bend": "073c6f25090e725e1f5da60009cbcc4b11fd6fa46bec3c2224e4731d8188f49c",
+    "proofs/binary_heap/pop.bend": "9eee4d274639f60fd1f7d36acc17fadad991459238ca41efcdd988073fe49025",
+    "proofs/binary_heap/push.bend": "4f9b0092e5aacd92a3ca5c4c9d552eda3673ea9f9461f698a5ab25c780110c11",
+    "proofs/binary_heap/root.bend": "00a08909a8d0cd814fc68044fe997941b90eba348109e7e22debc349997dd02f",
+    "proofs/binary_heap/slots.bend": "4df7bd7f1ace2b5b16205ecf49499aa0eb1a453fa32a1f8b2584e2ef1b2f0e42",
+    "proofs/binary_heap/sorted.bend": "6f0cbac230f0bae298e69776d139052a52bd47f1a5e41ee888f4d844720fb87b",
+    "proofs/binary_heap/state.bend": "0a2211874aaccfed5f45a575053a29db17321ff6627347724d4baf1bf53e2a56",
+    "proofs/binary_heap/steps.bend": "21698e91463bbc26450ee7d893f4b92ac2060427cd2c9662901183a500c8a490",
+    "proofs/binary_heap/trace.bend": "8c444f358a9d3facad9f1d9058c5bc84ead684656ee38ebf9b906620d93d816b",
+    "proofs/binary_heap/u32idx.bend": "7408810342a534a7b4360f120e9445dcfc177fa7ff059a93428ebf0273314d8f",
+    "proofs/binary_heap/up.bend": "3be9e54c5216f90e5a228685db9ee13281498910289efbc95793693ac429e5e6",
+    "proofs/binary_heap/vals.bend": "899b9ff34e3da8dc43180ca4afbb598982113dc93f4be8366dcda23eb1234c16",
+    "proofs/binary_heap.bend": "8002366ad8c8d200eb4b239218d38bb7a6cbabc5e16f3168b8a9d32b4a5fb2b1",
+    "proofs/bitset/arr.bend": "1ac43c4b6b360b83230b6de4544e771331b80dd1f68f244b55b6ad1be4dac87c",
+    "proofs/bitset/depth.bend": "f13dbc782f6ad23ebb201a25d908895988c792504ed6443be6f16cf957f5c13d",
+    "proofs/bitset/fastcount.bend": "38680e540daa6cdbb1837486cb65fe63690b342c8a1fe9a59ac9d040ef17741e",
+    "proofs/bitset/index.bend": "179dddbe776335d6db38143e1da3b3dccd35d8c6bf27d2c8f14ae0be8f4c9e5f",
+    "proofs/bitset/lists.bend": "ab63a31d1bb7c78491c83c9eb2e1c4d2eaee708bdb85835b754ecd84e24095a4",
+    "proofs/bitset/listx.bend": "fb2b74b200293261ba24189fbd11cc2024b9079aa51eeda447a966adf98ff2f7",
+    "proofs/bitset/loops.bend": "27c4a5d54f328f35cbf29c10766e96b5f93e7faaccc0463ffc8a52cf682fa952",
+    "proofs/bitset/model.bend": "64b363d59ff52a1e2b4ded0cb0f71b5d527b486485fd1943433fe660232666ec",
+    "proofs/bitset/state.bend": "a265d74843ac567bed76d9763eaf56da3c8be0b602007cd72271d570f42113cd",
+    "proofs/bitset/steps.bend": "f1830856476ffdc54050a429ba7e4c4b576afa68ef59d4e820ca4fe225572207",
+    "proofs/bitset/trace.bend": "24e5e195e9626c7ba944a061498c08956e1a2ae2e2fb7c8376fd29775d67a578",
+    "proofs/bitset/walk.bend": "225e1c95ae7ea7489b05fb57c8f8d27130131198893710b6be85afd1f7e85d6a",
+    "proofs/bitset/word.bend": "10497f09a8f3d51a508d2d1f4aeffcb8f953bec5b3e5cd691ed1a00e51fac73b",
+    "proofs/bitset/zip.bend": "da6b9e3fa5b9629aa557642a54ffdda74b13f2ef1a521bd184de7a67371a45e8",
+    "proofs/bitset.bend": "46b9a318c8122c777806e16d16597bae38ab7cd699ad200bb4e1a06e9b94e7a4",
+    "proofs/deque/grow.bend": "acd3386afa07598da270840bdc763b675aaa498dbb855c6d0f4bac9ecf2491b6",
+    "proofs/deque/inst.bend": "aefeb6ac40e331b7cf183824a259240b7acee309c9ed0b8e8426533c9e098413",
+    "proofs/deque/pushes.bend": "395546dac515d72bbbf6fc58633a5b570ec0ee248ca3256cf2ffc0d023c670f1",
+    "proofs/deque/reads.bend": "08f543b51b3af348961cf25ad9e400eab1aa7b6a7ddaa00228b3c3b5ecc2f9e9",
+    "proofs/deque/ring.bend": "9b4a608ca56f6cecf254ad6afde7f175b257c9cfc411ea1ecb19f995a58c2bfa",
+    "proofs/deque/state.bend": "e49697b94f51ffbf204b3b44ec2c5243d43c39f19f508778a829076c3cc5d6c6",
+    "proofs/deque/stepok.bend": "ee40b72f32ea385ad24f480c9651ff0a1f8f8acf697f3ae568895daece083a62",
+    "proofs/deque/steps.bend": "458e4218cfe8f751392d7b3df5cd02f7bffba5dcd3e9d29c78b1c5541e48bd44",
+    "proofs/deque/trace.bend": "a7d9e17900708043206b2445d6d5d1667c96a571a1374da62612dc735ece9fca",
+    "proofs/deque.bend": "c3dd2a38a2d678dbfb6091a5d5d29e5a3e429998307b24027edf9281fe6190a6",
+    "proofs/deque_dll_adapter.bend": "fc2f8935f19c2f9172e5b59be732d42c84d1d393d815f07d19b998b4efea63d5",
+    "proofs/deque_dll_adapter_inst.bend": "f169275461d328283906c88ff25199b0e9f4f0688d297f2779aab760e862f970",
+    "proofs/dlist/alive.bend": "0ed68e0065dae0a20d60a2f5eec776921c5097522c39c1bab5d84e691c8482cb",
+    "proofs/dlist/core.bend": "16462776c691054d0aa23e73913694aa9e41f4bd808a3ecf6b5d1b8eeba30577",
+    "proofs/dlist/cut_live.bend": "d7feb7eb5c4bba4c21831019e962ab4ef7476901814788e8a286d124faf08e4e",
+    "proofs/dlist/cut_live_inst.bend": "6f65cdcdea823cb015c503770149e5308cd8b199aeced27e9b2ab3240433567e",
+    "proofs/dlist/facts.bend": "f5d35e0b543c55073a3da634183115b867e70cc14ffb611d4a8700194be646a5",
+    "proofs/dlist/free_chain.bend": "2a8c3c13016c06f9a2560c589a68e8811f5f798fb2353ece57bb78c5ee8484de",
+    "proofs/dlist/free_chain_inst.bend": "b8becde68834297102082dccbc04a227063a0227e0084ffbb0fb6263d74d5e37",
+    "proofs/dlist/free_facts.bend": "a561dc0da13ae69b42d2252aec7be74630002363daafa92566829bb0a392e764",
+    "proofs/dlist/grow.bend": "fe9ee53a947379337fd4de2516dd9528df6501d82fd3bf61cee035e31237b1ec",
+    "proofs/dlist/ibcore.bend": "92bd25f86356fb0529f02b576db125916cc81dbebba16e8b166720429941d77c",
+    "proofs/dlist/insert.bend": "41986fb8d5bf559a6b49922c6f99d783f79142925908b587500dd7338dbe4f03",
+    "proofs/dlist/insfacts.bend": "e56dd8b3e1afe17108cd338a3fce6d2aff057f86543d29c8b32dfa5f7ecc14d7",
+    "proofs/dlist/insitems.bend": "ca888e55000a3d0e59d4ba619c1d0a61a687801a90b171f7c7fa4db445e6260f",
+    "proofs/dlist/inslk.bend": "b2b43ba0f9c6d0e2a52ed07a1f5abd5907c3fdaee3c0f0feaae3d0ee90ef03b0",
+    "proofs/dlist/insops.bend": "c036bc242517f3fbc7deb4d5b07160f6dbe4dfb55f0121e2292648f9b9b86c0d",
+    "proofs/dlist/inst.bend": "63817a4443ae49d8b87887485a3850f3864ef16a38604c2918236afe25760921",
+    "proofs/dlist/items.bend": "e6af7fdef95c5250be68f641cbc6b1dd58684b6814ee401518ddfb8b84595da1",
+    "proofs/dlist/links.bend": "e95b9dd68b7629cf52a001303d6e1064f2477c2bb2722d602078384ca9a31ca7",
+    "proofs/dlist/mu0.bend": "22c22e40456bbb9fa85e260fad0c25ee2d36c24c8b4e465594fc7bc94b03db9d",
+    "proofs/dlist/mut.bend": "b025a2fd58aadaa3e290bbf184ec73135241766fd2827b2173443709161408d2",
+    "proofs/dlist/nbrs.bend": "ca0a55977d64d211d2eae1d8f7ac561e76b31688ad741dafee78681269604cb4",
+    "proofs/dlist/reads.bend": "3fe530fbfe62d242ab253e55f2975ff75cc1562332d615add4d7eb12f5e22fb5",
+    "proofs/dlist/retarget.bend": "a1a2c68f1c5929cc4cdc348fbb8848288f040ed32189cd2c4be3f06e9fad3594",
+    "proofs/dlist/retire_pool.bend": "c7183096fc2cb22e2e7ed0b89a3f531837de9b8790b9d2d9595d694242d1072f",
+    "proofs/dlist/retire_pool_inst.bend": "0219a96ff6749788cf724aed9b6db006a86d794cb8fc6cf21d5f2899fe32b546",
+    "proofs/dlist/reuse_facts.bend": "22d2d2c6782dded56c801420b47c39f722a8c22e26fafbf8bcac29583fcad6c0",
+    "proofs/dlist/reuse_insert.bend": "73e9b5daa76b6dbc849a80aa5e51aabf96600dcc620a45a3dba29072a1ffed84",
+    "proofs/dlist/reuse_inst.bend": "355ad789b816de253935e9a0f9842686e48430cc0068cddfe02a54febbe2433a",
+    "proofs/dlist/reuse_pool.bend": "cb4fc04affb80b08720bebcb44a1e8b60dd8550e4f1e40d734e9000b1c392f0b",
+    "proofs/dlist/reuse_pool_inst.bend": "7c85a2c41371be68a5b50e59c275513f4badb1aab3c86726b1de3bce0493a4ef",
+    "proofs/dlist/reuse_retire.bend": "101fe976a29c033b829ae428f6dce4bfcd85f86fd765a7ba44a337c566018409",
+    "proofs/dlist/reuse_retire_inst.bend": "ac1472fe2aa9d7078683b14851663f54f15b6ac79896efe572e6293995fab59a",
+    "proofs/dlist/rm.bend": "d9a7c00a148266aa5334edaf320b510085bc9da734a618db497285a45777f54f",
+    "proofs/dlist/rmfacts.bend": "e2cde83439d1baa7d50748690933f1cba9854f329c248242ebc7369806c62e1d",
+    "proofs/dlist/split.bend": "09bd3de563852a648dddab90213a6ca9412171df7d9f09317a6f5e8a7f4db55e",
+    "proofs/dlist/state.bend": "21cb0cfd1af4054483ba6bfe0e7ff8dd406311234f3cf1eff56aae25b9623588",
+    "proofs/dlist/tolist.bend": "50be637dc3fb7255e7b044539b7dfb7e820e0a60e9ae09cf3608e26dfeb83dd6",
+    "proofs/dlist/trace.bend": "00bf9a99ec0eb8d9aec4593844f793c1223ddb082747f0c03188577a7f59618c",
+    "proofs/dlist/tset.bend": "4834f47ffe858446f59233ea0ce1be7838f2c208b63e2b713c7e7215945d2408",
+    "proofs/doubly_linked_list.bend": "dd2e65d1635fc5e242b1220a253846e89d02856df07f6de7fe1f497daa4150ad",
+    "proofs/dynamic_array/clear.bend": "8f79be98af706dff059ece1d359673da6e630ffa998f93d7bba76082197172d8",
+    "proofs/dynamic_array/closed.bend": "549b27ab7eba23a795cdb2b01c7eeb12311b7077cae8b4e3971e3301cb528ec2",
+    "proofs/dynamic_array/growth.bend": "734f01aa5d9930e1b7306256236e3cb1d41316605bcb66cfeb06cfb64c70eae3",
+    "proofs/dynamic_array/layout.bend": "a94f7894e78b31cf455af8ac0bfde365730f60037cb83665ea09c2d433913845",
+    "proofs/dynamic_array/state.bend": "c6948de352402c95a79dcedd4cc92f42bc54961d3df273a618dfdc195ffd4e98",
+    "proofs/dynamic_array/steps.bend": "3fb0aeb6559ce7a185cee66bec589ebae03abd1181ae9a6225157d3bc235d314",
+    "proofs/dynamic_array/trace.bend": "1cd7390a6fe6edd995b8e7e47351b55f56f1969b4a55e9c5c7a72b9ff2b4d43a",
+    "proofs/dynamic_array/walk.bend": "595197a9036a8f11980cca1fa3a72d1ccfda3c83f158306be6ce921589efe608",
+    "proofs/dynamic_array.bend": "db4ce3c1ae5bc1bcf0de44e2f336ebb3f8f5cf9c9c20d325d815577f49b36025",
+    "proofs/fenwick_tree/arr.bend": "5982df2be627ae9196b8b6abd4f402dc093573fd8ee2b4a4127eab0cdf98e21d",
+    "proofs/fenwick_tree/depth.bend": "d62fb48c2fcac9bc6d9a80bbd6ada268719c4087bdcb147c4035f76eca373c86",
+    "proofs/fenwick_tree/init.bend": "ac33a1dc3891e84011884f3a294346d5681e6acbf7552db378055a89e2ae1c47",
+    "proofs/fenwick_tree/model.bend": "09e861ebbd5eb019b6e725a0968a2306b4892c74ceae8814f7cb3922c9f848b2",
+    "proofs/fenwick_tree/state.bend": "dfcf990eba6ce85403d3949fa22d6cbf2b87ad551523d2bd6a61e10f7e61b859",
+    "proofs/fenwick_tree/steps.bend": "aba4c4f146e1b99febba49582a131a34e4e0d9579b60d1b242a406b26bc9d445",
+    "proofs/fenwick_tree/trace.bend": "1b52932577f6806b2469ca063f0a4f3f74874f52e7deea310e1a912b88e9589b",
+    "proofs/fenwick_tree/tree.bend": "33fc5cd297cc19338305043c6d2cc8ac90c80c9a987ebd1b3d91c7cd44eb74e8",
+    "proofs/fenwick_tree/walk.bend": "2fe11fc545883fc52681ffdd0d92ef3177eaec610b5985a7f4a501bd31ed19d3",
+    "proofs/fenwick_tree.bend": "be8ffc6af306db031acc32a95c196234d28b3d5b8e3f3e8905a170b6c570fd03",
+    "proofs/generational/reuse.bend": "7e548f0c9dd85d164dc0c038702103df2611f8ca7f05c7d203d40b9ccb83b568",
+    "proofs/graph/addedge.bend": "915a6e89357757589106d6790ba6114b8155033e44092d9646dcada493c9a976",
+    "proofs/graph/addv1.bend": "e697485f2d50335e6f51428c99e2ab8912baecbf0c70da06f51c9989879e323a",
+    "proofs/graph/addv2.bend": "f7fd7dce0dfeb16bc7230604f62fb91fc74f12bfd8d11a032c4cac7efd57df0c",
+    "proofs/graph/addv3.bend": "8c4627bfcf71f13477976fca8f82770415534f556fe2b44eeaf4712b645a8fbc",
+    "proofs/graph/asc.bend": "f7971e5a4cde6e6fd7c415c6caa8e61dc6a3b7057297e16b53ab5802ebf6d96e",
+    "proofs/graph/ashift.bend": "c98034ac7e3cf253044dfe0353a2b6878c4578a9a787adc709eb5b7367175cc6",
+    "proofs/graph/blk.bend": "e90108d539ebdfc43eb9e60e4227ee38466142f50418f37b14387446522ed270",
+    "proofs/graph/blkops.bend": "b22a2352333224a50ced990415185cae897164bbb8506df4f5f161517eb2678e",
+    "proofs/graph/edge.bend": "bec5aec3a4d3df2738991bbdff52e4b523b77cf47f0cb600c30aa0619a7e6788",
+    "proofs/graph/edges.bend": "242a788f0b631cc4aa6464a642b33d84aaed7ada82134e381d48d201bc46f072",
+    "proofs/graph/eops.bend": "313fe4e9a75ac7094142715b88671c45f07397b7e020d38bc6cbaefe3ea104b7",
+    "proofs/graph/ext.bend": "36a3f7a269201c96789322e014d9b6ebe7fab2781dba56d7c53a204decbc4e74",
+    "proofs/graph/fmap.bend": "adc77d302c66d86cf93c719f490a2a4cbc5de3c5d0a6539d71f0dfc55f25ee2a",
+    "proofs/graph/gstep.bend": "8ecb5f2864ebfb277bfca152896f58b97c37a0db27e3a3c98a6ed3f21e0a3837",
+    "proofs/graph/gtrace.bend": "57c91dda19b83b67942d94f546965b8fd6094e12c991cafcb759bbad5ed76883",
+    "proofs/graph/lb.bend": "4db24588bbd9f1122e337d17980168664a3c1836a2b0e80524fb7de3a75c9a6e",
+    "proofs/graph/lists.bend": "a5b5bac01c843349017d13936e300734af0fa72c3020fc8d064513e1f157e147",
+    "proofs/graph/nbrops.bend": "b5d2cc9c16cd94feb866bd33e6751237fabcef86d0c955fc9c3cf8492221509e",
+    "proofs/graph/nbrs.bend": "04c4a82ed9aed8f54002225f6f16e11af17b7888fe2e108cec0a7a48b6e5a9d8",
+    "proofs/graph/ops.bend": "e3ff9e54ed78e0044f107e9b92fffc3f14a20fce9fd59cc8861db16861d06c65",
+    "proofs/graph/rmedge.bend": "d7716005df23d3148335a6fa9e181dbf12b89a420c48479dce516d14df636ae0",
+    "proofs/graph/rmv1.bend": "b4635f06512eecbb512c2950dc65c260df6e58f08cce8555885f4e69cd35f32a",
+    "proofs/graph/rmv2.bend": "3f9a0c333e7f9211c1f07a0ec2e7f037f42dd151de13d998c3206c78b2ca0a99",
+    "proofs/graph/rmv3.bend": "cafb9a5cda73894a3d16a9081fd6bfe7633692b506558b0e4a37113222ef2bc0",
+    "proofs/graph/search.bend": "e7ae5fe860df643cdbb2bded26c33dec77611302c8dad7437150c25a35ff78fa",
+    "proofs/graph/shift.bend": "5139c697c919233062d58fc9879940b20202211634e306c2f42bd5c5ceeb0b5a",
+    "proofs/graph/state.bend": "1154d715e7faaf9927df6ace00c41d63bfebfc3bb8669cbfa3e6b20eebb74871",
+    "proofs/graph/ucore.bend": "282d838ef6f11778fb300d3f680360d89e54de3cfc75bd2d37f7a3b9d42dca34",
+    "proofs/graph/vblk.bend": "e4d2bed0d553feb4b32461642493c9cbdf46e5095542638280b3e0bf94c7c1d5",
+    "proofs/graph/wf.bend": "ba379e24a7a0c9aafbbae6788bdd4f532fe382df917fa3abc932a2311284424f",
+    "proofs/graph/wfops.bend": "ba835132b31c9eaf4afdf466e4f1c0051dbaa619be22c70d59d8ab5863a850cb",
+    "proofs/graph/window.bend": "8f1090278aaf5683d69389769cf57d5abcfa175fb5fca7e29aab746e89d6c4d2",
+    "proofs/graph/zip.bend": "832c15d43e0548343668a1eb76e8fc9d7cb93566ae2dabd5f9555c4d8fc34253",
+    "proofs/graph.bend": "0235503a87df332f2ed210cabad6655cb6b026c25b185ea6f390eb719c8a25c5",
+    "proofs/lib/array.bend": "221a395c504dbcf1278c6d1237c9231ed93b4435c8a9ae0b69c05f90bf7cfeff",
+    "proofs/lib/array2.bend": "252a59b30f5bfcabbce80b49326b62e2c12a3719cd7fb147805590d30b5369b0",
+    "proofs/lib/array_ext.bend": "7f0a82d9e3f9079eac994a170104590d1f730ac7c671eaf32f2eb7814aa60389",
+    "proofs/lib/flat.bend": "432b9d6901f75fbff7c9350742cbb56aec201d2def7c8390ff44858f262cf9bb",
+    "proofs/lib/list.bend": "7128c11c38d0a5c1e9df85690df43cb186300718d4c46b45b854a3631c765f81",
+    "proofs/lib/logic.bend": "3dc41a98af068579ea83a1132b5a2d6bbb1edde1f1dd774253c3683a06a82ad5",
+    "proofs/lib/nat.bend": "c707f24b9414132db278870c317e264db56e891502a761305c07ab0d2c8ac994",
+    "proofs/lib/order.bend": "0ce2e43c96a5162824aadb176fa16195ea7167a6672e92e2185d156d7b8d753c",
+    "proofs/lib/pow2t.bend": "4c05679e6aaf2a253edd882169251366645c3f39a8bb82e7279c3665b8d2a88a",
+    "proofs/lib/u32.bend": "0cdcfe263d4c9216bfae1340432da81a14e7dccd227e8a0b8374d9419cbf88ef",
+    "proofs/lib/u32alg.bend": "4bbcdea0904b247ae0191956f36c1e6920a02ad13ca1203c2b97a8e9378c99d9",
+    "proofs/lib/u32half.bend": "6285a15029e4547bd9a7fe0eb77364537126ebd709bfb8e7fbe18628272299cd",
+    "proofs/lib/u32seq.bend": "7edd0c7458e674f2d79d309270c7c40551f0aac684cdbe1cad9f480fe5b82af2",
+    "proofs/lib/vec.bend": "a7eb768a6490aed64604690f669a2cab3aed96f3638c5672200c6097caff2b46",
+    "proofs/lru.bend": "fae896293f8ed737d322b8bf25e6c77a60fe4107c33df1ed964f2e9984cd0f4d",
+    "proofs/lru_fast/add.bend": "11165f91d0e59aadd6ef13c999db9cf33cacc1ee459f52e18379b44861dd017c",
+    "proofs/lru_fast/addfacts.bend": "406ac270b2a343fb75347e92882f4533fead7ac71a66fff0aa909e150e92cfbb",
+    "proofs/lru_fast/addop.bend": "2112cac1a66d9a0bcbbbcb9bec40528297eb8975bcbe24a05cbcf591c3c49e43",
+    "proofs/lru_fast/capstep.bend": "925f39f0561f61e3e4d0cc76e259200850b3354cbcb8542d61f9a7e0f360f69f",
+    "proofs/lru_fast/chain.bend": "5e81a2ae7add79f8b1304288f8b5b76f2017d36981d44a47140407f7834ba62d",
+    "proofs/lru_fast/counts.bend": "5c5afeac2483668be96947d9d2fb55e2743ca4a1b805e41ed0f9464d811017ca",
+    "proofs/lru_fast/ents.bend": "505b52160c51e66712fb257ea3b94d2e3cbf876d0821f9246263a8fc58f2cef2",
+    "proofs/lru_fast/inj.bend": "64c585c60a2848360cb4514e125860efa82d33db4d70ff1fcdf7c0e43e55d7de",
+    "proofs/lru_fast/insert.bend": "80554ca6b82cb65193a05a08438fba3c1cd57a8401318015e805148a8ed92402",
+    "proofs/lru_fast/inst.bend": "77a752cea0fa49a01f442b4b8545760fe8c03b8ee2e8009769fc34156abc0d89",
+    "proofs/lru_fast/inst_add.bend": "7c15a29714a33d138aae1ad6fe985e422af76e3242d7a2d9aa3353e9bfbe07f3",
+    "proofs/lru_fast/inst_addop.bend": "22b5898dd6e27ba2edce68022998aa1e61e590fe7dc654fc37d841e1dd0476b5",
+    "proofs/lru_fast/inst_inj.bend": "149b87afc8bb11892eed3e80b7fa2647301b3d34fb1118083f902391d7e1ec02",
+    "proofs/lru_fast/inst_keys.bend": "e6c756077fafb3f7525579e15983e7ee8fc6bc0d9c3410e5c69dc078388ef64d",
+    "proofs/lru_fast/inst_loops.bend": "b925cd590985cda22840369d0870768f9dc204561cc5416578202e4ec37b0908",
+    "proofs/lru_fast/inst_rs.bend": "61c470a4fea2088f33a8a0e9da9c860a285f8904d7bf5c5340b8626fe3befa5d",
+    "proofs/lru_fast/inst_steps.bend": "291c60d1d8c0128aa274191eb81ee2298484c628e97ad5fadc0b0c0b170ab536",
+    "proofs/lru_fast/inst_trace.bend": "b890b7fd7ab76233ea7b28e1e3c32da44cf73c55a173e289ca7f2d290bde0c47",
+    "proofs/lru_fast/keys.bend": "4b5a9d52103fda295272c6fb3dbafc8a6c826b4564be2adc25d71336eabcc9a6",
+    "proofs/lru_fast/kwalk.bend": "4d2f59761410f9dd8092c5f0013255e6c1f5fec093da6d6bbacc49ebf1f1f3df",
+    "proofs/lru_fast/lists.bend": "0cc32d3245b24dfbb3e64fcceb82784f3a230b13f48e1e1fcb86710db100d50c",
+    "proofs/lru_fast/num/addition.bend": "530138244b0fb8ea28bc8996d369891b718ce04870e4227da87b108443ff4958",
+    "proofs/lru_fast/num/addition_bounds.bend": "cd9295adba9b666b8848fffff66e9a5a4b476b1f226eb739ff4899dccb2abee7",
+    "proofs/lru_fast/num/counter.bend": "4a933f3877c05ccc2b6e6e9e46936e2f1c902b3c6c75280db0cb49fe920d5d9f",
+    "proofs/lru_fast/num/division_bounds.bend": "bb7c64f109fad4b99b1244f66fefe16e3a8032710b8dcd7ba8de8f6a07cd4cb6",
+    "proofs/lru_fast/num/division_candidate.bend": "e0c6fac954f792bd30700aab2276afdaf755e2759670b562998244256b44158e",
+    "proofs/lru_fast/num/division_candidate_bound.bend": "b614a8f885b311dd3d11d893130a545ed99911f4844aa50a048f4abcf9b619cc",
+    "proofs/lru_fast/num/division_invariant.bend": "3b7e909d4a77f8dd5680489b1720682653ee5c0882dc60e37cc0ad401b59cab1",
+    "proofs/lru_fast/num/division_no_overflow.bend": "f14d446a8262af55cc3f629d57072cae14870411965fe1f36b1105fb2d9ff1fd",
+    "proofs/lru_fast/num/division_quotient.bend": "043af18f5859cd9987a751d71866b758eab5bcc0af4f33d13d1543966050f125",
+    "proofs/lru_fast/num/division_remainder.bend": "7e7401e01ad3089803517c0fb46e5457edd3c13d144b4623420788aeb4c6b8b5",
+    "proofs/lru_fast/num/division_shift.bend": "88a838427ebfcb55ebc98ac61075388d0777b68328d12dfc09c2982de73813f0",
+    "proofs/lru_fast/num/division_value.bend": "bad41eab622cee5ddae497d139b0acf9d301a95a584145bfc237d267a32fa38b",
+    "proofs/lru_fast/num/duration_refinement.bend": "0f98ca331e191a3187c3a688dd3fb0f380990b7df13c6b2bc0401eb547218dc2",
+    "proofs/lru_fast/num/modular_addition.bend": "fdc3121057d287d7d4b00a717461e6076304ab4effec7347839149b1abc447d4",
+    "proofs/lru_fast/num/modular_negation.bend": "a62b887d272c09cb926a79f903bef23bb1f52f485a49f4be59aa1a54c9707b83",
+    "proofs/lru_fast/num/natural_products.bend": "43d155843ead414c1fb3a809106198ad57c7186d594f683d2edc4ab340981b1d",
+    "proofs/lru_fast/num/negation_magnitude.bend": "71fa1ec64c6c5ca73e48ad72ccd798dc0fc70c611d3beecea5751c2879dbbd88",
+    "proofs/lru_fast/num/numeric.bend": "6a9f08449bcc972d18ef863296e50003e91a9963b6f6c9d8773746559abb72f0",
+    "proofs/lru_fast/num/signed_division.bend": "e1e8250132dd1d259a5974bf8c17a92d58b73e4ab12e0ff6e710a86821f707ee",
+    "proofs/lru_fast/num/subtraction_bounds.bend": "0f47f4a6257b35cad5647e317c77f4f6f0022c307fb7771db608659090d0a8fd",
+    "proofs/lru_fast/num/word_addition.bend": "5c58c6d642e2283873c7f4628475ee8e166ff0e4a826bf34e86827ca9ab53ca4",
+    "proofs/lru_fast/num/word_bounds.bend": "71bf7d9d3707498c6b118a3cdf10ed724cc9f45d0f3f0a18365a3de0e06426e3",
+    "proofs/lru_fast/num/word_comparison.bend": "01aa46b4319ab1c641864b14d076ce6447c8a1568f90c889228a2e6d63ed5294",
+    "proofs/lru_fast/num/word_multiplication.bend": "01d66f186b7c00f0309ba93f18883c7a1a78b02b2945693505c518b5fb618739",
+    "proofs/lru_fast/num/word_shift.bend": "82c91c409254d3865e8762045678f5523fc80d5db8dd97160c08eaba25c84fc8",
+    "proofs/lru_fast/num/word_subtraction.bend": "ef2098836c7cf6e4c6bce92c8c20521d31f7c1bb456476b462a960e975322e30",
+    "proofs/lru_fast/read.bend": "15be9d66d21e022969d3733f39a031625d4124a8ccd97277d8aa83f1c126b891",
+    "proofs/lru_fast/readfacts.bend": "08473ef0569de07c14136e8c1600db5daf17750adbeb47a2cdb01b3b880fac86",
+    "proofs/lru_fast/remove.bend": "fcf5a9b63155894ff94fe874b87d9e633b732d8a5a108a0b8afbe2cf46508153",
+    "proofs/lru_fast/resize.bend": "3ddd7c40721761d7c2ff1444ffd960c24254e1c1a4a4f7013ad460e956a00f20",
+    "proofs/lru_fast/rs.bend": "326d18a032be5fe4aca714e6428aeeb29f42b39a0e8296af3a3cdfb0f056bbd8",
+    "proofs/lru_fast/simple.bend": "d0d5a056842e9aa682f8345ddb1c18c6697890fd9a61793e69a28d6e52650e03",
+    "proofs/lru_fast/state.bend": "077404b951ec5529ae45a39aad9e43035b1653f554fd9cc2ecd21a4672488b10",
+    "proofs/lru_fast/steps.bend": "cbdfc8d912735f12e2fa2367e6c7f9d44998722346b6303b859b7786521bf6cd",
+    "proofs/lru_fast/table.bend": "b059d25b666131947a89785a93cb23b4bb33c977a7ef56e8f7679361c92d69d3",
+    "proofs/lru_fast/touch.bend": "c2e160059e4aa1eb34f090c5a80751d9d4a516da79caacbf5fa2eedb18327a4b",
+    "proofs/lru_fast/touch2.bend": "91828f553f49671b53c435e5f73ed3bc156f4aec52254e2f41d3967c08d6f6ea",
+    "proofs/lru_fast/trace.bend": "015184d44de8a54e31db95aeca56573c2f7179d6189d34c4100a64143231b020",
+    "proofs/lru_fast.bend": "01b3a02f369d3a779bdd3a3570291d140090d485fd1753d3b41b4f39c4f29beb",
+    "proofs/prefix_trie/keys.bend": "f2b869b01357500b790d3e6d72534da84b36275e84cd3f7f0263e930ca058ca5",
+    "proofs/prefix_trie/ops.bend": "7855a14464b621b8a2c8085042ac093cb94ecfb7c3d82ff57ac67665da4c3b88",
+    "proofs/prefix_trie/steps.bend": "301b70b473f4a6dbc0a46e8e1ef9f3abe3d6213914a82190410fbb75cf7ccd7f",
+    "proofs/prefix_trie/trace.bend": "181f8634a9543818b8468c4372b16f06e041c3e1fadca746aea05e7877b863f7",
+    "proofs/prefix_trie.bend": "51bad1da13b9292d5c9ce30a31c44b1f5737a3ba8c28c58c0bb18ebe9d639ab5",
+    "proofs/queue/inst.bend": "9c5c93580487a1f385babd3fff95670457732f9561958598ac9e34a56a420d68",
+    "proofs/queue/steps.bend": "4708df9db9a317acffe7bf0012bdd3e7fed359733eb5d4ec920edd44cbac6335",
+    "proofs/queue/trace.bend": "4d9bfe7fad4f3eef50eec45da1d80fe9298324d26509862c1b1a4f99c971796e",
+    "proofs/queue.bend": "d110d36f61b2e663836327a3f464cc6e7da9dcca7afa758f7168478b3b25dd09",
+    "proofs/segment_tree/arr.bend": "ed5edc3132f3287ebb18d07520afdac83ebf502e6027a250009fc044d56bdc84",
+    "proofs/segment_tree/depth.bend": "fe179f84e985759d616c5226714b1944c644ca284b81078100e3e29682a301d6",
+    "proofs/segment_tree/init.bend": "0edb78bf2d6d0b8d8a443d5d272535a1e96f5b26e2637b5802f0fc45dfb32560",
+    "proofs/segment_tree/model.bend": "c6e6617ed126c7288d65ea554e87975f40901e61423a4184fc4afb1ab1d5af35",
+    "proofs/segment_tree/node.bend": "4c4b601fa71a34bddbff3dfadc50a3c7ae66ab98f7acf7b47b355ced6a08e23c",
+    "proofs/segment_tree/ops.bend": "090853961e5b82beedeba0096ad38e21bd4c091fd0a02edea4e4f719421c52ef",
+    "proofs/segment_tree/state.bend": "50c2eab7e70d341a2830933bfa464634f7c9740df057d6539bb29adf89f6fff1",
+    "proofs/segment_tree/steps.bend": "ce28312d77831d8d6fc78498aca22565da930707a06ab5d324393fc73d78e99a",
+    "proofs/segment_tree/trace.bend": "106740d019d77664bba7b3432cfabff40f3c72ede235ff3aee4a06131f48f301",
+    "proofs/segment_tree/walk.bend": "e810779e523344b6c597791f214337f1c275da9c477d9ecf5ef520830363380c",
+    "proofs/segment_tree.bend": "f2b74551747b360a7ae5eddc761dc08fc77ddc3d797da42cbc2613c04c6d61a8",
+    "proofs/union_find/arr.bend": "8e95c8446e6c3e288dad9e82a9321561d71aa3359e5a788aa7516787de5f017f",
+    "proofs/union_find/bridge.bend": "e33af197217f287ee76962b4c75e32375796a6299b0b62bf778088d507357a71",
+    "proofs/union_find/cells.bend": "3359ee571fe18f986b7546f1be7f86713dee6137a49dbbed17697b0d5409cfe1",
+    "proofs/union_find/depth.bend": "731799201b38eb387947d1ad5952768886f25568b2b77d4fd1471bb3cf8d77ce",
+    "proofs/union_find/flat.bend": "b9d72011a92d5029c94abb14862ca2b3abab4418f13c55c21b53abad1099bd54",
+    "proofs/union_find/init.bend": "9af871bad6461f62f12f69e152631c4b4ab44b58e57fec599feb0c5476ba2d28",
+    "proofs/union_find/model.bend": "8761d8912bb7e19f284a235b29f891422aa06c6c8a57369f15f0030dc8abf06d",
+    "proofs/union_find/state.bend": "f93201498f0a9e4603b9aebbeb30222cea06cc49e0749ea6c0bdaaf75be256fe",
+    "proofs/union_find/steps.bend": "32c54c7a32f9ccc0838485f721d8b6ca4b7029d3f917a75dd0daedb880914dec",
+    "proofs/union_find/trace.bend": "a8955cf0a622b6c679ff7a6fd26e4ff8f6eeb77d5217a3d52f912c9f9395cac1",
+    "proofs/union_find/union.bend": "62c56eefb7abc350ed6e0761cadcf1308b1b86c8073f05ef26b1b8dd327b0491",
+    "proofs/union_find.bend": "7a1f68804838b9d6df3cbccb4c601d5f420bf50054a2841541d74029d63c87a0",
+    "spec/balanced_search_tree.bend": "746240799392a9c8f7f752ae8f8d917befeb59f828451a859ff081b038d819c1",
+    "spec/binary_heap.bend": "fa10299ac4ec162aaa905b27927efa5df912ff6cb939a81e8e737154f139ae5c",
+    "spec/bitset.bend": "ce81fe3879bff378310dc13b6403e6a0735444ac2e2daa27d120fe5c6eb7543a",
+    "spec/common.bend": "c99baf8cafa3a2ed1a8121f3c93eff44e4e026984082f8cced26f4ac4b70c2ac",
+    "spec/deque.bend": "eaa3f74dc84cd4c39a0ba54059aa09f202f659ba52abc7a29686f441863d1385",
+    "spec/doubly_linked_list.bend": "6704197187ef995d5f89d3886d0e582e8a7027fa5d10ef64fdd25a8618dfc8b1",
+    "spec/dynamic_array.bend": "ac6cbff0d8a727ed89a6816f93d4b0b27751b538b9800af743183ca8147cff56",
+    "spec/fenwick_tree.bend": "be9f7f4e3f1f279f132b0f902da6ab33cc0833576f5b2d870624f785f3b5370e",
+    "spec/graph.bend": "2259a0325aa0e36acc69adffeba31cfe55c8d2dda4221e68118a111af72cbdbf",
+    "spec/lru_fast.bend": "8df927119359bf8a70f5f103cdf68a4240e6a787ba1fb36cdeb5cb3413a99435",
+    "spec/lru_numeric.bend": "f83eedecd3f25054e2632a6bc9c293a5103ad4572c6b883ed80e84ee72453515",
+    "spec/lru_unsigned_division.bend": "5e955330143c8b84eb5588aaad4866bcfba054edaf31595be0b8f86eadeb6aa2",
+    "spec/prefix_trie.bend": "b134ac7a9440037bec995e30523c2df51d25f1d83bb1529d5b01a43b7ed25d21",
+    "spec/queue.bend": "edf4edfc63fcb44e0c04588b8c082c622f9574eb5fa067e311328733a04d97c2",
+    "spec/segment_tree.bend": "83c26b959d49ce47c4dbb7312a7047ee132e42451220720d5c631d6f747e8431",
+    "spec/u32seq.bend": "9cd783ca0bd024f125f6588691ff5b7f1a780dca051dcd5b400170f61edc3a06",
+    "spec/union_find.bend": "a052d8e3b3972777f740aa52deca7597408b90f6c7e23b000efbab63a89110db",
+    "benchmarks/bend/balanced_search_tree.bend": "9655a54dbc63bb1fb82e6791d1c80648bfb5875415ab63a87c81028a09879d48",
+    "benchmarks/bend/binary_heap.bend": "8d6434c52b827ef49967d410925a5a05a404b6f3abf2c3f3e6a65a0f40e5fcb8",
+    "benchmarks/bend/bitset.bend": "9536bec7e9e17bbb8950a97a8e21255a729caf8cc0c2c092e0ac15e7140013ef",
+    "benchmarks/bend/common.bend": "8205553c1bdc07704789eb17a6e7b92286469b003384e72c412621f5d6176428",
+    "benchmarks/bend/deque.bend": "4cd6470e4fba0c7730ded4bd0fb165c247f7293409f0ec429e2bcfa77de0e362",
+    "benchmarks/bend/doubly_linked_list.bend": "38fafe774e48fca1b08b97aa50facbeed2ade7bff5a302021ee082ecad14cff6",
+    "benchmarks/bend/dynamic_array.bend": "f0261a7318186188487aed21f596e6a03eddae026979758d7dacfbfdc9cd02d1",
+    "benchmarks/bend/fenwick_tree.bend": "47e1c52a7003fa4659d23433ad8b6f626171b731d13c10d52f429308377f91b2",
+    "benchmarks/bend/graph.bend": "59e36cedb3ec7529b318a2aa6454617bf9f3a00663eaea7e23e7ed812433f3c3",
+    "benchmarks/bend/lru.bend": "a59f0e13741fe65958889381f3a3c94b7871bec677addd0b537e6101b484eaf3",
+    "benchmarks/bend/prefix_trie.bend": "cabd2fbad53765241fb3606ea4015752ffbf0fbb5000bc40d9dbe37c53414006",
+    "benchmarks/bend/queue.bend": "dc13f6b0f717dae92245cc561bc775253b48667007f4544fc26176fae85f0984",
+    "benchmarks/bend/segment_tree.bend": "1477c859a5239a1b75746acaeba2983bd95e3a6263cd30ab2278111e951a2688",
+    "benchmarks/bend/union_find.bend": "73864d68db106d6b6085241e9b8aef0c85396a884e5a791dd0a1a9c50add6b18",
+    "benchmarks/check_dll_deque.c": "91dcb0555ef1bdb0d3a1eaed9d638b601727332b9cfc85447bbc2aad6dd9b540",
+    "benchmarks/evidence/operator-bend-dll-20260922/report.json": "089621ac695014c0e72569932c21d993dd77969244f379cd89c8ec8b57c844e5",
+    "benchmarks/evidence/operator-deque-20260922/old-new-parity.json": "caf1867b7ce61c4ae79b47def87b5be1c1c2fb4c0ede607aace18ec7188f1edb",
+    "benchmarks/evidence/operator-deque-20260922/report.json": "1aa6d49cf6008ad2042804ef32a0d7f016ae4a27e16dcca273731ce4e01b6219",
+    "benchmarks/evidence/operator-deque-20260922/validation.json": "ec827d38b02f79e6e16ed3bda12f95c037cb3c3a7ab28608cc20f83e4c1c448b",
+    "benchmarks/experiments/bstarena/descent.bend": "3326a04b461bfa5c6871eda66b20405a1f11dc795dbac0ec29ea05553e061e28",
+    "benchmarks/experiments/bstarena/descent_adt.bend": "06149eb5c2fc99b9df31a0af64382c686f31707004c323c92f688c497bd52935",
+    "benchmarks/experiments/deque_ring.c": "aba4fc1350ed963475fd6f387ce97fc51436dbdfd2b61f1e52628a7c4f8f1824",
+    "benchmarks/experiments/dq/drv_aff.bend": "4fffc546c52d9470fd84108afb0c3b26c4f3bed25ea79747e225574572f0b5e2",
+    "benchmarks/experiments/dq/drv_noargs.bend": "56f7ae9aa801105bc17a2577b19597f956f111409c526c8eb26eec5ad2287a08",
+    "benchmarks/experiments/dq/drv_v_cur.bend": "abf057432720c49a784c3de8dc17ba79a938121a5d8370d72e5caca5768fc35e",
+    "benchmarks/experiments/dq/drv_v_cur_settle.bend": "ba7d3a35b61b22c81ed27106828b7b044c465469a51a3fa0fdb068b8bac39965",
+    "benchmarks/experiments/dq/drv_v_nat_inline.bend": "7a1bbd95cc905ec2c62cc1ef015aa021e38a748bed73efa375d4b7954fe4cb40",
+    "benchmarks/experiments/dq/drv_v_u32.bend": "7a26698dcd43ce1f5c4c9df86594b430e4a32584368a068a64e84286ef9ba0d3",
+    "benchmarks/experiments/dq/real.bend": "aacd968779b25e55ec70558e3b532fbad16d396563bef1362ededa35379c1a6f",
+    "benchmarks/experiments/dq/real_chain.bend": "fd42bfa4eedc9a74ce4f5f1fdb23a76c5c878d2e7155bc8fa1aa4c600e18d880",
+    "benchmarks/experiments/dq/real_dup.bend": "b9c3839baef93ca73f509503b5bcf74f8f931d2487790144f8fc8f2b6b4aaef0",
+    "benchmarks/experiments/dq/real_m2.bend": "c88939f3a8ba22b9eaf20fc0bed2b79b264bb431f66424634afe43b274ac559a",
+    "benchmarks/experiments/dq/real_m3_len.bend": "ec609e1cd6c921f61fa7bbdf97a5fc39964990205d3023551b3914f2eab7c6f3",
+    "benchmarks/experiments/dq/real_m3_new.bend": "4f9808550ef42186f6ab46427dd4d1d4817d5ce8d5e3e3db9dd89955c36967ba",
+    "benchmarks/experiments/dq/real_m3_peekb.bend": "270838b8dce0c1ed857d24dbee8b04dfddb1f66b29b6b9d8e9e175053ae34577",
+    "benchmarks/experiments/dq/real_m3_peekf.bend": "bbce9ba3adde3cce695a682c41327bb20080ddadf4ee7bd3866b6d88e3bf550b",
+    "benchmarks/experiments/dq/real_m3_pf.bend": "299af04770708577fff06685aba4002db3b7a38a415b3a5c76c3fe14c2b7e15d",
+    "benchmarks/experiments/dq/real_m3_popb.bend": "2033dc9ed9a3d047961e53deee79c4ac6962cf19b5365901d00096760dd88905",
+    "benchmarks/experiments/dq/real_m3_popf.bend": "8576e6a4c7ffa39b1663029542f2ecd3a740d53f977ef4e34559eab3dacfdca0",
+    "benchmarks/experiments/dq/real_m3_ppb.bend": "5fad430fe0537ea93b78ad78ed9ae48489890afb03b841a3f77a7eb5e5cc9c42",
+    "benchmarks/experiments/dq/real_m3_ppf.bend": "a505e06c8ebfa1038ef258b403bdced51830c450549e5f19c90ccba8eba64e5c",
+    "benchmarks/experiments/dq/real_m3_tl.bend": "e355b1823f023c822e05f9aa51bb5792ceac8b458d57687871012e8aea547deb",
+    "benchmarks/experiments/dq/real_nodrain.bend": "67d674db611014c1cc21a581b85d5bff851af258e306551e03c090999591f762",
+    "benchmarks/experiments/dq/v_aff.bend": "83361d06f973884ac3f16a44283fb206b7241b0117f1837c87c487e98bd9b6d9",
+    "benchmarks/experiments/dq/v_cur.bend": "ff4d3004b4c4ccc33ac74d890da10908d8f6234f4e63c869d3610d9ef1061942",
+    "benchmarks/experiments/dq/v_nat_inline.bend": "69457f1f8a7e602646396dd6f49f6472598790f8d51e97a3a5a22dd24d626395",
+    "benchmarks/experiments/dq/v_u32.bend": "13333775241601300f05cecefdbfb75620cda61d84ac4efb4c8195c7be256818",
+    "benchmarks/experiments/key/keycost.bend": "b304a69fca796349f24ccca14c6b62cfca5275ac7f89dde5a916d810763a31e8",
+    "benchmarks/experiments/lru_workloads.py": "7d9f8a437c80dd50b0b63b21c3209c956b2dc34cf8073103b3ccdd7401e4e775",
+    "benchmarks/experiments/map_get_floor.bend": "6d0475af3f88c89aa124c7910c7c311c87ebc48bf571e763c76d2f36bf675483",
+    "benchmarks/experiments/queue_ring.c": "f8cedbde0ced939d6420c397d156c63781db596b7d705d754c122094e498d718",
+    "benchmarks/experiments/union_find_lazy.c": "eacfcd2bc673e7e36247f13aa04c6b2430940f1cc16ceeb4c51f32600c7b3172",
+    "benchmarks/micro.bend": "41ffabdfc7d04c67006d7e7607e8940a5099101c38f2524eb7d8f3ecd1fcebb3",
+    "benchmarks/native/balanced_search_tree.c": "39bd6aab98c307339dc4b89255614f5aa98c0b574c2a717cb8753eceb0345479",
+    "benchmarks/native/binary_heap.c": "e51783ed25e8563da8b07b5af5b6db4f1b9054fe93299d909f364146f4b0c61f",
+    "benchmarks/native/bitset.c": "2119c395ee38bce90d5a9f811430f34261185534496d6880ccf64d6d766e2623",
+    "benchmarks/native/common.h": "597cce243df971c2771e61f7aa84021157b3f09c08aafb98538492ec585ec0f7",
+    "benchmarks/native/deque.c": "8158f3103fdc150720701af51e3896c41b025d93253dd97c778d2d53f645873a",
+    "benchmarks/native/dll_deque.h": "921868a26ae22a606de876f9fb3c0b3928670431780f9f88f642598781e7feac",
+    "benchmarks/native/doubly_linked_list.c": "e1f9dfc16f588f7a719df4967775af9b1a8d73ddf2ac897ad072296509e50838",
+    "benchmarks/native/dynamic_array.c": "1f7b9f9577c48aa0fc35030e3ffdb5b665d103cf80c749a0916aef6a290b53ac",
+    "benchmarks/native/fenwick_tree.c": "a692600802b9b79033b7faff84c28911b1958fecb125b158ff29e15e0f3d1729",
+    "benchmarks/native/graph.c": "8e47098af65e47b0ab0fcb02f2840138efbe57b6aa3704b62cb46e2db619d1ce",
+    "benchmarks/native/lru.c": "e7f2815668d94cf6fde0d016f2f78c8f5968d5e1717b9fc0ba98d134658ee1a0",
+    "benchmarks/native/micro.c": "1fac6bebb3e796e1ed7f2285299601a72aa08e7effc7112f8e9f756a80b3dd0c",
+    "benchmarks/native/prefix_trie.c": "d536c82e17c19b87684c0bee2545092e5b3bef38995eccccd6abac1ab0309371",
+    "benchmarks/native/queue.c": "c942b4cb0bb18551d52126db96cb2eabc13f7f4f4f611fef100f10ad88640fce",
+    "benchmarks/native/redblack.h": "e09b82154fb55c8731536c8a1dd3cfd6a4c8766dc7b58e2a77bd8378c4853b96",
+    "benchmarks/native/segment_tree.c": "3cd32c71db28105ecf24a264de5ebc0e6ed061264a8c3400545fa70f35537aa4",
+    "benchmarks/native/sentinel_list.h": "2f5eaa05d46a2630e4b34762b06278449ca7e4a15e7fba3fcc2aba59e1d1f94f",
+    "benchmarks/native/two_list.h": "c9d122cecdbb8c882eac2a126fb5c095397fa5e33f10aa3a36adea8e4180b258",
+    "benchmarks/native/union_find.c": "104fbd48dc2fda00610a169e75aa39b7f0c40cb827a58f16245fb9883d27276f",
+    "benchmarks/operator_deque_bench.py": "57ce2231d11761a9f14e1c94751d6b6ebedff8ff98c3d8fe4a9f7d80f44eb766",
+    "benchmarks/operator_two_list_bench.py": "045305c84eb63dd14bb699157a79510412614c6b936e83a0b73d10439c46e183",
+    "benchmarks/reference-history/deque-window.c": "af90caf98ce887de5be2f38a35242260af9907f9ad3e96b75597db557285818e",
+    "benchmarks/reference-history/dll-generational.c": "e1f9dfc16f588f7a719df4967775af9b1a8d73ddf2ac897ad072296509e50838",
+    "benchmarks/reference-history/dll-monotonic.c": "748fafb104b0f983eef3fda209e470ac736864c3be9e5dddc6519c0bf27ef58f",
+    "benchmarks/reference-history/dll_deque-indexed.h": "99201162255011cd1c20741f005055f05b1c64e5e27102bbd29a1c48b757baf2",
+    "benchmarks/reference-history/queue-window.c": "741d99073b3c094acd6beb7d9ae853c12c1ee3393b6052eaff07fcd3fe85fc82",
+    "benchmarks/render_operator_deque.py": "1d284dd9965e46e077f4948b542f18802cdf0aba14983eb05d2a633093640e29",
+    "benchmarks/run.py": "23c014203470a02988419bfaf1a2a724f0eae951ea125f8185aa5ead098eb819",
+    "benchmarks/workloads.py": "04758dcccfa31438ce55fa78c4c60002b8d30da0cc4038795cd55f6fbfd7217b",
+    "native_bench/balanced_search_tree.c": "c7a6f880dd3e8608df081f3c80c0d3b4e1c3ebdc5be59b580a22af48be1183bc",
+    "native_bench/binary_heap.c": "3c91732ddb08b077475ec61e57f4110dedd5629d8c5b6ae32faf3fbb4ee26ee0",
+    "native_bench/bitset.c": "5c5c7326c19fd2b26d2f58732395f59123542bc3eb59c4cde6c59ab94cd9fb64",
+    "native_bench/common.h": "061a75cd57a39ba9a345830d54f6d4e9b5b2ee762246182b77bbbb8024ad772f",
+    "native_bench/deque.c": "19a69c1827d18675e571af67922a020bd89cf22188841a420aba25ec10267429",
+    "native_bench/doubly_linked_list.c": "cedce0159534441b331a8ecf4d38ba70ca6066dca4e76dd9cf0e3c2e8eeddd29",
+    "native_bench/dynamic_array.c": "194b66aa8ea8355edeb594989335128c40d7a7bafa83a86419031543425ba5f7",
+    "native_bench/fenwick_tree.c": "24a2395726c93ed0883e82f74c6777b00afa801bc939696de77f30a85912eb57",
+    "native_bench/graph.c": "2d9b18d533332e298be1cff217a7d49672aefab365f625cc1431a6fece9397e9",
+    "native_bench/prefix_trie.c": "88054a4737b9c8a2c9e97e35d62d1ec040d2ee4bc47ca7cf98e7b044fb7d348a",
+    "native_bench/queue.c": "53defac1d5bb7171ab0269881bd198d735002cae94f8d9ed42a0a77eb683495a",
+    "native_bench/segment_tree.c": "025aa3b8a8e3cf5c507ac2483ce681860928a1eb7bd0f7d7c09a26e03fbf5959",
+    "native_bench/twothree.h": "57edbfc7c33fe9aafb005dad6d1150b89d6e8155d395a6b04c92af392bf046db",
+    "native_bench/union_find.c": "eb49c640135376ad0a404a0675e1a69008b1fc67ad29fe120c18e603f00278c3",
+    "DLL_DEQUE_COMPONENT_PROOF.bend": "6e1b2664ae133a95750e0f112980e86b27f372dc20a31592d51ec52cd10d8dcd",
+    "END_TO_END.bend": "e508c4d0fee9d46236fdf28799c5c7688775d350873d6e91187f1813aa74ced5",
+    "PROOF.bend": "5bf861bc1df4ae533707f53f91b7678d1396f13aded4e77ee776e55873582c4f"
+  },
+  "rows": [
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.push_front",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        8.77450980392157,
+        8.823529411764707,
+        9.117647058823529,
+        9.068627450980392,
+        9.068627450980392,
+        9.068627450980392
+      ],
+      "reference_ns": [
+        10.582794117647058,
+        10.26171568627451,
+        10.719950980392158,
+        10.498039215686275,
+        11.352401960784313,
+        10.327352941176471
+      ],
+      "bend_delta_ns": [
+        179000000.0,
+        180000000.0,
+        186000000.0,
+        185000000.0,
+        185000000.0,
+        185000000.0
+      ],
+      "reference_delta_ns": [
+        215889000.0,
+        209339000.0,
+        218687000.0,
+        214160000.0,
+        231589000.0,
+        210678000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        124000.0,
+        142000.0,
+        132000.0,
+        139000.0,
+        132000.0,
+        134000.0
+      ],
+      "operations_per_sample": 20400000,
+      "reps": 102,
+      "count": 200000,
+      "grow": "reps",
+      "seed": 1040,
+      "checksums": [
+        "2410997875",
+        "2088724851",
+        "1099754099"
+      ],
+      "ratio": 0.8603670744496558
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.push_front",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        8.75,
+        8.75,
+        8.75,
+        9.0625,
+        8.59375,
+        8.828125
+      ],
+      "reference_ns": [
+        10.408828125,
+        11.01,
+        10.5725,
+        10.411328125,
+        10.991015625,
+        11.10484375
+      ],
+      "bend_delta_ns": [
+        112000000.0,
+        112000000.0,
+        112000000.0,
+        116000000.0,
+        110000000.0,
+        113000000.0
+      ],
+      "reference_delta_ns": [
+        133233000.0,
+        140928000.0,
+        135328000.0,
+        133265000.0,
+        140685000.0,
+        142142000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        11000000.0,
+        12000000.0,
+        10000000.0,
+        11000000.0,
+        11000000.0,
+        12000000.0
+      ],
+      "reference_control_ns": [
+        11883000.0,
+        11250000.0,
+        11274000.0,
+        11284000.0,
+        11972000.0,
+        11993000.0
+      ],
+      "operations_per_sample": 12800000,
+      "reps": 128,
+      "count": 100000,
+      "grow": "reps",
+      "seed": 1041,
+      "checksums": [
+        "2787915840",
+        "3104806976",
+        "956495936"
+      ],
+      "ratio": 0.8115559774358454
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.push_front",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        9.723738128063726,
+        8.975758272058824,
+        9.200152228860293,
+        10.172526041666666,
+        7.853788488051471,
+        9.125354243259803
+      ],
+      "reference_ns": [
+        11.366900275735293,
+        11.535120945350796,
+        11.515523873123469,
+        12.428433287377452,
+        10.018068201401654,
+        12.639662798713236
+      ],
+      "bend_delta_ns": [
+        130000000.0,
+        120000000.0,
+        123000000.0,
+        136000000.0,
+        105000000.0,
+        122000000.0
+      ],
+      "reference_delta_ns": [
+        151968000.0,
+        154217000.0,
+        153955000.0,
+        166160000.0,
+        133935000.0,
+        168984000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        268000000.0,
+        268000000.0,
+        283000000.0,
+        278000000.0,
+        277000000.0,
+        269000000.0
+      ],
+      "reference_control_ns": [
+        298054000.0,
+        306248000.0,
+        310454000.0,
+        292366000.0,
+        299511000.0,
+        304889000.0
+      ],
+      "operations_per_sample": 13369344,
+      "reps": 51,
+      "count": 262144,
+      "grow": "reps",
+      "seed": 1042,
+      "checksums": [
+        "3296601301",
+        "3120440533",
+        "2944279765"
+      ],
+      "ratio": 0.7950105785081059
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.push_back",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        9.852941176470589,
+        9.191176470588236,
+        9.411764705882353,
+        9.852941176470589,
+        9.852941176470589,
+        8.75
+      ],
+      "reference_ns": [
+        10.794191176470589,
+        12.078676470588235,
+        12.256691176470587,
+        12.85889705882353,
+        10.885,
+        13.47779411764706
+      ],
+      "bend_delta_ns": [
+        134000000.0,
+        125000000.0,
+        128000000.0,
+        134000000.0,
+        134000000.0,
+        119000000.0
+      ],
+      "reference_delta_ns": [
+        146801000.0,
+        164270000.0,
+        166691000.0,
+        174881000.0,
+        148036000.0,
+        183298000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        1000000.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        93000.0,
+        85000.0,
+        82000.0,
+        94000.0,
+        101000.0,
+        89000.0
+      ],
+      "operations_per_sample": 13600000,
+      "reps": 68,
+      "count": 200000,
+      "grow": "reps",
+      "seed": 1043,
+      "checksums": [
+        "1474284898",
+        "412443490",
+        "4136434018"
+      ],
+      "ratio": 0.7916340596021888
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.push_back",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        9.140625,
+        9.375,
+        8.75,
+        9.21875,
+        9.21875,
+        9.140625
+      ],
+      "reference_ns": [
+        10.93390625,
+        11.71484375,
+        9.957265625,
+        10.7778125,
+        10.9284375,
+        11.311484375
+      ],
+      "bend_delta_ns": [
+        117000000.0,
+        120000000.0,
+        112000000.0,
+        118000000.0,
+        118000000.0,
+        117000000.0
+      ],
+      "reference_delta_ns": [
+        139954000.0,
+        149950000.0,
+        127453000.0,
+        137956000.0,
+        139884000.0,
+        144787000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        11000000.0,
+        11000000.0,
+        12000000.0,
+        11000000.0,
+        12000000.0,
+        11000000.0
+      ],
+      "reference_control_ns": [
+        12140000.0,
+        11350000.0,
+        11764000.0,
+        11097000.0,
+        11212000.0,
+        11381000.0
+      ],
+      "operations_per_sample": 12800000,
+      "reps": 128,
+      "count": 100000,
+      "grow": "reps",
+      "seed": 1044,
+      "checksums": [
+        "1719935040",
+        "2904784960",
+        "1255333952"
+      ],
+      "ratio": 0.8397715821296607
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.push_back",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        9.349748200061274,
+        8.975758272058824,
+        9.349748200061274,
+        10.621313955269608,
+        9.274950214460784,
+        9.873334099264707
+      ],
+      "reference_ns": [
+        12.276668174594056,
+        11.228000416475183,
+        7.487951540479473,
+        10.229671702665442,
+        10.166392606847426,
+        11.66833615770527
+      ],
+      "bend_delta_ns": [
+        125000000.0,
+        120000000.0,
+        125000000.0,
+        142000000.0,
+        124000000.0,
+        132000000.0
+      ],
+      "reference_delta_ns": [
+        164131000.0,
+        150111000.0,
+        100109000.0,
+        136764000.0,
+        135918000.0,
+        155998000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        286000000.0,
+        277000000.0,
+        271000000.0,
+        286000000.0,
+        283000000.0,
+        277000000.0
+      ],
+      "reference_control_ns": [
+        302956000.0,
+        307588000.0,
+        309013000.0,
+        302624000.0,
+        351708000.0,
+        311333000.0
+      ],
+      "operations_per_sample": 13369344,
+      "reps": 51,
+      "count": 262144,
+      "grow": "reps",
+      "seed": 1045,
+      "checksums": [
+        "3622778514",
+        "782186130",
+        "2236561042"
+      ],
+      "ratio": 0.8714596949891067
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.peek_front",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        3.96484375,
+        4.78515625,
+        4.12109375,
+        4.375,
+        4.35546875,
+        3.90625
+      ],
+      "reference_ns": [
+        3.50798828125,
+        3.53859375,
+        3.4926953125,
+        3.52029296875,
+        3.5290625,
+        3.481015625
+      ],
+      "bend_delta_ns": [
+        203000000.0,
+        245000000.0,
+        211000000.0,
+        224000000.0,
+        223000000.0,
+        200000000.0
+      ],
+      "reference_delta_ns": [
+        179609000.0,
+        181176000.0,
+        178826000.0,
+        180239000.0,
+        180688000.0,
+        178228000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        2000.0,
+        2000.0,
+        2000.0,
+        2000.0,
+        1000.0,
+        1000.0
+      ],
+      "operations_per_sample": 51200000,
+      "reps": 1,
+      "count": 51200000,
+      "grow": "count",
+      "seed": 1046,
+      "checksums": [
+        "2987516810",
+        "1014899594",
+        "2263507850"
+      ],
+      "ratio": 1.206064782908339
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.peek_front",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        4.15625,
+        4.40625,
+        4.1875,
+        4.4375,
+        3.65625,
+        4.25
+      ],
+      "reference_ns": [
+        3.4750625,
+        3.57534375,
+        3.5896875,
+        3.4669375,
+        3.53953125,
+        3.56690625
+      ],
+      "bend_delta_ns": [
+        133000000.0,
+        141000000.0,
+        134000000.0,
+        142000000.0,
+        117000000.0,
+        136000000.0
+      ],
+      "reference_delta_ns": [
+        111202000.0,
+        114411000.0,
+        114870000.0,
+        110942000.0,
+        113265000.0,
+        114141000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        121000.0,
+        96000.0,
+        96000.0,
+        100000.0,
+        160000.0,
+        95000.0
+      ],
+      "operations_per_sample": 32000000,
+      "reps": 1,
+      "count": 32000000,
+      "grow": "count",
+      "seed": 1047,
+      "checksums": [
+        "783894217",
+        "2096467657",
+        "1781651145"
+      ],
+      "ratio": 1.1873037650721616
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.peek_front",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        3.8823529411764706,
+        4.078431372549019,
+        3.803921568627451,
+        4.078431372549019,
+        4.1568627450980395,
+        3.6862745098039214
+      ],
+      "reference_ns": [
+        3.5617647058823527,
+        3.548313725490196,
+        3.5232941176470587,
+        3.619843137254902,
+        3.60121568627451,
+        3.549686274509804
+      ],
+      "bend_delta_ns": [
+        99000000.0,
+        104000000.0,
+        97000000.0,
+        104000000.0,
+        106000000.0,
+        94000000.0
+      ],
+      "reference_delta_ns": [
+        90825000.0,
+        90482000.0,
+        89844000.0,
+        92306000.0,
+        91831000.0,
+        90517000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        5000000.0,
+        6000000.0,
+        5000000.0,
+        7000000.0,
+        5000000.0,
+        6000000.0
+      ],
+      "reference_control_ns": [
+        7653000.0,
+        5876000.0,
+        7628000.0,
+        5988000.0,
+        5865000.0,
+        6137000.0
+      ],
+      "operations_per_sample": 25500000,
+      "reps": 1,
+      "count": 25500000,
+      "grow": "count",
+      "seed": 1048,
+      "checksums": [
+        "36818216",
+        "379817480",
+        "3747512040"
+      ],
+      "ratio": 1.119431791862889
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.peek_back",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        3.8020833333333335,
+        3.9583333333333335,
+        3.59375,
+        3.90625,
+        3.7239583333333335,
+        4.088541666666667
+      ],
+      "reference_ns": [
+        3.431171875,
+        3.5134895833333335,
+        3.525651041666667,
+        3.53390625,
+        3.513984375,
+        3.5560677083333334
+      ],
+      "bend_delta_ns": [
+        146000000.0,
+        152000000.0,
+        138000000.0,
+        150000000.0,
+        143000000.0,
+        157000000.0
+      ],
+      "reference_delta_ns": [
+        131757000.0,
+        134918000.0,
+        135385000.0,
+        135702000.0,
+        134937000.0,
+        136553000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        2000.0,
+        1000.0,
+        2000.0,
+        2000.0,
+        6000.0,
+        1000.0
+      ],
+      "operations_per_sample": 38400000,
+      "reps": 1,
+      "count": 38400000,
+      "grow": "count",
+      "seed": 1049,
+      "checksums": [
+        "3183465831",
+        "2202551655",
+        "3838883175"
+      ],
+      "ratio": 1.0949904188338353
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.peek_back",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        3.75,
+        3.9453125,
+        4.140625,
+        3.3984375,
+        3.9453125,
+        4.4921875
+      ],
+      "reference_ns": [
+        3.619375,
+        3.39171875,
+        3.56375,
+        3.510703125,
+        3.4963671875,
+        3.424765625
+      ],
+      "bend_delta_ns": [
+        96000000.0,
+        101000000.0,
+        106000000.0,
+        87000000.0,
+        101000000.0,
+        115000000.0
+      ],
+      "reference_delta_ns": [
+        92656000.0,
+        86828000.0,
+        91232000.0,
+        89874000.0,
+        89507000.0,
+        87674000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1000000.0
+      ],
+      "reference_control_ns": [
+        94000.0,
+        105000.0,
+        89000.0,
+        92000.0,
+        91000.0,
+        93000.0
+      ],
+      "operations_per_sample": 25600000,
+      "reps": 1,
+      "count": 25600000,
+      "grow": "count",
+      "seed": 1050,
+      "checksums": [
+        "777647910",
+        "3719829286",
+        "1024866086"
+      ],
+      "ratio": 1.1260947369007865
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.peek_back",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        3.61328125,
+        4.04296875,
+        3.76953125,
+        4.140625,
+        3.88671875,
+        4.04296875
+      ],
+      "reference_ns": [
+        3.38697265625,
+        3.52275390625,
+        3.5428515625,
+        3.527421875,
+        3.53158203125,
+        3.5358984375
+      ],
+      "bend_delta_ns": [
+        185000000.0,
+        207000000.0,
+        193000000.0,
+        212000000.0,
+        199000000.0,
+        207000000.0
+      ],
+      "reference_delta_ns": [
+        173413000.0,
+        180365000.0,
+        181394000.0,
+        180604000.0,
+        180817000.0,
+        181038000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        5000000.0,
+        7000000.0,
+        5000000.0,
+        7000000.0,
+        6000000.0,
+        6000000.0
+      ],
+      "reference_control_ns": [
+        8360000.0,
+        6533000.0,
+        5761000.0,
+        5933000.0,
+        5833000.0,
+        5893000.0
+      ],
+      "operations_per_sample": 51200000,
+      "reps": 1,
+      "count": 51200000,
+      "grow": "count",
+      "seed": 1051,
+      "checksums": [
+        "4145807173",
+        "3888725829",
+        "2557902661"
+      ],
+      "ratio": 1.1233436905990521
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.length",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        1.015625,
+        1.005859375,
+        1.03515625,
+        1.015625,
+        1.005859375,
+        1.025390625
+      ],
+      "reference_ns": [
+        2.51357421875,
+        2.519736328125,
+        2.516884765625,
+        2.5121484375,
+        2.520625,
+        2.533173828125
+      ],
+      "bend_delta_ns": [
+        104000000.0,
+        103000000.0,
+        106000000.0,
+        104000000.0,
+        103000000.0,
+        105000000.0
+      ],
+      "reference_delta_ns": [
+        257390000.0,
+        258021000.0,
+        257729000.0,
+        257244000.0,
+        258112000.0,
+        259397000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        2000.0,
+        1000.0,
+        5000.0,
+        1000.0,
+        6000.0,
+        2000.0
+      ],
+      "operations_per_sample": 102400000,
+      "reps": 1,
+      "count": 102400000,
+      "grow": "count",
+      "seed": 1052,
+      "checksums": [
+        "3531474756",
+        "2325382980",
+        "1119291204"
+      ],
+      "ratio": 0.40329617062530293
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.length",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        1.0202205882352942,
+        1.0110294117647058,
+        1.0294117647058822,
+        1.0202205882352942,
+        1.0202205882352942,
+        1.0018382352941178
+      ],
+      "reference_ns": [
+        2.5616176470588234,
+        2.5190900735294117,
+        2.521764705882353,
+        2.5159466911764707,
+        2.5222886029411766,
+        2.520891544117647
+      ],
+      "bend_delta_ns": [
+        111000000.0,
+        110000000.0,
+        112000000.0,
+        111000000.0,
+        111000000.0,
+        109000000.0
+      ],
+      "reference_delta_ns": [
+        278704000.0,
+        274077000.0,
+        274368000.0,
+        273735000.0,
+        274425000.0,
+        274273000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        1000000.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        93000.0,
+        107000.0,
+        102000.0,
+        93000.0,
+        89000.0,
+        96000.0
+      ],
+      "operations_per_sample": 108800000,
+      "reps": 1,
+      "count": 108800000,
+      "grow": "count",
+      "seed": 1053,
+      "checksums": [
+        "1286129539",
+        "785493891",
+        "268081027"
+      ],
+      "ratio": 0.4046361828591009
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.length",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        1.0149942329873125,
+        1.0149942329873125,
+        1.0380622837370241,
+        1.0073048827374087,
+        1.0149942329873125,
+        1.0226835832372165
+      ],
+      "reference_ns": [
+        2.526620530565167,
+        2.511272587466359,
+        2.5086274509803923,
+        2.507843137254902,
+        2.5359630911188003,
+        2.527474048442907
+      ],
+      "bend_delta_ns": [
+        132000000.0,
+        132000000.0,
+        135000000.0,
+        131000000.0,
+        132000000.0,
+        133000000.0
+      ],
+      "reference_delta_ns": [
+        328587000.0,
+        326591000.0,
+        326247000.0,
+        326145000.0,
+        329802000.0,
+        328698000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        5000000.0,
+        6000000.0,
+        5000000.0,
+        7000000.0,
+        5000000.0,
+        7000000.0
+      ],
+      "reference_control_ns": [
+        5792000.0,
+        6719000.0,
+        5982000.0,
+        6135000.0,
+        5915000.0,
+        6052000.0
+      ],
+      "operations_per_sample": 130050000,
+      "reps": 1,
+      "count": 130050000,
+      "grow": "count",
+      "seed": 1054,
+      "checksums": [
+        "399214210",
+        "1161735442",
+        "1368293282"
+      ],
+      "ratio": 0.40294393279383617
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.to_list",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        643.75,
+        709.375,
+        637.5,
+        659.375,
+        665.625,
+        700.0
+      ],
+      "reference_ns": [
+        693.359375,
+        632.93125,
+        557.825,
+        683.903125,
+        588.821875,
+        595.528125
+      ],
+      "bend_delta_ns": [
+        206000000.0,
+        227000000.0,
+        204000000.0,
+        211000000.0,
+        213000000.0,
+        224000000.0
+      ],
+      "reference_delta_ns": [
+        221875000.0,
+        202538000.0,
+        178504000.0,
+        218849000.0,
+        188423000.0,
+        190569000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        1000.0,
+        2000.0,
+        1000.0,
+        1000.0,
+        1000.0,
+        1000.0
+      ],
+      "operations_per_sample": 320000,
+      "reps": 1,
+      "count": 320000,
+      "grow": "count",
+      "seed": 1055,
+      "checksums": [
+        "4249523489",
+        "3212572449",
+        "2694666529"
+      ],
+      "ratio": 1.0785867461022063
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.to_list",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        44333.333333333336,
+        50000.0,
+        46333.333333333336,
+        49000.0,
+        48333.333333333336,
+        48000.0
+      ],
+      "reference_ns": [
+        48225.0,
+        49652.333333333336,
+        44426.333333333336,
+        42716.0,
+        45958.666666666664,
+        45798.333333333336
+      ],
+      "bend_delta_ns": [
+        133000000.0,
+        150000000.0,
+        139000000.0,
+        147000000.0,
+        145000000.0,
+        144000000.0
+      ],
+      "reference_delta_ns": [
+        144675000.0,
+        148957000.0,
+        133279000.0,
+        128148000.0,
+        137876000.0,
+        137395000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        1000000.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        97000.0,
+        94000.0,
+        86000.0,
+        96000.0,
+        87000.0,
+        93000.0
+      ],
+      "operations_per_sample": 3000,
+      "reps": 1,
+      "count": 3000,
+      "grow": "count",
+      "seed": 1056,
+      "checksums": [
+        "3060629680",
+        "1425395400",
+        "3806263264"
+      ],
+      "ratio": 1.0498744873234014
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.to_list",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        3120000.0,
+        2980000.0,
+        2940000.0,
+        2960000.0,
+        3060000.0,
+        3020000.0
+      ],
+      "reference_ns": [
+        2910180.0,
+        3097680.0,
+        3215220.0,
+        3243920.0,
+        3111640.0,
+        3224220.0
+      ],
+      "bend_delta_ns": [
+        156000000.0,
+        149000000.0,
+        147000000.0,
+        148000000.0,
+        153000000.0,
+        151000000.0
+      ],
+      "reference_delta_ns": [
+        145509000.0,
+        154884000.0,
+        160761000.0,
+        162196000.0,
+        155582000.0,
+        161211000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        5000000.0,
+        7000000.0,
+        5000000.0,
+        7000000.0,
+        5000000.0,
+        7000000.0
+      ],
+      "reference_control_ns": [
+        6339000.0,
+        6313000.0,
+        5683000.0,
+        5926000.0,
+        5922000.0,
+        5872000.0
+      ],
+      "operations_per_sample": 50,
+      "reps": 1,
+      "count": 50,
+      "grow": "count",
+      "seed": 1057,
+      "checksums": [
+        "853520987",
+        "3303415093",
+        "178683903"
+      ],
+      "ratio": 0.9483377220295691
+    },
+    {
+      "measurement": "ok",
+      "method": "pair",
+      "operation": "deque.pop_front",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        4.765625,
+        5.1953125,
+        5.0,
+        6.015625,
+        4.8828125,
+        5.3515625
+      ],
+      "reference_ns": [
+        9.4298828125,
+        10.958125,
+        9.687265625,
+        10.2658984375,
+        9.371640625,
+        10.0474609375
+      ],
+      "bend_delta_ns": [
+        122000000.0,
+        133000000.0,
+        128000000.0,
+        154000000.0,
+        125000000.0,
+        137000000.0
+      ],
+      "reference_delta_ns": [
+        241405000.0,
+        280528000.0,
+        247994000.0,
+        262807000.0,
+        239914000.0,
+        257215000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        2000.0,
+        1000.0,
+        1000.0,
+        1000.0,
+        1000.0,
+        1000.0
+      ],
+      "operations_per_sample": 25600000,
+      "reps": 1,
+      "count": 25600000,
+      "grow": "count",
+      "seed": 1058,
+      "checksums": [
+        "1393093374",
+        "348539646",
+        "4270041854"
+      ],
+      "ratio": 0.5166178749784742
+    },
+    {
+      "measurement": "ok",
+      "method": "pair",
+      "operation": "deque.pop_front",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        4.9609375,
+        4.6875,
+        4.8828125,
+        5.234375,
+        4.453125,
+        5.1171875
+      ],
+      "reference_ns": [
+        10.4930859375,
+        9.8979296875,
+        9.43921875,
+        9.3913671875,
+        10.301484375,
+        9.9391015625
+      ],
+      "bend_delta_ns": [
+        127000000.0,
+        120000000.0,
+        125000000.0,
+        134000000.0,
+        114000000.0,
+        131000000.0
+      ],
+      "reference_delta_ns": [
+        268623000.0,
+        253387000.0,
+        241644000.0,
+        240419000.0,
+        263718000.0,
+        254441000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        1000000.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        98000.0,
+        105000.0,
+        104000.0,
+        92000.0,
+        91000.0,
+        94000.0
+      ],
+      "operations_per_sample": 25600000,
+      "reps": 1,
+      "count": 25600000,
+      "grow": "count",
+      "seed": 1059,
+      "checksums": [
+        "2417875005",
+        "4277180477",
+        "3049478205"
+      ],
+      "ratio": 0.49623100734894493
+    },
+    {
+      "measurement": "ok",
+      "method": "pair",
+      "operation": "deque.pop_front",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        7.712418300653595,
+        7.647058823529412,
+        8.104575163398692,
+        7.973856209150327,
+        6.993464052287582,
+        7.450980392156863
+      ],
+      "reference_ns": [
+        10.137320261437909,
+        10.63549019607843,
+        11.347843137254902,
+        9.704183006535947,
+        11.03875816993464,
+        10.076078431372549
+      ],
+      "bend_delta_ns": [
+        118000000.0,
+        117000000.0,
+        124000000.0,
+        122000000.0,
+        107000000.0,
+        114000000.0
+      ],
+      "reference_delta_ns": [
+        155101000.0,
+        162723000.0,
+        173622000.0,
+        148474000.0,
+        168893000.0,
+        154164000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        6000000.0,
+        9000000.0,
+        6000000.0,
+        7000000.0,
+        5000000.0,
+        7000000.0
+      ],
+      "reference_control_ns": [
+        7630000.0,
+        6725000.0,
+        6216000.0,
+        6139000.0,
+        6293000.0,
+        6026000.0
+      ],
+      "operations_per_sample": 15300000,
+      "reps": 1,
+      "count": 15300000,
+      "grow": "count",
+      "seed": 1060,
+      "checksums": [
+        "307325468",
+        "3367239996",
+        "3284041820"
+      ],
+      "ratio": 0.7394029399919453
+    },
+    {
+      "measurement": "ok",
+      "method": "pair",
+      "operation": "deque.pop_back",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        5.0,
+        5.0,
+        4.8828125,
+        5.15625,
+        4.765625,
+        5.3515625
+      ],
+      "reference_ns": [
+        10.3252734375,
+        10.0137890625,
+        9.7740625,
+        9.90453125,
+        9.747421875,
+        9.96671875
+      ],
+      "bend_delta_ns": [
+        128000000.0,
+        128000000.0,
+        125000000.0,
+        132000000.0,
+        122000000.0,
+        137000000.0
+      ],
+      "reference_delta_ns": [
+        264327000.0,
+        256353000.0,
+        250216000.0,
+        253556000.0,
+        249534000.0,
+        255148000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        1000.0,
+        2000.0,
+        2000.0,
+        2000.0,
+        1000.0,
+        1000.0
+      ],
+      "operations_per_sample": 25600000,
+      "reps": 1,
+      "count": 25600000,
+      "grow": "count",
+      "seed": 1061,
+      "checksums": [
+        "2036268251",
+        "2799992027",
+        "1550449883"
+      ],
+      "ratio": 0.5032396049569101
+    },
+    {
+      "measurement": "ok",
+      "method": "pair",
+      "operation": "deque.pop_back",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        4.6875,
+        5.520833333333333,
+        5.15625,
+        5.260416666666667,
+        5.15625,
+        5.208333333333333
+      ],
+      "reference_ns": [
+        10.665885416666667,
+        9.4634375,
+        9.59296875,
+        10.465989583333334,
+        9.434791666666667,
+        9.781197916666667
+      ],
+      "bend_delta_ns": [
+        90000000.0,
+        106000000.0,
+        99000000.0,
+        101000000.0,
+        99000000.0,
+        100000000.0
+      ],
+      "reference_delta_ns": [
+        204785000.0,
+        181698000.0,
+        184185000.0,
+        200947000.0,
+        181148000.0,
+        187799000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        98000.0,
+        102000.0,
+        103000.0,
+        105000.0,
+        100000.0,
+        97000.0
+      ],
+      "operations_per_sample": 19200000,
+      "reps": 1,
+      "count": 19200000,
+      "grow": "count",
+      "seed": 1062,
+      "checksums": [
+        "384788634",
+        "1351323802",
+        "2292693146"
+      ],
+      "ratio": 0.5349692459890747
+    },
+    {
+      "measurement": "ok",
+      "method": "pair",
+      "operation": "deque.pop_back",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        7.0588235294117645,
+        7.254901960784314,
+        7.516339869281046,
+        7.450980392156863,
+        7.38562091503268,
+        7.254901960784314
+      ],
+      "reference_ns": [
+        9.285359477124183,
+        9.942222222222222,
+        10.079673202614378,
+        9.066535947712419,
+        10.392091503267974,
+        9.651764705882353
+      ],
+      "bend_delta_ns": [
+        108000000.0,
+        111000000.0,
+        115000000.0,
+        114000000.0,
+        113000000.0,
+        111000000.0
+      ],
+      "reference_delta_ns": [
+        142066000.0,
+        152116000.0,
+        154219000.0,
+        138718000.0,
+        158999000.0,
+        147672000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        6000000.0,
+        7000000.0,
+        5000000.0,
+        6000000.0,
+        6000000.0,
+        7000000.0
+      ],
+      "reference_control_ns": [
+        6170000.0,
+        5789000.0,
+        6178000.0,
+        6445000.0,
+        6474000.0,
+        6288000.0
+      ],
+      "operations_per_sample": 15300000,
+      "reps": 1,
+      "count": 15300000,
+      "grow": "count",
+      "seed": 1063,
+      "checksums": [
+        "3497210937",
+        "3333928569",
+        "2094432441"
+      ],
+      "ratio": 0.7471946842435321
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.new",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        1.015625,
+        1.005859375,
+        1.005859375,
+        1.005859375,
+        1.005859375,
+        1.005859375
+      ],
+      "reference_ns": [
+        1.228896484375,
+        1.251357421875,
+        1.281357421875,
+        1.2705859375,
+        1.197919921875,
+        1.333251953125
+      ],
+      "bend_delta_ns": [
+        104000000.0,
+        103000000.0,
+        103000000.0,
+        103000000.0,
+        103000000.0,
+        103000000.0
+      ],
+      "reference_delta_ns": [
+        125839000.0,
+        128139000.0,
+        131211000.0,
+        130108000.0,
+        122667000.0,
+        136525000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        5000.0,
+        1000.0,
+        6000.0,
+        1000.0,
+        4000.0,
+        1000.0
+      ],
+      "operations_per_sample": 102400000,
+      "reps": 1,
+      "count": 102400000,
+      "grow": "count",
+      "seed": 1064,
+      "checksums": [
+        "3106361016",
+        "3116093112",
+        "3125825208"
+      ],
+      "ratio": 0.7976859363322709
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.new",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        1.015625,
+        1.005859375,
+        1.044921875,
+        0.99609375,
+        1.005859375,
+        0.99609375
+      ],
+      "reference_ns": [
+        1.257001953125,
+        1.30802734375,
+        1.223056640625,
+        1.26412109375,
+        1.2397265625,
+        1.29279296875
+      ],
+      "bend_delta_ns": [
+        104000000.0,
+        103000000.0,
+        107000000.0,
+        102000000.0,
+        103000000.0,
+        102000000.0
+      ],
+      "reference_delta_ns": [
+        128717000.0,
+        133942000.0,
+        125241000.0,
+        129446000.0,
+        126948000.0,
+        132382000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        1000000.0,
+        0.0,
+        1000000.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        124000.0,
+        93000.0,
+        99000.0,
+        93000.0,
+        91000.0,
+        97000.0
+      ],
+      "operations_per_sample": 102400000,
+      "reps": 1,
+      "count": 102400000,
+      "grow": "count",
+      "seed": 1065,
+      "checksums": [
+        "1045371127",
+        "1290639607",
+        "1535908087"
+      ],
+      "ratio": 0.7979454840546476
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.new",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        1.0265282583621684,
+        0.9976931949250288,
+        1.0207612456747406,
+        1.0092272202998847,
+        1.0092272202998847,
+        1.0092272202998847
+      ],
+      "reference_ns": [
+        1.274850057670127,
+        1.2787370242214533,
+        1.2696655132641292,
+        1.2921164936562861,
+        1.2788062283737025,
+        1.3185005767012687
+      ],
+      "bend_delta_ns": [
+        178000000.0,
+        173000000.0,
+        177000000.0,
+        175000000.0,
+        175000000.0,
+        175000000.0
+      ],
+      "reference_delta_ns": [
+        221059000.0,
+        221733000.0,
+        220160000.0,
+        224053000.0,
+        221745000.0,
+        228628000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        5000000.0,
+        6000000.0,
+        6000000.0,
+        7000000.0,
+        5000000.0,
+        7000000.0
+      ],
+      "reference_control_ns": [
+        5756000.0,
+        6224000.0,
+        6699000.0,
+        5881000.0,
+        6045000.0,
+        6114000.0
+      ],
+      "operations_per_sample": 173400000,
+      "reps": 1,
+      "count": 173400000,
+      "grow": "count",
+      "seed": 1066,
+      "checksums": [
+        "3177830294",
+        "1517800534",
+        "904823062"
+      ],
+      "ratio": 0.7892161505193042
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.new",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        1.015625,
+        1.0329861111111112,
+        1.0069444444444444,
+        1.015625,
+        1.015625,
+        1.015625
+      ],
+      "reference_ns": [
+        1.2833159722222223,
+        1.2912934027777778,
+        1.235703125,
+        1.3301475694444445,
+        1.2607725694444445,
+        1.26984375
+      ],
+      "bend_delta_ns": [
+        117000000.0,
+        119000000.0,
+        116000000.0,
+        117000000.0,
+        117000000.0,
+        117000000.0
+      ],
+      "reference_delta_ns": [
+        147838000.0,
+        148757000.0,
+        142353000.0,
+        153233000.0,
+        145241000.0,
+        146286000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        1000.0,
+        0.0,
+        0.0
+      ],
+      "operations_per_sample": 115200000,
+      "reps": 1,
+      "count": 115200000,
+      "grow": "count",
+      "seed": 1067,
+      "checksums": [
+        "749658421",
+        "3898061109",
+        "33077"
+      ],
+      "ratio": 0.795582815411187
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.length",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        1.005859375,
+        0.99609375,
+        1.005859375,
+        0.99609375,
+        1.005859375,
+        1.015625
+      ],
+      "reference_ns": [
+        2.52755859375,
+        2.531220703125,
+        2.53435546875,
+        2.570625,
+        2.546083984375,
+        2.530888671875
+      ],
+      "bend_delta_ns": [
+        103000000.0,
+        102000000.0,
+        103000000.0,
+        102000000.0,
+        103000000.0,
+        104000000.0
+      ],
+      "reference_delta_ns": [
+        258822000.0,
+        259197000.0,
+        259518000.0,
+        263232000.0,
+        260719000.0,
+        259163000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "operations_per_sample": 102400000,
+      "reps": 1,
+      "count": 102400000,
+      "grow": "count",
+      "seed": 1068,
+      "checksums": [
+        "1602715988",
+        "2948858196",
+        "33108"
+      ],
+      "ratio": 0.3971352284009524
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.push_front",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        9.215686274509803,
+        9.313725490196079,
+        9.607843137254902,
+        9.264705882352942,
+        9.656862745098039,
+        9.852941176470589
+      ],
+      "reference_ns": [
+        10.996764705882352,
+        10.62607843137255,
+        10.222401960784314,
+        11.102156862745097,
+        9.961127450980392,
+        9.627401960784313
+      ],
+      "bend_delta_ns": [
+        188000000.0,
+        190000000.0,
+        196000000.0,
+        189000000.0,
+        197000000.0,
+        201000000.0
+      ],
+      "reference_delta_ns": [
+        224334000.0,
+        216772000.0,
+        208537000.0,
+        226484000.0,
+        203207000.0,
+        196399000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        0.0,
+        0.0,
+        1000.0,
+        0.0,
+        1000.0,
+        0.0
+      ],
+      "operations_per_sample": 20400000,
+      "reps": 102,
+      "count": 200000,
+      "grow": "reps",
+      "seed": 1069,
+      "checksums": [
+        "4266264851",
+        "1741416979",
+        "2494614291"
+      ],
+      "ratio": 0.9075754333907816
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.push_back",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        9.166666666666666,
+        9.264705882352942,
+        9.656862745098039,
+        8.823529411764707,
+        9.362745098039216,
+        9.754901960784315
+      ],
+      "reference_ns": [
+        11.152205882352941,
+        11.36578431372549,
+        10.87436274509804,
+        11.264607843137254,
+        13.574950980392156,
+        13.657352941176471
+      ],
+      "bend_delta_ns": [
+        187000000.0,
+        189000000.0,
+        197000000.0,
+        180000000.0,
+        191000000.0,
+        199000000.0
+      ],
+      "reference_delta_ns": [
+        227505000.0,
+        231862000.0,
+        221837000.0,
+        229798000.0,
+        276929000.0,
+        278610000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        0.0,
+        0.0,
+        1000.0,
+        0.0,
+        0.0,
+        1000.0
+      ],
+      "operations_per_sample": 20400000,
+      "reps": 102,
+      "count": 200000,
+      "grow": "reps",
+      "seed": 1070,
+      "checksums": [
+        "901277363",
+        "206186419",
+        "1658775731"
+      ],
+      "ratio": 0.8231165793007842
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.pop_front",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        5.1171875,
+        5.5078125,
+        5.546875,
+        5.390625,
+        9.84375,
+        5.625
+      ],
+      "reference_ns": [
+        3.1629296875,
+        3.1355859375,
+        3.282734375,
+        3.3091796875,
+        4.124375,
+        3.2151171875
+      ],
+      "bend_delta_ns": [
+        131000000.0,
+        141000000.0,
+        142000000.0,
+        138000000.0,
+        252000000.0,
+        144000000.0
+      ],
+      "reference_delta_ns": [
+        80971000.0,
+        80271000.0,
+        84038000.0,
+        84715000.0,
+        105584000.0,
+        82307000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        1000.0,
+        1000.0,
+        0.0,
+        1000.0,
+        0.0,
+        1000.0
+      ],
+      "operations_per_sample": 25600000,
+      "reps": 128,
+      "count": 200000,
+      "grow": "reps",
+      "seed": 1071,
+      "checksums": [
+        "3695740992",
+        "4130949184",
+        "4100589632"
+      ],
+      "ratio": 1.7012834771108238
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.pop_back",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        5.15625,
+        6.3671875,
+        7.3046875,
+        5.0390625,
+        5.46875,
+        5.5078125
+      ],
+      "reference_ns": [
+        3.3439453125,
+        3.447265625,
+        3.8580078125,
+        3.1092578125,
+        3.381875,
+        3.1993359375
+      ],
+      "bend_delta_ns": [
+        132000000.0,
+        163000000.0,
+        187000000.0,
+        129000000.0,
+        140000000.0,
+        141000000.0
+      ],
+      "reference_delta_ns": [
+        85605000.0,
+        88250000.0,
+        98765000.0,
+        79597000.0,
+        86576000.0,
+        81903000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        0.0,
+        1000.0,
+        1000.0,
+        0.0,
+        0.0,
+        1000.0
+      ],
+      "operations_per_sample": 25600000,
+      "reps": 128,
+      "count": 200000,
+      "grow": "reps",
+      "seed": 1072,
+      "checksums": [
+        "1659404352",
+        "1610694720",
+        "2035941440"
+      ],
+      "ratio": 1.6320035311677827
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.peek_front",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        5.390625,
+        5.3125,
+        4.765625,
+        4.5703125,
+        4.765625,
+        4.84375
+      ],
+      "reference_ns": [
+        3.8751171875,
+        3.261875,
+        3.2258203125,
+        3.2921484375,
+        3.3187109375,
+        3.3881640625
+      ],
+      "bend_delta_ns": [
+        138000000.0,
+        136000000.0,
+        122000000.0,
+        117000000.0,
+        122000000.0,
+        124000000.0
+      ],
+      "reference_delta_ns": [
+        99203000.0,
+        83504000.0,
+        82581000.0,
+        84279000.0,
+        84959000.0,
+        86737000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        1000.0,
+        0.0,
+        0.0
+      ],
+      "operations_per_sample": 25600000,
+      "reps": 1,
+      "count": 25600000,
+      "grow": "count",
+      "seed": 1073,
+      "checksums": [
+        "4152181231",
+        "2210324975",
+        "33263"
+      ],
+      "ratio": 1.4535742563726821
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.peek_back",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        4.84375,
+        4.9609375,
+        4.765625,
+        4.8046875,
+        4.9609375,
+        4.921875
+      ],
+      "reference_ns": [
+        3.3198046875,
+        3.0933984375,
+        3.3255078125,
+        3.34515625,
+        3.336875,
+        3.3108203125
+      ],
+      "bend_delta_ns": [
+        124000000.0,
+        127000000.0,
+        122000000.0,
+        123000000.0,
+        127000000.0,
+        126000000.0
+      ],
+      "reference_delta_ns": [
+        84987000.0,
+        79191000.0,
+        85133000.0,
+        85636000.0,
+        85424000.0,
+        84757000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "operations_per_sample": 25600000,
+      "reps": 1,
+      "count": 25600000,
+      "grow": "count",
+      "seed": 1074,
+      "checksums": [
+        "3879223822",
+        "463233550",
+        "33294"
+      ],
+      "ratio": 1.4695509052433575
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "deque.to_list",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        4.84375,
+        4.9609375,
+        4.6484375,
+        4.8046875,
+        7.8125,
+        4.2578125
+      ],
+      "reference_ns": [
+        1.314765625,
+        1.2701953125,
+        1.2602734375,
+        1.24828125,
+        1.66390625,
+        1.2458984375
+      ],
+      "bend_delta_ns": [
+        124000000.0,
+        127000000.0,
+        119000000.0,
+        123000000.0,
+        200000000.0,
+        109000000.0
+      ],
+      "reference_delta_ns": [
+        33658000.0,
+        32517000.0,
+        32263000.0,
+        31956000.0,
+        42596000.0,
+        31895000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "operations_per_sample": 25600000,
+      "reps": 1,
+      "count": 25600000,
+      "grow": "count",
+      "seed": 1075,
+      "checksums": [
+        "100614701",
+        "3405767213",
+        "33325"
+      ],
+      "ratio": 3.8129052176597718
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.enqueue",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        8.872549019607844,
+        8.627450980392156,
+        9.068627450980392,
+        8.92156862745098,
+        8.382352941176471,
+        8.480392156862745
+      ],
+      "reference_ns": [
+        11.74936274509804,
+        12.28514705882353,
+        10.686372549019607,
+        11.256764705882352,
+        10.96436274509804,
+        11.661617647058824
+      ],
+      "bend_delta_ns": [
+        181000000.0,
+        176000000.0,
+        185000000.0,
+        182000000.0,
+        171000000.0,
+        173000000.0
+      ],
+      "reference_delta_ns": [
+        239687000.0,
+        250617000.0,
+        218002000.0,
+        229638000.0,
+        223673000.0,
+        237897000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1000000.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        126000.0,
+        135000.0,
+        141000.0,
+        139000.0,
+        130000.0,
+        137000.0
+      ],
+      "operations_per_sample": 20400000,
+      "reps": 102,
+      "count": 200000,
+      "grow": "reps",
+      "seed": 1076,
+      "checksums": [
+        "325374707",
+        "3823817715",
+        "2469647603"
+      ],
+      "ratio": 0.7635791972793481
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.enqueue",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        8.75,
+        8.823529411764707,
+        8.088235294117647,
+        8.308823529411764,
+        7.9411764705882355,
+        8.75
+      ],
+      "reference_ns": [
+        10.915441176470589,
+        9.869264705882353,
+        11.544338235294118,
+        10.771176470588236,
+        11.501323529411765,
+        13.18610294117647
+      ],
+      "bend_delta_ns": [
+        119000000.0,
+        120000000.0,
+        110000000.0,
+        113000000.0,
+        108000000.0,
+        119000000.0
+      ],
+      "reference_delta_ns": [
+        148450000.0,
+        134222000.0,
+        157003000.0,
+        146488000.0,
+        156418000.0,
+        179331000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        11000000.0,
+        11000000.0,
+        12000000.0,
+        11000000.0,
+        11000000.0,
+        12000000.0
+      ],
+      "reference_control_ns": [
+        12742000.0,
+        12000000.0,
+        12378000.0,
+        11784000.0,
+        13309000.0,
+        13500000.0
+      ],
+      "operations_per_sample": 13600000,
+      "reps": 136,
+      "count": 100000,
+      "grow": "reps",
+      "seed": 1077,
+      "checksums": [
+        "963159492",
+        "3356572612",
+        "2501562820"
+      ],
+      "ratio": 0.760985082068305
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.enqueue",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        9.200152228860293,
+        11.163599350873161,
+        12.061175178079043,
+        10.546515969669118,
+        9.368447696461397,
+        8.134280934053308
+      ],
+      "reference_ns": [
+        11.979888467227712,
+        18.271670621984146,
+        12.130176319795495,
+        11.843008153578815,
+        12.719098259420957,
+        10.930902817670036
+      ],
+      "bend_delta_ns": [
+        164000000.0,
+        199000000.0,
+        215000000.0,
+        188000000.0,
+        167000000.0,
+        145000000.0
+      ],
+      "reference_delta_ns": [
+        213551000.0,
+        325707000.0,
+        216230000.0,
+        211111000.0,
+        226728000.0,
+        194852000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        422000000.0,
+        433000000.0,
+        366000000.0,
+        379000000.0,
+        390000000.0,
+        369000000.0
+      ],
+      "reference_control_ns": [
+        484806000.0,
+        485921000.0,
+        431572000.0,
+        452742000.0,
+        423398000.0,
+        432948000.0
+      ],
+      "operations_per_sample": 17825792,
+      "reps": 68,
+      "count": 262144,
+      "grow": "reps",
+      "seed": 1078,
+      "checksums": [
+        "4043918754",
+        "3974712738",
+        "3905506722"
+      ],
+      "ratio": 0.8260020801291822
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.peek",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        3.28125,
+        3.5677083333333335,
+        3.4114583333333335,
+        3.515625,
+        3.359375,
+        3.5677083333333335
+      ],
+      "reference_ns": [
+        3.9175260416666666,
+        3.6628645833333335,
+        3.9683854166666666,
+        3.5828645833333335,
+        3.9528385416666665,
+        3.6027604166666665
+      ],
+      "bend_delta_ns": [
+        126000000.0,
+        137000000.0,
+        131000000.0,
+        135000000.0,
+        129000000.0,
+        137000000.0
+      ],
+      "reference_delta_ns": [
+        150433000.0,
+        140654000.0,
+        152386000.0,
+        137582000.0,
+        151789000.0,
+        138346000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        7000.0,
+        2000.0,
+        5000.0,
+        2000.0,
+        5000.0,
+        2000.0
+      ],
+      "operations_per_sample": 38400000,
+      "reps": 1,
+      "count": 38400000,
+      "grow": "count",
+      "seed": 1079,
+      "checksums": [
+        "2038171657",
+        "648411145",
+        "2412767241"
+      ],
+      "ratio": 0.913816144314243
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.peek",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        3.5625,
+        3.65625,
+        3.53125,
+        3.59375,
+        3.1875,
+        3.65625
+      ],
+      "reference_ns": [
+        3.7971875,
+        3.5821875,
+        3.784125,
+        3.37434375,
+        3.87565625,
+        3.341625
+      ],
+      "bend_delta_ns": [
+        114000000.0,
+        117000000.0,
+        113000000.0,
+        115000000.0,
+        102000000.0,
+        117000000.0
+      ],
+      "reference_delta_ns": [
+        121510000.0,
+        114630000.0,
+        121092000.0,
+        107979000.0,
+        124021000.0,
+        106932000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        1000000.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        95000.0,
+        100000.0,
+        105000.0,
+        100000.0,
+        93000.0,
+        101000.0
+      ],
+      "operations_per_sample": 32000000,
+      "reps": 1,
+      "count": 32000000,
+      "grow": "count",
+      "seed": 1080,
+      "checksums": [
+        "1960848072",
+        "3388019400",
+        "2046950088"
+      ],
+      "ratio": 0.9714833575143602
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.peek",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        3.4722222222222223,
+        3.576388888888889,
+        3.4375,
+        3.611111111111111,
+        3.5069444444444446,
+        3.5416666666666665
+      ],
+      "reference_ns": [
+        3.7654513888888888,
+        3.220902777777778,
+        3.9388194444444444,
+        3.4681944444444444,
+        3.7979861111111113,
+        3.861875
+      ],
+      "bend_delta_ns": [
+        100000000.0,
+        103000000.0,
+        99000000.0,
+        104000000.0,
+        101000000.0,
+        102000000.0
+      ],
+      "reference_delta_ns": [
+        108445000.0,
+        92762000.0,
+        113438000.0,
+        99884000.0,
+        109382000.0,
+        111222000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        6000000.0,
+        6000000.0,
+        6000000.0,
+        7000000.0,
+        5000000.0,
+        6000000.0
+      ],
+      "reference_control_ns": [
+        6850000.0,
+        6177000.0,
+        6040000.0,
+        6417000.0,
+        6439000.0,
+        7000000.0
+      ],
+      "operations_per_sample": 28800000,
+      "reps": 1,
+      "count": 28800000,
+      "grow": "count",
+      "seed": 1081,
+      "checksums": [
+        "2683132647",
+        "1573514983",
+        "3546710759"
+      ],
+      "ratio": 0.9319322214417863
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.length",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        1.044921875,
+        1.0546875,
+        1.03515625,
+        1.064453125,
+        1.015625,
+        1.005859375
+      ],
+      "reference_ns": [
+        3.268701171875,
+        2.96841796875,
+        3.029697265625,
+        2.875234375,
+        2.913046875,
+        2.90486328125
+      ],
+      "bend_delta_ns": [
+        107000000.0,
+        108000000.0,
+        106000000.0,
+        109000000.0,
+        104000000.0,
+        103000000.0
+      ],
+      "reference_delta_ns": [
+        334715000.0,
+        303966000.0,
+        310241000.0,
+        294424000.0,
+        298296000.0,
+        297458000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        1000.0,
+        1000.0,
+        4000.0,
+        2000.0,
+        6000.0,
+        1000.0
+      ],
+      "operations_per_sample": 102400000,
+      "reps": 1,
+      "count": 102400000,
+      "grow": "count",
+      "seed": 1082,
+      "checksums": [
+        "3844422118",
+        "3916282342",
+        "3988142566"
+      ],
+      "ratio": 0.3536666766291083
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.length",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        1.4889705882352942,
+        1.5165441176470589,
+        1.2775735294117647,
+        1.0753676470588236,
+        1.0386029411764706,
+        1.0110294117647058
+      ],
+      "reference_ns": [
+        4.031856617647059,
+        3.6950551470588233,
+        3.973299632352941,
+        2.932058823529412,
+        2.9014981617647058,
+        2.9019761029411764
+      ],
+      "bend_delta_ns": [
+        162000000.0,
+        165000000.0,
+        139000000.0,
+        117000000.0,
+        113000000.0,
+        110000000.0
+      ],
+      "reference_delta_ns": [
+        438666000.0,
+        402022000.0,
+        432295000.0,
+        319008000.0,
+        315683000.0,
+        315735000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        116000.0,
+        134000.0,
+        98000.0,
+        95000.0,
+        89000.0,
+        104000.0
+      ],
+      "operations_per_sample": 108800000,
+      "reps": 1,
+      "count": 108800000,
+      "grow": "count",
+      "seed": 1083,
+      "checksums": [
+        "1597442853",
+        "848212773",
+        "1290165029"
+      ],
+      "ratio": 0.35504764018140716
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.length",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        1.0611303344867358,
+        1.0380622837370241,
+        1.114955786236063,
+        1.0380622837370241,
+        1.1226451364859669,
+        1.0380622837370241
+      ],
+      "reference_ns": [
+        3.0696270665128798,
+        2.9917031910803535,
+        2.9624529027297193,
+        2.8883737024221454,
+        2.9168319876970394,
+        3.0397078046905035
+      ],
+      "bend_delta_ns": [
+        138000000.0,
+        135000000.0,
+        145000000.0,
+        135000000.0,
+        146000000.0,
+        135000000.0
+      ],
+      "reference_delta_ns": [
+        399205000.0,
+        389071000.0,
+        385267000.0,
+        375633000.0,
+        379334000.0,
+        395314000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        5000000.0,
+        6000000.0,
+        5000000.0,
+        6000000.0,
+        5000000.0,
+        6000000.0
+      ],
+      "reference_control_ns": [
+        5931000.0,
+        5954000.0,
+        5896000.0,
+        6195000.0,
+        5919000.0,
+        6020000.0
+      ],
+      "operations_per_sample": 130050000,
+      "reps": 1,
+      "count": 130050000,
+      "grow": "count",
+      "seed": 1084,
+      "checksums": [
+        "409339684",
+        "2562481972",
+        "2357101380"
+      ],
+      "ratio": 0.3525592183258473
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.to_list",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        668.75,
+        725.0,
+        693.75,
+        725.0,
+        737.5,
+        887.5
+      ],
+      "reference_ns": [
+        750.6625,
+        730.00625,
+        822.325,
+        688.73125,
+        702.14375,
+        612.84375
+      ],
+      "bend_delta_ns": [
+        107000000.0,
+        116000000.0,
+        111000000.0,
+        116000000.0,
+        118000000.0,
+        142000000.0
+      ],
+      "reference_delta_ns": [
+        120106000.0,
+        116801000.0,
+        131572000.0,
+        110197000.0,
+        112343000.0,
+        98055000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        1000.0,
+        2000.0,
+        2000.0,
+        2000.0,
+        2000.0,
+        2000.0
+      ],
+      "operations_per_sample": 160000,
+      "reps": 1,
+      "count": 160000,
+      "grow": "count",
+      "seed": 1085,
+      "checksums": [
+        "2457745859",
+        "3927925443",
+        "1268550595"
+      ],
+      "ratio": 1.01246377823552
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.to_list",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        62000.0,
+        62000.0,
+        57000.0,
+        57000.0,
+        56500.0,
+        54500.0
+      ],
+      "reference_ns": [
+        49055.0,
+        49680.5,
+        51672.0,
+        52368.0,
+        51934.0,
+        50081.5
+      ],
+      "bend_delta_ns": [
+        124000000.0,
+        124000000.0,
+        114000000.0,
+        114000000.0,
+        113000000.0,
+        109000000.0
+      ],
+      "reference_delta_ns": [
+        98110000.0,
+        99361000.0,
+        103344000.0,
+        104736000.0,
+        103868000.0,
+        100163000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        107000.0,
+        114000.0,
+        116000.0,
+        108000.0,
+        107000.0,
+        119000.0
+      ],
+      "operations_per_sample": 2000,
+      "reps": 1,
+      "count": 2000,
+      "grow": "count",
+      "seed": 1086,
+      "checksums": [
+        "3913855586",
+        "3964428530",
+        "533379970"
+      ],
+      "ratio": 1.120354582397657
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.to_list",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        3740000.0,
+        3860000.0,
+        3520000.0,
+        4080000.0,
+        3640000.0,
+        3720000.0
+      ],
+      "reference_ns": [
+        3701240.0,
+        3440540.0,
+        3609160.0,
+        3602740.0,
+        3999800.0,
+        3245140.0
+      ],
+      "bend_delta_ns": [
+        187000000.0,
+        193000000.0,
+        176000000.0,
+        204000000.0,
+        182000000.0,
+        186000000.0
+      ],
+      "reference_delta_ns": [
+        185062000.0,
+        172027000.0,
+        180458000.0,
+        180137000.0,
+        199990000.0,
+        162257000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        7000000.0,
+        7000000.0,
+        6000000.0,
+        7000000.0,
+        6000000.0,
+        7000000.0
+      ],
+      "reference_control_ns": [
+        6881000.0,
+        7245000.0,
+        6865000.0,
+        7665000.0,
+        6624000.0,
+        8137000.0
+      ],
+      "operations_per_sample": 50,
+      "reps": 1,
+      "count": 50,
+      "grow": "count",
+      "seed": 1087,
+      "checksums": [
+        "675422749",
+        "2784094375",
+        "1167492001"
+      ],
+      "ratio": 1.0344014753393695
+    },
+    {
+      "measurement": "ok",
+      "method": "pair",
+      "operation": "queue.dequeue",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        16.91176470588235,
+        13.529411764705882,
+        16.61764705882353,
+        15.294117647058824,
+        16.61764705882353,
+        15.294117647058824
+      ],
+      "reference_ns": [
+        9.765882352941176,
+        11.524411764705881,
+        10.535882352941176,
+        12.126029411764707,
+        12.175882352941176,
+        11.375882352941176
+      ],
+      "bend_delta_ns": [
+        115000000.0,
+        92000000.0,
+        113000000.0,
+        104000000.0,
+        113000000.0,
+        104000000.0
+      ],
+      "reference_delta_ns": [
+        66408000.0,
+        78366000.0,
+        71644000.0,
+        82457000.0,
+        82796000.0,
+        77356000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        2000.0,
+        1000.0,
+        2000.0,
+        1000.0,
+        2000.0,
+        2000.0
+      ],
+      "operations_per_sample": 6800000,
+      "reps": 1,
+      "count": 6800000,
+      "grow": "count",
+      "seed": 1088,
+      "checksums": [
+        "468444032",
+        "3596371456",
+        "2843925920"
+      ],
+      "ratio": 1.3935089454283918
+    },
+    {
+      "measurement": "ok",
+      "method": "pair",
+      "operation": "queue.dequeue",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        11.25,
+        13.359375,
+        11.40625,
+        13.671875,
+        11.015625,
+        13.90625
+      ],
+      "reference_ns": [
+        11.076640625,
+        11.575,
+        8.768203125,
+        11.683359375,
+        10.631328125,
+        11.15609375
+      ],
+      "bend_delta_ns": [
+        144000000.0,
+        171000000.0,
+        146000000.0,
+        175000000.0,
+        141000000.0,
+        178000000.0
+      ],
+      "reference_delta_ns": [
+        141781000.0,
+        148160000.0,
+        112233000.0,
+        149547000.0,
+        136081000.0,
+        142798000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        1000000.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        113000.0,
+        111000.0,
+        105000.0,
+        112000.0,
+        104000.0,
+        115000.0
+      ],
+      "operations_per_sample": 12800000,
+      "reps": 1,
+      "count": 12800000,
+      "grow": "count",
+      "seed": 1089,
+      "checksums": [
+        "1577268191",
+        "1924477919",
+        "4071562207"
+      ],
+      "ratio": 1.1139261856988745
+    },
+    {
+      "measurement": "ok",
+      "method": "pair",
+      "operation": "queue.dequeue",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        14.117647058823529,
+        13.647058823529411,
+        13.647058823529411,
+        13.882352941176471,
+        14.705882352941176,
+        13.882352941176471
+      ],
+      "reference_ns": [
+        13.189529411764706,
+        13.492941176470588,
+        13.063411764705883,
+        13.91235294117647,
+        12.537411764705883,
+        13.054823529411765
+      ],
+      "bend_delta_ns": [
+        120000000.0,
+        116000000.0,
+        116000000.0,
+        118000000.0,
+        125000000.0,
+        118000000.0
+      ],
+      "reference_delta_ns": [
+        112111000.0,
+        114690000.0,
+        111039000.0,
+        118255000.0,
+        106568000.0,
+        110966000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        6000000.0,
+        7000000.0,
+        5000000.0,
+        7000000.0,
+        6000000.0,
+        7000000.0
+      ],
+      "reference_control_ns": [
+        6744000.0,
+        7066000.0,
+        6771000.0,
+        6832000.0,
+        6600000.0,
+        7012000.0
+      ],
+      "operations_per_sample": 8500000,
+      "reps": 1,
+      "count": 8500000,
+      "grow": "count",
+      "seed": 1090,
+      "checksums": [
+        "4014475838",
+        "1518523166",
+        "4272849918"
+      ],
+      "ratio": 1.0575845843602958
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.new",
+      "workload": "small",
+      "size": 64,
+      "verified": true,
+      "bend_ns": [
+        1.1941964285714286,
+        1.0602678571428572,
+        1.1607142857142858,
+        1.1160714285714286,
+        1.171875,
+        1.0714285714285714
+      ],
+      "reference_ns": [
+        1.332142857142857,
+        1.4814508928571428,
+        1.334921875,
+        1.5352901785714286,
+        1.312611607142857,
+        1.5022433035714287
+      ],
+      "bend_delta_ns": [
+        107000000.0,
+        95000000.0,
+        104000000.0,
+        100000000.0,
+        105000000.0,
+        96000000.0
+      ],
+      "reference_delta_ns": [
+        119360000.0,
+        132738000.0,
+        119609000.0,
+        137562000.0,
+        117610000.0,
+        134601000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        2000.0,
+        1000.0,
+        6000.0,
+        1000.0,
+        6000.0,
+        2000.0
+      ],
+      "operations_per_sample": 89600000,
+      "reps": 1,
+      "count": 89600000,
+      "grow": "count",
+      "seed": 1091,
+      "checksums": [
+        "3329019773",
+        "3102408573",
+        "124333949"
+      ],
+      "ratio": 0.8084106409032008
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.new",
+      "workload": "medium",
+      "size": 4096,
+      "verified": true,
+      "bend_ns": [
+        1.1830357142857142,
+        1.0714285714285714,
+        1.171875,
+        1.0602678571428572,
+        1.1160714285714286,
+        1.0602678571428572
+      ],
+      "reference_ns": [
+        1.3122209821428572,
+        1.4705022321428571,
+        1.3491071428571428,
+        1.3631919642857142,
+        1.290189732142857,
+        1.590892857142857
+      ],
+      "bend_delta_ns": [
+        106000000.0,
+        96000000.0,
+        105000000.0,
+        95000000.0,
+        100000000.0,
+        95000000.0
+      ],
+      "reference_delta_ns": [
+        117575000.0,
+        131757000.0,
+        120880000.0,
+        122142000.0,
+        115601000.0,
+        142544000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        108000.0,
+        101000.0,
+        107000.0,
+        100000.0,
+        106000.0,
+        135000.0
+      ],
+      "operations_per_sample": 89600000,
+      "reps": 1,
+      "count": 89600000,
+      "grow": "count",
+      "seed": 1092,
+      "checksums": [
+        "1116052540",
+        "2651622460",
+        "3314777148"
+      ],
+      "ratio": 0.8065113446519245
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.new",
+      "workload": "large",
+      "size": 262144,
+      "verified": true,
+      "bend_ns": [
+        1.1995386389850058,
+        1.0611303344867358,
+        1.2226066897347174,
+        1.0841983852364476,
+        1.1880046136101499,
+        1.0841983852364476
+      ],
+      "reference_ns": [
+        1.3693771626297577,
+        1.506966551326413,
+        1.3377047289504036,
+        1.441280276816609,
+        1.3139446366782006,
+        1.4079700115340255
+      ],
+      "bend_delta_ns": [
+        104000000.0,
+        92000000.0,
+        106000000.0,
+        94000000.0,
+        103000000.0,
+        94000000.0
+      ],
+      "reference_delta_ns": [
+        118725000.0,
+        130654000.0,
+        115979000.0,
+        124959000.0,
+        113919000.0,
+        122071000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        5000000.0,
+        7000000.0,
+        6000000.0,
+        7000000.0,
+        6000000.0,
+        7000000.0
+      ],
+      "reference_control_ns": [
+        7765000.0,
+        6451000.0,
+        6534000.0,
+        6802000.0,
+        6578000.0,
+        6555000.0
+      ],
+      "operations_per_sample": 86700000,
+      "reps": 1,
+      "count": 86700000,
+      "grow": "count",
+      "seed": 1093,
+      "checksums": [
+        "1894570651",
+        "2130442107",
+        "3083240539"
+      ],
+      "ratio": 0.8181199023239589
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.new",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        1.162109375,
+        1.044921875,
+        1.142578125,
+        1.0546875,
+        1.171875,
+        1.09375
+      ],
+      "reference_ns": [
+        1.27123046875,
+        1.47986328125,
+        1.399609375,
+        1.50533203125,
+        1.35154296875,
+        1.485205078125
+      ],
+      "bend_delta_ns": [
+        119000000.0,
+        107000000.0,
+        117000000.0,
+        108000000.0,
+        120000000.0,
+        112000000.0
+      ],
+      "reference_delta_ns": [
+        130174000.0,
+        151538000.0,
+        143320000.0,
+        154146000.0,
+        138398000.0,
+        152085000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "operations_per_sample": 102400000,
+      "reps": 1,
+      "count": 102400000,
+      "grow": "count",
+      "seed": 1094,
+      "checksums": [
+        "3279914106",
+        "1639974010",
+        "33914"
+      ],
+      "ratio": 0.7766450291326673
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.length",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        1.0546875,
+        1.11328125,
+        1.0546875,
+        1.015625,
+        1.015625,
+        1.005859375
+      ],
+      "reference_ns": [
+        4.6039453125,
+        3.005009765625,
+        2.908544921875,
+        2.8913671875,
+        2.908740234375,
+        2.8845703125
+      ],
+      "bend_delta_ns": [
+        108000000.0,
+        114000000.0,
+        108000000.0,
+        104000000.0,
+        104000000.0,
+        103000000.0
+      ],
+      "reference_delta_ns": [
+        471444000.0,
+        307713000.0,
+        297835000.0,
+        296076000.0,
+        297855000.0,
+        295380000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "operations_per_sample": 102400000,
+      "reps": 1,
+      "count": 102400000,
+      "grow": "count",
+      "seed": 1095,
+      "checksums": [
+        "2188084377",
+        "1094059161",
+        "33945"
+      ],
+      "ratio": 0.35588980845741913
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.enqueue",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        7.720588235294118,
+        9.338235294117647,
+        9.779411764705882,
+        10.0,
+        10.220588235294118,
+        10.588235294117647
+      ],
+      "reference_ns": [
+        11.535220588235294,
+        13.276470588235295,
+        13.116323529411765,
+        13.753161764705883,
+        13.054411764705883,
+        13.142058823529412
+      ],
+      "bend_delta_ns": [
+        105000000.0,
+        127000000.0,
+        133000000.0,
+        136000000.0,
+        139000000.0,
+        144000000.0
+      ],
+      "reference_delta_ns": [
+        156879000.0,
+        180560000.0,
+        178382000.0,
+        187043000.0,
+        177540000.0,
+        178732000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        1000.0,
+        1000.0,
+        0.0,
+        0.0,
+        1000.0,
+        0.0
+      ],
+      "operations_per_sample": 13600000,
+      "reps": 68,
+      "count": 200000,
+      "grow": "reps",
+      "seed": 1096,
+      "checksums": [
+        "1755673890",
+        "190532386",
+        "2316509474"
+      ],
+      "ratio": 0.7532608634777691
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.dequeue",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        2.6822916666666665,
+        2.7864583333333335,
+        2.7083333333333335,
+        3.125,
+        2.7083333333333335,
+        3.046875
+      ],
+      "reference_ns": [
+        4.132317708333333,
+        4.126614583333334,
+        4.1902083333333335,
+        3.88859375,
+        4.370416666666666,
+        3.7569270833333333
+      ],
+      "bend_delta_ns": [
+        103000000.0,
+        107000000.0,
+        104000000.0,
+        120000000.0,
+        104000000.0,
+        117000000.0
+      ],
+      "reference_delta_ns": [
+        158681000.0,
+        158462000.0,
+        160904000.0,
+        149322000.0,
+        167824000.0,
+        144266000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        1000.0,
+        0.0,
+        1000.0,
+        1000.0,
+        1000.0,
+        1000.0
+      ],
+      "operations_per_sample": 38400000,
+      "reps": 192,
+      "count": 200000,
+      "grow": "reps",
+      "seed": 1097,
+      "checksums": [
+        "492868704",
+        "2858529888",
+        "365089888"
+      ],
+      "ratio": 0.6653150156238669
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.peek",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        2.6822916666666665,
+        2.9947916666666665,
+        2.5,
+        2.8125,
+        2.5520833333333335,
+        2.9427083333333335
+      ],
+      "reference_ns": [
+        4.359635416666666,
+        3.7807552083333333,
+        4.19578125,
+        3.8030208333333335,
+        4.337291666666666,
+        3.818203125
+      ],
+      "bend_delta_ns": [
+        103000000.0,
+        115000000.0,
+        96000000.0,
+        108000000.0,
+        98000000.0,
+        113000000.0
+      ],
+      "reference_delta_ns": [
+        167410000.0,
+        145181000.0,
+        161118000.0,
+        146036000.0,
+        166552000.0,
+        146619000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1000.0
+      ],
+      "operations_per_sample": 38400000,
+      "reps": 1,
+      "count": 38400000,
+      "grow": "count",
+      "seed": 1098,
+      "checksums": [
+        "421537014",
+        "1183864054",
+        "34038"
+      ],
+      "ratio": 0.6856504092780523
+    },
+    {
+      "measurement": "ok",
+      "method": "batch",
+      "operation": "queue.to_list",
+      "workload": "edge-empty",
+      "size": 0,
+      "verified": true,
+      "bend_ns": [
+        4.921875,
+        5.3125,
+        5.2734375,
+        5.0,
+        4.9609375,
+        4.8046875
+      ],
+      "reference_ns": [
+        1.534375,
+        1.503359375,
+        1.516640625,
+        1.468828125,
+        1.6441015625,
+        1.5180078125
+      ],
+      "bend_delta_ns": [
+        126000000.0,
+        136000000.0,
+        135000000.0,
+        128000000.0,
+        127000000.0,
+        123000000.0
+      ],
+      "reference_delta_ns": [
+        39280000.0,
+        38486000.0,
+        38826000.0,
+        37602000.0,
+        42089000.0,
+        38861000.0
+      ],
+      "min_bend_delta_ns": 50000000.0,
+      "min_reference_delta_ns": 100000.0,
+      "bend_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "reference_control_ns": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1000.0
+      ],
+      "operations_per_sample": 25600000,
+      "reps": 1,
+      "count": 25600000,
+      "grow": "count",
+      "seed": 1099,
+      "checksums": [
+        "2139571477",
+        "130278677",
+        "34069"
+      ],
+      "ratio": 3.2824024611582376
+    }
+  ]
+}

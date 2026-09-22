@@ -1,0 +1,52 @@
+[
+  {
+    "structure": "deque",
+    "mutation": "push_front appends at back",
+    "detected": true
+  },
+  {
+    "structure": "deque",
+    "mutation": "pop_front uses opposite end",
+    "detected": true
+  },
+  {
+    "structure": "deque",
+    "mutation": "pop_back uses opposite end",
+    "detected": true
+  },
+  {
+    "structure": "deque",
+    "mutation": "peek_front removes value",
+    "detected": true
+  },
+  {
+    "structure": "deque",
+    "mutation": "split does not reverse moved half",
+    "detected": true
+  },
+  {
+    "structure": "deque",
+    "mutation": "to_list does not reverse back",
+    "detected": true
+  },
+  {
+    "structure": "queue",
+    "mutation": "enqueue changes to LIFO",
+    "detected": true
+  },
+  {
+    "structure": "queue",
+    "mutation": "normalization does not reverse",
+    "detected": true
+  },
+  {
+    "structure": "queue",
+    "mutation": "dequeue does not remove",
+    "detected": true
+  },
+  {
+    "structure": "queue",
+    "mutation": "to_list does not reverse back",
+    "detected": true
+  }
+]

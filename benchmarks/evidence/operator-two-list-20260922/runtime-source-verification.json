@@ -1,0 +1,15 @@
+{
+  "all_match_benchmark_start": true,
+  "sha256": {
+    "src/deque.bend": "62a7cff990418e6815930a01a19dcab80549f6b6930e2f13a94fe9161d2b020f",
+    "src/queue.bend": "36e1db3f2724612f081a4de1362d299a2e239b0087bb9b9cfae590f19296427b",
+    "benchmarks/native/deque.c": "8158f3103fdc150720701af51e3896c41b025d93253dd97c778d2d53f645873a",
+    "benchmarks/native/queue.c": "c942b4cb0bb18551d52126db96cb2eabc13f7f4f4f611fef100f10ad88640fce",
+    "benchmarks/native/two_list.h": "c9d122cecdbb8c882eac2a126fb5c095397fa5e33f10aa3a36adea8e4180b258",
+    "benchmarks/native/common.h": "597cce243df971c2771e61f7aa84021157b3f09c08aafb98538492ec585ec0f7",
+    "benchmarks/bend/deque.bend": "4cd6470e4fba0c7730ded4bd0fb165c247f7293409f0ec429e2bcfa77de0e362",
+    "benchmarks/bend/queue.bend": "dc13f6b0f717dae92245cc561bc775253b48667007f4544fc26176fae85f0984",
+    "benchmarks/bend/common.bend": "8205553c1bdc07704789eb17a6e7b92286469b003384e72c412621f5d6176428"
+  },
+  "note": "Later changes retired unused DLL modules and added proofs/tests/docs; measured implementation and driver hashes match."
+}

@@ -1,0 +1,12 @@
+[
+  {
+    "structure": "deque",
+    "histories": 47,
+    "operations": 21076
+  },
+  {
+    "structure": "queue",
+    "histories": 47,
+    "operations": 18782
+  }
+]
