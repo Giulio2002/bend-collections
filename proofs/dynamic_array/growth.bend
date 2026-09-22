@@ -39,24 +39,24 @@ def sgrow(-T: Data, f: Nat, +k: Nat, sh: ST.Shadow<T>) -> ST.Shadow<T>:
 def fits_nat(+k: Nat, +d: Nat, +b: Bool, +e: {Nat.is_le(k, DA.pow2(d)) == b : Bool}) -> {Nat.is_le(k, SC.pow2(d)) == b : Bool}:
   L.subst(Nat, x => {Nat.is_le(k, x) == b : Bool}, DA.pow2(d), SC.pow2(d), ST.pow2_src(d), e)
 
-def gstep_case(-T: Data, +k: Nat, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +b: Bool, +eb: {Nat.is_le(k, SC.pow2(d)) == b : Bool}) -> {DA.grow_step(T, k, ST.real(T, ST.Sh{l, d, n, t})) == ST.real(T, sgstep(T, k, ST.Sh{l, d, n, t})) : DA.DynArray<T>}:
+def gstep_case(-T: Data, +k: Nat, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +b: Bool, +eb: {Nat.is_le(k, SC.pow2(d)) == b : Bool}) -> {DA.grow_step(T, k, ST.real(T, ST.Sh{l, d, n, t})) == ST.real(T, sgstep(T, k, ST.Sh{l, d, n, t})) : DA.DynArray<&2, T>}:
   match b:
     case True{}:
-      %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), True{}, eb) : {DA.grow_if(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), _) == ST.real(T, Bool.pick(ST.Shadow<T>, Nat.is_le(k, SC.pow2(d)), ST.Sh{l, d, n, t}, ST.Sh{l, 1n+d, n, AR.TNode{t, AR.trep(Maybe<&2, T>, d, None{})}})) : DA.DynArray<T>}
-      %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), True{}, eb) : {DA.DA{l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t)} == ST.real(T, Bool.pick(ST.Shadow<T>, _, ST.Sh{l, d, n, t}, ST.Sh{l, 1n+d, n, AR.TNode{t, AR.trep(Maybe<&2, T>, d, None{})}})) : DA.DynArray<T>}
+      %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), True{}, eb) : {DA.grow_if(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), _) == ST.real(T, Bool.pick(ST.Shadow<T>, Nat.is_le(k, SC.pow2(d)), ST.Sh{l, d, n, t}, ST.Sh{l, 1n+d, n, AR.TNode{t, AR.trep(Maybe<&2, T>, d, None{})}})) : DA.DynArray<&2, T>}
+      %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), True{}, eb) : {DA.DA{l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t)} == ST.real(T, Bool.pick(ST.Shadow<T>, _, ST.Sh{l, d, n, t}, ST.Sh{l, 1n+d, n, AR.TNode{t, AR.trep(Maybe<&2, T>, d, None{})}})) : DA.DynArray<&2, T>}
       {==}
     case False{}:
-      %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), False{}, eb) : {DA.grow_if(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), _) == ST.real(T, Bool.pick(ST.Shadow<T>, Nat.is_le(k, SC.pow2(d)), ST.Sh{l, d, n, t}, ST.Sh{l, 1n+d, n, AR.TNode{t, AR.trep(Maybe<&2, T>, d, None{})}})) : DA.DynArray<T>}
-      %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), False{}, eb) : {DA.DA{l, 1n+d, Nat.double(SC.pow2(d)), n, DA.grown(T, d, AR.thaw(Maybe<&2, T>, t))} == ST.real(T, Bool.pick(ST.Shadow<T>, _, ST.Sh{l, d, n, t}, ST.Sh{l, 1n+d, n, AR.TNode{t, AR.trep(Maybe<&2, T>, d, None{})}})) : DA.DynArray<T>}
-      %Equal.sym(Array<Maybe<&2, T>>, DA.grown(T, d, AR.thaw(Maybe<&2, T>, t)), AR.thaw(Maybe<&2, T>, AR.TNode{t, AR.trep(Maybe<&2, T>, d, None{})}), ST.grown_eq(T, d, t)) : {DA.DA{l, 1n+d, Nat.double(SC.pow2(d)), n, _} == ST.real(T, ST.Sh{l, 1n+d, n, AR.TNode{t, AR.trep(Maybe<&2, T>, d, None{})}}) : DA.DynArray<T>}
+      %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), False{}, eb) : {DA.grow_if(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), _) == ST.real(T, Bool.pick(ST.Shadow<T>, Nat.is_le(k, SC.pow2(d)), ST.Sh{l, d, n, t}, ST.Sh{l, 1n+d, n, AR.TNode{t, AR.trep(Maybe<&2, T>, d, None{})}})) : DA.DynArray<&2, T>}
+      %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), False{}, eb) : {DA.DA{l, 1n+d, Nat.double(SC.pow2(d)), n, DA.grown(T, d, AR.thaw(Maybe<&2, T>, t))} == ST.real(T, Bool.pick(ST.Shadow<T>, _, ST.Sh{l, d, n, t}, ST.Sh{l, 1n+d, n, AR.TNode{t, AR.trep(Maybe<&2, T>, d, None{})}})) : DA.DynArray<&2, T>}
+      %Equal.sym(Array<Maybe<&2, T>>, DA.grown(T, d, AR.thaw(Maybe<&2, T>, t)), AR.thaw(Maybe<&2, T>, AR.TNode{t, AR.trep(Maybe<&2, T>, d, None{})}), ST.grown_eq(T, d, t)) : {DA.DA{l, 1n+d, Nat.double(SC.pow2(d)), n, _} == ST.real(T, ST.Sh{l, 1n+d, n, AR.TNode{t, AR.trep(Maybe<&2, T>, d, None{})}}) : DA.DynArray<&2, T>}
       {==}
 
-def grow_until_real(-T: Data, +f: Nat, +k: Nat, +sh: ST.Shadow<T>) -> {DA.grow_until(T, f, k, ST.real(T, sh)) == ST.real(T, sgrow(T, f, k, sh)) : DA.DynArray<T>}:
+def grow_until_real(-T: Data, +f: Nat, +k: Nat, +sh: ST.Shadow<T>) -> {DA.grow_until(T, f, k, ST.real(T, sh)) == ST.real(T, sgrow(T, f, k, sh)) : DA.DynArray<&2, T>}:
   match f sh:
     case 0n _:
       {==}
     case 1n+g ST.Sh{+l, +d, +n, +t}:
-      %Equal.sym(DA.DynArray<T>, DA.grow_step(T, k, ST.real(T, ST.Sh{l, d, n, t})), ST.real(T, sgstep(T, k, ST.Sh{l, d, n, t})), gstep_case(T, k, l, d, n, t, Nat.is_le(k, SC.pow2(d)), {==})) : {DA.grow_until(T, g, k, _) == ST.real(T, sgrow(T, g, k, sgstep(T, k, ST.Sh{l, d, n, t}))) : DA.DynArray<T>}
+      %Equal.sym(DA.DynArray<&2, T>, DA.grow_step(T, k, ST.real(T, ST.Sh{l, d, n, t})), ST.real(T, sgstep(T, k, ST.Sh{l, d, n, t})), gstep_case(T, k, l, d, n, t, Nat.is_le(k, SC.pow2(d)), {==})) : {DA.grow_until(T, g, k, _) == ST.real(T, sgrow(T, g, k, sgstep(T, k, ST.Sh{l, d, n, t}))) : DA.DynArray<&2, T>}
       grow_until_real(T, g, k, sgstep(T, k, ST.Sh{l, d, n, t}))
 
 # ---- the least exponent ----

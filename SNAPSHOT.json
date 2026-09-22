@@ -1,6 +1,6 @@
 {
-  "at": "2026-09-22T12:36:53.426796+00:00",
+  "at": "2026-09-22T14:07:54.260024+00:00",
   "source": "/Users/monkeair/work/dsa-generational-list",
   "status": "work_in_progress",
-  "description": "WIP: one-descent red-black tree updates, proven equivalent to prior implementation. Complete tree proof module and 11,109 differential/structural observations pass; mutation controls reject incorrect old-binding results. Insertion 2.07\u20132.33x faster; remove/reinsert 2.00\u20132.10x faster; still 4.91\u20136.54x C. C unchanged. DLL iterator prior calibrated gate passes 33/33. Quick screen: 84 within target, 28 slow, 7 unresolved out of 119; 39.931 seconds. Full library proof and cursor invariant/trace proof remain incomplete. DSA worker stopped."
+  "description": "WIP: dynamic-array representation now supports owning Type elements through _owned APIs. 26,795 nested-array observations, closure storage/replacement, 107 Data histories, affine rejection and proof mutation checks pass. Existing Data trace proofs preserved. Owning fixed-size swap traversal roundtrip proved for arbitrary Type; component templates checked at three owning types. Full owning public-operation/trace proofs and owning performance acceptance remain open. Owning empty-buffer initialization currently O(capacity log capacity). Existing Data push/get/set unchanged within about 1%. Indexed red-black tree migration pending; prior proven tree retained. Latest quick screen: 80 within target, 32 slow, 7 unresolved out of 119. DSA worker remains stopped."
 }

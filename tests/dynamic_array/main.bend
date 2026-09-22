@@ -206,11 +206,11 @@ def show_all_u(xs: List<&2, E.Obs<U32>>) -> List<&2, String>:
     case Con{h, t}:
       Con{show_u(h), show_all_u(t)}
 
-def result_lines(r: DA.DynArray<Nat> & List<&2, E.Obs<Nat>>) -> List<&2, String>:
+def result_lines(r: DA.DynArray<&2, Nat> & List<&2, E.Obs<Nat>>) -> List<&2, String>:
   (d, outs) = r
   show_all(outs)
 
-def result_lines_u(r: DA.DynArray<U32> & List<&2, E.Obs<U32>>) -> List<&2, String>:
+def result_lines_u(r: DA.DynArray<&2, U32> & List<&2, E.Obs<U32>>) -> List<&2, String>:
   (d, outs) = r
   show_all_u(outs)
 

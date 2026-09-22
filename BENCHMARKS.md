@@ -160,3 +160,17 @@ Provisional, not full-library acceptance: **84 within target, 28 too slow, 7 unr
 | dlist_iterator.has_previous | 1.667 | 1.296 | 1.286 | 3 | ESTIMATE |
 | dlist_iterator.position | 1.667 | 1.315 | 1.267 | 1 | ESTIMATE |
 | dlist_iterator.finish | 6.667 | 4.191 | 1.591 | 3 | ESTIMATE |
+
+## Owning-array extension: Data-path regression check
+
+The owning Type extension shares the existing storage representation. Six paired samples at size 64 confirm the existing Data push/get/set path stays within about 1% of its preceding implementation. This is not an owning-element benchmark or acceptance claim.
+
+| Operation | Before ns | After ns | C ns |
+|---|---:|---:|---:|
+| dynamic_array.push | 5.025 | 5.074 | 3.009 |
+| dynamic_array.get | 1.576 | 1.589 | 1.315 |
+| dynamic_array.set | 1.354 | 1.348 | 1.261 |
+
+[Raw paired samples](benchmarks/evidence/owned-array-20260922/data-regression-bench.json). The subsequent whole-suite quick screen took 38.847 seconds: 80 within target, 32 above target, 7 unresolved. These short measurements fluctuate and do not establish regressions in unchanged collections. [Latest quick data](benchmarks/evidence/owned-array-20260922/quick.json).
+
+Owning storage initialization currently uses O(capacity log capacity) block merging on stock Bend. Owning performance acceptance and full Type trace proofs are unfinished; see [ownership scope](docs/DYNAMIC_ARRAY_OWNERSHIP.md).

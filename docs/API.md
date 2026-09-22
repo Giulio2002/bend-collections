@@ -38,16 +38,16 @@ growth O(c) (a new half is allocated), reserve O(target capacity), clear O(c),
 to_list O(c).
 
 ```
-new(-T: Data) -> DynArray<T>
-length(-T: Data, da: DynArray<T>) -> DynArray<T> & Nat
-capacity(-T: Data, da: DynArray<T>) -> DynArray<T> & Nat
-get(-T: Data, da: DynArray<T>, +i: Nat) -> DynArray<T> & Result<&2, &2, E.Error, T>
-set(-T: Data, da: DynArray<T>, +i: Nat, v: T) -> DynArray<T> & Result<&2, &2, E.Error, Unit>
-push(-T: Data, da: DynArray<T>, v: T) -> DynArray<T> & Result<&2, &2, E.Error, Unit>
-pop(-T: Data, da: DynArray<T>) -> DynArray<T> & Result<&2, &2, E.Error, T>
-reserve(-T: Data, da: DynArray<T>, +n: Nat) -> DynArray<T> & Result<&2, &2, E.Error, Unit>
-clear(-T: Data, da: DynArray<T>) -> DynArray<T>
-to_list(-T: Data, da: DynArray<T>) -> DynArray<T> & List<&2, T>
+new(-T: Data) -> DynArray<&2, T>
+length(-T: Data, da: DynArray<&2, T>) -> DynArray<&2, T> & Nat
+capacity(-T: Data, da: DynArray<&2, T>) -> DynArray<&2, T> & Nat
+get(-T: Data, da: DynArray<&2, T>, +i: Nat) -> DynArray<&2, T> & Result<&2, &2, E.Error, T>
+set(-T: Data, da: DynArray<&2, T>, +i: Nat, v: T) -> DynArray<&2, T> & Result<&2, &2, E.Error, Unit>
+push(-T: Data, da: DynArray<&2, T>, v: T) -> DynArray<&2, T> & Result<&2, &2, E.Error, Unit>
+pop(-T: Data, da: DynArray<&2, T>) -> DynArray<&2, T> & Result<&2, &2, E.Error, T>
+reserve(-T: Data, da: DynArray<&2, T>, +n: Nat) -> DynArray<&2, T> & Result<&2, &2, E.Error, Unit>
+clear(-T: Data, da: DynArray<&2, T>) -> DynArray<&2, T>
+to_list(-T: Data, da: DynArray<&2, T>) -> DynArray<&2, T> & List<&2, T>
 ```
 
 ## `deque`
@@ -333,3 +333,7 @@ errors and the trusted TypeScript residue are documented in
 `has_next`, `has_previous`, `position`, `set`, `add`, `remove`, and `finish`.
 The iterator owns the arena DLL until `finish`; all calls thread that ownership.
 See [semantics, proof scope, and Bend/C benchmarks](DLIST_ITERATOR.md).
+
+## Owning dynamic-array elements
+
+`DynArray<T>` now accepts non-copyable Type values. Data clients use `DynArray<&2, T>`. See [ownership API, examples, validation and limitations](DYNAMIC_ARRAY_OWNERSHIP.md).

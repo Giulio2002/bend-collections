@@ -14,5 +14,5 @@ import ../lib/array_ext.bend as AX
 # clear does, so the two agree at every state (the `good` premise is not
 # needed and is kept only so the caller's shape is unchanged).
 
-def clear_eq(~T: Data, +l: Nat, +d: Nat, n: Nat, +t: AR.Tree<Maybe<&2, T>>, +g: {ST.good(T, ST.Sh{l, d, n, t}) == True{} : Bool}) -> {DA.clear_at(~T, ST.real(T, ST.Sh{l, d, n, t})) == DA.clear(T, ST.real(T, ST.Sh{l, d, n, t})) : DA.DynArray<T>}:
+def clear_eq(~T: Data, +l: Nat, +d: Nat, n: Nat, +t: AR.Tree<Maybe<&2, T>>, +g: {ST.good(T, ST.Sh{l, d, n, t}) == True{} : Bool}) -> {DA.clear_at(~T, ST.real(T, ST.Sh{l, d, n, t})) == DA.clear(T, ST.real(T, ST.Sh{l, d, n, t})) : DA.DynArray<&2, T>}:
   {==}

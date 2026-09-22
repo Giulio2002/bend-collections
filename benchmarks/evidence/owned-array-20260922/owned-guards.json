@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "name": "push fails to increment length",
+      "rejected": true,
+      "diagnostic": "Error:\n- expected : (../../src/dynamic_array.DA{31n, 0n, 1n, 0n, [Some{x}]}, Fail{../../types/dynamic_array.EmptyArray{}})\n- observed : (../../src/dynamic_array.DA{31n, 0n, 1n, 0n, [None{}]}, Done{x})\nContext:\n- T : Type\n- x : Array<U32>\nLocation: owned.first_push_pop~0\n27 | def first_push_pop(~T: Type, x: T) -> {A.pop_owned(~T, Pair.fst(A.DynArray<T>, Result<&1, &2, E.Rejected<T>, Unit>, A.push_owned(~T, A.new_owned(~T), x))) == (A.new_owned(~T), Done{x}) : A.DynArray<T> & Result<&2, &1, E.Error, T>}:\n28>|   {==}\n29 | \nbend 2.0.24 is available: run bend update\n"
+    },
+    {
+      "name": "copy owning array",
+      "rejected": true,
+      "diagnostic": "Error:\n- expected : x\n- observed : x (consumed more than once)\nLocation: duplicate\n2 | \n3>| def duplicate(x: A.DynArray<Array<U32>>) -> A.DynArray<Array<U32>> & A.DynArray<Array<U32>>:\n4 |   (x, x)\nbend 2.0.24 is available: run bend update\n"
+    },
+    {
+      "name": "copy owning element",
+      "rejected": true,
+      "diagnostic": "Error:\n- expected : x\n- observed : x (consumed more than once)\nLocation: duplicate\n2 | \n3>| def duplicate(x: Array<U32>) -> Array<U32> & Array<U32>:\n4 |   (x, x)\nbend 2.0.24 is available: run bend update\n"
+    }
+  ]
+}

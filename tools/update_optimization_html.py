@@ -3,7 +3,7 @@
 import argparse,datetime,html,json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-p=argparse.ArgumentParser();p.add_argument('--before',type=Path,required=True);p.add_argument('--after',type=Path);p.add_argument('--iterator-report',type=Path);p.add_argument('--tree-report',type=Path);p.add_argument('--note',default='Optimization in progress');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--before',type=Path,required=True);p.add_argument('--after',type=Path);p.add_argument('--iterator-report',type=Path);p.add_argument('--tree-report',type=Path);p.add_argument('--ownership-report',type=Path);p.add_argument('--note',default='Optimization in progress');a=p.parse_args()
 b=json.loads(a.before.read_text());c=json.loads(a.after.read_text()) if a.after else b
 old={x['operation']:x for x in b['results']};rows=[]
 for x in sorted(c['results'],key=lambda x:x['operation']):
@@ -49,6 +49,13 @@ if a.tree_report:
   m=x['medians_ns'];color='#4ade80' if x['ratio']<=2.5 else '#f87171'
   section+=f'<tr><td>{html.escape(x["operation"])} / {x["size"]:,}</td><td>{m["before"]:.2f}</td><td>{m["after"]:.2f}</td><td>{m["c"]:.2f}</td><td>{x["speedup"]:.2f}×</td><td style="color:{color}">{x["ratio"]:.2f}×</td></tr>'
  section+='</tbody></table><p><a href="dsa-tree-performance.json">Before/after samples and source hashes</a></p>'
+ page=page.replace('<input id="q"',section+'<input id="q"')
+if a.ownership_report:
+ own=json.loads(a.ownership_report.read_text())
+ section='<h2>Dynamic arrays — owning Type support</h2>'
+ for key in ['implementation','proof_status','performance_status','tree_status']:
+  section+='<p>'+html.escape(own[key])+'</p>'
+ section+=f'<p>Native nested-array tests: {own["tests"]["histories"]} histories / {own["tests"]["observations"]:,} observations passed.</p>'
  page=page.replace('<input id="q"',section+'<input id="q"')
 out=ROOT/'build/optimization.html';out.write_text(page)
 site=Path('/Users/monkeair/progress-dashboard/site');(site/'dsa-benchmarks.html').write_text(page);(site/'dsa-benchmarks.json').write_text(json.dumps(c))

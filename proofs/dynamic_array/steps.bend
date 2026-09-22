@@ -16,7 +16,7 @@ import ./walk.bend as W
 # One actual public operation on a good shadow's array yields the array of a
 # new good shadow, and (abstract state, observation) equals the spec step.
 def StepOK(-T: Data, sh: ST.Shadow<T>, op: E.Op<T>) -> Type:
-  Sigma<&1, &1, ST.Shadow<T>, sh2 => Sigma<&1, &1, E.Obs<T>, o => {DA.step(T, ST.real(T, sh), op) == (ST.real(T, sh2), o) : DA.DynArray<T> & E.Obs<T>} & ({ST.good(T, sh2) == True{} : Bool} & {(ST.model(T, sh2), o) == S.step(T, ST.model(T, sh), op) : S.Model<T> & E.Obs<T>})>>
+  Sigma<&1, &1, ST.Shadow<T>, sh2 => Sigma<&1, &1, E.Obs<T>, o => {DA.step(T, ST.real(T, sh), op) == (ST.real(T, sh2), o) : DA.DynArray<&2, T> & E.Obs<T>} & ({ST.good(T, sh2) == True{} : Bool} & {(ST.model(T, sh2), o) == S.step(T, ST.model(T, sh), op) : S.Model<T> & E.Obs<T>})>>
 
 def length_ok(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +g: {ST.good(T, ST.Sh{l, d, n, t}) == True{} : Bool}) -> StepOK(T, ST.Sh{l, d, n, t}, E.Length{}):
   +xs = LY.somes(T, AR.slots(Maybe<&2, T>, t))
@@ -50,15 +50,15 @@ def get_case(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +i:
       +x = SC.nth(T, xs, i)
       +hi = N.lt_le_trans(i, n, SC.pow2(d), eb, n_le_cap(T, l, d, n, t, g))
       (ST.Sh{l, d, n, t}, (E.OItem{S.item_result(T, x)}, (
-        %Equal.sym(Bool, Nat.is_lt(i, n), True{}, eb) : {DA.obs_item(T, DA.get_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), i, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OItem{S.item_result(T, x)}) : DA.DynArray<T> & E.Obs<T>}
-        %Equal.sym(Array<Maybe<&2, T>> & Maybe<&2, T>, Array.get(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t), U32.from_nat(i)), (AR.thaw(Maybe<&2, T>, t), x), AR.get(Maybe<&2, T>, d, t, U32.from_nat(i), x, ST.lt32(d, l, ST.g_depth(T, l, d, n, t, g), ST.g_limit(T, l, d, n, t, g)), idx_lt(T, l, d, n, t, i, g, hi), idx_slot(T, l, d, n, t, i, x, g, hi, LY.lay_nth(T, ss, n, i, ST.g_lay(T, l, d, n, t, g), eb)), ST.g_perfect(T, l, d, n, t, g))) : {DA.obs_item(T, DA.get_found(T, l, d, SC.pow2(d), n, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OItem{S.item_result(T, x)}) : DA.DynArray<T> & E.Obs<T>}
-        %Equal.sym(Result<&2, &2, E.Error, T>, DA.slot_result(T, x), S.item_result(T, x), ST.slot_item(T, x)) : {(DA.DA{l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t)}, E.OItem{_}) == (ST.real(T, ST.Sh{l, d, n, t}), E.OItem{S.item_result(T, x)}) : DA.DynArray<T> & E.Obs<T>}
+        %Equal.sym(Bool, Nat.is_lt(i, n), True{}, eb) : {DA.obs_item(T, DA.get_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), i, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OItem{S.item_result(T, x)}) : DA.DynArray<&2, T> & E.Obs<T>}
+        %Equal.sym(Array<Maybe<&2, T>> & Maybe<&2, T>, Array.get(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t), U32.from_nat(i)), (AR.thaw(Maybe<&2, T>, t), x), AR.get(Maybe<&2, T>, d, t, U32.from_nat(i), x, ST.lt32(d, l, ST.g_depth(T, l, d, n, t, g), ST.g_limit(T, l, d, n, t, g)), idx_lt(T, l, d, n, t, i, g, hi), idx_slot(T, l, d, n, t, i, x, g, hi, LY.lay_nth(T, ss, n, i, ST.g_lay(T, l, d, n, t, g), eb)), ST.g_perfect(T, l, d, n, t, g))) : {DA.obs_item(T, DA.get_found(T, l, d, SC.pow2(d), n, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OItem{S.item_result(T, x)}) : DA.DynArray<&2, T> & E.Obs<T>}
+        %Equal.sym(Result<&2, &2, E.Error, T>, DA.slot_result(T, x), S.item_result(T, x), ST.slot_item(T, x)) : {(DA.DA{l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t)}, E.OItem{_}) == (ST.real(T, ST.Sh{l, d, n, t}), E.OItem{S.item_result(T, x)}) : DA.DynArray<&2, T> & E.Obs<T>}
         {==}, (g, {==}))))
     case False{}:
       +ss = AR.slots(Maybe<&2, T>, t)
       +xs = LY.somes(T, ss)
       (ST.Sh{l, d, n, t}, (E.OItem{Fail{E.IndexOutOfRange{}}}, (
-        %Equal.sym(Bool, Nat.is_lt(i, n), False{}, eb) : {DA.obs_item(T, DA.get_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), i, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OItem{Fail{E.IndexOutOfRange{}}}) : DA.DynArray<T> & E.Obs<T>}
+        %Equal.sym(Bool, Nat.is_lt(i, n), False{}, eb) : {DA.obs_item(T, DA.get_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), i, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OItem{Fail{E.IndexOutOfRange{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
         {==}, (g,
         %Equal.sym(Maybe<&2, T>, SC.nth(T, xs, i), None{}, LL.nth_none(T, xs, i, L.subst(Nat, k => {Nat.is_le(k, i) == True{} : Bool}, n, SC.length(T, xs), Equal.sym(Nat, SC.length(T, xs), n, LY.lay_len(T, ss, n, ST.g_lay(T, l, d, n, t, g))), N.not_lt_le(i, n, eb)))) : {(S.M{l, d, xs}, E.OItem{Fail{E.IndexOutOfRange{}}}) == (S.M{l, d, xs}, E.OItem{S.item_result(T, _)}) : S.Model<T> & E.Obs<T>}
         {==}))))
@@ -93,8 +93,8 @@ def set_case(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +i:
       +hlay = ST.g_lay(T, l, d, n, t, g)
       +hlen = LY.lay_len(T, ss, n, hlay)
       (ST.Sh{l, d, n, t2}, (E.OUnit{Done{Unit{}}}, (
-        %Equal.sym(Bool, Nat.is_lt(i, n), True{}, eb) : {DA.obs_unit(T, DA.set_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), i, v, _)) == (ST.real(T, ST.Sh{l, d, n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<T> & E.Obs<T>}
-        %Equal.sym(Array<Maybe<&2, T>>, Array.set(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t), U32.from_nat(i), Some{v}), AR.thaw(Maybe<&2, T>, t2), set_arr(T, l, d, n, t, i, Some{v}, SC.nth(T, xs, i), g, hi, LY.lay_nth(T, ss, n, i, hlay, eb))) : {(DA.DA{l, d, SC.pow2(d), n, _}, E.OUnit{Done{Unit{}}}) == (ST.real(T, ST.Sh{l, d, n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<T> & E.Obs<T>}
+        %Equal.sym(Bool, Nat.is_lt(i, n), True{}, eb) : {DA.obs_unit(T, DA.set_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), i, v, _)) == (ST.real(T, ST.Sh{l, d, n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
+        %Equal.sym(Array<Maybe<&2, T>>, Array.set(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t), U32.from_nat(i), Some{v}), AR.thaw(Maybe<&2, T>, t2), set_arr(T, l, d, n, t, i, Some{v}, SC.nth(T, xs, i), g, hi, LY.lay_nth(T, ss, n, i, hlay, eb))) : {(DA.DA{l, d, SC.pow2(d), n, _}, E.OUnit{Done{Unit{}}}) == (ST.real(T, ST.Sh{l, d, n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
         {==},
         (ST.good_intro(T, l, d, n, t2, ST.g_limit(T, l, d, n, t, g), ST.g_depth(T, l, d, n, t, g), AR.upd_perfect(Maybe<&2, T>, d, t, i, Some{v}, ST.g_perfect(T, l, d, n, t, g)),
            L.subst(List<&2, Maybe<&2, T>>, ys => {LY.lay(T, ys, n) == True{} : Bool}, SC.update(Maybe<&2, T>, ss, i, Some{v}), AR.slots(Maybe<&2, T>, t2), Equal.sym(List<&2, Maybe<&2, T>>, AR.slots(Maybe<&2, T>, t2), SC.update(Maybe<&2, T>, ss, i, Some{v}), hs), LY.lay_set(T, ss, n, i, v, hlay, eb))),
@@ -108,7 +108,7 @@ def set_case(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +i:
       +xs = LY.somes(T, ss)
       +hlen = LY.lay_len(T, ss, n, ST.g_lay(T, l, d, n, t, g))
       (ST.Sh{l, d, n, t}, (E.OUnit{Fail{E.IndexOutOfRange{}}}, (
-        %Equal.sym(Bool, Nat.is_lt(i, n), False{}, eb) : {DA.obs_unit(T, DA.set_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), i, v, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OUnit{Fail{E.IndexOutOfRange{}}}) : DA.DynArray<T> & E.Obs<T>}
+        %Equal.sym(Bool, Nat.is_lt(i, n), False{}, eb) : {DA.obs_unit(T, DA.set_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), i, v, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OUnit{Fail{E.IndexOutOfRange{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
         {==},
         (g,
          %Equal.sym(Nat, SC.length(T, xs), n, hlen) : {(S.M{l, d, xs}, E.OUnit{Fail{E.IndexOutOfRange{}}}) == Bool.pick(S.Model<T> & E.Obs<T>, Nat.is_lt(i, _), (S.M{l, d, SC.update(T, xs, i, v)}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.IndexOutOfRange{}}})) : S.Model<T> & E.Obs<T>}
@@ -148,8 +148,8 @@ def push_case(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +v
       +hn = room_nat(n, d, True{}, er)
       +t2 = AR.upd(Maybe<&2, T>, d, t, n, Some{v})
       (ST.Sh{l, d, 1n+n, t2}, (E.OUnit{Done{Unit{}}}, (
-        %Equal.sym(Bool, Nat.is_lt(n, SC.pow2(d)), True{}, er) : {DA.obs_unit(T, DA.push_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), v, _, Nat.is_lt(d, l))) == (ST.real(T, ST.Sh{l, d, 1n+n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<T> & E.Obs<T>}
-        %Equal.sym(Array<Maybe<&2, T>>, Array.set(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t), U32.from_nat(n), Some{v}), AR.thaw(Maybe<&2, T>, t2), pi_arr(T, l, d, n, t, v, g, hn)) : {(DA.DA{l, d, SC.pow2(d), 1n+n, _}, E.OUnit{Done{Unit{}}}) == (ST.real(T, ST.Sh{l, d, 1n+n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<T> & E.Obs<T>}
+        %Equal.sym(Bool, Nat.is_lt(n, SC.pow2(d)), True{}, er) : {DA.obs_unit(T, DA.push_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), v, _, Nat.is_lt(d, l))) == (ST.real(T, ST.Sh{l, d, 1n+n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
+        %Equal.sym(Array<Maybe<&2, T>>, Array.set(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t), U32.from_nat(n), Some{v}), AR.thaw(Maybe<&2, T>, t2), pi_arr(T, l, d, n, t, v, g, hn)) : {(DA.DA{l, d, SC.pow2(d), 1n+n, _}, E.OUnit{Done{Unit{}}}) == (ST.real(T, ST.Sh{l, d, 1n+n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
         {==},
         (pi_good(T, l, d, n, t, v, g, hn),
          %Equal.sym(List<&2, T>, LY.somes(T, AR.slots(Maybe<&2, T>, t2)), SC.snoc(T, xs, v), pi_model(T, l, d, n, t, v, g, hn)) : {(S.M{l, d, _}, E.OUnit{Done{Unit{}}}) == S.step(T, S.M{l, d, xs}, E.Push{v}) : S.Model<T> & E.Obs<T>}
@@ -164,10 +164,10 @@ def push_case(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +v
       +hn = N.le_lt_trans(n, SC.pow2(d), SC.pow2(1n+d), n_le_cap(T, l, d, n, t, g), N.pow2_lt_succ(d))
       +t2 = AR.upd(Maybe<&2, T>, 1n+d, t1, n, Some{v})
       (ST.Sh{l, 1n+d, 1n+n, t2}, (E.OUnit{Done{Unit{}}}, (
-        %Equal.sym(Bool, Nat.is_lt(n, SC.pow2(d)), False{}, er) : {DA.obs_unit(T, DA.push_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), v, _, Nat.is_lt(d, l))) == (ST.real(T, ST.Sh{l, 1n+d, 1n+n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<T> & E.Obs<T>}
-        %Equal.sym(Bool, Nat.is_lt(d, l), True{}, eg) : {DA.obs_unit(T, DA.push_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), v, False{}, _)) == (ST.real(T, ST.Sh{l, 1n+d, 1n+n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<T> & E.Obs<T>}
-        %Equal.sym(Array<Maybe<&2, T>>, DA.grown(T, d, AR.thaw(Maybe<&2, T>, t)), AR.thaw(Maybe<&2, T>, t1), ST.grown_eq(T, d, t)) : {(DA.DA{l, 1n+d, Nat.double(SC.pow2(d)), 1n+n, Array.set(Maybe<&2, T>, _, U32.from_nat(n), Some{v})}, E.OUnit{Done{Unit{}}}) == (ST.real(T, ST.Sh{l, 1n+d, 1n+n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<T> & E.Obs<T>}
-        %Equal.sym(Array<Maybe<&2, T>>, Array.set(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t1), U32.from_nat(n), Some{v}), AR.thaw(Maybe<&2, T>, t2), pi_arr(T, l, 1n+d, n, t1, v, g1, hn)) : {(DA.DA{l, 1n+d, Nat.double(SC.pow2(d)), 1n+n, _}, E.OUnit{Done{Unit{}}}) == (ST.real(T, ST.Sh{l, 1n+d, 1n+n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<T> & E.Obs<T>}
+        %Equal.sym(Bool, Nat.is_lt(n, SC.pow2(d)), False{}, er) : {DA.obs_unit(T, DA.push_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), v, _, Nat.is_lt(d, l))) == (ST.real(T, ST.Sh{l, 1n+d, 1n+n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
+        %Equal.sym(Bool, Nat.is_lt(d, l), True{}, eg) : {DA.obs_unit(T, DA.push_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), v, False{}, _)) == (ST.real(T, ST.Sh{l, 1n+d, 1n+n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
+        %Equal.sym(Array<Maybe<&2, T>>, DA.grown(T, d, AR.thaw(Maybe<&2, T>, t)), AR.thaw(Maybe<&2, T>, t1), ST.grown_eq(T, d, t)) : {(DA.DA{l, 1n+d, Nat.double(SC.pow2(d)), 1n+n, Array.set(Maybe<&2, T>, _, U32.from_nat(n), Some{v})}, E.OUnit{Done{Unit{}}}) == (ST.real(T, ST.Sh{l, 1n+d, 1n+n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
+        %Equal.sym(Array<Maybe<&2, T>>, Array.set(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t1), U32.from_nat(n), Some{v}), AR.thaw(Maybe<&2, T>, t2), pi_arr(T, l, 1n+d, n, t1, v, g1, hn)) : {(DA.DA{l, 1n+d, Nat.double(SC.pow2(d)), 1n+n, _}, E.OUnit{Done{Unit{}}}) == (ST.real(T, ST.Sh{l, 1n+d, 1n+n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
         {==},
         (pi_good(T, l, 1n+d, n, t1, v, g1, hn),
          %Equal.sym(List<&2, T>, LY.somes(T, AR.slots(Maybe<&2, T>, t2)), SC.snoc(T, LY.somes(T, AR.slots(Maybe<&2, T>, t1)), v), pi_model(T, l, 1n+d, n, t1, v, g1, hn)) : {(S.M{l, 1n+d, _}, E.OUnit{Done{Unit{}}}) == S.step(T, S.M{l, d, xs}, E.Push{v}) : S.Model<T> & E.Obs<T>}
@@ -180,8 +180,8 @@ def push_case(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +v
       +xs = LY.somes(T, AR.slots(Maybe<&2, T>, t))
       +nf = room_nat(n, d, False{}, er)
       (ST.Sh{l, d, n, t}, (E.OUnit{Fail{E.CapacityExceeded{}}}, (
-        %Equal.sym(Bool, Nat.is_lt(n, SC.pow2(d)), False{}, er) : {DA.obs_unit(T, DA.push_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), v, _, Nat.is_lt(d, l))) == (ST.real(T, ST.Sh{l, d, n, t}), E.OUnit{Fail{E.CapacityExceeded{}}}) : DA.DynArray<T> & E.Obs<T>}
-        %Equal.sym(Bool, Nat.is_lt(d, l), False{}, eg) : {DA.obs_unit(T, DA.push_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), v, False{}, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OUnit{Fail{E.CapacityExceeded{}}}) : DA.DynArray<T> & E.Obs<T>}
+        %Equal.sym(Bool, Nat.is_lt(n, SC.pow2(d)), False{}, er) : {DA.obs_unit(T, DA.push_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), v, _, Nat.is_lt(d, l))) == (ST.real(T, ST.Sh{l, d, n, t}), E.OUnit{Fail{E.CapacityExceeded{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
+        %Equal.sym(Bool, Nat.is_lt(d, l), False{}, eg) : {DA.obs_unit(T, DA.push_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), v, False{}, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OUnit{Fail{E.CapacityExceeded{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
         {==},
         (g,
          %Equal.sym(Nat, SC.length(T, xs), n, LY.lay_len(T, AR.slots(Maybe<&2, T>, t), n, ST.g_lay(T, l, d, n, t, g))) : {(S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}) == Bool.pick(S.Model<T> & E.Obs<T>, Nat.is_lt(_, SC.pow2(d)), (S.M{l, d, SC.snoc(T, xs, v)}, E.OUnit{S.ok_unit()}), Bool.pick(S.Model<T> & E.Obs<T>, Nat.is_lt(d, l), (S.M{l, 1n+d, SC.snoc(T, xs, v)}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}))) : S.Model<T> & E.Obs<T>}
@@ -219,8 +219,8 @@ def pop_ok(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +g: {
       +t2 = AR.upd(Maybe<&2, T>, d, t, m, None{})
       +hs = upd_slots(T, l, d, 1n+m, t, m, None{}, g, hi)
       (ST.Sh{l, d, m, t2}, (E.OItem{S.item_result(T, x)}, (
-        %Equal.sym(Array<Maybe<&2, T>> & Maybe<&2, T>, Array.swap(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t), U32.from_nat(m), None{}), (AR.thaw(Maybe<&2, T>, t2), x), swap_arr(T, l, d, 1n+m, t, m, None{}, x, g, hi, LY.lay_nth(T, ss, 1n+m, m, hlay, hm))) : {DA.obs_item(T, DA.pop_found(T, l, d, SC.pow2(d), m, _)) == (ST.real(T, ST.Sh{l, d, m, t2}), E.OItem{S.item_result(T, x)}) : DA.DynArray<T> & E.Obs<T>}
-        %Equal.sym(Result<&2, &2, E.Error, T>, DA.slot_result(T, x), S.item_result(T, x), ST.slot_item(T, x)) : {(DA.DA{l, d, SC.pow2(d), m, AR.thaw(Maybe<&2, T>, t2)}, E.OItem{_}) == (ST.real(T, ST.Sh{l, d, m, t2}), E.OItem{S.item_result(T, x)}) : DA.DynArray<T> & E.Obs<T>}
+        %Equal.sym(Array<Maybe<&2, T>> & Maybe<&2, T>, Array.swap(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t), U32.from_nat(m), None{}), (AR.thaw(Maybe<&2, T>, t2), x), swap_arr(T, l, d, 1n+m, t, m, None{}, x, g, hi, LY.lay_nth(T, ss, 1n+m, m, hlay, hm))) : {DA.obs_item(T, DA.pop_found(T, l, d, SC.pow2(d), m, _)) == (ST.real(T, ST.Sh{l, d, m, t2}), E.OItem{S.item_result(T, x)}) : DA.DynArray<&2, T> & E.Obs<T>}
+        %Equal.sym(Result<&2, &2, E.Error, T>, DA.slot_result(T, x), S.item_result(T, x), ST.slot_item(T, x)) : {(DA.DA{l, d, SC.pow2(d), m, AR.thaw(Maybe<&2, T>, t2)}, E.OItem{_}) == (ST.real(T, ST.Sh{l, d, m, t2}), E.OItem{S.item_result(T, x)}) : DA.DynArray<&2, T> & E.Obs<T>}
         {==},
         (ST.good_intro(T, l, d, m, t2, ST.g_limit(T, l, d, 1n+m, t, g), ST.g_depth(T, l, d, 1n+m, t, g), AR.upd_perfect(Maybe<&2, T>, d, t, m, None{}, ST.g_perfect(T, l, d, 1n+m, t, g)),
            L.subst(List<&2, Maybe<&2, T>>, ys => {LY.lay(T, ys, m) == True{} : Bool}, SC.update(Maybe<&2, T>, ss, m, None{}), AR.slots(Maybe<&2, T>, t2), Equal.sym(List<&2, Maybe<&2, T>>, AR.slots(Maybe<&2, T>, t2), SC.update(Maybe<&2, T>, ss, m, None{}), hs), LY.lay_pop(T, ss, m, hlay))),
@@ -233,7 +233,7 @@ def pop_ok(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +g: {
 def clear_ok(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +g: {ST.good(T, ST.Sh{l, d, n, t}) == True{} : Bool}) -> StepOK(T, ST.Sh{l, d, n, t}, E.Clear{}):
   +t2 = AR.trep(Maybe<&2, T>, d, None{})
   (ST.Sh{l, d, 0n, t2}, (E.OUnit{Done{Unit{}}}, (
-    %Equal.sym(Array<Maybe<&2, T>>, DA.empty_slots(T, d), AR.thaw(Maybe<&2, T>, t2), ST.empty_eq(T, d)) : {(DA.DA{l, d, SC.pow2(d), 0n, _}, E.OUnit{Done{Unit{}}}) == (ST.real(T, ST.Sh{l, d, 0n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<T> & E.Obs<T>}
+    %Equal.sym(Array<Maybe<&2, T>>, DA.empty_slots(T, d), AR.thaw(Maybe<&2, T>, t2), ST.empty_eq(T, d)) : {(DA.DA{l, d, SC.pow2(d), 0n, _}, E.OUnit{Done{Unit{}}}) == (ST.real(T, ST.Sh{l, d, 0n, t2}), E.OUnit{Done{Unit{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
     {==},
     (ST.good_intro(T, l, d, 0n, t2, ST.g_limit(T, l, d, n, t, g), ST.g_depth(T, l, d, n, t, g), AR.trep_perfect(Maybe<&2, T>, d, None{}),
        L.subst(List<&2, Maybe<&2, T>>, ys => {LY.lay(T, ys, 0n) == True{} : Bool}, SC.replicate(Maybe<&2, T>, SC.pow2(d), None{}), AR.slots(Maybe<&2, T>, t2), Equal.sym(List<&2, Maybe<&2, T>>, AR.slots(Maybe<&2, T>, t2), SC.replicate(Maybe<&2, T>, SC.pow2(d), None{}), AR.trep_slots(Maybe<&2, T>, d, None{})), LY.lay_rep(T, SC.pow2(d)))),
@@ -249,7 +249,7 @@ def to_list_ok(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +
       +ss = AR.slots(Maybe<&2, T>, t)
       +xs = LY.somes(T, ss)
       (ST.Sh{l, d, 0n, t}, (E.OList{xs}, (
-        %Equal.sym(List<&2, T>, xs, Nil{}, LL.length_zero_nil(T, xs, LY.lay_len(T, ss, 0n, ST.g_lay(T, l, d, 0n, t, g)))) : {(DA.DA{l, d, SC.pow2(d), 0n, AR.thaw(Maybe<&2, T>, t)}, E.OList{Nil{}}) == (ST.real(T, ST.Sh{l, d, 0n, t}), E.OList{_}) : DA.DynArray<T> & E.Obs<T>}
+        %Equal.sym(List<&2, T>, xs, Nil{}, LL.length_zero_nil(T, xs, LY.lay_len(T, ss, 0n, ST.g_lay(T, l, d, 0n, t, g)))) : {(DA.DA{l, d, SC.pow2(d), 0n, AR.thaw(Maybe<&2, T>, t)}, E.OList{Nil{}}) == (ST.real(T, ST.Sh{l, d, 0n, t}), E.OList{_}) : DA.DynArray<&2, T> & E.Obs<T>}
         {==}, (g, {==}))))
     case 1n+ +m:
       +ss = AR.slots(Maybe<&2, T>, t)
@@ -260,9 +260,9 @@ def to_list_ok(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +
       +pf = ST.g_perfect(T, l, d, 1n+m, t, g)
       +hm = N.succ_le_lt(m, SC.pow2(d), n_le_cap(T, l, d, 1n+m, t, g))
       (ST.Sh{l, d, 1n+m, t}, (E.OList{xs}, (
-        %Equal.sym(Array<Maybe<&2, T>> & Maybe<&2, T>, Array.get(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t), U32.from_nat(m)), (AR.thaw(Maybe<&2, T>, t), W.slot(T, ss, m)), W.get_slot(T, l, d, t, m, hd, hl, hm, pf)) : {DA.obs_list(T, DA.tl_done(T, l, d, SC.pow2(d), 1n+m, DA.tl_go(1n+m, T, Nil{}, _))) == (ST.real(T, ST.Sh{l, d, 1n+m, t}), E.OList{xs}) : DA.DynArray<T> & E.Obs<T>}
-        %Equal.sym(Array<Maybe<&2, T>> & List<&2, T>, DA.tl_go(1n+m, T, Nil{}, (AR.thaw(Maybe<&2, T>, t), W.slot(T, ss, m))), (AR.thaw(Maybe<&2, T>, t), W.tvals(1n+m, T, ss, Nil{})), W.tl_thaw(1n+m, T, l, d, t, Nil{}, hd, hl, hm, pf)) : {DA.obs_list(T, DA.tl_done(T, l, d, SC.pow2(d), 1n+m, _)) == (ST.real(T, ST.Sh{l, d, 1n+m, t}), E.OList{xs}) : DA.DynArray<T> & E.Obs<T>}
-        %Equal.sym(List<&2, T>, W.tvals(1n+m, T, ss, Nil{}), xs, W.tvals_model(T, ss, 1n+m, hlay)) : {(DA.DA{l, d, SC.pow2(d), 1n+m, AR.thaw(Maybe<&2, T>, t)}, E.OList{_}) == (ST.real(T, ST.Sh{l, d, 1n+m, t}), E.OList{xs}) : DA.DynArray<T> & E.Obs<T>}
+        %Equal.sym(Array<Maybe<&2, T>> & Maybe<&2, T>, Array.get(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t), U32.from_nat(m)), (AR.thaw(Maybe<&2, T>, t), W.slot(T, ss, m)), W.get_slot(T, l, d, t, m, hd, hl, hm, pf)) : {DA.obs_list(T, DA.tl_done(T, l, d, SC.pow2(d), 1n+m, DA.tl_go(1n+m, T, Nil{}, _))) == (ST.real(T, ST.Sh{l, d, 1n+m, t}), E.OList{xs}) : DA.DynArray<&2, T> & E.Obs<T>}
+        %Equal.sym(Array<Maybe<&2, T>> & List<&2, T>, DA.tl_go(1n+m, T, Nil{}, (AR.thaw(Maybe<&2, T>, t), W.slot(T, ss, m))), (AR.thaw(Maybe<&2, T>, t), W.tvals(1n+m, T, ss, Nil{})), W.tl_thaw(1n+m, T, l, d, t, Nil{}, hd, hl, hm, pf)) : {DA.obs_list(T, DA.tl_done(T, l, d, SC.pow2(d), 1n+m, _)) == (ST.real(T, ST.Sh{l, d, 1n+m, t}), E.OList{xs}) : DA.DynArray<&2, T> & E.Obs<T>}
+        %Equal.sym(List<&2, T>, W.tvals(1n+m, T, ss, Nil{}), xs, W.tvals_model(T, ss, 1n+m, hlay)) : {(DA.DA{l, d, SC.pow2(d), 1n+m, AR.thaw(Maybe<&2, T>, t)}, E.OList{_}) == (ST.real(T, ST.Sh{l, d, 1n+m, t}), E.OList{xs}) : DA.DynArray<&2, T> & E.Obs<T>}
         {==}, (g, {==}))))
 
 # ---- reserve ----
@@ -278,7 +278,7 @@ def reserve_case(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>,
     case True{} _:
       +xs = LY.somes(T, AR.slots(Maybe<&2, T>, t))
       (ST.Sh{l, d, n, t}, (E.OUnit{Done{Unit{}}}, (
-        %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), True{}, ef) : {DA.obs_unit(T, DA.reserve_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OUnit{Done{Unit{}}}) : DA.DynArray<T> & E.Obs<T>}
+        %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), True{}, ef) : {DA.obs_unit(T, DA.reserve_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OUnit{Done{Unit{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
         {==},
         (g,
          %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), True{}, ef) : {(S.M{l, d, xs}, E.OUnit{Done{Unit{}}}) == Bool.pick(S.Model<T> & E.Obs<T>, _, (S.M{l, d, xs}, E.OUnit{S.ok_unit()}), Bool.pick(S.Model<T> & E.Obs<T>, Nat.is_le(k, SC.pow2(l)), (S.M{l, S.fit(k, d, k), xs}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}))) : S.Model<T> & E.Obs<T>}
@@ -293,9 +293,9 @@ def reserve_case(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>,
       -gP = {ST.good(T, sh2) == True{} : Bool}
       +hf = L.subst(Nat, x => {Nat.is_le(x, l) == True{} : Bool}, l, Nat.add(d, f), Equal.sym(Nat, Nat.add(d, f), l, N.sub_add(l, d, hdl)), N.le_refl(l))
       (sh2, (E.OUnit{Done{Unit{}}}, (
-        %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), False{}, ef) : {DA.obs_unit(T, DA.reserve_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) == (ST.real(T, sh2), E.OUnit{Done{Unit{}}}) : DA.DynArray<T> & E.Obs<T>}
-        %Equal.sym(Bool, Nat.is_le(k, DA.pow2(l)), True{}, ep) : {DA.obs_unit(T, DA.reserve_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) == (ST.real(T, sh2), E.OUnit{Done{Unit{}}}) : DA.DynArray<T> & E.Obs<T>}
-        %Equal.sym(DA.DynArray<T>, DA.grow_until(T, f, k, ST.real(T, ST.Sh{l, d, n, t})), ST.real(T, sh2), GR.grow_until_real(T, f, k, ST.Sh{l, d, n, t})) : {(_, E.OUnit{Done{Unit{}}}) == (ST.real(T, sh2), E.OUnit{Done{Unit{}}}) : DA.DynArray<T> & E.Obs<T>}
+        %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), False{}, ef) : {DA.obs_unit(T, DA.reserve_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) == (ST.real(T, sh2), E.OUnit{Done{Unit{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
+        %Equal.sym(Bool, Nat.is_le(k, DA.pow2(l)), True{}, ep) : {DA.obs_unit(T, DA.reserve_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) == (ST.real(T, sh2), E.OUnit{Done{Unit{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
+        %Equal.sym(DA.DynArray<&2, T>, DA.grow_until(T, f, k, ST.real(T, ST.Sh{l, d, n, t})), ST.real(T, sh2), GR.grow_until_real(T, f, k, ST.Sh{l, d, n, t})) : {(_, E.OUnit{Done{Unit{}}}) == (ST.real(T, sh2), E.OUnit{Done{Unit{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
         {==},
         (Pair.snd(mP, gP, GR.sgrow_props(T, f, k, l, d, n, t, g, hf, Nat.is_le(k, SC.pow2(d)), {==})),
          %Equal.sym(S.Model<T>, ST.model(T, sh2), S.M{l, S.fit(f, d, k), xs}, Pair.fst(mP, gP, GR.sgrow_props(T, f, k, l, d, n, t, g, hf, Nat.is_le(k, SC.pow2(d)), {==}))) : {(_, E.OUnit{Done{Unit{}}}) == S.step(T, S.M{l, d, xs}, E.Reserve{k}) : S.Model<T> & E.Obs<T>}
@@ -306,8 +306,8 @@ def reserve_case(-T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>,
     case False{} False{}:
       +xs = LY.somes(T, AR.slots(Maybe<&2, T>, t))
       (ST.Sh{l, d, n, t}, (E.OUnit{Fail{E.CapacityExceeded{}}}, (
-        %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), False{}, ef) : {DA.obs_unit(T, DA.reserve_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OUnit{Fail{E.CapacityExceeded{}}}) : DA.DynArray<T> & E.Obs<T>}
-        %Equal.sym(Bool, Nat.is_le(k, DA.pow2(l)), False{}, ep) : {DA.obs_unit(T, DA.reserve_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OUnit{Fail{E.CapacityExceeded{}}}) : DA.DynArray<T> & E.Obs<T>}
+        %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), False{}, ef) : {DA.obs_unit(T, DA.reserve_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OUnit{Fail{E.CapacityExceeded{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
+        %Equal.sym(Bool, Nat.is_le(k, DA.pow2(l)), False{}, ep) : {DA.obs_unit(T, DA.reserve_room(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), k, _)) == (ST.real(T, ST.Sh{l, d, n, t}), E.OUnit{Fail{E.CapacityExceeded{}}}) : DA.DynArray<&2, T> & E.Obs<T>}
         {==},
         (g,
          %Equal.sym(Bool, Nat.is_le(k, SC.pow2(d)), False{}, ef) : {(S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}) == Bool.pick(S.Model<T> & E.Obs<T>, _, (S.M{l, d, xs}, E.OUnit{S.ok_unit()}), Bool.pick(S.Model<T> & E.Obs<T>, Nat.is_le(k, SC.pow2(l)), (S.M{l, S.fit(k, d, k), xs}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}))) : S.Model<T> & E.Obs<T>}

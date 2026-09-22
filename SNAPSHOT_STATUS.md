@@ -1,5 +1,5 @@
 # Work in progress
 
-WIP: one-descent red-black tree updates, proven equivalent to prior implementation. Complete tree proof module and 11,109 differential/structural observations pass; mutation controls reject incorrect old-binding results. Insertion 2.07–2.33x faster; remove/reinsert 2.00–2.10x faster; still 4.91–6.54x C. C unchanged. DLL iterator prior calibrated gate passes 33/33. Quick screen: 84 within target, 28 slow, 7 unresolved out of 119; 39.931 seconds. Full library proof and cursor invariant/trace proof remain incomplete. DSA worker stopped.
+WIP: dynamic-array representation now supports owning Type elements through _owned APIs. 26,795 nested-array observations, closure storage/replacement, 107 Data histories, affine rejection and proof mutation checks pass. Existing Data trace proofs preserved. Owning fixed-size swap traversal roundtrip proved for arbitrary Type; component templates checked at three owning types. Full owning public-operation/trace proofs and owning performance acceptance remain open. Owning empty-buffer initialization currently O(capacity log capacity). Existing Data push/get/set unchanged within about 1%. Indexed red-black tree migration pending; prior proven tree retained. Latest quick screen: 80 within target, 32 slow, 7 unresolved out of 119. DSA worker remains stopped.
 
-See BENCHMARKS.md and docs/TREE_OPTIMIZATION.md for measurements, proof scope, and reproducible commands.
+See docs/DYNAMIC_ARRAY_OWNERSHIP.md for the public API, source compatibility change, validation and exact proof/performance limits.

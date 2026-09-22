@@ -114,3 +114,5 @@ the toolchain defects found and their reproducers under
 `tests/runtime_defects/`).
 
 Red-black tree update optimization: [implementation, proof scope, and calibrated measurements](docs/TREE_OPTIMIZATION.md).
+
+Dynamic arrays support owning `Type` elements (nested arrays and closures): [API and exact proof/performance scope](docs/DYNAMIC_ARRAY_OWNERSHIP.md). The owning extension is work in progress; full Type trace proofs and performance acceptance remain open.

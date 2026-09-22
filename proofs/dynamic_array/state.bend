@@ -16,7 +16,7 @@ import ../../types/dynamic_array.bend as E
 type Shadow<-T: Data> is Data:
   Sh{limit: Nat, depth: Nat, len: Nat, tree: AR.Tree<Maybe<&2, T>>}
 
-def real(-T: Data, sh: Shadow<T>) -> DA.DynArray<T>:
+def real(-T: Data, sh: Shadow<T>) -> DA.DynArray<&2, T>:
   match sh:
     case Sh{l, +d, n, t}:
       DA.DA{l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t)}
@@ -34,7 +34,7 @@ def model(-T: Data, sh: Shadow<T>) -> S.Model<T>:
 
 # Abstraction of an actual dynamic array (proof-level; reads the Base.Array
 # tree through AR.freeze).
-def abs(-T: Data, da: DA.DynArray<T>) -> S.Model<T>:
+def abs(-T: Data, da: DA.DynArray<&2, T>) -> S.Model<T>:
   match da:
     case DA.DA{l, d, c, n, arr}:
       S.M{l, d, LY.somes(T, AR.slots(Maybe<&2, T>, AR.freeze(Maybe<&2, T>, arr)))}
@@ -46,8 +46,8 @@ def abs_real(-T: Data, +sh: Shadow<T>) -> {abs(T, real(T, sh)) == model(T, sh) :
       {==}
 
 # Invariant of an actual array: it is the realization of a good shadow.
-def Inv(-T: Data, da: DA.DynArray<T>) -> Type:
-  Sigma<&1, &1, Shadow<T>, sh => {da == real(T, sh) : DA.DynArray<T>} & {good(T, sh) == True{} : Bool}>
+def Inv(-T: Data, da: DA.DynArray<&2, T>) -> Type:
+  Sigma<&1, &1, Shadow<T>, sh => {da == real(T, sh) : DA.DynArray<&2, T>} & {good(T, sh) == True{} : Bool}>
 
 # ---- projections of good ----
 

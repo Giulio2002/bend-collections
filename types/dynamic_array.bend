@@ -25,3 +25,7 @@ type Obs<-T: Data> is Data:
   OItem{result: Result<&2, &2, Error, T>}
   OUnit{result: Result<&2, &2, Error, Unit>}
   OList{items: List<&2, T>}
+
+# A rejected owning write returns its input value to the caller.
+type Rejected<-T: Type> is Type:
+  Rejected{error: Error, value: T}

@@ -1,0 +1,30 @@
+{
+  "updated": "2026-09-22T16:06:51.682499+02:00",
+  "implementation": "One quantity-polymorphic DynArray representation; Data and owning Type entry points. Nested arrays and closures execute natively.",
+  "tests": {
+    "passed": true,
+    "histories": 118,
+    "observations": 26795,
+    "payload": "non-copyable Box containing DynArray<U32>",
+    "checks": [
+      "growth",
+      "reserve",
+      "swap returns old value",
+      "failed writes return input",
+      "scoped reads restore element",
+      "pop",
+      "clear retains capacity",
+      "ordered consuming drain"
+    ]
+  },
+  "proof_status": "Existing Data operation/trace laws pass. Owning swap traversal roundtrip proved parametrically for Type. Owning API component templates instantiated for arrays, nested arrays, and closures. Full owning public-operation/trace refinement remains unfinished.",
+  "performance_status": "Existing Data push/get/set change by about 1% or less in paired calibrated samples. Owning-element performance acceptance is not established. Empty owning storage currently takes O(capacity log capacity) due to native block merging.",
+  "tree_status": "Existing proven red-black tree remains in use; indexed migration is pending owning-array readiness.",
+  "source_sha256": {
+    "src/dynamic_array.bend": "553b5bc1e6ee7be1b8a475893fdf3f9f85ef6e697e6c508a3ae9450689ec363d",
+    "types/dynamic_array.bend": "c082317d5b64438517672d2a62a73035cd0aa587cff45d72f4ce9652399d4e38",
+    "proofs/dynamic_array/owned.bend": "899478a1874e44e81c7a974b3b43edc2076294ddc468f1729f722d24bf6a7ed8",
+    "proofs/dynamic_array/owned_instances.bend": "5ccfba839ac58f49adaabdc62d89d7c592b33f427e4cdc1de5cba7d7003b9d23",
+    "proofs/dynamic_array/owned_swap.bend": "79e67b6302e2b7aa088346d24deb052114102bc1a9334a246071d4d3964e4928"
+  }
+}

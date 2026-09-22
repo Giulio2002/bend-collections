@@ -23,7 +23,7 @@ def so_obs(-T: Data, -sh: ST.Shadow<T>, -op: E.Op<T>, so: SP.StepOK(T, sh, op)) 
     case Tuple{sh2, Tuple{o, r}}:
       o
 
-def so_step(-T: Data, -sh: ST.Shadow<T>, -op: E.Op<T>, so: SP.StepOK(T, sh, op)) -> {DA.step(T, ST.real(T, sh), op) == (ST.real(T, so_sh(T, sh, op, so)), so_obs(T, sh, op, so)) : DA.DynArray<T> & E.Obs<T>}:
+def so_step(-T: Data, -sh: ST.Shadow<T>, -op: E.Op<T>, so: SP.StepOK(T, sh, op)) -> {DA.step(T, ST.real(T, sh), op) == (ST.real(T, so_sh(T, sh, op, so)), so_obs(T, sh, op, so)) : DA.DynArray<&2, T> & E.Obs<T>}:
   match so:
     case Tuple{sh2, Tuple{o, Tuple{e, r}}}:
       e
@@ -51,14 +51,14 @@ def srun_state(-T: Data, ops: List<&2, E.Op<T>>, m: S.Model<T>) -> S.Model<T>:
 
 # Running ops from the array of a good shadow, with any accumulator.
 def RunOK(-T: Data, ops: List<&2, E.Op<T>>, sh: ST.Shadow<T>, acc: List<&2, E.Obs<T>>) -> Type:
-  Sigma<&1, &1, ST.Shadow<T>, sh2 => {DA.run_acc(T, ops, (ST.real(T, sh), acc)) == (ST.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, ops, ST.model(T, sh)), acc)) : DA.DynArray<T> & List<&2, E.Obs<T>>} & ({ST.good(T, sh2) == True{} : Bool} & {ST.model(T, sh2) == srun_state(T, ops, ST.model(T, sh)) : S.Model<T>})>
+  Sigma<&1, &1, ST.Shadow<T>, sh2 => {DA.run_acc(T, ops, (ST.real(T, sh), acc)) == (ST.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, ops, ST.model(T, sh)), acc)) : DA.DynArray<&2, T> & List<&2, E.Obs<T>>} & ({ST.good(T, sh2) == True{} : Bool} & {ST.model(T, sh2) == srun_state(T, ops, ST.model(T, sh)) : S.Model<T>})>
 
 def ro_sh(-T: Data, -ops: List<&2, E.Op<T>>, -sh: ST.Shadow<T>, -acc: List<&2, E.Obs<T>>, r: RunOK(T, ops, sh, acc)) -> ST.Shadow<T>:
   match r:
     case Tuple{sh2, x}:
       sh2
 
-def ro_run(-T: Data, -ops: List<&2, E.Op<T>>, -sh: ST.Shadow<T>, -acc: List<&2, E.Obs<T>>, r: RunOK(T, ops, sh, acc)) -> {DA.run_acc(T, ops, (ST.real(T, sh), acc)) == (ST.real(T, ro_sh(T, ops, sh, acc, r)), List.reverse.go(&2, E.Obs<T>, srun_obs(T, ops, ST.model(T, sh)), acc)) : DA.DynArray<T> & List<&2, E.Obs<T>>}:
+def ro_run(-T: Data, -ops: List<&2, E.Op<T>>, -sh: ST.Shadow<T>, -acc: List<&2, E.Obs<T>>, r: RunOK(T, ops, sh, acc)) -> {DA.run_acc(T, ops, (ST.real(T, sh), acc)) == (ST.real(T, ro_sh(T, ops, sh, acc, r)), List.reverse.go(&2, E.Obs<T>, srun_obs(T, ops, ST.model(T, sh)), acc)) : DA.DynArray<&2, T> & List<&2, E.Obs<T>>}:
   match r:
     case Tuple{sh2, Tuple{e, x}}:
       e
@@ -88,9 +88,9 @@ def run_ok(-T: Data, +ops: List<&2, E.Op<T>>, +sh: ST.Shadow<T>, +acc: List<&2, 
       +es = spec_run_cons(T, op, rest, m, m1, o, so_spec(T, sh, op, SP.step_ok(T, sh, op, g)))
       -R = S.run(T, rest, m1)
       (sh2, (
-        %Equal.sym(DA.DynArray<T> & E.Obs<T>, DA.step(T, ST.real(T, sh), op), (ST.real(T, sh1), o), so_step(T, sh, op, SP.step_ok(T, sh, op, g))) : {DA.run_acc(T, rest, DA.record(T, acc, _)) == (ST.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, Con{op, rest}, m), acc)) : DA.DynArray<T> & List<&2, E.Obs<T>>}
-        %Equal.sym(DA.DynArray<T> & List<&2, E.Obs<T>>, DA.run_acc(T, rest, (ST.real(T, sh1), acc1)), (ST.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, rest, m1), acc1)), ro_run(T, rest, sh1, acc1, run_ok(T, rest, sh1, acc1, g1))) : {_ == (ST.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, Con{op, rest}, m), acc)) : DA.DynArray<T> & List<&2, E.Obs<T>>}
-        %Equal.sym(S.Model<T> & List<&2, E.Obs<T>>, S.run(T, Con{op, rest}, m), (Pair.fst(S.Model<T>, List<&2, E.Obs<T>>, R), Con{o, Pair.snd(S.Model<T>, List<&2, E.Obs<T>>, R)}), es) : {(ST.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, rest, m1), acc1)) == (ST.real(T, sh2), List.reverse.go(&2, E.Obs<T>, Pair.snd(S.Model<T>, List<&2, E.Obs<T>>, _), acc)) : DA.DynArray<T> & List<&2, E.Obs<T>>}
+        %Equal.sym(DA.DynArray<&2, T> & E.Obs<T>, DA.step(T, ST.real(T, sh), op), (ST.real(T, sh1), o), so_step(T, sh, op, SP.step_ok(T, sh, op, g))) : {DA.run_acc(T, rest, DA.record(T, acc, _)) == (ST.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, Con{op, rest}, m), acc)) : DA.DynArray<&2, T> & List<&2, E.Obs<T>>}
+        %Equal.sym(DA.DynArray<&2, T> & List<&2, E.Obs<T>>, DA.run_acc(T, rest, (ST.real(T, sh1), acc1)), (ST.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, rest, m1), acc1)), ro_run(T, rest, sh1, acc1, run_ok(T, rest, sh1, acc1, g1))) : {_ == (ST.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, Con{op, rest}, m), acc)) : DA.DynArray<&2, T> & List<&2, E.Obs<T>>}
+        %Equal.sym(S.Model<T> & List<&2, E.Obs<T>>, S.run(T, Con{op, rest}, m), (Pair.fst(S.Model<T>, List<&2, E.Obs<T>>, R), Con{o, Pair.snd(S.Model<T>, List<&2, E.Obs<T>>, R)}), es) : {(ST.real(T, sh2), List.reverse.go(&2, E.Obs<T>, srun_obs(T, rest, m1), acc1)) == (ST.real(T, sh2), List.reverse.go(&2, E.Obs<T>, Pair.snd(S.Model<T>, List<&2, E.Obs<T>>, _), acc)) : DA.DynArray<&2, T> & List<&2, E.Obs<T>>}
         {==},
         (ro_good(T, rest, sh1, acc1, run_ok(T, rest, sh1, acc1, g1)),
          %Equal.sym(S.Model<T> & List<&2, E.Obs<T>>, S.run(T, Con{op, rest}, m), (Pair.fst(S.Model<T>, List<&2, E.Obs<T>>, R), Con{o, Pair.snd(S.Model<T>, List<&2, E.Obs<T>>, R)}), es) : {ST.model(T, sh2) == Pair.fst(S.Model<T>, List<&2, E.Obs<T>>, _) : S.Model<T>}
@@ -101,7 +101,7 @@ def run_ok(-T: Data, +ops: List<&2, E.Op<T>>, +sh: ST.Shadow<T>, +acc: List<&2, 
 def initial(-T: Data) -> ST.Shadow<T>:
   ST.Sh{31n, 0n, 0n, AR.TLeaf{None{}}}
 
-def new_real(-T: Data) -> {DA.new(T) == ST.real(T, initial(T)) : DA.DynArray<T>}:
+def new_real(-T: Data) -> {DA.new(T) == ST.real(T, initial(T)) : DA.DynArray<&2, T>}:
   {==}
 
 def new_good(-T: Data) -> {ST.good(T, initial(T)) == True{} : Bool}:
