@@ -3,7 +3,7 @@
 import argparse,datetime,html,json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-p=argparse.ArgumentParser();p.add_argument('--before',type=Path,required=True);p.add_argument('--after',type=Path);p.add_argument('--iterator-report',type=Path);p.add_argument('--note',default='Optimization in progress');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--before',type=Path,required=True);p.add_argument('--after',type=Path);p.add_argument('--iterator-report',type=Path);p.add_argument('--tree-report',type=Path);p.add_argument('--note',default='Optimization in progress');a=p.parse_args()
 b=json.loads(a.before.read_text());c=json.loads(a.after.read_text()) if a.after else b
 old={x['operation']:x for x in b['results']};rows=[]
 for x in sorted(c['results'],key=lambda x:x['operation']):
@@ -32,9 +32,28 @@ if a.iterator_report:
   section+=f'<td>{worst:.3f}×</td></tr>'
  section+='</tbody></table><p><a href="dsa-iterator-performance.json">Full sample data and source hashes</a></p><h2>Whole collection quick screen</h2>'
  page=page.replace('<input id="q"',section+'<input id="q"')
+groups={}
+for x in c['results']:groups.setdefault(x['operation'].split('.')[0],[]).append(x)
+summary='<h2>Overall collection status — quick screen</h2><table><thead><tr><th>Collection</th><th>Within 2.5×</th><th>Too slow</th><th>Unresolved</th></tr></thead><tbody>'
+for name, results in groups.items():
+ passed=sum('ratio' in x and x['ratio']<=2.5 for x in results)
+ failed=sum(x.get('ratio',0)>2.5 for x in results)
+ missing=sum('ratio' not in x for x in results)
+ summary+=f'<tr><td>{html.escape(name)}</td><td>{passed}</td><td>{failed}</td><td>{missing}</td></tr>'
+summary+='</tbody></table>'
+page=page.replace('<input id="q"',summary+'<input id="q"')
+if a.tree_report:
+ tr=json.loads(a.tree_report.read_text())
+ section='<h2>Red-black tree — calibrated update improvement</h2><p>One search per update now supplies both the new tree and old binding. Six samples per row with the unchanged C reference. Both fusion equivalence proofs and the complete red-black tree proof module pass; 11,109 differential/structural observations pass. These improvements do not establish the 2.5× performance target. Read-only operations remain the next bottleneck.</p><table><thead><tr><th>Operation / size</th><th>Before ns</th><th>After ns</th><th>C ns</th><th>Speedup</th><th>Bend/C</th></tr></thead><tbody>'
+ for x in tr['results']:
+  m=x['medians_ns'];color='#4ade80' if x['ratio']<=2.5 else '#f87171'
+  section+=f'<tr><td>{html.escape(x["operation"])} / {x["size"]:,}</td><td>{m["before"]:.2f}</td><td>{m["after"]:.2f}</td><td>{m["c"]:.2f}</td><td>{x["speedup"]:.2f}×</td><td style="color:{color}">{x["ratio"]:.2f}×</td></tr>'
+ section+='</tbody></table><p><a href="dsa-tree-performance.json">Before/after samples and source hashes</a></p>'
+ page=page.replace('<input id="q"',section+'<input id="q"')
 out=ROOT/'build/optimization.html';out.write_text(page)
 site=Path('/Users/monkeair/progress-dashboard/site');(site/'dsa-benchmarks.html').write_text(page);(site/'dsa-benchmarks.json').write_text(json.dumps(c))
 if a.iterator_report:(site/'dsa-iterator-performance.json').write_text(json.dumps(ir,indent=2)+'\n')
+if a.tree_report:(site/'dsa-tree-performance.json').write_text(json.dumps(tr,indent=2)+'\n')
 p=site.parent/'assessment.json';d=json.loads(p.read_text());v=d['projects']['dsa'];v.update(scope='12 collections including LRU and queue facades; no segment tree/union-find/graph/Fenwick/Trie/Counter. 2.5× optimized C target.',implementation_done='Stack, arena DLL and LifoQueue/SimpleQueue/PriorityQueue added. Matching C benchmarks built.',implementation_missing='Optimize measured slow operations; owning-Type scope and complete proofs remain unfinished.',pace=a.note,performance_status=f'Quick provisional: {len(c["results"])} operations, {slow} above 2.5x, {unknown} unresolved; {c["seconds"]:.2f}s. Full gate not passed.',reviewed_at=now);p.write_text(json.dumps(d,indent=2)+'\n')
 if iterator_summary:
  v['performance_status']+=' '+iterator_summary

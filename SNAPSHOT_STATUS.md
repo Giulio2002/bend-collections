@@ -1,5 +1,5 @@
 # Work in progress
 
-WIP library; DLL iterator performance passes all 33 calibrated rows at <=2.5x optimized C (worst median 1.575x). Compact owning cursors, matching C reference, 32,429 differential operations, handle recycling/retirement tests and component laws pass. Full cursor invariant/trace refinement and whole-library PROOF.bend remain incomplete. Segment tree removed. Quick screen: 119 operations, 31 slow, 4 unresolved, 40.575 seconds. DSA worker remains stopped.
+WIP: one-descent red-black tree updates, proven equivalent to prior implementation. Complete tree proof module and 11,109 differential/structural observations pass; mutation controls reject incorrect old-binding results. Insertion 2.07–2.33x faster; remove/reinsert 2.00–2.10x faster; still 4.91–6.54x C. C unchanged. DLL iterator prior calibrated gate passes 33/33. Quick screen: 84 within target, 28 slow, 7 unresolved out of 119; 39.931 seconds. Full library proof and cursor invariant/trace proof remain incomplete. DSA worker stopped.
 
-See BENCHMARKS.md, docs/DLIST_ITERATOR.md and benchmarks/evidence/iterator-20260922/.
+See BENCHMARKS.md and docs/TREE_OPTIMIZATION.md for measurements, proof scope, and reproducible commands.

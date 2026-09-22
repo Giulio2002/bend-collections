@@ -542,11 +542,36 @@ def grow(-V: Data, m: Maybe<&2, V>, +n: Nat) -> Nat:
     case Some{v}:
       n
 
+# Insert and return the old binding in the same descent. The old binding
+# determines whether the cached size grows; no preliminary lookup is needed.
+def ins_left(-K: Data, -V: Data, c: Color, e: E.Entry<K, V>, r: Tree<K, V>, result: Tree<K, V> & Maybe<&2, V>) -> Tree<K, V> & Maybe<&2, V>:
+  (l, old) = result
+  (balance(K, V, c, l, e, r), old)
+
+def ins_right(-K: Data, -V: Data, c: Color, l: Tree<K, V>, e: E.Entry<K, V>, result: Tree<K, V> & Maybe<&2, V>) -> Tree<K, V> & Maybe<&2, V>:
+  (r, old) = result
+  (balance(K, V, c, l, e, r), old)
+
+def ins_found(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, t: Tree<K, V>, +k: K, +v: V, a: Cmp) -> Tree<K, V> & Maybe<&2, V>:
+  match t a:
+    case Leaf{} _:
+      (Node{R{}, Leaf{}, E.Entry{k, v}, Leaf{}}, None{})
+    case Node{c, +l, e, r} LT{}:
+      ins_left(K, V, c, e, r, ins_found(~K, ~cmp, V, l, k, v, c1(~K, ~cmp, V, k, l)))
+    case Node{c, l, e, r} EQ{}:
+      (Node{c, l, E.Entry{k, v}, r}, Some{E.val(K, V, e)})
+    case Node{c, l, e, +r} GT{}:
+      ins_right(K, V, c, l, e, ins_found(~K, ~cmp, V, r, k, v, c1(~K, ~cmp, V, k, r)))
+
+def insert_finish(-K: Data, -V: Data, n: Nat, result: Tree<K, V> & Maybe<&2, V>) -> OrdMap<K, V>:
+  (t, old) = result
+  BST{grow(V, old, n), blacken(K, V, t)}
+
 # Map k to v (replacing any previous value).
 def insert(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +k: K, +v: V) -> OrdMap<K, V>:
   match s:
-    case BST{+n, +t}:
-      BST{grow(V, lookup_tree(~K, ~cmp, V, t, k), n), insert_tree(~K, ~cmp, V, t, k, v)}
+    case BST{n, +t}:
+      insert_finish(K, V, n, ins_found(~K, ~cmp, V, t, k, v, c1(~K, ~cmp, V, k, t)))
 
 def remove_at(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, m: Maybe<&2, V>, +n: Nat, +t: Tree<K, V>, +k: K) -> OrdMap<K, V> & Result<&2, &2, E.Error, V>:
   match m:
@@ -555,11 +580,37 @@ def remove_at(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, m: Maybe<&2, V>, +n: Nat,
     case Some{v}:
       (BST{Nat.sub(n, 1n), remove_tree(~K, ~cmp, V, t, k)}, Done{v})
 
-# Remove key k, returning its value.
+def del_left_found(-K: Data, -V: Data, r: Tree<K, V>, c: Color, e: E.Entry<K, V>, result: UpD<K, V> & Maybe<&2, V>) -> UpD<K, V> & Maybe<&2, V>:
+  (u, old) = result
+  (fix_left(K, V, r, c, u, e), old)
+
+def del_right_found(-K: Data, -V: Data, l: Tree<K, V>, c: Color, e: E.Entry<K, V>, result: UpD<K, V> & Maybe<&2, V>) -> UpD<K, V> & Maybe<&2, V>:
+  (u, old) = result
+  (fix_right(K, V, l, c, e, u), old)
+
+def del_found(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, t: Tree<K, V>, +k: K, a: Cmp) -> UpD<K, V> & Maybe<&2, V>:
+  match t a:
+    case Leaf{} _:
+      (TD{Leaf{}}, None{})
+    case Node{c, +l, e, r} LT{}:
+      del_left_found(K, V, r, c, e, del_found(~K, ~cmp, V, l, k, c1(~K, ~cmp, V, k, l)))
+    case Node{c, l, e, r} EQ{}:
+      (del_here(K, V, c, l, r), Some{E.val(K, V, e)})
+    case Node{c, l, e, +r} GT{}:
+      del_right_found(K, V, l, c, e, del_found(~K, ~cmp, V, r, k, c1(~K, ~cmp, V, k, r)))
+
+def remove_finish(-K: Data, -V: Data, n: Nat, result: UpD<K, V> & Maybe<&2, V>) -> OrdMap<K, V> & Result<&2, &2, E.Error, V>:
+  match result:
+    case Tuple{u, None{}}:
+      (BST{n, upd_tree(K, V, u)}, Fail{E.KeyNotFound{}})
+    case Tuple{u, Some{v}}:
+      (BST{Nat.sub(n, 1n), blacken(K, V, upd_tree(K, V, u))}, Done{v})
+
+# Find the removed binding during deletion, without a preliminary search.
 def remove(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +k: K) -> OrdMap<K, V> & Result<&2, &2, E.Error, V>:
   match s:
-    case BST{+n, +t}:
-      remove_at(~K, ~cmp, V, lookup_tree(~K, ~cmp, V, t, k), n, t, k)
+    case BST{n, +t}:
+      remove_finish(K, V, n, del_found(~K, ~cmp, V, t, k, c1(~K, ~cmp, V, k, t)))
 
 def result(-V: Data, m: Maybe<&2, V>) -> Result<&2, &2, E.Error, V>:
   match m:

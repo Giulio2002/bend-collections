@@ -11,6 +11,8 @@ import ./sorted.bend as SO
 import ./specops.bend as SP
 import ./tree.bend as T
 import ./query.bend as Q
+import ./insert_fused.bend as F
+import ./remove_fused.bend as RF
 
 # Ordered-map state: abstraction, invariant and every public operation.
 
@@ -77,6 +79,7 @@ def lookup_ok(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), -V: Data, +t
   Q.find_ok(~K, ~cmp, ~o, V, t, k, B.c1(~K, ~cmp, V, k, t), {==}, s)
 
 def insert_inv(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), -V: Data, +n: Nat, +t: B.Tree<K, V>, +k: K, +v: V, +g: {inv(~K, ~cmp, V, B.BST{n, t}) == True{} : Bool}) -> {inv(~K, ~cmp, V, B.insert(~K, ~cmp, V, B.BST{n, t}, k, v)) == True{} : Bool}:
+  %Equal.sym(B.OrdMap<K, V>, B.insert(~K, ~cmp, V, B.BST{n, t}, k, v), B.BST{B.grow(V, B.lookup_tree(~K, ~cmp, V, t, k), n), B.insert_tree(~K, ~cmp, V, t, k, v)}, F.same(~K, ~cmp, V, n, t, k, v)) : {inv(~K, ~cmp, V, _) == True{} : Bool}
   -EE = E.Entry<K, V>
   +s = inv_s(~K, ~cmp, V, n, t, g)
   +t1 = B.insert_tree(~K, ~cmp, V, t, k, v)
@@ -96,6 +99,7 @@ def insert_inv(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), -V: Data, +
 def remove_ok(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), -V: Data, +n: Nat, +t: B.Tree<K, V>, +k: K, m: Maybe<&2, V>, +em: {B.lookup_tree(~K, ~cmp, V, t, k) == m : Maybe<&2, V>}, +g: {inv(~K, ~cmp, V, B.BST{n, t}) == True{} : Bool}) -> StepOK(~K, ~cmp, V, B.BST{n, t}, E.Remove{k}):
   match m:
     case None{}:
+      %Equal.sym(B.OrdMap<K, V> & Result<&2, &2, E.Error, V>, B.remove(~K, ~cmp, V, B.BST{n, t}, k), B.remove_at(~K, ~cmp, V, B.lookup_tree(~K, ~cmp, V, t, k), n, t, k), RF.same(~K, ~cmp, V, n, t, k)) : {view1(~K, ~cmp, V, B.obs_val(K, V, _)) == S.step(~K, ~cmp, V, T.io(K, V, t), E.Remove{k}) : List<&2, E.Entry<K, V>> & E.Obs<K, V>} & {inv(~K, ~cmp, V, Pair.fst(B.OrdMap<K, V>, E.Obs<K, V>, B.obs_val(K, V, _))) == True{} : Bool}
       -EE = E.Entry<K, V>
       +s = inv_s(~K, ~cmp, V, n, t, g)
       +ef = Equal.trans(Maybe<&2, V>, S.find(~K, ~cmp, V, k, T.io(K, V, t)), B.lookup_tree(~K, ~cmp, V, t, k), None{}, Equal.sym(Maybe<&2, V>, B.lookup_tree(~K, ~cmp, V, t, k), S.find(~K, ~cmp, V, k, T.io(K, V, t)), lookup_ok(~K, ~cmp, ~o, V, t, k, s)), em)
@@ -103,6 +107,7 @@ def remove_ok(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), -V: Data, +n
       %Equal.sym(Maybe<&2, V>, S.find(~K, ~cmp, V, k, T.io(K, V, t)), None{}, ef) : {view1(~K, ~cmp, V, B.obs_val(K, V, B.remove_at(~K, ~cmp, V, None{}, n, t, k))) == S.remove_at(~K, ~cmp, V, _, k, T.io(K, V, t)) : List<&2, EE> & E.Obs<K, V>} & {inv(~K, ~cmp, V, Pair.fst(B.OrdMap<K, V>, E.Obs<K, V>, B.obs_val(K, V, B.remove_at(~K, ~cmp, V, None{}, n, t, k)))) == True{} : Bool}
       ({==}, g)
     case Some{+w}:
+      %Equal.sym(B.OrdMap<K, V> & Result<&2, &2, E.Error, V>, B.remove(~K, ~cmp, V, B.BST{n, t}, k), B.remove_at(~K, ~cmp, V, B.lookup_tree(~K, ~cmp, V, t, k), n, t, k), RF.same(~K, ~cmp, V, n, t, k)) : {view1(~K, ~cmp, V, B.obs_val(K, V, _)) == S.step(~K, ~cmp, V, T.io(K, V, t), E.Remove{k}) : List<&2, E.Entry<K, V>> & E.Obs<K, V>} & {inv(~K, ~cmp, V, Pair.fst(B.OrdMap<K, V>, E.Obs<K, V>, B.obs_val(K, V, _))) == True{} : Bool}
       -EE = E.Entry<K, V>
       +s = inv_s(~K, ~cmp, V, n, t, g)
       +ef = Equal.trans(Maybe<&2, V>, S.find(~K, ~cmp, V, k, T.io(K, V, t)), B.lookup_tree(~K, ~cmp, V, t, k), Some{w}, Equal.sym(Maybe<&2, V>, B.lookup_tree(~K, ~cmp, V, t, k), S.find(~K, ~cmp, V, k, T.io(K, V, t)), lookup_ok(~K, ~cmp, ~o, V, t, k, s)), em)
@@ -129,7 +134,8 @@ def step_ok(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), -V: Data, +s: 
       (%inv_n(~K, ~cmp, V, n, t, g) : {(T.io(K, V, t), E.ONat{n}) == (T.io(K, V, t), E.ONat{_}) : List<&2, E.Entry<K, V>> & E.Obs<K, V>}
        {==}, g)
     case B.BST{+n, +t} E.Insert{+k, +v}:
-      (Equal.cong(List<&2, E.Entry<K, V>>, List<&2, E.Entry<K, V>> & E.Obs<K, V>, xs => (xs, E.OUnit{}), T.io(K, V, B.insert_tree(~K, ~cmp, V, t, k, v)), S.ins(~K, ~cmp, V, k, v, T.io(K, V, t)), T.insert_io(~K, ~cmp, ~o, V, t, k, v, inv_s(~K, ~cmp, V, n, t, g))),
+      (%Equal.sym(B.OrdMap<K, V>, B.insert(~K, ~cmp, V, B.BST{n, t}, k, v), B.BST{B.grow(V, B.lookup_tree(~K, ~cmp, V, t, k), n), B.insert_tree(~K, ~cmp, V, t, k, v)}, F.same(~K, ~cmp, V, n, t, k, v)) : {(abs(~K, ~cmp, V, _), E.OUnit{}) == S.step(~K, ~cmp, V, T.io(K, V, t), E.Insert{k, v}) : List<&2, E.Entry<K, V>> & E.Obs<K, V>}
+       Equal.cong(List<&2, E.Entry<K, V>>, List<&2, E.Entry<K, V>> & E.Obs<K, V>, xs => (xs, E.OUnit{}), T.io(K, V, B.insert_tree(~K, ~cmp, V, t, k, v)), S.ins(~K, ~cmp, V, k, v, T.io(K, V, t)), T.insert_io(~K, ~cmp, ~o, V, t, k, v, inv_s(~K, ~cmp, V, n, t, g))),
        insert_inv(~K, ~cmp, ~o, V, n, t, k, v, g))
     case B.BST{+n, +t} E.Remove{+k}:
       remove_ok(~K, ~cmp, ~o, V, n, t, k, B.lookup_tree(~K, ~cmp, V, t, k), {==}, g)

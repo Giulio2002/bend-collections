@@ -1,6 +1,6 @@
 {
-  "at": "2026-09-22T02:43:28.590881+00:00",
+  "at": "2026-09-22T12:36:53.426796+00:00",
   "source": "/Users/monkeair/work/dsa-generational-list",
   "status": "work_in_progress",
-  "description": "WIP library; DLL iterator performance passes all 33 calibrated rows at <=2.5x optimized C (worst median 1.575x). Compact owning cursors, matching C reference, 32,429 differential operations, handle recycling/retirement tests and component laws pass. Full cursor invariant/trace refinement and whole-library PROOF.bend remain incomplete. Segment tree removed. Quick screen: 119 operations, 31 slow, 4 unresolved, 40.575 seconds. DSA worker remains stopped."
+  "description": "WIP: one-descent red-black tree updates, proven equivalent to prior implementation. Complete tree proof module and 11,109 differential/structural observations pass; mutation controls reject incorrect old-binding results. Insertion 2.07\u20132.33x faster; remove/reinsert 2.00\u20132.10x faster; still 4.91\u20136.54x C. C unchanged. DLL iterator prior calibrated gate passes 33/33. Quick screen: 84 within target, 28 slow, 7 unresolved out of 119; 39.931 seconds. Full library proof and cursor invariant/trace proof remain incomplete. DSA worker stopped."
 }

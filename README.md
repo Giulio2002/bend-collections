@@ -112,3 +112,5 @@ dependency map), `docs/API.md` (API index), `docs/PROOF_MAP.md`,
 `docs/VALIDATION.md`, `WORK_LOG.md` (chronological engineering log, including
 the toolchain defects found and their reproducers under
 `tests/runtime_defects/`).
+
+Red-black tree update optimization: [implementation, proof scope, and calibrated measurements](docs/TREE_OPTIMIZATION.md).
