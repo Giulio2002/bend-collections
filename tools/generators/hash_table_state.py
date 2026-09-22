@@ -46,6 +46,7 @@ COMPS = [
     ("clive", f"B.all_lt(B.PLive{{{BS}, lvs(~V, AR.slots(Maybe<&2, V>, vsT)), UD.v(fresh)}}, SC.pow2(k))"),
     ("cfresh", "Nat.is_le(UD.v(fresh), UD.v(sz))"),
     ("cfree", f"Bool.and(Nat.is_le(UD.v(n), UD.v(fresh)), fl_ok({BS}, SC.pow2(k), AR.slots(U32, nxT), Nat.sub(UD.v(fresh), UD.v(n)), free, UD.v(fresh), Nil{{}}))"),
+    ("csdk", "Nat.is_lt(sd, k)"),
 ]
 NAMES = [c for c, _ in COMPS]
 
