@@ -40,9 +40,6 @@ def del_head(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +xs: L
   %Equal.sym(Cmp, cmp(z, z), EQ{}, O.refl(~A, ~cmp, ~o, z)) : {del(~A, ~cmp, z, Con{z, xs}, Cmp.is_eq(_)) == xs : List<&2, A>}
   {==}
 
-def not_le_not_eq(~A: Data, ~cmp: A -> A -> Cmp, +z: A, +h: A, +e: {S.le(~A, ~cmp, z, h) == False{} : Bool}) -> {Cmp.is_eq(cmp(z, h)) == False{} : Bool}:
-  not_le_not_eq_c(cmp(z, h), e)
-
 def not_le_not_eq_c(c: Cmp, +e: {Cmp.is_le(c) == False{} : Bool}) -> {Cmp.is_eq(c) == False{} : Bool}:
   match c:
     case LT{}:
@@ -51,6 +48,9 @@ def not_le_not_eq_c(c: Cmp, +e: {Cmp.is_le(c) == False{} : Bool}) -> {Cmp.is_eq(
       Empty.absurd({Cmp.is_eq(EQ{}) == False{} : Bool}, L.true_false(e))
     case GT{}:
       {==}
+
+def not_le_not_eq(~A: Data, ~cmp: A -> A -> Cmp, +z: A, +h: A, +e: {S.le(~A, ~cmp, z, h) == False{} : Bool}) -> {Cmp.is_eq(cmp(z, h)) == False{} : Bool}:
+  not_le_not_eq_c(cmp(z, h), e)
 
 def del_ins_cons(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +h: A, +t: List<&2, A>, b: Bool, +eb: {S.le(~A, ~cmp, z, h) == b : Bool}, +ih: {delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, t)) == t : List<&2, A>}) -> {delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, Con{h, t})) == Con{h, t} : List<&2, A>}:
   match b:

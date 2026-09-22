@@ -299,6 +299,10 @@ def pair_kid_at(~A: Data, ~cmp: A -> A -> Cmp, +ss: List<&2, Maybe<&2, A>>, +n: 
   L.subst(Nat, z => {pair_ok(~A, ~cmp, ss, z) == True{} : Bool}, c, j, Equal.sym(Nat, j, c, N.eq_from_is_eq(j, c, ej)),
     pair_of_kid(~A, ~cmp, ss, n, i, c, epc, hcpos, kid_le_at(~A, ~cmp, ss, n, i, c, L.subst(Nat, z => {Nat.is_lt(z, n) == True{} : Bool}, j, c, N.eq_from_is_eq(j, c, ej), hjn), hc)))
 
+def or_false(a: Bool, b: Bool, +ea: {a == False{} : Bool}, +eb: {b == False{} : Bool}) -> {Bool.or(a, b) == False{} : Bool}:
+  %Equal.sym(Bool, a, False{}, ea) : {Bool.or(_, b) == False{} : Bool}
+  eb
+
 # `ho_upto` from `ho_exc2` plus "the hole is not larger than its children"
 def ho_of_exc2_at(~A: Data, ~cmp: A -> A -> Cmp, +ss: List<&2, Maybe<&2, A>>, +n: Nat, +k: Nat, +i: Nat, +j: Nat, +hjk: {Nat.is_lt(j, k) == True{} : Bool}, +hjn: {Nat.is_lt(j, n) == True{} : Bool}, +h: {ho_exc2(~A, ~cmp, ss, k, i) == True{} : Bool}, +hkids: {kids_le(~A, ~cmp, ss, n, i, i) == True{} : Bool}, b: Bool, +eb: {Nat.is_eq(j, IX.kidl(i)) == b : Bool}, c: Bool, +ec: {Nat.is_eq(j, IX.kidr(i)) == c : Bool}) -> {pair_ok(~A, ~cmp, ss, j) == True{} : Bool}:
   match b c:
@@ -308,10 +312,6 @@ def ho_of_exc2_at(~A: Data, ~cmp: A -> A -> Cmp, +ss: List<&2, Maybe<&2, A>>, +n
       pair_kid_at(~A, ~cmp, ss, n, i, j, IX.kidr(i), hjn, ec, IX.par_kidr(i), L.and_right(kid_le(~A, ~cmp, ss, n, i, IX.kidl(i)), kid_le(~A, ~cmp, ss, n, i, IX.kidr(i)), hkids), IX.kidr_pos1(i))
     case False{} False{}:
       exc2_at(~A, ~cmp, ss, k, i, j, h, hjk, or_false(Nat.is_eq(j, IX.kidl(i)), Nat.is_eq(j, IX.kidr(i)), eb, ec))
-
-def or_false(a: Bool, b: Bool, +ea: {a == False{} : Bool}, +eb: {b == False{} : Bool}) -> {Bool.or(a, b) == False{} : Bool}:
-  %Equal.sym(Bool, a, False{}, ea) : {Bool.or(_, b) == False{} : Bool}
-  eb
 
 def ho_of_exc2(~A: Data, ~cmp: A -> A -> Cmp, +ss: List<&2, Maybe<&2, A>>, +n: Nat, k: Nat, +i: Nat, +hk: {Nat.is_le(k, n) == True{} : Bool}, +h: {ho_exc2(~A, ~cmp, ss, k, i) == True{} : Bool}, +hkids: {kids_le(~A, ~cmp, ss, n, i, i) == True{} : Bool}) -> {ho_upto(~A, ~cmp, ss, k) == True{} : Bool}:
   match k:
