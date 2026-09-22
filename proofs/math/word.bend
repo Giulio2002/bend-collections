@@ -346,3 +346,8 @@ def pw_val(+n: Nat, +k: Nat, +hk: {Nat.is_lt(k, n) == True{} : Bool}) -> {uw(n, 
 def pwv(+n: Nat, +k: Nat, +hk: {Nat.is_lt(k, n) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +c: Word(n), +hc: {c == pw(n, k) : Word(n)}) -> {uw(n, c) == sc(k, one) : Nat}:
   +e = L.subst(Word(n), w => {uw(n, w) == sc(k, 1n) : Nat}, pw(n, k), c, Equal.sym(Word(n), c, pw(n, k), hc), pw_val(n, k, hk))
   L.subst(Nat, o => {uw(n, c) == S.scale_binary(k, o) : Nat}, 1n, one, Equal.sym(Nat, one, 1n, h1), e)
+
+# an increment below 2^n is exact
+def inc_exact(+n: Nat, +one: Nat, +h1: {one == 1n : Nat}, +w: Word(n), +h: {Nat.is_lt(1n+uw(n, w), sc(n, one)) == True{} : Bool}) -> {uw(n, Word.inc(n, w)) == 1n+uw(n, w) : Nat}:
+  %Equal.sym(Word(n), Word.inc(n, w), S.from_nat(n, 1n+uw(n, w)), MA.increment_refines(n, w)) : {S.unsigned(n, _) == 1n+uw(n, w) : Nat}
+  WV.from_nat_value(n, 1n+uw(n, w), L.subst(Nat, z => {Nat.is_lt(1n+uw(n, w), z) == True{} : Bool}, S.scale_binary(n, 1n), Nat.pow(2n, n), NM.scale_power(n), lt1(n, one, h1, 1n+uw(n, w), h)))

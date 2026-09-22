@@ -125,3 +125,53 @@ def div_le(+a: Nat, +d: Nat) -> {Nat.is_le(Nat.div(a, d), a) == True{} : Bool}:
       N.zero_le(a)
     case 1n+bp:
       go_le(a, bp, 0n, 0n)
+
+def zsub(+b: Nat) -> {Nat.sub(0n, b) == 0n : Nat}:
+  match b:
+    case 0n:
+      {==}
+    case 1n+q:
+      {==}
+
+def sub_cancel_l(+c: Nat, +a: Nat, +b: Nat) -> {Nat.sub(Nat.add(c, a), Nat.add(c, b)) == Nat.sub(a, b) : Nat}:
+  match c:
+    case 0n:
+      {==}
+    case 1n+p:
+      sub_cancel_l(p, a, b)
+
+# 2^(k + j) x == 2^k (2^j x)
+def sc_idx(+k: Nat, +j: Nat, +x: Nat) -> {sc(Nat.add(k, j), x) == sc(k, sc(j, x)) : Nat}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      Equal.cong(Nat, Nat, Nat.double, sc(Nat.add(p, j), x), sc(p, sc(j, x)), sc_idx(p, j, x))
+
+# 2^k (a - b) == 2^k a - 2^k b
+def sc_sub(+k: Nat, +a: Nat, +b: Nat) -> {sc(k, Nat.sub(a, b)) == Nat.sub(sc(k, a), sc(k, b)) : Nat}:
+  match a b:
+    case 0n _:
+      %Equal.sym(Nat, Nat.sub(0n, b), 0n, zsub(b)) : {sc(k, _) == Nat.sub(sc(k, 0n), sc(k, b)) : Nat}
+      %Equal.sym(Nat, sc(k, 0n), 0n, A.sc_zero(k)) : {_ == Nat.sub(sc(k, 0n), sc(k, b)) : Nat}
+      %Equal.sym(Nat, sc(k, 0n), 0n, A.sc_zero(k)) : {0n == Nat.sub(_, sc(k, b)) : Nat}
+      Equal.sym(Nat, Nat.sub(0n, sc(k, b)), 0n, zsub(sc(k, b)))
+    case 1n+p 0n:
+      %Equal.sym(Nat, sc(k, 0n), 0n, A.sc_zero(k)) : {sc(k, 1n+p) == Nat.sub(sc(k, 1n+p), _) : Nat}
+      Equal.sym(Nat, Nat.sub(sc(k, 1n+p), 0n), sc(k, 1n+p), N.sub_zero(sc(k, 1n+p)))
+    case 1n+p 1n+q:
+      %Equal.sym(Nat, sc(k, 1n+p), Nat.add(sc(k, 1n), sc(k, p)), A.sc_succ(k, p)) : {sc(k, Nat.sub(p, q)) == Nat.sub(_, sc(k, 1n+q)) : Nat}
+      %Equal.sym(Nat, sc(k, 1n+q), Nat.add(sc(k, 1n), sc(k, q)), A.sc_succ(k, q)) : {sc(k, Nat.sub(p, q)) == Nat.sub(Nat.add(sc(k, 1n), sc(k, p)), _) : Nat}
+      %Equal.sym(Nat, Nat.sub(Nat.add(sc(k, 1n), sc(k, p)), Nat.add(sc(k, 1n), sc(k, q))), Nat.sub(sc(k, p), sc(k, q)), sub_cancel_l(sc(k, 1n), sc(k, p), sc(k, q))) : {sc(k, Nat.sub(p, q)) == _ : Nat}
+      sc_sub(k, p, q)
+
+# a - b <= a
+def sub_le2(+a: Nat, +b: Nat) -> {Nat.is_le(Nat.sub(a, b), a) == True{} : Bool}:
+  match a b:
+    case 0n _:
+      %Equal.sym(Nat, Nat.sub(0n, b), 0n, zsub(b)) : {Nat.is_le(_, 0n) == True{} : Bool}
+      {==}
+    case 1n+p 0n:
+      N.le_refl(1n+p)
+    case 1n+p 1n+q:
+      N.le_trans(Nat.sub(p, q), p, 1n+p, sub_le2(p, q), N.le_succ(p))
