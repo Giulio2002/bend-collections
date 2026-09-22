@@ -6,6 +6,8 @@ import ../spec/hash_table.bend as S
 import ../math/u32div.bend as UD
 import ../../src/math/hash.bend as HS
 import ./modn.bend as M
+import ./keys.bend as K
+import ../../src/containers/hash_table.bend as H
 
 # The bucket table as a list of n buckets, and the probe loop over it.
 #   BE{}          an empty bucket
@@ -74,16 +76,6 @@ def pf(+key: String, +bs: List<&2, Bk>, +n: Nat, fuel: Nat, s: MS, +i: Nat) -> R
 
 # ---- invariants ----
 
-def implies(a: Bool, b: Bool) -> Bool:
-  Bool.or(Bool.not(a), b)
-
-def imp_elim(+a: Bool, +b: Bool, +h: {implies(a, b) == True{} : Bool}, +ha: {a == True{} : Bool}) -> {b == True{} : Bool}:
-  match a:
-    case True{}:
-      h
-    case False{}:
-      Empty.absurd({b == True{} : Bool}, L.false_true(ha))
-
 # the home bucket of a full bucket's word
 def hb(+mask: U32, b: Bk) -> Nat:
   match b:
@@ -120,6 +112,26 @@ type Pred is Data:
   PVis{bs: List<&2, Bk>, n: Nat, h: Nat, key: String}
   PHome{bs: List<&2, Bk>, mask: U32, key: String, h: Nat}
   PNo{bs: List<&2, Bk>, key: String}
+  PWell{bs: List<&2, Bk>, sd: Nat}
+
+def implies(a: Bool, b: Bool) -> Bool:
+  Bool.or(Bool.not(a), b)
+
+def imp_elim(+a: Bool, +b: Bool, +h: {implies(a, b) == True{} : Bool}, +ha: {a == True{} : Bool}) -> {b == True{} : Bool}:
+  match a:
+    case True{}:
+      h
+    case False{}:
+      Empty.absurd({b == True{} : Bool}, L.false_true(ha))
+
+# a full bucket's link is a slot of the arena (2^sd slots) and a long
+# bucket's word is its key's word
+def wb(+sd: Nat, b: Bk) -> Bool:
+  match b:
+    case BE{}:
+      True{}
+    case BF{+w, +l, +k}:
+      Bool.and(Nat.is_lt(UD.v(H.slot(l)), SC.pow2(sd)), implies(Bool.not(H.is_short(w)), U32.is_eq(w, K.kword(k))))
 
 def eval(p: Pred, +i: Nat) -> Bool:
   match p:
@@ -131,6 +143,8 @@ def eval(p: Pred, +i: Nat) -> Bool:
       implies(hold(key, at(bs, i)), Nat.is_eq(hb(mask, at(bs, i)), h))
     case PNo{+bs, +key}:
       Bool.not(hold(key, at(bs, i)))
+    case PWell{+bs, +sd}:
+      wb(sd, at(bs, i))
 
 # p(0) && ... && p(n - 1)
 def all_lt(+p: Pred, +n: Nat) -> Bool:

@@ -77,13 +77,14 @@ def dsh(+key: String, +hk: {K.shortk(key) == False{} : Bool}, +x: U32, +l: U32, 
       +e = B.imp_elim(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(k)), hinv, L.subst(Bool, b => {Bool.not(b) == True{} : Bool}, False{}, H.is_short(x), Equal.sym(Bool, H.is_short(x), False{}, hsh), {==}))
       dl_long(key, hk, x, l, k, A.eq_of(x, K.kword(k), e), U32.is_eq(x, STR.lword(key)), {==})
 
-def dec_e(+key: String, +hk: {K.shortk(key) == False{} : Bool}, +x: U32, +l: U32, +ks: List<&2, String>, +hinv: {B.implies(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(TB.nths(ks, UD.v(H.slot(l)))))) == True{} : Bool}, +e: Bool) -> {SP.ld_e(key, STR.lword(key), x, l, TB.nths(ks, UD.v(H.slot(l))), e) == B.mstep(key, TB.dec_c(x, l, ks, e)) : B.MS}:
+def dec_e(+key: String, +hk: {K.shortk(key) == False{} : Bool}, +x: U32, +l: U32, +ks: List<&2, String>, +hinv: {B.implies(Bool.not(U32.is_eq(x, 0)), B.implies(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(TB.nths(ks, UD.v(H.slot(l))))))) == True{} : Bool}, +e: Bool, +he: {U32.is_eq(x, 0) == e : Bool}) -> {SP.ld_e(key, STR.lword(key), x, l, TB.nths(ks, UD.v(H.slot(l))), e) == B.mstep(key, TB.dec_c(x, l, ks, e)) : B.MS}:
   match e:
     case True{}:
       {==}
     case False{}:
-      dsh(key, hk, x, l, TB.nths(ks, UD.v(H.slot(l))), hinv, H.is_short(x), {==})
+      +h2 = B.imp_elim(Bool.not(U32.is_eq(x, 0)), B.implies(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(TB.nths(ks, UD.v(H.slot(l)))))), hinv, L.subst(Bool, b => {Bool.not(b) == True{} : Bool}, False{}, U32.is_eq(x, 0), Equal.sym(Bool, U32.is_eq(x, 0), False{}, he), {==}))
+      dsh(key, hk, x, l, TB.nths(ks, UD.v(H.slot(l))), h2, H.is_short(x), {==})
 
 # THEOREM: a long-key step decides as the model's step on the decoded bucket.
-def decide(+key: String, +hk: {K.shortk(key) == False{} : Bool}, +x: U32, +l: U32, +ks: List<&2, String>, +hinv: {B.implies(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(TB.nths(ks, UD.v(H.slot(l)))))) == True{} : Bool}) -> {SP.ldec(key, STR.lword(key), x, l, TB.nths(ks, UD.v(H.slot(l)))) == B.mstep(key, TB.dec_c(x, l, ks, U32.is_eq(x, 0))) : B.MS}:
-  dec_e(key, hk, x, l, ks, hinv, U32.is_eq(x, 0))
+def decide(+key: String, +hk: {K.shortk(key) == False{} : Bool}, +x: U32, +l: U32, +ks: List<&2, String>, +hinv: {B.implies(Bool.not(U32.is_eq(x, 0)), B.implies(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(TB.nths(ks, UD.v(H.slot(l))))))) == True{} : Bool}) -> {SP.ldec(key, STR.lword(key), x, l, TB.nths(ks, UD.v(H.slot(l)))) == B.mstep(key, TB.dec_c(x, l, ks, U32.is_eq(x, 0))) : B.MS}:
+  dec_e(key, hk, x, l, ks, hinv, U32.is_eq(x, 0), {==})
