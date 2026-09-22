@@ -562,3 +562,15 @@ def is_eq_sym_false(+a: Nat, +b: Nat, +h: {Nat.is_eq(a, b) == False{} : Bool}) -
       {==}
     case 1n+p 1n+q:
       is_eq_sym_false(p, q, h)
+
+# a < b  ==>  a + c < b + c
+def lt_add_r2(+a: Nat, +b: Nat, +c: Nat, +h: {Nat.is_lt(a, b) == True{} : Bool}) -> {Nat.is_lt(Nat.add(a, c), Nat.add(b, c)) == True{} : Bool}:
+  match a b:
+    case 0n 0n:
+      Empty.absurd({Nat.is_lt(Nat.add(0n, c), Nat.add(0n, c)) == True{} : Bool}, lt_zero_absurd(0n, h))
+    case 0n 1n+q:
+      le_lt_succ(c, Nat.add(q, c), le_trans(c, Nat.add(c, q), Nat.add(q, c), le_add_right(c, q), eq_le(Nat.add(c, q), Nat.add(q, c), add_comm(c, q))))
+    case 1n+p 0n:
+      Empty.absurd({Nat.is_lt(Nat.add(1n+p, c), Nat.add(0n, c)) == True{} : Bool}, lt_zero_absurd(1n+p, h))
+    case 1n+p 1n+q:
+      lt_add_r2(p, q, c, h)

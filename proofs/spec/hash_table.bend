@@ -82,3 +82,14 @@ def nodup(ks: List<&2, String>) -> Bool:
       True{}
     case Con{+j, +t}:
       Bool.and(Bool.not(mem(j, t)), nodup(t))
+
+def get_m(~V: Data, dflt: V, m: Maybe<&2, V>) -> V:
+  match m:
+    case None{}:
+      dflt
+    case Some{v}:
+      v
+
+# the value of key, or dflt
+def get(~V: Data, dflt: V, m: List<&2, Entry<V>>, +key: String) -> V:
+  get_m(~V, dflt, lookup(~V, m, key))
