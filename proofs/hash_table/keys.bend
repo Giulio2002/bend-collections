@@ -110,3 +110,10 @@ def not_true_eq(+b: Bool, +h: {Bool.not(b) == True{} : Bool}) -> {b == False{} :
       Empty.absurd({True{} == False{} : Bool}, L.false_true(h))
     case False{}:
       {==}
+
+def not_true_eq2(+b: Bool, +h: {Bool.not(b) == False{} : Bool}) -> {b == True{} : Bool}:
+  match b:
+    case True{}:
+      {==}
+    case False{}:
+      Empty.absurd({False{} == True{} : Bool}, L.true_false(h))
