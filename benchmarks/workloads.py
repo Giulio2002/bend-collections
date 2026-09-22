@@ -9,8 +9,8 @@ long enough to time reliably, so the `count`/`reps` here are starting points
 chosen so that a round is neither trivial nor minutes long.
 
 Every scalable operation gets a small, a medium and a large nonempty workload;
-`edge-*` rows are the empty, out-of-range and limit cases (an empty structure
-still has to reject the operation, and that rejection is what is measured).
+Empty-structure timing rows are excluded by user instruction (2026-09-22).
+Empty-state correctness tests and proofs remain required.
 """
 
 TABLE = []
@@ -38,7 +38,6 @@ SIZE_CHANGING = {
 SIZE_CHANGING_FULL = {
     'dynamic_array.clear',      # empties the array
     'union_find.union',         # merges classes: the partition collapses
-    'prefix_trie.remove',
     'balanced_search_tree.remove',
     'doubly_linked_list.remove',
 }
@@ -193,6 +192,14 @@ add('queue', 'new', 4, 'large', 262144, 50000)
 empties('queue', [('new', 4), ('length', 3), ('enqueue', 0), ('dequeue', 1),
                   ('peek', 2), ('to_list', 5)])
 
+# -------------------------------------------------------------------- stack
+three('stack', 'push', 0, DQ, FAST)
+three('stack', 'peek', 2, DQ, FAST)
+three('stack', 'length', 3, DQ, FAST)
+three('stack', 'to_list', 5, DQ, SCAN)
+pair('stack', 'pop', 6, DQ, FAST)
+three('stack', 'new', 4, DQ, FAST)
+
 # ------------------------------------------------------- doubly_linked_list
 DL = (64, 2048, 32768)
 DLF = (100000, 50000, 20000)
@@ -286,20 +293,6 @@ add('union_find', 'new', 5, 'large', 65536, 50000)
 empties('union_find', [('new', 5), ('find', 0), ('union', 1), ('connected', 2),
                        ('component_size', 3), ('component_count', 4)], 100000)
 
-# -------------------------------------------------------------- fenwick_tree
-FW = (64, 4096, 262144)
-FWF = (100000, 50000, 20000)
-three('fenwick_tree', 'add', 0, FW, FWF)
-three('fenwick_tree', 'prefix_sum', 1, FW, FWF)
-three('fenwick_tree', 'range_sum', 2, FW, FWF)
-three('fenwick_tree', 'length', 3, FW, FAST)
-three('fenwick_tree', 'from_list', 5, FW, (50000, 50000, 20000))
-add('fenwick_tree', 'new', 4, 'small', 64, 200000)
-add('fenwick_tree', 'new', 4, 'medium', 4096, 200000)
-add('fenwick_tree', 'new', 4, 'large', 262144, 50000)
-empties('fenwick_tree', [('new', 4), ('from_list', 5), ('length', 3), ('add', 0),
-                         ('prefix_sum', 1), ('range_sum', 2)], 100000)
-
 # -------------------------------------------------------------- segment_tree
 SG = (64, 4096, 262144)
 SGF = (50000, 20000, 10000)
@@ -315,41 +308,29 @@ add('segment_tree', 'new', 4, 'large', 262144, 50000)
 empties('segment_tree', [('new', 4), ('from_list', 5), ('length', 3), ('get', 1),
                          ('set', 6), ('range_query', 2), ('range_add', 0)], 100000)
 
-# --------------------------------------------------------------- prefix_trie
-PT = (64, 2048, 32768)
-PTF = (50000, 20000, 10000)
-three('prefix_trie', 'insert', 0, PT, PTF)
-three('prefix_trie', 'lookup', 1, PT, PTF)
-pair('prefix_trie', 'remove', 7, PT, PTF)
-three('prefix_trie', 'contains', 3, PT, PTF)
-three('prefix_trie', 'prefix_entries', 4, PT, (5000, 500, 40))
-three('prefix_trie', 'longest_prefix', 5, PT, PTF)
-add('prefix_trie', 'new', 6, 'small', 64, 100000)
-add('prefix_trie', 'new', 6, 'medium', 2048, 100000)
-add('prefix_trie', 'new', 6, 'large', 32768, 50000)
-empties('prefix_trie', [('new', 6), ('insert', 0), ('lookup', 1), ('remove', 2),
-                        ('contains', 3), ('prefix_entries', 4),
-                        ('longest_prefix', 5)], 100000)
+# Include the existing LRU driver workloads in full sweeps. These were
+# previously measured only by the supplemental lru_measure tool.
+from experiments.lru_workloads import rows as _lru_rows
+_lru_rows(add, three, pair, empties, SIZE_CHANGING_FULL)
 
-# --------------------------------------------------------------------- graph
-GR = (32, 512, 4096)
-GRF = (50000, 20000, 10000)
-three('graph', 'add_vertex', 0, GR, GRF)
-three('graph', 'remove_vertex', 1, GR, (2000, 500, 200))
-three('graph', 'add_edge', 2, GR, GRF)
-three('graph', 'remove_edge', 3, GR, GRF)
-three('graph', 'has_vertex', 4, GR, GRF)
-three('graph', 'has_edge', 5, GR, GRF)
-three('graph', 'neighbors', 6, GR, GRF)
-three('graph', 'vertices', 7, GR, (5000, 500, 50))
-three('graph', 'edges', 8, GR, (5000, 500, 50))
-add('graph', 'new', 9, 'small', 32, 100000)
-add('graph', 'new', 9, 'medium', 512, 100000)
-add('graph', 'new', 9, 'large', 4096, 50000)
-empties('graph', [('new', 9), ('add_vertex', 0), ('remove_vertex', 1),
-                  ('add_edge', 2), ('remove_edge', 3), ('has_vertex', 4),
-                  ('has_edge', 5), ('neighbors', 6), ('vertices', 7),
-                  ('edges', 8)], 100000)
+# Queue facades exercise their public API using identical underlying workloads.
+for _name, _base, _rename in [
+    ('lifo_queue', 'stack', {'push':'put','pop':'get','length':'qsize'}),
+    ('simple_queue', 'queue', {'enqueue':'put','dequeue':'get','length':'qsize'}),
+    ('priority_queue', 'binary_heap', {'push':'put','pop':'get','length':'qsize'}),
+]:
+    for _original in list(TABLE):
+        if _original['structure'] != _base: continue
+        _row = dict(_original)
+        _op = _row['operation'].split('.',1)[1]
+        _row['structure'] = _name
+        _row['operation'] = _name+'.'+_rename.get(_op,_op)
+        TABLE.append(_row)
 
-# User removed the standalone DLL from scope on 2026-09-22.
-TABLE = [row for row in TABLE if row["structure"] != "doubly_linked_list"]
+# Explicit user scope change, 2026-09-22: no empty-structure timing gates.
+# Assign seeds before filtering so removing empties does not change RNG inputs
+# of the retained rows. Do not remove empty-state correctness tests.
+for _index, _row in enumerate(TABLE):
+    _row['seed'] = 1000 + _index
+EXCLUDED_EMPTY_ROWS = [dict(row) for row in TABLE if row['size'] == 0]
+TABLE = [row for row in TABLE if row['size'] != 0]

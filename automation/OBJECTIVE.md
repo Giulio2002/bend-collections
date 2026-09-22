@@ -1,3 +1,5 @@
+> User scope update (2026-09-22): standalone DLL retired; queue/deque use the two-list design. Empty timing rows excluded for all structures; empty correctness/proof obligations remain. Full sweep includes LRU and retains the 2.5x threshold. See docs/NONEMPTY_BENCHMARK_SCOPE.md.
+
 # bend-dsa: verified missing data structures for Bend
 
 Deliver all twelve missing data structures in inventory/structures.json in pure Bend, with usable public APIs, independent mathematical specifications, universal functional-correctness proofs, invariant preservation, and arbitrary finite operation-trace composition. Reuse existing native structures and the completed LRU; do not build another Map, Set or Stack. Read inventory/base-audit.md and the installed `bend guide` before implementation. This project is setup only until automation/run.sh is explicitly launched.

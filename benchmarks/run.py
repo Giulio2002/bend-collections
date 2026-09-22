@@ -387,7 +387,7 @@ def main():
     ap.add_argument('--only', default=None)
     args = ap.parse_args()
 
-    rows = [dict(r, seed=1000 + i) for i, r in enumerate(TABLE)]
+    rows = [dict(r, seed=r.get("seed", 1000 + i)) for i, r in enumerate(TABLE)]
     if args.only:
         rows = [r for r in rows if r['structure'] == args.only]
     structures = sorted({r['structure'] for r in rows})

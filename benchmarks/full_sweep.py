@@ -1,0 +1,48 @@
+"""Full current-scope sweep, retaining build/runtime/measurement failures.
+Uses the canonical calibration, six samples, C flags and checksum checks.
+No concurrent timing workloads. Progress/evidence are saved after each row.
+"""
+import argparse, json, statistics, subprocess, time
+from pathlib import Path
+import run as bench
+from workloads import TABLE, EXCLUDED_EMPTY_ROWS
+
+def main():
+    ap=argparse.ArgumentParser();ap.add_argument('--report',required=True);args=ap.parse_args()
+    out=Path(args.report).resolve();out.parent.mkdir(parents=True,exist_ok=True)
+    started=time.time();initial_hashes=bench.source_hashes()
+    report={'backend':'native-c','reference':bench.CONTRACT['reference'],
+        'environment':bench.environment(),'scope':'All nonempty workloads including LRU; standalone DLL retired',
+        'max_ratio':bench.CONTRACT['max_ratio'],'expected_rows':len(TABLE),
+        'excluded_empty_rows':EXCLUDED_EMPTY_ROWS,'source_sha256':initial_hashes,
+        'benchmarks':[],'build_failures':{},'status':'running'}
+    logs=[];built={}
+    def save():
+        report['seconds']=round(time.time()-started,1)
+        temp=out.with_suffix('.tmp');temp.write_text(json.dumps(report,indent=1,sort_keys=True)+'\n');temp.replace(out)
+        (out.parent/'samples.log').write_text('\n'.join(logs)+'\n')
+    save()
+    for name in sorted({r['structure'] for r in TABLE}):
+        try: built.update(bench.build_all([name]))
+        except (SystemExit,Exception) as exc:
+            report['build_failures'][name]=str(exc);print('BUILD FAILED',name,str(exc),flush=True)
+        save()
+    for index,row in enumerate(TABLE):
+        base={'operation':row['operation'],'workload':row['workload'],'size':row['size'],'seed':row['seed']}
+        if row['structure'] not in built:
+            result={**base,'measurement':'build_failed','verified':False,'reason':report['build_failures'][row['structure']]}
+        else:
+            try:
+                result=bench.measure(*built[row['structure']],row,logs)
+                result['ratio']=statistics.median(result['bend_ns'])/statistics.median(result['reference_ns'])
+                result['passes_speed']=result['verified'] and result['ratio']<=bench.CONTRACT['max_ratio']
+            except (SystemExit,Exception) as exc:
+                result={**base,'measurement':'failed','verified':False,'reason':str(exc)}
+        report['benchmarks'].append(result)
+        print(f"[{index+1}/{len(TABLE)}] {row['operation']} {row['workload']} " + (f"{result['ratio']:.3f}x {'PASS' if result['passes_speed'] else 'SLOW'}" if 'ratio' in result else f"FAILED {result.get('reason')}"),flush=True)
+        save()
+    report['status']='finished';report['source_unchanged']=all((bench.ROOT/p).is_file() and bench.sha(bench.ROOT/p)==h for p,h in initial_hashes.items())
+    report['artifacts']={str(p.relative_to(bench.ROOT)):bench.sha(p) for pair in built.values() for p in pair}
+    save()
+    print('Finished:',out,flush=True)
+if __name__=='__main__':main()

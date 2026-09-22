@@ -7,7 +7,7 @@ root=Path(__file__).resolve().parents[1]
 output=root/'benchmarks/evidence/operator-bend-dll-20260922'
 output.mkdir(parents=True,exist_ok=True)
 built=bench.build_all(['deque','queue'])
-rows=[dict(r,seed=1000+i) for i,r in enumerate(TABLE) if r['structure'] in built]
+rows=[dict(r,seed=r.get("seed",1000+i)) for i,r in enumerate(TABLE) if r['structure'] in built]
 result={'note':'C indexed DLL versus Bend deque wrapping the shared indexed DLL. Original workloads, calibration, six samples, thresholds and checksums retained. Formal migration status is tracked separately.','environment':bench.environment(),'source_sha256':bench.source_hashes(),'rows':[]}
 for row in rows:
  log=[]

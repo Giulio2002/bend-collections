@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Development helper: time one (structure, op, size) row outside the gate.
 
-  python3 tools/dev/quick_bench.py prefix_trie 3 0 200000 [reps] [--src FILE]
+  python3 tools/dev/quick_bench.py simple_queue 3 64 200000 [reps] [--src FILE]
 
 Builds benchmarks/bend/<structure>.bend (or --src) with the pinned compiler and
 benchmarks/native/<structure>.c with the gate's flags, runs both with the same

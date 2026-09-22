@@ -39,7 +39,7 @@ def main():
     run = load('bench_run', ROOT / 'benchmarks' / 'run.py')
     exp = load('lru_rows', ROOT / 'benchmarks' / 'experiments' / 'lru_workloads.py')
     base = len(run.TABLE)
-    rows = [dict(r, seed=1000 + base + i) for i, r in enumerate(exp.table())]
+    rows = [dict(r, seed=r.get("seed", 1000 + base + i)) for i, r in enumerate(exp.table())]
     if args.filter:
         keep = set(args.filter.split(','))
         rows = [r for r in rows if r['operation'].split('.', 1)[1] in keep]

@@ -105,17 +105,6 @@
       ]
     },
     {
-      "id": "fenwick_tree",
-      "operations": [
-        "new",
-        "from_list",
-        "length",
-        "add",
-        "prefix_sum",
-        "range_sum"
-      ]
-    },
-    {
       "id": "segment_tree",
       "operations": [
         "new",
@@ -128,45 +117,76 @@
       ]
     },
     {
-      "id": "prefix_trie",
+      "id": "stack",
       "operations": [
         "new",
-        "insert",
-        "lookup",
-        "remove",
-        "contains",
-        "prefix_entries",
-        "longest_prefix"
+        "length",
+        "push",
+        "pop",
+        "peek",
+        "to_list"
       ]
     },
     {
-      "id": "graph",
+      "id": "doubly_linked_list",
       "operations": [
         "new",
-        "add_vertex",
-        "remove_vertex",
-        "add_edge",
-        "remove_edge",
-        "has_vertex",
-        "has_edge",
-        "neighbors",
-        "vertices",
-        "edges"
+        "length",
+        "push_front",
+        "push_back",
+        "insert_before",
+        "insert_after",
+        "remove",
+        "get",
+        "set",
+        "next",
+        "prev",
+        "to_list"
+      ]
+    },
+    {
+      "id": "lifo_queue",
+      "implementation": "stack",
+      "operations": [
+        "new",
+        "qsize",
+        "put",
+        "get",
+        "peek",
+        "to_list"
+      ]
+    },
+    {
+      "id": "simple_queue",
+      "implementation": "queue",
+      "operations": [
+        "new",
+        "qsize",
+        "put",
+        "get",
+        "peek",
+        "to_list"
+      ]
+    },
+    {
+      "id": "priority_queue",
+      "implementation": "binary_heap",
+      "operations": [
+        "new",
+        "qsize",
+        "put",
+        "peek",
+        "get",
+        "from_list",
+        "to_sorted_list"
       ]
     }
   ],
   "excluded_existing": {
     "hash_map": "Base Map (crit-bit, not hash buckets); native key/value functionality satisfies scope. No hashing implementation.",
-    "hash_set": "Base Set implemented over Map<Unit>.",
-    "stack": "Base List Nil/Con pattern matching supplies empty/push/pop/peek; do not reimplement."
+    "hash_set": "Base Set implemented over Map<Unit>."
   },
   "reuse": {
     "lru": "reference/lru: completed callback-free native-Map LRU, commit 38d77f4053e33dfa4320b805bdf36e55d15ddc79. Recheck compatibility; do not restart its proof development."
-  },
-  "removed_structures": [
-    {
-      "id": "doubly_linked_list",
-      "reason": "User replaced DLL-based queue/deque with the supplied two-list design, 2026-09-22."
-    }
-  ]
+  }
 }

@@ -1,35 +1,48 @@
-# bend-dsa
+# bend-collections
 
-> **Two-list migration (2026-09-22):** Queue and deque now use the user's
-> two-list design, with matching C implementations. The standalone DLL is
-> retired. Runtime/oracle checks and new component proofs pass; **full trace
-> proofs are still being migrated and `PROOF.bend` does not pass**.
-> See [the migration report](docs/TWO_LIST_MIGRATION.md) for scope, tests,
-> limitations and reproducible commands.
+Stock Bend 2.0.16 collections with optimized C references, differential tests,
+and formal proofs in progress. **The full `PROOF.bend` gate currently fails;
+passing component gates do not establish whole-library correctness.**
 
-A pure [Bend](https://github.com/HigherOrderCO/Bend) data-structure library with
-machine-checked functional correctness proofs against independent mathematical
-specifications.
+Current collection inventory: dynamic array, deque, FIFO queue, stack,
+arena-backed doubly linked list, binary min-heap, red-black search tree,
+bitset, union-find, segment tree, LRU, LifoQueue, SimpleQueue, PriorityQueue.
+Fenwick tree, graph and Trie have been removed. No Counter is included.
 
-Toolchain: Bend 2.0.16, pinned by sha256 in `inventory/toolchain.json`.
+The three queue facades reuse the existing implementations:
 
-## What is here
+| Module | Ordering | Storage | Public operations |
+|---|---|---|---|
+| `src/lifo_queue.bend` | Last in, first out | Stack | `new`, `put`, `get`, `peek`, `qsize`, `to_list` |
+| `src/simple_queue.bend` | First in, first out | Two-list queue | `new`, `put`, `get`, `peek`, `qsize`, `to_list` |
+| `src/priority_queue.bend` | Minimum comparator value first | Packed-array binary heap | `new`, `put`, `get`, `peek`, `qsize`, `from_list`, `to_sorted_list` |
 
-Eleven structures (`inventory/structures.json`), each with a public API
-(`src/<id>.bend`), an independent model (`spec/<id>.bend`) that never mentions
-the implementation, and proofs (`proofs/<id>.bend`):
+These APIs are single-threaded and nonblocking, with no capacity limit or
+thread/task synchronization. Empty `get`/`peek` returns the underlying typed
+error. Elements are generic `Data`; priority ordering uses a static comparator.
+Equal priorities have no stable insertion-order guarantee. The returned state
+must be threaded into subsequent calls. The underlying state types are reused.
+C benchmarks include the same reference implementations, without duplicated or
+modified algorithms. Queue facades are measured separately from their base APIs.
 
-`dynamic_array`, `deque`, `queue`, `binary_heap`,
-`balanced_search_tree` (a red-black binary search tree), `bitset` (packed
-words), `union_find`, `fenwick_tree`, `segment_tree`, `prefix_trie`, `graph`.
+Build once, then obtain a quick rundown with a 60-second wall-clock budget:
 
-Queue and deque use ordinary singly linked lists where their algorithms need
-links. Their stored order is front followed by reversed back. The other
-structures retain their current representations; the standalone doubly linked
-list is no longer in scope. Historical representation tables are superseded
-for queue/deque by `docs/TWO_LIST_MIGRATION.md`.
-`docs/ARCHITECTURE.md` has the representation table and
-`docs/C_EQUIVALENCE.md` the comparison with each C reference.
+```sh
+python3 benchmarks/bench.py --build
+python3 benchmarks/bench.py --quick
+```
+
+Quick mode samples one nonempty size per operation and reports estimates,
+low-resolution rows and timeouts explicitly. It is not the 2.5x acceptance gate.
+Build time is separate. Full calibrated measurements remain in
+`benchmarks/full_sweep.py`.
+
+`QUEUE_ADAPTER_PROOF.bend` checks U32 API delegation for put/get/qsize over
+arbitrary underlying states. `STACK_COMPONENT_PROOF.bend` checks stack step
+refinement for U32/String. Two-list component proofs and randomized tests are
+also retained. Full queue/deque trace and generational arena-DLL proofs remain
+unfinished. No new axioms or unsafe declarations were introduced; checker
+unsafe counts include existing dependencies.
 
 Plus the retained LRU cache under `reference/lru` (an immutable, hash-pinned
 snapshot) reused through `src/lru.bend`; nothing in it is re-implemented.

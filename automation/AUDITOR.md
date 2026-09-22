@@ -1,3 +1,5 @@
+> User scope update (2026-09-22): standalone DLL retired; queue/deque use the two-list design. Empty timing rows excluded for all structures; empty correctness/proof obligations remain. Full sweep includes LRU and retains the 2.5x threshold. See docs/NONEMPTY_BENCHMARK_SCOPE.md.
+
 # Independent bend-dsa completion audit
 
 Read the frozen objective, inventory and installed-Base audit. Inspect every actual public API, independent spec, theorem statement, dependency, instance and runtime test. Audit all twelve structures and the reused LRU compatibility; do not approve partial work. No empty/finite-only/vacuous/circular specs, extra hidden bounds, assumed high-level Map/Array correctness, unsafe escapes, or missing error behavior. Prove arbitrary finite traces from constructors. Static generic templates require checked real instantiations.

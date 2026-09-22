@@ -193,9 +193,8 @@ def table():
     spec = importlib.util.spec_from_file_location('_wl', here)
     wl = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(wl)
-    start = len(wl.TABLE)
-    rows(wl.add, wl.three, wl.pair, wl.empties, wl.SIZE_CHANGING_FULL)
-    return wl.TABLE[start:]
+    return [dict(row) for row in wl.TABLE if row['structure'] == 'lru']
+
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 {
-  "at": "2026-09-22T00:40:25.351585+00:00",
+  "at": "2026-09-22T01:24:56.144549+00:00",
   "source": "/Users/monkeair/work/dsa-generational-list",
   "status": "work_in_progress",
-  "description": "User-requested two-list queue/deque with matching C reference; standalone DLL retired and archived. 94 oracle histories/39858 operations and 10 mutants pass; 60 benchmark checksums match, 58 rows meet 2.5x. Component proofs check for U32/String; full trace proofs remain incomplete and PROOF.bend fails. DSA worker remains stopped."
+  "description": "Removed Fenwick, graph and Trie; added stack, arena DLL and three queue facades. No Counter. C references and quick benchmarks included. Queue facade differential tests pass 24000 operations; U32 delegation proof gate passes. Quick sweep: 16.794 seconds, 117 estimates, 3 low-resolution rows, 1 timeout; provisional, not acceptance. Full PROOF.bend remains incomplete. DSA worker stopped."
 }
