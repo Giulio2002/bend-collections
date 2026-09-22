@@ -1,0 +1,3 @@
+red_root rejected by differential tests; component proof rejects: True
+replace_stored_key rejected by differential tests; component proof rejects: True
+skip_after_cursor_remove rejected by differential tests; component proof rejects: True

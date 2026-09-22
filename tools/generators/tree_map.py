@@ -3,7 +3,7 @@
 
 The algorithms below use explicit red-black links and DynArray values.
 Generated helpers only unpack returned pairs: they do not introduce a runtime
-interpreter, FFI, or hidden storage. Regenerate src/tree_map.bend with this file.
+interpreter, FFI, or hidden storage. Regenerate src/balanced_search_tree.bend with this file.
 """
 from pathlib import Path
 import re
@@ -320,11 +320,20 @@ fun('extreme',f'm: {T}, +id: Nat, +forward: Bool',T+' & Nat',f'''  TM{{+n, root,
 raw('''type Ascend is Data:
   Ascend{child: Nat, parent: Nat, done: Bool}
 ''')
+raw('''# A direct branch preserves scalar traversal state in native code. Passing
+# these records through pick(-T: Type) erases their layout and boxes both arms.
+def ascend_choice(x: Nat, p: Nat, q: Nat, found: Bool) -> Ascend:
+  match found:
+    case True{}:
+      Ascend{0n, p, True{}}
+    case False{}:
+      Ascend{x, q, False{}}
+''')
 fun('ascend_step_node',f'x: Nat, p: Nat, forward: Bool, r: {T} & Node<K>',T+' & Ascend',f'''  match r:
     case Tuple{{m, Free{{next}}}}:
       (m, Ascend{{0n, 0n, True{{}}}})
     case Tuple{{m, N{{c, l, r, q, key}}}}:
-      (m, pick(Ascend, Nat.is_eq(x, pick(Nat, forward, l, r)), Ascend{{0n, p, True{{}}}}, Ascend{{p, q, False{{}}}}))''')
+      (m, ascend_choice(p, p, q, Nat.is_eq(x, pick(Nat, forward, l, r))))''')
 fun('ascend_loop',f'fuel: Nat, +forward: Bool, st: {T} & Ascend',T+' & Nat',f'''  match fuel st:
     case 0n Tuple{{m, state}}:
       (m, 0n)
@@ -332,13 +341,52 @@ fun('ascend_loop',f'fuel: Nat, +forward: Bool, st: {T} & Ascend',T+' & Nat',f'''
       (m, p)
     case 1n+f Tuple{{m, Ascend{{+x, +p, False{{}}}}}}:
       ascend_loop({A}, f, forward, ascend_step_node({A}, x, p, forward, read({A}, m, p)))''')
-fun('neighbor_node',f'id: Nat, +forward: Bool, r: {T} & Node<K>',T+' & Nat',f'''  (TM{{+n, root, lo, hi, free, nodes, values}}, +node) = r
-  neighbor_branch({A}, TM{{n, root, lo, hi, free, nodes, values}}, n, id, parent(K, node), forward, child(K, node, forward))''')
-fun('neighbor_branch',f'm: {T}, n: Nat, id: Nat, p: Nat, forward: Bool, c: Nat',T+' & Nat',f'''  match c:
+# Read-only successor traversal carries only the metadata buffer. The owning
+# map header and payload buffer stay outside the inner loops and are restored.
+NA='Array<Maybe<&2, Node<K>>>'
+fun('node_slot_done',f'r: {NA} & Maybe<&2, Node<K>>',NA+' & Node<K>', '''  match r:
+    case Tuple{nodes, None{}}:
+      (nodes, Free{0n})
+    case Tuple{nodes, Some{node}}:
+      (nodes, node)''')
+fun('node_slot_checked',f'nodes: {NA}, i: Nat, valid: Bool',NA+' & Node<K>',f'''  match valid:
+    case False{{}}:
+      (nodes, Free{{0n}})
+    case True{{}}:
+      node_slot_done({A}, Array.get(Maybe<&2, Node<K>>, nodes, U32.from_nat(i)))''')
+fun('node_slot',f'nodes: {NA}, used: Nat, id: Nat',NA+' & Node<K>',f'''  match id:
     case 0n:
-      ascend_loop({A}, 1n+n, forward, (m, Ascend{{id, p, False{{}}}}))
-    case 1n+j:
-      extreme({A}, m, 1n+j, Bool.not(forward))''')
+      (nodes, Free{{0n}})
+    case 1n+ +i:
+      node_slot_checked({A}, nodes, i, Nat.is_lt(i, used))''')
+fun('ascend_slots_step',f'x: Nat, p: Nat, forward: Bool, r: {NA} & Node<K>',NA+' & Ascend',f'''  match r:
+    case Tuple{{nodes, Free{{next}}}}:
+      (nodes, Ascend{{0n, 0n, True{{}}}})
+    case Tuple{{nodes, N{{c, l, r, q, key}}}}:
+      (nodes, ascend_choice(p, p, q, Nat.is_eq(x, pick(Nat, forward, l, r))))''')
+fun('ascend_slots_loop',f'fuel: Nat, used: Nat, forward: Bool, st: {NA} & Ascend',NA+' & Nat',f'''  match fuel st:
+    case 0n Tuple{{nodes, state}}:
+      (nodes, 0n)
+    case 1n+f Tuple{{nodes, Ascend{{x, p, True{{}}}}}}:
+      (nodes, p)
+    case 1n+f Tuple{{nodes, Ascend{{+x, +p, False{{}}}}}}:
+      ascend_slots_loop({A}, f, used, forward, ascend_slots_step({A}, x, p, forward, node_slot({A}, nodes, used, p)))''')
+fun('extreme_slots_probe',f'forward: Bool, r: {NA} & Node<K>',NA+' & Nat','  (nodes, node) = r\n  (nodes, child(K, node, forward))')
+fun('extreme_slots_loop',f'fuel: Nat, used: Nat, forward: Bool, id: Nat, st: {NA} & Nat',NA+' & Nat',f'''  match fuel st:
+    case 0n Tuple{{nodes, next}}:
+      (nodes, id)
+    case 1n+f Tuple{{nodes, 0n}}:
+      (nodes, id)
+    case 1n+f Tuple{{nodes, 1n+ +j}}:
+      extreme_slots_loop({A}, f, used, forward, 1n+j, extreme_slots_probe({A}, forward, node_slot({A}, nodes, used, 1n+j)))''')
+fun('neighbor_slots',f'nodes: {NA}, n: Nat, used: Nat, id: Nat, p: Nat, forward: Bool, c: Nat',NA+' & Nat',f'''  match c:
+    case 0n:
+      ascend_slots_loop({A}, 1n+n, used, forward, (nodes, Ascend{{id, p, False{{}}}}))
+    case 1n+ +j:
+      extreme_slots_loop({A}, 1n+n, used, Bool.not(forward), 1n+j, extreme_slots_probe({A}, Bool.not(forward), node_slot({A}, nodes, used, 1n+j)))''')
+fun('neighbor_slots_finish',f'n: Nat, root: Nat, lo: Nat, hi: Nat, free: Nat, limit: Nat, depth: Nat, cap: Nat, used: Nat, values: D.DynArray<&2, Maybe<&2, V>>, r: {NA} & Nat',T+' & Nat','  (nodes, id) = r\n  (TM{n, root, lo, hi, free, D.DA{limit, depth, cap, used, nodes}, values}, id)')
+fun('neighbor_node',f'id: Nat, forward: Bool, r: {T} & Node<K>',T+' & Nat',f'''  (TM{{+n, root, lo, hi, free, D.DA{{limit, depth, cap, +used, nodes}}, values}}, +node) = r
+  neighbor_slots_finish({A}, n, root, lo, hi, free, limit, depth, cap, used, values, neighbor_slots({A}, nodes, n, used, id, parent(K, node), forward, child(K, node, forward)))''')
 fun('neighbor',f'm: {T}, id: Nat, forward: Bool',T+' & Nat',f'  neighbor_node({A}, id, forward, read({A}, m, id))')
 # Removing an internal node moves its successor's payload into its slot.
 # The ordering depends only on keys.

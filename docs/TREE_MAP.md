@@ -159,3 +159,7 @@ new indexed rotations, deletion, arbitrary comparator laws, iteration, and
 views remain to be proved.** Differential tests are finite evidence and are
 not substituted for those missing proofs. The whole-library proof gate also
 remains incomplete for pre-existing collection migrations.
+
+## Traversal optimization (2026-09-22)
+
+Range traversal is 1.43–1.66× faster and full iteration 1.29–1.55× faster than the prior indexed TreeMap. All six measured rows still exceed 2.5× C. Three additional local laws pass in `TREE_RANGE_PROOF.bend`; full indexed correctness and traversal equivalence remain open. See [measurements and scope](../benchmarks/evidence/tree-range-20260922/README.md).

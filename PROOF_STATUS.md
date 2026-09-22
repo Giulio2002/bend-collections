@@ -361,3 +361,7 @@ semantics, ported under `spec/lru_numeric.bend` and `proofs/lru_fast/num/`):
   measured cost model that says which of the remaining structures can be
   brought within the limit the same way and which need a different
   representation entirely.
+
+## Traversal optimization (2026-09-22)
+
+Range traversal is 1.43–1.66× faster and full iteration 1.29–1.55× faster than the prior indexed TreeMap. All six measured rows still exceed 2.5× C. Three additional local laws pass in `TREE_RANGE_PROOF.bend`; full indexed correctness and traversal equivalence remain open. See [measurements and scope](benchmarks/evidence/tree-range-20260922/README.md).

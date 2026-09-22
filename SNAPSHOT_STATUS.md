@@ -25,3 +25,5 @@ iterators, and backed bounded/descending views.
 No FFI, compiler modification, or patched generated C. DSA auto-implementer
 remains stopped. This snapshot is not a whole-library completion or acceptance
 claim. See `docs/TREE_MAP.md` and `benchmarks/evidence/tree-map-20260922/`.
+
+Latest: reduced range/iteration overhead; see benchmarks/evidence/tree-range-20260922/README.md. Complete indexed proofs and performance acceptance remain open.

@@ -35,6 +35,8 @@ type Fix is Data:
 type Ascend is Data:
   Ascend{child: Nat, parent: Nat, done: Bool}
 
+# A direct branch preserves scalar traversal state in native code. Passing
+# these records through pick(-T: Type) erases their layout and boxes both arms.
 type DeleteFix is Data:
   DF{node: Nat, parent: Nat, more: Bool}
 
@@ -169,6 +171,24 @@ def get_id_finish(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +n: Nat, +root: Nat, 
 def contains_found(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: TreeMap<K, V, cmp> & Search) -> TreeMap<K, V, cmp> & Bool:
   (m, Search{id, p, left}) = r
   (m, Nat.is_lt(0n, id))
+
+def ascend_choice(x: Nat, p: Nat, q: Nat, found: Bool) -> Ascend:
+  match found:
+    case True{}:
+      Ascend{0n, p, True{}}
+    case False{}:
+      Ascend{x, q, False{}}
+
+def node_slot_done(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: Array<Maybe<&2, Node<K>>> & Maybe<&2, Node<K>>) -> Array<Maybe<&2, Node<K>>> & Node<K>:
+  match r:
+    case Tuple{nodes, None{}}:
+      (nodes, Free{0n})
+    case Tuple{nodes, Some{node}}:
+      (nodes, node)
+
+def neighbor_slots_finish(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, payloads: D.DynArray<&2, Maybe<&2, V>>, r: Array<Maybe<&2, Node<K>>> & Nat) -> TreeMap<K, V, cmp> & Nat:
+  (nodes, id) = r
+  (TM{n, root, lo, hi, free, D.DA{limit, depth, cap, used, nodes}, payloads}, id)
 
 def move_successor_3(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +source: Nat, pair_result: TreeMap<K, V, cmp> & Maybe<&2, V>) -> TreeMap<K, V, cmp> & Nat:
   (m3, old) = pair_result
@@ -359,7 +379,21 @@ def ascend_step_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +p: Nat, 
     case Tuple{m, Free{next}}:
       (m, Ascend{0n, 0n, True{}})
     case Tuple{m, N{c, l, r, q, key}}:
-      (m, pick(Ascend, Nat.is_eq(x, pick(Nat, forward, l, r)), Ascend{0n, p, True{}}, Ascend{p, q, False{}}))
+      (m, ascend_choice(p, p, q, Nat.is_eq(x, pick(Nat, forward, l, r))))
+
+def node_slot_checked(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, nodes: Array<Maybe<&2, Node<K>>>, +i: Nat, +valid: Bool) -> Array<Maybe<&2, Node<K>>> & Node<K>:
+  match valid:
+    case False{}:
+      (nodes, Free{0n})
+    case True{}:
+      node_slot_done(~K, ~V, ~cmp, Array.get(Maybe<&2, Node<K>>, nodes, U32.from_nat(i)))
+
+def ascend_slots_step(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +p: Nat, +forward: Bool, r: Array<Maybe<&2, Node<K>>> & Node<K>) -> Array<Maybe<&2, Node<K>>> & Ascend:
+  match r:
+    case Tuple{nodes, Free{next}}:
+      (nodes, Ascend{0n, 0n, True{}})
+    case Tuple{nodes, N{c, l, r, q, key}}:
+      (nodes, ascend_choice(p, p, q, Nat.is_eq(x, pick(Nat, forward, l, r))))
 
 def refresh_ends_3(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +lo: Nat, pair_result: TreeMap<K, V, cmp> & Nat) -> TreeMap<K, V, cmp>:
   (m3, +hi) = pair_result
@@ -476,6 +510,17 @@ def ascend_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: B
     case 1n+f Tuple{m, Ascend{+x, +p, False{}}}:
       ascend_loop(~K, ~V, ~cmp, f, forward, ascend_step_node(~K, ~V, ~cmp, x, p, forward, read(~K, ~V, ~cmp, m, p)))
 
+def node_slot(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, nodes: Array<Maybe<&2, Node<K>>>, +used: Nat, +id: Nat) -> Array<Maybe<&2, Node<K>>> & Node<K>:
+  match id:
+    case 0n:
+      (nodes, Free{0n})
+    case 1n+ +i:
+      node_slot_checked(~K, ~V, ~cmp, nodes, i, Nat.is_lt(i, used))
+
+def extreme_slots_probe(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +forward: Bool, r: Array<Maybe<&2, Node<K>>> & Node<K>) -> Array<Maybe<&2, Node<K>>> & Nat:
+  (nodes, node) = r
+  (nodes, child(~K, node, forward))
+
 def set_key_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +id: Nat, +k: K, +node: Node<K>) -> TreeMap<K, V, cmp>:
   match node:
     case Free{next}:
@@ -580,6 +625,24 @@ def extreme_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: 
     case 1n+p Tuple{m, 1n+ +j}:
       extreme_loop(~K, ~V, ~cmp, p, forward, 1n+j, extreme_probe(~K, ~V, ~cmp, forward, read(~K, ~V, ~cmp, m, 1n+j)))
 
+def ascend_slots_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +used: Nat, +forward: Bool, st: Array<Maybe<&2, Node<K>>> & Ascend) -> Array<Maybe<&2, Node<K>>> & Nat:
+  match fuel st:
+    case 0n Tuple{nodes, state}:
+      (nodes, 0n)
+    case 1n+f Tuple{nodes, Ascend{x, p, True{}}}:
+      (nodes, p)
+    case 1n+f Tuple{nodes, Ascend{+x, +p, False{}}}:
+      ascend_slots_loop(~K, ~V, ~cmp, f, used, forward, ascend_slots_step(~K, ~V, ~cmp, x, p, forward, node_slot(~K, ~V, ~cmp, nodes, used, p)))
+
+def extreme_slots_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +used: Nat, +forward: Bool, +id: Nat, st: Array<Maybe<&2, Node<K>>> & Nat) -> Array<Maybe<&2, Node<K>>> & Nat:
+  match fuel st:
+    case 0n Tuple{nodes, next}:
+      (nodes, id)
+    case 1n+f Tuple{nodes, 0n}:
+      (nodes, id)
+    case 1n+f Tuple{nodes, 1n+ +j}:
+      extreme_slots_loop(~K, ~V, ~cmp, f, used, forward, 1n+j, extreme_slots_probe(~K, ~V, ~cmp, forward, node_slot(~K, ~V, ~cmp, nodes, used, 1n+j)))
+
 def set_key_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +k: K, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp>:
   (m1, +node) = pair_result
   set_key_node(~K, ~V, ~cmp, m1, id, k, node)
@@ -640,6 +703,13 @@ def extreme(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +id:
   extreme_loop(~K, ~V, ~cmp, 1n+n, forward, id, extreme_probe(~K, ~V, ~cmp, forward, read(~K, ~V, ~cmp, TM{n, root, lo, hi, free, nodes, payloads}, id)))
 
 
+def neighbor_slots(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, nodes: Array<Maybe<&2, Node<K>>>, +n: Nat, +used: Nat, +id: Nat, +p: Nat, +forward: Bool, +c: Nat) -> Array<Maybe<&2, Node<K>>> & Nat:
+  match c:
+    case 0n:
+      ascend_slots_loop(~K, ~V, ~cmp, 1n+n, used, forward, (nodes, Ascend{id, p, False{}}))
+    case 1n+ +j:
+      extreme_slots_loop(~K, ~V, ~cmp, 1n+n, used, Bool.not(forward), 1n+j, extreme_slots_probe(~K, ~V, ~cmp, Bool.not(forward), node_slot(~K, ~V, ~cmp, nodes, used, 1n+j)))
+
 def set_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +id: Nat, +k: K) -> TreeMap<K, V, cmp>:
   set_key_1(~K, ~V, ~cmp, id, k, read(~K, ~V, ~cmp, m, id))
 
@@ -684,12 +754,9 @@ def get(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +k: K) -
 def contains_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +k: K) -> TreeMap<K, V, cmp> & Bool:
   contains_found(~K, ~V, ~cmp, search(~K, ~V, ~cmp, m, k))
 
-def neighbor_branch(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +n: Nat, +id: Nat, +p: Nat, +forward: Bool, +c: Nat) -> TreeMap<K, V, cmp> & Nat:
-  match c:
-    case 0n:
-      ascend_loop(~K, ~V, ~cmp, 1n+n, forward, (m, Ascend{id, p, False{}}))
-    case 1n+j:
-      extreme(~K, ~V, ~cmp, m, 1n+j, Bool.not(forward))
+def neighbor_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +forward: Bool, r: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp> & Nat:
+  (TM{+n, root, lo, hi, free, D.DA{limit, depth, cap, +used, nodes}, payloads}, +node) = r
+  neighbor_slots_finish(~K, ~V, ~cmp, n, root, lo, hi, free, limit, depth, cap, used, payloads, neighbor_slots(~K, ~V, ~cmp, nodes, n, used, id, node_parent(~K, node), forward, child(~K, node, forward)))
 
 def copy_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +target: Nat, +node: Node<K>) -> TreeMap<K, V, cmp>:
   match node:
@@ -722,9 +789,8 @@ def black_root(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>) -
   black_root_1(~K, ~V, ~cmp, root_id(~K, ~V, ~cmp, m))
 
 
-def neighbor_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +forward: Bool, r: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp> & Nat:
-  (TM{+n, root, lo, hi, free, nodes, payloads}, +node) = r
-  neighbor_branch(~K, ~V, ~cmp, TM{n, root, lo, hi, free, nodes, payloads}, n, id, node_parent(~K, node), forward, child(~K, node, forward))
+def neighbor(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +id: Nat, +forward: Bool) -> TreeMap<K, V, cmp> & Nat:
+  neighbor_node(~K, ~V, ~cmp, id, forward, read(~K, ~V, ~cmp, m, id))
 
 def move_successor_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +source: Nat, +source_node: Node<K>, pair_result: TreeMap<K, V, cmp> & Maybe<&2, V>) -> TreeMap<K, V, cmp> & Nat:
   (m2, value) = pair_result
@@ -753,9 +819,6 @@ def rotate_right_3(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: Node<K
   (m3, +pn) = pair_result
   set_parent(~K, ~V, ~cmp, set_right(~K, ~V, ~cmp, attach(~K, ~V, ~cmp, set_parent(~K, ~V, ~cmp, set_left(~K, ~V, ~cmp, m3, x, node_right(~K, yn)), node_right(~K, yn), x), node_parent(~K, xn), node_left(~K, xn), Nat.is_eq(node_left(~K, pn), x)), node_left(~K, xn), x), x, node_left(~K, xn))
 
-def neighbor(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +id: Nat, +forward: Bool) -> TreeMap<K, V, cmp> & Nat:
-  neighbor_node(~K, ~V, ~cmp, id, forward, read(~K, ~V, ~cmp, m, id))
-
 def move_successor_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +source: Nat, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp> & Nat:
   (m1, +source_node) = pair_result
   move_successor_2(~K, ~V, ~cmp, target, source, source_node, exchange(~K, ~V, ~cmp, m1, source, None{}))
@@ -763,9 +826,23 @@ def move_successor_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +sou
 def refresh_ends(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>) -> TreeMap<K, V, cmp>:
   refresh_ends_1(~K, ~V, ~cmp, root_id(~K, ~V, ~cmp, m))
 
+def nav_equal(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +id: Nat, +higher: Bool, +inclusive: Bool) -> TreeMap<K, V, cmp> & Nat:
+  match inclusive:
+    case True{}:
+      (m, id)
+    case False{}:
+      neighbor(~K, ~V, ~cmp, m, id, higher)
+
 def view_get(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V, cmp>, +k: K) -> View<K, V, cmp> & Maybe<&2, V>:
   View{m, +lower, +upper, descending} = view
   view_get_checked(~K, ~V, ~cmp, m, k, lower, upper, descending, in_range(~K, ~V, ~cmp, k, lower, upper))
+
+def iterator_checked(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +id: Nat, +current: Nat, lower: Bound<K>, upper: Bound<K>, +forward: Bool, entry: Entry<K, V>, +valid: Bool) -> Cursor<K, V, cmp> & Maybe<&2, Entry<K, V>>:
+  match valid:
+    case True{}:
+      iterator_yield(~K, ~V, ~cmp, id, lower, upper, forward, entry, neighbor(~K, ~V, ~cmp, m, id, forward))
+    case False{}:
+      (Cursor{m, 0n, current, lower, upper, forward}, None{})
 
 def rotate_left_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: Node<K>, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp>:
   (m2, +yn) = pair_result
@@ -777,35 +854,6 @@ def rotate_right_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: Node<K
 
 def move_successor(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +target: Nat, +source: Nat) -> TreeMap<K, V, cmp> & Nat:
   move_successor_1(~K, ~V, ~cmp, target, source, read(~K, ~V, ~cmp, m, source))
-
-def nav_equal(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +id: Nat, +higher: Bool, +inclusive: Bool) -> TreeMap<K, V, cmp> & Nat:
-  match inclusive:
-    case True{}:
-      (m, id)
-    case False{}:
-      neighbor(~K, ~V, ~cmp, m, id, higher)
-
-def iterator_checked(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +id: Nat, +current: Nat, lower: Bound<K>, upper: Bound<K>, +forward: Bool, entry: Entry<K, V>, +valid: Bool) -> Cursor<K, V, cmp> & Maybe<&2, Entry<K, V>>:
-  match valid:
-    case True{}:
-      iterator_yield(~K, ~V, ~cmp, id, lower, upper, forward, entry, neighbor(~K, ~V, ~cmp, m, id, forward))
-    case False{}:
-      (Cursor{m, 0n, current, lower, upper, forward}, None{})
-
-def view_contains_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V, cmp>, +k: K) -> View<K, V, cmp> & Bool:
-  view_contains_value(~K, ~V, ~cmp, view_get(~K, ~V, ~cmp, view, k))
-
-def rotate_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp>:
-  (m1, +xn) = pair_result
-  rotate_left_2(~K, ~V, ~cmp, x, xn, read(~K, ~V, ~cmp, m1, node_right(~K, xn)))
-
-def rotate_right_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp>:
-  (m1, +xn) = pair_result
-  rotate_right_2(~K, ~V, ~cmp, x, xn, read(~K, ~V, ~cmp, m1, node_left(~K, xn)))
-
-def successor_ready(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, r: TreeMap<K, V, cmp> & Nat) -> TreeMap<K, V, cmp> & Nat:
-  (m, source) = r
-  move_successor(~K, ~V, ~cmp, m, target, source)
 
 def nav_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +k: K, +higher: Bool, +inclusive: Bool, +id: Nat, +best: Nat, st: TreeMap<K, V, cmp> & (Node<K> & Cmp)) -> TreeMap<K, V, cmp> & Nat:
   match fuel st:
@@ -827,6 +875,29 @@ def iterator_read(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +current: N
     case Tuple{m, Some{Entry{+k, v}}}:
       iterator_checked(~K, ~V, ~cmp, m, id, current, lower, upper, forward, Entry{k, v}, in_range(~K, ~V, ~cmp, k, lower, upper))
 
+def view_contains_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V, cmp>, +k: K) -> View<K, V, cmp> & Bool:
+  view_contains_value(~K, ~V, ~cmp, view_get(~K, ~V, ~cmp, view, k))
+
+def rotate_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp>:
+  (m1, +xn) = pair_result
+  rotate_left_2(~K, ~V, ~cmp, x, xn, read(~K, ~V, ~cmp, m1, node_right(~K, xn)))
+
+def rotate_right_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp>:
+  (m1, +xn) = pair_result
+  rotate_right_2(~K, ~V, ~cmp, x, xn, read(~K, ~V, ~cmp, m1, node_left(~K, xn)))
+
+def successor_ready(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, r: TreeMap<K, V, cmp> & Nat) -> TreeMap<K, V, cmp> & Nat:
+  (m, source) = r
+  move_successor(~K, ~V, ~cmp, m, target, source)
+
+def navigate(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +k: K, +higher: Bool, +inclusive: Bool) -> TreeMap<K, V, cmp> & Nat:
+  TM{+n, +root, lo, hi, free, nodes, payloads} = m
+  nav_loop(~K, ~V, ~cmp, 1n+n, k, higher, inclusive, root, 0n, probe(~K, ~V, ~cmp, TM{n, root, lo, hi, free, nodes, payloads}, root, k))
+
+def iterator_next(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, cursor: Cursor<K, V, cmp>) -> Cursor<K, V, cmp> & Maybe<&2, Entry<K, V>>:
+  Cursor{m, +next, current, lower, upper, forward} = cursor
+  iterator_read(~K, ~V, ~cmp, next, current, lower, upper, forward, entry_snapshot(~K, ~V, ~cmp, (m, next)))
+
 def rotate_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +x: Nat) -> TreeMap<K, V, cmp>:
   rotate_left_1(~K, ~V, ~cmp, x, read(~K, ~V, ~cmp, m, x))
 
@@ -840,34 +911,6 @@ def delete_target(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, r: TreeMap<
     case Tuple{m, node}:
       (m, id)
 
-
-def navigate(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +k: K, +higher: Bool, +inclusive: Bool) -> TreeMap<K, V, cmp> & Nat:
-  TM{+n, +root, lo, hi, free, nodes, payloads} = m
-  nav_loop(~K, ~V, ~cmp, 1n+n, k, higher, inclusive, root, 0n, probe(~K, ~V, ~cmp, TM{n, root, lo, hi, free, nodes, payloads}, root, k))
-
-def iterator_next(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, cursor: Cursor<K, V, cmp>) -> Cursor<K, V, cmp> & Maybe<&2, Entry<K, V>>:
-  Cursor{m, +next, current, lower, upper, forward} = cursor
-  iterator_read(~K, ~V, ~cmp, next, current, lower, upper, forward, entry_snapshot(~K, ~V, ~cmp, (m, next)))
-
-def insert_black_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool) -> TreeMap<K, V, cmp> & Fix:
-  match triangle:
-    case True{}:
-      (rotate_right(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g), Fix{0n, False{}})
-    case False{}:
-      (rotate_right(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g), Fix{0n, False{}})
-
-def insert_black_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool) -> TreeMap<K, V, cmp> & Fix:
-  match triangle:
-    case True{}:
-      (rotate_left(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g), Fix{0n, False{}})
-    case False{}:
-      (rotate_left(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g), Fix{0n, False{}})
-
-def delete_borrow_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +p: Nat, +w: Nat, +pn: Node<K>, +wn: Node<K>) -> TreeMap<K, V, cmp> & DeleteFix:
-  (rotate_left(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, w, node_red(~K, pn)), p, False{}), node_right(~K, wn), False{}), p), DF{0n, 0n, False{}})
-
-def delete_borrow_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +p: Nat, +w: Nat, +pn: Node<K>, +wn: Node<K>) -> TreeMap<K, V, cmp> & DeleteFix:
-  (rotate_right(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, w, node_red(~K, pn)), p, False{}), node_left(~K, wn), False{}), p), DF{0n, 0n, False{}})
 
 def lower_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +k: K) -> TreeMap<K, V, cmp> & Maybe<&2, K>:
   key_id(~K, ~V, ~cmp, navigate(~K, ~V, ~cmp, m, k, False{}, False{}))
@@ -932,6 +975,46 @@ def view_clear_next(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: Cursor<K, V, cmp
   (cursor, removed) = r
   iterator_next(~K, ~V, ~cmp, cursor)
 
+def insert_black_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool) -> TreeMap<K, V, cmp> & Fix:
+  match triangle:
+    case True{}:
+      (rotate_right(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g), Fix{0n, False{}})
+    case False{}:
+      (rotate_right(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g), Fix{0n, False{}})
+
+def insert_black_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool) -> TreeMap<K, V, cmp> & Fix:
+  match triangle:
+    case True{}:
+      (rotate_left(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g), Fix{0n, False{}})
+    case False{}:
+      (rotate_left(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g), Fix{0n, False{}})
+
+def delete_borrow_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +p: Nat, +w: Nat, +pn: Node<K>, +wn: Node<K>) -> TreeMap<K, V, cmp> & DeleteFix:
+  (rotate_left(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, w, node_red(~K, pn)), p, False{}), node_right(~K, wn), False{}), p), DF{0n, 0n, False{}})
+
+def delete_borrow_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +p: Nat, +w: Nat, +pn: Node<K>, +wn: Node<K>) -> TreeMap<K, V, cmp> & DeleteFix:
+  (rotate_right(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, w, node_red(~K, pn)), p, False{}), node_left(~K, wn), False{}), p), DF{0n, 0n, False{}})
+
+def view_iterator(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V, cmp>) -> Cursor<K, V, cmp>:
+  View{m, +lower, +upper, +descending} = view
+  cursor_started(~K, ~V, ~cmp, lower, upper, Bool.not(descending), range_start(~K, ~V, ~cmp, m, pick(Bound<K>, descending, upper, lower), Bool.not(descending)))
+
+def contains_value_start(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +wanted: V, r: TreeMap<K, V, cmp> & Nat) -> TreeMap<K, V, cmp> & Bool:
+  (m, n) = r
+  contains_value_loop(~K, ~V, ~cmp, ~eq, 1n+n, wanted, False{}, iterator_next(~K, ~V, ~cmp, iterator(~K, ~V, ~cmp, m)))
+
+def view_nav_start(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +k: K, lower: Bound<K>, upper: Bound<K>, +higher: Bool, +inclusive: Bool, +within: Bool) -> TreeMap<K, V, cmp> & Nat:
+  match within:
+    case True{}:
+      navigate(~K, ~V, ~cmp, m, k, higher, inclusive)
+    case False{}:
+      range_start(~K, ~V, ~cmp, m, pick(Bound<K>, higher, lower, upper), higher)
+
+def view_extreme(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V, cmp>, +first: Bool) -> View<K, V, cmp> & Maybe<&2, Entry<K, V>>:
+  View{m, +lower, +upper, +descending} = view
+  +up = pick(Bool, descending, Bool.not(first), first)
+  view_entry_result(~K, ~V, ~cmp, lower, upper, descending, entry_snapshot(~K, ~V, ~cmp, range_start(~K, ~V, ~cmp, m, pick(Bound<K>, up, lower, upper), up)))
+
 def insert_uncle_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +z: Nat, +p: Nat, +g: Nat, +u: Nat, +triangle: Bool, +uncle: Node<K>) -> TreeMap<K, V, cmp> & Fix:
   match uncle:
     case N{True{}, l, r, gp, k}:
@@ -954,42 +1037,6 @@ def delete_borrow_read_right_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat,
   (m2, +wn) = pair_result
   delete_borrow_right(~K, ~V, ~cmp, m2, p, node_left(~K, pn), pn, wn)
 
-def view_iterator(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V, cmp>) -> Cursor<K, V, cmp>:
-  View{m, +lower, +upper, +descending} = view
-  cursor_started(~K, ~V, ~cmp, lower, upper, Bool.not(descending), range_start(~K, ~V, ~cmp, m, pick(Bound<K>, descending, upper, lower), Bool.not(descending)))
-
-def contains_value_start(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +wanted: V, r: TreeMap<K, V, cmp> & Nat) -> TreeMap<K, V, cmp> & Bool:
-  (m, n) = r
-  contains_value_loop(~K, ~V, ~cmp, ~eq, 1n+n, wanted, False{}, iterator_next(~K, ~V, ~cmp, iterator(~K, ~V, ~cmp, m)))
-
-def view_nav_start(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +k: K, lower: Bound<K>, upper: Bound<K>, +higher: Bool, +inclusive: Bool, +within: Bool) -> TreeMap<K, V, cmp> & Nat:
-  match within:
-    case True{}:
-      navigate(~K, ~V, ~cmp, m, k, higher, inclusive)
-    case False{}:
-      range_start(~K, ~V, ~cmp, m, pick(Bound<K>, higher, lower, upper), higher)
-
-def view_extreme(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V, cmp>, +first: Bool) -> View<K, V, cmp> & Maybe<&2, Entry<K, V>>:
-  View{m, +lower, +upper, +descending} = view
-  +up = pick(Bool, descending, Bool.not(first), first)
-  view_entry_result(~K, ~V, ~cmp, lower, upper, descending, entry_snapshot(~K, ~V, ~cmp, range_start(~K, ~V, ~cmp, m, pick(Bound<K>, up, lower, upper), up)))
-
-def insert_side_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: Node<K>, +gn: Node<K>, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp> & Fix:
-  (m1, +un) = pair_result
-  insert_uncle_left(~K, ~V, ~cmp, m1, z, p, g, node_right(~K, gn), Nat.is_eq(z, node_right(~K, pn)), un)
-
-def insert_side_right_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: Node<K>, +gn: Node<K>, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp> & Fix:
-  (m1, +un) = pair_result
-  insert_uncle_right(~K, ~V, ~cmp, m1, z, p, g, node_left(~K, gn), Nat.is_eq(z, node_left(~K, pn)), un)
-
-def delete_borrow_read_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp> & DeleteFix:
-  (m1, +pn) = pair_result
-  delete_borrow_read_left_2(~K, ~V, ~cmp, p, pn, read(~K, ~V, ~cmp, m1, node_right(~K, pn)))
-
-def delete_borrow_read_right_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp> & DeleteFix:
-  (m1, +pn) = pair_result
-  delete_borrow_read_right_2(~K, ~V, ~cmp, p, pn, read(~K, ~V, ~cmp, m1, node_left(~K, pn)))
-
 def contains_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, m: TreeMap<K, V, cmp>, +wanted: V) -> TreeMap<K, V, cmp> & Bool:
   contains_value_start(~K, ~V, ~cmp, ~eq, wanted, size(~K, ~V, ~cmp, m))
 
@@ -1008,17 +1055,21 @@ def view_size(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V, cmp>) ->
   View{TM{+n, root, lo, hi, free, nodes, payloads}, lower, upper, descending} = view
   view_count_loop(~K, ~V, ~cmp, 1n+n, 0n, iterator_next(~K, ~V, ~cmp, view_iterator(~K, ~V, ~cmp, View{TM{n, root, lo, hi, free, nodes, payloads}, lower, upper, descending})))
 
-def insert_side_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +z: Nat, +p: Nat, +g: Nat, +pn: Node<K>, +gn: Node<K>) -> TreeMap<K, V, cmp> & Fix:
-  insert_side_left_1(~K, ~V, ~cmp, z, p, g, pn, gn, read(~K, ~V, ~cmp, m, node_right(~K, gn)))
+def insert_side_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: Node<K>, +gn: Node<K>, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp> & Fix:
+  (m1, +un) = pair_result
+  insert_uncle_left(~K, ~V, ~cmp, m1, z, p, g, node_right(~K, gn), Nat.is_eq(z, node_right(~K, pn)), un)
 
-def insert_side_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +z: Nat, +p: Nat, +g: Nat, +pn: Node<K>, +gn: Node<K>) -> TreeMap<K, V, cmp> & Fix:
-  insert_side_right_1(~K, ~V, ~cmp, z, p, g, pn, gn, read(~K, ~V, ~cmp, m, node_left(~K, gn)))
+def insert_side_right_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: Node<K>, +gn: Node<K>, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp> & Fix:
+  (m1, +un) = pair_result
+  insert_uncle_right(~K, ~V, ~cmp, m1, z, p, g, node_left(~K, gn), Nat.is_eq(z, node_left(~K, pn)), un)
 
-def delete_borrow_read_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +p: Nat) -> TreeMap<K, V, cmp> & DeleteFix:
-  delete_borrow_read_left_1(~K, ~V, ~cmp, p, read(~K, ~V, ~cmp, m, p))
+def delete_borrow_read_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp> & DeleteFix:
+  (m1, +pn) = pair_result
+  delete_borrow_read_left_2(~K, ~V, ~cmp, p, pn, read(~K, ~V, ~cmp, m1, node_right(~K, pn)))
 
-def delete_borrow_read_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +p: Nat) -> TreeMap<K, V, cmp> & DeleteFix:
-  delete_borrow_read_right_1(~K, ~V, ~cmp, p, read(~K, ~V, ~cmp, m, p))
+def delete_borrow_read_right_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp> & DeleteFix:
+  (m1, +pn) = pair_result
+  delete_borrow_read_right_2(~K, ~V, ~cmp, p, pn, read(~K, ~V, ~cmp, m1, node_left(~K, pn)))
 
 def view_lower_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V, cmp>, +k: K) -> View<K, V, cmp> & Maybe<&2, Entry<K, V>>:
   view_nav(~K, ~V, ~cmp, view, k, False{}, False{})
@@ -1031,6 +1082,18 @@ def view_ceiling_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V,
 
 def view_higher_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V, cmp>, +k: K) -> View<K, V, cmp> & Maybe<&2, Entry<K, V>>:
   view_nav(~K, ~V, ~cmp, view, k, True{}, False{})
+
+def insert_side_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +z: Nat, +p: Nat, +g: Nat, +pn: Node<K>, +gn: Node<K>) -> TreeMap<K, V, cmp> & Fix:
+  insert_side_left_1(~K, ~V, ~cmp, z, p, g, pn, gn, read(~K, ~V, ~cmp, m, node_right(~K, gn)))
+
+def insert_side_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +z: Nat, +p: Nat, +g: Nat, +pn: Node<K>, +gn: Node<K>) -> TreeMap<K, V, cmp> & Fix:
+  insert_side_right_1(~K, ~V, ~cmp, z, p, g, pn, gn, read(~K, ~V, ~cmp, m, node_left(~K, gn)))
+
+def delete_borrow_read_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +p: Nat) -> TreeMap<K, V, cmp> & DeleteFix:
+  delete_borrow_read_left_1(~K, ~V, ~cmp, p, read(~K, ~V, ~cmp, m, p))
+
+def delete_borrow_read_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +p: Nat) -> TreeMap<K, V, cmp> & DeleteFix:
+  delete_borrow_read_right_1(~K, ~V, ~cmp, p, read(~K, ~V, ~cmp, m, p))
 
 def insert_side(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +z: Nat, +p: Nat, +g: Nat, +pn: Node<K>, +gn: Node<K>, +on_left: Bool) -> TreeMap<K, V, cmp> & Fix:
   match on_left:

@@ -1,0 +1,7 @@
+{
+  "sha256": "14cb17a9b5d530f23a5dd384738354fc91934a4f72304b12cd9e7911ec3c3acc",
+  "ascend_constructor_references": [
+    "#define CID_______SRC_BALANCED_SEARCH_TREE_ASCEND 43"
+  ],
+  "note": "Generated C inspected; no boxed Ascend construction remains. Generated C was not modified."
+}

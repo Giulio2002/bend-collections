@@ -3,7 +3,7 @@
 import argparse,datetime,html,json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-p=argparse.ArgumentParser();p.add_argument('--before',type=Path,required=True);p.add_argument('--after',type=Path);p.add_argument('--iterator-report',type=Path);p.add_argument('--tree-report',type=Path);p.add_argument('--tree-map-report',type=Path);p.add_argument('--ownership-report',type=Path);p.add_argument('--note',default='Optimization in progress');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--before',type=Path,required=True);p.add_argument('--after',type=Path);p.add_argument('--iterator-report',type=Path);p.add_argument('--tree-report',type=Path);p.add_argument('--tree-map-report',type=Path);p.add_argument('--range-report',type=Path);p.add_argument('--ownership-report',type=Path);p.add_argument('--note',default='Optimization in progress');a=p.parse_args()
 b=json.loads(a.before.read_text());c=json.loads(a.after.read_text()) if a.after else b
 old={x['operation']:x for x in b['results']};rows=[]
 for x in sorted(c['results'],key=lambda x:x['operation']):
@@ -67,6 +67,15 @@ if a.tree_map_report:
   section+=f'<tr><td>{html.escape(x["operation"])}</td><td>{x["size"]:,}</td><td>{m.get("bend",0):.2f}</td><td>{m.get("c",0):.2f}</td><td style="color:{color}">{f"{ratio:.3f}×" if ratio is not None else "—"}</td><td title="{html.escape(x.get("error",""),quote=True)}">{result}</td></tr>'
  section+='</tbody></table><p><a href="dsa-tree-map-performance.json">Raw current TreeMap measurements</a> · <a href="dsa-tree-map-tests.json">Test evidence</a></p><h2>Historical whole-collection quick screen</h2><p>The rows below predate the TreeMap replacement. Use the current table above for tree measurements; previous whole-collection pass counts are not a current acceptance result.</p>'
  page=page.replace('<input id="q"',section+'<input id="q"')
+if a.range_report:
+ rr=json.loads(a.range_report.read_text())
+ section='<h2>Latest TreeMap traversal optimization</h2><p>Unboxed ascent decisions and metadata-only successor walks. Same public cursor API and unchanged C reference. Six alternating samples with checksum agreement. 92,544 differential operations and 16 existing component laws pass; three additional local traversal laws pass. Full indexed-map proof remains open.</p><table><tr><th>Operation</th><th>Size</th><th>Before µs</th><th>After µs</th><th>C µs</th><th>Speedup</th><th>After / C</th></tr>'
+ for r in rr['results']:
+  m=r['medians_ns']
+  section+=f'<tr><td>{html.escape(r["operation"])}</td><td>{r["size"]:,}</td><td>{m["before"]/1000:.3f}</td><td>{m["bend"]/1000:.3f}</td><td>{m["c"]/1000:.3f}</td><td>{r["speedup"]:.2f}×</td><td>{r["ratio"]:.2f}×</td></tr>'
+ section+='</table><p>All six still exceed the 2.5× target. <a href="dsa-tree-range-performance.json">Raw samples and hashes</a>. The older sweep below predates this optimization; its range/iteration rows are superseded. Other operations have not been rebenchmarked.</p>'
+ marker='<h2>Current indexed TreeMap'
+ page=page.replace(marker,section+marker) if marker in page else page.replace('<input id="q"',section+'<input id="q"')
 out=ROOT/'build/optimization.html';out.write_text(page)
 site=Path('/Users/monkeair/progress-dashboard/site');(site/'dsa-benchmarks.html').write_text(page);(site/'dsa-benchmarks.json').write_text(json.dumps(c))
 if a.iterator_report:(site/'dsa-iterator-performance.json').write_text(json.dumps(ir,indent=2)+'\n')
@@ -81,4 +90,10 @@ if a.tree_map_report:
  (site/'dsa-tree-map-performance.json').write_text(json.dumps(tm,indent=2)+'\n')
  (site/'dsa-tree-map-tests.json').write_text(json.dumps(tested,indent=2)+'\n')
  v.update(implementation_done='Indexed red-black TreeMap now replaces the recursive production tree. Data keys/values, comparator, navigation, conditional updates, owning cursors and bounded views. Other collections retained.',implementation_missing='TreeMap range/iteration speed and full indexed correctness proofs; remaining collection performance/proof work.',proof_status='16 TreeMap component laws pass. Existing Data-array and legacy-tree proof gates pass. Full indexed refinement/rotation/deletion/iterator/view proofs remain open.',performance_status=f'Current TreeMap: {good} within target, {bad} too slow, {unresolved} unresolved out of {len(tm["results"])} calibrated rows. Historical quick screen is not a current full-library gate.')
+ p.write_text(json.dumps(d,indent=2)+'\n')
+
+if a.range_report:
+ (site/'dsa-tree-range-performance.json').write_text(json.dumps(rr,indent=2)+'\n')
+ v['performance_status']='Latest traversal comparison: range 1.43–1.66× faster; iteration 1.29–1.55× faster. All six remain above 2.5× C. Other operations only have the older sweep.'
+ v['proof_status']+=' Three local traversal laws also pass; these do not establish complete traversal equivalence.'
  p.write_text(json.dumps(d,indent=2)+'\n')
