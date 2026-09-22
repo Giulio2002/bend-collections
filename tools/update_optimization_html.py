@@ -3,7 +3,7 @@
 import argparse,datetime,html,json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-p=argparse.ArgumentParser();p.add_argument('--before',type=Path,required=True);p.add_argument('--after',type=Path);p.add_argument('--iterator-report',type=Path);p.add_argument('--tree-report',type=Path);p.add_argument('--tree-map-report',type=Path);p.add_argument('--range-report',type=Path);p.add_argument('--fold-report',type=Path);p.add_argument('--ownership-report',type=Path);p.add_argument('--note',default='Optimization in progress');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--before',type=Path,required=True);p.add_argument('--after',type=Path);p.add_argument('--iterator-report',type=Path);p.add_argument('--tree-report',type=Path);p.add_argument('--tree-map-report',type=Path);p.add_argument('--range-report',type=Path);p.add_argument('--ownership-report',type=Path);p.add_argument('--note',default='Optimization in progress');a=p.parse_args()
 b=json.loads(a.before.read_text());c=json.loads(a.after.read_text()) if a.after else b
 old={x['operation']:x for x in b['results']};rows=[]
 for x in sorted(c['results'],key=lambda x:x['operation']):
@@ -76,16 +76,6 @@ if a.range_report:
  section+='</table><p>All six still exceed the 2.5× target. <a href="dsa-tree-range-performance.json">Raw samples and hashes</a>. The older sweep below predates this optimization; its range/iteration rows are superseded. Other operations have not been rebenchmarked.</p>'
  marker='<h2>Current indexed TreeMap'
  page=page.replace(marker,section+marker) if marker in page else page.replace('<input id="q"',section+'<input id="q"')
-if a.fold_report:
- fr=json.loads(a.fold_report.read_text())
- section='<h2>Current public bulk folds</h2><p>fold/view_fold avoid per-entry editable cursor reconstruction and resolve the terminal node once. Unchanged optimized C workload; the old editable iterator remains available. Six new component laws pass; full fold refinement remains open.</p><table><tr><th>Operation</th><th>Size</th><th>Previous iterator µs</th><th>Bulk fold µs</th><th>C µs</th><th>Speedup</th><th>Fold / C</th></tr>'
- for r in fr['results']:
-  m=r['medians_ns']
-  section+=f'<tr><td>{html.escape(r["operation"])}</td><td>{r["size"]:,}</td><td>{m["before"]/1000:.3f}</td><td>{m["bend"]/1000:.3f}</td><td>{m["c"]/1000:.3f}</td><td>{r["speedup"]:.2f}×</td><td>{r["ratio"]:.2f}×</td></tr>'
- section+='</table><p><a href="dsa-tree-fold-performance.json">Raw fold comparison</a>. These results measure the new bulk API, not individual editable-iterator calls. Earlier tables below are historical. All six rows still exceed 2.5× C.</p>'
- page=page.replace('<h2>Latest TreeMap traversal optimization</h2>','<h2>Previous iterator optimization</h2>')
- marker='<h2>Previous iterator optimization</h2>' if a.range_report else '<h2>Current indexed TreeMap'
- page=page.replace(marker,section+marker)
 out=ROOT/'build/optimization.html';out.write_text(page)
 site=Path('/Users/monkeair/progress-dashboard/site');(site/'dsa-benchmarks.html').write_text(page);(site/'dsa-benchmarks.json').write_text(json.dumps(c))
 if a.iterator_report:(site/'dsa-iterator-performance.json').write_text(json.dumps(ir,indent=2)+'\n')
@@ -106,10 +96,4 @@ if a.range_report:
  (site/'dsa-tree-range-performance.json').write_text(json.dumps(rr,indent=2)+'\n')
  v['performance_status']='Latest traversal comparison: range 1.43–1.66× faster; iteration 1.29–1.55× faster. All six remain above 2.5× C. Other operations only have the older sweep.'
  v['proof_status']+=' Three local traversal laws also pass; these do not establish complete traversal equivalence.'
- p.write_text(json.dumps(d,indent=2)+'\n')
-
-if a.fold_report:
- (site/'dsa-tree-fold-performance.json').write_text(json.dumps(fr,indent=2)+'\n')
- v['performance_status']='Public bulk folds: all six rows still exceed 2.5x C; see current table for measured improvement over editable iterators. Other operations were not rebenchmarked.'
- v['proof_status']+=' Six fold component laws pass; complete fold refinement remains open.'
  p.write_text(json.dumps(d,indent=2)+'\n')

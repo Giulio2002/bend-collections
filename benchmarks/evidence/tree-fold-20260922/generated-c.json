@@ -1,5 +1,0 @@
-{
-  "sha256": "d8b5896187fb23b3bf5b5dc756af804ee7791c638f9e576575dfc45db8375d65",
-  "fold_state_constructor_mentions": 1,
-  "note": "FS appears only in its constructor constant definition: no boxed FoldState constructions in generated C. Generic bound selection still boxes bounds at setup; replacing it with a typed branch did not improve measured performance and was reverted."
-}

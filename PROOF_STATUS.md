@@ -365,7 +365,3 @@ semantics, ported under `spec/lru_numeric.bend` and `proofs/lru_fast/num/`):
 ## Traversal optimization (2026-09-22)
 
 Range traversal is 1.43–1.66× faster and full iteration 1.29–1.55× faster than the prior indexed TreeMap. All six measured rows still exceed 2.5× C. Three additional local laws pass in `TREE_RANGE_PROOF.bend`; full indexed correctness and traversal equivalence remain open. See [measurements and scope](benchmarks/evidence/tree-range-20260922/README.md).
-
-## Public TreeMap bulk folds
-
-`TREE_FOLD_PROOF.bend` adds six checked public component laws; it does not establish arbitrary-tree fold refinement. A semantic exclusive-endpoint mutation is rejected. The fold driver passes 92,544 differential operations and 7,680 additional exact-output boundary cases, including whole-arena preservation checks. Existing TreeMap component and traversal gates still pass. Full indexed correctness remains open. See [fold evidence](benchmarks/evidence/tree-fold-20260922/README.md).

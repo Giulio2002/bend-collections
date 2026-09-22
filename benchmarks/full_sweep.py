@@ -2,17 +2,19 @@
 Uses the canonical calibration, six samples, C flags and checksum checks.
 No concurrent timing workloads. Progress/evidence are saved after each row.
 """
-import argparse, json, statistics, subprocess, time
+import argparse, json, statistics, subprocess, time, sys
 from pathlib import Path
 import run as bench
 from workloads import TABLE, EXCLUDED_EMPTY_ROWS
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--report',required=True);args=ap.parse_args()
+    ap=argparse.ArgumentParser();ap.add_argument('--report',required=True);ap.add_argument('--html');args=ap.parse_args()
+    sys.path.insert(0,str(bench.ROOT/'tools'))
+    from render_full_benchmark import render
     out=Path(args.report).resolve();out.parent.mkdir(parents=True,exist_ok=True)
     started=time.time();initial_hashes=bench.source_hashes()
     report={'backend':'native-c','reference':bench.CONTRACT['reference'],
-        'environment':bench.environment(),'scope':'All nonempty workloads including LRU; standalone DLL retired',
+        'environment':bench.environment(),'scope':'All current nonempty collection workloads, including arena DLL and DLL iterators; TreeMap uses editable iterators, bulk folds removed',
         'max_ratio':bench.CONTRACT['max_ratio'],'expected_rows':len(TABLE),
         'excluded_empty_rows':EXCLUDED_EMPTY_ROWS,'source_sha256':initial_hashes,
         'benchmarks':[],'build_failures':{},'status':'running'}
@@ -21,6 +23,7 @@ def main():
         report['seconds']=round(time.time()-started,1)
         temp=out.with_suffix('.tmp');temp.write_text(json.dumps(report,indent=1,sort_keys=True)+'\n');temp.replace(out)
         (out.parent/'samples.log').write_text('\n'.join(logs)+'\n')
+        if args.html: render(report,args.html)
     save()
     for name in sorted({r['structure'] for r in TABLE}):
         try: built.update(bench.build_all([name]))

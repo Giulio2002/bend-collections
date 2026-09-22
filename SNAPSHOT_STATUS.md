@@ -29,3 +29,7 @@ claim. See `docs/TREE_MAP.md` and `benchmarks/evidence/tree-map-20260922/`.
 Latest: reduced range/iteration overhead; see benchmarks/evidence/tree-range-20260922/README.md. Complete indexed proofs and performance acceptance remain open.
 
 Latest bulk API optimization: see benchmarks/evidence/tree-fold-20260922/README.md. Editable iterators remain available; bulk-fold timings do not describe individual iterator calls. Performance acceptance and full formal verification remain unfinished.
+
+## Current status: bulk folds removed
+
+The later bulk-fold experiment has been removed at the user’s request, including its API, tests/proofs and benchmark path. Earlier notes about that experiment are historical and no longer apply. Ordinary editable iterators are the current traversal API. Their earlier optimizations remain. The restored implementation passes 92,544 differential operations, 16 component laws and three traversal laws. A fresh 357-workload full sweep is running, with live dashboard updates; results are pending until measured.
