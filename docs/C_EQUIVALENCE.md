@@ -308,16 +308,6 @@ steps. The driver now carries the shifted word and advances it two bits per
 character, exactly as `benchmarks/native/prefix_trie.c` does. Checksums are
 unchanged: 28/28 rows identical to the C reference.
 
-## segment_tree: branch-free descent (retained from iteration 0012)
-
-`get` and `set` pick the child ARITHMETICALLY (`step_of(h <= i, h)`) instead of
-branching on the side, because the index is data and a per-level conditional
-jump mispredicts about half the time. Measured: `get` small 22.8 -> 6.3 ns
-(C 3.24, 1.95x), `get` medium 41.8 -> 12.3 ns (C 5.85, 2.09x), `set` small
-40.6 -> 22.4 ns (C 10.15, 2.21x), `set` medium 102.3 -> 41.8 ns (C 20.7,
-2.01x). The walks are proved in `proofs/segment_tree/walk.bend`
-(`gcase`/`get_ok` for `get`, `unfold_l`/`unfold_r` for `set`).
-
 ## Iteration 0015: what one shared algebraic node costs, measured directly
 
 The claim that the two pointer-shaped structures (`balanced_search_tree` and

@@ -43,14 +43,6 @@ import ./proofs/bitset.bend as BIP
 import ./proofs/bitset/state.bend as BIST
 import ./proofs/bitset/steps.bend as BISP
 import ./proofs/bitset/trace.bend as BITR
-import ./src/segment_tree.bend as SG
-import ./spec/segment_tree.bend as SGS
-import ./types/segment_tree.bend as SGT
-import ./proofs/segment_tree.bend as SGP
-import ./proofs/segment_tree/state.bend as SGSH
-import ./proofs/segment_tree/steps.bend as SGST
-import ./proofs/segment_tree/init.bend as SGIN
-import ./proofs/segment_tree/trace.bend as SGTR
 import ./src/balanced_search_tree.bend as BT
 import ./spec/balanced_search_tree.bend as BTS
 import ./types/balanced_search_tree.bend as BTT
@@ -695,81 +687,6 @@ law bitset_trace:
   BITR.TraceOK(ops, BITR.initial(n))
 def bitset_trace(n, ops, h):
   BIP.trace_new(n, ops, h)
-
-# =========================== segment_tree =============================
-
-law segment_tree_new:
-  for +n: Nat
-  for +h: {Nat.is_le(n, SCOM.pow2(SG.depth_for(n))) == True{} : Bool}
-  {SGSH.model(SGIN.initial(n)) == SGS.new(n) : List<&2, U32>}
-def segment_tree_new(n, h):
-  SGP.new_abs(n, h)
-
-law segment_tree_new_invariant:
-  for +n: Nat
-  for +h: {Nat.is_le(n, SCOM.pow2(SG.depth_for(n))) == True{} : Bool}
-  {SGSH.good(SGIN.initial(n)) == True{} : Bool}
-def segment_tree_new_invariant(n, h):
-  SGP.new_inv(n, h)
-
-law segment_tree_new_is_the_constructor:
-  for +n: Nat
-  {SG.new(n) == SGSH.real(SGIN.initial(n)) : SG.SegTree}
-def segment_tree_new_is_the_constructor(n):
-  SGP.new_real(n)
-
-law segment_tree_from_list:
-  for +xs: List<&2, U32>
-  for +h: {Nat.is_le(SG.count(xs), SCOM.pow2(SG.depth_for(SG.count(xs)))) == True{} : Bool}
-  {SGSH.model(SGP.from_list_shadow(xs, h)) == SGS.from_list(xs) : List<&2, U32>}
-def segment_tree_from_list(xs, h):
-  SGP.from_list_abs(xs, h)
-
-law segment_tree_from_list_invariant:
-  for +xs: List<&2, U32>
-  for +h: {Nat.is_le(SG.count(xs), SCOM.pow2(SG.depth_for(SG.count(xs)))) == True{} : Bool}
-  {SGSH.good(SGP.from_list_shadow(xs, h)) == True{} : Bool}
-def segment_tree_from_list_invariant(xs, h):
-  SGP.from_list_inv(xs, h)
-
-law segment_tree_from_list_is_the_constructor:
-  for +xs: List<&2, U32>
-  for +h: {Nat.is_le(SG.count(xs), SCOM.pow2(SG.depth_for(SG.count(xs)))) == True{} : Bool}
-  {SG.from_list(xs) == SGSH.real(SGP.from_list_shadow(xs, h)) : SG.SegTree}
-def segment_tree_from_list_is_the_constructor(xs, h):
-  SGP.from_list_real(xs, h)
-
-law segment_tree_step:
-  for +sh: SGSH.Sh
-  for op: SGT.Op
-  for +g: {SGSH.good(sh) == True{} : Bool}
-  SGST.StepOK(sh, op)
-def segment_tree_step(sh, op, g):
-  SGP.step_ok(sh, op, g)
-
-law segment_tree_shadow_unique:
-  for +a: SGSH.Sh
-  for +b: SGSH.Sh
-  for +e: {SGSH.real(a) == SGSH.real(b) : SG.SegTree}
-  {a == b : SGSH.Sh}
-def segment_tree_shadow_unique(a, b, e):
-  SGP.shadow_unique(a, b, e)
-
-law segment_tree_trace:
-  for +n: Nat
-  for +ops: List<&2, SGT.Op>
-  for +h: {Nat.is_le(n, SCOM.pow2(SG.depth_for(n))) == True{} : Bool}
-  SGTR.TraceOK(ops, SGIN.initial(n))
-def segment_tree_trace(n, ops, h):
-  SGP.trace_new(n, ops, h)
-
-law segment_tree_trace_from_list:
-  for +xs: List<&2, U32>
-  for +ops: List<&2, SGT.Op>
-  for +h: {Nat.is_le(SG.count(xs), SCOM.pow2(SG.depth_for(SG.count(xs)))) == True{} : Bool}
-  SGTR.TraceOK(ops, SGP.from_list_shadow(xs, h))
-def segment_tree_trace_from_list(xs, ops, h):
-  SGP.trace_from_list(xs, ops, h)
 
 # ======================== balanced_search_tree ========================
 # Red-black binary tree ordered map (src/balanced_search_tree.bend). The

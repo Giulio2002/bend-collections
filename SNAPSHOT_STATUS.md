@@ -1,5 +1,5 @@
 # Work in progress
 
-WIP: removed union-find; optimized direct arena DLL accessors with checked U32/String equivalence and public oracle tests; tree query proof preserved. Quick sweep 33.691s: 75/115 within target, 35 slow, 5 unresolved. No full acceptance. C references unchanged. Worker stopped.
+WIP library; DLL iterator performance passes all 33 calibrated rows at <=2.5x optimized C (worst median 1.575x). Compact owning cursors, matching C reference, 32,429 differential operations, handle recycling/retirement tests and component laws pass. Full cursor invariant/trace refinement and whole-library PROOF.bend remain incomplete. Segment tree removed. Quick screen: 119 operations, 31 slow, 4 unresolved, 40.575 seconds. DSA worker remains stopped.
 
-See docs/OPTIMIZATION_PASS.md and BENCHMARKS.md. Full PROOF.bend remains incomplete.
+See BENCHMARKS.md, docs/DLIST_ITERATOR.md and benchmarks/evidence/iterator-20260922/.

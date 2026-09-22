@@ -98,7 +98,6 @@ benchmarks run (`deque_trace_at_is_the_trace`,
 | `balanced_search_tree` | in-order entry list | sorted keys, **red-black invariant**, cached size = entry count |
 | `bitset` | first `len` bits of the words of a native `Base.Array` | the depth is the one `depth_for` picks, the word array is a perfect tree of that depth, `len <= stored bits`, every stored bit at a position `>= len` is zero |
 | `fenwick_tree` | the first `n` values of the tree the flat cells realise | the cell array is a perfect tree of depth d+1 (so every cell index is a representable U32), `n <= 2^d`, and every internal cell holds the exact U32 sum of its block's left half |
-| `segment_tree` | first `n` values of the tree the two flat cell arrays realise (a node's tag applies to everything below it) | the sum array is a perfect tree of depth d+1 and the tag array one of depth d, `n <= 2^d`, and every node stores the exact sum of its subtree |
 | `prefix_trie` | preorder enumeration, keys rebuilt character by character | every sibling list strictly increasing by code |
 | `graph` | spec adjacency list of the vertex window `[lo, hi)` (vertex → key-sorted neighbour list) | perfect slot and block trees, ascending vertex ids, well-formed adjacency blocks, and spec well-formedness of the model |
 | `lru` (indexed, `src/lru/fast.bend`) | capacity, lifetime, entries in recency order with deadlines, five 64-bit counters (`spec/lru_fast.bend`) | perfect arenas of depth <= 31, the ghost order and free list partition the slots below `fresh <= 2^depth`, prev/next links agree with the order, the free chain with the free list, every ordered slot occupied and mapped to by the table, the table's keys exactly the order's, crit-bit shape of the table, length <= capacity |
@@ -201,30 +200,6 @@ implies the premise (`ST.rep_fits`). This is a real, documented narrowing
 compared with the earlier list-of-words representation, which had no capacity
 bound: it is the price of O(1) indexed access, and it is the same bound the C
 reference has.
-
-## fenwick_tree and segment_tree: the flat split-point layout
-
-Both store their cells in native `Base.Array`s (one for `fenwick_tree`; a sum
-array and a lazy-tag array for `segment_tree`) in the layout described in
-`docs/ARCHITECTURE.md`: the value at index `t` is cell `2^d + t`, and the
-block `[o, o + 2^p)` with `p >= 1` keeps its total (and its tag) at its split
-point `o + 2^(p-1)`.
-
-| step | where |
-|---|---|
-| the interval arithmetic of the layout (which cells a block can occupy, and that sibling blocks are disjoint) | `proofs/lib/flat.bend` |
-| the tree the flat cells realise, the frame lemmas, and that each index walk of the source IS the model's tree walk | `proofs/fenwick_tree/walk.bend`, `proofs/segment_tree/walk.bend` |
-| the model itself, unchanged from the tree-shaped implementation | `proofs/fenwick_tree/model.bend`, `proofs/segment_tree/node.bend` + `model.bend` + `ops.bend` |
-| `Base.Array` get/set/swap against the cell list | `proofs/<id>/arr.bend` (on `proofs/lib/array.bend`) |
-| abstraction, invariant, shadow, `real_inj` | `proofs/<id>/state.bend` |
-| every operation, including every error path | `proofs/<id>/steps.bend` |
-| the constructors (`new`, `from_list`) | `proofs/<id>/init.bend` |
-| arbitrary finite traces | `proofs/<id>/trace.bend` |
-
-The point of the split-point layout is provability: the cells a block can
-occupy are exactly `o+1 .. o+2^p-1`, so the frame lemmas ("this write does not
-disturb that block") are interval arithmetic rather than a descendant
-predicate over a heap-shaped layout.
 
 ## deque and queue: the window layout
 

@@ -6,8 +6,13 @@ passing component gates do not establish whole-library correctness.**
 
 Current collection inventory: dynamic array, deque, FIFO queue, stack,
 arena-backed doubly linked list, binary min-heap, red-black search tree,
-bitset, segment tree, LRU, LifoQueue, SimpleQueue, PriorityQueue.
-Fenwick tree, graph and Trie have been removed. No Counter is included.
+bitset, LRU, LifoQueue, SimpleQueue, PriorityQueue.
+Segment tree, union-find, Fenwick tree, graph and Trie have been removed. No Counter is included.
+
+The DLL includes [owning bidirectional iterators](docs/DLIST_ITERATOR.md),
+with matching optimized C workloads, independent differential tests, and
+checked component laws. Run `python3 tools/bench_iterators.py` after building
+for the full 33-row iterator comparison.
 
 The three queue facades reuse the existing implementations:
 

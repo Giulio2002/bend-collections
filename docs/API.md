@@ -237,20 +237,6 @@ prefix_sum(f: Fenwick, +e: Nat) -> Result<&2, &2, E.Error, U32>
 range_sum(f: Fenwick, +l: Nat, +r: Nat) -> Result<&2, &2, E.Error, U32>
 ```
 
-## `segment_tree`
-
-Segment tree over n U32 values with lazy range addition; all arithmetic wraps modulo 2^32.  Representation: a perfect tree of depth d (2^d >= n). A leaf stores a value; an internal node stores a lazy tag z (pending addition for every value below it) and the sum of its subtree's values including its own tag (but excluding tags above it). The value at index i is the stored leaf plus all tags on the path to it.  get(i) / set(i, v)      walk the path, accumulating tags; set stores v minus the accumulated tags at the leaf range_query(l, r)       prefix(r) - prefix(l); a prefix walk adds the sums of fully covered left subtrees range_add(l, r, v)      lazy: add v to the first r values, then -v to the first l values; a fully covered subtree only receives a tag (O(1) node update), never a walk  Errors never change the state: get/set with index >= n fail with IndexOutOfRange; range_query/range_add unless l <= r <= n fail with InvalidRange.  Cost: every operation visits O(log n) nodes; each node visit scales a tag by the subtree width with U32.shln (O(log n) shifts), so get/set/ range_query/range_add cost O(log^2 n) word operations. new O(log n) (shared zero subtrees); from_list O(n log^2 n); length O(1).
-
-```
-new(+n: Nat) -> SegTree
-from_list(+xs: List<&2, U32>) -> SegTree
-length(t: SegTree) -> Nat
-get(s: SegTree, +i: Nat) -> Result<&2, &2, E.Error, U32>
-set(s: SegTree, +i: Nat, +v: U32) -> SegTree & Result<&2, &2, E.Error, Unit>
-range_query(s: SegTree, +l: Nat, +r: Nat) -> Result<&2, &2, E.Error, U32>
-range_add(s: SegTree, +l: Nat, +r: Nat, +v: U32) -> SegTree & Result<&2, &2, E.Error, Unit>
-```
-
 ## `prefix_trie`
 
 Prefix trie from String keys to values of an erased type V. Representation: first-child/next-sibling tree. A TNode holds one character code c, the value stored for the key spelled by the path ending at it, the list of its children (down) and its next sibling. Sibling lists are kept in strictly increasing character-code order, so a preorder walk enumerates keys in String.order. The root carries the value of the empty key. Removal prunes nodes that no longer carry a value or children.  Errors: lookup/remove of an absent key and longest_prefix with no matching key return Fail{KeyNotFound}; the state is unchanged. Cost (key length m, alphabet branching b, entries listed r with total key length R): insert/lookup/remove/contains O(m * b) (sibling lists are scanned linearly); longest_prefix O(m * b); prefix_entries O(m * b + nodes below the prefix + R).
@@ -340,3 +326,10 @@ Requests (`Add`, `Get`, `Peek`, `Contains`, `Remove`, `Purge`, `Resize`,
 `Keys`, `Len`) and the explicit clock are the reference's own types; semantics,
 errors and the trusted TypeScript residue are documented in
 `reference/lru/README.md` and `docs/lru-compat.md`.
+
+## DLL owning iterator
+
+`src/dlist_iterator.bend`: `iter_first`, `iter_last`, `next`, `previous`,
+`has_next`, `has_previous`, `position`, `set`, `add`, `remove`, and `finish`.
+The iterator owns the arena DLL until `finish`; all calls thread that ownership.
+See [semantics, proof scope, and Bend/C benchmarks](DLIST_ITERATOR.md).

@@ -300,36 +300,6 @@ def _init_u32(s):
         return [u32_of(x) for x in field(p, 1).split(',')]
     return [0] * nat_of(field(p, 1))
 
-def segment_tree(args):
-    (xs, out) = (_init_u32(args[0]), [])
-    for tok in args[1:]:
-        p = fields(tok)
-        n = p[0]
-        if n == 'get':
-            i = nat_of(field(p, 1))
-            out.append('OK %d' % xs[i] if i < len(xs) else 'ERR IndexOutOfRange')
-        elif n == 'set':
-            (i, v) = (nat_of(field(p, 1)), u32_of(field(p, 2)))
-            if i < len(xs):
-                xs[i] = v
-                out.append('OK')
-            else:
-                out.append('ERR IndexOutOfRange')
-        elif n == 'query':
-            (l, r) = (nat_of(field(p, 1)), nat_of(field(p, 2)))
-            out.append('OK %d' % (sum(xs[l:r]) % U32) if l <= r <= len(xs) else 'ERR InvalidRange')
-        elif n == 'add':
-            (l, r, v) = (nat_of(field(p, 1)), nat_of(field(p, 2)), u32_of(field(p, 3)))
-            if l <= r <= len(xs):
-                for k in range(l, r):
-                    xs[k] = (xs[k] + v) % U32
-                out.append('OK')
-            else:
-                out.append('ERR InvalidRange')
-        else:
-            out.append('N %d' % len(xs))
-    return out
-
 def lru(args):
     cap = u32_of(args[0])
     if cap == 0:
@@ -374,4 +344,4 @@ def lru(args):
         else:
             out.append('LEN %d' % len(d))
     return out
-ORACLES = {'dynamic_array': dynamic_array, 'deque': deque, 'queue': queue, 'doubly_linked_list': doubly_linked_list, 'binary_heap': binary_heap, 'balanced_search_tree': balanced_search_tree, 'bitset': bitset, 'segment_tree': segment_tree, 'lru': lru}
+ORACLES = {'dynamic_array': dynamic_array, 'deque': deque, 'queue': queue, 'doubly_linked_list': doubly_linked_list, 'binary_heap': binary_heap, 'balanced_search_tree': balanced_search_tree, 'bitset': bitset, 'lru': lru}

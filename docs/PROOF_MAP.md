@@ -1,8 +1,14 @@
 # Proof map: public operation -> specification -> theorem -> tests
 
-One row per structure. "Operations" are the ones listed in
-`inventory/structures.json`; all of them are covered by the same three
-theorems, so the map is given per structure rather than per operation.
+**Current status:** the whole-library gate is incomplete. The table below maps
+proof source locations; it does not assert that those sources currently check
+against every migrated implementation. Queue/deque and generational DLL trace
+bridges remain unfinished.
+
+The owning iterator's `ITERATOR_COMPONENT_PROOF.bend` gate checks U32/String
+component laws and end-gap insertion equivalence with public append. It is
+imported by `PROOF.bend`, but does not establish full cursor-invariant
+preservation or arbitrary trace refinement. See [iterator proof scope](DLIST_ITERATOR.md).
 
 | structure | spec model (`spec/<id>.bend`) | per-operation theorem | trace theorem | public laws in `END_TO_END.bend` | tests |
 |---|---|---|---|---|---|
@@ -13,10 +19,6 @@ theorems, so the map is given per structure rather than per operation.
 | `binary_heap` | sorted multiset | `proofs/binary_heap/…` `step_ok` (template, instantiated at U32 and String) | `trace_new` | `binary_heap_u32_*`, `binary_heap_string_*` | `tests/binary_heap/` |
 | `balanced_search_tree` | key-sorted entry list (finite map) | `proofs/balanced_search_tree/steps.bend` `step_ok` (template, instantiated at U32 and String) | `trace_from`, `inv_from` | `balanced_search_tree_u32_*`, `balanced_search_tree_string_*` | `tests/balanced_search_tree/` incl. the `rb32`/`rbstr` structural kinds |
 | `bitset` | bit list | `proofs/bitset/steps.bend` `step_ok` (shadow form: the word array is linear) | `proofs/bitset/trace.bend` `trace_from`, exposed as `bitset_trace` | `bitset_*` | `tests/bitset/` |
-| `fenwick_tree` | U32 value list with prefix sums | `proofs/fenwick_tree/steps.bend` `step_ok` | from `new(n)` and `from_list(xs)` | `fenwick_tree_*` | `tests/fenwick_tree/` |
-| `segment_tree` | U32 value list with range sums and range add | `proofs/segment_tree/steps.bend` `step_ok` | from `new(n)` and `from_list(xs)` | `segment_tree_*` | `tests/segment_tree/` |
-| `prefix_trie` | String-ordered finite map | `proofs/prefix_trie/steps.bend` `step_ok` | `trace_new` | `prefix_trie_*` | `tests/prefix_trie/` |
-| `graph` | vertex -> key-sorted neighbour list | `proofs/graph/gtrace.bend` `step_ok` (shadow form over the vertex slots and adjacency blocks; per-operation cores in `gstep.bend` and the operation modules) | `proofs/graph/gtrace.bend` `trace_new`, `trace_from` | `graph_*` (incl. `graph_*_well_formed`) | `tests/graph/` |
 | retained `lru` | `reference/lru/spec` | the retained cache's own theorems, re-checked under 2.0.16 | `lru_entry_string_trace` | `lru_entry_string_trace` | `tests/lru/` (run mode) |
 | indexed `lru` (`src/lru/fast.bend`) | `spec/lru_fast.bend`: recency-ordered entries with deadlines + five 64-bit counters | `proofs/lru_fast/trace.bend` `step_ok` (every `types/lru_fast.bend` operation; shadow form; template, instantiated at U32 and String) | `trace_new`, `trace_from` (capacity condition: every capacity within 2^q, q <= 31) | `lru_fast_u32_*`, `lru_fast_string_*` | `tests/lru_fast/main.bend` (vs the retained cache), `tests/lru_fast/spec_diff.bend` (vs the spec), `tools/lru_diff.py` (vs C) |
 

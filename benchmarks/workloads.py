@@ -278,21 +278,6 @@ empties('bitset', [('new', 10), ('length', 4), ('get', 2), ('set', 0),
                    ('clear', 1), ('count', 3), ('union', 6), ('intersection', 7),
                    ('difference', 8), ('xor', 9), ('to_list', 5)])
 
-# -------------------------------------------------------------- segment_tree
-SG = (64, 4096, 262144)
-SGF = (50000, 20000, 10000)
-three('segment_tree', 'range_add', 0, SG, SGF)
-three('segment_tree', 'get', 1, SG, SGF)
-three('segment_tree', 'range_query', 2, SG, SGF)
-three('segment_tree', 'length', 3, SG, FAST)
-three('segment_tree', 'set', 6, SG, SGF)
-three('segment_tree', 'from_list', 5, SG, (50000, 50000, 20000))
-add('segment_tree', 'new', 4, 'small', 64, 200000)
-add('segment_tree', 'new', 4, 'medium', 4096, 200000)
-add('segment_tree', 'new', 4, 'large', 262144, 50000)
-empties('segment_tree', [('new', 4), ('from_list', 5), ('length', 3), ('get', 1),
-                         ('set', 6), ('range_query', 2), ('range_add', 0)], 100000)
-
 # Include the existing LRU driver workloads in full sweeps. These were
 # previously measured only by the supplemental lru_measure tool.
 from experiments.lru_workloads import rows as _lru_rows
@@ -311,6 +296,20 @@ for _name, _base, _rename in [
         _row['structure'] = _name
         _row['operation'] = _name+'.'+_rename.get(_op,_op)
         TABLE.append(_row)
+
+# Owning Java-style list iterator. Cycle rows include boundary restart;
+# mutation pairs are add + previous + remove on both implementations.
+three('dlist_iterator', 'iter_first', 0, (64, 4096, 65536), (50000, 20000, 10000), method='finish+create')
+three('dlist_iterator', 'iter_last', 1, (64, 4096, 65536), (50000, 20000, 10000), method='finish+create')
+three('dlist_iterator', 'next', 2, (64, 4096, 65536), (50000, 20000, 10000), method='forward-cycle')
+three('dlist_iterator', 'previous', 3, (64, 4096, 65536), (50000, 20000, 10000), method='backward-cycle')
+three('dlist_iterator', 'set', 4, (64, 4096, 65536), (50000, 20000, 10000), method='batch')
+three('dlist_iterator', 'add', 5, (64, 4096, 65536), (50000, 20000, 10000), method='pair')
+three('dlist_iterator', 'remove', 5, (64, 4096, 65536), (50000, 20000, 10000), method='pair')
+three('dlist_iterator', 'has_next', 6, (64, 4096, 65536), (50000, 20000, 10000), method='batch')
+three('dlist_iterator', 'has_previous', 7, (64, 4096, 65536), (50000, 20000, 10000), method='batch')
+three('dlist_iterator', 'position', 8, (64, 4096, 65536), (50000, 20000, 10000), method='batch')
+three('dlist_iterator', 'finish', 0, (64, 4096, 65536), (50000, 20000, 10000), method='finish+create')
 
 # Explicit user scope change, 2026-09-22: no empty-structure timing gates.
 # Assign seeds before filtering so removing empties does not change RNG inputs

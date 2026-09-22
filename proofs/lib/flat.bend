@@ -6,7 +6,7 @@ import ../../reference/lru/proofs/nat_algebra.bend as NA
 
 # Shared arithmetic and list facts for the FLAT SPLIT-POINT LAYOUT that the
 # array-backed trees of this project use (src/fenwick_tree.bend and
-# src/segment_tree.bend):
+# flat indexed structures):
 #
 #   * the value of index t lives at cell 2^d + t;
 #   * the block [o, o + 2^p) of value indices (p >= 1) keeps its own cell at

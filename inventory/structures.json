@@ -94,18 +94,6 @@
       ]
     },
     {
-      "id": "segment_tree",
-      "operations": [
-        "new",
-        "from_list",
-        "length",
-        "get",
-        "set",
-        "range_query",
-        "range_add"
-      ]
-    },
-    {
       "id": "stack",
       "operations": [
         "new",
@@ -131,6 +119,19 @@
         "next",
         "prev",
         "to_list"
+      ],
+      "iterator_operations": [
+        "iter_first",
+        "iter_last",
+        "next",
+        "previous",
+        "set",
+        "add",
+        "remove",
+        "has_next",
+        "has_previous",
+        "position",
+        "finish"
       ]
     },
     {

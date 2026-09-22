@@ -64,7 +64,6 @@ and where a genuine link survives:
 | `queue` | the deque (enqueue = push_back, dequeue = pop_front) | as the deque | none | `proofs/queue/{steps,trace}.bend` over the deque shadow |
 | `bitset` | `Base.Array` of packed `U32` words | bit `i` is word `i / 32`, bit `i % 32` | none | `proofs/bitset/{state,loops,fastcount,steps}.bend` |
 | `fenwick_tree` | one `Base.Array` of `U32` cells, flat split-point layout | value `t` is cell `2^d + t`; a block `[o, o + 2^p)` keeps its partial sum at cell `o + 2^(p-1)` | none | `proofs/fenwick_tree/{state,arr,walk,init,steps}.bend` |
-| `segment_tree` | two `Base.Array`s of `U32` cells (sums, lazy tags), same split-point layout | as fenwick, plus the tag array at the block's split point | none | `proofs/segment_tree/{state,arr,walk,init,steps}.bend` |
 | `binary_heap` | `Base.Array` of `Maybe<A>` slots, capacity `2^depth` (PACKED array heap) | element `i` is slot `i`, children `2i+1`/`2i+2`, parent `(i-1)/2` | none | `proofs/binary_heap/{state,slots,idx,up,down,steps}.bend` |
 | `balanced_search_tree` | red-black tree of `Node{color, l, entry, r}` | — | tree children: a red-black BST is defined by its two-child nodes | `proofs/balanced_search_tree/{sorted,steps,colour}.bend` |
 | `prefix_trie` | trie nodes `TNode{c, val, down, next}` | `down` = children, `next` = the sibling chain of one node's children | trie children: a trie node's children are its genuine edges (the sibling chain is the part still to migrate) | `proofs/prefix_trie/{keys,ops,steps,trace}.bend` |
@@ -100,7 +99,7 @@ building a list; the same treatment would apply to it and has not been done.
 Every constructor builds the normal usable representation immediately and
 initialises the storage it needs; none of them returns a deferred placeholder
 that charges its allocation to the first operation. `dynamic_array`, `bitset`,
-`binary_heap`, `fenwick_tree`, `segment_tree`, `graph` and
+`binary_heap`, `fenwick_tree`, `graph` and
 `doubly_linked_list` all allocate (and fill) their first block inside `new`.
 Growth on later insertions is the conventional doubling; an empty structure
 does not reserve future capacity. Deferred-initialization variants tried in
@@ -149,7 +148,7 @@ implicitly. The structures built on it (`dynamic_array`, `deque`, `queue`,
 `bitset`, `fenwick_tree`, `segment_tree`) are therefore
 threaded - every operation takes the structure and gives it back - and
 released explicitly where a driver needs it (`bitset`, `fenwick_tree` and
-`segment_tree` expose `dispose` and `clone`). Their proofs are stated about
+these collections expose `dispose` and `clone`). Their proofs are stated about
 `thaw(t)`, the array built from a Data mirror tree `t`
 (`proofs/lib/array.bend`), so arrays never appear in a proof term; the
 per-operation and trace laws take a shadow (for example
