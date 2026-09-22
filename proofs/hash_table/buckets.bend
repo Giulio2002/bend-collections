@@ -146,6 +146,26 @@ def live_b(+lv: List<&2, Bool>, +f: Nat, b: Bk) -> Bool:
     case BF{w, +l, k}:
       Bool.and(nthb(lv, UD.v(H.slot(l))), Nat.is_lt(UD.v(H.slot(l)), f))
 
+# equal buckets, as a Bool
+def bk_eq(a: Bk, b: Bk) -> Bool:
+  match a b:
+    case BE{} BE{}:
+      True{}
+    case BE{} BF{w, l, k}:
+      False{}
+    case BF{w, l, k} BE{}:
+      False{}
+    case BF{+w, +l, +k} BF{+w2, +l2, +k2}:
+      Bool.and(U32.is_eq(w, w2), Bool.and(U32.is_eq(l, l2), S.str_eq(k, k2)))
+
+# some bucket below m equals b
+def anyeq(+bs: List<&2, Bk>, +m: Nat, +b: Bk) -> Bool:
+  match m:
+    case 0n:
+      False{}
+    case 1n+j:
+      Bool.or(bk_eq(at(bs, j), b), anyeq(bs, j, b))
+
 # bounded quantifiers over first-order predicates
 type Pred is Data:
   PClus{bs: List<&2, Bk>, n: Nat, mask: U32}
@@ -155,6 +175,8 @@ type Pred is Data:
   PWell{bs: List<&2, Bk>, sd: Nat}
   PUniq{bs: List<&2, Bk>}
   PLive{bs: List<&2, Bk>, lv: List<&2, Bool>, f: Nat}
+  PFrom{bs: List<&2, Bk>, src: List<&2, Bk>, m: Nat}
+  PTo{bs: List<&2, Bk>, dst: List<&2, Bk>, m: Nat}
 
 def implies(a: Bool, b: Bool) -> Bool:
   Bool.or(Bool.not(a), b)
@@ -191,6 +213,10 @@ def eval(p: Pred, +i: Nat) -> Bool:
       uq_b(bs, i, at(bs, i))
     case PLive{+bs, +lv, +f}:
       live_b(lv, f, at(bs, i))
+    case PFrom{+bs, +src, +m}:
+      implies(occ(at(bs, i)), anyeq(src, m, at(bs, i)))
+    case PTo{+bs, +dst, +m}:
+      implies(occ(at(bs, i)), anyeq(dst, m, at(bs, i)))
 
 # p(0) && ... && p(n - 1)
 def all_lt(+p: Pred, +n: Nat) -> Bool:
