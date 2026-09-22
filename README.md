@@ -9,6 +9,12 @@ arena-backed doubly linked list, binary min-heap, red-black search tree,
 bitset, LRU, LifoQueue, SimpleQueue, PriorityQueue.
 Segment tree, union-find, Fenwick tree, graph and Trie have been removed. No Counter is included.
 
+The balanced search tree is now an [indexed red-black TreeMap](docs/TREE_MAP.md)
+using the dynamic array, with Data keys/values, a static comparator, navigation,
+conditional updates, editable owning iterators, and backed range views. Its
+new component proof gate passes; full indexed-tree refinement remains open.
+The prior recursive tree is retained under `reference/` for its existing proofs.
+
 The DLL includes [owning bidirectional iterators](docs/DLIST_ITERATOR.md),
 with matching optimized C workloads, independent differential tests, and
 checked component laws. Run `python3 tools/bench_iterators.py` after building
@@ -69,7 +75,7 @@ invariant preservation against independent specifications, including errors
 and arbitrary finite traces. This migration has not yet re-established that
 whole contract.
 
-`balanced_search_tree` additionally proves the red-black invariants themselves:
+The **retained legacy recursive tree** additionally proves the red-black invariants themselves:
 black root, black empty leaves, no red-red parent/child edge, the same number
 of black nodes on every root-to-leaf path, established by the constructor and
 preserved by insertion *and* deletion including every rotation, recolouring and

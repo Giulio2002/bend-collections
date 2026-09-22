@@ -5,7 +5,7 @@ import Base
 # The ADT counterpart of benchmarks/experiments/bstarena/descent.bend: the
 # SAME data dependent six level descent, over a SHARED algebraic tree instead
 # of a native indexed block. The tree is `+`-reusable (as every read of
-# src/balanced_search_tree.bend's persistent tree is), so opening a node has
+# reference/legacy_balanced_search_tree.bend's persistent tree is), so opening a node has
 # to retain its fields and release the ones the walk does not follow. The
 # difference between the two programs is the cost of that reference counting.
 
@@ -53,7 +53,7 @@ def dn_loop(fuel: Nat, s: Dn) -> Dn:
 
 # t0 is the ORIGINAL tree, handed back untouched: the walk therefore runs on
 # a SHARED tree (the `+t` of `step` makes it reusable and it is used twice),
-# exactly as every read of src/balanced_search_tree.bend does. Without this
+# exactly as every read of reference/legacy_balanced_search_tree.bend does. Without this
 # the walk would consume the tree and destroy it after one iteration.
 def step_fin(+c: U32, t0: T, s: Dn) -> T & U32:
   DN{t, +cur, r} = s

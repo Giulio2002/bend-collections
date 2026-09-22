@@ -43,7 +43,7 @@ import ./proofs/bitset.bend as BIP
 import ./proofs/bitset/state.bend as BIST
 import ./proofs/bitset/steps.bend as BISP
 import ./proofs/bitset/trace.bend as BITR
-import ./src/balanced_search_tree.bend as BT
+import ./reference/legacy_balanced_search_tree.bend as BT
 import ./spec/balanced_search_tree.bend as BTS
 import ./types/balanced_search_tree.bend as BTT
 import ./proofs/balanced_search_tree.bend as BTP
@@ -688,8 +688,10 @@ law bitset_trace:
 def bitset_trace(n, ops, h):
   BIP.trace_new(n, ops, h)
 
-# ======================== balanced_search_tree ========================
-# Red-black binary tree ordered map (src/balanced_search_tree.bend). The
+# ======================== legacy balanced_search_tree ========================
+# The laws below apply to the retained recursive implementation only.
+# New indexed TreeMap component laws are in TREE_MAP_COMPONENT_PROOF.bend.
+# Red-black binary tree ordered map (reference/legacy_balanced_search_tree.bend). The
 # proofs are templates over a comparator with total-order laws; the laws are
 # stated at the two instances src/ exposes: (U32, U32.cmp) and
 # (String, String.order). Values are an erased type. The invariant

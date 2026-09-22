@@ -314,6 +314,28 @@ def main():
         name = item['id']
         if args.only and name != args.only:
             continue
+        if name == 'balanced_search_tree':
+            # The production module is now the indexed TreeMap. Never count
+            # the retained recursive implementation's trace proof as its own.
+            (ROOT/'build/tree-map').mkdir(parents=True, exist_ok=True)
+            checks = []
+            for command in [[BEND, 'tests/tree_map/main.bend', '-o', 'build/tree-map/test'],
+                            [sys.executable, 'tools/check_tree_map.py'],
+                            [BEND, 'TREE_MAP_COMPONENT_PROOF.bend']]:
+                result = run(command, timeout=120)
+                checks.append({'command': command, 'passed': result.returncode == 0,
+                               'output': result.stdout + result.stderr})
+                if result.returncode != 0:
+                    fail(name, 'TreeMap check failed: ' + repr(command))
+                    break
+            good = len(checks) == 3 and all(x['passed'] for x in checks)
+            rows.append({'id': name, 'implementation': 'indexed TreeMap',
+                         'runtime': 'passed' if good else 'failed',
+                         'component_proof': 'passed' if good else 'failed',
+                         'trace_proof': 'incomplete', 'checks': checks})
+            (LOGDIR / (name + '.log')).write_text('\n'.join(x['output'] for x in checks))
+            fail(name, 'Universal indexed TreeMap refinement/invariant/trace proof is unfinished; legacy proof is not a substitute.')
+            continue
         log = []
         t0 = time.time()
         binary = BIN / name

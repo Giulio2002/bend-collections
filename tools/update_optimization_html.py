@@ -3,7 +3,7 @@
 import argparse,datetime,html,json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-p=argparse.ArgumentParser();p.add_argument('--before',type=Path,required=True);p.add_argument('--after',type=Path);p.add_argument('--iterator-report',type=Path);p.add_argument('--tree-report',type=Path);p.add_argument('--ownership-report',type=Path);p.add_argument('--note',default='Optimization in progress');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--before',type=Path,required=True);p.add_argument('--after',type=Path);p.add_argument('--iterator-report',type=Path);p.add_argument('--tree-report',type=Path);p.add_argument('--tree-map-report',type=Path);p.add_argument('--ownership-report',type=Path);p.add_argument('--note',default='Optimization in progress');a=p.parse_args()
 b=json.loads(a.before.read_text());c=json.loads(a.after.read_text()) if a.after else b
 old={x['operation']:x for x in b['results']};rows=[]
 for x in sorted(c['results'],key=lambda x:x['operation']):
@@ -57,6 +57,16 @@ if a.ownership_report:
   section+='<p>'+html.escape(own[key])+'</p>'
  section+=f'<p>Native nested-array tests: {own["tests"]["histories"]} histories / {own["tests"]["observations"]:,} observations passed.</p>'
  page=page.replace('<input id="q"',section+'<input id="q"')
+if a.tree_map_report:
+ tm=json.loads(a.tree_map_report.read_text()); tested=json.loads((ROOT/'build/tree-map/tests.json').read_text())
+ good=sum(x.get('ratio',float('inf'))<=2.5 for x in tm['results']); bad=sum(x.get('ratio',0)>2.5 for x in tm['results']); unresolved=sum('ratio' not in x for x in tm['results'])
+ section=f'<h2>Current indexed TreeMap — Data keys and values</h2><p>Production balanced-search-tree module replaced with dynamic-array storage, CLRS repair, comparator-based key identity, navigation, conditional updates, editable owning iterators, and backed range views. DSA worker remains stopped.</p><p><b>{tested["operations"]:,} operations / {tested["histories"]} histories passed</b>, with independent structural and free-slot checks after every operation. String keys with custom Data records pass. Capacity rejection/reuse passes.</p><p>Proof: 16 new component laws pass; existing dynamic-array and retained legacy-tree proof gates pass. Full indexed-tree refinement, rotation/deletion invariants and arbitrary iterator/view traces are <b>not yet proved</b>.</p><p>Performance: {good} rows within 2.5×, {bad} too slow, {unresolved} unresolved. Six alternating samples; unchanged optimized C reference. Both sides fold iteration/range outputs directly. Removal includes reinsertion. Source hashes and all samples below. Other jobs were running on this machine, so unresolved/noisy rows are not acceptance passes.</p><table><thead><tr><th>Operation</th><th>Size</th><th>Bend ns</th><th>C ns</th><th>Bend / C</th><th>Status</th></tr></thead><tbody>'
+ for x in tm['results']:
+  m=x.get('medians_ns',{}); ratio=x.get('ratio'); color='#4ade80' if ratio is not None and ratio<=2.5 else '#f87171'
+  result='within target' if ratio is not None and ratio<=2.5 else 'too slow' if ratio is not None else 'unresolved'
+  section+=f'<tr><td>{html.escape(x["operation"])}</td><td>{x["size"]:,}</td><td>{m.get("bend",0):.2f}</td><td>{m.get("c",0):.2f}</td><td style="color:{color}">{f"{ratio:.3f}×" if ratio is not None else "—"}</td><td title="{html.escape(x.get("error",""),quote=True)}">{result}</td></tr>'
+ section+='</tbody></table><p><a href="dsa-tree-map-performance.json">Raw current TreeMap measurements</a> · <a href="dsa-tree-map-tests.json">Test evidence</a></p><h2>Historical whole-collection quick screen</h2><p>The rows below predate the TreeMap replacement. Use the current table above for tree measurements; previous whole-collection pass counts are not a current acceptance result.</p>'
+ page=page.replace('<input id="q"',section+'<input id="q"')
 out=ROOT/'build/optimization.html';out.write_text(page)
 site=Path('/Users/monkeair/progress-dashboard/site');(site/'dsa-benchmarks.html').write_text(page);(site/'dsa-benchmarks.json').write_text(json.dumps(c))
 if a.iterator_report:(site/'dsa-iterator-performance.json').write_text(json.dumps(ir,indent=2)+'\n')
@@ -66,3 +76,9 @@ if iterator_summary:
  v['performance_status']+=' '+iterator_summary
  p.write_text(json.dumps(d,indent=2)+'\n')
 print(out)
+
+if a.tree_map_report:
+ (site/'dsa-tree-map-performance.json').write_text(json.dumps(tm,indent=2)+'\n')
+ (site/'dsa-tree-map-tests.json').write_text(json.dumps(tested,indent=2)+'\n')
+ v.update(implementation_done='Indexed red-black TreeMap now replaces the recursive production tree. Data keys/values, comparator, navigation, conditional updates, owning cursors and bounded views. Other collections retained.',implementation_missing='TreeMap range/iteration speed and full indexed correctness proofs; remaining collection performance/proof work.',proof_status='16 TreeMap component laws pass. Existing Data-array and legacy-tree proof gates pass. Full indexed refinement/rotation/deletion/iterator/view proofs remain open.',performance_status=f'Current TreeMap: {good} within target, {bad} too slow, {unresolved} unresolved out of {len(tm["results"])} calibrated rows. Historical quick screen is not a current full-library gate.')
+ p.write_text(json.dumps(d,indent=2)+'\n')

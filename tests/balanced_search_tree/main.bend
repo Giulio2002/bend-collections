@@ -1,5 +1,5 @@
 import Base
-import ../../src/balanced_search_tree.bend as B
+import ../../reference/legacy_balanced_search_tree.bend as B
 import ../../types/balanced_search_tree.bend as E
 import ../support/text.bend as X
 

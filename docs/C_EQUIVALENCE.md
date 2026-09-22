@@ -1,3 +1,10 @@
+> TreeMap update (2026-09-22): the production balanced search tree now uses
+> dynamic-array metadata/payload slots and CLRS parent-linked red-black repair.
+> The existing optimized C reference is unchanged. Native reads remain direct
+> indexed block reads; the specialized return helper avoids boxing composite
+> nodes. See `TREE_MAP.md` and the new TreeMap benchmark evidence. Historical
+> recursive-tree claims below do not describe the current production tree.
+
 # C equivalence: what the Bend implementation does, and what the C reference does
 
 Required by the operator's "equivalent of genuinely optimized C" rule. One

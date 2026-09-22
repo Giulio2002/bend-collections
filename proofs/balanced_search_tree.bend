@@ -2,7 +2,7 @@ import Base
 import ./lib/logic.bend as L
 import ./lib/order.bend as O
 import ../spec/balanced_search_tree.bend as S
-import ../src/balanced_search_tree.bend as B
+import ../reference/legacy_balanced_search_tree.bend as B
 import ../types/balanced_search_tree.bend as E
 import ./balanced_search_tree/sorted.bend as SO
 import ./balanced_search_tree/specops.bend as SP

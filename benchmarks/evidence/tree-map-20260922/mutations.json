@@ -1,0 +1,29 @@
+{
+  "mutations": [
+    {
+      "mutation": "red_root",
+      "compiles": true,
+      "differential_rejected": true,
+      "component_proof_rejected": true,
+      "test_failure": "Traceback (most recent call last):\n  File \"/private/var/folders/v6/0pn8l_sj2_9fshvs1bnkr_1c0000gn/T/bend-tree-map-mutation-_zlf3nr_/tools/check_tree_map.py\", line 133, in <module>\n    validate_dump(lines[2*i+1],m,key,peak)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/var/folders/v6/0pn8l_sj2_9fshvs1bnkr_1c0000gn/T/bend-tree-map-mutation-_zlf3nr_/tools/check_tree_map.py\", line 28, in validate_dump\n    if root:assert ns[root][1]=='0'\n                   ^^^^^^^^^^^^^^^^\nAssertionError\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/private/var/folders/v6/0pn8l_sj2_9fshvs1bnkr_1c0000gn/T/bend-tree-map-mutation-_zlf3nr_/tools/check_tree_map.py\", line 136, in <module>\n    raise AssertionError((kind,seed,i,ops[i],e)) from e\nAssertionError: ('ascending', 0, 0, (0, 0, 100), AssertionError())\n",
+      "proof_output": "Error:\n- expected : (src/balanced_search_tree.TM{1n, 1n, 1n, 1n, 0n, src/dynamic_array.DA{31n, 0n, 1n, 1n, [Some{src/balanced_search_tree.N{True{}, 0n, 0n, 0n, k}}]}, src/dynamic_array.DA{31n, 0n, 1n, 1n, [Some{Some{v}}]}}, Done{None{}})\n- observed : (src/balanced_search_tree.TM{1n, 1n, 1n, 1n, 0n, src/dynamic_array.DA{31n, 0n, 1n, 1n, [Some{src/balanced_search_tree.N{False{}, 0n, 0n, 0n, k}}]}, src/dynamic_array.DA{31n, 0n, 1n, 1n, [Some{Some{v}}]}}, Done{None{}})\nContext:\n- k : U32\n- v : U32\nLocation: put_empty\n22 | def put_empty(+k: U32, +v: U32) -> {M.put(~U32, ~U32, ~U32.cmp, M.new(~U32, ~U32, ~U32.cmp), k, v) == (singleton(k, v), Done{None{}}) : M.TreeMap<U32, U32, U32.cmp> & Result<&2, &2, M.Rejected<U32, U32>, Maybe<&2, U32>>}:\n23>|   {==}\n24 | \nbend 2.0.24 is available: run bend update\n"
+    },
+    {
+      "mutation": "replace_stored_key",
+      "compiles": true,
+      "differential_rejected": true,
+      "component_proof_rejected": true,
+      "test_failure": "Traceback (most recent call last):\n  File \"/private/var/folders/v6/0pn8l_sj2_9fshvs1bnkr_1c0000gn/T/bend-tree-map-mutation-i7qy6493/tools/check_tree_map.py\", line 133, in <module>\n    validate_dump(lines[2*i+1],m,key,peak)\n    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/private/var/folders/v6/0pn8l_sj2_9fshvs1bnkr_1c0000gn/T/bend-tree-map-mutation-i7qy6493/tools/check_tree_map.py\", line 32, in validate_dump\n    assert [(k,v) for k,v,i in ordered]==expected,('contents',ordered,expected)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: ('contents', [(1, 101, 1)], [(0, 101)])\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/private/var/folders/v6/0pn8l_sj2_9fshvs1bnkr_1c0000gn/T/bend-tree-map-mutation-i7qy6493/tools/check_tree_map.py\", line 136, in <module>\n    raise AssertionError((kind,seed,i,ops[i],e)) from e\nAssertionError: ('groups', 0, 1, (0, 1, 101), AssertionError(('contents', [(1, 101, 1)], [(0, 101)])))\n",
+      "proof_output": "Error:\n- expected : (src/balanced_search_tree.TM{1n, 1n, 1n, 1n, 0n, src/dynamic_array.DA{31n, 0n, 1n, 1n, [Some{src/balanced_search_tree.N{False{}, 0n, 0n, 0n, incoming}}]}, src/dynamic_array.DA{31n, 0n, 1n, 1n, [Some{Some{v}}]}}, Done{Some{old}})\n- observed : (src/balanced_search_tree.TM{1n, 1n, 1n, 1n, 0n, src/dynamic_array.DA{31n, 0n, 1n, 1n, [Some{src/balanced_search_tree.N{False{}, 0n, 0n, 0n, stored}}]}, src/dynamic_array.DA{31n, 0n, 1n, 1n, [Some{Some{v}}]}}, Done{Some{old}})\nContext:\n- stored   : U32\n- incoming : U32\n- old      : U32\n- v        : U32\nLocation: equivalent_put_retains_key\n64 | def equivalent_put_retains_key(+stored: U32, incoming: U32, +old: U32, +v: U32) -> {M.put(~U32, ~U32, ~same_class, equivalent_singleton(stored, old), incoming, v) == (equivalent_singleton(stored, v), Done{Some{old}}) : M.TreeMap<U32, U32, same_class> & Result<&2, &2, M.Rejected<U32, U32>, Maybe<&2, U32>>}:\n65>|   {==}\n66 | \nbend 2.0.24 is available: run bend update\n"
+    },
+    {
+      "mutation": "skip_after_cursor_remove",
+      "compiles": true,
+      "differential_rejected": true,
+      "component_proof_rejected": true,
+      "test_failure": "Traceback (most recent call last):\n  File \"/private/var/folders/v6/0pn8l_sj2_9fshvs1bnkr_1c0000gn/T/bend-tree-map-mutation-46cynefd/tools/check_tree_map.py\", line 132, in <module>\n    assert lines[2*i]==expected,('observation',lines[2*i],expected)\n           ^^^^^^^^^^^^^^^^^^^^\nAssertionError: ('observation', 'entries;5=3188', 'entries;5=3188;6=2038;18=4932;29=7969;35=1553;36=8896;52=951;100=3266;102=18;140=230')\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/private/var/folders/v6/0pn8l_sj2_9fshvs1bnkr_1c0000gn/T/bend-tree-map-mutation-46cynefd/tools/check_tree_map.py\", line 136, in <module>\n    raise AssertionError((kind,seed,i,ops[i],e)) from e\nAssertionError: ('ascending', 0, 578, (27, 40, 2653), AssertionError(('observation', 'entries;5=3188', 'entries;5=3188;6=2038;18=4932;29=7969;35=1553;36=8896;52=951;100=3266;102=18;140=230')))\n",
+      "proof_output": "Error:\n- expected : None{}\n- observed : Some{src/balanced_search_tree.Entry{1, v1}}\nContext:\n- v0 : U32\n- v1 : U32\nLocation: cursor_remove_preserves_next\n76 | def cursor_remove_preserves_next(v0: U32, +v1: U32) -> {next_after_remove(M.iterator_remove(~U32, ~U32, ~U32.cmp, M.Cursor{two_entries(v0, v1), 2n, 1n, M.Unbounded{}, M.Unbounded{}, True{}})) == Some{M.Entry{1, v1}} : Maybe<&2, M.Entry<U32, U32>>}:\n77>|   {==}\n78 | \nbend 2.0.24 is available: run bend update\n"
+    }
+  ],
+  "note": "These targeted component checks detect the three selected mutations, but do not establish correctness of arbitrary indexed-map or iterator traces."
+}

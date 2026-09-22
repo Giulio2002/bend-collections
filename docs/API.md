@@ -155,21 +155,16 @@ to_sorted_list(~A: Data, ~cmp: A -> A -> Cmp, h: Heap<A>) -> Heap<A> & List<&2, 
 
 ## `balanced_search_tree`
 
-Ordered map with a comparator ~cmp (a total order, see proofs/lib/order), implemented as a RED-BLACK BINARY search tree: every node has exactly two children and a colour, the root and the empty leaves are black, no red node has a red child, and every root-to-leaf path contains the same number of black nodes. The height is therefore at most 2*log2(n + 1).  Insertion is Okasaki's: the new node is red, and `balance` repairs the one red-red edge a recursive insertion can create by rotating/recolouring the four classic cases; the root is blackened afterwards. Deletion is the conventional CLRS fixup in functional form: `del` returns TD (the black height is unchanged) or UF (the subtree lost one black level), and fix_left / fix_right repair a UF child by borrowing from or recolouring the sibling (red sibling -> rotate; black sibling with a red child -> rotate and recolour; black sibling with two black children -> recolour the sibling red and propagate). A deleted internal node is replaced by the minimum of its right subtree (split_min).  The comparison of the searched key with a node's key is computed by the caller and passed down (`a`), so every recursive call is on a subtree.  Errors never change the state: remove/lookup of a missing key give KeyNotFound; min/max of an empty map give EmptyTree; lower_bound with no key >= k gives KeyNotFound.  Cost (n entries, comparisons): insert/remove/lookup/contains/lower_bound/ min/max O(log n); range O(log n + m) for m results; to_list O(n); length O(1). The tree is persistent: an update rebuilds the O(log n) nodes on the path and shares everything else.  Checked instances: keys U32 (U32.cmp) and String (String.order); values are an erased type parameter.
+The production module now exports `TreeMap<K, V, cmp>`, using dynamic-array
+slots, parent-linked red-black nodes, and Data keys/values. Every query/update
+threads ownership of the map. It supplies TreeMap-style navigation, replacement,
+conditional edits, owning iterators, and backed range views. See
+[TREE_MAP.md](TREE_MAP.md) for the complete current API, ownership, costs,
+examples, benchmark commands, and explicit proof gaps.
 
-```
-new(-K: Data, -V: Data) -> OrdMap<K, V>
-length(-K: Data, -V: Data, s: OrdMap<K, V>) -> Nat
-insert(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +k: K, +v: V) -> OrdMap<K, V>
-remove(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +k: K) -> OrdMap<K, V> & Result<&2, &2, E.Error, V>
-lookup(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +k: K) -> Result<&2, &2, E.Error, V>
-contains(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +k: K) -> Bool
-min(-K: Data, -V: Data, s: OrdMap<K, V>) -> Result<&2, &2, E.Error, E.Entry<K, V>>
-max(-K: Data, -V: Data, s: OrdMap<K, V>) -> Result<&2, &2, E.Error, E.Entry<K, V>>
-lower_bound(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +k: K) -> Result<&2, &2, E.Error, E.Entry<K, V>>
-range(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, s: OrdMap<K, V>, +lo: K, +hi: K) -> List<&2, E.Entry<K, V>>
-to_list(-K: Data, -V: Data, s: OrdMap<K, V>) -> List<&2, E.Entry<K, V>>
-```
+The old persistent `OrdMap` API has moved to
+`reference/legacy_balanced_search_tree.bend` with its existing proofs. It is not
+the current production tree and its proofs do not cover the replacement.
 
 ## `bitset`
 

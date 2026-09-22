@@ -1,3 +1,11 @@
+> Current TreeMap migration (2026-09-22): the production balanced-search-tree
+> module is now the indexed Data-key/Data-value TreeMap. Its 16 checked
+> component laws are in `TREE_MAP_COMPONENT_PROOF.bend`; full indexed
+> refinement/invariant/trace proofs remain incomplete. Every recursive-tree
+> proof described below applies to `reference/legacy_balanced_search_tree.bend`,
+> not to the new implementation. See `docs/TREE_MAP.md` (or `TREE_MAP.md`
+> from this directory). No whole-library correctness claim is made.
+
 # Proof map: public operation -> specification -> theorem -> tests
 
 **Current status:** the whole-library gate is incomplete. The table below maps

@@ -323,10 +323,19 @@ def new_at(~T: Data) -> DynArray<&2, T>:
 def with_limit_at(~T: Data, +k: Nat) -> DynArray<&2, T>:
   DA{clamp_limit(k, Nat.is_lt(k, max_depth())), 0n, 1n, 0n, empty_slots_at(~T, 0n)}
 
+# Keep the element type specialized through the returned payload. Calling the
+# erased generic get_found here boxes composite Data on every indexed read.
+def get_found_at(~T: Data, limit: Nat, depth: Nat, cap: Nat, len: Nat, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> DynArray<&2, T> & Result<&2, &2, E.Error, T>:
+  match r:
+    case Tuple{arr, None{}}:
+      (DA{limit, depth, cap, len, arr}, Fail{E.IndexOutOfRange{}})
+    case Tuple{arr, Some{x}}:
+      (DA{limit, depth, cap, len, arr}, Done{x})
+
 def get_checked_at(~T: Data, limit: Nat, depth: Nat, +cap: Nat, len: Nat, arr: Array<Maybe<&2, T>>, i: Nat, ok: Bool) -> DynArray<&2, T> & Result<&2, &2, E.Error, T>:
   match ok:
     case True{}:
-      get_found(T, limit, depth, cap, len, Array.get(Maybe<&2, T>, arr, U32.from_nat(i)))
+      get_found_at(~T, limit, depth, cap, len, Array.get(Maybe<&2, T>, arr, U32.from_nat(i)))
     case False{}:
       (DA{limit, depth, cap, len, arr}, Fail{E.IndexOutOfRange{}})
 
@@ -661,3 +670,17 @@ def drain_len_owned(~T: Type, len: Nat, arr: Array<Maybe<&1, T>>) -> List<&1, T>
 def into_list_owned(~T: Type, da: DynArray<&1, T>) -> List<&1, T>:
   DA{limit, depth, cap, len, arr} = da
   drain_len_owned(~T, len, arr)
+
+# Copyable-element exchange, used by indexed collection storage. The previous
+# value is returned and all other slots remain unchanged. Like set_at, an
+# invalid index leaves the array unchanged and reports IndexOutOfRange.
+def swap_checked_at(~T: Data, limit: Nat, depth: Nat, cap: Nat, len: Nat, arr: Array<Maybe<&2, T>>, i: Nat, v: T, ok: Bool) -> DynArray<&2, T> & Result<&2, &2, E.Error, T>:
+  match ok:
+    case True{}:
+      get_found_at(~T, limit, depth, cap, len, Array.swap(Maybe<&2, T>, arr, U32.from_nat(i), Some{v}))
+    case False{}:
+      (DA{limit, depth, cap, len, arr}, Fail{E.IndexOutOfRange{}})
+
+def swap_at(~T: Data, da: DynArray<&2, T>, +i: Nat, v: T) -> DynArray<&2, T> & Result<&2, &2, E.Error, T>:
+  DA{limit, depth, cap, +len, arr} = da
+  swap_checked_at(~T, limit, depth, cap, len, arr, i, v, Nat.is_lt(i, len))

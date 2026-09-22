@@ -5,7 +5,7 @@ import ../lib/list.bend as LL
 import ../lib/order.bend as O
 import ../../spec/common.bend as SC
 import ../../spec/balanced_search_tree.bend as S
-import ../../src/balanced_search_tree.bend as B
+import ../../reference/legacy_balanced_search_tree.bend as B
 import ../../types/balanced_search_tree.bend as E
 import ./sorted.bend as SO
 import ./specops.bend as SP

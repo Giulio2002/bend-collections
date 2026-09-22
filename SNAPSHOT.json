@@ -1,6 +1,6 @@
 {
-  "at": "2026-09-22T14:07:54.260024+00:00",
+  "at": "2026-09-22T15:09:27.118712+00:00",
   "source": "/Users/monkeair/work/dsa-generational-list",
   "status": "work_in_progress",
-  "description": "WIP: dynamic-array representation now supports owning Type elements through _owned APIs. 26,795 nested-array observations, closure storage/replacement, 107 Data histories, affine rejection and proof mutation checks pass. Existing Data trace proofs preserved. Owning fixed-size swap traversal roundtrip proved for arbitrary Type; component templates checked at three owning types. Full owning public-operation/trace proofs and owning performance acceptance remain open. Owning empty-buffer initialization currently O(capacity log capacity). Existing Data push/get/set unchanged within about 1%. Indexed red-black tree migration pending; prior proven tree retained. Latest quick screen: 80 within target, 32 slow, 7 unresolved out of 119. DSA worker remains stopped."
+  "description": "Indexed CLRS red-black TreeMap replaces the recursive production tree. Reuses dynamic arrays; Data keys/values; static comparator; navigation, conditional updates, editable owning cursors and backed bounded views. 92,544 operations / 300 histories pass with independent structural/storage checks; capacity rejection/reuse and custom Data records pass. 16 component laws pass and 3 compiled mutants are rejected by tests and the component gate. Existing Data dynamic-array and retained legacy-tree proofs pass. Full indexed refinement/invariant/iterator/view proofs remain open. Final calibrated sweep: 23/33 within 2.5x C, 10 slow, 0 unresolved. Iteration/ranges, small remove/reinsert, and construction miss target. Optimized C reference unchanged. DSA worker remains stopped."
 }

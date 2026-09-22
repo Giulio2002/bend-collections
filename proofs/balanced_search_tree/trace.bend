@@ -4,7 +4,7 @@ import Base
 import ../lib/logic.bend as L
 import ../lib/list.bend as LL
 import ../lib/order.bend as O
-import ../../src/balanced_search_tree.bend as B
+import ../../reference/legacy_balanced_search_tree.bend as B
 import ../../spec/balanced_search_tree.bend as S
 import ../../types/balanced_search_tree.bend as E
 import ./steps.bend as ST

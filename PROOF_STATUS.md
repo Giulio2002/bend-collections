@@ -1,3 +1,11 @@
+> Current TreeMap migration (2026-09-22): the production balanced-search-tree
+> module is now the indexed Data-key/Data-value TreeMap. Its 16 checked
+> component laws are in `TREE_MAP_COMPONENT_PROOF.bend`; full indexed
+> refinement/invariant/trace proofs remain incomplete. Every recursive-tree
+> proof described below applies to `reference/legacy_balanced_search_tree.bend`,
+> not to the new implementation. See `docs/TREE_MAP.md` (or `TREE_MAP.md`
+> from this directory). No whole-library correctness claim is made.
+
 # Current two-list migration status
 
 `TWO_LIST_COMPONENT_PROOF.bend` passes; full `PROOF.bend` remains incomplete. Queue/deque trace proofs below describe superseded representations. Standalone DLL was removed from scope. See `docs/TWO_LIST_MIGRATION.md` for exact current coverage.
@@ -109,7 +117,7 @@ instances `src/` exposes: `(U32, U32.cmp)` and `(String, String.order)`.
 
 ## balanced_search_tree: the red-black proof
 
-`src/balanced_search_tree.bend` is an actual **red-black binary search tree**:
+`reference/legacy_balanced_search_tree.bend` is an actual **red-black binary search tree**:
 `type Tree = Leaf | Node{color, l, e, r}`, Okasaki insertion with the four
 rotation cases, and the conventional functional deletion fixup (`TD`/`UF`,
 `fix_left`/`fix_right`, `split_min`). `proofs/balanced_search_tree/tree.bend`

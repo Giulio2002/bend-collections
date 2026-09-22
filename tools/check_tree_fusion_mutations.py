@@ -8,7 +8,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 BEND = json.loads((ROOT/'inventory/toolchain.json').read_text())['binary']
-paths = ['src/balanced_search_tree.bend', 'types/balanced_search_tree.bend',
+paths = ['reference/legacy_balanced_search_tree.bend', 'types/balanced_search_tree.bend',
          'proofs/lib/logic.bend', 'proofs/balanced_search_tree/insert_fused.bend',
          'proofs/balanced_search_tree/remove_fused.bend']
 results=[]
@@ -17,7 +17,7 @@ with tempfile.TemporaryDirectory(prefix='tree-fusion-mutations-') as directory:
     for name in paths:
         target=base/name;target.parent.mkdir(parents=True,exist_ok=True)
         shutil.copyfile(ROOT/name,target)
-    source=base/'src/balanced_search_tree.bend'; original=source.read_text()
+    source=base/'reference/legacy_balanced_search_tree.bend'; original=source.read_text()
     cases=[('insert_fused','(Node{R{}, Leaf{}, E.Entry{k, v}, Leaf{}}, None{})',
             '(Node{R{}, Leaf{}, E.Entry{k, v}, Leaf{}}, Some{v})'),
            ('remove_fused','(del_here(K, V, c, l, r), Some{E.val(K, V, e)})',

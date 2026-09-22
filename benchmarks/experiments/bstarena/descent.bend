@@ -3,7 +3,7 @@ import Base
 # EXPERIMENT ONLY (not a gate input, not evidence for acceptance).
 #
 # Cost of ONE level of a data dependent descent over a native indexed block,
-# to compare with the ADT red-black tree of src/balanced_search_tree.bend.
+# to compare with the ADT red-black tree of reference/legacy_balanced_search_tree.bend.
 # `ch` is a block of 2^d child slots holding ch[j] = j mod 64; at each level
 # the walk reads ch[2*cur + bit], where bit comes from the pseudo random
 # stream, so the SLOT the next load reads is computed from the value the
