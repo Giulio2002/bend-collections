@@ -124,14 +124,14 @@ def imp_elim(+a: Bool, +b: Bool, +h: {implies(a, b) == True{} : Bool}, +ha: {a =
     case False{}:
       Empty.absurd({b == True{} : Bool}, L.false_true(ha))
 
-# a full bucket's link is a slot of the arena (2^sd slots) and a long
-# bucket's word is its key's word
+# a full bucket's link is a slot of the arena (2^sd slots) and its word is
+# its key's word
 def wb(+sd: Nat, b: Bk) -> Bool:
   match b:
     case BE{}:
       True{}
     case BF{+w, +l, +k}:
-      Bool.and(Nat.is_lt(UD.v(H.slot(l)), SC.pow2(sd)), implies(Bool.not(H.is_short(w)), U32.is_eq(w, K.kword(k))))
+      Bool.and(Nat.is_lt(UD.v(H.slot(l)), SC.pow2(sd)), Bool.and(U32.is_eq(w, K.kword(k)), Bool.not(U32.is_eq(l, 0))))
 
 def eval(p: Pred, +i: Nat) -> Bool:
   match p:

@@ -27,12 +27,12 @@ def or_true_r(+a: Bool) -> {Bool.or(a, True{}) == True{} : Bool}:
     case False{}:
       {==}
 
-def wb_sh(+x: U32, +l: U32, +kl: List<&2, String>, +sh: Bool, +hsh: {H.is_short(x) == sh : Bool}, +h: {B.implies(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(TB.keyof_c(x, TB.nths(kl, UD.v(H.slot(l))), sh)))) == True{} : Bool}) -> {B.implies(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(TB.nths(kl, UD.v(H.slot(l)))))) == True{} : Bool}:
+def wb_sh(+x: U32, +l: U32, +kl: List<&2, String>, +sh: Bool, +hsh: {H.is_short(x) == sh : Bool}, +h: {U32.is_eq(x, K.kword(TB.keyof_c(x, TB.nths(kl, UD.v(H.slot(l))), sh))) == True{} : Bool}) -> {B.implies(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(TB.nths(kl, UD.v(H.slot(l)))))) == True{} : Bool}:
   match sh:
     case True{}:
       L.subst(Bool, b => {B.implies(Bool.not(b), U32.is_eq(x, K.kword(TB.nths(kl, UD.v(H.slot(l)))))) == True{} : Bool}, True{}, H.is_short(x), Equal.sym(Bool, H.is_short(x), True{}, hsh), {==})
     case False{}:
-      h
+      L.subst(Bool, b => {B.implies(Bool.not(b), U32.is_eq(x, K.kword(TB.nths(kl, UD.v(H.slot(l)))))) == True{} : Bool}, False{}, H.is_short(x), Equal.sym(Bool, H.is_short(x), False{}, hsh), h)
 
 def wb_facts(+sd: Nat, +x: U32, +l: U32, +kl: List<&2, String>, +e: Bool, +he: {U32.is_eq(x, 0) == e : Bool}, +hw: {B.wb(sd, TB.dec_c(x, l, kl, e)) == True{} : Bool}) -> {B.implies(Bool.not(U32.is_eq(x, 0)), Nat.is_lt(UD.v(H.slot(l)), SC.pow2(sd))) == True{} : Bool} & {B.implies(Bool.not(U32.is_eq(x, 0)), B.implies(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(TB.nths(kl, UD.v(H.slot(l))))))) == True{} : Bool}:
   match e:
@@ -41,8 +41,8 @@ def wb_facts(+sd: Nat, +x: U32, +l: U32, +kl: List<&2, String>, +e: Bool, +he: {
        L.subst(Bool, b => {B.implies(Bool.not(b), B.implies(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(TB.nths(kl, UD.v(H.slot(l))))))) == True{} : Bool}, True{}, U32.is_eq(x, 0), Equal.sym(Bool, U32.is_eq(x, 0), True{}, he), {==}))
     case False{}:
       +s = TB.nths(kl, UD.v(H.slot(l)))
-      +ha = L.and_left(Nat.is_lt(UD.v(H.slot(l)), SC.pow2(sd)), B.implies(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(TB.keyof(x, s)))), hw)
-      +hb = L.and_right(Nat.is_lt(UD.v(H.slot(l)), SC.pow2(sd)), B.implies(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(TB.keyof(x, s)))), hw)
+      +ha = L.and_left(Nat.is_lt(UD.v(H.slot(l)), SC.pow2(sd)), Bool.and(U32.is_eq(x, K.kword(TB.keyof(x, s))), Bool.not(U32.is_eq(l, 0))), hw)
+      +hb = L.and_left(U32.is_eq(x, K.kword(TB.keyof(x, s))), Bool.not(U32.is_eq(l, 0)), L.and_right(Nat.is_lt(UD.v(H.slot(l)), SC.pow2(sd)), Bool.and(U32.is_eq(x, K.kword(TB.keyof(x, s))), Bool.not(U32.is_eq(l, 0))), hw))
       (L.subst(Bool, b => {B.implies(Bool.not(b), Nat.is_lt(UD.v(H.slot(l)), SC.pow2(sd))) == True{} : Bool}, False{}, U32.is_eq(x, 0), Equal.sym(Bool, U32.is_eq(x, 0), False{}, he), ha),
        L.subst(Bool, b => {B.implies(Bool.not(b), B.implies(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(s)))) == True{} : Bool}, False{}, U32.is_eq(x, 0), Equal.sym(Bool, U32.is_eq(x, 0), False{}, he), wb_sh(x, l, kl, H.is_short(x), {==}, hb)))
 
