@@ -11,6 +11,11 @@ import ./word.bend as WD
 import ./arith.bend as AR
 import ./u32div.bend as UD
 import ./u64.bend as P
+import ../lemmas/types/model.bend as T
+import ../lemmas/proofs/modular_addition.bend as MA
+import ../lemmas/proofs/modular_negation.bend as MN
+import ../lemmas/proofs/negation_magnitude.bend as NM
+import ../lemmas/proofs/word_value.bend as WV
 
 # div_small(a, d) is Nat division of the 64-bit value by d, 0 < d <= 2^20.
 # The implementation's constants 2^20, 2^12, 2^8, 4095 and 255 are carried as
@@ -269,3 +274,103 @@ def div_value(+a: U.U64, +d: U32, +hd0: {U32.is_zero(d) == False{} : Bool}, +hle
   match a:
     case U.U64{+lo, +hi}:
       gval(1n, {==}, lo, hi, d, 1048576, 4096, 256, 4095, 255, hd0, hle, {==}, {==}, {==}, {==}, {==}, {==}, {==})
+
+# ---- signed division ----
+
+def from_u(+n: Nat, +w: Word(n)) -> {S.from_nat(n, S.unsigned(n, w)) == w : Word(n)}:
+  %Equal.trans(Nat, Nat.add(S.unsigned(n, w), S.scale_binary(n, 0n)), Nat.add(S.unsigned(n, w), 0n), S.unsigned(n, w), Equal.cong(Nat, Nat, z => Nat.add(S.unsigned(n, w), z), S.scale_binary(n, 0n), 0n, A.sc_zero(n)), N.add_zero(S.unsigned(n, w))) : {S.from_nat(n, _) == w : Word(n)}
+  MA.reconstruct(n, w, 0n)
+
+# THEOREM: div_small is the specification's unsigned 64-bit quotient.
+def div_bits(+a: U.U64, +d: U32, +hd0: {U32.is_zero(d) == False{} : Bool}, +hle: {U32.is_le(d, 1048576) == True{} : Bool}) -> {P.bits(U.div_small(a, d)) == S.unsigned_quotient(64n, P.bits(a), d) : Word(64n)}:
+  Equal.trans(Word(64n), P.bits(U.div_small(a, d)), S.from_nat(64n, P.val(U.div_small(a, d))), S.unsigned_quotient(64n, P.bits(a), d),
+    Equal.sym(Word(64n), S.from_nat(64n, P.val(U.div_small(a, d))), P.bits(U.div_small(a, d)), from_u(64n, P.bits(U.div_small(a, d)))),
+    Equal.trans(Word(64n), S.from_nat(64n, P.val(U.div_small(a, d))), S.from_nat(64n, Nat.div(P.val(a), UD.v(d))), S.unsigned_quotient(64n, P.bits(a), d),
+      Equal.cong(Nat, Word(64n), z => S.from_nat(64n, z), P.val(U.div_small(a, d)), Nat.div(P.val(a), UD.v(d)), div_value(a, d, hd0, hle)),
+      Equal.sym(Word(64n), S.unsigned_quotient(64n, P.bits(a), d), S.from_nat(64n, Nat.div(P.val(a), UD.v(d))), DQ.specification_equation(64n, P.bits(a), d))))
+
+# negate, divide the magnitude, negate back: the specification's quotient of
+# a negative word, at every width
+def neg_quot(+n: Nat, +w: Word(n), +d: U32, +hnz: {W.is_zero(n, w) == False{} : Bool}) -> {Word.inc(n, Word.not(n, S.unsigned_quotient(n, Word.inc(n, Word.not(n, w)), d))) == S.negative_quotient(n, w, d) : Word(n)}:
+  match n w:
+    case 0n WNil{}:
+      {==}
+    case 1n+p WCon{+bit, +tail}:
+      +m = {1n+p : Nat}
+      +ww = {WCon{bit, tail} : Word(1n+p)}
+      +x = Word.inc(m, Word.not(m, ww))
+      +dn = U32.to_nat(d)
+      +sc = S.scale_binary(m, 1n)
+      +q = Nat.div(S.unsigned(m, x), dn)
+      +hx = NM.magnitude(m, ww, hnz)
+      +hq = N.le_lt_trans(q, S.unsigned(m, x), sc, AR.div_le(S.unsigned(m, x), dn), WD.lt1(m, 1n, {==}, S.unsigned(m, x), WD.wb(m, 1n, {==}, x)))
+      +hqv = WV.from_nat_value(m, q, L.subst(Nat, z => {Nat.is_lt(q, z) == True{} : Bool}, sc, Nat.pow(2n, m), NM.scale_power(m), hq))
+      +e1 = Equal.cong(Word(m), Word(m), z => Word.inc(m, Word.not(m, z)), S.unsigned_quotient(m, x, d), S.from_nat(m, q), DQ.specification_equation(m, x, d))
+      +e2 = MN.negation_refines(m, S.from_nat(m, q))
+      +e3 = Equal.cong(Nat, Word(m), z => S.from_nat(m, Nat.sub(sc, z)), S.unsigned(m, S.from_nat(m, q)), q, hqv)
+      +e4 = Equal.cong(Nat, Word(m), z => S.from_nat(m, Nat.sub(sc, Nat.div(z, dn))), S.unsigned(m, x), Nat.sub(sc, S.unsigned(m, ww)), hx)
+      +e5 = Equal.cong(Nat, Word(m), z => S.from_nat(m, Nat.sub(z, Nat.div(Nat.sub(z, S.unsigned(m, ww)), dn))), sc, Nat.pow(2n, m), NM.scale_power(m))
+      Equal.trans(Word(m), Word.inc(m, Word.not(m, S.unsigned_quotient(m, x, d))), Word.inc(m, Word.not(m, S.from_nat(m, q))), S.negative_quotient(m, ww, d), e1,
+        Equal.trans(Word(m), Word.inc(m, Word.not(m, S.from_nat(m, q))), S.from_nat(m, Nat.sub(sc, S.unsigned(m, S.from_nat(m, q)))), S.negative_quotient(m, ww, d), e2,
+          Equal.trans(Word(m), S.from_nat(m, Nat.sub(sc, S.unsigned(m, S.from_nat(m, q)))), S.from_nat(m, Nat.sub(sc, q)), S.negative_quotient(m, ww, d), e3,
+            Equal.trans(Word(m), S.from_nat(m, Nat.sub(sc, q)), S.from_nat(m, Nat.sub(sc, Nat.div(Nat.sub(sc, S.unsigned(m, ww)), dn))), S.negative_quotient(m, ww, d), e4, e5))))
+
+def is_zero_eq(+n: Nat, +w: Word(n), +h: {W.is_zero(n, w) == True{} : Bool}) -> {w == Word.zero(n) : Word(n)}:
+  match n w:
+    case 0n WNil{}:
+      {==}
+    case 1n+p WCon{True{}, t}:
+      Empty.absurd({WCon{True{}, t} == Word.zero(1n+p) : Word(1n+p)}, L.false_true(h))
+    case 1n+p WCon{False{}, t}:
+      Equal.cong(Word(p), Word(1n+p), z => WCon{False{}, z}, t, Word.zero(p), is_zero_eq(p, t, h))
+
+def nz_g(+w: Word(64n), +z: Bool, +hz: {W.is_zero(64n, w) == z : Bool}, +hn: {S.negative(w) == True{} : Bool}) -> {W.is_zero(64n, w) == False{} : Bool}:
+  match z:
+    case False{}:
+      hz
+    case True{}:
+      Empty.absurd({W.is_zero(64n, w) == False{} : Bool}, L.false_true(L.subst(Word(64n), x => {S.negative(x) == True{} : Bool}, w, Word.zero(64n), is_zero_eq(64n, w, hz), hn)))
+
+# a negative word is nonzero
+def nz_neg(+w: Word(64n), +hn: {S.negative(w) == True{} : Bool}) -> {W.is_zero(64n, w) == False{} : Bool}:
+  nz_g(w, W.is_zero(64n, w), {==}, hn)
+
+def qs(w: Word(64n), neg: Bool, +d: U32) -> Word(64n):
+  match neg:
+    case False{}:
+      S.unsigned_quotient(64n, w, d)
+    case True{}:
+      S.negative_quotient(64n, w, d)
+
+def signed_g(+lo: U32, +hi: U32, +d: U32, +hd0: {U32.is_zero(d) == False{} : Bool}, +hle: {U32.is_le(d, 1048576) == True{} : Bool}, +g: Bool, +hg: {S.negative(W.pack(lo, hi)) == g : Bool}) -> {P.bits(U.div_sign(U.U64{lo, hi}, d, g)) == qs(W.pack(lo, hi), g, d) : Word(64n)}:
+  match g:
+    case False{}:
+      div_bits(U.U64{lo, hi}, d, hd0, hle)
+    case True{}:
+      +a = {U.U64{lo, hi} : U.U64}
+      +r = U.div_small(U.neg(a), d)
+      Equal.trans(Word(64n), P.bits(U.neg(r)), Word.inc(64n, Word.not(64n, P.bits(r))), S.negative_quotient(64n, W.pack(lo, hi), d), P.neg(r),
+        Equal.trans(Word(64n), Word.inc(64n, Word.not(64n, P.bits(r))), Word.inc(64n, Word.not(64n, S.unsigned_quotient(64n, P.bits(U.neg(a)), d))), S.negative_quotient(64n, W.pack(lo, hi), d),
+          Equal.cong(Word(64n), Word(64n), z => Word.inc(64n, Word.not(64n, z)), P.bits(r), S.unsigned_quotient(64n, P.bits(U.neg(a)), d), div_bits(U.neg(a), d, hd0, hle)),
+          Equal.trans(Word(64n), Word.inc(64n, Word.not(64n, S.unsigned_quotient(64n, P.bits(U.neg(a)), d))), Word.inc(64n, Word.not(64n, S.unsigned_quotient(64n, Word.inc(64n, Word.not(64n, W.pack(lo, hi))), d))), S.negative_quotient(64n, W.pack(lo, hi), d),
+            Equal.cong(Word(64n), Word(64n), z => Word.inc(64n, Word.not(64n, S.unsigned_quotient(64n, z, d))), P.bits(U.neg(a)), Word.inc(64n, Word.not(64n, W.pack(lo, hi))), P.neg(a)),
+            neg_quot(64n, W.pack(lo, hi), d, nz_neg(W.pack(lo, hi), hg)))))
+
+# THEOREM: div_small_signed is the specification's signed quotient
+# (truncating toward zero), for 0 < d <= 2^20.
+def div_signed(+a: U.U64, +d: U32, +hd0: {U32.is_zero(d) == False{} : Bool}, +hle: {U32.is_le(d, 1048576) == True{} : Bool}) -> {P.bits(U.div_small_signed(a, d)) == qs(P.bits(a), S.negative(P.bits(a)), d) : Word(64n)}:
+  match a:
+    case U.U64{+lo, +hi}:
+      %Equal.sym(Bool, S.negative(W.pack(lo, hi)), U32.is_ge(hi, 2147483648), P.negative_pack(lo, hi)) : {P.bits(U.div_small_signed(U.U64{lo, hi}, d)) == qs(W.pack(lo, hi), _, d) : Word(64n)}
+      signed_g(lo, hi, d, hd0, hle, U32.is_ge(hi, 2147483648), P.negative_pack(lo, hi))
+
+def qs_spec(+w: Word(64n), +neg: Bool) -> {qs(w, neg, 1000000) == S.quotient_signed(w, neg) : Word(64n)}:
+  match neg:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+# THEOREM: dividing by 10^6 is the specification's nanoseconds-to-milliseconds.
+def milliseconds(+a: U.U64) -> {T.I64{P.bits(U.div_small_signed(a, 1000000))} == S.milliseconds(T.I64{P.bits(a)}) : T.Int64}:
+  Equal.cong(Word(64n), T.Int64, z => T.I64{z}, P.bits(U.div_small_signed(a, 1000000)), S.quotient_signed(P.bits(a), S.negative(P.bits(a))), Equal.trans(Word(64n), P.bits(U.div_small_signed(a, 1000000)), qs(P.bits(a), S.negative(P.bits(a)), 1000000), S.quotient_signed(P.bits(a), S.negative(P.bits(a))), div_signed(a, 1000000, {==}, {==}), qs_spec(P.bits(a), S.negative(P.bits(a)))))
