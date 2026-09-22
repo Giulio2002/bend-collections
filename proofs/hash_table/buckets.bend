@@ -84,13 +84,6 @@ def hb(+mask: U32, b: Bk) -> Nat:
     case BF{+w, l, k}:
       UD.v(HS.bucket(w, mask))
 
-def lnk(b: Bk) -> U32:
-  match b:
-    case BE{}:
-      0
-    case BF{w, l, k}:
-      l
-
 def hold_occ(+key: String, +b: Bk, +h: {hold(key, b) == True{} : Bool}) -> {occ(b) == True{} : Bool}:
   match b:
     case BE{}:
@@ -106,6 +99,53 @@ def occpath(+bs: List<&2, Bk>, +n: Nat, +h: Nat, +m: Nat) -> Bool:
     case 1n+s:
       Bool.and(occ(at(bs, M.pos(n, h, s))), occpath(bs, n, h, s))
 
+# (an empty bucket's link is never read; 1 keeps slot(link) small)
+def lnk(b: Bk) -> U32:
+  match b:
+    case BE{}:
+      1
+    case BF{w, l, k}:
+      l
+
+# no bucket below i holds key
+def nohb(+bs: List<&2, Bk>, +key: String, +i: Nat) -> Bool:
+  match i:
+    case 0n:
+      True{}
+    case 1n+j:
+      Bool.and(Bool.not(hold(key, at(bs, j))), nohb(bs, key, j))
+
+# no full bucket below i has link l
+def nolb(+bs: List<&2, Bk>, +l: U32, +i: Nat) -> Bool:
+  match i:
+    case 0n:
+      True{}
+    case 1n+j:
+      Bool.and(Bool.not(Bool.and(occ(at(bs, j)), U32.is_eq(lnk(at(bs, j)), l))), nolb(bs, l, j))
+
+def nthb(bs: List<&2, Bool>, +i: Nat) -> Bool:
+  match bs i:
+    case Nil{} _:
+      False{}
+    case Con{b, t} 0n:
+      b
+    case Con{b, t} 1n+p:
+      nthb(t, p)
+
+def uq_b(+bs: List<&2, Bk>, +i: Nat, b: Bk) -> Bool:
+  match b:
+    case BE{}:
+      True{}
+    case BF{w, +l, +k}:
+      Bool.and(nohb(bs, k, i), nolb(bs, l, i))
+
+def live_b(+lv: List<&2, Bool>, +f: Nat, b: Bk) -> Bool:
+  match b:
+    case BE{}:
+      True{}
+    case BF{w, +l, k}:
+      Bool.and(nthb(lv, UD.v(H.slot(l))), Nat.is_lt(UD.v(H.slot(l)), f))
+
 # bounded quantifiers over first-order predicates
 type Pred is Data:
   PClus{bs: List<&2, Bk>, n: Nat, mask: U32}
@@ -113,6 +153,8 @@ type Pred is Data:
   PHome{bs: List<&2, Bk>, mask: U32, key: String, h: Nat}
   PNo{bs: List<&2, Bk>, key: String}
   PWell{bs: List<&2, Bk>, sd: Nat}
+  PUniq{bs: List<&2, Bk>}
+  PLive{bs: List<&2, Bk>, lv: List<&2, Bool>, f: Nat}
 
 def implies(a: Bool, b: Bool) -> Bool:
   Bool.or(Bool.not(a), b)
@@ -145,6 +187,10 @@ def eval(p: Pred, +i: Nat) -> Bool:
       Bool.not(hold(key, at(bs, i)))
     case PWell{+bs, +sd}:
       wb(sd, at(bs, i))
+    case PUniq{+bs}:
+      uq_b(bs, i, at(bs, i))
+    case PLive{+bs, +lv, +f}:
+      live_b(lv, f, at(bs, i))
 
 # p(0) && ... && p(n - 1)
 def all_lt(+p: Pred, +n: Nat) -> Bool:

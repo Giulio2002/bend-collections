@@ -551,3 +551,14 @@ def min_right(+a: Nat, +b: Nat, +h: {Nat.is_lt(a, b) == False{} : Bool}) -> {Nat
       {==}
     case 1n+ap 1n+bp:
       succ_cong(Nat.min(ap, bp), bp, min_right(ap, bp, h))
+
+def is_eq_sym_false(+a: Nat, +b: Nat, +h: {Nat.is_eq(a, b) == False{} : Bool}) -> {Nat.is_eq(b, a) == False{} : Bool}:
+  match a b:
+    case 0n 0n:
+      h
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      is_eq_sym_false(p, q, h)

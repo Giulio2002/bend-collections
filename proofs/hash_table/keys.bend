@@ -103,3 +103,10 @@ def kword_long(+key: String, +hk: {shortk(key) == False{} : Bool}) -> {kword(key
 
 def kword_short(+c: U32, +hc: {U32.is_lt(c, H.tag()) == True{} : Bool}) -> {kword(SCon{Chr{c}, SNil{}}) == H.short_word(c) : U32}:
   L.subst(Bool, b => {kw_c(c, SNil{}, b) == H.short_word(c) : U32}, True{}, U32.is_lt(c, H.tag()), Equal.sym(Bool, U32.is_lt(c, H.tag()), True{}, hc), {==})
+
+def not_true_eq(+b: Bool, +h: {Bool.not(b) == True{} : Bool}) -> {b == False{} : Bool}:
+  match b:
+    case True{}:
+      Empty.absurd({True{} == False{} : Bool}, L.false_true(h))
+    case False{}:
+      {==}
