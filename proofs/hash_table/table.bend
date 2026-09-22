@@ -46,7 +46,7 @@ def dec_c(+w: U32, +l: U32, +ks: List<&2, String>, empty: Bool) -> B.Bk:
     case True{}:
       B.BE{}
     case False{}:
-      B.BF{w, l, keyof(w, nths(ks, Nat.sub(UD.v(l), 1n)))}
+      B.BF{w, l, keyof(w, nths(ks, UD.v(H.slot(l))))}
 
 # bucket i of the arrays
 def dec(+tb: List<&2, U32>, +ks: List<&2, String>, +i: Nat) -> B.Bk:
