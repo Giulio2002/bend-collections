@@ -15,7 +15,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-BEND = os.environ.get('BEND', str(Path.home() / '.bend' / 'bin' / 'bend'))
+import sys; sys.path.insert(0, str(Path(__file__).resolve().parent))
+from toolchain import BEND, ENV as BENV
 OUT = ROOT / 'build' / 'lru_diff'
 CC = os.environ.get('CC', 'cc')
 FLAGS = ['-O3', '-march=native', '-std=c11', '-fno-strict-aliasing']
@@ -32,7 +33,7 @@ def build():
     for name, flags in (('c', FLAGS), ('csan', SAN)):
         subprocess.run([CC] + flags + ['-o', str(OUT / name), str(src)], check=True)
     p = subprocess.run([BEND, 'benchmarks/bend/lru.bend', '-o', str(OUT / 'bend')],
-                       cwd=ROOT, capture_output=True, text=True)
+                       cwd=ROOT, capture_output=True, text=True, env=BENV)
     if not (OUT / 'bend').exists():
         raise SystemExit(p.stdout + p.stderr)
 

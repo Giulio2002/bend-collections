@@ -17,7 +17,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-BEND = str(Path.home() / '.bend' / 'bin' / 'bend')
+import sys; sys.path.insert(0, str(Path(__file__).resolve().parent))
+from toolchain import BEND, ENV as BENV
 TEST = __import__('os').environ.get('HT_TEST', 'tests/hash_table/main.bend')
 BIN = ROOT / 'build' / ('hash_table_test' + __import__('os').environ.get('HT_SUFFIX', ''))
 NONE = 4294967295
@@ -26,7 +27,7 @@ NONE = 4294967295
 def build():
     BIN.parent.mkdir(parents=True, exist_ok=True)
     p = subprocess.run([BEND, '' + TEST + '', '-o', str(BIN)],
-                       cwd=ROOT, capture_output=True, text=True)
+                       cwd=ROOT, capture_output=True, text=True, env=BENV)
     if not BIN.exists():
         sys.exit(p.stdout + p.stderr)
 

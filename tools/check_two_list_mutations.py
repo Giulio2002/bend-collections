@@ -5,7 +5,8 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/'tools'),str(ROOT/'tests/support')]
 from mutants import MUTANTS
 import scenarios,oracles
-BEND=json.loads((ROOT/'tools/toolchain.json').read_text())['binary']
+import sys; sys.path.insert(0, str(Path(__file__).resolve().parent))
+from toolchain import BEND, ENV
 report=[]
 with tempfile.TemporaryDirectory(prefix='bend-two-list-mutants-') as directory:
  root=Path(directory)
@@ -17,7 +18,7 @@ with tempfile.TemporaryDirectory(prefix='bend-two-list-mutants-') as directory:
    p=root/filename;original=p.read_text();assert original.count(old)==1
    p.write_text(original.replace(old,new));binary=root/'mutant'
    try:
-    build=subprocess.run([BEND,str(root/'tests'/name/'main.bend'),'-o',str(binary)],capture_output=True,text=True,timeout=60)
+    build=subprocess.run([BEND,str(root/'tests'/name/'main.bend'),'-o',str(binary)],capture_output=True,text=True,timeout=60, env=ENV)
     assert build.returncode==0 and 'Error:' not in build.stdout+build.stderr,(label,build.stderr)
     detected=False
     for args in cases:
