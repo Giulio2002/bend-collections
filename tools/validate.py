@@ -318,17 +318,23 @@ def main():
             # The production module is now the indexed TreeMap. Never count
             # the retained recursive implementation's trace proof as its own.
             (ROOT/'build/tree-map').mkdir(parents=True, exist_ok=True)
+            (ROOT/'build/tree-fold').mkdir(parents=True, exist_ok=True)
             checks = []
             for command in [[BEND, 'tests/tree_map/main.bend', '-o', 'build/tree-map/test'],
                             [sys.executable, 'tools/check_tree_map.py'],
-                            [BEND, 'TREE_MAP_COMPONENT_PROOF.bend']]:
+                            [BEND, 'TREE_MAP_COMPONENT_PROOF.bend'],
+                            [BEND, 'TREE_RANGE_PROOF.bend'],
+                            [BEND, 'TREE_FOLD_PROOF.bend'],
+                            [BEND, 'tests/tree_map/fold.bend', '-o', 'build/tree-fold/test'],
+                            [sys.executable, 'tools/check_tree_folds.py'],
+                            [sys.executable, 'tools/check_tree_map.py', '--binary', 'build/tree-fold/test', '--report', 'build/tree-fold/tests.json']]:
                 result = run(command, timeout=120)
                 checks.append({'command': command, 'passed': result.returncode == 0,
                                'output': result.stdout + result.stderr})
                 if result.returncode != 0:
                     fail(name, 'TreeMap check failed: ' + repr(command))
                     break
-            good = len(checks) == 3 and all(x['passed'] for x in checks)
+            good = len(checks) == 8 and all(x['passed'] for x in checks)
             rows.append({'id': name, 'implementation': 'indexed TreeMap',
                          'runtime': 'passed' if good else 'failed',
                          'component_proof': 'passed' if good else 'failed',

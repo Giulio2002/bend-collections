@@ -163,3 +163,21 @@ remains incomplete for pre-existing collection migrations.
 ## Traversal optimization (2026-09-22)
 
 Range traversal is 1.43–1.66× faster and full iteration 1.29–1.55× faster than the prior indexed TreeMap. All six measured rows still exceed 2.5× C. Three additional local laws pass in `TREE_RANGE_PROOF.bend`; full indexed correctness and traversal equivalence remain open. See [measurements and scope](../benchmarks/evidence/tree-range-20260922/README.md).
+
+## Bulk folds
+
+`fold(~K, ~V, ~cmp, ~S, ~visit, map, initial)` returns `(map, accumulator)` in comparator order. `view_fold` returns `(view, accumulator)` and respects the view's bounds and direction. Keys, values and accumulator are Data; the callback is a static `S -> K -> V -> S` function. It cannot mutate the owning map during traversal. Editable cursors remain available separately.
+
+```bend
+def total(acc: U32, key: U32, value: U32) -> U32:
+  U32.add(acc, value)
+
+# m is an existing TreeMap<U32, U32, U32.cmp>.
+# M.fold(~U32, ~U32, ~U32.cmp, ~U32, ~total, m, 0)
+```
+
+The loop retains metadata and payload buffers, resolves the terminal node once, and uses the existing parent-link successor walk. Initial membership is checked before traversing, including equal exclusive endpoints. It avoids constructing a cursor and optional entry per item. For valid red-black maps and lawful comparators, traversal work is O(log N + visited entries), excluding callback costs; this complexity statement is an algorithm analysis, not a checked complexity theorem.
+
+`TREE_FOLD_PROOF.bend` checks empty/singleton folds, two-entry order in both directions, equal-exclusive empty ranges, exclusive upper bounds. These component laws do not prove arbitrary-tree fold refinement. Independent boundary tests cover all endpoint inclusivity combinations and require the entire arena to remain unchanged.
+
+Measured bulk-fold improvement and reproducible commands: [fold benchmark evidence](../benchmarks/evidence/tree-fold-20260922/README.md). All six traversal workloads still miss the 2.5× optimized C target.

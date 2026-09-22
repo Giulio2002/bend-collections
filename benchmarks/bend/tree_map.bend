@@ -108,6 +108,17 @@ def do_max(st: St) -> St:
   S{r, c, m} = st
   fin_entry(B.lcg(r), c, BT.last_entry(~U32, ~U32, ~U32.cmp, m))
 
+def visit(c: U32, k: U32, v: U32) -> U32:
+  B.mix(B.mix(c, k), v)
+
+def folded(r: U32, st: BT.TreeMap<U32, U32, U32.cmp> & U32) -> St:
+  (m, c) = st
+  S{r, c, m}
+
+def view_folded(r: U32, st: BT.View<U32, U32, U32.cmp> & U32) -> St:
+  (view, c) = st
+  S{r, c, BT.view_finish(~U32, ~U32, ~U32.cmp, view)}
+
 def fold_loop(fuel: Nat, r: U32, c: U32, st: BT.Cursor<U32, U32, U32.cmp> & Maybe<&2, BT.Entry<U32, U32>>) -> St:
   match fuel st:
     case 0n Tuple{cursor, item}:
@@ -119,14 +130,14 @@ def fold_loop(fuel: Nat, r: U32, c: U32, st: BT.Cursor<U32, U32, U32.cmp> & Mayb
 
 def fold_start(r: U32, c: U32, p: BT.TreeMap<U32, U32, U32.cmp> & Nat) -> St:
   (m, n) = p
-  fold_loop(1n+n, r, c, BT.iterator_next(~U32, ~U32, ~U32.cmp, BT.iterator(~U32, ~U32, ~U32.cmp, m)))
+  folded(r, BT.fold(~U32, ~U32, ~U32.cmp, ~U32, ~visit, m, c))
 
 def range_ready(r: U32, c: U32, n: Nat, p: Result<&1, &1, BT.InvalidView<U32, U32, U32.cmp>, BT.View<U32, U32, U32.cmp>>) -> St:
   match p:
     case Fail{BT.InvalidView{m, e}}:
       S{r, c, m}
     case Done{view}:
-      fold_loop(1n+n, r, c, BT.iterator_next(~U32, ~U32, ~U32.cmp, BT.view_iterator(~U32, ~U32, ~U32.cmp, view)))
+      view_folded(r, BT.view_fold(~U32, ~U32, ~U32.cmp, ~U32, ~visit, view, c))
 
 def range_with(+r: U32, c: U32, m: BT.TreeMap<U32, U32, U32.cmp>, +n: Nat) -> St:
   range_ready(r, c, 1n+n, BT.sub_map(~U32, ~U32, ~U32.cmp, m, BT.Inclusive{B.below(r, U32.from_nat(1n+n))}, BT.Exclusive{B.below(hi(r), U32.from_nat(1n+n))}))

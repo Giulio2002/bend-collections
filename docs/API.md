@@ -332,3 +332,5 @@ See [semantics, proof scope, and Bend/C benchmarks](DLIST_ITERATOR.md).
 ## Owning dynamic-array elements
 
 `DynArray<T>` now accepts non-copyable Type values. Data clients use `DynArray<&2, T>`. See [ownership API, examples, validation and limitations](DYNAMIC_ARRAY_OWNERSHIP.md).
+
+TreeMap also exports `fold` and `view_fold`, with a static callback and Data accumulator. They return the original owning map/view alongside the final accumulator. See [bulk folds](TREE_MAP.md#bulk-folds) for signature, ordering and proof scope. Editable iterator APIs remain available.

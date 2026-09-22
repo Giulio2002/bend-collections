@@ -55,6 +55,9 @@ type Cursor<-K: Data, -V: Data, -cmp: K -> K -> Cmp> is Type:
   Cursor{map: TreeMap<K, V, cmp>, next: Nat, current: Nat,
          lower: Bound<K>, upper: Bound<K>, forward: Bool}
 
+type FoldState<-K: Data, -V: Data, -S: Data> is Type:
+  FS{nodes: Array<Maybe<&2, Node<K>>>, payloads: Array<Maybe<&2, Maybe<&2, V>>>, next: Nat, acc: S}
+
 def pick(-T: Type, b: Bool, yes: T, no: T) -> T:
   match b:
     case True{}:
@@ -329,6 +332,18 @@ def view_entry_checked(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V,
       (View{m, lower, upper, descending}, Some{entry})
     case False{}:
       (View{m, lower, upper, descending}, None{})
+
+def fold_advance(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, payloads: Array<Maybe<&2, Maybe<&2, V>>>, acc: S, r: Array<Maybe<&2, Node<K>>> & Nat) -> FoldState<K, V, S>:
+  (nodes, next) = r
+  FS{nodes, payloads, next, acc}
+
+def fold_finish(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, n: Nat, root: Nat, lo: Nat, hi: Nat, free: Nat, nl: Nat, nd: Nat, nc: Nat, nu: Nat, vl: Nat, vd: Nat, vc: Nat, vu: Nat, st: FoldState<K, V, S>) -> TreeMap<K, V, cmp> & S:
+  FS{nodes, payloads, next, acc} = st
+  (TM{n, root, lo, hi, free, D.DA{nl, nd, nc, nu, nodes}, D.DA{vl, vd, vc, vu, payloads}}, acc)
+
+def view_fold_finish(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, lower: Bound<K>, upper: Bound<K>, descending: Bool, r: TreeMap<K, V, cmp> & S) -> View<K, V, cmp> & S:
+  (m, acc) = r
+  (View{m, lower, upper, descending}, acc)
 
 def child(~K: Data, +n: Node<K>, forward: Bool) -> Nat:
   pick(Nat, forward, node_right(~K, n), node_left(~K, n))
@@ -782,6 +797,13 @@ def iterator_reseek(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, k: Maybe<&2, K>, lo
 def replace_if_equal(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, m: TreeMap<K, V, cmp>, +k: K, +expected: V, +replacement: V) -> TreeMap<K, V, cmp> & Bool:
   replace_if_found(~K, ~V, ~cmp, ~eq, expected, replacement, search(~K, ~V, ~cmp, m, k))
 
+def fold_payload(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, nodes: Array<Maybe<&2, Node<K>>>, +n: Nat, +used: Nat, +id: Nat, +parent_id: Nat, +child_id: Nat, +forward: Bool, acc: S, key: K, r: Array<Maybe<&2, Maybe<&2, V>>> & Maybe<&2, Maybe<&2, V>>) -> FoldState<K, V, S>:
+  match r:
+    case Tuple{payloads, Some{Some{value}}}:
+      fold_advance(~K, ~V, ~cmp, ~S, ~visit, payloads, visit(acc, key, value), neighbor_slots(~K, ~V, ~cmp, nodes, n, used, id, parent_id, forward, child_id))
+    case Tuple{payloads, _}:
+      FS{nodes, payloads, 0n, acc}
+
 def attach(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +p: Nat, +x: Nat, +on_left: Bool) -> TreeMap<K, V, cmp>:
   set_parent(~K, ~V, ~cmp, attach_side(~K, ~V, ~cmp, m, p, x, on_left), x, p)
 
@@ -810,6 +832,13 @@ def view_get_checked(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, c
       view_value(~K, ~V, ~cmp, lower, upper, descending, get(~K, ~V, ~cmp, m, k))
     case False{}:
       (View{m, lower, upper, descending}, None{})
+
+def fold_checked(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, +n: Nat, +used: Nat, +id: Nat, +forward: Bool, acc: S, payloads: Array<Maybe<&2, Maybe<&2, V>>>, nodes: Array<Maybe<&2, Node<K>>>, key: K, parent_id: Nat, child_id: Nat, valid: Bool) -> FoldState<K, V, S>:
+  match valid:
+    case False{}:
+      FS{nodes, payloads, 0n, acc}
+    case True{}:
+      fold_payload(~K, ~V, ~cmp, ~S, ~visit, nodes, n, used, id, parent_id, child_id, forward, acc, key, Array.get(Maybe<&2, Maybe<&2, V>>, payloads, U32.from_nat(Nat.sub(id, 1n))))
 
 def rotate_left_3(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: Node<K>, +yn: Node<K>, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp>:
   (m3, +pn) = pair_result
@@ -843,6 +872,13 @@ def iterator_checked(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, c
       iterator_yield(~K, ~V, ~cmp, id, lower, upper, forward, entry, neighbor(~K, ~V, ~cmp, m, id, forward))
     case False{}:
       (Cursor{m, 0n, current, lower, upper, forward}, None{})
+
+def fold_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, +n: Nat, +used: Nat, +id: Nat, +forward: Bool, acc: S, payloads: Array<Maybe<&2, Maybe<&2, V>>>, r: Array<Maybe<&2, Node<K>>> & Node<K>) -> FoldState<K, V, S>:
+  match r:
+    case Tuple{nodes, Free{next}}:
+      FS{nodes, payloads, 0n, acc}
+    case Tuple{nodes, N{red, left, right, parent_id, +key}}:
+      fold_checked(~K, ~V, ~cmp, ~S, ~visit, n, used, id, forward, acc, payloads, nodes, key, parent_id, pick(Nat, forward, right, left), True{})
 
 def rotate_left_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: Node<K>, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp>:
   (m2, +yn) = pair_result
@@ -878,6 +914,13 @@ def iterator_read(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +current: N
 def view_contains_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V, cmp>, +k: K) -> View<K, V, cmp> & Bool:
   view_contains_value(~K, ~V, ~cmp, view_get(~K, ~V, ~cmp, view, k))
 
+def fold_stop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, +n: Nat, +used: Nat, +id: Nat, +forward: Bool, acc: S, nodes: Array<Maybe<&2, Node<K>>>, payloads: Array<Maybe<&2, Maybe<&2, V>>>, stop: Bool) -> FoldState<K, V, S>:
+  match stop:
+    case True{}:
+      FS{nodes, payloads, 0n, acc}
+    case False{}:
+      fold_node(~K, ~V, ~cmp, ~S, ~visit, n, used, id, forward, acc, payloads, node_slot(~K, ~V, ~cmp, nodes, used, id))
+
 def rotate_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp>:
   (m1, +xn) = pair_result
   rotate_left_2(~K, ~V, ~cmp, x, xn, read(~K, ~V, ~cmp, m1, node_right(~K, xn)))
@@ -897,6 +940,15 @@ def navigate(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +k:
 def iterator_next(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, cursor: Cursor<K, V, cmp>) -> Cursor<K, V, cmp> & Maybe<&2, Entry<K, V>>:
   Cursor{m, +next, current, lower, upper, forward} = cursor
   iterator_read(~K, ~V, ~cmp, next, current, lower, upper, forward, entry_snapshot(~K, ~V, ~cmp, (m, next)))
+
+def fold_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, fuel: Nat, +n: Nat, +used: Nat, +forward: Bool, +stop: Nat, st: FoldState<K, V, S>) -> FoldState<K, V, S>:
+  match fuel st:
+    case 0n st:
+      st
+    case 1n+f FS{nodes, payloads, 0n, acc}:
+      FS{nodes, payloads, 0n, acc}
+    case 1n+f FS{nodes, payloads, 1n+ +i, acc}:
+      fold_loop(~K, ~V, ~cmp, ~S, ~visit, f, n, used, forward, stop, fold_stop(~K, ~V, ~cmp, ~S, ~visit, n, used, 1n+i, forward, acc, nodes, payloads, Nat.is_eq(1n+i, stop)))
 
 def rotate_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +x: Nat) -> TreeMap<K, V, cmp>:
   rotate_left_1(~K, ~V, ~cmp, x, read(~K, ~V, ~cmp, m, x))
@@ -975,6 +1027,19 @@ def view_clear_next(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: Cursor<K, V, cmp
   (cursor, removed) = r
   iterator_next(~K, ~V, ~cmp, cursor)
 
+def fold_cursor_run(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, cursor: Cursor<K, V, cmp>, acc: S, stop: Nat) -> TreeMap<K, V, cmp> & S:
+  Cursor{TM{+n, root, lo, hi, free, D.DA{nl, nd, nc, +nu, nodes}, D.DA{vl, vd, vc, vu, payloads}}, next, current, lower, upper, forward} = cursor
+  fold_finish(~K, ~V, ~cmp, ~S, ~visit, n, root, lo, hi, free, nl, nd, nc, nu, vl, vd, vc, vu, fold_loop(~K, ~V, ~cmp, ~S, ~visit, 1n+n, n, nu, forward, stop, FS{nodes, payloads, next, acc}))
+
+def fold_end(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, bound: Bound<K>, +forward: Bool) -> TreeMap<K, V, cmp> & Nat:
+  match bound:
+    case Unbounded{}:
+      (m, 0n)
+    case Inclusive{key}:
+      navigate(~K, ~V, ~cmp, m, key, forward, False{})
+    case Exclusive{key}:
+      navigate(~K, ~V, ~cmp, m, key, forward, True{})
+
 def insert_black_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool) -> TreeMap<K, V, cmp> & Fix:
   match triangle:
     case True{}:
@@ -1014,6 +1079,10 @@ def view_extreme(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V, cmp>,
   View{m, +lower, +upper, +descending} = view
   +up = pick(Bool, descending, Bool.not(first), first)
   view_entry_result(~K, ~V, ~cmp, lower, upper, descending, entry_snapshot(~K, ~V, ~cmp, range_start(~K, ~V, ~cmp, m, pick(Bound<K>, up, lower, upper), up)))
+
+def fold_cursor_end(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, next: Nat, current: Nat, lower: Bound<K>, upper: Bound<K>, forward: Bool, acc: S, r: TreeMap<K, V, cmp> & Nat) -> TreeMap<K, V, cmp> & S:
+  (m, stop) = r
+  fold_cursor_run(~K, ~V, ~cmp, ~S, ~visit, Cursor{m, next, current, lower, upper, forward}, acc, stop)
 
 def insert_uncle_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +z: Nat, +p: Nat, +g: Nat, +u: Nat, +triangle: Bool, +uncle: Node<K>) -> TreeMap<K, V, cmp> & Fix:
   match uncle:
@@ -1055,6 +1124,10 @@ def view_size(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V, cmp>) ->
   View{TM{+n, root, lo, hi, free, nodes, payloads}, lower, upper, descending} = view
   view_count_loop(~K, ~V, ~cmp, 1n+n, 0n, iterator_next(~K, ~V, ~cmp, view_iterator(~K, ~V, ~cmp, View{TM{n, root, lo, hi, free, nodes, payloads}, lower, upper, descending})))
 
+def fold_cursor_started(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, cursor: Cursor<K, V, cmp>, acc: S) -> TreeMap<K, V, cmp> & S:
+  Cursor{m, next, current, +lower, +upper, +forward} = cursor
+  fold_cursor_end(~K, ~V, ~cmp, ~S, ~visit, next, current, lower, upper, forward, acc, fold_end(~K, ~V, ~cmp, m, pick(Bound<K>, forward, upper, lower), forward))
+
 def insert_side_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: Node<K>, +gn: Node<K>, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp> & Fix:
   (m1, +un) = pair_result
   insert_uncle_left(~K, ~V, ~cmp, m1, z, p, g, node_right(~K, gn), Nat.is_eq(z, node_right(~K, pn)), un)
@@ -1083,6 +1156,13 @@ def view_ceiling_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V,
 def view_higher_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: View<K, V, cmp>, +k: K) -> View<K, V, cmp> & Maybe<&2, Entry<K, V>>:
   view_nav(~K, ~V, ~cmp, view, k, True{}, False{})
 
+def fold_cursor_valid(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, acc: S, r: Cursor<K, V, cmp> & Bool) -> TreeMap<K, V, cmp> & S:
+  match r:
+    case Tuple{cursor, False{}}:
+      (iterator_finish(~K, ~V, ~cmp, cursor), acc)
+    case Tuple{cursor, True{}}:
+      fold_cursor_started(~K, ~V, ~cmp, ~S, ~visit, cursor, acc)
+
 def insert_side_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +z: Nat, +p: Nat, +g: Nat, +pn: Node<K>, +gn: Node<K>) -> TreeMap<K, V, cmp> & Fix:
   insert_side_left_1(~K, ~V, ~cmp, z, p, g, pn, gn, read(~K, ~V, ~cmp, m, node_right(~K, gn)))
 
@@ -1094,6 +1174,9 @@ def delete_borrow_read_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<
 
 def delete_borrow_read_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +p: Nat) -> TreeMap<K, V, cmp> & DeleteFix:
   delete_borrow_read_right_1(~K, ~V, ~cmp, p, read(~K, ~V, ~cmp, m, p))
+
+def fold_cursor(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, cursor: Cursor<K, V, cmp>, acc: S) -> TreeMap<K, V, cmp> & S:
+  fold_cursor_valid(~K, ~V, ~cmp, ~S, ~visit, acc, iterator_has_next(~K, ~V, ~cmp, cursor))
 
 def insert_side(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, cmp>, +z: Nat, +p: Nat, +g: Nat, +pn: Node<K>, +gn: Node<K>, +on_left: Bool) -> TreeMap<K, V, cmp> & Fix:
   match on_left:
@@ -1115,6 +1198,13 @@ def delete_far_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, c
       delete_borrow_right(~K, ~V, ~cmp, m, p, w, pn, wn)
     case False{}:
       delete_borrow_read_right(~K, ~V, ~cmp, rotate_left(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, node_right(~K, wn), False{}), w, True{}), w), p)
+
+def fold(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, m: TreeMap<K, V, cmp>, acc: S) -> TreeMap<K, V, cmp> & S:
+  fold_cursor(~K, ~V, ~cmp, ~S, ~visit, iterator(~K, ~V, ~cmp, m), acc)
+
+def view_fold(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~S: Data, ~visit: S -> K -> V -> S, view: View<K, V, cmp>, acc: S) -> View<K, V, cmp> & S:
+  View{m, +lower, +upper, +descending} = view
+  view_fold_finish(~K, ~V, ~cmp, ~S, ~visit, lower, upper, descending, fold_cursor(~K, ~V, ~cmp, ~S, ~visit, view_iterator(~K, ~V, ~cmp, View{m, lower, upper, descending}), acc))
 
 def insert_grand_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +pn: Node<K>, pair_result: TreeMap<K, V, cmp> & Node<K>) -> TreeMap<K, V, cmp> & Fix:
   (m1, +gn) = pair_result

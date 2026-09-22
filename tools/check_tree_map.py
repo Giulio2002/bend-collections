@@ -7,7 +7,7 @@ Diagnostic serialization is test-only and excluded from performance timings.
 import argparse, json, random, subprocess, time
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
-p=argparse.ArgumentParser();p.add_argument('--seeds',type=int,default=100);p.add_argument('--steps',type=int,default=300);a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--seeds',type=int,default=100);p.add_argument('--steps',type=int,default=300);p.add_argument('--binary',type=Path,default=ROOT/'build/tree-map/test');p.add_argument('--report',type=Path,default=ROOT/'build/tree-map/tests.json');a=p.parse_args()
 
 def validate_dump(text, model, key, peak):
     h,*slots=text.split(';');n,root,first,last,free=map(int,h.split(','))
@@ -56,7 +56,7 @@ for kind,key in [('ascending',lambda k:k),('reverse',lambda k:-k),('groups',lamb
     ops += [(rng.choices(list(range(32))+list(range(33,51)),weights=[30,8,25,2,0.2,3,1,1,3,3,3,3,2,2,1,1,2,2,2,2,1,5,5,2,2,2,3,0.5,1,3,3,3,2,2,2]+[1]*15)[0],rng.randrange(150),rng.randrange(10000)) for _ in range(a.steps)]
     args=[]
     for op,k,v in ops:args += [f'{op}:{k}:{v}','99']
-    r=subprocess.run([str(ROOT/'build/tree-map/test'),kind]+args,capture_output=True,text=True,timeout=60)
+    r=subprocess.run([str(a.binary),kind]+args,capture_output=True,text=True,timeout=60)
     assert r.returncode==0,(kind,seed,r.stderr)
     lines=r.stdout.splitlines();assert lines.pop(0)=='start';assert len(lines)==2*len(ops),(len(lines),len(ops),r.stdout[:2000])
     m={};peak=0
@@ -137,8 +137,8 @@ for kind,key in [('ascending',lambda k:k),('reverse',lambda k:-k),('groups',lamb
       checks+=1
     histories+=1
 # Capacity rejection must preserve entries; the freed slot must accept a new key.
-r=subprocess.run([str(ROOT/'build/tree-map/test'),'ascending','32:1','0:1:10','0:2:20','0:3:30','2:1','0:3:30','3','99'],capture_output=True,text=True,check=True,timeout=30)
+r=subprocess.run([str(a.binary),'ascending','32:1','0:1:10','0:2:20','0:3:30','2:1','0:3:30','3','99'],capture_output=True,text=True,check=True,timeout=30)
 lines=r.stdout.splitlines();assert lines[:-1]==['start','ok','-','-','ERROR','10','-','2'],lines
 validate_dump(lines[-1],{2:(2,20),3:(3,30)},lambda k:k,2)
 report={'capacity_rejection_and_reuse':True,'passed':True,'histories':histories,'operations':checks,'seconds':time.monotonic()-start,'checks':['independent map oracle','ascending/reverse/equivalence-class comparators','stored key retained on replacement','black root','parent links','no red-red edges','equal black heights','strict order','cached size/endpoints','live/free partition','cleared free payloads','reused freed slots'],'api':'updates, navigation, polling, bidirectional iteration, cursor edits/removal, bounded backed views', 'scope':'finite differential testing; not a universal proof'}
-(ROOT/'build/tree-map/tests.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
+a.report.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))

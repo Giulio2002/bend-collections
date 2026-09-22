@@ -27,3 +27,5 @@ remains stopped. This snapshot is not a whole-library completion or acceptance
 claim. See `docs/TREE_MAP.md` and `benchmarks/evidence/tree-map-20260922/`.
 
 Latest: reduced range/iteration overhead; see benchmarks/evidence/tree-range-20260922/README.md. Complete indexed proofs and performance acceptance remain open.
+
+Latest bulk API optimization: see benchmarks/evidence/tree-fold-20260922/README.md. Editable iterators remain available; bulk-fold timings do not describe individual iterator calls. Performance acceptance and full formal verification remain unfinished.
