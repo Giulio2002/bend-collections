@@ -37,7 +37,6 @@ SIZE_CHANGING = {
 }
 SIZE_CHANGING_FULL = {
     'dynamic_array.clear',      # empties the array
-    'union_find.union',         # merges classes: the partition collapses
     'balanced_search_tree.remove',
     'doubly_linked_list.remove',
 }
@@ -279,20 +278,6 @@ empties('bitset', [('new', 10), ('length', 4), ('get', 2), ('set', 0),
                    ('clear', 1), ('count', 3), ('union', 6), ('intersection', 7),
                    ('difference', 8), ('xor', 9), ('to_list', 5)])
 
-# --------------------------------------------------------------- union_find
-UF = (64, 4096, 65536)
-UFF = (100000, 50000, 20000)
-three('union_find', 'find', 0, UF, UFF)
-three('union_find', 'union', 1, UF, UFF)
-three('union_find', 'connected', 2, UF, UFF)
-three('union_find', 'component_size', 3, UF, UFF)
-three('union_find', 'component_count', 4, UF, FAST)
-add('union_find', 'new', 5, 'small', 64, 200000)
-add('union_find', 'new', 5, 'medium', 4096, 200000)
-add('union_find', 'new', 5, 'large', 65536, 50000)
-empties('union_find', [('new', 5), ('find', 0), ('union', 1), ('connected', 2),
-                       ('component_size', 3), ('component_count', 4)], 100000)
-
 # -------------------------------------------------------------- segment_tree
 SG = (64, 4096, 262144)
 SGF = (50000, 20000, 10000)
@@ -334,3 +319,10 @@ for _index, _row in enumerate(TABLE):
     _row['seed'] = 1000 + _index
 EXCLUDED_EMPTY_ROWS = [dict(row) for row in TABLE if row['size'] == 0]
 TABLE = [row for row in TABLE if row['size'] != 0]
+
+# Preserve RNG workloads across collection removals and reordering.
+import json as _json
+from pathlib import Path as _Path
+_seeds = _json.loads((_Path(__file__).with_name('workload-seeds.json')).read_text())
+for _row in TABLE:
+    _row['seed'] = _seeds[_row['operation']+'|'+_row['workload']]

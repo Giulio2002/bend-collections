@@ -467,15 +467,19 @@ def min_go(-K: Data, -V: Data, t: Tree<K, V>) -> Maybe<&2, E.Entry<K, V>>:
   match t:
     case Leaf{}:
       None{}
-    case Node{c, l, e, r}:
-      orelse(K, V, min_go(K, V, l), e)
+    case Node{c, Leaf{}, e, r}:
+      Some{e}
+    case Node{c, Node{cc, ll, ee, rr}, e, r}:
+      min_go(K, V, Node{cc, ll, ee, rr})
 
 def max_go(-K: Data, -V: Data, t: Tree<K, V>) -> Maybe<&2, E.Entry<K, V>>:
   match t:
     case Leaf{}:
       None{}
-    case Node{c, l, e, r}:
-      orelse(K, V, max_go(K, V, r), e)
+    case Node{c, l, e, Leaf{}}:
+      Some{e}
+    case Node{c, l, e, Node{cc, ll, ee, rr}}:
+      max_go(K, V, Node{cc, ll, ee, rr})
 
 # a = cmp(key at the root of t, k): the first entry with key >= k
 def lb(~K: Data, ~cmp: K -> K -> Cmp, -V: Data, t: Tree<K, V>, +k: K, a: Cmp) -> Maybe<&2, E.Entry<K, V>>:

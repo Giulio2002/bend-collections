@@ -94,17 +94,6 @@
       ]
     },
     {
-      "id": "union_find",
-      "operations": [
-        "new",
-        "find",
-        "union",
-        "connected",
-        "component_size",
-        "component_count"
-      ]
-    },
-    {
       "id": "segment_tree",
       "operations": [
         "new",

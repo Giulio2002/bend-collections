@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+"""Render the manual optimization report without touching other projects."""
+import argparse,datetime,html,json
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+p=argparse.ArgumentParser();p.add_argument('--before',type=Path,required=True);p.add_argument('--after',type=Path);p.add_argument('--note',default='Optimization in progress');a=p.parse_args()
+b=json.loads(a.before.read_text());c=json.loads(a.after.read_text()) if a.after else b
+old={x['operation']:x for x in b['results']};rows=[]
+for x in sorted(c['results'],key=lambda x:x['operation']):
+ o=old.get(x['operation'],{});br=o.get('ratio');cr=x.get('ratio');color='bad' if cr and cr>2.5 else 'good' if cr else 'unknown'
+ fmt=lambda n: '—' if n is None else f'{n:.2f}×'
+ rows.append(f'<tr class="{color}"><td>{html.escape(x["operation"])}</td><td>{fmt(br)}</td><td>{fmt(cr)}</td><td>{html.escape(x["status"])}</td><td>{x.get("bend_ns",0):.2f}</td><td>{x.get("c_ns",0):.2f}</td><td>{html.escape(x.get("method",""))}</td></tr>')
+now=datetime.datetime.now().astimezone().isoformat(timespec='seconds');slow=sum(x.get('ratio',0)>2.5 for x in c['results']);unknown=sum('ratio' not in x for x in c['results'])
+page='''<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Bend collections optimization</title><style>body{background:#111827;color:#e5e7eb;font:16px system-ui;margin:32px}a{color:#93c5fd}table{border-collapse:collapse;width:100%}td,th{padding:10px;text-align:left;border-bottom:1px solid #374151}.bad td:nth-child(3){color:#f87171}.good td:nth-child(3){color:#4ade80}.unknown{color:#fbbf24}th{position:sticky;top:0;background:#1f2937}p{max-width:1100px;line-height:1.5}input{padding:10px;margin:15px 0;width:350px}</style>'''
+page+=f'<h1>Bend collections — manual optimization</h1><p>Updated {now}. DSA auto-implementer remains stopped.</p><p>{html.escape(a.note)}</p><p><b>{len(c["results"])} operations · {slow} above 2.5× · {unknown} unresolved timings · {c["seconds"]:.2f}s quick sweep</b></p><p>Ratios are Bend / optimized C. One smallest nonempty workload per operation. Quick estimates are noisy and are not full acceptance. No performance claim for unresolved rows. Get/pop/remove rows may include restoring insertion on both sides. C reference unchanged.</p><p>Implementation: stack, arena DLL, two-list queue/deque, array heap, red-black tree and remaining collections. No union-find, graph, Fenwick, Trie or Counter. Queue facade tests: 24,000 operations passed; adapter gate passes. Full library proof gate remains incomplete.</p><input id="q" placeholder="Filter operations"><table><thead><tr><th>Operation</th><th>Before</th><th>Current</th><th>Status</th><th>Bend ns/op</th><th>C ns/op</th><th>Measurement</th></tr></thead><tbody>'+''.join(rows)+'</tbody></table><script>q.oninput=()=>document.querySelectorAll("tbody tr").forEach(r=>r.hidden=!r.textContent.toLowerCase().includes(q.value.toLowerCase()))</script>'
+out=ROOT/'build/optimization.html';out.write_text(page)
+site=Path('/Users/monkeair/progress-dashboard/site');(site/'dsa-benchmarks.html').write_text(page);(site/'dsa-benchmarks.json').write_text(json.dumps(c))
+p=site.parent/'assessment.json';d=json.loads(p.read_text());v=d['projects']['dsa'];v.update(scope='13 collections including LRU and queue facades; no union-find/graph/Fenwick/Trie/Counter. 2.5× optimized C target.',implementation_done='Stack, arena DLL and LifoQueue/SimpleQueue/PriorityQueue added. Matching C benchmarks built.',implementation_missing='Optimize measured slow operations; owning-Type scope and complete proofs remain unfinished.',pace=a.note,performance_status=f'Quick provisional: {len(c["results"])} operations, {slow} above 2.5x, {unknown} unresolved; {c["seconds"]:.2f}s. Full gate not passed.',reviewed_at=now);p.write_text(json.dumps(d,indent=2)+'\n')
+print(out)

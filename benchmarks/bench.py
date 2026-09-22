@@ -14,6 +14,7 @@ def fingerprints():
     paths=[]
     for directory in ['src','types','benchmarks/bend','benchmarks/native']:
         paths += [p for p in (ROOT/directory).rglob('*') if p.suffix in ['.bend','.c','.h']]
+    paths += [ROOT/'benchmarks/workloads.py', ROOT/'benchmarks/workload-seeds.json']
     return {str(p.relative_to(ROOT)):bench.sha(p) for p in sorted(paths)}
 
 def build():
@@ -30,16 +31,17 @@ def verify_build():
         for kind,path in [('bend',bench.BENDBIN/name),('c',bench.REFBIN/name)]:
             if not path.exists() or bench.sha(path)!=hashes[kind]:raise SystemExit('Missing/stale binary: '+str(path))
 
-def execute(path,row,count,reps,is_bend,deadline):
+def execute(path,row,count,reps,is_bend,deadline,order=0):
     remaining=deadline-time.monotonic()
     if remaining<=0:raise TimeoutError('time budget exhausted')
-    args=[str(path)]+(['--threads','1','--'] if is_bend else [])+list(map(str,[row['op'],row['size'],count,reps,row['seed'],0]))
+    args=[str(path)]+(['--threads','1','--'] if is_bend else [])+list(map(str,[row['op'],row['size'],count,reps,row['seed'],order]))
     p=subprocess.run(args,capture_output=True,text=True,env=bench.ENV,timeout=remaining)
     if p.returncode:raise RuntimeError(p.stderr[-300:])
     match=bench.TIME_RE.search(p.stdout)
     if not match:raise RuntimeError('missing timing output')
     times=[int(x)*(1000000 if is_bend else 1) for x in match.groups()]
     checks=[s.strip() for s in p.stderr.splitlines() if s.strip().isdigit()]
+    if is_bend and order: checks.reverse()
     return times[0]-times[1],checks,{'stdout':p.stdout,'stderr':p.stderr,'elapsed_ns':times}
 
 def quick(seconds,out):
@@ -70,7 +72,20 @@ def quick(seconds,out):
                 # At least 3 Bend clock ticks; still a rough screen, not acceptance.
                 if bd>=3000000 and cd>=10000:
                     b=bd/(count*reps);c=cd/(count*reps)
-                    result.update(status='ESTIMATE',bend_ns=b,c_ns=c,ratio=b/c,above_target=b/c>2.5)
+                    values=[(b,c)]
+                    for repeat in [1,2]:
+                        if row_deadline-time.monotonic()<.025:break
+                        try:
+                            bd2,bc2,blog2=execute(bench.BENDBIN/row['structure'],row,count,reps,True,row_deadline,repeat%2)
+                            cd2,cc2,clog2=execute(bench.REFBIN/row['structure'],row,count,reps,False,row_deadline,repeat%2)
+                        except (subprocess.TimeoutExpired,TimeoutError):
+                            result['repeat_note']='additional samples exceeded quick budget';break
+                        raw.append({'operation':row['operation'],'attempt':attempt,'repeat':repeat,'count':count,'reps':reps,'bend':blog2,'c':clog2})
+                        if bc2!=cc2 or bc2!=bc:raise RuntimeError('repeat checksum mismatch')
+                        if bd2>=3000000 and cd2>=10000:values.append((bd2/(count*reps),cd2/(count*reps)))
+                    b=statistics.median(v[0] for v in values);c=statistics.median(v[1] for v in values)
+                    ratios=[v[0]/v[1] for v in values]
+                    result.update(status='ESTIMATE',bend_ns=b,c_ns=c,ratio=b/c,above_target=b/c>2.5,samples=len(values),ratio_min=min(ratios),ratio_max=max(ratios))
                     break
                 if attempt<3:
                     factor=min(64,max(2,math.ceil(6000000/max(bd,100000))))
@@ -82,7 +97,7 @@ def quick(seconds,out):
         results.append(result)
         ratio=f" {result['ratio']:.2f}x" if 'ratio' in result else ''
         print(f"[{i+1}/{len(rows)}] {row['operation']}: {result['status']}{ratio}",flush=True)
-    report={'mode':'quick','acceptance':False,'budget_seconds':seconds,'seconds':round(time.monotonic()-started,3),'target_ratio':2.5,'scope':'Smallest nonempty workload per operation; single valid sample, at most three calibration retries','timing_note':'Bend clock has 1ms resolution; >=3ms batch differences are rough estimates. No full-suite acceptance is claimed.','expected_operations':len(rows),'results':results,'raw_samples':raw,'source_sha256':fingerprints()}
+    report={'mode':'quick','acceptance':False,'budget_seconds':seconds,'seconds':round(time.monotonic()-started,3),'target_ratio':2.5,'scope':'Smallest nonempty workload per operation; up to three valid samples with alternating region order, at most three calibration retries','timing_note':'Bend clock has 1ms resolution; >=3ms batch differences are rough estimates. No full-suite acceptance is claimed.','expected_operations':len(rows),'results':results,'raw_samples':raw,'source_sha256':fingerprints()}
     out.parent.mkdir(parents=True,exist_ok=True);out.write_text(json.dumps(report,indent=2)+'\n')
     print(f"Quick report: {out} ({report['seconds']:.2f}s)",flush=True)
 

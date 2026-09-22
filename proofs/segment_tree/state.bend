@@ -16,7 +16,7 @@ import ./walk.bend as W
 # The shadow of a segment tree.
 #
 # `Base.Array` is linear, so -- exactly as in proofs/fenwick_tree,
-# proofs/bitset and proofs/union_find -- every law is stated about
+# proofs/bitset -- every law is stated about
 # `real(sh)`, the structure whose two cell arrays are built from Data mirror
 # trees, and each law names the shadow the operation lands on.
 #

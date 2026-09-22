@@ -63,7 +63,6 @@ and where a genuine link survives:
 | `deque` | `Base.Array` ring of `T` slots, capacity `2^depth`; an empty deque owns NO block (`DE{}`) because `Array.new` needs a filler element and `T` is an arbitrary `Data` with no default | element `j` is slot `wrap(lo + j)`, `wrap(x) = x < cap ? x : x - cap` | none | `proofs/deque/{ring,state,grow,layout,stepok,reads,pushes,steps}.bend` |
 | `queue` | the deque (enqueue = push_back, dequeue = pop_front) | as the deque | none | `proofs/queue/{steps,trace}.bend` over the deque shadow |
 | `bitset` | `Base.Array` of packed `U32` words | bit `i` is word `i / 32`, bit `i % 32` | none | `proofs/bitset/{state,loops,fastcount,steps}.bend` |
-| `union_find` | three parallel `Base.Array`s: `roots` (representative per element), `sizes` (class size at a representative) and `mems` (the class's member list at a representative) | element `i` is slot `i`; `find` is ONE indexed load | the member list at a representative is a cons list of `Nat` inside the arena slot. Eager full compression has to enumerate the smaller class on every `union`, so the algorithm needs that membership sequence; the pinned `benchmarks/native/union_find.c` keeps it as a `Member*` chain with a `last` pointer. Storing it instead as `next`/`last` INDEX links in two more `U32` arenas (the exact C layout) is listed as remaining representation work in WORK_LOG.md; it is the one place where a cons cell still carries structure. | `proofs/union_find/{state,arr,flat,init,steps}.bend` |
 | `fenwick_tree` | one `Base.Array` of `U32` cells, flat split-point layout | value `t` is cell `2^d + t`; a block `[o, o + 2^p)` keeps its partial sum at cell `o + 2^(p-1)` | none | `proofs/fenwick_tree/{state,arr,walk,init,steps}.bend` |
 | `segment_tree` | two `Base.Array`s of `U32` cells (sums, lazy tags), same split-point layout | as fenwick, plus the tag array at the block's split point | none | `proofs/segment_tree/{state,arr,walk,init,steps}.bend` |
 | `binary_heap` | `Base.Array` of `Maybe<A>` slots, capacity `2^depth` (PACKED array heap) | element `i` is slot `i`, children `2i+1`/`2i+2`, parent `(i-1)/2` | none | `proofs/binary_heap/{state,slots,idx,up,down,steps}.bend` |
@@ -101,7 +100,7 @@ building a list; the same treatment would apply to it and has not been done.
 Every constructor builds the normal usable representation immediately and
 initialises the storage it needs; none of them returns a deferred placeholder
 that charges its allocation to the first operation. `dynamic_array`, `bitset`,
-`union_find`, `binary_heap`, `fenwick_tree`, `segment_tree`, `graph` and
+`binary_heap`, `fenwick_tree`, `segment_tree`, `graph` and
 `doubly_linked_list` all allocate (and fill) their first block inside `new`.
 Growth on later insertions is the conventional doubling; an empty structure
 does not reserve future capacity. Deferred-initialization variants tried in
@@ -147,7 +146,7 @@ no half" -- one flat allocation, indexed access, no per-element node.
 `Base.Array` is a **linear** type: it is a flat array in the native backend
 with O(1) indexed read and write, and it cannot be duplicated or dropped
 implicitly. The structures built on it (`dynamic_array`, `deque`, `queue`,
-`bitset`, `union_find`, `fenwick_tree`, `segment_tree`) are therefore
+`bitset`, `fenwick_tree`, `segment_tree`) are therefore
 threaded - every operation takes the structure and gives it back - and
 released explicitly where a driver needs it (`bitset`, `fenwick_tree` and
 `segment_tree` expose `dispose` and `clone`). Their proofs are stated about

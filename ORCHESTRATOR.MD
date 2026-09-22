@@ -183,7 +183,7 @@ Do NOT use linked lists as runtime storage for algorithms that do not intrinsica
 need linked lists. Use native Base.Array, packed word arrays, indexed arenas,
 fixed records and appropriate existing native Map/Set facilities. No linked-list
 backing for dynamic arrays, ring-buffer queues/deques, binary heaps, bitsets,
-union-find parent/size/member storage, Fenwick/segment-tree indexed storage, or
+segment-tree indexed storage or
 merely to hold graph neighbors/trie children. Logical adjacency lists do not require
 cons-cell storage; use an appropriate array/indexed or native-map representation.
 Do not convert arrays to lists internally for convenience, then convert back.

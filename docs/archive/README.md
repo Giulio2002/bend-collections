@@ -9,7 +9,6 @@ auditable rather than merely asserted.
 |---|---|---|---|
 | `balanced_search_tree.two_three.bend.txt`, `proofs_tree.two_three.bend.txt`, `proofs_query.two_three.bend.txt` | the 2-3 tree ordered map and its proofs | an actual red-black binary tree | the requirement named red-black explicitly |
 | `bitset.word_list.bend.txt`, `proofs_bitset*.word_list.bend.txt` | packed words in a cons list | packed words in a native `Base.Array` | O(words) indexed access against C's O(1) |
-| `union_find.vec_of_cells.bend.txt`, `proofs_union_find*.vec_of_cells.bend.txt` | one persistent tree of 3-field cells | three parallel `Base.Array` arenas | a 3-field read cost 6.5 ns against 1.5 ns for a 1-field read |
 | `deque.two_lists.bend.txt`, `proofs_deque*.two_lists.bend.txt` | the banker's deque (two retained cons lists) | a window `[lo, lo+len)` of a `Base.Array` block | every end operation is now one indexed access instead of a retained `&2` list step (~8.6x C per step) |
 | `fenwick_tree.node_tree.bend.txt`, `proofs_fenwick_*.node_tree.bend.txt` | the Fenwick partial sums in an explicit node tree | one flat `Base.Array` in the split-point layout | same reason; the node tree survives verbatim as the *proof model* in `proofs/fenwick_tree/model.bend` |
 | `segment_tree.node_tree.bend.txt`, `proofs_segment_*.node_tree.bend.txt` | sums and lazy tags in an explicit node tree | two flat `Base.Array`s in the split-point layout | same reason; the node tree survives verbatim as the *proof model* in `proofs/segment_tree/node.bend` |
@@ -96,47 +95,3 @@ bits, so that every word index is a representable U32), so the laws about
 no capacity bound. `step_ok` and the trace law from any invariant-satisfying
 state remain unconditional.
 
-# Archive: the replaced vector-of-cells `union_find`
-
-Before the arena migration, `src/union_find.bend` kept one
-`V.Vec<Cell>` of three-field cells (`root`, `size`, `members`). Two measured
-facts made that representation the wrong one on Bend's native backend:
-
-* reading a *wide* record out of an array costs per field — a 3-field cell
-  read measured 6.5 ns against 1.5 ns for a 1-field read, so every `find`
-  paid for the size and member fields it did not use;
-* the `Vec` was a retained shareable tree walked by pattern matching, the one
-  primitive the cost model at the top of `BENCHMARKS.md` shows is ~8.6x C.
-
-The structure now keeps **three parallel narrow arenas** — `Array<Nt>` roots,
-`Array<Nt>` sizes, `Array<Ms>` member lists — each indexed with
-`Array.get`/`Array.set`, which the cost model shows is 1.06x C.
-
-| file | was |
-|---|---|
-| `union_find.vec_of_cells.bend.txt` | `src/union_find.bend` |
-| `proofs_union_find.vec_of_cells.bend.txt` | `proofs/union_find.bend` |
-| `proofs_union_find_steps.vec_of_cells.bend.txt` | `proofs/union_find/steps.bend` |
-| `proofs_union_find_init.vec_of_cells.bend.txt` | `proofs/union_find/init.bend` |
-| `proofs_union_find_trace.vec_of_cells.bend.txt` | `proofs/union_find/trace.bend` |
-
-What carried over unchanged, so the replacement did not restart proven
-mathematics:
-
-* `types/union_find.bend` and `spec/union_find.bend` — the public types and
-  the independent partition model never mentioned the representation;
-* `proofs/union_find/model.bend` (303 lines) and `proofs/union_find/union.bend`
-  (513 lines) — the whole cell-list mathematics, including `good2`,
-  `labs_relabel` and `fix_count`, survived with only the mechanical rename of
-  the proof-level `Cell` into the new `proofs/union_find/cells.bend`;
-* `proofs/union_find/trace.bend` — trace composition needed only the shadow
-  form, which is now shared verbatim with `proofs/bitset/trace.bend`.
-
-What the replacement cost: the arenas have a capacity (2^31 slots, so that
-every slot index is a representable U32), so the laws about `new(n)` now carry
-an explicit premise that `n` fits it; `step_ok` and the trace law from any
-invariant-satisfying state remain unconditional. The bridge between the three
-arenas and the one cell list the mathematics talks about is
-`proofs/union_find/cells.bend` (the zip) plus `proofs/union_find/arr.bend`
-(slot lists of `Base.Array`), and `proofs/union_find/bridge.bend` proves the
-one equation that lets the retained `union.bend` apply to it.

@@ -255,14 +255,10 @@ header says so explicitly. Concretely:
 | `dynamic_array` | `Base.Array` of slots, capacity `2^depth`, doubling | flat buffer, doubling | identical growth policy and amortised bounds |
 | `deque`, `queue` | `Base.Array` block, elements in the window `[lo, lo + len)`, block doubled at the end that runs out | the same windowed block, doubled the same way | identical index arithmetic; both O(1) amortised at both ends |
 | `bitset` | `Base.Array` of packed `U32` words | flat `U32` array | identical packed-word representation |
-| `union_find` | three parallel `Base.Array`s (parent, size, members) | flat arrays of the same three fields | identical union-by-size relinking |
-| `fenwick_tree` | one `Base.Array` of cells, flat split-point layout | flat array, same index arithmetic | identical walks |
 | `segment_tree` | two `Base.Array`s (sums, lazy tags), same layout | two flat arrays, same recursion | identical lazy propagation |
 | `binary_heap` | `Base.Array` block, elements in slots `[0, size)`, children `2i+1`/`2i+2`, block doubled when full | flat array heap, same indices, same doubling | identical sift order and identical array operations per level |
 | `balanced_search_tree` | red-black tree of `Node{color, l, entry, r}` | the same red-black algorithm, nodes reused in place (`benchmarks/native/redblack.h`) | identical rotations, identical fixup cases, identical order |
-| `prefix_trie` | trie nodes `TNode{c, val, down, next}` (children as a sibling chain) | the same sibling chains | identical traversal |
 | `doubly_linked_list` | `Base.OrdMap` node store keyed by handle, each node holding prev/next handles | arena of node records + the same ordered map | identical handle semantics (ids never reused, stale/foreign rejected) |
-| `graph` | `Base.OrdMap` of vertex to `Base.OrdMap` neighbour set | the same two ordered maps | identical adjacency representation |
 
 The first seven rows are array-backed on both sides and are the rows where
 the two implementations really do the same thing to the same bytes. The last

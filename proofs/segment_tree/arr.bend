@@ -13,7 +13,7 @@ import ../../src/segment_tree.bend as F
 # talks about. Both arrays hold the same cell type, so one set of lemmas
 # serves both.
 #
-# Arrays are linear, so (exactly as in proofs/bitset and proofs/union_find)
+# Arrays are linear, so (exactly as in proofs/bitset)
 # every statement is about `A.thaw(t)`, the array built from a Data mirror
 # tree `t`; `cl(t)` is the list of the U32 values in index order.
 

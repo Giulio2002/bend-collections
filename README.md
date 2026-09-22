@@ -6,7 +6,7 @@ passing component gates do not establish whole-library correctness.**
 
 Current collection inventory: dynamic array, deque, FIFO queue, stack,
 arena-backed doubly linked list, binary min-heap, red-black search tree,
-bitset, union-find, segment tree, LRU, LifoQueue, SimpleQueue, PriorityQueue.
+bitset, segment tree, LRU, LifoQueue, SimpleQueue, PriorityQueue.
 Fenwick tree, graph and Trie have been removed. No Counter is included.
 
 The three queue facades reuse the existing implementations:

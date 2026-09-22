@@ -43,14 +43,6 @@ import ./proofs/bitset.bend as BIP
 import ./proofs/bitset/state.bend as BIST
 import ./proofs/bitset/steps.bend as BISP
 import ./proofs/bitset/trace.bend as BITR
-import ./src/union_find.bend as UF
-import ./spec/union_find.bend as UFS
-import ./types/union_find.bend as UFT
-import ./proofs/union_find.bend as UFP
-import ./proofs/union_find/state.bend as UFSH
-import ./proofs/union_find/steps.bend as UFST
-import ./proofs/union_find/init.bend as UFIN
-import ./proofs/union_find/trace.bend as UFTR
 import ./src/segment_tree.bend as SG
 import ./spec/segment_tree.bend as SGS
 import ./types/segment_tree.bend as SGT
@@ -703,52 +695,6 @@ law bitset_trace:
   BITR.TraceOK(ops, BITR.initial(n))
 def bitset_trace(n, ops, h):
   BIP.trace_new(n, ops, h)
-
-# ============================ union_find ==============================
-
-law union_find_new:
-  for +n: Nat
-  for +h: {Nat.is_le(n, SCOM.pow2(UF.depth_for(n))) == True{} : Bool}
-  {UFSH.model(UFIN.initial(n)) == UFS.new(n) : List<&2, Nat>}
-def union_find_new(n, h):
-  UFP.new_abs(n, h)
-
-law union_find_new_invariant:
-  for +n: Nat
-  for +h: {Nat.is_le(n, SCOM.pow2(UF.depth_for(n))) == True{} : Bool}
-  {UFSH.good(UFIN.initial(n)) == True{} : Bool}
-def union_find_new_invariant(n, h):
-  UFP.new_inv(n, h)
-
-law union_find_new_is_the_constructor:
-  for +n: Nat
-  {UF.new(n) == UFSH.real(UFIN.initial(n)) : UF.UnionFind}
-def union_find_new_is_the_constructor(n):
-  UFP.new_real(n)
-
-law union_find_step:
-  for +sh: UFSH.Sh
-  for op: UFT.Op
-  for +g: {UFSH.good(sh) == True{} : Bool}
-  UFST.StepOK(sh, op)
-def union_find_step(sh, op, g):
-  UFP.step_ok(sh, op, g)
-
-law union_find_shadow_unique:
-  for +a: UFSH.Sh
-  for +b: UFSH.Sh
-  for +e: {UFSH.real(a) == UFSH.real(b) : UF.UnionFind}
-  {a == b : UFSH.Sh}
-def union_find_shadow_unique(a, b, e):
-  UFP.shadow_unique(a, b, e)
-
-law union_find_trace:
-  for +n: Nat
-  for +ops: List<&2, UFT.Op>
-  for +h: {Nat.is_le(n, SCOM.pow2(UF.depth_for(n))) == True{} : Bool}
-  UFTR.TraceOK(ops, UFIN.initial(n))
-def union_find_trace(n, ops, h):
-  UFP.trace_new(n, ops, h)
 
 # =========================== segment_tree =============================
 

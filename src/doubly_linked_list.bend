@@ -256,32 +256,101 @@ def project_list(~T: Data, r: DList<T> & E.Obs<T>) -> DList<T> & List<&2, T>:
     case Tuple{s, other}:
       (s, Nil{})
 
+def length_direct_result(~T: Data, tag: U32, depth: Nat, cap: U32, gens: Array<U32>, r: R.DList<T> & Nat) -> DList<T> & Nat:
+  (raw, n) = r
+  (DL{tag, depth, cap, raw, gens}, n)
+
 def length(~T: Data, s: DList<T>) -> DList<T> & Nat:
-  project_length(~T, step(~T, s, E.Length{}))
+  DL{tag, depth, cap, raw, gens} = s
+  length_direct_result(~T, tag, depth, cap, gens, R.length(~T, raw))
+
+def to_list_direct_result(~T: Data, tag: U32, depth: Nat, cap: U32, gens: Array<U32>, r: R.DList<T> & List<&2, T>) -> DList<T> & List<&2, T>:
+  (raw, xs) = r
+  (DL{tag, depth, cap, raw, gens}, xs)
 
 def to_list(~T: Data, s: DList<T>) -> DList<T> & List<&2, T>:
-  project_list(~T, step(~T, s, E.ToList{}))
+  DL{tag, depth, cap, raw, gens} = s
+  to_list_direct_result(~T, tag, depth, cap, gens, R.to_list(~T, raw))
 
-def get(~T: Data, s: DList<T>, h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, T>:
-  project_value(~T, step(~T, s, E.Get{h}))
+# Direct public read path. Keep generation validation, but avoid allocating an
+# Op/Obs envelope and executing the general trace dispatcher for one get.
+def get_result(~T: Data, tag: U32, depth: Nat, cap: U32, gens: Array<U32>, r: R.DList<T> & Result<&2, &2, I.Error, T>) -> DList<T> & Result<&2, &2, E.Error, T>:
+  (raw, result) = r
+  (DL{tag, depth, cap, raw, gens}, item_result(~T, result))
 
-def remove(~T: Data, s: DList<T>, h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, T>:
-  project_value(~T, step(~T, s, E.Remove{h}))
+def get_ready(~T: Data, h: E.Handle, r: DList<T> & Maybe<&2, E.Error>) -> DList<T> & Result<&2, &2, E.Error, T>:
+  match r:
+    case Tuple{s, Some{e}}:
+      (s, Fail{e})
+    case Tuple{DL{tag, depth, cap, raw, gens}, None{}}:
+      get_result(~T, tag, depth, cap, gens, R.get(~T, raw, old_handle(h)))
 
-def set(~T: Data, s: DList<T>, h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, Unit>:
-  project_unit(~T, step(~T, s, E.Set{h, x}))
+def get(~T: Data, s: DList<T>, +h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, T>:
+  get_ready(~T, h, validate(~T, s, h))
 
-def next(~T: Data, s: DList<T>, h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
-  project_neighbour(~T, step(~T, s, E.Next{h}))
+def remove_ready(~T: Data, h: E.Handle, r: DList<T> & Maybe<&2, E.Error>) -> DList<T> & Result<&2, &2, E.Error, T>:
+  match h r:
+    case E.H{owner, id, generation} Tuple{s, Some{e}}:
+      (s, Fail{e})
+    case E.H{+owner, +id, generation} Tuple{DL{tag, depth, cap, raw, gens}, None{}}:
+      project_value(~T, removed(~T, tag, depth, cap, gens, id, generation, R.remove(~T, raw, I.H{owner, id})))
 
-def prev(~T: Data, s: DList<T>, h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
-  project_neighbour(~T, step(~T, s, E.Prev{h}))
+def remove(~T: Data, s: DList<T>, +h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, T>:
+  remove_ready(~T, h, validate(~T, s, h))
 
-def insert_before(~T: Data, s: DList<T>, h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
-  project_insert(~T, step(~T, s, E.InsertBefore{h, x}))
+def set_result(~T: Data, tag: U32, depth: Nat, cap: U32, gens: Array<U32>, r: R.DList<T> & Result<&2, &2, I.Error, Unit>) -> DList<T> & Result<&2, &2, E.Error, Unit>:
+  (raw, result) = r
+  (DL{tag, depth, cap, raw, gens}, item_result(~Unit, result))
 
-def insert_after(~T: Data, s: DList<T>, h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
-  project_insert(~T, step(~T, s, E.InsertAfter{h, x}))
+def set_ready(~T: Data, +h: E.Handle, x: T, r: DList<T> & Maybe<&2, E.Error>) -> DList<T> & Result<&2, &2, E.Error, Unit>:
+  match r:
+    case Tuple{s, Some{e}}:
+      (s, Fail{e})
+    case Tuple{DL{tag, depth, cap, raw, gens}, None{}}:
+      set_result(~T, tag, depth, cap, gens, R.set(~T, raw, old_handle(h), x))
+
+def set(~T: Data, s: DList<T>, +h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, Unit>:
+  set_ready(~T, h, x, validate(~T, s, h))
+
+def next_ready(~T: Data, +h: E.Handle, r: DList<T> & Maybe<&2, E.Error>) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
+  match r:
+    case Tuple{s, Some{e}}:
+      (s, Fail{e})
+    case Tuple{DL{tag, depth, cap, raw, gens}, None{}}:
+      project_neighbour(~T, neighbour_result(~T, tag, depth, cap, gens, R.next(~T, raw, old_handle(h))))
+
+def next(~T: Data, s: DList<T>, +h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
+  next_ready(~T, h, validate(~T, s, h))
+
+def prev_ready(~T: Data, +h: E.Handle, r: DList<T> & Maybe<&2, E.Error>) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
+  match r:
+    case Tuple{s, Some{e}}:
+      (s, Fail{e})
+    case Tuple{DL{tag, depth, cap, raw, gens}, None{}}:
+      project_neighbour(~T, neighbour_result(~T, tag, depth, cap, gens, R.prev(~T, raw, old_handle(h))))
+
+def prev(~T: Data, s: DList<T>, +h: E.Handle) -> DList<T> & Result<&2, &2, E.Error, Maybe<&2, E.Handle>>:
+  prev_ready(~T, h, validate(~T, s, h))
+
+def insert_before_ready(~T: Data, +h: E.Handle, +x: T, r: DList<T> & Maybe<&2, E.Error>) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
+  match r:
+    case Tuple{s, Some{e}}:
+      (s, Fail{e})
+    case Tuple{DL{tag, depth, cap, raw, gens}, None{}}:
+      project_insert(~T, relative_result(~T, tag, depth, cap, gens, R.insert_before_reuse(~T, raw, old_handle(h), x)))
+
+def insert_before(~T: Data, s: DList<T>, +h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
+  insert_before_ready(~T, h, x, validate(~T, s, h))
+
+def insert_after_ready(~T: Data, +h: E.Handle, +x: T, r: DList<T> & Maybe<&2, E.Error>) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
+  match r:
+    case Tuple{s, Some{e}}:
+      (s, Fail{e})
+    case Tuple{DL{tag, depth, cap, raw, gens}, None{}}:
+      project_insert(~T, relative_result(~T, tag, depth, cap, gens, R.insert_after_reuse(~T, raw, old_handle(h), x)))
+
+def insert_after(~T: Data, s: DList<T>, +h: E.Handle, x: T) -> DList<T> & Result<&2, &2, E.Error, E.Handle>:
+  insert_after_ready(~T, h, x, validate(~T, s, h))
 
 def record(~T: Data, acc: List<&2, E.Obs<T>>, r: DList<T> & E.Obs<T>) -> DList<T> & List<&2, E.Obs<T>>:
   (s, o) = r

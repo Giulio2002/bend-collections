@@ -7,7 +7,7 @@ cost of each operation are documented in the header comment of the source file
 
 Some structures are **persistent**: an update returns a new value and shares
 everything it did not have to rebuild. The array-backed ones (`dynamic_array`,
-`deque`, `queue`, `bitset`, `union_find`, `fenwick_tree`, `segment_tree`) are
+`deque`, `queue`, `bitset`, `fenwick_tree`, `segment_tree`) are
 built on native `Base.Array`, which is **linear**: they are threaded (every
 operation takes the structure and gives it back) and released explicitly
 where a caller needs it. Failures never change the state -- an operation that
@@ -223,19 +223,6 @@ dispose(s: Bitset) -> Unit
 The trace runner's binary operations take the operand as a bit sequence and
 compare the logical sizes *before* building the operand bitset
 (`comb_bits`), so a mismatched operand costs nothing.
-
-## `union_find`
-
-Disjoint-set union over the elements 0 .. n-1.  Representation: three parallel native `Base.Array` arenas of 2^depth slots (2^depth >= n), indexed by element: `roots[x]` is x's class representative, and at a representative r, `sizes[r]` is its exact class size and `members[r]` the list of its members. `Base.Array` is linear, so every operation takes the structure and gives it back, and a structure that is no longer needed is released with `dispose`.  Union by size with eager full compression: the representative of the larger class survives (ties: the class of the first argument) and every member of the smaller class is repointed at it immediately. Because every element points straight at its representative, `find` is a single indexed read and never rewrites the structure: this is the documented Bend-appropriate equivalent of path compression, performed eagerly at union time instead of lazily at find time. `benchmarks/native/union_find.c` implements the same algorithm.  Errors never change the state: any index >= n yields OutOfRange.  Capacity: the arena depth stops at 31 (2^31 slots), so every slot index is a representable U32; the laws about `new(n)` carry that as an explicit premise.  Cost (documented, not proved): find / connected / component_size / component_count are a constant number of indexed reads; union performs one indexed write per member of the smaller class plus a constant number of reads; new O(n).
-
-```
-new(+n: Nat) -> UnionFind
-find(s: UnionFind, +x: Nat) -> Result<&2, &2, E.Error, Nat>
-union(s: UnionFind, +a: Nat, +b: Nat) -> UnionFind & Result<&2, &2, E.Error, Bool>
-connected(s: UnionFind, +a: Nat, +b: Nat) -> Result<&2, &2, E.Error, Bool>
-component_size(s: UnionFind, +x: Nat) -> Result<&2, &2, E.Error, Nat>
-component_count(s: UnionFind) -> Nat
-```
 
 ## `fenwick_tree`
 

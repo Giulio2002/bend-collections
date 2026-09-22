@@ -6,7 +6,7 @@ Deliver all twelve missing data structures in inventory/structures.json in pure 
 
 The protected inventory is the minimum complete public operation set. Write APIs in src/<id>.bend, independent specs in spec/<id>.bend, proofs in proofs/<id>.bend, public laws in END_TO_END.bend imported by PROOF.bend. Additional internal modules are allowed. Native Base.Array is fixed capacity with wrapping indices: dynamic_array must add logical length, safe get/set, growth/reserve, empty behavior and overflow rejection while reusing it; never pass unchecked indices or an unrepresentable capacity. Use native indexed storage and verify its generated C layout; do not infer complexity merely from the source type.
 
-Recommended dependency order: dynamic_array first; deque and its queue specialization; heap and packed bitset; union-find, Fenwick and segment trees; balanced search tree, prefix trie, graph and doubly linked list. This is an implementation order, NOT separate assignments or stopping points. Finish the whole scope each invocation.
+Recommended dependency order: dynamic_array first; deque and its queue specialization; heap and packed bitset; Fenwick and segment trees; balanced search tree, prefix trie, graph and doubly linked list. This is an implementation order, NOT separate assignments or stopping points. Finish the whole scope each invocation.
 
 For doubly linked lists use stable opaque handles with stale/foreign-handle rejection and exact bidirectional-link invariants; adapt to Bend ownership with explicit returned state, without unsafe pointers. For trees/heaps parameterize a comparator with explicit total-order laws and check concrete instances. The balanced search tree must be an actual red-black binary tree with proved red-black invariants; AVL and 2-3 runtime trees do not satisfy the user requirement. A binary heap must maintain heap order and exact element multiplicities. Bitsets must use packed words, enforce logical size and mask unused tail bits. Queue must be FIFO, deque both-ended; avoid a naive full-list append on every enqueue. Native Map may support handles, graphs and prefix tries; do not reinvent it.
 
@@ -170,7 +170,7 @@ Do NOT use linked lists as runtime storage for algorithms that do not intrinsica
 need linked lists. Use native Base.Array, packed word arrays, indexed arenas,
 fixed records and appropriate existing native Map/Set facilities. No linked-list
 backing for dynamic arrays, ring-buffer queues/deques, binary heaps, bitsets,
-union-find parent/size/member storage, Fenwick/segment-tree indexed storage, or
+segment-tree indexed storage or
 merely to hold graph neighbors/trie children. Logical adjacency lists do not require
 cons-cell storage; use an appropriate array/indexed or native-map representation.
 Do not convert arrays to lists internally for convenience, then convert back.
@@ -212,6 +212,6 @@ work immediately instead of treating a checkpoint as completion.
 
 The user explicitly rejects lazy initialization as an optimization direction. This supersedes prior experimentation with lazy constructors. Do not optimize constructor scores by returning a deferred placeholder and charging initialization/allocation to the first operation.
 
-Remove deferred-initialization variants recently introduced for union-find, graph and doubly linked list; inspect other structures for the same pattern. Constructors must establish the normal usable representation immediately, with required initial storage initialized. Preserve conventional capacity growth on later insertions; this does not require allocating maximum future capacity in an empty structure. Optimize actual constructor work, not movement of that work out of its benchmark.
+Remove deferred-initialization variants recently introduced for graph and doubly linked list; inspect other structures for the same pattern. Constructors must establish the normal usable representation immediately, with required initial storage initialized. Preserve conventional capacity growth on later insertions; this does not require allocating maximum future capacity in an empty structure. Optimize actual constructor work, not movement of that work out of its benchmark.
 
 Preserve valid unrelated improvements (ring buffers, branchless segment-tree access, bitset, Fenwick, efficient native indexed storage). Repair and check proofs for the final eager representation. Archive useful experimental evidence with accurate labels; lazy-only speed claims cannot count as acceptance. Keep original optimized C references, workloads and 2.5x limits unchanged; do not replace them with lazy C twins to claim success. Include constructor-plus-first-use and mixed-operation checks to detect hidden deferred costs. Existing capacity, type/helper proof gaps and every remaining structure remain part of the objective. Continue all missing implementation, proofs and performance work; no early stop after reverting lazy paths.

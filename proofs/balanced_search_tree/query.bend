@@ -162,15 +162,45 @@ def last_app(-K: Data, -V: Data, +xs: List<&2, E.Entry<K, V>>, +e: E.Entry<K, V>
           Equal.cong(M, M, z => B.orelse(K, V, z, a), SC.last(E.Entry<K, V>, SC.append(E.Entry<K, V>, t, Con{e, R})), B.orelse(K, V, SC.last(E.Entry<K, V>, R), e), last_app(K, V, t, e, R)),
           oo(K, V, SC.last(E.Entry<K, V>, R), e, a)))
 
+def min_nonempty(-K: Data, -V: Data, +l: B.Tree<K, V>, +c: B.Color, +e: E.Entry<K, V>, +r: B.Tree<K, V>, +fallback: E.Entry<K, V>) -> {B.orelse(K, V, B.min_go(K, V, B.Node{c, l, e, r}), fallback) == B.min_go(K, V, B.Node{c, l, e, r}) : Maybe<&2, E.Entry<K, V>>}:
+  match l:
+    case B.Leaf{}:
+      {==}
+    case B.Node{+cc, +ll, +ee, +rr}:
+      min_nonempty(K, V, ll, cc, ee, rr, fallback)
+
+def min_equation(-K: Data, -V: Data, +c: B.Color, +l: B.Tree<K, V>, +e: E.Entry<K, V>, +r: B.Tree<K, V>) -> {B.min_go(K, V, B.Node{c, l, e, r}) == B.orelse(K, V, B.min_go(K, V, l), e) : Maybe<&2, E.Entry<K, V>>}:
+  match l:
+    case B.Leaf{}:
+      {==}
+    case B.Node{+cc, +ll, +ee, +rr}:
+      Equal.sym(Maybe<&2, E.Entry<K, V>>, B.orelse(K, V, B.min_go(K, V, B.Node{cc, ll, ee, rr}), e), B.min_go(K, V, B.Node{cc, ll, ee, rr}), min_nonempty(K, V, ll, cc, ee, rr, e))
+
+def max_nonempty(-K: Data, -V: Data, +r: B.Tree<K, V>, +c: B.Color, +l: B.Tree<K, V>, +e: E.Entry<K, V>, +fallback: E.Entry<K, V>) -> {B.orelse(K, V, B.max_go(K, V, B.Node{c, l, e, r}), fallback) == B.max_go(K, V, B.Node{c, l, e, r}) : Maybe<&2, E.Entry<K, V>>}:
+  match r:
+    case B.Leaf{}:
+      {==}
+    case B.Node{+cc, +ll, +ee, +rr}:
+      max_nonempty(K, V, rr, cc, ll, ee, fallback)
+
+def max_equation(-K: Data, -V: Data, +c: B.Color, +l: B.Tree<K, V>, +e: E.Entry<K, V>, +r: B.Tree<K, V>) -> {B.max_go(K, V, B.Node{c, l, e, r}) == B.orelse(K, V, B.max_go(K, V, r), e) : Maybe<&2, E.Entry<K, V>>}:
+  match r:
+    case B.Leaf{}:
+      {==}
+    case B.Node{+cc, +ll, +ee, +rr}:
+      Equal.sym(Maybe<&2, E.Entry<K, V>>, B.orelse(K, V, B.max_go(K, V, B.Node{cc, ll, ee, rr}), e), B.max_go(K, V, B.Node{cc, ll, ee, rr}), max_nonempty(K, V, rr, cc, ll, ee, e))
+
 def min_ok(-K: Data, -V: Data, +t: B.Tree<K, V>) -> {B.min_go(K, V, t) == SC.head(E.Entry<K, V>, T.io(K, V, t)) : Maybe<&2, E.Entry<K, V>>}:
   match t:
     case B.Leaf{}:
       {==}
     case B.Node{+c, +l, +e, +r}:
       -M = Maybe<&2, E.Entry<K, V>>
-      Equal.trans(M, B.orelse(K, V, B.min_go(K, V, l), e), B.orelse(K, V, SC.head(E.Entry<K, V>, T.io(K, V, l)), e), SC.head(E.Entry<K, V>, SC.append(E.Entry<K, V>, T.io(K, V, l), Con{e, T.io(K, V, r)})),
+      Equal.trans(M, B.min_go(K, V, B.Node{c, l, e, r}), B.orelse(K, V, B.min_go(K, V, l), e), SC.head(E.Entry<K, V>, T.io(K, V, B.Node{c, l, e, r})),
+        min_equation(K, V, c, l, e, r),
+        Equal.trans(M, B.orelse(K, V, B.min_go(K, V, l), e), B.orelse(K, V, SC.head(E.Entry<K, V>, T.io(K, V, l)), e), SC.head(E.Entry<K, V>, SC.append(E.Entry<K, V>, T.io(K, V, l), Con{e, T.io(K, V, r)})),
         Equal.cong(M, M, z => B.orelse(K, V, z, e), B.min_go(K, V, l), SC.head(E.Entry<K, V>, T.io(K, V, l)), min_ok(K, V, l)),
-        Equal.sym(M, SC.head(E.Entry<K, V>, SC.append(E.Entry<K, V>, T.io(K, V, l), Con{e, T.io(K, V, r)})), B.orelse(K, V, SC.head(E.Entry<K, V>, T.io(K, V, l)), e), head_app(K, V, T.io(K, V, l), e, T.io(K, V, r))))
+        Equal.sym(M, SC.head(E.Entry<K, V>, SC.append(E.Entry<K, V>, T.io(K, V, l), Con{e, T.io(K, V, r)})), B.orelse(K, V, SC.head(E.Entry<K, V>, T.io(K, V, l)), e), head_app(K, V, T.io(K, V, l), e, T.io(K, V, r)))))
 
 def max_ok(-K: Data, -V: Data, +t: B.Tree<K, V>) -> {B.max_go(K, V, t) == SC.last(E.Entry<K, V>, T.io(K, V, t)) : Maybe<&2, E.Entry<K, V>>}:
   match t:
@@ -178,9 +208,11 @@ def max_ok(-K: Data, -V: Data, +t: B.Tree<K, V>) -> {B.max_go(K, V, t) == SC.las
       {==}
     case B.Node{+c, +l, +e, +r}:
       -M = Maybe<&2, E.Entry<K, V>>
-      Equal.trans(M, B.orelse(K, V, B.max_go(K, V, r), e), B.orelse(K, V, SC.last(E.Entry<K, V>, T.io(K, V, r)), e), SC.last(E.Entry<K, V>, SC.append(E.Entry<K, V>, T.io(K, V, l), Con{e, T.io(K, V, r)})),
+      Equal.trans(M, B.max_go(K, V, B.Node{c, l, e, r}), B.orelse(K, V, B.max_go(K, V, r), e), SC.last(E.Entry<K, V>, T.io(K, V, B.Node{c, l, e, r})),
+        max_equation(K, V, c, l, e, r),
+        Equal.trans(M, B.orelse(K, V, B.max_go(K, V, r), e), B.orelse(K, V, SC.last(E.Entry<K, V>, T.io(K, V, r)), e), SC.last(E.Entry<K, V>, SC.append(E.Entry<K, V>, T.io(K, V, l), Con{e, T.io(K, V, r)})),
         Equal.cong(M, M, z => B.orelse(K, V, z, e), B.max_go(K, V, r), SC.last(E.Entry<K, V>, T.io(K, V, r)), max_ok(K, V, r)),
-        Equal.sym(M, SC.last(E.Entry<K, V>, SC.append(E.Entry<K, V>, T.io(K, V, l), Con{e, T.io(K, V, r)})), B.orelse(K, V, SC.last(E.Entry<K, V>, T.io(K, V, r)), e), last_app(K, V, T.io(K, V, l), e, T.io(K, V, r))))
+        Equal.sym(M, SC.last(E.Entry<K, V>, SC.append(E.Entry<K, V>, T.io(K, V, l), Con{e, T.io(K, V, r)})), B.orelse(K, V, SC.last(E.Entry<K, V>, T.io(K, V, r)), e), last_app(K, V, T.io(K, V, l), e, T.io(K, V, r)))))
 
 # ---- in-order listing ----
 

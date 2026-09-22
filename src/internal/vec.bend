@@ -4,7 +4,7 @@ import Base
 # 2^d slots, slot j addressed by comparing j with 2^(d-1) at each level.
 # get/set cost O(d) = O(log size); the tree is immutable Data, so updates
 # share all untouched subtrees. Shared by structures that need indexed
-# storage (union_find). Do not instantiate with U32 payloads through this
+# storage. Do not instantiate with U32 payloads through this
 # erased-generic code (see docs/VALIDATION.md, runtime defects).
 
 type Vec<-T: Data> is Data:

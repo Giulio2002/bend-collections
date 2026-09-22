@@ -13,7 +13,6 @@ theorems, so the map is given per structure rather than per operation.
 | `binary_heap` | sorted multiset | `proofs/binary_heap/…` `step_ok` (template, instantiated at U32 and String) | `trace_new` | `binary_heap_u32_*`, `binary_heap_string_*` | `tests/binary_heap/` |
 | `balanced_search_tree` | key-sorted entry list (finite map) | `proofs/balanced_search_tree/steps.bend` `step_ok` (template, instantiated at U32 and String) | `trace_from`, `inv_from` | `balanced_search_tree_u32_*`, `balanced_search_tree_string_*` | `tests/balanced_search_tree/` incl. the `rb32`/`rbstr` structural kinds |
 | `bitset` | bit list | `proofs/bitset/steps.bend` `step_ok` (shadow form: the word array is linear) | `proofs/bitset/trace.bend` `trace_from`, exposed as `bitset_trace` | `bitset_*` | `tests/bitset/` |
-| `union_find` | representative map | `proofs/union_find/steps.bend` `step_ok` | `trace_new` | `union_find_*` | `tests/union_find/` |
 | `fenwick_tree` | U32 value list with prefix sums | `proofs/fenwick_tree/steps.bend` `step_ok` | from `new(n)` and `from_list(xs)` | `fenwick_tree_*` | `tests/fenwick_tree/` |
 | `segment_tree` | U32 value list with range sums and range add | `proofs/segment_tree/steps.bend` `step_ok` | from `new(n)` and `from_list(xs)` | `segment_tree_*` | `tests/segment_tree/` |
 | `prefix_trie` | String-ordered finite map | `proofs/prefix_trie/steps.bend` `step_ok` | `trace_new` | `prefix_trie_*` | `tests/prefix_trie/` |

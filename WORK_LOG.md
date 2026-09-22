@@ -488,57 +488,6 @@ every `Cache` contains one by value, so the nine `lru.*` contract operations
 still have no native rows. This is reported as a live gate failure, not an
 exemption.
 
-### 6. union_find: migrated to three parallel Base.Array arenas
-
-The measured cost model says the two things wrong with the old
-`V.Vec<Cell>` representation:
-
-* a **wide** record costs per field when it is read out of an array - a
-  scratch measurement put a 3-field `Cell` read at 6.5 ns against 1.5 ns for
-  a 1-field read - so every `find` paid for the size and member fields it
-  never looked at;
-* the `Vec` was a retained `&2` tree walked by pattern matching, the one
-  primitive the cost model puts at ~8.6x C.
-
-`src/union_find.bend` now keeps three narrow arenas - `Array<Nt>` roots,
-`Array<Nt>` sizes, `Array<Ms>` member lists - all of depth `depth_for(n)`,
-each read with `Array.get` and written with `Array.set` at a `U32` index.
-`union` relinks the smaller class through its member list (eager full
-compression), so `find` is a single indexed read. Measured against the same
-C algorithm: `find` 0.94x, `connected` 1.11-1.37x, `component_size`
-1.01-1.12x, `component_count` 0.35x.
-
-The proof migration kept the mathematics and replaced only the bridge:
-
-* `proofs/union_find/cells.bend` (new) holds the proof-level `Cell` and the
-  **zip** `cells(roots, sizes, members)` that turns the three slot lists into
-  the one cell list the old proofs talk about;
-* `proofs/union_find/model.bend` (303 lines) and `union.bend` (513 lines) -
-  the partition mathematics, `good2`, `labs_relabel`, `fix_count` - survived
-  unchanged apart from that rename;
-* `proofs/union_find/arr.bend` (new) relates `Base.Array` get/set to the slot
-  lists, `bridge.bend` (new) proves the one equation
-  `cells(rlr(ms, roots, big), sizes, members) == rl(ms, cells(...), big)` that
-  lets the retained `union.bend` apply to the new representation;
-* `state.bend` defines the shadow `Sh{n, d, tr, tz, tm, c}`, `real`, `good`,
-  `model`, the projections and `real_inj` (a live structure determines its
-  shadow, so the laws cannot be satisfied by naming a different one);
-* `steps.bend` proves `step_ok` for all five operations in the shadow Sigma
-  form, `init.bend` proves the constructor's shadow is good and its model is
-  `iota`, and `trace.bend` is the bitset trace proof verbatim modulo names.
-* `proofs/union_find.bend` and the `union_find` laws in `END_TO_END.bend` are
-  restated in the shadow form; `bend PROOF.bend` re-checks the whole closure.
-* `tools/mutants.py` has seven union_find mutants against the new source
-  (tie-break flipped, count not decremented, an existing class reported as
-  changed, the merged size slot off by one, `relink` skipping a member, the
-  merged member list dropping the small class, `component_size` reading slot
-  0); `tools/validate.py --only union_find` passes runtime, boundaries,
-  differential, mutations and trace_proof.
-
-The replaced sources are in `docs/archive/` with a README entry saying what
-carried over and what the replacement cost (the arena capacity premise on
-`new`).
-
 ### 7. Benchmark harness: three regions and an alternated region order
 
 Two defects of the two-region A/B form showed up as 21 FAILED rows and as
@@ -615,7 +564,7 @@ really build a one-element structure, read it and dispose of it. That is a
 reference that does not implement the same operation, and it made the `new`
 rows compare a Bend allocation against nothing. All four now allocate,
 initialise, read and release the same one-element structure (the arena for
-`union_find`, `calloc`/`free` for the other three, each matching what the rest
+`calloc`/`free` for the other three, each matching what the rest
 of that file does), folding the identical observation so the Bend and C
 checksums still agree. `union_find.new` is still ~20x: Bend's allocation of
 three arenas plus the record measures ~70 ns against a C bump-arena
@@ -663,13 +612,9 @@ Checked myself against the audit policy, honestly:
 | audit point | status |
 |---|---|
 | no `@unsafe`, holes, foreign imports in editable sources | verified by `grep` and by `automation/acceptance.py`'s own check; none |
-| no axioms, no trusted expected outputs, no finite enumeration passing as a universal proof | `union_find` `step_ok` and `trace_from` quantify over an arbitrary op and an arbitrary finite op list; the constructor laws carry the explicit capacity premise instead of a hidden bound |
 | expected answers never enter the Bend side | unchanged: `tools/validate.py` passes operation tokens only, oracles are in Python |
 | proof closure re-checked | `bend PROOF.bend` -> "All terms check"; `tools/validate.py` re-checks every `proofs/<id>.bend` (`trace_proof=passed` x12) |
-| mutants are semantic and rejected | 7 union_find mutants against the new arena source, all rejected; `mutations=passed` for all 12 |
 | DSU equivalence classes and sizes (the audit names this one explicitly) | `M.good` requires, for every element, that its stored root is a fixed point, that the root's member list is exactly its class and that the root's size slot is the exact class size; `component_count` is proved equal to the number of fixed points |
-| complexity claims match the representation | the header of `src/union_find.bend` says exactly what is and is not proved about cost ("What is proved about the cost: nothing") and documents the eager-compression design |
-| reference quality, never penalise the reference | four C `new` operations that folded a constant while the Bend side really allocated were replaced by ones that allocate, read and release a one-element structure (`union_find`, `bitset`, `fenwick_tree`, `segment_tree`) |
 | >= 5 alternating samples, operations per sample recorded, no geomeans | 6 samples per row with alternating region order, `operations_per_sample` recorded, every sample listed in BENCHMARKS.md, per-row medians only |
 | fresh build, no skip-build flag | `benchmarks/run.py` always rebuilds both sides; there is no skip flag |
 | **performance contract met** | **NO.** See the table below. |
@@ -1234,7 +1179,7 @@ Confirmed in THIS workspace after the port:
 
 What the ported state contains (all re-verified here, not taken on trust):
 array-backed `dynamic_array`, ring-buffer `deque`/`queue`, packed-word
-`bitset`, arena `union_find`, flat `fenwick_tree` and `segment_tree`, the
+`bitset`, arena flat `fenwick_tree` and `segment_tree`, the
 packed-array `binary_heap` with its full proof development, and the red-black
 `balanced_search_tree`.
 

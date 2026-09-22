@@ -57,7 +57,7 @@ Every structure follows the same shape:
   still satisfies the invariant.
 
 Seven structures — `dynamic_array`, `deque`, `queue`, `bitset`,
-`union_find`, `fenwick_tree` and `segment_tree` — store their elements in
+`fenwick_tree` and `segment_tree` — store their elements in
 native `Base.Array`, which is a **linear** type. Their laws are therefore
 stated in the *shadow* form: about `real(sh)`, the structure built from Data
 mirror trees, with the law naming the shadow the operation lands on and
@@ -97,7 +97,6 @@ benchmarks run (`deque_trace_at_is_the_trace`,
 | `binary_heap` | the sorted multiset of the slots `[0, size)` of one `Base.Array` block | depth <= 31, the block is a perfect tree of that depth, the elements occupy exactly the slots `[0, size)`, heap order holds over them (`slot((i-1)/2) <= slot(i)`), `size <= 2^depth` |
 | `balanced_search_tree` | in-order entry list | sorted keys, **red-black invariant**, cached size = entry count |
 | `bitset` | first `len` bits of the words of a native `Base.Array` | the depth is the one `depth_for` picks, the word array is a perfect tree of that depth, `len <= stored bits`, every stored bit at a position `>= len` is zero |
-| `union_find` | representative of each element | three perfect `Base.Array` arenas of the depth `depth_for` picks, `n <= 2^depth`, every class exactly listed with its exact size, `count` = number of classes |
 | `fenwick_tree` | the first `n` values of the tree the flat cells realise | the cell array is a perfect tree of depth d+1 (so every cell index is a representable U32), `n <= 2^d`, and every internal cell holds the exact U32 sum of its block's left half |
 | `segment_tree` | first `n` values of the tree the two flat cell arrays realise (a node's tag applies to everything below it) | the sum array is a perfect tree of depth d+1 and the tag array one of depth d, `n <= 2^d`, and every node stores the exact sum of its subtree |
 | `prefix_trie` | preorder enumeration, keys rebuilt character by character | every sibling list strictly increasing by code |
@@ -167,38 +166,6 @@ exposed in `END_TO_END.bend` as `graph_step_well_formed` and
 `RemoveEdge` genuinely needs the sortedness half of the runtime invariant:
 without it the symmetry statement is false, not merely unproved (two entries
 for the same vertex would let `sdel` remove only the first).
-
-## union_find: three parallel arenas
-
-`src/union_find.bend` keeps the roots, the class sizes and the class member
-lists in three separate native `Base.Array`s of the same depth, indexed by
-element. Narrow arenas are deliberate: a measured 3-field record read out of
-an array cost 6.5 ns against 1.5 ns for a 1-field read, so `find` — one
-indexed read of the roots arena — must not have to look at the other two.
-Every law is in the same shadow style, over `Sh{n, depth, tr, tz, tm, count}`.
-
-| step | where |
-|---|---|
-| the proof-level `Cell` and the **zip** of the three slot lists into one cell list | `proofs/union_find/cells.bend` |
-| the partition mathematics: roots, classes, sizes, `labs`, `cnt_fix` | `proofs/union_find/model.bend` |
-| merging two classes = the spec relabelling (`good2`, `labs_relabel`, `fix_count`) | `proofs/union_find/union.bend` |
-| `Base.Array` get/set, `relink`, and the update of a slot against the slot lists | `proofs/union_find/arr.bend` |
-| the zip commutes with a relink (`cells(rlr(...)) == rl(cells(...))`) | `proofs/union_find/bridge.bend` |
-| the depth `depth_for` picks is below 32 | `proofs/union_find/depth.bend` |
-| abstraction, invariant, shadow, `real_inj` | `proofs/union_find/state.bend` |
-| every operation, including every OutOfRange case | `proofs/union_find/steps.bend` |
-| the constructor's arenas (`iota_arr`, `Array.new`, `solo_arr`) | `proofs/union_find/init.bend` |
-| arbitrary finite traces | `proofs/union_find/trace.bend` |
-
-`spec/union_find.bend` and the two largest proof files (`model.bend`,
-`union.bend`) are unchanged from the vector-of-cells version: the migration
-replaced the bridge to the representation, not the mathematics.
-
-**Capacity.** The arenas' depth is capped at 31 (2^31 slots), so every slot
-index is a representable U32. The laws about `new(n)` carry the explicit
-premise that `n` fits that capacity (`proofs/union_find.bend` `capacity`);
-`step_ok` and the trace law from any invariant-satisfying state are
-unconditional, and the invariant implies the premise.
 
 ## bitset: the packed array representation
 

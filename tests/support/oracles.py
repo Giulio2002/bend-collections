@@ -294,36 +294,6 @@ def bitset(args):
             out.append('N %d' % len(xs))
     return out
 
-def union_find(args):
-    size = nat_of(args[0])
-    (lab, out) = (list(range(size)), [])
-    for tok in args[1:]:
-        p = fields(tok)
-        n = p[0]
-        if n == 'find':
-            x = nat_of(field(p, 1))
-            out.append('OK %d' % lab[x] if x < size else 'ERR OutOfRange')
-        elif n in ('union', 'conn'):
-            (a, b) = (nat_of(field(p, 1)), nat_of(field(p, 2)))
-            if a >= size or b >= size:
-                out.append('ERR OutOfRange')
-                continue
-            (la, lb) = (lab[a], lab[b])
-            if n == 'conn':
-                out.append('OK true' if la == lb else 'OK false')
-            elif la == lb:
-                out.append('OK false')
-            else:
-                (keep, drop) = (la, lb) if lab.count(lb) <= lab.count(la) else (lb, la)
-                lab = [keep if v == drop else v for v in lab]
-                out.append('OK true')
-        elif n == 'size':
-            x = nat_of(field(p, 1))
-            out.append('OK %d' % lab.count(lab[x]) if x < size else 'ERR OutOfRange')
-        else:
-            out.append('N %d' % sum((1 for (i, v) in enumerate(lab) if v == i)))
-    return out
-
 def _init_u32(s):
     p = fields(s)
     if field(p, 0) == 'list':
@@ -404,4 +374,4 @@ def lru(args):
         else:
             out.append('LEN %d' % len(d))
     return out
-ORACLES = {'dynamic_array': dynamic_array, 'deque': deque, 'queue': queue, 'doubly_linked_list': doubly_linked_list, 'binary_heap': binary_heap, 'balanced_search_tree': balanced_search_tree, 'bitset': bitset, 'union_find': union_find, 'segment_tree': segment_tree, 'lru': lru}
+ORACLES = {'dynamic_array': dynamic_array, 'deque': deque, 'queue': queue, 'doubly_linked_list': doubly_linked_list, 'binary_heap': binary_heap, 'balanced_search_tree': balanced_search_tree, 'bitset': bitset, 'segment_tree': segment_tree, 'lru': lru}

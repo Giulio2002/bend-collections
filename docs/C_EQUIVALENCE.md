@@ -258,7 +258,7 @@ change removes it. It is reported here rather than worked around.
 
 ## Iteration 0014: eager constructors, and what a constructor costs
 
-The user rejected lazy initialization, so `union_find`, `graph` and
+The user rejected lazy initialization, so `graph` and
 `doubly_linked_list` again allocate and initialise their storage inside `new`,
 and `dynamic_array.clear` again rewrites the whole block (WORK_LOG.md records
 the revert and the restored proofs). Honest constructor measurements taken
@@ -267,7 +267,6 @@ alternating runs, quick tool - the gate's medians are in BENCHMARKS.md):
 
 | row | Bend | C | ratio |
 |---|---|---|---|
-| `union_find.new` small / medium / large / edge-empty | 21.6 / 22.9 / 7.2 / 19.9 | 1.94 / 1.91 / 2.05 / 1.79 | 11.2x / 12.0x / 3.5x / 11.1x |
 | `graph.new` small / medium / large / edge-empty | 11.1 / 11.3 / 11.2 / 11.3 | 1.74 / 1.74 / 1.08 / 1.87 | 6.4x / 6.5x / 10.4x / 6.0x |
 | `doubly_linked_list.new` small / medium / large / edge-empty | 7.2 / 5.2 / 7.6 / 7.5 | 2.47 / 2.46 / 2.48 / 2.48 | 2.9x / 2.1x / 3.1x / 3.0x |
 | `dynamic_array.clear` small / medium / large / edge-empty | 62 / 3500 / 209000 / 4.2 | 7.6 / 526 / 12996 / 2.2 | 8.1x / 6.7x / 16.1x / 1.9x |
@@ -388,7 +387,6 @@ individual numbers are in BENCHMARKS.md, which is generated from the report):
 | allocator cost of a returned `List` (`*.to_list`) | ~7 | only where the C reference also folds without allocating: `graph.vertices` was fixed that way in iteration 0015 (3.0-3.4x -> 0.86-1.29x) and `bitset.to_list` is the one remaining such row. Where the C reference really builds a list (`queue.to_list` allocates a `Cell` per element) the comparison is already same-algorithm and the gap is the allocator: ~2 ns per cons cell against ~0.5 ns of an arena bump |
 | block fill throughput (`dynamic_array.clear`) | 3 | no; `blk_new` is a scalar store loop, `memset` is vectorised |
 | `new` rows whose C counterpart does no construction (`graph.new`, `doubly_linked_list.new`) | 8 | no; the pinned `gr_new`/`dl_new` only advance the value stream, so the row divides a real Bend constructor by a C no-op |
-| `new`/constructor allocation count (`union_find.new`) | 4 | partly, by interleaving the three arenas into one block |
 | per-operation record open/rebuild on an empty structure (`*.edge-empty` at 3-5x) | ~12 | marginally; ~3 ns of Bend runtime dispatch against ~1 ns in C |
 
 This table is the current honest state of the performance criterion: it is NOT
