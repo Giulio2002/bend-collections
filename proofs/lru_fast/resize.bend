@@ -6,18 +6,16 @@ import ../lib/u32.bend as U
 import ../../spec/common.bend as SC
 import ../../spec/lru_fast.bend as S
 import ../../src/lru/fast.bend as F
-import ../../src/lru/time.bend as Time
-import ../../src/doubly_linked_list.bend as D
+import support/link_primitives.bend as D
 import ../../types/lru_model.bend as T
-import ../../types/lru_fast.bend as E
-import ../dlist/state.bend as DST
-import ../dlist/split.bend as SP
-import ../dlist/tolist.bend as TL
-import ../dlist/core.bend as K
-import ../dlist/alive.bend as AL
-import ../dlist/facts.bend as DF
-import ../dlist/links.bend as LK
-import ../dlist/tset.bend as TS
+import support/links_state.bend as DST
+import support/links_split.bend as SP
+import support/links_tolist.bend as TL
+import support/links_core.bend as K
+import support/links_alive.bend as AL
+import support/links_facts.bend as DF
+import support/links_links.bend as LK
+import support/links_tset.bend as TS
 import ../../reference/lru/proofs/lookup_refinement.bend as LR
 import ./state.bend as ST
 import ./table.bend as TB
@@ -25,7 +23,7 @@ import ./ents.bend as EN
 import ./rs.bend as RS
 import ./remove.bend as RM
 import ./addop.bend as AO
-import ../dlist/items.bend as IT
+import support/links_items.bend as IT
 
 # resize(cap): the capacity is set, then the oldest entry is evicted while the
 # cache holds more than cap entries (at most len(order) rounds). During the loop

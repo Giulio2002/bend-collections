@@ -9,18 +9,17 @@ import ../../spec/lru_fast.bend as S
 import ../../spec/lru_numeric.bend as NS
 import ../../src/lru/fast.bend as F
 import ../../src/lru/time.bend as Time
-import ../../src/doubly_linked_list.bend as D
+import support/link_primitives.bend as D
 import ../../types/lru_model.bend as T
 import ../../types/lru_fast.bend as E
-import ../dlist/state.bend as DST
-import ../dlist/split.bend as SP
-import ../dlist/tolist.bend as TL
-import ../dlist/core.bend as K
-import ../dlist/alive.bend as AL
-import ../dlist/facts.bend as DF
-import ../dlist/links.bend as LK
-import ../dlist/tset.bend as TS
-import ../dlist/items.bend as IT
+import support/links_state.bend as DST
+import support/links_split.bend as SP
+import support/links_tolist.bend as TL
+import support/links_core.bend as K
+import support/links_alive.bend as AL
+import support/links_facts.bend as DF
+import support/links_links.bend as LK
+import support/links_tset.bend as TS
 import ./state.bend as ST
 import ./table.bend as TB
 import ./ents.bend as EN
@@ -119,7 +118,7 @@ def st_e(~V: Data, +p: Nat, +cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64,
     case F.Live{v}:
       exp_false(~V, p, F.int_stamp(now), ST.real(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, Con{s0, rest}, fl}))
     case F.Timed{v, +d}:
-      L.subst(Bool, z => {F.exp_go(~V, p, F.int_stamp(now), F.ex_drop(~V, ST.real(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, Con{s0, rest}, fl}), U32.from_nat(s0), z)) == ST.real(~V, st_exp(V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, Con{s0, rest}, fl}, st_g(V, p, ev2(V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, Con{s0, rest}, fl}), now), NS.expired(F.stamp_int(d), now))) : F.Fast<V>}, NS.expired(F.stamp_int(d), now), Time.expired(F.stamp_int(d), F.stamp_int(F.int_stamp(now))), Equal.sym(Bool, Time.expired(F.stamp_int(d), F.stamp_int(F.int_stamp(now))), NS.expired(F.stamp_int(d), now), RD.exp_eq(d, now)),
+      L.subst(Bool, z => {F.exp_go(~V, p, F.int_stamp(now), F.ex_drop(~V, ST.real(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, Con{s0, rest}, fl}), U32.from_nat(s0), z)) == ST.real(~V, st_exp(V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, Con{s0, rest}, fl}, st_g(V, p, ev2(V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, Con{s0, rest}, fl}), now), NS.expired(F.stamp_int(d), now))) : F.Fast<V>}, NS.expired(F.stamp_int(d), now), F.stamp_expired(d,F.int_stamp(now)), Equal.sym(Bool, F.stamp_expired(d,F.int_stamp(now)), NS.expired(F.stamp_int(d), now), RD.exp_eq(d, now)),
         st_x(~V, p, cap, fresh, depth, life, tc, table, tk, te, tp, tn, s0, rest, fl, now, NS.expired(F.stamp_int(d), now), hl, h, ih))
 
 def st_c(~V: Data, +p: Nat, +cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +tc: AR.Tree<U32>, +table: Map<&2, Maybe<&2, U32>>, +tk: AR.Tree<String>, +te: AR.Tree<F.Slot<V>>, +tp: AR.Tree<U32>, +tn: AR.Tree<U32>, ord: List<&2, Nat>, +fl: List<&2, Nat>, +now: T.Int64, +hl: {Nat.is_le(SC.length(Nat, ord), 1n+p) == True{} : Bool}, +h: {ST.inv(~V, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl) == True{} : Bool}, ih: StIH(~V, p, now)) -> {F.exp_go(~V, p, F.int_stamp(now), F.ex_head(~V, ST.real(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}), F.int_stamp(now))) == ST.real(~V, st_ord(V, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl, now, st_g(V, p, ev2(V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}), now))) : F.Fast<V>}:

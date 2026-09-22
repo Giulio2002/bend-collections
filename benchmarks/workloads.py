@@ -67,7 +67,7 @@ SIZE_PRESERVING_FULL = {
 # over-charges the Bend side by one insertion and never flatters it.
 REMOVING = {
     'pop', 'pop_front', 'pop_back', 'dequeue', 'remove', 'remove_edge',
-    'remove_vertex',
+    'remove_vertex', 'remove_seq',
 }
 
 

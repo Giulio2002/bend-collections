@@ -1,7 +1,6 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/list.bend as LL
 import ../lib/u32.bend as U
 import ../lib/array.bend as AR
 import ../../spec/common.bend as SC
@@ -9,10 +8,9 @@ import ../../spec/lru_fast.bend as S
 import ../../src/lru/fast.bend as F
 import ../../src/lru/time.bend as Time
 import ../../src/lru/wide.bend as W
-import ../../src/doubly_linked_list.bend as D
+import support/link_primitives.bend as D
 import ../../types/lru_model.bend as T
-import ../../types/lru_fast.bend as E
-import ../dlist/state.bend as DST
+import support/links_state.bend as DST
 import ../../reference/lru/proofs/invariants.bend as Inv
 import ../../reference/lru/proofs/map_insert.bend as MI
 import ../../reference/lru/proofs/map_populated.bend as Pop

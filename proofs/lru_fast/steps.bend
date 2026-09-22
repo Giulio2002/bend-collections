@@ -1,17 +1,14 @@
+import ./packed_zero.bend as OptZero
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/list.bend as LL
 import ../lib/array.bend as AR
-import ../lib/u32.bend as U
 import ../../spec/common.bend as SC
 import ../../spec/lru_fast.bend as S
 import ../../spec/lru_numeric.bend as NS
 import ../../src/lru/fast.bend as F
-import ../../src/lru/time.bend as Time
 import ../../types/lru_model.bend as T
 import ../../types/lru_fast.bend as E
-import ../dlist/state.bend as DST
 import ./state.bend as ST
 import ./table.bend as TB
 import ./ents.bend as EN
@@ -132,7 +129,7 @@ def cap_ok(~V: Data, +cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +tc: A
   mk(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}, E.Capacity{}, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}, E.ONum{cap}, {==}, h, {==})
 
 def life_ok(~V: Data, +cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +tc: AR.Tree<U32>, +table: Map<&2, Maybe<&2, U32>>, +tk: AR.Tree<String>, +te: AR.Tree<F.Slot<V>>, +tp: AR.Tree<U32>, +tn: AR.Tree<U32>, +ord: List<&2, Nat>, +fl: List<&2, Nat>, +ns: T.Int64, +h: {ST.inv(~V, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl) == True{} : Bool}) -> StepOK(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}, E.SetLifetime{ns}):
-  mk(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}, E.SetLifetime{ns}, ST.Sh{cap, fresh, depth, ns, tc, table, tk, te, tp, tn, ord, fl}, E.OUnit{}, {==}, h, {==})
+  mk(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}, E.SetLifetime{ns}, ST.Sh{cap, fresh, depth, ns, tc, table, tk, te, tp, tn, ord, fl}, E.OUnit{}, Equal.cong(F.Fast<V>, F.Fast<V> & E.Obs<V>, z => (z, E.OUnit{}), F.set_lifetime(~V, ST.real(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}), ns), OptZero.original(~V, ST.real(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}), ns), OptZero.lifetime_ok(~V, ST.real(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}), ns)), h, {==})
 
 def metrics_ok(~V: Data, +cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +tc: AR.Tree<U32>, +table: Map<&2, Maybe<&2, U32>>, +tk: AR.Tree<String>, +te: AR.Tree<F.Slot<V>>, +tp: AR.Tree<U32>, +tn: AR.Tree<U32>, +ord: List<&2, Nat>, +fl: List<&2, Nat>, +h: {ST.inv(~V, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl) == True{} : Bool}) -> StepOK(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}, E.Metrics{}):
   mk(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}, E.Metrics{}, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}, E.OMetrics{ST.mets(AR.slots(U32, tc))},

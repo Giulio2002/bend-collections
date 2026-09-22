@@ -1,13 +1,11 @@
 import Base
-import ../lib/logic.bend as L
 import ../lib/array.bend as AR
-import ../../spec/common.bend as SC
 import ../../spec/lru_fast.bend as S
 import ../../spec/lru_numeric.bend as NS
 import ../../src/lru/fast.bend as F
 import ../../src/lru/wide.bend as W
 import ../../types/lru_model.bend as T
-import ../dlist/state.bend as DST
+import support/links_state.bend as DST
 import ./num/numeric.bend as NUM
 import ./state.bend as ST
 import ./counts.bend as CT

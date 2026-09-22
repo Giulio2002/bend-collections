@@ -6,10 +6,10 @@ import ../../spec/common.bend as SC
 import ../../spec/lru_fast.bend as S
 import ../../src/lru/fast.bend as F
 import ../../types/lru_model.bend as T
-import ../dlist/state.bend as DST
-import ../dlist/split.bend as SP
-import ../dlist/tolist.bend as TL
-import ../dlist/core.bend as K
+import support/links_state.bend as DST
+import support/links_split.bend as SP
+import support/links_tolist.bend as TL
+import support/links_core.bend as K
 import ../../reference/lru/proofs/map_key_presence.bend as Presence
 import ../../reference/lru/proofs/map_key_membership.bend as KeyMem
 import ../../reference/lru/proofs/recency_unique.bend as RU

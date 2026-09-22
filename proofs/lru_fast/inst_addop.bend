@@ -1,19 +1,14 @@
 import Base
 import ../lib/array.bend as AR
-import ../lib/u32.bend as U
 import ../../spec/common.bend as SC
 import ../../spec/lru_fast.bend as S
 import ../../spec/lru_numeric.bend as NS
 import ../../src/lru/fast.bend as F
-import ../../src/lru/time.bend as Time
 import ../../types/lru_model.bend as T
 import ../../types/lru_fast.bend as E
-import ../dlist/state.bend as DST
 import ./state.bend as ST
 import ./table.bend as TB
-import ./insert.bend as INS
 import ./addfacts.bend as AF
-import ./remove.bend as RM
 import ./addop.bend as AO
 import ./simple.bend as SI
 

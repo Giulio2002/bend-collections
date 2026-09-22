@@ -1,3 +1,4 @@
+import ./promote.bend as OptPromote
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
@@ -5,16 +6,16 @@ import ../lib/list.bend as LL
 import ../lib/array.bend as AR
 import ../../spec/common.bend as SC
 import ../../src/lru/fast.bend as F
-import ../../src/doubly_linked_list.bend as D
-import ../dlist/state.bend as DST
-import ../dlist/links.bend as LK
-import ../dlist/split.bend as SP
-import ../dlist/retarget.bend as RT
-import ../dlist/rmfacts.bend as RM
-import ../dlist/facts.bend as DF
-import ../dlist/tset.bend as TS
-import ../dlist/tolist.bend as TL
-import ../dlist/inslk.bend as IL
+import support/link_primitives.bend as D
+import support/links_state.bend as DST
+import support/links_links.bend as LK
+import support/links_split.bend as SP
+import support/links_retarget.bend as RT
+import support/links_rmfacts.bend as RM
+import support/links_facts.bend as DF
+import support/links_tset.bend as TS
+import support/links_tolist.bend as TL
+import support/links_inslk.bend as IL
 import ../../reference/lru/proofs/invariants.bend as Inv
 import ./state.bend as ST
 import ./table.bend as TB
@@ -95,7 +96,7 @@ def tc_con(+depth: Nat, +tp: AR.Tree<U32>, +tn: AR.Tree<U32>, +a: List<&2, Nat>,
   +e = Equal.trans(F.Chain, F.link_tail(F.unlink(F.CH{DST.hd(o), DST.lst(o), fh, AR.thaw(U32, tp), AR.thaw(U32, tn)}, U32.from_nat(s)), U32.from_nat(s)), F.link_tail(F.CH{DST.hd(ab), DST.lst(ab), fh, AR.thaw(U32, tp1), AR.thaw(U32, tn1)}, U32.from_nat(s)), F.CH{DST.hd(t_ord(a, s, Con{y, r})), DST.lst(t_ord(a, s, Con{y, r})), fh, AR.thaw(U32, t_tp(depth, tp, a, s, Con{y, r})), AR.thaw(U32, t_tn(depth, tn, a, s, Con{y, r}))},
     Equal.cong(F.Chain, F.Chain, c => F.link_tail(c, U32.from_nat(s)), F.unlink(F.CH{DST.hd(o), DST.lst(o), fh, AR.thaw(U32, tp), AR.thaw(U32, tn)}, U32.from_nat(s)), F.CH{DST.hd(ab), DST.lst(ab), fh, AR.thaw(U32, tp1), AR.thaw(U32, tn1)}, CHN.unlink_ok(depth, tp, tn, a, s, Con{y, r}, fh, hd, pfp, pfn, hl, hk)),
     CHN.link_tail_ok(depth, tp1, tn1, ab, s, fh, hd, TS.tpup_pf(depth, tp, Con{y, r}, LK.lastl(a, D.nil()), pfp), TS.tnup_pf(depth, tn, a, DST.hd_or(Con{y, r}, D.nil()), pfn), hs, hlab))
-  L.subst(Bool, z => {F.touch_go(F.CH{DST.hd(o), DST.lst(o), fh, AR.thaw(U32, tp), AR.thaw(U32, tn)}, U32.from_nat(s), z) == F.CH{DST.hd(t_ord(a, s, Con{y, r})), DST.lst(t_ord(a, s, Con{y, r})), fh, AR.thaw(U32, t_tp(depth, tp, a, s, Con{y, r})), AR.thaw(U32, t_tn(depth, tn, a, s, Con{y, r}))} : F.Chain}, False{}, U32.is_eq(F.link(U32.from_nat(s)), DST.lst(o)), Equal.sym(Bool, U32.is_eq(F.link(U32.from_nat(s)), DST.lst(o)), False{}, enw), e)
+  L.subst(Bool, z => {F.touch_go(F.CH{DST.hd(o), DST.lst(o), fh, AR.thaw(U32, tp), AR.thaw(U32, tn)}, U32.from_nat(s), z) == F.CH{DST.hd(t_ord(a, s, Con{y, r})), DST.lst(t_ord(a, s, Con{y, r})), fh, AR.thaw(U32, t_tp(depth, tp, a, s, Con{y, r})), AR.thaw(U32, t_tn(depth, tn, a, s, Con{y, r}))} : F.Chain}, False{}, U32.is_eq(F.link(U32.from_nat(s)), DST.lst(o)), Equal.sym(Bool, U32.is_eq(F.link(U32.from_nat(s)), DST.lst(o)), False{}, enw), OptPromote.result(F.CH{DST.hd(o), DST.lst(o), fh, AR.thaw(U32, tp), AR.thaw(U32, tn)}, U32.from_nat(s), F.CH{DST.hd(t_ord(a, s, Con{y, r})), DST.lst(t_ord(a, s, Con{y, r})), fh, AR.thaw(U32, t_tp(depth, tp, a, s, Con{y, r})), AR.thaw(U32, t_tn(depth, tn, a, s, Con{y, r}))}, e))
 
 def touch_chain(+depth: Nat, +tp: AR.Tree<U32>, +tn: AR.Tree<U32>, +a: List<&2, Nat>, +s: Nat, b: List<&2, Nat>, +fh: U32, +hd: {Nat.is_le(depth, 31n) == True{} : Bool}, +pfp: {AR.perfect(U32, depth, tp) == True{} : Bool}, +pfn: {AR.perfect(U32, depth, tn) == True{} : Bool}, +hl: {DST.alllt(SC.append(Nat, a, Con{s, b}), SC.pow2(depth)) == True{} : Bool}, +hnd: {DST.nodup(SC.append(Nat, a, Con{s, b})) == True{} : Bool}, +hk: {DST.lk(SC.append(Nat, a, Con{s, b}), D.nil(), D.nil(), AR.slots(U32, tp), AR.slots(U32, tn)) == True{} : Bool}) -> {F.touch(F.CH{DST.hd(SC.append(Nat, a, Con{s, b})), DST.lst(SC.append(Nat, a, Con{s, b})), fh, AR.thaw(U32, tp), AR.thaw(U32, tn)}, U32.from_nat(s)) == F.CH{DST.hd(t_ord(a, s, b)), DST.lst(t_ord(a, s, b)), fh, AR.thaw(U32, t_tp(depth, tp, a, s, b)), AR.thaw(U32, t_tn(depth, tn, a, s, b))} : F.Chain}:
   match b:

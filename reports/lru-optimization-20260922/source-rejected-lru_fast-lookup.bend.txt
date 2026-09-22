@@ -1,0 +1,40 @@
+import Base
+import ../../src/internal/lru_lookup.bend as S
+
+def lo_ok(+pos: Nat, +high: Map<&2, Maybe<&2, U32>>, r: Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>) -> {S.lo(pos, high, r) == Map.lo(&2, Maybe<&2, U32>, Maybe<&2, U32>, pos, high, r) : Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>}:
+  match r:
+    case Tuple{low, value}:
+      {==}
+
+def hi_ok(+pos: Nat, +low: Map<&2, Maybe<&2, U32>>, r: Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>) -> {S.hi(pos, low, r) == Map.hi(&2, Maybe<&2, U32>, Maybe<&2, U32>, pos, low, r) : Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>}:
+  match r:
+    case Tuple{high, value}:
+      {==}
+
+def leaf_ok(+value: Maybe<&2, U32>, r: (String & String) & Cmp) -> {S.leaf(value, r) == Map.get.leaf(Maybe<&2, U32>, None{}, value, r) : Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>}:
+  match r:
+    case Tuple{Tuple{key, stored}, LT{}}:
+      {==}
+    case Tuple{Tuple{key, stored}, EQ{}}:
+      {==}
+    case Tuple{Tuple{key, stored}, GT{}}:
+      {==}
+
+def route_ok(+pos: Nat, +low: Map<&2, Maybe<&2, U32>>, +high: Map<&2, Maybe<&2, U32>>, r: String & Bool,
+  il: @k: String -> {S.get(low, k) == Map.get(Maybe<&2, U32>, None{}, low, k) : Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>},
+  ih: @k: String -> {S.get(high, k) == Map.get(Maybe<&2, U32>, None{}, high, k) : Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>}) ->
+  {S.route(k => S.lo(pos, high, S.get(low, k)), k => S.hi(pos, low, S.get(high, k)), r) == Map.get.bit(Maybe<&2, U32>, None{}, low, high, pos, r) : Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>}:
+  match r:
+    case Tuple{+key, False{}}:
+      Equal.trans(Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>, S.lo(pos, high, S.get(low, key)), S.lo(pos, high, Map.get(Maybe<&2, U32>, None{}, low, key)), Map.lo(&2, Maybe<&2, U32>, Maybe<&2, U32>, pos, high, Map.get(Maybe<&2, U32>, None{}, low, key)), Equal.cong(Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>, Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>, x => S.lo(pos, high, x), S.get(low, key), Map.get(Maybe<&2, U32>, None{}, low, key), il(key)), lo_ok(pos, high, Map.get(Maybe<&2, U32>, None{}, low, key)))
+    case Tuple{+key, True{}}:
+      Equal.trans(Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>, S.hi(pos, low, S.get(high, key)), S.hi(pos, low, Map.get(Maybe<&2, U32>, None{}, high, key)), Map.hi(&2, Maybe<&2, U32>, Maybe<&2, U32>, pos, low, Map.get(Maybe<&2, U32>, None{}, high, key)), Equal.cong(Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>, Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>, x => S.hi(pos, low, x), S.get(high, key), Map.get(Maybe<&2, U32>, None{}, high, key), ih(key)), hi_ok(pos, low, Map.get(Maybe<&2, U32>, None{}, high, key)))
+
+def get_ok(+m: Map<&2, Maybe<&2, U32>>, +key: String) -> {S.get(m, key) == Map.get(Maybe<&2, U32>, None{}, m, key) : Map<&2, Maybe<&2, U32>> & Maybe<&2, U32>}:
+  match m:
+    case MTip{}:
+      {==}
+    case MLeaf{+stored, +value}:
+      leaf_ok(value, String.cmp(key, stored))
+    case MNode{+pos, +low, +high}:
+      route_ok(pos, low, high, Map.bit(key, pos), k => get_ok(low, k), k => get_ok(high, k))

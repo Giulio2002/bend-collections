@@ -1,15 +1,14 @@
 import Base
 import ../lib/logic.bend as L
-import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../lib/array.bend as AR
 import ../../spec/common.bend as SC
 import ../../src/lru/fast.bend as F
-import ../../src/doubly_linked_list.bend as D
-import ../dlist/state.bend as DST
-import ../dlist/links.bend as LK
-import ../dlist/facts.bend as DF
-import ../dlist/tolist.bend as TL
+import support/link_primitives.bend as D
+import support/links_state.bend as DST
+import support/links_links.bend as LK
+import support/links_facts.bend as DF
+import support/links_tolist.bend as TL
 import ./state.bend as ST
 
 # keys_list walks the recency chain backwards from the tail through prevs,

@@ -1,5 +1,4 @@
 import Base
-import ../lib/array.bend as AR
 import ../../spec/lru_fast.bend as S
 import ../../src/lru/fast.bend as F
 import ../../types/lru_model.bend as T

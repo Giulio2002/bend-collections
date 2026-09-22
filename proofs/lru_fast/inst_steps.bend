@@ -1,16 +1,10 @@
 import Base
 import ../lib/array.bend as AR
-import ../lib/u32.bend as U
 import ../../spec/common.bend as SC
-import ../../spec/lru_fast.bend as S
-import ../../spec/lru_numeric.bend as NS
 import ../../src/lru/fast.bend as F
-import ../../src/lru/time.bend as Time
 import ../../types/lru_model.bend as T
 import ../../types/lru_fast.bend as E
-import ../dlist/state.bend as DST
 import ./state.bend as ST
-import ./table.bend as TB
 import ./steps.bend as SP
 
 def len_ok_u32(+cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +tc: AR.Tree<U32>, +table: Map<&2, Maybe<&2, U32>>, +tk: AR.Tree<String>, +te: AR.Tree<F.Slot<U32>>, +tp: AR.Tree<U32>, +tn: AR.Tree<U32>, +ord: List<&2, Nat>, +fl: List<&2, Nat>, +h: {ST.inv(~U32, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl) == True{} : Bool}) -> SP.StepOK(~U32, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}, E.Len{}):
@@ -48,4 +42,3 @@ def resize_ok_u32(+cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +tc: AR.T
 
 def keys_ok_u32(+cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +tc: AR.Tree<U32>, +table: Map<&2, Maybe<&2, U32>>, +tk: AR.Tree<String>, +te: AR.Tree<F.Slot<U32>>, +tp: AR.Tree<U32>, +tn: AR.Tree<U32>, +ord: List<&2, Nat>, +fl: List<&2, Nat>, +now: T.Int64, +h: {ST.inv(~U32, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl) == True{} : Bool}) -> SP.StepOK(~U32, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}, E.Keys{now}):
   SP.keys_ok(~U32, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl, now, h)
-

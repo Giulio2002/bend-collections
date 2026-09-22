@@ -224,6 +224,8 @@ def calibrate(bend_bin, ref_bin, row, log):
     # and the build is paid once per round instead of once per batch.
     half = max(1, row.get('cap', max(1, row['size'] // 2)))
     count, reps = row['count'], row['reps']
+    if not by_count and row['operation'] == 'lru.remove_seq' and (2 * count > row['size'] or 2 * half > row['size']):
+        raise Unmeasurable('isolated-removal batch would exceed the prepared entries')
     turn = 0
     while True:
         bd, rd, ba = deltas(bend_bin, ref_bin, row, count, reps, turn % 2)

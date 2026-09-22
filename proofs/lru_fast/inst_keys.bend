@@ -1,14 +1,10 @@
 import Base
 import ../lib/array.bend as AR
-import ../lib/u32.bend as U
 import ../../spec/common.bend as SC
 import ../../spec/lru_fast.bend as S
-import ../../spec/lru_numeric.bend as NS
 import ../../src/lru/fast.bend as F
-import ../../src/lru/time.bend as Time
 import ../../types/lru_model.bend as T
 import ../../types/lru_fast.bend as E
-import ../dlist/state.bend as DST
 import ./state.bend as ST
 import ./keys.bend as KY
 
@@ -26,4 +22,3 @@ def st_inv_u32(fuel: Nat, +cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +
 
 def klist_ok_u32(sh: ST.Shadow<U32>, +h: {ST.good(~U32, sh) == True{} : Bool}) -> {F.obs_keys(~U32, F.keys_list(~U32, ST.real(~U32, sh))) == (ST.real(~U32, sh), E.OKeys{S.keys(U32, KY.ents_of(U32, sh))}) : F.Fast<U32> & E.Obs<U32>}:
   KY.klist_ok(~U32, sh, h)
-

@@ -13,7 +13,7 @@ import ./table.bend as TB
 import ../../types/lru_fast.bend as E
 import ../lib/array.bend as AR
 import ../../spec/common.bend as SC
-import ../dlist/state.bend as DST
+import support/links_state.bend as DST
 
 def entry_occ_u32(+life: T.Int64, v: U32, +now: T.Int64) -> {ST.is_occ(U32, AF.entry(~U32, life, v, now)) == True{} : Bool}:
   AF.entry_occ(~U32, life, v, now)
@@ -55,4 +55,3 @@ def grow_inv_u32(+cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +tc: AR.Tr
 
 def grow_model_u32(+cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +tc: AR.Tree<U32>, +table: Map<&2, Maybe<&2, U32>>, +tk: AR.Tree<String>, +te: AR.Tree<F.Slot<U32>>, +tp: AR.Tree<U32>, +tn: AR.Tree<U32>, +ord: List<&2, Nat>, +fl: List<&2, Nat>, +h: {ST.inv(~U32, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl) == True{} : Bool}) -> {ST.model(~U32, ST.Sh{cap, fresh, 1n+depth, life, tc, table, AR.TNode{tk, AR.trep(String, depth, "")}, AR.TNode{te, AR.trep(F.Slot<U32>, depth, F.Vacant{})}, AR.TNode{tp, AR.trep(U32, depth, 0)}, AR.TNode{tn, AR.trep(U32, depth, 0)}, ord, fl}) == ST.model(~U32, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}) : S.Model<U32>}:
   INS.grow_model(~U32, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl, h)
-

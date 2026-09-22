@@ -1,4 +1,5 @@
 import Base
+import ../internal/dlist_storage.bend as DLL
 import ../../types/lru_model.bend as T
 import ./time.bend as Time
 import ./wide.bend as W
@@ -40,8 +41,8 @@ import ../../types/lru_fast.bend as E
 # `Word(64n)`; the five 64-bit metrics are ten U32 limbs (one `Array<U32>`, projected to
 # `T.Metrics` by `to_metrics`); an entry whose deadline is the retained
 # "immortal" zero is stored as `Live{v}` and never consults the clock, one
-# with a deadline as `Timed{v, dl}` and is checked with the retained
-# `Time.expired`. The cache remembers whether its lifetime is zero (`ttl`),
+# with a deadline as `Timed{v, dl}` and is checked by a native packed
+# signed comparison proved equivalent to `Time.expired`. The cache remembers whether its lifetime is zero (`ttl`),
 # which is exactly the retained `deadline_choose` test, evaluated once in
 # `set_lifetime` instead of on every insertion.
 #
@@ -77,11 +78,7 @@ def pick(b: Bool, +x: U32, +y: U32) -> U32:
 
 # Point the link stored at the element link l refers to (if any) at x.
 def set_at_link(a: Array<U32>, +l: U32, +x: U32, none: Bool) -> Array<U32>:
-  match none:
-    case True{}:
-      a
-    case False{}:
-      Array.set(U32, a, slot(l), x)
+  DLL.set_next_go(a,l,x,none)
 
 # ---- the recency chain ----
 
@@ -110,12 +107,31 @@ def link_tail(c: Chain, +s: U32) -> Chain:
      Array.set(U32, prevs, s, tail),
      set_at_link(Array.set(U32, nexts, s, nil()), tail, link(s), U32.is_eq(tail, nil()))}
 
+# Fused detach/append: preserve the slot and payload, touch only link arrays.
+def promote_fin(+s: U32, +head: U32, +tail: U32, +free: U32, prevs: Array<U32>, nexts: Array<U32>, +p: U32, +q: U32) -> Chain:
+  +last = pick(U32.is_eq(q,nil()),p,tail)
+  CH{pick(U32.is_eq(last,nil()),link(s),pick(U32.is_eq(p,nil()),q,head)),link(s),free,
+    Array.set(U32,set_at_link(prevs,q,p,U32.is_eq(q,nil())),s,last),
+    set_at_link(Array.set(U32,set_at_link(nexts,p,q,U32.is_eq(p,nil())),s,nil()),last,link(s),U32.is_eq(last,nil()))}
+
+def promote_q(+s: U32, +head: U32, +tail: U32, +free: U32, prevs: Array<U32>, +p: U32, r: Array<U32> & U32) -> Chain:
+  (nexts,+q) = r
+  promote_fin(s,head,tail,free,prevs,nexts,p,q)
+
+def promote_p(+s: U32, +head: U32, +tail: U32, +free: U32, nexts: Array<U32>, r: Array<U32> & U32) -> Chain:
+  (prevs,+p) = r
+  promote_q(s,head,tail,free,prevs,p,Array.get(U32,nexts,s))
+
+def promote(c: Chain, +s: U32) -> Chain:
+  CH{head,tail,free,prevs,nexts} = c
+  promote_p(s,head,tail,free,nexts,Array.get(U32,prevs,s))
+
 def touch_go(c: Chain, +s: U32, newest: Bool) -> Chain:
   match newest:
     case True{}:
       c
     case False{}:
-      link_tail(unlink(c, s), s)
+      promote(c, s)
 
 # Make slot s the newest element.
 def touch(c: Chain, +s: U32) -> Chain:
@@ -277,10 +293,52 @@ def capacity(~V: Data, f: Fast<V>) -> Fast<V> & U32:
   F{+cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch} = f
   (F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch}, cap)
 
-# The retained lifetime: zero means entries never expire.
-def set_lifetime(~V: Data, f: Fast<V>, +ns: T.Int64) -> Fast<V>:
+# Decode the public Word timestamp once, then inspect its native limbs.
+def stamp_zero(s: Stamp) -> Bool:
+  ST{lo, hi} = s
+  Bool.and(U32.is_zero(lo), U32.is_zero(hi))
+
+# Compare packed signed 64-bit timestamps without rebuilding Word(64n).
+def stamp_order(high: Cmp, low: Cmp) -> Cmp:
+  match high:
+    case EQ{}:
+      low
+    case LT{}:
+      LT{}
+    case GT{}:
+      GT{}
+
+def stamp_signed(+alo: U32, +ahi: U32, +blo: U32, +bhi: U32, negative_a: Bool, negative_b: Bool) -> Bool:
+  match negative_a negative_b:
+    case True{} False{}:
+      True{}
+    case False{} True{}:
+      False{}
+    case _ _:
+      Cmp.is_le(stamp_order(U32.cmp(ahi,bhi), U32.cmp(alo,blo)))
+
+def stamp_le(a: Stamp, b: Stamp) -> Bool:
+  ST{alo,+ahi} = a
+  ST{blo,+bhi} = b
+  stamp_signed(alo,ahi,blo,bhi,U32.is_ge(ahi,2147483648),U32.is_ge(bhi,2147483648))
+
+def stamp_expired_choose(deadline: Stamp, now: Stamp, immortal: Bool) -> Bool:
+  match immortal:
+    case True{}:
+      False{}
+    case False{}:
+      stamp_le(deadline,now)
+
+def stamp_expired(+deadline: Stamp, now: Stamp) -> Bool:
+  stamp_expired_choose(deadline,now,stamp_zero(deadline))
+
+def set_lifetime_packed(~V: Data, f: Fast<V>, +ns: Stamp) -> Fast<V>:
   F{cap, n, fresh, size, depth, ttl, life, counts, table, kys, ents, ch} = f
-  F{cap, n, fresh, size, depth, Bool.not(Time.is_zero(ns)), int_stamp(ns), counts, table, kys, ents, ch}
+  F{cap, n, fresh, size, depth, Bool.not(stamp_zero(ns)), ns, counts, table, kys, ents, ch}
+
+# The retained lifetime: zero means entries never expire.
+def set_lifetime(~V: Data, f: Fast<V>, ns: T.Int64) -> Fast<V>:
+  set_lifetime_packed(~V, f, int_stamp(ns))
 
 def metrics_fin(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, table: Map<&2, Maybe<&2, U32>>, kys: Array<String>, ents: Array<Slot<V>>, ch: Chain, r: Array<U32> & T.Metrics) -> Fast<V> & T.Metrics:
   (counts, m) = r
@@ -440,7 +498,7 @@ def read_slot(~V: Data, f: Fast<V>, +s: U32, now: Stamp, +tracked: Bool, e: Slot
     case Live{v}:
       read_live(~V, f, s, tracked, v)
     case Timed{v, d}:
-      read_expiry(~V, f, s, tracked, v, Time.expired(stamp_int(d), stamp_int(now)))
+      read_expiry(~V, f, s, tracked, v, stamp_expired(d, now))
 
 def read_got(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, Maybe<&2, U32>>, kys: Array<String>, ch: Chain, +s: U32, now: Stamp, +tracked: Bool, r: Array<Slot<V>> & Slot<V>) -> Fast<V> & Maybe<&2, V>:
   (ents, e) = r
@@ -600,7 +658,7 @@ def ex_slot(~V: Data, f: Fast<V>, +s: U32, now: Stamp, e: Slot<V>) -> Fast<V> & 
     case Live{v}:
       (f, False{})
     case Timed{v, d}:
-      ex_drop(~V, f, s, Time.expired(stamp_int(d), stamp_int(now)))
+      ex_drop(~V, f, s, stamp_expired(d, now))
 
 def ex_got(~V: Data, +cap: U32, +n: U32, +fresh: U32, +size: U32, +depth: Nat, +ttl: Bool, life: Stamp, counts: Array<U32>, table: Map<&2, Maybe<&2, U32>>, kys: Array<String>, ch: Chain, +s: U32, now: Stamp, r: Array<Slot<V>> & Slot<V>) -> Fast<V> & Bool:
   (ents, e) = r

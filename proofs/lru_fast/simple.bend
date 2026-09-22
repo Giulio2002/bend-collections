@@ -1,5 +1,4 @@
 import Base
-import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/array.bend as AR
 import ../lib/u32.bend as U
@@ -8,8 +7,8 @@ import ../../spec/lru_fast.bend as S
 import ../../src/lru/fast.bend as F
 import ../../src/lru/time.bend as Time
 import ../../types/lru_model.bend as T
-import ../dlist/state.bend as DST
-import ../dlist/tolist.bend as TL
+import support/links_state.bend as DST
+import support/links_tolist.bend as TL
 import ./state.bend as ST
 import ./ents.bend as EN
 

@@ -9,24 +9,19 @@ import ../../spec/lru_fast.bend as S
 import ../../spec/lru_numeric.bend as NS
 import ../../src/lru/fast.bend as F
 import ../../src/lru/time.bend as Time
-import ../../src/doubly_linked_list.bend as D
+import support/link_primitives.bend as D
 import ../../types/lru_model.bend as T
 import ../../types/lru_fast.bend as E
-import ../dlist/state.bend as DST
-import ../dlist/split.bend as SP
-import ../dlist/tolist.bend as TL
-import ../dlist/core.bend as K
-import ../dlist/items.bend as IT
-import ../dlist/alive.bend as AL
-import ../dlist/insfacts.bend as IF
-import ../dlist/facts.bend as DF
-import ../dlist/rmfacts.bend as RMF
-import ../../reference/lru/proofs/invariants.bend as Inv
-import ../../reference/lru/proofs/map_populated.bend as Pop
+import support/links_state.bend as DST
+import support/links_split.bend as SP
+import support/links_core.bend as K
+import support/links_items.bend as IT
+import support/links_alive.bend as AL
+import support/links_insfacts.bend as IF
+import support/links_facts.bend as DF
 import ./state.bend as ST
 import ./table.bend as TB
 import ./ents.bend as EN
-import ./lists.bend as LS
 import ./rs.bend as RS
 import ./remove.bend as RM
 import ./insert.bend as INS
@@ -36,8 +31,8 @@ import ../../reference/lru/proofs/lookup_refinement.bend as LR
 import ../../reference/lru/proofs/canonical_string.bend as CS
 import ../../reference/lru/proofs/map_delete_frame.bend as DelFrame
 import ../../reference/lru/proofs/map_routing.bend as R
-import ../dlist/links.bend as LK
-import ../dlist/tset.bend as TS
+import support/links_links.bend as LK
+import support/links_tset.bend as TS
 
 # Inserting an absent key when the cache has room: the free list's head is
 # reused if there is one, else the next fresh slot, growing the arrays first

@@ -1,3 +1,4 @@
+import ./packed_order.bend as OptOrder
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
@@ -8,14 +9,14 @@ import ../../spec/lru_fast.bend as S
 import ../../spec/lru_numeric.bend as NS
 import ../../src/lru/fast.bend as F
 import ../../src/lru/time.bend as Time
-import ../../src/doubly_linked_list.bend as D
+import support/link_primitives.bend as D
 import ../../types/lru_model.bend as T
-import ../dlist/state.bend as DST
-import ../dlist/split.bend as SP
-import ../dlist/tolist.bend as TL
-import ../dlist/core.bend as K
-import ../dlist/links.bend as LK
-import ../dlist/tset.bend as TS
+import support/links_state.bend as DST
+import support/links_split.bend as SP
+import support/links_tolist.bend as TL
+import support/links_core.bend as K
+import support/links_links.bend as LK
+import support/links_tset.bend as TS
 import ../../reference/lru/proofs/recency_unique.bend as RU
 import ./num/numeric.bend as NUM
 import ./state.bend as ST
@@ -121,10 +122,13 @@ def re_real(~V: Data, +cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +tc: 
     case True{}:
       rx_real(~V, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl, s, tracked, hm, h)
 
-def exp_eq(dl: F.Stamp, +now: T.Int64) -> {Time.expired(F.stamp_int(dl), F.stamp_int(F.int_stamp(now))) == NS.expired(F.stamp_int(dl), now) : Bool}:
+def old_exp_eq(dl: F.Stamp, +now: T.Int64) -> {Time.expired(F.stamp_int(dl), F.stamp_int(F.int_stamp(now))) == NS.expired(F.stamp_int(dl), now) : Bool}:
   Equal.trans(Bool, Time.expired(F.stamp_int(dl), F.stamp_int(F.int_stamp(now))), Time.expired(F.stamp_int(dl), now), NS.expired(F.stamp_int(dl), now),
     Equal.cong(T.Int64, Bool, z => Time.expired(F.stamp_int(dl), z), F.stamp_int(F.int_stamp(now)), now, RF.stamp_iso(now)),
     NUM.expiration_refines(F.stamp_int(dl), now))
+
+def exp_eq(+dl: F.Stamp, +now: T.Int64) -> {F.stamp_expired(dl,F.int_stamp(now)) == NS.expired(F.stamp_int(dl),now) : Bool}:
+  Equal.trans(Bool,F.stamp_expired(dl,F.int_stamp(now)),Time.expired(F.stamp_int(dl),F.stamp_int(F.int_stamp(now))),NS.expired(F.stamp_int(dl),now),OptOrder.expired_ok(dl,F.int_stamp(now)),old_exp_eq(dl,now))
 
 def rs_real_slot(~V: Data, +cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +tc: AR.Tree<U32>, +table: Map<&2, Maybe<&2, U32>>, +tk: AR.Tree<String>, +te: AR.Tree<F.Slot<V>>, +tp: AR.Tree<U32>, +tn: AR.Tree<U32>, +ord: List<&2, Nat>, +fl: List<&2, Nat>, +s: Nat, +now: T.Int64, +tracked: Bool, e: F.Slot<V>, +hm: {DST.lmem(s, ord) == True{} : Bool}, +h: {ST.inv(~V, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl) == True{} : Bool}) -> {F.read_slot(~V, ST.real(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}), U32.from_nat(s), F.int_stamp(now), tracked, e) == RM.rp(~V, rd_slot(V, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl, s, now, tracked, e)) : F.Fast<V> & Maybe<&2, V>}:
   match e:
@@ -133,7 +137,7 @@ def rs_real_slot(~V: Data, +cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, 
     case F.Live{v}:
       rl_real(~V, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl, s, tracked, v, hm, h)
     case F.Timed{v, +dl}:
-      L.subst(Bool, z => {F.read_expiry(~V, ST.real(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}), U32.from_nat(s), tracked, v, z) == RM.rp(~V, rd_exp(V, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl, s, tracked, v, NS.expired(F.stamp_int(dl), now))) : F.Fast<V> & Maybe<&2, V>}, NS.expired(F.stamp_int(dl), now), Time.expired(F.stamp_int(dl), F.stamp_int(F.int_stamp(now))), Equal.sym(Bool, Time.expired(F.stamp_int(dl), F.stamp_int(F.int_stamp(now))), NS.expired(F.stamp_int(dl), now), exp_eq(dl, now)),
+      L.subst(Bool, z => {F.read_expiry(~V, ST.real(~V, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}), U32.from_nat(s), tracked, v, z) == RM.rp(~V, rd_exp(V, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl, s, tracked, v, NS.expired(F.stamp_int(dl), now))) : F.Fast<V> & Maybe<&2, V>}, NS.expired(F.stamp_int(dl), now), F.stamp_expired(dl,F.int_stamp(now)), Equal.sym(Bool, F.stamp_expired(dl,F.int_stamp(now)), NS.expired(F.stamp_int(dl), now), exp_eq(dl, now)),
         re_real(~V, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl, s, tracked, v, NS.expired(F.stamp_int(dl), now), hm, h))
 
 def rd_real_m(~V: Data, +cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +tc: AR.Tree<U32>, +table: Map<&2, Maybe<&2, U32>>, +tk: AR.Tree<String>, +te: AR.Tree<F.Slot<V>>, +tp: AR.Tree<U32>, +tn: AR.Tree<U32>, +ord: List<&2, Nat>, +fl: List<&2, Nat>, +key: String, +now: T.Int64, +tracked: Bool, m: Maybe<&2, U32>, +em: {TB.lk(table, key) == m : Maybe<&2, U32>}, +h: {ST.inv(~V, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl) == True{} : Bool}) -> {F.read_pick(~V, cap, U32.from_nat(SC.length(Nat, ord)), U32.from_nat(fresh), U.pow2u(depth), depth, Bool.not(Time.is_zero(life)), F.int_stamp(life), AR.thaw(U32, tc), table, AR.thaw(String, tk), AR.thaw(F.Slot<V>, te), F.CH{DST.hd(ord), DST.lst(ord), DST.hd(fl), AR.thaw(U32, tp), AR.thaw(U32, tn)}, F.int_stamp(now), tracked, m) == RM.rp(~V, rd_ghost(V, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl, key, now, tracked, m)) : F.Fast<V> & Maybe<&2, V>}:

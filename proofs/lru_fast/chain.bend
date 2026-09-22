@@ -1,20 +1,18 @@
 import Base
 import ../lib/logic.bend as L
-import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../lib/array.bend as AR
 import ../binary_heap/u32idx.bend as IX
 import ../../spec/common.bend as SC
 import ../../src/lru/fast.bend as F
-import ../../src/doubly_linked_list.bend as D
-import ../dlist/state.bend as DST
-import ../dlist/links.bend as LK
-import ../dlist/rmfacts.bend as RF
-import ../dlist/tset.bend as TS
-import ../dlist/tolist.bend as TL
-import ../dlist/insitems.bend as II
-import ../dlist/insert.bend as IN
-import ../dlist/rm.bend as RM
+import support/link_primitives.bend as D
+import support/links_state.bend as DST
+import support/links_links.bend as LK
+import support/links_rmfacts.bend as RF
+import support/links_tset.bend as TS
+import support/links_tolist.bend as TL
+import support/links_insitems.bend as II
+import support/links_insert.bend as IN
 
 # The recency chain of the indexed LRU (src/lru/fast.bend `Chain`) computed
 # on Data mirror trees. The chain's links are slot + 1 with 0 = none, the

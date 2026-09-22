@@ -1,35 +1,28 @@
 # Private work-in-progress snapshot
 
-The production balanced search tree is now an indexed red-black TreeMap using
-Data keys/values and the shared dynamic array. It includes comparator-based
-ordering, replacement/conditional edits, navigation/polling, editable owning
-iterators, and backed bounded/descending views.
+LRU now uses packed signed expiry checks, a single lifetime decode, and fused
+recency promotion sharing the DLL link-write primitive. Native Base.Map remains;
+both experimental custom lookups were measured slower and removed.
 
-- 92,544 operations over 300 histories pass, with independent red-black,
-  parent-link, ordering, cached-state and exhaustive live/free-slot checks.
-- Capacity rejection/reuse and String keys with custom Data records pass.
-- 16 explicit component laws pass; three compiled semantic mutants are rejected
-  by both the tests and the component proof gate.
-- Existing Data dynamic-array proof and retained legacy recursive-tree proof
-  pass. The latter applies only to the code in `reference/`.
-- Full indexed-map refinement, balancing, arbitrary iterator/view trace proofs
-  are unfinished. The global proof root still fails at the existing deque
-  constructor-pattern migration; the exact failure is archived.
-- Native C benchmark sweep: 23/33 rows within 2.5x, 10 slow, none unresolved.
-  Remaining performance failures: range/iteration, small-tree remove/reinsert,
-  and construction. C reference source unchanged. Source hashes, checksums,
-  samples and initial noisy sweep retained in the evidence directory.
-- The actual map constructor is timed, including its two initial buffers; the
-  final benchmark does not replace construction with a literal zero result.
+- Candidate medium expiry: 8.83 → 5.46 us; lifetime setting: 2.63 → 1.68 us.
+- Final current LRU rerun: **6/51 pass 2.5x, 30 slow, 15 failed measurement**.
+- Conditional operation-trace proofs for U32/String and local equivalence pass.
+  Missing legacy proof dependencies were recovered as proof-only link/array
+  lemmas. No retired collection runtime or new unsafe/axioms were introduced.
+- 2,208 C/sanitizer cases and 24,000 retained-oracle operations pass; all three
+  semantic mutants are rejected. Existing trust assumptions remain.
+- Metrics Word64 output, deadline arithmetic and native Map lookup remain major
+  costs. Whole-library proofs and performance acceptance are not complete.
 
-No FFI, compiler modification, or patched generated C. DSA auto-implementer
-remains stopped. This snapshot is not a whole-library completion or acceptance
-claim. See `docs/TREE_MAP.md` and `benchmarks/evidence/tree-map-20260922/`.
+The full frozen 357-row baseline before the LRU edits has 284 passes, 59 slow
+rows and 14 failed measurements. It is archived separately from current LRU
+results. See `reports/lru-optimization-20260922/` and
+`docs/LRU_OPTIMIZATION.md` for exact sources, samples, failures and limitations.
 
-Latest: reduced range/iteration overhead; see benchmarks/evidence/tree-range-20260922/README.md. Complete indexed proofs and performance acceptance remain open.
+TreeMap still uses the indexed red-black representation and ordinary editable
+iterators. Bulk folds remain removed. Its prior 92,544 differential operations,
+16 component laws and three traversal laws passed; full indexed refinement and
+the whole-library proof gate remain unfinished.
 
-Latest bulk API optimization: see benchmarks/evidence/tree-fold-20260922/README.md. Editable iterators remain available; bulk-fold timings do not describe individual iterator calls. Performance acceptance and full formal verification remain unfinished.
-
-## Current status: bulk folds removed
-
-The later bulk-fold experiment has been removed at the user’s request, including its API, tests/proofs and benchmark path. Earlier notes about that experiment are historical and no longer apply. Ordinary editable iterators are the current traversal API. Their earlier optimizations remain. The restored implementation passes 92,544 differential operations, 16 component laws and three traversal laws. A fresh 357-workload full sweep is running, with live dashboard updates; results are pending until measured.
+Stock Bend 2.0.16; no FFI, compiler patch or generated-C modification. All C
+references remain unchanged. DSA auto-implementer remains stopped.

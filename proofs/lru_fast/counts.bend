@@ -9,11 +9,11 @@ import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../../spec/common.bend as SC
 import ../../src/lru/fast.bend as F
-import ../dlist/state.bend as DST
-import ../dlist/links.bend as LK
-import ../dlist/tolist.bend as TL
-import ../dlist/insert.bend as IN
-import ../graph/shift.bend as SH
+import support/links_state.bend as DST
+import support/links_links.bend as LK
+import support/links_tolist.bend as TL
+import support/links_insert.bend as IN
+import support/array_shift.bend as SH
 
 # The five 64-bit counters are kept as ten U32 limbs (low limb at 2c, high at
 # 2c + 1). Incrementing the pair (increment the low limb; if it wrapped to 0,

@@ -1,0 +1,25 @@
+import Base
+
+# Read-only native Map search. The public get retains the original map;
+# recursion returns only the slot, avoiding reconstruction of its path.
+def leaf(value: Maybe<&2,U32>, r: (String & String) & Cmp) -> Maybe<&2,U32>:
+  ((key,stored),order) = r
+  match order:
+    case EQ{}: value
+    case _: None{}
+
+def route(low: String -> Maybe<&2,U32>, high: String -> Maybe<&2,U32>, r: String & Bool) -> Maybe<&2,U32>:
+  (key,direction) = r
+  match direction:
+    case False{}: low(key)
+    case True{}: high(key)
+
+def find(m: Map<&2,Maybe<&2,U32>>, key: String) -> Maybe<&2,U32>:
+  match m:
+    case MTip{}: None{}
+    case MLeaf{stored,value}: leaf(value,String.cmp(key,stored))
+    case MNode{+pos,low,high}:
+      route(k => find(low,k), k => find(high,k), Map.bit(key,pos))
+
+def get(+m: Map<&2,Maybe<&2,U32>>, key: String) -> Map<&2,Maybe<&2,U32>> & Maybe<&2,U32>:
+  (m,find(m,key))

@@ -1,20 +1,17 @@
 import Base
 import ../lib/logic.bend as L
-import ../lib/nat.bend as N
 import ../lib/array.bend as AR
 import ../../spec/common.bend as SC
 import ../../spec/lru_fast.bend as S
 import ../../src/lru/fast.bend as F
 import ../../types/lru_model.bend as T
-import ../dlist/state.bend as DST
-import ../dlist/split.bend as SP
-import ../dlist/core.bend as K
+import support/links_state.bend as DST
+import support/links_split.bend as SP
+import support/links_core.bend as K
 import ../../reference/lru/proofs/invariants.bend as Inv
-import ../../reference/lru/proofs/map_populated.bend as Pop
 import ./state.bend as ST
 import ./ents.bend as EN
 import ./table.bend as TB
-import ./rs.bend as RS
 import ./touch.bend as TO
 
 # Touching slot s keeps the invariant (for any perfect counter tree and any

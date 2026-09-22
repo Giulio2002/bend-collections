@@ -1,0 +1,36 @@
+import Base
+import ../../src/internal/lru_find.bend as S
+import ../../reference/lru/proofs/map_insert.bend as MI
+import ../../reference/lru/proofs/native_map.bend as N
+
+def leaf_ok(+v: Maybe<&2,U32>, r: (String & String) & Cmp) -> {S.leaf(v,r) == MI.value(Maybe<&2,U32>,Map.get.leaf(Maybe<&2,U32>,None{},v,r)) : Maybe<&2,U32>}:
+  match r:
+    case Tuple{Tuple{key,stored},LT{}}: {==}
+    case Tuple{Tuple{key,stored},EQ{}}: {==}
+    case Tuple{Tuple{key,stored},GT{}}: {==}
+
+def route_ok(+pos: Nat, +low: Map<&2,Maybe<&2,U32>>, +high: Map<&2,Maybe<&2,U32>>, r: String & Bool,
+  il: @k: String -> {S.find(low,k) == MI.lookup(Maybe<&2,U32>,None{},low,k) : Maybe<&2,U32>},
+  ih: @k: String -> {S.find(high,k) == MI.lookup(Maybe<&2,U32>,None{},high,k) : Maybe<&2,U32>}) ->
+  {S.route(k => S.find(low,k),k => S.find(high,k),r) == MI.value(Maybe<&2,U32>,Map.get.bit(Maybe<&2,U32>,None{},low,high,pos,r)) : Maybe<&2,U32>}:
+  match r:
+    case Tuple{+key,False{}}:
+      Equal.trans(Maybe<&2,U32>,S.find(low,key),MI.lookup(Maybe<&2,U32>,None{},low,key),MI.value(Maybe<&2,U32>,Map.lo(&2,Maybe<&2,U32>,Maybe<&2,U32>,pos,high,Map.get(Maybe<&2,U32>,None{},low,key))),il(key),Equal.sym(Maybe<&2,U32>,MI.value(Maybe<&2,U32>,Map.lo(&2,Maybe<&2,U32>,Maybe<&2,U32>,pos,high,Map.get(Maybe<&2,U32>,None{},low,key))),MI.lookup(Maybe<&2,U32>,None{},low,key),MI.low_value(Maybe<&2,U32>,pos,high,Map.get(Maybe<&2,U32>,None{},low,key))))
+    case Tuple{+key,True{}}:
+      Equal.trans(Maybe<&2,U32>,S.find(high,key),MI.lookup(Maybe<&2,U32>,None{},high,key),MI.value(Maybe<&2,U32>,Map.hi(&2,Maybe<&2,U32>,Maybe<&2,U32>,pos,low,Map.get(Maybe<&2,U32>,None{},high,key))),ih(key),Equal.sym(Maybe<&2,U32>,MI.value(Maybe<&2,U32>,Map.hi(&2,Maybe<&2,U32>,Maybe<&2,U32>,pos,low,Map.get(Maybe<&2,U32>,None{},high,key))),MI.lookup(Maybe<&2,U32>,None{},high,key),MI.high_value(Maybe<&2,U32>,pos,low,Map.get(Maybe<&2,U32>,None{},high,key))))
+
+def find_ok(+m: Map<&2,Maybe<&2,U32>>, +key: String) -> {S.find(m,key) == MI.lookup(Maybe<&2,U32>,None{},m,key) : Maybe<&2,U32>}:
+  match m:
+    case MTip{}: {==}
+    case MLeaf{+stored,+v}: leaf_ok(v,String.cmp(key,stored))
+    case MNode{+pos,+low,+high}: route_ok(pos,low,high,Map.bit(key,pos),k => find_ok(low,k),k => find_ok(high,k))
+
+def eta(r: Map<&2,Maybe<&2,U32>> & Maybe<&2,U32>) -> {(N.lookup_map(Maybe<&2,U32>,r),MI.value(Maybe<&2,U32>,r)) == r : Map<&2,Maybe<&2,U32>> & Maybe<&2,U32>}:
+  match r:
+    case Tuple{m,v}: {==}
+
+def get_ok(+m: Map<&2,Maybe<&2,U32>>, +key: String) -> {S.get(m,key) == Map.get(Maybe<&2,U32>,None{},m,key) : Map<&2,Maybe<&2,U32>> & Maybe<&2,U32>}:
+  Equal.trans(Map<&2,Maybe<&2,U32>> & Maybe<&2,U32>,S.get(m,key),(m,MI.lookup(Maybe<&2,U32>,None{},m,key)),Map.get(Maybe<&2,U32>,None{},m,key),
+    Equal.cong(Maybe<&2,U32>,Map<&2,Maybe<&2,U32>> & Maybe<&2,U32>,v => (m,v),S.find(m,key),MI.lookup(Maybe<&2,U32>,None{},m,key),find_ok(m,key)),
+    Equal.trans(Map<&2,Maybe<&2,U32>> & Maybe<&2,U32>,(m,MI.lookup(Maybe<&2,U32>,None{},m,key)),(N.lookup_map(Maybe<&2,U32>,Map.get(Maybe<&2,U32>,None{},m,key)),MI.lookup(Maybe<&2,U32>,None{},m,key)),Map.get(Maybe<&2,U32>,None{},m,key),
+      Equal.cong(Map<&2,Maybe<&2,U32>>,Map<&2,Maybe<&2,U32>> & Maybe<&2,U32>,t => (t,MI.lookup(Maybe<&2,U32>,None{},m,key)),m,N.lookup_map(Maybe<&2,U32>,Map.get(Maybe<&2,U32>,None{},m,key)),Equal.sym(Map<&2,Maybe<&2,U32>>,N.lookup_map(Maybe<&2,U32>,Map.get(Maybe<&2,U32>,None{},m,key)),m,N.lookup_preserves_map(Maybe<&2,U32>,None{},m,key))),eta(Map.get(Maybe<&2,U32>,None{},m,key))))

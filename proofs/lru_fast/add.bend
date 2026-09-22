@@ -11,11 +11,11 @@ import ../../src/lru/fast.bend as F
 import ../../src/lru/time.bend as Time
 import ../../types/lru_model.bend as T
 import ../../types/lru_fast.bend as E
-import ../dlist/state.bend as DST
-import ../dlist/split.bend as SP
-import ../dlist/tolist.bend as TL
-import ../dlist/core.bend as K
-import ../dlist/insert.bend as IN
+import support/links_state.bend as DST
+import support/links_split.bend as SP
+import support/links_tolist.bend as TL
+import support/links_core.bend as K
+import support/links_insert.bend as IN
 import ../../reference/lru/proofs/recency_unique.bend as RU
 import ./state.bend as ST
 import ./table.bend as TB

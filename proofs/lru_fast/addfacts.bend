@@ -1,5 +1,4 @@
 import Base
-import ../lib/logic.bend as L
 import ../../spec/lru_fast.bend as S
 import ../../spec/lru_numeric.bend as NS
 import ../../src/lru/fast.bend as F

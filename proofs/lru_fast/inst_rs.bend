@@ -3,9 +3,9 @@ import ../lib/array.bend as AR
 import ../../spec/common.bend as SC
 import ../../spec/lru_fast.bend as S
 import ../../src/lru/fast.bend as F
-import ../../src/doubly_linked_list.bend as D
+import support/link_primitives.bend as D
 import ../../types/lru_model.bend as T
-import ../dlist/state.bend as DST
+import support/links_state.bend as DST
 import ./state.bend as ST
 import ./rs.bend as RS
 import ./read.bend as RD
@@ -51,4 +51,3 @@ def rx_model_u32(+cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +tc: AR.Tr
 
 def read_model_u32(+cap: U32, +fresh: Nat, +depth: Nat, +life: T.Int64, +tc: AR.Tree<U32>, +table: Map<&2, Maybe<&2, U32>>, +tk: AR.Tree<String>, +te: AR.Tree<F.Slot<U32>>, +tp: AR.Tree<U32>, +tn: AR.Tree<U32>, +ord: List<&2, Nat>, +fl: List<&2, Nat>, +key: String, +now: T.Int64, +tracked: Bool, +h: {ST.inv(~U32, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl) == True{} : Bool}) -> {S.read(U32, ST.model(~U32, ST.Sh{cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl}), key, now, tracked) == RM.mp(~U32, RD.rd_ghost(U32, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl, key, now, tracked, TB.lk(table, key))) : S.Model<U32> & Maybe<&2, U32>}:
   RD.read_model(~U32, cap, fresh, depth, life, tc, table, tk, te, tp, tn, ord, fl, key, now, tracked, h)
-

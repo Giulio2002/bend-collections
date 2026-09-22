@@ -1,0 +1,53 @@
+built lru
+1 lru.add small 14.729405491868834
+2 lru.add medium 28.981854838709676
+3 lru.add large 29.294084024006864
+4 lru.get small 9.602522453659468
+5 lru.get medium 19.776150803669108
+6 lru.get large 27.968807564779567
+7 lru.peek small 10.108469882298639
+8 lru.peek medium 23.444487032068484
+9 lru.peek large sample 5: A-B = 287000000ns (bend) / -173000ns (reference), below the 50000000ns / 100000ns minima
+10 lru.contains small 71.96029776674939
+11 lru.contains medium 174.91467576791806
+12 lru.contains large 283.50515463917526
+13 lru.remove small 38.73706553462457
+14 lru.remove medium 94.61805555555556
+15 lru.remove large 86.59217877094973
+16 lru.purge small 54.247697031729786
+17 lru.purge medium 61.524609843937576
+18 lru.purge large 89.09011245801081
+19 lru.resize small 47.21603563474388
+20 lru.resize medium 51.10732538330494
+21 lru.resize large sample 0: A-B = 443000000ns (bend) / -401000ns (reference), below the 50000000ns / 100000ns minima
+22 lru.keys small sample 3: A-B = 263000000ns (bend) / -28129000ns (reference), below the 50000000ns / 100000ns minima
+23 lru.keys medium 4.016255895147886
+24 lru.keys large 4.709760979630285
+25 lru.len small 0.3404994942371529
+26 lru.len medium 0.38361127390910543
+27 lru.len large 0.40139176876506516
+28 lru.new small per-row wall-time budget exhausted; measurement failed
+29 lru.new medium sample 0: A-B = 67000000ns (bend) / -11215000ns (reference), below the 50000000ns / 100000ns minima
+30 lru.new large reference run failed: arena exhausted (2147483664 of 2147483648)
+
+31 lru.capacity small 0.3750513463152694
+32 lru.capacity medium 0.34596206845010674
+33 lru.capacity large 0.27319439090749187
+34 lru.set_lifetime small 183.34689449416868
+35 lru.set_lifetime medium 224.09211691762619
+36 lru.set_lifetime large 148.6910994764398
+37 lru.metrics small 1835.4430379746836
+38 lru.metrics medium 1969.78021978022
+39 lru.metrics large 1037.7358490566037
+40 lru.expiry small 589.2116182572614
+41 lru.expiry medium 595.427435387674
+42 lru.expiry large 144.6395563770795
+43 lru.remove_seq small per-row wall-time budget exhausted; measurement failed
+44 lru.remove_seq medium sample 0: A-B = 33000000ns (bend) / 3904000ns (reference), below the 50000000ns / 100000ns minima
+45 lru.remove_seq large sample 0: A-B = -117000000ns (bend) / 11213000ns (reference), below the 50000000ns / 100000ns minima
+46 lru.purge_isolated small per-row wall-time budget exhausted; measurement failed
+47 lru.purge_isolated medium per-row wall-time budget exhausted; measurement failed
+48 lru.purge_isolated large per-row wall-time budget exhausted; measurement failed
+49 lru.resize_isolated small per-row wall-time budget exhausted; measurement failed
+50 lru.resize_isolated medium per-row wall-time budget exhausted; measurement failed
+51 lru.resize_isolated large per-row wall-time budget exhausted; measurement failed

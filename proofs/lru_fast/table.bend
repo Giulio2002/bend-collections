@@ -1,12 +1,10 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/list.bend as LL
 import ../../spec/common.bend as SC
-import ../../src/lru/fast.bend as F
-import ../dlist/state.bend as DST
-import ../dlist/items.bend as IT
-import ../dlist/facts.bend as DF
+import support/links_state.bend as DST
+import support/links_items.bend as IT
+import support/links_facts.bend as DF
 import ../../reference/lru/src/cache.bend as C
 import ../../reference/lru/proofs/invariants.bend as Inv
 import ../../reference/lru/proofs/native_map.bend as Native
@@ -14,13 +12,9 @@ import ../../reference/lru/proofs/map_insert.bend as MI
 import ../../reference/lru/proofs/map_populated.bend as Pop
 import ../../reference/lru/proofs/map_routing.bend as R
 import ../../reference/lru/proofs/map_set_frame.bend as SetFrame
-import ../../reference/lru/proofs/map_set_critbit.bend as SetCrit
 import ../../reference/lru/proofs/map_set_membership.bend as SetMem
 import ../../reference/lru/proofs/map_delete_frame.bend as DelFrame
-import ../../reference/lru/proofs/map_delete_critbit.bend as DelCrit
-import ../../reference/lru/proofs/map_delete_populated.bend as DelPop
 import ../../reference/lru/proofs/map_delete_membership.bend as DelMem
-import ../../reference/lru/proofs/map_delete.bend as MDel
 import ../../reference/lru/proofs/map_key_presence.bend as Presence
 import ../../reference/lru/proofs/map_key_membership.bend as KeyMem
 import ../../reference/lru/proofs/cache_delete_membership.bend as CDM
@@ -28,10 +22,10 @@ import ../../reference/lru/proofs/recency_unique.bend as RU
 import ../../reference/lru/proofs/recency_membership.bend as RM
 import ../../reference/lru/proofs/canonical_string.bend as CS
 import ../../reference/lru/proofs/lookup_refinement.bend as LR
-import ../dlist/split.bend as SP
-import ../dlist/links.bend as LK
-import ../graph/shift.bend as SH
-import ../dlist/nbrs.bend as NB
+import support/links_split.bend as SP
+import support/links_links.bend as LK
+import support/array_shift.bend as SH
+import support/links_nbrs.bend as NB
 import ./state.bend as ST
 
 # The key table of the indexed LRU: a native Map<&2, Maybe<U32>> from key to

@@ -1,0 +1,125 @@
+{
+  "note": "Only redundant EOF newlines in proof files were removed after timing. Runtime, C references, drivers and workloads are unchanged. The raw timing source hashes are preserved; append the recorded newlines to reproduce those exact proof-file bytes. Proof gates are rerun after formatting.",
+  "files": [
+    {
+      "path": "LRU_OPT_PROOF.bend",
+      "before_sha256": "6b1831ca788cb19175277dd298d70c9f6e7ec43ed2efdee30a1864228df0aca1",
+      "after_sha256": "354b986247f96177a52d7a45df11cdafc96ef100f56c84e027f0150fa702eafc",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/inst_rs.bend",
+      "before_sha256": "0618993f92d8eb813ed4c03d802296fbf0436859951f0c178a37370711227a55",
+      "after_sha256": "6b9162fc6af467d074873ce7866456e20afcd38224b51840f1ba625de3f20ec2",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/inst_loops.bend",
+      "before_sha256": "7e20a5cb9de38f7e6dc029a8cb42de97b572ae4158b6a72e5b023ca5ddeb4215",
+      "after_sha256": "158b884917f78a23140265702f941620b350c57663328fb2f15083f5eb9ab914",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/inst_steps.bend",
+      "before_sha256": "cde9edb19f1a4adcf570ef06da1fb5eadfcacdce67d09a29066cbdb71ff7c1f8",
+      "after_sha256": "533ecf84c0489d4f7ff07e78ea870e288405166b6b681f16ebd1e5a06b9f6493",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/inst_keys.bend",
+      "before_sha256": "3cf4033fedee7830087dade01ed033d5984df2a24b9b4276d177e00db4ae73ce",
+      "after_sha256": "6a5e092534416e6a277e8ce776802c115613d7fc4d22c64fd57ae7761f84a75c",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/inst_add.bend",
+      "before_sha256": "33c28ca265638f80960e72ed2e0365b325131288418510e59a35b9cf5beb5cf6",
+      "after_sha256": "26dbc20339af7bec010a1524be1558bb0f72bc89f8689c2440ec04629cd42aad",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/support/links_grow.bend",
+      "before_sha256": "442464d814bf2ce2b73bad88c0cc8f13830d6227f1683809eb0da81818297270",
+      "after_sha256": "7273ccca81e4f759815cf699ea5bfcece39b4cf0bcedb9a97f53de4db9ed62da",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/support/links_insert.bend",
+      "before_sha256": "3b46248d91a6e486b76bc90a748875a05e279746b9f50165914034691f749de5",
+      "after_sha256": "1b8f85899051db67c18f29fe6bb1c8865147cd647d47fca9f9e5858eb3baf0fd",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/support/array_shift.bend",
+      "before_sha256": "db4719c06f7f23d498b55579b77815620c5014246971d6987fe7501d89aa6092",
+      "after_sha256": "57c8f4884d6b6fc213f997f3cdc63b96a8263c3c1f0586dfaf9572853cf995f3",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/support/array_ashift.bend",
+      "before_sha256": "2116712b0827b916eb9e2d0578a6b483746e66e7167a9ed0766e30a363f9872d",
+      "after_sha256": "37722fba4f3624af3bbdce53ed29417db1acda2ef0cacff77597b44108c04fb1",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/support/links_insfacts.bend",
+      "before_sha256": "08b2a03a8591a9f43d226a8053a26abb5097f51f178a55610218c9362f16014e",
+      "after_sha256": "698726e001921bf96bff82098540ca8cf23ce5d30e9711f39dc0afba9370d91f",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/support/link_primitives.bend",
+      "before_sha256": "f0ce767e1ee919c06cc6077b1e7685c60f9dead4221ac7a86d3e000e5ef07757",
+      "after_sha256": "f796c4c703830147f2e09ec903b481dd6044def48f90eb73f1d1d7001048e72b",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/support/links_alive.bend",
+      "before_sha256": "8e2cc879ef37164f844e75ee5142ad460f945d175652f18184c90efdd00000ff",
+      "after_sha256": "975716cb6801a60a55ff8de8b1e57adaff5dcb1ef1b11937534eda50ae412ad1",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/support/array_nbrops.bend",
+      "before_sha256": "fd5c03c2895bb82953c0861eff88d34d0763bdac780d988846ef54d1a225bd88",
+      "after_sha256": "89ffea05c0060cda0c77e579ea060a0cf5a2537e28e4c97abe0920f98d2a7ec2",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/support/links_insitems.bend",
+      "before_sha256": "1ba6f13ab647330525d63a1da3dce00f1032206c742def06e99b3fe605d384f1",
+      "after_sha256": "d972d7e7df55d9f56e52577c79635bc6f68fcb3287fa9b028f4d64c783c793c5",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/support/links_state.bend",
+      "before_sha256": "61132b5022f51e25ba89da4317e35456462b59474b447e10ba2ed59ecc648d34",
+      "after_sha256": "6f37ae644895c5358a2ee38f300d3c468fc9909793725b534f3088682bf09e26",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/support/links_nbrs.bend",
+      "before_sha256": "37e38be1009c908f5d2f9c23d0e45a422109733b6b407428c18c91045d9841aa",
+      "after_sha256": "7dcb8799ff87e99b6497c455785471ee72fa29fb30bf73e28713527a2e6f98d5",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/support/links_items.bend",
+      "before_sha256": "8eb9b48ec32712ec3f72b353dd0a889fa37ccee59d2cd845d61627871547983e",
+      "after_sha256": "5bb816886cbdfe6f250f6964bb13a074b2d6a6fef84dc61a5e7b4da556849193",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/support/array_zip.bend",
+      "before_sha256": "93171762fc7c988840ca6785ec6351cda9d72afca0564dff9c581d045ca901c4",
+      "after_sha256": "eaf0420dc86a1b26bf945e466c187fe3f5b466f49eb3fe6fa742fa384e2878e3",
+      "removed_trailing_newlines": 1
+    },
+    {
+      "path": "proofs/lru_fast/support/links_tolist.bend",
+      "before_sha256": "5e3ed3bf8641a0cbf069075aeb8a5ebbb40d4286c7d4b0a950da00a5ff3e9869",
+      "after_sha256": "5bc9cc6d8f7118972ddba563a193de0835c0eac4006556e12eaedf3ccd8f96d6",
+      "removed_trailing_newlines": 1
+    }
+  ]
+}

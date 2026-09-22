@@ -5,8 +5,6 @@ import ../lib/list.bend as LL
 import ../../spec/common.bend as SC
 import ../../spec/lru_fast.bend as S
 import ../../src/lru/fast.bend as F
-import ../dlist/state.bend as DST
-import ../dlist/links.bend as LK
 import ./state.bend as ST
 import ./table.bend as TB
 

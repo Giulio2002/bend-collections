@@ -1,6 +1,6 @@
 {
-  "at": "2026-09-22T15:52:06.458694+00:00",
+  "at": "2026-09-22T17:19:05.826673+00:00",
   "source": "/Users/monkeair/work/dsa-generational-list",
   "status": "work_in_progress",
-  "description": "Removed the rejected TreeMap bulk fold/view_fold API, helpers, dedicated tests/proofs, and benchmark path. Restored ordinary editable-iterator traversal with prior unboxed/narrow-walk optimizations. 92,544 differential operations plus 16 component and 3 traversal laws pass. New full 357-workload benchmark sweep is running with live per-row HTML updates; no completed full-sweep acceptance claimed. C reference unchanged. Full indexed TreeMap and library proofs remain incomplete."
+  "description": "LRU packed timestamp comparison, lifetime decode and fused recency promotion; Base.Map retained after rejecting slower custom lookups. Conditional U32/String trace proofs repaired and passing, local equivalence and three mutation checks pass; 2208 C/sanitizer cases and 24000 retained-oracle operations pass. Medium candidate expiry 38% lower and lifetime setting 36% lower. Final 51-row LRU rerun: 6 pass, 30 slow, 15 failed measurement at 2.5x; C reference unchanged. Frozen 357-row full baseline: 284 pass, 59 slow, 14 failed. Performance acceptance and full library verification remain incomplete."
 }

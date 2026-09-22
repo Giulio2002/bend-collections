@@ -1,0 +1,11 @@
+Error:
+- expected : {False{} == ../../src/lru/time.expired_choose(../../src/lru/fast.stamp_int(deadline), ../../src/lru/fast.stamp_int(now), ../../src/lru/fast.stamp_zero(deadline)) : Bool}
+- observed : {../../src/lru/fast.stamp_expired_choose(deadline, now, ../../src/lru/fast.stamp_zero(deadline)) == ../../src/lru/time.expired_choose(../../src/lru/fast.stamp_int(deadline), ../../src/lru/fast.stamp_int(now), ../../src/lru/fast.stamp_zero(deadline)) : Bool}
+Context:
+- deadline : ../../src/lru/fast.Stamp
+- now      : ../../src/lru/fast.Stamp
+Location: expired_ok
+95 | def expired_ok(+deadline: F.Stamp, +now: F.Stamp) -> {F.stamp_expired(deadline,now) == Time.expired(F.stamp_int(deadline),F.stamp_int(now)) : Bool}:
+96>|   Equal.trans(Bool,F.stamp_expired(deadline,now),Time.expired_choose(F.stamp_int(deadline),F.stamp_int(now),F.stamp_zero(deadline)),Time.expired(F.stamp_int(deadline),F.stamp_int(now)),expired_choose_ok(deadline,now,F.stamp_zero(deadline)),Equal.cong(Bool,Bool,x => Time.expired_choose(F.stamp_int(deadline),F.stamp_int(now),x),F.stamp_zero(deadline),Time.is_zero(F.stamp_int(deadline)),Z.zero_stamp(deadline)))
+97 |
+bend 2.0.25 is available: run bend update

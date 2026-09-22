@@ -5,19 +5,16 @@ import ../lib/array.bend as AR
 import ../lib/u32.bend as U
 import ../../spec/common.bend as SC
 import ../../src/lru/fast.bend as F
-import ../../src/lru/time.bend as Time
-import ../../src/doubly_linked_list.bend as D
+import support/link_primitives.bend as D
 import ../../types/lru_model.bend as T
-import ../dlist/state.bend as DST
-import ../dlist/facts.bend as DF
-import ../dlist/items.bend as IT
-import ../dlist/nbrs.bend as NB
-import ../dlist/tolist.bend as TL
-import ../dlist/rmfacts.bend as RMF
-import ../dlist/core.bend as K
+import support/links_state.bend as DST
+import support/links_facts.bend as DF
+import support/links_items.bend as IT
+import support/links_nbrs.bend as NB
+import support/links_rmfacts.bend as RMF
+import support/links_core.bend as K
 import ./state.bend as ST
 import ./readfacts.bend as RF
-import ./addop.bend as AO
 import ./rs.bend as RS
 
 # A good shadow is determined by the cache it builds (real_inj): the arrays by
