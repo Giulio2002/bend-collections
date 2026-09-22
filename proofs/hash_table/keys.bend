@@ -100,3 +100,6 @@ def kword_long(+key: String, +hk: {shortk(key) == False{} : Bool}) -> {kword(key
       {==}
     case SCon{Chr{+c}, +t}:
       L.subst(Bool, b => {kw_c(c, t, b) == STR.lword(SCon{Chr{c}, t}) : U32}, False{}, short_c(c, t), Equal.sym(Bool, short_c(c, t), False{}, hk), {==})
+
+def kword_short(+c: U32, +hc: {U32.is_lt(c, H.tag()) == True{} : Bool}) -> {kword(SCon{Chr{c}, SNil{}}) == H.short_word(c) : U32}:
+  L.subst(Bool, b => {kw_c(c, SNil{}, b) == H.short_word(c) : U32}, True{}, U32.is_lt(c, H.tag()), Equal.sym(Bool, U32.is_lt(c, H.tag()), True{}, hc), {==})

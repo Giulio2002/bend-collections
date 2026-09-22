@@ -271,3 +271,19 @@ def cmp_refl_eq(+n: Nat, +w: Word(n)) -> {Cmp.is_eq(Word.cmp(n, w, w)) == True{}
     case 1n+p WCon{b, t}:
       fin_refl(Word.cmp(p, t, t), b, cmp_refl_eq(p, t))
 
+
+# a word with its top bit set is its low bits with the top bit set
+def or_and_low_top(+p: Nat, +x: Word(1n+p), +h: {topb(p, x) == True{} : Bool}) -> {Word.or(1n+p, Word.and(1n+p, x, low(p)), top(p)) == x : Word(1n+p)}:
+  match p x:
+    case 0n WCon{b, WNil{}}:
+      Equal.cong(Bool, Word(1n), c => WCon{c, WNil{}}, Bool.or(Bool.and(b, False{}), True{}), b, Equal.trans(Bool, Bool.or(Bool.and(b, False{}), True{}), True{}, b, or_true(Bool.and(b, False{})), Equal.sym(Bool, b, True{}, h)))
+    case 1n+q WCon{b, t}:
+      +e1 = Equal.trans(Bool, Bool.or(Bool.and(b, True{}), False{}), Bool.and(b, True{}), b, or_false(Bool.and(b, True{})), and_true(b))
+      Equal.trans(Word(2n+q), WCon{Bool.or(Bool.and(b, True{}), False{}), Word.or(1n+q, Word.and(1n+q, t, low(q)), top(q))}, WCon{b, Word.or(1n+q, Word.and(1n+q, t, low(q)), top(q))}, WCon{b, t},
+        Equal.cong(Bool, Word(2n+q), c => WCon{c, Word.or(1n+q, Word.and(1n+q, t, low(q)), top(q))}, Bool.or(Bool.and(b, True{}), False{}), b, e1),
+        Equal.cong(Word(1n+q), Word(2n+q), w => WCon{b, w}, Word.or(1n+q, Word.and(1n+q, t, low(q)), top(q)), t, or_and_low_top(q, t, h)))
+
+def short_eta(+x: U32, +h: {H.is_short(x) == True{} : Bool}) -> {H.short_word(U32.and(x, 2147483647)) == x : U32}:
+  match x:
+    case U32{+w}:
+      Equal.cong(Word(32n), U32, z => U32{z}, Word.or(32n, Word.and(32n, w, low(31n)), top(31n)), w, or_and_low_top(31n, w, Equal.trans(Bool, topb(31n, w), H.is_short(U32{w}), True{}, Equal.sym(Bool, H.is_short(U32{w}), topb(31n, w), is_short_top(w)), h)))
