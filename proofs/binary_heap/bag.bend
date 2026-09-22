@@ -98,7 +98,7 @@ def all_ge_cons(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +m:
     case None{}:
       hxs
     case Some{+w}:
-      %M.all_ge_ins(~A, ~cmp, ~o, z, w, V.msort(~A, ~cmp, xs)) : {_ == True{} : Bool}
+      %Equal.sym(Bool, M.all_ge(~A, ~cmp, z, S.ins(~A, ~cmp, w, V.msort(~A, ~cmp, xs))), Bool.and(S.le(~A, ~cmp, z, w), M.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, xs))), M.all_ge_ins(~A, ~cmp, ~o, z, w, V.msort(~A, ~cmp, xs))) : {_ == True{} : Bool}
       L.and_intro(S.le(~A, ~cmp, z, w), M.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, xs)), hm, hxs)
 
 def low_all(~A: Data, ~cmp: A -> A -> Cmp, +ss: List<&2, Maybe<&2, A>>, +z: A, k: Nat) -> Bool:

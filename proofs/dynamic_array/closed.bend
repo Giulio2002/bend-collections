@@ -49,11 +49,18 @@ def grow_until_eq(~T: Data, +f: Nat, +k: Nat, +sh: ST.Shadow<T>) -> {DA.grow_unt
 
 # ---- the flattening walk ----
 
+def found_eq(~T: Data, +l: Nat, +d: Nat, +c: Nat, +n: Nat, r: Array<Maybe<&2, T>> & Maybe<&2, T>) -> {DA.get_found_at(~T, l, d, c, n, r) == DA.get_found(T, l, d, c, n, r) : DA.DynArray<&2, T> & Result<&2, &2, E.Error, T>}:
+  match r:
+    case Tuple{arr, None{}}:
+      {==}
+    case Tuple{arr, Some{x}}:
+      {==}
+
 def get_eq_case(~T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +i: Nat, +b: Bool, +eb: {Nat.is_lt(i, n) == b : Bool}) -> {DA.step_at(~T, ST.real(T, ST.Sh{l, d, n, t}), E.Get{i}) == DA.step(T, ST.real(T, ST.Sh{l, d, n, t}), E.Get{i}) : DA.DynArray<&2, T> & E.Obs<T>}:
   match b:
     case True{}:
       %Equal.sym(Bool, Nat.is_lt(i, n), True{}, eb) : {DA.obs_item(T, DA.get_checked_at(~T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), i, _)) == DA.obs_item(T, DA.get_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), i, _)) : DA.DynArray<&2, T> & E.Obs<T>}
-      {==}
+      Equal.cong(DA.DynArray<&2, T> & Result<&2, &2, E.Error, T>, DA.DynArray<&2, T> & E.Obs<T>, r => DA.obs_item(T, r), DA.get_found_at(~T, l, d, SC.pow2(d), n, Array.get(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t), U32.from_nat(i))), DA.get_found(T, l, d, SC.pow2(d), n, Array.get(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t), U32.from_nat(i))), found_eq(~T, l, d, SC.pow2(d), n, Array.get(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t), U32.from_nat(i))))
     case False{}:
       %Equal.sym(Bool, Nat.is_lt(i, n), False{}, eb) : {DA.obs_item(T, DA.get_checked_at(~T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), i, _)) == DA.obs_item(T, DA.get_checked(T, l, d, SC.pow2(d), n, AR.thaw(Maybe<&2, T>, t), i, _)) : DA.DynArray<&2, T> & E.Obs<T>}
       {==}

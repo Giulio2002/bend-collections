@@ -116,10 +116,6 @@ def limited(-T: Data, +k: Nat) -> ST.Shadow<T>:
 def clamp_case(+k: Nat, +b: Bool, +eb: {Nat.is_lt(k, 31n) == b : Bool}) -> {Nat.is_le(DA.clamp_limit(k, b), 31n) == True{} : Bool} & {DA.clamp_limit(k, b) == Nat.min(k, 31n) : Nat}:
   match b:
     case True{}:
-      (N.lt_le(k, 31n, eb),
-       %Equal.sym(Bool, Nat.is_lt(k, 31n), True{}, eb) : {k == Bool.pick(Nat, _, k, 31n) : Nat}
-       {==})
+      (N.lt_le(k, 31n, eb), Equal.sym(Nat, Nat.min(k, 31n), k, N.min_left(k, 31n, eb)))
     case False{}:
-      ({==},
-       %Equal.sym(Bool, Nat.is_lt(k, 31n), False{}, eb) : {31n == Bool.pick(Nat, _, k, 31n) : Nat}
-       {==})
+      ({==}, Equal.sym(Nat, Nat.min(k, 31n), 31n, N.min_right(k, 31n, eb)))

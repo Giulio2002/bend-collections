@@ -16,13 +16,13 @@ import ./spec/deque.bend as DQS
 import ../src/containers/types/deque.bend as DQT
 import ./deque.bend as DQP
 import ./deque/state.bend as DQSH
-import ./deque/steps.bend as DQST
 import ./deque/stepok.bend as DQK
 import ./deque/trace.bend as DQTR
 import ../src/containers/queue.bend as QU
 import ./spec/queue.bend as QUS
 import ../src/containers/types/queue.bend as QUT
 import ./queue.bend as QUP
+import ./queue/state.bend as QUSH
 import ./queue/steps.bend as QUST
 import ./queue/trace.bend as QUTR
 import ./lib/order.bend as O
@@ -128,7 +128,7 @@ law dynamic_array_step_invariant:
   for +sh: DAST.Shadow<T>
   for +op: DAT.Op<T>
   for +g: {DAST.good(T, sh) == True{} : Bool}
-  DAST.Inv(T, Pair.fst(DA.DynArray<T>, DAT.Obs<T>, DA.step(T, DAST.real(T, sh), op)))
+  DAST.Inv(T, Pair.fst(DA.DynArray<&2, T>, DAT.Obs<T>, DA.step(T, DAST.real(T, sh), op)))
 def dynamic_array_step_invariant(T, sh, op, g):
   DAP.step_preserves(T, sh, op, g)
 
@@ -142,7 +142,7 @@ def dynamic_array_trace(T, ops):
 law dynamic_array_trace_invariant:
   for -T: Data
   for +ops: List<&2, DAT.Op<T>>
-  DAST.Inv(T, Pair.fst(DA.DynArray<T>, List<&2, DAT.Obs<T>>, DA.run(T, ops, DA.new(T))))
+  DAST.Inv(T, Pair.fst(DA.DynArray<&2, T>, List<&2, DAT.Obs<T>>, DA.run(T, ops, DA.new(T))))
 def dynamic_array_trace_invariant(T, ops):
   DAP.trace_new_inv(T, ops)
 
@@ -158,7 +158,7 @@ law dynamic_array_trace_limited_invariant:
   for -T: Data
   for +k: Nat
   for +ops: List<&2, DAT.Op<T>>
-  DAST.Inv(T, Pair.fst(DA.DynArray<T>, List<&2, DAT.Obs<T>>, DA.run(T, ops, DA.with_limit(T, k))))
+  DAST.Inv(T, Pair.fst(DA.DynArray<&2, T>, List<&2, DAT.Obs<T>>, DA.run(T, ops, DA.with_limit(T, k))))
 def dynamic_array_trace_limited_invariant(T, k, ops):
   DAP.trace_with_limit_inv(T, k, ops)
 
@@ -196,7 +196,7 @@ law dynamic_array_step_at_invariant_u32:
   for +sh: DAST.Shadow<U32>
   for +op: DAT.Op<U32>
   for +g: {DAST.good(U32, sh) == True{} : Bool}
-  DAST.Inv(U32, Pair.fst(DA.DynArray<U32>, DAT.Obs<U32>, DA.step_at(~U32, DAST.real(U32, sh), op)))
+  DAST.Inv(U32, Pair.fst(DA.DynArray<&2, U32>, DAT.Obs<U32>, DA.step_at(~U32, DAST.real(U32, sh), op)))
 def dynamic_array_step_at_invariant_u32(sh, op, g):
   DAP.step_at_preserves(~U32, sh, op, g)
 
@@ -208,7 +208,7 @@ def dynamic_array_trace_at_u32(ops):
 
 law dynamic_array_trace_at_invariant_u32:
   for +ops: List<&2, DAT.Op<U32>>
-  DAST.Inv(U32, Pair.fst(DA.DynArray<U32>, List<&2, DAT.Obs<U32>>, DA.run_at(~U32, ops, DA.new_at(~U32))))
+  DAST.Inv(U32, Pair.fst(DA.DynArray<&2, U32>, List<&2, DAT.Obs<U32>>, DA.run_at(~U32, ops, DA.new_at(~U32))))
 def dynamic_array_trace_at_invariant_u32(ops):
   DAP.trace_new_at_inv(~U32, ops)
 
@@ -222,7 +222,7 @@ def dynamic_array_trace_limited_at_u32(k, ops):
 law dynamic_array_trace_limited_at_invariant_u32:
   for +k: Nat
   for +ops: List<&2, DAT.Op<U32>>
-  DAST.Inv(U32, Pair.fst(DA.DynArray<U32>, List<&2, DAT.Obs<U32>>, DA.run_at(~U32, ops, DA.with_limit_at(~U32, k))))
+  DAST.Inv(U32, Pair.fst(DA.DynArray<&2, U32>, List<&2, DAT.Obs<U32>>, DA.run_at(~U32, ops, DA.with_limit_at(~U32, k))))
 def dynamic_array_trace_limited_at_invariant_u32(k, ops):
   DAP.trace_with_limit_at_inv(~U32, k, ops)
 
@@ -254,7 +254,7 @@ law dynamic_array_step_at_invariant_nat:
   for +sh: DAST.Shadow<Nat>
   for +op: DAT.Op<Nat>
   for +g: {DAST.good(Nat, sh) == True{} : Bool}
-  DAST.Inv(Nat, Pair.fst(DA.DynArray<Nat>, DAT.Obs<Nat>, DA.step_at(~Nat, DAST.real(Nat, sh), op)))
+  DAST.Inv(Nat, Pair.fst(DA.DynArray<&2, Nat>, DAT.Obs<Nat>, DA.step_at(~Nat, DAST.real(Nat, sh), op)))
 def dynamic_array_step_at_invariant_nat(sh, op, g):
   DAP.step_at_preserves(~Nat, sh, op, g)
 
@@ -266,7 +266,7 @@ def dynamic_array_trace_at_nat(ops):
 
 law dynamic_array_trace_at_invariant_nat:
   for +ops: List<&2, DAT.Op<Nat>>
-  DAST.Inv(Nat, Pair.fst(DA.DynArray<Nat>, List<&2, DAT.Obs<Nat>>, DA.run_at(~Nat, ops, DA.new_at(~Nat))))
+  DAST.Inv(Nat, Pair.fst(DA.DynArray<&2, Nat>, List<&2, DAT.Obs<Nat>>, DA.run_at(~Nat, ops, DA.new_at(~Nat))))
 def dynamic_array_trace_at_invariant_nat(ops):
   DAP.trace_new_at_inv(~Nat, ops)
 
@@ -280,7 +280,7 @@ def dynamic_array_trace_limited_at_nat(k, ops):
 law dynamic_array_trace_limited_at_invariant_nat:
   for +k: Nat
   for +ops: List<&2, DAT.Op<Nat>>
-  DAST.Inv(Nat, Pair.fst(DA.DynArray<Nat>, List<&2, DAT.Obs<Nat>>, DA.run_at(~Nat, ops, DA.with_limit_at(~Nat, k))))
+  DAST.Inv(Nat, Pair.fst(DA.DynArray<&2, Nat>, List<&2, DAT.Obs<Nat>>, DA.run_at(~Nat, ops, DA.with_limit_at(~Nat, k))))
 def dynamic_array_trace_limited_at_invariant_nat(k, ops):
   DAP.trace_with_limit_at_inv(~Nat, k, ops)
 
@@ -312,7 +312,7 @@ law dynamic_array_step_at_invariant_string:
   for +sh: DAST.Shadow<String>
   for +op: DAT.Op<String>
   for +g: {DAST.good(String, sh) == True{} : Bool}
-  DAST.Inv(String, Pair.fst(DA.DynArray<String>, DAT.Obs<String>, DA.step_at(~String, DAST.real(String, sh), op)))
+  DAST.Inv(String, Pair.fst(DA.DynArray<&2, String>, DAT.Obs<String>, DA.step_at(~String, DAST.real(String, sh), op)))
 def dynamic_array_step_at_invariant_string(sh, op, g):
   DAP.step_at_preserves(~String, sh, op, g)
 
@@ -324,7 +324,7 @@ def dynamic_array_trace_at_string(ops):
 
 law dynamic_array_trace_at_invariant_string:
   for +ops: List<&2, DAT.Op<String>>
-  DAST.Inv(String, Pair.fst(DA.DynArray<String>, List<&2, DAT.Obs<String>>, DA.run_at(~String, ops, DA.new_at(~String))))
+  DAST.Inv(String, Pair.fst(DA.DynArray<&2, String>, List<&2, DAT.Obs<String>>, DA.run_at(~String, ops, DA.new_at(~String))))
 def dynamic_array_trace_at_invariant_string(ops):
   DAP.trace_new_at_inv(~String, ops)
 
@@ -338,28 +338,19 @@ def dynamic_array_trace_limited_at_string(k, ops):
 law dynamic_array_trace_limited_at_invariant_string:
   for +k: Nat
   for +ops: List<&2, DAT.Op<String>>
-  DAST.Inv(String, Pair.fst(DA.DynArray<String>, List<&2, DAT.Obs<String>>, DA.run_at(~String, ops, DA.with_limit_at(~String, k))))
+  DAST.Inv(String, Pair.fst(DA.DynArray<&2, String>, List<&2, DAT.Obs<String>>, DA.run_at(~String, ops, DA.with_limit_at(~String, k))))
 def dynamic_array_trace_limited_at_invariant_string(k, ops):
   DAP.trace_with_limit_at_inv(~String, k, ops)
 
 # ============================== deque =================================
-# The ring buffer (src/deque.bend). Base.Array is linear, so the laws are
-# about the deque BUILT from a Data shadow (DQSH.real). The only premise is
-# the representation's capacity condition, on the PEAK size: a push onto a
-# deque holding fewer than 2^q elements, q <= 31 (DQST.pushok); for traces,
-# DQTR.fits (every push happens below 2^q elements). It bounds neither the
-# length of a trace nor the number of pushes. Every law is a template in the
-# element type, restated at both checked instances (U32, String).
+# Two lists (src/containers/deque.bend): the laws are about the deque of a
+# Data shadow Sh{front, back} (DQSH.real); model = front ++ reverse(back).
+# No premise: any finite trace, any size. Restated at U32 and String.
 
 law deque_u32_new:
   {DQSH.model(U32, DQSH.initial(U32)) == Nil{} : List<&2, U32>}
 def deque_u32_new():
   DQP.new_abs(~U32)
-
-law deque_u32_new_invariant:
-  {DQSH.good(U32, DQSH.initial(U32)) == True{} : Bool}
-def deque_u32_new_invariant():
-  DQP.new_inv(~U32)
 
 law deque_u32_new_is_the_constructor:
   {DQ.new(~U32) == DQSH.real(U32, DQSH.initial(U32)) : DQ.Deque<U32>}
@@ -368,14 +359,10 @@ def deque_u32_new_is_the_constructor():
 
 law deque_u32_step:
   for +sh: DQSH.Shadow<U32>
-  for op: DQT.Op<U32>
-  for +g: {DQSH.good(U32, sh) == True{} : Bool}
-  for +q: Nat
-  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
-  for +hp: {DQST.pushok(U32, q, op, DQSH.model(U32, sh)) == True{} : Bool}
+  for +op: DQT.Op<U32>
   DQK.StepOK(~U32, sh, op)
-def deque_u32_step(sh, op, g, q, hq, hp):
-  DQP.step_ok(~U32, sh, op, g, q, hq, hp)
+def deque_u32_step(sh, op):
+  DQP.step_ok(~U32, sh, op)
 
 law deque_u32_shadow_unique:
   for +a: DQSH.Shadow<U32>
@@ -387,22 +374,14 @@ def deque_u32_shadow_unique(a, b, e):
 
 law deque_u32_trace:
   for +ops: List<&2, DQT.Op<U32>>
-  for +q: Nat
-  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
-  for +hf: {DQTR.fits(U32, q, ops, Nil{}) == True{} : Bool}
   DQTR.TraceOK(~U32, ops, DQSH.initial(U32))
-def deque_u32_trace(ops, q, hq, hf):
-  DQP.trace_new(~U32, ops, q, hq, hf)
+def deque_u32_trace(ops):
+  DQP.trace_new(~U32, ops)
 
 law deque_string_new:
   {DQSH.model(String, DQSH.initial(String)) == Nil{} : List<&2, String>}
 def deque_string_new():
   DQP.new_abs(~String)
-
-law deque_string_new_invariant:
-  {DQSH.good(String, DQSH.initial(String)) == True{} : Bool}
-def deque_string_new_invariant():
-  DQP.new_inv(~String)
 
 law deque_string_new_is_the_constructor:
   {DQ.new(~String) == DQSH.real(String, DQSH.initial(String)) : DQ.Deque<String>}
@@ -411,14 +390,10 @@ def deque_string_new_is_the_constructor():
 
 law deque_string_step:
   for +sh: DQSH.Shadow<String>
-  for op: DQT.Op<String>
-  for +g: {DQSH.good(String, sh) == True{} : Bool}
-  for +q: Nat
-  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
-  for +hp: {DQST.pushok(String, q, op, DQSH.model(String, sh)) == True{} : Bool}
+  for +op: DQT.Op<String>
   DQK.StepOK(~String, sh, op)
-def deque_string_step(sh, op, g, q, hq, hp):
-  DQP.step_ok(~String, sh, op, g, q, hq, hp)
+def deque_string_step(sh, op):
+  DQP.step_ok(~String, sh, op)
 
 law deque_string_shadow_unique:
   for +a: DQSH.Shadow<String>
@@ -430,86 +405,75 @@ def deque_string_shadow_unique(a, b, e):
 
 law deque_string_trace:
   for +ops: List<&2, DQT.Op<String>>
-  for +q: Nat
-  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
-  for +hf: {DQTR.fits(String, q, ops, Nil{}) == True{} : Bool}
   DQTR.TraceOK(~String, ops, DQSH.initial(String))
-def deque_string_trace(ops, q, hq, hf):
-  DQP.trace_new(~String, ops, q, hq, hf)
+def deque_string_trace(ops):
+  DQP.trace_new(~String, ops)
 
 # ============================== queue =================================
-# The FIFO specialization of the ring deque (enqueue = push_back, dequeue =
-# pop_front, peek = peek_front); same shadow, same capacity condition.
+# Two lists (src/containers/queue.bend), independent of the deque; the
+# same shadow form, no premise.
 
 law queue_u32_new:
-  {DQSH.model(U32, DQSH.initial(U32)) == Nil{} : List<&2, U32>}
+  {QUSH.model(U32, QUSH.initial(U32)) == Nil{} : List<&2, U32>}
 def queue_u32_new():
   QUP.new_abs(~U32)
 
-law queue_u32_new_invariant:
-  {DQSH.good(U32, DQSH.initial(U32)) == True{} : Bool}
-def queue_u32_new_invariant():
-  QUP.new_inv(~U32)
-
 law queue_u32_new_is_the_constructor:
-  {QU.new(~U32) == QUST.real(~U32, DQSH.initial(U32)) : QU.Queue<U32>}
+  {QU.new(~U32) == QUSH.real(U32, QUSH.initial(U32)) : QU.Queue<U32>}
 def queue_u32_new_is_the_constructor():
   QUP.new_real(~U32)
 
 law queue_u32_step:
-  for +sh: DQSH.Shadow<U32>
+  for +sh: QUSH.Shadow<U32>
   for +op: QUT.Op<U32>
-  for +g: {DQSH.good(U32, sh) == True{} : Bool}
-  for +q: Nat
-  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
-  for +hp: {DQST.pushok(U32, q, QUST.dop(U32, op), DQSH.model(U32, sh)) == True{} : Bool}
   QUST.StepOK(~U32, sh, op)
-def queue_u32_step(sh, op, g, q, hq, hp):
-  QUP.step_ok(~U32, sh, op, g, q, hq, hp)
+def queue_u32_step(sh, op):
+  QUP.step_ok(~U32, sh, op)
+
+law queue_u32_shadow_unique:
+  for +a: QUSH.Shadow<U32>
+  for +b: QUSH.Shadow<U32>
+  for +e: {QUSH.real(U32, a) == QUSH.real(U32, b) : QU.Queue<U32>}
+  {a == b : QUSH.Shadow<U32>}
+def queue_u32_shadow_unique(a, b, e):
+  QUP.shadow_unique(~U32, a, b, e)
 
 law queue_u32_trace:
   for +ops: List<&2, QUT.Op<U32>>
-  for +q: Nat
-  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
-  for +hf: {QUTR.fits(U32, q, ops, Nil{}) == True{} : Bool}
-  QUTR.TraceOK(~U32, ops, DQSH.initial(U32))
-def queue_u32_trace(ops, q, hq, hf):
-  QUP.trace_new(~U32, ops, q, hq, hf)
+  QUTR.TraceOK(~U32, ops, QUSH.initial(U32))
+def queue_u32_trace(ops):
+  QUP.trace_new(~U32, ops)
 
 law queue_string_new:
-  {DQSH.model(String, DQSH.initial(String)) == Nil{} : List<&2, String>}
+  {QUSH.model(String, QUSH.initial(String)) == Nil{} : List<&2, String>}
 def queue_string_new():
   QUP.new_abs(~String)
 
-law queue_string_new_invariant:
-  {DQSH.good(String, DQSH.initial(String)) == True{} : Bool}
-def queue_string_new_invariant():
-  QUP.new_inv(~String)
-
 law queue_string_new_is_the_constructor:
-  {QU.new(~String) == QUST.real(~String, DQSH.initial(String)) : QU.Queue<String>}
+  {QU.new(~String) == QUSH.real(String, QUSH.initial(String)) : QU.Queue<String>}
 def queue_string_new_is_the_constructor():
   QUP.new_real(~String)
 
 law queue_string_step:
-  for +sh: DQSH.Shadow<String>
+  for +sh: QUSH.Shadow<String>
   for +op: QUT.Op<String>
-  for +g: {DQSH.good(String, sh) == True{} : Bool}
-  for +q: Nat
-  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
-  for +hp: {DQST.pushok(String, q, QUST.dop(String, op), DQSH.model(String, sh)) == True{} : Bool}
   QUST.StepOK(~String, sh, op)
-def queue_string_step(sh, op, g, q, hq, hp):
-  QUP.step_ok(~String, sh, op, g, q, hq, hp)
+def queue_string_step(sh, op):
+  QUP.step_ok(~String, sh, op)
+
+law queue_string_shadow_unique:
+  for +a: QUSH.Shadow<String>
+  for +b: QUSH.Shadow<String>
+  for +e: {QUSH.real(String, a) == QUSH.real(String, b) : QU.Queue<String>}
+  {a == b : QUSH.Shadow<String>}
+def queue_string_shadow_unique(a, b, e):
+  QUP.shadow_unique(~String, a, b, e)
 
 law queue_string_trace:
   for +ops: List<&2, QUT.Op<String>>
-  for +q: Nat
-  for +hq: {Nat.is_le(q, 31n) == True{} : Bool}
-  for +hf: {QUTR.fits(String, q, ops, Nil{}) == True{} : Bool}
-  QUTR.TraceOK(~String, ops, DQSH.initial(String))
-def queue_string_trace(ops, q, hq, hf):
-  QUP.trace_new(~String, ops, q, hq, hf)
+  QUTR.TraceOK(~String, ops, QUSH.initial(String))
+def queue_string_trace(ops):
+  QUP.trace_new(~String, ops)
 
 # =========================== binary_heap ==============================
 # The block is a linear Base.Array, so -- as for dynamic_array, bitset and

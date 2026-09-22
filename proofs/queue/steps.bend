@@ -2,155 +2,139 @@ import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
-import ../lib/array.bend as AR
 import ../spec/common.bend as SC
-import ../spec/deque.bend as SD
 import ../spec/queue.bend as S
-import ../../src/containers/deque.bend as DQ
 import ../../src/containers/queue.bend as Q
-import ../../src/containers/types/deque.bend as DE
 import ../../src/containers/types/queue.bend as E
-import ../deque/state.bend as DST
-import ../deque/steps.bend as DPS
-import ../deque/stepok.bend as DK
+import ./state.bend as ST
 
-# Queue: the back-in/front-out specialization of the ring deque. A queue
-# shadow IS a deque shadow; every step law below is the deque's law for the
-# corresponding deque operation, with the observation and the error renamed.
+# Every public queue operation, including the errors (dequeue/peek on an
+# empty queue: Fail{EmptyQueue}, queue unchanged), refines the spec step.
 
-def real(~T: Data, sh: DST.Shadow<T>) -> Q.Queue<T>:
-  Q.QU{DST.real(T, sh)}
+def StepOK(~T: Data, sh: ST.Shadow<T>, op: E.Op<T>) -> Type:
+  Sigma<&1, &1, ST.Shadow<T>, sh2 => Sigma<&1, &1, E.Obs<T>, o => {Q.step(~T, ST.real(T, sh), op) == (ST.real(T, sh2), o) : Q.Queue<T> & E.Obs<T>} & {(ST.model(T, sh2), o) == S.step(T, ST.model(T, sh), op) : List<&2, T> & E.Obs<T>}>>
 
-def dop(-T: Data, op: E.Op<T>) -> DE.Op<T>:
+def mk(~T: Data, -sh: ST.Shadow<T>, -op: E.Op<T>, sh2: ST.Shadow<T>, o: E.Obs<T>, e1: {Q.step(~T, ST.real(T, sh), op) == (ST.real(T, sh2), o) : Q.Queue<T> & E.Obs<T>}, e2: {(ST.model(T, sh2), o) == S.step(T, ST.model(T, sh), op) : List<&2, T> & E.Obs<T>}) -> StepOK(~T, sh, op):
+  (sh2, (o, (e1, e2)))
+
+# ---- ready: reverse the back into an empty front ----
+
+def is_nil(-T: Data, xs: List<&2, T>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{h, t}:
+      False{}
+
+# the front can be read: nonempty, or the queue is empty
+def rdy(-T: Data, sh: ST.Shadow<T>) -> Bool:
+  match sh:
+    case ST.Sh{Nil{}, b}:
+      is_nil(T, b)
+    case ST.Sh{Con{x, f}, b}:
+      True{}
+
+def rdy_nil_back(-T: Data, +m: List<&2, T>) -> {rdy(T, ST.Sh{m, Nil{}}) == True{} : Bool}:
+  match m:
+    case Nil{}:
+      {==}
+    case Con{x, t}:
+      {==}
+
+def Ready(~T: Data, sh: ST.Shadow<T>) -> Type:
+  Sigma<&1, &1, ST.Shadow<T>, sh1 => {Q.ready(~T, ST.real(T, sh)) == ST.real(T, sh1) : Q.Queue<T>} & ({ST.model(T, sh1) == ST.model(T, sh) : List<&2, T>} & {rdy(T, sh1) == True{} : Bool})>
+
+def ready(~T: Data, +sh: ST.Shadow<T>) -> Ready(~T, sh):
+  match sh:
+    case ST.Sh{Con{x, f}, b}:
+      (ST.Sh{Con{x, f}, b}, ({==}, ({==}, {==})))
+    case ST.Sh{Nil{}, +b}:
+      +rb = SC.reverse(T, b)
+      +en = Equal.sym(Nat, Nat.add(SC.length(T, rb), 0n), SC.length(T, b), Equal.trans(Nat, Nat.add(SC.length(T, rb), 0n), SC.length(T, rb), SC.length(T, b), N.add_zero(SC.length(T, rb)), LL.length_rev(T, b)))
+      +e1 = Equal.cong(List<&2, T>, Q.Queue<T>, z => Q.QU{z, Nil{}, SC.length(T, b)}, List.reverse(&2, T, b), rb, LL.base_rev(T, b))
+      +e2 = Equal.cong(Nat, Q.Queue<T>, z => Q.QU{rb, Nil{}, z}, SC.length(T, b), Nat.add(SC.length(T, rb), 0n), en)
+      (ST.Sh{rb, Nil{}}, (Equal.trans(Q.Queue<T>, Q.QU{List.reverse(&2, T, b), Nil{}, SC.length(T, b)}, Q.QU{rb, Nil{}, SC.length(T, b)}, ST.real(T, ST.Sh{rb, Nil{}}), e1, e2), (LL.append_nil(T, rb), rdy_nil_back(T, rb))))
+
+# ---- reading the front of a readied shadow ----
+
+def Read(~T: Data, sh: ST.Shadow<T>, r: Q.Queue<T> & E.Obs<T>, spec: List<&2, T> & E.Obs<T>) -> Type:
+  Sigma<&1, &1, ST.Shadow<T>, sh2 => Sigma<&1, &1, E.Obs<T>, o => {r == (ST.real(T, sh2), o) : Q.Queue<T> & E.Obs<T>} & {(ST.model(T, sh2), o) == spec : List<&2, T> & E.Obs<T>}>>
+
+def dequeue_ready(~T: Data, +sh: ST.Shadow<T>, +hr: {rdy(T, sh) == True{} : Bool}) -> Read(~T, sh, Q.obs_item(~T, Q.dequeue_ready(~T, ST.real(T, sh))), S.dequeue(T, ST.model(T, sh))):
+  match sh:
+    case ST.Sh{Con{+x, +t}, +b}:
+      +e = Equal.cong(Nat, Q.Queue<T>, z => Q.QU{t, b, z}, Nat.sub(Nat.add(SC.length(T, Con{x, t}), SC.length(T, b)), 1n), Nat.add(SC.length(T, t), SC.length(T, b)), N.sub_zero(Nat.add(SC.length(T, t), SC.length(T, b))))
+      (ST.Sh{t, b}, (E.OItem{Done{x}}, (Equal.cong(Q.Queue<T>, Q.Queue<T> & E.Obs<T>, q => (q, E.OItem{Done{x}}), Q.QU{t, b, Nat.sub(Nat.add(SC.length(T, Con{x, t}), SC.length(T, b)), 1n)}, ST.real(T, ST.Sh{t, b}), e), {==})))
+    case ST.Sh{Nil{}, Nil{}}:
+      (ST.Sh{Nil{}, Nil{}}, (E.OItem{Fail{E.EmptyQueue{}}}, ({==}, {==})))
+    case ST.Sh{Nil{}, Con{y, t}}:
+      Empty.absurd(Read(~T, ST.Sh{Nil{}, Con{y, t}}, Q.obs_item(~T, Q.dequeue_ready(~T, ST.real(T, ST.Sh{Nil{}, Con{y, t}}))), S.dequeue(T, ST.model(T, ST.Sh{Nil{}, Con{y, t}}))), L.false_true(hr))
+
+def peek_ready(~T: Data, +sh: ST.Shadow<T>, +hr: {rdy(T, sh) == True{} : Bool}) -> Read(~T, sh, Q.obs_item(~T, Q.peek_ready(~T, ST.real(T, sh))), (ST.model(T, sh), E.OItem{S.item(T, SC.head(T, ST.model(T, sh)))})):
+  match sh:
+    case ST.Sh{Con{x, t}, b}:
+      (ST.Sh{Con{x, t}, b}, (E.OItem{Done{x}}, ({==}, {==})))
+    case ST.Sh{Nil{}, Nil{}}:
+      (ST.Sh{Nil{}, Nil{}}, (E.OItem{Fail{E.EmptyQueue{}}}, ({==}, {==})))
+    case ST.Sh{Nil{}, Con{y, t}}:
+      Empty.absurd(Read(~T, ST.Sh{Nil{}, Con{y, t}}, Q.obs_item(~T, Q.peek_ready(~T, ST.real(T, ST.Sh{Nil{}, Con{y, t}}))), (ST.model(T, ST.Sh{Nil{}, Con{y, t}}), E.OItem{S.item(T, SC.head(T, ST.model(T, ST.Sh{Nil{}, Con{y, t}})))})), L.false_true(hr))
+
+def dq_fin(~T: Data, +sh: ST.Shadow<T>, +sh1: ST.Shadow<T>, +e: {Q.ready(~T, ST.real(T, sh)) == ST.real(T, sh1) : Q.Queue<T>}, +em: {ST.model(T, sh1) == ST.model(T, sh) : List<&2, T>}, rd: Read(~T, sh1, Q.obs_item(~T, Q.dequeue_ready(~T, ST.real(T, sh1))), S.dequeue(T, ST.model(T, sh1)))) -> StepOK(~T, sh, E.Dequeue{}):
+  match rd:
+    case Tuple{+sh2, Tuple{+o, Tuple{e1, e2}}}:
+      mk(~T, sh, E.Dequeue{}, sh2, o,
+        Equal.trans(Q.Queue<T> & E.Obs<T>, Q.obs_item(~T, Q.dequeue_ready(~T, Q.ready(~T, ST.real(T, sh)))), Q.obs_item(~T, Q.dequeue_ready(~T, ST.real(T, sh1))), (ST.real(T, sh2), o), Equal.cong(Q.Queue<T>, Q.Queue<T> & E.Obs<T>, d => Q.obs_item(~T, Q.dequeue_ready(~T, d)), Q.ready(~T, ST.real(T, sh)), ST.real(T, sh1), e), e1),
+        Equal.trans(List<&2, T> & E.Obs<T>, (ST.model(T, sh2), o), S.dequeue(T, ST.model(T, sh1)), S.dequeue(T, ST.model(T, sh)), e2, Equal.cong(List<&2, T>, List<&2, T> & E.Obs<T>, z => S.dequeue(T, z), ST.model(T, sh1), ST.model(T, sh), em)))
+
+def dq_rd(~T: Data, +sh: ST.Shadow<T>, r: Ready(~T, sh)) -> StepOK(~T, sh, E.Dequeue{}):
+  match r:
+    case Tuple{+sh1, Tuple{e, Tuple{em, hr}}}:
+      dq_fin(~T, sh, sh1, e, em, dequeue_ready(~T, sh1, hr))
+
+def pk_fin(~T: Data, +sh: ST.Shadow<T>, +sh1: ST.Shadow<T>, +e: {Q.ready(~T, ST.real(T, sh)) == ST.real(T, sh1) : Q.Queue<T>}, +em: {ST.model(T, sh1) == ST.model(T, sh) : List<&2, T>}, rd: Read(~T, sh1, Q.obs_item(~T, Q.peek_ready(~T, ST.real(T, sh1))), (ST.model(T, sh1), E.OItem{S.item(T, SC.head(T, ST.model(T, sh1)))}))) -> StepOK(~T, sh, E.Peek{}):
+  match rd:
+    case Tuple{+sh2, Tuple{+o, Tuple{e1, e2}}}:
+      mk(~T, sh, E.Peek{}, sh2, o,
+        Equal.trans(Q.Queue<T> & E.Obs<T>, Q.obs_item(~T, Q.peek_ready(~T, Q.ready(~T, ST.real(T, sh)))), Q.obs_item(~T, Q.peek_ready(~T, ST.real(T, sh1))), (ST.real(T, sh2), o), Equal.cong(Q.Queue<T>, Q.Queue<T> & E.Obs<T>, d => Q.obs_item(~T, Q.peek_ready(~T, d)), Q.ready(~T, ST.real(T, sh)), ST.real(T, sh1), e), e1),
+        Equal.trans(List<&2, T> & E.Obs<T>, (ST.model(T, sh2), o), (ST.model(T, sh1), E.OItem{S.item(T, SC.head(T, ST.model(T, sh1)))}), (ST.model(T, sh), E.OItem{S.item(T, SC.head(T, ST.model(T, sh)))}), e2, Equal.cong(List<&2, T>, List<&2, T> & E.Obs<T>, z => (z, E.OItem{S.item(T, SC.head(T, z))}), ST.model(T, sh1), ST.model(T, sh), em)))
+
+def pk_rd(~T: Data, +sh: ST.Shadow<T>, r: Ready(~T, sh)) -> StepOK(~T, sh, E.Peek{}):
+  match r:
+    case Tuple{+sh1, Tuple{e, Tuple{em, hr}}}:
+      pk_fin(~T, sh, sh1, e, em, peek_ready(~T, sh1, hr))
+
+# ---- each operation ----
+
+def op_length(~T: Data, +sh: ST.Shadow<T>) -> StepOK(~T, sh, E.Length{}):
+  match sh:
+    case ST.Sh{+f, +b}:
+      +n = Nat.add(SC.length(T, f), SC.length(T, b))
+      +el = Equal.trans(Nat, n, Nat.add(SC.length(T, f), SC.length(T, SC.reverse(T, b))), SC.length(T, SC.append(T, f, SC.reverse(T, b))), Equal.cong(Nat, Nat, z => Nat.add(SC.length(T, f), z), SC.length(T, b), SC.length(T, SC.reverse(T, b)), Equal.sym(Nat, SC.length(T, SC.reverse(T, b)), SC.length(T, b), LL.length_rev(T, b))), Equal.sym(Nat, SC.length(T, SC.append(T, f, SC.reverse(T, b))), Nat.add(SC.length(T, f), SC.length(T, SC.reverse(T, b))), LL.length_append(T, f, SC.reverse(T, b))))
+      mk(~T, ST.Sh{f, b}, E.Length{}, ST.Sh{f, b}, E.ONat{n}, {==}, Equal.cong(Nat, List<&2, T> & E.Obs<T>, z => (ST.model(T, ST.Sh{f, b}), E.ONat{z}), n, SC.length(T, ST.model(T, ST.Sh{f, b})), el))
+
+def op_enqueue(~T: Data, +sh: ST.Shadow<T>, +x: T) -> StepOK(~T, sh, E.Enqueue{x}):
+  match sh:
+    case ST.Sh{+f, +b}:
+      +en = Equal.sym(Nat, Nat.add(SC.length(T, f), 1n+SC.length(T, b)), 1n+Nat.add(SC.length(T, f), SC.length(T, b)), N.add_succ(SC.length(T, f), SC.length(T, b)))
+      +e1 = Equal.cong(Nat, Q.Queue<T> & E.Obs<T>, z => (Q.QU{f, Con{x, b}, z}, E.OUnit{}), 1n+Nat.add(SC.length(T, f), SC.length(T, b)), Nat.add(SC.length(T, f), 1n+SC.length(T, b)), en)
+      mk(~T, ST.Sh{f, b}, E.Enqueue{x}, ST.Sh{f, Con{x, b}}, E.OUnit{}, e1, Equal.cong(List<&2, T>, List<&2, T> & E.Obs<T>, z => (z, E.OUnit{}), ST.model(T, ST.Sh{f, Con{x, b}}), SC.snoc(T, ST.model(T, ST.Sh{f, b}), x), LL.append_snoc(T, f, SC.reverse(T, b), x)))
+
+def op_to_list(~T: Data, +sh: ST.Shadow<T>) -> StepOK(~T, sh, E.ToList{}):
+  match sh:
+    case ST.Sh{+f, +b}:
+      +el = Equal.trans(List<&2, T>, List.append(&2, T, f, List.reverse(&2, T, b)), List.append(&2, T, f, SC.reverse(T, b)), SC.append(T, f, SC.reverse(T, b)), Equal.cong(List<&2, T>, List<&2, T>, z => List.append(&2, T, f, z), List.reverse(&2, T, b), SC.reverse(T, b), LL.base_rev(T, b)), LL.base_append(T, f, SC.reverse(T, b)))
+      mk(~T, ST.Sh{f, b}, E.ToList{}, ST.Sh{f, b}, E.OList{List.append(&2, T, f, List.reverse(&2, T, b))}, {==}, Equal.cong(List<&2, T>, List<&2, T> & E.Obs<T>, z => (ST.model(T, ST.Sh{f, b}), E.OList{z}), List.append(&2, T, f, List.reverse(&2, T, b)), ST.model(T, ST.Sh{f, b}), el))
+
+# every public operation refines the spec step
+def step_ok(~T: Data, +sh: ST.Shadow<T>, +op: E.Op<T>) -> StepOK(~T, sh, op):
   match op:
     case E.Length{}:
-      DE.Length{}
-    case E.Enqueue{x}:
-      DE.PushBack{x}
+      op_length(~T, sh)
+    case E.Enqueue{+x}:
+      op_enqueue(~T, sh, x)
     case E.Dequeue{}:
-      DE.PopFront{}
+      dq_rd(~T, sh, ready(~T, sh))
     case E.Peek{}:
-      DE.PeekFront{}
+      pk_rd(~T, sh, ready(~T, sh))
     case E.ToList{}:
-      DE.ToList{}
-
-def qobs(-T: Data, o: DE.Obs<T>) -> E.Obs<T>:
-  match o:
-    case DE.ONat{n}:
-      E.ONat{n}
-    case DE.OItem{r}:
-      E.OItem{Q.result_of(T, r)}
-    case DE.OUnit{}:
-      E.OUnit{}
-    case DE.OList{xs}:
-      E.OList{xs}
-
-def qmap(-T: Data, p: List<&2, T> & DE.Obs<T>) -> List<&2, T> & E.Obs<T>:
-  match p:
-    case Tuple{xs, o}:
-      (xs, qobs(T, o))
-
-# The FIFO spec step is the deque spec step of the corresponding operation,
-# with the observation renamed.
-def qspec(-T: Data, xs: List<&2, T>, op: E.Op<T>) -> {S.step(T, xs, op) == qmap(T, SD.step(T, xs, dop(T, op))) : List<&2, T> & E.Obs<T>}:
-  match xs op:
-    case Nil{} E.Length{}:
-      {==}
-    case Nil{} E.Enqueue{x}:
-      {==}
-    case Nil{} E.Dequeue{}:
-      {==}
-    case Nil{} E.Peek{}:
-      {==}
-    case Nil{} E.ToList{}:
-      {==}
-    case Con{h, t} E.Length{}:
-      {==}
-    case Con{h, t} E.Enqueue{x}:
-      {==}
-    case Con{h, t} E.Dequeue{}:
-      {==}
-    case Con{h, t} E.Peek{}:
-      {==}
-    case Con{h, t} E.ToList{}:
-      {==}
-
-def qpair(~T: Data, p: DQ.Deque<T> & DE.Obs<T>) -> Q.Queue<T> & E.Obs<T>:
-  match p:
-    case Tuple{d, o}:
-      (Q.QU{d}, qobs(T, o))
-
-def nat_lift(~T: Data, p: DQ.Deque<T> & Nat) -> {Q.obs_nat(~T, Q.lift_nat(~T, p)) == qpair(~T, DQ.obs_nat(~T, p)) : Q.Queue<T> & E.Obs<T>}:
-  match p:
-    case Tuple{d, n}:
-      {==}
-
-def item_lift(~T: Data, p: DQ.Deque<T> & Result<&2, &2, DE.Error, T>) -> {Q.obs_item(~T, Q.lift(~T, p)) == qpair(~T, DQ.obs_item(~T, p)) : Q.Queue<T> & E.Obs<T>}:
-  match p:
-    case Tuple{d, x}:
-      {==}
-
-def list_lift(~T: Data, p: DQ.Deque<T> & List<&2, T>) -> {Q.obs_list(~T, Q.lift_list(~T, p)) == qpair(~T, DQ.obs_list(~T, p)) : Q.Queue<T> & E.Obs<T>}:
-  match p:
-    case Tuple{d, xs}:
-      {==}
-
-# One queue step IS the deque step of the corresponding deque operation.
-def step_lift(~T: Data, D: DQ.Deque<T>, op: E.Op<T>) -> {Q.step(~T, Q.QU{D}, op) == qpair(~T, DQ.step(~T, D, dop(T, op))) : Q.Queue<T> & E.Obs<T>}:
-  match op:
-    case E.Length{}:
-      nat_lift(~T, DQ.length(~T, D))
-    case E.Enqueue{x}:
-      {==}
-    case E.Dequeue{}:
-      item_lift(~T, DQ.pop_front(~T, D))
-    case E.Peek{}:
-      item_lift(~T, DQ.peek_front(~T, D))
-    case E.ToList{}:
-      list_lift(~T, DQ.to_list(~T, D))
-
-def StepOK(~T: Data, sh: DST.Shadow<T>, op: E.Op<T>) -> Type:
-  Sigma<&1, &1, DST.Shadow<T>, sh2 => Sigma<&1, &1, E.Obs<T>, o => {Q.step(~T, real(~T, sh), op) == (real(~T, sh2), o) : Q.Queue<T> & E.Obs<T>} & ({DST.good(T, sh2) == True{} : Bool} & {(DST.model(T, sh2), o) == S.step(T, DST.model(T, sh), op) : List<&2, T> & E.Obs<T>})>>
-
-def mk(~T: Data, -sh: DST.Shadow<T>, -op: E.Op<T>, sh2: DST.Shadow<T>, o: E.Obs<T>, e1: {Q.step(~T, real(~T, sh), op) == (real(~T, sh2), o) : Q.Queue<T> & E.Obs<T>}, e2: {DST.good(T, sh2) == True{} : Bool}, e3: {(DST.model(T, sh2), o) == S.step(T, DST.model(T, sh), op) : List<&2, T> & E.Obs<T>}) -> StepOK(~T, sh, op):
-  (sh2, (o, (e1, (e2, e3))))
-
-
-# ---- the queue step law, derived from the deque's ----
-
-def so_sh(~T: Data, -sh: DST.Shadow<T>, -op: DE.Op<T>, so: DK.StepOK(~T, sh, op)) -> DST.Shadow<T>:
-  match so:
-    case Tuple{sh2, r}:
-      sh2
-
-def so_obs(~T: Data, -sh: DST.Shadow<T>, -op: DE.Op<T>, so: DK.StepOK(~T, sh, op)) -> DE.Obs<T>:
-  match so:
-    case Tuple{sh2, Tuple{o, r}}:
-      o
-
-def so_step(~T: Data, -sh: DST.Shadow<T>, -op: DE.Op<T>, so: DK.StepOK(~T, sh, op)) -> {DQ.step(~T, DST.real(T, sh), op) == (DST.real(T, so_sh(~T, sh, op, so)), so_obs(~T, sh, op, so)) : DQ.Deque<T> & DE.Obs<T>}:
-  match so:
-    case Tuple{sh2, Tuple{o, Tuple{e, r}}}:
-      e
-
-def so_good(~T: Data, -sh: DST.Shadow<T>, -op: DE.Op<T>, so: DK.StepOK(~T, sh, op)) -> {DST.good(T, so_sh(~T, sh, op, so)) == True{} : Bool}:
-  match so:
-    case Tuple{sh2, Tuple{o, Tuple{e, Tuple{g, s}}}}:
-      g
-
-def so_spec(~T: Data, -sh: DST.Shadow<T>, -op: DE.Op<T>, so: DK.StepOK(~T, sh, op)) -> {(DST.model(T, so_sh(~T, sh, op, so)), so_obs(~T, sh, op, so)) == SD.step(T, DST.model(T, sh), op) : List<&2, T> & DE.Obs<T>}:
-  match so:
-    case Tuple{sh2, Tuple{o, Tuple{e, Tuple{g, s}}}}:
-      s
-
-def step_ok(~T: Data, +sh: DST.Shadow<T>, +op: E.Op<T>, +g: {DST.good(T, sh) == True{} : Bool}, +q: Nat, +hq: {Nat.is_le(q, 31n) == True{} : Bool}, +hp: {DPS.pushok(T, q, dop(T, op), DST.model(T, sh)) == True{} : Bool}) -> StepOK(~T, sh, op):
-  +sh2 = so_sh(~T, sh, dop(T, op), DPS.step_ok(~T, sh, dop(T, op), g, q, hq, hp))
-  +o = so_obs(~T, sh, dop(T, op), DPS.step_ok(~T, sh, dop(T, op), g, q, hq, hp))
-  mk(~T, sh, op, sh2, qobs(T, o),
-    %Equal.sym(Q.Queue<T> & E.Obs<T>, Q.step(~T, Q.QU{DST.real(T, sh)}, op), qpair(~T, DQ.step(~T, DST.real(T, sh), dop(T, op))), step_lift(~T, DST.real(T, sh), op)) : {_ == (real(~T, sh2), qobs(T, o)) : Q.Queue<T> & E.Obs<T>}
-    %Equal.sym(DQ.Deque<T> & DE.Obs<T>, DQ.step(~T, DST.real(T, sh), dop(T, op)), (DST.real(T, sh2), o), so_step(~T, sh, dop(T, op), DPS.step_ok(~T, sh, dop(T, op), g, q, hq, hp))) : {qpair(~T, _) == (real(~T, sh2), qobs(T, o)) : Q.Queue<T> & E.Obs<T>}
-    {==},
-    so_good(~T, sh, dop(T, op), DPS.step_ok(~T, sh, dop(T, op), g, q, hq, hp)),
-    %Equal.sym(List<&2, T> & E.Obs<T>, S.step(T, DST.model(T, sh), op), qmap(T, SD.step(T, DST.model(T, sh), dop(T, op))), qspec(T, DST.model(T, sh), op)) : {(DST.model(T, sh2), qobs(T, o)) == _ : List<&2, T> & E.Obs<T>}
-    %so_spec(~T, sh, dop(T, op), DPS.step_ok(~T, sh, dop(T, op), g, q, hq, hp)) : {(DST.model(T, sh2), qobs(T, o)) == qmap(T, _) : List<&2, T> & E.Obs<T>}
-    {==})
+      op_to_list(~T, sh)

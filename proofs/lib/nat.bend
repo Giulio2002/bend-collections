@@ -531,3 +531,23 @@ def div2_double(x: Nat) -> {Nat.div(Nat.double(x), 2n) == x : Nat}:
 # 2^(1+r) / 2 = 2^r
 def div2_pow2(+r: Nat) -> {Nat.div(SC.pow2(1n+r), 2n) == SC.pow2(r) : Nat}:
   div2_double(SC.pow2(r))
+
+def min_left(+a: Nat, +b: Nat, +h: {Nat.is_lt(a, b) == True{} : Bool}) -> {Nat.min(a, b) == a : Nat}:
+  match a b:
+    case 0n _:
+      {==}
+    case 1n+ap 0n:
+      Empty.absurd({Nat.min(1n+ap, 0n) == 1n+ap : Nat}, lt_zero_absurd(1n+ap, h))
+    case 1n+ap 1n+bp:
+      succ_cong(Nat.min(ap, bp), ap, min_left(ap, bp, h))
+
+def min_right(+a: Nat, +b: Nat, +h: {Nat.is_lt(a, b) == False{} : Bool}) -> {Nat.min(a, b) == b : Nat}:
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+bp:
+      Empty.absurd({Nat.min(0n, 1n+bp) == 1n+bp : Nat}, zero_succ(0n, Equal.sym(Nat, 1n, 0n, Equal.cong(Bool, Nat, c => S.bit_value(c), True{}, False{}, h))))
+    case 1n+ap 0n:
+      {==}
+    case 1n+ap 1n+bp:
+      succ_cong(Nat.min(ap, bp), bp, min_right(ap, bp, h))
