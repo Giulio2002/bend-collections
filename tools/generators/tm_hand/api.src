@@ -10,6 +10,7 @@ import ./sim.bend as SM
 import ./ok.bend as OK
 import ./reads.bend as RD
 import ./ends.bend as EN
+import ./navm.bend as NM
 
 # The implementation's operations refine the specification's, for every
 # good shadow and a lawful comparator. (source: tools/generators/tm_hand/api.src)
@@ -82,3 +83,43 @@ def last_key_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, Maybe<&2, K>, S.las
   match sh:
     case ST.SH{$FP}:
       OK.pok_read($AK, Maybe<&2, K>, $SH, hg, S.key_m(K, V, S.last($E, $EST)), S.last_key(K, V, $MD($SH)), M.last_key($AK, $RL($SH)), {==}, via($AK, Maybe<&2, K>, M.last_key($AK, $RL($SH)), MI.last_key($AK, $SH), $SH, S.key_m(K, V, S.last($E, $EST)), SM.last_key_s($AK, $SH, OK.dg_good($AK, $SH, hg)), EN.last_key_m($AK, $F, hg)))
+
+def lower_entry_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, $E>, S.nav_entry($AK, $MD(sh), k, False{}, False{}), M.lower_entry($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, $E>, $SH, hg, S.nav($AK, k, False{}, False{}, $EST), S.nav_entry($AK, $MD($SH), k, False{}, False{}), M.lower_entry($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, $E>, M.lower_entry($AK, $RL($SH), k), MI.lower_entry($AK, $SH, k), $SH, S.nav($AK, k, False{}, False{}, $EST), SM.lower_entry_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_entry_m($AO, $F, k, False{}, False{}, hg)))
+
+def lower_key_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, K>, S.nav_key($AK, $MD(sh), k, False{}, False{}), M.lower_key($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, K>, $SH, hg, S.key_m(K, V, S.nav($AK, k, False{}, False{}, $EST)), S.nav_key($AK, $MD($SH), k, False{}, False{}), M.lower_key($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, K>, M.lower_key($AK, $RL($SH), k), MI.lower_key($AK, $SH, k), $SH, S.key_m(K, V, S.nav($AK, k, False{}, False{}, $EST)), SM.lower_key_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_key_m($AO, $F, k, False{}, False{}, hg)))
+
+def floor_entry_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, $E>, S.nav_entry($AK, $MD(sh), k, False{}, True{}), M.floor_entry($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, $E>, $SH, hg, S.nav($AK, k, False{}, True{}, $EST), S.nav_entry($AK, $MD($SH), k, False{}, True{}), M.floor_entry($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, $E>, M.floor_entry($AK, $RL($SH), k), MI.floor_entry($AK, $SH, k), $SH, S.nav($AK, k, False{}, True{}, $EST), SM.floor_entry_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_entry_m($AO, $F, k, False{}, True{}, hg)))
+
+def floor_key_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, K>, S.nav_key($AK, $MD(sh), k, False{}, True{}), M.floor_key($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, K>, $SH, hg, S.key_m(K, V, S.nav($AK, k, False{}, True{}, $EST)), S.nav_key($AK, $MD($SH), k, False{}, True{}), M.floor_key($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, K>, M.floor_key($AK, $RL($SH), k), MI.floor_key($AK, $SH, k), $SH, S.key_m(K, V, S.nav($AK, k, False{}, True{}, $EST)), SM.floor_key_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_key_m($AO, $F, k, False{}, True{}, hg)))
+
+def ceiling_entry_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, $E>, S.nav_entry($AK, $MD(sh), k, True{}, True{}), M.ceiling_entry($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, $E>, $SH, hg, S.nav($AK, k, True{}, True{}, $EST), S.nav_entry($AK, $MD($SH), k, True{}, True{}), M.ceiling_entry($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, $E>, M.ceiling_entry($AK, $RL($SH), k), MI.ceiling_entry($AK, $SH, k), $SH, S.nav($AK, k, True{}, True{}, $EST), SM.ceiling_entry_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_entry_m($AO, $F, k, True{}, True{}, hg)))
+
+def ceiling_key_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, K>, S.nav_key($AK, $MD(sh), k, True{}, True{}), M.ceiling_key($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, K>, $SH, hg, S.key_m(K, V, S.nav($AK, k, True{}, True{}, $EST)), S.nav_key($AK, $MD($SH), k, True{}, True{}), M.ceiling_key($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, K>, M.ceiling_key($AK, $RL($SH), k), MI.ceiling_key($AK, $SH, k), $SH, S.key_m(K, V, S.nav($AK, k, True{}, True{}, $EST)), SM.ceiling_key_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_key_m($AO, $F, k, True{}, True{}, hg)))
+
+def higher_entry_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, $E>, S.nav_entry($AK, $MD(sh), k, True{}, False{}), M.higher_entry($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, $E>, $SH, hg, S.nav($AK, k, True{}, False{}, $EST), S.nav_entry($AK, $MD($SH), k, True{}, False{}), M.higher_entry($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, $E>, M.higher_entry($AK, $RL($SH), k), MI.higher_entry($AK, $SH, k), $SH, S.nav($AK, k, True{}, False{}, $EST), SM.higher_entry_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_entry_m($AO, $F, k, True{}, False{}, hg)))
+
+def higher_key_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, K>, S.nav_key($AK, $MD(sh), k, True{}, False{}), M.higher_key($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, K>, $SH, hg, S.key_m(K, V, S.nav($AK, k, True{}, False{}, $EST)), S.nav_key($AK, $MD($SH), k, True{}, False{}), M.higher_key($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, K>, M.higher_key($AK, $RL($SH), k), MI.higher_key($AK, $SH, k), $SH, S.key_m(K, V, S.nav($AK, k, True{}, False{}, $EST)), SM.higher_key_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_key_m($AO, $F, k, True{}, False{}, hg)))

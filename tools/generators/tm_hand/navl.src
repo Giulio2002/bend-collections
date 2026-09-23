@@ -1,0 +1,107 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/order.bend as O
+import ../spec/common.bend as SC
+import ../spec/tree_map.bend as S
+import ../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./ord.bend as OR
+
+# The specification's first_where and last_where over sorted entries split
+# by a key k: entries below k never qualify upward and always downward,
+# entries above k the other way round. (source: tools/generators/tm_hand/navl.src)
+
+%def E M.Entry<K, V>
+%def ES List<&2, M.Entry<K, V>>
+%def ME Maybe<&2, M.Entry<K, V>>
+%def KY(e) S.key(K, V, e)
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def APP(a, b) SC.append($E, a, b)
+%def FW(es) S.first_where($AK, k, incl, es)
+%def LW(es, b) S.last_where($AK, k, incl, es, b)
+%def GTA(k, es) {OR.gtall($AK, k, es) == True{} : Bool}
+%def LTA(k, es) {OR.ltall($AK, k, es) == True{} : Bool}
+
+def fw_app_c($TK, +k: K, +incl: Bool, +e: $E, +t: $ES, +ys: $ES, +b: Bool, +hb: {S.ordering_ok(cmp(k, $KY(e)), incl) == b : Bool}, +ih: {$FW($APP(t, ys)) == OR.orm($E, $FW(t), $FW(ys)) : $ME}) -> {$FW($APP(Con{e, t}, ys)) == OR.orm($E, $FW(Con{e, t}), $FW(ys)) : $ME}:
+  match b:
+    case True{}:
+      %Equal.sym(Bool, S.ordering_ok(cmp(k, $KY(e)), incl), True{}, hb) : {S.pick($ME, _, Some{e}, $FW($APP(t, ys))) == OR.orm($E, S.pick($ME, _, Some{e}, $FW(t)), $FW(ys)) : $ME}
+      {==}
+    case False{}:
+      %Equal.sym(Bool, S.ordering_ok(cmp(k, $KY(e)), incl), False{}, hb) : {S.pick($ME, _, Some{e}, $FW($APP(t, ys))) == OR.orm($E, S.pick($ME, _, Some{e}, $FW(t)), $FW(ys)) : $ME}
+      ih
+
+def fw_app($TK, +k: K, +incl: Bool, +xs: $ES, +ys: $ES) -> {$FW($APP(xs, ys)) == OR.orm($E, $FW(xs), $FW(ys)) : $ME}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      fw_app_c($AK, k, incl, e, t, ys, S.ordering_ok(cmp(k, $KY(e)), incl), {==}, fw_app($AK, k, incl, t, ys))
+
+# nothing below k is at or above it
+def fw_none($TO, +k: K, +incl: Bool, +es: $ES, +h: $LTA(k, es)) -> {$FW(es) == None{} : $ME}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      %Equal.sym(Cmp, cmp(k, $KY(e)), GT{}, OR.lt_gt(~K, ~cmp, ~o, $KY(e), k, L.and_left(Cmp.is_lt(cmp($KY(e), k)), OR.ltall($AK, k, t), h))) : {S.pick($ME, S.ordering_ok(_, incl), Some{e}, $FW(t)) == None{} : $ME}
+      fw_none($AO, k, incl, t, L.and_right(Cmp.is_lt(cmp($KY(e), k)), OR.ltall($AK, k, t), h))
+
+# everything above k qualifies: the first
+def fw_head($TK, +k: K, +incl: Bool, +es: $ES, +h: $GTA(k, es)) -> {$FW(es) == S.head($E, es) : $ME}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      %Equal.sym(Cmp, cmp(k, $KY(e)), LT{}, O.lt_is(cmp(k, $KY(e)), L.and_left(Cmp.is_lt(cmp(k, $KY(e))), OR.gtall($AK, k, t), h))) : {S.pick($ME, S.ordering_ok(_, incl), Some{e}, $FW(t)) == Some{e} : $ME}
+      {==}
+
+def lw_app($TK, +k: K, +incl: Bool, +xs: $ES, +ys: $ES, +b: $ME) -> {$LW($APP(xs, ys), b) == $LW(ys, $LW(xs, b)) : $ME}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      lw_app($AK, k, incl, t, ys, S.pick($ME, S.ordering_ok(cmp($KY(e), k), incl), Some{e}, b))
+
+# nothing above k is at or below it: the candidate stays
+def lw_none($TO, +k: K, +incl: Bool, +es: $ES, +b: $ME, +h: $GTA(k, es)) -> {$LW(es, b) == b : $ME}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      %Equal.sym(Cmp, cmp($KY(e), k), GT{}, OR.lt_gt(~K, ~cmp, ~o, k, $KY(e), L.and_left(Cmp.is_lt(cmp(k, $KY(e))), OR.gtall($AK, k, t), h))) : {$LW(t, S.pick($ME, S.ordering_ok(_, incl), Some{e}, b)) == b : $ME}
+      lw_none($AO, k, incl, t, b, L.and_right(Cmp.is_lt(cmp(k, $KY(e))), OR.gtall($AK, k, t), h))
+
+def last_orm(-K: Data, -V: Data, +u: $ES, +e: $E, +a: $ME, +b: $ME) -> {OR.orm($E, S.last($E, Con{e, u}), a) == OR.orm($E, S.last($E, Con{e, u}), b) : $ME}:
+  match u:
+    case Nil{}:
+      {==}
+    case Con{+e2, +u2}:
+      last_orm(K, V, u2, e2, a, b)
+
+def lw_all_c(-K: Data, -V: Data, +e: $E, +t: $ES, +b: $ME) -> {OR.orm($E, S.last($E, t), Some{e}) == OR.orm($E, S.last($E, Con{e, t}), b) : $ME}:
+  match t:
+    case Nil{}:
+      {==}
+    case Con{+e2, +u}:
+      last_orm(K, V, u, e2, Some{e}, b)
+
+# everything below k qualifies: the last, or the candidate when none
+def lw_all($TK, +k: K, +incl: Bool, +es: $ES, +b: $ME, +h: $LTA(k, es)) -> {$LW(es, b) == OR.orm($E, S.last($E, es), b) : $ME}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      %Equal.sym(Cmp, cmp($KY(e), k), LT{}, O.lt_is(cmp($KY(e), k), L.and_left(Cmp.is_lt(cmp($KY(e), k)), OR.ltall($AK, k, t), h))) : {$LW(t, S.pick($ME, S.ordering_ok(_, incl), Some{e}, b)) == OR.orm($E, S.last($E, Con{e, t}), b) : $ME}
+      %Equal.sym($ME, $LW(t, Some{e}), OR.orm($E, S.last($E, t), Some{e}), lw_all($AK, k, incl, t, Some{e}, L.and_right(Cmp.is_lt(cmp($KY(e), k)), OR.ltall($AK, k, t), h))) : {_ == OR.orm($E, S.last($E, Con{e, t}), b) : $ME}
+      lw_all_c(K, V, e, t, b)
+
+def ltall_app($TK, +k: K, +xs: $ES, +ys: $ES, +hx: $LTA(k, xs), +hy: $LTA(k, ys)) -> $LTA(k, $APP(xs, ys)):
+  match xs:
+    case Nil{}:
+      hy
+    case Con{+e, +t}:
+      L.and_intro(Cmp.is_lt(cmp($KY(e), k)), OR.ltall($AK, k, $APP(t, ys)), L.and_left(Cmp.is_lt(cmp($KY(e), k)), OR.ltall($AK, k, t), hx), ltall_app($AK, k, t, ys, L.and_right(Cmp.is_lt(cmp($KY(e), k)), OR.ltall($AK, k, t), hx), hy))
