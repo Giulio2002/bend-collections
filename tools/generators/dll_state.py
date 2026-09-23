@@ -37,6 +37,8 @@ COMPS = [
     ("cfll", f"fll({NL}, fl)"),
     ("cfl", f"flok(~T, fl, {FR}, {VL})"),
     ("cfnd", "LST.nodupn(fl)"),
+    ("cgz", f"gz(AR.slots(U32, gT), {FR})"),
+    ("clv", f"lvin(~T, {VL}, 0n, sl)"),
 ]
 NAMES = [c for c, _ in COMPS]
 
@@ -117,6 +119,24 @@ def flok(~T: Data, xs: List<&2, Nat>, +fr: Nat, +vl: List<&2, Maybe<&2, T>>) -> 
       True{}
     case Con{+x, t}:
       Bool.and(Bool.and(Nat.is_lt(x, fr), Bool.not(live(T, vl, x))), flok(~T, t, fr, vl))
+
+# every generation from index fr on is 0 (the ids not issued yet)
+def gz(gl: List<&2, U32>, +fr: Nat) -> Bool:
+  match gl fr:
+    case Nil{} _:
+      True{}
+    case Con{+g, +t} 0n:
+      Bool.and(U32.is_eq(g, 0), gz(t, 0n))
+    case Con{+g, +t} 1n+p:
+      gz(t, p)
+
+# every live value slot (index k on) is an id of sl
+def lvin(~T: Data, vl: List<&2, Maybe<&2, T>>, +k: Nat, +sl: List<&2, Nat>) -> Bool:
+  match vl:
+    case Nil{}:
+      True{}
+    case Con{m, t}:
+      Bool.and(Bool.or(Bool.not(some_b(T, m)), HT.memn(k, sl)), lvin(~T, t, 1n+k, sl))
 
 # ---- the invariant ----
 '''
