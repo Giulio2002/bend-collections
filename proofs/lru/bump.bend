@@ -11,12 +11,14 @@ import ../hash_table/table.bend as TB
 import ./state.bend as ST
 import ./meta.bend as MT
 import ./basic.bend as BA
+import ../lib/list.bend as LL
+import ../hash_table/insa.bend as IA
 
 # bump: a counter's 64-bit increment in the meta words.
 
 
 def BumpOK(+mT: AR.Tree<U32>, +i: Nat, r: Array<U32>) -> Type:
-  Sigma<&1, &1, AR.Tree<U32>, m2 => {r == AR.thaw(U32, m2) : Array<U32>} & ({AR.perfect(U32, 5n, m2) == True{} : Bool} & ({ST.w64(AR.slots(U32, m2), i) == SP.inc64(ST.w64(AR.slots(U32, mT), i)) : W.U64} & (@+j: Nat -> @h1: {Nat.is_eq(i, j) == False{} : Bool} -> @h2: {Nat.is_eq(1n+i, j) == False{} : Bool} -> {TB.nth0(AR.slots(U32, m2), j) == TB.nth0(AR.slots(U32, mT), j) : U32})))>
+  Sigma<&1, &1, AR.Tree<U32>, m2 => {r == AR.thaw(U32, m2) : Array<U32>} & ({AR.perfect(U32, 5n, m2) == True{} : Bool} & ({ST.w64(AR.slots(U32, m2), i) == SP.inc64(ST.w64(AR.slots(U32, mT), i)) : W.U64} & Sigma<&1, &1, U32, x => Sigma<&1, &1, U32, y => {AR.slots(U32, m2) == SC.update(U32, SC.update(U32, AR.slots(U32, mT), i, x), 1n+i, y) : List<&2, U32>}>>))>
 
 
 def lt_i(+i: Nat, +hi: {Nat.is_lt(1n+i, 32n) == True{} : Bool}) -> {Nat.is_lt(i, 32n) == True{} : Bool}:
@@ -32,6 +34,16 @@ def s1_of(+mT: AR.Tree<U32>, +pm: {AR.perfect(U32, 5n, mT) == True{} : Bool}, +c
   +hIb = vlt(U32.add(16, U32.shl(c)), i, hI, lt_i(i, hi))
   Equal.trans(List<&2, U32>, AR.slots(U32, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i)))), SC.update(U32, AR.slots(U32, mT), UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), SC.update(U32, AR.slots(U32, mT), i, U32.inc(TB.nth0(AR.slots(U32, mT), i))), MT.uset_s(5n, mT, pm, UD.v(U32.add(16, U32.shl(c))), hIb, U32.inc(TB.nth0(AR.slots(U32, mT), i))), Equal.cong(Nat, List<&2, U32>, z => SC.update(U32, AR.slots(U32, mT), z, U32.inc(TB.nth0(AR.slots(U32, mT), i))), UD.v(U32.add(16, U32.shl(c))), i, hI))
 
+# writing a word's own value changes nothing
+def upd_id(+xs: List<&2, U32>, +j: Nat) -> {SC.update(U32, xs, j, TB.nth0(xs, j)) == xs : List<&2, U32>}:
+  match xs j:
+    case Nil{} _:
+      {==}
+    case Con{+h, +t} 0n:
+      {==}
+    case Con{+h, +t} 1n+p:
+      LL.cons_cong(U32, h, SC.update(U32, t, p, TB.nth0(t, p)), t, upd_id(t, p))
+
 # no wrap of the low word
 def bump_nw(+mT: AR.Tree<U32>, +pm: {AR.perfect(U32, 5n, mT) == True{} : Bool}, +c: U32, +i: Nat, +hi: {Nat.is_lt(1n+i, 32n) == True{} : Bool}, +hI: {UD.v(U32.add(16, U32.shl(c))) == i : Nat}, +hJ: {UD.v(U32.add(17, U32.shl(c))) == 1n+i : Nat}, +hz: {U32.is_eq(U32.inc(TB.nth0(AR.slots(U32, mT), i)), 0) == False{} : Bool}) -> BumpOK(mT, i, LR.bump_hi(Array.set(U32, AR.thaw(U32, mT), U32.add(16, U32.shl(c)), U32.inc(TB.nth0(AR.slots(U32, mT), i))), c, False{})):
   +hIb = vlt(U32.add(16, U32.shl(c)), i, hI, lt_i(i, hi))
@@ -42,7 +54,9 @@ def bump_nw(+mT: AR.Tree<U32>, +pm: {AR.perfect(U32, 5n, mT) == True{} : Bool}, 
   +e1 = MT.nth_other(mT, i, U32.inc(TB.nth0(AR.slots(U32, mT), i)), AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), s1, 1n+i, ne_si(i))
   +r = L.subst(Bool, z => {W.U64{U32.inc(TB.nth0(AR.slots(U32, mT), i)), TB.nth0(AR.slots(U32, mT), 1n+i)} == SP.inc_hi(U32.inc(TB.nth0(AR.slots(U32, mT), i)), TB.nth0(AR.slots(U32, mT), 1n+i), z) : W.U64}, False{}, U32.is_eq(U32.inc(TB.nth0(AR.slots(U32, mT), i)), 0), Equal.sym(Bool, U32.is_eq(U32.inc(TB.nth0(AR.slots(U32, mT), i)), 0), False{}, hz), {==})
   +ew = Equal.trans(W.U64, ST.w64(AR.slots(U32, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i)))), i), W.U64{U32.inc(TB.nth0(AR.slots(U32, mT), i)), TB.nth0(AR.slots(U32, mT), 1n+i)}, SP.inc64(ST.w64(AR.slots(U32, mT), i)), BA.w64_eq_l(AR.slots(U32, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i)))), i, U32.inc(TB.nth0(AR.slots(U32, mT), i)), TB.nth0(AR.slots(U32, mT), 1n+i), e0, e1), r)
-  (AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), (a1, (p1, (ew, j => h1 => h2 => MT.nth_other(mT, i, U32.inc(TB.nth0(AR.slots(U32, mT), i)), AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), s1, j, h1)))))
+  +U = SC.update(U32, AR.slots(U32, mT), i, U32.inc(TB.nth0(AR.slots(U32, mT), i)))
+  +eu = Equal.trans(List<&2, U32>, SC.update(U32, U, 1n+i, TB.nth0(AR.slots(U32, mT), 1n+i)), SC.update(U32, U, 1n+i, TB.nth0(U, 1n+i)), U, Equal.cong(U32, List<&2, U32>, z => SC.update(U32, U, 1n+i, z), TB.nth0(AR.slots(U32, mT), 1n+i), TB.nth0(U, 1n+i), Equal.sym(U32, TB.nth0(U, 1n+i), TB.nth0(AR.slots(U32, mT), 1n+i), IA.nth0_upd_other(AR.slots(U32, mT), i, 1n+i, U32.inc(TB.nth0(AR.slots(U32, mT), i)), ne_si(i)))), upd_id(U, 1n+i))
+  (AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), (a1, (p1, (ew, (U32.inc(TB.nth0(AR.slots(U32, mT), i)), (TB.nth0(AR.slots(U32, mT), 1n+i), Equal.trans(List<&2, U32>, AR.slots(U32, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i)))), U, SC.update(U32, U, 1n+i, TB.nth0(AR.slots(U32, mT), 1n+i)), s1, Equal.sym(List<&2, U32>, SC.update(U32, U, 1n+i, TB.nth0(AR.slots(U32, mT), 1n+i)), U, eu))))))))
 
 # the low word wraps: the high word is incremented too
 def bump_w(+mT: AR.Tree<U32>, +pm: {AR.perfect(U32, 5n, mT) == True{} : Bool}, +c: U32, +i: Nat, +hi: {Nat.is_lt(1n+i, 32n) == True{} : Bool}, +hI: {UD.v(U32.add(16, U32.shl(c))) == i : Nat}, +hJ: {UD.v(U32.add(17, U32.shl(c))) == 1n+i : Nat}, +hz: {U32.is_eq(U32.inc(TB.nth0(AR.slots(U32, mT), i)), 0) == True{} : Bool}) -> BumpOK(mT, i, LR.bump_hi(Array.set(U32, AR.thaw(U32, mT), U32.add(16, U32.shl(c)), U32.inc(TB.nth0(AR.slots(U32, mT), i))), c, True{})):
@@ -62,7 +76,7 @@ def bump_w(+mT: AR.Tree<U32>, +pm: {AR.perfect(U32, 5n, mT) == True{} : Bool}, +
   +e1 = MT.nth_same(5n, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), p1, 1n+i, hi, U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i)), AR.upd(U32, 5n, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), UD.v(U32.add(17, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i))), s2)
   +r = L.subst(Bool, z => {W.U64{U32.inc(TB.nth0(AR.slots(U32, mT), i)), U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i))} == SP.inc_hi(U32.inc(TB.nth0(AR.slots(U32, mT), i)), TB.nth0(AR.slots(U32, mT), 1n+i), z) : W.U64}, True{}, U32.is_eq(U32.inc(TB.nth0(AR.slots(U32, mT), i)), 0), Equal.sym(Bool, U32.is_eq(U32.inc(TB.nth0(AR.slots(U32, mT), i)), 0), True{}, hz), {==})
   +ew = Equal.trans(W.U64, ST.w64(AR.slots(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), UD.v(U32.add(17, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i)))), i), W.U64{U32.inc(TB.nth0(AR.slots(U32, mT), i)), U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i))}, SP.inc64(ST.w64(AR.slots(U32, mT), i)), BA.w64_eq_l(AR.slots(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), UD.v(U32.add(17, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i)))), i, U32.inc(TB.nth0(AR.slots(U32, mT), i)), U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i)), e0, e1), r)
-  (AR.upd(U32, 5n, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), UD.v(U32.add(17, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i))), (ea, (p2, (ew, j => h1 => h2 => Equal.trans(U32, TB.nth0(AR.slots(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), UD.v(U32.add(17, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i)))), j), TB.nth0(AR.slots(U32, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i)))), j), TB.nth0(AR.slots(U32, mT), j), MT.nth_other(AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), 1n+i, U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i)), AR.upd(U32, 5n, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), UD.v(U32.add(17, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i))), s2, j, h2), MT.nth_other(mT, i, U32.inc(TB.nth0(AR.slots(U32, mT), i)), AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), s1, j, h1))))))
+  (AR.upd(U32, 5n, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), UD.v(U32.add(17, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i))), (ea, (p2, (ew, (U32.inc(TB.nth0(AR.slots(U32, mT), i)), (U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i)), Equal.trans(List<&2, U32>, AR.slots(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i))), UD.v(U32.add(17, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i)))), SC.update(U32, AR.slots(U32, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i)))), 1n+i, U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i))), SC.update(U32, SC.update(U32, AR.slots(U32, mT), i, U32.inc(TB.nth0(AR.slots(U32, mT), i))), 1n+i, U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i))), s2, Equal.cong(List<&2, U32>, List<&2, U32>, z => SC.update(U32, z, 1n+i, U32.inc(TB.nth0(AR.slots(U32, mT), 1n+i))), AR.slots(U32, AR.upd(U32, 5n, mT, UD.v(U32.add(16, U32.shl(c))), U32.inc(TB.nth0(AR.slots(U32, mT), i)))), SC.update(U32, AR.slots(U32, mT), i, U32.inc(TB.nth0(AR.slots(U32, mT), i))), s1))))))))
 
 def bump_c(+mT: AR.Tree<U32>, +pm: {AR.perfect(U32, 5n, mT) == True{} : Bool}, +c: U32, +i: Nat, +hi: {Nat.is_lt(1n+i, 32n) == True{} : Bool}, +hI: {UD.v(U32.add(16, U32.shl(c))) == i : Nat}, +hJ: {UD.v(U32.add(17, U32.shl(c))) == 1n+i : Nat}, +z: Bool, +hz: {U32.is_eq(U32.inc(TB.nth0(AR.slots(U32, mT), i)), 0) == z : Bool}) -> BumpOK(mT, i, LR.bump_hi(Array.set(U32, AR.thaw(U32, mT), U32.add(16, U32.shl(c)), U32.inc(TB.nth0(AR.slots(U32, mT), i))), c, z)):
   match z:
