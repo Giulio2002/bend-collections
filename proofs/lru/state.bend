@@ -162,6 +162,12 @@ def ctr(+ml: List<&2, U32>) -> SP.Ctr:
 def modelF(~V: Data, +cap: U32, +mT: AR.Tree<U32>, +kl: List<&2, String>, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>) -> SP.Lru<V>:
   SP.L{cap, TB.nth0(AR.slots(U32, mT), 3n), w64(AR.slots(U32, mT), 4n), es(~V, AR.slots(U32, lkT), kl, AR.slots(Maybe<&2, V>, eT), sl), ctr(AR.slots(U32, mT))}
 
+# the entries of a model
+def lru_es(~V: Data, l: SP.Lru<V>) -> List<&2, SP.Ent<V>>:
+  match l:
+    case SP.L{cap, on, life, es, c}:
+      es
+
 # the cache the shadow stands for
 def model(~V: Data, sh: Sh<V>) -> SP.Lru<V>:
   match sh:
