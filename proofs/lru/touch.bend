@@ -84,6 +84,10 @@ def enk_a(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, May
   enk_of(~V, ST.skey(ll, kl, s), key, hk, ST.es(~V, ll, kl, el, a), h4)
 
 
+# the model entry of slot s holding value v
+def ev(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +s: Nat, +v: V) -> SP.Ent<V>:
+  SP.LE{ST.skey(ll, kl, s), v, ST.lw(ll, s, 3n), W.U64{ST.lw(ll, s, 4n), ST.lw(ll, s, 5n)}}
+
 def es_cons(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Maybe<&2, V>>, +s: Nat, +v: V, +hm: {HT.nthm(~V, el, s) == Some{v} : Maybe<&2, V>}, +b: List<&2, Nat>) -> {ST.es(~V, ll, kl, el, Con{s, b}) == Con{SP.LE{ST.skey(ll, kl, s), v, ST.lw(ll, s, 3n), W.U64{ST.lw(ll, s, 4n), ST.lw(ll, s, 5n)}}, ST.es(~V, ll, kl, el, b)} : List<&2, SP.Ent<V>>}:
   Equal.cong(Maybe<&2, V>, List<&2, SP.Ent<V>>, z => SC.append(SP.Ent<V>, ST.sent_m(~V, ll, kl, s, z), ST.es(~V, ll, kl, el, b)), HT.nthm(~V, el, s), Some{v}, hm)
 
