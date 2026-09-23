@@ -1,0 +1,263 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/order.bend as O
+import ../spec/common.bend as SC
+import ../spec/tree_map.bend as S
+import ../../src/containers/balanced_search_tree.bend as M
+import ../hash_table/state.bend as HT
+import ../lru/lists.bend as LS
+import ./state.bend as ST
+import ./prim.bend as PR
+import ./path.bend as P
+import ./ends.bend as EN
+import ./frame.bend as FR
+
+# Two node lists agreeing on a list of ids (a Bool, so the fact can be used
+# many times): nodes compared field by field, keys by the comparator, which
+# for a lawful one is equality. Agreement on a subtree's ids keeps its links,
+# on a list its entries, on a path its frames; a write agrees off its id;
+# agreement composes. (source: tools/generators/tm_hand/agree.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def MV Maybe<&2, V>
+%def PL List<&2, $MV>
+%def E M.Entry<K, V>
+%def TO ~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AO ~K, ~cmp, ~o
+%def NDX(nl, j) ST.nd(K, nl, j)
+%def NMEM(y, xs) {HT.memn(y, xs) == False{} : Bool}
+%def MEM(y, xs) {HT.memn(y, xs) == True{} : Bool}
+%def IDS(t) ST.ids(t)
+%def APP(a, b) SC.append(Nat, a, b)
+
+def beq(+a: Bool, +b: Bool) -> Bool:
+  match a:
+    case True{}:
+      b
+    case False{}:
+      Bool.not(b)
+
+def ndeq(~K: Data, ~cmp: K -> K -> Cmp, x: $ND, y: $ND) -> Bool:
+  match x y:
+    case M.Free{+a} M.Free{+b}:
+      Nat.is_eq(a, b)
+    case M.Free{a} M.N{c2, a2, b2, q2, k2}:
+      False{}
+    case M.N{c, a, b, q, k} M.Free{f}:
+      False{}
+    case M.N{+c, +a, +b, +q, +k} M.N{+c2, +a2, +b2, +q2, +k2}:
+      Bool.and(beq(c, c2), Bool.and(Nat.is_eq(a, a2), Bool.and(Nat.is_eq(b, b2), Bool.and(Nat.is_eq(q, q2), S.is_eq(cmp(k, k2))))))
+
+def beq_refl(+a: Bool) -> {beq(a, a) == True{} : Bool}:
+  match a:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+def beq_eq(+a: Bool, +b: Bool, +h: {beq(a, b) == True{} : Bool}) -> {a == b : Bool}:
+  match a b:
+    case True{} True{}:
+      {==}
+    case True{} False{}:
+      Empty.absurd({True{} == False{} : Bool}, L.false_true(h))
+    case False{} True{}:
+      Empty.absurd({False{} == True{} : Bool}, L.false_true(h))
+    case False{} False{}:
+      {==}
+
+def iseq_eq(+c: Cmp, +h: {S.is_eq(c) == True{} : Bool}) -> {c == EQ{} : Cmp}:
+  match c:
+    case LT{}:
+      Empty.absurd({LT{} == EQ{} : Cmp}, L.false_true(h))
+    case EQ{}:
+      {==}
+    case GT{}:
+      Empty.absurd({GT{} == EQ{} : Cmp}, L.false_true(h))
+
+def ndeq_refl($TO, +x: $ND) -> {ndeq(~K, ~cmp, x, x) == True{} : Bool}:
+  match x:
+    case M.Free{+a}:
+      N.is_eq_refl(a)
+    case M.N{+c, +a, +b, +q, +k}:
+      %Equal.sym(Bool, beq(c, c), True{}, beq_refl(c)) : {Bool.and(_, Bool.and(Nat.is_eq(a, a), Bool.and(Nat.is_eq(b, b), Bool.and(Nat.is_eq(q, q), S.is_eq(cmp(k, k)))))) == True{} : Bool}
+      %Equal.sym(Bool, Nat.is_eq(a, a), True{}, N.is_eq_refl(a)) : {Bool.and(True{}, Bool.and(_, Bool.and(Nat.is_eq(b, b), Bool.and(Nat.is_eq(q, q), S.is_eq(cmp(k, k)))))) == True{} : Bool}
+      %Equal.sym(Bool, Nat.is_eq(b, b), True{}, N.is_eq_refl(b)) : {Bool.and(True{}, Bool.and(True{}, Bool.and(_, Bool.and(Nat.is_eq(q, q), S.is_eq(cmp(k, k)))))) == True{} : Bool}
+      %Equal.sym(Bool, Nat.is_eq(q, q), True{}, N.is_eq_refl(q)) : {Bool.and(True{}, Bool.and(True{}, Bool.and(True{}, Bool.and(_, S.is_eq(cmp(k, k)))))) == True{} : Bool}
+      %Equal.sym(Cmp, cmp(k, k), EQ{}, O.refl(~K, ~cmp, ~o, k)) : {Bool.and(True{}, Bool.and(True{}, Bool.and(True{}, Bool.and(True{}, S.is_eq(_))))) == True{} : Bool}
+      {==}
+
+%def AND2(a, b, h) L.and_left(a, b, h)
+
+def ndeq_eq($TO, +x: $ND, +y: $ND, +h: {ndeq(~K, ~cmp, x, y) == True{} : Bool}) -> {x == y : $ND}:
+  match x y:
+    case M.Free{+a} M.Free{+b}:
+      %Equal.sym(Nat, a, b, N.eq_from_is_eq(a, b, h)) : {M.Free{_} == M.Free{b} : $ND}
+      {==}
+    case M.Free{a} M.N{c2, a2, b2, q2, k2}:
+      Empty.absurd({M.Free{a} == M.N{c2, a2, b2, q2, k2} : $ND}, L.false_true(h))
+    case M.N{c, a, b, q, k} M.Free{f}:
+      Empty.absurd({M.N{c, a, b, q, k} == M.Free{f} : $ND}, L.false_true(h))
+    case M.N{+c, +a, +b, +q, +k} M.N{+c2, +a2, +b2, +q2, +k2}:
+      +h2 = L.and_right(beq(c, c2), Bool.and(Nat.is_eq(a, a2), Bool.and(Nat.is_eq(b, b2), Bool.and(Nat.is_eq(q, q2), S.is_eq(cmp(k, k2))))), h)
+      +h3 = L.and_right(Nat.is_eq(a, a2), Bool.and(Nat.is_eq(b, b2), Bool.and(Nat.is_eq(q, q2), S.is_eq(cmp(k, k2)))), h2)
+      +h4 = L.and_right(Nat.is_eq(b, b2), Bool.and(Nat.is_eq(q, q2), S.is_eq(cmp(k, k2))), h3)
+      +h5 = L.and_right(Nat.is_eq(q, q2), S.is_eq(cmp(k, k2)), h4)
+      %Equal.sym(Bool, c, c2, beq_eq(c, c2, L.and_left(beq(c, c2), Bool.and(Nat.is_eq(a, a2), Bool.and(Nat.is_eq(b, b2), Bool.and(Nat.is_eq(q, q2), S.is_eq(cmp(k, k2))))), h))) : {M.N{_, a, b, q, k} == M.N{c2, a2, b2, q2, k2} : $ND}
+      %Equal.sym(Nat, a, a2, N.eq_from_is_eq(a, a2, L.and_left(Nat.is_eq(a, a2), Bool.and(Nat.is_eq(b, b2), Bool.and(Nat.is_eq(q, q2), S.is_eq(cmp(k, k2)))), h2))) : {M.N{c2, _, b, q, k} == M.N{c2, a2, b2, q2, k2} : $ND}
+      %Equal.sym(Nat, b, b2, N.eq_from_is_eq(b, b2, L.and_left(Nat.is_eq(b, b2), Bool.and(Nat.is_eq(q, q2), S.is_eq(cmp(k, k2))), h3))) : {M.N{c2, a2, _, q, k} == M.N{c2, a2, b2, q2, k2} : $ND}
+      %Equal.sym(Nat, q, q2, N.eq_from_is_eq(q, q2, L.and_left(Nat.is_eq(q, q2), S.is_eq(cmp(k, k2)), h4))) : {M.N{c2, a2, b2, _, k} == M.N{c2, a2, b2, q2, k2} : $ND}
+      %Equal.sym(K, k, k2, O.antisym(~K, ~cmp, o, k, k2, iseq_eq(cmp(k, k2), h5))) : {M.N{c2, a2, b2, q2, _} == M.N{c2, a2, b2, q2, k2} : $ND}
+      {==}
+
+def ndeq_of_eq($TO, +x: $ND, +y: $ND, +e: {x == y : $ND}) -> {ndeq(~K, ~cmp, x, y) == True{} : Bool}:
+  L.subst($ND, z => {ndeq(~K, ~cmp, x, z) == True{} : Bool}, x, y, e, ndeq_refl($AO, x))
+
+# ---- agreement on a list of ids ----
+
+def agr(~K: Data, ~cmp: K -> K -> Cmp, xs: $LN, +nl: $NL, +nl2: $NL) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{+j, t}:
+      Bool.and(ndeq(~K, ~cmp, $NDX(nl, j), $NDX(nl2, j)), agr(~K, ~cmp, t, nl, nl2))
+
+%def AGR(xs, a, b) {agr(~K, ~cmp, xs, a, b) == True{} : Bool}
+%def AGH(j, t, a, b) L.and_left(ndeq(~K, ~cmp, $NDX(a, j), $NDX(b, j)), agr(~K, ~cmp, t, a, b), h)
+%def AGT(j, t, a, b) L.and_right(ndeq(~K, ~cmp, $NDX(a, j), $NDX(b, j)), agr(~K, ~cmp, t, a, b), h)
+
+def agr_head($TO, +j: Nat, +t: $LN, +nl: $NL, +nl2: $NL, +h: $AGR(Con{j, t}, nl, nl2)) -> {$NDX(nl, j) == $NDX(nl2, j) : $ND}:
+  ndeq_eq($AO, $NDX(nl, j), $NDX(nl2, j), $AGH(j, t, nl, nl2))
+
+def agr_refl($TO, +xs: $LN, +nl: $NL) -> $AGR(xs, nl, nl):
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      L.and_intro(ndeq(~K, ~cmp, $NDX(nl, j), $NDX(nl, j)), agr(~K, ~cmp, t, nl, nl), ndeq_refl($AO, $NDX(nl, j)), agr_refl($AO, t, nl))
+
+def agr_trans($TO, +xs: $LN, +a: $NL, +b: $NL, +c: $NL, +h: $AGR(xs, a, b), +h2: $AGR(xs, b, c)) -> $AGR(xs, a, c):
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      +e1 = ndeq_eq($AO, $NDX(a, j), $NDX(b, j), $AGH(j, t, a, b))
+      +e2 = ndeq_eq($AO, $NDX(b, j), $NDX(c, j), L.and_left(ndeq(~K, ~cmp, $NDX(b, j), $NDX(c, j)), agr(~K, ~cmp, t, b, c), h2))
+      L.and_intro(ndeq(~K, ~cmp, $NDX(a, j), $NDX(c, j)), agr(~K, ~cmp, t, a, c), ndeq_of_eq($AO, $NDX(a, j), $NDX(c, j), Equal.trans($ND, $NDX(a, j), $NDX(b, j), $NDX(c, j), e1, e2)), agr_trans($AO, t, a, b, c, $AGT(j, t, a, b), L.and_right(ndeq(~K, ~cmp, $NDX(b, j), $NDX(c, j)), agr(~K, ~cmp, t, b, c), h2)))
+
+def agr_sym($TO, +xs: $LN, +a: $NL, +b: $NL, +h: $AGR(xs, a, b)) -> $AGR(xs, b, a):
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      L.and_intro(ndeq(~K, ~cmp, $NDX(b, j), $NDX(a, j)), agr(~K, ~cmp, t, b, a), ndeq_of_eq($AO, $NDX(b, j), $NDX(a, j), Equal.sym($ND, $NDX(a, j), $NDX(b, j), ndeq_eq($AO, $NDX(a, j), $NDX(b, j), $AGH(j, t, a, b)))), agr_sym($AO, t, a, b, $AGT(j, t, a, b)))
+
+def agr_l($TO, +xs: $LN, +ys: $LN, +a: $NL, +b: $NL, +h: $AGR($APP(xs, ys), a, b)) -> $AGR(xs, a, b):
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      L.and_intro(ndeq(~K, ~cmp, $NDX(a, j), $NDX(b, j)), agr(~K, ~cmp, t, a, b), $AGH(j, $APP(t, ys), a, b), agr_l($AO, t, ys, a, b, $AGT(j, $APP(t, ys), a, b)))
+
+def agr_r($TO, +xs: $LN, +ys: $LN, +a: $NL, +b: $NL, +h: $AGR($APP(xs, ys), a, b)) -> $AGR(ys, a, b):
+  match xs:
+    case Nil{}:
+      h
+    case Con{+j, +t}:
+      agr_r($AO, t, ys, a, b, $AGT(j, $APP(t, ys), a, b))
+
+def agr_app($TO, +xs: $LN, +ys: $LN, +a: $NL, +b: $NL, +hx: $AGR(xs, a, b), +hy: $AGR(ys, a, b)) -> $AGR($APP(xs, ys), a, b):
+  match xs:
+    case Nil{}:
+      hy
+    case Con{+j, +t}:
+      L.and_intro(ndeq(~K, ~cmp, $NDX(a, j), $NDX(b, j)), agr(~K, ~cmp, $APP(t, ys), a, b), L.and_left(ndeq(~K, ~cmp, $NDX(a, j), $NDX(b, j)), agr(~K, ~cmp, t, a, b), hx), agr_app($AO, t, ys, a, b, L.and_right(ndeq(~K, ~cmp, $NDX(a, j), $NDX(b, j)), agr(~K, ~cmp, t, a, b), hx), hy))
+
+# a write agrees off its id
+def agr_wr($TO, +xs: $LN, +nl: $NL, +id: Nat, +x: $ND, +hn: $NMEM(id, xs)) -> $AGR(xs, nl, PR.wr_nl(K, nl, id, x)):
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      L.and_intro(ndeq(~K, ~cmp, $NDX(nl, j), $NDX(PR.wr_nl(K, nl, id, x), j)), agr(~K, ~cmp, t, nl, PR.wr_nl(K, nl, id, x)), ndeq_of_eq($AO, $NDX(nl, j), $NDX(PR.wr_nl(K, nl, id, x), j), Equal.sym($ND, $NDX(PR.wr_nl(K, nl, id, x), j), $NDX(nl, j), FR.nd_wr_other(K, nl, id, x, j, FR.ne_sym(j, id, FR.or_f_l(Nat.is_eq(j, id), HT.memn(id, t), hn))))), agr_wr($AO, t, nl, id, x, FR.or_f_r(Nat.is_eq(j, id), HT.memn(id, t), hn)))
+
+# ---- what agreement keeps ----
+
+%def REPB(t, p, nl) ST.rep(~K, t, p, nl)
+%def AGHD(j, t, a, b, h) agr_head($AO, j, t, a, b, h)
+%def AGTL(j, t, a, b, h) L.and_right(ndeq(~K, ~cmp, $NDX(a, j), $NDX(b, j)), agr(~K, ~cmp, t, a, b), h)
+
+def rep_agr($TO, +t: ST.Tr, +p: Nat, +nl: $NL, +nl2: $NL, +h: $AGR($IDS(t), nl, nl2)) -> {$REPB(t, p, nl2) == $REPB(t, p, nl) : Bool}:
+  match t:
+    case ST.TE{}:
+      {==}
+    case ST.TN{+i, +l, +r}:
+      +hr = agr_r($AO, $IDS(l), Con{i, $IDS(r)}, nl, nl2, h)
+      %Equal.sym($ND, $NDX(nl2, i), $NDX(nl, i), Equal.sym($ND, $NDX(nl, i), $NDX(nl2, i), $AGHD(i, $IDS(r), nl, nl2, hr))) : {Bool.and(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, _, ST.rid(l), ST.rid(r), p), Bool.and($REPB(l, i, nl2), $REPB(r, i, nl2)))) == $REPB(ST.TN{i, l, r}, p, nl) : Bool}
+      %Equal.sym(Bool, $REPB(l, i, nl2), $REPB(l, i, nl), rep_agr($AO, l, i, nl, nl2, agr_l($AO, $IDS(l), Con{i, $IDS(r)}, nl, nl2, h))) : {Bool.and(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, $NDX(nl, i), ST.rid(l), ST.rid(r), p), Bool.and(_, $REPB(r, i, nl2)))) == $REPB(ST.TN{i, l, r}, p, nl) : Bool}
+      %Equal.sym(Bool, $REPB(r, i, nl2), $REPB(r, i, nl), rep_agr($AO, r, i, nl, nl2, $AGTL(i, $IDS(r), nl, nl2, hr))) : {Bool.and(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, $NDX(nl, i), ST.rid(l), ST.rid(r), p), Bool.and($REPB(l, i, nl), _))) == $REPB(ST.TN{i, l, r}, p, nl) : Bool}
+      {==}
+
+%def CTX(c, x, nl) P.ctxok(~K, c, x, nl)
+%def BA(c) $APP(P.before(c), P.after(c))
+
+def ctx_agr($TO, +c: List<&2, P.Fr>, +x: Nat, +nl: $NL, +nl2: $NL, +h: $AGR($BA(c), nl, nl2)) -> {$CTX(c, x, nl2) == $CTX(c, x, nl) : Bool}:
+  match c:
+    case Nil{}:
+      {==}
+    case Con{P.FR{+p, +lft, +s}, +t}:
+      match lft:
+        case True{}:
+          +h1 = agr_r($AO, P.before(t), Con{p, $APP($IDS(s), P.after(t))}, nl, nl2, h)
+          +hbt = agr_l($AO, P.before(t), Con{p, $APP($IDS(s), P.after(t))}, nl, nl2, h)
+          +h2 = $AGTL(p, $APP($IDS(s), P.after(t)), nl, nl2, h1)
+          +hs = agr_l($AO, $IDS(s), P.after(t), nl, nl2, h2)
+          +hat = agr_r($AO, $IDS(s), P.after(t), nl, nl2, h2)
+          %Equal.sym($ND, $NDX(nl2, p), $NDX(nl, p), Equal.sym($ND, $NDX(nl, p), $NDX(nl2, p), $AGHD(p, $APP($IDS(s), P.after(t)), nl, nl2, h1))) : {Bool.and(Bool.and(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, _, x, ST.rid(s), P.top(t)), $REPB(s, p, nl2))), $CTX(t, p, nl2)) == $CTX(Con{P.FR{p, True{}, s}, t}, x, nl) : Bool}
+          %Equal.sym(Bool, $REPB(s, p, nl2), $REPB(s, p, nl), rep_agr($AO, s, p, nl, nl2, hs)) : {Bool.and(Bool.and(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, $NDX(nl, p), x, ST.rid(s), P.top(t)), _)), $CTX(t, p, nl2)) == $CTX(Con{P.FR{p, True{}, s}, t}, x, nl) : Bool}
+          %Equal.sym(Bool, $CTX(t, p, nl2), $CTX(t, p, nl), ctx_agr($AO, t, p, nl, nl2, agr_app($AO, P.before(t), P.after(t), nl, nl2, hbt, hat))) : {Bool.and(Bool.and(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, $NDX(nl, p), x, ST.rid(s), P.top(t)), $REPB(s, p, nl))), _) == $CTX(Con{P.FR{p, True{}, s}, t}, x, nl) : Bool}
+          {==}
+        case False{}:
+          +h1 = agr_l($AO, $APP(P.before(t), $APP($IDS(s), Con{p, Nil{}})), P.after(t), nl, nl2, h)
+          +hat = agr_r($AO, $APP(P.before(t), $APP($IDS(s), Con{p, Nil{}})), P.after(t), nl, nl2, h)
+          +hbt = agr_l($AO, P.before(t), $APP($IDS(s), Con{p, Nil{}}), nl, nl2, h1)
+          +h2 = agr_r($AO, P.before(t), $APP($IDS(s), Con{p, Nil{}}), nl, nl2, h1)
+          +hs = agr_l($AO, $IDS(s), Con{p, Nil{}}, nl, nl2, h2)
+          +hp = agr_r($AO, $IDS(s), Con{p, Nil{}}, nl, nl2, h2)
+          %Equal.sym($ND, $NDX(nl2, p), $NDX(nl, p), Equal.sym($ND, $NDX(nl, p), $NDX(nl2, p), $AGHD(p, Nil{}, nl, nl2, hp))) : {Bool.and(Bool.and(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, _, ST.rid(s), x, P.top(t)), $REPB(s, p, nl2))), $CTX(t, p, nl2)) == $CTX(Con{P.FR{p, False{}, s}, t}, x, nl) : Bool}
+          %Equal.sym(Bool, $REPB(s, p, nl2), $REPB(s, p, nl), rep_agr($AO, s, p, nl, nl2, hs)) : {Bool.and(Bool.and(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, $NDX(nl, p), ST.rid(s), x, P.top(t)), _)), $CTX(t, p, nl2)) == $CTX(Con{P.FR{p, False{}, s}, t}, x, nl) : Bool}
+          %Equal.sym(Bool, $CTX(t, p, nl2), $CTX(t, p, nl), ctx_agr($AO, t, p, nl, nl2, agr_app($AO, P.before(t), P.after(t), nl, nl2, hbt, hat))) : {Bool.and(Bool.and(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, $NDX(nl, p), ST.rid(s), x, P.top(t)), $REPB(s, p, nl))), _) == $CTX(Con{P.FR{p, False{}, s}, t}, x, nl) : Bool}
+          {==}
+
+%def TOV ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def ENTSB(xs, nl) ST.ents(~K, ~V, xs, nl, pl)
+
+def ents_agr($TOV, +xs: $LN, +nl: $NL, +nl2: $NL, +pl: $PL, +h: $AGR(xs, nl, nl2)) -> {$ENTSB(xs, nl2) == $ENTSB(xs, nl) : List<&2, $E>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym($ND, $NDX(nl2, j), $NDX(nl, j), Equal.sym($ND, $NDX(nl, j), $NDX(nl2, j), $AGHD(j, t, nl, nl2, h))) : {ST.cons_m($E, ST.ent(K, V, _, ST.pv(V, pl, j)), $ENTSB(t, nl2)) == $ENTSB(Con{j, t}, nl) : List<&2, $E>}
+      %Equal.sym(List<&2, $E>, $ENTSB(t, nl2), $ENTSB(t, nl), ents_agr(~K, ~V, ~cmp, ~o, t, nl, nl2, pl, $AGTL(j, t, nl, nl2, h))) : {ST.cons_m($E, ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j)), _) == $ENTSB(Con{j, t}, nl) : List<&2, $E>}
+      {==}
+
+def oks_agr($TOV, +xs: $LN, +nl: $NL, +nl2: $NL, +pl: $PL, +h: $AGR(xs, nl, nl2)) -> {EN.oks(~K, ~V, xs, nl2, pl) == EN.oks(~K, ~V, xs, nl, pl) : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym($ND, $NDX(nl2, j), $NDX(nl, j), Equal.sym($ND, $NDX(nl, j), $NDX(nl2, j), $AGHD(j, t, nl, nl2, h))) : {Bool.and(S.is_some($E, ST.ent(K, V, _, ST.pv(V, pl, j))), EN.oks(~K, ~V, t, nl2, pl)) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      %Equal.sym(Bool, EN.oks(~K, ~V, t, nl2, pl), EN.oks(~K, ~V, t, nl, pl), oks_agr(~K, ~V, ~cmp, ~o, t, nl, nl2, pl, $AGTL(j, t, nl, nl2, h))) : {Bool.and(S.is_some($E, ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j))), _) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      {==}
+
+def fll_agr($TO, +fl: $LN, +nl: $NL, +nl2: $NL, +h: $AGR(fl, nl, nl2)) -> {ST.fll(~K, nl2, fl) == ST.fll(~K, nl, fl) : Bool}:
+  match fl:
+    case Nil{}:
+      {==}
+    case Con{+f, +t}:
+      %Equal.sym($ND, $NDX(nl2, f), $NDX(nl, f), Equal.sym($ND, $NDX(nl, f), $NDX(nl2, f), $AGHD(f, t, nl, nl2, h))) : {Bool.and(ST.is_free(K, _, ST.fst0(t)), ST.fll(~K, nl2, t)) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      %Equal.sym(Bool, ST.fll(~K, nl2, t), ST.fll(~K, nl, t), fll_agr($AO, t, nl, nl2, $AGTL(f, t, nl, nl2, h))) : {Bool.and(ST.is_free(K, $NDX(nl, f), ST.fst0(t)), _) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      {==}

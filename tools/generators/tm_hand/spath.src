@@ -1,0 +1,143 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/order.bend as O
+import ../lib/list.bend as LL
+import ../spec/common.bend as SC
+import ../spec/tree_map.bend as S
+import ../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./ord.bend as OR
+import ./find.bend as FI
+import ./ends.bend as EN
+import ./tree.bend as TR
+import ./path.bend as P
+import ./navl.bend as NL
+import ./navs.bend as NS
+
+# The search as a path: from a subtree the path leads to, the ghost search
+# stops at a subtree (empty, or a node whose key equals k) along a longer
+# path whose ids before have keys below k and after it above k; its result
+# names that subtree's root, the path's parent and side.
+# (source: tools/generators/tm_hand/spath.src)
+
+%def ND M.Node<K>
+%def E M.Entry<K, V>
+%def ES List<&2, M.Entry<K, V>>
+%def ME Maybe<&2, M.Entry<K, V>>
+%def MV Maybe<&2, V>
+%def NLT List<&2, $ND>
+%def PLT List<&2, $MV>
+%def LN List<&2, Nat>
+%def APP(a, b) SC.append(Nat, a, b)
+%def EAPP(a, b) SC.append($E, a, b)
+%def IDS(t) ST.ids(t)
+%def TN(i, a, b) ST.TN{i, a, b}
+%def CT List<&2, P.Fr>
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def WH(c, t) $APP(P.before(c), $APP($IDS(t), P.after(c)))
+%def CL(i, r, c) Con{P.FR{i, True{}, r}, c}
+%def CR(i, l, c) Con{P.FR{i, False{}, l}, c}
+%def ENT(x) ST.ent(K, V, ST.nd(K, nl, x), ST.pv(V, pl, x))
+%def ENTS(xs) ST.ents(~K, ~V, xs, nl, pl)
+%def ORD(x) {ST.ordered($AK, x) == True{} : Bool}
+%def OKS(xs) {EN.oks(~K, ~V, xs, nl, pl) == True{} : Bool}
+%def GTA(k, es) {OR.gtall($AK, k, es) == True{} : Bool}
+%def LTA(k, es) {OR.ltall($AK, k, es) == True{} : Bool}
+%def REP(t, p) {ST.rep(~K, t, p, nl) == True{} : Bool}
+%def COK(c, x) {P.ctxok(~K, c, x, nl) == True{} : Bool}
+%def PAY(t) {ST.pay(~V, t, pl) == True{} : Bool}
+
+# the side of the path's last step
+def dir(c: $CT) -> Bool:
+  match c:
+    case Nil{}:
+      False{}
+    case Con{f, t}:
+      match f:
+        case P.FR{p, +lft, s}:
+          lft
+
+# where a search stops: nothing, or a node with k's key
+def fin(~K: Data, ~cmp: K -> K -> Cmp, +k: K, t: ST.Tr, +nl: $NLT) -> Bool:
+  match t:
+    case ST.TE{}:
+      True{}
+    case ST.TN{+i, l, r}:
+      S.is_eq(TR.kc(~K, ~cmp, k, ST.nd(K, nl, i)))
+
+%def TSC(t, c) TR.tsearch($AK, t, nl, k, P.top(c), dir(c))
+%def PROPS(c0, t0, c, t) {$TSC(t0, c0) == M.Search{ST.rid(t), P.top(c), dir(c)} : M.Search} & ({$WH(c0, t0) == $WH(c, t) : $LN} & ($REP(t, P.top(c)) & ($COK(c, ST.rid(t)) & ($LTA(k, $ENTS(P.before(c))) & ($GTA(k, $ENTS(P.after(c))) & {fin(~K, ~cmp, k, t, nl) == True{} : Bool})))))
+%def SPT(c0, t0) Sigma<&1, &1, $CT, pc_ => Sigma<&1, &1, ST.Tr, pt_ => $PROPS(c0, t0, pc_, pt_)>>
+%def REST(c, t) $REP(t, P.top(c)) & ($COK(c, ST.rid(t)) & ($LTA(k, $ENTS(P.before(c))) & ($GTA(k, $ENTS(P.after(c))) & {fin(~K, ~cmp, k, t, nl) == True{} : Bool})))
+%def NODEH +nl: $NLT, +pl: $PLT, +c: $CT, +i: Nat, +l: ST.Tr, +r: ST.Tr, +k: K
+%def NODEA nl, pl, c, i, l, r, k
+%def TSN TR.tsearch($AK, $TN(i, l, r), nl, k, P.top(c), dir(c))
+%def PK3(z) TR.pk3(M.Search, z, TR.tsearch($AK, l, nl, k, i, True{}), TR.tsearch($AK, r, nl, k, i, False{}), M.Search{i, P.top(c), dir(c)})
+%def KCI TR.kc(~K, ~cmp, k, ST.nd(K, nl, i))
+
+# a step's result carried up: the search of the node is the child's
+def up_l(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $NODEH, +ekc: {$KCI == LT{} : Cmp}, +eqL: {$WH(c, $TN(i, l, r)) == $WH($CL(i, r, c), l) : $LN}, ih: $SPT($CL(i, r, c), l)) -> $SPT(c, $TN(i, l, r)):
+  match ih:
+    case Tuple{+c2, Tuple{+t2, Tuple{+p1, Tuple{+p2, rest}}}}:
+      +q1 = L.subst(Cmp, z => {$PK3(z) == M.Search{ST.rid(t2), P.top(c2), dir(c2)} : M.Search}, LT{}, $KCI, Equal.sym(Cmp, $KCI, LT{}, ekc), p1)
+      (c2, (t2, (q1, (Equal.trans($LN, $WH(c, $TN(i, l, r)), $WH($CL(i, r, c), l), $WH(c2, t2), eqL, p2), rest))))
+
+def up_r(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $NODEH, +ekc: {$KCI == GT{} : Cmp}, +eqR: {$WH(c, $TN(i, l, r)) == $WH($CR(i, l, c), r) : $LN}, ih: $SPT($CR(i, l, c), r)) -> $SPT(c, $TN(i, l, r)):
+  match ih:
+    case Tuple{+c2, Tuple{+t2, Tuple{+p1, Tuple{+p2, rest}}}}:
+      +q1 = L.subst(Cmp, z => {$PK3(z) == M.Search{ST.rid(t2), P.top(c2), dir(c2)} : M.Search}, GT{}, $KCI, Equal.sym(Cmp, $KCI, GT{}, ekc), p1)
+      (c2, (t2, (q1, (Equal.trans($LN, $WH(c, $TN(i, l, r)), $WH($CR(i, l, c), r), $WH(c2, t2), eqR, p2), rest))))
+
+%def X $APP(P.before(c), $IDS(l))
+%def Y $APP($IDS(r), P.after(c))
+%def EX $ENTS($X)
+%def EY $ENTS($Y)
+%def EE M.Entry{key, v}
+%def SPL $EAPP($EX, Con{$EE, $EY})
+%def WHT $WH(c, $TN(i, l, r))
+%def KL @+hl: $GTA(k, $ENTS(P.after($CL(i, r, c)))) -> $SPT($CL(i, r, c), l)
+%def KR @+hr2: $LTA(k, $ENTS(P.before($CR(i, l, c)))) -> $SPT($CR(i, l, c), r)
+
+def scase($TO, $NODEH, +key: K, +v: V, +hE: {$ENT(i) == Some{$EE} : $ME}, +ho: $ORD($SPL), +ekey: {$KCI == cmp(k, key) : Cmp}, +hr: $REP($TN(i, l, r), P.top(c)), +hok: $COK(c, i), +hb: $LTA(k, $ENTS(P.before(c))), +ha: $GTA(k, $ENTS(P.after(c))), +eqL: {$WHT == $WH($CL(i, r, c), l) : $LN}, +eqR: {$WHT == $WH($CR(i, l, c), r) : $LN}, kl: $KL, kr: $KR, +cc: Cmp, +hc: {cmp(k, key) == cc : Cmp}) -> $SPT(c, $TN(i, l, r)):
+  match cc:
+    case LT{}:
+      +hkl = L.subst(Cmp, z => {Cmp.is_lt(z) == True{} : Bool}, LT{}, cmp(k, key), Equal.sym(Cmp, cmp(k, key), LT{}, hc), {==})
+      +hg = L.and_intro(Cmp.is_lt(cmp(k, key)), OR.gtall($AK, k, $EY), hkl, OR.gtall_mono($AO, k, key, hkl, $EY, OR.ord_mid_r($AO, $EX, $EE, $EY, ho)))
+      +hl = L.subst($ME, z => $GTA(k, ST.cons_m($E, z, $EY)), Some{$EE}, $ENT(i), Equal.sym($ME, $ENT(i), Some{$EE}, hE), hg)
+      up_l($AK, $NODEA, Equal.trans(Cmp, $KCI, cmp(k, key), LT{}, ekey, hc), eqL, kl(hl))
+    case GT{}:
+      +hlk = OR.gt_lt(~K, ~cmp, ~o, k, key, hc)
+      +hx = NL.ltall_app($AK, k, $EX, Con{$EE, Nil{}}, OR.ltall_mono($AO, key, k, hlk, $EX, OR.ord_mid_l($AO, $EX, $EE, $EY, ho)), L.and_intro(Cmp.is_lt(cmp(key, k)), True{}, hlk, {==}))
+      +hx2 = L.subst($ME, z => $LTA(k, $EAPP($EX, ST.cons_m($E, z, Nil{}))), Some{$EE}, $ENT(i), Equal.sym($ME, $ENT(i), Some{$EE}, hE), hx)
+      +hx3 = L.subst($ES, z => $LTA(k, z), $EAPP($EX, $ENTS(Con{i, Nil{}})), $ENTS($APP($X, Con{i, Nil{}})), Equal.sym($ES, $ENTS($APP($X, Con{i, Nil{}})), $EAPP($EX, $ENTS(Con{i, Nil{}})), FI.ents_app(~K, ~V, $X, Con{i, Nil{}}, nl, pl)), hx2)
+      +hr2 = L.subst($LN, z => $LTA(k, $ENTS(z)), $APP($X, Con{i, Nil{}}), P.before($CR(i, l, c)), LL.append_assoc(Nat, P.before(c), $IDS(l), Con{i, Nil{}}), hx3)
+      up_r($AK, $NODEA, Equal.trans(Cmp, $KCI, cmp(k, key), GT{}, ekey, hc), eqR, kr(hr2))
+    case EQ{}:
+      +ekc = Equal.trans(Cmp, $KCI, cmp(k, key), EQ{}, ekey, hc)
+      +p1 = L.subst(Cmp, z => {$PK3(z) == M.Search{i, P.top(c), dir(c)} : M.Search}, EQ{}, $KCI, Equal.sym(Cmp, $KCI, EQ{}, ekc), {==})
+      +pf = L.subst(Cmp, z => {S.is_eq(z) == True{} : Bool}, EQ{}, $KCI, Equal.sym(Cmp, $KCI, EQ{}, ekc), {==})
+      (c, ($TN(i, l, r), (p1, ({==}, (hr, (hok, (hb, (ha, pf))))))))
+
+def snode($TO, $NODEH, +x: $ND, +m: $MV, +hx: {ST.is_node(K, x, ST.rid(l), ST.rid(r), P.top(c)) == True{} : Bool}, +hm: {ST.some2(V, m) == True{} : Bool}, +hxi: {ST.nd(K, nl, i) == x : $ND}, +hEg: {$ENT(i) == ST.ent(K, V, x, m) : $ME}, +hW0: {$ENTS($WHT) == $EAPP($EX, ST.cons_m($E, $ENT(i), $EY)) : $ES}, +ho: $ORD($ENTS($WHT)), +hr: $REP($TN(i, l, r), P.top(c)), +hok: $COK(c, i), +hb: $LTA(k, $ENTS(P.before(c))), +ha: $GTA(k, $ENTS(P.after(c))), +eqL: {$WHT == $WH($CL(i, r, c), l) : $LN}, +eqR: {$WHT == $WH($CR(i, l, c), r) : $LN}, kl: $KL, kr: $KR) -> $SPT(c, $TN(i, l, r)):
+  match x m:
+    case M.Free{f} +m:
+      Empty.absurd($SPT(c, $TN(i, l, r)), L.false_true(hx))
+    case M.N{cc, a, b, q, +key} None{}:
+      Empty.absurd($SPT(c, $TN(i, l, r)), L.false_true(hm))
+    case M.N{+cc, +a, +b, +q, +key} Some{+v}:
+      +hW = Equal.trans($ES, $ENTS($WHT), $EAPP($EX, ST.cons_m($E, $ENT(i), $EY)), $SPL, hW0, L.subst($ME, z => {$EAPP($EX, ST.cons_m($E, $ENT(i), $EY)) == $EAPP($EX, ST.cons_m($E, z, $EY)) : $ES}, $ENT(i), Some{$EE}, hEg, {==}))
+      +ho2 = L.subst($ES, z => $ORD(z), $ENTS($WHT), $SPL, hW, ho)
+      +ekey = L.subst($ND, z => {TR.kc(~K, ~cmp, k, z) == cmp(k, key) : Cmp}, M.N{cc, a, b, q, key}, ST.nd(K, nl, i), Equal.sym($ND, ST.nd(K, nl, i), M.N{cc, a, b, q, key}, hxi), {==})
+      scase($AO, $NODEA, key, v, hEg, ho2, ekey, hr, hok, hb, ha, eqL, eqR, kl, kr, cmp(k, key), {==})
+
+def spath($TO, +nl: $NLT, +pl: $PLT, +t: ST.Tr, +c: $CT, +k: K, +hr: $REP(t, P.top(c)), +hok: $COK(c, ST.rid(t)), +hp: $PAY(t), +ho: $ORD($ENTS($WH(c, t))), +hk: $OKS($WH(c, t)), +hb: $LTA(k, $ENTS(P.before(c))), +ha: $GTA(k, $ENTS(P.after(c)))) -> $SPT(c, t):
+  match t:
+    case ST.TE{}:
+      (c, (ST.TE{}, ({==}, ({==}, (hr, (hok, (hb, (ha, {==}))))))))
+    case ST.TN{+i, +l, +r}:
+      +eqW = NS.wh_node(c, i, l, r)
+      +hk2 = L.subst($LN, z => $OKS(z), $WHT, $APP($X, Con{i, $Y}), eqW, hk)
+      +hW0 = Equal.trans($ES, $ENTS($WHT), $ENTS($APP($X, Con{i, $Y})), $EAPP($EX, ST.cons_m($E, $ENT(i), $EY)), L.subst($LN, z => {$ENTS($WHT) == $ENTS(z) : $ES}, $WHT, $APP($X, Con{i, $Y}), eqW, {==}), FI.ents_app(~K, ~V, $X, Con{i, $Y}, nl, pl))
+      snode($AO, nl, pl, c, i, l, r, k, ST.nd(K, nl, i), ST.pv(V, pl, i), TR.rep_node(~K, i, l, r, P.top(c), nl, hr), FI.pay_node(~V, i, l, r, pl, hp), {==}, {==}, hW0, ho, hr, hok, hb, ha, P.ids_l(c, i, l, r), P.ids_r(c, i, l, r), hl => spath($AO, nl, pl, l, $CL(i, r, c), k, Pair.snd($COK($CL(i, r, c), ST.rid(l)), $REP(l, i), P.ok_l(~K, nl, c, i, l, r, hr, hok)), Pair.fst($COK($CL(i, r, c), ST.rid(l)), $REP(l, i), P.ok_l(~K, nl, c, i, l, r, hr, hok)), FI.pay_l(~V, i, l, r, pl, hp), L.subst($LN, z => $ORD($ENTS(z)), $WHT, $WH($CL(i, r, c), l), P.ids_l(c, i, l, r), ho), L.subst($LN, z => $OKS(z), $WHT, $WH($CL(i, r, c), l), P.ids_l(c, i, l, r), hk), hb, hl), hr2 => spath($AO, nl, pl, r, $CR(i, l, c), k, Pair.snd($COK($CR(i, l, c), ST.rid(r)), $REP(r, i), P.ok_r(~K, nl, c, i, l, r, hr, hok)), Pair.fst($COK($CR(i, l, c), ST.rid(r)), $REP(r, i), P.ok_r(~K, nl, c, i, l, r, hr, hok)), FI.pay_r(~V, i, l, r, pl, hp), L.subst($LN, z => $ORD($ENTS(z)), $WHT, $WH($CR(i, l, c), r), P.ids_r(c, i, l, r), ho), L.subst($LN, z => $OKS(z), $WHT, $WH($CR(i, l, c), r), P.ids_r(c, i, l, r), hk), hr2, ha))
