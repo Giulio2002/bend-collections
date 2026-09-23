@@ -1,0 +1,137 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/u32alg.bend as A
+import ../lib/array.bend as AR
+import ../spec/common.bend as SC
+import ../spec/hash_table.bend as S
+import ../spec/lru.bend as SP
+import ../math/u32div.bend as UD
+import ../../src/math/u64.bend as W
+import ../../src/containers/hash_table.bend as H
+import ../../src/containers/lru.bend as LR
+import ../hash_table/table.bend as TB
+import ../hash_table/buckets.bend as B
+import ../hash_table/cyc.bend as CY
+import ../hash_table/inv.bend as IV
+import ../hash_table/state.bend as HT
+import ../hash_table/keys.bend as K
+import ./state.bend as ST
+import ./basic.bend as BA
+import ./bump.bend as BU
+import ./bumpsh.bend as BS
+import ./find.bend as FD
+import ./tfind.bend as TF
+import ./touch.bend as TO
+import ./touchsh.bend as TSH
+import ./rmat.bend as RM
+import ./gone.bend as GO
+import ./unlink.bend as UL
+import ./lists.bend as LS
+import ./meta.bend as MT
+import ../hash_table/get.bend as G
+import ../../src/math/hash.bend as HS
+import ../hash_table/probe_impl.bend as PI
+import ../hash_table/probe_all.bend as PA
+
+import ./read.bend as RD
+
+# contains: the implementation's contains is the specification's.
+
+%include read.src
+
+%def CF(m) SP.contains_found(~V, cap, $M3, $W4, $ES, $CTR, key, now, m)
+%def CP +key: String, +now: W.U64
+%def CFD(x) LR.ct_fd(&2, V, cap, n, head, tail, free, AR.thaw(U32, mT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), now, x)
+%def CFN(x) LR.ct_found(&2, V, cap, n, head, tail, free, AR.thaw(U32, mT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), now, x)
+%def EXC (SP.L{cap, $M3, $W4, SP.drop(~V, $ES, key), SP.c_rm($CTR)}, False{})
+
+def ct_end(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $CP, +at: U32, +hf: {SP.find(~V, $ES, key) == None{} : Maybe<&2, SP.Ent<V>>}) -> RM.POK(~V, Bool, $CF(SP.find(~V, $ES, key)), LR.ct_found_pick(&2, V, $F, at, 0, now, True{})):
+  L.subst(Maybe<&2, SP.Ent<V>>, z => RM.POK(~V, Bool, $CF(z), LR.ct_found_pick(&2, V, $F, at, 0, now, True{})), None{}, SP.find(~V, $ES, key), Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, $ES, key), None{}, hf), ($SH, (False{}, ({==}, ({==}, hg)))))
+
+def ct_x(~V: Data, +l2: SP.Lru<V>, -r: LR.LRU<&2, V> & Maybe<&2, V>, pk: RM.POK(~V, Maybe<&2, V>, (l2, None{}), r)) -> RM.POK(~V, Bool, (l2, False{}), LR.ct_expire(&2, V, r)):
+  match pk:
+    case Tuple{+sh2, Tuple{+x, Tuple{+er, Tuple{+es, g2}}}}:
+      +hm2 = L.pair_fst(SP.Lru<V>, Maybe<&2, V>, l2, None{}, ST.model(~V, sh2), x, es)
+      L.subst(LR.LRU<&2, V> & Maybe<&2, V>, z => RM.POK(~V, Bool, (l2, False{}), LR.ct_expire(&2, V, z)), (ST.real(~V, sh2), x), r, Equal.sym(LR.LRU<&2, V> & Maybe<&2, V>, r, (ST.real(~V, sh2), x), er), (sh2, (False{}, ({==}, (Equal.cong(SP.Lru<V>, SP.Lru<V> & Bool, z => (z, False{}), l2, ST.model(~V, sh2), hm2), g2)))))
+
+def ct_gp(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $CP, $HP, $RHX, +g: Bool) -> RM.POK(~V, Bool, Bool.pick(SP.Lru<V> & Bool, g, $EXC, (SP.L{cap, $M3, $W4, $ES, $CTR}, True{})), LR.ct_pick(&2, V, $F, su, U32.from_nat(i), g)):
+  match g:
+    case True{}:
+      ct_x(~V, SP.L{cap, $M3, $W4, SP.drop(~V, $ES, key), SP.c_rm($CTR)}, LR.rd_expire(&2, V, $F, su, U32.from_nat(i), False{}), RD.rd_ex(~V, $SHA, hg, key, now, False{}, $HPA, $RHXA))
+    case False{}:
+      ($SH, (True{}, ({==}, ({==}, hg))))
+
+def ct_h(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $CP, $HP, $RHX) -> RM.POK(~V, Bool, $CF(Some{$EV}), LR.ct_hit(&2, V, $F, su, U32.from_nat(i), now)):
+  +eg = GO.gone_ok(~V, one, h1, lkT, sd, RD.f_hsd(~V, $SHA, hg), $G(cpl), su, s, hsv, RD.f_s0(~V, $SHA, hg, s, hmem), now, ST.skey($LLo, $KL, s), v)
+  +E = Equal.cong(Array<U32> & Bool, LR.LRU<&2, V> & Bool, r => LR.ct_g(&2, V, cap, n, head, tail, free, AR.thaw(U32, mT), AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), su, U32.from_nat(i), r), LR.gone(AR.thaw(U32, lkT), su, now), (AR.thaw(U32, lkT), SP.gone(~V, $EV, now)), eg)
+  L.subst(LR.LRU<&2, V> & Bool, z => RM.POK(~V, Bool, $CF(Some{$EV}), z), LR.ct_pick(&2, V, $F, su, U32.from_nat(i), SP.gone(~V, $EV, now)), LR.ct_hit(&2, V, $F, su, U32.from_nat(i), now), Equal.sym(LR.LRU<&2, V> & Bool, LR.ct_hit(&2, V, $F, su, U32.from_nat(i), now), LR.ct_pick(&2, V, $F, su, U32.from_nat(i), SP.gone(~V, $EV, now)), E), ct_gp(~V, $SHA, hg, key, now, $HPA, $RHXA, SP.gone(~V, $EV, now)))
+
+def ct_v0(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $CP, +one: Nat, +h1: {one == 1n : Nat}, +s: Nat, +hmem: {HT.memn(s, sl) == True{} : Bool}, +su: U32, +hsv: {UD.v(su) == s : Nat}, +hk: {S.str_eq(ST.skey($LLo, $KL, s), key) == True{} : Bool}, $RHX, +m: Maybe<&2, V>, +hmm: {HT.nthm(~V, $EL, s) == m : Maybe<&2, V>}, +hsm: {HT.some_b(~V, m) == True{} : Bool}) -> RM.POK(~V, Bool, $CF(SP.find(~V, $ES, key)), LR.ct_hit(&2, V, $F, su, U32.from_nat(i), now)):
+  match m:
+    case None{}:
+      Empty.absurd(RM.POK(~V, Bool, $CF(SP.find(~V, $ES, key)), LR.ct_hit(&2, V, $F, su, U32.from_nat(i), now)), L.false_true(hsm))
+    case Some{+v}:
+      +hm = {hmm : {HT.nthm(~V, $EL, s) == Some{v} : Maybe<&2, V>}}
+      +hlv = L.subst(Maybe<&2, V>, z => {HT.some_b(~V, z) == True{} : Bool}, Some{v}, HT.nthm(~V, $EL, s), Equal.sym(Maybe<&2, V>, HT.nthm(~V, $EL, s), Some{v}, hm), {==})
+      +hf = Equal.trans(Maybe<&2, SP.Ent<V>>, SP.find(~V, $ES, key), FD.fnd(~V, $LLo, $KL, s, HT.nthm(~V, $EL, s)), Some{$EV}, FD.find_hit(~V, $LLo, $KL, $EL, s, hlv, key, hk, sl, hmem, $G(ckeys)), Equal.cong(Maybe<&2, V>, Maybe<&2, SP.Ent<V>>, z => FD.fnd(~V, $LLo, $KL, s, z), HT.nthm(~V, $EL, s), Some{v}, hm))
+      L.subst(Maybe<&2, SP.Ent<V>>, z => RM.POK(~V, Bool, $CF(z), LR.ct_hit(&2, V, $F, su, U32.from_nat(i), now)), Some{$EV}, SP.find(~V, $ES, key), Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, $ES, key), Some{$EV}, hf), ct_h(~V, $SHA, hg, key, now, one, h1, s, hmem, su, hsv, v, hm, hk, $RHXA))
+
+def ct_hi(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $CP, +one: Nat, +h1: {one == 1n : Nat}, +i: Nat, +l: U32, +hi: {Nat.is_lt(i, $NN) == True{} : Bool}, +hk0: {B.hold(key, $Bi) == True{} : Bool}, +hl: {B.lnk($Bi) == l : U32}) -> RM.POK(~V, Bool, $CF(SP.find(~V, $ES, key)), LR.ct_found_pick(&2, V, $F, U32.from_nat(i), l, now, U32.is_eq(l, 0))):
+  +hwb = B.all_inst(B.PWell{$BS, sd}, $NN, $G(cwell), i, hi)
+  +hz = L.subst(U32, z => {U32.is_eq(z, 0) == False{} : Bool}, B.lnk($Bi), l, hl, RD.lnz(sd, key, $Bi, hwb, hk0))
+  +hsi = Equal.cong(U32, Nat, z => UD.v(H.slot(z)), B.lnk($Bi), l, hl)
+  +hbl = TF.bsl_inst($BS, sl, $LLo, $NN, $G(cbsl), i, hi)
+  +hmem = L.subst(Nat, z => {HT.memn(z, sl) == True{} : Bool}, UD.v(H.slot(B.lnk($Bi))), $Si, hsi, TF.hit_mem(sl, $LLo, key, $Bi, hk0, hbl))
+  +hk = L.subst(Nat, z => {S.str_eq(ST.skey($LLo, $KL, z), key) == True{} : Bool}, UD.v(H.slot(B.lnk($Bi))), $Si, hsi, TF.hit_key(sl, $LLo, $KL, key, $Bi, hk0, hbl, TF.bkok_at(AR.slots(U32, tabT), $KL, $NN, i, hi)))
+  +hls = TF.slok_mem(~V, $EL, $FR, $Si, sl, $G(csl), hmem)
+  ok = ct_v0(~V, $SHA, hg, key, now, one, h1, $Si, hmem, H.slot(l), {==}, hk, i, hi, B.hold_occ(key, $Bi, hk0), hsi, HT.nthm(~V, $EL, $Si), {==}, L.and_right(Nat.is_lt($Si, $FR), ST.live(~V, $EL, $Si), hls))
+  L.subst(Bool, z => RM.POK(~V, Bool, $CF(SP.find(~V, $ES, key)), LR.ct_found_pick(&2, V, $F, U32.from_nat(i), l, now, z)), False{}, U32.is_eq(l, 0), Equal.sym(Bool, U32.is_eq(l, 0), False{}, hz), ok)
+
+def ct_r(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $CP, +one: Nat, +h1: {one == 1n : Nat}, +h: Nat, +r0: B.Res, hres: B.ResOK($BS, $NN, h, key, r0)) -> RM.POK(~V, Bool, $CF(SP.find(~V, $ES, key)), $CFD($PR)):
+  match r0:
+    case B.RHit{+i, +l}:
+      (+hi, rest) = hres
+      (+hk0, hl) = rest
+      ct_hi(~V, $SHA, hg, key, now, one, h1, i, l, hi, hk0, hl)
+    case B.REnd{+e0}:
+      (+he, rest) = hres
+      (+hz, rest2) = rest
+      (+hp, hno) = rest2
+      +hsd1 = UL.sd1(sd, RD.f_hsd(~V, $SHA, hg))
+      +hnk = TF.nokey_of(~V, one, h1, AR.slots(U32, tabT), $KL, $NN, key, hno, $LLo, $EL, sd, hsd1, $FR, $G(cfresh), sl, $G(csl), $G(chas))
+      ct_end(~V, $SHA, hg, key, now, U32.from_nat(e0), FD.find_miss(~V, $LLo, $KL, $EL, key, sl, hnk))
+
+%def CFz(z) SP.contains_found(~V, cap, $M3, $W4, ST.es(~V, $LLo, z, $EL, sl), $CTR, key, now, SP.find(~V, ST.es(~V, $LLo, z, $EL, sl), key))
+
+def ct_po(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $CP, +one: Nat, +h1: {one == 1n : Nat}, +r0: B.Res, hres: B.ResOK($BS, $NN, $HOME, key, r0), po: PA.ProbeOK(tabT, sd, $KL, PA.stored(key), K.kword(key), r0, $PB)) -> RM.POK(~V, Bool, $CF(SP.find(~V, $ES, key)), $CFN($PB)):
+  match po:
+    case Tuple{+K2, Tuple{+e, Tuple{+hsl, pk2}}}:
+      +pk = $G(cpk)
+      +g1 = L.subst(List<&2, String>, z => {$GFz(z, AR.perfect(String, sd, ksT)) == True{} : Bool}, $KL, $K2L, Equal.sym(List<&2, String>, $K2L, $KL, hsl), hg)
+      +hg2 = L.subst(Bool, z => {$GFz($K2L, z) == True{} : Bool}, AR.perfect(String, sd, ksT), AR.perfect(String, sd, K2), Equal.trans(Bool, AR.perfect(String, sd, ksT), True{}, AR.perfect(String, sd, K2), pk, Equal.sym(Bool, AR.perfect(String, sd, K2), True{}, pk2)), g1)
+      hres2 = L.subst(List<&2, String>, z => B.ResOK(TB.buckets(AR.slots(U32, tabT), z, $NN), $NN, $HOME, key, r0), $KL, $K2L, Equal.sym(List<&2, String>, $K2L, $KL, hsl), hres)
+      ok = ct_r(~V, cap, n, head, tail, free, mT, k, sd, tabT, K2, eT, lkT, sl, fl, hg2, key, now, one, h1, $HOME, r0, hres2)
+      +E = Equal.cong(H.Found & U32, LR.LRU<&2, V> & Bool, x => $CFN(x), $PB, (PI.fd_of(r0, AR.thaw(U32, tabT), AR.thaw(String, K2), PA.stored(key)), K.kword(key)), e)
+      ok2 = L.subst(List<&2, String>, z => RM.POK(~V, Bool, $CFz(z), $CFN((PI.fd_of(r0, AR.thaw(U32, tabT), AR.thaw(String, K2), PA.stored(key)), K.kword(key)))), $K2L, $KL, hsl, ok)
+      L.subst(LR.LRU<&2, V> & Bool, z => RM.POK(~V, Bool, $CF(SP.find(~V, $ES, key)), z), $CFN((PI.fd_of(r0, AR.thaw(U32, tabT), AR.thaw(String, K2), PA.stored(key)), K.kword(key))), $CFN($PB), Equal.sym(LR.LRU<&2, V> & Bool, $CFN($PB), $CFN((PI.fd_of(r0, AR.thaw(U32, tabT), AR.thaw(String, K2), PA.stored(key)), K.kword(key))), E), ok2)
+
+def contains_sh(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $CP, +one: Nat, +h1: {one == 1n : Nat}) -> RM.POK(~V, Bool, SP.contains(~V, ST.model(~V, $SH), key, now), LR.contains(&2, V, $F, key, now)):
+  +hk30 = L.and_left(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), $G(ck))
+  +hk31 = N.lt_trans(k, 30n, 31n, hk30, {==})
+  +hsd32 = N.lt_trans(sd, 3n+sd, 32n, N.lt_le_trans(sd, 1n+sd, 3n+sd, N.lt_succ(sd), N.le_trans(1n+sd, 2n+sd, 3n+sd, N.le_succ(1n+sd), N.le_succ(2n+sd))), RD.f_hsd(~V, $SHA, hg))
+  +hn = N.succ_le_lt(0n, $NN, N.pow2_pos(k))
+  +cn = N.eq_from_is_eq(UD.v(n), IV.occn($BS, $NN), $G(cn))
+  +hocc = L.subst(Nat, z => {Nat.is_lt(z, $NN) == True{} : Bool}, UD.v(n), IV.occn($BS, $NN), cn, BA.n_lt(~V, $SHA, hg))
+  hres = G.res_e0($BS, $NN, hn, CY.msk(k), key, $HOME, PA.home_lt(K.kword(key), k), $G(cclus), IV.home_all($BS, sd, CY.msk(k), key, $NN, $G(cwell), $NN, N.le_refl($NN)), IV.find_empty($BS, $NN, hocc))
+  ok = ct_po(~V, $SHA, hg, key, now, one, h1, $R0, hres, PA.probe_ok(one, h1, k, hk31, tabT, $G(cpt), sd, hsd32, $KL, ksT, {==}, $G(cpk), $G(cwell), key))
+  +em6 = A.eq_of(TB.nth0($ML, 6n), CY.msk(k), $G(cmask))
+  +g6 = Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), TB.nth0($ML, 6n)), (AR.thaw(U32, mT), CY.msk(k)), MT.uget(5n, {==}, mT, $G(cpm), 6, {==}), Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, mT), z), TB.nth0($ML, 6n), CY.msk(k), em6))
+  +E = Equal.cong(Array<U32> & U32, LR.LRU<&2, V> & Bool, r => LR.ct_m(&2, V, cap, n, head, tail, free, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), key, now, r), Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), CY.msk(k)), g6)
+  L.subst(LR.LRU<&2, V> & Bool, z => RM.POK(~V, Bool, SP.contains(~V, ST.model(~V, $SH), key, now), z), $CFN($PB), LR.contains(&2, V, $F, key, now), Equal.sym(LR.LRU<&2, V> & Bool, LR.contains(&2, V, $F, key, now), $CFN($PB), E), ok)
+
+# THEOREM (contains): the specification's contains
+def contains_ok(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, $CP) -> RM.POK(~V, Bool, SP.contains(~V, ST.model(~V, sh), key, now), LR.contains(&2, V, ST.real(~V, sh), key, now)):
+  match sh:
+    case ST.LS{$SHA}:
+      contains_sh(~V, $SHA, hg, key, now, one, h1)

@@ -1,0 +1,212 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/u32.bend as U
+import ../lib/u32alg.bend as A
+import ../lib/array.bend as AR
+import ../lib/list.bend as LL
+import ../spec/common.bend as SC
+import ../spec/doubly_linked_list.bend as S
+import ../math/u32div.bend as UD
+import ../../src/containers/doubly_linked_list.bend as D
+import ../../src/containers/internal/dlist_storage.bend as R
+import ../../src/containers/types/internal_dlist.bend as I
+import ../../src/containers/types/doubly_linked_list.bend as E
+import ../hash_table/state.bend as HT
+import ../hash_table/table.bend as TB
+import ../lru/state.bend as LST
+import ../lru/meta.bend as MT
+import ../lru/lists.bend as LS
+import ../lru/dll.bend as DL
+import ../lru/touch.bend as TO
+import ./state.bend as ST
+import ./rel.bend as RL
+import ./vals.bend as VA
+import ./link.bend as LN
+import ./insp.bend as IP
+import ./ok.bend as OK
+import ./hrd.bend as HR
+
+# next and prev on a handle: the neighbour links of a live element.
+
+%def APN(a, b) SC.append(Nat, a, b)
+%def MT Maybe<&2, T>
+%def VL AR.slots($MT, vT)
+%def PL AR.slots(U32, pT)
+%def NL AR.slots(U32, nT)
+%def GL AR.slots(U32, gT)
+%def FV UD.v(fresh)
+%def II UD.v(id)
+%def TR(x) {x == True{} : Bool}
+%def VLF SC.take($MT, $VL, $FV)
+%def GLF SC.take(U32, $GL, $FV)
+%def SHA tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl
+%def SH ST.LS{$SHA}
+%def G(c) ST.g_$c(~T, $SHA, hg)
+%def HH E.H{owner, id, g}
+%def RS ST.real(~T, $SH)
+%def MS ST.model(~T, $SH)
+%def OB E.Obs<T>
+%def ST0 E.StaleHandle{}
+%def VP +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<$MT>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: $TR(ST.goodF(~T, $SHA)), +owner: U32, +id: U32, +g: U32
+%def VA tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl, hg, owner, id, g
+%def HO +ho: {U32.is_eq(owner, tag) == True{} : Bool}
+%def CNT SC.length(Nat, sl)
+%def STF tag, fresh, free, $CNT, head, tail, depth, cap
+%def AV AR.thaw($MT, vT)
+%def AP AR.thaw(U32, pT)
+%def AN AR.thaw(U32, nT)
+%def AG AR.thaw(U32, gT)
+%def DO D.DList<T> & $OB
+%def NBR Result<&2, &2, E.Error, Maybe<&2, E.Handle>>
+
+# ---- the specification's neighbours in a list without repeats ----
+
+def after_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +h: {HT.memn(s, a) == False{} : Bool}) -> {S.after($APN(a, Con{s, b}), s) == S.first(b) : Maybe<&2, Nat>}:
+  match a:
+    case Nil{}:
+      Equal.cong(Bool, Maybe<&2, Nat>, z => S.pick_maybe(z, S.first(b), S.after(b, s)), Nat.is_eq(s, s), True{}, N.is_eq_refl(s))
+    case Con{+x, +t}:
+      Equal.trans(Maybe<&2, Nat>, S.after($APN(Con{x, t}, Con{s, b}), s), S.after($APN(t, Con{s, b}), s), S.first(b), Equal.cong(Bool, Maybe<&2, Nat>, z => S.pick_maybe(z, S.first($APN(t, Con{s, b})), S.after($APN(t, Con{s, b}), s)), Nat.is_eq(x, s), False{}, DL.or_ff_l(Nat.is_eq(x, s), HT.memn(s, t), h)), after_mid(t, s, b, DL.or_ff_r(Nat.is_eq(x, s), HT.memn(s, t), h)))
+
+def bm(a: List<&2, Nat>, p: Maybe<&2, Nat>) -> Maybe<&2, Nat>:
+  match a:
+    case Nil{}:
+      p
+    case Con{+x, t}:
+      bm(t, Some{x})
+
+def before_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +p: Maybe<&2, Nat>, +h: {HT.memn(s, a) == False{} : Bool}) -> {S.before($APN(a, Con{s, b}), s, p) == bm(a, p) : Maybe<&2, Nat>}:
+  match a:
+    case Nil{}:
+      Equal.cong(Bool, Maybe<&2, Nat>, z => S.pick_maybe(z, p, S.before(b, s, Some{s})), Nat.is_eq(s, s), True{}, N.is_eq_refl(s))
+    case Con{+x, +t}:
+      Equal.trans(Maybe<&2, Nat>, S.before($APN(Con{x, t}, Con{s, b}), s, p), S.before($APN(t, Con{s, b}), s, Some{x}), bm(t, Some{x}), Equal.cong(Bool, Maybe<&2, Nat>, z => S.pick_maybe(z, p, S.before($APN(t, Con{s, b}), s, Some{x})), Nat.is_eq(x, s), False{}, DL.or_ff_l(Nat.is_eq(x, s), HT.memn(s, t), h)), before_mid(t, s, b, Some{x}, DL.or_ff_r(Nat.is_eq(x, s), HT.memn(s, t), h)))
+
+def bm_last(+t: List<&2, Nat>, +x: Nat) -> {bm(t, Some{x}) == Some{DL.lastn(t, x)} : Maybe<&2, Nat>}:
+  match t:
+    case Nil{}:
+      {==}
+    case Con{+y, +t2}:
+      bm_last(t2, y)
+
+# ---- the storage's checks ----
+
+%def NOP E.Next{$HH}
+%def POP E.Prev{$HH}
+%def NC(af, c1, c2) D.neighbour_result(~T, tag, depth, cap, $AG, R.nbr_checked(~T, af, c1, $STF, $AV, $AP, $AN, id, c2))
+%def NRD(af, r) D.neighbour_result(~T, tag, depth, cap, $AG, R.nbr_read(~T, af, $STF, $AP, $AN, id, r))
+
+def nb_hi(~T: Data, $VP, +af: Bool, $HO, +hlt: {Nat.is_lt($II, $FV) == False{} : Bool}) -> {$NC(af, U32.is_lt(id, fresh), U32.is_eq(owner, tag)) == ($RS, E.ONbr{Fail{$ST0}}) : $DO}:
+  Equal.trans($DO, $NC(af, U32.is_lt(id, fresh), U32.is_eq(owner, tag)), $NC(af, False{}, U32.is_eq(owner, tag)), ($RS, E.ONbr{Fail{$ST0}}), Equal.cong(Bool, $DO, z => $NC(af, z, U32.is_eq(owner, tag)), U32.is_lt(id, fresh), False{}, HR.lt_f(id, fresh, hlt)), Equal.cong(Bool, $DO, z => $NC(af, False{}, z), U32.is_eq(owner, tag), True{}, ho))
+
+def nb_pre(~T: Data, $VP, +af: Bool, $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}) -> {$NC(af, U32.is_lt(id, fresh), U32.is_eq(owner, tag)) == $NRD(af, ($AV, S.val_of(T, $VL, $II))) : $DO}:
+  +e1 = Equal.cong(Bool, $DO, z => $NC(af, z, U32.is_eq(owner, tag)), U32.is_lt(id, fresh), True{}, HR.lt_t(id, fresh, hlt))
+  +e2 = Equal.cong(Bool, $DO, z => $NC(af, True{}, z), U32.is_eq(owner, tag), True{}, ho)
+  +e3 = Equal.cong(Array<$MT> & $MT, $DO, r => $NRD(af, r), Array.get($MT, $AV, id), ($AV, S.val_of(T, $VL, $II)), LN.vget(T, depth, $G(cdep), vT, $G(cpv), id, HR.i_lt(~T, $VA, hlt)))
+  Equal.trans($DO, $NC(af, U32.is_lt(id, fresh), U32.is_eq(owner, tag)), $NC(af, True{}, U32.is_eq(owner, tag)), $NRD(af, ($AV, S.val_of(T, $VL, $II))), e1, Equal.trans($DO, $NC(af, True{}, U32.is_eq(owner, tag)), $NC(af, True{}, True{}), $NRD(af, ($AV, S.val_of(T, $VL, $II))), e2, e3))
+
+def nb_none_c(~T: Data, $VP, +af: Bool) -> {$NRD(af, ($AV, None{})) == ($RS, E.ONbr{Fail{$ST0}}) : $DO}:
+  match af:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+def nb_none(~T: Data, $VP, +af: Bool, $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}, +hv: {S.val_of(T, $VL, $II) == None{} : $MT}) -> {$NC(af, U32.is_lt(id, fresh), U32.is_eq(owner, tag)) == ($RS, E.ONbr{Fail{$ST0}}) : $DO}:
+  Equal.trans($DO, $NC(af, U32.is_lt(id, fresh), U32.is_eq(owner, tag)), $NRD(af, ($AV, S.val_of(T, $VL, $II))), ($RS, E.ONbr{Fail{$ST0}}), nb_pre(~T, $VA, af, ho, hlt), Equal.trans($DO, $NRD(af, ($AV, S.val_of(T, $VL, $II))), $NRD(af, ($AV, None{})), ($RS, E.ONbr{Fail{$ST0}}), Equal.cong($MT, $DO, m => $NRD(af, ($AV, m)), S.val_of(T, $VL, $II), None{}, hv), nb_none_c(~T, $VA, af)))
+
+# ---- the neighbour's handle ----
+
+%def NG(l) D.neighbour_result(~T, tag, depth, cap, $AG, (R.DL{$STF, $AV, $AP, $AN}, Done{R.handle(tag, l)}))
+%def SNB(m) ($MS, E.ONbr{Done{S.nbr(tag, $GLF, m)}})
+
+def x_lt(~T: Data, $VP, +x: Nat, +hx: {Nat.is_lt(x, $FV) == True{} : Bool}) -> {Nat.is_lt(x, SC.pow2(depth)) == True{} : Bool}:
+  +e2d = N.eq_from_is_eq(UD.v(cap), SC.pow2(depth), $G(ccap))
+  N.lt_le_trans(x, $FV, SC.pow2(depth), hx, L.subst(Nat, z => {Nat.is_le($FV, z) == True{} : Bool}, UD.v(cap), SC.pow2(depth), e2d, $G(cfr)))
+
+%def XU U32.from_nat(x)
+%def NGS(r) D.neighbour_result(~T, tag, depth, cap, $AG, (R.DL{$STF, $AV, $AP, $AN}, Done{r}))
+%def NGG(r) D.neighbour_gen(~T, tag, depth, cap, R.DL{$STF, $AV, $AP, $AN}, tag, $XU, r)
+
+# the link of a live id: its handle with its generation
+def nb_link(~T: Data, $VP, +one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +hxf: {Nat.is_lt(x, $FV) == True{} : Bool}) -> OK.POK(~T, $OB, $SNB(Some{x}), $NG(LST.lnk(x))):
+  +hd = $G(cdep)
+  +hn = x_lt(~T, $VA, x, hxf)
+  +ev = LN.fn_v(x, depth, hd, hn)
+  +e1 = Equal.cong(Bool, $DO, z => $NGS(R.handle_go(tag, LST.lnk(x), z)), U32.is_eq(LST.lnk(x), 0), False{}, RL.lnk_nz(one, h1, x, depth, hd, hn))
+  +e2 = Equal.cong(U32, $DO, z => $NGS(Some{I.H{tag, z}}), R.slot(LST.lnk(x)), $XU, LN.slot_fn(one, h1, x, depth, hd, hn))
+  +e3 = Equal.cong(Array<U32> & U32, $DO, r => $NGG(r), Array.get(U32, $AG, $XU), ($AG, TB.nth0($GL, UD.v($XU))), MT.uget(depth, RL.hd0(depth, hd), gT, $G(cpg), $XU, LN.fn_lt(x, depth, hd, hn)))
+  +e4 = Equal.cong(Nat, $DO, z => ($RS, E.ONbr{Done{Some{E.H{tag, $XU, TB.nth0($GL, z)}}}}), UD.v($XU), x, ev)
+  +er = Equal.trans($DO, $NG(LST.lnk(x)), $NGS(Some{I.H{tag, R.slot(LST.lnk(x))}}), ($RS, E.ONbr{Done{Some{E.H{tag, $XU, TB.nth0($GL, x)}}}}), e1, Equal.trans($DO, $NGS(Some{I.H{tag, R.slot(LST.lnk(x))}}), $NGG(Array.get(U32, $AG, $XU)), ($RS, E.ONbr{Done{Some{E.H{tag, $XU, TB.nth0($GL, x)}}}}), e2, Equal.trans($DO, $NGG(Array.get(U32, $AG, $XU)), $NGG(($AG, TB.nth0($GL, UD.v($XU)))), ($RS, E.ONbr{Done{Some{E.H{tag, $XU, TB.nth0($GL, x)}}}}), e3, e4)))
+  +es = Equal.cong(U32, S.DS<T> & $OB, z => ($MS, E.ONbr{Done{Some{E.H{tag, $XU, z}}}}), S.gen_of($GLF, x), TB.nth0($GL, x), VA.gen_take($GL, $FV, x, hxf))
+  ($SH, (E.ONbr{Done{Some{E.H{tag, $XU, TB.nth0($GL, x)}}}}, (er, (es, hg))))
+
+def nb_nil(~T: Data, $VP) -> OK.POK(~T, $OB, $SNB(None{}), $NG(0)):
+  ($SH, (E.ONbr{Done{None{}}}, ({==}, ({==}, hg))))
+
+# ---- next ----
+
+%def SLAB $APN(a, Con{$II, b})
+%def ABP +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<$MT>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +a: List<&2, Nat>, +b: List<&2, Nat>, +fl: List<&2, Nat>, +owner: U32, +id: U32, +g: U32, +hg: $TR(ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, $SLAB, fl))
+%def ABV tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, $SLAB, fl, hg, owner, id, g
+%def ABW tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, a, b, fl, owner, id, g, hg
+%def SHB tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, $SLAB, fl
+%def GB(c) ST.g_$c(~T, $SHB, hg)
+%def RSB ST.real(~T, ST.LS{$SHB})
+%def MSB ST.model(~T, ST.LS{$SHB})
+%def STB tag, fresh, free, SC.length(Nat, $SLAB), head, tail, depth, cap
+%def NGB(l) D.neighbour_result(~T, tag, depth, cap, $AG, (R.DL{$STB, $AV, $AP, $AN}, Done{R.handle(tag, l)}))
+%def SNBB(m) ($MSB, E.ONbr{Done{S.nbr(tag, $GLF, m)}})
+%def NCB(af, c1, c2) D.neighbour_result(~T, tag, depth, cap, $AG, R.nbr_checked(~T, af, c1, $STB, $AV, $AP, $AN, id, c2))
+%def NRB(af, r) D.neighbour_result(~T, tag, depth, cap, $AG, R.nbr_read(~T, af, $STB, $AP, $AN, id, r))
+
+def nx_fin(~T: Data, $ABP, +one: Nat, +h1: {one == 1n : Nat}, +hb: {ST.slok(~T, b, $FV, $VL) == True{} : Bool}) -> OK.POK(~T, $OB, $SNBB(S.first(b)), $NGB(LST.fst_or(b, 0))):
+  match b:
+    case Nil{}:
+      nb_nil(~T, $ABV)
+    case Con{+b0, +t}:
+      nb_link(~T, $ABV, one, h1, b0, L.and_left(Nat.is_lt(b0, $FV), ST.live(T, $VL, b0), L.and_left(Bool.and(Nat.is_lt(b0, $FV), ST.live(T, $VL, b0)), ST.slok(~T, t, $FV, $VL), hb)))
+
+def pv_fin(~T: Data, $ABP, +one: Nat, +h1: {one == 1n : Nat}, +ha: {ST.slok(~T, a, $FV, $VL) == True{} : Bool}) -> OK.POK(~T, $OB, $SNBB(bm(a, None{})), $NGB(LST.last_or(a, 0))):
+  match a:
+    case Nil{}:
+      nb_nil(~T, $ABV)
+    case Con{+a0, +t}:
+      +z = DL.lastn(t, a0)
+      +hz = L.and_left(Nat.is_lt(z, $FV), ST.live(T, $VL, z), RL.slok_mem(~T, z, Con{a0, t}, $FV, $VL, ha, DL.lastn_mem(t, a0)))
+      p = nb_link(~T, $ABV, one, h1, z, hz)
+      OK.pok_eq(~T, $OB, $SNBB(bm(Con{a0, t}, None{})), $SNBB(Some{z}), $NGB(LST.last_or(Con{a0, t}, 0)), $NGB(LST.lnk(z)), Equal.cong(Maybe<&2, Nat>, S.DS<T> & $OB, m => $SNBB(m), bm(t, Some{a0}), Some{z}, bm_last(t, a0)), Equal.cong(U32, $DO, l => $NGB(l), LST.last_or(t, LST.lnk(a0)), LST.lnk(z), DL.last_lnk(t, a0)), p)
+
+%def NOPB E.Next{$HH}
+%def POPB E.Prev{$HH}
+
+def ab_facts_a(~T: Data, $ABP) -> {ST.slok(~T, a, $FV, $VL) == True{} : Bool}:
+  L.and_left(ST.slok(~T, a, $FV, $VL), ST.slok(~T, Con{$II, b}, $FV, $VL), RL.to_eq(ST.slok(~T, $SLAB, $FV, $VL), Bool.and(ST.slok(~T, a, $FV, $VL), ST.slok(~T, Con{$II, b}, $FV, $VL)), RL.slok_app(~T, a, Con{$II, b}, $FV, $VL), $GB(csl)))
+
+def ab_facts_b(~T: Data, $ABP) -> {ST.slok(~T, b, $FV, $VL) == True{} : Bool}:
+  +h = L.and_right(ST.slok(~T, a, $FV, $VL), ST.slok(~T, Con{$II, b}, $FV, $VL), RL.to_eq(ST.slok(~T, $SLAB, $FV, $VL), Bool.and(ST.slok(~T, a, $FV, $VL), ST.slok(~T, Con{$II, b}, $FV, $VL)), RL.slok_app(~T, a, Con{$II, b}, $FV, $VL), $GB(csl)))
+  L.and_right(Bool.and(Nat.is_lt($II, $FV), ST.live(T, $VL, $II)), ST.slok(~T, b, $FV, $VL), h)
+
+def i_off_a(~T: Data, $ABP) -> {HT.memn($II, a) == False{} : Bool}:
+  LS.nd_dj(a, Con{$II, b}, $GB(cnd), $II, RL.self_in($II, b))
+
+def nx_ab(~T: Data, $ABP, +one: Nat, +h1: {one == 1n : Nat}, $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}) -> OK.POK(~T, $OB, S.live_op(T, $MSB, $NOPB, $II), D.dispatch(~T, $RSB, $NOPB)):
+  +hd = $GB(cdep)
+  +e0 = nb_pre(~T, $ABV, True{}, ho, hlt)
+  +e1 = Equal.cong($MT, $DO, m => $NRB(True{}, ($AV, m)), S.val_of(T, $VL, $II), Some{vv}, hv)
+  +e2 = Equal.cong(Array<U32> & U32, $DO, r => D.neighbour_result(~T, tag, depth, cap, $AG, R.nbr_n(~T, $STB, $AV, $AP, r)), Array.get(U32, $AN, id), ($AN, TB.nth0($NL, $II)), MT.uget(depth, RL.hd0(depth, hd), nT, $GB(cpn), id, HR.i_lt(~T, $ABV, hlt)))
+  +e3 = Equal.cong(U32, $DO, l => $NGB(l), TB.nth0($NL, $II), LST.fst_or(b, 0), RL.unl_n($PL, $NL, a, $II, b, $GB(cseg)))
+  +er = Equal.trans($DO, D.dispatch(~T, $RSB, $NOPB), $NRB(True{}, ($AV, S.val_of(T, $VL, $II))), $NGB(LST.fst_or(b, 0)), e0, Equal.trans($DO, $NRB(True{}, ($AV, S.val_of(T, $VL, $II))), $NRB(True{}, ($AV, Some{vv})), $NGB(LST.fst_or(b, 0)), e1, Equal.trans($DO, $NRB(True{}, ($AV, Some{vv})), $NGB(TB.nth0($NL, $II)), $NGB(LST.fst_or(b, 0)), e2, e3)))
+  +es = Equal.cong(Maybe<&2, Nat>, S.DS<T> & $OB, m => $SNBB(m), S.after($SLAB, $II), S.first(b), after_mid(a, $II, b, i_off_a(~T, $ABW)))
+  OK.pok_eq(~T, $OB, S.live_op(T, $MSB, $NOPB, $II), $SNBB(S.first(b)), D.dispatch(~T, $RSB, $NOPB), $NGB(LST.fst_or(b, 0)), es, er, nx_fin(~T, $ABW, one, h1, ab_facts_b(~T, $ABW)))
+
+def pv_ab(~T: Data, $ABP, +one: Nat, +h1: {one == 1n : Nat}, $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}) -> OK.POK(~T, $OB, S.live_op(T, $MSB, $POPB, $II), D.dispatch(~T, $RSB, $POPB)):
+  +hd = $GB(cdep)
+  +e0 = nb_pre(~T, $ABV, False{}, ho, hlt)
+  +e1 = Equal.cong($MT, $DO, m => $NRB(False{}, ($AV, m)), S.val_of(T, $VL, $II), Some{vv}, hv)
+  +e2 = Equal.cong(Array<U32> & U32, $DO, r => D.neighbour_result(~T, tag, depth, cap, $AG, R.nbr_p(~T, $STB, $AV, $AN, r)), Array.get(U32, $AP, id), ($AP, TB.nth0($PL, $II)), MT.uget(depth, RL.hd0(depth, hd), pT, $GB(cpp), id, HR.i_lt(~T, $ABV, hlt)))
+  +e3 = Equal.cong(U32, $DO, l => $NGB(l), TB.nth0($PL, $II), LST.last_or(a, 0), RL.unl_p($PL, $NL, a, $II, b, $GB(cseg)))
+  +er = Equal.trans($DO, D.dispatch(~T, $RSB, $POPB), $NRB(False{}, ($AV, S.val_of(T, $VL, $II))), $NGB(LST.last_or(a, 0)), e0, Equal.trans($DO, $NRB(False{}, ($AV, S.val_of(T, $VL, $II))), $NRB(False{}, ($AV, Some{vv})), $NGB(LST.last_or(a, 0)), e1, Equal.trans($DO, $NRB(False{}, ($AV, Some{vv})), $NGB(TB.nth0($PL, $II)), $NGB(LST.last_or(a, 0)), e2, e3)))
+  +es = Equal.cong(Maybe<&2, Nat>, S.DS<T> & $OB, m => $SNBB(m), S.before($SLAB, $II, None{}), bm(a, None{}), before_mid(a, $II, b, None{}, i_off_a(~T, $ABW)))
+  OK.pok_eq(~T, $OB, S.live_op(T, $MSB, $POPB, $II), $SNBB(bm(a, None{})), D.dispatch(~T, $RSB, $POPB), $NGB(LST.last_or(a, 0)), es, er, pv_fin(~T, $ABW, one, h1, ab_facts_a(~T, $ABW)))

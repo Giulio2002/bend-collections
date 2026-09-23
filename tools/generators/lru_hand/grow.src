@@ -1,0 +1,245 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/u32alg.bend as A
+import ../lib/array.bend as AR
+import ../spec/common.bend as SC
+import ../spec/hash_table.bend as S
+import ../spec/lru.bend as SP
+import ../math/u32div.bend as UD
+import ../../src/math/u64.bend as W
+import ../../src/containers/hash_table.bend as H
+import ../../src/containers/lru.bend as LR
+import ../hash_table/table.bend as TB
+import ../hash_table/buckets.bend as B
+import ../hash_table/cyc.bend as CY
+import ../hash_table/inv.bend as IV
+import ../hash_table/state.bend as HT
+import ../hash_table/keys.bend as K
+import ./state.bend as ST
+import ./basic.bend as BA
+import ./bump.bend as BU
+import ./bumpsh.bend as BS
+import ./find.bend as FD
+import ./tfind.bend as TF
+import ./touch.bend as TO
+import ./touchsh.bend as TSH
+import ./rmat.bend as RM
+import ./gone.bend as GO
+import ./unlink.bend as UL
+import ./lists.bend as LS
+import ./meta.bend as MT
+import ../hash_table/get.bend as G
+import ../../src/math/hash.bend as HS
+import ../hash_table/probe_impl.bend as PI
+import ../hash_table/probe_all.bend as PA
+
+import ./read.bend as RD
+import ./ins.bend as IC
+import ./insp.bend as IP
+import ./pre.bend as PR
+import ./room.bend as RO
+import ../hash_table/arena.bend as AN
+import ../hash_table/insgrow.bend as IG
+import ./ins1.bend as I1
+import ./dll.bend as DL
+import ./idx.bend as ID
+import ../lib/u32.bend as U
+import ../hash_table/insu.bend as IU
+import ../hash_table/insert.bend as IS
+import ../hash_table/modn.bend as M
+import ../../src/math/hash.bend as HS
+
+
+# add, a new key, a full arena: the arena doubles (a blank second half) and
+# the new entry takes the next fresh slot.
+
+%include read.src
+
+%def KW K.kword(key)
+%def KS PA.stored(key)
+%def FE U32.from_nat(e)
+%def T2(l) AR.upd(U32, 1n+k, AR.upd(U32, 1n+k, tabT, UD.v(U32.shl($FE)), $KW), UD.v(U32.inc(U32.shl($FE))), l)
+%def EN SP.LE{key, v, t, W.U64{lo, hi}}
+%def SPEC SP.L{cap, $M3, $W4, SP.snoc(~V, $ES, $EN), SP.c_ins($CTR)}
+%def E LR.E{v, t, lo, hi}
+%def M0 TB.nth0($ML, 0n)
+%def M1 TB.nth0($ML, 1n)
+%def M2 TB.nth0($ML, 2n)
+%def SHFn +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +mT: AR.Tree<U32>, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>
+%def SHAn cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl
+%def SHN ST.LS{cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, Nil{}}
+%def GN(c) ST.g_$c(~V, cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, Nil{}, hg)
+%def RK AR.trep(String, sd, "")
+%def RE AR.trep(Maybe<&2, V>, sd, None{})
+%def RL AR.trep(U32, 3n+sd, 0)
+%def KTG AR.TNode{ksT, $RK}
+%def ETG AR.TNode{eT, $RE}
+%def LTG AR.TNode{lkT, $RL}
+%def MG1 AR.upd(U32, 5n, mT, 1n, U32.shl($M1))
+%def MG AR.upd(U32, 5n, $MG1, 2n, U32.inc($M2))
+%def MGL AR.slots(U32, $MG)
+%def SHG ST.LS{cap, n, head, tail, free, $MG, k, 1n+sd, tabT, $KTG, $ETG, $LTG, sl, Nil{}}
+%def KLG SC.append(String, $KL, AR.slots(String, $RK))
+%def ELG SC.append(Maybe<&2, V>, $EL, AR.slots(Maybe<&2, V>, $RE))
+%def LLG SC.append(U32, $LLo, AR.slots(U32, $RL))
+%def BSG TB.buckets(AR.slots(U32, tabT), $KLG, $NN)
+%def ESG ST.es(~V, $LLG, $KLG, $ELG, sl)
+%def GW $SHFn, +hg: {ST.good(~V, $SHN) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +hroom: {Nat.is_le(Nat.double(1n+UD.v(n)), $NN) == True{} : Bool}, +hr: {U32.is_lt($M0, $M1) == False{} : Bool}
+%def GWA $SHAn, hg, one, h1, hroom, hr
+%def HS1 MT.uset_s(5n, mT, $GN(cpm), 1n, {==}, U32.shl($M1))
+%def HS2 MT.uset_s(5n, $MG1, MT.uset_p(5n, mT, $GN(cpm), 1n, U32.shl($M1)), 2n, {==}, U32.inc($M2))
+%def OG(j) Equal.trans(U32, TB.nth0($MGL, j), TB.nth0(AR.slots(U32, $MG1), j), TB.nth0($ML, j), MT.nth_other($MG1, 2n, U32.inc($M2), $MG, $HS2, j, {==}), MT.nth_other(mT, 1n, U32.shl($M1), $MG1, $HS1, j, {==}))
+
+# THEOREM: the doubled arena keeps the invariant
+def gw_good(~V: Data, $GW) -> {ST.good(~V, $SHG) == True{} : Bool}:
+  +hsd = RD.f_hsd(~V, $SHAn, Nil{}, hg)
+  +hsd1 = UL.sd1(sd, hsd)
+  +hsd32 = N.lt_trans(sd, 1n+sd, 32n, N.lt_succ(sd), hsd1)
+  +hk30 = L.and_left(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), $GN(ck))
+  +ehs = N.eq_from_is_eq(UD.v($M1), SC.pow2(sd), $GN(csize))
+  +hle1 = L.subst(Nat, z => {Nat.is_le($FR, z) == True{} : Bool}, SC.pow2(sd), UD.v($M1), Equal.sym(Nat, UD.v($M1), SC.pow2(sd), ehs), $GN(cfresh))
+  +hle2 = N.not_lt_le($FR, UD.v($M1), Equal.trans(Bool, Nat.is_lt($FR, UD.v($M1)), U32.is_lt($M0, $M1), False{}, Equal.sym(Bool, U32.is_lt($M0, $M1), Nat.is_lt($FR, UD.v($M1)), U.is_lt_nat($M0, $M1)), hr))
+  +efp = Equal.trans(Nat, $FR, UD.v($M1), SC.pow2(sd), N.le_antisym($FR, UD.v($M1), hle1, hle2), ehs)
+  +eln = Equal.trans(Nat, SC.length(Nat, sl), Nat.add(SC.length(Nat, sl), 0n), $FR, Equal.sym(Nat, Nat.add(SC.length(Nat, sl), 0n), SC.length(Nat, sl), N.add_zero(SC.length(Nat, sl))), N.eq_from_is_eq(Nat.add(SC.length(Nat, sl), 0n), $FR, $GN(cfcnt)))
+  +env = Equal.trans(Nat, UD.v(n), SC.length(Nat, sl), SC.pow2(sd), Equal.sym(Nat, SC.length(Nat, sl), UD.v(n), N.eq_from_is_eq(SC.length(Nat, sl), UD.v(n), $GN(clen))), Equal.trans(Nat, SC.length(Nat, sl), $FR, SC.pow2(sd), eln, efp))
+  +hrm = L.subst(Nat, z => {Nat.is_le(Nat.double(1n+z), $NN) == True{} : Bool}, UD.v(n), SC.pow2(sd), env, hroom)
+  +hsdk2 = IG.pow2_lt_inv(1n+sd, k, N.lt_le_trans(SC.pow2(1n+sd), Nat.double(1n+SC.pow2(sd)), $NN, N.double_lt(SC.pow2(sd), 1n+SC.pow2(sd), N.lt_succ(SC.pow2(sd))), hrm))
+  +hlk = AR.slots_length(String, sd, ksT, $GN(cpk))
+  +hle = AR.slots_length(Maybe<&2, V>, sd, eT, $GN(cpe))
+  +hll = AR.slots_length(U32, 3n+sd, lkT, $GN(cpl))
+  +ebs = AN.bs_app(AR.slots(U32, tabT), $KL, AR.slots(String, $RK), sd, hlk, $NN, $GN(cwell))
+  +esg = PR.es_pre(~V, $LLo, AR.slots(U32, $RL), sd, hll, $KL, AR.slots(String, $RK), hlk, $EL, AR.slots(Maybe<&2, V>, $RE), hle, $FR, $GN(cfresh), sl, $GN(csl))
+  +esz = Equal.trans(Nat, UD.v(U32.shl($M1)), Nat.double(UD.v($M1)), SC.pow2(1n+sd), U.shl_value($M1, k, N.lt_le(k, 32n, N.lt_trans(k, 30n, 32n, hk30, {==})), L.subst(Nat, z => {Nat.is_lt(Nat.double(z), SC.pow2(k)) == True{} : Bool}, SC.pow2(sd), UD.v($M1), Equal.sym(Nat, UD.v($M1), SC.pow2(sd), ehs), N.pow2_strict(1n+sd, k, hsdk2))), Equal.cong(Nat, Nat, z => Nat.double(z), UD.v($M1), SC.pow2(sd), ehs))
+  +edp0 = N.eq_from_is_eq(UD.v($M2), sd, $GN(cdepth))
+  +hm5 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(5n)) == True{} : Bool}, sd, UD.v($M2), Equal.sym(Nat, UD.v($M2), sd, edp0), hsd32)
+  +edp = Equal.trans(Nat, UD.v(U32.inc($M2)), 1n+UD.v($M2), 1n+sd, CY.inc_val(one, h1, $M2, IU.bound32(one, h1, UD.v($M2), 5n, {==}, hm5)), Equal.cong(Nat, Nat, z => 1n+z, UD.v($M2), sd, edp0))
+  +gx = ST.good_intro(~V, cap, n, head, tail, free, $M0, U32.shl($M1), U32.inc($M2), TB.nth0($ML, 6n), TB.nth0($ML, 7n), True{}, k, 1n+sd, tabT, $KLG, AR.perfect(String, 1n+sd, $KTG), $ETG, $LTG, sl, Nil{}, $GN(ck), hsdk2, $GN(cpt), L.and_intro(AR.perfect(String, sd, ksT), AR.perfect(String, sd, $RK), $GN(cpk), AR.trep_perfect(String, sd, "")), L.and_intro(AR.perfect(Maybe<&2, V>, sd, eT), AR.perfect(Maybe<&2, V>, sd, $RE), $GN(cpe), AR.trep_perfect(Maybe<&2, V>, sd, None{})), L.and_intro(AR.perfect(U32, 3n+sd, lkT), AR.perfect(U32, 3n+sd, $RL), $GN(cpl), AR.trep_perfect(U32, 3n+sd, 0)), {==}, $GN(cmask), $GN(cbits), IS.eq_is_eq(UD.v(U32.shl($M1)), SC.pow2(1n+sd), esz), IS.eq_is_eq(UD.v(U32.inc($M2)), 1n+sd, edp), N.le_trans($FR, SC.pow2(sd), SC.pow2(1n+sd), $GN(cfresh), N.lt_le(SC.pow2(sd), SC.pow2(1n+sd), N.pow2_lt_succ(sd))), L.subst(List<&2, B.Bk>, z => {B.all_lt(B.PWell{z, 1n+sd}, $NN) == True{} : Bool}, $BS, $BSG, Equal.sym(List<&2, B.Bk>, $BSG, $BS, ebs), AN.well_mono($BS, sd, 1n+sd, N.lt_le(SC.pow2(sd), SC.pow2(1n+sd), N.pow2_lt_succ(sd)), $NN, $GN(cwell), $NN, N.le_refl($NN))), L.subst(List<&2, B.Bk>, z => {B.cluster(z, $NN, CY.msk(k)) == True{} : Bool}, $BS, $BSG, Equal.sym(List<&2, B.Bk>, $BSG, $BS, ebs), $GN(cclus)), L.subst(List<&2, B.Bk>, z => {B.all_lt(B.PUniq{z}, $NN) == True{} : Bool}, $BS, $BSG, Equal.sym(List<&2, B.Bk>, $BSG, $BS, ebs), $GN(cuniq)), L.subst(List<&2, B.Bk>, z => {Nat.is_eq(UD.v(n), IV.occn(z, $NN)) == True{} : Bool}, $BS, $BSG, Equal.sym(List<&2, B.Bk>, $BSG, $BS, ebs), $GN(cn)), $GN(cload), $GN(ccap), L.subst(List<&2, B.Bk>, z => {ST.bsl(z, sl, $LLG, $NN) == True{} : Bool}, $BS, $BSG, Equal.sym(List<&2, B.Bk>, $BSG, $BS, ebs), Equal.trans(Bool, ST.bsl($BS, sl, $LLG, $NN), ST.bsl($BS, sl, $LLo, $NN), True{}, PR.bsl_pre($BS, sl, $LLo, AR.slots(U32, $RL), sd, hll, $NN, $GN(cwell)), $GN(cbsl))), L.subst(List<&2, B.Bk>, z => {ST.hasall(~V, z, $NN, $LLG, sl) == True{} : Bool}, $BS, $BSG, Equal.sym(List<&2, B.Bk>, $BSG, $BS, ebs), Equal.trans(Bool, ST.hasall(~V, $BS, $NN, $LLG, sl), ST.hasall(~V, $BS, $NN, $LLo, sl), True{}, PR.has_pre(~V, $BS, $NN, $LLo, AR.slots(U32, $RL), sd, hll, $EL, $FR, $GN(cfresh), sl, $GN(csl)), $GN(chas))), PR.slok_pre(~V, sd, $EL, AR.slots(Maybe<&2, V>, $RE), hle, $FR, $GN(cfresh), sl, $GN(csl)), $GN(cnd), $GN(clen), $GN(chead), $GN(ctail), Equal.trans(Bool, ST.seg($LLG, sl, 0, 0), ST.seg($LLo, sl, 0, 0), True{}, PR.seg_pre(~V, $LLo, AR.slots(U32, $RL), sd, hll, $EL, $FR, $GN(cfresh), sl, $GN(csl), 0, 0), $GN(cdll)), L.subst(List<&2, SP.Ent<V>>, z => {S.nodup(SP.keys_of(~V, z)) == True{} : Bool}, $ES, $ESG, Equal.sym(List<&2, SP.Ent<V>>, $ESG, $ES, esg), $GN(ckeys)), $GN(cfree), {==}, {==}, {==}, $GN(cfcnt))
+  +p1 = MT.uset_p(5n, mT, $GN(cpm), 1n, U32.shl($M1))
+  +e1 = Equal.trans(U32, TB.nth0($MGL, 1n), TB.nth0(AR.slots(U32, $MG1), 1n), U32.shl($M1), MT.nth_other($MG1, 2n, U32.inc($M2), $MG, $HS2, 1n, {==}), MT.nth_same(5n, mT, $GN(cpm), 1n, {==}, U32.shl($M1), $MG1, $HS1))
+  +e2 = MT.nth_same(5n, $MG1, p1, 2n, {==}, U32.inc($M2), $MG, $HS2)
+  RO.good_mk(~V, cap, n, head, tail, free, $MG, $M0, U32.shl($M1), U32.inc($M2), TB.nth0($ML, 6n), TB.nth0($ML, 7n), k, 1n+sd, tabT, $KTG, $ETG, $LTG, sl, Nil{}, gx, $OG(0n), e1, e2, $OG(6n), $OG(7n), MT.uset_p(5n, $MG1, p1, 2n, U32.inc($M2)))
+
+# ... and the model's entries
+def gw_es(~V: Data, $GW) -> {$ESG == $ES : List<&2, SP.Ent<V>>}:
+  +hsd = RD.f_hsd(~V, $SHAn, Nil{}, hg)
+  +hsd1 = UL.sd1(sd, hsd)
+  +hsd32 = N.lt_trans(sd, 1n+sd, 32n, N.lt_succ(sd), hsd1)
+  +hk30 = L.and_left(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), $GN(ck))
+  +ehs = N.eq_from_is_eq(UD.v($M1), SC.pow2(sd), $GN(csize))
+  +hle1 = L.subst(Nat, z => {Nat.is_le($FR, z) == True{} : Bool}, SC.pow2(sd), UD.v($M1), Equal.sym(Nat, UD.v($M1), SC.pow2(sd), ehs), $GN(cfresh))
+  +hle2 = N.not_lt_le($FR, UD.v($M1), Equal.trans(Bool, Nat.is_lt($FR, UD.v($M1)), U32.is_lt($M0, $M1), False{}, Equal.sym(Bool, U32.is_lt($M0, $M1), Nat.is_lt($FR, UD.v($M1)), U.is_lt_nat($M0, $M1)), hr))
+  +efp = Equal.trans(Nat, $FR, UD.v($M1), SC.pow2(sd), N.le_antisym($FR, UD.v($M1), hle1, hle2), ehs)
+  +eln = Equal.trans(Nat, SC.length(Nat, sl), Nat.add(SC.length(Nat, sl), 0n), $FR, Equal.sym(Nat, Nat.add(SC.length(Nat, sl), 0n), SC.length(Nat, sl), N.add_zero(SC.length(Nat, sl))), N.eq_from_is_eq(Nat.add(SC.length(Nat, sl), 0n), $FR, $GN(cfcnt)))
+  +env = Equal.trans(Nat, UD.v(n), SC.length(Nat, sl), SC.pow2(sd), Equal.sym(Nat, SC.length(Nat, sl), UD.v(n), N.eq_from_is_eq(SC.length(Nat, sl), UD.v(n), $GN(clen))), Equal.trans(Nat, SC.length(Nat, sl), $FR, SC.pow2(sd), eln, efp))
+  +hrm = L.subst(Nat, z => {Nat.is_le(Nat.double(1n+z), $NN) == True{} : Bool}, UD.v(n), SC.pow2(sd), env, hroom)
+  +hsdk2 = IG.pow2_lt_inv(1n+sd, k, N.lt_le_trans(SC.pow2(1n+sd), Nat.double(1n+SC.pow2(sd)), $NN, N.double_lt(SC.pow2(sd), 1n+SC.pow2(sd), N.lt_succ(SC.pow2(sd))), hrm))
+  +hlk = AR.slots_length(String, sd, ksT, $GN(cpk))
+  +hle = AR.slots_length(Maybe<&2, V>, sd, eT, $GN(cpe))
+  +hll = AR.slots_length(U32, 3n+sd, lkT, $GN(cpl))
+  +ebs = AN.bs_app(AR.slots(U32, tabT), $KL, AR.slots(String, $RK), sd, hlk, $NN, $GN(cwell))
+  +esg = PR.es_pre(~V, $LLo, AR.slots(U32, $RL), sd, hll, $KL, AR.slots(String, $RK), hlk, $EL, AR.slots(Maybe<&2, V>, $RE), hle, $FR, $GN(cfresh), sl, $GN(csl))
+  esg
+
+%def MA AR.upd(U32, 5n, mT, 0n, U32.inc($M0))
+%def MB AR.upd(U32, 5n, $MA, 1n, U32.shl($M1))
+%def MFX AR.upd(U32, 5n, $MB, 2n, U32.inc($M2))
+%def UP(xs, i, x) SC.update(U32, xs, i, x)
+%def A0 U32.inc($M0)
+%def B0 U32.shl($M1)
+%def C0 U32.inc($M2)
+%def FRM(r, b) LR.fresh_room(&2, V, cap, n, head, tail, free2, r, AR.thaw(U32, $T2(H.link($M0))), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), $KS, $KW, $E, $M0, $M1, b)
+%def GZ(r) LR.grow_sz(&2, V, cap, n, head, tail, free2, AR.thaw(U32, $T2(H.link($M0))), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), $KS, $KW, $E, $M0, $M1, r)
+%def PS(m, ks, es, lk) LR.put_slot(&2, V, cap, n, head, tail, free2, m, AR.thaw(U32, $T2(H.link($M0))), ks, es, lk, $M0, $KS, $KW, $E)
+%def SS3 Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, mT), 0, $A0), 1, $B0), 2, $C0)
+%def K0 ANode{AR.thaw(String, ksT), Array.new(String, UD.v($M2), "")}
+%def E0 ANode{AR.thaw(Maybe<&2, V>, eT), LR.vac(&2, V, UD.v($M2))}
+%def L0 ANode{AR.thaw(U32, lkT), Array.new(U32, Nat.add(UD.v($M2), 3n), 0)}
+%def TMF AR.thaw(U32, $MFX)
+%def TKG AR.thaw(String, $KTG)
+%def TEG AR.thaw(Maybe<&2, V>, $ETG)
+%def TLG AR.thaw(U32, $LTG)
+%def ENG SP.LE{key, v, t, W.U64{lo, hi}}
+%def SPECG SP.L{cap, TB.nth0($MGL, 3n), ST.w64($MGL, 4n), SP.snoc(~V, $ESG, $EN), SP.c_ins(ST.ctr($MGL))}
+%def BASEn $SHFn, +hg: {ST.good(~V, $SHN) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +key: String, +hno: {B.all_lt(B.PNo{$BS, key}, $NN) == True{} : Bool}, +e: Nat, +he: {Nat.is_lt(e, $NN) == True{} : Bool}, +hz: {B.at($BS, e) == B.BE{} : B.Bk}, +hp: {B.occpath($BS, $NN, $HOME, M.dist($NN, $HOME, e)) == True{} : Bool}, +hroom: {Nat.is_le(Nat.double(1n+UD.v(n)), $NN) == True{} : Bool}, +v: V, +t: U32, +lo: U32, +hi: U32
+%def BASnA $SHAn, hg, one, h1, key, hno, e, he, hz, hp, hroom, v, t, lo, hi
+%def BASE $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +key: String, +hno: {B.all_lt(B.PNo{$BS, key}, $NN) == True{} : Bool}, +e: Nat, +he: {Nat.is_lt(e, $NN) == True{} : Bool}, +hz: {B.at($BS, e) == B.BE{} : B.Bk}, +hp: {B.occpath($BS, $NN, $HOME, M.dist($NN, $HOME, e)) == True{} : Bool}, +hroom: {Nat.is_le(Nat.double(1n+UD.v(n)), $NN) == True{} : Bool}, +v: V, +t: U32, +lo: U32, +hi: U32
+%def GC(c) ST.g_$c(~V, cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, Con{s0, tl}, hg)
+
+def igr_n(~V: Data, $BASEn, +free2: U32, +hf2: {U32.is_eq(free2, 0) == True{} : Bool}, +hr: {U32.is_lt($M0, $M1) == False{} : Bool}) -> BS.CountOK(~V, $SPEC, $FRM(AR.thaw(U32, mT), False{})):
+  +hsd = RD.f_hsd(~V, $SHAn, Nil{}, hg)
+  +hsd1 = UL.sd1(sd, hsd)
+  +hsd32 = N.lt_trans(sd, 1n+sd, 32n, N.lt_succ(sd), hsd1)
+  +hk30 = L.and_left(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), $GN(ck))
+  +ehs = N.eq_from_is_eq(UD.v($M1), SC.pow2(sd), $GN(csize))
+  +hle1 = L.subst(Nat, z => {Nat.is_le($FR, z) == True{} : Bool}, SC.pow2(sd), UD.v($M1), Equal.sym(Nat, UD.v($M1), SC.pow2(sd), ehs), $GN(cfresh))
+  +hle2 = N.not_lt_le($FR, UD.v($M1), Equal.trans(Bool, Nat.is_lt($FR, UD.v($M1)), U32.is_lt($M0, $M1), False{}, Equal.sym(Bool, U32.is_lt($M0, $M1), Nat.is_lt($FR, UD.v($M1)), U.is_lt_nat($M0, $M1)), hr))
+  +efp = Equal.trans(Nat, $FR, UD.v($M1), SC.pow2(sd), N.le_antisym($FR, UD.v($M1), hle1, hle2), ehs)
+  +eln = Equal.trans(Nat, SC.length(Nat, sl), Nat.add(SC.length(Nat, sl), 0n), $FR, Equal.sym(Nat, Nat.add(SC.length(Nat, sl), 0n), SC.length(Nat, sl), N.add_zero(SC.length(Nat, sl))), N.eq_from_is_eq(Nat.add(SC.length(Nat, sl), 0n), $FR, $GN(cfcnt)))
+  +env = Equal.trans(Nat, UD.v(n), SC.length(Nat, sl), SC.pow2(sd), Equal.sym(Nat, SC.length(Nat, sl), UD.v(n), N.eq_from_is_eq(SC.length(Nat, sl), UD.v(n), $GN(clen))), Equal.trans(Nat, SC.length(Nat, sl), $FR, SC.pow2(sd), eln, efp))
+  +hrm = L.subst(Nat, z => {Nat.is_le(Nat.double(1n+z), $NN) == True{} : Bool}, UD.v(n), SC.pow2(sd), env, hroom)
+  +hsdk2 = IG.pow2_lt_inv(1n+sd, k, N.lt_le_trans(SC.pow2(1n+sd), Nat.double(1n+SC.pow2(sd)), $NN, N.double_lt(SC.pow2(sd), 1n+SC.pow2(sd), N.lt_succ(SC.pow2(sd))), hrm))
+  +hlk = AR.slots_length(String, sd, ksT, $GN(cpk))
+  +hle = AR.slots_length(Maybe<&2, V>, sd, eT, $GN(cpe))
+  +hll = AR.slots_length(U32, 3n+sd, lkT, $GN(cpl))
+  +ebs = AN.bs_app(AR.slots(U32, tabT), $KL, AR.slots(String, $RK), sd, hlk, $NN, $GN(cwell))
+  +esg = PR.es_pre(~V, $LLo, AR.slots(U32, $RL), sd, hll, $KL, AR.slots(String, $RK), hlk, $EL, AR.slots(Maybe<&2, V>, $RE), hle, $FR, $GN(cfresh), sl, $GN(csl))
+  +pm = $GN(cpm)
+  +gg = gw_good(~V, $SHAn, hg, one, h1, hroom, hr)
+  +sbs = Equal.sym(List<&2, B.Bk>, $BSG, $BS, ebs)
+  +hnog = L.subst(List<&2, B.Bk>, z => {B.all_lt(B.PNo{z, key}, $NN) == True{} : Bool}, $BS, $BSG, sbs, hno)
+  +hzg = L.subst(List<&2, B.Bk>, z => {B.at(z, e) == B.BE{} : B.Bk}, $BS, $BSG, sbs, hz)
+  +hpg = L.subst(List<&2, B.Bk>, z => {B.occpath(z, $NN, $HOME, M.dist($NN, $HOME, e)) == True{} : Bool}, $BS, $BSG, sbs, hp)
+  +hs0g = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+sd)) == True{} : Bool}, SC.pow2(sd), $FR, Equal.sym(Nat, $FR, SC.pow2(sd), efp), N.pow2_lt_succ(sd))
+  +hsn = IP.nm_lt(~V, sl, $FR, $EL, $GN(csl))
+  +hd2 = N.lt_trans(1n+(1n+sd), 31n, 32n, N.lt_trans(1n+sd, k, 30n, hsdk2, hk30), {==})
+  +ei = CY.inc_val(one, h1, $M0, IU.bound32(one, h1, $FR, 1n+sd, hd2, hs0g))
+  +ecnt = Equal.trans(Nat, Nat.add(SC.length(Nat, SC.append(Nat, sl, Con{$FR, Nil{}})), 0n), SC.length(Nat, SC.append(Nat, sl, Con{$FR, Nil{}})), UD.v($A0), N.add_zero(SC.length(Nat, SC.append(Nat, sl, Con{$FR, Nil{}}))), Equal.trans(Nat, SC.length(Nat, SC.append(Nat, sl, Con{$FR, Nil{}})), 1n+SC.length(Nat, sl), UD.v($A0), I1.len_snoc(sl, $FR), Equal.trans(Nat, 1n+SC.length(Nat, sl), 1n+$FR, UD.v($A0), Equal.cong(Nat, Nat, z => 1n+z, SC.length(Nat, sl), $FR, eln), Equal.sym(Nat, UD.v($A0), 1n+$FR, ei))))
+  +hsfr = L.subst(Nat, z => {Nat.is_lt($FR, z) == True{} : Bool}, 1n+$FR, UD.v($A0), Equal.sym(Nat, UD.v($A0), 1n+$FR, ei), N.lt_succ($FR))
+  +hfrle = L.subst(U32, z => {Nat.is_le(UD.v(z), UD.v($A0)) == True{} : Bool}, $M0, TB.nth0($MGL, 0n), Equal.sym(U32, TB.nth0($MGL, 0n), $M0, $OG(0n)), N.lt_le($FR, UD.v($A0), hsfr))
+  +hfr2 = L.subst(Nat, z => {Nat.is_le(z, SC.pow2(1n+sd)) == True{} : Bool}, 1n+SC.pow2(sd), UD.v($A0), Equal.sym(Nat, UD.v($A0), 1n+SC.pow2(sd), Equal.trans(Nat, UD.v($A0), 1n+$FR, 1n+SC.pow2(sd), ei, Equal.cong(Nat, Nat, z => 1n+z, $FR, SC.pow2(sd), efp))), N.double_succ_le(SC.pow2(sd), N.pow2_pos(sd)))
+  +q1 = MT.uset_p(5n, mT, pm, 0n, $A0)
+  +q2 = MT.uset_p(5n, $MA, q1, 1n, $B0)
+  +q3 = MT.uset_p(5n, $MB, q2, 2n, $C0)
+  +t1 = MT.uset_s(5n, mT, pm, 0n, {==}, $A0)
+  +t2 = MT.uset_s(5n, $MA, q1, 1n, {==}, $B0)
+  +t3 = MT.uset_s(5n, $MB, q2, 2n, {==}, $C0)
+  +a1 = Equal.trans(List<&2, U32>, AR.slots(U32, $MFX), $UP(AR.slots(U32, $MB), 2n, $C0), $UP($UP($UP($ML, 0n, $A0), 1n, $B0), 2n, $C0), t3, Equal.cong(List<&2, U32>, List<&2, U32>, z => $UP(z, 2n, $C0), AR.slots(U32, $MB), $UP($UP($ML, 0n, $A0), 1n, $B0), Equal.trans(List<&2, U32>, AR.slots(U32, $MB), $UP(AR.slots(U32, $MA), 1n, $B0), $UP($UP($ML, 0n, $A0), 1n, $B0), t2, Equal.cong(List<&2, U32>, List<&2, U32>, z => $UP(z, 1n, $B0), AR.slots(U32, $MA), $UP($ML, 0n, $A0), t1))))
+  +c1 = Equal.cong(List<&2, U32>, List<&2, U32>, z => $UP(z, 2n, $C0), $UP($UP($ML, 0n, $A0), 1n, $B0), $UP($UP($ML, 1n, $B0), 0n, $A0), PR.upd_comm($ML, 0n, 1n, $A0, $B0, {==}))
+  +c2 = PR.upd_comm($UP($ML, 1n, $B0), 0n, 2n, $A0, $C0, {==})
+  +g1 = Equal.trans(List<&2, U32>, $MGL, $UP(AR.slots(U32, $MG1), 2n, $C0), $UP($UP($ML, 1n, $B0), 2n, $C0), $HS2, Equal.cong(List<&2, U32>, List<&2, U32>, z => $UP(z, 2n, $C0), AR.slots(U32, $MG1), $UP($ML, 1n, $B0), $HS1))
+  +hsm = Equal.trans(List<&2, U32>, AR.slots(U32, $MFX), $UP($UP($UP($ML, 0n, $A0), 1n, $B0), 2n, $C0), $UP($MGL, 0n, $A0), a1, Equal.trans(List<&2, U32>, $UP($UP($UP($ML, 0n, $A0), 1n, $B0), 2n, $C0), $UP($UP($UP($ML, 1n, $B0), 0n, $A0), 2n, $C0), $UP($MGL, 0n, $A0), c1, Equal.trans(List<&2, U32>, $UP($UP($UP($ML, 1n, $B0), 0n, $A0), 2n, $C0), $UP($UP($UP($ML, 1n, $B0), 2n, $C0), 0n, $A0), $UP($MGL, 0n, $A0), c2, Equal.cong(List<&2, U32>, List<&2, U32>, z => $UP(z, 0n, $A0), $UP($UP($ML, 1n, $B0), 2n, $C0), $MGL, Equal.sym(List<&2, U32>, $MGL, $UP($UP($ML, 1n, $B0), 2n, $C0), g1)))))
+  ok = IC.ins_core(~V, cap, n, head, tail, free, $MG, k, 1n+sd, tabT, $KTG, $ETG, $LTG, sl, Nil{}, gg, one, h1, key, hnog, e, he, hzg, hpg, hroom, $FR, $M0, {==}, hs0g, hsn, Nil{}, free2, $A0, hf2, {==}, {==}, {==}, IS.eq_is_eq(Nat.add(SC.length(Nat, SC.append(Nat, sl, Con{$FR, Nil{}})), 0n), UD.v($A0), ecnt), {==}, hsfr, hfrle, hfr2, $MFX, q3, hsm, v, t, lo, hi)
+  +ec = BA.ctr_eq($MGL, $ML, $OG(16n), $OG(17n), $OG(18n), $OG(19n), $OG(20n), $OG(21n), $OG(22n), $OG(23n), $OG(24n), $OG(25n))
+  +esp = BA.lru_eq(~V, cap, TB.nth0($MGL, 3n), $M3, ST.w64($MGL, 4n), $W4, SP.snoc(~V, $ESG, $EN), SP.snoc(~V, $ES, $EN), SP.c_ins(ST.ctr($MGL)), SP.c_ins($CTR), $OG(3n), BA.w64_eq($MGL, $ML, 4n, $OG(4n), $OG(5n)), Equal.cong(List<&2, SP.Ent<V>>, List<&2, SP.Ent<V>>, z => SP.snoc(~V, z, $EN), $ESG, $ES, esg), Equal.cong(SP.Ctr, SP.Ctr, z => SP.c_ins(z), ST.ctr($MGL), $CTR, ec))
+  ok2 = L.subst(SP.Lru<V>, z => BS.CountOK(~V, z, $PS($TMF, $TKG, $TEG, $TLG)), $SPECG, $SPEC, esp, ok)
+  +G2 = MT.uget(5n, {==}, mT, pm, 2, {==})
+  +x1 = Equal.cong(Array<U32> & U32, LR.LRU<&2, V>, r => $GZ(r), Array.get(U32, AR.thaw(U32, mT), 2), (AR.thaw(U32, mT), $M2), G2)
+  +m1 = MT.uset_a(5n, {==}, mT, pm, 0, {==}, $A0)
+  +m2 = MT.uset_a(5n, {==}, $MA, q1, 1, {==}, $B0)
+  +m3 = MT.uset_a(5n, {==}, $MB, q2, 2, {==}, $C0)
+  +eM = Equal.trans(Array<U32>, $SS3, Array.set(U32, Array.set(U32, AR.thaw(U32, $MA), 1, $B0), 2, $C0), $TMF, Equal.cong(Array<U32>, Array<U32>, z => Array.set(U32, Array.set(U32, z, 1, $B0), 2, $C0), Array.set(U32, AR.thaw(U32, mT), 0, $A0), AR.thaw(U32, $MA), m1), Equal.trans(Array<U32>, Array.set(U32, Array.set(U32, AR.thaw(U32, $MA), 1, $B0), 2, $C0), Array.set(U32, AR.thaw(U32, $MB), 2, $C0), $TMF, Equal.cong(Array<U32>, Array<U32>, z => Array.set(U32, z, 2, $C0), Array.set(U32, AR.thaw(U32, $MA), 1, $B0), AR.thaw(U32, $MB), m2), m3))
+  +edp0 = N.eq_from_is_eq(UD.v($M2), sd, $GN(cdepth))
+  +eK = Equal.cong(Array<String>, Array<String>, a => ANode{AR.thaw(String, ksT), a}, Array.new(String, UD.v($M2), ""), AR.thaw(String, $RK), Equal.trans(Array<String>, Array.new(String, UD.v($M2), ""), Array.new(String, sd, ""), AR.thaw(String, $RK), Equal.cong(Nat, Array<String>, d => Array.new(String, d, ""), UD.v($M2), sd, edp0), AR.new(String, sd, "")))
+  +eE = Equal.cong(Array<Maybe<&2, V>>, Array<Maybe<&2, V>>, a => ANode{AR.thaw(Maybe<&2, V>, eT), a}, LR.vac(&2, V, UD.v($M2)), AR.thaw(Maybe<&2, V>, $RE), Equal.trans(Array<Maybe<&2, V>>, LR.vac(&2, V, UD.v($M2)), LR.vac(&2, V, sd), AR.thaw(Maybe<&2, V>, $RE), Equal.cong(Nat, Array<Maybe<&2, V>>, d => LR.vac(&2, V, d), UD.v($M2), sd, edp0), PR.vac_eq(~V, sd)))
+  +e3 = Equal.trans(Nat, Nat.add(UD.v($M2), 3n), Nat.add(sd, 3n), 3n+sd, Equal.cong(Nat, Nat, z => Nat.add(z, 3n), UD.v($M2), sd, edp0), N.add_comm(sd, 3n))
+  +eL = Equal.cong(Array<U32>, Array<U32>, a => ANode{AR.thaw(U32, lkT), a}, Array.new(U32, Nat.add(UD.v($M2), 3n), 0), AR.thaw(U32, $RL), Equal.trans(Array<U32>, Array.new(U32, Nat.add(UD.v($M2), 3n), 0), Array.new(U32, 3n+sd, 0), AR.thaw(U32, $RL), Equal.cong(Nat, Array<U32>, d => Array.new(U32, d, 0), Nat.add(UD.v($M2), 3n), 3n+sd, e3), AR.new(U32, 3n+sd, 0)))
+  +r1 = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => $PS(z, $K0, $E0, $L0), $SS3, $TMF, eM)
+  +r2 = Equal.cong(Array<String>, LR.LRU<&2, V>, z => $PS($TMF, z, $E0, $L0), $K0, $TKG, eK)
+  +r3 = Equal.cong(Array<Maybe<&2, V>>, LR.LRU<&2, V>, z => $PS($TMF, $TKG, z, $L0), $E0, $TEG, eE)
+  +r4 = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => $PS($TMF, $TKG, $TEG, z), $L0, $TLG, eL)
+  +ER = Equal.trans(LR.LRU<&2, V>, $FRM(AR.thaw(U32, mT), False{}), $PS($SS3, $K0, $E0, $L0), $PS($TMF, $TKG, $TEG, $TLG), x1, Equal.trans(LR.LRU<&2, V>, $PS($SS3, $K0, $E0, $L0), $PS($TMF, $K0, $E0, $L0), $PS($TMF, $TKG, $TEG, $TLG), r1, Equal.trans(LR.LRU<&2, V>, $PS($TMF, $K0, $E0, $L0), $PS($TMF, $TKG, $E0, $L0), $PS($TMF, $TKG, $TEG, $TLG), r2, Equal.trans(LR.LRU<&2, V>, $PS($TMF, $TKG, $E0, $L0), $PS($TMF, $TKG, $TEG, $L0), $PS($TMF, $TKG, $TEG, $TLG), r3, r4))))
+  L.subst(LR.LRU<&2, V>, z => BS.CountOK(~V, $SPEC, z), $PS($TMF, $TKG, $TEG, $TLG), $FRM(AR.thaw(U32, mT), False{}), Equal.sym(LR.LRU<&2, V>, $FRM(AR.thaw(U32, mT), False{}), $PS($TMF, $TKG, $TEG, $TLG), ER), ok2)
+
+# THEOREM (add, a full arena: it doubles and the fresh slot takes the entry)
+def ip_grow(~V: Data, $BASE, +free2: U32, +hf2: {U32.is_eq(free2, 0) == True{} : Bool}, +hfz: {U32.is_eq(free, 0) == True{} : Bool}, +hr: {U32.is_lt($M0, $M1) == False{} : Bool}) -> BS.CountOK(~V, $SPEC, $FRM(AR.thaw(U32, mT), False{})):
+  match fl:
+    case Nil{}:
+      igr_n(~V, $BASnA, free2, hf2, hr)
+    case Con{+s0, +tl}:
+      +hsd = RD.f_hsd(~V, $SHAn, Con{s0, tl}, hg)
+      +hf0 = L.and_left(Bool.and(Nat.is_lt(s0, $FR), Bool.not(ST.live(~V, $EL, s0))), ST.flok(~V, tl, $FR, $EL), $GC(cfl))
+      +hs0 = N.lt_le_trans(s0, $FR, SC.pow2(sd), L.and_left(Nat.is_lt(s0, $FR), Bool.not(ST.live(~V, $EL, s0)), hf0), $GC(cfresh))
+      +ef = A.eq_of(free, ST.lnk(s0), $GC(cfree))
+      +hz0 = L.subst(U32, z => {U32.is_eq(z, 0) == True{} : Bool}, free, ST.lnk(s0), ef, hfz)
+      Empty.absurd(BS.CountOK(~V, $SPEC, $FRM(AR.thaw(U32, mT), False{})), L.false_true(Equal.trans(Bool, False{}, U32.is_eq(ST.lnk(s0), 0), True{}, Equal.sym(Bool, U32.is_eq(ST.lnk(s0), 0), False{}, UL.lnk_nz(one, h1, s0, sd, hsd, hs0)), hz0)))

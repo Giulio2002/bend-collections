@@ -1,0 +1,126 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/array.bend as AR
+import ../spec/common.bend as SC
+import ../spec/doubly_linked_list.bend as S
+import ../math/u32div.bend as UD
+import ../../src/containers/doubly_linked_list.bend as D
+import ../../src/containers/types/doubly_linked_list.bend as E
+import ./state.bend as ST
+import ./ok.bend as OK
+import ./valid.bend as VD
+import ./step.bend as SP
+import ./trace.bend as TR
+import ./direct.bend as DR
+import ../../src/containers/internal/dlist_storage.bend as R
+
+# The public list's API on a good shadow: every direct operation returns the
+# projection of the specification's step, and the new state is good.
+
+%def MT Maybe<&2, T>
+%def OB E.Obs<T>
+%def TR(x) {x == True{} : Bool}
+%def RS ST.real(~T, sh)
+%def MS ST.model(~T, sh)
+%def STEP(op) OK.POK(~T, $OB, S.step(T, $MS, op), D.step(~T, $RS, op))
+%def FL tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl
+%def FP +tag, +cap, +fresh, +free, +head, +tail, +depth, +vT, +pT, +nT, +gT, +sl, +fl
+
+# the direct result r and the specification's step agree through P
+def DOK(~T: Data, -Y: Data, -P: @r: D.DList<T> & $OB -> D.DList<T> & Y, -x: D.DList<T> & Y, -spec: S.DS<T> & $OB) -> Type:
+  Sigma<&1, &1, ST.Sh<T>, sh2 => Sigma<&1, &1, $OB, o => {x == P((ST.real(~T, sh2), o)) : D.DList<T> & Y} & ({spec == (ST.model(~T, sh2), o) : S.DS<T> & $OB} & $TR(ST.good(~T, sh2)))>>
+
+def dok(~T: Data, -Y: Data, -P: @r: D.DList<T> & $OB -> D.DList<T> & Y, -x: D.DList<T> & Y, -spec: S.DS<T> & $OB, -r: D.DList<T> & $OB, +dx: {x == P(r) : D.DList<T> & Y}, p: OK.POK(~T, $OB, spec, r)) -> DOK(~T, Y, P, x, spec):
+  match p:
+    case Tuple{+sh2, Tuple{+o, Tuple{+er, Tuple{+es, hg2}}}}:
+      (sh2, (o, (Equal.trans(D.DList<T> & Y, x, P(r), P((ST.real(~T, sh2), o)), dx, Equal.cong(D.DList<T> & $OB, D.DList<T> & Y, z => P(z), r, (ST.real(~T, sh2), o), er)), (es, hg2))))
+
+%def SP0 +one: Nat, +h1: {one == 1n : Nat}, +sh: ST.Sh<T>, +hg: $TR(ST.good(~T, sh))
+%def SPR +one: Nat, +h1: {one == 1n : Nat}, +cz: Nat, +hcz: {cz == 29n : Nat}, +sh: ST.Sh<T>, +hg: $TR(ST.good(~T, sh)), +hr: $TR(TR.room(T, $MS, cz))
+
+# ---- steps without allocation ----
+
+def get_sh(~T: Data, $SP0, +h: E.Handle) -> $STEP(E.Get{h}):
+  match sh:
+    case ST.LS{$FP}:
+      SP.get_h(~T, one, h1, $FL, hg, h)
+
+def set_sh(~T: Data, $SP0, +h: E.Handle, +x: T) -> $STEP(E.Set{h, x}):
+  match sh:
+    case ST.LS{$FP}:
+      SP.set_h(~T, one, h1, $FL, hg, h, x)
+
+def next_sh(~T: Data, $SP0, +h: E.Handle) -> $STEP(E.Next{h}):
+  match sh:
+    case ST.LS{$FP}:
+      SP.next_h(~T, one, h1, $FL, hg, h)
+
+def prev_sh(~T: Data, $SP0, +h: E.Handle) -> $STEP(E.Prev{h}):
+  match sh:
+    case ST.LS{$FP}:
+      SP.prev_h(~T, one, h1, $FL, hg, h)
+
+def remove_sh(~T: Data, $SP0, +h: E.Handle) -> $STEP(E.Remove{h}):
+  match sh:
+    case ST.LS{$FP}:
+      SP.remove_h(~T, one, h1, $FL, hg, h)
+
+# ---- the direct operations ----
+
+%def VR(Y) Result<&2, &2, E.Error, Y>
+%def VRN Result<&2, &2, E.Error, Maybe<&2, E.Handle>>
+
+def get_ok(~T: Data, $SP0, +h: E.Handle) -> DOK(~T, $VR(T), r => D.project_value(~T, r), D.get(~T, $RS, h), S.step(T, $MS, E.Get{h})):
+  dok(~T, $VR(T), r => D.project_value(~T, r), D.get(~T, $RS, h), S.step(T, $MS, E.Get{h}), D.step(~T, $RS, E.Get{h}), DR.get_step(~T, $RS, h), get_sh(~T, one, h1, sh, hg, h))
+
+def set_ok(~T: Data, $SP0, +h: E.Handle, +x: T) -> DOK(~T, $VR(Unit), r => D.project_unit(~T, r), D.set(~T, $RS, h, x), S.step(T, $MS, E.Set{h, x})):
+  dok(~T, $VR(Unit), r => D.project_unit(~T, r), D.set(~T, $RS, h, x), S.step(T, $MS, E.Set{h, x}), D.step(~T, $RS, E.Set{h, x}), DR.set_step(~T, $RS, h, x), set_sh(~T, one, h1, sh, hg, h, x))
+
+def remove_ok(~T: Data, $SP0, +h: E.Handle) -> DOK(~T, $VR(T), r => D.project_value(~T, r), D.remove(~T, $RS, h), S.step(T, $MS, E.Remove{h})):
+  dok(~T, $VR(T), r => D.project_value(~T, r), D.remove(~T, $RS, h), S.step(T, $MS, E.Remove{h}), D.step(~T, $RS, E.Remove{h}), DR.remove_step(~T, $RS, h), remove_sh(~T, one, h1, sh, hg, h))
+
+def next_ok(~T: Data, $SP0, +h: E.Handle) -> DOK(~T, $VRN, r => D.project_neighbour(~T, r), D.next(~T, $RS, h), S.step(T, $MS, E.Next{h})):
+  dok(~T, $VRN, r => D.project_neighbour(~T, r), D.next(~T, $RS, h), S.step(T, $MS, E.Next{h}), D.step(~T, $RS, E.Next{h}), DR.next_step(~T, $RS, h), next_sh(~T, one, h1, sh, hg, h))
+
+def prev_ok(~T: Data, $SP0, +h: E.Handle) -> DOK(~T, $VRN, r => D.project_neighbour(~T, r), D.prev(~T, $RS, h), S.step(T, $MS, E.Prev{h})):
+  dok(~T, $VRN, r => D.project_neighbour(~T, r), D.prev(~T, $RS, h), S.step(T, $MS, E.Prev{h}), D.step(~T, $RS, E.Prev{h}), DR.prev_step(~T, $RS, h), prev_sh(~T, one, h1, sh, hg, h))
+
+def before_ok(~T: Data, $SPR, +h: E.Handle, +x: T) -> DOK(~T, $VR(E.Handle), r => D.project_insert(~T, r), D.insert_before(~T, $RS, h, x), S.step(T, $MS, E.InsertBefore{h, x})):
+  dok(~T, $VR(E.Handle), r => D.project_insert(~T, r), D.insert_before(~T, $RS, h, x), S.step(T, $MS, E.InsertBefore{h, x}), D.step(~T, $RS, E.InsertBefore{h, x}), DR.before_step(~T, $RS, h, x), TR.step_sh(~T, one, h1, cz, hcz, sh, hg, hr, E.InsertBefore{h, x}))
+
+def after_ok(~T: Data, $SPR, +h: E.Handle, +x: T) -> DOK(~T, $VR(E.Handle), r => D.project_insert(~T, r), D.insert_after(~T, $RS, h, x), S.step(T, $MS, E.InsertAfter{h, x})):
+  dok(~T, $VR(E.Handle), r => D.project_insert(~T, r), D.insert_after(~T, $RS, h, x), S.step(T, $MS, E.InsertAfter{h, x}), D.step(~T, $RS, E.InsertAfter{h, x}), DR.after_step(~T, $RS, h, x), TR.step_sh(~T, one, h1, cz, hcz, sh, hg, hr, E.InsertAfter{h, x}))
+
+def front_ok(~T: Data, $SPR, +x: T) -> OK.POK(~T, E.Handle, S.push_front(T, $MS, x), D.push_front(~T, $RS, x)):
+  match sh:
+    case ST.LS{$FP}:
+      +el = VD.len_vlf(~T, $FL, hg, 0, 0, 0)
+      +hroom = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(cz)) == True{} : Bool}, SC.length($MT, SC.take($MT, AR.slots($MT, vT), UD.v(fresh))), UD.v(fresh), el, hr)
+      SP.front_h(~T, one, h1, cz, hcz, $FL, hg, hroom, x)
+
+def back_ok(~T: Data, $SPR, +x: T) -> OK.POK(~T, E.Handle, S.push_back(T, $MS, x), D.push_back(~T, $RS, x)):
+  match sh:
+    case ST.LS{$FP}:
+      +el = VD.len_vlf(~T, $FL, hg, 0, 0, 0)
+      +hroom = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(cz)) == True{} : Bool}, SC.length($MT, SC.take($MT, AR.slots($MT, vT), UD.v(fresh))), UD.v(fresh), el, hr)
+      SP.back_h(~T, one, h1, cz, hcz, $FL, hg, hroom, x)
+
+def length_ok(~T: Data, +sh: ST.Sh<T>) -> {D.length(~T, $RS) == ($RS, S.len_of(T, $MS)) : D.DList<T> & Nat}:
+  match sh:
+    case ST.LS{$FP}:
+      {==}
+
+def to_list_ok(~T: Data, $SP0) -> {D.to_list(~T, $RS) == ($RS, S.list_of(T, $MS)) : D.DList<T> & List<&2, T>}:
+  match sh:
+    case ST.LS{$FP}:
+      +e1 = Equal.cong(R.DList<T> & List<&2, T>, D.DList<T> & List<&2, T>, r => D.to_list_direct_result(~T, tag, depth, cap, AR.thaw(U32, gT), r), R.to_list(~T, R.DL{tag, fresh, free, SC.length(Nat, sl), head, tail, depth, cap, AR.thaw($MT, vT), AR.thaw(U32, pT), AR.thaw(U32, nT)}), (R.DL{tag, fresh, free, SC.length(Nat, sl), head, tail, depth, cap, AR.thaw($MT, vT), AR.thaw(U32, pT), AR.thaw(U32, nT)}, S.values(T, AR.slots($MT, vT), sl)), SP.raw_list(~T, one, h1, $FL, hg))
+      +e2 = Equal.cong(List<&2, T>, D.DList<T> & List<&2, T>, z => (ST.real(~T, ST.LS{$FL}), z), S.values(T, AR.slots($MT, vT), sl), S.list_of(T, ST.model(~T, ST.LS{$FL})), Equal.sym(List<&2, T>, S.list_of(T, ST.model(~T, ST.LS{$FL})), S.values(T, AR.slots($MT, vT), sl), SP.spec_list(~T, one, h1, $FL, hg)))
+      Equal.trans(D.DList<T> & List<&2, T>, D.to_list(~T, ST.real(~T, ST.LS{$FL})), (ST.real(~T, ST.LS{$FL}), S.values(T, AR.slots($MT, vT), sl)), (ST.real(~T, ST.LS{$FL}), S.list_of(T, ST.model(~T, ST.LS{$FL}))), e1, e2)
+
+%def OL List<&2, E.Obs<T>>
+
+# a refined trace observes what the specification does
+def obs_eq(~T: Data, +ops: List<&2, E.Op<T>>, +sh: ST.Sh<T>, t: TR.TraceOK(~T, ops, sh)) -> {Pair.snd(D.DList<T>, $OL, D.run(~T, ops, $RS)) == Pair.snd(S.DS<T>, $OL, S.run(T, ops, $MS)) : $OL}:
+  match t:
+    case Tuple{+sh2, Tuple{+os, Tuple{+er, Tuple{+es, hg2}}}}:
+      Equal.trans($OL, Pair.snd(D.DList<T>, $OL, D.run(~T, ops, $RS)), os, Pair.snd(S.DS<T>, $OL, S.run(T, ops, $MS)), Equal.cong(D.DList<T> & $OL, $OL, r => Pair.snd(D.DList<T>, $OL, r), D.run(~T, ops, $RS), (ST.real(~T, sh2), os), er), Equal.sym($OL, Pair.snd(S.DS<T>, $OL, S.run(T, ops, $MS)), os, Equal.cong(S.DS<T> & $OL, $OL, r => Pair.snd(S.DS<T>, $OL, r), S.run(T, ops, $MS), (ST.model(~T, sh2), os), es)))

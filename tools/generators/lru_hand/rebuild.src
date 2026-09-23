@@ -1,0 +1,115 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/array.bend as AR
+import ../spec/common.bend as SC
+import ../spec/hash_table.bend as S
+import ../spec/lru.bend as SP
+import ../math/u32div.bend as UD
+import ../hash_table/table.bend as TB
+import ../hash_table/buckets.bend as B
+import ../hash_table/state.bend as HT
+import ../../src/containers/hash_table.bend as H
+import ./state.bend as ST
+import ./lists.bend as LS
+import ./dll.bend as DL
+import ./trace.bend as TR
+import ./unlink.bend as UL
+import ../hash_table/insf.bend as IF
+
+# Rebuilding the invariant after an operation that only re-links the
+# recency list: it permutes the listed slots and writes link words.
+
+%def M0 TB.nth0(AR.slots(U32, mT), 0n)
+%def M1 TB.nth0(AR.slots(U32, mT), 1n)
+%def M2 TB.nth0(AR.slots(U32, mT), 2n)
+%def M6 TB.nth0(AR.slots(U32, mT), 6n)
+%def M7 TB.nth0(AR.slots(U32, mT), 7n)
+%def PM AR.perfect(U32, 5n, mT)
+%def KL AR.slots(String, ksT)
+%def PK AR.perfect(String, sd, ksT)
+%def GA cap, n, head, tail, free, $M0, $M1, $M2, $M6, $M7, $PM, k, sd, tabT, $KL, $PK, eT, lkT, sl, fl
+%def GB cap, n, head2, tail2, free, $M0, $M1, $M2, $M6, $M7, $PM, k, sd, tabT, $KL, $PK, eT, lkT2, sl2, fl
+%def SH ST.LS{cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl}
+%def SH2 ST.LS{cap, n, head2, tail2, free, mT, k, sd, tabT, ksT, eT, lkT2, sl2, fl}
+%def BS TB.buckets(AR.slots(U32, tabT), $KL, SC.pow2(k))
+%def LL AR.slots(U32, lkT)
+%def LL2 AR.slots(U32, lkT2)
+%def EL AR.slots(Maybe<&2, V>, eT)
+%def FR UD.v($M0)
+%def APN(a, b) SC.append(Nat, a, b)
+
+# ---- sub-lists ----
+
+def subl_refl(+xs: List<&2, Nat>) -> {IF.subl(xs, xs) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      L.and_intro(HT.memn(x, Con{x, t}), IF.subl(t, Con{x, t}), UL.self_in(x, t), IF.subl_cons(t, t, x, subl_refl(t)))
+
+def subl_ml(+xs: List<&2, Nat>, +a: List<&2, Nat>, +b: List<&2, Nat>, +h: {IF.subl(xs, a) == True{} : Bool}) -> {IF.subl(xs, $APN(a, b)) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      L.and_intro(HT.memn(x, $APN(a, b)), IF.subl(t, $APN(a, b)), LS.mem_app_l(x, a, b, L.and_left(HT.memn(x, a), IF.subl(t, a), h)), subl_ml(t, a, b, L.and_right(HT.memn(x, a), IF.subl(t, a), h)))
+
+def subl_mr(+xs: List<&2, Nat>, +a: List<&2, Nat>, +b: List<&2, Nat>, +h: {IF.subl(xs, b) == True{} : Bool}) -> {IF.subl(xs, $APN(a, b)) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      L.and_intro(HT.memn(x, $APN(a, b)), IF.subl(t, $APN(a, b)), LS.mem_app_r(x, a, b, L.and_left(HT.memn(x, b), IF.subl(t, b), h)), subl_mr(t, a, b, L.and_right(HT.memn(x, b), IF.subl(t, b), h)))
+
+def subl_app(+a: List<&2, Nat>, +b: List<&2, Nat>, +ys: List<&2, Nat>, +ha: {IF.subl(a, ys) == True{} : Bool}, +hb: {IF.subl(b, ys) == True{} : Bool}) -> {IF.subl($APN(a, b), ys) == True{} : Bool}:
+  match a:
+    case Nil{}:
+      hb
+    case Con{+x, +t}:
+      L.and_intro(HT.memn(x, ys), IF.subl($APN(t, b), ys), L.and_left(HT.memn(x, ys), IF.subl(t, ys), ha), subl_app(t, b, ys, L.and_right(HT.memn(x, ys), IF.subl(t, ys), ha), hb))
+
+# ---- predicates over a sub-list ----
+
+def sall_sub(~V: Data, +p: ST.SP1<V>, +xs: List<&2, Nat>, +ys: List<&2, Nat>, +h: {ST.sall(~V, p, xs) == True{} : Bool}, +sub: {IF.subl(ys, xs) == True{} : Bool}) -> {ST.sall(~V, p, ys) == True{} : Bool}:
+  match ys:
+    case Nil{}:
+      {==}
+    case Con{+y, +t}:
+      L.and_intro(ST.sev(~V, p, y), ST.sall(~V, p, t), LS.sall_mem(~V, p, y, xs, h, L.and_left(HT.memn(y, xs), IF.subl(t, xs), sub)), sall_sub(~V, p, xs, t, h, L.and_right(HT.memn(y, xs), IF.subl(t, xs), sub)))
+
+def bslb_sub(+sl: List<&2, Nat>, +sl2: List<&2, Nat>, +ll: List<&2, U32>, +b: B.Bk, +h: {ST.bslb(sl, ll, b) == True{} : Bool}, +sub: {IF.subl(sl, sl2) == True{} : Bool}) -> {ST.bslb(sl2, ll, b) == True{} : Bool}:
+  match b:
+    case B.BE{}:
+      {==}
+    case B.BF{+w, +l, +k}:
+      L.and_intro(HT.memn(UD.v(H.slot(l)), sl2), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), IF.memn_sub(UD.v(H.slot(l)), sl, sl2, sub, L.and_left(HT.memn(UD.v(H.slot(l)), sl), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), h)), L.and_right(HT.memn(UD.v(H.slot(l)), sl), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), h))
+
+def bsl_sub(+bs: List<&2, B.Bk>, +sl: List<&2, Nat>, +sl2: List<&2, Nat>, +ll: List<&2, U32>, +m: Nat, +h: {ST.bsl(bs, sl, ll, m) == True{} : Bool}, +sub: {IF.subl(sl, sl2) == True{} : Bool}) -> {ST.bsl(bs, sl2, ll, m) == True{} : Bool}:
+  match m:
+    case 0n:
+      {==}
+    case 1n+j:
+      L.and_intro(ST.bslb(sl2, ll, B.at(bs, j)), ST.bsl(bs, sl2, ll, j), bslb_sub(sl, sl2, ll, B.at(bs, j), L.and_left(ST.bslb(sl, ll, B.at(bs, j)), ST.bsl(bs, sl, ll, j), h), sub), bsl_sub(bs, sl, sl2, ll, j, L.and_right(ST.bslb(sl, ll, B.at(bs, j)), ST.bsl(bs, sl, ll, j), h), sub))
+
+def tr_eq_bool(+a: Bool, +b: Bool, +e: {a == b : Bool}, +h: {b == True{} : Bool}) -> {a == True{} : Bool}:
+  Equal.trans(Bool, a, b, True{}, e, h)
+
+%def G(c) ST.g_$c(~V, $GA, hg)
+%def TOLL2(motive, pf) L.subst(List<&2, U32>, z => {motive == True{} : Bool}, TR.app($LL, tr), $LL2, Equal.sym(List<&2, U32>, $LL2, TR.app($LL, tr), hs2), pf)
+%def NN SC.pow2(k)
+
+# THEOREM: re-linking the recency list (a permutation sl2 of sl, link-word
+# writes to its slots) keeps the invariant.
+def good_lk(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +mT: AR.Tree<U32>, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, $SH) == True{} : Bool}, +head2: U32, +tail2: U32, +lkT2: AR.Tree<U32>, +sl2: List<&2, Nat>, +tr: TR.Tr, +hp2: {AR.perfect(U32, 3n+sd, lkT2) == True{} : Bool}, +hs2: {$LL2 == TR.app($LL, tr) : List<&2, U32>}, +hlo: {TR.trlo(tr) == True{} : Bool}, +hin: {TR.trin(tr, sl2) == True{} : Bool}, +hseg: {ST.seg($LL2, sl2, 0, 0) == True{} : Bool}, +hh: {U32.is_eq(head2, ST.fst_or(sl2, 0)) == True{} : Bool}, +ht: {U32.is_eq(tail2, ST.last_or(sl2, 0)) == True{} : Bool}, +hsub: {IF.subl(sl, sl2) == True{} : Bool}, +hsub2: {IF.subl(sl2, sl) == True{} : Bool}, +hnd: {ST.nodupn(sl2) == True{} : Bool}, +hlen: {SC.length(Nat, sl2) == SC.length(Nat, sl) : Nat}, +hkeys: {S.nodup(SP.keys_of(~V, ST.es(~V, $LL, $KL, $EL, sl2))) == True{} : Bool}) -> {ST.good(~V, $SH2) == True{} : Bool}:
+  +bsl0 = bsl_sub($BS, sl, sl2, $LL, $NN, $G(cbsl), hsub)
+  +bsl1 = $TOLL2(ST.bsl($BS, sl2, z, $NN), tr_eq_bool(ST.bsl($BS, sl2, TR.app($LL, tr), $NN), ST.bsl($BS, sl2, $LL, $NN), TR.bsl_tr($LL, tr, hlo, $BS, sl2, $NN), bsl0))
+  +has0 = sall_sub(~V, ST.PHas{$BS, $NN, $LL}, sl, sl2, $G(chas), hsub2)
+  +has1 = $TOLL2(ST.hasall(~V, $BS, $NN, z, sl2), tr_eq_bool(ST.hasall(~V, $BS, $NN, TR.app($LL, tr), sl2), ST.hasall(~V, $BS, $NN, $LL, sl2), TR.has_tr(~V, $LL, tr, hlo, $BS, $NN, sl2), has0))
+  +csl2 = sall_sub(~V, ST.PLive{$FR, $EL}, sl, sl2, $G(csl), hsub2)
+  +clen2 = L.subst(Nat, z => {Nat.is_eq(z, UD.v(n)) == True{} : Bool}, SC.length(Nat, sl), SC.length(Nat, sl2), Equal.sym(Nat, SC.length(Nat, sl2), SC.length(Nat, sl), hlen), $G(clen))
+  +keys2 = $TOLL2(S.nodup(SP.keys_of(~V, ST.es(~V, z, $KL, $EL, sl2))), L.subst(List<&2, SP.Ent<V>>, z => {S.nodup(SP.keys_of(~V, z)) == True{} : Bool}, ST.es(~V, $LL, $KL, $EL, sl2), ST.es(~V, TR.app($LL, tr), $KL, $EL, sl2), Equal.sym(List<&2, SP.Ent<V>>, ST.es(~V, TR.app($LL, tr), $KL, $EL, sl2), ST.es(~V, $LL, $KL, $EL, sl2), TR.es_tr(~V, $LL, tr, hlo, $KL, $EL, sl2)), hkeys))
+  +out = TR.out_of_in(~V, tr, sl2, fl, $FR, $EL, hin, csl2, $G(cfl))
+  +fll2 = $TOLL2(ST.fll(z, fl), tr_eq_bool(ST.fll(TR.app($LL, tr), fl), ST.fll($LL, fl), TR.fll_tr($LL, tr, hlo, fl, out), $G(cfll)))
+  +cnt2 = L.subst(Nat, z => {Nat.is_eq(Nat.add(z, SC.length(Nat, fl)), $FR) == True{} : Bool}, SC.length(Nat, sl), SC.length(Nat, sl2), Equal.sym(Nat, SC.length(Nat, sl2), SC.length(Nat, sl), hlen), $G(cfcnt))
+  ST.good_intro(~V, $GB, $G(ck), $G(csdk), $G(cpt), $G(cpk), $G(cpe), hp2, $G(cpm), $G(cmask), $G(cbits), $G(csize), $G(cdepth), $G(cfresh), $G(cwell), $G(cclus), $G(cuniq), $G(cn), $G(cload), $G(ccap), bsl1, has1, csl2, hnd, clen2, hh, ht, hseg, keys2, $G(cfree), fll2, $G(cfl), $G(cfnd), cnt2)

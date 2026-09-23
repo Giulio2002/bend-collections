@@ -1,0 +1,125 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/array.bend as AR
+import ../lib/list.bend as LL
+import ../spec/common.bend as SC
+import ../spec/doubly_linked_list.bend as S
+import ../math/u32div.bend as UD
+import ../hash_table/state.bend as HT
+import ../hash_table/table.bend as TB
+import ../lru/state.bend as LST
+import ../lru/meta.bend as MT
+import ../lru/lists.bend as LS
+import ../lru/dll.bend as DL
+import ./state.bend as ST
+import ./links.bend as LK
+import ./rel.bend as RL
+import ./vals.bend as VA
+import ./lv.bend as LV
+
+# The invariant after an id is linked in (the ready state: after any growth
+# or free-stack pop, before the link).
+
+%def APN(a, b) SC.append(Nat, a, b)
+%def MT Maybe<&2, T>
+%def PP LST.last_or(a, 0)
+%def QQ LST.fst_or(b, 0)
+%def VL AR.slots($MT, vT)
+%def PL AR.slots(U32, pT)
+%def NL AR.slots(U32, nT)
+%def GL AR.slots(U32, gT)
+%def FR UD.v(fr)
+%def SL2 $APN(a, Con{nn, b})
+%def VT2 AR.upd($MT, d, vT, nn, Some{x})
+%def PM AR.upd(U32, d, pT, nn, $PP)
+%def NM AR.upd(U32, d, nT, nn, $QQ)
+%def PT2 RL.tu_first(d, $PM, b, LST.lnk(nn))
+%def NT2 RL.tu_last(d, $NM, a, LST.lnk(nn))
+%def TR(x) {x == True{} : Bool}
+
+# nn off a ++ b is off a and off b
+def off_l(+nn: Nat, +a: List<&2, Nat>, +b: List<&2, Nat>, +h: {HT.memn(nn, $APN(a, b)) == False{} : Bool}) -> {HT.memn(nn, a) == False{} : Bool}:
+  DL.or_ff_l(HT.memn(nn, a), HT.memn(nn, b), L.subst(Bool, z => {z == False{} : Bool}, HT.memn(nn, $APN(a, b)), Bool.or(HT.memn(nn, a), HT.memn(nn, b)), LS.memn_app(nn, a, b), h))
+
+def off_r(+nn: Nat, +a: List<&2, Nat>, +b: List<&2, Nat>, +h: {HT.memn(nn, $APN(a, b)) == False{} : Bool}) -> {HT.memn(nn, b) == False{} : Bool}:
+  DL.or_ff_r(HT.memn(nn, a), HT.memn(nn, b), L.subst(Bool, z => {z == False{} : Bool}, HT.memn(nn, $APN(a, b)), Bool.or(HT.memn(nn, a), HT.memn(nn, b)), LS.memn_app(nn, a, b), h))
+
+def len_is(-X: Data, +xs: List<&2, X>, +m: Nat, +e: {SC.length(X, xs) == m : Nat}, +i: Nat, +h: {Nat.is_lt(i, m) == True{} : Bool}) -> {Nat.is_lt(i, SC.length(X, xs)) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_lt(i, z) == True{} : Bool}, m, SC.length(X, xs), Equal.sym(Nat, SC.length(X, xs), m, e), h)
+
+def fst_len(+b: List<&2, Nat>, +xs: List<&2, U32>, +m: Nat, +e: {SC.length(U32, xs) == m : Nat}, +h: {RL.fstlt(b, m) == True{} : Bool}) -> {RL.fstlt(b, SC.length(U32, xs)) == True{} : Bool}:
+  L.subst(Nat, z => {RL.fstlt(b, z) == True{} : Bool}, m, SC.length(U32, xs), Equal.sym(Nat, SC.length(U32, xs), m, e), h)
+
+def last_len(+a: List<&2, Nat>, +xs: List<&2, U32>, +m: Nat, +e: {SC.length(U32, xs) == m : Nat}, +h: {RL.lastlt(a, m) == True{} : Bool}) -> {RL.lastlt(a, SC.length(U32, xs)) == True{} : Bool}:
+  L.subst(Nat, z => {RL.lastlt(a, z) == True{} : Bool}, m, SC.length(U32, xs), Equal.sym(Nat, SC.length(U32, xs), m, e), h)
+
+%def IP +one: Nat, +h1: {one == 1n : Nat}, +tag: U32, +cap: U32, +fr: U32, +free: U32, +d: Nat, +vT: AR.Tree<$MT>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +a: List<&2, Nat>, +b: List<&2, Nat>, +fl: List<&2, Nat>, +nn: Nat, +x: T, +hd: $TR(Nat.is_lt(d, 30n)), +hcap: $TR(Nat.is_eq(UD.v(cap), SC.pow2(d))), +pv: $TR(AR.perfect($MT, d, vT)), +pp: $TR(AR.perfect(U32, d, pT)), +pn: $TR(AR.perfect(U32, d, nT)), +pg: $TR(AR.perfect(U32, d, gT)), +hfr: $TR(Nat.is_le($FR, UD.v(cap))), +hnf: $TR(Nat.is_lt(nn, $FR)), +hs: $TR(ST.seg($PL, $NL, $APN(a, b), 0, 0)), +hnd: $TR(LST.nodupn($APN(a, b))), +hns: {HT.memn(nn, $APN(a, b)) == False{} : Bool}, +hsl: $TR(ST.slok(~T, $APN(a, b), $FR, $VL)), +hfree: $TR(U32.is_eq(free, LST.fst_or(fl, 0))), +hfll: $TR(ST.fll($NL, fl)), +hfl: $TR(ST.flok(~T, fl, $FR, $VL)), +hfnd: $TR(LST.nodupn(fl)), +hnfl: {HT.memn(nn, fl) == False{} : Bool}, +hgz: $TR(ST.gz($GL, $FR)), +hlv: $TR(ST.lvin(~T, $VL, 0n, $APN(a, b)))
+%def GF ST.goodF(~T, tag, cap, fr, free, LST.fst_or($SL2, 0), LST.last_or($SL2, 0), d, $VT2, $PT2, $NT2, gT, $SL2, fl)
+
+# the links of the new lists, from the list-level theorem
+def ig_seg(~T: Data, $IP) -> $TR(ST.seg(AR.slots(U32, $PT2), AR.slots(U32, $NT2), $SL2, 0, 0)):
+  +e2d = N.eq_from_is_eq(UD.v(cap), SC.pow2(d), hcap)
+  +hfr2 = L.subst(Nat, z => {Nat.is_le($FR, z) == True{} : Bool}, UD.v(cap), SC.pow2(d), e2d, hfr)
+  +hn = N.lt_le_trans(nn, $FR, SC.pow2(d), hnf, hfr2)
+  +hsp = RL.to_eq(ST.slok(~T, $APN(a, b), $FR, $VL), Bool.and(ST.slok(~T, a, $FR, $VL), ST.slok(~T, b, $FR, $VL)), RL.slok_app(~T, a, b, $FR, $VL), hsl)
+  +hfb = RL.fstlt_of(~T, b, $FR, $VL, SC.pow2(d), hfr2, L.and_right(ST.slok(~T, a, $FR, $VL), ST.slok(~T, b, $FR, $VL), hsp))
+  +hla = RL.lastlt_of(~T, a, $FR, $VL, SC.pow2(d), hfr2, L.and_left(ST.slok(~T, a, $FR, $VL), ST.slok(~T, b, $FR, $VL), hsp))
+  +lp = AR.slots_length(U32, d, pT, pp)
+  +ln = AR.slots_length(U32, d, nT, pn)
+  +lpm = Equal.trans(Nat, SC.length(U32, SC.update(U32, $PL, nn, $PP)), SC.length(U32, $PL), SC.pow2(d), LL.length_update(U32, $PL, nn, $PP), lp)
+  +lnm = Equal.trans(Nat, SC.length(U32, SC.update(U32, $NL, nn, $QQ)), SC.length(U32, $NL), SC.pow2(d), LL.length_update(U32, $NL, nn, $QQ), ln)
+  +hl = RL.ins_seg($PL, $NL, a, b, nn, hs, hnd, off_l(nn, a, b, hns), off_r(nn, a, b, hns), len_is(U32, $PL, SC.pow2(d), lp, nn, hn), len_is(U32, $NL, SC.pow2(d), ln, nn, hn), fst_len(b, SC.update(U32, $PL, nn, $PP), SC.pow2(d), lpm, hfb), last_len(a, SC.update(U32, $NL, nn, $QQ), SC.pow2(d), lnm, hla))
+  +esp = Equal.trans(List<&2, U32>, AR.slots(U32, $PT2), RL.upd_first(AR.slots(U32, $PM), b, LST.lnk(nn)), RL.upd_first(SC.update(U32, $PL, nn, $PP), b, LST.lnk(nn)), RL.tf_s(d, $PM, MT.uset_p(d, pT, pp, nn, $PP), b, hfb, LST.lnk(nn)), Equal.cong(List<&2, U32>, List<&2, U32>, z => RL.upd_first(z, b, LST.lnk(nn)), AR.slots(U32, $PM), SC.update(U32, $PL, nn, $PP), MT.uset_s(d, pT, pp, nn, hn, $PP)))
+  +esn = Equal.trans(List<&2, U32>, AR.slots(U32, $NT2), RL.upd_last(AR.slots(U32, $NM), a, LST.lnk(nn)), RL.upd_last(SC.update(U32, $NL, nn, $QQ), a, LST.lnk(nn)), RL.tl_s(d, $NM, MT.uset_p(d, nT, pn, nn, $QQ), a, hla, LST.lnk(nn)), Equal.cong(List<&2, U32>, List<&2, U32>, z => RL.upd_last(z, a, LST.lnk(nn)), AR.slots(U32, $NM), SC.update(U32, $NL, nn, $QQ), MT.uset_s(d, nT, pn, nn, hn, $QQ)))
+  +h2 = L.subst(List<&2, U32>, z => {ST.seg(z, RL.upd_last(SC.update(U32, $NL, nn, $QQ), a, LST.lnk(nn)), $SL2, 0, 0) == True{} : Bool}, RL.upd_first(SC.update(U32, $PL, nn, $PP), b, LST.lnk(nn)), AR.slots(U32, $PT2), Equal.sym(List<&2, U32>, AR.slots(U32, $PT2), RL.upd_first(SC.update(U32, $PL, nn, $PP), b, LST.lnk(nn)), esp), hl)
+  L.subst(List<&2, U32>, z => {ST.seg(AR.slots(U32, $PT2), z, $SL2, 0, 0) == True{} : Bool}, RL.upd_last(SC.update(U32, $NL, nn, $QQ), a, LST.lnk(nn)), AR.slots(U32, $NT2), Equal.sym(List<&2, U32>, AR.slots(U32, $NT2), RL.upd_last(SC.update(U32, $NL, nn, $QQ), a, LST.lnk(nn)), esn), h2)
+
+%def IA one, h1, tag, cap, fr, free, d, vT, pT, nT, gT, a, b, fl, nn, x, hd, hcap, pv, pp, pn, pg, hfr, hnf, hs, hnd, hns, hsl, hfree, hfll, hfl, hfnd, hnfl, hgz, hlv
+%def VL2 SC.update($MT, $VL, nn, Some{x})
+
+# the free stack is off the writes
+def ig_fll(~T: Data, $IP) -> $TR(ST.fll(AR.slots(U32, $NT2), fl)):
+  +e2d = N.eq_from_is_eq(UD.v(cap), SC.pow2(d), hcap)
+  +hfr2 = L.subst(Nat, z => {Nat.is_le($FR, z) == True{} : Bool}, UD.v(cap), SC.pow2(d), e2d, hfr)
+  +hn = N.lt_le_trans(nn, $FR, SC.pow2(d), hnf, hfr2)
+  +hsp = RL.to_eq(ST.slok(~T, $APN(a, b), $FR, $VL), Bool.and(ST.slok(~T, a, $FR, $VL), ST.slok(~T, b, $FR, $VL)), RL.slok_app(~T, a, b, $FR, $VL), hsl)
+  +hla = RL.lastlt_of(~T, a, $FR, $VL, SC.pow2(d), hfr2, L.and_left(ST.slok(~T, a, $FR, $VL), ST.slok(~T, b, $FR, $VL), hsp))
+  +esn = Equal.trans(List<&2, U32>, AR.slots(U32, $NT2), RL.upd_last(AR.slots(U32, $NM), a, LST.lnk(nn)), RL.upd_last(SC.update(U32, $NL, nn, $QQ), a, LST.lnk(nn)), RL.tl_s(d, $NM, MT.uset_p(d, nT, pn, nn, $QQ), a, hla, LST.lnk(nn)), Equal.cong(List<&2, U32>, List<&2, U32>, z => RL.upd_last(z, a, LST.lnk(nn)), AR.slots(U32, $NM), SC.update(U32, $NL, nn, $QQ), MT.uset_s(d, nT, pn, nn, hn, $QQ)))
+  +e1 = RL.fll_lfn(SC.update(U32, $NL, nn, $QQ), a, LST.lnk(nn), fl, LV.lin_vac(~T, a, b, $FR, $VL, fl, hsl, hfl))
+  +e2 = LK.fll_fn($NL, nn, $QQ, fl, hnfl)
+  +h2 = RL.by_eq(ST.fll(RL.upd_last(SC.update(U32, $NL, nn, $QQ), a, LST.lnk(nn)), fl), ST.fll($NL, fl), Equal.trans(Bool, ST.fll(RL.upd_last(SC.update(U32, $NL, nn, $QQ), a, LST.lnk(nn)), fl), ST.fll(SC.update(U32, $NL, nn, $QQ), fl), ST.fll($NL, fl), e1, e2), hfll)
+  L.subst(List<&2, U32>, z => {ST.fll(z, fl) == True{} : Bool}, RL.upd_last(SC.update(U32, $NL, nn, $QQ), a, LST.lnk(nn)), AR.slots(U32, $NT2), Equal.sym(List<&2, U32>, AR.slots(U32, $NT2), RL.upd_last(SC.update(U32, $NL, nn, $QQ), a, LST.lnk(nn)), esn), h2)
+
+# the value facts over the written value list
+def ig_sl(~T: Data, $IP) -> $TR(ST.slok(~T, $SL2, $FR, $VL2)):
+  +e2d = N.eq_from_is_eq(UD.v(cap), SC.pow2(d), hcap)
+  +hfr2 = L.subst(Nat, z => {Nat.is_le($FR, z) == True{} : Bool}, UD.v(cap), SC.pow2(d), e2d, hfr)
+  +hn = N.lt_le_trans(nn, $FR, SC.pow2(d), hnf, hfr2)
+  +hlv0 = len_is($MT, $VL, SC.pow2(d), AR.slots_length($MT, d, vT, pv), nn, hn)
+  +hsp = RL.to_eq(ST.slok(~T, $APN(a, b), $FR, $VL), Bool.and(ST.slok(~T, a, $FR, $VL), ST.slok(~T, b, $FR, $VL)), RL.slok_app(~T, a, b, $FR, $VL), hsl)
+  +sa = LV.slok_upd(~T, a, $FR, $VL, nn, Some{x}, hlv0, {==}, L.and_left(ST.slok(~T, a, $FR, $VL), ST.slok(~T, b, $FR, $VL), hsp))
+  +sb = LV.slok_upd(~T, b, $FR, $VL, nn, Some{x}, hlv0, {==}, L.and_right(ST.slok(~T, a, $FR, $VL), ST.slok(~T, b, $FR, $VL), hsp))
+  +sn = L.and_intro(Nat.is_lt(nn, $FR), ST.live(T, $VL2, nn), hnf, RL.by_eq(ST.live(T, $VL2, nn), True{}, LV.live_same(T, $VL, nn, Some{x}, hlv0), {==}))
+  RL.by_eq(ST.slok(~T, $SL2, $FR, $VL2), Bool.and(ST.slok(~T, a, $FR, $VL2), ST.slok(~T, Con{nn, b}, $FR, $VL2)), RL.slok_app(~T, a, Con{nn, b}, $FR, $VL2), L.and_intro(ST.slok(~T, a, $FR, $VL2), ST.slok(~T, Con{nn, b}, $FR, $VL2), sa, L.and_intro(Bool.and(Nat.is_lt(nn, $FR), ST.live(T, $VL2, nn)), ST.slok(~T, b, $FR, $VL2), sn, sb)))
+
+def ig_lv(~T: Data, $IP) -> $TR(ST.lvin(~T, $VL2, 0n, $SL2)):
+  +hm = RL.by_eq(HT.memn(nn, $SL2), Bool.or(HT.memn(nn, $APN(a, b)), Nat.is_eq(nn, nn)), LS.memn_mid(nn, a, nn, b), DL.or_tr(HT.memn(nn, $APN(a, b)), Nat.is_eq(nn, nn), N.is_eq_refl(nn)))
+  VA.lvin_upd(~T, $VL, 0n, $SL2, nn, Some{x}, VA.lvin_sub(~T, $VL, 0n, $APN(a, b), $SL2, hlv, VA.subn_ins(a, b, nn)), hm)
+
+# THEOREM: the linked state keeps the invariant
+def ins_good(~T: Data, $IP) -> $TR($GF):
+  +e2d = N.eq_from_is_eq(UD.v(cap), SC.pow2(d), hcap)
+  +hfr2 = L.subst(Nat, z => {Nat.is_le($FR, z) == True{} : Bool}, UD.v(cap), SC.pow2(d), e2d, hfr)
+  +hn = N.lt_le_trans(nn, $FR, SC.pow2(d), hnf, hfr2)
+  +esv = AR.upd_slots($MT, d, vT, nn, Some{x}, hn, pv)
+  +hsg = ig_seg(~T, $IA)
+  +hfl2 = ig_fll(~T, $IA)
+  +s1 = ig_sl(~T, $IA)
+  +s2 = LV.flok_off(~T, fl, $FR, $VL, nn, Some{x}, hnfl, hfl)
+  +s3 = ig_lv(~T, $IA)
+  +r1 = L.subst(List<&2, $MT>, z => {ST.slok(~T, $SL2, $FR, z) == True{} : Bool}, $VL2, AR.slots($MT, $VT2), Equal.sym(List<&2, $MT>, AR.slots($MT, $VT2), $VL2, esv), s1)
+  +r2 = L.subst(List<&2, $MT>, z => {ST.flok(~T, fl, $FR, z) == True{} : Bool}, $VL2, AR.slots($MT, $VT2), Equal.sym(List<&2, $MT>, AR.slots($MT, $VT2), $VL2, esv), s2)
+  +r3 = L.subst(List<&2, $MT>, z => {ST.lvin(~T, z, 0n, $SL2) == True{} : Bool}, $VL2, AR.slots($MT, $VT2), Equal.sym(List<&2, $MT>, AR.slots($MT, $VT2), $VL2, esv), s3)
+  +hnd2 = RL.by_eq(LST.nodupn($SL2), Bool.and(LST.nodupn($APN(a, b)), Bool.not(HT.memn(nn, $APN(a, b)))), LS.nd_mid(a, nn, b), L.and_intro(LST.nodupn($APN(a, b)), Bool.not(HT.memn(nn, $APN(a, b))), hnd, DL.not_f(HT.memn(nn, $APN(a, b)), hns)))
+  ST.good_intro(~T, tag, cap, fr, free, LST.fst_or($SL2, 0), LST.last_or($SL2, 0), d, $VT2, $PT2, $NT2, gT, $SL2, fl, hd, hcap, AR.upd_perfect($MT, d, vT, nn, Some{x}, pv), RL.tf_p(d, $PM, MT.uset_p(d, pT, pp, nn, $PP), b, LST.lnk(nn)), RL.tl_p(d, $NM, MT.uset_p(d, nT, pn, nn, $QQ), a, LST.lnk(nn)), pg, hfr, hsg, DL.u_refl(LST.fst_or($SL2, 0)), DL.u_refl(LST.last_or($SL2, 0)), hnd2, r1, hfree, hfl2, r2, hfnd, hgz, r3)

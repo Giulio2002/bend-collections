@@ -1,0 +1,41 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/array.bend as AR
+import ../spec/common.bend as SC
+import ../spec/lru.bend as SP
+import ../math/u32div.bend as UD
+import ../../src/math/u64.bend as W
+import ../../src/containers/lru.bend as LR
+import ../hash_table/table.bend as TB
+import ./state.bend as ST
+import ./meta.bend as MT
+import ./basic.bend as BA
+import ./bump.bend as BU
+import ../hash_table/insa.bend as IA
+
+import ./bumpsh.bend as BS
+
+# The counts on the shadow, keeping the table's bit count k.
+
+%include bumpsh.src
+
+def shk(~V: Data, sh: ST.Sh<V>) -> Nat:
+  match sh:
+    case ST.LS{+cap, +n, +head, +tail, +free, +mT, +k, +sd, +tabT, +ksT, +eT, +lkT, +sl, +fl}:
+      k
+
+def CountOKk(~V: Data, +spec: SP.Lru<V>, r: LR.LRU<&2, V>, +k: Nat) -> Type:
+  Sigma<&1, &1, ST.Sh<V>, sh2 => {r == ST.real(~V, sh2) : LR.LRU<&2, V>} & ({ST.model(~V, sh2) == spec : SP.Lru<V>} & ({ST.good(~V, sh2) == True{} : Bool} & {shk(~V, sh2) == k : Nat}))>
+
+%def KQ_ev(j) BS.keep($ML, m2, 18n, x, y, ee, j, {==}, {==})
+def count_evk(~V: Data, $SHF, +hg: {ST.good(~V, $SHM(mT)) == True{} : Bool}, bo: BU.BumpOK(mT, 18n, LR.bump(1, AR.thaw(U32, mT)))) -> CountOKk(~V, SP.L{cap, $M(3n), ST.w64($ML, 4n), $ES, SP.c_ev(ST.ctr($ML))}, $FB(1), k):
+  match bo:
+    case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
+      +ee = {e : {$ML2 == SC.update(U32, SC.update(U32, $ML, 18n, x), 1n+18n, y) : List<&2, U32>}}
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(1, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +g = BS.bm_fin(~V, $SHA, hg, 18n, {==}, m2, pm2, x, y, ee)
+      +e3 = $KQ_ev(3n)
+      +e4 = BA.w64_eq($ML2, $ML, 4n, $KQ_ev(4n), $KQ_ev(5n))
+      +ec = BA.ct5(ST.w64($ML2, 16n), ST.w64($ML2, 18n), ST.w64($ML2, 20n), ST.w64($ML2, 22n), ST.w64($ML2, 24n), ST.w64($ML, 16n), SP.inc64(ST.w64($ML, 18n)), ST.w64($ML, 20n), ST.w64($ML, 22n), ST.w64($ML, 24n), BA.w64_eq($ML2, $ML, 16n, $KQ_ev(16n), $KQ_ev(17n)), ew, BA.w64_eq($ML2, $ML, 20n, $KQ_ev(20n), $KQ_ev(21n)), BA.w64_eq($ML2, $ML, 22n, $KQ_ev(22n), $KQ_ev(23n)), BA.w64_eq($ML2, $ML, 24n, $KQ_ev(24n), $KQ_ev(25n)))
+      ($SHM(m2), (er, (BA.lru_eq(~V, cap, TB.nth0($ML2, 3n), $M(3n), ST.w64($ML2, 4n), ST.w64($ML, 4n), $ES, $ES, ST.ctr($ML2), SP.c_ev(ST.ctr($ML)), e3, e4, {==}, ec), (g, {==}))))

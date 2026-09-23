@@ -1,0 +1,103 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/array.bend as AR
+import ../spec/common.bend as SC
+import ../spec/lru.bend as SP
+import ../math/u32div.bend as UD
+import ../../src/math/u64.bend as W
+import ../../src/containers/lru.bend as LR
+import ../hash_table/table.bend as TB
+import ./state.bend as ST
+import ./meta.bend as MT
+import ./basic.bend as BA
+import ../lib/list.bend as LL
+import ../hash_table/insa.bend as IA
+
+# bump: a counter's 64-bit increment in the meta words.
+
+%def ML AR.slots(U32, mT)
+%def I U32.add(16, U32.shl(c))
+%def J U32.add(17, U32.shl(c))
+%def LO TB.nth0($ML, i)
+%def HI TB.nth0($ML, 1n+i)
+%def M1 AR.upd(U32, 5n, mT, UD.v($I), U32.inc($LO))
+%def M2 AR.upd(U32, 5n, $M1, UD.v($J), U32.inc($HI))
+
+def BumpOK(+mT: AR.Tree<U32>, +i: Nat, r: Array<U32>) -> Type:
+  Sigma<&1, &1, AR.Tree<U32>, m2 => {r == AR.thaw(U32, m2) : Array<U32>} & ({AR.perfect(U32, 5n, m2) == True{} : Bool} & ({ST.w64(AR.slots(U32, m2), i) == SP.inc64(ST.w64($ML, i)) : W.U64} & Sigma<&1, &1, U32, x => Sigma<&1, &1, U32, y => {AR.slots(U32, m2) == SC.update(U32, SC.update(U32, $ML, i, x), 1n+i, y) : List<&2, U32>}>>))>
+
+%def CP +mT: AR.Tree<U32>, +pm: {AR.perfect(U32, 5n, mT) == True{} : Bool}, +c: U32, +i: Nat, +hi: {Nat.is_lt(1n+i, 32n) == True{} : Bool}, +hI: {UD.v($I) == i : Nat}, +hJ: {UD.v($J) == 1n+i : Nat}
+%def CA mT, pm, c, i, hi, hI, hJ
+
+def lt_i(+i: Nat, +hi: {Nat.is_lt(1n+i, 32n) == True{} : Bool}) -> {Nat.is_lt(i, 32n) == True{} : Bool}:
+  N.lt_trans(i, 1n+i, 32n, N.lt_succ(i), hi)
+
+def vlt(+x: U32, +i: Nat, +h: {UD.v(x) == i : Nat}, +hi: {Nat.is_lt(i, 32n) == True{} : Bool}) -> {Nat.is_lt(UD.v(x), SC.pow2(5n)) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_lt(z, 32n) == True{} : Bool}, i, UD.v(x), Equal.sym(Nat, UD.v(x), i, h), hi)
+
+def ne_si(+i: Nat) -> {Nat.is_eq(i, 1n+i) == False{} : Bool}:
+  N.is_eq_lt(i, 1n+i, N.lt_succ(i))
+
+def s1_of($CP) -> {AR.slots(U32, $M1) == SC.update(U32, $ML, i, U32.inc($LO)) : List<&2, U32>}:
+  +hIb = vlt($I, i, hI, lt_i(i, hi))
+  Equal.trans(List<&2, U32>, AR.slots(U32, $M1), SC.update(U32, $ML, UD.v($I), U32.inc($LO)), SC.update(U32, $ML, i, U32.inc($LO)), MT.uset_s(5n, mT, pm, UD.v($I), hIb, U32.inc($LO)), Equal.cong(Nat, List<&2, U32>, z => SC.update(U32, $ML, z, U32.inc($LO)), UD.v($I), i, hI))
+
+# writing a word's own value changes nothing
+def upd_id(+xs: List<&2, U32>, +j: Nat) -> {SC.update(U32, xs, j, TB.nth0(xs, j)) == xs : List<&2, U32>}:
+  match xs j:
+    case Nil{} _:
+      {==}
+    case Con{+h, +t} 0n:
+      {==}
+    case Con{+h, +t} 1n+p:
+      LL.cons_cong(U32, h, SC.update(U32, t, p, TB.nth0(t, p)), t, upd_id(t, p))
+
+# no wrap of the low word
+def bump_nw($CP, +hz: {U32.is_eq(U32.inc($LO), 0) == False{} : Bool}) -> BumpOK(mT, i, LR.bump_hi(Array.set(U32, AR.thaw(U32, mT), $I, U32.inc($LO)), c, False{})):
+  +hIb = vlt($I, i, hI, lt_i(i, hi))
+  +a1 = MT.uset_a(5n, {==}, mT, pm, $I, hIb, U32.inc($LO))
+  +p1 = MT.uset_p(5n, mT, pm, UD.v($I), U32.inc($LO))
+  +s1 = s1_of($CA)
+  +e0 = MT.nth_same(5n, mT, pm, i, lt_i(i, hi), U32.inc($LO), $M1, s1)
+  +e1 = MT.nth_other(mT, i, U32.inc($LO), $M1, s1, 1n+i, ne_si(i))
+  +r = L.subst(Bool, z => {W.U64{U32.inc($LO), $HI} == SP.inc_hi(U32.inc($LO), $HI, z) : W.U64}, False{}, U32.is_eq(U32.inc($LO), 0), Equal.sym(Bool, U32.is_eq(U32.inc($LO), 0), False{}, hz), {==})
+  +ew = Equal.trans(W.U64, ST.w64(AR.slots(U32, $M1), i), W.U64{U32.inc($LO), $HI}, SP.inc64(ST.w64($ML, i)), BA.w64_eq_l(AR.slots(U32, $M1), i, U32.inc($LO), $HI, e0, e1), r)
+  +U = SC.update(U32, $ML, i, U32.inc($LO))
+  +eu = Equal.trans(List<&2, U32>, SC.update(U32, U, 1n+i, $HI), SC.update(U32, U, 1n+i, TB.nth0(U, 1n+i)), U, Equal.cong(U32, List<&2, U32>, z => SC.update(U32, U, 1n+i, z), $HI, TB.nth0(U, 1n+i), Equal.sym(U32, TB.nth0(U, 1n+i), $HI, IA.nth0_upd_other($ML, i, 1n+i, U32.inc($LO), ne_si(i)))), upd_id(U, 1n+i))
+  ($M1, (a1, (p1, (ew, (U32.inc($LO), ($HI, Equal.trans(List<&2, U32>, AR.slots(U32, $M1), U, SC.update(U32, U, 1n+i, $HI), s1, Equal.sym(List<&2, U32>, SC.update(U32, U, 1n+i, $HI), U, eu))))))))
+
+# the low word wraps: the high word is incremented too
+def bump_w($CP, +hz: {U32.is_eq(U32.inc($LO), 0) == True{} : Bool}) -> BumpOK(mT, i, LR.bump_hi(Array.set(U32, AR.thaw(U32, mT), $I, U32.inc($LO)), c, True{})):
+  +hIb = vlt($I, i, hI, lt_i(i, hi))
+  +hJb = vlt($J, 1n+i, hJ, hi)
+  +a1 = MT.uset_a(5n, {==}, mT, pm, $I, hIb, U32.inc($LO))
+  +p1 = MT.uset_p(5n, mT, pm, UD.v($I), U32.inc($LO))
+  +s1 = s1_of($CA)
+  +g1 = L.subst(Nat, z => {Array.get(U32, AR.thaw(U32, $M1), $J) == (AR.thaw(U32, $M1), TB.nth0(AR.slots(U32, $M1), z)) : Array<U32> & U32}, UD.v($J), 1n+i, hJ, MT.uget(5n, {==}, $M1, p1, $J, hJb))
+  +eh = MT.nth_other(mT, i, U32.inc($LO), $M1, s1, 1n+i, ne_si(i))
+  +g2 = Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, $M1), $J), (AR.thaw(U32, $M1), TB.nth0(AR.slots(U32, $M1), 1n+i)), (AR.thaw(U32, $M1), $HI), g1, Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, $M1), z), TB.nth0(AR.slots(U32, $M1), 1n+i), $HI, eh))
+  +a2 = MT.uset_a(5n, {==}, $M1, p1, $J, hJb, U32.inc($HI))
+  +p2 = MT.uset_p(5n, $M1, p1, UD.v($J), U32.inc($HI))
+  +s2 = Equal.trans(List<&2, U32>, AR.slots(U32, $M2), SC.update(U32, AR.slots(U32, $M1), UD.v($J), U32.inc($HI)), SC.update(U32, AR.slots(U32, $M1), 1n+i, U32.inc($HI)), MT.uset_s(5n, $M1, p1, UD.v($J), hJb, U32.inc($HI)), Equal.cong(Nat, List<&2, U32>, z => SC.update(U32, AR.slots(U32, $M1), z, U32.inc($HI)), UD.v($J), 1n+i, hJ))
+  +ea = Equal.trans(Array<U32>, LR.bump_hi_go($J, Array.get(U32, Array.set(U32, AR.thaw(U32, mT), $I, U32.inc($LO)), $J)), LR.bump_hi_go($J, (AR.thaw(U32, $M1), $HI)), AR.thaw(U32, $M2), Equal.trans(Array<U32>, LR.bump_hi_go($J, Array.get(U32, Array.set(U32, AR.thaw(U32, mT), $I, U32.inc($LO)), $J)), LR.bump_hi_go($J, Array.get(U32, AR.thaw(U32, $M1), $J)), LR.bump_hi_go($J, (AR.thaw(U32, $M1), $HI)), Equal.cong(Array<U32>, Array<U32>, z => LR.bump_hi_go($J, Array.get(U32, z, $J)), Array.set(U32, AR.thaw(U32, mT), $I, U32.inc($LO)), AR.thaw(U32, $M1), a1), Equal.cong(Array<U32> & U32, Array<U32>, z => LR.bump_hi_go($J, z), Array.get(U32, AR.thaw(U32, $M1), $J), (AR.thaw(U32, $M1), $HI), g2)), a2)
+  +e0 = Equal.trans(U32, TB.nth0(AR.slots(U32, $M2), i), TB.nth0(AR.slots(U32, $M1), i), U32.inc($LO), MT.nth_other($M1, 1n+i, U32.inc($HI), $M2, s2, i, N.is_eq_sym_false(i, 1n+i, ne_si(i))), MT.nth_same(5n, mT, pm, i, lt_i(i, hi), U32.inc($LO), $M1, s1))
+  +e1 = MT.nth_same(5n, $M1, p1, 1n+i, hi, U32.inc($HI), $M2, s2)
+  +r = L.subst(Bool, z => {W.U64{U32.inc($LO), U32.inc($HI)} == SP.inc_hi(U32.inc($LO), $HI, z) : W.U64}, True{}, U32.is_eq(U32.inc($LO), 0), Equal.sym(Bool, U32.is_eq(U32.inc($LO), 0), True{}, hz), {==})
+  +ew = Equal.trans(W.U64, ST.w64(AR.slots(U32, $M2), i), W.U64{U32.inc($LO), U32.inc($HI)}, SP.inc64(ST.w64($ML, i)), BA.w64_eq_l(AR.slots(U32, $M2), i, U32.inc($LO), U32.inc($HI), e0, e1), r)
+  ($M2, (ea, (p2, (ew, (U32.inc($LO), (U32.inc($HI), Equal.trans(List<&2, U32>, AR.slots(U32, $M2), SC.update(U32, AR.slots(U32, $M1), 1n+i, U32.inc($HI)), SC.update(U32, SC.update(U32, $ML, i, U32.inc($LO)), 1n+i, U32.inc($HI)), s2, Equal.cong(List<&2, U32>, List<&2, U32>, z => SC.update(U32, z, 1n+i, U32.inc($HI)), AR.slots(U32, $M1), SC.update(U32, $ML, i, U32.inc($LO)), s1))))))))
+
+def bump_c($CP, +z: Bool, +hz: {U32.is_eq(U32.inc($LO), 0) == z : Bool}) -> BumpOK(mT, i, LR.bump_hi(Array.set(U32, AR.thaw(U32, mT), $I, U32.inc($LO)), c, z)):
+  match z:
+    case False{}:
+      bump_nw($CA, hz)
+    case True{}:
+      bump_w($CA, hz)
+
+# THEOREM (bump): counter c's words i, i + 1 become the 64-bit increment of
+# their value; every other meta word is kept.
+def bump_ok($CP) -> BumpOK(mT, i, LR.bump(c, AR.thaw(U32, mT))):
+  +hIb = vlt($I, i, hI, lt_i(i, hi))
+  +g = L.subst(Nat, z => {Array.get(U32, AR.thaw(U32, mT), $I) == (AR.thaw(U32, mT), TB.nth0($ML, z)) : Array<U32> & U32}, UD.v($I), i, hI, MT.uget(5n, {==}, mT, pm, $I, hIb))
+  +E = Equal.cong(Array<U32> & U32, Array<U32>, r => LR.bump_lo(c, r), Array.get(U32, AR.thaw(U32, mT), $I), (AR.thaw(U32, mT), $LO), g)
+  L.subst(Array<U32>, r => BumpOK(mT, i, r), LR.bump_lo(c, (AR.thaw(U32, mT), $LO)), LR.bump(c, AR.thaw(U32, mT)), Equal.sym(Array<U32>, LR.bump(c, AR.thaw(U32, mT)), LR.bump_lo(c, (AR.thaw(U32, mT), $LO)), E), bump_c($CA, U32.is_eq(U32.inc($LO), 0), {==}))

@@ -1,0 +1,146 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/u32alg.bend as A
+import ../lib/list.bend as LL
+import ../lib/array.bend as AR
+import ../spec/common.bend as SC
+import ../spec/hash_table.bend as S
+import ../spec/lru.bend as SP
+import ../math/u32div.bend as UD
+import ../../src/math/u64.bend as W
+import ../../src/containers/hash_table.bend as H
+import ../../src/containers/lru.bend as LR
+import ../hash_table/table.bend as TB
+import ../hash_table/state.bend as HT
+import ./state.bend as ST
+import ./basic.bend as BA
+import ./lists.bend as LS
+import ./dll.bend as DL
+import ./trace.bend as TR
+import ./unlink.bend as UL
+import ./linktail.bend as LT
+import ./rebuild.bend as RB
+import ./touch.bend as TO
+import ./perm.bend as PE
+import ../hash_table/insf.bend as IF
+
+# touch on the shadow: the slot holding key becomes the newest.
+
+%def APN(a, b) SC.append(Nat, a, b)
+%def X $APN(a, Con{s, b})
+%def T $APN($APN(a, b), Con{s, Nil{}})
+%def M0 TB.nth0(AR.slots(U32, mT), 0n)
+%def M1 TB.nth0(AR.slots(U32, mT), 1n)
+%def M2 TB.nth0(AR.slots(U32, mT), 2n)
+%def M6 TB.nth0(AR.slots(U32, mT), 6n)
+%def M7 TB.nth0(AR.slots(U32, mT), 7n)
+%def PM AR.perfect(U32, 5n, mT)
+%def KL AR.slots(String, ksT)
+%def PK AR.perfect(String, sd, ksT)
+%def LL AR.slots(U32, lkT)
+%def EL AR.slots(Maybe<&2, V>, eT)
+%def ML AR.slots(U32, mT)
+%def FR UD.v($M0)
+%def GA(xs) cap, n, head, tail, free, $M0, $M1, $M2, $M6, $M7, $PM, k, sd, tabT, $KL, $PK, eT, lkT, xs, fl
+%def G(c, xs) ST.g_$c(~V, $GA(xs), hg)
+%def SHF +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +mT: AR.Tree<U32>, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>
+%def SHA cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT
+%def SH(xs) ST.LS{$SHA, xs, fl}
+%def AR4 AR.thaw(U32, mT), AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT)
+%def TPA cap, n, free, mT, tabT, ksT, eT
+%def EV TO.ev(~V, $LL, $KL, s, v)
+%def SPEC(xs) SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), SP.snoc(~V, SP.drop(~V, ST.es(~V, $LL, $KL, $EL, xs), key), $EV), ST.ctr($ML)}
+
+def TouchOK(~V: Data, +spec: SP.Lru<V>, r: LR.LRU<&2, V>) -> Type:
+  Sigma<&1, &1, ST.Sh<V>, sh2 => {r == ST.real(~V, sh2) : LR.LRU<&2, V>} & ({ST.model(~V, sh2) == spec : SP.Lru<V>} & {ST.good(~V, sh2) == True{} : Bool})>
+
+def sd29(+k: Nat, +sd: Nat, +hk: {Nat.is_lt(k, 30n) == True{} : Bool}, +hs: {Nat.is_lt(sd, k) == True{} : Bool}) -> {Nat.is_lt(3n+sd, 32n) == True{} : Bool}:
+  +h1 = N.lt_le_trans(sd, k, 29n, hs, N.lt_succ_le(k, 29n, hk))
+  N.lt_add_left(sd, 29n, 3n, h1)
+
+# the newest slot has nothing after it
+def new_nil(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +a: List<&2, Nat>, +s: Nat, +b0: Nat, +b2: List<&2, Nat>, +su: U32, +hsv: {UD.v(su) == s : Nat}, +hs0: {Nat.is_lt(s, SC.pow2(sd)) == True{} : Bool}, +tail: U32, +ht: {U32.is_eq(tail, ST.last_or($APN(a, Con{s, Con{b0, b2}}), 0)) == True{} : Bool}, +hc: {U32.is_eq(H.link(su), tail) == True{} : Bool}, +hnd: {ST.nodupn($APN(a, Con{s, Con{b0, b2}})) == True{} : Bool}, +hbB: {ST.sall(~V, ST.PLive{fr, el}, Con{b0, b2}) == True{} : Bool}) -> Empty:
+  +z = DL.lastn(b2, b0)
+  +hz = UL.bnd_of(~V, z, Con{b0, b2}, fr, el, sd, hfr, hbB, DL.lastn_mem(b2, b0))
+  +et = Equal.trans(U32, tail, ST.last_or($APN(a, Con{s, Con{b0, b2}}), 0), ST.lnk(z), A.eq_of(tail, ST.last_or($APN(a, Con{s, Con{b0, b2}}), 0), ht), Equal.trans(U32, ST.last_or($APN(a, Con{s, Con{b0, b2}}), 0), ST.last_or(b2, ST.lnk(b0)), ST.lnk(z), DL.last_app(a, Con{s, Con{b0, b2}}, 0), DL.last_lnk(b2, b0)))
+  +el2 = Equal.trans(U32, ST.lnk(s), H.link(su), ST.lnk(z), Equal.sym(U32, H.link(su), ST.lnk(s), LT.lnk_su(su, s, sd, hsd, hsv, hs0)), Equal.trans(U32, H.link(su), tail, ST.lnk(z), A.eq_of(H.link(su), tail, hc), et))
+  +esz = Equal.trans(Nat, s, UD.v(H.slot(ST.lnk(s))), z, Equal.sym(Nat, UD.v(H.slot(ST.lnk(s))), s, UL.ix_o(one, h1, s, sd, hsd, hs0)), Equal.trans(Nat, UD.v(H.slot(ST.lnk(s))), UD.v(H.slot(ST.lnk(z))), z, Equal.cong(U32, Nat, w => UD.v(H.slot(w)), ST.lnk(s), ST.lnk(z), el2), UL.ix_o(one, h1, z, sd, hsd, hz)))
+  +hin = L.subst(Nat, w => {HT.memn(w, Con{b0, b2}) == True{} : Bool}, z, s, Equal.sym(Nat, s, z, esz), DL.lastn_mem(b2, b0))
+  +hno = L.and_left(Bool.not(HT.memn(s, Con{b0, b2})), ST.nodupn(Con{b0, b2}), LS.nd_r(a, Con{s, Con{b0, b2}}, hnd))
+  L.false_true(L.subst(Bool, w => {Bool.not(w) == True{} : Bool}, HT.memn(s, Con{b0, b2}), True{}, hin, hno))
+
+%def HYP +key: String, +hk: {S.str_eq(ST.skey($LL, $KL, s), key) == True{} : Bool}, +v: V, +hm: {HT.nthm(~V, $EL, s) == Some{v} : Maybe<&2, V>}
+%def HYA key, hk, v, hm
+%def SH2 ST.LS{cap, n, ST.fst_or($T, 0), ST.lnk(s), free, mT, k, sd, tabT, ksT, eT, t3, $T, fl}
+
+def es_new(~V: Data, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, $SH($X)) == True{} : Bool}, $HYP, +t3: AR.Tree<U32>, +tr: TR.Tr, +hsT: {AR.slots(U32, t3) == TR.app($LL, tr) : List<&2, U32>}, +hlo: {TR.trlo(tr) == True{} : Bool}) -> {ST.model(~V, $SH2) == $SPEC($X) : SP.Lru<V>}:
+  +e1 = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, AR.slots(U32, t3), $KL, $EL, $T), ST.es(~V, TR.app($LL, tr), $KL, $EL, $T), ST.es(~V, $LL, $KL, $EL, $T), Equal.cong(List<&2, U32>, List<&2, SP.Ent<V>>, z => ST.es(~V, z, $KL, $EL, $T), AR.slots(U32, t3), TR.app($LL, tr), hsT), TR.es_tr(~V, $LL, tr, hlo, $KL, $EL, $T))
+  +e2 = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, AR.slots(U32, t3), $KL, $EL, $T), ST.es(~V, $LL, $KL, $EL, $T), SP.snoc(~V, SP.drop(~V, ST.es(~V, $LL, $KL, $EL, $X), key), $EV), e1, Equal.sym(List<&2, SP.Ent<V>>, SP.snoc(~V, SP.drop(~V, ST.es(~V, $LL, $KL, $EL, $X), key), $EV), ST.es(~V, $LL, $KL, $EL, $T), TO.spec_touch(~V, $LL, $KL, $EL, a, s, b, v, hm, key, hk, $G(ckeys, $X))))
+  Equal.cong(List<&2, SP.Ent<V>>, SP.Lru<V>, z => SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), z, ST.ctr($ML)}, ST.es(~V, AR.slots(U32, t3), $KL, $EL, $T), SP.snoc(~V, SP.drop(~V, ST.es(~V, $LL, $KL, $EL, $X), key), $EV), e2)
+
+def tch_l(~V: Data, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, $SH($X)) == True{} : Bool}, $HYP, +tr1: TR.Tr, +t2: AR.Tree<U32>, +hs2: {AR.slots(U32, t2) == TR.app($LL, tr1) : List<&2, U32>}, +l1: {TR.trlo(tr1) == True{} : Bool}, +i1: {TR.trin(tr1, $X) == True{} : Bool}, -r: LR.LRU<&2, V>, lt: LT.LtOK(~V, $TPA, t2, sd, $APN(a, b), s, r)) -> TouchOK(~V, $SPEC($X), r):
+  match lt:
+    case Tuple{+t3, Tuple{+tr2, Tuple{+e2, Tuple{+p3, Tuple{+s3, Tuple{+l2, Tuple{+i2, g3}}}}}}}:
+      +tr = TR.tcat(tr2, tr1)
+      +hsT = Equal.trans(List<&2, U32>, AR.slots(U32, t3), TR.app(AR.slots(U32, t2), tr2), TR.app($LL, tr), s3, Equal.trans(List<&2, U32>, TR.app(AR.slots(U32, t2), tr2), TR.app(TR.app($LL, tr1), tr2), TR.app($LL, tr), Equal.cong(List<&2, U32>, List<&2, U32>, z => TR.app(z, tr2), AR.slots(U32, t2), TR.app($LL, tr1), hs2), Equal.sym(List<&2, U32>, TR.app($LL, tr), TR.app(TR.app($LL, tr1), tr2), TR.app_cat($LL, tr2, tr1))))
+      +hlo = TR.lo_cat(tr2, tr1, l2, l1)
+      +hin = TR.in_cat(tr2, tr1, $T, i2, PE.trin_sub(tr1, $X, $T, i1, PE.sub_xt(a, s, b)))
+      +ht = L.subst(U32, z => {U32.is_eq(ST.lnk(s), z) == True{} : Bool}, ST.lnk(s), ST.last_or($T, 0), Equal.sym(U32, ST.last_or($T, 0), ST.lnk(s), DL.last_app($APN(a, b), Con{s, Nil{}}, 0)), DL.u_refl(ST.lnk(s)))
+      +hkeys = PE.keys_xt(~V, $LL, $KL, $EL, a, s, b, v, hm, $G(ckeys, $X))
+      +g = RB.good_lk(~V, $SHA, $X, fl, hg, ST.fst_or($T, 0), ST.lnk(s), t3, $T, tr, p3, hsT, hlo, hin, g3, DL.u_refl(ST.fst_or($T, 0)), ht, PE.sub_xt(a, s, b), PE.sub_tx(a, s, b), PE.nd_xt(a, s, b, $G(cnd, $X)), PE.len_xt(a, s, b), hkeys)
+      ($SH2, (e2, (es_new(~V, $SHA, a, s, b, fl, hg, $HYA, t3, tr, hsT, hlo), g)))
+
+%def F2 LR.F{cap, n, ST.fst_or($APN(a, b), 0), ST.last_or($APN(a, b), 0), free, $AR4, AR.thaw(U32, t2)}
+%def TV(r) TouchOK(~V, $SPEC($X), r)
+
+def tch_u(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, $SH($X)) == True{} : Bool}, +su: U32, +hsv: {UD.v(su) == s : Nat}, $HYP, -r1: LR.LRU<&2, V>, u: UL.UnlOK(~V, $TPA, lkT, sd, a, s, b, r1)) -> $TV(LR.link_tail(&2, V, r1, su)):
+  match u:
+    case Tuple{+t2, Tuple{+tr1, Tuple{+e1, Tuple{+p2, Tuple{+s2, Tuple{+l1, Tuple{+i1, g2}}}}}}}:
+      +hk2 = ST.g_ck(~V, $GA($X), hg)
+      +hsd = sd29(k, sd, L.and_left(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), hk2), $G(csdk, $X))
+      +hfr = $G(cfresh, $X)
+      +sab = RB.subl_app(a, b, $X, RB.subl_ml(a, a, Con{s, b}, RB.subl_refl(a)), RB.subl_mr(b, a, Con{s, b}, IF.subl_cons(b, b, s, RB.subl_refl(b))))
+      +hbab = RB.sall_sub(~V, ST.PLive{$FR, $EL}, $X, $APN(a, b), $G(csl, $X), sab)
+      +hs0 = UL.bnd_of(~V, s, $X, $FR, $EL, sd, hfr, $G(csl, $X), LS.mem_app_r(s, a, Con{s, b}, UL.self_in(s, b)))
+      +hnm = L.subst(Bool, z => {z == True{} : Bool}, ST.nodupn($X), Bool.and(ST.nodupn($APN(a, b)), Bool.not(HT.memn(s, $APN(a, b)))), LS.nd_mid(a, s, b), $G(cnd, $X))
+      +hndab = L.and_left(ST.nodupn($APN(a, b)), Bool.not(HT.memn(s, $APN(a, b))), hnm)
+      +hsn = L.not_true(HT.memn(s, $APN(a, b)), L.and_right(ST.nodupn($APN(a, b)), Bool.not(HT.memn(s, $APN(a, b))), hnm))
+      lt = LT.link_tail_ok(~V, one, h1, t2, sd, hsd, p2, $TPA, $FR, $EL, hfr, ST.fst_or($APN(a, b), 0), ST.last_or($APN(a, b), 0), su, s, $APN(a, b), hsv, hs0, hsn, g2, hndab, hbab, DL.u_refl(ST.fst_or($APN(a, b), 0)), DL.u_refl(ST.last_or($APN(a, b), 0)))
+      ok = tch_l(~V, $SHA, a, s, b, fl, hg, $HYA, tr1, t2, s2, l1, i1, LR.link_tail(&2, V, $F2, su), lt)
+      L.subst(LR.LRU<&2, V>, z => $TV(LR.link_tail(&2, V, z, su)), $F2, r1, Equal.sym(LR.LRU<&2, V>, r1, $F2, e1), ok)
+
+%def INV hsd = sd29(k, sd, L.and_left(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), ST.g_ck(~V, $GA($X), hg)), $G(csdk, $X))
+
+def tch_new(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, $SH($X)) == True{} : Bool}, +su: U32, +hsv: {UD.v(su) == s : Nat}, $HYP, +hc: {U32.is_eq(H.link(su), tail) == True{} : Bool}) -> $TV(ST.real(~V, $SH($X))):
+  match b:
+    case Nil{}:
+      +e1 = TO.spec_touch(~V, $LL, $KL, $EL, a, s, Nil{}, v, hm, key, hk, $G(ckeys, $X))
+      +e2 = Equal.cong(List<&2, Nat>, List<&2, SP.Ent<V>>, z => ST.es(~V, $LL, $KL, $EL, $APN(z, Con{s, Nil{}})), $APN(a, Nil{}), a, LL.append_nil(Nat, a))
+      +e3 = Equal.sym(List<&2, SP.Ent<V>>, SP.snoc(~V, SP.drop(~V, ST.es(~V, $LL, $KL, $EL, $X), key), $EV), ST.es(~V, $LL, $KL, $EL, $X), Equal.trans(List<&2, SP.Ent<V>>, SP.snoc(~V, SP.drop(~V, ST.es(~V, $LL, $KL, $EL, $X), key), $EV), ST.es(~V, $LL, $KL, $EL, $APN($APN(a, Nil{}), Con{s, Nil{}})), ST.es(~V, $LL, $KL, $EL, $X), e1, e2))
+      ($SH($X), ({==}, (Equal.cong(List<&2, SP.Ent<V>>, SP.Lru<V>, z => SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), z, ST.ctr($ML)}, ST.es(~V, $LL, $KL, $EL, $X), SP.snoc(~V, SP.drop(~V, ST.es(~V, $LL, $KL, $EL, $X), key), $EV), e3), hg)))
+    case Con{+b0, +b2}:
+      +$INV
+      +hfr = $G(cfresh, $X)
+      +hs0 = UL.bnd_of(~V, s, $X, $FR, $EL, sd, hfr, $G(csl, $X), LS.mem_app_r(s, a, Con{s, Con{b0, b2}}, UL.self_in(s, Con{b0, b2})))
+      +hbB = RB.sall_sub(~V, ST.PLive{$FR, $EL}, $X, Con{b0, b2}, $G(csl, $X), RB.subl_mr(Con{b0, b2}, a, Con{s, Con{b0, b2}}, IF.subl_cons(Con{b0, b2}, Con{b0, b2}, s, RB.subl_refl(Con{b0, b2}))))
+      Empty.absurd($TV(ST.real(~V, $SH($X))), new_nil(~V, one, h1, sd, hsd, $FR, $EL, hfr, a, s, b0, b2, su, hsv, hs0, tail, $G(ctail, $X), hc, $G(cnd, $X), hbB))
+
+def tch_c(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, $SH($X)) == True{} : Bool}, +su: U32, +hsv: {UD.v(su) == s : Nat}, $HYP, +c: Bool, +hc: {U32.is_eq(H.link(su), tail) == c : Bool}) -> $TV(LR.touch_go(&2, V, ST.real(~V, $SH($X)), su, c)):
+  match c:
+    case True{}:
+      tch_new(~V, one, h1, $SHA, a, s, b, fl, hg, su, hsv, $HYA, hc)
+    case False{}:
+      +$INV
+      tch_u(~V, one, h1, $SHA, a, s, b, fl, hg, su, hsv, $HYA, LR.unlink(&2, V, ST.real(~V, $SH($X)), su), UL.unlink_ok(~V, one, h1, lkT, sd, hsd, $G(cpl, $X), $TPA, $FR, $EL, $G(cfresh, $X), head, tail, su, a, s, b, hsv, $G(cdll, $X), $G(cnd, $X), $G(csl, $X), $G(chead, $X), $G(ctail, $X)))
+
+def touch_sp(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, $SHF, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, $SH(sl)) == True{} : Bool}, +s: Nat, +su: U32, +hsv: {UD.v(su) == s : Nat}, $HYP, sp: TO.Split(s, sl)) -> TouchOK(~V, $SPEC(sl), LR.touch(&2, V, ST.real(~V, $SH(sl)), su)):
+  match sp:
+    case Tuple{+a, Tuple{+b, +e}}:
+      +hg2 = L.subst(List<&2, Nat>, z => {ST.good(~V, $SH(z)) == True{} : Bool}, sl, $X, e, hg)
+      L.subst(List<&2, Nat>, z => TouchOK(~V, $SPEC(z), LR.touch(&2, V, ST.real(~V, $SH(z)), su)), $X, sl, Equal.sym(List<&2, Nat>, sl, $X, e), tch_c(~V, one, h1, $SHA, a, s, b, fl, hg2, su, hsv, $HYA, U32.is_eq(H.link(su), tail), {==}))
+
+# THEOREM (touch): the listed slot s, holding key with value v, becomes the
+# newest; the model is the specification's drop-and-append of its entry.
+def touch_sh(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, $SHF, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, $SH(sl)) == True{} : Bool}, +s: Nat, +hmem: {HT.memn(s, sl) == True{} : Bool}, +su: U32, +hsv: {UD.v(su) == s : Nat}, $HYP) -> TouchOK(~V, $SPEC(sl), LR.touch(&2, V, ST.real(~V, $SH(sl)), su)):
+  touch_sp(~V, one, h1, $SHA, sl, fl, hg, s, su, hsv, $HYA, TO.split_mem(s, sl, hmem))

@@ -30,10 +30,6 @@ import ./putf.bend as PF
 
 
 
-# The search, the path and the case on the subtree, for an operation N with
-# leading binders TOX (arguments AOX), extra parameters XP (arguments XA), answer type X, specification SPC,
-# mirror MC, and GR(r) its goal once the search answered r; N_t is the case.
-
 # ---- the node found by the search ----
 
 def tn_zero(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: List<&2, Nat>, +k: K, +c: List<&2, P.Fr>, +a: ST.Tr, +b: ST.Tr, +hr: {ST.rep(~K, ST.TN{0n, a, b}, P.top(c), nl) == True{} : Bool}) -> Empty:

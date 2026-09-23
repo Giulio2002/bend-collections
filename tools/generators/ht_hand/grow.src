@@ -1,0 +1,372 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/u32.bend as U
+import ../lib/u32alg.bend as A
+import ../lib/array.bend as AR
+import ../spec/common.bend as SC
+import ../spec/hash_table.bend as S
+import ../math/word.bend as WD
+import ../math/u32div.bend as UD
+import ../../src/math/hash.bend as HS
+import ../../src/containers/hash_table.bend as H
+import ./keys.bend as K
+import ./table.bend as TB
+import ./buckets.bend as B
+import ./modn.bend as M
+import ./cyc.bend as CY
+import ./arr.bend as AX
+import ./inv.bend as IV
+import ./state.bend as ST
+import ./probe_all.bend as PA
+import ./insm.bend as IM
+import ./insa.bend as IA
+import ./insu.bend as IU
+import ./rawins.bend as RI
+import ./rehash.bend as RH
+import ./insert.bend as IS
+
+# Growing the table: grow_tab moves every full old bucket into a table of
+# twice the buckets; the result holds copies of exactly the old buckets and
+# keeps the table invariants.
+
+%def TT == True{} : Bool}
+%def FF == False{} : Bool}
+%def O +one: Nat, +h1: {one == 1n : Nat}
+%def S32 WD.sc(32n, one)
+
+def mskv(+k: Nat, +hk: {Nat.is_le(k, 32n) $TT) -> {Nat.add(UD.v(CY.msk(k)), 1n) == SC.pow2(k) : Nat}:
+  Equal.trans(Nat, Nat.add(UD.v(CY.msk(k)), 1n), Nat.add(WD.uw(32n, WD.mask(32n, k)), 1n), SC.pow2(k), Equal.cong(Nat, Nat, z => Nat.add(z, 1n), UD.v(CY.msk(k)), WD.uw(32n, WD.mask(32n, k)), UD.vw(WD.mask(32n, k))), PA.mask_val(32n, k, hk))
+
+%def V0 UD.v(CY.msk(k))
+%def SH U32.shl(CY.msk(k))
+
+# THEOREM: the grown mask is the mask of twice the buckets
+def msk_up($O, +k: Nat, +hk: {Nat.is_lt(k, 31n) $TT) -> {U32.inc($SH) == CY.msk(1n+k) : U32}:
+  +hk32 = N.lt_le(k, 32n, N.lt_trans(k, 31n, 32n, hk, {==}))
+  +a0 = mskv(k, hk32)
+  +v0lt = L.subst(Nat, z => {Nat.is_lt($V0, z) $TT, Nat.add($V0, 1n), SC.pow2(k), a0, L.subst(Nat, z => {Nat.is_lt($V0, z) $TT, 1n+$V0, Nat.add($V0, 1n), Equal.sym(Nat, Nat.add($V0, 1n), 1n+$V0, N.add_comm($V0, 1n)), N.lt_succ($V0)))
+  +es = U.shl_value(CY.msk(k), 1n+k, N.lt_le(1n+k, 32n, hk), N.double_lt($V0, SC.pow2(k), v0lt))
+  +hb = L.subst(Nat, z => {Nat.is_lt(1n+z, $S32) $TT, Nat.double($V0), UD.v($SH), Equal.sym(Nat, UD.v($SH), Nat.double($V0), es), N.lt_le_trans(1n+Nat.double($V0), SC.pow2(1n+k), $S32, N.double_lt_bit(True{}, $V0, SC.pow2(k), v0lt), AX.pow_le32(one, h1, 1n+k, hk)))
+  +ei = Equal.trans(Nat, UD.v(U32.inc($SH)), 1n+UD.v($SH), 1n+Nat.double($V0), CY.inc_val(one, h1, $SH, hb), Equal.cong(Nat, Nat, z => 1n+z, UD.v($SH), Nat.double($V0), es))
+  +a1 = mskv(1n+k, N.lt_le(1n+k, 32n, hk))
+  +e2 = Equal.trans(Nat, Nat.add(UD.v(CY.msk(1n+k)), 1n), SC.pow2(1n+k), Nat.add(1n+Nat.double($V0), 1n), a1, Equal.trans(Nat, Nat.double(SC.pow2(k)), Nat.double(Nat.add($V0, 1n)), Nat.add(1n+Nat.double($V0), 1n), Equal.cong(Nat, Nat, z => Nat.double(z), SC.pow2(k), Nat.add($V0, 1n), Equal.sym(Nat, Nat.add($V0, 1n), SC.pow2(k), a0)), Equal.sym(Nat, Nat.add(1n+Nat.double($V0), 1n), Nat.double(Nat.add($V0, 1n)), PA.dbl_step($V0))))
+  +e3 = A.add_cancel_r(UD.v(CY.msk(1n+k)), 1n+Nat.double($V0), 1n, e2)
+  U.injective(U32.inc($SH), CY.msk(1n+k), Equal.trans(Nat, UD.v(U32.inc($SH)), 1n+Nat.double($V0), UD.v(CY.msk(1n+k)), ei, Equal.sym(Nat, UD.v(CY.msk(1n+k)), 1n+Nat.double($V0), e3)))
+
+# ---- writing one bucket of a tree ----
+
+%def AT U32.from_nat(e)
+%def I1 UD.v(U32.shl($AT))
+%def I2 UD.v(U32.inc(U32.shl($AT)))
+%def T1 AR.upd(U32, 1n+K, T, $I1, w)
+%def TP AR.upd(U32, 1n+K, $T1, $I2, l)
+%def TBL AR.slots(U32, T)
+%def PP +K: Nat, +hK: {Nat.is_lt(K, 31n) $TT, +T: AR.Tree<U32>, +pt: {AR.perfect(U32, 1n+K, T) $TT, +e: Nat, +he: {Nat.is_lt(e, SC.pow2(K)) $TT, +w: U32, +l: U32
+%def PA K, hK, T, pt, e, he, w, l
+
+def p_ev($PP) -> {UD.v($AT) == e : Nat}:
+  U.to_nat_from_nat(e, K, N.lt_le(K, 32n, N.lt_trans(K, 31n, 32n, hK, {==})), he)
+
+def p_h($PP) -> {Nat.is_lt(1n+Nat.double(UD.v($AT)), SC.pow2(1n+K)) $TT:
+  L.subst(Nat, z => {Nat.is_lt(1n+Nat.double(z), SC.pow2(1n+K)) $TT, e, UD.v($AT), Equal.sym(Nat, UD.v($AT), e, p_ev($PA)), N.double_lt_bit(True{}, e, SC.pow2(K), he))
+
+def p_i1($PP) -> {$I1 == Nat.double(e) : Nat}:
+  Equal.trans(Nat, $I1, Nat.double(UD.v($AT)), Nat.double(e), AX.ix_w($AT, 1n+K, hK, p_h($PA)), Equal.cong(Nat, Nat, z => Nat.double(z), UD.v($AT), e, p_ev($PA)))
+
+def p_i2($PP) -> {$I2 == 1n+Nat.double(e) : Nat}:
+  Equal.trans(Nat, $I2, 1n+Nat.double(UD.v($AT)), 1n+Nat.double(e), AX.ix_l($AT, 1n+K, hK, p_h($PA)), Equal.cong(Nat, Nat, z => 1n+Nat.double(z), UD.v($AT), e, p_ev($PA)))
+
+def p_h1($PP) -> {Nat.is_lt($I1, SC.pow2(1n+K)) $TT:
+  L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+K)) $TT, Nat.double(e), $I1, Equal.sym(Nat, $I1, Nat.double(e), p_i1($PA)), N.lt_trans(Nat.double(e), 1n+Nat.double(e), SC.pow2(1n+K), N.lt_succ(Nat.double(e)), N.double_lt_bit(True{}, e, SC.pow2(K), he)))
+
+def p_h2($PP) -> {Nat.is_lt($I2, SC.pow2(1n+K)) $TT:
+  L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+K)) $TT, 1n+Nat.double(e), $I2, Equal.sym(Nat, $I2, 1n+Nat.double(e), p_i2($PA)), N.double_lt_bit(True{}, e, SC.pow2(K), he))
+
+def put_perf($PP) -> {AR.perfect(U32, 1n+K, $TP) $TT:
+  AR.upd_perfect(U32, 1n+K, $T1, $I2, l, AR.upd_perfect(U32, 1n+K, T, $I1, w, pt))
+
+# THEOREM: writing bucket e is the tree update at 2e and 2e + 1
+def put_eq($PP) -> {H.put_bucket(AR.thaw(U32, T), $AT, w, l) == AR.thaw(U32, $TP) : Array<U32>}:
+  +p1 = AR.upd_perfect(U32, 1n+K, T, $I1, w, pt)
+  +s1 = AR.set(U32, 1n+K, T, U32.shl($AT), w, TB.nth0($TBL, $I1), hK, p_h1($PA), TB.nth_some($TBL, $I1, IS.len_lt(U32, 1n+K, T, pt, $I1, p_h1($PA))), pt)
+  +s2 = AR.set(U32, 1n+K, $T1, U32.inc(U32.shl($AT)), l, TB.nth0(AR.slots(U32, $T1), $I2), hK, p_h2($PA), TB.nth_some(AR.slots(U32, $T1), $I2, IS.len_lt(U32, 1n+K, $T1, p1, $I2, p_h2($PA))), p1)
+  Equal.trans(Array<U32>, H.put_bucket(AR.thaw(U32, T), $AT, w, l), Array.set(U32, AR.thaw(U32, $T1), U32.inc(U32.shl($AT)), l), AR.thaw(U32, $TP), Equal.cong(Array<U32>, Array<U32>, a => Array.set(U32, a, U32.inc(U32.shl($AT)), l), Array.set(U32, AR.thaw(U32, T), U32.shl($AT), w), AR.thaw(U32, $T1), s1), s2)
+
+%def TBU SC.update(U32, SC.update(U32, $TBL, Nat.double(e), w), 1n+Nat.double(e), l)
+
+def put_slots($PP) -> {AR.slots(U32, $TP) == $TBU : List<&2, U32>}:
+  +p1 = AR.upd_perfect(U32, 1n+K, T, $I1, w, pt)
+  +e1 = AR.upd_slots(U32, 1n+K, $T1, $I2, l, p_h2($PA), p1)
+  +e2 = Equal.cong(List<&2, U32>, List<&2, U32>, z => SC.update(U32, z, $I2, l), AR.slots(U32, $T1), SC.update(U32, $TBL, $I1, w), AR.upd_slots(U32, 1n+K, T, $I1, w, p_h1($PA), pt))
+  +e3 = Equal.cong(Nat, List<&2, U32>, z => SC.update(U32, SC.update(U32, $TBL, z, w), $I2, l), $I1, Nat.double(e), p_i1($PA))
+  +e4 = Equal.cong(Nat, List<&2, U32>, z => SC.update(U32, SC.update(U32, $TBL, Nat.double(e), w), z, l), $I2, 1n+Nat.double(e), p_i2($PA))
+  Equal.trans(List<&2, U32>, AR.slots(U32, $TP), SC.update(U32, AR.slots(U32, $T1), $I2, l), $TBU, e1, Equal.trans(List<&2, U32>, SC.update(U32, AR.slots(U32, $T1), $I2, l), SC.update(U32, SC.update(U32, $TBL, $I1, w), $I2, l), $TBU, e2, Equal.trans(List<&2, U32>, SC.update(U32, SC.update(U32, $TBL, $I1, w), $I2, l), SC.update(U32, SC.update(U32, $TBL, Nat.double(e), w), $I2, l), $TBU, e3, e4)))
+
+%def SLl UD.v(H.slot(l))
+%def NBk B.BF{w, l, TB.keyof(w, TB.nths(kl, $SLl))}
+
+# THEOREM: the written tree decodes to the buckets with bucket e filled, the
+# key read from the unchanged arena
+def put_bs($PP, +kl: List<&2, String>, +n: Nat, +hns: {ST.noslot(TB.buckets($TBL, kl, n), $SLl, n) $TT, +hw0: {U32.is_eq(w, 0) $FF, +hkl: {Nat.is_lt($SLl, SC.length(String, kl)) $TT) -> {TB.buckets(AR.slots(U32, $TP), kl, n) == IM.bupd(TB.buckets($TBL, kl, n), e, $NBk) : List<&2, B.Bk>}:
+  +htb = IS.len_lt(U32, 1n+K, T, pt, 1n+Nat.double(e), N.double_lt_bit(True{}, e, SC.pow2(K), he))
+  +bp = IA.buckets_put($TBL, kl, e, w, l, TB.nths(kl, $SLl), n, hns, hw0, htb, hkl)
+  +ek = TB.upd_self(kl, $SLl)
+  Equal.trans(List<&2, B.Bk>, TB.buckets(AR.slots(U32, $TP), kl, n), TB.buckets($TBU, kl, n), IM.bupd(TB.buckets($TBL, kl, n), e, $NBk), Equal.cong(List<&2, U32>, List<&2, B.Bk>, z => TB.buckets(z, kl, n), AR.slots(U32, $TP), $TBU, put_slots($PA)), Equal.trans(List<&2, B.Bk>, TB.buckets($TBU, kl, n), TB.buckets($TBU, SC.update(String, kl, $SLl, TB.nths(kl, $SLl)), n), IM.bupd(TB.buckets($TBL, kl, n), e, $NBk), Equal.cong(List<&2, String>, List<&2, B.Bk>, z => TB.buckets($TBU, z, n), kl, SC.update(String, kl, $SLl, TB.nths(kl, $SLl)), Equal.sym(List<&2, String>, SC.update(String, kl, $SLl, TB.nths(kl, $SLl)), kl, ek)), bp))
+
+# ---- the empty table ----
+
+def nth0_rep(+m: Nat, +x: Nat) -> {TB.nth0(SC.replicate(U32, m, 0), x) == 0 : U32}:
+  match m x:
+    case 0n _:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      nth0_rep(p, q)
+
+%def ZB TB.buckets(AR.slots(U32, AR.trep(U32, d, 0)), kl, n)
+%def ZL AR.slots(U32, AR.trep(U32, d, 0))
+
+def nth0_z(+d: Nat, +x: Nat) -> {TB.nth0($ZL, x) == 0 : U32}:
+  Equal.trans(U32, TB.nth0($ZL, x), TB.nth0(SC.replicate(U32, SC.pow2(d), 0), x), 0, Equal.cong(List<&2, U32>, U32, z => TB.nth0(z, x), $ZL, SC.replicate(U32, SC.pow2(d), 0), AR.trep_slots(U32, d, 0)), nth0_rep(SC.pow2(d), x))
+
+def at_z(+d: Nat, +kl: List<&2, String>, +n: Nat, +i: Nat, +hi: {Nat.is_lt(i, n) $TT) -> {B.at($ZB, i) == B.BE{} : B.Bk}:
+  Equal.trans(B.Bk, B.at($ZB, i), TB.dec($ZL, kl, i), B.BE{}, TB.at_buckets($ZL, kl, n, i, hi), Equal.cong(U32, B.Bk, a => TB.dec_c(a, TB.nth0($ZL, 1n+Nat.double(i)), kl, U32.is_eq(a, 0)), TB.nth0($ZL, Nat.double(i)), 0, nth0_z(d, Nat.double(i))))
+
+def z_clus(+d: Nat, +kl: List<&2, String>, +n: Nat, +mask: U32, +m: Nat, +hm: {Nat.is_le(m, n) $TT) -> {B.all_lt(B.PClus{$ZB, n, mask}, m) $TT:
+  match m:
+    case 0n:
+      {==}
+    case 1n+q:
+      +hq = N.succ_le_lt(q, n, hm)
+      L.and_intro(B.eval(B.PClus{$ZB, n, mask}, q), B.all_lt(B.PClus{$ZB, n, mask}, q), L.subst(B.Bk, x => {B.implies(B.occ(x), B.occpath($ZB, n, B.hb(mask, x), M.dist(n, B.hb(mask, x), q))) $TT, B.BE{}, B.at($ZB, q), Equal.sym(B.Bk, B.at($ZB, q), B.BE{}, at_z(d, kl, n, q, hq)), {==}), z_clus(d, kl, n, mask, q, N.lt_le(q, n, hq)))
+
+def z_well(+d: Nat, +kl: List<&2, String>, +n: Nat, +sd: Nat, +m: Nat, +hm: {Nat.is_le(m, n) $TT) -> {B.all_lt(B.PWell{$ZB, sd}, m) $TT:
+  match m:
+    case 0n:
+      {==}
+    case 1n+q:
+      +hq = N.succ_le_lt(q, n, hm)
+      L.and_intro(B.eval(B.PWell{$ZB, sd}, q), B.all_lt(B.PWell{$ZB, sd}, q), L.subst(B.Bk, x => {B.wb(sd, x) $TT, B.BE{}, B.at($ZB, q), Equal.sym(B.Bk, B.at($ZB, q), B.BE{}, at_z(d, kl, n, q, hq)), {==}), z_well(d, kl, n, sd, q, N.lt_le(q, n, hq)))
+
+def z_uniq(+d: Nat, +kl: List<&2, String>, +n: Nat, +m: Nat, +hm: {Nat.is_le(m, n) $TT) -> {B.all_lt(B.PUniq{$ZB}, m) $TT:
+  match m:
+    case 0n:
+      {==}
+    case 1n+q:
+      +hq = N.succ_le_lt(q, n, hm)
+      L.and_intro(B.eval(B.PUniq{$ZB}, q), B.all_lt(B.PUniq{$ZB}, q), L.subst(B.Bk, x => {B.uq_b($ZB, q, x) $TT, B.BE{}, B.at($ZB, q), Equal.sym(B.Bk, B.at($ZB, q), B.BE{}, at_z(d, kl, n, q, hq)), {==}), z_uniq(d, kl, n, q, N.lt_le(q, n, hq)))
+
+def z_from(+d: Nat, +kl: List<&2, String>, +n: Nat, +src: List<&2, B.Bk>, +j: Nat, +m: Nat, +hm: {Nat.is_le(m, n) $TT) -> {B.all_lt(B.PFrom{$ZB, src, j}, m) $TT:
+  match m:
+    case 0n:
+      {==}
+    case 1n+q:
+      +hq = N.succ_le_lt(q, n, hm)
+      L.and_intro(B.eval(B.PFrom{$ZB, src, j}, q), B.all_lt(B.PFrom{$ZB, src, j}, q), L.subst(B.Bk, x => {B.implies(B.occ(x), B.anyeq(src, j, x)) $TT, B.BE{}, B.at($ZB, q), Equal.sym(B.Bk, B.at($ZB, q), B.BE{}, at_z(d, kl, n, q, hq)), {==}), z_from(d, kl, n, src, j, q, N.lt_le(q, n, hq)))
+
+def z_occn(+d: Nat, +kl: List<&2, String>, +n: Nat, +m: Nat, +hm: {Nat.is_le(m, n) $TT) -> {IV.occn($ZB, m) == 0n : Nat}:
+  match m:
+    case 0n:
+      {==}
+    case 1n+q:
+      +hq = N.succ_le_lt(q, n, hm)
+      Equal.trans(Nat, Nat.add(IV.bitv(B.occ(B.at($ZB, q))), IV.occn($ZB, q)), Nat.add(IV.bitv(B.occ(B.BE{})), IV.occn($ZB, q)), 0n, Equal.cong(B.Bk, Nat, x => Nat.add(IV.bitv(B.occ(x)), IV.occn($ZB, q)), B.at($ZB, q), B.BE{}, at_z(d, kl, n, q, hq)), z_occn(d, kl, n, q, N.lt_le(q, n, hq)))
+
+%def NBS TB.buckets(AR.slots(U32, NT), kl, SC.pow2(1n+k))
+%def OBS TB.buckets(AR.slots(U32, OT), kl, SC.pow2(k))
+%def N2 SC.pow2(1n+k)
+%def RA OT, kl, k, sd, NT, j
+
+# the rehash loop invariant after moving old buckets 0 .. j - 1
+def rinv(+OT: AR.Tree<U32>, +kl: List<&2, String>, +k: Nat, +sd: Nat, +NT: AR.Tree<U32>, +j: Nat) -> Bool:
+  Bool.and(AR.perfect(U32, 2n+k, NT), Bool.and(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))))))
+
+def r_1(+OT: AR.Tree<U32>, +kl: List<&2, String>, +k: Nat, +sd: Nat, +NT: AR.Tree<U32>, +j: Nat, +h: {rinv($RA) $TT) -> {AR.perfect(U32, 2n+k, NT) $TT:
+  L.and_left(AR.perfect(U32, 2n+k, NT), Bool.and(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))))), h)
+
+def r_2(+OT: AR.Tree<U32>, +kl: List<&2, String>, +k: Nat, +sd: Nat, +NT: AR.Tree<U32>, +j: Nat, +h: {rinv($RA) $TT) -> {B.cluster($NBS, $N2, CY.msk(1n+k)) $TT:
+  L.and_left(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j))))), L.and_right(AR.perfect(U32, 2n+k, NT), Bool.and(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))))), h))
+
+def r_3(+OT: AR.Tree<U32>, +kl: List<&2, String>, +k: Nat, +sd: Nat, +NT: AR.Tree<U32>, +j: Nat, +h: {rinv($RA) $TT) -> {B.all_lt(B.PWell{$NBS, sd}, $N2) $TT:
+  L.and_left(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))), L.and_right(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j))))), L.and_right(AR.perfect(U32, 2n+k, NT), Bool.and(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))))), h)))
+
+def r_4(+OT: AR.Tree<U32>, +kl: List<&2, String>, +k: Nat, +sd: Nat, +NT: AR.Tree<U32>, +j: Nat, +h: {rinv($RA) $TT) -> {B.all_lt(B.PUniq{$NBS}, $N2) $TT:
+  L.and_left(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j))), L.and_right(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))), L.and_right(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j))))), L.and_right(AR.perfect(U32, 2n+k, NT), Bool.and(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))))), h))))
+
+def r_5(+OT: AR.Tree<U32>, +kl: List<&2, String>, +k: Nat, +sd: Nat, +NT: AR.Tree<U32>, +j: Nat, +h: {rinv($RA) $TT) -> {Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)) $TT:
+  L.and_left(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)), L.and_right(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j))), L.and_right(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))), L.and_right(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j))))), L.and_right(AR.perfect(U32, 2n+k, NT), Bool.and(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))))), h)))))
+
+def r_6(+OT: AR.Tree<U32>, +kl: List<&2, String>, +k: Nat, +sd: Nat, +NT: AR.Tree<U32>, +j: Nat, +h: {rinv($RA) $TT) -> {B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2) $TT:
+  L.and_left(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j), L.and_right(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)), L.and_right(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j))), L.and_right(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))), L.and_right(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j))))), L.and_right(AR.perfect(U32, 2n+k, NT), Bool.and(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))))), h))))))
+
+def r_7(+OT: AR.Tree<U32>, +kl: List<&2, String>, +k: Nat, +sd: Nat, +NT: AR.Tree<U32>, +j: Nat, +h: {rinv($RA) $TT) -> {B.all_lt(B.PTo{$OBS, $NBS, $N2}, j) $TT:
+  L.and_right(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j), L.and_right(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)), L.and_right(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j))), L.and_right(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))), L.and_right(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j))))), L.and_right(AR.perfect(U32, 2n+k, NT), Bool.and(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))))), h))))))
+
+def r_mk(+OT: AR.Tree<U32>, +kl: List<&2, String>, +k: Nat, +sd: Nat, +NT: AR.Tree<U32>, +j: Nat, +h1: {AR.perfect(U32, 2n+k, NT) $TT, +h2: {B.cluster($NBS, $N2, CY.msk(1n+k)) $TT, +h3: {B.all_lt(B.PWell{$NBS, sd}, $N2) $TT, +h4: {B.all_lt(B.PUniq{$NBS}, $N2) $TT, +h5: {Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)) $TT, +h6: {B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2) $TT, +h7: {B.all_lt(B.PTo{$OBS, $NBS, $N2}, j) $TT) -> {rinv($RA) $TT:
+  L.and_intro(AR.perfect(U32, 2n+k, NT), Bool.and(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))))), h1, L.and_intro(B.cluster($NBS, $N2, CY.msk(1n+k)), Bool.and(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j))))), h2, L.and_intro(B.all_lt(B.PWell{$NBS, sd}, $N2), Bool.and(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)))), h3, L.and_intro(B.all_lt(B.PUniq{$NBS}, $N2), Bool.and(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j))), h4, L.and_intro(Nat.is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j)), Bool.and(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j)), h5, L.and_intro(B.all_lt(B.PFrom{$NBS, $OBS, j}, $N2), B.all_lt(B.PTo{$OBS, $NBS, $N2}, j), h6, h7))))))
+
+# ---- one step of the move loop ----
+
+%def N SC.pow2(k)
+%def OTB AR.slots(U32, OT)
+%def OW TB.nth0($OTB, Nat.double(j))
+%def OL TB.nth0($OTB, 1n+Nat.double(j))
+%def KB TB.keyof($OW, TB.nths(kl, UD.v(H.slot($OL))))
+%def NBO B.BF{$OW, $OL, $KB}
+%def MSK CY.msk(1n+k)
+%def MVS H.MV{AR.thaw(U32, OT), AR.thaw(U32, NT)}
+%def OH $O, +k: Nat, +hk31: {Nat.is_lt(k, 31n) $TT, +hk30: {Nat.is_lt(1n+k, 31n) $TT, +hk0: {Nat.is_lt(0n, k) $TT, +OT: AR.Tree<U32>, +pot: {AR.perfect(U32, 1n+k, OT) $TT, +kl: List<&2, String>, +sd: Nat, +hlen: {SC.length(String, kl) == SC.pow2(sd) : Nat}, +hwo: {B.all_lt(B.PWell{$OBS, sd}, $N) $TT, +huo: {B.all_lt(B.PUniq{$OBS}, $N) $TT, +hld: {Nat.is_le(Nat.double(IV.occn($OBS, $N)), $N) $TT
+%def OA one, h1, k, hk31, hk30, hk0, OT, pot, kl, sd, hlen, hwo, huo, hld
+%def SP +j: Nat, +hj: {Nat.is_lt(j, $N) $TT, +hoc: {Nat.is_le(IV.occn($OBS, j), IV.occn($OBS, $N)) $TT, +kk: U32, +hkk: {UD.v(kk) == j : Nat}, +NT: AR.Tree<U32>, +hr: {rinv($RA) $TT
+%def SA j, hj, hoc, kk, hkk, NT, hr
+
+def StepOK(+OT: AR.Tree<U32>, +kl: List<&2, String>, +k: Nat, +sd: Nat, +j: Nat, +kk: U32, +NT: AR.Tree<U32>) -> Type:
+  Sigma<&1, &1, AR.Tree<U32>, T2 => {H.mv_step(kk, $MSK, $MVS) == H.MV{AR.thaw(U32, OT), AR.thaw(U32, T2)} : H.Mv} & {rinv(OT, kl, k, sd, T2, 1n+j) $TT>
+
+def s_hh($OH, $SP) -> {Nat.is_lt(1n+Nat.double(UD.v(kk)), SC.pow2(1n+k)) $TT:
+  L.subst(Nat, z => {Nat.is_lt(1n+Nat.double(z), SC.pow2(1n+k)) $TT, j, UD.v(kk), Equal.sym(Nat, UD.v(kk), j, hkk), N.double_lt_bit(True{}, j, $N, hj))
+
+def s_ew($OH, $SP) -> {UD.v(U32.shl(kk)) == Nat.double(j) : Nat}:
+  Equal.trans(Nat, UD.v(U32.shl(kk)), Nat.double(UD.v(kk)), Nat.double(j), AX.ix_w(kk, 1n+k, hk31, s_hh($OA, $SA)), Equal.cong(Nat, Nat, z => Nat.double(z), UD.v(kk), j, hkk))
+
+def s_el($OH, $SP) -> {UD.v(U32.inc(U32.shl(kk))) == 1n+Nat.double(j) : Nat}:
+  Equal.trans(Nat, UD.v(U32.inc(U32.shl(kk))), 1n+Nat.double(UD.v(kk)), 1n+Nat.double(j), AX.ix_l(kk, 1n+k, hk31, s_hh($OA, $SA)), Equal.cong(Nat, Nat, z => 1n+Nat.double(z), UD.v(kk), j, hkk))
+
+def eqA($OH, $SP) -> {H.mv_step(kk, $MSK, $MVS) == H.mv_if(kk, AR.thaw(U32, OT), AR.thaw(U32, NT), $MSK, $OW, U32.is_eq($OW, 0)) : H.Mv}:
+  +hi = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) $TT, Nat.double(j), UD.v(U32.shl(kk)), Equal.sym(Nat, UD.v(U32.shl(kk)), Nat.double(j), s_ew($OA, $SA)), N.lt_trans(Nat.double(j), 1n+Nat.double(j), SC.pow2(1n+k), N.lt_succ(Nat.double(j)), N.double_lt_bit(True{}, j, $N, hj)))
+  +ga = AX.getw(1n+k, OT, U32.shl(kk), hk31, hi, pot)
+  Equal.trans(H.Mv, H.mv_step(kk, $MSK, $MVS), H.mv_w(kk, AR.thaw(U32, NT), $MSK, (AR.thaw(U32, OT), TB.nth0($OTB, UD.v(U32.shl(kk))))), H.mv_if(kk, AR.thaw(U32, OT), AR.thaw(U32, NT), $MSK, $OW, U32.is_eq($OW, 0)), Equal.cong(Array<U32> & U32, H.Mv, r => H.mv_w(kk, AR.thaw(U32, NT), $MSK, r), Array.get(U32, AR.thaw(U32, OT), U32.shl(kk)), (AR.thaw(U32, OT), TB.nth0($OTB, UD.v(U32.shl(kk)))), ga), Equal.cong(Nat, H.Mv, z => H.mv_if(kk, AR.thaw(U32, OT), AR.thaw(U32, NT), $MSK, TB.nth0($OTB, z), U32.is_eq(TB.nth0($OTB, z), 0)), UD.v(U32.shl(kk)), Nat.double(j), s_ew($OA, $SA)))
+
+def eqB($OH, $SP) -> {H.mv_if(kk, AR.thaw(U32, OT), AR.thaw(U32, NT), $MSK, $OW, False{}) == H.MV{AR.thaw(U32, OT), H.ins_raw(AR.thaw(U32, NT), $MSK, $OW, $OL)} : H.Mv}:
+  +hi = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) $TT, 1n+Nat.double(j), UD.v(U32.inc(U32.shl(kk))), Equal.sym(Nat, UD.v(U32.inc(U32.shl(kk))), 1n+Nat.double(j), s_el($OA, $SA)), N.double_lt_bit(True{}, j, $N, hj))
+  +gb = AX.getw(1n+k, OT, U32.inc(U32.shl(kk)), hk31, hi, pot)
+  Equal.trans(H.Mv, H.mv_l($OW, AR.thaw(U32, NT), $MSK, Array.get(U32, AR.thaw(U32, OT), U32.inc(U32.shl(kk)))), H.mv_l($OW, AR.thaw(U32, NT), $MSK, (AR.thaw(U32, OT), TB.nth0($OTB, UD.v(U32.inc(U32.shl(kk)))))), H.MV{AR.thaw(U32, OT), H.ins_raw(AR.thaw(U32, NT), $MSK, $OW, $OL)}, Equal.cong(Array<U32> & U32, H.Mv, r => H.mv_l($OW, AR.thaw(U32, NT), $MSK, r), Array.get(U32, AR.thaw(U32, OT), U32.inc(U32.shl(kk))), (AR.thaw(U32, OT), TB.nth0($OTB, UD.v(U32.inc(U32.shl(kk))))), gb), Equal.cong(Nat, H.Mv, z => H.MV{AR.thaw(U32, OT), H.ins_raw(AR.thaw(U32, NT), $MSK, $OW, TB.nth0($OTB, z))}, UD.v(U32.inc(U32.shl(kk))), 1n+Nat.double(j), s_el($OA, $SA)))
+
+def s_occ($OH, $SP) -> {B.occ(B.at($OBS, j)) == Bool.not(U32.is_eq($OW, 0)) : Bool}:
+  RI.occ_flag($OTB, kl, $N, j, hj)
+
+# an empty old bucket: nothing moves
+def step_skip($OH, $SP, +hc: {U32.is_eq($OW, 0) $TT) -> StepOK(OT, kl, k, sd, j, kk, NT):
+  +ho = Equal.trans(Bool, B.occ(B.at($OBS, j)), Bool.not(U32.is_eq($OW, 0)), False{}, s_occ($OA, $SA), Equal.cong(Bool, Bool, b => Bool.not(b), U32.is_eq($OW, 0), True{}, hc))
+  +e5 = Equal.trans(Nat, IV.occn($NBS, $N2), IV.occn($OBS, j), IV.occn($OBS, 1n+j), N.eq_from_is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j), r_5($RA, hr)), Equal.cong(Bool, Nat, o => Nat.add(IV.bitv(o), IV.occn($OBS, j)), False{}, B.occ(B.at($OBS, j)), Equal.sym(Bool, B.occ(B.at($OBS, j)), False{}, ho)))
+  +eq = Equal.trans(H.Mv, H.mv_step(kk, $MSK, $MVS), H.mv_if(kk, AR.thaw(U32, OT), AR.thaw(U32, NT), $MSK, $OW, U32.is_eq($OW, 0)), $MVS, eqA($OA, $SA), Equal.cong(Bool, H.Mv, c => H.mv_if(kk, AR.thaw(U32, OT), AR.thaw(U32, NT), $MSK, $OW, c), U32.is_eq($OW, 0), True{}, hc))
+  (NT, (eq, r_mk(OT, kl, k, sd, NT, 1n+j, r_1($RA, hr), r_2($RA, hr), r_3($RA, hr), r_4($RA, hr), IS.eq_is_eq(IV.occn($NBS, $N2), IV.occn($OBS, 1n+j), e5), RH.from_skip($NBS, $OBS, j, $N2, r_6($RA, hr), $N2, N.le_refl($N2)), RH.to_skip($OBS, $NBS, j, $N2, ho, r_7($RA, hr)))))
+
+%def HM UD.v(HS.bucket($OW, $MSK))
+%def TPX AR.upd(U32, 2n+k, AR.upd(U32, 2n+k, NT, UD.v(U32.shl(U32.from_nat(e))), $OW), UD.v(U32.inc(U32.shl(U32.from_nat(e)))), $OL)
+%def BUx IM.bupd($NBS, e, $NBO)
+%def NB2 TB.buckets(AR.slots(U32, $TPX), kl, $N2)
+%def HC +hc: {U32.is_eq($OW, 0) $FF
+%def PNO +pno: {B.all_lt(B.PNo{$NBS, $KB}, $N2) $TT, +nsl: {ST.noslot($NBS, UD.v(H.slot($OL)), $N2) $TT
+%def TOB L.subst(List<&2, B.Bk>, z =>
+%def FRB , $BUx, $NB2, Equal.sym(List<&2, B.Bk>, $NB2, $BUx, bse),
+
+def s_hb($OH, $SP, $HC) -> {B.at($OBS, j) == $NBO : B.Bk}:
+  Equal.trans(B.Bk, B.at($OBS, j), TB.dec($OTB, kl, j), $NBO, TB.at_buckets($OTB, kl, $N, j, hj), Equal.cong(Bool, B.Bk, c => TB.dec_c($OW, $OL, kl, c), U32.is_eq($OW, 0), False{}, hc))
+
+def step_e($OH, $SP, $HC, $PNO, fe: RI.FirstE($NBS, $N2, $HM)) -> StepOK(OT, kl, k, sd, j, kk, NT):
+  match fe:
+    case Tuple{+e, Tuple{+he, Tuple{+hz, hp0}}}:
+      +hp = {hp0 : {B.occpath($NBS, $N2, $HM, M.dist($N2, $HM, e)) $TT}
+      +hb = s_hb($OA, $SA, hc)
+      +hwb = L.subst(B.Bk, y => {B.wb(sd, y) $TT, B.at($OBS, j), $NBO, hb, B.all_inst(B.PWell{$OBS, sd}, $N, hwo, j, hj))
+      +hkl = L.subst(Nat, z => {Nat.is_lt(UD.v(H.slot($OL)), z) $TT, SC.pow2(sd), SC.length(String, kl), Equal.sym(Nat, SC.length(String, kl), SC.pow2(sd), hlen), L.and_left(Nat.is_lt(UD.v(H.slot($OL)), SC.pow2(sd)), Bool.and(U32.is_eq($OW, K.kword($KB)), Bool.not(U32.is_eq($OL, 0))), hwb))
+      +rw = RI.raw_ok(one, h1, 1n+k, hk30, NT, r_1($RA, hr), kl, $OW, $OL, e, he, hz, hp)
+      +pe = put_eq(1n+k, hk30, NT, r_1($RA, hr), e, he, $OW, $OL)
+      +eq = Equal.trans(H.Mv, H.mv_step(kk, $MSK, $MVS), H.mv_if(kk, AR.thaw(U32, OT), AR.thaw(U32, NT), $MSK, $OW, U32.is_eq($OW, 0)), H.MV{AR.thaw(U32, OT), AR.thaw(U32, $TPX)}, eqA($OA, $SA), Equal.trans(H.Mv, H.mv_if(kk, AR.thaw(U32, OT), AR.thaw(U32, NT), $MSK, $OW, U32.is_eq($OW, 0)), H.mv_if(kk, AR.thaw(U32, OT), AR.thaw(U32, NT), $MSK, $OW, False{}), H.MV{AR.thaw(U32, OT), AR.thaw(U32, $TPX)}, Equal.cong(Bool, H.Mv, c => H.mv_if(kk, AR.thaw(U32, OT), AR.thaw(U32, NT), $MSK, $OW, c), U32.is_eq($OW, 0), False{}, hc), Equal.trans(H.Mv, H.mv_if(kk, AR.thaw(U32, OT), AR.thaw(U32, NT), $MSK, $OW, False{}), H.MV{AR.thaw(U32, OT), H.ins_raw(AR.thaw(U32, NT), $MSK, $OW, $OL)}, H.MV{AR.thaw(U32, OT), AR.thaw(U32, $TPX)}, eqB($OA, $SA), Equal.cong(Array<U32>, H.Mv, a => H.MV{AR.thaw(U32, OT), a}, H.ins_raw(AR.thaw(U32, NT), $MSK, $OW, $OL), AR.thaw(U32, $TPX), Equal.trans(Array<U32>, H.ins_raw(AR.thaw(U32, NT), $MSK, $OW, $OL), H.put_bucket(AR.thaw(U32, NT), U32.from_nat(e), $OW, $OL), AR.thaw(U32, $TPX), rw, pe)))))
+      +bse = put_bs(1n+k, hk30, NT, r_1($RA, hr), e, he, $OW, $OL, kl, $N2, nsl, hc, hkl)
+      +hel = L.subst(Nat, z => {Nat.is_lt(e, z) $TT, $N2, SC.length(B.Bk, $NBS), Equal.sym(Nat, SC.length(B.Bk, $NBS), $N2, IA.len_dlist(AR.slots(U32, NT), kl, $N2, 0n)), he)
+      +e5 = Equal.trans(Nat, IV.occn($BUx, $N2), 1n+IV.occn($NBS, $N2), IV.occn($OBS, 1n+j), IM.occn_up($NBS, e, $NBO, {==}, hel, hz, $N2, he), Equal.trans(Nat, 1n+IV.occn($NBS, $N2), 1n+IV.occn($OBS, j), IV.occn($OBS, 1n+j), Equal.cong(Nat, Nat, z => 1n+z, IV.occn($NBS, $N2), IV.occn($OBS, j), N.eq_from_is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j), r_5($RA, hr))), Equal.sym(Nat, IV.occn($OBS, 1n+j), 1n+IV.occn($OBS, j), Equal.cong(B.Bk, Nat, y => Nat.add(IV.bitv(B.occ(y)), IV.occn($OBS, j)), B.at($OBS, j), $NBO, hb))))
+      +c2 = $TOB {B.cluster(z, $N2, $MSK) $TT $FRB IM.clus_up($NBS, e, $NBO, {==}, hel, $N2, $MSK, hp, r_2($RA, hr)))
+      +c3 = $TOB {B.all_lt(B.PWell{z, sd}, $N2) $TT $FRB IM.well_up($NBS, e, $NBO, hel, sd, hwb, $N2, r_3($RA, hr), $N2, N.le_refl($N2)))
+      +c4 = $TOB {B.all_lt(B.PUniq{z}, $N2) $TT $FRB IM.uq_up($NBS, e, hel, $OW, $OL, $KB, $N2, he, r_4($RA, hr), pno, nsl))
+      +c5 = $TOB {Nat.is_eq(IV.occn(z, $N2), IV.occn($OBS, 1n+j)) $TT $FRB IS.eq_is_eq(IV.occn($BUx, $N2), IV.occn($OBS, 1n+j), e5))
+      +c6 = $TOB {B.all_lt(B.PFrom{z, $OBS, 1n+j}, $N2) $TT $FRB RH.from_mv($NBS, $OBS, j, $N2, e, hel, $NBO, hb, r_6($RA, hr), $N2, N.le_refl($N2)))
+      +c7 = $TOB {B.all_lt(B.PTo{$OBS, z, $N2}, 1n+j) $TT $FRB RH.to_mv($NBS, $OBS, j, $N2, e, hel, $NBO, hb, hz, he, r_7($RA, hr)))
+      ($TPX, (eq, r_mk(OT, kl, k, sd, $TPX, 1n+j, put_perf(1n+k, hk30, NT, r_1($RA, hr), e, he, $OW, $OL), c2, c3, c4, c5, c6, c7)))
+
+# a full old bucket: it moves to the first empty bucket of its path
+def step_mv($OH, $SP, $HC) -> StepOK(OT, kl, k, sd, j, kk, NT):
+  +hb = s_hb($OA, $SA, hc)
+  +hu = L.subst(B.Bk, y => {B.uq_b($OBS, j, y) $TT, B.at($OBS, j), $NBO, hb, B.all_inst(B.PUniq{$OBS}, $N, huo, j, hj))
+  +nohb = L.and_left(B.nohb($OBS, $KB, j), B.nolb($OBS, $OL, j), hu)
+  +nolb = L.and_right(B.nohb($OBS, $KB, j), B.nolb($OBS, $OL, j), hu)
+  +pno = RH.pno_from($NBS, $OBS, j, $N2, r_6($RA, hr), $KB, nohb, $N2, N.le_refl($N2))
+  +nsl = RH.ns_from($NBS, $OBS, j, $N2, r_6($RA, hr), UD.v(H.slot($OL)), RH.noslot_nolb($OBS, $OL, j, nolb), $N2, N.le_refl($N2))
+  +ol = N.le_trans(IV.occn($OBS, j), IV.occn($OBS, $N), $N, hoc, N.le_trans(IV.occn($OBS, $N), Nat.double(IV.occn($OBS, $N)), $N, N.double_self_le(IV.occn($OBS, $N)), hld))
+  +hem = L.subst(Nat, z => {Nat.is_lt(z, $N2) $TT, IV.occn($OBS, j), IV.occn($NBS, $N2), Equal.sym(Nat, IV.occn($NBS, $N2), IV.occn($OBS, j), N.eq_from_is_eq(IV.occn($NBS, $N2), IV.occn($OBS, j), r_5($RA, hr))), N.le_lt_trans(IV.occn($OBS, j), $N, $N2, ol, N.pow2_lt_succ(k)))
+  step_e($OA, $SA, hc, pno, nsl, RI.find_e($NBS, $N2, N.succ_le_lt(0n, $N2, N.pow2_pos(1n+k)), $MSK, $KB, $HM, PA.home_lt($OW, 1n+k), r_2($RA, hr), pno, hem))
+
+def step_c($OH, $SP, +c: Bool, +hc: {U32.is_eq($OW, 0) == c : Bool}) -> StepOK(OT, kl, k, sd, j, kk, NT):
+  match c:
+    case True{}:
+      step_skip($OA, $SA, hc)
+    case False{}:
+      step_mv($OA, $SA, hc)
+
+# THEOREM: one step of the move loop keeps the loop invariant
+def step($OH, $SP) -> StepOK(OT, kl, k, sd, j, kk, NT):
+  step_c($OA, $SA, U32.is_eq($OW, 0), {==})
+
+# ---- the loop ----
+
+def occn_le(+bs: List<&2, B.Bk>, +j: Nat, +d: Nat) -> {Nat.is_le(IV.occn(bs, j), IV.occn(bs, Nat.add(j, d))) $TT:
+  match d:
+    case 0n:
+      L.subst(Nat, z => {Nat.is_le(IV.occn(bs, j), IV.occn(bs, z)) $TT, j, Nat.add(j, 0n), Equal.sym(Nat, Nat.add(j, 0n), j, N.add_zero(j)), N.le_refl(IV.occn(bs, j)))
+    case 1n+q:
+      +x = IV.occn(bs, Nat.add(j, q))
+      +b = IV.bitv(B.occ(B.at(bs, Nat.add(j, q))))
+      +h1 = N.le_trans(IV.occn(bs, j), x, Nat.add(b, x), occn_le(bs, j, q), L.subst(Nat, z => {Nat.is_le(x, z) $TT, Nat.add(x, b), Nat.add(b, x), N.add_comm(x, b), N.le_add_right(x, b)))
+      L.subst(Nat, z => {Nat.is_le(IV.occn(bs, j), IV.occn(bs, z)) $TT, 1n+Nat.add(j, q), Nat.add(j, 1n+q), Equal.sym(Nat, Nat.add(j, 1n+q), 1n+Nat.add(j, q), N.add_succ(j, q)), h1)
+
+def LoopOK(+OT: AR.Tree<U32>, +kl: List<&2, String>, +k: Nat, +sd: Nat, +f: Nat, +kk: U32, +NT: AR.Tree<U32>) -> Type:
+  Sigma<&1, &1, AR.Tree<U32>, T2 => {H.mv_go(f, kk, $MSK, $MVS) == H.MV{AR.thaw(U32, OT), AR.thaw(U32, T2)} : H.Mv} & {rinv(OT, kl, k, sd, T2, $N) $TT>
+
+def loop_s2($OH, +p: Nat, +kk: U32, +NT: AR.Tree<U32>, +T2: AR.Tree<U32>, +e1: {H.mv_step(kk, $MSK, $MVS) == H.MV{AR.thaw(U32, OT), AR.thaw(U32, T2)} : H.Mv}, lo: LoopOK(OT, kl, k, sd, p, U32.inc(kk), T2)) -> LoopOK(OT, kl, k, sd, 1n+p, kk, NT):
+  match lo:
+    case Tuple{+T3, Tuple{+e2, +hr3}}:
+      (T3, (Equal.trans(H.Mv, H.mv_go(1n+p, kk, $MSK, $MVS), H.mv_go(p, U32.inc(kk), $MSK, H.MV{AR.thaw(U32, OT), AR.thaw(U32, T2)}), H.MV{AR.thaw(U32, OT), AR.thaw(U32, T3)}, Equal.cong(H.Mv, H.Mv, m => H.mv_go(p, U32.inc(kk), $MSK, m), H.mv_step(kk, $MSK, $MVS), H.MV{AR.thaw(U32, OT), AR.thaw(U32, T2)}, e1), e2), hr3))
+
+def loop_s($OH, +p: Nat, +j: Nat, +kk: U32, +NT: AR.Tree<U32>, st: StepOK(OT, kl, k, sd, j, kk, NT), rec: @+T2: AR.Tree<U32> -> @+hr2: {rinv(OT, kl, k, sd, T2, 1n+j) $TT -> LoopOK(OT, kl, k, sd, p, U32.inc(kk), T2)) -> LoopOK(OT, kl, k, sd, 1n+p, kk, NT):
+  match st:
+    case Tuple{+T2, Tuple{+e1, +hr2}}:
+      loop_s2($OA, p, kk, NT, T2, e1, rec(T2, hr2))
+
+# THEOREM: the loop moves the remaining old buckets keeping the invariant
+def loop($OH, +f: Nat, +j: Nat, +hjf: {Nat.add(j, f) == $N : Nat}, +kk: U32, +hkk: {UD.v(kk) == j : Nat}, +NT: AR.Tree<U32>, +hr: {rinv($RA) $TT) -> LoopOK(OT, kl, k, sd, f, kk, NT):
+  match f:
+    case 0n:
+      +ej = Equal.trans(Nat, j, Nat.add(j, 0n), $N, Equal.sym(Nat, Nat.add(j, 0n), j, N.add_zero(j)), hjf)
+      (NT, ({==}, L.subst(Nat, z => {rinv(OT, kl, k, sd, NT, z) $TT, j, $N, ej, hr)))
+    case 1n+p:
+      +hN = Equal.trans(Nat, 1n+Nat.add(j, p), Nat.add(j, 1n+p), $N, Equal.sym(Nat, Nat.add(j, 1n+p), 1n+Nat.add(j, p), N.add_succ(j, p)), hjf)
+      +hj = L.subst(Nat, z => {Nat.is_lt(j, z) $TT, 1n+Nat.add(j, p), $N, hN, N.le_lt_succ(j, Nat.add(j, p), N.le_add_right(j, p)))
+      +hoc = L.subst(Nat, z => {Nat.is_le(IV.occn($OBS, j), IV.occn($OBS, z)) $TT, Nat.add(j, 1n+p), $N, hjf, occn_le($OBS, j, 1n+p))
+      +hb = L.subst(Nat, z => {Nat.is_lt(z, $N) $TT, j, UD.v(kk), Equal.sym(Nat, UD.v(kk), j, hkk), hj)
+      +hk2 = Equal.trans(Nat, UD.v(U32.inc(kk)), 1n+UD.v(kk), 1n+j, CY.inc_val(one, h1, kk, IU.bound32(one, h1, UD.v(kk), k, hk31, hb)), Equal.cong(Nat, Nat, z => 1n+z, UD.v(kk), j, hkk))
+      +hjf2 = Equal.trans(Nat, Nat.add(1n+j, p), 1n+Nat.add(j, p), $N, {==}, hN)
+      loop_s($OA, p, j, kk, NT, step($OA, j, hj, hoc, kk, hkk, NT, hr), T2 => hr2 => loop($OA, p, 1n+j, hjf2, U32.inc(kk), hk2, T2, hr2))
+
+%def Z AR.trep(U32, 2n+k, 0)
+%def ZB2 TB.buckets(AR.slots(U32, $Z), kl, $N2)
+
+def GrowOK(+OT: AR.Tree<U32>, +kl: List<&2, String>, +k: Nat, +sd: Nat, +td: U32) -> Type:
+  Sigma<&1, &1, AR.Tree<U32>, T2 => {H.grow_tab(CY.msk(k), td, AR.thaw(U32, OT)) == AR.thaw(U32, T2) : Array<U32>} & {rinv(OT, kl, k, sd, T2, $N) $TT>
+
+def grow_fin(+OT: AR.Tree<U32>, +kl: List<&2, String>, +k: Nat, +sd: Nat, +td: U32, +e0: {H.grow_tab(CY.msk(k), td, AR.thaw(U32, OT)) == H.mv_fin(H.mv_go($N, 0, $MSK, H.MV{AR.thaw(U32, OT), AR.thaw(U32, $Z)})) : Array<U32>}, lo: LoopOK(OT, kl, k, sd, $N, 0, $Z)) -> GrowOK(OT, kl, k, sd, td):
+  match lo:
+    case Tuple{+T2, Tuple{+e1, +hr}}:
+      (T2, (Equal.trans(Array<U32>, H.grow_tab(CY.msk(k), td, AR.thaw(U32, OT)), H.mv_fin(H.mv_go($N, 0, $MSK, H.MV{AR.thaw(U32, OT), AR.thaw(U32, $Z)})), AR.thaw(U32, T2), e0, Equal.cong(H.Mv, Array<U32>, m => H.mv_fin(m), H.mv_go($N, 0, $MSK, H.MV{AR.thaw(U32, OT), AR.thaw(U32, $Z)}), H.MV{AR.thaw(U32, OT), AR.thaw(U32, T2)}, e1)), hr))
+
+# THEOREM: growing the table yields a table of twice the buckets holding a
+# copy of every full old bucket and nothing else, with the table invariants
+def grow_ok($OH, +td: U32, +htd: {UD.v(td) == 1n+k : Nat}) -> GrowOK(OT, kl, k, sd, td):
+  +htd5 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(5n)) $TT, 1n+k, UD.v(td), Equal.sym(Nat, UD.v(td), 1n+k, htd), N.lt_trans(1n+k, 31n, 32n, hk30, {==}))
+  +etd = Equal.trans(Nat, UD.v(U32.inc(td)), 1n+UD.v(td), 2n+k, CY.inc_val(one, h1, td, IU.bound32(one, h1, UD.v(td), 5n, {==}, htd5)), Equal.cong(Nat, Nat, z => 1n+z, UD.v(td), 1n+k, htd))
+  +ea = Equal.trans(Array<U32>, Array.new(U32, UD.v(U32.inc(td)), 0), Array.new(U32, 2n+k, 0), AR.thaw(U32, $Z), Equal.cong(Nat, Array<U32>, d => Array.new(U32, d, 0), UD.v(U32.inc(td)), 2n+k, etd), AR.new(U32, 2n+k, 0))
+  +e0 = Equal.trans(Array<U32>, H.grow_tab(CY.msk(k), td, AR.thaw(U32, OT)), H.mv_fin(H.mv_go($N, 0, U32.inc(U32.shl(CY.msk(k))), H.MV{AR.thaw(U32, OT), Array.new(U32, UD.v(U32.inc(td)), 0)})), H.mv_fin(H.mv_go($N, 0, $MSK, H.MV{AR.thaw(U32, OT), AR.thaw(U32, $Z)})), Equal.cong(Nat, Array<U32>, f => H.mv_fin(H.mv_go(f, 0, U32.inc(U32.shl(CY.msk(k))), H.MV{AR.thaw(U32, OT), Array.new(U32, UD.v(U32.inc(td)), 0)})), UD.v(U32.inc(CY.msk(k))), $N, PA.fuel_eq(one, h1, k, hk31)), Equal.trans(Array<U32>, H.mv_fin(H.mv_go($N, 0, U32.inc(U32.shl(CY.msk(k))), H.MV{AR.thaw(U32, OT), Array.new(U32, UD.v(U32.inc(td)), 0)})), H.mv_fin(H.mv_go($N, 0, $MSK, H.MV{AR.thaw(U32, OT), Array.new(U32, UD.v(U32.inc(td)), 0)})), H.mv_fin(H.mv_go($N, 0, $MSK, H.MV{AR.thaw(U32, OT), AR.thaw(U32, $Z)})), Equal.cong(U32, Array<U32>, m => H.mv_fin(H.mv_go($N, 0, m, H.MV{AR.thaw(U32, OT), Array.new(U32, UD.v(U32.inc(td)), 0)})), U32.inc(U32.shl(CY.msk(k))), $MSK, msk_up(one, h1, k, hk31)), Equal.cong(Array<U32>, Array<U32>, a => H.mv_fin(H.mv_go($N, 0, $MSK, H.MV{AR.thaw(U32, OT), a})), Array.new(U32, UD.v(U32.inc(td)), 0), AR.thaw(U32, $Z), ea)))
+  +h0 = r_mk(OT, kl, k, sd, $Z, 0n, AR.trep_perfect(U32, 2n+k, 0), z_clus(2n+k, kl, $N2, $MSK, $N2, N.le_refl($N2)), z_well(2n+k, kl, $N2, sd, $N2, N.le_refl($N2)), z_uniq(2n+k, kl, $N2, $N2, N.le_refl($N2)), IS.eq_is_eq(IV.occn($ZB2, $N2), 0n, z_occn(2n+k, kl, $N2, $N2, N.le_refl($N2))), z_from(2n+k, kl, $N2, $OBS, 0n, $N2, N.le_refl($N2)), {==})
+  grow_fin(OT, kl, k, sd, td, e0, loop($OA, $N, 0n, {==}, 0, {==}, $Z, h0))
