@@ -1,0 +1,97 @@
+import Base
+import ../lib/logic.bend as L
+import ../spec/common.bend as SC
+import ../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./setters.bend as SE
+
+# The mirror's attach and rotations as functions of the node list and the
+# root: attach links a child under a parent (or makes it the root), a
+# rotation relinks the node, its child, the child's inner subtree and the
+# parent. (source: tools/generators/tm_hand/rotm.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def AK ~K, ~V, ~cmp
+%def FT +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: $NL, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: List<&2, Nat>
+%def F n, root, lo, hi, free, l, d, nl, pl, tg, fl
+%def SHR(r, x) ST.SH{n, r, lo, hi, free, l, d, x, pl, tg, fl}
+%def SH $SHR(root, nl)
+%def SHT ST.Sh<K, V>
+
+def rootq(+q: Nat, +root: Nat, +y: Nat) -> Nat:
+  match q:
+    case 0n:
+      y
+    case 1n+j:
+      root
+
+def attn(-K: Data, +nl: $NL, +q: Nat, +y: Nat, +dir: Bool) -> $NL:
+  match q:
+    case 0n:
+      nl
+    case 1n+j:
+      match dir:
+        case True{}:
+          SE.setl(K, nl, 1n+j, y)
+        case False{}:
+          SE.setr(K, nl, 1n+j, y)
+
+def attach_m($TK, $FT, +q: Nat, +y: Nat, +dir: Bool) -> {MI.attach($AK, $SH, q, y, dir) == $SHR(rootq(q, root, y), SE.setp(K, attn(K, nl, q, y, dir), y, q)) : $SHT}:
+  match q dir:
+    case 0n True{}:
+      SE.set_parent_m($AK, n, y, lo, hi, free, l, d, nl, pl, tg, fl, y, 0n)
+    case 0n False{}:
+      SE.set_parent_m($AK, n, y, lo, hi, free, l, d, nl, pl, tg, fl, y, 0n)
+    case 1n+j True{}:
+      %Equal.sym($SHT, MI.set_left($AK, $SH, 1n+j, y), $SHR(root, SE.setl(K, nl, 1n+j, y)), SE.set_left_m($AK, $F, 1n+j, y)) : {MI.set_parent($AK, _, y, 1n+j) == $SHR(root, SE.setp(K, SE.setl(K, nl, 1n+j, y), y, 1n+j)) : $SHT}
+      SE.set_parent_m($AK, n, root, lo, hi, free, l, d, SE.setl(K, nl, 1n+j, y), pl, tg, fl, y, 1n+j)
+    case 1n+j False{}:
+      %Equal.sym($SHT, MI.set_right($AK, $SH, 1n+j, y), $SHR(root, SE.setr(K, nl, 1n+j, y)), SE.set_right_m($AK, $F, 1n+j, y)) : {MI.set_parent($AK, _, y, 1n+j) == $SHR(root, SE.setp(K, SE.setr(K, nl, 1n+j, y), y, 1n+j)) : $SHT}
+      SE.set_parent_m($AK, n, root, lo, hi, free, l, d, SE.setr(K, nl, 1n+j, y), pl, tg, fl, y, 1n+j)
+
+%def N1L SE.setr(K, nl, x, b)
+%def N2L SE.setp(K, $N1L, b, x)
+%def N3L SE.setp(K, attn(K, $N2L, q, y, dir), y, q)
+%def N4L SE.setl(K, $N3L, y, x)
+%def N5L SE.setp(K, $N4L, x, y)
+%def RQ rootq(q, root, y)
+
+# the left rotation's writes: x's right := b, b's parent := x, the parent's
+# child (or the root) := y, y's parent := q, y's left := x, x's parent := y
+def rotl_nl(-K: Data, +nl: $NL, +x: Nat, +y: Nat, +b: Nat, +q: Nat, +dir: Bool) -> $NL:
+  $N5L
+
+def rotl_body($TK, $FT, +x: Nat, +y: Nat, +b: Nat, +q: Nat, +dir: Bool) -> {MI.set_parent($AK, MI.set_left($AK, MI.attach($AK, MI.set_parent($AK, MI.set_right($AK, $SH, x, b), b, x), q, y, dir), y, x), x, y) == $SHR($RQ, rotl_nl(K, nl, x, y, b, q, dir)) : $SHT}:
+  %Equal.sym($SHT, MI.set_right($AK, $SH, x, b), $SHR(root, $N1L), SE.set_right_m($AK, $F, x, b)) : {MI.set_parent($AK, MI.set_left($AK, MI.attach($AK, MI.set_parent($AK, _, b, x), q, y, dir), y, x), x, y) == $SHR($RQ, $N5L) : $SHT}
+  %Equal.sym($SHT, MI.set_parent($AK, $SHR(root, $N1L), b, x), $SHR(root, $N2L), SE.set_parent_m($AK, n, root, lo, hi, free, l, d, $N1L, pl, tg, fl, b, x)) : {MI.set_parent($AK, MI.set_left($AK, MI.attach($AK, _, q, y, dir), y, x), x, y) == $SHR($RQ, $N5L) : $SHT}
+  %Equal.sym($SHT, MI.attach($AK, $SHR(root, $N2L), q, y, dir), $SHR($RQ, $N3L), attach_m($AK, n, root, lo, hi, free, l, d, $N2L, pl, tg, fl, q, y, dir)) : {MI.set_parent($AK, MI.set_left($AK, _, y, x), x, y) == $SHR($RQ, $N5L) : $SHT}
+  %Equal.sym($SHT, MI.set_left($AK, $SHR($RQ, $N3L), y, x), $SHR($RQ, $N4L), SE.set_left_m($AK, n, $RQ, lo, hi, free, l, d, $N3L, pl, tg, fl, y, x)) : {MI.set_parent($AK, _, x, y) == $SHR($RQ, $N5L) : $SHT}
+  SE.set_parent_m($AK, n, $RQ, lo, hi, free, l, d, $N4L, pl, tg, fl, x, y)
+
+%def M1L SE.setl(K, nl, x, b)
+%def M2L SE.setp(K, $M1L, b, x)
+%def M3L SE.setp(K, attn(K, $M2L, q, y, dir), y, q)
+%def M4L SE.setr(K, $M3L, y, x)
+%def M5L SE.setp(K, $M4L, x, y)
+
+# the right rotation: x's left := b, b's parent := x, the parent's child (or
+# the root) := y, y's parent := q, y's right := x, x's parent := y
+def rotr_nl(-K: Data, +nl: $NL, +x: Nat, +y: Nat, +b: Nat, +q: Nat, +dir: Bool) -> $NL:
+  $M5L
+
+def rotr_body($TK, $FT, +x: Nat, +y: Nat, +b: Nat, +q: Nat, +dir: Bool) -> {MI.set_parent($AK, MI.set_right($AK, MI.attach($AK, MI.set_parent($AK, MI.set_left($AK, $SH, x, b), b, x), q, y, dir), y, x), x, y) == $SHR($RQ, rotr_nl(K, nl, x, y, b, q, dir)) : $SHT}:
+  %Equal.sym($SHT, MI.set_left($AK, $SH, x, b), $SHR(root, $M1L), SE.set_left_m($AK, $F, x, b)) : {MI.set_parent($AK, MI.set_right($AK, MI.attach($AK, MI.set_parent($AK, _, b, x), q, y, dir), y, x), x, y) == $SHR($RQ, $M5L) : $SHT}
+  %Equal.sym($SHT, MI.set_parent($AK, $SHR(root, $M1L), b, x), $SHR(root, $M2L), SE.set_parent_m($AK, n, root, lo, hi, free, l, d, $M1L, pl, tg, fl, b, x)) : {MI.set_parent($AK, MI.set_right($AK, MI.attach($AK, _, q, y, dir), y, x), x, y) == $SHR($RQ, $M5L) : $SHT}
+  %Equal.sym($SHT, MI.attach($AK, $SHR(root, $M2L), q, y, dir), $SHR($RQ, $M3L), attach_m($AK, n, root, lo, hi, free, l, d, $M2L, pl, tg, fl, q, y, dir)) : {MI.set_parent($AK, MI.set_right($AK, _, y, x), x, y) == $SHR($RQ, $M5L) : $SHT}
+  %Equal.sym($SHT, MI.set_right($AK, $SHR($RQ, $M3L), y, x), $SHR($RQ, $M4L), SE.set_right_m($AK, n, $RQ, lo, hi, free, l, d, $M3L, pl, tg, fl, y, x)) : {MI.set_parent($AK, _, x, y) == $SHR($RQ, $M5L) : $SHT}
+  SE.set_parent_m($AK, n, $RQ, lo, hi, free, l, d, $M4L, pl, tg, fl, x, y)
+
+# the mirror's rotations over nodes read from the list
+def rotate_left_m($TK, $FT, +x: Nat) -> {MI.rotate_left($AK, $SH, x) == $SHR(rootq(M.node_parent(~K, ST.nd(K, nl, x)), root, M.node_right(~K, ST.nd(K, nl, x))), rotl_nl(K, nl, x, M.node_right(~K, ST.nd(K, nl, x)), M.node_left(~K, ST.nd(K, nl, M.node_right(~K, ST.nd(K, nl, x)))), M.node_parent(~K, ST.nd(K, nl, x)), Nat.is_eq(M.node_left(~K, ST.nd(K, nl, M.node_parent(~K, ST.nd(K, nl, x)))), x))) : $SHT}:
+  rotl_body($AK, $F, x, M.node_right(~K, ST.nd(K, nl, x)), M.node_left(~K, ST.nd(K, nl, M.node_right(~K, ST.nd(K, nl, x)))), M.node_parent(~K, ST.nd(K, nl, x)), Nat.is_eq(M.node_left(~K, ST.nd(K, nl, M.node_parent(~K, ST.nd(K, nl, x)))), x))
+
+def rotate_right_m($TK, $FT, +x: Nat) -> {MI.rotate_right($AK, $SH, x) == $SHR(rootq(M.node_parent(~K, ST.nd(K, nl, x)), root, M.node_left(~K, ST.nd(K, nl, x))), rotr_nl(K, nl, x, M.node_left(~K, ST.nd(K, nl, x)), M.node_right(~K, ST.nd(K, nl, M.node_left(~K, ST.nd(K, nl, x)))), M.node_parent(~K, ST.nd(K, nl, x)), Nat.is_eq(M.node_left(~K, ST.nd(K, nl, M.node_parent(~K, ST.nd(K, nl, x)))), x))) : $SHT}:
+  rotr_body($AK, $F, x, M.node_left(~K, ST.nd(K, nl, x)), M.node_right(~K, ST.nd(K, nl, M.node_left(~K, ST.nd(K, nl, x)))), M.node_parent(~K, ST.nd(K, nl, x)), Nat.is_eq(M.node_left(~K, ST.nd(K, nl, M.node_parent(~K, ST.nd(K, nl, x)))), x))
