@@ -28,6 +28,8 @@ import ./rehash.bend as RH
 import ./delmv.bend as DM
 import ./poplem.bend as PL
 import ./delw.bend as DW
+import ./probe_impl.bend as PI
+import ./probe_all.bend as PA
 
 # pop of a present key: the implementation's result is the specification's
 # lookup and remove.
@@ -263,3 +265,60 @@ def ph_del(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +n: U32, +k: Nat, +td: U
 # THEOREM: popping a key held by bucket i returns its value and removes it
 def pop_hit_ok(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +n: U32, +k: Nat, +td: U32, +fresh: U32, +sz: U32, +sd: Nat, +sdU: U32, +free: U32, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +vsT: AR.Tree<Maybe<&2, V>>, +nxT: AR.Tree<U32>, +hg: {ST.good(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT}) == True{} : Bool}, +key: String, +K2: AR.Tree<String>, +hsl2: {AR.slots(String, K2) == AR.slots(String, ksT) : List<&2, String>}, +pk2: {AR.perfect(String, sd, K2) == True{} : Bool}, +i: Nat, +l: U32, +hi: {Nat.is_lt(i, SC.pow2(k)) == True{} : Bool}, +hk: {B.hold(key, B.at(TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), i)) == True{} : Bool}, +hl: {B.lnk(B.at(TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), i)) == l : U32}) -> PopOK(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT}, key, H.pop_hit(&2, V, n, CY.msk(k), td, fresh, sz, sdU, free, AR.thaw(U32, tabT), AR.thaw(String, K2), AR.thaw(Maybe<&2, V>, vsT), AR.thaw(U32, nxT), U32.from_nat(i), l, K.kword(key), U32.is_eq(l, 0))):
   ph_del(~V, one, h1, n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT, hg, key, K2, hsl2, pk2, i, l, hi, hk, hl, DW.del_ok2(k, L.and_left(Nat.is_lt(k, 31n), Nat.is_lt(0n, k), ST.g_ck(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), vsT, nxT, hg)), AR.slots(String, ksT), tabT, ST.g_cpt(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), vsT, nxT, hg), i, hi, ST.g_cclus(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), vsT, nxT, hg), ST.g_cuniq(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), vsT, nxT, hg), p_hoi(~V, one, h1, n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT, hg, key, K2, hsl2, pk2, i, l, hi, hk, hl), p_hem(~V, one, h1, n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT, hg, key, K2, hsl2, pk2, i, l, hi, hk, hl)))
+
+# ---- pop of an absent key ----
+
+
+def pop_absent_ok(~V: Data, +n: U32, +k: Nat, +td: U32, +fresh: U32, +sz: U32, +sd: Nat, +sdU: U32, +free: U32, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +vsT: AR.Tree<Maybe<&2, V>>, +nxT: AR.Tree<U32>, +hg: {ST.good(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT}) == True{} : Bool}, +key: String, +K2: AR.Tree<String>, +hsl2: {AR.slots(String, K2) == AR.slots(String, ksT) : List<&2, String>}, +pk2: {AR.perfect(String, sd, K2) == True{} : Bool}, +e: Nat, +hno: {B.all_lt(B.PNo{TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), key}, SC.pow2(k)) == True{} : Bool}) -> PopOK(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT}, key, H.pop_hit(&2, V, n, CY.msk(k), td, fresh, sz, sdU, free, AR.thaw(U32, tabT), AR.thaw(String, K2), AR.thaw(Maybe<&2, V>, vsT), AR.thaw(U32, nxT), U32.from_nat(e), 0, K.kword(key), U32.is_eq(0, 0))):
+  +kl = AR.slots(String, ksT)
+  +pkT = ST.g_cpk(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), vsT, nxT, hg)
+  +hgT = L.subst(Bool, b => {ST.goodF(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, kl, b, vsT, nxT) == True{} : Bool}, AR.perfect(String, sd, ksT), True{}, pkT, hg)
+  +g2 = L.subst(List<&2, String>, z => {ST.goodF(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, z, AR.perfect(String, sd, K2), vsT, nxT) == True{} : Bool}, kl, AR.slots(String, K2), Equal.sym(List<&2, String>, AR.slots(String, K2), kl, hsl2), L.subst(Bool, b => {ST.goodF(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, kl, b, vsT, nxT) == True{} : Bool}, True{}, AR.perfect(String, sd, K2), Equal.sym(Bool, AR.perfect(String, sd, K2), True{}, pk2), hgT))
+  +m2 = Equal.cong(List<&2, String>, List<&2, S.Entry<V>>, z => ST.absm(~V, TB.buckets(AR.slots(U32, tabT), z, SC.pow2(k)), AR.slots(Maybe<&2, V>, vsT), SC.pow2(k), 0n), AR.slots(String, K2), kl, hsl2)
+  +enone = LK.lookup_none(~V, TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), AR.slots(Maybe<&2, V>, vsT), key, SC.pow2(k), hno)
+  +erm = SL.remove_none(~V, ST.absm(~V, TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), AR.slots(Maybe<&2, V>, vsT), SC.pow2(k), 0n), key, enone)
+  +mr = Equal.trans(List<&2, S.Entry<V>>, ST.model(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, K2, vsT, nxT}), ST.absm(~V, TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), AR.slots(Maybe<&2, V>, vsT), SC.pow2(k), 0n), S.remove(~V, ST.absm(~V, TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), AR.slots(Maybe<&2, V>, vsT), SC.pow2(k), 0n), key), m2, Equal.sym(List<&2, S.Entry<V>>, S.remove(~V, ST.absm(~V, TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), AR.slots(Maybe<&2, V>, vsT), SC.pow2(k), 0n), key), ST.absm(~V, TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), AR.slots(Maybe<&2, V>, vsT), SC.pow2(k), 0n), erm))
+  (ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, K2, vsT, nxT}, (Equal.cong(Maybe<&2, V>, H.HashMap<&2, V> & Maybe<&2, V>, x => (ST.real(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, K2, vsT, nxT}), x), None{}, S.lookup(~V, ST.absm(~V, TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), AR.slots(Maybe<&2, V>, vsT), SC.pow2(k), 0n), key), Equal.sym(Maybe<&2, V>, S.lookup(~V, ST.absm(~V, TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), AR.slots(Maybe<&2, V>, vsT), SC.pow2(k), 0n), key), None{}, enone)), (g2, (q => Equal.cong(List<&2, S.Entry<V>>, Maybe<&2, V>, z => S.lookup(~V, z, q), ST.model(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, K2, vsT, nxT}), S.remove(~V, ST.absm(~V, TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), AR.slots(Maybe<&2, V>, vsT), SC.pow2(k), 0n), key), mr), Equal.cong(List<&2, S.Entry<V>>, Nat, z => S.size(~V, z), ST.model(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, K2, vsT, nxT}), S.remove(~V, ST.absm(~V, TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), AR.slots(Maybe<&2, V>, vsT), SC.pow2(k), 0n), key), mr)))))
+
+# ---- pop and del ----
+
+
+def pop_r(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +n: U32, +k: Nat, +td: U32, +fresh: U32, +sz: U32, +sd: Nat, +sdU: U32, +free: U32, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +vsT: AR.Tree<Maybe<&2, V>>, +nxT: AR.Tree<U32>, +hg: {ST.good(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT}) == True{} : Bool}, +key: String, +K2: AR.Tree<String>, +hsl2: {AR.slots(String, K2) == AR.slots(String, ksT) : List<&2, String>}, +pk2: {AR.perfect(String, sd, K2) == True{} : Bool}, +r: B.Res, hres: B.ResOK(TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), SC.pow2(k), UD.v(HS.bucket(K.kword(key), CY.msk(k))), key, r)) -> PopOK(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT}, key, H.pop_f(&2, V, n, CY.msk(k), td, fresh, sz, sdU, free, AR.thaw(Maybe<&2, V>, vsT), AR.thaw(U32, nxT), (PI.fd_of(r, AR.thaw(U32, tabT), AR.thaw(String, K2), PA.stored(key)), K.kword(key)))):
+  match r:
+    case B.RHit{+i, +l}:
+      (+hi, rest) = hres
+      (+hk, hl) = rest
+      pop_hit_ok(~V, one, h1, n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT, hg, key, K2, hsl2, pk2, i, l, hi, hk, hl)
+    case B.REnd{+e}:
+      (he, rest) = hres
+      (hz, rest2) = rest
+      (hp, hno) = rest2
+      pop_absent_ok(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT, hg, key, K2, hsl2, pk2, e, hno)
+
+def pop_po(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +n: U32, +k: Nat, +td: U32, +fresh: U32, +sz: U32, +sd: Nat, +sdU: U32, +free: U32, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +vsT: AR.Tree<Maybe<&2, V>>, +nxT: AR.Tree<U32>, +hg: {ST.good(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT}) == True{} : Bool}, +key: String, +r: B.Res, hres: B.ResOK(TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), SC.pow2(k), UD.v(HS.bucket(K.kword(key), CY.msk(k))), key, r), po: PA.ProbeOK(tabT, sd, AR.slots(String, ksT), PA.stored(key), K.kword(key), r, H.probe(AR.thaw(U32, tabT), AR.thaw(String, ksT), CY.msk(k), key))) -> PopOK(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT}, key, H.pop(&2, V, ST.real(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT}), key)):
+  match po:
+    case Tuple{+K2, Tuple{+e, rest}}:
+      (+hsl2, pk2) = rest
+      +eq = Equal.cong(H.Found & U32, H.HashMap<&2, V> & Maybe<&2, V>, pr => H.pop_f(&2, V, n, CY.msk(k), td, fresh, sz, sdU, free, AR.thaw(Maybe<&2, V>, vsT), AR.thaw(U32, nxT), pr), H.probe(AR.thaw(U32, tabT), AR.thaw(String, ksT), CY.msk(k), key), (PI.fd_of(r, AR.thaw(U32, tabT), AR.thaw(String, K2), PA.stored(key)), K.kword(key)), e)
+      L.subst(H.HashMap<&2, V> & Maybe<&2, V>, rr => PopOK(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT}, key, rr), H.pop_f(&2, V, n, CY.msk(k), td, fresh, sz, sdU, free, AR.thaw(Maybe<&2, V>, vsT), AR.thaw(U32, nxT), (PI.fd_of(r, AR.thaw(U32, tabT), AR.thaw(String, K2), PA.stored(key)), K.kword(key))), H.pop(&2, V, ST.real(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT}), key), Equal.sym(H.HashMap<&2, V> & Maybe<&2, V>, H.pop(&2, V, ST.real(~V, ST.HS{n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT}), key), H.pop_f(&2, V, n, CY.msk(k), td, fresh, sz, sdU, free, AR.thaw(Maybe<&2, V>, vsT), AR.thaw(U32, nxT), (PI.fd_of(r, AR.thaw(U32, tabT), AR.thaw(String, K2), PA.stored(key)), K.kword(key))), eq), pop_r(~V, one, h1, n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT, hg, key, K2, hsl2, pk2, r, hres))
+
+
+# THEOREM: pop returns the specification's lookup and leaves its remove
+def pop_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +key: String) -> PopOK(~V, sh, key, H.pop(&2, V, ST.real(~V, sh), key)):
+  match sh:
+    case ST.HS{+n, +k, +td, +fresh, +sz, +sd, +sdU, +free, +tabT, +ksT, +vsT, +nxT}:
+      +kl = AR.slots(String, ksT)
+      +pk = AR.perfect(String, sd, ksT)
+      pop_po(~V, 1n, {==}, n, k, td, fresh, sz, sd, sdU, free, tabT, ksT, vsT, nxT, hg, key, B.pf(key, TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), SC.pow2(k), SC.pow2(k), B.mstep(key, B.at(TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), UD.v(HS.bucket(K.kword(key), CY.msk(k))))), UD.v(HS.bucket(K.kword(key), CY.msk(k)))), G.res_of(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, kl, pk, vsT, nxT, hg, key), PA.probe_ok(1n, {==}, k, L.and_left(Nat.is_lt(k, 31n), Nat.is_lt(0n, k), ST.g_ck(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), vsT, nxT, hg)), tabT, ST.g_cpt(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), vsT, nxT, hg), sd, ST.g_csd(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), vsT, nxT, hg), kl, ksT, {==}, ST.g_cpk(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), vsT, nxT, hg), ST.g_cwell(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), vsT, nxT, hg), key))
+
+def DelOK(~V: Data, +sh: ST.Sh<V>, +key: String, r: H.HashMap<&2, V>) -> Type:
+  Sigma<&1, &1, ST.Sh<V>, sh2 => {r == ST.real(~V, sh2) : H.HashMap<&2, V>} & ({ST.good(~V, sh2) == True{} : Bool} & ((@+q: String -> {S.lookup(~V, ST.model(~V, sh2), q) == S.lookup(~V, S.remove(~V, ST.model(~V, sh), key), q) : Maybe<&2, V>}) & {S.size(~V, ST.model(~V, sh2)) == S.size(~V, S.remove(~V, ST.model(~V, sh), key)) : Nat}))>
+
+def del_p(~V: Data, +sh: ST.Sh<V>, +key: String, po: PopOK(~V, sh, key, H.pop(&2, V, ST.real(~V, sh), key))) -> DelOK(~V, sh, key, H.del(&2, V, ST.real(~V, sh), key)):
+  match po:
+    case Tuple{+sh2, Tuple{+e, rest}}:
+      (sh2, (Equal.cong(H.HashMap<&2, V> & Maybe<&2, V>, H.HashMap<&2, V>, r => H.del_drop(&2, V, r), H.pop(&2, V, ST.real(~V, sh), key), (ST.real(~V, sh2), S.lookup(~V, ST.model(~V, sh), key)), e), rest))
+
+# THEOREM: del leaves the specification's remove
+def del_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +key: String) -> DelOK(~V, sh, key, H.del(&2, V, ST.real(~V, sh), key)):
+  del_p(~V, sh, key, pop_ok(~V, sh, hg, key))
