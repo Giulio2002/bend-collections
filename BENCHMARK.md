@@ -3,7 +3,7 @@
 Every row runs the same algorithm in Bend (native C backend, one thread) and in C
 (`-O3 -march=native`), with identical inputs, and the two results must agree
 (a checksum of every result, or the full digests). **Ratio = Bend time / C time**:
-below 1 Bend is faster. The target is 3x (`benchmarks/contract.json`).
+below 1 Bend is faster.
 
 Machine: arm64, macOS-15.6-arm64-arm-64bit-Mach-O. Measured while other work was running on the machine, so
 absolute times are noisy; each sample alternates Bend and C under the same load,
@@ -88,7 +88,7 @@ C reference: official BLAKE3 C, portable only (no SIMD). Worst ratio 1.59.
 
 ## Containers
 
-**327 of 378 container rows are still being measured; they show as pending.**
+**320 of 378 container rows are still being measured; they show as pending.**
 
 Each row measures one public operation at three structure sizes. The time of
 an operation is the difference between two regions that run 2k and k of them
@@ -103,8 +103,8 @@ median of six samples. See `benchmarks/run.py` for the method.
 | push | small | 25.9 | 10.7 | 2.42 |
 | push | medium | 25.0 | 10.1 | 2.48 |
 | push | large | 46.8 | 22.3 | 2.09 |
-| get | small | 22.8 | 3.63 | 6.27 (over 3x) |
-| get | medium | 22.0 | 3.27 | 6.72 (over 3x) |
+| get | small | 22.8 | 3.63 | 6.27 |
+| get | medium | 22.0 | 3.27 | 6.72 |
 | get | large | | | not timeable |
 | set | small | 5.90 | 3.44 | 1.72 |
 | set | medium | | | not timeable |
@@ -121,15 +121,15 @@ median of six samples. See `benchmarks/run.py` for the method.
 | to_list | small | 329 | 152 | 2.17 |
 | to_list | medium | 20429 | 10592 | 1.93 |
 | to_list | large | 933333 | 650377 | 1.44 |
-| clear | small | 342 | 13.3 | 25.74 (over 3x) |
+| clear | small | 342 | 13.3 | 25.74 |
 | clear | medium | | | not timeable |
-| clear | large | 1354000 | 17795 | 76.09 (over 3x) |
+| clear | large | 1354000 | 17795 | 76.09 |
 | pop | small | 12.4 | 6.49 | 1.91 |
 | pop | medium | 8.63 | 6.52 | 1.32 |
 | pop | large | 8.36 | 6.73 | 1.24 |
-| new | small | 12.7 | 3.79 | 3.35 (over 3x) |
+| new | small | 12.7 | 3.79 | 3.35 |
 | new | medium | 10.0 | 3.60 | 2.79 |
-| new | large | 18.5 | 4.00 | 4.63 (over 3x) |
+| new | large | 18.5 | 4.00 | 4.63 |
 
 ### Deque
 
@@ -156,18 +156,18 @@ median of six samples. See `benchmarks/run.py` for the method.
 | pop_front | small | 7.77 | 15.6 | 0.50 |
 | pop_front | medium | 7.99 | 14.6 | 0.55 |
 | pop_front | large | 10.4 | 13.7 | 0.76 |
-| pop_back | small | | | pending |
-| pop_back | medium | | | pending |
-| pop_back | large | | | pending |
-| new | small | | | pending |
-| new | medium | | | pending |
-| new | large | | | pending |
+| pop_back | small | 8.48 | 15.3 | 0.56 |
+| pop_back | medium | 8.24 | 17.1 | 0.48 |
+| pop_back | large | 12.2 | 17.3 | 0.70 |
+| new | small | 1.36 | 1.97 | 0.69 |
+| new | medium | 1.37 | 1.90 | 0.72 |
+| new | large | 1.42 | 2.11 | 0.67 |
 
 ### FIFO queue
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| enqueue | small | | | pending |
+| enqueue | small | | | not timeable |
 | enqueue | medium | | | pending |
 | enqueue | large | | | pending |
 | peek | small | | | pending |

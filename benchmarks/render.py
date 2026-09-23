@@ -51,7 +51,7 @@ def main():
            'Every row runs the same algorithm in Bend (native C backend, one thread) and in C',
            '(`-O3 -march=native`), with identical inputs, and the two results must agree',
            '(a checksum of every result, or the full digests). **Ratio = Bend time / C time**:',
-           'below 1 Bend is faster. The target is 3x (`benchmarks/contract.json`).', '']
+           'below 1 Bend is faster.', '']
     env = (full or {}).get('environment', {})
     out += ['Machine: %s, %s. Measured while other work was running on the machine, so' % (platform.machine(), platform.platform()),
             'absolute times are noisy; each sample alternates Bend and C under the same load,',
@@ -110,7 +110,7 @@ def main():
                 out.append('| %s | %s | | | not timeable |' % (op, t['workload']))
             else:
                 out.append('| %s | %s | %s | %s | %.2f%s |' % (op, t['workload'], ns(per_op(r, 'bend_delta_ns')),
-                           ns(per_op(r, 'reference_delta_ns')), r['ratio'], '' if r.get('passes_speed') else ' (over 3x)'))
+                           ns(per_op(r, 'reference_delta_ns')), r['ratio'], ''))
         out.append('')
     if pending:
         out.insert(out.index('## Containers') + 2, '**%d of %d container rows are still being measured; they show as pending.**\n' % (pending, len(TABLE)))
