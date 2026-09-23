@@ -218,16 +218,18 @@ def check_lru(log):
     """Differential checks for the key-value containers: the LRU against the
     optimized C reference and its sanitizer build (tools/lru_diff.py), the
     hash table against a Python dict oracle (tools/check_hash_table.py), the
-    LRU against its specification (tools/check_lru_spec.py), and
-    the hash table's refinement proof (proofs/hash_table.bend)."""
+    LRU against its specification (tools/check_lru_spec.py), and the
+    refinement proofs of the hash table (proofs/hash_table.bend) and the LRU
+    (proofs/lru.bend)."""
     ok = True
     checks = []
     for command in [[sys.executable, 'tools/lru_diff.py'],
                     [sys.executable, 'tools/check_hash_table.py'],
                     [sys.executable, 'tools/check_lru_spec.py'],
-                    [BEND, 'proofs/hash_table.bend']]:
+                    [BEND, 'proofs/hash_table.bend'],
+                    [BEND, 'proofs/lru.bend']]:
         p = run(command, timeout=7200)
-        good = p.returncode == 0
+        good = p.returncode == 0 and (command[0] != BEND or 'All terms check' in p.stdout)
         last = (p.stdout.strip().splitlines() or [''])[-1]
         checks.append({'command': command, 'passed': good, 'output': last})
         log.append('[kv] %s -> %s' % (' '.join(command), last))

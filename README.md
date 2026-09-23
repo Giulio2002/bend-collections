@@ -87,7 +87,8 @@ bend proofs/PROOF.bend
 `PROOF.bend` checks every gate: the component gates
 (`proofs/*_COMPONENT_PROOF.bend`, `DLL_DIRECT_PROOF`, `QUEUE_ADAPTER_PROOF`,
 `TREE_RANGE_PROOF`), `END_TO_END.bend` (each `proofs/<container>.bend`), the
-math library (`MATH_PROOF.bend`) and the hash map (`proofs/hash_table.bend`).
+math library (`MATH_PROOF.bend`), the hash map (`proofs/hash_table.bend`) and
+the LRU cache (`proofs/lru.bend`).
 
 The hash map is proved against an independent association-list
 specification (`proofs/spec/hash_table.bend`) for every operation (`new`,
@@ -97,5 +98,17 @@ key, the free list, arena and table growth (rehash), and backward-shift
 deletion. The one precondition is capacity: `set` requires the table to stay
 below 2^31 buckets.
 
-Still open: the LRU cache, the doubly linked list's universal refinement and
-the indexed TreeMap's refinement.
+The LRU cache is proved against an independent specification
+(`proofs/spec/lru.bend`: a capacity, a lifetime, the entries oldest first and
+five counters) for every operation (`new`, `capacity`, `len`, `counters`,
+`set_lifetime`, `get`, `peek`, `contains`, `add`, `remove`, `resize`, `purge`
+and `keys`), every key, every value type and every clock value. That covers
+the whole implementation: the embedded hash table with its growth and
+backward-shift deletion, the intrusive recency list (touch, unlink,
+link-tail), the free list and the arena growth, expiry on read and in `keys`,
+eviction on a full `add` and on `resize`, and the counters. The one
+precondition is capacity: `add` requires 2 (len + 1) <= 2^29, i.e. the table
+stays below 2^30 buckets.
+
+Still open: the doubly linked list's universal refinement and the indexed
+TreeMap's refinement.

@@ -178,3 +178,13 @@ def ad_room(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +sh: ST.Sh<V>, +key: St
 # evicting the oldest entry when full), for caches of fewer than 2^28 entries
 def add_ok(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +cz: Nat, +hcz: {cz == 29n : Nat}, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +hcap: {RO.capok(~V, sh, cz) == True{} : Bool}, +key: String, +v: V, +now: W.U64) -> RM.POK(~V, Bool, SP.add(~V, ST.model(~V, sh), key, v, now), LR.add(&2, V, ST.real(~V, sh), key, v, now)):
   ad_room(~V, one, h1, sh, key, v, now, RO.room_ok(~V, one, h1, sh, hg, cz, hcz, hcap))
+
+
+def capok_of(~V: Data, +cz: Nat, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +h: {Nat.is_le(Nat.double(1n+SP.length(~V, ST.lru_es(~V, ST.model(~V, sh)))), SC.pow2(cz)) == True{} : Bool}) -> {RO.capok(~V, sh, cz) == True{} : Bool}:
+  match sh:
+    case ST.LS{cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl}:
+      L.subst(Nat, z => {Nat.is_le(Nat.double(1n+z), SC.pow2(cz)) == True{} : Bool}, SP.length(~V, ST.es(~V, AR.slots(U32, lkT), AR.slots(String, ksT), AR.slots(Maybe<&2, V>, eT), sl)), UD.v(n), BA.len_model(~V, cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl, hg), h)
+
+# THEOREM (add), the precondition on the model: 2 (len + 1) <= 2^29
+def add_spec_ok(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +cz: Nat, +hcz: {cz == 29n : Nat}, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +h: {Nat.is_le(Nat.double(1n+SP.length(~V, ST.lru_es(~V, ST.model(~V, sh)))), SC.pow2(cz)) == True{} : Bool}, +key: String, +v: V, +now: W.U64) -> RM.POK(~V, Bool, SP.add(~V, ST.model(~V, sh), key, v, now), LR.add(&2, V, ST.real(~V, sh), key, v, now)):
+  add_ok(~V, one, h1, cz, hcz, sh, hg, capok_of(~V, cz, sh, hg, h), key, v, now)
