@@ -11,6 +11,7 @@ import ./ok.bend as OK
 import ./reads.bend as RD
 import ./ends.bend as EN
 import ./navm.bend as NM
+import ./putm.bend as PM
 
 # The implementation's operations refine the specification's, for every
 # good shadow and a lawful comparator. (source: tools/generators/tm_hand/api.src)
@@ -123,3 +124,27 @@ def higher_key_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, 
   match sh:
     case ST.SH{$FP}:
       OK.pok_read($AK, Maybe<&2, K>, $SH, hg, S.key_m(K, V, S.nav($AK, k, True{}, False{}, $EST)), S.nav_key($AK, $MD($SH), k, True{}, False{}), M.higher_key($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, K>, M.higher_key($AK, $RL($SH), k), MI.higher_key($AK, $SH, k), $SH, S.key_m(K, V, S.nav($AK, k, True{}, False{}, $EST)), SM.higher_key_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_key_m($AO, $F, k, True{}, False{}, hg)))
+
+# ---- put ----
+
+%def PRES Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>
+
+def put_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K, +v: V) -> OK.POK($AK, $PRES, S.put($AK, $MD(sh), k, v), M.put($AK, $RL(sh), k, v)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, $PRES, S.put($AK, $MD($SH), k, v), MI.put($AK, $SH, k, v), M.put($AK, $RL($SH), k, v), SM.put_s($AK, $SH, k, v, OK.dg_good($AK, $SH, hg)), PM.put_m($AO, $F, hg, k, v))
+
+def put_if_absent_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K, +v: V) -> OK.POK($AK, $PRES, S.put_if_absent($AK, $MD(sh), k, v), M.put_if_absent($AK, $RL(sh), k, v)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, $PRES, S.put_if_absent($AK, $MD($SH), k, v), MI.put_if_absent($AK, $SH, k, v), M.put_if_absent($AK, $RL($SH), k, v), SM.put_if_absent_s($AK, $SH, k, v, OK.dg_good($AK, $SH, hg)), PM.absent_m($AO, $F, hg, k, v))
+
+def replace_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K, +v: V) -> OK.POK($AK, $MV, S.replace($AK, $MD(sh), k, v), M.replace($AK, $RL(sh), k, v)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, $MV, S.replace($AK, $MD($SH), k, v), MI.replace($AK, $SH, k, v), M.replace($AK, $RL($SH), k, v), SM.replace_s($AK, $SH, k, v, OK.dg_good($AK, $SH, hg)), PM.replace_m($AO, $F, hg, k, v))
+
+def replace_if_equal_ok($TO, ~eq: V -> V -> Bool, +sh: $SHT, +hg: $GD(sh), +k: K, +e: V, +w: V) -> OK.POK($AK, Bool, S.replace_if_equal($AK, ~eq, $MD(sh), k, e, w), M.replace_if_equal($AK, ~eq, $RL(sh), k, e, w)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, Bool, S.replace_if_equal($AK, ~eq, $MD($SH), k, e, w), MI.replace_if_equal($AK, ~eq, $SH, k, e, w), M.replace_if_equal($AK, ~eq, $RL($SH), k, e, w), SM.replace_if_equal_s($AK, ~eq, $SH, k, e, w, OK.dg_good($AK, $SH, hg)), PM.rie_m($AO, ~eq, $F, hg, k, e, w))

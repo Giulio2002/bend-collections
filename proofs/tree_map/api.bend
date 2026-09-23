@@ -11,6 +11,7 @@ import ./ok.bend as OK
 import ./reads.bend as RD
 import ./ends.bend as EN
 import ./navm.bend as NM
+import ./putm.bend as PM
 
 # The implementation's operations refine the specification's, for every
 # good shadow and a lawful comparator. (source: tools/generators/tm_hand/api.src)
@@ -106,3 +107,26 @@ def higher_key_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
   match sh:
     case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
       OK.pok_read(~K, ~V, ~cmp, Maybe<&2, K>, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg, S.key_m(K, V, S.nav(~K, ~V, ~cmp, k, True{}, False{}, ST.ents(~K, ~V, ST.ids(tg), nl, pl))), S.nav_key(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, True{}, False{}), M.higher_key(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k), {==}, via(~K, ~V, ~cmp, Maybe<&2, K>, M.higher_key(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k), MI.higher_key(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k), ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, S.key_m(K, V, S.nav(~K, ~V, ~cmp, k, True{}, False{}, ST.ents(~K, ~V, ST.ids(tg), nl, pl))), SM.higher_key_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), NM.nav_key_m(~K, ~V, ~cmp, ~o, n, root, lo, hi, free, l, d, nl, pl, tg, fl, k, True{}, False{}, hg)))
+
+# ---- put ----
+
+
+def put_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}, +k: K, +v: V) -> OK.POK(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>, S.put(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, sh), k, v), M.put(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh), k, v)):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
+      OK.mok_pok(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>, S.put(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, v), MI.put(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, v), M.put(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, v), SM.put_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, v, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), PM.put_m(~K, ~V, ~cmp, ~o, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg, k, v))
+
+def put_if_absent_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}, +k: K, +v: V) -> OK.POK(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>, S.put_if_absent(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, sh), k, v), M.put_if_absent(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh), k, v)):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
+      OK.mok_pok(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>, S.put_if_absent(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, v), MI.put_if_absent(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, v), M.put_if_absent(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, v), SM.put_if_absent_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, v, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), PM.absent_m(~K, ~V, ~cmp, ~o, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg, k, v))
+
+def replace_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}, +k: K, +v: V) -> OK.POK(~K, ~V, ~cmp, Maybe<&2, V>, S.replace(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, sh), k, v), M.replace(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh), k, v)):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
+      OK.mok_pok(~K, ~V, ~cmp, Maybe<&2, V>, S.replace(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, v), MI.replace(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, v), M.replace(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, v), SM.replace_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, v, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), PM.replace_m(~K, ~V, ~cmp, ~o, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg, k, v))
+
+def replace_if_equal_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), ~eq: V -> V -> Bool, +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}, +k: K, +e: V, +w: V) -> OK.POK(~K, ~V, ~cmp, Bool, S.replace_if_equal(~K, ~V, ~cmp, ~eq, ST.model(~K, ~V, ~cmp, sh), k, e, w), M.replace_if_equal(~K, ~V, ~cmp, ~eq, ST.real(~K, ~V, ~cmp, sh), k, e, w)):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
+      OK.mok_pok(~K, ~V, ~cmp, Bool, S.replace_if_equal(~K, ~V, ~cmp, ~eq, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, e, w), MI.replace_if_equal(~K, ~V, ~cmp, ~eq, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, e, w), M.replace_if_equal(~K, ~V, ~cmp, ~eq, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, e, w), SM.replace_if_equal_s(~K, ~V, ~cmp, ~eq, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, e, w, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), PM.rie_m(~K, ~V, ~cmp, ~o, ~eq, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg, k, e, w))
