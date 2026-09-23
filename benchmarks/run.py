@@ -119,11 +119,11 @@ RETRIES = 4                 # re-takes of a sample (or calibration step) disturb
                             # other load: a negative or sub-minimum A - B means a
                             # region was interrupted, not that the operation is free
 # BENCH_QUICK=1: a ~10x cheaper sampling for rows that are not yet measured
-# at full quality: a 10-tick minimum (<= 10% clock quantisation) and three
+# at full quality: a 20-tick minimum (<= 5% clock quantisation) and three
 # samples. Rows measured this way carry "quick": true in the report.
 QUICK = os.environ.get('BENCH_QUICK') == '1'
 if QUICK:
-    MIN_DELTA_MS = 10
+    MIN_DELTA_MS = 20
     MIN_DELTA_NS = MIN_DELTA_MS * 1e6
     CAL_HEADROOM = 1.5
     SAMPLES = 3

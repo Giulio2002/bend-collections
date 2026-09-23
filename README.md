@@ -19,18 +19,36 @@ benchmarked against optimized C implementations of the same algorithms.
 | LRU cache | `src/containers/lru.bend` | String keys, lifetimes, 64-bit metrics |
 | SHA-256 | `src/crypto/sha/sha256.bend` | FIPS 180-4, from [bend-sha256](https://github.com/Giulio2002/bend-sha256) |
 | Keccak-256 | `src/crypto/keccak/keccak.bend` | Ethereum Keccak-256 (MIT), from [bend-keccak](https://github.com/Giulio2002/bend-keccak) |
+| BLAKE2s | `src/crypto/blake/blake2s/blake2s.bend` | RFC 7693, 32-byte digest |
+| BLAKE2b | `src/crypto/blake/blake2b/blake2b.bend` | RFC 7693, 64-byte digest |
+| BLAKE3 | `src/crypto/blake/blake3/blake3.bend` | hash mode, 32-byte digest |
 
 The hash map and the LRU follow Base's conventions: signatures are
 quantity-polymorphic (`a, -V: Kind(a)`, as `Base.Map` uses), and reads that
 copy a value out (`get`, `peek`) take `-V: Data` on the `&2` instance, like
 `Map.get`.
 
+## Install
+
+The library is published on the Bend hub. Import any module by its path in
+the package:
+
+```python
+import 0x9ee2e9a299991dcc089fe22c7f3ceb5f/src/containers/hash_table.bend as HashMap
+import 0x9ee2e9a299991dcc089fe22c7f3ceb5f/src/crypto/sha/sha256.bend as SHA256
+```
+
+The hash names the exact content (every file is checked against it when
+fetched), so an import never changes under you; each release lists its hash.
+`main.bend` imports every public module and is what gets published
+(`bend main.bend --publish`).
+
 ## Layout
 
 ```
 src/containers/   the collections, their internals (internal/) and API types (types/)
 src/math/         64-bit words, hashing, powers of two
-src/crypto/       SHA-256 (sha/) and Keccak-256 (keccak/)
+src/crypto/       SHA-256 (sha/), Keccak-256 (keccak/), BLAKE2s, BLAKE2b and BLAKE3 (blake/)
 proofs/           one proof package per src package, mirroring src/:
   containers/<pkg>/   spec.bend (the independent specification), the lemmas,
                       the .src sources they expand from, and proof.bend (the

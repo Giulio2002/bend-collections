@@ -91,7 +91,7 @@ def main():
             'negative or under the timing minimum) is re-taken, both sides together, up to',
             'four times; failed rows are re-measured with `full_sweep.py --retry-failed`.',
             'See `benchmarks/run.py` for the method.', '',
-            '† quick sampling (`BENCH_QUICK=1`): a 10 ms instead of 50 ms minimum difference and',
+            '† quick sampling (`BENCH_QUICK=1`): a 20 ms instead of 50 ms minimum difference and',
             'three samples instead of six, several rows in parallel. Expect about ±10% on',
             'those ratios; the unmarked rows use the full method.', '']
     done = {}
