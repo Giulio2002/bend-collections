@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Differential test of the LRU (src/containers/lru.bend) against its
-specification (proofs/spec/lru.bend): tests/lru_spec/main.bend runs both on
+specification (proofs/containers/lru/spec.bend): tests/lru_spec/main.bend runs both on
 pseudo-random operation sequences (add, get, peek, contains, remove, keys,
 resize, set_lifetime, purge, with a moving clock) and compares every result,
 the length and all five counters after each step.

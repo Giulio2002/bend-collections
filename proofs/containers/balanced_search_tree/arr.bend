@@ -66,6 +66,6 @@ def blk_push_grow(~T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +hl: {Nat.is_le(
 def blk_push_full(~T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(T, xs), SC.pow2(d)) == True{} : Bool}, +v: T, +hn: {Nat.is_lt(SC.length(T, xs), SC.pow2(d)) == False{} : Bool}, +hdl: {Nat.is_lt(d, l) == False{} : Bool}) -> {D.push_at(~T, DAS.real(T, DAS.Sh{l, d, SC.length(T, xs), MK.mk(T, d, xs)}), v) == (DAS.real(T, DAS.Sh{l, d, SC.length(T, xs), MK.mk(T, d, xs)}), Fail{DE.CapacityExceeded{}}) : D.DynArray<&2, T> & Result<&2, &2, DE.Error, Unit>}:
   DA.da_push_full(~T, l, d, SC.length(T, xs), MK.mk(T, d, xs), good_mk(T, l, d, xs, hl, hd, hc), v, hn, hdl)
 
-def blk_clear(~T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>) -> {D.clear_at(~T, DAS.real(T, DAS.Sh{l, d, SC.length(T, xs), MK.mk(T, d, xs)})) == DAS.real(T, DAS.Sh{l, d, 0n, MK.mk(T, d, Nil{})}) : D.DynArray<&2, T>}:
+def blk_clear(~T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(T, xs), SC.pow2(d)) == True{} : Bool}) -> {D.clear_at(~T, DAS.real(T, DAS.Sh{l, d, SC.length(T, xs), MK.mk(T, d, xs)})) == DAS.real(T, DAS.Sh{l, d, 0n, MK.mk(T, d, Nil{})}) : D.DynArray<&2, T>}:
   %MK.mk_empty(T, d) : {D.clear_at(~T, DAS.real(T, DAS.Sh{l, d, SC.length(T, xs), MK.mk(T, d, xs)})) == DAS.real(T, DAS.Sh{l, d, 0n, _}) : D.DynArray<&2, T>}
-  DA.da_clear(~T, l, d, SC.length(T, xs), MK.mk(T, d, xs))
+  DA.da_clear(~T, l, d, SC.length(T, xs), MK.mk(T, d, xs), good_mk(T, l, d, xs, hl, hd, hc))

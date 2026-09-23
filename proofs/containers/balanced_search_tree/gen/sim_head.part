@@ -124,8 +124,8 @@ def clear_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +g_m: {MI.dg(K, V
 def clear_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.clear(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m)) == ST.real(~K, ~V, ~cmp, MI.clear(~K, ~V, ~cmp, m)) : $TMT}:
   match m:
     case ST.SH{$FP}:
-      %Equal.sym(D.DynArray<&2, $ND>, D.clear_at(~$ND, ST.nodes(~K, l, d, nl)), DAS.real($ND, DAS.Sh{l, d, 0n, MK.mk($ND, d, Nil{})}), AB.blk_clear(~$ND, l, d, nl)) : {M.TM{0n, 0n, 0n, 0n, 0n, _, D.clear_at(~$MV, ST.pays(~V, l, d, pl))} == ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, t, fl}) : $TMT}
-      %Equal.sym(D.DynArray<&2, $MV>, D.clear_at(~$MV, ST.pays(~V, l, d, pl)), DAS.real($MV, DAS.Sh{l, d, 0n, MK.mk($MV, d, Nil{})}), AB.blk_clear(~$MV, l, d, pl)) : {M.TM{0n, 0n, 0n, 0n, 0n, ST.nodes(~K, l, d, Nil{}), _} == ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, t, fl}) : $TMT}
+      %Equal.sym(D.DynArray<&2, $ND>, D.clear_at(~$ND, ST.nodes(~K, l, d, nl)), DAS.real($ND, DAS.Sh{l, d, 0n, MK.mk($ND, d, Nil{})}), AB.blk_clear(~$ND, l, d, nl, $HL(g_m), $HD(g_m), $HC(g_m))) : {M.TM{0n, 0n, 0n, 0n, 0n, _, D.clear_at(~$MV, ST.pays(~V, l, d, pl))} == ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, t, fl}) : $TMT}
+      %Equal.sym(D.DynArray<&2, $MV>, D.clear_at(~$MV, ST.pays(~V, l, d, pl)), DAS.real($MV, DAS.Sh{l, d, 0n, MK.mk($MV, d, Nil{})}), AB.blk_clear(~$MV, l, d, pl, $HL(g_m), $HD(g_m), L.subst(Nat, z => {Nat.is_le(z, SC.pow2(d)) == True{} : Bool}, SC.length($ND, nl), SC.length($MV, pl), Equal.sym(Nat, SC.length($MV, pl), SC.length($ND, nl), N.eq_from_is_eq(SC.length($MV, pl), SC.length($ND, nl), $HP(g_m))), $HC(g_m)))) : {M.TM{0n, 0n, 0n, 0n, 0n, ST.nodes(~K, l, d, Nil{}), _} == ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, t, fl}) : $TMT}
       {==}
 
 # ---- append ----

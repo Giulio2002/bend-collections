@@ -10,6 +10,7 @@ import ../dynamic_array/layout.bend as LY
 import ../dynamic_array/state.bend as DAS
 import ../dynamic_array/steps.bend as DST
 import ../dynamic_array/growth.bend as DGR
+import ../dynamic_array/clear.bend as DCL
 
 # The dynamic array operations the TreeMap calls, over a good array shadow:
 # the result is the realization of the updated shadow.
@@ -82,7 +83,8 @@ def da_swap_out(~T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, 
 def da_len(~T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +g: {DAS.good(T, DAS.Sh{l, d, n, t}) == True{} : Bool}) -> {D.length(T, DAS.real(T, DAS.Sh{l, d, n, t})) == (DAS.real(T, DAS.Sh{l, d, n, t}), n) : D.DynArray<&2, T> & Nat}:
   {==}
 
-def da_clear(~T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>) -> {D.clear_at(~T, DAS.real(T, DAS.Sh{l, d, n, t})) == DAS.real(T, DAS.Sh{l, d, 0n, AR.trep(Maybe<&2, T>, d, None{})}) : D.DynArray<&2, T>}:
+def da_clear(~T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<Maybe<&2, T>>, +g: {DAS.good(T, DAS.Sh{l, d, n, t}) == True{} : Bool}) -> {D.clear_at(~T, DAS.real(T, DAS.Sh{l, d, n, t})) == DAS.real(T, DAS.Sh{l, d, 0n, AR.trep(Maybe<&2, T>, d, None{})}) : D.DynArray<&2, T>}:
+  %Equal.sym(D.DynArray<&2, T>, D.clear_at(~T, DAS.real(T, DAS.Sh{l, d, n, t})), D.clear(T, DAS.real(T, DAS.Sh{l, d, n, t})), DCL.clear_eq(~T, l, d, n, t, g)) : {_ == DAS.real(T, DAS.Sh{l, d, 0n, AR.trep(Maybe<&2, T>, d, None{})}) : D.DynArray<&2, T>}
   %Equal.sym(Array<Maybe<&2, T>>, Array.new(Maybe<&2, T>, d, None{}), AR.thaw(Maybe<&2, T>, AR.trep(Maybe<&2, T>, d, None{})), AR.new(Maybe<&2, T>, d, None{})) : {D.DA{l, d, SC.pow2(d), 0n, _} == DAS.real(T, DAS.Sh{l, d, 0n, AR.trep(Maybe<&2, T>, d, None{})}) : D.DynArray<&2, T>}
   {==}
 

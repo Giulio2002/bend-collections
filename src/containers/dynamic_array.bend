@@ -24,7 +24,7 @@ import ./types/dynamic_array.bend as E
 # Cost (n = length, c = capacity): get/set/push/pop are one indexed load or
 # store into the block (no tree descent in the native lowering), growth O(c)
 # (a fresh half is allocated and the merged block copied, like a C realloc),
-# reserve O(target capacity), clear O(c), to_list O(c).
+# reserve O(target capacity), clear O(n), to_list O(c).
 
 type DynArray<a, -T: Kind(a)> is Type:
   DA{limit: Nat, depth: Nat, cap: Nat, length: Nat, slots: Array<Maybe<a, T>>}
@@ -420,16 +420,22 @@ def reserve_at(~T: Data, da: DynArray<&2, T>, +n: Nat) -> DynArray<&2, T> & Resu
   DA{+limit, +depth, +cap, len, arr} = da
   reserve_checked_at(~T, limit, depth, cap, len, arr, n, Nat.is_le(n, cap))
 
-# The executable clear allocates the fresh all-None block, exactly as the
-# parametric `clear` does and exactly as benchmarks/native/dynamic_array.c
-# rewrites the slots: the capacity is kept and every slot is empty again.
-# (An "already empty, keep the block" fast path was tried in iteration 0011
-# and removed in 0013: it only pays off when a benchmark clears the same
-# empty array over and over, and it made the clear rows unmeasurable because
-# the calibration then compares a no-op against the reference's real work.)
+# The executable clear resets the occupied slots [0, length) to None, top
+# down, and keeps the block: O(length), no allocation. Dropping the old block
+# and allocating a fresh one (what the parametric `clear` describes) walks
+# every one of the 2^depth slots twice in the runtime. Every slot at or past
+# the length already holds None, so the result is the same all-None block;
+# proofs/containers/dynamic_array/clear.bend proves it on every good state.
+def clear_go_at(~T: Data, k: Nat, arr: Array<Maybe<&2, T>>) -> Array<Maybe<&2, T>>:
+  match k:
+    case 0n:
+      arr
+    case 1n+ +m:
+      clear_go_at(~T, m, Array.set(Maybe<&2, T>, arr, U32.from_nat(m), None{}))
+
 def clear_at(~T: Data, da: DynArray<&2, T>) -> DynArray<&2, T>:
   DA{+limit, +depth, +cap, len, arr} = da
-  DA{limit, depth, cap, 0n, empty_slots_at(~T, depth)}
+  DA{limit, depth, cap, 0n, clear_go_at(~T, len, arr)}
 
 # The executable to_list is the same indexed walk, compiled at a closed
 # element type; proofs/dynamic_array/closed.bend proves the two agree.

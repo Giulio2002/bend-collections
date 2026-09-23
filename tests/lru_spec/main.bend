@@ -1,11 +1,11 @@
 import Base
 import ../../src/containers/lru.bend as LR
 import ../../src/math/u64.bend as W
-import ../../proofs/spec/lru.bend as SP
+import ../../proofs/containers/lru/spec.bend as SP
 import ../support/text.bend as X
 
 # Differential check of the LRU against its specification
-# (proofs/spec/lru.bend): argv = seed, operation count. Random operations on a
+# (proofs/containers/lru/spec.bend): argv = seed, operation count. Random operations on a
 # small key set, with lifetimes and a moving clock; after every operation the
 # results, the length and the five counters must agree. Prints "OK <n>" or
 # "MISMATCH <op index> <op>".

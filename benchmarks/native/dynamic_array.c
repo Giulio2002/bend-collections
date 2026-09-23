@@ -7,7 +7,7 @@
  *   push        writes slot `length` and, when full, doubles the room, keeping
  *               the old slots and emptying the new half,
  *   pop         clears slot `length - 1`,
- *   clear       empties every slot, keeping the capacity,
+ *   clear       empties the occupied slots [0, length), keeping the capacity,
  *   reserve     doubles until the request fits, or fails past 2^24,
  *   to_list     walks the whole capacity and conses the occupied values.
  *
@@ -160,7 +160,7 @@ static inline void da_to_list(St *s) {
 
 static inline void da_clear(St *s) {
   s->rng = lcg(s->rng);
-  memset(s->slots, 0, ((size_t)1u << s->depth) * sizeof(Slot));
+  memset(s->slots, 0, (size_t)s->length * sizeof(Slot));  /* slots past the length are already empty */
   s->length = 0;
   s->chk = mix(s->chk, 3);
 }
