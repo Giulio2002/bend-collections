@@ -78,3 +78,31 @@ def allin_mem(+xs: List<&2, Nat>, +n: Nat, +y: Nat, +h: {ST.allin(xs, n) == True
     case Con{+x, +t}:
       am_c(x, t, n, y, h, hm, Nat.is_eq(x, y), {==}, hmt => allin_mem(t, n, y, L.and_right(Bool.and(Nat.is_lt(0n, x), Nat.is_le(x, n)), ST.allin(t, n), h), hmt))
 
+
+# ---- a free id moved between before and after ----
+
+
+def mv_eq(+b: List<&2, Nat>, +a: List<&2, Nat>, +x: Nat, +t: List<&2, Nat>) -> {SC.append(Nat, SC.append(Nat, b, Con{x, a}), t) == SC.append(Nat, b, Con{x, SC.append(Nat, a, t)}) : List<&2, Nat>}:
+  LL.append_assoc(Nat, b, Con{x, a}, t)
+
+def nd_move(+b: List<&2, Nat>, +a: List<&2, Nat>, +x: Nat, +t: List<&2, Nat>, +h: {LST.nodupn(SC.append(Nat, SC.append(Nat, b, a), Con{x, t})) == True{} : Bool}) -> {LST.nodupn(SC.append(Nat, SC.append(Nat, b, Con{x, a}), t)) == True{} : Bool}:
+  +e0 = LS.nd_mid(SC.append(Nat, b, a), x, t)
+  +h0 = L.subst(Bool, w => {w == True{} : Bool}, LST.nodupn(SC.append(Nat, SC.append(Nat, b, a), Con{x, t})), Bool.and(LST.nodupn(SC.append(Nat, SC.append(Nat, b, a), t)), Bool.not(HT.memn(x, SC.append(Nat, SC.append(Nat, b, a), t)))), e0, h)
+  +ea = LL.append_assoc(Nat, b, a, t)
+  +h1 = L.subst(List<&2, Nat>, z => {Bool.and(LST.nodupn(z), Bool.not(HT.memn(x, z))) == True{} : Bool}, SC.append(Nat, SC.append(Nat, b, a), t), SC.append(Nat, b, SC.append(Nat, a, t)), ea, h0)
+  +h2 = L.subst(Bool, w => {w == True{} : Bool}, Bool.and(LST.nodupn(SC.append(Nat, b, SC.append(Nat, a, t))), Bool.not(HT.memn(x, SC.append(Nat, b, SC.append(Nat, a, t))))), LST.nodupn(SC.append(Nat, b, Con{x, SC.append(Nat, a, t)})), Equal.sym(Bool, LST.nodupn(SC.append(Nat, b, Con{x, SC.append(Nat, a, t)})), Bool.and(LST.nodupn(SC.append(Nat, b, SC.append(Nat, a, t))), Bool.not(HT.memn(x, SC.append(Nat, b, SC.append(Nat, a, t))))), LS.nd_mid(b, x, SC.append(Nat, a, t))), h1)
+  L.subst(List<&2, Nat>, z => {LST.nodupn(z) == True{} : Bool}, SC.append(Nat, b, Con{x, SC.append(Nat, a, t)}), SC.append(Nat, SC.append(Nat, b, Con{x, a}), t), Equal.sym(List<&2, Nat>, SC.append(Nat, SC.append(Nat, b, Con{x, a}), t), SC.append(Nat, b, Con{x, SC.append(Nat, a, t)}), mv_eq(b, a, x, t)), h2)
+
+def len_move(+b: List<&2, Nat>, +a: List<&2, Nat>, +x: Nat, +t: List<&2, Nat>) -> {SC.length(Nat, SC.append(Nat, SC.append(Nat, b, Con{x, a}), t)) == SC.length(Nat, SC.append(Nat, SC.append(Nat, b, a), Con{x, t})) : Nat}:
+  +e1 = L.subst(List<&2, Nat>, z => {SC.length(Nat, SC.append(Nat, SC.append(Nat, b, Con{x, a}), t)) == SC.length(Nat, z) : Nat}, SC.append(Nat, SC.append(Nat, b, Con{x, a}), t), SC.append(Nat, b, Con{x, SC.append(Nat, a, t)}), mv_eq(b, a, x, t), {==})
+  +e2 = P.cons_len(b, x, SC.append(Nat, a, t))
+  +e3 = P.cons_len(SC.append(Nat, b, a), x, t)
+  +e4 = L.subst(List<&2, Nat>, z => {1n+SC.length(Nat, SC.append(Nat, b, SC.append(Nat, a, t))) == 1n+SC.length(Nat, z) : Nat}, SC.append(Nat, b, SC.append(Nat, a, t)), SC.append(Nat, SC.append(Nat, b, a), t), Equal.sym(List<&2, Nat>, SC.append(Nat, SC.append(Nat, b, a), t), SC.append(Nat, b, SC.append(Nat, a, t)), LL.append_assoc(Nat, b, a, t)), {==})
+  Equal.trans(Nat, SC.length(Nat, SC.append(Nat, SC.append(Nat, b, Con{x, a}), t)), SC.length(Nat, SC.append(Nat, b, Con{x, SC.append(Nat, a, t)})), SC.length(Nat, SC.append(Nat, SC.append(Nat, b, a), Con{x, t})), e1, Equal.trans(Nat, SC.length(Nat, SC.append(Nat, b, Con{x, SC.append(Nat, a, t)})), 1n+SC.length(Nat, SC.append(Nat, b, SC.append(Nat, a, t))), SC.length(Nat, SC.append(Nat, SC.append(Nat, b, a), Con{x, t})), e2, Equal.trans(Nat, 1n+SC.length(Nat, SC.append(Nat, b, SC.append(Nat, a, t))), 1n+SC.length(Nat, SC.append(Nat, SC.append(Nat, b, a), t)), SC.length(Nat, SC.append(Nat, SC.append(Nat, b, a), Con{x, t})), e4, Equal.sym(Nat, SC.length(Nat, SC.append(Nat, SC.append(Nat, b, a), Con{x, t})), 1n+SC.length(Nat, SC.append(Nat, SC.append(Nat, b, a), t)), e3))))
+
+def allin_move(+b: List<&2, Nat>, +a: List<&2, Nat>, +x: Nat, +t: List<&2, Nat>, +n: Nat, +h: {ST.allin(SC.append(Nat, SC.append(Nat, b, a), Con{x, t}), n) == True{} : Bool}) -> {ST.allin(SC.append(Nat, SC.append(Nat, b, Con{x, a}), t), n) == True{} : Bool}:
+  +hba = allin_l(SC.append(Nat, b, a), Con{x, t}, n, h)
+  +hxt = allin_r(SC.append(Nat, b, a), Con{x, t}, n, h)
+  +hx = L.and_left(Bool.and(Nat.is_lt(0n, x), Nat.is_le(x, n)), ST.allin(t, n), hxt)
+  +ht = L.and_right(Bool.and(Nat.is_lt(0n, x), Nat.is_le(x, n)), ST.allin(t, n), hxt)
+  allin_app(SC.append(Nat, b, Con{x, a}), t, n, allin_app(b, Con{x, a}, n, allin_l(b, a, n, hba), L.and_intro(Bool.and(Nat.is_lt(0n, x), Nat.is_le(x, n)), ST.allin(a, n), hx, allin_r(b, a, n, hba))), ht)
