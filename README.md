@@ -17,6 +17,8 @@ benchmarked against optimized C implementations of the same algorithms.
 | Bitset | `src/containers/bitset.bend` | packed words |
 | Hash map | `src/containers/hash_table.bend` | String keys, Base.Map-style API |
 | LRU cache | `src/containers/lru.bend` | String keys, lifetimes, 64-bit metrics |
+| SHA-256 | `src/crypto/sha/sha256.bend` | FIPS 180-4, from [bend-sha256](https://github.com/Giulio2002/bend-sha256) |
+| Keccak-256 | `src/crypto/keccak/keccak.bend` | Ethereum Keccak-256 (MIT), from [bend-keccak](https://github.com/Giulio2002/bend-keccak) |
 
 The hash map and the LRU follow Base's conventions: signatures are
 quantity-polymorphic (`a, -V: Kind(a)`, as `Base.Map` uses), and reads that
@@ -28,11 +30,16 @@ copy a value out (`get`, `peek`) take `-V: Data` on the `&2` instance, like
 ```
 src/containers/   the collections, their internals (internal/) and API types (types/)
 src/math/         64-bit words, hashing, powers of two
+src/crypto/       SHA-256 (sha/) and Keccak-256 (keccak/)
 proofs/           one proof package per src package, mirroring src/:
   containers/<pkg>/   spec.bend (the independent specification), the lemmas,
                       the .src sources they expand from, and proof.bend (the
                       package's entry point: its theorems)
   math/<pkg>/         the same for src/math (math/proof.bend gates all three)
+  crypto/<pkg>/       the same for src/crypto: sha/ proves SHA-256 equal to an
+                      executable FIPS 180-4 specification for every input,
+                      keccak/ the packed API equal to an independent sponge
+                      specification (padding, absorption, rejection, all words)
   lib/                proof library shared by the packages (logic, Nat, lists,
                       U32 words, arrays, order laws)
   PROOF.bend          the whole library; END_TO_END.bend the public laws
