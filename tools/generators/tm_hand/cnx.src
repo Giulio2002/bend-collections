@@ -307,3 +307,64 @@ def next_m($TO, $FT, +nx: Nat, $CH, +hc: {CU.cgood($AK, $CUR) == True{} : Bool})
     case 1n+j:
       +hg = $HGC
       nx_p($AO, $F, hg, j, $CHA, hc, path_to(~K, ~cmp, ~o, tg, nl, Nil{}, $J, ST.g_crep($AK, $F, hg), {==}, $HNX))
+
+# ---- next_key, next_value: the answer's key or value ----
+
+%def MK Maybe<&2, K>
+%def MVV Maybe<&2, V>
+%def RCT M.Cursor<K, V, cmp>
+%def SCT S.Cursor<K, V>
+%def MCT MI.MCursor<K, V>
+
+def ikr_eq($TK, +a: $MCT, +b: $ME) -> {MI.iterator_key_result($AK, (a, b)) == (a, S.key_m(K, V, b)) : $MCT & $MK}:
+  match b:
+    case None{}:
+      {==}
+    case Some{M.Entry{+k, +v}}:
+      {==}
+
+def ivr_eq($TK, +a: $MCT, +b: $ME) -> {MI.iterator_value_result($AK, (a, b)) == (a, S.val_m(K, V, b)) : $MCT & $MVV}:
+  match b:
+    case None{}:
+      {==}
+    case Some{M.Entry{+k, +v}}:
+      {==}
+
+def ckr($TK, -spr: $SCT & $ME, +a: $MCT, +b: $ME, +c2: $MCT, +o: $ME, +h1: {(MI.rc($AK, a), b) == (MI.rc($AK, c2), o) : $RCT & $ME}, r: {spr == (CU.cmod($AK, c2), o) : $SCT & $ME} & {CU.cgood($AK, c2) == True{} : Bool}) -> CU.COK($AK, $MK, S.key_result(K, V, spr), (a, S.key_m(K, V, b))):
+  match r:
+    case Tuple{h2, hg}:
+      +ea = L.pair_fst($RCT, $ME, MI.rc($AK, a), b, MI.rc($AK, c2), o, h1)
+      +eb = L.pair_snd($RCT, $ME, MI.rc($AK, a), b, MI.rc($AK, c2), o, h1)
+      (c2, (S.key_m(K, V, o), (L.pair_eq($RCT, $MK, MI.rc($AK, a), S.key_m(K, V, b), MI.rc($AK, c2), S.key_m(K, V, o), ea, L.subst($ME, z => {S.key_m(K, V, b) == S.key_m(K, V, z) : $MK}, b, o, eb, {==})), (L.subst($SCT & $ME, z => {S.key_result(K, V, spr) == S.key_result(K, V, z) : $SCT & $MK}, spr, (CU.cmod($AK, c2), o), h2, {==}), hg))))
+
+def cvr($TK, -spr: $SCT & $ME, +a: $MCT, +b: $ME, +c2: $MCT, +o: $ME, +h1: {(MI.rc($AK, a), b) == (MI.rc($AK, c2), o) : $RCT & $ME}, r: {spr == (CU.cmod($AK, c2), o) : $SCT & $ME} & {CU.cgood($AK, c2) == True{} : Bool}) -> CU.COK($AK, $MVV, S.value_result(K, V, spr), (a, S.val_m(K, V, b))):
+  match r:
+    case Tuple{h2, hg}:
+      +ea = L.pair_fst($RCT, $ME, MI.rc($AK, a), b, MI.rc($AK, c2), o, h1)
+      +eb = L.pair_snd($RCT, $ME, MI.rc($AK, a), b, MI.rc($AK, c2), o, h1)
+      (c2, (S.val_m(K, V, o), (L.pair_eq($RCT, $MVV, MI.rc($AK, a), S.val_m(K, V, b), MI.rc($AK, c2), S.val_m(K, V, o), ea, L.subst($ME, z => {S.val_m(K, V, b) == S.val_m(K, V, z) : $MVV}, b, o, eb, {==})), (L.subst($SCT & $ME, z => {S.value_result(K, V, spr) == S.value_result(K, V, z) : $SCT & $MVV}, spr, (CU.cmod($AK, c2), o), h2, {==}), hg))))
+
+# a step refined: its key, its value
+def cok_key($TK, -spr: $SCT & $ME, +a: $MCT, +b: $ME, p: CU.COK($AK, $ME, spr, (a, b))) -> CU.COK($AK, $MK, S.key_result(K, V, spr), MI.iterator_key_result($AK, (a, b))):
+  match p:
+    case Tuple{+c2, Tuple{+o, Tuple{+h1, r}}}:
+      %Equal.sym($MCT & $MK, MI.iterator_key_result($AK, (a, b)), (a, S.key_m(K, V, b)), ikr_eq($AK, a, b)) : CU.COK($AK, $MK, S.key_result(K, V, spr), _)
+      ckr($AK, spr, a, b, c2, o, h1, r)
+
+def cok_val($TK, -spr: $SCT & $ME, +a: $MCT, +b: $ME, p: CU.COK($AK, $ME, spr, (a, b))) -> CU.COK($AK, $MVV, S.value_result(K, V, spr), MI.iterator_value_result($AK, (a, b))):
+  match p:
+    case Tuple{+c2, Tuple{+o, Tuple{+h1, r}}}:
+      %Equal.sym($MCT & $MVV, MI.iterator_value_result($AK, (a, b)), (a, S.val_m(K, V, b)), ivr_eq($AK, a, b)) : CU.COK($AK, $MVV, S.value_result(K, V, spr), _)
+      cvr($AK, spr, a, b, c2, o, h1, r)
+
+%def XN MI.iterator_next($AK, $CUR)
+%def SPN0 S.iterator_next($AK, CU.cmod($AK, $CUR))
+%def ETA L.pair_eta($MCT, $ME, $XN)
+%def PFX2 Pair.fst($MCT, $ME, $XN)
+%def PSX2 Pair.snd($MCT, $ME, $XN)
+
+def next_key_m($TO, $FT, +nx: Nat, $CH, +hc: {CU.cgood($AK, $CUR) == True{} : Bool}) -> CU.COK($AK, $MK, S.iterator_next_key($AK, CU.cmod($AK, $CUR)), MI.iterator_next_key($AK, $CUR)):
+  L.subst($MCT & $ME, z => CU.COK($AK, $MK, S.key_result(K, V, $SPN0), MI.iterator_key_result($AK, z)), ($PFX2, $PSX2), $XN, Equal.sym($MCT & $ME, $XN, ($PFX2, $PSX2), $ETA), cok_key($AK, $SPN0, $PFX2, $PSX2, L.subst($MCT & $ME, z => CU.COK($AK, $ME, $SPN0, z), $XN, ($PFX2, $PSX2), $ETA, next_m($AO, $F, nx, $CHA, hc))))
+
+def next_value_m($TO, $FT, +nx: Nat, $CH, +hc: {CU.cgood($AK, $CUR) == True{} : Bool}) -> CU.COK($AK, $MVV, S.iterator_next_value($AK, CU.cmod($AK, $CUR)), MI.iterator_next_value($AK, $CUR)):
+  L.subst($MCT & $ME, z => CU.COK($AK, $MVV, S.value_result(K, V, $SPN0), MI.iterator_value_result($AK, z)), ($PFX2, $PSX2), $XN, Equal.sym($MCT & $ME, $XN, ($PFX2, $PSX2), $ETA), cok_val($AK, $SPN0, $PFX2, $PSX2, L.subst($MCT & $ME, z => CU.COK($AK, $ME, $SPN0, z), $XN, ($PFX2, $PSX2), $ETA, next_m($AO, $F, nx, $CHA, hc))))
