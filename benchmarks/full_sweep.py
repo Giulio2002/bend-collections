@@ -10,7 +10,9 @@ from workloads import TABLE, EXCLUDED_EMPTY_ROWS
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--report',required=True);ap.add_argument('--html');args=ap.parse_args()
     sys.path.insert(0,str(bench.ROOT/'tools'))
-    from render_full_benchmark import render
+    render = None
+    if args.html:
+        from render_full_benchmark import render
     out=Path(args.report).resolve();out.parent.mkdir(parents=True,exist_ok=True)
     started=time.time();initial_hashes=bench.source_hashes()
     report={'backend':'native-c','reference':bench.CONTRACT['reference'],

@@ -69,6 +69,7 @@ aborts the run: it is never reported as a number.
 import argparse
 import hashlib
 import json
+import shutil
 import os
 import platform
 import re
@@ -82,7 +83,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'benchmarks'))
 from workloads import TABLE  # noqa: E402
 
-LOCK = json.loads((ROOT / 'tools' / 'toolchain.json').read_text())
+_PIN = ROOT / 'tools' / 'toolchain.json'   # a local pin, when present
+if _PIN.exists():
+    LOCK = json.loads(_PIN.read_text())
+else:
+    _b = os.environ.get('BEND', shutil.which('bend') or 'bend')
+    LOCK = {'binary': _b, 'version': subprocess.run([_b, '--version'], capture_output=True, text=True).stdout.strip()}
 CONTRACT = json.loads((ROOT / 'benchmarks' / 'contract.json').read_text())
 BEND = LOCK['binary']
 ENV = {**os.environ, 'BEND_NO_TELEMETRY': '1'}
