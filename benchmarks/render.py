@@ -90,7 +90,10 @@ def main():
             'median of six samples. A sample in which other load interrupted a region (A - B',
             'negative or under the timing minimum) is re-taken, both sides together, up to',
             'four times; failed rows are re-measured with `full_sweep.py --retry-failed`.',
-            'See `benchmarks/run.py` for the method.', '']
+            'See `benchmarks/run.py` for the method.', '',
+            '† quick sampling (`BENCH_QUICK=1`): a 10 ms instead of 50 ms minimum difference and',
+            'three samples instead of six, several rows in parallel. Expect about ±10% on',
+            'those ratios; the unmarked rows use the full method.', '']
     done = {}
     for r in (full or {}).get('benchmarks', []):
         done[(r['operation'], r['workload'])] = r
@@ -114,7 +117,7 @@ def main():
                 out.append('| %s | %s | | | not timeable |' % (op, t['workload']))
             else:
                 out.append('| %s | %s | %s | %s | %.2f%s |' % (op, t['workload'], ns(per_op(r, 'bend_delta_ns')),
-                           ns(per_op(r, 'reference_delta_ns')), r['ratio'], ''))
+                           ns(per_op(r, 'reference_delta_ns')), r['ratio'], ' †' if r.get('quick') else ''))
         out.append('')
     # ---- HashMap vs Base.Map ----
     maps = load('build/bench/maps.json')
@@ -133,8 +136,8 @@ def main():
             if r.get('ratio') is None:
                 out.append('| %s | %d | | | not timeable |' % (op, r['size']))
             else:
-                out.append('| %s | %d | %s | %s | %.2f |' % (op, r['size'], ns(per_op(r, 'bend_delta_ns')),
-                           ns(per_op(r, 'reference_delta_ns')), r['ratio']))
+                out.append('| %s | %d | %s | %s | %.2f%s |' % (op, r['size'], ns(per_op(r, 'bend_delta_ns')),
+                           ns(per_op(r, 'reference_delta_ns')), r['ratio'], ' †' if r.get('quick') else ''))
         out.append('')
     else:
         out += ['(not measured yet)', '']

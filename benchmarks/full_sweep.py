@@ -2,16 +2,17 @@
 Uses the canonical calibration, six samples, C flags and checksum checks.
 No concurrent timing workloads. Progress/evidence are saved after each row.
 """
-import argparse, json, statistics, subprocess, time, sys
+import argparse, concurrent.futures, json, statistics, subprocess, threading, time, sys
 from pathlib import Path
 import run as bench
 from workloads import TABLE, EXCLUDED_EMPTY_ROWS
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--report',required=True);ap.add_argument('--html')
+    ap.add_argument('--jobs',type=int,default=1,help='rows measured in parallel (with --retry-failed)')
     ap.add_argument('--retry-failed',action='store_true',help='measure only the failed or missing rows of an existing --report (resumes an interrupted sweep)')
     args=ap.parse_args()
-    if args.retry_failed: return retry(Path(args.report))
+    if args.retry_failed: return retry(Path(args.report),args.jobs)
     sys.path.insert(0,str(bench.ROOT/'tools'))
     render = None
     if args.html:
@@ -53,7 +54,7 @@ def main():
     report['artifacts']={str(p.relative_to(bench.ROOT)):bench.sha(p) for pair in built.values() for p in pair}
     save()
     print('Finished:',out,flush=True)
-def retry(path):
+def retry(path,jobs=1):
     """Re-measure the rows of a finished report that failed (a disturbed
     sample or calibration), replacing them in place; rows no longer in TABLE
     are dropped."""
@@ -69,8 +70,8 @@ def retry(path):
     todo=[i for i,b in enumerate(report['benchmarks']) if b.get('measurement')!='ok']
     print('measuring %d failed or missing rows' % len(todo),flush=True)
     built=bench.build_all(sorted({rows[(report['benchmarks'][i]['operation'],report['benchmarks'][i]['workload'])]['structure'] for i in todo}))
-    logs=[]
-    for n,i in enumerate(todo):
+    logs=[];lock=threading.Lock();done=[0]
+    def one(i):
         b=report['benchmarks'][i];row=rows[(b['operation'],b['workload'])]
         try:
             result=bench.measure(*built[row['structure']],row,logs)
@@ -79,10 +80,13 @@ def retry(path):
         except (SystemExit,Exception) as exc:
             result={'operation':row['operation'],'workload':row['workload'],'size':row['size'],'seed':row['seed'],
                     'measurement':'failed','verified':False,'reason':str(exc)}
-        report['benchmarks'][i]=result
-        print(f"[retry {n+1}/{len(todo)}] {row['operation']} {row['workload']} " + (f"{result['ratio']:.3f}x" if 'ratio' in result else f"FAILED {result.get('reason')}"),flush=True)
-        path.write_text(json.dumps(report,indent=1,sort_keys=True)+'\n')
-        (path.parent/'retry_samples.log').write_text('\n'.join(logs)+'\n')
+        with lock:
+            report['benchmarks'][i]=result;done[0]+=1
+            print(f"[retry {done[0]}/{len(todo)}] {row['operation']} {row['workload']} " + (f"{result['ratio']:.3f}x" if 'ratio' in result else f"FAILED {result.get('reason')}"),flush=True)
+            path.write_text(json.dumps(report,indent=1,sort_keys=True)+'\n')
+            (path.parent/'retry_samples.log').write_text('\n'.join(logs)+'\n')
+    with concurrent.futures.ThreadPoolExecutor(jobs) as ex:
+        list(ex.map(one,todo))
     report['status']='finished';path.write_text(json.dumps(report,indent=1,sort_keys=True)+'\n')
 
 if __name__=='__main__':main()
