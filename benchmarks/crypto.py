@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""SHA-256 and Keccak-256: Bend (native C backend, one thread) against C.
+"""SHA-256, Keccak-256, BLAKE2s, BLAKE2b and BLAKE3: Bend (native C backend, one thread) against C.
 
   python3 benchmarks/crypto.py --report build/bench/crypto.json
 
-Both sides are rebuilt: benchmarks/bend/{sha256,keccak256}.bend with Bend, and
-benchmarks/native/sha256.c (portable FIPS 180-4 C) and keccak256.c (XKCP's
-fully unrolled portable permutation, vendored in benchmarks/native/xkcp/) with
-the C compiler at -O3 -march=native. Inputs are prepared before the timed
+Both sides are rebuilt: benchmarks/bend/{sha256,keccak256,blake2s,blake2b,blake3}.bend with Bend, and
+benchmarks/native/*.c with the C compiler at -O3 -march=native: portable FIPS
+180-4 SHA-256, XKCP's fully unrolled portable Keccak (benchmarks/native/xkcp/),
+the official BLAKE2 reference and the official BLAKE3 C built software-only
+(benchmarks/native/blake/). Inputs are prepared before the timed
 region; each size runs one warm-up and five samples per side in alternating
 order, and the median is reported. SHA-256 digests must be identical between
-Bend, C and Python's hashlib; Keccak checksums between Bend and C.
+Bend, C and Python's hashlib; the other checksums between Bend and C.
 """
 import argparse, hashlib, json, os, shutil, statistics, subprocess, sys, tempfile
 from pathlib import Path
@@ -20,6 +21,8 @@ BEND = os.environ.get('BEND', shutil.which('bend') or 'bend')
 CC = os.environ.get('CC', 'cc')
 CFLAGS = ['-O3', '-march=native', '-std=c11']
 SAMPLES = 5
+# BLAKE3 reference: the official C, software only (no SIMD backends)
+PORTABLE3 = ['-DBLAKE3_NO_SSE2', '-DBLAKE3_NO_SSE41', '-DBLAKE3_NO_AVX2', '-DBLAKE3_NO_AVX512', '-DBLAKE3_USE_NEON=0']
 
 
 def sh(cmd, env=None, timeout=3600):
@@ -31,8 +34,13 @@ def sh(cmd, env=None, timeout=3600):
 
 def build():
     OUT.mkdir(parents=True, exist_ok=True)
-    for n in ['sha256', 'keccak256']:
+    for n in ['sha256', 'keccak256', 'blake2s', 'blake2b', 'blake3']:
         sh([BEND, 'benchmarks/bend/%s.bend' % n, '-o', str(OUT / ('bend_' + n))])
+    B = 'benchmarks/native/blake/'
+    sh([CC] + CFLAGS + ['-I' + B, '-o', str(OUT / 'c_blake2s'), 'benchmarks/native/blake2s.c', B + 'blake2s-ref.c'])
+    sh([CC] + CFLAGS + ['-I' + B, '-o', str(OUT / 'c_blake2b'), 'benchmarks/native/blake2b.c', B + 'blake2b-ref.c'])
+    sh([CC] + CFLAGS + ['-I' + B] + PORTABLE3 + ['-o', str(OUT / 'c_blake3'), 'benchmarks/native/blake3.c',
+        B + 'blake3.c', B + 'blake3_dispatch.c', B + 'blake3_portable.c'])
     sh([CC] + CFLAGS + ['-o', str(OUT / 'c_sha256'), 'benchmarks/native/sha256.c'])
     sh([CC] + CFLAGS + ['-Ibenchmarks/native/xkcp', '-o', str(OUT / 'c_keccak256'),
         'benchmarks/native/keccak256.c', 'benchmarks/native/xkcp/KeccakP-1600-opt64.c'])
@@ -76,20 +84,21 @@ def sha_rows():
     return rows
 
 
-def keccak_rows():
+def array_rows(algo, prefix):
+    """the packed-array hashes: env <prefix>_SIZE/_DEPTH/_COUNT, a checksum that must agree"""
     rows = []
-    for size in [0, 32, 136, 1024, 16384, 65536, 1048576]:
+    for size in [0, 64, 1024, 16384, 65536, 1048576]:
         depth = max(0, (((size + 3) // 4) - 1).bit_length())
         count = max(64, min(524288, 64 * 1024 * 1024 // max(1, size))) // 4
-        env = {'KECCAK_SIZE': str(size), 'KECCAK_DEPTH': str(depth), 'KECCAK_COUNT': str(count)}
+        env = {prefix + '_SIZE': str(size), prefix + '_DEPTH': str(depth), prefix + '_COUNT': str(count)}
         sums = {}
 
         def check(name, out):
             sums.setdefault(name, out[0])
-            assert out[0] == sums[name], 'Keccak %s checksum changed' % name
-        med, samples = measure(('bend_keccak256', 'c_keccak256'), env, check)
-        assert sums['bend'] == sums['c'], 'Keccak checksums differ at size %d: %s' % (size, sums)
-        rows.append(row('keccak256', size, count, med, samples))
+            assert out[0] == sums[name], '%s %s checksum changed' % (algo, name)
+        med, samples = measure(('bend_' + algo, 'c_' + algo), env, check)
+        assert sums['bend'] == sums['c'], '%s checksums differ at size %d: %s' % (algo, size, sums)
+        rows.append(row(algo, size, count, med, samples))
     return rows
 
 
@@ -107,7 +116,7 @@ def main():
     ap.add_argument('--report', required=True)
     a = ap.parse_args()
     build()
-    rows = sha_rows() + keccak_rows()
+    rows = sha_rows() + array_rows('keccak256', 'KECCAK') + array_rows('blake2s', 'BLAKE') + array_rows('blake2b', 'BLAKE') + array_rows('blake3', 'BLAKE')
     cc = subprocess.run([CC, '--version'], capture_output=True, text=True).stdout.splitlines()[0]
     bv = subprocess.run([BEND, '--version'], capture_output=True, text=True).stdout.strip()
     rep = {'bend': bv, 'cc': cc, 'cflags': CFLAGS, 'samples': SAMPLES, 'rows': rows}
