@@ -22,6 +22,7 @@ import ./fix.bend as FX
 import ./dj.bend as DJ
 import ./spath.bend as SP
 import ./alls.bend as AL
+import ./idmv.bend as ID
 import ./frame.bend as FRM
 import ./mirror.bend as MI
 import ./prim.bend as PR
@@ -34,21 +35,6 @@ import ./nbr.bend as NB
 # child, the ids lose the node, and the node joins the free chain.
 # (source: tools/generators/tm_hand/unl.src)
 
-
-# ---- the ids: the node moves from the tree's ids to the free chain ----
-
-def nd_back(+b: List<&2, Nat>, +a: List<&2, Nat>, +x: Nat, +t: List<&2, Nat>, +h: {LST.nodupn(SC.append(Nat, SC.append(Nat, b, Con{x, a}), t)) == True{} : Bool}) -> {LST.nodupn(SC.append(Nat, SC.append(Nat, b, a), Con{x, t})) == True{} : Bool}:
-  +h1 = L.subst(List<&2, Nat>, z => {LST.nodupn(z) == True{} : Bool}, SC.append(Nat, SC.append(Nat, b, Con{x, a}), t), SC.append(Nat, b, Con{x, SC.append(Nat, a, t)}), AL.mv_eq(b, a, x, t), h)
-  +h2 = L.subst(Bool, w => {w == True{} : Bool}, LST.nodupn(SC.append(Nat, b, Con{x, SC.append(Nat, a, t)})), Bool.and(LST.nodupn(SC.append(Nat, b, SC.append(Nat, a, t))), Bool.not(HT.memn(x, SC.append(Nat, b, SC.append(Nat, a, t))))), LS.nd_mid(b, x, SC.append(Nat, a, t)), h1)
-  +h3 = L.subst(List<&2, Nat>, z => {Bool.and(LST.nodupn(z), Bool.not(HT.memn(x, z))) == True{} : Bool}, SC.append(Nat, b, SC.append(Nat, a, t)), SC.append(Nat, SC.append(Nat, b, a), t), Equal.sym(List<&2, Nat>, SC.append(Nat, SC.append(Nat, b, a), t), SC.append(Nat, b, SC.append(Nat, a, t)), LL.append_assoc(Nat, b, a, t)), h2)
-  L.subst(Bool, w => {w == True{} : Bool}, Bool.and(LST.nodupn(SC.append(Nat, SC.append(Nat, b, a), t)), Bool.not(HT.memn(x, SC.append(Nat, SC.append(Nat, b, a), t)))), LST.nodupn(SC.append(Nat, SC.append(Nat, b, a), Con{x, t})), Equal.sym(Bool, LST.nodupn(SC.append(Nat, SC.append(Nat, b, a), Con{x, t})), Bool.and(LST.nodupn(SC.append(Nat, SC.append(Nat, b, a), t)), Bool.not(HT.memn(x, SC.append(Nat, SC.append(Nat, b, a), t)))), LS.nd_mid(SC.append(Nat, b, a), x, t)), h3)
-
-def allin_back(+b: List<&2, Nat>, +a: List<&2, Nat>, +x: Nat, +t: List<&2, Nat>, +n: Nat, +h: {ST.allin(SC.append(Nat, SC.append(Nat, b, Con{x, a}), t), n) == True{} : Bool}) -> {ST.allin(SC.append(Nat, SC.append(Nat, b, a), Con{x, t}), n) == True{} : Bool}:
-  +hbx = AL.allin_l(SC.append(Nat, b, Con{x, a}), t, n, h)
-  +ht = AL.allin_r(SC.append(Nat, b, Con{x, a}), t, n, h)
-  +hxa = AL.allin_r(b, Con{x, a}, n, hbx)
-  +hx = L.and_left(Bool.and(Nat.is_lt(0n, x), Nat.is_le(x, n)), ST.allin(a, n), hxa)
-  AL.allin_app(SC.append(Nat, b, a), Con{x, t}, n, AL.allin_app(b, a, n, AL.allin_l(b, Con{x, a}, n, hbx), L.and_right(Bool.and(Nat.is_lt(0n, x), Nat.is_le(x, n)), ST.allin(a, n), hxa)), L.and_intro(Bool.and(Nat.is_lt(0n, x), Nat.is_le(x, n)), ST.allin(t, n), hx, ht))
 
 # ---- reattaching: the child's subtree under the unlinked node's parent ----
 
@@ -195,19 +181,9 @@ def hx_b(~K: Data, +nl: List<&2, M.Node<K>>, +ui: Nat, +ch: ST.Tr, +q: Nat, +hn:
 # ---- the two shapes: no left child, or a left child and no right one ----
 
 
-# the free chain gets the node: the ids with it moved
-def mv_a(+flf: List<&2, Nat>, +c: List<&2, P.Fr>, +ui: Nat, +ch: ST.Tr, +h: {LST.nodupn(SC.append(Nat, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{1n+ui, ST.TE{}, ch}), P.after(c))), flf)) == True{} : Bool}) -> {LST.nodupn(SC.append(Nat, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), Con{1n+ui, flf})) == True{} : Bool}:
-  nd_back(P.before(c), SC.append(Nat, ST.ids(ch), P.after(c)), 1n+ui, flf, h)
-
-def mv_b(+flf: List<&2, Nat>, +c: List<&2, P.Fr>, +ui: Nat, +ch: ST.Tr, +h: {LST.nodupn(SC.append(Nat, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{1n+ui, ch, ST.TE{}}), P.after(c))), flf)) == True{} : Bool}) -> {LST.nodupn(SC.append(Nat, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), Con{1n+ui, flf})) == True{} : Bool}:
-  +e1 = Equal.trans(List<&2, Nat>, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{1n+ui, ch, ST.TE{}}), P.after(c))), SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), Con{1n+ui, P.after(c)})), SC.append(Nat, SC.append(Nat, P.before(c), ST.ids(ch)), Con{1n+ui, P.after(c)}), L.subst(List<&2, Nat>, z => {SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{1n+ui, ch, ST.TE{}}), P.after(c))) == SC.append(Nat, P.before(c), z) : List<&2, Nat>}, SC.append(Nat, SC.append(Nat, ST.ids(ch), Con{1n+ui, Nil{}}), P.after(c)), SC.append(Nat, ST.ids(ch), Con{1n+ui, P.after(c)}), LL.append_assoc(Nat, ST.ids(ch), Con{1n+ui, Nil{}}, P.after(c)), {==}), Equal.sym(List<&2, Nat>, SC.append(Nat, SC.append(Nat, P.before(c), ST.ids(ch)), Con{1n+ui, P.after(c)}), SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), Con{1n+ui, P.after(c)})), LL.append_assoc(Nat, P.before(c), ST.ids(ch), Con{1n+ui, P.after(c)})))
-  +h1 = L.subst(List<&2, Nat>, z => {LST.nodupn(SC.append(Nat, z, flf)) == True{} : Bool}, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{1n+ui, ch, ST.TE{}}), P.after(c))), SC.append(Nat, SC.append(Nat, P.before(c), ST.ids(ch)), Con{1n+ui, P.after(c)}), e1, h)
-  +h2 = nd_back(SC.append(Nat, P.before(c), ST.ids(ch)), P.after(c), 1n+ui, flf, h1)
-  L.subst(List<&2, Nat>, z => {LST.nodupn(SC.append(Nat, z, Con{1n+ui, flf})) == True{} : Bool}, SC.append(Nat, SC.append(Nat, P.before(c), ST.ids(ch)), P.after(c)), SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), LL.append_assoc(Nat, P.before(c), ST.ids(ch), P.after(c)), h2)
-
 def unl_a(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: List<&2, Nat>, +flf: List<&2, Nat>, +c: List<&2, P.Fr>, +ui: Nat, +ch: ST.Tr, +hr0: {ST.rep(~K, ST.TN{1n+ui, ST.TE{}, ch}, P.top(c), nl) == True{} : Bool}, +hroot: {root == ST.rid(PG.plug(c, ST.TN{1n+ui, ST.TE{}, ch})) : Nat}, +hnd0: {LST.nodupn(SC.append(Nat, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{1n+ui, ST.TE{}, ch}), P.after(c))), flf)) == True{} : Bool}, +hok: {P.ctxok(~K, c, 1n+ui, nl) == True{} : Bool}, +hk: {EN.oks(~K, ~V, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), nl, pl) == True{} : Bool}, +hfl: {ST.fll(~K, nl, flf) == True{} : Bool}, +hfree: {Nat.is_eq(free, ST.fst0(flf)) == True{} : Bool}, +hul: {Nat.is_lt(ui, SC.length(M.Node<K>, nl)) == True{} : Bool}) -> Sigma<&1, &1, Nat, fr_ => Sigma<&1, &1, List<&2, M.Node<K>>, fn_ => Sigma<&1, &1, ST.Tr, ft_ => {MI.unlink(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, 1n+ui) == ST.SH{Nat.sub(n, 1n), fr_, lo, hi, 1n+ui, l, d, fn_, pl, tg, fl} : ST.Sh<K, V>} & {ST.rep(~K, ft_, 0n, fn_) == True{} : Bool} & ({fr_ == ST.rid(ft_) : Nat} & ({ST.ids(ft_) == SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))) : List<&2, Nat>} & ({ST.root_black(~K, ft_, fn_) == True{} : Bool} & {ST.ents(~K, ~V, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), fn_, pl) == ST.ents(~K, ~V, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), nl, pl) : List<&2, M.Entry<K, V>>} & ({EN.oks(~K, ~V, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), fn_, pl) == True{} : Bool} & ({ST.fll(~K, fn_, Con{1n+ui, flf}) == True{} : Bool} & {SC.length(M.Node<K>, fn_) == SC.length(M.Node<K>, nl) : Nat})))))>>>:
   +hn = TR.rep_node(~K, 1n+ui, ST.TE{}, ch, P.top(c), nl, hr0)
-  +hmv = mv_a(flf, c, ui, ch, hnd0)
+  +hmv = ID.mv_a(flf, c, ui, ch, hnd0)
   +m7 = DJ.ndl(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), Con{1n+ui, flf}, hmv)
   +m5 = DJ.dj_l(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), Con{1n+ui, flf}, hmv, 1n+ui, DJ.mem_hd(1n+ui, flf))
   +hr = TR.rep_r(~K, 1n+ui, ST.TE{}, ch, P.top(c), nl, hr0)
@@ -215,7 +191,7 @@ def unl_a(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +n: Na
 
 def unl_b(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: List<&2, Nat>, +flf: List<&2, Nat>, +c: List<&2, P.Fr>, +ui: Nat, +ch: ST.Tr, +hj: {Nat.is_lt(0n, ST.rid(ch)) == True{} : Bool}, +hr0: {ST.rep(~K, ST.TN{1n+ui, ch, ST.TE{}}, P.top(c), nl) == True{} : Bool}, +hroot: {root == ST.rid(PG.plug(c, ST.TN{1n+ui, ch, ST.TE{}})) : Nat}, +hnd0: {LST.nodupn(SC.append(Nat, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{1n+ui, ch, ST.TE{}}), P.after(c))), flf)) == True{} : Bool}, +hok: {P.ctxok(~K, c, 1n+ui, nl) == True{} : Bool}, +hk: {EN.oks(~K, ~V, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), nl, pl) == True{} : Bool}, +hfl: {ST.fll(~K, nl, flf) == True{} : Bool}, +hfree: {Nat.is_eq(free, ST.fst0(flf)) == True{} : Bool}, +hul: {Nat.is_lt(ui, SC.length(M.Node<K>, nl)) == True{} : Bool}) -> Sigma<&1, &1, Nat, fr_ => Sigma<&1, &1, List<&2, M.Node<K>>, fn_ => Sigma<&1, &1, ST.Tr, ft_ => {MI.unlink(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, 1n+ui) == ST.SH{Nat.sub(n, 1n), fr_, lo, hi, 1n+ui, l, d, fn_, pl, tg, fl} : ST.Sh<K, V>} & {ST.rep(~K, ft_, 0n, fn_) == True{} : Bool} & ({fr_ == ST.rid(ft_) : Nat} & ({ST.ids(ft_) == SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))) : List<&2, Nat>} & ({ST.root_black(~K, ft_, fn_) == True{} : Bool} & {ST.ents(~K, ~V, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), fn_, pl) == ST.ents(~K, ~V, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), nl, pl) : List<&2, M.Entry<K, V>>} & ({EN.oks(~K, ~V, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), fn_, pl) == True{} : Bool} & ({ST.fll(~K, fn_, Con{1n+ui, flf}) == True{} : Bool} & {SC.length(M.Node<K>, fn_) == SC.length(M.Node<K>, nl) : Nat})))))>>>:
   +hn = TR.rep_node(~K, 1n+ui, ch, ST.TE{}, P.top(c), nl, hr0)
-  +hmv = mv_b(flf, c, ui, ch, hnd0)
+  +hmv = ID.mv_b(flf, c, ui, ch, hnd0)
   +m7 = DJ.ndl(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), Con{1n+ui, flf}, hmv)
   +m5 = DJ.dj_l(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), Con{1n+ui, flf}, hmv, 1n+ui, DJ.mem_hd(1n+ui, flf))
   +hr = TR.rep_l(~K, 1n+ui, ch, ST.TE{}, P.top(c), nl, hr0)

@@ -22,6 +22,7 @@ import ./fix.bend as FX
 import ./dj.bend as DJ
 import ./spath.bend as SP
 import ./alls.bend as AL
+import ./idmv.bend as ID
 import ./frame.bend as FRM
 import ./mirror.bend as MI
 import ./prim.bend as PR
@@ -58,21 +59,6 @@ import ./nbr.bend as NB
 %def INB(x, n) Bool.and(Nat.is_lt(0n, x), Nat.is_le(x, n))
 %def MV0 $APP($APP(b, a), Con{x, t})
 %def MV1 $APP($APP(b, Con{x, a}), t)
-
-# ---- the ids: the node moves from the tree's ids to the free chain ----
-
-def nd_back(+b: $LN, +a: $LN, +x: Nat, +t: $LN, +h: $NDL($MV1)) -> $NDL($MV0):
-  +h1 = L.subst($LN, z => $NDL(z), $MV1, $APP(b, Con{x, $APP(a, t)}), AL.mv_eq(b, a, x, t), h)
-  +h2 = L.subst(Bool, w => {w == True{} : Bool}, LST.nodupn($APP(b, Con{x, $APP(a, t)})), Bool.and(LST.nodupn($APP(b, $APP(a, t))), Bool.not(HT.memn(x, $APP(b, $APP(a, t))))), LS.nd_mid(b, x, $APP(a, t)), h1)
-  +h3 = L.subst($LN, z => {Bool.and(LST.nodupn(z), Bool.not(HT.memn(x, z))) == True{} : Bool}, $APP(b, $APP(a, t)), $APP($APP(b, a), t), Equal.sym($LN, $APP($APP(b, a), t), $APP(b, $APP(a, t)), LL.append_assoc(Nat, b, a, t)), h2)
-  L.subst(Bool, w => {w == True{} : Bool}, Bool.and(LST.nodupn($APP($APP(b, a), t)), Bool.not(HT.memn(x, $APP($APP(b, a), t)))), LST.nodupn($MV0), Equal.sym(Bool, LST.nodupn($MV0), Bool.and(LST.nodupn($APP($APP(b, a), t)), Bool.not(HT.memn(x, $APP($APP(b, a), t)))), LS.nd_mid($APP(b, a), x, t)), h3)
-
-def allin_back(+b: $LN, +a: $LN, +x: Nat, +t: $LN, +n: Nat, +h: $ALLIN($MV1, n)) -> $ALLIN($MV0, n):
-  +hbx = AL.allin_l($APP(b, Con{x, a}), t, n, h)
-  +ht = AL.allin_r($APP(b, Con{x, a}), t, n, h)
-  +hxa = AL.allin_r(b, Con{x, a}, n, hbx)
-  +hx = L.and_left($INB(x, n), ST.allin(a, n), hxa)
-  AL.allin_app($APP(b, a), Con{x, t}, n, AL.allin_app(b, a, n, AL.allin_l(b, Con{x, a}, n, hbx), L.and_right($INB(x, n), ST.allin(a, n), hxa)), L.and_intro($INB(x, n), ST.allin(t, n), hx, ht))
 
 # ---- reattaching: the child's subtree under the unlinked node's parent ----
 
@@ -267,19 +253,9 @@ def hx_b(~K: Data, +nl: $NL, +ui: Nat, +ch: ST.Tr, +q: Nat, +hn: {ST.is_node(K, 
 %def M8(h) DJ.nm_app($U, P.before(c), P.after(c), DJ.nm_l($U, P.before(c), $APP($IDS(ch), P.after(c)), h), DJ.nm_r($U, $IDS(ch), P.after(c), DJ.nm_r($U, P.before(c), $APP($IDS(ch), P.after(c)), h)))
 %def NW(h) DJ.ndl($I0, Con{$U, flf}, h), DJ.dj_l($I0, Con{$U, flf}, h, $U, DJ.mem_hd($U, flf)), DJ.nd_head($U, flf, DJ.ndr($I0, Con{$U, flf}, h))
 
-# the free chain gets the node: the ids with it moved
-def mv_a($UW, +h: $NDL($APP($WA, flf))) -> $NDL($APP($I0, Con{$U, flf})):
-  nd_back(P.before(c), $APP($IDS(ch), P.after(c)), $U, flf, h)
-
-def mv_b($UW, +h: $NDL($APP($WB, flf))) -> $NDL($APP($I0, Con{$U, flf})):
-  +e1 = Equal.trans($LN, $WB, $APP(P.before(c), $APP($IDS(ch), Con{$U, P.after(c)})), $APP($APP(P.before(c), $IDS(ch)), Con{$U, P.after(c)}), L.subst($LN, z => {$WB == $APP(P.before(c), z) : $LN}, $APP($APP($IDS(ch), Con{$U, Nil{}}), P.after(c)), $APP($IDS(ch), Con{$U, P.after(c)}), LL.append_assoc(Nat, $IDS(ch), Con{$U, Nil{}}, P.after(c)), {==}), Equal.sym($LN, $APP($APP(P.before(c), $IDS(ch)), Con{$U, P.after(c)}), $APP(P.before(c), $APP($IDS(ch), Con{$U, P.after(c)})), LL.append_assoc(Nat, P.before(c), $IDS(ch), Con{$U, P.after(c)})))
-  +h1 = L.subst($LN, z => $NDL($APP(z, flf)), $WB, $APP($APP(P.before(c), $IDS(ch)), Con{$U, P.after(c)}), e1, h)
-  +h2 = nd_back($APP(P.before(c), $IDS(ch)), P.after(c), $U, flf, h1)
-  L.subst($LN, z => $NDL($APP(z, Con{$U, flf})), $APP($APP(P.before(c), $IDS(ch)), P.after(c)), $I0, LL.append_assoc(Nat, P.before(c), $IDS(ch), P.after(c)), h2)
-
 def unl_a($TV, $FT, $UW, +hr0: $REPN($TN($U, $TE, ch), P.top(c), nl), +hroot: {root == ST.rid(PG.plug(c, $TN($U, $TE, ch))) : Nat}, +hnd0: $NDL($APP($WA, flf)), $UWH) -> $FPU(MI.unlink($AK, $SH, $U)):
   +hn = TR.rep_node(~K, $U, $TE, ch, P.top(c), nl, hr0)
-  +hmv = mv_a(flf, c, ui, ch, hnd0)
+  +hmv = ID.mv_a(flf, c, ui, ch, hnd0)
   +m7 = DJ.ndl($I0, Con{$U, flf}, hmv)
   +m5 = DJ.dj_l($I0, Con{$U, flf}, hmv, $U, DJ.mem_hd($U, flf))
   +hr = TR.rep_r(~K, $U, $TE, ch, P.top(c), nl, hr0)
@@ -287,7 +263,7 @@ def unl_a($TV, $FT, $UW, +hr0: $REPN($TN($U, $TE, ch), P.top(c), nl), +hroot: {r
 
 def unl_b($TV, $FT, $UW, +hj: {Nat.is_lt(0n, ST.rid(ch)) == True{} : Bool}, +hr0: $REPN($TN($U, ch, $TE), P.top(c), nl), +hroot: {root == ST.rid(PG.plug(c, $TN($U, ch, $TE))) : Nat}, +hnd0: $NDL($APP($WB, flf)), $UWH) -> $FPU(MI.unlink($AK, $SH, $U)):
   +hn = TR.rep_node(~K, $U, ch, $TE, P.top(c), nl, hr0)
-  +hmv = mv_b(flf, c, ui, ch, hnd0)
+  +hmv = ID.mv_b(flf, c, ui, ch, hnd0)
   +m7 = DJ.ndl($I0, Con{$U, flf}, hmv)
   +m5 = DJ.dj_l($I0, Con{$U, flf}, hmv, $U, DJ.mem_hd($U, flf))
   +hr = TR.rep_l(~K, $U, ch, $TE, P.top(c), nl, hr0)

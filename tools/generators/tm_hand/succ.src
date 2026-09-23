@@ -1,0 +1,137 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/list.bend as LL
+import ../lib/order.bend as O
+import ../spec/common.bend as SC
+import ../../src/containers/balanced_search_tree.bend as M
+import ../hash_table/state.bend as HT
+import ../lru/state.bend as LST
+import ../lru/lists.bend as LS
+import ./state.bend as ST
+import ./tree.bend as TR
+import ./path.bend as P
+import ./plug.bend as PG
+import ./agree.bend as AG
+import ./setters.bend as SE
+import ./rotm.bend as RM
+import ./rotn.bend as RN
+import ./rot.bend as RT
+import ./rotp.bend as RP
+import ./fix.bend as FX
+import ./dj.bend as DJ
+import ./spath.bend as SP
+import ./alls.bend as AL
+import ./frame.bend as FRM
+import ./frame.bend as FRM
+import ./prim.bend as PR
+import ./mirror.bend as MI
+import ./prim.bend as PR
+import ./mirror.bend as MI
+import ./nbr.bend as NB
+
+# The successor of a node with two children: the leftmost node of its right
+# subtree, reached by a path of left turns below it (the ids before stay);
+# copying its key into the node keeps every link.
+# (source: tools/generators/tm_hand/succ.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def CT List<&2, P.Fr>
+%def APP(a, b) SC.append(Nat, a, b)
+%def IDS(t) ST.ids(t)
+%def TN(i, a, b) ST.TN{i, a, b}
+%def TE ST.TE{}
+%def TO ~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AO ~K, ~cmp, ~o
+%def NDX(nl, j) ST.nd(K, nl, j)
+%def WH(c, t) $APP(P.before(c), $APP($IDS(t), P.after(c)))
+%def REPN(t, p, x) {ST.rep(~K, t, p, x) == True{} : Bool}
+%def COKN(c, z, x) {P.ctxok(~K, c, z, x) == True{} : Bool}
+
+# ---- the leftmost node below ----
+
+%def LMT(c, t) Sigma<&1, &1, $CT, lc_ => Sigma<&1, &1, Nat, ls_ => Sigma<&1, &1, ST.Tr, lb_ => {$WH(lc_, $TN(ls_, $TE, lb_)) == $WH(c, t) : $LN} & ({ls_ == ST.fst0($IDS(t)) : Nat} & ({PG.plug(lc_, $TN(ls_, $TE, lb_)) == PG.plug(c, t) : ST.Tr} & ({P.before(lc_) == P.before(c) : $LN} & ($REPN($TN(ls_, $TE, lb_), P.top(lc_), nl) & $COKN(lc_, ls_, nl)))))>>>
+%def CJ Con{P.FR{j, True{}, tb}, c}
+%def T2 $TN(j2, a2, b2)
+
+def lm_up(-K: Data, +nl: $NL, +c: $CT, +j: Nat, +j2: Nat, +a2: ST.Tr, +b2: ST.Tr, +tb: ST.Tr, r: $LMT($CJ, $T2)) -> $LMT(c, $TN(j, $T2, tb)):
+  match r:
+    case Tuple{+lc, Tuple{+ls, Tuple{+lb, Tuple{h1, Tuple{h2, rest}}}}}:
+      (lc, (ls, (lb, (Equal.trans($LN, $WH(lc, $TN(ls, $TE, lb)), $WH($CJ, $T2), $WH(c, $TN(j, $T2, tb)), h1, Equal.sym($LN, $WH(c, $TN(j, $T2, tb)), $WH($CJ, $T2), P.ids_l(c, j, $T2, tb))), (Equal.trans(Nat, ls, ST.fst0($IDS($T2)), ST.fst0($IDS($TN(j, $T2, tb))), h2, Equal.sym(Nat, ST.fst0($IDS($TN(j, $T2, tb))), ST.fst0($IDS($T2)), NB.fst0_app($IDS(a2), j2, $IDS(b2), Con{j, $IDS(tb)}))), rest)))))
+
+%def OKL P.ok_l(~K, nl, c, j, $T2, tb, hr, hok)
+%def OKA $COKN($CJ, j2, nl)
+%def OKB $REPN($T2, j, nl)
+
+# descending left from a node the path leads to
+def lmost($TO, +ta: ST.Tr, +nl: $NL, +c: $CT, +j: Nat, +tb: ST.Tr, +hr: $REPN($TN(j, ta, tb), P.top(c), nl), +hok: $COKN(c, j, nl)) -> $LMT(c, $TN(j, ta, tb)):
+  match ta:
+    case ST.TE{}:
+      (c, (j, (tb, ({==}, ({==}, ({==}, ({==}, (hr, hok))))))))
+    case ST.TN{+j2, +a2, +b2}:
+      lm_up(K, nl, c, j, j2, a2, b2, tb, lmost($AO, a2, nl, $CJ, j2, b2, Pair.snd($OKA, $OKB, $OKL), Pair.fst($OKA, $OKB, $OKL)))
+
+# ---- a node's key changed, its links kept ----
+
+%def XK M.N{c0, a0, b0, q0, ks}
+%def NK PR.wr_nl(K, nl, 1n+ii, $XK)
+%def KH +nl: $NL, +ii: Nat, +c0: Bool, +a0: Nat, +b0: Nat, +q0: Nat, +k0: K, +ks: K, +hx: {$NDX(nl, 1n+ii) == M.N{c0, a0, b0, q0, k0} : $ND}, +hb: {Nat.is_lt(ii, SC.length($ND, nl)) == True{} : Bool}
+%def KA nl, ii, c0, a0, b0, q0, k0, ks, hx, hb
+%def ISN(x, j) ST.is_node(K, $NDX(x, j), a, b, q)
+
+def isn_at(-K: Data, $KH, +a: Nat, +b: Nat, +q: Nat) -> {$ISN($NK, 1n+ii) == $ISN(nl, 1n+ii) : Bool}:
+  %Equal.sym($ND, $NDX($NK, 1n+ii), $XK, FRM.nd_wr_same(K, nl, ii, $XK, hb)) : {ST.is_node(K, _, a, b, q) == $ISN(nl, 1n+ii) : Bool}
+  %Equal.sym($ND, $NDX(nl, 1n+ii), M.N{c0, a0, b0, q0, k0}, hx) : {ST.is_node(K, $XK, a, b, q) == ST.is_node(K, _, a, b, q) : Bool}
+  {==}
+
+def isn_kc(-K: Data, $KH, +j: Nat, +a: Nat, +b: Nat, +q: Nat, +e: Bool, +he: {Nat.is_eq(1n+ii, j) == e : Bool}) -> {$ISN($NK, j) == $ISN(nl, j) : Bool}:
+  match e:
+    case False{}:
+      %Equal.sym($ND, $NDX($NK, j), $NDX(nl, j), FRM.nd_wr_other(K, nl, 1n+ii, $XK, j, he)) : {ST.is_node(K, _, a, b, q) == $ISN(nl, j) : Bool}
+      {==}
+    case True{}:
+      L.subst(Nat, z => {$ISN($NK, z) == $ISN(nl, z) : Bool}, 1n+ii, j, N.eq_from_is_eq(1n+ii, j, he), isn_at(K, $KA, a, b, q))
+
+def isn_k(-K: Data, $KH, +j: Nat, +a: Nat, +b: Nat, +q: Nat) -> {$ISN($NK, j) == $ISN(nl, j) : Bool}:
+  isn_kc(K, $KA, j, a, b, q, Nat.is_eq(1n+ii, j), {==})
+
+%def ISNX(x, j, a, b, q) ST.is_node(K, $NDX(x, j), a, b, q)
+
+def rep_k(~K: Data, $KH, +t: ST.Tr, +p: Nat) -> {ST.rep(~K, t, p, $NK) == ST.rep(~K, t, p, nl) : Bool}:
+  match t:
+    case ST.TE{}:
+      {==}
+    case ST.TN{+j, +tl, +tr}:
+      %Equal.sym(Bool, $ISNX($NK, j, ST.rid(tl), ST.rid(tr), p), $ISNX(nl, j, ST.rid(tl), ST.rid(tr), p), isn_k(K, $KA, j, ST.rid(tl), ST.rid(tr), p)) : {Bool.and(Nat.is_lt(0n, j), Bool.and(_, Bool.and(ST.rep(~K, tl, j, $NK), ST.rep(~K, tr, j, $NK)))) == ST.rep(~K, ST.TN{j, tl, tr}, p, nl) : Bool}
+      %Equal.sym(Bool, ST.rep(~K, tl, j, $NK), ST.rep(~K, tl, j, nl), rep_k(~K, $KA, tl, j)) : {Bool.and(Nat.is_lt(0n, j), Bool.and($ISNX(nl, j, ST.rid(tl), ST.rid(tr), p), Bool.and(_, ST.rep(~K, tr, j, $NK)))) == ST.rep(~K, ST.TN{j, tl, tr}, p, nl) : Bool}
+      %Equal.sym(Bool, ST.rep(~K, tr, j, $NK), ST.rep(~K, tr, j, nl), rep_k(~K, $KA, tr, j)) : {Bool.and(Nat.is_lt(0n, j), Bool.and($ISNX(nl, j, ST.rid(tl), ST.rid(tr), p), Bool.and(ST.rep(~K, tl, j, nl), _))) == ST.rep(~K, ST.TN{j, tl, tr}, p, nl) : Bool}
+      {==}
+
+%def PKA ST.pk(Nat, lft, x, ST.rid(s))
+%def PKB ST.pk(Nat, lft, ST.rid(s), x)
+
+def ctx_k(~K: Data, $KH, +c: $CT, +x: Nat) -> {P.ctxok(~K, c, x, $NK) == P.ctxok(~K, c, x, nl) : Bool}:
+  match c:
+    case Nil{}:
+      {==}
+    case Con{P.FR{+q, +lft, +s}, +u}:
+      %Equal.sym(Bool, $ISNX($NK, q, $PKA, $PKB, P.top(u)), $ISNX(nl, q, $PKA, $PKB, P.top(u)), isn_k(K, $KA, q, $PKA, $PKB, P.top(u))) : {Bool.and(Bool.and(Nat.is_lt(0n, q), Bool.and(_, ST.rep(~K, s, q, $NK))), P.ctxok(~K, u, q, $NK)) == P.ctxok(~K, Con{P.FR{q, lft, s}, u}, x, nl) : Bool}
+      %Equal.sym(Bool, ST.rep(~K, s, q, $NK), ST.rep(~K, s, q, nl), rep_k(~K, $KA, s, q)) : {Bool.and(Bool.and(Nat.is_lt(0n, q), Bool.and($ISNX(nl, q, $PKA, $PKB, P.top(u)), _)), P.ctxok(~K, u, q, $NK)) == P.ctxok(~K, Con{P.FR{q, lft, s}, u}, x, nl) : Bool}
+      %Equal.sym(Bool, P.ctxok(~K, u, q, $NK), P.ctxok(~K, u, q, nl), ctx_k(~K, $KA, u, q)) : {Bool.and(Bool.and(Nat.is_lt(0n, q), Bool.and($ISNX(nl, q, $PKA, $PKB, P.top(u)), ST.rep(~K, s, q, nl))), _) == P.ctxok(~K, Con{P.FR{q, lft, s}, u}, x, nl) : Bool}
+      {==}
+
+# ---- the move: the successor's key and payload into the node ----
+
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def AK ~K, ~V, ~cmp
+%def MV Maybe<&2, V>
+%def PLS PR.ex_pl(V, pl, s, None{})
+%def SHP(x, y) ST.SH{n, root, lo, hi, free, l, d, x, y, tg, fl}
+%def MRES ($SHP($NK, PR.ex_pl(V, $PLS, 1n+ii, ST.pv(V, pl, s))), s)
+
+def msucc_m($TK, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +pl: List<&2, $MV>, +tg: ST.Tr, +fl: $LN, $KH, +s: Nat, +cs: Bool, +as: Nat, +bs: Nat, +qs: Nat, +hs: {$NDX(nl, s) == M.N{cs, as, bs, qs, ks} : $ND}) -> {MI.move_successor($AK, $SHP(nl, pl), 1n+ii, s) == $MRES : ST.Sh<K, V> & Nat}:
+  %Equal.sym($ND, $NDX(nl, s), M.N{cs, as, bs, qs, ks}, hs) : {MI.move_successor_3($AK, s, MI.exchange($AK, MI.copy_key($AK, $SHP(nl, $PLS), 1n+ii, _), 1n+ii, ST.pv(V, pl, s))) == $MRES : ST.Sh<K, V> & Nat}
+  %Equal.sym($ND, $NDX(nl, 1n+ii), M.N{c0, a0, b0, q0, k0}, hx) : {MI.move_successor_3($AK, s, MI.exchange($AK, MI.set_key_node($AK, $SHP(nl, $PLS), 1n+ii, ks, _), 1n+ii, ST.pv(V, pl, s))) == $MRES : ST.Sh<K, V> & Nat}
+  {==}

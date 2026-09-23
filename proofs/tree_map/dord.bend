@@ -1,0 +1,74 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/list.bend as LL
+import ../lib/order.bend as O
+import ../spec/common.bend as SC
+import ../spec/tree_map.bend as S
+import ../../src/containers/balanced_search_tree.bend as M
+import ../hash_table/state.bend as HT
+import ../lru/state.bend as LST
+import ../lru/lists.bend as LS
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./ok.bend as OK
+import ./tree.bend as TR
+import ./find.bend as FI
+import ./ends.bend as EN
+import ./path.bend as P
+import ./plug.bend as PG
+import ./prim.bend as PR
+import ./ord.bend as OR
+import ./slot.bend as SL
+import ./alls.bend as AL
+import ./dj.bend as DJ
+import ./agree.bend as AG
+import ./navs.bend as NS
+import ./spath.bend as SP
+
+# Deleting a key from sorted entries: del removes exactly the entry holding
+# it when the entries before are smaller, and dropping an entry keeps the
+# entries sorted. (source: tools/generators/tm_hand/dord.src)
+
+
+def del_mid(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +k: K, +xs: List<&2, M.Entry<K, V>>, +e: M.Entry<K, V>, +ys: List<&2, M.Entry<K, V>>, +hl: {OR.ltall(~K, ~V, ~cmp, k, xs) == True{} : Bool}, +hc: {cmp(k, S.key(K, V, e)) == EQ{} : Cmp}) -> {S.del(~K, ~V, ~cmp, k, SC.append(M.Entry<K, V>, xs, Con{e, ys})) == SC.append(M.Entry<K, V>, xs, ys) : List<&2, M.Entry<K, V>>}:
+  match xs:
+    case Nil{}:
+      %Equal.sym(Cmp, cmp(k, S.key(K, V, e)), EQ{}, hc) : {S.pick(List<&2, M.Entry<K, V>>, S.is_eq(_), ys, Con{e, S.del(~K, ~V, ~cmp, k, ys)}) == ys : List<&2, M.Entry<K, V>>}
+      {==}
+    case Con{+a, +t}:
+      %Equal.sym(Cmp, cmp(k, S.key(K, V, a)), GT{}, OR.lt_gt(~K, ~cmp, ~o, S.key(K, V, a), k, L.and_left(Cmp.is_lt(cmp(S.key(K, V, a), k)), OR.ltall(~K, ~V, ~cmp, k, t), hl))) : {S.pick(List<&2, M.Entry<K, V>>, S.is_eq(_), SC.append(M.Entry<K, V>, t, Con{e, ys}), Con{a, S.del(~K, ~V, ~cmp, k, SC.append(M.Entry<K, V>, t, Con{e, ys}))}) == Con{a, SC.append(M.Entry<K, V>, t, ys)} : List<&2, M.Entry<K, V>>}
+      %Equal.sym(List<&2, M.Entry<K, V>>, S.del(~K, ~V, ~cmp, k, SC.append(M.Entry<K, V>, t, Con{e, ys})), SC.append(M.Entry<K, V>, t, ys), del_mid(~K, ~V, ~cmp, ~o, k, t, e, ys, L.and_right(Cmp.is_lt(cmp(S.key(K, V, a), k)), OR.ltall(~K, ~V, ~cmp, k, t), hl), hc)) : {Con{a, _} == Con{a, SC.append(M.Entry<K, V>, t, ys)} : List<&2, M.Entry<K, V>>}
+      {==}
+
+# the first of the entries after one dropped
+def ord_tail(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +e: M.Entry<K, V>, +ys: List<&2, M.Entry<K, V>>, +h: {ST.ordered(~K, ~V, ~cmp, Con{e, ys}) == True{} : Bool}) -> {ST.ordered(~K, ~V, ~cmp, ys) == True{} : Bool}:
+  match ys:
+    case Nil{}:
+      {==}
+    case Con{+b, +u}:
+      L.and_right(Cmp.is_lt(cmp(S.key(K, V, e), S.key(K, V, b))), ST.ordered(~K, ~V, ~cmp, Con{b, u}), h)
+
+def ord_skip(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +a: M.Entry<K, V>, +e: M.Entry<K, V>, +ys: List<&2, M.Entry<K, V>>, +h: {ST.ordered(~K, ~V, ~cmp, Con{a, Con{e, ys}}) == True{} : Bool}) -> {ST.ordered(~K, ~V, ~cmp, Con{a, ys}) == True{} : Bool}:
+  match ys:
+    case Nil{}:
+      {==}
+    case Con{+b, +u}:
+      +h1 = L.and_left(Cmp.is_lt(cmp(S.key(K, V, a), S.key(K, V, e))), ST.ordered(~K, ~V, ~cmp, Con{e, Con{b, u}}), h)
+      +h2 = L.and_right(Cmp.is_lt(cmp(S.key(K, V, a), S.key(K, V, e))), ST.ordered(~K, ~V, ~cmp, Con{e, Con{b, u}}), h)
+      +h3 = L.and_left(Cmp.is_lt(cmp(S.key(K, V, e), S.key(K, V, b))), ST.ordered(~K, ~V, ~cmp, Con{b, u}), h2)
+      L.and_intro(Cmp.is_lt(cmp(S.key(K, V, a), S.key(K, V, b))), ST.ordered(~K, ~V, ~cmp, Con{b, u}), OR.slt_trans(~K, ~cmp, ~o, S.key(K, V, a), S.key(K, V, e), S.key(K, V, b), h1, h3), L.and_right(Cmp.is_lt(cmp(S.key(K, V, e), S.key(K, V, b))), ST.ordered(~K, ~V, ~cmp, Con{b, u}), h2))
+
+# dropping an entry keeps the order
+def ord_drop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, M.Entry<K, V>>, +e: M.Entry<K, V>, +ys: List<&2, M.Entry<K, V>>, +h: {ST.ordered(~K, ~V, ~cmp, SC.append(M.Entry<K, V>, xs, Con{e, ys})) == True{} : Bool}) -> {ST.ordered(~K, ~V, ~cmp, SC.append(M.Entry<K, V>, xs, ys)) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      ord_tail(~K, ~V, ~cmp, ~o, e, ys, h)
+    case Con{+a, +t}:
+      match t:
+        case Nil{}:
+          ord_skip(~K, ~V, ~cmp, ~o, a, e, ys, h)
+        case Con{+a2, +u}:
+          +h1 = L.and_left(Cmp.is_lt(cmp(S.key(K, V, a), S.key(K, V, a2))), ST.ordered(~K, ~V, ~cmp, Con{a2, SC.append(M.Entry<K, V>, u, Con{e, ys})}), h)
+          +h2 = L.and_right(Cmp.is_lt(cmp(S.key(K, V, a), S.key(K, V, a2))), ST.ordered(~K, ~V, ~cmp, Con{a2, SC.append(M.Entry<K, V>, u, Con{e, ys})}), h)
+          L.and_intro(Cmp.is_lt(cmp(S.key(K, V, a), S.key(K, V, a2))), ST.ordered(~K, ~V, ~cmp, Con{a2, SC.append(M.Entry<K, V>, u, ys)}), h1, ord_drop(~K, ~V, ~cmp, ~o, Con{a2, u}, e, ys, h2))
