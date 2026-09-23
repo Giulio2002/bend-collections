@@ -671,3 +671,59 @@ def red_modc(-K: Data, +x: M.Node<K>, +v: Bool, +h: {ST.is_red(K, x) == ST.is_re
       {==}
     case M.N{c, a, b, q, k}:
       {==}
+
+# ---- link setters keep every colour ----
+
+def red_modl(-K: Data, +x: M.Node<K>, +v: Nat) -> {ST.is_red(K, modl(K, x, v)) == ST.is_red(K, x) : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q, k}:
+      {==}
+
+def red_pkl(-K: Data, +e: Bool, +x: M.Node<K>, +v: Nat) -> {ST.is_red(K, ST.pk(M.Node<K>, e, modl(K, x, v), x)) == ST.is_red(K, x) : Bool}:
+  match e:
+    case True{}:
+      red_modl(K, x, v)
+    case False{}:
+      {==}
+
+def red_setl(-K: Data, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +j: Nat) -> {ST.is_red(K, ST.nd(K, setl(K, nl, id, v), j)) == ST.is_red(K, ST.nd(K, nl, j)) : Bool}:
+  %Equal.sym(M.Node<K>, ST.nd(K, setl(K, nl, id, v), j), ST.pk(M.Node<K>, Nat.is_eq(id, j), modl(K, ST.nd(K, nl, j), v), ST.nd(K, nl, j)), ndl(K, nl, id, v, j)) : {ST.is_red(K, _) == ST.is_red(K, ST.nd(K, nl, j)) : Bool}
+  red_pkl(K, Nat.is_eq(id, j), ST.nd(K, nl, j), v)
+
+def red_modr(-K: Data, +x: M.Node<K>, +v: Nat) -> {ST.is_red(K, modr(K, x, v)) == ST.is_red(K, x) : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q, k}:
+      {==}
+
+def red_pkr(-K: Data, +e: Bool, +x: M.Node<K>, +v: Nat) -> {ST.is_red(K, ST.pk(M.Node<K>, e, modr(K, x, v), x)) == ST.is_red(K, x) : Bool}:
+  match e:
+    case True{}:
+      red_modr(K, x, v)
+    case False{}:
+      {==}
+
+def red_setr(-K: Data, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +j: Nat) -> {ST.is_red(K, ST.nd(K, setr(K, nl, id, v), j)) == ST.is_red(K, ST.nd(K, nl, j)) : Bool}:
+  %Equal.sym(M.Node<K>, ST.nd(K, setr(K, nl, id, v), j), ST.pk(M.Node<K>, Nat.is_eq(id, j), modr(K, ST.nd(K, nl, j), v), ST.nd(K, nl, j)), ndr(K, nl, id, v, j)) : {ST.is_red(K, _) == ST.is_red(K, ST.nd(K, nl, j)) : Bool}
+  red_pkr(K, Nat.is_eq(id, j), ST.nd(K, nl, j), v)
+
+def red_modp(-K: Data, +x: M.Node<K>, +v: Nat) -> {ST.is_red(K, modp(K, x, v)) == ST.is_red(K, x) : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q, k}:
+      {==}
+
+def red_pkp(-K: Data, +e: Bool, +x: M.Node<K>, +v: Nat) -> {ST.is_red(K, ST.pk(M.Node<K>, e, modp(K, x, v), x)) == ST.is_red(K, x) : Bool}:
+  match e:
+    case True{}:
+      red_modp(K, x, v)
+    case False{}:
+      {==}
+
+def red_setp(-K: Data, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +j: Nat) -> {ST.is_red(K, ST.nd(K, setp(K, nl, id, v), j)) == ST.is_red(K, ST.nd(K, nl, j)) : Bool}:
+  %Equal.sym(M.Node<K>, ST.nd(K, setp(K, nl, id, v), j), ST.pk(M.Node<K>, Nat.is_eq(id, j), modp(K, ST.nd(K, nl, j), v), ST.nd(K, nl, j)), ndp(K, nl, id, v, j)) : {ST.is_red(K, _) == ST.is_red(K, ST.nd(K, nl, j)) : Bool}
+  red_pkp(K, Nat.is_eq(id, j), ST.nd(K, nl, j), v)
