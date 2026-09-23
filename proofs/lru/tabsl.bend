@@ -172,3 +172,31 @@ def brm_b(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +ll: List<&2, U32>, +b0
       +hm2 = L.subst(Bool, z => {z == True{} : Bool}, HT.memn(x, SC.append(Nat, a, Con{s, b})), Bool.or(HT.memn(x, SC.append(Nat, a, b)), Nat.is_eq(s, x)), LS.memn_mid(x, a, s, b), hm)
       +hm3 = L.subst(Bool, z => {Bool.or(HT.memn(x, SC.append(Nat, a, b)), z) == True{} : Bool}, Nat.is_eq(s, x), False{}, L.not_true(Nat.is_eq(s, x), hne), hm2)
       L.and_intro(HT.memn(x, SC.append(Nat, a, b)), U32.is_eq(ST.lw(ll, x, 2n), w), Equal.trans(Bool, HT.memn(x, SC.append(Nat, a, b)), Bool.or(HT.memn(x, SC.append(Nat, a, b)), False{}), True{}, Equal.sym(Bool, Bool.or(HT.memn(x, SC.append(Nat, a, b)), False{}), HT.memn(x, SC.append(Nat, a, b)), WR.or_false(HT.memn(x, SC.append(Nat, a, b)))), hm3), L.and_right(HT.memn(x, SC.append(Nat, a, Con{s, b})), U32.is_eq(ST.lw(ll, x, 2n), w), hb))
+
+
+def imp_ne(+bs: List<&2, B.Bk>, +no: Nat, +huq: {B.all_lt(B.PUniq{bs}, no) == True{} : Bool}, +i: Nat, +q: Nat, +hi: {Nat.is_lt(i, no) == True{} : Bool}, +hq: {Nat.is_lt(q, no) == True{} : Bool}, +hqi: {Nat.is_eq(q, i) == False{} : Bool}, +hoi: {B.occ(B.at(bs, i)) == True{} : Bool}, +s: Nat, +hsi: {UD.v(H.slot(B.lnk(B.at(bs, i)))) == s : Nat}, +c: Bool, +hc: {B.occ(B.at(bs, q)) == c : Bool}) -> {B.implies(c, Bool.not(Nat.is_eq(s, UD.v(H.slot(B.lnk(B.at(bs, q))))))) == True{} : Bool}:
+  match c:
+    case False{}:
+      {==}
+    case True{}:
+      +e0 = TL.slot_ne(bs, no, huq, i, q, hi, hq, hqi, hoi, hc)
+      +e1 = L.subst(Nat, z => {Nat.is_eq(UD.v(H.slot(B.lnk(B.at(bs, q)))), z) == False{} : Bool}, UD.v(H.slot(B.lnk(B.at(bs, i)))), s, hsi, e0)
+      DL.not_f(Nat.is_eq(s, UD.v(H.slot(B.lnk(B.at(bs, q))))), DL.ne_sym(UD.v(H.slot(B.lnk(B.at(bs, q)))), s, e1))
+
+def br_c(+bs: List<&2, B.Bk>, +no: Nat, +huq: {B.all_lt(B.PUniq{bs}, no) == True{} : Bool}, +i: Nat, +hi: {Nat.is_lt(i, no) == True{} : Bool}, +hlen: {Nat.is_lt(i, SC.length(B.Bk, bs)) == True{} : Bool}, +hoi: {B.occ(B.at(bs, i)) == True{} : Bool}, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +hsi: {UD.v(H.slot(B.lnk(B.at(bs, i)))) == s : Nat}, +ll: List<&2, U32>, +h: {ST.bsl(bs, SC.append(Nat, a, Con{s, b}), ll, no) == True{} : Bool}, +q: Nat, +hq: {Nat.is_lt(q, no) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(i, q) == c : Bool}) -> {ST.bslb(SC.append(Nat, a, b), ll, B.at(IM.bupd(bs, i, B.BE{}), q)) == True{} : Bool}:
+  match c:
+    case True{}:
+      L.subst(B.Bk, z => {ST.bslb(SC.append(Nat, a, b), ll, z) == True{} : Bool}, B.BE{}, B.at(IM.bupd(bs, i, B.BE{}), q), Equal.sym(B.Bk, B.at(IM.bupd(bs, i, B.BE{}), q), B.BE{}, IM.at_bu_eq(bs, i, B.BE{}, hlen, q, hc)), {==})
+    case False{}:
+      +hb = brm_b(a, s, b, ll, B.at(bs, q), TF.bsl_inst(bs, SC.append(Nat, a, Con{s, b}), ll, no, h, q, hq), imp_ne(bs, no, huq, i, q, hi, hq, DL.ne_sym(i, q, hc), hoi, s, hsi, B.occ(B.at(bs, q)), {==}))
+      L.subst(B.Bk, z => {ST.bslb(SC.append(Nat, a, b), ll, z) == True{} : Bool}, B.at(bs, q), B.at(IM.bupd(bs, i, B.BE{}), q), Equal.sym(B.Bk, B.at(IM.bupd(bs, i, B.BE{}), q), B.at(bs, q), IM.at_bupd_other(bs, i, B.BE{}, q, hc)), hb)
+
+# THEOREM: emptying slot s's bucket: every full bucket's slot is listed
+# once s is taken off the list
+def bsl_rm(+bs: List<&2, B.Bk>, +no: Nat, +huq: {B.all_lt(B.PUniq{bs}, no) == True{} : Bool}, +i: Nat, +hi: {Nat.is_lt(i, no) == True{} : Bool}, +hlen: {Nat.is_lt(i, SC.length(B.Bk, bs)) == True{} : Bool}, +hoi: {B.occ(B.at(bs, i)) == True{} : Bool}, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +hsi: {UD.v(H.slot(B.lnk(B.at(bs, i)))) == s : Nat}, +ll: List<&2, U32>, +h: {ST.bsl(bs, SC.append(Nat, a, Con{s, b}), ll, no) == True{} : Bool}, +m: Nat, +hm: {Nat.is_le(m, no) == True{} : Bool}) -> {ST.bsl(IM.bupd(bs, i, B.BE{}), SC.append(Nat, a, b), ll, m) == True{} : Bool}:
+  match m:
+    case 0n:
+      {==}
+    case 1n+q:
+      +hq = N.succ_le_lt(q, no, hm)
+      L.and_intro(ST.bslb(SC.append(Nat, a, b), ll, B.at(IM.bupd(bs, i, B.BE{}), q)), ST.bsl(IM.bupd(bs, i, B.BE{}), SC.append(Nat, a, b), ll, q), br_c(bs, no, huq, i, hi, hlen, hoi, a, s, b, hsi, ll, h, q, hq, Nat.is_eq(i, q), {==}), bsl_rm(bs, no, huq, i, hi, hlen, hoi, a, s, b, hsi, ll, h, q, N.lt_le(q, no, hq)))
