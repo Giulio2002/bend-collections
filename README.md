@@ -88,8 +88,9 @@ bend proofs/PROOF.bend
 (`proofs/*_COMPONENT_PROOF.bend`, `DLL_DIRECT_PROOF`, `QUEUE_ADAPTER_PROOF`,
 `TREE_RANGE_PROOF`), `END_TO_END.bend` (each `proofs/<container>.bend`), the
 math library (`MATH_PROOF.bend`), the hash map (`proofs/hash_table.bend`),
-the LRU cache (`proofs/lru.bend`) and the doubly linked list
-(`proofs/doubly_linked_list.bend`).
+the LRU cache (`proofs/lru.bend`), the doubly linked list
+(`proofs/doubly_linked_list.bend`) and the indexed TreeMap
+(`proofs/tree_map.bend`).
 
 The hash map is proved against an independent association-list
 specification (`proofs/spec/hash_table.bend`) for every operation (`new`,
@@ -128,4 +129,28 @@ backward walk of `to_list`. The one precondition is capacity: an allocating
 operation requires fewer than 2^29 issued ids, so the blocks stay below 2^30
 slots.
 
-Still open: the indexed TreeMap's refinement.
+The indexed TreeMap is proved against an independent specification
+(`proofs/spec/tree_map.bend`: a limit and the entries sorted by key; cursors
+as a next and a current key over the map with bounds and a direction; views
+as the map with bounds and a direction) for every public operation: `new`,
+`with_limit`, the reads (`size`, `is_empty`, `get`, `get_or_default`,
+`contains_key`, `contains_value`, the first/last and
+lower/floor/ceiling/higher entries and keys), the updates (`put`,
+`put_if_absent`, `replace`, `replace_if_equal`, `remove`, `remove_if_equal`,
+`poll_first_entry`, `poll_last_entry`, `clear`), the cursors (`iterator`,
+`descending_iterator`, `key_set`, `values`, `entry_set`, `iterator_next`,
+`iterator_next_key`, `iterator_next_value`, `iterator_has_next`,
+`iterator_set_value`, `iterator_remove`, `iterator_finish`) and the views
+(`sub_map`, `head_map`, `tail_map`, `descending_map`, `view_reverse`,
+`view_finish`, `view_get`, `view_contains_key`, `view_put`, `view_remove`,
+`view_size`, `view_clear`, `view_first_entry`, `view_last_entry`,
+`view_lower_entry`, `view_floor_entry`, `view_ceiling_entry`,
+`view_higher_entry`, `view_iterator`). It holds for every key and value type,
+every lawful comparator (antisymmetric, transitive, flipping) and every good
+map, cursor and view. That covers the whole implementation: the red-black
+insertion and deletion fix-ups with their rotations, the successor move of a
+two-child delete, the free list and the node and payload arrays with their
+growth and limit, the cached first and last ids, the parent-link walks of the
+cursors and their re-seek after a removal, and the view walks that count or
+clear the entries in range. There is no capacity precondition: a full map
+rejects a new key as the specification does.

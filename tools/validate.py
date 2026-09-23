@@ -275,27 +275,31 @@ def main():
             print('%-22s runtime=%s differential=%s (facade)' % (name, state, state), flush=True)
             continue
         if name == 'balanced_search_tree':
-            # The production module is now the indexed TreeMap. Never count
-            # the retained recursive implementation's trace proof as its own.
+            # The production module is the indexed TreeMap: its tests, the
+            # oracle comparison, the component laws, and the universal
+            # refinement proof proofs/tree_map.bend (every operation, every
+            # good shadow, cursor and view, every lawful comparator).
             (ROOT/'build/tree-map').mkdir(parents=True, exist_ok=True)
             checks = []
-            for command in [[BEND, 'tests/tree_map/main.bend', '-o', 'build/tree-map/test'],
-                            [sys.executable, 'tools/check_tree_map.py'],
-                            [BEND, 'proofs/TREE_MAP_COMPONENT_PROOF.bend'],
-                            [BEND, 'proofs/TREE_RANGE_PROOF.bend']]:
-                result = run(command, timeout=120)
-                checks.append({'command': command, 'passed': result.returncode == 0,
+            for command, limit in [([BEND, 'tests/tree_map/main.bend', '-o', 'build/tree-map/test'], 120),
+                                   ([sys.executable, 'tools/check_tree_map.py'], 120),
+                                   ([BEND, 'proofs/TREE_MAP_COMPONENT_PROOF.bend'], 120),
+                                   ([BEND, 'proofs/TREE_RANGE_PROOF.bend'], 120),
+                                   ([BEND, 'proofs/tree_map.bend'], 21600)]:
+                result = run(command, timeout=limit)
+                passed = result.returncode == 0 and (command[1] != 'proofs/tree_map.bend' or 'All terms check' in result.stdout)
+                checks.append({'command': command, 'passed': passed,
                                'output': result.stdout + result.stderr})
-                if result.returncode != 0:
+                if not passed:
                     fail(name, 'TreeMap check failed: ' + repr(command))
                     break
-            good = len(checks) == 4 and all(x['passed'] for x in checks)
+            good = len(checks) == 5 and all(x['passed'] for x in checks)
             rows.append({'id': name, 'implementation': 'indexed TreeMap',
                          'runtime': 'passed' if good else 'failed',
                          'component_proof': 'passed' if good else 'failed',
-                         'trace_proof': 'incomplete', 'checks': checks})
+                         'trace_proof': 'passed' if good else 'failed', 'checks': checks})
             (LOGDIR / (name + '.log')).write_text('\n'.join(x['output'] for x in checks))
-            fail(name, 'Universal indexed TreeMap refinement/invariant/trace proof is unfinished; legacy proof is not a substitute.')
+            print('%-22s runtime=%s refinement_proof=%s' % (name, rows[-1]['runtime'], rows[-1]['trace_proof']), flush=True)
             continue
         log = []
         t0 = time.time()
