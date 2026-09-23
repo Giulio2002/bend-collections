@@ -9,6 +9,7 @@ import ./mirror.bend as MI
 import ./sim.bend as SM
 import ./ok.bend as OK
 import ./reads.bend as RD
+import ./ends.bend as EN
 
 # The implementation's operations refine the specification's, for every
 # good shadow and a lawful comparator. (source: tools/generators/tm_hand/api.src)
@@ -61,3 +62,23 @@ def is_empty_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, Bool, S.is_empty(K,
     case ST.SH{$FP}:
       +es = L.subst(Nat, z => {S.is_empty(K, V, $MD($SH)) == ($MD($SH), Nat.is_eq(z, 0n)) : S.Model<K, V> & Bool}, SC.length($E, $EST), n, Equal.sym(Nat, n, SC.length($E, $EST), RD.size_eq($AK, $F, hg)), {==})
       OK.pok_read($AK, Bool, $SH, hg, Nat.is_eq(n, 0n), S.is_empty(K, V, $MD($SH)), M.is_empty($AK, $RL($SH)), es, via($AK, Bool, M.is_empty($AK, $RL($SH)), MI.is_empty($AK, $SH), $SH, Nat.is_eq(n, 0n), SM.is_empty_s($AK, $SH, OK.dg_good($AK, $SH, hg)), {==}))
+
+def first_entry_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, Maybe<&2, $E>, S.first_entry(K, V, $MD(sh)), M.first_entry($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, $E>, $SH, hg, S.head($E, $EST), S.first_entry(K, V, $MD($SH)), M.first_entry($AK, $RL($SH)), {==}, via($AK, Maybe<&2, $E>, M.first_entry($AK, $RL($SH)), MI.first_entry($AK, $SH), $SH, S.head($E, $EST), SM.first_entry_s($AK, $SH, OK.dg_good($AK, $SH, hg)), EN.first_entry_m($AK, $F, hg)))
+
+def last_entry_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, Maybe<&2, $E>, S.last_entry(K, V, $MD(sh)), M.last_entry($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, $E>, $SH, hg, S.last($E, $EST), S.last_entry(K, V, $MD($SH)), M.last_entry($AK, $RL($SH)), {==}, via($AK, Maybe<&2, $E>, M.last_entry($AK, $RL($SH)), MI.last_entry($AK, $SH), $SH, S.last($E, $EST), SM.last_entry_s($AK, $SH, OK.dg_good($AK, $SH, hg)), EN.last_entry_m($AK, $F, hg)))
+
+def first_key_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, Maybe<&2, K>, S.first_key(K, V, $MD(sh)), M.first_key($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, K>, $SH, hg, S.key_m(K, V, S.head($E, $EST)), S.first_key(K, V, $MD($SH)), M.first_key($AK, $RL($SH)), {==}, via($AK, Maybe<&2, K>, M.first_key($AK, $RL($SH)), MI.first_key($AK, $SH), $SH, S.key_m(K, V, S.head($E, $EST)), SM.first_key_s($AK, $SH, OK.dg_good($AK, $SH, hg)), EN.first_key_m($AK, $F, hg)))
+
+def last_key_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, Maybe<&2, K>, S.last_key(K, V, $MD(sh)), M.last_key($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, K>, $SH, hg, S.key_m(K, V, S.last($E, $EST)), S.last_key(K, V, $MD($SH)), M.last_key($AK, $RL($SH)), {==}, via($AK, Maybe<&2, K>, M.last_key($AK, $RL($SH)), MI.last_key($AK, $SH), $SH, S.key_m(K, V, S.last($E, $EST)), SM.last_key_s($AK, $SH, OK.dg_good($AK, $SH, hg)), EN.last_key_m($AK, $F, hg)))
