@@ -88,13 +88,13 @@ def ctr_eq(m: Array<U32>, c: SP.Ctr) -> Bool:
   c_all(c_on(g, 24, c_on(e, 22, c_on(d, 20, c_on(b, 18, c_at(m, 16, a, True{}))))))
 
 type St is Type:
-  S{f: LR.Fast<&2, U32>, l: SP.Lru<U32>, ok: Bool}
+  S{f: LR.LRU<&2, U32>, l: SP.Lru<U32>, ok: Bool}
 
-def ck_c(+l: SP.Lru<U32>, +n: U32, +ok: Bool, r: LR.Fast<&2, U32> & Array<U32>) -> St:
+def ck_c(+l: SP.Lru<U32>, +n: U32, +ok: Bool, r: LR.LRU<&2, U32> & Array<U32>) -> St:
   (f, m) = r
   S{f, l, Bool.and(ok, Bool.and(U32.is_eq(n, SP.len(~U32, l)), ctr_eq(m, SP.counters(~U32, l))))}
 
-def ck_n(l: SP.Lru<U32>, +ok: Bool, r: LR.Fast<&2, U32> & U32) -> St:
+def ck_n(l: SP.Lru<U32>, +ok: Bool, r: LR.LRU<&2, U32> & U32) -> St:
   (f, +n) = r
   ck_c(l, n, ok, LR.counters(&2, U32, f))
 
@@ -106,32 +106,32 @@ def check(s: St) -> St:
 def beq(+b: Bool, +c: Bool) -> Bool:
   Bool.or(Bool.and(b, c), Bool.and(Bool.not(b), Bool.not(c)))
 
-def r_b(+ok: Bool, x: LR.Fast<&2, U32> & Bool, y: SP.Lru<U32> & Bool) -> St:
+def r_b(+ok: Bool, x: LR.LRU<&2, U32> & Bool, y: SP.Lru<U32> & Bool) -> St:
   (f, +b) = x
   (l, +c) = y
   S{f, l, Bool.and(ok, beq(b, c))}
 
-def r_m(+ok: Bool, x: LR.Fast<&2, U32> & Maybe<&2, U32>, y: SP.Lru<U32> & Maybe<&2, U32>) -> St:
+def r_m(+ok: Bool, x: LR.LRU<&2, U32> & Maybe<&2, U32>, y: SP.Lru<U32> & Maybe<&2, U32>) -> St:
   (f, a) = x
   (l, b) = y
   S{f, l, Bool.and(ok, m_eq(a, b))}
 
-def r_k(+ok: Bool, x: LR.Fast<&2, U32> & List<&2, String>, y: SP.Lru<U32> & List<&2, String>) -> St:
+def r_k(+ok: Bool, x: LR.LRU<&2, U32> & List<&2, String>, y: SP.Lru<U32> & List<&2, String>) -> St:
   (f, a) = x
   (l, b) = y
   S{f, l, Bool.and(ok, keys_eq(a, b))}
 
-def r_z(+ok: Bool, x: LR.Fast<&2, U32> & Result<&2, &2, String, U32>, y: SP.Lru<U32> & Result<&2, &2, String, U32>) -> St:
+def r_z(+ok: Bool, x: LR.LRU<&2, U32> & Result<&2, &2, String, U32>, y: SP.Lru<U32> & Result<&2, &2, String, U32>) -> St:
   (f, a) = x
   (l, b) = y
   S{f, l, Bool.and(ok, rz_eq(a, b))}
 
-def r_u(+ok: Bool, x: LR.Fast<&2, U32> & U32, y: SP.Lru<U32> & U32) -> St:
+def r_u(+ok: Bool, x: LR.LRU<&2, U32> & U32, y: SP.Lru<U32> & U32) -> St:
   (f, +a) = x
   (l, +b) = y
   S{f, l, Bool.and(ok, U32.is_eq(a, b))}
 
-def op(+k: Nat, f: LR.Fast<&2, U32>, l: SP.Lru<U32>, +ok: Bool, +key: String, +v: U32, +now: W.U64, +r: U32) -> St:
+def op(+k: Nat, f: LR.LRU<&2, U32>, l: SP.Lru<U32>, +ok: Bool, +key: String, +v: U32, +now: W.U64, +r: U32) -> St:
   match k:
     case 0n:
       r_b(ok, LR.add(&2, U32, f, key, v, now), SP.add(~U32, l, key, v, now))
@@ -209,7 +209,7 @@ def run(fuel: Nat, s: St, +rng: U32, +t: U32, +i: Nat, +pk: Nat, +bad: Nat) -> S
       +t2 = U32.add(t, U32.and(sh(5n, r), 1))
       run(p, check(op(k, f, l, True{}, key_of(sh(8n, r)), U32.and(r, 65535), W.U64{t2, 0}, U32.shr(r))), r, t2, 1n+i, k, first(ok, bad, Nat.add(Nat.mul(Nat.sub(i, 1n), 16n), pk)))
 
-def made(m: LR.Made<&2, U32>) -> LR.Fast<&2, U32>:
+def made(m: LR.Made<&2, U32>) -> LR.LRU<&2, U32>:
   match m:
     case LR.Made{f}:
       f

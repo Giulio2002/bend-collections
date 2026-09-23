@@ -16,7 +16,7 @@ def empty(~V: Data, +cap: U32) -> ST.Sh<V>:
 def MadeOK(~V: Data, r: LR.Made<&2, V>, s: SP.Made<V>) -> Type:
   match r s:
     case LR.Made{f} SP.Made{l}:
-      Sigma<&1, &1, ST.Sh<V>, sh => {f == ST.real(~V, sh) : LR.Fast<&2, V>} & ({l == ST.model(~V, sh) : SP.Lru<V>} & {ST.good(~V, sh) == True{} : Bool})>
+      Sigma<&1, &1, ST.Sh<V>, sh => {f == ST.real(~V, sh) : LR.LRU<&2, V>} & ({l == ST.model(~V, sh) : SP.Lru<V>} & {ST.good(~V, sh) == True{} : Bool})>
     case LR.Made{f} SP.Rejected{b}:
       Empty
     case LR.Rejected{a} SP.Made{l}:

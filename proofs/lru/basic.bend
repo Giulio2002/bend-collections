@@ -47,19 +47,19 @@ def n_lt(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +mT: 
 # ---- the operations ----
 
 # THEOREM: capacity is the specification's; the cache is unchanged.
-def capacity_ok(~V: Data, +sh: ST.Sh<V>) -> {LR.capacity(&2, V, ST.real(~V, sh)) == (ST.real(~V, sh), SP.capacity(~V, ST.model(~V, sh))) : LR.Fast<&2, V> & U32}:
+def capacity_ok(~V: Data, +sh: ST.Sh<V>) -> {LR.capacity(&2, V, ST.real(~V, sh)) == (ST.real(~V, sh), SP.capacity(~V, ST.model(~V, sh))) : LR.LRU<&2, V> & U32}:
   match sh:
     case ST.LS{cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl}:
       {==}
 
 # THEOREM: len is the specification's; the cache is unchanged.
-def len_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}) -> {LR.len(&2, V, ST.real(~V, sh)) == (ST.real(~V, sh), SP.len(~V, ST.model(~V, sh))) : LR.Fast<&2, V> & U32}:
+def len_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}) -> {LR.len(&2, V, ST.real(~V, sh)) == (ST.real(~V, sh), SP.len(~V, ST.model(~V, sh))) : LR.LRU<&2, V> & U32}:
   match sh:
     case ST.LS{cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl}:
       +hk = L.and_left(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), ST.g_ck(~V, cap, n, head, tail, free, TB.nth0(AR.slots(U32, mT), 0n), TB.nth0(AR.slots(U32, mT), 1n), TB.nth0(AR.slots(U32, mT), 2n), TB.nth0(AR.slots(U32, mT), 6n), TB.nth0(AR.slots(U32, mT), 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), eT, lkT, sl, fl, hg))
       +e1 = Equal.sym(U32, U32.from_nat(UD.v(n)), n, PI.from_v(n, k, N.lt_le(k, 32n, N.lt_trans(k, 30n, 32n, hk, {==})), n_lt(~V, cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl, hg)))
       +e2 = Equal.cong(Nat, U32, z => U32.from_nat(z), UD.v(n), SP.length(~V, ST.es(~V, AR.slots(U32, lkT), AR.slots(String, ksT), AR.slots(Maybe<&2, V>, eT), sl)), Equal.sym(Nat, SP.length(~V, ST.es(~V, AR.slots(U32, lkT), AR.slots(String, ksT), AR.slots(Maybe<&2, V>, eT), sl)), UD.v(n), len_model(~V, cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl, hg)))
-      Equal.cong(U32, LR.Fast<&2, V> & U32, z => (ST.real(~V, ST.LS{cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl}), z), n, U32.from_nat(SP.length(~V, ST.es(~V, AR.slots(U32, lkT), AR.slots(String, ksT), AR.slots(Maybe<&2, V>, eT), sl))), Equal.trans(U32, n, U32.from_nat(UD.v(n)), U32.from_nat(SP.length(~V, ST.es(~V, AR.slots(U32, lkT), AR.slots(String, ksT), AR.slots(Maybe<&2, V>, eT), sl))), e1, e2))
+      Equal.cong(U32, LR.LRU<&2, V> & U32, z => (ST.real(~V, ST.LS{cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl}), z), n, U32.from_nat(SP.length(~V, ST.es(~V, AR.slots(U32, lkT), AR.slots(String, ksT), AR.slots(Maybe<&2, V>, eT), sl))), Equal.trans(U32, n, U32.from_nat(UD.v(n)), U32.from_nat(SP.length(~V, ST.es(~V, AR.slots(U32, lkT), AR.slots(String, ksT), AR.slots(Maybe<&2, V>, eT), sl))), e1, e2))
 
 def mtree(~V: Data, sh: ST.Sh<V>) -> AR.Tree<U32>:
   match sh:
@@ -68,10 +68,10 @@ def mtree(~V: Data, sh: ST.Sh<V>) -> AR.Tree<U32>:
 
 # THEOREM: counters hands back the cache and a copy of the meta words, whose
 # counter words are the specification's counters.
-def counters_ok(~V: Data, +sh: ST.Sh<V>) -> {LR.counters(&2, V, ST.real(~V, sh)) == (ST.real(~V, sh), AR.thaw(U32, mtree(~V, sh))) : LR.Fast<&2, V> & Array<U32>} & {ST.ctr(AR.slots(U32, mtree(~V, sh))) == SP.counters(~V, ST.model(~V, sh)) : SP.Ctr}:
+def counters_ok(~V: Data, +sh: ST.Sh<V>) -> {LR.counters(&2, V, ST.real(~V, sh)) == (ST.real(~V, sh), AR.thaw(U32, mtree(~V, sh))) : LR.LRU<&2, V> & Array<U32>} & {ST.ctr(AR.slots(U32, mtree(~V, sh))) == SP.counters(~V, ST.model(~V, sh)) : SP.Ctr}:
   match sh:
     case ST.LS{cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl}:
-      +e = Equal.cong(Array<U32> & Array<U32>, LR.Fast<&2, V> & Array<U32>, r => LR.cnt_fin(&2, V, cap, n, head, tail, free, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), r), Array.clone(U32, AR.thaw(U32, mT)), (AR.thaw(U32, mT), AR.thaw(U32, mT)), AR.clone(U32, mT))
+      +e = Equal.cong(Array<U32> & Array<U32>, LR.LRU<&2, V> & Array<U32>, r => LR.cnt_fin(&2, V, cap, n, head, tail, free, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), r), Array.clone(U32, AR.thaw(U32, mT)), (AR.thaw(U32, mT), AR.thaw(U32, mT)), AR.clone(U32, mT))
       (e, {==})
 
 # ---- congruences ----
@@ -105,8 +105,8 @@ def lru_eq(~V: Data, +cap: U32, +a: U32, +a2: U32, +b: W.U64, +b2: W.U64, +es: L
 # ---- set_lifetime ----
 
 
-def SetOK(~V: Data, +sh: ST.Sh<V>, +spec: SP.Lru<V>, r: LR.Fast<&2, V>) -> Type:
-  Sigma<&1, &1, ST.Sh<V>, sh2 => {r == ST.real(~V, sh2) : LR.Fast<&2, V>} & ({spec == ST.model(~V, sh2) : SP.Lru<V>} & {ST.good(~V, sh2) == True{} : Bool})>
+def SetOK(~V: Data, +sh: ST.Sh<V>, +spec: SP.Lru<V>, r: LR.LRU<&2, V>) -> Type:
+  Sigma<&1, &1, ST.Sh<V>, sh2 => {r == ST.real(~V, sh2) : LR.LRU<&2, V>} & ({spec == ST.model(~V, sh2) : SP.Lru<V>} & {ST.good(~V, sh2) == True{} : Bool})>
 
 # word j of the meta list after the three lifetime writes, j not 3, 4, 5
 def oth3(+mT: AR.Tree<U32>, +on: U32, +lo: U32, +hi: U32, +h1: {AR.slots(U32, AR.upd(U32, 5n, mT, 3n, on)) == SC.update(U32, AR.slots(U32, mT), 3n, on) : List<&2, U32>}, +h2: {AR.slots(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo)) == SC.update(U32, AR.slots(U32, AR.upd(U32, 5n, mT, 3n, on)), 4n, lo) : List<&2, U32>}, +h3: {AR.slots(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), 5n, hi)) == SC.update(U32, AR.slots(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo)), 5n, hi) : List<&2, U32>}, +j: Nat, +n3: {Nat.is_eq(3n, j) == False{} : Bool}, +n4: {Nat.is_eq(4n, j) == False{} : Bool}, +n5: {Nat.is_eq(5n, j) == False{} : Bool}) -> {TB.nth0(AR.slots(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), 5n, hi)), j) == TB.nth0(AR.slots(U32, mT), j) : U32}:
@@ -127,7 +127,7 @@ def sl_go(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +mT:
       +p3 = MT.uset_p(5n, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), p2, 5n, hi)
       +h3 = MT.uset_s(5n, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), p2, 5n, {==}, hi)
       +ea = Equal.trans(Array<U32>, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, mT), 3, on), 4, lo), 5, hi), Array.set(U32, Array.set(U32, AR.thaw(U32, AR.upd(U32, 5n, mT, 3n, on)), 4, lo), 5, hi), AR.thaw(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), 5n, hi)), Equal.cong(Array<U32>, Array<U32>, z => Array.set(U32, Array.set(U32, z, 4, lo), 5, hi), Array.set(U32, AR.thaw(U32, mT), 3, on), AR.thaw(U32, AR.upd(U32, 5n, mT, 3n, on)), a1), Equal.trans(Array<U32>, Array.set(U32, Array.set(U32, AR.thaw(U32, AR.upd(U32, 5n, mT, 3n, on)), 4, lo), 5, hi), Array.set(U32, AR.thaw(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo)), 5, hi), AR.thaw(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), 5n, hi)), Equal.cong(Array<U32>, Array<U32>, z => Array.set(U32, z, 5, hi), Array.set(U32, AR.thaw(U32, AR.upd(U32, 5n, mT, 3n, on)), 4, lo), AR.thaw(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo)), a2), a3))
-      +er = Equal.cong(Array<U32>, LR.Fast<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, mT), 3, on), 4, lo), 5, hi), AR.thaw(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), 5n, hi)), ea)
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, mT), 3, on), 4, lo), 5, hi), AR.thaw(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), 5n, hi)), ea)
       +e3 = Equal.trans(U32, TB.nth0(AR.slots(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), 5n, hi)), 3n), TB.nth0(AR.slots(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo)), 3n), on, MT.nth_other(AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), 5n, hi, AR.upd(U32, 5n, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), 5n, hi), h3, 3n, {==}), Equal.trans(U32, TB.nth0(AR.slots(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo)), 3n), TB.nth0(AR.slots(U32, AR.upd(U32, 5n, mT, 3n, on)), 3n), on, MT.nth_other(AR.upd(U32, 5n, mT, 3n, on), 4n, lo, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), h2, 3n, {==}), MT.nth_same(5n, mT, pm, 3n, {==}, on, AR.upd(U32, 5n, mT, 3n, on), h1)))
       +e4 = Equal.trans(U32, TB.nth0(AR.slots(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), 5n, hi)), 4n), TB.nth0(AR.slots(U32, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo)), 4n), lo, MT.nth_other(AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), 5n, hi, AR.upd(U32, 5n, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), 5n, hi), h3, 4n, {==}), MT.nth_same(5n, AR.upd(U32, 5n, mT, 3n, on), p1, 4n, {==}, lo, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), h2))
       +e5 = MT.nth_same(5n, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), p2, 5n, {==}, hi, AR.upd(U32, 5n, AR.upd(U32, 5n, AR.upd(U32, 5n, mT, 3n, on), 4n, lo), 5n, hi), h3)

@@ -17,8 +17,8 @@ import ../hash_table/insa.bend as IA
 # Counting on the shadow: fbump(c) increments counter c of the model.
 
 
-def CountOK(~V: Data, +spec: SP.Lru<V>, r: LR.Fast<&2, V>) -> Type:
-  Sigma<&1, &1, ST.Sh<V>, sh2 => {r == ST.real(~V, sh2) : LR.Fast<&2, V>} & ({ST.model(~V, sh2) == spec : SP.Lru<V>} & {ST.good(~V, sh2) == True{} : Bool})>
+def CountOK(~V: Data, +spec: SP.Lru<V>, r: LR.LRU<&2, V>) -> Type:
+  Sigma<&1, &1, ST.Sh<V>, sh2 => {r == ST.real(~V, sh2) : LR.LRU<&2, V>} & ({ST.model(~V, sh2) == spec : SP.Lru<V>} & {ST.good(~V, sh2) == True{} : Bool})>
 
 def lo8(+i: Nat, +h8: {Nat.is_le(8n, i) == True{} : Bool}, +j: Nat, +hj: {Nat.is_lt(j, 8n) == True{} : Bool}) -> {Nat.is_eq(i, j) == False{} : Bool}:
   N.is_eq_sym_false(j, i, N.is_eq_lt(j, i, N.lt_le_trans(j, 8n, i, hj, h8)))
@@ -39,7 +39,7 @@ def count_ins(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, 
   match bo:
     case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
       +ee = {e : {AR.slots(U32, m2) == SC.update(U32, SC.update(U32, AR.slots(U32, mT), 16n, x), 1n+16n, y) : List<&2, U32>}}
-      +er = Equal.cong(Array<U32>, LR.Fast<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(0, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(0, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
       +g = bm_fin(~V, cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl, hg, 16n, {==}, m2, pm2, x, y, ee)
       +e3 = keep(AR.slots(U32, mT), m2, 16n, x, y, ee, 3n, {==}, {==})
       +e4 = BA.w64_eq(AR.slots(U32, m2), AR.slots(U32, mT), 4n, keep(AR.slots(U32, mT), m2, 16n, x, y, ee, 4n, {==}, {==}), keep(AR.slots(U32, mT), m2, 16n, x, y, ee, 5n, {==}, {==}))
@@ -51,7 +51,7 @@ def count_ev(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +
   match bo:
     case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
       +ee = {e : {AR.slots(U32, m2) == SC.update(U32, SC.update(U32, AR.slots(U32, mT), 18n, x), 1n+18n, y) : List<&2, U32>}}
-      +er = Equal.cong(Array<U32>, LR.Fast<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(1, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(1, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
       +g = bm_fin(~V, cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl, hg, 18n, {==}, m2, pm2, x, y, ee)
       +e3 = keep(AR.slots(U32, mT), m2, 18n, x, y, ee, 3n, {==}, {==})
       +e4 = BA.w64_eq(AR.slots(U32, m2), AR.slots(U32, mT), 4n, keep(AR.slots(U32, mT), m2, 18n, x, y, ee, 4n, {==}, {==}), keep(AR.slots(U32, mT), m2, 18n, x, y, ee, 5n, {==}, {==}))
@@ -63,7 +63,7 @@ def count_rm(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +
   match bo:
     case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
       +ee = {e : {AR.slots(U32, m2) == SC.update(U32, SC.update(U32, AR.slots(U32, mT), 20n, x), 1n+20n, y) : List<&2, U32>}}
-      +er = Equal.cong(Array<U32>, LR.Fast<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(2, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(2, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
       +g = bm_fin(~V, cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl, hg, 20n, {==}, m2, pm2, x, y, ee)
       +e3 = keep(AR.slots(U32, mT), m2, 20n, x, y, ee, 3n, {==}, {==})
       +e4 = BA.w64_eq(AR.slots(U32, m2), AR.slots(U32, mT), 4n, keep(AR.slots(U32, mT), m2, 20n, x, y, ee, 4n, {==}, {==}), keep(AR.slots(U32, mT), m2, 20n, x, y, ee, 5n, {==}, {==}))
@@ -75,7 +75,7 @@ def count_hit(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, 
   match bo:
     case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
       +ee = {e : {AR.slots(U32, m2) == SC.update(U32, SC.update(U32, AR.slots(U32, mT), 22n, x), 1n+22n, y) : List<&2, U32>}}
-      +er = Equal.cong(Array<U32>, LR.Fast<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(3, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(3, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
       +g = bm_fin(~V, cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl, hg, 22n, {==}, m2, pm2, x, y, ee)
       +e3 = keep(AR.slots(U32, mT), m2, 22n, x, y, ee, 3n, {==}, {==})
       +e4 = BA.w64_eq(AR.slots(U32, m2), AR.slots(U32, mT), 4n, keep(AR.slots(U32, mT), m2, 22n, x, y, ee, 4n, {==}, {==}), keep(AR.slots(U32, mT), m2, 22n, x, y, ee, 5n, {==}, {==}))
@@ -87,7 +87,7 @@ def count_miss(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32,
   match bo:
     case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
       +ee = {e : {AR.slots(U32, m2) == SC.update(U32, SC.update(U32, AR.slots(U32, mT), 24n, x), 1n+24n, y) : List<&2, U32>}}
-      +er = Equal.cong(Array<U32>, LR.Fast<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(4, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(4, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
       +g = bm_fin(~V, cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl, hg, 24n, {==}, m2, pm2, x, y, ee)
       +e3 = keep(AR.slots(U32, mT), m2, 24n, x, y, ee, 3n, {==}, {==})
       +e4 = BA.w64_eq(AR.slots(U32, m2), AR.slots(U32, mT), 4n, keep(AR.slots(U32, mT), m2, 24n, x, y, ee, 4n, {==}, {==}), keep(AR.slots(U32, mT), m2, 24n, x, y, ee, 5n, {==}, {==}))

@@ -19,7 +19,7 @@ import ../hash_table/state.bend as HT
 # buckets), the arena exponent sd (2^sd slots), a mirror tree for each array,
 # and two ghost lists the implementation does not hold: sl, the live slots
 # from oldest to newest (the recency list), and fl, the free list in order.
-# real(sh) is the Fast<&2, V> the implementation holds.
+# real(sh) is the LRU<&2, V> the implementation holds.
 #
 #   m    meta words: 0 fresh, 1 size, 2 depth, 3 lifetime on, 4-5 lifetime,
 #        6 mask, 7 bits, 16 + 2c / 17 + 2c counter c
@@ -29,7 +29,7 @@ import ../hash_table/state.bend as HT
 type Sh<-V: Data> is Data:
   LS{cap: U32, n: U32, head: U32, tail: U32, free: U32, mT: AR.Tree<U32>, k: Nat, sd: Nat, tabT: AR.Tree<U32>, ksT: AR.Tree<String>, eT: AR.Tree<Maybe<&2, V>>, lkT: AR.Tree<U32>, sl: List<&2, Nat>, fl: List<&2, Nat>}
 
-def real(~V: Data, sh: Sh<V>) -> LR.Fast<&2, V>:
+def real(~V: Data, sh: Sh<V>) -> LR.LRU<&2, V>:
   match sh:
     case LS{cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl}:
       LR.F{cap, n, head, tail, free, AR.thaw(U32, mT), AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}
