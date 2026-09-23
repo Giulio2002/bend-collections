@@ -1,0 +1,46 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/order.bend as O
+import ../spec/common.bend as SC
+import ../spec/tree_map.bend as S
+import ../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./sim.bend as SM
+import ./ok.bend as OK
+import ./reads.bend as RD
+
+# The implementation's operations refine the specification's, for every
+# good shadow and a lawful comparator. (source: tools/generators/tm_hand/api.src)
+
+
+# an implementation read through the simulation, given the mirror's answer
+def via(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, -X: Data, -impl: M.TreeMap<K, V, cmp> & X, -mir: ST.Sh<K, V> & X, +s: ST.Sh<K, V>, +o: X, +hs: {impl == MI.rp(~K, ~V, ~cmp, X, mir) : M.TreeMap<K, V, cmp> & X}, +hm: {mir == (s, o) : ST.Sh<K, V> & X}) -> {impl == (ST.real(~K, ~V, ~cmp, s), o) : M.TreeMap<K, V, cmp> & X}:
+  L.subst(ST.Sh<K, V> & X, z => {impl == MI.rp(~K, ~V, ~cmp, X, z) : M.TreeMap<K, V, cmp> & X}, mir, (s, o), hm, hs)
+
+def get_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}, +k: K) -> OK.POK(~K, ~V, ~cmp, Maybe<&2, V>, S.get(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, sh), k), M.get(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh), k)):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
+      OK.pok_read(~K, ~V, ~cmp, Maybe<&2, V>, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg, S.find(~K, ~V, ~cmp, k, ST.ents(~K, ~V, ST.ids(tg), nl, pl)), S.get(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k), M.get(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k), {==}, via(~K, ~V, ~cmp, Maybe<&2, V>, M.get(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k), MI.get(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k), ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, S.find(~K, ~V, ~cmp, k, ST.ents(~K, ~V, ST.ids(tg), nl, pl)), SM.get_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), RD.get_m(~K, ~V, ~cmp, ~o, n, root, lo, hi, free, l, d, nl, pl, tg, fl, k, hg)))
+
+def contains_key_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}, +k: K) -> OK.POK(~K, ~V, ~cmp, Bool, S.contains_key(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, sh), k), M.contains_key(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh), k)):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
+      OK.pok_read(~K, ~V, ~cmp, Bool, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg, S.is_some(V, S.find(~K, ~V, ~cmp, k, ST.ents(~K, ~V, ST.ids(tg), nl, pl))), S.contains_key(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k), M.contains_key(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k), {==}, via(~K, ~V, ~cmp, Bool, M.contains_key(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k), MI.contains_key(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k), ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, S.is_some(V, S.find(~K, ~V, ~cmp, k, ST.ents(~K, ~V, ST.ids(tg), nl, pl))), SM.contains_key_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), RD.contains_key_m(~K, ~V, ~cmp, ~o, n, root, lo, hi, free, l, d, nl, pl, tg, fl, k, hg)))
+
+def get_or_default_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}, +k: K, +fb: V) -> OK.POK(~K, ~V, ~cmp, V, S.get_or_default(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, sh), k, fb), M.get_or_default(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh), k, fb)):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
+      OK.pok_read(~K, ~V, ~cmp, V, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg, S.or_default(V, S.find(~K, ~V, ~cmp, k, ST.ents(~K, ~V, ST.ids(tg), nl, pl)), fb), S.get_or_default(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, fb), M.get_or_default(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, fb), {==}, via(~K, ~V, ~cmp, V, M.get_or_default(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, fb), MI.get_or_default(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, fb), ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, S.or_default(V, S.find(~K, ~V, ~cmp, k, ST.ents(~K, ~V, ST.ids(tg), nl, pl)), fb), SM.get_or_default_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, fb, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), RD.get_or_default_m(~K, ~V, ~cmp, ~o, n, root, lo, hi, free, l, d, nl, pl, tg, fl, k, fb, hg)))
+
+def size_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}) -> OK.POK(~K, ~V, ~cmp, Nat, S.size(K, V, ST.model(~K, ~V, ~cmp, sh)), M.size(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh))):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
+      +es = L.subst(Nat, z => {S.size(K, V, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})) == (ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), z) : S.Model<K, V> & Nat}, SC.length(M.Entry<K, V>, ST.ents(~K, ~V, ST.ids(tg), nl, pl)), n, Equal.sym(Nat, n, SC.length(M.Entry<K, V>, ST.ents(~K, ~V, ST.ids(tg), nl, pl)), RD.size_eq(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg)), {==})
+      OK.pok_read(~K, ~V, ~cmp, Nat, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg, n, S.size(K, V, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})), M.size(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})), es, via(~K, ~V, ~cmp, Nat, M.size(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})), MI.size(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, n, SM.size_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), {==}))
+
+def is_empty_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}) -> OK.POK(~K, ~V, ~cmp, Bool, S.is_empty(K, V, ST.model(~K, ~V, ~cmp, sh)), M.is_empty(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh))):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
+      +es = L.subst(Nat, z => {S.is_empty(K, V, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})) == (ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), Nat.is_eq(z, 0n)) : S.Model<K, V> & Bool}, SC.length(M.Entry<K, V>, ST.ents(~K, ~V, ST.ids(tg), nl, pl)), n, Equal.sym(Nat, n, SC.length(M.Entry<K, V>, ST.ents(~K, ~V, ST.ids(tg), nl, pl)), RD.size_eq(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg)), {==})
+      OK.pok_read(~K, ~V, ~cmp, Bool, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg, Nat.is_eq(n, 0n), S.is_empty(K, V, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})), M.is_empty(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})), es, via(~K, ~V, ~cmp, Bool, M.is_empty(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})), MI.is_empty(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, Nat.is_eq(n, 0n), SM.is_empty_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), {==}))

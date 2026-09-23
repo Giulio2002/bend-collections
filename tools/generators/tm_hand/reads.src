@@ -1,0 +1,152 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/list.bend as LL
+import ../lib/order.bend as O
+import ../spec/common.bend as SC
+import ../spec/tree_map.bend as S
+import ../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./tree.bend as TR
+import ./find.bend as FI
+
+# The read-only operations of the mirror over a good shadow: the search
+# returns the ghost search from the root (fuel 1+n suffices, the height
+# being at most the size), so get, contains_key and get_or_default answer
+# the specification's lookup, and size and is_empty its length.
+# (source: tools/generators/tm_hand/reads.src)
+
+%def ND M.Node<K>
+%def E M.Entry<K, V>
+%def ES List<&2, M.Entry<K, V>>
+%def MV Maybe<&2, V>
+%def NL List<&2, $ND>
+%def PL List<&2, $MV>
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def FT +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: $NL, +pl: $PL, +tg: ST.Tr, +fl: List<&2, Nat>
+%def F n, root, lo, hi, free, l, d, nl, pl, tg, fl
+%def SH ST.SH{$F}
+%def SHT ST.Sh<K, V>
+%def GF {ST.goodF($AK, $F) == True{} : Bool}
+%def ENTS(ix) ST.ents(~K, ~V, ix, nl, pl)
+%def EST $ENTS(ST.ids(tg))
+%def TS TR.tsearch($AK, tg, nl, k, 0n, False{})
+%def FIND S.find($AK, k, $EST)
+%def REP(t, p) {ST.rep(~K, t, p, nl) == True{} : Bool}
+%def PAY(t) {ST.pay(~V, t, pl) == True{} : Bool}
+
+def fuel_ok($TK, $FT, +hg: $GF) -> {Nat.is_lt(TR.ht(tg), 1n+n) == True{} : Bool}:
+  +e = N.eq_from_is_eq(n, SC.length(Nat, ST.ids(tg)), ST.g_csz($AK, $F, hg))
+  N.le_lt_succ(TR.ht(tg), n, L.subst(Nat, z => {Nat.is_le(TR.ht(tg), z) == True{} : Bool}, SC.length(Nat, ST.ids(tg)), n, Equal.sym(Nat, n, SC.length(Nat, ST.ids(tg)), e), TR.ht_le(tg)))
+
+# the search is the ghost search from the root
+def search_m($TK, $FT, +k: K, +hg: $GF) -> {MI.search($AK, $SH, k) == ($SH, $TS) : $SHT & M.Search}:
+  +er = N.eq_from_is_eq(root, ST.rid(tg), ST.g_croot($AK, $F, hg))
+  %Equal.sym(Nat, root, ST.rid(tg), er) : {MI.search_loop($AK, 1n+n, k, _, 0n, False{}, MI.probe($AK, $SH, _, k)) == ($SH, $TS) : $SHT & M.Search}
+  TR.sl($AK, $F, 1n+n, tg, 0n, False{}, k, ST.g_crep($AK, $F, hg), fuel_ok($AK, $F, hg))
+
+def gf_m($TK, $FT, +s: M.Search) -> {MI.get_found($AK, ($SH, s)) == ($SH, ST.pv(V, pl, FI.sfound(s))) : $SHT & $MV}:
+  match s:
+    case M.Search{f, p, lf}:
+      {==}
+
+def get_m($TO, $FT, +k: K, +hg: $GF) -> {MI.get($AK, $SH, k) == ($SH, $FIND) : $SHT & $MV}:
+  %Equal.sym($SHT & M.Search, MI.search($AK, $SH, k), ($SH, $TS), search_m($AK, $F, k, hg)) : {MI.get_found($AK, _) == ($SH, $FIND) : $SHT & $MV}
+  %Equal.sym($SHT & $MV, MI.get_found($AK, ($SH, $TS)), ($SH, ST.pv(V, pl, FI.sfound($TS))), gf_m($AK, $F, $TS)) : {_ == ($SH, $FIND) : $SHT & $MV}
+  %Equal.sym($MV, ST.pv(V, pl, FI.sfound($TS)), $FIND, FI.tfind($AO, nl, pl, tg, 0n, False{}, k, ST.g_crep($AK, $F, hg), ST.g_cpay($AK, $F, hg), ST.g_cord($AK, $F, hg))) : {($SH, _) == ($SH, $FIND) : $SHT & $MV}
+  {==}
+
+# ---- contains_key ----
+
+def some_eq(-V: Data, +m: $MV) -> {S.is_some(V, m) == ST.some2(V, m) : Bool}:
+  match m:
+    case None{}:
+      {==}
+    case Some{v}:
+      {==}
+
+%def TSX(t, p, lf) TR.tsearch($AK, t, nl, k, p, lf)
+%def FD(s) FI.sfound(s)
+%def SOMEQ(s) {Nat.is_lt(0n, $FD(s)) == S.is_some(V, ST.pv(V, pl, $FD(s))) : Bool}
+
+def ts_some_c($TK, +nl: $NL, +pl: $PL, +i: Nat, +tl: ST.Tr, +tr: ST.Tr, +p: Nat, +left: Bool, +k: K, +hi: {Nat.is_lt(0n, i) == True{} : Bool}, +hs: {ST.some2(V, ST.pv(V, pl, i)) == True{} : Bool}, +ihl: $SOMEQ($TSX(tl, i, True{})), +ihr: $SOMEQ($TSX(tr, i, False{})), +cc: Cmp) -> $SOMEQ(TR.pk3(M.Search, cc, $TSX(tl, i, True{}), $TSX(tr, i, False{}), M.Search{i, p, left})):
+  match cc:
+    case LT{}:
+      ihl
+    case GT{}:
+      ihr
+    case EQ{}:
+      %Equal.sym(Bool, S.is_some(V, ST.pv(V, pl, i)), ST.some2(V, ST.pv(V, pl, i)), some_eq(V, ST.pv(V, pl, i))) : {Nat.is_lt(0n, i) == _ : Bool}
+      %Equal.sym(Bool, ST.some2(V, ST.pv(V, pl, i)), True{}, hs) : {Nat.is_lt(0n, i) == _ : Bool}
+      hi
+
+# the ghost search's id is nonzero exactly when its node has a value
+def ts_some($TK, +nl: $NL, +pl: $PL, +t: ST.Tr, +p: Nat, +left: Bool, +k: K, +hr: $REP(t, p), +hp: $PAY(t)) -> $SOMEQ($TSX(t, p, left)):
+  match t:
+    case ST.TE{}:
+      {==}
+    case ST.TN{+i, +tl, +tr}:
+      +hi = L.and_left(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, ST.nd(K, nl, i), ST.rid(tl), ST.rid(tr), p), Bool.and(ST.rep(~K, tl, i, nl), ST.rep(~K, tr, i, nl))), hr)
+      ts_some_c($AK, nl, pl, i, tl, tr, p, left, k, hi, FI.pay_node(~V, i, tl, tr, pl, hp), ts_some($AK, nl, pl, tl, i, True{}, k, TR.rep_l(~K, i, tl, tr, p, nl, hr), FI.pay_l(~V, i, tl, tr, pl, hp)), ts_some($AK, nl, pl, tr, i, False{}, k, TR.rep_r(~K, i, tl, tr, p, nl, hr), FI.pay_r(~V, i, tl, tr, pl, hp)), TR.kc(~K, ~cmp, k, ST.nd(K, nl, i)))
+
+def cf_m($TK, $FT, +s: M.Search) -> {MI.contains_found($AK, ($SH, s)) == ($SH, Nat.is_lt(0n, FI.sfound(s))) : $SHT & Bool}:
+  match s:
+    case M.Search{f, p, lf}:
+      {==}
+
+def contains_key_m($TO, $FT, +k: K, +hg: $GF) -> {MI.contains_key($AK, $SH, k) == ($SH, S.is_some(V, $FIND)) : $SHT & Bool}:
+  %Equal.sym($SHT & M.Search, MI.search($AK, $SH, k), ($SH, $TS), search_m($AK, $F, k, hg)) : {MI.contains_found($AK, _) == ($SH, S.is_some(V, $FIND)) : $SHT & Bool}
+  %Equal.sym($SHT & Bool, MI.contains_found($AK, ($SH, $TS)), ($SH, Nat.is_lt(0n, FI.sfound($TS))), cf_m($AK, $F, $TS)) : {_ == ($SH, S.is_some(V, $FIND)) : $SHT & Bool}
+  %Equal.sym($MV, $FIND, ST.pv(V, pl, FI.sfound($TS)), Equal.sym($MV, ST.pv(V, pl, FI.sfound($TS)), $FIND, FI.tfind($AO, nl, pl, tg, 0n, False{}, k, ST.g_crep($AK, $F, hg), ST.g_cpay($AK, $F, hg), ST.g_cord($AK, $F, hg)))) : {($SH, Nat.is_lt(0n, FI.sfound($TS))) == ($SH, S.is_some(V, _)) : $SHT & Bool}
+  %Equal.sym(Bool, Nat.is_lt(0n, FI.sfound($TS)), S.is_some(V, ST.pv(V, pl, FI.sfound($TS))), ts_some($AK, nl, pl, tg, 0n, False{}, k, ST.g_crep($AK, $F, hg), ST.g_cpay($AK, $F, hg))) : {($SH, _) == ($SH, S.is_some(V, ST.pv(V, pl, FI.sfound($TS)))) : $SHT & Bool}
+  {==}
+
+# ---- get_or_default ----
+
+def dv_m($TK, $FT, +fb: V, +m: $MV) -> {MI.default_value($AK, fb, ($SH, m)) == ($SH, S.or_default(V, m, fb)) : $SHT & V}:
+  match m:
+    case None{}:
+      {==}
+    case Some{v}:
+      {==}
+
+def get_or_default_m($TO, $FT, +k: K, +fb: V, +hg: $GF) -> {MI.get_or_default($AK, $SH, k, fb) == ($SH, S.or_default(V, $FIND, fb)) : $SHT & V}:
+  %Equal.sym($SHT & $MV, MI.get($AK, $SH, k), ($SH, $FIND), get_m($AO, $F, k, hg)) : {MI.default_value($AK, fb, _) == ($SH, S.or_default(V, $FIND, fb)) : $SHT & V}
+  dv_m($AK, $F, fb, $FIND)
+
+# ---- size ----
+
+def lcm(-K: Data, -V: Data, +x: $ND, +m: $MV, +a: Nat, +b: Nat, +q: Nat, +hx: {ST.is_node(K, x, a, b, q) == True{} : Bool}, +hm: {ST.some2(V, m) == True{} : Bool}, +r: $ES) -> {SC.length($E, ST.cons_m($E, ST.ent(K, V, x, m), r)) == 1n+SC.length($E, r) : Nat}:
+  match x m:
+    case M.Free{f} _:
+      Empty.absurd({SC.length($E, ST.cons_m($E, ST.ent(K, V, M.Free{f}, m), r)) == 1n+SC.length($E, r) : Nat}, L.false_true(hx))
+    case M.N{c, x1, x2, x3, key} None{}:
+      Empty.absurd({SC.length($E, ST.cons_m($E, ST.ent(K, V, M.N{c, x1, x2, x3, key}, None{}), r)) == 1n+SC.length($E, r) : Nat}, L.false_true(hm))
+    case M.N{c, x1, x2, x3, key} Some{v}:
+      {==}
+
+%def LN(t) SC.length(Nat, ST.ids(t))
+%def LE(t) SC.length($E, $ENTS(ST.ids(t)))
+
+# every id of the tree gives one entry
+def len_ents(~K: Data, ~V: Data, +nl: $NL, +pl: $PL, +t: ST.Tr, +p: Nat, +hr: $REP(t, p), +hp: $PAY(t)) -> {$LE(t) == $LN(t) : Nat}:
+  match t:
+    case ST.TE{}:
+      {==}
+    case ST.TN{+i, +tl, +tr}:
+      %Equal.sym($ES, $ENTS(ST.ids(ST.TN{i, tl, tr})), SC.append($E, $ENTS(ST.ids(tl)), ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, i), ST.pv(V, pl, i)), $ENTS(ST.ids(tr)))), FI.ents_node(~K, ~V, nl, pl, i, tl, tr)) : {SC.length($E, _) == $LN(ST.TN{i, tl, tr}) : Nat}
+      %Equal.sym(Nat, SC.length($E, SC.append($E, $ENTS(ST.ids(tl)), ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, i), ST.pv(V, pl, i)), $ENTS(ST.ids(tr))))), Nat.add($LE(tl), SC.length($E, ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, i), ST.pv(V, pl, i)), $ENTS(ST.ids(tr))))), LL.length_append($E, $ENTS(ST.ids(tl)), ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, i), ST.pv(V, pl, i)), $ENTS(ST.ids(tr))))) : {_ == $LN(ST.TN{i, tl, tr}) : Nat}
+      %Equal.sym(Nat, SC.length($E, ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, i), ST.pv(V, pl, i)), $ENTS(ST.ids(tr)))), 1n+$LE(tr), lcm(K, V, ST.nd(K, nl, i), ST.pv(V, pl, i), ST.rid(tl), ST.rid(tr), p, TR.rep_node(~K, i, tl, tr, p, nl, hr), FI.pay_node(~V, i, tl, tr, pl, hp), $ENTS(ST.ids(tr)))) : {Nat.add($LE(tl), _) == $LN(ST.TN{i, tl, tr}) : Nat}
+      %Equal.sym(Nat, $LE(tl), $LN(tl), len_ents(~K, ~V, nl, pl, tl, i, TR.rep_l(~K, i, tl, tr, p, nl, hr), FI.pay_l(~V, i, tl, tr, pl, hp))) : {Nat.add(_, 1n+$LE(tr)) == $LN(ST.TN{i, tl, tr}) : Nat}
+      %Equal.sym(Nat, $LE(tr), $LN(tr), len_ents(~K, ~V, nl, pl, tr, i, TR.rep_r(~K, i, tl, tr, p, nl, hr), FI.pay_r(~V, i, tl, tr, pl, hp))) : {Nat.add($LN(tl), 1n+_) == $LN(ST.TN{i, tl, tr}) : Nat}
+      Equal.sym(Nat, $LN(ST.TN{i, tl, tr}), Nat.add($LN(tl), 1n+$LN(tr)), LL.length_append(Nat, ST.ids(tl), Con{i, ST.ids(tr)}))
+
+# the size field is the number of entries
+def size_eq($TK, $FT, +hg: $GF) -> {n == SC.length($E, $EST) : Nat}:
+  +e = N.eq_from_is_eq(n, SC.length(Nat, ST.ids(tg)), ST.g_csz($AK, $F, hg))
+  %Equal.sym(Nat, SC.length($E, $EST), SC.length(Nat, ST.ids(tg)), len_ents(~K, ~V, nl, pl, tg, 0n, ST.g_crep($AK, $F, hg), ST.g_cpay($AK, $F, hg))) : {n == _ : Nat}
+  e

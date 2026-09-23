@@ -1,0 +1,63 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/order.bend as O
+import ../spec/common.bend as SC
+import ../spec/tree_map.bend as S
+import ../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./sim.bend as SM
+import ./ok.bend as OK
+import ./reads.bend as RD
+
+# The implementation's operations refine the specification's, for every
+# good shadow and a lawful comparator. (source: tools/generators/tm_hand/api.src)
+
+%def ND M.Node<K>
+%def E M.Entry<K, V>
+%def MV Maybe<&2, V>
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def FP +n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl
+%def F n, root, lo, hi, free, l, d, nl, pl, tg, fl
+%def SH ST.SH{$F}
+%def SHT ST.Sh<K, V>
+%def TMT M.TreeMap<K, V, cmp>
+%def RL(s) ST.real($AK, s)
+%def MD(s) ST.model($AK, s)
+%def GD(s) {ST.good($AK, s) == True{} : Bool}
+%def EST ST.ents(~K, ~V, ST.ids(tg), nl, pl)
+%def FIND S.find($AK, k, $EST)
+
+# an implementation read through the simulation, given the mirror's answer
+def via(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, -X: Data, -impl: $TMT & X, -mir: $SHT & X, +s: $SHT, +o: X, +hs: {impl == MI.rp($AK, X, mir) : $TMT & X}, +hm: {mir == (s, o) : $SHT & X}) -> {impl == ($RL(s), o) : $TMT & X}:
+  L.subst($SHT & X, z => {impl == MI.rp($AK, X, z) : $TMT & X}, mir, (s, o), hm, hs)
+
+def get_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, $MV, S.get($AK, $MD(sh), k), M.get($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, $MV, $SH, hg, $FIND, S.get($AK, $MD($SH), k), M.get($AK, $RL($SH), k), {==}, via($AK, $MV, M.get($AK, $RL($SH), k), MI.get($AK, $SH, k), $SH, $FIND, SM.get_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), RD.get_m($AO, $F, k, hg)))
+
+def contains_key_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Bool, S.contains_key($AK, $MD(sh), k), M.contains_key($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Bool, $SH, hg, S.is_some(V, $FIND), S.contains_key($AK, $MD($SH), k), M.contains_key($AK, $RL($SH), k), {==}, via($AK, Bool, M.contains_key($AK, $RL($SH), k), MI.contains_key($AK, $SH, k), $SH, S.is_some(V, $FIND), SM.contains_key_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), RD.contains_key_m($AO, $F, k, hg)))
+
+def get_or_default_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K, +fb: V) -> OK.POK($AK, V, S.get_or_default($AK, $MD(sh), k, fb), M.get_or_default($AK, $RL(sh), k, fb)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, V, $SH, hg, S.or_default(V, $FIND, fb), S.get_or_default($AK, $MD($SH), k, fb), M.get_or_default($AK, $RL($SH), k, fb), {==}, via($AK, V, M.get_or_default($AK, $RL($SH), k, fb), MI.get_or_default($AK, $SH, k, fb), $SH, S.or_default(V, $FIND, fb), SM.get_or_default_s($AK, $SH, k, fb, OK.dg_good($AK, $SH, hg)), RD.get_or_default_m($AO, $F, k, fb, hg)))
+
+def size_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, Nat, S.size(K, V, $MD(sh)), M.size($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      +es = L.subst(Nat, z => {S.size(K, V, $MD($SH)) == ($MD($SH), z) : S.Model<K, V> & Nat}, SC.length($E, $EST), n, Equal.sym(Nat, n, SC.length($E, $EST), RD.size_eq($AK, $F, hg)), {==})
+      OK.pok_read($AK, Nat, $SH, hg, n, S.size(K, V, $MD($SH)), M.size($AK, $RL($SH)), es, via($AK, Nat, M.size($AK, $RL($SH)), MI.size($AK, $SH), $SH, n, SM.size_s($AK, $SH, OK.dg_good($AK, $SH, hg)), {==}))
+
+def is_empty_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, Bool, S.is_empty(K, V, $MD(sh)), M.is_empty($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      +es = L.subst(Nat, z => {S.is_empty(K, V, $MD($SH)) == ($MD($SH), Nat.is_eq(z, 0n)) : S.Model<K, V> & Bool}, SC.length($E, $EST), n, Equal.sym(Nat, n, SC.length($E, $EST), RD.size_eq($AK, $F, hg)), {==})
+      OK.pok_read($AK, Bool, $SH, hg, Nat.is_eq(n, 0n), S.is_empty(K, V, $MD($SH)), M.is_empty($AK, $RL($SH)), es, via($AK, Bool, M.is_empty($AK, $RL($SH)), MI.is_empty($AK, $SH), $SH, Nat.is_eq(n, 0n), SM.is_empty_s($AK, $SH, OK.dg_good($AK, $SH, hg)), {==}))
