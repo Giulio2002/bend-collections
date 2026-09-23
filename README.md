@@ -87,8 +87,9 @@ bend proofs/PROOF.bend
 `PROOF.bend` checks every gate: the component gates
 (`proofs/*_COMPONENT_PROOF.bend`, `DLL_DIRECT_PROOF`, `QUEUE_ADAPTER_PROOF`,
 `TREE_RANGE_PROOF`), `END_TO_END.bend` (each `proofs/<container>.bend`), the
-math library (`MATH_PROOF.bend`), the hash map (`proofs/hash_table.bend`) and
-the LRU cache (`proofs/lru.bend`).
+math library (`MATH_PROOF.bend`), the hash map (`proofs/hash_table.bend`),
+the LRU cache (`proofs/lru.bend`) and the doubly linked list
+(`proofs/doubly_linked_list.bend`).
 
 The hash map is proved against an independent association-list
 specification (`proofs/spec/hash_table.bend`) for every operation (`new`,
@@ -110,5 +111,21 @@ eviction on a full `add` and on `resize`, and the counters. The one
 precondition is capacity: `add` requires 2 (len + 1) <= 2^29, i.e. the table
 stays below 2^30 buckets.
 
-Still open: the doubly linked list's universal refinement and the indexed
-TreeMap's refinement.
+The doubly linked list is proved against an independent specification
+(`proofs/spec/doubly_linked_list.bend`: the ids in order, the value and
+generation of every issued id, and a stack of free ids, reissued last-removed
+first; an id whose generation reached 2^32 - 1 is retired). The proof covers
+every operation of the trace step (`length`, `push_front`, `push_back`,
+`insert_before`, `insert_after`, `remove`, `get`, `set`, `next`, `prev` and
+`to_list`), every handle (foreign, stale by capacity, generation, counter or
+vacancy, or live) and every value type. It also covers every trace from a new
+list, whose observations are exactly the specification's, and each direct
+operation, which returns the projection of the specification's step. That
+covers the whole implementation: the storage's arenas and their doubling,
+relinking on insertion and unlinking, the free stack threaded through the
+next links, the generation blocks and their growth, retirement, and the
+backward walk of `to_list`. The one precondition is capacity: an allocating
+operation requires fewer than 2^29 issued ids, so the blocks stay below 2^30
+slots.
+
+Still open: the indexed TreeMap's refinement.
