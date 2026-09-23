@@ -90,7 +90,7 @@ else:
     _b = os.environ.get('BEND', shutil.which('bend') or 'bend')
     LOCK = {'binary': _b, 'version': subprocess.run([_b, '--version'], capture_output=True, text=True).stdout.strip()}
 CONTRACT = json.loads((ROOT / 'benchmarks' / 'contract.json').read_text())
-BEND = LOCK['binary']
+BEND = os.path.expanduser(LOCK['binary'])
 ENV = {**os.environ, 'BEND_NO_TELEMETRY': '1'}
 
 BENDBIN = ROOT / 'build' / 'bench' / 'bend'

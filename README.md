@@ -46,11 +46,13 @@ proofs/           one proof package per src package, mirroring src/:
   prove.py            checks every proof
 tests/            native test drivers, one per container; oracles in tests/support/
 benchmarks/       bend/ and native/ (C) drivers, workload table, runner
+tools/            proof generators (mac.py expands the .src proof sources),
+                  validation and differential tests: see tools/README.md
 ```
 
 ## Requirements
 
-Bend 2.0.25 and clang.
+Bend 2.0.25 (pinned in `tools/toolchain.json`), clang and Python 3.
 
 ## Test
 
