@@ -72,3 +72,23 @@ def ord_drop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs
           +h1 = L.and_left(Cmp.is_lt(cmp(S.key(K, V, a), S.key(K, V, a2))), ST.ordered(~K, ~V, ~cmp, Con{a2, SC.append(M.Entry<K, V>, u, Con{e, ys})}), h)
           +h2 = L.and_right(Cmp.is_lt(cmp(S.key(K, V, a), S.key(K, V, a2))), ST.ordered(~K, ~V, ~cmp, Con{a2, SC.append(M.Entry<K, V>, u, Con{e, ys})}), h)
           L.and_intro(Cmp.is_lt(cmp(S.key(K, V, a), S.key(K, V, a2))), ST.ordered(~K, ~V, ~cmp, Con{a2, SC.append(M.Entry<K, V>, u, ys)}), h1, ord_drop(~K, ~V, ~cmp, ~o, Con{a2, u}, e, ys, h2))
+
+
+def del_ab_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +k: K, +e: M.Entry<K, V>, +t: List<&2, M.Entry<K, V>>, +h: {S.find(~K, ~V, ~cmp, k, Con{e, t}) == None{} : Maybe<&2, V>}, +b: Bool, +hb: {S.is_eq(cmp(k, S.key(K, V, e))) == b : Bool}, ih: @+ht: {S.find(~K, ~V, ~cmp, k, t) == None{} : Maybe<&2, V>} -> {S.del(~K, ~V, ~cmp, k, t) == t : List<&2, M.Entry<K, V>>}) -> {S.del(~K, ~V, ~cmp, k, Con{e, t}) == Con{e, t} : List<&2, M.Entry<K, V>>}:
+  match b:
+    case True{}:
+      +h1 = L.subst(Bool, z => {S.val_m(K, V, S.pick(Maybe<&2, M.Entry<K, V>>, z, Some{e}, S.find_e(~K, ~V, ~cmp, k, t))) == None{} : Maybe<&2, V>}, S.is_eq(cmp(k, S.key(K, V, e))), True{}, hb, h)
+      Empty.absurd({S.del(~K, ~V, ~cmp, k, Con{e, t}) == Con{e, t} : List<&2, M.Entry<K, V>>}, L.false_true(L.subst(Maybe<&2, V>, z => {S.is_some(V, z) == True{} : Bool}, Some{S.val(K, V, e)}, None{}, h1, {==})))
+    case False{}:
+      +h1 = L.subst(Bool, z => {S.val_m(K, V, S.pick(Maybe<&2, M.Entry<K, V>>, z, Some{e}, S.find_e(~K, ~V, ~cmp, k, t))) == None{} : Maybe<&2, V>}, S.is_eq(cmp(k, S.key(K, V, e))), False{}, hb, h)
+      %Equal.sym(Bool, S.is_eq(cmp(k, S.key(K, V, e))), False{}, hb) : {S.pick(List<&2, M.Entry<K, V>>, _, t, Con{e, S.del(~K, ~V, ~cmp, k, t)}) == Con{e, t} : List<&2, M.Entry<K, V>>}
+      %Equal.sym(List<&2, M.Entry<K, V>>, S.del(~K, ~V, ~cmp, k, t), t, ih(h1)) : {Con{e, _} == Con{e, t} : List<&2, M.Entry<K, V>>}
+      {==}
+
+# deleting an absent key changes nothing
+def del_absent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +k: K, +es: List<&2, M.Entry<K, V>>, +h: {S.find(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, V>}) -> {S.del(~K, ~V, ~cmp, k, es) == es : List<&2, M.Entry<K, V>>}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      del_ab_c(~K, ~V, ~cmp, ~o, k, e, t, h, S.is_eq(cmp(k, S.key(K, V, e))), {==}, ht => del_absent(~K, ~V, ~cmp, ~o, k, t, ht))

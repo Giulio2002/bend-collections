@@ -54,47 +54,7 @@ import ./putf.bend as PF
 %def PFX +hwh: {$T0 == $WH(t) : $LN}, +hplug: {tg == PG.plug(c, t) : ST.Tr}, +hr: {ST.rep(~K, t, P.top(c), nl) == True{} : Bool}, +hokc: {P.ctxok(~K, c, ST.rid(t), nl) == True{} : Bool}, +hb: {OR.ltall(~K, ~V, ~cmp, k, $ENTS(P.before(c))) == True{} : Bool}, +ha: {OR.gtall(~K, ~V, ~cmp, k, $ENTS(P.after(c))) == True{} : Bool}, +hfin: {SP.fin(~K, ~cmp, k, t, nl) == True{} : Bool}
 %def PFA hwh, hplug, hr, hokc, hb, ha, hfin
 
-%def EST $ENTS($IDS(tg))
-%def FIND S.find($AK, k, $EST)
-%def TS TR.tsearch($AK, tg, nl, k, 0n, False{})
-%def HFD {ST.pv(V, pl, ST.rid(t)) == $FIND : $MV}
-%def SPR {$TS == M.Search{ST.rid(t), P.top(c), SP.dir(c)} : M.Search} & ({$T0 == $WH(t) : $LN} & ({tg == PG.plug(c, t) : ST.Tr} & ({ST.rep(~K, t, P.top(c), nl) == True{} : Bool} & ({P.ctxok(~K, c, ST.rid(t), nl) == True{} : Bool} & ({OR.ltall(~K, ~V, ~cmp, k, $ENTS(P.before(c))) == True{} : Bool} & ({OR.gtall(~K, ~V, ~cmp, k, $ENTS(P.after(c))) == True{} : Bool} & {SP.fin(~K, ~cmp, k, t, nl) == True{} : Bool}))))))
-%def PTL {OR.gtall(~K, ~V, ~cmp, k, $ENTS(P.after(c))) == True{} : Bool} & {SP.fin(~K, ~cmp, k, t, nl) == True{} : Bool}
-%def TNH(i) +hk: $OKS($WH(ST.TN{i, a, b})), +hwh: {$T0 == $WH(ST.TN{i, a, b}) : $LN}, +hr: {ST.rep(~K, ST.TN{i, a, b}, P.top(c), nl) == True{} : Bool}, +hfin: {SP.fin(~K, ~cmp, k, ST.TN{i, a, b}, nl) == True{} : Bool}
-%def RN(j) Bool.and(ST.is_node(K, ST.nd(K, nl, j), ST.rid(a), ST.rid(b), P.top(c)), Bool.and(ST.rep(~K, a, j, nl), ST.rep(~K, b, j, nl)))
-%def SH2(i, w) ST.SH{n, root, lo, hi, free, l, d, nl, PR.ex_pl(V, pl, i, Some{w}), tg, fl}
-%def HE(i, w) {$ENTSP($IDS(tg), PR.ex_pl(V, pl, i, Some{w})) == S.set_val($AK, k, w, $EST) : List<&2, M.Entry<K, V>>}
-%def HG2(i, w) {ST.goodF($AK, n, root, lo, hi, free, l, d, nl, PR.ex_pl(V, pl, i, Some{w}), tg, fl) == True{} : Bool}
-
-# The search, the path and the case on the subtree, for an operation N with
-# leading binders TOX (arguments AOX), extra parameters XP (arguments XA), answer type X, specification SPC,
-# mirror MC, and GR(r) its goal once the search answered r; N_t is the case.
-%tmpl WRAP(TOX, AOX, N, XP, XA, X, SPC, MC, GR)
-def N##_c2(TOX, $FT, +hg: $GF, XP, +hk0: $OKS($T0), +c: $CT, +t: ST.Tr, +hfd: $HFD, +hwh: {$T0 == $WH(t) : $LN}, +hplug: {tg == PG.plug(c, t) : ST.Tr}, +hr: {ST.rep(~K, t, P.top(c), nl) == True{} : Bool}, +hokc: {P.ctxok(~K, c, ST.rid(t), nl) == True{} : Bool}, +hb: {OR.ltall(~K, ~V, ~cmp, k, $ENTS(P.before(c))) == True{} : Bool}, r2: $PTL) -> $GR(($SH, M.Search{ST.rid(t), P.top(c), SP.dir(c)})):
-  match r2:
-    case Tuple{ha, hfin}:
-      N##_t(AOX, $F, hg, XA, hk0, c, t, hfd, $PFA)
-
-def N##_c(TOX, $FT, +hg: $GF, XP, +hk0: $OKS($T0), +c: $CT, +t: ST.Tr, r: $SPR) -> $GR(($SH, $TS)):
-  match r:
-    case Tuple{hts, Tuple{hwh, Tuple{hplug, Tuple{hr, Tuple{hokc, Tuple{hb, r2}}}}}}:
-      +hts2 = hts
-      %Equal.sym(M.Search, $TS, M.Search{ST.rid(t), P.top(c), SP.dir(c)}, hts2) : $GR(($SH, _))
-      N##_c2(AOX, $F, hg, XA, hk0, c, t, L.subst(M.Search, z => {ST.pv(V, pl, FI.sfound(z)) == $FIND : $MV}, $TS, M.Search{ST.rid(t), P.top(c), SP.dir(c)}, hts2, FI.tfind($AO, nl, pl, tg, 0n, False{}, k, ST.g_crep($AK, $F, hg), ST.g_cpay($AK, $F, hg), ST.g_cord($AK, $F, hg))), hwh, hplug, hr, hokc, hb, r2)
-
-def N##_sp(TOX, $FT, +hg: $GF, XP, +hk0: $OKS($T0), sp: Sigma<&1, &1, $CT, c => Sigma<&1, &1, ST.Tr, t => $SPR>>) -> $GR(($SH, $TS)):
-  match sp:
-    case Tuple{+c, Tuple{+t, r}}:
-      N##_c(AOX, $F, hg, XA, hk0, c, t, r)
-
-def N##_m(TOX, $FT, +hg: $GF, XP) -> OK.MOK($AK, X, SPC, MC):
-  +ean = LL.append_nil(Nat, $IDS(tg))
-  +hk1 = EN.oks_tree(~K, ~V, nl, pl, tg, 0n, ST.g_crep($AK, $F, hg), ST.g_cpay($AK, $F, hg))
-  +hk0 = L.subst($LN, z => $OKS(z), $IDS(tg), $T0, Equal.sym($LN, $T0, $IDS(tg), ean), hk1)
-  +ho0 = L.subst($LN, z => {ST.ordered($AK, $ENTS(z)) == True{} : Bool}, $IDS(tg), $T0, Equal.sym($LN, $T0, $IDS(tg), ean), ST.g_cord($AK, $F, hg))
-  %Equal.sym(ST.Sh<K, V> & M.Search, MI.search($AK, $SH, k), ($SH, $TS), RD.search_m($AK, $F, k, hg)) : $GR(_)
-  N##_sp(AOX, $F, hg, XA, hk0, SP.spath($AO, nl, pl, tg, Nil{}, k, ST.g_crep($AK, $F, hg), {==}, ST.g_cpay($AK, $F, hg), ho0, hk0, {==}, {==}))
-%end
+%include wrap.src
 
 # ---- the node found by the search ----
 

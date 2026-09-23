@@ -3,7 +3,7 @@ import sys, re, os
 # usage: mac.py in.src out.bend  (or expand(lines) from python)
 #   %def NAME text        $NAME expands to text
 #   %def NAME(a, b) text  $NAME(x, y) expands to text with a, b replaced (balanced parens)
-#   %include file         imports only the %def lines of file
+#   %include file         imports only the %def lines and templates of file
 #   %tmpl NAME(a, b) ... %end   a multi-line template; a line %use NAME(x, y)
 #                         expands to its lines with a, b replaced; an
 #                         argument <|x, y|> keeps its commas, and a##b pastes
@@ -13,7 +13,14 @@ def load(path):
         m = re.match(r'^%include (\S+)$', line)
         if m:
             inc = os.path.join(os.path.dirname(path), m.group(1))
-            lines += [l for l in load(inc) if l.startswith('%def ')]  # templates are not shared
+            intm = False
+            for l in load(inc):
+                if l.startswith('%tmpl '):
+                    intm = True
+                if intm or l.startswith('%def '):
+                    lines.append(l)
+                if l == '%end':
+                    intm = False
         else:
             lines.append(line)
     return lines

@@ -82,3 +82,25 @@ def ord_drop($TO, +xs: $ES, +e: $E, +ys: $ES, +h: $ORD($EAPP(xs, Con{e, ys}))) -
           +h1 = L.and_left(Cmp.is_lt(cmp($KY(a), $KY(a2))), ST.ordered($AK, Con{a2, $EAPP(u, Con{e, ys})}), h)
           +h2 = L.and_right(Cmp.is_lt(cmp($KY(a), $KY(a2))), ST.ordered($AK, Con{a2, $EAPP(u, Con{e, ys})}), h)
           L.and_intro(Cmp.is_lt(cmp($KY(a), $KY(a2))), ST.ordered($AK, Con{a2, $EAPP(u, ys)}), h1, ord_drop($AO, Con{a2, u}, e, ys, h2))
+
+%def MV Maybe<&2, V>
+%def FND(xs) S.find($AK, k, xs)
+
+def del_ab_c($TO, +k: K, +e: $E, +t: $ES, +h: {$FND(Con{e, t}) == None{} : $MV}, +b: Bool, +hb: {S.is_eq(cmp(k, $KY(e))) == b : Bool}, ih: @+ht: {$FND(t) == None{} : $MV} -> {$DEL(t) == t : $ES}) -> {$DEL(Con{e, t}) == Con{e, t} : $ES}:
+  match b:
+    case True{}:
+      +h1 = L.subst(Bool, z => {S.val_m(K, V, S.pick(Maybe<&2, $E>, z, Some{e}, S.find_e($AK, k, t))) == None{} : $MV}, S.is_eq(cmp(k, $KY(e))), True{}, hb, h)
+      Empty.absurd({$DEL(Con{e, t}) == Con{e, t} : $ES}, L.false_true(L.subst($MV, z => {S.is_some(V, z) == True{} : Bool}, Some{S.val(K, V, e)}, None{}, h1, {==})))
+    case False{}:
+      +h1 = L.subst(Bool, z => {S.val_m(K, V, S.pick(Maybe<&2, $E>, z, Some{e}, S.find_e($AK, k, t))) == None{} : $MV}, S.is_eq(cmp(k, $KY(e))), False{}, hb, h)
+      %Equal.sym(Bool, S.is_eq(cmp(k, $KY(e))), False{}, hb) : {S.pick($ES, _, t, Con{e, $DEL(t)}) == Con{e, t} : $ES}
+      %Equal.sym($ES, $DEL(t), t, ih(h1)) : {Con{e, _} == Con{e, t} : $ES}
+      {==}
+
+# deleting an absent key changes nothing
+def del_absent($TO, +k: K, +es: $ES, +h: {$FND(es) == None{} : $MV}) -> {$DEL(es) == es : $ES}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      del_ab_c($AO, k, e, t, h, S.is_eq(cmp(k, $KY(e))), {==}, ht => del_absent($AO, k, t, ht))

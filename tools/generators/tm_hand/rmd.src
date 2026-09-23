@@ -26,6 +26,8 @@ import ./spath.bend as SP
 import ./dord.bend as DO
 import ./idmv.bend as ID
 import ./rmf.bend as RF
+import ./rms.bend as RS
+import ./frame.bend as FRM
 
 # Removing a found key: the specification's del removes exactly the node's
 # entry, and each shape of the node (no left child, no right child, two
@@ -35,6 +37,9 @@ import ./rmf.bend as RF
 %include unl.src
 %def E M.Entry<K, V>
 %def PL1 PR.ex_pl(V, pl, 1n+ui, None{})
+%def NLK PR.wr_nl(K, nl, 1n+ui, M.N{c0, a0, b0, q0, ks})
+%def PL4 PR.ex_pl(V, PR.ex_pl(V, PR.ex_pl(V, pl, 1n+ui, None{}), 1n+si, None{}), 1n+ui, ST.pv(V, PR.ex_pl(V, pl, 1n+ui, None{}), 1n+si))
+%def R4T Sigma<&1, &1, Nat, fr_ => Sigma<&1, &1, List<&2, M.Node<K>>, fn_ => Sigma<&1, &1, ST.Tr, ft_ => {MI.unlink(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, PR.wr_nl(K, nl, 1n+ui, M.N{c0, a0, b0, q0, ks}), PR.ex_pl(V, PR.ex_pl(V, PR.ex_pl(V, pl, 1n+ui, None{}), 1n+si, None{}), 1n+ui, ST.pv(V, PR.ex_pl(V, pl, 1n+ui, None{}), 1n+si)), tg, fl}, 1n+si) == ST.SH{Nat.sub(n, 1n), fr_, lo, hi, 1n+si, l, d, fn_, PR.ex_pl(V, PR.ex_pl(V, PR.ex_pl(V, pl, 1n+ui, None{}), 1n+si, None{}), 1n+ui, ST.pv(V, PR.ex_pl(V, pl, 1n+ui, None{}), 1n+si)), tg, fl} : ST.Sh<K, V>} & {ST.rep(~K, ft_, 0n, fn_) == True{} : Bool} & ({fr_ == ST.rid(ft_) : Nat} & ({ST.ids(ft_) == SC.append(Nat, P.before(cs), SC.append(Nat, ST.ids(sb), P.after(cs))) : List<&2, Nat>} & ({ST.root_black(~K, ft_, fn_) == True{} : Bool} & {ST.ents(~K, ~V, SC.append(Nat, P.before(cs), SC.append(Nat, ST.ids(sb), P.after(cs))), fn_, PR.ex_pl(V, PR.ex_pl(V, PR.ex_pl(V, pl, 1n+ui, None{}), 1n+si, None{}), 1n+ui, ST.pv(V, PR.ex_pl(V, pl, 1n+ui, None{}), 1n+si))) == ST.ents(~K, ~V, SC.append(Nat, P.before(cs), SC.append(Nat, ST.ids(sb), P.after(cs))), PR.wr_nl(K, nl, 1n+ui, M.N{c0, a0, b0, q0, ks}), PR.ex_pl(V, PR.ex_pl(V, PR.ex_pl(V, pl, 1n+ui, None{}), 1n+si, None{}), 1n+ui, ST.pv(V, PR.ex_pl(V, pl, 1n+ui, None{}), 1n+si))) : List<&2, M.Entry<K, V>>} & ({EN.oks(~K, ~V, SC.append(Nat, P.before(cs), SC.append(Nat, ST.ids(sb), P.after(cs))), fn_, PR.ex_pl(V, PR.ex_pl(V, PR.ex_pl(V, pl, 1n+ui, None{}), 1n+si, None{}), 1n+ui, ST.pv(V, PR.ex_pl(V, pl, 1n+ui, None{}), 1n+si))) == True{} : Bool} & ({ST.fll(~K, fn_, Con{1n+si, fl}) == True{} : Bool} & {SC.length(M.Node<K>, fn_) == SC.length(M.Node<K>, PR.wr_nl(K, nl, 1n+ui, M.N{c0, a0, b0, q0, ks})) : Nat})))))>>>
 %def R1T Sigma<&1, &1, Nat, fr_ => Sigma<&1, &1, List<&2, M.Node<K>>, fn_ => Sigma<&1, &1, ST.Tr, ft_ => {MI.unlink(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, PR.ex_pl(V, pl, 1n+ui, None{}), tg, fl}, 1n+ui) == ST.SH{Nat.sub(n, 1n), fr_, lo, hi, 1n+ui, l, d, fn_, PR.ex_pl(V, pl, 1n+ui, None{}), tg, fl} : ST.Sh<K, V>} & {ST.rep(~K, ft_, 0n, fn_) == True{} : Bool} & ({fr_ == ST.rid(ft_) : Nat} & ({ST.ids(ft_) == SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))) : List<&2, Nat>} & ({ST.root_black(~K, ft_, fn_) == True{} : Bool} & {ST.ents(~K, ~V, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), fn_, PR.ex_pl(V, pl, 1n+ui, None{})) == ST.ents(~K, ~V, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), nl, PR.ex_pl(V, pl, 1n+ui, None{})) : List<&2, M.Entry<K, V>>} & ({EN.oks(~K, ~V, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ch), P.after(c))), fn_, PR.ex_pl(V, pl, 1n+ui, None{})) == True{} : Bool} & ({ST.fll(~K, fn_, Con{1n+ui, fl}) == True{} : Bool} & {SC.length(M.Node<K>, fn_) == SC.length(M.Node<K>, nl) : Nat})))))>>>
 %def EAPP(a, b) SC.append($E, a, b)
 %def ENTS(xs) ST.ents(~K, ~V, xs, nl, pl)
@@ -184,3 +189,63 @@ def rm_b2($TV, $FT, +hg: $GF, $BSH, dh: $DHTB, r: $R1T) -> OK.MOK($AK, $MV, $ASP
 
 def rm_b($TV, $FT, +hg: $GF, $BSH, r: $R1T) -> OK.MOK($AK, $MV, $ASPC, $AMIR):
   rm_b2($AV, $F, hg, $BSA, del_hit($AV, $F, hg, k, $U, $XB, $AC, Equal.trans($LN, $IDS(tg), $WB, $WQB, hbc, $EWB), hfin, ST.rid(ch), 0n, P.top(c), ST.nd(K, nl, $U), ST.pv(V, pl, $U), {==}, {==}, TR.rep_node(~K, $U, ch, $TE, P.top(c), nl, hr), ub_hm($AV, $F, hg, $BSA)), r)
+
+# ---- two children: the successor's key and payload move in, it leaves ----
+
+%def S1 1n+si
+%def TS2 $TN($S1, $TE, sb)
+%def TT2 $TN($U, ta, tb)
+%def CB2 Con{P.FR{$U, False{}, ta}, c}
+%def XA2 $APP($BC, $IDS(ta))
+%def RR2 $APP($IDS(sb), P.after(cs))
+%def PLS2 PR.ex_pl(V, $PL1, $S1, None{})
+%def SH4 ST.SH{n, root, lo, hi, free, l, d, $NLK, $PL4, tg, fl}
+%def SMIR (MI.refresh_ends($AK, MI.unlink($AK, $SH4, $S1)), ST.pv(V, pl, $U))
+%def SSH +k: K, +c: $CT, +ui: Nat, +ta: ST.Tr, +tb: ST.Tr, +cs: $CT, +si: Nat, +sb: ST.Tr, +hbc: {$IDS(tg) == $WH(c, $TT2) : $LN}, +hlw: {$WH(cs, $TS2) == $WH($CB2, tb) : $LN}, +hlb: {P.before(cs) == P.before($CB2) : $LN}, +hr: $REPN($TT2, P.top(c), nl), +hfin: {S.is_eq(TR.kc(~K, ~cmp, k, ST.nd(K, nl, $U))) == True{} : Bool}, +c0: Bool, +a0: Nat, +b0: Nat, +q0: Nat, +ks: K, +cs0: Bool, +as0: Nat, +bs0: Nat, +qs0: Nat, +hsn: {ST.nd(K, nl, $S1) == M.N{cs0, as0, bs0, qs0, ks} : $ND}
+%def SSA k, c, ui, ta, tb, cs, si, sb, hbc, hlw, hlb, hr, hfin, c0, a0, b0, q0, ks, cs0, as0, bs0, qs0, hsn
+%def RSA k, c, ui, ta, tb, cs, si, sb, hbc, hlw, hlb
+%def LS4 c, ui, ta, cs, si, sb
+%def HOKT L.subst($LN, z => {EN.oks(~K, ~V, z, nl, pl) == True{} : Bool}, $IDS(tg), $WH(c, $TT2), hbc, $OKT)
+%def DHTS {$DL == $ENTS($APP($XA2, Con{$S1, $RR2})) : $ES} & $ORD($DL)
+
+def us_hm($TV, $FT, +hg: $GF, $SSH) -> {ST.some2(V, ST.pv(V, pl, $U)) == True{} : Bool}:
+  FI.pay_node(~V, $U, ta, tb, pl, SL.pay_oks(~K, ~V, $TT2, nl, pl, SL.oks_split_l(~K, ~V, $IDS($TT2), $AC, nl, pl, SL.oks_split_r(~K, ~V, $BC, $APP($IDS($TT2), $AC), nl, pl, $HOKT))))
+
+def us_hb($TV, $FT, +hg: $GF, $SSH) -> {Nat.is_lt(ui, SC.length($ND, nl)) == True{} : Bool}:
+  +hm = L.subst($LN, z => $MEM($U, z), $APP($XA2, Con{$U, Con{$S1, $RR2}}), $IDS(tg), Equal.sym($LN, $IDS(tg), $APP($XA2, Con{$U, Con{$S1, $RR2}}), RS.eo_s($AV, $F, $RSA)), DJ.mem_r($U, $XA2, Con{$U, Con{$S1, $RR2}}, DJ.mem_hd($U, Con{$S1, $RR2})))
+  +hin = AL.allin_mem($IDS(tg), SC.length($ND, nl), $U, AL.allin_l($IDS(tg), fl, SC.length($ND, nl), ST.g_cin($AK, $F, hg)), hm)
+  N.succ_le_lt(ui, SC.length($ND, nl), L.and_right(Nat.is_lt(0n, $U), Nat.is_le($U, SC.length($ND, nl)), hin))
+
+# the payload list's length through the exchanges
+def us_lp($TV, $FT, +hg: $GF, $SSH) -> {SC.length($ND, nl) == SC.length($MV, $PLS2) : Nat}:
+  Equal.sym(Nat, SC.length($MV, $PLS2), SC.length($ND, nl), Equal.trans(Nat, SC.length($MV, $PLS2), SC.length($MV, $PL1), SC.length($ND, nl), SL.len_ex(V, $PL1, $S1, None{}), Equal.trans(Nat, SC.length($MV, $PL1), SC.length($MV, pl), SC.length($ND, nl), SL.len_ex(V, pl, $U, None{}), N.eq_from_is_eq(SC.length($MV, pl), SC.length($ND, nl), ST.g_cpl($AK, $F, hg)))))
+
+def rm_s3($TV, $FT, +hg: $GF, $SSH, +hd1: {$DL == $ENTS($APP($XA2, Con{$S1, $RR2})) : $ES}, +hd2: $ORD($DL), r: $R4T) -> OK.MOK($AK, $MV, $ASPC, $SMIR):
+  +hnd = RS.nd_old($AV, $F, hg, $RSA)
+  +hb = us_hb($AV, $F, hg, $SSA)
+  +hbp = L.subst(Nat, z => {Nat.is_lt(ui, z) == True{} : Bool}, SC.length($ND, nl), SC.length($MV, $PLS2), us_lp($AV, $F, hg, $SSA), hb)
+  +hus = RS.us_s($LS4, hnd)
+  +enew = RS.ents_new(~K, ~V, nl, pl, ui, si, c0, a0, b0, q0, ks, cs0, as0, bs0, qs0, hb, hbp, hsn, hus, $XA2, $RR2, RS.ux_s($LS4, hnd), RS.sx_s($LS4, hnd), RS.ur_s($LS4, hnd), RS.sr_s($LS4, hnd))
+  +hdel = Equal.trans($ES, ST.ents(~K, ~V, $WH(cs, sb), $NLK, $PL4), ST.ents(~K, ~V, $APP($XA2, Con{$U, $RR2}), $NLK, $PL4), $DL, L.subst($LN, z => {ST.ents(~K, ~V, $WH(cs, sb), $NLK, $PL4) == ST.ents(~K, ~V, z, $NLK, $PL4) : $ES}, $WH(cs, sb), $APP($XA2, Con{$U, $RR2}), RS.en_s($AV, $F, $RSA), {==}), Equal.trans($ES, ST.ents(~K, ~V, $APP($XA2, Con{$U, $RR2}), $NLK, $PL4), $ENTS($APP($XA2, Con{$S1, $RR2})), $DL, enew, Equal.sym($ES, $DL, $ENTS($APP($XA2, Con{$S1, $RR2})), hd1)))
+  +ews = RS.ew_s($AV, $F, $RSA)
+  +hnd0 = L.subst($LN, z => $NDL($APP(z, fl)), $IDS(tg), $WH(cs, $TS2), ews, ST.g_cnd($AK, $F, hg))
+  +elw = FRM.len_wr(K, nl, $U, M.N{c0, a0, b0, q0, ks})
+  +hin = ID.ain_a(fl, cs, si, sb, SC.length($ND, $NLK), L.subst(Nat, w => $ALLIN($APP($WH(cs, $TS2), fl), w), SC.length($ND, nl), SC.length($ND, $NLK), Equal.sym(Nat, SC.length($ND, $NLK), SC.length($ND, nl), elw), L.subst($LN, z => $ALLIN($APP(z, fl), SC.length($ND, nl)), $IDS(tg), $WH(cs, $TS2), ews, ST.g_cin($AK, $F, hg))))
+  +hln0 = L.subst($LN, z => {Nat.is_eq($LEN($APP(z, fl)), SC.length($ND, nl)) == True{} : Bool}, $IDS(tg), $WH(cs, $TS2), ews, ST.g_clen($AK, $F, hg))
+  +hln1 = L.subst(Nat, w => {Nat.is_eq(w, SC.length($ND, nl)) == True{} : Bool}, $LEN($APP($WH(cs, $TS2), fl)), $LEN($APP($WH(cs, sb), Con{$S1, fl})), Equal.sym(Nat, $LEN($APP($WH(cs, sb), Con{$S1, fl})), $LEN($APP($WH(cs, $TS2), fl)), ID.len_a(fl, cs, si, sb)), hln0)
+  +hln = L.subst(Nat, w => {Nat.is_eq($LEN($APP($WH(cs, sb), Con{$S1, fl})), w) == True{} : Bool}, SC.length($ND, nl), SC.length($ND, $NLK), Equal.sym(Nat, SC.length($ND, $NLK), SC.length($ND, nl), elw), hln1)
+  +en = Equal.trans(Nat, n, $LEN($IDS(tg)), 1n+$LEN($WH(cs, sb)), N.eq_from_is_eq(n, $LEN($IDS(tg)), ST.g_csz($AK, $F, hg)), Equal.trans(Nat, $LEN($IDS(tg)), $LEN($WH(cs, $TS2)), 1n+$LEN($WH(cs, sb)), L.subst($LN, z => {$LEN($IDS(tg)) == $LEN(z) : Nat}, $IDS(tg), $WH(cs, $TS2), ews, {==}), ID.sz_a(fl, cs, si, sb)))
+  +esub = Equal.trans(Nat, Nat.sub(n, 1n), Nat.sub(1n+$LEN($WH(cs, sb)), 1n), $LEN($WH(cs, sb)), L.subst(Nat, z => {Nat.sub(n, 1n) == Nat.sub(z, 1n) : Nat}, n, 1n+$LEN($WH(cs, sb)), en, {==}), N.add_sub_cancel(1n, $LEN($WH(cs, sb))))
+  +hsz = L.subst(Nat, z => {Nat.is_eq(z, $LEN($WH(cs, sb))) == True{} : Bool}, $LEN($WH(cs, sb)), Nat.sub(n, 1n), Equal.sym(Nat, Nat.sub(n, 1n), $LEN($WH(cs, sb)), esub), N.is_eq_refl($LEN($WH(cs, sb))))
+  +hcap = L.subst(Nat, w => {Nat.is_le(w, SC.pow2(d)) == True{} : Bool}, SC.length($ND, nl), SC.length($ND, $NLK), Equal.sym(Nat, SC.length($ND, $NLK), SC.length($ND, nl), elw), ST.g_ccap($AK, $F, hg))
+  +elp = Equal.trans(Nat, SC.length($MV, $PL4), SC.length($MV, $PLS2), SC.length($ND, nl), SL.len_ex(V, $PLS2, $U, ST.pv(V, $PL1, $S1)), Equal.sym(Nat, SC.length($ND, nl), SC.length($MV, $PLS2), us_lp($AV, $F, hg, $SSA)))
+  +hcpl = L.subst(Nat, w => {Nat.is_eq(SC.length($MV, $PL4), w) == True{} : Bool}, SC.length($ND, nl), SC.length($ND, $NLK), Equal.sym(Nat, SC.length($ND, $NLK), SC.length($ND, nl), elw), L.subst(Nat, w => {Nat.is_eq(w, SC.length($ND, nl)) == True{} : Bool}, SC.length($ND, nl), SC.length($MV, $PL4), Equal.sym(Nat, SC.length($MV, $PL4), SC.length($ND, nl), elp), N.is_eq_refl(SC.length($ND, nl))))
+  RF.rm_fin($AV, n, root, lo, hi, free, l, d, $NLK, $PL4, tg, fl, fl, cs, si, sb, k, $EST, ST.pv(V, pl, $U), hdel, hd2, ID.mv_a(fl, cs, si, sb, hnd0), hin, hln, hsz, ST.g_cl($AK, $F, hg), ST.g_cd($AK, $F, hg), hcap, hcpl, r)
+
+def rm_s2($TV, $FT, +hg: $GF, $SSH, dh: $DHTS, r: $R4T) -> OK.MOK($AK, $MV, $ASPC, $SMIR):
+  match dh:
+    case Tuple{hd1, hd2}:
+      rm_s3($AV, $F, hg, $SSA, hd1, hd2, r)
+
+def rm_s($TV, $FT, +hg: $GF, $SSH, r: $R4T) -> OK.MOK($AK, $MV, $ASPC, $SMIR):
+  rm_s2($AV, $F, hg, $SSA, del_hit($AV, $F, hg, k, $U, $XA2, Con{$S1, $RR2}, RS.eo_s($AV, $F, $RSA), hfin, ST.rid(ta), ST.rid(tb), P.top(c), ST.nd(K, nl, $U), ST.pv(V, pl, $U), {==}, {==}, TR.rep_node(~K, $U, ta, tb, P.top(c), nl, hr), us_hm($AV, $F, hg, $SSA)), r)
