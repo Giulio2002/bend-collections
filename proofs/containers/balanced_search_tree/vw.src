@@ -156,12 +156,12 @@ def view_contains_key_ok($TO, +w: $MVT, +hw: {VD.vgood($AK, w) == True{} : Bool}
 # ---- put and remove: the key in range, then the map's ----
 
 # a map result rewrapped in the view's bounds
-def rw_put($TK, +lo2: $BD, +hi2: $BD, +d2: Bool, +r: $SHT & $PRES, +a: $TMT, +o: $PRES, +h: {MI.rp($AK, $PRES, r) == (a, o) : $TMT & $PRES}) -> {MI.rvp($AK, $PRES, MI.view_put_finish($AK, lo2, hi2, d2, r)) == (M.View{a, lo2, hi2, d2}, o) : $RVT & $PRES}:
+def rw_put($TK, +lo2: $BD, +hi2: $BD, +d2: Bool, r: $SHT & $PRES, -a: $TMT, +o: $PRES, +h: {MI.rp($AK, $PRES, r) == (a, o) : $TMT & $PRES}) -> {MI.rvp($AK, $PRES, MI.view_put_finish($AK, lo2, hi2, d2, r)) == (M.View{a, lo2, hi2, d2}, o) : $RVT & $PRES}:
   match r:
     case Tuple{+m, +x}:
       L.subst($TMT & $PRES, z => {(M.View{ST.real($AK, m), lo2, hi2, d2}, x) == (M.View{Pair.fst($TMT, $PRES, z), lo2, hi2, d2}, Pair.snd($TMT, $PRES, z)) : $RVT & $PRES}, (ST.real($AK, m), x), (a, o), h, {==})
 
-def rw_val($TK, +lo2: $BD, +hi2: $BD, +d2: Bool, +r: $SHT & $MV, +a: $TMT, +o: $MV, +h: {MI.rp($AK, $MV, r) == (a, o) : $TMT & $MV}) -> {MI.rvp($AK, $MV, MI.view_value($AK, lo2, hi2, d2, r)) == (M.View{a, lo2, hi2, d2}, o) : $RVT & $MV}:
+def rw_val($TK, +lo2: $BD, +hi2: $BD, +d2: Bool, r: $SHT & $MV, -a: $TMT, +o: $MV, +h: {MI.rp($AK, $MV, r) == (a, o) : $TMT & $MV}) -> {MI.rvp($AK, $MV, MI.view_value($AK, lo2, hi2, d2, r)) == (M.View{a, lo2, hi2, d2}, o) : $RVT & $MV}:
   match r:
     case Tuple{+m, +x}:
       L.subst($TMT & $MV, z => {(M.View{ST.real($AK, m), lo2, hi2, d2}, x) == (M.View{Pair.fst($TMT, $MV, z), lo2, hi2, d2}, Pair.snd($TMT, $MV, z)) : $RVT & $MV}, (ST.real($AK, m), x), (a, o), h, {==})
