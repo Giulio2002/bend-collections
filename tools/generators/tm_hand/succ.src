@@ -135,3 +135,25 @@ def msucc_m($TK, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +
   %Equal.sym($ND, $NDX(nl, s), M.N{cs, as, bs, qs, ks}, hs) : {MI.move_successor_3($AK, s, MI.exchange($AK, MI.copy_key($AK, $SHP(nl, $PLS), 1n+ii, _), 1n+ii, ST.pv(V, pl, s))) == $MRES : ST.Sh<K, V> & Nat}
   %Equal.sym($ND, $NDX(nl, 1n+ii), M.N{c0, a0, b0, q0, k0}, hx) : {MI.move_successor_3($AK, s, MI.exchange($AK, MI.set_key_node($AK, $SHP(nl, $PLS), 1n+ii, ks, _), 1n+ii, ST.pv(V, pl, s))) == $MRES : ST.Sh<K, V> & Nat}
   {==}
+
+# ---- the rightmost node below ----
+
+%def RMT(c, t) Sigma<&1, &1, $CT, rc_ => Sigma<&1, &1, Nat, rs_ => Sigma<&1, &1, ST.Tr, ra_ => {$WH(rc_, $TN(rs_, ra_, $TE)) == $WH(c, t) : $LN} & ({rs_ == ST.last0($IDS(t)) : Nat} & ({PG.plug(rc_, $TN(rs_, ra_, $TE)) == PG.plug(c, t) : ST.Tr} & ({P.after(rc_) == P.after(c) : $LN} & ($REPN($TN(rs_, ra_, $TE), P.top(rc_), nl) & $COKN(rc_, rs_, nl)))))>>>
+%def CRJ Con{P.FR{j, False{}, ta}, c}
+
+def rm_up(-K: Data, +nl: $NL, +c: $CT, +j: Nat, +ta: ST.Tr, +j2: Nat, +a2: ST.Tr, +b2: ST.Tr, r: $RMT($CRJ, $T2)) -> $RMT(c, $TN(j, ta, $T2)):
+  match r:
+    case Tuple{+rc, Tuple{+rs, Tuple{+ra, Tuple{h1, Tuple{h2, rest}}}}}:
+      (rc, (rs, (ra, (Equal.trans($LN, $WH(rc, $TN(rs, ra, $TE)), $WH($CRJ, $T2), $WH(c, $TN(j, ta, $T2)), h1, Equal.sym($LN, $WH(c, $TN(j, ta, $T2)), $WH($CRJ, $T2), P.ids_r(c, j, ta, $T2))), (Equal.trans(Nat, rs, ST.last0($IDS($T2)), ST.last0($IDS($TN(j, ta, $T2))), h2, Equal.sym(Nat, ST.last0($IDS($TN(j, ta, $T2))), ST.last0($IDS($T2)), NB.last0_sub($IDS(ta), j, j2, a2, b2))), rest)))))
+
+%def OKR P.ok_r(~K, nl, c, j, ta, $T2, hr, hok)
+%def ORA $COKN($CRJ, j2, nl)
+%def ORB $REPN($T2, j, nl)
+
+# descending right from a node the path leads to
+def rmost($TO, +tb: ST.Tr, +nl: $NL, +c: $CT, +j: Nat, +ta: ST.Tr, +hr: $REPN($TN(j, ta, tb), P.top(c), nl), +hok: $COKN(c, j, nl)) -> $RMT(c, $TN(j, ta, tb)):
+  match tb:
+    case ST.TE{}:
+      (c, (j, (ta, ({==}, (Equal.sym(Nat, ST.last0($APP($IDS(ta), Con{j, Nil{}})), j, NB.last0_snoc($IDS(ta), j)), ({==}, ({==}, (hr, hok))))))))
+    case ST.TN{+j2, +a2, +b2}:
+      rm_up(K, nl, c, j, ta, j2, a2, b2, rmost($AO, b2, nl, $CRJ, j2, a2, Pair.snd($ORA, $ORB, $OKR), Pair.fst($ORA, $ORB, $OKR)))
