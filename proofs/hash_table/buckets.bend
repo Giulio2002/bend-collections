@@ -166,6 +166,14 @@ def anyeq(+bs: List<&2, Bk>, +m: Nat, +b: Bk) -> Bool:
     case 1n+j:
       Bool.or(bk_eq(at(bs, j), b), anyeq(bs, j, b))
 
+# the first m buckets from a are full, except possibly the bucket at h
+def opx(+bs: List<&2, Bk>, +n: Nat, +a: Nat, +m: Nat, +h: Nat) -> Bool:
+  match m:
+    case 0n:
+      True{}
+    case 1n+s:
+      Bool.and(Bool.or(Nat.is_eq(h, M.pos(n, a, s)), occ(at(bs, M.pos(n, a, s)))), opx(bs, n, a, s, h))
+
 # bounded quantifiers over first-order predicates
 type Pred is Data:
   PClus{bs: List<&2, Bk>, n: Nat, mask: U32}
@@ -177,6 +185,7 @@ type Pred is Data:
   PLive{bs: List<&2, Bk>, lv: List<&2, Bool>, f: Nat}
   PFrom{bs: List<&2, Bk>, src: List<&2, Bk>, m: Nat}
   PTo{bs: List<&2, Bk>, dst: List<&2, Bk>, m: Nat}
+  PHole{bs: List<&2, Bk>, n: Nat, mask: U32, h: Nat, dk: Nat}
 
 def implies(a: Bool, b: Bool) -> Bool:
   Bool.or(Bool.not(a), b)
@@ -217,6 +226,8 @@ def eval(p: Pred, +i: Nat) -> Bool:
       implies(occ(at(bs, i)), anyeq(src, m, at(bs, i)))
     case PTo{+bs, +dst, +m}:
       implies(occ(at(bs, i)), anyeq(dst, m, at(bs, i)))
+    case PHole{+bs, +n, +mask, +h, +dk}:
+      implies(occ(at(bs, i)), Bool.and(opx(bs, n, hb(mask, at(bs, i)), M.dist(n, hb(mask, at(bs, i)), i), h), implies(Nat.is_lt(M.dist(n, hb(mask, at(bs, i)), h), M.dist(n, hb(mask, at(bs, i)), i)), Nat.is_le(dk, M.dist(n, h, i)))))
 
 # p(0) && ... && p(n - 1)
 def all_lt(+p: Pred, +n: Nat) -> Bool:
