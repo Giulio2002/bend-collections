@@ -168,3 +168,17 @@ def pay_oks(~K: Data, ~V: Data, +t: ST.Tr, +nl: List<&2, M.Node<K>>, +pl: List<&
     case ST.TN{+i, +a, +b}:
       +hr = oks_split_r(~K, ~V, ST.ids(a), Con{i, ST.ids(b)}, nl, pl, h)
       L.and_intro(ST.some2(V, ST.pv(V, pl, i)), Bool.and(ST.pay(~V, a, pl), ST.pay(~V, b, pl)), some_of_ent(K, V, ST.nd(K, nl, i), ST.pv(V, pl, i), L.and_left(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, i), ST.pv(V, pl, i))), EN.oks(~K, ~V, ST.ids(b), nl, pl), hr)), L.and_intro(ST.pay(~V, a, pl), ST.pay(~V, b, pl), pay_oks(~K, ~V, a, nl, pl, oks_split_l(~K, ~V, ST.ids(a), Con{i, ST.ids(b)}, nl, pl, h)), pay_oks(~K, ~V, b, nl, pl, L.and_right(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, i), ST.pv(V, pl, i))), EN.oks(~K, ~V, ST.ids(b), nl, pl), hr))))
+
+def len_ex_c(-V: Data, +pl: List<&2, Maybe<&2, V>>, +i: Nat, +w: Maybe<&2, V>, +b: Bool) -> {SC.length(Maybe<&2, V>, ST.pk(List<&2, Maybe<&2, V>>, b, SC.update(Maybe<&2, V>, pl, i, w), pl)) == SC.length(Maybe<&2, V>, pl) : Nat}:
+  match b:
+    case True{}:
+      LL.length_update(Maybe<&2, V>, pl, i, w)
+    case False{}:
+      {==}
+
+def len_ex(-V: Data, +pl: List<&2, Maybe<&2, V>>, +id: Nat, +w: Maybe<&2, V>) -> {SC.length(Maybe<&2, V>, PR.ex_pl(V, pl, id, w)) == SC.length(Maybe<&2, V>, pl) : Nat}:
+  match id:
+    case 0n:
+      {==}
+    case 1n+i:
+      len_ex_c(V, pl, i, w, Nat.is_lt(i, SC.length(Maybe<&2, V>, pl)))

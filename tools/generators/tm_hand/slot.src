@@ -188,3 +188,17 @@ def pay_oks($TKV, +t: ST.Tr, +nl: $NL, +pl: $PL, +h: {$OKS(ST.ids(t), nl, pl) ==
     case ST.TN{+i, +a, +b}:
       +hr = oks_split_r(~K, ~V, ST.ids(a), Con{i, ST.ids(b)}, nl, pl, h)
       L.and_intro(ST.some2(V, $PV(pl, i)), Bool.and(ST.pay(~V, a, pl), ST.pay(~V, b, pl)), some_of_ent(K, V, $NDX(nl, i), $PV(pl, i), L.and_left(S.is_some($E, ST.ent(K, V, $NDX(nl, i), $PV(pl, i))), $OKS(ST.ids(b), nl, pl), hr)), L.and_intro(ST.pay(~V, a, pl), ST.pay(~V, b, pl), pay_oks(~K, ~V, a, nl, pl, oks_split_l(~K, ~V, ST.ids(a), Con{i, ST.ids(b)}, nl, pl, h)), pay_oks(~K, ~V, b, nl, pl, L.and_right(S.is_some($E, ST.ent(K, V, $NDX(nl, i), $PV(pl, i))), $OKS(ST.ids(b), nl, pl), hr))))
+
+def len_ex_c(-V: Data, +pl: $PL, +i: Nat, +w: $MV, +b: Bool) -> {SC.length($MV, ST.pk($PL, b, SC.update($MV, pl, i, w), pl)) == SC.length($MV, pl) : Nat}:
+  match b:
+    case True{}:
+      LL.length_update($MV, pl, i, w)
+    case False{}:
+      {==}
+
+def len_ex(-V: Data, +pl: $PL, +id: Nat, +w: $MV) -> {SC.length($MV, PR.ex_pl(V, pl, id, w)) == SC.length($MV, pl) : Nat}:
+  match id:
+    case 0n:
+      {==}
+    case 1n+i:
+      len_ex_c(V, pl, i, w, Nat.is_lt(i, SC.length($MV, pl)))
