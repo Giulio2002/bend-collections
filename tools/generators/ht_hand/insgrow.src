@@ -4,7 +4,6 @@ import ../lib/nat.bend as N
 import ../lib/array.bend as AR
 import ../spec/common.bend as SC
 import ../spec/hash_table.bend as S
-import ../math/word.bend as WD
 import ../math/u32div.bend as UD
 import ../../src/math/hash.bend as HS
 import ../../src/containers/hash_table.bend as H
@@ -25,6 +24,8 @@ import ./words.bend as WR
 import ./rawins.bend as RI
 import ./rehash.bend as RH
 import ./grow.bend as GR
+import ../lib/nat_list.bend as NL
+import ../lib/words32.bend as W32
 
 # Placing a new entry when the table must grow: the grown table holds
 # copies of every old bucket, so it looks keys up as the old one did, and
@@ -94,16 +95,16 @@ def fl_from(+nbs: List<&2, B.Bk>, +obs: List<&2, B.Bk>, +j: Nat, +n2: Nat, +hf: 
       h
     case 1n+p:
       +x1 = Bool.not(U32.is_eq(f, 0))
-      +y = Bool.and(Nat.is_lt($TF, fr), Bool.and(ST.noslot(obs, $TF, j), Bool.not(ST.memn($TF, seen))))
-      +tl = ST.fl_ok(obs, j, nxl, p, TB.nth0(nxl, $TF), fr, Con{$TF, seen})
-      +z = Bool.and(ST.noslot(obs, $TF, j), Bool.not(ST.memn($TF, seen)))
+      +y = Bool.and(Nat.is_lt($TF, fr), Bool.and(ST.noslot(obs, $TF, j), Bool.not(NL.memn($TF, seen))))
+      +tl = ST.fl_ok(obs, j, nxl, p, W32.nth0(nxl, $TF), fr, Con{$TF, seen})
+      +z = Bool.and(ST.noslot(obs, $TF, j), Bool.not(NL.memn($TF, seen)))
       +a2 = L.and_left(y, tl, L.and_right(x1, Bool.and(y, tl), h))
       +a5 = L.and_right(y, tl, L.and_right(x1, Bool.and(y, tl), h))
-      +ns = L.and_left(ST.noslot(obs, $TF, j), Bool.not(ST.memn($TF, seen)), L.and_right(Nat.is_lt($TF, fr), z, a2))
-      +nm = L.and_right(ST.noslot(obs, $TF, j), Bool.not(ST.memn($TF, seen)), L.and_right(Nat.is_lt($TF, fr), z, a2))
-      +y2 = Bool.and(Nat.is_lt($TF, fr), Bool.and(ST.noslot(nbs, $TF, n2), Bool.not(ST.memn($TF, seen))))
-      +tl2 = ST.fl_ok(nbs, n2, nxl, p, TB.nth0(nxl, $TF), fr, Con{$TF, seen})
-      L.and_intro(x1, Bool.and(y2, tl2), L.and_left(x1, Bool.and(y, tl), h), L.and_intro(y2, tl2, L.and_intro(Nat.is_lt($TF, fr), Bool.and(ST.noslot(nbs, $TF, n2), Bool.not(ST.memn($TF, seen))), L.and_left(Nat.is_lt($TF, fr), z, a2), L.and_intro(ST.noslot(nbs, $TF, n2), Bool.not(ST.memn($TF, seen)), RH.ns_from(nbs, obs, j, n2, hf, $TF, ns, n2, N.le_refl(n2)), nm)), fl_from(nbs, obs, j, n2, hf, nxl, p, TB.nth0(nxl, $TF), fr, Con{$TF, seen}, a5)))
+      +ns = L.and_left(ST.noslot(obs, $TF, j), Bool.not(NL.memn($TF, seen)), L.and_right(Nat.is_lt($TF, fr), z, a2))
+      +nm = L.and_right(ST.noslot(obs, $TF, j), Bool.not(NL.memn($TF, seen)), L.and_right(Nat.is_lt($TF, fr), z, a2))
+      +y2 = Bool.and(Nat.is_lt($TF, fr), Bool.and(ST.noslot(nbs, $TF, n2), Bool.not(NL.memn($TF, seen))))
+      +tl2 = ST.fl_ok(nbs, n2, nxl, p, W32.nth0(nxl, $TF), fr, Con{$TF, seen})
+      L.and_intro(x1, Bool.and(y2, tl2), L.and_left(x1, Bool.and(y, tl), h), L.and_intro(y2, tl2, L.and_intro(Nat.is_lt($TF, fr), Bool.and(ST.noslot(nbs, $TF, n2), Bool.not(NL.memn($TF, seen))), L.and_left(Nat.is_lt($TF, fr), z, a2), L.and_intro(ST.noslot(nbs, $TF, n2), Bool.not(NL.memn($TF, seen)), RH.ns_from(nbs, obs, j, n2, hf, $TF, ns, n2, N.le_refl(n2)), nm)), fl_from(nbs, obs, j, n2, hf, nxl, p, W32.nth0(nxl, $TF), fr, Con{$TF, seen}, a5)))
 
 # with 2(n + 1) <= 2^cap and cap <= 30, growth stays below 2^31 buckets
 def k30($PP, $HYG, $CAP, $HOVT) -> {Nat.is_lt(1n+k, 31n) $TT:
@@ -134,7 +135,7 @@ def ig_2($PP, $HYG, $HOVT, $GP, fe: RI.FirstE($NT2, $N2, $HOMEg)) -> IS.SetM(~V,
       +hld2 = N.le_trans(Nat.double(UD.v(n)), $NN, $N2, hld, N.lt_le($NN, $N2, N.pow2_lt_succ(k)))
       +vtd = N.eq_from_is_eq(UD.v(td), 1n+k, htd)
       +htd5 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(5n)) $TT, 1n+k, UD.v(td), Equal.sym(Nat, UD.v(td), 1n+k, vtd), N.lt_trans(1n+k, 31n, 32n, hk30, {==}))
-      +etd = Equal.trans(Nat, UD.v(U32.inc(td)), 1n+UD.v(td), 2n+k, CY.inc_val(one, h1, td, IU.bound32(one, h1, UD.v(td), 5n, {==}, htd5)), Equal.cong(Nat, Nat, z => 1n+z, UD.v(td), 1n+k, vtd))
+      +etd = Equal.trans(Nat, UD.v(U32.inc(td)), 1n+UD.v(td), 2n+k, W32.inc_val(one, h1, td, W32.bound32(one, h1, UD.v(td), 5n, {==}, htd5)), Equal.cong(Nat, Nat, z => 1n+z, UD.v(td), 1n+k, vtd))
       +ov2 = IU.over_val(one, h1, 1n+k, hk30, {==}, n, hld2)
       +le2 = N.double_le(1n+UD.v(n), $NN, IU.over_c(one, h1, k, hk31, hk0, UD.v(n), hld))
       +hovi2 = Equal.trans(Bool, U32.is_gt(U32.shl(U32.inc(n)), U32.inc(CY.msk(1n+k))), Nat.is_gt(Nat.double(1n+UD.v(n)), $N2), False{}, ov2, le_not_gt(Nat.double(1n+UD.v(n)), $N2, le2))

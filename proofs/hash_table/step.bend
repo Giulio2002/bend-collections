@@ -1,6 +1,5 @@
 import Base
 import ../lib/logic.bend as L
-import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../lib/array.bend as AR
 import ../spec/common.bend as SC
@@ -11,6 +10,7 @@ import ./strings.bend as STR
 import ./table.bend as TB
 import ./arr.bend as AX
 import ./buckets.bend as B
+import ../lib/words32.bend as W32
 
 # The implementation's probe step for a long key, on arrays built from mirror
 # trees: it reads bucket i's word x and link l; on a word match it swaps the
@@ -110,12 +110,12 @@ def st_same(tab: Array<U32>, +sd: Nat, +ksT: AR.Tree<String>, +l: U32, +key: Str
     case True{}:
       cmp_path(tab, sd, ksT, l, key, hsd, hs, pk)
 
-def st_empty(+td: Nat, +tabT: AR.Tree<U32>, +sd: Nat, +ksT: AR.Tree<String>, +i: U32, +key: String, +w: U32, +hd: {Nat.is_lt(td, 32n) == True{} : Bool}, +hsd: {Nat.is_lt(sd, 32n) == True{} : Bool}, +pt: {AR.perfect(U32, td, tabT) == True{} : Bool}, +pk: {AR.perfect(String, sd, ksT) == True{} : Bool}, +hl: {Nat.is_lt(UD.v(U32.inc(U32.shl(i))), SC.pow2(td)) == True{} : Bool}, +x: U32, +hs: {B.implies(Bool.not(U32.is_eq(x, 0)), Nat.is_lt(UD.v(H.slot(TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))))), SC.pow2(sd))) == True{} : Bool}, +e: Bool, +he: {U32.is_eq(x, 0) == e : Bool}) -> {H.sk_empty(AR.thaw(U32, tabT), AR.thaw(String, ksT), i, key, w, x, e) == step_of(ld_e(key, w, x, TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))), TB.nths(AR.slots(String, ksT), UD.v(H.slot(TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i))))))), e), AR.thaw(U32, tabT), AR.thaw(String, ka_e(sd, ksT, w, x, TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))), e)), key) : H.Step}:
+def st_empty(+td: Nat, +tabT: AR.Tree<U32>, +sd: Nat, +ksT: AR.Tree<String>, +i: U32, +key: String, +w: U32, +hd: {Nat.is_lt(td, 32n) == True{} : Bool}, +hsd: {Nat.is_lt(sd, 32n) == True{} : Bool}, +pt: {AR.perfect(U32, td, tabT) == True{} : Bool}, +pk: {AR.perfect(String, sd, ksT) == True{} : Bool}, +hl: {Nat.is_lt(UD.v(U32.inc(U32.shl(i))), SC.pow2(td)) == True{} : Bool}, +x: U32, +hs: {B.implies(Bool.not(U32.is_eq(x, 0)), Nat.is_lt(UD.v(H.slot(W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))))), SC.pow2(sd))) == True{} : Bool}, +e: Bool, +he: {U32.is_eq(x, 0) == e : Bool}) -> {H.sk_empty(AR.thaw(U32, tabT), AR.thaw(String, ksT), i, key, w, x, e) == step_of(ld_e(key, w, x, W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))), TB.nths(AR.slots(String, ksT), UD.v(H.slot(W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i))))))), e), AR.thaw(U32, tabT), AR.thaw(String, ka_e(sd, ksT, w, x, W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))), e)), key) : H.Step}:
   match e:
     case True{}:
       {==}
     case False{}:
-      +l = TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i))))
+      +l = W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i))))
       +hs2 = B.imp_elim(Bool.not(U32.is_eq(x, 0)), Nat.is_lt(UD.v(H.slot(l)), SC.pow2(sd)), hs, L.subst(Bool, b => {Bool.not(b) == True{} : Bool}, False{}, U32.is_eq(x, 0), Equal.sym(Bool, U32.is_eq(x, 0), False{}, he), {==}))
       +g = AX.getw(td, tabT, U32.inc(U32.shl(i)), hd, hl, pt)
       Equal.trans(H.Step, H.sk_l(AR.thaw(String, ksT), key, x, w, Array.get(U32, AR.thaw(U32, tabT), U32.inc(U32.shl(i)))), H.sk_l(AR.thaw(String, ksT), key, x, w, (AR.thaw(U32, tabT), l)), step_of(ld_w(key, l, TB.nths(AR.slots(String, ksT), UD.v(H.slot(l))), U32.is_eq(x, w)), AR.thaw(U32, tabT), AR.thaw(String, ka_w(sd, ksT, l, U32.is_eq(x, w))), key),
@@ -123,9 +123,9 @@ def st_empty(+td: Nat, +tabT: AR.Tree<U32>, +sd: Nat, +ksT: AR.Tree<String>, +i:
         st_same(AR.thaw(U32, tabT), sd, ksT, l, key, hsd, hs2, pk, U32.is_eq(x, w)))
 
 # THEOREM: a long-key probe step reads bucket i and decides as ldec.
-def step_long(+td: Nat, +tabT: AR.Tree<U32>, +sd: Nat, +ksT: AR.Tree<String>, +i: U32, +key: String, +w: U32, +hd: {Nat.is_lt(td, 32n) == True{} : Bool}, +hsd: {Nat.is_lt(sd, 32n) == True{} : Bool}, +pt: {AR.perfect(U32, td, tabT) == True{} : Bool}, +pk: {AR.perfect(String, sd, ksT) == True{} : Bool}, +hw: {Nat.is_lt(UD.v(U32.shl(i)), SC.pow2(td)) == True{} : Bool}, +hl: {Nat.is_lt(UD.v(U32.inc(U32.shl(i))), SC.pow2(td)) == True{} : Bool}, +hs: {B.implies(Bool.not(U32.is_eq(TB.nth0(AR.slots(U32, tabT), UD.v(U32.shl(i))), 0)), Nat.is_lt(UD.v(H.slot(TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))))), SC.pow2(sd))) == True{} : Bool}) -> {H.step(AR.thaw(U32, tabT), AR.thaw(String, ksT), i, key, w) == step_of(ldec(key, w, TB.nth0(AR.slots(U32, tabT), UD.v(U32.shl(i))), TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))), TB.nths(AR.slots(String, ksT), UD.v(H.slot(TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))))))), AR.thaw(U32, tabT), AR.thaw(String, kafter(sd, ksT, w, TB.nth0(AR.slots(U32, tabT), UD.v(U32.shl(i))), TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))))), key) : H.Step}:
-  +x = TB.nth0(AR.slots(U32, tabT), UD.v(U32.shl(i)))
+def step_long(+td: Nat, +tabT: AR.Tree<U32>, +sd: Nat, +ksT: AR.Tree<String>, +i: U32, +key: String, +w: U32, +hd: {Nat.is_lt(td, 32n) == True{} : Bool}, +hsd: {Nat.is_lt(sd, 32n) == True{} : Bool}, +pt: {AR.perfect(U32, td, tabT) == True{} : Bool}, +pk: {AR.perfect(String, sd, ksT) == True{} : Bool}, +hw: {Nat.is_lt(UD.v(U32.shl(i)), SC.pow2(td)) == True{} : Bool}, +hl: {Nat.is_lt(UD.v(U32.inc(U32.shl(i))), SC.pow2(td)) == True{} : Bool}, +hs: {B.implies(Bool.not(U32.is_eq(W32.nth0(AR.slots(U32, tabT), UD.v(U32.shl(i))), 0)), Nat.is_lt(UD.v(H.slot(W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))))), SC.pow2(sd))) == True{} : Bool}) -> {H.step(AR.thaw(U32, tabT), AR.thaw(String, ksT), i, key, w) == step_of(ldec(key, w, W32.nth0(AR.slots(U32, tabT), UD.v(U32.shl(i))), W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))), TB.nths(AR.slots(String, ksT), UD.v(H.slot(W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))))))), AR.thaw(U32, tabT), AR.thaw(String, kafter(sd, ksT, w, W32.nth0(AR.slots(U32, tabT), UD.v(U32.shl(i))), W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))))), key) : H.Step}:
+  +x = W32.nth0(AR.slots(U32, tabT), UD.v(U32.shl(i)))
   +g = AX.getw(td, tabT, U32.shl(i), hd, hw, pt)
-  Equal.trans(H.Step, H.sk_w(AR.thaw(String, ksT), i, key, w, Array.get(U32, AR.thaw(U32, tabT), U32.shl(i))), H.sk_w(AR.thaw(String, ksT), i, key, w, (AR.thaw(U32, tabT), x)), step_of(ldec(key, w, x, TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))), TB.nths(AR.slots(String, ksT), UD.v(H.slot(TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))))))), AR.thaw(U32, tabT), AR.thaw(String, kafter(sd, ksT, w, x, TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))))), key),
+  Equal.trans(H.Step, H.sk_w(AR.thaw(String, ksT), i, key, w, Array.get(U32, AR.thaw(U32, tabT), U32.shl(i))), H.sk_w(AR.thaw(String, ksT), i, key, w, (AR.thaw(U32, tabT), x)), step_of(ldec(key, w, x, W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))), TB.nths(AR.slots(String, ksT), UD.v(H.slot(W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))))))), AR.thaw(U32, tabT), AR.thaw(String, kafter(sd, ksT, w, x, W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))))), key),
     Equal.cong(Array<U32> & U32, H.Step, r => H.sk_w(AR.thaw(String, ksT), i, key, w, r), Array.get(U32, AR.thaw(U32, tabT), U32.shl(i)), (AR.thaw(U32, tabT), x), g),
     st_empty(td, tabT, sd, ksT, i, key, w, hd, hsd, pt, pk, hl, x, hs, U32.is_eq(x, 0), {==}))

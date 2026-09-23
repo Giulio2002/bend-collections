@@ -4,15 +4,12 @@ import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./path.bend as P
 import ./nbr.bend as NB
 import ./dj.bend as DJ
-import ./fix.bend as FX
 import ./spath.bend as SP
+import ../lib/nat_list.bend as NL
 
 # The header after inserting x where the search stopped: x is the first id
 # exactly when it went in before everything (the tree was empty, or it is
@@ -23,7 +20,7 @@ import ./spath.bend as SP
 %def CT List<&2, P.Fr>
 %def APP(a, b) SC.append(Nat, a, b)
 %def IDS(t) ST.ids(t)
-%def NDL(xs) {LST.nodupn(xs) == True{} : Bool}
+%def NDL(xs) {NL.nodupn(xs) == True{} : Bool}
 %def I0(c) $APP(P.before(c), Con{x, P.after(c)})
 %def BA(c) $APP(P.before(c), P.after(c))
 %def LO2(c) M.pick(Nat, Bool.or(Nat.is_eq(n, 0n), Bool.and(SP.dir(c), Nat.is_eq(P.top(c), lo))), x, lo)
@@ -32,7 +29,7 @@ import ./spath.bend as SP
 def len_pos(+b: Nat, +t: $LN, +xs: $LN) -> {Nat.is_eq(SC.length(Nat, $APP(Con{b, t}, xs)), 0n) == False{} : Bool}:
   {==}
 
-def len_ne0(+xs: $LN, +q: Nat, +h: {HT.memn(q, xs) == True{} : Bool}) -> {Nat.is_eq(SC.length(Nat, xs), 0n) == False{} : Bool}:
+def len_ne0(+xs: $LN, +q: Nat, +h: {NL.memn(q, xs) == True{} : Bool}) -> {Nat.is_eq(SC.length(Nat, xs), 0n) == False{} : Bool}:
   match xs:
     case Nil{}:
       Empty.absurd({Nat.is_eq(0n, 0n) == False{} : Bool}, L.false_true(h))
@@ -65,7 +62,7 @@ def lo_t(+x: Nat, +q: Nat, +r: $LN, +b: $LN, +n: Nat, +lo: Nat, +hlo: {lo == ST.
   match b:
     case Nil{}:
       %Equal.sym(Nat, lo, q, hlo) : {M.pick(Nat, Bool.or(Nat.is_eq(n, 0n), Nat.is_eq(q, _)), x, _) == x : Nat}
-      pick_t(Bool.or(Nat.is_eq(n, 0n), Nat.is_eq(q, q)), x, q, L.subst(Bool, z => {Bool.or(Nat.is_eq(n, 0n), z) == True{} : Bool}, True{}, Nat.is_eq(q, q), Equal.sym(Bool, Nat.is_eq(q, q), True{}, N.is_eq_refl(q)), LS.or_true_b(Nat.is_eq(n, 0n))))
+      pick_t(Bool.or(Nat.is_eq(n, 0n), Nat.is_eq(q, q)), x, q, L.subst(Bool, z => {Bool.or(Nat.is_eq(n, 0n), z) == True{} : Bool}, True{}, Nat.is_eq(q, q), Equal.sym(Bool, Nat.is_eq(q, q), True{}, N.is_eq_refl(q)), NL.or_true_b(Nat.is_eq(n, 0n))))
     case Con{+b0, +bs}:
       %Equal.sym(Nat, lo, b0, hlo) : {M.pick(Nat, Bool.or(Nat.is_eq(n, 0n), Nat.is_eq(q, _)), x, _) == b0 : Nat}
       %Equal.sym(Nat, n, SC.length(Nat, $APP(Con{b0, bs}, Con{q, r})), hn) : {M.pick(Nat, Bool.or(Nat.is_eq(_, 0n), Nat.is_eq(q, b0)), x, b0) == b0 : Nat}
@@ -93,7 +90,7 @@ def lo_new(+c: $CT, +x: Nat, +n: Nat, +lo: Nat, +hlo: {lo == ST.fst0($BA(c)) : N
 
 # ---- the last id ----
 
-def last0_mem(+t: $LN, +a: Nat) -> {HT.memn(ST.last0(Con{a, t}), Con{a, t}) == True{} : Bool}:
+def last0_mem(+t: $LN, +a: Nat) -> {NL.memn(ST.last0(Con{a, t}), Con{a, t}) == True{} : Bool}:
   match t:
     case Nil{}:
       DJ.mem_hd(a, Nil{})
@@ -114,7 +111,7 @@ def hi_f(+x: Nat, +q: Nat, +a: $LN, +bu: $LN, +iss: $LN, +n: Nat, +hi: Nat, +hhi
       +e1 = Equal.trans(Nat, hi, ST.last0($APP($BQ, Nil{})), q, hhi, L.subst($LN, z => {ST.last0(z) == q : Nat}, $BQ, $APP($BQ, Nil{}), Equal.sym($LN, $APP($BQ, Nil{}), $BQ, LL.append_nil(Nat, $BQ)), NB.last0_end(bu, iss, q)))
       %Equal.sym(Nat, hi, q, e1) : {M.pick(Nat, Bool.or(Nat.is_eq(n, 0n), Nat.is_eq(q, _)), x, _) == ST.last0($APP($BQ, Con{x, Nil{}})) : Nat}
       %Equal.sym(Nat, ST.last0($APP($BQ, Con{x, Nil{}})), x, NB.last0_snoc($BQ, x)) : {M.pick(Nat, Bool.or(Nat.is_eq(n, 0n), Nat.is_eq(q, q)), x, q) == _ : Nat}
-      pick_t(Bool.or(Nat.is_eq(n, 0n), Nat.is_eq(q, q)), x, q, L.subst(Bool, z => {Bool.or(Nat.is_eq(n, 0n), z) == True{} : Bool}, True{}, Nat.is_eq(q, q), Equal.sym(Bool, Nat.is_eq(q, q), True{}, N.is_eq_refl(q)), LS.or_true_b(Nat.is_eq(n, 0n))))
+      pick_t(Bool.or(Nat.is_eq(n, 0n), Nat.is_eq(q, q)), x, q, L.subst(Bool, z => {Bool.or(Nat.is_eq(n, 0n), z) == True{} : Bool}, True{}, Nat.is_eq(q, q), Equal.sym(Bool, Nat.is_eq(q, q), True{}, N.is_eq_refl(q)), NL.or_true_b(Nat.is_eq(n, 0n))))
     case Con{+a0, +as}:
       +e2 = Equal.trans(Nat, hi, ST.last0($APP($BQ, Con{a0, as})), ST.last0(Con{a0, as}), hhi, NB.last0_tail($BQ, a0, as))
       +e3 = Equal.trans(Nat, ST.last0($APP($BQ, Con{x, Con{a0, as}})), ST.last0(Con{x, Con{a0, as}}), ST.last0(Con{a0, as}), NB.last0_tail($BQ, x, Con{a0, as}), {==})

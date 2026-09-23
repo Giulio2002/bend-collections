@@ -8,14 +8,12 @@ import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
 import ./state.bend as ST
 import ./mirror.bend as MI
-import ./ok.bend as OK
 import ./ord.bend as OR
 import ./reads.bend as RD
 import ./cur.bend as CU
 import ./cnx.bend as CX
 import ./vsp.bend as VS
 import ./vit.bend as VI
-import ./vdef.bend as VD
 
 # A view's size: the mirror counts the steps of the view's cursor, forward
 # from the first entry above the lower bound (backward from the last below

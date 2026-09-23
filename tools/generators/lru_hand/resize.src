@@ -1,42 +1,19 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/u32alg.bend as A
 import ../lib/array.bend as AR
-import ../spec/common.bend as SC
-import ../spec/hash_table.bend as S
 import ../spec/lru.bend as SP
 import ../math/u32div.bend as UD
-import ../../src/math/u64.bend as W
-import ../../src/containers/hash_table.bend as H
 import ../../src/containers/lru.bend as LR
-import ../hash_table/table.bend as TB
-import ../hash_table/buckets.bend as B
-import ../hash_table/cyc.bend as CY
-import ../hash_table/inv.bend as IV
-import ../hash_table/state.bend as HT
-import ../hash_table/keys.bend as K
 import ./state.bend as ST
 import ./basic.bend as BA
-import ./bump.bend as BU
 import ./bumpsh.bend as BS
-import ./find.bend as FD
-import ./tfind.bend as TF
-import ./touch.bend as TO
-import ./touchsh.bend as TSH
 import ./rmat.bend as RM
-import ./gone.bend as GO
-import ./unlink.bend as UL
-import ./lists.bend as LS
-import ./meta.bend as MT
-import ../hash_table/get.bend as G
-import ../../src/math/hash.bend as HS
 import ../hash_table/probe_impl.bend as PI
-import ../hash_table/probe_all.bend as PA
 
-import ./read.bend as RD
 import ../lib/u32.bend as U
 import ./evict.bend as EV
+import ../lib/words32.bend as W32
 
 # resize: evicting the oldest until the cache fits.
 
@@ -103,7 +80,7 @@ def rz_ok(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +f: Nat, +sh: ST.Sh<V>, +
     case 1n+p ST.LS{$SHA}:
       rz_f(~V, $SHA, hg, one, h1, p, ev, sh1 => g1 => rz_ok(~V, one, h1, p, sh1, g1, U32.inc(ev)))
 
-%def GB2 cap2, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, fl
+%def GB2 cap2, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, fl
 %def SHC ST.LS{cap2, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl}
 
 # a new positive capacity keeps the invariant

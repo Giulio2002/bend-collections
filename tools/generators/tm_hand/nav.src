@@ -1,15 +1,14 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/list.bend as LL
 import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
-import ../lru/state.bend as LST
 import ./state.bend as ST
 import ./mirror.bend as MI
 import ./tree.bend as TR
 import ./path.bend as P
 import ./nbr.bend as NB
+import ../lib/nat_list.bend as NL
 
 # Navigation (floor, ceiling, lower, higher): the loop descends by
 # comparison keeping the best candidate, which along the path is the first
@@ -97,7 +96,7 @@ def nav_node($TK, $FT, +c: $CT, +i: Nat, +l: ST.Tr, +r: ST.Tr, +k: K, +h: Bool, 
       +hb = L.and_left(Nat.is_eq(b, ST.rid(r)), Nat.is_eq(q, P.top(c)), L.and_right(Nat.is_eq(a, ST.rid(l)), Bool.and(Nat.is_eq(b, ST.rid(r)), Nat.is_eq(q, P.top(c))), hx))
       nav_c($AK, $F, c, i, l, r, k, h, incl, g, cc, a, b, q, key, N.eq_from_is_eq(a, ST.rid(l), ha), N.eq_from_is_eq(b, ST.rid(r), hb), ihl, ihr, ne, cmp(k, key))
 
-%def NDP(c, t) {LST.nodupn($WH(c, t)) == True{} : Bool}
+%def NDP(c, t) {NL.nodupn($WH(c, t)) == True{} : Bool}
 %def HID(c, t) {$IDS(tg) == $WH(c, t) : $LN}
 
 # the loop from a subtree the path leads to is the ghost navigation
@@ -110,8 +109,8 @@ def nav_ptr($TK, $FT, +f: Nat, +c: $CT, +t: ST.Tr, +k: K, +h: Bool, +incl: Bool,
     case 1n+g ST.TN{+i, +l, +r}:
       +el = P.ids_l(c, i, l, r)
       +er = P.ids_r(c, i, l, r)
-      +ihl = nav_ptr($AK, $F, g, $CL(i, r, c), l, k, h, incl, Pair.snd($COK($CL(i, r, c), ST.rid(l)), $REP(l, i), P.ok_l(~K, nl, c, i, l, r, hr, hok)), Pair.fst($COK($CL(i, r, c), ST.rid(l)), $REP(l, i), P.ok_l(~K, nl, c, i, l, r, hr, hok)), L.subst($LN, z => {LST.nodupn(z) == True{} : Bool}, $WH(c, $TN(i, l, r)), $WH($CL(i, r, c), l), el, hnd), Equal.trans($LN, $IDS(tg), $WH(c, $TN(i, l, r)), $WH($CL(i, r, c), l), hid, el), hn, TR.ht_l(i, l, r, g, hf))
-      +ihr0 = nav_ptr($AK, $F, g, $CR(i, l, c), r, k, h, incl, Pair.snd($COK($CR(i, l, c), ST.rid(r)), $REP(r, i), P.ok_r(~K, nl, c, i, l, r, hr, hok)), Pair.fst($COK($CR(i, l, c), ST.rid(r)), $REP(r, i), P.ok_r(~K, nl, c, i, l, r, hr, hok)), L.subst($LN, z => {LST.nodupn(z) == True{} : Bool}, $WH(c, $TN(i, l, r)), $WH($CR(i, l, c), r), er, hnd), Equal.trans($LN, $IDS(tg), $WH(c, $TN(i, l, r)), $WH($CR(i, l, c), r), hid, er), hn, TR.ht_r(i, l, r, g, hf))
+      +ihl = nav_ptr($AK, $F, g, $CL(i, r, c), l, k, h, incl, Pair.snd($COK($CL(i, r, c), ST.rid(l)), $REP(l, i), P.ok_l(~K, nl, c, i, l, r, hr, hok)), Pair.fst($COK($CL(i, r, c), ST.rid(l)), $REP(l, i), P.ok_l(~K, nl, c, i, l, r, hr, hok)), L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $WH(c, $TN(i, l, r)), $WH($CL(i, r, c), l), el, hnd), Equal.trans($LN, $IDS(tg), $WH(c, $TN(i, l, r)), $WH($CL(i, r, c), l), hid, el), hn, TR.ht_l(i, l, r, g, hf))
+      +ihr0 = nav_ptr($AK, $F, g, $CR(i, l, c), r, k, h, incl, Pair.snd($COK($CR(i, l, c), ST.rid(r)), $REP(r, i), P.ok_r(~K, nl, c, i, l, r, hr, hok)), Pair.fst($COK($CR(i, l, c), ST.rid(r)), $REP(r, i), P.ok_r(~K, nl, c, i, l, r, hr, hok)), L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $WH(c, $TN(i, l, r)), $WH($CR(i, l, c), r), er, hnd), Equal.trans($LN, $IDS(tg), $WH(c, $TN(i, l, r)), $WH($CR(i, l, c), r), hid, er), hn, TR.ht_r(i, l, r, g, hf))
       +ihr = L.subst(Nat, z => {$NLP(g, ST.rid(r), $PK(h, ST.fst0(P.after(c)), z)) == ($SH, $GN(r, $CR(i, l, c))) : $NVT}, ST.last0($APP(P.before(c), $APP($IDS(l), Con{i, Nil{}}))), i, NB.last0_end(P.before(c), $IDS(l), i), ihr0)
       +ne = NB.neighbor_m($AK, $F, c, i, l, r, hr, hok, hnd, hid, hn, h)
       nav_node($AK, $F, c, i, l, r, k, h, incl, g, ST.nd(K, nl, i), TR.rep_node(~K, i, l, r, P.top(c), nl, hr), ihl, ihr, ne)

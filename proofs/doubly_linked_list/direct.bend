@@ -1,12 +1,8 @@
 import Base
-import ../lib/logic.bend as L
-import ../spec/doubly_linked_list.bend as S
 import ../../src/containers/doubly_linked_list.bend as D
 import ../../src/containers/internal/dlist_storage.bend as R
 import ../../src/containers/types/internal_dlist.bend as I
 import ../../src/containers/types/doubly_linked_list.bend as E
-import ./state.bend as ST
-import ./ok.bend as OK
 
 # The public list's direct operations: each is the projection of the trace
 # step on the same operation, for every list and handle.

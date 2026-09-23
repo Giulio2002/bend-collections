@@ -4,42 +4,27 @@ import ../lib/nat.bend as N
 import ../lib/u32alg.bend as A
 import ../lib/array.bend as AR
 import ../spec/common.bend as SC
-import ../spec/hash_table.bend as S
 import ../spec/lru.bend as SP
 import ../math/u32div.bend as UD
 import ../../src/math/u64.bend as W
 import ../../src/containers/hash_table.bend as H
 import ../../src/containers/lru.bend as LR
-import ../hash_table/table.bend as TB
-import ../hash_table/buckets.bend as B
-import ../hash_table/cyc.bend as CY
-import ../hash_table/inv.bend as IV
 import ../hash_table/state.bend as HT
-import ../hash_table/keys.bend as K
 import ./state.bend as ST
 import ./basic.bend as BA
-import ./bump.bend as BU
 import ./bumpsh.bend as BS
-import ./find.bend as FD
-import ./tfind.bend as TF
 import ./touch.bend as TO
-import ./touchsh.bend as TSH
 import ./rmat.bend as RM
 import ./gone.bend as GO
 import ./unlink.bend as UL
-import ./lists.bend as LS
-import ./meta.bend as MT
-import ../hash_table/get.bend as G
-import ../../src/math/hash.bend as HS
-import ../hash_table/probe_impl.bend as PI
-import ../hash_table/probe_all.bend as PA
 
 import ./read.bend as RD
-import ./dellink.bend as DK
-import ./tabsl.bend as TS
 import ./evict.bend as EV
 import ./walk.bend as WL
 import ../lib/list.bend as LI
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
+import ../lib/words32.bend as W32
 
 # keys: the expired oldest prefix removed (each a removal), then the keys
 # oldest first.
@@ -51,7 +36,7 @@ import ../lib/list.bend as LI
 %def SHF0 +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +mT: AR.Tree<U32>, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +s0: Nat, +t: List<&2, Nat>, +fl: List<&2, Nat>
 %def SHA0 cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, $S0L, fl
 %def SHA0x cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, s0, t, fl
-%def GA1 cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, $S0L, fl
+%def GA1 cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, $S0L, fl
 %def G1(c) ST.g_$c(~V, $GA1, hg)
 %def F1 ST.real(~V, $SH0)
 %def SU H.slot(head)
@@ -68,7 +53,7 @@ import ../lib/list.bend as LI
 %def SHAn cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, fl
 %def SHn ST.LS{cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, Nil{}, fl}
 %def Fn ST.real(~V, $SHn)
-%def GAn cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, Nil{}, fl
+%def GAn cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, Nil{}, fl
 %def SVT Sigma<&1, &1, V, v => {HT.nthm(~V, el, s) == Some{v} : Maybe<&2, V>}>
 
 # the value of a live slot
@@ -95,9 +80,9 @@ def kx_nil(~V: Data, $SHFn, +hg: {ST.good(~V, $SHn) == True{} : Bool}, +now: W.U
 def kx_ce(~V: Data, $SHF0, +hg: {ST.good(~V, $SH0) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +now: W.U64, +v: V) -> {LR.kx_check(&2, V, $F1, now) == LR.kx_pick(&2, V, $F1, $GN) : $KX}:
   +hsd = RD.f_hsd(~V, $SHA0, hg)
   +hs0 = RD.f_s0(~V, $SHA0, hg, s0, UL.self_in(s0, t))
-  +eh = A.eq_of(head, ST.lnk(s0), $G1(chead))
-  +hsv = Equal.trans(Nat, UD.v($SU), UD.v(H.slot(ST.lnk(s0))), s0, Equal.cong(U32, Nat, z => UD.v(H.slot(z)), head, ST.lnk(s0), eh), UL.ix_o(one, h1, s0, sd, hsd, hs0))
-  +hz = L.subst(U32, z => {U32.is_eq(z, 0) == False{} : Bool}, ST.lnk(s0), head, Equal.sym(U32, head, ST.lnk(s0), eh), UL.lnk_nz(one, h1, s0, sd, hsd, hs0))
+  +eh = A.eq_of(head, LK.lnk(s0), $G1(chead))
+  +hsv = Equal.trans(Nat, UD.v($SU), UD.v(H.slot(LK.lnk(s0))), s0, Equal.cong(U32, Nat, z => UD.v(H.slot(z)), head, LK.lnk(s0), eh), UL.ix_o(one, h1, s0, sd, hsd, hs0))
+  +hz = L.subst(U32, z => {U32.is_eq(z, 0) == False{} : Bool}, LK.lnk(s0), head, Equal.sym(U32, head, LK.lnk(s0), eh), UL.lnk_nz(one, h1, s0, sd, hsd, hs0))
   +e1 = Equal.cong(Bool, $KX, b => LR.kx_if(&2, V, $F1, now, b), U32.is_eq(head, 0), False{}, hz)
   +e2 = Equal.cong(Array<U32> & Bool, $KX, r => LR.kx_g(&2, V, cap, n, head, tail, free, AR.thaw(U32, mT), AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), r), LR.gone(AR.thaw(U32, lkT), $SU, now), (AR.thaw(U32, lkT), $GN), GO.gone_ok(~V, one, h1, lkT, sd, hsd, $G1(cpl), $SU, s0, hsv, hs0, now, ST.skey($LLo, $KL, s0), v))
   Equal.trans($KX, LR.kx_check(&2, V, $F1, now), LR.kx_if(&2, V, $F1, now, False{}), LR.kx_pick(&2, V, $F1, $GN), e1, e2)
@@ -180,9 +165,9 @@ def kn_ok(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, +one: Nat, +
 
 # ---- the key walk ----
 
-%def BK WL.rapp(sl, Nil{})
+%def BK NL.rapp(sl, Nil{})
 %def LLn SC.length(Nat, sl)
-%def GAk(kl, pk) cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, kl, pk, eT, lkT, sl, fl
+%def GAk(kl, pk) cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, kl, pk, eT, lkT, sl, fl
 %def SH3 ST.LS{cap, n, head, tail, free, mT, k, sd, tabT, K2, eT, lkT, sl, fl}
 %def RA WL.racc($LLo, $KL, $BK, Nil{})
 %def KO SP.keys_of(~V, $ES)
@@ -193,14 +178,14 @@ def kn_ok(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, +one: Nat, +
 %def LT RM.POK(~V, List<&2, String>, SP.keys_fin(~V, $L1($ES)), LR.keys_list(&2, V, $F))
 
 # the walk starts at the tail, the first slot of sl reversed
-def hat_of(+sl: List<&2, Nat>, +tail: U32, +et: {tail == ST.last_or(sl, 0) : U32}) -> {ST.fst_or(WL.rapp(sl, Nil{}), tail) == tail : U32}:
-  +h = Equal.trans(U32, ST.fst_or(WL.rapp(sl, Nil{}), ST.last_or(sl, 0)), ST.last_or(sl, ST.last_or(sl, 0)), ST.last_or(sl, 0), WL.fo_rapp(sl, Nil{}, ST.last_or(sl, 0)), WL.lo_idem(sl, 0))
-  L.subst(U32, z => {ST.fst_or(WL.rapp(sl, Nil{}), z) == z : U32}, ST.last_or(sl, 0), tail, Equal.sym(U32, tail, ST.last_or(sl, 0), et), h)
+def hat_of(+sl: List<&2, Nat>, +tail: U32, +et: {tail == LK.last_or(sl, 0) : U32}) -> {LK.fst_or(NL.rapp(sl, Nil{}), tail) == tail : U32}:
+  +h = Equal.trans(U32, LK.fst_or(NL.rapp(sl, Nil{}), LK.last_or(sl, 0)), LK.last_or(sl, LK.last_or(sl, 0)), LK.last_or(sl, 0), LK.fo_rapp(sl, Nil{}, LK.last_or(sl, 0)), WL.lo_idem(sl, 0))
+  L.subst(U32, z => {LK.fst_or(NL.rapp(sl, Nil{}), z) == z : U32}, LK.last_or(sl, 0), tail, Equal.sym(U32, tail, LK.last_or(sl, 0), et), h)
 
 def kl_w(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, wo: WL.WOK(lkT, $KL, sd, $BK, Nil{}, tail, ksT)) -> $LT:
   match wo:
     case Tuple{+K2, Tuple{+a2, Tuple{+ew, Tuple{+hs2, pk2}}}}:
-      +efu = Equal.trans(Nat, SC.length(Nat, $BK), Nat.add($LLn, 0n), UD.v(n), WL.len_rapp(sl, Nil{}), Equal.trans(Nat, Nat.add($LLn, 0n), $LLn, UD.v(n), N.add_zero($LLn), N.eq_from_is_eq($LLn, UD.v(n), $G(clen))))
+      +efu = Equal.trans(Nat, SC.length(Nat, $BK), Nat.add($LLn, 0n), UD.v(n), NL.len_rapp(sl, Nil{}), Equal.trans(Nat, Nat.add($LLn, 0n), $LLn, UD.v(n), N.add_zero($LLn), N.eq_from_is_eq($LLn, UD.v(n), $G(clen))))
       +ew2 = L.subst(Nat, z => {LR.wk_loop(z, LR.WK{AR.thaw(String, ksT), AR.thaw(U32, lkT), Nil{}, tail}) == $WKE($RA) : LR.Walk}, SC.length(Nat, $BK), UD.v(n), efu, ew)
       +eac = Equal.trans(List<&2, String>, $RA, SC.append(String, WL.mapk($LLo, $KL, sl), Nil{}), $KO, WL.ra_rapp($LLo, $KL, sl, Nil{}, Nil{}), Equal.trans(List<&2, String>, SC.append(String, WL.mapk($LLo, $KL, sl), Nil{}), WL.mapk($LLo, $KL, sl), $KO, LI.append_nil(String, WL.mapk($LLo, $KL, sl)), Equal.sym(List<&2, String>, $KO, WL.mapk($LLo, $KL, sl), WL.km(~V, $LLo, $KL, $EL, $FR, sl, $G(csl)))))
       +er1 = Equal.cong(LR.Walk, LR.LRU<&2, V> & List<&2, String>, w => $KF(w), $WL0, $WKE($RA), ew2)
@@ -215,7 +200,7 @@ def kl_w(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, wo: WL.WOK(lk
 def kl_ok(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}) -> $LT:
   +hsd = RD.f_hsd(~V, $SHA, hg)
   +hr = WL.rok_app(~V, $LLo, $EL, sl, Nil{}, $FR, 0, 0, $G(cdll), $G(csl), {==}, {==})
-  +hat = hat_of(sl, tail, A.eq_of(tail, ST.last_or(sl, 0), $G(ctail)))
+  +hat = hat_of(sl, tail, A.eq_of(tail, LK.last_or(sl, 0), $G(ctail)))
   kl_w(~V, $SHA, hg, WL.walk(one, h1, lkT, sd, hsd, $G(cpl), $KL, $FR, $G(cfresh), $BK, Nil{}, tail, ksT, {==}, $G(cpk), hr, hat))
 
 def kl_sh(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}) -> RM.POK(~V, List<&2, String>, SP.keys_fin(~V, ST.model(~V, sh)), LR.keys_list(&2, V, ST.real(~V, sh))):

@@ -1,20 +1,18 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/u32.bend as U
 import ../lib/u32alg.bend as A
 import ../spec/common.bend as SC
 import ../spec/hash_table.bend as S
-import ../math/word.bend as WD
 import ../math/u32div.bend as UD
 import ../../src/containers/hash_table.bend as H
 import ../hash_table/keys.bend as K
 import ../hash_table/table.bend as TB
 import ../hash_table/buckets.bend as B
-import ../hash_table/insu.bend as IU
-import ../hash_table/state.bend as HT
 import ./state.bend as ST
-import ./find.bend as FD
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
+import ../lib/words32.bend as W32
 
 # The table and the recency list: a probe that misses means no listed slot
 # holds the key; a probe that hits names a listed slot holding it.
@@ -35,7 +33,7 @@ def bkok_dec(+w: U32, +l: U32, +kl: List<&2, String>, +e: Bool) -> {bkok(kl, TB.
       K.str_refl(TB.keyof(w, TB.nths(kl, UD.v(H.slot(l)))))
 
 def bkok_at(+tb: List<&2, U32>, +kl: List<&2, String>, +n: Nat, +j: Nat, +hj: {Nat.is_lt(j, n) == True{} : Bool}) -> {bkok(kl, B.at(TB.buckets(tb, kl, n), j)) == True{} : Bool}:
-  L.subst(B.Bk, z => {bkok(kl, z) == True{} : Bool}, TB.dec(tb, kl, j), B.at(TB.buckets(tb, kl, n), j), Equal.sym(B.Bk, B.at(TB.buckets(tb, kl, n), j), TB.dec(tb, kl, j), TB.at_buckets(tb, kl, n, j, hj)), bkok_dec(TB.nth0(tb, Nat.double(j)), TB.nth0(tb, 1n+Nat.double(j)), kl, U32.is_eq(TB.nth0(tb, Nat.double(j)), 0)))
+  L.subst(B.Bk, z => {bkok(kl, z) == True{} : Bool}, TB.dec(tb, kl, j), B.at(TB.buckets(tb, kl, n), j), Equal.sym(B.Bk, B.at(TB.buckets(tb, kl, n), j), TB.dec(tb, kl, j), TB.at_buckets(tb, kl, n, j, hj)), bkok_dec(W32.nth0(tb, Nat.double(j)), W32.nth0(tb, 1n+Nat.double(j)), kl, U32.is_eq(W32.nth0(tb, Nat.double(j)), 0)))
 
 %def BS TB.buckets(tb, kl, n)
 
@@ -75,11 +73,6 @@ def anyb_nk(+tb: List<&2, U32>, +kl: List<&2, String>, +n: Nat, +key: String, +h
       nk_c(tb, kl, n, key, w, l, j, hj, B.all_inst(B.PNo{$BS, key}, n, hno, j, hj), ST.isbf(B.at($BS, j), w, l), {==}, ha, h => anyb_nk(tb, kl, n, key, hno, w, l, j, N.lt_le(j, n, hj), h))
 
 # the slot of a slot's link
-def slot_lnk(+one: Nat, +h1: {one == 1n : Nat}, +s: Nat, +sd: Nat, +hsd: {Nat.is_lt(1n+sd, 32n) == True{} : Bool}, +hs: {Nat.is_lt(s, SC.pow2(sd)) == True{} : Bool}) -> {UD.v(H.slot(ST.lnk(s))) == s : Nat}:
-  +hk = N.lt_le(sd, 32n, N.lt_trans(sd, 1n+sd, 32n, N.lt_succ(sd), hsd))
-  +e1 = U.to_nat_from_nat(s, sd, hk, hs)
-  +hs2 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(sd)) == True{} : Bool}, s, UD.v(U32.from_nat(s)), Equal.sym(Nat, UD.v(U32.from_nat(s)), s, e1), hs)
-  Equal.trans(Nat, UD.v(H.slot(ST.lnk(s))), UD.v(U32.from_nat(s)), s, IU.slot_link(one, h1, U32.from_nat(s), IU.bound32(one, h1, UD.v(U32.from_nat(s)), sd, hsd, hs2)), e1)
 
 # THEOREM (table side, miss): no bucket holds key, so no listed slot does
 def nokey_of(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +tb: List<&2, U32>, +kl: List<&2, String>, +n: Nat, +key: String, +hno: {B.all_lt(B.PNo{$BS, key}, n) == True{} : Bool}, +ll: List<&2, U32>, +el: List<&2, Maybe<&2, V>>, +sd: Nat, +hsd: {Nat.is_lt(1n+sd, 32n) == True{} : Bool}, +fr: Nat, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +sl: List<&2, Nat>, +hs: {ST.slok(~V, sl, fr, el) == True{} : Bool}, +hh: {ST.hasall(~V, $BS, n, ll, sl) == True{} : Bool}) -> {ST.nokey(~V, ll, kl, sl, key) == True{} : Bool}:
@@ -89,9 +82,9 @@ def nokey_of(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +tb: List<&2, U32>, +k
     case Con{+s, +t}:
       +h0 = L.and_left(Bool.and(Nat.is_lt(s, fr), ST.live(~V, el, s)), ST.slok(~V, t, fr, el), hs)
       +hlt = N.lt_le_trans(s, fr, SC.pow2(sd), L.and_left(Nat.is_lt(s, fr), ST.live(~V, el, s), h0), hfr)
-      +nk = anyb_nk(tb, kl, n, key, hno, ST.lw(ll, s, 2n), ST.lnk(s), n, N.le_refl(n), L.and_left(ST.anyb($BS, n, ST.lnk(s), ST.lw(ll, s, 2n)), ST.hasall(~V, $BS, n, ll, t), hh))
-      +nk2 = L.subst(Nat, z => {Bool.not(S.str_eq(TB.keyof(ST.lw(ll, s, 2n), TB.nths(kl, z)), key)) == True{} : Bool}, UD.v(H.slot(ST.lnk(s))), s, slot_lnk(one, h1, s, sd, hsd, hlt), nk)
-      L.and_intro(Bool.not(S.str_eq(ST.skey(ll, kl, s), key)), ST.nokey(~V, ll, kl, t, key), nk2, nokey_of(~V, one, h1, tb, kl, n, key, hno, ll, el, sd, hsd, fr, hfr, t, L.and_right(Bool.and(Nat.is_lt(s, fr), ST.live(~V, el, s)), ST.slok(~V, t, fr, el), hs), L.and_right(ST.anyb($BS, n, ST.lnk(s), ST.lw(ll, s, 2n)), ST.hasall(~V, $BS, n, ll, t), hh)))
+      +nk = anyb_nk(tb, kl, n, key, hno, ST.lw(ll, s, 2n), LK.lnk(s), n, N.le_refl(n), L.and_left(ST.anyb($BS, n, LK.lnk(s), ST.lw(ll, s, 2n)), ST.hasall(~V, $BS, n, ll, t), hh))
+      +nk2 = L.subst(Nat, z => {Bool.not(S.str_eq(TB.keyof(ST.lw(ll, s, 2n), TB.nths(kl, z)), key)) == True{} : Bool}, UD.v(H.slot(LK.lnk(s))), s, LK.slot_lnk(one, h1, s, sd, hsd, hlt), nk)
+      L.and_intro(Bool.not(S.str_eq(ST.skey(ll, kl, s), key)), ST.nokey(~V, ll, kl, t, key), nk2, nokey_of(~V, one, h1, tb, kl, n, key, hno, ll, el, sd, hsd, fr, hfr, t, L.and_right(Bool.and(Nat.is_lt(s, fr), ST.live(~V, el, s)), ST.slok(~V, t, fr, el), hs), L.and_right(ST.anyb($BS, n, LK.lnk(s), ST.lw(ll, s, 2n)), ST.hasall(~V, $BS, n, ll, t), hh)))
 
 # ---- the hit ----
 
@@ -110,12 +103,12 @@ def bsl_inst(+bs: List<&2, B.Bk>, +sl: List<&2, Nat>, +ll: List<&2, U32>, +m: Na
       bsl_c(bs, sl, ll, q, h, i, Nat.is_eq(i, q), {==}, hq => bsl_inst(bs, sl, ll, q, L.and_right(ST.bslb(sl, ll, B.at(bs, q)), ST.bsl(bs, sl, ll, q), h), i, hq), hi)
 
 # a full bucket holding key: its slot is listed
-def hit_mem(+sl: List<&2, Nat>, +ll: List<&2, U32>, +key: String, +b: B.Bk, +hh: {B.hold(key, b) == True{} : Bool}, +hb: {ST.bslb(sl, ll, b) == True{} : Bool}) -> {HT.memn(UD.v(H.slot(B.lnk(b))), sl) == True{} : Bool}:
+def hit_mem(+sl: List<&2, Nat>, +ll: List<&2, U32>, +key: String, +b: B.Bk, +hh: {B.hold(key, b) == True{} : Bool}, +hb: {ST.bslb(sl, ll, b) == True{} : Bool}) -> {NL.memn(UD.v(H.slot(B.lnk(b))), sl) == True{} : Bool}:
   match b:
     case B.BE{}:
-      Empty.absurd({HT.memn(UD.v(H.slot(B.lnk(B.BE{}))), sl) == True{} : Bool}, L.false_true(hh))
+      Empty.absurd({NL.memn(UD.v(H.slot(B.lnk(B.BE{}))), sl) == True{} : Bool}, L.false_true(hh))
     case B.BF{+w, +l, +k}:
-      L.and_left(HT.memn(UD.v(H.slot(l)), sl), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), hb)
+      L.and_left(NL.memn(UD.v(H.slot(l)), sl), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), hb)
 
 # ... and that slot's key is key
 def hit_key(+sl: List<&2, Nat>, +ll: List<&2, U32>, +kl: List<&2, String>, +key: String, +b: B.Bk, +hh: {B.hold(key, b) == True{} : Bool}, +hb: {ST.bslb(sl, ll, b) == True{} : Bool}, +hk: {bkok(kl, b) == True{} : Bool}) -> {S.str_eq(ST.skey(ll, kl, UD.v(H.slot(B.lnk(b)))), key) == True{} : Bool}:
@@ -123,12 +116,12 @@ def hit_key(+sl: List<&2, Nat>, +ll: List<&2, U32>, +kl: List<&2, String>, +key:
     case B.BE{}:
       Empty.absurd({S.str_eq(ST.skey(ll, kl, UD.v(H.slot(B.lnk(B.BE{})))), key) == True{} : Bool}, L.false_true(hh))
     case B.BF{+w, +l, +k}:
-      +ew = A.eq_of(ST.lw(ll, UD.v(H.slot(l)), 2n), w, L.and_right(HT.memn(UD.v(H.slot(l)), sl), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), hb))
+      +ew = A.eq_of(ST.lw(ll, UD.v(H.slot(l)), 2n), w, L.and_right(NL.memn(UD.v(H.slot(l)), sl), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), hb))
       +ek = K.str_eq_of(k, TB.keyof(w, TB.nths(kl, UD.v(H.slot(l)))), hk)
       +e = Equal.trans(String, ST.skey(ll, kl, UD.v(H.slot(l))), TB.keyof(w, TB.nths(kl, UD.v(H.slot(l)))), k, Equal.cong(U32, String, z => TB.keyof(z, TB.nths(kl, UD.v(H.slot(l)))), ST.lw(ll, UD.v(H.slot(l)), 2n), w, ew), Equal.sym(String, k, TB.keyof(w, TB.nths(kl, UD.v(H.slot(l)))), ek))
       L.subst(String, z => {S.str_eq(z, key) == True{} : Bool}, k, ST.skey(ll, kl, UD.v(H.slot(l))), Equal.sym(String, ST.skey(ll, kl, UD.v(H.slot(l))), k, e), hh)
 
-def sm_c(~V: Data, +el: List<&2, Maybe<&2, V>>, +fr: Nat, +s: Nat, +s0: Nat, +t: List<&2, Nat>, +h: {Bool.and(Bool.and(Nat.is_lt(s0, fr), ST.live(~V, el, s0)), ST.slok(~V, t, fr, el)) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(s0, s) == c : Bool}, +hm: {Bool.or(c, HT.memn(s, t)) == True{} : Bool}, rec: @hs: {ST.slok(~V, t, fr, el) == True{} : Bool} -> @hm2: {HT.memn(s, t) == True{} : Bool} -> {Bool.and(Nat.is_lt(s, fr), ST.live(~V, el, s)) == True{} : Bool}) -> {Bool.and(Nat.is_lt(s, fr), ST.live(~V, el, s)) == True{} : Bool}:
+def sm_c(~V: Data, +el: List<&2, Maybe<&2, V>>, +fr: Nat, +s: Nat, +s0: Nat, +t: List<&2, Nat>, +h: {Bool.and(Bool.and(Nat.is_lt(s0, fr), ST.live(~V, el, s0)), ST.slok(~V, t, fr, el)) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(s0, s) == c : Bool}, +hm: {Bool.or(c, NL.memn(s, t)) == True{} : Bool}, rec: @hs: {ST.slok(~V, t, fr, el) == True{} : Bool} -> @hm2: {NL.memn(s, t) == True{} : Bool} -> {Bool.and(Nat.is_lt(s, fr), ST.live(~V, el, s)) == True{} : Bool}) -> {Bool.and(Nat.is_lt(s, fr), ST.live(~V, el, s)) == True{} : Bool}:
   match c:
     case True{}:
       L.subst(Nat, z => {Bool.and(Nat.is_lt(z, fr), ST.live(~V, el, z)) == True{} : Bool}, s0, s, N.eq_from_is_eq(s0, s, hc), L.and_left(Bool.and(Nat.is_lt(s0, fr), ST.live(~V, el, s0)), ST.slok(~V, t, fr, el), h))
@@ -136,7 +129,7 @@ def sm_c(~V: Data, +el: List<&2, Maybe<&2, V>>, +fr: Nat, +s: Nat, +s0: Nat, +t:
       rec(L.and_right(Bool.and(Nat.is_lt(s0, fr), ST.live(~V, el, s0)), ST.slok(~V, t, fr, el), h), hm)
 
 # a listed slot is below fr and live
-def slok_mem(~V: Data, +el: List<&2, Maybe<&2, V>>, +fr: Nat, +s: Nat, +sl: List<&2, Nat>, +h: {ST.slok(~V, sl, fr, el) == True{} : Bool}, +hm: {HT.memn(s, sl) == True{} : Bool}) -> {Bool.and(Nat.is_lt(s, fr), ST.live(~V, el, s)) == True{} : Bool}:
+def slok_mem(~V: Data, +el: List<&2, Maybe<&2, V>>, +fr: Nat, +s: Nat, +sl: List<&2, Nat>, +h: {ST.slok(~V, sl, fr, el) == True{} : Bool}, +hm: {NL.memn(s, sl) == True{} : Bool}) -> {Bool.and(Nat.is_lt(s, fr), ST.live(~V, el, s)) == True{} : Bool}:
   match sl:
     case Nil{}:
       Empty.absurd({Bool.and(Nat.is_lt(s, fr), ST.live(~V, el, s)) == True{} : Bool}, L.false_true(hm))

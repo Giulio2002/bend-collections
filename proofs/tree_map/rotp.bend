@@ -5,9 +5,6 @@ import ../lib/list.bend as LL
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./mirror.bend as MI
 import ./tree.bend as TR
@@ -20,7 +17,7 @@ import ./nbr.bend as NB
 import ./dj.bend as DJ
 import ./spath.bend as SP
 import ./ends.bend as EN
-import ../spec/tree_map.bend as S
+import ../lib/nat_list.bend as NL
 
 # A rotation of the mirror at the subtree a path leads to: its result over
 # the node list, the rotated subtree linked, the path leading to it, the
@@ -49,13 +46,13 @@ def dir_c(+x: Nat, +lft: Bool, +s: Nat, +h: {Bool.not(Nat.is_eq(x, s)) == True{}
     case True{}:
       N.is_eq_refl(x)
     case False{}:
-      N.is_eq_sym_false(x, s, LS.not_t_f(Nat.is_eq(x, s), h))
+      N.is_eq_sym_false(x, s, NL.not_t_f(Nat.is_eq(x, s), h))
 
 # the side the parent's node has x on is the path's
 def dir_eq(~K: Data, +nl: List<&2, M.Node<K>>, +c: List<&2, P.Fr>, +x: Nat, +hok: {P.ctxok(~K, c, x, nl) == True{} : Bool}, +hd: {P.dist(c, x) == True{} : Bool}, +hx: {Nat.is_lt(0n, x) == True{} : Bool}) -> {Nat.is_eq(M.node_left(~K, ST.nd(K, nl, P.top(c))), x) == SP.dir(c) : Bool}:
   match c:
     case Nil{}:
-      N.is_eq_sym_false(x, 0n, LS.not_t_f(Nat.is_eq(x, 0n), P.ne_zero(x, hx)))
+      N.is_eq_sym_false(x, 0n, NL.not_t_f(Nat.is_eq(x, 0n), P.ne_zero(x, hx)))
     case Con{P.FR{+q, +lft, +s}, +u}:
       +hk = L.and_left(P.cok1(~K, P.FR{q, lft, s}, x, P.top(u), nl), P.ctxok(~K, u, q, nl), hok)
       +hn = L.and_left(ST.is_node(K, ST.nd(K, nl, q), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)), ST.rep(~K, s, q, nl), L.and_right(Nat.is_lt(0n, q), Bool.and(ST.is_node(K, ST.nd(K, nl, q), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)), ST.rep(~K, s, q, nl)), hk))
@@ -116,7 +113,7 @@ def root_rot(~K: Data, +nl: List<&2, M.Node<K>>, +c: List<&2, P.Fr>, +x: Nat, +y
 
 # ---- facts from no repeated ids ----
 
-def q_notin(~K: Data, +nl: List<&2, M.Node<K>>, +c: List<&2, P.Fr>, +t: ST.Tr, +hr: {ST.rep(~K, t, P.top(c), nl) == True{} : Bool}, +hnd: {LST.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(t), P.after(c)))) == True{} : Bool}) -> {HT.memn(P.top(c), ST.ids(t)) == False{} : Bool}:
+def q_notin(~K: Data, +nl: List<&2, M.Node<K>>, +c: List<&2, P.Fr>, +t: ST.Tr, +hr: {ST.rep(~K, t, P.top(c), nl) == True{} : Bool}, +hnd: {NL.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(t), P.after(c)))) == True{} : Bool}) -> {NL.memn(P.top(c), ST.ids(t)) == False{} : Bool}:
   match c:
     case Nil{}:
       RT.zero_ids(~K, nl, t, 0n, hr)
@@ -125,29 +122,29 @@ def q_notin(~K: Data, +nl: List<&2, M.Node<K>>, +c: List<&2, P.Fr>, +t: ST.Tr, +
     case Con{P.FR{+q, False{}, +s}, +u}:
       DJ.nm_l(q, ST.ids(t), P.after(u), DJ.dj_r(SC.append(Nat, P.before(u), SC.append(Nat, ST.ids(s), Con{q, Nil{}})), SC.append(Nat, ST.ids(t), P.after(u)), hnd, q, DJ.mem_r(q, P.before(u), SC.append(Nat, ST.ids(s), Con{q, Nil{}}), DJ.mem_r(q, ST.ids(s), Con{q, Nil{}}, DJ.mem_hd(q, Nil{})))))
 
-def w_notin(+c: List<&2, P.Fr>, +t: ST.Tr, +hnd: {LST.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(t), P.after(c)))) == True{} : Bool}, +w: Nat, +hw: {HT.memn(w, ST.ids(t)) == True{} : Bool}) -> {HT.memn(w, SC.append(Nat, P.before(c), P.after(c))) == False{} : Bool}:
+def w_notin(+c: List<&2, P.Fr>, +t: ST.Tr, +hnd: {NL.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(t), P.after(c)))) == True{} : Bool}, +w: Nat, +hw: {NL.memn(w, ST.ids(t)) == True{} : Bool}) -> {NL.memn(w, SC.append(Nat, P.before(c), P.after(c))) == False{} : Bool}:
   DJ.nm_app(w, P.before(c), P.after(c), DJ.dj_l(P.before(c), SC.append(Nat, ST.ids(t), P.after(c)), hnd, w, DJ.mem_l(w, ST.ids(t), P.after(c), hw)), DJ.dj_r(ST.ids(t), P.after(c), DJ.ndr(P.before(c), SC.append(Nat, ST.ids(t), P.after(c)), hnd), w, hw))
 
-def nd_sub(+c: List<&2, P.Fr>, +t: ST.Tr, +hnd: {LST.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(t), P.after(c)))) == True{} : Bool}) -> {LST.nodupn(ST.ids(t)) == True{} : Bool}:
+def nd_sub(+c: List<&2, P.Fr>, +t: ST.Tr, +hnd: {NL.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(t), P.after(c)))) == True{} : Bool}) -> {NL.nodupn(ST.ids(t)) == True{} : Bool}:
   DJ.ndl(ST.ids(t), P.after(c), DJ.ndr(P.before(c), SC.append(Nat, ST.ids(t), P.after(c)), hnd))
 
 # ---- rotating along a path ----
 
 
-def rotl_path_eq(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: List<&2, Nat>, +c: List<&2, P.Fr>, +x: Nat, +ta: ST.Tr, +y: Nat, +tb: ST.Tr, +tc: ST.Tr, +hr: {ST.rep(~K, ST.TN{x, ta, ST.TN{y, tb, tc}}, P.top(c), nl) == True{} : Bool}, +hok: {P.ctxok(~K, c, x, nl) == True{} : Bool}, +hnd: {LST.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{x, ta, ST.TN{y, tb, tc}}), P.after(c)))) == True{} : Bool}) -> {MI.rotate_left(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, x) == ST.SH{n, RM.rootq(P.top(c), root, y), lo, hi, free, l, d, RM.rotl_nl(K, nl, x, y, ST.rid(tb), P.top(c), SP.dir(c)), pl, tg, fl} : ST.Sh<K, V>}:
+def rotl_path_eq(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: List<&2, Nat>, +c: List<&2, P.Fr>, +x: Nat, +ta: ST.Tr, +y: Nat, +tb: ST.Tr, +tc: ST.Tr, +hr: {ST.rep(~K, ST.TN{x, ta, ST.TN{y, tb, tc}}, P.top(c), nl) == True{} : Bool}, +hok: {P.ctxok(~K, c, x, nl) == True{} : Bool}, +hnd: {NL.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{x, ta, ST.TN{y, tb, tc}}), P.after(c)))) == True{} : Bool}) -> {MI.rotate_left(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, x) == ST.SH{n, RM.rootq(P.top(c), root, y), lo, hi, free, l, d, RM.rotl_nl(K, nl, x, y, ST.rid(tb), P.top(c), SP.dir(c)), pl, tg, fl} : ST.Sh<K, V>}:
   rl_eq(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, c, x, y, ST.rid(tb), NB.parent_eq(~K, ST.nd(K, nl, x), ST.rid(ta), y, P.top(c), TR.rep_node(~K, x, ta, ST.TN{y, tb, tc}, P.top(c), nl, hr)), f_right(K, ST.nd(K, nl, x), ST.rid(ta), y, P.top(c), TR.rep_node(~K, x, ta, ST.TN{y, tb, tc}, P.top(c), nl, hr)), f_left(K, ST.nd(K, nl, y), ST.rid(tb), ST.rid(tc), x, TR.rep_node(~K, y, tb, tc, x, nl, TR.rep_r(~K, x, ta, ST.TN{y, tb, tc}, P.top(c), nl, hr))), dir_eq(~K, nl, c, x, hok, P.nd_dist(~K, nl, c, x, ta, ST.TN{y, tb, tc}, L.and_left(Nat.is_lt(0n, x), Bool.and(ST.is_node(K, ST.nd(K, nl, x), ST.rid(ta), y, P.top(c)), Bool.and(ST.rep(~K, ta, x, nl), ST.rep(~K, ST.TN{y, tb, tc}, x, nl))), hr), hok, hnd), L.and_left(Nat.is_lt(0n, x), Bool.and(ST.is_node(K, ST.nd(K, nl, x), ST.rid(ta), y, P.top(c)), Bool.and(ST.rep(~K, ta, x, nl), ST.rep(~K, ST.TN{y, tb, tc}, x, nl))), hr)))
 
-def rotr_path_eq(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: List<&2, Nat>, +c: List<&2, P.Fr>, +x: Nat, +ta: ST.Tr, +y: Nat, +tb: ST.Tr, +tc: ST.Tr, +hr: {ST.rep(~K, ST.TN{x, ST.TN{y, ta, tb}, tc}, P.top(c), nl) == True{} : Bool}, +hok: {P.ctxok(~K, c, x, nl) == True{} : Bool}, +hnd: {LST.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{x, ST.TN{y, ta, tb}, tc}), P.after(c)))) == True{} : Bool}) -> {MI.rotate_right(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, x) == ST.SH{n, RM.rootq(P.top(c), root, y), lo, hi, free, l, d, RM.rotr_nl(K, nl, x, y, ST.rid(tb), P.top(c), SP.dir(c)), pl, tg, fl} : ST.Sh<K, V>}:
+def rotr_path_eq(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: List<&2, Nat>, +c: List<&2, P.Fr>, +x: Nat, +ta: ST.Tr, +y: Nat, +tb: ST.Tr, +tc: ST.Tr, +hr: {ST.rep(~K, ST.TN{x, ST.TN{y, ta, tb}, tc}, P.top(c), nl) == True{} : Bool}, +hok: {P.ctxok(~K, c, x, nl) == True{} : Bool}, +hnd: {NL.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{x, ST.TN{y, ta, tb}, tc}), P.after(c)))) == True{} : Bool}) -> {MI.rotate_right(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, x) == ST.SH{n, RM.rootq(P.top(c), root, y), lo, hi, free, l, d, RM.rotr_nl(K, nl, x, y, ST.rid(tb), P.top(c), SP.dir(c)), pl, tg, fl} : ST.Sh<K, V>}:
   rr_eq(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, c, x, y, ST.rid(tb), NB.parent_eq(~K, ST.nd(K, nl, x), y, ST.rid(tc), P.top(c), TR.rep_node(~K, x, ST.TN{y, ta, tb}, tc, P.top(c), nl, hr)), f_left(K, ST.nd(K, nl, x), y, ST.rid(tc), P.top(c), TR.rep_node(~K, x, ST.TN{y, ta, tb}, tc, P.top(c), nl, hr)), f_right(K, ST.nd(K, nl, y), ST.rid(ta), ST.rid(tb), x, TR.rep_node(~K, y, ta, tb, x, nl, TR.rep_l(~K, x, ST.TN{y, ta, tb}, tc, P.top(c), nl, hr))), dir_eq(~K, nl, c, x, hok, P.nd_dist(~K, nl, c, x, ST.TN{y, ta, tb}, tc, L.and_left(Nat.is_lt(0n, x), Bool.and(ST.is_node(K, ST.nd(K, nl, x), y, ST.rid(tc), P.top(c)), Bool.and(ST.rep(~K, ST.TN{y, ta, tb}, x, nl), ST.rep(~K, tc, x, nl))), hr), hok, hnd), L.and_left(Nat.is_lt(0n, x), Bool.and(ST.is_node(K, ST.nd(K, nl, x), y, ST.rid(tc), P.top(c)), Bool.and(ST.rep(~K, ST.TN{y, ta, tb}, x, nl), ST.rep(~K, tc, x, nl))), hr)))
 
-def rotl_path_rep(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +nl: List<&2, M.Node<K>>, +c: List<&2, P.Fr>, +x: Nat, +ta: ST.Tr, +y: Nat, +tb: ST.Tr, +tc: ST.Tr, +hr: {ST.rep(~K, ST.TN{x, ta, ST.TN{y, tb, tc}}, P.top(c), nl) == True{} : Bool}, +hok: {P.ctxok(~K, c, x, nl) == True{} : Bool}, +hnd: {LST.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{x, ta, ST.TN{y, tb, tc}}), P.after(c)))) == True{} : Bool}) -> {ST.rep(~K, ST.TN{y, ST.TN{x, ta, tb}, tc}, P.top(c), RM.rotl_nl(K, nl, x, y, ST.rid(tb), P.top(c), SP.dir(c))) == True{} : Bool}:
+def rotl_path_rep(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +nl: List<&2, M.Node<K>>, +c: List<&2, P.Fr>, +x: Nat, +ta: ST.Tr, +y: Nat, +tb: ST.Tr, +tc: ST.Tr, +hr: {ST.rep(~K, ST.TN{x, ta, ST.TN{y, tb, tc}}, P.top(c), nl) == True{} : Bool}, +hok: {P.ctxok(~K, c, x, nl) == True{} : Bool}, +hnd: {NL.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{x, ta, ST.TN{y, tb, tc}}), P.after(c)))) == True{} : Bool}) -> {ST.rep(~K, ST.TN{y, ST.TN{x, ta, tb}, tc}, P.top(c), RM.rotl_nl(K, nl, x, y, ST.rid(tb), P.top(c), SP.dir(c))) == True{} : Bool}:
   RT.rotl_rep(~K, ~cmp, ~o, nl, x, ta, y, tb, tc, P.top(c), SP.dir(c), L.and_left(Nat.is_lt(0n, x), Bool.and(ST.is_node(K, ST.nd(K, nl, x), ST.rid(ta), y, P.top(c)), Bool.and(ST.rep(~K, ta, x, nl), ST.rep(~K, ST.TN{y, tb, tc}, x, nl))), hr), L.and_left(Nat.is_lt(0n, y), Bool.and(ST.is_node(K, ST.nd(K, nl, y), ST.rid(tb), ST.rid(tc), x), Bool.and(ST.rep(~K, tb, y, nl), ST.rep(~K, tc, y, nl))), TR.rep_r(~K, x, ta, ST.TN{y, tb, tc}, P.top(c), nl, hr)), TR.rep_node(~K, x, ta, ST.TN{y, tb, tc}, P.top(c), nl, hr), TR.rep_node(~K, y, tb, tc, x, nl, TR.rep_r(~K, x, ta, ST.TN{y, tb, tc}, P.top(c), nl, hr)), TR.rep_l(~K, x, ta, ST.TN{y, tb, tc}, P.top(c), nl, hr), TR.rep_l(~K, y, tb, tc, x, nl, TR.rep_r(~K, x, ta, ST.TN{y, tb, tc}, P.top(c), nl, hr)), TR.rep_r(~K, y, tb, tc, x, nl, TR.rep_r(~K, x, ta, ST.TN{y, tb, tc}, P.top(c), nl, hr)), nd_sub(c, ST.TN{x, ta, ST.TN{y, tb, tc}}, hnd), q_notin(~K, nl, c, ST.TN{x, ta, ST.TN{y, tb, tc}}, hr, hnd))
 
-def rotr_path_rep(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +nl: List<&2, M.Node<K>>, +c: List<&2, P.Fr>, +x: Nat, +ta: ST.Tr, +y: Nat, +tb: ST.Tr, +tc: ST.Tr, +hr: {ST.rep(~K, ST.TN{x, ST.TN{y, ta, tb}, tc}, P.top(c), nl) == True{} : Bool}, +hok: {P.ctxok(~K, c, x, nl) == True{} : Bool}, +hnd: {LST.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{x, ST.TN{y, ta, tb}, tc}), P.after(c)))) == True{} : Bool}) -> {ST.rep(~K, ST.TN{y, ta, ST.TN{x, tb, tc}}, P.top(c), RM.rotr_nl(K, nl, x, y, ST.rid(tb), P.top(c), SP.dir(c))) == True{} : Bool}:
+def rotr_path_rep(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +nl: List<&2, M.Node<K>>, +c: List<&2, P.Fr>, +x: Nat, +ta: ST.Tr, +y: Nat, +tb: ST.Tr, +tc: ST.Tr, +hr: {ST.rep(~K, ST.TN{x, ST.TN{y, ta, tb}, tc}, P.top(c), nl) == True{} : Bool}, +hok: {P.ctxok(~K, c, x, nl) == True{} : Bool}, +hnd: {NL.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{x, ST.TN{y, ta, tb}, tc}), P.after(c)))) == True{} : Bool}) -> {ST.rep(~K, ST.TN{y, ta, ST.TN{x, tb, tc}}, P.top(c), RM.rotr_nl(K, nl, x, y, ST.rid(tb), P.top(c), SP.dir(c))) == True{} : Bool}:
   RT.rotr_rep(~K, ~cmp, ~o, nl, x, y, ta, tb, tc, P.top(c), SP.dir(c), L.and_left(Nat.is_lt(0n, x), Bool.and(ST.is_node(K, ST.nd(K, nl, x), y, ST.rid(tc), P.top(c)), Bool.and(ST.rep(~K, ST.TN{y, ta, tb}, x, nl), ST.rep(~K, tc, x, nl))), hr), L.and_left(Nat.is_lt(0n, y), Bool.and(ST.is_node(K, ST.nd(K, nl, y), ST.rid(ta), ST.rid(tb), x), Bool.and(ST.rep(~K, ta, y, nl), ST.rep(~K, tb, y, nl))), TR.rep_l(~K, x, ST.TN{y, ta, tb}, tc, P.top(c), nl, hr)), TR.rep_node(~K, x, ST.TN{y, ta, tb}, tc, P.top(c), nl, hr), TR.rep_node(~K, y, ta, tb, x, nl, TR.rep_l(~K, x, ST.TN{y, ta, tb}, tc, P.top(c), nl, hr)), TR.rep_l(~K, y, ta, tb, x, nl, TR.rep_l(~K, x, ST.TN{y, ta, tb}, tc, P.top(c), nl, hr)), TR.rep_r(~K, y, ta, tb, x, nl, TR.rep_l(~K, x, ST.TN{y, ta, tb}, tc, P.top(c), nl, hr)), TR.rep_r(~K, x, ST.TN{y, ta, tb}, tc, P.top(c), nl, hr), nd_sub(c, ST.TN{x, ST.TN{y, ta, tb}, tc}, hnd), q_notin(~K, nl, c, ST.TN{x, ST.TN{y, ta, tb}, tc}, hr, hnd))
 
 
-def rotl_path_ctx(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +nl: List<&2, M.Node<K>>, +c: List<&2, P.Fr>, +x: Nat, +ta: ST.Tr, +y: Nat, +tb: ST.Tr, +tc: ST.Tr, +hr: {ST.rep(~K, ST.TN{x, ta, ST.TN{y, tb, tc}}, P.top(c), nl) == True{} : Bool}, +hok: {P.ctxok(~K, c, x, nl) == True{} : Bool}, +hnd: {LST.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{x, ta, ST.TN{y, tb, tc}}), P.after(c)))) == True{} : Bool}) -> {P.ctxok(~K, c, y, RM.rotl_nl(K, nl, x, y, ST.rid(tb), P.top(c), SP.dir(c))) == True{} : Bool}:
+def rotl_path_ctx(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +nl: List<&2, M.Node<K>>, +c: List<&2, P.Fr>, +x: Nat, +ta: ST.Tr, +y: Nat, +tb: ST.Tr, +tc: ST.Tr, +hr: {ST.rep(~K, ST.TN{x, ta, ST.TN{y, tb, tc}}, P.top(c), nl) == True{} : Bool}, +hok: {P.ctxok(~K, c, x, nl) == True{} : Bool}, +hnd: {NL.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{x, ta, ST.TN{y, tb, tc}}), P.after(c)))) == True{} : Bool}) -> {P.ctxok(~K, c, y, RM.rotl_nl(K, nl, x, y, ST.rid(tb), P.top(c), SP.dir(c))) == True{} : Bool}:
   match tb:
     case ST.TE{}:
       RT.rotl_ctx(~K, ~cmp, ~o, nl, c, x, y, 0n, hok, w_notin(c, ST.TN{x, ta, ST.TN{y, ST.TE{}, tc}}, hnd, x, DJ.mem_r(x, ST.ids(ta), Con{x, Con{y, ST.ids(tc)}}, DJ.mem_hd(x, Con{y, ST.ids(tc)}))), w_notin(c, ST.TN{x, ta, ST.TN{y, ST.TE{}, tc}}, hnd, y, DJ.mem_r(y, ST.ids(ta), Con{x, Con{y, ST.ids(tc)}}, DJ.mem_tl(y, x, Con{y, ST.ids(tc)}, DJ.mem_hd(y, ST.ids(tc))))), RT.zero_ctx(~K, nl, c, x, hok), RT.nd_drop(P.before(c), ST.ids(ST.TN{x, ta, ST.TN{y, ST.TE{}, tc}}), P.after(c), hnd))
@@ -156,7 +153,7 @@ def rotl_path_ctx(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +nl: Lis
       RT.rotl_ctx(~K, ~cmp, ~o, nl, c, x, y, b, hok, w_notin(c, ST.TN{x, ta, ST.TN{y, ST.TN{b, b1, b2}, tc}}, hnd, x, DJ.mem_r(x, ST.ids(ta), Con{x, SC.append(Nat, ST.ids(ST.TN{b, b1, b2}), Con{y, ST.ids(tc)})}, DJ.mem_hd(x, SC.append(Nat, ST.ids(ST.TN{b, b1, b2}), Con{y, ST.ids(tc)})))), w_notin(c, ST.TN{x, ta, ST.TN{y, ST.TN{b, b1, b2}, tc}}, hnd, y, DJ.mem_r(y, ST.ids(ta), Con{x, SC.append(Nat, ST.ids(ST.TN{b, b1, b2}), Con{y, ST.ids(tc)})}, DJ.mem_tl(y, x, SC.append(Nat, ST.ids(ST.TN{b, b1, b2}), Con{y, ST.ids(tc)}), DJ.mem_r(y, ST.ids(ST.TN{b, b1, b2}), Con{y, ST.ids(tc)}, DJ.mem_hd(y, ST.ids(tc)))))), w_notin(c, ST.TN{x, ta, ST.TN{y, ST.TN{b, b1, b2}, tc}}, hnd, b, mb), RT.nd_drop(P.before(c), ST.ids(ST.TN{x, ta, ST.TN{y, ST.TN{b, b1, b2}, tc}}), P.after(c), hnd))
 
 
-def rotr_path_ctx(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +nl: List<&2, M.Node<K>>, +c: List<&2, P.Fr>, +x: Nat, +ta: ST.Tr, +y: Nat, +tb: ST.Tr, +tc: ST.Tr, +hr: {ST.rep(~K, ST.TN{x, ST.TN{y, ta, tb}, tc}, P.top(c), nl) == True{} : Bool}, +hok: {P.ctxok(~K, c, x, nl) == True{} : Bool}, +hnd: {LST.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{x, ST.TN{y, ta, tb}, tc}), P.after(c)))) == True{} : Bool}) -> {P.ctxok(~K, c, y, RM.rotr_nl(K, nl, x, y, ST.rid(tb), P.top(c), SP.dir(c))) == True{} : Bool}:
+def rotr_path_ctx(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +nl: List<&2, M.Node<K>>, +c: List<&2, P.Fr>, +x: Nat, +ta: ST.Tr, +y: Nat, +tb: ST.Tr, +tc: ST.Tr, +hr: {ST.rep(~K, ST.TN{x, ST.TN{y, ta, tb}, tc}, P.top(c), nl) == True{} : Bool}, +hok: {P.ctxok(~K, c, x, nl) == True{} : Bool}, +hnd: {NL.nodupn(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{x, ST.TN{y, ta, tb}, tc}), P.after(c)))) == True{} : Bool}) -> {P.ctxok(~K, c, y, RM.rotr_nl(K, nl, x, y, ST.rid(tb), P.top(c), SP.dir(c))) == True{} : Bool}:
   match tb:
     case ST.TE{}:
       RT.rotr_ctx(~K, ~cmp, ~o, nl, c, x, y, 0n, hok, w_notin(c, ST.TN{x, ST.TN{y, ta, ST.TE{}}, tc}, hnd, x, DJ.mem_r(x, SC.append(Nat, ST.ids(ta), Con{y, Nil{}}), Con{x, ST.ids(tc)}, DJ.mem_hd(x, ST.ids(tc)))), w_notin(c, ST.TN{x, ST.TN{y, ta, ST.TE{}}, tc}, hnd, y, DJ.mem_l(y, SC.append(Nat, ST.ids(ta), Con{y, Nil{}}), Con{x, ST.ids(tc)}, DJ.mem_r(y, ST.ids(ta), Con{y, Nil{}}, DJ.mem_hd(y, Nil{})))), RT.zero_ctx(~K, nl, c, x, hok), RT.nd_drop(P.before(c), ST.ids(ST.TN{x, ST.TN{y, ta, ST.TE{}}, tc}), P.after(c), hnd))

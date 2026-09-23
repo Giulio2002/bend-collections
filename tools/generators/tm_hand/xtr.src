@@ -1,15 +1,8 @@
 import Base
-import ../lib/logic.bend as L
-import ../lib/nat.bend as N
-import ../lib/list.bend as LL
-import ../lib/order.bend as O
-import ../spec/common.bend as SC
-import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
 import ./state.bend as ST
 import ./mirror.bend as MI
 import ./tree.bend as TR
-import ./find.bend as FI
 import ./nbr.bend as NB
 
 # The extremes the deletion reads: from an id the mirror's walk is the

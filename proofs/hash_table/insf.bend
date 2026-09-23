@@ -5,50 +5,50 @@ import ../spec/common.bend as SC
 import ../math/u32div.bend as UD
 import ../../src/containers/hash_table.bend as H
 import ./words.bend as WR
-import ./keys.bend as K
-import ./table.bend as TB
 import ./buckets.bend as B
 import ./state.bend as ST
 import ./insm.bend as IM
+import ../lib/nat_list.bend as NL
+import ../lib/words32.bend as W32
 
 # The free list across an insertion: its slots stay unused when the new
 # bucket takes a slot not on it, and forgetting visited slots keeps it valid.
 
 
-def mem_ne_c(+a: Nat, +t: Nat, +seen: List<&2, Nat>, +ha: {ST.memn(a, seen) == True{} : Bool}, +ht: {Bool.not(ST.memn(t, seen)) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(a, t) == c : Bool}) -> {c == False{} : Bool}:
+def mem_ne_c(+a: Nat, +t: Nat, +seen: List<&2, Nat>, +ha: {NL.memn(a, seen) == True{} : Bool}, +ht: {Bool.not(NL.memn(t, seen)) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(a, t) == c : Bool}) -> {c == False{} : Bool}:
   match c:
     case False{}:
       {==}
     case True{}:
-      +h2 = L.subst(Nat, z => {ST.memn(z, seen) == True{} : Bool}, a, t, N.eq_from_is_eq(a, t, hc), ha)
-      Empty.absurd({True{} == False{} : Bool}, L.false_true(L.subst(Bool, b => {Bool.not(b) == True{} : Bool}, ST.memn(t, seen), True{}, h2, ht)))
+      +h2 = L.subst(Nat, z => {NL.memn(z, seen) == True{} : Bool}, a, t, N.eq_from_is_eq(a, t, hc), ha)
+      Empty.absurd({True{} == False{} : Bool}, L.false_true(L.subst(Bool, b => {Bool.not(b) == True{} : Bool}, NL.memn(t, seen), True{}, h2, ht)))
 
 # a slot on the list and a slot not on it differ
-def mem_ne(+a: Nat, +t: Nat, +seen: List<&2, Nat>, +ha: {ST.memn(a, seen) == True{} : Bool}, +ht: {Bool.not(ST.memn(t, seen)) == True{} : Bool}) -> {Nat.is_eq(a, t) == False{} : Bool}:
+def mem_ne(+a: Nat, +t: Nat, +seen: List<&2, Nat>, +ha: {NL.memn(a, seen) == True{} : Bool}, +ht: {Bool.not(NL.memn(t, seen)) == True{} : Bool}) -> {Nat.is_eq(a, t) == False{} : Bool}:
   mem_ne_c(a, t, seen, ha, ht, Nat.is_eq(a, t), {==})
 
-def mem_cons(+a: Nat, +t: Nat, +seen: List<&2, Nat>, +ha: {ST.memn(a, seen) == True{} : Bool}) -> {ST.memn(a, Con{t, seen}) == True{} : Bool}:
-  L.subst(Bool, b => {Bool.or(Nat.is_eq(t, a), b) == True{} : Bool}, True{}, ST.memn(a, seen), Equal.sym(Bool, ST.memn(a, seen), True{}, ha), WR.or_true(Nat.is_eq(t, a)))
+def mem_cons(+a: Nat, +t: Nat, +seen: List<&2, Nat>, +ha: {NL.memn(a, seen) == True{} : Bool}) -> {NL.memn(a, Con{t, seen}) == True{} : Bool}:
+  L.subst(Bool, b => {Bool.or(Nat.is_eq(t, a), b) == True{} : Bool}, True{}, NL.memn(a, seen), Equal.sym(Bool, NL.memn(a, seen), True{}, ha), WR.or_true(Nat.is_eq(t, a)))
 
 # THEOREM: filling bucket e with a slot the list has visited keeps the list valid
-def fl_tr(+bs: List<&2, B.Bk>, +e: Nat, +he: {Nat.is_lt(e, SC.length(B.Bk, bs)) == True{} : Bool}, +w: U32, +L: U32, +key: String, +nb: Nat, +nxl: List<&2, U32>, +cnt: Nat, +f: U32, +fr: Nat, +seen: List<&2, Nat>, +hm: {ST.memn(UD.v(H.slot(L)), seen) == True{} : Bool}, +h: {ST.fl_ok(bs, nb, nxl, cnt, f, fr, seen) == True{} : Bool}) -> {ST.fl_ok(IM.bupd(bs, e, B.BF{w, L, key}), nb, nxl, cnt, f, fr, seen) == True{} : Bool}:
+def fl_tr(+bs: List<&2, B.Bk>, +e: Nat, +he: {Nat.is_lt(e, SC.length(B.Bk, bs)) == True{} : Bool}, +w: U32, +L: U32, +key: String, +nb: Nat, +nxl: List<&2, U32>, +cnt: Nat, +f: U32, +fr: Nat, +seen: List<&2, Nat>, +hm: {NL.memn(UD.v(H.slot(L)), seen) == True{} : Bool}, +h: {ST.fl_ok(bs, nb, nxl, cnt, f, fr, seen) == True{} : Bool}) -> {ST.fl_ok(IM.bupd(bs, e, B.BF{w, L, key}), nb, nxl, cnt, f, fr, seen) == True{} : Bool}:
   match cnt:
     case 0n:
       h
     case 1n+p:
       +x1 = Bool.not(U32.is_eq(f, 0))
-      +x2 = Bool.and(Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen)))), ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}))
-      +y = Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen))))
-      +z = Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen)))
+      +x2 = Bool.and(Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen)))), ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}))
+      +y = Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen))))
+      +z = Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen)))
       +a1 = L.and_left(x1, x2, h)
-      +a2 = L.and_left(y, ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}), L.and_right(x1, x2, h))
-      +a5 = L.and_right(y, ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}), L.and_right(x1, x2, h))
+      +a2 = L.and_left(y, ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}), L.and_right(x1, x2, h))
+      +a5 = L.and_right(y, ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}), L.and_right(x1, x2, h))
       +lt = L.and_left(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2)
-      +ns = L.and_left(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2))
-      +nm = L.and_right(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2))
+      +ns = L.and_left(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2))
+      +nm = L.and_right(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2))
       +ns2 = IM.noslot_up(bs, e, he, w, L, key, UD.v(H.slot(f)), mem_ne(UD.v(H.slot(L)), UD.v(H.slot(f)), seen, hm, nm), nb, ns)
-      +r5 = fl_tr(bs, e, he, w, L, key, nb, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}, mem_cons(UD.v(H.slot(L)), UD.v(H.slot(f)), seen, hm), a5)
-      L.and_intro(x1, Bool.and(Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(IM.bupd(bs, e, B.BF{w, L, key}), UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen)))), ST.fl_ok(IM.bupd(bs, e, B.BF{w, L, key}), nb, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen})), a1, L.and_intro(Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(IM.bupd(bs, e, B.BF{w, L, key}), UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen)))), ST.fl_ok(IM.bupd(bs, e, B.BF{w, L, key}), nb, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}), L.and_intro(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(IM.bupd(bs, e, B.BF{w, L, key}), UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen))), lt, L.and_intro(ST.noslot(IM.bupd(bs, e, B.BF{w, L, key}), UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen)), ns2, nm)), r5))
+      +r5 = fl_tr(bs, e, he, w, L, key, nb, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}, mem_cons(UD.v(H.slot(L)), UD.v(H.slot(f)), seen, hm), a5)
+      L.and_intro(x1, Bool.and(Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(IM.bupd(bs, e, B.BF{w, L, key}), UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen)))), ST.fl_ok(IM.bupd(bs, e, B.BF{w, L, key}), nb, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen})), a1, L.and_intro(Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(IM.bupd(bs, e, B.BF{w, L, key}), UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen)))), ST.fl_ok(IM.bupd(bs, e, B.BF{w, L, key}), nb, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}), L.and_intro(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(IM.bupd(bs, e, B.BF{w, L, key}), UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen))), lt, L.and_intro(ST.noslot(IM.bupd(bs, e, B.BF{w, L, key}), UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen)), ns2, nm)), r5))
 
 # ---- forgetting visited slots ----
 
@@ -57,38 +57,38 @@ def subl(+xs: List<&2, Nat>, +ys: List<&2, Nat>) -> Bool:
     case Nil{}:
       True{}
     case Con{+x, t}:
-      Bool.and(ST.memn(x, ys), subl(t, ys))
+      Bool.and(NL.memn(x, ys), subl(t, ys))
 
-def ms_c(+t: Nat, +x: Nat, +r: List<&2, Nat>, +ys: List<&2, Nat>, +hx: {ST.memn(x, ys) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(x, t) == c : Bool}, +hm: {Bool.or(c, ST.memn(t, r)) == True{} : Bool}, rec: @hr: {ST.memn(t, r) == True{} : Bool} -> {ST.memn(t, ys) == True{} : Bool}) -> {ST.memn(t, ys) == True{} : Bool}:
+def ms_c(+t: Nat, +x: Nat, +r: List<&2, Nat>, +ys: List<&2, Nat>, +hx: {NL.memn(x, ys) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(x, t) == c : Bool}, +hm: {Bool.or(c, NL.memn(t, r)) == True{} : Bool}, rec: @hr: {NL.memn(t, r) == True{} : Bool} -> {NL.memn(t, ys) == True{} : Bool}) -> {NL.memn(t, ys) == True{} : Bool}:
   match c:
     case True{}:
-      L.subst(Nat, z => {ST.memn(z, ys) == True{} : Bool}, x, t, N.eq_from_is_eq(x, t, hc), hx)
+      L.subst(Nat, z => {NL.memn(z, ys) == True{} : Bool}, x, t, N.eq_from_is_eq(x, t, hc), hx)
     case False{}:
       rec(hm)
 
-def memn_sub(+t: Nat, +xs: List<&2, Nat>, +ys: List<&2, Nat>, +hs: {subl(xs, ys) == True{} : Bool}, +hm: {ST.memn(t, xs) == True{} : Bool}) -> {ST.memn(t, ys) == True{} : Bool}:
+def memn_sub(+t: Nat, +xs: List<&2, Nat>, +ys: List<&2, Nat>, +hs: {subl(xs, ys) == True{} : Bool}, +hm: {NL.memn(t, xs) == True{} : Bool}) -> {NL.memn(t, ys) == True{} : Bool}:
   match xs:
     case Nil{}:
-      Empty.absurd({ST.memn(t, ys) == True{} : Bool}, L.false_true(hm))
+      Empty.absurd({NL.memn(t, ys) == True{} : Bool}, L.false_true(hm))
     case Con{+x, r}:
-      ms_c(t, x, r, ys, L.and_left(ST.memn(x, ys), subl(r, ys), hs), Nat.is_eq(x, t), {==}, hm, hr => memn_sub(t, r, ys, L.and_right(ST.memn(x, ys), subl(r, ys), hs), hr))
+      ms_c(t, x, r, ys, L.and_left(NL.memn(x, ys), subl(r, ys), hs), Nat.is_eq(x, t), {==}, hm, hr => memn_sub(t, r, ys, L.and_right(NL.memn(x, ys), subl(r, ys), hs), hr))
 
-def nm_c(+t: Nat, +xs: List<&2, Nat>, +ys: List<&2, Nat>, +hs: {subl(xs, ys) == True{} : Bool}, +h: {Bool.not(ST.memn(t, ys)) == True{} : Bool}, +c: Bool, +hc: {ST.memn(t, xs) == c : Bool}) -> {Bool.not(c) == True{} : Bool}:
+def nm_c(+t: Nat, +xs: List<&2, Nat>, +ys: List<&2, Nat>, +hs: {subl(xs, ys) == True{} : Bool}, +h: {Bool.not(NL.memn(t, ys)) == True{} : Bool}, +c: Bool, +hc: {NL.memn(t, xs) == c : Bool}) -> {Bool.not(c) == True{} : Bool}:
   match c:
     case False{}:
       {==}
     case True{}:
-      Empty.absurd({Bool.not(True{}) == True{} : Bool}, L.false_true(L.subst(Bool, b => {Bool.not(b) == True{} : Bool}, ST.memn(t, ys), True{}, memn_sub(t, xs, ys, hs, hc), h)))
+      Empty.absurd({Bool.not(True{}) == True{} : Bool}, L.false_true(L.subst(Bool, b => {Bool.not(b) == True{} : Bool}, NL.memn(t, ys), True{}, memn_sub(t, xs, ys, hs, hc), h)))
 
 def subl_cons(+xs: List<&2, Nat>, +ys: List<&2, Nat>, +y: Nat, +h: {subl(xs, ys) == True{} : Bool}) -> {subl(xs, Con{y, ys}) == True{} : Bool}:
   match xs:
     case Nil{}:
       {==}
     case Con{+x, r}:
-      L.and_intro(ST.memn(x, Con{y, ys}), subl(r, Con{y, ys}), mem_cons(x, y, ys, L.and_left(ST.memn(x, ys), subl(r, ys), h)), subl_cons(r, ys, y, L.and_right(ST.memn(x, ys), subl(r, ys), h)))
+      L.and_intro(NL.memn(x, Con{y, ys}), subl(r, Con{y, ys}), mem_cons(x, y, ys, L.and_left(NL.memn(x, ys), subl(r, ys), h)), subl_cons(r, ys, y, L.and_right(NL.memn(x, ys), subl(r, ys), h)))
 
 def subl_both(+xs: List<&2, Nat>, +ys: List<&2, Nat>, +t: Nat, +h: {subl(xs, ys) == True{} : Bool}) -> {subl(Con{t, xs}, Con{t, ys}) == True{} : Bool}:
-  L.and_intro(ST.memn(t, Con{t, ys}), subl(xs, Con{t, ys}), L.subst(Bool, b => {Bool.or(b, ST.memn(t, ys)) == True{} : Bool}, True{}, Nat.is_eq(t, t), Equal.sym(Bool, Nat.is_eq(t, t), True{}, N.is_eq_refl(t)), {==}), subl_cons(xs, ys, t, h))
+  L.and_intro(NL.memn(t, Con{t, ys}), subl(xs, Con{t, ys}), L.subst(Bool, b => {Bool.or(b, NL.memn(t, ys)) == True{} : Bool}, True{}, Nat.is_eq(t, t), Equal.sym(Bool, Nat.is_eq(t, t), True{}, N.is_eq_refl(t)), {==}), subl_cons(xs, ys, t, h))
 
 # THEOREM: a valid list stays valid when fewer slots count as visited
 def fl_weak(+bs: List<&2, B.Bk>, +nb: Nat, +nxl: List<&2, U32>, +cnt: Nat, +f: U32, +fr: Nat, +seen: List<&2, Nat>, +seen2: List<&2, Nat>, +hs: {subl(seen2, seen) == True{} : Bool}, +h: {ST.fl_ok(bs, nb, nxl, cnt, f, fr, seen) == True{} : Bool}) -> {ST.fl_ok(bs, nb, nxl, cnt, f, fr, seen2) == True{} : Bool}:
@@ -97,14 +97,14 @@ def fl_weak(+bs: List<&2, B.Bk>, +nb: Nat, +nxl: List<&2, U32>, +cnt: Nat, +f: U
       h
     case 1n+p:
       +x1 = Bool.not(U32.is_eq(f, 0))
-      +x2 = Bool.and(Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen)))), ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}))
-      +y = Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen))))
-      +z = Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen)))
-      +a2 = L.and_left(y, ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}), L.and_right(x1, x2, h))
-      +a5 = L.and_right(y, ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}), L.and_right(x1, x2, h))
-      +nm = L.and_right(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2))
-      +nm2 = nm_c(UD.v(H.slot(f)), seen2, seen, hs, nm, ST.memn(UD.v(H.slot(f)), seen2), {==})
-      L.and_intro(x1, Bool.and(Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen2)))), ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen2})), L.and_left(x1, x2, h), L.and_intro(Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen2)))), ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen2}), L.and_intro(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen2))), L.and_left(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2), L.and_intro(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen2)), L.and_left(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(ST.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2)), nm2)), fl_weak(bs, nb, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}, Con{UD.v(H.slot(f)), seen2}, subl_both(seen2, seen, UD.v(H.slot(f)), hs), a5)))
+      +x2 = Bool.and(Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen)))), ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}))
+      +y = Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen))))
+      +z = Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen)))
+      +a2 = L.and_left(y, ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}), L.and_right(x1, x2, h))
+      +a5 = L.and_right(y, ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}), L.and_right(x1, x2, h))
+      +nm = L.and_right(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2))
+      +nm2 = nm_c(UD.v(H.slot(f)), seen2, seen, hs, nm, NL.memn(UD.v(H.slot(f)), seen2), {==})
+      L.and_intro(x1, Bool.and(Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen2)))), ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen2})), L.and_left(x1, x2, h), L.and_intro(Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen2)))), ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen2}), L.and_intro(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen2))), L.and_left(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2), L.and_intro(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen2)), L.and_left(ST.noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2)), nm2)), fl_weak(bs, nb, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}, Con{UD.v(H.slot(f)), seen2}, subl_both(seen2, seen, UD.v(H.slot(f)), hs), a5)))
 
 # ---- the list's length ----
 

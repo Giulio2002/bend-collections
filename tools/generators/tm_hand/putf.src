@@ -6,17 +6,10 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
-import ./mirror.bend as MI
-import ./ok.bend as OK
 import ./tree.bend as TR
 import ./find.bend as FI
-import ./ends.bend as EN
 import ./path.bend as P
-import ./plug.bend as PG
 import ./prim.bend as PR
 import ./ord.bend as OR
 import ./slot.bend as SL
@@ -25,6 +18,7 @@ import ./dj.bend as DJ
 import ./agree.bend as AG
 import ./navs.bend as NS
 import ./spath.bend as SP
+import ../lib/nat_list.bend as NL
 
 # A key found: the payload at its node is the specification's lookup, and
 # exchanging it is the specification's set_val; the invariant holds with the
@@ -164,10 +158,10 @@ def hit_core($TO, $FO, +hg: $GF, $HH) -> $HC(i):
       +hc = AG.iseq_eq(cmp(k, key), L.subst($ND, z => {S.is_eq(TR.kc(~K, ~cmp, k, z)) == True{} : Bool}, ST.nd(K, nl, $I1), M.N{c0, x1, x2, x3, key}, hxi, hfin))
       +ek = O.antisym(~K, ~cmp, o, k, key, hc)
       +hlx = L.subst(K, z => $LTA(z, $EX), key, k, Equal.sym(K, k, key, ek), OR.ord_mid_l($AO, $EX, $EI, $EY, hord))
-      +hnd0 = L.subst($LN, z => {LST.nodupn(z) == True{} : Bool}, $IDS(tg), $APP($X, Con{$I1, $Y}), Equal.trans($LN, $IDS(tg), $WHN($I1), $APP($X, Con{$I1, $Y}), hbc, NS.wh_node(c, $I1, a, b)), DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $FOA, hg)))
+      +hnd0 = L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $IDS(tg), $APP($X, Con{$I1, $Y}), Equal.trans($LN, $IDS(tg), $WHN($I1), $APP($X, Con{$I1, $Y}), hbc, NS.wh_node(c, $I1, a, b)), DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $FOA, hg)))
       +nX = DJ.dj_l($X, Con{$I1, $Y}, hnd0, $I1, DJ.mem_hd($I1, $Y))
       +nY = DJ.nd_head($I1, $Y, DJ.ndr($X, Con{$I1, $Y}, hnd0))
-      +mi = L.subst($LN, z => {HT.memn($I1, z) == True{} : Bool}, $APP($X, Con{$I1, $Y}), $IDS(tg), Equal.sym($LN, $IDS(tg), $APP($X, Con{$I1, $Y}), Equal.trans($LN, $IDS(tg), $WHN($I1), $APP($X, Con{$I1, $Y}), hbc, NS.wh_node(c, $I1, a, b))), DJ.mem_r($I1, $X, Con{$I1, $Y}, DJ.mem_hd($I1, $Y)))
+      +mi = L.subst($LN, z => {NL.memn($I1, z) == True{} : Bool}, $APP($X, Con{$I1, $Y}), $IDS(tg), Equal.sym($LN, $IDS(tg), $APP($X, Con{$I1, $Y}), Equal.trans($LN, $IDS(tg), $WHN($I1), $APP($X, Con{$I1, $Y}), hbc, NS.wh_node(c, $I1, a, b))), DJ.mem_r($I1, $X, Con{$I1, $Y}, DJ.mem_hd($I1, $Y)))
       +hib = AL.allin_mem($IDS(tg), SC.length($ND, nl), $I1, AL.allin_l($IDS(tg), fl, SC.length($ND, nl), ST.g_cin($AK, $FOA, hg)), mi)
       +hjl = L.subst(Nat, z => {Nat.is_lt(j, z) == True{} : Bool}, SC.length($ND, nl), SC.length($MV, pl), Equal.sym(Nat, SC.length($MV, pl), SC.length($ND, nl), N.eq_from_is_eq(SC.length($MV, pl), SC.length($ND, nl), ST.g_cpl($AK, $FOA, hg))), N.succ_le_lt(j, SC.length($ND, nl), L.and_right(Nat.is_lt(0n, $I1), Nat.is_le($I1, SC.length($ND, nl)), hib)))
       +hW2a = ents_at(~K, ~V, nl, $PL2, tg, c, $I1, a, b, hbc)

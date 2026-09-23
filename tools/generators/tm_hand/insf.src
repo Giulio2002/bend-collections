@@ -1,18 +1,13 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/list.bend as LL
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./mirror.bend as MI
 import ./ok.bend as OK
-import ./tree.bend as TR
 import ./find.bend as FI
 import ./reads.bend as RD
 import ./ends.bend as EN
@@ -31,6 +26,7 @@ import ./slot.bend as SL
 import ./alls.bend as AL
 import ./dj.bend as DJ
 import ./spath.bend as SP
+import ../lib/nat_list.bend as NL
 
 # The insertion after the new slot is allocated: attach, header, fix-up;
 # the result is the real map of a good shadow whose model is the
@@ -89,7 +85,7 @@ def spec_ins($TO, +l: Nat, +n: Nat, +nl: $NL, +pl: $PL, +tg: ST.Tr, +c: $CT, +k:
 %def A3 RM.attn(K, nla, $P0, x, $DR)
 %def N3 SE.setp(K, $A3, x, $P0)
 %def NEWN M.N{True{}, 0n, 0n, $P0, k}
-%def AIH +c: $CT, +x: Nat, +k: K, +v: V, +nla: $NL, +pla: $PL, +fla: $LN, +hag: {AG.agr(~K, ~cmp, $BA(c), nl, nla) == True{} : Bool}, +hxn: {$NDX(nla, x) == $NEWN : $ND}, +hx0: {Nat.is_lt(0n, x) == True{} : Bool}, +hxf: {HT.memn(x, $BA(c)) == False{} : Bool}, +hpx: {ST.pv(V, pla, x) == Some{v} : $MV}, +hpb: {ST.ents(~K, ~V, P.before(c), nl, pla) == $EB : $ES}, +hpa: {ST.ents(~K, ~V, P.after(c), nl, pla) == $EA : $ES}, +hob: {EN.oks(~K, ~V, P.before(c), nl, pla) == EN.oks(~K, ~V, P.before(c), nl, pl) : Bool}, +hoa: {EN.oks(~K, ~V, P.after(c), nl, pla) == EN.oks(~K, ~V, P.after(c), nl, pl) : Bool}
+%def AIH +c: $CT, +x: Nat, +k: K, +v: V, +nla: $NL, +pla: $PL, +fla: $LN, +hag: {AG.agr(~K, ~cmp, $BA(c), nl, nla) == True{} : Bool}, +hxn: {$NDX(nla, x) == $NEWN : $ND}, +hx0: {Nat.is_lt(0n, x) == True{} : Bool}, +hxf: {NL.memn(x, $BA(c)) == False{} : Bool}, +hpx: {ST.pv(V, pla, x) == Some{v} : $MV}, +hpb: {ST.ents(~K, ~V, P.before(c), nl, pla) == $EB : $ES}, +hpa: {ST.ents(~K, ~V, P.after(c), nl, pla) == $EA : $ES}, +hob: {EN.oks(~K, ~V, P.before(c), nl, pla) == EN.oks(~K, ~V, P.before(c), nl, pl) : Bool}, +hoa: {EN.oks(~K, ~V, P.after(c), nl, pla) == EN.oks(~K, ~V, P.after(c), nl, pl) : Bool}
 %def AIA c, x, k, v, nla, pla, fla, hag, hxn, hx0, hxf, hpx, hpb, hpa, hob, hoa
 %def ENTX ST.ent(K, V, $NDX(nla, x), ST.pv(V, pla, x))
 
@@ -144,7 +140,7 @@ def ieq(+a: Nat, +b: Nat, +e: {a == b : Nat}) -> {Nat.is_eq(a, b) == True{} : Bo
 %def GF {ST.goodF($AK, $FOA) == True{} : Bool}
 %def SPH +hbc: {$IDS(tg) == $BA(c) : $LN}, +hplug: {tg == PG.plug(c, $TE) : ST.Tr}, +hok: {P.ctxok(~K, c, 0n, nl) == True{} : Bool}, +hb: $LTA(k, $EB), +ha: $GTA(k, $EA)
 %def SPA hbc, hplug, hok, hb, ha
-%def ALH +fra: Nat, +dra: Nat, +hfll: {ST.fll(~K, nla, fla) == True{} : Bool}, +hfree: {fra == ST.fst0(fla) : Nat}, +hcd: {Nat.is_le(dra, l) == True{} : Bool}, +hcap: {Nat.is_le(SC.length($ND, nla), SC.pow2(dra)) == True{} : Bool}, +hcpl: {SC.length($MV, pla) == SC.length($ND, nla) : Nat}, +hnd: {LST.nodupn($APP($I0, fla)) == True{} : Bool}, +hin: {ST.allin($APP($I0, fla), SC.length($ND, nla)) == True{} : Bool}, +hlen: {SC.length(Nat, $APP($I0, fla)) == SC.length($ND, nla) : Nat}, +hroom: {Nat.is_lt(n, SC.pow2(l)) == True{} : Bool}
+%def ALH +fra: Nat, +dra: Nat, +hfll: {ST.fll(~K, nla, fla) == True{} : Bool}, +hfree: {fra == ST.fst0(fla) : Nat}, +hcd: {Nat.is_le(dra, l) == True{} : Bool}, +hcap: {Nat.is_le(SC.length($ND, nla), SC.pow2(dra)) == True{} : Bool}, +hcpl: {SC.length($MV, pla) == SC.length($ND, nla) : Nat}, +hnd: {NL.nodupn($APP($I0, fla)) == True{} : Bool}, +hin: {ST.allin($APP($I0, fla), SC.length($ND, nla)) == True{} : Bool}, +hlen: {SC.length(Nat, $APP($I0, fla)) == SC.length($ND, nla) : Nat}, +hroom: {Nat.is_lt(n, SC.pow2(l)) == True{} : Bool}
 %def ALA fra, dra, hfll, hfree, hcd, hcap, hcpl, hnd, hin, hlen, hroom
 %def SPEC S.put($AK, ST.model($AK, ST.SH{$FOA}), k, v)
 %def T2 1n+n, r, $LO2, $HI2, fra, l, dra, nf, pla, T, fla
@@ -163,7 +159,7 @@ def ins_mok2($TO, $FO, +hg: $GF, $AIH, $SPH, $ALH, +r: Nat, +nf: $NL, +T: ST.Tr,
       +gcap = L.subst(Nat, z => {Nat.is_le(z, SC.pow2(dra)) == True{} : Bool}, SC.length($ND, nla), SC.length($ND, nf), Equal.sym(Nat, SC.length($ND, nf), SC.length($ND, nla), hln), hcap)
       +gcpl = ieq(SC.length($MV, pla), SC.length($ND, nf), Equal.trans(Nat, SC.length($MV, pla), SC.length($ND, nla), SC.length($ND, nf), hcpl, Equal.sym(Nat, SC.length($ND, nf), SC.length($ND, nla), hln)))
       +gpay = SL.pay_oks(~K, ~V, T, nf, pla, L.subst($LN, z => {EN.oks(~K, ~V, z, nf, pla) == True{} : Bool}, $I0, $IDS(T), Equal.sym($LN, $IDS(T), $I0, hids), hoks))
-      +gnd = L.subst($LN, z => {LST.nodupn($APP(z, fla)) == True{} : Bool}, $I0, $IDS(T), Equal.sym($LN, $IDS(T), $I0, hids), hnd)
+      +gnd = L.subst($LN, z => {NL.nodupn($APP(z, fla)) == True{} : Bool}, $I0, $IDS(T), Equal.sym($LN, $IDS(T), $I0, hids), hnd)
       +gin = L.subst(Nat, z => {ST.allin($APP($IDS(T), fla), z) == True{} : Bool}, SC.length($ND, nla), SC.length($ND, nf), Equal.sym(Nat, SC.length($ND, nf), SC.length($ND, nla), hln), L.subst($LN, z => {ST.allin($APP(z, fla), SC.length($ND, nla)) == True{} : Bool}, $I0, $IDS(T), Equal.sym($LN, $IDS(T), $I0, hids), hin))
       +glen = ieq(SC.length(Nat, $APP($IDS(T), fla)), SC.length($ND, nf), Equal.trans(Nat, SC.length(Nat, $APP($IDS(T), fla)), SC.length($ND, nla), SC.length($ND, nf), L.subst($LN, z => {SC.length(Nat, $APP(z, fla)) == SC.length($ND, nla) : Nat}, $I0, $IDS(T), Equal.sym($LN, $IDS(T), $I0, hids), hlen), Equal.sym(Nat, SC.length($ND, nf), SC.length($ND, nla), hln)))
       +gord0 = INS.ord_ins($AO, $EB, M.Entry{k, v}, $EA, L.subst($ES, z => {ST.ordered($AK, z) == True{} : Bool}, $ES0, $EAPP($EB, $EA), es_split(~K, ~V, nl, pl, tg, c, hbc), ST.g_cord($AK, $FOA, hg)), hb, ha)
@@ -194,7 +190,7 @@ def put_alloc_m($TO, $FO, +c: $CT, +x: Nat, +nla: $NL, +pla: $PL, +fra: Nat, +dr
 # the insertion after allocating the slot x
 def ins_fin($TO, $FO, +hg: $GF, $AIH, $SPH, $ALH) -> OK.MOK($AK, $RES, $SPEC, $MIR):
   +hnd0 = DJ.ndl($I0, fla, hnd)
-  +hbad = L.subst($LN, z => {LST.nodupn(z) == True{} : Bool}, $IDS(tg), $BA(c), hbc, DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $FOA, hg)))
+  +hbad = L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $IDS(tg), $BA(c), hbc, DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $FOA, hg)))
   +hroot = Equal.trans(Nat, root, ST.rid(tg), ST.rid(PG.plug(c, $TE)), N.eq_from_is_eq(root, ST.rid(tg), ST.g_croot($AK, $FOA, hg)), L.subst(ST.Tr, z => {ST.rid(tg) == ST.rid(z) : Nat}, tg, PG.plug(c, $TE), hplug, {==}))
   +hrb = L.subst(ST.Tr, z => {ST.root_black(~K, z, nl) == True{} : Bool}, tg, PG.plug(c, $TE), hplug, ST.g_cblk($AK, $FOA, hg))
   +hok0 = L.subst($LN, z => {EN.oks(~K, ~V, z, nl, pl) == True{} : Bool}, $IDS(tg), $BA(c), hbc, EN.oks_tree(~K, ~V, nl, pl, tg, 0n, ST.g_crep($AK, $FOA, hg), ST.g_cpay($AK, $FOA, hg)))

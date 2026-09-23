@@ -14,28 +14,17 @@ import ../hash_table/table.bend as TB
 import ../hash_table/buckets.bend as B
 import ../hash_table/cyc.bend as CY
 import ../hash_table/inv.bend as IV
-import ../hash_table/state.bend as HT
 import ../hash_table/keys.bend as K
 import ./state.bend as ST
 import ./basic.bend as BA
-import ./bump.bend as BU
 import ./bumpsh.bend as BS
-import ./find.bend as FD
 import ./tfind.bend as TF
-import ./touch.bend as TO
-import ./touchsh.bend as TSH
-import ./rmat.bend as RM
-import ./gone.bend as GO
 import ./unlink.bend as UL
 import ./lists.bend as LS
-import ./meta.bend as MT
-import ../hash_table/get.bend as G
 import ../../src/math/hash.bend as HS
-import ../hash_table/probe_impl.bend as PI
 import ../hash_table/probe_all.bend as PA
 
 import ./read.bend as RD
-import ./ins.bend as IC
 import ./insp.bend as IP
 import ./grow.bend as GW
 import ./evictk.bend as EK
@@ -43,18 +32,16 @@ import ./bumpk.bend as BK
 import ./tfind.bend as TF
 import ./walk.bend as WL
 import ./linktail.bend as LT
-import ./resize.bend as RZ
 import ../hash_table/rawins.bend as RI
 import ../hash_table/grow.bend as GR
-import ../hash_table/inv.bend as IV2
 import ./ins1.bend as I1
-import ./dll.bend as DL
-import ./idx.bend as ID
 import ../lib/u32.bend as U
-import ../hash_table/insu.bend as IU
-import ../hash_table/insert.bend as IS
 import ../hash_table/modn.bend as M
 import ../../src/math/hash.bend as HS
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
+import ../lib/words32.bend as W32
+import ../lib/u32_tree.bend as UT
 
 
 # add, a new key missing from the table: not full, the probe's empty bucket
@@ -69,8 +56,8 @@ import ../../src/math/hash.bend as HS
 %def EN SP.LE{key, v, t, W.U64{lo, hi}}
 %def SPEC SP.L{cap, $M3, $W4, SP.snoc(~V, $ES, $EN), SP.c_ins($CTR)}
 %def E LR.E{v, t, lo, hi}
-%def M0 TB.nth0($ML, 0n)
-%def M1 TB.nth0($ML, 1n)
+%def M0 W32.nth0($ML, 0n)
+%def M1 W32.nth0($ML, 1n)
 %def BASE $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +key: String, +hno: {B.all_lt(B.PNo{$BS, key}, $NN) == True{} : Bool}, +e: Nat, +he: {Nat.is_lt(e, $NN) == True{} : Bool}, +hz: {B.at($BS, e) == B.BE{} : B.Bk}, +hp: {B.occpath($BS, $NN, $HOME, M.dist($NN, $HOME, e)) == True{} : Bool}, +hroom: {Nat.is_le(Nat.double(1n+UD.v(n)), $NN) == True{} : Bool}, +v: V, +t: U32, +lo: U32, +hi: U32
 %def BASA $SHA, hg, one, h1, key, hno, e, he, hz, hp, hroom, v, t, lo, hi
 %def TK AR.thaw(String, ksT)
@@ -92,15 +79,15 @@ def ins_spec(~V: Data, l: SP.Lru<V>, +key: String, v: V, +t: U32, +lo: U32, +hi:
 def fl_link(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +hfz: {U32.is_eq(free, 0) == False{} : Bool}) -> {H.link($SUF) == free : U32}:
   match fl:
     case Nil{}:
-      Empty.absurd({H.link($SUF) == free : U32}, L.true_false(Equal.trans(Bool, True{}, U32.is_eq(free, 0), False{}, Equal.sym(Bool, U32.is_eq(free, 0), True{}, ST.g_cfree(~V, cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, Nil{}, hg)), hfz)))
+      Empty.absurd({H.link($SUF) == free : U32}, L.true_false(Equal.trans(Bool, True{}, U32.is_eq(free, 0), False{}, Equal.sym(Bool, U32.is_eq(free, 0), True{}, ST.g_cfree(~V, cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, Nil{}, hg)), hfz)))
     case Con{+s0, +tl}:
-      +gc = ST.g_cfl(~V, cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, Con{s0, tl}, hg)
+      +gc = ST.g_cfl(~V, cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, Con{s0, tl}, hg)
       +hsd = RD.f_hsd(~V, cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, Con{s0, tl}, hg)
       +hf0 = L.and_left(Bool.and(Nat.is_lt(s0, $FR), Bool.not(ST.live(~V, $EL, s0))), ST.flok(~V, tl, $FR, $EL), gc)
-      +hs0 = N.lt_le_trans(s0, $FR, SC.pow2(sd), L.and_left(Nat.is_lt(s0, $FR), Bool.not(ST.live(~V, $EL, s0)), hf0), ST.g_cfresh(~V, cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, Con{s0, tl}, hg))
-      +ef = A.eq_of(free, ST.lnk(s0), ST.g_cfree(~V, cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, Con{s0, tl}, hg))
-      +el = LT.lnk_su(H.slot(ST.lnk(s0)), s0, sd, hsd, UL.ix_o(one, h1, s0, sd, hsd, hs0), hs0)
-      L.subst(U32, z => {H.link(H.slot(z)) == z : U32}, ST.lnk(s0), free, Equal.sym(U32, free, ST.lnk(s0), ef), el)
+      +hs0 = N.lt_le_trans(s0, $FR, SC.pow2(sd), L.and_left(Nat.is_lt(s0, $FR), Bool.not(ST.live(~V, $EL, s0)), hf0), ST.g_cfresh(~V, cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, Con{s0, tl}, hg))
+      +ef = A.eq_of(free, LK.lnk(s0), ST.g_cfree(~V, cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, Con{s0, tl}, hg))
+      +el = LT.lnk_su(H.slot(LK.lnk(s0)), s0, sd, hsd, UL.ix_o(one, h1, s0, sd, hsd, hs0), hs0)
+      L.subst(U32, z => {H.link(H.slot(z)) == z : U32}, LK.lnk(s0), free, Equal.sym(U32, free, LK.lnk(s0), ef), el)
 
 %def FRP(tb, c) LR.fresh_room(&2, V, cap, n, head, tail, free2, $TM, tb, $TK, $TE, $TL, $KS, $KW, $E, $M0, $M1, c)
 
@@ -121,8 +108,8 @@ def mr_b(~V: Data, $BASE, +b: Bool, +hb: {U32.is_eq(free, 0) == b : Bool}) -> BS
   match b:
     case True{}:
       +pm = $G(cpm)
-      +x1 = Equal.cong(Array<U32> & U32, $RL, r => $MRF(r), Array.get(U32, $TM, 0), ($TM, $M0), MT.uget(5n, {==}, mT, pm, 0, {==}))
-      +x2 = Equal.cong(Array<U32> & U32, $RL, r => $MRS(r), Array.get(U32, $TM, 1), ($TM, $M1), MT.uget(5n, {==}, mT, pm, 1, {==}))
+      +x1 = Equal.cong(Array<U32> & U32, $RL, r => $MRF(r), Array.get(U32, $TM, 0), ($TM, $M0), UT.uget(5n, {==}, mT, pm, 0, {==}))
+      +x2 = Equal.cong(Array<U32> & U32, $RL, r => $MRS(r), Array.get(U32, $TM, 1), ($TM, $M1), UT.uget(5n, {==}, mT, pm, 1, {==}))
       +x3 = Equal.cong(Array<U32>, $RL, tb => LR.fresh_room(&2, V, cap, n, head, tail, 0, $TM, tb, $TK, $TE, $TL, $KS, $KW, $E, $M0, $M1, U32.is_lt($M0, $M1)), H.put_bucket($TT, $FE, $KW, H.link($M0)), AR.thaw(U32, $T2(H.link($M0))), GR.put_eq(k, $HK31, tabT, $G(cpt), e, he, $KW, H.link($M0)))
       +X = Equal.trans($RL, $MP(True{}), $MRS(Array.get(U32, $TM, 1)), LR.fresh_room(&2, V, cap, n, head, tail, 0, $TM, AR.thaw(U32, $T2(H.link($M0))), $TK, $TE, $TL, $KS, $KW, $E, $M0, $M1, U32.is_lt($M0, $M1)), x1, Equal.trans($RL, $MRS(Array.get(U32, $TM, 1)), LR.fresh_room(&2, V, cap, n, head, tail, 0, $TM, H.put_bucket($TT, $FE, $KW, H.link($M0)), $TK, $TE, $TL, $KS, $KW, $E, $M0, $M1, U32.is_lt($M0, $M1)), LR.fresh_room(&2, V, cap, n, head, tail, 0, $TM, AR.thaw(U32, $T2(H.link($M0))), $TK, $TE, $TL, $KS, $KW, $E, $M0, $M1, U32.is_lt($M0, $M1)), x2, x3))
       L.subst($RL, z => BS.CountOK(~V, $SPEC, z), LR.fresh_room(&2, V, cap, n, head, tail, 0, $TM, AR.thaw(U32, $T2(H.link($M0))), $TK, $TE, $TL, $KS, $KW, $E, $M0, $M1, U32.is_lt($M0, $M1)), $MP(True{}), Equal.sym($RL, $MP(True{}), LR.fresh_room(&2, V, cap, n, head, tail, 0, $TM, AR.thaw(U32, $T2(H.link($M0))), $TK, $TE, $TL, $KS, $KW, $E, $M0, $M1, U32.is_lt($M0, $M1)), X), fr_c(~V, $BASA, 0, {==}, hb, U32.is_lt($M0, $M1), {==}))
@@ -150,9 +137,9 @@ def nm_nokey(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +xs: List<&2, 
     case Nil{}:
       {==}
     case Con{+x, +r}:
-      +h1 = DL.or_ff_l(S.str_eq(ST.skey(ll, kl, x), key), S.mem(key, WL.mapk(ll, kl, r)), h)
-      +h2 = DL.or_ff_r(S.str_eq(ST.skey(ll, kl, x), key), S.mem(key, WL.mapk(ll, kl, r)), h)
-      L.and_intro(Bool.not(S.str_eq(ST.skey(ll, kl, x), key)), ST.nokey(~V, ll, kl, r, key), DL.not_f(S.str_eq(ST.skey(ll, kl, x), key), h1), nm_nokey(~V, ll, kl, r, key, h2))
+      +h1 = NL.or_ff_l(S.str_eq(ST.skey(ll, kl, x), key), S.mem(key, WL.mapk(ll, kl, r)), h)
+      +h2 = NL.or_ff_r(S.str_eq(ST.skey(ll, kl, x), key), S.mem(key, WL.mapk(ll, kl, r)), h)
+      L.and_intro(Bool.not(S.str_eq(ST.skey(ll, kl, x), key)), ST.nokey(~V, ll, kl, r, key), NL.not_f(S.str_eq(ST.skey(ll, kl, x), key), h1), nm_nokey(~V, ll, kl, r, key, h2))
 
 %def BSX TB.buckets(tb, kl, nb)
 %def BJ B.at($BSX, j)
@@ -180,7 +167,7 @@ def pno_of(~V: Data, +tb: List<&2, U32>, +kl: List<&2, String>, +nb: Nat, +ll: L
 def mt_e(~V: Data, +e: SP.Ent<V>, +r: List<&2, SP.Ent<V>>, +key: String, +h: {S.mem(key, SP.keys_of(~V, Con{e, r})) == False{} : Bool}) -> {S.mem(key, SP.keys_of(~V, r)) == False{} : Bool}:
   match e:
     case SP.LE{+kk, +w, +t, +d}:
-      DL.or_ff_r(S.str_eq(kk, key), S.mem(key, SP.keys_of(~V, r)), h)
+      NL.or_ff_r(S.str_eq(kk, key), S.mem(key, SP.keys_of(~V, r)), h)
 
 def mem_tail(~V: Data, +es: List<&2, SP.Ent<V>>, +key: String, +h: {S.mem(key, SP.keys_of(~V, es)) == False{} : Bool}) -> {S.mem(key, SP.keys_of(~V, SP.tail(~V, es))) == False{} : Bool}:
   match es:
@@ -211,8 +198,8 @@ def mfe_c(~V: Data, $BASE, +b: Bool, +hb: {U32.is_eq(free, 0) == b : Bool}) -> B
   match b:
     case True{}:
       +pm = $G(cpm)
-      +x1 = Equal.cong(Array<U32> & U32, $RL, r => $FF($TPU(H.link($M0)), r), Array.get(U32, $TM, 0), ($TM, $M0), MT.uget(5n, {==}, mT, pm, 0, {==}))
-      +x2 = Equal.cong(Array<U32> & U32, $RL, r => $FS($TPU(H.link($M0)), r), Array.get(U32, $TM, 1), ($TM, $M1), MT.uget(5n, {==}, mT, pm, 1, {==}))
+      +x1 = Equal.cong(Array<U32> & U32, $RL, r => $FF($TPU(H.link($M0)), r), Array.get(U32, $TM, 0), ($TM, $M0), UT.uget(5n, {==}, mT, pm, 0, {==}))
+      +x2 = Equal.cong(Array<U32> & U32, $RL, r => $FS($TPU(H.link($M0)), r), Array.get(U32, $TM, 1), ($TM, $M1), UT.uget(5n, {==}, mT, pm, 1, {==}))
       +X = Equal.trans($RL, $AP($TPU(H.link($M0)), True{}), $FS($TPU(H.link($M0)), Array.get(U32, $TM, 1)), LR.fresh_room(&2, V, cap, n, head, tail, free, $TM, $TPU(H.link($M0)), $TK, $TE, $TL, $KS, $KW, $E, $M0, $M1, U32.is_lt($M0, $M1)), x1, x2)
       L.subst($RL, z => BS.CountOK(~V, $SPEC, z), LR.fresh_room(&2, V, cap, n, head, tail, free, $TM, $TPU(H.link($M0)), $TK, $TE, $TL, $KS, $KW, $E, $M0, $M1, U32.is_lt($M0, $M1)), $AP($TPU(H.link($M0)), True{}), Equal.sym($RL, $AP($TPU(H.link($M0)), True{}), LR.fresh_room(&2, V, cap, n, head, tail, free, $TM, $TPU(H.link($M0)), $TK, $TE, $TL, $KS, $KW, $E, $M0, $M1, U32.is_lt($M0, $M1)), X), fr_c(~V, $BASA, free, hb, hb, U32.is_lt($M0, $M1), {==}))
     case False{}:
@@ -226,12 +213,12 @@ def mfe_b(~V: Data, $BASE, +b: Bool, +hb: {U32.is_eq(free, 0) == b : Bool}) -> B
   ok = mfe_c(~V, $BASA, b, hb)
   L.subst($RL, z => BS.CountOK(~V, $SPEC, z), $AP($TPU(H.link($PK(b))), b), $IS($FI($RAW(H.link($PK(b))))), Equal.sym($RL, $IS($FI($RAW(H.link($PK(b))))), $AP($TPU(H.link($PK(b))), b), Equal.trans($RL, $IS($FI($RAW(H.link($PK(b))))), $IS($FI($TPU(H.link($PK(b))))), $AP($TPU(H.link($PK(b))), b), e1, e2)), ok)
 
-%def G6E Equal.trans(Array<U32> & U32, Array.get(U32, $TM, 6), ($TM, TB.nth0($ML, 6n)), ($TM, CY.msk(k)), MT.uget(5n, {==}, mT, $G(cpm), 6, {==}), Equal.cong(U32, Array<U32> & U32, z => ($TM, z), TB.nth0($ML, 6n), CY.msk(k), A.eq_of(TB.nth0($ML, 6n), CY.msk(k), $G(cmask))))
+%def G6E Equal.trans(Array<U32> & U32, Array.get(U32, $TM, 6), ($TM, W32.nth0($ML, 6n)), ($TM, CY.msk(k)), UT.uget(5n, {==}, mT, $G(cpm), 6, {==}), Equal.cong(U32, Array<U32> & U32, z => ($TM, z), W32.nth0($ML, 6n), CY.msk(k), A.eq_of(W32.nth0($ML, 6n), CY.msk(k), $G(cmask))))
 
 # the full path after the eviction: re-probe for an empty bucket, then place
 def mf_e(~V: Data, $BASE) -> BS.CountOK(~V, $SPEC, LR.miss_full(&2, V, $F, $KS, $KW, $E)):
   +x1 = Equal.cong(Array<U32> & U32, $RL, r => $IS($IMK(r)), Array.get(U32, $TM, 6), ($TM, CY.msk(k)), $G6E)
-  +x2 = Equal.cong(Array<U32> & U32, $RL, r => $IS($INM(LR.next_slot_m(free, r))), Array.get(U32, $TM, 0), ($TM, $M0), MT.uget(5n, {==}, mT, $G(cpm), 0, {==}))
+  +x2 = Equal.cong(Array<U32> & U32, $RL, r => $IS($INM(LR.next_slot_m(free, r))), Array.get(U32, $TM, 0), ($TM, $M0), UT.uget(5n, {==}, mT, $G(cpm), 0, {==}))
   +X = Equal.trans($RL, LR.miss_full(&2, V, $F, $KS, $KW, $E), $IS($INM(LR.next_slot_m(free, Array.get(U32, $TM, 0)))), $IS($FI($RAW(H.link($PK(U32.is_eq(free, 0)))))), x1, x2)
   L.subst($RL, z => BS.CountOK(~V, $SPEC, z), $IS($FI($RAW(H.link($PK(U32.is_eq(free, 0)))))), LR.miss_full(&2, V, $F, $KS, $KW, $E), Equal.sym($RL, LR.miss_full(&2, V, $F, $KS, $KW, $E), $IS($FI($RAW(H.link($PK(U32.is_eq(free, 0)))))), X), mfe_b(~V, $BASA, U32.is_eq(free, 0), {==}))
 
@@ -261,7 +248,7 @@ def mf_sh(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +sh: ST.Sh<V>, +hg: {ST.g
 %def SH0 ST.LS{cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, $S0L, fl}
 %def SHF0 +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +mT: AR.Tree<U32>, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +s0: Nat, +t0: List<&2, Nat>, +fl: List<&2, Nat>
 %def SHA0 cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, $S0L, fl
-%def GA1 cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, $S0L, fl
+%def GA1 cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, $S0L, fl
 %def G1(c) ST.g_$c(~V, $GA1, hg)
 %def ES0 ST.es(~V, $LLo, $KL, $EL, $S0L)
 %def SPX SP.L{cap, $M3, $W4, SP.tail(~V, $ES0), SP.c_ev($CTR)}
@@ -288,12 +275,12 @@ def mf_c(~V: Data, $SHF0, +hg: {ST.good(~V, $SH0) == True{} : Bool}, +one: Nat, 
 def mf_ok(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +key: String, +hnk: {ST.nokey(~V, $LLo, $KL, sl, key) == True{} : Bool}, +hroom: {Nat.is_le(Nat.double(1n+UD.v(n)), $NN) == True{} : Bool}, +hfull: {U32.is_le(cap, n) == True{} : Bool}, +v: V, +t: U32, +lo: U32, +hi: U32) -> BS.CountOK(~V, $SPF, LR.miss_full(&2, V, LR.evict_oldest(&2, V, $F), $KS, $KW, $E)):
   match sl:
     case Nil{}:
-      +gn = ST.g_clen(~V, cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, Nil{}, fl, hg)
+      +gn = ST.g_clen(~V, cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, Nil{}, fl, hg)
       +en = Equal.sym(Nat, 0n, UD.v(n), N.eq_from_is_eq(0n, UD.v(n), gn))
       +hc0 = L.subst(Nat, z => {Nat.is_le(UD.v(cap), z) == True{} : Bool}, UD.v(n), 0n, en, Equal.trans(Bool, Nat.is_le(UD.v(cap), UD.v(n)), U32.is_le(cap, n), True{}, Equal.sym(Bool, U32.is_le(cap, n), Nat.is_le(UD.v(cap), UD.v(n)), is_le_nat(cap, n)), hfull))
       +ec = N.le_antisym(UD.v(cap), 0n, hc0, N.zero_le(UD.v(cap)))
       +hce = Equal.trans(Bool, U32.is_eq(cap, 0), Nat.is_eq(UD.v(cap), 0n), True{}, is_eq_nat(cap, 0), L.subst(Nat, z => {Nat.is_eq(z, 0n) == True{} : Bool}, 0n, UD.v(cap), Equal.sym(Nat, UD.v(cap), 0n, ec), {==}))
-      +hcc = ST.g_ccap(~V, cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, Nil{}, fl, hg)
+      +hcc = ST.g_ccap(~V, cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, Nil{}, fl, hg)
       Empty.absurd(BS.CountOK(~V, SP.L{cap, $M3, $W4, SP.snoc(~V, SP.tail(~V, ST.es(~V, $LLo, $KL, $EL, Nil{})), $EN), SP.c_ins(SP.c_ev($CTR))}, LR.miss_full(&2, V, LR.evict_oldest(&2, V, ST.real(~V, ST.LS{cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, Nil{}, fl})), $KS, $KW, $E)), L.false_true(Equal.trans(Bool, False{}, Bool.not(U32.is_eq(cap, 0)), True{}, L.subst(Bool, z => {False{} == Bool.not(z) : Bool}, True{}, U32.is_eq(cap, 0), Equal.sym(Bool, U32.is_eq(cap, 0), True{}, hce), {==}), hcc)))
     case Con{+s0, +t0}:
       mf_c(~V, cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, s0, t0, fl, hg, one, h1, key, hnk, hroom, v, t, lo, hi, EK.old_evk(~V, cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, s0, t0, fl, hg, one, h1))

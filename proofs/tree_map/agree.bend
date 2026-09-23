@@ -5,13 +5,12 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./prim.bend as PR
 import ./path.bend as P
 import ./ends.bend as EN
 import ./frame.bend as FR
+import ../lib/nat_list.bend as NL
 
 # Two node lists agreeing on a list of ids (a Bool, so the fact can be used
 # many times): nodes compared field by field, keys by the comparator, which
@@ -160,12 +159,12 @@ def agr_app(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, 
       L.and_intro(ndeq(~K, ~cmp, ST.nd(K, a, j), ST.nd(K, b, j)), agr(~K, ~cmp, SC.append(Nat, t, ys), a, b), L.and_left(ndeq(~K, ~cmp, ST.nd(K, a, j), ST.nd(K, b, j)), agr(~K, ~cmp, t, a, b), hx), agr_app(~K, ~cmp, ~o, t, ys, a, b, L.and_right(ndeq(~K, ~cmp, ST.nd(K, a, j), ST.nd(K, b, j)), agr(~K, ~cmp, t, a, b), hx), hy))
 
 # a write agrees off its id
-def agr_wr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +x: M.Node<K>, +hn: {HT.memn(id, xs) == False{} : Bool}) -> {agr(~K, ~cmp, xs, nl, PR.wr_nl(K, nl, id, x)) == True{} : Bool}:
+def agr_wr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +x: M.Node<K>, +hn: {NL.memn(id, xs) == False{} : Bool}) -> {agr(~K, ~cmp, xs, nl, PR.wr_nl(K, nl, id, x)) == True{} : Bool}:
   match xs:
     case Nil{}:
       {==}
     case Con{+j, +t}:
-      L.and_intro(ndeq(~K, ~cmp, ST.nd(K, nl, j), ST.nd(K, PR.wr_nl(K, nl, id, x), j)), agr(~K, ~cmp, t, nl, PR.wr_nl(K, nl, id, x)), ndeq_of_eq(~K, ~cmp, ~o, ST.nd(K, nl, j), ST.nd(K, PR.wr_nl(K, nl, id, x), j), Equal.sym(M.Node<K>, ST.nd(K, PR.wr_nl(K, nl, id, x), j), ST.nd(K, nl, j), FR.nd_wr_other(K, nl, id, x, j, FR.ne_sym(j, id, FR.or_f_l(Nat.is_eq(j, id), HT.memn(id, t), hn))))), agr_wr(~K, ~cmp, ~o, t, nl, id, x, FR.or_f_r(Nat.is_eq(j, id), HT.memn(id, t), hn)))
+      L.and_intro(ndeq(~K, ~cmp, ST.nd(K, nl, j), ST.nd(K, PR.wr_nl(K, nl, id, x), j)), agr(~K, ~cmp, t, nl, PR.wr_nl(K, nl, id, x)), ndeq_of_eq(~K, ~cmp, ~o, ST.nd(K, nl, j), ST.nd(K, PR.wr_nl(K, nl, id, x), j), Equal.sym(M.Node<K>, ST.nd(K, PR.wr_nl(K, nl, id, x), j), ST.nd(K, nl, j), FR.nd_wr_other(K, nl, id, x, j, FR.ne_sym(j, id, FR.or_f_l(Nat.is_eq(j, id), NL.memn(id, t), hn))))), agr_wr(~K, ~cmp, ~o, t, nl, id, x, FR.or_f_r(Nat.is_eq(j, id), NL.memn(id, t), hn)))
 
 # ---- what agreement keeps ----
 

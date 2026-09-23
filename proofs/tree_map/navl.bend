@@ -4,7 +4,6 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ./state.bend as ST
 import ./ord.bend as OR
 
 # The specification's first_where and last_where over sorted entries split

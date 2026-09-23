@@ -1,8 +1,6 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/u32.bend as U
-import ../lib/u32alg.bend as A
 import ../lib/array.bend as AR
 import ../lib/list.bend as LL
 import ../spec/common.bend as SC
@@ -12,23 +10,17 @@ import ../../src/containers/doubly_linked_list.bend as D
 import ../../src/containers/internal/dlist_storage.bend as R
 import ../../src/containers/types/internal_dlist.bend as I
 import ../../src/containers/types/doubly_linked_list.bend as E
-import ../hash_table/state.bend as HT
-import ../hash_table/table.bend as TB
-import ../lru/state.bend as LST
-import ../lru/meta.bend as MT
-import ../lru/lists.bend as LS
-import ../lru/dll.bend as DL
-import ../lru/touch.bend as TO
 import ./state.bend as ST
 import ./rel.bend as RL
 import ./vals.bend as VA
 import ./link.bend as LN
 import ./ok.bend as OK
 import ./insp.bend as IP
-import ./ins.bend as IN
 import ./rm.bend as RM
 import ./hrd.bend as HR
 import ./hnb.bend as NB
+import ../lib/nat_list.bend as NL
+import ../lib/words32.bend as W32
 
 # The live element, split out of its list: next, prev, remove, and the
 # insertions before and after it; and the storage's stale answers for
@@ -69,10 +61,10 @@ import ./hnb.bend as NB
 
 # ---- splitting the list at the live element ----
 
-def mem_of(~T: Data, $VP, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}) -> $TR(HT.memn($II, sl)):
+def mem_of(~T: Data, $VP, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}) -> $TR(NL.memn($II, sl)):
   VA.lvin_elim(~T, $VL, 0n, sl, $G(clv), $II, RL.by_eq(ST.live(T, $VL, $II), True{}, Equal.cong($MT, Bool, m => ST.some_b(T, m), S.val_of(T, $VL, $II), Some{vv}, hv), {==}))
 
-def ws_go(~T: Data, $VP, +op: E.Op<T>, sp: TO.Split($II, sl), k: @+a: List<&2, Nat> -> @+b: List<&2, Nat> -> @+hg2: $TR(ST.goodF(~T, $SHZ($SLAB))) -> $LIVE(op, $SLAB)) -> $LIVE(op, sl):
+def ws_go(~T: Data, $VP, +op: E.Op<T>, sp: NL.Split($II, sl), k: @+a: List<&2, Nat> -> @+b: List<&2, Nat> -> @+hg2: $TR(ST.goodF(~T, $SHZ($SLAB))) -> $LIVE(op, $SLAB)) -> $LIVE(op, sl):
   match sp:
     case Tuple{+a, Tuple{+b, e}}:
       +e2 = {e : {sl == $SLAB : List<&2, Nat>}}
@@ -81,9 +73,9 @@ def ws_go(~T: Data, $VP, +op: E.Op<T>, sp: TO.Split($II, sl), k: @+a: List<&2, N
       L.subst(List<&2, Nat>, z => $LIVE(op, z), $SLAB, sl, Equal.sym(List<&2, Nat>, sl, $SLAB, e2), r)
 
 def with_split(~T: Data, $VP, +op: E.Op<T>, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}, k: @+a: List<&2, Nat> -> @+b: List<&2, Nat> -> @+hg2: $TR(ST.goodF(~T, $SHZ($SLAB))) -> $LIVE(op, $SLAB)) -> $LIVE(op, sl):
-  ws_go(~T, $VA, op, TO.split_mem($II, sl, mem_of(~T, $VA, vv, hv)), k)
+  ws_go(~T, $VA, op, NL.split_mem($II, sl, mem_of(~T, $VA, vv, hv)), k)
 
-%def LP $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}, +hgen: {g == TB.nth0($GL, $II) : U32}
+%def LP $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}, +hgen: {g == W32.nth0($GL, $II) : U32}
 %def ABW(h2) tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, a, b, fl, owner, id, g, h2
 
 def next_live(~T: Data, $VP, +one: Nat, +h1: {one == 1n : Nat}, $LP) -> $LIVE(E.Next{$HH}, sl):
@@ -155,16 +147,16 @@ def ins_pos(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, $MT>, +g
     case Con{+i, +rest}:
       Equal.cong(List<&2, Nat>, S.DS<T> & E.Handle, z => (S.DS{tag, z, SC.update($MT, vals, i, Some{x}), gens, rest}, S.handle(tag, gens, i)), S.place_order(pos, order, i), $APN(a, Con{i, b}), e(i))
 
-def ib_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +n: Nat, +h: {HT.memn(s, a) == False{} : Bool}) -> {S.ins_before($APN(a, Con{s, b}), s, n) == $APN(a, Con{n, Con{s, b}}) : List<&2, Nat>}:
+def ib_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +n: Nat, +h: {NL.memn(s, a) == False{} : Bool}) -> {S.ins_before($APN(a, Con{s, b}), s, n) == $APN(a, Con{n, Con{s, b}}) : List<&2, Nat>}:
   match a:
     case Nil{}:
       Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{n, Con{s, b}}, Con{s, S.ins_before(b, s, n)}), Nat.is_eq(s, s), True{}, N.is_eq_refl(s))
     case Con{+y, +t}:
-      Equal.trans(List<&2, Nat>, S.ins_before($APN(Con{y, t}, Con{s, b}), s, n), Con{y, S.ins_before($APN(t, Con{s, b}), s, n)}, $APN(Con{y, t}, Con{n, Con{s, b}}), Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{n, Con{y, $APN(t, Con{s, b})}}, Con{y, S.ins_before($APN(t, Con{s, b}), s, n)}), Nat.is_eq(y, s), False{}, DL.or_ff_l(Nat.is_eq(y, s), HT.memn(s, t), h)), LL.cons_cong(Nat, y, S.ins_before($APN(t, Con{s, b}), s, n), $APN(t, Con{n, Con{s, b}}), ib_mid(t, s, b, n, DL.or_ff_r(Nat.is_eq(y, s), HT.memn(s, t), h))))
+      Equal.trans(List<&2, Nat>, S.ins_before($APN(Con{y, t}, Con{s, b}), s, n), Con{y, S.ins_before($APN(t, Con{s, b}), s, n)}, $APN(Con{y, t}, Con{n, Con{s, b}}), Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{n, Con{y, $APN(t, Con{s, b})}}, Con{y, S.ins_before($APN(t, Con{s, b}), s, n)}), Nat.is_eq(y, s), False{}, NL.or_ff_l(Nat.is_eq(y, s), NL.memn(s, t), h)), LL.cons_cong(Nat, y, S.ins_before($APN(t, Con{s, b}), s, n), $APN(t, Con{n, Con{s, b}}), ib_mid(t, s, b, n, NL.or_ff_r(Nat.is_eq(y, s), NL.memn(s, t), h))))
 
-def ia_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +n: Nat, +h: {HT.memn(s, a) == False{} : Bool}) -> {S.ins_after($APN(a, Con{s, b}), s, n) == $APN(a, Con{s, Con{n, b}}) : List<&2, Nat>}:
+def ia_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +n: Nat, +h: {NL.memn(s, a) == False{} : Bool}) -> {S.ins_after($APN(a, Con{s, b}), s, n) == $APN(a, Con{s, Con{n, b}}) : List<&2, Nat>}:
   match a:
     case Nil{}:
       Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{s, Con{n, b}}, Con{s, S.ins_after(b, s, n)}), Nat.is_eq(s, s), True{}, N.is_eq_refl(s))
     case Con{+y, +t}:
-      Equal.trans(List<&2, Nat>, S.ins_after($APN(Con{y, t}, Con{s, b}), s, n), Con{y, S.ins_after($APN(t, Con{s, b}), s, n)}, $APN(Con{y, t}, Con{s, Con{n, b}}), Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{y, Con{n, $APN(t, Con{s, b})}}, Con{y, S.ins_after($APN(t, Con{s, b}), s, n)}), Nat.is_eq(y, s), False{}, DL.or_ff_l(Nat.is_eq(y, s), HT.memn(s, t), h)), LL.cons_cong(Nat, y, S.ins_after($APN(t, Con{s, b}), s, n), $APN(t, Con{s, Con{n, b}}), ia_mid(t, s, b, n, DL.or_ff_r(Nat.is_eq(y, s), HT.memn(s, t), h))))
+      Equal.trans(List<&2, Nat>, S.ins_after($APN(Con{y, t}, Con{s, b}), s, n), Con{y, S.ins_after($APN(t, Con{s, b}), s, n)}, $APN(Con{y, t}, Con{s, Con{n, b}}), Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{y, Con{n, $APN(t, Con{s, b})}}, Con{y, S.ins_after($APN(t, Con{s, b}), s, n)}), Nat.is_eq(y, s), False{}, NL.or_ff_l(Nat.is_eq(y, s), NL.memn(s, t), h)), LL.cons_cong(Nat, y, S.ins_after($APN(t, Con{s, b}), s, n), $APN(t, Con{s, Con{n, b}}), ia_mid(t, s, b, n, NL.or_ff_r(Nat.is_eq(y, s), NL.memn(s, t), h))))

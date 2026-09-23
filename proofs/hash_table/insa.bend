@@ -12,6 +12,7 @@ import ./buckets.bend as B
 import ./state.bend as ST
 import ./probe_all.bend as PA
 import ./insm.bend as IM
+import ../lib/words32.bend as W32
 
 # The arrays after putting (w, L) into bucket e and the key sk into slot
 # slot(L) read as the old bucket list with bucket e replaced.
@@ -28,27 +29,7 @@ def len_upd(+xs: List<&2, U32>, +i: Nat, +v: U32) -> {SC.length(U32, SC.update(U
     case Con{h, t} 1n+p:
       Equal.cong(Nat, Nat, z => 1n+z, SC.length(U32, SC.update(U32, t, p, v)), SC.length(U32, t), len_upd(t, p, v))
 
-def nth0_upd_same(+xs: List<&2, U32>, +i: Nat, +v: U32, +h: {Nat.is_lt(i, SC.length(U32, xs)) == True{} : Bool}) -> {TB.nth0(SC.update(U32, xs, i, v), i) == v : U32}:
-  match xs i:
-    case Nil{} _:
-      Empty.absurd({TB.nth0(SC.update(U32, Nil{}, i, v), i) == v : U32}, N.lt_zero_absurd(i, h))
-    case Con{x, t} 0n:
-      {==}
-    case Con{x, t} 1n+p:
-      nth0_upd_same(t, p, v, h)
 
-def nth0_upd_other(+xs: List<&2, U32>, +i: Nat, +j: Nat, +v: U32, +h: {Nat.is_eq(i, j) == False{} : Bool}) -> {TB.nth0(SC.update(U32, xs, i, v), j) == TB.nth0(xs, j) : U32}:
-  match xs i j:
-    case Nil{} _ _:
-      {==}
-    case Con{x, r} 0n 0n:
-      Empty.absurd({TB.nth0(SC.update(U32, Con{x, r}, 0n, v), 0n) == TB.nth0(Con{x, r}, 0n) : U32}, L.true_false(h))
-    case Con{x, r} 0n 1n+q:
-      {==}
-    case Con{x, r} 1n+p 0n:
-      {==}
-    case Con{x, r} 1n+p 1n+q:
-      nth0_upd_other(r, p, q, v, h)
 
 def nths_upd_same(+xs: List<&2, String>, +i: Nat, +v: String, +h: {Nat.is_lt(i, SC.length(String, xs)) == True{} : Bool}) -> {TB.nths(SC.update(String, xs, i, v), i) == v : String}:
   match xs i:
@@ -100,17 +81,17 @@ def oe_ne(+a: Nat, +b: Nat) -> {Nat.is_eq(1n+Nat.double(a), Nat.double(b)) == Fa
 
 # ---- decoding one bucket ----
 
-def w_other(+tb: List<&2, U32>, +e: Nat, +w: U32, +L: U32, +j: Nat, +hne: {Nat.is_eq(e, j) == False{} : Bool}) -> {TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), Nat.double(j)) == TB.nth0(tb, Nat.double(j)) : U32}:
-  Equal.trans(U32, TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), Nat.double(j)), TB.nth0(SC.update(U32, tb, Nat.double(e), w), Nat.double(j)), TB.nth0(tb, Nat.double(j)), nth0_upd_other(SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), Nat.double(j), L, oe_ne(e, j)), nth0_upd_other(tb, Nat.double(e), Nat.double(j), w, dd_ne(e, j, hne)))
+def w_other(+tb: List<&2, U32>, +e: Nat, +w: U32, +L: U32, +j: Nat, +hne: {Nat.is_eq(e, j) == False{} : Bool}) -> {W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), Nat.double(j)) == W32.nth0(tb, Nat.double(j)) : U32}:
+  Equal.trans(U32, W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), Nat.double(j)), W32.nth0(SC.update(U32, tb, Nat.double(e), w), Nat.double(j)), W32.nth0(tb, Nat.double(j)), W32.nth0_upd_other(SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), Nat.double(j), L, oe_ne(e, j)), W32.nth0_upd_other(tb, Nat.double(e), Nat.double(j), w, dd_ne(e, j, hne)))
 
-def l_other(+tb: List<&2, U32>, +e: Nat, +w: U32, +L: U32, +j: Nat, +hne: {Nat.is_eq(e, j) == False{} : Bool}) -> {TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(j)) == TB.nth0(tb, 1n+Nat.double(j)) : U32}:
-  Equal.trans(U32, TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(j)), TB.nth0(SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(j)), TB.nth0(tb, 1n+Nat.double(j)), nth0_upd_other(SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), 1n+Nat.double(j), L, dd_ne(e, j, hne)), nth0_upd_other(tb, Nat.double(e), 1n+Nat.double(j), w, eo_ne(e, j)))
+def l_other(+tb: List<&2, U32>, +e: Nat, +w: U32, +L: U32, +j: Nat, +hne: {Nat.is_eq(e, j) == False{} : Bool}) -> {W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(j)) == W32.nth0(tb, 1n+Nat.double(j)) : U32}:
+  Equal.trans(U32, W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(j)), W32.nth0(SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(j)), W32.nth0(tb, 1n+Nat.double(j)), W32.nth0_upd_other(SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), 1n+Nat.double(j), L, dd_ne(e, j, hne)), W32.nth0_upd_other(tb, Nat.double(e), 1n+Nat.double(j), w, eo_ne(e, j)))
 
-def w_same(+tb: List<&2, U32>, +e: Nat, +w: U32, +L: U32, +htb: {Nat.is_lt(1n+Nat.double(e), SC.length(U32, tb)) == True{} : Bool}) -> {TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), Nat.double(e)) == w : U32}:
-  Equal.trans(U32, TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), Nat.double(e)), TB.nth0(SC.update(U32, tb, Nat.double(e), w), Nat.double(e)), w, nth0_upd_other(SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), Nat.double(e), L, oe_ne(e, e)), nth0_upd_same(tb, Nat.double(e), w, N.lt_trans(Nat.double(e), 1n+Nat.double(e), SC.length(U32, tb), N.lt_succ(Nat.double(e)), htb)))
+def w_same(+tb: List<&2, U32>, +e: Nat, +w: U32, +L: U32, +htb: {Nat.is_lt(1n+Nat.double(e), SC.length(U32, tb)) == True{} : Bool}) -> {W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), Nat.double(e)) == w : U32}:
+  Equal.trans(U32, W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), Nat.double(e)), W32.nth0(SC.update(U32, tb, Nat.double(e), w), Nat.double(e)), w, W32.nth0_upd_other(SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), Nat.double(e), L, oe_ne(e, e)), W32.nth0_upd_same(tb, Nat.double(e), w, N.lt_trans(Nat.double(e), 1n+Nat.double(e), SC.length(U32, tb), N.lt_succ(Nat.double(e)), htb)))
 
-def l_same(+tb: List<&2, U32>, +e: Nat, +w: U32, +L: U32, +htb: {Nat.is_lt(1n+Nat.double(e), SC.length(U32, tb)) == True{} : Bool}) -> {TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(e)) == L : U32}:
-  nth0_upd_same(SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L, L.subst(Nat, z => {Nat.is_lt(1n+Nat.double(e), z) == True{} : Bool}, SC.length(U32, tb), SC.length(U32, SC.update(U32, tb, Nat.double(e), w)), Equal.sym(Nat, SC.length(U32, SC.update(U32, tb, Nat.double(e), w)), SC.length(U32, tb), len_upd(tb, Nat.double(e), w)), htb))
+def l_same(+tb: List<&2, U32>, +e: Nat, +w: U32, +L: U32, +htb: {Nat.is_lt(1n+Nat.double(e), SC.length(U32, tb)) == True{} : Bool}) -> {W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(e)) == L : U32}:
+  W32.nth0_upd_same(SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L, L.subst(Nat, z => {Nat.is_lt(1n+Nat.double(e), z) == True{} : Bool}, SC.length(U32, tb), SC.length(U32, SC.update(U32, tb, Nat.double(e), w)), Equal.sym(Nat, SC.length(U32, SC.update(U32, tb, Nat.double(e), w)), SC.length(U32, tb), len_upd(tb, Nat.double(e), w)), htb))
 
 def dec_same_c(+w: U32, +l: U32, +kl: List<&2, String>, +s: Nat, +sk: String, +emp: Bool, +h: {Bool.not(Bool.and(B.occ(TB.dec_c(w, l, kl, emp)), Nat.is_eq(UD.v(H.slot(B.lnk(TB.dec_c(w, l, kl, emp)))), s))) == True{} : Bool}) -> {TB.dec_c(w, l, SC.update(String, kl, s, sk), emp) == TB.dec_c(w, l, kl, emp) : B.Bk}:
   match emp:
@@ -121,14 +102,14 @@ def dec_same_c(+w: U32, +l: U32, +kl: List<&2, String>, +s: Nat, +sk: String, +e
       Equal.cong(String, B.Bk, z => B.BF{w, l, TB.keyof(w, z)}, TB.nths(SC.update(String, kl, s, sk), UD.v(H.slot(l))), TB.nths(kl, UD.v(H.slot(l))), nths_upd_other(kl, s, UD.v(H.slot(l)), sk, hne))
 
 def dec_other(+tb: List<&2, U32>, +kl: List<&2, String>, +e: Nat, +w: U32, +L: U32, +sk: String, +j: Nat, +hne: {Nat.is_eq(e, j) == False{} : Bool}, +hns: {Bool.not(Bool.and(B.occ(TB.dec(tb, kl, j)), Nat.is_eq(UD.v(H.slot(B.lnk(TB.dec(tb, kl, j)))), UD.v(H.slot(L))))) == True{} : Bool}) -> {TB.dec(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), SC.update(String, kl, UD.v(H.slot(L)), sk), j) == TB.dec(tb, kl, j) : B.Bk}:
-  +wj = TB.nth0(tb, Nat.double(j))
-  +lj = TB.nth0(tb, 1n+Nat.double(j))
-  Equal.trans(B.Bk, TB.dec(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), SC.update(String, kl, UD.v(H.slot(L)), sk), j), TB.dec_c(wj, TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(j)), SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(wj, 0)), TB.dec(tb, kl, j), Equal.cong(U32, B.Bk, a => TB.dec_c(a, TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(j)), SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(a, 0)), TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), Nat.double(j)), wj, w_other(tb, e, w, L, j, hne)),
-    Equal.trans(B.Bk, TB.dec_c(wj, TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(j)), SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(wj, 0)), TB.dec_c(wj, lj, SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(wj, 0)), TB.dec(tb, kl, j), Equal.cong(U32, B.Bk, a => TB.dec_c(wj, a, SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(wj, 0)), TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(j)), lj, l_other(tb, e, w, L, j, hne)), dec_same_c(wj, lj, kl, UD.v(H.slot(L)), sk, U32.is_eq(wj, 0), hns)))
+  +wj = W32.nth0(tb, Nat.double(j))
+  +lj = W32.nth0(tb, 1n+Nat.double(j))
+  Equal.trans(B.Bk, TB.dec(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), SC.update(String, kl, UD.v(H.slot(L)), sk), j), TB.dec_c(wj, W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(j)), SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(wj, 0)), TB.dec(tb, kl, j), Equal.cong(U32, B.Bk, a => TB.dec_c(a, W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(j)), SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(a, 0)), W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), Nat.double(j)), wj, w_other(tb, e, w, L, j, hne)),
+    Equal.trans(B.Bk, TB.dec_c(wj, W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(j)), SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(wj, 0)), TB.dec_c(wj, lj, SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(wj, 0)), TB.dec(tb, kl, j), Equal.cong(U32, B.Bk, a => TB.dec_c(wj, a, SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(wj, 0)), W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(j)), lj, l_other(tb, e, w, L, j, hne)), dec_same_c(wj, lj, kl, UD.v(H.slot(L)), sk, U32.is_eq(wj, 0), hns)))
 
 def dec_at(+tb: List<&2, U32>, +kl: List<&2, String>, +e: Nat, +w: U32, +L: U32, +sk: String, +hw0: {U32.is_eq(w, 0) == False{} : Bool}, +htb: {Nat.is_lt(1n+Nat.double(e), SC.length(U32, tb)) == True{} : Bool}, +hkl: {Nat.is_lt(UD.v(H.slot(L)), SC.length(String, kl)) == True{} : Bool}) -> {TB.dec(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), SC.update(String, kl, UD.v(H.slot(L)), sk), e) == B.BF{w, L, TB.keyof(w, sk)} : B.Bk}:
-  Equal.trans(B.Bk, TB.dec(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), SC.update(String, kl, UD.v(H.slot(L)), sk), e), TB.dec_c(w, TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(e)), SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(w, 0)), B.BF{w, L, TB.keyof(w, sk)}, Equal.cong(U32, B.Bk, a => TB.dec_c(a, TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(e)), SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(a, 0)), TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), Nat.double(e)), w, w_same(tb, e, w, L, htb)),
-    Equal.trans(B.Bk, TB.dec_c(w, TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(e)), SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(w, 0)), TB.dec_c(w, L, SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(w, 0)), B.BF{w, L, TB.keyof(w, sk)}, Equal.cong(U32, B.Bk, a => TB.dec_c(w, a, SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(w, 0)), TB.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(e)), L, l_same(tb, e, w, L, htb)),
+  Equal.trans(B.Bk, TB.dec(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), SC.update(String, kl, UD.v(H.slot(L)), sk), e), TB.dec_c(w, W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(e)), SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(w, 0)), B.BF{w, L, TB.keyof(w, sk)}, Equal.cong(U32, B.Bk, a => TB.dec_c(a, W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(e)), SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(a, 0)), W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), Nat.double(e)), w, w_same(tb, e, w, L, htb)),
+    Equal.trans(B.Bk, TB.dec_c(w, W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(e)), SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(w, 0)), TB.dec_c(w, L, SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(w, 0)), B.BF{w, L, TB.keyof(w, sk)}, Equal.cong(U32, B.Bk, a => TB.dec_c(w, a, SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(w, 0)), W32.nth0(SC.update(U32, SC.update(U32, tb, Nat.double(e), w), 1n+Nat.double(e), L), 1n+Nat.double(e)), L, l_same(tb, e, w, L, htb)),
       Equal.trans(B.Bk, TB.dec_c(w, L, SC.update(String, kl, UD.v(H.slot(L)), sk), U32.is_eq(w, 0)), TB.dec_c(w, L, SC.update(String, kl, UD.v(H.slot(L)), sk), False{}), B.BF{w, L, TB.keyof(w, sk)}, Equal.cong(Bool, B.Bk, c => TB.dec_c(w, L, SC.update(String, kl, UD.v(H.slot(L)), sk), c), U32.is_eq(w, 0), False{}, hw0), Equal.cong(String, B.Bk, z => B.BF{w, L, TB.keyof(w, z)}, TB.nths(SC.update(String, kl, UD.v(H.slot(L)), sk), UD.v(H.slot(L))), sk, nths_upd_same(kl, UD.v(H.slot(L)), sk, hkl)))))
 
 # ---- decoding the list ----

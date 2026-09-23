@@ -4,7 +4,6 @@ import ../lib/nat.bend as N
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
 import ./state.bend as ST
 import ./prim.bend as PR
 import ./mirror.bend as MI
@@ -13,6 +12,7 @@ import ./agree.bend as AG
 import ../spec/tree_map.bend as S
 import ./ends.bend as EN
 import ./path.bend as P
+import ../lib/nat_list.bend as NL
 
 # The mirror's node setters as functions of the node list: each rewrites one
 # field of an id's node (nothing for a free or absent node). The written
@@ -34,7 +34,7 @@ import ./path.bend as P
 %def NDX(nl, j) ST.nd(K, nl, j)
 %def WR(nl, id, x) PR.wr_nl(K, nl, id, x)
 %def LEN(nl) SC.length($ND, nl)
-%def NMEM(y, xs) {HT.memn(y, xs) == False{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
 
 # ---- left ----
 

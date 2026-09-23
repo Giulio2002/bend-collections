@@ -1,5 +1,4 @@
 import Base
-import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S

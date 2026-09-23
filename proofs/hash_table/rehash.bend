@@ -14,6 +14,7 @@ import ./lookup.bend as LK
 import ./tools.bend as T
 import ./insm.bend as IM
 import ./tools.bend as TL
+import ../lib/u32.bend as UW
 
 # Moving buckets from an old table into a new one: the new table's full
 # buckets are copies of old ones, and the moved old ones all have copies.
@@ -24,7 +25,7 @@ def bk_refl(+b: B.Bk) -> {B.bk_eq(b, b) == True{} : Bool}:
     case B.BE{}:
       {==}
     case B.BF{+w, +l, +k}:
-      L.and_intro(U32.is_eq(w, w), Bool.and(U32.is_eq(l, l), S.str_eq(k, k)), K.u32_eq_refl(w), L.and_intro(U32.is_eq(l, l), S.str_eq(k, k), K.u32_eq_refl(l), K.str_refl(k)))
+      L.and_intro(U32.is_eq(w, w), Bool.and(U32.is_eq(l, l), S.str_eq(k, k)), UW.u32_eq_refl(w), L.and_intro(U32.is_eq(l, l), S.str_eq(k, k), UW.u32_eq_refl(l), K.str_refl(k)))
 
 def bk_eq_of(+a: B.Bk, +b: B.Bk, +h: {B.bk_eq(a, b) == True{} : Bool}) -> {a == b : B.Bk}:
   match a b:

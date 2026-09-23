@@ -1,17 +1,16 @@
 import Base
 import ../lib/logic.bend as L
-import ../lib/nat.bend as N
 import ../lib/array.bend as AR
 import ../spec/common.bend as SC
 import ../spec/lru.bend as SP
 import ../math/u32div.bend as UD
 import ../../src/math/u64.bend as W
 import ../../src/containers/lru.bend as LR
-import ../hash_table/table.bend as TB
 import ./state.bend as ST
-import ./meta.bend as MT
 import ./idx.bend as ID
 import ./unlink.bend as UL
+import ../lib/words32.bend as W32
+import ../lib/u32_tree.bend as UT
 
 # gone: the implementation's expiry test of a slot is the specification's
 # test of its entry.
@@ -31,7 +30,7 @@ def exp_eq(+d: W.U64, +now: W.U64) -> {LR.expired(d, now) == SP.expired(d, now) 
 # a read of word o of slot s
 def rd(+one: Nat, +h1: {one == 1n : Nat}, +lkT: AR.Tree<U32>, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +hpl: {AR.perfect(U32, 3n+sd, lkT) == True{} : Bool}, +i: U32, +s: Nat, +o: Nat, +ho: {Nat.is_lt(o, 8n) == True{} : Bool}, +hs0: {Nat.is_lt(s, SC.pow2(sd)) == True{} : Bool}, +hi: {UD.v(i) == ST.off(s, o) : Nat}) -> {Array.get(U32, AR.thaw(U32, lkT), i) == (AR.thaw(U32, lkT), ST.lw(AR.slots(U32, lkT), s, o)) : Array<U32> & U32}:
   +hl = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(3n+sd)) == True{} : Bool}, ST.off(s, o), UD.v(i), Equal.sym(Nat, UD.v(i), ST.off(s, o), hi), ID.off_lt(s, sd, hs0, o, ho))
-  Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, lkT), i), (AR.thaw(U32, lkT), TB.nth0(AR.slots(U32, lkT), UD.v(i))), (AR.thaw(U32, lkT), ST.lw(AR.slots(U32, lkT), s, o)), MT.uget(3n+sd, hsd, lkT, hpl, i, hl), Equal.cong(Nat, Array<U32> & U32, z => (AR.thaw(U32, lkT), TB.nth0(AR.slots(U32, lkT), z)), UD.v(i), ST.off(s, o), hi))
+  Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, lkT), i), (AR.thaw(U32, lkT), W32.nth0(AR.slots(U32, lkT), UD.v(i))), (AR.thaw(U32, lkT), ST.lw(AR.slots(U32, lkT), s, o)), UT.uget(3n+sd, hsd, lkT, hpl, i, hl), Equal.cong(Nat, Array<U32> & U32, z => (AR.thaw(U32, lkT), W32.nth0(AR.slots(U32, lkT), z)), UD.v(i), ST.off(s, o), hi))
 
 def su_lt(+su: U32, +s: Nat, +sd: Nat, +hsv: {UD.v(su) == s : Nat}, +hs0: {Nat.is_lt(s, SC.pow2(sd)) == True{} : Bool}) -> {Nat.is_lt(UD.v(su), SC.pow2(sd)) == True{} : Bool}:
   L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(sd)) == True{} : Bool}, s, UD.v(su), Equal.sym(Nat, UD.v(su), s, hsv), hs0)

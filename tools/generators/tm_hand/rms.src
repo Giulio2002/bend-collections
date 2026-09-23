@@ -6,26 +6,17 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
 import ./state.bend as ST
 import ./tree.bend as TR
 import ./path.bend as P
-import ./plug.bend as PG
 import ./prim.bend as PR
-import ./mirror.bend as MI
-import ./ok.bend as OK
 import ./find.bend as FI
 import ./ends.bend as EN
-import ./ord.bend as OR
 import ./slot.bend as SL
-import ./alls.bend as AL
 import ./dj.bend as DJ
 import ./agree.bend as AG
-import ./spath.bend as SP
-import ./idmv.bend as ID
 import ./frame.bend as FRM
-import ./succ.bend as SU
+import ../lib/nat_list.bend as NL
 
 # Removing a node with two children: its successor s (the leftmost node of
 # its right subtree) gives the node its key and payload and is unlinked.

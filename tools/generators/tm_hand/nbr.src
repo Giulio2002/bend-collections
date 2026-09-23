@@ -4,12 +4,11 @@ import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./mirror.bend as MI
 import ./tree.bend as TR
 import ./path.bend as P
+import ../lib/nat_list.bend as NL
 
 # The neighbour walk: from a node the path leads to, the next id in key
 # order (forward) is the first of its right subtree's and the ids after it,
@@ -169,7 +168,7 @@ def done_loop(-K: Data, +nl: $NL, +g: Nat, +fw: Bool, +p: Nat, +hg: {Nat.is_lt(0
       {==}
 
 def not_eq_f(+x: Nat, +y: Nat, +h: {Bool.not(Nat.is_eq(x, y)) == True{} : Bool}) -> {Nat.is_eq(x, y) == False{} : Bool}:
-  LS.not_t_f(Nat.is_eq(x, y), h)
+  NL.not_t_f(Nat.is_eq(x, y), h)
 
 %def G0 N.le_lt_trans(0n, SC.length(P.Fr, t), g, N.zero_le(SC.length(P.Fr, t)), hg)
 %def CH(fw, a, b) M.ascend_choice(p, p, q, Nat.is_eq(x, M.pick(Nat, fw, a, b)))
@@ -241,7 +240,7 @@ def asc(~K: Data, +nl: $NL, +c: $CT, +x: Nat, +g: Nat, +fw: Bool, +hok: $COK(c, 
 %def SHT ST.Sh<K, V>
 %def WH(c, t) $APP(P.before(c), $APP($IDS(t), P.after(c)))
 %def SUB $TN(i, l, r)
-%def NBH +c: $CT, +i: Nat, +l: ST.Tr, +r: ST.Tr, +hr: $REP($SUB, P.top(c)), +hok: $COK(c, i), +hnd: {LST.nodupn($WH(c, $SUB)) == True{} : Bool}, +hid: {$IDS(tg) == $WH(c, $SUB) : $LN}, +hn: {n == SC.length(Nat, $IDS(tg)) : Nat}
+%def NBH +c: $CT, +i: Nat, +l: ST.Tr, +r: ST.Tr, +hr: $REP($SUB, P.top(c)), +hok: $COK(c, i), +hnd: {NL.nodupn($WH(c, $SUB)) == True{} : Bool}, +hid: {$IDS(tg) == $WH(c, $SUB) : $LN}, +hn: {n == SC.length(Nat, $IDS(tg)) : Nat}
 %def NBA c, i, l, r, hr, hok, hnd, hid, hn
 %def NBS(fw, cc) MI.nbs(~K, nl, n, i, P.top(c), fw, cc)
 %def LNW SC.length(Nat, $WH(c, $SUB))

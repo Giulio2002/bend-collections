@@ -5,9 +5,6 @@ import ../lib/list.bend as LL
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./mirror.bend as MI
 import ./tree.bend as TR
@@ -20,7 +17,7 @@ import ./nbr.bend as NB
 import ./dj.bend as DJ
 import ./spath.bend as SP
 import ./ends.bend as EN
-import ../spec/tree_map.bend as S
+import ../lib/nat_list.bend as NL
 
 # A rotation of the mirror at the subtree a path leads to: its result over
 # the node list, the rotated subtree linked, the path leading to it, the
@@ -51,8 +48,8 @@ import ../spec/tree_map.bend as S
 %def REP(t, p) $REPN(t, p, nl)
 %def COKN(c, x, m) {P.ctxok(~K, c, x, m) == True{} : Bool}
 %def COK(c, x) $COKN(c, x, nl)
-%def NDL(xs) {LST.nodupn(xs) == True{} : Bool}
-%def NMEM(y, xs) {HT.memn(y, xs) == False{} : Bool}
+%def NDL(xs) {NL.nodupn(xs) == True{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
 %def BA(c) $APP(P.before(c), P.after(c))
 
 # ---- a node's fields from its links ----
@@ -76,13 +73,13 @@ def dir_c(+x: Nat, +lft: Bool, +s: Nat, +h: {Bool.not(Nat.is_eq(x, s)) == True{}
     case True{}:
       N.is_eq_refl(x)
     case False{}:
-      N.is_eq_sym_false(x, s, LS.not_t_f(Nat.is_eq(x, s), h))
+      N.is_eq_sym_false(x, s, NL.not_t_f(Nat.is_eq(x, s), h))
 
 # the side the parent's node has x on is the path's
 def dir_eq(~K: Data, +nl: $NL, +c: $CT, +x: Nat, +hok: $COK(c, x), +hd: {P.dist(c, x) == True{} : Bool}, +hx: {Nat.is_lt(0n, x) == True{} : Bool}) -> {Nat.is_eq(M.node_left(~K, $NDX(nl, P.top(c))), x) == SP.dir(c) : Bool}:
   match c:
     case Nil{}:
-      N.is_eq_sym_false(x, 0n, LS.not_t_f(Nat.is_eq(x, 0n), P.ne_zero(x, hx)))
+      N.is_eq_sym_false(x, 0n, NL.not_t_f(Nat.is_eq(x, 0n), P.ne_zero(x, hx)))
     case Con{P.FR{+q, +lft, +s}, +u}:
       +hk = L.and_left(P.cok1(~K, P.FR{q, lft, s}, x, P.top(u), nl), P.ctxok(~K, u, q, nl), hok)
       +hn = L.and_left(ST.is_node(K, $NDX(nl, q), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)), ST.rep(~K, s, q, nl), L.and_right(Nat.is_lt(0n, q), Bool.and(ST.is_node(K, $NDX(nl, q), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)), ST.rep(~K, s, q, nl)), hk))
@@ -160,7 +157,7 @@ def q_notin(~K: Data, +nl: $NL, +c: $CT, +t: ST.Tr, +hr: $REP(t, P.top(c)), +hnd
     case Con{P.FR{+q, False{}, +s}, +u}:
       DJ.nm_l(q, $IDS(t), P.after(u), DJ.dj_r($APP(P.before(u), $APP($IDS(s), Con{q, Nil{}})), $APP($IDS(t), P.after(u)), hnd, q, DJ.mem_r(q, P.before(u), $APP($IDS(s), Con{q, Nil{}}), DJ.mem_r(q, $IDS(s), Con{q, Nil{}}, DJ.mem_hd(q, Nil{})))))
 
-def w_notin(+c: $CT, +t: ST.Tr, +hnd: $NDL($WH(c, t)), +w: Nat, +hw: {HT.memn(w, $IDS(t)) == True{} : Bool}) -> $NMEM(w, $BA(c)):
+def w_notin(+c: $CT, +t: ST.Tr, +hnd: $NDL($WH(c, t)), +w: Nat, +hw: {NL.memn(w, $IDS(t)) == True{} : Bool}) -> $NMEM(w, $BA(c)):
   DJ.nm_app(w, P.before(c), P.after(c), DJ.dj_l(P.before(c), $APP($IDS(t), P.after(c)), hnd, w, DJ.mem_l(w, $IDS(t), P.after(c), hw)), DJ.dj_r($IDS(t), P.after(c), DJ.ndr(P.before(c), $APP($IDS(t), P.after(c)), hnd), w, hw))
 
 def nd_sub(+c: $CT, +t: ST.Tr, +hnd: $NDL($WH(c, t))) -> $NDL($IDS(t)):

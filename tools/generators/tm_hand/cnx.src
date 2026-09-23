@@ -6,13 +6,8 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./mirror.bend as MI
-import ./ok.bend as OK
-import ./tree.bend as TR
 import ./ends.bend as EN
 import ./path.bend as P
 import ./plug.bend as PG
@@ -23,6 +18,7 @@ import ./cur.bend as CU
 import ./nbr.bend as NB
 import ./find.bend as FI
 import ./slot.bend as SL
+import ../lib/nat_list.bend as NL
 
 # A cursor's step: the path to any id of the tree, and in sorted entries
 # the entries strictly past (before) an entry's key are the ones after
@@ -67,7 +63,7 @@ def lw_mid($TO, +xs: $ES, +e: $E, +ys: $ES, +h: $ORD($MID)) -> {S.last_where($AK
 %def WH(c, t) $APP(P.before(c), $APP($IDS(t), P.after(c)))
 %def REPN(t, p) {ST.rep(~K, t, p, nl) == True{} : Bool}
 %def COKN(c, z) {P.ctxok(~K, c, z, nl) == True{} : Bool}
-%def MEM(y, xs) {HT.memn(y, xs) == True{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
 %def TO3 ~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
 %def AO3 ~K, ~cmp, ~o
 %def PT(c, t) Sigma<&1, &1, $CT, pc_ => Sigma<&1, &1, ST.Tr, pa_ => Sigma<&1, &1, ST.Tr, pb_ => {$WH(pc_, $TN(j, pa_, pb_)) == $WH(c, t) : $LN} & ({PG.plug(pc_, $TN(j, pa_, pb_)) == PG.plug(c, t) : ST.Tr} & ($REPN($TN(j, pa_, pb_), P.top(pc_)) & $COKN(pc_, j)))>>>
@@ -93,14 +89,14 @@ def pt_upr(-K: Data, +nl: $NL, +c: $CT, +i: Nat, +tl: ST.Tr, +tr: ST.Tr, +j: Nat
 %def PTH +nl: $NL, +c: $CT, +i: Nat, +tl: ST.Tr, +tr: ST.Tr, +j: Nat, +hr: $REPN($TT, P.top(c)), +hok: $COKN(c, i), +hm: $MEM(j, $IDS($TT))
 
 # j on the right when neither the node nor on the left
-def pt_rc($TO3, $PTH, +he: {Nat.is_eq(i, j) == False{} : Bool}, +bl: Bool, +hbl: {HT.memn(j, $IDS(tl)) == bl : Bool}, kl: $KL, kr: $KR) -> $PT(c, $TT):
+def pt_rc($TO3, $PTH, +he: {Nat.is_eq(i, j) == False{} : Bool}, +bl: Bool, +hbl: {NL.memn(j, $IDS(tl)) == bl : Bool}, kl: $KL, kr: $KR) -> $PT(c, $TT):
   match bl:
     case True{}:
       pt_upl(K, nl, c, i, tl, tr, j, kl(Pair.snd($COKN($CLF, ST.rid(tl)), $REPN(tl, i), $OKL), Pair.fst($COKN($CLF, ST.rid(tl)), $REPN(tl, i), $OKL), hbl))
     case False{}:
-      +e1 = Equal.trans(Bool, Bool.or(HT.memn(j, $IDS(tl)), HT.memn(j, Con{i, $IDS(tr)})), HT.memn(j, $IDS($TT)), True{}, Equal.sym(Bool, HT.memn(j, $IDS($TT)), Bool.or(HT.memn(j, $IDS(tl)), HT.memn(j, Con{i, $IDS(tr)})), LS.memn_app(j, $IDS(tl), Con{i, $IDS(tr)})), hm)
-      +e2 = L.subst(Bool, z => {Bool.or(z, HT.memn(j, Con{i, $IDS(tr)})) == True{} : Bool}, HT.memn(j, $IDS(tl)), False{}, hbl, e1)
-      +e3 = L.subst(Bool, z => {Bool.or(z, HT.memn(j, $IDS(tr))) == True{} : Bool}, Nat.is_eq(i, j), False{}, he, e2)
+      +e1 = Equal.trans(Bool, Bool.or(NL.memn(j, $IDS(tl)), NL.memn(j, Con{i, $IDS(tr)})), NL.memn(j, $IDS($TT)), True{}, Equal.sym(Bool, NL.memn(j, $IDS($TT)), Bool.or(NL.memn(j, $IDS(tl)), NL.memn(j, Con{i, $IDS(tr)})), NL.memn_app(j, $IDS(tl), Con{i, $IDS(tr)})), hm)
+      +e2 = L.subst(Bool, z => {Bool.or(z, NL.memn(j, Con{i, $IDS(tr)})) == True{} : Bool}, NL.memn(j, $IDS(tl)), False{}, hbl, e1)
+      +e3 = L.subst(Bool, z => {Bool.or(z, NL.memn(j, $IDS(tr))) == True{} : Bool}, Nat.is_eq(i, j), False{}, he, e2)
       pt_upr(K, nl, c, i, tl, tr, j, kr(Pair.snd($COKN($CRF, ST.rid(tr)), $REPN(tr, i), $OKR), Pair.fst($COKN($CRF, ST.rid(tr)), $REPN(tr, i), $OKR), e3))
 
 # the node itself, or below it
@@ -109,7 +105,7 @@ def pt_c($TO3, $PTH, +e: Bool, +he: {Nat.is_eq(i, j) == e : Bool}, kl: $KL, kr: 
     case True{}:
       L.subst(Nat, z => $PTJ(z, c, $TT), i, j, N.eq_from_is_eq(i, j, he), (c, (tl, (tr, ({==}, ({==}, (hr, hok)))))))
     case False{}:
-      pt_rc($AO3, nl, c, i, tl, tr, j, hr, hok, hm, he, HT.memn(j, $IDS(tl)), {==}, kl, kr)
+      pt_rc($AO3, nl, c, i, tl, tr, j, hr, hok, hm, he, NL.memn(j, $IDS(tl)), {==}, kl, kr)
 
 def path_to($TO3, +t: ST.Tr, +nl: $NL, +c: $CT, +j: Nat, +hr: $REPN(t, P.top(c)), +hok: $COKN(c, ST.rid(t)), +hm: $MEM(j, $IDS(t))) -> $PT(c, t):
   match t:
@@ -123,11 +119,11 @@ def path_to($TO3, +t: ST.Tr, +nl: $NL, +c: $CT, +j: Nat, +hr: $REPN(t, P.top(c))
 def idok_sc(+a: $LN, +b: $LN, +j: Nat, +h: {CU.idok(b, j) == True{} : Bool}, +e: Bool, +he: {Nat.is_eq(j, 0n) == e : Bool}) -> {CU.idok($APP(a, b), j) == True{} : Bool}:
   match e:
     case True{}:
-      %Equal.sym(Bool, Nat.is_eq(j, 0n), True{}, he) : {Bool.or(_, HT.memn(j, $APP(a, b))) == True{} : Bool}
+      %Equal.sym(Bool, Nat.is_eq(j, 0n), True{}, he) : {Bool.or(_, NL.memn(j, $APP(a, b))) == True{} : Bool}
       {==}
     case False{}:
-      %Equal.sym(Bool, Nat.is_eq(j, 0n), False{}, he) : {Bool.or(_, HT.memn(j, $APP(a, b))) == True{} : Bool}
-      DJ.mem_r(j, a, b, L.subst(Bool, z => {Bool.or(z, HT.memn(j, b)) == True{} : Bool}, Nat.is_eq(j, 0n), False{}, he, h))
+      %Equal.sym(Bool, Nat.is_eq(j, 0n), False{}, he) : {Bool.or(_, NL.memn(j, $APP(a, b))) == True{} : Bool}
+      DJ.mem_r(j, a, b, L.subst(Bool, z => {Bool.or(z, NL.memn(j, b)) == True{} : Bool}, Nat.is_eq(j, 0n), False{}, he, h))
 
 def idok_suf(+a: $LN, +b: $LN, +j: Nat, +h: {CU.idok(b, j) == True{} : Bool}) -> {CU.idok($APP(a, b), j) == True{} : Bool}:
   idok_sc(a, b, j, h, Nat.is_eq(j, 0n), {==})
@@ -135,27 +131,27 @@ def idok_suf(+a: $LN, +b: $LN, +j: Nat, +h: {CU.idok(b, j) == True{} : Bool}) ->
 def idok_pc(+a: $LN, +b: $LN, +j: Nat, +h: {CU.idok(a, j) == True{} : Bool}, +e: Bool, +he: {Nat.is_eq(j, 0n) == e : Bool}) -> {CU.idok($APP(a, b), j) == True{} : Bool}:
   match e:
     case True{}:
-      %Equal.sym(Bool, Nat.is_eq(j, 0n), True{}, he) : {Bool.or(_, HT.memn(j, $APP(a, b))) == True{} : Bool}
+      %Equal.sym(Bool, Nat.is_eq(j, 0n), True{}, he) : {Bool.or(_, NL.memn(j, $APP(a, b))) == True{} : Bool}
       {==}
     case False{}:
-      %Equal.sym(Bool, Nat.is_eq(j, 0n), False{}, he) : {Bool.or(_, HT.memn(j, $APP(a, b))) == True{} : Bool}
-      DJ.mem_l(j, a, b, L.subst(Bool, z => {Bool.or(z, HT.memn(j, a)) == True{} : Bool}, Nat.is_eq(j, 0n), False{}, he, h))
+      %Equal.sym(Bool, Nat.is_eq(j, 0n), False{}, he) : {Bool.or(_, NL.memn(j, $APP(a, b))) == True{} : Bool}
+      DJ.mem_l(j, a, b, L.subst(Bool, z => {Bool.or(z, NL.memn(j, a)) == True{} : Bool}, Nat.is_eq(j, 0n), False{}, he, h))
 
 def idok_pre(+a: $LN, +b: $LN, +j: Nat, +h: {CU.idok(a, j) == True{} : Bool}) -> {CU.idok($APP(a, b), j) == True{} : Bool}:
   idok_pc(a, b, j, h, Nat.is_eq(j, 0n), {==})
 
 # an id ok in a list without x is 0 or not x
-def sep_c(+x: Nat, +xs: $LN, +j: Nat, +hn: {HT.memn(x, xs) == False{} : Bool}, +h: {CU.idok(xs, j) == True{} : Bool}, +e: Bool, +he: {Nat.is_eq(j, 0n) == e : Bool}) -> {Bool.or(Nat.is_eq(j, 0n), Bool.not(Nat.is_eq(j, x))) == True{} : Bool}:
+def sep_c(+x: Nat, +xs: $LN, +j: Nat, +hn: {NL.memn(x, xs) == False{} : Bool}, +h: {CU.idok(xs, j) == True{} : Bool}, +e: Bool, +he: {Nat.is_eq(j, 0n) == e : Bool}) -> {Bool.or(Nat.is_eq(j, 0n), Bool.not(Nat.is_eq(j, x))) == True{} : Bool}:
   match e:
     case True{}:
       %Equal.sym(Bool, Nat.is_eq(j, 0n), True{}, he) : {Bool.or(_, Bool.not(Nat.is_eq(j, x))) == True{} : Bool}
       {==}
     case False{}:
-      +hm = L.subst(Bool, z => {Bool.or(z, HT.memn(j, xs)) == True{} : Bool}, Nat.is_eq(j, 0n), False{}, he, h)
+      +hm = L.subst(Bool, z => {Bool.or(z, NL.memn(j, xs)) == True{} : Bool}, Nat.is_eq(j, 0n), False{}, he, h)
       %Equal.sym(Bool, Nat.is_eq(j, x), False{}, N.is_eq_sym_false(x, j, DJ.ne_nm(x, j, xs, hn, hm))) : {Bool.or(Nat.is_eq(j, 0n), Bool.not(_)) == True{} : Bool}
       CU.or_r(Nat.is_eq(j, 0n), True{}, {==})
 
-def sep_mem(+x: Nat, +xs: $LN, +j: Nat, +hn: {HT.memn(x, xs) == False{} : Bool}, +h: {CU.idok(xs, j) == True{} : Bool}) -> {Bool.or(Nat.is_eq(j, 0n), Bool.not(Nat.is_eq(j, x))) == True{} : Bool}:
+def sep_mem(+x: Nat, +xs: $LN, +j: Nat, +hn: {NL.memn(x, xs) == False{} : Bool}, +h: {CU.idok(xs, j) == True{} : Bool}) -> {Bool.or(Nat.is_eq(j, 0n), Bool.not(Nat.is_eq(j, x))) == True{} : Bool}:
   sep_c(x, xs, j, hn, h, Nat.is_eq(j, 0n), {==})
 
 # ---- iterator_next ----
@@ -191,7 +187,7 @@ def sep_mem(+x: Nat, +xs: $LN, +j: Nat, +hn: {HT.memn(x, xs) == False{} : Bool},
 %def MCY MI.MC{$SH, $NBR, $J, lo2, hi2, fw}
 %def PH +pc: $CT, +pa: ST.Tr, +pb: ST.Tr, +hid: {$IDS(tg) == $WH(pc, $TJ) : $LN}, +hw: {$IDS(tg) == $SPL : $LN}, +h3: $REPN($TJ, P.top(pc)), +h4: $COKN(pc, $J)
 %def PHA pc, pa, pb, hid, hw, h3, h4
-%def NDS L.subst($LN, z => {LST.nodupn(z) == True{} : Bool}, $IDS(tg), $SPL, hw, DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $F, hg)))
+%def NDS L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $IDS(tg), $SPL, hw, DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $F, hg)))
 %def OKS L.subst($LN, z => {EN.oks(~K, ~V, z, nl, pl) == True{} : Bool}, $IDS(tg), $SPL, hw, EN.oks_tree(~K, ~V, nl, pl, tg, 0n, ST.g_crep($AK, $F, hg), ST.g_cpay($AK, $F, hg)))
 %def OKX SL.oks_split_l(~K, ~V, $XS, Con{$J, $YS}, nl, pl, $OKS)
 %def OKC SL.oks_split_r(~K, ~V, $XS, Con{$J, $YS}, nl, pl, $OKS)
@@ -248,7 +244,7 @@ def nx_b($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, $NH, +b: Bool) -> $CO
     case False{}:
       $NONE_W
     case True{}:
-      +hnd = L.subst($LN, z => {LST.nodupn(z) == True{} : Bool}, $IDS(tg), $WH(pc, $TJ), hid, DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $F, hg)))
+      +hnd = L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $IDS(tg), $WH(pc, $TJ), hid, DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $F, hg)))
       %Equal.sym(ST.Sh<K, V> & Nat, MI.neighbor($AK, $SH, $J, fw), ($SH, $NBR), NB.neighbor_m($AK, $F, pc, $J, pa, pb, h3, h4, hnd, hid, N.eq_from_is_eq(n, SC.length(Nat, $IDS(tg)), ST.g_csz($AK, $F, hg)), fw)) : $COKE($SPY, MI.iterator_yield($AK, $J, lo2, hi2, fw, $EE, _))
       +es = nx_succ($AL1, $NHA)
       +ej = L.subst($ND, z => {CU.ck(~K, nl, $J) == M.node_key(~K, z) : Maybe<&2, K>}, ST.nd(K, nl, $J), M.N{c0, x1, x2, x3, k}, hx, {==})

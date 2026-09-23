@@ -4,7 +4,6 @@ import ../lib/nat.bend as N
 import ../lib/array.bend as AR
 import ../spec/common.bend as SC
 import ../spec/hash_table.bend as S
-import ../math/word.bend as WD
 import ../math/u32div.bend as UD
 import ../../src/math/hash.bend as HS
 import ../../src/containers/hash_table.bend as H
@@ -25,6 +24,8 @@ import ./words.bend as WR
 import ./rawins.bend as RI
 import ./rehash.bend as RH
 import ./grow.bend as GR
+import ../lib/nat_list.bend as NL
+import ../lib/words32.bend as W32
 
 # Placing a new entry when the table must grow: the grown table holds
 # copies of every old bucket, so it looks keys up as the old one did, and
@@ -85,16 +86,16 @@ def fl_from(+nbs: List<&2, B.Bk>, +obs: List<&2, B.Bk>, +j: Nat, +n2: Nat, +hf: 
       h
     case 1n+p:
       +x1 = Bool.not(U32.is_eq(f, 0))
-      +y = Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(obs, UD.v(H.slot(f)), j), Bool.not(ST.memn(UD.v(H.slot(f)), seen))))
-      +tl = ST.fl_ok(obs, j, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen})
-      +z = Bool.and(ST.noslot(obs, UD.v(H.slot(f)), j), Bool.not(ST.memn(UD.v(H.slot(f)), seen)))
+      +y = Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(obs, UD.v(H.slot(f)), j), Bool.not(NL.memn(UD.v(H.slot(f)), seen))))
+      +tl = ST.fl_ok(obs, j, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen})
+      +z = Bool.and(ST.noslot(obs, UD.v(H.slot(f)), j), Bool.not(NL.memn(UD.v(H.slot(f)), seen)))
       +a2 = L.and_left(y, tl, L.and_right(x1, Bool.and(y, tl), h))
       +a5 = L.and_right(y, tl, L.and_right(x1, Bool.and(y, tl), h))
-      +ns = L.and_left(ST.noslot(obs, UD.v(H.slot(f)), j), Bool.not(ST.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2))
-      +nm = L.and_right(ST.noslot(obs, UD.v(H.slot(f)), j), Bool.not(ST.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2))
-      +y2 = Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(nbs, UD.v(H.slot(f)), n2), Bool.not(ST.memn(UD.v(H.slot(f)), seen))))
-      +tl2 = ST.fl_ok(nbs, n2, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen})
-      L.and_intro(x1, Bool.and(y2, tl2), L.and_left(x1, Bool.and(y, tl), h), L.and_intro(y2, tl2, L.and_intro(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(nbs, UD.v(H.slot(f)), n2), Bool.not(ST.memn(UD.v(H.slot(f)), seen))), L.and_left(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2), L.and_intro(ST.noslot(nbs, UD.v(H.slot(f)), n2), Bool.not(ST.memn(UD.v(H.slot(f)), seen)), RH.ns_from(nbs, obs, j, n2, hf, UD.v(H.slot(f)), ns, n2, N.le_refl(n2)), nm)), fl_from(nbs, obs, j, n2, hf, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}, a5)))
+      +ns = L.and_left(ST.noslot(obs, UD.v(H.slot(f)), j), Bool.not(NL.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2))
+      +nm = L.and_right(ST.noslot(obs, UD.v(H.slot(f)), j), Bool.not(NL.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2))
+      +y2 = Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(nbs, UD.v(H.slot(f)), n2), Bool.not(NL.memn(UD.v(H.slot(f)), seen))))
+      +tl2 = ST.fl_ok(nbs, n2, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen})
+      L.and_intro(x1, Bool.and(y2, tl2), L.and_left(x1, Bool.and(y, tl), h), L.and_intro(y2, tl2, L.and_intro(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(nbs, UD.v(H.slot(f)), n2), Bool.not(NL.memn(UD.v(H.slot(f)), seen))), L.and_left(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2), L.and_intro(ST.noslot(nbs, UD.v(H.slot(f)), n2), Bool.not(NL.memn(UD.v(H.slot(f)), seen)), RH.ns_from(nbs, obs, j, n2, hf, UD.v(H.slot(f)), ns, n2, N.le_refl(n2)), nm)), fl_from(nbs, obs, j, n2, hf, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}, a5)))
 
 # with 2(n + 1) <= 2^cap and cap <= 30, growth stays below 2^31 buckets
 def k30(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +n: U32, +k: Nat, +td: U32, +fr: U32, +sz: U32, +sd: Nat, +sdU: U32, +free: U32, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +vsT: AR.Tree<Maybe<&2, V>>, +nxT: AR.Tree<U32>, +s: U32, +e: Nat, +key: String, +x: V, +hk31: {Nat.is_lt(k, 31n) == True{} : Bool}, +hk0: {Nat.is_lt(0n, k) == True{} : Bool}, +hsd: {Nat.is_lt(sd, 32n) == True{} : Bool}, +hsdk1: {Nat.is_le(sd, k) == True{} : Bool}, +pt: {AR.perfect(U32, 1n+k, tabT) == True{} : Bool}, +pk: {AR.perfect(String, sd, ksT) == True{} : Bool}, +pv: {AR.perfect(Maybe<&2, V>, sd, vsT) == True{} : Bool}, +pn: {AR.perfect(U32, sd, nxT) == True{} : Bool}, +htd: {Nat.is_eq(UD.v(td), 1n+k) == True{} : Bool}, +hsz: {Nat.is_eq(UD.v(sz), SC.pow2(sd)) == True{} : Bool}, +hsdu: {Nat.is_eq(UD.v(sdU), sd) == True{} : Bool}, +hwell: {B.all_lt(B.PWell{TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), sd}, SC.pow2(k)) == True{} : Bool}, +huq: {B.all_lt(B.PUniq{TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k))}, SC.pow2(k)) == True{} : Bool}, +hcn: {Nat.is_eq(UD.v(n), IV.occn(TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), SC.pow2(k))) == True{} : Bool}, +hld: {Nat.is_le(Nat.double(UD.v(n)), SC.pow2(k)) == True{} : Bool}, +hl: {B.all_lt(B.PLive{TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), ST.lvs(~V, AR.slots(Maybe<&2, V>, vsT)), UD.v(fr)}, SC.pow2(k)) == True{} : Bool}, +hfr: {Nat.is_le(UD.v(fr), UD.v(sz)) == True{} : Bool}, +hnf: {Nat.is_le(1n+UD.v(n), UD.v(fr)) == True{} : Bool}, +hfl: {ST.fl_ok(TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), SC.pow2(k), AR.slots(U32, nxT), Nat.sub(UD.v(fr), 1n+UD.v(n)), free, UD.v(fr), Con{UD.v(s), Nil{}}) == True{} : Bool}, +hs: {Nat.is_lt(UD.v(s), UD.v(fr)) == True{} : Bool}, +hns: {ST.noslot(TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), UD.v(s), SC.pow2(k)) == True{} : Bool}, +hno: {B.all_lt(B.PNo{TB.buckets(AR.slots(U32, tabT), AR.slots(String, ksT), SC.pow2(k)), key}, SC.pow2(k)) == True{} : Bool}, +cap: Nat, +hc30: {Nat.is_le(cap, 30n) == True{} : Bool}, +hcap: {Nat.is_le(Nat.double(1n+UD.v(n)), SC.pow2(cap)) == True{} : Bool}, +hovi: {U32.is_gt(U32.shl(U32.inc(n)), U32.inc(CY.msk(k))) == True{} : Bool}) -> {Nat.is_lt(1n+k, 31n) == True{} : Bool}:
@@ -118,7 +119,7 @@ def ig_2(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +n: U32, +k: Nat, +td: U32
       +hld2 = N.le_trans(Nat.double(UD.v(n)), SC.pow2(k), SC.pow2(1n+k), hld, N.lt_le(SC.pow2(k), SC.pow2(1n+k), N.pow2_lt_succ(k)))
       +vtd = N.eq_from_is_eq(UD.v(td), 1n+k, htd)
       +htd5 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(5n)) == True{} : Bool}, 1n+k, UD.v(td), Equal.sym(Nat, UD.v(td), 1n+k, vtd), N.lt_trans(1n+k, 31n, 32n, hk30, {==}))
-      +etd = Equal.trans(Nat, UD.v(U32.inc(td)), 1n+UD.v(td), 2n+k, CY.inc_val(one, h1, td, IU.bound32(one, h1, UD.v(td), 5n, {==}, htd5)), Equal.cong(Nat, Nat, z => 1n+z, UD.v(td), 1n+k, vtd))
+      +etd = Equal.trans(Nat, UD.v(U32.inc(td)), 1n+UD.v(td), 2n+k, W32.inc_val(one, h1, td, W32.bound32(one, h1, UD.v(td), 5n, {==}, htd5)), Equal.cong(Nat, Nat, z => 1n+z, UD.v(td), 1n+k, vtd))
       +ov2 = IU.over_val(one, h1, 1n+k, hk30, {==}, n, hld2)
       +le2 = N.double_le(1n+UD.v(n), SC.pow2(k), IU.over_c(one, h1, k, hk31, hk0, UD.v(n), hld))
       +hovi2 = Equal.trans(Bool, U32.is_gt(U32.shl(U32.inc(n)), U32.inc(CY.msk(1n+k))), Nat.is_gt(Nat.double(1n+UD.v(n)), SC.pow2(1n+k)), False{}, ov2, le_not_gt(Nat.double(1n+UD.v(n)), SC.pow2(1n+k), le2))

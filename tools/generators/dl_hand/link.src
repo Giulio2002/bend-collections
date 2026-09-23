@@ -10,20 +10,17 @@ import ../spec/doubly_linked_list.bend as S
 import ../math/u32div.bend as UD
 import ../../src/containers/internal/dlist_storage.bend as R
 import ../../src/containers/types/internal_dlist.bend as I
-import ../hash_table/state.bend as HT
-import ../hash_table/table.bend as TB
-import ../lru/state.bend as LST
-import ../lru/meta.bend as MT
-import ../lru/dll.bend as DL
-import ./state.bend as ST
 import ./rel.bend as RL
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
+import ../lib/u32_tree.bend as UT
 
 # link_in over the mirror trees: the storage record it builds.
 
 %def APN(a, b) SC.append(Nat, a, b)
 %def MT Maybe<&2, T>
-%def PP LST.last_or(a, 0)
-%def QQ LST.fst_or(b, 0)
+%def PP LK.last_or(a, 0)
+%def QQ LK.fst_or(b, 0)
 
 # ---- value arrays ----
 
@@ -40,13 +37,13 @@ def nth_val(-T: Data, +vl: List<&2, $MT>, +i: Nat, +h: {Nat.is_lt(i, SC.length($
 %def VS AR.slots($MT, vT)
 
 def vget(-T: Data, $VP) -> {Array.get($MT, AR.thaw($MT, vT), i) == (AR.thaw($MT, vT), S.val_of(T, $VS, UD.v(i))) : Array<$MT> & $MT}:
-  AR.get($MT, d, vT, i, S.val_of(T, $VS, UD.v(i)), RL.hd0(d, hd), hi, nth_val(T, $VS, UD.v(i), MT.len_of($MT, d, vT, pv, UD.v(i), hi)), pv)
+  AR.get($MT, d, vT, i, S.val_of(T, $VS, UD.v(i)), RL.hd0(d, hd), hi, nth_val(T, $VS, UD.v(i), UT.len_of($MT, d, vT, pv, UD.v(i), hi)), pv)
 
 def vset(-T: Data, $VP, +x: $MT) -> {Array.set($MT, AR.thaw($MT, vT), i, x) == AR.thaw($MT, AR.upd($MT, d, vT, UD.v(i), x)) : Array<$MT>}:
-  AR.set($MT, d, vT, i, x, S.val_of(T, $VS, UD.v(i)), RL.hd0(d, hd), hi, nth_val(T, $VS, UD.v(i), MT.len_of($MT, d, vT, pv, UD.v(i), hi)), pv)
+  AR.set($MT, d, vT, i, x, S.val_of(T, $VS, UD.v(i)), RL.hd0(d, hd), hi, nth_val(T, $VS, UD.v(i), UT.len_of($MT, d, vT, pv, UD.v(i), hi)), pv)
 
 def vswap(-T: Data, $VP, +x: $MT) -> {Array.swap($MT, AR.thaw($MT, vT), i, x) == (AR.thaw($MT, AR.upd($MT, d, vT, UD.v(i), x)), S.val_of(T, $VS, UD.v(i))) : Array<$MT> & $MT}:
-  AR.swap($MT, d, vT, i, x, S.val_of(T, $VS, UD.v(i)), RL.hd0(d, hd), hi, nth_val(T, $VS, UD.v(i), MT.len_of($MT, d, vT, pv, UD.v(i), hi)), pv)
+  AR.swap($MT, d, vT, i, x, S.val_of(T, $VS, UD.v(i)), RL.hd0(d, hd), hi, nth_val(T, $VS, UD.v(i), UT.len_of($MT, d, vT, pv, UD.v(i), hi)), pv)
 
 # ---- ids as U32 ----
 
@@ -61,8 +58,8 @@ def fn_of(+i: U32, +k: Nat, +hk: {Nat.is_le(k, 32n) == True{} : Bool}, +h: {Nat.
   U.injective(U32.from_nat(UD.v(i)), i, U.to_nat_from_nat(UD.v(i), k, hk, h))
 
 # the slot of an id's link is the id's U32
-def slot_fn(+one: Nat, +h1: {one == 1n : Nat}, +nn: Nat, +d: Nat, +hd: {Nat.is_lt(d, 30n) == True{} : Bool}, +hn: {Nat.is_lt(nn, SC.pow2(d)) == True{} : Bool}) -> {R.slot(LST.lnk(nn)) == U32.from_nat(nn) : U32}:
-  U.injective(R.slot(LST.lnk(nn)), U32.from_nat(nn), Equal.trans(Nat, UD.v(R.slot(LST.lnk(nn))), nn, UD.v(U32.from_nat(nn)), RL.slot_lnk(one, h1, nn, d, hd, hn), Equal.sym(Nat, UD.v(U32.from_nat(nn)), nn, fn_v(nn, d, hd, hn))))
+def slot_fn(+one: Nat, +h1: {one == 1n : Nat}, +nn: Nat, +d: Nat, +hd: {Nat.is_lt(d, 30n) == True{} : Bool}, +hn: {Nat.is_lt(nn, SC.pow2(d)) == True{} : Bool}) -> {R.slot(LK.lnk(nn)) == U32.from_nat(nn) : U32}:
+  U.injective(R.slot(LK.lnk(nn)), U32.from_nat(nn), Equal.trans(Nat, UD.v(R.slot(LK.lnk(nn))), nn, UD.v(U32.from_nat(nn)), RL.slot_lnk(one, h1, nn, d, hd, hn), Equal.sym(Nat, UD.v(U32.from_nat(nn)), nn, fn_v(nn, d, hd, hn))))
 
 # ---- head and tail ----
 
@@ -72,42 +69,42 @@ def pick_f(+c: Bool, +h: {c == False{} : Bool}, +x: U32, +y: U32) -> {R.pick_end
 %def HP +one: Nat, +h1: {one == 1n : Nat}, +d: Nat, +hd: {Nat.is_lt(d, 30n) == True{} : Bool}
 
 # the head after linking n between a and b
-def hd_in($HP, +a: List<&2, Nat>, +b: List<&2, Nat>, +n: Nat, +head: U32, +hh: {U32.is_eq(head, LST.fst_or($APN(a, b), 0)) == True{} : Bool}, +ha: {RL.lastlt(a, SC.pow2(d)) == True{} : Bool}) -> {R.pick_end(U32.is_eq($PP, 0), LST.lnk(n), head) == LST.fst_or($APN(a, Con{n, b}), 0) : U32}:
+def hd_in($HP, +a: List<&2, Nat>, +b: List<&2, Nat>, +n: Nat, +head: U32, +hh: {U32.is_eq(head, LK.fst_or($APN(a, b), 0)) == True{} : Bool}, +ha: {RL.lastlt(a, SC.pow2(d)) == True{} : Bool}) -> {R.pick_end(U32.is_eq($PP, 0), LK.lnk(n), head) == LK.fst_or($APN(a, Con{n, b}), 0) : U32}:
   match a:
     case Nil{}:
       {==}
     case Con{+a0, +t}:
-      +z = DL.lastn(t, a0)
-      +hc = Equal.trans(Bool, U32.is_eq(LST.last_or(t, LST.lnk(a0)), 0), U32.is_eq(LST.lnk(z), 0), False{}, Equal.cong(U32, Bool, w => U32.is_eq(w, 0), LST.last_or(t, LST.lnk(a0)), LST.lnk(z), DL.last_lnk(t, a0)), RL.lnk_nz(one, h1, z, d, hd, ha))
-      Equal.trans(U32, R.pick_end(U32.is_eq(LST.last_or(t, LST.lnk(a0)), 0), LST.lnk(n), head), head, LST.lnk(a0), pick_f(U32.is_eq(LST.last_or(t, LST.lnk(a0)), 0), hc, LST.lnk(n), head), A.eq_of(head, LST.lnk(a0), hh))
+      +z = NL.lastn(t, a0)
+      +hc = Equal.trans(Bool, U32.is_eq(LK.last_or(t, LK.lnk(a0)), 0), U32.is_eq(LK.lnk(z), 0), False{}, Equal.cong(U32, Bool, w => U32.is_eq(w, 0), LK.last_or(t, LK.lnk(a0)), LK.lnk(z), LK.last_lnk(t, a0)), RL.lnk_nz(one, h1, z, d, hd, ha))
+      Equal.trans(U32, R.pick_end(U32.is_eq(LK.last_or(t, LK.lnk(a0)), 0), LK.lnk(n), head), head, LK.lnk(a0), pick_f(U32.is_eq(LK.last_or(t, LK.lnk(a0)), 0), hc, LK.lnk(n), head), A.eq_of(head, LK.lnk(a0), hh))
 
 # the tail after linking n between a and b
-def tl_in($HP, +a: List<&2, Nat>, +b: List<&2, Nat>, +n: Nat, +tail: U32, +ht: {U32.is_eq(tail, LST.last_or($APN(a, b), 0)) == True{} : Bool}, +hb: {RL.fstlt(b, SC.pow2(d)) == True{} : Bool}) -> {R.pick_end(U32.is_eq($QQ, 0), LST.lnk(n), tail) == LST.last_or($APN(a, Con{n, b}), 0) : U32}:
+def tl_in($HP, +a: List<&2, Nat>, +b: List<&2, Nat>, +n: Nat, +tail: U32, +ht: {U32.is_eq(tail, LK.last_or($APN(a, b), 0)) == True{} : Bool}, +hb: {RL.fstlt(b, SC.pow2(d)) == True{} : Bool}) -> {R.pick_end(U32.is_eq($QQ, 0), LK.lnk(n), tail) == LK.last_or($APN(a, Con{n, b}), 0) : U32}:
   match b:
     case Nil{}:
-      Equal.sym(U32, LST.last_or($APN(a, Con{n, Nil{}}), 0), LST.lnk(n), DL.last_app(a, Con{n, Nil{}}, 0))
+      Equal.sym(U32, LK.last_or($APN(a, Con{n, Nil{}}), 0), LK.lnk(n), LK.last_app(a, Con{n, Nil{}}, 0))
     case Con{+b0, +t}:
-      +et = Equal.trans(U32, tail, LST.last_or($APN(a, Con{b0, t}), 0), LST.last_or(t, LST.lnk(b0)), A.eq_of(tail, LST.last_or($APN(a, Con{b0, t}), 0), ht), DL.last_app(a, Con{b0, t}, 0))
-      Equal.trans(U32, R.pick_end(U32.is_eq(LST.lnk(b0), 0), LST.lnk(n), tail), tail, LST.last_or($APN(a, Con{n, Con{b0, t}}), 0), pick_f(U32.is_eq(LST.lnk(b0), 0), RL.lnk_nz(one, h1, b0, d, hd, hb), LST.lnk(n), tail), Equal.trans(U32, tail, LST.last_or(t, LST.lnk(b0)), LST.last_or($APN(a, Con{n, Con{b0, t}}), 0), et, Equal.sym(U32, LST.last_or($APN(a, Con{n, Con{b0, t}}), 0), LST.last_or(t, LST.lnk(b0)), DL.last_app(a, Con{n, Con{b0, t}}, 0))))
+      +et = Equal.trans(U32, tail, LK.last_or($APN(a, Con{b0, t}), 0), LK.last_or(t, LK.lnk(b0)), A.eq_of(tail, LK.last_or($APN(a, Con{b0, t}), 0), ht), LK.last_app(a, Con{b0, t}, 0))
+      Equal.trans(U32, R.pick_end(U32.is_eq(LK.lnk(b0), 0), LK.lnk(n), tail), tail, LK.last_or($APN(a, Con{n, Con{b0, t}}), 0), pick_f(U32.is_eq(LK.lnk(b0), 0), RL.lnk_nz(one, h1, b0, d, hd, hb), LK.lnk(n), tail), Equal.trans(U32, tail, LK.last_or(t, LK.lnk(b0)), LK.last_or($APN(a, Con{n, Con{b0, t}}), 0), et, Equal.sym(U32, LK.last_or($APN(a, Con{n, Con{b0, t}}), 0), LK.last_or(t, LK.lnk(b0)), LK.last_app(a, Con{n, Con{b0, t}}, 0))))
 
 # the head after unlinking s from between a and b
-def hd_rm($HP, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +head: U32, +hh: {U32.is_eq(head, LST.fst_or($APN(a, Con{s, b}), 0)) == True{} : Bool}, +ha: {RL.lastlt(a, SC.pow2(d)) == True{} : Bool}) -> {R.pick_end(U32.is_eq($PP, 0), $QQ, head) == LST.fst_or($APN(a, b), 0) : U32}:
+def hd_rm($HP, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +head: U32, +hh: {U32.is_eq(head, LK.fst_or($APN(a, Con{s, b}), 0)) == True{} : Bool}, +ha: {RL.lastlt(a, SC.pow2(d)) == True{} : Bool}) -> {R.pick_end(U32.is_eq($PP, 0), $QQ, head) == LK.fst_or($APN(a, b), 0) : U32}:
   match a:
     case Nil{}:
       {==}
     case Con{+a0, +t}:
-      +z = DL.lastn(t, a0)
-      +hc = Equal.trans(Bool, U32.is_eq(LST.last_or(t, LST.lnk(a0)), 0), U32.is_eq(LST.lnk(z), 0), False{}, Equal.cong(U32, Bool, w => U32.is_eq(w, 0), LST.last_or(t, LST.lnk(a0)), LST.lnk(z), DL.last_lnk(t, a0)), RL.lnk_nz(one, h1, z, d, hd, ha))
-      Equal.trans(U32, R.pick_end(U32.is_eq(LST.last_or(t, LST.lnk(a0)), 0), $QQ, head), head, LST.lnk(a0), pick_f(U32.is_eq(LST.last_or(t, LST.lnk(a0)), 0), hc, $QQ, head), A.eq_of(head, LST.lnk(a0), hh))
+      +z = NL.lastn(t, a0)
+      +hc = Equal.trans(Bool, U32.is_eq(LK.last_or(t, LK.lnk(a0)), 0), U32.is_eq(LK.lnk(z), 0), False{}, Equal.cong(U32, Bool, w => U32.is_eq(w, 0), LK.last_or(t, LK.lnk(a0)), LK.lnk(z), LK.last_lnk(t, a0)), RL.lnk_nz(one, h1, z, d, hd, ha))
+      Equal.trans(U32, R.pick_end(U32.is_eq(LK.last_or(t, LK.lnk(a0)), 0), $QQ, head), head, LK.lnk(a0), pick_f(U32.is_eq(LK.last_or(t, LK.lnk(a0)), 0), hc, $QQ, head), A.eq_of(head, LK.lnk(a0), hh))
 
 # the tail after unlinking s from between a and b
-def tl_rm($HP, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +tail: U32, +ht: {U32.is_eq(tail, LST.last_or($APN(a, Con{s, b}), 0)) == True{} : Bool}, +hb: {RL.fstlt(b, SC.pow2(d)) == True{} : Bool}) -> {R.pick_end(U32.is_eq($QQ, 0), $PP, tail) == LST.last_or($APN(a, b), 0) : U32}:
+def tl_rm($HP, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +tail: U32, +ht: {U32.is_eq(tail, LK.last_or($APN(a, Con{s, b}), 0)) == True{} : Bool}, +hb: {RL.fstlt(b, SC.pow2(d)) == True{} : Bool}) -> {R.pick_end(U32.is_eq($QQ, 0), $PP, tail) == LK.last_or($APN(a, b), 0) : U32}:
   match b:
     case Nil{}:
-      Equal.cong(List<&2, Nat>, U32, w => LST.last_or(w, 0), a, $APN(a, Nil{}), Equal.sym(List<&2, Nat>, $APN(a, Nil{}), a, LL.append_nil(Nat, a)))
+      Equal.cong(List<&2, Nat>, U32, w => LK.last_or(w, 0), a, $APN(a, Nil{}), Equal.sym(List<&2, Nat>, $APN(a, Nil{}), a, LL.append_nil(Nat, a)))
     case Con{+b0, +t}:
-      +et = Equal.trans(U32, tail, LST.last_or($APN(a, Con{s, Con{b0, t}}), 0), LST.last_or(t, LST.lnk(b0)), A.eq_of(tail, LST.last_or($APN(a, Con{s, Con{b0, t}}), 0), ht), DL.last_app(a, Con{s, Con{b0, t}}, 0))
-      Equal.trans(U32, R.pick_end(U32.is_eq(LST.lnk(b0), 0), $PP, tail), tail, LST.last_or($APN(a, Con{b0, t}), 0), pick_f(U32.is_eq(LST.lnk(b0), 0), RL.lnk_nz(one, h1, b0, d, hd, hb), $PP, tail), Equal.trans(U32, tail, LST.last_or(t, LST.lnk(b0)), LST.last_or($APN(a, Con{b0, t}), 0), et, Equal.sym(U32, LST.last_or($APN(a, Con{b0, t}), 0), LST.last_or(t, LST.lnk(b0)), DL.last_app(a, Con{b0, t}, 0))))
+      +et = Equal.trans(U32, tail, LK.last_or($APN(a, Con{s, Con{b0, t}}), 0), LK.last_or(t, LK.lnk(b0)), A.eq_of(tail, LK.last_or($APN(a, Con{s, Con{b0, t}}), 0), ht), LK.last_app(a, Con{s, Con{b0, t}}, 0))
+      Equal.trans(U32, R.pick_end(U32.is_eq(LK.lnk(b0), 0), $PP, tail), tail, LK.last_or($APN(a, Con{b0, t}), 0), pick_f(U32.is_eq(LK.lnk(b0), 0), RL.lnk_nz(one, h1, b0, d, hd, hb), $PP, tail), Equal.trans(U32, tail, LK.last_or(t, LK.lnk(b0)), LK.last_or($APN(a, Con{b0, t}), 0), et, Equal.sym(U32, LK.last_or($APN(a, Con{b0, t}), 0), LK.last_or(t, LK.lnk(b0)), LK.last_app(a, Con{b0, t}, 0))))
 
 # ---- lengths ----
 
@@ -131,20 +128,20 @@ def dl_eq(-T: Data, +tag: U32, +fr: U32, +fe: U32, +c1: Nat, +c2: Nat, +h1: U32,
 %def LP +one: Nat, +h1: {one == 1n : Nat}, +d: Nat, +hd: {Nat.is_lt(d, 30n) == True{} : Bool}, +vT: AR.Tree<$MT>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +pv: {AR.perfect($MT, d, vT) == True{} : Bool}, +pp: {AR.perfect(U32, d, pT) == True{} : Bool}, +pn: {AR.perfect(U32, d, nT) == True{} : Bool}
 %def NU U32.from_nat(nn)
 %def VT2 AR.upd($MT, d, vT, nn, Some{x})
-%def PT2 RL.tu_first(d, AR.upd(U32, d, pT, nn, $PP), b, LST.lnk(nn))
-%def NT2 RL.tu_last(d, AR.upd(U32, d, nT, nn, $QQ), a, LST.lnk(nn))
+%def PT2 RL.tu_first(d, AR.upd(U32, d, pT, nn, $PP), b, LK.lnk(nn))
+%def NT2 RL.tu_last(d, AR.upd(U32, d, nT, nn, $QQ), a, LK.lnk(nn))
 
 # THEOREM (link_in): n (below 2^d) is stored and linked between a's last
 # and b's first; the record's head and tail are those of a ++ n :: b
-def link_ok(~T: Data, $LP, +tag: U32, +nf: U32, +nfr: U32, +head: U32, +tail: U32, +cap: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +nn: Nat, +hn: {Nat.is_lt(nn, SC.pow2(d)) == True{} : Bool}, +ha: {RL.lastlt(a, SC.pow2(d)) == True{} : Bool}, +hb: {RL.fstlt(b, SC.pow2(d)) == True{} : Bool}, +hh: {U32.is_eq(head, LST.fst_or($APN(a, b), 0)) == True{} : Bool}, +ht: {U32.is_eq(tail, LST.last_or($APN(a, b), 0)) == True{} : Bool}, +x: T) -> {R.link_in(~T, tag, $NU, nf, nfr, SC.length(Nat, $APN(a, b)), head, tail, d, cap, AR.thaw($MT, vT), AR.thaw(U32, pT), AR.thaw(U32, nT), $PP, $QQ, x) == (R.DL{tag, nf, nfr, SC.length(Nat, $APN(a, Con{nn, b})), LST.fst_or($APN(a, Con{nn, b}), 0), LST.last_or($APN(a, Con{nn, b}), 0), d, cap, AR.thaw($MT, $VT2), AR.thaw(U32, $PT2), AR.thaw(U32, $NT2)}, I.H{tag, $NU}) : R.DList<T> & I.Handle}:
+def link_ok(~T: Data, $LP, +tag: U32, +nf: U32, +nfr: U32, +head: U32, +tail: U32, +cap: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +nn: Nat, +hn: {Nat.is_lt(nn, SC.pow2(d)) == True{} : Bool}, +ha: {RL.lastlt(a, SC.pow2(d)) == True{} : Bool}, +hb: {RL.fstlt(b, SC.pow2(d)) == True{} : Bool}, +hh: {U32.is_eq(head, LK.fst_or($APN(a, b), 0)) == True{} : Bool}, +ht: {U32.is_eq(tail, LK.last_or($APN(a, b), 0)) == True{} : Bool}, +x: T) -> {R.link_in(~T, tag, $NU, nf, nfr, SC.length(Nat, $APN(a, b)), head, tail, d, cap, AR.thaw($MT, vT), AR.thaw(U32, pT), AR.thaw(U32, nT), $PP, $QQ, x) == (R.DL{tag, nf, nfr, SC.length(Nat, $APN(a, Con{nn, b})), LK.fst_or($APN(a, Con{nn, b}), 0), LK.last_or($APN(a, Con{nn, b}), 0), d, cap, AR.thaw($MT, $VT2), AR.thaw(U32, $PT2), AR.thaw(U32, $NT2)}, I.H{tag, $NU}) : R.DList<T> & I.Handle}:
   +ev0 = fn_v(nn, d, hd, hn)
   +hi = fn_lt(nn, d, hd, hn)
   +ev = Equal.trans(Array<$MT>, Array.set($MT, AR.thaw($MT, vT), $NU, Some{x}), AR.thaw($MT, AR.upd($MT, d, vT, UD.v($NU), Some{x})), AR.thaw($MT, $VT2), vset(T, d, hd, vT, pv, $NU, hi, Some{x}), Equal.cong(Nat, Array<$MT>, z => AR.thaw($MT, AR.upd($MT, d, vT, z, Some{x})), UD.v($NU), nn, ev0))
-  +ep1 = Equal.trans(Array<U32>, Array.set(U32, AR.thaw(U32, pT), $NU, $PP), AR.thaw(U32, AR.upd(U32, d, pT, UD.v($NU), $PP)), AR.thaw(U32, AR.upd(U32, d, pT, nn, $PP)), MT.uset_a(d, RL.hd0(d, hd), pT, pp, $NU, hi, $PP), Equal.cong(Nat, Array<U32>, z => AR.thaw(U32, AR.upd(U32, d, pT, z, $PP)), UD.v($NU), nn, ev0))
-  +ep2 = RL.sn_first(one, h1, d, hd, AR.upd(U32, d, pT, nn, $PP), MT.uset_p(d, pT, pp, nn, $PP), b, hb, LST.lnk(nn))
-  +ep = Equal.trans(Array<U32>, R.set_next(Array.set(U32, AR.thaw(U32, pT), $NU, $PP), $QQ, LST.lnk(nn)), R.set_next(AR.thaw(U32, AR.upd(U32, d, pT, nn, $PP)), $QQ, LST.lnk(nn)), AR.thaw(U32, $PT2), Equal.cong(Array<U32>, Array<U32>, z => R.set_next(z, $QQ, LST.lnk(nn)), Array.set(U32, AR.thaw(U32, pT), $NU, $PP), AR.thaw(U32, AR.upd(U32, d, pT, nn, $PP)), ep1), ep2)
-  +en1 = Equal.trans(Array<U32>, Array.set(U32, AR.thaw(U32, nT), $NU, $QQ), AR.thaw(U32, AR.upd(U32, d, nT, UD.v($NU), $QQ)), AR.thaw(U32, AR.upd(U32, d, nT, nn, $QQ)), MT.uset_a(d, RL.hd0(d, hd), nT, pn, $NU, hi, $QQ), Equal.cong(Nat, Array<U32>, z => AR.thaw(U32, AR.upd(U32, d, nT, z, $QQ)), UD.v($NU), nn, ev0))
-  +en2 = RL.sn_last(one, h1, d, hd, AR.upd(U32, d, nT, nn, $QQ), MT.uset_p(d, nT, pn, nn, $QQ), a, ha, LST.lnk(nn))
-  +en = Equal.trans(Array<U32>, R.set_next(Array.set(U32, AR.thaw(U32, nT), $NU, $QQ), $PP, LST.lnk(nn)), R.set_next(AR.thaw(U32, AR.upd(U32, d, nT, nn, $QQ)), $PP, LST.lnk(nn)), AR.thaw(U32, $NT2), Equal.cong(Array<U32>, Array<U32>, z => R.set_next(z, $PP, LST.lnk(nn)), Array.set(U32, AR.thaw(U32, nT), $NU, $QQ), AR.thaw(U32, AR.upd(U32, d, nT, nn, $QQ)), en1), en2)
-  +e = dl_eq(T, tag, nf, nfr, 1n+SC.length(Nat, $APN(a, b)), SC.length(Nat, $APN(a, Con{nn, b})), R.pick_end(U32.is_eq($PP, 0), LST.lnk(nn), head), LST.fst_or($APN(a, Con{nn, b}), 0), R.pick_end(U32.is_eq($QQ, 0), LST.lnk(nn), tail), LST.last_or($APN(a, Con{nn, b}), 0), d, cap, Array.set($MT, AR.thaw($MT, vT), $NU, Some{x}), $VT2, R.set_next(Array.set(U32, AR.thaw(U32, pT), $NU, $PP), $QQ, LST.lnk(nn)), $PT2, R.set_next(Array.set(U32, AR.thaw(U32, nT), $NU, $QQ), $PP, LST.lnk(nn)), $NT2, Equal.sym(Nat, SC.length(Nat, $APN(a, Con{nn, b})), 1n+SC.length(Nat, $APN(a, b)), len_mid(a, nn, b)), hd_in(one, h1, d, hd, a, b, nn, head, hh, ha), tl_in(one, h1, d, hd, a, b, nn, tail, ht, hb), ev, ep, en)
-  Equal.cong(R.DList<T>, R.DList<T> & I.Handle, r => (r, I.H{tag, $NU}), R.DL{tag, nf, nfr, 1n+SC.length(Nat, $APN(a, b)), R.pick_end(U32.is_eq($PP, 0), LST.lnk(nn), head), R.pick_end(U32.is_eq($QQ, 0), LST.lnk(nn), tail), d, cap, Array.set($MT, AR.thaw($MT, vT), $NU, Some{x}), R.set_next(Array.set(U32, AR.thaw(U32, pT), $NU, $PP), $QQ, LST.lnk(nn)), R.set_next(Array.set(U32, AR.thaw(U32, nT), $NU, $QQ), $PP, LST.lnk(nn))}, R.DL{tag, nf, nfr, SC.length(Nat, $APN(a, Con{nn, b})), LST.fst_or($APN(a, Con{nn, b}), 0), LST.last_or($APN(a, Con{nn, b}), 0), d, cap, AR.thaw($MT, $VT2), AR.thaw(U32, $PT2), AR.thaw(U32, $NT2)}, e)
+  +ep1 = Equal.trans(Array<U32>, Array.set(U32, AR.thaw(U32, pT), $NU, $PP), AR.thaw(U32, AR.upd(U32, d, pT, UD.v($NU), $PP)), AR.thaw(U32, AR.upd(U32, d, pT, nn, $PP)), UT.uset_a(d, RL.hd0(d, hd), pT, pp, $NU, hi, $PP), Equal.cong(Nat, Array<U32>, z => AR.thaw(U32, AR.upd(U32, d, pT, z, $PP)), UD.v($NU), nn, ev0))
+  +ep2 = RL.sn_first(one, h1, d, hd, AR.upd(U32, d, pT, nn, $PP), UT.uset_p(d, pT, pp, nn, $PP), b, hb, LK.lnk(nn))
+  +ep = Equal.trans(Array<U32>, R.set_next(Array.set(U32, AR.thaw(U32, pT), $NU, $PP), $QQ, LK.lnk(nn)), R.set_next(AR.thaw(U32, AR.upd(U32, d, pT, nn, $PP)), $QQ, LK.lnk(nn)), AR.thaw(U32, $PT2), Equal.cong(Array<U32>, Array<U32>, z => R.set_next(z, $QQ, LK.lnk(nn)), Array.set(U32, AR.thaw(U32, pT), $NU, $PP), AR.thaw(U32, AR.upd(U32, d, pT, nn, $PP)), ep1), ep2)
+  +en1 = Equal.trans(Array<U32>, Array.set(U32, AR.thaw(U32, nT), $NU, $QQ), AR.thaw(U32, AR.upd(U32, d, nT, UD.v($NU), $QQ)), AR.thaw(U32, AR.upd(U32, d, nT, nn, $QQ)), UT.uset_a(d, RL.hd0(d, hd), nT, pn, $NU, hi, $QQ), Equal.cong(Nat, Array<U32>, z => AR.thaw(U32, AR.upd(U32, d, nT, z, $QQ)), UD.v($NU), nn, ev0))
+  +en2 = RL.sn_last(one, h1, d, hd, AR.upd(U32, d, nT, nn, $QQ), UT.uset_p(d, nT, pn, nn, $QQ), a, ha, LK.lnk(nn))
+  +en = Equal.trans(Array<U32>, R.set_next(Array.set(U32, AR.thaw(U32, nT), $NU, $QQ), $PP, LK.lnk(nn)), R.set_next(AR.thaw(U32, AR.upd(U32, d, nT, nn, $QQ)), $PP, LK.lnk(nn)), AR.thaw(U32, $NT2), Equal.cong(Array<U32>, Array<U32>, z => R.set_next(z, $PP, LK.lnk(nn)), Array.set(U32, AR.thaw(U32, nT), $NU, $QQ), AR.thaw(U32, AR.upd(U32, d, nT, nn, $QQ)), en1), en2)
+  +e = dl_eq(T, tag, nf, nfr, 1n+SC.length(Nat, $APN(a, b)), SC.length(Nat, $APN(a, Con{nn, b})), R.pick_end(U32.is_eq($PP, 0), LK.lnk(nn), head), LK.fst_or($APN(a, Con{nn, b}), 0), R.pick_end(U32.is_eq($QQ, 0), LK.lnk(nn), tail), LK.last_or($APN(a, Con{nn, b}), 0), d, cap, Array.set($MT, AR.thaw($MT, vT), $NU, Some{x}), $VT2, R.set_next(Array.set(U32, AR.thaw(U32, pT), $NU, $PP), $QQ, LK.lnk(nn)), $PT2, R.set_next(Array.set(U32, AR.thaw(U32, nT), $NU, $QQ), $PP, LK.lnk(nn)), $NT2, Equal.sym(Nat, SC.length(Nat, $APN(a, Con{nn, b})), 1n+SC.length(Nat, $APN(a, b)), len_mid(a, nn, b)), hd_in(one, h1, d, hd, a, b, nn, head, hh, ha), tl_in(one, h1, d, hd, a, b, nn, tail, ht, hb), ev, ep, en)
+  Equal.cong(R.DList<T>, R.DList<T> & I.Handle, r => (r, I.H{tag, $NU}), R.DL{tag, nf, nfr, 1n+SC.length(Nat, $APN(a, b)), R.pick_end(U32.is_eq($PP, 0), LK.lnk(nn), head), R.pick_end(U32.is_eq($QQ, 0), LK.lnk(nn), tail), d, cap, Array.set($MT, AR.thaw($MT, vT), $NU, Some{x}), R.set_next(Array.set(U32, AR.thaw(U32, pT), $NU, $PP), $QQ, LK.lnk(nn)), R.set_next(Array.set(U32, AR.thaw(U32, nT), $NU, $QQ), $PP, LK.lnk(nn))}, R.DL{tag, nf, nfr, SC.length(Nat, $APN(a, Con{nn, b})), LK.fst_or($APN(a, Con{nn, b}), 0), LK.last_or($APN(a, Con{nn, b}), 0), d, cap, AR.thaw($MT, $VT2), AR.thaw(U32, $PT2), AR.thaw(U32, $NT2)}, e)

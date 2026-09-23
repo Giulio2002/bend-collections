@@ -14,12 +14,9 @@ import ./ends.bend as EN
 import ./path.bend as P
 import ./plug.bend as PG
 import ./ord.bend as OR
-import ./slot.bend as SL
 import ./prim.bend as PR
 import ./tree.bend as TR
 import ./spath.bend as SP
-import ./alloc.bend as AC
-import ./putf.bend as PF
 import ./putm.bend as PM
 import ./rmv.bend as RV
 import ./mokx.bend as MX

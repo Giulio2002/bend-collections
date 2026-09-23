@@ -3,22 +3,17 @@ import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/u32alg.bend as A
 import ../lib/array.bend as AR
-import ../lib/list.bend as LL
 import ../spec/common.bend as SC
 import ../spec/doubly_linked_list.bend as S
 import ../math/u32div.bend as UD
-import ../../src/containers/doubly_linked_list.bend as D
 import ../../src/containers/internal/dlist_storage.bend as R
-import ../../src/containers/types/doubly_linked_list.bend as E
-import ../hash_table/table.bend as TB
-import ../lru/state.bend as LST
-import ../lru/meta.bend as MT
-import ../lru/walk.bend as WK
 import ./state.bend as ST
 import ./rel.bend as RL
-import ./vals.bend as VA
 import ./link.bend as LN
-import ./ok.bend as OK
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
+import ../lib/words32.bend as W32
+import ../lib/u32_tree.bend as UT
 
 # to_list: the walk back from the tail along the prev links.
 
@@ -37,7 +32,7 @@ def rok(~T: Data, +pl: List<&2, U32>, back: List<&2, Nat>, +fr: Nat, +vl: List<&
     case Nil{}:
       True{}
     case Con{+x, +r}:
-      Bool.and(Bool.and(Nat.is_lt(x, fr), ST.live(T, vl, x)), Bool.and(U32.is_eq(TB.nth0(pl, x), LST.fst_or(r, 0)), rok(~T, pl, r, fr, vl)))
+      Bool.and(Bool.and(Nat.is_lt(x, fr), ST.live(T, vl, x)), Bool.and(U32.is_eq(W32.nth0(pl, x), LK.fst_or(r, 0)), rok(~T, pl, r, fr, vl)))
 
 # the values of back prepended to acc, one by one
 def racc(-T: Data, +vl: List<&2, $MT>, back: List<&2, Nat>, acc: List<&2, T>) -> List<&2, T>:
@@ -54,27 +49,27 @@ def cs_app(-T: Data, +m: $MT, +xs: List<&2, T>, +acc: List<&2, T>) -> {SC.append
     case Some{v}:
       {==}
 
-def ra_rapp(-T: Data, +vl: List<&2, $MT>, +l: List<&2, Nat>, +b: List<&2, Nat>, +acc: List<&2, T>) -> {racc(T, vl, WK.rapp(l, b), acc) == racc(T, vl, b, SC.append(T, S.values(T, vl, l), acc)) : List<&2, T>}:
+def ra_rapp(-T: Data, +vl: List<&2, $MT>, +l: List<&2, Nat>, +b: List<&2, Nat>, +acc: List<&2, T>) -> {racc(T, vl, NL.rapp(l, b), acc) == racc(T, vl, b, SC.append(T, S.values(T, vl, l), acc)) : List<&2, T>}:
   match l:
     case Nil{}:
       {==}
     case Con{+x, +r}:
-      Equal.trans(List<&2, T>, racc(T, vl, WK.rapp(r, Con{x, b}), acc), racc(T, vl, b, S.cons_some(T, S.val_of(T, vl, x), SC.append(T, S.values(T, vl, r), acc))), racc(T, vl, b, SC.append(T, S.cons_some(T, S.val_of(T, vl, x), S.values(T, vl, r)), acc)), ra_rapp(T, vl, r, Con{x, b}, acc), Equal.cong(List<&2, T>, List<&2, T>, z => racc(T, vl, b, z), S.cons_some(T, S.val_of(T, vl, x), SC.append(T, S.values(T, vl, r), acc)), SC.append(T, S.cons_some(T, S.val_of(T, vl, x), S.values(T, vl, r)), acc), Equal.sym(List<&2, T>, SC.append(T, S.cons_some(T, S.val_of(T, vl, x), S.values(T, vl, r)), acc), S.cons_some(T, S.val_of(T, vl, x), SC.append(T, S.values(T, vl, r), acc)), cs_app(T, S.val_of(T, vl, x), S.values(T, vl, r), acc))))
+      Equal.trans(List<&2, T>, racc(T, vl, NL.rapp(r, Con{x, b}), acc), racc(T, vl, b, S.cons_some(T, S.val_of(T, vl, x), SC.append(T, S.values(T, vl, r), acc))), racc(T, vl, b, SC.append(T, S.cons_some(T, S.val_of(T, vl, x), S.values(T, vl, r)), acc)), ra_rapp(T, vl, r, Con{x, b}, acc), Equal.cong(List<&2, T>, List<&2, T>, z => racc(T, vl, b, z), S.cons_some(T, S.val_of(T, vl, x), SC.append(T, S.values(T, vl, r), acc)), SC.append(T, S.cons_some(T, S.val_of(T, vl, x), S.values(T, vl, r)), acc), Equal.sym(List<&2, T>, SC.append(T, S.cons_some(T, S.val_of(T, vl, x), S.values(T, vl, r)), acc), S.cons_some(T, S.val_of(T, vl, x), SC.append(T, S.values(T, vl, r), acc)), cs_app(T, S.val_of(T, vl, x), S.values(T, vl, r), acc))))
 
 # a linked live list, reversed onto a back list, keeps its links backwards
-def rok_app(~T: Data, +pl: List<&2, U32>, +nl: List<&2, U32>, +vl: List<&2, $MT>, +l: List<&2, Nat>, +b: List<&2, Nat>, +fr: Nat, +p: U32, +q: U32, +hs: $TR(ST.seg(pl, nl, l, p, q)), +hl: $TR(ST.slok(~T, l, fr, vl)), +hb: $TR(rok(~T, pl, b, fr, vl)), +hp: $TR(U32.is_eq(p, LST.fst_or(b, 0)))) -> $TR(rok(~T, pl, WK.rapp(l, b), fr, vl)):
+def rok_app(~T: Data, +pl: List<&2, U32>, +nl: List<&2, U32>, +vl: List<&2, $MT>, +l: List<&2, Nat>, +b: List<&2, Nat>, +fr: Nat, +p: U32, +q: U32, +hs: $TR(ST.seg(pl, nl, l, p, q)), +hl: $TR(ST.slok(~T, l, fr, vl)), +hb: $TR(rok(~T, pl, b, fr, vl)), +hp: $TR(U32.is_eq(p, LK.fst_or(b, 0)))) -> $TR(rok(~T, pl, NL.rapp(l, b), fr, vl)):
   match l:
     case Nil{}:
       hb
     case Con{+x, +r}:
-      +ha = L.and_left(U32.is_eq(TB.nth0(pl, x), p), Bool.and(U32.is_eq(TB.nth0(nl, x), LST.fst_or(r, q)), ST.seg(pl, nl, r, LST.lnk(x), q)), hs)
-      +hc = L.and_right(U32.is_eq(TB.nth0(nl, x), LST.fst_or(r, q)), ST.seg(pl, nl, r, LST.lnk(x), q), L.and_right(U32.is_eq(TB.nth0(pl, x), p), Bool.and(U32.is_eq(TB.nth0(nl, x), LST.fst_or(r, q)), ST.seg(pl, nl, r, LST.lnk(x), q)), hs))
+      +ha = L.and_left(U32.is_eq(W32.nth0(pl, x), p), Bool.and(U32.is_eq(W32.nth0(nl, x), LK.fst_or(r, q)), ST.seg(pl, nl, r, LK.lnk(x), q)), hs)
+      +hc = L.and_right(U32.is_eq(W32.nth0(nl, x), LK.fst_or(r, q)), ST.seg(pl, nl, r, LK.lnk(x), q), L.and_right(U32.is_eq(W32.nth0(pl, x), p), Bool.and(U32.is_eq(W32.nth0(nl, x), LK.fst_or(r, q)), ST.seg(pl, nl, r, LK.lnk(x), q)), hs))
       +hx = L.and_left(Bool.and(Nat.is_lt(x, fr), ST.live(T, vl, x)), ST.slok(~T, r, fr, vl), hl)
       +hlr = L.and_right(Bool.and(Nat.is_lt(x, fr), ST.live(T, vl, x)), ST.slok(~T, r, fr, vl), hl)
-      +e0 = A.eq_of(TB.nth0(pl, x), p, ha)
-      +hq = L.subst(U32, z => {U32.is_eq(z, LST.fst_or(b, 0)) == True{} : Bool}, p, TB.nth0(pl, x), Equal.sym(U32, TB.nth0(pl, x), p, e0), hp)
-      +hb2 = L.and_intro(Bool.and(Nat.is_lt(x, fr), ST.live(T, vl, x)), Bool.and(U32.is_eq(TB.nth0(pl, x), LST.fst_or(b, 0)), rok(~T, pl, b, fr, vl)), hx, L.and_intro(U32.is_eq(TB.nth0(pl, x), LST.fst_or(b, 0)), rok(~T, pl, b, fr, vl), hq, hb))
-      rok_app(~T, pl, nl, vl, r, Con{x, b}, fr, LST.lnk(x), q, hc, hlr, hb2, A.eq_refl(LST.lnk(x)))
+      +e0 = A.eq_of(W32.nth0(pl, x), p, ha)
+      +hq = L.subst(U32, z => {U32.is_eq(z, LK.fst_or(b, 0)) == True{} : Bool}, p, W32.nth0(pl, x), Equal.sym(U32, W32.nth0(pl, x), p, e0), hp)
+      +hb2 = L.and_intro(Bool.and(Nat.is_lt(x, fr), ST.live(T, vl, x)), Bool.and(U32.is_eq(W32.nth0(pl, x), LK.fst_or(b, 0)), rok(~T, pl, b, fr, vl)), hx, L.and_intro(U32.is_eq(W32.nth0(pl, x), LK.fst_or(b, 0)), rok(~T, pl, b, fr, vl), hq, hb))
+      rok_app(~T, pl, nl, vl, r, Con{x, b}, fr, LK.lnk(x), q, hc, hlr, hb2, A.eq_refl(LK.lnk(x)))
 
 # ---- the walk ----
 
@@ -91,24 +86,24 @@ def step_live(-T: Data, +acc: List<&2, T>, +at: U32, +m: $MT, +hm: $TR(ST.some_b
       {==}
 
 # one step: the value of x is prepended and the walk moves to x's prev
-def wstep(~T: Data, $WP, +x: Nat, +r: List<&2, Nat>, +acc: List<&2, T>, +hx: $TR(Bool.and(Bool.and(Nat.is_lt(x, fr), $LV(x)), Bool.and(U32.is_eq(TB.nth0($PL, x), LST.fst_or(r, 0)), rok(~T, $PL, r, fr, $VL))))) -> {R.step_back(~T, $CUR(acc, LST.lnk(x))) == $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), LST.fst_or(r, 0)) : R.Cur<T>}:
-  +h0 = L.and_left(Bool.and(Nat.is_lt(x, fr), $LV(x)), Bool.and(U32.is_eq(TB.nth0($PL, x), LST.fst_or(r, 0)), rok(~T, $PL, r, fr, $VL)), hx)
-  +h2 = L.and_left(U32.is_eq(TB.nth0($PL, x), LST.fst_or(r, 0)), rok(~T, $PL, r, fr, $VL), L.and_right(Bool.and(Nat.is_lt(x, fr), $LV(x)), Bool.and(U32.is_eq(TB.nth0($PL, x), LST.fst_or(r, 0)), rok(~T, $PL, r, fr, $VL)), hx))
+def wstep(~T: Data, $WP, +x: Nat, +r: List<&2, Nat>, +acc: List<&2, T>, +hx: $TR(Bool.and(Bool.and(Nat.is_lt(x, fr), $LV(x)), Bool.and(U32.is_eq(W32.nth0($PL, x), LK.fst_or(r, 0)), rok(~T, $PL, r, fr, $VL))))) -> {R.step_back(~T, $CUR(acc, LK.lnk(x))) == $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), LK.fst_or(r, 0)) : R.Cur<T>}:
+  +h0 = L.and_left(Bool.and(Nat.is_lt(x, fr), $LV(x)), Bool.and(U32.is_eq(W32.nth0($PL, x), LK.fst_or(r, 0)), rok(~T, $PL, r, fr, $VL)), hx)
+  +h2 = L.and_left(U32.is_eq(W32.nth0($PL, x), LK.fst_or(r, 0)), rok(~T, $PL, r, fr, $VL), L.and_right(Bool.and(Nat.is_lt(x, fr), $LV(x)), Bool.and(U32.is_eq(W32.nth0($PL, x), LK.fst_or(r, 0)), rok(~T, $PL, r, fr, $VL)), hx))
   +hn = N.lt_le_trans(x, fr, SC.pow2(d), L.and_left(Nat.is_lt(x, fr), $LV(x), h0), hfr)
   +es = RL.slot_lnk(one, h1, x, d, hd, hn)
-  +hi = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(d)) == True{} : Bool}, x, UD.v(R.slot(LST.lnk(x))), Equal.sym(Nat, UD.v(R.slot(LST.lnk(x))), x, es), hn)
-  +e1 = Equal.cong(Array<$MT> & $MT, R.Cur<T>, rr => R.step_v(~T, $AP, acc, LST.lnk(x), rr), Array.get($MT, $AV, R.slot(LST.lnk(x))), ($AV, S.val_of(T, $VL, x)), Equal.trans(Array<$MT> & $MT, Array.get($MT, $AV, R.slot(LST.lnk(x))), ($AV, S.val_of(T, $VL, UD.v(R.slot(LST.lnk(x))))), ($AV, S.val_of(T, $VL, x)), LN.vget(T, d, hd, vT, pv, R.slot(LST.lnk(x)), hi), Equal.cong(Nat, Array<$MT> & $MT, z => ($AV, S.val_of(T, $VL, z)), UD.v(R.slot(LST.lnk(x))), x, es)))
-  +e2 = step_live(T, acc, LST.lnk(x), S.val_of(T, $VL, x), L.and_right(Nat.is_lt(x, fr), $LV(x), h0), $AV, $AP)
-  +e3 = Equal.cong(Array<U32> & U32, R.Cur<T>, rr => R.step_p(~T, $AV, S.cons_some(T, S.val_of(T, $VL, x), acc), rr), Array.get(U32, $AP, R.slot(LST.lnk(x))), ($AP, TB.nth0($PL, x)), Equal.trans(Array<U32> & U32, Array.get(U32, $AP, R.slot(LST.lnk(x))), ($AP, TB.nth0($PL, UD.v(R.slot(LST.lnk(x))))), ($AP, TB.nth0($PL, x)), MT.uget(d, RL.hd0(d, hd), pT, pp, R.slot(LST.lnk(x)), hi), Equal.cong(Nat, Array<U32> & U32, z => ($AP, TB.nth0($PL, z)), UD.v(R.slot(LST.lnk(x))), x, es)))
-  +e4 = Equal.cong(U32, R.Cur<T>, z => $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), z), TB.nth0($PL, x), LST.fst_or(r, 0), A.eq_of(TB.nth0($PL, x), LST.fst_or(r, 0), h2))
-  Equal.trans(R.Cur<T>, R.step_back(~T, $CUR(acc, LST.lnk(x))), R.step_v(~T, $AP, acc, LST.lnk(x), ($AV, S.val_of(T, $VL, x))), $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), LST.fst_or(r, 0)), e1, Equal.trans(R.Cur<T>, R.step_m(~T, $AV, $AP, acc, LST.lnk(x), S.val_of(T, $VL, x)), R.step_p(~T, $AV, S.cons_some(T, S.val_of(T, $VL, x), acc), Array.get(U32, $AP, R.slot(LST.lnk(x)))), $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), LST.fst_or(r, 0)), e2, Equal.trans(R.Cur<T>, R.step_p(~T, $AV, S.cons_some(T, S.val_of(T, $VL, x), acc), Array.get(U32, $AP, R.slot(LST.lnk(x)))), $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), TB.nth0($PL, x)), $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), LST.fst_or(r, 0)), e3, e4)))
+  +hi = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(d)) == True{} : Bool}, x, UD.v(R.slot(LK.lnk(x))), Equal.sym(Nat, UD.v(R.slot(LK.lnk(x))), x, es), hn)
+  +e1 = Equal.cong(Array<$MT> & $MT, R.Cur<T>, rr => R.step_v(~T, $AP, acc, LK.lnk(x), rr), Array.get($MT, $AV, R.slot(LK.lnk(x))), ($AV, S.val_of(T, $VL, x)), Equal.trans(Array<$MT> & $MT, Array.get($MT, $AV, R.slot(LK.lnk(x))), ($AV, S.val_of(T, $VL, UD.v(R.slot(LK.lnk(x))))), ($AV, S.val_of(T, $VL, x)), LN.vget(T, d, hd, vT, pv, R.slot(LK.lnk(x)), hi), Equal.cong(Nat, Array<$MT> & $MT, z => ($AV, S.val_of(T, $VL, z)), UD.v(R.slot(LK.lnk(x))), x, es)))
+  +e2 = step_live(T, acc, LK.lnk(x), S.val_of(T, $VL, x), L.and_right(Nat.is_lt(x, fr), $LV(x), h0), $AV, $AP)
+  +e3 = Equal.cong(Array<U32> & U32, R.Cur<T>, rr => R.step_p(~T, $AV, S.cons_some(T, S.val_of(T, $VL, x), acc), rr), Array.get(U32, $AP, R.slot(LK.lnk(x))), ($AP, W32.nth0($PL, x)), Equal.trans(Array<U32> & U32, Array.get(U32, $AP, R.slot(LK.lnk(x))), ($AP, W32.nth0($PL, UD.v(R.slot(LK.lnk(x))))), ($AP, W32.nth0($PL, x)), UT.uget(d, RL.hd0(d, hd), pT, pp, R.slot(LK.lnk(x)), hi), Equal.cong(Nat, Array<U32> & U32, z => ($AP, W32.nth0($PL, z)), UD.v(R.slot(LK.lnk(x))), x, es)))
+  +e4 = Equal.cong(U32, R.Cur<T>, z => $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), z), W32.nth0($PL, x), LK.fst_or(r, 0), A.eq_of(W32.nth0($PL, x), LK.fst_or(r, 0), h2))
+  Equal.trans(R.Cur<T>, R.step_back(~T, $CUR(acc, LK.lnk(x))), R.step_v(~T, $AP, acc, LK.lnk(x), ($AV, S.val_of(T, $VL, x))), $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), LK.fst_or(r, 0)), e1, Equal.trans(R.Cur<T>, R.step_m(~T, $AV, $AP, acc, LK.lnk(x), S.val_of(T, $VL, x)), R.step_p(~T, $AV, S.cons_some(T, S.val_of(T, $VL, x), acc), Array.get(U32, $AP, R.slot(LK.lnk(x)))), $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), LK.fst_or(r, 0)), e2, Equal.trans(R.Cur<T>, R.step_p(~T, $AV, S.cons_some(T, S.val_of(T, $VL, x), acc), Array.get(U32, $AP, R.slot(LK.lnk(x)))), $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), W32.nth0($PL, x)), $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), LK.fst_or(r, 0)), e3, e4)))
 
 # THEOREM: the walk from the first id of back, for its length, prepends the
 # values of back one by one
-def walk(~T: Data, $WP, +back: List<&2, Nat>, +acc: List<&2, T>, +hr: $TR(rok(~T, $PL, back, fr, $VL))) -> {R.walk(~T, SC.length(Nat, back), $CUR(acc, LST.fst_or(back, 0))) == $CUR(racc(T, $VL, back, acc), 0) : R.Cur<T>}:
+def walk(~T: Data, $WP, +back: List<&2, Nat>, +acc: List<&2, T>, +hr: $TR(rok(~T, $PL, back, fr, $VL))) -> {R.walk(~T, SC.length(Nat, back), $CUR(acc, LK.fst_or(back, 0))) == $CUR(racc(T, $VL, back, acc), 0) : R.Cur<T>}:
   match back:
     case Nil{}:
       {==}
     case Con{+x, +r}:
-      +ih = walk(~T, $WA, r, S.cons_some(T, S.val_of(T, $VL, x), acc), L.and_right(U32.is_eq(TB.nth0($PL, x), LST.fst_or(r, 0)), rok(~T, $PL, r, fr, $VL), L.and_right(Bool.and(Nat.is_lt(x, fr), $LV(x)), Bool.and(U32.is_eq(TB.nth0($PL, x), LST.fst_or(r, 0)), rok(~T, $PL, r, fr, $VL)), hr)))
-      Equal.trans(R.Cur<T>, R.walk(~T, SC.length(Nat, r), R.step_back(~T, $CUR(acc, LST.lnk(x)))), R.walk(~T, SC.length(Nat, r), $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), LST.fst_or(r, 0))), $CUR(racc(T, $VL, r, S.cons_some(T, S.val_of(T, $VL, x), acc)), 0), Equal.cong(R.Cur<T>, R.Cur<T>, c => R.walk(~T, SC.length(Nat, r), c), R.step_back(~T, $CUR(acc, LST.lnk(x))), $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), LST.fst_or(r, 0)), wstep(~T, $WA, x, r, acc, hr)), ih)
+      +ih = walk(~T, $WA, r, S.cons_some(T, S.val_of(T, $VL, x), acc), L.and_right(U32.is_eq(W32.nth0($PL, x), LK.fst_or(r, 0)), rok(~T, $PL, r, fr, $VL), L.and_right(Bool.and(Nat.is_lt(x, fr), $LV(x)), Bool.and(U32.is_eq(W32.nth0($PL, x), LK.fst_or(r, 0)), rok(~T, $PL, r, fr, $VL)), hr)))
+      Equal.trans(R.Cur<T>, R.walk(~T, SC.length(Nat, r), R.step_back(~T, $CUR(acc, LK.lnk(x)))), R.walk(~T, SC.length(Nat, r), $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), LK.fst_or(r, 0))), $CUR(racc(T, $VL, r, S.cons_some(T, S.val_of(T, $VL, x), acc)), 0), Equal.cong(R.Cur<T>, R.Cur<T>, c => R.walk(~T, SC.length(Nat, r), c), R.step_back(~T, $CUR(acc, LK.lnk(x))), $CUR(S.cons_some(T, S.val_of(T, $VL, x), acc), LK.fst_or(r, 0)), wstep(~T, $WA, x, r, acc, hr)), ih)

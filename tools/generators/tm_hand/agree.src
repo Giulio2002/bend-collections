@@ -5,13 +5,12 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./prim.bend as PR
 import ./path.bend as P
 import ./ends.bend as EN
 import ./frame.bend as FR
+import ../lib/nat_list.bend as NL
 
 # Two node lists agreeing on a list of ids (a Bool, so the fact can be used
 # many times): nodes compared field by field, keys by the comparator, which
@@ -28,8 +27,8 @@ import ./frame.bend as FR
 %def TO ~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
 %def AO ~K, ~cmp, ~o
 %def NDX(nl, j) ST.nd(K, nl, j)
-%def NMEM(y, xs) {HT.memn(y, xs) == False{} : Bool}
-%def MEM(y, xs) {HT.memn(y, xs) == True{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
 %def IDS(t) ST.ids(t)
 %def APP(a, b) SC.append(Nat, a, b)
 
@@ -182,7 +181,7 @@ def agr_wr($TO, +xs: $LN, +nl: $NL, +id: Nat, +x: $ND, +hn: $NMEM(id, xs)) -> $A
     case Nil{}:
       {==}
     case Con{+j, +t}:
-      L.and_intro(ndeq(~K, ~cmp, $NDX(nl, j), $NDX(PR.wr_nl(K, nl, id, x), j)), agr(~K, ~cmp, t, nl, PR.wr_nl(K, nl, id, x)), ndeq_of_eq($AO, $NDX(nl, j), $NDX(PR.wr_nl(K, nl, id, x), j), Equal.sym($ND, $NDX(PR.wr_nl(K, nl, id, x), j), $NDX(nl, j), FR.nd_wr_other(K, nl, id, x, j, FR.ne_sym(j, id, FR.or_f_l(Nat.is_eq(j, id), HT.memn(id, t), hn))))), agr_wr($AO, t, nl, id, x, FR.or_f_r(Nat.is_eq(j, id), HT.memn(id, t), hn)))
+      L.and_intro(ndeq(~K, ~cmp, $NDX(nl, j), $NDX(PR.wr_nl(K, nl, id, x), j)), agr(~K, ~cmp, t, nl, PR.wr_nl(K, nl, id, x)), ndeq_of_eq($AO, $NDX(nl, j), $NDX(PR.wr_nl(K, nl, id, x), j), Equal.sym($ND, $NDX(PR.wr_nl(K, nl, id, x), j), $NDX(nl, j), FR.nd_wr_other(K, nl, id, x, j, FR.ne_sym(j, id, FR.or_f_l(Nat.is_eq(j, id), NL.memn(id, t), hn))))), agr_wr($AO, t, nl, id, x, FR.or_f_r(Nat.is_eq(j, id), NL.memn(id, t), hn)))
 
 # ---- what agreement keeps ----
 

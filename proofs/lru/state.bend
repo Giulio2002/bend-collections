@@ -14,6 +14,9 @@ import ../hash_table/buckets.bend as B
 import ../hash_table/cyc.bend as CY
 import ../hash_table/inv.bend as IV
 import ../hash_table/state.bend as HT
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
+import ../lib/words32.bend as W32
 
 # The LRU as a Data shadow: its U32 fields, the table exponent k (2^k
 # buckets), the arena exponent sd (2^sd slots), a mirror tree for each array,
@@ -37,31 +40,17 @@ def real(~V: Data, sh: Sh<V>) -> LR.LRU<&2, V>:
 # ---- slots and their words ----
 
 # the link of slot s
-def lnk(+s: Nat) -> U32:
-  H.link(U32.from_nat(s))
 
 # the link of the first slot of t, q for none
-def fst_or(t: List<&2, Nat>, +q: U32) -> U32:
-  match t:
-    case Nil{}:
-      q
-    case Con{+s, t2}:
-      lnk(s)
 
 # the link of the last slot of t, p for none
-def last_or(t: List<&2, Nat>, +p: U32) -> U32:
-  match t:
-    case Nil{}:
-      p
-    case Con{+s, +t2}:
-      last_or(t2, lnk(s))
 
 # word o of slot s in lk
 def off(+s: Nat, +o: Nat) -> Nat:
   Nat.add(Nat.double(Nat.double(Nat.double(s))), o)
 
 def lw(+ll: List<&2, U32>, +s: Nat, +o: Nat) -> U32:
-  TB.nth0(ll, off(s, o))
+  W32.nth0(ll, off(s, o))
 
 # the segment sl: its first slot's prev is p, its last slot's next is q,
 # and consecutive slots are linked both ways
@@ -70,7 +59,7 @@ def seg(+ll: List<&2, U32>, sl: List<&2, Nat>, +p: U32, +q: U32) -> Bool:
     case Nil{}:
       True{}
     case Con{+s, +t}:
-      Bool.and(U32.is_eq(lw(ll, s, 0n), p), Bool.and(U32.is_eq(lw(ll, s, 1n), fst_or(t, q)), seg(ll, t, lnk(s), q)))
+      Bool.and(U32.is_eq(lw(ll, s, 0n), p), Bool.and(U32.is_eq(lw(ll, s, 1n), LK.fst_or(t, q)), seg(ll, t, LK.lnk(s), q)))
 
 # the free list: each slot's next is the slot after it (0 for the last)
 def fll(+ll: List<&2, U32>, fl: List<&2, Nat>) -> Bool:
@@ -78,14 +67,8 @@ def fll(+ll: List<&2, U32>, fl: List<&2, Nat>) -> Bool:
     case Nil{}:
       True{}
     case Con{+s, +t}:
-      Bool.and(U32.is_eq(lw(ll, s, 1n), fst_or(t, 0)), fll(ll, t))
+      Bool.and(U32.is_eq(lw(ll, s, 1n), LK.fst_or(t, 0)), fll(ll, t))
 
-def nodupn(xs: List<&2, Nat>) -> Bool:
-  match xs:
-    case Nil{}:
-      True{}
-    case Con{+x, +t}:
-      Bool.and(Bool.not(HT.memn(x, t)), nodupn(t))
 
 def live(~V: Data, +el: List<&2, Maybe<&2, V>>, +s: Nat) -> Bool:
   HT.some_b(~V, HT.nthm(~V, el, s))
@@ -122,7 +105,7 @@ def bslb(+sl: List<&2, Nat>, +ll: List<&2, U32>, b: B.Bk) -> Bool:
     case B.BE{}:
       True{}
     case B.BF{+w, +l, k}:
-      Bool.and(HT.memn(UD.v(H.slot(l)), sl), U32.is_eq(lw(ll, UD.v(H.slot(l)), 2n), w))
+      Bool.and(NL.memn(UD.v(H.slot(l)), sl), U32.is_eq(lw(ll, UD.v(H.slot(l)), 2n), w))
 
 def bsl(+bs: List<&2, B.Bk>, +sl: List<&2, Nat>, +ll: List<&2, U32>, +m: Nat) -> Bool:
   match m:
@@ -154,13 +137,13 @@ def es(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Maybe<
       SC.append(SP.Ent<V>, sent_m(~V, ll, kl, s, HT.nthm(~V, el, s)), es(~V, ll, kl, el, t))
 
 def w64(+ml: List<&2, U32>, +i: Nat) -> W.U64:
-  W.U64{TB.nth0(ml, i), TB.nth0(ml, 1n+i)}
+  W.U64{W32.nth0(ml, i), W32.nth0(ml, 1n+i)}
 
 def ctr(+ml: List<&2, U32>) -> SP.Ctr:
   SP.CT{w64(ml, 16n), w64(ml, 18n), w64(ml, 20n), w64(ml, 22n), w64(ml, 24n)}
 
 def modelF(~V: Data, +cap: U32, +mT: AR.Tree<U32>, +kl: List<&2, String>, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>) -> SP.Lru<V>:
-  SP.L{cap, TB.nth0(AR.slots(U32, mT), 3n), w64(AR.slots(U32, mT), 4n), es(~V, AR.slots(U32, lkT), kl, AR.slots(Maybe<&2, V>, eT), sl), ctr(AR.slots(U32, mT))}
+  SP.L{cap, W32.nth0(AR.slots(U32, mT), 3n), w64(AR.slots(U32, mT), 4n), es(~V, AR.slots(U32, lkT), kl, AR.slots(Maybe<&2, V>, eT), sl), ctr(AR.slots(U32, mT))}
 
 # the entries of a model
 def lru_es(~V: Data, l: SP.Lru<V>) -> List<&2, SP.Ent<V>>:
@@ -181,7 +164,7 @@ def sev(~V: Data, p: SP1<V>, +s: Nat) -> Bool:
     case PVac{+fr, +el}:
       Bool.and(Nat.is_lt(s, fr), Bool.not(live(~V, el, s)))
     case PHas{+bs, +m, +ll}:
-      anyb(bs, m, lnk(s), lw(ll, s, 2n))
+      anyb(bs, m, LK.lnk(s), lw(ll, s, 2n))
     case PNk{+ll, +kl, +key}:
       Bool.not(S.str_eq(skey(ll, kl, s), key))
 
@@ -276,16 +259,16 @@ def csl(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U
   slok(~V, sl, UD.v(fr), AR.slots(Maybe<&2, V>, eT))
 
 def cnd(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  nodupn(sl)
+  NL.nodupn(sl)
 
 def clen(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
   Nat.is_eq(SC.length(Nat, sl), UD.v(n))
 
 def chead(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  U32.is_eq(head, fst_or(sl, 0))
+  U32.is_eq(head, LK.fst_or(sl, 0))
 
 def ctail(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  U32.is_eq(tail, last_or(sl, 0))
+  U32.is_eq(tail, LK.last_or(sl, 0))
 
 def cdll(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
   seg(AR.slots(U32, lkT), sl, 0, 0)
@@ -294,7 +277,7 @@ def ckeys(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr:
   S.nodup(SP.keys_of(~V, es(~V, AR.slots(U32, lkT), kl, AR.slots(Maybe<&2, V>, eT), sl)))
 
 def cfree(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  U32.is_eq(free, fst_or(fl, 0))
+  U32.is_eq(free, LK.fst_or(fl, 0))
 
 def cfll(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
   fll(AR.slots(U32, lkT), fl)
@@ -303,7 +286,7 @@ def cfl(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U
   flok(~V, fl, UD.v(fr), AR.slots(Maybe<&2, V>, eT))
 
 def cfnd(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  nodupn(fl)
+  NL.nodupn(fl)
 
 def cfcnt(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
   Nat.is_eq(Nat.add(SC.length(Nat, sl), SC.length(Nat, fl)), UD.v(fr))
@@ -314,7 +297,7 @@ def goodF(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr:
 def good(~V: Data, sh: Sh<V>) -> Bool:
   match sh:
     case LS{+cap, +n, +head, +tail, +free, +mT, +k, +sd, +tabT, +ksT, +eT, +lkT, +sl, +fl}:
-      goodF(~V, cap, n, head, tail, free, TB.nth0(AR.slots(U32, mT), 0n), TB.nth0(AR.slots(U32, mT), 1n), TB.nth0(AR.slots(U32, mT), 2n), TB.nth0(AR.slots(U32, mT), 6n), TB.nth0(AR.slots(U32, mT), 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), eT, lkT, sl, fl)
+      goodF(~V, cap, n, head, tail, free, W32.nth0(AR.slots(U32, mT), 0n), W32.nth0(AR.slots(U32, mT), 1n), W32.nth0(AR.slots(U32, mT), 2n), W32.nth0(AR.slots(U32, mT), 6n), W32.nth0(AR.slots(U32, mT), 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), eT, lkT, sl, fl)
 
 def g_ck(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +g: {goodF(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl) == True{} : Bool}) -> {ck(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl) == True{} : Bool}:
   L.and_left(ck(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(csdk(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cpt(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cpk(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cpe(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cpl(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cpm(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cmask(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cbits(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(csize(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cdepth(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cfresh(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cwell(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cclus(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cuniq(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cn(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cload(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(ccap(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cbsl(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(chas(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(csl(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cnd(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(clen(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(chead(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(ctail(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cdll(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(ckeys(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cfree(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cfll(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cfl(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), Bool.and(cfnd(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl), cfcnt(~V, cap, n, head, tail, free, fr, msz, mdp, mmk, mbt, pm, k, sd, tabT, kl, pk, eT, lkT, sl, fl))))))))))))))))))))))))))))))), g)

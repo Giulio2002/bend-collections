@@ -6,25 +6,18 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
-import ./mirror.bend as MI
-import ./ok.bend as OK
 import ./tree.bend as TR
 import ./ends.bend as EN
 import ./path.bend as P
 import ./plug.bend as PG
 import ./dj.bend as DJ
 import ./ord.bend as OR
-import ./navl.bend as NV
 import ./cur.bend as CU
-import ./reads.bend as RD
 import ./spath.bend as SP
 import ./agree.bend as AG
 import ./find.bend as FI
-import ./slot.bend as SL
+import ../lib/nat_list.bend as NL
 
 # Keys present are found: a list split at a member, the entry of a member
 # found by its key in sorted entries, and the search for a present key ending
@@ -37,14 +30,14 @@ def sp_up(+x: Nat, +t: List<&2, Nat>, +j: Nat, r: Sigma<&1, &1, List<&2, Nat>, s
       (Con{x, sa}, (sb, L.subst(List<&2, Nat>, z => {Con{x, t} == Con{x, z} : List<&2, Nat>}, t, SC.append(Nat, sa, Con{j, sb}), h, {==})))
 
 # a list at a member
-def split_c(+x: Nat, +t: List<&2, Nat>, +j: Nat, +e: Bool, +he: {Nat.is_eq(x, j) == e : Bool}, +hm: {Bool.or(e, HT.memn(j, t)) == True{} : Bool}, ih: @+hmt: {HT.memn(j, t) == True{} : Bool} -> Sigma<&1, &1, List<&2, Nat>, sa_ => Sigma<&1, &1, List<&2, Nat>, sb_ => {t == SC.append(Nat, sa_, Con{j, sb_}) : List<&2, Nat>}>>) -> Sigma<&1, &1, List<&2, Nat>, sa_ => Sigma<&1, &1, List<&2, Nat>, sb_ => {Con{x, t} == SC.append(Nat, sa_, Con{j, sb_}) : List<&2, Nat>}>>:
+def split_c(+x: Nat, +t: List<&2, Nat>, +j: Nat, +e: Bool, +he: {Nat.is_eq(x, j) == e : Bool}, +hm: {Bool.or(e, NL.memn(j, t)) == True{} : Bool}, ih: @+hmt: {NL.memn(j, t) == True{} : Bool} -> Sigma<&1, &1, List<&2, Nat>, sa_ => Sigma<&1, &1, List<&2, Nat>, sb_ => {t == SC.append(Nat, sa_, Con{j, sb_}) : List<&2, Nat>}>>) -> Sigma<&1, &1, List<&2, Nat>, sa_ => Sigma<&1, &1, List<&2, Nat>, sb_ => {Con{x, t} == SC.append(Nat, sa_, Con{j, sb_}) : List<&2, Nat>}>>:
   match e:
     case True{}:
       L.subst(Nat, z => Sigma<&1, &1, List<&2, Nat>, sa_ => Sigma<&1, &1, List<&2, Nat>, sb_ => {Con{z, t} == SC.append(Nat, sa_, Con{j, sb_}) : List<&2, Nat>}>>, j, x, Equal.sym(Nat, x, j, N.eq_from_is_eq(x, j, he)), (Nil{}, (t, {==})))
     case False{}:
       sp_up(x, t, j, ih(hm))
 
-def split_mem(+xs: List<&2, Nat>, +j: Nat, +hm: {HT.memn(j, xs) == True{} : Bool}) -> Sigma<&1, &1, List<&2, Nat>, sa_ => Sigma<&1, &1, List<&2, Nat>, sb_ => {xs == SC.append(Nat, sa_, Con{j, sb_}) : List<&2, Nat>}>>:
+def split_mem(+xs: List<&2, Nat>, +j: Nat, +hm: {NL.memn(j, xs) == True{} : Bool}) -> Sigma<&1, &1, List<&2, Nat>, sa_ => Sigma<&1, &1, List<&2, Nat>, sb_ => {xs == SC.append(Nat, sa_, Con{j, sb_}) : List<&2, Nat>}>>:
   match xs:
     case Nil{}:
       Empty.absurd(Sigma<&1, &1, List<&2, Nat>, sa_ => Sigma<&1, &1, List<&2, Nat>, sb_ => {Nil{} == SC.append(Nat, sa_, Con{j, sb_}) : List<&2, Nat>}>>, L.false_true(hm))
@@ -60,7 +53,7 @@ def fi_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +nl: Li
       Equal.trans(Maybe<&2, M.Entry<K, V>>, S.find_e(~K, ~V, ~cmp, k, ST.ents(~K, ~V, xs, nl, pl)), S.find_e(~K, ~V, ~cmp, k, SC.append(M.Entry<K, V>, ST.ents(~K, ~V, sa, nl, pl), Con{M.Entry{k, v}, ST.ents(~K, ~V, sb, nl, pl)})), Some{M.Entry{k, v}}, L.subst(List<&2, M.Entry<K, V>>, z => {S.find_e(~K, ~V, ~cmp, k, ST.ents(~K, ~V, xs, nl, pl)) == S.find_e(~K, ~V, ~cmp, k, z) : Maybe<&2, M.Entry<K, V>>}, ST.ents(~K, ~V, xs, nl, pl), SC.append(M.Entry<K, V>, ST.ents(~K, ~V, sa, nl, pl), Con{M.Entry{k, v}, ST.ents(~K, ~V, sb, nl, pl)}), hE, {==}), OR.find_mid_eq(~K, ~V, ~cmp, ~o, k, ST.ents(~K, ~V, sa, nl, pl), M.Entry{k, v}, ST.ents(~K, ~V, sb, nl, pl), L.subst(List<&2, M.Entry<K, V>>, z => {ST.ordered(~K, ~V, ~cmp, z) == True{} : Bool}, ST.ents(~K, ~V, xs, nl, pl), SC.append(M.Entry<K, V>, ST.ents(~K, ~V, sa, nl, pl), Con{M.Entry{k, v}, ST.ents(~K, ~V, sb, nl, pl)}), hE, hord), O.refl(~K, ~cmp, ~o, k)))
 
 # the entry of a member, found by its key
-def find_in(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +xs: List<&2, Nat>, +j: Nat, +hm: {HT.memn(j, xs) == True{} : Bool}, +hord: {ST.ordered(~K, ~V, ~cmp, ST.ents(~K, ~V, xs, nl, pl)) == True{} : Bool}, +c0: Bool, +x1: Nat, +x2: Nat, +x3: Nat, +k: K, +hx: {ST.nd(K, nl, j) == M.N{c0, x1, x2, x3, k} : M.Node<K>}, +v: V, +hv: {ST.pv(V, pl, j) == Some{v} : Maybe<&2, V>}) -> {S.find_e(~K, ~V, ~cmp, k, ST.ents(~K, ~V, xs, nl, pl)) == Some{M.Entry{k, v}} : Maybe<&2, M.Entry<K, V>>}:
+def find_in(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +xs: List<&2, Nat>, +j: Nat, +hm: {NL.memn(j, xs) == True{} : Bool}, +hord: {ST.ordered(~K, ~V, ~cmp, ST.ents(~K, ~V, xs, nl, pl)) == True{} : Bool}, +c0: Bool, +x1: Nat, +x2: Nat, +x3: Nat, +k: K, +hx: {ST.nd(K, nl, j) == M.N{c0, x1, x2, x3, k} : M.Node<K>}, +v: V, +hv: {ST.pv(V, pl, j) == Some{v} : Maybe<&2, V>}) -> {S.find_e(~K, ~V, ~cmp, k, ST.ents(~K, ~V, xs, nl, pl)) == Some{M.Entry{k, v}} : Maybe<&2, M.Entry<K, V>>}:
   fi_s(~K, ~V, ~cmp, ~o, nl, pl, xs, j, hord, c0, x1, x2, x3, k, hx, v, hv, split_mem(xs, j, hm))
 
 # ---- a present key: the search ends at a node holding it ----
@@ -74,8 +67,8 @@ def fk_x(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +n: Nat
       +ek = O.antisym(~K, ~cmp, o, k, key, AG.iseq_eq(cmp(k, key), hq))
       +eck = Equal.trans(Maybe<&2, K>, CU.ck(~K, nl, i), Some{key}, Some{k}, L.subst(M.Node<K>, z => {CU.ck(~K, nl, i) == M.node_key(~K, z) : Maybe<&2, K>}, ST.nd(K, nl, i), M.N{c0, x1, x2, x3, key}, hx, {==}), L.subst(K, z => {Some{key} == Some{z} : Maybe<&2, K>}, key, k, Equal.sym(K, k, key, ek), {==}))
       +hm0 = DJ.mem_r(i, P.before(c), SC.append(Nat, ST.ids(ST.TN{i, a, b}), P.after(c)), DJ.mem_l(i, ST.ids(ST.TN{i, a, b}), P.after(c), P.mem_root(i, a, b)))
-      +hm = L.subst(List<&2, Nat>, z => {HT.memn(i, z) == True{} : Bool}, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{i, a, b}), P.after(c))), ST.ids(tg), Equal.trans(List<&2, Nat>, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{i, a, b}), P.after(c))), SC.append(Nat, ST.ids(tg), Nil{}), ST.ids(tg), Equal.sym(List<&2, Nat>, SC.append(Nat, ST.ids(tg), Nil{}), SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{i, a, b}), P.after(c))), hwh), LL.append_nil(Nat, ST.ids(tg))), hm0)
-      (eck, CU.or_r(Nat.is_eq(i, 0n), HT.memn(i, ST.ids(tg)), hm))
+      +hm = L.subst(List<&2, Nat>, z => {NL.memn(i, z) == True{} : Bool}, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{i, a, b}), P.after(c))), ST.ids(tg), Equal.trans(List<&2, Nat>, SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{i, a, b}), P.after(c))), SC.append(Nat, ST.ids(tg), Nil{}), ST.ids(tg), Equal.sym(List<&2, Nat>, SC.append(Nat, ST.ids(tg), Nil{}), SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{i, a, b}), P.after(c))), hwh), LL.append_nil(Nat, ST.ids(tg))), hm0)
+      (eck, CU.or_r(Nat.is_eq(i, 0n), NL.memn(i, ST.ids(tg)), hm))
 
 def fk_t(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: List<&2, Nat>, +t: ST.Tr, +k: K, +w: V, +hpv: {ST.pv(V, pl, ST.rid(t)) == Some{w} : Maybe<&2, V>}, +c: List<&2, P.Fr>, +hwh: {SC.append(Nat, ST.ids(tg), Nil{}) == SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(t), P.after(c))) : List<&2, Nat>}, +hr: {ST.rep(~K, t, P.top(c), nl) == True{} : Bool}, +hfin: {SP.fin(~K, ~cmp, k, t, nl) == True{} : Bool}) -> {CU.ck(~K, nl, ST.rid(t)) == Some{k} : Maybe<&2, K>} & {CU.idok(ST.ids(tg), ST.rid(t)) == True{} : Bool}:
   match t:

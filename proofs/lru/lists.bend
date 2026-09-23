@@ -9,6 +9,7 @@ import ../../src/math/u64.bend as W
 import ../hash_table/keys.bend as K
 import ../hash_table/state.bend as HT
 import ./state.bend as ST
+import ../lib/nat_list.bend as NL
 
 # List algebra for the recency list and the model's keys: membership,
 # duplicate-freedom and the per-slot predicates over appends.
@@ -16,95 +17,17 @@ import ./state.bend as ST
 
 # ---- Bool algebra ----
 
-def or_assoc(+a: Bool, +b: Bool, +c: Bool) -> {Bool.or(a, Bool.or(b, c)) == Bool.or(Bool.or(a, b), c) : Bool}:
-  match a:
-    case True{}:
-      {==}
-    case False{}:
-      {==}
 
-def or_comm(+a: Bool, +b: Bool) -> {Bool.or(a, b) == Bool.or(b, a) : Bool}:
-  match a b:
-    case True{} True{}:
-      {==}
-    case True{} False{}:
-      {==}
-    case False{} True{}:
-      {==}
-    case False{} False{}:
-      {==}
 
-def and_assoc(+a: Bool, +b: Bool, +c: Bool) -> {Bool.and(a, Bool.and(b, c)) == Bool.and(Bool.and(a, b), c) : Bool}:
-  match a:
-    case True{}:
-      {==}
-    case False{}:
-      {==}
 
-def and_comm(+a: Bool, +b: Bool) -> {Bool.and(a, b) == Bool.and(b, a) : Bool}:
-  match a b:
-    case True{} True{}:
-      {==}
-    case True{} False{}:
-      {==}
-    case False{} True{}:
-      {==}
-    case False{} False{}:
-      {==}
 
 # not (x or y) and (z and not w)  ==  (not x and z) and not (y or w)
-def bt_mid(+x: Bool, +y: Bool, +z: Bool, +w: Bool) -> {Bool.and(Bool.not(Bool.or(x, y)), Bool.and(z, Bool.not(w))) == Bool.and(Bool.and(Bool.not(x), z), Bool.not(Bool.or(y, w))) : Bool}:
-  match x y z w:
-    case True{} y2 z2 w2:
-      {==}
-    case False{} True{} z2 w2:
-      +e = and_comm(z2, False{})
-      Equal.trans(Bool, Bool.and(False{}, Bool.and(z2, Bool.not(w2))), False{}, Bool.and(z2, False{}), {==}, Equal.sym(Bool, Bool.and(z2, False{}), False{}, Equal.trans(Bool, Bool.and(z2, False{}), Bool.and(False{}, z2), False{}, e, {==})))
-    case False{} False{} True{} w2:
-      {==}
-    case False{} False{} False{} w2:
-      {==}
 
-def is_eq_sym(+a: Nat, +b: Nat) -> {Nat.is_eq(a, b) == Nat.is_eq(b, a) : Bool}:
-  match a b:
-    case 0n 0n:
-      {==}
-    case 0n 1n+q:
-      {==}
-    case 1n+p 0n:
-      {==}
-    case 1n+p 1n+q:
-      is_eq_sym(p, q)
 
 # ---- slot lists ----
 
-def memn_app(+x: Nat, +a: List<&2, Nat>, +b: List<&2, Nat>) -> {HT.memn(x, SC.append(Nat, a, b)) == Bool.or(HT.memn(x, a), HT.memn(x, b)) : Bool}:
-  match a:
-    case Nil{}:
-      {==}
-    case Con{+h, +t}:
-      Equal.trans(Bool, Bool.or(Nat.is_eq(h, x), HT.memn(x, SC.append(Nat, t, b))), Bool.or(Nat.is_eq(h, x), Bool.or(HT.memn(x, t), HT.memn(x, b))), Bool.or(Bool.or(Nat.is_eq(h, x), HT.memn(x, t)), HT.memn(x, b)), Equal.cong(Bool, Bool, z => Bool.or(Nat.is_eq(h, x), z), HT.memn(x, SC.append(Nat, t, b)), Bool.or(HT.memn(x, t), HT.memn(x, b)), memn_app(x, t, b)), or_assoc(Nat.is_eq(h, x), HT.memn(x, t), HT.memn(x, b)))
 
-def memn_mid(+x: Nat, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>) -> {HT.memn(x, SC.append(Nat, a, Con{s, b})) == Bool.or(HT.memn(x, SC.append(Nat, a, b)), Nat.is_eq(s, x)) : Bool}:
-  match a:
-    case Nil{}:
-      or_comm(Nat.is_eq(s, x), HT.memn(x, b))
-    case Con{+h, +t}:
-      Equal.trans(Bool, Bool.or(Nat.is_eq(h, x), HT.memn(x, SC.append(Nat, t, Con{s, b}))), Bool.or(Nat.is_eq(h, x), Bool.or(HT.memn(x, SC.append(Nat, t, b)), Nat.is_eq(s, x))), Bool.or(Bool.or(Nat.is_eq(h, x), HT.memn(x, SC.append(Nat, t, b))), Nat.is_eq(s, x)), Equal.cong(Bool, Bool, z => Bool.or(Nat.is_eq(h, x), z), HT.memn(x, SC.append(Nat, t, Con{s, b})), Bool.or(HT.memn(x, SC.append(Nat, t, b)), Nat.is_eq(s, x)), memn_mid(x, t, s, b)), or_assoc(Nat.is_eq(h, x), HT.memn(x, SC.append(Nat, t, b)), Nat.is_eq(s, x)))
 
-def nd_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>) -> {ST.nodupn(SC.append(Nat, a, Con{s, b})) == Bool.and(ST.nodupn(SC.append(Nat, a, b)), Bool.not(HT.memn(s, SC.append(Nat, a, b)))) : Bool}:
-  match a:
-    case Nil{}:
-      and_comm(Bool.not(HT.memn(s, b)), ST.nodupn(b))
-    case Con{+h, +t}:
-      +X = HT.memn(h, SC.append(Nat, t, b))
-      +Z = ST.nodupn(SC.append(Nat, t, b))
-      +Wm = HT.memn(s, SC.append(Nat, t, b))
-      +e1 = Equal.cong(Bool, Bool, z => Bool.and(Bool.not(z), ST.nodupn(SC.append(Nat, t, Con{s, b}))), HT.memn(h, SC.append(Nat, t, Con{s, b})), Bool.or(X, Nat.is_eq(s, h)), memn_mid(h, t, s, b))
-      +e2 = Equal.cong(Bool, Bool, z => Bool.and(Bool.not(Bool.or(X, Nat.is_eq(s, h))), z), ST.nodupn(SC.append(Nat, t, Con{s, b})), Bool.and(Z, Bool.not(Wm)), nd_mid(t, s, b))
-      +e3 = bt_mid(X, Nat.is_eq(s, h), Z, Wm)
-      +e4 = Equal.cong(Bool, Bool, z => Bool.and(Bool.and(Bool.not(X), Z), Bool.not(Bool.or(z, Wm))), Nat.is_eq(s, h), Nat.is_eq(h, s), is_eq_sym(s, h))
-      Equal.trans(Bool, ST.nodupn(SC.append(Nat, Con{h, t}, Con{s, b})), Bool.and(Bool.not(Bool.or(X, Nat.is_eq(s, h))), ST.nodupn(SC.append(Nat, t, Con{s, b}))), Bool.and(Bool.and(Bool.not(X), Z), Bool.not(Bool.or(Nat.is_eq(h, s), Wm))), e1, Equal.trans(Bool, Bool.and(Bool.not(Bool.or(X, Nat.is_eq(s, h))), ST.nodupn(SC.append(Nat, t, Con{s, b}))), Bool.and(Bool.not(Bool.or(X, Nat.is_eq(s, h))), Bool.and(Z, Bool.not(Wm))), Bool.and(Bool.and(Bool.not(X), Z), Bool.not(Bool.or(Nat.is_eq(h, s), Wm))), e2, Equal.trans(Bool, Bool.and(Bool.not(Bool.or(X, Nat.is_eq(s, h))), Bool.and(Z, Bool.not(Wm))), Bool.and(Bool.and(Bool.not(X), Z), Bool.not(Bool.or(Nat.is_eq(s, h), Wm))), Bool.and(Bool.and(Bool.not(X), Z), Bool.not(Bool.or(Nat.is_eq(h, s), Wm))), e3, e4)))
 
 # ---- key lists ----
 
@@ -114,26 +37,26 @@ def mem_app_s(+x: String, +a: List<&2, String>, +b: List<&2, String>) -> {S.mem(
     case Nil{}:
       {==}
     case Con{+h, +t}:
-      Equal.trans(Bool, Bool.or(S.str_eq(h, x), S.mem(x, SC.append(String, t, b))), Bool.or(S.str_eq(h, x), Bool.or(S.mem(x, t), S.mem(x, b))), Bool.or(Bool.or(S.str_eq(h, x), S.mem(x, t)), S.mem(x, b)), Equal.cong(Bool, Bool, z => Bool.or(S.str_eq(h, x), z), S.mem(x, SC.append(String, t, b)), Bool.or(S.mem(x, t), S.mem(x, b)), mem_app_s(x, t, b)), or_assoc(S.str_eq(h, x), S.mem(x, t), S.mem(x, b)))
+      Equal.trans(Bool, Bool.or(S.str_eq(h, x), S.mem(x, SC.append(String, t, b))), Bool.or(S.str_eq(h, x), Bool.or(S.mem(x, t), S.mem(x, b))), Bool.or(Bool.or(S.str_eq(h, x), S.mem(x, t)), S.mem(x, b)), Equal.cong(Bool, Bool, z => Bool.or(S.str_eq(h, x), z), S.mem(x, SC.append(String, t, b)), Bool.or(S.mem(x, t), S.mem(x, b)), mem_app_s(x, t, b)), NL.or_assoc(S.str_eq(h, x), S.mem(x, t), S.mem(x, b)))
 
 def mem_mid_s(+x: String, +a: List<&2, String>, +s: String, +b: List<&2, String>) -> {S.mem(x, SC.append(String, a, Con{s, b})) == Bool.or(S.mem(x, SC.append(String, a, b)), S.str_eq(s, x)) : Bool}:
   match a:
     case Nil{}:
-      or_comm(S.str_eq(s, x), S.mem(x, b))
+      NL.or_comm(S.str_eq(s, x), S.mem(x, b))
     case Con{+h, +t}:
-      Equal.trans(Bool, Bool.or(S.str_eq(h, x), S.mem(x, SC.append(String, t, Con{s, b}))), Bool.or(S.str_eq(h, x), Bool.or(S.mem(x, SC.append(String, t, b)), S.str_eq(s, x))), Bool.or(Bool.or(S.str_eq(h, x), S.mem(x, SC.append(String, t, b))), S.str_eq(s, x)), Equal.cong(Bool, Bool, z => Bool.or(S.str_eq(h, x), z), S.mem(x, SC.append(String, t, Con{s, b})), Bool.or(S.mem(x, SC.append(String, t, b)), S.str_eq(s, x)), mem_mid_s(x, t, s, b)), or_assoc(S.str_eq(h, x), S.mem(x, SC.append(String, t, b)), S.str_eq(s, x)))
+      Equal.trans(Bool, Bool.or(S.str_eq(h, x), S.mem(x, SC.append(String, t, Con{s, b}))), Bool.or(S.str_eq(h, x), Bool.or(S.mem(x, SC.append(String, t, b)), S.str_eq(s, x))), Bool.or(Bool.or(S.str_eq(h, x), S.mem(x, SC.append(String, t, b))), S.str_eq(s, x)), Equal.cong(Bool, Bool, z => Bool.or(S.str_eq(h, x), z), S.mem(x, SC.append(String, t, Con{s, b})), Bool.or(S.mem(x, SC.append(String, t, b)), S.str_eq(s, x)), mem_mid_s(x, t, s, b)), NL.or_assoc(S.str_eq(h, x), S.mem(x, SC.append(String, t, b)), S.str_eq(s, x)))
 
 def nd_mid_s(+a: List<&2, String>, +s: String, +b: List<&2, String>) -> {S.nodup(SC.append(String, a, Con{s, b})) == Bool.and(S.nodup(SC.append(String, a, b)), Bool.not(S.mem(s, SC.append(String, a, b)))) : Bool}:
   match a:
     case Nil{}:
-      and_comm(Bool.not(S.mem(s, b)), S.nodup(b))
+      NL.and_comm(Bool.not(S.mem(s, b)), S.nodup(b))
     case Con{+h, +t}:
       +X = S.mem(h, SC.append(String, t, b))
       +Z = S.nodup(SC.append(String, t, b))
       +Wm = S.mem(s, SC.append(String, t, b))
       +e1 = Equal.cong(Bool, Bool, z => Bool.and(Bool.not(z), S.nodup(SC.append(String, t, Con{s, b}))), S.mem(h, SC.append(String, t, Con{s, b})), Bool.or(X, S.str_eq(s, h)), mem_mid_s(h, t, s, b))
       +e2 = Equal.cong(Bool, Bool, z => Bool.and(Bool.not(Bool.or(X, S.str_eq(s, h))), z), S.nodup(SC.append(String, t, Con{s, b})), Bool.and(Z, Bool.not(Wm)), nd_mid_s(t, s, b))
-      +e3 = bt_mid(X, S.str_eq(s, h), Z, Wm)
+      +e3 = NL.bt_mid(X, S.str_eq(s, h), Z, Wm)
       +e4 = Equal.cong(Bool, Bool, z => Bool.and(Bool.and(Bool.not(X), Z), Bool.not(Bool.or(z, Wm))), S.str_eq(s, h), S.str_eq(h, s), K.str_sym(s, h))
       Equal.trans(Bool, S.nodup(SC.append(String, Con{h, t}, Con{s, b})), Bool.and(Bool.not(Bool.or(X, S.str_eq(s, h))), S.nodup(SC.append(String, t, Con{s, b}))), Bool.and(Bool.and(Bool.not(X), Z), Bool.not(Bool.or(S.str_eq(h, s), Wm))), e1, Equal.trans(Bool, Bool.and(Bool.not(Bool.or(X, S.str_eq(s, h))), S.nodup(SC.append(String, t, Con{s, b}))), Bool.and(Bool.not(Bool.or(X, S.str_eq(s, h))), Bool.and(Z, Bool.not(Wm))), Bool.and(Bool.and(Bool.not(X), Z), Bool.not(Bool.or(S.str_eq(h, s), Wm))), e2, Equal.trans(Bool, Bool.and(Bool.not(Bool.or(X, S.str_eq(s, h))), Bool.and(Z, Bool.not(Wm))), Bool.and(Bool.and(Bool.not(X), Z), Bool.not(Bool.or(S.str_eq(s, h), Wm))), Bool.and(Bool.and(Bool.not(X), Z), Bool.not(Bool.or(S.str_eq(h, s), Wm))), e3, e4)))
 
@@ -144,9 +67,9 @@ def sall_app(~V: Data, +p: ST.SP1<V>, +a: List<&2, Nat>, +b: List<&2, Nat>) -> {
     case Nil{}:
       {==}
     case Con{+h, +t}:
-      Equal.trans(Bool, Bool.and(ST.sev(~V, p, h), ST.sall(~V, p, SC.append(Nat, t, b))), Bool.and(ST.sev(~V, p, h), Bool.and(ST.sall(~V, p, t), ST.sall(~V, p, b))), Bool.and(Bool.and(ST.sev(~V, p, h), ST.sall(~V, p, t)), ST.sall(~V, p, b)), Equal.cong(Bool, Bool, z => Bool.and(ST.sev(~V, p, h), z), ST.sall(~V, p, SC.append(Nat, t, b)), Bool.and(ST.sall(~V, p, t), ST.sall(~V, p, b)), sall_app(~V, p, t, b)), and_assoc(ST.sev(~V, p, h), ST.sall(~V, p, t), ST.sall(~V, p, b)))
+      Equal.trans(Bool, Bool.and(ST.sev(~V, p, h), ST.sall(~V, p, SC.append(Nat, t, b))), Bool.and(ST.sev(~V, p, h), Bool.and(ST.sall(~V, p, t), ST.sall(~V, p, b))), Bool.and(Bool.and(ST.sev(~V, p, h), ST.sall(~V, p, t)), ST.sall(~V, p, b)), Equal.cong(Bool, Bool, z => Bool.and(ST.sev(~V, p, h), z), ST.sall(~V, p, SC.append(Nat, t, b)), Bool.and(ST.sall(~V, p, t), ST.sall(~V, p, b)), sall_app(~V, p, t, b)), NL.and_assoc(ST.sev(~V, p, h), ST.sall(~V, p, t), ST.sall(~V, p, b)))
 
-def sa_c(~V: Data, +p: ST.SP1<V>, +x: Nat, +s0: Nat, +t: List<&2, Nat>, +h: {Bool.and(ST.sev(~V, p, s0), ST.sall(~V, p, t)) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(s0, x) == c : Bool}, +hm: {Bool.or(c, HT.memn(x, t)) == True{} : Bool}, rec: @hs: {ST.sall(~V, p, t) == True{} : Bool} -> @hm2: {HT.memn(x, t) == True{} : Bool} -> {ST.sev(~V, p, x) == True{} : Bool}) -> {ST.sev(~V, p, x) == True{} : Bool}:
+def sa_c(~V: Data, +p: ST.SP1<V>, +x: Nat, +s0: Nat, +t: List<&2, Nat>, +h: {Bool.and(ST.sev(~V, p, s0), ST.sall(~V, p, t)) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(s0, x) == c : Bool}, +hm: {Bool.or(c, NL.memn(x, t)) == True{} : Bool}, rec: @hs: {ST.sall(~V, p, t) == True{} : Bool} -> @hm2: {NL.memn(x, t) == True{} : Bool} -> {ST.sev(~V, p, x) == True{} : Bool}) -> {ST.sev(~V, p, x) == True{} : Bool}:
   match c:
     case True{}:
       L.subst(Nat, z => {ST.sev(~V, p, z) == True{} : Bool}, s0, x, N.eq_from_is_eq(s0, x, hc), L.and_left(ST.sev(~V, p, s0), ST.sall(~V, p, t), h))
@@ -154,7 +77,7 @@ def sa_c(~V: Data, +p: ST.SP1<V>, +x: Nat, +s0: Nat, +t: List<&2, Nat>, +h: {Boo
       rec(L.and_right(ST.sev(~V, p, s0), ST.sall(~V, p, t), h), hm)
 
 # p holds at a member
-def sall_mem(~V: Data, +p: ST.SP1<V>, +x: Nat, +xs: List<&2, Nat>, +h: {ST.sall(~V, p, xs) == True{} : Bool}, +hm: {HT.memn(x, xs) == True{} : Bool}) -> {ST.sev(~V, p, x) == True{} : Bool}:
+def sall_mem(~V: Data, +p: ST.SP1<V>, +x: Nat, +xs: List<&2, Nat>, +h: {ST.sall(~V, p, xs) == True{} : Bool}, +hm: {NL.memn(x, xs) == True{} : Bool}) -> {ST.sev(~V, p, x) == True{} : Bool}:
   match xs:
     case Nil{}:
       Empty.absurd({ST.sev(~V, p, x) == True{} : Bool}, L.false_true(hm))
@@ -211,72 +134,15 @@ def drop_app(~V: Data, +a: List<&2, SP.Ent<V>>, +b: List<&2, SP.Ent<V>>, +key: S
 
 # ---- splitting a duplicate-free list ----
 
-def not_t_f(+b: Bool, +h: {Bool.not(b) == True{} : Bool}) -> {b == False{} : Bool}:
-  L.not_true(b, h)
 
-def or_f_l(+a: Bool, +b: Bool, +h: {Bool.or(a, b) == False{} : Bool}) -> {a == False{} : Bool}:
-  match a:
-    case True{}:
-      Empty.absurd({True{} == False{} : Bool}, L.true_false(h))
-    case False{}:
-      {==}
 
-def nd_r(+a: List<&2, Nat>, +x: List<&2, Nat>, +h: {ST.nodupn(SC.append(Nat, a, x)) == True{} : Bool}) -> {ST.nodupn(x) == True{} : Bool}:
-  match a:
-    case Nil{}:
-      h
-    case Con{+h0, +t}:
-      nd_r(t, x, L.and_right(Bool.not(HT.memn(h0, SC.append(Nat, t, x))), ST.nodupn(SC.append(Nat, t, x)), h))
 
-def nd_l(+a: List<&2, Nat>, +x: List<&2, Nat>, +h: {ST.nodupn(SC.append(Nat, a, x)) == True{} : Bool}) -> {ST.nodupn(a) == True{} : Bool}:
-  match a:
-    case Nil{}:
-      {==}
-    case Con{+h0, +t}:
-      +hm = not_t_f(HT.memn(h0, SC.append(Nat, t, x)), L.and_left(Bool.not(HT.memn(h0, SC.append(Nat, t, x))), ST.nodupn(SC.append(Nat, t, x)), h))
-      +hm2 = or_f_l(HT.memn(h0, t), HT.memn(h0, x), L.subst(Bool, z => {z == False{} : Bool}, HT.memn(h0, SC.append(Nat, t, x)), Bool.or(HT.memn(h0, t), HT.memn(h0, x)), memn_app(h0, t, x), hm))
-      L.and_intro(Bool.not(HT.memn(h0, t)), ST.nodupn(t), L.subst(Bool, z => {Bool.not(z) == True{} : Bool}, False{}, HT.memn(h0, t), Equal.sym(Bool, HT.memn(h0, t), False{}, hm2), {==}), nd_l(t, x, L.and_right(Bool.not(HT.memn(h0, SC.append(Nat, t, x))), ST.nodupn(SC.append(Nat, t, x)), h)))
 
-def or_true_b(+b: Bool) -> {Bool.or(b, True{}) == True{} : Bool}:
-  match b:
-    case True{}:
-      {==}
-    case False{}:
-      {==}
 
-def mem_app_r(+y: Nat, +a: List<&2, Nat>, +x: List<&2, Nat>, +h: {HT.memn(y, x) == True{} : Bool}) -> {HT.memn(y, SC.append(Nat, a, x)) == True{} : Bool}:
-  L.subst(Bool, z => {z == True{} : Bool}, Bool.or(HT.memn(y, a), HT.memn(y, x)), HT.memn(y, SC.append(Nat, a, x)), Equal.sym(Bool, HT.memn(y, SC.append(Nat, a, x)), Bool.or(HT.memn(y, a), HT.memn(y, x)), memn_app(y, a, x)), L.subst(Bool, z => {Bool.or(HT.memn(y, a), z) == True{} : Bool}, True{}, HT.memn(y, x), Equal.sym(Bool, HT.memn(y, x), True{}, h), or_true_b(HT.memn(y, a))))
 
-def mem_app_l(+y: Nat, +a: List<&2, Nat>, +x: List<&2, Nat>, +h: {HT.memn(y, a) == True{} : Bool}) -> {HT.memn(y, SC.append(Nat, a, x)) == True{} : Bool}:
-  L.subst(Bool, z => {z == True{} : Bool}, Bool.or(HT.memn(y, a), HT.memn(y, x)), HT.memn(y, SC.append(Nat, a, x)), Equal.sym(Bool, HT.memn(y, SC.append(Nat, a, x)), Bool.or(HT.memn(y, a), HT.memn(y, x)), memn_app(y, a, x)), L.subst(Bool, z => {Bool.or(z, HT.memn(y, x)) == True{} : Bool}, True{}, HT.memn(y, a), Equal.sym(Bool, HT.memn(y, a), True{}, h), {==}))
 
-def dj_c(+y: Nat, +h0: Nat, +t: List<&2, Nat>, +x: List<&2, Nat>, +hy: {HT.memn(y, x) == True{} : Bool}, +hn: {Bool.not(HT.memn(h0, SC.append(Nat, t, x))) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(h0, y) == c : Bool}) -> {c == False{} : Bool}:
-  match c:
-    case True{}:
-      +e = N.eq_from_is_eq(h0, y, hc)
-      +hm = mem_app_r(y, t, x, hy)
-      Empty.absurd({True{} == False{} : Bool}, L.false_true(L.subst(Bool, z => {Bool.not(z) == True{} : Bool}, HT.memn(h0, SC.append(Nat, t, x)), True{}, L.subst(Nat, w => {HT.memn(w, SC.append(Nat, t, x)) == True{} : Bool}, y, h0, Equal.sym(Nat, h0, y, e), hm), hn)))
-    case False{}:
-      {==}
 
 # a member of x is not in a
-def nd_dj(+a: List<&2, Nat>, +x: List<&2, Nat>, +h: {ST.nodupn(SC.append(Nat, a, x)) == True{} : Bool}, +y: Nat, +hy: {HT.memn(y, x) == True{} : Bool}) -> {HT.memn(y, a) == False{} : Bool}:
-  match a:
-    case Nil{}:
-      {==}
-    case Con{+h0, +t}:
-      +hn = L.and_left(Bool.not(HT.memn(h0, SC.append(Nat, t, x))), ST.nodupn(SC.append(Nat, t, x)), h)
-      +e1 = dj_c(y, h0, t, x, hy, hn, Nat.is_eq(h0, y), {==})
-      +e2 = nd_dj(t, x, L.and_right(Bool.not(HT.memn(h0, SC.append(Nat, t, x))), ST.nodupn(SC.append(Nat, t, x)), h), y, hy)
-      L.subst(Bool, z => {Bool.or(z, HT.memn(y, t)) == False{} : Bool}, False{}, Nat.is_eq(h0, y), Equal.sym(Bool, Nat.is_eq(h0, y), False{}, e1), e2)
 
-def dj2_c(+a: List<&2, Nat>, +x: List<&2, Nat>, +h: {ST.nodupn(SC.append(Nat, a, x)) == True{} : Bool}, +y: Nat, +hy: {HT.memn(y, a) == True{} : Bool}, +c: Bool, +hc: {HT.memn(y, x) == c : Bool}) -> {c == False{} : Bool}:
-  match c:
-    case True{}:
-      Empty.absurd({True{} == False{} : Bool}, L.true_false(Equal.trans(Bool, True{}, HT.memn(y, a), False{}, Equal.sym(Bool, HT.memn(y, a), True{}, hy), nd_dj(a, x, h, y, hc))))
-    case False{}:
-      {==}
 
 # a member of a is not in x
-def nd_dj2(+a: List<&2, Nat>, +x: List<&2, Nat>, +h: {ST.nodupn(SC.append(Nat, a, x)) == True{} : Bool}, +y: Nat, +hy: {HT.memn(y, a) == True{} : Bool}) -> {HT.memn(y, x) == False{} : Bool}:
-  dj2_c(a, x, h, y, hy, HT.memn(y, x), {==})

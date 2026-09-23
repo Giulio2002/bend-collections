@@ -10,6 +10,8 @@ import ./table.bend as TB
 import ./buckets.bend as B
 import ./cyc.bend as CY
 import ./inv.bend as IV
+import ../lib/nat_list.bend as NL
+import ../lib/words32.bend as W32
 
 # The hash map as a Data shadow: its U32 fields, the table and arena
 # exponents k (2^k buckets) and sd (2^sd slots), and a mirror tree for each
@@ -85,12 +87,6 @@ def model(~V: Data, sh: Sh<V>) -> List<&2, S.Entry<V>>:
 # stated over the stored keys' slot list kl and their tree's perfectness pk,
 # so that a read that swaps a key out and back keeps it
 
-def memn(+s: Nat, xs: List<&2, Nat>) -> Bool:
-  match xs:
-    case Nil{}:
-      False{}
-    case Con{+x, t}:
-      Bool.or(Nat.is_eq(x, s), memn(s, t))
 
 # no full bucket among the first m uses slot s
 def noslot(+bs: List<&2, B.Bk>, +s: Nat, +m: Nat) -> Bool:
@@ -107,7 +103,7 @@ def fl_ok(+bs: List<&2, B.Bk>, +nb: Nat, +nxl: List<&2, U32>, +cnt: Nat, +f: U32
     case 0n:
       U32.is_eq(f, 0)
     case 1n+p:
-      Bool.and(Bool.not(U32.is_eq(f, 0)), Bool.and(Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(noslot(bs, UD.v(H.slot(f)), nb), Bool.not(memn(UD.v(H.slot(f)), seen)))), fl_ok(bs, nb, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen})))
+      Bool.and(Bool.not(U32.is_eq(f, 0)), Bool.and(Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(noslot(bs, UD.v(H.slot(f)), nb), Bool.not(NL.memn(UD.v(H.slot(f)), seen)))), fl_ok(bs, nb, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen})))
 
 def ck(~V: Data, +n: U32, +k: Nat, +td: U32, +fresh: U32, +sz: U32, +sd: Nat, +sdU: U32, +free: U32, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +vsT: AR.Tree<Maybe<&2, V>>, +nxT: AR.Tree<U32>) -> Bool:
   Bool.and(Nat.is_lt(k, 31n), Nat.is_lt(0n, k))

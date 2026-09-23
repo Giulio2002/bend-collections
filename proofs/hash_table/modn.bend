@@ -1,7 +1,5 @@
 import Base
-import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/u32alg.bend as A
 import ../lemmas/proofs/nat_algebra.bend as NA
 import ../lemmas/proofs/word_value.bend as WV
 import ../math/u32div.bend as UD

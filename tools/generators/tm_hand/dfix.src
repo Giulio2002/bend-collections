@@ -1,14 +1,9 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/list.bend as LL
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
-import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./mirror.bend as MI
 import ./tree.bend as TR
@@ -17,13 +12,12 @@ import ./path.bend as P
 import ./plug.bend as PG
 import ./setters.bend as SE
 import ./rotm.bend as RM
-import ./rotn.bend as RN
-import ./rot.bend as RT
 import ./rotp.bend as RP
 import ./nbr.bend as NB
 import ./dj.bend as DJ
 import ./spath.bend as SP
 import ./fix.bend as FX
+import ../lib/nat_list.bend as NL
 
 
 # The deletion fix-up: from the position x the unlinked node's child took
@@ -385,8 +379,8 @@ def dsame($TO, $FX, +gf: Nat, +root: Nat, +nl: $NL, +c1: $CT, +p: Nat, +s: ST.Tr
     case ST.TN{+j, +sa, +sb} ST.TN{+i, +ta, +tb}:
       +mb = DJ.mem_r(j, P.before(c1), SC.append(Nat, $IDS($TN(j, sa, sb)), Con{p, Nil{}}), DJ.mem_l(j, $IDS($TN(j, sa, sb)), Con{p, Nil{}}, P.mem_root(j, sa, sb)))
       +dj = DJ.dj_r(P.before(Con{P.FR{p, False{}, $TN(j, sa, sb)}, c1}), $APP($IDS($TN(i, ta, tb)), P.after(c1)), i3, j, mb)
-      +mt = L.subst(Nat, z => {HT.memn(z, $APP($IDS($TN(i, ta, tb)), P.after(c1))) == True{} : Bool}, i, j, N.eq_from_is_eq(i, j, he), DJ.mem_l(i, $IDS($TN(i, ta, tb)), P.after(c1), P.mem_root(i, ta, tb)))
-      Empty.absurd($FP($DFIX(gf, $SIDE(i, p, True{}))), L.false_true(Equal.trans(Bool, False{}, HT.memn(j, $APP($IDS($TN(i, ta, tb)), P.after(c1))), True{}, Equal.sym(Bool, HT.memn(j, $APP($IDS($TN(i, ta, tb)), P.after(c1))), False{}, dj), mt)))
+      +mt = L.subst(Nat, z => {NL.memn(z, $APP($IDS($TN(i, ta, tb)), P.after(c1))) == True{} : Bool}, i, j, N.eq_from_is_eq(i, j, he), DJ.mem_l(i, $IDS($TN(i, ta, tb)), P.after(c1), P.mem_root(i, ta, tb)))
+      Empty.absurd($FP($DFIX(gf, $SIDE(i, p, True{}))), L.false_true(Equal.trans(Bool, False{}, NL.memn(j, $APP($IDS($TN(i, ta, tb)), P.after(c1))), True{}, Equal.sym(Bool, NL.memn(j, $APP($IDS($TN(i, ta, tb)), P.after(c1))), False{}, dj), mt)))
 
 # x on the right: its id against the sibling's
 def dsd($TO, $FX, +gf: Nat, +root: Nat, +nl: $NL, +c1: $CT, +p: Nat, +s: ST.Tr, +t: ST.Tr, $DIH($CR, t), $IVH(nl), kont: $DKONT(gf), +e: Bool, +he: {Nat.is_eq(ST.rid(t), ST.rid(s)) == e : Bool}) -> $FP($DFIX(gf, $SIDE(ST.rid(t), p, e))):

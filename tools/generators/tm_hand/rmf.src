@@ -5,17 +5,15 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
 import ./state.bend as ST
 import ./tree.bend as TR
 import ./path.bend as P
-import ./plug.bend as PG
 import ./mirror.bend as MI
 import ./ok.bend as OK
 import ./ends.bend as EN
 import ./slot.bend as SL
 import ./xtr.bend as XT
+import ../lib/nat_list.bend as NL
 
 # The end of a removal: the unlinked tree's ends refreshed, the shadow with
 # the new tree and free chain satisfies the invariant, and its model is the

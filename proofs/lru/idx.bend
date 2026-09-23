@@ -8,9 +8,8 @@ import ../math/word.bend as WD
 import ../math/arith.bend as AT
 import ../math/u32div.bend as UD
 import ../../src/containers/lru.bend as LR
-import ../hash_table/cyc.bend as CY
-import ../hash_table/arr.bend as AX
 import ./state.bend as ST
+import ../lib/words32.bend as W32
 
 # Index arithmetic for lk: word o of slot s is at 8s + o.
 
@@ -70,7 +69,7 @@ def add_val(+one: Nat, +h1: {one == 1n : Nat}, +a: U32, +b: U32, +h: {Nat.is_lt(
 def pow_le(+one: Nat, +h1: {one == 1n : Nat}, +d: Nat, +hd: {Nat.is_le(d, 32n) == True{} : Bool}) -> {Nat.is_le(SC.pow2(d), WD.sc(32n, one)) == True{} : Bool}:
   +j = Nat.sub(32n, d)
   +e = Equal.trans(Nat, WD.sc(32n, one), WD.sc(Nat.add(d, j), one), WD.sc(d, WD.sc(j, one)), Equal.cong(Nat, Nat, z => WD.sc(z, one), 32n, Nat.add(d, j), Equal.sym(Nat, Nat.add(d, j), 32n, N.sub_add(32n, d, hd))), AT.sc_idx(d, j, one))
-  L.subst(Nat, z => {Nat.is_le(SC.pow2(d), z) == True{} : Bool}, WD.sc(d, WD.sc(j, one)), WD.sc(32n, one), Equal.sym(Nat, WD.sc(32n, one), WD.sc(d, WD.sc(j, one)), e), L.subst(Nat, z => {Nat.is_le(z, WD.sc(d, WD.sc(j, one))) == True{} : Bool}, WD.sc(d, one), SC.pow2(d), Equal.sym(Nat, SC.pow2(d), WD.sc(d, one), AX.pow_one(one, h1, d)), AT.sc_le(d, one, WD.sc(j, one), AT.le_sc(j, one))))
+  L.subst(Nat, z => {Nat.is_le(SC.pow2(d), z) == True{} : Bool}, WD.sc(d, WD.sc(j, one)), WD.sc(32n, one), Equal.sym(Nat, WD.sc(32n, one), WD.sc(d, WD.sc(j, one)), e), L.subst(Nat, z => {Nat.is_le(z, WD.sc(d, WD.sc(j, one))) == True{} : Bool}, WD.sc(d, one), SC.pow2(d), Equal.sym(Nat, SC.pow2(d), WD.sc(d, one), W32.pow_one(one, h1, d)), AT.sc_le(d, one, WD.sc(j, one), AT.le_sc(j, one))))
 
 # ---- the slot word indices ----
 
@@ -108,7 +107,7 @@ def w0(+one: Nat, +h1: {one == 1n : Nat}, +s: U32, +sd: Nat, +hsd: {Nat.is_le(3n
 def w1(+one: Nat, +h1: {one == 1n : Nat}, +s: U32, +sd: Nat, +hsd: {Nat.is_le(3n+sd, 32n) == True{} : Bool}, +hs: {Nat.is_lt(UD.v(s), SC.pow2(sd)) == True{} : Bool}) -> {UD.v(LR.nidx(s)) == ST.off(UD.v(s), 1n) : Nat}:
   +e0 = pidx_d8(s, sd, hsd, hs)
   +hb = L.subst(Nat, z => {Nat.is_lt(1n+z, WD.sc(32n, one)) == True{} : Bool}, d8(UD.v(s)), UD.v(LR.pidx(s)), Equal.sym(Nat, UD.v(LR.pidx(s)), d8(UD.v(s)), e0), L.subst(Nat, z => {Nat.is_lt(z, WD.sc(32n, one)) == True{} : Bool}, ST.off(UD.v(s), 1n), 1n+d8(UD.v(s)), Equal.sym(Nat, 1n+d8(UD.v(s)), ST.off(UD.v(s), 1n), off_sym(UD.v(s), 1n)), N.lt_le_trans(ST.off(UD.v(s), 1n), SC.pow2(3n+sd), WD.sc(32n, one), off_lt(UD.v(s), sd, hs, 1n, {==}), pow_le(one, h1, 3n+sd, hsd))))
-  Equal.trans(Nat, UD.v(LR.nidx(s)), 1n+d8(UD.v(s)), ST.off(UD.v(s), 1n), Equal.trans(Nat, UD.v(U32.inc(LR.pidx(s))), 1n+UD.v(LR.pidx(s)), 1n+d8(UD.v(s)), CY.inc_val(one, h1, LR.pidx(s), hb), Equal.cong(Nat, Nat, z => 1n+z, UD.v(LR.pidx(s)), d8(UD.v(s)), e0)), off_sym(UD.v(s), 1n))
+  Equal.trans(Nat, UD.v(LR.nidx(s)), 1n+d8(UD.v(s)), ST.off(UD.v(s), 1n), Equal.trans(Nat, UD.v(U32.inc(LR.pidx(s))), 1n+UD.v(LR.pidx(s)), 1n+d8(UD.v(s)), W32.inc_val(one, h1, LR.pidx(s), hb), Equal.cong(Nat, Nat, z => 1n+z, UD.v(LR.pidx(s)), d8(UD.v(s)), e0)), off_sym(UD.v(s), 1n))
 
 # pidx s + o for a small o
 def wo(+one: Nat, +h1: {one == 1n : Nat}, +s: U32, +sd: Nat, +hsd: {Nat.is_le(3n+sd, 32n) == True{} : Bool}, +hs: {Nat.is_lt(UD.v(s), SC.pow2(sd)) == True{} : Bool}, +o: U32, +ho: {Nat.is_lt(UD.v(o), 8n) == True{} : Bool}) -> {UD.v(U32.add(LR.pidx(s), o)) == ST.off(UD.v(s), UD.v(o)) : Nat}:

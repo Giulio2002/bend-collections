@@ -1,6 +1,5 @@
 import Base
 import ../lib/logic.bend as L
-import ../lib/nat.bend as N
 import ../lib/array.bend as AR
 import ../spec/common.bend as SC
 import ../spec/hash_table.bend as S
@@ -8,23 +7,24 @@ import ../spec/lru.bend as SP
 import ../math/u32div.bend as UD
 import ../hash_table/table.bend as TB
 import ../hash_table/buckets.bend as B
-import ../hash_table/state.bend as HT
 import ../../src/containers/hash_table.bend as H
 import ./state.bend as ST
 import ./lists.bend as LS
-import ./dll.bend as DL
 import ./trace.bend as TR
 import ./unlink.bend as UL
 import ../hash_table/insf.bend as IF
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
+import ../lib/words32.bend as W32
 
 # Rebuilding the invariant after an operation that only re-links the
 # recency list: it permutes the listed slots and writes link words.
 
-%def M0 TB.nth0(AR.slots(U32, mT), 0n)
-%def M1 TB.nth0(AR.slots(U32, mT), 1n)
-%def M2 TB.nth0(AR.slots(U32, mT), 2n)
-%def M6 TB.nth0(AR.slots(U32, mT), 6n)
-%def M7 TB.nth0(AR.slots(U32, mT), 7n)
+%def M0 W32.nth0(AR.slots(U32, mT), 0n)
+%def M1 W32.nth0(AR.slots(U32, mT), 1n)
+%def M2 W32.nth0(AR.slots(U32, mT), 2n)
+%def M6 W32.nth0(AR.slots(U32, mT), 6n)
+%def M7 W32.nth0(AR.slots(U32, mT), 7n)
 %def PM AR.perfect(U32, 5n, mT)
 %def KL AR.slots(String, ksT)
 %def PK AR.perfect(String, sd, ksT)
@@ -46,28 +46,28 @@ def subl_refl(+xs: List<&2, Nat>) -> {IF.subl(xs, xs) == True{} : Bool}:
     case Nil{}:
       {==}
     case Con{+x, +t}:
-      L.and_intro(HT.memn(x, Con{x, t}), IF.subl(t, Con{x, t}), UL.self_in(x, t), IF.subl_cons(t, t, x, subl_refl(t)))
+      L.and_intro(NL.memn(x, Con{x, t}), IF.subl(t, Con{x, t}), UL.self_in(x, t), IF.subl_cons(t, t, x, subl_refl(t)))
 
 def subl_ml(+xs: List<&2, Nat>, +a: List<&2, Nat>, +b: List<&2, Nat>, +h: {IF.subl(xs, a) == True{} : Bool}) -> {IF.subl(xs, $APN(a, b)) == True{} : Bool}:
   match xs:
     case Nil{}:
       {==}
     case Con{+x, +t}:
-      L.and_intro(HT.memn(x, $APN(a, b)), IF.subl(t, $APN(a, b)), LS.mem_app_l(x, a, b, L.and_left(HT.memn(x, a), IF.subl(t, a), h)), subl_ml(t, a, b, L.and_right(HT.memn(x, a), IF.subl(t, a), h)))
+      L.and_intro(NL.memn(x, $APN(a, b)), IF.subl(t, $APN(a, b)), NL.mem_app_l(x, a, b, L.and_left(NL.memn(x, a), IF.subl(t, a), h)), subl_ml(t, a, b, L.and_right(NL.memn(x, a), IF.subl(t, a), h)))
 
 def subl_mr(+xs: List<&2, Nat>, +a: List<&2, Nat>, +b: List<&2, Nat>, +h: {IF.subl(xs, b) == True{} : Bool}) -> {IF.subl(xs, $APN(a, b)) == True{} : Bool}:
   match xs:
     case Nil{}:
       {==}
     case Con{+x, +t}:
-      L.and_intro(HT.memn(x, $APN(a, b)), IF.subl(t, $APN(a, b)), LS.mem_app_r(x, a, b, L.and_left(HT.memn(x, b), IF.subl(t, b), h)), subl_mr(t, a, b, L.and_right(HT.memn(x, b), IF.subl(t, b), h)))
+      L.and_intro(NL.memn(x, $APN(a, b)), IF.subl(t, $APN(a, b)), NL.mem_app_r(x, a, b, L.and_left(NL.memn(x, b), IF.subl(t, b), h)), subl_mr(t, a, b, L.and_right(NL.memn(x, b), IF.subl(t, b), h)))
 
 def subl_app(+a: List<&2, Nat>, +b: List<&2, Nat>, +ys: List<&2, Nat>, +ha: {IF.subl(a, ys) == True{} : Bool}, +hb: {IF.subl(b, ys) == True{} : Bool}) -> {IF.subl($APN(a, b), ys) == True{} : Bool}:
   match a:
     case Nil{}:
       hb
     case Con{+x, +t}:
-      L.and_intro(HT.memn(x, ys), IF.subl($APN(t, b), ys), L.and_left(HT.memn(x, ys), IF.subl(t, ys), ha), subl_app(t, b, ys, L.and_right(HT.memn(x, ys), IF.subl(t, ys), ha), hb))
+      L.and_intro(NL.memn(x, ys), IF.subl($APN(t, b), ys), L.and_left(NL.memn(x, ys), IF.subl(t, ys), ha), subl_app(t, b, ys, L.and_right(NL.memn(x, ys), IF.subl(t, ys), ha), hb))
 
 # ---- predicates over a sub-list ----
 
@@ -76,14 +76,14 @@ def sall_sub(~V: Data, +p: ST.SP1<V>, +xs: List<&2, Nat>, +ys: List<&2, Nat>, +h
     case Nil{}:
       {==}
     case Con{+y, +t}:
-      L.and_intro(ST.sev(~V, p, y), ST.sall(~V, p, t), LS.sall_mem(~V, p, y, xs, h, L.and_left(HT.memn(y, xs), IF.subl(t, xs), sub)), sall_sub(~V, p, xs, t, h, L.and_right(HT.memn(y, xs), IF.subl(t, xs), sub)))
+      L.and_intro(ST.sev(~V, p, y), ST.sall(~V, p, t), LS.sall_mem(~V, p, y, xs, h, L.and_left(NL.memn(y, xs), IF.subl(t, xs), sub)), sall_sub(~V, p, xs, t, h, L.and_right(NL.memn(y, xs), IF.subl(t, xs), sub)))
 
 def bslb_sub(+sl: List<&2, Nat>, +sl2: List<&2, Nat>, +ll: List<&2, U32>, +b: B.Bk, +h: {ST.bslb(sl, ll, b) == True{} : Bool}, +sub: {IF.subl(sl, sl2) == True{} : Bool}) -> {ST.bslb(sl2, ll, b) == True{} : Bool}:
   match b:
     case B.BE{}:
       {==}
     case B.BF{+w, +l, +k}:
-      L.and_intro(HT.memn(UD.v(H.slot(l)), sl2), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), IF.memn_sub(UD.v(H.slot(l)), sl, sl2, sub, L.and_left(HT.memn(UD.v(H.slot(l)), sl), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), h)), L.and_right(HT.memn(UD.v(H.slot(l)), sl), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), h))
+      L.and_intro(NL.memn(UD.v(H.slot(l)), sl2), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), IF.memn_sub(UD.v(H.slot(l)), sl, sl2, sub, L.and_left(NL.memn(UD.v(H.slot(l)), sl), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), h)), L.and_right(NL.memn(UD.v(H.slot(l)), sl), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), h))
 
 def bsl_sub(+bs: List<&2, B.Bk>, +sl: List<&2, Nat>, +sl2: List<&2, Nat>, +ll: List<&2, U32>, +m: Nat, +h: {ST.bsl(bs, sl, ll, m) == True{} : Bool}, +sub: {IF.subl(sl, sl2) == True{} : Bool}) -> {ST.bsl(bs, sl2, ll, m) == True{} : Bool}:
   match m:
@@ -101,7 +101,7 @@ def tr_eq_bool(+a: Bool, +b: Bool, +e: {a == b : Bool}, +h: {b == True{} : Bool}
 
 # THEOREM: re-linking the recency list (a permutation sl2 of sl, link-word
 # writes to its slots) keeps the invariant.
-def good_lk(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +mT: AR.Tree<U32>, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, $SH) == True{} : Bool}, +head2: U32, +tail2: U32, +lkT2: AR.Tree<U32>, +sl2: List<&2, Nat>, +tr: TR.Tr, +hp2: {AR.perfect(U32, 3n+sd, lkT2) == True{} : Bool}, +hs2: {$LL2 == TR.app($LL, tr) : List<&2, U32>}, +hlo: {TR.trlo(tr) == True{} : Bool}, +hin: {TR.trin(tr, sl2) == True{} : Bool}, +hseg: {ST.seg($LL2, sl2, 0, 0) == True{} : Bool}, +hh: {U32.is_eq(head2, ST.fst_or(sl2, 0)) == True{} : Bool}, +ht: {U32.is_eq(tail2, ST.last_or(sl2, 0)) == True{} : Bool}, +hsub: {IF.subl(sl, sl2) == True{} : Bool}, +hsub2: {IF.subl(sl2, sl) == True{} : Bool}, +hnd: {ST.nodupn(sl2) == True{} : Bool}, +hlen: {SC.length(Nat, sl2) == SC.length(Nat, sl) : Nat}, +hkeys: {S.nodup(SP.keys_of(~V, ST.es(~V, $LL, $KL, $EL, sl2))) == True{} : Bool}) -> {ST.good(~V, $SH2) == True{} : Bool}:
+def good_lk(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +mT: AR.Tree<U32>, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, $SH) == True{} : Bool}, +head2: U32, +tail2: U32, +lkT2: AR.Tree<U32>, +sl2: List<&2, Nat>, +tr: TR.Tr, +hp2: {AR.perfect(U32, 3n+sd, lkT2) == True{} : Bool}, +hs2: {$LL2 == TR.app($LL, tr) : List<&2, U32>}, +hlo: {TR.trlo(tr) == True{} : Bool}, +hin: {TR.trin(tr, sl2) == True{} : Bool}, +hseg: {ST.seg($LL2, sl2, 0, 0) == True{} : Bool}, +hh: {U32.is_eq(head2, LK.fst_or(sl2, 0)) == True{} : Bool}, +ht: {U32.is_eq(tail2, LK.last_or(sl2, 0)) == True{} : Bool}, +hsub: {IF.subl(sl, sl2) == True{} : Bool}, +hsub2: {IF.subl(sl2, sl) == True{} : Bool}, +hnd: {NL.nodupn(sl2) == True{} : Bool}, +hlen: {SC.length(Nat, sl2) == SC.length(Nat, sl) : Nat}, +hkeys: {S.nodup(SP.keys_of(~V, ST.es(~V, $LL, $KL, $EL, sl2))) == True{} : Bool}) -> {ST.good(~V, $SH2) == True{} : Bool}:
   +bsl0 = bsl_sub($BS, sl, sl2, $LL, $NN, $G(cbsl), hsub)
   +bsl1 = $TOLL2(ST.bsl($BS, sl2, z, $NN), tr_eq_bool(ST.bsl($BS, sl2, TR.app($LL, tr), $NN), ST.bsl($BS, sl2, $LL, $NN), TR.bsl_tr($LL, tr, hlo, $BS, sl2, $NN), bsl0))
   +has0 = sall_sub(~V, ST.PHas{$BS, $NN, $LL}, sl, sl2, $G(chas), hsub2)

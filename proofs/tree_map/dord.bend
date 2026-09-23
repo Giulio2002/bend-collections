@@ -1,30 +1,11 @@
 import Base
 import ../lib/logic.bend as L
-import ../lib/nat.bend as N
-import ../lib/list.bend as LL
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
-import ./mirror.bend as MI
-import ./ok.bend as OK
-import ./tree.bend as TR
-import ./find.bend as FI
-import ./ends.bend as EN
-import ./path.bend as P
-import ./plug.bend as PG
-import ./prim.bend as PR
 import ./ord.bend as OR
-import ./slot.bend as SL
-import ./alls.bend as AL
-import ./dj.bend as DJ
-import ./agree.bend as AG
-import ./navs.bend as NS
-import ./spath.bend as SP
 
 # Deleting a key from sorted entries: del removes exactly the entry holding
 # it when the entries before are smaller, and dropping an entry keeps the

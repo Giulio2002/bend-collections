@@ -1,25 +1,16 @@
 import Base
-import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../spec/common.bend as SC
-import ../spec/hash_table.bend as S
 import ../math/u32div.bend as UD
 import ../../src/containers/hash_table.bend as H
 import ./buckets.bend as B
+import ../lib/words32.bend as W32
 
 # Reading the implementation's arrays as a bucket list.
 #   tab   (check word, link) pairs: bucket i is (tab[2i], tab[2i+1])
 #   ks    the slot arena's stored keys: a long key's String, "" for a
 #         one-character key (its word is the key)
 
-def nth0(tb: List<&2, U32>, +i: Nat) -> U32:
-  match tb i:
-    case Nil{} _:
-      0
-    case Con{x, t} 0n:
-      x
-    case Con{x, t} 1n+p:
-      nth0(t, p)
 
 def nths(ks: List<&2, String>, +i: Nat) -> String:
   match ks i:
@@ -50,7 +41,7 @@ def dec_c(+w: U32, +l: U32, +ks: List<&2, String>, empty: Bool) -> B.Bk:
 
 # bucket i of the arrays
 def dec(+tb: List<&2, U32>, +ks: List<&2, String>, +i: Nat) -> B.Bk:
-  dec_c(nth0(tb, Nat.double(i)), nth0(tb, 1n+Nat.double(i)), ks, U32.is_eq(nth0(tb, Nat.double(i)), 0))
+  dec_c(W32.nth0(tb, Nat.double(i)), W32.nth0(tb, 1n+Nat.double(i)), ks, U32.is_eq(W32.nth0(tb, Nat.double(i)), 0))
 
 # buckets i .. i + m - 1
 def dlist(+tb: List<&2, U32>, +ks: List<&2, String>, +m: Nat, +i: Nat) -> List<&2, B.Bk>:
@@ -77,14 +68,6 @@ def at_buckets(+tb: List<&2, U32>, +ks: List<&2, String>, +n: Nat, +j: Nat, +hj:
   at_dlist(tb, ks, n, 0n, j, hj)
 
 # a list index below the length reads its element
-def nth_some(+tb: List<&2, U32>, +i: Nat, +h: {Nat.is_lt(i, SC.length(U32, tb)) == True{} : Bool}) -> {SC.nth(U32, tb, i) == Some{nth0(tb, i)} : Maybe<&2, U32>}:
-  match tb i:
-    case Nil{} _:
-      Empty.absurd({SC.nth(U32, Nil{}, i) == Some{nth0(Nil{}, i)} : Maybe<&2, U32>}, N.lt_zero_absurd(i, h))
-    case Con{x, t} 0n:
-      {==}
-    case Con{x, t} 1n+p:
-      nth_some(t, p, h)
 
 def nths_some(+ks: List<&2, String>, +i: Nat, +h: {Nat.is_lt(i, SC.length(String, ks)) == True{} : Bool}) -> {SC.nth(String, ks, i) == Some{nths(ks, i)} : Maybe<&2, String>}:
   match ks i:

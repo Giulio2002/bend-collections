@@ -4,19 +4,16 @@ import ../lib/nat.bend as N
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ../lib/list.bend as LL
 import ./state.bend as ST
 import ./tree.bend as TR
 import ./path.bend as P
 import ./agree.bend as AG
-import ./setters.bend as SE
 import ./rotm.bend as RM
 import ./rotn.bend as RN
 import ./dj.bend as DJ
 import ./spath.bend as SP
+import ../lib/nat_list.bend as NL
 
 # Rotations along a path: rotating the subtree the path leads to (a node x
 # with a child y) gives the rotated subtree, linked as the ghost says below
@@ -33,7 +30,7 @@ import ./spath.bend as SP
 %def TO ~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
 %def AO ~K, ~cmp, ~o
 %def NE(a, b) {Nat.is_eq(a, b) == False{} : Bool}
-%def NMEM(y, xs) {HT.memn(y, xs) == False{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
 %def ISN(x, a, b, q) {ST.is_node(K, x, a, b, q) == True{} : Bool}
 %def REPN(t, p, x) {ST.rep(~K, t, p, x) == True{} : Bool}
 %def REP(t, p) $REPN(t, p, nl)
@@ -83,18 +80,18 @@ def zero_ctx(~K: Data, +nl: $NL, +c: $CT, +x: Nat, +hc: $COK(c, x)) -> $NMEM(0n,
 
 # ---- lists around a frame ----
 
-%def NDL(xs) {LST.nodupn(xs) == True{} : Bool}
+%def NDL(xs) {NL.nodupn(xs) == True{} : Bool}
 
 def nd_drop(+b: $LN, +s: $LN, +a: $LN, +h: $NDL($APP(b, $APP(s, a)))) -> $NDL($APP(b, a)):
   match s:
     case Nil{}:
       h
     case Con{+z, +t}:
-      +e = LS.nd_mid(b, z, $APP(t, a))
-      nd_drop(b, t, a, L.and_left(LST.nodupn($APP(b, $APP(t, a))), Bool.not(HT.memn(z, $APP(b, $APP(t, a)))), L.subst(Bool, w => {w == True{} : Bool}, LST.nodupn($APP(b, Con{z, $APP(t, a)})), Bool.and(LST.nodupn($APP(b, $APP(t, a))), Bool.not(HT.memn(z, $APP(b, $APP(t, a))))), e, h)))
+      +e = NL.nd_mid(b, z, $APP(t, a))
+      nd_drop(b, t, a, L.and_left(NL.nodupn($APP(b, $APP(t, a))), Bool.not(NL.memn(z, $APP(b, $APP(t, a)))), L.subst(Bool, w => {w == True{} : Bool}, NL.nodupn($APP(b, Con{z, $APP(t, a)})), Bool.and(NL.nodupn($APP(b, $APP(t, a))), Bool.not(NL.memn(z, $APP(b, $APP(t, a))))), e, h)))
 
 def nd_mid_nm(+b: $LN, +z: Nat, +a: $LN, +h: $NDL($APP(b, Con{z, a}))) -> $NMEM(z, $APP(b, a)):
-  LS.not_t_f(HT.memn(z, $APP(b, a)), L.and_right(LST.nodupn($APP(b, a)), Bool.not(HT.memn(z, $APP(b, a))), L.subst(Bool, w => {w == True{} : Bool}, LST.nodupn($APP(b, Con{z, a})), Bool.and(LST.nodupn($APP(b, a)), Bool.not(HT.memn(z, $APP(b, a)))), LS.nd_mid(b, z, a), h)))
+  NL.not_t_f(NL.memn(z, $APP(b, a)), L.and_right(NL.nodupn($APP(b, a)), Bool.not(NL.memn(z, $APP(b, a))), L.subst(Bool, w => {w == True{} : Bool}, NL.nodupn($APP(b, Con{z, a})), Bool.and(NL.nodupn($APP(b, a)), Bool.not(NL.memn(z, $APP(b, a)))), NL.nd_mid(b, z, a), h)))
 
 %def FRC(q, lft, s, u) Con{P.FR{q, lft, s}, u}
 %def BFF(u, s, q) $APP(P.before(u), $APP($IDS(s), Con{q, Nil{}}))
@@ -229,7 +226,7 @@ def rotl_rep($TO, +nl: $NL, +x: Nat, +ta: ST.Tr, +y: Nat, +tb: ST.Tr, +tc: ST.Tr
 %def CK(i, lft, s, u) P.cok1(~K, P.FR{1n+i, lft, s}, x, P.top(u), nl)
 %def NODEQ(i, lft, s, u) ST.is_node(K, ST.nd(K, nl, 1n+i), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u))
 
-def ctx_frame($TO, +nl: $NL, +x: Nat, +y: Nat, +b: Nat, +i: Nat, +lft: Bool, +s: ST.Tr, +u: $CT, +hok: $COK($FRC(1n+i, lft, s, u), x), +hx: $NMEM(x, $BA($FRC(1n+i, lft, s, u))), +hy: $NMEM(y, $BA($FRC(1n+i, lft, s, u))), +hb: $NMEM(b, $BA($FRC(1n+i, lft, s, u))), +hBA: $NDL($BA($FRC(1n+i, lft, s, u))), +mq: {HT.memn(1n+i, $BA($FRC(1n+i, lft, s, u))) == True{} : Bool}) -> $COKN($FRC(1n+i, lft, s, u), y, $NQ(i, lft)):
+def ctx_frame($TO, +nl: $NL, +x: Nat, +y: Nat, +b: Nat, +i: Nat, +lft: Bool, +s: ST.Tr, +u: $CT, +hok: $COK($FRC(1n+i, lft, s, u), x), +hx: $NMEM(x, $BA($FRC(1n+i, lft, s, u))), +hy: $NMEM(y, $BA($FRC(1n+i, lft, s, u))), +hb: $NMEM(b, $BA($FRC(1n+i, lft, s, u))), +hBA: $NDL($BA($FRC(1n+i, lft, s, u))), +mq: {NL.memn(1n+i, $BA($FRC(1n+i, lft, s, u))) == True{} : Bool}) -> $COKN($FRC(1n+i, lft, s, u), y, $NQ(i, lft)):
   +hk = L.and_left($CK(i, lft, s, u), P.ctxok(~K, u, 1n+i, nl), hok)
   +hu = L.and_right($CK(i, lft, s, u), P.ctxok(~K, u, 1n+i, nl), hok)
   +h0 = L.and_left(Nat.is_lt(0n, 1n+i), Bool.and($NODEQ(i, lft, s, u), ST.rep(~K, s, 1n+i, nl)), hk)
@@ -344,7 +341,7 @@ def rotr_rep($TO, +nl: $NL, +x: Nat, +y: Nat, +ta: ST.Tr, +tb: ST.Tr, +tc: ST.Tr
 %def NCR RM.rotr_nl(K, nl, x, y, b, P.top(c), SP.dir(c))
 %def NR(i, lft) RM.rotr_nl(K, nl, x, y, b, 1n+i, lft)
 
-def ctx_frame_r($TO, +nl: $NL, +x: Nat, +y: Nat, +b: Nat, +i: Nat, +lft: Bool, +s: ST.Tr, +u: $CT, +hok: $COK($FRC(1n+i, lft, s, u), x), +hx: $NMEM(x, $BA($FRC(1n+i, lft, s, u))), +hy: $NMEM(y, $BA($FRC(1n+i, lft, s, u))), +hb: $NMEM(b, $BA($FRC(1n+i, lft, s, u))), +hBA: $NDL($BA($FRC(1n+i, lft, s, u))), +mq: {HT.memn(1n+i, $BA($FRC(1n+i, lft, s, u))) == True{} : Bool}) -> $COKN($FRC(1n+i, lft, s, u), y, $NR(i, lft)):
+def ctx_frame_r($TO, +nl: $NL, +x: Nat, +y: Nat, +b: Nat, +i: Nat, +lft: Bool, +s: ST.Tr, +u: $CT, +hok: $COK($FRC(1n+i, lft, s, u), x), +hx: $NMEM(x, $BA($FRC(1n+i, lft, s, u))), +hy: $NMEM(y, $BA($FRC(1n+i, lft, s, u))), +hb: $NMEM(b, $BA($FRC(1n+i, lft, s, u))), +hBA: $NDL($BA($FRC(1n+i, lft, s, u))), +mq: {NL.memn(1n+i, $BA($FRC(1n+i, lft, s, u))) == True{} : Bool}) -> $COKN($FRC(1n+i, lft, s, u), y, $NR(i, lft)):
   +hk = L.and_left($CK(i, lft, s, u), P.ctxok(~K, u, 1n+i, nl), hok)
   +hu = L.and_right($CK(i, lft, s, u), P.ctxok(~K, u, 1n+i, nl), hok)
   +h0 = L.and_left(Nat.is_lt(0n, 1n+i), Bool.and($NODEQ(i, lft, s, u), ST.rep(~K, s, 1n+i, nl)), hk)

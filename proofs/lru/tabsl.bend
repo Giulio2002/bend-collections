@@ -6,16 +6,15 @@ import ../spec/common.bend as SC
 import ../math/u32div.bend as UD
 import ../../src/containers/hash_table.bend as H
 import ../hash_table/buckets.bend as B
-import ../hash_table/state.bend as HT
 import ../hash_table/insm.bend as IM
 import ../hash_table/rehash.bend as RH
 import ../hash_table/tools.bend as TL
 import ../hash_table/words.bend as WR
 import ./state.bend as ST
-import ./lists.bend as LS
-import ./dll.bend as DL
 import ./tfind.bend as TF
 import ./unlink.bend as UL
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
 
 # The table and the recency list across table changes: copies of buckets
 # (a rehash, a backward shift) and an emptied bucket.
@@ -50,9 +49,9 @@ def find_anyb(+bs: List<&2, B.Bk>, +m: Nat, +l: U32, +w: U32, +h: {ST.anyb(bs, m
 def ai_c(+bs: List<&2, B.Bk>, +q: Nat, +l: U32, +w: U32, +j: Nat, +hj: {Nat.is_lt(j, 1n+q) == True{} : Bool}, +h: {ST.isbf(B.at(bs, j), w, l) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(j, q) == c : Bool}, rec: @hq: {Nat.is_lt(j, q) == True{} : Bool} -> {ST.anyb(bs, q, l, w) == True{} : Bool}) -> {ST.anyb(bs, 1n+q, l, w) == True{} : Bool}:
   match c:
     case True{}:
-      DL.or_tl(ST.isbf(B.at(bs, q), w, l), ST.anyb(bs, q, l, w), L.subst(Nat, z => {ST.isbf(B.at(bs, z), w, l) == True{} : Bool}, j, q, N.eq_from_is_eq(j, q, hc), h))
+      NL.or_tl(ST.isbf(B.at(bs, q), w, l), ST.anyb(bs, q, l, w), L.subst(Nat, z => {ST.isbf(B.at(bs, z), w, l) == True{} : Bool}, j, q, N.eq_from_is_eq(j, q, hc), h))
     case False{}:
-      DL.or_tr(ST.isbf(B.at(bs, q), w, l), ST.anyb(bs, q, l, w), rec(N.lt_or_eq(j, q, N.lt_succ_le(j, q, hj), hc)))
+      NL.or_tr(ST.isbf(B.at(bs, q), w, l), ST.anyb(bs, q, l, w), rec(N.lt_or_eq(j, q, N.lt_succ_le(j, q, hj), hc)))
 
 def anyb_intro(+bs: List<&2, B.Bk>, +m: Nat, +l: U32, +w: U32, +j: Nat, +hj: {Nat.is_lt(j, m) == True{} : Bool}, +h: {ST.isbf(B.at(bs, j), w, l) == True{} : Bool}) -> {ST.anyb(bs, m, l, w) == True{} : Bool}:
   match m:
@@ -88,8 +87,8 @@ def has_to(~V: Data, +od: List<&2, B.Bk>, +nw: List<&2, B.Bk>, +no: Nat, +n2: Na
     case Nil{}:
       {==}
     case Con{+s, +t}:
-      +h0 = L.and_left(ST.anyb(od, no, ST.lnk(s), ST.lw(ll, s, 2n)), ST.hasall(~V, od, no, ll, t), h)
-      L.and_intro(ST.anyb(nw, n2, ST.lnk(s), ST.lw(ll, s, 2n)), ST.hasall(~V, nw, n2, ll, t), ht0(od, nw, no, n2, hto, ST.lnk(s), ST.lw(ll, s, 2n), find_anyb(od, no, ST.lnk(s), ST.lw(ll, s, 2n), h0)), has_to(~V, od, nw, no, n2, hto, ll, t, L.and_right(ST.anyb(od, no, ST.lnk(s), ST.lw(ll, s, 2n)), ST.hasall(~V, od, no, ll, t), h)))
+      +h0 = L.and_left(ST.anyb(od, no, LK.lnk(s), ST.lw(ll, s, 2n)), ST.hasall(~V, od, no, ll, t), h)
+      L.and_intro(ST.anyb(nw, n2, LK.lnk(s), ST.lw(ll, s, 2n)), ST.hasall(~V, nw, n2, ll, t), ht0(od, nw, no, n2, hto, LK.lnk(s), ST.lw(ll, s, 2n), find_anyb(od, no, LK.lnk(s), ST.lw(ll, s, 2n), h0)), has_to(~V, od, nw, no, n2, hto, ll, t, L.and_right(ST.anyb(od, no, LK.lnk(s), ST.lw(ll, s, 2n)), ST.hasall(~V, od, no, ll, t), h)))
 
 # ---- copies: every new bucket is a copy ----
 
@@ -150,17 +149,17 @@ def isbf_ne(+b: B.Bk, +w: U32, +lx: U32, +s: Nat, +x: Nat, +hsi: {UD.v(H.slot(B.
       isbf_ne_c(w0, l0, w, lx, s, x, hsi, hx, hne, U32.is_eq(l0, lx), {==})
 
 # THEOREM: emptying slot s's bucket leaves a bucket for every other slot
-def has_rm(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +bs: List<&2, B.Bk>, +no: Nat, +i: Nat, +hlen: {Nat.is_lt(i, SC.length(B.Bk, bs)) == True{} : Bool}, +s: Nat, +hsi: {UD.v(H.slot(B.lnk(B.at(bs, i)))) == s : Nat}, +ll: List<&2, U32>, +xs: List<&2, Nat>, +hs: {HT.memn(s, xs) == False{} : Bool}, +hb: {ST.sall(~V, ST.PLive{fr, el}, xs) == True{} : Bool}, +h: {ST.hasall(~V, bs, no, ll, xs) == True{} : Bool}) -> {ST.hasall(~V, IM.bupd(bs, i, B.BE{}), no, ll, xs) == True{} : Bool}:
+def has_rm(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +bs: List<&2, B.Bk>, +no: Nat, +i: Nat, +hlen: {Nat.is_lt(i, SC.length(B.Bk, bs)) == True{} : Bool}, +s: Nat, +hsi: {UD.v(H.slot(B.lnk(B.at(bs, i)))) == s : Nat}, +ll: List<&2, U32>, +xs: List<&2, Nat>, +hs: {NL.memn(s, xs) == False{} : Bool}, +hb: {ST.sall(~V, ST.PLive{fr, el}, xs) == True{} : Bool}, +h: {ST.hasall(~V, bs, no, ll, xs) == True{} : Bool}) -> {ST.hasall(~V, IM.bupd(bs, i, B.BE{}), no, ll, xs) == True{} : Bool}:
   match xs:
     case Nil{}:
       {==}
     case Con{+x, +t}:
       +hx0 = UL.bnd_of(~V, x, Con{x, t}, fr, el, sd, hfr, hb, UL.self_in(x, t))
-      +hxs = DL.or_ff_l(Nat.is_eq(x, s), HT.memn(s, t), hs)
-      +hn = isbf_ne(B.at(bs, i), ST.lw(ll, x, 2n), ST.lnk(x), s, x, hsi, UL.ix_o(one, h1, x, sd, hsd, hx0), hxs)
-      +e = anyb_rm(bs, i, hlen, ST.lnk(x), ST.lw(ll, x, 2n), hn, no)
-      +h0 = L.and_left(ST.anyb(bs, no, ST.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, bs, no, ll, t), h)
-      L.and_intro(ST.anyb(IM.bupd(bs, i, B.BE{}), no, ST.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, IM.bupd(bs, i, B.BE{}), no, ll, t), Equal.trans(Bool, ST.anyb(IM.bupd(bs, i, B.BE{}), no, ST.lnk(x), ST.lw(ll, x, 2n)), ST.anyb(bs, no, ST.lnk(x), ST.lw(ll, x, 2n)), True{}, e, h0), has_rm(~V, one, h1, sd, hsd, fr, el, hfr, bs, no, i, hlen, s, hsi, ll, t, DL.or_ff_r(Nat.is_eq(x, s), HT.memn(s, t), hs), L.and_right(Bool.and(Nat.is_lt(x, fr), ST.live(~V, el, x)), ST.sall(~V, ST.PLive{fr, el}, t), hb), L.and_right(ST.anyb(bs, no, ST.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, bs, no, ll, t), h)))
+      +hxs = NL.or_ff_l(Nat.is_eq(x, s), NL.memn(s, t), hs)
+      +hn = isbf_ne(B.at(bs, i), ST.lw(ll, x, 2n), LK.lnk(x), s, x, hsi, UL.ix_o(one, h1, x, sd, hsd, hx0), hxs)
+      +e = anyb_rm(bs, i, hlen, LK.lnk(x), ST.lw(ll, x, 2n), hn, no)
+      +h0 = L.and_left(ST.anyb(bs, no, LK.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, bs, no, ll, t), h)
+      L.and_intro(ST.anyb(IM.bupd(bs, i, B.BE{}), no, LK.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, IM.bupd(bs, i, B.BE{}), no, ll, t), Equal.trans(Bool, ST.anyb(IM.bupd(bs, i, B.BE{}), no, LK.lnk(x), ST.lw(ll, x, 2n)), ST.anyb(bs, no, LK.lnk(x), ST.lw(ll, x, 2n)), True{}, e, h0), has_rm(~V, one, h1, sd, hsd, fr, el, hfr, bs, no, i, hlen, s, hsi, ll, t, NL.or_ff_r(Nat.is_eq(x, s), NL.memn(s, t), hs), L.and_right(Bool.and(Nat.is_lt(x, fr), ST.live(~V, el, x)), ST.sall(~V, ST.PLive{fr, el}, t), hb), L.and_right(ST.anyb(bs, no, LK.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, bs, no, ll, t), h)))
 
 def brm_b(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +ll: List<&2, U32>, +b0: B.Bk, +hb: {ST.bslb(SC.append(Nat, a, Con{s, b}), ll, b0) == True{} : Bool}, +hne: {B.implies(B.occ(b0), Bool.not(Nat.is_eq(s, UD.v(H.slot(B.lnk(b0)))))) == True{} : Bool}) -> {ST.bslb(SC.append(Nat, a, b), ll, b0) == True{} : Bool}:
   match b0:
@@ -168,10 +167,10 @@ def brm_b(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +ll: List<&2, U32>, +b0
       {==}
     case B.BF{+w, +l, +k}:
       +x = UD.v(H.slot(l))
-      +hm = L.and_left(HT.memn(x, SC.append(Nat, a, Con{s, b})), U32.is_eq(ST.lw(ll, x, 2n), w), hb)
-      +hm2 = L.subst(Bool, z => {z == True{} : Bool}, HT.memn(x, SC.append(Nat, a, Con{s, b})), Bool.or(HT.memn(x, SC.append(Nat, a, b)), Nat.is_eq(s, x)), LS.memn_mid(x, a, s, b), hm)
-      +hm3 = L.subst(Bool, z => {Bool.or(HT.memn(x, SC.append(Nat, a, b)), z) == True{} : Bool}, Nat.is_eq(s, x), False{}, L.not_true(Nat.is_eq(s, x), hne), hm2)
-      L.and_intro(HT.memn(x, SC.append(Nat, a, b)), U32.is_eq(ST.lw(ll, x, 2n), w), Equal.trans(Bool, HT.memn(x, SC.append(Nat, a, b)), Bool.or(HT.memn(x, SC.append(Nat, a, b)), False{}), True{}, Equal.sym(Bool, Bool.or(HT.memn(x, SC.append(Nat, a, b)), False{}), HT.memn(x, SC.append(Nat, a, b)), WR.or_false(HT.memn(x, SC.append(Nat, a, b)))), hm3), L.and_right(HT.memn(x, SC.append(Nat, a, Con{s, b})), U32.is_eq(ST.lw(ll, x, 2n), w), hb))
+      +hm = L.and_left(NL.memn(x, SC.append(Nat, a, Con{s, b})), U32.is_eq(ST.lw(ll, x, 2n), w), hb)
+      +hm2 = L.subst(Bool, z => {z == True{} : Bool}, NL.memn(x, SC.append(Nat, a, Con{s, b})), Bool.or(NL.memn(x, SC.append(Nat, a, b)), Nat.is_eq(s, x)), NL.memn_mid(x, a, s, b), hm)
+      +hm3 = L.subst(Bool, z => {Bool.or(NL.memn(x, SC.append(Nat, a, b)), z) == True{} : Bool}, Nat.is_eq(s, x), False{}, L.not_true(Nat.is_eq(s, x), hne), hm2)
+      L.and_intro(NL.memn(x, SC.append(Nat, a, b)), U32.is_eq(ST.lw(ll, x, 2n), w), Equal.trans(Bool, NL.memn(x, SC.append(Nat, a, b)), Bool.or(NL.memn(x, SC.append(Nat, a, b)), False{}), True{}, Equal.sym(Bool, Bool.or(NL.memn(x, SC.append(Nat, a, b)), False{}), NL.memn(x, SC.append(Nat, a, b)), WR.or_false(NL.memn(x, SC.append(Nat, a, b)))), hm3), L.and_right(NL.memn(x, SC.append(Nat, a, Con{s, b})), U32.is_eq(ST.lw(ll, x, 2n), w), hb))
 
 
 def imp_ne(+bs: List<&2, B.Bk>, +no: Nat, +huq: {B.all_lt(B.PUniq{bs}, no) == True{} : Bool}, +i: Nat, +q: Nat, +hi: {Nat.is_lt(i, no) == True{} : Bool}, +hq: {Nat.is_lt(q, no) == True{} : Bool}, +hqi: {Nat.is_eq(q, i) == False{} : Bool}, +hoi: {B.occ(B.at(bs, i)) == True{} : Bool}, +s: Nat, +hsi: {UD.v(H.slot(B.lnk(B.at(bs, i)))) == s : Nat}, +c: Bool, +hc: {B.occ(B.at(bs, q)) == c : Bool}) -> {B.implies(c, Bool.not(Nat.is_eq(s, UD.v(H.slot(B.lnk(B.at(bs, q))))))) == True{} : Bool}:
@@ -181,14 +180,14 @@ def imp_ne(+bs: List<&2, B.Bk>, +no: Nat, +huq: {B.all_lt(B.PUniq{bs}, no) == Tr
     case True{}:
       +e0 = TL.slot_ne(bs, no, huq, i, q, hi, hq, hqi, hoi, hc)
       +e1 = L.subst(Nat, z => {Nat.is_eq(UD.v(H.slot(B.lnk(B.at(bs, q)))), z) == False{} : Bool}, UD.v(H.slot(B.lnk(B.at(bs, i)))), s, hsi, e0)
-      DL.not_f(Nat.is_eq(s, UD.v(H.slot(B.lnk(B.at(bs, q))))), DL.ne_sym(UD.v(H.slot(B.lnk(B.at(bs, q)))), s, e1))
+      NL.not_f(Nat.is_eq(s, UD.v(H.slot(B.lnk(B.at(bs, q))))), NL.ne_sym(UD.v(H.slot(B.lnk(B.at(bs, q)))), s, e1))
 
 def br_c(+bs: List<&2, B.Bk>, +no: Nat, +huq: {B.all_lt(B.PUniq{bs}, no) == True{} : Bool}, +i: Nat, +hi: {Nat.is_lt(i, no) == True{} : Bool}, +hlen: {Nat.is_lt(i, SC.length(B.Bk, bs)) == True{} : Bool}, +hoi: {B.occ(B.at(bs, i)) == True{} : Bool}, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +hsi: {UD.v(H.slot(B.lnk(B.at(bs, i)))) == s : Nat}, +ll: List<&2, U32>, +h: {ST.bsl(bs, SC.append(Nat, a, Con{s, b}), ll, no) == True{} : Bool}, +q: Nat, +hq: {Nat.is_lt(q, no) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(i, q) == c : Bool}) -> {ST.bslb(SC.append(Nat, a, b), ll, B.at(IM.bupd(bs, i, B.BE{}), q)) == True{} : Bool}:
   match c:
     case True{}:
       L.subst(B.Bk, z => {ST.bslb(SC.append(Nat, a, b), ll, z) == True{} : Bool}, B.BE{}, B.at(IM.bupd(bs, i, B.BE{}), q), Equal.sym(B.Bk, B.at(IM.bupd(bs, i, B.BE{}), q), B.BE{}, IM.at_bu_eq(bs, i, B.BE{}, hlen, q, hc)), {==})
     case False{}:
-      +hb = brm_b(a, s, b, ll, B.at(bs, q), TF.bsl_inst(bs, SC.append(Nat, a, Con{s, b}), ll, no, h, q, hq), imp_ne(bs, no, huq, i, q, hi, hq, DL.ne_sym(i, q, hc), hoi, s, hsi, B.occ(B.at(bs, q)), {==}))
+      +hb = brm_b(a, s, b, ll, B.at(bs, q), TF.bsl_inst(bs, SC.append(Nat, a, Con{s, b}), ll, no, h, q, hq), imp_ne(bs, no, huq, i, q, hi, hq, NL.ne_sym(i, q, hc), hoi, s, hsi, B.occ(B.at(bs, q)), {==}))
       L.subst(B.Bk, z => {ST.bslb(SC.append(Nat, a, b), ll, z) == True{} : Bool}, B.at(bs, q), B.at(IM.bupd(bs, i, B.BE{}), q), Equal.sym(B.Bk, B.at(IM.bupd(bs, i, B.BE{}), q), B.at(bs, q), IM.at_bupd_other(bs, i, B.BE{}, q, hc)), hb)
 
 # THEOREM: emptying slot s's bucket: every full bucket's slot is listed

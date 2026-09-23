@@ -6,8 +6,6 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../lru/lists.bend as LS
-import ../lru/state.bend as LST
 import ./nbr.bend as NB
 import ./state.bend as ST
 import ./mirror.bend as MI
@@ -18,6 +16,7 @@ import ./ends.bend as EN
 import ./path.bend as P
 import ./nav.bend as NV
 import ./navs.bend as NS
+import ../lib/nat_list.bend as NL
 
 # Navigation over a good shadow: navigate is the ghost navigation from the
 # root with an empty path, so the entry (and the key) at its id is the
@@ -59,8 +58,8 @@ import ./navs.bend as NS
 
 def navigate_m($TK, $FT, +k: K, +h: Bool, +incl: Bool, +hg: $GF) -> {MI.navigate($AK, $SH, k, h, incl) == ($SH, $G0) : $SHT & Nat}:
   +er = N.eq_from_is_eq(root, ST.rid(tg), ST.g_croot($AK, $F, hg))
-  +hnd0 = LS.nd_l($IDS(tg), fl, ST.g_cnd($AK, $F, hg))
-  +hnd = L.subst($LN, z => {LST.nodupn(z) == True{} : Bool}, $IDS(tg), $APP($IDS(tg), Nil{}), Equal.sym($LN, $APP($IDS(tg), Nil{}), $IDS(tg), $AN), hnd0)
+  +hnd0 = NL.nd_l($IDS(tg), fl, ST.g_cnd($AK, $F, hg))
+  +hnd = L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $IDS(tg), $APP($IDS(tg), Nil{}), Equal.sym($LN, $APP($IDS(tg), Nil{}), $IDS(tg), $AN), hnd0)
   %Equal.sym(Nat, root, ST.rid(tg), er) : {MI.nav_loop($AK, 1n+n, k, h, incl, _, 0n, MI.probe($AK, $SH, _, k)) == ($SH, $G0) : $SHT & Nat}
   %Equal.sym(Nat, 0n, $PK(h, 0n, 0n), Equal.sym(Nat, $PK(h, 0n, 0n), 0n, NB.pk_same(h, 0n))) : {MI.nav_loop($AK, 1n+n, k, h, incl, ST.rid(tg), _, MI.probe($AK, $SH, ST.rid(tg), k)) == ($SH, $G0) : $SHT & Nat}
   NV.nav_ptr($AK, $F, 1n+n, Nil{}, tg, k, h, incl, ST.g_crep($AK, $F, hg), {==}, hnd, Equal.sym($LN, $APP($IDS(tg), Nil{}), $IDS(tg), $AN), N.eq_from_is_eq(n, SC.length(Nat, $IDS(tg)), ST.g_csz($AK, $F, hg)), RD.fuel_ok($AK, $F, hg))

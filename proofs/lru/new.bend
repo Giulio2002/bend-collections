@@ -1,12 +1,9 @@
 import Base
-import ../lib/logic.bend as L
-import ../lib/nat.bend as N
 import ../lib/array.bend as AR
 import ../spec/lru.bend as SP
-import ../math/u32div.bend as UD
 import ../../src/containers/lru.bend as LR
-import ../hash_table/table.bend as TB
 import ./state.bend as ST
+import ../lib/words32.bend as W32
 
 # new: the implementation's new is the specification's new.
 
@@ -32,7 +29,7 @@ def good_empty(~V: Data, +cap: U32, +hz: {U32.is_eq(cap, 0) == False{} : Bool}) 
   +kl = AR.slots(String, kt)
   +pk = AR.perfect(String, 0n, kt)
   +e = {AR.TLeaf{None{}} : AR.Tree<Maybe<&2, V>>}
-  ST.good_intro(~V, cap, 0, 0, 0, 0, TB.nth0(AR.slots(U32, m), 0n), TB.nth0(AR.slots(U32, m), 1n), TB.nth0(AR.slots(U32, m), 2n), TB.nth0(AR.slots(U32, m), 6n), TB.nth0(AR.slots(U32, m), 7n), AR.perfect(U32, 5n, m), 1n, 0n, t, kl, pk, e, l, Nil{}, Nil{}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, Equal.cong(Bool, Bool, b => Bool.not(b), U32.is_eq(cap, 0), False{}, hz), {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==})
+  ST.good_intro(~V, cap, 0, 0, 0, 0, W32.nth0(AR.slots(U32, m), 0n), W32.nth0(AR.slots(U32, m), 1n), W32.nth0(AR.slots(U32, m), 2n), W32.nth0(AR.slots(U32, m), 6n), W32.nth0(AR.slots(U32, m), 7n), AR.perfect(U32, 5n, m), 1n, 0n, t, kl, pk, e, l, Nil{}, Nil{}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, Equal.cong(Bool, Bool, b => Bool.not(b), U32.is_eq(cap, 0), False{}, hz), {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==})
 
 def new_c(~V: Data, +cap: U32, +z: Bool, +hz: {U32.is_eq(cap, 0) == z : Bool}, +r: Bool) -> MadeOK(~V, LR.new_checked(&2, V, cap, z, r), SP.new_c(~V, cap, z, r)):
   match z r:

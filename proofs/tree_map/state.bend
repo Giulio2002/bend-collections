@@ -6,10 +6,10 @@ import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../dynamic_array/layout.bend as LY
 import ../dynamic_array/state.bend as DAS
-import ../lru/state.bend as LST
 import ../../src/containers/balanced_search_tree.bend as M
 import ../../src/containers/dynamic_array.bend as D
 import ./mk.bend as MK
+import ../lib/nat_list.bend as NL
 
 # The indexed TreeMap's shadow: the header, the node and payload lists (the
 # arrays are their canonical blocks, one limit and depth for both), a ghost
@@ -234,7 +234,7 @@ def cfll(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +n: Nat, +root: Nat, +lo: Nat,
   fll(~K, nl, fl)
 
 def cnd(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +t: Tr, +fl: List<&2, Nat>) -> Bool:
-  LST.nodupn(SC.append(Nat, ids(t), fl))
+  NL.nodupn(SC.append(Nat, ids(t), fl))
 
 def cin(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +t: Tr, +fl: List<&2, Nat>) -> Bool:
   allin(SC.append(Nat, ids(t), fl), SC.length(M.Node<K>, nl))

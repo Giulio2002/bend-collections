@@ -1,13 +1,10 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/list.bend as LL
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
 import ./state.bend as ST
 import ./tree.bend as TR
 import ./path.bend as P
@@ -22,12 +19,12 @@ import ./slot.bend as SL
 import ./alls.bend as AL
 import ./dj.bend as DJ
 import ./agree.bend as AG
-import ./spath.bend as SP
 import ./dord.bend as DO
 import ./idmv.bend as ID
 import ./rmf.bend as RF
 import ./rms.bend as RS
 import ./frame.bend as FRM
+import ../lib/nat_list.bend as NL
 
 # Removing a found key: the specification's del removes exactly the node's
 # entry, and each shape of the node (no left child, no right child, two

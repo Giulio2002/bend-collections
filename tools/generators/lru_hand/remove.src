@@ -7,7 +7,6 @@ import ../spec/common.bend as SC
 import ../spec/hash_table.bend as S
 import ../spec/lru.bend as SP
 import ../math/u32div.bend as UD
-import ../../src/math/u64.bend as W
 import ../../src/containers/hash_table.bend as H
 import ../../src/containers/lru.bend as LR
 import ../hash_table/table.bend as TB
@@ -18,17 +17,11 @@ import ../hash_table/state.bend as HT
 import ../hash_table/keys.bend as K
 import ./state.bend as ST
 import ./basic.bend as BA
-import ./bump.bend as BU
-import ./bumpsh.bend as BS
 import ./find.bend as FD
 import ./tfind.bend as TF
 import ./touch.bend as TO
-import ./touchsh.bend as TSH
 import ./rmat.bend as RM
-import ./gone.bend as GO
 import ./unlink.bend as UL
-import ./lists.bend as LS
-import ./meta.bend as MT
 import ../hash_table/get.bend as G
 import ../../src/math/hash.bend as HS
 import ../hash_table/probe_impl.bend as PI
@@ -36,7 +29,9 @@ import ../hash_table/probe_all.bend as PA
 
 import ./read.bend as RD
 import ./qrm.bend as QR
-import ../hash_table/qprobe.bend as QP
+import ../lib/nat_list.bend as NL
+import ../lib/words32.bend as W32
+import ../lib/u32_tree.bend as UT
 
 # remove: the implementation's remove is the specification's.
 
@@ -47,7 +42,7 @@ import ../hash_table/qprobe.bend as QP
 %def QOF(r) QR.qrm_of(~V, r, AR.thaw(U32, tabT), CY.msk(k), cap, n, head, tail, free, $TH4)
 %def KP +key: String
 
-def rm_v0(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $KP, +one: Nat, +h1: {one == 1n : Nat}, +s: Nat, +hmem: {HT.memn(s, sl) == True{} : Bool}, +l: U32, +hsv: {UD.v(H.slot(l)) == s : Nat}, +hk: {S.str_eq(ST.skey($LLo, $KL, s), key) == True{} : Bool}, $RHX, +m: Maybe<&2, V>, +hmm: {HT.nthm(~V, $EL, s) == m : Maybe<&2, V>}, +hsm: {HT.some_b(~V, m) == True{} : Bool}) -> RM.POK(~V, Maybe<&2, V>, $RMF(SP.find(~V, $ES, key)), LR.drop_slot(&2, V, $F0($DT), H.slot(l), 2)):
+def rm_v0(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $KP, +one: Nat, +h1: {one == 1n : Nat}, +s: Nat, +hmem: {NL.memn(s, sl) == True{} : Bool}, +l: U32, +hsv: {UD.v(H.slot(l)) == s : Nat}, +hk: {S.str_eq(ST.skey($LLo, $KL, s), key) == True{} : Bool}, $RHX, +m: Maybe<&2, V>, +hmm: {HT.nthm(~V, $EL, s) == m : Maybe<&2, V>}, +hsm: {HT.some_b(~V, m) == True{} : Bool}) -> RM.POK(~V, Maybe<&2, V>, $RMF(SP.find(~V, $ES, key)), LR.drop_slot(&2, V, $F0($DT), H.slot(l), 2)):
   match m:
     case None{}:
       Empty.absurd(RM.POK(~V, Maybe<&2, V>, $RMF(SP.find(~V, $ES, key)), LR.drop_slot(&2, V, $F0($DT), H.slot(l), 2)), L.false_true(hsm))
@@ -65,7 +60,7 @@ def rm_res(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $KP, +one: 
       (+hk0, hl) = rest
       +hsi = Equal.cong(U32, Nat, z => UD.v(H.slot(z)), B.lnk($Bi), l, hl)
       +hbl = TF.bsl_inst($BS, sl, $LLo, $NN, $G(cbsl), i, hi)
-      +hmem = L.subst(Nat, z => {HT.memn(z, sl) == True{} : Bool}, UD.v(H.slot(B.lnk($Bi))), $Si, hsi, TF.hit_mem(sl, $LLo, key, $Bi, hk0, hbl))
+      +hmem = L.subst(Nat, z => {NL.memn(z, sl) == True{} : Bool}, UD.v(H.slot(B.lnk($Bi))), $Si, hsi, TF.hit_mem(sl, $LLo, key, $Bi, hk0, hbl))
       +hk = L.subst(Nat, z => {S.str_eq(ST.skey($LLo, $KL, z), key) == True{} : Bool}, UD.v(H.slot(B.lnk($Bi))), $Si, hsi, TF.hit_key(sl, $LLo, $KL, key, $Bi, hk0, hbl, TF.bkok_at(AR.slots(U32, tabT), $KL, $NN, i, hi)))
       +hls = TF.slok_mem(~V, $EL, $FR, $Si, sl, $G(csl), hmem)
       rm_v0(~V, $SHA, hg, key, one, h1, $Si, hmem, l, {==}, hk, i, hi, B.hold_occ(key, $Bi, hk0), hsi, HT.nthm(~V, $EL, $Si), {==}, L.and_right(Nat.is_lt($Si, $FR), ST.live(~V, $EL, $Si), hls))
@@ -78,7 +73,7 @@ def rm_res(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $KP, +one: 
       +hf = FD.find_miss(~V, $LLo, $KL, $EL, key, sl, hnk)
       L.subst(Maybe<&2, SP.Ent<V>>, z => RM.POK(~V, Maybe<&2, V>, $RMF(z), $QOF(B.REnd{e0})), None{}, SP.find(~V, $ES, key), Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, $ES, key), None{}, hf), ($SH, (None{}, ({==}, ({==}, hg)))))
 
-%def G6 Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), TB.nth0($ML, 6n)), (AR.thaw(U32, mT), CY.msk(k)), MT.uget(5n, {==}, mT, $G(cpm), 6, {==}), Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, mT), z), TB.nth0($ML, 6n), CY.msk(k), A.eq_of(TB.nth0($ML, 6n), CY.msk(k), $G(cmask))))
+%def G6 Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), W32.nth0($ML, 6n)), (AR.thaw(U32, mT), CY.msk(k)), UT.uget(5n, {==}, mT, $G(cpm), 6, {==}), Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, mT), z), W32.nth0($ML, 6n), CY.msk(k), A.eq_of(W32.nth0($ML, 6n), CY.msk(k), $G(cmask))))
 %def RMFD(x) LR.rm_fd(&2, V, cap, n, head, tail, free, AR.thaw(U32, mT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), x)
 
 # the long path's result read back as the removal the probe asks for

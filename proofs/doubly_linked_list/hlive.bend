@@ -1,8 +1,6 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/u32.bend as U
-import ../lib/u32alg.bend as A
 import ../lib/array.bend as AR
 import ../lib/list.bend as LL
 import ../spec/common.bend as SC
@@ -12,23 +10,17 @@ import ../../src/containers/doubly_linked_list.bend as D
 import ../../src/containers/internal/dlist_storage.bend as R
 import ../../src/containers/types/internal_dlist.bend as I
 import ../../src/containers/types/doubly_linked_list.bend as E
-import ../hash_table/state.bend as HT
-import ../hash_table/table.bend as TB
-import ../lru/state.bend as LST
-import ../lru/meta.bend as MT
-import ../lru/lists.bend as LS
-import ../lru/dll.bend as DL
-import ../lru/touch.bend as TO
 import ./state.bend as ST
 import ./rel.bend as RL
 import ./vals.bend as VA
 import ./link.bend as LN
 import ./ok.bend as OK
 import ./insp.bend as IP
-import ./ins.bend as IN
 import ./rm.bend as RM
 import ./hrd.bend as HR
 import ./hnb.bend as NB
+import ../lib/nat_list.bend as NL
+import ../lib/words32.bend as W32
 
 # The live element, split out of its list: next, prev, remove, and the
 # insertions before and after it; and the storage's stale answers for
@@ -37,10 +29,10 @@ import ./hnb.bend as NB
 
 # ---- splitting the list at the live element ----
 
-def mem_of(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl) == True{} : Bool}, +owner: U32, +id: U32, +g: U32, +vv: T, +hv: {S.val_of(T, AR.slots(Maybe<&2, T>, vT), UD.v(id)) == Some{vv} : Maybe<&2, T>}) -> {HT.memn(UD.v(id), sl) == True{} : Bool}:
+def mem_of(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl) == True{} : Bool}, +owner: U32, +id: U32, +g: U32, +vv: T, +hv: {S.val_of(T, AR.slots(Maybe<&2, T>, vT), UD.v(id)) == Some{vv} : Maybe<&2, T>}) -> {NL.memn(UD.v(id), sl) == True{} : Bool}:
   VA.lvin_elim(~T, AR.slots(Maybe<&2, T>, vT), 0n, sl, ST.g_clv(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl, hg), UD.v(id), RL.by_eq(ST.live(T, AR.slots(Maybe<&2, T>, vT), UD.v(id)), True{}, Equal.cong(Maybe<&2, T>, Bool, m => ST.some_b(T, m), S.val_of(T, AR.slots(Maybe<&2, T>, vT), UD.v(id)), Some{vv}, hv), {==}))
 
-def ws_go(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl) == True{} : Bool}, +owner: U32, +id: U32, +g: U32, +op: E.Op<T>, sp: TO.Split(UD.v(id), sl), k: @+a: List<&2, Nat> -> @+b: List<&2, Nat> -> @+hg2: {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, SC.append(Nat, a, Con{UD.v(id), b}), fl) == True{} : Bool} -> OK.POK(~T, E.Obs<T>, S.live_op(T, ST.model(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, SC.append(Nat, a, Con{UD.v(id), b}), fl}), op, UD.v(id)), D.dispatch(~T, ST.real(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, SC.append(Nat, a, Con{UD.v(id), b}), fl}), op))) -> OK.POK(~T, E.Obs<T>, S.live_op(T, ST.model(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), op, UD.v(id)), D.dispatch(~T, ST.real(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), op)):
+def ws_go(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl) == True{} : Bool}, +owner: U32, +id: U32, +g: U32, +op: E.Op<T>, sp: NL.Split(UD.v(id), sl), k: @+a: List<&2, Nat> -> @+b: List<&2, Nat> -> @+hg2: {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, SC.append(Nat, a, Con{UD.v(id), b}), fl) == True{} : Bool} -> OK.POK(~T, E.Obs<T>, S.live_op(T, ST.model(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, SC.append(Nat, a, Con{UD.v(id), b}), fl}), op, UD.v(id)), D.dispatch(~T, ST.real(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, SC.append(Nat, a, Con{UD.v(id), b}), fl}), op))) -> OK.POK(~T, E.Obs<T>, S.live_op(T, ST.model(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), op, UD.v(id)), D.dispatch(~T, ST.real(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), op)):
   match sp:
     case Tuple{+a, Tuple{+b, e}}:
       +e2 = {e : {sl == SC.append(Nat, a, Con{UD.v(id), b}) : List<&2, Nat>}}
@@ -49,16 +41,16 @@ def ws_go(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +
       L.subst(List<&2, Nat>, z => OK.POK(~T, E.Obs<T>, S.live_op(T, ST.model(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, z, fl}), op, UD.v(id)), D.dispatch(~T, ST.real(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, z, fl}), op)), SC.append(Nat, a, Con{UD.v(id), b}), sl, Equal.sym(List<&2, Nat>, sl, SC.append(Nat, a, Con{UD.v(id), b}), e2), r)
 
 def with_split(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl) == True{} : Bool}, +owner: U32, +id: U32, +g: U32, +op: E.Op<T>, +vv: T, +hv: {S.val_of(T, AR.slots(Maybe<&2, T>, vT), UD.v(id)) == Some{vv} : Maybe<&2, T>}, k: @+a: List<&2, Nat> -> @+b: List<&2, Nat> -> @+hg2: {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, SC.append(Nat, a, Con{UD.v(id), b}), fl) == True{} : Bool} -> OK.POK(~T, E.Obs<T>, S.live_op(T, ST.model(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, SC.append(Nat, a, Con{UD.v(id), b}), fl}), op, UD.v(id)), D.dispatch(~T, ST.real(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, SC.append(Nat, a, Con{UD.v(id), b}), fl}), op))) -> OK.POK(~T, E.Obs<T>, S.live_op(T, ST.model(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), op, UD.v(id)), D.dispatch(~T, ST.real(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), op)):
-  ws_go(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl, hg, owner, id, g, op, TO.split_mem(UD.v(id), sl, mem_of(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl, hg, owner, id, g, vv, hv)), k)
+  ws_go(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl, hg, owner, id, g, op, NL.split_mem(UD.v(id), sl, mem_of(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl, hg, owner, id, g, vv, hv)), k)
 
 
-def next_live(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl) == True{} : Bool}, +owner: U32, +id: U32, +g: U32, +one: Nat, +h1: {one == 1n : Nat}, +ho: {U32.is_eq(owner, tag) == True{} : Bool}, +hlt: {Nat.is_lt(UD.v(id), UD.v(fresh)) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, AR.slots(Maybe<&2, T>, vT), UD.v(id)) == Some{vv} : Maybe<&2, T>}, +hgen: {g == TB.nth0(AR.slots(U32, gT), UD.v(id)) : U32}) -> OK.POK(~T, E.Obs<T>, S.live_op(T, ST.model(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), E.Next{E.H{owner, id, g}}, UD.v(id)), D.dispatch(~T, ST.real(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), E.Next{E.H{owner, id, g}})):
+def next_live(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl) == True{} : Bool}, +owner: U32, +id: U32, +g: U32, +one: Nat, +h1: {one == 1n : Nat}, +ho: {U32.is_eq(owner, tag) == True{} : Bool}, +hlt: {Nat.is_lt(UD.v(id), UD.v(fresh)) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, AR.slots(Maybe<&2, T>, vT), UD.v(id)) == Some{vv} : Maybe<&2, T>}, +hgen: {g == W32.nth0(AR.slots(U32, gT), UD.v(id)) : U32}) -> OK.POK(~T, E.Obs<T>, S.live_op(T, ST.model(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), E.Next{E.H{owner, id, g}}, UD.v(id)), D.dispatch(~T, ST.real(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), E.Next{E.H{owner, id, g}})):
   with_split(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl, hg, owner, id, g, E.Next{E.H{owner, id, g}}, vv, hv, a => b => hg2 => NB.nx_ab(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, a, b, fl, owner, id, g, hg2, one, h1, ho, hlt, vv, hv))
 
-def prev_live(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl) == True{} : Bool}, +owner: U32, +id: U32, +g: U32, +one: Nat, +h1: {one == 1n : Nat}, +ho: {U32.is_eq(owner, tag) == True{} : Bool}, +hlt: {Nat.is_lt(UD.v(id), UD.v(fresh)) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, AR.slots(Maybe<&2, T>, vT), UD.v(id)) == Some{vv} : Maybe<&2, T>}, +hgen: {g == TB.nth0(AR.slots(U32, gT), UD.v(id)) : U32}) -> OK.POK(~T, E.Obs<T>, S.live_op(T, ST.model(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), E.Prev{E.H{owner, id, g}}, UD.v(id)), D.dispatch(~T, ST.real(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), E.Prev{E.H{owner, id, g}})):
+def prev_live(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl) == True{} : Bool}, +owner: U32, +id: U32, +g: U32, +one: Nat, +h1: {one == 1n : Nat}, +ho: {U32.is_eq(owner, tag) == True{} : Bool}, +hlt: {Nat.is_lt(UD.v(id), UD.v(fresh)) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, AR.slots(Maybe<&2, T>, vT), UD.v(id)) == Some{vv} : Maybe<&2, T>}, +hgen: {g == W32.nth0(AR.slots(U32, gT), UD.v(id)) : U32}) -> OK.POK(~T, E.Obs<T>, S.live_op(T, ST.model(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), E.Prev{E.H{owner, id, g}}, UD.v(id)), D.dispatch(~T, ST.real(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), E.Prev{E.H{owner, id, g}})):
   with_split(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl, hg, owner, id, g, E.Prev{E.H{owner, id, g}}, vv, hv, a => b => hg2 => NB.pv_ab(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, a, b, fl, owner, id, g, hg2, one, h1, ho, hlt, vv, hv))
 
-def rm_live(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl) == True{} : Bool}, +owner: U32, +id: U32, +g: U32, +one: Nat, +h1: {one == 1n : Nat}, +ho: {U32.is_eq(owner, tag) == True{} : Bool}, +hlt: {Nat.is_lt(UD.v(id), UD.v(fresh)) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, AR.slots(Maybe<&2, T>, vT), UD.v(id)) == Some{vv} : Maybe<&2, T>}, +hgen: {g == TB.nth0(AR.slots(U32, gT), UD.v(id)) : U32}) -> OK.POK(~T, E.Obs<T>, S.live_op(T, ST.model(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), E.Remove{E.H{owner, id, g}}, UD.v(id)), D.dispatch(~T, ST.real(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), E.Remove{E.H{owner, id, g}})):
+def rm_live(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl) == True{} : Bool}, +owner: U32, +id: U32, +g: U32, +one: Nat, +h1: {one == 1n : Nat}, +ho: {U32.is_eq(owner, tag) == True{} : Bool}, +hlt: {Nat.is_lt(UD.v(id), UD.v(fresh)) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, AR.slots(Maybe<&2, T>, vT), UD.v(id)) == Some{vv} : Maybe<&2, T>}, +hgen: {g == W32.nth0(AR.slots(U32, gT), UD.v(id)) : U32}) -> OK.POK(~T, E.Obs<T>, S.live_op(T, ST.model(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), E.Remove{E.H{owner, id, g}}, UD.v(id)), D.dispatch(~T, ST.real(~T, ST.LS{tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl}), E.Remove{E.H{owner, id, g}})):
   with_split(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl, hg, owner, id, g, E.Remove{E.H{owner, id, g}}, vv, hv, a => b => hg2 => RM.rm_ok(~T, one, h1, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, a, id, b, fl, hg2, owner, ho, g, hgen, vv, hv))
 
 # ---- remove: the storage's stale answers ----
@@ -114,16 +106,16 @@ def ins_pos(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2
     case Con{+i, +rest}:
       Equal.cong(List<&2, Nat>, S.DS<T> & E.Handle, z => (S.DS{tag, z, SC.update(Maybe<&2, T>, vals, i, Some{x}), gens, rest}, S.handle(tag, gens, i)), S.place_order(pos, order, i), SC.append(Nat, a, Con{i, b}), e(i))
 
-def ib_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +n: Nat, +h: {HT.memn(s, a) == False{} : Bool}) -> {S.ins_before(SC.append(Nat, a, Con{s, b}), s, n) == SC.append(Nat, a, Con{n, Con{s, b}}) : List<&2, Nat>}:
+def ib_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +n: Nat, +h: {NL.memn(s, a) == False{} : Bool}) -> {S.ins_before(SC.append(Nat, a, Con{s, b}), s, n) == SC.append(Nat, a, Con{n, Con{s, b}}) : List<&2, Nat>}:
   match a:
     case Nil{}:
       Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{n, Con{s, b}}, Con{s, S.ins_before(b, s, n)}), Nat.is_eq(s, s), True{}, N.is_eq_refl(s))
     case Con{+y, +t}:
-      Equal.trans(List<&2, Nat>, S.ins_before(SC.append(Nat, Con{y, t}, Con{s, b}), s, n), Con{y, S.ins_before(SC.append(Nat, t, Con{s, b}), s, n)}, SC.append(Nat, Con{y, t}, Con{n, Con{s, b}}), Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{n, Con{y, SC.append(Nat, t, Con{s, b})}}, Con{y, S.ins_before(SC.append(Nat, t, Con{s, b}), s, n)}), Nat.is_eq(y, s), False{}, DL.or_ff_l(Nat.is_eq(y, s), HT.memn(s, t), h)), LL.cons_cong(Nat, y, S.ins_before(SC.append(Nat, t, Con{s, b}), s, n), SC.append(Nat, t, Con{n, Con{s, b}}), ib_mid(t, s, b, n, DL.or_ff_r(Nat.is_eq(y, s), HT.memn(s, t), h))))
+      Equal.trans(List<&2, Nat>, S.ins_before(SC.append(Nat, Con{y, t}, Con{s, b}), s, n), Con{y, S.ins_before(SC.append(Nat, t, Con{s, b}), s, n)}, SC.append(Nat, Con{y, t}, Con{n, Con{s, b}}), Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{n, Con{y, SC.append(Nat, t, Con{s, b})}}, Con{y, S.ins_before(SC.append(Nat, t, Con{s, b}), s, n)}), Nat.is_eq(y, s), False{}, NL.or_ff_l(Nat.is_eq(y, s), NL.memn(s, t), h)), LL.cons_cong(Nat, y, S.ins_before(SC.append(Nat, t, Con{s, b}), s, n), SC.append(Nat, t, Con{n, Con{s, b}}), ib_mid(t, s, b, n, NL.or_ff_r(Nat.is_eq(y, s), NL.memn(s, t), h))))
 
-def ia_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +n: Nat, +h: {HT.memn(s, a) == False{} : Bool}) -> {S.ins_after(SC.append(Nat, a, Con{s, b}), s, n) == SC.append(Nat, a, Con{s, Con{n, b}}) : List<&2, Nat>}:
+def ia_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +n: Nat, +h: {NL.memn(s, a) == False{} : Bool}) -> {S.ins_after(SC.append(Nat, a, Con{s, b}), s, n) == SC.append(Nat, a, Con{s, Con{n, b}}) : List<&2, Nat>}:
   match a:
     case Nil{}:
       Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{s, Con{n, b}}, Con{s, S.ins_after(b, s, n)}), Nat.is_eq(s, s), True{}, N.is_eq_refl(s))
     case Con{+y, +t}:
-      Equal.trans(List<&2, Nat>, S.ins_after(SC.append(Nat, Con{y, t}, Con{s, b}), s, n), Con{y, S.ins_after(SC.append(Nat, t, Con{s, b}), s, n)}, SC.append(Nat, Con{y, t}, Con{s, Con{n, b}}), Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{y, Con{n, SC.append(Nat, t, Con{s, b})}}, Con{y, S.ins_after(SC.append(Nat, t, Con{s, b}), s, n)}), Nat.is_eq(y, s), False{}, DL.or_ff_l(Nat.is_eq(y, s), HT.memn(s, t), h)), LL.cons_cong(Nat, y, S.ins_after(SC.append(Nat, t, Con{s, b}), s, n), SC.append(Nat, t, Con{s, Con{n, b}}), ia_mid(t, s, b, n, DL.or_ff_r(Nat.is_eq(y, s), HT.memn(s, t), h))))
+      Equal.trans(List<&2, Nat>, S.ins_after(SC.append(Nat, Con{y, t}, Con{s, b}), s, n), Con{y, S.ins_after(SC.append(Nat, t, Con{s, b}), s, n)}, SC.append(Nat, Con{y, t}, Con{s, Con{n, b}}), Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{y, Con{n, SC.append(Nat, t, Con{s, b})}}, Con{y, S.ins_after(SC.append(Nat, t, Con{s, b}), s, n)}), Nat.is_eq(y, s), False{}, NL.or_ff_l(Nat.is_eq(y, s), NL.memn(s, t), h)), LL.cons_cong(Nat, y, S.ins_after(SC.append(Nat, t, Con{s, b}), s, n), SC.append(Nat, t, Con{s, Con{n, b}}), ia_mid(t, s, b, n, NL.or_ff_r(Nat.is_eq(y, s), NL.memn(s, t), h))))

@@ -3,7 +3,6 @@ import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/array.bend as AR
 import ../spec/common.bend as SC
-import ../spec/hash_table.bend as S
 import ../spec/lru.bend as SP
 import ../math/u32div.bend as UD
 import ../../src/math/u64.bend as W
@@ -17,14 +16,17 @@ import ./state.bend as ST
 import ./dll.bend as DL
 import ./idx.bend as ID
 import ../hash_table/keys.bend as K
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
+import ../lib/words32.bend as W32
 
 # The grown arena: every array gains a blank second half; the invariant and
 # the model read the first half only.
 
-def nth0_app(+xs: List<&2, U32>, +r: List<&2, U32>, +t: Nat, +h: {Nat.is_lt(t, SC.length(U32, xs)) == True{} : Bool}) -> {TB.nth0(SC.append(U32, xs, r), t) == TB.nth0(xs, t) : U32}:
+def nth0_app(+xs: List<&2, U32>, +r: List<&2, U32>, +t: Nat, +h: {Nat.is_lt(t, SC.length(U32, xs)) == True{} : Bool}) -> {W32.nth0(SC.append(U32, xs, r), t) == W32.nth0(xs, t) : U32}:
   match xs t:
     case Nil{} _:
-      Empty.absurd({TB.nth0(SC.append(U32, Nil{}, r), t) == TB.nth0(Nil{}, t) : U32}, N.lt_zero_absurd(t, h))
+      Empty.absurd({W32.nth0(SC.append(U32, Nil{}, r), t) == W32.nth0(Nil{}, t) : U32}, N.lt_zero_absurd(t, h))
     case Con{x, u} 0n:
       {==}
     case Con{x, u} 1n+p:
@@ -67,7 +69,7 @@ def seg_pre(~V: Data, +ll: List<&2, U32>, +rl: List<&2, U32>, +sd: Nat, +hl: {SC
       {==}
     case Con{+x, +t}:
       +hx = N.lt_le_trans(x, fr, SC.pow2(sd), L.and_left(Nat.is_lt(x, fr), ST.live(~V, el, x), L.and_left(Bool.and(Nat.is_lt(x, fr), ST.live(~V, el, x)), ST.slok(~V, t, fr, el), h)), hfr)
-      DL.seg_c(SC.append(U32, ll, rl), ll, x, t, p, q, lw_app(ll, rl, sd, hl, x, hx, 0n, {==}), lw_app(ll, rl, sd, hl, x, hx, 1n, {==}), seg_pre(~V, ll, rl, sd, hl, el, fr, hfr, t, L.and_right(Bool.and(Nat.is_lt(x, fr), ST.live(~V, el, x)), ST.slok(~V, t, fr, el), h), ST.lnk(x), q))
+      DL.seg_c(SC.append(U32, ll, rl), ll, x, t, p, q, lw_app(ll, rl, sd, hl, x, hx, 0n, {==}), lw_app(ll, rl, sd, hl, x, hx, 1n, {==}), seg_pre(~V, ll, rl, sd, hl, el, fr, hfr, t, L.and_right(Bool.and(Nat.is_lt(x, fr), ST.live(~V, el, x)), ST.slok(~V, t, fr, el), h), LK.lnk(x), q))
 
 def has_pre(~V: Data, +bs: List<&2, B.Bk>, +m: Nat, +ll: List<&2, U32>, +rl: List<&2, U32>, +sd: Nat, +hl: {SC.length(U32, ll) == SC.pow2(3n+sd) : Nat}, +el: List<&2, Maybe<&2, V>>, +fr: Nat, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +xs: List<&2, Nat>, +h: {ST.slok(~V, xs, fr, el) == True{} : Bool}) -> {ST.hasall(~V, bs, m, SC.append(U32, ll, rl), xs) == ST.hasall(~V, bs, m, ll, xs) : Bool}:
   match xs:
@@ -75,8 +77,8 @@ def has_pre(~V: Data, +bs: List<&2, B.Bk>, +m: Nat, +ll: List<&2, U32>, +rl: Lis
       {==}
     case Con{+x, +t}:
       +hx = N.lt_le_trans(x, fr, SC.pow2(sd), L.and_left(Nat.is_lt(x, fr), ST.live(~V, el, x), L.and_left(Bool.and(Nat.is_lt(x, fr), ST.live(~V, el, x)), ST.slok(~V, t, fr, el), h)), hfr)
-      +e = Equal.cong(U32, Bool, z => ST.anyb(bs, m, ST.lnk(x), z), ST.lw(SC.append(U32, ll, rl), x, 2n), ST.lw(ll, x, 2n), lw_app(ll, rl, sd, hl, x, hx, 2n, {==}))
-      Equal.trans(Bool, Bool.and(ST.anyb(bs, m, ST.lnk(x), ST.lw(SC.append(U32, ll, rl), x, 2n)), ST.hasall(~V, bs, m, SC.append(U32, ll, rl), t)), Bool.and(ST.anyb(bs, m, ST.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, bs, m, SC.append(U32, ll, rl), t)), Bool.and(ST.anyb(bs, m, ST.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, bs, m, ll, t)), Equal.cong(Bool, Bool, z => Bool.and(z, ST.hasall(~V, bs, m, SC.append(U32, ll, rl), t)), ST.anyb(bs, m, ST.lnk(x), ST.lw(SC.append(U32, ll, rl), x, 2n)), ST.anyb(bs, m, ST.lnk(x), ST.lw(ll, x, 2n)), e), Equal.cong(Bool, Bool, z => Bool.and(ST.anyb(bs, m, ST.lnk(x), ST.lw(ll, x, 2n)), z), ST.hasall(~V, bs, m, SC.append(U32, ll, rl), t), ST.hasall(~V, bs, m, ll, t), has_pre(~V, bs, m, ll, rl, sd, hl, el, fr, hfr, t, L.and_right(Bool.and(Nat.is_lt(x, fr), ST.live(~V, el, x)), ST.slok(~V, t, fr, el), h))))
+      +e = Equal.cong(U32, Bool, z => ST.anyb(bs, m, LK.lnk(x), z), ST.lw(SC.append(U32, ll, rl), x, 2n), ST.lw(ll, x, 2n), lw_app(ll, rl, sd, hl, x, hx, 2n, {==}))
+      Equal.trans(Bool, Bool.and(ST.anyb(bs, m, LK.lnk(x), ST.lw(SC.append(U32, ll, rl), x, 2n)), ST.hasall(~V, bs, m, SC.append(U32, ll, rl), t)), Bool.and(ST.anyb(bs, m, LK.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, bs, m, SC.append(U32, ll, rl), t)), Bool.and(ST.anyb(bs, m, LK.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, bs, m, ll, t)), Equal.cong(Bool, Bool, z => Bool.and(z, ST.hasall(~V, bs, m, SC.append(U32, ll, rl), t)), ST.anyb(bs, m, LK.lnk(x), ST.lw(SC.append(U32, ll, rl), x, 2n)), ST.anyb(bs, m, LK.lnk(x), ST.lw(ll, x, 2n)), e), Equal.cong(Bool, Bool, z => Bool.and(ST.anyb(bs, m, LK.lnk(x), ST.lw(ll, x, 2n)), z), ST.hasall(~V, bs, m, SC.append(U32, ll, rl), t), ST.hasall(~V, bs, m, ll, t), has_pre(~V, bs, m, ll, rl, sd, hl, el, fr, hfr, t, L.and_right(Bool.and(Nat.is_lt(x, fr), ST.live(~V, el, x)), ST.slok(~V, t, fr, el), h))))
 
 def slok_pre(~V: Data, +sd: Nat, +el: List<&2, Maybe<&2, V>>, +re: List<&2, Maybe<&2, V>>, +he: {SC.length(Maybe<&2, V>, el) == SC.pow2(sd) : Nat}, +fr: Nat, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +xs: List<&2, Nat>, +h: {ST.slok(~V, xs, fr, el) == True{} : Bool}) -> {ST.slok(~V, xs, fr, SC.append(Maybe<&2, V>, el, re)) == True{} : Bool}:
   match xs:
@@ -94,7 +96,7 @@ def bslb_pre(+sl: List<&2, Nat>, +ll: List<&2, U32>, +rl: List<&2, U32>, +sd: Na
       {==}
     case B.BF{+w, +l, +k}:
       +hx = L.and_left(Nat.is_lt(UD.v(H.slot(l)), SC.pow2(sd)), Bool.and(U32.is_eq(w, K.kword(k)), Bool.not(U32.is_eq(l, 0))), hw)
-      Equal.cong(U32, Bool, z => Bool.and(HT.memn(UD.v(H.slot(l)), sl), U32.is_eq(z, w)), ST.lw(SC.append(U32, ll, rl), UD.v(H.slot(l)), 2n), ST.lw(ll, UD.v(H.slot(l)), 2n), lw_app(ll, rl, sd, hl, UD.v(H.slot(l)), hx, 2n, {==}))
+      Equal.cong(U32, Bool, z => Bool.and(NL.memn(UD.v(H.slot(l)), sl), U32.is_eq(z, w)), ST.lw(SC.append(U32, ll, rl), UD.v(H.slot(l)), 2n), ST.lw(ll, UD.v(H.slot(l)), 2n), lw_app(ll, rl, sd, hl, UD.v(H.slot(l)), hx, 2n, {==}))
 
 def bsl_pre(+bs: List<&2, B.Bk>, +sl: List<&2, Nat>, +ll: List<&2, U32>, +rl: List<&2, U32>, +sd: Nat, +hl: {SC.length(U32, ll) == SC.pow2(3n+sd) : Nat}, +m: Nat, +hw: {B.all_lt(B.PWell{bs, sd}, m) == True{} : Bool}) -> {ST.bsl(bs, sl, SC.append(U32, ll, rl), m) == ST.bsl(bs, sl, ll, m) : Bool}:
   match m:

@@ -3,24 +3,23 @@ import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/u32.bend as U
 import ../lib/array.bend as AR
-import ../lib/list.bend as LL
 import ../spec/common.bend as SC
 import ../spec/doubly_linked_list.bend as S
 import ../math/u32div.bend as UD
-import ../hash_table/table.bend as TB
-import ../lru/state.bend as LST
 import ./state.bend as ST
 import ./rel.bend as RL
 import ./vals.bend as VA
+import ../lib/links.bend as LK
+import ../lib/words32.bend as W32
 
 # The doubled blocks: the old block is the lower half, so every id keeps its
 # links, value and generation.
 
 
-def nth0_app(+xs: List<&2, U32>, +ys: List<&2, U32>, +i: Nat, +h: {Nat.is_lt(i, SC.length(U32, xs)) == True{} : Bool}) -> {TB.nth0(SC.append(U32, xs, ys), i) == TB.nth0(xs, i) : U32}:
+def nth0_app(+xs: List<&2, U32>, +ys: List<&2, U32>, +i: Nat, +h: {Nat.is_lt(i, SC.length(U32, xs)) == True{} : Bool}) -> {W32.nth0(SC.append(U32, xs, ys), i) == W32.nth0(xs, i) : U32}:
   match xs i:
     case Nil{} _:
-      Empty.absurd({TB.nth0(ys, i) == 0 : U32}, N.lt_zero_absurd(i, h))
+      Empty.absurd({W32.nth0(ys, i) == 0 : U32}, N.lt_zero_absurd(i, h))
     case Con{x, t} 0n:
       {==}
     case Con{x, +t} 1n+p:
@@ -46,11 +45,11 @@ def seg_ext(~T: Data, +pl: List<&2, U32>, +pz: List<&2, U32>, +nl: List<&2, U32>
       +ht = L.and_right(Bool.and(Nat.is_lt(x, fr), ST.live(T, vl, x)), ST.slok(~T, t, fr, vl), h)
       +e0 = nth0_app(pl, pz, x, N.lt_le_trans(x, fr, SC.length(U32, pl), hx, hp))
       +e1 = nth0_app(nl, nz, x, N.lt_le_trans(x, fr, SC.length(U32, nl), hx, hn))
-      +ih = seg_ext(~T, pl, pz, nl, nz, t, LST.lnk(x), q, fr, vl, ht, hp, hn)
-      +r1 = Equal.cong(U32, Bool, z => Bool.and(U32.is_eq(z, p), Bool.and(U32.is_eq(TB.nth0(SC.append(U32, nl, nz), x), LST.fst_or(t, q)), ST.seg(SC.append(U32, pl, pz), SC.append(U32, nl, nz), t, LST.lnk(x), q))), TB.nth0(SC.append(U32, pl, pz), x), TB.nth0(pl, x), e0)
-      +r2 = Equal.cong(U32, Bool, z => Bool.and(U32.is_eq(TB.nth0(pl, x), p), Bool.and(U32.is_eq(z, LST.fst_or(t, q)), ST.seg(SC.append(U32, pl, pz), SC.append(U32, nl, nz), t, LST.lnk(x), q))), TB.nth0(SC.append(U32, nl, nz), x), TB.nth0(nl, x), e1)
-      +r3 = Equal.cong(Bool, Bool, z => Bool.and(U32.is_eq(TB.nth0(pl, x), p), Bool.and(U32.is_eq(TB.nth0(nl, x), LST.fst_or(t, q)), z)), ST.seg(SC.append(U32, pl, pz), SC.append(U32, nl, nz), t, LST.lnk(x), q), ST.seg(pl, nl, t, LST.lnk(x), q), ih)
-      Equal.trans(Bool, ST.seg(SC.append(U32, pl, pz), SC.append(U32, nl, nz), Con{x, t}, p, q), Bool.and(U32.is_eq(TB.nth0(pl, x), p), Bool.and(U32.is_eq(TB.nth0(SC.append(U32, nl, nz), x), LST.fst_or(t, q)), ST.seg(SC.append(U32, pl, pz), SC.append(U32, nl, nz), t, LST.lnk(x), q))), ST.seg(pl, nl, Con{x, t}, p, q), r1, Equal.trans(Bool, Bool.and(U32.is_eq(TB.nth0(pl, x), p), Bool.and(U32.is_eq(TB.nth0(SC.append(U32, nl, nz), x), LST.fst_or(t, q)), ST.seg(SC.append(U32, pl, pz), SC.append(U32, nl, nz), t, LST.lnk(x), q))), Bool.and(U32.is_eq(TB.nth0(pl, x), p), Bool.and(U32.is_eq(TB.nth0(nl, x), LST.fst_or(t, q)), ST.seg(SC.append(U32, pl, pz), SC.append(U32, nl, nz), t, LST.lnk(x), q))), ST.seg(pl, nl, Con{x, t}, p, q), r2, r3))
+      +ih = seg_ext(~T, pl, pz, nl, nz, t, LK.lnk(x), q, fr, vl, ht, hp, hn)
+      +r1 = Equal.cong(U32, Bool, z => Bool.and(U32.is_eq(z, p), Bool.and(U32.is_eq(W32.nth0(SC.append(U32, nl, nz), x), LK.fst_or(t, q)), ST.seg(SC.append(U32, pl, pz), SC.append(U32, nl, nz), t, LK.lnk(x), q))), W32.nth0(SC.append(U32, pl, pz), x), W32.nth0(pl, x), e0)
+      +r2 = Equal.cong(U32, Bool, z => Bool.and(U32.is_eq(W32.nth0(pl, x), p), Bool.and(U32.is_eq(z, LK.fst_or(t, q)), ST.seg(SC.append(U32, pl, pz), SC.append(U32, nl, nz), t, LK.lnk(x), q))), W32.nth0(SC.append(U32, nl, nz), x), W32.nth0(nl, x), e1)
+      +r3 = Equal.cong(Bool, Bool, z => Bool.and(U32.is_eq(W32.nth0(pl, x), p), Bool.and(U32.is_eq(W32.nth0(nl, x), LK.fst_or(t, q)), z)), ST.seg(SC.append(U32, pl, pz), SC.append(U32, nl, nz), t, LK.lnk(x), q), ST.seg(pl, nl, t, LK.lnk(x), q), ih)
+      Equal.trans(Bool, ST.seg(SC.append(U32, pl, pz), SC.append(U32, nl, nz), Con{x, t}, p, q), Bool.and(U32.is_eq(W32.nth0(pl, x), p), Bool.and(U32.is_eq(W32.nth0(SC.append(U32, nl, nz), x), LK.fst_or(t, q)), ST.seg(SC.append(U32, pl, pz), SC.append(U32, nl, nz), t, LK.lnk(x), q))), ST.seg(pl, nl, Con{x, t}, p, q), r1, Equal.trans(Bool, Bool.and(U32.is_eq(W32.nth0(pl, x), p), Bool.and(U32.is_eq(W32.nth0(SC.append(U32, nl, nz), x), LK.fst_or(t, q)), ST.seg(SC.append(U32, pl, pz), SC.append(U32, nl, nz), t, LK.lnk(x), q))), Bool.and(U32.is_eq(W32.nth0(pl, x), p), Bool.and(U32.is_eq(W32.nth0(nl, x), LK.fst_or(t, q)), ST.seg(SC.append(U32, pl, pz), SC.append(U32, nl, nz), t, LK.lnk(x), q))), ST.seg(pl, nl, Con{x, t}, p, q), r2, r3))
 
 # live ids stay live when vacant slots are appended
 def slok_ext(~T: Data, +xs: List<&2, Nat>, +fr: Nat, +vl: List<&2, Maybe<&2, T>>, +ys: List<&2, Maybe<&2, T>>, +hfr: {Nat.is_le(fr, SC.length(Maybe<&2, T>, vl)) == True{} : Bool}, +h: {ST.slok(~T, xs, fr, vl) == True{} : Bool}) -> {ST.slok(~T, xs, fr, SC.append(Maybe<&2, T>, vl, ys)) == True{} : Bool}:

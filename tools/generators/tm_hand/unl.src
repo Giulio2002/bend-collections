@@ -1,13 +1,9 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/list.bend as LL
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./tree.bend as TR
 import ./path.bend as P
@@ -21,7 +17,6 @@ import ./rotp.bend as RP
 import ./fix.bend as FX
 import ./dj.bend as DJ
 import ./spath.bend as SP
-import ./alls.bend as AL
 import ./idmv.bend as ID
 import ./frame.bend as FRM
 import ./mirror.bend as MI
@@ -29,6 +24,7 @@ import ./prim.bend as PR
 import ./ends.bend as EN
 import ./dfix.bend as DF
 import ./nbr.bend as NB
+import ../lib/nat_list.bend as NL
 
 # Unlinking a node with at most one child: its child's subtree takes its
 # place under its parent (or becomes the root); the path then leads to the
@@ -50,9 +46,9 @@ import ./nbr.bend as NB
 %def BA(c) $APP(P.before(c), P.after(c))
 %def REPN(t, p, x) {ST.rep(~K, t, p, x) == True{} : Bool}
 %def COKN(c, z, x) {P.ctxok(~K, c, z, x) == True{} : Bool}
-%def NDL(xs) {LST.nodupn(xs) == True{} : Bool}
-%def NMEM(y, xs) {HT.memn(y, xs) == False{} : Bool}
-%def MEM(y, xs) {HT.memn(y, xs) == True{} : Bool}
+%def NDL(xs) {NL.nodupn(xs) == True{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
 %def AGR(xs, a, b) {AG.agr(~K, ~cmp, xs, a, b) == True{} : Bool}
 %def LEN(xs) SC.length(Nat, xs)
 %def ALLIN(xs, n) {ST.allin(xs, n) == True{} : Bool}
@@ -71,9 +67,9 @@ def ratt_rep($TO, +nl: $NL, +q: Nat, +dr: Bool, +u: Nat, +ch: ST.Tr, +hr: $REPN(
     case ST.TE{}:
       {==}
     case ST.TN{+x, +cl, +cr}:
-      +hqx = Pair.fst({Nat.is_eq(x, q) == False{} : Bool}, {HT.memn(q, $IDS(cl)) == False{} : Bool} & {HT.memn(q, $IDS(cr)) == False{} : Bool}, FRM.nm_node(q, x, cl, cr, hq))
-      +hql = Pair.fst({HT.memn(q, $IDS(cl)) == False{} : Bool}, {HT.memn(q, $IDS(cr)) == False{} : Bool}, Pair.snd({Nat.is_eq(x, q) == False{} : Bool}, {HT.memn(q, $IDS(cl)) == False{} : Bool} & {HT.memn(q, $IDS(cr)) == False{} : Bool}, FRM.nm_node(q, x, cl, cr, hq)))
-      +hqr = Pair.snd({HT.memn(q, $IDS(cl)) == False{} : Bool}, {HT.memn(q, $IDS(cr)) == False{} : Bool}, Pair.snd({Nat.is_eq(x, q) == False{} : Bool}, {HT.memn(q, $IDS(cl)) == False{} : Bool} & {HT.memn(q, $IDS(cr)) == False{} : Bool}, FRM.nm_node(q, x, cl, cr, hq)))
+      +hqx = Pair.fst({Nat.is_eq(x, q) == False{} : Bool}, {NL.memn(q, $IDS(cl)) == False{} : Bool} & {NL.memn(q, $IDS(cr)) == False{} : Bool}, FRM.nm_node(q, x, cl, cr, hq))
+      +hql = Pair.fst({NL.memn(q, $IDS(cl)) == False{} : Bool}, {NL.memn(q, $IDS(cr)) == False{} : Bool}, Pair.snd({Nat.is_eq(x, q) == False{} : Bool}, {NL.memn(q, $IDS(cl)) == False{} : Bool} & {NL.memn(q, $IDS(cr)) == False{} : Bool}, FRM.nm_node(q, x, cl, cr, hq)))
+      +hqr = Pair.snd({NL.memn(q, $IDS(cl)) == False{} : Bool}, {NL.memn(q, $IDS(cr)) == False{} : Bool}, Pair.snd({Nat.is_eq(x, q) == False{} : Bool}, {NL.memn(q, $IDS(cl)) == False{} : Bool} & {NL.memn(q, $IDS(cr)) == False{} : Bool}, FRM.nm_node(q, x, cl, cr, hq)))
       +hxl = DJ.dj_l($IDS(cl), Con{x, $IDS(cr)}, hnd, x, DJ.mem_hd(x, $IDS(cr)))
       +hxr = DJ.nd_head(x, $IDS(cr), DJ.ndr($IDS(cl), Con{x, $IDS(cr)}, hnd))
       +e = Equal.trans($ND, $NDX($N3(q, x, dr), x), SE.modp(K, $NDX($A3(q, x, dr), x), q), SE.modp(K, $NDX(nl, x), q), RN.hitp(K, $A3(q, x, dr), x, q), L.subst($ND, z => {SE.modp(K, $NDX($A3(q, x, dr), x), q) == SE.modp(K, z, q) : $ND}, $NDX($A3(q, x, dr), x), $NDX(nl, x), RN.skipa(K, nl, q, x, dr, x, FRM.ne_sym(x, q, hqx)), {==}))
@@ -183,18 +179,18 @@ def unl_core($TV, $FT, +flf: $LN, +c: $CT, +ui: Nat, +tu: ST.Tr, +ch: ST.Tr, $UH
 
 # ---- the facts the unlink needs, from the tree's ----
 
-def mid_c(+b: $LN, +s: $LN, +a: $LN, +q: Nat, +hnd: $NDL($APP(b, $APP(s, a))), +hm: $MEM(q, $APP(b, a)), +e: Bool, +he: {HT.memn(q, b) == e : Bool}) -> $NMEM(q, s):
+def mid_c(+b: $LN, +s: $LN, +a: $LN, +q: Nat, +hnd: $NDL($APP(b, $APP(s, a))), +hm: $MEM(q, $APP(b, a)), +e: Bool, +he: {NL.memn(q, b) == e : Bool}) -> $NMEM(q, s):
   match e:
     case True{}:
       DJ.nm_l(q, s, a, DJ.dj_r(b, $APP(s, a), hnd, q, he))
     case False{}:
-      +hor = Equal.trans(Bool, Bool.or(HT.memn(q, b), HT.memn(q, a)), HT.memn(q, $APP(b, a)), True{}, Equal.sym(Bool, HT.memn(q, $APP(b, a)), Bool.or(HT.memn(q, b), HT.memn(q, a)), LS.memn_app(q, b, a)), hm)
-      +hqa = L.subst(Bool, w => {Bool.or(w, HT.memn(q, a)) == True{} : Bool}, HT.memn(q, b), False{}, he, hor)
+      +hor = Equal.trans(Bool, Bool.or(NL.memn(q, b), NL.memn(q, a)), NL.memn(q, $APP(b, a)), True{}, Equal.sym(Bool, NL.memn(q, $APP(b, a)), Bool.or(NL.memn(q, b), NL.memn(q, a)), NL.memn_app(q, b, a)), hm)
+      +hqa = L.subst(Bool, w => {Bool.or(w, NL.memn(q, a)) == True{} : Bool}, NL.memn(q, b), False{}, he, hor)
       DJ.dj_l(s, a, DJ.ndr(b, $APP(s, a), hnd), q, hqa)
 
 # a member of the lists around s is not in s
 def mid_nm(+b: $LN, +s: $LN, +a: $LN, +q: Nat, +hnd: $NDL($APP(b, $APP(s, a))), +hm: $MEM(q, $APP(b, a))) -> $NMEM(q, s):
-  mid_c(b, s, a, q, hnd, hm, HT.memn(q, b), {==})
+  mid_c(b, s, a, q, hnd, hm, NL.memn(q, b), {==})
 
 # the parent is not in the subtree
 def top_nm($TO, +nl: $NL, +c: $CT, +t: ST.Tr, +p: Nat, +hr: $REPN(t, p, nl), +hnd: $NDL($WH(c, t))) -> $NMEM(P.top(c), $IDS(t)):

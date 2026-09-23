@@ -10,7 +10,6 @@ import ./state.bend as ST
 import ./lookup.bend as LK
 import ./tools.bend as T
 import ./insm.bend as IM
-import ./insert.bend as IS
 import ./rehash.bend as RH
 import ./ring.bend as RG
 import ./keys.bend as K2

@@ -3,12 +3,10 @@ import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../spec/common.bend as SC
-import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./prim.bend as PR
+import ../lib/nat_list.bend as NL
 
 # Writes to the node list: a write leaves every other id's node as it was,
 # so the links, entries and free chain of ids avoiding it; a recolouring
@@ -22,7 +20,7 @@ import ./prim.bend as PR
 %def E M.Entry<K, V>
 %def WR(nl, id, x) PR.wr_nl(K, nl, id, x)
 %def NDX(nl, j) ST.nd(K, nl, j)
-%def NMEM(y, xs) {HT.memn(y, xs) == False{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
 
 def or_f_r(+a: Bool, +b: Bool, +h: {Bool.or(a, b) == False{} : Bool}) -> {b == False{} : Bool}:
   match a:
@@ -73,12 +71,12 @@ def ne_sym(+a: Nat, +b: Nat, +h: {Nat.is_eq(a, b) == False{} : Bool}) -> {Nat.is
 
 # splitting an absent id over a node's ids
 def nm_node(+y: Nat, +i: Nat, +l: ST.Tr, +r: ST.Tr, +h: $NMEM(y, $IDS(ST.TN{i, l, r}))) -> {Nat.is_eq(i, y) == False{} : Bool} & ($NMEM(y, $IDS(l)) & $NMEM(y, $IDS(r))):
-  +h2 = L.subst(Bool, z => {z == False{} : Bool}, HT.memn(y, $APP($IDS(l), Con{i, $IDS(r)})), Bool.or(HT.memn(y, $IDS(l)), HT.memn(y, Con{i, $IDS(r)})), LS.memn_app(y, $IDS(l), Con{i, $IDS(r)}), h)
-  +h3 = or_f_r(HT.memn(y, $IDS(l)), HT.memn(y, Con{i, $IDS(r)}), h2)
-  (or_f_l(Nat.is_eq(i, y), HT.memn(y, $IDS(r)), h3), (or_f_l(HT.memn(y, $IDS(l)), HT.memn(y, Con{i, $IDS(r)}), h2), or_f_r(Nat.is_eq(i, y), HT.memn(y, $IDS(r)), h3)))
+  +h2 = L.subst(Bool, z => {z == False{} : Bool}, NL.memn(y, $APP($IDS(l), Con{i, $IDS(r)})), Bool.or(NL.memn(y, $IDS(l)), NL.memn(y, Con{i, $IDS(r)})), NL.memn_app(y, $IDS(l), Con{i, $IDS(r)}), h)
+  +h3 = or_f_r(NL.memn(y, $IDS(l)), NL.memn(y, Con{i, $IDS(r)}), h2)
+  (or_f_l(Nat.is_eq(i, y), NL.memn(y, $IDS(r)), h3), (or_f_l(NL.memn(y, $IDS(l)), NL.memn(y, Con{i, $IDS(r)}), h2), or_f_r(Nat.is_eq(i, y), NL.memn(y, $IDS(r)), h3)))
 
 def nm_cons(+y: Nat, +i: Nat, +t: $LN, +h: $NMEM(y, Con{i, t})) -> {Nat.is_eq(i, y) == False{} : Bool} & $NMEM(y, t):
-  (or_f_l(Nat.is_eq(i, y), HT.memn(y, t), h), or_f_r(Nat.is_eq(i, y), HT.memn(y, t), h))
+  (or_f_l(Nat.is_eq(i, y), NL.memn(y, t), h), or_f_r(Nat.is_eq(i, y), NL.memn(y, t), h))
 
 %def REPB(t, p, nl) ST.rep(~K, t, p, nl)
 

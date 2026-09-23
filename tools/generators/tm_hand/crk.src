@@ -6,25 +6,18 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
-import ./mirror.bend as MI
-import ./ok.bend as OK
 import ./tree.bend as TR
 import ./ends.bend as EN
 import ./path.bend as P
 import ./plug.bend as PG
 import ./dj.bend as DJ
 import ./ord.bend as OR
-import ./navl.bend as NV
 import ./cur.bend as CU
-import ./reads.bend as RD
 import ./spath.bend as SP
 import ./agree.bend as AG
 import ./find.bend as FI
-import ./slot.bend as SL
+import ../lib/nat_list.bend as NL
 
 # Keys present are found: a list split at a member, the entry of a member
 # found by its key in sorted entries, and the search for a present key ending
@@ -44,7 +37,7 @@ import ./slot.bend as SL
 %def AO ~K, ~V, ~cmp, ~o
 %def APP(a, b) SC.append(Nat, a, b)
 %def EAPP(a, b) SC.append($E, a, b)
-%def MEM(y, xs) {HT.memn(y, xs) == True{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
 %def SPLT(xs) Sigma<&1, &1, $LN, sa_ => Sigma<&1, &1, $LN, sb_ => {xs == $APP(sa_, Con{j, sb_}) : $LN}>>
 
 def sp_up(+x: Nat, +t: $LN, +j: Nat, r: $SPLT(t)) -> $SPLT(Con{x, t}):
@@ -53,7 +46,7 @@ def sp_up(+x: Nat, +t: $LN, +j: Nat, r: $SPLT(t)) -> $SPLT(Con{x, t}):
       (Con{x, sa}, (sb, L.subst($LN, z => {Con{x, t} == Con{x, z} : $LN}, t, $APP(sa, Con{j, sb}), h, {==})))
 
 # a list at a member
-def split_c(+x: Nat, +t: $LN, +j: Nat, +e: Bool, +he: {Nat.is_eq(x, j) == e : Bool}, +hm: {Bool.or(e, HT.memn(j, t)) == True{} : Bool}, ih: @+hmt: $MEM(j, t) -> $SPLT(t)) -> $SPLT(Con{x, t}):
+def split_c(+x: Nat, +t: $LN, +j: Nat, +e: Bool, +he: {Nat.is_eq(x, j) == e : Bool}, +hm: {Bool.or(e, NL.memn(j, t)) == True{} : Bool}, ih: @+hmt: $MEM(j, t) -> $SPLT(t)) -> $SPLT(Con{x, t}):
   match e:
     case True{}:
       L.subst(Nat, z => $SPLT(Con{z, t}), j, x, Equal.sym(Nat, x, j, N.eq_from_is_eq(x, j, he)), (Nil{}, (t, {==})))
@@ -106,7 +99,7 @@ def fk_x($TO, $FT, +i: Nat, +a: ST.Tr, +b: ST.Tr, +k: K, +c: $CT, +hwh: {$T0 == 
       +eck = Equal.trans(Maybe<&2, K>, CU.ck(~K, nl, i), Some{key}, Some{k}, L.subst($ND, z => {CU.ck(~K, nl, i) == M.node_key(~K, z) : Maybe<&2, K>}, ST.nd(K, nl, i), M.N{c0, x1, x2, x3, key}, hx, {==}), L.subst(K, z => {Some{key} == Some{z} : Maybe<&2, K>}, key, k, Equal.sym(K, k, key, ek), {==}))
       +hm0 = DJ.mem_r(i, P.before(c), $APP($IDS($TN(i, a, b)), P.after(c)), DJ.mem_l(i, $IDS($TN(i, a, b)), P.after(c), P.mem_root(i, a, b)))
       +hm = L.subst($LN, z => $MEM(i, z), $WH(c, $TN(i, a, b)), $IDS(tg), Equal.trans($LN, $WH(c, $TN(i, a, b)), $T0, $IDS(tg), Equal.sym($LN, $T0, $WH(c, $TN(i, a, b)), hwh), LL.append_nil(Nat, $IDS(tg))), hm0)
-      (eck, CU.or_r(Nat.is_eq(i, 0n), HT.memn(i, $IDS(tg)), hm))
+      (eck, CU.or_r(Nat.is_eq(i, 0n), NL.memn(i, $IDS(tg)), hm))
 
 def fk_t($TO, $FT, +t: ST.Tr, $FH) -> $FKT(t):
   match t:

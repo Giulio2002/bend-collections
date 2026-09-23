@@ -19,6 +19,8 @@ import ./insf.bend as IF
 import ./rehash.bend as RH
 import ./delmv.bend as DM
 import ./keysw.bend as KW
+import ../lib/nat_list.bend as NL
+import ../lib/words32.bend as W32
 
 # Facts for pop: after emptying the bucket i that holds key, the other keys
 # look up as before, key is held nowhere, the model's keys have no repeats,
@@ -202,16 +204,16 @@ def subl_refl(+xs: List<&2, Nat>) -> {IF.subl(xs, xs) $TT:
     case Nil{}:
       {==}
     case Con{+x, +t}:
-      L.and_intro(ST.memn(x, Con{x, t}), IF.subl(t, Con{x, t}), L.subst(Bool, b => {Bool.or(b, ST.memn(x, t)) $TT, True{}, Nat.is_eq(x, x), Equal.sym(Bool, Nat.is_eq(x, x), True{}, N.is_eq_refl(x)), {==}), IF.subl_cons(t, t, x, subl_refl(t)))
+      L.and_intro(NL.memn(x, Con{x, t}), IF.subl(t, Con{x, t}), L.subst(Bool, b => {Bool.or(b, NL.memn(x, t)) $TT, True{}, Nat.is_eq(x, x), Equal.sym(Bool, Nat.is_eq(x, x), True{}, N.is_eq_refl(x)), {==}), IF.subl_cons(t, t, x, subl_refl(t)))
 
-def mem_self(+t: Nat, +xs: List<&2, Nat>) -> {ST.memn(t, Con{t, xs}) $TT:
-  L.subst(Bool, b => {Bool.or(b, ST.memn(t, xs)) $TT, True{}, Nat.is_eq(t, t), Equal.sym(Bool, Nat.is_eq(t, t), True{}, N.is_eq_refl(t)), {==})
+def mem_self(+t: Nat, +xs: List<&2, Nat>) -> {NL.memn(t, Con{t, xs}) $TT:
+  L.subst(Bool, b => {Bool.or(b, NL.memn(t, xs)) $TT, True{}, Nat.is_eq(t, t), Equal.sym(Bool, Nat.is_eq(t, t), True{}, N.is_eq_refl(t)), {==})
 
 %def XS Con{s, Con{t, seen}}
 
 # the two orders of visiting s and t
 def subl_sw(+s: Nat, +t: Nat, +seen: List<&2, Nat>) -> {IF.subl(Con{t, Con{s, seen}}, Con{s, Con{t, seen}}) $TT:
-  L.and_intro(ST.memn(t, $XS), IF.subl(Con{s, seen}, $XS), IF.mem_cons(t, s, Con{t, seen}, mem_self(t, seen)), L.and_intro(ST.memn(s, $XS), IF.subl(seen, $XS), mem_self(s, Con{t, seen}), IF.subl_cons(seen, Con{t, seen}, s, IF.subl_cons(seen, seen, t, subl_refl(seen)))))
+  L.and_intro(NL.memn(t, $XS), IF.subl(Con{s, seen}, $XS), IF.mem_cons(t, s, Con{t, seen}, mem_self(t, seen)), L.and_intro(NL.memn(s, $XS), IF.subl(seen, $XS), mem_self(s, Con{t, seen}), IF.subl_cons(seen, Con{t, seen}, s, IF.subl_cons(seen, seen, t, subl_refl(seen)))))
 
 %def TF UD.v(H.slot(f))
 %def NX2 SC.update(U32, nxl, $SV, fv)
@@ -225,23 +227,23 @@ def fl_pr($RP, $FLP, +cnt: Nat, +f: U32, +fr: Nat, +seen: List<&2, Nat>, +h: {ST
       h
     case 1n+p:
       +x1 = Bool.not(U32.is_eq(f, 0))
-      +y = Bool.and(Nat.is_lt($TF, fr), Bool.and(ST.noslot(O, $TF, n), Bool.not(ST.memn($TF, seen))))
-      +tl = ST.fl_ok(O, n, nxl, p, TB.nth0(nxl, $TF), fr, Con{$TF, seen})
-      +z = Bool.and(ST.noslot(O, $TF, n), Bool.not(ST.memn($TF, seen)))
+      +y = Bool.and(Nat.is_lt($TF, fr), Bool.and(ST.noslot(O, $TF, n), Bool.not(NL.memn($TF, seen))))
+      +tl = ST.fl_ok(O, n, nxl, p, W32.nth0(nxl, $TF), fr, Con{$TF, seen})
+      +z = Bool.and(ST.noslot(O, $TF, n), Bool.not(NL.memn($TF, seen)))
       +a2 = L.and_left(y, tl, L.and_right(x1, Bool.and(y, tl), h))
       +a5 = L.and_right(y, tl, L.and_right(x1, Bool.and(y, tl), h))
-      +ns = L.and_left(ST.noslot(O, $TF, n), Bool.not(ST.memn($TF, seen)), L.and_right(Nat.is_lt($TF, fr), z, a2))
-      +nm = L.and_right(ST.noslot(O, $TF, n), Bool.not(ST.memn($TF, seen)), L.and_right(Nat.is_lt($TF, fr), z, a2))
+      +ns = L.and_left(ST.noslot(O, $TF, n), Bool.not(NL.memn($TF, seen)), L.and_right(Nat.is_lt($TF, fr), z, a2))
+      +nm = L.and_right(ST.noslot(O, $TF, n), Bool.not(NL.memn($TF, seen)), L.and_right(Nat.is_lt($TF, fr), z, a2))
       +ne = IM.slot_other(B.at(O, i), $TF, hoi, IM.noslot_inst(O, $TF, n, ns, i, hi))
       +ns2 = RH.ns_from(Vf, $V0, n, n, hf, $TF, ns_be($RA, $TF, ns, n, N.le_refl(n)), n, N.le_refl(n))
-      +nm2 = L.subst(Bool, b => {Bool.not(Bool.or(b, ST.memn($TF, seen))) $TT, False{}, Nat.is_eq($SV, $TF), Equal.sym(Bool, Nat.is_eq($SV, $TF), False{}, ne), nm)
-      +enx = IA.nth0_upd_other(nxl, $SV, $TF, fv, ne)
-      +r0 = fl_pr($RA, $FLA, p, TB.nth0(nxl, $TF), fr, Con{$TF, seen}, a5)
-      +r1 = L.subst(U32, g => {ST.fl_ok(Vf, n, $NX2, p, g, fr, Con{$SV, Con{$TF, seen}}) $TT, TB.nth0(nxl, $TF), TB.nth0($NX2, $TF), Equal.sym(U32, TB.nth0($NX2, $TF), TB.nth0(nxl, $TF), enx), r0)
-      +r2 = IF.fl_weak(Vf, n, $NX2, p, TB.nth0($NX2, $TF), fr, Con{$SV, Con{$TF, seen}}, Con{$TF, Con{$SV, seen}}, subl_sw($SV, $TF, seen), r1)
-      +y2 = Bool.and(Nat.is_lt($TF, fr), Bool.and(ST.noslot(Vf, $TF, n), Bool.not(ST.memn($TF, Con{$SV, seen}))))
-      +tl2 = ST.fl_ok(Vf, n, $NX2, p, TB.nth0($NX2, $TF), fr, Con{$TF, Con{$SV, seen}})
-      L.and_intro(x1, Bool.and(y2, tl2), L.and_left(x1, Bool.and(y, tl), h), L.and_intro(y2, tl2, L.and_intro(Nat.is_lt($TF, fr), Bool.and(ST.noslot(Vf, $TF, n), Bool.not(ST.memn($TF, Con{$SV, seen}))), L.and_left(Nat.is_lt($TF, fr), z, a2), L.and_intro(ST.noslot(Vf, $TF, n), Bool.not(ST.memn($TF, Con{$SV, seen})), ns2, nm2)), r2))
+      +nm2 = L.subst(Bool, b => {Bool.not(Bool.or(b, NL.memn($TF, seen))) $TT, False{}, Nat.is_eq($SV, $TF), Equal.sym(Bool, Nat.is_eq($SV, $TF), False{}, ne), nm)
+      +enx = W32.nth0_upd_other(nxl, $SV, $TF, fv, ne)
+      +r0 = fl_pr($RA, $FLA, p, W32.nth0(nxl, $TF), fr, Con{$TF, seen}, a5)
+      +r1 = L.subst(U32, g => {ST.fl_ok(Vf, n, $NX2, p, g, fr, Con{$SV, Con{$TF, seen}}) $TT, W32.nth0(nxl, $TF), W32.nth0($NX2, $TF), Equal.sym(U32, W32.nth0($NX2, $TF), W32.nth0(nxl, $TF), enx), r0)
+      +r2 = IF.fl_weak(Vf, n, $NX2, p, W32.nth0($NX2, $TF), fr, Con{$SV, Con{$TF, seen}}, Con{$TF, Con{$SV, seen}}, subl_sw($SV, $TF, seen), r1)
+      +y2 = Bool.and(Nat.is_lt($TF, fr), Bool.and(ST.noslot(Vf, $TF, n), Bool.not(NL.memn($TF, Con{$SV, seen}))))
+      +tl2 = ST.fl_ok(Vf, n, $NX2, p, W32.nth0($NX2, $TF), fr, Con{$TF, Con{$SV, seen}})
+      L.and_intro(x1, Bool.and(y2, tl2), L.and_left(x1, Bool.and(y, tl), h), L.and_intro(y2, tl2, L.and_intro(Nat.is_lt($TF, fr), Bool.and(ST.noslot(Vf, $TF, n), Bool.not(NL.memn($TF, Con{$SV, seen}))), L.and_left(Nat.is_lt($TF, fr), z, a2), L.and_intro(ST.noslot(Vf, $TF, n), Bool.not(NL.memn($TF, Con{$SV, seen})), ns2, nm2)), r2))
 
 # ---- the model's keys have no repeats ----
 
@@ -292,7 +294,7 @@ def kd(+tb: List<&2, U32>, +kl: List<&2, String>, +s: Nat, +sk: String, +n: Nat,
       {==}
     case 1n+p:
       +hi = IA.idx_lt(i, p, n, hmi)
-      IA.con_eq(TB.dec(tb, SC.update(String, kl, s, sk), i), TB.dec(tb, kl, i), TB.dlist(tb, SC.update(String, kl, s, sk), p, 1n+i), TB.dlist(tb, kl, p, 1n+i), IA.dec_same_c(TB.nth0(tb, Nat.double(i)), TB.nth0(tb, 1n+Nat.double(i)), kl, s, sk, U32.is_eq(TB.nth0(tb, Nat.double(i)), 0), kd_i(tb, kl, s, n, hns, i, hi)), kd(tb, kl, s, sk, n, hns, p, 1n+i, IA.idx_next(i, p, n, hmi)))
+      IA.con_eq(TB.dec(tb, SC.update(String, kl, s, sk), i), TB.dec(tb, kl, i), TB.dlist(tb, SC.update(String, kl, s, sk), p, 1n+i), TB.dlist(tb, kl, p, 1n+i), IA.dec_same_c(W32.nth0(tb, Nat.double(i)), W32.nth0(tb, 1n+Nat.double(i)), kl, s, sk, U32.is_eq(W32.nth0(tb, Nat.double(i)), 0), kd_i(tb, kl, s, n, hns, i, hi)), kd(tb, kl, s, sk, n, hns, p, 1n+i, IA.idx_next(i, p, n, hmi)))
 
 # THEOREM: rewriting a key cell no bucket uses leaves every bucket
 def bs_key(+tb: List<&2, U32>, +kl: List<&2, String>, +s: Nat, +sk: String, +n: Nat, +hns: {ST.noslot(TB.buckets(tb, kl, n), s, n) $TT) -> {TB.buckets(tb, SC.update(String, kl, s, sk), n) == TB.buckets(tb, kl, n) : List<&2, B.Bk>}:

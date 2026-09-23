@@ -5,11 +5,11 @@ import ../spec/common.bend as SC
 import ../math/u32div.bend as UD
 import ../../src/containers/hash_table.bend as H
 import ./words.bend as WR
-import ./keys.bend as K
-import ./table.bend as TB
 import ./buckets.bend as B
 import ./state.bend as ST
 import ./insm.bend as IM
+import ../lib/nat_list.bend as NL
+import ../lib/words32.bend as W32
 
 # The free list across an insertion: its slots stay unused when the new
 # bucket takes a slot not on it, and forgetting visited slots keeps it valid.
@@ -22,42 +22,42 @@ import ./insm.bend as IM
 %def CA bs, e, he, w, L, key
 %def FLP +nb: Nat, +nxl: List<&2, U32>
 %def T UD.v(H.slot(f))
-%def FLB Bool.and(Bool.not(U32.is_eq(f, 0)), Bool.and(Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen)))), ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, $T), fr, Con{$T, seen})))
+%def FLB Bool.and(Bool.not(U32.is_eq(f, 0)), Bool.and(Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen)))), ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, $T), fr, Con{$T, seen})))
 
-def mem_ne_c(+a: Nat, +t: Nat, +seen: List<&2, Nat>, +ha: {ST.memn(a, seen) $TT, +ht: {Bool.not(ST.memn(t, seen)) $TT, +c: Bool, +hc: {Nat.is_eq(a, t) == c : Bool}) -> {c $FF:
+def mem_ne_c(+a: Nat, +t: Nat, +seen: List<&2, Nat>, +ha: {NL.memn(a, seen) $TT, +ht: {Bool.not(NL.memn(t, seen)) $TT, +c: Bool, +hc: {Nat.is_eq(a, t) == c : Bool}) -> {c $FF:
   match c:
     case False{}:
       {==}
     case True{}:
-      +h2 = L.subst(Nat, z => {ST.memn(z, seen) $TT, a, t, N.eq_from_is_eq(a, t, hc), ha)
-      Empty.absurd({True{} $FF, L.false_true(L.subst(Bool, b => {Bool.not(b) $TT, ST.memn(t, seen), True{}, h2, ht)))
+      +h2 = L.subst(Nat, z => {NL.memn(z, seen) $TT, a, t, N.eq_from_is_eq(a, t, hc), ha)
+      Empty.absurd({True{} $FF, L.false_true(L.subst(Bool, b => {Bool.not(b) $TT, NL.memn(t, seen), True{}, h2, ht)))
 
 # a slot on the list and a slot not on it differ
-def mem_ne(+a: Nat, +t: Nat, +seen: List<&2, Nat>, +ha: {ST.memn(a, seen) $TT, +ht: {Bool.not(ST.memn(t, seen)) $TT) -> {Nat.is_eq(a, t) $FF:
+def mem_ne(+a: Nat, +t: Nat, +seen: List<&2, Nat>, +ha: {NL.memn(a, seen) $TT, +ht: {Bool.not(NL.memn(t, seen)) $TT) -> {Nat.is_eq(a, t) $FF:
   mem_ne_c(a, t, seen, ha, ht, Nat.is_eq(a, t), {==})
 
-def mem_cons(+a: Nat, +t: Nat, +seen: List<&2, Nat>, +ha: {ST.memn(a, seen) $TT) -> {ST.memn(a, Con{t, seen}) $TT:
-  L.subst(Bool, b => {Bool.or(Nat.is_eq(t, a), b) $TT, True{}, ST.memn(a, seen), Equal.sym(Bool, ST.memn(a, seen), True{}, ha), WR.or_true(Nat.is_eq(t, a)))
+def mem_cons(+a: Nat, +t: Nat, +seen: List<&2, Nat>, +ha: {NL.memn(a, seen) $TT) -> {NL.memn(a, Con{t, seen}) $TT:
+  L.subst(Bool, b => {Bool.or(Nat.is_eq(t, a), b) $TT, True{}, NL.memn(a, seen), Equal.sym(Bool, NL.memn(a, seen), True{}, ha), WR.or_true(Nat.is_eq(t, a)))
 
 # THEOREM: filling bucket e with a slot the list has visited keeps the list valid
-def fl_tr($CP, $FLP, +cnt: Nat, +f: U32, +fr: Nat, +seen: List<&2, Nat>, +hm: {ST.memn($SL, seen) $TT, +h: {ST.fl_ok(bs, nb, nxl, cnt, f, fr, seen) $TT) -> {ST.fl_ok($B2, nb, nxl, cnt, f, fr, seen) $TT:
+def fl_tr($CP, $FLP, +cnt: Nat, +f: U32, +fr: Nat, +seen: List<&2, Nat>, +hm: {NL.memn($SL, seen) $TT, +h: {ST.fl_ok(bs, nb, nxl, cnt, f, fr, seen) $TT) -> {ST.fl_ok($B2, nb, nxl, cnt, f, fr, seen) $TT:
   match cnt:
     case 0n:
       h
     case 1n+p:
       +x1 = Bool.not(U32.is_eq(f, 0))
-      +x2 = Bool.and(Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen)))), ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, $T), fr, Con{$T, seen}))
-      +y = Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen))))
-      +z = Bool.and(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen)))
+      +x2 = Bool.and(Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen)))), ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, $T), fr, Con{$T, seen}))
+      +y = Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen))))
+      +z = Bool.and(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen)))
       +a1 = L.and_left(x1, x2, h)
-      +a2 = L.and_left(y, ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, $T), fr, Con{$T, seen}), L.and_right(x1, x2, h))
-      +a5 = L.and_right(y, ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, $T), fr, Con{$T, seen}), L.and_right(x1, x2, h))
+      +a2 = L.and_left(y, ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, $T), fr, Con{$T, seen}), L.and_right(x1, x2, h))
+      +a5 = L.and_right(y, ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, $T), fr, Con{$T, seen}), L.and_right(x1, x2, h))
       +lt = L.and_left(Nat.is_lt($T, fr), z, a2)
-      +ns = L.and_left(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen)), L.and_right(Nat.is_lt($T, fr), z, a2))
-      +nm = L.and_right(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen)), L.and_right(Nat.is_lt($T, fr), z, a2))
+      +ns = L.and_left(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen)), L.and_right(Nat.is_lt($T, fr), z, a2))
+      +nm = L.and_right(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen)), L.and_right(Nat.is_lt($T, fr), z, a2))
       +ns2 = IM.noslot_up($CA, $T, mem_ne($SL, $T, seen, hm, nm), nb, ns)
-      +r5 = fl_tr($CA, nb, nxl, p, TB.nth0(nxl, $T), fr, Con{$T, seen}, mem_cons($SL, $T, seen, hm), a5)
-      L.and_intro(x1, Bool.and(Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot($B2, $T, nb), Bool.not(ST.memn($T, seen)))), ST.fl_ok($B2, nb, nxl, p, TB.nth0(nxl, $T), fr, Con{$T, seen})), a1, L.and_intro(Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot($B2, $T, nb), Bool.not(ST.memn($T, seen)))), ST.fl_ok($B2, nb, nxl, p, TB.nth0(nxl, $T), fr, Con{$T, seen}), L.and_intro(Nat.is_lt($T, fr), Bool.and(ST.noslot($B2, $T, nb), Bool.not(ST.memn($T, seen))), lt, L.and_intro(ST.noslot($B2, $T, nb), Bool.not(ST.memn($T, seen)), ns2, nm)), r5))
+      +r5 = fl_tr($CA, nb, nxl, p, W32.nth0(nxl, $T), fr, Con{$T, seen}, mem_cons($SL, $T, seen, hm), a5)
+      L.and_intro(x1, Bool.and(Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot($B2, $T, nb), Bool.not(NL.memn($T, seen)))), ST.fl_ok($B2, nb, nxl, p, W32.nth0(nxl, $T), fr, Con{$T, seen})), a1, L.and_intro(Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot($B2, $T, nb), Bool.not(NL.memn($T, seen)))), ST.fl_ok($B2, nb, nxl, p, W32.nth0(nxl, $T), fr, Con{$T, seen}), L.and_intro(Nat.is_lt($T, fr), Bool.and(ST.noslot($B2, $T, nb), Bool.not(NL.memn($T, seen))), lt, L.and_intro(ST.noslot($B2, $T, nb), Bool.not(NL.memn($T, seen)), ns2, nm)), r5))
 
 # ---- forgetting visited slots ----
 
@@ -66,38 +66,38 @@ def subl(+xs: List<&2, Nat>, +ys: List<&2, Nat>) -> Bool:
     case Nil{}:
       True{}
     case Con{+x, t}:
-      Bool.and(ST.memn(x, ys), subl(t, ys))
+      Bool.and(NL.memn(x, ys), subl(t, ys))
 
-def ms_c(+t: Nat, +x: Nat, +r: List<&2, Nat>, +ys: List<&2, Nat>, +hx: {ST.memn(x, ys) $TT, +c: Bool, +hc: {Nat.is_eq(x, t) == c : Bool}, +hm: {Bool.or(c, ST.memn(t, r)) $TT, rec: @hr: {ST.memn(t, r) $TT -> {ST.memn(t, ys) $TT) -> {ST.memn(t, ys) $TT:
+def ms_c(+t: Nat, +x: Nat, +r: List<&2, Nat>, +ys: List<&2, Nat>, +hx: {NL.memn(x, ys) $TT, +c: Bool, +hc: {Nat.is_eq(x, t) == c : Bool}, +hm: {Bool.or(c, NL.memn(t, r)) $TT, rec: @hr: {NL.memn(t, r) $TT -> {NL.memn(t, ys) $TT) -> {NL.memn(t, ys) $TT:
   match c:
     case True{}:
-      L.subst(Nat, z => {ST.memn(z, ys) $TT, x, t, N.eq_from_is_eq(x, t, hc), hx)
+      L.subst(Nat, z => {NL.memn(z, ys) $TT, x, t, N.eq_from_is_eq(x, t, hc), hx)
     case False{}:
       rec(hm)
 
-def memn_sub(+t: Nat, +xs: List<&2, Nat>, +ys: List<&2, Nat>, +hs: {subl(xs, ys) $TT, +hm: {ST.memn(t, xs) $TT) -> {ST.memn(t, ys) $TT:
+def memn_sub(+t: Nat, +xs: List<&2, Nat>, +ys: List<&2, Nat>, +hs: {subl(xs, ys) $TT, +hm: {NL.memn(t, xs) $TT) -> {NL.memn(t, ys) $TT:
   match xs:
     case Nil{}:
-      Empty.absurd({ST.memn(t, ys) $TT, L.false_true(hm))
+      Empty.absurd({NL.memn(t, ys) $TT, L.false_true(hm))
     case Con{+x, r}:
-      ms_c(t, x, r, ys, L.and_left(ST.memn(x, ys), subl(r, ys), hs), Nat.is_eq(x, t), {==}, hm, hr => memn_sub(t, r, ys, L.and_right(ST.memn(x, ys), subl(r, ys), hs), hr))
+      ms_c(t, x, r, ys, L.and_left(NL.memn(x, ys), subl(r, ys), hs), Nat.is_eq(x, t), {==}, hm, hr => memn_sub(t, r, ys, L.and_right(NL.memn(x, ys), subl(r, ys), hs), hr))
 
-def nm_c(+t: Nat, +xs: List<&2, Nat>, +ys: List<&2, Nat>, +hs: {subl(xs, ys) $TT, +h: {Bool.not(ST.memn(t, ys)) $TT, +c: Bool, +hc: {ST.memn(t, xs) == c : Bool}) -> {Bool.not(c) $TT:
+def nm_c(+t: Nat, +xs: List<&2, Nat>, +ys: List<&2, Nat>, +hs: {subl(xs, ys) $TT, +h: {Bool.not(NL.memn(t, ys)) $TT, +c: Bool, +hc: {NL.memn(t, xs) == c : Bool}) -> {Bool.not(c) $TT:
   match c:
     case False{}:
       {==}
     case True{}:
-      Empty.absurd({Bool.not(True{}) $TT, L.false_true(L.subst(Bool, b => {Bool.not(b) $TT, ST.memn(t, ys), True{}, memn_sub(t, xs, ys, hs, hc), h)))
+      Empty.absurd({Bool.not(True{}) $TT, L.false_true(L.subst(Bool, b => {Bool.not(b) $TT, NL.memn(t, ys), True{}, memn_sub(t, xs, ys, hs, hc), h)))
 
 def subl_cons(+xs: List<&2, Nat>, +ys: List<&2, Nat>, +y: Nat, +h: {subl(xs, ys) $TT) -> {subl(xs, Con{y, ys}) $TT:
   match xs:
     case Nil{}:
       {==}
     case Con{+x, r}:
-      L.and_intro(ST.memn(x, Con{y, ys}), subl(r, Con{y, ys}), mem_cons(x, y, ys, L.and_left(ST.memn(x, ys), subl(r, ys), h)), subl_cons(r, ys, y, L.and_right(ST.memn(x, ys), subl(r, ys), h)))
+      L.and_intro(NL.memn(x, Con{y, ys}), subl(r, Con{y, ys}), mem_cons(x, y, ys, L.and_left(NL.memn(x, ys), subl(r, ys), h)), subl_cons(r, ys, y, L.and_right(NL.memn(x, ys), subl(r, ys), h)))
 
 def subl_both(+xs: List<&2, Nat>, +ys: List<&2, Nat>, +t: Nat, +h: {subl(xs, ys) $TT) -> {subl(Con{t, xs}, Con{t, ys}) $TT:
-  L.and_intro(ST.memn(t, Con{t, ys}), subl(xs, Con{t, ys}), L.subst(Bool, b => {Bool.or(b, ST.memn(t, ys)) $TT, True{}, Nat.is_eq(t, t), Equal.sym(Bool, Nat.is_eq(t, t), True{}, N.is_eq_refl(t)), {==}), subl_cons(xs, ys, t, h))
+  L.and_intro(NL.memn(t, Con{t, ys}), subl(xs, Con{t, ys}), L.subst(Bool, b => {Bool.or(b, NL.memn(t, ys)) $TT, True{}, Nat.is_eq(t, t), Equal.sym(Bool, Nat.is_eq(t, t), True{}, N.is_eq_refl(t)), {==}), subl_cons(xs, ys, t, h))
 
 # THEOREM: a valid list stays valid when fewer slots count as visited
 def fl_weak(+bs: List<&2, B.Bk>, $FLP, +cnt: Nat, +f: U32, +fr: Nat, +seen: List<&2, Nat>, +seen2: List<&2, Nat>, +hs: {subl(seen2, seen) $TT, +h: {ST.fl_ok(bs, nb, nxl, cnt, f, fr, seen) $TT) -> {ST.fl_ok(bs, nb, nxl, cnt, f, fr, seen2) $TT:
@@ -106,14 +106,14 @@ def fl_weak(+bs: List<&2, B.Bk>, $FLP, +cnt: Nat, +f: U32, +fr: Nat, +seen: List
       h
     case 1n+p:
       +x1 = Bool.not(U32.is_eq(f, 0))
-      +x2 = Bool.and(Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen)))), ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, $T), fr, Con{$T, seen}))
-      +y = Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen))))
-      +z = Bool.and(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen)))
-      +a2 = L.and_left(y, ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, $T), fr, Con{$T, seen}), L.and_right(x1, x2, h))
-      +a5 = L.and_right(y, ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, $T), fr, Con{$T, seen}), L.and_right(x1, x2, h))
-      +nm = L.and_right(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen)), L.and_right(Nat.is_lt($T, fr), z, a2))
-      +nm2 = nm_c($T, seen2, seen, hs, nm, ST.memn($T, seen2), {==})
-      L.and_intro(x1, Bool.and(Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen2)))), ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, $T), fr, Con{$T, seen2})), L.and_left(x1, x2, h), L.and_intro(Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen2)))), ST.fl_ok(bs, nb, nxl, p, TB.nth0(nxl, $T), fr, Con{$T, seen2}), L.and_intro(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen2))), L.and_left(Nat.is_lt($T, fr), z, a2), L.and_intro(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen2)), L.and_left(ST.noslot(bs, $T, nb), Bool.not(ST.memn($T, seen)), L.and_right(Nat.is_lt($T, fr), z, a2)), nm2)), fl_weak(bs, nb, nxl, p, TB.nth0(nxl, $T), fr, Con{$T, seen}, Con{$T, seen2}, subl_both(seen2, seen, $T, hs), a5)))
+      +x2 = Bool.and(Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen)))), ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, $T), fr, Con{$T, seen}))
+      +y = Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen))))
+      +z = Bool.and(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen)))
+      +a2 = L.and_left(y, ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, $T), fr, Con{$T, seen}), L.and_right(x1, x2, h))
+      +a5 = L.and_right(y, ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, $T), fr, Con{$T, seen}), L.and_right(x1, x2, h))
+      +nm = L.and_right(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen)), L.and_right(Nat.is_lt($T, fr), z, a2))
+      +nm2 = nm_c($T, seen2, seen, hs, nm, NL.memn($T, seen2), {==})
+      L.and_intro(x1, Bool.and(Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen2)))), ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, $T), fr, Con{$T, seen2})), L.and_left(x1, x2, h), L.and_intro(Bool.and(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen2)))), ST.fl_ok(bs, nb, nxl, p, W32.nth0(nxl, $T), fr, Con{$T, seen2}), L.and_intro(Nat.is_lt($T, fr), Bool.and(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen2))), L.and_left(Nat.is_lt($T, fr), z, a2), L.and_intro(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen2)), L.and_left(ST.noslot(bs, $T, nb), Bool.not(NL.memn($T, seen)), L.and_right(Nat.is_lt($T, fr), z, a2)), nm2)), fl_weak(bs, nb, nxl, p, W32.nth0(nxl, $T), fr, Con{$T, seen}, Con{$T, seen2}, subl_both(seen2, seen, $T, hs), a5)))
 
 # ---- the list's length ----
 

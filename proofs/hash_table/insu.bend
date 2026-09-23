@@ -2,42 +2,23 @@ import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/u32.bend as U
-import ../lib/u32alg.bend as A
 import ../spec/common.bend as SC
 import ../math/word.bend as WD
 import ../math/u32div.bend as UD
-import ../../src/containers/hash_table.bend as H
 import ./cyc.bend as CY
-import ./arr.bend as AX
 import ./probe_all.bend as PA
+import ../lib/words32.bend as W32
 
 # U32 facts for insertion: links and slots, the load test, counters.
 
 
 # x < 2^d with d + 1 < 32 leaves room for one more
-def bound32(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +d: Nat, +hd: {Nat.is_lt(1n+d, 32n) == True{} : Bool}, +hx: {Nat.is_lt(x, SC.pow2(d)) == True{} : Bool}) -> {Nat.is_lt(1n+x, WD.sc(32n, one)) == True{} : Bool}:
-  N.le_lt_trans(1n+x, SC.pow2(d), WD.sc(32n, one), N.lt_succ_le_succ(x, SC.pow2(d), hx), N.lt_le_trans(SC.pow2(d), SC.pow2(1n+d), WD.sc(32n, one), N.pow2_lt_succ(d), AX.pow_le32(one, h1, 1n+d, hd)))
 
-def link_val(+one: Nat, +h1: {one == 1n : Nat}, +s: U32, +hs: {Nat.is_lt(1n+UD.v(s), WD.sc(32n, one)) == True{} : Bool}) -> {UD.v(H.link(s)) == 1n+UD.v(s) : Nat}:
-  CY.inc_val(one, h1, s, hs)
 
 # THEOREM: the slot of the link of s is s
-def slot_link(+one: Nat, +h1: {one == 1n : Nat}, +s: U32, +hs: {Nat.is_lt(1n+UD.v(s), WD.sc(32n, one)) == True{} : Bool}) -> {UD.v(H.slot(H.link(s))) == UD.v(s) : Nat}:
-  +lv = link_val(one, h1, s, hs)
-  +hle = L.subst(Nat, z => {Nat.is_le(1n, z) == True{} : Bool}, 1n+UD.v(s), UD.v(H.link(s)), Equal.sym(Nat, UD.v(H.link(s)), 1n+UD.v(s), lv), N.zero_le(UD.v(s)))
-  Equal.trans(Nat, UD.v(H.slot(H.link(s))), Nat.sub(UD.v(H.link(s)), 1n), UD.v(s), U.sub_nat(H.link(s), 1, hle), Equal.trans(Nat, Nat.sub(UD.v(H.link(s)), 1n), Nat.sub(1n+UD.v(s), 1n), UD.v(s), Equal.cong(Nat, Nat, z => Nat.sub(z, 1n), UD.v(H.link(s)), 1n+UD.v(s), lv), N.sub_zero(UD.v(s))))
 
-def link_nz_c(+one: Nat, +h1: {one == 1n : Nat}, +s: U32, +hs: {Nat.is_lt(1n+UD.v(s), WD.sc(32n, one)) == True{} : Bool}, +c: Bool, +hc: {U32.is_eq(H.link(s), 0) == c : Bool}) -> {c == False{} : Bool}:
-  match c:
-    case False{}:
-      {==}
-    case True{}:
-      +e0 = Equal.cong(U32, Nat, z => UD.v(z), H.link(s), 0, A.eq_of(H.link(s), 0, hc))
-      Empty.absurd({True{} == False{} : Bool}, N.succ_zero(UD.v(s), Equal.trans(Nat, 1n+UD.v(s), UD.v(H.link(s)), 0n, Equal.sym(Nat, UD.v(H.link(s)), 1n+UD.v(s), link_val(one, h1, s, hs)), e0)))
 
 # THEOREM: a link is never 0
-def link_nz(+one: Nat, +h1: {one == 1n : Nat}, +s: U32, +hs: {Nat.is_lt(1n+UD.v(s), WD.sc(32n, one)) == True{} : Bool}) -> {U32.is_eq(H.link(s), 0) == False{} : Bool}:
-  link_nz_c(one, h1, s, hs, U32.is_eq(H.link(s), 0), {==})
 
 # ---- comparisons ----
 
@@ -95,7 +76,7 @@ def over_c(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk31: {Nat.is_lt(k, 31n)
 # THEOREM: with at most half the buckets full, one more entry is n + 1 and
 # the load test compares 2(n + 1) with the bucket count
 def inc_n(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk31: {Nat.is_lt(k, 31n) == True{} : Bool}, +hk0: {Nat.is_lt(0n, k) == True{} : Bool}, +n: U32, +hl: {Nat.is_le(Nat.double(UD.v(n)), SC.pow2(k)) == True{} : Bool}) -> {UD.v(U32.inc(n)) == 1n+UD.v(n) : Nat}:
-  CY.inc_val(one, h1, n, N.le_lt_trans(1n+UD.v(n), SC.pow2(k), WD.sc(32n, one), over_c(one, h1, k, hk31, hk0, UD.v(n), hl), N.lt_le_trans(SC.pow2(k), SC.pow2(1n+k), WD.sc(32n, one), N.pow2_lt_succ(k), AX.pow_le32(one, h1, 1n+k, hk31))))
+  W32.inc_val(one, h1, n, N.le_lt_trans(1n+UD.v(n), SC.pow2(k), WD.sc(32n, one), over_c(one, h1, k, hk31, hk0, UD.v(n), hl), N.lt_le_trans(SC.pow2(k), SC.pow2(1n+k), WD.sc(32n, one), N.pow2_lt_succ(k), W32.pow_le32(one, h1, 1n+k, hk31))))
 
 def over_val(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk31: {Nat.is_lt(k, 31n) == True{} : Bool}, +hk0: {Nat.is_lt(0n, k) == True{} : Bool}, +n: U32, +hl: {Nat.is_le(Nat.double(UD.v(n)), SC.pow2(k)) == True{} : Bool}) -> {U32.is_gt(U32.shl(U32.inc(n)), U32.inc(CY.msk(k))) == Nat.is_gt(Nat.double(1n+UD.v(n)), SC.pow2(k)) : Bool}:
   +ei = inc_n(one, h1, k, hk31, hk0, n, hl)

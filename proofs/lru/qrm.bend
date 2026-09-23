@@ -1,15 +1,12 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/u32alg.bend as A
 import ../lib/array.bend as AR
 import ../spec/common.bend as SC
-import ../spec/hash_table.bend as S
 import ../math/u32div.bend as UD
 import ../math/word.bend as WD
 import ../../src/containers/hash_table.bend as H
 import ../../src/containers/lru.bend as LR
-import ../hash_table/words.bend as WR
 import ../hash_table/keys.bend as K
 import ../hash_table/table.bend as TB
 import ../hash_table/buckets.bend as B
@@ -17,6 +14,7 @@ import ../hash_table/arr.bend as AX
 import ../hash_table/probe_impl.bend as PI
 import ../hash_table/cyc.bend as CY
 import ../hash_table/qprobe.bend as QP
+import ../lib/words32.bend as W32
 
 # The fused one-character remove loop qrm is the model probe B.pf followed by
 # the removal at the bucket it finds (nothing when it finds none).
@@ -62,8 +60,8 @@ def qrm_ok(~V: Data, +cap: U32, +nn: U32, +head: U32, +tail: U32, +free: U32, +m
       +el = AX.ix_l(i, 1n+k, hk31, hb)
       +hwb0 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) == True{} : Bool}, Nat.double(UD.v(i)), UD.v(U32.shl(i)), Equal.sym(Nat, UD.v(U32.shl(i)), Nat.double(UD.v(i)), ew), N.lt_trans(Nat.double(UD.v(i)), 1n+Nat.double(UD.v(i)), SC.pow2(1n+k), N.lt_succ(Nat.double(UD.v(i))), hb))
       +hlb0 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) == True{} : Bool}, 1n+Nat.double(UD.v(i)), UD.v(U32.inc(U32.shl(i))), Equal.sym(Nat, UD.v(U32.inc(U32.shl(i))), 1n+Nat.double(UD.v(i)), el), hb)
-      +x = TB.nth0(tb, UD.v(U32.shl(i)))
-      +l = TB.nth0(tb, UD.v(U32.inc(U32.shl(i))))
+      +x = W32.nth0(tb, UD.v(U32.shl(i)))
+      +l = W32.nth0(tb, UD.v(U32.inc(U32.shl(i))))
       +dx = PI.dec_ix(tb, kl0, UD.v(i), UD.v(U32.shl(i)), UD.v(U32.inc(U32.shl(i))), ew, el)
       +dat = TB.at_buckets(tb, kl0, n, UD.v(i), hi)
       +dd = Equal.trans(B.Bk, B.at(bs, UD.v(i)), TB.dec(tb, kl0, UD.v(i)), TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), dat, Equal.sym(B.Bk, TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), TB.dec(tb, kl0, UD.v(i)), dx))
@@ -87,8 +85,8 @@ def qrm_ok(~V: Data, +cap: U32, +nn: U32, +head: U32, +tail: U32, +free: U32, +m
       +el = AX.ix_l(i, 1n+k, hk31, hb)
       +hwb0 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) == True{} : Bool}, Nat.double(UD.v(i)), UD.v(U32.shl(i)), Equal.sym(Nat, UD.v(U32.shl(i)), Nat.double(UD.v(i)), ew), N.lt_trans(Nat.double(UD.v(i)), 1n+Nat.double(UD.v(i)), SC.pow2(1n+k), N.lt_succ(Nat.double(UD.v(i))), hb))
       +hlb0 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) == True{} : Bool}, 1n+Nat.double(UD.v(i)), UD.v(U32.inc(U32.shl(i))), Equal.sym(Nat, UD.v(U32.inc(U32.shl(i))), 1n+Nat.double(UD.v(i)), el), hb)
-      +x = TB.nth0(tb, UD.v(U32.shl(i)))
-      +l = TB.nth0(tb, UD.v(U32.inc(U32.shl(i))))
+      +x = W32.nth0(tb, UD.v(U32.shl(i)))
+      +l = W32.nth0(tb, UD.v(U32.inc(U32.shl(i))))
       +dx = PI.dec_ix(tb, kl0, UD.v(i), UD.v(U32.shl(i)), UD.v(U32.inc(U32.shl(i))), ew, el)
       +dat = TB.at_buckets(tb, kl0, n, UD.v(i), hi)
       +dd = Equal.trans(B.Bk, B.at(bs, UD.v(i)), TB.dec(tb, kl0, UD.v(i)), TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), dat, Equal.sym(B.Bk, TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), TB.dec(tb, kl0, UD.v(i)), dx))
@@ -98,9 +96,9 @@ def qrm_ok(~V: Data, +cap: U32, +nn: U32, +head: U32, +tail: U32, +free: U32, +m
       +em = Equal.trans(B.MS, ms, B.mstep(key, TB.dec_c(x, l, kl0, U32.is_eq(x, 0))), B.mstep(key, B.at(bs, UD.v(i))), QP.qdecide(c, hc, x, l, kl0, hvI), Equal.cong(B.Bk, B.MS, b => B.mstep(key, b), TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), B.at(bs, UD.v(i)), Equal.sym(B.Bk, B.at(bs, UD.v(i)), TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), dd)))
       +es = QP.qstep(1n+k, tabT, i, w, hk31, pt, hwb0, hlb0)
       +hk32 = N.lt_le(k, 32n, N.lt_trans(k, 31n, 32n, hk31, {==}))
-      +hks = L.subst(Nat, z => {Nat.is_lt(z, WD.sc(32n, one)) == True{} : Bool}, SC.pow2(k), WD.sc(k, one), AX.pow_one(one, h1, k), N.lt_le_trans(SC.pow2(k), SC.pow2(1n+k), WD.sc(32n, one), N.pow2_lt_succ(k), AX.pow_le32(one, h1, 1n+k, hk31)))
-      +hi1 = L.subst(Nat, z => {Nat.is_lt(UD.v(i), z) == True{} : Bool}, SC.pow2(k), WD.sc(k, one), AX.pow_one(one, h1, k), hi)
-      +hnext = Equal.trans(Nat, UD.v(H.bnext(i, CY.msk(k))), Nat.mod(1n+UD.v(i), WD.sc(k, one)), Nat.mod(1n+UD.v(i), n), CY.next_val(one, h1, k, i, hks, hi1), Equal.cong(Nat, Nat, z => Nat.mod(1n+UD.v(i), z), WD.sc(k, one), SC.pow2(k), Equal.sym(Nat, SC.pow2(k), WD.sc(k, one), AX.pow_one(one, h1, k))))
+      +hks = L.subst(Nat, z => {Nat.is_lt(z, WD.sc(32n, one)) == True{} : Bool}, SC.pow2(k), WD.sc(k, one), W32.pow_one(one, h1, k), N.lt_le_trans(SC.pow2(k), SC.pow2(1n+k), WD.sc(32n, one), N.pow2_lt_succ(k), W32.pow_le32(one, h1, 1n+k, hk31)))
+      +hi1 = L.subst(Nat, z => {Nat.is_lt(UD.v(i), z) == True{} : Bool}, SC.pow2(k), WD.sc(k, one), W32.pow_one(one, h1, k), hi)
+      +hnext = Equal.trans(Nat, UD.v(H.bnext(i, CY.msk(k))), Nat.mod(1n+UD.v(i), WD.sc(k, one)), Nat.mod(1n+UD.v(i), n), CY.next_val(one, h1, k, i, hks, hi1), Equal.cong(Nat, Nat, z => Nat.mod(1n+UD.v(i), z), WD.sc(k, one), SC.pow2(k), Equal.sym(Nat, SC.pow2(k), WD.sc(k, one), W32.pow_one(one, h1, k))))
       +hi2 = L.subst(Nat, z => {Nat.is_lt(z, n) == True{} : Bool}, Nat.mod(1n+UD.v(i), n), UD.v(H.bnext(i, CY.msk(k))), Equal.sym(Nat, UD.v(H.bnext(i, CY.msk(k))), Nat.mod(1n+UD.v(i), n), hnext), PI.mod_lt(n, N.succ_le_lt(0n, n, N.pow2_pos(k)), 1n+UD.v(i)))
       +p3 = rq1(~V, cap, nn, head, tail, free, mT, ksT, eT, lkT, tabT, key, bs, n, CY.msk(k), w, i, k, hk32, hi, p, hnext, qrm_ok(~V, cap, nn, head, tail, free, mT, ksT, eT, lkT, one, h1, k, hk31, tabT, pt, sd, kl0, c, hc, hwell, p, H.bnext(i, CY.msk(k)), hi2), ms)
       +p2 = L.subst(B.MS, m => {LR.qrm(&2, V, 1n+p, QP.qstep_of(ms, AR.thaw(U32, tabT)), CY.msk(k), H.short_word(c), i, cap, nn, head, tail, free, AR.thaw(U32, mT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)) == qrm_of(~V, B.pf(key, bs, n, 1n+p, m, UD.v(i)), AR.thaw(U32, tabT), CY.msk(k), cap, nn, head, tail, free, AR.thaw(U32, mT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)) : LR.LRU<&2, V> & Maybe<&2, V>}, ms, B.mstep(key, B.at(bs, UD.v(i))), em, p3)

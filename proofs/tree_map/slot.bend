@@ -1,17 +1,16 @@
 import Base
 import ../lib/logic.bend as L
-import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
 import ./state.bend as ST
 import ./prim.bend as PR
 import ./frame.bend as FR
 import ./agree.bend as AG
 import ./ends.bend as EN
+import ../lib/nat_list.bend as NL
 
 # A list grown by one slot, or rewritten at one: every other position reads
 # as before, the slot reads the new value; so the entries, links and free
@@ -61,12 +60,12 @@ def nd_snoc_same(-K: Data, +nl: List<&2, M.Node<K>>, +x: M.Node<K>) -> {ST.nd(K,
 
 
 # a new slot agrees off it
-def agr_snoc(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +x: M.Node<K>, +hn: {HT.memn(1n+SC.length(M.Node<K>, nl), xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, SC.snoc(M.Node<K>, nl, x)) == True{} : Bool}:
+def agr_snoc(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +x: M.Node<K>, +hn: {NL.memn(1n+SC.length(M.Node<K>, nl), xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, SC.snoc(M.Node<K>, nl, x)) == True{} : Bool}:
   match xs:
     case Nil{}:
       {==}
     case Con{+j, +t}:
-      L.and_intro(AG.ndeq(~K, ~cmp, ST.nd(K, nl, j), ST.nd(K, SC.snoc(M.Node<K>, nl, x), j)), AG.agr(~K, ~cmp, t, nl, SC.snoc(M.Node<K>, nl, x)), AG.ndeq_of_eq(~K, ~cmp, ~o, ST.nd(K, nl, j), ST.nd(K, SC.snoc(M.Node<K>, nl, x), j), Equal.sym(M.Node<K>, ST.nd(K, SC.snoc(M.Node<K>, nl, x), j), ST.nd(K, nl, j), nd_snoc_other(K, nl, x, j, FR.or_f_l(Nat.is_eq(j, 1n+SC.length(M.Node<K>, nl)), HT.memn(1n+SC.length(M.Node<K>, nl), t), hn)))), agr_snoc(~K, ~cmp, ~o, t, nl, x, FR.or_f_r(Nat.is_eq(j, 1n+SC.length(M.Node<K>, nl)), HT.memn(1n+SC.length(M.Node<K>, nl), t), hn)))
+      L.and_intro(AG.ndeq(~K, ~cmp, ST.nd(K, nl, j), ST.nd(K, SC.snoc(M.Node<K>, nl, x), j)), AG.agr(~K, ~cmp, t, nl, SC.snoc(M.Node<K>, nl, x)), AG.ndeq_of_eq(~K, ~cmp, ~o, ST.nd(K, nl, j), ST.nd(K, SC.snoc(M.Node<K>, nl, x), j), Equal.sym(M.Node<K>, ST.nd(K, SC.snoc(M.Node<K>, nl, x), j), ST.nd(K, nl, j), nd_snoc_other(K, nl, x, j, FR.or_f_l(Nat.is_eq(j, 1n+SC.length(M.Node<K>, nl)), NL.memn(1n+SC.length(M.Node<K>, nl), t), hn)))), agr_snoc(~K, ~cmp, ~o, t, nl, x, FR.or_f_r(Nat.is_eq(j, 1n+SC.length(M.Node<K>, nl)), NL.memn(1n+SC.length(M.Node<K>, nl), t), hn)))
 
 # ---- the payload list ----
 
@@ -97,41 +96,41 @@ def pv_ex_same(-V: Data, +pl: List<&2, Maybe<&2, V>>, +i: Nat, +w: Maybe<&2, V>,
   {==}
 
 
-def ents_psnoc(~K: Data, ~V: Data, +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +w: Maybe<&2, V>, +hn: {HT.memn(1n+SC.length(Maybe<&2, V>, pl), xs) == False{} : Bool}) -> {ST.ents(~K, ~V, xs, nl, SC.snoc(Maybe<&2, V>, pl, w)) == ST.ents(~K, ~V, xs, nl, pl) : List<&2, M.Entry<K, V>>}:
+def ents_psnoc(~K: Data, ~V: Data, +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +w: Maybe<&2, V>, +hn: {NL.memn(1n+SC.length(Maybe<&2, V>, pl), xs) == False{} : Bool}) -> {ST.ents(~K, ~V, xs, nl, SC.snoc(Maybe<&2, V>, pl, w)) == ST.ents(~K, ~V, xs, nl, pl) : List<&2, M.Entry<K, V>>}:
   match xs:
     case Nil{}:
       {==}
     case Con{+j, +t}:
-      %Equal.sym(Maybe<&2, V>, ST.pv(V, SC.snoc(Maybe<&2, V>, pl, w), j), ST.pv(V, pl, j), pv_snoc_other(V, pl, w, j, FR.or_f_l(Nat.is_eq(j, 1n+SC.length(Maybe<&2, V>, pl)), HT.memn(1n+SC.length(Maybe<&2, V>, pl), t), hn))) : {ST.cons_m(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), _), ST.ents(~K, ~V, t, nl, SC.snoc(Maybe<&2, V>, pl, w))) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, M.Entry<K, V>>}
-      %Equal.sym(List<&2, M.Entry<K, V>>, ST.ents(~K, ~V, t, nl, SC.snoc(Maybe<&2, V>, pl, w)), ST.ents(~K, ~V, t, nl, pl), ents_psnoc(~K, ~V, t, nl, pl, w, FR.or_f_r(Nat.is_eq(j, 1n+SC.length(Maybe<&2, V>, pl)), HT.memn(1n+SC.length(Maybe<&2, V>, pl), t), hn))) : {ST.cons_m(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j)), _) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, M.Entry<K, V>>}
+      %Equal.sym(Maybe<&2, V>, ST.pv(V, SC.snoc(Maybe<&2, V>, pl, w), j), ST.pv(V, pl, j), pv_snoc_other(V, pl, w, j, FR.or_f_l(Nat.is_eq(j, 1n+SC.length(Maybe<&2, V>, pl)), NL.memn(1n+SC.length(Maybe<&2, V>, pl), t), hn))) : {ST.cons_m(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), _), ST.ents(~K, ~V, t, nl, SC.snoc(Maybe<&2, V>, pl, w))) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, M.Entry<K, V>>}
+      %Equal.sym(List<&2, M.Entry<K, V>>, ST.ents(~K, ~V, t, nl, SC.snoc(Maybe<&2, V>, pl, w)), ST.ents(~K, ~V, t, nl, pl), ents_psnoc(~K, ~V, t, nl, pl, w, FR.or_f_r(Nat.is_eq(j, 1n+SC.length(Maybe<&2, V>, pl)), NL.memn(1n+SC.length(Maybe<&2, V>, pl), t), hn))) : {ST.cons_m(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j)), _) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, M.Entry<K, V>>}
       {==}
 
-def ents_pex(~K: Data, ~V: Data, +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +id: Nat, +w: Maybe<&2, V>, +hn: {HT.memn(id, xs) == False{} : Bool}) -> {ST.ents(~K, ~V, xs, nl, PR.ex_pl(V, pl, id, w)) == ST.ents(~K, ~V, xs, nl, pl) : List<&2, M.Entry<K, V>>}:
+def ents_pex(~K: Data, ~V: Data, +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +id: Nat, +w: Maybe<&2, V>, +hn: {NL.memn(id, xs) == False{} : Bool}) -> {ST.ents(~K, ~V, xs, nl, PR.ex_pl(V, pl, id, w)) == ST.ents(~K, ~V, xs, nl, pl) : List<&2, M.Entry<K, V>>}:
   match xs:
     case Nil{}:
       {==}
     case Con{+j, +t}:
-      %Equal.sym(Maybe<&2, V>, ST.pv(V, PR.ex_pl(V, pl, id, w), j), ST.pv(V, pl, j), pv_ex_other(V, pl, id, w, j, FR.ne_sym(j, id, FR.or_f_l(Nat.is_eq(j, id), HT.memn(id, t), hn)))) : {ST.cons_m(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), _), ST.ents(~K, ~V, t, nl, PR.ex_pl(V, pl, id, w))) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, M.Entry<K, V>>}
-      %Equal.sym(List<&2, M.Entry<K, V>>, ST.ents(~K, ~V, t, nl, PR.ex_pl(V, pl, id, w)), ST.ents(~K, ~V, t, nl, pl), ents_pex(~K, ~V, t, nl, pl, id, w, FR.or_f_r(Nat.is_eq(j, id), HT.memn(id, t), hn))) : {ST.cons_m(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j)), _) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, M.Entry<K, V>>}
+      %Equal.sym(Maybe<&2, V>, ST.pv(V, PR.ex_pl(V, pl, id, w), j), ST.pv(V, pl, j), pv_ex_other(V, pl, id, w, j, FR.ne_sym(j, id, FR.or_f_l(Nat.is_eq(j, id), NL.memn(id, t), hn)))) : {ST.cons_m(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), _), ST.ents(~K, ~V, t, nl, PR.ex_pl(V, pl, id, w))) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, M.Entry<K, V>>}
+      %Equal.sym(List<&2, M.Entry<K, V>>, ST.ents(~K, ~V, t, nl, PR.ex_pl(V, pl, id, w)), ST.ents(~K, ~V, t, nl, pl), ents_pex(~K, ~V, t, nl, pl, id, w, FR.or_f_r(Nat.is_eq(j, id), NL.memn(id, t), hn))) : {ST.cons_m(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j)), _) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, M.Entry<K, V>>}
       {==}
 
 
-def oks_psnoc(~K: Data, ~V: Data, +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +w: Maybe<&2, V>, +hn: {HT.memn(1n+SC.length(Maybe<&2, V>, pl), xs) == False{} : Bool}) -> {EN.oks(~K, ~V, xs, nl, SC.snoc(Maybe<&2, V>, pl, w)) == EN.oks(~K, ~V, xs, nl, pl) : Bool}:
+def oks_psnoc(~K: Data, ~V: Data, +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +w: Maybe<&2, V>, +hn: {NL.memn(1n+SC.length(Maybe<&2, V>, pl), xs) == False{} : Bool}) -> {EN.oks(~K, ~V, xs, nl, SC.snoc(Maybe<&2, V>, pl, w)) == EN.oks(~K, ~V, xs, nl, pl) : Bool}:
   match xs:
     case Nil{}:
       {==}
     case Con{+j, +t}:
-      %Equal.sym(Maybe<&2, V>, ST.pv(V, SC.snoc(Maybe<&2, V>, pl, w), j), ST.pv(V, pl, j), pv_snoc_other(V, pl, w, j, FR.or_f_l(Nat.is_eq(j, 1n+SC.length(Maybe<&2, V>, pl)), HT.memn(1n+SC.length(Maybe<&2, V>, pl), t), hn))) : {Bool.and(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), _)), EN.oks(~K, ~V, t, nl, SC.snoc(Maybe<&2, V>, pl, w))) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
-      %Equal.sym(Bool, EN.oks(~K, ~V, t, nl, SC.snoc(Maybe<&2, V>, pl, w)), EN.oks(~K, ~V, t, nl, pl), oks_psnoc(~K, ~V, t, nl, pl, w, FR.or_f_r(Nat.is_eq(j, 1n+SC.length(Maybe<&2, V>, pl)), HT.memn(1n+SC.length(Maybe<&2, V>, pl), t), hn))) : {Bool.and(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j))), _) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      %Equal.sym(Maybe<&2, V>, ST.pv(V, SC.snoc(Maybe<&2, V>, pl, w), j), ST.pv(V, pl, j), pv_snoc_other(V, pl, w, j, FR.or_f_l(Nat.is_eq(j, 1n+SC.length(Maybe<&2, V>, pl)), NL.memn(1n+SC.length(Maybe<&2, V>, pl), t), hn))) : {Bool.and(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), _)), EN.oks(~K, ~V, t, nl, SC.snoc(Maybe<&2, V>, pl, w))) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      %Equal.sym(Bool, EN.oks(~K, ~V, t, nl, SC.snoc(Maybe<&2, V>, pl, w)), EN.oks(~K, ~V, t, nl, pl), oks_psnoc(~K, ~V, t, nl, pl, w, FR.or_f_r(Nat.is_eq(j, 1n+SC.length(Maybe<&2, V>, pl)), NL.memn(1n+SC.length(Maybe<&2, V>, pl), t), hn))) : {Bool.and(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j))), _) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
       {==}
 
-def oks_pex(~K: Data, ~V: Data, +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +id: Nat, +w: Maybe<&2, V>, +hn: {HT.memn(id, xs) == False{} : Bool}) -> {EN.oks(~K, ~V, xs, nl, PR.ex_pl(V, pl, id, w)) == EN.oks(~K, ~V, xs, nl, pl) : Bool}:
+def oks_pex(~K: Data, ~V: Data, +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +id: Nat, +w: Maybe<&2, V>, +hn: {NL.memn(id, xs) == False{} : Bool}) -> {EN.oks(~K, ~V, xs, nl, PR.ex_pl(V, pl, id, w)) == EN.oks(~K, ~V, xs, nl, pl) : Bool}:
   match xs:
     case Nil{}:
       {==}
     case Con{+j, +t}:
-      %Equal.sym(Maybe<&2, V>, ST.pv(V, PR.ex_pl(V, pl, id, w), j), ST.pv(V, pl, j), pv_ex_other(V, pl, id, w, j, FR.ne_sym(j, id, FR.or_f_l(Nat.is_eq(j, id), HT.memn(id, t), hn)))) : {Bool.and(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), _)), EN.oks(~K, ~V, t, nl, PR.ex_pl(V, pl, id, w))) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
-      %Equal.sym(Bool, EN.oks(~K, ~V, t, nl, PR.ex_pl(V, pl, id, w)), EN.oks(~K, ~V, t, nl, pl), oks_pex(~K, ~V, t, nl, pl, id, w, FR.or_f_r(Nat.is_eq(j, id), HT.memn(id, t), hn))) : {Bool.and(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j))), _) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      %Equal.sym(Maybe<&2, V>, ST.pv(V, PR.ex_pl(V, pl, id, w), j), ST.pv(V, pl, j), pv_ex_other(V, pl, id, w, j, FR.ne_sym(j, id, FR.or_f_l(Nat.is_eq(j, id), NL.memn(id, t), hn)))) : {Bool.and(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), _)), EN.oks(~K, ~V, t, nl, PR.ex_pl(V, pl, id, w))) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      %Equal.sym(Bool, EN.oks(~K, ~V, t, nl, PR.ex_pl(V, pl, id, w)), EN.oks(~K, ~V, t, nl, pl), oks_pex(~K, ~V, t, nl, pl, id, w, FR.or_f_r(Nat.is_eq(j, id), NL.memn(id, t), hn))) : {Bool.and(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j))), _) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
       {==}
 
 # ---- values from entries ----

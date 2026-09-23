@@ -7,23 +7,24 @@ import ../spec/lru.bend as SP
 import ../math/u32div.bend as UD
 import ../../src/math/u64.bend as W
 import ../../src/containers/lru.bend as LR
-import ../hash_table/table.bend as TB
 import ../hash_table/state.bend as HT
 import ../hash_table/probe_impl.bend as PI
 import ./state.bend as ST
 import ./meta.bend as MT
 import ../hash_table/get.bend as G
+import ../lib/words32.bend as W32
+import ../lib/u32_tree.bend as UT
 
 # capacity, len, counters and set_lifetime.
 
 %def P +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +mT: AR.Tree<U32>, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>
 %def A cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl
 %def SH ST.LS{$A}
-%def GA cap, n, head, tail, free, TB.nth0(AR.slots(U32, mT), 0n), TB.nth0(AR.slots(U32, mT), 1n), TB.nth0(AR.slots(U32, mT), 2n), TB.nth0(AR.slots(U32, mT), 6n), TB.nth0(AR.slots(U32, mT), 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), eT, lkT, sl, fl
+%def GA cap, n, head, tail, free, W32.nth0(AR.slots(U32, mT), 0n), W32.nth0(AR.slots(U32, mT), 1n), W32.nth0(AR.slots(U32, mT), 2n), W32.nth0(AR.slots(U32, mT), 6n), W32.nth0(AR.slots(U32, mT), 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), eT, lkT, sl, fl
 %def LL AR.slots(U32, lkT)
 %def EL AR.slots(Maybe<&2, V>, eT)
 %def KL AR.slots(String, ksT)
-%def FR UD.v(TB.nth0(AR.slots(U32, mT), 0n))
+%def FR UD.v(W32.nth0(AR.slots(U32, mT), 0n))
 
 # ---- the number of entries ----
 
@@ -91,17 +92,17 @@ def ct5(+a1: W.U64, +a2: W.U64, +a3: W.U64, +a4: W.U64, +a5: W.U64, +b1: W.U64, 
   +r4 = L.subst(W.U64, z => {SP.CT{a1, a2, a3, a4, a5} == SP.CT{b1, b2, b3, z, a5} : SP.Ctr}, a4, b4, e4, r3)
   L.subst(W.U64, z => {SP.CT{a1, a2, a3, a4, a5} == SP.CT{b1, b2, b3, b4, z} : SP.Ctr}, a5, b5, e5, r4)
 
-def w64_eq(+a: List<&2, U32>, +b: List<&2, U32>, +i: Nat, +e0: {TB.nth0(a, i) == TB.nth0(b, i) : U32}, +e1: {TB.nth0(a, 1n+i) == TB.nth0(b, 1n+i) : U32}) -> {ST.w64(a, i) == ST.w64(b, i) : W.U64}:
-  +r = L.subst(U32, z => {ST.w64(a, i) == W.U64{z, TB.nth0(a, 1n+i)} : W.U64}, TB.nth0(a, i), TB.nth0(b, i), e0, {==})
-  L.subst(U32, z => {ST.w64(a, i) == W.U64{TB.nth0(b, i), z} : W.U64}, TB.nth0(a, 1n+i), TB.nth0(b, 1n+i), e1, r)
+def w64_eq(+a: List<&2, U32>, +b: List<&2, U32>, +i: Nat, +e0: {W32.nth0(a, i) == W32.nth0(b, i) : U32}, +e1: {W32.nth0(a, 1n+i) == W32.nth0(b, 1n+i) : U32}) -> {ST.w64(a, i) == ST.w64(b, i) : W.U64}:
+  +r = L.subst(U32, z => {ST.w64(a, i) == W.U64{z, W32.nth0(a, 1n+i)} : W.U64}, W32.nth0(a, i), W32.nth0(b, i), e0, {==})
+  L.subst(U32, z => {ST.w64(a, i) == W.U64{W32.nth0(b, i), z} : W.U64}, W32.nth0(a, 1n+i), W32.nth0(b, 1n+i), e1, r)
 
 # the counters of two meta word lists that agree on words 16 .. 25
-def ctr_eq(+a: List<&2, U32>, +b: List<&2, U32>, +e16: {TB.nth0(a, 16n) == TB.nth0(b, 16n) : U32}, +e17: {TB.nth0(a, 17n) == TB.nth0(b, 17n) : U32}, +e18: {TB.nth0(a, 18n) == TB.nth0(b, 18n) : U32}, +e19: {TB.nth0(a, 19n) == TB.nth0(b, 19n) : U32}, +e20: {TB.nth0(a, 20n) == TB.nth0(b, 20n) : U32}, +e21: {TB.nth0(a, 21n) == TB.nth0(b, 21n) : U32}, +e22: {TB.nth0(a, 22n) == TB.nth0(b, 22n) : U32}, +e23: {TB.nth0(a, 23n) == TB.nth0(b, 23n) : U32}, +e24: {TB.nth0(a, 24n) == TB.nth0(b, 24n) : U32}, +e25: {TB.nth0(a, 25n) == TB.nth0(b, 25n) : U32}) -> {ST.ctr(a) == ST.ctr(b) : SP.Ctr}:
+def ctr_eq(+a: List<&2, U32>, +b: List<&2, U32>, +e16: {W32.nth0(a, 16n) == W32.nth0(b, 16n) : U32}, +e17: {W32.nth0(a, 17n) == W32.nth0(b, 17n) : U32}, +e18: {W32.nth0(a, 18n) == W32.nth0(b, 18n) : U32}, +e19: {W32.nth0(a, 19n) == W32.nth0(b, 19n) : U32}, +e20: {W32.nth0(a, 20n) == W32.nth0(b, 20n) : U32}, +e21: {W32.nth0(a, 21n) == W32.nth0(b, 21n) : U32}, +e22: {W32.nth0(a, 22n) == W32.nth0(b, 22n) : U32}, +e23: {W32.nth0(a, 23n) == W32.nth0(b, 23n) : U32}, +e24: {W32.nth0(a, 24n) == W32.nth0(b, 24n) : U32}, +e25: {W32.nth0(a, 25n) == W32.nth0(b, 25n) : U32}) -> {ST.ctr(a) == ST.ctr(b) : SP.Ctr}:
   ct5(ST.w64(a, 16n), ST.w64(a, 18n), ST.w64(a, 20n), ST.w64(a, 22n), ST.w64(a, 24n), ST.w64(b, 16n), ST.w64(b, 18n), ST.w64(b, 20n), ST.w64(b, 22n), ST.w64(b, 24n), w64_eq(a, b, 16n, e16, e17), w64_eq(a, b, 18n, e18, e19), w64_eq(a, b, 20n, e20, e21), w64_eq(a, b, 22n, e22, e23), w64_eq(a, b, 24n, e24, e25))
 
-def w64_eq_l(+a: List<&2, U32>, +i: Nat, +lo: U32, +hi: U32, +e0: {TB.nth0(a, i) == lo : U32}, +e1: {TB.nth0(a, 1n+i) == hi : U32}) -> {ST.w64(a, i) == W.U64{lo, hi} : W.U64}:
-  +r = L.subst(U32, z => {ST.w64(a, i) == W.U64{z, TB.nth0(a, 1n+i)} : W.U64}, TB.nth0(a, i), lo, e0, {==})
-  L.subst(U32, z => {ST.w64(a, i) == W.U64{lo, z} : W.U64}, TB.nth0(a, 1n+i), hi, e1, r)
+def w64_eq_l(+a: List<&2, U32>, +i: Nat, +lo: U32, +hi: U32, +e0: {W32.nth0(a, i) == lo : U32}, +e1: {W32.nth0(a, 1n+i) == hi : U32}) -> {ST.w64(a, i) == W.U64{lo, hi} : W.U64}:
+  +r = L.subst(U32, z => {ST.w64(a, i) == W.U64{z, W32.nth0(a, 1n+i)} : W.U64}, W32.nth0(a, i), lo, e0, {==})
+  L.subst(U32, z => {ST.w64(a, i) == W.U64{lo, z} : W.U64}, W32.nth0(a, 1n+i), hi, e1, r)
 
 # the model's fields
 def lru_eq(~V: Data, +cap: U32, +a: U32, +a2: U32, +b: W.U64, +b2: W.U64, +es: List<&2, SP.Ent<V>>, +es2: List<&2, SP.Ent<V>>, +c: SP.Ctr, +c2: SP.Ctr, +ea: {a == a2 : U32}, +eb: {b == b2 : W.U64}, +ee: {es == es2 : List<&2, SP.Ent<V>>}, +ec: {c == c2 : SP.Ctr}) -> {SP.L{cap, a, b, es, c} == SP.L{cap, a2, b2, es2, c2} : SP.Lru<V>}:
@@ -122,31 +123,31 @@ def SetOK(~V: Data, +sh: ST.Sh<V>, +spec: SP.Lru<V>, r: LR.LRU<&2, V>) -> Type:
   Sigma<&1, &1, ST.Sh<V>, sh2 => {r == ST.real(~V, sh2) : LR.LRU<&2, V>} & ({spec == ST.model(~V, sh2) : SP.Lru<V>} & {ST.good(~V, sh2) == True{} : Bool})>
 
 # word j of the meta list after the three lifetime writes, j not 3, 4, 5
-def oth3(+mT: AR.Tree<U32>, +on: U32, +lo: U32, +hi: U32, +h1: {AR.slots(U32, $T1) == SC.update(U32, $ML, 3n, on) : List<&2, U32>}, +h2: {AR.slots(U32, $T2) == SC.update(U32, AR.slots(U32, $T1), 4n, lo) : List<&2, U32>}, +h3: {AR.slots(U32, $T3) == SC.update(U32, AR.slots(U32, $T2), 5n, hi) : List<&2, U32>}, +j: Nat, +n3: {Nat.is_eq(3n, j) == False{} : Bool}, +n4: {Nat.is_eq(4n, j) == False{} : Bool}, +n5: {Nat.is_eq(5n, j) == False{} : Bool}) -> {TB.nth0($S3, j) == TB.nth0($ML, j) : U32}:
-  Equal.trans(U32, TB.nth0($S3, j), TB.nth0(AR.slots(U32, $T2), j), TB.nth0($ML, j), MT.nth_other($T2, 5n, hi, $T3, h3, j, n5), Equal.trans(U32, TB.nth0(AR.slots(U32, $T2), j), TB.nth0(AR.slots(U32, $T1), j), TB.nth0($ML, j), MT.nth_other($T1, 4n, lo, $T2, h2, j, n4), MT.nth_other(mT, 3n, on, $T1, h1, j, n3)))
+def oth3(+mT: AR.Tree<U32>, +on: U32, +lo: U32, +hi: U32, +h1: {AR.slots(U32, $T1) == SC.update(U32, $ML, 3n, on) : List<&2, U32>}, +h2: {AR.slots(U32, $T2) == SC.update(U32, AR.slots(U32, $T1), 4n, lo) : List<&2, U32>}, +h3: {AR.slots(U32, $T3) == SC.update(U32, AR.slots(U32, $T2), 5n, hi) : List<&2, U32>}, +j: Nat, +n3: {Nat.is_eq(3n, j) == False{} : Bool}, +n4: {Nat.is_eq(4n, j) == False{} : Bool}, +n5: {Nat.is_eq(5n, j) == False{} : Bool}) -> {W32.nth0($S3, j) == W32.nth0($ML, j) : U32}:
+  Equal.trans(U32, W32.nth0($S3, j), W32.nth0(AR.slots(U32, $T2), j), W32.nth0($ML, j), MT.nth_other($T2, 5n, hi, $T3, h3, j, n5), Equal.trans(U32, W32.nth0(AR.slots(U32, $T2), j), W32.nth0(AR.slots(U32, $T1), j), W32.nth0($ML, j), MT.nth_other($T1, 4n, lo, $T2, h2, j, n4), MT.nth_other(mT, 3n, on, $T1, h1, j, n3)))
 
 
 def sl_go(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +mT: AR.Tree<U32>, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, $SH) == True{} : Bool}, +s: W.U64, +on: U32) -> SetOK(~V, $SH, SP.L{cap, on, s, ST.es(~V, $LL, $KL, $EL, sl), ST.ctr($ML)}, LR.F{cap, n, head, tail, free, LR.set_life(AR.thaw(U32, mT), s, on), AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}):
   match s:
     case W.U64{+lo, +hi}:
       +pm = ST.g_cpm(~V, $GA, hg)
-      +a1 = MT.uset_a(5n, {==}, mT, pm, 3, {==}, on)
-      +p1 = MT.uset_p(5n, mT, pm, 3n, on)
-      +h1 = MT.uset_s(5n, mT, pm, 3n, {==}, on)
-      +a2 = MT.uset_a(5n, {==}, $T1, p1, 4, {==}, lo)
-      +p2 = MT.uset_p(5n, $T1, p1, 4n, lo)
-      +h2 = MT.uset_s(5n, $T1, p1, 4n, {==}, lo)
-      +a3 = MT.uset_a(5n, {==}, $T2, p2, 5, {==}, hi)
-      +p3 = MT.uset_p(5n, $T2, p2, 5n, hi)
-      +h3 = MT.uset_s(5n, $T2, p2, 5n, {==}, hi)
+      +a1 = UT.uset_a(5n, {==}, mT, pm, 3, {==}, on)
+      +p1 = UT.uset_p(5n, mT, pm, 3n, on)
+      +h1 = UT.uset_s(5n, mT, pm, 3n, {==}, on)
+      +a2 = UT.uset_a(5n, {==}, $T1, p1, 4, {==}, lo)
+      +p2 = UT.uset_p(5n, $T1, p1, 4n, lo)
+      +h2 = UT.uset_s(5n, $T1, p1, 4n, {==}, lo)
+      +a3 = UT.uset_a(5n, {==}, $T2, p2, 5, {==}, hi)
+      +p3 = UT.uset_p(5n, $T2, p2, 5n, hi)
+      +h3 = UT.uset_s(5n, $T2, p2, 5n, {==}, hi)
       +ea = Equal.trans(Array<U32>, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, mT), 3, on), 4, lo), 5, hi), Array.set(U32, Array.set(U32, AR.thaw(U32, $T1), 4, lo), 5, hi), AR.thaw(U32, $T3), Equal.cong(Array<U32>, Array<U32>, z => Array.set(U32, Array.set(U32, z, 4, lo), 5, hi), Array.set(U32, AR.thaw(U32, mT), 3, on), AR.thaw(U32, $T1), a1), Equal.trans(Array<U32>, Array.set(U32, Array.set(U32, AR.thaw(U32, $T1), 4, lo), 5, hi), Array.set(U32, AR.thaw(U32, $T2), 5, hi), AR.thaw(U32, $T3), Equal.cong(Array<U32>, Array<U32>, z => Array.set(U32, z, 5, hi), Array.set(U32, AR.thaw(U32, $T1), 4, lo), AR.thaw(U32, $T2), a2), a3))
       +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, mT), 3, on), 4, lo), 5, hi), AR.thaw(U32, $T3), ea)
-      +e3 = Equal.trans(U32, TB.nth0($S3, 3n), TB.nth0(AR.slots(U32, $T2), 3n), on, MT.nth_other($T2, 5n, hi, $T3, h3, 3n, {==}), Equal.trans(U32, TB.nth0(AR.slots(U32, $T2), 3n), TB.nth0(AR.slots(U32, $T1), 3n), on, MT.nth_other($T1, 4n, lo, $T2, h2, 3n, {==}), MT.nth_same(5n, mT, pm, 3n, {==}, on, $T1, h1)))
-      +e4 = Equal.trans(U32, TB.nth0($S3, 4n), TB.nth0(AR.slots(U32, $T2), 4n), lo, MT.nth_other($T2, 5n, hi, $T3, h3, 4n, {==}), MT.nth_same(5n, $T1, p1, 4n, {==}, lo, $T2, h2))
+      +e3 = Equal.trans(U32, W32.nth0($S3, 3n), W32.nth0(AR.slots(U32, $T2), 3n), on, MT.nth_other($T2, 5n, hi, $T3, h3, 3n, {==}), Equal.trans(U32, W32.nth0(AR.slots(U32, $T2), 3n), W32.nth0(AR.slots(U32, $T1), 3n), on, MT.nth_other($T1, 4n, lo, $T2, h2, 3n, {==}), MT.nth_same(5n, mT, pm, 3n, {==}, on, $T1, h1)))
+      +e4 = Equal.trans(U32, W32.nth0($S3, 4n), W32.nth0(AR.slots(U32, $T2), 4n), lo, MT.nth_other($T2, 5n, hi, $T3, h3, 4n, {==}), MT.nth_same(5n, $T1, p1, 4n, {==}, lo, $T2, h2))
       +e5 = MT.nth_same(5n, $T2, p2, 5n, {==}, hi, $T3, h3)
       +ew = Equal.sym(W.U64, ST.w64($S3, 4n), W.U64{lo, hi}, w64_eq_l($S3, 4n, lo, hi, e4, e5))
-      +ec = ctr_eq($ML, $S3, Equal.sym(U32, TB.nth0($S3, 16n), TB.nth0($ML, 16n), oth3(mT, on, lo, hi, h1, h2, h3, 16n, {==}, {==}, {==})), Equal.sym(U32, TB.nth0($S3, 17n), TB.nth0($ML, 17n), oth3(mT, on, lo, hi, h1, h2, h3, 17n, {==}, {==}, {==})), Equal.sym(U32, TB.nth0($S3, 18n), TB.nth0($ML, 18n), oth3(mT, on, lo, hi, h1, h2, h3, 18n, {==}, {==}, {==})), Equal.sym(U32, TB.nth0($S3, 19n), TB.nth0($ML, 19n), oth3(mT, on, lo, hi, h1, h2, h3, 19n, {==}, {==}, {==})), Equal.sym(U32, TB.nth0($S3, 20n), TB.nth0($ML, 20n), oth3(mT, on, lo, hi, h1, h2, h3, 20n, {==}, {==}, {==})), Equal.sym(U32, TB.nth0($S3, 21n), TB.nth0($ML, 21n), oth3(mT, on, lo, hi, h1, h2, h3, 21n, {==}, {==}, {==})), Equal.sym(U32, TB.nth0($S3, 22n), TB.nth0($ML, 22n), oth3(mT, on, lo, hi, h1, h2, h3, 22n, {==}, {==}, {==})), Equal.sym(U32, TB.nth0($S3, 23n), TB.nth0($ML, 23n), oth3(mT, on, lo, hi, h1, h2, h3, 23n, {==}, {==}, {==})), Equal.sym(U32, TB.nth0($S3, 24n), TB.nth0($ML, 24n), oth3(mT, on, lo, hi, h1, h2, h3, 24n, {==}, {==}, {==})), Equal.sym(U32, TB.nth0($S3, 25n), TB.nth0($ML, 25n), oth3(mT, on, lo, hi, h1, h2, h3, 25n, {==}, {==}, {==})))
-      +em = lru_eq(~V, cap, on, TB.nth0($S3, 3n), W.U64{lo, hi}, ST.w64($S3, 4n), ST.es(~V, $LL, $KL, $EL, sl), ST.es(~V, $LL, $KL, $EL, sl), ST.ctr($ML), ST.ctr($S3), Equal.sym(U32, TB.nth0($S3, 3n), on, e3), ew, {==}, ec)
+      +ec = ctr_eq($ML, $S3, Equal.sym(U32, W32.nth0($S3, 16n), W32.nth0($ML, 16n), oth3(mT, on, lo, hi, h1, h2, h3, 16n, {==}, {==}, {==})), Equal.sym(U32, W32.nth0($S3, 17n), W32.nth0($ML, 17n), oth3(mT, on, lo, hi, h1, h2, h3, 17n, {==}, {==}, {==})), Equal.sym(U32, W32.nth0($S3, 18n), W32.nth0($ML, 18n), oth3(mT, on, lo, hi, h1, h2, h3, 18n, {==}, {==}, {==})), Equal.sym(U32, W32.nth0($S3, 19n), W32.nth0($ML, 19n), oth3(mT, on, lo, hi, h1, h2, h3, 19n, {==}, {==}, {==})), Equal.sym(U32, W32.nth0($S3, 20n), W32.nth0($ML, 20n), oth3(mT, on, lo, hi, h1, h2, h3, 20n, {==}, {==}, {==})), Equal.sym(U32, W32.nth0($S3, 21n), W32.nth0($ML, 21n), oth3(mT, on, lo, hi, h1, h2, h3, 21n, {==}, {==}, {==})), Equal.sym(U32, W32.nth0($S3, 22n), W32.nth0($ML, 22n), oth3(mT, on, lo, hi, h1, h2, h3, 22n, {==}, {==}, {==})), Equal.sym(U32, W32.nth0($S3, 23n), W32.nth0($ML, 23n), oth3(mT, on, lo, hi, h1, h2, h3, 23n, {==}, {==}, {==})), Equal.sym(U32, W32.nth0($S3, 24n), W32.nth0($ML, 24n), oth3(mT, on, lo, hi, h1, h2, h3, 24n, {==}, {==}, {==})), Equal.sym(U32, W32.nth0($S3, 25n), W32.nth0($ML, 25n), oth3(mT, on, lo, hi, h1, h2, h3, 25n, {==}, {==}, {==})))
+      +em = lru_eq(~V, cap, on, W32.nth0($S3, 3n), W.U64{lo, hi}, ST.w64($S3, 4n), ST.es(~V, $LL, $KL, $EL, sl), ST.es(~V, $LL, $KL, $EL, sl), ST.ctr($ML), ST.ctr($S3), Equal.sym(U32, W32.nth0($S3, 3n), on, e3), ew, {==}, ec)
       +g2 = MT.good_m(~V, cap, n, head, tail, free, mT, $T3, k, sd, tabT, ksT, eT, lkT, sl, fl, hg, oth3(mT, on, lo, hi, h1, h2, h3, 0n, {==}, {==}, {==}), oth3(mT, on, lo, hi, h1, h2, h3, 1n, {==}, {==}, {==}), oth3(mT, on, lo, hi, h1, h2, h3, 2n, {==}, {==}, {==}), oth3(mT, on, lo, hi, h1, h2, h3, 6n, {==}, {==}, {==}), oth3(mT, on, lo, hi, h1, h2, h3, 7n, {==}, {==}, {==}), p3)
       (ST.LS{cap, n, head, tail, free, $T3, k, sd, tabT, ksT, eT, lkT, sl, fl}, (er, (em, g2)))
 

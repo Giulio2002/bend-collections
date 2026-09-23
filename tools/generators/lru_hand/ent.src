@@ -1,17 +1,16 @@
 import Base
-import ../lib/logic.bend as L
 import ../lib/array.bend as AR
 import ../spec/lru.bend as SP
 import ../../src/math/u64.bend as W
 import ../../src/containers/lru.bend as LR
-import ../hash_table/table.bend as TB
 import ./state.bend as ST
-import ./meta.bend as MT
+import ../lib/words32.bend as W32
+import ../lib/u32_tree.bend as UT
 
 # The entry add stores, from the lifetime words: the specification's mk.
 
 %def ML AR.slots(U32, mT)
-%def M3 TB.nth0($ML, 3n)
+%def M3 W32.nth0($ML, 3n)
 %def W4 ST.w64($ML, 4n)
 %def TM AR.thaw(U32, mT)
 %def ENT(t, lo, hi) LR.E{v, t, lo, hi}
@@ -42,15 +41,15 @@ def ent_c(~V: Data, $EP, +c: Bool, +hc: {U32.is_eq($M3, 0) == c : Bool}, +e0: {L
       (0, (0, (0, (e0, hs))))
     case False{}:
       +hs = Equal.sym(SP.Ent<V>, SP.mk(~V, $M3, $W4, key, v, now), SP.LE{key, v, 1, W.add(now, $W4)}, Equal.cong(Bool, SP.Ent<V>, b => SP.mk_c(~V, $W4, key, v, now, b), U32.is_eq($M3, 0), False{}, hc))
-      +g4 = MT.uget(5n, {==}, mT, pm, 4, {==})
-      +g5 = MT.uget(5n, {==}, mT, pm, 5, {==})
-      +e1 = Equal.cong(Array<U32> & U32, $PA, r => LR.life_lo(&2, V, v, now, r), Array.get(U32, $TM, 4), ($TM, TB.nth0($ML, 4n)), g4)
-      +e2 = Equal.cong(Array<U32> & U32, $PA, r => LR.life_hi(&2, V, v, now, TB.nth0($ML, 4n), r), Array.get(U32, $TM, 5), ($TM, TB.nth0($ML, 5n)), g5)
-      +e3 = Equal.trans($PA, LR.entry_of(&2, V, $TM, v, now), $IF(True{}), LR.life_hi(&2, V, v, now, TB.nth0($ML, 4n), Array.get(U32, $TM, 5)), e0, e1)
-      ent_d(~V, $EPA, W.add(now, $W4), {==}, Equal.trans($PA, LR.entry_of(&2, V, $TM, v, now), LR.life_hi(&2, V, v, now, TB.nth0($ML, 4n), Array.get(U32, $TM, 5)), ($TM, $DL), e3, e2), hs)
+      +g4 = UT.uget(5n, {==}, mT, pm, 4, {==})
+      +g5 = UT.uget(5n, {==}, mT, pm, 5, {==})
+      +e1 = Equal.cong(Array<U32> & U32, $PA, r => LR.life_lo(&2, V, v, now, r), Array.get(U32, $TM, 4), ($TM, W32.nth0($ML, 4n)), g4)
+      +e2 = Equal.cong(Array<U32> & U32, $PA, r => LR.life_hi(&2, V, v, now, W32.nth0($ML, 4n), r), Array.get(U32, $TM, 5), ($TM, W32.nth0($ML, 5n)), g5)
+      +e3 = Equal.trans($PA, LR.entry_of(&2, V, $TM, v, now), $IF(True{}), LR.life_hi(&2, V, v, now, W32.nth0($ML, 4n), Array.get(U32, $TM, 5)), e0, e1)
+      ent_d(~V, $EPA, W.add(now, $W4), {==}, Equal.trans($PA, LR.entry_of(&2, V, $TM, v, now), LR.life_hi(&2, V, v, now, W32.nth0($ML, 4n), Array.get(U32, $TM, 5)), ($TM, $DL), e3, e2), hs)
 
 # THEOREM: entry_of builds an entry whose timing is the specification's mk
 def ent_ok(~V: Data, $EP) -> EntOK(~V, $EPA):
-  +g3 = MT.uget(5n, {==}, mT, pm, 3, {==})
+  +g3 = UT.uget(5n, {==}, mT, pm, 3, {==})
   +e0 = Equal.cong(Array<U32> & U32, $PA, r => LR.ent_ttl(&2, V, v, now, r), Array.get(U32, $TM, 3), ($TM, $M3), g3)
   ent_c(~V, $EPA, U32.is_eq($M3, 0), {==}, e0)

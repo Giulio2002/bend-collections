@@ -6,10 +6,8 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
 import ./state.bend as ST
 import ./mirror.bend as MI
-import ./ok.bend as OK
 import ./tree.bend as TR
 import ./ends.bend as EN
 import ./path.bend as P
@@ -19,6 +17,7 @@ import ./navm.bend as NM
 import ./cur.bend as CU
 import ./cnx.bend as CX
 import ./vdef.bend as VD
+import ../lib/nat_list.bend as NL
 
 # A view's cursor: it starts at the id of the first (last) entry past its
 # bound, which is 0 or an id of the tree, and whose key is the
@@ -44,7 +43,7 @@ def pk3_ok(+xs: List<&2, Nat>, +c: Cmp, +a: Nat, +b: Nat, +z: Nat, +ha: {CU.idok
       hz
 
 def idok_self(+i: Nat, +t: List<&2, Nat>) -> {CU.idok(Con{i, t}, i) == True{} : Bool}:
-  CU.or_r(Nat.is_eq(i, 0n), HT.memn(i, Con{i, t}), DJ.mem_hd(i, t))
+  CU.or_r(Nat.is_eq(i, 0n), NL.memn(i, Con{i, t}), DJ.mem_hd(i, t))
 
 def gnav_ok(~K: Data, ~cmp: K -> K -> Cmp, +t: ST.Tr, +c: List<&2, P.Fr>, +nl: List<&2, M.Node<K>>, +k: K, +h: Bool, +incl: Bool) -> {CU.idok(SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(t), P.after(c))), NA.gnav(~K, ~cmp, t, c, nl, k, h, incl)) == True{} : Bool}:
   match t:

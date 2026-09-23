@@ -4,21 +4,17 @@ import ../lib/u32alg.bend as A
 import ../spec/hash_table.bend as S
 import ../../src/containers/hash_table.bend as H
 import ./strings.bend as STR
-import ./words.bend as WR
+import ../lib/u32.bend as UW
 
 # Key identity: structural String equality is an equivalence, and every key
 # has one check word (a one-character key below 2^31 its short word, any
 # other key its long hash word).
 
-def u32_eq_refl(+x: U32) -> {U32.is_eq(x, x) == True{} : Bool}:
-  match x:
-    case U32{w}:
-      WR.cmp_refl_eq(32n, w)
 
 def chr_refl(+c: Char) -> {S.chr_eq(c, c) == True{} : Bool}:
   match c:
     case Chr{+x}:
-      u32_eq_refl(x)
+      UW.u32_eq_refl(x)
 
 def str_refl(+s: String) -> {S.str_eq(s, s) == True{} : Bool}:
   match s:

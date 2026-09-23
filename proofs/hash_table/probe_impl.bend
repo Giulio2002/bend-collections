@@ -16,6 +16,7 @@ import ./arr.bend as AX
 import ./cyc.bend as CY
 import ./modn.bend as MN
 import ../math/word.bend as WD
+import ../lib/words32.bend as W32
 
 # The implementation's long-key probe loop (find over step) refines the
 # model loop B.pf on the decoded buckets; the stored keys are unchanged.
@@ -82,10 +83,10 @@ def from_v(+i: U32, +k: Nat, +hk: {Nat.is_le(k, 32n) == True{} : Bool}, +hi: {Na
   U.injective(U32.from_nat(UD.v(i)), i, U.to_nat_from_nat(UD.v(i), k, hk, hi))
 
 # bucket i read through the word/link indices 2i, 2i + 1
-def dec_ix(+tb: List<&2, U32>, +kl: List<&2, String>, +i: Nat, +a: Nat, +b: Nat, +ea: {a == Nat.double(i) : Nat}, +eb: {b == 1n+Nat.double(i) : Nat}) -> {TB.dec_c(TB.nth0(tb, a), TB.nth0(tb, b), kl, U32.is_eq(TB.nth0(tb, a), 0)) == TB.dec(tb, kl, i) : B.Bk}:
-  +e1 = L.subst(Nat, z => {TB.dec_c(TB.nth0(tb, z), TB.nth0(tb, b), kl, U32.is_eq(TB.nth0(tb, z), 0)) == TB.dec_c(TB.nth0(tb, Nat.double(i)), TB.nth0(tb, b), kl, U32.is_eq(TB.nth0(tb, Nat.double(i)), 0)) : B.Bk}, Nat.double(i), a, Equal.sym(Nat, a, Nat.double(i), ea), {==})
-  Equal.trans(B.Bk, TB.dec_c(TB.nth0(tb, a), TB.nth0(tb, b), kl, U32.is_eq(TB.nth0(tb, a), 0)), TB.dec_c(TB.nth0(tb, Nat.double(i)), TB.nth0(tb, b), kl, U32.is_eq(TB.nth0(tb, Nat.double(i)), 0)), TB.dec(tb, kl, i), e1,
-    Equal.cong(Nat, B.Bk, z => TB.dec_c(TB.nth0(tb, Nat.double(i)), TB.nth0(tb, z), kl, U32.is_eq(TB.nth0(tb, Nat.double(i)), 0)), b, 1n+Nat.double(i), eb))
+def dec_ix(+tb: List<&2, U32>, +kl: List<&2, String>, +i: Nat, +a: Nat, +b: Nat, +ea: {a == Nat.double(i) : Nat}, +eb: {b == 1n+Nat.double(i) : Nat}) -> {TB.dec_c(W32.nth0(tb, a), W32.nth0(tb, b), kl, U32.is_eq(W32.nth0(tb, a), 0)) == TB.dec(tb, kl, i) : B.Bk}:
+  +e1 = L.subst(Nat, z => {TB.dec_c(W32.nth0(tb, z), W32.nth0(tb, b), kl, U32.is_eq(W32.nth0(tb, z), 0)) == TB.dec_c(W32.nth0(tb, Nat.double(i)), W32.nth0(tb, b), kl, U32.is_eq(W32.nth0(tb, Nat.double(i)), 0)) : B.Bk}, Nat.double(i), a, Equal.sym(Nat, a, Nat.double(i), ea), {==})
+  Equal.trans(B.Bk, TB.dec_c(W32.nth0(tb, a), W32.nth0(tb, b), kl, U32.is_eq(W32.nth0(tb, a), 0)), TB.dec_c(W32.nth0(tb, Nat.double(i)), W32.nth0(tb, b), kl, U32.is_eq(W32.nth0(tb, Nat.double(i)), 0)), TB.dec(tb, kl, i), e1,
+    Equal.cong(Nat, B.Bk, z => TB.dec_c(W32.nth0(tb, Nat.double(i)), W32.nth0(tb, z), kl, U32.is_eq(W32.nth0(tb, Nat.double(i)), 0)), b, 1n+Nat.double(i), eb))
 
 def fm0(+tabT: AR.Tree<U32>, +sd: Nat, +kl0: List<&2, String>, +key: String, +bs: List<&2, B.Bk>, +n: Nat, +mask: U32, +w: U32, +i: U32, +k: Nat, +hk: {Nat.is_le(k, 32n) == True{} : Bool}, +hi: {Nat.is_lt(UD.v(i), SC.pow2(k)) == True{} : Bool}, +K1: AR.Tree<String>, +hs1: {AR.slots(String, K1) == kl0 : List<&2, String>}, +pk1: {AR.perfect(String, sd, K1) == True{} : Bool}, +ms: B.MS) -> FindOK(tabT, sd, kl0, key, B.pf(key, bs, n, 0n, ms, UD.v(i)), H.find(0n, SP.step_of(ms, AR.thaw(U32, tabT), AR.thaw(String, K1), key), mask, w, i)):
   match ms:
@@ -127,8 +128,8 @@ def find_ok(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk31: {Nat.is_lt(k, 31n
       +el = AX.ix_l(i, 1n+k, hk31, hb)
       +hwb0 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) == True{} : Bool}, Nat.double(UD.v(i)), UD.v(U32.shl(i)), Equal.sym(Nat, UD.v(U32.shl(i)), Nat.double(UD.v(i)), ew), N.lt_trans(Nat.double(UD.v(i)), 1n+Nat.double(UD.v(i)), SC.pow2(1n+k), N.lt_succ(Nat.double(UD.v(i))), hb))
       +hlb0 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) == True{} : Bool}, 1n+Nat.double(UD.v(i)), UD.v(U32.inc(U32.shl(i))), Equal.sym(Nat, UD.v(U32.inc(U32.shl(i))), 1n+Nat.double(UD.v(i)), el), hb)
-      +x = TB.nth0(tb, UD.v(U32.shl(i)))
-      +l = TB.nth0(tb, UD.v(U32.inc(U32.shl(i))))
+      +x = W32.nth0(tb, UD.v(U32.shl(i)))
+      +l = W32.nth0(tb, UD.v(U32.inc(U32.shl(i))))
       +dx = dec_ix(tb, kl0, UD.v(i), UD.v(U32.shl(i)), UD.v(U32.inc(U32.shl(i))), ew, el)
       +dat = TB.at_buckets(tb, kl0, n, UD.v(i), hi)
       +dd = Equal.trans(B.Bk, B.at(bs, UD.v(i)), TB.dec(tb, kl0, UD.v(i)), TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), dat, Equal.sym(B.Bk, TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), TB.dec(tb, kl0, UD.v(i)), dx))
@@ -157,8 +158,8 @@ def find_ok(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk31: {Nat.is_lt(k, 31n
       +el = AX.ix_l(i, 1n+k, hk31, hb)
       +hwb0 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) == True{} : Bool}, Nat.double(UD.v(i)), UD.v(U32.shl(i)), Equal.sym(Nat, UD.v(U32.shl(i)), Nat.double(UD.v(i)), ew), N.lt_trans(Nat.double(UD.v(i)), 1n+Nat.double(UD.v(i)), SC.pow2(1n+k), N.lt_succ(Nat.double(UD.v(i))), hb))
       +hlb0 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) == True{} : Bool}, 1n+Nat.double(UD.v(i)), UD.v(U32.inc(U32.shl(i))), Equal.sym(Nat, UD.v(U32.inc(U32.shl(i))), 1n+Nat.double(UD.v(i)), el), hb)
-      +x = TB.nth0(tb, UD.v(U32.shl(i)))
-      +l = TB.nth0(tb, UD.v(U32.inc(U32.shl(i))))
+      +x = W32.nth0(tb, UD.v(U32.shl(i)))
+      +l = W32.nth0(tb, UD.v(U32.inc(U32.shl(i))))
       +dx = dec_ix(tb, kl0, UD.v(i), UD.v(U32.shl(i)), UD.v(U32.inc(U32.shl(i))), ew, el)
       +dat = TB.at_buckets(tb, kl0, n, UD.v(i), hi)
       +dd = Equal.trans(B.Bk, B.at(bs, UD.v(i)), TB.dec(tb, kl0, UD.v(i)), TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), dat, Equal.sym(B.Bk, TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), TB.dec(tb, kl0, UD.v(i)), dx))
@@ -174,9 +175,9 @@ def find_ok(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk31: {Nat.is_lt(k, 31n
       +pk1 = Pair.snd({AR.slots(String, K1) == AR.slots(String, K) : List<&2, String>}, {AR.perfect(String, sd, K1) == True{} : Bool}, kafter_ok(sd, K, w, x, l, hsI, pk))
       +es = SP.step_long(1n+k, tabT, sd, K, i, key, w, hk31, hsd, pt, pk, hwb0, hlb0, hsI)
       +hk32 = N.lt_le(k, 32n, N.lt_trans(k, 31n, 32n, hk31, {==}))
-      +hks = L.subst(Nat, z => {Nat.is_lt(z, WD.sc(32n, one)) == True{} : Bool}, SC.pow2(k), WD.sc(k, one), AX.pow_one(one, h1, k), N.lt_le_trans(SC.pow2(k), SC.pow2(1n+k), WD.sc(32n, one), N.pow2_lt_succ(k), AX.pow_le32(one, h1, 1n+k, hk31)))
-      +hi1 = L.subst(Nat, z => {Nat.is_lt(UD.v(i), z) == True{} : Bool}, SC.pow2(k), WD.sc(k, one), AX.pow_one(one, h1, k), hi)
-      +hnext = Equal.trans(Nat, UD.v(H.bnext(i, CY.msk(k))), Nat.mod(1n+UD.v(i), WD.sc(k, one)), Nat.mod(1n+UD.v(i), n), CY.next_val(one, h1, k, i, hks, hi1), Equal.cong(Nat, Nat, z => Nat.mod(1n+UD.v(i), z), WD.sc(k, one), SC.pow2(k), Equal.sym(Nat, SC.pow2(k), WD.sc(k, one), AX.pow_one(one, h1, k))))
+      +hks = L.subst(Nat, z => {Nat.is_lt(z, WD.sc(32n, one)) == True{} : Bool}, SC.pow2(k), WD.sc(k, one), W32.pow_one(one, h1, k), N.lt_le_trans(SC.pow2(k), SC.pow2(1n+k), WD.sc(32n, one), N.pow2_lt_succ(k), W32.pow_le32(one, h1, 1n+k, hk31)))
+      +hi1 = L.subst(Nat, z => {Nat.is_lt(UD.v(i), z) == True{} : Bool}, SC.pow2(k), WD.sc(k, one), W32.pow_one(one, h1, k), hi)
+      +hnext = Equal.trans(Nat, UD.v(H.bnext(i, CY.msk(k))), Nat.mod(1n+UD.v(i), WD.sc(k, one)), Nat.mod(1n+UD.v(i), n), CY.next_val(one, h1, k, i, hks, hi1), Equal.cong(Nat, Nat, z => Nat.mod(1n+UD.v(i), z), WD.sc(k, one), SC.pow2(k), Equal.sym(Nat, SC.pow2(k), WD.sc(k, one), W32.pow_one(one, h1, k))))
       +hi2 = L.subst(Nat, z => {Nat.is_lt(z, n) == True{} : Bool}, Nat.mod(1n+UD.v(i), n), UD.v(H.bnext(i, CY.msk(k))), Equal.sym(Nat, UD.v(H.bnext(i, CY.msk(k))), Nat.mod(1n+UD.v(i), n), hnext), mod_lt(n, N.succ_le_lt(0n, n, N.pow2_pos(k)), 1n+UD.v(i)))
       p3 = fm1(tabT, sd, kl0, key, bs, n, CY.msk(k), w, i, k, hk32, hi, K1, hs1, pk1, p, hnext, find_ok(one, h1, k, hk31, tabT, pt, sd, hsd, kl0, key, hkey, hwell, p, H.bnext(i, CY.msk(k)), hi2, K1, hs1, pk1), ms)
       p2 = L.subst(B.MS, m => FindOK(tabT, sd, kl0, key, B.pf(key, bs, n, 1n+p, m, UD.v(i)), H.find(1n+p, SP.step_of(ms, AR.thaw(U32, tabT), AR.thaw(String, K1), key), CY.msk(k), w, i)), ms, B.mstep(key, B.at(bs, UD.v(i))), em, p3)

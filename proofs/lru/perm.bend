@@ -13,6 +13,7 @@ import ./trace.bend as TR
 import ./unlink.bend as UL
 import ./rebuild.bend as RB
 import ./touch.bend as TO
+import ../lib/nat_list.bend as NL
 
 # The recency list a ++ [s] ++ b against (a ++ b) ++ [s]: same slots, same
 # length, both duplicate-free, both with unique keys.
@@ -20,28 +21,28 @@ import ./touch.bend as TO
 
 def sub_xt(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>) -> {IF.subl(SC.append(Nat, a, Con{s, b}), SC.append(Nat, SC.append(Nat, a, b), Con{s, Nil{}})) == True{} : Bool}:
   +sa = RB.subl_ml(a, SC.append(Nat, a, b), Con{s, Nil{}}, RB.subl_ml(a, a, b, RB.subl_refl(a)))
-  +ssb = L.and_intro(HT.memn(s, SC.append(Nat, SC.append(Nat, a, b), Con{s, Nil{}})), IF.subl(b, SC.append(Nat, SC.append(Nat, a, b), Con{s, Nil{}})), LS.mem_app_r(s, SC.append(Nat, a, b), Con{s, Nil{}}, UL.self_in(s, Nil{})), RB.subl_ml(b, SC.append(Nat, a, b), Con{s, Nil{}}, RB.subl_mr(b, a, b, RB.subl_refl(b))))
+  +ssb = L.and_intro(NL.memn(s, SC.append(Nat, SC.append(Nat, a, b), Con{s, Nil{}})), IF.subl(b, SC.append(Nat, SC.append(Nat, a, b), Con{s, Nil{}})), NL.mem_app_r(s, SC.append(Nat, a, b), Con{s, Nil{}}, UL.self_in(s, Nil{})), RB.subl_ml(b, SC.append(Nat, a, b), Con{s, Nil{}}, RB.subl_mr(b, a, b, RB.subl_refl(b))))
   RB.subl_app(a, Con{s, b}, SC.append(Nat, SC.append(Nat, a, b), Con{s, Nil{}}), sa, ssb)
 
 def sub_tx(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>) -> {IF.subl(SC.append(Nat, SC.append(Nat, a, b), Con{s, Nil{}}), SC.append(Nat, a, Con{s, b})) == True{} : Bool}:
   +sab = RB.subl_app(a, b, SC.append(Nat, a, Con{s, b}), RB.subl_ml(a, a, Con{s, b}, RB.subl_refl(a)), RB.subl_mr(b, a, Con{s, b}, IF.subl_cons(b, b, s, RB.subl_refl(b))))
-  RB.subl_app(SC.append(Nat, a, b), Con{s, Nil{}}, SC.append(Nat, a, Con{s, b}), sab, L.and_intro(HT.memn(s, SC.append(Nat, a, Con{s, b})), True{}, LS.mem_app_r(s, a, Con{s, b}, UL.self_in(s, b)), {==}))
+  RB.subl_app(SC.append(Nat, a, b), Con{s, Nil{}}, SC.append(Nat, a, Con{s, b}), sab, L.and_intro(NL.memn(s, SC.append(Nat, a, Con{s, b})), True{}, NL.mem_app_r(s, a, Con{s, b}, UL.self_in(s, b)), {==}))
 
 def trin_sub(+tr: TR.Tr, +xs: List<&2, Nat>, +ys: List<&2, Nat>, +h: {TR.trin(tr, xs) == True{} : Bool}, +sub: {IF.subl(xs, ys) == True{} : Bool}) -> {TR.trin(tr, ys) == True{} : Bool}:
   match tr:
     case TR.TNil{}:
       {==}
     case TR.TW{+y, +o, +v, +t}:
-      L.and_intro(HT.memn(y, ys), TR.trin(t, ys), IF.memn_sub(y, xs, ys, sub, L.and_left(HT.memn(y, xs), TR.trin(t, xs), h)), trin_sub(t, xs, ys, L.and_right(HT.memn(y, xs), TR.trin(t, xs), h), sub))
+      L.and_intro(NL.memn(y, ys), TR.trin(t, ys), IF.memn_sub(y, xs, ys, sub, L.and_left(NL.memn(y, xs), TR.trin(t, xs), h)), trin_sub(t, xs, ys, L.and_right(NL.memn(y, xs), TR.trin(t, xs), h), sub))
 
 # x ++ [s]: duplicate-free when x is and s is not in it
-def nd_snoc(+x: List<&2, Nat>, +s: Nat) -> {ST.nodupn(SC.append(Nat, x, Con{s, Nil{}})) == Bool.and(ST.nodupn(x), Bool.not(HT.memn(s, x))) : Bool}:
-  +e = LS.nd_mid(x, s, Nil{})
+def nd_snoc(+x: List<&2, Nat>, +s: Nat) -> {NL.nodupn(SC.append(Nat, x, Con{s, Nil{}})) == Bool.and(NL.nodupn(x), Bool.not(NL.memn(s, x))) : Bool}:
+  +e = NL.nd_mid(x, s, Nil{})
   +an = LL.append_nil(Nat, x)
-  L.subst(List<&2, Nat>, z => {ST.nodupn(SC.append(Nat, x, Con{s, Nil{}})) == Bool.and(ST.nodupn(z), Bool.not(HT.memn(s, z))) : Bool}, SC.append(Nat, x, Nil{}), x, an, e)
+  L.subst(List<&2, Nat>, z => {NL.nodupn(SC.append(Nat, x, Con{s, Nil{}})) == Bool.and(NL.nodupn(z), Bool.not(NL.memn(s, z))) : Bool}, SC.append(Nat, x, Nil{}), x, an, e)
 
-def nd_xt(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +h: {ST.nodupn(SC.append(Nat, a, Con{s, b})) == True{} : Bool}) -> {ST.nodupn(SC.append(Nat, SC.append(Nat, a, b), Con{s, Nil{}})) == True{} : Bool}:
-  Equal.trans(Bool, ST.nodupn(SC.append(Nat, SC.append(Nat, a, b), Con{s, Nil{}})), Bool.and(ST.nodupn(SC.append(Nat, a, b)), Bool.not(HT.memn(s, SC.append(Nat, a, b)))), True{}, nd_snoc(SC.append(Nat, a, b), s), Equal.trans(Bool, Bool.and(ST.nodupn(SC.append(Nat, a, b)), Bool.not(HT.memn(s, SC.append(Nat, a, b)))), ST.nodupn(SC.append(Nat, a, Con{s, b})), True{}, Equal.sym(Bool, ST.nodupn(SC.append(Nat, a, Con{s, b})), Bool.and(ST.nodupn(SC.append(Nat, a, b)), Bool.not(HT.memn(s, SC.append(Nat, a, b)))), LS.nd_mid(a, s, b)), h))
+def nd_xt(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +h: {NL.nodupn(SC.append(Nat, a, Con{s, b})) == True{} : Bool}) -> {NL.nodupn(SC.append(Nat, SC.append(Nat, a, b), Con{s, Nil{}})) == True{} : Bool}:
+  Equal.trans(Bool, NL.nodupn(SC.append(Nat, SC.append(Nat, a, b), Con{s, Nil{}})), Bool.and(NL.nodupn(SC.append(Nat, a, b)), Bool.not(NL.memn(s, SC.append(Nat, a, b)))), True{}, nd_snoc(SC.append(Nat, a, b), s), Equal.trans(Bool, Bool.and(NL.nodupn(SC.append(Nat, a, b)), Bool.not(NL.memn(s, SC.append(Nat, a, b)))), NL.nodupn(SC.append(Nat, a, Con{s, b})), True{}, Equal.sym(Bool, NL.nodupn(SC.append(Nat, a, Con{s, b})), Bool.and(NL.nodupn(SC.append(Nat, a, b)), Bool.not(NL.memn(s, SC.append(Nat, a, b)))), NL.nd_mid(a, s, b)), h))
 
 def len_xt(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>) -> {SC.length(Nat, SC.append(Nat, SC.append(Nat, a, b), Con{s, Nil{}})) == SC.length(Nat, SC.append(Nat, a, Con{s, b})) : Nat}:
   +e1 = Equal.trans(Nat, SC.length(Nat, SC.append(Nat, SC.append(Nat, a, b), Con{s, Nil{}})), Nat.add(SC.length(Nat, SC.append(Nat, a, b)), 1n), Nat.add(Nat.add(SC.length(Nat, a), SC.length(Nat, b)), 1n), LL.length_append(Nat, SC.append(Nat, a, b), Con{s, Nil{}}), Equal.cong(Nat, Nat, z => Nat.add(z, 1n), SC.length(Nat, SC.append(Nat, a, b)), Nat.add(SC.length(Nat, a), SC.length(Nat, b)), LL.length_append(Nat, a, b)))

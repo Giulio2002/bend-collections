@@ -14,15 +14,10 @@ import ./ends.bend as EN
 import ./path.bend as P
 import ./plug.bend as PG
 import ./ord.bend as OR
-import ./slot.bend as SL
 import ./prim.bend as PR
 import ./tree.bend as TR
 import ./spath.bend as SP
-import ./alloc.bend as AC
-import ./putf.bend as PF
 import ../lib/nat.bend as N
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
 import ./alls.bend as AL
 import ./dj.bend as DJ
 import ./nbr.bend as NB
@@ -34,6 +29,7 @@ import ./rms.bend as RS
 import ./rmd.bend as RMD
 import ./putm.bend as PM
 import ./dord.bend as DO
+import ../lib/nat_list.bend as NL
 
 # remove over a good shadow: the search from the root ends at a path and a
 # subtree; an empty subtree means the key is absent, a node is removed by its
@@ -50,8 +46,8 @@ import ./dord.bend as DO
 %def W2(cc, t) $APP(P.before(cc), $APP($IDS(t), P.after(cc)))
 %def REPN(t, p, x) {ST.rep(~K, t, p, x) == True{} : Bool}
 %def COKN(cc, z, x) {P.ctxok(~K, cc, z, x) == True{} : Bool}
-%def NDL(xs) {LST.nodupn(xs) == True{} : Bool}
-%def MEM(y, xs) {HT.memn(y, xs) == True{} : Bool}
+%def NDL(xs) {NL.nodupn(xs) == True{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
 %def P1 PR.ex_pl(V, pl, $U, None{})
 %def SH1 ST.SH{n, root, lo, hi, free, l, d, nl, $P1, tg, fl}
 %def RMS S.remove($AK, ST.model($AK, $SH), k)

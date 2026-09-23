@@ -1,7 +1,6 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/u32.bend as U
 import ../lib/array.bend as AR
 import ../lib/list.bend as LL
 import ../spec/common.bend as SC

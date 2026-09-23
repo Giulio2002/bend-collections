@@ -24,6 +24,8 @@ import ./insm.bend as IM
 import ./insa.bend as IA
 import ./insu.bend as IU
 import ./insf.bend as IF
+import ../lib/words32.bend as W32
+import ../lib/links.bend as LK
 
 # Placing a new entry: once its slot s is chosen and its bucket e is the
 # empty bucket that ended its probe, and the table does not grow, the
@@ -88,11 +90,11 @@ def s_sd($PP, $HY) -> {Nat.is_lt(UD.v(s), SC.pow2(sd)) $TT:
   N.lt_le_trans(UD.v(s), UD.v(fr), SC.pow2(sd), hs, N.le_trans(UD.v(fr), UD.v(sz), SC.pow2(sd), hfr, N.eq_le(UD.v(sz), SC.pow2(sd), N.eq_from_is_eq(UD.v(sz), SC.pow2(sd), hsz))))
 
 def s32($PP, $HY) -> {Nat.is_lt(1n+UD.v(s), $S32) $TT:
-  IU.bound32(one, h1, UD.v(s), sd, N.lt_trans(sd, k, 31n, hsdk, hk31), s_sd($PA, $HA))
+  W32.bound32(one, h1, UD.v(s), sd, N.lt_trans(sd, k, 31n, hsdk, hk31), s_sd($PA, $HA))
 
 # slot(link(s)) = s
 def sl_eq($PP, $HY) -> {$SLv == UD.v(s) : Nat}:
-  IU.slot_link(one, h1, s, s32($PA, $HA))
+  LK.slot_link(one, h1, s, s32($PA, $HA))
 
 def ev($PP, $HY) -> {UD.v($AT) == e : Nat}:
   U.to_nat_from_nat(e, k, N.lt_le(k, 32n, N.lt_trans(k, 31n, 32n, hk31, {==})), he)
@@ -119,8 +121,8 @@ def len_lt(-T: Data, +d: Nat, +t: AR.Tree<T>, +pf: {AR.perfect(T, d, t) $TT, +i:
 
 def tab_eq($PP, $HY) -> {H.put_bucket(AR.thaw(U32, tabT), $AT, $W, $LK) == AR.thaw(U32, $TAB2) : Array<U32>}:
   +p1 = AR.upd_perfect(U32, 1n+k, tabT, $I1, $W, pt)
-  +s1 = AR.set(U32, 1n+k, tabT, U32.shl($AT), $W, TB.nth0($TBL, $I1), hk31, hi1($PA, $HA), TB.nth_some($TBL, $I1, len_lt(U32, 1n+k, tabT, pt, $I1, hi1($PA, $HA))), pt)
-  +s2 = AR.set(U32, 1n+k, $T1, U32.inc(U32.shl($AT)), $LK, TB.nth0(AR.slots(U32, $T1), $I2), hk31, hi2($PA, $HA), TB.nth_some(AR.slots(U32, $T1), $I2, len_lt(U32, 1n+k, $T1, p1, $I2, hi2($PA, $HA))), p1)
+  +s1 = AR.set(U32, 1n+k, tabT, U32.shl($AT), $W, W32.nth0($TBL, $I1), hk31, hi1($PA, $HA), W32.nth_some($TBL, $I1, len_lt(U32, 1n+k, tabT, pt, $I1, hi1($PA, $HA))), pt)
+  +s2 = AR.set(U32, 1n+k, $T1, U32.inc(U32.shl($AT)), $LK, W32.nth0(AR.slots(U32, $T1), $I2), hk31, hi2($PA, $HA), W32.nth_some(AR.slots(U32, $T1), $I2, len_lt(U32, 1n+k, $T1, p1, $I2, hi2($PA, $HA))), p1)
   Equal.trans(Array<U32>, H.put_bucket(AR.thaw(U32, tabT), $AT, $W, $LK), Array.set(U32, AR.thaw(U32, $T1), U32.inc(U32.shl($AT)), $LK), AR.thaw(U32, $TAB2), Equal.cong(Array<U32>, Array<U32>, a => Array.set(U32, a, U32.inc(U32.shl($AT)), $LK), Array.set(U32, AR.thaw(U32, tabT), U32.shl($AT), $W), AR.thaw(U32, $T1), s1), s2)
 
 def ks_eq($PP, $HY) -> {Array.set(String, AR.thaw(String, ksT), s, $SK) == AR.thaw(String, $KS2) : Array<String>}:
@@ -193,7 +195,7 @@ def sl_fr($PP, $HY) -> {Nat.is_lt($SLv, UD.v(fr)) $TT:
 %def FROM2 , $BU, $BS2, Equal.sym(List<&2, B.Bk>, $BS2, $BU, bs2_eq($PA, $HA)),
 
 def g_well($PP, $HY) -> {ST.cwell($GA) $TT:
-  +hwb = L.and_intro(Nat.is_lt($SLv, SC.pow2(sd)), Bool.and(U32.is_eq($W, K.kword(key)), Bool.not(U32.is_eq($LK, 0))), sl_sd($PA, $HA), L.and_intro(U32.is_eq($W, K.kword(key)), Bool.not(U32.is_eq($LK, 0)), K.u32_eq_refl($W), IM.not_f(U32.is_eq($LK, 0), IU.link_nz(one, h1, s, s32($PA, $HA)))))
+  +hwb = L.and_intro(Nat.is_lt($SLv, SC.pow2(sd)), Bool.and(U32.is_eq($W, K.kword(key)), Bool.not(U32.is_eq($LK, 0))), sl_sd($PA, $HA), L.and_intro(U32.is_eq($W, K.kword(key)), Bool.not(U32.is_eq($LK, 0)), U.u32_eq_refl($W), IM.not_f(U32.is_eq($LK, 0), W32.link_nz(one, h1, s, s32($PA, $HA)))))
   $TO2 {B.all_lt(B.PWell{z, sd}, $NN) $TT $FROM2 IM.well_up($BS, e, $NB, he_len($PA, $HA), sd, hwb, $NN, hwell, $NN, N.le_refl($NN)))
 
 def g_clus($PP, $HY) -> {ST.cclus($GA) $TT:

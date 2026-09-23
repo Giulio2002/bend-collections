@@ -9,16 +9,15 @@ import ../spec/common.bend as SC
 import ../math/u32div.bend as UD
 import ../../src/containers/hash_table.bend as H
 import ../../src/containers/lru.bend as LR
-import ../hash_table/insu.bend as IU
-import ../hash_table/state.bend as HT
-import ../hash_table/table.bend as TB
 import ./state.bend as ST
-import ./meta.bend as MT
 import ./idx.bend as ID
-import ./tfind.bend as TF
 import ./lists.bend as LS
 import ./dll.bend as DL
 import ./trace.bend as TR
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
+import ../lib/words32.bend as W32
+import ../lib/u32_tree.bend as UT
 
 # unlink: detaching a slot from the middle of the recency list.
 
@@ -35,102 +34,102 @@ def sd1(+sd: Nat, +h: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}) -> {Nat.is_lt(1n
 def sd3(+sd: Nat, +h: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}) -> {Nat.is_le(3n+sd, 32n) == True{} : Bool}:
   N.lt_le(3n+sd, 32n, h)
 
-def lnk_nz(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +hb: {Nat.is_lt(b, SC.pow2(sd)) == True{} : Bool}) -> {U32.is_eq(ST.lnk(b), 0) == False{} : Bool}:
+def lnk_nz(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +hb: {Nat.is_lt(b, SC.pow2(sd)) == True{} : Bool}) -> {U32.is_eq(LK.lnk(b), 0) == False{} : Bool}:
   +hk = N.lt_le(sd, 32n, N.lt_trans(sd, 1n+sd, 32n, N.lt_succ(sd), sd1(sd, hsd)))
   +e1 = U.to_nat_from_nat(b, sd, hk, hb)
   +hb2 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(sd)) == True{} : Bool}, b, UD.v(U32.from_nat(b)), Equal.sym(Nat, UD.v(U32.from_nat(b)), b, e1), hb)
-  IU.link_nz(one, h1, U32.from_nat(b), IU.bound32(one, h1, UD.v(U32.from_nat(b)), sd, sd1(sd, hsd), hb2))
+  W32.link_nz(one, h1, U32.from_nat(b), W32.bound32(one, h1, UD.v(U32.from_nat(b)), sd, sd1(sd, hsd), hb2))
 
 # the lk index of word o (< 8) of the slot of b's link
-def ix_o(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +hb: {Nat.is_lt(b, SC.pow2(sd)) == True{} : Bool}) -> {UD.v(H.slot(ST.lnk(b))) == b : Nat}:
-  TF.slot_lnk(one, h1, b, sd, sd1(sd, hsd), hb)
+def ix_o(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +hb: {Nat.is_lt(b, SC.pow2(sd)) == True{} : Bool}) -> {UD.v(H.slot(LK.lnk(b))) == b : Nat}:
+  LK.slot_lnk(one, h1, b, sd, sd1(sd, hsd), hb)
 
-def ix_p(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +hb: {Nat.is_lt(b, SC.pow2(sd)) == True{} : Bool}) -> {UD.v(LR.pidx(H.slot(ST.lnk(b)))) == ST.off(b, 0n) : Nat}:
+def ix_p(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +hb: {Nat.is_lt(b, SC.pow2(sd)) == True{} : Bool}) -> {UD.v(LR.pidx(H.slot(LK.lnk(b)))) == ST.off(b, 0n) : Nat}:
   +e = ix_o(one, h1, b, sd, hsd, hb)
-  +hs = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(sd)) == True{} : Bool}, b, UD.v(H.slot(ST.lnk(b))), Equal.sym(Nat, UD.v(H.slot(ST.lnk(b))), b, e), hb)
-  Equal.trans(Nat, UD.v(LR.pidx(H.slot(ST.lnk(b)))), ST.off(UD.v(H.slot(ST.lnk(b))), 0n), ST.off(b, 0n), ID.w0(one, h1, H.slot(ST.lnk(b)), sd, sd3(sd, hsd), hs), Equal.cong(Nat, Nat, z => ST.off(z, 0n), UD.v(H.slot(ST.lnk(b))), b, e))
+  +hs = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(sd)) == True{} : Bool}, b, UD.v(H.slot(LK.lnk(b))), Equal.sym(Nat, UD.v(H.slot(LK.lnk(b))), b, e), hb)
+  Equal.trans(Nat, UD.v(LR.pidx(H.slot(LK.lnk(b)))), ST.off(UD.v(H.slot(LK.lnk(b))), 0n), ST.off(b, 0n), ID.w0(one, h1, H.slot(LK.lnk(b)), sd, sd3(sd, hsd), hs), Equal.cong(Nat, Nat, z => ST.off(z, 0n), UD.v(H.slot(LK.lnk(b))), b, e))
 
-def ix_n(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +hb: {Nat.is_lt(b, SC.pow2(sd)) == True{} : Bool}) -> {UD.v(LR.nidx(H.slot(ST.lnk(b)))) == ST.off(b, 1n) : Nat}:
+def ix_n(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +hb: {Nat.is_lt(b, SC.pow2(sd)) == True{} : Bool}) -> {UD.v(LR.nidx(H.slot(LK.lnk(b)))) == ST.off(b, 1n) : Nat}:
   +e = ix_o(one, h1, b, sd, hsd, hb)
-  +hs = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(sd)) == True{} : Bool}, b, UD.v(H.slot(ST.lnk(b))), Equal.sym(Nat, UD.v(H.slot(ST.lnk(b))), b, e), hb)
-  Equal.trans(Nat, UD.v(LR.nidx(H.slot(ST.lnk(b)))), ST.off(UD.v(H.slot(ST.lnk(b))), 1n), ST.off(b, 1n), ID.w1(one, h1, H.slot(ST.lnk(b)), sd, sd3(sd, hsd), hs), Equal.cong(Nat, Nat, z => ST.off(z, 1n), UD.v(H.slot(ST.lnk(b))), b, e))
+  +hs = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(sd)) == True{} : Bool}, b, UD.v(H.slot(LK.lnk(b))), Equal.sym(Nat, UD.v(H.slot(LK.lnk(b))), b, e), hb)
+  Equal.trans(Nat, UD.v(LR.nidx(H.slot(LK.lnk(b)))), ST.off(UD.v(H.slot(LK.lnk(b))), 1n), ST.off(b, 1n), ID.w1(one, h1, H.slot(LK.lnk(b)), sd, sd3(sd, hsd), hs), Equal.cong(Nat, Nat, z => ST.off(z, 1n), UD.v(H.slot(LK.lnk(b))), b, e))
 
 # a write of word o of slot b (b < 2^sd): the new tree, its slots, its trace
 def wr(+one: Nat, +h1: {one == 1n : Nat}, +lkT: AR.Tree<U32>, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +hpl: {AR.perfect(U32, 3n+sd, lkT) == True{} : Bool}, +i: U32, +b: Nat, +o: Nat, +ho: {Nat.is_lt(o, 8n) == True{} : Bool}, +hb: {Nat.is_lt(b, SC.pow2(sd)) == True{} : Bool}, +hi: {UD.v(i) == ST.off(b, o) : Nat}, +x: U32) -> {Array.set(U32, AR.thaw(U32, lkT), i, x) == AR.thaw(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), x)) : Array<U32>}:
   +hl = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(3n+sd)) == True{} : Bool}, ST.off(b, o), UD.v(i), Equal.sym(Nat, UD.v(i), ST.off(b, o), hi), ID.off_lt(b, sd, hb, o, ho))
-  MT.uset_a(3n+sd, hsd, lkT, hpl, i, hl, x)
+  UT.uset_a(3n+sd, hsd, lkT, hpl, i, hl, x)
 
 def wr_s(+lkT: AR.Tree<U32>, +sd: Nat, +hpl: {AR.perfect(U32, 3n+sd, lkT) == True{} : Bool}, +i: U32, +b: Nat, +o: Nat, +ho: {Nat.is_lt(o, 8n) == True{} : Bool}, +hb: {Nat.is_lt(b, SC.pow2(sd)) == True{} : Bool}, +hi: {UD.v(i) == ST.off(b, o) : Nat}, +x: U32) -> {AR.slots(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), x)) == SC.update(U32, AR.slots(U32, lkT), ST.off(b, o), x) : List<&2, U32>}:
   +hl = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(3n+sd)) == True{} : Bool}, ST.off(b, o), UD.v(i), Equal.sym(Nat, UD.v(i), ST.off(b, o), hi), ID.off_lt(b, sd, hb, o, ho))
-  Equal.trans(List<&2, U32>, AR.slots(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), x)), SC.update(U32, AR.slots(U32, lkT), UD.v(i), x), SC.update(U32, AR.slots(U32, lkT), ST.off(b, o), x), MT.uset_s(3n+sd, lkT, hpl, UD.v(i), hl, x), Equal.cong(Nat, List<&2, U32>, z => SC.update(U32, AR.slots(U32, lkT), z, x), UD.v(i), ST.off(b, o), hi))
+  Equal.trans(List<&2, U32>, AR.slots(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), x)), SC.update(U32, AR.slots(U32, lkT), UD.v(i), x), SC.update(U32, AR.slots(U32, lkT), ST.off(b, o), x), UT.uset_s(3n+sd, lkT, hpl, UD.v(i), hl, x), Equal.cong(Nat, List<&2, U32>, z => SC.update(U32, AR.slots(U32, lkT), z, x), UD.v(i), ST.off(b, o), hi))
 
 def len_ll(+lkT: AR.Tree<U32>, +sd: Nat, +hpl: {AR.perfect(U32, 3n+sd, lkT) == True{} : Bool}, +b: Nat, +o: Nat, +ho: {Nat.is_lt(o, 8n) == True{} : Bool}, +hb: {Nat.is_lt(b, SC.pow2(sd)) == True{} : Bool}) -> {Nat.is_lt(ST.off(b, o), SC.length(U32, AR.slots(U32, lkT))) == True{} : Bool}:
-  MT.len_of(U32, 3n+sd, lkT, hpl, ST.off(b, o), ID.off_lt(b, sd, hb, o, ho))
+  UT.len_of(U32, 3n+sd, lkT, hpl, ST.off(b, o), ID.off_lt(b, sd, hb, o, ho))
 
 # ---- the two writes ----
 
 def Step(+t0: AR.Tree<U32>, +sd: Nat, +xs: List<&2, Nat>, +p: U32, +q: U32, r: Array<U32>) -> Type:
   Sigma<&1, &1, AR.Tree<U32>, t1 => Sigma<&1, &1, TR.Tr, tr => {r == AR.thaw(U32, t1) : Array<U32>} & ({AR.perfect(U32, 3n+sd, t1) == True{} : Bool} & ({AR.slots(U32, t1) == TR.app(AR.slots(U32, t0), tr) : List<&2, U32>} & ({TR.trlo(tr) == True{} : Bool} & ({TR.trin(tr, xs) == True{} : Bool} & {ST.seg(AR.slots(U32, t1), xs, p, q) == True{} : Bool}))))>>
 
-def self_in(+b: Nat, +t: List<&2, Nat>) -> {HT.memn(b, Con{b, t}) == True{} : Bool}:
-  DL.or_tl(Nat.is_eq(b, b), HT.memn(b, t), N.is_eq_refl(b))
+def self_in(+b: Nat, +t: List<&2, Nat>) -> {NL.memn(b, Con{b, t}) == True{} : Bool}:
+  NL.or_tl(Nat.is_eq(b, b), NL.memn(b, t), N.is_eq_refl(b))
 
-def bnd_of(~V: Data, +x: Nat, +xs: List<&2, Nat>, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +sd: Nat, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +h: {ST.sall(~V, ST.PLive{fr, el}, xs) == True{} : Bool}, +hm: {HT.memn(x, xs) == True{} : Bool}) -> {Nat.is_lt(x, SC.pow2(sd)) == True{} : Bool}:
+def bnd_of(~V: Data, +x: Nat, +xs: List<&2, Nat>, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +sd: Nat, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +h: {ST.sall(~V, ST.PLive{fr, el}, xs) == True{} : Bool}, +hm: {NL.memn(x, xs) == True{} : Bool}) -> {Nat.is_lt(x, SC.pow2(sd)) == True{} : Bool}:
   N.lt_le_trans(x, fr, SC.pow2(sd), L.and_left(Nat.is_lt(x, fr), ST.live(~V, el, x), LS.sall_mem(~V, ST.PLive{fr, el}, x, xs, h, hm)), hfr)
 
 # the successor's prev becomes p
-def ul_q(~V: Data, $UP, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +p: U32, +s: Nat, +b: List<&2, Nat>, +hB: {ST.seg($LLS, b, ST.lnk(s), 0) == True{} : Bool}, +hnB: {ST.nodupn(b) == True{} : Bool}, +hbB: {ST.sall(~V, ST.PLive{fr, el}, b) == True{} : Bool}) -> Step(lkT, sd, b, p, 0, LR.set_if(AR.thaw(U32, lkT), LR.pidx(H.slot(ST.fst_or(b, 0))), p, U32.is_eq(ST.fst_or(b, 0), 0))):
+def ul_q(~V: Data, $UP, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +p: U32, +s: Nat, +b: List<&2, Nat>, +hB: {ST.seg($LLS, b, LK.lnk(s), 0) == True{} : Bool}, +hnB: {NL.nodupn(b) == True{} : Bool}, +hbB: {ST.sall(~V, ST.PLive{fr, el}, b) == True{} : Bool}) -> Step(lkT, sd, b, p, 0, LR.set_if(AR.thaw(U32, lkT), LR.pidx(H.slot(LK.fst_or(b, 0))), p, U32.is_eq(LK.fst_or(b, 0), 0))):
   match b:
     case Nil{}:
       (lkT, (TR.TNil{}, ({==}, (hpl, ({==}, ({==}, ({==}, {==})))))))
     case Con{+b0, +b2}:
       +hb0 = bnd_of(~V, b0, Con{b0, b2}, fr, el, sd, hfr, hbB, self_in(b0, b2))
       +ei = ix_p(one, h1, b0, sd, hsd, hb0)
-      +i = LR.pidx(H.slot(ST.lnk(b0)))
-      +ea = Equal.trans(Array<U32>, LR.set_if(AR.thaw(U32, lkT), i, p, U32.is_eq(ST.lnk(b0), 0)), LR.set_if(AR.thaw(U32, lkT), i, p, False{}), AR.thaw(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), p)), Equal.cong(Bool, Array<U32>, z => LR.set_if(AR.thaw(U32, lkT), i, p, z), U32.is_eq(ST.lnk(b0), 0), False{}, lnk_nz(one, h1, b0, sd, hsd, hb0)), wr($UA, i, b0, 0n, {==}, hb0, ei, p))
+      +i = LR.pidx(H.slot(LK.lnk(b0)))
+      +ea = Equal.trans(Array<U32>, LR.set_if(AR.thaw(U32, lkT), i, p, U32.is_eq(LK.lnk(b0), 0)), LR.set_if(AR.thaw(U32, lkT), i, p, False{}), AR.thaw(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), p)), Equal.cong(Bool, Array<U32>, z => LR.set_if(AR.thaw(U32, lkT), i, p, z), U32.is_eq(LK.lnk(b0), 0), False{}, lnk_nz(one, h1, b0, sd, hsd, hb0)), wr($UA, i, b0, 0n, {==}, hb0, ei, p))
       +es = wr_s(lkT, sd, hpl, i, b0, 0n, {==}, hb0, ei, p)
-      +hs = L.subst(List<&2, U32>, z => {ST.seg(z, Con{b0, b2}, p, 0) == True{} : Bool}, SC.update(U32, $LLS, ST.off(b0, 0n), p), AR.slots(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), p)), Equal.sym(List<&2, U32>, AR.slots(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), p)), SC.update(U32, $LLS, ST.off(b0, 0n), p), es), DL.segp($LLS, b0, b2, ST.lnk(s), 0, p, hB, hnB, len_ll(lkT, sd, hpl, b0, 0n, {==}, hb0)))
-      (AR.upd(U32, 3n+sd, lkT, UD.v(i), p), (TR.TW{b0, 0n, p, TR.TNil{}}, (ea, (MT.uset_p(3n+sd, lkT, hpl, UD.v(i), p), (es, ({==}, (L.and_intro(HT.memn(b0, Con{b0, b2}), True{}, self_in(b0, b2), {==}), hs)))))))
+      +hs = L.subst(List<&2, U32>, z => {ST.seg(z, Con{b0, b2}, p, 0) == True{} : Bool}, SC.update(U32, $LLS, ST.off(b0, 0n), p), AR.slots(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), p)), Equal.sym(List<&2, U32>, AR.slots(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), p)), SC.update(U32, $LLS, ST.off(b0, 0n), p), es), DL.segp($LLS, b0, b2, LK.lnk(s), 0, p, hB, hnB, len_ll(lkT, sd, hpl, b0, 0n, {==}, hb0)))
+      (AR.upd(U32, 3n+sd, lkT, UD.v(i), p), (TR.TW{b0, 0n, p, TR.TNil{}}, (ea, (UT.uset_p(3n+sd, lkT, hpl, UD.v(i), p), (es, ({==}, (L.and_intro(NL.memn(b0, Con{b0, b2}), True{}, self_in(b0, b2), {==}), hs)))))))
 
 # the predecessor's next becomes q
-def ul_p(~V: Data, $UP, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +q: U32, +x: U32, +a: List<&2, Nat>, +hA: {ST.seg($LLS, a, 0, x) == True{} : Bool}, +hnA: {ST.nodupn(a) == True{} : Bool}, +hbA: {ST.sall(~V, ST.PLive{fr, el}, a) == True{} : Bool}) -> Step(lkT, sd, a, 0, q, LR.set_if(AR.thaw(U32, lkT), LR.nidx(H.slot(ST.last_or(a, 0))), q, U32.is_eq(ST.last_or(a, 0), 0))):
+def ul_p(~V: Data, $UP, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +q: U32, +x: U32, +a: List<&2, Nat>, +hA: {ST.seg($LLS, a, 0, x) == True{} : Bool}, +hnA: {NL.nodupn(a) == True{} : Bool}, +hbA: {ST.sall(~V, ST.PLive{fr, el}, a) == True{} : Bool}) -> Step(lkT, sd, a, 0, q, LR.set_if(AR.thaw(U32, lkT), LR.nidx(H.slot(LK.last_or(a, 0))), q, U32.is_eq(LK.last_or(a, 0), 0))):
   match a:
     case Nil{}:
       (lkT, (TR.TNil{}, ({==}, (hpl, ({==}, ({==}, ({==}, {==})))))))
     case Con{+a0, +a2}:
-      +z = DL.lastn(a2, a0)
-      +hz = bnd_of(~V, z, Con{a0, a2}, fr, el, sd, hfr, hbA, DL.lastn_mem(a2, a0))
+      +z = NL.lastn(a2, a0)
+      +hz = bnd_of(~V, z, Con{a0, a2}, fr, el, sd, hfr, hbA, NL.lastn_mem(a2, a0))
       +ei = ix_n(one, h1, z, sd, hsd, hz)
-      +i = LR.nidx(H.slot(ST.lnk(z)))
-      +e0 = Equal.cong(U32, Array<U32>, w => LR.set_if(AR.thaw(U32, lkT), LR.nidx(H.slot(w)), q, U32.is_eq(w, 0)), ST.last_or(a2, ST.lnk(a0)), ST.lnk(z), DL.last_lnk(a2, a0))
-      +ea = Equal.trans(Array<U32>, LR.set_if(AR.thaw(U32, lkT), LR.nidx(H.slot(ST.last_or(a2, ST.lnk(a0)))), q, U32.is_eq(ST.last_or(a2, ST.lnk(a0)), 0)), LR.set_if(AR.thaw(U32, lkT), i, q, U32.is_eq(ST.lnk(z), 0)), AR.thaw(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), q)), e0, Equal.trans(Array<U32>, LR.set_if(AR.thaw(U32, lkT), i, q, U32.is_eq(ST.lnk(z), 0)), LR.set_if(AR.thaw(U32, lkT), i, q, False{}), AR.thaw(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), q)), Equal.cong(Bool, Array<U32>, w => LR.set_if(AR.thaw(U32, lkT), i, q, w), U32.is_eq(ST.lnk(z), 0), False{}, lnk_nz(one, h1, z, sd, hsd, hz)), wr($UA, i, z, 1n, {==}, hz, ei, q)))
+      +i = LR.nidx(H.slot(LK.lnk(z)))
+      +e0 = Equal.cong(U32, Array<U32>, w => LR.set_if(AR.thaw(U32, lkT), LR.nidx(H.slot(w)), q, U32.is_eq(w, 0)), LK.last_or(a2, LK.lnk(a0)), LK.lnk(z), LK.last_lnk(a2, a0))
+      +ea = Equal.trans(Array<U32>, LR.set_if(AR.thaw(U32, lkT), LR.nidx(H.slot(LK.last_or(a2, LK.lnk(a0)))), q, U32.is_eq(LK.last_or(a2, LK.lnk(a0)), 0)), LR.set_if(AR.thaw(U32, lkT), i, q, U32.is_eq(LK.lnk(z), 0)), AR.thaw(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), q)), e0, Equal.trans(Array<U32>, LR.set_if(AR.thaw(U32, lkT), i, q, U32.is_eq(LK.lnk(z), 0)), LR.set_if(AR.thaw(U32, lkT), i, q, False{}), AR.thaw(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), q)), Equal.cong(Bool, Array<U32>, w => LR.set_if(AR.thaw(U32, lkT), i, q, w), U32.is_eq(LK.lnk(z), 0), False{}, lnk_nz(one, h1, z, sd, hsd, hz)), wr($UA, i, z, 1n, {==}, hz, ei, q)))
       +es = wr_s(lkT, sd, hpl, i, z, 1n, {==}, hz, ei, q)
       +hs = L.subst(List<&2, U32>, w => {ST.seg(w, Con{a0, a2}, 0, q) == True{} : Bool}, SC.update(U32, $LLS, ST.off(z, 1n), q), AR.slots(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), q)), Equal.sym(List<&2, U32>, AR.slots(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), q)), SC.update(U32, $LLS, ST.off(z, 1n), q), es), DL.segq($LLS, a2, a0, 0, x, q, hA, hnA, len_ll(lkT, sd, hpl, z, 1n, {==}, hz)))
-      (AR.upd(U32, 3n+sd, lkT, UD.v(i), q), (TR.TW{z, 1n, q, TR.TNil{}}, (ea, (MT.uset_p(3n+sd, lkT, hpl, UD.v(i), q), (es, ({==}, (L.and_intro(HT.memn(z, Con{a0, a2}), True{}, DL.lastn_mem(a2, a0), {==}), hs)))))))
+      (AR.upd(U32, 3n+sd, lkT, UD.v(i), q), (TR.TW{z, 1n, q, TR.TNil{}}, (ea, (UT.uset_p(3n+sd, lkT, hpl, UD.v(i), q), (es, ({==}, (L.and_intro(NL.memn(z, Con{a0, a2}), True{}, NL.lastn_mem(a2, a0), {==}), hs)))))))
 
 # ---- head and tail ----
 
 def pick_f(+c: Bool, +h: {c == False{} : Bool}, +x: U32, +y: U32) -> {LR.pick(c, x, y) == y : U32}:
   L.subst(Bool, z => {LR.pick(z, x, y) == y : U32}, False{}, c, Equal.sym(Bool, c, False{}, h), {==})
 
-def hd_ok(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +head: U32, +hh: {U32.is_eq(head, ST.fst_or($APN(a, Con{s, b}), 0)) == True{} : Bool}, +hbA: {ST.sall(~V, ST.PLive{fr, el}, a) == True{} : Bool}) -> {LR.pick(U32.is_eq(ST.last_or(a, 0), 0), ST.fst_or(b, 0), head) == ST.fst_or($APN(a, b), 0) : U32}:
+def hd_ok(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +head: U32, +hh: {U32.is_eq(head, LK.fst_or($APN(a, Con{s, b}), 0)) == True{} : Bool}, +hbA: {ST.sall(~V, ST.PLive{fr, el}, a) == True{} : Bool}) -> {LR.pick(U32.is_eq(LK.last_or(a, 0), 0), LK.fst_or(b, 0), head) == LK.fst_or($APN(a, b), 0) : U32}:
   match a:
     case Nil{}:
       {==}
     case Con{+a0, +a2}:
-      +z = DL.lastn(a2, a0)
-      +hz = bnd_of(~V, z, Con{a0, a2}, fr, el, sd, hfr, hbA, DL.lastn_mem(a2, a0))
-      +hc = Equal.trans(Bool, U32.is_eq(ST.last_or(a2, ST.lnk(a0)), 0), U32.is_eq(ST.lnk(z), 0), False{}, Equal.cong(U32, Bool, w => U32.is_eq(w, 0), ST.last_or(a2, ST.lnk(a0)), ST.lnk(z), DL.last_lnk(a2, a0)), lnk_nz(one, h1, z, sd, hsd, hz))
-      Equal.trans(U32, LR.pick(U32.is_eq(ST.last_or(a2, ST.lnk(a0)), 0), ST.fst_or(b, 0), head), head, ST.lnk(a0), pick_f(U32.is_eq(ST.last_or(a2, ST.lnk(a0)), 0), hc, ST.fst_or(b, 0), head), A.eq_of(head, ST.lnk(a0), hh))
+      +z = NL.lastn(a2, a0)
+      +hz = bnd_of(~V, z, Con{a0, a2}, fr, el, sd, hfr, hbA, NL.lastn_mem(a2, a0))
+      +hc = Equal.trans(Bool, U32.is_eq(LK.last_or(a2, LK.lnk(a0)), 0), U32.is_eq(LK.lnk(z), 0), False{}, Equal.cong(U32, Bool, w => U32.is_eq(w, 0), LK.last_or(a2, LK.lnk(a0)), LK.lnk(z), LK.last_lnk(a2, a0)), lnk_nz(one, h1, z, sd, hsd, hz))
+      Equal.trans(U32, LR.pick(U32.is_eq(LK.last_or(a2, LK.lnk(a0)), 0), LK.fst_or(b, 0), head), head, LK.lnk(a0), pick_f(U32.is_eq(LK.last_or(a2, LK.lnk(a0)), 0), hc, LK.fst_or(b, 0), head), A.eq_of(head, LK.lnk(a0), hh))
 
-def tl_ok(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +tail: U32, +ht: {U32.is_eq(tail, ST.last_or($APN(a, Con{s, b}), 0)) == True{} : Bool}, +hbB: {ST.sall(~V, ST.PLive{fr, el}, b) == True{} : Bool}) -> {LR.pick(U32.is_eq(ST.fst_or(b, 0), 0), ST.last_or(a, 0), tail) == ST.last_or($APN(a, b), 0) : U32}:
+def tl_ok(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +tail: U32, +ht: {U32.is_eq(tail, LK.last_or($APN(a, Con{s, b}), 0)) == True{} : Bool}, +hbB: {ST.sall(~V, ST.PLive{fr, el}, b) == True{} : Bool}) -> {LR.pick(U32.is_eq(LK.fst_or(b, 0), 0), LK.last_or(a, 0), tail) == LK.last_or($APN(a, b), 0) : U32}:
   match b:
     case Nil{}:
-      Equal.cong(List<&2, Nat>, U32, w => ST.last_or(w, 0), a, $APN(a, Nil{}), Equal.sym(List<&2, Nat>, $APN(a, Nil{}), a, LL.append_nil(Nat, a)))
+      Equal.cong(List<&2, Nat>, U32, w => LK.last_or(w, 0), a, $APN(a, Nil{}), Equal.sym(List<&2, Nat>, $APN(a, Nil{}), a, LL.append_nil(Nat, a)))
     case Con{+b0, +b2}:
       +hb0 = bnd_of(~V, b0, Con{b0, b2}, fr, el, sd, hfr, hbB, self_in(b0, b2))
-      +et = Equal.trans(U32, tail, ST.last_or($APN(a, Con{s, Con{b0, b2}}), 0), ST.last_or(b2, ST.lnk(b0)), A.eq_of(tail, ST.last_or($APN(a, Con{s, Con{b0, b2}}), 0), ht), DL.last_app(a, Con{s, Con{b0, b2}}, 0))
-      Equal.trans(U32, LR.pick(U32.is_eq(ST.lnk(b0), 0), ST.last_or(a, 0), tail), tail, ST.last_or($APN(a, Con{b0, b2}), 0), pick_f(U32.is_eq(ST.lnk(b0), 0), lnk_nz(one, h1, b0, sd, hsd, hb0), ST.last_or(a, 0), tail), Equal.trans(U32, tail, ST.last_or(b2, ST.lnk(b0)), ST.last_or($APN(a, Con{b0, b2}), 0), et, Equal.sym(U32, ST.last_or($APN(a, Con{b0, b2}), 0), ST.last_or(b2, ST.lnk(b0)), DL.last_app(a, Con{b0, b2}, 0))))
+      +et = Equal.trans(U32, tail, LK.last_or($APN(a, Con{s, Con{b0, b2}}), 0), LK.last_or(b2, LK.lnk(b0)), A.eq_of(tail, LK.last_or($APN(a, Con{s, Con{b0, b2}}), 0), ht), LK.last_app(a, Con{s, Con{b0, b2}}, 0))
+      Equal.trans(U32, LR.pick(U32.is_eq(LK.lnk(b0), 0), LK.last_or(a, 0), tail), tail, LK.last_or($APN(a, Con{b0, b2}), 0), pick_f(U32.is_eq(LK.lnk(b0), 0), lnk_nz(one, h1, b0, sd, hsd, hb0), LK.last_or(a, 0), tail), Equal.trans(U32, tail, LK.last_or(b2, LK.lnk(b0)), LK.last_or($APN(a, Con{b0, b2}), 0), et, Equal.sym(U32, LK.last_or($APN(a, Con{b0, b2}), 0), LK.last_or(b2, LK.lnk(b0)), LK.last_app(a, Con{b0, b2}, 0))))
 
 # ---- unlink ----
 
@@ -138,22 +137,22 @@ def tl_ok(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +sd: Nat, +hsd: {Nat.is_l
 %def TP +cap: U32, +n: U32, +free: U32, +mT: AR.Tree<U32>, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +eT: AR.Tree<Maybe<&2, V>>
 %def TPA cap, n, free, mT, tabT, ksT, eT
 %def SL $APN(a, Con{s, b})
-%def PP ST.last_or(a, 0)
-%def QQ ST.fst_or(b, 0)
+%def PP LK.last_or(a, 0)
+%def QQ LK.fst_or(b, 0)
 
 def UnlOK(~V: Data, $TP, +lkT: AR.Tree<U32>, +sd: Nat, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, r: LR.LRU<&2, V>) -> Type:
-  Sigma<&1, &1, AR.Tree<U32>, t2 => Sigma<&1, &1, TR.Tr, tr => {r == LR.F{cap, n, ST.fst_or($APN(a, b), 0), ST.last_or($APN(a, b), 0), free, $AR4, AR.thaw(U32, t2)} : LR.LRU<&2, V>} & ({AR.perfect(U32, 3n+sd, t2) == True{} : Bool} & ({AR.slots(U32, t2) == TR.app($LLS, tr) : List<&2, U32>} & ({TR.trlo(tr) == True{} : Bool} & ({TR.trin(tr, $SL) == True{} : Bool} & {ST.seg(AR.slots(U32, t2), $APN(a, b), 0, 0) == True{} : Bool}))))>>
+  Sigma<&1, &1, AR.Tree<U32>, t2 => Sigma<&1, &1, TR.Tr, tr => {r == LR.F{cap, n, LK.fst_or($APN(a, b), 0), LK.last_or($APN(a, b), 0), free, $AR4, AR.thaw(U32, t2)} : LR.LRU<&2, V>} & ({AR.perfect(U32, 3n+sd, t2) == True{} : Bool} & ({AR.slots(U32, t2) == TR.app($LLS, tr) : List<&2, U32>} & ({TR.trlo(tr) == True{} : Bool} & ({TR.trin(tr, $SL) == True{} : Bool} & {ST.seg(AR.slots(U32, t2), $APN(a, b), 0, 0) == True{} : Bool}))))>>
 
 def f_eq(~V: Data, $TP, +h: U32, +h2: U32, +t: U32, +t2: U32, +lk: AR.Tree<U32>, -x: Array<U32>, +eh: {h == h2 : U32}, +et: {t == t2 : U32}, +ex: {x == AR.thaw(U32, lk) : Array<U32>}) -> {LR.F{cap, n, h, t, free, $AR4, x} == LR.F{cap, n, h2, t2, free, $AR4, AR.thaw(U32, lk)} : LR.LRU<&2, V>}:
   +r1 = L.subst(U32, z => {LR.F{cap, n, h, t, free, $AR4, x} == LR.F{cap, n, z, t, free, $AR4, x} : LR.LRU<&2, V>}, h, h2, eh, {==})
   +r2 = L.subst(U32, z => {LR.F{cap, n, h, t, free, $AR4, x} == LR.F{cap, n, h2, z, free, $AR4, x} : LR.LRU<&2, V>}, t, t2, et, r1)
   L.subst(Array<U32>, z => {LR.F{cap, n, h, t, free, $AR4, x} == LR.F{cap, n, h2, t2, free, $AR4, z} : LR.LRU<&2, V>}, x, AR.thaw(U32, lk), ex, r2)
 
-def ul_b(~V: Data, $UP, $TP, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +head: U32, +tail: U32, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +hnd: {ST.nodupn($SL) == True{} : Bool}, +hbA: {ST.sall(~V, ST.PLive{fr, el}, a) == True{} : Bool}, +hbB: {ST.sall(~V, ST.PLive{fr, el}, b) == True{} : Bool}, +hh: {U32.is_eq(head, ST.fst_or($SL, 0)) == True{} : Bool}, +ht: {U32.is_eq(tail, ST.last_or($SL, 0)) == True{} : Bool}, +t1: AR.Tree<U32>, +tr1: TR.Tr, +ea1: {LR.set_if(AR.thaw(U32, lkT), LR.pidx(H.slot($QQ)), $PP, U32.is_eq($QQ, 0)) == AR.thaw(U32, t1) : Array<U32>}, +hs1: {AR.slots(U32, t1) == TR.app($LLS, tr1) : List<&2, U32>}, +hl1: {TR.trlo(tr1) == True{} : Bool}, +hi1: {TR.trin(tr1, b) == True{} : Bool}, +hg1: {ST.seg(AR.slots(U32, t1), b, $PP, 0) == True{} : Bool}, st2: Step(t1, sd, a, 0, $QQ, LR.set_if(AR.thaw(U32, t1), LR.nidx(H.slot($PP)), $QQ, U32.is_eq($PP, 0)))) -> UnlOK(~V, $TPA, lkT, sd, a, s, b, LR.ul_fin(&2, V, cap, n, head, tail, free, $AR4, $PP, (AR.thaw(U32, lkT), $QQ))):
+def ul_b(~V: Data, $UP, $TP, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +head: U32, +tail: U32, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +hnd: {NL.nodupn($SL) == True{} : Bool}, +hbA: {ST.sall(~V, ST.PLive{fr, el}, a) == True{} : Bool}, +hbB: {ST.sall(~V, ST.PLive{fr, el}, b) == True{} : Bool}, +hh: {U32.is_eq(head, LK.fst_or($SL, 0)) == True{} : Bool}, +ht: {U32.is_eq(tail, LK.last_or($SL, 0)) == True{} : Bool}, +t1: AR.Tree<U32>, +tr1: TR.Tr, +ea1: {LR.set_if(AR.thaw(U32, lkT), LR.pidx(H.slot($QQ)), $PP, U32.is_eq($QQ, 0)) == AR.thaw(U32, t1) : Array<U32>}, +hs1: {AR.slots(U32, t1) == TR.app($LLS, tr1) : List<&2, U32>}, +hl1: {TR.trlo(tr1) == True{} : Bool}, +hi1: {TR.trin(tr1, b) == True{} : Bool}, +hg1: {ST.seg(AR.slots(U32, t1), b, $PP, 0) == True{} : Bool}, st2: Step(t1, sd, a, 0, $QQ, LR.set_if(AR.thaw(U32, t1), LR.nidx(H.slot($PP)), $QQ, U32.is_eq($PP, 0)))) -> UnlOK(~V, $TPA, lkT, sd, a, s, b, LR.ul_fin(&2, V, cap, n, head, tail, free, $AR4, $PP, (AR.thaw(U32, lkT), $QQ))):
   match st2:
     case Tuple{+t2, Tuple{+tr2, Tuple{+ea2, Tuple{+hp2, Tuple{+hs2, Tuple{+hl2, Tuple{+hi2, hg2}}}}}}}:
       +ex = Equal.trans(Array<U32>, LR.set_if(LR.set_if(AR.thaw(U32, lkT), LR.pidx(H.slot($QQ)), $PP, U32.is_eq($QQ, 0)), LR.nidx(H.slot($PP)), $QQ, U32.is_eq($PP, 0)), LR.set_if(AR.thaw(U32, t1), LR.nidx(H.slot($PP)), $QQ, U32.is_eq($PP, 0)), AR.thaw(U32, t2), Equal.cong(Array<U32>, Array<U32>, z => LR.set_if(z, LR.nidx(H.slot($PP)), $QQ, U32.is_eq($PP, 0)), LR.set_if(AR.thaw(U32, lkT), LR.pidx(H.slot($QQ)), $PP, U32.is_eq($QQ, 0)), AR.thaw(U32, t1), ea1), ea2)
-      +er = f_eq(~V, $TPA, LR.pick(U32.is_eq($PP, 0), $QQ, head), ST.fst_or($APN(a, b), 0), LR.pick(U32.is_eq($QQ, 0), $PP, tail), ST.last_or($APN(a, b), 0), t2, LR.set_if(LR.set_if(AR.thaw(U32, lkT), LR.pidx(H.slot($QQ)), $PP, U32.is_eq($QQ, 0)), LR.nidx(H.slot($PP)), $QQ, U32.is_eq($PP, 0)), hd_ok(~V, one, h1, sd, hsd, fr, el, hfr, a, s, b, head, hh, hbA), tl_ok(~V, one, h1, sd, hsd, fr, el, hfr, a, s, b, tail, ht, hbB), ex)
+      +er = f_eq(~V, $TPA, LR.pick(U32.is_eq($PP, 0), $QQ, head), LK.fst_or($APN(a, b), 0), LR.pick(U32.is_eq($QQ, 0), $PP, tail), LK.last_or($APN(a, b), 0), t2, LR.set_if(LR.set_if(AR.thaw(U32, lkT), LR.pidx(H.slot($QQ)), $PP, U32.is_eq($QQ, 0)), LR.nidx(H.slot($PP)), $QQ, U32.is_eq($PP, 0)), hd_ok(~V, one, h1, sd, hsd, fr, el, hfr, a, s, b, head, hh, hbA), tl_ok(~V, one, h1, sd, hsd, fr, el, hfr, a, s, b, tail, ht, hbB), ex)
       +tr = TR.tcat(tr2, tr1)
       +hs = Equal.trans(List<&2, U32>, AR.slots(U32, t2), TR.app(AR.slots(U32, t1), tr2), TR.app($LLS, tr), hs2, Equal.trans(List<&2, U32>, TR.app(AR.slots(U32, t1), tr2), TR.app(TR.app($LLS, tr1), tr2), TR.app($LLS, tr), Equal.cong(List<&2, U32>, List<&2, U32>, z => TR.app(z, tr2), AR.slots(U32, t1), TR.app($LLS, tr1), hs1), Equal.sym(List<&2, U32>, TR.app($LLS, tr), TR.app(TR.app($LLS, tr1), tr2), TR.app_cat($LLS, tr2, tr1))))
       +hin = TR.in_cat(tr2, tr1, $SL, TR.trin_l(tr2, a, Con{s, b}, hi2), TR.trin_r(tr1, a, Con{s, b}, TR.trin_cons(tr1, s, b, hi1)))
@@ -162,25 +161,25 @@ def ul_b(~V: Data, $UP, $TP, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.i
       +hg = L.subst(Bool, z => {z == True{} : Bool}, Bool.and(ST.seg(AR.slots(U32, t2), a, 0, $QQ), ST.seg(AR.slots(U32, t2), b, $PP, 0)), ST.seg(AR.slots(U32, t2), $APN(a, b), 0, 0), Equal.sym(Bool, ST.seg(AR.slots(U32, t2), $APN(a, b), 0, 0), Bool.and(ST.seg(AR.slots(U32, t2), a, 0, $QQ), ST.seg(AR.slots(U32, t2), b, $PP, 0)), DL.seg_app(AR.slots(U32, t2), a, b, 0, 0)), L.and_intro(ST.seg(AR.slots(U32, t2), a, 0, $QQ), ST.seg(AR.slots(U32, t2), b, $PP, 0), hg2, hgB))
       (t2, (tr, (er, (hp2, (hs, (TR.lo_cat(tr2, tr1, hl2, hl1), (hin, hg)))))))
 
-def ul_a(~V: Data, $UP, $TP, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +head: U32, +tail: U32, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +hnd: {ST.nodupn($SL) == True{} : Bool}, +hbA: {ST.sall(~V, ST.PLive{fr, el}, a) == True{} : Bool}, +hbB: {ST.sall(~V, ST.PLive{fr, el}, b) == True{} : Bool}, +hh: {U32.is_eq(head, ST.fst_or($SL, 0)) == True{} : Bool}, +ht: {U32.is_eq(tail, ST.last_or($SL, 0)) == True{} : Bool}, +hsA: {ST.seg($LLS, a, 0, ST.lnk(s)) == True{} : Bool}, st1: Step(lkT, sd, b, $PP, 0, LR.set_if(AR.thaw(U32, lkT), LR.pidx(H.slot($QQ)), $PP, U32.is_eq($QQ, 0)))) -> UnlOK(~V, $TPA, lkT, sd, a, s, b, LR.ul_fin(&2, V, cap, n, head, tail, free, $AR4, $PP, (AR.thaw(U32, lkT), $QQ))):
+def ul_a(~V: Data, $UP, $TP, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +head: U32, +tail: U32, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +hnd: {NL.nodupn($SL) == True{} : Bool}, +hbA: {ST.sall(~V, ST.PLive{fr, el}, a) == True{} : Bool}, +hbB: {ST.sall(~V, ST.PLive{fr, el}, b) == True{} : Bool}, +hh: {U32.is_eq(head, LK.fst_or($SL, 0)) == True{} : Bool}, +ht: {U32.is_eq(tail, LK.last_or($SL, 0)) == True{} : Bool}, +hsA: {ST.seg($LLS, a, 0, LK.lnk(s)) == True{} : Bool}, st1: Step(lkT, sd, b, $PP, 0, LR.set_if(AR.thaw(U32, lkT), LR.pidx(H.slot($QQ)), $PP, U32.is_eq($QQ, 0)))) -> UnlOK(~V, $TPA, lkT, sd, a, s, b, LR.ul_fin(&2, V, cap, n, head, tail, free, $AR4, $PP, (AR.thaw(U32, lkT), $QQ))):
   match st1:
     case Tuple{+t1, Tuple{+tr1, Tuple{+ea1, Tuple{+hp1, Tuple{+hs1, Tuple{+hl1, Tuple{+hi1, hg1}}}}}}}:
       +out1 = TR.trout_l(tr1, a, Con{s, b}, TR.trin_cons(tr1, s, b, hi1), hnd)
-      +hsA1 = L.subst(Bool, z => {z == True{} : Bool}, ST.seg($LLS, a, 0, ST.lnk(s)), ST.seg(AR.slots(U32, t1), a, 0, ST.lnk(s)), Equal.sym(Bool, ST.seg(AR.slots(U32, t1), a, 0, ST.lnk(s)), ST.seg($LLS, a, 0, ST.lnk(s)), L.subst(List<&2, U32>, z => {ST.seg(z, a, 0, ST.lnk(s)) == ST.seg($LLS, a, 0, ST.lnk(s)) : Bool}, TR.app($LLS, tr1), AR.slots(U32, t1), Equal.sym(List<&2, U32>, AR.slots(U32, t1), TR.app($LLS, tr1), hs1), TR.seg_tr($LLS, tr1, hl1, a, 0, ST.lnk(s), out1))), hsA)
-      ul_b(~V, $UA, $TPA, fr, el, hfr, head, tail, a, s, b, hnd, hbA, hbB, hh, ht, t1, tr1, ea1, hs1, hl1, hi1, hg1, ul_p(~V, one, h1, t1, sd, hsd, hp1, fr, el, hfr, $QQ, ST.lnk(s), a, hsA1, LS.nd_l(a, Con{s, b}, hnd), hbA))
+      +hsA1 = L.subst(Bool, z => {z == True{} : Bool}, ST.seg($LLS, a, 0, LK.lnk(s)), ST.seg(AR.slots(U32, t1), a, 0, LK.lnk(s)), Equal.sym(Bool, ST.seg(AR.slots(U32, t1), a, 0, LK.lnk(s)), ST.seg($LLS, a, 0, LK.lnk(s)), L.subst(List<&2, U32>, z => {ST.seg(z, a, 0, LK.lnk(s)) == ST.seg($LLS, a, 0, LK.lnk(s)) : Bool}, TR.app($LLS, tr1), AR.slots(U32, t1), Equal.sym(List<&2, U32>, AR.slots(U32, t1), TR.app($LLS, tr1), hs1), TR.seg_tr($LLS, tr1, hl1, a, 0, LK.lnk(s), out1))), hsA)
+      ul_b(~V, $UA, $TPA, fr, el, hfr, head, tail, a, s, b, hnd, hbA, hbB, hh, ht, t1, tr1, ea1, hs1, hl1, hi1, hg1, ul_p(~V, one, h1, t1, sd, hsd, hp1, fr, el, hfr, $QQ, LK.lnk(s), a, hsA1, NL.nd_l(a, Con{s, b}, hnd), hbA))
 
 %def UF(p, r) LR.ul_fin(&2, V, cap, n, head, tail, free, $AR4, p, r)
 
 # THEOREM (unlink): slot s, between a and b on the recency list, is
 # detached: the list a ++ b is linked, with its own head and tail; only link
 # words of listed slots are written.
-def unlink_ok(~V: Data, $UP, $TP, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +head: U32, +tail: U32, +su: U32, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +hsv: {UD.v(su) == s : Nat}, +hseg: {ST.seg($LLS, $SL, 0, 0) == True{} : Bool}, +hnd: {ST.nodupn($SL) == True{} : Bool}, +hsl: {ST.sall(~V, ST.PLive{fr, el}, $SL) == True{} : Bool}, +hh: {U32.is_eq(head, ST.fst_or($SL, 0)) == True{} : Bool}, +ht: {U32.is_eq(tail, ST.last_or($SL, 0)) == True{} : Bool}) -> UnlOK(~V, $TPA, lkT, sd, a, s, b, LR.unlink(&2, V, LR.F{cap, n, head, tail, free, $AR4, AR.thaw(U32, lkT)}, su)):
-  +hsp = L.subst(Bool, z => {z == True{} : Bool}, ST.seg($LLS, $SL, 0, 0), Bool.and(ST.seg($LLS, a, 0, ST.lnk(s)), ST.seg($LLS, Con{s, b}, $PP, 0)), DL.seg_app($LLS, a, Con{s, b}, 0, 0), hseg)
-  +hsA = L.and_left(ST.seg($LLS, a, 0, ST.lnk(s)), ST.seg($LLS, Con{s, b}, $PP, 0), hsp)
-  +hsS = L.and_right(ST.seg($LLS, a, 0, ST.lnk(s)), ST.seg($LLS, Con{s, b}, $PP, 0), hsp)
-  +hsS2 = L.and_right(U32.is_eq(ST.lw($LLS, s, 0n), $PP), Bool.and(U32.is_eq(ST.lw($LLS, s, 1n), $QQ), ST.seg($LLS, b, ST.lnk(s), 0)), hsS)
-  +eP = A.eq_of(ST.lw($LLS, s, 0n), $PP, L.and_left(U32.is_eq(ST.lw($LLS, s, 0n), $PP), Bool.and(U32.is_eq(ST.lw($LLS, s, 1n), $QQ), ST.seg($LLS, b, ST.lnk(s), 0)), hsS))
-  +eQ = A.eq_of(ST.lw($LLS, s, 1n), $QQ, L.and_left(U32.is_eq(ST.lw($LLS, s, 1n), $QQ), ST.seg($LLS, b, ST.lnk(s), 0), hsS2))
+def unlink_ok(~V: Data, $UP, $TP, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +head: U32, +tail: U32, +su: U32, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +hsv: {UD.v(su) == s : Nat}, +hseg: {ST.seg($LLS, $SL, 0, 0) == True{} : Bool}, +hnd: {NL.nodupn($SL) == True{} : Bool}, +hsl: {ST.sall(~V, ST.PLive{fr, el}, $SL) == True{} : Bool}, +hh: {U32.is_eq(head, LK.fst_or($SL, 0)) == True{} : Bool}, +ht: {U32.is_eq(tail, LK.last_or($SL, 0)) == True{} : Bool}) -> UnlOK(~V, $TPA, lkT, sd, a, s, b, LR.unlink(&2, V, LR.F{cap, n, head, tail, free, $AR4, AR.thaw(U32, lkT)}, su)):
+  +hsp = L.subst(Bool, z => {z == True{} : Bool}, ST.seg($LLS, $SL, 0, 0), Bool.and(ST.seg($LLS, a, 0, LK.lnk(s)), ST.seg($LLS, Con{s, b}, $PP, 0)), DL.seg_app($LLS, a, Con{s, b}, 0, 0), hseg)
+  +hsA = L.and_left(ST.seg($LLS, a, 0, LK.lnk(s)), ST.seg($LLS, Con{s, b}, $PP, 0), hsp)
+  +hsS = L.and_right(ST.seg($LLS, a, 0, LK.lnk(s)), ST.seg($LLS, Con{s, b}, $PP, 0), hsp)
+  +hsS2 = L.and_right(U32.is_eq(ST.lw($LLS, s, 0n), $PP), Bool.and(U32.is_eq(ST.lw($LLS, s, 1n), $QQ), ST.seg($LLS, b, LK.lnk(s), 0)), hsS)
+  +eP = A.eq_of(ST.lw($LLS, s, 0n), $PP, L.and_left(U32.is_eq(ST.lw($LLS, s, 0n), $PP), Bool.and(U32.is_eq(ST.lw($LLS, s, 1n), $QQ), ST.seg($LLS, b, LK.lnk(s), 0)), hsS))
+  +eQ = A.eq_of(ST.lw($LLS, s, 1n), $QQ, L.and_left(U32.is_eq(ST.lw($LLS, s, 1n), $QQ), ST.seg($LLS, b, LK.lnk(s), 0), hsS2))
   +hbs = L.subst(Bool, z => {z == True{} : Bool}, ST.sall(~V, ST.PLive{fr, el}, $SL), Bool.and(ST.sall(~V, ST.PLive{fr, el}, a), ST.sall(~V, ST.PLive{fr, el}, Con{s, b})), LS.sall_app(~V, ST.PLive{fr, el}, a, Con{s, b}), hsl)
   +hbA = L.and_left(ST.sall(~V, ST.PLive{fr, el}, a), ST.sall(~V, ST.PLive{fr, el}, Con{s, b}), hbs)
   +hbS = L.and_right(ST.sall(~V, ST.PLive{fr, el}, a), ST.sall(~V, ST.PLive{fr, el}, Con{s, b}), hbs)
@@ -191,15 +190,15 @@ def unlink_ok(~V: Data, $UP, $TP, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {
   +iN = Equal.trans(Nat, UD.v(LR.nidx(su)), ST.off(UD.v(su), 1n), ST.off(s, 1n), ID.w1(one, h1, su, sd, sd3(sd, hsd), hsu), Equal.cong(Nat, Nat, z => ST.off(z, 1n), UD.v(su), s, hsv))
   +hiP = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(3n+sd)) == True{} : Bool}, ST.off(s, 0n), UD.v(LR.pidx(su)), Equal.sym(Nat, UD.v(LR.pidx(su)), ST.off(s, 0n), iP), ID.off_lt(s, sd, hs0, 0n, {==}))
   +hiN = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(3n+sd)) == True{} : Bool}, ST.off(s, 1n), UD.v(LR.nidx(su)), Equal.sym(Nat, UD.v(LR.nidx(su)), ST.off(s, 1n), iN), ID.off_lt(s, sd, hs0, 1n, {==}))
-  +P0 = TB.nth0($LLS, UD.v(LR.pidx(su)))
-  +Q0 = TB.nth0($LLS, UD.v(LR.nidx(su)))
-  +eP0 = Equal.trans(U32, P0, ST.lw($LLS, s, 0n), $PP, Equal.cong(Nat, U32, z => TB.nth0($LLS, z), UD.v(LR.pidx(su)), ST.off(s, 0n), iP), eP)
-  +eQ0 = Equal.trans(U32, Q0, ST.lw($LLS, s, 1n), $QQ, Equal.cong(Nat, U32, z => TB.nth0($LLS, z), UD.v(LR.nidx(su)), ST.off(s, 1n), iN), eQ)
-  +E1 = Equal.cong(Array<U32> & U32, LR.LRU<&2, V>, r => LR.ul_p(&2, V, cap, n, head, tail, free, $AR4, su, r), Array.get(U32, AR.thaw(U32, lkT), LR.pidx(su)), (AR.thaw(U32, lkT), P0), MT.uget(3n+sd, hsd, lkT, hpl, LR.pidx(su), hiP))
-  +E2 = Equal.cong(Array<U32> & U32, LR.LRU<&2, V>, r => $UF(P0, r), Array.get(U32, AR.thaw(U32, lkT), LR.nidx(su)), (AR.thaw(U32, lkT), Q0), MT.uget(3n+sd, hsd, lkT, hpl, LR.nidx(su), hiN))
+  +P0 = W32.nth0($LLS, UD.v(LR.pidx(su)))
+  +Q0 = W32.nth0($LLS, UD.v(LR.nidx(su)))
+  +eP0 = Equal.trans(U32, P0, ST.lw($LLS, s, 0n), $PP, Equal.cong(Nat, U32, z => W32.nth0($LLS, z), UD.v(LR.pidx(su)), ST.off(s, 0n), iP), eP)
+  +eQ0 = Equal.trans(U32, Q0, ST.lw($LLS, s, 1n), $QQ, Equal.cong(Nat, U32, z => W32.nth0($LLS, z), UD.v(LR.nidx(su)), ST.off(s, 1n), iN), eQ)
+  +E1 = Equal.cong(Array<U32> & U32, LR.LRU<&2, V>, r => LR.ul_p(&2, V, cap, n, head, tail, free, $AR4, su, r), Array.get(U32, AR.thaw(U32, lkT), LR.pidx(su)), (AR.thaw(U32, lkT), P0), UT.uget(3n+sd, hsd, lkT, hpl, LR.pidx(su), hiP))
+  +E2 = Equal.cong(Array<U32> & U32, LR.LRU<&2, V>, r => $UF(P0, r), Array.get(U32, AR.thaw(U32, lkT), LR.nidx(su)), (AR.thaw(U32, lkT), Q0), UT.uget(3n+sd, hsd, lkT, hpl, LR.nidx(su), hiN))
   +E3 = Equal.cong(U32, LR.LRU<&2, V>, z => $UF(z, (AR.thaw(U32, lkT), Q0)), P0, $PP, eP0)
   +E4 = Equal.cong(U32, LR.LRU<&2, V>, z => $UF($PP, (AR.thaw(U32, lkT), z)), Q0, $QQ, eQ0)
   +E = Equal.trans(LR.LRU<&2, V>, LR.unlink(&2, V, LR.F{cap, n, head, tail, free, $AR4, AR.thaw(U32, lkT)}, su), LR.ul_p(&2, V, cap, n, head, tail, free, $AR4, su, (AR.thaw(U32, lkT), P0)), $UF($PP, (AR.thaw(U32, lkT), $QQ)), E1, Equal.trans(LR.LRU<&2, V>, $UF(P0, Array.get(U32, AR.thaw(U32, lkT), LR.nidx(su))), $UF(P0, (AR.thaw(U32, lkT), Q0)), $UF($PP, (AR.thaw(U32, lkT), $QQ)), E2, Equal.trans(LR.LRU<&2, V>, $UF(P0, (AR.thaw(U32, lkT), Q0)), $UF($PP, (AR.thaw(U32, lkT), Q0)), $UF($PP, (AR.thaw(U32, lkT), $QQ)), E3, E4)))
-  +hnB = L.and_right(Bool.not(HT.memn(s, b)), ST.nodupn(b), LS.nd_r(a, Con{s, b}, hnd))
-  ok = ul_a(~V, $UA, $TPA, fr, el, hfr, head, tail, a, s, b, hnd, hbA, hbB, hh, ht, hsA, ul_q(~V, $UA, fr, el, hfr, $PP, s, b, L.and_right(U32.is_eq(ST.lw($LLS, s, 1n), $QQ), ST.seg($LLS, b, ST.lnk(s), 0), hsS2), hnB, hbB))
+  +hnB = L.and_right(Bool.not(NL.memn(s, b)), NL.nodupn(b), NL.nd_r(a, Con{s, b}, hnd))
+  ok = ul_a(~V, $UA, $TPA, fr, el, hfr, head, tail, a, s, b, hnd, hbA, hbB, hh, ht, hsA, ul_q(~V, $UA, fr, el, hfr, $PP, s, b, L.and_right(U32.is_eq(ST.lw($LLS, s, 1n), $QQ), ST.seg($LLS, b, LK.lnk(s), 0), hsS2), hnB, hbB))
   L.subst(LR.LRU<&2, V>, r => UnlOK(~V, $TPA, lkT, sd, a, s, b, r), $UF($PP, (AR.thaw(U32, lkT), $QQ)), LR.unlink(&2, V, LR.F{cap, n, head, tail, free, $AR4, AR.thaw(U32, lkT)}, su), Equal.sym(LR.LRU<&2, V>, LR.unlink(&2, V, LR.F{cap, n, head, tail, free, $AR4, AR.thaw(U32, lkT)}, su), $UF($PP, (AR.thaw(U32, lkT), $QQ)), E), ok)

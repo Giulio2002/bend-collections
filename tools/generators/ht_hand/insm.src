@@ -5,7 +5,6 @@ import ../spec/common.bend as SC
 import ../spec/hash_table.bend as S
 import ../math/u32div.bend as UD
 import ../../src/containers/hash_table.bend as H
-import ./keys.bend as K
 import ./buckets.bend as B
 import ./modn.bend as M
 import ./inv.bend as IV

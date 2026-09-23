@@ -9,6 +9,7 @@ import ../hash_table/keys.bend as K
 import ../hash_table/words.bend as WR
 import ../hash_table/state.bend as HT
 import ./state.bend as ST
+import ../lib/nat_list.bend as NL
 
 # The model's entries along the recency list: find, membership of keys.
 
@@ -40,7 +41,7 @@ def mk_there(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +x: String, +s
     case Some{v}:
       L.subst(Bool, z => {Bool.or(S.str_eq(ST.skey(ll, kl, s0), x), z) == True{} : Bool}, True{}, S.mem(x, SP.keys_of(~V, r)), Equal.sym(Bool, S.mem(x, SP.keys_of(~V, r)), True{}, h), WR.or_true(S.str_eq(ST.skey(ll, kl, s0), x)))
 
-def mk_c(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Maybe<&2, V>>, +s: Nat, +s0: Nat, +t: List<&2, Nat>, +hl: {ST.live(~V, el, s) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(s0, s) == c : Bool}, +hm: {Bool.or(c, HT.memn(s, t)) == True{} : Bool}, rec: @h: {HT.memn(s, t) == True{} : Bool} -> {S.mem(ST.skey(ll, kl, s), SP.keys_of(~V, ST.es(~V, ll, kl, el, t))) == True{} : Bool}) -> {S.mem(ST.skey(ll, kl, s), SP.keys_of(~V, ST.es(~V, ll, kl, el, Con{s0, t}))) == True{} : Bool}:
+def mk_c(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Maybe<&2, V>>, +s: Nat, +s0: Nat, +t: List<&2, Nat>, +hl: {ST.live(~V, el, s) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(s0, s) == c : Bool}, +hm: {Bool.or(c, NL.memn(s, t)) == True{} : Bool}, rec: @h: {NL.memn(s, t) == True{} : Bool} -> {S.mem(ST.skey(ll, kl, s), SP.keys_of(~V, ST.es(~V, ll, kl, el, t))) == True{} : Bool}) -> {S.mem(ST.skey(ll, kl, s), SP.keys_of(~V, ST.es(~V, ll, kl, el, Con{s0, t}))) == True{} : Bool}:
   match c:
     case True{}:
       +e = N.eq_from_is_eq(s0, s, hc)
@@ -49,7 +50,7 @@ def mk_c(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Mayb
       mk_there(~V, ll, kl, ST.skey(ll, kl, s), s0, HT.nthm(~V, el, s0), ST.es(~V, ll, kl, el, t), rec(hm))
 
 # a live slot on the list has its key among the model's keys
-def mem_keys(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Maybe<&2, V>>, +s: Nat, +hl: {ST.live(~V, el, s) == True{} : Bool}, +sl: List<&2, Nat>, +hm: {HT.memn(s, sl) == True{} : Bool}) -> {S.mem(ST.skey(ll, kl, s), SP.keys_of(~V, ST.es(~V, ll, kl, el, sl))) == True{} : Bool}:
+def mem_keys(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Maybe<&2, V>>, +s: Nat, +hl: {ST.live(~V, el, s) == True{} : Bool}, +sl: List<&2, Nat>, +hm: {NL.memn(s, sl) == True{} : Bool}) -> {S.mem(ST.skey(ll, kl, s), SP.keys_of(~V, ST.es(~V, ll, kl, el, sl))) == True{} : Bool}:
   match sl:
     case Nil{}:
       Empty.absurd({S.mem(ST.skey(ll, kl, s), SP.keys_of(~V, ST.es(~V, ll, kl, el, Nil{}))) == True{} : Bool}, L.false_true(hm))
@@ -80,7 +81,7 @@ def find_here(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +s: Nat, +m: 
 
 # the key of an earlier slot differs (keys are unique), and the rest of the
 # keys are unique
-def split_d(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Maybe<&2, V>>, +s: Nat, +hl: {ST.live(~V, el, s) == True{} : Bool}, +t: List<&2, Nat>, +hmt: {HT.memn(s, t) == True{} : Bool}, +key: String, +hk: {S.str_eq(ST.skey(ll, kl, s), key) == True{} : Bool}, +s0: Nat, +d: Bool, +hd: {S.str_eq(ST.skey(ll, kl, s0), key) == d : Bool}, +hn: {Bool.not(S.mem(ST.skey(ll, kl, s0), SP.keys_of(~V, ST.es(~V, ll, kl, el, t)))) == True{} : Bool}) -> {Bool.not(d) == True{} : Bool}:
+def split_d(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Maybe<&2, V>>, +s: Nat, +hl: {ST.live(~V, el, s) == True{} : Bool}, +t: List<&2, Nat>, +hmt: {NL.memn(s, t) == True{} : Bool}, +key: String, +hk: {S.str_eq(ST.skey(ll, kl, s), key) == True{} : Bool}, +s0: Nat, +d: Bool, +hd: {S.str_eq(ST.skey(ll, kl, s0), key) == d : Bool}, +hn: {Bool.not(S.mem(ST.skey(ll, kl, s0), SP.keys_of(~V, ST.es(~V, ll, kl, el, t)))) == True{} : Bool}) -> {Bool.not(d) == True{} : Bool}:
   match d:
     case False{}:
       {==}
@@ -91,7 +92,7 @@ def split_d(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, M
       +hin = L.subst(String, z => {S.mem(z, SP.keys_of(~V, ST.es(~V, ll, kl, el, t))) == True{} : Bool}, ST.skey(ll, kl, s), ST.skey(ll, kl, s0), e, mem_keys(~V, ll, kl, el, s, hl, t, hmt))
       Empty.absurd({Bool.not(True{}) == True{} : Bool}, L.false_true(L.subst(Bool, z => {Bool.not(z) == True{} : Bool}, S.mem(ST.skey(ll, kl, s0), SP.keys_of(~V, ST.es(~V, ll, kl, el, t))), True{}, hin, hn)))
 
-def split_m1(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Maybe<&2, V>>, +s: Nat, +hl: {ST.live(~V, el, s) == True{} : Bool}, +t: List<&2, Nat>, +hmt: {HT.memn(s, t) == True{} : Bool}, +key: String, +hk: {S.str_eq(ST.skey(ll, kl, s), key) == True{} : Bool}, +s0: Nat, +m: Maybe<&2, V>, +hnd: {S.nodup(SP.keys_of(~V, SC.append(SP.Ent<V>, ST.sent_m(~V, ll, kl, s0, m), ST.es(~V, ll, kl, el, t)))) == True{} : Bool}) -> {Bool.or(Bool.not(HT.some_b(~V, m)), Bool.not(S.str_eq(ST.skey(ll, kl, s0), key))) == True{} : Bool}:
+def split_m1(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Maybe<&2, V>>, +s: Nat, +hl: {ST.live(~V, el, s) == True{} : Bool}, +t: List<&2, Nat>, +hmt: {NL.memn(s, t) == True{} : Bool}, +key: String, +hk: {S.str_eq(ST.skey(ll, kl, s), key) == True{} : Bool}, +s0: Nat, +m: Maybe<&2, V>, +hnd: {S.nodup(SP.keys_of(~V, SC.append(SP.Ent<V>, ST.sent_m(~V, ll, kl, s0, m), ST.es(~V, ll, kl, el, t)))) == True{} : Bool}) -> {Bool.or(Bool.not(HT.some_b(~V, m)), Bool.not(S.str_eq(ST.skey(ll, kl, s0), key))) == True{} : Bool}:
   match m:
     case None{}:
       {==}
@@ -107,7 +108,7 @@ def nd_tail(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, M
     case Some{v}:
       L.and_right(Bool.not(S.mem(ST.skey(ll, kl, s0), SP.keys_of(~V, ST.es(~V, ll, kl, el, t)))), S.nodup(SP.keys_of(~V, ST.es(~V, ll, kl, el, t))), hnd)
 
-def fh_c(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Maybe<&2, V>>, +s: Nat, +hl: {ST.live(~V, el, s) == True{} : Bool}, +key: String, +hk: {S.str_eq(ST.skey(ll, kl, s), key) == True{} : Bool}, +s0: Nat, +t: List<&2, Nat>, +hnd: {S.nodup(SP.keys_of(~V, ST.es(~V, ll, kl, el, Con{s0, t}))) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(s0, s) == c : Bool}, +hm: {Bool.or(c, HT.memn(s, t)) == True{} : Bool}, rec: @h: {HT.memn(s, t) == True{} : Bool} -> @hn: {S.nodup(SP.keys_of(~V, ST.es(~V, ll, kl, el, t))) == True{} : Bool} -> {SP.find(~V, ST.es(~V, ll, kl, el, t), key) == fnd(~V, ll, kl, s, HT.nthm(~V, el, s)) : Maybe<&2, SP.Ent<V>>}) -> {SP.find(~V, ST.es(~V, ll, kl, el, Con{s0, t}), key) == fnd(~V, ll, kl, s, HT.nthm(~V, el, s)) : Maybe<&2, SP.Ent<V>>}:
+def fh_c(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Maybe<&2, V>>, +s: Nat, +hl: {ST.live(~V, el, s) == True{} : Bool}, +key: String, +hk: {S.str_eq(ST.skey(ll, kl, s), key) == True{} : Bool}, +s0: Nat, +t: List<&2, Nat>, +hnd: {S.nodup(SP.keys_of(~V, ST.es(~V, ll, kl, el, Con{s0, t}))) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(s0, s) == c : Bool}, +hm: {Bool.or(c, NL.memn(s, t)) == True{} : Bool}, rec: @h: {NL.memn(s, t) == True{} : Bool} -> @hn: {S.nodup(SP.keys_of(~V, ST.es(~V, ll, kl, el, t))) == True{} : Bool} -> {SP.find(~V, ST.es(~V, ll, kl, el, t), key) == fnd(~V, ll, kl, s, HT.nthm(~V, el, s)) : Maybe<&2, SP.Ent<V>>}) -> {SP.find(~V, ST.es(~V, ll, kl, el, Con{s0, t}), key) == fnd(~V, ll, kl, s, HT.nthm(~V, el, s)) : Maybe<&2, SP.Ent<V>>}:
   match c:
     case True{}:
       +e = N.eq_from_is_eq(s0, s, hc)
@@ -116,7 +117,7 @@ def fh_c(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Mayb
       Equal.trans(Maybe<&2, SP.Ent<V>>, SP.find(~V, ST.es(~V, ll, kl, el, Con{s0, t}), key), SP.find(~V, ST.es(~V, ll, kl, el, t), key), fnd(~V, ll, kl, s, HT.nthm(~V, el, s)), find_skip(~V, ll, kl, s0, HT.nthm(~V, el, s0), ST.es(~V, ll, kl, el, t), key, split_m1(~V, ll, kl, el, s, hl, t, hm, key, hk, s0, HT.nthm(~V, el, s0), hnd)), rec(hm, nd_tail(~V, ll, kl, el, t, s0, HT.nthm(~V, el, s0), hnd)))
 
 # THEOREM (model side): a live listed slot holding key is what find returns
-def find_hit(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Maybe<&2, V>>, +s: Nat, +hl: {ST.live(~V, el, s) == True{} : Bool}, +key: String, +hk: {S.str_eq(ST.skey(ll, kl, s), key) == True{} : Bool}, +sl: List<&2, Nat>, +hm: {HT.memn(s, sl) == True{} : Bool}, +hnd: {S.nodup(SP.keys_of(~V, ST.es(~V, ll, kl, el, sl))) == True{} : Bool}) -> {SP.find(~V, ST.es(~V, ll, kl, el, sl), key) == fnd(~V, ll, kl, s, HT.nthm(~V, el, s)) : Maybe<&2, SP.Ent<V>>}:
+def find_hit(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +el: List<&2, Maybe<&2, V>>, +s: Nat, +hl: {ST.live(~V, el, s) == True{} : Bool}, +key: String, +hk: {S.str_eq(ST.skey(ll, kl, s), key) == True{} : Bool}, +sl: List<&2, Nat>, +hm: {NL.memn(s, sl) == True{} : Bool}, +hnd: {S.nodup(SP.keys_of(~V, ST.es(~V, ll, kl, el, sl))) == True{} : Bool}) -> {SP.find(~V, ST.es(~V, ll, kl, el, sl), key) == fnd(~V, ll, kl, s, HT.nthm(~V, el, s)) : Maybe<&2, SP.Ent<V>>}:
   match sl:
     case Nil{}:
       Empty.absurd({SP.find(~V, ST.es(~V, ll, kl, el, Nil{}), key) == fnd(~V, ll, kl, s, HT.nthm(~V, el, s)) : Maybe<&2, SP.Ent<V>>}, L.false_true(hm))

@@ -21,6 +21,8 @@ import ./walk.bend as WL
 import ../lib/array.bend as AR
 import ../lib/u32.bend as U
 import ../hash_table/arr.bend as AX
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
 
 # Facts for placing a new entry in a slot off the recency list.
 
@@ -31,16 +33,16 @@ import ../hash_table/arr.bend as AX
 
 # ---- no bucket uses a slot off the list ----
 
-def nsb_of(+sl: List<&2, Nat>, +ll: List<&2, U32>, +s: Nat, +hs: {HT.memn(s, sl) == False{} : Bool}, +b: B.Bk, +h: {ST.bslb(sl, ll, b) == True{} : Bool}) -> {$NSB(b, s) == True{} : Bool}:
+def nsb_of(+sl: List<&2, Nat>, +ll: List<&2, U32>, +s: Nat, +hs: {NL.memn(s, sl) == False{} : Bool}, +b: B.Bk, +h: {ST.bslb(sl, ll, b) == True{} : Bool}) -> {$NSB(b, s) == True{} : Bool}:
   match b:
     case B.BE{}:
       {==}
     case B.BF{+w, +l, +k}:
-      +hm = L.and_left(HT.memn(UD.v(H.slot(l)), sl), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), h)
-      +ne = DL.ne_mem(s, UD.v(H.slot(l)), sl, DL.not_f(HT.memn(s, sl), hs), hm)
+      +hm = L.and_left(NL.memn(UD.v(H.slot(l)), sl), U32.is_eq(ST.lw(ll, UD.v(H.slot(l)), 2n), w), h)
+      +ne = NL.ne_mem(s, UD.v(H.slot(l)), sl, NL.not_f(NL.memn(s, sl), hs), hm)
       L.subst(Bool, z => {Bool.not(Bool.and(True{}, z)) == True{} : Bool}, False{}, Nat.is_eq(UD.v(H.slot(l)), s), Equal.sym(Bool, Nat.is_eq(UD.v(H.slot(l)), s), False{}, ne), {==})
 
-def noslot_bsl(+bs: List<&2, B.Bk>, +sl: List<&2, Nat>, +ll: List<&2, U32>, +s: Nat, +hs: {HT.memn(s, sl) == False{} : Bool}, +m: Nat, +h: {ST.bsl(bs, sl, ll, m) == True{} : Bool}) -> {HT.noslot(bs, s, m) == True{} : Bool}:
+def noslot_bsl(+bs: List<&2, B.Bk>, +sl: List<&2, Nat>, +ll: List<&2, U32>, +s: Nat, +hs: {NL.memn(s, sl) == False{} : Bool}, +m: Nat, +h: {ST.bsl(bs, sl, ll, m) == True{} : Bool}) -> {HT.noslot(bs, s, m) == True{} : Bool}:
   match m:
     case 0n:
       {==}
@@ -56,8 +58,8 @@ def bslb_ns($YO, +sl: List<&2, Nat>, +b: B.Bk, +hb: {$NSB(b, y) == True{} : Bool
     case B.BE{}:
       {==}
     case B.BF{+w, +l, +k}:
-      +hx = DL.ne_sym(UD.v(H.slot(l)), y, LS.not_t_f(Nat.is_eq(UD.v(H.slot(l)), y), hb))
-      Equal.cong(U32, Bool, z => Bool.and(HT.memn(UD.v(H.slot(l)), sl), U32.is_eq(z, w)), ST.lw($LLU, UD.v(H.slot(l)), 2n), ST.lw(ll, UD.v(H.slot(l)), 2n), DL.lw_other($YOA, UD.v(H.slot(l)), 2n, {==}, DL.ne_slot(y, UD.v(H.slot(l)), o, 2n, hx)))
+      +hx = NL.ne_sym(UD.v(H.slot(l)), y, NL.not_t_f(Nat.is_eq(UD.v(H.slot(l)), y), hb))
+      Equal.cong(U32, Bool, z => Bool.and(NL.memn(UD.v(H.slot(l)), sl), U32.is_eq(z, w)), ST.lw($LLU, UD.v(H.slot(l)), 2n), ST.lw(ll, UD.v(H.slot(l)), 2n), DL.lw_other($YOA, UD.v(H.slot(l)), 2n, {==}, DL.ne_slot(y, UD.v(H.slot(l)), o, 2n, hx)))
 
 def bsl_ns($YO, +bs: List<&2, B.Bk>, +sl: List<&2, Nat>, +m: Nat, +hns: {HT.noslot(bs, y, m) == True{} : Bool}) -> {ST.bsl(bs, sl, $LLU, m) == ST.bsl(bs, sl, ll, m) : Bool}:
   match m:
@@ -113,20 +115,20 @@ def has_up(~V: Data, +bs: List<&2, B.Bk>, +e: Nat, +b: B.Bk, +hz: {B.at(bs, e) =
     case Nil{}:
       {==}
     case Con{+x, +t}:
-      +h1 = L.and_left(ST.anyb(bs, m, ST.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, bs, m, ll, t), h)
-      +h2 = L.and_right(ST.anyb(bs, m, ST.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, bs, m, ll, t), h)
-      L.and_intro(ST.anyb(IM.bupd(bs, e, b), m, ST.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, IM.bupd(bs, e, b), m, ll, t), anyb_up(bs, e, b, hz, ST.lnk(x), ST.lw(ll, x, 2n), m, h1), has_up(~V, bs, e, b, hz, m, ll, t, h2))
+      +h1 = L.and_left(ST.anyb(bs, m, LK.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, bs, m, ll, t), h)
+      +h2 = L.and_right(ST.anyb(bs, m, LK.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, bs, m, ll, t), h)
+      L.and_intro(ST.anyb(IM.bupd(bs, e, b), m, LK.lnk(x), ST.lw(ll, x, 2n)), ST.hasall(~V, IM.bupd(bs, e, b), m, ll, t), anyb_up(bs, e, b, hz, LK.lnk(x), ST.lw(ll, x, 2n), m, h1), has_up(~V, bs, e, b, hz, m, ll, t, h2))
 
 # ---- writes to a slot off the list: its buckets ----
 
-def has_fs(~V: Data, $YO, +bs: List<&2, B.Bk>, +m: Nat, +xs: List<&2, Nat>, +hy: {HT.memn(y, xs) == False{} : Bool}) -> {ST.hasall(~V, bs, m, $LLU, xs) == ST.hasall(~V, bs, m, ll, xs) : Bool}:
+def has_fs(~V: Data, $YO, +bs: List<&2, B.Bk>, +m: Nat, +xs: List<&2, Nat>, +hy: {NL.memn(y, xs) == False{} : Bool}) -> {ST.hasall(~V, bs, m, $LLU, xs) == ST.hasall(~V, bs, m, ll, xs) : Bool}:
   match xs:
     case Nil{}:
       {==}
     case Con{+s, +t}:
-      +hys = DL.ne_sym(s, y, DL.or_ff_l(Nat.is_eq(s, y), HT.memn(y, t), hy))
-      +e = Equal.cong(U32, Bool, z => ST.anyb(bs, m, ST.lnk(s), z), ST.lw($LLU, s, 2n), ST.lw(ll, s, 2n), DL.lw_other($YOA, s, 2n, {==}, DL.ne_slot(y, s, o, 2n, hys)))
-      Equal.trans(Bool, Bool.and(ST.anyb(bs, m, ST.lnk(s), ST.lw($LLU, s, 2n)), ST.hasall(~V, bs, m, $LLU, t)), Bool.and(ST.anyb(bs, m, ST.lnk(s), ST.lw(ll, s, 2n)), ST.hasall(~V, bs, m, $LLU, t)), Bool.and(ST.anyb(bs, m, ST.lnk(s), ST.lw(ll, s, 2n)), ST.hasall(~V, bs, m, ll, t)), Equal.cong(Bool, Bool, z => Bool.and(z, ST.hasall(~V, bs, m, $LLU, t)), ST.anyb(bs, m, ST.lnk(s), ST.lw($LLU, s, 2n)), ST.anyb(bs, m, ST.lnk(s), ST.lw(ll, s, 2n)), e), Equal.cong(Bool, Bool, z => Bool.and(ST.anyb(bs, m, ST.lnk(s), ST.lw(ll, s, 2n)), z), ST.hasall(~V, bs, m, $LLU, t), ST.hasall(~V, bs, m, ll, t), has_fs(~V, $YOA, bs, m, t, DL.or_ff_r(Nat.is_eq(s, y), HT.memn(y, t), hy))))
+      +hys = NL.ne_sym(s, y, NL.or_ff_l(Nat.is_eq(s, y), NL.memn(y, t), hy))
+      +e = Equal.cong(U32, Bool, z => ST.anyb(bs, m, LK.lnk(s), z), ST.lw($LLU, s, 2n), ST.lw(ll, s, 2n), DL.lw_other($YOA, s, 2n, {==}, DL.ne_slot(y, s, o, 2n, hys)))
+      Equal.trans(Bool, Bool.and(ST.anyb(bs, m, LK.lnk(s), ST.lw($LLU, s, 2n)), ST.hasall(~V, bs, m, $LLU, t)), Bool.and(ST.anyb(bs, m, LK.lnk(s), ST.lw(ll, s, 2n)), ST.hasall(~V, bs, m, $LLU, t)), Bool.and(ST.anyb(bs, m, LK.lnk(s), ST.lw(ll, s, 2n)), ST.hasall(~V, bs, m, ll, t)), Equal.cong(Bool, Bool, z => Bool.and(z, ST.hasall(~V, bs, m, $LLU, t)), ST.anyb(bs, m, LK.lnk(s), ST.lw($LLU, s, 2n)), ST.anyb(bs, m, LK.lnk(s), ST.lw(ll, s, 2n)), e), Equal.cong(Bool, Bool, z => Bool.and(ST.anyb(bs, m, LK.lnk(s), ST.lw(ll, s, 2n)), z), ST.hasall(~V, bs, m, $LLU, t), ST.hasall(~V, bs, m, ll, t), has_fs(~V, $YOA, bs, m, t, NL.or_ff_r(Nat.is_eq(s, y), NL.memn(y, t), hy))))
 
 # ---- a key written to a slot off the list ----
 
@@ -142,15 +144,15 @@ def sent_ks(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +y: Nat, +kk: S
     case Some{+w}:
       Equal.cong(String, List<&2, SP.Ent<V>>, z => Con{SP.LE{z, w, ST.lw(ll, x, 3n), W.U64{ST.lw(ll, x, 4n), ST.lw(ll, x, 5n)}}, Nil{}}, ST.skey(ll, $KU, x), ST.skey(ll, kl, x), skey_ks(ll, kl, y, kk, x, h))
 
-def es_ks(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +y: Nat, +kk: String, +el: List<&2, Maybe<&2, V>>, +xs: List<&2, Nat>, +hy: {HT.memn(y, xs) == False{} : Bool}) -> {ST.es(~V, ll, $KU, el, xs) == ST.es(~V, ll, kl, el, xs) : List<&2, SP.Ent<V>>}:
+def es_ks(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +y: Nat, +kk: String, +el: List<&2, Maybe<&2, V>>, +xs: List<&2, Nat>, +hy: {NL.memn(y, xs) == False{} : Bool}) -> {ST.es(~V, ll, $KU, el, xs) == ST.es(~V, ll, kl, el, xs) : List<&2, SP.Ent<V>>}:
   match xs:
     case Nil{}:
       {==}
     case Con{+s, +t}:
-      +hys = DL.ne_sym(s, y, DL.or_ff_l(Nat.is_eq(s, y), HT.memn(y, t), hy))
+      +hys = NL.ne_sym(s, y, NL.or_ff_l(Nat.is_eq(s, y), NL.memn(y, t), hy))
       +m = HT.nthm(~V, el, s)
       +a = Equal.cong(List<&2, SP.Ent<V>>, List<&2, SP.Ent<V>>, z => SC.append(SP.Ent<V>, z, ST.es(~V, ll, $KU, el, t)), ST.sent_m(~V, ll, $KU, s, m), ST.sent_m(~V, ll, kl, s, m), sent_ks(~V, ll, kl, y, kk, s, hys, m))
-      Equal.trans(List<&2, SP.Ent<V>>, SC.append(SP.Ent<V>, ST.sent_m(~V, ll, $KU, s, m), ST.es(~V, ll, $KU, el, t)), SC.append(SP.Ent<V>, ST.sent_m(~V, ll, kl, s, m), ST.es(~V, ll, $KU, el, t)), SC.append(SP.Ent<V>, ST.sent_m(~V, ll, kl, s, m), ST.es(~V, ll, kl, el, t)), a, Equal.cong(List<&2, SP.Ent<V>>, List<&2, SP.Ent<V>>, z => SC.append(SP.Ent<V>, ST.sent_m(~V, ll, kl, s, m), z), ST.es(~V, ll, $KU, el, t), ST.es(~V, ll, kl, el, t), es_ks(~V, ll, kl, y, kk, el, t, DL.or_ff_r(Nat.is_eq(s, y), HT.memn(y, t), hy))))
+      Equal.trans(List<&2, SP.Ent<V>>, SC.append(SP.Ent<V>, ST.sent_m(~V, ll, $KU, s, m), ST.es(~V, ll, $KU, el, t)), SC.append(SP.Ent<V>, ST.sent_m(~V, ll, kl, s, m), ST.es(~V, ll, $KU, el, t)), SC.append(SP.Ent<V>, ST.sent_m(~V, ll, kl, s, m), ST.es(~V, ll, kl, el, t)), a, Equal.cong(List<&2, SP.Ent<V>>, List<&2, SP.Ent<V>>, z => SC.append(SP.Ent<V>, ST.sent_m(~V, ll, kl, s, m), z), ST.es(~V, ll, $KU, el, t), ST.es(~V, ll, kl, el, t), es_ks(~V, ll, kl, y, kk, el, t, NL.or_ff_r(Nat.is_eq(s, y), NL.memn(y, t), hy))))
 
 # ---- lists ----
 
@@ -172,18 +174,18 @@ def len_snoc(+xs: List<&2, Nat>, +s: Nat) -> {SC.length(Nat, SC.append(Nat, xs, 
 
 %def S1 SC.append(Nat, xs, Con{s, Nil{}})
 
-def nd_snoc(+xs: List<&2, Nat>, +s: Nat, +hnd: {ST.nodupn(xs) == True{} : Bool}, +hs: {HT.memn(s, xs) == False{} : Bool}) -> {ST.nodupn($S1) == True{} : Bool}:
+def nd_snoc(+xs: List<&2, Nat>, +s: Nat, +hnd: {NL.nodupn(xs) == True{} : Bool}, +hs: {NL.memn(s, xs) == False{} : Bool}) -> {NL.nodupn($S1) == True{} : Bool}:
   +ea = LI.append_nil(Nat, xs)
-  +h1 = L.subst(List<&2, Nat>, z => {ST.nodupn(z) == True{} : Bool}, xs, SC.append(Nat, xs, Nil{}), Equal.sym(List<&2, Nat>, SC.append(Nat, xs, Nil{}), xs, ea), hnd)
-  +h2 = L.subst(List<&2, Nat>, z => {Bool.not(HT.memn(s, z)) == True{} : Bool}, xs, SC.append(Nat, xs, Nil{}), Equal.sym(List<&2, Nat>, SC.append(Nat, xs, Nil{}), xs, ea), DL.not_f(HT.memn(s, xs), hs))
-  L.subst(Bool, z => {z == True{} : Bool}, Bool.and(ST.nodupn(SC.append(Nat, xs, Nil{})), Bool.not(HT.memn(s, SC.append(Nat, xs, Nil{})))), ST.nodupn($S1), Equal.sym(Bool, ST.nodupn($S1), Bool.and(ST.nodupn(SC.append(Nat, xs, Nil{})), Bool.not(HT.memn(s, SC.append(Nat, xs, Nil{})))), LS.nd_mid(xs, s, Nil{})), L.and_intro(ST.nodupn(SC.append(Nat, xs, Nil{})), Bool.not(HT.memn(s, SC.append(Nat, xs, Nil{}))), h1, h2))
+  +h1 = L.subst(List<&2, Nat>, z => {NL.nodupn(z) == True{} : Bool}, xs, SC.append(Nat, xs, Nil{}), Equal.sym(List<&2, Nat>, SC.append(Nat, xs, Nil{}), xs, ea), hnd)
+  +h2 = L.subst(List<&2, Nat>, z => {Bool.not(NL.memn(s, z)) == True{} : Bool}, xs, SC.append(Nat, xs, Nil{}), Equal.sym(List<&2, Nat>, SC.append(Nat, xs, Nil{}), xs, ea), NL.not_f(NL.memn(s, xs), hs))
+  L.subst(Bool, z => {z == True{} : Bool}, Bool.and(NL.nodupn(SC.append(Nat, xs, Nil{})), Bool.not(NL.memn(s, SC.append(Nat, xs, Nil{})))), NL.nodupn($S1), Equal.sym(Bool, NL.nodupn($S1), Bool.and(NL.nodupn(SC.append(Nat, xs, Nil{})), Bool.not(NL.memn(s, SC.append(Nat, xs, Nil{})))), NL.nd_mid(xs, s, Nil{})), L.and_intro(NL.nodupn(SC.append(Nat, xs, Nil{})), Bool.not(NL.memn(s, SC.append(Nat, xs, Nil{}))), h1, h2))
 
 %def K1 SC.append(String, ks, Con{kk, Nil{}})
 
 def nds_snoc(+ks: List<&2, String>, +kk: String, +hnd: {S.nodup(ks) == True{} : Bool}, +hs: {S.mem(kk, ks) == False{} : Bool}) -> {S.nodup($K1) == True{} : Bool}:
   +ea = LI.append_nil(String, ks)
   +h1 = L.subst(List<&2, String>, z => {S.nodup(z) == True{} : Bool}, ks, SC.append(String, ks, Nil{}), Equal.sym(List<&2, String>, SC.append(String, ks, Nil{}), ks, ea), hnd)
-  +h2 = L.subst(List<&2, String>, z => {Bool.not(S.mem(kk, z)) == True{} : Bool}, ks, SC.append(String, ks, Nil{}), Equal.sym(List<&2, String>, SC.append(String, ks, Nil{}), ks, ea), DL.not_f(S.mem(kk, ks), hs))
+  +h2 = L.subst(List<&2, String>, z => {Bool.not(S.mem(kk, z)) == True{} : Bool}, ks, SC.append(String, ks, Nil{}), Equal.sym(List<&2, String>, SC.append(String, ks, Nil{}), ks, ea), NL.not_f(S.mem(kk, ks), hs))
   L.subst(Bool, z => {z == True{} : Bool}, Bool.and(S.nodup(SC.append(String, ks, Nil{})), Bool.not(S.mem(kk, SC.append(String, ks, Nil{})))), S.nodup($K1), Equal.sym(Bool, S.nodup($K1), Bool.and(S.nodup(SC.append(String, ks, Nil{})), Bool.not(S.mem(kk, SC.append(String, ks, Nil{})))), LS.nd_mid_s(ks, kk, Nil{})), L.and_intro(S.nodup(SC.append(String, ks, Nil{})), Bool.not(S.mem(kk, SC.append(String, ks, Nil{}))), h1, h2))
 
 # a key no listed slot holds is not among their keys
@@ -192,7 +194,7 @@ def nokey_nm(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, +xs: List<&2, 
     case Nil{}:
       {==}
     case Con{+x, +t}:
-      +h1 = LS.not_t_f(S.str_eq(ST.skey(ll, kl, x), key), L.and_left(Bool.not(S.str_eq(ST.skey(ll, kl, x), key)), ST.nokey(~V, ll, kl, t, key), h))
+      +h1 = NL.not_t_f(S.str_eq(ST.skey(ll, kl, x), key), L.and_left(Bool.not(S.str_eq(ST.skey(ll, kl, x), key)), ST.nokey(~V, ll, kl, t, key), h))
       +ih = nokey_nm(~V, ll, kl, t, key, L.and_right(Bool.not(S.str_eq(ST.skey(ll, kl, x), key)), ST.nokey(~V, ll, kl, t, key), h))
       +r1 = L.subst(Bool, z => {Bool.or(z, False{}) == False{} : Bool}, False{}, S.str_eq(ST.skey(ll, kl, x), key), Equal.sym(Bool, S.str_eq(ST.skey(ll, kl, x), key), False{}, h1), {==})
       L.subst(Bool, z => {Bool.or(S.str_eq(ST.skey(ll, kl, x), key), z) == False{} : Bool}, False{}, S.mem(key, WL.mapk(ll, kl, t)), Equal.sym(Bool, S.mem(key, WL.mapk(ll, kl, t)), False{}, ih), r1)

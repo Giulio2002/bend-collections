@@ -2,7 +2,6 @@ import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/u32.bend as U
-import ../lib/u32alg.bend as A
 import ../lib/array.bend as AR
 import ../lib/array_ext.bend as AX
 import ../lib/list.bend as LL
@@ -11,9 +10,7 @@ import ../spec/doubly_linked_list.bend as S
 import ../math/u32div.bend as UD
 import ../../src/containers/doubly_linked_list.bend as D
 import ../../src/containers/internal/dlist_storage.bend as R
-import ../../src/containers/types/internal_dlist.bend as I
 import ../../src/containers/types/doubly_linked_list.bend as E
-import ../hash_table/table.bend as TB
 import ./state.bend as ST
 import ./rel.bend as RL
 import ./vals.bend as VA
@@ -21,6 +18,7 @@ import ./lv.bend as LV
 import ./link.bend as LN
 import ./insg.bend as IG
 import ./ok.bend as OK
+import ../lib/words32.bend as W32
 
 # get and set on a handle: the storage's checks and the live element.
 
@@ -82,7 +80,7 @@ def get_pre(~T: Data, $VP, $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}) ->
 def get_none(~T: Data, $VP, $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}, +hv: {S.val_of(T, $VL, $II) == None{} : $MT}) -> {D.dispatch(~T, $RS, $GOP) == ($RS, D.failed(~T, $GOP, $ST0)) : $DO}:
   Equal.trans($DO, D.dispatch(~T, $RS, $GOP), $GF(($AV, S.val_of(T, $VL, $II))), ($RS, D.failed(~T, $GOP, $ST0)), get_pre(~T, $VA, ho, hlt), Equal.cong($MT, $DO, m => $GF(($AV, m)), S.val_of(T, $VL, $II), None{}, hv))
 
-def get_live(~T: Data, $VP, $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}, +hgen: {g == TB.nth0($GL, $II) : U32}) -> OK.POK(~T, $OB, S.live_op(T, $MS, $GOP, $II), D.dispatch(~T, $RS, $GOP)):
+def get_live(~T: Data, $VP, $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}, +hgen: {g == W32.nth0($GL, $II) : U32}) -> OK.POK(~T, $OB, S.live_op(T, $MS, $GOP, $II), D.dispatch(~T, $RS, $GOP)):
   +er = Equal.trans($DO, D.dispatch(~T, $RS, $GOP), $GF(($AV, S.val_of(T, $VL, $II))), ($RS, E.OVal{Done{vv}}), get_pre(~T, $VA, ho, hlt), Equal.cong($MT, $DO, m => $GF(($AV, m)), S.val_of(T, $VL, $II), Some{vv}, hv))
   +es = Equal.cong($MT, S.DS<T> & $OB, m => ($MS, E.OVal{S.maybe_done(T, $ST0, m)}), S.val_of(T, $VLF, $II), Some{vv}, Equal.trans($MT, S.val_of(T, $VLF, $II), S.val_of(T, $VL, $II), Some{vv}, VA.val_take(T, $VL, $FV, $II, hlt), hv))
   ($SH, (E.OVal{Done{vv}}, (er, (es, hg))))
@@ -140,7 +138,7 @@ def set_none(~T: Data, $VP, +x: T, $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : B
 %def SHX ST.LS{tag, cap, fresh, free, head, tail, depth, $VX, pT, nT, gT, sl, fl}
 %def VL2 SC.update($MT, $VL, $II, Some{x})
 
-def set_live(~T: Data, $VP, +x: T, $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}, +hgen: {g == TB.nth0($GL, $II) : U32}) -> OK.POK(~T, $OB, S.live_op(T, $MS, $SOP, $II), D.dispatch(~T, $RS, $SOP)):
+def set_live(~T: Data, $VP, +x: T, $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}, +hgen: {g == W32.nth0($GL, $II) : U32}) -> OK.POK(~T, $OB, S.live_op(T, $MS, $SOP, $II), D.dispatch(~T, $RS, $SOP)):
   +hi = i_lt(~T, $VA, hlt)
   +er = Equal.trans($DO, D.dispatch(~T, $RS, $SOP), $SF((AR.thaw($MT, $VX), S.val_of(T, $VL, $II))), (ST.real(~T, $SHX), E.OUnit{Done{Unit{}}}), set_pre(~T, $VA, x, ho, hlt), Equal.cong($MT, $DO, m => $SF((AR.thaw($MT, $VX), m)), S.val_of(T, $VL, $II), Some{vv}, hv))
   +esv = AR.upd_slots($MT, depth, vT, $II, Some{x}, hi, $G(cpv))

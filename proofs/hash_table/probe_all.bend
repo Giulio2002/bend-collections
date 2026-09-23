@@ -13,10 +13,10 @@ import ./strings.bend as STR
 import ./keys.bend as K
 import ./table.bend as TB
 import ./buckets.bend as B
-import ./arr.bend as AX
 import ./cyc.bend as CY
 import ./probe_impl.bend as PI
 import ./qprobe.bend as QP
+import ../lib/words32.bend as W32
 
 # The whole probe (H.probe): every key, long or one-character, starting at
 # its home bucket with fuel n.
@@ -55,8 +55,8 @@ def fuel_eq(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk31: {Nat.is_lt(k, 31n
   +v = UD.v(CY.msk(k))
   +ea = Equal.trans(Nat, Nat.add(v, 1n), Nat.add(WD.uw(32n, WD.mask(32n, k)), 1n), SC.pow2(k), Equal.cong(Nat, Nat, z => Nat.add(z, 1n), v, WD.uw(32n, WD.mask(32n, k)), UD.vw(WD.mask(32n, k))), mask_val(32n, k, hk))
   +e1 = Equal.trans(Nat, 1n+v, Nat.add(v, 1n), SC.pow2(k), Equal.sym(Nat, Nat.add(v, 1n), 1n+v, N.add_comm(v, 1n)), ea)
-  +hb = L.subst(Nat, z => {Nat.is_lt(z, WD.sc(32n, one)) == True{} : Bool}, SC.pow2(k), 1n+v, Equal.sym(Nat, 1n+v, SC.pow2(k), e1), N.lt_le_trans(SC.pow2(k), SC.pow2(1n+k), WD.sc(32n, one), N.pow2_lt_succ(k), AX.pow_le32(one, h1, 1n+k, hk31)))
-  Equal.trans(Nat, UD.v(U32.inc(CY.msk(k))), 1n+v, SC.pow2(k), CY.inc_val(one, h1, CY.msk(k), hb), e1)
+  +hb = L.subst(Nat, z => {Nat.is_lt(z, WD.sc(32n, one)) == True{} : Bool}, SC.pow2(k), 1n+v, Equal.sym(Nat, 1n+v, SC.pow2(k), e1), N.lt_le_trans(SC.pow2(k), SC.pow2(1n+k), WD.sc(32n, one), N.pow2_lt_succ(k), W32.pow_le32(one, h1, 1n+k, hk31)))
+  Equal.trans(Nat, UD.v(U32.inc(CY.msk(k))), 1n+v, SC.pow2(k), W32.inc_val(one, h1, CY.msk(k), hb), e1)
 
 # a home bucket is a bucket
 def home_lt(+w: U32, +k: Nat) -> {Nat.is_lt(UD.v(HS.bucket(w, CY.msk(k))), SC.pow2(k)) == True{} : Bool}:

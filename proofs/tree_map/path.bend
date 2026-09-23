@@ -4,11 +4,9 @@ import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./tree.bend as TR
+import ../lib/nat_list.bend as NL
 
 # Paths into the ghost tree: the frames from a subtree up to the root (the
 # parent's id, whether the subtree is its left child, the sibling), the ids
@@ -127,27 +125,27 @@ def dist(c: List<&2, Fr>, +x: Nat) -> Bool:
           Bool.and(Bool.not(Nat.is_eq(x, ST.rid(s))), dist(t, p))
 
 
-def mem_self(+i: Nat, +y: List<&2, Nat>) -> {HT.memn(i, Con{i, y}) == True{} : Bool}:
-  %Equal.sym(Bool, Nat.is_eq(i, i), True{}, N.is_eq_refl(i)) : {Bool.or(_, HT.memn(i, y)) == True{} : Bool}
+def mem_self(+i: Nat, +y: List<&2, Nat>) -> {NL.memn(i, Con{i, y}) == True{} : Bool}:
+  %Equal.sym(Bool, Nat.is_eq(i, i), True{}, N.is_eq_refl(i)) : {Bool.or(_, NL.memn(i, y)) == True{} : Bool}
   {==}
 
-def mem_root(+i: Nat, +l: ST.Tr, +r: ST.Tr) -> {HT.memn(i, ST.ids(ST.TN{i, l, r})) == True{} : Bool}:
-  LS.mem_app_r(i, ST.ids(l), Con{i, ST.ids(r)}, mem_self(i, ST.ids(r)))
+def mem_root(+i: Nat, +l: ST.Tr, +r: ST.Tr) -> {NL.memn(i, ST.ids(ST.TN{i, l, r})) == True{} : Bool}:
+  NL.mem_app_r(i, ST.ids(l), Con{i, ST.ids(r)}, mem_self(i, ST.ids(r)))
 
-def mem_cons(+y: Nat, +p: Nat, +xs: List<&2, Nat>, +h: {HT.memn(y, xs) == True{} : Bool}) -> {HT.memn(y, Con{p, xs}) == True{} : Bool}:
-  %Equal.sym(Bool, HT.memn(y, xs), True{}, h) : {Bool.or(Nat.is_eq(p, y), _) == True{} : Bool}
-  LS.or_true_b(Nat.is_eq(p, y))
+def mem_cons(+y: Nat, +p: Nat, +xs: List<&2, Nat>, +h: {NL.memn(y, xs) == True{} : Bool}) -> {NL.memn(y, Con{p, xs}) == True{} : Bool}:
+  %Equal.sym(Bool, NL.memn(y, xs), True{}, h) : {Bool.or(Nat.is_eq(p, y), _) == True{} : Bool}
+  NL.or_true_b(Nat.is_eq(p, y))
 
-def ne_c(+i: Nat, +j: Nat, +xs: List<&2, Nat>, +hi: {HT.memn(i, xs) == False{} : Bool}, +hj: {HT.memn(j, xs) == True{} : Bool}, +b: Bool, +hb: {Nat.is_eq(i, j) == b : Bool}) -> {Bool.not(b) == True{} : Bool}:
+def ne_c(+i: Nat, +j: Nat, +xs: List<&2, Nat>, +hi: {NL.memn(i, xs) == False{} : Bool}, +hj: {NL.memn(j, xs) == True{} : Bool}, +b: Bool, +hb: {Nat.is_eq(i, j) == b : Bool}) -> {Bool.not(b) == True{} : Bool}:
   match b:
     case True{}:
       +e = N.eq_from_is_eq(i, j, hb)
-      Empty.absurd({Bool.not(True{}) == True{} : Bool}, L.true_false(Equal.trans(Bool, True{}, HT.memn(i, xs), False{}, Equal.sym(Bool, HT.memn(i, xs), True{}, L.subst(Nat, z => {HT.memn(z, xs) == True{} : Bool}, j, i, Equal.sym(Nat, i, j, e), hj)), hi)))
+      Empty.absurd({Bool.not(True{}) == True{} : Bool}, L.true_false(Equal.trans(Bool, True{}, NL.memn(i, xs), False{}, Equal.sym(Bool, NL.memn(i, xs), True{}, L.subst(Nat, z => {NL.memn(z, xs) == True{} : Bool}, j, i, Equal.sym(Nat, i, j, e), hj)), hi)))
     case False{}:
       {==}
 
 # an absent id differs from a present one
-def ne_mem(+i: Nat, +j: Nat, +xs: List<&2, Nat>, +hi: {HT.memn(i, xs) == False{} : Bool}, +hj: {HT.memn(j, xs) == True{} : Bool}) -> {Bool.not(Nat.is_eq(i, j)) == True{} : Bool}:
+def ne_mem(+i: Nat, +j: Nat, +xs: List<&2, Nat>, +hi: {NL.memn(i, xs) == False{} : Bool}, +hj: {NL.memn(j, xs) == True{} : Bool}) -> {Bool.not(Nat.is_eq(i, j)) == True{} : Bool}:
   ne_c(i, j, xs, hi, hj, Nat.is_eq(i, j), {==})
 
 def ne_zero(+i: Nat, +hi: {Nat.is_lt(0n, i) == True{} : Bool}) -> {Bool.not(Nat.is_eq(i, 0n)) == True{} : Bool}:
@@ -159,7 +157,7 @@ def ne_zero(+i: Nat, +hi: {Nat.is_lt(0n, i) == True{} : Bool}) -> {Bool.not(Nat.
 
 
 # the root differs from every sibling, when no id repeats
-def nd_dist(~K: Data, +nl: List<&2, M.Node<K>>, +c: List<&2, Fr>, +i: Nat, +l: ST.Tr, +r: ST.Tr, +hi: {Nat.is_lt(0n, i) == True{} : Bool}, +hok: {ctxok(~K, c, i, nl) == True{} : Bool}, +hnd: {LST.nodupn(SC.append(Nat, before(c), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(c)))) == True{} : Bool}) -> {dist(c, i) == True{} : Bool}:
+def nd_dist(~K: Data, +nl: List<&2, M.Node<K>>, +c: List<&2, Fr>, +i: Nat, +l: ST.Tr, +r: ST.Tr, +hi: {Nat.is_lt(0n, i) == True{} : Bool}, +hok: {ctxok(~K, c, i, nl) == True{} : Bool}, +hnd: {NL.nodupn(SC.append(Nat, before(c), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(c)))) == True{} : Bool}) -> {dist(c, i) == True{} : Bool}:
   match c:
     case Nil{}:
       {==}
@@ -172,33 +170,33 @@ def nd_dist(~K: Data, +nl: List<&2, M.Node<K>>, +c: List<&2, Fr>, +i: Nat, +l: S
                 case ST.TE{}:
                   +hk = L.and_left(cok1(~K, FR{p, True{}, ST.TE{}}, i, top(t), nl), ctxok(~K, t, p, nl), hok)
                   +hp = L.and_left(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), i, ST.rid(ST.TE{}), top(t)), ST.rep(~K, ST.TE{}, p, nl)), hk)
-                  +hn = LS.nd_dj2(ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TE{}}, t}), LS.nd_r(before(t), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TE{}}, t})), hnd), i, mem_root(i, l, r))
-                  +hnd2 = L.subst(List<&2, Nat>, z => {LST.nodupn(z) == True{} : Bool}, SC.append(Nat, before(Con{FR{p, True{}, ST.TE{}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TE{}}, t}))), SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TN{i, l, r}, ST.TE{}}), after(t))), Equal.sym(List<&2, Nat>, SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TN{i, l, r}, ST.TE{}}), after(t))), SC.append(Nat, before(Con{FR{p, True{}, ST.TE{}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TE{}}, t}))), ids_l(t, p, ST.TN{i, l, r}, ST.TE{})), hnd)
+                  +hn = NL.nd_dj2(ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TE{}}, t}), NL.nd_r(before(t), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TE{}}, t})), hnd), i, mem_root(i, l, r))
+                  +hnd2 = L.subst(List<&2, Nat>, z => {NL.nodupn(z) == True{} : Bool}, SC.append(Nat, before(Con{FR{p, True{}, ST.TE{}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TE{}}, t}))), SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TN{i, l, r}, ST.TE{}}), after(t))), Equal.sym(List<&2, Nat>, SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TN{i, l, r}, ST.TE{}}), after(t))), SC.append(Nat, before(Con{FR{p, True{}, ST.TE{}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TE{}}, t}))), ids_l(t, p, ST.TN{i, l, r}, ST.TE{})), hnd)
                   +rec = nd_dist(~K, nl, t, p, ST.TN{i, l, r}, ST.TE{}, hp, L.and_right(cok1(~K, FR{p, True{}, ST.TE{}}, i, top(t), nl), ctxok(~K, t, p, nl), hok), hnd2)
                   L.and_intro(Bool.not(Nat.is_eq(i, 0n)), dist(t, p), ne_zero(i, hi), rec)
                 case ST.TN{+j, +sl, +sr}:
                   +hk = L.and_left(cok1(~K, FR{p, True{}, ST.TN{j, sl, sr}}, i, top(t), nl), ctxok(~K, t, p, nl), hok)
                   +hp = L.and_left(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), i, ST.rid(ST.TN{j, sl, sr}), top(t)), ST.rep(~K, ST.TN{j, sl, sr}, p, nl)), hk)
-                  +hn = LS.nd_dj2(ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TN{j, sl, sr}}, t}), LS.nd_r(before(t), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TN{j, sl, sr}}, t})), hnd), i, mem_root(i, l, r))
-                  +hnd2 = L.subst(List<&2, Nat>, z => {LST.nodupn(z) == True{} : Bool}, SC.append(Nat, before(Con{FR{p, True{}, ST.TN{j, sl, sr}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TN{j, sl, sr}}, t}))), SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TN{i, l, r}, ST.TN{j, sl, sr}}), after(t))), Equal.sym(List<&2, Nat>, SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TN{i, l, r}, ST.TN{j, sl, sr}}), after(t))), SC.append(Nat, before(Con{FR{p, True{}, ST.TN{j, sl, sr}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TN{j, sl, sr}}, t}))), ids_l(t, p, ST.TN{i, l, r}, ST.TN{j, sl, sr})), hnd)
+                  +hn = NL.nd_dj2(ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TN{j, sl, sr}}, t}), NL.nd_r(before(t), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TN{j, sl, sr}}, t})), hnd), i, mem_root(i, l, r))
+                  +hnd2 = L.subst(List<&2, Nat>, z => {NL.nodupn(z) == True{} : Bool}, SC.append(Nat, before(Con{FR{p, True{}, ST.TN{j, sl, sr}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TN{j, sl, sr}}, t}))), SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TN{i, l, r}, ST.TN{j, sl, sr}}), after(t))), Equal.sym(List<&2, Nat>, SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TN{i, l, r}, ST.TN{j, sl, sr}}), after(t))), SC.append(Nat, before(Con{FR{p, True{}, ST.TN{j, sl, sr}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, True{}, ST.TN{j, sl, sr}}, t}))), ids_l(t, p, ST.TN{i, l, r}, ST.TN{j, sl, sr})), hnd)
                   +rec = nd_dist(~K, nl, t, p, ST.TN{i, l, r}, ST.TN{j, sl, sr}, hp, L.and_right(cok1(~K, FR{p, True{}, ST.TN{j, sl, sr}}, i, top(t), nl), ctxok(~K, t, p, nl), hok), hnd2)
-                  L.and_intro(Bool.not(Nat.is_eq(i, j)), dist(t, p), ne_mem(i, j, after(Con{FR{p, True{}, ST.TN{j, sl, sr}}, t}), hn, mem_cons(j, p, SC.append(Nat, ST.ids(ST.TN{j, sl, sr}), after(t)), LS.mem_app_l(j, ST.ids(ST.TN{j, sl, sr}), after(t), mem_root(j, sl, sr)))), rec)
+                  L.and_intro(Bool.not(Nat.is_eq(i, j)), dist(t, p), ne_mem(i, j, after(Con{FR{p, True{}, ST.TN{j, sl, sr}}, t}), hn, mem_cons(j, p, SC.append(Nat, ST.ids(ST.TN{j, sl, sr}), after(t)), NL.mem_app_l(j, ST.ids(ST.TN{j, sl, sr}), after(t), mem_root(j, sl, sr)))), rec)
             case False{}:
               match s:
                 case ST.TE{}:
                   +hk = L.and_left(cok1(~K, FR{p, False{}, ST.TE{}}, i, top(t), nl), ctxok(~K, t, p, nl), hok)
                   +hp = L.and_left(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), ST.rid(ST.TE{}), i, top(t)), ST.rep(~K, ST.TE{}, p, nl)), hk)
-                  +hn = LS.nd_dj(before(Con{FR{p, False{}, ST.TE{}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(t)), hnd, i, LS.mem_app_l(i, ST.ids(ST.TN{i, l, r}), after(t), mem_root(i, l, r)))
-                  +hnd2 = L.subst(List<&2, Nat>, z => {LST.nodupn(z) == True{} : Bool}, SC.append(Nat, before(Con{FR{p, False{}, ST.TE{}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, False{}, ST.TE{}}, t}))), SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TE{}, ST.TN{i, l, r}}), after(t))), Equal.sym(List<&2, Nat>, SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TE{}, ST.TN{i, l, r}}), after(t))), SC.append(Nat, before(Con{FR{p, False{}, ST.TE{}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, False{}, ST.TE{}}, t}))), ids_r(t, p, ST.TE{}, ST.TN{i, l, r})), hnd)
+                  +hn = NL.nd_dj(before(Con{FR{p, False{}, ST.TE{}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(t)), hnd, i, NL.mem_app_l(i, ST.ids(ST.TN{i, l, r}), after(t), mem_root(i, l, r)))
+                  +hnd2 = L.subst(List<&2, Nat>, z => {NL.nodupn(z) == True{} : Bool}, SC.append(Nat, before(Con{FR{p, False{}, ST.TE{}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, False{}, ST.TE{}}, t}))), SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TE{}, ST.TN{i, l, r}}), after(t))), Equal.sym(List<&2, Nat>, SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TE{}, ST.TN{i, l, r}}), after(t))), SC.append(Nat, before(Con{FR{p, False{}, ST.TE{}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, False{}, ST.TE{}}, t}))), ids_r(t, p, ST.TE{}, ST.TN{i, l, r})), hnd)
                   +rec = nd_dist(~K, nl, t, p, ST.TE{}, ST.TN{i, l, r}, hp, L.and_right(cok1(~K, FR{p, False{}, ST.TE{}}, i, top(t), nl), ctxok(~K, t, p, nl), hok), hnd2)
                   L.and_intro(Bool.not(Nat.is_eq(i, 0n)), dist(t, p), ne_zero(i, hi), rec)
                 case ST.TN{+j, +sl, +sr}:
                   +hk = L.and_left(cok1(~K, FR{p, False{}, ST.TN{j, sl, sr}}, i, top(t), nl), ctxok(~K, t, p, nl), hok)
                   +hp = L.and_left(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), ST.rid(ST.TN{j, sl, sr}), i, top(t)), ST.rep(~K, ST.TN{j, sl, sr}, p, nl)), hk)
-                  +hn = LS.nd_dj(before(Con{FR{p, False{}, ST.TN{j, sl, sr}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(t)), hnd, i, LS.mem_app_l(i, ST.ids(ST.TN{i, l, r}), after(t), mem_root(i, l, r)))
-                  +hnd2 = L.subst(List<&2, Nat>, z => {LST.nodupn(z) == True{} : Bool}, SC.append(Nat, before(Con{FR{p, False{}, ST.TN{j, sl, sr}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, False{}, ST.TN{j, sl, sr}}, t}))), SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TN{j, sl, sr}, ST.TN{i, l, r}}), after(t))), Equal.sym(List<&2, Nat>, SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TN{j, sl, sr}, ST.TN{i, l, r}}), after(t))), SC.append(Nat, before(Con{FR{p, False{}, ST.TN{j, sl, sr}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, False{}, ST.TN{j, sl, sr}}, t}))), ids_r(t, p, ST.TN{j, sl, sr}, ST.TN{i, l, r})), hnd)
+                  +hn = NL.nd_dj(before(Con{FR{p, False{}, ST.TN{j, sl, sr}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(t)), hnd, i, NL.mem_app_l(i, ST.ids(ST.TN{i, l, r}), after(t), mem_root(i, l, r)))
+                  +hnd2 = L.subst(List<&2, Nat>, z => {NL.nodupn(z) == True{} : Bool}, SC.append(Nat, before(Con{FR{p, False{}, ST.TN{j, sl, sr}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, False{}, ST.TN{j, sl, sr}}, t}))), SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TN{j, sl, sr}, ST.TN{i, l, r}}), after(t))), Equal.sym(List<&2, Nat>, SC.append(Nat, before(t), SC.append(Nat, ST.ids(ST.TN{p, ST.TN{j, sl, sr}, ST.TN{i, l, r}}), after(t))), SC.append(Nat, before(Con{FR{p, False{}, ST.TN{j, sl, sr}}, t}), SC.append(Nat, ST.ids(ST.TN{i, l, r}), after(Con{FR{p, False{}, ST.TN{j, sl, sr}}, t}))), ids_r(t, p, ST.TN{j, sl, sr}, ST.TN{i, l, r})), hnd)
                   +rec = nd_dist(~K, nl, t, p, ST.TN{j, sl, sr}, ST.TN{i, l, r}, hp, L.and_right(cok1(~K, FR{p, False{}, ST.TN{j, sl, sr}}, i, top(t), nl), ctxok(~K, t, p, nl), hok), hnd2)
-                  L.and_intro(Bool.not(Nat.is_eq(i, j)), dist(t, p), ne_mem(i, j, before(Con{FR{p, False{}, ST.TN{j, sl, sr}}, t}), hn, LS.mem_app_r(j, before(t), SC.append(Nat, ST.ids(ST.TN{j, sl, sr}), Con{p, Nil{}}), LS.mem_app_l(j, ST.ids(ST.TN{j, sl, sr}), Con{p, Nil{}}, mem_root(j, sl, sr)))), rec)
+                  L.and_intro(Bool.not(Nat.is_eq(i, j)), dist(t, p), ne_mem(i, j, before(Con{FR{p, False{}, ST.TN{j, sl, sr}}, t}), hn, NL.mem_app_r(j, before(t), SC.append(Nat, ST.ids(ST.TN{j, sl, sr}), Con{p, Nil{}}), NL.mem_app_l(j, ST.ids(ST.TN{j, sl, sr}), Con{p, Nil{}}, mem_root(j, sl, sr)))), rec)
 
 # ---- the path is shorter than the ids ----
 

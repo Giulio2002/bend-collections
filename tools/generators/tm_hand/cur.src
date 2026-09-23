@@ -1,21 +1,14 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/list.bend as LL
-import ../lib/order.bend as O
-import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
 import ./state.bend as ST
 import ./mirror.bend as MI
-import ./ok.bend as OK
-import ./tree.bend as TR
 import ./ends.bend as EN
 import ./path.bend as P
-import ./plug.bend as PG
 import ./dj.bend as DJ
+import ../lib/nat_list.bend as NL
 
 # Cursors: the mirror's cursor holds node ids, the specification's the keys
 # at them. A good cursor is over a good shadow, its next and current ids 0 or
@@ -35,7 +28,7 @@ import ./dj.bend as DJ
 %def WH(c, t) $APP(P.before(c), $APP($IDS(t), P.after(c)))
 %def REPN(t, p, x) {ST.rep(~K, t, p, x) == True{} : Bool}
 %def COKN(c, z, x) {P.ctxok(~K, c, z, x) == True{} : Bool}
-%def MEM(y, xs) {HT.memn(y, xs) == True{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
 %def MC MI.MCursor<K, V>
 %def SC_ S.Cursor<K, V>
 
@@ -45,7 +38,7 @@ def ck(~K: Data, +nl: $NL, +j: Nat) -> Maybe<&2, K>:
 
 # an id is 0 or in the ids
 def idok(+xs: $LN, +j: Nat) -> Bool:
-  Bool.or(Nat.is_eq(j, 0n), HT.memn(j, xs))
+  Bool.or(Nat.is_eq(j, 0n), NL.memn(j, xs))
 
 def cmod($TK, c: $MC) -> $SC_:
   match c:
@@ -93,16 +86,16 @@ def fst0_ok(+xs: $LN) -> {idok(xs, ST.fst0(xs)) == True{} : Bool}:
     case Nil{}:
       {==}
     case Con{+x, +t}:
-      or_r(Nat.is_eq(x, 0n), HT.memn(x, Con{x, t}), DJ.mem_hd(x, t))
+      or_r(Nat.is_eq(x, 0n), NL.memn(x, Con{x, t}), DJ.mem_hd(x, t))
 
 def idok_c(+x: Nat, +xs: $LN, +j: Nat, +h: {idok(xs, j) == True{} : Bool}, +b: Bool, +hb: {Nat.is_eq(j, 0n) == b : Bool}) -> {idok(Con{x, xs}, j) == True{} : Bool}:
   match b:
     case True{}:
-      %Equal.sym(Bool, Nat.is_eq(j, 0n), True{}, hb) : {Bool.or(_, HT.memn(j, Con{x, xs})) == True{} : Bool}
+      %Equal.sym(Bool, Nat.is_eq(j, 0n), True{}, hb) : {Bool.or(_, NL.memn(j, Con{x, xs})) == True{} : Bool}
       {==}
     case False{}:
-      %Equal.sym(Bool, Nat.is_eq(j, 0n), False{}, hb) : {Bool.or(_, HT.memn(j, Con{x, xs})) == True{} : Bool}
-      P.mem_cons(j, x, xs, L.subst(Bool, z => {Bool.or(z, HT.memn(j, xs)) == True{} : Bool}, Nat.is_eq(j, 0n), False{}, hb, h))
+      %Equal.sym(Bool, Nat.is_eq(j, 0n), False{}, hb) : {Bool.or(_, NL.memn(j, Con{x, xs})) == True{} : Bool}
+      P.mem_cons(j, x, xs, L.subst(Bool, z => {Bool.or(z, NL.memn(j, xs)) == True{} : Bool}, Nat.is_eq(j, 0n), False{}, hb, h))
 
 def idok_cons(+x: Nat, +xs: $LN, +j: Nat, +h: {idok(xs, j) == True{} : Bool}) -> {idok(Con{x, xs}, j) == True{} : Bool}:
   idok_c(x, xs, j, h, Nat.is_eq(j, 0n), {==})
@@ -114,7 +107,7 @@ def lo_up(+x: Nat, +y: Nat, +u: $LN, +h: {idok(Con{y, u}, ST.last0(Con{y, u})) =
 def last0_c(+x: Nat, +t: $LN, +ih: {idok(t, ST.last0(t)) == True{} : Bool}) -> {idok(Con{x, t}, ST.last0(Con{x, t})) == True{} : Bool}:
   match t:
     case Nil{}:
-      or_r(Nat.is_eq(x, 0n), HT.memn(x, Con{x, Nil{}}), DJ.mem_hd(x, Nil{}))
+      or_r(Nat.is_eq(x, 0n), NL.memn(x, Con{x, Nil{}}), DJ.mem_hd(x, Nil{}))
     case Con{+y, +u}:
       lo_up(x, y, u, ih)
 

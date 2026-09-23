@@ -16,6 +16,8 @@ import ./probe_impl.bend as PI
 import ./cyc.bend as CY
 import ../lib/nat.bend as N
 import ../math/word.bend as WD
+import ../lib/u32.bend as UW
+import ../lib/words32.bend as W32
 
 # One-character keys below 2^31: the probe decides on bucket words alone.
 
@@ -45,14 +47,14 @@ def qstep_of(ms: B.MS, tab: Array<U32>) -> H.QStep:
     case B.MNext{}:
       H.QNext{tab}
 
-def qs_same(+td: Nat, +tabT: AR.Tree<U32>, +i: U32, +hd: {Nat.is_lt(td, 32n) == True{} : Bool}, +pt: {AR.perfect(U32, td, tabT) == True{} : Bool}, +hl: {Nat.is_lt(UD.v(U32.inc(U32.shl(i))), SC.pow2(td)) == True{} : Bool}, +same: Bool) -> {H.qs_same(AR.thaw(U32, tabT), i, same) == qstep_of(qd_w(TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))), same), AR.thaw(U32, tabT)) : H.QStep}:
+def qs_same(+td: Nat, +tabT: AR.Tree<U32>, +i: U32, +hd: {Nat.is_lt(td, 32n) == True{} : Bool}, +pt: {AR.perfect(U32, td, tabT) == True{} : Bool}, +hl: {Nat.is_lt(UD.v(U32.inc(U32.shl(i))), SC.pow2(td)) == True{} : Bool}, +same: Bool) -> {H.qs_same(AR.thaw(U32, tabT), i, same) == qstep_of(qd_w(W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))), same), AR.thaw(U32, tabT)) : H.QStep}:
   match same:
     case True{}:
-      Equal.cong(Array<U32> & U32, H.QStep, r => H.qs_l(r), Array.get(U32, AR.thaw(U32, tabT), U32.inc(U32.shl(i))), (AR.thaw(U32, tabT), TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i))))), AX.getw(td, tabT, U32.inc(U32.shl(i)), hd, hl, pt))
+      Equal.cong(Array<U32> & U32, H.QStep, r => H.qs_l(r), Array.get(U32, AR.thaw(U32, tabT), U32.inc(U32.shl(i))), (AR.thaw(U32, tabT), W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i))))), AX.getw(td, tabT, U32.inc(U32.shl(i)), hd, hl, pt))
     case False{}:
       {==}
 
-def qs_if(+td: Nat, +tabT: AR.Tree<U32>, +i: U32, +w: U32, +hd: {Nat.is_lt(td, 32n) == True{} : Bool}, +pt: {AR.perfect(U32, td, tabT) == True{} : Bool}, +hl: {Nat.is_lt(UD.v(U32.inc(U32.shl(i))), SC.pow2(td)) == True{} : Bool}, +x: U32, +e: Bool) -> {H.qs_if(AR.thaw(U32, tabT), i, w, x, e) == qstep_of(qd_e(w, x, TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))), e), AR.thaw(U32, tabT)) : H.QStep}:
+def qs_if(+td: Nat, +tabT: AR.Tree<U32>, +i: U32, +w: U32, +hd: {Nat.is_lt(td, 32n) == True{} : Bool}, +pt: {AR.perfect(U32, td, tabT) == True{} : Bool}, +hl: {Nat.is_lt(UD.v(U32.inc(U32.shl(i))), SC.pow2(td)) == True{} : Bool}, +x: U32, +e: Bool) -> {H.qs_if(AR.thaw(U32, tabT), i, w, x, e) == qstep_of(qd_e(w, x, W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i)))), e), AR.thaw(U32, tabT)) : H.QStep}:
   match e:
     case True{}:
       {==}
@@ -60,25 +62,13 @@ def qs_if(+td: Nat, +tabT: AR.Tree<U32>, +i: U32, +w: U32, +hd: {Nat.is_lt(td, 3
       qs_same(td, tabT, i, hd, pt, hl, U32.is_eq(x, w))
 
 # THEOREM: a short-key probe step reads bucket i and decides as qdec.
-def qstep(+td: Nat, +tabT: AR.Tree<U32>, +i: U32, +w: U32, +hd: {Nat.is_lt(td, 32n) == True{} : Bool}, +pt: {AR.perfect(U32, td, tabT) == True{} : Bool}, +hw: {Nat.is_lt(UD.v(U32.shl(i)), SC.pow2(td)) == True{} : Bool}, +hl: {Nat.is_lt(UD.v(U32.inc(U32.shl(i))), SC.pow2(td)) == True{} : Bool}) -> {H.qstep(AR.thaw(U32, tabT), i, w) == qstep_of(qdec(w, TB.nth0(AR.slots(U32, tabT), UD.v(U32.shl(i))), TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i))))), AR.thaw(U32, tabT)) : H.QStep}:
-  +x = TB.nth0(AR.slots(U32, tabT), UD.v(U32.shl(i)))
-  Equal.trans(H.QStep, H.qs_w(i, w, Array.get(U32, AR.thaw(U32, tabT), U32.shl(i))), H.qs_w(i, w, (AR.thaw(U32, tabT), x)), qstep_of(qdec(w, x, TB.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i))))), AR.thaw(U32, tabT)),
+def qstep(+td: Nat, +tabT: AR.Tree<U32>, +i: U32, +w: U32, +hd: {Nat.is_lt(td, 32n) == True{} : Bool}, +pt: {AR.perfect(U32, td, tabT) == True{} : Bool}, +hw: {Nat.is_lt(UD.v(U32.shl(i)), SC.pow2(td)) == True{} : Bool}, +hl: {Nat.is_lt(UD.v(U32.inc(U32.shl(i))), SC.pow2(td)) == True{} : Bool}) -> {H.qstep(AR.thaw(U32, tabT), i, w) == qstep_of(qdec(w, W32.nth0(AR.slots(U32, tabT), UD.v(U32.shl(i))), W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i))))), AR.thaw(U32, tabT)) : H.QStep}:
+  +x = W32.nth0(AR.slots(U32, tabT), UD.v(U32.shl(i)))
+  Equal.trans(H.QStep, H.qs_w(i, w, Array.get(U32, AR.thaw(U32, tabT), U32.shl(i))), H.qs_w(i, w, (AR.thaw(U32, tabT), x)), qstep_of(qdec(w, x, W32.nth0(AR.slots(U32, tabT), UD.v(U32.inc(U32.shl(i))))), AR.thaw(U32, tabT)),
     Equal.cong(Array<U32> & U32, H.QStep, r => H.qs_w(i, w, r), Array.get(U32, AR.thaw(U32, tabT), U32.shl(i)), (AR.thaw(U32, tabT), x), AX.getw(td, tabT, U32.shl(i), hd, hw, pt)),
     qs_if(td, tabT, i, w, hd, pt, hl, x, U32.is_eq(x, 0)))
 
-def eq_sym_c(+a: U32, +b: U32, +c: Bool, +hc: {U32.is_eq(a, b) == c : Bool}, +d: Bool, +hd: {U32.is_eq(b, a) == d : Bool}) -> {c == d : Bool}:
-  match c d:
-    case True{} True{}:
-      {==}
-    case False{} False{}:
-      {==}
-    case True{} False{}:
-      Empty.absurd({True{} == False{} : Bool}, L.true_false(Equal.trans(Bool, True{}, U32.is_eq(b, a), False{}, L.subst(U32, z => {True{} == U32.is_eq(b, z) : Bool}, b, a, Equal.sym(U32, a, b, A.eq_of(a, b, hc)), Equal.sym(Bool, U32.is_eq(b, b), True{}, K.u32_eq_refl(b))), hd)))
-    case False{} True{}:
-      Empty.absurd({False{} == True{} : Bool}, L.false_true(Equal.trans(Bool, False{}, U32.is_eq(a, b), True{}, Equal.sym(Bool, U32.is_eq(a, b), False{}, hc), L.subst(U32, z => {U32.is_eq(a, z) == True{} : Bool}, a, b, Equal.sym(U32, b, a, A.eq_of(b, a, hd)), K.u32_eq_refl(a)))))
 
-def eq_sym_u32(+a: U32, +b: U32) -> {U32.is_eq(a, b) == U32.is_eq(b, a) : Bool}:
-  eq_sym_c(a, b, U32.is_eq(a, b), {==}, U32.is_eq(b, a), {==})
 
 # ---- the short-key decision ----
 
@@ -88,13 +78,13 @@ def eqc_false(+x: U32, +c: U32, +hx: {H.is_short(x) == True{} : Bool}, +hs: {U32
       {==}
     case True{}:
       +xc = Equal.trans(U32, x, H.short_word(U32.and(x, 2147483647)), H.short_word(c), Equal.sym(U32, H.short_word(U32.and(x, 2147483647)), x, WR.short_eta(x, hx)), Equal.cong(U32, U32, z => H.short_word(z), U32.and(x, 2147483647), c, A.eq_of(U32.and(x, 2147483647), c, he)))
-      Empty.absurd({True{} == False{} : Bool}, L.true_false(Equal.trans(Bool, True{}, U32.is_eq(x, H.short_word(c)), False{}, L.subst(U32, z => {True{} == U32.is_eq(x, z) : Bool}, x, H.short_word(c), xc, Equal.sym(Bool, U32.is_eq(x, x), True{}, K.u32_eq_refl(x))), hs)))
+      Empty.absurd({True{} == False{} : Bool}, L.true_false(Equal.trans(Bool, True{}, U32.is_eq(x, H.short_word(c)), False{}, L.subst(U32, z => {True{} == U32.is_eq(x, z) : Bool}, x, H.short_word(c), xc, Equal.sym(Bool, U32.is_eq(x, x), True{}, UW.u32_eq_refl(x))), hs)))
 
 def qd_short(+c: U32, +hc: {U32.is_lt(c, H.tag()) == True{} : Bool}, +x: U32, +l: U32, +hx: {H.is_short(x) == True{} : Bool}, +s: Bool, +hs: {U32.is_eq(x, H.short_word(c)) == s : Bool}) -> {qd_w(l, s) == Bool.pick(B.MS, S.str_eq(SCon{Chr{U32.and(x, 2147483647)}, SNil{}}, SCon{Chr{c}, SNil{}}), B.MHit{l}, B.MNext{}) : B.MS}:
   match s:
     case True{}:
       +ac = Equal.trans(U32, U32.and(x, 2147483647), U32.and(H.short_word(c), 2147483647), c, Equal.cong(U32, U32, z => U32.and(z, 2147483647), x, H.short_word(c), A.eq_of(x, H.short_word(c), hs)), WR.short_back(c, hc))
-      +t = L.subst(U32, z => {U32.is_eq(z, c) == True{} : Bool}, c, U32.and(x, 2147483647), Equal.sym(U32, U32.and(x, 2147483647), c, ac), K.u32_eq_refl(c))
+      +t = L.subst(U32, z => {U32.is_eq(z, c) == True{} : Bool}, c, U32.and(x, 2147483647), Equal.sym(U32, U32.and(x, 2147483647), c, ac), UW.u32_eq_refl(c))
       Equal.cong(Bool, B.MS, b => Bool.pick(B.MS, b, B.MHit{l}, B.MNext{}), True{}, Bool.and(U32.is_eq(U32.and(x, 2147483647), c), True{}), Equal.sym(Bool, Bool.and(U32.is_eq(U32.and(x, 2147483647), c), True{}), True{}, L.subst(Bool, b => {Bool.and(b, True{}) == True{} : Bool}, True{}, U32.is_eq(U32.and(x, 2147483647), c), Equal.sym(Bool, U32.is_eq(U32.and(x, 2147483647), c), True{}, t), {==})))
     case False{}:
       +f = eqc_false(x, c, hx, hs, U32.is_eq(U32.and(x, 2147483647), c), {==})
@@ -116,7 +106,7 @@ def qsh(+c: U32, +hc: {U32.is_lt(c, H.tag()) == True{} : Bool}, +x: U32, +l: U32
     case False{}:
       +e = B.imp_elim(Bool.not(H.is_short(x)), U32.is_eq(x, K.kword(k)), hinv, L.subst(Bool, b => {Bool.not(b) == True{} : Bool}, False{}, H.is_short(x), Equal.sym(Bool, H.is_short(x), False{}, hsh), {==}))
       +ne = DC.kinds_ne(H.short_word(c), x, WR.short_is_short(c), hsh, U32.is_eq(H.short_word(c), x), {==})
-      +ne2 = Equal.trans(Bool, U32.is_eq(x, H.short_word(c)), U32.is_eq(H.short_word(c), x), False{}, eq_sym_u32(x, H.short_word(c)), ne)
+      +ne2 = Equal.trans(Bool, U32.is_eq(x, H.short_word(c)), U32.is_eq(H.short_word(c), x), False{}, W32.eq_sym_u32(x, H.short_word(c)), ne)
       Equal.trans(B.MS, qd_w(l, U32.is_eq(x, H.short_word(c))), B.MNext{}, Bool.pick(B.MS, S.str_eq(k, SCon{Chr{c}, SNil{}}), B.MHit{l}, B.MNext{}),
         Equal.cong(Bool, B.MS, b => qd_w(l, b), U32.is_eq(x, H.short_word(c)), False{}, ne2),
         Equal.cong(Bool, B.MS, b => Bool.pick(B.MS, b, B.MHit{l}, B.MNext{}), False{}, S.str_eq(k, SCon{Chr{c}, SNil{}}), Equal.sym(Bool, S.str_eq(k, SCon{Chr{c}, SNil{}}), False{}, ql_false(c, hc, x, k, hsh, A.eq_of(x, K.kword(k), e), S.str_eq(k, SCon{Chr{c}, SNil{}}), {==}))))
@@ -175,8 +165,8 @@ def qfind_ok(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk31: {Nat.is_lt(k, 31
       +el = AX.ix_l(i, 1n+k, hk31, hb)
       +hwb0 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) == True{} : Bool}, Nat.double(UD.v(i)), UD.v(U32.shl(i)), Equal.sym(Nat, UD.v(U32.shl(i)), Nat.double(UD.v(i)), ew), N.lt_trans(Nat.double(UD.v(i)), 1n+Nat.double(UD.v(i)), SC.pow2(1n+k), N.lt_succ(Nat.double(UD.v(i))), hb))
       +hlb0 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) == True{} : Bool}, 1n+Nat.double(UD.v(i)), UD.v(U32.inc(U32.shl(i))), Equal.sym(Nat, UD.v(U32.inc(U32.shl(i))), 1n+Nat.double(UD.v(i)), el), hb)
-      +x = TB.nth0(tb, UD.v(U32.shl(i)))
-      +l = TB.nth0(tb, UD.v(U32.inc(U32.shl(i))))
+      +x = W32.nth0(tb, UD.v(U32.shl(i)))
+      +l = W32.nth0(tb, UD.v(U32.inc(U32.shl(i))))
       +dx = PI.dec_ix(tb, kl0, UD.v(i), UD.v(U32.shl(i)), UD.v(U32.inc(U32.shl(i))), ew, el)
       +dat = TB.at_buckets(tb, kl0, n, UD.v(i), hi)
       +dd = Equal.trans(B.Bk, B.at(bs, UD.v(i)), TB.dec(tb, kl0, UD.v(i)), TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), dat, Equal.sym(B.Bk, TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), TB.dec(tb, kl0, UD.v(i)), dx))
@@ -200,8 +190,8 @@ def qfind_ok(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk31: {Nat.is_lt(k, 31
       +el = AX.ix_l(i, 1n+k, hk31, hb)
       +hwb0 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) == True{} : Bool}, Nat.double(UD.v(i)), UD.v(U32.shl(i)), Equal.sym(Nat, UD.v(U32.shl(i)), Nat.double(UD.v(i)), ew), N.lt_trans(Nat.double(UD.v(i)), 1n+Nat.double(UD.v(i)), SC.pow2(1n+k), N.lt_succ(Nat.double(UD.v(i))), hb))
       +hlb0 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) == True{} : Bool}, 1n+Nat.double(UD.v(i)), UD.v(U32.inc(U32.shl(i))), Equal.sym(Nat, UD.v(U32.inc(U32.shl(i))), 1n+Nat.double(UD.v(i)), el), hb)
-      +x = TB.nth0(tb, UD.v(U32.shl(i)))
-      +l = TB.nth0(tb, UD.v(U32.inc(U32.shl(i))))
+      +x = W32.nth0(tb, UD.v(U32.shl(i)))
+      +l = W32.nth0(tb, UD.v(U32.inc(U32.shl(i))))
       +dx = PI.dec_ix(tb, kl0, UD.v(i), UD.v(U32.shl(i)), UD.v(U32.inc(U32.shl(i))), ew, el)
       +dat = TB.at_buckets(tb, kl0, n, UD.v(i), hi)
       +dd = Equal.trans(B.Bk, B.at(bs, UD.v(i)), TB.dec(tb, kl0, UD.v(i)), TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), dat, Equal.sym(B.Bk, TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), TB.dec(tb, kl0, UD.v(i)), dx))
@@ -211,9 +201,9 @@ def qfind_ok(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk31: {Nat.is_lt(k, 31
       +em = Equal.trans(B.MS, ms, B.mstep(key, TB.dec_c(x, l, kl0, U32.is_eq(x, 0))), B.mstep(key, B.at(bs, UD.v(i))), qdecide(c, hc, x, l, kl0, hvI), Equal.cong(B.Bk, B.MS, b => B.mstep(key, b), TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), B.at(bs, UD.v(i)), Equal.sym(B.Bk, B.at(bs, UD.v(i)), TB.dec_c(x, l, kl0, U32.is_eq(x, 0)), dd)))
       +es = qstep(1n+k, tabT, i, w, hk31, pt, hwb0, hlb0)
       +hk32 = N.lt_le(k, 32n, N.lt_trans(k, 31n, 32n, hk31, {==}))
-      +hks = L.subst(Nat, z => {Nat.is_lt(z, WD.sc(32n, one)) == True{} : Bool}, SC.pow2(k), WD.sc(k, one), AX.pow_one(one, h1, k), N.lt_le_trans(SC.pow2(k), SC.pow2(1n+k), WD.sc(32n, one), N.pow2_lt_succ(k), AX.pow_le32(one, h1, 1n+k, hk31)))
-      +hi1 = L.subst(Nat, z => {Nat.is_lt(UD.v(i), z) == True{} : Bool}, SC.pow2(k), WD.sc(k, one), AX.pow_one(one, h1, k), hi)
-      +hnext = Equal.trans(Nat, UD.v(H.bnext(i, CY.msk(k))), Nat.mod(1n+UD.v(i), WD.sc(k, one)), Nat.mod(1n+UD.v(i), n), CY.next_val(one, h1, k, i, hks, hi1), Equal.cong(Nat, Nat, z => Nat.mod(1n+UD.v(i), z), WD.sc(k, one), SC.pow2(k), Equal.sym(Nat, SC.pow2(k), WD.sc(k, one), AX.pow_one(one, h1, k))))
+      +hks = L.subst(Nat, z => {Nat.is_lt(z, WD.sc(32n, one)) == True{} : Bool}, SC.pow2(k), WD.sc(k, one), W32.pow_one(one, h1, k), N.lt_le_trans(SC.pow2(k), SC.pow2(1n+k), WD.sc(32n, one), N.pow2_lt_succ(k), W32.pow_le32(one, h1, 1n+k, hk31)))
+      +hi1 = L.subst(Nat, z => {Nat.is_lt(UD.v(i), z) == True{} : Bool}, SC.pow2(k), WD.sc(k, one), W32.pow_one(one, h1, k), hi)
+      +hnext = Equal.trans(Nat, UD.v(H.bnext(i, CY.msk(k))), Nat.mod(1n+UD.v(i), WD.sc(k, one)), Nat.mod(1n+UD.v(i), n), CY.next_val(one, h1, k, i, hks, hi1), Equal.cong(Nat, Nat, z => Nat.mod(1n+UD.v(i), z), WD.sc(k, one), SC.pow2(k), Equal.sym(Nat, SC.pow2(k), WD.sc(k, one), W32.pow_one(one, h1, k))))
       +hi2 = L.subst(Nat, z => {Nat.is_lt(z, n) == True{} : Bool}, Nat.mod(1n+UD.v(i), n), UD.v(H.bnext(i, CY.msk(k))), Equal.sym(Nat, UD.v(H.bnext(i, CY.msk(k))), Nat.mod(1n+UD.v(i), n), hnext), PI.mod_lt(n, N.succ_le_lt(0n, n, N.pow2_pos(k)), 1n+UD.v(i)))
       +p3 = qm1(tabT, key, bs, n, CY.msk(k), w, i, k, hk32, hi, p, hnext, qfind_ok(one, h1, k, hk31, tabT, pt, sd, kl0, c, hc, hwell, p, H.bnext(i, CY.msk(k)), hi2), ms)
       +p2 = L.subst(B.MS, m => {H.qfind(1n+p, qstep_of(ms, AR.thaw(U32, tabT)), CY.msk(k), w, i) == qf_of(B.pf(key, bs, n, 1n+p, m, UD.v(i)), AR.thaw(U32, tabT)) : H.QFound}, ms, B.mstep(key, B.at(bs, UD.v(i))), em, p3)

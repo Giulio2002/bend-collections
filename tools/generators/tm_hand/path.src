@@ -4,11 +4,9 @@ import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./tree.bend as TR
+import ../lib/nat_list.bend as NL
 
 # Paths into the ghost tree: the frames from a subtree up to the root (the
 # parent's id, whether the subtree is its left child, the sibling), the ids
@@ -138,26 +136,26 @@ def dist(c: $CT, +x: Nat) -> Bool:
         case FR{+p, lft, +s}:
           Bool.and(Bool.not(Nat.is_eq(x, ST.rid(s))), dist(t, p))
 
-%def ND2(xs) {LST.nodupn(xs) == True{} : Bool}
-%def MEM(y, xs) {HT.memn(y, xs) == True{} : Bool}
-%def NMEM(y, xs) {HT.memn(y, xs) == False{} : Bool}
+%def ND2(xs) {NL.nodupn(xs) == True{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
 
 def mem_self(+i: Nat, +y: $LN) -> $MEM(i, Con{i, y}):
-  %Equal.sym(Bool, Nat.is_eq(i, i), True{}, N.is_eq_refl(i)) : {Bool.or(_, HT.memn(i, y)) == True{} : Bool}
+  %Equal.sym(Bool, Nat.is_eq(i, i), True{}, N.is_eq_refl(i)) : {Bool.or(_, NL.memn(i, y)) == True{} : Bool}
   {==}
 
 def mem_root(+i: Nat, +l: ST.Tr, +r: ST.Tr) -> $MEM(i, $IDS($TN(i, l, r))):
-  LS.mem_app_r(i, $IDS(l), Con{i, $IDS(r)}, mem_self(i, $IDS(r)))
+  NL.mem_app_r(i, $IDS(l), Con{i, $IDS(r)}, mem_self(i, $IDS(r)))
 
 def mem_cons(+y: Nat, +p: Nat, +xs: $LN, +h: $MEM(y, xs)) -> $MEM(y, Con{p, xs}):
-  %Equal.sym(Bool, HT.memn(y, xs), True{}, h) : {Bool.or(Nat.is_eq(p, y), _) == True{} : Bool}
-  LS.or_true_b(Nat.is_eq(p, y))
+  %Equal.sym(Bool, NL.memn(y, xs), True{}, h) : {Bool.or(Nat.is_eq(p, y), _) == True{} : Bool}
+  NL.or_true_b(Nat.is_eq(p, y))
 
 def ne_c(+i: Nat, +j: Nat, +xs: $LN, +hi: $NMEM(i, xs), +hj: $MEM(j, xs), +b: Bool, +hb: {Nat.is_eq(i, j) == b : Bool}) -> {Bool.not(b) == True{} : Bool}:
   match b:
     case True{}:
       +e = N.eq_from_is_eq(i, j, hb)
-      Empty.absurd({Bool.not(True{}) == True{} : Bool}, L.true_false(Equal.trans(Bool, True{}, HT.memn(i, xs), False{}, Equal.sym(Bool, HT.memn(i, xs), True{}, L.subst(Nat, z => $MEM(z, xs), j, i, Equal.sym(Nat, i, j, e), hj)), hi)))
+      Empty.absurd({Bool.not(True{}) == True{} : Bool}, L.true_false(Equal.trans(Bool, True{}, NL.memn(i, xs), False{}, Equal.sym(Bool, NL.memn(i, xs), True{}, L.subst(Nat, z => $MEM(z, xs), j, i, Equal.sym(Nat, i, j, e), hj)), hi)))
     case False{}:
       {==}
 
@@ -189,33 +187,33 @@ def nd_dist(~K: Data, +nl: $NL, +c: $CT, +i: Nat, +l: ST.Tr, +r: ST.Tr, +hi: {Na
                 case ST.TE{}:
                   +hk = L.and_left(cok1(~K, FR{p, True{}, ST.TE{}}, i, top(t), nl), ctxok(~K, t, p, nl), hok)
                   +hp = L.and_left(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), i, ST.rid(ST.TE{}), top(t)), ST.rep(~K, ST.TE{}, p, nl)), hk)
-                  +hn = LS.nd_dj2($IDS($SUB), after($CL(p, ST.TE{}, t)), LS.nd_r(before(t), $APP($IDS($SUB), after($CL(p, ST.TE{}, t))), hnd), i, mem_root(i, l, r))
+                  +hn = NL.nd_dj2($IDS($SUB), after($CL(p, ST.TE{}, t)), NL.nd_r(before(t), $APP($IDS($SUB), after($CL(p, ST.TE{}, t))), hnd), i, mem_root(i, l, r))
                   +hnd2 = L.subst($LN, z => $ND2(z), $WH($CL(p, ST.TE{}, t), $SUB), $WH(t, $TN(p, $SUB, ST.TE{})), Equal.sym($LN, $WH(t, $TN(p, $SUB, ST.TE{})), $WH($CL(p, ST.TE{}, t), $SUB), ids_l(t, p, $SUB, ST.TE{})), hnd)
                   +rec = nd_dist(~K, nl, t, p, $SUB, ST.TE{}, hp, L.and_right(cok1(~K, FR{p, True{}, ST.TE{}}, i, top(t), nl), ctxok(~K, t, p, nl), hok), hnd2)
                   L.and_intro(Bool.not(Nat.is_eq(i, 0n)), dist(t, p), ne_zero(i, hi), rec)
                 case ST.TN{+j, +sl, +sr}:
                   +hk = L.and_left(cok1(~K, FR{p, True{}, ST.TN{j, sl, sr}}, i, top(t), nl), ctxok(~K, t, p, nl), hok)
                   +hp = L.and_left(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), i, ST.rid(ST.TN{j, sl, sr}), top(t)), ST.rep(~K, ST.TN{j, sl, sr}, p, nl)), hk)
-                  +hn = LS.nd_dj2($IDS($SUB), after($CL(p, ST.TN{j, sl, sr}, t)), LS.nd_r(before(t), $APP($IDS($SUB), after($CL(p, ST.TN{j, sl, sr}, t))), hnd), i, mem_root(i, l, r))
+                  +hn = NL.nd_dj2($IDS($SUB), after($CL(p, ST.TN{j, sl, sr}, t)), NL.nd_r(before(t), $APP($IDS($SUB), after($CL(p, ST.TN{j, sl, sr}, t))), hnd), i, mem_root(i, l, r))
                   +hnd2 = L.subst($LN, z => $ND2(z), $WH($CL(p, ST.TN{j, sl, sr}, t), $SUB), $WH(t, $TN(p, $SUB, ST.TN{j, sl, sr})), Equal.sym($LN, $WH(t, $TN(p, $SUB, ST.TN{j, sl, sr})), $WH($CL(p, ST.TN{j, sl, sr}, t), $SUB), ids_l(t, p, $SUB, ST.TN{j, sl, sr})), hnd)
                   +rec = nd_dist(~K, nl, t, p, $SUB, ST.TN{j, sl, sr}, hp, L.and_right(cok1(~K, FR{p, True{}, ST.TN{j, sl, sr}}, i, top(t), nl), ctxok(~K, t, p, nl), hok), hnd2)
-                  L.and_intro(Bool.not(Nat.is_eq(i, j)), dist(t, p), ne_mem(i, j, after($CL(p, $TN(j, sl, sr), t)), hn, mem_cons(j, p, $APP($IDS($TN(j, sl, sr)), after(t)), LS.mem_app_l(j, $IDS($TN(j, sl, sr)), after(t), mem_root(j, sl, sr)))), rec)
+                  L.and_intro(Bool.not(Nat.is_eq(i, j)), dist(t, p), ne_mem(i, j, after($CL(p, $TN(j, sl, sr), t)), hn, mem_cons(j, p, $APP($IDS($TN(j, sl, sr)), after(t)), NL.mem_app_l(j, $IDS($TN(j, sl, sr)), after(t), mem_root(j, sl, sr)))), rec)
             case False{}:
               match s:
                 case ST.TE{}:
                   +hk = L.and_left(cok1(~K, FR{p, False{}, ST.TE{}}, i, top(t), nl), ctxok(~K, t, p, nl), hok)
                   +hp = L.and_left(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), ST.rid(ST.TE{}), i, top(t)), ST.rep(~K, ST.TE{}, p, nl)), hk)
-                  +hn = LS.nd_dj(before($CR(p, ST.TE{}, t)), $APP($IDS($SUB), after(t)), hnd, i, LS.mem_app_l(i, $IDS($SUB), after(t), mem_root(i, l, r)))
+                  +hn = NL.nd_dj(before($CR(p, ST.TE{}, t)), $APP($IDS($SUB), after(t)), hnd, i, NL.mem_app_l(i, $IDS($SUB), after(t), mem_root(i, l, r)))
                   +hnd2 = L.subst($LN, z => $ND2(z), $WH($CR(p, ST.TE{}, t), $SUB), $WH(t, $TN(p, ST.TE{}, $SUB)), Equal.sym($LN, $WH(t, $TN(p, ST.TE{}, $SUB)), $WH($CR(p, ST.TE{}, t), $SUB), ids_r(t, p, ST.TE{}, $SUB)), hnd)
                   +rec = nd_dist(~K, nl, t, p, ST.TE{}, $SUB, hp, L.and_right(cok1(~K, FR{p, False{}, ST.TE{}}, i, top(t), nl), ctxok(~K, t, p, nl), hok), hnd2)
                   L.and_intro(Bool.not(Nat.is_eq(i, 0n)), dist(t, p), ne_zero(i, hi), rec)
                 case ST.TN{+j, +sl, +sr}:
                   +hk = L.and_left(cok1(~K, FR{p, False{}, ST.TN{j, sl, sr}}, i, top(t), nl), ctxok(~K, t, p, nl), hok)
                   +hp = L.and_left(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), ST.rid(ST.TN{j, sl, sr}), i, top(t)), ST.rep(~K, ST.TN{j, sl, sr}, p, nl)), hk)
-                  +hn = LS.nd_dj(before($CR(p, ST.TN{j, sl, sr}, t)), $APP($IDS($SUB), after(t)), hnd, i, LS.mem_app_l(i, $IDS($SUB), after(t), mem_root(i, l, r)))
+                  +hn = NL.nd_dj(before($CR(p, ST.TN{j, sl, sr}, t)), $APP($IDS($SUB), after(t)), hnd, i, NL.mem_app_l(i, $IDS($SUB), after(t), mem_root(i, l, r)))
                   +hnd2 = L.subst($LN, z => $ND2(z), $WH($CR(p, ST.TN{j, sl, sr}, t), $SUB), $WH(t, $TN(p, ST.TN{j, sl, sr}, $SUB)), Equal.sym($LN, $WH(t, $TN(p, ST.TN{j, sl, sr}, $SUB)), $WH($CR(p, ST.TN{j, sl, sr}, t), $SUB), ids_r(t, p, ST.TN{j, sl, sr}, $SUB)), hnd)
                   +rec = nd_dist(~K, nl, t, p, ST.TN{j, sl, sr}, $SUB, hp, L.and_right(cok1(~K, FR{p, False{}, ST.TN{j, sl, sr}}, i, top(t), nl), ctxok(~K, t, p, nl), hok), hnd2)
-                  L.and_intro(Bool.not(Nat.is_eq(i, j)), dist(t, p), ne_mem(i, j, before($CR(p, $TN(j, sl, sr), t)), hn, LS.mem_app_r(j, before(t), $APP($IDS($TN(j, sl, sr)), Con{p, Nil{}}), LS.mem_app_l(j, $IDS($TN(j, sl, sr)), Con{p, Nil{}}, mem_root(j, sl, sr)))), rec)
+                  L.and_intro(Bool.not(Nat.is_eq(i, j)), dist(t, p), ne_mem(i, j, before($CR(p, $TN(j, sl, sr), t)), hn, NL.mem_app_r(j, before(t), $APP($IDS($TN(j, sl, sr)), Con{p, Nil{}}), NL.mem_app_l(j, $IDS($TN(j, sl, sr)), Con{p, Nil{}}, mem_root(j, sl, sr)))), rec)
 
 # ---- the path is shorter than the ids ----
 

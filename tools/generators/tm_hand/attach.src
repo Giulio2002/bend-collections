@@ -4,11 +4,7 @@ import ../lib/nat.bend as N
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
-import ./tree.bend as TR
 import ./path.bend as P
 import ./plug.bend as PG
 import ./agree.bend as AG
@@ -20,6 +16,7 @@ import ./rotp.bend as RP
 import ./fix.bend as FX
 import ./dj.bend as DJ
 import ./spath.bend as SP
+import ../lib/nat_list.bend as NL
 
 # Attaching a new leaf where the search stopped: the node list agreeing with
 # the old one on the tree's ids and holding the new red leaf x, attach links
@@ -43,9 +40,9 @@ import ./spath.bend as SP
 %def BA(c) $APP(P.before(c), P.after(c))
 %def REPN(t, p, x) {ST.rep(~K, t, p, x) == True{} : Bool}
 %def COKN(c, z, x) {P.ctxok(~K, c, z, x) == True{} : Bool}
-%def NDL(xs) {LST.nodupn(xs) == True{} : Bool}
-%def NMEM(y, xs) {HT.memn(y, xs) == False{} : Bool}
-%def MEM(y, xs) {HT.memn(y, xs) == True{} : Bool}
+%def NDL(xs) {NL.nodupn(xs) == True{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
 %def AGR(xs, a, b) {AG.agr(~K, ~cmp, xs, a, b) == True{} : Bool}
 %def NE(a, b) {Nat.is_eq(a, b) == False{} : Bool}
 %def A3 RM.attn(K, nla, P.top(c), x, SP.dir(c))
@@ -116,7 +113,7 @@ def att_ctx($TO, $AH) -> $COKN(c, x, $N3):
 
 # ---- the root stays black ----
 
-def agr_mem_c($TO, +j: Nat, +t: $LN, +y: Nat, +a: $NL, +b: $NL, +h: $AGR(Con{j, t}, a, b), +e: Bool, +he: {Nat.is_eq(j, y) == e : Bool}, +hm: {Bool.or(e, HT.memn(y, t)) == True{} : Bool}, ih: @+hmt: $MEM(y, t) -> {$NDX(a, y) == $NDX(b, y) : $ND}) -> {$NDX(a, y) == $NDX(b, y) : $ND}:
+def agr_mem_c($TO, +j: Nat, +t: $LN, +y: Nat, +a: $NL, +b: $NL, +h: $AGR(Con{j, t}, a, b), +e: Bool, +he: {Nat.is_eq(j, y) == e : Bool}, +hm: {Bool.or(e, NL.memn(y, t)) == True{} : Bool}, ih: @+hmt: $MEM(y, t) -> {$NDX(a, y) == $NDX(b, y) : $ND}) -> {$NDX(a, y) == $NDX(b, y) : $ND}:
   match e:
     case True{}:
       +ej = N.eq_from_is_eq(j, y, he)
@@ -146,7 +143,7 @@ def red_attn(-K: Data, +nl: $NL, +q: Nat, +y: Nat, +dir: Bool, +j: Nat) -> {ST.i
 def att_rb($TO, $AH, +hrb: {$RB(PG.plug(c, $TE), nl) == True{} : Bool}) -> {Bool.or($RB(PG.plug(c, $XT), $N3), FX.isnil(c)) == True{} : Bool}:
   match c:
     case Nil{}:
-      LS.or_true_b($RB($XT, $N3))
+      NL.or_true_b($RB($XT, $N3))
     case Con{P.FR{+q, True{}, +s}, +u}:
       +mR = FX.rid_in(u, q, True{}, s, $TE)
       +e1 = Equal.trans(Bool, ST.is_red(K, $NDX(SE.setp(K, RM.attn(K, nla, q, x, True{}), x, q), ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))), ST.is_red(K, $NDX(RM.attn(K, nla, q, x, True{}), ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))), ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))), SE.red_setp(K, RM.attn(K, nla, q, x, True{}), x, q, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE))), Equal.trans(Bool, ST.is_red(K, $NDX(RM.attn(K, nla, q, x, True{}), ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))), ST.is_red(K, $NDX(nla, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))), ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))), red_attn(K, nla, q, x, True{}, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE))), L.subst($ND, z => {ST.is_red(K, z) == ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))) : Bool}, $NDX(nl, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE))), $NDX(nla, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE))), agr_mem($AO, $BA($FRC(q, True{}, s, u)), ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)), nl, nla, hag, mR), {==})))

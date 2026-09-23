@@ -6,8 +6,6 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../lru/lists.bend as LS
-import ../lru/state.bend as LST
 import ./nbr.bend as NB
 import ./state.bend as ST
 import ./mirror.bend as MI
@@ -18,6 +16,7 @@ import ./ends.bend as EN
 import ./path.bend as P
 import ./nav.bend as NV
 import ./navs.bend as NS
+import ../lib/nat_list.bend as NL
 
 # Navigation over a good shadow: navigate is the ghost navigation from the
 # root with an empty path, so the entry (and the key) at its id is the
@@ -26,8 +25,8 @@ import ./navs.bend as NS
 
 def navigate_m(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: List<&2, Nat>, +k: K, +h: Bool, +incl: Bool, +hg: {ST.goodF(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl) == True{} : Bool}) -> {MI.navigate(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, h, incl) == (ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, NV.gnav(~K, ~cmp, tg, Nil{}, nl, k, h, incl)) : ST.Sh<K, V> & Nat}:
   +er = N.eq_from_is_eq(root, ST.rid(tg), ST.g_croot(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg))
-  +hnd0 = LS.nd_l(ST.ids(tg), fl, ST.g_cnd(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg))
-  +hnd = L.subst(List<&2, Nat>, z => {LST.nodupn(z) == True{} : Bool}, ST.ids(tg), SC.append(Nat, ST.ids(tg), Nil{}), Equal.sym(List<&2, Nat>, SC.append(Nat, ST.ids(tg), Nil{}), ST.ids(tg), LL.append_nil(Nat, ST.ids(tg))), hnd0)
+  +hnd0 = NL.nd_l(ST.ids(tg), fl, ST.g_cnd(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg))
+  +hnd = L.subst(List<&2, Nat>, z => {NL.nodupn(z) == True{} : Bool}, ST.ids(tg), SC.append(Nat, ST.ids(tg), Nil{}), Equal.sym(List<&2, Nat>, SC.append(Nat, ST.ids(tg), Nil{}), ST.ids(tg), LL.append_nil(Nat, ST.ids(tg))), hnd0)
   %Equal.sym(Nat, root, ST.rid(tg), er) : {MI.nav_loop(~K, ~V, ~cmp, 1n+n, k, h, incl, _, 0n, MI.probe(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, _, k)) == (ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, NV.gnav(~K, ~cmp, tg, Nil{}, nl, k, h, incl)) : ST.Sh<K, V> & Nat}
   %Equal.sym(Nat, 0n, ST.pk(Nat, h, 0n, 0n), Equal.sym(Nat, ST.pk(Nat, h, 0n, 0n), 0n, NB.pk_same(h, 0n))) : {MI.nav_loop(~K, ~V, ~cmp, 1n+n, k, h, incl, ST.rid(tg), _, MI.probe(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, ST.rid(tg), k)) == (ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, NV.gnav(~K, ~cmp, tg, Nil{}, nl, k, h, incl)) : ST.Sh<K, V> & Nat}
   NV.nav_ptr(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, 1n+n, Nil{}, tg, k, h, incl, ST.g_crep(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg), {==}, hnd, Equal.sym(List<&2, Nat>, SC.append(Nat, ST.ids(tg), Nil{}), ST.ids(tg), LL.append_nil(Nat, ST.ids(tg))), N.eq_from_is_eq(n, SC.length(Nat, ST.ids(tg)), ST.g_csz(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg)), RD.fuel_ok(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg))

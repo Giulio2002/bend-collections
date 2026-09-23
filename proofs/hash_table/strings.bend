@@ -1,5 +1,4 @@
 import Base
-import ../lib/u32.bend as U
 import ../spec/hash_table.bend as S
 import ../../src/math/hash.bend as HS
 import ../../src/containers/hash_table.bend as H

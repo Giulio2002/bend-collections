@@ -1,7 +1,6 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/u32alg.bend as A
 import ../lib/array.bend as AR
 import ../spec/common.bend as SC
 import ../spec/hash_table.bend as S
@@ -22,9 +21,11 @@ import ./bump.bend as BU
 import ./bumpsh.bend as BS
 import ./unlink.bend as UL
 import ./drop.bend as DR
-import ./touch.bend as TO
 import ./touchsh.bend as TSH
 import ./rmrb.bend as RR
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
+import ../lib/words32.bend as W32
 
 # Removing the entry of slot s whose bucket is i: the bucket is deleted,
 # the slot unlinked and freed, and a removal (or eviction) counted.
@@ -36,11 +37,11 @@ def POK(~V: Data, -X: Data, spec: SP.Lru<V> & X, r: LR.LRU<&2, V> & X) -> Type:
 %def APN(a, b) SC.append(Nat, a, b)
 %def X $APN(a, Con{s, b})
 %def Y $APN(a, b)
-%def M0 TB.nth0(AR.slots(U32, mT), 0n)
-%def M1 TB.nth0(AR.slots(U32, mT), 1n)
-%def M2 TB.nth0(AR.slots(U32, mT), 2n)
-%def M6 TB.nth0(AR.slots(U32, mT), 6n)
-%def M7 TB.nth0(AR.slots(U32, mT), 7n)
+%def M0 W32.nth0(AR.slots(U32, mT), 0n)
+%def M1 W32.nth0(AR.slots(U32, mT), 1n)
+%def M2 W32.nth0(AR.slots(U32, mT), 2n)
+%def M6 W32.nth0(AR.slots(U32, mT), 6n)
+%def M7 W32.nth0(AR.slots(U32, mT), 7n)
 %def PM AR.perfect(U32, 5n, mT)
 %def KL AR.slots(String, ksT)
 %def PK AR.perfect(String, sd, ksT)
@@ -56,34 +57,34 @@ def POK(~V: Data, -X: Data, spec: SP.Lru<V> & X, r: LR.LRU<&2, V> & X) -> Type:
 %def F0(x) LR.F{cap, n, head, tail, free, AR.thaw(U32, mT), x, AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}
 %def DT H.del_at(AR.thaw(U32, tabT), CY.msk(k), U32.from_nat(i))
 %def ES(x) ST.es(~V, $LLo, $KL, $EL, x)
-%def SPEC(f) (SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), SP.f(ST.ctr($ML))}, Some{v})
+%def SPEC(f) (SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), SP.f(ST.ctr($ML))}, Some{v})
 %def SHF +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +mT: AR.Tree<U32>, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>
 %def SHA cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT
 %def RHYP +one: Nat, +h1: {one == 1n : Nat}, +i: Nat, +hi: {Nat.is_lt(i, $NN) == True{} : Bool}, +hoi: {B.occ(B.at($BS, i)) == True{} : Bool}, +hsi: {UD.v(H.slot(B.lnk(B.at($BS, i)))) == s : Nat}, +su: U32, +hsv: {UD.v(su) == s : Nat}, +v: V, +hm: {HT.nthm(~V, $EL, s) == Some{v} : Maybe<&2, V>}, +key: String, +hk: {S.str_eq(ST.skey($LLo, $KL, s), key) == True{} : Bool}
 %def RHA one, h1, i, hi, hoi, hsi, su, hsv, v, hm, key, hk
 
-%def SH2_rm(t2x) ST.LS{cap, U32.sub(n, 1), ST.fst_or($Y, 0), ST.last_or($Y, 0), H.link(su), mT, k, sd, tabT2, ksT, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{}), AR.upd(U32, 3n+sd, t2x, UD.v(LR.nidx(su)), free), $Y, Con{s, fl}}
+%def SH2_rm(t2x) ST.LS{cap, U32.sub(n, 1), LK.fst_or($Y, 0), LK.last_or($Y, 0), H.link(su), mT, k, sd, tabT2, ksT, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{}), AR.upd(U32, 3n+sd, t2x, UD.v(LR.nidx(su)), free), $Y, Con{s, fl}}
 
-def fin_rm(~V: Data, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, $X, fl}) == True{} : Bool}, $RHYP, +tabT2: AR.Tree<U32>, +t2: AR.Tree<U32>, +hm2: {ST.model(~V, $SH2_rm(t2)) == SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), ST.ctr($ML)} : SP.Lru<V>}, -r: LR.LRU<&2, V> & Maybe<&2, V>, +er: {r == (LR.fbump(&2, V, 2, ST.real(~V, $SH2_rm(t2))), Some{v}) : LR.LRU<&2, V> & Maybe<&2, V>}, co: BS.CountOK(~V, SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), ST.es(~V, AR.slots(U32, AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free)), $KL, AR.slots(Maybe<&2, V>, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{})), $Y), SP.c_rm(ST.ctr($ML))}, LR.fbump(&2, V, 2, ST.real(~V, $SH2_rm(t2))))) -> POK(~V, Maybe<&2, V>, $SPEC(c_rm), r):
+def fin_rm(~V: Data, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, $X, fl}) == True{} : Bool}, $RHYP, +tabT2: AR.Tree<U32>, +t2: AR.Tree<U32>, +hm2: {ST.model(~V, $SH2_rm(t2)) == SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), ST.ctr($ML)} : SP.Lru<V>}, -r: LR.LRU<&2, V> & Maybe<&2, V>, +er: {r == (LR.fbump(&2, V, 2, ST.real(~V, $SH2_rm(t2))), Some{v}) : LR.LRU<&2, V> & Maybe<&2, V>}, co: BS.CountOK(~V, SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), ST.es(~V, AR.slots(U32, AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free)), $KL, AR.slots(Maybe<&2, V>, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{})), $Y), SP.c_rm(ST.ctr($ML))}, LR.fbump(&2, V, 2, ST.real(~V, $SH2_rm(t2))))) -> POK(~V, Maybe<&2, V>, $SPEC(c_rm), r):
   match co:
     case Tuple{+sh3, Tuple{+e3, Tuple{+em3, g3}}}:
-      +ees = Equal.cong(SP.Lru<V>, List<&2, SP.Ent<V>>, z => ST.lru_es(~V, z), ST.model(~V, $SH2_rm(t2)), SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), ST.ctr($ML)}, hm2)
-      +em = Equal.trans(SP.Lru<V>, ST.model(~V, sh3), SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), ST.es(~V, AR.slots(U32, AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free)), $KL, AR.slots(Maybe<&2, V>, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{})), $Y), SP.c_rm(ST.ctr($ML))}, SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), SP.c_rm(ST.ctr($ML))}, em3, Equal.cong(List<&2, SP.Ent<V>>, SP.Lru<V>, z => SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), z, SP.c_rm(ST.ctr($ML))}, ST.es(~V, AR.slots(U32, AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free)), $KL, AR.slots(Maybe<&2, V>, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{})), $Y), SP.drop(~V, $ES($X), key), ees))
+      +ees = Equal.cong(SP.Lru<V>, List<&2, SP.Ent<V>>, z => ST.lru_es(~V, z), ST.model(~V, $SH2_rm(t2)), SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), ST.ctr($ML)}, hm2)
+      +em = Equal.trans(SP.Lru<V>, ST.model(~V, sh3), SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), ST.es(~V, AR.slots(U32, AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free)), $KL, AR.slots(Maybe<&2, V>, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{})), $Y), SP.c_rm(ST.ctr($ML))}, SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), SP.c_rm(ST.ctr($ML))}, em3, Equal.cong(List<&2, SP.Ent<V>>, SP.Lru<V>, z => SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), z, SP.c_rm(ST.ctr($ML))}, ST.es(~V, AR.slots(U32, AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free)), $KL, AR.slots(Maybe<&2, V>, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{})), $Y), SP.drop(~V, $ES($X), key), ees))
       +r1 = Equal.trans(LR.LRU<&2, V> & Maybe<&2, V>, r, (LR.fbump(&2, V, 2, ST.real(~V, $SH2_rm(t2))), Some{v}), (ST.real(~V, sh3), Some{v}), er, Equal.cong(LR.LRU<&2, V>, LR.LRU<&2, V> & Maybe<&2, V>, z => (z, Some{v}), LR.fbump(&2, V, 2, ST.real(~V, $SH2_rm(t2))), ST.real(~V, sh3), e3))
-      (sh3, (Some{v}, (r1, (Equal.cong(SP.Lru<V>, SP.Lru<V> & Maybe<&2, V>, z => (z, Some{v}), SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), SP.c_rm(ST.ctr($ML))}, ST.model(~V, sh3), Equal.sym(SP.Lru<V>, ST.model(~V, sh3), SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), SP.c_rm(ST.ctr($ML))}, em)), g3))))
+      (sh3, (Some{v}, (r1, (Equal.cong(SP.Lru<V>, SP.Lru<V> & Maybe<&2, V>, z => (z, Some{v}), SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), SP.c_rm(ST.ctr($ML))}, ST.model(~V, sh3), Equal.sym(SP.Lru<V>, ST.model(~V, sh3), SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), SP.c_rm(ST.ctr($ML))}, em)), g3))))
 
-%def SH2_ev(t2x) ST.LS{cap, U32.sub(n, 1), ST.fst_or($Y, 0), ST.last_or($Y, 0), H.link(su), mT, k, sd, tabT2, ksT, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{}), AR.upd(U32, 3n+sd, t2x, UD.v(LR.nidx(su)), free), $Y, Con{s, fl}}
+%def SH2_ev(t2x) ST.LS{cap, U32.sub(n, 1), LK.fst_or($Y, 0), LK.last_or($Y, 0), H.link(su), mT, k, sd, tabT2, ksT, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{}), AR.upd(U32, 3n+sd, t2x, UD.v(LR.nidx(su)), free), $Y, Con{s, fl}}
 
-def fin_ev(~V: Data, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, $X, fl}) == True{} : Bool}, $RHYP, +tabT2: AR.Tree<U32>, +t2: AR.Tree<U32>, +hm2: {ST.model(~V, $SH2_ev(t2)) == SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), ST.ctr($ML)} : SP.Lru<V>}, -r: LR.LRU<&2, V> & Maybe<&2, V>, +er: {r == (LR.fbump(&2, V, 1, ST.real(~V, $SH2_ev(t2))), Some{v}) : LR.LRU<&2, V> & Maybe<&2, V>}, co: BS.CountOK(~V, SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), ST.es(~V, AR.slots(U32, AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free)), $KL, AR.slots(Maybe<&2, V>, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{})), $Y), SP.c_ev(ST.ctr($ML))}, LR.fbump(&2, V, 1, ST.real(~V, $SH2_ev(t2))))) -> POK(~V, Maybe<&2, V>, $SPEC(c_ev), r):
+def fin_ev(~V: Data, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, $X, fl}) == True{} : Bool}, $RHYP, +tabT2: AR.Tree<U32>, +t2: AR.Tree<U32>, +hm2: {ST.model(~V, $SH2_ev(t2)) == SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), ST.ctr($ML)} : SP.Lru<V>}, -r: LR.LRU<&2, V> & Maybe<&2, V>, +er: {r == (LR.fbump(&2, V, 1, ST.real(~V, $SH2_ev(t2))), Some{v}) : LR.LRU<&2, V> & Maybe<&2, V>}, co: BS.CountOK(~V, SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), ST.es(~V, AR.slots(U32, AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free)), $KL, AR.slots(Maybe<&2, V>, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{})), $Y), SP.c_ev(ST.ctr($ML))}, LR.fbump(&2, V, 1, ST.real(~V, $SH2_ev(t2))))) -> POK(~V, Maybe<&2, V>, $SPEC(c_ev), r):
   match co:
     case Tuple{+sh3, Tuple{+e3, Tuple{+em3, g3}}}:
-      +ees = Equal.cong(SP.Lru<V>, List<&2, SP.Ent<V>>, z => ST.lru_es(~V, z), ST.model(~V, $SH2_ev(t2)), SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), ST.ctr($ML)}, hm2)
-      +em = Equal.trans(SP.Lru<V>, ST.model(~V, sh3), SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), ST.es(~V, AR.slots(U32, AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free)), $KL, AR.slots(Maybe<&2, V>, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{})), $Y), SP.c_ev(ST.ctr($ML))}, SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), SP.c_ev(ST.ctr($ML))}, em3, Equal.cong(List<&2, SP.Ent<V>>, SP.Lru<V>, z => SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), z, SP.c_ev(ST.ctr($ML))}, ST.es(~V, AR.slots(U32, AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free)), $KL, AR.slots(Maybe<&2, V>, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{})), $Y), SP.drop(~V, $ES($X), key), ees))
+      +ees = Equal.cong(SP.Lru<V>, List<&2, SP.Ent<V>>, z => ST.lru_es(~V, z), ST.model(~V, $SH2_ev(t2)), SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), ST.ctr($ML)}, hm2)
+      +em = Equal.trans(SP.Lru<V>, ST.model(~V, sh3), SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), ST.es(~V, AR.slots(U32, AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free)), $KL, AR.slots(Maybe<&2, V>, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{})), $Y), SP.c_ev(ST.ctr($ML))}, SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), SP.c_ev(ST.ctr($ML))}, em3, Equal.cong(List<&2, SP.Ent<V>>, SP.Lru<V>, z => SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), z, SP.c_ev(ST.ctr($ML))}, ST.es(~V, AR.slots(U32, AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free)), $KL, AR.slots(Maybe<&2, V>, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{})), $Y), SP.drop(~V, $ES($X), key), ees))
       +r1 = Equal.trans(LR.LRU<&2, V> & Maybe<&2, V>, r, (LR.fbump(&2, V, 1, ST.real(~V, $SH2_ev(t2))), Some{v}), (ST.real(~V, sh3), Some{v}), er, Equal.cong(LR.LRU<&2, V>, LR.LRU<&2, V> & Maybe<&2, V>, z => (z, Some{v}), LR.fbump(&2, V, 1, ST.real(~V, $SH2_ev(t2))), ST.real(~V, sh3), e3))
-      (sh3, (Some{v}, (r1, (Equal.cong(SP.Lru<V>, SP.Lru<V> & Maybe<&2, V>, z => (z, Some{v}), SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), SP.c_ev(ST.ctr($ML))}, ST.model(~V, sh3), Equal.sym(SP.Lru<V>, ST.model(~V, sh3), SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), SP.c_ev(ST.ctr($ML))}, em)), g3))))
+      (sh3, (Some{v}, (r1, (Equal.cong(SP.Lru<V>, SP.Lru<V> & Maybe<&2, V>, z => (z, Some{v}), SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), SP.c_ev(ST.ctr($ML))}, ST.model(~V, sh3), Equal.sym(SP.Lru<V>, ST.model(~V, sh3), SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, $ES($X), key), SP.c_ev(ST.ctr($ML))}, em)), g3))))
 
 %def F2_rm LR.F{cap, n, head, tail, free, $AR4(tabT2), AR.thaw(U32, lkT)}
-%def FU_rm LR.F{cap, n, ST.fst_or($Y, 0), ST.last_or($Y, 0), free, $AR4(tabT2), AR.thaw(U32, t2)}
+%def FU_rm LR.F{cap, n, LK.fst_or($Y, 0), LK.last_or($Y, 0), free, $AR4(tabT2), AR.thaw(U32, t2)}
 
 def rmu_rm(~V: Data, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, $X, fl}) == True{} : Bool}, $RHYP, +tabT2: AR.Tree<U32>, +hd: {DW.dfin2($KL, k, IM.bupd($BS, i, B.BE{}), tabT2) == True{} : Bool}, -r1: LR.LRU<&2, V>, u: UL.UnlOK(~V, cap, n, free, mT, tabT2, ksT, eT, lkT, sd, a, s, b, r1)) -> POK(~V, Maybe<&2, V>, $SPEC(c_rm), LR.drop_core(&2, V, r1, su, 2)):
   match u:
@@ -92,12 +93,12 @@ def rmu_rm(~V: Data, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: L
       +hsd = RR.f_sd(~V, $SHA, a, s, b, fl, hg, one, h1, i, hi, hoi, hsi, tabT2, hd, t2, tr, p2, s2, l1, i1, g2, su, hsv, v, hm)
       +hs0 = RR.f_s0(~V, $SHA, a, s, b, fl, hg, one, h1, i, hi, hoi, hsi, tabT2, hd, t2, tr, p2, s2, l1, i1, g2, su, hsv, v, hm)
       +E1 = Equal.cong(LR.LRU<&2, V>, LR.LRU<&2, V> & Maybe<&2, V>, z => LR.drop_core(&2, V, z, su, 2), r1, $FU_rm, e1)
-      +E2 = DR.drop_ok(~V, one, h1, cap, n, ST.fst_or($Y, 0), ST.last_or($Y, 0), free, mT, tabT2, ksT, eT, t2, sd, hsd, p2, $G(cpe), su, s, hsv, hs0, 2)
+      +E2 = DR.drop_ok(~V, one, h1, cap, n, LK.fst_or($Y, 0), LK.last_or($Y, 0), free, mT, tabT2, ksT, eT, t2, sd, hsd, p2, $G(cpe), su, s, hsv, hs0, 2)
       +E3 = Equal.cong(Maybe<&2, V>, LR.LRU<&2, V> & Maybe<&2, V>, z => (LR.fbump(&2, V, 2, ST.real(~V, $SH2_rm(t2))), z), HT.nthm(~V, $EL, s), Some{v}, hm)
       +er = Equal.trans(LR.LRU<&2, V> & Maybe<&2, V>, LR.drop_core(&2, V, r1, su, 2), LR.drop_core(&2, V, $FU_rm, su, 2), (LR.fbump(&2, V, 2, ST.real(~V, $SH2_rm(t2))), Some{v}), E1, Equal.trans(LR.LRU<&2, V> & Maybe<&2, V>, LR.drop_core(&2, V, $FU_rm, su, 2), (LR.fbump(&2, V, 2, ST.real(~V, $SH2_rm(t2))), HT.nthm(~V, $EL, s)), (LR.fbump(&2, V, 2, ST.real(~V, $SH2_rm(t2))), Some{v}), E2, E3))
       +hg2 = RR.good_rm(~V, $SHA, a, s, b, fl, hg, one, h1, i, hi, hoi, hsi, tabT2, hd, t2, tr, p2, s2, l1, i1, g2, su, hsv, v, hm)
       +hm2 = RR.model_rm(~V, $SHA, a, s, b, fl, hg, one, h1, i, hi, hoi, hsi, tabT2, hd, t2, tr, p2, s2, l1, i1, g2, su, hsv, v, hm, key, hk)
-      co = BS.count_rm(~V, cap, U32.sub(n, 1), ST.fst_or($Y, 0), ST.last_or($Y, 0), H.link(su), mT, k, sd, tabT2, ksT, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{}), AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free), $Y, Con{s, fl}, hg2, BU.bump_ok(mT, $G(cpm), 2, 20n, {==}, {==}, {==}))
+      co = BS.count_rm(~V, cap, U32.sub(n, 1), LK.fst_or($Y, 0), LK.last_or($Y, 0), H.link(su), mT, k, sd, tabT2, ksT, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{}), AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free), $Y, Con{s, fl}, hg2, BU.bump_ok(mT, $G(cpm), 2, 20n, {==}, {==}, {==}))
       fin_rm(~V, $SHA, a, s, b, fl, hg, $RHA, tabT2, t2, hm2, LR.drop_core(&2, V, r1, su, 2), er, co)
 
 def rmd_rm(~V: Data, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, $X, fl}) == True{} : Bool}, $RHYP, d: DW.DelAt2($KL, k, tabT, i)) -> POK(~V, Maybe<&2, V>, $SPEC(c_rm), LR.drop_slot(&2, V, $F0($DT), su, 2)):
@@ -115,20 +116,20 @@ def rmx_rm(~V: Data, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: L
   +hem = L.subst(Nat, z => {Nat.is_lt(z, $NN) == True{} : Bool}, UD.v(n), IV.occn($BS, $NN), cn, BA.n_lt(~V, $SHA, $X, fl, hg))
   rmd_rm(~V, $SHA, a, s, b, fl, hg, $RHA, DW.del_ok2(k, hk31, $KL, tabT, $G(cpt), i, hi, $G(cclus), $G(cuniq), hoi, hem))
 
-%def SPECL_rm(xs) (SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, ST.es(~V, $LLo, $KL, $EL, xs), key), SP.c_rm(ST.ctr($ML))}, Some{v})
+%def SPECL_rm(xs) (SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, ST.es(~V, $LLo, $KL, $EL, xs), key), SP.c_rm(ST.ctr($ML))}, Some{v})
 
-def rms_rm(~V: Data, $SHF, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, sl, fl}) == True{} : Bool}, +s: Nat, $RHYP, sp: TO.Split(s, sl)) -> POK(~V, Maybe<&2, V>, $SPECL_rm(sl), LR.drop_slot(&2, V, $F0($DT), su, 2)):
+def rms_rm(~V: Data, $SHF, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, sl, fl}) == True{} : Bool}, +s: Nat, $RHYP, sp: NL.Split(s, sl)) -> POK(~V, Maybe<&2, V>, $SPECL_rm(sl), LR.drop_slot(&2, V, $F0($DT), su, 2)):
   match sp:
     case Tuple{+a, Tuple{+b, +e}}:
       +hg2 = L.subst(List<&2, Nat>, z => {ST.good(~V, ST.LS{$SHA, z, fl}) == True{} : Bool}, sl, $X, e, hg)
       L.subst(List<&2, Nat>, z => POK(~V, Maybe<&2, V>, $SPECL_rm(z), LR.drop_slot(&2, V, $F0($DT), su, 2)), $X, sl, Equal.sym(List<&2, Nat>, sl, $X, e), rmx_rm(~V, $SHA, a, s, b, fl, hg2, $RHA))
 
 # THEOREM: removing the entry of the listed slot s (bucket i), counted by c_rm
-def rm_at_rm(~V: Data, $SHF, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, sl, fl}) == True{} : Bool}, +s: Nat, +hmem: {HT.memn(s, sl) == True{} : Bool}, $RHYP) -> POK(~V, Maybe<&2, V>, $SPECL_rm(sl), LR.drop_slot(&2, V, $F0($DT), su, 2)):
-  rms_rm(~V, $SHA, sl, fl, hg, s, $RHA, TO.split_mem(s, sl, hmem))
+def rm_at_rm(~V: Data, $SHF, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, sl, fl}) == True{} : Bool}, +s: Nat, +hmem: {NL.memn(s, sl) == True{} : Bool}, $RHYP) -> POK(~V, Maybe<&2, V>, $SPECL_rm(sl), LR.drop_slot(&2, V, $F0($DT), su, 2)):
+  rms_rm(~V, $SHA, sl, fl, hg, s, $RHA, NL.split_mem(s, sl, hmem))
 
 %def F2_ev LR.F{cap, n, head, tail, free, $AR4(tabT2), AR.thaw(U32, lkT)}
-%def FU_ev LR.F{cap, n, ST.fst_or($Y, 0), ST.last_or($Y, 0), free, $AR4(tabT2), AR.thaw(U32, t2)}
+%def FU_ev LR.F{cap, n, LK.fst_or($Y, 0), LK.last_or($Y, 0), free, $AR4(tabT2), AR.thaw(U32, t2)}
 
 def rmu_ev(~V: Data, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, $X, fl}) == True{} : Bool}, $RHYP, +tabT2: AR.Tree<U32>, +hd: {DW.dfin2($KL, k, IM.bupd($BS, i, B.BE{}), tabT2) == True{} : Bool}, -r1: LR.LRU<&2, V>, u: UL.UnlOK(~V, cap, n, free, mT, tabT2, ksT, eT, lkT, sd, a, s, b, r1)) -> POK(~V, Maybe<&2, V>, $SPEC(c_ev), LR.drop_core(&2, V, r1, su, 1)):
   match u:
@@ -137,12 +138,12 @@ def rmu_ev(~V: Data, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: L
       +hsd = RR.f_sd(~V, $SHA, a, s, b, fl, hg, one, h1, i, hi, hoi, hsi, tabT2, hd, t2, tr, p2, s2, l1, i1, g2, su, hsv, v, hm)
       +hs0 = RR.f_s0(~V, $SHA, a, s, b, fl, hg, one, h1, i, hi, hoi, hsi, tabT2, hd, t2, tr, p2, s2, l1, i1, g2, su, hsv, v, hm)
       +E1 = Equal.cong(LR.LRU<&2, V>, LR.LRU<&2, V> & Maybe<&2, V>, z => LR.drop_core(&2, V, z, su, 1), r1, $FU_ev, e1)
-      +E2 = DR.drop_ok(~V, one, h1, cap, n, ST.fst_or($Y, 0), ST.last_or($Y, 0), free, mT, tabT2, ksT, eT, t2, sd, hsd, p2, $G(cpe), su, s, hsv, hs0, 1)
+      +E2 = DR.drop_ok(~V, one, h1, cap, n, LK.fst_or($Y, 0), LK.last_or($Y, 0), free, mT, tabT2, ksT, eT, t2, sd, hsd, p2, $G(cpe), su, s, hsv, hs0, 1)
       +E3 = Equal.cong(Maybe<&2, V>, LR.LRU<&2, V> & Maybe<&2, V>, z => (LR.fbump(&2, V, 1, ST.real(~V, $SH2_ev(t2))), z), HT.nthm(~V, $EL, s), Some{v}, hm)
       +er = Equal.trans(LR.LRU<&2, V> & Maybe<&2, V>, LR.drop_core(&2, V, r1, su, 1), LR.drop_core(&2, V, $FU_ev, su, 1), (LR.fbump(&2, V, 1, ST.real(~V, $SH2_ev(t2))), Some{v}), E1, Equal.trans(LR.LRU<&2, V> & Maybe<&2, V>, LR.drop_core(&2, V, $FU_ev, su, 1), (LR.fbump(&2, V, 1, ST.real(~V, $SH2_ev(t2))), HT.nthm(~V, $EL, s)), (LR.fbump(&2, V, 1, ST.real(~V, $SH2_ev(t2))), Some{v}), E2, E3))
       +hg2 = RR.good_rm(~V, $SHA, a, s, b, fl, hg, one, h1, i, hi, hoi, hsi, tabT2, hd, t2, tr, p2, s2, l1, i1, g2, su, hsv, v, hm)
       +hm2 = RR.model_rm(~V, $SHA, a, s, b, fl, hg, one, h1, i, hi, hoi, hsi, tabT2, hd, t2, tr, p2, s2, l1, i1, g2, su, hsv, v, hm, key, hk)
-      co = BS.count_ev(~V, cap, U32.sub(n, 1), ST.fst_or($Y, 0), ST.last_or($Y, 0), H.link(su), mT, k, sd, tabT2, ksT, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{}), AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free), $Y, Con{s, fl}, hg2, BU.bump_ok(mT, $G(cpm), 1, 18n, {==}, {==}, {==}))
+      co = BS.count_ev(~V, cap, U32.sub(n, 1), LK.fst_or($Y, 0), LK.last_or($Y, 0), H.link(su), mT, k, sd, tabT2, ksT, AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), None{}), AR.upd(U32, 3n+sd, t2, UD.v(LR.nidx(su)), free), $Y, Con{s, fl}, hg2, BU.bump_ok(mT, $G(cpm), 1, 18n, {==}, {==}, {==}))
       fin_ev(~V, $SHA, a, s, b, fl, hg, $RHA, tabT2, t2, hm2, LR.drop_core(&2, V, r1, su, 1), er, co)
 
 def rmd_ev(~V: Data, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, $X, fl}) == True{} : Bool}, $RHYP, d: DW.DelAt2($KL, k, tabT, i)) -> POK(~V, Maybe<&2, V>, $SPEC(c_ev), LR.drop_slot(&2, V, $F0($DT), su, 1)):
@@ -160,14 +161,14 @@ def rmx_ev(~V: Data, $SHF, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: L
   +hem = L.subst(Nat, z => {Nat.is_lt(z, $NN) == True{} : Bool}, UD.v(n), IV.occn($BS, $NN), cn, BA.n_lt(~V, $SHA, $X, fl, hg))
   rmd_ev(~V, $SHA, a, s, b, fl, hg, $RHA, DW.del_ok2(k, hk31, $KL, tabT, $G(cpt), i, hi, $G(cclus), $G(cuniq), hoi, hem))
 
-%def SPECL_ev(xs) (SP.L{cap, TB.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, ST.es(~V, $LLo, $KL, $EL, xs), key), SP.c_ev(ST.ctr($ML))}, Some{v})
+%def SPECL_ev(xs) (SP.L{cap, W32.nth0($ML, 3n), ST.w64($ML, 4n), SP.drop(~V, ST.es(~V, $LLo, $KL, $EL, xs), key), SP.c_ev(ST.ctr($ML))}, Some{v})
 
-def rms_ev(~V: Data, $SHF, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, sl, fl}) == True{} : Bool}, +s: Nat, $RHYP, sp: TO.Split(s, sl)) -> POK(~V, Maybe<&2, V>, $SPECL_ev(sl), LR.drop_slot(&2, V, $F0($DT), su, 1)):
+def rms_ev(~V: Data, $SHF, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, sl, fl}) == True{} : Bool}, +s: Nat, $RHYP, sp: NL.Split(s, sl)) -> POK(~V, Maybe<&2, V>, $SPECL_ev(sl), LR.drop_slot(&2, V, $F0($DT), su, 1)):
   match sp:
     case Tuple{+a, Tuple{+b, +e}}:
       +hg2 = L.subst(List<&2, Nat>, z => {ST.good(~V, ST.LS{$SHA, z, fl}) == True{} : Bool}, sl, $X, e, hg)
       L.subst(List<&2, Nat>, z => POK(~V, Maybe<&2, V>, $SPECL_ev(z), LR.drop_slot(&2, V, $F0($DT), su, 1)), $X, sl, Equal.sym(List<&2, Nat>, sl, $X, e), rmx_ev(~V, $SHA, a, s, b, fl, hg2, $RHA))
 
 # THEOREM: removing the entry of the listed slot s (bucket i), counted by c_ev
-def rm_at_ev(~V: Data, $SHF, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, sl, fl}) == True{} : Bool}, +s: Nat, +hmem: {HT.memn(s, sl) == True{} : Bool}, $RHYP) -> POK(~V, Maybe<&2, V>, $SPECL_ev(sl), LR.drop_slot(&2, V, $F0($DT), su, 1)):
-  rms_ev(~V, $SHA, sl, fl, hg, s, $RHA, TO.split_mem(s, sl, hmem))
+def rm_at_ev(~V: Data, $SHF, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{$SHA, sl, fl}) == True{} : Bool}, +s: Nat, +hmem: {NL.memn(s, sl) == True{} : Bool}, $RHYP) -> POK(~V, Maybe<&2, V>, $SPECL_ev(sl), LR.drop_slot(&2, V, $F0($DT), su, 1)):
+  rms_ev(~V, $SHA, sl, fl, hg, s, $RHA, NL.split_mem(s, sl, hmem))

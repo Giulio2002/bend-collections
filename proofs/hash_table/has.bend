@@ -1,6 +1,5 @@
 import Base
 import ../lib/logic.bend as L
-import ../lib/nat.bend as N
 import ../lib/array.bend as AR
 import ../spec/common.bend as SC
 import ../spec/hash_table.bend as S

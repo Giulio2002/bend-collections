@@ -6,15 +6,10 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./mirror.bend as MI
 import ./ok.bend as OK
 import ./reads.bend as RD
-import ./find.bend as FI
-import ./ends.bend as EN
 import ./path.bend as P
 import ./plug.bend as PG
 import ./agree.bend as AG
@@ -27,6 +22,7 @@ import ./alls.bend as AL
 import ./dj.bend as DJ
 import ./spath.bend as SP
 import ./insf.bend as IF
+import ../lib/nat_list.bend as NL
 
 # Allocating the new slot where the search stopped: appending (room in the
 # block, or growing it, or failing at the capacity) or reusing the free
@@ -102,7 +98,7 @@ def app_case($TO, $FO0, +hg: $GF0, +c: $CT, +k: K, +v: V, $SPH, +room: Bool, +hr
       +hinB = L.subst($LN, z => {ST.allin(z, $LNL) == True{} : Bool}, $IDS(tg), $BA(c), hbc, AL.allin_l($IDS(tg), fl, $LNL, hin0))
       +hxf = AL.allin_out($BA(c), $LNL, hinB)
       +hcpl0 = N.eq_from_is_eq(SC.length($MV, pl), $LNL, ST.g_cpl($AK, $FOA0, hg))
-      +hxfp = L.subst(Nat, z => {HT.memn(1n+z, $BA(c)) == False{} : Bool}, $LNL, SC.length($MV, pl), Equal.sym(Nat, SC.length($MV, pl), $LNL, hcpl0), hxf)
+      +hxfp = L.subst(Nat, z => {NL.memn(1n+z, $BA(c)) == False{} : Bool}, $LNL, SC.length($MV, pl), Equal.sym(Nat, SC.length($MV, pl), $LNL, hcpl0), hxf)
       +hpx = L.subst(Nat, z => {ST.pv(V, SC.snoc($MV, pl, Some{v}), 1n+z) == Some{v} : $MV}, SC.length($MV, pl), $LNL, hcpl0, SL.pv_snoc_same(V, pl, Some{v}))
       +hpb = SL.ents_psnoc(~K, ~V, P.before(c), nl, pl, Some{v}, DJ.nm_l(1n+SC.length($MV, pl), P.before(c), P.after(c), hxfp))
       +hpa = SL.ents_psnoc(~K, ~V, P.after(c), nl, pl, Some{v}, DJ.nm_r(1n+SC.length($MV, pl), P.before(c), P.after(c), hxfp))
@@ -111,8 +107,8 @@ def app_case($TO, $FO0, +hg: $GF0, +c: $CT, +k: K, +v: V, $SPH, +room: Bool, +hr
       +ls = LL.length_snoc($ND, nl, $NEWN)
       +hcap = L.subst(Nat, z => {Nat.is_le(z, SC.pow2(d)) == True{} : Bool}, 1n+$LNL, SC.length($ND, SC.snoc($ND, nl, $NEWN)), Equal.sym(Nat, SC.length($ND, SC.snoc($ND, nl, $NEWN)), 1n+$LNL, ls), N.lt_succ_le_succ($LNL, SC.pow2(d), hr))
       +hcpl = Equal.trans(Nat, SC.length($MV, SC.snoc($MV, pl, Some{v})), 1n+SC.length($MV, pl), SC.length($ND, SC.snoc($ND, nl, $NEWN)), LL.length_snoc($MV, pl, Some{v}), Equal.trans(Nat, 1n+SC.length($MV, pl), 1n+$LNL, SC.length($ND, SC.snoc($ND, nl, $NEWN)), L.subst(Nat, z => {1n+SC.length($MV, pl) == 1n+z : Nat}, SC.length($MV, pl), $LNL, hcpl0, {==}), Equal.sym(Nat, SC.length($ND, SC.snoc($ND, nl, $NEWN)), 1n+$LNL, ls)))
-      +hndB = L.subst($LN, z => {LST.nodupn(z) == True{} : Bool}, $IDS(tg), $BA(c), hbc, DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $FOA0, hg)))
-      +hnd = L.subst($LN, z => {LST.nodupn(z) == True{} : Bool}, $I0X, $APP($I0X, Nil{}), Equal.sym($LN, $APP($I0X, Nil{}), $I0X, LL.append_nil(Nat, $I0X)), AL.nd_put(P.before(c), 1n+$LNL, P.after(c), hndB, hxf))
+      +hndB = L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $IDS(tg), $BA(c), hbc, DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $FOA0, hg)))
+      +hnd = L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $I0X, $APP($I0X, Nil{}), Equal.sym($LN, $APP($I0X, Nil{}), $I0X, LL.append_nil(Nat, $I0X)), AL.nd_put(P.before(c), 1n+$LNL, P.after(c), hndB, hxf))
       +inbx = L.and_intro(Nat.is_lt(0n, 1n+$LNL), Nat.is_le(1n+$LNL, 1n+$LNL), {==}, N.le_refl(1n+$LNL))
       +hin1 = AL.allin_app(P.before(c), Con{1n+$LNL, P.after(c)}, 1n+$LNL, AL.allin_up(P.before(c), $LNL, AL.allin_l(P.before(c), P.after(c), $LNL, hinB)), L.and_intro(Bool.and(Nat.is_lt(0n, 1n+$LNL), Nat.is_le(1n+$LNL, 1n+$LNL)), ST.allin(P.after(c), 1n+$LNL), inbx, AL.allin_up(P.after(c), $LNL, AL.allin_r(P.before(c), P.after(c), $LNL, hinB))))
       +hin = L.subst(Nat, z => {ST.allin($APP($I0X, Nil{}), z) == True{} : Bool}, 1n+$LNL, SC.length($ND, SC.snoc($ND, nl, $NEWN)), Equal.sym(Nat, SC.length($ND, SC.snoc($ND, nl, $NEWN)), 1n+$LNL, ls), L.subst($LN, z => {ST.allin(z, 1n+$LNL) == True{} : Bool}, $I0X, $APP($I0X, Nil{}), Equal.sym($LN, $APP($I0X, Nil{}), $I0X, LL.append_nil(Nat, $I0X)), hin1))
@@ -130,7 +126,7 @@ def app_case($TO, $FO0, +hg: $GF0, +c: $CT, +k: K, +v: V, $SPH, +room: Bool, +hr
       +hinB = L.subst($LN, z => {ST.allin(z, $LNL) == True{} : Bool}, $IDS(tg), $BA(c), hbc, AL.allin_l($IDS(tg), fl, $LNL, hin0))
       +hxf = AL.allin_out($BA(c), $LNL, hinB)
       +hcpl0 = N.eq_from_is_eq(SC.length($MV, pl), $LNL, ST.g_cpl($AK, $FOA0, hg))
-      +hxfp = L.subst(Nat, z => {HT.memn(1n+z, $BA(c)) == False{} : Bool}, $LNL, SC.length($MV, pl), Equal.sym(Nat, SC.length($MV, pl), $LNL, hcpl0), hxf)
+      +hxfp = L.subst(Nat, z => {NL.memn(1n+z, $BA(c)) == False{} : Bool}, $LNL, SC.length($MV, pl), Equal.sym(Nat, SC.length($MV, pl), $LNL, hcpl0), hxf)
       +hpx = L.subst(Nat, z => {ST.pv(V, SC.snoc($MV, pl, Some{v}), 1n+z) == Some{v} : $MV}, SC.length($MV, pl), $LNL, hcpl0, SL.pv_snoc_same(V, pl, Some{v}))
       +hpb = SL.ents_psnoc(~K, ~V, P.before(c), nl, pl, Some{v}, DJ.nm_l(1n+SC.length($MV, pl), P.before(c), P.after(c), hxfp))
       +hpa = SL.ents_psnoc(~K, ~V, P.after(c), nl, pl, Some{v}, DJ.nm_r(1n+SC.length($MV, pl), P.before(c), P.after(c), hxfp))
@@ -139,8 +135,8 @@ def app_case($TO, $FO0, +hg: $GF0, +c: $CT, +k: K, +v: V, $SPH, +room: Bool, +hr
       +ls = LL.length_snoc($ND, nl, $NEWN)
       +hcap = L.subst(Nat, z => {Nat.is_le(z, SC.pow2(1n+d)) == True{} : Bool}, 1n+$LNL, SC.length($ND, SC.snoc($ND, nl, $NEWN)), Equal.sym(Nat, SC.length($ND, SC.snoc($ND, nl, $NEWN)), 1n+$LNL, ls), N.lt_succ_le_succ($LNL, SC.pow2(1n+d), N.le_lt_trans($LNL, SC.pow2(d), SC.pow2(1n+d), ST.g_ccap($AK, $FOA0, hg), N.pow2_lt_succ(d))))
       +hcpl = Equal.trans(Nat, SC.length($MV, SC.snoc($MV, pl, Some{v})), 1n+SC.length($MV, pl), SC.length($ND, SC.snoc($ND, nl, $NEWN)), LL.length_snoc($MV, pl, Some{v}), Equal.trans(Nat, 1n+SC.length($MV, pl), 1n+$LNL, SC.length($ND, SC.snoc($ND, nl, $NEWN)), L.subst(Nat, z => {1n+SC.length($MV, pl) == 1n+z : Nat}, SC.length($MV, pl), $LNL, hcpl0, {==}), Equal.sym(Nat, SC.length($ND, SC.snoc($ND, nl, $NEWN)), 1n+$LNL, ls)))
-      +hndB = L.subst($LN, z => {LST.nodupn(z) == True{} : Bool}, $IDS(tg), $BA(c), hbc, DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $FOA0, hg)))
-      +hnd = L.subst($LN, z => {LST.nodupn(z) == True{} : Bool}, $I0X, $APP($I0X, Nil{}), Equal.sym($LN, $APP($I0X, Nil{}), $I0X, LL.append_nil(Nat, $I0X)), AL.nd_put(P.before(c), 1n+$LNL, P.after(c), hndB, hxf))
+      +hndB = L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $IDS(tg), $BA(c), hbc, DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $FOA0, hg)))
+      +hnd = L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $I0X, $APP($I0X, Nil{}), Equal.sym($LN, $APP($I0X, Nil{}), $I0X, LL.append_nil(Nat, $I0X)), AL.nd_put(P.before(c), 1n+$LNL, P.after(c), hndB, hxf))
       +inbx = L.and_intro(Nat.is_lt(0n, 1n+$LNL), Nat.is_le(1n+$LNL, 1n+$LNL), {==}, N.le_refl(1n+$LNL))
       +hin1 = AL.allin_app(P.before(c), Con{1n+$LNL, P.after(c)}, 1n+$LNL, AL.allin_up(P.before(c), $LNL, AL.allin_l(P.before(c), P.after(c), $LNL, hinB)), L.and_intro(Bool.and(Nat.is_lt(0n, 1n+$LNL), Nat.is_le(1n+$LNL, 1n+$LNL)), ST.allin(P.after(c), 1n+$LNL), inbx, AL.allin_up(P.after(c), $LNL, AL.allin_r(P.before(c), P.after(c), $LNL, hinB))))
       +hin = L.subst(Nat, z => {ST.allin($APP($I0X, Nil{}), z) == True{} : Bool}, 1n+$LNL, SC.length($ND, SC.snoc($ND, nl, $NEWN)), Equal.sym(Nat, SC.length($ND, SC.snoc($ND, nl, $NEWN)), 1n+$LNL, ls), L.subst($LN, z => {ST.allin(z, 1n+$LNL) == True{} : Bool}, $I0X, $APP($I0X, Nil{}), Equal.sym($LN, $APP($I0X, Nil{}), $I0X, LL.append_nil(Nat, $I0X)), hin1))
@@ -186,8 +182,8 @@ def reuse_case($TO, $FOF, +hg: $GFF, +c: $CT, +k: K, +v: V, $SPH, +y: $ND, +hy: 
       Empty.absurd(OK.MOK($AK, $RES, $SPEC(ST.SH{n, root, lo, hi, 1n+f, l, d, nl, pl, tg, Con{h, t}}), $MIRF(M.N{c0, a, b, q, kk})), L.false_true(L.subst($ND, z => {ST.is_free(K, z, ST.fst0(t)) == True{} : Bool}, $NDX(nl, 1n+f), M.N{c0, a, b, q, kk}, hy, hf1)))
     case Con{+h, +t} M.Free{+nx}:
       +eh = N.eq_from_is_eq(1n+f, h, ST.g_cfree($AK, n, root, lo, hi, 1n+f, l, d, nl, pl, tg, Con{h, t}, hg))
-      +hnd0 = L.subst(Nat, z => {LST.nodupn($APP($IDS(tg), Con{z, t})) == True{} : Bool}, h, 1n+f, Equal.sym(Nat, 1n+f, h, eh), ST.g_cnd($AK, n, root, lo, hi, 1n+f, l, d, nl, pl, tg, Con{h, t}, hg))
-      +hnd1 = L.subst($LN, z => {LST.nodupn($APP(z, Con{1n+f, t})) == True{} : Bool}, $IDS(tg), $BA(c), hbc, hnd0)
+      +hnd0 = L.subst(Nat, z => {NL.nodupn($APP($IDS(tg), Con{z, t})) == True{} : Bool}, h, 1n+f, Equal.sym(Nat, 1n+f, h, eh), ST.g_cnd($AK, n, root, lo, hi, 1n+f, l, d, nl, pl, tg, Con{h, t}, hg))
+      +hnd1 = L.subst($LN, z => {NL.nodupn($APP(z, Con{1n+f, t})) == True{} : Bool}, $IDS(tg), $BA(c), hbc, hnd0)
       +hxf = DJ.dj_l($BA(c), Con{1n+f, t}, hnd1, 1n+f, DJ.mem_hd(1n+f, t))
       +hxt = DJ.nd_head(1n+f, t, DJ.ndr($BA(c), Con{1n+f, t}, hnd1))
       +hin0 = L.subst(Nat, z => {ST.allin($APP($IDS(tg), Con{z, t}), $LNL) == True{} : Bool}, h, 1n+f, Equal.sym(Nat, 1n+f, h, eh), ST.g_cin($AK, n, root, lo, hi, 1n+f, l, d, nl, pl, tg, Con{h, t}, hg))

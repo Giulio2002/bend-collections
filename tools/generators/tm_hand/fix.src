@@ -1,14 +1,9 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/list.bend as LL
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
-import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./mirror.bend as MI
 import ./tree.bend as TR
@@ -23,6 +18,7 @@ import ./rotp.bend as RP
 import ./nbr.bend as NB
 import ./dj.bend as DJ
 import ./spath.bend as SP
+import ../lib/nat_list.bend as NL
 
 # The insertion fix-up: from a red node z the path leads to, the loop
 # recolours and rotates; whatever it does and however far its fuel goes, it
@@ -51,7 +47,7 @@ import ./spath.bend as SP
 %def NDX(nl, j) ST.nd(K, nl, j)
 %def REPN(t, p, x) {ST.rep(~K, t, p, x) == True{} : Bool}
 %def COKN(c, z, x) {P.ctxok(~K, c, z, x) == True{} : Bool}
-%def NDL(xs) {LST.nodupn(xs) == True{} : Bool}
+%def NDL(xs) {NL.nodupn(xs) == True{} : Bool}
 %def WH(c, t) $APP(P.before(c), $APP($IDS(t), P.after(c)))
 %def INV(x) {ST.ents(~K, ~V, i0, x, pl) == e0 : $ES} & ({EN.oks(~K, ~V, i0, x, pl) == True{} : Bool} & ({ST.fll(~K, x, fx) == True{} : Bool} & {SC.length($ND, x) == l0 : Nat}))
 %def IVH(x) +h4: {ST.ents(~K, ~V, i0, x, pl) == e0 : $ES}, +h5: {EN.oks(~K, ~V, i0, x, pl) == True{} : Bool}, +h6: {ST.fll(~K, x, fx) == True{} : Bool}, +h7: {SC.length($ND, x) == l0 : Nat}
@@ -136,21 +132,21 @@ def red_eq(-K: Data, +x: $ND) -> {M.node_red(~K, x) == ST.is_red(K, x) : Bool}:
 # ---- the root is on the path, away from the subtree ----
 
 %def BA(c) $APP(P.before(c), P.after(c))
-%def MEM(y, xs) {HT.memn(y, xs) == True{} : Bool}
-%def NMEM(y, xs) {HT.memn(y, xs) == False{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
 
 # a member of the frames above is a member of the frames
-def ba_up_c(+w: Nat, +q: Nat, +lft: Bool, +s: ST.Tr, +u: $CT, +b: Bool, +hb: {HT.memn(w, P.before(u)) == b : Bool}, +h: $MEM(w, $BA(u))) -> $MEM(w, $BA(Con{$FRM(q, lft, s), u})):
+def ba_up_c(+w: Nat, +q: Nat, +lft: Bool, +s: ST.Tr, +u: $CT, +b: Bool, +hb: {NL.memn(w, P.before(u)) == b : Bool}, +h: $MEM(w, $BA(u))) -> $MEM(w, $BA(Con{$FRM(q, lft, s), u})):
   match lft b:
     case True{} True{}:
       DJ.mem_l(w, P.before(u), Con{q, $APP($IDS(s), P.after(u))}, hb)
     case False{} True{}:
       DJ.mem_l(w, $APP(P.before(u), $APP($IDS(s), Con{q, Nil{}})), P.after(u), DJ.mem_l(w, P.before(u), $APP($IDS(s), Con{q, Nil{}}), hb))
     case True{} False{}:
-      +ha = L.subst(Bool, z => {Bool.or(z, HT.memn(w, P.after(u))) == True{} : Bool}, HT.memn(w, P.before(u)), False{}, hb, L.subst(Bool, z => {z == True{} : Bool}, HT.memn(w, $BA(u)), Bool.or(HT.memn(w, P.before(u)), HT.memn(w, P.after(u))), LS.memn_app(w, P.before(u), P.after(u)), h))
+      +ha = L.subst(Bool, z => {Bool.or(z, NL.memn(w, P.after(u))) == True{} : Bool}, NL.memn(w, P.before(u)), False{}, hb, L.subst(Bool, z => {z == True{} : Bool}, NL.memn(w, $BA(u)), Bool.or(NL.memn(w, P.before(u)), NL.memn(w, P.after(u))), NL.memn_app(w, P.before(u), P.after(u)), h))
       DJ.mem_r(w, P.before(u), Con{q, $APP($IDS(s), P.after(u))}, DJ.mem_tl(w, q, $APP($IDS(s), P.after(u)), DJ.mem_r(w, $IDS(s), P.after(u), ha)))
     case False{} False{}:
-      +ha = L.subst(Bool, z => {Bool.or(z, HT.memn(w, P.after(u))) == True{} : Bool}, HT.memn(w, P.before(u)), False{}, hb, L.subst(Bool, z => {z == True{} : Bool}, HT.memn(w, $BA(u)), Bool.or(HT.memn(w, P.before(u)), HT.memn(w, P.after(u))), LS.memn_app(w, P.before(u), P.after(u)), h))
+      +ha = L.subst(Bool, z => {Bool.or(z, NL.memn(w, P.after(u))) == True{} : Bool}, NL.memn(w, P.before(u)), False{}, hb, L.subst(Bool, z => {z == True{} : Bool}, NL.memn(w, $BA(u)), Bool.or(NL.memn(w, P.before(u)), NL.memn(w, P.after(u))), NL.memn_app(w, P.before(u), P.after(u)), h))
       DJ.mem_r(w, $APP(P.before(u), $APP($IDS(s), Con{q, Nil{}})), P.after(u), ha)
 
 def q_in(+q: Nat, +lft: Bool, +s: ST.Tr, +u: $CT) -> $MEM(q, $BA(Con{$FRM(q, lft, s), u})):
@@ -169,10 +165,10 @@ def rid_in(+u: $CT, +q: Nat, +lft: Bool, +s: ST.Tr, +t: ST.Tr) -> $MEM(ST.rid(PG
       q_in(q, False{}, s, Nil{})
     case Con{P.FR{+q2, +l2, +s2}, +u2} True{}:
       +ih = rid_in(u2, q2, l2, s2, $TN(q, t, s))
-      ba_up_c(ST.rid(PG.plug(Con{$FRM(q2, l2, s2), u2}, $TN(q, t, s))), q, True{}, s, Con{$FRM(q2, l2, s2), u2}, HT.memn(ST.rid(PG.plug(Con{$FRM(q2, l2, s2), u2}, $TN(q, t, s))), P.before(Con{$FRM(q2, l2, s2), u2})), {==}, ih)
+      ba_up_c(ST.rid(PG.plug(Con{$FRM(q2, l2, s2), u2}, $TN(q, t, s))), q, True{}, s, Con{$FRM(q2, l2, s2), u2}, NL.memn(ST.rid(PG.plug(Con{$FRM(q2, l2, s2), u2}, $TN(q, t, s))), P.before(Con{$FRM(q2, l2, s2), u2})), {==}, ih)
     case Con{P.FR{+q2, +l2, +s2}, +u2} False{}:
       +ih = rid_in(u2, q2, l2, s2, $TN(q, s, t))
-      ba_up_c(ST.rid(PG.plug(Con{$FRM(q2, l2, s2), u2}, $TN(q, s, t))), q, False{}, s, Con{$FRM(q2, l2, s2), u2}, HT.memn(ST.rid(PG.plug(Con{$FRM(q2, l2, s2), u2}, $TN(q, s, t))), P.before(Con{$FRM(q2, l2, s2), u2})), {==}, ih)
+      ba_up_c(ST.rid(PG.plug(Con{$FRM(q2, l2, s2), u2}, $TN(q, s, t))), q, False{}, s, Con{$FRM(q2, l2, s2), u2}, NL.memn(ST.rid(PG.plug(Con{$FRM(q2, l2, s2), u2}, $TN(q, s, t))), P.before(Con{$FRM(q2, l2, s2), u2})), {==}, ih)
 
 %def N1C SE.setc(K, nl, p, False{})
 %def N2C SE.setc(K, $N1C, u, False{})
@@ -183,7 +179,7 @@ def rid_in(+u: $CT, +q: Nat, +lft: Bool, +s: ST.Tr, +t: ST.Tr) -> $MEM(ST.rid(PG
 def rb_keep3(~K: Data, +nl: $NL, +c: $CT, +t: ST.Tr, +p: Nat, +u: Nat, +g: Nat, +hn: $NDL($WH(c, t)), +mp: $MEM(p, $IDS(t)), +mu: $MEM(u, $IDS(t)), +mg: $MEM(g, $IDS(t)), +h: {Bool.or(ST.root_black(~K, PG.plug(c, t), nl), isnil(c)) == True{} : Bool}) -> {Bool.or(ST.root_black(~K, PG.plug(c, t), $N3C), isnil(c)) == True{} : Bool}:
   match c:
     case Nil{}:
-      LS.or_true_b(ST.root_black(~K, t, $N3C))
+      NL.or_true_b(ST.root_black(~K, t, $N3C))
     case Con{P.FR{+q, +lft, +s}, +w}:
       +mr = rid_in(w, q, lft, s, t)
       +np = RP.w_notin(Con{$FRM(q, lft, s), w}, t, hn, p, mp)
@@ -284,12 +280,12 @@ def eq_pk(+x: Nat, +lft: Bool, +s: Nat, +h: {Bool.not(Nat.is_eq(x, s)) == True{}
     case True{}:
       N.is_eq_refl(x)
     case False{}:
-      LS.not_t_f(Nat.is_eq(x, s), h)
+      NL.not_t_f(Nat.is_eq(x, s), h)
 
 def tri_r(+z: Nat, +lft: Bool, +s: Nat, +h: {Bool.not(Nat.is_eq(z, s)) == True{} : Bool}) -> {Nat.is_eq(z, ST.pk(Nat, lft, s, z)) == Bool.not(lft) : Bool}:
   match lft:
     case True{}:
-      LS.not_t_f(Nat.is_eq(z, s), h)
+      NL.not_t_f(Nat.is_eq(z, s), h)
     case False{}:
       N.is_eq_refl(z)
 

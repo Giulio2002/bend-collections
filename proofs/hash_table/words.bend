@@ -1,6 +1,5 @@
 import Base
 import ../lib/logic.bend as L
-import ../lemmas/spec/numeric.bend as S
 import ../../src/containers/hash_table.bend as H
 
 # Check words, bit by bit (generic in the width; U32 is width 32 = 1 + 31).
@@ -253,23 +252,7 @@ def long_nonzero(+h: U32) -> {U32.is_eq(H.long_word(h), 0) == False{} : Bool}:
 def long_not_short(+h: U32, +c: U32, +e: {H.long_word(h) == H.short_word(c) : U32}) -> Empty:
   L.true_false(Equal.trans(Bool, True{}, H.is_short(H.short_word(c)), False{}, Equal.sym(Bool, H.is_short(H.short_word(c)), True{}, short_is_short(c)), Equal.trans(Bool, H.is_short(H.short_word(c)), H.is_short(H.long_word(h)), False{}, Equal.cong(U32, Bool, z => H.is_short(z), H.short_word(c), H.long_word(h), Equal.sym(U32, H.long_word(h), H.short_word(c), e)), long_is_long(h))))
 
-def fin_refl(+c: Cmp, +b: Bool, +h: {Cmp.is_eq(c) == True{} : Bool}) -> {Cmp.is_eq(Word.cmp.fin(b, b, c)) == True{} : Bool}:
-  match c b:
-    case LT{} _:
-      Empty.absurd({Cmp.is_eq(Word.cmp.fin(b, b, LT{})) == True{} : Bool}, L.false_true(h))
-    case EQ{} True{}:
-      {==}
-    case EQ{} False{}:
-      {==}
-    case GT{} _:
-      Empty.absurd({Cmp.is_eq(Word.cmp.fin(b, b, GT{})) == True{} : Bool}, L.false_true(h))
 
-def cmp_refl_eq(+n: Nat, +w: Word(n)) -> {Cmp.is_eq(Word.cmp(n, w, w)) == True{} : Bool}:
-  match n w:
-    case 0n WNil{}:
-      {==}
-    case 1n+p WCon{b, t}:
-      fin_refl(Word.cmp(p, t, t), b, cmp_refl_eq(p, t))
 
 
 # a word with its top bit set is its low bits with the top bit set

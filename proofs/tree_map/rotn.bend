@@ -1,14 +1,13 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
 import ./state.bend as ST
 import ./setters.bend as SE
 import ./rotm.bend as RM
 import ../lib/order.bend as O
-import ../hash_table/state.bend as HT
 import ./agree.bend as AG
+import ../lib/nat_list.bend as NL
 
 # Nodes through a sequence of setters: a setter skips other ids and applies
 # its field change to its own; a node's links after field changes.
@@ -130,7 +129,7 @@ def isn_a(-K: Data, +x: M.Node<K>, +lft: Bool, +c0: Nat, +s: Nat, +q: Nat, +y: N
 # ---- agreement through the rotations' writes ----
 
 
-def attn_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +q: Nat, +y: Nat, +dir: Bool, +hq: {HT.memn(q, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, RM.attn(K, nl, q, y, dir)) == True{} : Bool}:
+def attn_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +q: Nat, +y: Nat, +dir: Bool, +hq: {NL.memn(q, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, RM.attn(K, nl, q, y, dir)) == True{} : Bool}:
   match q dir:
     case 0n +dir:
       AG.agr_refl(~K, ~cmp, ~o, xs, nl)
@@ -141,7 +140,7 @@ def attn_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2,
 
 
 # ids the left rotation does not write keep their nodes
-def rotl_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +x: Nat, +y: Nat, +b: Nat, +q: Nat, +dir: Bool, +hx: {HT.memn(x, xs) == False{} : Bool}, +hy: {HT.memn(y, xs) == False{} : Bool}, +hb: {HT.memn(b, xs) == False{} : Bool}, +hq: {HT.memn(q, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, RM.rotl_nl(K, nl, x, y, b, q, dir)) == True{} : Bool}:
+def rotl_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +x: Nat, +y: Nat, +b: Nat, +q: Nat, +dir: Bool, +hx: {NL.memn(x, xs) == False{} : Bool}, +hy: {NL.memn(y, xs) == False{} : Bool}, +hb: {NL.memn(b, xs) == False{} : Bool}, +hq: {NL.memn(q, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, RM.rotl_nl(K, nl, x, y, b, q, dir)) == True{} : Bool}:
   +a1 = SE.setr_agr(~K, ~cmp, ~o, xs, nl, x, b, hx)
   +a2 = SE.setp_agr(~K, ~cmp, ~o, xs, SE.setr(K, nl, x, b), b, x, hb)
   +a3 = attn_agr(~K, ~cmp, ~o, xs, SE.setp(K, SE.setr(K, nl, x, b), b, x), q, y, dir, hq)
@@ -151,7 +150,7 @@ def rotl_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2,
   AG.agr_trans(~K, ~cmp, ~o, xs, nl, SE.setl(K, SE.setp(K, RM.attn(K, SE.setp(K, SE.setr(K, nl, x, b), b, x), q, y, dir), y, q), y, x), SE.setp(K, SE.setl(K, SE.setp(K, RM.attn(K, SE.setp(K, SE.setr(K, nl, x, b), b, x), q, y, dir), y, q), y, x), x, y), AG.agr_trans(~K, ~cmp, ~o, xs, nl, SE.setp(K, RM.attn(K, SE.setp(K, SE.setr(K, nl, x, b), b, x), q, y, dir), y, q), SE.setl(K, SE.setp(K, RM.attn(K, SE.setp(K, SE.setr(K, nl, x, b), b, x), q, y, dir), y, q), y, x), AG.agr_trans(~K, ~cmp, ~o, xs, nl, RM.attn(K, SE.setp(K, SE.setr(K, nl, x, b), b, x), q, y, dir), SE.setp(K, RM.attn(K, SE.setp(K, SE.setr(K, nl, x, b), b, x), q, y, dir), y, q), AG.agr_trans(~K, ~cmp, ~o, xs, nl, SE.setp(K, SE.setr(K, nl, x, b), b, x), RM.attn(K, SE.setp(K, SE.setr(K, nl, x, b), b, x), q, y, dir), AG.agr_trans(~K, ~cmp, ~o, xs, nl, SE.setr(K, nl, x, b), SE.setp(K, SE.setr(K, nl, x, b), b, x), a1, a2), a3), a4), a5), a6)
 
 
-def rotr_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +x: Nat, +y: Nat, +b: Nat, +q: Nat, +dir: Bool, +hx: {HT.memn(x, xs) == False{} : Bool}, +hy: {HT.memn(y, xs) == False{} : Bool}, +hb: {HT.memn(b, xs) == False{} : Bool}, +hq: {HT.memn(q, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, RM.rotr_nl(K, nl, x, y, b, q, dir)) == True{} : Bool}:
+def rotr_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +x: Nat, +y: Nat, +b: Nat, +q: Nat, +dir: Bool, +hx: {NL.memn(x, xs) == False{} : Bool}, +hy: {NL.memn(y, xs) == False{} : Bool}, +hb: {NL.memn(b, xs) == False{} : Bool}, +hq: {NL.memn(q, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, RM.rotr_nl(K, nl, x, y, b, q, dir)) == True{} : Bool}:
   +a1 = SE.setl_agr(~K, ~cmp, ~o, xs, nl, x, b, hx)
   +a2 = SE.setp_agr(~K, ~cmp, ~o, xs, SE.setl(K, nl, x, b), b, x, hb)
   +a3 = attn_agr(~K, ~cmp, ~o, xs, SE.setp(K, SE.setl(K, nl, x, b), b, x), q, y, dir, hq)

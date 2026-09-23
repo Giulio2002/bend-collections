@@ -6,9 +6,6 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./mirror.bend as MI
 import ./ok.bend as OK
@@ -16,13 +13,9 @@ import ./tree.bend as TR
 import ./ends.bend as EN
 import ./path.bend as P
 import ./plug.bend as PG
-import ./dj.bend as DJ
 import ./ord.bend as OR
-import ./navl.bend as NV
 import ./cur.bend as CU
 import ./reads.bend as RD
-import ./spath.bend as SP
-import ./agree.bend as AG
 import ./find.bend as FI
 import ./slot.bend as SL
 import ./cnx.bend as CX
@@ -30,6 +23,7 @@ import ./crk.bend as CK
 import ./dord.bend as DO
 import ./prim.bend as PR
 import ./fix.bend as FX
+import ../lib/nat_list.bend as NL
 
 # iterator_remove: the current id's node removed (as remove removes it) and
 # the cursor re-seeking its next key, which stays present; the mirror's
@@ -53,7 +47,7 @@ import ./fix.bend as FX
 %def IDS(t) ST.ids(t)
 %def TN(i, a, b) ST.TN{i, a, b}
 %def WH(c, t) $APP(P.before(c), $APP($IDS(t), P.after(c)))
-%def MEM(y, xs) {HT.memn(y, xs) == True{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
 %def FT +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: $NL, +pl: List<&2, $MVV>, +tg: ST.Tr, +fl: $LN
 %def F n, root, lo, hi, free, l, d, nl, pl, tg, fl
 %def SH ST.SH{$F}
@@ -300,8 +294,8 @@ def ru_y($TO, $FT, $CH, +nx: Nat, +j: Nat, $CUH, $UPH, +hfu: {S.find($AK, kU, $E
       +h0 = ne0y(K, nl, nx, d0, y1, y2, y3, k2, hy)
       +hnu = L.not_true(Nat.is_eq(nx, $U), L.subst(Bool, z => {Bool.or(z, Bool.not(Nat.is_eq(nx, $U))) == True{} : Bool}, Nat.is_eq(nx, 0n), False{}, h0, $HSEP))
       +hm1 = L.subst($LN, z => $MEM(nx, z), $IDS(tg), $SPL, hw, hmx)
-      +hor = Equal.trans(Bool, Bool.or(HT.memn(nx, $APP($XS, $YS)), Nat.is_eq($U, nx)), HT.memn(nx, $SPL), True{}, Equal.sym(Bool, HT.memn(nx, $SPL), Bool.or(HT.memn(nx, $APP($XS, $YS)), Nat.is_eq($U, nx)), LS.memn_mid(nx, $XS, $U, $YS)), hm1)
-      +hmxy = FX.or_f(HT.memn(nx, $APP($XS, $YS)), L.subst(Bool, z => {Bool.or(HT.memn(nx, $APP($XS, $YS)), z) == True{} : Bool}, Nat.is_eq($U, nx), False{}, N.is_eq_sym_false(nx, $U, hnu), hor))
+      +hor = Equal.trans(Bool, Bool.or(NL.memn(nx, $APP($XS, $YS)), Nat.is_eq($U, nx)), NL.memn(nx, $SPL), True{}, Equal.sym(Bool, NL.memn(nx, $SPL), Bool.or(NL.memn(nx, $APP($XS, $YS)), Nat.is_eq($U, nx)), NL.memn_mid(nx, $XS, $U, $YS)), hm1)
+      +hmxy = FX.or_f(NL.memn(nx, $APP($XS, $YS)), L.subst(Bool, z => {Bool.or(NL.memn(nx, $APP($XS, $YS)), z) == True{} : Bool}, Nat.is_eq($U, nx), False{}, N.is_eq_sym_false(nx, $U, hnu), hor))
       +hs0 = some_at_s(~K, ~V, nl, pl, $IDS(tg), nx, $OKT, CK.split_mem($IDS(tg), nx, hmx))
       ru_w($AO, $F, $CHA, nx, j, hc, $UPA, hfu, d0, y1, y2, y3, k2, hy, hmxy, ST.pv(V, pl, nx), {==}, L.subst($ND, z => {S.is_some($E, ST.ent(K, V, z, ST.pv(V, pl, nx))) == True{} : Bool}, ST.nd(K, nl, nx), $NUY, hy, hs0), hst, rmr)
 

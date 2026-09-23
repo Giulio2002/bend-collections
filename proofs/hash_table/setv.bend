@@ -1,12 +1,10 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../lib/array.bend as AR
 import ../spec/common.bend as SC
 import ../spec/hash_table.bend as S
 import ../math/u32div.bend as UD
 import ../../src/containers/hash_table.bend as H
-import ./keys.bend as K
 import ./buckets.bend as B
 import ./state.bend as ST
 import ./lookup.bend as LK

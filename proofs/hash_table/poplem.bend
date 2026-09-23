@@ -19,6 +19,8 @@ import ./insf.bend as IF
 import ./rehash.bend as RH
 import ./delmv.bend as DM
 import ./keysw.bend as KW
+import ../lib/nat_list.bend as NL
+import ../lib/words32.bend as W32
 
 # Facts for pop: after emptying the bucket i that holds key, the other keys
 # look up as before, key is held nowhere, the model's keys have no repeats,
@@ -193,15 +195,15 @@ def subl_refl(+xs: List<&2, Nat>) -> {IF.subl(xs, xs) == True{} : Bool}:
     case Nil{}:
       {==}
     case Con{+x, +t}:
-      L.and_intro(ST.memn(x, Con{x, t}), IF.subl(t, Con{x, t}), L.subst(Bool, b => {Bool.or(b, ST.memn(x, t)) == True{} : Bool}, True{}, Nat.is_eq(x, x), Equal.sym(Bool, Nat.is_eq(x, x), True{}, N.is_eq_refl(x)), {==}), IF.subl_cons(t, t, x, subl_refl(t)))
+      L.and_intro(NL.memn(x, Con{x, t}), IF.subl(t, Con{x, t}), L.subst(Bool, b => {Bool.or(b, NL.memn(x, t)) == True{} : Bool}, True{}, Nat.is_eq(x, x), Equal.sym(Bool, Nat.is_eq(x, x), True{}, N.is_eq_refl(x)), {==}), IF.subl_cons(t, t, x, subl_refl(t)))
 
-def mem_self(+t: Nat, +xs: List<&2, Nat>) -> {ST.memn(t, Con{t, xs}) == True{} : Bool}:
-  L.subst(Bool, b => {Bool.or(b, ST.memn(t, xs)) == True{} : Bool}, True{}, Nat.is_eq(t, t), Equal.sym(Bool, Nat.is_eq(t, t), True{}, N.is_eq_refl(t)), {==})
+def mem_self(+t: Nat, +xs: List<&2, Nat>) -> {NL.memn(t, Con{t, xs}) == True{} : Bool}:
+  L.subst(Bool, b => {Bool.or(b, NL.memn(t, xs)) == True{} : Bool}, True{}, Nat.is_eq(t, t), Equal.sym(Bool, Nat.is_eq(t, t), True{}, N.is_eq_refl(t)), {==})
 
 
 # the two orders of visiting s and t
 def subl_sw(+s: Nat, +t: Nat, +seen: List<&2, Nat>) -> {IF.subl(Con{t, Con{s, seen}}, Con{s, Con{t, seen}}) == True{} : Bool}:
-  L.and_intro(ST.memn(t, Con{s, Con{t, seen}}), IF.subl(Con{s, seen}, Con{s, Con{t, seen}}), IF.mem_cons(t, s, Con{t, seen}, mem_self(t, seen)), L.and_intro(ST.memn(s, Con{s, Con{t, seen}}), IF.subl(seen, Con{s, Con{t, seen}}), mem_self(s, Con{t, seen}), IF.subl_cons(seen, Con{t, seen}, s, IF.subl_cons(seen, seen, t, subl_refl(seen)))))
+  L.and_intro(NL.memn(t, Con{s, Con{t, seen}}), IF.subl(Con{s, seen}, Con{s, Con{t, seen}}), IF.mem_cons(t, s, Con{t, seen}, mem_self(t, seen)), L.and_intro(NL.memn(s, Con{s, Con{t, seen}}), IF.subl(seen, Con{s, Con{t, seen}}), mem_self(s, Con{t, seen}), IF.subl_cons(seen, Con{t, seen}, s, IF.subl_cons(seen, seen, t, subl_refl(seen)))))
 
 
 # THEOREM: the old free list is still valid after pushing the vacated slot
@@ -211,23 +213,23 @@ def fl_pr(+O: List<&2, B.Bk>, +n: Nat, +i: Nat, +hi: {Nat.is_lt(i, n) == True{} 
       h
     case 1n+p:
       +x1 = Bool.not(U32.is_eq(f, 0))
-      +y = Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(O, UD.v(H.slot(f)), n), Bool.not(ST.memn(UD.v(H.slot(f)), seen))))
-      +tl = ST.fl_ok(O, n, nxl, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen})
-      +z = Bool.and(ST.noslot(O, UD.v(H.slot(f)), n), Bool.not(ST.memn(UD.v(H.slot(f)), seen)))
+      +y = Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(O, UD.v(H.slot(f)), n), Bool.not(NL.memn(UD.v(H.slot(f)), seen))))
+      +tl = ST.fl_ok(O, n, nxl, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen})
+      +z = Bool.and(ST.noslot(O, UD.v(H.slot(f)), n), Bool.not(NL.memn(UD.v(H.slot(f)), seen)))
       +a2 = L.and_left(y, tl, L.and_right(x1, Bool.and(y, tl), h))
       +a5 = L.and_right(y, tl, L.and_right(x1, Bool.and(y, tl), h))
-      +ns = L.and_left(ST.noslot(O, UD.v(H.slot(f)), n), Bool.not(ST.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2))
-      +nm = L.and_right(ST.noslot(O, UD.v(H.slot(f)), n), Bool.not(ST.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2))
+      +ns = L.and_left(ST.noslot(O, UD.v(H.slot(f)), n), Bool.not(NL.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2))
+      +nm = L.and_right(ST.noslot(O, UD.v(H.slot(f)), n), Bool.not(NL.memn(UD.v(H.slot(f)), seen)), L.and_right(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2))
       +ne = IM.slot_other(B.at(O, i), UD.v(H.slot(f)), hoi, IM.noslot_inst(O, UD.v(H.slot(f)), n, ns, i, hi))
       +ns2 = RH.ns_from(Vf, IM.bupd(O, i, B.BE{}), n, n, hf, UD.v(H.slot(f)), ns_be(O, n, i, hi, hlen, UD.v(H.slot(f)), ns, n, N.le_refl(n)), n, N.le_refl(n))
-      +nm2 = L.subst(Bool, b => {Bool.not(Bool.or(b, ST.memn(UD.v(H.slot(f)), seen))) == True{} : Bool}, False{}, Nat.is_eq(UD.v(H.slot(B.lnk(B.at(O, i)))), UD.v(H.slot(f))), Equal.sym(Bool, Nat.is_eq(UD.v(H.slot(B.lnk(B.at(O, i)))), UD.v(H.slot(f))), False{}, ne), nm)
-      +enx = IA.nth0_upd_other(nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), UD.v(H.slot(f)), fv, ne)
-      +r0 = fl_pr(O, n, i, hi, hlen, Vf, hf, hoi, nxl, fv, p, TB.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}, a5)
-      +r1 = L.subst(U32, g => {ST.fl_ok(Vf, n, SC.update(U32, nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), fv), p, g, fr, Con{UD.v(H.slot(B.lnk(B.at(O, i)))), Con{UD.v(H.slot(f)), seen}}) == True{} : Bool}, TB.nth0(nxl, UD.v(H.slot(f))), TB.nth0(SC.update(U32, nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), fv), UD.v(H.slot(f))), Equal.sym(U32, TB.nth0(SC.update(U32, nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), fv), UD.v(H.slot(f))), TB.nth0(nxl, UD.v(H.slot(f))), enx), r0)
-      +r2 = IF.fl_weak(Vf, n, SC.update(U32, nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), fv), p, TB.nth0(SC.update(U32, nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), fv), UD.v(H.slot(f))), fr, Con{UD.v(H.slot(B.lnk(B.at(O, i)))), Con{UD.v(H.slot(f)), seen}}, Con{UD.v(H.slot(f)), Con{UD.v(H.slot(B.lnk(B.at(O, i)))), seen}}, subl_sw(UD.v(H.slot(B.lnk(B.at(O, i)))), UD.v(H.slot(f)), seen), r1)
-      +y2 = Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(Vf, UD.v(H.slot(f)), n), Bool.not(ST.memn(UD.v(H.slot(f)), Con{UD.v(H.slot(B.lnk(B.at(O, i)))), seen}))))
-      +tl2 = ST.fl_ok(Vf, n, SC.update(U32, nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), fv), p, TB.nth0(SC.update(U32, nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), fv), UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), Con{UD.v(H.slot(B.lnk(B.at(O, i)))), seen}})
-      L.and_intro(x1, Bool.and(y2, tl2), L.and_left(x1, Bool.and(y, tl), h), L.and_intro(y2, tl2, L.and_intro(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(Vf, UD.v(H.slot(f)), n), Bool.not(ST.memn(UD.v(H.slot(f)), Con{UD.v(H.slot(B.lnk(B.at(O, i)))), seen}))), L.and_left(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2), L.and_intro(ST.noslot(Vf, UD.v(H.slot(f)), n), Bool.not(ST.memn(UD.v(H.slot(f)), Con{UD.v(H.slot(B.lnk(B.at(O, i)))), seen})), ns2, nm2)), r2))
+      +nm2 = L.subst(Bool, b => {Bool.not(Bool.or(b, NL.memn(UD.v(H.slot(f)), seen))) == True{} : Bool}, False{}, Nat.is_eq(UD.v(H.slot(B.lnk(B.at(O, i)))), UD.v(H.slot(f))), Equal.sym(Bool, Nat.is_eq(UD.v(H.slot(B.lnk(B.at(O, i)))), UD.v(H.slot(f))), False{}, ne), nm)
+      +enx = W32.nth0_upd_other(nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), UD.v(H.slot(f)), fv, ne)
+      +r0 = fl_pr(O, n, i, hi, hlen, Vf, hf, hoi, nxl, fv, p, W32.nth0(nxl, UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), seen}, a5)
+      +r1 = L.subst(U32, g => {ST.fl_ok(Vf, n, SC.update(U32, nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), fv), p, g, fr, Con{UD.v(H.slot(B.lnk(B.at(O, i)))), Con{UD.v(H.slot(f)), seen}}) == True{} : Bool}, W32.nth0(nxl, UD.v(H.slot(f))), W32.nth0(SC.update(U32, nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), fv), UD.v(H.slot(f))), Equal.sym(U32, W32.nth0(SC.update(U32, nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), fv), UD.v(H.slot(f))), W32.nth0(nxl, UD.v(H.slot(f))), enx), r0)
+      +r2 = IF.fl_weak(Vf, n, SC.update(U32, nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), fv), p, W32.nth0(SC.update(U32, nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), fv), UD.v(H.slot(f))), fr, Con{UD.v(H.slot(B.lnk(B.at(O, i)))), Con{UD.v(H.slot(f)), seen}}, Con{UD.v(H.slot(f)), Con{UD.v(H.slot(B.lnk(B.at(O, i)))), seen}}, subl_sw(UD.v(H.slot(B.lnk(B.at(O, i)))), UD.v(H.slot(f)), seen), r1)
+      +y2 = Bool.and(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(Vf, UD.v(H.slot(f)), n), Bool.not(NL.memn(UD.v(H.slot(f)), Con{UD.v(H.slot(B.lnk(B.at(O, i)))), seen}))))
+      +tl2 = ST.fl_ok(Vf, n, SC.update(U32, nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), fv), p, W32.nth0(SC.update(U32, nxl, UD.v(H.slot(B.lnk(B.at(O, i)))), fv), UD.v(H.slot(f))), fr, Con{UD.v(H.slot(f)), Con{UD.v(H.slot(B.lnk(B.at(O, i)))), seen}})
+      L.and_intro(x1, Bool.and(y2, tl2), L.and_left(x1, Bool.and(y, tl), h), L.and_intro(y2, tl2, L.and_intro(Nat.is_lt(UD.v(H.slot(f)), fr), Bool.and(ST.noslot(Vf, UD.v(H.slot(f)), n), Bool.not(NL.memn(UD.v(H.slot(f)), Con{UD.v(H.slot(B.lnk(B.at(O, i)))), seen}))), L.and_left(Nat.is_lt(UD.v(H.slot(f)), fr), z, a2), L.and_intro(ST.noslot(Vf, UD.v(H.slot(f)), n), Bool.not(NL.memn(UD.v(H.slot(f)), Con{UD.v(H.slot(B.lnk(B.at(O, i)))), seen})), ns2, nm2)), r2))
 
 # ---- the model's keys have no repeats ----
 
@@ -278,7 +280,7 @@ def kd(+tb: List<&2, U32>, +kl: List<&2, String>, +s: Nat, +sk: String, +n: Nat,
       {==}
     case 1n+p:
       +hi = IA.idx_lt(i, p, n, hmi)
-      IA.con_eq(TB.dec(tb, SC.update(String, kl, s, sk), i), TB.dec(tb, kl, i), TB.dlist(tb, SC.update(String, kl, s, sk), p, 1n+i), TB.dlist(tb, kl, p, 1n+i), IA.dec_same_c(TB.nth0(tb, Nat.double(i)), TB.nth0(tb, 1n+Nat.double(i)), kl, s, sk, U32.is_eq(TB.nth0(tb, Nat.double(i)), 0), kd_i(tb, kl, s, n, hns, i, hi)), kd(tb, kl, s, sk, n, hns, p, 1n+i, IA.idx_next(i, p, n, hmi)))
+      IA.con_eq(TB.dec(tb, SC.update(String, kl, s, sk), i), TB.dec(tb, kl, i), TB.dlist(tb, SC.update(String, kl, s, sk), p, 1n+i), TB.dlist(tb, kl, p, 1n+i), IA.dec_same_c(W32.nth0(tb, Nat.double(i)), W32.nth0(tb, 1n+Nat.double(i)), kl, s, sk, U32.is_eq(W32.nth0(tb, Nat.double(i)), 0), kd_i(tb, kl, s, n, hns, i, hi)), kd(tb, kl, s, sk, n, hns, p, 1n+i, IA.idx_next(i, p, n, hmi)))
 
 # THEOREM: rewriting a key cell no bucket uses leaves every bucket
 def bs_key(+tb: List<&2, U32>, +kl: List<&2, String>, +s: Nat, +sk: String, +n: Nat, +hns: {ST.noslot(TB.buckets(tb, kl, n), s, n) == True{} : Bool}) -> {TB.buckets(tb, SC.update(String, kl, s, sk), n) == TB.buckets(tb, kl, n) : List<&2, B.Bk>}:

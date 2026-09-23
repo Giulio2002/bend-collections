@@ -18,23 +18,21 @@ import ../hash_table/state.bend as HT
 import ../hash_table/keys.bend as K
 import ./state.bend as ST
 import ./basic.bend as BA
-import ./bump.bend as BU
-import ./bumpsh.bend as BS
 import ./find.bend as FD
 import ./tfind.bend as TF
 import ./touch.bend as TO
-import ./touchsh.bend as TSH
 import ./rmat.bend as RM
 import ./gone.bend as GO
 import ./unlink.bend as UL
-import ./lists.bend as LS
-import ./meta.bend as MT
 import ../hash_table/get.bend as G
 import ../../src/math/hash.bend as HS
 import ../hash_table/probe_impl.bend as PI
 import ../hash_table/probe_all.bend as PA
 
 import ./read.bend as RD
+import ../lib/nat_list.bend as NL
+import ../lib/words32.bend as W32
+import ../lib/u32_tree.bend as UT
 
 # contains: the implementation's contains is the specification's.
 
@@ -67,7 +65,7 @@ def ct_h(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $CP, $HP, $RH
   +E = Equal.cong(Array<U32> & Bool, LR.LRU<&2, V> & Bool, r => LR.ct_g(&2, V, cap, n, head, tail, free, AR.thaw(U32, mT), AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), su, U32.from_nat(i), r), LR.gone(AR.thaw(U32, lkT), su, now), (AR.thaw(U32, lkT), SP.gone(~V, $EV, now)), eg)
   L.subst(LR.LRU<&2, V> & Bool, z => RM.POK(~V, Bool, $CF(Some{$EV}), z), LR.ct_pick(&2, V, $F, su, U32.from_nat(i), SP.gone(~V, $EV, now)), LR.ct_hit(&2, V, $F, su, U32.from_nat(i), now), Equal.sym(LR.LRU<&2, V> & Bool, LR.ct_hit(&2, V, $F, su, U32.from_nat(i), now), LR.ct_pick(&2, V, $F, su, U32.from_nat(i), SP.gone(~V, $EV, now)), E), ct_gp(~V, $SHA, hg, key, now, $HPA, $RHXA, SP.gone(~V, $EV, now)))
 
-def ct_v0(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $CP, +one: Nat, +h1: {one == 1n : Nat}, +s: Nat, +hmem: {HT.memn(s, sl) == True{} : Bool}, +su: U32, +hsv: {UD.v(su) == s : Nat}, +hk: {S.str_eq(ST.skey($LLo, $KL, s), key) == True{} : Bool}, $RHX, +m: Maybe<&2, V>, +hmm: {HT.nthm(~V, $EL, s) == m : Maybe<&2, V>}, +hsm: {HT.some_b(~V, m) == True{} : Bool}) -> RM.POK(~V, Bool, $CF(SP.find(~V, $ES, key)), LR.ct_hit(&2, V, $F, su, U32.from_nat(i), now)):
+def ct_v0(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $CP, +one: Nat, +h1: {one == 1n : Nat}, +s: Nat, +hmem: {NL.memn(s, sl) == True{} : Bool}, +su: U32, +hsv: {UD.v(su) == s : Nat}, +hk: {S.str_eq(ST.skey($LLo, $KL, s), key) == True{} : Bool}, $RHX, +m: Maybe<&2, V>, +hmm: {HT.nthm(~V, $EL, s) == m : Maybe<&2, V>}, +hsm: {HT.some_b(~V, m) == True{} : Bool}) -> RM.POK(~V, Bool, $CF(SP.find(~V, $ES, key)), LR.ct_hit(&2, V, $F, su, U32.from_nat(i), now)):
   match m:
     case None{}:
       Empty.absurd(RM.POK(~V, Bool, $CF(SP.find(~V, $ES, key)), LR.ct_hit(&2, V, $F, su, U32.from_nat(i), now)), L.false_true(hsm))
@@ -82,7 +80,7 @@ def ct_hi(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $CP, +one: N
   +hz = L.subst(U32, z => {U32.is_eq(z, 0) == False{} : Bool}, B.lnk($Bi), l, hl, RD.lnz(sd, key, $Bi, hwb, hk0))
   +hsi = Equal.cong(U32, Nat, z => UD.v(H.slot(z)), B.lnk($Bi), l, hl)
   +hbl = TF.bsl_inst($BS, sl, $LLo, $NN, $G(cbsl), i, hi)
-  +hmem = L.subst(Nat, z => {HT.memn(z, sl) == True{} : Bool}, UD.v(H.slot(B.lnk($Bi))), $Si, hsi, TF.hit_mem(sl, $LLo, key, $Bi, hk0, hbl))
+  +hmem = L.subst(Nat, z => {NL.memn(z, sl) == True{} : Bool}, UD.v(H.slot(B.lnk($Bi))), $Si, hsi, TF.hit_mem(sl, $LLo, key, $Bi, hk0, hbl))
   +hk = L.subst(Nat, z => {S.str_eq(ST.skey($LLo, $KL, z), key) == True{} : Bool}, UD.v(H.slot(B.lnk($Bi))), $Si, hsi, TF.hit_key(sl, $LLo, $KL, key, $Bi, hk0, hbl, TF.bkok_at(AR.slots(U32, tabT), $KL, $NN, i, hi)))
   +hls = TF.slok_mem(~V, $EL, $FR, $Si, sl, $G(csl), hmem)
   ok = ct_v0(~V, $SHA, hg, key, now, one, h1, $Si, hmem, H.slot(l), {==}, hk, i, hi, B.hold_occ(key, $Bi, hk0), hsi, HT.nthm(~V, $EL, $Si), {==}, L.and_right(Nat.is_lt($Si, $FR), ST.live(~V, $EL, $Si), hls))
@@ -125,8 +123,8 @@ def contains_sh(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $CP, +
   +hocc = L.subst(Nat, z => {Nat.is_lt(z, $NN) == True{} : Bool}, UD.v(n), IV.occn($BS, $NN), cn, BA.n_lt(~V, $SHA, hg))
   hres = G.res_e0($BS, $NN, hn, CY.msk(k), key, $HOME, PA.home_lt(K.kword(key), k), $G(cclus), IV.home_all($BS, sd, CY.msk(k), key, $NN, $G(cwell), $NN, N.le_refl($NN)), IV.find_empty($BS, $NN, hocc))
   ok = ct_po(~V, $SHA, hg, key, now, one, h1, $R0, hres, PA.probe_ok(one, h1, k, hk31, tabT, $G(cpt), sd, hsd32, $KL, ksT, {==}, $G(cpk), $G(cwell), key))
-  +em6 = A.eq_of(TB.nth0($ML, 6n), CY.msk(k), $G(cmask))
-  +g6 = Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), TB.nth0($ML, 6n)), (AR.thaw(U32, mT), CY.msk(k)), MT.uget(5n, {==}, mT, $G(cpm), 6, {==}), Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, mT), z), TB.nth0($ML, 6n), CY.msk(k), em6))
+  +em6 = A.eq_of(W32.nth0($ML, 6n), CY.msk(k), $G(cmask))
+  +g6 = Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), W32.nth0($ML, 6n)), (AR.thaw(U32, mT), CY.msk(k)), UT.uget(5n, {==}, mT, $G(cpm), 6, {==}), Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, mT), z), W32.nth0($ML, 6n), CY.msk(k), em6))
   +E = Equal.cong(Array<U32> & U32, LR.LRU<&2, V> & Bool, r => LR.ct_m(&2, V, cap, n, head, tail, free, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), key, now, r), Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), CY.msk(k)), g6)
   L.subst(LR.LRU<&2, V> & Bool, z => RM.POK(~V, Bool, SP.contains(~V, ST.model(~V, $SH), key, now), z), $CFN($PB), LR.contains(&2, V, $F, key, now), Equal.sym(LR.LRU<&2, V> & Bool, LR.contains(&2, V, $F, key, now), $CFN($PB), E), ok)
 

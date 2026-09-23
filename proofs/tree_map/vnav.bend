@@ -1,18 +1,14 @@
 import Base
-import ../lib/logic.bend as L
 import ../lib/order.bend as O
-import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
 import ./state.bend as ST
 import ./mirror.bend as MI
-import ./ok.bend as OK
 import ./ends.bend as EN
 import ./navm.bend as NM
 import ./ord.bend as OR
 import ./cur.bend as CU
 import ./vsp.bend as VS
-import ./vdef.bend as VD
 
 # A view's first and last entries and its searches: the mirror starts at the
 # bound (or searches from the key, when inside the view) and checks the entry

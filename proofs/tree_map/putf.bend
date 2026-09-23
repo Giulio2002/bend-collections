@@ -6,17 +6,10 @@ import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
-import ./mirror.bend as MI
-import ./ok.bend as OK
 import ./tree.bend as TR
 import ./find.bend as FI
-import ./ends.bend as EN
 import ./path.bend as P
-import ./plug.bend as PG
 import ./prim.bend as PR
 import ./ord.bend as OR
 import ./slot.bend as SL
@@ -25,6 +18,7 @@ import ./dj.bend as DJ
 import ./agree.bend as AG
 import ./navs.bend as NS
 import ./spath.bend as SP
+import ../lib/nat_list.bend as NL
 
 # A key found: the payload at its node is the specification's lookup, and
 # exchanging it is the specification's set_val; the invariant holds with the
@@ -122,10 +116,10 @@ def hit_core(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +n:
       +hc = AG.iseq_eq(cmp(k, key), L.subst(M.Node<K>, z => {S.is_eq(TR.kc(~K, ~cmp, k, z)) == True{} : Bool}, ST.nd(K, nl, 1n+j), M.N{c0, x1, x2, x3, key}, hxi, hfin))
       +ek = O.antisym(~K, ~cmp, o, k, key, hc)
       +hlx = L.subst(K, z => {OR.ltall(~K, ~V, ~cmp, z, ST.ents(~K, ~V, SC.append(Nat, P.before(c), ST.ids(a)), nl, pl)) == True{} : Bool}, key, k, Equal.sym(K, k, key, ek), OR.ord_mid_l(~K, ~V, ~cmp, ~o, ST.ents(~K, ~V, SC.append(Nat, P.before(c), ST.ids(a)), nl, pl), M.Entry{key, vi}, ST.ents(~K, ~V, SC.append(Nat, ST.ids(b), P.after(c)), nl, pl), hord))
-      +hnd0 = L.subst(List<&2, Nat>, z => {LST.nodupn(z) == True{} : Bool}, ST.ids(tg), SC.append(Nat, SC.append(Nat, P.before(c), ST.ids(a)), Con{1n+j, SC.append(Nat, ST.ids(b), P.after(c))}), Equal.trans(List<&2, Nat>, ST.ids(tg), SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{1n+j, a, b}), P.after(c))), SC.append(Nat, SC.append(Nat, P.before(c), ST.ids(a)), Con{1n+j, SC.append(Nat, ST.ids(b), P.after(c))}), hbc, NS.wh_node(c, 1n+j, a, b)), DJ.ndl(ST.ids(tg), fl, ST.g_cnd(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg)))
+      +hnd0 = L.subst(List<&2, Nat>, z => {NL.nodupn(z) == True{} : Bool}, ST.ids(tg), SC.append(Nat, SC.append(Nat, P.before(c), ST.ids(a)), Con{1n+j, SC.append(Nat, ST.ids(b), P.after(c))}), Equal.trans(List<&2, Nat>, ST.ids(tg), SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{1n+j, a, b}), P.after(c))), SC.append(Nat, SC.append(Nat, P.before(c), ST.ids(a)), Con{1n+j, SC.append(Nat, ST.ids(b), P.after(c))}), hbc, NS.wh_node(c, 1n+j, a, b)), DJ.ndl(ST.ids(tg), fl, ST.g_cnd(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg)))
       +nX = DJ.dj_l(SC.append(Nat, P.before(c), ST.ids(a)), Con{1n+j, SC.append(Nat, ST.ids(b), P.after(c))}, hnd0, 1n+j, DJ.mem_hd(1n+j, SC.append(Nat, ST.ids(b), P.after(c))))
       +nY = DJ.nd_head(1n+j, SC.append(Nat, ST.ids(b), P.after(c)), DJ.ndr(SC.append(Nat, P.before(c), ST.ids(a)), Con{1n+j, SC.append(Nat, ST.ids(b), P.after(c))}, hnd0))
-      +mi = L.subst(List<&2, Nat>, z => {HT.memn(1n+j, z) == True{} : Bool}, SC.append(Nat, SC.append(Nat, P.before(c), ST.ids(a)), Con{1n+j, SC.append(Nat, ST.ids(b), P.after(c))}), ST.ids(tg), Equal.sym(List<&2, Nat>, ST.ids(tg), SC.append(Nat, SC.append(Nat, P.before(c), ST.ids(a)), Con{1n+j, SC.append(Nat, ST.ids(b), P.after(c))}), Equal.trans(List<&2, Nat>, ST.ids(tg), SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{1n+j, a, b}), P.after(c))), SC.append(Nat, SC.append(Nat, P.before(c), ST.ids(a)), Con{1n+j, SC.append(Nat, ST.ids(b), P.after(c))}), hbc, NS.wh_node(c, 1n+j, a, b))), DJ.mem_r(1n+j, SC.append(Nat, P.before(c), ST.ids(a)), Con{1n+j, SC.append(Nat, ST.ids(b), P.after(c))}, DJ.mem_hd(1n+j, SC.append(Nat, ST.ids(b), P.after(c)))))
+      +mi = L.subst(List<&2, Nat>, z => {NL.memn(1n+j, z) == True{} : Bool}, SC.append(Nat, SC.append(Nat, P.before(c), ST.ids(a)), Con{1n+j, SC.append(Nat, ST.ids(b), P.after(c))}), ST.ids(tg), Equal.sym(List<&2, Nat>, ST.ids(tg), SC.append(Nat, SC.append(Nat, P.before(c), ST.ids(a)), Con{1n+j, SC.append(Nat, ST.ids(b), P.after(c))}), Equal.trans(List<&2, Nat>, ST.ids(tg), SC.append(Nat, P.before(c), SC.append(Nat, ST.ids(ST.TN{1n+j, a, b}), P.after(c))), SC.append(Nat, SC.append(Nat, P.before(c), ST.ids(a)), Con{1n+j, SC.append(Nat, ST.ids(b), P.after(c))}), hbc, NS.wh_node(c, 1n+j, a, b))), DJ.mem_r(1n+j, SC.append(Nat, P.before(c), ST.ids(a)), Con{1n+j, SC.append(Nat, ST.ids(b), P.after(c))}, DJ.mem_hd(1n+j, SC.append(Nat, ST.ids(b), P.after(c)))))
       +hib = AL.allin_mem(ST.ids(tg), SC.length(M.Node<K>, nl), 1n+j, AL.allin_l(ST.ids(tg), fl, SC.length(M.Node<K>, nl), ST.g_cin(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg)), mi)
       +hjl = L.subst(Nat, z => {Nat.is_lt(j, z) == True{} : Bool}, SC.length(M.Node<K>, nl), SC.length(Maybe<&2, V>, pl), Equal.sym(Nat, SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl), N.eq_from_is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl), ST.g_cpl(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg))), N.succ_le_lt(j, SC.length(M.Node<K>, nl), L.and_right(Nat.is_lt(0n, 1n+j), Nat.is_le(1n+j, SC.length(M.Node<K>, nl)), hib)))
       +hW2a = ents_at(~K, ~V, nl, PR.ex_pl(V, pl, 1n+j, Some{v}), tg, c, 1n+j, a, b, hbc)

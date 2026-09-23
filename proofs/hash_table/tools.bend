@@ -4,7 +4,6 @@ import ../lib/nat.bend as N
 import ../lib/u32alg.bend as A
 import ../lib/u32.bend as U
 import ../spec/common.bend as SC
-import ../spec/hash_table.bend as S
 import ../math/u32div.bend as UD
 import ../../src/containers/hash_table.bend as H
 import ./keys.bend as K
@@ -73,7 +72,7 @@ def slots_ne_of(+a: U32, +b: U32, +h: {U32.is_eq(a, b) == False{} : Bool}, +c: B
       {==}
     case True{}:
       +eab = slot_inj(a, b, N.eq_from_is_eq(UD.v(H.slot(a)), UD.v(H.slot(b)), hc))
-      Empty.absurd({True{} == False{} : Bool}, L.true_false(Equal.trans(Bool, True{}, U32.is_eq(a, b), False{}, L.subst(U32, z => {True{} == U32.is_eq(a, z) : Bool}, a, b, eab, Equal.sym(Bool, U32.is_eq(a, a), True{}, K.u32_eq_refl(a))), h)))
+      Empty.absurd({True{} == False{} : Bool}, L.true_false(Equal.trans(Bool, True{}, U32.is_eq(a, b), False{}, L.subst(U32, z => {True{} == U32.is_eq(a, z) : Bool}, a, b, eab, Equal.sym(Bool, U32.is_eq(a, a), True{}, U.u32_eq_refl(a))), h)))
 
 def slot_ne_lt(+bs: List<&2, B.Bk>, +n: Nat, +huq: {B.all_lt(B.PUniq{bs}, n) == True{} : Bool}, +i: Nat, +j: Nat, +hi: {Nat.is_lt(i, n) == True{} : Bool}, +hji: {Nat.is_lt(j, i) == True{} : Bool}, +oi: {B.occ(B.at(bs, i)) == True{} : Bool}, +oj: {B.occ(B.at(bs, j)) == True{} : Bool}) -> {Nat.is_eq(UD.v(H.slot(B.lnk(B.at(bs, j)))), UD.v(H.slot(B.lnk(B.at(bs, i))))) == False{} : Bool}:
   slots_ne_of(B.lnk(B.at(bs, j)), B.lnk(B.at(bs, i)), link_ne_b(bs, i, j, hji, B.at(bs, i), B.all_inst(B.PUniq{bs}, n, huq, i, hi), oi, oj), Nat.is_eq(UD.v(H.slot(B.lnk(B.at(bs, j)))), UD.v(H.slot(B.lnk(B.at(bs, i))))), {==})

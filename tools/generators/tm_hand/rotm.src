@@ -1,6 +1,4 @@
 import Base
-import ../lib/logic.bend as L
-import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
 import ./state.bend as ST
 import ./mirror.bend as MI

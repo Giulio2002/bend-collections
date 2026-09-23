@@ -1,6 +1,5 @@
 import Base
 import ../lib/logic.bend as L
-import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
@@ -8,13 +7,10 @@ import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
 import ./state.bend as ST
 import ./mirror.bend as MI
-import ./ok.bend as OK
 import ./ord.bend as OR
 import ./dord.bend as DO
-import ./reads.bend as RD
 import ./cur.bend as CU
 import ./vsp.bend as VS
-import ./vit.bend as VI
 import ./vsz.bend as VZ
 import ./vdef.bend as VD
 

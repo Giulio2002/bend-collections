@@ -3,12 +3,10 @@ import ../lib/logic.bend as L
 import ../lib/nat.bend as N
 import ../lib/list.bend as LL
 import ../spec/common.bend as SC
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
 import ./path.bend as P
 import ./dj.bend as DJ
+import ../lib/nat_list.bend as NL
 
 # Id lists under an insertion: bounds, lengths and repeats with a new id put
 # between the ids before and after the gap, and a free id moved out of the
@@ -18,8 +16,8 @@ import ./dj.bend as DJ
 %def APP(a, b) SC.append(Nat, a, b)
 %def LEN(xs) SC.length(Nat, xs)
 %def ALLIN(xs, n) {ST.allin(xs, n) == True{} : Bool}
-%def NDL(xs) {LST.nodupn(xs) == True{} : Bool}
-%def NMEM(y, xs) {HT.memn(y, xs) == False{} : Bool}
+%def NDL(xs) {NL.nodupn(xs) == True{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
 %def INB(x, n) Bool.and(Nat.is_lt(0n, x), Nat.is_le(x, n))
 
 def allin_l(+a: $LN, +b: $LN, +n: Nat, +h: $ALLIN($APP(a, b), n)) -> $ALLIN(a, n):
@@ -62,23 +60,23 @@ def allin_out(+xs: $LN, +n: Nat, +h: $ALLIN(xs, n)) -> $NMEM(1n+n, xs):
       +hx = L.and_right(Nat.is_lt(0n, x), Nat.is_le(x, n), L.and_left($INB(x, n), ST.allin(t, n), h))
       DJ.nm_cons(1n+n, x, t, N.is_eq_lt(x, 1n+n, N.le_lt_succ(x, n, hx)), allin_out(t, n, L.and_right($INB(x, n), ST.allin(t, n), h)))
 
-def am_c(+x: Nat, +t: $LN, +n: Nat, +y: Nat, +h: $ALLIN(Con{x, t}, n), +hm: {HT.memn(y, Con{x, t}) == True{} : Bool}, +e: Bool, +he: {Nat.is_eq(x, y) == e : Bool}, ih: @+hmt: {HT.memn(y, t) == True{} : Bool} -> {$INB(y, n) == True{} : Bool}) -> {$INB(y, n) == True{} : Bool}:
+def am_c(+x: Nat, +t: $LN, +n: Nat, +y: Nat, +h: $ALLIN(Con{x, t}, n), +hm: {NL.memn(y, Con{x, t}) == True{} : Bool}, +e: Bool, +he: {Nat.is_eq(x, y) == e : Bool}, ih: @+hmt: {NL.memn(y, t) == True{} : Bool} -> {$INB(y, n) == True{} : Bool}) -> {$INB(y, n) == True{} : Bool}:
   match e:
     case True{}:
       L.subst(Nat, z => {$INB(z, n) == True{} : Bool}, x, y, N.eq_from_is_eq(x, y, he), L.and_left($INB(x, n), ST.allin(t, n), h))
     case False{}:
-      ih(L.subst(Bool, z => {Bool.or(z, HT.memn(y, t)) == True{} : Bool}, Nat.is_eq(x, y), False{}, he, hm))
+      ih(L.subst(Bool, z => {Bool.or(z, NL.memn(y, t)) == True{} : Bool}, Nat.is_eq(x, y), False{}, he, hm))
 
 # ---- the new id between before and after ----
 
 def nd_put(+b: $LN, +x: Nat, +a: $LN, +h: $NDL($APP(b, a)), +hx: $NMEM(x, $APP(b, a))) -> $NDL($APP(b, Con{x, a})):
-  L.subst(Bool, w => {w == True{} : Bool}, Bool.and(LST.nodupn($APP(b, a)), Bool.not(HT.memn(x, $APP(b, a)))), LST.nodupn($APP(b, Con{x, a})), Equal.sym(Bool, LST.nodupn($APP(b, Con{x, a})), Bool.and(LST.nodupn($APP(b, a)), Bool.not(HT.memn(x, $APP(b, a)))), LS.nd_mid(b, x, a)), L.and_intro(LST.nodupn($APP(b, a)), Bool.not(HT.memn(x, $APP(b, a))), h, L.subst(Bool, w => {Bool.not(w) == True{} : Bool}, False{}, HT.memn(x, $APP(b, a)), Equal.sym(Bool, HT.memn(x, $APP(b, a)), False{}, hx), {==})))
+  L.subst(Bool, w => {w == True{} : Bool}, Bool.and(NL.nodupn($APP(b, a)), Bool.not(NL.memn(x, $APP(b, a)))), NL.nodupn($APP(b, Con{x, a})), Equal.sym(Bool, NL.nodupn($APP(b, Con{x, a})), Bool.and(NL.nodupn($APP(b, a)), Bool.not(NL.memn(x, $APP(b, a)))), NL.nd_mid(b, x, a)), L.and_intro(NL.nodupn($APP(b, a)), Bool.not(NL.memn(x, $APP(b, a))), h, L.subst(Bool, w => {Bool.not(w) == True{} : Bool}, False{}, NL.memn(x, $APP(b, a)), Equal.sym(Bool, NL.memn(x, $APP(b, a)), False{}, hx), {==})))
 
 def len_put(+b: $LN, +x: Nat, +a: $LN) -> {$LEN($APP(b, Con{x, a})) == 1n+$LEN($APP(b, a)) : Nat}:
   P.cons_len(b, x, a)
 
 # a member is within the bound
-def allin_mem(+xs: $LN, +n: Nat, +y: Nat, +h: $ALLIN(xs, n), +hm: {HT.memn(y, xs) == True{} : Bool}) -> {$INB(y, n) == True{} : Bool}:
+def allin_mem(+xs: $LN, +n: Nat, +y: Nat, +h: $ALLIN(xs, n), +hm: {NL.memn(y, xs) == True{} : Bool}) -> {$INB(y, n) == True{} : Bool}:
   match xs:
     case Nil{}:
       Empty.absurd({$INB(y, n) == True{} : Bool}, L.false_true(hm))
@@ -95,11 +93,11 @@ def mv_eq(+b: $LN, +a: $LN, +x: Nat, +t: $LN) -> {$MV1 == $APP(b, Con{x, $APP(a,
   LL.append_assoc(Nat, b, Con{x, a}, t)
 
 def nd_move(+b: $LN, +a: $LN, +x: Nat, +t: $LN, +h: $NDL($MV0)) -> $NDL($MV1):
-  +e0 = LS.nd_mid($APP(b, a), x, t)
-  +h0 = L.subst(Bool, w => {w == True{} : Bool}, LST.nodupn($MV0), Bool.and(LST.nodupn($APP($APP(b, a), t)), Bool.not(HT.memn(x, $APP($APP(b, a), t)))), e0, h)
+  +e0 = NL.nd_mid($APP(b, a), x, t)
+  +h0 = L.subst(Bool, w => {w == True{} : Bool}, NL.nodupn($MV0), Bool.and(NL.nodupn($APP($APP(b, a), t)), Bool.not(NL.memn(x, $APP($APP(b, a), t)))), e0, h)
   +ea = LL.append_assoc(Nat, b, a, t)
-  +h1 = L.subst($LN, z => {Bool.and(LST.nodupn(z), Bool.not(HT.memn(x, z))) == True{} : Bool}, $APP($APP(b, a), t), $APP(b, $APP(a, t)), ea, h0)
-  +h2 = L.subst(Bool, w => {w == True{} : Bool}, Bool.and(LST.nodupn($APP(b, $APP(a, t))), Bool.not(HT.memn(x, $APP(b, $APP(a, t))))), LST.nodupn($APP(b, Con{x, $APP(a, t)})), Equal.sym(Bool, LST.nodupn($APP(b, Con{x, $APP(a, t)})), Bool.and(LST.nodupn($APP(b, $APP(a, t))), Bool.not(HT.memn(x, $APP(b, $APP(a, t))))), LS.nd_mid(b, x, $APP(a, t))), h1)
+  +h1 = L.subst($LN, z => {Bool.and(NL.nodupn(z), Bool.not(NL.memn(x, z))) == True{} : Bool}, $APP($APP(b, a), t), $APP(b, $APP(a, t)), ea, h0)
+  +h2 = L.subst(Bool, w => {w == True{} : Bool}, Bool.and(NL.nodupn($APP(b, $APP(a, t))), Bool.not(NL.memn(x, $APP(b, $APP(a, t))))), NL.nodupn($APP(b, Con{x, $APP(a, t)})), Equal.sym(Bool, NL.nodupn($APP(b, Con{x, $APP(a, t)})), Bool.and(NL.nodupn($APP(b, $APP(a, t))), Bool.not(NL.memn(x, $APP(b, $APP(a, t))))), NL.nd_mid(b, x, $APP(a, t))), h1)
   L.subst($LN, z => $NDL(z), $APP(b, Con{x, $APP(a, t)}), $MV1, Equal.sym($LN, $MV1, $APP(b, Con{x, $APP(a, t)}), mv_eq(b, a, x, t)), h2)
 
 def len_move(+b: $LN, +a: $LN, +x: Nat, +t: $LN) -> {$LEN($MV1) == $LEN($MV0) : Nat}:

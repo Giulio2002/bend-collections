@@ -11,6 +11,7 @@ import ./table.bend as TB
 import ./buckets.bend as B
 import ./state.bend as ST
 import ./insa.bend as IA
+import ../lib/words32.bend as W32
 
 # Growing the slot arena: the arrays gain a second half of blank cells, and
 # every bucket, liveness fact and model entry reads the first half only.
@@ -68,7 +69,7 @@ def dl_app(+tb: List<&2, U32>, +kl: List<&2, String>, +r: List<&2, String>, +sd:
     case 1n+p:
       +hi = IA.idx_lt(i, p, n, hmi)
       +hwi = L.subst(B.Bk, y => {B.wb(sd, y) == True{} : Bool}, B.at(TB.buckets(tb, kl, n), i), TB.dec(tb, kl, i), TB.at_buckets(tb, kl, n, i, hi), B.all_inst(B.PWell{TB.buckets(tb, kl, n), sd}, n, hw, i, hi))
-      IA.con_eq(TB.dec(tb, SC.append(String, kl, r), i), TB.dec(tb, kl, i), TB.dlist(tb, SC.append(String, kl, r), p, 1n+i), TB.dlist(tb, kl, p, 1n+i), dec_app_c(TB.nth0(tb, Nat.double(i)), TB.nth0(tb, 1n+Nat.double(i)), kl, r, sd, hlen, U32.is_eq(TB.nth0(tb, Nat.double(i)), 0), hwi), dl_app(tb, kl, r, sd, hlen, n, hw, p, 1n+i, IA.idx_next(i, p, n, hmi)))
+      IA.con_eq(TB.dec(tb, SC.append(String, kl, r), i), TB.dec(tb, kl, i), TB.dlist(tb, SC.append(String, kl, r), p, 1n+i), TB.dlist(tb, kl, p, 1n+i), dec_app_c(W32.nth0(tb, Nat.double(i)), W32.nth0(tb, 1n+Nat.double(i)), kl, r, sd, hlen, U32.is_eq(W32.nth0(tb, Nat.double(i)), 0), hwi), dl_app(tb, kl, r, sd, hlen, n, hw, p, 1n+i, IA.idx_next(i, p, n, hmi)))
 
 # THEOREM: appending cells to the key arena leaves every bucket as it was
 def bs_app(+tb: List<&2, U32>, +kl: List<&2, String>, +r: List<&2, String>, +sd: Nat, +hlen: {SC.length(String, kl) == SC.pow2(sd) : Nat}, +n: Nat, +hw: {B.all_lt(B.PWell{TB.buckets(tb, kl, n), sd}, n) == True{} : Bool}) -> {TB.buckets(tb, SC.append(String, kl, r), n) == TB.buckets(tb, kl, n) : List<&2, B.Bk>}:

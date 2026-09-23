@@ -271,3 +271,26 @@ def mask_pow2u(+x: U32, +d: Nat, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hx:
 
 def u32_cmp(+a: U32, +b: U32) -> {U32.cmp(a, b) == Nat.cmp(U32.to_nat(a), U32.to_nat(b)) : Cmp}:
   WC.u32_refines(a, b)
+
+def fin_refl(+c: Cmp, +b: Bool, +h: {Cmp.is_eq(c) == True{} : Bool}) -> {Cmp.is_eq(Word.cmp.fin(b, b, c)) == True{} : Bool}:
+  match c b:
+    case LT{} _:
+      Empty.absurd({Cmp.is_eq(Word.cmp.fin(b, b, LT{})) == True{} : Bool}, L.false_true(h))
+    case EQ{} True{}:
+      {==}
+    case EQ{} False{}:
+      {==}
+    case GT{} _:
+      Empty.absurd({Cmp.is_eq(Word.cmp.fin(b, b, GT{})) == True{} : Bool}, L.false_true(h))
+
+def cmp_refl_eq(+n: Nat, +w: Word(n)) -> {Cmp.is_eq(Word.cmp(n, w, w)) == True{} : Bool}:
+  match n w:
+    case 0n WNil{}:
+      {==}
+    case 1n+p WCon{b, t}:
+      fin_refl(Word.cmp(p, t, t), b, cmp_refl_eq(p, t))
+
+def u32_eq_refl(+x: U32) -> {U32.is_eq(x, x) == True{} : Bool}:
+  match x:
+    case U32{w}:
+      cmp_refl_eq(32n, w)

@@ -44,16 +44,16 @@ COMPS = [
     ("cbsl", f"bsl({BS}, sl, {LL}, SC.pow2(k))"),
     ("chas", f"hasall(~V, {BS}, SC.pow2(k), {LL}, sl)"),
     ("csl", f"slok(~V, sl, {FR}, {EL})"),
-    ("cnd", "nodupn(sl)"),
+    ("cnd", "NL.nodupn(sl)"),
     ("clen", "Nat.is_eq(SC.length(Nat, sl), UD.v(n))"),
-    ("chead", "U32.is_eq(head, fst_or(sl, 0))"),
-    ("ctail", "U32.is_eq(tail, last_or(sl, 0))"),
+    ("chead", "U32.is_eq(head, LK.fst_or(sl, 0))"),
+    ("ctail", "U32.is_eq(tail, LK.last_or(sl, 0))"),
     ("cdll", f"seg({LL}, sl, 0, 0)"),
     ("ckeys", f"S.nodup(SP.keys_of(~V, es(~V, {LL}, kl, {EL}, sl)))"),
-    ("cfree", "U32.is_eq(free, fst_or(fl, 0))"),
+    ("cfree", "U32.is_eq(free, LK.fst_or(fl, 0))"),
     ("cfll", f"fll({LL}, fl)"),
     ("cfl", f"flok(~V, fl, {FR}, {EL})"),
-    ("cfnd", "nodupn(fl)"),
+    ("cfnd", "NL.nodupn(fl)"),
     ("cfcnt", f"Nat.is_eq(Nat.add(SC.length(Nat, sl), SC.length(Nat, fl)), {FR})"),
 ]
 NAMES = [c for c, _ in COMPS]
@@ -88,7 +88,7 @@ def block():
     out.append('''def good(~V: Data, sh: Sh<V>) -> Bool:
   match sh:
     case LS{+cap, +n, +head, +tail, +free, +mT, +k, +sd, +tabT, +ksT, +eT, +lkT, +sl, +fl}:
-      goodF(~V, cap, n, head, tail, free, TB.nth0(AR.slots(U32, mT), 0n), TB.nth0(AR.slots(U32, mT), 1n), TB.nth0(AR.slots(U32, mT), 2n), TB.nth0(AR.slots(U32, mT), 6n), TB.nth0(AR.slots(U32, mT), 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), eT, lkT, sl, fl)
+      goodF(~V, cap, n, head, tail, free, W32.nth0(AR.slots(U32, mT), 0n), W32.nth0(AR.slots(U32, mT), 1n), W32.nth0(AR.slots(U32, mT), 2n), W32.nth0(AR.slots(U32, mT), 6n), W32.nth0(AR.slots(U32, mT), 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), eT, lkT, sl, fl)
 ''')
     prs = ["g"]
     for i in range(len(NAMES) - 1):

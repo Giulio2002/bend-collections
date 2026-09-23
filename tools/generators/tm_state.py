@@ -32,7 +32,7 @@ COMPS = [
     ("crep", f"rep(~K, t, 0n, {NL})"),
     ("cpay", f"pay(~V, t, {PL})"),
     ("cfll", f"fll(~K, {NL}, fl)"),
-    ("cnd", f"LST.nodupn(SC.append(Nat, {IDS}, fl))"),
+    ("cnd", f"NL.nodupn(SC.append(Nat, {IDS}, fl))"),
     ("cin", f"allin(SC.append(Nat, {IDS}, fl), {LEN})"),
     ("clen", f"Nat.is_eq(SC.length(Nat, SC.append(Nat, {IDS}, fl)), {LEN})"),
     ("cord", f"ordered(~K, ~V, ~cmp, ents(~K, ~V, {IDS}, {NL}, {PL}))"),
@@ -53,10 +53,10 @@ import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../dynamic_array/layout.bend as LY
 import ../dynamic_array/state.bend as DAS
-import ../lru/state.bend as LST
 import ../../src/containers/balanced_search_tree.bend as M
 import ../../src/containers/dynamic_array.bend as D
 import ./mk.bend as MK
+import ../lib/nat_list.bend as NL
 
 # The indexed TreeMap's shadow: the header, the node and payload lists (the
 # arrays are their canonical blocks, one limit and depth for both), a ghost

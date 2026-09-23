@@ -1,14 +1,11 @@
 import Base
 import ../lib/logic.bend as L
-import ../lib/nat.bend as N
-import ../lib/list.bend as LL
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../spec/tree_map.bend as S
 import ../../src/containers/balanced_search_tree.bend as M
 import ./state.bend as ST
 import ./ord.bend as OR
-import ./prim.bend as PR
 
 # Insertion at a gap of a sorted list: the specification's ins puts the
 # entry there, lookup misses, and order holds; the node and payload lists

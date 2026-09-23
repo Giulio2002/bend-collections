@@ -10,6 +10,7 @@ import ./keys.bend as K
 import ./table.bend as TB
 import ./buckets.bend as B
 import ./step.bend as SP
+import ../lib/u32.bend as UW
 
 # The implementation's step decision (word match, then String compare)
 # equals the model's "does the bucket hold the key", for a long key, when a
@@ -60,7 +61,7 @@ def le_false(+k: String, +key: String, +hk: {K.shortk(key) == False{} : Bool}, +
       {==}
     case True{}:
       +xw = Equal.trans(U32, x, K.kword(k), STR.lword(key), hinv, Equal.trans(U32, K.kword(k), K.kword(key), STR.lword(key), Equal.cong(String, U32, z => K.kword(z), k, key, K.str_eq_of(k, key, he)), K.kword_long(key, hk)))
-      Empty.absurd({True{} == False{} : Bool}, L.true_false(Equal.trans(Bool, True{}, U32.is_eq(x, STR.lword(key)), False{}, L.subst(U32, z => {True{} == U32.is_eq(x, z) : Bool}, x, STR.lword(key), xw, Equal.sym(Bool, U32.is_eq(x, x), True{}, K.u32_eq_refl(x))), hs)))
+      Empty.absurd({True{} == False{} : Bool}, L.true_false(Equal.trans(Bool, True{}, U32.is_eq(x, STR.lword(key)), False{}, L.subst(U32, z => {True{} == U32.is_eq(x, z) : Bool}, x, STR.lword(key), xw, Equal.sym(Bool, U32.is_eq(x, x), True{}, UW.u32_eq_refl(x))), hs)))
 
 def dl_long(+key: String, +hk: {K.shortk(key) == False{} : Bool}, +x: U32, +l: U32, +k: String, +hinv: {x == K.kword(k) : U32}, +s: Bool, +hs: {U32.is_eq(x, STR.lword(key)) == s : Bool}) -> {SP.ld_w(key, l, k, s) == Bool.pick(B.MS, S.str_eq(k, key), B.MHit{l}, B.MNext{}) : B.MS}:
   match s:

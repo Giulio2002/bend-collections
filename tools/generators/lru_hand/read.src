@@ -27,12 +27,13 @@ import ./touchsh.bend as TSH
 import ./rmat.bend as RM
 import ./gone.bend as GO
 import ./unlink.bend as UL
-import ./lists.bend as LS
-import ./meta.bend as MT
 import ../hash_table/get.bend as G
 import ../../src/math/hash.bend as HS
 import ../hash_table/probe_impl.bend as PI
 import ../hash_table/probe_all.bend as PA
+import ../lib/nat_list.bend as NL
+import ../lib/words32.bend as W32
+import ../lib/u32_tree.bend as UT
 
 # get and peek (read): the implementation's read is the specification's.
 
@@ -45,7 +46,7 @@ import ../hash_table/probe_all.bend as PA
 %def LLo AR.slots(U32, lkT)
 %def EL AR.slots(Maybe<&2, V>, eT)
 %def ES ST.es(~V, $LLo, $KL, $EL, sl)
-%def M3 TB.nth0($ML, 3n)
+%def M3 W32.nth0($ML, 3n)
 %def W4 ST.w64($ML, 4n)
 %def CTR ST.ctr($ML)
 %def RF(m) SP.read_found(~V, cap, $M3, $W4, $ES, $CTR, key, now, tracked, m)
@@ -72,7 +73,7 @@ def rd_end(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $RP, +at: U
 
 # ---- the key's slot s holds value v ----
 
-%def HP +one: Nat, +h1: {one == 1n : Nat}, +s: Nat, +hmem: {HT.memn(s, sl) == True{} : Bool}, +su: U32, +hsv: {UD.v(su) == s : Nat}, +v: V, +hm: {HT.nthm(~V, $EL, s) == Some{v} : Maybe<&2, V>}, +hk: {S.str_eq(ST.skey($LLo, $KL, s), key) == True{} : Bool}
+%def HP +one: Nat, +h1: {one == 1n : Nat}, +s: Nat, +hmem: {NL.memn(s, sl) == True{} : Bool}, +su: U32, +hsv: {UD.v(su) == s : Nat}, +v: V, +hm: {HT.nthm(~V, $EL, s) == Some{v} : Maybe<&2, V>}, +hk: {S.str_eq(ST.skey($LLo, $KL, s), key) == True{} : Bool}
 %def HPA one, h1, s, hmem, su, hsv, v, hm, hk
 %def EV TO.ev(~V, $LLo, $KL, s, v)
 %def ML2 AR.slots(U32, m2)
@@ -94,14 +95,14 @@ def l_c(~V: Data, l: SP.Lru<V>) -> SP.Ctr:
     case SP.L{cap, on, life, es, c}:
       c
 
-def rd_tch(~V: Data, $SHF, $RP, $HP, +m2: AR.Tree<U32>, +em: {ST.model(~V, $SHM(m2)) == SP.L{cap, $M3, $W4, $ES, SP.c_hit($CTR)} : SP.Lru<V>}, -r: LR.LRU<&2, V>, to: TSH.TouchOK(~V, SP.L{cap, TB.nth0($ML2, 3n), ST.w64($ML2, 4n), SP.snoc(~V, SP.drop(~V, $ES, key), $EV), ST.ctr($ML2)}, r)) -> RM.POK(~V, Maybe<&2, V>, $LIVE(True{}), (r, Some{v})):
+def rd_tch(~V: Data, $SHF, $RP, $HP, +m2: AR.Tree<U32>, +em: {ST.model(~V, $SHM(m2)) == SP.L{cap, $M3, $W4, $ES, SP.c_hit($CTR)} : SP.Lru<V>}, -r: LR.LRU<&2, V>, to: TSH.TouchOK(~V, SP.L{cap, W32.nth0($ML2, 3n), ST.w64($ML2, 4n), SP.snoc(~V, SP.drop(~V, $ES, key), $EV), ST.ctr($ML2)}, r)) -> RM.POK(~V, Maybe<&2, V>, $LIVE(True{}), (r, Some{v})):
   match to:
     case Tuple{+sh3, Tuple{+e3, Tuple{+em3, g3}}}:
       +eo = Equal.cong(SP.Lru<V>, U32, w => l_on(~V, w), ST.model(~V, $SHM(m2)), SP.L{cap, $M3, $W4, $ES, SP.c_hit($CTR)}, em)
       +el = Equal.cong(SP.Lru<V>, W.U64, w => l_life(~V, w), ST.model(~V, $SHM(m2)), SP.L{cap, $M3, $W4, $ES, SP.c_hit($CTR)}, em)
       +ec = Equal.cong(SP.Lru<V>, SP.Ctr, w => l_c(~V, w), ST.model(~V, $SHM(m2)), SP.L{cap, $M3, $W4, $ES, SP.c_hit($CTR)}, em)
-      +es1 = BA.lru_eq(~V, cap, TB.nth0($ML2, 3n), $M3, ST.w64($ML2, 4n), $W4, SP.snoc(~V, SP.drop(~V, $ES, key), $EV), SP.snoc(~V, SP.drop(~V, $ES, key), $EV), ST.ctr($ML2), SP.c_hit($CTR), eo, el, {==}, ec)
-      +esp = Equal.trans(SP.Lru<V>, ST.model(~V, sh3), SP.L{cap, TB.nth0($ML2, 3n), ST.w64($ML2, 4n), SP.snoc(~V, SP.drop(~V, $ES, key), $EV), ST.ctr($ML2)}, SP.L{cap, $M3, $W4, SP.snoc(~V, SP.drop(~V, $ES, key), $EV), SP.c_hit($CTR)}, em3, es1)
+      +es1 = BA.lru_eq(~V, cap, W32.nth0($ML2, 3n), $M3, ST.w64($ML2, 4n), $W4, SP.snoc(~V, SP.drop(~V, $ES, key), $EV), SP.snoc(~V, SP.drop(~V, $ES, key), $EV), ST.ctr($ML2), SP.c_hit($CTR), eo, el, {==}, ec)
+      +esp = Equal.trans(SP.Lru<V>, ST.model(~V, sh3), SP.L{cap, W32.nth0($ML2, 3n), ST.w64($ML2, 4n), SP.snoc(~V, SP.drop(~V, $ES, key), $EV), ST.ctr($ML2)}, SP.L{cap, $M3, $W4, SP.snoc(~V, SP.drop(~V, $ES, key), $EV), SP.c_hit($CTR)}, em3, es1)
       (sh3, (Some{v}, (Equal.cong(LR.LRU<&2, V>, LR.LRU<&2, V> & Maybe<&2, V>, z => (z, Some{v}), r, ST.real(~V, sh3), e3), (Equal.cong(SP.Lru<V>, SP.Lru<V> & Maybe<&2, V>, z => (z, Some{v}), SP.L{cap, $M3, $W4, SP.snoc(~V, SP.drop(~V, $ES, key), $EV), SP.c_hit($CTR)}, ST.model(~V, sh3), Equal.sym(SP.Lru<V>, ST.model(~V, sh3), SP.L{cap, $M3, $W4, SP.snoc(~V, SP.drop(~V, $ES, key), $EV), SP.c_hit($CTR)}, esp)), g3))))
 
 def rd_hitc(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $RP, $HP, cm: BS.CntM(~V, $SHA, SP.L{cap, $M3, $W4, $ES, SP.c_hit($CTR)}, LR.fbump(&2, V, 3, $F))) -> RM.POK(~V, Maybe<&2, V>, $LIVE(True{}), (LR.touch(&2, V, LR.fbump(&2, V, 3, $F), su), Some{v})):
@@ -111,7 +112,7 @@ def rd_hitc(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $RP, $HP, 
       ok = rd_tch(~V, $SHA, key, now, tracked, $HPA, m2, em, LR.touch(&2, V, ST.real(~V, $SHM(m2)), su), TSH.touch_sh(~V, one, h1, cap, n, head, tail, free, m2, k, sd, tabT, ksT, eT, lkT, sl, fl, g1, s, hmem, su, hsv, key, hk, v, hm))
       L.subst(LR.LRU<&2, V>, z => RM.POK(~V, Maybe<&2, V>, $LIVE(True{}), (z, Some{v})), LR.touch(&2, V, ST.real(~V, $SHM(m2)), su), LR.touch(&2, V, LR.fbump(&2, V, 3, $F), su), Equal.sym(LR.LRU<&2, V>, LR.touch(&2, V, LR.fbump(&2, V, 3, $F), su), LR.touch(&2, V, ST.real(~V, $SHM(m2)), su), E), ok)
 
-%def GCPM ST.g_cpm(~V, cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, fl, hg)
+%def GCPM ST.g_cpm(~V, cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, fl, hg)
 
 # a live entry read: tracked, it is counted and touched; untracked, nothing
 def rd_lv(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $RP, $HP) -> RM.POK(~V, Maybe<&2, V>, $LIVE(tracked), LR.rd_live(&2, V, $F, su, tracked, v)):
@@ -121,16 +122,16 @@ def rd_lv(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $RP, $HP) ->
     case False{}:
       ($SH, (Some{v}, ({==}, ({==}, hg))))
 
-%def GA0 cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, fl
+%def GA0 cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, fl
 %def G(c) ST.g_$c(~V, $GA0, hg)
-%def FR UD.v(TB.nth0($ML, 0n))
+%def FR UD.v(W32.nth0($ML, 0n))
 %def NN SC.pow2(k)
 %def BS TB.buckets(AR.slots(U32, tabT), $KL, $NN)
 
 def f_hsd(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}) -> {Nat.is_lt(3n+sd, 32n) == True{} : Bool}:
   TSH.sd29(k, sd, L.and_left(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), $G(ck)), $G(csdk))
 
-def f_s0(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, +s: Nat, +hmem: {HT.memn(s, sl) == True{} : Bool}) -> {Nat.is_lt(s, SC.pow2(sd)) == True{} : Bool}:
+def f_s0(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, +s: Nat, +hmem: {NL.memn(s, sl) == True{} : Bool}) -> {Nat.is_lt(s, SC.pow2(sd)) == True{} : Bool}:
   UL.bnd_of(~V, s, sl, $FR, $EL, sd, $G(cfresh), $G(csl), hmem)
 
 # reading the value cell of a live slot
@@ -139,7 +140,7 @@ def rd_lf(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $RP, $HP) ->
   +hsu = GO.su_lt(su, s, sd, hsv, hs0)
   +hd = N.lt_trans(sd, 3n+sd, 32n, N.lt_le_trans(sd, 1n+sd, 3n+sd, N.lt_succ(sd), N.le_trans(1n+sd, 2n+sd, 3n+sd, N.le_succ(1n+sd), N.le_succ(2n+sd))), f_hsd(~V, $SHA, hg))
   +hn = Equal.trans(Maybe<&2, V>, HT.nthm(~V, $EL, UD.v(su)), HT.nthm(~V, $EL, s), Some{v}, Equal.cong(Nat, Maybe<&2, V>, z => HT.nthm(~V, $EL, z), UD.v(su), s, hsv), hm)
-  +hx = L.subst(Maybe<&2, V>, z => {SC.nth(Maybe<&2, V>, $EL, UD.v(su)) == Some{z} : Maybe<&2, Maybe<&2, V>>}, HT.nthm(~V, $EL, UD.v(su)), Some{v}, hn, HT.nthm_some(~V, $EL, UD.v(su), MT.len_of(Maybe<&2, V>, sd, eT, $G(cpe), UD.v(su), hsu)))
+  +hx = L.subst(Maybe<&2, V>, z => {SC.nth(Maybe<&2, V>, $EL, UD.v(su)) == Some{z} : Maybe<&2, Maybe<&2, V>>}, HT.nthm(~V, $EL, UD.v(su)), Some{v}, hn, HT.nthm_some(~V, $EL, UD.v(su), UT.len_of(Maybe<&2, V>, sd, eT, $G(cpe), UD.v(su), hsu)))
   +eg = AR.get(Maybe<&2, V>, sd, eT, su, Some{v}, hd, hsu, hx, $G(cpe))
   +E = Equal.cong(Array<Maybe<&2, V>> & Maybe<&2, V>, LR.LRU<&2, V> & Maybe<&2, V>, r => LR.rd_v(V, cap, n, head, tail, free, AR.thaw(U32, mT), AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(U32, lkT), su, tracked, r), Array.get(Maybe<&2, V>, AR.thaw(Maybe<&2, V>, eT), su), (AR.thaw(Maybe<&2, V>, eT), Some{v}), eg)
   L.subst(LR.LRU<&2, V> & Maybe<&2, V>, z => RM.POK(~V, Maybe<&2, V>, $LIVE(tracked), z), LR.rd_live(&2, V, $F, su, tracked, v), LR.rd_live_f(V, $F, su, tracked), Equal.sym(LR.LRU<&2, V> & Maybe<&2, V>, LR.rd_live_f(V, $F, su, tracked), LR.rd_live(&2, V, $F, su, tracked, v), E), rd_lv(~V, $SHA, hg, key, now, tracked, $HPA))
@@ -168,8 +169,8 @@ def rd_ex2(~V: Data, $SHF, $RP, $HP, -r: LR.LRU<&2, V> & Maybe<&2, V>, pk: RM.PO
 
 # an expired entry: removed, then read as a miss
 def rd_ex(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $RP, $HP, $RHX) -> RM.POK(~V, Maybe<&2, V>, $EXP, LR.rd_expire(&2, V, $F, su, U32.from_nat(i), tracked)):
-  +em6 = A.eq_of(TB.nth0($ML, 6n), CY.msk(k), $G(cmask))
-  +g6 = Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), TB.nth0($ML, 6n)), (AR.thaw(U32, mT), CY.msk(k)), MT.uget(5n, {==}, mT, $G(cpm), 6, {==}), Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, mT), z), TB.nth0($ML, 6n), CY.msk(k), em6))
+  +em6 = A.eq_of(W32.nth0($ML, 6n), CY.msk(k), $G(cmask))
+  +g6 = Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), W32.nth0($ML, 6n)), (AR.thaw(U32, mT), CY.msk(k)), UT.uget(5n, {==}, mT, $G(cpm), 6, {==}), Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, mT), z), W32.nth0($ML, 6n), CY.msk(k), em6))
   +E = Equal.cong(Array<U32> & U32, LR.LRU<&2, V> & Maybe<&2, V>, r => LR.rd_exp_m(&2, V, cap, n, head, tail, free, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), su, U32.from_nat(i), tracked, r), Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), CY.msk(k)), g6)
   ok = rd_ex2(~V, $SHA, key, now, tracked, $HPA, LR.drop_slot(&2, V, $F0($DT), su, 2), RM.rm_at_rm(~V, cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl, hg, s, hmem, one, h1, i, hi, hoi, hsi, su, hsv, v, hm, key, hk))
   L.subst(LR.LRU<&2, V> & Maybe<&2, V>, z => RM.POK(~V, Maybe<&2, V>, $EXP, z), LR.rd_gone(&2, V, tracked, LR.drop_slot(&2, V, $F0($DT), su, 2)), LR.rd_expire(&2, V, $F, su, U32.from_nat(i), tracked), Equal.sym(LR.LRU<&2, V> & Maybe<&2, V>, LR.rd_expire(&2, V, $F, su, U32.from_nat(i), tracked), LR.rd_gone(&2, V, tracked, LR.drop_slot(&2, V, $F0($DT), su, 2)), E), ok)
@@ -200,7 +201,7 @@ def lnz(+sd: Nat, +key: String, +b: B.Bk, +hw: {B.wb(sd, b) == True{} : Bool}, +
 %def RFD(x) LR.rd_fd(V, cap, n, head, tail, free, AR.thaw(U32, mT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), now, tracked, x)
 %def HOME UD.v(HS.bucket(K.kword(key), CY.msk(k)))
 
-def rd_v0(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $RP, +one: Nat, +h1: {one == 1n : Nat}, +s: Nat, +hmem: {HT.memn(s, sl) == True{} : Bool}, +su: U32, +hsv: {UD.v(su) == s : Nat}, +hk: {S.str_eq(ST.skey($LLo, $KL, s), key) == True{} : Bool}, $RHX, +m: Maybe<&2, V>, +hmm: {HT.nthm(~V, $EL, s) == m : Maybe<&2, V>}, +hsm: {HT.some_b(~V, m) == True{} : Bool}) -> RM.POK(~V, Maybe<&2, V>, $RF(SP.find(~V, $ES, key)), LR.rd_hit(V, $F, su, U32.from_nat(i), now, tracked)):
+def rd_v0(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $RP, +one: Nat, +h1: {one == 1n : Nat}, +s: Nat, +hmem: {NL.memn(s, sl) == True{} : Bool}, +su: U32, +hsv: {UD.v(su) == s : Nat}, +hk: {S.str_eq(ST.skey($LLo, $KL, s), key) == True{} : Bool}, $RHX, +m: Maybe<&2, V>, +hmm: {HT.nthm(~V, $EL, s) == m : Maybe<&2, V>}, +hsm: {HT.some_b(~V, m) == True{} : Bool}) -> RM.POK(~V, Maybe<&2, V>, $RF(SP.find(~V, $ES, key)), LR.rd_hit(V, $F, su, U32.from_nat(i), now, tracked)):
   match m:
     case None{}:
       Empty.absurd(RM.POK(~V, Maybe<&2, V>, $RF(SP.find(~V, $ES, key)), LR.rd_hit(V, $F, su, U32.from_nat(i), now, tracked)), L.false_true(hsm))
@@ -218,7 +219,7 @@ def rd_hi(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $RP, +one: N
   +hz = L.subst(U32, z => {U32.is_eq(z, 0) == False{} : Bool}, B.lnk($Bi), l, hl, lnz(sd, key, $Bi, hwb, hk0))
   +hsi = Equal.cong(U32, Nat, z => UD.v(H.slot(z)), B.lnk($Bi), l, hl)
   +hbl = TF.bsl_inst($BS, sl, $LLo, $NN, $G(cbsl), i, hi)
-  +hmem = L.subst(Nat, z => {HT.memn(z, sl) == True{} : Bool}, UD.v(H.slot(B.lnk($Bi))), $Si, hsi, TF.hit_mem(sl, $LLo, key, $Bi, hk0, hbl))
+  +hmem = L.subst(Nat, z => {NL.memn(z, sl) == True{} : Bool}, UD.v(H.slot(B.lnk($Bi))), $Si, hsi, TF.hit_mem(sl, $LLo, key, $Bi, hk0, hbl))
   +hk = L.subst(Nat, z => {S.str_eq(ST.skey($LLo, $KL, z), key) == True{} : Bool}, UD.v(H.slot(B.lnk($Bi))), $Si, hsi, TF.hit_key(sl, $LLo, $KL, key, $Bi, hk0, hbl, TF.bkok_at(AR.slots(U32, tabT), $KL, $NN, i, hi)))
   +hls = TF.slok_mem(~V, $EL, $FR, $Si, sl, $G(csl), hmem)
   ok = rd_v0(~V, $SHA, hg, key, now, tracked, one, h1, $Si, hmem, H.slot(l), {==}, hk, i, hi, B.hold_occ(key, $Bi, hk0), hsi, HT.nthm(~V, $EL, $Si), {==}, L.and_right(Nat.is_lt($Si, $FR), ST.live(~V, $EL, $Si), hls))
@@ -244,7 +245,7 @@ def rd_r(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $RP, +one: Na
 %def PB H.probe(AR.thaw(U32, tabT), AR.thaw(String, ksT), CY.msk(k), key)
 %def RFN(x) LR.rd_found(V, cap, n, head, tail, free, AR.thaw(U32, mT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), now, tracked, x)
 %def RFz(z) SP.read_found(~V, cap, $M3, $W4, ST.es(~V, $LLo, z, $EL, sl), $CTR, key, now, tracked, SP.find(~V, ST.es(~V, $LLo, z, $EL, sl), key))
-%def GFz(z, p) ST.goodF(~V, cap, n, head, tail, free, TB.nth0($ML, 0n), TB.nth0($ML, 1n), TB.nth0($ML, 2n), TB.nth0($ML, 6n), TB.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, z, p, eT, lkT, sl, fl)
+%def GFz(z, p) ST.goodF(~V, cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, z, p, eT, lkT, sl, fl)
 
 def rd_po(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $RP, +one: Nat, +h1: {one == 1n : Nat}, +r0: B.Res, hres: B.ResOK($BS, $NN, $HOME, key, r0), po: PA.ProbeOK(tabT, sd, $KL, PA.stored(key), K.kword(key), r0, $PB)) -> RM.POK(~V, Maybe<&2, V>, $RF(SP.find(~V, $ES, key)), $RFN($PB)):
   match po:
@@ -269,8 +270,8 @@ def read_sh(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $RP, +one:
   +hocc = L.subst(Nat, z => {Nat.is_lt(z, $NN) == True{} : Bool}, UD.v(n), IV.occn($BS, $NN), cn, BA.n_lt(~V, $SHA, hg))
   hres = G.res_e0($BS, $NN, hn, CY.msk(k), key, $HOME, PA.home_lt(K.kword(key), k), $G(cclus), IV.home_all($BS, sd, CY.msk(k), key, $NN, $G(cwell), $NN, N.le_refl($NN)), IV.find_empty($BS, $NN, hocc))
   ok = rd_po(~V, $SHA, hg, key, now, tracked, one, h1, $R0, hres, PA.probe_ok(one, h1, k, hk31, tabT, $G(cpt), sd, hsd32, $KL, ksT, {==}, $G(cpk), $G(cwell), key))
-  +em6 = A.eq_of(TB.nth0($ML, 6n), CY.msk(k), $G(cmask))
-  +g6 = Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), TB.nth0($ML, 6n)), (AR.thaw(U32, mT), CY.msk(k)), MT.uget(5n, {==}, mT, $G(cpm), 6, {==}), Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, mT), z), TB.nth0($ML, 6n), CY.msk(k), em6))
+  +em6 = A.eq_of(W32.nth0($ML, 6n), CY.msk(k), $G(cmask))
+  +g6 = Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), W32.nth0($ML, 6n)), (AR.thaw(U32, mT), CY.msk(k)), UT.uget(5n, {==}, mT, $G(cpm), 6, {==}), Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, mT), z), W32.nth0($ML, 6n), CY.msk(k), em6))
   +E = Equal.cong(Array<U32> & U32, LR.LRU<&2, V> & Maybe<&2, V>, r => LR.rd_m(V, cap, n, head, tail, free, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), key, now, tracked, r), Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), CY.msk(k)), g6)
   L.subst(LR.LRU<&2, V> & Maybe<&2, V>, z => RM.POK(~V, Maybe<&2, V>, SP.read(~V, ST.model(~V, $SH), key, now, tracked), z), $RFN($PB), LR.read(V, $F, key, now, tracked), Equal.sym(LR.LRU<&2, V> & Maybe<&2, V>, LR.read(V, $F, key, now, tracked), $RFN($PB), E), ok)
 

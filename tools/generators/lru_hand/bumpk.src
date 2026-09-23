@@ -1,20 +1,14 @@
 import Base
-import ../lib/logic.bend as L
-import ../lib/nat.bend as N
 import ../lib/array.bend as AR
 import ../spec/common.bend as SC
 import ../spec/lru.bend as SP
-import ../math/u32div.bend as UD
-import ../../src/math/u64.bend as W
 import ../../src/containers/lru.bend as LR
-import ../hash_table/table.bend as TB
 import ./state.bend as ST
-import ./meta.bend as MT
 import ./basic.bend as BA
 import ./bump.bend as BU
-import ../hash_table/insa.bend as IA
 
 import ./bumpsh.bend as BS
+import ../lib/words32.bend as W32
 
 # The counts on the shadow, keeping the table's bit count k.
 
@@ -38,4 +32,4 @@ def count_evk(~V: Data, $SHF, +hg: {ST.good(~V, $SHM(mT)) == True{} : Bool}, bo:
       +e3 = $KQ_ev(3n)
       +e4 = BA.w64_eq($ML2, $ML, 4n, $KQ_ev(4n), $KQ_ev(5n))
       +ec = BA.ct5(ST.w64($ML2, 16n), ST.w64($ML2, 18n), ST.w64($ML2, 20n), ST.w64($ML2, 22n), ST.w64($ML2, 24n), ST.w64($ML, 16n), SP.inc64(ST.w64($ML, 18n)), ST.w64($ML, 20n), ST.w64($ML, 22n), ST.w64($ML, 24n), BA.w64_eq($ML2, $ML, 16n, $KQ_ev(16n), $KQ_ev(17n)), ew, BA.w64_eq($ML2, $ML, 20n, $KQ_ev(20n), $KQ_ev(21n)), BA.w64_eq($ML2, $ML, 22n, $KQ_ev(22n), $KQ_ev(23n)), BA.w64_eq($ML2, $ML, 24n, $KQ_ev(24n), $KQ_ev(25n)))
-      ($SHM(m2), (er, (BA.lru_eq(~V, cap, TB.nth0($ML2, 3n), $M(3n), ST.w64($ML2, 4n), ST.w64($ML, 4n), $ES, $ES, ST.ctr($ML2), SP.c_ev(ST.ctr($ML)), e3, e4, {==}, ec), (g, {==}))))
+      ($SHM(m2), (er, (BA.lru_eq(~V, cap, W32.nth0($ML2, 3n), $M(3n), ST.w64($ML2, 4n), ST.w64($ML, 4n), $ES, $ES, ST.ctr($ML2), SP.c_ev(ST.ctr($ML)), e3, e4, {==}, ec), (g, {==}))))

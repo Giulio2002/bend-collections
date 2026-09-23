@@ -12,13 +12,6 @@ import ../../src/containers/doubly_linked_list.bend as D
 import ../../src/containers/internal/dlist_storage.bend as R
 import ../../src/containers/types/internal_dlist.bend as I
 import ../../src/containers/types/doubly_linked_list.bend as E
-import ../hash_table/state.bend as HT
-import ../hash_table/table.bend as TB
-import ../hash_table/insa.bend as IA
-import ../lru/state.bend as LST
-import ../lru/meta.bend as MT
-import ../lru/lists.bend as LS
-import ../lru/dll.bend as DL
 import ./state.bend as ST
 import ./links.bend as LK
 import ./rel.bend as RL
@@ -27,7 +20,10 @@ import ./lv.bend as LV
 import ./link.bend as LN
 import ./insg.bend as IG
 import ./ok.bend as OK
-import ./insp.bend as IP
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LKx
+import ../lib/words32.bend as W32
+import ../lib/u32_tree.bend as UT
 
 # Removal of a live element: unlinked from between its neighbours, its value
 # dropped, and its id either retired (generation exhausted) or pushed on the
@@ -35,8 +31,8 @@ import ./insp.bend as IP
 
 %def APN(a, b) SC.append(Nat, a, b)
 %def MT Maybe<&2, T>
-%def PP LST.last_or(a, 0)
-%def QQ LST.fst_or(b, 0)
+%def PP LKx.last_or(a, 0)
+%def QQ LKx.fst_or(b, 0)
 %def VL AR.slots($MT, vT)
 %def PL AR.slots(U32, pT)
 %def NL AR.slots(U32, nT)
@@ -61,26 +57,26 @@ import ./insp.bend as IP
 
 # ---- the specification's delete ----
 
-def del_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +h: {HT.memn(s, a) == False{} : Bool}) -> {S.delete($APN(a, Con{s, b}), s) == $APN(a, b) : List<&2, Nat>}:
+def del_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +h: {NL.memn(s, a) == False{} : Bool}) -> {S.delete($APN(a, Con{s, b}), s) == $APN(a, b) : List<&2, Nat>}:
   match a:
     case Nil{}:
       Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, b, Con{s, S.delete(b, s)}), Nat.is_eq(s, s), True{}, N.is_eq_refl(s))
     case Con{+x, +t}:
-      +e0 = Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, $APN(t, Con{s, b}), Con{x, S.delete($APN(t, Con{s, b}), s)}), Nat.is_eq(x, s), False{}, DL.or_ff_l(Nat.is_eq(x, s), HT.memn(s, t), h))
-      Equal.trans(List<&2, Nat>, S.delete($APN(Con{x, t}, Con{s, b}), s), Con{x, S.delete($APN(t, Con{s, b}), s)}, Con{x, $APN(t, b)}, e0, LL.cons_cong(Nat, x, S.delete($APN(t, Con{s, b}), s), $APN(t, b), del_mid(t, s, b, DL.or_ff_r(Nat.is_eq(x, s), HT.memn(s, t), h))))
+      +e0 = Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, $APN(t, Con{s, b}), Con{x, S.delete($APN(t, Con{s, b}), s)}), Nat.is_eq(x, s), False{}, NL.or_ff_l(Nat.is_eq(x, s), NL.memn(s, t), h))
+      Equal.trans(List<&2, Nat>, S.delete($APN(Con{x, t}, Con{s, b}), s), Con{x, S.delete($APN(t, Con{s, b}), s)}, Con{x, $APN(t, b)}, e0, LL.cons_cong(Nat, x, S.delete($APN(t, Con{s, b}), s), $APN(t, b), del_mid(t, s, b, NL.or_ff_r(Nat.is_eq(x, s), NL.memn(s, t), h))))
 
 # ---- facts of the removed state ----
 
-def s_in(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>) -> $TR(HT.memn(s, $APN(a, Con{s, b}))):
-  LS.mem_app_r(s, a, Con{s, b}, RL.self_in(s, b))
+def s_in(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>) -> $TR(NL.memn(s, $APN(a, Con{s, b}))):
+  NL.mem_app_r(s, a, Con{s, b}, RL.self_in(s, b))
 
-def s_off(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +hn: $TR(LST.nodupn($APN(a, Con{s, b})))) -> {HT.memn(s, $APN(a, b)) == False{} : Bool}:
-  +h = RL.to_eq(LST.nodupn($APN(a, Con{s, b})), Bool.and(LST.nodupn($APN(a, b)), Bool.not(HT.memn(s, $APN(a, b)))), LS.nd_mid(a, s, b), hn)
-  LS.not_t_f(HT.memn(s, $APN(a, b)), L.and_right(LST.nodupn($APN(a, b)), Bool.not(HT.memn(s, $APN(a, b))), h))
+def s_off(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +hn: $TR(NL.nodupn($APN(a, Con{s, b})))) -> {NL.memn(s, $APN(a, b)) == False{} : Bool}:
+  +h = RL.to_eq(NL.nodupn($APN(a, Con{s, b})), Bool.and(NL.nodupn($APN(a, b)), Bool.not(NL.memn(s, $APN(a, b)))), NL.nd_mid(a, s, b), hn)
+  NL.not_t_f(NL.memn(s, $APN(a, b)), L.and_right(NL.nodupn($APN(a, b)), Bool.not(NL.memn(s, $APN(a, b))), h))
 
-def nd_rm(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +hn: $TR(LST.nodupn($APN(a, Con{s, b})))) -> $TR(LST.nodupn($APN(a, b))):
-  +h = RL.to_eq(LST.nodupn($APN(a, Con{s, b})), Bool.and(LST.nodupn($APN(a, b)), Bool.not(HT.memn(s, $APN(a, b)))), LS.nd_mid(a, s, b), hn)
-  L.and_left(LST.nodupn($APN(a, b)), Bool.not(HT.memn(s, $APN(a, b))), h)
+def nd_rm(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +hn: $TR(NL.nodupn($APN(a, Con{s, b})))) -> $TR(NL.nodupn($APN(a, b))):
+  +h = RL.to_eq(NL.nodupn($APN(a, Con{s, b})), Bool.and(NL.nodupn($APN(a, b)), Bool.not(NL.memn(s, $APN(a, b)))), NL.nd_mid(a, s, b), hn)
+  L.and_left(NL.nodupn($APN(a, b)), Bool.not(NL.memn(s, $APN(a, b))), h)
 
 def s_live(~T: Data, $RP) -> $TR(Bool.and(Nat.is_lt($SS, $FV), ST.live(T, $VL, $SS))):
   RL.slok_mem(~T, $SS, $SL, $FV, $VL, $G(csl), s_in(a, $SS, b))
@@ -121,7 +117,7 @@ def rg_fll(~T: Data, $RP) -> $TR(ST.fll(AR.slots(U32, $NR), fl)):
   +h0 = RL.by_eq(ST.fll($NL2, fl), ST.fll($NL, fl), RL.fll_lfn($NL, a, $QQ, fl, LV.lin_vac(~T, a, Con{$SS, b}, $FV, $VL, fl, $G(csl), $G(cfl))), $G(cfll))
   L.subst(List<&2, U32>, z => {ST.fll(z, fl) == True{} : Bool}, $NL2, AR.slots(U32, $NR), Equal.sym(List<&2, U32>, AR.slots(U32, $NR), $NL2, slots_nr(~T, $RA)), h0)
 
-def s_nf(~T: Data, $RP) -> {HT.memn($SS, fl) == False{} : Bool}:
+def s_nf(~T: Data, $RP) -> {NL.memn($SS, fl) == False{} : Bool}:
   RL.live_nf(~T, $SS, fl, $FV, $VL, L.and_right(Nat.is_lt($SS, $FV), ST.live(T, $VL, $SS), s_live(~T, $RA)), $G(cfl))
 
 def vslots(~T: Data, $RP) -> {AR.slots($MT, $VR) == $VL2 : List<&2, $MT>}:
@@ -146,7 +142,7 @@ def rg_fl(~T: Data, $RP) -> $TR(ST.flok(~T, fl, $FV, AR.slots($MT, $VR))):
 # ---- the storage's remove ----
 
 %def RAW0 R.DL{tag, fresh, free, SC.length(Nat, $SL), head, tail, depth, cap, AR.thaw($MT, vT), AR.thaw(U32, pT), AR.thaw(U32, nT)}
-%def RAWR R.DL{tag, fresh, free, SC.length(Nat, $SL2), LST.fst_or($SL2, 0), LST.last_or($SL2, 0), depth, cap, AR.thaw($MT, $VR), AR.thaw(U32, $PR), AR.thaw(U32, $NR)}
+%def RAWR R.DL{tag, fresh, free, SC.length(Nat, $SL2), LKx.fst_or($SL2, 0), LKx.last_or($SL2, 0), depth, cap, AR.thaw($MT, $VR), AR.thaw(U32, $PR), AR.thaw(U32, $NR)}
 %def RC(c1, c2) R.remove_checked(~T, c1, tag, fresh, free, SC.length(Nat, $SL), head, tail, depth, cap, AR.thaw($MT, vT), AR.thaw(U32, pT), AR.thaw(U32, nT), id, c2)
 %def RF(r) R.rm_found(~T, tag, fresh, free, SC.length(Nat, $SL), head, tail, depth, cap, AR.thaw(U32, pT), AR.thaw(U32, nT), id, r)
 %def RLK(p, n) R.rm_links(~T, tag, fresh, free, SC.length(Nat, $SL), head, tail, depth, cap, Array.set($MT, AR.thaw($MT, vT), id, None{}), vv, p, n)
@@ -166,12 +162,12 @@ def rm_raw(~T: Data, $RP, +owner: U32, +ho: {U32.is_eq(owner, tag) == True{} : B
   +c4 = Equal.cong($MT, $RR, z => $RF((AR.thaw($MT, vT), z)), S.val_of(T, $VL, $SS), Some{vv}, hv)
   +ep = RL.unl_p($PL, $NL, a, $SS, b, $G(cseg))
   +en = RL.unl_n($PL, $NL, a, $SS, b, $G(cseg))
-  +c5 = Equal.cong(Array<U32> & U32, $RR, z => $RLK(z, Array.get(U32, AR.thaw(U32, nT), id)), Array.get(U32, AR.thaw(U32, pT), id), (AR.thaw(U32, pT), $PP), Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, pT), id), (AR.thaw(U32, pT), TB.nth0($PL, $SS)), (AR.thaw(U32, pT), $PP), MT.uget(depth, RL.hd0(depth, hd), pT, $G(cpp), id, hs), Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, pT), z), TB.nth0($PL, $SS), $PP, ep)))
-  +c6 = Equal.cong(Array<U32> & U32, $RR, z => $RLK((AR.thaw(U32, pT), $PP), z), Array.get(U32, AR.thaw(U32, nT), id), (AR.thaw(U32, nT), $QQ), Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, nT), id), (AR.thaw(U32, nT), TB.nth0($NL, $SS)), (AR.thaw(U32, nT), $QQ), MT.uget(depth, RL.hd0(depth, hd), nT, $G(cpn), id, hs), Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, nT), z), TB.nth0($NL, $SS), $QQ, en)))
+  +c5 = Equal.cong(Array<U32> & U32, $RR, z => $RLK(z, Array.get(U32, AR.thaw(U32, nT), id)), Array.get(U32, AR.thaw(U32, pT), id), (AR.thaw(U32, pT), $PP), Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, pT), id), (AR.thaw(U32, pT), W32.nth0($PL, $SS)), (AR.thaw(U32, pT), $PP), UT.uget(depth, RL.hd0(depth, hd), pT, $G(cpp), id, hs), Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, pT), z), W32.nth0($PL, $SS), $PP, ep)))
+  +c6 = Equal.cong(Array<U32> & U32, $RR, z => $RLK((AR.thaw(U32, pT), $PP), z), Array.get(U32, AR.thaw(U32, nT), id), (AR.thaw(U32, nT), $QQ), Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, nT), id), (AR.thaw(U32, nT), W32.nth0($NL, $SS)), (AR.thaw(U32, nT), $QQ), UT.uget(depth, RL.hd0(depth, hd), nT, $G(cpn), id, hs), Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, nT), z), W32.nth0($NL, $SS), $QQ, en)))
   +hfb = RL.fstlt_of(~T, b, $FV, $VL, SC.pow2(depth), fr2d(~T, $RA), b_ok(~T, $RA))
   +hla = RL.lastlt_of(~T, a, $FV, $VL, SC.pow2(depth), fr2d(~T, $RA), a_ok(~T, $RA))
   +ec = Equal.trans(Nat, Nat.sub(SC.length(Nat, $SL), 1n), Nat.sub(1n+SC.length(Nat, $SL2), 1n), SC.length(Nat, $SL2), Equal.cong(Nat, Nat, z => Nat.sub(z, 1n), SC.length(Nat, $SL), 1n+SC.length(Nat, $SL2), LN.len_mid(a, $SS, b)), sub1(SC.length(Nat, $SL2)))
-  +e7 = LN.dl_eq(T, tag, fresh, free, Nat.sub(SC.length(Nat, $SL), 1n), SC.length(Nat, $SL2), R.pick_end(U32.is_eq($PP, 0), $QQ, head), LST.fst_or($SL2, 0), R.pick_end(U32.is_eq($QQ, 0), $PP, tail), LST.last_or($SL2, 0), depth, cap, Array.set($MT, AR.thaw($MT, vT), id, None{}), $VR, R.set_next(AR.thaw(U32, pT), $QQ, $PP), $PR, R.set_next(AR.thaw(U32, nT), $PP, $QQ), $NR, ec, LN.hd_rm(one, h1, depth, hd, a, $SS, b, head, $G(chead), hla), LN.tl_rm(one, h1, depth, hd, a, $SS, b, tail, $G(ctail), hfb), LN.vset(T, depth, hd, vT, $G(cpv), id, hs, None{}), RL.sn_first(one, h1, depth, hd, pT, $G(cpp), b, hfb, $PP), RL.sn_last(one, h1, depth, hd, nT, $G(cpn), a, hla, $QQ))
+  +e7 = LN.dl_eq(T, tag, fresh, free, Nat.sub(SC.length(Nat, $SL), 1n), SC.length(Nat, $SL2), R.pick_end(U32.is_eq($PP, 0), $QQ, head), LKx.fst_or($SL2, 0), R.pick_end(U32.is_eq($QQ, 0), $PP, tail), LKx.last_or($SL2, 0), depth, cap, Array.set($MT, AR.thaw($MT, vT), id, None{}), $VR, R.set_next(AR.thaw(U32, pT), $QQ, $PP), $PR, R.set_next(AR.thaw(U32, nT), $PP, $QQ), $NR, ec, LN.hd_rm(one, h1, depth, hd, a, $SS, b, head, $G(chead), hla), LN.tl_rm(one, h1, depth, hd, a, $SS, b, tail, $G(ctail), hfb), LN.vset(T, depth, hd, vT, $G(cpv), id, hs, None{}), RL.sn_first(one, h1, depth, hd, pT, $G(cpp), b, hfb, $PP), RL.sn_last(one, h1, depth, hd, nT, $G(cpn), a, hla, $QQ))
   +c7 = Equal.cong(R.DList<T>, $RR, r => (r, Done{vv}), R.DL{tag, fresh, free, Nat.sub(SC.length(Nat, $SL), 1n), R.pick_end(U32.is_eq($PP, 0), $QQ, head), R.pick_end(U32.is_eq($QQ, 0), $PP, tail), depth, cap, Array.set($MT, AR.thaw($MT, vT), id, None{}), R.set_next(AR.thaw(U32, pT), $QQ, $PP), R.set_next(AR.thaw(U32, nT), $PP, $QQ)}, $RAWR, e7)
   Equal.trans($RR, R.remove(~T, $RAW0, I.H{owner, id}), $RC(True{}, U32.is_eq(owner, tag)), ($RAWR, Done{vv}), c1, Equal.trans($RR, $RC(True{}, U32.is_eq(owner, tag)), $RF(Array.get($MT, AR.thaw($MT, vT), id)), ($RAWR, Done{vv}), c2, Equal.trans($RR, $RF(Array.get($MT, AR.thaw($MT, vT), id)), $RF((AR.thaw($MT, vT), S.val_of(T, $VL, $SS))), ($RAWR, Done{vv}), c3, Equal.trans($RR, $RF((AR.thaw($MT, vT), S.val_of(T, $VL, $SS))), $RLK(Array.get(U32, AR.thaw(U32, pT), id), Array.get(U32, AR.thaw(U32, nT), id)), ($RAWR, Done{vv}), c4, Equal.trans($RR, $RLK(Array.get(U32, AR.thaw(U32, pT), id), Array.get(U32, AR.thaw(U32, nT), id)), $RLK((AR.thaw(U32, pT), $PP), Array.get(U32, AR.thaw(U32, nT), id)), ($RAWR, Done{vv}), c5, Equal.trans($RR, $RLK((AR.thaw(U32, pT), $PP), Array.get(U32, AR.thaw(U32, nT), id)), $RLK((AR.thaw(U32, pT), $PP), (AR.thaw(U32, nT), $QQ)), ($RAWR, Done{vv}), c6, c7))))))
 
@@ -182,15 +178,15 @@ def rm_raw(~T: Data, $RP, +owner: U32, +ho: {U32.is_eq(owner, tag) == True{} : B
 %def OV E.OVal{Done{vv}}
 %def SPR(g) S.removed(T, tag, $SL, $VLF, $SS, vv, S.retire($GLF, $SS, fl, g, U32.is_eq(g, $MAX)))
 %def IMR(c) D.retire(~T, tag, depth, cap, $RAWR, AR.thaw(U32, gT), id, generation, vv, c)
-%def SHX ST.LS{tag, cap, fresh, free, LST.fst_or($SL2, 0), LST.last_or($SL2, 0), depth, $VR, $PR, $NR, gT, $SL2, fl}
+%def SHX ST.LS{tag, cap, fresh, free, LKx.fst_or($SL2, 0), LKx.last_or($SL2, 0), depth, $VR, $PR, $NR, gT, $SL2, fl}
 %def NR3 AR.upd(U32, depth, $NR, $SS, free)
 %def GR3 AR.upd(U32, depth, gT, $SS, U32.inc(generation))
-%def SHR ST.LS{tag, cap, fresh, LST.lnk($SS), LST.fst_or($SL2, 0), LST.last_or($SL2, 0), depth, $VR, $PR, $NR3, $GR3, $SL2, Con{$SS, fl}}
-%def XP +owner: U32, +ho: {U32.is_eq(owner, tag) == True{} : Bool}, +generation: U32, +hgen: {generation == TB.nth0($GL, $SS) : U32}, +vv: T, +hv: {S.val_of(T, $VL, $SS) == Some{vv} : $MT}
+%def SHR ST.LS{tag, cap, fresh, LKx.lnk($SS), LKx.fst_or($SL2, 0), LKx.last_or($SL2, 0), depth, $VR, $PR, $NR3, $GR3, $SL2, Con{$SS, fl}}
+%def XP +owner: U32, +ho: {U32.is_eq(owner, tag) == True{} : Bool}, +generation: U32, +hgen: {generation == W32.nth0($GL, $SS) : U32}, +vv: T, +hv: {S.val_of(T, $VL, $SS) == Some{vv} : $MT}
 %def XA owner, ho, generation, hgen, vv, hv
 
 def del_eq(~T: Data, $RP) -> {S.delete($SL, $SS) == $SL2 : List<&2, Nat>}:
-  del_mid(a, $SS, b, LS.nd_dj(a, Con{$SS, b}, $G(cnd), $SS, RL.self_in($SS, b)))
+  del_mid(a, $SS, b, NL.nd_dj(a, Con{$SS, b}, $G(cnd), $SS, RL.self_in($SS, b)))
 
 def vals_eq(~T: Data, $RP) -> {SC.update($MT, $VLF, $SS, None{}) == SC.take($MT, AR.slots($MT, $VR), $FV) : List<&2, $MT>}:
   Equal.trans(List<&2, $MT>, SC.update($MT, $VLF, $SS, None{}), SC.take($MT, $VL2, $FV), SC.take($MT, AR.slots($MT, $VR), $FV), Equal.sym(List<&2, $MT>, SC.take($MT, $VL2, $FV), SC.update($MT, $VLF, $SS, None{}), LL.sc_take_update($MT, $VL, $SS, None{}, $FV)), Equal.cong(List<&2, $MT>, List<&2, $MT>, z => SC.take($MT, z, $FV), $VL2, AR.slots($MT, $VR), Equal.sym(List<&2, $MT>, AR.slots($MT, $VR), $VL2, vslots(~T, $RA))))
@@ -203,21 +199,21 @@ def rm_ex(~T: Data, $RP, $XP, +hc: {U32.is_eq(generation, $MAX) == True{} : Bool
   +es = Equal.trans(S.DS<T> & $OB, $SPR(generation), (S.DS{tag, S.delete($SL, $SS), SC.update($MT, $VLF, $SS, None{}), $GLF, fl}, $OV), (ST.model(~T, $SHX), $OV), es0, Equal.trans(S.DS<T> & $OB, (S.DS{tag, S.delete($SL, $SS), SC.update($MT, $VLF, $SS, None{}), $GLF, fl}, $OV), (S.DS{tag, $SL2, SC.update($MT, $VLF, $SS, None{}), $GLF, fl}, $OV), (ST.model(~T, $SHX), $OV), q1, q2))
   +hfb = RL.fstlt_of(~T, b, $FV, $VL, SC.pow2(depth), fr2d(~T, $RA), b_ok(~T, $RA))
   +hla = RL.lastlt_of(~T, a, $FV, $VL, SC.pow2(depth), fr2d(~T, $RA), a_ok(~T, $RA))
-  +hgd = ST.good_intro(~T, tag, cap, fresh, free, LST.fst_or($SL2, 0), LST.last_or($SL2, 0), depth, $VR, $PR, $NR, gT, $SL2, fl, $G(cdep), $G(ccap), AR.upd_perfect($MT, depth, vT, $SS, None{}, $G(cpv)), RL.tf_p(depth, pT, $G(cpp), b, $PP), RL.tl_p(depth, nT, $G(cpn), a, $QQ), $G(cpg), $G(cfr), rg_seg(~T, $RA), DL.u_refl(LST.fst_or($SL2, 0)), DL.u_refl(LST.last_or($SL2, 0)), nd_rm(a, $SS, b, $G(cnd)), rg_sl(~T, $RA), $G(cfree), rg_fll(~T, $RA), rg_fl(~T, $RA), $G(cfnd), $G(cgz), rg_lv(~T, $RA))
+  +hgd = ST.good_intro(~T, tag, cap, fresh, free, LKx.fst_or($SL2, 0), LKx.last_or($SL2, 0), depth, $VR, $PR, $NR, gT, $SL2, fl, $G(cdep), $G(ccap), AR.upd_perfect($MT, depth, vT, $SS, None{}, $G(cpv)), RL.tf_p(depth, pT, $G(cpp), b, $PP), RL.tl_p(depth, nT, $G(cpn), a, $QQ), $G(cpg), $G(cfr), rg_seg(~T, $RA), LKx.u_refl(LKx.fst_or($SL2, 0)), LKx.u_refl(LKx.last_or($SL2, 0)), nd_rm(a, $SS, b, $G(cnd)), rg_sl(~T, $RA), $G(cfree), rg_fll(~T, $RA), rg_fl(~T, $RA), $G(cfnd), $G(cgz), rg_lv(~T, $RA))
   ($SHX, ($OV, ({==}, (es, hgd))))
 
-%def RCY R.DL{tag, fresh, R.link(id), SC.length(Nat, $SL2), LST.fst_or($SL2, 0), LST.last_or($SL2, 0), depth, cap, AR.thaw($MT, $VR), AR.thaw(U32, $PR), Array.set(U32, AR.thaw(U32, $NR), id, free)}
-%def WR(fe, nx, gs) (D.DL{tag, depth, cap, R.DL{tag, fresh, fe, SC.length(Nat, $SL2), LST.fst_or($SL2, 0), LST.last_or($SL2, 0), depth, cap, AR.thaw($MT, $VR), AR.thaw(U32, $PR), nx}, gs}, $OV)
+%def RCY R.DL{tag, fresh, R.link(id), SC.length(Nat, $SL2), LKx.fst_or($SL2, 0), LKx.last_or($SL2, 0), depth, cap, AR.thaw($MT, $VR), AR.thaw(U32, $PR), Array.set(U32, AR.thaw(U32, $NR), id, free)}
+%def WR(fe, nx, gs) (D.DL{tag, depth, cap, R.DL{tag, fresh, fe, SC.length(Nat, $SL2), LKx.fst_or($SL2, 0), LKx.last_or($SL2, 0), depth, cap, AR.thaw($MT, $VR), AR.thaw(U32, $PR), nx}, gs}, $OV)
 %def NRS AR.slots(U32, $NR)
 
 def rc_fll(~T: Data, $RP) -> $TR(ST.fll(SC.update(U32, $NRS, $SS, free), Con{$SS, fl})):
   +hs = s_lt(~T, $RA)
   +ln = AR.slots_length(U32, depth, $NR, RL.tl_p(depth, nT, $G(cpn), a, $QQ))
-  +e0 = IA.nth0_upd_same($NRS, $SS, free, IG.len_is(U32, $NRS, SC.pow2(depth), ln, $SS, hs))
-  +ef = A.eq_of(free, LST.fst_or(fl, 0), $G(cfree))
-  +k0 = RL.u_is(TB.nth0(SC.update(U32, $NRS, $SS, free), $SS), LST.fst_or(fl, 0), Equal.trans(U32, TB.nth0(SC.update(U32, $NRS, $SS, free), $SS), free, LST.fst_or(fl, 0), e0, ef))
+  +e0 = W32.nth0_upd_same($NRS, $SS, free, IG.len_is(U32, $NRS, SC.pow2(depth), ln, $SS, hs))
+  +ef = A.eq_of(free, LKx.fst_or(fl, 0), $G(cfree))
+  +k0 = RL.u_is(W32.nth0(SC.update(U32, $NRS, $SS, free), $SS), LKx.fst_or(fl, 0), Equal.trans(U32, W32.nth0(SC.update(U32, $NRS, $SS, free), $SS), free, LKx.fst_or(fl, 0), e0, ef))
   +k1 = RL.by_eq(ST.fll(SC.update(U32, $NRS, $SS, free), fl), ST.fll($NRS, fl), LK.fll_fn($NRS, $SS, free, fl, s_nf(~T, $RA)), rg_fll(~T, $RA))
-  L.and_intro(U32.is_eq(TB.nth0(SC.update(U32, $NRS, $SS, free), $SS), LST.fst_or(fl, 0)), ST.fll(SC.update(U32, $NRS, $SS, free), fl), k0, k1)
+  L.and_intro(U32.is_eq(W32.nth0(SC.update(U32, $NRS, $SS, free), $SS), LKx.fst_or(fl, 0)), ST.fll(SC.update(U32, $NRS, $SS, free), fl), k0, k1)
 
 def rc_good(~T: Data, $RP, $XP) -> $TR(ST.good(~T, $SHR)):
   +hs = s_lt(~T, $RA)
@@ -226,11 +222,11 @@ def rc_good(~T: Data, $RP, $XP) -> $TR(ST.good(~T, $SHR)):
   +eg3 = AR.upd_slots(U32, depth, gT, $SS, U32.inc(generation), hs, $G(cpg))
   +hsg = L.subst(List<&2, U32>, z => {ST.seg(AR.slots(U32, $PR), z, $SL2, 0, 0) == True{} : Bool}, SC.update(U32, $NRS, $SS, free), AR.slots(U32, $NR3), Equal.sym(List<&2, U32>, AR.slots(U32, $NR3), SC.update(U32, $NRS, $SS, free), en3), RL.by_eq(ST.seg(AR.slots(U32, $PR), SC.update(U32, $NRS, $SS, free), $SL2, 0, 0), ST.seg(AR.slots(U32, $PR), $NRS, $SL2, 0, 0), LK.seg_fn(AR.slots(U32, $PR), $NRS, $SS, free, $SL2, 0, 0, s_off(a, $SS, b, $G(cnd))), rg_seg(~T, $RA)))
   +hfll = L.subst(List<&2, U32>, z => {ST.fll(z, Con{$SS, fl}) == True{} : Bool}, SC.update(U32, $NRS, $SS, free), AR.slots(U32, $NR3), Equal.sym(List<&2, U32>, AR.slots(U32, $NR3), SC.update(U32, $NRS, $SS, free), en3), rc_fll(~T, $RA))
-  +hl0 = L.subst(List<&2, $MT>, z => {Bool.not(ST.live(T, z, $SS)) == True{} : Bool}, $VL2, AR.slots($MT, $VR), Equal.sym(List<&2, $MT>, AR.slots($MT, $VR), $VL2, vslots(~T, $RA)), DL.not_f(ST.live(T, $VL2, $SS), LV.live_same(T, $VL, $SS, None{}, IG.len_is($MT, $VL, SC.pow2(depth), AR.slots_length($MT, depth, vT, $G(cpv)), $SS, hs))))
+  +hl0 = L.subst(List<&2, $MT>, z => {Bool.not(ST.live(T, z, $SS)) == True{} : Bool}, $VL2, AR.slots($MT, $VR), Equal.sym(List<&2, $MT>, AR.slots($MT, $VR), $VL2, vslots(~T, $RA)), NL.not_f(ST.live(T, $VL2, $SS), LV.live_same(T, $VL, $SS, None{}, IG.len_is($MT, $VL, SC.pow2(depth), AR.slots_length($MT, depth, vT, $G(cpv)), $SS, hs))))
   +hfl = L.and_intro(Bool.and(Nat.is_lt($SS, $FV), Bool.not(ST.live(T, AR.slots($MT, $VR), $SS))), ST.flok(~T, fl, $FV, AR.slots($MT, $VR)), L.and_intro(Nat.is_lt($SS, $FV), Bool.not(ST.live(T, AR.slots($MT, $VR), $SS)), L.and_left(Nat.is_lt($SS, $FV), ST.live(T, $VL, $SS), s_live(~T, $RA)), hl0), rg_fl(~T, $RA))
-  +hfnd = L.and_intro(Bool.not(HT.memn($SS, fl)), LST.nodupn(fl), DL.not_f(HT.memn($SS, fl), s_nf(~T, $RA)), $G(cfnd))
+  +hfnd = L.and_intro(Bool.not(NL.memn($SS, fl)), NL.nodupn(fl), NL.not_f(NL.memn($SS, fl), s_nf(~T, $RA)), $G(cfnd))
   +hgz = L.subst(List<&2, U32>, z => {ST.gz(z, $FV) == True{} : Bool}, SC.update(U32, $GL, $SS, U32.inc(generation)), AR.slots(U32, $GR3), Equal.sym(List<&2, U32>, AR.slots(U32, $GR3), SC.update(U32, $GL, $SS, U32.inc(generation)), eg3), VA.gz_upd($GL, $FV, $SS, U32.inc(generation), $G(cgz), L.and_left(Nat.is_lt($SS, $FV), ST.live(T, $VL, $SS), s_live(~T, $RA))))
-  ST.good_intro(~T, tag, cap, fresh, LST.lnk($SS), LST.fst_or($SL2, 0), LST.last_or($SL2, 0), depth, $VR, $PR, $NR3, $GR3, $SL2, Con{$SS, fl}, $G(cdep), $G(ccap), AR.upd_perfect($MT, depth, vT, $SS, None{}, $G(cpv)), RL.tf_p(depth, pT, $G(cpp), b, $PP), AR.upd_perfect(U32, depth, $NR, $SS, free, pn3), AR.upd_perfect(U32, depth, gT, $SS, U32.inc(generation), $G(cpg)), $G(cfr), hsg, DL.u_refl(LST.fst_or($SL2, 0)), DL.u_refl(LST.last_or($SL2, 0)), nd_rm(a, $SS, b, $G(cnd)), rg_sl(~T, $RA), DL.u_refl(LST.lnk($SS)), hfll, hfl, hfnd, hgz, rg_lv(~T, $RA))
+  ST.good_intro(~T, tag, cap, fresh, LKx.lnk($SS), LKx.fst_or($SL2, 0), LKx.last_or($SL2, 0), depth, $VR, $PR, $NR3, $GR3, $SL2, Con{$SS, fl}, $G(cdep), $G(ccap), AR.upd_perfect($MT, depth, vT, $SS, None{}, $G(cpv)), RL.tf_p(depth, pT, $G(cpp), b, $PP), AR.upd_perfect(U32, depth, $NR, $SS, free, pn3), AR.upd_perfect(U32, depth, gT, $SS, U32.inc(generation), $G(cpg)), $G(cfr), hsg, LKx.u_refl(LKx.fst_or($SL2, 0)), LKx.u_refl(LKx.last_or($SL2, 0)), nd_rm(a, $SS, b, $G(cnd)), rg_sl(~T, $RA), LKx.u_refl(LKx.lnk($SS)), hfll, hfl, hfnd, hgz, rg_lv(~T, $RA))
 
 # the id recycled: the next generation, the id on top of the free stack
 def rm_rc(~T: Data, $RP, $XP, +hc: {U32.is_eq(generation, $MAX) == False{} : Bool}) -> OK.POK(~T, $OB, $SPR(generation), $IMR(False{})):
@@ -238,10 +234,10 @@ def rm_rc(~T: Data, $RP, $XP, +hc: {U32.is_eq(generation, $MAX) == False{} : Boo
   +hs = s_lt(~T, $RA)
   +el = Equal.cong(U32, U32, z => U32.inc(z), id, U32.from_nat($SS), Equal.sym(U32, U32.from_nat($SS), id, LN.fn_of(id, depth, N.lt_le(depth, 32n, RL.hd0(depth, hd)), hs)))
   +pn3 = RL.tl_p(depth, nT, $G(cpn), a, $QQ)
-  +w1 = Equal.cong(U32, D.DList<T> & $OB, z => $WR(z, Array.set(U32, AR.thaw(U32, $NR), id, free), Array.set(U32, AR.thaw(U32, gT), id, U32.inc(generation))), R.link(id), LST.lnk($SS), el)
-  +w2 = Equal.cong(Array<U32>, D.DList<T> & $OB, z => $WR(LST.lnk($SS), z, Array.set(U32, AR.thaw(U32, gT), id, U32.inc(generation))), Array.set(U32, AR.thaw(U32, $NR), id, free), AR.thaw(U32, $NR3), MT.uset_a(depth, RL.hd0(depth, hd), $NR, pn3, id, hs, free))
-  +w3 = Equal.cong(Array<U32>, D.DList<T> & $OB, z => $WR(LST.lnk($SS), AR.thaw(U32, $NR3), z), Array.set(U32, AR.thaw(U32, gT), id, U32.inc(generation)), AR.thaw(U32, $GR3), MT.uset_a(depth, RL.hd0(depth, hd), gT, $G(cpg), id, hs, U32.inc(generation)))
-  +er = Equal.trans(D.DList<T> & $OB, $IMR(False{}), $WR(LST.lnk($SS), Array.set(U32, AR.thaw(U32, $NR), id, free), Array.set(U32, AR.thaw(U32, gT), id, U32.inc(generation))), (ST.real(~T, $SHR), $OV), w1, Equal.trans(D.DList<T> & $OB, $WR(LST.lnk($SS), Array.set(U32, AR.thaw(U32, $NR), id, free), Array.set(U32, AR.thaw(U32, gT), id, U32.inc(generation))), $WR(LST.lnk($SS), AR.thaw(U32, $NR3), Array.set(U32, AR.thaw(U32, gT), id, U32.inc(generation))), (ST.real(~T, $SHR), $OV), w2, w3))
+  +w1 = Equal.cong(U32, D.DList<T> & $OB, z => $WR(z, Array.set(U32, AR.thaw(U32, $NR), id, free), Array.set(U32, AR.thaw(U32, gT), id, U32.inc(generation))), R.link(id), LKx.lnk($SS), el)
+  +w2 = Equal.cong(Array<U32>, D.DList<T> & $OB, z => $WR(LKx.lnk($SS), z, Array.set(U32, AR.thaw(U32, gT), id, U32.inc(generation))), Array.set(U32, AR.thaw(U32, $NR), id, free), AR.thaw(U32, $NR3), UT.uset_a(depth, RL.hd0(depth, hd), $NR, pn3, id, hs, free))
+  +w3 = Equal.cong(Array<U32>, D.DList<T> & $OB, z => $WR(LKx.lnk($SS), AR.thaw(U32, $NR3), z), Array.set(U32, AR.thaw(U32, gT), id, U32.inc(generation)), AR.thaw(U32, $GR3), UT.uset_a(depth, RL.hd0(depth, hd), gT, $G(cpg), id, hs, U32.inc(generation)))
+  +er = Equal.trans(D.DList<T> & $OB, $IMR(False{}), $WR(LKx.lnk($SS), Array.set(U32, AR.thaw(U32, $NR), id, free), Array.set(U32, AR.thaw(U32, gT), id, U32.inc(generation))), (ST.real(~T, $SHR), $OV), w1, Equal.trans(D.DList<T> & $OB, $WR(LKx.lnk($SS), Array.set(U32, AR.thaw(U32, $NR), id, free), Array.set(U32, AR.thaw(U32, gT), id, U32.inc(generation))), $WR(LKx.lnk($SS), AR.thaw(U32, $NR3), Array.set(U32, AR.thaw(U32, gT), id, U32.inc(generation))), (ST.real(~T, $SHR), $OV), w2, w3))
   +eg3 = AR.upd_slots(U32, depth, gT, $SS, U32.inc(generation), hs, $G(cpg))
   +egl = Equal.trans(List<&2, U32>, SC.update(U32, $GLF, $SS, U32.inc(generation)), SC.take(U32, SC.update(U32, $GL, $SS, U32.inc(generation)), $FV), SC.take(U32, AR.slots(U32, $GR3), $FV), Equal.sym(List<&2, U32>, SC.take(U32, SC.update(U32, $GL, $SS, U32.inc(generation)), $FV), SC.update(U32, $GLF, $SS, U32.inc(generation)), LL.sc_take_update(U32, $GL, $SS, U32.inc(generation), $FV)), Equal.cong(List<&2, U32>, List<&2, U32>, z => SC.take(U32, z, $FV), SC.update(U32, $GL, $SS, U32.inc(generation)), AR.slots(U32, $GR3), Equal.sym(List<&2, U32>, AR.slots(U32, $GR3), SC.update(U32, $GL, $SS, U32.inc(generation)), eg3)))
   +es0 = Equal.cong(Bool, S.DS<T> & $OB, z => S.removed(T, tag, $SL, $VLF, $SS, vv, S.retire($GLF, $SS, fl, generation, z)), U32.is_eq(generation, $MAX), False{}, hc)
@@ -265,7 +261,7 @@ def rm_ok(~T: Data, $RP, $XP) -> OK.POK(~T, $OB, S.remove_live(T, S.DS{tag, $SL,
   +er = Equal.cong($RR, D.DList<T> & $OB, r => D.removed(~T, tag, depth, cap, AR.thaw(U32, gT), id, generation, r), R.remove(~T, $RAW0, I.H{owner, id}), ($RAWR, Done{vv}), rm_raw(~T, $RA, owner, ho, vv, hv))
   +ev = Equal.trans($MT, S.val_of(T, $VLF, $SS), S.val_of(T, $VL, $SS), Some{vv}, VA.val_take(T, $VL, $FV, $SS, hlt), hv)
   +es1 = Equal.cong($MT, S.DS<T> & $OB, m => S.remove_m(T, tag, $SL, $VLF, $GLF, fl, $SS, m), S.val_of(T, $VLF, $SS), Some{vv}, ev)
-  +eg = Equal.trans(U32, S.gen_of($GLF, $SS), TB.nth0($GL, $SS), generation, VA.gen_take($GL, $FV, $SS, hlt), Equal.sym(U32, generation, TB.nth0($GL, $SS), hgen))
+  +eg = Equal.trans(U32, S.gen_of($GLF, $SS), W32.nth0($GL, $SS), generation, VA.gen_take($GL, $FV, $SS, hlt), Equal.sym(U32, generation, W32.nth0($GL, $SS), hgen))
   +es2 = Equal.cong(U32, S.DS<T> & $OB, g => $SPR(g), S.gen_of($GLF, $SS), generation, eg)
   +es = Equal.trans(S.DS<T> & $OB, S.remove_live(T, S.DS{tag, $SL, $VLF, $GLF, fl}, $SS), $SPR(S.gen_of($GLF, $SS)), $SPR(generation), es1, es2)
   OK.pok_eq(~T, $OB, S.remove_live(T, S.DS{tag, $SL, $VLF, $GLF, fl}, $SS), $SPR(generation), D.removed(~T, tag, depth, cap, AR.thaw(U32, gT), id, generation, R.remove(~T, $RAW0, I.H{owner, id})), $IMR(U32.is_eq(generation, $MAX)), es, er, rm_fin(~T, $RA, $XA, U32.is_eq(generation, $MAX), {==}))

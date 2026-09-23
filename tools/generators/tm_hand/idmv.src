@@ -1,33 +1,11 @@
 import Base
 import ../lib/logic.bend as L
-import ../lib/nat.bend as N
 import ../lib/list.bend as LL
-import ../lib/order.bend as O
 import ../spec/common.bend as SC
-import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
-import ../lru/lists.bend as LS
 import ./state.bend as ST
-import ./tree.bend as TR
 import ./path.bend as P
-import ./plug.bend as PG
-import ./agree.bend as AG
-import ./setters.bend as SE
-import ./rotm.bend as RM
-import ./rotn.bend as RN
-import ./rot.bend as RT
-import ./rotp.bend as RP
-import ./fix.bend as FX
-import ./dj.bend as DJ
-import ./spath.bend as SP
 import ./alls.bend as AL
-import ./frame.bend as FRM
-import ./mirror.bend as MI
-import ./prim.bend as PR
-import ./ends.bend as EN
-import ./dfix.bend as DF
-import ./nbr.bend as NB
+import ../lib/nat_list.bend as NL
 
 
 # The ids when a node with at most one child leaves the tree for the free
@@ -42,7 +20,7 @@ import ./nbr.bend as NB
 %def TN(i, a, b) ST.TN{i, a, b}
 %def TE ST.TE{}
 %def WH(c, t) $APP(P.before(c), $APP($IDS(t), P.after(c)))
-%def NDL(xs) {LST.nodupn(xs) == True{} : Bool}
+%def NDL(xs) {NL.nodupn(xs) == True{} : Bool}
 %def LEN(xs) SC.length(Nat, xs)
 %def ALLIN(xs, n) {ST.allin(xs, n) == True{} : Bool}
 %def INB(x, n) Bool.and(Nat.is_lt(0n, x), Nat.is_le(x, n))
@@ -61,9 +39,9 @@ import ./nbr.bend as NB
 
 def nd_back(+b: $LN, +a: $LN, +x: Nat, +t: $LN, +h: $NDL($MV1)) -> $NDL($MV0):
   +h1 = L.subst($LN, z => $NDL(z), $MV1, $APP(b, Con{x, $APP(a, t)}), AL.mv_eq(b, a, x, t), h)
-  +h2 = L.subst(Bool, w => {w == True{} : Bool}, LST.nodupn($APP(b, Con{x, $APP(a, t)})), Bool.and(LST.nodupn($APP(b, $APP(a, t))), Bool.not(HT.memn(x, $APP(b, $APP(a, t))))), LS.nd_mid(b, x, $APP(a, t)), h1)
-  +h3 = L.subst($LN, z => {Bool.and(LST.nodupn(z), Bool.not(HT.memn(x, z))) == True{} : Bool}, $APP(b, $APP(a, t)), $APP($APP(b, a), t), Equal.sym($LN, $APP($APP(b, a), t), $APP(b, $APP(a, t)), LL.append_assoc(Nat, b, a, t)), h2)
-  L.subst(Bool, w => {w == True{} : Bool}, Bool.and(LST.nodupn($APP($APP(b, a), t)), Bool.not(HT.memn(x, $APP($APP(b, a), t)))), LST.nodupn($MV0), Equal.sym(Bool, LST.nodupn($MV0), Bool.and(LST.nodupn($APP($APP(b, a), t)), Bool.not(HT.memn(x, $APP($APP(b, a), t)))), LS.nd_mid($APP(b, a), x, t)), h3)
+  +h2 = L.subst(Bool, w => {w == True{} : Bool}, NL.nodupn($APP(b, Con{x, $APP(a, t)})), Bool.and(NL.nodupn($APP(b, $APP(a, t))), Bool.not(NL.memn(x, $APP(b, $APP(a, t))))), NL.nd_mid(b, x, $APP(a, t)), h1)
+  +h3 = L.subst($LN, z => {Bool.and(NL.nodupn(z), Bool.not(NL.memn(x, z))) == True{} : Bool}, $APP(b, $APP(a, t)), $APP($APP(b, a), t), Equal.sym($LN, $APP($APP(b, a), t), $APP(b, $APP(a, t)), LL.append_assoc(Nat, b, a, t)), h2)
+  L.subst(Bool, w => {w == True{} : Bool}, Bool.and(NL.nodupn($APP($APP(b, a), t)), Bool.not(NL.memn(x, $APP($APP(b, a), t)))), NL.nodupn($MV0), Equal.sym(Bool, NL.nodupn($MV0), Bool.and(NL.nodupn($APP($APP(b, a), t)), Bool.not(NL.memn(x, $APP($APP(b, a), t)))), NL.nd_mid($APP(b, a), x, t)), h3)
 
 def allin_back(+b: $LN, +a: $LN, +x: Nat, +t: $LN, +n: Nat, +h: $ALLIN($MV1, n)) -> $ALLIN($MV0, n):
   +hbx = AL.allin_l($APP(b, Con{x, a}), t, n, h)

@@ -1,14 +1,13 @@
 import Base
 import ../lib/logic.bend as L
 import ../lib/nat.bend as N
-import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
 import ./state.bend as ST
 import ./setters.bend as SE
 import ./rotm.bend as RM
 import ../lib/order.bend as O
-import ../hash_table/state.bend as HT
 import ./agree.bend as AG
+import ../lib/nat_list.bend as NL
 
 # Nodes through a sequence of setters: a setter skips other ids and applies
 # its field change to its own; a node's links after field changes.
@@ -139,7 +138,7 @@ def isn_a(-K: Data, +x: $ND, +lft: Bool, +c0: Nat, +s: Nat, +q: Nat, +y: Nat, +h
 %def TO ~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
 %def AO ~K, ~cmp, ~o
 %def AGR(xs, a, b) {AG.agr(~K, ~cmp, xs, a, b) == True{} : Bool}
-%def NMEM(y, xs) {HT.memn(y, xs) == False{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
 
 def attn_agr($TO, +xs: $LN, +nl: $NL, +q: Nat, +y: Nat, +dir: Bool, +hq: $NMEM(q, xs)) -> $AGR(xs, nl, RM.attn(K, nl, q, y, dir)):
   match q dir:

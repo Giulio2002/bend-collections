@@ -5,7 +5,6 @@ import ../lib/u32.bend as U
 import ../lib/array.bend as AR
 import ../spec/common.bend as SC
 import ../spec/hash_table.bend as S
-import ../math/word.bend as WD
 import ../math/u32div.bend as UD
 import ../../src/containers/hash_table.bend as H
 import ./strings.bend as STR
@@ -14,13 +13,12 @@ import ./table.bend as TB
 import ./buckets.bend as B
 import ./cyc.bend as CY
 import ./arr.bend as AX
-import ./inv.bend as IV
 import ./state.bend as ST
 import ./probe_all.bend as PA
-import ./rawins.bend as RI
 import ./grow.bend as GR
 import ./insa.bend as IA
 import ./arena.bend as AN
+import ../lib/words32.bend as W32
 
 # keys: the walk from the last bucket down lists every key in bucket order,
 # which is the order of the model's entries.
@@ -90,8 +88,8 @@ def keys_absm(~V: Data, +bs: List<&2, B.Bk>, +vsl: List<&2, Maybe<&2, V>>, +fr: 
 %def WA one, h1, k, hk31, tabT, pt, kl, sd, hsd, hlen, hwell
 %def QP +q: Nat, +hq: {Nat.is_lt(q, $NN) $TT, +kk: U32, +hkk: {UD.v(kk) == q : Nat}, +KT: AR.Tree<String>, +hsl: {AR.slots(String, KT) == kl : List<&2, String>}, +pk: {AR.perfect(String, sd, KT) $TT
 %def QA q, hq, kk, hkk, KT, hsl, pk
-%def WQ TB.nth0($TBL, Nat.double(q))
-%def LQ TB.nth0($TBL, 1n+Nat.double(q))
+%def WQ W32.nth0($TBL, Nat.double(q))
+%def LQ W32.nth0($TBL, 1n+Nat.double(q))
 %def SQ UD.v(H.slot($LQ))
 %def ACC kb($BS, Nat.sub($NN, 1n+q), 1n+q)
 %def ACC0 kb($BS, Nat.sub($NN, q), q)
@@ -117,11 +115,11 @@ def w_el($WP, $QP) -> {UD.v(U32.inc(U32.shl(kk))) == 1n+Nat.double(q) : Nat}:
 
 def w_get($WP, $QP) -> {Array.get(U32, AR.thaw(U32, tabT), U32.shl(kk)) == (AR.thaw(U32, tabT), $WQ) : Array<U32> & U32}:
   +hi = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) $TT, Nat.double(q), UD.v(U32.shl(kk)), Equal.sym(Nat, UD.v(U32.shl(kk)), Nat.double(q), w_ew($WA, $QA)), N.lt_trans(Nat.double(q), 1n+Nat.double(q), SC.pow2(1n+k), N.lt_succ(Nat.double(q)), N.double_lt_bit(True{}, q, $NN, hq)))
-  Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, tabT), U32.shl(kk)), (AR.thaw(U32, tabT), TB.nth0($TBL, UD.v(U32.shl(kk)))), (AR.thaw(U32, tabT), $WQ), AX.getw(1n+k, tabT, U32.shl(kk), hk31, hi, pt), Equal.cong(Nat, Array<U32> & U32, z => (AR.thaw(U32, tabT), TB.nth0($TBL, z)), UD.v(U32.shl(kk)), Nat.double(q), w_ew($WA, $QA)))
+  Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, tabT), U32.shl(kk)), (AR.thaw(U32, tabT), W32.nth0($TBL, UD.v(U32.shl(kk)))), (AR.thaw(U32, tabT), $WQ), AX.getw(1n+k, tabT, U32.shl(kk), hk31, hi, pt), Equal.cong(Nat, Array<U32> & U32, z => (AR.thaw(U32, tabT), W32.nth0($TBL, z)), UD.v(U32.shl(kk)), Nat.double(q), w_ew($WA, $QA)))
 
 def w_getl($WP, $QP) -> {Array.get(U32, AR.thaw(U32, tabT), U32.inc(U32.shl(kk))) == (AR.thaw(U32, tabT), $LQ) : Array<U32> & U32}:
   +hi = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(1n+k)) $TT, 1n+Nat.double(q), UD.v(U32.inc(U32.shl(kk))), Equal.sym(Nat, UD.v(U32.inc(U32.shl(kk))), 1n+Nat.double(q), w_el($WA, $QA)), N.double_lt_bit(True{}, q, $NN, hq))
-  Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, tabT), U32.inc(U32.shl(kk))), (AR.thaw(U32, tabT), TB.nth0($TBL, UD.v(U32.inc(U32.shl(kk))))), (AR.thaw(U32, tabT), $LQ), AX.getw(1n+k, tabT, U32.inc(U32.shl(kk)), hk31, hi, pt), Equal.cong(Nat, Array<U32> & U32, z => (AR.thaw(U32, tabT), TB.nth0($TBL, z)), UD.v(U32.inc(U32.shl(kk))), 1n+Nat.double(q), w_el($WA, $QA)))
+  Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, tabT), U32.inc(U32.shl(kk))), (AR.thaw(U32, tabT), W32.nth0($TBL, UD.v(U32.inc(U32.shl(kk))))), (AR.thaw(U32, tabT), $LQ), AX.getw(1n+k, tabT, U32.inc(U32.shl(kk)), hk31, hi, pt), Equal.cong(Nat, Array<U32> & U32, z => (AR.thaw(U32, tabT), W32.nth0($TBL, z)), UD.v(U32.inc(U32.shl(kk))), 1n+Nat.double(q), w_el($WA, $QA)))
 
 def w_at($WP, $QP, +c: Bool, +hc: {U32.is_eq($WQ, 0) == c : Bool}) -> {B.at($BS, q) == TB.dec_c($WQ, $LQ, kl, c) : B.Bk}:
   Equal.trans(B.Bk, B.at($BS, q), TB.dec($TBL, kl, q), TB.dec_c($WQ, $LQ, kl, c), TB.at_buckets($TBL, kl, $NN, q, hq), Equal.cong(Bool, B.Bk, z => TB.dec_c($WQ, $LQ, kl, z), U32.is_eq($WQ, 0), c, hc))

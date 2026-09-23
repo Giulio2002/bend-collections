@@ -4,7 +4,6 @@ import ../lib/nat.bend as N
 import ../lib/order.bend as O
 import ../spec/common.bend as SC
 import ../../src/containers/balanced_search_tree.bend as M
-import ../hash_table/state.bend as HT
 import ./state.bend as ST
 import ./prim.bend as PR
 import ./mirror.bend as MI
@@ -13,6 +12,7 @@ import ./agree.bend as AG
 import ../spec/tree_map.bend as S
 import ./ends.bend as EN
 import ./path.bend as P
+import ../lib/nat_list.bend as NL
 
 # The mirror's node setters as functions of the node list: each rewrites one
 # field of an id's node (nothing for a free or absent node). The written
@@ -56,7 +56,7 @@ def setl_n_len(-K: Data, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +x: M.Node
 def setl_len(-K: Data, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat) -> {SC.length(M.Node<K>, setl(K, nl, id, v)) == SC.length(M.Node<K>, nl) : Nat}:
   setl_n_len(K, nl, id, v, ST.nd(K, nl, id))
 
-def setl_n_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +x: M.Node<K>, +hn: {HT.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setl_n(K, nl, id, v, x)) == True{} : Bool}:
+def setl_n_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +x: M.Node<K>, +hn: {NL.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setl_n(K, nl, id, v, x)) == True{} : Bool}:
   match x:
     case M.Free{f}:
       AG.agr_refl(~K, ~cmp, ~o, xs, nl)
@@ -64,7 +64,7 @@ def setl_n_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&
       AG.agr_wr(~K, ~cmp, ~o, xs, nl, id, M.N{c, v, b, q, k}, hn)
 
 # agreement off the written id
-def setl_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +hn: {HT.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setl(K, nl, id, v)) == True{} : Bool}:
+def setl_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +hn: {NL.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setl(K, nl, id, v)) == True{} : Bool}:
   setl_n_agr(~K, ~cmp, ~o, xs, nl, id, v, ST.nd(K, nl, id), hn)
 
 # ---- right ----
@@ -103,7 +103,7 @@ def setr_n_len(-K: Data, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +x: M.Node
 def setr_len(-K: Data, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat) -> {SC.length(M.Node<K>, setr(K, nl, id, v)) == SC.length(M.Node<K>, nl) : Nat}:
   setr_n_len(K, nl, id, v, ST.nd(K, nl, id))
 
-def setr_n_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +x: M.Node<K>, +hn: {HT.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setr_n(K, nl, id, v, x)) == True{} : Bool}:
+def setr_n_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +x: M.Node<K>, +hn: {NL.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setr_n(K, nl, id, v, x)) == True{} : Bool}:
   match x:
     case M.Free{f}:
       AG.agr_refl(~K, ~cmp, ~o, xs, nl)
@@ -111,7 +111,7 @@ def setr_n_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&
       AG.agr_wr(~K, ~cmp, ~o, xs, nl, id, M.N{c, a, v, q, k}, hn)
 
 # agreement off the written id
-def setr_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +hn: {HT.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setr(K, nl, id, v)) == True{} : Bool}:
+def setr_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +hn: {NL.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setr(K, nl, id, v)) == True{} : Bool}:
   setr_n_agr(~K, ~cmp, ~o, xs, nl, id, v, ST.nd(K, nl, id), hn)
 
 # ---- parent ----
@@ -150,7 +150,7 @@ def setp_n_len(-K: Data, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +x: M.Node
 def setp_len(-K: Data, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat) -> {SC.length(M.Node<K>, setp(K, nl, id, v)) == SC.length(M.Node<K>, nl) : Nat}:
   setp_n_len(K, nl, id, v, ST.nd(K, nl, id))
 
-def setp_n_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +x: M.Node<K>, +hn: {HT.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setp_n(K, nl, id, v, x)) == True{} : Bool}:
+def setp_n_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +x: M.Node<K>, +hn: {NL.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setp_n(K, nl, id, v, x)) == True{} : Bool}:
   match x:
     case M.Free{f}:
       AG.agr_refl(~K, ~cmp, ~o, xs, nl)
@@ -158,7 +158,7 @@ def setp_n_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&
       AG.agr_wr(~K, ~cmp, ~o, xs, nl, id, M.N{c, a, b, v, k}, hn)
 
 # agreement off the written id
-def setp_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +hn: {HT.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setp(K, nl, id, v)) == True{} : Bool}:
+def setp_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Nat, +hn: {NL.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setp(K, nl, id, v)) == True{} : Bool}:
   setp_n_agr(~K, ~cmp, ~o, xs, nl, id, v, ST.nd(K, nl, id), hn)
 
 # ---- red ----
@@ -197,7 +197,7 @@ def setc_n_len(-K: Data, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Bool, +x: M.Nod
 def setc_len(-K: Data, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Bool) -> {SC.length(M.Node<K>, setc(K, nl, id, v)) == SC.length(M.Node<K>, nl) : Nat}:
   setc_n_len(K, nl, id, v, ST.nd(K, nl, id))
 
-def setc_n_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Bool, +x: M.Node<K>, +hn: {HT.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setc_n(K, nl, id, v, x)) == True{} : Bool}:
+def setc_n_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Bool, +x: M.Node<K>, +hn: {NL.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setc_n(K, nl, id, v, x)) == True{} : Bool}:
   match x:
     case M.Free{f}:
       AG.agr_refl(~K, ~cmp, ~o, xs, nl)
@@ -205,7 +205,7 @@ def setc_n_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&
       AG.agr_wr(~K, ~cmp, ~o, xs, nl, id, M.N{v, a, b, q, k}, hn)
 
 # agreement off the written id
-def setc_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Bool, +hn: {HT.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setc(K, nl, id, v)) == True{} : Bool}:
+def setc_agr(~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Bool, +hn: {NL.memn(id, xs) == False{} : Bool}) -> {AG.agr(~K, ~cmp, xs, nl, setc(K, nl, id, v)) == True{} : Bool}:
   setc_n_agr(~K, ~cmp, ~o, xs, nl, id, v, ST.nd(K, nl, id), hn)
 
 # ---- every id's node after a setter ----

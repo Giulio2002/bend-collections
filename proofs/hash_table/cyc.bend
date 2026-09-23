@@ -8,6 +8,7 @@ import ../math/arith.bend as AR
 import ../math/u32div.bend as UD
 import ../math/u64div.bend as UV
 import ../../src/containers/hash_table.bend as H
+import ../lib/words32.bend as W32
 
 # Bucket indices of a table of N = 2^k buckets (mask = 2^k - 1, k <= 30):
 #   and_mod    x & mask == x mod N
@@ -28,15 +29,10 @@ def and_mod(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +x: U32) -> {UD.v(U32.an
     Equal.trans(Nat, Nat.add(a, WD.sc(k, hp)), Nat.add(WD.sc(k, hp), a), Nat.add(Nat.mul(hp, WD.sc(k, one)), a), N.add_comm(a, WD.sc(k, hp)), Equal.cong(Nat, Nat, z => Nat.add(z, a), WD.sc(k, hp), Nat.mul(hp, WD.sc(k, one)), Equal.sym(Nat, Nat.mul(hp, WD.sc(k, one)), WD.sc(k, hp), AR.mul_sc1(k, one, h1, hp)))))
   Equal.sym(Nat, Nat.mod(UD.v(x), WD.sc(k, one)), a, Equal.trans(Nat, Nat.mod(UD.v(x), WD.sc(k, one)), Nat.mod(Nat.add(Nat.mul(hp, WD.sc(k, one)), a), WD.sc(k, one)), a, Equal.cong(Nat, Nat, z => Nat.mod(z, WD.sc(k, one)), UD.v(x), Nat.add(Nat.mul(hp, WD.sc(k, one)), a), e), UD.mod_identify(hp, WD.sc(k, one), a, lt)))
 
-def inc_val(+one: Nat, +h1: {one == 1n : Nat}, +i: U32, +h: {Nat.is_lt(1n+UD.v(i), WD.sc(32n, one)) == True{} : Bool}) -> {UD.v(U32.inc(i)) == 1n+UD.v(i) : Nat}:
-  match i:
-    case U32{+w}:
-      +hw = L.subst(Nat, z => {Nat.is_lt(1n+z, WD.sc(32n, one)) == True{} : Bool}, UD.v(U32{w}), WD.uw(32n, w), UD.vw(w), h)
-      Equal.trans(Nat, UD.v(U32{Word.inc(32n, w)}), WD.uw(32n, Word.inc(32n, w)), 1n+UD.v(U32{w}), UD.vw(Word.inc(32n, w)), Equal.trans(Nat, WD.uw(32n, Word.inc(32n, w)), 1n+WD.uw(32n, w), 1n+UD.v(U32{w}), WD.inc_exact(32n, one, h1, w, hw), Equal.cong(Nat, Nat, z => 1n+z, WD.uw(32n, w), UD.v(U32{w}), Equal.sym(Nat, UD.v(U32{w}), WD.uw(32n, w), UD.vw(w)))))
 
 # the next bucket, cyclically
 def next_val(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +i: U32, +hk: {Nat.is_lt(WD.sc(k, one), WD.sc(32n, one)) == True{} : Bool}, +hi: {Nat.is_lt(UD.v(i), WD.sc(k, one)) == True{} : Bool}) -> {UD.v(H.bnext(i, msk(k))) == Nat.mod(1n+UD.v(i), WD.sc(k, one)) : Nat}:
-  +hin = inc_val(one, h1, i, N.le_lt_trans(1n+UD.v(i), WD.sc(k, one), WD.sc(32n, one), N.lt_succ_le_succ(UD.v(i), WD.sc(k, one), hi), hk))
+  +hin = W32.inc_val(one, h1, i, N.le_lt_trans(1n+UD.v(i), WD.sc(k, one), WD.sc(32n, one), N.lt_succ_le_succ(UD.v(i), WD.sc(k, one), hi), hk))
   Equal.trans(Nat, UD.v(U32.and(U32.inc(i), msk(k))), Nat.mod(UD.v(U32.inc(i)), WD.sc(k, one)), Nat.mod(1n+UD.v(i), WD.sc(k, one)), and_mod(one, h1, k, U32.inc(i)), Equal.cong(Nat, Nat, z => Nat.mod(z, WD.sc(k, one)), UD.v(U32.inc(i)), 1n+UD.v(i), hin))
 
 # ---- cyclic distance ----

@@ -5,12 +5,12 @@ import ../lib/array.bend as AR
 import ../spec/common.bend as SC
 import ../spec/doubly_linked_list.bend as S
 import ../math/u32div.bend as UD
-import ../hash_table/table.bend as TB
-import ../hash_table/state.bend as HT
-import ../lru/state.bend as LST
 import ../../src/containers/doubly_linked_list.bend as D
 import ../../src/containers/internal/dlist_storage.bend as R
 import ../../src/containers/types/doubly_linked_list.bend as E
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
+import ../lib/words32.bend as W32
 
 # The doubly linked list's shadow: the public list's fields, one mirror tree
 # per array (values, prev links, next links, generations), the ids of the
@@ -40,7 +40,7 @@ def seg(+pl: List<&2, U32>, +nl: List<&2, U32>, sl: List<&2, Nat>, +p: U32, +q: 
     case Nil{}:
       True{}
     case Con{+s, +t}:
-      Bool.and(U32.is_eq(TB.nth0(pl, s), p), Bool.and(U32.is_eq(TB.nth0(nl, s), LST.fst_or(t, q)), seg(pl, nl, t, LST.lnk(s), q)))
+      Bool.and(U32.is_eq(W32.nth0(pl, s), p), Bool.and(U32.is_eq(W32.nth0(nl, s), LK.fst_or(t, q)), seg(pl, nl, t, LK.lnk(s), q)))
 
 # the free stack: each id's next is the id after it (0 for the last)
 def fll(+nl: List<&2, U32>, fl: List<&2, Nat>) -> Bool:
@@ -48,7 +48,7 @@ def fll(+nl: List<&2, U32>, fl: List<&2, Nat>) -> Bool:
     case Nil{}:
       True{}
     case Con{+s, +t}:
-      Bool.and(U32.is_eq(TB.nth0(nl, s), LST.fst_or(t, 0)), fll(nl, t))
+      Bool.and(U32.is_eq(W32.nth0(nl, s), LK.fst_or(t, 0)), fll(nl, t))
 
 def some_b(-T: Data, m: Maybe<&2, T>) -> Bool:
   match m:
@@ -92,7 +92,7 @@ def lvin(~T: Data, vl: List<&2, Maybe<&2, T>>, +k: Nat, +sl: List<&2, Nat>) -> B
     case Nil{}:
       True{}
     case Con{m, t}:
-      Bool.and(Bool.or(Bool.not(some_b(T, m)), HT.memn(k, sl)), lvin(~T, t, 1n+k, sl))
+      Bool.and(Bool.or(Bool.not(some_b(T, m)), NL.memn(k, sl)), lvin(~T, t, 1n+k, sl))
 
 # ---- the invariant ----
 
@@ -121,19 +121,19 @@ def cseg(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +t
   seg(AR.slots(U32, pT), AR.slots(U32, nT), sl, 0, 0)
 
 def chead(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  U32.is_eq(head, LST.fst_or(sl, 0))
+  U32.is_eq(head, LK.fst_or(sl, 0))
 
 def ctail(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  U32.is_eq(tail, LST.last_or(sl, 0))
+  U32.is_eq(tail, LK.last_or(sl, 0))
 
 def cnd(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  LST.nodupn(sl)
+  NL.nodupn(sl)
 
 def csl(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
   slok(~T, sl, UD.v(fresh), AR.slots(Maybe<&2, T>, vT))
 
 def cfree(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  U32.is_eq(free, LST.fst_or(fl, 0))
+  U32.is_eq(free, LK.fst_or(fl, 0))
 
 def cfll(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
   fll(AR.slots(U32, nT), fl)
@@ -142,7 +142,7 @@ def cfl(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +ta
   flok(~T, fl, UD.v(fresh), AR.slots(Maybe<&2, T>, vT))
 
 def cfnd(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  LST.nodupn(fl)
+  NL.nodupn(fl)
 
 def cgz(~T: Data, +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
   gz(AR.slots(U32, gT), UD.v(fresh))

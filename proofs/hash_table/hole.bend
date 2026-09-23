@@ -7,7 +7,6 @@ import ../../src/math/hash.bend as HS
 import ./buckets.bend as B
 import ./modn.bend as M
 import ./cyc.bend as CY
-import ./inv.bend as IV
 import ./probe_all.bend as PA
 import ./insm.bend as IM
 import ./insert.bend as IS

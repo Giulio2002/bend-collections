@@ -23,7 +23,6 @@ import ../hash_table/poplem.bend as PL
 import ../hash_table/delmv.bend as DM
 import ../hash_table/delw.bend as DW
 import ./state.bend as ST
-import ./meta.bend as MT
 import ./lists.bend as LS
 import ./dll.bend as DL
 import ./trace.bend as TR
@@ -36,6 +35,10 @@ import ./elfr.bend as EF
 import ../hash_table/insf.bend as IF
 import ./idx.bend as ID
 import ./touchsh.bend as TSH
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
+import ../lib/words32.bend as W32
+import ../lib/u32_tree.bend as UT
 
 # The invariant after a removal: slot s's bucket is deleted from the table,
 # s is taken off the recency list, its value cell vacated and s pushed on the
@@ -44,11 +47,11 @@ import ./touchsh.bend as TSH
 %def APN(a, b) SC.append(Nat, a, b)
 %def X $APN(a, Con{s, b})
 %def Y $APN(a, b)
-%def M0 TB.nth0(AR.slots(U32, mT), 0n)
-%def M1 TB.nth0(AR.slots(U32, mT), 1n)
-%def M2 TB.nth0(AR.slots(U32, mT), 2n)
-%def M6 TB.nth0(AR.slots(U32, mT), 6n)
-%def M7 TB.nth0(AR.slots(U32, mT), 7n)
+%def M0 W32.nth0(AR.slots(U32, mT), 0n)
+%def M1 W32.nth0(AR.slots(U32, mT), 1n)
+%def M2 W32.nth0(AR.slots(U32, mT), 2n)
+%def M6 W32.nth0(AR.slots(U32, mT), 6n)
+%def M7 W32.nth0(AR.slots(U32, mT), 7n)
 %def PM AR.perfect(U32, 5n, mT)
 %def KL AR.slots(String, ksT)
 %def PK AR.perfect(String, sd, ksT)
@@ -67,8 +70,8 @@ import ./touchsh.bend as TSH
 %def TRU TR.TW{s, 1n, free, tr}
 %def LLU TR.app($LLo, $TRU)
 %def N1 U32.sub(n, 1)
-%def GB cap, $N1, ST.fst_or($Y, 0), ST.last_or($Y, 0), H.link(su), $M0, $M1, $M2, $M6, $M7, $PM, k, sd, tabT2, $KL, $PK, $EU, $LU, $Y, Con{s, fl}
-%def SH2 ST.LS{cap, $N1, ST.fst_or($Y, 0), ST.last_or($Y, 0), H.link(su), mT, k, sd, tabT2, ksT, $EU, $LU, $Y, Con{s, fl}}
+%def GB cap, $N1, LK.fst_or($Y, 0), LK.last_or($Y, 0), H.link(su), $M0, $M1, $M2, $M6, $M7, $PM, k, sd, tabT2, $KL, $PK, $EU, $LU, $Y, Con{s, fl}
+%def SH2 ST.LS{cap, $N1, LK.fst_or($Y, 0), LK.last_or($Y, 0), H.link(su), mT, k, sd, tabT2, ksT, $EU, $LU, $Y, Con{s, fl}}
 %def D(j) DW.dfin2($KL, k, $V0, tabT2)
 %def HYP +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +mT: AR.Tree<U32>, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +fl: List<&2, Nat>, +hg: {ST.good(~V, ST.LS{cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, $X, fl}) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +i: Nat, +hi: {Nat.is_lt(i, $NN) == True{} : Bool}, +hoi: {B.occ(B.at($BS, i)) == True{} : Bool}, +hsi: {UD.v(H.slot(B.lnk(B.at($BS, i)))) == s : Nat}, +tabT2: AR.Tree<U32>, +hd: {DW.dfin2($KL, k, $V0, tabT2) == True{} : Bool}, +t2: AR.Tree<U32>, +tr: TR.Tr, +hp2: {AR.perfect(U32, 3n+sd, t2) == True{} : Bool}, +hs2: {AR.slots(U32, t2) == TR.app($LLo, tr) : List<&2, U32>}, +hlo: {TR.trlo(tr) == True{} : Bool}, +hin: {TR.trin(tr, $X) == True{} : Bool}, +hseg: {ST.seg(AR.slots(U32, t2), $Y, 0, 0) == True{} : Bool}, +su: U32, +hsv: {UD.v(su) == s : Nat}, +v: V, +hm: {HT.nthm(~V, $EL, s) == Some{v} : Maybe<&2, V>}
 %def HYA cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, a, s, b, fl, hg, one, h1, i, hi, hoi, hsi, tabT2, hd, t2, tr, hp2, hs2, hlo, hin, hseg, su, hsv, v, hm
@@ -78,17 +81,17 @@ import ./touchsh.bend as TSH
 def f_sd(~V: Data, $HYP) -> {Nat.is_lt(3n+sd, 32n) == True{} : Bool}:
   TSH.sd29(k, sd, L.and_left(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), $G(ck)), $G(csdk))
 
-def f_mid(~V: Data, $HYP) -> {Bool.and(ST.nodupn($Y), Bool.not(HT.memn(s, $Y))) == True{} : Bool}:
-  L.subst(Bool, z => {z == True{} : Bool}, ST.nodupn($X), Bool.and(ST.nodupn($Y), Bool.not(HT.memn(s, $Y))), LS.nd_mid(a, s, b), $G(cnd))
+def f_mid(~V: Data, $HYP) -> {Bool.and(NL.nodupn($Y), Bool.not(NL.memn(s, $Y))) == True{} : Bool}:
+  L.subst(Bool, z => {z == True{} : Bool}, NL.nodupn($X), Bool.and(NL.nodupn($Y), Bool.not(NL.memn(s, $Y))), NL.nd_mid(a, s, b), $G(cnd))
 
-def f_ndY(~V: Data, $HYP) -> {ST.nodupn($Y) == True{} : Bool}:
-  L.and_left(ST.nodupn($Y), Bool.not(HT.memn(s, $Y)), f_mid(~V, $HYA))
+def f_ndY(~V: Data, $HYP) -> {NL.nodupn($Y) == True{} : Bool}:
+  L.and_left(NL.nodupn($Y), Bool.not(NL.memn(s, $Y)), f_mid(~V, $HYA))
 
-def f_sn(~V: Data, $HYP) -> {HT.memn(s, $Y) == False{} : Bool}:
-  L.not_true(HT.memn(s, $Y), L.and_right(ST.nodupn($Y), Bool.not(HT.memn(s, $Y)), f_mid(~V, $HYA)))
+def f_sn(~V: Data, $HYP) -> {NL.memn(s, $Y) == False{} : Bool}:
+  L.not_true(NL.memn(s, $Y), L.and_right(NL.nodupn($Y), Bool.not(NL.memn(s, $Y)), f_mid(~V, $HYA)))
 
-def f_sX(~V: Data, $HYP) -> {HT.memn(s, $X) == True{} : Bool}:
-  LS.mem_app_r(s, a, Con{s, b}, UL.self_in(s, b))
+def f_sX(~V: Data, $HYP) -> {NL.memn(s, $X) == True{} : Bool}:
+  NL.mem_app_r(s, a, Con{s, b}, UL.self_in(s, b))
 
 def f_sub(~V: Data, $HYP) -> {IF.subl($Y, $X) == True{} : Bool}:
   RB.subl_app(a, b, $X, RB.subl_ml(a, a, Con{s, b}, RB.subl_refl(a)), RB.subl_mr(b, a, Con{s, b}, IF.subl_cons(b, b, s, RB.subl_refl(b))))
@@ -102,8 +105,8 @@ def f_ls(~V: Data, $HYP) -> {Bool.and(Nat.is_lt(s, $FR), ST.live(~V, $EL, s)) ==
 def f_s0(~V: Data, $HYP) -> {Nat.is_lt(s, SC.pow2(sd)) == True{} : Bool}:
   N.lt_le_trans(s, $FR, SC.pow2(sd), L.and_left(Nat.is_lt(s, $FR), ST.live(~V, $EL, s), f_ls(~V, $HYA)), $G(cfresh))
 
-def f_sf(~V: Data, $HYP) -> {HT.memn(s, fl) == False{} : Bool}:
-  L.not_true(HT.memn(s, fl), TR.not_vac(~V, s, fl, $FR, $EL, L.and_right(Nat.is_lt(s, $FR), ST.live(~V, $EL, s), f_ls(~V, $HYA)), $G(cfl), HT.memn(s, fl), {==}))
+def f_sf(~V: Data, $HYP) -> {NL.memn(s, fl) == False{} : Bool}:
+  L.not_true(NL.memn(s, fl), TR.not_vac(~V, s, fl, $FR, $EL, L.and_right(Nat.is_lt(s, $FR), ST.live(~V, $EL, s), f_ls(~V, $HYA)), $G(cfl), NL.memn(s, fl), {==}))
 
 def f_su(~V: Data, $HYP) -> {Nat.is_lt(UD.v(su), SC.pow2(sd)) == True{} : Bool}:
   L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(sd)) == True{} : Bool}, s, UD.v(su), Equal.sym(Nat, UD.v(su), s, hsv), f_s0(~V, $HYA))
@@ -236,26 +239,26 @@ def c_keys(~V: Data, $HYP) -> {S.nodup(SP.keys_of(~V, ST.es(~V, $LUS, $KL, $EUS,
 
 # ---- the free list ----
 
-def c_free(~V: Data, $HYP) -> {U32.is_eq(H.link(su), ST.fst_or(Con{s, fl}, 0)) == True{} : Bool}:
-  L.subst(U32, z => {U32.is_eq(z, ST.lnk(s)) == True{} : Bool}, ST.lnk(s), H.link(su), Equal.sym(U32, H.link(su), ST.lnk(s), LT.lnk_su(su, s, sd, f_sd(~V, $HYA), hsv, f_s0(~V, $HYA))), DL.u_refl(ST.lnk(s)))
+def c_free(~V: Data, $HYP) -> {U32.is_eq(H.link(su), LK.fst_or(Con{s, fl}, 0)) == True{} : Bool}:
+  L.subst(U32, z => {U32.is_eq(z, LK.lnk(s)) == True{} : Bool}, LK.lnk(s), H.link(su), Equal.sym(U32, H.link(su), LK.lnk(s), LT.lnk_su(su, s, sd, f_sd(~V, $HYA), hsv, f_s0(~V, $HYA))), LK.u_refl(LK.lnk(s)))
 
 def c_fll(~V: Data, $HYP) -> {ST.fll($LUS, Con{s, fl}) == True{} : Bool}:
   +hl = L.subst(Nat, z => {Nat.is_lt(ST.off(s, 1n), z) == True{} : Bool}, SC.length(U32, $LLo), SC.length(U32, TR.app($LLo, tr)), Equal.sym(Nat, SC.length(U32, TR.app($LLo, tr)), SC.length(U32, $LLo), TR.len_tr($LLo, tr)), UL.len_ll(lkT, sd, $G(cpl), s, 1n, {==}, f_s0(~V, $HYA)))
-  +e0 = Equal.trans(U32, ST.lw($LLU, s, 1n), free, ST.fst_or(fl, 0), DL.lw_same(TR.app($LLo, tr), s, 1n, free, {==}, hl), A.eq_of(free, ST.fst_or(fl, 0), $G(cfree)))
-  +h0 = L.subst(U32, z => {U32.is_eq(z, ST.fst_or(fl, 0)) == True{} : Bool}, ST.fst_or(fl, 0), ST.lw($LLU, s, 1n), Equal.sym(U32, ST.lw($LLU, s, 1n), ST.fst_or(fl, 0), e0), DL.u_refl(ST.fst_or(fl, 0)))
-  +out = L.and_intro(Bool.not(HT.memn(s, fl)), TR.trout(tr, fl), DL.not_f(HT.memn(s, fl), f_sf(~V, $HYA)), TR.out_of_in(~V, tr, $X, fl, $FR, $EL, hin, $G(csl), $G(cfl)))
+  +e0 = Equal.trans(U32, ST.lw($LLU, s, 1n), free, LK.fst_or(fl, 0), DL.lw_same(TR.app($LLo, tr), s, 1n, free, {==}, hl), A.eq_of(free, LK.fst_or(fl, 0), $G(cfree)))
+  +h0 = L.subst(U32, z => {U32.is_eq(z, LK.fst_or(fl, 0)) == True{} : Bool}, LK.fst_or(fl, 0), ST.lw($LLU, s, 1n), Equal.sym(U32, ST.lw($LLU, s, 1n), LK.fst_or(fl, 0), e0), LK.u_refl(LK.fst_or(fl, 0)))
+  +out = L.and_intro(Bool.not(NL.memn(s, fl)), TR.trout(tr, fl), NL.not_f(NL.memn(s, fl), f_sf(~V, $HYA)), TR.out_of_in(~V, tr, $X, fl, $FR, $EL, hin, $G(csl), $G(cfl)))
   +h2 = RB.tr_eq_bool(ST.fll($LLU, fl), ST.fll($LLo, fl), TR.fll_tr($LLo, $TRU, f_tlo(~V, $HYA), fl, out), $G(cfll))
-  $TOLU(ST.fll(z, Con{s, fl}), L.and_intro(U32.is_eq(ST.lw($LLU, s, 1n), ST.fst_or(fl, 0)), ST.fll($LLU, fl), h0, h2))
+  $TOLU(ST.fll(z, Con{s, fl}), L.and_intro(U32.is_eq(ST.lw($LLU, s, 1n), LK.fst_or(fl, 0)), ST.fll($LLU, fl), h0, h2))
 
 def c_fl(~V: Data, $HYP) -> {ST.flok(~V, Con{s, fl}, $FR, $EUS) == True{} : Bool}:
-  +hlen = MT.len_of(Maybe<&2, V>, sd, eT, $G(cpe), s, f_s0(~V, $HYA))
+  +hlen = UT.len_of(Maybe<&2, V>, sd, eT, $G(cpe), s, f_s0(~V, $HYA))
   +hv = Equal.cong(Maybe<&2, V>, Bool, z => HT.some_b(~V, z), HT.nthm(~V, $ELU, s), None{}, TL.nthm_upd_same(~V, $EL, s, None{}, hlen))
-  +hs = L.and_intro(Nat.is_lt(s, $FR), Bool.not(ST.live(~V, $ELU, s)), L.and_left(Nat.is_lt(s, $FR), ST.live(~V, $EL, s), f_ls(~V, $HYA)), DL.not_f(ST.live(~V, $ELU, s), hv))
+  +hs = L.and_intro(Nat.is_lt(s, $FR), Bool.not(ST.live(~V, $ELU, s)), L.and_left(Nat.is_lt(s, $FR), ST.live(~V, $EL, s), f_ls(~V, $HYA)), NL.not_f(ST.live(~V, $ELU, s), hv))
   +hr = RB.tr_eq_bool(ST.flok(~V, fl, $FR, $ELU), ST.flok(~V, fl, $FR, $EL), EF.flok_el(~V, $EL, s, None{}, $FR, fl, f_sf(~V, $HYA)), $G(cfl))
   $TOEU(ST.flok(~V, Con{s, fl}, $FR, z), L.and_intro(Bool.and(Nat.is_lt(s, $FR), Bool.not(ST.live(~V, $ELU, s))), ST.flok(~V, fl, $FR, $ELU), hs, hr))
 
-def c_fnd(~V: Data, $HYP) -> {ST.nodupn(Con{s, fl}) == True{} : Bool}:
-  L.and_intro(Bool.not(HT.memn(s, fl)), ST.nodupn(fl), DL.not_f(HT.memn(s, fl), f_sf(~V, $HYA)), $G(cfnd))
+def c_fnd(~V: Data, $HYP) -> {NL.nodupn(Con{s, fl}) == True{} : Bool}:
+  L.and_intro(Bool.not(NL.memn(s, fl)), NL.nodupn(fl), NL.not_f(NL.memn(s, fl), f_sf(~V, $HYA)), $G(cfnd))
 
 def c_fcnt(~V: Data, $HYP) -> {Nat.is_eq(Nat.add(SC.length(Nat, $Y), SC.length(Nat, Con{s, fl})), $FR) == True{} : Bool}:
   +ly = SC.length(Nat, $Y)
@@ -266,10 +269,10 @@ def c_fcnt(~V: Data, $HYP) -> {Nat.is_eq(Nat.add(SC.length(Nat, $Y), SC.length(N
 # THEOREM: the invariant after the removal
 def good_rm(~V: Data, $HYP) -> {ST.good(~V, $SH2) == True{} : Bool}:
   +pe = AR.upd_perfect(Maybe<&2, V>, sd, eT, UD.v(su), None{}, $G(cpe))
-  +pl = MT.uset_p(3n+sd, t2, hp2, UD.v(LR.nidx(su)), free)
-  ST.good_intro(~V, $GB, $G(ck), $G(csdk), d1(~V, $HYA), $G(cpk), pe, pl, $G(cpm), $G(cmask), $G(cbits), $G(csize), $G(cdepth), $G(cfresh), c_well(~V, $HYA), d2(~V, $HYA), d3(~V, $HYA), c_n(~V, $HYA), c_load(~V, $HYA), $G(ccap), c_bsl(~V, $HYA), c_has(~V, $HYA), c_sl(~V, $HYA), f_ndY(~V, $HYA), c_len(~V, $HYA), DL.u_refl(ST.fst_or($Y, 0)), DL.u_refl(ST.last_or($Y, 0)), c_dll(~V, $HYA), c_keys(~V, $HYA), c_free(~V, $HYA), c_fll(~V, $HYA), c_fl(~V, $HYA), c_fnd(~V, $HYA), c_fcnt(~V, $HYA))
+  +pl = UT.uset_p(3n+sd, t2, hp2, UD.v(LR.nidx(su)), free)
+  ST.good_intro(~V, $GB, $G(ck), $G(csdk), d1(~V, $HYA), $G(cpk), pe, pl, $G(cpm), $G(cmask), $G(cbits), $G(csize), $G(cdepth), $G(cfresh), c_well(~V, $HYA), d2(~V, $HYA), d3(~V, $HYA), c_n(~V, $HYA), c_load(~V, $HYA), $G(ccap), c_bsl(~V, $HYA), c_has(~V, $HYA), c_sl(~V, $HYA), f_ndY(~V, $HYA), c_len(~V, $HYA), LK.u_refl(LK.fst_or($Y, 0)), LK.u_refl(LK.last_or($Y, 0)), c_dll(~V, $HYA), c_keys(~V, $HYA), c_free(~V, $HYA), c_fll(~V, $HYA), c_fl(~V, $HYA), c_fnd(~V, $HYA), c_fcnt(~V, $HYA))
 
 # THEOREM: the model after the removal is the specification's drop of key
-def model_rm(~V: Data, $HYP, +key: String, +hk: {S.str_eq(ST.skey($LLo, $KL, s), key) == True{} : Bool}) -> {ST.model(~V, $SH2) == SP.L{cap, TB.nth0(AR.slots(U32, mT), 3n), ST.w64(AR.slots(U32, mT), 4n), SP.drop(~V, ST.es(~V, $LLo, $KL, $EL, $X), key), ST.ctr(AR.slots(U32, mT))} : SP.Lru<V>}:
+def model_rm(~V: Data, $HYP, +key: String, +hk: {S.str_eq(ST.skey($LLo, $KL, s), key) == True{} : Bool}) -> {ST.model(~V, $SH2) == SP.L{cap, W32.nth0(AR.slots(U32, mT), 3n), ST.w64(AR.slots(U32, mT), 4n), SP.drop(~V, ST.es(~V, $LLo, $KL, $EL, $X), key), ST.ctr(AR.slots(U32, mT))} : SP.Lru<V>}:
   +e = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $LUS, $KL, $EUS, $Y), ST.es(~V, $LLo, $KL, $EL, $Y), SP.drop(~V, ST.es(~V, $LLo, $KL, $EL, $X), key), f_es(~V, $HYA), Equal.sym(List<&2, SP.Ent<V>>, SP.drop(~V, ST.es(~V, $LLo, $KL, $EL, $X), key), ST.es(~V, $LLo, $KL, $EL, $Y), EF.spec_drop(~V, $LLo, $KL, $EL, a, s, b, v, hm, key, hk, $G(ckeys))))
-  Equal.cong(List<&2, SP.Ent<V>>, SP.Lru<V>, z => SP.L{cap, TB.nth0(AR.slots(U32, mT), 3n), ST.w64(AR.slots(U32, mT), 4n), z, ST.ctr(AR.slots(U32, mT))}, ST.es(~V, $LUS, $KL, $EUS, $Y), SP.drop(~V, ST.es(~V, $LLo, $KL, $EL, $X), key), e)
+  Equal.cong(List<&2, SP.Ent<V>>, SP.Lru<V>, z => SP.L{cap, W32.nth0(AR.slots(U32, mT), 3n), ST.w64(AR.slots(U32, mT), 4n), z, ST.ctr(AR.slots(U32, mT))}, ST.es(~V, $LUS, $KL, $EUS, $Y), SP.drop(~V, ST.es(~V, $LLo, $KL, $EL, $X), key), e)

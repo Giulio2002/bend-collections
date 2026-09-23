@@ -10,9 +10,6 @@ import ../math/u32div.bend as UD
 import ../../src/containers/doubly_linked_list.bend as D
 import ../../src/containers/internal/dlist_storage.bend as R
 import ../../src/containers/types/doubly_linked_list.bend as E
-import ../lru/state.bend as LST
-import ../lru/dll.bend as DL
-import ../lru/walk.bend as WK
 import ./state.bend as ST
 import ./vals.bend as VA
 import ./ok.bend as OK
@@ -24,6 +21,8 @@ import ./hnb.bend as NB
 import ./hlive.bend as HL
 import ./hins.bend as HI
 import ./walk.bend as WL
+import ../lib/nat_list.bend as NL
+import ../lib/links.bend as LK
 
 # THEOREM (one step): every operation, on every good shadow with fewer than
 # 2^cz issued ids, refines the specification's step.
@@ -69,7 +68,7 @@ def values_take(~T: Data, +xs: List<&2, Nat>, +fr: Nat, +vl: List<&2, $MT>, +h: 
       +ih = values_take(~T, t, fr, vl, L.and_right(Bool.and(Nat.is_lt(x, fr), ST.live(T, vl, x)), ST.slok(~T, t, fr, vl), h))
       Equal.trans(List<&2, T>, S.cons_some(T, S.val_of(T, SC.take($MT, vl, fr), x), S.values(T, SC.take($MT, vl, fr), t)), S.cons_some(T, S.val_of(T, vl, x), S.values(T, SC.take($MT, vl, fr), t)), S.cons_some(T, S.val_of(T, vl, x), S.values(T, vl, t)), Equal.cong($MT, List<&2, T>, m => S.cons_some(T, m, S.values(T, SC.take($MT, vl, fr), t)), S.val_of(T, SC.take($MT, vl, fr), x), S.val_of(T, vl, x), VA.val_take(T, vl, fr, x, hx)), Equal.cong(List<&2, T>, List<&2, T>, z => S.cons_some(T, S.val_of(T, vl, x), z), S.values(T, SC.take($MT, vl, fr), t), S.values(T, vl, t), ih))
 
-%def BK WK.rapp(sl, Nil{})
+%def BK NL.rapp(sl, Nil{})
 %def RAW R.DL{tag, fresh, free, SC.length(Nat, sl), head, tail, depth, cap, $AV, $AP, $AN}
 %def RL2 R.DList<T> & List<&2, T>
 %def TLR(n, c) R.tl_fin(~T, tag, fresh, free, SC.length(Nat, sl), head, tail, depth, cap, $AN, R.walk(~T, n, c))
@@ -78,16 +77,16 @@ def values_take(~T: Data, +xs: List<&2, Nat>, +fr: Nat, +vl: List<&2, $MT>, +h: 
 def raw_list(~T: Data, $SQ) -> {R.to_list(~T, $RAW) == ($RAW, S.values(T, $VL, sl)) : $RL2}:
   +e2d = N.eq_from_is_eq(UD.v(cap), SC.pow2(depth), $G(ccap))
   +hfr2 = L.subst(Nat, z => {Nat.is_le($FV, z) == True{} : Bool}, UD.v(cap), SC.pow2(depth), e2d, $G(cfr))
-  +ec = Equal.sym(Nat, SC.length(Nat, $BK), SC.length(Nat, sl), Equal.trans(Nat, SC.length(Nat, $BK), Nat.add(SC.length(Nat, sl), 0n), SC.length(Nat, sl), WK.len_rapp(sl, Nil{}), N.add_zero(SC.length(Nat, sl))))
-  +et = Equal.trans(U32, tail, LST.last_or(sl, 0), LST.fst_or($BK, 0), A.eq_of(tail, LST.last_or(sl, 0), $G(ctail)), Equal.sym(U32, LST.fst_or($BK, 0), LST.last_or(sl, 0), WK.fo_rapp(sl, Nil{}, 0)))
-  +hrok = WL.rok_app(~T, $PL, $NL, $VL, sl, Nil{}, $FV, 0, 0, $G(cseg), $G(csl), {==}, DL.u_refl(0))
+  +ec = Equal.sym(Nat, SC.length(Nat, $BK), SC.length(Nat, sl), Equal.trans(Nat, SC.length(Nat, $BK), Nat.add(SC.length(Nat, sl), 0n), SC.length(Nat, sl), NL.len_rapp(sl, Nil{}), N.add_zero(SC.length(Nat, sl))))
+  +et = Equal.trans(U32, tail, LK.last_or(sl, 0), LK.fst_or($BK, 0), A.eq_of(tail, LK.last_or(sl, 0), $G(ctail)), Equal.sym(U32, LK.fst_or($BK, 0), LK.last_or(sl, 0), LK.fo_rapp(sl, Nil{}, 0)))
+  +hrok = WL.rok_app(~T, $PL, $NL, $VL, sl, Nil{}, $FV, 0, 0, $G(cseg), $G(csl), {==}, LK.u_refl(0))
   +ew = WL.walk(~T, one, h1, depth, $G(cdep), vT, pT, $G(cpv), $G(cpp), $FV, hfr2, $BK, Nil{}, hrok)
   +er1 = Equal.cong(Nat, $RL2, n => $TLR(n, R.C{$AV, $AP, Nil{}, tail}), SC.length(Nat, sl), SC.length(Nat, $BK), ec)
-  +er2 = Equal.cong(U32, $RL2, z => $TLR(SC.length(Nat, $BK), R.C{$AV, $AP, Nil{}, z}), tail, LST.fst_or($BK, 0), et)
-  +er3 = Equal.cong(R.Cur<T>, $RL2, c => R.tl_fin(~T, tag, fresh, free, SC.length(Nat, sl), head, tail, depth, cap, $AN, c), R.walk(~T, SC.length(Nat, $BK), R.C{$AV, $AP, Nil{}, LST.fst_or($BK, 0)}), R.C{$AV, $AP, WL.racc(T, $VL, $BK, Nil{}), 0}, ew)
+  +er2 = Equal.cong(U32, $RL2, z => $TLR(SC.length(Nat, $BK), R.C{$AV, $AP, Nil{}, z}), tail, LK.fst_or($BK, 0), et)
+  +er3 = Equal.cong(R.Cur<T>, $RL2, c => R.tl_fin(~T, tag, fresh, free, SC.length(Nat, sl), head, tail, depth, cap, $AN, c), R.walk(~T, SC.length(Nat, $BK), R.C{$AV, $AP, Nil{}, LK.fst_or($BK, 0)}), R.C{$AV, $AP, WL.racc(T, $VL, $BK, Nil{}), 0}, ew)
   +ev = Equal.trans(List<&2, T>, WL.racc(T, $VL, $BK, Nil{}), SC.append(T, S.values(T, $VL, sl), Nil{}), S.values(T, $VL, sl), WL.ra_rapp(T, $VL, sl, Nil{}, Nil{}), LL.append_nil(T, S.values(T, $VL, sl)))
   +er4 = Equal.cong(List<&2, T>, $RL2, z => ($RAW, z), WL.racc(T, $VL, $BK, Nil{}), S.values(T, $VL, sl), ev)
-  Equal.trans($RL2, $TLR(SC.length(Nat, sl), R.C{$AV, $AP, Nil{}, tail}), $TLR(SC.length(Nat, $BK), R.C{$AV, $AP, Nil{}, tail}), ($RAW, S.values(T, $VL, sl)), er1, Equal.trans($RL2, $TLR(SC.length(Nat, $BK), R.C{$AV, $AP, Nil{}, tail}), $TLR(SC.length(Nat, $BK), R.C{$AV, $AP, Nil{}, LST.fst_or($BK, 0)}), ($RAW, S.values(T, $VL, sl)), er2, Equal.trans($RL2, $TLR(SC.length(Nat, $BK), R.C{$AV, $AP, Nil{}, LST.fst_or($BK, 0)}), ($RAW, WL.racc(T, $VL, $BK, Nil{})), ($RAW, S.values(T, $VL, sl)), er3, er4)))
+  Equal.trans($RL2, $TLR(SC.length(Nat, sl), R.C{$AV, $AP, Nil{}, tail}), $TLR(SC.length(Nat, $BK), R.C{$AV, $AP, Nil{}, tail}), ($RAW, S.values(T, $VL, sl)), er1, Equal.trans($RL2, $TLR(SC.length(Nat, $BK), R.C{$AV, $AP, Nil{}, tail}), $TLR(SC.length(Nat, $BK), R.C{$AV, $AP, Nil{}, LK.fst_or($BK, 0)}), ($RAW, S.values(T, $VL, sl)), er2, Equal.trans($RL2, $TLR(SC.length(Nat, $BK), R.C{$AV, $AP, Nil{}, LK.fst_or($BK, 0)}), ($RAW, WL.racc(T, $VL, $BK, Nil{})), ($RAW, S.values(T, $VL, sl)), er3, er4)))
 
 def spec_list(~T: Data, $SQ) -> {S.list_of(T, $MS) == S.values(T, $VL, sl) : List<&2, T>}:
   values_take(~T, sl, $FV, $VL, $G(csl))
@@ -105,10 +104,10 @@ def list_ok(~T: Data, $SQ) -> $STEP(E.ToList{}):
 
 def front_h(~T: Data, $SP, +x: T) -> $HOK(S.push_front(T, $MS, x), D.push_front(~T, $RS, x)):
   p = IN.ins_ok(~T, one, h1, tag, cap, fresh, head, tail, depth, vT, pT, nT, gT, Nil{}, sl, cz, hcz, free, fl, hg, hroom, x)
-  +eh = A.eq_of(head, LST.fst_or(sl, 0), $G(chead))
-  +er = Equal.cong(U32, D.DList<T> & E.Handle, z => D.inserted(~T, tag, depth, cap, $AG, $IBF(sl, head, 0, z)), head, LST.fst_or(sl, 0), eh)
+  +eh = A.eq_of(head, LK.fst_or(sl, 0), $G(chead))
+  +er = Equal.cong(U32, D.DList<T> & E.Handle, z => D.inserted(~T, tag, depth, cap, $AG, $IBF(sl, head, 0, z)), head, LK.fst_or(sl, 0), eh)
   +es = HL.ins_pos(T, tag, sl, $VLF, $GLF, fl, x, S.PFront{}, Nil{}, sl, n => {==})
-  OK.pok_eq(~T, E.Handle, S.push_front(T, $MS, x), IP.insAB(T, S.alloc(T, $MS), x, Nil{}, sl), D.push_front(~T, $RS, x), D.inserted(~T, tag, depth, cap, $AG, $IBF(sl, head, 0, LST.fst_or(sl, 0))), es, er, p)
+  OK.pok_eq(~T, E.Handle, S.push_front(T, $MS, x), IP.insAB(T, S.alloc(T, $MS), x, Nil{}, sl), D.push_front(~T, $RS, x), D.inserted(~T, tag, depth, cap, $AG, $IBF(sl, head, 0, LK.fst_or(sl, 0))), es, er, p)
 
 def front_ok(~T: Data, $SP, +x: T) -> $STEP(E.PushFront{x}):
   HL.pok_push(~T, S.push_front(T, $MS, x), D.push_front(~T, $RS, x), front_h(~T, $SA, x))
@@ -120,14 +119,14 @@ def back_h(~T: Data, $SP, +x: T) -> $HOK(S.push_back(T, $MS, x), D.push_back(~T,
   +ean = LL.append_nil(Nat, sl)
   +hg3 = L.subst(List<&2, Nat>, z => {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, z, fl) == True{} : Bool}, sl, $SLN, Equal.sym(List<&2, Nat>, $SLN, sl, ean), hg)
   p = IN.ins_ok(~T, one, h1, tag, cap, fresh, head, tail, depth, vT, pT, nT, gT, sl, Nil{}, cz, hcz, free, fl, hg3, hroom, x)
-  +et = A.eq_of(tail, LST.last_or(sl, 0), $G(ctail))
-  +er1 = Equal.cong(U32, D.DList<T> & E.Handle, z => D.inserted(~T, tag, depth, cap, $AG, $IBF(sl, head, z, 0)), tail, LST.last_or(sl, 0), et)
-  +er2 = Equal.cong(List<&2, Nat>, D.DList<T> & E.Handle, z => D.inserted(~T, tag, depth, cap, $AG, $IBF(z, head, LST.last_or(sl, 0), 0)), sl, $SLN, Equal.sym(List<&2, Nat>, $SLN, sl, ean))
-  +er = Equal.trans(D.DList<T> & E.Handle, D.push_back(~T, $RS, x), D.inserted(~T, tag, depth, cap, $AG, $IBF(sl, head, LST.last_or(sl, 0), 0)), D.inserted(~T, tag, depth, cap, $AG, $IBF($SLN, head, LST.last_or(sl, 0), 0)), er1, er2)
+  +et = A.eq_of(tail, LK.last_or(sl, 0), $G(ctail))
+  +er1 = Equal.cong(U32, D.DList<T> & E.Handle, z => D.inserted(~T, tag, depth, cap, $AG, $IBF(sl, head, z, 0)), tail, LK.last_or(sl, 0), et)
+  +er2 = Equal.cong(List<&2, Nat>, D.DList<T> & E.Handle, z => D.inserted(~T, tag, depth, cap, $AG, $IBF(z, head, LK.last_or(sl, 0), 0)), sl, $SLN, Equal.sym(List<&2, Nat>, $SLN, sl, ean))
+  +er = Equal.trans(D.DList<T> & E.Handle, D.push_back(~T, $RS, x), D.inserted(~T, tag, depth, cap, $AG, $IBF(sl, head, LK.last_or(sl, 0), 0)), D.inserted(~T, tag, depth, cap, $AG, $IBF($SLN, head, LK.last_or(sl, 0), 0)), er1, er2)
   +es1 = HL.ins_pos(T, tag, sl, $VLF, $GLF, fl, x, S.PBack{}, sl, Nil{}, n => LL.snoc_append(Nat, sl, n))
   +es2 = Equal.cong(List<&2, Nat>, S.DS<T> & E.Handle, z => $SPB(z), sl, $SLN, Equal.sym(List<&2, Nat>, $SLN, sl, ean))
   +es = Equal.trans(S.DS<T> & E.Handle, S.push_back(T, $MS, x), $SPB(sl), $SPB($SLN), es1, es2)
-  OK.pok_eq(~T, E.Handle, S.push_back(T, $MS, x), $SPB($SLN), D.push_back(~T, $RS, x), D.inserted(~T, tag, depth, cap, $AG, $IBF($SLN, head, LST.last_or(sl, 0), 0)), es, er, p)
+  OK.pok_eq(~T, E.Handle, S.push_back(T, $MS, x), $SPB($SLN), D.push_back(~T, $RS, x), D.inserted(~T, tag, depth, cap, $AG, $IBF($SLN, head, LK.last_or(sl, 0), 0)), es, er, p)
 
 def back_ok(~T: Data, $SP, +x: T) -> $STEP(E.PushBack{x}):
   HL.pok_push(~T, S.push_back(T, $MS, x), D.push_back(~T, $RS, x), back_h(~T, $SA, x))

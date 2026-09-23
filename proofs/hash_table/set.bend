@@ -6,7 +6,6 @@ import ../spec/common.bend as SC
 import ../spec/hash_table.bend as S
 import ../math/u32div.bend as UD
 import ../../src/containers/hash_table.bend as H
-import ./keys.bend as K
 import ./table.bend as TB
 import ./buckets.bend as B
 import ./cyc.bend as CY
@@ -16,7 +15,6 @@ import ./speclem.bend as SL
 import ./size.bend as SZ
 import ./setv.bend as SV
 import ./rebuild.bend as RB
-import ./get.bend as G
 import ./inv.bend as IV
 
 # set: the implementation's set agrees with the specification's set, for
