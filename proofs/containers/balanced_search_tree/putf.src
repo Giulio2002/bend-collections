@@ -1,0 +1,180 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/list.bend as LL
+import ../../lib/order.bend as O
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./tree.bend as TR
+import ./find.bend as FI
+import ./path.bend as P
+import ./prim.bend as PR
+import ./ord.bend as OR
+import ./slot.bend as SL
+import ./alls.bend as AL
+import ./dj.bend as DJ
+import ./agree.bend as AG
+import ./navs.bend as NS
+import ./spath.bend as SP
+import ../../lib/nat_list.bend as NL
+
+# A key found: the payload at its node is the specification's lookup, and
+# exchanging it is the specification's set_val; the invariant holds with the
+# new payload list. (source: tools/generators/tm_hand/putf.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def MV Maybe<&2, V>
+%def PL List<&2, $MV>
+%def E M.Entry<K, V>
+%def ES List<&2, $E>
+%def ME Maybe<&2, $E>
+%def CT List<&2, P.Fr>
+%def APP(a, b) SC.append(Nat, a, b)
+%def EAPP(a, b) SC.append($E, a, b)
+%def IDS(t) ST.ids(t)
+%def TN(i, a, b) ST.TN{i, a, b}
+%def KY(e) S.key(K, V, e)
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def LTA(k, es) {OR.ltall($AK, k, es) == True{} : Bool}
+%def GTA(k, es) {OR.gtall($AK, k, es) == True{} : Bool}
+%def ORD(x) {ST.ordered($AK, x) == True{} : Bool}
+%def SVAL(xs) S.set_val($AK, k, v, xs)
+
+# setting the value of the entry equal to k
+def set_val_mid($TO, +k: K, +v: V, +xs: $ES, +e: $E, +ys: $ES, +hl: $LTA(k, xs), +hc: {cmp(k, $KY(e)) == EQ{} : Cmp}) -> {$SVAL($EAPP(xs, Con{e, ys})) == $EAPP(xs, Con{M.Entry{$KY(e), v}, ys}) : $ES}:
+  match xs:
+    case Nil{}:
+      %Equal.sym(Cmp, cmp(k, $KY(e)), EQ{}, hc) : {S.pick($ES, S.is_eq(_), Con{M.Entry{$KY(e), v}, ys}, Con{e, $SVAL(ys)}) == Con{M.Entry{$KY(e), v}, ys} : $ES}
+      {==}
+    case Con{+a, +t}:
+      %Equal.sym(Cmp, cmp(k, $KY(a)), GT{}, OR.lt_gt(~K, ~cmp, ~o, $KY(a), k, L.and_left(Cmp.is_lt(cmp($KY(a), k)), OR.ltall($AK, k, t), hl))) : {S.pick($ES, S.is_eq(_), Con{M.Entry{$KY(a), v}, $EAPP(t, Con{e, ys})}, Con{a, $SVAL($EAPP(t, Con{e, ys}))}) == Con{a, $EAPP(t, Con{M.Entry{$KY(e), v}, ys})} : $ES}
+      %Equal.sym($ES, $SVAL($EAPP(t, Con{e, ys})), $EAPP(t, Con{M.Entry{$KY(e), v}, ys}), set_val_mid($AO, k, v, t, e, ys, L.and_right(Cmp.is_lt(cmp($KY(a), k)), OR.ltall($AK, k, t), hl), hc)) : {Con{a, _} == Con{a, $EAPP(t, Con{M.Entry{$KY(e), v}, ys})} : $ES}
+      {==}
+
+# order reads only keys
+def ord_key($TK, +xs: $ES, +e: $E, +e2: $E, +ys: $ES, +hk: {$KY(e) == $KY(e2) : K}, +h: $ORD($EAPP(xs, Con{e, ys}))) -> $ORD($EAPP(xs, Con{e2, ys})):
+  match xs:
+    case Nil{}:
+      match ys:
+        case Nil{}:
+          {==}
+        case Con{+b, +u}:
+          L.subst(K, z => {Bool.and(Cmp.is_lt(cmp(z, $KY(b))), ST.ordered($AK, Con{b, u})) == True{} : Bool}, $KY(e), $KY(e2), hk, h)
+    case Con{+a, +t}:
+      match t:
+        case Nil{}:
+          +h1 = L.and_left(Cmp.is_lt(cmp($KY(a), $KY(e))), ST.ordered($AK, Con{e, ys}), h)
+          +h2 = L.and_right(Cmp.is_lt(cmp($KY(a), $KY(e))), ST.ordered($AK, Con{e, ys}), h)
+          L.and_intro(Cmp.is_lt(cmp($KY(a), $KY(e2))), ST.ordered($AK, Con{e2, ys}), L.subst(K, z => {Cmp.is_lt(cmp($KY(a), z)) == True{} : Bool}, $KY(e), $KY(e2), hk, h1), ord_key($AK, Nil{}, e, e2, ys, hk, h2))
+        case Con{+a2, +u}:
+          +h1 = L.and_left(Cmp.is_lt(cmp($KY(a), $KY(a2))), ST.ordered($AK, Con{a2, $EAPP(u, Con{e, ys})}), h)
+          +h2 = L.and_right(Cmp.is_lt(cmp($KY(a), $KY(a2))), ST.ordered($AK, Con{a2, $EAPP(u, Con{e, ys})}), h)
+          L.and_intro(Cmp.is_lt(cmp($KY(a), $KY(a2))), ST.ordered($AK, Con{a2, $EAPP(u, Con{e2, ys})}), h1, ord_key($AK, Con{a2, u}, e, e2, ys, hk, h2))
+
+# ---- a payload exchanged ----
+
+def some_ex_c(-V: Data, +pl: $PL, +i: Nat, +w: $MV, +jj: Nat, +hj: {ST.some2(V, ST.pv(V, pl, 1n+jj)) == True{} : Bool}, +hw: {ST.some2(V, w) == True{} : Bool}, +b: Bool, +hb: {Nat.is_lt(i, SC.length($MV, pl)) == b : Bool}, +e: Bool, +he: {Nat.is_eq(i, jj) == e : Bool}) -> {ST.some2(V, ST.nth_or($MV, ST.pk($PL, b, SC.update($MV, pl, i, w), pl), jj, None{})) == True{} : Bool}:
+  match b e:
+    case True{} True{}:
+      +ei = N.eq_from_is_eq(i, jj, he)
+      +hin = L.subst(Nat, z => {Nat.is_lt(z, SC.length($MV, pl)) == True{} : Bool}, i, jj, ei, hb)
+      %Equal.sym(Nat, i, jj, ei) : {ST.some2(V, ST.nth_or($MV, SC.update($MV, pl, _, w), jj, None{})) == True{} : Bool}
+      %Equal.sym($MV, ST.nth_or($MV, SC.update($MV, pl, jj, w), jj, None{}), w, Equal.trans($MV, ST.nth_or($MV, SC.update($MV, pl, jj, w), jj, None{}), PR.or_else($MV, SC.nth($MV, SC.update($MV, pl, jj, w), jj), None{}), w, PR.nth_or_nth($MV, SC.update($MV, pl, jj, w), jj, None{}), L.subst(Maybe<&2, $MV>, z => {PR.or_else($MV, z, None{}) == w : $MV}, Some{w}, SC.nth($MV, SC.update($MV, pl, jj, w), jj), Equal.sym(Maybe<&2, $MV>, SC.nth($MV, SC.update($MV, pl, jj, w), jj), Some{w}, LL.nth_update_same($MV, pl, jj, w, hin)), {==}))) : {ST.some2(V, _) == True{} : Bool}
+      hw
+    case True{} False{}:
+      %Equal.sym($MV, ST.nth_or($MV, SC.update($MV, pl, i, w), jj, None{}), ST.nth_or($MV, pl, jj, None{}), SL.nth_upd_c($MV, pl, i, w, jj, None{}, he, True{})) : {ST.some2(V, _) == True{} : Bool}
+      hj
+    case False{} +e:
+      hj
+
+def some_ex(-V: Data, +pl: $PL, +id: Nat, +w: $MV, +j: Nat, +hj: {ST.some2(V, ST.pv(V, pl, j)) == True{} : Bool}, +hw: {ST.some2(V, w) == True{} : Bool}) -> {ST.some2(V, ST.pv(V, PR.ex_pl(V, pl, id, w), j)) == True{} : Bool}:
+  match id j:
+    case 0n +j:
+      hj
+    case 1n+i 0n:
+      Empty.absurd({ST.some2(V, None{}) == True{} : Bool}, L.false_true(hj))
+    case 1n+i 1n+jj:
+      some_ex_c(V, pl, i, w, jj, hj, hw, Nat.is_lt(i, SC.length($MV, pl)), {==}, Nat.is_eq(i, jj), {==})
+
+def pay_ex(~V: Data, +t: ST.Tr, +pl: $PL, +id: Nat, +w: $MV, +hp: {ST.pay(~V, t, pl) == True{} : Bool}, +hw: {ST.some2(V, w) == True{} : Bool}) -> {ST.pay(~V, t, PR.ex_pl(V, pl, id, w)) == True{} : Bool}:
+  match t:
+    case ST.TE{}:
+      {==}
+    case ST.TN{+i, +a, +b}:
+      L.and_intro(ST.some2(V, ST.pv(V, PR.ex_pl(V, pl, id, w), i)), Bool.and(ST.pay(~V, a, PR.ex_pl(V, pl, id, w)), ST.pay(~V, b, PR.ex_pl(V, pl, id, w))), some_ex(V, pl, id, w, i, FI.pay_node(~V, i, a, b, pl, hp), hw), L.and_intro(ST.pay(~V, a, PR.ex_pl(V, pl, id, w)), ST.pay(~V, b, PR.ex_pl(V, pl, id, w)), pay_ex(~V, a, pl, id, w, FI.pay_l(~V, i, a, b, pl, hp), hw), pay_ex(~V, b, pl, id, w, FI.pay_r(~V, i, a, b, pl, hp), hw)))
+
+# ---- the key found: put replaces the value ----
+
+%def FO +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: $NL, +pl: $PL, +tg: ST.Tr, +fl: $LN
+%def FOA n, root, lo, hi, free, l, d, nl, pl, tg, fl
+%def GF {ST.goodF($AK, $FOA) == True{} : Bool}
+%def SH ST.SH{$FOA}
+%def RES Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>
+%def WHN(i) $APP(P.before(c), $APP($IDS($TN(i, a, b)), P.after(c)))
+%def X $APP(P.before(c), $IDS(a))
+%def Y $APP($IDS(b), P.after(c))
+%def ENTS(xs, p) ST.ents(~K, ~V, xs, nl, p)
+%def EX $ENTS($X, pl)
+%def EY $ENTS($Y, pl)
+%def EI M.Entry{key, vi}
+%def EV M.Entry{key, v}
+%def PL2 PR.ex_pl(V, pl, 1n+j, Some{v})
+%def I1 1n+j
+%def HH +c: $CT, +i: Nat, +a: ST.Tr, +b: ST.Tr, +k: K, +v: V, +hbc: {$IDS(tg) == $WHN(i) : $LN}, +hr: {ST.rep(~K, $TN(i, a, b), P.top(c), nl) == True{} : Bool}, +hfin: {SP.fin(~K, ~cmp, k, $TN(i, a, b), nl) == True{} : Bool}, +x: $ND, +m: $MV, +hxi: {ST.nd(K, nl, i) == x : $ND}, +hmi: {ST.pv(V, pl, i) == m : $MV}, +hx: {ST.is_node(K, x, ST.rid(a), ST.rid(b), P.top(c)) == True{} : Bool}, +hm: {ST.some2(V, m) == True{} : Bool}
+%def HHA c, i, a, b, k, v, hbc, hr, hfin, x, m, hxi, hmi, hx, hm
+%def MIRH MI.put_replaced($AK, MI.exchange($AK, $SH, i, Some{v}))
+
+# the entries around a node the path leads to, for a payload list
+def ents_at(~K: Data, ~V: Data, +nl: $NL, +q: $PL, +tg: ST.Tr, +c: $CT, +i: Nat, +a: ST.Tr, +b: ST.Tr, +hbc: {$IDS(tg) == $WHN(i) : $LN}) -> {$ENTS($IDS(tg), q) == $EAPP($ENTS($X, q), ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, i), ST.pv(V, q, i)), $ENTS($Y, q))) : $ES}:
+  +e1 = L.subst($LN, z => {$ENTS($IDS(tg), q) == $ENTS(z, q) : $ES}, $IDS(tg), $WHN(i), hbc, {==})
+  +e2 = L.subst($LN, z => {$ENTS($WHN(i), q) == $ENTS(z, q) : $ES}, $WHN(i), $APP($X, Con{i, $Y}), NS.wh_node(c, i, a, b), {==})
+  Equal.trans($ES, $ENTS($IDS(tg), q), $ENTS($WHN(i), q), $EAPP($ENTS($X, q), ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, i), ST.pv(V, q, i)), $ENTS($Y, q))), e1, Equal.trans($ES, $ENTS($WHN(i), q), $ENTS($APP($X, Con{i, $Y}), q), $EAPP($ENTS($X, q), ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, i), ST.pv(V, q, i)), $ENTS($Y, q))), e2, FI.ents_app(~K, ~V, $X, Con{i, $Y}, nl, q)))
+
+%def PLI PR.ex_pl(V, pl, i, Some{v})
+%def HC(i) {$ENTS($IDS(tg), PR.ex_pl(V, pl, i, Some{v})) == S.set_val($AK, k, v, $ENTS($IDS(tg), pl)) : $ES} & {ST.goodF($AK, n, root, lo, hi, free, l, d, nl, PR.ex_pl(V, pl, i, Some{v}), tg, fl) == True{} : Bool}
+
+# the node of k found: exchanging its payload for v gives the entries
+# set_val(k, v) and keeps the invariant
+def hit_core($TO, $FO, +hg: $GF, $HH) -> $HC(i):
+  match i x m:
+    case 0n +x +m:
+      Empty.absurd($HC(0n), L.false_true(L.and_left(Nat.is_lt(0n, 0n), Bool.and(ST.is_node(K, ST.nd(K, nl, 0n), ST.rid(a), ST.rid(b), P.top(c)), Bool.and(ST.rep(~K, a, 0n, nl), ST.rep(~K, b, 0n, nl))), hr)))
+    case 1n+j M.Free{f} +m:
+      Empty.absurd($HC(1n+j), L.false_true(hx))
+    case 1n+j M.N{c0, x1, x2, x3, key} None{}:
+      Empty.absurd($HC(1n+j), L.false_true(hm))
+    case 1n+j M.N{+c0, +x1, +x2, +x3, +key} Some{+vi}:
+      +hW0 = ents_at(~K, ~V, nl, pl, tg, c, $I1, a, b, hbc)
+      +eent = L.subst($MV, z => {ST.ent(K, V, ST.nd(K, nl, $I1), ST.pv(V, pl, $I1)) == ST.ent(K, V, M.N{c0, x1, x2, x3, key}, z) : Maybe<&2, $E>}, ST.pv(V, pl, $I1), Some{vi}, hmi, L.subst($ND, z => {ST.ent(K, V, ST.nd(K, nl, $I1), ST.pv(V, pl, $I1)) == ST.ent(K, V, z, ST.pv(V, pl, $I1)) : Maybe<&2, $E>}, ST.nd(K, nl, $I1), M.N{c0, x1, x2, x3, key}, hxi, {==}))
+      +hW = Equal.trans($ES, $ENTS($IDS(tg), pl), $EAPP($EX, ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, $I1), ST.pv(V, pl, $I1)), $EY)), $EAPP($EX, Con{$EI, $EY}), hW0, L.subst(Maybe<&2, $E>, z => {$EAPP($EX, ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, $I1), ST.pv(V, pl, $I1)), $EY)) == $EAPP($EX, ST.cons_m($E, z, $EY)) : $ES}, ST.ent(K, V, ST.nd(K, nl, $I1), ST.pv(V, pl, $I1)), Some{$EI}, eent, {==}))
+      +hord = L.subst($ES, z => $ORD(z), $ENTS($IDS(tg), pl), $EAPP($EX, Con{$EI, $EY}), hW, ST.g_cord($AK, $FOA, hg))
+      +hc = AG.iseq_eq(cmp(k, key), L.subst($ND, z => {S.is_eq(TR.kc(~K, ~cmp, k, z)) == True{} : Bool}, ST.nd(K, nl, $I1), M.N{c0, x1, x2, x3, key}, hxi, hfin))
+      +ek = O.antisym(~K, ~cmp, o, k, key, hc)
+      +hlx = L.subst(K, z => $LTA(z, $EX), key, k, Equal.sym(K, k, key, ek), OR.ord_mid_l($AO, $EX, $EI, $EY, hord))
+      +hnd0 = L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $IDS(tg), $APP($X, Con{$I1, $Y}), Equal.trans($LN, $IDS(tg), $WHN($I1), $APP($X, Con{$I1, $Y}), hbc, NS.wh_node(c, $I1, a, b)), DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $FOA, hg)))
+      +nX = DJ.dj_l($X, Con{$I1, $Y}, hnd0, $I1, DJ.mem_hd($I1, $Y))
+      +nY = DJ.nd_head($I1, $Y, DJ.ndr($X, Con{$I1, $Y}, hnd0))
+      +mi = L.subst($LN, z => {NL.memn($I1, z) == True{} : Bool}, $APP($X, Con{$I1, $Y}), $IDS(tg), Equal.sym($LN, $IDS(tg), $APP($X, Con{$I1, $Y}), Equal.trans($LN, $IDS(tg), $WHN($I1), $APP($X, Con{$I1, $Y}), hbc, NS.wh_node(c, $I1, a, b))), DJ.mem_r($I1, $X, Con{$I1, $Y}, DJ.mem_hd($I1, $Y)))
+      +hib = AL.allin_mem($IDS(tg), SC.length($ND, nl), $I1, AL.allin_l($IDS(tg), fl, SC.length($ND, nl), ST.g_cin($AK, $FOA, hg)), mi)
+      +hjl = L.subst(Nat, z => {Nat.is_lt(j, z) == True{} : Bool}, SC.length($ND, nl), SC.length($MV, pl), Equal.sym(Nat, SC.length($MV, pl), SC.length($ND, nl), N.eq_from_is_eq(SC.length($MV, pl), SC.length($ND, nl), ST.g_cpl($AK, $FOA, hg))), N.succ_le_lt(j, SC.length($ND, nl), L.and_right(Nat.is_lt(0n, $I1), Nat.is_le($I1, SC.length($ND, nl)), hib)))
+      +hW2a = ents_at(~K, ~V, nl, $PL2, tg, c, $I1, a, b, hbc)
+      +eX2 = SL.ents_pex(~K, ~V, $X, nl, pl, $I1, Some{v}, nX)
+      +eY2 = SL.ents_pex(~K, ~V, $Y, nl, pl, $I1, Some{v}, nY)
+      +epv = SL.pv_ex_same(V, pl, j, Some{v}, hjl)
+      +eent2 = L.subst($MV, z => {ST.ent(K, V, ST.nd(K, nl, $I1), ST.pv(V, $PL2, $I1)) == ST.ent(K, V, M.N{c0, x1, x2, x3, key}, z) : Maybe<&2, $E>}, ST.pv(V, $PL2, $I1), Some{v}, epv, L.subst($ND, z => {ST.ent(K, V, ST.nd(K, nl, $I1), ST.pv(V, $PL2, $I1)) == ST.ent(K, V, z, ST.pv(V, $PL2, $I1)) : Maybe<&2, $E>}, ST.nd(K, nl, $I1), M.N{c0, x1, x2, x3, key}, hxi, {==}))
+      +hW2b = L.subst(Maybe<&2, $E>, z => {$EAPP($ENTS($X, $PL2), ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, $I1), ST.pv(V, $PL2, $I1)), $ENTS($Y, $PL2))) == $EAPP($ENTS($X, $PL2), ST.cons_m($E, z, $ENTS($Y, $PL2))) : $ES}, ST.ent(K, V, ST.nd(K, nl, $I1), ST.pv(V, $PL2, $I1)), Some{$EV}, eent2, {==})
+      +hW2c = L.subst($ES, z => {$EAPP($ENTS($X, $PL2), Con{$EV, $ENTS($Y, $PL2)}) == $EAPP(z, Con{$EV, $ENTS($Y, $PL2)}) : $ES}, $ENTS($X, $PL2), $EX, eX2, {==})
+      +hW2d = L.subst($ES, z => {$EAPP($EX, Con{$EV, $ENTS($Y, $PL2)}) == $EAPP($EX, Con{$EV, z}) : $ES}, $ENTS($Y, $PL2), $EY, eY2, {==})
+      +hW2 = Equal.trans($ES, $ENTS($IDS(tg), $PL2), $EAPP($ENTS($X, $PL2), ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, $I1), ST.pv(V, $PL2, $I1)), $ENTS($Y, $PL2))), $EAPP($EX, Con{$EV, $EY}), hW2a, Equal.trans($ES, $EAPP($ENTS($X, $PL2), ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, $I1), ST.pv(V, $PL2, $I1)), $ENTS($Y, $PL2))), $EAPP($ENTS($X, $PL2), Con{$EV, $ENTS($Y, $PL2)}), $EAPP($EX, Con{$EV, $EY}), hW2b, Equal.trans($ES, $EAPP($ENTS($X, $PL2), Con{$EV, $ENTS($Y, $PL2)}), $EAPP($EX, Con{$EV, $ENTS($Y, $PL2)}), $EAPP($EX, Con{$EV, $EY}), hW2c, hW2d)))
+      +hsv = Equal.trans($ES, S.set_val($AK, k, v, $ENTS($IDS(tg), pl)), S.set_val($AK, k, v, $EAPP($EX, Con{$EI, $EY})), $EAPP($EX, Con{$EV, $EY}), L.subst($ES, z => {S.set_val($AK, k, v, $ENTS($IDS(tg), pl)) == S.set_val($AK, k, v, z) : $ES}, $ENTS($IDS(tg), pl), $EAPP($EX, Con{$EI, $EY}), hW, {==}), set_val_mid($AO, k, v, $EX, $EI, $EY, hlx, hc))
+      +gcpl = L.subst(Nat, z => {Nat.is_eq(z, SC.length($ND, nl)) == True{} : Bool}, SC.length($MV, pl), SC.length($MV, $PL2), Equal.sym(Nat, SC.length($MV, $PL2), SC.length($MV, pl), SL.len_ex(V, pl, $I1, Some{v})), ST.g_cpl($AK, $FOA, hg))
+      +gcord = L.subst($ES, z => $ORD(z), $EAPP($EX, Con{$EV, $EY}), $ENTS($IDS(tg), $PL2), Equal.sym($ES, $ENTS($IDS(tg), $PL2), $EAPP($EX, Con{$EV, $EY}), hW2), ord_key($AK, $EX, $EI, $EV, $EY, {==}, hord))
+      +good = ST.good_intro($AK, n, root, lo, hi, free, l, d, nl, $PL2, tg, fl, ST.g_cl($AK, $FOA, hg), ST.g_cd($AK, $FOA, hg), ST.g_ccap($AK, $FOA, hg), gcpl, ST.g_crep($AK, $FOA, hg), pay_ex(~V, tg, pl, $I1, Some{v}, ST.g_cpay($AK, $FOA, hg), {==}), ST.g_cfll($AK, $FOA, hg), ST.g_cnd($AK, $FOA, hg), ST.g_cin($AK, $FOA, hg), ST.g_clen($AK, $FOA, hg), gcord, ST.g_cblk($AK, $FOA, hg), ST.g_csz($AK, $FOA, hg), ST.g_croot($AK, $FOA, hg), ST.g_clo($AK, $FOA, hg), ST.g_chi($AK, $FOA, hg), ST.g_cfree($AK, $FOA, hg))
+      (Equal.trans($ES, $ENTS($IDS(tg), $PL2), $EAPP($EX, Con{$EV, $EY}), S.set_val($AK, k, v, $ENTS($IDS(tg), pl)), hW2, Equal.sym($ES, S.set_val($AK, k, v, $ENTS($IDS(tg), pl)), $EAPP($EX, Con{$EV, $EY}), hsv)), good)

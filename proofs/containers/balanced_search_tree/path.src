@@ -1,0 +1,254 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/list.bend as LL
+import ../../lib/spec_common.bend as SC
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./tree.bend as TR
+import ../../lib/nat_list.bend as NL
+
+# Paths into the ghost tree: the frames from a subtree up to the root (the
+# parent's id, whether the subtree is its left child, the sibling), the ids
+# before and after the subtree in key order, and the links each frame's
+# parent has. A descent extends the path; the ids split around the subtree;
+# with no repeated ids a subtree's root differs from every sibling's; the
+# path is shorter than the ids. (source: tools/generators/tm_hand/path.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def APP(a, b) SC.append(Nat, a, b)
+%def IDS(t) ST.ids(t)
+
+type Fr is Data:
+  FR{p: Nat, lft: Bool, sib: ST.Tr}
+
+%def CT List<&2, Fr>
+
+def fp(f: Fr) -> Nat:
+  match f:
+    case FR{+p, lft, s}:
+      p
+
+def top(c: $CT) -> Nat:
+  match c:
+    case Nil{}:
+      0n
+    case Con{+f, t}:
+      fp(f)
+
+def bef1(f: Fr, +b: $LN) -> $LN:
+  match f:
+    case FR{+p, lft, s}:
+      match lft:
+        case True{}:
+          b
+        case False{}:
+          $APP(b, $APP($IDS(s), Con{p, Nil{}}))
+
+def aft1(f: Fr, +a: $LN) -> $LN:
+  match f:
+    case FR{+p, lft, s}:
+      match lft:
+        case True{}:
+          Con{p, $APP($IDS(s), a)}
+        case False{}:
+          a
+
+# the ids before and after the subtree the path leads to
+def before(c: $CT) -> $LN:
+  match c:
+    case Nil{}:
+      Nil{}
+    case Con{+f, t}:
+      bef1(f, before(t))
+
+def after(c: $CT) -> $LN:
+  match c:
+    case Nil{}:
+      Nil{}
+    case Con{+f, t}:
+      aft1(f, after(t))
+
+# a frame's parent links to x on its side, to the sibling on the other, and
+# to q above; the sibling hangs below it
+def cok1(~K: Data, f: Fr, +x: Nat, +q: Nat, +nl: $NL) -> Bool:
+  match f:
+    case FR{+p, +lft, +s}:
+      Bool.and(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), q), ST.rep(~K, s, p, nl)))
+
+def ctxok(~K: Data, c: $CT, +x: Nat, +nl: $NL) -> Bool:
+  match c:
+    case Nil{}:
+      True{}
+    case Con{+f, +t}:
+      Bool.and(cok1(~K, f, x, top(t), nl), ctxok(~K, t, fp(f), nl))
+
+%def COK(c, x) {ctxok(~K, c, x, nl) == True{} : Bool}
+%def REP(t, p) {ST.rep(~K, t, p, nl) == True{} : Bool}
+%def TN(i, a, b) ST.TN{i, a, b}
+
+# ---- the ids around a descent ----
+
+def eq_l(+b: $LN, +a: $LN, +i: Nat, +x: $LN, +y: $LN) -> {$APP(b, $APP($APP(x, Con{i, y}), a)) == $APP(b, $APP(x, Con{i, $APP(y, a)})) : $LN}:
+  %Equal.sym($LN, $APP($APP(x, Con{i, y}), a), $APP(x, $APP(Con{i, y}, a)), LL.append_assoc(Nat, x, Con{i, y}, a)) : {$APP(b, _) == $APP(b, $APP(x, Con{i, $APP(y, a)})) : $LN}
+  {==}
+
+def eq_r(+b: $LN, +a: $LN, +i: Nat, +x: $LN, +y: $LN) -> {$APP(b, $APP($APP(x, Con{i, y}), a)) == $APP($APP(b, $APP(x, Con{i, Nil{}})), $APP(y, a)) : $LN}:
+  %Equal.sym($LN, $APP($APP(b, $APP(x, Con{i, Nil{}})), $APP(y, a)), $APP(b, $APP($APP(x, Con{i, Nil{}}), $APP(y, a))), LL.append_assoc(Nat, b, $APP(x, Con{i, Nil{}}), $APP(y, a))) : {$APP(b, $APP($APP(x, Con{i, y}), a)) == _ : $LN}
+  %Equal.sym($LN, $APP($APP(x, Con{i, Nil{}}), $APP(y, a)), $APP(x, $APP(Con{i, Nil{}}, $APP(y, a))), LL.append_assoc(Nat, x, Con{i, Nil{}}, $APP(y, a))) : {$APP(b, $APP($APP(x, Con{i, y}), a)) == $APP(b, _) : $LN}
+  eq_l(b, a, i, x, y)
+
+%def WH(c, t) $APP(before(c), $APP($IDS(t), after(c)))
+%def CL(i, r, c) Con{FR{i, True{}, r}, c}
+%def CR(i, l, c) Con{FR{i, False{}, l}, c}
+
+# the ids, split around a subtree, split around its left child
+def ids_l(+c: $CT, +i: Nat, +l: ST.Tr, +r: ST.Tr) -> {$WH(c, $TN(i, l, r)) == $WH($CL(i, r, c), l) : $LN}:
+  eq_l(before(c), after(c), i, $IDS(l), $IDS(r))
+
+def ids_r(+c: $CT, +i: Nat, +l: ST.Tr, +r: ST.Tr) -> {$WH(c, $TN(i, l, r)) == $WH($CR(i, l, c), r) : $LN}:
+  eq_r(before(c), after(c), i, $IDS(l), $IDS(r))
+
+# the links along a descent
+def ok_l(~K: Data, +nl: $NL, +c: $CT, +i: Nat, +l: ST.Tr, +r: ST.Tr, +hr: $REP($TN(i, l, r), top(c)), +hc: $COK(c, i)) -> $COK($CL(i, r, c), ST.rid(l)) & $REP(l, i):
+  +h2 = L.and_right(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), top(c)), Bool.and(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl))), hr)
+  +h3 = L.and_right(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), top(c)), Bool.and(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl)), h2)
+  +k1 = L.and_intro(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), top(c)), ST.rep(~K, r, i, nl)), L.and_left(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), top(c)), Bool.and(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl))), hr), L.and_intro(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), top(c)), ST.rep(~K, r, i, nl), L.and_left(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), top(c)), Bool.and(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl)), h2), L.and_right(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl), h3)))
+  (L.and_intro(cok1(~K, FR{i, True{}, r}, ST.rid(l), top(c), nl), ctxok(~K, c, i, nl), k1, hc), L.and_left(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl), h3))
+
+def ok_r(~K: Data, +nl: $NL, +c: $CT, +i: Nat, +l: ST.Tr, +r: ST.Tr, +hr: $REP($TN(i, l, r), top(c)), +hc: $COK(c, i)) -> $COK($CR(i, l, c), ST.rid(r)) & $REP(r, i):
+  +h2 = L.and_right(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), top(c)), Bool.and(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl))), hr)
+  +h3 = L.and_right(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), top(c)), Bool.and(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl)), h2)
+  +k1 = L.and_intro(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), top(c)), ST.rep(~K, l, i, nl)), L.and_left(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), top(c)), Bool.and(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl))), hr), L.and_intro(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), top(c)), ST.rep(~K, l, i, nl), L.and_left(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), top(c)), Bool.and(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl)), h2), L.and_left(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl), h3)))
+  (L.and_intro(cok1(~K, FR{i, False{}, l}, ST.rid(r), top(c), nl), ctxok(~K, c, i, nl), k1, hc), L.and_right(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl), h3))
+
+# ---- siblings differ ----
+
+# the subtree's root is none of the frames' siblings (walking up)
+def dist(c: $CT, +x: Nat) -> Bool:
+  match c:
+    case Nil{}:
+      True{}
+    case Con{+f, +t}:
+      match f:
+        case FR{+p, lft, +s}:
+          Bool.and(Bool.not(Nat.is_eq(x, ST.rid(s))), dist(t, p))
+
+%def ND2(xs) {NL.nodupn(xs) == True{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
+
+def mem_self(+i: Nat, +y: $LN) -> $MEM(i, Con{i, y}):
+  %Equal.sym(Bool, Nat.is_eq(i, i), True{}, N.is_eq_refl(i)) : {Bool.or(_, NL.memn(i, y)) == True{} : Bool}
+  {==}
+
+def mem_root(+i: Nat, +l: ST.Tr, +r: ST.Tr) -> $MEM(i, $IDS($TN(i, l, r))):
+  NL.mem_app_r(i, $IDS(l), Con{i, $IDS(r)}, mem_self(i, $IDS(r)))
+
+def mem_cons(+y: Nat, +p: Nat, +xs: $LN, +h: $MEM(y, xs)) -> $MEM(y, Con{p, xs}):
+  %Equal.sym(Bool, NL.memn(y, xs), True{}, h) : {Bool.or(Nat.is_eq(p, y), _) == True{} : Bool}
+  NL.or_true_b(Nat.is_eq(p, y))
+
+def ne_c(+i: Nat, +j: Nat, +xs: $LN, +hi: $NMEM(i, xs), +hj: $MEM(j, xs), +b: Bool, +hb: {Nat.is_eq(i, j) == b : Bool}) -> {Bool.not(b) == True{} : Bool}:
+  match b:
+    case True{}:
+      +e = N.eq_from_is_eq(i, j, hb)
+      Empty.absurd({Bool.not(True{}) == True{} : Bool}, L.true_false(Equal.trans(Bool, True{}, NL.memn(i, xs), False{}, Equal.sym(Bool, NL.memn(i, xs), True{}, L.subst(Nat, z => $MEM(z, xs), j, i, Equal.sym(Nat, i, j, e), hj)), hi)))
+    case False{}:
+      {==}
+
+# an absent id differs from a present one
+def ne_mem(+i: Nat, +j: Nat, +xs: $LN, +hi: $NMEM(i, xs), +hj: $MEM(j, xs)) -> {Bool.not(Nat.is_eq(i, j)) == True{} : Bool}:
+  ne_c(i, j, xs, hi, hj, Nat.is_eq(i, j), {==})
+
+def ne_zero(+i: Nat, +hi: {Nat.is_lt(0n, i) == True{} : Bool}) -> {Bool.not(Nat.is_eq(i, 0n)) == True{} : Bool}:
+  match i:
+    case 0n:
+      Empty.absurd({Bool.not(Nat.is_eq(0n, 0n)) == True{} : Bool}, L.false_true(hi))
+    case 1n+j:
+      {==}
+
+%def SUB $TN(i, l, r)
+%def HO(c) ctxok(~K, c, i, nl)
+
+# the root differs from every sibling, when no id repeats
+def nd_dist(~K: Data, +nl: $NL, +c: $CT, +i: Nat, +l: ST.Tr, +r: ST.Tr, +hi: {Nat.is_lt(0n, i) == True{} : Bool}, +hok: $COK(c, i), +hnd: $ND2($WH(c, $SUB))) -> {dist(c, i) == True{} : Bool}:
+  match c:
+    case Nil{}:
+      {==}
+    case Con{+f, +t}:
+      match f:
+        case FR{+p, +lft, +s}:
+          match lft:
+            case True{}:
+              match s:
+                case ST.TE{}:
+                  +hk = L.and_left(cok1(~K, FR{p, True{}, ST.TE{}}, i, top(t), nl), ctxok(~K, t, p, nl), hok)
+                  +hp = L.and_left(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), i, ST.rid(ST.TE{}), top(t)), ST.rep(~K, ST.TE{}, p, nl)), hk)
+                  +hn = NL.nd_dj2($IDS($SUB), after($CL(p, ST.TE{}, t)), NL.nd_r(before(t), $APP($IDS($SUB), after($CL(p, ST.TE{}, t))), hnd), i, mem_root(i, l, r))
+                  +hnd2 = L.subst($LN, z => $ND2(z), $WH($CL(p, ST.TE{}, t), $SUB), $WH(t, $TN(p, $SUB, ST.TE{})), Equal.sym($LN, $WH(t, $TN(p, $SUB, ST.TE{})), $WH($CL(p, ST.TE{}, t), $SUB), ids_l(t, p, $SUB, ST.TE{})), hnd)
+                  +rec = nd_dist(~K, nl, t, p, $SUB, ST.TE{}, hp, L.and_right(cok1(~K, FR{p, True{}, ST.TE{}}, i, top(t), nl), ctxok(~K, t, p, nl), hok), hnd2)
+                  L.and_intro(Bool.not(Nat.is_eq(i, 0n)), dist(t, p), ne_zero(i, hi), rec)
+                case ST.TN{+j, +sl, +sr}:
+                  +hk = L.and_left(cok1(~K, FR{p, True{}, ST.TN{j, sl, sr}}, i, top(t), nl), ctxok(~K, t, p, nl), hok)
+                  +hp = L.and_left(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), i, ST.rid(ST.TN{j, sl, sr}), top(t)), ST.rep(~K, ST.TN{j, sl, sr}, p, nl)), hk)
+                  +hn = NL.nd_dj2($IDS($SUB), after($CL(p, ST.TN{j, sl, sr}, t)), NL.nd_r(before(t), $APP($IDS($SUB), after($CL(p, ST.TN{j, sl, sr}, t))), hnd), i, mem_root(i, l, r))
+                  +hnd2 = L.subst($LN, z => $ND2(z), $WH($CL(p, ST.TN{j, sl, sr}, t), $SUB), $WH(t, $TN(p, $SUB, ST.TN{j, sl, sr})), Equal.sym($LN, $WH(t, $TN(p, $SUB, ST.TN{j, sl, sr})), $WH($CL(p, ST.TN{j, sl, sr}, t), $SUB), ids_l(t, p, $SUB, ST.TN{j, sl, sr})), hnd)
+                  +rec = nd_dist(~K, nl, t, p, $SUB, ST.TN{j, sl, sr}, hp, L.and_right(cok1(~K, FR{p, True{}, ST.TN{j, sl, sr}}, i, top(t), nl), ctxok(~K, t, p, nl), hok), hnd2)
+                  L.and_intro(Bool.not(Nat.is_eq(i, j)), dist(t, p), ne_mem(i, j, after($CL(p, $TN(j, sl, sr), t)), hn, mem_cons(j, p, $APP($IDS($TN(j, sl, sr)), after(t)), NL.mem_app_l(j, $IDS($TN(j, sl, sr)), after(t), mem_root(j, sl, sr)))), rec)
+            case False{}:
+              match s:
+                case ST.TE{}:
+                  +hk = L.and_left(cok1(~K, FR{p, False{}, ST.TE{}}, i, top(t), nl), ctxok(~K, t, p, nl), hok)
+                  +hp = L.and_left(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), ST.rid(ST.TE{}), i, top(t)), ST.rep(~K, ST.TE{}, p, nl)), hk)
+                  +hn = NL.nd_dj(before($CR(p, ST.TE{}, t)), $APP($IDS($SUB), after(t)), hnd, i, NL.mem_app_l(i, $IDS($SUB), after(t), mem_root(i, l, r)))
+                  +hnd2 = L.subst($LN, z => $ND2(z), $WH($CR(p, ST.TE{}, t), $SUB), $WH(t, $TN(p, ST.TE{}, $SUB)), Equal.sym($LN, $WH(t, $TN(p, ST.TE{}, $SUB)), $WH($CR(p, ST.TE{}, t), $SUB), ids_r(t, p, ST.TE{}, $SUB)), hnd)
+                  +rec = nd_dist(~K, nl, t, p, ST.TE{}, $SUB, hp, L.and_right(cok1(~K, FR{p, False{}, ST.TE{}}, i, top(t), nl), ctxok(~K, t, p, nl), hok), hnd2)
+                  L.and_intro(Bool.not(Nat.is_eq(i, 0n)), dist(t, p), ne_zero(i, hi), rec)
+                case ST.TN{+j, +sl, +sr}:
+                  +hk = L.and_left(cok1(~K, FR{p, False{}, ST.TN{j, sl, sr}}, i, top(t), nl), ctxok(~K, t, p, nl), hok)
+                  +hp = L.and_left(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), ST.rid(ST.TN{j, sl, sr}), i, top(t)), ST.rep(~K, ST.TN{j, sl, sr}, p, nl)), hk)
+                  +hn = NL.nd_dj(before($CR(p, ST.TN{j, sl, sr}, t)), $APP($IDS($SUB), after(t)), hnd, i, NL.mem_app_l(i, $IDS($SUB), after(t), mem_root(i, l, r)))
+                  +hnd2 = L.subst($LN, z => $ND2(z), $WH($CR(p, ST.TN{j, sl, sr}, t), $SUB), $WH(t, $TN(p, ST.TN{j, sl, sr}, $SUB)), Equal.sym($LN, $WH(t, $TN(p, ST.TN{j, sl, sr}, $SUB)), $WH($CR(p, ST.TN{j, sl, sr}, t), $SUB), ids_r(t, p, ST.TN{j, sl, sr}, $SUB)), hnd)
+                  +rec = nd_dist(~K, nl, t, p, ST.TN{j, sl, sr}, $SUB, hp, L.and_right(cok1(~K, FR{p, False{}, ST.TN{j, sl, sr}}, i, top(t), nl), ctxok(~K, t, p, nl), hok), hnd2)
+                  L.and_intro(Bool.not(Nat.is_eq(i, j)), dist(t, p), ne_mem(i, j, before($CR(p, $TN(j, sl, sr), t)), hn, NL.mem_app_r(j, before(t), $APP($IDS($TN(j, sl, sr)), Con{p, Nil{}}), NL.mem_app_l(j, $IDS($TN(j, sl, sr)), Con{p, Nil{}}, mem_root(j, sl, sr)))), rec)
+
+# ---- the path is shorter than the ids ----
+
+%def LEN(xs) SC.length(Nat, xs)
+%def LE(a, b) {Nat.is_le(a, b) == True{} : Bool}
+
+def cons_len(+x: $LN, +p: Nat, +y: $LN) -> {$LEN($APP(x, Con{p, y})) == 1n+$LEN($APP(x, y)) : Nat}:
+  match x:
+    case Nil{}:
+      {==}
+    case Con{+h, +t}:
+      %Equal.sym(Nat, $LEN($APP(t, Con{p, y})), 1n+$LEN($APP(t, y)), cons_len(t, p, y)) : {1n+_ == 1n+1n+$LEN($APP(t, y)) : Nat}
+      {==}
+
+def ins_le(+x: $LN, +z: $LN, +y: $LN) -> $LE($LEN($APP(x, y)), $LEN($APP(x, $APP(z, y)))):
+  match x:
+    case Nil{}:
+      %Equal.sym(Nat, $LEN($APP(z, y)), Nat.add($LEN(z), $LEN(y)), LL.length_append(Nat, z, y)) : $LE($LEN(y), _)
+      TR.le_add_l($LEN(z), $LEN(y))
+    case Con{+h, +t}:
+      ins_le(t, z, y)
+
+def depth(+c: $CT) -> $LE(SC.length(Fr, c), $LEN($APP(before(c), after(c)))):
+  match c:
+    case Nil{}:
+      {==}
+    case Con{+f, +t}:
+      match f:
+        case FR{+p, +lft, +s}:
+          match lft:
+            case True{}:
+              %Equal.sym(Nat, $LEN($APP(before(t), Con{p, $APP($IDS(s), after(t))})), 1n+$LEN($APP(before(t), $APP($IDS(s), after(t)))), cons_len(before(t), p, $APP($IDS(s), after(t)))) : $LE(1n+SC.length(Fr, t), _)
+              N.le_trans(SC.length(Fr, t), $LEN($APP(before(t), after(t))), $LEN($APP(before(t), $APP($IDS(s), after(t)))), depth(t), ins_le(before(t), $IDS(s), after(t)))
+            case False{}:
+              %Equal.sym($LN, $APP($APP(before(t), $APP($IDS(s), Con{p, Nil{}})), after(t)), $APP(before(t), $APP($APP($IDS(s), Con{p, Nil{}}), after(t))), LL.append_assoc(Nat, before(t), $APP($IDS(s), Con{p, Nil{}}), after(t))) : $LE(1n+SC.length(Fr, t), $LEN(_))
+              %Equal.sym($LN, $APP($APP($IDS(s), Con{p, Nil{}}), after(t)), $APP($IDS(s), Con{p, after(t)}), LL.append_assoc(Nat, $IDS(s), Con{p, Nil{}}, after(t))) : $LE(1n+SC.length(Fr, t), $LEN($APP(before(t), _)))
+              +x = L.subst(Nat, z => $LE(1n+SC.length(Fr, t), z), 1n+$LEN($APP(before(t), after(t))), $LEN($APP(before(t), Con{p, after(t)})), Equal.sym(Nat, $LEN($APP(before(t), Con{p, after(t)})), 1n+$LEN($APP(before(t), after(t))), cons_len(before(t), p, after(t))), depth(t))
+              N.le_trans(1n+SC.length(Fr, t), $LEN($APP(before(t), Con{p, after(t)})), $LEN($APP(before(t), $APP($IDS(s), Con{p, after(t)}))), x, ins_le(before(t), $IDS(s), Con{p, after(t)}))

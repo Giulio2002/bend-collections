@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Generate the indexed TreeMap's shadow, abstraction and invariant
-(proofs/tree_map/state.bend).
+(proofs/containers/balanced_search_tree/state.bend).
 
 The shadow keeps the map's header, the two dynamic arrays' mirror trees
 (nodes and payloads share limit, depth and length), a ghost tree of node ids
@@ -12,7 +12,7 @@ component, and good_intro.
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-STATE = ROOT / "proofs/tree_map/state.bend"
+STATE = ROOT / "proofs/containers/balanced_search_tree/state.bend"
 
 P = ("~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, "
      "+l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, "
@@ -46,17 +46,17 @@ COMPS = [
 NAMES = [c for c, _ in COMPS]
 
 BASE = '''import Base
-import ../lib/logic.bend as L
-import ../lib/nat.bend as N
-import ../lib/array.bend as AR
-import ../spec/common.bend as SC
-import ../spec/tree_map.bend as S
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/array.bend as AR
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
 import ../dynamic_array/layout.bend as LY
 import ../dynamic_array/state.bend as DAS
-import ../../src/containers/balanced_search_tree.bend as M
-import ../../src/containers/dynamic_array.bend as D
+import ../../../src/containers/balanced_search_tree.bend as M
+import ../../../src/containers/dynamic_array.bend as D
 import ./mk.bend as MK
-import ../lib/nat_list.bend as NL
+import ../../lib/nat_list.bend as NL
 
 # The indexed TreeMap's shadow: the header, the node and payload lists (the
 # arrays are their canonical blocks, one limit and depth for both), a ghost

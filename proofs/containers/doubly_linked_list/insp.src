@@ -1,0 +1,135 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/u32.bend as U
+import ../../lib/u32alg.bend as A
+import ../../lib/array.bend as AR
+import ../../lib/list.bend as LL
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../lib/u32div.bend as UD
+import ../../../src/containers/doubly_linked_list.bend as D
+import ../../../src/containers/internal/dlist_storage.bend as R
+import ../../../src/containers/types/internal_dlist.bend as I
+import ../../../src/containers/types/doubly_linked_list.bend as E
+import ./state.bend as ST
+import ./rel.bend as RL
+import ./vals.bend as VA
+import ./lv.bend as LV
+import ./link.bend as LN
+import ./insg.bend as IG
+import ./ok.bend as OK
+import ../../lib/nat_list.bend as NL
+import ../../lib/links.bend as LK
+import ../../lib/words32.bend as W32
+import ../../lib/u32_tree.bend as UT
+
+# Insertion of a new element between a's last and b's first: the spec's
+# allocation and placement, and the free-stack pop.
+
+%def APN(a, b) SC.append(Nat, a, b)
+%def MT Maybe<&2, T>
+%def PP LK.last_or(a, 0)
+%def QQ LK.fst_or(b, 0)
+%def VL AR.slots($MT, vT)
+%def PL AR.slots(U32, pT)
+%def NL AR.slots(U32, nT)
+%def GL AR.slots(U32, gT)
+%def FV UD.v(fresh)
+%def TR(x) {x == True{} : Bool}
+
+# the specification's insertion at the allocated id, between a and b
+def placeAB(-T: Data, s: S.DS<T>, +n: Nat, x: T, a: List<&2, Nat>, b: List<&2, Nat>) -> S.DS<T> & E.Handle:
+  match s:
+    case S.DS{+tag, order, +vals, +gens, free}:
+      (S.DS{tag, $APN(a, Con{n, b}), SC.update($MT, vals, n, Some{x}), gens, free}, S.handle(tag, gens, n))
+
+def insAB(-T: Data, r: S.DS<T> & Nat, x: T, a: List<&2, Nat>, b: List<&2, Nat>) -> S.DS<T> & E.Handle:
+  match r:
+    case Tuple{s, +n}:
+      placeAB(T, s, n, x, a, b)
+
+# ---- U32 comparisons by value ----
+
+def u_ne_c(+a: U32, +b: U32, +h: {Nat.is_eq(UD.v(a), UD.v(b)) == False{} : Bool}, +c: Bool, +hc: {U32.is_eq(a, b) == c : Bool}) -> {c == False{} : Bool}:
+  match c:
+    case True{}:
+      +e = A.eq_of(a, b, hc)
+      Empty.absurd({True{} == False{} : Bool}, L.true_false(Equal.trans(Bool, True{}, Nat.is_eq(UD.v(a), UD.v(a)), False{}, Equal.sym(Bool, Nat.is_eq(UD.v(a), UD.v(a)), True{}, N.is_eq_refl(UD.v(a))), L.subst(U32, z => {Nat.is_eq(UD.v(a), UD.v(z)) == False{} : Bool}, b, a, Equal.sym(U32, a, b, e), h))))
+    case False{}:
+      {==}
+
+def u_ne(+a: U32, +b: U32, +h: {Nat.is_eq(UD.v(a), UD.v(b)) == False{} : Bool}) -> {U32.is_eq(a, b) == False{} : Bool}:
+  u_ne_c(a, b, h, U32.is_eq(a, b), {==})
+
+def u_eqv(+a: U32, +b: U32, +h: {UD.v(a) == UD.v(b) : Nat}) -> {U32.is_eq(a, b) == True{} : Bool}:
+  A.eq_true(a, b, U.injective(a, b, h))
+
+%def SH0 tag, cap, fresh, LK.lnk(f0), head, tail, depth, vT, pT, nT, gT, $APN(a, b), Con{f0, fl2}
+%def G(c) ST.g_$c(~T, $SH0, hg)
+%def SL2 $APN(a, Con{f0, b})
+%def VT2 AR.upd($MT, depth, vT, f0, Some{x})
+%def PT2 RL.tu_first(depth, AR.upd(U32, depth, pT, f0, $PP), b, LK.lnk(f0))
+%def NT2 RL.tu_last(depth, AR.upd(U32, depth, nT, f0, $QQ), a, LK.lnk(f0))
+%def RAW2 R.DL{tag, fresh, LK.fst_or(fl2, 0), SC.length(Nat, $SL2), LK.fst_or($SL2, 0), LK.last_or($SL2, 0), depth, cap, AR.thaw($MT, $VT2), AR.thaw(U32, $PT2), AR.thaw(U32, $NT2)}
+%def SH2 ST.LS{tag, cap, fresh, LK.fst_or(fl2, 0), LK.fst_or($SL2, 0), LK.last_or($SL2, 0), depth, $VT2, $PT2, $NT2, gT, $SL2, fl2}
+%def NU U32.from_nat(f0)
+%def HO E.H{tag, $NU, W32.nth0($GL, f0)}
+%def IBF R.insert_between_free(~T, tag, fresh, LK.lnk(f0), SC.length(Nat, $APN(a, b)), head, tail, depth, cap, AR.thaw($MT, vT), AR.thaw(U32, pT), AR.thaw(U32, nT), $PP, $QQ, x)
+%def POP(r) R.ins_free_pop(~T, tag, fresh, LK.lnk(f0), SC.length(Nat, $APN(a, b)), head, tail, depth, cap, AR.thaw($MT, vT), AR.thaw(U32, pT), $PP, $QQ, x, r)
+%def LI(n) R.link_in(~T, tag, n, fresh, LK.fst_or(fl2, 0), SC.length(Nat, $APN(a, b)), head, tail, depth, cap, AR.thaw($MT, vT), AR.thaw(U32, pT), AR.thaw(U32, nT), $PP, $QQ, x)
+
+# the storage pop: the top of the free stack is linked in
+def pop_raw(~T: Data, +one: Nat, +h1: {one == 1n : Nat}, +tag: U32, +cap: U32, +fresh: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<$MT>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +a: List<&2, Nat>, +b: List<&2, Nat>, +f0: Nat, +fl2: List<&2, Nat>, +hg: $TR(ST.goodF(~T, $SH0)), +x: T) -> {$IBF == ($RAW2, I.H{tag, $NU}) : R.DList<T> & I.Handle}:
+  +hd = $G(cdep)
+  +e2d = N.eq_from_is_eq(UD.v(cap), SC.pow2(depth), $G(ccap))
+  +hfr2 = L.subst(Nat, z => {Nat.is_le($FV, z) == True{} : Bool}, UD.v(cap), SC.pow2(depth), e2d, $G(cfr))
+  +hfl0 = L.and_left(Bool.and(Nat.is_lt(f0, $FV), Bool.not(ST.live(T, $VL, f0))), ST.flok(~T, fl2, $FV, $VL), $G(cfl))
+  +hf0 = L.and_left(Nat.is_lt(f0, $FV), Bool.not(ST.live(T, $VL, f0)), hfl0)
+  +hn = N.lt_le_trans(f0, $FV, SC.pow2(depth), hf0, hfr2)
+  +es = RL.slot_lnk(one, h1, f0, depth, hd, hn)
+  +hi = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(depth)) == True{} : Bool}, f0, UD.v(R.slot(LK.lnk(f0))), Equal.sym(Nat, UD.v(R.slot(LK.lnk(f0))), f0, es), hn)
+  +hfll = $G(cfll)
+  +enx = A.eq_of(W32.nth0($NL, f0), LK.fst_or(fl2, 0), L.and_left(U32.is_eq(W32.nth0($NL, f0), LK.fst_or(fl2, 0)), ST.fll($NL, fl2), hfll))
+  +e1 = Equal.cong(Bool, R.DList<T> & I.Handle, z => R.ins_free_pick(~T, tag, fresh, LK.lnk(f0), SC.length(Nat, $APN(a, b)), head, tail, depth, cap, AR.thaw($MT, vT), AR.thaw(U32, pT), AR.thaw(U32, nT), $PP, $QQ, x, z), U32.is_eq(LK.lnk(f0), 0), False{}, RL.lnk_nz(one, h1, f0, depth, hd, hn))
+  +e2 = Equal.cong(Array<U32> & U32, R.DList<T> & I.Handle, z => $POP(z), Array.get(U32, AR.thaw(U32, nT), R.slot(LK.lnk(f0))), (AR.thaw(U32, nT), W32.nth0($NL, UD.v(R.slot(LK.lnk(f0))))), UT.uget(depth, RL.hd0(depth, hd), nT, $G(cpn), R.slot(LK.lnk(f0)), hi))
+  +e3 = Equal.cong(U32, R.DList<T> & I.Handle, z => $POP((AR.thaw(U32, nT), z)), W32.nth0($NL, UD.v(R.slot(LK.lnk(f0)))), LK.fst_or(fl2, 0), Equal.trans(U32, W32.nth0($NL, UD.v(R.slot(LK.lnk(f0)))), W32.nth0($NL, f0), LK.fst_or(fl2, 0), Equal.cong(Nat, U32, z => W32.nth0($NL, z), UD.v(R.slot(LK.lnk(f0))), f0, es), enx))
+  +e4 = Equal.cong(U32, R.DList<T> & I.Handle, z => $LI(z), R.slot(LK.lnk(f0)), $NU, LN.slot_fn(one, h1, f0, depth, hd, hn))
+  +hsp = RL.to_eq(ST.slok(~T, $APN(a, b), $FV, $VL), Bool.and(ST.slok(~T, a, $FV, $VL), ST.slok(~T, b, $FV, $VL)), RL.slok_app(~T, a, b, $FV, $VL), $G(csl))
+  +hfb = RL.fstlt_of(~T, b, $FV, $VL, SC.pow2(depth), hfr2, L.and_right(ST.slok(~T, a, $FV, $VL), ST.slok(~T, b, $FV, $VL), hsp))
+  +hla = RL.lastlt_of(~T, a, $FV, $VL, SC.pow2(depth), hfr2, L.and_left(ST.slok(~T, a, $FV, $VL), ST.slok(~T, b, $FV, $VL), hsp))
+  +e5 = LN.link_ok(~T, one, h1, depth, hd, vT, pT, nT, $G(cpv), $G(cpp), $G(cpn), tag, fresh, LK.fst_or(fl2, 0), head, tail, cap, a, b, f0, hn, hla, hfb, $G(chead), $G(ctail), x)
+  Equal.trans(R.DList<T> & I.Handle, $IBF, $POP(Array.get(U32, AR.thaw(U32, nT), R.slot(LK.lnk(f0)))), ($RAW2, I.H{tag, $NU}), e1, Equal.trans(R.DList<T> & I.Handle, $POP(Array.get(U32, AR.thaw(U32, nT), R.slot(LK.lnk(f0)))), $POP((AR.thaw(U32, nT), W32.nth0($NL, UD.v(R.slot(LK.lnk(f0)))))), ($RAW2, I.H{tag, $NU}), e2, Equal.trans(R.DList<T> & I.Handle, $POP((AR.thaw(U32, nT), W32.nth0($NL, UD.v(R.slot(LK.lnk(f0)))))), $LI(R.slot(LK.lnk(f0))), ($RAW2, I.H{tag, $NU}), e3, Equal.trans(R.DList<T> & I.Handle, $LI(R.slot(LK.lnk(f0))), $LI($NU), ($RAW2, I.H{tag, $NU}), e4, e5))))
+
+%def DL2 D.DL{tag, depth, cap, $RAW2, AR.thaw(U32, gT)}
+%def INR(c) D.inserted_room(~T, tag, depth, cap, $RAW2, AR.thaw(U32, gT), $NU, c)
+%def ING(r) D.inserted_gen(~T, tag, depth, cap, $RAW2, $NU, r)
+%def VLF SC.take($MT, $VL, $FV)
+%def GLF SC.take(U32, $GL, $FV)
+%def SPEC0 S.DS{tag, $APN(a, b), $VLF, $GLF, Con{f0, fl2}}
+
+# THEOREM (insert, a free id): the top of the free stack takes the element
+def ins_pop(~T: Data, +one: Nat, +h1: {one == 1n : Nat}, +tag: U32, +cap: U32, +fresh: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<$MT>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +a: List<&2, Nat>, +b: List<&2, Nat>, +f0: Nat, +fl2: List<&2, Nat>, +hg: $TR(ST.goodF(~T, $SH0)), +x: T) -> OK.POK(~T, E.Handle, insAB(T, S.alloc(T, $SPEC0), x, a, b), D.inserted(~T, tag, depth, cap, AR.thaw(U32, gT), $IBF)):
+  +hd = $G(cdep)
+  +e2d = N.eq_from_is_eq(UD.v(cap), SC.pow2(depth), $G(ccap))
+  +hfr2 = L.subst(Nat, z => {Nat.is_le($FV, z) == True{} : Bool}, UD.v(cap), SC.pow2(depth), e2d, $G(cfr))
+  +hfl0 = L.and_left(Bool.and(Nat.is_lt(f0, $FV), Bool.not(ST.live(T, $VL, f0))), ST.flok(~T, fl2, $FV, $VL), $G(cfl))
+  +hf0 = L.and_left(Nat.is_lt(f0, $FV), Bool.not(ST.live(T, $VL, f0)), hfl0)
+  +hn = N.lt_le_trans(f0, $FV, SC.pow2(depth), hf0, hfr2)
+  +ev = LN.fn_v(f0, depth, hd, hn)
+  +hne = L.subst(Nat, z => {Nat.is_eq(z, UD.v(cap)) == False{} : Bool}, f0, UD.v($NU), Equal.sym(Nat, UD.v($NU), f0, ev), N.is_eq_lt(f0, UD.v(cap), N.lt_le_trans(f0, $FV, UD.v(cap), hf0, $G(cfr))))
+  +c1 = Equal.cong(R.DList<T> & I.Handle, D.DList<T> & E.Handle, z => D.inserted(~T, tag, depth, cap, AR.thaw(U32, gT), z), $IBF, ($RAW2, I.H{tag, $NU}), pop_raw(~T, one, h1, tag, cap, fresh, head, tail, depth, vT, pT, nT, gT, a, b, f0, fl2, hg, x))
+  +c2 = Equal.cong(Bool, D.DList<T> & E.Handle, z => $INR(z), U32.is_eq($NU, cap), False{}, u_ne($NU, cap, hne))
+  +c3 = Equal.cong(Array<U32> & U32, D.DList<T> & E.Handle, z => $ING(z), Array.get(U32, AR.thaw(U32, gT), $NU), (AR.thaw(U32, gT), W32.nth0($GL, UD.v($NU))), UT.uget(depth, RL.hd0(depth, hd), gT, $G(cpg), $NU, LN.fn_lt(f0, depth, hd, hn)))
+  +c4 = Equal.cong(Nat, D.DList<T> & E.Handle, z => ($DL2, E.H{tag, $NU, W32.nth0($GL, z)}), UD.v($NU), f0, ev)
+  +er = Equal.trans(D.DList<T> & E.Handle, D.inserted(~T, tag, depth, cap, AR.thaw(U32, gT), $IBF), $INR(U32.is_eq($NU, cap)), ($DL2, $HO), c1, Equal.trans(D.DList<T> & E.Handle, $INR(U32.is_eq($NU, cap)), $ING(Array.get(U32, AR.thaw(U32, gT), $NU)), ($DL2, $HO), c2, Equal.trans(D.DList<T> & E.Handle, $ING(Array.get(U32, AR.thaw(U32, gT), $NU)), ($DL2, E.H{tag, $NU, W32.nth0($GL, UD.v($NU))}), ($DL2, $HO), c3, c4)))
+  +esv = AR.upd_slots($MT, depth, vT, f0, Some{x}, hn, $G(cpv))
+  +evl = Equal.trans(List<&2, $MT>, SC.update($MT, $VLF, f0, Some{x}), SC.take($MT, SC.update($MT, $VL, f0, Some{x}), $FV), SC.take($MT, AR.slots($MT, $VT2), $FV), Equal.sym(List<&2, $MT>, SC.take($MT, SC.update($MT, $VL, f0, Some{x}), $FV), SC.update($MT, $VLF, f0, Some{x}), LL.sc_take_update($MT, $VL, f0, Some{x}, $FV)), Equal.cong(List<&2, $MT>, List<&2, $MT>, z => SC.take($MT, z, $FV), SC.update($MT, $VL, f0, Some{x}), AR.slots($MT, $VT2), Equal.sym(List<&2, $MT>, AR.slots($MT, $VT2), SC.update($MT, $VL, f0, Some{x}), esv)))
+  +q1 = Equal.cong(List<&2, $MT>, S.DS<T> & E.Handle, z => (S.DS{tag, $SL2, z, $GLF, fl2}, E.H{tag, $NU, S.gen_of($GLF, f0)}), SC.update($MT, $VLF, f0, Some{x}), SC.take($MT, AR.slots($MT, $VT2), $FV), evl)
+  +q2 = Equal.cong(U32, S.DS<T> & E.Handle, z => (S.DS{tag, $SL2, SC.take($MT, AR.slots($MT, $VT2), $FV), $GLF, fl2}, E.H{tag, $NU, z}), S.gen_of($GLF, f0), W32.nth0($GL, f0), VA.gen_take($GL, $FV, f0, hf0))
+  +es = Equal.trans(S.DS<T> & E.Handle, (S.DS{tag, $SL2, SC.update($MT, $VLF, f0, Some{x}), $GLF, fl2}, E.H{tag, $NU, S.gen_of($GLF, f0)}), (S.DS{tag, $SL2, SC.take($MT, AR.slots($MT, $VT2), $FV), $GLF, fl2}, E.H{tag, $NU, S.gen_of($GLF, f0)}), (S.DS{tag, $SL2, SC.take($MT, AR.slots($MT, $VT2), $FV), $GLF, fl2}, $HO), q1, q2)
+  +hnd = $G(cfnd)
+  +hnfl = NL.not_t_f(NL.memn(f0, fl2), L.and_left(Bool.not(NL.memn(f0, fl2)), NL.nodupn(fl2), hnd))
+  +hns = LV.vac_ns(~T, f0, $APN(a, b), $FV, $VL, L.not_true(ST.live(T, $VL, f0), L.and_right(Nat.is_lt(f0, $FV), Bool.not(ST.live(T, $VL, f0)), hfl0)), $G(csl))
+  +hgd = IG.ins_good(~T, one, h1, tag, cap, fresh, LK.fst_or(fl2, 0), depth, vT, pT, nT, gT, a, b, fl2, f0, x, hd, $G(ccap), $G(cpv), $G(cpp), $G(cpn), $G(cpg), $G(cfr), hf0, $G(cseg), $G(cnd), hns, $G(csl), LK.u_refl(LK.fst_or(fl2, 0)), L.and_right(U32.is_eq(W32.nth0($NL, f0), LK.fst_or(fl2, 0)), ST.fll($NL, fl2), $G(cfll)), L.and_right(Bool.and(Nat.is_lt(f0, $FV), Bool.not(ST.live(T, $VL, f0))), ST.flok(~T, fl2, $FV, $VL), $G(cfl)), L.and_right(Bool.not(NL.memn(f0, fl2)), NL.nodupn(fl2), hnd), hnfl, $G(cgz), $G(clv))
+  ($SH2, ($HO, (er, (es, hgd))))

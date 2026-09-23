@@ -2,9 +2,9 @@ import Base
 import ./logic.bend as L
 import ./nat.bend as N
 import ./u32.bend as U
-import ../lemmas/spec/numeric.bend as S
-import ../lemmas/proofs/addition.bend as AD
-import ../lemmas/proofs/division_quotient.bend as DQ
+import ./lemmas/spec/numeric.bend as S
+import ./lemmas/proofs/addition.bend as AD
+import ./lemmas/proofs/division_quotient.bend as DQ
 
 # Modular (U32) addition algebra, derived from Base's Word adder through
 # the retained LRU carry-conservation law

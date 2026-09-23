@@ -1,0 +1,321 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/array.bend as AR
+import ../../lib/spec_common.bend as SC
+import ../hash_table/spec.bend as S
+import ./spec.bend as SP
+import ../../lib/u32div.bend as UD
+import ../../../src/math/u64.bend as W
+import ../../../src/containers/hash_table.bend as H
+import ../../../src/containers/lru.bend as LR
+import ../hash_table/table.bend as TB
+import ../hash_table/buckets.bend as B
+import ../hash_table/cyc.bend as CY
+import ../hash_table/inv.bend as IV
+import ../hash_table/state.bend as HT
+import ../hash_table/keys.bend as K
+import ./state.bend as ST
+import ./basic.bend as BA
+import ./bump.bend as BU
+import ./bumpsh.bend as BS
+import ./tfind.bend as TF
+import ./unlink.bend as UL
+import ./lists.bend as LS
+import ./meta.bend as MT
+import ../../../src/math/hash.bend as HS
+import ../hash_table/probe_all.bend as PA
+
+import ./read.bend as RD
+import ./hw.bend as HW
+import ./elfr.bend as EF
+import ./walk.bend as WL
+import ./trace.bend as TR
+import ./dll.bend as DL
+import ./idx.bend as ID
+import ./tabsl.bend as TS
+import ./rebuild.bend as RB
+import ./linktail.bend as LT
+import ./room.bend as RO
+import ./repl.bend as RP
+import ./ins1.bend as I1
+import ../hash_table/tools.bend as TL
+import ../hash_table/insa.bend as IA
+import ../hash_table/insm.bend as IM
+import ../hash_table/insu.bend as IU
+import ../hash_table/insert.bend as IS
+import ../hash_table/modn.bend as M
+import ../../../src/math/hash.bend as HS
+import ../../lib/u32.bend as UW
+import ../../lib/nat_list.bend as NL
+import ../../lib/links.bend as LK
+import ../../lib/words32.bend as W32
+import ../../lib/u32_tree.bend as UT
+
+# add, a new key, the core: slot s (free, off the list) takes the key, its
+# bucket fills the empty bucket e that ends the key's probe, the slot is
+# linked as the newest; the model gains the entry, counted as an insertion.
+
+%include read.src
+
+%def KW K.kword(key)
+%def KS PA.stored(key)
+%def LS1 H.link(su)
+%def FE U32.from_nat(e)
+%def T2 AR.upd(U32, 1n+k, AR.upd(U32, 1n+k, tabT, UD.v(U32.shl($FE)), $KW), UD.v(U32.inc(U32.shl($FE))), $LS1)
+%def KTF AR.upd(String, sd, ksT, UD.v(su), $KS)
+%def ETF AR.upd(Maybe<&2, V>, sd, eT, UD.v(su), Some{v})
+%def LK1 AR.upd(U32, 3n+sd, lkT, UD.v(LR.tidx(su)), t)
+%def LK2 AR.upd(U32, 3n+sd, $LK1, UD.v(LR.dlo_idx(su)), lo)
+%def LK3 AR.upd(U32, 3n+sd, $LK2, UD.v(LR.dhi_idx(su)), hi)
+%def LK4 AR.upd(U32, 3n+sd, $LK3, UD.v(LR.hidx(su)), $KW)
+%def L0 AR.slots(U32, lkT)
+%def L1 AR.slots(U32, $LK1)
+%def L2 AR.slots(U32, $LK2)
+%def L3 AR.slots(U32, $LK3)
+%def L4 AR.slots(U32, $LK4)
+%def KLF AR.slots(String, $KTF)
+%def ELF AR.slots(Maybe<&2, V>, $ETF)
+%def LLF AR.slots(U32, t3)
+%def SL2 SC.append(Nat, sl, Con{s, Nil{}})
+%def BF B.BF{$KW, $LS1, key}
+%def BN IM.bupd($BS, e, $BF)
+%def BSF TB.buckets(AR.slots(U32, $T2), $KLF, $NN)
+%def UKL SC.update(String, $KL, s, $KS)
+%def UEL SC.update(Maybe<&2, V>, $EL, s, Some{v})
+%def EN SP.LE{key, v, t, W.U64{lo, hi}}
+%def SPEC SP.L{cap, $M3, $W4, SP.snoc(~V, $ES, $EN), SP.c_ins($CTR)}
+%def MFL AR.slots(U32, Mf)
+%def MBL AR.slots(U32, mB)
+%def SHF2 ST.LS{cap, U32.inc(n), LK.fst_or($SL2, 0), LK.lnk(s), free2, mB, k, sd, $T2, $KTF, $ETF, t3, $SL2, fl2}
+%def FR2 UD.v(fr2u)
+%def ICF $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +key: String, +hno: {B.all_lt(B.PNo{$BS, key}, $NN) == True{} : Bool}, +e: Nat, +he: {Nat.is_lt(e, $NN) == True{} : Bool}, +hz: {B.at($BS, e) == B.BE{} : B.Bk}, +hp: {B.occpath($BS, $NN, $HOME, M.dist($NN, $HOME, e)) == True{} : Bool}, +hroom: {Nat.is_le(Nat.double(1n+UD.v(n)), $NN) == True{} : Bool}, +s: Nat, +su: U32, +hsv: {UD.v(su) == s : Nat}, +hs0: {Nat.is_lt(s, SC.pow2(sd)) == True{} : Bool}, +hsn: {NL.memn(s, sl) == False{} : Bool}, +fl2: List<&2, Nat>, +free2: U32, +fr2u: U32, +hfree: {U32.is_eq(free2, LK.fst_or(fl2, 0)) == True{} : Bool}, +hfll: {ST.fll($LLo, fl2) == True{} : Bool}, +hfl: {ST.flok(~V, fl2, $FR2, $EL) == True{} : Bool}, +hfnd: {NL.nodupn(fl2) == True{} : Bool}, +hcnt: {Nat.is_eq(Nat.add(SC.length(Nat, $SL2), SC.length(Nat, fl2)), $FR2) == True{} : Bool}, +hsfl: {NL.memn(s, fl2) == False{} : Bool}, +hsfr: {Nat.is_lt(s, $FR2) == True{} : Bool}, +hfrle: {Nat.is_le($FR, $FR2) == True{} : Bool}, +hfr2: {Nat.is_le($FR2, SC.pow2(sd)) == True{} : Bool}, +Mf: AR.Tree<U32>, +pf5: {AR.perfect(U32, 5n, Mf) == True{} : Bool}, +hsm: {$MFL == SC.update(U32, $ML, 0n, fr2u) : List<&2, U32>}, +v: V, +t: U32, +lo: U32, +hi: U32
+%def ICA $SHA, hg, one, h1, key, hno, e, he, hz, hp, hroom, s, su, hsv, hs0, hsn, fl2, free2, fr2u, hfree, hfll, hfl, hfnd, hcnt, hsfl, hsfr, hfrle, hfr2, Mf, pf5, hsm, v, t, lo, hi
+%def POST +mB: AR.Tree<U32>, +pm2: {AR.perfect(U32, 5n, mB) == True{} : Bool}, +ew: {ST.w64($MBL, 16n) == SP.inc64(ST.w64($MFL, 16n)) : W.U64}, +x: U32, +y: U32, +eb: {$MBL == SC.update(U32, SC.update(U32, $MFL, 16n, x), 1n+16n, y) : List<&2, U32>}, +t3: AR.Tree<U32>, +tr: TR.Tr, +hp3: {AR.perfect(U32, 3n+sd, t3) == True{} : Bool}, +hs3: {$LLF == TR.app($L4, tr) : List<&2, U32>}, +hlo: {TR.trlo(tr) == True{} : Bool}, +hin: {TR.trin(tr, $SL2) == True{} : Bool}, +hg3: {ST.seg($LLF, $SL2, 0, 0) == True{} : Bool}
+%def POSTA mB, pm2, ew, x, y, eb, t3, tr, hp3, hs3, hlo, hin, hg3
+%def NE(a, b) ID.off_ne(s, s, a, b, {==}, {==}, DL.ne_word(s, s, a, b, {==}))
+%def KP(j) BS.keep($MFL, mB, 16n, x, y, eb, j, {==}, {==})
+%def MF(j) Equal.trans(U32, W32.nth0($MFL, j), W32.nth0(SC.update(U32, $ML, 0n, fr2u), j), W32.nth0($ML, j), Equal.cong(List<&2, U32>, U32, z => W32.nth0(z, j), $MFL, SC.update(U32, $ML, 0n, fr2u), hsm), W32.nth0_upd_other($ML, 0n, j, fr2u, {==}))
+%def KQ(j) Equal.trans(U32, W32.nth0($MBL, j), W32.nth0($MFL, j), W32.nth0($ML, j), $KP(j), $MF(j))
+
+# the model of the placed entry
+def ic_model(~V: Data, $ICF, $POST) -> {ST.model(~V, $SHF2) == $SPEC : SP.Lru<V>}:
+  +hsd = RD.f_hsd(~V, $SHA, hg)
+  +hsd1 = UL.sd1(sd, hsd)
+  +hsd32 = N.lt_trans(sd, 1n+sd, 32n, N.lt_succ(sd), hsd1)
+  +hk30 = L.and_left(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), $G(ck))
+  +hk31 = N.lt_trans(k, 30n, 31n, hk30, {==})
+  +hk0 = L.and_right(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), $G(ck))
+  +hsu = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(sd)) == True{} : Bool}, s, UD.v(su), Equal.sym(Nat, UD.v(su), s, hsv), hs0)
+  +i2 = Equal.trans(Nat, UD.v(LR.hidx(su)), ST.off(UD.v(su), 2n), ST.off(s, 2n), ID.w2(one, h1, su, sd, UL.sd3(sd, hsd), hsu), Equal.cong(Nat, Nat, z => ST.off(z, 2n), UD.v(su), s, hsv))
+  +i3 = Equal.trans(Nat, UD.v(LR.tidx(su)), ST.off(UD.v(su), 3n), ST.off(s, 3n), ID.w3(one, h1, su, sd, UL.sd3(sd, hsd), hsu), Equal.cong(Nat, Nat, z => ST.off(z, 3n), UD.v(su), s, hsv))
+  +i4 = Equal.trans(Nat, UD.v(LR.dlo_idx(su)), ST.off(UD.v(su), 4n), ST.off(s, 4n), ID.w4(one, h1, su, sd, UL.sd3(sd, hsd), hsu), Equal.cong(Nat, Nat, z => ST.off(z, 4n), UD.v(su), s, hsv))
+  +i5 = Equal.trans(Nat, UD.v(LR.dhi_idx(su)), ST.off(UD.v(su), 5n), ST.off(s, 5n), ID.w5(one, h1, su, sd, UL.sd3(sd, hsd), hsu), Equal.cong(Nat, Nat, z => ST.off(z, 5n), UD.v(su), s, hsv))
+  +hpl = $G(cpl)
+  +hpe = $G(cpe)
+  +hpk = $G(cpk)
+  +p1 = UT.uset_p(3n+sd, lkT, hpl, UD.v(LR.tidx(su)), t)
+  +p2 = UT.uset_p(3n+sd, $LK1, p1, UD.v(LR.dlo_idx(su)), lo)
+  +p3 = UT.uset_p(3n+sd, $LK2, p2, UD.v(LR.dhi_idx(su)), hi)
+  +p4 = UT.uset_p(3n+sd, $LK3, p3, UD.v(LR.hidx(su)), $KW)
+  +s1 = UL.wr_s(lkT, sd, hpl, LR.tidx(su), s, 3n, {==}, hs0, i3, t)
+  +s2 = UL.wr_s($LK1, sd, p1, LR.dlo_idx(su), s, 4n, {==}, hs0, i4, lo)
+  +s3 = UL.wr_s($LK2, sd, p2, LR.dhi_idx(su), s, 5n, {==}, hs0, i5, hi)
+  +s4 = UL.wr_s($LK3, sd, p3, LR.hidx(su), s, 2n, {==}, hs0, i2, $KW)
+  +sk = Equal.trans(List<&2, String>, $KLF, SC.update(String, $KL, UD.v(su), $KS), $UKL, AR.upd_slots(String, sd, ksT, UD.v(su), $KS, hsu, hpk), Equal.cong(Nat, List<&2, String>, z => SC.update(String, $KL, z, $KS), UD.v(su), s, hsv))
+  +se = Equal.trans(List<&2, Maybe<&2, V>>, $ELF, SC.update(Maybe<&2, V>, $EL, UD.v(su), Some{v}), $UEL, AR.upd_slots(Maybe<&2, V>, sd, eT, UD.v(su), Some{v}, hsu, hpe), Equal.cong(Nat, List<&2, Maybe<&2, V>>, z => SC.update(Maybe<&2, V>, $EL, z, Some{v}), UD.v(su), s, hsv))
+  +hle = UT.len_of(Maybe<&2, V>, sd, eT, hpe, s, hs0)
+  +hlk = UT.len_of(String, sd, ksT, hpk, s, hs0)
+  +hb32 = W32.bound32(one, h1, UD.v(su), sd, hsd1, hsu)
+  +hsls = Equal.trans(Nat, UD.v(H.slot($LS1)), UD.v(su), s, LK.slot_link(one, h1, su, hb32), hsv)
+  +elk = LT.lnk_su(su, s, sd, hsd, hsv, hs0)
+  +hns = I1.noslot_bsl($BS, sl, $L0, s, hsn, $NN, $G(cbsl))
+  +hns2 = L.subst(Nat, z => {HT.noslot($BS, z, $NN) == True{} : Bool}, s, UD.v(H.slot($LS1)), Equal.sym(Nat, UD.v(H.slot($LS1)), s, hsls), hns)
+  +hel = I1.tp_len(AR.slots(U32, tabT), $KL, k, e, he)
+  +tsl = I1.tp_sl(k, hk30, tabT, $G(cpt), e, he, $KW, $LS1)
+  +w2 = Equal.trans(U32, ST.lw($LLF, s, 2n), ST.lw($L4, s, 2n), $KW, Equal.trans(U32, ST.lw($LLF, s, 2n), ST.lw(TR.app($L4, tr), s, 2n), ST.lw($L4, s, 2n), Equal.cong(List<&2, U32>, U32, z => ST.lw(z, s, 2n), $LLF, TR.app($L4, tr), hs3), TR.lw_tr_hi($L4, tr, hlo, s, 2n, {==}, {==})), MT.nth_same(3n+sd, $LK3, p3, ST.off(s, 2n), ID.off_lt(s, sd, hs0, 2n, {==}), $KW, $LK4, s4))
+  +w3 = Equal.trans(U32, ST.lw($LLF, s, 3n), ST.lw($L4, s, 3n), t, Equal.trans(U32, ST.lw($LLF, s, 3n), ST.lw(TR.app($L4, tr), s, 3n), ST.lw($L4, s, 3n), Equal.cong(List<&2, U32>, U32, z => ST.lw(z, s, 3n), $LLF, TR.app($L4, tr), hs3), TR.lw_tr_hi($L4, tr, hlo, s, 3n, {==}, {==})), Equal.trans(U32, W32.nth0($L4, ST.off(s, 3n)), W32.nth0($L3, ST.off(s, 3n)), t, MT.nth_other($LK3, ST.off(s, 2n), $KW, $LK4, s4, ST.off(s, 3n), $NE(2n, 3n)), Equal.trans(U32, W32.nth0($L3, ST.off(s, 3n)), W32.nth0($L2, ST.off(s, 3n)), t, MT.nth_other($LK2, ST.off(s, 5n), hi, $LK3, s3, ST.off(s, 3n), $NE(5n, 3n)), Equal.trans(U32, W32.nth0($L2, ST.off(s, 3n)), W32.nth0($L1, ST.off(s, 3n)), t, MT.nth_other($LK1, ST.off(s, 4n), lo, $LK2, s2, ST.off(s, 3n), $NE(4n, 3n)), MT.nth_same(3n+sd, lkT, hpl, ST.off(s, 3n), ID.off_lt(s, sd, hs0, 3n, {==}), t, $LK1, s1)))))
+  +w4 = Equal.trans(U32, ST.lw($LLF, s, 4n), ST.lw($L4, s, 4n), lo, Equal.trans(U32, ST.lw($LLF, s, 4n), ST.lw(TR.app($L4, tr), s, 4n), ST.lw($L4, s, 4n), Equal.cong(List<&2, U32>, U32, z => ST.lw(z, s, 4n), $LLF, TR.app($L4, tr), hs3), TR.lw_tr_hi($L4, tr, hlo, s, 4n, {==}, {==})), Equal.trans(U32, W32.nth0($L4, ST.off(s, 4n)), W32.nth0($L3, ST.off(s, 4n)), lo, MT.nth_other($LK3, ST.off(s, 2n), $KW, $LK4, s4, ST.off(s, 4n), $NE(2n, 4n)), Equal.trans(U32, W32.nth0($L3, ST.off(s, 4n)), W32.nth0($L2, ST.off(s, 4n)), lo, MT.nth_other($LK2, ST.off(s, 5n), hi, $LK3, s3, ST.off(s, 4n), $NE(5n, 4n)), MT.nth_same(3n+sd, $LK1, p1, ST.off(s, 4n), ID.off_lt(s, sd, hs0, 4n, {==}), lo, $LK2, s2))))
+  +w5 = Equal.trans(U32, ST.lw($LLF, s, 5n), ST.lw($L4, s, 5n), hi, Equal.trans(U32, ST.lw($LLF, s, 5n), ST.lw(TR.app($L4, tr), s, 5n), ST.lw($L4, s, 5n), Equal.cong(List<&2, U32>, U32, z => ST.lw(z, s, 5n), $LLF, TR.app($L4, tr), hs3), TR.lw_tr_hi($L4, tr, hlo, s, 5n, {==}, {==})), Equal.trans(U32, W32.nth0($L4, ST.off(s, 5n)), W32.nth0($L3, ST.off(s, 5n)), hi, MT.nth_other($LK3, ST.off(s, 2n), $KW, $LK4, s4, ST.off(s, 5n), $NE(2n, 5n)), MT.nth_same(3n+sd, $LK2, p2, ST.off(s, 5n), ID.off_lt(s, sd, hs0, 5n, {==}), hi, $LK3, s3)))
+  +f1 = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $LLF, $KLF, $ELF, sl), ST.es(~V, $L4, $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $ELF, sl), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $LLF, $KLF, $ELF, sl), ST.es(~V, TR.app($L4, tr), $KLF, $ELF, sl), ST.es(~V, $L4, $KLF, $ELF, sl), Equal.cong(List<&2, U32>, List<&2, SP.Ent<V>>, z => ST.es(~V, z, $KLF, $ELF, sl), $LLF, TR.app($L4, tr), hs3), TR.es_tr(~V, $L4, tr, hlo, $KLF, $ELF, sl)), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L4, $KLF, $ELF, sl), ST.es(~V, $L3, $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $ELF, sl), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L4, $KLF, $ELF, sl), ST.es(~V, SC.update(U32, $L3, ST.off(s, 2n), $KW), $KLF, $ELF, sl), ST.es(~V, $L3, $KLF, $ELF, sl), Equal.cong(List<&2, U32>, List<&2, SP.Ent<V>>, z => ST.es(~V, z, $KLF, $ELF, sl), $L4, SC.update(U32, $L3, ST.off(s, 2n), $KW), s4), HW.es_fs(~V, $L3, s, 2n, $KW, {==}, $KLF, $ELF, sl, hsn)), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L3, $KLF, $ELF, sl), ST.es(~V, $L2, $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $ELF, sl), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L3, $KLF, $ELF, sl), ST.es(~V, SC.update(U32, $L2, ST.off(s, 5n), hi), $KLF, $ELF, sl), ST.es(~V, $L2, $KLF, $ELF, sl), Equal.cong(List<&2, U32>, List<&2, SP.Ent<V>>, z => ST.es(~V, z, $KLF, $ELF, sl), $L3, SC.update(U32, $L2, ST.off(s, 5n), hi), s3), HW.es_fs(~V, $L2, s, 5n, hi, {==}, $KLF, $ELF, sl, hsn)), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L2, $KLF, $ELF, sl), ST.es(~V, $L1, $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $ELF, sl), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L2, $KLF, $ELF, sl), ST.es(~V, SC.update(U32, $L1, ST.off(s, 4n), lo), $KLF, $ELF, sl), ST.es(~V, $L1, $KLF, $ELF, sl), Equal.cong(List<&2, U32>, List<&2, SP.Ent<V>>, z => ST.es(~V, z, $KLF, $ELF, sl), $L2, SC.update(U32, $L1, ST.off(s, 4n), lo), s2), HW.es_fs(~V, $L1, s, 4n, lo, {==}, $KLF, $ELF, sl, hsn)), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L1, $KLF, $ELF, sl), ST.es(~V, SC.update(U32, $L0, ST.off(s, 3n), t), $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $ELF, sl), Equal.cong(List<&2, U32>, List<&2, SP.Ent<V>>, z => ST.es(~V, z, $KLF, $ELF, sl), $L1, SC.update(U32, $L0, ST.off(s, 3n), t), s1), HW.es_fs(~V, $L0, s, 3n, t, {==}, $KLF, $ELF, sl, hsn))))))
+  +f3 = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L0, $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $UEL, sl), ST.es(~V, $L0, $KLF, $EL, sl), Equal.cong(List<&2, Maybe<&2, V>>, List<&2, SP.Ent<V>>, z => ST.es(~V, $L0, $KLF, z, sl), $ELF, $UEL, se), EF.es_el(~V, $L0, $KLF, $EL, s, Some{v}, sl, hsn))
+  +f4 = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L0, $KLF, $EL, sl), ST.es(~V, $L0, $UKL, $EL, sl), $ES, Equal.cong(List<&2, String>, List<&2, SP.Ent<V>>, z => ST.es(~V, $L0, z, $EL, sl), $KLF, $UKL, sk), I1.es_ks(~V, $L0, $KL, s, $KS, $EL, sl, hsn))
+  +esl = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $LLF, $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $ELF, sl), $ES, f1, Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L0, $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $EL, sl), $ES, f3, f4))
+  +hmf = Equal.trans(Maybe<&2, V>, HT.nthm(~V, $ELF, s), HT.nthm(~V, $UEL, s), Some{v}, Equal.cong(List<&2, Maybe<&2, V>>, Maybe<&2, V>, z => HT.nthm(~V, z, s), $ELF, $UEL, se), TL.nthm_upd_same(~V, $EL, s, Some{v}, hle))
+  +enk = Equal.trans(String, TB.nths($KLF, s), TB.nths($UKL, s), $KS, Equal.cong(List<&2, String>, String, z => TB.nths(z, s), $KLF, $UKL, sk), IA.nths_upd_same($KL, s, $KS, hlk))
+  +esk = Equal.trans(String, ST.skey($LLF, $KLF, s), TB.keyof($KW, TB.nths($KLF, s)), key, Equal.cong(U32, String, z => TB.keyof(z, TB.nths($KLF, s)), ST.lw($LLF, s, 2n), $KW, w2), Equal.trans(String, TB.keyof($KW, TB.nths($KLF, s)), TB.keyof($KW, $KS), key, Equal.cong(String, String, z => TB.keyof($KW, z), TB.nths($KLF, s), $KS, enk), IA.keyof_stored(key)))
+  +le = RP.le4(~V, ST.skey($LLF, $KLF, s), key, v, ST.lw($LLF, s, 3n), t, ST.lw($LLF, s, 4n), lo, ST.lw($LLF, s, 5n), hi, esk, w3, w4, w5)
+  +es1 = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $LLF, $KLF, $ELF, Con{s, Nil{}}), SC.append(SP.Ent<V>, ST.sent_m(~V, $LLF, $KLF, s, Some{v}), Nil{}), Con{$EN, Nil{}}, Equal.cong(Maybe<&2, V>, List<&2, SP.Ent<V>>, z => SC.append(SP.Ent<V>, ST.sent_m(~V, $LLF, $KLF, s, z), Nil{}), HT.nthm(~V, $ELF, s), Some{v}, hmf), Equal.cong(SP.Ent<V>, List<&2, SP.Ent<V>>, z => Con{z, Nil{}}, SP.LE{ST.skey($LLF, $KLF, s), v, ST.lw($LLF, s, 3n), W.U64{ST.lw($LLF, s, 4n), ST.lw($LLF, s, 5n)}}, $EN, le))
+  +eap = LS.es_app(~V, $LLF, $KLF, $ELF, sl, Con{s, Nil{}})
+  +esq = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $LLF, $KLF, $ELF, $SL2), SC.append(SP.Ent<V>, ST.es(~V, $LLF, $KLF, $ELF, sl), ST.es(~V, $LLF, $KLF, $ELF, Con{s, Nil{}})), SP.snoc(~V, $ES, $EN), eap, Equal.trans(List<&2, SP.Ent<V>>, SC.append(SP.Ent<V>, ST.es(~V, $LLF, $KLF, $ELF, sl), ST.es(~V, $LLF, $KLF, $ELF, Con{s, Nil{}})), SC.append(SP.Ent<V>, $ES, Con{$EN, Nil{}}), SP.snoc(~V, $ES, $EN), Equal.trans(List<&2, SP.Ent<V>>, SC.append(SP.Ent<V>, ST.es(~V, $LLF, $KLF, $ELF, sl), ST.es(~V, $LLF, $KLF, $ELF, Con{s, Nil{}})), SC.append(SP.Ent<V>, $ES, ST.es(~V, $LLF, $KLF, $ELF, Con{s, Nil{}})), SC.append(SP.Ent<V>, $ES, Con{$EN, Nil{}}), Equal.cong(List<&2, SP.Ent<V>>, List<&2, SP.Ent<V>>, z => SC.append(SP.Ent<V>, z, ST.es(~V, $LLF, $KLF, $ELF, Con{s, Nil{}})), ST.es(~V, $LLF, $KLF, $ELF, sl), $ES, esl), Equal.cong(List<&2, SP.Ent<V>>, List<&2, SP.Ent<V>>, z => SC.append(SP.Ent<V>, $ES, z), ST.es(~V, $LLF, $KLF, $ELF, Con{s, Nil{}}), Con{$EN, Nil{}}, es1)), Equal.sym(List<&2, SP.Ent<V>>, SP.snoc(~V, $ES, $EN), SC.append(SP.Ent<V>, $ES, Con{$EN, Nil{}}), LS.snoc_app(~V, $ES, $EN))))
+  +e16 = Equal.trans(W.U64, ST.w64($MBL, 16n), SP.inc64(ST.w64($MFL, 16n)), SP.inc64(ST.w64($ML, 16n)), ew, Equal.cong(W.U64, W.U64, z => SP.inc64(z), ST.w64($MFL, 16n), ST.w64($ML, 16n), BA.w64_eq($MFL, $ML, 16n, $MF(16n), $MF(17n))))
+  +ec = BA.ct5(ST.w64($MBL, 16n), ST.w64($MBL, 18n), ST.w64($MBL, 20n), ST.w64($MBL, 22n), ST.w64($MBL, 24n), SP.inc64(ST.w64($ML, 16n)), ST.w64($ML, 18n), ST.w64($ML, 20n), ST.w64($ML, 22n), ST.w64($ML, 24n), e16, BA.w64_eq($MBL, $ML, 18n, $KQ(18n), $KQ(19n)), BA.w64_eq($MBL, $ML, 20n, $KQ(20n), $KQ(21n)), BA.w64_eq($MBL, $ML, 22n, $KQ(22n), $KQ(23n)), BA.w64_eq($MBL, $ML, 24n, $KQ(24n), $KQ(25n)))
+  BA.lru_eq(~V, cap, W32.nth0($MBL, 3n), $M3, ST.w64($MBL, 4n), $W4, ST.es(~V, $LLF, $KLF, $ELF, $SL2), SP.snoc(~V, $ES, $EN), ST.ctr($MBL), SP.c_ins($CTR), $KQ(3n), BA.w64_eq($MBL, $ML, 4n, $KQ(4n), $KQ(5n)), esq, ec)
+
+# the invariant of the placed entry
+def ic_good(~V: Data, $ICF, $POST) -> {ST.good(~V, $SHF2) == True{} : Bool}:
+  +hsd = RD.f_hsd(~V, $SHA, hg)
+  +hsd1 = UL.sd1(sd, hsd)
+  +hsd32 = N.lt_trans(sd, 1n+sd, 32n, N.lt_succ(sd), hsd1)
+  +hk30 = L.and_left(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), $G(ck))
+  +hk31 = N.lt_trans(k, 30n, 31n, hk30, {==})
+  +hk0 = L.and_right(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), $G(ck))
+  +hsu = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(sd)) == True{} : Bool}, s, UD.v(su), Equal.sym(Nat, UD.v(su), s, hsv), hs0)
+  +i2 = Equal.trans(Nat, UD.v(LR.hidx(su)), ST.off(UD.v(su), 2n), ST.off(s, 2n), ID.w2(one, h1, su, sd, UL.sd3(sd, hsd), hsu), Equal.cong(Nat, Nat, z => ST.off(z, 2n), UD.v(su), s, hsv))
+  +i3 = Equal.trans(Nat, UD.v(LR.tidx(su)), ST.off(UD.v(su), 3n), ST.off(s, 3n), ID.w3(one, h1, su, sd, UL.sd3(sd, hsd), hsu), Equal.cong(Nat, Nat, z => ST.off(z, 3n), UD.v(su), s, hsv))
+  +i4 = Equal.trans(Nat, UD.v(LR.dlo_idx(su)), ST.off(UD.v(su), 4n), ST.off(s, 4n), ID.w4(one, h1, su, sd, UL.sd3(sd, hsd), hsu), Equal.cong(Nat, Nat, z => ST.off(z, 4n), UD.v(su), s, hsv))
+  +i5 = Equal.trans(Nat, UD.v(LR.dhi_idx(su)), ST.off(UD.v(su), 5n), ST.off(s, 5n), ID.w5(one, h1, su, sd, UL.sd3(sd, hsd), hsu), Equal.cong(Nat, Nat, z => ST.off(z, 5n), UD.v(su), s, hsv))
+  +hpl = $G(cpl)
+  +hpe = $G(cpe)
+  +hpk = $G(cpk)
+  +p1 = UT.uset_p(3n+sd, lkT, hpl, UD.v(LR.tidx(su)), t)
+  +p2 = UT.uset_p(3n+sd, $LK1, p1, UD.v(LR.dlo_idx(su)), lo)
+  +p3 = UT.uset_p(3n+sd, $LK2, p2, UD.v(LR.dhi_idx(su)), hi)
+  +p4 = UT.uset_p(3n+sd, $LK3, p3, UD.v(LR.hidx(su)), $KW)
+  +s1 = UL.wr_s(lkT, sd, hpl, LR.tidx(su), s, 3n, {==}, hs0, i3, t)
+  +s2 = UL.wr_s($LK1, sd, p1, LR.dlo_idx(su), s, 4n, {==}, hs0, i4, lo)
+  +s3 = UL.wr_s($LK2, sd, p2, LR.dhi_idx(su), s, 5n, {==}, hs0, i5, hi)
+  +s4 = UL.wr_s($LK3, sd, p3, LR.hidx(su), s, 2n, {==}, hs0, i2, $KW)
+  +sk = Equal.trans(List<&2, String>, $KLF, SC.update(String, $KL, UD.v(su), $KS), $UKL, AR.upd_slots(String, sd, ksT, UD.v(su), $KS, hsu, hpk), Equal.cong(Nat, List<&2, String>, z => SC.update(String, $KL, z, $KS), UD.v(su), s, hsv))
+  +se = Equal.trans(List<&2, Maybe<&2, V>>, $ELF, SC.update(Maybe<&2, V>, $EL, UD.v(su), Some{v}), $UEL, AR.upd_slots(Maybe<&2, V>, sd, eT, UD.v(su), Some{v}, hsu, hpe), Equal.cong(Nat, List<&2, Maybe<&2, V>>, z => SC.update(Maybe<&2, V>, $EL, z, Some{v}), UD.v(su), s, hsv))
+  +hle = UT.len_of(Maybe<&2, V>, sd, eT, hpe, s, hs0)
+  +hlk = UT.len_of(String, sd, ksT, hpk, s, hs0)
+  +hb32 = W32.bound32(one, h1, UD.v(su), sd, hsd1, hsu)
+  +hsls = Equal.trans(Nat, UD.v(H.slot($LS1)), UD.v(su), s, LK.slot_link(one, h1, su, hb32), hsv)
+  +elk = LT.lnk_su(su, s, sd, hsd, hsv, hs0)
+  +hns = I1.noslot_bsl($BS, sl, $L0, s, hsn, $NN, $G(cbsl))
+  +hns2 = L.subst(Nat, z => {HT.noslot($BS, z, $NN) == True{} : Bool}, s, UD.v(H.slot($LS1)), Equal.sym(Nat, UD.v(H.slot($LS1)), s, hsls), hns)
+  +hel = I1.tp_len(AR.slots(U32, tabT), $KL, k, e, he)
+  +tsl = I1.tp_sl(k, hk30, tabT, $G(cpt), e, he, $KW, $LS1)
+  +bs1 = Equal.cong(List<&2, U32>, List<&2, B.Bk>, z => TB.buckets(z, $KLF, $NN), AR.slots(U32, $T2), SC.update(U32, SC.update(U32, AR.slots(U32, tabT), Nat.double(e), $KW), 1n+Nat.double(e), $LS1), tsl)
+  +ekl = Equal.trans(List<&2, String>, $KLF, $UKL, SC.update(String, $KL, UD.v(H.slot($LS1)), $KS), sk, Equal.cong(Nat, List<&2, String>, z => SC.update(String, $KL, z, $KS), s, UD.v(H.slot($LS1)), Equal.sym(Nat, UD.v(H.slot($LS1)), s, hsls)))
+  +bs2 = Equal.cong(List<&2, String>, List<&2, B.Bk>, z => TB.buckets(SC.update(U32, SC.update(U32, AR.slots(U32, tabT), Nat.double(e), $KW), 1n+Nat.double(e), $LS1), z, $NN), $KLF, SC.update(String, $KL, UD.v(H.slot($LS1)), $KS), ekl)
+  +htb = UT.len_of(U32, 1n+k, tabT, $G(cpt), 1n+Nat.double(e), N.double_lt_bit(True{}, e, $NN, he))
+  +hkl2 = L.subst(Nat, z => {Nat.is_lt(z, SC.length(String, $KL)) == True{} : Bool}, s, UD.v(H.slot($LS1)), Equal.sym(Nat, UD.v(H.slot($LS1)), s, hsls), hlk)
+  +bs3 = IA.buckets_put(AR.slots(U32, tabT), $KL, e, $KW, $LS1, $KS, $NN, hns2, IS.kword_nz(key), htb, hkl2)
+  +bs4 = Equal.cong(String, List<&2, B.Bk>, z => IM.bupd($BS, e, B.BF{$KW, $LS1, z}), TB.keyof($KW, $KS), key, IA.keyof_stored(key))
+  +bp = Equal.trans(List<&2, B.Bk>, $BSF, TB.buckets(SC.update(U32, SC.update(U32, AR.slots(U32, tabT), Nat.double(e), $KW), 1n+Nat.double(e), $LS1), $KLF, $NN), $BN, bs1, Equal.trans(List<&2, B.Bk>, TB.buckets(SC.update(U32, SC.update(U32, AR.slots(U32, tabT), Nat.double(e), $KW), 1n+Nat.double(e), $LS1), $KLF, $NN), TB.buckets(SC.update(U32, SC.update(U32, AR.slots(U32, tabT), Nat.double(e), $KW), 1n+Nat.double(e), $LS1), SC.update(String, $KL, UD.v(H.slot($LS1)), $KS), $NN), $BN, bs2, Equal.trans(List<&2, B.Bk>, TB.buckets(SC.update(U32, SC.update(U32, AR.slots(U32, tabT), Nat.double(e), $KW), 1n+Nat.double(e), $LS1), SC.update(String, $KL, UD.v(H.slot($LS1)), $KS), $NN), IM.bupd($BS, e, B.BF{$KW, $LS1, TB.keyof($KW, $KS)}), $BN, bs3, bs4)))
+  +w2 = Equal.trans(U32, ST.lw($LLF, s, 2n), ST.lw($L4, s, 2n), $KW, Equal.trans(U32, ST.lw($LLF, s, 2n), ST.lw(TR.app($L4, tr), s, 2n), ST.lw($L4, s, 2n), Equal.cong(List<&2, U32>, U32, z => ST.lw(z, s, 2n), $LLF, TR.app($L4, tr), hs3), TR.lw_tr_hi($L4, tr, hlo, s, 2n, {==}, {==})), MT.nth_same(3n+sd, $LK3, p3, ST.off(s, 2n), ID.off_lt(s, sd, hs0, 2n, {==}), $KW, $LK4, s4))
+  +w3 = Equal.trans(U32, ST.lw($LLF, s, 3n), ST.lw($L4, s, 3n), t, Equal.trans(U32, ST.lw($LLF, s, 3n), ST.lw(TR.app($L4, tr), s, 3n), ST.lw($L4, s, 3n), Equal.cong(List<&2, U32>, U32, z => ST.lw(z, s, 3n), $LLF, TR.app($L4, tr), hs3), TR.lw_tr_hi($L4, tr, hlo, s, 3n, {==}, {==})), Equal.trans(U32, W32.nth0($L4, ST.off(s, 3n)), W32.nth0($L3, ST.off(s, 3n)), t, MT.nth_other($LK3, ST.off(s, 2n), $KW, $LK4, s4, ST.off(s, 3n), $NE(2n, 3n)), Equal.trans(U32, W32.nth0($L3, ST.off(s, 3n)), W32.nth0($L2, ST.off(s, 3n)), t, MT.nth_other($LK2, ST.off(s, 5n), hi, $LK3, s3, ST.off(s, 3n), $NE(5n, 3n)), Equal.trans(U32, W32.nth0($L2, ST.off(s, 3n)), W32.nth0($L1, ST.off(s, 3n)), t, MT.nth_other($LK1, ST.off(s, 4n), lo, $LK2, s2, ST.off(s, 3n), $NE(4n, 3n)), MT.nth_same(3n+sd, lkT, hpl, ST.off(s, 3n), ID.off_lt(s, sd, hs0, 3n, {==}), t, $LK1, s1)))))
+  +w4 = Equal.trans(U32, ST.lw($LLF, s, 4n), ST.lw($L4, s, 4n), lo, Equal.trans(U32, ST.lw($LLF, s, 4n), ST.lw(TR.app($L4, tr), s, 4n), ST.lw($L4, s, 4n), Equal.cong(List<&2, U32>, U32, z => ST.lw(z, s, 4n), $LLF, TR.app($L4, tr), hs3), TR.lw_tr_hi($L4, tr, hlo, s, 4n, {==}, {==})), Equal.trans(U32, W32.nth0($L4, ST.off(s, 4n)), W32.nth0($L3, ST.off(s, 4n)), lo, MT.nth_other($LK3, ST.off(s, 2n), $KW, $LK4, s4, ST.off(s, 4n), $NE(2n, 4n)), Equal.trans(U32, W32.nth0($L3, ST.off(s, 4n)), W32.nth0($L2, ST.off(s, 4n)), lo, MT.nth_other($LK2, ST.off(s, 5n), hi, $LK3, s3, ST.off(s, 4n), $NE(5n, 4n)), MT.nth_same(3n+sd, $LK1, p1, ST.off(s, 4n), ID.off_lt(s, sd, hs0, 4n, {==}), lo, $LK2, s2))))
+  +w5 = Equal.trans(U32, ST.lw($LLF, s, 5n), ST.lw($L4, s, 5n), hi, Equal.trans(U32, ST.lw($LLF, s, 5n), ST.lw(TR.app($L4, tr), s, 5n), ST.lw($L4, s, 5n), Equal.cong(List<&2, U32>, U32, z => ST.lw(z, s, 5n), $LLF, TR.app($L4, tr), hs3), TR.lw_tr_hi($L4, tr, hlo, s, 5n, {==}, {==})), Equal.trans(U32, W32.nth0($L4, ST.off(s, 5n)), W32.nth0($L3, ST.off(s, 5n)), hi, MT.nth_other($LK3, ST.off(s, 2n), $KW, $LK4, s4, ST.off(s, 5n), $NE(2n, 5n)), MT.nth_same(3n+sd, $LK2, p2, ST.off(s, 5n), ID.off_lt(s, sd, hs0, 5n, {==}), hi, $LK3, s3)))
+  +f1 = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $LLF, $KLF, $ELF, sl), ST.es(~V, $L4, $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $ELF, sl), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $LLF, $KLF, $ELF, sl), ST.es(~V, TR.app($L4, tr), $KLF, $ELF, sl), ST.es(~V, $L4, $KLF, $ELF, sl), Equal.cong(List<&2, U32>, List<&2, SP.Ent<V>>, z => ST.es(~V, z, $KLF, $ELF, sl), $LLF, TR.app($L4, tr), hs3), TR.es_tr(~V, $L4, tr, hlo, $KLF, $ELF, sl)), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L4, $KLF, $ELF, sl), ST.es(~V, $L3, $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $ELF, sl), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L4, $KLF, $ELF, sl), ST.es(~V, SC.update(U32, $L3, ST.off(s, 2n), $KW), $KLF, $ELF, sl), ST.es(~V, $L3, $KLF, $ELF, sl), Equal.cong(List<&2, U32>, List<&2, SP.Ent<V>>, z => ST.es(~V, z, $KLF, $ELF, sl), $L4, SC.update(U32, $L3, ST.off(s, 2n), $KW), s4), HW.es_fs(~V, $L3, s, 2n, $KW, {==}, $KLF, $ELF, sl, hsn)), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L3, $KLF, $ELF, sl), ST.es(~V, $L2, $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $ELF, sl), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L3, $KLF, $ELF, sl), ST.es(~V, SC.update(U32, $L2, ST.off(s, 5n), hi), $KLF, $ELF, sl), ST.es(~V, $L2, $KLF, $ELF, sl), Equal.cong(List<&2, U32>, List<&2, SP.Ent<V>>, z => ST.es(~V, z, $KLF, $ELF, sl), $L3, SC.update(U32, $L2, ST.off(s, 5n), hi), s3), HW.es_fs(~V, $L2, s, 5n, hi, {==}, $KLF, $ELF, sl, hsn)), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L2, $KLF, $ELF, sl), ST.es(~V, $L1, $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $ELF, sl), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L2, $KLF, $ELF, sl), ST.es(~V, SC.update(U32, $L1, ST.off(s, 4n), lo), $KLF, $ELF, sl), ST.es(~V, $L1, $KLF, $ELF, sl), Equal.cong(List<&2, U32>, List<&2, SP.Ent<V>>, z => ST.es(~V, z, $KLF, $ELF, sl), $L2, SC.update(U32, $L1, ST.off(s, 4n), lo), s2), HW.es_fs(~V, $L1, s, 4n, lo, {==}, $KLF, $ELF, sl, hsn)), Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L1, $KLF, $ELF, sl), ST.es(~V, SC.update(U32, $L0, ST.off(s, 3n), t), $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $ELF, sl), Equal.cong(List<&2, U32>, List<&2, SP.Ent<V>>, z => ST.es(~V, z, $KLF, $ELF, sl), $L1, SC.update(U32, $L0, ST.off(s, 3n), t), s1), HW.es_fs(~V, $L0, s, 3n, t, {==}, $KLF, $ELF, sl, hsn))))))
+  +f3 = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L0, $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $UEL, sl), ST.es(~V, $L0, $KLF, $EL, sl), Equal.cong(List<&2, Maybe<&2, V>>, List<&2, SP.Ent<V>>, z => ST.es(~V, $L0, $KLF, z, sl), $ELF, $UEL, se), EF.es_el(~V, $L0, $KLF, $EL, s, Some{v}, sl, hsn))
+  +f4 = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L0, $KLF, $EL, sl), ST.es(~V, $L0, $UKL, $EL, sl), $ES, Equal.cong(List<&2, String>, List<&2, SP.Ent<V>>, z => ST.es(~V, $L0, z, $EL, sl), $KLF, $UKL, sk), I1.es_ks(~V, $L0, $KL, s, $KS, $EL, sl, hsn))
+  +esl = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $LLF, $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $ELF, sl), $ES, f1, Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $L0, $KLF, $ELF, sl), ST.es(~V, $L0, $KLF, $EL, sl), $ES, f3, f4))
+  +hmf = Equal.trans(Maybe<&2, V>, HT.nthm(~V, $ELF, s), HT.nthm(~V, $UEL, s), Some{v}, Equal.cong(List<&2, Maybe<&2, V>>, Maybe<&2, V>, z => HT.nthm(~V, z, s), $ELF, $UEL, se), TL.nthm_upd_same(~V, $EL, s, Some{v}, hle))
+  +enk = Equal.trans(String, TB.nths($KLF, s), TB.nths($UKL, s), $KS, Equal.cong(List<&2, String>, String, z => TB.nths(z, s), $KLF, $UKL, sk), IA.nths_upd_same($KL, s, $KS, hlk))
+  +esk = Equal.trans(String, ST.skey($LLF, $KLF, s), TB.keyof($KW, TB.nths($KLF, s)), key, Equal.cong(U32, String, z => TB.keyof(z, TB.nths($KLF, s)), ST.lw($LLF, s, 2n), $KW, w2), Equal.trans(String, TB.keyof($KW, TB.nths($KLF, s)), TB.keyof($KW, $KS), key, Equal.cong(String, String, z => TB.keyof($KW, z), TB.nths($KLF, s), $KS, enk), IA.keyof_stored(key)))
+  +le = RP.le4(~V, ST.skey($LLF, $KLF, s), key, v, ST.lw($LLF, s, 3n), t, ST.lw($LLF, s, 4n), lo, ST.lw($LLF, s, 5n), hi, esk, w3, w4, w5)
+  +es1 = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $LLF, $KLF, $ELF, Con{s, Nil{}}), SC.append(SP.Ent<V>, ST.sent_m(~V, $LLF, $KLF, s, Some{v}), Nil{}), Con{$EN, Nil{}}, Equal.cong(Maybe<&2, V>, List<&2, SP.Ent<V>>, z => SC.append(SP.Ent<V>, ST.sent_m(~V, $LLF, $KLF, s, z), Nil{}), HT.nthm(~V, $ELF, s), Some{v}, hmf), Equal.cong(SP.Ent<V>, List<&2, SP.Ent<V>>, z => Con{z, Nil{}}, SP.LE{ST.skey($LLF, $KLF, s), v, ST.lw($LLF, s, 3n), W.U64{ST.lw($LLF, s, 4n), ST.lw($LLF, s, 5n)}}, $EN, le))
+  +eap = LS.es_app(~V, $LLF, $KLF, $ELF, sl, Con{s, Nil{}})
+  +esq = Equal.trans(List<&2, SP.Ent<V>>, ST.es(~V, $LLF, $KLF, $ELF, $SL2), SC.append(SP.Ent<V>, ST.es(~V, $LLF, $KLF, $ELF, sl), ST.es(~V, $LLF, $KLF, $ELF, Con{s, Nil{}})), SP.snoc(~V, $ES, $EN), eap, Equal.trans(List<&2, SP.Ent<V>>, SC.append(SP.Ent<V>, ST.es(~V, $LLF, $KLF, $ELF, sl), ST.es(~V, $LLF, $KLF, $ELF, Con{s, Nil{}})), SC.append(SP.Ent<V>, $ES, Con{$EN, Nil{}}), SP.snoc(~V, $ES, $EN), Equal.trans(List<&2, SP.Ent<V>>, SC.append(SP.Ent<V>, ST.es(~V, $LLF, $KLF, $ELF, sl), ST.es(~V, $LLF, $KLF, $ELF, Con{s, Nil{}})), SC.append(SP.Ent<V>, $ES, ST.es(~V, $LLF, $KLF, $ELF, Con{s, Nil{}})), SC.append(SP.Ent<V>, $ES, Con{$EN, Nil{}}), Equal.cong(List<&2, SP.Ent<V>>, List<&2, SP.Ent<V>>, z => SC.append(SP.Ent<V>, z, ST.es(~V, $LLF, $KLF, $ELF, Con{s, Nil{}})), ST.es(~V, $LLF, $KLF, $ELF, sl), $ES, esl), Equal.cong(List<&2, SP.Ent<V>>, List<&2, SP.Ent<V>>, z => SC.append(SP.Ent<V>, $ES, z), ST.es(~V, $LLF, $KLF, $ELF, Con{s, Nil{}}), Con{$EN, Nil{}}, es1)), Equal.sym(List<&2, SP.Ent<V>>, SP.snoc(~V, $ES, $EN), SC.append(SP.Ent<V>, $ES, Con{$EN, Nil{}}), LS.snoc_app(~V, $ES, $EN))))
+  +hslt = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(sd)) == True{} : Bool}, UD.v(su), UD.v(H.slot($LS1)), Equal.sym(Nat, UD.v(H.slot($LS1)), UD.v(su), LK.slot_link(one, h1, su, hb32)), hsu)
+  +hwb = L.and_intro(Nat.is_lt(UD.v(H.slot($LS1)), SC.pow2(sd)), Bool.and(U32.is_eq($KW, K.kword(key)), Bool.not(U32.is_eq($LS1, 0))), hslt, L.and_intro(U32.is_eq($KW, $KW), Bool.not(U32.is_eq($LS1, 0)), UW.u32_eq_refl($KW), IM.not_f(U32.is_eq($LS1, 0), W32.link_nz(one, h1, su, hb32))))
+  +hwell = L.subst(List<&2, B.Bk>, z => {B.all_lt(B.PWell{z, sd}, $NN) == True{} : Bool}, $BN, $BSF, Equal.sym(List<&2, B.Bk>, $BSF, $BN, bp), IM.well_up($BS, e, $BF, hel, sd, hwb, $NN, $G(cwell), $NN, N.le_refl($NN)))
+  +hclus = L.subst(List<&2, B.Bk>, z => {B.cluster(z, $NN, CY.msk(k)) == True{} : Bool}, $BN, $BSF, Equal.sym(List<&2, B.Bk>, $BSF, $BN, bp), IM.clus_up($BS, e, $BF, {==}, hel, $NN, CY.msk(k), hp, $G(cclus)))
+  +huniq = L.subst(List<&2, B.Bk>, z => {B.all_lt(B.PUniq{z}, $NN) == True{} : Bool}, $BN, $BSF, Equal.sym(List<&2, B.Bk>, $BSF, $BN, bp), IM.uq_up($BS, e, hel, $KW, $LS1, key, $NN, he, $G(cuniq), hno, hns2))
+  +ea = IU.inc_n(one, h1, k, hk31, hk0, n, $G(cload))
+  +eo = Equal.trans(Nat, UD.v(U32.inc(n)), 1n+UD.v(n), IV.occn($BSF, $NN), ea, Equal.trans(Nat, 1n+UD.v(n), 1n+IV.occn($BS, $NN), IV.occn($BSF, $NN), Equal.cong(Nat, Nat, z => 1n+z, UD.v(n), IV.occn($BS, $NN), N.eq_from_is_eq(UD.v(n), IV.occn($BS, $NN), $G(cn))), Equal.trans(Nat, 1n+IV.occn($BS, $NN), IV.occn($BN, $NN), IV.occn($BSF, $NN), Equal.sym(Nat, IV.occn($BN, $NN), 1n+IV.occn($BS, $NN), IM.occn_up($BS, e, $BF, {==}, hel, hz, $NN, he)), Equal.cong(List<&2, B.Bk>, Nat, z => IV.occn(z, $NN), $BN, $BSF, Equal.sym(List<&2, B.Bk>, $BSF, $BN, bp)))))
+  +hcn2 = IS.eq_is_eq(UD.v(U32.inc(n)), IV.occn($BSF, $NN), eo)
+  +hld2 = L.subst(Nat, z => {Nat.is_le(Nat.double(z), $NN) == True{} : Bool}, 1n+UD.v(n), UD.v(U32.inc(n)), Equal.sym(Nat, UD.v(U32.inc(n)), 1n+UD.v(n), ea), hroom)
+  +b0 = RB.bsl_sub($BS, sl, $SL2, $L0, $NN, $G(cbsl), RB.subl_ml(sl, sl, Con{s, Nil{}}, RB.subl_refl(sl)))
+  +b1 = Equal.trans(Bool, ST.bsl($BS, $SL2, $LLF, $NN), ST.bsl($BS, $SL2, $L4, $NN), ST.bsl($BS, $SL2, $L0, $NN), Equal.trans(Bool, ST.bsl($BS, $SL2, $LLF, $NN), ST.bsl($BS, $SL2, TR.app($L4, tr), $NN), ST.bsl($BS, $SL2, $L4, $NN), Equal.cong(List<&2, U32>, Bool, z => ST.bsl($BS, $SL2, z, $NN), $LLF, TR.app($L4, tr), hs3), TR.bsl_tr($L4, tr, hlo, $BS, $SL2, $NN)), Equal.trans(Bool, ST.bsl($BS, $SL2, $L4, $NN), ST.bsl($BS, $SL2, $L3, $NN), ST.bsl($BS, $SL2, $L0, $NN), Equal.trans(Bool, ST.bsl($BS, $SL2, $L4, $NN), ST.bsl($BS, $SL2, SC.update(U32, $L3, ST.off(s, 2n), $KW), $NN), ST.bsl($BS, $SL2, $L3, $NN), Equal.cong(List<&2, U32>, Bool, z => ST.bsl($BS, $SL2, z, $NN), $L4, SC.update(U32, $L3, ST.off(s, 2n), $KW), s4), I1.bsl_ns($L3, s, 2n, $KW, {==}, $BS, $SL2, $NN, hns)), Equal.trans(Bool, ST.bsl($BS, $SL2, $L3, $NN), ST.bsl($BS, $SL2, $L2, $NN), ST.bsl($BS, $SL2, $L0, $NN), Equal.trans(Bool, ST.bsl($BS, $SL2, $L3, $NN), ST.bsl($BS, $SL2, SC.update(U32, $L2, ST.off(s, 5n), hi), $NN), ST.bsl($BS, $SL2, $L2, $NN), Equal.cong(List<&2, U32>, Bool, z => ST.bsl($BS, $SL2, z, $NN), $L3, SC.update(U32, $L2, ST.off(s, 5n), hi), s3), I1.bsl_ns($L2, s, 5n, hi, {==}, $BS, $SL2, $NN, hns)), Equal.trans(Bool, ST.bsl($BS, $SL2, $L2, $NN), ST.bsl($BS, $SL2, $L1, $NN), ST.bsl($BS, $SL2, $L0, $NN), Equal.trans(Bool, ST.bsl($BS, $SL2, $L2, $NN), ST.bsl($BS, $SL2, SC.update(U32, $L1, ST.off(s, 4n), lo), $NN), ST.bsl($BS, $SL2, $L1, $NN), Equal.cong(List<&2, U32>, Bool, z => ST.bsl($BS, $SL2, z, $NN), $L2, SC.update(U32, $L1, ST.off(s, 4n), lo), s2), I1.bsl_ns($L1, s, 4n, lo, {==}, $BS, $SL2, $NN, hns)), Equal.trans(Bool, ST.bsl($BS, $SL2, $L1, $NN), ST.bsl($BS, $SL2, SC.update(U32, $L0, ST.off(s, 3n), t), $NN), ST.bsl($BS, $SL2, $L0, $NN), Equal.cong(List<&2, U32>, Bool, z => ST.bsl($BS, $SL2, z, $NN), $L1, SC.update(U32, $L0, ST.off(s, 3n), t), s1), I1.bsl_ns($L0, s, 3n, t, {==}, $BS, $SL2, $NN, hns))))))
+  +m1 = L.subst(Nat, z => {NL.memn(z, $SL2) == True{} : Bool}, s, UD.v(H.slot($LS1)), Equal.sym(Nat, UD.v(H.slot($LS1)), s, hsls), NL.mem_app_r(s, sl, Con{s, Nil{}}, UL.self_in(s, Nil{})))
+  +wq = L.subst(U32, z => {U32.is_eq(z, $KW) == True{} : Bool}, $KW, ST.lw($LLF, s, 2n), Equal.sym(U32, ST.lw($LLF, s, 2n), $KW, w2), UW.u32_eq_refl($KW))
+  +wq2 = L.subst(Nat, z => {U32.is_eq(ST.lw($LLF, z, 2n), $KW) == True{} : Bool}, s, UD.v(H.slot($LS1)), Equal.sym(Nat, UD.v(H.slot($LS1)), s, hsls), wq)
+  +hbn = L.and_intro(NL.memn(UD.v(H.slot($LS1)), $SL2), U32.is_eq(ST.lw($LLF, UD.v(H.slot($LS1)), 2n), $KW), m1, wq2)
+  +hbsl = L.subst(List<&2, B.Bk>, z => {ST.bsl(z, $SL2, $LLF, $NN) == True{} : Bool}, $BN, $BSF, Equal.sym(List<&2, B.Bk>, $BSF, $BN, bp), I1.bsl_up($BS, e, $BF, hel, $SL2, $LLF, hbn, $NN, Equal.trans(Bool, ST.bsl($BS, $SL2, $LLF, $NN), ST.bsl($BS, $SL2, $L0, $NN), True{}, b1, b0)))
+  +ha0 = Equal.trans(Bool, ST.hasall(~V, $BS, $NN, $LLF, sl), ST.hasall(~V, $BS, $NN, $L0, sl), True{}, Equal.trans(Bool, ST.hasall(~V, $BS, $NN, $LLF, sl), ST.hasall(~V, $BS, $NN, $L4, sl), ST.hasall(~V, $BS, $NN, $L0, sl), Equal.trans(Bool, ST.hasall(~V, $BS, $NN, $LLF, sl), ST.hasall(~V, $BS, $NN, TR.app($L4, tr), sl), ST.hasall(~V, $BS, $NN, $L4, sl), Equal.cong(List<&2, U32>, Bool, z => ST.hasall(~V, $BS, $NN, z, sl), $LLF, TR.app($L4, tr), hs3), TR.has_tr(~V, $L4, tr, hlo, $BS, $NN, sl)), Equal.trans(Bool, ST.hasall(~V, $BS, $NN, $L4, sl), ST.hasall(~V, $BS, $NN, $L3, sl), ST.hasall(~V, $BS, $NN, $L0, sl), Equal.trans(Bool, ST.hasall(~V, $BS, $NN, $L4, sl), ST.hasall(~V, $BS, $NN, SC.update(U32, $L3, ST.off(s, 2n), $KW), sl), ST.hasall(~V, $BS, $NN, $L3, sl), Equal.cong(List<&2, U32>, Bool, z => ST.hasall(~V, $BS, $NN, z, sl), $L4, SC.update(U32, $L3, ST.off(s, 2n), $KW), s4), I1.has_fs(~V, $L3, s, 2n, $KW, {==}, $BS, $NN, sl, hsn)), Equal.trans(Bool, ST.hasall(~V, $BS, $NN, $L3, sl), ST.hasall(~V, $BS, $NN, $L2, sl), ST.hasall(~V, $BS, $NN, $L0, sl), Equal.trans(Bool, ST.hasall(~V, $BS, $NN, $L3, sl), ST.hasall(~V, $BS, $NN, SC.update(U32, $L2, ST.off(s, 5n), hi), sl), ST.hasall(~V, $BS, $NN, $L2, sl), Equal.cong(List<&2, U32>, Bool, z => ST.hasall(~V, $BS, $NN, z, sl), $L3, SC.update(U32, $L2, ST.off(s, 5n), hi), s3), I1.has_fs(~V, $L2, s, 5n, hi, {==}, $BS, $NN, sl, hsn)), Equal.trans(Bool, ST.hasall(~V, $BS, $NN, $L2, sl), ST.hasall(~V, $BS, $NN, $L1, sl), ST.hasall(~V, $BS, $NN, $L0, sl), Equal.trans(Bool, ST.hasall(~V, $BS, $NN, $L2, sl), ST.hasall(~V, $BS, $NN, SC.update(U32, $L1, ST.off(s, 4n), lo), sl), ST.hasall(~V, $BS, $NN, $L1, sl), Equal.cong(List<&2, U32>, Bool, z => ST.hasall(~V, $BS, $NN, z, sl), $L2, SC.update(U32, $L1, ST.off(s, 4n), lo), s2), I1.has_fs(~V, $L1, s, 4n, lo, {==}, $BS, $NN, sl, hsn)), Equal.trans(Bool, ST.hasall(~V, $BS, $NN, $L1, sl), ST.hasall(~V, $BS, $NN, SC.update(U32, $L0, ST.off(s, 3n), t), sl), ST.hasall(~V, $BS, $NN, $L0, sl), Equal.cong(List<&2, U32>, Bool, z => ST.hasall(~V, $BS, $NN, z, sl), $L1, SC.update(U32, $L0, ST.off(s, 3n), t), s1), I1.has_fs(~V, $L0, s, 3n, t, {==}, $BS, $NN, sl, hsn)))))), $G(chas))
+  +ha1 = I1.has_up(~V, $BS, e, $BF, hz, $NN, $LLF, sl, ha0)
+  +hib0 = L.and_intro(U32.is_eq($KW, ST.lw($LLF, s, 2n)), U32.is_eq($LS1, LK.lnk(s)), L.subst(U32, z => {U32.is_eq($KW, z) == True{} : Bool}, $KW, ST.lw($LLF, s, 2n), Equal.sym(U32, ST.lw($LLF, s, 2n), $KW, w2), UW.u32_eq_refl($KW)), L.subst(U32, z => {U32.is_eq($LS1, z) == True{} : Bool}, $LS1, LK.lnk(s), elk, UW.u32_eq_refl($LS1)))
+  +hib = L.subst(B.Bk, z => {ST.isbf(z, ST.lw($LLF, s, 2n), LK.lnk(s)) == True{} : Bool}, $BF, B.at($BN, e), Equal.sym(B.Bk, B.at($BN, e), $BF, IM.at_bupd_same($BS, e, $BF, hel)), hib0)
+  +ha2 = L.and_intro(ST.anyb($BN, $NN, LK.lnk(s), ST.lw($LLF, s, 2n)), True{}, TS.anyb_intro($BN, $NN, LK.lnk(s), ST.lw($LLF, s, 2n), e, he, hib), {==})
+  +ha3 = L.subst(Bool, z => {z == True{} : Bool}, Bool.and(ST.hasall(~V, $BN, $NN, $LLF, sl), ST.hasall(~V, $BN, $NN, $LLF, Con{s, Nil{}})), ST.hasall(~V, $BN, $NN, $LLF, $SL2), Equal.sym(Bool, ST.hasall(~V, $BN, $NN, $LLF, $SL2), Bool.and(ST.hasall(~V, $BN, $NN, $LLF, sl), ST.hasall(~V, $BN, $NN, $LLF, Con{s, Nil{}})), LS.sall_app(~V, ST.PHas{$BN, $NN, $LLF}, sl, Con{s, Nil{}})), L.and_intro(ST.hasall(~V, $BN, $NN, $LLF, sl), ST.hasall(~V, $BN, $NN, $LLF, Con{s, Nil{}}), ha1, ha2))
+  +hhas = L.subst(List<&2, B.Bk>, z => {ST.hasall(~V, z, $NN, $LLF, $SL2) == True{} : Bool}, $BN, $BSF, Equal.sym(List<&2, B.Bk>, $BSF, $BN, bp), ha3)
+  +sa1 = L.subst(List<&2, Maybe<&2, V>>, z => {ST.slok(~V, sl, $FR2, z) == True{} : Bool}, $UEL, $ELF, Equal.sym(List<&2, Maybe<&2, V>>, $ELF, $UEL, se), Equal.trans(Bool, ST.slok(~V, sl, $FR2, $UEL), ST.slok(~V, sl, $FR2, $EL), True{}, EF.slok_el(~V, $EL, s, Some{v}, $FR2, sl, hsn), I1.slok_mono(~V, sl, $FR, $FR2, $EL, hfrle, $G(csl))))
+  +lvs = L.subst(List<&2, Maybe<&2, V>>, z => {ST.live(~V, z, s) == True{} : Bool}, $UEL, $ELF, Equal.sym(List<&2, Maybe<&2, V>>, $ELF, $UEL, se), HW.live_same(~V, $EL, s, v, hle))
+  +sa2 = L.and_intro(Bool.and(Nat.is_lt(s, $FR2), ST.live(~V, $ELF, s)), True{}, L.and_intro(Nat.is_lt(s, $FR2), ST.live(~V, $ELF, s), hsfr, lvs), {==})
+  +hsl2 = L.subst(Bool, z => {z == True{} : Bool}, Bool.and(ST.slok(~V, sl, $FR2, $ELF), ST.slok(~V, Con{s, Nil{}}, $FR2, $ELF)), ST.slok(~V, $SL2, $FR2, $ELF), Equal.sym(Bool, ST.slok(~V, $SL2, $FR2, $ELF), Bool.and(ST.slok(~V, sl, $FR2, $ELF), ST.slok(~V, Con{s, Nil{}}, $FR2, $ELF)), LS.sall_app(~V, ST.PLive{$FR2, $ELF}, sl, Con{s, Nil{}})), L.and_intro(ST.slok(~V, sl, $FR2, $ELF), ST.slok(~V, Con{s, Nil{}}, $FR2, $ELF), sa1, sa2))
+  +hlen2 = IS.eq_is_eq(SC.length(Nat, $SL2), UD.v(U32.inc(n)), Equal.trans(Nat, SC.length(Nat, $SL2), 1n+SC.length(Nat, sl), UD.v(U32.inc(n)), I1.len_snoc(sl, s), Equal.trans(Nat, 1n+SC.length(Nat, sl), 1n+UD.v(n), UD.v(U32.inc(n)), Equal.cong(Nat, Nat, z => 1n+z, SC.length(Nat, sl), UD.v(n), N.eq_from_is_eq(SC.length(Nat, sl), UD.v(n), $G(clen))), Equal.sym(Nat, UD.v(U32.inc(n)), 1n+UD.v(n), ea))))
+  +htl = L.subst(U32, z => {U32.is_eq(LK.lnk(s), z) == True{} : Bool}, LK.lnk(s), LK.last_or($SL2, 0), Equal.sym(U32, LK.last_or($SL2, 0), LK.lnk(s), LK.last_app(sl, Con{s, Nil{}}, 0)), LK.u_refl(LK.lnk(s)))
+  +hnk = TF.nokey_of(~V, one, h1, AR.slots(U32, tabT), $KL, $NN, key, hno, $L0, $EL, sd, hsd1, $FR, $G(cfresh), sl, $G(csl), $G(chas))
+  +hnm = L.subst(List<&2, String>, z => {S.mem(key, z) == False{} : Bool}, WL.mapk($L0, $KL, sl), SP.keys_of(~V, $ES), Equal.sym(List<&2, String>, SP.keys_of(~V, $ES), WL.mapk($L0, $KL, sl), WL.km(~V, $L0, $KL, $EL, $FR, sl, $G(csl))), I1.nokey_nm(~V, $L0, $KL, sl, key, hnk))
+  +hk1 = I1.nds_snoc(SP.keys_of(~V, $ES), key, $G(ckeys), hnm)
+  +ekk = Equal.trans(List<&2, String>, SP.keys_of(~V, ST.es(~V, $LLF, $KLF, $ELF, $SL2)), SP.keys_of(~V, SP.snoc(~V, $ES, $EN)), SC.append(String, SP.keys_of(~V, $ES), Con{key, Nil{}}), Equal.cong(List<&2, SP.Ent<V>>, List<&2, String>, z => SP.keys_of(~V, z), ST.es(~V, $LLF, $KLF, $ELF, $SL2), SP.snoc(~V, $ES, $EN), esq), Equal.trans(List<&2, String>, SP.keys_of(~V, SP.snoc(~V, $ES, $EN)), SP.keys_of(~V, SC.append(SP.Ent<V>, $ES, Con{$EN, Nil{}})), SC.append(String, SP.keys_of(~V, $ES), Con{key, Nil{}}), Equal.cong(List<&2, SP.Ent<V>>, List<&2, String>, z => SP.keys_of(~V, z), SP.snoc(~V, $ES, $EN), SC.append(SP.Ent<V>, $ES, Con{$EN, Nil{}}), LS.snoc_app(~V, $ES, $EN)), LS.keys_app(~V, $ES, Con{$EN, Nil{}})))
+  +hkeys = L.subst(List<&2, String>, z => {S.nodup(z) == True{} : Bool}, SC.append(String, SP.keys_of(~V, $ES), Con{key, Nil{}}), SP.keys_of(~V, ST.es(~V, $LLF, $KLF, $ELF, $SL2)), Equal.sym(List<&2, String>, SP.keys_of(~V, ST.es(~V, $LLF, $KLF, $ELF, $SL2)), SC.append(String, SP.keys_of(~V, $ES), Con{key, Nil{}}), ekk), hk1)
+  +hfl2 = L.subst(List<&2, Maybe<&2, V>>, z => {ST.flok(~V, fl2, $FR2, z) == True{} : Bool}, $UEL, $ELF, Equal.sym(List<&2, Maybe<&2, V>>, $ELF, $UEL, se), Equal.trans(Bool, ST.flok(~V, fl2, $FR2, $UEL), ST.flok(~V, fl2, $FR2, $EL), True{}, EF.flok_el(~V, $EL, s, Some{v}, $FR2, fl2, hsfl), hfl))
+  +hout = TR.out_of_in(~V, tr, $SL2, fl2, $FR2, $ELF, hin, hsl2, hfl2)
+  +hfll2 = Equal.trans(Bool, ST.fll($LLF, fl2), ST.fll($L0, fl2), True{}, Equal.trans(Bool, ST.fll($LLF, fl2), ST.fll($L4, fl2), ST.fll($L0, fl2), Equal.trans(Bool, ST.fll($LLF, fl2), ST.fll(TR.app($L4, tr), fl2), ST.fll($L4, fl2), Equal.cong(List<&2, U32>, Bool, z => ST.fll(z, fl2), $LLF, TR.app($L4, tr), hs3), TR.fll_tr($L4, tr, hlo, fl2, hout)), Equal.trans(Bool, ST.fll($L4, fl2), ST.fll($L3, fl2), ST.fll($L0, fl2), Equal.trans(Bool, ST.fll($L4, fl2), ST.fll(SC.update(U32, $L3, ST.off(s, 2n), $KW), fl2), ST.fll($L3, fl2), Equal.cong(List<&2, U32>, Bool, z => ST.fll(z, fl2), $L4, SC.update(U32, $L3, ST.off(s, 2n), $KW), s4), DL.fll_fs($L3, s, 2n, $KW, {==}, fl2, hsfl)), Equal.trans(Bool, ST.fll($L3, fl2), ST.fll($L2, fl2), ST.fll($L0, fl2), Equal.trans(Bool, ST.fll($L3, fl2), ST.fll(SC.update(U32, $L2, ST.off(s, 5n), hi), fl2), ST.fll($L2, fl2), Equal.cong(List<&2, U32>, Bool, z => ST.fll(z, fl2), $L3, SC.update(U32, $L2, ST.off(s, 5n), hi), s3), DL.fll_fs($L2, s, 5n, hi, {==}, fl2, hsfl)), Equal.trans(Bool, ST.fll($L2, fl2), ST.fll($L1, fl2), ST.fll($L0, fl2), Equal.trans(Bool, ST.fll($L2, fl2), ST.fll(SC.update(U32, $L1, ST.off(s, 4n), lo), fl2), ST.fll($L1, fl2), Equal.cong(List<&2, U32>, Bool, z => ST.fll(z, fl2), $L2, SC.update(U32, $L1, ST.off(s, 4n), lo), s2), DL.fll_fs($L1, s, 4n, lo, {==}, fl2, hsfl)), Equal.trans(Bool, ST.fll($L1, fl2), ST.fll(SC.update(U32, $L0, ST.off(s, 3n), t), fl2), ST.fll($L0, fl2), Equal.cong(List<&2, U32>, Bool, z => ST.fll(z, fl2), $L1, SC.update(U32, $L0, ST.off(s, 3n), t), s1), DL.fll_fs($L0, s, 3n, t, {==}, fl2, hsfl)))))), hfll)
+  +e0 = Equal.trans(U32, W32.nth0($MBL, 0n), W32.nth0($MFL, 0n), fr2u, $KP(0n), Equal.trans(U32, W32.nth0($MFL, 0n), W32.nth0(SC.update(U32, $ML, 0n, fr2u), 0n), fr2u, Equal.cong(List<&2, U32>, U32, z => W32.nth0(z, 0n), $MFL, SC.update(U32, $ML, 0n, fr2u), hsm), W32.nth0_upd_same($ML, 0n, fr2u, UT.len_of(U32, 5n, mT, $G(cpm), 0n, {==}))))
+  +gx = ST.good_intro(~V, cap, U32.inc(n), LK.fst_or($SL2, 0), LK.lnk(s), free2, fr2u, W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), True{}, k, sd, $T2, $KLF, AR.perfect(String, sd, $KTF), $ETF, t3, $SL2, fl2, $G(ck), $G(csdk), I1.tp_p(k, hk30, tabT, $G(cpt), e, he, $KW, $LS1), AR.upd_perfect(String, sd, ksT, UD.v(su), $KS, hpk), AR.upd_perfect(Maybe<&2, V>, sd, eT, UD.v(su), Some{v}, hpe), hp3, {==}, $G(cmask), $G(cbits), $G(csize), $G(cdepth), hfr2, hwell, hclus, huniq, hcn2, hld2, $G(ccap), hbsl, hhas, hsl2, I1.nd_snoc(sl, s, $G(cnd), hsn), hlen2, LK.u_refl(LK.fst_or($SL2, 0)), htl, hg3, hkeys, hfree, hfll2, hfl2, hfnd, hcnt)
+  RO.good_mk(~V, cap, U32.inc(n), LK.fst_or($SL2, 0), LK.lnk(s), free2, mB, fr2u, W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), k, sd, $T2, $KTF, $ETF, t3, $SL2, fl2, gx, e0, $KQ(1n), $KQ(2n), $KQ(6n), $KQ(7n), pm2)
+
+%def TPF cap, U32.inc(n), free2, mB, $T2, $KTF, $ETF
+
+def ic_l(~V: Data, $ICF, +mB: AR.Tree<U32>, +pm2: {AR.perfect(U32, 5n, mB) == True{} : Bool}, +ew: {ST.w64($MBL, 16n) == SP.inc64(ST.w64($MFL, 16n)) : W.U64}, +x: U32, +y: U32, +eb: {$MBL == SC.update(U32, SC.update(U32, $MFL, 16n, x), 1n+16n, y) : List<&2, U32>}, -r: LR.LRU<&2, V>, lt: LT.LtOK(~V, $TPF, $LK4, sd, sl, s, r)) -> BS.CountOK(~V, $SPEC, r):
+  match lt:
+    case Tuple{+t3, Tuple{+tr, Tuple{+ef, Tuple{+hp3, Tuple{+hs3, Tuple{+hlo, Tuple{+hin, g3}}}}}}}:
+      +hg3 = {g3 : {ST.seg($LLF, $SL2, 0, 0) == True{} : Bool}}
+      ($SHF2, (ef, (ic_model(~V, $ICA, $POSTA), ic_good(~V, $ICA, $POSTA))))
+
+%def PUT LR.put_slot(&2, V, cap, n, head, tail, free2, AR.thaw(U32, Mf), AR.thaw(U32, $T2), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), su, $KS, $KW, LR.E{v, t, lo, hi})
+
+def ic_b(~V: Data, $ICF, bo: BU.BumpOK(Mf, 16n, LR.bump(0, AR.thaw(U32, Mf)))) -> BS.CountOK(~V, $SPEC, $PUT):
+  match bo:
+    case Tuple{+mB, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, eb}}}}}}:
+      +hsd = RD.f_hsd(~V, $SHA, hg)
+      +hsd1 = UL.sd1(sd, hsd)
+      +hsd32 = N.lt_trans(sd, 1n+sd, 32n, N.lt_succ(sd), hsd1)
+      +hk30 = L.and_left(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), $G(ck))
+      +hk31 = N.lt_trans(k, 30n, 31n, hk30, {==})
+      +hk0 = L.and_right(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), $G(ck))
+      +hsu = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(sd)) == True{} : Bool}, s, UD.v(su), Equal.sym(Nat, UD.v(su), s, hsv), hs0)
+      +i2 = Equal.trans(Nat, UD.v(LR.hidx(su)), ST.off(UD.v(su), 2n), ST.off(s, 2n), ID.w2(one, h1, su, sd, UL.sd3(sd, hsd), hsu), Equal.cong(Nat, Nat, z => ST.off(z, 2n), UD.v(su), s, hsv))
+      +i3 = Equal.trans(Nat, UD.v(LR.tidx(su)), ST.off(UD.v(su), 3n), ST.off(s, 3n), ID.w3(one, h1, su, sd, UL.sd3(sd, hsd), hsu), Equal.cong(Nat, Nat, z => ST.off(z, 3n), UD.v(su), s, hsv))
+      +i4 = Equal.trans(Nat, UD.v(LR.dlo_idx(su)), ST.off(UD.v(su), 4n), ST.off(s, 4n), ID.w4(one, h1, su, sd, UL.sd3(sd, hsd), hsu), Equal.cong(Nat, Nat, z => ST.off(z, 4n), UD.v(su), s, hsv))
+      +i5 = Equal.trans(Nat, UD.v(LR.dhi_idx(su)), ST.off(UD.v(su), 5n), ST.off(s, 5n), ID.w5(one, h1, su, sd, UL.sd3(sd, hsd), hsu), Equal.cong(Nat, Nat, z => ST.off(z, 5n), UD.v(su), s, hsv))
+      +hpl = $G(cpl)
+      +hpe = $G(cpe)
+      +hpk = $G(cpk)
+      +p1 = UT.uset_p(3n+sd, lkT, hpl, UD.v(LR.tidx(su)), t)
+      +p2 = UT.uset_p(3n+sd, $LK1, p1, UD.v(LR.dlo_idx(su)), lo)
+      +p3 = UT.uset_p(3n+sd, $LK2, p2, UD.v(LR.dhi_idx(su)), hi)
+      +p4 = UT.uset_p(3n+sd, $LK3, p3, UD.v(LR.hidx(su)), $KW)
+      +s1 = UL.wr_s(lkT, sd, hpl, LR.tidx(su), s, 3n, {==}, hs0, i3, t)
+      +s2 = UL.wr_s($LK1, sd, p1, LR.dlo_idx(su), s, 4n, {==}, hs0, i4, lo)
+      +s3 = UL.wr_s($LK2, sd, p2, LR.dhi_idx(su), s, 5n, {==}, hs0, i5, hi)
+      +s4 = UL.wr_s($LK3, sd, p3, LR.hidx(su), s, 2n, {==}, hs0, i2, $KW)
+      +sk = Equal.trans(List<&2, String>, $KLF, SC.update(String, $KL, UD.v(su), $KS), $UKL, AR.upd_slots(String, sd, ksT, UD.v(su), $KS, hsu, hpk), Equal.cong(Nat, List<&2, String>, z => SC.update(String, $KL, z, $KS), UD.v(su), s, hsv))
+      +se = Equal.trans(List<&2, Maybe<&2, V>>, $ELF, SC.update(Maybe<&2, V>, $EL, UD.v(su), Some{v}), $UEL, AR.upd_slots(Maybe<&2, V>, sd, eT, UD.v(su), Some{v}, hsu, hpe), Equal.cong(Nat, List<&2, Maybe<&2, V>>, z => SC.update(Maybe<&2, V>, $EL, z, Some{v}), UD.v(su), s, hsv))
+      +hle = UT.len_of(Maybe<&2, V>, sd, eT, hpe, s, hs0)
+      +hlk = UT.len_of(String, sd, ksT, hpk, s, hs0)
+      +hb32 = W32.bound32(one, h1, UD.v(su), sd, hsd1, hsu)
+      +hsls = Equal.trans(Nat, UD.v(H.slot($LS1)), UD.v(su), s, LK.slot_link(one, h1, su, hb32), hsv)
+      +elk = LT.lnk_su(su, s, sd, hsd, hsv, hs0)
+      +hns = I1.noslot_bsl($BS, sl, $L0, s, hsn, $NN, $G(cbsl))
+      +hns2 = L.subst(Nat, z => {HT.noslot($BS, z, $NN) == True{} : Bool}, s, UD.v(H.slot($LS1)), Equal.sym(Nat, UD.v(H.slot($LS1)), s, hsls), hns)
+      +hel = I1.tp_len(AR.slots(U32, tabT), $KL, k, e, he)
+      +tsl = I1.tp_sl(k, hk30, tabT, $G(cpt), e, he, $KW, $LS1)
+      +hxk = TB.nths_some($KL, UD.v(su), UT.len_of(String, sd, ksT, hpk, UD.v(su), hsu))
+      +eK = AR.set(String, sd, ksT, su, $KS, TB.nths($KL, UD.v(su)), hsd32, hsu, hxk, hpk)
+      +hxe = HT.nthm_some(~V, $EL, UD.v(su), UT.len_of(Maybe<&2, V>, sd, eT, hpe, UD.v(su), hsu))
+      +eE = AR.set(Maybe<&2, V>, sd, eT, su, Some{v}, HT.nthm(~V, $EL, UD.v(su)), hsd32, hsu, hxe, hpe)
+      +a1 = UL.wr(one, h1, lkT, sd, hsd, hpl, LR.tidx(su), s, 3n, {==}, hs0, i3, t)
+      +a2 = UL.wr(one, h1, $LK1, sd, hsd, p1, LR.dlo_idx(su), s, 4n, {==}, hs0, i4, lo)
+      +a3 = UL.wr(one, h1, $LK2, sd, hsd, p2, LR.dhi_idx(su), s, 5n, {==}, hs0, i5, hi)
+      +a4 = UL.wr(one, h1, $LK3, sd, hsd, p3, LR.hidx(su), s, 2n, {==}, hs0, i2, $KW)
+      +eL = Equal.trans(Array<U32>, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, lkT), LR.tidx(su), t), LR.dlo_idx(su), lo), LR.dhi_idx(su), hi), LR.hidx(su), $KW), Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, $LK1), LR.dlo_idx(su), lo), LR.dhi_idx(su), hi), LR.hidx(su), $KW), AR.thaw(U32, $LK4), Equal.cong(Array<U32>, Array<U32>, z => Array.set(U32, Array.set(U32, Array.set(U32, z, LR.dlo_idx(su), lo), LR.dhi_idx(su), hi), LR.hidx(su), $KW), Array.set(U32, AR.thaw(U32, lkT), LR.tidx(su), t), AR.thaw(U32, $LK1), a1), Equal.trans(Array<U32>, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, $LK1), LR.dlo_idx(su), lo), LR.dhi_idx(su), hi), LR.hidx(su), $KW), Array.set(U32, Array.set(U32, AR.thaw(U32, $LK2), LR.dhi_idx(su), hi), LR.hidx(su), $KW), AR.thaw(U32, $LK4), Equal.cong(Array<U32>, Array<U32>, z => Array.set(U32, Array.set(U32, z, LR.dhi_idx(su), hi), LR.hidx(su), $KW), Array.set(U32, AR.thaw(U32, $LK1), LR.dlo_idx(su), lo), AR.thaw(U32, $LK2), a2), Equal.trans(Array<U32>, Array.set(U32, Array.set(U32, AR.thaw(U32, $LK2), LR.dhi_idx(su), hi), LR.hidx(su), $KW), Array.set(U32, AR.thaw(U32, $LK3), LR.hidx(su), $KW), AR.thaw(U32, $LK4), Equal.cong(Array<U32>, Array<U32>, z => Array.set(U32, z, LR.hidx(su), $KW), Array.set(U32, AR.thaw(U32, $LK2), LR.dhi_idx(su), hi), AR.thaw(U32, $LK3), a3), a4)))
+      +r1 = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, z, AR.thaw(U32, $T2), Array.set(String, AR.thaw(String, ksT), su, $KS), Array.set(Maybe<&2, V>, AR.thaw(Maybe<&2, V>, eT), su, Some{v}), Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, lkT), LR.tidx(su), t), LR.dlo_idx(su), lo), LR.dhi_idx(su), hi), LR.hidx(su), $KW)}, su), LR.bump(0, AR.thaw(U32, Mf)), AR.thaw(U32, mB), ea)
+      +r2 = Equal.cong(Array<String>, LR.LRU<&2, V>, z => LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, AR.thaw(U32, mB), AR.thaw(U32, $T2), z, Array.set(Maybe<&2, V>, AR.thaw(Maybe<&2, V>, eT), su, Some{v}), Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, lkT), LR.tidx(su), t), LR.dlo_idx(su), lo), LR.dhi_idx(su), hi), LR.hidx(su), $KW)}, su), Array.set(String, AR.thaw(String, ksT), su, $KS), AR.thaw(String, $KTF), eK)
+      +r3 = Equal.cong(Array<Maybe<&2, V>>, LR.LRU<&2, V>, z => LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, AR.thaw(U32, mB), AR.thaw(U32, $T2), AR.thaw(String, $KTF), z, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, lkT), LR.tidx(su), t), LR.dlo_idx(su), lo), LR.dhi_idx(su), hi), LR.hidx(su), $KW)}, su), Array.set(Maybe<&2, V>, AR.thaw(Maybe<&2, V>, eT), su, Some{v}), AR.thaw(Maybe<&2, V>, $ETF), eE)
+      +r4 = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, AR.thaw(U32, mB), AR.thaw(U32, $T2), AR.thaw(String, $KTF), AR.thaw(Maybe<&2, V>, $ETF), z}, su), Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, lkT), LR.tidx(su), t), LR.dlo_idx(su), lo), LR.dhi_idx(su), hi), LR.hidx(su), $KW), AR.thaw(U32, $LK4), eL)
+      +ER = Equal.trans(LR.LRU<&2, V>, LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, LR.bump(0, AR.thaw(U32, Mf)), AR.thaw(U32, $T2), Array.set(String, AR.thaw(String, ksT), su, $KS), Array.set(Maybe<&2, V>, AR.thaw(Maybe<&2, V>, eT), su, Some{v}), Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, lkT), LR.tidx(su), t), LR.dlo_idx(su), lo), LR.dhi_idx(su), hi), LR.hidx(su), $KW)}, su), LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, AR.thaw(U32, mB), AR.thaw(U32, $T2), Array.set(String, AR.thaw(String, ksT), su, $KS), Array.set(Maybe<&2, V>, AR.thaw(Maybe<&2, V>, eT), su, Some{v}), Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, lkT), LR.tidx(su), t), LR.dlo_idx(su), lo), LR.dhi_idx(su), hi), LR.hidx(su), $KW)}, su), LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, AR.thaw(U32, mB), AR.thaw(U32, $T2), AR.thaw(String, $KTF), AR.thaw(Maybe<&2, V>, $ETF), AR.thaw(U32, $LK4)}, su), r1, Equal.trans(LR.LRU<&2, V>, LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, AR.thaw(U32, mB), AR.thaw(U32, $T2), Array.set(String, AR.thaw(String, ksT), su, $KS), Array.set(Maybe<&2, V>, AR.thaw(Maybe<&2, V>, eT), su, Some{v}), Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, lkT), LR.tidx(su), t), LR.dlo_idx(su), lo), LR.dhi_idx(su), hi), LR.hidx(su), $KW)}, su), LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, AR.thaw(U32, mB), AR.thaw(U32, $T2), AR.thaw(String, $KTF), Array.set(Maybe<&2, V>, AR.thaw(Maybe<&2, V>, eT), su, Some{v}), Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, lkT), LR.tidx(su), t), LR.dlo_idx(su), lo), LR.dhi_idx(su), hi), LR.hidx(su), $KW)}, su), LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, AR.thaw(U32, mB), AR.thaw(U32, $T2), AR.thaw(String, $KTF), AR.thaw(Maybe<&2, V>, $ETF), AR.thaw(U32, $LK4)}, su), r2, Equal.trans(LR.LRU<&2, V>, LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, AR.thaw(U32, mB), AR.thaw(U32, $T2), AR.thaw(String, $KTF), Array.set(Maybe<&2, V>, AR.thaw(Maybe<&2, V>, eT), su, Some{v}), Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, lkT), LR.tidx(su), t), LR.dlo_idx(su), lo), LR.dhi_idx(su), hi), LR.hidx(su), $KW)}, su), LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, AR.thaw(U32, mB), AR.thaw(U32, $T2), AR.thaw(String, $KTF), AR.thaw(Maybe<&2, V>, $ETF), Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, AR.thaw(U32, lkT), LR.tidx(su), t), LR.dlo_idx(su), lo), LR.dhi_idx(su), hi), LR.hidx(su), $KW)}, su), LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, AR.thaw(U32, mB), AR.thaw(U32, $T2), AR.thaw(String, $KTF), AR.thaw(Maybe<&2, V>, $ETF), AR.thaw(U32, $LK4)}, su), r3, r4)))
+      +hseg4 = Equal.trans(Bool, ST.seg($L4, sl, 0, 0), ST.seg($L0, sl, 0, 0), True{}, Equal.trans(Bool, ST.seg($L4, sl, 0, 0), ST.seg($L3, sl, 0, 0), ST.seg($L0, sl, 0, 0), Equal.trans(Bool, ST.seg($L4, sl, 0, 0), ST.seg(SC.update(U32, $L3, ST.off(s, 2n), $KW), sl, 0, 0), ST.seg($L3, sl, 0, 0), Equal.cong(List<&2, U32>, Bool, z => ST.seg(z, sl, 0, 0), $L4, SC.update(U32, $L3, ST.off(s, 2n), $KW), s4), DL.seg_fs($L3, s, 2n, $KW, {==}, sl, 0, 0, hsn)), Equal.trans(Bool, ST.seg($L3, sl, 0, 0), ST.seg($L2, sl, 0, 0), ST.seg($L0, sl, 0, 0), Equal.trans(Bool, ST.seg($L3, sl, 0, 0), ST.seg(SC.update(U32, $L2, ST.off(s, 5n), hi), sl, 0, 0), ST.seg($L2, sl, 0, 0), Equal.cong(List<&2, U32>, Bool, z => ST.seg(z, sl, 0, 0), $L3, SC.update(U32, $L2, ST.off(s, 5n), hi), s3), DL.seg_fs($L2, s, 5n, hi, {==}, sl, 0, 0, hsn)), Equal.trans(Bool, ST.seg($L2, sl, 0, 0), ST.seg($L1, sl, 0, 0), ST.seg($L0, sl, 0, 0), Equal.trans(Bool, ST.seg($L2, sl, 0, 0), ST.seg(SC.update(U32, $L1, ST.off(s, 4n), lo), sl, 0, 0), ST.seg($L1, sl, 0, 0), Equal.cong(List<&2, U32>, Bool, z => ST.seg(z, sl, 0, 0), $L2, SC.update(U32, $L1, ST.off(s, 4n), lo), s2), DL.seg_fs($L1, s, 4n, lo, {==}, sl, 0, 0, hsn)), Equal.trans(Bool, ST.seg($L1, sl, 0, 0), ST.seg(SC.update(U32, $L0, ST.off(s, 3n), t), sl, 0, 0), ST.seg($L0, sl, 0, 0), Equal.cong(List<&2, U32>, Bool, z => ST.seg(z, sl, 0, 0), $L1, SC.update(U32, $L0, ST.off(s, 3n), t), s1), DL.seg_fs($L0, s, 3n, t, {==}, sl, 0, 0, hsn))))), $G(cdll))
+
+      ok = ic_l(~V, $ICA, mB, pm2, ew, x, y, eb, LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, AR.thaw(U32, mB), AR.thaw(U32, $T2), AR.thaw(String, $KTF), AR.thaw(Maybe<&2, V>, $ETF), AR.thaw(U32, $LK4)}, su), LT.link_tail_ok(~V, one, h1, $LK4, sd, hsd, p4, $TPF, $FR, $EL, $G(cfresh), head, tail, su, s, sl, hsv, hs0, hsn, hseg4, $G(cnd), $G(csl), $G(chead), $G(ctail)))
+      L.subst(LR.LRU<&2, V>, z => BS.CountOK(~V, $SPEC, z), LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, AR.thaw(U32, mB), AR.thaw(U32, $T2), AR.thaw(String, $KTF), AR.thaw(Maybe<&2, V>, $ETF), AR.thaw(U32, $LK4)}, su), $PUT, Equal.sym(LR.LRU<&2, V>, $PUT, LR.link_tail(&2, V, LR.F{cap, U32.inc(n), head, tail, free2, AR.thaw(U32, mB), AR.thaw(U32, $T2), AR.thaw(String, $KTF), AR.thaw(Maybe<&2, V>, $ETF), AR.thaw(U32, $LK4)}, su), ER), ok)
+
+# THEOREM (add, the core of a new entry)
+def ins_core(~V: Data, $ICF) -> BS.CountOK(~V, $SPEC, $PUT):
+  ic_b(~V, $ICA, BU.bump_ok(Mf, pf5, 0, 16n, {==}, {==}, {==}))

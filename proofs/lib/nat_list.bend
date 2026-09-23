@@ -1,5 +1,5 @@
 import Base
-import ../spec/common.bend as SC
+import ./spec_common.bend as SC
 import ./logic.bend as L
 import ./nat.bend as N
 import ./list.bend as LL

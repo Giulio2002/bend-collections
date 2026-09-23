@@ -1,0 +1,152 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/spec_common.bend as SC
+import ../../../src/containers/balanced_search_tree.bend as M
+import ../../../src/containers/dynamic_array.bend as D
+import ../../../src/containers/types/dynamic_array.bend as DE
+import ./state.bend as ST
+import ./da.bend as DA
+import ./arr.bend as AB
+
+# The TreeMap's node and payload accesses over the shadow: a read returns
+# the list's node, a write or exchange updates the list in range.
+
+%def ND M.Node<K>
+%def MV Maybe<&2, V>
+%def TMT M.TreeMap<K, V, cmp>
+%def F n, root, lo, hi, free, l, d, nl, pl, t, fl
+%def FP +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, $ND>, +pl: List<&2, $MV>, +t: ST.Tr, +fl: List<&2, Nat>
+%def DG +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length($ND, nl), SC.pow2(d)) == True{} : Bool}, +hp: {Nat.is_eq(SC.length($MV, pl), SC.length($ND, nl)) == True{} : Bool}
+%def DGA hl, hd, hc, hp
+%def RS(n, root, lo, hi, free, l, d, nl, pl, t, fl) ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl})
+%def R0 $RS($F)
+%def NS ST.nodes(~K, l, d, nl)
+%def PS ST.pays(~V, l, d, pl)
+
+def or_else(-X: Data, m: Maybe<&2, X>, +dv: X) -> X:
+  match m:
+    case None{}:
+      dv
+    case Some{x}:
+      x
+
+def nth_or_nth(-X: Data, +xs: List<&2, X>, +i: Nat, +dv: X) -> {ST.nth_or(X, xs, i, dv) == or_else(X, SC.nth(X, xs, i), dv) : X}:
+  match xs i:
+    case Nil{} _:
+      {==}
+    case Con{x, t} 0n:
+      {==}
+    case Con{x, +t} 1n+p:
+      nth_or_nth(X, t, p, dv)
+
+def pl_cap(~K: Data, ~V: Data, $FP, $DG) -> {Nat.is_le(SC.length($MV, pl), SC.pow2(d)) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_le(z, SC.pow2(d)) == True{} : Bool}, SC.length($ND, nl), SC.length($MV, pl), Equal.sym(Nat, SC.length($MV, pl), SC.length($ND, nl), N.eq_from_is_eq(SC.length($MV, pl), SC.length($ND, nl), hp)), hc)
+
+def nth_hi(-X: Data, +xs: List<&2, X>, +i: Nat, +dv: X, +h: {Nat.is_lt(i, SC.length(X, xs)) == False{} : Bool}) -> {ST.nth_or(X, xs, i, dv) == dv : X}:
+  match xs i:
+    case Nil{} _:
+      {==}
+    case Con{x, t} 0n:
+      Empty.absurd({x == dv : X}, L.true_false(h))
+    case Con{x, +t} 1n+p:
+      nth_hi(X, t, p, dv, h)
+
+# ---- read ----
+
+def rf(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FP, +m: Maybe<&2, $ND>) -> {M.read_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, ($NS, DA.item($ND, m))) == ($R0, or_else($ND, m, M.Free{0n})) : $TMT & $ND}:
+  match m:
+    case None{}:
+      {==}
+    case Some{x}:
+      {==}
+
+%def BG(T, xs) AB.blk_get(~T, l, d, xs, hl, hd
+%def DR(X) D.DynArray<&2, X> & Result<&2, &2, DE.Error, X>
+
+def read_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FP, $DG, +id: Nat) -> {M.read(~K, ~V, ~cmp, $R0, id) == ($R0, ST.nd(K, nl, id)) : $TMT & $ND}:
+  match id:
+    case 0n:
+      {==}
+    case 1n+i:
+      %Equal.sym($DR($ND), D.get_at(~$ND, $NS, i), ($NS, DA.item($ND, SC.nth($ND, nl, i))), AB.blk_get(~$ND, l, d, nl, hl, hd, hc, i)) : {M.read_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, _) == ($R0, ST.nd(K, nl, 1n+i)) : $TMT & $ND}
+      %Equal.sym($ND, ST.nth_or($ND, nl, i, M.Free{0n}), or_else($ND, SC.nth($ND, nl, i), M.Free{0n}), nth_or_nth($ND, nl, i, M.Free{0n})) : {M.read_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, ($NS, DA.item($ND, SC.nth($ND, nl, i)))) == ($R0, _) : $TMT & $ND}
+      rf(~K, ~V, ~cmp, $F, SC.nth($ND, nl, i))
+
+# ---- the payload read ----
+
+def gf2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FP, +m: Maybe<&2, $MV>) -> {M.get_id_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $NS, ($PS, DA.item($MV, m))) == ($R0, or_else($MV, m, None{})) : $TMT & $MV}:
+  match m:
+    case None{}:
+      {==}
+    case Some{x}:
+      {==}
+
+def get_id_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FP, $DG, +id: Nat) -> {M.get_id(~K, ~V, ~cmp, $R0, id) == ($R0, ST.pv(V, pl, id)) : $TMT & $MV}:
+  match id:
+    case 0n:
+      {==}
+    case 1n+i:
+      %Equal.sym($DR($MV), D.get_at(~$MV, $PS, i), ($PS, DA.item($MV, SC.nth($MV, pl, i))), AB.blk_get(~$MV, l, d, pl, hl, hd, pl_cap(~K, ~V, $F, $DGA), i)) : {M.get_id_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $NS, _) == ($R0, ST.pv(V, pl, 1n+i)) : $TMT & $MV}
+      %Equal.sym($MV, ST.nth_or($MV, pl, i, None{}), or_else($MV, SC.nth($MV, pl, i), None{}), nth_or_nth($MV, pl, i, None{})) : {M.get_id_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $NS, ($PS, DA.item($MV, SC.nth($MV, pl, i)))) == ($R0, _) : $TMT & $MV}
+      gf2(~K, ~V, ~cmp, $F, SC.nth($MV, pl, i))
+
+# ---- write ----
+
+# the shadow's write: the node of id replaced when id names a slot
+def wr_nl(-K: Data, +nl: List<&2, $ND>, +id: Nat, +x: $ND) -> List<&2, $ND>:
+  match id:
+    case 0n:
+      nl
+    case 1n+i:
+      ST.pk(List<&2, $ND>, Nat.is_lt(i, SC.length($ND, nl)), SC.update($ND, nl, i, x), nl)
+
+def wr_c2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FP, $DG, +i: Nat, +x: $ND, +b: Bool, +hb: {Nat.is_lt(i, SC.length($ND, nl)) == b : Bool}) -> {M.write(~K, ~V, ~cmp, $R0, 1n+i, x) == $RS(n, root, lo, hi, free, l, d, ST.pk(List<&2, $ND>, b, SC.update($ND, nl, i, x), nl), pl, t, fl) : $TMT}:
+  match b:
+    case True{}:
+      %Equal.sym(D.DynArray<&2, $ND> & Result<&2, &2, DE.Error, Unit>, D.set_at(~$ND, $NS, i, x), (ST.nodes(~K, l, d, SC.update($ND, nl, i, x)), Done{Unit{}}), AB.blk_set(~$ND, l, d, nl, hl, hd, hc, i, x, hb)) : {M.write_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, _) == $RS(n, root, lo, hi, free, l, d, SC.update($ND, nl, i, x), pl, t, fl) : $TMT}
+      {==}
+    case False{}:
+      %Equal.sym(D.DynArray<&2, $ND> & Result<&2, &2, DE.Error, Unit>, D.set_at(~$ND, $NS, i, x), ($NS, Fail{DE.IndexOutOfRange{}}), AB.blk_set_out(~$ND, l, d, nl, hl, hd, hc, i, x, hb)) : {M.write_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, _) == $R0 : $TMT}
+      {==}
+
+def write_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FP, $DG, +id: Nat, +x: $ND) -> {M.write(~K, ~V, ~cmp, $R0, id, x) == $RS(n, root, lo, hi, free, l, d, wr_nl(K, nl, id, x), pl, t, fl) : $TMT}:
+  match id:
+    case 0n:
+      {==}
+    case 1n+i:
+      wr_c2(~K, ~V, ~cmp, $F, $DGA, i, x, Nat.is_lt(i, SC.length($ND, nl)), {==})
+
+# ---- exchange ----
+
+def ex_pl(-V: Data, +pl: List<&2, $MV>, +id: Nat, +v: $MV) -> List<&2, $MV>:
+  match id:
+    case 0n:
+      pl
+    case 1n+i:
+      ST.pk(List<&2, $MV>, Nat.is_lt(i, SC.length($MV, pl)), SC.update($MV, pl, i, v), pl)
+
+def ef(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FP, +pl2: List<&2, $MV>, +m: Maybe<&2, $MV>) -> {M.exchange_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $NS, (ST.pays(~V, l, d, pl2), DA.item($MV, m))) == ($RS(n, root, lo, hi, free, l, d, nl, pl2, t, fl), or_else($MV, m, None{})) : $TMT & $MV}:
+  match m:
+    case None{}:
+      {==}
+    case Some{x}:
+      {==}
+
+def ex_c2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FP, $DG, +i: Nat, +v: $MV, +b: Bool, +hb: {Nat.is_lt(i, SC.length($MV, pl)) == b : Bool}) -> {M.exchange(~K, ~V, ~cmp, $R0, 1n+i, v) == ($RS(n, root, lo, hi, free, l, d, nl, ST.pk(List<&2, $MV>, b, SC.update($MV, pl, i, v), pl), t, fl), ST.pv(V, pl, 1n+i)) : $TMT & $MV}:
+  match b:
+    case True{}:
+      %Equal.sym($DR($MV), D.swap_at(~$MV, $PS, i, v), (ST.pays(~V, l, d, SC.update($MV, pl, i, v)), DA.item($MV, SC.nth($MV, pl, i))), AB.blk_swap(~$MV, l, d, pl, hl, hd, pl_cap(~K, ~V, $F, $DGA), i, v, hb)) : {M.exchange_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $NS, _) == ($RS(n, root, lo, hi, free, l, d, nl, SC.update($MV, pl, i, v), t, fl), ST.pv(V, pl, 1n+i)) : $TMT & $MV}
+      %Equal.sym($MV, ST.nth_or($MV, pl, i, None{}), or_else($MV, SC.nth($MV, pl, i), None{}), nth_or_nth($MV, pl, i, None{})) : {M.exchange_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $NS, (ST.pays(~V, l, d, SC.update($MV, pl, i, v)), DA.item($MV, SC.nth($MV, pl, i)))) == ($RS(n, root, lo, hi, free, l, d, nl, SC.update($MV, pl, i, v), t, fl), _) : $TMT & $MV}
+      ef(~K, ~V, ~cmp, $F, SC.update($MV, pl, i, v), SC.nth($MV, pl, i))
+    case False{}:
+      %Equal.sym($DR($MV), D.swap_at(~$MV, $PS, i, v), ($PS, Fail{DE.IndexOutOfRange{}}), AB.blk_swap_out(~$MV, l, d, pl, hl, hd, pl_cap(~K, ~V, $F, $DGA), i, v, hb)) : {M.exchange_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $NS, _) == ($R0, ST.pv(V, pl, 1n+i)) : $TMT & $MV}
+      %Equal.sym($MV, ST.nth_or($MV, pl, i, None{}), None{}, nth_hi($MV, pl, i, None{}, hb)) : {($R0, None{}) == ($R0, _) : $TMT & $MV}
+      {==}
+
+def exchange_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FP, $DG, +id: Nat, +v: $MV) -> {M.exchange(~K, ~V, ~cmp, $R0, id, v) == ($RS(n, root, lo, hi, free, l, d, nl, ex_pl(V, pl, id, v), t, fl), ST.pv(V, pl, id)) : $TMT & $MV}:
+  match id:
+    case 0n:
+      {==}
+    case 1n+i:
+      ex_c2(~K, ~V, ~cmp, $F, $DGA, i, v, Nat.is_lt(i, SC.length($MV, pl)), {==})

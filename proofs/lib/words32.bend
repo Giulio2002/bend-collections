@@ -2,12 +2,12 @@ import Base
 import ./logic.bend as L
 import ./u32alg.bend as A
 import ./u32.bend as UW
-import ../math/word.bend as WD
-import ../math/u32div.bend as UD
+import ./word.bend as WD
+import ./u32div.bend as UD
 import ./nat.bend as N
-import ../spec/common.bend as SC
+import ./spec_common.bend as SC
 import ../../src/containers/hash_table.bend as H
-import ../math/arith.bend as AT
+import ./arith.bend as AT
 
 # U32 word facts over a symbolic 1 (so 2^32 is never unfolded): bounds of
 # link words, increments, equality symmetry, and the 32-bit tables read and

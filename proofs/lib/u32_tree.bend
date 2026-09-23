@@ -1,8 +1,8 @@
 import Base
 import ./logic.bend as L
 import ./array.bend as AR
-import ../spec/common.bend as SC
-import ../math/u32div.bend as UD
+import ./spec_common.bend as SC
+import ./u32div.bend as UD
 import ./words32.bend as W32
 
 # Perfect trees of U32 (AR.Tree) read and written at a U32 index below their

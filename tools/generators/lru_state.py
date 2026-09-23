@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the LRU invariant (proofs/lru/state.bend, after the marker
+"""Generate the LRU invariant (proofs/containers/lru/state.bend, after the marker
 "# ---- the invariant (generated) ----").
 
 The invariant is a conjunction of Bool components over the shadow's fields;
@@ -9,7 +9,7 @@ g_<c> per component, and good_intro, which builds goodF from the components.
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-STATE = ROOT / "proofs/lru/state.bend"
+STATE = ROOT / "proofs/containers/lru/state.bend"
 MARK = "# ---- the invariant (generated) ----"
 
 P = ("+cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, "

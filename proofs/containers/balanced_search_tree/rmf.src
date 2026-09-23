@@ -1,0 +1,76 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/order.bend as O
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./tree.bend as TR
+import ./path.bend as P
+import ./mirror.bend as MI
+import ./ok.bend as OK
+import ./ends.bend as EN
+import ./slot.bend as SL
+import ./xtr.bend as XT
+import ../../lib/nat_list.bend as NL
+
+# The end of a removal: the unlinked tree's ends refreshed, the shadow with
+# the new tree and free chain satisfies the invariant, and its model is the
+# specification's removal, given the facts about the remaining ids.
+# (source: tools/generators/tm_hand/rmf.src)
+
+%include unl.src
+%def SHT ST.Sh<K, V>
+%def D S.del($AK, k, es0)
+%def SPC (S.TM{l, $D}, fv)
+%def GOAL MI.refresh_ends($AK, MI.unlink($AK, $SH, $U))
+%def T_EQ {MI.unlink($AK, $SH, $U) == $SHU(fr, fn) : $SHT}
+%def T_REP $REPN(ft, 0n, fn)
+%def T_RID {fr == ST.rid(ft) : Nat}
+%def T_IDS {$IDS(ft) == $I0 : $LN}
+%def T_RB {ST.root_black(~K, ft, fn) == True{} : Bool}
+%def T_ENT {ST.ents(~K, ~V, $I0, fn, pl) == $E0 : $ES}
+%def T_OKS {EN.oks(~K, ~V, $I0, fn, pl) == True{} : Bool}
+%def T_FLL {ST.fll(~K, fn, $FXU) == True{} : Bool}
+%def T_LEN {SC.length($ND, fn) == SC.length($ND, nl) : Nat}
+%def RH +k: K, +es0: $ES, +fv: $MV, +hdel: {$E0 == $D : $ES}, +hord: {ST.ordered($AK, $D) == True{} : Bool}, +hnd: $NDL($APP($I0, $FXU)), +hin: $ALLIN($APP($I0, $FXU), SC.length($ND, nl)), +hln: {Nat.is_eq($LEN($APP($I0, $FXU)), SC.length($ND, nl)) == True{} : Bool}, +hsz: {Nat.is_eq(Nat.sub(n, 1n), $LEN($I0)) == True{} : Bool}, +hcl: {Nat.is_le(l, 31n) == True{} : Bool}, +hcd: {Nat.is_le(d, l) == True{} : Bool}, +hcap: {Nat.is_le(SC.length($ND, nl), SC.pow2(d)) == True{} : Bool}, +hcpl: {Nat.is_eq(SC.length($MV, pl), SC.length($ND, nl)) == True{} : Bool}
+%def RA k, es0, fv, hdel, hord, hnd, hin, hln, hsz, hcl, hcd, hcap, hcpl
+%def RESH ST.SH{Nat.sub(n, 1n), ST.rid(ft), ST.fst0($IDS(ft)), ST.last0($IDS(ft)), $U, l, d, fn, pl, ft, $FXU}
+%def IE(xs) L.subst($LN, z => xs, $I0, $IDS(ft), Equal.sym($LN, $IDS(ft), $I0, hids)
+
+def rm_f3($TV, $FT, $UW, $RH, +fr: Nat, +fn: $NL, +ft: ST.Tr, +heq: $T_EQ, +hrp: $T_REP, +hrid: $T_RID, +hids: $T_IDS, +hrb: $T_RB, +h4: $T_ENT, +h5: $T_OKS, +h6: $T_FLL, +h7: $T_LEN) -> OK.MOK($AK, $MV, $SPC, ($GOAL, fv)):
+  %Equal.sym($SHT, MI.unlink($AK, $SH, $U), $SHU(fr, fn), heq) : OK.MOK($AK, $MV, $SPC, (MI.refresh_ends($AK, _), fv))
+  %Equal.sym(Nat, fr, ST.rid(ft), hrid) : OK.MOK($AK, $MV, $SPC, (MI.refresh_ends($AK, $SHU(_, fn)), fv))
+  +esz = N.eq_from_is_eq(Nat.sub(n, 1n), $LEN($I0), hsz)
+  +hle = L.subst(Nat, z => {Nat.is_le(TR.ht(ft), z) == True{} : Bool}, $LEN($IDS(ft)), Nat.sub(n, 1n), Equal.trans(Nat, $LEN($IDS(ft)), $LEN($I0), Nat.sub(n, 1n), L.subst($LN, z => {$LEN($IDS(ft)) == $LEN(z) : Nat}, $IDS(ft), $I0, hids, {==}), Equal.sym(Nat, Nat.sub(n, 1n), $LEN($I0), esz)), TR.ht_le(ft))
+  %Equal.sym($SHT, MI.refresh_ends($AK, $SHU(ST.rid(ft), fn)), ST.SH{Nat.sub(n, 1n), ST.rid(ft), ST.fst0($IDS(ft)), ST.last0($IDS(ft)), $U, l, d, fn, pl, tg, fl}, XT.refresh_m($AK, Nat.sub(n, 1n), lo, hi, $U, l, d, fn, pl, tg, fl, ft, hrp, N.le_lt_succ(TR.ht(ft), Nat.sub(n, 1n), hle))) : OK.MOK($AK, $MV, $SPC, (_, fv))
+  +eids = L.subst($LN, z => {ST.ents(~K, ~V, $IDS(ft), fn, pl) == ST.ents(~K, ~V, z, fn, pl) : $ES}, $IDS(ft), $I0, hids, {==})
+  +eD = Equal.trans($ES, $D, $E0, ST.ents(~K, ~V, $IDS(ft), fn, pl), Equal.sym($ES, $E0, $D, hdel), Equal.trans($ES, $E0, ST.ents(~K, ~V, $I0, fn, pl), ST.ents(~K, ~V, $IDS(ft), fn, pl), Equal.sym($ES, ST.ents(~K, ~V, $I0, fn, pl), $E0, h4), Equal.sym($ES, ST.ents(~K, ~V, $IDS(ft), fn, pl), ST.ents(~K, ~V, $I0, fn, pl), eids)))
+  +esp = L.subst($ES, z => {$SPC == (S.TM{l, z}, fv) : S.Model<K, V> & $MV}, $D, ST.ents(~K, ~V, $IDS(ft), fn, pl), eD, {==})
+  +el = Equal.sym(Nat, SC.length($ND, fn), SC.length($ND, nl), h7)
+  +gcap = L.subst(Nat, z => {Nat.is_le(z, SC.pow2(d)) == True{} : Bool}, SC.length($ND, nl), SC.length($ND, fn), el, hcap)
+  +gcpl = L.subst(Nat, z => {Nat.is_eq(SC.length($MV, pl), z) == True{} : Bool}, SC.length($ND, nl), SC.length($ND, fn), el, hcpl)
+  +gpay = SL.pay_oks(~K, ~V, ft, fn, pl, $IE({EN.oks(~K, ~V, z, fn, pl) == True{} : Bool}), h5))
+  +gnd = $IE($NDL($APP(z, $FXU))), hnd)
+  +gin = L.subst(Nat, w => $ALLIN($APP($IDS(ft), $FXU), w), SC.length($ND, nl), SC.length($ND, fn), el, $IE($ALLIN($APP(z, $FXU), SC.length($ND, nl))), hin))
+  +gln = L.subst(Nat, w => {Nat.is_eq($LEN($APP($IDS(ft), $FXU)), w) == True{} : Bool}, SC.length($ND, nl), SC.length($ND, fn), el, $IE({Nat.is_eq($LEN($APP(z, $FXU)), SC.length($ND, nl)) == True{} : Bool}), hln))
+  +gord = L.subst($ES, z => {ST.ordered($AK, z) == True{} : Bool}, $D, ST.ents(~K, ~V, $IDS(ft), fn, pl), eD, hord)
+  +gsz = $IE({Nat.is_eq(Nat.sub(n, 1n), $LEN(z)) == True{} : Bool}), hsz)
+  +good = ST.good_intro($AK, Nat.sub(n, 1n), ST.rid(ft), ST.fst0($IDS(ft)), ST.last0($IDS(ft)), $U, l, d, fn, pl, ft, $FXU, hcl, hcd, gcap, gcpl, hrp, gpay, h6, gnd, gin, gln, gord, hrb, gsz, N.is_eq_refl(ST.rid(ft)), N.is_eq_refl(ST.fst0($IDS(ft))), N.is_eq_refl(ST.last0($IDS(ft))), N.is_eq_refl($U))
+  ($RESH, (fv, ({==}, (esp, good))))
+
+def rm_f2($TV, $FT, $UW, $RH, +fr: Nat, +fn: $NL, +ft: ST.Tr, +heq: $T_EQ, +hrp: $T_REP, +hrid: $T_RID, +hids: $T_IDS, +hrb: $T_RB, +h4: $T_ENT, +h5: $T_OKS, r8: $T_FLL & $T_LEN) -> OK.MOK($AK, $MV, $SPC, ($GOAL, fv)):
+  match r8:
+    case Tuple{h6, h7}:
+      rm_f3($AV, $F, flf, c, ui, ch, $RA, fr, fn, ft, heq, hrp, hrid, hids, hrb, h4, h5, h6, h7)
+
+def rm_f1($TV, $FT, $UW, $RH, +fr: Nat, +fn: $NL, +ft: ST.Tr, rest: $T_EQ & $TPU(fr, fn, ft)) -> OK.MOK($AK, $MV, $SPC, ($GOAL, fv)):
+  match rest:
+    case Tuple{heq, Tuple{hrp, Tuple{hrid, Tuple{hids, Tuple{hrb, Tuple{h4, Tuple{h5, r8}}}}}}}:
+      rm_f2($AV, $F, flf, c, ui, ch, $RA, fr, fn, ft, heq, hrp, hrid, hids, hrb, h4, h5, r8)
+
+def rm_fin($TV, $FT, $UW, $RH, r: $FPU(MI.unlink($AK, $SH, $U))) -> OK.MOK($AK, $MV, $SPC, ($GOAL, fv)):
+  match r:
+    case Tuple{+fr, Tuple{+fn, Tuple{+ft, rest}}}:
+      rm_f1($AV, $F, flf, c, ui, ch, $RA, fr, fn, ft, rest)

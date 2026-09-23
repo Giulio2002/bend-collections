@@ -1,0 +1,318 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/list.bend as LL
+import ../../lib/spec_common.bend as SC
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./tree.bend as TR
+import ./path.bend as P
+import ../../lib/nat_list.bend as NL
+
+# The neighbour walk: from a node the path leads to, the next id in key
+# order (forward) is the first of its right subtree's and the ids after it,
+# the previous the last of the ids before it and its left subtree's. The
+# walk descends to the extreme of a child, or ascends while it came from the
+# other side. (source: tools/generators/tm_hand/nbr.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def APP(a, b) SC.append(Nat, a, b)
+%def IDS(t) ST.ids(t)
+%def TN(i, a, b) ST.TN{i, a, b}
+%def CT List<&2, P.Fr>
+%def REP(t, p) {ST.rep(~K, t, p, nl) == True{} : Bool}
+%def COK(c, x) {P.ctxok(~K, c, x, nl) == True{} : Bool}
+
+# ---- ends of lists ----
+
+def last0_snoc(+z: $LN, +p: Nat) -> {ST.last0($APP(z, Con{p, Nil{}})) == p : Nat}:
+  match z:
+    case Nil{}:
+      {==}
+    case Con{+x, +t}:
+      match t:
+        case Nil{}:
+          {==}
+        case Con{+y, +u}:
+          last0_snoc(Con{y, u}, p)
+
+def last0_end(+x: $LN, +y: $LN, +p: Nat) -> {ST.last0($APP(x, $APP(y, Con{p, Nil{}}))) == p : Nat}:
+  %Equal.sym($LN, $APP(x, $APP(y, Con{p, Nil{}})), $APP($APP(x, y), Con{p, Nil{}}), Equal.sym($LN, $APP($APP(x, y), Con{p, Nil{}}), $APP(x, $APP(y, Con{p, Nil{}})), LL.append_assoc(Nat, x, y, Con{p, Nil{}}))) : {ST.last0(_) == p : Nat}
+  last0_snoc($APP(x, y), p)
+
+def last0_tail(+x: $LN, +y: Nat, +w: $LN) -> {ST.last0($APP(x, Con{y, w})) == ST.last0(Con{y, w}) : Nat}:
+  match x:
+    case Nil{}:
+      {==}
+    case Con{+h, +t}:
+      match t:
+        case Nil{}:
+          {==}
+        case Con{+h2, +u}:
+          last0_tail(Con{h2, u}, y, w)
+
+def last0_drop(+y: Nat, +a: $LN, +z: Nat, +b: $LN) -> {ST.last0(Con{y, $APP(a, Con{z, b})}) == ST.last0($APP(a, Con{z, b})) : Nat}:
+  match a:
+    case Nil{}:
+      {==}
+    case Con{+h, +t}:
+      {==}
+
+# the last of x, y, and a node's ids is the node's last
+def last0_sub(+x: $LN, +y: Nat, +j: Nat, +a: ST.Tr, +b: ST.Tr) -> {ST.last0($APP(x, Con{y, $IDS($TN(j, a, b))})) == ST.last0($IDS($TN(j, a, b))) : Nat}:
+  %Equal.sym(Nat, ST.last0($APP(x, Con{y, $IDS($TN(j, a, b))})), ST.last0(Con{y, $IDS($TN(j, a, b))}), last0_tail(x, y, $IDS($TN(j, a, b)))) : {_ == ST.last0($IDS($TN(j, a, b))) : Nat}
+  last0_drop(y, $IDS(a), j, $IDS(b))
+
+def fst0_app(+a: $LN, +z: Nat, +b: $LN, +x: $LN) -> {ST.fst0($APP($APP(a, Con{z, b}), x)) == ST.fst0($APP(a, Con{z, b})) : Nat}:
+  match a:
+    case Nil{}:
+      {==}
+    case Con{+h, +t}:
+      {==}
+
+# ---- a node's links ----
+
+def match_pk(+fw: Bool, +b: Nat, +a: Nat) -> {M.pick(Nat, fw, b, a) == ST.pk(Nat, fw, b, a) : Nat}:
+  match fw:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+
+def child_eq(~K: Data, +x: $ND, +a: Nat, +b: Nat, +p: Nat, +fw: Bool, +hx: {ST.is_node(K, x, a, b, p) == True{} : Bool}) -> {M.child(~K, x, fw) == ST.pk(Nat, fw, b, a) : Nat}:
+  match x:
+    case M.Free{f}:
+      Empty.absurd({M.child(~K, M.Free{f}, fw) == ST.pk(Nat, fw, b, a) : Nat}, L.false_true(hx))
+    case M.N{c, +x1, +x2, +x3, key}:
+      +ea = N.eq_from_is_eq(x1, a, L.and_left(Nat.is_eq(x1, a), Bool.and(Nat.is_eq(x2, b), Nat.is_eq(x3, p)), hx))
+      +eb = N.eq_from_is_eq(x2, b, L.and_left(Nat.is_eq(x2, b), Nat.is_eq(x3, p), L.and_right(Nat.is_eq(x1, a), Bool.and(Nat.is_eq(x2, b), Nat.is_eq(x3, p)), hx)))
+      %Equal.sym(Nat, x1, a, ea) : {M.pick(Nat, fw, x2, _) == ST.pk(Nat, fw, b, a) : Nat}
+      %Equal.sym(Nat, x2, b, eb) : {M.pick(Nat, fw, _, a) == ST.pk(Nat, fw, b, a) : Nat}
+      match_pk(fw, b, a)
+
+
+def parent_eq(~K: Data, +x: $ND, +a: Nat, +b: Nat, +p: Nat, +hx: {ST.is_node(K, x, a, b, p) == True{} : Bool}) -> {M.node_parent(~K, x) == p : Nat}:
+  match x:
+    case M.Free{f}:
+      Empty.absurd({M.node_parent(~K, M.Free{f}) == p : Nat}, L.false_true(hx))
+    case M.N{c, +x1, +x2, +x3, key}:
+      N.eq_from_is_eq(x3, p, L.and_right(Nat.is_eq(x2, b), Nat.is_eq(x3, p), L.and_right(Nat.is_eq(x1, a), Bool.and(Nat.is_eq(x2, b), Nat.is_eq(x3, p)), hx)))
+
+# ---- the extreme of a subtree ----
+
+%def EXT(g, fw, j) MI.ext_loop(~K, g, nl, fw, j, M.child(~K, ST.nd(K, nl, j), fw))
+%def EXR(fw, t) ST.pk(Nat, fw, ST.last0($IDS(t)), ST.fst0($IDS(t)))
+%def HT(t, g) {Nat.is_lt(TR.ht(t), g) == True{} : Bool}
+%def RN(j, a, b, p) TR.rep_node(~K, j, a, b, p, nl, hr)
+
+# forward: the last id of the subtree, backward: the first
+def ext_r(~K: Data, +nl: $NL, +g: Nat, +j: Nat, +ua: ST.Tr, +ub: ST.Tr, +p: Nat, +hr: $REP($TN(j, ua, ub), p), +hf: $HT($TN(j, ua, ub), g)) -> {$EXT(g, True{}, j) == ST.last0($IDS($TN(j, ua, ub))) : Nat}:
+  match g ub:
+    case 0n +ub:
+      Empty.absurd({$EXT(0n, True{}, j) == $EXR(True{}, $TN(j, ua, ub)) : Nat}, L.true_not_false(Nat.is_lt(TR.ht($TN(j, ua, ub)), 0n), hf, N.not_lt_zero(TR.ht($TN(j, ua, ub)))))
+    case 1n+g2 ST.TE{}:
+      %Equal.sym(Nat, M.child(~K, ST.nd(K, nl, j), True{}), ST.pk(Nat, True{}, 0n, ST.rid(ua)), child_eq(~K, ST.nd(K, nl, j), ST.rid(ua), 0n, p, True{}, $RN(j, ua, ST.TE{}, p))) : {MI.ext_loop(~K, 1n+g2, nl, True{}, j, _) == $EXR(True{}, $TN(j, ua, ST.TE{})) : Nat}
+      %Equal.sym(Nat, ST.last0($APP($IDS(ua), Con{j, Nil{}})), j, last0_snoc($IDS(ua), j)) : {j == _ : Nat}
+      {==}
+    case 1n+g2 ST.TN{+j2, +a, +b}:
+      match j2:
+        case 0n:
+          Empty.absurd({$EXT(1n+g2, True{}, j) == $EXR(True{}, $TN(j, ua, $TN(0n, a, b))) : Nat}, L.false_true(L.and_left(Nat.is_lt(0n, 0n), Bool.and(ST.is_node(K, ST.nd(K, nl, 0n), ST.rid(a), ST.rid(b), j), Bool.and(ST.rep(~K, a, 0n, nl), ST.rep(~K, b, 0n, nl))), TR.rep_r(~K, j, ua, $TN(0n, a, b), p, nl, hr))))
+        case 1n+j3:
+          +ih = ext_r(~K, nl, g2, 1n+j3, a, b, j, TR.rep_r(~K, j, ua, $TN(1n+j3, a, b), p, nl, hr), TR.ht_r(j, ua, $TN(1n+j3, a, b), g2, hf))
+          %Equal.sym(Nat, M.child(~K, ST.nd(K, nl, j), True{}), ST.pk(Nat, True{}, 1n+j3, ST.rid(ua)), child_eq(~K, ST.nd(K, nl, j), ST.rid(ua), 1n+j3, p, True{}, $RN(j, ua, $TN(1n+j3, a, b), p))) : {MI.ext_loop(~K, 1n+g2, nl, True{}, j, _) == $EXR(True{}, $TN(j, ua, $TN(1n+j3, a, b))) : Nat}
+          %Equal.sym(Nat, ST.last0($APP($IDS(ua), Con{j, $IDS($TN(1n+j3, a, b))})), ST.last0($IDS($TN(1n+j3, a, b))), last0_sub($IDS(ua), j, 1n+j3, a, b)) : {$EXT(g2, True{}, 1n+j3) == _ : Nat}
+          ih
+
+def ext_l(~K: Data, +nl: $NL, +g: Nat, +j: Nat, +ua: ST.Tr, +ub: ST.Tr, +p: Nat, +hr: $REP($TN(j, ua, ub), p), +hf: $HT($TN(j, ua, ub), g)) -> {$EXT(g, False{}, j) == ST.fst0($IDS($TN(j, ua, ub))) : Nat}:
+  match g ua:
+    case 0n +ua:
+      Empty.absurd({$EXT(0n, False{}, j) == $EXR(False{}, $TN(j, ua, ub)) : Nat}, L.true_not_false(Nat.is_lt(TR.ht($TN(j, ua, ub)), 0n), hf, N.not_lt_zero(TR.ht($TN(j, ua, ub)))))
+    case 1n+g2 ST.TE{}:
+      %Equal.sym(Nat, M.child(~K, ST.nd(K, nl, j), False{}), ST.pk(Nat, False{}, ST.rid(ub), 0n), child_eq(~K, ST.nd(K, nl, j), 0n, ST.rid(ub), p, False{}, $RN(j, ST.TE{}, ub, p))) : {MI.ext_loop(~K, 1n+g2, nl, False{}, j, _) == $EXR(False{}, $TN(j, ST.TE{}, ub)) : Nat}
+      {==}
+    case 1n+g2 ST.TN{+j2, +a, +b}:
+      match j2:
+        case 0n:
+          Empty.absurd({$EXT(1n+g2, False{}, j) == $EXR(False{}, $TN(j, $TN(0n, a, b), ub)) : Nat}, L.false_true(L.and_left(Nat.is_lt(0n, 0n), Bool.and(ST.is_node(K, ST.nd(K, nl, 0n), ST.rid(a), ST.rid(b), j), Bool.and(ST.rep(~K, a, 0n, nl), ST.rep(~K, b, 0n, nl))), TR.rep_l(~K, j, $TN(0n, a, b), ub, p, nl, hr))))
+        case 1n+j3:
+          +ih = ext_l(~K, nl, g2, 1n+j3, a, b, j, TR.rep_l(~K, j, $TN(1n+j3, a, b), ub, p, nl, hr), TR.ht_l(j, $TN(1n+j3, a, b), ub, g2, hf))
+          %Equal.sym(Nat, M.child(~K, ST.nd(K, nl, j), False{}), ST.pk(Nat, False{}, ST.rid(ub), 1n+j3), child_eq(~K, ST.nd(K, nl, j), 1n+j3, ST.rid(ub), p, False{}, $RN(j, $TN(1n+j3, a, b), ub, p))) : {MI.ext_loop(~K, 1n+g2, nl, False{}, j, _) == $EXR(False{}, $TN(j, $TN(1n+j3, a, b), ub)) : Nat}
+          %Equal.sym(Nat, ST.fst0($APP($IDS($TN(1n+j3, a, b)), Con{j, $IDS(ub)})), ST.fst0($IDS($TN(1n+j3, a, b))), fst0_app($IDS(a), 1n+j3, $IDS(b), Con{j, $IDS(ub)})) : {$EXT(g2, False{}, 1n+j3) == _ : Nat}
+          ih
+
+
+# ---- the ascent ----
+
+%def PK(fw, a, b) ST.pk(Nat, fw, a, b)
+%def ASC(g, fw, x, q) MI.asc_loop(K, g, nl, fw, M.Ascend{x, q, False{}})
+%def ASR(fw, c) $PK(fw, ST.fst0(P.after(c)), ST.last0(P.before(c)))
+%def FRM(p, lft, s) P.FR{p, lft, s}
+
+def pk_same(+fw: Bool, +a: Nat) -> {$PK(fw, a, a) == a : Nat}:
+  match fw:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+def done_loop(-K: Data, +nl: $NL, +g: Nat, +fw: Bool, +p: Nat, +hg: {Nat.is_lt(0n, g) == True{} : Bool}) -> {MI.asc_loop(K, g, nl, fw, M.Ascend{0n, p, True{}}) == p : Nat}:
+  match g:
+    case 0n:
+      Empty.absurd({MI.asc_loop(K, 0n, nl, fw, M.Ascend{0n, p, True{}}) == p : Nat}, L.false_true(hg))
+    case 1n+h:
+      {==}
+
+def not_eq_f(+x: Nat, +y: Nat, +h: {Bool.not(Nat.is_eq(x, y)) == True{} : Bool}) -> {Nat.is_eq(x, y) == False{} : Bool}:
+  NL.not_t_f(Nat.is_eq(x, y), h)
+
+%def G0 N.le_lt_trans(0n, SC.length(P.Fr, t), g, N.zero_le(SC.length(P.Fr, t)), hg)
+%def CH(fw, a, b) M.ascend_choice(p, p, q, Nat.is_eq(x, M.pick(Nat, fw, a, b)))
+
+def asc_node(-K: Data, +nl: $NL, +t: $CT, +p: Nat, +lft: Bool, +s: ST.Tr, +x: Nat, +g: Nat, +fw: Bool, +a: Nat, +b: Nat, +q: Nat, +ea: {a == $PK(lft, x, ST.rid(s)) : Nat}, +eb: {b == $PK(lft, ST.rid(s), x) : Nat}, +eq: {q == P.top(t) : Nat}, +hne: {Bool.not(Nat.is_eq(x, ST.rid(s))) == True{} : Bool}, +hg: {Nat.is_lt(SC.length(P.Fr, t), g) == True{} : Bool}, +ih: {$ASC(g, fw, p, P.top(t)) == $ASR(fw, t) : Nat}) -> {MI.asc_loop(K, g, nl, fw, $CH(fw, a, b)) == $ASR(fw, Con{$FRM(p, lft, s), t}) : Nat}:
+  match lft fw:
+    case True{} True{}:
+      %Equal.sym(Nat, a, x, ea) : {MI.asc_loop(K, g, nl, True{}, M.ascend_choice(p, p, q, Nat.is_eq(x, _))) == p : Nat}
+      %Equal.sym(Bool, Nat.is_eq(x, x), True{}, N.is_eq_refl(x)) : {MI.asc_loop(K, g, nl, True{}, M.ascend_choice(p, p, q, _)) == p : Nat}
+      done_loop(K, nl, g, True{}, p, $G0)
+    case False{} False{}:
+      %Equal.sym(Nat, b, x, eb) : {MI.asc_loop(K, g, nl, False{}, M.ascend_choice(p, p, q, Nat.is_eq(x, _))) == $ASR(False{}, Con{$FRM(p, False{}, s), t}) : Nat}
+      %Equal.sym(Bool, Nat.is_eq(x, x), True{}, N.is_eq_refl(x)) : {MI.asc_loop(K, g, nl, False{}, M.ascend_choice(p, p, q, _)) == $ASR(False{}, Con{$FRM(p, False{}, s), t}) : Nat}
+      %Equal.sym(Nat, ST.last0($APP(P.before(t), $APP($IDS(s), Con{p, Nil{}}))), p, last0_end(P.before(t), $IDS(s), p)) : {MI.asc_loop(K, g, nl, False{}, M.Ascend{0n, p, True{}}) == _ : Nat}
+      done_loop(K, nl, g, False{}, p, $G0)
+    case True{} False{}:
+      %Equal.sym(Nat, b, ST.rid(s), eb) : {MI.asc_loop(K, g, nl, False{}, M.ascend_choice(p, p, q, Nat.is_eq(x, _))) == $ASR(False{}, t) : Nat}
+      %Equal.sym(Bool, Nat.is_eq(x, ST.rid(s)), False{}, not_eq_f(x, ST.rid(s), hne)) : {MI.asc_loop(K, g, nl, False{}, M.ascend_choice(p, p, q, _)) == $ASR(False{}, t) : Nat}
+      %Equal.sym(Nat, q, P.top(t), eq) : {MI.asc_loop(K, g, nl, False{}, M.Ascend{p, _, False{}}) == $ASR(False{}, t) : Nat}
+      ih
+    case False{} True{}:
+      %Equal.sym(Nat, a, ST.rid(s), ea) : {MI.asc_loop(K, g, nl, True{}, M.ascend_choice(p, p, q, Nat.is_eq(x, _))) == $ASR(True{}, t) : Nat}
+      %Equal.sym(Bool, Nat.is_eq(x, ST.rid(s)), False{}, not_eq_f(x, ST.rid(s), hne)) : {MI.asc_loop(K, g, nl, True{}, M.ascend_choice(p, p, q, _)) == $ASR(True{}, t) : Nat}
+      %Equal.sym(Nat, q, P.top(t), eq) : {MI.asc_loop(K, g, nl, True{}, M.Ascend{p, _, False{}}) == $ASR(True{}, t) : Nat}
+      ih
+
+def asc_frame(-K: Data, +nl: $NL, +t: $CT, +p: Nat, +lft: Bool, +s: ST.Tr, +x: Nat, +g: Nat, +fw: Bool, +y: $ND, +hy: {ST.is_node(K, y, $PK(lft, x, ST.rid(s)), $PK(lft, ST.rid(s), x), P.top(t)) == True{} : Bool}, +hne: {Bool.not(Nat.is_eq(x, ST.rid(s))) == True{} : Bool}, +hg: {Nat.is_lt(SC.length(P.Fr, t), g) == True{} : Bool}, +ih: {$ASC(g, fw, p, P.top(t)) == $ASR(fw, t) : Nat}) -> {MI.asc_loop(K, g, nl, fw, MI.asc_step(K, x, p, fw, y)) == $ASR(fw, Con{$FRM(p, lft, s), t}) : Nat}:
+  match y:
+    case M.Free{f}:
+      Empty.absurd({MI.asc_loop(K, g, nl, fw, MI.asc_step(K, x, p, fw, M.Free{f})) == $ASR(fw, Con{$FRM(p, lft, s), t}) : Nat}, L.false_true(hy))
+    case M.N{c, +a, +b, +q, key}:
+      +h1 = L.and_left(Nat.is_eq(a, $PK(lft, x, ST.rid(s))), Bool.and(Nat.is_eq(b, $PK(lft, ST.rid(s), x)), Nat.is_eq(q, P.top(t))), hy)
+      +h23 = L.and_right(Nat.is_eq(a, $PK(lft, x, ST.rid(s))), Bool.and(Nat.is_eq(b, $PK(lft, ST.rid(s), x)), Nat.is_eq(q, P.top(t))), hy)
+      +h2 = L.and_left(Nat.is_eq(b, $PK(lft, ST.rid(s), x)), Nat.is_eq(q, P.top(t)), h23)
+      +h3 = L.and_right(Nat.is_eq(b, $PK(lft, ST.rid(s), x)), Nat.is_eq(q, P.top(t)), h23)
+      asc_node(K, nl, t, p, lft, s, x, g, fw, a, b, q, N.eq_from_is_eq(a, $PK(lft, x, ST.rid(s)), h1), N.eq_from_is_eq(b, $PK(lft, ST.rid(s), x), h2), N.eq_from_is_eq(q, P.top(t), h3), hne, hg, ih)
+
+# ascending from x, the path's parent: forward the first id after, backward
+# the last id before
+def asc(~K: Data, +nl: $NL, +c: $CT, +x: Nat, +g: Nat, +fw: Bool, +hok: $COK(c, x), +hd: {P.dist(c, x) == True{} : Bool}, +hf: {Nat.is_lt(SC.length(P.Fr, c), g) == True{} : Bool}) -> {$ASC(g, fw, x, P.top(c)) == $ASR(fw, c) : Nat}:
+  match c g:
+    case Nil{} 0n:
+      Empty.absurd({$ASC(0n, fw, x, 0n) == $ASR(fw, Nil{}) : Nat}, L.false_true(hf))
+    case Nil{} 1n+g2:
+      match g2:
+        case 0n:
+          %Equal.sym(Nat, $PK(fw, 0n, 0n), 0n, pk_same(fw, 0n)) : {0n == _ : Nat}
+          {==}
+        case 1n+g3:
+          %Equal.sym(Nat, $PK(fw, 0n, 0n), 0n, pk_same(fw, 0n)) : {0n == _ : Nat}
+          {==}
+    case Con{P.FR{+p, +lft, +s}, +t} 0n:
+      Empty.absurd({$ASC(0n, fw, x, p) == $ASR(fw, Con{$FRM(p, lft, s), t}) : Nat}, L.false_true(hf))
+    case Con{P.FR{+p, +lft, +s}, +t} 1n+g2:
+      +hk = L.and_left(P.cok1(~K, $FRM(p, lft, s), x, P.top(t), nl), P.ctxok(~K, t, p, nl), hok)
+      +hk2 = L.and_right(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), $PK(lft, x, ST.rid(s)), $PK(lft, ST.rid(s), x), P.top(t)), ST.rep(~K, s, p, nl)), hk)
+      +hy = L.and_left(ST.is_node(K, ST.nd(K, nl, p), $PK(lft, x, ST.rid(s)), $PK(lft, ST.rid(s), x), P.top(t)), ST.rep(~K, s, p, nl), hk2)
+      +hne = L.and_left(Bool.not(Nat.is_eq(x, ST.rid(s))), P.dist(t, p), hd)
+      +ih = asc(~K, nl, t, p, g2, fw, L.and_right(P.cok1(~K, $FRM(p, lft, s), x, P.top(t), nl), P.ctxok(~K, t, p, nl), hok), L.and_right(Bool.not(Nat.is_eq(x, ST.rid(s))), P.dist(t, p), hd), hf)
+      asc_frame(K, nl, t, p, lft, s, x, g2, fw, ST.nd(K, nl, p), hy, hne, hf, ih)
+
+# ---- the neighbour ----
+
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def AK ~K, ~V, ~cmp
+%def FT +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l0: Nat, +d0: Nat, +nl: $NL, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: List<&2, Nat>
+%def F n, root, lo, hi, free, l0, d0, nl, pl, tg, fl
+%def SH ST.SH{$F}
+%def SHT ST.Sh<K, V>
+%def WH(c, t) $APP(P.before(c), $APP($IDS(t), P.after(c)))
+%def SUB $TN(i, l, r)
+%def NBH +c: $CT, +i: Nat, +l: ST.Tr, +r: ST.Tr, +hr: $REP($SUB, P.top(c)), +hok: $COK(c, i), +hnd: {NL.nodupn($WH(c, $SUB)) == True{} : Bool}, +hid: {$IDS(tg) == $WH(c, $SUB) : $LN}, +hn: {n == SC.length(Nat, $IDS(tg)) : Nat}
+%def NBA c, i, l, r, hr, hok, hnd, hid, hn
+%def NBS(fw, cc) MI.nbs(~K, nl, n, i, P.top(c), fw, cc)
+%def LNW SC.length(Nat, $WH(c, $SUB))
+
+def sub_len(+b: $LN, +x: $LN, +a: $LN) -> {Nat.is_le(SC.length(Nat, x), SC.length(Nat, $APP(b, $APP(x, a)))) == True{} : Bool}:
+  %Equal.sym(Nat, SC.length(Nat, $APP(b, $APP(x, a))), Nat.add(SC.length(Nat, b), SC.length(Nat, $APP(x, a))), LL.length_append(Nat, b, $APP(x, a))) : {Nat.is_le(SC.length(Nat, x), _) == True{} : Bool}
+  %Equal.sym(Nat, SC.length(Nat, $APP(x, a)), Nat.add(SC.length(Nat, x), SC.length(Nat, a)), LL.length_append(Nat, x, a)) : {Nat.is_le(SC.length(Nat, x), Nat.add(SC.length(Nat, b), _)) == True{} : Bool}
+  N.le_trans(SC.length(Nat, x), Nat.add(SC.length(Nat, x), SC.length(Nat, a)), Nat.add(SC.length(Nat, b), Nat.add(SC.length(Nat, x), SC.length(Nat, a))), N.le_add_right(SC.length(Nat, x), SC.length(Nat, a)), TR.le_add_l(SC.length(Nat, b), Nat.add(SC.length(Nat, x), SC.length(Nat, a))))
+
+# n is the length of the split ids
+def n_wh($TK, $FT, $NBH) -> {n == $LNW : Nat}:
+  %Equal.sym($LN, $WH(c, $SUB), $IDS(tg), Equal.sym($LN, $IDS(tg), $WH(c, $SUB), hid)) : {n == SC.length(Nat, _) : Nat}
+  hn
+
+def asc_fuel($TK, $FT, $NBH) -> {Nat.is_lt(SC.length(P.Fr, c), 1n+n) == True{} : Bool}:
+  +le = N.le_trans(SC.length(P.Fr, c), SC.length(Nat, $APP(P.before(c), P.after(c))), $LNW, P.depth(c), P.ins_le(P.before(c), $IDS($SUB), P.after(c)))
+  N.le_lt_succ(SC.length(P.Fr, c), n, L.subst(Nat, z => {Nat.is_le(SC.length(P.Fr, c), z) == True{} : Bool}, $LNW, n, Equal.sym(Nat, n, $LNW, n_wh($AK, $F, $NBA)), le))
+
+def ht_fuel($TK, $FT, $NBH) -> {Nat.is_lt(TR.ht($SUB), 1n+n) == True{} : Bool}:
+  +le = N.le_trans(TR.ht($SUB), SC.length(Nat, $IDS($SUB)), $LNW, TR.ht_le($SUB), sub_len(P.before(c), $IDS($SUB), P.after(c)))
+  N.le_lt_succ(TR.ht($SUB), n, L.subst(Nat, z => {Nat.is_le(TR.ht($SUB), z) == True{} : Bool}, $LNW, n, Equal.sym(Nat, n, $LNW, n_wh($AK, $F, $NBA)), le))
+
+def lt_step(+a: Nat, +n: Nat, +h: {Nat.is_lt(a, n) == True{} : Bool}) -> {Nat.is_lt(a, 1n+n) == True{} : Bool}:
+  N.lt_trans(a, n, 1n+n, h, N.lt_succ(n))
+
+%def HI L.and_left(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), P.top(c)), Bool.and(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl))), hr)
+%def RNI TR.rep_node(~K, i, l, r, P.top(c), nl, hr)
+
+def last0_app2(+x: $LN, +a: $LN, +z: Nat, +b: $LN) -> {ST.last0($APP(x, $APP(a, Con{z, b}))) == ST.last0($APP(a, Con{z, b})) : Nat}:
+  %Equal.sym($LN, $APP(x, $APP(a, Con{z, b})), $APP($APP(x, a), Con{z, b}), Equal.sym($LN, $APP($APP(x, a), Con{z, b}), $APP(x, $APP(a, Con{z, b})), LL.append_assoc(Nat, x, a, Con{z, b}))) : {ST.last0(_) == ST.last0($APP(a, Con{z, b})) : Nat}
+  %Equal.sym(Nat, ST.last0($APP($APP(x, a), Con{z, b})), ST.last0(Con{z, b}), last0_tail($APP(x, a), z, b)) : {_ == ST.last0($APP(a, Con{z, b})) : Nat}
+  Equal.sym(Nat, ST.last0($APP(a, Con{z, b})), ST.last0(Con{z, b}), last0_tail(a, z, b))
+
+# forward: the first id of the right subtree, or the first after the node
+def nbs_f($TK, $FT, $NBH) -> {$NBS(True{}, $PK(True{}, ST.rid(r), ST.rid(l))) == ST.fst0($APP($IDS(r), P.after(c))) : Nat}:
+  match r:
+    case ST.TE{}:
+      asc(~K, nl, c, i, 1n+n, True{}, hok, P.nd_dist(~K, nl, c, i, l, ST.TE{}, $HI, hok, hnd), asc_fuel($AK, $F, $NBA))
+    case ST.TN{+j, +a, +b}:
+      match j:
+        case 0n:
+          Empty.absurd({$NBS(True{}, 0n) == ST.fst0($APP($IDS($TN(0n, a, b)), P.after(c))) : Nat}, L.false_true(L.and_left(Nat.is_lt(0n, 0n), Bool.and(ST.is_node(K, ST.nd(K, nl, 0n), ST.rid(a), ST.rid(b), i), Bool.and(ST.rep(~K, a, 0n, nl), ST.rep(~K, b, 0n, nl))), TR.rep_r(~K, i, l, $TN(0n, a, b), P.top(c), nl, hr))))
+        case 1n+j3:
+          %Equal.sym(Nat, ST.fst0($APP($APP($IDS(a), Con{1n+j3, $IDS(b)}), P.after(c))), ST.fst0($APP($IDS(a), Con{1n+j3, $IDS(b)})), fst0_app($IDS(a), 1n+j3, $IDS(b), P.after(c))) : {$NBS(True{}, 1n+j3) == _ : Nat}
+          ext_l(~K, nl, 1n+n, 1n+j3, a, b, i, TR.rep_r(~K, i, l, $TN(1n+j3, a, b), P.top(c), nl, hr), lt_step(TR.ht($TN(1n+j3, a, b)), n, TR.ht_r(i, l, $TN(1n+j3, a, b), n, ht_fuel($AK, $F, c, i, l, $TN(1n+j3, a, b), hr, hok, hnd, hid, hn))))
+
+# backward: the last id of the left subtree, or the last before the node
+def nbs_b($TK, $FT, $NBH) -> {$NBS(False{}, $PK(False{}, ST.rid(r), ST.rid(l))) == ST.last0($APP(P.before(c), $IDS(l))) : Nat}:
+  match l:
+    case ST.TE{}:
+      %Equal.sym($LN, $APP(P.before(c), Nil{}), P.before(c), LL.append_nil(Nat, P.before(c))) : {$NBS(False{}, 0n) == ST.last0(_) : Nat}
+      asc(~K, nl, c, i, 1n+n, False{}, hok, P.nd_dist(~K, nl, c, i, ST.TE{}, r, $HI, hok, hnd), asc_fuel($AK, $F, $NBA))
+    case ST.TN{+j, +a, +b}:
+      match j:
+        case 0n:
+          Empty.absurd({$NBS(False{}, 0n) == ST.last0($APP(P.before(c), $IDS($TN(0n, a, b)))) : Nat}, L.false_true(L.and_left(Nat.is_lt(0n, 0n), Bool.and(ST.is_node(K, ST.nd(K, nl, 0n), ST.rid(a), ST.rid(b), i), Bool.and(ST.rep(~K, a, 0n, nl), ST.rep(~K, b, 0n, nl))), TR.rep_l(~K, i, $TN(0n, a, b), r, P.top(c), nl, hr))))
+        case 1n+j3:
+          %Equal.sym(Nat, ST.last0($APP(P.before(c), $APP($IDS(a), Con{1n+j3, $IDS(b)}))), ST.last0($APP($IDS(a), Con{1n+j3, $IDS(b)})), last0_app2(P.before(c), $IDS(a), 1n+j3, $IDS(b))) : {$NBS(False{}, 1n+j3) == _ : Nat}
+          ext_r(~K, nl, 1n+n, 1n+j3, a, b, i, TR.rep_l(~K, i, $TN(1n+j3, a, b), r, P.top(c), nl, hr), lt_step(TR.ht($TN(1n+j3, a, b)), n, TR.ht_l(i, $TN(1n+j3, a, b), r, n, ht_fuel($AK, $F, c, i, $TN(1n+j3, a, b), r, hr, hok, hnd, hid, hn))))
+
+%def NBR(fw) $PK(fw, ST.fst0($APP($IDS(r), P.after(c))), ST.last0($APP(P.before(c), $IDS(l))))
+
+def nbs_fw($TK, $FT, $NBH, +fw: Bool) -> {$NBS(fw, $PK(fw, ST.rid(r), ST.rid(l))) == $NBR(fw) : Nat}:
+  match fw:
+    case True{}:
+      nbs_f($AK, $F, $NBA)
+    case False{}:
+      nbs_b($AK, $F, $NBA)
+
+# the neighbour of a node the path leads to
+def neighbor_m($TK, $FT, $NBH, +fw: Bool) -> {MI.neighbor($AK, $SH, i, fw) == ($SH, $NBR(fw)) : $SHT & Nat}:
+  %Equal.sym(Nat, M.node_parent(~K, ST.nd(K, nl, i)), P.top(c), parent_eq(~K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), P.top(c), $RNI)) : {($SH, MI.nbs(~K, nl, n, i, _, fw, M.child(~K, ST.nd(K, nl, i), fw))) == ($SH, $NBR(fw)) : $SHT & Nat}
+  %Equal.sym(Nat, M.child(~K, ST.nd(K, nl, i), fw), $PK(fw, ST.rid(r), ST.rid(l)), child_eq(~K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), P.top(c), fw, $RNI)) : {($SH, $NBS(fw, _)) == ($SH, $NBR(fw)) : $SHT & Nat}
+  %Equal.sym(Nat, $NBS(fw, $PK(fw, ST.rid(r), ST.rid(l))), $NBR(fw), nbs_fw($AK, $F, $NBA, fw)) : {($SH, _) == ($SH, $NBR(fw)) : $SHT & Nat}
+  {==}

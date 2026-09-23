@@ -1,0 +1,249 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/list.bend as LL
+import ../../lib/order.bend as O
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./ok.bend as OK
+import ./reads.bend as RD
+import ./find.bend as FI
+import ./ends.bend as EN
+import ./path.bend as P
+import ./plug.bend as PG
+import ./ord.bend as OR
+import ./prim.bend as PR
+import ./tree.bend as TR
+import ./spath.bend as SP
+import ../../lib/nat.bend as N
+import ./alls.bend as AL
+import ./dj.bend as DJ
+import ./nbr.bend as NB
+import ./xtr.bend as XT
+import ./frame.bend as FRM
+import ./succ.bend as SU
+import ./unl.bend as UN
+import ./rms.bend as RS
+import ./rmd.bend as RMD
+import ./putm.bend as PM
+import ./dord.bend as DO
+import ../../lib/nat_list.bend as NL
+
+# remove over a good shadow: the search from the root ends at a path and a
+# subtree; an empty subtree means the key is absent, a node is removed by its
+# shape (no left child, no right child, or two children and its successor).
+# The mirror refines the specification's remove. (source: tools/generators/tm_hand/rmv.src)
+
+%include putm.src
+%def SHT ST.Sh<K, V>
+%def AV ~K, ~V, ~cmp, ~o
+%def U 1n+ui
+%def TEE ST.TE{}
+%def TN(i, a, b) ST.TN{i, a, b}
+%def LEN(xs) SC.length(Nat, xs)
+%def W2(cc, t) $APP(P.before(cc), $APP($IDS(t), P.after(cc)))
+%def REPN(t, p, x) {ST.rep(~K, t, p, x) == True{} : Bool}
+%def COKN(cc, z, x) {P.ctxok(~K, cc, z, x) == True{} : Bool}
+%def NDL(xs) {NL.nodupn(xs) == True{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
+%def P1 PR.ex_pl(V, pl, $U, None{})
+%def SH1 ST.SH{n, root, lo, hi, free, l, d, nl, $P1, tg, fl}
+%def RMS S.remove($AK, ST.model($AK, $SH), k)
+%def RMR(r) OK.MOK($AK, $MV, $RMS, MI.remove_found($AK, r))
+%def ASP (S.TM{l, S.del($AK, k, $EST)}, ST.pv(V, pl, $U))
+%def DT(x) (MI.unlink_target($AK, MI.delete_target($AK, $U, ($SH1, x))), ST.pv(V, pl, $U))
+%def GX(x) OK.MOK($AK, $MV, $ASP, $DT(x))
+%def RDO (MI.refresh_ends($AK, MI.unlink($AK, $SH1, $U)), ST.pv(V, pl, $U))
+%def OKT EN.oks_tree(~K, ~V, nl, pl, tg, 0n, ST.g_crep($AK, $F, hg), ST.g_cpay($AK, $F, hg))
+%def FINU {S.is_eq(TR.kc(~K, ~cmp, k, ST.nd(K, nl, $U))) == True{} : Bool}
+%def CH(t) +hbc: {$IDS(tg) == $WH(t) : $LN}, +hplug: {tg == PG.plug(c, t) : ST.Tr}, +hr: $REPN(t, P.top(c), nl), +hok: $COKN(c, $U, nl), +hfin: $FINU
+%def CHA hbc, hplug, hr, hok, hfin
+%def GR0 ST.g_croot($AK, $F, hg)
+%def ROOTQ(t) L.subst(ST.Tr, z => {root == ST.rid(z) : Nat}, tg, PG.plug(c, t), hplug, N.eq_from_is_eq(root, ST.rid(tg), $GR0))
+
+# ---- the shapes ----
+
+# no left child
+def rm_ua($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, +ch: ST.Tr, $CH($TN($U, $TEE, ch))) -> OK.MOK($AK, $MV, $ASP, $RDO):
+  RMD.rm_a($AV, $F, hg, k, c, ui, ch, $CHA, UN.unl_a($AV, n, root, lo, hi, free, l, d, nl, $P1, tg, fl, fl, c, ui, ch, hr, RMD.ua_root($AV, $F, hg, k, c, ui, ch, $CHA), RMD.ua_nd($AV, $F, hg, k, c, ui, ch, $CHA), hok, RMD.ua_hk($AV, $F, hg, k, c, ui, ch, $CHA), ST.g_cfll($AK, $F, hg), ST.g_cfree($AK, $F, hg), RMD.ua_hul($AV, $F, hg, k, c, ui, ch, $CHA)))
+
+# a left child and no right one
+def rm_ub($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, +ch: ST.Tr, +hj: {Nat.is_lt(0n, ST.rid(ch)) == True{} : Bool}, $CH($TN($U, ch, $TEE))) -> OK.MOK($AK, $MV, $ASP, $RDO):
+  RMD.rm_b($AV, $F, hg, k, c, ui, ch, $CHA, UN.unl_b($AV, n, root, lo, hi, free, l, d, nl, $P1, tg, fl, fl, c, ui, ch, hj, hr, $ROOTQ($TN($U, ch, $TEE)), RMD.ub_nd($AV, $F, hg, k, c, ui, ch, $CHA), hok, RMD.ub_hk($AV, $F, hg, k, c, ui, ch, $CHA), ST.g_cfll($AK, $F, hg), ST.g_cfree($AK, $F, hg), RMD.ub_hul($AV, $F, hg, k, c, ui, ch, $CHA)))
+
+# ---- two children: the successor ----
+
+%def TA $TN(1n+ja, aa, ab)
+%def TB $TN(1n+jb, ba, bb)
+%def TT $TN($U, $TA, $TB)
+%def CB Con{P.FR{$U, False{}, $TA}, c}
+%def S1 1n+si
+%def TSS $TN($S1, $TEE, sb)
+%def XA $APP(P.before(c), $IDS($TA))
+%def RR $APP($IDS(sb), P.after(cs))
+%def XK M.N{c0, 1n+ja, 1n+jb, x3, ks}
+%def NLK PR.wr_nl(K, nl, $U, $XK)
+%def PLS PR.ex_pl(V, $P1, $S1, None{})
+%def PL4 PR.ex_pl(V, $PLS, $U, ST.pv(V, $P1, $S1))
+%def SH4 ST.SH{n, root, lo, hi, free, l, d, $NLK, $PL4, tg, fl}
+%def NODE M.N{c0, 1n+ja, 1n+jb, x3, k0}
+%def TWO +ja: Nat, +aa: ST.Tr, +ab: ST.Tr, +jb: Nat, +ba: ST.Tr, +bb: ST.Tr, $CH($TT), +c0: Bool, +x3: Nat, +k0: K, +hx: {ST.nd(K, nl, $U) == $NODE : $ND}
+%def TWA ja, aa, ab, jb, ba, bb, $CHA, c0, x3, k0, hx
+%def LSP +cs: $CT, +si: Nat, +sb: ST.Tr, +hlw: {$W2(cs, $TSS) == $W2($CB, $TB) : $LN}, +hs0: {$S1 == ST.fst0($IDS($TB)) : Nat}, +hlp: {PG.plug(cs, $TSS) == PG.plug($CB, $TB) : ST.Tr}, +hlb: {P.before(cs) == P.before($CB) : $LN}, +hlr: $REPN($TSS, P.top(cs), nl), +hlc: $COKN(cs, $S1, nl)
+%def LSA cs, si, sb, hlw, hs0, hlp, hlb, hlr, hlc
+%def SUCG(x) OK.MOK($AK, $MV, $ASP, (MI.unlink_target($AK, MI.successor_ready($AK, $U, ($SH1, x))), ST.pv(V, pl, $U)))
+%def RSA k, c, ui, $TA, $TB, cs, si, sb, hbc, hlw, hlb
+%def LS4 c, ui, $TA, cs, si, sb
+%def SSA k, c, ui, $TA, $TB, cs, si, sb, hbc, hlw, hlb, hr, hfin, c0, 1n+ja, 1n+jb, x3, ks, cs0, as0, bs0, qs0, hsn
+%def KA nl, ui, c0, 1n+ja, 1n+jb, x3, k0, ks, hx, hb
+%def OLD $APP($XA, Con{$U, Con{$S1, $RR}})
+
+# the successor's node, its key and payload moved in, then its unlink
+def rm_sr($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, $TWO, $LSP, +cs0: Bool, +as0: Nat, +bs0: Nat, +qs0: Nat, +ks: K, +hsn: {ST.nd(K, nl, $S1) == M.N{cs0, as0, bs0, qs0, ks} : $ND}) -> $SUCG($S1):
+  +hb = RMD.us_hb($AV, $F, hg, $SSA)
+  %Equal.sym($SHT & Nat, MI.move_successor($AK, $SH1, $U, $S1), ($SH4, $S1), SU.msucc_m($AK, n, root, lo, hi, free, l, d, $P1, tg, fl, $KA, $S1, cs0, as0, bs0, qs0, hsn)) : OK.MOK($AK, $MV, $ASP, (MI.unlink_target($AK, _), ST.pv(V, pl, $U)))
+  +hn = RS.nd_old($AV, $F, hg, $RSA)
+  +eo = RS.eo_s($AV, $F, $RSA)
+  +hold = L.subst($LN, z => {EN.oks(~K, ~V, z, nl, pl) == True{} : Bool}, $IDS(tg), $OLD, eo, $OKT)
+  +hbp = L.subst(Nat, z => {Nat.is_lt(ui, z) == True{} : Bool}, SC.length($ND, nl), SC.length($MV, $PLS), RMD.us_lp($AV, $F, hg, $SSA), hb)
+  +o1 = RS.oks_new($AV, nl, pl, ui, si, c0, 1n+ja, 1n+jb, x3, ks, cs0, as0, bs0, qs0, hb, hbp, hsn, RS.us_s($LS4, hn), $XA, $RR, RS.ux_s($LS4, hn), RS.sx_s($LS4, hn), RS.ur_s($LS4, hn), RS.sr_s($LS4, hn), hold)
+  +hk4 = L.subst($LN, z => {EN.oks(~K, ~V, z, $NLK, $PL4) == True{} : Bool}, $APP($XA, Con{$U, $RR}), $W2(cs, sb), Equal.sym($LN, $W2(cs, sb), $APP($XA, Con{$U, $RR}), RS.en_s($AV, $F, $RSA)), o1)
+  +mu = L.subst($LN, z => $MEM($U, z), $OLD, $IDS(tg), Equal.sym($LN, $IDS(tg), $OLD, eo), DJ.mem_r($U, $XA, Con{$U, Con{$S1, $RR}}, DJ.mem_hd($U, Con{$S1, $RR})))
+  +ms = L.subst($LN, z => $MEM($S1, z), $OLD, $IDS(tg), Equal.sym($LN, $IDS(tg), $OLD, eo), DJ.mem_r($S1, $XA, Con{$U, Con{$S1, $RR}}, DJ.mem_tl($S1, $U, Con{$S1, $RR}, DJ.mem_hd($S1, $RR))))
+  +hfl4 = Equal.trans(Bool, ST.fll(~K, $NLK, fl), ST.fll(~K, nl, fl), True{}, FRM.fll_frame(~K, fl, nl, $U, $XK, DJ.dj_r($IDS(tg), fl, ST.g_cnd($AK, $F, hg), $U, mu)), ST.g_cfll($AK, $F, hg))
+  +hin = AL.allin_mem($IDS(tg), SC.length($ND, nl), $S1, AL.allin_l($IDS(tg), fl, SC.length($ND, nl), ST.g_cin($AK, $F, hg)), ms)
+  +hul4 = L.subst(Nat, z => {Nat.is_lt(si, z) == True{} : Bool}, SC.length($ND, nl), SC.length($ND, $NLK), Equal.sym(Nat, SC.length($ND, $NLK), SC.length($ND, nl), FRM.len_wr(K, nl, $U, $XK)), N.succ_le_lt(si, SC.length($ND, nl), L.and_right(Nat.is_lt(0n, $S1), Nat.is_le($S1, SC.length($ND, nl)), hin)))
+  +hroot = L.subst(ST.Tr, z => {root == ST.rid(z) : Nat}, PG.plug($CB, $TB), PG.plug(cs, $TSS), Equal.sym(ST.Tr, PG.plug(cs, $TSS), PG.plug($CB, $TB), hlp), $ROOTQ($TT))
+  +hnd0 = L.subst($LN, z => $NDL($APP(z, fl)), $IDS(tg), $W2(cs, $TSS), RS.ew_s($AV, $F, $RSA), ST.g_cnd($AK, $F, hg))
+  +hr0 = Equal.trans(Bool, ST.rep(~K, $TSS, P.top(cs), $NLK), ST.rep(~K, $TSS, P.top(cs), nl), True{}, SU.rep_k(~K, $KA, $TSS, P.top(cs)), hlr)
+  +hok4 = Equal.trans(Bool, P.ctxok(~K, cs, $S1, $NLK), P.ctxok(~K, cs, $S1, nl), True{}, SU.ctx_k(~K, $KA, cs, $S1), hlc)
+  RMD.rm_s($AV, $F, hg, $SSA, UN.unl_a($AV, n, root, lo, hi, free, l, d, $NLK, $PL4, tg, fl, fl, cs, si, sb, hr0, hroot, hnd0, hok4, hk4, hfl4, ST.g_cfree($AK, $F, hg), hul4))
+
+def rm_sq($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, $TWO, $LSP, +y: $ND, +hy: {ST.nd(K, nl, $S1) == y : $ND}) -> $SUCG($S1):
+  match y:
+    case M.Free{f}:
+      Empty.absurd($SUCG($S1), L.false_true(L.subst($ND, z => {ST.is_node(K, z, 0n, ST.rid(sb), P.top(cs)) == True{} : Bool}, ST.nd(K, nl, $S1), M.Free{f}, hy, TR.rep_node(~K, $S1, $TEE, sb, P.top(cs), nl, hlr))))
+    case M.N{+cs0, +as0, +bs0, +qs0, +ks}:
+      rm_sr($AO, $F, hg, k, c, ui, $TWA, $LSA, cs0, as0, bs0, qs0, ks, hy)
+
+%def LSP0 +cs: $CT, +s: Nat, +sb: ST.Tr, +hlw: {$W2(cs, $TN(s, $TEE, sb)) == $W2($CB, $TB) : $LN}, +hs0: {s == ST.fst0($IDS($TB)) : Nat}, +hlp: {PG.plug(cs, $TN(s, $TEE, sb)) == PG.plug($CB, $TB) : ST.Tr}, +hlb: {P.before(cs) == P.before($CB) : $LN}, +hlr: $REPN($TN(s, $TEE, sb), P.top(cs), nl), +hlc: $COKN(cs, s, nl)
+
+def rm_so($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, $TWO, $LSP0) -> $SUCG(ST.fst0($IDS($TB))):
+  match s:
+    case 0n:
+      Empty.absurd($SUCG(ST.fst0($IDS($TB))), L.false_true(L.and_left(Nat.is_lt(0n, 0n), Bool.and(ST.is_node(K, ST.nd(K, nl, 0n), 0n, ST.rid(sb), P.top(cs)), Bool.and(True{}, ST.rep(~K, sb, 0n, nl))), hlr)))
+    case 1n+si:
+      %Equal.sym(Nat, ST.fst0($IDS($TB)), $S1, Equal.sym(Nat, $S1, ST.fst0($IDS($TB)), hs0)) : $SUCG(_)
+      rm_sq($AO, $F, hg, k, c, ui, $TWA, $LSA, ST.nd(K, nl, $S1), {==})
+
+%def RSTT {PG.plug(cs, $TN(s, $TEE, sb)) == PG.plug($CB, $TB) : ST.Tr} & ({P.before(cs) == P.before($CB) : $LN} & ($REPN($TN(s, $TEE, sb), P.top(cs), nl) & $COKN(cs, s, nl)))
+%def RST2 $REPN($TN(s, $TEE, sb), P.top(cs), nl) & $COKN(cs, s, nl)
+
+def rm_sn($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, $TWO, +cs: $CT, +s: Nat, +sb: ST.Tr, +hlw: {$W2(cs, $TN(s, $TEE, sb)) == $W2($CB, $TB) : $LN}, +hs0: {s == ST.fst0($IDS($TB)) : Nat}, +hlp: {PG.plug(cs, $TN(s, $TEE, sb)) == PG.plug($CB, $TB) : ST.Tr}, +hlb: {P.before(cs) == P.before($CB) : $LN}, r2: $RST2) -> $SUCG(ST.fst0($IDS($TB))):
+  match r2:
+    case Tuple{hlr, hlc}:
+      rm_so($AO, $F, hg, k, c, ui, $TWA, cs, s, sb, hlw, hs0, hlp, hlb, hlr, hlc)
+
+def rm_sm($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, $TWO, +cs: $CT, +s: Nat, +sb: ST.Tr, +hlw: {$W2(cs, $TN(s, $TEE, sb)) == $W2($CB, $TB) : $LN}, +hs0: {s == ST.fst0($IDS($TB)) : Nat}, rest: $RSTT) -> $SUCG(ST.fst0($IDS($TB))):
+  match rest:
+    case Tuple{hlp, Tuple{hlb, r2}}:
+      rm_sn($AO, $F, hg, k, c, ui, $TWA, cs, s, sb, hlw, hs0, hlp, hlb, r2)
+
+%def LMT2 SU.LMT(~K, ~cmp, nl, $CB, $TB)
+%def LMTX Sigma<&1, &1, $CT, lc_ => Sigma<&1, &1, Nat, ls_ => Sigma<&1, &1, ST.Tr, lb_ => {$W2(lc_, $TN(ls_, $TEE, lb_)) == $W2($CB, $TB) : $LN} & ({ls_ == ST.fst0($IDS($TB)) : Nat} & ({PG.plug(lc_, $TN(ls_, $TEE, lb_)) == PG.plug($CB, $TB) : ST.Tr} & ({P.before(lc_) == P.before($CB) : $LN} & ($REPN($TN(ls_, $TEE, lb_), P.top(lc_), nl) & $COKN(lc_, ls_, nl)))))>>>
+
+def rm_sl($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, $TWO, lm: $LMTX) -> $SUCG(ST.fst0($IDS($TB))):
+  match lm:
+    case Tuple{+cs, Tuple{+s, Tuple{+sb, Tuple{hlw, Tuple{hs0, rest}}}}}:
+      rm_sm($AO, $F, hg, k, c, ui, $TWA, cs, s, sb, hlw, hs0, rest)
+
+# the walk to the successor, and the path down to it
+def rm_two($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, $TWO) -> $GX($NODE):
+  +hrb = TR.rep_r(~K, $U, $TA, $TB, P.top(c), nl, hr)
+  +en = Equal.trans(Nat, n, $LEN($IDS(tg)), $LEN($WH($TT)), N.eq_from_is_eq(n, $LEN($IDS(tg)), ST.g_csz($AK, $F, hg)), L.subst($LN, z => {$LEN($IDS(tg)) == $LEN(z) : Nat}, $IDS(tg), $WH($TT), hbc, {==}))
+  +hle = N.le_trans(TR.ht($TB), $LEN($IDS($TB)), n, TR.ht_le($TB), L.subst(Nat, z => {Nat.is_le($LEN($IDS($TB)), z) == True{} : Bool}, $LEN($WH($TT)), n, Equal.sym(Nat, n, $LEN($WH($TT)), en), RS.sublen(c, ui, $TA, $TB)))
+  +eext = Equal.trans($SHT & Nat, MI.extreme($AK, $SH1, 1n+jb, False{}), ($SH1, MI.ext_loop(~K, 1n+n, nl, False{}, 1n+jb, M.child(~K, ST.nd(K, nl, 1n+jb), False{}))), ($SH1, ST.fst0($IDS($TB))), XT.extreme_m($AK, n, root, lo, hi, free, l, d, nl, $P1, tg, fl, 1n+jb, False{}), L.subst(Nat, z => {($SH1, MI.ext_loop(~K, 1n+n, nl, False{}, 1n+jb, M.child(~K, ST.nd(K, nl, 1n+jb), False{}))) == ($SH1, z) : $SHT & Nat}, MI.ext_loop(~K, 1n+n, nl, False{}, 1n+jb, M.child(~K, ST.nd(K, nl, 1n+jb), False{})), ST.fst0($IDS($TB)), NB.ext_l(~K, nl, 1n+n, 1n+jb, ba, bb, $U, hrb, N.le_lt_succ(TR.ht($TB), n, hle)), {==}))
+  %Equal.sym($SHT & Nat, MI.extreme($AK, $SH1, 1n+jb, False{}), ($SH1, ST.fst0($IDS($TB))), eext) : OK.MOK($AK, $MV, $ASP, (MI.unlink_target($AK, MI.successor_ready($AK, $U, _)), ST.pv(V, pl, $U)))
+  rm_sl($AO, $F, hg, k, c, ui, $TWA, SU.lmost(~K, ~cmp, ~o, ba, nl, $CB, 1n+jb, bb, hrb, Pair.fst($COKN($CB, 1n+jb, nl), $REPN($TB, $U, nl), P.ok_r(~K, nl, c, $U, $TA, $TB, hr, hok))))
+
+%def TWJ +ja: Nat, +aa: ST.Tr, +ab: ST.Tr, +jb: Nat, +ba: ST.Tr, +bb: ST.Tr, $CH($TN($U, $TN(ja, aa, ab), $TN(jb, ba, bb))), +c0: Bool, +x3: Nat, +k0: K, +hx: {ST.nd(K, nl, $U) == M.N{c0, ja, jb, x3, k0} : $ND}
+%def RA0(j, t1, t2, h) L.false_true(L.and_left(Nat.is_lt(0n, 0n), Bool.and(ST.is_node(K, ST.nd(K, nl, 0n), ST.rid(t1), ST.rid(t2), $U), Bool.and(ST.rep(~K, t1, 0n, nl), ST.rep(~K, t2, 0n, nl))), h))
+
+def rm_tt($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, $TWJ) -> $GX(M.N{c0, ja, jb, x3, k0}):
+  match ja jb:
+    case 0n +jb:
+      Empty.absurd($GX(M.N{c0, 0n, jb, x3, k0}), $RA0(0n, aa, ab, TR.rep_l(~K, $U, $TN(0n, aa, ab), $TN(jb, ba, bb), P.top(c), nl, hr)))
+    case 1n+ja 0n:
+      Empty.absurd($GX(M.N{c0, 1n+ja, 0n, x3, k0}), $RA0(0n, ba, bb, TR.rep_r(~K, $U, $TN(1n+ja, aa, ab), $TN(0n, ba, bb), P.top(c), nl, hr)))
+    case 1n+ja 1n+jb:
+      rm_two($AO, $F, hg, k, c, ui, ja, aa, ab, jb, ba, bb, $CHA, c0, x3, k0, hx)
+
+def rm_et($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, +jb: Nat, +ba: ST.Tr, +bb: ST.Tr, $CH($TN($U, $TEE, $TN(jb, ba, bb))), +c0: Bool, +x3: Nat, +k0: K) -> $GX(M.N{c0, 0n, jb, x3, k0}):
+  match jb:
+    case 0n:
+      Empty.absurd($GX(M.N{c0, 0n, 0n, x3, k0}), $RA0(0n, ba, bb, TR.rep_r(~K, $U, $TEE, $TN(0n, ba, bb), P.top(c), nl, hr)))
+    case 1n+j:
+      rm_ua($AO, $F, hg, k, c, ui, $TN(1n+j, ba, bb), $CHA)
+
+def rm_te2($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, +ja: Nat, +aa: ST.Tr, +ab: ST.Tr, $CH($TN($U, $TN(ja, aa, ab), $TEE)), +c0: Bool, +x3: Nat, +k0: K) -> $GX(M.N{c0, ja, 0n, x3, k0}):
+  match ja:
+    case 0n:
+      Empty.absurd($GX(M.N{c0, 0n, 0n, x3, k0}), $RA0(0n, aa, ab, TR.rep_l(~K, $U, $TN(0n, aa, ab), $TEE, P.top(c), nl, hr)))
+    case 1n+j:
+      rm_ub($AO, $F, hg, k, c, ui, $TN(1n+j, aa, ab), {==}, $CHA)
+
+# the node's shape
+def rm_ab($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, +a: ST.Tr, +b: ST.Tr, $CH($TN($U, a, b)), +c0: Bool, +x3: Nat, +k0: K, +hx: {ST.nd(K, nl, $U) == M.N{c0, ST.rid(a), ST.rid(b), x3, k0} : $ND}) -> $GX(M.N{c0, ST.rid(a), ST.rid(b), x3, k0}):
+  match a b:
+    case ST.TE{} ST.TE{}:
+      rm_ua($AO, $F, hg, k, c, ui, $TEE, $CHA)
+    case ST.TE{} ST.TN{+jb, +ba, +bb}:
+      rm_et($AO, $F, hg, k, c, ui, jb, ba, bb, $CHA, c0, x3, k0)
+    case ST.TN{+ja, +aa, +ab} ST.TE{}:
+      rm_te2($AO, $F, hg, k, c, ui, ja, aa, ab, $CHA, c0, x3, k0)
+    case ST.TN{+ja, +aa, +ab} ST.TN{+jb, +ba, +bb}:
+      rm_tt($AO, $F, hg, k, c, ui, ja, aa, ab, jb, ba, bb, $CHA, c0, x3, k0, hx)
+
+# the node read: its links are the tree's
+def rm_x($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, +a: ST.Tr, +b: ST.Tr, $CH($TN($U, a, b)), +x: $ND, +hxi: {ST.nd(K, nl, $U) == x : $ND}) -> $GX(x):
+  match x:
+    case M.Free{f}:
+      Empty.absurd($GX(M.Free{f}), L.false_true(L.subst($ND, z => {ST.is_node(K, z, ST.rid(a), ST.rid(b), P.top(c)) == True{} : Bool}, ST.nd(K, nl, $U), M.Free{f}, hxi, TR.rep_node(~K, $U, a, b, P.top(c), nl, hr))))
+    case M.N{+c0, +x1, +x2, +x3, +k0}:
+      +hn = L.subst($ND, z => {ST.is_node(K, z, ST.rid(a), ST.rid(b), P.top(c)) == True{} : Bool}, ST.nd(K, nl, $U), M.N{c0, x1, x2, x3, k0}, hxi, TR.rep_node(~K, $U, a, b, P.top(c), nl, hr))
+      +e1 = N.eq_from_is_eq(x1, ST.rid(a), L.and_left(Nat.is_eq(x1, ST.rid(a)), Bool.and(Nat.is_eq(x2, ST.rid(b)), Nat.is_eq(x3, P.top(c))), hn))
+      +e2 = N.eq_from_is_eq(x2, ST.rid(b), L.and_left(Nat.is_eq(x2, ST.rid(b)), Nat.is_eq(x3, P.top(c)), L.and_right(Nat.is_eq(x1, ST.rid(a)), Bool.and(Nat.is_eq(x2, ST.rid(b)), Nat.is_eq(x3, P.top(c))), hn)))
+      +hx = L.subst(Nat, z => {ST.nd(K, nl, $U) == M.N{c0, z, ST.rid(b), x3, k0} : $ND}, x1, ST.rid(a), e1, L.subst(Nat, z => {ST.nd(K, nl, $U) == M.N{c0, x1, z, x3, k0} : $ND}, x2, ST.rid(b), e2, hxi))
+      %Equal.sym(Nat, x1, ST.rid(a), e1) : $GX(M.N{c0, _, x2, x3, k0})
+      %Equal.sym(Nat, x2, ST.rid(b), e2) : $GX(M.N{c0, ST.rid(a), _, x3, k0})
+      rm_ab($AO, $F, hg, k, c, ui, a, b, $CHA, c0, x3, k0, hx)
+
+# a node found: its payload is the lookup
+def rm_u($TO, $FT, +hg: $GF, +k: K, +c: $CT, +ui: Nat, +a: ST.Tr, +b: ST.Tr, $CH($TN($U, a, b)), +hfd: {ST.pv(V, pl, $U) == $FIND : $MV}) -> $RMR(($SH, M.Search{$U, P.top(c), SP.dir(c)})):
+  %Equal.sym($MV, $FIND, ST.pv(V, pl, $U), Equal.sym($MV, ST.pv(V, pl, $U), $FIND, hfd)) : OK.MOK($AK, $MV, (S.TM{l, S.del($AK, k, $EST)}, _), $DT(ST.nd(K, nl, $U)))
+  rm_x($AO, $F, hg, k, c, ui, a, b, $CHA, ST.nd(K, nl, $U), {==})
+
+# ---- absent, or found ----
+
+def rm_te($TO, $FT, +hg: $GF, +k: K, +c: $CT, +hfd: {None{} == $FIND : $MV}) -> $RMR(($SH, M.Search{0n, P.top(c), SP.dir(c)})):
+  %Equal.sym($MV, $FIND, None{}, Equal.sym($MV, None{}, $FIND, hfd)) : OK.MOK($AK, $MV, (S.TM{l, S.del($AK, k, $EST)}, _), ($SH, None{}))
+  %Equal.sym($ES, S.del($AK, k, $EST), $EST, DO.del_absent($AO, k, $EST, Equal.sym($MV, None{}, $FIND, hfd))) : OK.MOK($AK, $MV, (S.TM{l, _}, None{}), ($SH, None{}))
+  ($SH, (None{}, ({==}, ({==}, hg))))
+
+def rm_tn($TO, $FT, +hg: $GF, +k: K, +c: $CT, +i: Nat, +a: ST.Tr, +b: ST.Tr, +hfd: {ST.pv(V, pl, i) == $FIND : $MV}, +hwh: {$T0 == $WH($TN(i, a, b)) : $LN}, +hplug: {tg == PG.plug(c, $TN(i, a, b)) : ST.Tr}, +hr: $REPN($TN(i, a, b), P.top(c), nl), +hok: $COKN(c, i, nl), +hfin: {SP.fin(~K, ~cmp, k, $TN(i, a, b), nl) == True{} : Bool}) -> $RMR(($SH, M.Search{i, P.top(c), SP.dir(c)})):
+  match i:
+    case 0n:
+      Empty.absurd($RMR(($SH, M.Search{0n, P.top(c), SP.dir(c)})), PM.tn_zero($AO, $F, k, c, a, b, hr))
+    case 1n+ui:
+      rm_u($AO, $F, hg, k, c, ui, a, b, PM.tn_hbc($AO, $F, c, $U, a, b, hwh), hplug, hr, hok, hfin, hfd)
+
+def rm_t($TO, $FT, +hg: $GF, +k: K, +hk0: $OKS($T0), +c: $CT, +t: ST.Tr, +hfd: $HFD, $PFX) -> $RMR(($SH, M.Search{ST.rid(t), P.top(c), SP.dir(c)})):
+  match t:
+    case ST.TE{}:
+      rm_te($AO, $F, hg, k, c, hfd)
+    case ST.TN{+i, +a, +b}:
+      rm_tn($AO, $F, hg, k, c, i, a, b, hfd, hwh, hplug, hr, hokc, hfin)
+
+%use WRAP(<|$TO|>, <|$AO|>, rm, <|+k: K|>, <|k|>, $MV, $RMS, MI.remove($AK, $SH, k), $RMR)

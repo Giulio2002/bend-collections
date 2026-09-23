@@ -1,0 +1,321 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/list.bend as LL
+import ../../lib/order.bend as O
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./ord.bend as OR
+import ./reads.bend as RD
+import ./cur.bend as CU
+import ./cnx.bend as CX
+import ./vsp.bend as VS
+import ./vit.bend as VI
+
+# A view's size: the mirror counts the steps of the view's cursor, forward
+# from the first entry above the lower bound (backward from the last below
+# the upper), until an entry is out of range; the count is the number of
+# entries within. (source: tools/generators/tm_hand/vsz.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def E M.Entry<K, V>
+%def ES List<&2, $E>
+%def ME Maybe<&2, $E>
+%def MK Maybe<&2, K>
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def FT +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: $NL, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: $LN
+%def FP +n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl
+%def F n, root, lo, hi, free, l, d, nl, pl, tg, fl
+%def SH ST.SH{$F}
+%def SHT ST.Sh<K, V>
+%def MVT MI.MView<K, V>
+%def MCT MI.MCursor<K, V>
+%def SCT S.Cursor<K, V>
+%def PT $SCT & $ME
+%def BD M.Bound<K>
+%def GF {ST.good($AK, $SH) == True{} : Bool}
+%def EST ST.ents(~K, ~V, ST.ids(tg), nl, pl)
+%def TMS S.TM{l, $EST}
+%def EAPP(a, b) SC.append($E, a, b)
+%def VB +lo2: $BD, +hi2: $BD
+%def VBA lo2, hi2
+%def CUR(y, z, fw) MI.MC{$SH, y, z, lo2, hi2, fw}
+%def SCR(a, b, fw) S.CR{$TMS, a, b, lo2, hi2, fw}
+%def CK(y) CU.ck(~K, nl, y)
+%def HCUR(y, z, fw) {CU.cgood($AK, $CUR(y, z, fw)) == True{} : Bool}
+%def STEP(y, z, fw) CU.CSTEP($AK, $ME, S.iterator_next($AK, CU.cmod($AK, $CUR(y, z, fw))), MI.iterator_next($AK, $CUR(y, z, fw)), $SH, lo2, hi2, fw)
+%def STEPR(y, z, fw, a, o0) Sigma<&1, &1, Nat, y2 => Sigma<&1, &1, Nat, z2 => {MI.iterator_next($AK, $CUR(y, z, fw)) == ($CUR(y2, z2, fw), o0) : $MCT & $ME} & ({$CK(y2) == a : $MK} & $HCUR(y2, z2, fw))>>
+%def HSP(y, z, fw, a, bb, o0) {S.iterator_next($AK, CU.cmod($AK, $CUR(y, z, fw))) == ($SCR(a, bb, fw), o0) : $PT}
+%def W(xs) S.within($AK, lo2, hi2, xs)
+%def WL(xs) SC.length($E, $W(xs))
+%def IR(k) S.in_range(~K, ~cmp, k, lo2, hi2)
+%def EE M.Entry{k, v}
+%def NXM(fw) CX.next_m($AO, $F, nx, cu, lo2, hi2, fw, hc)
+%def ORDH ST.g_cord($AK, $F, hg)
+
+# ---- a step whose specification is known ----
+
+def cnext(-K: Data, -V: Data, c: $SCT) -> $MK:
+  match c:
+    case S.CR{m, nx, cu, lo, hi, fw}:
+      nx
+
+def stp3($TK, $FT, $VB, +fw: Bool, +nx: Nat, +cu: Nat, +a: $MK, +bb: $MK, +o0: $ME, +hsp: $HSP(nx, cu, fw, a, bb, o0), +y2: Nat, +z2: Nat, +oe: $ME, +hm: {MI.iterator_next($AK, $CUR(nx, cu, fw)) == ($CUR(y2, z2, fw), oe) : $MCT & $ME}, +hs: {S.iterator_next($AK, CU.cmod($AK, $CUR(nx, cu, fw))) == (CU.cmod($AK, $CUR(y2, z2, fw)), oe) : $PT}, +hc2: $HCUR(y2, z2, fw)) -> $STEPR(nx, cu, fw, a, o0):
+  +heq = Equal.trans($PT, ($SCR(a, bb, fw), o0), S.iterator_next($AK, CU.cmod($AK, $CUR(nx, cu, fw))), ($SCR($CK(y2), $CK(z2), fw), oe), Equal.sym($PT, S.iterator_next($AK, CU.cmod($AK, $CUR(nx, cu, fw))), ($SCR(a, bb, fw), o0), hsp), hs)
+  +eo = L.pair_snd($SCT, $ME, $SCR(a, bb, fw), o0, $SCR($CK(y2), $CK(z2), fw), oe, heq)
+  +ec = L.pair_fst($SCT, $ME, $SCR(a, bb, fw), o0, $SCR($CK(y2), $CK(z2), fw), oe, heq)
+  +hk2 = Equal.sym($MK, a, $CK(y2), L.subst($SCT, q => {a == cnext(K, V, q) : $MK}, $SCR(a, bb, fw), $SCR($CK(y2), $CK(z2), fw), ec, {==}))
+  +hm2 = L.subst($ME, q => {MI.iterator_next($AK, $CUR(nx, cu, fw)) == ($CUR(y2, z2, fw), q) : $MCT & $ME}, oe, o0, Equal.sym($ME, o0, oe, eo), hm)
+  (y2, (z2, (hm2, (hk2, hc2))))
+
+def stp2($TK, $FT, $VB, +fw: Bool, +nx: Nat, +cu: Nat, +a: $MK, +bb: $MK, +o0: $ME, +hsp: $HSP(nx, cu, fw, a, bb, o0), +y2: Nat, +z2: Nat, +oe: $ME, +hm: {MI.iterator_next($AK, $CUR(nx, cu, fw)) == ($CUR(y2, z2, fw), oe) : $MCT & $ME}, r: {S.iterator_next($AK, CU.cmod($AK, $CUR(nx, cu, fw))) == (CU.cmod($AK, $CUR(y2, z2, fw)), oe) : $PT} & $HCUR(y2, z2, fw)) -> $STEPR(nx, cu, fw, a, o0):
+  match r:
+    case Tuple{hs, hc2}:
+      stp3($AK, $F, $VBA, fw, nx, cu, a, bb, o0, hsp, y2, z2, oe, hm, hs, hc2)
+
+def stp($TK, $FT, $VB, +fw: Bool, +nx: Nat, +cu: Nat, +a: $MK, +bb: $MK, +o0: $ME, +hsp: $HSP(nx, cu, fw, a, bb, o0), st: $STEP(nx, cu, fw)) -> $STEPR(nx, cu, fw, a, o0):
+  match st:
+    case Tuple{+y2, Tuple{+z2, Tuple{+oe, Tuple{+hm, r}}}}:
+      stp2($AK, $F, $VBA, fw, nx, cu, a, bb, o0, hsp, y2, z2, oe, hm, r)
+
+# ---- the specification's step at an entry, either way ----
+
+%def SPR(es, nk, fw) $SPRX(es, nk, fw, cc)
+%def SPRX(es, nk, fw, cc) S.pick($PT, $IR(k), (S.CR{S.TM{l, es}, nk, Some{k}, lo2, hi2, fw}, Some{$EE}), (S.CR{S.TM{l, es}, None{}, cc, lo2, hi2, fw}, None{}))
+
+def find_at($TO, +es: $ES, +xa: $ES, +k: K, +v: V, +t: $ES, +hab: {es == $EAPP(xa, Con{$EE, t}) : $ES}, +hord: {ST.ordered($AK, es) == True{} : Bool}) -> {S.find_e($AK, k, es) == Some{$EE} : $ME}:
+  L.subst($ES, z => {S.find_e($AK, k, z) == Some{$EE} : $ME}, $EAPP(xa, Con{$EE, t}), es, Equal.sym($ES, es, $EAPP(xa, Con{$EE, t}), hab), OR.find_mid_eq($AO, k, xa, $EE, t, L.subst($ES, z => {ST.ordered($AK, z) == True{} : Bool}, es, $EAPP(xa, Con{$EE, t}), hab, hord), O.refl(~K, ~cmp, ~o, k)))
+
+def sp_f($TO, +l: Nat, +es: $ES, +xa: $ES, +k: K, +v: V, +t: $ES, +hab: {es == $EAPP(xa, Con{$EE, t}) : $ES}, +hord: {ST.ordered($AK, es) == True{} : Bool}, +cc: $MK, $VB) -> {S.iterator_next($AK, S.CR{S.TM{l, es}, Some{k}, cc, lo2, hi2, True{}}) == $SPR(es, S.key_m(K, V, S.head($E, t)), True{}) : $PT}:
+  +efw = L.subst($ES, z => {S.first_where($AK, k, False{}, z) == S.head($E, t) : $ME}, $EAPP(xa, Con{$EE, t}), es, Equal.sym($ES, es, $EAPP(xa, Con{$EE, t}), hab), CX.fw_mid($AO, xa, $EE, t, L.subst($ES, z => {ST.ordered($AK, z) == True{} : Bool}, es, $EAPP(xa, Con{$EE, t}), hab, hord)))
+  %Equal.sym($ME, S.find_e($AK, k, es), Some{$EE}, find_at($AO, es, xa, k, v, t, hab, hord)) : {S.next_at($AK, l, es, cc, lo2, hi2, True{}, _) == $SPR(es, S.key_m(K, V, S.head($E, t)), True{}) : $PT}
+  %Equal.sym($ME, S.first_where($AK, k, False{}, es), S.head($E, t), efw) : {S.pick($PT, $IR(k), (S.CR{S.TM{l, es}, S.key_m(K, V, _), Some{k}, lo2, hi2, True{}}, Some{$EE}), (S.CR{S.TM{l, es}, None{}, cc, lo2, hi2, True{}}, None{})) == $SPR(es, S.key_m(K, V, S.head($E, t)), True{}) : $PT}
+  {==}
+
+def sp_b($TO, +l: Nat, +es: $ES, +xa: $ES, +k: K, +v: V, +t: $ES, +hab: {es == $EAPP(xa, Con{$EE, t}) : $ES}, +hord: {ST.ordered($AK, es) == True{} : Bool}, +cc: $MK, $VB) -> {S.iterator_next($AK, S.CR{S.TM{l, es}, Some{k}, cc, lo2, hi2, False{}}) == $SPR(es, S.key_m(K, V, S.last($E, xa)), False{}) : $PT}:
+  +elw = L.subst($ES, z => {S.last_where($AK, k, False{}, z, None{}) == S.last($E, xa) : $ME}, $EAPP(xa, Con{$EE, t}), es, Equal.sym($ES, es, $EAPP(xa, Con{$EE, t}), hab), CX.lw_mid($AO, xa, $EE, t, L.subst($ES, z => {ST.ordered($AK, z) == True{} : Bool}, es, $EAPP(xa, Con{$EE, t}), hab, hord)))
+  %Equal.sym($ME, S.find_e($AK, k, es), Some{$EE}, find_at($AO, es, xa, k, v, t, hab, hord)) : {S.next_at($AK, l, es, cc, lo2, hi2, False{}, _) == $SPR(es, S.key_m(K, V, S.last($E, xa)), False{}) : $PT}
+  %Equal.sym($ME, S.last_where($AK, k, False{}, es, None{}), S.last($E, xa), elw) : {S.pick($PT, $IR(k), (S.CR{S.TM{l, es}, S.key_m(K, V, _), Some{k}, lo2, hi2, False{}}, Some{$EE}), (S.CR{S.TM{l, es}, None{}, cc, lo2, hi2, False{}}, None{})) == $SPR(es, S.key_m(K, V, S.last($E, xa)), False{}) : $PT}
+  {==}
+
+# ---- forward ----
+
+%def FUEL(xs) 1n+Nat.add(SC.length($E, xs), x)
+%def VEF MI.MV{$SH, lo2, hi2, False{}}
+%def GFW(xs, y, z, c) {MI.view_count_loop($AK, $FUEL(xs), c, MI.iterator_next($AK, $CUR(y, z, True{}))) == ($VEF, Nat.add($WL(xs), c)) : $MVT & Nat}
+%def ALL(xs) {VS.allal($AK, lo2, xs) == True{} : Bool}
+%def E1(fw) L.subst($MK, q => {S.iterator_next($AK, $SCR($CK(nx), $CK(cu), fw)) == S.iterator_next($AK, $SCR(q, $CK(cu), fw)) : $PT}, $CK(nx), Some{k}, hk, {==})
+%def HSPF(nk, fw, e2) Equal.trans($PT, S.iterator_next($AK, $SCR($CK(nx), $CK(cu), fw)), S.iterator_next($AK, $SCR(Some{k}, $CK(cu), fw)), $SPRX($EST, nk, fw, $CK(cu)), $E1(fw), e2)
+%def KF @+ky: Nat -> @+kz: Nat -> @+kc: $HCUR(ky, kz, True{}) -> @+kk: {$CK(ky) == S.key_m(K, V, S.head($E, t)) : $MK} -> $GFW(t, ky, kz, 1n+c)
+%def CH $TO, $FT, +hg: $GF, $VB, +x: Nat, +k: K, +v: V, +t: $ES, +xa: $ES, +nx: Nat, +cu: Nat, +hab: {$EST == $EAPP(xa, Con{$EE, t}) : $ES}, +hal: $ALL(Con{$EE, t}), +c: Nat
+%def CA $AO, $F, hg, $VBA, x, k, v, t, xa, nx, cu, hab, hal, c
+
+def szn2($TK, $FT, $VB, +x: Nat, +nx: Nat, +cu: Nat, +c: Nat, +y2: Nat, +z2: Nat, +hm: {MI.iterator_next($AK, $CUR(nx, cu, True{})) == ($CUR(y2, z2, True{}), None{}) : $MCT & $ME}) -> $GFW(Nil{}, nx, cu, c):
+  %Equal.sym($MCT & $ME, MI.iterator_next($AK, $CUR(nx, cu, True{})), ($CUR(y2, z2, True{}), None{}), hm) : {MI.view_count_loop($AK, $FUEL(Nil{}), c, _) == ($VEF, Nat.add($WL(Nil{}), c)) : $MVT & Nat}
+  {==}
+
+def szn($TK, $FT, $VB, +x: Nat, +nx: Nat, +cu: Nat, +c: Nat, r: $STEPR(nx, cu, True{}, None{}, None{})) -> $GFW(Nil{}, nx, cu, c):
+  match r:
+    case Tuple{+y2, Tuple{+z2, Tuple{+hm, r2}}}:
+      szn2($AK, $F, $VBA, x, nx, cu, c, y2, z2, hm)
+
+def szt2($CH, +hb: {$IR(k) == True{} : Bool}, +y2: Nat, +z2: Nat, +hm: {MI.iterator_next($AK, $CUR(nx, cu, True{})) == ($CUR(y2, z2, True{}), Some{$EE}) : $MCT & $ME}, r: {$CK(y2) == S.key_m(K, V, S.head($E, t)) : $MK} & $HCUR(y2, z2, True{}), kont: $KF) -> $GFW(Con{$EE, t}, nx, cu, c):
+  match r:
+    case Tuple{hk2, hc2}:
+      %Equal.sym($MCT & $ME, MI.iterator_next($AK, $CUR(nx, cu, True{})), ($CUR(y2, z2, True{}), Some{$EE}), hm) : {MI.view_count_loop($AK, $FUEL(Con{$EE, t}), c, _) == ($VEF, Nat.add($WL(Con{$EE, t}), c)) : $MVT & Nat}
+      +e2 = VS.cong($ES, Nat, q => Nat.add(SC.length($E, q), c), $W(Con{$EE, t}), Con{$EE, $W(t)}, VS.w_in($AK, lo2, hi2, $EE, t, hb))
+      +e3 = Equal.trans(Nat, Nat.add($WL(t), 1n+c), 1n+Nat.add($WL(t), c), Nat.add($WL(Con{$EE, t}), c), N.add_succ($WL(t), c), Equal.sym(Nat, Nat.add($WL(Con{$EE, t}), c), 1n+Nat.add($WL(t), c), e2))
+      Equal.trans($MVT & Nat, MI.view_count_loop($AK, $FUEL(t), 1n+c, MI.iterator_next($AK, $CUR(y2, z2, True{}))), ($VEF, Nat.add($WL(t), 1n+c)), ($VEF, Nat.add($WL(Con{$EE, t}), c)), kont(y2, z2, hc2, hk2), VS.cong(Nat, $MVT & Nat, q => ($VEF, q), Nat.add($WL(t), 1n+c), Nat.add($WL(Con{$EE, t}), c), e3))
+
+def szt($CH, +hb: {$IR(k) == True{} : Bool}, r: $STEPR(nx, cu, True{}, S.key_m(K, V, S.head($E, t)), Some{$EE}), kont: $KF) -> $GFW(Con{$EE, t}, nx, cu, c):
+  match r:
+    case Tuple{+y2, Tuple{+z2, Tuple{+hm, r2}}}:
+      szt2($CA, hb, y2, z2, hm, r2, kont)
+
+def szs2($CH, +hb: {$IR(k) == False{} : Bool}, +y2: Nat, +z2: Nat, +hm: {MI.iterator_next($AK, $CUR(nx, cu, True{})) == ($CUR(y2, z2, True{}), None{}) : $MCT & $ME}) -> $GFW(Con{$EE, t}, nx, cu, c):
+  %Equal.sym($MCT & $ME, MI.iterator_next($AK, $CUR(nx, cu, True{})), ($CUR(y2, z2, True{}), None{}), hm) : {MI.view_count_loop($AK, $FUEL(Con{$EE, t}), c, _) == ($VEF, Nat.add($WL(Con{$EE, t}), c)) : $MVT & Nat}
+  +hbu = VS.bu_of(~K, ~cmp, lo2, hi2, k, L.and_left(S.above_lower(~K, ~cmp, k, lo2), VS.allal($AK, lo2, t), hal), hb)
+  +ho = OR.ord_app_r($AK, xa, Con{$EE, t}, L.subst($ES, z => {ST.ordered($AK, z) == True{} : Bool}, $EST, $EAPP(xa, Con{$EE, t}), hab, $ORDH))
+  +hw = Equal.trans($ES, $W(Con{$EE, t}), $W(t), Nil{}, VS.w_out($AK, lo2, hi2, $EE, t, hb), VS.wnil($AO, lo2, hi2, k, t, hbu, OR.ord_gt($AO, t, $EE, ho)))
+  Equal.sym($MVT & Nat, ($VEF, Nat.add($WL(Con{$EE, t}), c)), ($VEF, c), VS.cong($ES, $MVT & Nat, q => ($VEF, Nat.add(SC.length($E, q), c)), $W(Con{$EE, t}), Nil{}, hw))
+
+def szs($CH, +hb: {$IR(k) == False{} : Bool}, r: $STEPR(nx, cu, True{}, None{}, None{})) -> $GFW(Con{$EE, t}, nx, cu, c):
+  match r:
+    case Tuple{+y2, Tuple{+z2, Tuple{+hm, r2}}}:
+      szs2($CA, hb, y2, z2, hm)
+
+def szc($CH, +hc: $HCUR(nx, cu, True{}), +hk: {$CK(nx) == Some{k} : $MK}, +b: Bool, +hb: {$IR(k) == b : Bool}, kont: $KF) -> $GFW(Con{$EE, t}, nx, cu, c):
+  match b:
+    case True{}:
+      +e2 = Equal.trans($PT, S.iterator_next($AK, $SCR(Some{k}, $CK(cu), True{})), $SPRX($EST, S.key_m(K, V, S.head($E, t)), True{}, $CK(cu)), ($SCR(S.key_m(K, V, S.head($E, t)), Some{k}, True{}), Some{$EE}), sp_f($AO, l, $EST, xa, k, v, t, hab, $ORDH, $CK(cu), $VBA), VS.pk_t($PT, $IR(k), ($SCR(S.key_m(K, V, S.head($E, t)), Some{k}, True{}), Some{$EE}), ($SCR(None{}, $CK(cu), True{}), None{}), hb))
+      szt($CA, hb, stp($AK, $F, $VBA, True{}, nx, cu, S.key_m(K, V, S.head($E, t)), Some{k}, Some{$EE}, Equal.trans($PT, S.iterator_next($AK, $SCR($CK(nx), $CK(cu), True{})), S.iterator_next($AK, $SCR(Some{k}, $CK(cu), True{})), ($SCR(S.key_m(K, V, S.head($E, t)), Some{k}, True{}), Some{$EE}), $E1(True{}), e2), $NXM(True{})), kont)
+    case False{}:
+      +e2 = Equal.trans($PT, S.iterator_next($AK, $SCR(Some{k}, $CK(cu), True{})), $SPRX($EST, S.key_m(K, V, S.head($E, t)), True{}, $CK(cu)), ($SCR(None{}, $CK(cu), True{}), None{}), sp_f($AO, l, $EST, xa, k, v, t, hab, $ORDH, $CK(cu), $VBA), VS.pk_f($PT, $IR(k), ($SCR(S.key_m(K, V, S.head($E, t)), Some{k}, True{}), Some{$EE}), ($SCR(None{}, $CK(cu), True{}), None{}), hb))
+      szs($CA, hb, stp($AK, $F, $VBA, True{}, nx, cu, None{}, $CK(cu), None{}, Equal.trans($PT, S.iterator_next($AK, $SCR($CK(nx), $CK(cu), True{})), S.iterator_next($AK, $SCR(Some{k}, $CK(cu), True{})), ($SCR(None{}, $CK(cu), True{}), None{}), $E1(True{}), e2), $NXM(True{})))
+
+%def HAB2 Equal.trans($ES, $EST, $EAPP(xa, Con{$EE, t}), $EAPP($EAPP(xa, Con{$EE, Nil{}}), t), hab, Equal.sym($ES, $EAPP($EAPP(xa, Con{$EE, Nil{}}), t), $EAPP(xa, Con{$EE, t}), LL.append_assoc($E, xa, Con{$EE, Nil{}}, t)))
+
+# the count forward: the entries within from the cursor on
+def szf($TO, $FT, +hg: $GF, $VB, +x: Nat, +bs: $ES, +xa: $ES, +nx: Nat, +cu: Nat, +hc: $HCUR(nx, cu, True{}), +hab: {$EST == $EAPP(xa, bs) : $ES}, +hk: {$CK(nx) == S.key_m(K, V, S.head($E, bs)) : $MK}, +hal: $ALL(bs), +c: Nat) -> $GFW(bs, nx, cu, c):
+  match bs:
+    case Nil{}:
+      szn($AK, $F, $VBA, x, nx, cu, c, stp($AK, $F, $VBA, True{}, nx, cu, None{}, $CK(cu), None{}, L.subst($MK, q => {S.iterator_next($AK, $SCR(q, $CK(cu), True{})) == ($SCR(None{}, $CK(cu), True{}), None{}) : $PT}, None{}, $CK(nx), Equal.sym($MK, $CK(nx), None{}, hk), {==}), $NXM(True{})))
+    case Con{M.Entry{+k, +v}, +t}:
+      szc($CA, hc, hk, $IR(k), {==}, ky => kz => kc => kk => szf($AO, $F, hg, $VBA, x, t, $EAPP(xa, Con{$EE, Nil{}}), ky, kz, kc, $HAB2, kk, L.and_right(S.above_lower(~K, ~cmp, k, lo2), VS.allal($AK, lo2, t), hal), 1n+c))
+
+# ---- backward: the entries before the cursor, reversed ----
+
+%def RV(r) SC.reverse($E, r)
+%def VEB MI.MV{$SH, lo2, hi2, True{}}
+%def GBW(r, y, z, c) {MI.view_count_loop($AK, $FUEL(r), c, MI.iterator_next($AK, $CUR(y, z, False{}))) == ($VEB, Nat.add($WL($RV(r)), c)) : $MVT & Nat}
+%def ALB(xs) {VS.allbu($AK, hi2, xs) == True{} : Bool}
+%def KB @+ky: Nat -> @+kz: Nat -> @+kc: $HCUR(ky, kz, False{}) -> @+kk: {$CK(ky) == S.key_m(K, V, S.last($E, $RV(t))) : $MK} -> $GBW(t, ky, kz, 1n+c)
+%def CHB $TO, $FT, +hg: $GF, $VB, +x: Nat, +k: K, +v: V, +t: $ES, +bs: $ES, +nx: Nat, +cu: Nat, +hab: {$EST == $EAPP($RV(t), Con{$EE, bs}) : $ES}, +hbu: $ALB(Con{$EE, t}), +c: Nat
+%def CAB $AO, $F, hg, $VBA, x, k, v, t, bs, nx, cu, hab, hbu, c
+%def RVC SC.snoc($E, $RV(t), $EE)
+
+def sbn2($TK, $FT, $VB, +x: Nat, +nx: Nat, +cu: Nat, +c: Nat, +y2: Nat, +z2: Nat, +hm: {MI.iterator_next($AK, $CUR(nx, cu, False{})) == ($CUR(y2, z2, False{}), None{}) : $MCT & $ME}) -> $GBW(Nil{}, nx, cu, c):
+  %Equal.sym($MCT & $ME, MI.iterator_next($AK, $CUR(nx, cu, False{})), ($CUR(y2, z2, False{}), None{}), hm) : {MI.view_count_loop($AK, $FUEL(Nil{}), c, _) == ($VEB, Nat.add($WL($RV(Nil{})), c)) : $MVT & Nat}
+  {==}
+
+def sbn($TK, $FT, $VB, +x: Nat, +nx: Nat, +cu: Nat, +c: Nat, r: $STEPR(nx, cu, False{}, None{}, None{})) -> $GBW(Nil{}, nx, cu, c):
+  match r:
+    case Tuple{+y2, Tuple{+z2, Tuple{+hm, r2}}}:
+      sbn2($AK, $F, $VBA, x, nx, cu, c, y2, z2, hm)
+
+# the entries within the reversal of e before t: those of t's, then e's
+def wl_snoc($TK, $VB, +t: $ES, +k: K, +v: V) -> {$W($RVC) == $EAPP($W($RV(t)), $W(Con{$EE, Nil{}})) : $ES}:
+  Equal.trans($ES, $W($RVC), $W($EAPP($RV(t), Con{$EE, Nil{}})), $EAPP($W($RV(t)), $W(Con{$EE, Nil{}})), VS.cong($ES, $ES, q => $W(q), $RVC, $EAPP($RV(t), Con{$EE, Nil{}}), LL.snoc_append($E, $RV(t), $EE)), VS.within_app($AK, lo2, hi2, $RV(t), Con{$EE, Nil{}}))
+
+def sbt2($CHB, +hb: {$IR(k) == True{} : Bool}, +y2: Nat, +z2: Nat, +hm: {MI.iterator_next($AK, $CUR(nx, cu, False{})) == ($CUR(y2, z2, False{}), Some{$EE}) : $MCT & $ME}, r: {$CK(y2) == S.key_m(K, V, S.last($E, $RV(t))) : $MK} & $HCUR(y2, z2, False{}), kont: $KB) -> $GBW(Con{$EE, t}, nx, cu, c):
+  match r:
+    case Tuple{hk2, hc2}:
+      %Equal.sym($MCT & $ME, MI.iterator_next($AK, $CUR(nx, cu, False{})), ($CUR(y2, z2, False{}), Some{$EE}), hm) : {MI.view_count_loop($AK, $FUEL(Con{$EE, t}), c, _) == ($VEB, Nat.add($WL($RV(Con{$EE, t})), c)) : $MVT & Nat}
+      +ew = Equal.trans($ES, $W($RVC), $EAPP($W($RV(t)), $W(Con{$EE, Nil{}})), $EAPP($W($RV(t)), Con{$EE, Nil{}}), wl_snoc($AK, $VBA, t, k, v), VS.cong($ES, $ES, q => $EAPP($W($RV(t)), q), $W(Con{$EE, Nil{}}), Con{$EE, Nil{}}, VS.w_in($AK, lo2, hi2, $EE, Nil{}, hb)))
+      +el = Equal.trans(Nat, $WL($RVC), SC.length($E, $EAPP($W($RV(t)), Con{$EE, Nil{}})), Nat.add($WL($RV(t)), 1n), VS.cong($ES, Nat, q => SC.length($E, q), $W($RVC), $EAPP($W($RV(t)), Con{$EE, Nil{}}), ew), LL.length_append($E, $W($RV(t)), Con{$EE, Nil{}}))
+      +e3 = Equal.trans(Nat, Nat.add($WL($RV(t)), 1n+c), Nat.add(Nat.add($WL($RV(t)), 1n), c), Nat.add($WL($RVC), c), Equal.sym(Nat, Nat.add(Nat.add($WL($RV(t)), 1n), c), Nat.add($WL($RV(t)), 1n+c), N.add_assoc($WL($RV(t)), 1n, c)), VS.cong(Nat, Nat, q => Nat.add(q, c), Nat.add($WL($RV(t)), 1n), $WL($RVC), Equal.sym(Nat, $WL($RVC), Nat.add($WL($RV(t)), 1n), el)))
+      Equal.trans($MVT & Nat, MI.view_count_loop($AK, $FUEL(t), 1n+c, MI.iterator_next($AK, $CUR(y2, z2, False{}))), ($VEB, Nat.add($WL($RV(t)), 1n+c)), ($VEB, Nat.add($WL($RVC), c)), kont(y2, z2, hc2, hk2), VS.cong(Nat, $MVT & Nat, q => ($VEB, q), Nat.add($WL($RV(t)), 1n+c), Nat.add($WL($RVC), c), e3))
+
+def sbt($CHB, +hb: {$IR(k) == True{} : Bool}, r: $STEPR(nx, cu, False{}, S.key_m(K, V, S.last($E, $RV(t))), Some{$EE}), kont: $KB) -> $GBW(Con{$EE, t}, nx, cu, c):
+  match r:
+    case Tuple{+y2, Tuple{+z2, Tuple{+hm, r2}}}:
+      sbt2($CAB, hb, y2, z2, hm, r2, kont)
+
+def sbs2($CHB, +hb: {$IR(k) == False{} : Bool}, +y2: Nat, +z2: Nat, +hm: {MI.iterator_next($AK, $CUR(nx, cu, False{})) == ($CUR(y2, z2, False{}), None{}) : $MCT & $ME}) -> $GBW(Con{$EE, t}, nx, cu, c):
+  %Equal.sym($MCT & $ME, MI.iterator_next($AK, $CUR(nx, cu, False{})), ($CUR(y2, z2, False{}), None{}), hm) : {MI.view_count_loop($AK, $FUEL(Con{$EE, t}), c, _) == ($VEB, Nat.add($WL($RV(Con{$EE, t})), c)) : $MVT & Nat}
+  +hal = VS.al_of(~K, ~cmp, lo2, hi2, k, L.and_left(S.below_upper(~K, ~cmp, k, hi2), VS.allbu($AK, hi2, t), hbu), hb)
+  +ho = L.subst($ES, z => {ST.ordered($AK, z) == True{} : Bool}, $EST, $EAPP($RV(t), Con{$EE, bs}), hab, $ORDH)
+  +hw1 = VS.wnil_lt($AO, lo2, hi2, k, $RV(t), hal, OR.ord_mid_l($AO, $RV(t), $EE, bs, ho))
+  +hw2 = VS.w_out($AK, lo2, hi2, $EE, Nil{}, hb)
+  +hw = Equal.trans($ES, $W($RVC), $EAPP($W($RV(t)), $W(Con{$EE, Nil{}})), Nil{}, wl_snoc($AK, $VBA, t, k, v), L.subst($ES, q => {$EAPP(q, $W(Con{$EE, Nil{}})) == Nil{} : $ES}, Nil{}, $W($RV(t)), Equal.sym($ES, $W($RV(t)), Nil{}, hw1), hw2))
+  Equal.sym($MVT & Nat, ($VEB, Nat.add($WL($RVC), c)), ($VEB, c), VS.cong($ES, $MVT & Nat, q => ($VEB, Nat.add(SC.length($E, q), c)), $W($RVC), Nil{}, hw))
+
+def sbs($CHB, +hb: {$IR(k) == False{} : Bool}, r: $STEPR(nx, cu, False{}, None{}, None{})) -> $GBW(Con{$EE, t}, nx, cu, c):
+  match r:
+    case Tuple{+y2, Tuple{+z2, Tuple{+hm, r2}}}:
+      sbs2($CAB, hb, y2, z2, hm)
+
+%def HKL Equal.trans($MK, $CK(nx), S.key_m(K, V, S.last($E, $RVC)), Some{k}, hk, VS.cong($ME, $MK, q => S.key_m(K, V, q), S.last($E, $RVC), Some{$EE}, LL.last_snoc($E, $RV(t), $EE)))
+%def E1B L.subst($MK, q => {S.iterator_next($AK, $SCR($CK(nx), $CK(cu), False{})) == S.iterator_next($AK, $SCR(q, $CK(cu), False{})) : $PT}, $CK(nx), Some{k}, $HKL, {==})
+%def SPB0 sp_b($AO, l, $EST, $RV(t), k, v, bs, hab, $ORDH, $CK(cu), $VBA)
+%def NKB S.key_m(K, V, S.last($E, $RV(t)))
+
+def sbc($CHB, +hc: $HCUR(nx, cu, False{}), +hk: {$CK(nx) == S.key_m(K, V, S.last($E, $RVC)) : $MK}, +b: Bool, +hb: {$IR(k) == b : Bool}, kont: $KB) -> $GBW(Con{$EE, t}, nx, cu, c):
+  match b:
+    case True{}:
+      +e2 = Equal.trans($PT, S.iterator_next($AK, $SCR(Some{k}, $CK(cu), False{})), $SPRX($EST, $NKB, False{}, $CK(cu)), ($SCR($NKB, Some{k}, False{}), Some{$EE}), $SPB0, VS.pk_t($PT, $IR(k), ($SCR($NKB, Some{k}, False{}), Some{$EE}), ($SCR(None{}, $CK(cu), False{}), None{}), hb))
+      sbt($CAB, hb, stp($AK, $F, $VBA, False{}, nx, cu, $NKB, Some{k}, Some{$EE}, Equal.trans($PT, S.iterator_next($AK, $SCR($CK(nx), $CK(cu), False{})), S.iterator_next($AK, $SCR(Some{k}, $CK(cu), False{})), ($SCR($NKB, Some{k}, False{}), Some{$EE}), $E1B, e2), $NXM(False{})), kont)
+    case False{}:
+      +e2 = Equal.trans($PT, S.iterator_next($AK, $SCR(Some{k}, $CK(cu), False{})), $SPRX($EST, $NKB, False{}, $CK(cu)), ($SCR(None{}, $CK(cu), False{}), None{}), $SPB0, VS.pk_f($PT, $IR(k), ($SCR($NKB, Some{k}, False{}), Some{$EE}), ($SCR(None{}, $CK(cu), False{}), None{}), hb))
+      sbs($CAB, hb, stp($AK, $F, $VBA, False{}, nx, cu, None{}, $CK(cu), None{}, Equal.trans($PT, S.iterator_next($AK, $SCR($CK(nx), $CK(cu), False{})), S.iterator_next($AK, $SCR(Some{k}, $CK(cu), False{})), ($SCR(None{}, $CK(cu), False{}), None{}), $E1B, e2), $NXM(False{})))
+
+%def HABB Equal.trans($ES, $EST, $EAPP($RVC, bs), $EAPP($RV(t), Con{$EE, bs}), hab, LL.snoc_append_cons($E, $RV(t), $EE, bs))
+
+# the count backward: the entries within before the cursor
+def szb($TO, $FT, +hg: $GF, $VB, +x: Nat, +rr: $ES, +bs: $ES, +nx: Nat, +cu: Nat, +hc: $HCUR(nx, cu, False{}), +hab: {$EST == $EAPP($RV(rr), bs) : $ES}, +hk: {$CK(nx) == S.key_m(K, V, S.last($E, $RV(rr))) : $MK}, +hbu: $ALB(rr), +c: Nat) -> $GBW(rr, nx, cu, c):
+  match rr:
+    case Nil{}:
+      sbn($AK, $F, $VBA, x, nx, cu, c, stp($AK, $F, $VBA, False{}, nx, cu, None{}, $CK(cu), None{}, L.subst($MK, q => {S.iterator_next($AK, $SCR(q, $CK(cu), False{})) == ($SCR(None{}, $CK(cu), False{}), None{}) : $PT}, None{}, $CK(nx), Equal.sym($MK, $CK(nx), None{}, hk), {==}), $NXM(False{})))
+    case Con{M.Entry{+k, +v}, +t}:
+      sbc($AO, $F, hg, $VBA, x, k, v, t, bs, nx, cu, $HABB, hbu, c, hc, hk, $IR(k), {==}, ky => kz => kc => kk => szb($AO, $F, hg, $VBA, x, t, Con{$EE, bs}, ky, kz, kc, $HABB, kk, L.and_right(S.below_upper(~K, ~cmp, k, hi2), VS.allbu($AK, hi2, t), hbu), 1n+c))
+
+# ---- the view's size ----
+
+%def VSZ(d2) {MI.view_size($AK, MI.MV{$SH, lo2, hi2, d2}) == (MI.MV{$SH, lo2, hi2, d2}, $WL($EST)) : $MVT & Nat}
+%def LN_(xs) SC.length($E, xs)
+%def IDK(j) {CU.idok(ST.ids(tg), j) == True{} : Bool}
+%def SPF Sigma<&1, &1, $ES, xa => Sigma<&1, &1, $ES, xb => {$EST == $EAPP(xa, xb) : $ES} & ($ALL(xb) & ({$W(xa) == Nil{} : $ES} & {VS.fal($AK, lo2, $EST) == S.head($E, xb) : $ME}))>>
+%def SPB Sigma<&1, &1, $ES, xa => Sigma<&1, &1, $ES, xb => {$EST == $EAPP(xa, xb) : $ES} & ($ALB(xa) & ({$W(xb) == Nil{} : $ES} & {VS.lbu($AK, hi2, $EST, None{}) == OR.orm($E, S.last($E, xa), None{}) : $ME}))>>
+
+def vsf2($TO, $FT, +hg: $GF, $VB, +j: Nat, +h1: {MI.range_start($AK, $SH, lo2, True{}) == ($SH, j) : $SHT & Nat}, +h2: {$CK(j) == S.start($AK, lo2, True{}, $EST) : $MK}, +h3: $IDK(j), +xa: $ES, +xb: $ES, +hab: {$EST == $EAPP(xa, xb) : $ES}, r: $ALL(xb) & ({$W(xa) == Nil{} : $ES} & {VS.fal($AK, lo2, $EST) == S.head($E, xb) : $ME})) -> $VSZ(False{}):
+  match r:
+    case Tuple{hal, Tuple{hwa, hfb}}:
+      %Equal.sym($SHT & Nat, MI.range_start($AK, $SH, lo2, True{}), ($SH, j), h1) : {MI.view_count_loop($AK, 1n+n, 0n, MI.iterator_next($AK, MI.cursor_started($AK, lo2, hi2, True{}, _))) == ($VEF, $WL($EST)) : $MVT & Nat}
+      +hnt = Equal.trans(Nat, $LN_($EAPP(xa, xb)), Nat.add($LN_(xa), $LN_(xb)), Nat.add($LN_(xb), $LN_(xa)), LL.length_append($E, xa, xb), N.add_comm($LN_(xa), $LN_(xb)))
+      %Equal.sym(Nat, n, Nat.add($LN_(xb), $LN_(xa)), Equal.trans(Nat, n, $LN_($EST), Nat.add($LN_(xb), $LN_(xa)), RD.size_eq($AK, $F, hg), Equal.trans(Nat, $LN_($EST), $LN_($EAPP(xa, xb)), Nat.add($LN_(xb), $LN_(xa)), VS.cong($ES, Nat, q => $LN_(q), $EST, $EAPP(xa, xb), hab), hnt))) : {MI.view_count_loop($AK, 1n+_, 0n, MI.iterator_next($AK, $CUR(j, 0n, True{}))) == ($VEF, $WL($EST)) : $MVT & Nat}
+      +hk = Equal.trans($MK, $CK(j), S.start($AK, lo2, True{}, $EST), S.key_m(K, V, S.head($E, xb)), h2, Equal.trans($MK, S.start($AK, lo2, True{}, $EST), S.key_m(K, V, VS.fal($AK, lo2, $EST)), S.key_m(K, V, S.head($E, xb)), VS.start_fal($AK, lo2, $EST), VS.cong($ME, $MK, q => S.key_m(K, V, q), VS.fal($AK, lo2, $EST), S.head($E, xb), hfb)))
+      +ew = Equal.trans($ES, $W($EST), $W($EAPP(xa, xb)), $W(xb), VS.cong($ES, $ES, q => $W(q), $EST, $EAPP(xa, xb), hab), Equal.trans($ES, $W($EAPP(xa, xb)), $EAPP($W(xa), $W(xb)), $W(xb), VS.within_app($AK, lo2, hi2, xa, xb), VS.cong($ES, $ES, q => $EAPP(q, $W(xb)), $W(xa), Nil{}, hwa)))
+      +ec = Equal.trans(Nat, Nat.add($WL(xb), 0n), $WL(xb), $WL($EST), N.add_zero($WL(xb)), Equal.sym(Nat, $WL($EST), $WL(xb), VS.cong($ES, Nat, q => $LN_(q), $W($EST), $W(xb), ew)))
+      Equal.trans($MVT & Nat, MI.view_count_loop($AK, 1n+Nat.add($LN_(xb), $LN_(xa)), 0n, MI.iterator_next($AK, $CUR(j, 0n, True{}))), ($VEF, Nat.add($WL(xb), 0n)), ($VEF, $WL($EST)), szf($AO, $F, hg, $VBA, $LN_(xa), xb, xa, j, 0n, CU.cg_start($AK, $F, hg, j, h3, True{}), hab, hk, hal, 0n), VS.cong(Nat, $MVT & Nat, q => ($VEF, q), Nat.add($WL(xb), 0n), $WL($EST), ec))
+
+def vsf1($TO, $FT, +hg: $GF, $VB, +j: Nat, +h1: {MI.range_start($AK, $SH, lo2, True{}) == ($SH, j) : $SHT & Nat}, +h2: {$CK(j) == S.start($AK, lo2, True{}, $EST) : $MK}, +h3: $IDK(j), sp: $SPF) -> $VSZ(False{}):
+  match sp:
+    case Tuple{+xa, Tuple{+xb, Tuple{+hab, r}}}:
+      vsf2($AO, $F, hg, $VBA, j, h1, h2, h3, xa, xb, hab, r)
+
+def vsb2($TO, $FT, +hg: $GF, $VB, +j: Nat, +h1: {MI.range_start($AK, $SH, hi2, False{}) == ($SH, j) : $SHT & Nat}, +h2: {$CK(j) == S.start($AK, hi2, False{}, $EST) : $MK}, +h3: $IDK(j), +xa: $ES, +xb: $ES, +hab: {$EST == $EAPP(xa, xb) : $ES}, r: $ALB(xa) & ({$W(xb) == Nil{} : $ES} & {VS.lbu($AK, hi2, $EST, None{}) == OR.orm($E, S.last($E, xa), None{}) : $ME})) -> $VSZ(True{}):
+  match r:
+    case Tuple{hbu, Tuple{hwb, hlb}}:
+      %Equal.sym($SHT & Nat, MI.range_start($AK, $SH, hi2, False{}), ($SH, j), h1) : {MI.view_count_loop($AK, 1n+n, 0n, MI.iterator_next($AK, MI.cursor_started($AK, lo2, hi2, False{}, _))) == ($VEB, $WL($EST)) : $MVT & Nat}
+      +err = LL.spec_rev_rev($E, xa)
+      +hab2 = L.subst($ES, q => {$EST == $EAPP(q, xb) : $ES}, xa, $RV($RV(xa)), Equal.sym($ES, $RV($RV(xa)), xa, err), hab)
+      +hnt = Equal.trans(Nat, $LN_($EAPP(xa, xb)), Nat.add($LN_(xa), $LN_(xb)), Nat.add($LN_($RV(xa)), $LN_(xb)), LL.length_append($E, xa, xb), VS.cong(Nat, Nat, q => Nat.add(q, $LN_(xb)), $LN_(xa), $LN_($RV(xa)), Equal.sym(Nat, $LN_($RV(xa)), $LN_(xa), LL.length_rev($E, xa))))
+      %Equal.sym(Nat, n, Nat.add($LN_($RV(xa)), $LN_(xb)), Equal.trans(Nat, n, $LN_($EST), Nat.add($LN_($RV(xa)), $LN_(xb)), RD.size_eq($AK, $F, hg), Equal.trans(Nat, $LN_($EST), $LN_($EAPP(xa, xb)), Nat.add($LN_($RV(xa)), $LN_(xb)), VS.cong($ES, Nat, q => $LN_(q), $EST, $EAPP(xa, xb), hab), hnt))) : {MI.view_count_loop($AK, 1n+_, 0n, MI.iterator_next($AK, $CUR(j, 0n, False{}))) == ($VEB, $WL($EST)) : $MVT & Nat}
+      +hk0 = Equal.trans($MK, S.start($AK, hi2, False{}, $EST), S.key_m(K, V, VS.lbu($AK, hi2, $EST, None{})), S.key_m(K, V, S.last($E, xa)), VS.start_lbu($AK, hi2, $EST), VS.cong($ME, $MK, q => S.key_m(K, V, q), VS.lbu($AK, hi2, $EST, None{}), S.last($E, xa), Equal.trans($ME, VS.lbu($AK, hi2, $EST, None{}), OR.orm($E, S.last($E, xa), None{}), S.last($E, xa), hlb, OR.orm_none($E, S.last($E, xa)))))
+      +hk = Equal.trans($MK, $CK(j), S.key_m(K, V, S.last($E, xa)), S.key_m(K, V, S.last($E, $RV($RV(xa)))), Equal.trans($MK, $CK(j), S.start($AK, hi2, False{}, $EST), S.key_m(K, V, S.last($E, xa)), h2, hk0), VS.cong($ES, $MK, q => S.key_m(K, V, S.last($E, q)), xa, $RV($RV(xa)), Equal.sym($ES, $RV($RV(xa)), xa, err)))
+      +ew = Equal.trans($ES, $W($EST), $W($EAPP(xa, xb)), $W($RV($RV(xa))), VS.cong($ES, $ES, q => $W(q), $EST, $EAPP(xa, xb), hab), Equal.trans($ES, $W($EAPP(xa, xb)), $EAPP($W(xa), $W(xb)), $W($RV($RV(xa))), VS.within_app($AK, lo2, hi2, xa, xb), Equal.trans($ES, $EAPP($W(xa), $W(xb)), $W(xa), $W($RV($RV(xa))), Equal.trans($ES, $EAPP($W(xa), $W(xb)), $EAPP($W(xa), Nil{}), $W(xa), VS.cong($ES, $ES, q => $EAPP($W(xa), q), $W(xb), Nil{}, hwb), LL.append_nil($E, $W(xa))), VS.cong($ES, $ES, q => $W(q), xa, $RV($RV(xa)), Equal.sym($ES, $RV($RV(xa)), xa, err)))))
+      +ec = Equal.trans(Nat, Nat.add($WL($RV($RV(xa))), 0n), $WL($RV($RV(xa))), $WL($EST), N.add_zero($WL($RV($RV(xa)))), Equal.sym(Nat, $WL($EST), $WL($RV($RV(xa))), VS.cong($ES, Nat, q => $LN_(q), $W($EST), $W($RV($RV(xa))), ew)))
+      Equal.trans($MVT & Nat, MI.view_count_loop($AK, 1n+Nat.add($LN_($RV(xa)), $LN_(xb)), 0n, MI.iterator_next($AK, $CUR(j, 0n, False{}))), ($VEB, Nat.add($WL($RV($RV(xa))), 0n)), ($VEB, $WL($EST)), szb($AO, $F, hg, $VBA, $LN_(xb), $RV(xa), xb, j, 0n, CU.cg_start($AK, $F, hg, j, h3, False{}), hab2, hk, VS.allbu_rev($AK, hi2, xa, hbu), 0n), VS.cong(Nat, $MVT & Nat, q => ($VEB, q), Nat.add($WL($RV($RV(xa))), 0n), $WL($EST), ec))
+
+def vsb1($TO, $FT, +hg: $GF, $VB, +j: Nat, +h1: {MI.range_start($AK, $SH, hi2, False{}) == ($SH, j) : $SHT & Nat}, +h2: {$CK(j) == S.start($AK, hi2, False{}, $EST) : $MK}, +h3: $IDK(j), sp: $SPB) -> $VSZ(True{}):
+  match sp:
+    case Tuple{+xa, Tuple{+xb, Tuple{+hab, r}}}:
+      vsb2($AO, $F, hg, $VBA, j, h1, h2, h3, xa, xb, hab, r)
+
+%def RSID(b, fw) Sigma<&1, &1, Nat, j => {MI.range_start($AK, $SH, b, fw) == ($SH, j) : $SHT & Nat} & ({$CK(j) == S.start($AK, b, fw, $EST) : $MK} & $IDK(j))>
+
+def vrf2($TO, $FT, +hg: $GF, $VB, +j: Nat, +h1: {MI.range_start($AK, $SH, lo2, True{}) == ($SH, j) : $SHT & Nat}, r: {$CK(j) == S.start($AK, lo2, True{}, $EST) : $MK} & $IDK(j)) -> $VSZ(False{}):
+  match r:
+    case Tuple{h2, h3}:
+      vsf1($AO, $F, hg, $VBA, j, h1, h2, h3, VS.split_fal($AO, lo2, hi2, $EST, $ORDH))
+
+def vrf($TO, $FT, +hg: $GF, $VB, r: $RSID(lo2, True{})) -> $VSZ(False{}):
+  match r:
+    case Tuple{+j, Tuple{+h1, r2}}:
+      vrf2($AO, $F, hg, $VBA, j, h1, r2)
+
+def vrb2($TO, $FT, +hg: $GF, $VB, +j: Nat, +h1: {MI.range_start($AK, $SH, hi2, False{}) == ($SH, j) : $SHT & Nat}, r: {$CK(j) == S.start($AK, hi2, False{}, $EST) : $MK} & $IDK(j)) -> $VSZ(True{}):
+  match r:
+    case Tuple{h2, h3}:
+      vsb1($AO, $F, hg, $VBA, j, h1, h2, h3, VS.split_lbu($AO, lo2, hi2, $EST, None{}, $ORDH))
+
+def vrb($TO, $FT, +hg: $GF, $VB, r: $RSID(hi2, False{})) -> $VSZ(True{}):
+  match r:
+    case Tuple{+j, Tuple{+h1, r2}}:
+      vrb2($AO, $F, hg, $VBA, j, h1, r2)
+
+# the mirror's size of a view: the number of entries within
+def view_size_m($TO, $FT, +hg: $GF, $VB, +d2: Bool) -> $VSZ(d2):
+  match d2:
+    case True{}:
+      vrb($AO, $F, hg, $VBA, VI.rsid($AO, $F, hg, hi2, False{}))
+    case False{}:
+      vrf($AO, $F, hg, $VBA, VI.rsid($AO, $F, hg, lo2, True{}))

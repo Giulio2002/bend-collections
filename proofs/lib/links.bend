@@ -1,13 +1,13 @@
 import Base
 import ../../src/containers/hash_table.bend as H
 import ./u32.bend as UW
-import ../spec/common.bend as SC
+import ./spec_common.bend as SC
 import ./nat_list.bend as NL
 import ./logic.bend as L
 import ./nat.bend as N
-import ../math/u32div.bend as UD
+import ./u32div.bend as UD
 import ./words32.bend as W32
-import ../math/word.bend as WD
+import ./word.bend as WD
 
 # Ids linked through U32 words: lnk(s) is the link word of slot s, fst_or and
 # last_or the link of a list's first and last id (or a default), and how they

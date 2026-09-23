@@ -1,0 +1,165 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/u32alg.bend as A
+import ../../lib/array.bend as AR
+import ../../lib/spec_common.bend as SC
+import ../hash_table/spec.bend as S
+import ./spec.bend as SP
+import ../../lib/u32div.bend as UD
+import ../../../src/containers/hash_table.bend as H
+import ../../../src/containers/lru.bend as LR
+import ../hash_table/table.bend as TB
+import ../hash_table/buckets.bend as B
+import ../hash_table/cyc.bend as CY
+import ../hash_table/inv.bend as IV
+import ../hash_table/state.bend as HT
+import ../hash_table/keys.bend as K
+import ./state.bend as ST
+import ./basic.bend as BA
+import ./find.bend as FD
+import ./tfind.bend as TF
+import ./touch.bend as TO
+import ./rmat.bend as RM
+import ./unlink.bend as UL
+import ../hash_table/get.bend as G
+import ../../../src/math/hash.bend as HS
+import ../hash_table/probe_impl.bend as PI
+import ../hash_table/probe_all.bend as PA
+
+import ./read.bend as RD
+import ./qrm.bend as QR
+import ../../lib/nat_list.bend as NL
+import ../../lib/words32.bend as W32
+import ../../lib/u32_tree.bend as UT
+
+# remove: the implementation's remove is the specification's.
+
+%include read.src
+
+%def RMF(m) SP.remove_found(~V, cap, $M3, $W4, $ES, $CTR, key, m)
+%def TH4 AR.thaw(U32, mT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)
+%def QOF(r) QR.qrm_of(~V, r, AR.thaw(U32, tabT), CY.msk(k), cap, n, head, tail, free, $TH4)
+%def KP +key: String
+
+def rm_v0(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $KP, +one: Nat, +h1: {one == 1n : Nat}, +s: Nat, +hmem: {NL.memn(s, sl) == True{} : Bool}, +l: U32, +hsv: {UD.v(H.slot(l)) == s : Nat}, +hk: {S.str_eq(ST.skey($LLo, $KL, s), key) == True{} : Bool}, $RHX, +m: Maybe<&2, V>, +hmm: {HT.nthm(~V, $EL, s) == m : Maybe<&2, V>}, +hsm: {HT.some_b(~V, m) == True{} : Bool}) -> RM.POK(~V, Maybe<&2, V>, $RMF(SP.find(~V, $ES, key)), LR.drop_slot(&2, V, $F0($DT), H.slot(l), 2)):
+  match m:
+    case None{}:
+      Empty.absurd(RM.POK(~V, Maybe<&2, V>, $RMF(SP.find(~V, $ES, key)), LR.drop_slot(&2, V, $F0($DT), H.slot(l), 2)), L.false_true(hsm))
+    case Some{+v}:
+      +hm = {hmm : {HT.nthm(~V, $EL, s) == Some{v} : Maybe<&2, V>}}
+      +hlv = L.subst(Maybe<&2, V>, z => {HT.some_b(~V, z) == True{} : Bool}, Some{v}, HT.nthm(~V, $EL, s), Equal.sym(Maybe<&2, V>, HT.nthm(~V, $EL, s), Some{v}, hm), {==})
+      +hf = Equal.trans(Maybe<&2, SP.Ent<V>>, SP.find(~V, $ES, key), FD.fnd(~V, $LLo, $KL, s, HT.nthm(~V, $EL, s)), Some{$EV}, FD.find_hit(~V, $LLo, $KL, $EL, s, hlv, key, hk, sl, hmem, $G(ckeys)), Equal.cong(Maybe<&2, V>, Maybe<&2, SP.Ent<V>>, z => FD.fnd(~V, $LLo, $KL, s, z), HT.nthm(~V, $EL, s), Some{v}, hm))
+      L.subst(Maybe<&2, SP.Ent<V>>, z => RM.POK(~V, Maybe<&2, V>, $RMF(z), LR.drop_slot(&2, V, $F0($DT), H.slot(l), 2)), Some{$EV}, SP.find(~V, $ES, key), Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, $ES, key), Some{$EV}, hf), RM.rm_at_rm(~V, cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl, hg, s, hmem, one, h1, i, hi, hoi, hsi, H.slot(l), hsv, v, hm, key, hk))
+
+# the probe's result, then the removal it asks for
+def rm_res(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $KP, +one: Nat, +h1: {one == 1n : Nat}, +h: Nat, +r0: B.Res, hres: B.ResOK($BS, $NN, h, key, r0)) -> RM.POK(~V, Maybe<&2, V>, $RMF(SP.find(~V, $ES, key)), $QOF(r0)):
+  match r0:
+    case B.RHit{+i, +l}:
+      (+hi, rest) = hres
+      (+hk0, hl) = rest
+      +hsi = Equal.cong(U32, Nat, z => UD.v(H.slot(z)), B.lnk($Bi), l, hl)
+      +hbl = TF.bsl_inst($BS, sl, $LLo, $NN, $G(cbsl), i, hi)
+      +hmem = L.subst(Nat, z => {NL.memn(z, sl) == True{} : Bool}, UD.v(H.slot(B.lnk($Bi))), $Si, hsi, TF.hit_mem(sl, $LLo, key, $Bi, hk0, hbl))
+      +hk = L.subst(Nat, z => {S.str_eq(ST.skey($LLo, $KL, z), key) == True{} : Bool}, UD.v(H.slot(B.lnk($Bi))), $Si, hsi, TF.hit_key(sl, $LLo, $KL, key, $Bi, hk0, hbl, TF.bkok_at(AR.slots(U32, tabT), $KL, $NN, i, hi)))
+      +hls = TF.slok_mem(~V, $EL, $FR, $Si, sl, $G(csl), hmem)
+      rm_v0(~V, $SHA, hg, key, one, h1, $Si, hmem, l, {==}, hk, i, hi, B.hold_occ(key, $Bi, hk0), hsi, HT.nthm(~V, $EL, $Si), {==}, L.and_right(Nat.is_lt($Si, $FR), ST.live(~V, $EL, $Si), hls))
+    case B.REnd{+e0}:
+      (+he, rest) = hres
+      (+hz, rest2) = rest
+      (+hp, hno) = rest2
+      +hsd1 = UL.sd1(sd, RD.f_hsd(~V, $SHA, hg))
+      +hnk = TF.nokey_of(~V, one, h1, AR.slots(U32, tabT), $KL, $NN, key, hno, $LLo, $EL, sd, hsd1, $FR, $G(cfresh), sl, $G(csl), $G(chas))
+      +hf = FD.find_miss(~V, $LLo, $KL, $EL, key, sl, hnk)
+      L.subst(Maybe<&2, SP.Ent<V>>, z => RM.POK(~V, Maybe<&2, V>, $RMF(z), $QOF(B.REnd{e0})), None{}, SP.find(~V, $ES, key), Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, $ES, key), None{}, hf), ($SH, (None{}, ({==}, ({==}, hg)))))
+
+%def G6 Equal.trans(Array<U32> & U32, Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), W32.nth0($ML, 6n)), (AR.thaw(U32, mT), CY.msk(k)), UT.uget(5n, {==}, mT, $G(cpm), 6, {==}), Equal.cong(U32, Array<U32> & U32, z => (AR.thaw(U32, mT), z), W32.nth0($ML, 6n), CY.msk(k), A.eq_of(W32.nth0($ML, 6n), CY.msk(k), $G(cmask))))
+%def RMFD(x) LR.rm_fd(&2, V, cap, n, head, tail, free, AR.thaw(U32, mT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), x)
+
+# the long path's result read back as the removal the probe asks for
+def lp_fd(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $KP, +h: Nat, +r0: B.Res, hres: B.ResOK($BS, $NN, h, key, r0)) -> {$RMFD($PR) == $QOF(r0) : LR.LRU<&2, V> & Maybe<&2, V>}:
+  match r0:
+    case B.RHit{+i, +l}:
+      (+hi, rest) = hres
+      (+hk0, hl) = rest
+      +hwb = B.all_inst(B.PWell{$BS, sd}, $NN, $G(cwell), i, hi)
+      +hz = L.subst(U32, z => {U32.is_eq(z, 0) == False{} : Bool}, B.lnk($Bi), l, hl, RD.lnz(sd, key, $Bi, hwb, hk0))
+      +E1 = Equal.cong(Bool, LR.LRU<&2, V> & Maybe<&2, V>, z => LR.rm_pick(&2, V, $F, U32.from_nat(i), l, z), U32.is_eq(l, 0), False{}, hz)
+      +E2 = Equal.cong(Array<U32> & U32, LR.LRU<&2, V> & Maybe<&2, V>, r => LR.rm_hit(&2, V, cap, n, head, tail, free, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), U32.from_nat(i), l, r), Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), CY.msk(k)), $G6)
+      Equal.trans(LR.LRU<&2, V> & Maybe<&2, V>, LR.rm_pick(&2, V, $F, U32.from_nat(i), l, U32.is_eq(l, 0)), LR.rm_pick(&2, V, $F, U32.from_nat(i), l, False{}), $QOF(B.RHit{i, l}), E1, E2)
+    case B.REnd{+e0}:
+      {==}
+
+%def RMN(x) LR.rm_found(&2, V, cap, n, head, tail, free, AR.thaw(U32, mT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), x)
+%def RMFz(z) SP.remove_found(~V, cap, $M3, $W4, ST.es(~V, $LLo, z, $EL, sl), $CTR, key, SP.find(~V, ST.es(~V, $LLo, z, $EL, sl), key))
+%def FDK PI.fd_of(r0, AR.thaw(U32, tabT), AR.thaw(String, K2), PA.stored(key))
+%def QOFK(r) QR.qrm_of(~V, r, AR.thaw(U32, tabT), CY.msk(k), cap, n, head, tail, free, AR.thaw(U32, mT), AR.thaw(String, K2), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT))
+
+def rm_po(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $KP, +one: Nat, +h1: {one == 1n : Nat}, +r0: B.Res, hres: B.ResOK($BS, $NN, $HOME, key, r0), hresb: B.ResOK($BS, $NN, $HOME, key, r0), po: PA.ProbeOK(tabT, sd, $KL, PA.stored(key), K.kword(key), r0, $PB)) -> RM.POK(~V, Maybe<&2, V>, $RMF(SP.find(~V, $ES, key)), $RMN($PB)):
+  match po:
+    case Tuple{+K2, Tuple{+e, Tuple{+hsl, pk2}}}:
+      +pk = $G(cpk)
+      +g1 = L.subst(List<&2, String>, z => {$GFz(z, AR.perfect(String, sd, ksT)) == True{} : Bool}, $KL, $K2L, Equal.sym(List<&2, String>, $K2L, $KL, hsl), hg)
+      +hg2 = L.subst(Bool, z => {$GFz($K2L, z) == True{} : Bool}, AR.perfect(String, sd, ksT), AR.perfect(String, sd, K2), Equal.trans(Bool, AR.perfect(String, sd, ksT), True{}, AR.perfect(String, sd, K2), pk, Equal.sym(Bool, AR.perfect(String, sd, K2), True{}, pk2)), g1)
+      hres2 = L.subst(List<&2, String>, z => B.ResOK(TB.buckets(AR.slots(U32, tabT), z, $NN), $NN, $HOME, key, r0), $KL, $K2L, Equal.sym(List<&2, String>, $K2L, $KL, hsl), hres)
+      hres3 = L.subst(List<&2, String>, z => B.ResOK(TB.buckets(AR.slots(U32, tabT), z, $NN), $NN, $HOME, key, r0), $KL, $K2L, Equal.sym(List<&2, String>, $K2L, $KL, hsl), hresb)
+      ok = rm_res(~V, cap, n, head, tail, free, mT, k, sd, tabT, K2, eT, lkT, sl, fl, hg2, key, one, h1, $HOME, r0, hres2)
+      +el = lp_fd(~V, cap, n, head, tail, free, mT, k, sd, tabT, K2, eT, lkT, sl, fl, hg2, key, $HOME, r0, hres3)
+      +E = Equal.trans(LR.LRU<&2, V> & Maybe<&2, V>, $RMN($PB), $RMN(($FDK, K.kword(key))), $QOFK(r0), Equal.cong(H.Found & U32, LR.LRU<&2, V> & Maybe<&2, V>, x => $RMN(x), $PB, ($FDK, K.kword(key)), e), el)
+      ok2 = L.subst(List<&2, String>, z => RM.POK(~V, Maybe<&2, V>, $RMFz(z), $QOFK(r0)), $K2L, $KL, hsl, ok)
+      L.subst(LR.LRU<&2, V> & Maybe<&2, V>, z => RM.POK(~V, Maybe<&2, V>, $RMF(SP.find(~V, $ES, key)), z), $QOFK(r0), $RMN($PB), Equal.sym(LR.LRU<&2, V> & Maybe<&2, V>, $RMN($PB), $QOFK(r0), E), ok2)
+
+%def HRES(kk) G.res_e0($BS, $NN, N.succ_le_lt(0n, $NN, N.pow2_pos(k)), CY.msk(k), kk, UD.v(HS.bucket(K.kword(kk), CY.msk(k))), PA.home_lt(K.kword(kk), k), $G(cclus), IV.home_all($BS, sd, CY.msk(k), kk, $NN, $G(cwell), $NN, N.le_refl($NN)), IV.find_empty($BS, $NN, L.subst(Nat, z => {Nat.is_lt(z, $NN) == True{} : Bool}, UD.v(n), IV.occn($BS, $NN), N.eq_from_is_eq(UD.v(n), IV.occn($BS, $NN), $G(cn)), BA.n_lt(~V, $SHA, hg))))
+%def HK31 N.lt_trans(k, 30n, 31n, L.and_left(Nat.is_lt(k, 30n), Nat.is_lt(0n, k), $G(ck)), {==})
+%def HSD32 N.lt_trans(sd, 3n+sd, 32n, N.lt_le_trans(sd, 1n+sd, 3n+sd, N.lt_succ(sd), N.le_trans(1n+sd, 2n+sd, 3n+sd, N.le_succ(1n+sd), N.le_succ(2n+sd))), RD.f_hsd(~V, $SHA, hg))
+%def SPR(kk) SP.remove(~V, ST.model(~V, $SH), kk)
+
+# the long path: probe, then remove at the found bucket
+def rm_long(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $KP, +one: Nat, +h1: {one == 1n : Nat}) -> RM.POK(~V, Maybe<&2, V>, $SPR(key), LR.remove_long(&2, V, $F, key)):
+  ok = rm_po(~V, $SHA, hg, key, one, h1, $R0, $HRES(key), $HRES(key), PA.probe_ok(one, h1, k, $HK31, tabT, $G(cpt), sd, $HSD32, $KL, ksT, {==}, $G(cpk), $G(cwell), key))
+  +E = Equal.cong(Array<U32> & U32, LR.LRU<&2, V> & Maybe<&2, V>, r => LR.rm_m(&2, V, cap, n, head, tail, free, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), key, r), Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), CY.msk(k)), $G6)
+  L.subst(LR.LRU<&2, V> & Maybe<&2, V>, z => RM.POK(~V, Maybe<&2, V>, $SPR(key), z), $RMN($PB), LR.remove_long(&2, V, $F, key), Equal.sym(LR.LRU<&2, V> & Maybe<&2, V>, LR.remove_long(&2, V, $F, key), $RMN($PB), E), ok)
+
+%def KC {SCon{Chr{c}, SNil{}} : String}
+%def WC H.short_word(c)
+%def IC HS.bucket($WC, CY.msk(k))
+%def QPF(f) B.pf($KC, $BS, $NN, f, B.mstep($KC, B.at($BS, UD.v($IC))), UD.v($IC))
+%def QRMF(f) LR.qrm(&2, V, f, H.qstep(AR.thaw(U32, tabT), $IC, $WC), CY.msk(k), $WC, $IC, cap, n, head, tail, free, $TH4)
+
+# the fused one-character path
+def rm_short(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +c: U32, +hc: {U32.is_lt(c, H.tag()) == True{} : Bool}) -> RM.POK(~V, Maybe<&2, V>, $SPR($KC), LR.rm_q(&2, V, $F, $WC)):
+  +ew = K.kword_short(c, hc)
+  hres = L.subst(U32, z => B.ResOK($BS, $NN, UD.v(HS.bucket(z, CY.msk(k))), $KC, B.pf($KC, $BS, $NN, $NN, B.mstep($KC, B.at($BS, UD.v(HS.bucket(z, CY.msk(k))))), UD.v(HS.bucket(z, CY.msk(k))))), K.kword($KC), $WC, ew, $HRES($KC))
+  ok = rm_res(~V, $SHA, hg, $KC, one, h1, UD.v($IC), $QPF($NN), hres)
+  +eq = QR.qrm_ok(~V, cap, n, head, tail, free, mT, ksT, eT, lkT, one, h1, k, $HK31, tabT, $G(cpt), sd, $KL, c, hc, $G(cwell), $NN, $IC, PA.home_lt($WC, k))
+  +ef = Equal.cong(Nat, LR.LRU<&2, V> & Maybe<&2, V>, f => $QRMF(f), U32.to_nat(U32.inc(CY.msk(k))), $NN, PA.fuel_eq(one, h1, k, $HK31))
+  +E1 = Equal.cong(Array<U32> & U32, LR.LRU<&2, V> & Maybe<&2, V>, r => LR.rm_q2(&2, V, cap, n, head, tail, free, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT), $WC, r), Array.get(U32, AR.thaw(U32, mT), 6), (AR.thaw(U32, mT), CY.msk(k)), $G6)
+  +E = Equal.trans(LR.LRU<&2, V> & Maybe<&2, V>, LR.rm_q(&2, V, $F, $WC), $QRMF(U32.to_nat(U32.inc(CY.msk(k)))), $QOF($QPF($NN)), E1, Equal.trans(LR.LRU<&2, V> & Maybe<&2, V>, $QRMF(U32.to_nat(U32.inc(CY.msk(k)))), $QRMF($NN), $QOF($QPF($NN)), ef, eq))
+  L.subst(LR.LRU<&2, V> & Maybe<&2, V>, z => RM.POK(~V, Maybe<&2, V>, $SPR($KC), z), $QOF($QPF($NN)), LR.rm_q(&2, V, $F, $WC), Equal.sym(LR.LRU<&2, V> & Maybe<&2, V>, LR.rm_q(&2, V, $F, $WC), $QOF($QPF($NN)), E), ok)
+
+def rm_sh(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +c: U32, +b: Bool, +hb: {U32.is_lt(c, H.tag()) == b : Bool}) -> RM.POK(~V, Maybe<&2, V>, $SPR($KC), LR.rm_short(&2, V, $F, c, b)):
+  match b:
+    case True{}:
+      rm_short(~V, $SHA, hg, one, h1, c, hb)
+    case False{}:
+      rm_long(~V, $SHA, hg, $KC, one, h1)
+
+def rm_ch(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +c: U32, +t: String) -> RM.POK(~V, Maybe<&2, V>, $SPR(SCon{Chr{c}, t}), LR.rm_c(&2, V, $F, c, t)):
+  match t:
+    case SNil{}:
+      rm_sh(~V, $SHA, hg, one, h1, c, U32.is_lt(c, H.tag()), {==})
+    case SCon{+d, +t2}:
+      rm_long(~V, $SHA, hg, SCon{Chr{c}, SCon{d, t2}}, one, h1)
+
+def remove_sh(~V: Data, $SHF, +hg: {ST.good(~V, $SH) == True{} : Bool}, $KP, +one: Nat, +h1: {one == 1n : Nat}) -> RM.POK(~V, Maybe<&2, V>, $SPR(key), LR.remove(&2, V, $F, key)):
+  match key:
+    case SNil{}:
+      rm_long(~V, $SHA, hg, SNil{}, one, h1)
+    case SCon{Chr{+c}, +t}:
+      rm_ch(~V, $SHA, hg, one, h1, c, t)
+
+# THEOREM (remove): the specification's remove
+def remove_ok(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, $KP) -> RM.POK(~V, Maybe<&2, V>, SP.remove(~V, ST.model(~V, sh), key), LR.remove(&2, V, ST.real(~V, sh), key)):
+  match sh:
+    case ST.LS{$SHA}:
+      remove_sh(~V, $SHA, hg, key, one, h1)

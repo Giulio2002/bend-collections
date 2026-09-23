@@ -1,0 +1,76 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/list.bend as LL
+import ../../lib/order.bend as O
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./ok.bend as OK
+import ./reads.bend as RD
+import ./find.bend as FI
+import ./ends.bend as EN
+import ./path.bend as P
+import ./plug.bend as PG
+import ./ord.bend as OR
+import ./prim.bend as PR
+import ./tree.bend as TR
+import ./spath.bend as SP
+import ./putm.bend as PM
+import ./rmv.bend as RV
+import ./mokx.bend as MX
+
+# remove_if_equal: the found value compared with the expected one; equal,
+# the node is removed as remove removes it, the answer true; otherwise, or
+# absent, nothing changes. (source: tools/generators/tm_hand/rmi.src)
+
+%include putm.src
+%def TQ ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), ~eq: V -> V -> Bool
+%def AQ ~K, ~V, ~cmp, ~o, ~eq
+%def U 1n+ui
+%def P1 PR.ex_pl(V, pl, $U, None{})
+%def SH1 ST.SH{n, root, lo, hi, free, l, d, nl, $P1, tg, fl}
+%def RMIS S.remove_if_equal($AK, ~eq, ST.model($AK, $SH), k, e)
+%def RMIR(r) OK.MOK($AK, Bool, $RMIS, MI.remove_if_found($AK, ~eq, e, e, r))
+%def DLE S.del($AK, k, $EST)
+%def UT MI.unlink_target($AK, MI.delete_target($AK, $U, ($SH1, ST.nd(K, nl, $U))))
+%def CHU +c: $CT, +ui: Nat, +a: ST.Tr, +b: ST.Tr, +hbc: {$IDS(tg) == $WH($TN($U, a, b)) : $LN}, +hplug: {tg == PG.plug(c, $TN($U, a, b)) : ST.Tr}, +hr: {ST.rep(~K, $TN($U, a, b), P.top(c), nl) == True{} : Bool}, +hok: {P.ctxok(~K, c, $U, nl) == True{} : Bool}, +hfin: {SP.fin(~K, ~cmp, k, $TN($U, a, b), nl) == True{} : Bool}
+%def CHUA c, ui, a, b, hbc, hplug, hr, hok, hfin
+%def TN(i, a, b) ST.TN{i, a, b}
+
+# equal or not: removed, or left
+def rmi_b($TQ, $FT, +hg: $GF, +k: K, +e: V, $CHU, +vi: V, +hmi: {ST.pv(V, pl, $U) == Some{vi} : $MV}, +bq: Bool) -> OK.MOK($AK, Bool, S.pick(S.Model<K, V> & Bool, bq, (S.TM{l, $DLE}, True{}), (S.TM{l, $EST}, False{})), MI.remove_if_apply($AK, $SH, $U, e, bq)):
+  match bq:
+    case False{}:
+      ($SH, (False{}, ({==}, ({==}, hg))))
+    case True{}:
+      %Equal.sym($MV, ST.pv(V, pl, $U), Some{vi}, hmi) : OK.MOK($AK, Bool, (S.TM{l, $DLE}, True{}), MI.changed_value($AK, ($UT, _)))
+      MX.cv_mok($AK, S.TM{l, $DLE}, $UT, vi, L.subst($MV, z => OK.MOK($AK, $MV, (S.TM{l, $DLE}, z), ($UT, z)), ST.pv(V, pl, $U), Some{vi}, hmi, RV.rm_x(~K, ~V, ~cmp, ~o, $F, hg, k, $CHUA, ST.nd(K, nl, $U), {==})))
+
+# a node found: its value
+def rmi_h($TQ, $FT, +hg: $GF, +k: K, +e: V, $CHU, +hfd: {ST.pv(V, pl, $U) == $FIND : $MV}, +m: $MV, +hmi: {ST.pv(V, pl, $U) == m : $MV}, +hm: {ST.some2(V, m) == True{} : Bool}) -> $RMIR(($SH, M.Search{$U, P.top(c), SP.dir(c)})):
+  match m:
+    case None{}:
+      Empty.absurd($RMIR(($SH, M.Search{$U, P.top(c), SP.dir(c)})), L.false_true(hm))
+    case Some{+vi}:
+      %Equal.sym($MV, $FIND, Some{vi}, Equal.trans($MV, $FIND, ST.pv(V, pl, $U), Some{vi}, Equal.sym($MV, ST.pv(V, pl, $U), $FIND, hfd), hmi)) : OK.MOK($AK, Bool, S.remove_if_at($AK, ~eq, l, $EST, k, e, _), MI.remove_if_value($AK, ~eq, $U, e, e, ($SH, ST.pv(V, pl, $U))))
+      %Equal.sym($MV, ST.pv(V, pl, $U), Some{vi}, hmi) : OK.MOK($AK, Bool, S.remove_if_at($AK, ~eq, l, $EST, k, e, Some{vi}), MI.remove_if_value($AK, ~eq, $U, e, e, ($SH, _)))
+      rmi_b($AQ, $F, hg, k, e, $CHUA, vi, hmi, eq(vi, e))
+
+def rmi_tn($TQ, $FT, +hg: $GF, +k: K, +e: V, +hk0: $OKS($T0), +c: $CT, +i: Nat, +a: ST.Tr, +b: ST.Tr, +hfd: {ST.pv(V, pl, i) == $FIND : $MV}, +hwh: {$T0 == $WH($TN(i, a, b)) : $LN}, +hplug: {tg == PG.plug(c, $TN(i, a, b)) : ST.Tr}, +hr: {ST.rep(~K, $TN(i, a, b), P.top(c), nl) == True{} : Bool}, +hok: {P.ctxok(~K, c, i, nl) == True{} : Bool}, +hfin: {SP.fin(~K, ~cmp, k, $TN(i, a, b), nl) == True{} : Bool}) -> $RMIR(($SH, M.Search{i, P.top(c), SP.dir(c)})):
+  match i:
+    case 0n:
+      Empty.absurd($RMIR(($SH, M.Search{0n, P.top(c), SP.dir(c)})), PM.tn_zero(~K, ~V, ~cmp, ~o, $F, k, c, a, b, hr))
+    case 1n+ui:
+      rmi_h($AQ, $F, hg, k, e, c, ui, a, b, PM.tn_hbc(~K, ~V, ~cmp, ~o, $F, c, $U, a, b, hwh), hplug, hr, hok, hfin, hfd, ST.pv(V, pl, $U), {==}, PM.tn_hm(~K, ~V, ~cmp, ~o, $F, c, $U, a, b, L.subst($LN, z => $OKS(z), $T0, $WH($TN($U, a, b)), hwh, hk0)))
+
+def rmi_t($TQ, $FT, +hg: $GF, +k: K, +e: V, +hk0: $OKS($T0), +c: $CT, +t: ST.Tr, +hfd: $HFD, $PFX) -> $RMIR(($SH, M.Search{ST.rid(t), P.top(c), SP.dir(c)})):
+  match t:
+    case ST.TE{}:
+      %Equal.sym($MV, $FIND, None{}, Equal.sym($MV, None{}, $FIND, hfd)) : OK.MOK($AK, Bool, S.remove_if_at($AK, ~eq, l, $EST, k, e, _), ($SH, False{}))
+      ($SH, (False{}, ({==}, ({==}, hg))))
+    case ST.TN{+i, +a, +b}:
+      rmi_tn($AQ, $F, hg, k, e, hk0, c, i, a, b, hfd, hwh, hplug, hr, hokc, hfin)
+
+%use WRAP(<|$TQ|>, <|$AQ|>, rmi, <|+k: K, +e: V|>, <|k, e|>, Bool, $RMIS, MI.remove_if_equal($AK, ~eq, $SH, k, e), $RMIR)

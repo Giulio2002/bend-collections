@@ -1,0 +1,211 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/order.bend as O
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./sim.bend as SM
+import ./ok.bend as OK
+import ./reads.bend as RD
+import ./putm.bend as PM
+import ./rmv.bend as RV
+import ./cur.bend as CU
+import ./vdef.bend as VD
+
+# The implementation's views refine the specification's: a view of a good
+# shadow is realized by the implementation's view and modelled by the
+# specification's over the shadow's model; every view operation gives the
+# real view (and answer) of a good view whose model is the specification's
+# result. (source: tools/generators/tm_hand/vw.src)
+
+%def E M.Entry<K, V>
+%def MV Maybe<&2, V>
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def FP +n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl
+%def FT +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: List<&2, Nat>
+%def F n, root, lo, hi, free, l, d, nl, pl, tg, fl
+%def SH ST.SH{$F}
+%def SHT ST.Sh<K, V>
+%def TMT M.TreeMap<K, V, cmp>
+%def MVT MI.MView<K, V>
+%def RVT M.View<K, V, cmp>
+%def SVT S.View<K, V>
+%def BD M.Bound<K>
+%def UNB M.Unbounded{}
+%def GD(s) {ST.good($AK, s) == True{} : Bool}
+%def EST ST.ents(~K, ~V, ST.ids(tg), nl, pl)
+%def PRES Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>
+%def RRT Result<&1, &1, M.InvalidView<K, V, cmp>, M.View<K, V, cmp>>
+%def SRT Result<&1, &1, S.InvalidView<K, V>, S.View<K, V>>
+%def MRT Result<&1, &1, MI.MInvalid<K, V>, MI.MView<K, V>>
+
+# ---- making views ----
+
+def head_map_ok($TK, +sh: $SHT, +hg: $GD(sh), +up: $BD) -> VD.VOK($AK, S.head_map(K, V, ST.model($AK, sh), up), M.head_map($AK, ST.real($AK, sh), up)):
+  (MI.MV{sh, $UNB, up, False{}}, (SM.head_map_s($AK, sh, up, OK.dg_good($AK, sh, hg)), ({==}, hg)))
+
+def tail_map_ok($TK, +sh: $SHT, +hg: $GD(sh), +lw: $BD) -> VD.VOK($AK, S.tail_map(K, V, ST.model($AK, sh), lw), M.tail_map($AK, ST.real($AK, sh), lw)):
+  (MI.MV{sh, lw, $UNB, False{}}, (SM.tail_map_s($AK, sh, lw, OK.dg_good($AK, sh, hg)), ({==}, hg)))
+
+def descending_map_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> VD.VOK($AK, S.descending_map(K, V, ST.model($AK, sh)), M.descending_map($AK, ST.real($AK, sh))):
+  (MI.MV{sh, $UNB, $UNB, True{}}, (SM.descending_map_s($AK, sh, OK.dg_good($AK, sh, hg)), ({==}, hg)))
+
+def view_reverse_ok($TK, +w: $MVT, +hw: {VD.vgood($AK, w) == True{} : Bool}) -> VD.VOK($AK, S.view_reverse(K, V, VD.vmod($AK, w)), M.view_reverse($AK, MI.rv($AK, w))):
+  match w:
+    case MI.MV{+s, +lo2, +hi2, +d2}:
+      (MI.MV{s, lo2, hi2, Bool.not(d2)}, (SM.view_reverse_s($AK, MI.MV{s, lo2, hi2, d2}, OK.dg_good($AK, s, hw)), ({==}, hw)))
+
+%def FIN(sp, r) Sigma<&1, &1, $SHT, s2 => {r == ST.real($AK, s2) : $TMT} & ({sp == ST.model($AK, s2) : S.Model<K, V>} & $GD(s2))>
+
+def view_finish_ok($TK, +w: $MVT, +hw: {VD.vgood($AK, w) == True{} : Bool}) -> $FIN(S.view_finish(K, V, VD.vmod($AK, w)), M.view_finish($AK, MI.rv($AK, w))):
+  match w:
+    case MI.MV{+s, +lo2, +hi2, +d2}:
+      (s, (SM.view_finish_s($AK, MI.MV{s, lo2, hi2, d2}, OK.dg_good($AK, s, hw)), ({==}, hw)))
+
+# ---- sub_map: the bounds checked ----
+
+def rmod($TK, r: $MRT) -> $SRT:
+  match r:
+    case Done{w}:
+      Done{VD.vmod($AK, w)}
+    case Fail{MI.MI{s, e}}:
+      Fail{S.IV{ST.model($AK, s), e}}
+
+def rgood($TK, r: $MRT) -> Bool:
+  match r:
+    case Done{w}:
+      VD.vgood($AK, w)
+    case Fail{MI.MI{s, e}}:
+      ST.good($AK, s)
+
+def ROK($TK, sp: $SRT, r: $RRT) -> Type:
+  Sigma<&1, &1, $MRT, x => {r == MI.rr($AK, x) : $RRT} & ({sp == rmod($AK, x) : $SRT} & {rgood($AK, x) == True{} : Bool})>
+
+def bv_eq($TK, +a: $BD, +b: $BD) -> {M.bounds_valid($AK, a, b) == S.bounds_valid(~K, ~cmp, a, b) : Bool}:
+  match a b:
+    case M.Unbounded{} M.Unbounded{}:
+      {==}
+    case M.Unbounded{} M.Inclusive{y}:
+      {==}
+    case M.Unbounded{} M.Exclusive{y}:
+      {==}
+    case M.Inclusive{x} M.Unbounded{}:
+      {==}
+    case M.Exclusive{x} M.Unbounded{}:
+      {==}
+    case M.Inclusive{+x} M.Inclusive{+y}:
+      CU.oo_eq(cmp(x, y), True{})
+    case M.Inclusive{+x} M.Exclusive{+y}:
+      CU.oo_eq(cmp(x, y), True{})
+    case M.Exclusive{+x} M.Inclusive{+y}:
+      CU.oo_eq(cmp(x, y), True{})
+    case M.Exclusive{+x} M.Exclusive{+y}:
+      CU.oo_eq(cmp(x, y), True{})
+
+def sub_b($TK, +sh: $SHT, +hg: $GD(sh), +lw: $BD, +up: $BD, +b: Bool) -> {S.view_checked(K, V, ST.model($AK, sh), lw, up, b) == rmod($AK, MI.view_checked($AK, sh, lw, up, False{}, b)) : $SRT} & {rgood($AK, MI.view_checked($AK, sh, lw, up, False{}, b)) == True{} : Bool}:
+  match b:
+    case True{}:
+      ({==}, hg)
+    case False{}:
+      ({==}, hg)
+
+def sub_map_ok($TK, +sh: $SHT, +hg: $GD(sh), +lw: $BD, +up: $BD) -> ROK($AK, S.sub_map($AK, ST.model($AK, sh), lw, up), M.sub_map($AK, ST.real($AK, sh), lw, up)):
+  %bv_eq($AK, lw, up) : ROK($AK, S.view_checked(K, V, ST.model($AK, sh), lw, up, _), M.sub_map($AK, ST.real($AK, sh), lw, up))
+  (MI.sub_map($AK, sh, lw, up), (SM.sub_map_s($AK, sh, lw, up, OK.dg_good($AK, sh, hg)), sub_b($AK, sh, hg, lw, up, M.bounds_valid($AK, lw, up))))
+
+# ---- get and contains_key: the key in range, then the map's ----
+
+%def VWS MI.MV{$SH, lo2, hi2, d2}
+%def VGR(b) S.pick($MV, b, S.find($AK, k, $EST), None{})
+
+def vget_b($TO, $FT, +hg: $GD($SH), +lo2: $BD, +hi2: $BD, +d2: Bool, +k: K, +b: Bool) -> {MI.view_get_checked($AK, $SH, k, lo2, hi2, d2, b) == ($VWS, $VGR(b)) : $MVT & $MV}:
+  match b:
+    case True{}:
+      %Equal.sym($SHT & $MV, MI.get($AK, $SH, k), ($SH, S.find($AK, k, $EST)), RD.get_m($AO, $F, k, hg)) : {MI.view_value($AK, lo2, hi2, d2, _) == ($VWS, $VGR(True{})) : $MVT & $MV}
+      {==}
+    case False{}:
+      {==}
+
+def vget_m($TO, $FT, +hg: $GD($SH), +lo2: $BD, +hi2: $BD, +d2: Bool, +k: K) -> {MI.view_get($AK, $VWS, k) == ($VWS, $VGR(S.in_range(~K, ~cmp, k, lo2, hi2))) : $MVT & $MV}:
+  %Equal.sym(Bool, M.in_range($AK, k, lo2, hi2), S.in_range(~K, ~cmp, k, lo2, hi2), CU.inr_eq($AK, k, lo2, hi2)) : {MI.view_get_checked($AK, $SH, k, lo2, hi2, d2, _) == ($VWS, $VGR(S.in_range(~K, ~cmp, k, lo2, hi2))) : $MVT & $MV}
+  vget_b($AO, $F, hg, lo2, hi2, d2, k, S.in_range(~K, ~cmp, k, lo2, hi2))
+
+def view_get_ok($TO, +w: $MVT, +hw: {VD.vgood($AK, w) == True{} : Bool}, +k: K) -> VD.VPOK($AK, $MV, S.view_get($AK, VD.vmod($AK, w), k), M.view_get($AK, MI.rv($AK, w), k)):
+  match w:
+    case MI.MV{ST.SH{$FP}, +lo2, +hi2, +d2}:
+      VD.vm_pok($AK, $MV, S.view_get($AK, VD.vmod($AK, $VWS), k), MI.view_get($AK, $VWS, k), M.view_get($AK, MI.rv($AK, $VWS), k), SM.view_get_s($AK, $VWS, k, OK.dg_good($AK, $SH, hw)), VD.vm_exact($AK, $MV, S.view_get($AK, VD.vmod($AK, $VWS), k), MI.view_get($AK, $VWS, k), $VWS, $VGR(S.in_range(~K, ~cmp, k, lo2, hi2)), vget_m($AO, $F, hw, lo2, hi2, d2, k), {==}, hw))
+
+def vcv_eq($TK, +w2: $MVT, +o: $MV) -> {MI.view_contains_value($AK, (w2, o)) == (w2, S.is_some(V, o)) : $MVT & Bool}:
+  match o:
+    case None{}:
+      {==}
+    case Some{x}:
+      {==}
+
+def view_contains_key_ok($TO, +w: $MVT, +hw: {VD.vgood($AK, w) == True{} : Bool}, +k: K) -> VD.VPOK($AK, Bool, S.view_contains_key($AK, VD.vmod($AK, w), k), M.view_contains_key($AK, MI.rv($AK, w), k)):
+  match w:
+    case MI.MV{ST.SH{$FP}, +lo2, +hi2, +d2}:
+      +hm = Equal.trans($MVT & Bool, MI.view_contains_key($AK, $VWS, k), MI.view_contains_value($AK, ($VWS, $VGR(S.in_range(~K, ~cmp, k, lo2, hi2)))), ($VWS, S.is_some(V, $VGR(S.in_range(~K, ~cmp, k, lo2, hi2)))), L.subst($MVT & $MV, z => {MI.view_contains_value($AK, MI.view_get($AK, $VWS, k)) == MI.view_contains_value($AK, z) : $MVT & Bool}, MI.view_get($AK, $VWS, k), ($VWS, $VGR(S.in_range(~K, ~cmp, k, lo2, hi2))), vget_m($AO, $F, hw, lo2, hi2, d2, k), {==}), vcv_eq($AK, $VWS, $VGR(S.in_range(~K, ~cmp, k, lo2, hi2))))
+      VD.vm_pok($AK, Bool, S.view_contains_key($AK, VD.vmod($AK, $VWS), k), MI.view_contains_key($AK, $VWS, k), M.view_contains_key($AK, MI.rv($AK, $VWS), k), SM.view_contains_key_s($AK, $VWS, k, OK.dg_good($AK, $SH, hw)), VD.vm_exact($AK, Bool, S.view_contains_key($AK, VD.vmod($AK, $VWS), k), MI.view_contains_key($AK, $VWS, k), $VWS, S.is_some(V, $VGR(S.in_range(~K, ~cmp, k, lo2, hi2))), hm, {==}, hw))
+
+# ---- put and remove: the key in range, then the map's ----
+
+# a map result rewrapped in the view's bounds
+def rw_put($TK, +lo2: $BD, +hi2: $BD, +d2: Bool, +r: $SHT & $PRES, +a: $TMT, +o: $PRES, +h: {MI.rp($AK, $PRES, r) == (a, o) : $TMT & $PRES}) -> {MI.rvp($AK, $PRES, MI.view_put_finish($AK, lo2, hi2, d2, r)) == (M.View{a, lo2, hi2, d2}, o) : $RVT & $PRES}:
+  match r:
+    case Tuple{+m, +x}:
+      L.subst($TMT & $PRES, z => {(M.View{ST.real($AK, m), lo2, hi2, d2}, x) == (M.View{Pair.fst($TMT, $PRES, z), lo2, hi2, d2}, Pair.snd($TMT, $PRES, z)) : $RVT & $PRES}, (ST.real($AK, m), x), (a, o), h, {==})
+
+def rw_val($TK, +lo2: $BD, +hi2: $BD, +d2: Bool, +r: $SHT & $MV, +a: $TMT, +o: $MV, +h: {MI.rp($AK, $MV, r) == (a, o) : $TMT & $MV}) -> {MI.rvp($AK, $MV, MI.view_value($AK, lo2, hi2, d2, r)) == (M.View{a, lo2, hi2, d2}, o) : $RVT & $MV}:
+  match r:
+    case Tuple{+m, +x}:
+      L.subst($TMT & $MV, z => {(M.View{ST.real($AK, m), lo2, hi2, d2}, x) == (M.View{Pair.fst($TMT, $MV, z), lo2, hi2, d2}, Pair.snd($TMT, $MV, z)) : $RVT & $MV}, (ST.real($AK, m), x), (a, o), h, {==})
+
+%def VPS(b) S.view_put_at($AK, ST.model($AK, $SH), k, v, lo2, hi2, d2, b)
+%def VPM(b) MI.view_put_checked($AK, $SH, k, v, lo2, hi2, d2, b)
+
+def vput_t($TO, $FT, +lo2: $BD, +hi2: $BD, +d2: Bool, +k: K, +v: V, p: OK.MOK($AK, $PRES, S.put($AK, ST.model($AK, $SH), k, v), MI.put($AK, $SH, k, v))) -> VD.VM($AK, $PRES, $VPS(True{}), $VPM(True{})):
+  match p:
+    case Tuple{+s2, Tuple{+o, Tuple{+h1, Tuple{+h2, h3}}}}:
+      %Equal.sym(S.Model<K, V> & $PRES, S.put($AK, ST.model($AK, $SH), k, v), (ST.model($AK, s2), o), h2) : VD.VM($AK, $PRES, S.rewrap_put(K, V, lo2, hi2, d2, _), $VPM(True{}))
+      (MI.MV{s2, lo2, hi2, d2}, (o, (rw_put($AK, lo2, hi2, d2, MI.put($AK, $SH, k, v), ST.real($AK, s2), o, h1), ({==}, h3))))
+
+def vput_b($TO, $FT, +hg: $GD($SH), +lo2: $BD, +hi2: $BD, +d2: Bool, +k: K, +v: V, +b: Bool) -> VD.VM($AK, $PRES, $VPS(b), $VPM(b)):
+  match b:
+    case True{}:
+      vput_t($AO, $F, lo2, hi2, d2, k, v, PM.put_m($AO, $F, hg, k, v))
+    case False{}:
+      ($VWS, (Fail{M.Rejected{M.OutOfRange{}, k, v}}, ({==}, ({==}, hg))))
+
+def view_put_ok($TO, +w: $MVT, +hw: {VD.vgood($AK, w) == True{} : Bool}, +k: K, +v: V) -> VD.VPOK($AK, $PRES, S.view_put($AK, VD.vmod($AK, w), k, v), M.view_put($AK, MI.rv($AK, w), k, v)):
+  match w:
+    case MI.MV{ST.SH{$FP}, +lo2, +hi2, +d2}:
+      %CU.inr_eq($AK, k, lo2, hi2) : VD.VPOK($AK, $PRES, $VPS(_), M.view_put($AK, MI.rv($AK, $VWS), k, v))
+      VD.vm_pok($AK, $PRES, $VPS(M.in_range($AK, k, lo2, hi2)), MI.view_put($AK, $VWS, k, v), M.view_put($AK, MI.rv($AK, $VWS), k, v), SM.view_put_s($AK, $VWS, k, v, OK.dg_good($AK, $SH, hw)), vput_b($AO, $F, hw, lo2, hi2, d2, k, v, M.in_range($AK, k, lo2, hi2)))
+
+%def VRS(b) S.view_remove_at($AK, ST.model($AK, $SH), k, lo2, hi2, d2, b)
+%def VRM(b) MI.view_remove_checked($AK, $SH, k, lo2, hi2, d2, b)
+
+def vrem_t($TO, $FT, +lo2: $BD, +hi2: $BD, +d2: Bool, +k: K, p: OK.MOK($AK, $MV, S.remove($AK, ST.model($AK, $SH), k), MI.remove($AK, $SH, k))) -> VD.VM($AK, $MV, $VRS(True{}), $VRM(True{})):
+  match p:
+    case Tuple{+s2, Tuple{+o, Tuple{+h1, Tuple{+h2, h3}}}}:
+      %Equal.sym(S.Model<K, V> & $MV, S.remove($AK, ST.model($AK, $SH), k), (ST.model($AK, s2), o), h2) : VD.VM($AK, $MV, S.rewrap_val(K, V, lo2, hi2, d2, _), $VRM(True{}))
+      (MI.MV{s2, lo2, hi2, d2}, (o, (rw_val($AK, lo2, hi2, d2, MI.remove($AK, $SH, k), ST.real($AK, s2), o, h1), ({==}, h3))))
+
+def vrem_b($TO, $FT, +hg: $GD($SH), +lo2: $BD, +hi2: $BD, +d2: Bool, +k: K, +b: Bool) -> VD.VM($AK, $MV, $VRS(b), $VRM(b)):
+  match b:
+    case True{}:
+      vrem_t($AO, $F, lo2, hi2, d2, k, RV.rm_m($AO, $F, hg, k))
+    case False{}:
+      ($VWS, (None{}, ({==}, ({==}, hg))))
+
+def view_remove_ok($TO, +w: $MVT, +hw: {VD.vgood($AK, w) == True{} : Bool}, +k: K) -> VD.VPOK($AK, $MV, S.view_remove($AK, VD.vmod($AK, w), k), M.view_remove($AK, MI.rv($AK, w), k)):
+  match w:
+    case MI.MV{ST.SH{$FP}, +lo2, +hi2, +d2}:
+      %CU.inr_eq($AK, k, lo2, hi2) : VD.VPOK($AK, $MV, $VRS(_), M.view_remove($AK, MI.rv($AK, $VWS), k))
+      VD.vm_pok($AK, $MV, $VRS(M.in_range($AK, k, lo2, hi2)), MI.view_remove($AK, $VWS, k), M.view_remove($AK, MI.rv($AK, $VWS), k), SM.view_remove_s($AK, $VWS, k, OK.dg_good($AK, $SH, hw)), vrem_b($AO, $F, hw, lo2, hi2, d2, k, M.in_range($AK, k, lo2, hi2)))

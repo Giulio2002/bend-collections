@@ -1,0 +1,369 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/order.bend as O
+import ../../lib/spec_common.bend as SC
+import ../../../src/containers/balanced_search_tree.bend as M
+import ../../lib/list.bend as LL
+import ./state.bend as ST
+import ./tree.bend as TR
+import ./path.bend as P
+import ./agree.bend as AG
+import ./rotm.bend as RM
+import ./rotn.bend as RN
+import ./dj.bend as DJ
+import ./spath.bend as SP
+import ../../lib/nat_list.bend as NL
+
+# Rotations along a path: rotating the subtree the path leads to (a node x
+# with a child y) gives the rotated subtree, linked as the ghost says below
+# the path's parent, and the path still leads to it (now rooted at y).
+# (source: tools/generators/tm_hand/rot.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def CT List<&2, P.Fr>
+%def APP(a, b) SC.append(Nat, a, b)
+%def IDS(t) ST.ids(t)
+%def TN(i, a, b) ST.TN{i, a, b}
+%def TO ~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AO ~K, ~cmp, ~o
+%def NE(a, b) {Nat.is_eq(a, b) == False{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
+%def ISN(x, a, b, q) {ST.is_node(K, x, a, b, q) == True{} : Bool}
+%def REPN(t, p, x) {ST.rep(~K, t, p, x) == True{} : Bool}
+%def REP(t, p) $REPN(t, p, nl)
+%def COKN(c, x, n) {P.ctxok(~K, c, x, n) == True{} : Bool}
+%def COK(c, x) $COKN(c, x, nl)
+%def NDX(nl, j) ST.nd(K, nl, j)
+%def LT0(i) {Nat.is_lt(0n, i) == True{} : Bool}
+
+# ---- ids are positive ----
+
+def ne0(+x: Nat, +h: $LT0(x)) -> $NE(0n, x):
+  match x:
+    case 0n:
+      Empty.absurd($NE(0n, 0n), L.false_true(h))
+    case 1n+j:
+      {==}
+
+def zero_ids(~K: Data, +nl: $NL, +t: ST.Tr, +p: Nat, +hr: $REP(t, p)) -> $NMEM(0n, $IDS(t)):
+  match t:
+    case ST.TE{}:
+      {==}
+    case ST.TN{+i, +l, +r}:
+      DJ.nm_app(0n, $IDS(l), Con{i, $IDS(r)}, zero_ids(~K, nl, l, i, TR.rep_l(~K, i, l, r, p, nl, hr)), DJ.nm_cons(0n, i, $IDS(r), N.is_eq_sym_false(0n, i, ne0(i, L.and_left(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), p), Bool.and(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl))), hr))), zero_ids(~K, nl, r, i, TR.rep_r(~K, i, l, r, p, nl, hr))))
+
+%def BA(c) $APP(P.before(c), P.after(c))
+
+def zero_ctx(~K: Data, +nl: $NL, +c: $CT, +x: Nat, +hc: $COK(c, x)) -> $NMEM(0n, $BA(c)):
+  match c:
+    case Nil{}:
+      {==}
+    case Con{P.FR{+p, True{}, +s}, +u}:
+      +hk = L.and_left(P.cok1(~K, P.FR{p, True{}, s}, x, P.top(u), nl), P.ctxok(~K, u, p, nl), hc)
+      +h0 = L.and_left(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), ST.pk(Nat, True{}, x, ST.rid(s)), ST.pk(Nat, True{}, ST.rid(s), x), P.top(u)), ST.rep(~K, s, p, nl)), hk)
+      +hs = L.and_right(ST.is_node(K, ST.nd(K, nl, p), ST.pk(Nat, True{}, x, ST.rid(s)), ST.pk(Nat, True{}, ST.rid(s), x), P.top(u)), ST.rep(~K, s, p, nl), L.and_right(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), ST.pk(Nat, True{}, x, ST.rid(s)), ST.pk(Nat, True{}, ST.rid(s), x), P.top(u)), ST.rep(~K, s, p, nl)), hk))
+      +hu = zero_ctx(~K, nl, u, p, L.and_right(P.cok1(~K, P.FR{p, True{}, s}, x, P.top(u), nl), P.ctxok(~K, u, p, nl), hc))
+      +zs = zero_ids(~K, nl, s, p, hs)
+      +zp = N.is_eq_sym_false(0n, p, ne0(p, h0))
+      DJ.nm_app(0n, P.before(u), Con{p, $APP($IDS(s), P.after(u))}, DJ.nm_l(0n, P.before(u), P.after(u), hu), DJ.nm_cons(0n, p, $APP($IDS(s), P.after(u)), zp, DJ.nm_app(0n, $IDS(s), P.after(u), zs, DJ.nm_r(0n, P.before(u), P.after(u), hu))))
+    case Con{P.FR{+p, False{}, +s}, +u}:
+      +hk = L.and_left(P.cok1(~K, P.FR{p, False{}, s}, x, P.top(u), nl), P.ctxok(~K, u, p, nl), hc)
+      +h0 = L.and_left(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), ST.pk(Nat, False{}, x, ST.rid(s)), ST.pk(Nat, False{}, ST.rid(s), x), P.top(u)), ST.rep(~K, s, p, nl)), hk)
+      +hs = L.and_right(ST.is_node(K, ST.nd(K, nl, p), ST.pk(Nat, False{}, x, ST.rid(s)), ST.pk(Nat, False{}, ST.rid(s), x), P.top(u)), ST.rep(~K, s, p, nl), L.and_right(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), ST.pk(Nat, False{}, x, ST.rid(s)), ST.pk(Nat, False{}, ST.rid(s), x), P.top(u)), ST.rep(~K, s, p, nl)), hk))
+      +hu = zero_ctx(~K, nl, u, p, L.and_right(P.cok1(~K, P.FR{p, False{}, s}, x, P.top(u), nl), P.ctxok(~K, u, p, nl), hc))
+      +zs = zero_ids(~K, nl, s, p, hs)
+      +zp = N.is_eq_sym_false(0n, p, ne0(p, h0))
+      DJ.nm_app(0n, $APP(P.before(u), $APP($IDS(s), Con{p, Nil{}})), P.after(u), DJ.nm_app(0n, P.before(u), $APP($IDS(s), Con{p, Nil{}}), DJ.nm_l(0n, P.before(u), P.after(u), hu), DJ.nm_app(0n, $IDS(s), Con{p, Nil{}}, zs, DJ.nm_cons(0n, p, Nil{}, zp, {==}))), DJ.nm_r(0n, P.before(u), P.after(u), hu))
+
+# ---- lists around a frame ----
+
+%def NDL(xs) {NL.nodupn(xs) == True{} : Bool}
+
+def nd_drop(+b: $LN, +s: $LN, +a: $LN, +h: $NDL($APP(b, $APP(s, a)))) -> $NDL($APP(b, a)):
+  match s:
+    case Nil{}:
+      h
+    case Con{+z, +t}:
+      +e = NL.nd_mid(b, z, $APP(t, a))
+      nd_drop(b, t, a, L.and_left(NL.nodupn($APP(b, $APP(t, a))), Bool.not(NL.memn(z, $APP(b, $APP(t, a)))), L.subst(Bool, w => {w == True{} : Bool}, NL.nodupn($APP(b, Con{z, $APP(t, a)})), Bool.and(NL.nodupn($APP(b, $APP(t, a))), Bool.not(NL.memn(z, $APP(b, $APP(t, a))))), e, h)))
+
+def nd_mid_nm(+b: $LN, +z: Nat, +a: $LN, +h: $NDL($APP(b, Con{z, a}))) -> $NMEM(z, $APP(b, a)):
+  NL.not_t_f(NL.memn(z, $APP(b, a)), L.and_right(NL.nodupn($APP(b, a)), Bool.not(NL.memn(z, $APP(b, a))), L.subst(Bool, w => {w == True{} : Bool}, NL.nodupn($APP(b, Con{z, a})), Bool.and(NL.nodupn($APP(b, a)), Bool.not(NL.memn(z, $APP(b, a)))), NL.nd_mid(b, z, a), h)))
+
+%def FRC(q, lft, s, u) Con{P.FR{q, lft, s}, u}
+%def BFF(u, s, q) $APP(P.before(u), $APP($IDS(s), Con{q, Nil{}}))
+
+%def BU(u) P.before(u)
+%def AU(u) P.after(u)
+%def IS $IDS(s)
+
+# the parent of a frame is neither in the sibling nor in the frames above
+def fq_s(+q: Nat, +lft: Bool, +s: ST.Tr, +u: $CT, +h: $NDL($BA($FRC(q, lft, s, u)))) -> $NMEM(q, $IS) & $NMEM(q, $BA(u)):
+  match lft:
+    case True{}:
+      +hm = nd_mid_nm($BU(u), q, $APP($IS, $AU(u)), h)
+      +hr = DJ.nm_r(q, $BU(u), $APP($IS, $AU(u)), hm)
+      (DJ.nm_l(q, $IS, $AU(u), hr), DJ.nm_app(q, $BU(u), $AU(u), DJ.nm_l(q, $BU(u), $APP($IS, $AU(u)), hm), DJ.nm_r(q, $IS, $AU(u), hr)))
+    case False{}:
+      +e1 = LL.append_assoc(Nat, $BU(u), $APP($IS, Con{q, Nil{}}), $AU(u))
+      +e2 = LL.append_assoc(Nat, $IS, Con{q, Nil{}}, $AU(u))
+      +e3 = LL.append_assoc(Nat, $BU(u), $IS, Con{q, $AU(u)})
+      +h1 = L.subst($LN, z => $NDL(z), $APP($APP($BU(u), $APP($IS, Con{q, Nil{}})), $AU(u)), $APP($BU(u), $APP($APP($IS, Con{q, Nil{}}), $AU(u))), e1, h)
+      +h2 = L.subst($LN, z => $NDL($APP($BU(u), z)), $APP($APP($IS, Con{q, Nil{}}), $AU(u)), $APP($IS, Con{q, $AU(u)}), e2, h1)
+      +h3 = L.subst($LN, z => $NDL(z), $APP($BU(u), $APP($IS, Con{q, $AU(u)})), $APP($APP($BU(u), $IS), Con{q, $AU(u)}), Equal.sym($LN, $APP($APP($BU(u), $IS), Con{q, $AU(u)}), $APP($BU(u), $APP($IS, Con{q, $AU(u)})), e3), h2)
+      +hm = nd_mid_nm($APP($BU(u), $IS), q, $AU(u), h3)
+      +hl = DJ.nm_l(q, $APP($BU(u), $IS), $AU(u), hm)
+      (DJ.nm_r(q, $BU(u), $IS, hl), DJ.nm_app(q, $BU(u), $AU(u), DJ.nm_l(q, $BU(u), $IS, hl), DJ.nm_r(q, $APP($BU(u), $IS), $AU(u), hm)))
+
+# an id absent from a frame's lists is absent from its sibling and above
+def fw_s(+w: Nat, +q: Nat, +lft: Bool, +s: ST.Tr, +u: $CT, +h: $NMEM(w, $BA($FRC(q, lft, s, u)))) -> $NMEM(w, $IS) & $NMEM(w, $BA(u)):
+  match lft:
+    case True{}:
+      +h2 = DJ.nm_ct(w, q, $APP($IS, $AU(u)), DJ.nm_r(w, $BU(u), Con{q, $APP($IS, $AU(u))}, h))
+      (DJ.nm_l(w, $IS, $AU(u), h2), DJ.nm_app(w, $BU(u), $AU(u), DJ.nm_l(w, $BU(u), Con{q, $APP($IS, $AU(u))}, h), DJ.nm_r(w, $IS, $AU(u), h2)))
+    case False{}:
+      +h1 = DJ.nm_l(w, $APP($BU(u), $APP($IS, Con{q, Nil{}})), $AU(u), h)
+      (DJ.nm_l(w, $IS, Con{q, Nil{}}, DJ.nm_r(w, $BU(u), $APP($IS, Con{q, Nil{}}), h1)), DJ.nm_app(w, $BU(u), $AU(u), DJ.nm_l(w, $BU(u), $APP($IS, Con{q, Nil{}}), h1), DJ.nm_r(w, $APP($BU(u), $APP($IS, Con{q, Nil{}})), $AU(u), h)))
+
+# ---- the left rotation: the rotated subtree ----
+
+def rep_intro(~K: Data, +nl: $NL, +i: Nat, +l: ST.Tr, +r: ST.Tr, +p: Nat, +h0: $LT0(i), +hn: $ISN(ST.nd(K, nl, i), ST.rid(l), ST.rid(r), p), +hl: $REP(l, i), +hr: $REP(r, i)) -> $REP($TN(i, l, r), p):
+  L.and_intro(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), p), Bool.and(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl))), h0, L.and_intro(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), p), Bool.and(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl)), hn, L.and_intro(ST.rep(~K, l, i, nl), ST.rep(~K, r, i, nl), hl, hr)))
+
+def rep_moved($TO, +t: ST.Tr, +p: Nat, +nl: $NL, +nl2: $NL, +ha: {AG.agr(~K, ~cmp, $IDS(t), nl, nl2) == True{} : Bool}, +h: $REP(t, p)) -> $REPN(t, p, nl2):
+  Equal.trans(Bool, ST.rep(~K, t, p, nl2), ST.rep(~K, t, p, nl), True{}, AG.rep_agr($AO, t, p, nl, nl2, ha), h)
+
+%def IA $IDS(ta)
+%def IB $IDS(tb)
+%def IC $IDS(tc)
+%def R1 $APP($IB, Con{y, $IC})
+%def S $APP($IA, Con{x, $R1})
+%def N5 RM.rotl_nl(K, nl, x, y, ST.rid(tb), q, dir)
+%def NESY(a, b, h) N.is_eq_sym_false(a, b, h)
+
+def rotl_rep($TO, +nl: $NL, +x: Nat, +ta: ST.Tr, +y: Nat, +tb: ST.Tr, +tc: ST.Tr, +q: Nat, +dir: Bool, +h0x: $LT0(x), +h0y: $LT0(y), +hxn: $ISN($NDX(nl, x), ST.rid(ta), y, q), +hyn: $ISN($NDX(nl, y), ST.rid(tb), ST.rid(tc), x), +hA: $REP(ta, x), +hB: $REP(tb, y), +hC: $REP(tc, y), +hS: $NDL($S), +hqS: $NMEM(q, $S)) -> $REPN($TN(y, $TN(x, ta, tb), tc), q, $N5):
+  match tb:
+    case ST.TE{}:
+      +hR = DJ.ndr($IA, Con{x, $APP(Nil{}, Con{y, $IC})}, hS)
+      +xR1 = DJ.nd_head(x, Con{y, $IC}, hR)
+      +nyx = DJ.nm_ch(x, y, $IC, xR1)
+      +xIA = DJ.dj_l($IA, Con{x, Con{y, $IC}}, hS, x, DJ.mem_hd(x, Con{y, $IC}))
+      +yIA = DJ.dj_l($IA, Con{x, Con{y, $IC}}, hS, y, DJ.mem_tl(y, x, Con{y, $IC}, DJ.mem_hd(y, $IC)))
+      +xIC = DJ.nm_ct(x, y, $IC, xR1)
+      +yIC = DJ.nd_head(y, $IC, DJ.nd_tail(x, Con{y, $IC}, hR))
+      +mx = DJ.mem_r(x, $IA, Con{x, Con{y, $IC}}, DJ.mem_hd(x, Con{y, $IC}))
+      +my = DJ.mem_r(y, $IA, Con{x, Con{y, $IC}}, DJ.mem_tl(y, x, Con{y, $IC}, DJ.mem_hd(y, $IC)))
+      +nqx = DJ.ne_nm(q, x, $APP($IA, Con{x, Con{y, $IC}}), hqS, mx)
+      +nqy = DJ.ne_nm(q, y, $APP($IA, Con{x, Con{y, $IC}}), hqS, my)
+      +qIA = DJ.nm_l(q, $IA, Con{x, Con{y, $IC}}, hqS)
+      +qIC = DJ.nm_ct(q, y, $IC, DJ.nm_ct(q, x, Con{y, $IC}, DJ.nm_r(q, $IA, Con{x, Con{y, $IC}}, hqS)))
+      +agA = RN.rotl_agr($AO, $IA, nl, x, y, 0n, q, dir, xIA, yIA, zero_ids(~K, nl, ta, x, hA), qIA)
+      +agC = RN.rotl_agr($AO, $IC, nl, x, y, 0n, q, dir, xIC, yIC, zero_ids(~K, nl, tc, y, hC), qIC)
+      +rx = RN.rotl_x(K, nl, x, y, 0n, q, dir, ST.rid(ta), hxn, nyx, nqx, ne0(x, h0x))
+      +ry = RN.rotl_y(K, nl, x, y, 0n, q, dir, ST.rid(tc), hyn, $NESY(y, x, nyx), nqy, ne0(y, h0y))
+      rep_intro(~K, RM.rotl_nl(K, nl, x, y, 0n, q, dir), y, $TN(x, ta, ST.TE{}), tc, q, h0y, ry, rep_intro(~K, RM.rotl_nl(K, nl, x, y, 0n, q, dir), x, ta, ST.TE{}, y, h0x, rx, rep_moved($AO, ta, x, nl, RM.rotl_nl(K, nl, x, y, 0n, q, dir), agA, hA), {==}), rep_moved($AO, tc, y, nl, RM.rotl_nl(K, nl, x, y, 0n, q, dir), agC, hC))
+    case ST.TN{+b, +b1, +b2}:
+      +hR = DJ.ndr($IA, Con{x, $R1}, hS)
+      +hR1 = DJ.nd_tail(x, $R1, hR)
+      +xR1 = DJ.nd_head(x, $R1, hR)
+      +myR1 = DJ.mem_r(y, $IB, Con{y, $IC}, DJ.mem_hd(y, $IC))
+      +mbIB = DJ.mem_r(b, $IDS(b1), Con{b, $IDS(b2)}, DJ.mem_hd(b, $IDS(b2)))
+      +mbR1 = DJ.mem_l(b, $IB, Con{y, $IC}, mbIB)
+      +mx = DJ.mem_r(x, $IA, Con{x, $R1}, DJ.mem_hd(x, $R1))
+      +my = DJ.mem_r(y, $IA, Con{x, $R1}, DJ.mem_tl(y, x, $R1, myR1))
+      +mb = DJ.mem_r(b, $IA, Con{x, $R1}, DJ.mem_tl(b, x, $R1, mbR1))
+      +xIA = DJ.dj_l($IA, Con{x, $R1}, hS, x, DJ.mem_hd(x, $R1))
+      +yIA = DJ.dj_l($IA, Con{x, $R1}, hS, y, DJ.mem_tl(y, x, $R1, myR1))
+      +bIA = DJ.dj_l($IA, Con{x, $R1}, hS, b, DJ.mem_tl(b, x, $R1, mbR1))
+      +xIB = DJ.nm_l(x, $IB, Con{y, $IC}, xR1)
+      +xyc = DJ.nm_r(x, $IB, Con{y, $IC}, xR1)
+      +nyx = DJ.nm_ch(x, y, $IC, xyc)
+      +xIC = DJ.nm_ct(x, y, $IC, xyc)
+      +yIB = DJ.dj_l($IB, Con{y, $IC}, hR1, y, DJ.mem_hd(y, $IC))
+      +yIC = DJ.nd_head(y, $IC, DJ.ndr($IB, Con{y, $IC}, hR1))
+      +nxb = DJ.ne_nm(x, b, $R1, xR1, mbR1)
+      +byc = DJ.dj_r($IB, Con{y, $IC}, hR1, b, mbIB)
+      +nyb = DJ.nm_ch(b, y, $IC, byc)
+      +bIC = DJ.nm_ct(b, y, $IC, byc)
+      +nqx = DJ.ne_nm(q, x, $S, hqS, mx)
+      +nqy = DJ.ne_nm(q, y, $S, hqS, my)
+      +nqb = DJ.ne_nm(q, b, $S, hqS, mb)
+      +qIA = DJ.nm_l(q, $IA, Con{x, $R1}, hqS)
+      +qR1 = DJ.nm_ct(q, x, $R1, DJ.nm_r(q, $IA, Con{x, $R1}, hqS))
+      +qIB = DJ.nm_l(q, $IB, Con{y, $IC}, qR1)
+      +qIC = DJ.nm_ct(q, y, $IC, DJ.nm_r(q, $IB, Con{y, $IC}, qR1))
+      +hIB = DJ.ndl($IB, Con{y, $IC}, hR1)
+      +bB1 = DJ.dj_l($IDS(b1), Con{b, $IDS(b2)}, hIB, b, DJ.mem_hd(b, $IDS(b2)))
+      +bB2 = DJ.nd_head(b, $IDS(b2), DJ.ndr($IDS(b1), Con{b, $IDS(b2)}, hIB))
+      +xB1 = DJ.nm_l(x, $IDS(b1), Con{b, $IDS(b2)}, xIB)
+      +xB2 = DJ.nm_ct(x, b, $IDS(b2), DJ.nm_r(x, $IDS(b1), Con{b, $IDS(b2)}, xIB))
+      +yB1 = DJ.nm_l(y, $IDS(b1), Con{b, $IDS(b2)}, yIB)
+      +yB2 = DJ.nm_ct(y, b, $IDS(b2), DJ.nm_r(y, $IDS(b1), Con{b, $IDS(b2)}, yIB))
+      +qB1 = DJ.nm_l(q, $IDS(b1), Con{b, $IDS(b2)}, qIB)
+      +qB2 = DJ.nm_ct(q, b, $IDS(b2), DJ.nm_r(q, $IDS(b1), Con{b, $IDS(b2)}, qIB))
+      +agA = RN.rotl_agr($AO, $IA, nl, x, y, b, q, dir, xIA, yIA, bIA, qIA)
+      +agC = RN.rotl_agr($AO, $IC, nl, x, y, b, q, dir, xIC, yIC, bIC, qIC)
+      +agB1 = RN.rotl_agr($AO, $IDS(b1), nl, x, y, b, q, dir, xB1, yB1, bB1, qB1)
+      +agB2 = RN.rotl_agr($AO, $IDS(b2), nl, x, y, b, q, dir, xB2, yB2, bB2, qB2)
+      +h0b = L.and_left(Nat.is_lt(0n, b), Bool.and(ST.is_node(K, ST.nd(K, nl, b), ST.rid(b1), ST.rid(b2), y), Bool.and(ST.rep(~K, b1, b, nl), ST.rep(~K, b2, b, nl))), hB)
+      +rx = RN.rotl_x(K, nl, x, y, b, q, dir, ST.rid(ta), hxn, nyx, nqx, $NESY(x, b, nxb))
+      +ry = RN.rotl_y(K, nl, x, y, b, q, dir, ST.rid(tc), hyn, $NESY(y, x, nyx), nqy, $NESY(y, b, nyb))
+      +rb = RN.rotl_b(K, nl, x, y, b, q, dir, ST.rid(b1), ST.rid(b2), TR.rep_node(~K, b, b1, b2, y, nl, hB), nxb, nyb, nqb)
+      +repB = rep_intro(~K, $N5, b, b1, b2, x, h0b, rb, rep_moved($AO, b1, b, nl, $N5, agB1, TR.rep_l(~K, b, b1, b2, y, nl, hB)), rep_moved($AO, b2, b, nl, $N5, agB2, TR.rep_r(~K, b, b1, b2, y, nl, hB)))
+      rep_intro(~K, $N5, y, $TN(x, ta, $TN(b, b1, b2)), tc, q, h0y, ry, rep_intro(~K, $N5, x, ta, $TN(b, b1, b2), y, h0x, rx, rep_moved($AO, ta, x, nl, $N5, agA, hA), repB), rep_moved($AO, tc, y, nl, $N5, agC, hC))
+
+# ---- the left rotation: the path ----
+
+%def NC RM.rotl_nl(K, nl, x, y, b, P.top(c), SP.dir(c))
+%def NQ(i, lft) RM.rotl_nl(K, nl, x, y, b, 1n+i, lft)
+%def FWS(w, i, lft, s, u, h) Pair.fst($NMEM(w, $IDS(s)), $NMEM(w, $BA(u)), fw_s(w, 1n+i, lft, s, u, h))
+%def FWU(w, i, lft, s, u, h) Pair.snd($NMEM(w, $IDS(s)), $NMEM(w, $BA(u)), fw_s(w, 1n+i, lft, s, u, h))
+%def FQS(i, lft, s, u) Pair.fst($NMEM(1n+i, $IDS(s)), $NMEM(1n+i, $BA(u)), fq_s(1n+i, lft, s, u, hBA))
+%def FQU(i, lft, s, u) Pair.snd($NMEM(1n+i, $IDS(s)), $NMEM(1n+i, $BA(u)), fq_s(1n+i, lft, s, u, hBA))
+%def CK(i, lft, s, u) P.cok1(~K, P.FR{1n+i, lft, s}, x, P.top(u), nl)
+%def NODEQ(i, lft, s, u) ST.is_node(K, ST.nd(K, nl, 1n+i), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u))
+
+def ctx_frame($TO, +nl: $NL, +x: Nat, +y: Nat, +b: Nat, +i: Nat, +lft: Bool, +s: ST.Tr, +u: $CT, +hok: $COK($FRC(1n+i, lft, s, u), x), +hx: $NMEM(x, $BA($FRC(1n+i, lft, s, u))), +hy: $NMEM(y, $BA($FRC(1n+i, lft, s, u))), +hb: $NMEM(b, $BA($FRC(1n+i, lft, s, u))), +hBA: $NDL($BA($FRC(1n+i, lft, s, u))), +mq: {NL.memn(1n+i, $BA($FRC(1n+i, lft, s, u))) == True{} : Bool}) -> $COKN($FRC(1n+i, lft, s, u), y, $NQ(i, lft)):
+  +hk = L.and_left($CK(i, lft, s, u), P.ctxok(~K, u, 1n+i, nl), hok)
+  +hu = L.and_right($CK(i, lft, s, u), P.ctxok(~K, u, 1n+i, nl), hok)
+  +h0 = L.and_left(Nat.is_lt(0n, 1n+i), Bool.and($NODEQ(i, lft, s, u), ST.rep(~K, s, 1n+i, nl)), hk)
+  +hqn = L.and_left($NODEQ(i, lft, s, u), ST.rep(~K, s, 1n+i, nl), L.and_right(Nat.is_lt(0n, 1n+i), Bool.and($NODEQ(i, lft, s, u), ST.rep(~K, s, 1n+i, nl)), hk))
+  +hs = L.and_right($NODEQ(i, lft, s, u), ST.rep(~K, s, 1n+i, nl), L.and_right(Nat.is_lt(0n, 1n+i), Bool.and($NODEQ(i, lft, s, u), ST.rep(~K, s, 1n+i, nl)), hk))
+  +nxq = DJ.ne_nm(x, 1n+i, $BA($FRC(1n+i, lft, s, u)), hx, mq)
+  +nyq = DJ.ne_nm(y, 1n+i, $BA($FRC(1n+i, lft, s, u)), hy, mq)
+  +nbq = DJ.ne_nm(b, 1n+i, $BA($FRC(1n+i, lft, s, u)), hb, mq)
+  +rq = RN.rotl_q(K, nl, x, y, b, i, lft, ST.rid(s), P.top(u), hqn, nxq, nyq, nbq)
+  +agS = RN.rotl_agr($AO, $IDS(s), nl, x, y, b, 1n+i, lft, $FWS(x, i, lft, s, u, hx), $FWS(y, i, lft, s, u, hy), $FWS(b, i, lft, s, u, hb), $FQS(i, lft, s, u))
+  +agU = RN.rotl_agr($AO, $BA(u), nl, x, y, b, 1n+i, lft, $FWU(x, i, lft, s, u, hx), $FWU(y, i, lft, s, u, hy), $FWU(b, i, lft, s, u, hb), $FQU(i, lft, s, u))
+  +hu2 = Equal.trans(Bool, P.ctxok(~K, u, 1n+i, $NQ(i, lft)), P.ctxok(~K, u, 1n+i, nl), True{}, AG.ctx_agr($AO, u, 1n+i, nl, $NQ(i, lft), agU), hu)
+  +hs2 = rep_moved($AO, s, 1n+i, nl, $NQ(i, lft), agS, hs)
+  L.and_intro(P.cok1(~K, P.FR{1n+i, lft, s}, y, P.top(u), $NQ(i, lft)), P.ctxok(~K, u, 1n+i, $NQ(i, lft)), L.and_intro(Nat.is_lt(0n, 1n+i), Bool.and(ST.is_node(K, ST.nd(K, $NQ(i, lft), 1n+i), ST.pk(Nat, lft, y, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), y), P.top(u)), ST.rep(~K, s, 1n+i, $NQ(i, lft))), h0, L.and_intro(ST.is_node(K, ST.nd(K, $NQ(i, lft), 1n+i), ST.pk(Nat, lft, y, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), y), P.top(u)), ST.rep(~K, s, 1n+i, $NQ(i, lft)), rq, hs2)), hu2)
+
+def rotl_ctx($TO, +nl: $NL, +c: $CT, +x: Nat, +y: Nat, +b: Nat, +hok: $COK(c, x), +hx: $NMEM(x, $BA(c)), +hy: $NMEM(y, $BA(c)), +hb: $NMEM(b, $BA(c)), +hBA: $NDL($BA(c))) -> $COKN(c, y, $NC):
+  match c:
+    case Nil{}:
+      {==}
+    case Con{P.FR{0n, +lft, +s}, +u}:
+      Empty.absurd($COKN($FRC(0n, lft, s, u), y, RM.rotl_nl(K, nl, x, y, b, 0n, lft)), L.false_true(L.and_left(Nat.is_lt(0n, 0n), Bool.and(ST.is_node(K, ST.nd(K, nl, 0n), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)), ST.rep(~K, s, 0n, nl)), L.and_left(P.cok1(~K, P.FR{0n, lft, s}, x, P.top(u), nl), P.ctxok(~K, u, 0n, nl), hok))))
+    case Con{P.FR{1n+i, True{}, +s}, +u}:
+      ctx_frame($AO, nl, x, y, b, i, True{}, s, u, hok, hx, hy, hb, hBA, DJ.mem_r(1n+i, P.before(u), Con{1n+i, $APP($IDS(s), P.after(u))}, DJ.mem_hd(1n+i, $APP($IDS(s), P.after(u)))))
+    case Con{P.FR{1n+i, False{}, +s}, +u}:
+      ctx_frame($AO, nl, x, y, b, i, False{}, s, u, hok, hx, hy, hb, hBA, DJ.mem_l(1n+i, $BFF(u, s, 1n+i), P.after(u), DJ.mem_r(1n+i, P.before(u), $APP($IDS(s), Con{1n+i, Nil{}}), DJ.mem_r(1n+i, $IDS(s), Con{1n+i, Nil{}}, DJ.mem_hd(1n+i, Nil{})))))
+
+# ---- the right rotation: the rotated subtree ----
+
+%def P1 $APP($IA, Con{y, $IB})
+%def SR $APP($P1, Con{x, $IC})
+%def M5 RM.rotr_nl(K, nl, x, y, ST.rid(tb), q, dir)
+
+def rotr_rep($TO, +nl: $NL, +x: Nat, +y: Nat, +ta: ST.Tr, +tb: ST.Tr, +tc: ST.Tr, +q: Nat, +dir: Bool, +h0x: $LT0(x), +h0y: $LT0(y), +hxn: $ISN($NDX(nl, x), y, ST.rid(tc), q), +hyn: $ISN($NDX(nl, y), ST.rid(ta), ST.rid(tb), x), +hA: $REP(ta, y), +hB: $REP(tb, y), +hC: $REP(tc, x), +hS: $NDL($SR), +hqS: $NMEM(q, $SR)) -> $REPN($TN(y, ta, $TN(x, tb, tc)), q, $M5):
+  match tb:
+    case ST.TE{}:
+      +hP1 = DJ.ndl($APP($IA, Con{y, Nil{}}), Con{x, $IC}, hS)
+      +xIC = DJ.nd_head(x, $IC, DJ.ndr($APP($IA, Con{y, Nil{}}), Con{x, $IC}, hS))
+      +xP1 = DJ.dj_l($APP($IA, Con{y, Nil{}}), Con{x, $IC}, hS, x, DJ.mem_hd(x, $IC))
+      +xIA = DJ.nm_l(x, $IA, Con{y, Nil{}}, xP1)
+      +nyx = DJ.nm_ch(x, y, Nil{}, DJ.nm_r(x, $IA, Con{y, Nil{}}, xP1))
+      +myP1 = DJ.mem_r(y, $IA, Con{y, Nil{}}, DJ.mem_hd(y, Nil{}))
+      +yxc = DJ.dj_r($APP($IA, Con{y, Nil{}}), Con{x, $IC}, hS, y, myP1)
+      +nxy = DJ.nm_ch(y, x, $IC, yxc)
+      +yIC = DJ.nm_ct(y, x, $IC, yxc)
+      +yIA = DJ.dj_l($IA, Con{y, Nil{}}, hP1, y, DJ.mem_hd(y, Nil{}))
+      +mx = DJ.mem_r(x, $APP($IA, Con{y, Nil{}}), Con{x, $IC}, DJ.mem_hd(x, $IC))
+      +my = DJ.mem_l(y, $APP($IA, Con{y, Nil{}}), Con{x, $IC}, myP1)
+      +nqx = DJ.ne_nm(q, x, $APP($APP($IA, Con{y, Nil{}}), Con{x, $IC}), hqS, mx)
+      +nqy = DJ.ne_nm(q, y, $APP($APP($IA, Con{y, Nil{}}), Con{x, $IC}), hqS, my)
+      +qP1 = DJ.nm_l(q, $APP($IA, Con{y, Nil{}}), Con{x, $IC}, hqS)
+      +qIA = DJ.nm_l(q, $IA, Con{y, Nil{}}, qP1)
+      +qIC = DJ.nm_ct(q, x, $IC, DJ.nm_r(q, $APP($IA, Con{y, Nil{}}), Con{x, $IC}, hqS))
+      +agA = RN.rotr_agr($AO, $IA, nl, x, y, 0n, q, dir, xIA, yIA, zero_ids(~K, nl, ta, y, hA), qIA)
+      +agC = RN.rotr_agr($AO, $IC, nl, x, y, 0n, q, dir, xIC, yIC, zero_ids(~K, nl, tc, x, hC), qIC)
+      +rx = RN.rotr_x(K, nl, x, y, 0n, q, dir, ST.rid(tc), hxn, nyx, nqx, ne0(x, h0x))
+      +ry = RN.rotr_y(K, nl, x, y, 0n, q, dir, ST.rid(ta), hyn, nxy, nqy, ne0(y, h0y))
+      rep_intro(~K, RM.rotr_nl(K, nl, x, y, 0n, q, dir), y, ta, $TN(x, ST.TE{}, tc), q, h0y, ry, rep_moved($AO, ta, y, nl, RM.rotr_nl(K, nl, x, y, 0n, q, dir), agA, hA), rep_intro(~K, RM.rotr_nl(K, nl, x, y, 0n, q, dir), x, ST.TE{}, tc, y, h0x, rx, {==}, rep_moved($AO, tc, x, nl, RM.rotr_nl(K, nl, x, y, 0n, q, dir), agC, hC)))
+    case ST.TN{+b, +b1, +b2}:
+      +hP1 = DJ.ndl($P1, Con{x, $IC}, hS)
+      +xIC = DJ.nd_head(x, $IC, DJ.ndr($P1, Con{x, $IC}, hS))
+      +xP1 = DJ.dj_l($P1, Con{x, $IC}, hS, x, DJ.mem_hd(x, $IC))
+      +xIA = DJ.nm_l(x, $IA, Con{y, $IB}, xP1)
+      +xyb = DJ.nm_r(x, $IA, Con{y, $IB}, xP1)
+      +nyx = DJ.nm_ch(x, y, $IB, xyb)
+      +xIB = DJ.nm_ct(x, y, $IB, xyb)
+      +myP1 = DJ.mem_r(y, $IA, Con{y, $IB}, DJ.mem_hd(y, $IB))
+      +yxc = DJ.dj_r($P1, Con{x, $IC}, hS, y, myP1)
+      +nxy = DJ.nm_ch(y, x, $IC, yxc)
+      +yIC = DJ.nm_ct(y, x, $IC, yxc)
+      +yIA = DJ.dj_l($IA, Con{y, $IB}, hP1, y, DJ.mem_hd(y, $IB))
+      +hYB = DJ.ndr($IA, Con{y, $IB}, hP1)
+      +yIB = DJ.nd_head(y, $IB, hYB)
+      +mbIB = DJ.mem_r(b, $IDS(b1), Con{b, $IDS(b2)}, DJ.mem_hd(b, $IDS(b2)))
+      +mbP1 = DJ.mem_r(b, $IA, Con{y, $IB}, DJ.mem_tl(b, y, $IB, mbIB))
+      +mx = DJ.mem_r(x, $P1, Con{x, $IC}, DJ.mem_hd(x, $IC))
+      +my = DJ.mem_l(y, $P1, Con{x, $IC}, myP1)
+      +mb = DJ.mem_l(b, $P1, Con{x, $IC}, mbP1)
+      +nyb = DJ.ne_nm(y, b, $IB, yIB, mbIB)
+      +bIA = DJ.dj_l($IA, Con{y, $IB}, hP1, b, DJ.mem_tl(b, y, $IB, mbIB))
+      +bxc = DJ.dj_r($P1, Con{x, $IC}, hS, b, mbP1)
+      +nxb = DJ.nm_ch(b, x, $IC, bxc)
+      +bIC = DJ.nm_ct(b, x, $IC, bxc)
+      +nqx = DJ.ne_nm(q, x, $SR, hqS, mx)
+      +nqy = DJ.ne_nm(q, y, $SR, hqS, my)
+      +nqb = DJ.ne_nm(q, b, $SR, hqS, mb)
+      +qP1 = DJ.nm_l(q, $P1, Con{x, $IC}, hqS)
+      +qIA = DJ.nm_l(q, $IA, Con{y, $IB}, qP1)
+      +qIB = DJ.nm_ct(q, y, $IB, DJ.nm_r(q, $IA, Con{y, $IB}, qP1))
+      +qIC = DJ.nm_ct(q, x, $IC, DJ.nm_r(q, $P1, Con{x, $IC}, hqS))
+      +hIB = DJ.nd_tail(y, $IB, hYB)
+      +bB1 = DJ.dj_l($IDS(b1), Con{b, $IDS(b2)}, hIB, b, DJ.mem_hd(b, $IDS(b2)))
+      +bB2 = DJ.nd_head(b, $IDS(b2), DJ.ndr($IDS(b1), Con{b, $IDS(b2)}, hIB))
+      +xB1 = DJ.nm_l(x, $IDS(b1), Con{b, $IDS(b2)}, xIB)
+      +xB2 = DJ.nm_ct(x, b, $IDS(b2), DJ.nm_r(x, $IDS(b1), Con{b, $IDS(b2)}, xIB))
+      +yB1 = DJ.nm_l(y, $IDS(b1), Con{b, $IDS(b2)}, yIB)
+      +yB2 = DJ.nm_ct(y, b, $IDS(b2), DJ.nm_r(y, $IDS(b1), Con{b, $IDS(b2)}, yIB))
+      +qB1 = DJ.nm_l(q, $IDS(b1), Con{b, $IDS(b2)}, qIB)
+      +qB2 = DJ.nm_ct(q, b, $IDS(b2), DJ.nm_r(q, $IDS(b1), Con{b, $IDS(b2)}, qIB))
+      +agA = RN.rotr_agr($AO, $IA, nl, x, y, b, q, dir, xIA, yIA, bIA, qIA)
+      +agC = RN.rotr_agr($AO, $IC, nl, x, y, b, q, dir, xIC, yIC, bIC, qIC)
+      +agB1 = RN.rotr_agr($AO, $IDS(b1), nl, x, y, b, q, dir, xB1, yB1, bB1, qB1)
+      +agB2 = RN.rotr_agr($AO, $IDS(b2), nl, x, y, b, q, dir, xB2, yB2, bB2, qB2)
+      +h0b = L.and_left(Nat.is_lt(0n, b), Bool.and(ST.is_node(K, ST.nd(K, nl, b), ST.rid(b1), ST.rid(b2), y), Bool.and(ST.rep(~K, b1, b, nl), ST.rep(~K, b2, b, nl))), hB)
+      +rx = RN.rotr_x(K, nl, x, y, b, q, dir, ST.rid(tc), hxn, nyx, nqx, $NESY(x, b, nxb))
+      +ry = RN.rotr_y(K, nl, x, y, b, q, dir, ST.rid(ta), hyn, nxy, nqy, $NESY(y, b, nyb))
+      +rb = RN.rotr_b(K, nl, x, y, b, q, dir, ST.rid(b1), ST.rid(b2), TR.rep_node(~K, b, b1, b2, y, nl, hB), nxb, nyb, nqb)
+      +repB = rep_intro(~K, $M5, b, b1, b2, x, h0b, rb, rep_moved($AO, b1, b, nl, $M5, agB1, TR.rep_l(~K, b, b1, b2, y, nl, hB)), rep_moved($AO, b2, b, nl, $M5, agB2, TR.rep_r(~K, b, b1, b2, y, nl, hB)))
+      rep_intro(~K, $M5, y, ta, $TN(x, $TN(b, b1, b2), tc), q, h0y, ry, rep_moved($AO, ta, y, nl, $M5, agA, hA), rep_intro(~K, $M5, x, $TN(b, b1, b2), tc, y, h0x, rx, repB, rep_moved($AO, tc, x, nl, $M5, agC, hC)))
+
+# ---- the right rotation: the path ----
+
+%def NCR RM.rotr_nl(K, nl, x, y, b, P.top(c), SP.dir(c))
+%def NR(i, lft) RM.rotr_nl(K, nl, x, y, b, 1n+i, lft)
+
+def ctx_frame_r($TO, +nl: $NL, +x: Nat, +y: Nat, +b: Nat, +i: Nat, +lft: Bool, +s: ST.Tr, +u: $CT, +hok: $COK($FRC(1n+i, lft, s, u), x), +hx: $NMEM(x, $BA($FRC(1n+i, lft, s, u))), +hy: $NMEM(y, $BA($FRC(1n+i, lft, s, u))), +hb: $NMEM(b, $BA($FRC(1n+i, lft, s, u))), +hBA: $NDL($BA($FRC(1n+i, lft, s, u))), +mq: {NL.memn(1n+i, $BA($FRC(1n+i, lft, s, u))) == True{} : Bool}) -> $COKN($FRC(1n+i, lft, s, u), y, $NR(i, lft)):
+  +hk = L.and_left($CK(i, lft, s, u), P.ctxok(~K, u, 1n+i, nl), hok)
+  +hu = L.and_right($CK(i, lft, s, u), P.ctxok(~K, u, 1n+i, nl), hok)
+  +h0 = L.and_left(Nat.is_lt(0n, 1n+i), Bool.and($NODEQ(i, lft, s, u), ST.rep(~K, s, 1n+i, nl)), hk)
+  +hqn = L.and_left($NODEQ(i, lft, s, u), ST.rep(~K, s, 1n+i, nl), L.and_right(Nat.is_lt(0n, 1n+i), Bool.and($NODEQ(i, lft, s, u), ST.rep(~K, s, 1n+i, nl)), hk))
+  +hs = L.and_right($NODEQ(i, lft, s, u), ST.rep(~K, s, 1n+i, nl), L.and_right(Nat.is_lt(0n, 1n+i), Bool.and($NODEQ(i, lft, s, u), ST.rep(~K, s, 1n+i, nl)), hk))
+  +nxq = DJ.ne_nm(x, 1n+i, $BA($FRC(1n+i, lft, s, u)), hx, mq)
+  +nyq = DJ.ne_nm(y, 1n+i, $BA($FRC(1n+i, lft, s, u)), hy, mq)
+  +nbq = DJ.ne_nm(b, 1n+i, $BA($FRC(1n+i, lft, s, u)), hb, mq)
+  +rq = RN.rotr_q(K, nl, x, y, b, i, lft, ST.rid(s), P.top(u), hqn, nxq, nyq, nbq)
+  +agS = RN.rotr_agr($AO, $IDS(s), nl, x, y, b, 1n+i, lft, $FWS(x, i, lft, s, u, hx), $FWS(y, i, lft, s, u, hy), $FWS(b, i, lft, s, u, hb), $FQS(i, lft, s, u))
+  +agU = RN.rotr_agr($AO, $BA(u), nl, x, y, b, 1n+i, lft, $FWU(x, i, lft, s, u, hx), $FWU(y, i, lft, s, u, hy), $FWU(b, i, lft, s, u, hb), $FQU(i, lft, s, u))
+  +hu2 = Equal.trans(Bool, P.ctxok(~K, u, 1n+i, $NR(i, lft)), P.ctxok(~K, u, 1n+i, nl), True{}, AG.ctx_agr($AO, u, 1n+i, nl, $NR(i, lft), agU), hu)
+  +hs2 = rep_moved($AO, s, 1n+i, nl, $NR(i, lft), agS, hs)
+  L.and_intro(P.cok1(~K, P.FR{1n+i, lft, s}, y, P.top(u), $NR(i, lft)), P.ctxok(~K, u, 1n+i, $NR(i, lft)), L.and_intro(Nat.is_lt(0n, 1n+i), Bool.and(ST.is_node(K, ST.nd(K, $NR(i, lft), 1n+i), ST.pk(Nat, lft, y, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), y), P.top(u)), ST.rep(~K, s, 1n+i, $NR(i, lft))), h0, L.and_intro(ST.is_node(K, ST.nd(K, $NR(i, lft), 1n+i), ST.pk(Nat, lft, y, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), y), P.top(u)), ST.rep(~K, s, 1n+i, $NR(i, lft)), rq, hs2)), hu2)
+
+def rotr_ctx($TO, +nl: $NL, +c: $CT, +x: Nat, +y: Nat, +b: Nat, +hok: $COK(c, x), +hx: $NMEM(x, $BA(c)), +hy: $NMEM(y, $BA(c)), +hb: $NMEM(b, $BA(c)), +hBA: $NDL($BA(c))) -> $COKN(c, y, $NCR):
+  match c:
+    case Nil{}:
+      {==}
+    case Con{P.FR{0n, +lft, +s}, +u}:
+      Empty.absurd($COKN($FRC(0n, lft, s, u), y, RM.rotr_nl(K, nl, x, y, b, 0n, lft)), L.false_true(L.and_left(Nat.is_lt(0n, 0n), Bool.and(ST.is_node(K, ST.nd(K, nl, 0n), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)), ST.rep(~K, s, 0n, nl)), L.and_left(P.cok1(~K, P.FR{0n, lft, s}, x, P.top(u), nl), P.ctxok(~K, u, 0n, nl), hok))))
+    case Con{P.FR{1n+i, True{}, +s}, +u}:
+      ctx_frame_r($AO, nl, x, y, b, i, True{}, s, u, hok, hx, hy, hb, hBA, DJ.mem_r(1n+i, P.before(u), Con{1n+i, $APP($IDS(s), P.after(u))}, DJ.mem_hd(1n+i, $APP($IDS(s), P.after(u)))))
+    case Con{P.FR{1n+i, False{}, +s}, +u}:
+      ctx_frame_r($AO, nl, x, y, b, i, False{}, s, u, hok, hx, hy, hb, hBA, DJ.mem_l(1n+i, $BFF(u, s, 1n+i), P.after(u), DJ.mem_r(1n+i, P.before(u), $APP($IDS(s), Con{1n+i, Nil{}}), DJ.mem_r(1n+i, $IDS(s), Con{1n+i, Nil{}}, DJ.mem_hd(1n+i, Nil{})))))

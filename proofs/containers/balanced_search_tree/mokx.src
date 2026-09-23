@@ -1,0 +1,48 @@
+import Base
+import ../../lib/logic.bend as L
+import ./spec.bend as S
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./ok.bend as OK
+
+# A mirror result's answer mapped: a refinement with the value v found
+# gives one with the value's presence (changed_value) or its entry
+# (entry_value). (source: tools/generators/tm_hand/mokx.src)
+
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def AK ~K, ~V, ~cmp
+%def MV Maybe<&2, V>
+%def ME Maybe<&2, M.Entry<K, V>>
+%def SHT ST.Sh<K, V>
+%def TMT M.TreeMap<K, V, cmp>
+%def MOD S.Model<K, V>
+%def RL(s) ST.real($AK, s)
+%def MD(s) ST.model($AK, s)
+%def GD(s) {ST.good($AK, s) == True{} : Bool}
+
+def cv_r($TK, +m0: $MOD, +m: $SHT, +v: V, +sh2: $SHT, +o: $MV, +h1: {($RL(m), Some{v}) == ($RL(sh2), o) : $TMT & $MV}, r: {(m0, Some{v}) == ($MD(sh2), o) : $MOD & $MV} & $GD(sh2)) -> OK.MOK($AK, Bool, (m0, True{}), MI.changed_value($AK, (m, Some{v}))):
+  match r:
+    case Tuple{h2, hg}:
+      +e1 = L.pair_fst($TMT, $MV, $RL(m), Some{v}, $RL(sh2), o, h1)
+      +e2 = L.pair_fst($MOD, $MV, m0, Some{v}, $MD(sh2), o, h2)
+      (sh2, (True{}, (L.pair_eq($TMT, Bool, $RL(m), True{}, $RL(sh2), True{}, e1, {==}), (L.pair_eq($MOD, Bool, m0, True{}, $MD(sh2), True{}, e2, {==}), hg))))
+
+# the value found: the answer is that something changed
+def cv_mok($TK, +m0: $MOD, +m: $SHT, +v: V, p: OK.MOK($AK, $MV, (m0, Some{v}), (m, Some{v}))) -> OK.MOK($AK, Bool, (m0, True{}), MI.changed_value($AK, (m, Some{v}))):
+  match p:
+    case Tuple{+sh2, Tuple{+o, Tuple{+h1, r}}}:
+      cv_r($AK, m0, m, v, sh2, o, h1, r)
+
+def ev_r($TK, +m0: $MOD, +m: $SHT, +k: K, +v: V, +sh2: $SHT, +o: $MV, +h1: {($RL(m), Some{v}) == ($RL(sh2), o) : $TMT & $MV}, r: {(m0, Some{v}) == ($MD(sh2), o) : $MOD & $MV} & $GD(sh2)) -> OK.MOK($AK, $ME, (m0, Some{M.Entry{k, v}}), MI.entry_value($AK, Some{k}, (m, Some{v}))):
+  match r:
+    case Tuple{h2, hg}:
+      +e1 = L.pair_fst($TMT, $MV, $RL(m), Some{v}, $RL(sh2), o, h1)
+      +e2 = L.pair_fst($MOD, $MV, m0, Some{v}, $MD(sh2), o, h2)
+      (sh2, (Some{M.Entry{k, v}}, (L.pair_eq($TMT, $ME, $RL(m), Some{M.Entry{k, v}}, $RL(sh2), Some{M.Entry{k, v}}, e1, {==}), (L.pair_eq($MOD, $ME, m0, Some{M.Entry{k, v}}, $MD(sh2), Some{M.Entry{k, v}}, e2, {==}), hg))))
+
+# the value found: the answer is its entry
+def ev_mok($TK, +m0: $MOD, +m: $SHT, +k: K, +v: V, p: OK.MOK($AK, $MV, (m0, Some{v}), (m, Some{v}))) -> OK.MOK($AK, $ME, (m0, Some{M.Entry{k, v}}), MI.entry_value($AK, Some{k}, (m, Some{v}))):
+  match p:
+    case Tuple{+sh2, Tuple{+o, Tuple{+h1, r}}}:
+      ev_r($AK, m0, m, k, v, sh2, o, h1, r)

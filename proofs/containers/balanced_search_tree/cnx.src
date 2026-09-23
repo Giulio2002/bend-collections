@@ -1,0 +1,366 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/list.bend as LL
+import ../../lib/order.bend as O
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./ends.bend as EN
+import ./path.bend as P
+import ./plug.bend as PG
+import ./dj.bend as DJ
+import ./ord.bend as OR
+import ./navl.bend as NV
+import ./cur.bend as CU
+import ./nbr.bend as NB
+import ./find.bend as FI
+import ./slot.bend as SL
+import ../../lib/nat_list.bend as NL
+
+# A cursor's step: the path to any id of the tree, and in sorted entries
+# the entries strictly past (before) an entry's key are the ones after
+# (before) it. (source: tools/generators/tm_hand/cnx.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def CT List<&2, P.Fr>
+%def E M.Entry<K, V>
+%def ES List<&2, $E>
+%def ME Maybe<&2, $E>
+%def KY(e) S.key(K, V, e)
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def EAPP(a, b) SC.append($E, a, b)
+%def ORD(x) {ST.ordered($AK, x) == True{} : Bool}
+%def MID $EAPP(xs, Con{e, ys})
+
+# ---- strictly past the middle entry ----
+
+def fw_mid($TO, +xs: $ES, +e: $E, +ys: $ES, +h: $ORD($MID)) -> {S.first_where($AK, $KY(e), False{}, $MID) == S.head($E, ys) : $ME}:
+  %Equal.sym($ME, S.first_where($AK, $KY(e), False{}, $MID), OR.orm($E, S.first_where($AK, $KY(e), False{}, xs), S.first_where($AK, $KY(e), False{}, Con{e, ys})), NV.fw_app($AK, $KY(e), False{}, xs, Con{e, ys})) : {_ == S.head($E, ys) : $ME}
+  %Equal.sym($ME, S.first_where($AK, $KY(e), False{}, xs), None{}, NV.fw_none($AO, $KY(e), False{}, xs, OR.ord_mid_l($AO, xs, e, ys, h))) : {OR.orm($E, _, S.first_where($AK, $KY(e), False{}, Con{e, ys})) == S.head($E, ys) : $ME}
+  %Equal.sym(Cmp, cmp($KY(e), $KY(e)), EQ{}, O.refl(~K, ~cmp, ~o, $KY(e))) : {S.pick($ME, S.ordering_ok(_, False{}), Some{e}, S.first_where($AK, $KY(e), False{}, ys)) == S.head($E, ys) : $ME}
+  NV.fw_head($AK, $KY(e), False{}, ys, OR.ord_mid_r($AO, xs, e, ys, h))
+
+def lw_mid($TO, +xs: $ES, +e: $E, +ys: $ES, +h: $ORD($MID)) -> {S.last_where($AK, $KY(e), False{}, $MID, None{}) == S.last($E, xs) : $ME}:
+  %Equal.sym($ME, S.last_where($AK, $KY(e), False{}, $MID, None{}), S.last_where($AK, $KY(e), False{}, Con{e, ys}, S.last_where($AK, $KY(e), False{}, xs, None{})), NV.lw_app($AK, $KY(e), False{}, xs, Con{e, ys}, None{})) : {_ == S.last($E, xs) : $ME}
+  %Equal.sym($ME, S.last_where($AK, $KY(e), False{}, xs, None{}), OR.orm($E, S.last($E, xs), None{}), NV.lw_all($AK, $KY(e), False{}, xs, None{}, OR.ord_mid_l($AO, xs, e, ys, h))) : {S.last_where($AK, $KY(e), False{}, Con{e, ys}, _) == S.last($E, xs) : $ME}
+  %Equal.sym($ME, OR.orm($E, S.last($E, xs), None{}), S.last($E, xs), OR.orm_none($E, S.last($E, xs))) : {S.last_where($AK, $KY(e), False{}, Con{e, ys}, _) == S.last($E, xs) : $ME}
+  %Equal.sym(Cmp, cmp($KY(e), $KY(e)), EQ{}, O.refl(~K, ~cmp, ~o, $KY(e))) : {S.last_where($AK, $KY(e), False{}, ys, S.pick($ME, S.ordering_ok(_, False{}), Some{e}, S.last($E, xs))) == S.last($E, xs) : $ME}
+  NV.lw_none($AO, $KY(e), False{}, ys, S.last($E, xs), OR.ord_mid_r($AO, xs, e, ys, h))
+
+# ---- the path to an id of the tree ----
+
+%def APP(a, b) SC.append(Nat, a, b)
+%def IDS(t) ST.ids(t)
+%def TN(i, a, b) ST.TN{i, a, b}
+%def WH(c, t) $APP(P.before(c), $APP($IDS(t), P.after(c)))
+%def REPN(t, p) {ST.rep(~K, t, p, nl) == True{} : Bool}
+%def COKN(c, z) {P.ctxok(~K, c, z, nl) == True{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
+%def TO3 ~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AO3 ~K, ~cmp, ~o
+%def PT(c, t) Sigma<&1, &1, $CT, pc_ => Sigma<&1, &1, ST.Tr, pa_ => Sigma<&1, &1, ST.Tr, pb_ => {$WH(pc_, $TN(j, pa_, pb_)) == $WH(c, t) : $LN} & ({PG.plug(pc_, $TN(j, pa_, pb_)) == PG.plug(c, t) : ST.Tr} & ($REPN($TN(j, pa_, pb_), P.top(pc_)) & $COKN(pc_, j)))>>>
+%def TT $TN(i, tl, tr)
+%def PTJ(jj, c, t) Sigma<&1, &1, $CT, pc_ => Sigma<&1, &1, ST.Tr, pa_ => Sigma<&1, &1, ST.Tr, pb_ => {$WH(pc_, $TN(jj, pa_, pb_)) == $WH(c, t) : $LN} & ({PG.plug(pc_, $TN(jj, pa_, pb_)) == PG.plug(c, t) : ST.Tr} & ($REPN($TN(jj, pa_, pb_), P.top(pc_)) & $COKN(pc_, jj)))>>>
+%def CLF Con{P.FR{i, True{}, tr}, c}
+%def CRF Con{P.FR{i, False{}, tl}, c}
+
+def pt_upl(-K: Data, +nl: $NL, +c: $CT, +i: Nat, +tl: ST.Tr, +tr: ST.Tr, +j: Nat, r: $PT($CLF, tl)) -> $PT(c, $TT):
+  match r:
+    case Tuple{+pc, Tuple{+pa, Tuple{+pb, Tuple{h1, rest}}}}:
+      (pc, (pa, (pb, (Equal.trans($LN, $WH(pc, $TN(j, pa, pb)), $WH($CLF, tl), $WH(c, $TT), h1, Equal.sym($LN, $WH(c, $TT), $WH($CLF, tl), P.ids_l(c, i, tl, tr))), rest))))
+
+def pt_upr(-K: Data, +nl: $NL, +c: $CT, +i: Nat, +tl: ST.Tr, +tr: ST.Tr, +j: Nat, r: $PT($CRF, tr)) -> $PT(c, $TT):
+  match r:
+    case Tuple{+pc, Tuple{+pa, Tuple{+pb, Tuple{h1, rest}}}}:
+      (pc, (pa, (pb, (Equal.trans($LN, $WH(pc, $TN(j, pa, pb)), $WH($CRF, tr), $WH(c, $TT), h1, Equal.sym($LN, $WH(c, $TT), $WH($CRF, tr), P.ids_r(c, i, tl, tr))), rest))))
+
+%def KL @+hrl: $REPN(tl, i) -> @+hol: $COKN($CLF, ST.rid(tl)) -> @+hml: $MEM(j, $IDS(tl)) -> $PT($CLF, tl)
+%def KR @+hrr: $REPN(tr, i) -> @+hor: $COKN($CRF, ST.rid(tr)) -> @+hmr: $MEM(j, $IDS(tr)) -> $PT($CRF, tr)
+%def OKL P.ok_l(~K, nl, c, i, tl, tr, hr, hok)
+%def OKR P.ok_r(~K, nl, c, i, tl, tr, hr, hok)
+%def PTH +nl: $NL, +c: $CT, +i: Nat, +tl: ST.Tr, +tr: ST.Tr, +j: Nat, +hr: $REPN($TT, P.top(c)), +hok: $COKN(c, i), +hm: $MEM(j, $IDS($TT))
+
+# j on the right when neither the node nor on the left
+def pt_rc($TO3, $PTH, +he: {Nat.is_eq(i, j) == False{} : Bool}, +bl: Bool, +hbl: {NL.memn(j, $IDS(tl)) == bl : Bool}, kl: $KL, kr: $KR) -> $PT(c, $TT):
+  match bl:
+    case True{}:
+      pt_upl(K, nl, c, i, tl, tr, j, kl(Pair.snd($COKN($CLF, ST.rid(tl)), $REPN(tl, i), $OKL), Pair.fst($COKN($CLF, ST.rid(tl)), $REPN(tl, i), $OKL), hbl))
+    case False{}:
+      +e1 = Equal.trans(Bool, Bool.or(NL.memn(j, $IDS(tl)), NL.memn(j, Con{i, $IDS(tr)})), NL.memn(j, $IDS($TT)), True{}, Equal.sym(Bool, NL.memn(j, $IDS($TT)), Bool.or(NL.memn(j, $IDS(tl)), NL.memn(j, Con{i, $IDS(tr)})), NL.memn_app(j, $IDS(tl), Con{i, $IDS(tr)})), hm)
+      +e2 = L.subst(Bool, z => {Bool.or(z, NL.memn(j, Con{i, $IDS(tr)})) == True{} : Bool}, NL.memn(j, $IDS(tl)), False{}, hbl, e1)
+      +e3 = L.subst(Bool, z => {Bool.or(z, NL.memn(j, $IDS(tr))) == True{} : Bool}, Nat.is_eq(i, j), False{}, he, e2)
+      pt_upr(K, nl, c, i, tl, tr, j, kr(Pair.snd($COKN($CRF, ST.rid(tr)), $REPN(tr, i), $OKR), Pair.fst($COKN($CRF, ST.rid(tr)), $REPN(tr, i), $OKR), e3))
+
+# the node itself, or below it
+def pt_c($TO3, $PTH, +e: Bool, +he: {Nat.is_eq(i, j) == e : Bool}, kl: $KL, kr: $KR) -> $PT(c, $TT):
+  match e:
+    case True{}:
+      L.subst(Nat, z => $PTJ(z, c, $TT), i, j, N.eq_from_is_eq(i, j, he), (c, (tl, (tr, ({==}, ({==}, (hr, hok)))))))
+    case False{}:
+      pt_rc($AO3, nl, c, i, tl, tr, j, hr, hok, hm, he, NL.memn(j, $IDS(tl)), {==}, kl, kr)
+
+def path_to($TO3, +t: ST.Tr, +nl: $NL, +c: $CT, +j: Nat, +hr: $REPN(t, P.top(c)), +hok: $COKN(c, ST.rid(t)), +hm: $MEM(j, $IDS(t))) -> $PT(c, t):
+  match t:
+    case ST.TE{}:
+      Empty.absurd($PT(c, ST.TE{}), L.false_true(hm))
+    case ST.TN{+i, +tl, +tr}:
+      pt_c($AO3, nl, c, i, tl, tr, j, hr, hok, hm, Nat.is_eq(i, j), {==}, hrl => hol => hml => path_to($AO3, tl, nl, $CLF, j, hrl, hol, hml), hrr => hor => hmr => path_to($AO3, tr, nl, $CRF, j, hrr, hor, hmr))
+
+# ---- ids around a node ----
+
+def idok_sc(+a: $LN, +b: $LN, +j: Nat, +h: {CU.idok(b, j) == True{} : Bool}, +e: Bool, +he: {Nat.is_eq(j, 0n) == e : Bool}) -> {CU.idok($APP(a, b), j) == True{} : Bool}:
+  match e:
+    case True{}:
+      %Equal.sym(Bool, Nat.is_eq(j, 0n), True{}, he) : {Bool.or(_, NL.memn(j, $APP(a, b))) == True{} : Bool}
+      {==}
+    case False{}:
+      %Equal.sym(Bool, Nat.is_eq(j, 0n), False{}, he) : {Bool.or(_, NL.memn(j, $APP(a, b))) == True{} : Bool}
+      DJ.mem_r(j, a, b, L.subst(Bool, z => {Bool.or(z, NL.memn(j, b)) == True{} : Bool}, Nat.is_eq(j, 0n), False{}, he, h))
+
+def idok_suf(+a: $LN, +b: $LN, +j: Nat, +h: {CU.idok(b, j) == True{} : Bool}) -> {CU.idok($APP(a, b), j) == True{} : Bool}:
+  idok_sc(a, b, j, h, Nat.is_eq(j, 0n), {==})
+
+def idok_pc(+a: $LN, +b: $LN, +j: Nat, +h: {CU.idok(a, j) == True{} : Bool}, +e: Bool, +he: {Nat.is_eq(j, 0n) == e : Bool}) -> {CU.idok($APP(a, b), j) == True{} : Bool}:
+  match e:
+    case True{}:
+      %Equal.sym(Bool, Nat.is_eq(j, 0n), True{}, he) : {Bool.or(_, NL.memn(j, $APP(a, b))) == True{} : Bool}
+      {==}
+    case False{}:
+      %Equal.sym(Bool, Nat.is_eq(j, 0n), False{}, he) : {Bool.or(_, NL.memn(j, $APP(a, b))) == True{} : Bool}
+      DJ.mem_l(j, a, b, L.subst(Bool, z => {Bool.or(z, NL.memn(j, a)) == True{} : Bool}, Nat.is_eq(j, 0n), False{}, he, h))
+
+def idok_pre(+a: $LN, +b: $LN, +j: Nat, +h: {CU.idok(a, j) == True{} : Bool}) -> {CU.idok($APP(a, b), j) == True{} : Bool}:
+  idok_pc(a, b, j, h, Nat.is_eq(j, 0n), {==})
+
+# an id ok in a list without x is 0 or not x
+def sep_c(+x: Nat, +xs: $LN, +j: Nat, +hn: {NL.memn(x, xs) == False{} : Bool}, +h: {CU.idok(xs, j) == True{} : Bool}, +e: Bool, +he: {Nat.is_eq(j, 0n) == e : Bool}) -> {Bool.or(Nat.is_eq(j, 0n), Bool.not(Nat.is_eq(j, x))) == True{} : Bool}:
+  match e:
+    case True{}:
+      %Equal.sym(Bool, Nat.is_eq(j, 0n), True{}, he) : {Bool.or(_, Bool.not(Nat.is_eq(j, x))) == True{} : Bool}
+      {==}
+    case False{}:
+      +hm = L.subst(Bool, z => {Bool.or(z, NL.memn(j, xs)) == True{} : Bool}, Nat.is_eq(j, 0n), False{}, he, h)
+      %Equal.sym(Bool, Nat.is_eq(j, x), False{}, N.is_eq_sym_false(x, j, DJ.ne_nm(x, j, xs, hn, hm))) : {Bool.or(Nat.is_eq(j, 0n), Bool.not(_)) == True{} : Bool}
+      CU.or_r(Nat.is_eq(j, 0n), True{}, {==})
+
+def sep_mem(+x: Nat, +xs: $LN, +j: Nat, +hn: {NL.memn(x, xs) == False{} : Bool}, +h: {CU.idok(xs, j) == True{} : Bool}) -> {Bool.or(Nat.is_eq(j, 0n), Bool.not(Nat.is_eq(j, x))) == True{} : Bool}:
+  sep_c(x, xs, j, hn, h, Nat.is_eq(j, 0n), {==})
+
+# ---- iterator_next ----
+
+%def FT +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: $NL, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: $LN
+%def F n, root, lo, hi, free, l, d, nl, pl, tg, fl
+%def SH ST.SH{$F}
+%def GF {ST.goodF($AK, $F) == True{} : Bool}
+%def ENTS(xs) ST.ents(~K, ~V, xs, nl, pl)
+%def EST $ENTS($IDS(tg))
+%def TMS S.TM{l, $EST}
+%def J 1n+j
+%def CUR MI.MC{$SH, nx, cu, lo2, hi2, fw}
+%def CH +cu: Nat, +lo2: M.Bound<K>, +hi2: M.Bound<K>, +fw: Bool
+%def CHA cu, lo2, hi2, fw
+%def SCR(nk) S.CR{$TMS, nk, CU.ck(~K, nl, cu), lo2, hi2, fw}
+%def MCR(i) MI.MC{$SH, i, cu, lo2, hi2, fw}
+%def COKE(sp, mr) CU.CSTEP($AK, $ME, sp, mr, $SH, lo2, hi2, fw)
+%def CGJ {CU.cgood($AK, MI.MC{$SH, $J, cu, lo2, hi2, fw}) == True{} : Bool}
+%def IDX(i) CU.idok($IDS(tg), i)
+%def SEPJ Bool.or(Nat.is_eq($J, 0n), Bool.not(Nat.is_eq($J, cu)))
+%def HGC L.and_left(ST.goodF($AK, $F), Bool.and($IDX($J), Bool.and($IDX(cu), $SEPJ)), hc)
+%def HCU L.and_left($IDX(cu), $SEPJ, L.and_right($IDX($J), Bool.and($IDX(cu), $SEPJ), L.and_right(ST.goodF($AK, $F), Bool.and($IDX($J), Bool.and($IDX(cu), $SEPJ)), hc)))
+%def HNX L.and_left($IDX($J), Bool.and($IDX(cu), $SEPJ), L.and_right(ST.goodF($AK, $F), Bool.and($IDX($J), Bool.and($IDX(cu), $SEPJ)), hc))
+%def CG0 L.and_intro(ST.goodF($AK, $F), Bool.and($IDX(0n), Bool.and($IDX(cu), Bool.or(True{}, Bool.not(Nat.is_eq(0n, cu))))), $HGC, L.and_intro($IDX(0n), Bool.and($IDX(cu), Bool.or(True{}, Bool.not(Nat.is_eq(0n, cu)))), {==}, L.and_intro($IDX(cu), Bool.or(True{}, Bool.not(Nat.is_eq(0n, cu))), $HCU, {==})))
+%def NONE_W (0n, (cu, (None{}, ({==}, ({==}, $CG0)))))
+%def XS $APP(P.before(pc), $IDS(pa))
+%def YS $APP($IDS(pb), P.after(pc))
+%def SPL $APP($XS, Con{$J, $YS})
+%def TJ $TN($J, pa, pb)
+%def EE M.Entry{k, v}
+%def NBR ST.pk(Nat, fw, ST.fst0($YS), ST.last0($XS))
+%def MCY MI.MC{$SH, $NBR, $J, lo2, hi2, fw}
+%def PH +pc: $CT, +pa: ST.Tr, +pb: ST.Tr, +hid: {$IDS(tg) == $WH(pc, $TJ) : $LN}, +hw: {$IDS(tg) == $SPL : $LN}, +h3: $REPN($TJ, P.top(pc)), +h4: $COKN(pc, $J)
+%def PHA pc, pa, pb, hid, hw, h3, h4
+%def NDS L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $IDS(tg), $SPL, hw, DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $F, hg)))
+%def OKS L.subst($LN, z => {EN.oks(~K, ~V, z, nl, pl) == True{} : Bool}, $IDS(tg), $SPL, hw, EN.oks_tree(~K, ~V, nl, pl, tg, 0n, ST.g_crep($AK, $F, hg), ST.g_cpay($AK, $F, hg)))
+%def OKX SL.oks_split_l(~K, ~V, $XS, Con{$J, $YS}, nl, pl, $OKS)
+%def OKC SL.oks_split_r(~K, ~V, $XS, Con{$J, $YS}, nl, pl, $OKS)
+%def OKY L.and_right(S.is_some($E, ST.ent(K, V, ST.nd(K, nl, $J), ST.pv(V, pl, $J))), EN.oks(~K, ~V, $YS, nl, pl), $OKC)
+%def NH +c0: Bool, +x1: Nat, +x2: Nat, +x3: Nat, +k: K, +v: V, +hx: {ST.nd(K, nl, $J) == M.N{c0, x1, x2, x3, k} : $ND}, +hm: {ST.pv(V, pl, $J) == Some{v} : Maybe<&2, V>}
+%def NHA c0, x1, x2, x3, k, v, hx, hm
+%def AL1 $AO, $F, hg, j, $CHA, hc, $PHA
+
+# the entries around the node
+def nx_est($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, $NH) -> {$EST == $EAPP($ENTS($XS), Con{$EE, $ENTS($YS)}) : $ES}:
+  +e0 = L.subst($LN, z => {$EST == $ENTS(z) : $ES}, $IDS(tg), $SPL, hw, {==})
+  +e1 = FI.ents_app(~K, ~V, $XS, Con{$J, $YS}, nl, pl)
+  +eent = L.subst(Maybe<&2, V>, z => {ST.ent(K, V, ST.nd(K, nl, $J), ST.pv(V, pl, $J)) == ST.ent(K, V, M.N{c0, x1, x2, x3, k}, z) : $ME}, ST.pv(V, pl, $J), Some{v}, hm, L.subst($ND, z => {ST.ent(K, V, ST.nd(K, nl, $J), ST.pv(V, pl, $J)) == ST.ent(K, V, z, ST.pv(V, pl, $J)) : $ME}, ST.nd(K, nl, $J), M.N{c0, x1, x2, x3, k}, hx, {==}))
+  +e2 = L.subst($ME, z => {$EAPP($ENTS($XS), ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, $J), ST.pv(V, pl, $J)), $ENTS($YS))) == $EAPP($ENTS($XS), ST.cons_m($E, z, $ENTS($YS))) : $ES}, ST.ent(K, V, ST.nd(K, nl, $J), ST.pv(V, pl, $J)), Some{$EE}, eent, {==})
+  Equal.trans($ES, $EST, $ENTS($SPL), $EAPP($ENTS($XS), Con{$EE, $ENTS($YS)}), e0, Equal.trans($ES, $ENTS($SPL), $EAPP($ENTS($XS), ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, $J), ST.pv(V, pl, $J)), $ENTS($YS))), $EAPP($ENTS($XS), Con{$EE, $ENTS($YS)}), e1, e2))
+
+%def HE nx_est($AL1, $NHA)
+%def HORD L.subst($ES, z => $ORD(z), $EST, $EAPP($ENTS($XS), Con{$EE, $ENTS($YS)}), $HE, ST.g_cord($AK, $F, hg))
+
+def nx_sf($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, $NH, +hord: $ORD($EAPP($ENTS($XS), Con{$EE, $ENTS($YS)}))) -> {S.succ($AK, k, fw, $EAPP($ENTS($XS), Con{$EE, $ENTS($YS)})) == CU.ck(~K, nl, $NBR) : Maybe<&2, K>}:
+  match fw:
+    case True{}:
+      %Equal.sym($ME, S.first_where($AK, k, False{}, $EAPP($ENTS($XS), Con{$EE, $ENTS($YS)})), S.head($E, $ENTS($YS)), fw_mid($AO, $ENTS($XS), $EE, $ENTS($YS), hord)) : {S.key_m(K, V, _) == CU.ck(~K, nl, ST.fst0($YS)) : Maybe<&2, K>}
+      EN.first_key_eq(~K, ~V, nl, pl, $YS, $OKY)
+    case False{}:
+      %Equal.sym($ME, S.last_where($AK, k, False{}, $EAPP($ENTS($XS), Con{$EE, $ENTS($YS)}), None{}), S.last($E, $ENTS($XS)), lw_mid($AO, $ENTS($XS), $EE, $ENTS($YS), hord)) : {S.key_m(K, V, _) == CU.ck(~K, nl, ST.last0($XS)) : Maybe<&2, K>}
+      EN.last_key_eq(~K, ~V, nl, pl, $XS, $OKX)
+
+# the key after the node is the neighbour's
+def nx_succ($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, $NH) -> {S.succ($AK, k, fw, $EST) == CU.ck(~K, nl, $NBR) : Maybe<&2, K>}:
+  %Equal.sym($ES, $EST, $EAPP($ENTS($XS), Con{$EE, $ENTS($YS)}), $HE) : {S.succ($AK, k, fw, _) == CU.ck(~K, nl, $NBR) : Maybe<&2, K>}
+  nx_sf($AO, $F, hg, j, $CHA, hc, $PHA, $NHA, $HORD)
+
+# the cursor moved on: its next the neighbour, its current the node
+def nx_cg($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH) -> {CU.cgood($AK, $MCY) == True{} : Bool}:
+  match fw:
+    case True{}:
+      +iY = CU.fst0_ok($YS)
+      +iW = L.subst($LN, z => {CU.idok(z, ST.fst0($YS)) == True{} : Bool}, $SPL, $IDS(tg), Equal.sym($LN, $IDS(tg), $SPL, hw), idok_suf($XS, Con{$J, $YS}, ST.fst0($YS), CU.idok_cons($J, $YS, ST.fst0($YS), iY)))
+      +sp = sep_mem($J, $YS, ST.fst0($YS), DJ.nd_head($J, $YS, DJ.ndr($XS, Con{$J, $YS}, $NDS)), iY)
+      L.and_intro(ST.goodF($AK, $F), Bool.and($IDX(ST.fst0($YS)), Bool.and($IDX($J), Bool.or(Nat.is_eq(ST.fst0($YS), 0n), Bool.not(Nat.is_eq(ST.fst0($YS), $J))))), $HGC, L.and_intro($IDX(ST.fst0($YS)), Bool.and($IDX($J), Bool.or(Nat.is_eq(ST.fst0($YS), 0n), Bool.not(Nat.is_eq(ST.fst0($YS), $J)))), iW, L.and_intro($IDX($J), Bool.or(Nat.is_eq(ST.fst0($YS), 0n), Bool.not(Nat.is_eq(ST.fst0($YS), $J))), $HNX, sp)))
+    case False{}:
+      +iX = CU.last0_ok($XS)
+      +iW = L.subst($LN, z => {CU.idok(z, ST.last0($XS)) == True{} : Bool}, $SPL, $IDS(tg), Equal.sym($LN, $IDS(tg), $SPL, hw), idok_pre($XS, Con{$J, $YS}, ST.last0($XS), iX))
+      +sp = sep_mem($J, $XS, ST.last0($XS), DJ.dj_l($XS, Con{$J, $YS}, $NDS, $J, DJ.mem_hd($J, $YS)), iX)
+      L.and_intro(ST.goodF($AK, $F), Bool.and($IDX(ST.last0($XS)), Bool.and($IDX($J), Bool.or(Nat.is_eq(ST.last0($XS), 0n), Bool.not(Nat.is_eq(ST.last0($XS), $J))))), $HGC, L.and_intro($IDX(ST.last0($XS)), Bool.and($IDX($J), Bool.or(Nat.is_eq(ST.last0($XS), 0n), Bool.not(Nat.is_eq(ST.last0($XS), $J)))), iW, L.and_intro($IDX($J), Bool.or(Nat.is_eq(ST.last0($XS), 0n), Bool.not(Nat.is_eq(ST.last0($XS), $J))), $HNX, sp)))
+
+%def SPY (S.CR{$TMS, S.succ($AK, k, fw, $EST), Some{k}, lo2, hi2, fw}, Some{$EE})
+%def SPN ($SCR(None{}), None{})
+
+# in range: the entry, and the neighbour next
+def nx_b($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, $NH, +b: Bool) -> $COKE(S.pick(S.Cursor<K, V> & $ME, b, $SPY, $SPN), MI.iterator_checked($AK, $SH, $J, cu, lo2, hi2, fw, $EE, b)):
+  match b:
+    case False{}:
+      $NONE_W
+    case True{}:
+      +hnd = L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $IDS(tg), $WH(pc, $TJ), hid, DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $F, hg)))
+      %Equal.sym(ST.Sh<K, V> & Nat, MI.neighbor($AK, $SH, $J, fw), ($SH, $NBR), NB.neighbor_m($AK, $F, pc, $J, pa, pb, h3, h4, hnd, hid, N.eq_from_is_eq(n, SC.length(Nat, $IDS(tg)), ST.g_csz($AK, $F, hg)), fw)) : $COKE($SPY, MI.iterator_yield($AK, $J, lo2, hi2, fw, $EE, _))
+      +es = nx_succ($AL1, $NHA)
+      +ej = L.subst($ND, z => {CU.ck(~K, nl, $J) == M.node_key(~K, z) : Maybe<&2, K>}, ST.nd(K, nl, $J), M.N{c0, x1, x2, x3, k}, hx, {==})
+      +esp = L.subst(Maybe<&2, K>, z => {(S.CR{$TMS, z, Some{k}, lo2, hi2, fw}, Some{$EE}) == (S.CR{$TMS, CU.ck(~K, nl, $NBR), CU.ck(~K, nl, $J), lo2, hi2, fw}, Some{$EE}) : S.Cursor<K, V> & $ME}, CU.ck(~K, nl, $NBR), S.succ($AK, k, fw, $EST), Equal.sym(Maybe<&2, K>, S.succ($AK, k, fw, $EST), CU.ck(~K, nl, $NBR), es), L.subst(Maybe<&2, K>, z => {(S.CR{$TMS, CU.ck(~K, nl, $NBR), z, lo2, hi2, fw}, Some{$EE}) == (S.CR{$TMS, CU.ck(~K, nl, $NBR), CU.ck(~K, nl, $J), lo2, hi2, fw}, Some{$EE}) : S.Cursor<K, V> & $ME}, CU.ck(~K, nl, $J), Some{k}, ej, {==}))
+      ($NBR, ($J, (Some{$EE}, ({==}, (esp, nx_cg($AO, $F, hg, j, $CHA, hc, $PHA))))))
+
+# the node and its value: found, then checked against the range
+def nx_u($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, $NH) -> $COKE(S.iterator_next($AK, $SCR(Some{k})), MI.iterator_read($AK, $J, cu, lo2, hi2, fw, ($SH, Some{$EE}))):
+  +efind = Equal.trans($ME, S.find_e($AK, k, $EST), S.find_e($AK, k, $EAPP($ENTS($XS), Con{$EE, $ENTS($YS)})), Some{$EE}, L.subst($ES, z => {S.find_e($AK, k, $EST) == S.find_e($AK, k, z) : $ME}, $EST, $EAPP($ENTS($XS), Con{$EE, $ENTS($YS)}), $HE, {==}), OR.find_mid_eq($AO, k, $ENTS($XS), $EE, $ENTS($YS), $HORD, O.refl(~K, ~cmp, ~o, k)))
+  %Equal.sym($ME, S.find_e($AK, k, $EST), Some{$EE}, efind) : $COKE(S.next_at($AK, l, $EST, CU.ck(~K, nl, cu), lo2, hi2, fw, _), MI.iterator_read($AK, $J, cu, lo2, hi2, fw, ($SH, Some{$EE})))
+  %Equal.sym(Bool, M.in_range($AK, k, lo2, hi2), S.in_range(~K, ~cmp, k, lo2, hi2), CU.inr_eq($AK, k, lo2, hi2)) : $COKE(S.next_at($AK, l, $EST, CU.ck(~K, nl, cu), lo2, hi2, fw, Some{$EE}), MI.iterator_checked($AK, $SH, $J, cu, lo2, hi2, fw, $EE, _))
+  nx_b($AO, $F, hg, j, $CHA, hc, $PHA, $NHA, S.in_range(~K, ~cmp, k, lo2, hi2))
+
+%def NXG(x, m) $COKE(S.iterator_next($AK, $SCR(M.node_key(~K, x))), MI.iterator_read($AK, $J, cu, lo2, hi2, fw, MI.entry_value($AK, M.node_key(~K, x), ($SH, m))))
+
+def nx_t($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, +x: $ND, +hx: {ST.nd(K, nl, $J) == x : $ND}, +m: Maybe<&2, V>, +hm: {ST.pv(V, pl, $J) == m : Maybe<&2, V>}) -> $NXG(x, m):
+  match x m:
+    case M.Free{f} None{}:
+      $NONE_W
+    case M.Free{f} Some{w}:
+      $NONE_W
+    case M.N{c0, x1, x2, x3, k} None{}:
+      +hs = L.and_left(S.is_some($E, ST.ent(K, V, ST.nd(K, nl, $J), ST.pv(V, pl, $J))), EN.oks(~K, ~V, $YS, nl, pl), $OKC)
+      Empty.absurd($NXG(M.N{c0, x1, x2, x3, k}, None{}), L.false_true(L.subst(Maybe<&2, V>, z => {S.is_some($E, ST.ent(K, V, M.N{c0, x1, x2, x3, k}, z)) == True{} : Bool}, ST.pv(V, pl, $J), None{}, hm, L.subst($ND, z => {S.is_some($E, ST.ent(K, V, z, ST.pv(V, pl, $J))) == True{} : Bool}, ST.nd(K, nl, $J), M.N{c0, x1, x2, x3, k}, hx, hs))))
+    case M.N{+c0, +x1, +x2, +x3, +k} Some{+v}:
+      nx_u($AO, $F, hg, j, $CHA, hc, $PHA, c0, x1, x2, x3, k, v, hx, hm)
+
+def nx_s($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH) -> $COKE(S.iterator_next($AK, CU.cmod($AK, $MCR($J))), MI.iterator_next($AK, $MCR($J))):
+  nx_t($AO, $F, hg, j, $CHA, hc, $PHA, ST.nd(K, nl, $J), {==}, ST.pv(V, pl, $J), {==})
+
+%def NXJ $COKE(S.iterator_next($AK, CU.cmod($AK, $MCR($J))), MI.iterator_next($AK, $MCR($J)))
+
+def nx_r($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, +pc: $CT, +pa: ST.Tr, +pb: ST.Tr, +h1: {$WH(pc, $TJ) == $WH(Nil{}, tg) : $LN}, r3: $REPN($TJ, P.top(pc)) & $COKN(pc, $J)) -> $NXJ:
+  match r3:
+    case Tuple{h3, h4}:
+      +hid = Equal.trans($LN, $IDS(tg), $APP($IDS(tg), Nil{}), $WH(pc, $TJ), Equal.sym($LN, $APP($IDS(tg), Nil{}), $IDS(tg), LL.append_nil(Nat, $IDS(tg))), Equal.sym($LN, $WH(pc, $TJ), $WH(Nil{}, tg), h1))
+      +e1 = L.subst($LN, z => {$WH(pc, $TJ) == $APP(P.before(pc), z) : $LN}, $APP($APP($IDS(pa), Con{$J, $IDS(pb)}), P.after(pc)), $APP($IDS(pa), Con{$J, $YS}), LL.append_assoc(Nat, $IDS(pa), Con{$J, $IDS(pb)}, P.after(pc)), {==})
+      +e2 = Equal.sym($LN, $SPL, $APP(P.before(pc), $APP($IDS(pa), Con{$J, $YS})), LL.append_assoc(Nat, P.before(pc), $IDS(pa), Con{$J, $YS}))
+      nx_s($AO, $F, hg, j, $CHA, hc, pc, pa, pb, hid, Equal.trans($LN, $IDS(tg), $WH(pc, $TJ), $SPL, hid, Equal.trans($LN, $WH(pc, $TJ), $APP(P.before(pc), $APP($IDS(pa), Con{$J, $YS})), $SPL, e1, e2)), h3, h4)
+
+def nx_q($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, +pc: $CT, +pa: ST.Tr, +pb: ST.Tr, +h1: {$WH(pc, $TJ) == $WH(Nil{}, tg) : $LN}, rest: {PG.plug(pc, $TJ) == PG.plug(Nil{}, tg) : ST.Tr} & ($REPN($TJ, P.top(pc)) & $COKN(pc, $J))) -> $NXJ:
+  match rest:
+    case Tuple{h2, r3}:
+      nx_r($AO, $F, hg, j, $CHA, hc, pc, pa, pb, h1, r3)
+
+def nx_p($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, pt: $PTJ($J, Nil{}, tg)) -> $NXJ:
+  match pt:
+    case Tuple{+pc, Tuple{+pa, Tuple{+pb, Tuple{h1, rest}}}}:
+      nx_q($AO, $F, hg, j, $CHA, hc, pc, pa, pb, h1, rest)
+
+# a good cursor steps as the specification's
+def next_m($TO, $FT, +nx: Nat, $CH, +hc: {CU.cgood($AK, $CUR) == True{} : Bool}) -> $COKE(S.iterator_next($AK, CU.cmod($AK, $CUR)), MI.iterator_next($AK, $CUR)):
+  match nx:
+    case 0n:
+      (0n, (cu, (None{}, ({==}, ({==}, hc)))))
+    case 1n+j:
+      +hg = $HGC
+      nx_p($AO, $F, hg, j, $CHA, hc, path_to(~K, ~cmp, ~o, tg, nl, Nil{}, $J, ST.g_crep($AK, $F, hg), {==}, $HNX))
+
+# ---- next_key, next_value: the answer's key or value ----
+
+%def MK Maybe<&2, K>
+%def MVV Maybe<&2, V>
+%def RCT M.Cursor<K, V, cmp>
+%def SCT S.Cursor<K, V>
+%def MCT MI.MCursor<K, V>
+
+def ikr_eq($TK, +a: $MCT, +b: $ME) -> {MI.iterator_key_result($AK, (a, b)) == (a, S.key_m(K, V, b)) : $MCT & $MK}:
+  match b:
+    case None{}:
+      {==}
+    case Some{M.Entry{+k, +v}}:
+      {==}
+
+def ivr_eq($TK, +a: $MCT, +b: $ME) -> {MI.iterator_value_result($AK, (a, b)) == (a, S.val_m(K, V, b)) : $MCT & $MVV}:
+  match b:
+    case None{}:
+      {==}
+    case Some{M.Entry{+k, +v}}:
+      {==}
+
+def ckr($TK, -spr: $SCT & $ME, +a: $MCT, +b: $ME, +c2: $MCT, +o: $ME, +h1: {(MI.rc($AK, a), b) == (MI.rc($AK, c2), o) : $RCT & $ME}, r: {spr == (CU.cmod($AK, c2), o) : $SCT & $ME} & {CU.cgood($AK, c2) == True{} : Bool}) -> CU.COK($AK, $MK, S.key_result(K, V, spr), (a, S.key_m(K, V, b))):
+  match r:
+    case Tuple{h2, hg}:
+      +ea = L.pair_fst($RCT, $ME, MI.rc($AK, a), b, MI.rc($AK, c2), o, h1)
+      +eb = L.pair_snd($RCT, $ME, MI.rc($AK, a), b, MI.rc($AK, c2), o, h1)
+      (c2, (S.key_m(K, V, o), (L.pair_eq($RCT, $MK, MI.rc($AK, a), S.key_m(K, V, b), MI.rc($AK, c2), S.key_m(K, V, o), ea, L.subst($ME, z => {S.key_m(K, V, b) == S.key_m(K, V, z) : $MK}, b, o, eb, {==})), (L.subst($SCT & $ME, z => {S.key_result(K, V, spr) == S.key_result(K, V, z) : $SCT & $MK}, spr, (CU.cmod($AK, c2), o), h2, {==}), hg))))
+
+def cvr($TK, -spr: $SCT & $ME, +a: $MCT, +b: $ME, +c2: $MCT, +o: $ME, +h1: {(MI.rc($AK, a), b) == (MI.rc($AK, c2), o) : $RCT & $ME}, r: {spr == (CU.cmod($AK, c2), o) : $SCT & $ME} & {CU.cgood($AK, c2) == True{} : Bool}) -> CU.COK($AK, $MVV, S.value_result(K, V, spr), (a, S.val_m(K, V, b))):
+  match r:
+    case Tuple{h2, hg}:
+      +ea = L.pair_fst($RCT, $ME, MI.rc($AK, a), b, MI.rc($AK, c2), o, h1)
+      +eb = L.pair_snd($RCT, $ME, MI.rc($AK, a), b, MI.rc($AK, c2), o, h1)
+      (c2, (S.val_m(K, V, o), (L.pair_eq($RCT, $MVV, MI.rc($AK, a), S.val_m(K, V, b), MI.rc($AK, c2), S.val_m(K, V, o), ea, L.subst($ME, z => {S.val_m(K, V, b) == S.val_m(K, V, z) : $MVV}, b, o, eb, {==})), (L.subst($SCT & $ME, z => {S.value_result(K, V, spr) == S.value_result(K, V, z) : $SCT & $MVV}, spr, (CU.cmod($AK, c2), o), h2, {==}), hg))))
+
+# a step refined: its key, its value
+def cok_key($TK, -spr: $SCT & $ME, +a: $MCT, +b: $ME, p: CU.COK($AK, $ME, spr, (a, b))) -> CU.COK($AK, $MK, S.key_result(K, V, spr), MI.iterator_key_result($AK, (a, b))):
+  match p:
+    case Tuple{+c2, Tuple{+o, Tuple{+h1, r}}}:
+      %Equal.sym($MCT & $MK, MI.iterator_key_result($AK, (a, b)), (a, S.key_m(K, V, b)), ikr_eq($AK, a, b)) : CU.COK($AK, $MK, S.key_result(K, V, spr), _)
+      ckr($AK, spr, a, b, c2, o, h1, r)
+
+def cok_val($TK, -spr: $SCT & $ME, +a: $MCT, +b: $ME, p: CU.COK($AK, $ME, spr, (a, b))) -> CU.COK($AK, $MVV, S.value_result(K, V, spr), MI.iterator_value_result($AK, (a, b))):
+  match p:
+    case Tuple{+c2, Tuple{+o, Tuple{+h1, r}}}:
+      %Equal.sym($MCT & $MVV, MI.iterator_value_result($AK, (a, b)), (a, S.val_m(K, V, b)), ivr_eq($AK, a, b)) : CU.COK($AK, $MVV, S.value_result(K, V, spr), _)
+      cvr($AK, spr, a, b, c2, o, h1, r)
+
+%def XN MI.iterator_next($AK, $CUR)
+%def SPN0 S.iterator_next($AK, CU.cmod($AK, $CUR))
+%def ETA L.pair_eta($MCT, $ME, $XN)
+%def PFX2 Pair.fst($MCT, $ME, $XN)
+%def PSX2 Pair.snd($MCT, $ME, $XN)
+
+def next_key_m($TO, $FT, +nx: Nat, $CH, +hc: {CU.cgood($AK, $CUR) == True{} : Bool}) -> CU.COK($AK, $MK, S.iterator_next_key($AK, CU.cmod($AK, $CUR)), MI.iterator_next_key($AK, $CUR)):
+  L.subst($MCT & $ME, z => CU.COK($AK, $MK, S.key_result(K, V, $SPN0), MI.iterator_key_result($AK, z)), ($PFX2, $PSX2), $XN, Equal.sym($MCT & $ME, $XN, ($PFX2, $PSX2), $ETA), cok_key($AK, $SPN0, $PFX2, $PSX2, L.subst($MCT & $ME, z => CU.COK($AK, $ME, $SPN0, z), $XN, ($PFX2, $PSX2), $ETA, CU.cstep_cok($AK, $ME, $SPN0, $XN, $SH, lo2, hi2, fw, next_m($AO, $F, nx, $CHA, hc)))))
+
+def next_value_m($TO, $FT, +nx: Nat, $CH, +hc: {CU.cgood($AK, $CUR) == True{} : Bool}) -> CU.COK($AK, $MVV, S.iterator_next_value($AK, CU.cmod($AK, $CUR)), MI.iterator_next_value($AK, $CUR)):
+  L.subst($MCT & $ME, z => CU.COK($AK, $MVV, S.value_result(K, V, $SPN0), MI.iterator_value_result($AK, z)), ($PFX2, $PSX2), $XN, Equal.sym($MCT & $ME, $XN, ($PFX2, $PSX2), $ETA), cok_val($AK, $SPN0, $PFX2, $PSX2, L.subst($MCT & $ME, z => CU.COK($AK, $ME, $SPN0, z), $XN, ($PFX2, $PSX2), $ETA, CU.cstep_cok($AK, $ME, $SPN0, $XN, $SH, lo2, hi2, fw, next_m($AO, $F, nx, $CHA, hc)))))

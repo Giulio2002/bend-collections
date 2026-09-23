@@ -3,8 +3,8 @@ import ./logic.bend as L
 import ./nat.bend as N
 import ./u32.bend as U
 import ./list.bend as LL
-import ../spec/common.bend as SC
-import ../lemmas/proofs/nat_algebra.bend as NA
+import ./spec_common.bend as SC
+import ./lemmas/proofs/nat_algebra.bend as NA
 
 # Functional correctness of the installed Base.Array get/swap/set/new
 # algorithms (base.bend 2142-2272), proved against their actual definitions.

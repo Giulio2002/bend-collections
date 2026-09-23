@@ -1,0 +1,129 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/list.bend as LL
+import ../../lib/spec_common.bend as SC
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./prim.bend as PR
+import ../../lib/nat_list.bend as NL
+
+# Writes to the node list: a write leaves every other id's node as it was,
+# so the links, entries and free chain of ids avoiding it; a recolouring
+# write keeps every link and entry. (source: tools/generators/tm_hand/frame.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def MV Maybe<&2, V>
+%def PL List<&2, $MV>
+%def E M.Entry<K, V>
+%def WR(nl, id, x) PR.wr_nl(K, nl, id, x)
+%def NDX(nl, j) ST.nd(K, nl, j)
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
+
+def or_f_r(+a: Bool, +b: Bool, +h: {Bool.or(a, b) == False{} : Bool}) -> {b == False{} : Bool}:
+  match a:
+    case True{}:
+      Empty.absurd({b == False{} : Bool}, L.true_false(h))
+    case False{}:
+      h
+
+def or_f_l(+a: Bool, +b: Bool, +h: {Bool.or(a, b) == False{} : Bool}) -> {a == False{} : Bool}:
+  match a:
+    case True{}:
+      Empty.absurd({True{} == False{} : Bool}, L.true_false(h))
+    case False{}:
+      {==}
+
+def wo_c(-K: Data, +nl: $NL, +i: Nat, +x: $ND, +j: Nat, +hne: {Nat.is_eq(i, j) == False{} : Bool}, +b: Bool) -> {ST.nth_or($ND, ST.pk($NL, b, SC.update($ND, nl, i, x), nl), j, M.Free{0n}) == ST.nth_or($ND, nl, j, M.Free{0n}) : $ND}:
+  match b:
+    case True{}:
+      %Equal.sym($ND, ST.nth_or($ND, SC.update($ND, nl, i, x), j, M.Free{0n}), PR.or_else($ND, SC.nth($ND, SC.update($ND, nl, i, x), j), M.Free{0n}), PR.nth_or_nth($ND, SC.update($ND, nl, i, x), j, M.Free{0n})) : {_ == ST.nth_or($ND, nl, j, M.Free{0n}) : $ND}
+      %Equal.sym($ND, ST.nth_or($ND, nl, j, M.Free{0n}), PR.or_else($ND, SC.nth($ND, nl, j), M.Free{0n}), PR.nth_or_nth($ND, nl, j, M.Free{0n})) : {PR.or_else($ND, SC.nth($ND, SC.update($ND, nl, i, x), j), M.Free{0n}) == _ : $ND}
+      %Equal.sym(Maybe<&2, $ND>, SC.nth($ND, SC.update($ND, nl, i, x), j), SC.nth($ND, nl, j), LL.nth_update_other($ND, nl, i, j, x, hne)) : {PR.or_else($ND, _, M.Free{0n}) == PR.or_else($ND, SC.nth($ND, nl, j), M.Free{0n}) : $ND}
+      {==}
+    case False{}:
+      {==}
+
+# another id's node is unchanged by a write
+def nd_wr_other(-K: Data, +nl: $NL, +id: Nat, +x: $ND, +j: Nat, +hne: {Nat.is_eq(id, j) == False{} : Bool}) -> {$NDX($WR(nl, id, x), j) == $NDX(nl, j) : $ND}:
+  match id j:
+    case 0n +j:
+      {==}
+    case 1n+i 0n:
+      {==}
+    case 1n+i 1n+jj:
+      wo_c(K, nl, i, x, jj, hne, Nat.is_lt(i, SC.length($ND, nl)))
+
+# the written id's node is the new one, in range
+def nd_wr_same(-K: Data, +nl: $NL, +i: Nat, +x: $ND, +h: {Nat.is_lt(i, SC.length($ND, nl)) == True{} : Bool}) -> {$NDX($WR(nl, 1n+i, x), 1n+i) == x : $ND}:
+  %Equal.sym(Bool, Nat.is_lt(i, SC.length($ND, nl)), True{}, h) : {ST.nth_or($ND, ST.pk($NL, _, SC.update($ND, nl, i, x), nl), i, M.Free{0n}) == x : $ND}
+  %Equal.sym($ND, ST.nth_or($ND, SC.update($ND, nl, i, x), i, M.Free{0n}), PR.or_else($ND, SC.nth($ND, SC.update($ND, nl, i, x), i), M.Free{0n}), PR.nth_or_nth($ND, SC.update($ND, nl, i, x), i, M.Free{0n})) : {_ == x : $ND}
+  %Equal.sym(Maybe<&2, $ND>, SC.nth($ND, SC.update($ND, nl, i, x), i), Some{x}, LL.nth_update_same($ND, nl, i, x, h)) : {PR.or_else($ND, _, M.Free{0n}) == x : $ND}
+  {==}
+
+def ne_sym(+a: Nat, +b: Nat, +h: {Nat.is_eq(a, b) == False{} : Bool}) -> {Nat.is_eq(b, a) == False{} : Bool}:
+  N.is_eq_sym_false(a, b, h)
+
+%def IDS(t) ST.ids(t)
+%def APP(a, b) SC.append(Nat, a, b)
+
+# splitting an absent id over a node's ids
+def nm_node(+y: Nat, +i: Nat, +l: ST.Tr, +r: ST.Tr, +h: $NMEM(y, $IDS(ST.TN{i, l, r}))) -> {Nat.is_eq(i, y) == False{} : Bool} & ($NMEM(y, $IDS(l)) & $NMEM(y, $IDS(r))):
+  +h2 = L.subst(Bool, z => {z == False{} : Bool}, NL.memn(y, $APP($IDS(l), Con{i, $IDS(r)})), Bool.or(NL.memn(y, $IDS(l)), NL.memn(y, Con{i, $IDS(r)})), NL.memn_app(y, $IDS(l), Con{i, $IDS(r)}), h)
+  +h3 = or_f_r(NL.memn(y, $IDS(l)), NL.memn(y, Con{i, $IDS(r)}), h2)
+  (or_f_l(Nat.is_eq(i, y), NL.memn(y, $IDS(r)), h3), (or_f_l(NL.memn(y, $IDS(l)), NL.memn(y, Con{i, $IDS(r)}), h2), or_f_r(Nat.is_eq(i, y), NL.memn(y, $IDS(r)), h3)))
+
+def nm_cons(+y: Nat, +i: Nat, +t: $LN, +h: $NMEM(y, Con{i, t})) -> {Nat.is_eq(i, y) == False{} : Bool} & $NMEM(y, t):
+  (or_f_l(Nat.is_eq(i, y), NL.memn(y, t), h), or_f_r(Nat.is_eq(i, y), NL.memn(y, t), h))
+
+%def REPB(t, p, nl) ST.rep(~K, t, p, nl)
+
+# a subtree avoiding the written id keeps its links
+def rep_frame(~K: Data, +t: ST.Tr, +p: Nat, +nl: $NL, +id: Nat, +x: $ND, +hn: $NMEM(id, $IDS(t))) -> {$REPB(t, p, $WR(nl, id, x)) == $REPB(t, p, nl) : Bool}:
+  match t:
+    case ST.TE{}:
+      {==}
+    case ST.TN{+i, +l, +r}:
+      %Equal.sym($ND, $NDX($WR(nl, id, x), i), $NDX(nl, i), nd_wr_other(K, nl, id, x, i, ne_sym(i, id, Pair.fst({Nat.is_eq(i, id) == False{} : Bool}, $NMEM(id, $IDS(l)) & $NMEM(id, $IDS(r)), nm_node(id, i, l, r, hn))))) : {Bool.and(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, _, ST.rid(l), ST.rid(r), p), Bool.and($REPB(l, i, $WR(nl, id, x)), $REPB(r, i, $WR(nl, id, x))))) == $REPB(ST.TN{i, l, r}, p, nl) : Bool}
+      %Equal.sym(Bool, $REPB(l, i, $WR(nl, id, x)), $REPB(l, i, nl), rep_frame(~K, l, i, nl, id, x, Pair.fst($NMEM(id, $IDS(l)), $NMEM(id, $IDS(r)), Pair.snd({Nat.is_eq(i, id) == False{} : Bool}, $NMEM(id, $IDS(l)) & $NMEM(id, $IDS(r)), nm_node(id, i, l, r, hn))))) : {Bool.and(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, $NDX(nl, i), ST.rid(l), ST.rid(r), p), Bool.and(_, $REPB(r, i, $WR(nl, id, x))))) == $REPB(ST.TN{i, l, r}, p, nl) : Bool}
+      %Equal.sym(Bool, $REPB(r, i, $WR(nl, id, x)), $REPB(r, i, nl), rep_frame(~K, r, i, nl, id, x, Pair.snd($NMEM(id, $IDS(l)), $NMEM(id, $IDS(r)), Pair.snd({Nat.is_eq(i, id) == False{} : Bool}, $NMEM(id, $IDS(l)) & $NMEM(id, $IDS(r)), nm_node(id, i, l, r, hn))))) : {Bool.and(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, $NDX(nl, i), ST.rid(l), ST.rid(r), p), Bool.and($REPB(l, i, nl), _))) == $REPB(ST.TN{i, l, r}, p, nl) : Bool}
+      {==}
+
+%def ENTSB(xs, nl) ST.ents(~K, ~V, xs, nl, pl)
+
+# entries of ids avoiding the written id are unchanged
+def ents_frame(~K: Data, ~V: Data, +xs: $LN, +nl: $NL, +pl: $PL, +id: Nat, +x: $ND, +hn: $NMEM(id, xs)) -> {$ENTSB(xs, $WR(nl, id, x)) == $ENTSB(xs, nl) : List<&2, $E>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+i, +t}:
+      %Equal.sym($ND, $NDX($WR(nl, id, x), i), $NDX(nl, i), nd_wr_other(K, nl, id, x, i, ne_sym(i, id, Pair.fst({Nat.is_eq(i, id) == False{} : Bool}, $NMEM(id, t), nm_cons(id, i, t, hn))))) : {ST.cons_m($E, ST.ent(K, V, _, ST.pv(V, pl, i)), $ENTSB(t, $WR(nl, id, x))) == $ENTSB(Con{i, t}, nl) : List<&2, $E>}
+      %Equal.sym(List<&2, $E>, $ENTSB(t, $WR(nl, id, x)), $ENTSB(t, nl), ents_frame(~K, ~V, t, nl, pl, id, x, Pair.snd({Nat.is_eq(i, id) == False{} : Bool}, $NMEM(id, t), nm_cons(id, i, t, hn)))) : {ST.cons_m($E, ST.ent(K, V, $NDX(nl, i), ST.pv(V, pl, i)), _) == $ENTSB(Con{i, t}, nl) : List<&2, $E>}
+      {==}
+
+# the free chain avoiding the written id is unchanged
+def fll_frame(~K: Data, +fl: $LN, +nl: $NL, +id: Nat, +x: $ND, +hn: $NMEM(id, fl)) -> {ST.fll(~K, $WR(nl, id, x), fl) == ST.fll(~K, nl, fl) : Bool}:
+  match fl:
+    case Nil{}:
+      {==}
+    case Con{+f, +t}:
+      %Equal.sym($ND, $NDX($WR(nl, id, x), f), $NDX(nl, f), nd_wr_other(K, nl, id, x, f, ne_sym(f, id, Pair.fst({Nat.is_eq(f, id) == False{} : Bool}, $NMEM(id, t), nm_cons(id, f, t, hn))))) : {Bool.and(ST.is_free(K, _, ST.fst0(t)), ST.fll(~K, $WR(nl, id, x), t)) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      %Equal.sym(Bool, ST.fll(~K, $WR(nl, id, x), t), ST.fll(~K, nl, t), fll_frame(~K, t, nl, id, x, Pair.snd({Nat.is_eq(f, id) == False{} : Bool}, $NMEM(id, t), nm_cons(id, f, t, hn)))) : {Bool.and(ST.is_free(K, $NDX(nl, f), ST.fst0(t)), _) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      {==}
+
+# a write keeps the length
+def len_wr_c(-K: Data, +nl: $NL, +i: Nat, +x: $ND, +b: Bool) -> {SC.length($ND, ST.pk($NL, b, SC.update($ND, nl, i, x), nl)) == SC.length($ND, nl) : Nat}:
+  match b:
+    case True{}:
+      LL.length_update($ND, nl, i, x)
+    case False{}:
+      {==}
+
+def len_wr(-K: Data, +nl: $NL, +id: Nat, +x: $ND) -> {SC.length($ND, $WR(nl, id, x)) == SC.length($ND, nl) : Nat}:
+  match id:
+    case 0n:
+      {==}
+    case 1n+i:
+      len_wr_c(K, nl, i, x, Nat.is_lt(i, SC.length($ND, nl)))

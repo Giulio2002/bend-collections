@@ -1,0 +1,105 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/array.bend as AR
+import ../../lib/list.bend as LL
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../lib/u32div.bend as UD
+import ../../../src/containers/doubly_linked_list.bend as D
+import ../../../src/containers/internal/dlist_storage.bend as R
+import ../../../src/containers/types/doubly_linked_list.bend as E
+import ./state.bend as ST
+import ./rel.bend as RL
+import ./link.bend as LN
+import ./ok.bend as OK
+import ./insp.bend as IP
+import ./ins.bend as IN
+import ./hrd.bend as HR
+import ./hnb.bend as NB
+import ./hlive.bend as HL
+import ../../lib/links.bend as LK
+import ../../lib/words32.bend as W32
+import ../../lib/u32_tree.bend as UT
+
+# insert before and after a live element.
+
+%def APN(a, b) SC.append(Nat, a, b)
+%def MT Maybe<&2, T>
+%def VL AR.slots($MT, vT)
+%def PL AR.slots(U32, pT)
+%def NL AR.slots(U32, nT)
+%def GL AR.slots(U32, gT)
+%def FV UD.v(fresh)
+%def II UD.v(id)
+%def TR(x) {x == True{} : Bool}
+%def VLF SC.take($MT, $VL, $FV)
+%def GLF SC.take(U32, $GL, $FV)
+%def HH E.H{owner, id, g}
+%def OB E.Obs<T>
+%def DO D.DList<T> & $OB
+%def SLAB $APN(a, Con{$II, b})
+%def SHB tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, $SLAB, fl
+%def GB(c) ST.g_$c(~T, $SHB, hg)
+%def RSB ST.real(~T, ST.LS{$SHB})
+%def MSB ST.model(~T, ST.LS{$SHB})
+%def ABP +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<$MT>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +a: List<&2, Nat>, +b: List<&2, Nat>, +fl: List<&2, Nat>, +owner: U32, +id: U32, +g: U32, +hg: $TR(ST.goodF(~T, $SHB))
+%def ABW tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, a, b, fl, owner, id, g, hg
+%def ABV tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, $SLAB, fl, hg, owner, id, g
+%def STB tag, fresh, free, SC.length(Nat, $SLAB), head, tail, depth, cap
+%def AV AR.thaw($MT, vT)
+%def AP AR.thaw(U32, pT)
+%def AN AR.thaw(U32, nT)
+%def AG AR.thaw(U32, gT)
+%def IFB(af, r) D.relative_result(~T, tag, depth, cap, $AG, R.ins_found_reuse(~T, af, $STB, $AP, $AN, id, x, r))
+%def IL2(af, pr, nx) D.relative_result(~T, tag, depth, cap, $AG, R.ins_live2_reuse(~T, af, $STB, $AV, id, x, pr, nx))
+%def IBF(p, q) R.insert_between_free(~T, tag, fresh, free, SC.length(Nat, $SLAB), head, tail, depth, cap, $AV, $AP, $AN, p, q, x)
+%def PP LK.last_or(a, 0)
+%def QQ LK.fst_or(b, 0)
+%def RP2 +one: Nat, +h1: {one == 1n : Nat}, +cz: Nat, +hcz: {cz == 29n : Nat}, +hroom: $TR(Nat.is_lt($FV, SC.pow2(cz))), +ho: {U32.is_eq(owner, tag) == True{} : Bool}, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}
+
+# the neighbours read for a relative insertion
+def rel_read(~T: Data, $ABP, $RP2, +x: T, +af: Bool) -> {D.relative_result(~T, tag, depth, cap, $AG, R.insert_checked_reuse(~T, af, U32.is_lt(id, fresh), $STB, $AV, $AP, $AN, id, x, U32.is_eq(owner, tag))) == $IL2(af, ($AP, $PP), ($AN, $QQ)) : $DO}:
+  +hd = $GB(cdep)
+  +hi = HR.i_lt(~T, $ABV, hlt)
+  +e0 = HL.ins_pre(~T, $ABV, x, af, ho, hlt)
+  +e1 = Equal.cong($MT, $DO, m => $IFB(af, ($AV, m)), S.val_of(T, $VL, $II), Some{vv}, hv)
+  +e2 = Equal.cong(Array<U32> & U32, $DO, r => $IL2(af, r, Array.get(U32, $AN, id)), Array.get(U32, $AP, id), ($AP, $PP), Equal.trans(Array<U32> & U32, Array.get(U32, $AP, id), ($AP, W32.nth0($PL, $II)), ($AP, $PP), UT.uget(depth, RL.hd0(depth, hd), pT, $GB(cpp), id, hi), Equal.cong(U32, Array<U32> & U32, z => ($AP, z), W32.nth0($PL, $II), $PP, RL.unl_p($PL, $NL, a, $II, b, $GB(cseg)))))
+  +e3 = Equal.cong(Array<U32> & U32, $DO, r => $IL2(af, ($AP, $PP), r), Array.get(U32, $AN, id), ($AN, $QQ), Equal.trans(Array<U32> & U32, Array.get(U32, $AN, id), ($AN, W32.nth0($NL, $II)), ($AN, $QQ), UT.uget(depth, RL.hd0(depth, hd), nT, $GB(cpn), id, hi), Equal.cong(U32, Array<U32> & U32, z => ($AN, z), W32.nth0($NL, $II), $QQ, RL.unl_n($PL, $NL, a, $II, b, $GB(cseg)))))
+  Equal.trans($DO, D.relative_result(~T, tag, depth, cap, $AG, R.insert_checked_reuse(~T, af, U32.is_lt(id, fresh), $STB, $AV, $AP, $AN, id, x, U32.is_eq(owner, tag))), $IFB(af, ($AV, S.val_of(T, $VL, $II))), $IL2(af, ($AP, $PP), ($AN, $QQ)), e0, Equal.trans($DO, $IFB(af, ($AV, S.val_of(T, $VL, $II))), $IFB(af, ($AV, Some{vv})), $IL2(af, ($AP, $PP), ($AN, $QQ)), e1, Equal.trans($DO, $IL2(af, Array.get(U32, $AP, id), Array.get(U32, $AN, id)), $IL2(af, ($AP, $PP), Array.get(U32, $AN, id)), $IL2(af, ($AP, $PP), ($AN, $QQ)), e2, e3)))
+
+def lnk_id(~T: Data, $ABP, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}) -> {R.link(id) == LK.lnk($II) : U32}:
+  +hd = $GB(cdep)
+  Equal.cong(U32, U32, z => U32.inc(z), id, U32.from_nat($II), Equal.sym(U32, U32.from_nat($II), id, LN.fn_of(id, depth, N.lt_le(depth, 32n, RL.hd0(depth, hd)), HR.i_lt(~T, $ABV, hlt))))
+
+%def RD(p, q) D.relative_result(~T, tag, depth, cap, $AG, R.done_handle(~T, $IBF(p, q)))
+%def RDN(p, q) D.relative_done(~T, D.inserted(~T, tag, depth, cap, $AG, $IBF(p, q)))
+%def IBO E.InsertBefore{$HH, x}
+%def IAO E.InsertAfter{$HH, x}
+
+def ib_ab(~T: Data, $ABP, $RP2, +x: T) -> OK.POK(~T, $OB, S.live_op(T, $MSB, $IBO, $II), D.dispatch(~T, $RSB, $IBO)):
+  +e0 = rel_read(~T, $ABW, one, h1, cz, hcz, hroom, ho, hlt, vv, hv, x, False{})
+  +e1 = Equal.cong(U32, $DO, z => $RD($PP, z), R.link(id), LK.lnk($II), lnk_id(~T, $ABW, hlt))
+  +er = Equal.trans($DO, D.dispatch(~T, $RSB, $IBO), $RD($PP, R.link(id)), $RDN($PP, LK.lnk($II)), e0, Equal.trans($DO, $RD($PP, R.link(id)), $RD($PP, LK.lnk($II)), $RDN($PP, LK.lnk($II)), e1, HL.rel_done(~T, tag, depth, cap, $AG, $IBF($PP, LK.lnk($II)))))
+  p = IN.ins_ok(~T, one, h1, tag, cap, fresh, head, tail, depth, vT, pT, nT, gT, a, Con{$II, b}, cz, hcz, free, fl, hg, hroom, x)
+  +es = Equal.cong(S.DS<T> & E.Handle, S.DS<T> & $OB, r => S.ins_obs(T, r), S.inserted(T, S.alloc(T, $MSB), x, S.PBefore{$II}), IP.insAB(T, S.alloc(T, $MSB), x, a, Con{$II, b}), HL.ins_pos(T, tag, $SLAB, $VLF, $GLF, fl, x, S.PBefore{$II}, a, Con{$II, b}, n => HL.ib_mid(a, $II, b, n, NB.i_off_a(~T, $ABW))))
+  OK.pok_eq(~T, $OB, S.live_op(T, $MSB, $IBO, $II), S.ins_obs(T, IP.insAB(T, S.alloc(T, $MSB), x, a, Con{$II, b})), D.dispatch(~T, $RSB, $IBO), $RDN($PP, LK.lnk($II)), es, er, HL.pok_ins(~T, IP.insAB(T, S.alloc(T, $MSB), x, a, Con{$II, b}), D.inserted(~T, tag, depth, cap, $AG, $IBF($PP, LK.lnk($II))), p))
+
+%def A1 $APN(a, Con{$II, Nil{}})
+%def SL3 $APN($A1, b)
+%def IBF3(n, p, q) R.insert_between_free(~T, tag, fresh, free, SC.length(Nat, n), head, tail, depth, cap, $AV, $AP, $AN, p, q, x)
+%def SP3(o) IP.insAB(T, S.alloc(T, S.DS{tag, o, $VLF, $GLF, fl}), x, $A1, b)
+
+def ia_ab(~T: Data, $ABP, $RP2, +x: T) -> OK.POK(~T, $OB, S.live_op(T, $MSB, $IAO, $II), D.dispatch(~T, $RSB, $IAO)):
+  +e0 = rel_read(~T, $ABW, one, h1, cz, hcz, hroom, ho, hlt, vv, hv, x, True{})
+  +e1 = Equal.cong(U32, $DO, z => $RD(z, $QQ), R.link(id), LK.lnk($II), lnk_id(~T, $ABW, hlt))
+  +er = Equal.trans($DO, D.dispatch(~T, $RSB, $IAO), $RD(R.link(id), $QQ), $RDN(LK.lnk($II), $QQ), e0, Equal.trans($DO, $RD(R.link(id), $QQ), $RD(LK.lnk($II), $QQ), $RDN(LK.lnk($II), $QQ), e1, HL.rel_done(~T, tag, depth, cap, $AG, $IBF(LK.lnk($II), $QQ))))
+  +eas = LL.append_assoc(Nat, a, Con{$II, Nil{}}, b)
+  +hg3 = L.subst(List<&2, Nat>, z => {ST.goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, z, fl) == True{} : Bool}, $SLAB, $SL3, Equal.sym(List<&2, Nat>, $SL3, $SLAB, eas), hg)
+  p = IN.ins_ok(~T, one, h1, tag, cap, fresh, head, tail, depth, vT, pT, nT, gT, $A1, b, cz, hcz, free, fl, hg3, hroom, x)
+  +el = Equal.sym(U32, LK.last_or($A1, 0), LK.lnk($II), LK.last_app(a, Con{$II, Nil{}}, 0))
+  +ei = Equal.trans(D.DList<T> & E.Handle, D.inserted(~T, tag, depth, cap, $AG, $IBF(LK.lnk($II), $QQ)), D.inserted(~T, tag, depth, cap, $AG, $IBF3($SL3, LK.lnk($II), $QQ)), D.inserted(~T, tag, depth, cap, $AG, $IBF3($SL3, LK.last_or($A1, 0), $QQ)), Equal.cong(List<&2, Nat>, D.DList<T> & E.Handle, z => D.inserted(~T, tag, depth, cap, $AG, $IBF3(z, LK.lnk($II), $QQ)), $SLAB, $SL3, Equal.sym(List<&2, Nat>, $SL3, $SLAB, eas)), Equal.cong(U32, D.DList<T> & E.Handle, z => D.inserted(~T, tag, depth, cap, $AG, $IBF3($SL3, z, $QQ)), LK.lnk($II), LK.last_or($A1, 0), el))
+  +es3 = Equal.cong(List<&2, Nat>, S.DS<T> & E.Handle, z => $SP3(z), $SLAB, $SL3, Equal.sym(List<&2, Nat>, $SL3, $SLAB, eas))
+  q = OK.pok_eq(~T, E.Handle, $SP3($SLAB), $SP3($SL3), D.inserted(~T, tag, depth, cap, $AG, $IBF(LK.lnk($II), $QQ)), D.inserted(~T, tag, depth, cap, $AG, $IBF3($SL3, LK.last_or($A1, 0), $QQ)), es3, ei, p)
+  +es = Equal.cong(S.DS<T> & E.Handle, S.DS<T> & $OB, r => S.ins_obs(T, r), S.inserted(T, S.alloc(T, $MSB), x, S.PAfter{$II}), $SP3($SLAB), HL.ins_pos(T, tag, $SLAB, $VLF, $GLF, fl, x, S.PAfter{$II}, $A1, b, n => Equal.trans(List<&2, Nat>, S.ins_after($SLAB, $II, n), $APN(a, Con{$II, Con{n, b}}), $APN($A1, Con{n, b}), HL.ia_mid(a, $II, b, n, NB.i_off_a(~T, $ABW)), Equal.sym(List<&2, Nat>, $APN($A1, Con{n, b}), $APN(a, Con{$II, Con{n, b}}), LL.append_assoc(Nat, a, Con{$II, Nil{}}, Con{n, b})))))
+  OK.pok_eq(~T, $OB, S.live_op(T, $MSB, $IAO, $II), S.ins_obs(T, $SP3($SLAB)), D.dispatch(~T, $RSB, $IAO), $RDN(LK.lnk($II), $QQ), es, er, HL.pok_ins(~T, $SP3($SLAB), D.inserted(~T, tag, depth, cap, $AG, $IBF(LK.lnk($II), $QQ)), q))

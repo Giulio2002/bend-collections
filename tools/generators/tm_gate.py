@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Generate proofs/tree_map.bend, the TreeMap's public proof entry point.
+"""Generate proofs/containers/balanced_search_tree/proof.bend, the TreeMap's public proof entry point.
 
-Every operation theorem of proofs/tree_map/{life,api,capi,vw,vapi}.bend is
+Every operation theorem of proofs/containers/balanced_search_tree/{life,api,capi,vw,vapi}.bend is
 re-exported under the operation's name with its statement copied verbatim
 (names local to its module qualified), so checking the gate checks the whole
 refinement and states it in one place. key_set, values and entry_set are the
@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-TM = ROOT / 'proofs' / 'tree_map'
+TM = ROOT / 'proofs' / 'containers' / 'balanced_search_tree'
 MODULES = [('LF', 'life'), ('API', 'api'), ('CA', 'capi'), ('VW', 'vw'), ('VA', 'vapi')]
 
 HEADER = '''# Indexed TreeMap (src/containers/balanced_search_tree.bend): public proof
@@ -21,7 +21,7 @@ HEADER = '''# Indexed TreeMap (src/containers/balanced_search_tree.bend): public
 #                lists, and two ghost values: the tree of ids (ST.Tr) and the
 #                free list; ST.real(sh) is the map
 #   abstraction  ST.model(sh): the limit and the entries of the tree's ids in
-#                order, as a proofs/spec/tree_map.bend map (sorted entries);
+#                order, as a spec.bend map (sorted entries);
 #                a mirror cursor's model is the specification's cursor over
 #                that map with the keys of its next and current ids
 #                (CU.cmod), a mirror view's the specification's view
@@ -33,7 +33,7 @@ HEADER = '''# Indexed TreeMap (src/containers/balanced_search_tree.bend): public
 #                the ids of tree and free list without repeats and covering
 #                the slots, the entries sorted by a lawful comparator, and the
 #                size, root and first/last ids those of the tree
-#                (proofs/tree_map/state.bend); a cursor is good when its
+#                (state.bend); a cursor is good when its
 #                shadow is and its ids are 0 or ids of the tree (CU.cgood)
 #
 # Proved for every lawful comparator (O.Order: flip, antisymmetry,
@@ -96,12 +96,8 @@ def signature(line):
 
 
 def rel(path):
-    # an import path of proofs/tree_map/X.bend, seen from proofs/
-    if path.startswith('../../'):
-        return '../' + path[6:]
-    if path.startswith('../'):
-        return './' + path[3:]
-    return './tree_map/' + path[2:]
+    # the gate sits beside the modules: their import paths stand
+    return path
 
 
 imports, defs = {}, []
@@ -124,7 +120,7 @@ for alias, mod in MODULES:
             nm = re.match(r'([~+-]?)(\w+)', prm)
             args.append(('~' if nm.group(1) == '~' else '') + nm.group(2))
         defs.append((name, params_q, ret_q, '%s.%s(%s)' % (alias, name, ', '.join(args))))
-    imports[alias] = './tree_map/%s.bend' % mod
+    imports[alias] = './%s.bend' % mod
 
 # key_set, values and entry_set: the iterator
 it = [d for d in defs if d[0] == 'iterator_ok'][0]
@@ -141,5 +137,5 @@ for name, params, ret, body in defs:
     out.append('def %s(%s) -> %s:' % (name, params, ret))
     out.append('  ' + body)
     out.append('')
-(ROOT / 'proofs' / 'tree_map.bend').write_text('\n'.join(out))
+(TM / 'proof.bend').write_text('\n'.join(out))
 print('%d theorems' % len(defs))

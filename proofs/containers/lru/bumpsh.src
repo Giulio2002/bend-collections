@@ -1,0 +1,222 @@
+import Base
+import ../../lib/nat.bend as N
+import ../../lib/array.bend as AR
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as SP
+import ../../../src/containers/lru.bend as LR
+import ./state.bend as ST
+import ./meta.bend as MT
+import ./basic.bend as BA
+import ./bump.bend as BU
+import ../../lib/words32.bend as W32
+
+# Counting on the shadow: fbump(c) increments counter c of the model.
+
+%def SHF +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +mT: AR.Tree<U32>, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +ksT: AR.Tree<String>, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>
+%def SHA cap, n, head, tail, free, mT, k, sd, tabT, ksT, eT, lkT, sl, fl
+%def SHM(m) ST.LS{cap, n, head, tail, free, m, k, sd, tabT, ksT, eT, lkT, sl, fl}
+%def ML AR.slots(U32, mT)
+%def ML2 AR.slots(U32, m2)
+%def KL AR.slots(String, ksT)
+%def ES ST.es(~V, AR.slots(U32, lkT), $KL, AR.slots(Maybe<&2, V>, eT), sl)
+%def FB(c) LR.fbump(&2, V, c, ST.real(~V, $SHM(mT)))
+%def M(j) W32.nth0($ML, j)
+
+def CountOK(~V: Data, +spec: SP.Lru<V>, r: LR.LRU<&2, V>) -> Type:
+  Sigma<&1, &1, ST.Sh<V>, sh2 => {r == ST.real(~V, sh2) : LR.LRU<&2, V>} & ({ST.model(~V, sh2) == spec : SP.Lru<V>} & {ST.good(~V, sh2) == True{} : Bool})>
+
+def lo8(+i: Nat, +h8: {Nat.is_le(8n, i) == True{} : Bool}, +j: Nat, +hj: {Nat.is_lt(j, 8n) == True{} : Bool}) -> {Nat.is_eq(i, j) == False{} : Bool}:
+  N.is_eq_sym_false(j, i, N.is_eq_lt(j, i, N.lt_le_trans(j, 8n, i, hj, h8)))
+
+def lo8s(+i: Nat, +h8: {Nat.is_le(8n, i) == True{} : Bool}, +j: Nat, +hj: {Nat.is_lt(j, 8n) == True{} : Bool}) -> {Nat.is_eq(1n+i, j) == False{} : Bool}:
+  lo8(1n+i, N.le_trans(8n, i, 1n+i, h8, N.le_succ(i)), j, hj)
+
+def keep(+ml: List<&2, U32>, +m2: AR.Tree<U32>, +i: Nat, +x: U32, +y: U32, +e: {$ML2 == SC.update(U32, SC.update(U32, ml, i, x), 1n+i, y) : List<&2, U32>}, +j: Nat, +h1: {Nat.is_eq(i, j) == False{} : Bool}, +h2: {Nat.is_eq(1n+i, j) == False{} : Bool}) -> {W32.nth0($ML2, j) == W32.nth0(ml, j) : U32}:
+  Equal.trans(U32, W32.nth0($ML2, j), W32.nth0(SC.update(U32, SC.update(U32, ml, i, x), 1n+i, y), j), W32.nth0(ml, j), Equal.cong(List<&2, U32>, U32, z => W32.nth0(z, j), $ML2, SC.update(U32, SC.update(U32, ml, i, x), 1n+i, y), e), Equal.trans(U32, W32.nth0(SC.update(U32, SC.update(U32, ml, i, x), 1n+i, y), j), W32.nth0(SC.update(U32, ml, i, x), j), W32.nth0(ml, j), W32.nth0_upd_other(SC.update(U32, ml, i, x), 1n+i, j, y, h2), W32.nth0_upd_other(ml, i, j, x, h1)))
+
+%def KP(j) keep($ML, m2, i, x, y, e, j, lo8(i, h8, j, {==}), lo8s(i, h8, j, {==}))
+
+# the meta words of m2: i and i + 1 written, the invariant's words kept
+def bm_fin(~V: Data, $SHF, +hg: {ST.good(~V, $SHM(mT)) == True{} : Bool}, +i: Nat, +h8: {Nat.is_le(8n, i) == True{} : Bool}, +m2: AR.Tree<U32>, +pm2: {AR.perfect(U32, 5n, m2) == True{} : Bool}, +x: U32, +y: U32, +e: {$ML2 == SC.update(U32, SC.update(U32, $ML, i, x), 1n+i, y) : List<&2, U32>}) -> {ST.good(~V, $SHM(m2)) == True{} : Bool}:
+  MT.good_m(~V, cap, n, head, tail, free, mT, m2, k, sd, tabT, ksT, eT, lkT, sl, fl, hg, $KP(0n), $KP(1n), $KP(2n), $KP(6n), $KP(7n), pm2)
+
+%def KQ_ins(j) keep($ML, m2, 16n, x, y, ee, j, {==}, {==})
+
+def count_ins(~V: Data, $SHF, +hg: {ST.good(~V, $SHM(mT)) == True{} : Bool}, bo: BU.BumpOK(mT, 16n, LR.bump(0, AR.thaw(U32, mT)))) -> CountOK(~V, SP.L{cap, $M(3n), ST.w64($ML, 4n), $ES, SP.c_ins(ST.ctr($ML))}, $FB(0)):
+  match bo:
+    case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
+      +ee = {e : {$ML2 == SC.update(U32, SC.update(U32, $ML, 16n, x), 1n+16n, y) : List<&2, U32>}}
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(0, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +g = bm_fin(~V, $SHA, hg, 16n, {==}, m2, pm2, x, y, ee)
+      +e3 = $KQ_ins(3n)
+      +e4 = BA.w64_eq($ML2, $ML, 4n, $KQ_ins(4n), $KQ_ins(5n))
+      +ec = BA.ct5(ST.w64($ML2, 16n), ST.w64($ML2, 18n), ST.w64($ML2, 20n), ST.w64($ML2, 22n), ST.w64($ML2, 24n), SP.inc64(ST.w64($ML, 16n)), ST.w64($ML, 18n), ST.w64($ML, 20n), ST.w64($ML, 22n), ST.w64($ML, 24n), ew, BA.w64_eq($ML2, $ML, 18n, $KQ_ins(18n), $KQ_ins(19n)), BA.w64_eq($ML2, $ML, 20n, $KQ_ins(20n), $KQ_ins(21n)), BA.w64_eq($ML2, $ML, 22n, $KQ_ins(22n), $KQ_ins(23n)), BA.w64_eq($ML2, $ML, 24n, $KQ_ins(24n), $KQ_ins(25n)))
+      ($SHM(m2), (er, (BA.lru_eq(~V, cap, W32.nth0($ML2, 3n), $M(3n), ST.w64($ML2, 4n), ST.w64($ML, 4n), $ES, $ES, ST.ctr($ML2), SP.c_ins(ST.ctr($ML)), e3, e4, {==}, ec), g)))
+
+%def KQ_ev(j) keep($ML, m2, 18n, x, y, ee, j, {==}, {==})
+
+def count_ev(~V: Data, $SHF, +hg: {ST.good(~V, $SHM(mT)) == True{} : Bool}, bo: BU.BumpOK(mT, 18n, LR.bump(1, AR.thaw(U32, mT)))) -> CountOK(~V, SP.L{cap, $M(3n), ST.w64($ML, 4n), $ES, SP.c_ev(ST.ctr($ML))}, $FB(1)):
+  match bo:
+    case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
+      +ee = {e : {$ML2 == SC.update(U32, SC.update(U32, $ML, 18n, x), 1n+18n, y) : List<&2, U32>}}
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(1, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +g = bm_fin(~V, $SHA, hg, 18n, {==}, m2, pm2, x, y, ee)
+      +e3 = $KQ_ev(3n)
+      +e4 = BA.w64_eq($ML2, $ML, 4n, $KQ_ev(4n), $KQ_ev(5n))
+      +ec = BA.ct5(ST.w64($ML2, 16n), ST.w64($ML2, 18n), ST.w64($ML2, 20n), ST.w64($ML2, 22n), ST.w64($ML2, 24n), ST.w64($ML, 16n), SP.inc64(ST.w64($ML, 18n)), ST.w64($ML, 20n), ST.w64($ML, 22n), ST.w64($ML, 24n), BA.w64_eq($ML2, $ML, 16n, $KQ_ev(16n), $KQ_ev(17n)), ew, BA.w64_eq($ML2, $ML, 20n, $KQ_ev(20n), $KQ_ev(21n)), BA.w64_eq($ML2, $ML, 22n, $KQ_ev(22n), $KQ_ev(23n)), BA.w64_eq($ML2, $ML, 24n, $KQ_ev(24n), $KQ_ev(25n)))
+      ($SHM(m2), (er, (BA.lru_eq(~V, cap, W32.nth0($ML2, 3n), $M(3n), ST.w64($ML2, 4n), ST.w64($ML, 4n), $ES, $ES, ST.ctr($ML2), SP.c_ev(ST.ctr($ML)), e3, e4, {==}, ec), g)))
+
+%def KQ_rm(j) keep($ML, m2, 20n, x, y, ee, j, {==}, {==})
+
+def count_rm(~V: Data, $SHF, +hg: {ST.good(~V, $SHM(mT)) == True{} : Bool}, bo: BU.BumpOK(mT, 20n, LR.bump(2, AR.thaw(U32, mT)))) -> CountOK(~V, SP.L{cap, $M(3n), ST.w64($ML, 4n), $ES, SP.c_rm(ST.ctr($ML))}, $FB(2)):
+  match bo:
+    case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
+      +ee = {e : {$ML2 == SC.update(U32, SC.update(U32, $ML, 20n, x), 1n+20n, y) : List<&2, U32>}}
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(2, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +g = bm_fin(~V, $SHA, hg, 20n, {==}, m2, pm2, x, y, ee)
+      +e3 = $KQ_rm(3n)
+      +e4 = BA.w64_eq($ML2, $ML, 4n, $KQ_rm(4n), $KQ_rm(5n))
+      +ec = BA.ct5(ST.w64($ML2, 16n), ST.w64($ML2, 18n), ST.w64($ML2, 20n), ST.w64($ML2, 22n), ST.w64($ML2, 24n), ST.w64($ML, 16n), ST.w64($ML, 18n), SP.inc64(ST.w64($ML, 20n)), ST.w64($ML, 22n), ST.w64($ML, 24n), BA.w64_eq($ML2, $ML, 16n, $KQ_rm(16n), $KQ_rm(17n)), BA.w64_eq($ML2, $ML, 18n, $KQ_rm(18n), $KQ_rm(19n)), ew, BA.w64_eq($ML2, $ML, 22n, $KQ_rm(22n), $KQ_rm(23n)), BA.w64_eq($ML2, $ML, 24n, $KQ_rm(24n), $KQ_rm(25n)))
+      ($SHM(m2), (er, (BA.lru_eq(~V, cap, W32.nth0($ML2, 3n), $M(3n), ST.w64($ML2, 4n), ST.w64($ML, 4n), $ES, $ES, ST.ctr($ML2), SP.c_rm(ST.ctr($ML)), e3, e4, {==}, ec), g)))
+
+%def KQ_hit(j) keep($ML, m2, 22n, x, y, ee, j, {==}, {==})
+
+def count_hit(~V: Data, $SHF, +hg: {ST.good(~V, $SHM(mT)) == True{} : Bool}, bo: BU.BumpOK(mT, 22n, LR.bump(3, AR.thaw(U32, mT)))) -> CountOK(~V, SP.L{cap, $M(3n), ST.w64($ML, 4n), $ES, SP.c_hit(ST.ctr($ML))}, $FB(3)):
+  match bo:
+    case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
+      +ee = {e : {$ML2 == SC.update(U32, SC.update(U32, $ML, 22n, x), 1n+22n, y) : List<&2, U32>}}
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(3, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +g = bm_fin(~V, $SHA, hg, 22n, {==}, m2, pm2, x, y, ee)
+      +e3 = $KQ_hit(3n)
+      +e4 = BA.w64_eq($ML2, $ML, 4n, $KQ_hit(4n), $KQ_hit(5n))
+      +ec = BA.ct5(ST.w64($ML2, 16n), ST.w64($ML2, 18n), ST.w64($ML2, 20n), ST.w64($ML2, 22n), ST.w64($ML2, 24n), ST.w64($ML, 16n), ST.w64($ML, 18n), ST.w64($ML, 20n), SP.inc64(ST.w64($ML, 22n)), ST.w64($ML, 24n), BA.w64_eq($ML2, $ML, 16n, $KQ_hit(16n), $KQ_hit(17n)), BA.w64_eq($ML2, $ML, 18n, $KQ_hit(18n), $KQ_hit(19n)), BA.w64_eq($ML2, $ML, 20n, $KQ_hit(20n), $KQ_hit(21n)), ew, BA.w64_eq($ML2, $ML, 24n, $KQ_hit(24n), $KQ_hit(25n)))
+      ($SHM(m2), (er, (BA.lru_eq(~V, cap, W32.nth0($ML2, 3n), $M(3n), ST.w64($ML2, 4n), ST.w64($ML, 4n), $ES, $ES, ST.ctr($ML2), SP.c_hit(ST.ctr($ML)), e3, e4, {==}, ec), g)))
+
+%def KQ_miss(j) keep($ML, m2, 24n, x, y, ee, j, {==}, {==})
+
+def count_miss(~V: Data, $SHF, +hg: {ST.good(~V, $SHM(mT)) == True{} : Bool}, bo: BU.BumpOK(mT, 24n, LR.bump(4, AR.thaw(U32, mT)))) -> CountOK(~V, SP.L{cap, $M(3n), ST.w64($ML, 4n), $ES, SP.c_miss(ST.ctr($ML))}, $FB(4)):
+  match bo:
+    case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
+      +ee = {e : {$ML2 == SC.update(U32, SC.update(U32, $ML, 24n, x), 1n+24n, y) : List<&2, U32>}}
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(4, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +g = bm_fin(~V, $SHA, hg, 24n, {==}, m2, pm2, x, y, ee)
+      +e3 = $KQ_miss(3n)
+      +e4 = BA.w64_eq($ML2, $ML, 4n, $KQ_miss(4n), $KQ_miss(5n))
+      +ec = BA.ct5(ST.w64($ML2, 16n), ST.w64($ML2, 18n), ST.w64($ML2, 20n), ST.w64($ML2, 22n), ST.w64($ML2, 24n), ST.w64($ML, 16n), ST.w64($ML, 18n), ST.w64($ML, 20n), ST.w64($ML, 22n), SP.inc64(ST.w64($ML, 24n)), BA.w64_eq($ML2, $ML, 16n, $KQ_miss(16n), $KQ_miss(17n)), BA.w64_eq($ML2, $ML, 18n, $KQ_miss(18n), $KQ_miss(19n)), BA.w64_eq($ML2, $ML, 20n, $KQ_miss(20n), $KQ_miss(21n)), BA.w64_eq($ML2, $ML, 22n, $KQ_miss(22n), $KQ_miss(23n)), ew)
+      ($SHM(m2), (er, (BA.lru_eq(~V, cap, W32.nth0($ML2, 3n), $M(3n), ST.w64($ML2, 4n), ST.w64($ML, 4n), $ES, $ES, ST.ctr($ML2), SP.c_miss(ST.ctr($ML)), e3, e4, {==}, ec), g)))
+
+
+# ---- counting with the new meta tree exposed, and on any shadow ----
+
+def CntM(~V: Data, $SHF, +spec: SP.Lru<V>, r: LR.LRU<&2, V>) -> Type:
+  Sigma<&1, &1, AR.Tree<U32>, m2 => {r == ST.real(~V, $SHM(m2)) : LR.LRU<&2, V>} & ({ST.model(~V, $SHM(m2)) == spec : SP.Lru<V>} & {ST.good(~V, $SHM(m2)) == True{} : Bool})>
+
+def cntm_ins(~V: Data, $SHF, +hg: {ST.good(~V, $SHM(mT)) == True{} : Bool}, bo: BU.BumpOK(mT, 16n, LR.bump(0, AR.thaw(U32, mT)))) -> CntM(~V, $SHA, SP.L{cap, $M(3n), ST.w64($ML, 4n), $ES, SP.c_ins(ST.ctr($ML))}, $FB(0)):
+  match bo:
+    case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
+      +ee = {e : {$ML2 == SC.update(U32, SC.update(U32, $ML, 16n, x), 1n+16n, y) : List<&2, U32>}}
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(0, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +g = bm_fin(~V, $SHA, hg, 16n, {==}, m2, pm2, x, y, ee)
+      +e3 = $KQ_ins(3n)
+      +e4 = BA.w64_eq($ML2, $ML, 4n, $KQ_ins(4n), $KQ_ins(5n))
+      +ec = BA.ct5(ST.w64($ML2, 16n), ST.w64($ML2, 18n), ST.w64($ML2, 20n), ST.w64($ML2, 22n), ST.w64($ML2, 24n), SP.inc64(ST.w64($ML, 16n)), ST.w64($ML, 18n), ST.w64($ML, 20n), ST.w64($ML, 22n), ST.w64($ML, 24n), ew, BA.w64_eq($ML2, $ML, 18n, $KQ_ins(18n), $KQ_ins(19n)), BA.w64_eq($ML2, $ML, 20n, $KQ_ins(20n), $KQ_ins(21n)), BA.w64_eq($ML2, $ML, 22n, $KQ_ins(22n), $KQ_ins(23n)), BA.w64_eq($ML2, $ML, 24n, $KQ_ins(24n), $KQ_ins(25n)))
+      (m2, (er, (BA.lru_eq(~V, cap, W32.nth0($ML2, 3n), $M(3n), ST.w64($ML2, 4n), ST.w64($ML, 4n), $ES, $ES, ST.ctr($ML2), SP.c_ins(ST.ctr($ML)), e3, e4, {==}, ec), g)))
+
+def cg_ins(~V: Data, l: SP.Lru<V>) -> SP.Lru<V>:
+  match l:
+    case SP.L{cap, on, life, es, c}:
+      SP.L{cap, on, life, es, SP.c_ins(c)}
+
+# THEOREM: fbump(0) counts on any shadow
+def countg_ins(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}) -> CountOK(~V, cg_ins(~V, ST.model(~V, sh)), LR.fbump(&2, V, 0, ST.real(~V, sh))):
+  match sh:
+    case ST.LS{$SHA}:
+      count_ins(~V, $SHA, hg, BU.bump_ok(mT, ST.g_cpm(~V, cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, fl, hg), 0, 16n, {==}, {==}, {==}))
+
+def cntm_ev(~V: Data, $SHF, +hg: {ST.good(~V, $SHM(mT)) == True{} : Bool}, bo: BU.BumpOK(mT, 18n, LR.bump(1, AR.thaw(U32, mT)))) -> CntM(~V, $SHA, SP.L{cap, $M(3n), ST.w64($ML, 4n), $ES, SP.c_ev(ST.ctr($ML))}, $FB(1)):
+  match bo:
+    case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
+      +ee = {e : {$ML2 == SC.update(U32, SC.update(U32, $ML, 18n, x), 1n+18n, y) : List<&2, U32>}}
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(1, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +g = bm_fin(~V, $SHA, hg, 18n, {==}, m2, pm2, x, y, ee)
+      +e3 = $KQ_ev(3n)
+      +e4 = BA.w64_eq($ML2, $ML, 4n, $KQ_ev(4n), $KQ_ev(5n))
+      +ec = BA.ct5(ST.w64($ML2, 16n), ST.w64($ML2, 18n), ST.w64($ML2, 20n), ST.w64($ML2, 22n), ST.w64($ML2, 24n), ST.w64($ML, 16n), SP.inc64(ST.w64($ML, 18n)), ST.w64($ML, 20n), ST.w64($ML, 22n), ST.w64($ML, 24n), BA.w64_eq($ML2, $ML, 16n, $KQ_ev(16n), $KQ_ev(17n)), ew, BA.w64_eq($ML2, $ML, 20n, $KQ_ev(20n), $KQ_ev(21n)), BA.w64_eq($ML2, $ML, 22n, $KQ_ev(22n), $KQ_ev(23n)), BA.w64_eq($ML2, $ML, 24n, $KQ_ev(24n), $KQ_ev(25n)))
+      (m2, (er, (BA.lru_eq(~V, cap, W32.nth0($ML2, 3n), $M(3n), ST.w64($ML2, 4n), ST.w64($ML, 4n), $ES, $ES, ST.ctr($ML2), SP.c_ev(ST.ctr($ML)), e3, e4, {==}, ec), g)))
+
+def cg_ev(~V: Data, l: SP.Lru<V>) -> SP.Lru<V>:
+  match l:
+    case SP.L{cap, on, life, es, c}:
+      SP.L{cap, on, life, es, SP.c_ev(c)}
+
+# THEOREM: fbump(1) counts on any shadow
+def countg_ev(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}) -> CountOK(~V, cg_ev(~V, ST.model(~V, sh)), LR.fbump(&2, V, 1, ST.real(~V, sh))):
+  match sh:
+    case ST.LS{$SHA}:
+      count_ev(~V, $SHA, hg, BU.bump_ok(mT, ST.g_cpm(~V, cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, fl, hg), 1, 18n, {==}, {==}, {==}))
+
+def cntm_rm(~V: Data, $SHF, +hg: {ST.good(~V, $SHM(mT)) == True{} : Bool}, bo: BU.BumpOK(mT, 20n, LR.bump(2, AR.thaw(U32, mT)))) -> CntM(~V, $SHA, SP.L{cap, $M(3n), ST.w64($ML, 4n), $ES, SP.c_rm(ST.ctr($ML))}, $FB(2)):
+  match bo:
+    case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
+      +ee = {e : {$ML2 == SC.update(U32, SC.update(U32, $ML, 20n, x), 1n+20n, y) : List<&2, U32>}}
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(2, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +g = bm_fin(~V, $SHA, hg, 20n, {==}, m2, pm2, x, y, ee)
+      +e3 = $KQ_rm(3n)
+      +e4 = BA.w64_eq($ML2, $ML, 4n, $KQ_rm(4n), $KQ_rm(5n))
+      +ec = BA.ct5(ST.w64($ML2, 16n), ST.w64($ML2, 18n), ST.w64($ML2, 20n), ST.w64($ML2, 22n), ST.w64($ML2, 24n), ST.w64($ML, 16n), ST.w64($ML, 18n), SP.inc64(ST.w64($ML, 20n)), ST.w64($ML, 22n), ST.w64($ML, 24n), BA.w64_eq($ML2, $ML, 16n, $KQ_rm(16n), $KQ_rm(17n)), BA.w64_eq($ML2, $ML, 18n, $KQ_rm(18n), $KQ_rm(19n)), ew, BA.w64_eq($ML2, $ML, 22n, $KQ_rm(22n), $KQ_rm(23n)), BA.w64_eq($ML2, $ML, 24n, $KQ_rm(24n), $KQ_rm(25n)))
+      (m2, (er, (BA.lru_eq(~V, cap, W32.nth0($ML2, 3n), $M(3n), ST.w64($ML2, 4n), ST.w64($ML, 4n), $ES, $ES, ST.ctr($ML2), SP.c_rm(ST.ctr($ML)), e3, e4, {==}, ec), g)))
+
+def cg_rm(~V: Data, l: SP.Lru<V>) -> SP.Lru<V>:
+  match l:
+    case SP.L{cap, on, life, es, c}:
+      SP.L{cap, on, life, es, SP.c_rm(c)}
+
+# THEOREM: fbump(2) counts on any shadow
+def countg_rm(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}) -> CountOK(~V, cg_rm(~V, ST.model(~V, sh)), LR.fbump(&2, V, 2, ST.real(~V, sh))):
+  match sh:
+    case ST.LS{$SHA}:
+      count_rm(~V, $SHA, hg, BU.bump_ok(mT, ST.g_cpm(~V, cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, fl, hg), 2, 20n, {==}, {==}, {==}))
+
+def cntm_hit(~V: Data, $SHF, +hg: {ST.good(~V, $SHM(mT)) == True{} : Bool}, bo: BU.BumpOK(mT, 22n, LR.bump(3, AR.thaw(U32, mT)))) -> CntM(~V, $SHA, SP.L{cap, $M(3n), ST.w64($ML, 4n), $ES, SP.c_hit(ST.ctr($ML))}, $FB(3)):
+  match bo:
+    case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
+      +ee = {e : {$ML2 == SC.update(U32, SC.update(U32, $ML, 22n, x), 1n+22n, y) : List<&2, U32>}}
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(3, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +g = bm_fin(~V, $SHA, hg, 22n, {==}, m2, pm2, x, y, ee)
+      +e3 = $KQ_hit(3n)
+      +e4 = BA.w64_eq($ML2, $ML, 4n, $KQ_hit(4n), $KQ_hit(5n))
+      +ec = BA.ct5(ST.w64($ML2, 16n), ST.w64($ML2, 18n), ST.w64($ML2, 20n), ST.w64($ML2, 22n), ST.w64($ML2, 24n), ST.w64($ML, 16n), ST.w64($ML, 18n), ST.w64($ML, 20n), SP.inc64(ST.w64($ML, 22n)), ST.w64($ML, 24n), BA.w64_eq($ML2, $ML, 16n, $KQ_hit(16n), $KQ_hit(17n)), BA.w64_eq($ML2, $ML, 18n, $KQ_hit(18n), $KQ_hit(19n)), BA.w64_eq($ML2, $ML, 20n, $KQ_hit(20n), $KQ_hit(21n)), ew, BA.w64_eq($ML2, $ML, 24n, $KQ_hit(24n), $KQ_hit(25n)))
+      (m2, (er, (BA.lru_eq(~V, cap, W32.nth0($ML2, 3n), $M(3n), ST.w64($ML2, 4n), ST.w64($ML, 4n), $ES, $ES, ST.ctr($ML2), SP.c_hit(ST.ctr($ML)), e3, e4, {==}, ec), g)))
+
+def cg_hit(~V: Data, l: SP.Lru<V>) -> SP.Lru<V>:
+  match l:
+    case SP.L{cap, on, life, es, c}:
+      SP.L{cap, on, life, es, SP.c_hit(c)}
+
+# THEOREM: fbump(3) counts on any shadow
+def countg_hit(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}) -> CountOK(~V, cg_hit(~V, ST.model(~V, sh)), LR.fbump(&2, V, 3, ST.real(~V, sh))):
+  match sh:
+    case ST.LS{$SHA}:
+      count_hit(~V, $SHA, hg, BU.bump_ok(mT, ST.g_cpm(~V, cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, fl, hg), 3, 22n, {==}, {==}, {==}))
+
+def cntm_miss(~V: Data, $SHF, +hg: {ST.good(~V, $SHM(mT)) == True{} : Bool}, bo: BU.BumpOK(mT, 24n, LR.bump(4, AR.thaw(U32, mT)))) -> CntM(~V, $SHA, SP.L{cap, $M(3n), ST.w64($ML, 4n), $ES, SP.c_miss(ST.ctr($ML))}, $FB(4)):
+  match bo:
+    case Tuple{+m2, Tuple{+ea, Tuple{+pm2, Tuple{+ew, Tuple{+x, Tuple{+y, e}}}}}}:
+      +ee = {e : {$ML2 == SC.update(U32, SC.update(U32, $ML, 24n, x), 1n+24n, y) : List<&2, U32>}}
+      +er = Equal.cong(Array<U32>, LR.LRU<&2, V>, z => LR.F{cap, n, head, tail, free, z, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, eT), AR.thaw(U32, lkT)}, LR.bump(4, AR.thaw(U32, mT)), AR.thaw(U32, m2), ea)
+      +g = bm_fin(~V, $SHA, hg, 24n, {==}, m2, pm2, x, y, ee)
+      +e3 = $KQ_miss(3n)
+      +e4 = BA.w64_eq($ML2, $ML, 4n, $KQ_miss(4n), $KQ_miss(5n))
+      +ec = BA.ct5(ST.w64($ML2, 16n), ST.w64($ML2, 18n), ST.w64($ML2, 20n), ST.w64($ML2, 22n), ST.w64($ML2, 24n), ST.w64($ML, 16n), ST.w64($ML, 18n), ST.w64($ML, 20n), ST.w64($ML, 22n), SP.inc64(ST.w64($ML, 24n)), BA.w64_eq($ML2, $ML, 16n, $KQ_miss(16n), $KQ_miss(17n)), BA.w64_eq($ML2, $ML, 18n, $KQ_miss(18n), $KQ_miss(19n)), BA.w64_eq($ML2, $ML, 20n, $KQ_miss(20n), $KQ_miss(21n)), BA.w64_eq($ML2, $ML, 22n, $KQ_miss(22n), $KQ_miss(23n)), ew)
+      (m2, (er, (BA.lru_eq(~V, cap, W32.nth0($ML2, 3n), $M(3n), ST.w64($ML2, 4n), ST.w64($ML, 4n), $ES, $ES, ST.ctr($ML2), SP.c_miss(ST.ctr($ML)), e3, e4, {==}, ec), g)))
+
+def cg_miss(~V: Data, l: SP.Lru<V>) -> SP.Lru<V>:
+  match l:
+    case SP.L{cap, on, life, es, c}:
+      SP.L{cap, on, life, es, SP.c_miss(c)}
+
+# THEOREM: fbump(4) counts on any shadow
+def countg_miss(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}) -> CountOK(~V, cg_miss(~V, ST.model(~V, sh)), LR.fbump(&2, V, 4, ST.real(~V, sh))):
+  match sh:
+    case ST.LS{$SHA}:
+      count_miss(~V, $SHA, hg, BU.bump_ok(mT, ST.g_cpm(~V, cap, n, head, tail, free, W32.nth0($ML, 0n), W32.nth0($ML, 1n), W32.nth0($ML, 2n), W32.nth0($ML, 6n), W32.nth0($ML, 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, $KL, AR.perfect(String, sd, ksT), eT, lkT, sl, fl, hg), 4, 24n, {==}, {==}, {==}))

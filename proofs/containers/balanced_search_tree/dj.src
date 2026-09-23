@@ -1,0 +1,74 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/spec_common.bend as SC
+import ./frame.bend as FR
+import ./path.bend as P
+import ../../lib/nat_list.bend as NL
+
+# Membership bookkeeping for id lists without repeats: an id of one part is
+# absent from the others, absence splits over appends, and an absent id
+# differs from a present one. (source: tools/generators/tm_hand/dj.src)
+
+%def LN List<&2, Nat>
+%def APP(a, b) SC.append(Nat, a, b)
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
+%def ND(xs) {NL.nodupn(xs) == True{} : Bool}
+%def NE(a, b) {Nat.is_eq(a, b) == False{} : Bool}
+
+def nm_l(+z: Nat, +a: $LN, +b: $LN, +h: $NMEM(z, $APP(a, b))) -> $NMEM(z, a):
+  FR.or_f_l(NL.memn(z, a), NL.memn(z, b), L.subst(Bool, w => {w == False{} : Bool}, NL.memn(z, $APP(a, b)), Bool.or(NL.memn(z, a), NL.memn(z, b)), NL.memn_app(z, a, b), h))
+
+def nm_r(+z: Nat, +a: $LN, +b: $LN, +h: $NMEM(z, $APP(a, b))) -> $NMEM(z, b):
+  FR.or_f_r(NL.memn(z, a), NL.memn(z, b), L.subst(Bool, w => {w == False{} : Bool}, NL.memn(z, $APP(a, b)), Bool.or(NL.memn(z, a), NL.memn(z, b)), NL.memn_app(z, a, b), h))
+
+def nm_ch(+z: Nat, +i: Nat, +t: $LN, +h: $NMEM(z, Con{i, t})) -> $NE(i, z):
+  FR.or_f_l(Nat.is_eq(i, z), NL.memn(z, t), h)
+
+def nm_ct(+z: Nat, +i: Nat, +t: $LN, +h: $NMEM(z, Con{i, t})) -> $NMEM(z, t):
+  FR.or_f_r(Nat.is_eq(i, z), NL.memn(z, t), h)
+
+def nm_app(+z: Nat, +a: $LN, +b: $LN, +ha: $NMEM(z, a), +hb: $NMEM(z, b)) -> $NMEM(z, $APP(a, b)):
+  %Equal.sym(Bool, NL.memn(z, $APP(a, b)), Bool.or(NL.memn(z, a), NL.memn(z, b)), NL.memn_app(z, a, b)) : {_ == False{} : Bool}
+  %Equal.sym(Bool, NL.memn(z, a), False{}, ha) : {Bool.or(_, NL.memn(z, b)) == False{} : Bool}
+  hb
+
+def nm_cons(+z: Nat, +i: Nat, +t: $LN, +hi: $NE(i, z), +ht: $NMEM(z, t)) -> $NMEM(z, Con{i, t}):
+  %Equal.sym(Bool, Nat.is_eq(i, z), False{}, hi) : {Bool.or(_, NL.memn(z, t)) == False{} : Bool}
+  ht
+
+# the head of a list without repeats is not in its tail
+def nd_head(+i: Nat, +t: $LN, +h: $ND(Con{i, t})) -> $NMEM(i, t):
+  NL.not_t_f(NL.memn(i, t), L.and_left(Bool.not(NL.memn(i, t)), NL.nodupn(t), h))
+
+def nd_tail(+i: Nat, +t: $LN, +h: $ND(Con{i, t})) -> $ND(t):
+  L.and_right(Bool.not(NL.memn(i, t)), NL.nodupn(t), h)
+
+# an id of the right part is not in the left one, and conversely
+def dj_l(+a: $LN, +b: $LN, +h: $ND($APP(a, b)), +z: Nat, +hz: $MEM(z, b)) -> $NMEM(z, a):
+  NL.nd_dj(a, b, h, z, hz)
+
+def dj_r(+a: $LN, +b: $LN, +h: $ND($APP(a, b)), +z: Nat, +hz: $MEM(z, a)) -> $NMEM(z, b):
+  NL.nd_dj2(a, b, h, z, hz)
+
+def ndl(+a: $LN, +b: $LN, +h: $ND($APP(a, b))) -> $ND(a):
+  NL.nd_l(a, b, h)
+
+def ndr(+a: $LN, +b: $LN, +h: $ND($APP(a, b))) -> $ND(b):
+  NL.nd_r(a, b, h)
+
+def mem_l(+z: Nat, +a: $LN, +b: $LN, +h: $MEM(z, a)) -> $MEM(z, $APP(a, b)):
+  NL.mem_app_l(z, a, b, h)
+
+def mem_r(+z: Nat, +a: $LN, +b: $LN, +h: $MEM(z, b)) -> $MEM(z, $APP(a, b)):
+  NL.mem_app_r(z, a, b, h)
+
+def mem_hd(+i: Nat, +t: $LN) -> $MEM(i, Con{i, t}):
+  P.mem_self(i, t)
+
+def mem_tl(+z: Nat, +i: Nat, +t: $LN, +h: $MEM(z, t)) -> $MEM(z, Con{i, t}):
+  P.mem_cons(z, i, t, h)
+
+# an absent id differs from a present one
+def ne_nm(+a: Nat, +b: Nat, +xs: $LN, +ha: $NMEM(a, xs), +hb: $MEM(b, xs)) -> $NE(a, b):
+  NL.not_t_f(Nat.is_eq(a, b), P.ne_mem(a, b, xs, ha, hb))

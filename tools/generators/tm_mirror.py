@@ -3,11 +3,11 @@
 
 Reads src/containers/balanced_search_tree.bend and writes, in source order:
 
-  proofs/tree_map/mirror.bend  one mirror function per implementation
+  proofs/containers/balanced_search_tree/mirror.bend  one mirror function per implementation
                                function, over ST.Sh (the shadow) in place of
                                the TreeMap, MCursor/MView/MInvalid in place of
                                its cursors and views
-  proofs/tree_map/sim.bend     for each mirrored function f, the lemmas
+  proofs/containers/balanced_search_tree/sim.bend     for each mirrored function f, the lemmas
                                  f_g   the mirror keeps the arrays' layout
                                        (dag) whenever its inputs do
                                  f_s   M.f on the realizations of mirror
@@ -15,7 +15,7 @@ Reads src/containers/balanced_search_tree.bend and writes, in source order:
                                        mirror's result
 
 The array-level primitives (reads, writes, exchanges, appends, raw-array
-walks) are written by hand in tools/generators/tm_hand/*.bend and inserted
+walks) are written by hand in proofs/containers/balanced_search_tree/gen/*.part and inserted
 at their place in source order.
 """
 import pathlib
@@ -27,9 +27,9 @@ SRC = ROOT / "src/containers/balanced_search_tree.bend"
 sys.path.insert(0, str(ROOT / "tools/generators"))
 import pat_expand as PE
 CONS = PE.load_types(SRC.read_text())
-HAND = ROOT / "tools/generators/tm_hand"
-OUT_MIRROR = ROOT / "proofs/tree_map/mirror.bend"
-OUT_SIM = ROOT / "proofs/tree_map/sim.bend"
+HAND = ROOT / "proofs/containers/balanced_search_tree/gen"
+OUT_MIRROR = ROOT / "proofs/containers/balanced_search_tree/mirror.bend"
+OUT_SIM = ROOT / "proofs/containers/balanced_search_tree/sim.bend"
 
 TA = "~K, ~V, ~cmp"
 TP = "~K: Data, ~V: Data, ~cmp: K -> K -> Cmp"
@@ -450,7 +450,7 @@ def mirror_fn(f, cx):
 def gen_mirror(fns):
     mapped, pure = classify(fns)
     cx = Ctx(mapped, pure)
-    head = (HAND_DIR_TEXT("mirror_head.bend"))
+    head = (HAND_DIR_TEXT("mirror_head.part"))
     out = [head]
     for f in fns:
         if f.name in mapped and f.name not in HANDF:
@@ -815,7 +815,7 @@ def tuple_types(t, n):
 def gen_sim(fns):
     mapped, pure = classify(fns)
     byname = {f.name: f for f in fns}
-    out = [HAND_DIR_TEXT("sim_head.bend")]
+    out = [HAND_DIR_TEXT("sim_head.part")]
     errs = 0
     for f in fns:
         if f.name in mapped and f.name not in HANDF:

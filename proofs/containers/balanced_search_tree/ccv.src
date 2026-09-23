@@ -1,0 +1,171 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/list.bend as LL
+import ../../lib/order.bend as O
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./ends.bend as EN
+import ./ord.bend as OR
+import ./cur.bend as CU
+import ./reads.bend as RD
+import ./cnx.bend as CX
+
+# contains_value: the mirror's walk from the first entry steps through the
+# entries in order, each step the specification's, until a value equals the
+# wanted one; its answer is the specification's any_value.
+# (source: tools/generators/tm_hand/ccv.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def E M.Entry<K, V>
+%def ES List<&2, $E>
+%def ME Maybe<&2, $E>
+%def MK Maybe<&2, K>
+%def MVV Maybe<&2, V>
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def TQ ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), ~eq: V -> V -> Bool
+%def AQ ~K, ~V, ~cmp, ~o, ~eq
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def EAPP(a, b) SC.append($E, a, b)
+%def FT +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: $NL, +pl: List<&2, $MVV>, +tg: ST.Tr, +fl: $LN
+%def F n, root, lo, hi, free, l, d, nl, pl, tg, fl
+%def SH ST.SH{$F}
+%def GF {ST.goodF($AK, $F) == True{} : Bool}
+%def EST ST.ents(~K, ~V, ST.ids(tg), nl, pl)
+%def TMS S.TM{l, $EST}
+%def UNB M.Unbounded{}
+%def SCT S.Cursor<K, V>
+%def MCT MI.MCursor<K, V>
+%def CUR(y, z) MI.MC{$SH, y, z, $UNB, $UNB, True{}}
+%def SCR(a, b) S.CR{$TMS, a, b, $UNB, $UNB, True{}}
+%def CK(y) CU.ck(~K, nl, y)
+%def LEN(xs) SC.length($E, xs)
+%def FUEL(xs) 1n+Nat.add($LEN(xs), x)
+%def LOOP(g, f, st) MI.contains_value_loop($AK, ~eq, g, w, f, st)
+%def AV(xs) S.any_value(~K, ~V, ~eq, w, xs)
+%def HK(y, xs) {$CK(y) == S.key_m(K, V, S.head($E, xs)) : $MK}
+%def HCUR(y, z) {CU.cgood($AK, $CUR(y, z)) == True{} : Bool}
+%def GOAL(xs, y, z, f) {$LOOP($FUEL(xs), f, MI.iterator_next($AK, $CUR(y, z))) == ($SH, Bool.or(f, $AV(xs))) : ST.Sh<K, V> & Bool}
+%def STEP(y, z) CU.CSTEP($AK, $ME, S.iterator_next($AK, CU.cmod($AK, $CUR(y, z))), MI.iterator_next($AK, $CUR(y, z)), $SH, $UNB, $UNB, True{})
+%def HM {MI.iterator_next($AK, $CUR(nx, cu)) == ($CUR(y2, z2), oe) : $MCT & $ME}
+%def HS {S.iterator_next($AK, CU.cmod($AK, $CUR(nx, cu))) == (CU.cmod($AK, $CUR(y2, z2)), oe) : $SCT & $ME}
+%def NXM CX.next_m($AO, $F, nx, cu, $UNB, $UNB, True{}, hc)
+%def EE M.Entry{k, v}
+%def KCV @+ky: Nat -> @+kz: Nat -> @+kc: $HCUR(ky, kz) -> @+kk: $HK(ky, t) -> $GOAL(t, ky, kz, eq(v, w))
+
+# the specification cursor's next key
+def cnext(-K: Data, -V: Data, c: S.Cursor<K, V>) -> Maybe<&2, K>:
+  match c:
+    case S.CR{m, nx, cu, lo, hi, fw}:
+      nx
+
+# ---- the specification's step at an entry of sorted entries ----
+
+def sp_con($TO, +l: Nat, +es: $ES, +xa: $ES, +k: K, +v: V, +t: $ES, +hab: {es == $EAPP(xa, Con{$EE, t}) : $ES}, +hord: {ST.ordered($AK, es) == True{} : Bool}, +cc: $MK) -> {S.iterator_next($AK, S.CR{S.TM{l, es}, Some{k}, cc, $UNB, $UNB, True{}}) == (S.CR{S.TM{l, es}, S.key_m(K, V, S.head($E, t)), Some{k}, $UNB, $UNB, True{}}, Some{$EE}) : $SCT & $ME}:
+  +ho2 = L.subst($ES, z => {ST.ordered($AK, z) == True{} : Bool}, es, $EAPP(xa, Con{$EE, t}), hab, hord)
+  +hba = Equal.sym($ES, es, $EAPP(xa, Con{$EE, t}), hab)
+  +efind = L.subst($ES, z => {S.find_e($AK, k, z) == Some{$EE} : $ME}, $EAPP(xa, Con{$EE, t}), es, hba, OR.find_mid_eq($AO, k, xa, $EE, t, ho2, O.refl(~K, ~cmp, ~o, k)))
+  +efw = L.subst($ES, z => {S.first_where($AK, k, False{}, z) == S.head($E, t) : $ME}, $EAPP(xa, Con{$EE, t}), es, hba, CX.fw_mid($AO, xa, $EE, t, ho2))
+  %Equal.sym($ME, S.find_e($AK, k, es), Some{$EE}, efind) : {S.next_at($AK, l, es, cc, $UNB, $UNB, True{}, _) == (S.CR{S.TM{l, es}, S.key_m(K, V, S.head($E, t)), Some{k}, $UNB, $UNB, True{}}, Some{$EE}) : $SCT & $ME}
+  %Equal.sym($ME, S.first_where($AK, k, False{}, es), S.head($E, t), efw) : {(S.CR{S.TM{l, es}, S.key_m(K, V, _), Some{k}, $UNB, $UNB, True{}}, Some{$EE}) == (S.CR{S.TM{l, es}, S.key_m(K, V, S.head($E, t)), Some{k}, $UNB, $UNB, True{}}, Some{$EE}) : $SCT & $ME}
+  {==}
+
+# ---- found: the walk stops with True ----
+
+def cvt4($TQ, $FT, +w: V, +g: Nat, +y: Nat, +z: Nat, +oe: $ME) -> {$LOOP(g, True{}, ($CUR(y, z), oe)) == ($SH, True{}) : ST.Sh<K, V> & Bool}:
+  match g oe:
+    case 0n None{}:
+      {==}
+    case 0n Some{e}:
+      {==}
+    case 1n+h None{}:
+      {==}
+    case 1n+h Some{e}:
+      {==}
+
+def cvt3($TQ, $FT, +w: V, +g: Nat, +y: Nat, +z: Nat, st: $STEP(y, z)) -> {$LOOP(g, True{}, MI.iterator_next($AK, $CUR(y, z))) == ($SH, True{}) : ST.Sh<K, V> & Bool}:
+  match st:
+    case Tuple{+y2, Tuple{+z2, Tuple{+oe, Tuple{+hm, r}}}}:
+      %Equal.sym($MCT & $ME, MI.iterator_next($AK, $CUR(y, z)), ($CUR(y2, z2), oe), hm) : {$LOOP(g, True{}, _) == ($SH, True{}) : ST.Sh<K, V> & Bool}
+      cvt4($AQ, $F, w, g, y2, z2, oe)
+
+# ---- no entry left: the walk stops with False ----
+
+def cvn3($TQ, $FT, +w: V, +x: Nat, +nx: Nat, +cu: Nat, +hk: {$CK(nx) == None{} : $MK}, +y2: Nat, +z2: Nat, +oe: $ME, +hm: $HM, +hs: $HS) -> $GOAL(Nil{}, nx, cu, False{}):
+  +hs2 = L.subst($MK, q => {S.iterator_next($AK, $SCR(q, $CK(cu))) == ($SCR($CK(y2), $CK(z2)), oe) : $SCT & $ME}, $CK(nx), None{}, hk, hs)
+  +eo = L.pair_snd($SCT, $ME, $SCR(None{}, $CK(cu)), None{}, $SCR($CK(y2), $CK(z2)), oe, hs2)
+  %Equal.sym($MCT & $ME, MI.iterator_next($AK, $CUR(nx, cu)), ($CUR(y2, z2), oe), hm) : {$LOOP($FUEL(Nil{}), False{}, _) == ($SH, Bool.or(False{}, $AV(Nil{}))) : ST.Sh<K, V> & Bool}
+  %eo : {$LOOP($FUEL(Nil{}), False{}, ($CUR(y2, z2), _)) == ($SH, Bool.or(False{}, $AV(Nil{}))) : ST.Sh<K, V> & Bool}
+  {==}
+
+def cvn2($TQ, $FT, +w: V, +x: Nat, +nx: Nat, +cu: Nat, +hk: {$CK(nx) == None{} : $MK}, +y2: Nat, +z2: Nat, +oe: $ME, +hm: $HM, r: $HS & $HCUR(y2, z2)) -> $GOAL(Nil{}, nx, cu, False{}):
+  match r:
+    case Tuple{hs, hc2}:
+      cvn3($AQ, $F, w, x, nx, cu, hk, y2, z2, oe, hm, hs)
+
+def cvn($TQ, $FT, +w: V, +x: Nat, +nx: Nat, +cu: Nat, +hk: {$CK(nx) == None{} : $MK}, st: $STEP(nx, cu)) -> $GOAL(Nil{}, nx, cu, False{}):
+  match st:
+    case Tuple{+y2, Tuple{+z2, Tuple{+oe, Tuple{+hm, r}}}}:
+      cvn2($AQ, $F, w, x, nx, cu, hk, y2, z2, oe, hm, r)
+
+# ---- an entry: its value compared, the walk goes on past it ----
+
+%def CH2 $TQ, $FT, +hg: $GF, +w: V, +xa: $ES, +k: K, +v: V, +t: $ES, +x: Nat, +nx: Nat, +cu: Nat, +hab: {$EST == $EAPP(xa, Con{$EE, t}) : $ES}, +hk: {$CK(nx) == Some{k} : $MK}
+%def CA2 $AQ, $F, hg, w, xa, k, v, t, x, nx, cu, hab, hk
+%def SPA $SCR(S.key_m(K, V, S.head($E, t)), Some{k})
+%def SPB $SCR($CK(y2), $CK(z2))
+
+def cvc4($CH2, +y2: Nat, +z2: Nat, +oe: $ME, +hm: $HM, +hc2: $HCUR(y2, z2), +heq: {($SPA, Some{$EE}) == ($SPB, oe) : $SCT & $ME}, kont: $KCV) -> $GOAL(Con{$EE, t}, nx, cu, False{}):
+  +eo = L.pair_snd($SCT, $ME, $SPA, Some{$EE}, $SPB, oe, heq)
+  +ec = L.pair_fst($SCT, $ME, $SPA, Some{$EE}, $SPB, oe, heq)
+  +hk2 = Equal.sym($MK, S.key_m(K, V, S.head($E, t)), $CK(y2), L.subst($SCT, q => {S.key_m(K, V, S.head($E, t)) == cnext(K, V, q) : $MK}, $SPA, $SPB, ec, {==}))
+  %Equal.sym($MCT & $ME, MI.iterator_next($AK, $CUR(nx, cu)), ($CUR(y2, z2), oe), hm) : {$LOOP($FUEL(Con{$EE, t}), False{}, _) == ($SH, Bool.or(False{}, $AV(Con{$EE, t}))) : ST.Sh<K, V> & Bool}
+  %eo : {$LOOP($FUEL(Con{$EE, t}), False{}, ($CUR(y2, z2), _)) == ($SH, Bool.or(False{}, $AV(Con{$EE, t}))) : ST.Sh<K, V> & Bool}
+  kont(y2, z2, hc2, hk2)
+
+def cvc3($CH2, +y2: Nat, +z2: Nat, +oe: $ME, +hm: $HM, +hs: $HS, +hc2: $HCUR(y2, z2), kont: $KCV) -> $GOAL(Con{$EE, t}, nx, cu, False{}):
+  +hs2 = L.subst($MK, q => {S.iterator_next($AK, $SCR(q, $CK(cu))) == ($SPB, oe) : $SCT & $ME}, $CK(nx), Some{k}, hk, hs)
+  +spc = sp_con($AO, l, $EST, xa, k, v, t, hab, ST.g_cord($AK, $F, hg), $CK(cu))
+  +heq = Equal.trans($SCT & $ME, ($SPA, Some{$EE}), S.iterator_next($AK, $SCR(Some{k}, $CK(cu))), ($SPB, oe), Equal.sym($SCT & $ME, S.iterator_next($AK, $SCR(Some{k}, $CK(cu))), ($SPA, Some{$EE}), spc), hs2)
+  cvc4($CA2, y2, z2, oe, hm, hc2, heq, kont)
+
+def cvc2($CH2, +y2: Nat, +z2: Nat, +oe: $ME, +hm: $HM, r: $HS & $HCUR(y2, z2), kont: $KCV) -> $GOAL(Con{$EE, t}, nx, cu, False{}):
+  match r:
+    case Tuple{hs, hc2}:
+      cvc3($CA2, y2, z2, oe, hm, hs, hc2, kont)
+
+def cvc($CH2, st: $STEP(nx, cu), kont: $KCV) -> $GOAL(Con{$EE, t}, nx, cu, False{}):
+  match st:
+    case Tuple{+y2, Tuple{+z2, Tuple{+oe, Tuple{+hm, r}}}}:
+      cvc2($CA2, y2, z2, oe, hm, r, kont)
+
+# ---- the walk: the entries before the cursor visited, the rest ahead ----
+
+%def HAB2 Equal.trans($ES, $EST, $EAPP(xa, Con{$EE, t}), $EAPP($EAPP(xa, Con{$EE, Nil{}}), t), hab, Equal.sym($ES, $EAPP($EAPP(xa, Con{$EE, Nil{}}), t), $EAPP(xa, Con{$EE, t}), LL.append_assoc($E, xa, Con{$EE, Nil{}}, t)))
+
+def cvl($TQ, $FT, +hg: $GF, +w: V, +bs: $ES, +xa: $ES, +x: Nat, +nx: Nat, +cu: Nat, +hc: $HCUR(nx, cu), +hab: {$EST == $EAPP(xa, bs) : $ES}, +hk: $HK(nx, bs), +f: Bool) -> $GOAL(bs, nx, cu, f):
+  match bs f:
+    case Nil{} True{}:
+      cvt3($AQ, $F, w, $FUEL(Nil{}), nx, cu, $NXM)
+    case Con{+e, +t} True{}:
+      cvt3($AQ, $F, w, $FUEL(Con{e, t}), nx, cu, $NXM)
+    case Nil{} False{}:
+      cvn($AQ, $F, w, x, nx, cu, hk, $NXM)
+    case Con{M.Entry{+k, +v}, +t} False{}:
+      cvc($AQ, $F, hg, w, xa, k, v, t, x, nx, cu, hab, hk, $NXM, ky => kz => kc => kk => cvl($AQ, $F, hg, w, t, $EAPP(xa, Con{$EE, Nil{}}), x, ky, kz, kc, $HAB2, kk, eq(v, w)))
+
+%def OKT EN.oks_tree(~K, ~V, nl, pl, tg, 0n, ST.g_crep($AK, $F, hg), ST.g_cpay($AK, $F, hg))
+%def FST ST.fst0(ST.ids(tg))
+
+# contains_value: the walk from the first entry with enough fuel
+def contains_value_m($TQ, $FT, +hg: $GF, +w: V) -> {MI.contains_value($AK, ~eq, $SH, w) == ($SH, $AV($EST)) : ST.Sh<K, V> & Bool}:
+  +hn = Equal.trans(Nat, Nat.add($LEN($EST), 0n), $LEN($EST), n, N.add_zero($LEN($EST)), Equal.sym(Nat, n, $LEN($EST), RD.size_eq($AK, $F, hg)))
+  %hn : {MI.contains_value_loop($AK, ~eq, 1n+_, w, False{}, MI.iterator_next($AK, MI.MC{$SH, lo, 0n, $UNB, $UNB, True{}})) == ($SH, $AV($EST)) : ST.Sh<K, V> & Bool}
+  %Equal.sym(Nat, lo, $FST, N.eq_from_is_eq(lo, $FST, ST.g_clo($AK, $F, hg))) : {MI.contains_value_loop($AK, ~eq, 1n+Nat.add($LEN($EST), 0n), w, False{}, MI.iterator_next($AK, MI.MC{$SH, _, 0n, $UNB, $UNB, True{}})) == ($SH, $AV($EST)) : ST.Sh<K, V> & Bool}
+  cvl($AQ, $F, hg, w, $EST, Nil{}, 0n, $FST, 0n, CU.cg_start($AK, $F, hg, $FST, CU.fst0_ok(ST.ids(tg)), True{}), {==}, Equal.sym($MK, S.key_m(K, V, S.head($E, $EST)), $CK($FST), EN.first_key_eq(~K, ~V, nl, pl, ST.ids(tg), $OKT)), False{})

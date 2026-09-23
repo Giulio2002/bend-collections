@@ -1,0 +1,163 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/list.bend as LL
+import ../../lib/order.bend as O
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./tree.bend as TR
+import ./path.bend as P
+import ./prim.bend as PR
+import ./find.bend as FI
+import ./ends.bend as EN
+import ./slot.bend as SL
+import ./dj.bend as DJ
+import ./agree.bend as AG
+import ./frame.bend as FRM
+import ../../lib/nat_list.bend as NL
+
+# Removing a node with two children: its successor s (the leftmost node of
+# its right subtree) gives the node its key and payload and is unlinked.
+# The ids split around the node and s; the new node list and payloads give
+# the remaining ids the entries the old ones had without the node's.
+# (source: tools/generators/tm_hand/rms.src)
+
+%include unl.src
+%def E M.Entry<K, V>
+%def ENTS(xs) ST.ents(~K, ~V, xs, nl, pl)
+%def GF {ST.goodF($AK, $F) == True{} : Bool}
+%def S1 1n+si
+%def TS $TN($S1, $TE, sb)
+%def TT $TN($U, ta, tb)
+%def CB Con{P.FR{$U, False{}, ta}, c}
+%def XA $APP(P.before(c), $IDS(ta))
+%def RR $APP($IDS(sb), P.after(cs))
+%def OLD $APP($XA, Con{$U, Con{$S1, $RR}})
+%def NEW $APP($XA, Con{$U, $RR})
+%def SUCC $APP($XA, Con{$S1, $RR})
+%def SH +k: K, +c: $CT, +ui: Nat, +ta: ST.Tr, +tb: ST.Tr, +cs: $CT, +si: Nat, +sb: ST.Tr, +hbc: {$IDS(tg) == $WH(c, $TT) : $LN}, +hlw: {$WH(cs, $TS) == $WH($CB, tb) : $LN}, +hlb: {P.before(cs) == P.before($CB) : $LN}
+%def LN4 +c: $CT, +ui: Nat, +ta: ST.Tr, +cs: $CT, +si: Nat, +sb: ST.Tr
+%def LA4 c, ui, ta, cs, si, sb
+%def SA k, c, ui, ta, tb, cs, si, sb, hbc, hlw, hlb
+
+# ---- the ids: before the node, the node, the successor, the rest ----
+
+def eb_s($TV, $FT, $SH) -> {P.before(cs) == $APP($XA, Con{$U, Nil{}}) : $LN}:
+  Equal.trans($LN, P.before(cs), P.before($CB), $APP($XA, Con{$U, Nil{}}), hlb, Equal.sym($LN, $APP($XA, Con{$U, Nil{}}), P.before($CB), LL.append_assoc(Nat, P.before(c), $IDS(ta), Con{$U, Nil{}})))
+
+# the old ids through the successor's path
+def ew_s($TV, $FT, $SH) -> {$IDS(tg) == $WH(cs, $TS) : $LN}:
+  Equal.trans($LN, $IDS(tg), $WH(c, $TT), $WH(cs, $TS), hbc, Equal.trans($LN, $WH(c, $TT), $WH($CB, tb), $WH(cs, $TS), P.ids_r(c, $U, ta, tb), Equal.sym($LN, $WH(cs, $TS), $WH($CB, tb), hlw)))
+
+def eo_s($TV, $FT, $SH) -> {$IDS(tg) == $OLD : $LN}:
+  +e1 = L.subst($LN, z => {$WH(cs, $TS) == $APP(z, Con{$S1, $RR}) : $LN}, P.before(cs), $APP($XA, Con{$U, Nil{}}), eb_s($AV, $F, $SA), {==})
+  Equal.trans($LN, $IDS(tg), $WH(cs, $TS), $OLD, ew_s($AV, $F, $SA), Equal.trans($LN, $WH(cs, $TS), $APP($APP($XA, Con{$U, Nil{}}), Con{$S1, $RR}), $OLD, e1, LL.append_assoc(Nat, $XA, Con{$U, Nil{}}, Con{$S1, $RR})))
+
+# the remaining ids
+def en_s($TV, $FT, $SH) -> {$WH(cs, sb) == $NEW : $LN}:
+  +e1 = L.subst($LN, z => {$WH(cs, sb) == $APP(z, $RR) : $LN}, P.before(cs), $APP($XA, Con{$U, Nil{}}), eb_s($AV, $F, $SA), {==})
+  Equal.trans($LN, $WH(cs, sb), $APP($APP($XA, Con{$U, Nil{}}), $RR), $NEW, e1, LL.append_assoc(Nat, $XA, Con{$U, Nil{}}, $RR))
+
+# ---- no repeats: the node and the successor are apart from the rest ----
+
+%def NDO $NDL($OLD)
+def nd_old($TV, $FT, +hg: $GF, $SH) -> $NDO:
+  L.subst($LN, z => $NDL(z), $IDS(tg), $OLD, eo_s($AV, $F, $SA), DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $F, hg)))
+
+def ux_s($LN4, +h: $NDO) -> $NMEM($U, $XA):
+  DJ.dj_l($XA, Con{$U, Con{$S1, $RR}}, h, $U, DJ.mem_hd($U, Con{$S1, $RR}))
+
+def sx_s($LN4, +h: $NDO) -> $NMEM($S1, $XA):
+  DJ.dj_l($XA, Con{$U, Con{$S1, $RR}}, h, $S1, DJ.mem_tl($S1, $U, Con{$S1, $RR}, DJ.mem_hd($S1, $RR)))
+
+def ut_s($LN4, +h: $NDO) -> $NMEM($U, Con{$S1, $RR}):
+  DJ.nd_head($U, Con{$S1, $RR}, DJ.ndr($XA, Con{$U, Con{$S1, $RR}}, h))
+
+def sr_s($LN4, +h: $NDO) -> $NMEM($S1, $RR):
+  DJ.nd_head($S1, $RR, DJ.nd_tail($U, Con{$S1, $RR}, DJ.ndr($XA, Con{$U, Con{$S1, $RR}}, h)))
+
+def ur_s($LN4, +h: $NDO) -> $NMEM($U, $RR):
+  DJ.nm_ct($U, $S1, $RR, ut_s($LA4, h))
+
+def us_s($LN4, +h: $NDO) -> {Nat.is_eq($U, $S1) == False{} : Bool}:
+  FRM.ne_sym($S1, $U, DJ.nm_ch($U, $S1, $RR, ut_s($LA4, h)))
+
+# ---- the moved key and payload ----
+
+%def XK M.N{c0, a0, b0, q0, ks}
+%def NLK PR.wr_nl(K, nl, $U, $XK)
+%def P1 PR.ex_pl(V, pl, $U, None{})
+%def PLS PR.ex_pl(V, $P1, $S1, None{})
+%def PL4 PR.ex_pl(V, $PLS, $U, ST.pv(V, $P1, $S1))
+%def MH +nl: $NL, +pl: List<&2, $MV>, +ui: Nat, +si: Nat, +c0: Bool, +a0: Nat, +b0: Nat, +q0: Nat, +ks: K, +cs0: Bool, +as0: Nat, +bs0: Nat, +qs0: Nat, +hb: {Nat.is_lt(ui, SC.length($ND, nl)) == True{} : Bool}, +hbp: {Nat.is_lt(ui, SC.length($MV, $PLS)) == True{} : Bool}, +hsn: {ST.nd(K, nl, $S1) == M.N{cs0, as0, bs0, qs0, ks} : $ND}, +hus: {Nat.is_eq($U, $S1) == False{} : Bool}
+%def MA nl, pl, ui, si, c0, a0, b0, q0, ks, cs0, as0, bs0, qs0, hb, hbp, hsn, hus
+%def ENX(xs, x, y) ST.ents(~K, ~V, xs, x, y)
+%def OKX(xs, x, y) EN.oks(~K, ~V, xs, x, y)
+%def ENT(x, y, j) ST.ent(K, V, ST.nd(K, x, j), ST.pv(V, y, j))
+%def ME Maybe<&2, $E>
+
+# ids away from the node and the successor keep their entries
+def ents_rest(~K: Data, ~V: Data, $MH, +xs: $LN, +hu: $NMEM($U, xs), +hs: $NMEM($S1, xs)) -> {$ENX(xs, $NLK, $PL4) == $ENX(xs, nl, pl) : $ES}:
+  Equal.trans($ES, $ENX(xs, $NLK, $PL4), $ENX(xs, nl, $PL4), $ENX(xs, nl, pl), FRM.ents_frame(~K, ~V, xs, nl, $PL4, $U, $XK, hu), Equal.trans($ES, $ENX(xs, nl, $PL4), $ENX(xs, nl, $PLS), $ENX(xs, nl, pl), SL.ents_pex(~K, ~V, xs, nl, $PLS, $U, ST.pv(V, $P1, $S1), hu), Equal.trans($ES, $ENX(xs, nl, $PLS), $ENX(xs, nl, $P1), $ENX(xs, nl, pl), SL.ents_pex(~K, ~V, xs, nl, $P1, $S1, None{}, hs), SL.ents_pex(~K, ~V, xs, nl, pl, $U, None{}, hu))))
+
+def oks_rest($TV, $MH, +xs: $LN, +hu: $NMEM($U, xs), +hs: $NMEM($S1, xs)) -> {$OKX(xs, $NLK, $PL4) == $OKX(xs, nl, pl) : Bool}:
+  Equal.trans(Bool, $OKX(xs, $NLK, $PL4), $OKX(xs, nl, $PL4), $OKX(xs, nl, pl), AG.oks_agr($AV, xs, nl, $NLK, $PL4, AG.agr_wr($AO, xs, nl, $U, $XK, hu)), Equal.trans(Bool, $OKX(xs, nl, $PL4), $OKX(xs, nl, $PLS), $OKX(xs, nl, pl), SL.oks_pex(~K, ~V, xs, nl, $PLS, $U, ST.pv(V, $P1, $S1), hu), Equal.trans(Bool, $OKX(xs, nl, $PLS), $OKX(xs, nl, $P1), $OKX(xs, nl, pl), SL.oks_pex(~K, ~V, xs, nl, $P1, $S1, None{}, hs), SL.oks_pex(~K, ~V, xs, nl, pl, $U, None{}, hu))))
+
+# an entry reads only the key
+def ent_key(-K: Data, -V: Data, +c0: Bool, +a0: Nat, +b0: Nat, +q0: Nat, +cs0: Bool, +as0: Nat, +bs0: Nat, +qs0: Nat, +ks: K, +m: $MV) -> {ST.ent(K, V, $XK, m) == ST.ent(K, V, M.N{cs0, as0, bs0, qs0, ks}, m) : $ME}:
+  match m:
+    case None{}:
+      {==}
+    case Some{+v}:
+      {==}
+
+# the node now holds the successor's entry
+def ent_mv(-K: Data, -V: Data, $MH) -> {$ENT($NLK, $PL4, $U) == $ENT(nl, pl, $S1) : $ME}:
+  %Equal.sym($ND, ST.nd(K, $NLK, $U), $XK, FRM.nd_wr_same(K, nl, ui, $XK, hb)) : {ST.ent(K, V, _, ST.pv(V, $PL4, $U)) == $ENT(nl, pl, $S1) : $ME}
+  %Equal.sym($MV, ST.pv(V, $PL4, $U), ST.pv(V, $P1, $S1), SL.pv_ex_same(V, $PLS, ui, ST.pv(V, $P1, $S1), hbp)) : {ST.ent(K, V, $XK, _) == $ENT(nl, pl, $S1) : $ME}
+  %Equal.sym($MV, ST.pv(V, $P1, $S1), ST.pv(V, pl, $S1), SL.pv_ex_other(V, pl, $U, None{}, $S1, hus)) : {ST.ent(K, V, $XK, _) == $ENT(nl, pl, $S1) : $ME}
+  %Equal.sym($ND, ST.nd(K, nl, $S1), M.N{cs0, as0, bs0, qs0, ks}, hsn) : {ST.ent(K, V, $XK, ST.pv(V, pl, $S1)) == ST.ent(K, V, _, ST.pv(V, pl, $S1)) : $ME}
+  ent_key(K, V, c0, a0, b0, q0, cs0, as0, bs0, qs0, ks, ST.pv(V, pl, $S1))
+
+%def NEWX $APP(xa, Con{$U, rr})
+%def SUCX $APP(xa, Con{$S1, rr})
+%def OLDX $APP(xa, Con{$U, Con{$S1, rr}})
+%def XR +xa: $LN, +rr: $LN, +hux: $NMEM($U, xa), +hsx: $NMEM($S1, xa), +hur: $NMEM($U, rr), +hsr: $NMEM($S1, rr)
+
+# the remaining ids' entries: the old ones without the node's
+def ents_new(~K: Data, ~V: Data, $MH, $XR) -> {$ENX($NEWX, $NLK, $PL4) == $ENX($SUCX, nl, pl) : $ES}:
+  %Equal.sym($ES, $ENX($NEWX, $NLK, $PL4), SC.append($E, $ENX(xa, $NLK, $PL4), $ENX(Con{$U, rr}, $NLK, $PL4)), FI.ents_app(~K, ~V, xa, Con{$U, rr}, $NLK, $PL4)) : {_ == $ENX($SUCX, nl, pl) : $ES}
+  %Equal.sym($ES, $ENX($SUCX, nl, pl), SC.append($E, $ENX(xa, nl, pl), $ENX(Con{$S1, rr}, nl, pl)), FI.ents_app(~K, ~V, xa, Con{$S1, rr}, nl, pl)) : {SC.append($E, $ENX(xa, $NLK, $PL4), ST.cons_m($E, $ENT($NLK, $PL4, $U), $ENX(rr, $NLK, $PL4))) == _ : $ES}
+  %Equal.sym($ES, $ENX(xa, $NLK, $PL4), $ENX(xa, nl, pl), ents_rest(~K, ~V, $MA, xa, hux, hsx)) : {SC.append($E, _, ST.cons_m($E, $ENT($NLK, $PL4, $U), $ENX(rr, $NLK, $PL4))) == SC.append($E, $ENX(xa, nl, pl), ST.cons_m($E, $ENT(nl, pl, $S1), $ENX(rr, nl, pl))) : $ES}
+  %Equal.sym($ES, $ENX(rr, $NLK, $PL4), $ENX(rr, nl, pl), ents_rest(~K, ~V, $MA, rr, hur, hsr)) : {SC.append($E, $ENX(xa, nl, pl), ST.cons_m($E, $ENT($NLK, $PL4, $U), _)) == SC.append($E, $ENX(xa, nl, pl), ST.cons_m($E, $ENT(nl, pl, $S1), $ENX(rr, nl, pl))) : $ES}
+  %Equal.sym($ME, $ENT($NLK, $PL4, $U), $ENT(nl, pl, $S1), ent_mv(K, V, $MA)) : {SC.append($E, $ENX(xa, nl, pl), ST.cons_m($E, _, $ENX(rr, nl, pl))) == SC.append($E, $ENX(xa, nl, pl), ST.cons_m($E, $ENT(nl, pl, $S1), $ENX(rr, nl, pl))) : $ES}
+  {==}
+
+%def ISS(x) S.is_some($E, x)
+
+# every remaining id still has a node and a value
+def oks_new($TV, $MH, $XR, +h: {$OKX($OLDX, nl, pl) == True{} : Bool}) -> {$OKX($NEWX, $NLK, $PL4) == True{} : Bool}:
+  +hx = SL.oks_split_l(~K, ~V, xa, Con{$U, Con{$S1, rr}}, nl, pl, h)
+  +hsr0 = L.and_right($ISS($ENT(nl, pl, $U)), $OKX(Con{$S1, rr}, nl, pl), SL.oks_split_r(~K, ~V, xa, Con{$U, Con{$S1, rr}}, nl, pl, h))
+  +oks = L.and_left($ISS($ENT(nl, pl, $S1)), $OKX(rr, nl, pl), hsr0)
+  +okr = L.and_right($ISS($ENT(nl, pl, $S1)), $OKX(rr, nl, pl), hsr0)
+  +oku = L.subst($ME, z => {$ISS(z) == True{} : Bool}, $ENT(nl, pl, $S1), $ENT($NLK, $PL4, $U), Equal.sym($ME, $ENT($NLK, $PL4, $U), $ENT(nl, pl, $S1), ent_mv(K, V, $MA)), oks)
+  EN.oks_app(~K, ~V, $NLK, $PL4, xa, Con{$U, rr}, Equal.trans(Bool, $OKX(xa, $NLK, $PL4), $OKX(xa, nl, pl), True{}, oks_rest($AV, $MA, xa, hux, hsx), hx), L.and_intro($ISS($ENT($NLK, $PL4, $U)), $OKX(rr, $NLK, $PL4), oku, Equal.trans(Bool, $OKX(rr, $NLK, $PL4), $OKX(rr, nl, pl), True{}, oks_rest($AV, $MA, rr, hur, hsr), okr)))
+
+# ---- the right subtree is no bigger than the tree ----
+
+%def LAPP(xs, ys) LL.length_append(Nat, xs, ys)
+%def LE(a, b) {Nat.is_le(a, b) == True{} : Bool}
+%def L1 $LEN($IDS(tb))
+%def L2 $LEN(Con{$U, $IDS(tb)})
+%def L3 $LEN($IDS($TT))
+%def L4 $LEN($APP($IDS($TT), P.after(c)))
+%def L5 $LEN($WH(c, $TT))
+
+def sublen(+c: $CT, +ui: Nat, +ta: ST.Tr, +tb: ST.Tr) -> $LE($L1, $L5):
+  +s2 = L.subst(Nat, z => $LE($L2, z), Nat.add($LEN($IDS(ta)), $L2), $L3, Equal.sym(Nat, $L3, Nat.add($LEN($IDS(ta)), $L2), $LAPP($IDS(ta), Con{$U, $IDS(tb)})), TR.le_add_l($LEN($IDS(ta)), $L2))
+  +s3 = L.subst(Nat, z => $LE($L3, z), Nat.add($L3, $LEN(P.after(c))), $L4, Equal.sym(Nat, $L4, Nat.add($L3, $LEN(P.after(c))), $LAPP($IDS($TT), P.after(c))), N.le_add_right($L3, $LEN(P.after(c))))
+  +s4 = L.subst(Nat, z => $LE($L4, z), Nat.add($LEN(P.before(c)), $L4), $L5, Equal.sym(Nat, $L5, Nat.add($LEN(P.before(c)), $L4), $LAPP(P.before(c), $APP($IDS($TT), P.after(c)))), TR.le_add_l($LEN(P.before(c)), $L4))
+  N.le_trans($L1, $L2, $L5, N.le_succ($L1), N.le_trans($L2, $L3, $L5, s2, N.le_trans($L3, $L4, $L5, s3, s4)))

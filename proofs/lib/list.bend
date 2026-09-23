@@ -1,7 +1,7 @@
 import Base
 import ./logic.bend as L
 import ./nat.bend as N
-import ../spec/common.bend as SC
+import ./spec_common.bend as SC
 
 # Lemmas about the specification list vocabulary (spec/common.bend).
 

@@ -1,0 +1,118 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/array.bend as AR
+import ../../lib/list.bend as LL
+import ../../lib/spec_common.bend as SC
+import ../../../src/containers/dynamic_array.bend as D
+import ../../../src/containers/types/dynamic_array.bend as DE
+import ../dynamic_array/layout.bend as LY
+import ../dynamic_array/state.bend as DAS
+import ../dynamic_array/steps.bend as DST
+import ../dynamic_array/growth.bend as DGR
+
+# The dynamic array operations the TreeMap calls, over a good array shadow:
+# the result is the realization of the updated shadow.
+
+%def MT Maybe<&2, T>
+%def SH(n, t) DAS.Sh{l, d, n, t}
+%def RL(n, t) DAS.real(T, DAS.Sh{l, d, n, t})
+%def XS LY.somes(T, AR.slots($MT, t))
+%def GP +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<$MT>, +g: {DAS.good(T, DAS.Sh{l, d, n, t}) == True{} : Bool}
+%def GA l, d, n, t, g
+%def DR(X) D.DynArray<&2, T> & Result<&2, &2, DE.Error, X>
+
+def item(-T: Data, m: $MT) -> Result<&2, &2, DE.Error, T>:
+  match m:
+    case None{}:
+      Fail{DE.IndexOutOfRange{}}
+    case Some{x}:
+      Done{x}
+
+def gf(~T: Data, +l: Nat, +d: Nat, +c: Nat, +n: Nat, -arr: Array<$MT>, +x: $MT) -> {D.get_found_at(~T, l, d, c, n, (arr, x)) == (D.DA{l, d, c, n, arr}, item(T, x)) : $DR(T)}:
+  match x:
+    case None{}:
+      {==}
+    case Some{v}:
+      {==}
+
+def n_len(~T: Data, $GP) -> {SC.length(T, $XS) == n : Nat}:
+  LY.lay_len(T, AR.slots($MT, t), n, DAS.g_lay(T, $GA))
+
+def nth_hi(~T: Data, $GP, +i: Nat, +h: {Nat.is_lt(i, n) == False{} : Bool}) -> {SC.nth(T, $XS, i) == None{} : $MT}:
+  LL.nth_none(T, $XS, i, L.subst(Nat, z => {Nat.is_le(z, i) == True{} : Bool}, n, SC.length(T, $XS), Equal.sym(Nat, SC.length(T, $XS), n, n_len(~T, $GA)), N.not_lt_le(i, n, h)))
+
+def lt_cap(~T: Data, $GP, +i: Nat, +h: {Nat.is_lt(i, n) == True{} : Bool}) -> {Nat.is_lt(i, SC.pow2(d)) == True{} : Bool}:
+  N.lt_le_trans(i, n, SC.pow2(d), h, DST.n_le_cap(T, $GA))
+
+def slot_at(~T: Data, $GP, +i: Nat, +h: {Nat.is_lt(i, n) == True{} : Bool}) -> {SC.nth($MT, AR.slots($MT, t), i) == Some{SC.nth(T, $XS, i)} : Maybe<&2, $MT>}:
+  LY.lay_nth(T, AR.slots($MT, t), n, i, DAS.g_lay(T, $GA), h)
+
+def get_c(~T: Data, $GP, +i: Nat, +b: Bool, +hb: {Nat.is_lt(i, n) == b : Bool}) -> {D.get_checked_at(~T, l, d, SC.pow2(d), n, AR.thaw($MT, t), i, b) == ($RL(n, t), item(T, SC.nth(T, $XS, i))) : $DR(T)}:
+  match b:
+    case False{}:
+      %Equal.sym($MT, SC.nth(T, $XS, i), None{}, nth_hi(~T, $GA, i, hb)) : {(D.DA{l, d, SC.pow2(d), n, AR.thaw($MT, t)}, Fail{DE.IndexOutOfRange{}}) == ($RL(n, t), item(T, _)) : $DR(T)}
+      {==}
+    case True{}:
+      +x = SC.nth(T, $XS, i)
+      +e = AR.get($MT, d, t, U32.from_nat(i), x, DAS.lt32(d, l, DAS.g_depth(T, $GA), DAS.g_limit(T, $GA)), DST.idx_lt(T, l, d, n, t, i, g, lt_cap(~T, $GA, i, hb)), DST.idx_slot(T, l, d, n, t, i, x, g, lt_cap(~T, $GA, i, hb), slot_at(~T, $GA, i, hb)), DAS.g_perfect(T, $GA))
+      %Equal.sym(Array<$MT> & $MT, Array.get($MT, AR.thaw($MT, t), U32.from_nat(i)), (AR.thaw($MT, t), x), e) : {D.get_found_at(~T, l, d, SC.pow2(d), n, _) == ($RL(n, t), item(T, x)) : $DR(T)}
+      gf(~T, l, d, SC.pow2(d), n, AR.thaw($MT, t), x)
+
+# get: the item at i, or out of range
+def da_get(~T: Data, $GP, +i: Nat) -> {D.get_at(~T, $RL(n, t), i) == ($RL(n, t), item(T, SC.nth(T, $XS, i))) : $DR(T)}:
+  get_c(~T, $GA, i, Nat.is_lt(i, n), {==})
+
+# set: the item at i replaced (i < n)
+def da_set(~T: Data, $GP, +i: Nat, +v: T, +h: {Nat.is_lt(i, n) == True{} : Bool}) -> {D.set_at(~T, $RL(n, t), i, v) == ($RL(n, AR.upd($MT, d, t, i, Some{v})), Done{Unit{}}) : $DR(Unit)}:
+  +e = DST.set_arr(T, l, d, n, t, i, Some{v}, SC.nth(T, $XS, i), g, lt_cap(~T, $GA, i, h), slot_at(~T, $GA, i, h))
+  %Equal.sym(Bool, Nat.is_lt(i, n), True{}, h) : {D.set_checked_at(~T, l, d, SC.pow2(d), n, AR.thaw($MT, t), i, v, _) == ($RL(n, AR.upd($MT, d, t, i, Some{v})), Done{Unit{}}) : $DR(Unit)}
+  %Equal.sym(Array<$MT>, Array.set($MT, AR.thaw($MT, t), U32.from_nat(i), Some{v}), AR.thaw($MT, AR.upd($MT, d, t, i, Some{v})), e) : {(D.DA{l, d, SC.pow2(d), n, _}, Done{Unit{}}) == ($RL(n, AR.upd($MT, d, t, i, Some{v})), Done{Unit{}}) : $DR(Unit)}
+  {==}
+
+def da_set_out(~T: Data, $GP, +i: Nat, +v: T, +h: {Nat.is_lt(i, n) == False{} : Bool}) -> {D.set_at(~T, $RL(n, t), i, v) == ($RL(n, t), Fail{DE.IndexOutOfRange{}}) : $DR(Unit)}:
+  %Equal.sym(Bool, Nat.is_lt(i, n), False{}, h) : {D.set_checked_at(~T, l, d, SC.pow2(d), n, AR.thaw($MT, t), i, v, _) == ($RL(n, t), Fail{DE.IndexOutOfRange{}}) : $DR(Unit)}
+  {==}
+
+# swap: the item at i replaced, the old one returned (i < n)
+def da_swap(~T: Data, $GP, +i: Nat, +v: T, +h: {Nat.is_lt(i, n) == True{} : Bool}) -> {D.swap_at(~T, $RL(n, t), i, v) == ($RL(n, AR.upd($MT, d, t, i, Some{v})), item(T, SC.nth(T, $XS, i))) : $DR(T)}:
+  +x = SC.nth(T, $XS, i)
+  +e = DST.swap_arr(T, l, d, n, t, i, Some{v}, x, g, lt_cap(~T, $GA, i, h), slot_at(~T, $GA, i, h))
+  %Equal.sym(Bool, Nat.is_lt(i, n), True{}, h) : {D.swap_checked_at(~T, l, d, SC.pow2(d), n, AR.thaw($MT, t), i, v, _) == ($RL(n, AR.upd($MT, d, t, i, Some{v})), item(T, x)) : $DR(T)}
+  %Equal.sym(Array<$MT> & $MT, Array.swap($MT, AR.thaw($MT, t), U32.from_nat(i), Some{v}), (AR.thaw($MT, AR.upd($MT, d, t, i, Some{v})), x), e) : {D.get_found_at(~T, l, d, SC.pow2(d), n, _) == ($RL(n, AR.upd($MT, d, t, i, Some{v})), item(T, x)) : $DR(T)}
+  gf(~T, l, d, SC.pow2(d), n, AR.thaw($MT, AR.upd($MT, d, t, i, Some{v})), x)
+
+def da_swap_out(~T: Data, $GP, +i: Nat, +v: T, +h: {Nat.is_lt(i, n) == False{} : Bool}) -> {D.swap_at(~T, $RL(n, t), i, v) == ($RL(n, t), Fail{DE.IndexOutOfRange{}}) : $DR(T)}:
+  %Equal.sym(Bool, Nat.is_lt(i, n), False{}, h) : {D.swap_checked_at(~T, l, d, SC.pow2(d), n, AR.thaw($MT, t), i, v, _) == ($RL(n, t), Fail{DE.IndexOutOfRange{}}) : $DR(T)}
+  {==}
+
+def da_len(~T: Data, $GP) -> {D.length(T, $RL(n, t)) == ($RL(n, t), n) : D.DynArray<&2, T> & Nat}:
+  {==}
+
+def da_clear(~T: Data, +l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<$MT>) -> {D.clear_at(~T, $RL(n, t)) == $RL(0n, AR.trep($MT, d, None{})) : D.DynArray<&2, T>}:
+  %Equal.sym(Array<$MT>, Array.new($MT, d, None{}), AR.thaw($MT, AR.trep($MT, d, None{})), AR.new($MT, d, None{})) : {D.DA{l, d, SC.pow2(d), 0n, _} == $RL(0n, AR.trep($MT, d, None{})) : D.DynArray<&2, T>}
+  {==}
+
+# push, with room in the block
+def da_push_room(~T: Data, $GP, +v: T, +hn: {Nat.is_lt(n, SC.pow2(d)) == True{} : Bool}) -> {D.push_at(~T, $RL(n, t), v) == ($RL(1n+n, AR.upd($MT, d, t, n, Some{v})), Done{Unit{}}) : $DR(Unit)}:
+  %Equal.sym(Bool, Nat.is_lt(n, SC.pow2(d)), True{}, hn) : {D.push_room_at(~T, l, d, SC.pow2(d), n, AR.thaw($MT, t), v, _, Nat.is_lt(d, l)) == ($RL(1n+n, AR.upd($MT, d, t, n, Some{v})), Done{Unit{}}) : $DR(Unit)}
+  %Equal.sym(Array<$MT>, Array.set($MT, AR.thaw($MT, t), U32.from_nat(n), Some{v}), AR.thaw($MT, AR.upd($MT, d, t, n, Some{v})), DST.pi_arr(T, l, d, n, t, v, g, hn)) : {(D.DA{l, d, SC.pow2(d), 1n+n, _}, Done{Unit{}}) == ($RL(1n+n, AR.upd($MT, d, t, n, Some{v})), Done{Unit{}}) : $DR(Unit)}
+  {==}
+
+%def TG AR.TNode{t, AR.trep($MT, d, None{})}
+
+# push into a full block below the limit: the block doubles
+def da_push_grow(~T: Data, $GP, +v: T, +hn: {Nat.is_lt(n, SC.pow2(d)) == False{} : Bool}, +hd: {Nat.is_lt(d, l) == True{} : Bool}) -> {D.push_at(~T, $RL(n, t), v) == (DAS.real(T, DAS.Sh{l, 1n+d, 1n+n, AR.upd($MT, 1n+d, $TG, n, Some{v})}), Done{Unit{}}) : $DR(Unit)}:
+  +g1 = DGR.grow_good(T, $GA, hd)
+  +hn1 = N.le_lt_trans(n, SC.pow2(d), SC.pow2(1n+d), DST.n_le_cap(T, $GA), N.pow2_lt_succ(d))
+  %Equal.sym(Bool, Nat.is_lt(n, SC.pow2(d)), False{}, hn) : {D.push_room_at(~T, l, d, SC.pow2(d), n, AR.thaw($MT, t), v, _, Nat.is_lt(d, l)) == (DAS.real(T, DAS.Sh{l, 1n+d, 1n+n, AR.upd($MT, 1n+d, $TG, n, Some{v})}), Done{Unit{}}) : $DR(Unit)}
+  %Equal.sym(Bool, Nat.is_lt(d, l), True{}, hd) : {D.push_room_at(~T, l, d, SC.pow2(d), n, AR.thaw($MT, t), v, False{}, _) == (DAS.real(T, DAS.Sh{l, 1n+d, 1n+n, AR.upd($MT, 1n+d, $TG, n, Some{v})}), Done{Unit{}}) : $DR(Unit)}
+  %Equal.sym(Array<$MT>, Array.new($MT, d, None{}), AR.thaw($MT, AR.trep($MT, d, None{})), AR.new($MT, d, None{})) : {(D.DA{l, 1n+d, Nat.double(SC.pow2(d)), 1n+n, Array.set($MT, ANode{AR.thaw($MT, t), _}, U32.from_nat(n), Some{v})}, Done{Unit{}}) == (DAS.real(T, DAS.Sh{l, 1n+d, 1n+n, AR.upd($MT, 1n+d, $TG, n, Some{v})}), Done{Unit{}}) : $DR(Unit)}
+  %Equal.sym(Array<$MT>, Array.set($MT, AR.thaw($MT, $TG), U32.from_nat(n), Some{v}), AR.thaw($MT, AR.upd($MT, 1n+d, $TG, n, Some{v})), DST.pi_arr(T, l, 1n+d, n, $TG, v, g1, hn1)) : {(D.DA{l, 1n+d, Nat.double(SC.pow2(d)), 1n+n, _}, Done{Unit{}}) == (DAS.real(T, DAS.Sh{l, 1n+d, 1n+n, AR.upd($MT, 1n+d, $TG, n, Some{v})}), Done{Unit{}}) : $DR(Unit)}
+  {==}
+
+# push into a full block at the limit: rejected
+def da_push_full(~T: Data, $GP, +v: T, +hn: {Nat.is_lt(n, SC.pow2(d)) == False{} : Bool}, +hd: {Nat.is_lt(d, l) == False{} : Bool}) -> {D.push_at(~T, $RL(n, t), v) == ($RL(n, t), Fail{DE.CapacityExceeded{}}) : $DR(Unit)}:
+  %Equal.sym(Bool, Nat.is_lt(n, SC.pow2(d)), False{}, hn) : {D.push_room_at(~T, l, d, SC.pow2(d), n, AR.thaw($MT, t), v, _, Nat.is_lt(d, l)) == ($RL(n, t), Fail{DE.CapacityExceeded{}}) : $DR(Unit)}
+  %Equal.sym(Bool, Nat.is_lt(d, l), False{}, hd) : {D.push_room_at(~T, l, d, SC.pow2(d), n, AR.thaw($MT, t), v, False{}, _) == ($RL(n, t), Fail{DE.CapacityExceeded{}}) : $DR(Unit)}
+  {==}

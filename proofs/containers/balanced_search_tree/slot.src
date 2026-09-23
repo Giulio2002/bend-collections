@@ -1,0 +1,203 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/list.bend as LL
+import ../../lib/order.bend as O
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./prim.bend as PR
+import ./frame.bend as FR
+import ./agree.bend as AG
+import ./ends.bend as EN
+import ../../lib/nat_list.bend as NL
+
+# A list grown by one slot, or rewritten at one: every other position reads
+# as before, the slot reads the new value; so the entries, links and free
+# chain of ids avoiding the slot are unchanged. (source: tools/generators/tm_hand/slot.src)
+
+%def XS List<&2, X>
+%def LN List<&2, Nat>
+%def NTH(xs, i) ST.nth_or(X, xs, i, dv)
+%def NE(a, b) {Nat.is_eq(a, b) == False{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
+
+def nth_snoc_other(-X: Data, +xs: $XS, +x: X, +i: Nat, +dv: X, +h: $NE(i, SC.length(X, xs))) -> {$NTH(SC.snoc(X, xs, x), i) == $NTH(xs, i) : X}:
+  match xs i:
+    case Nil{} 0n:
+      Empty.absurd({$NTH(SC.snoc(X, Nil{}, x), 0n) == $NTH(Nil{}, 0n) : X}, L.true_false(h))
+    case Nil{} 1n+j:
+      {==}
+    case Con{+hd, +t} 0n:
+      {==}
+    case Con{+hd, +t} 1n+j:
+      nth_snoc_other(X, t, x, j, dv, h)
+
+def nth_snoc_same(-X: Data, +xs: $XS, +x: X, +dv: X) -> {$NTH(SC.snoc(X, xs, x), SC.length(X, xs)) == x : X}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+hd, +t}:
+      nth_snoc_same(X, t, x, dv)
+
+def nth_upd_c(-X: Data, +xs: $XS, +i: Nat, +x: X, +j: Nat, +dv: X, +hne: $NE(i, j), +b: Bool) -> {$NTH(ST.pk($XS, b, SC.update(X, xs, i, x), xs), j) == $NTH(xs, j) : X}:
+  match b:
+    case True{}:
+      %Equal.sym(X, $NTH(SC.update(X, xs, i, x), j), PR.or_else(X, SC.nth(X, SC.update(X, xs, i, x), j), dv), PR.nth_or_nth(X, SC.update(X, xs, i, x), j, dv)) : {_ == $NTH(xs, j) : X}
+      %Equal.sym(X, $NTH(xs, j), PR.or_else(X, SC.nth(X, xs, j), dv), PR.nth_or_nth(X, xs, j, dv)) : {PR.or_else(X, SC.nth(X, SC.update(X, xs, i, x), j), dv) == _ : X}
+      %Equal.sym(Maybe<&2, X>, SC.nth(X, SC.update(X, xs, i, x), j), SC.nth(X, xs, j), LL.nth_update_other(X, xs, i, j, x, hne)) : {PR.or_else(X, _, dv) == PR.or_else(X, SC.nth(X, xs, j), dv) : X}
+      {==}
+    case False{}:
+      {==}
+
+# ---- the node list ----
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def NDX(nl, j) ST.nd(K, nl, j)
+%def SNC(nl, x) SC.snoc($ND, nl, x)
+
+def nd_snoc_other(-K: Data, +nl: $NL, +x: $ND, +j: Nat, +h: $NE(j, 1n+SC.length($ND, nl))) -> {$NDX($SNC(nl, x), j) == $NDX(nl, j) : $ND}:
+  match j:
+    case 0n:
+      {==}
+    case 1n+i:
+      nth_snoc_other($ND, nl, x, i, M.Free{0n}, h)
+
+def nd_snoc_same(-K: Data, +nl: $NL, +x: $ND) -> {$NDX($SNC(nl, x), 1n+SC.length($ND, nl)) == x : $ND}:
+  nth_snoc_same($ND, nl, x, M.Free{0n})
+
+%def TO ~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AO ~K, ~cmp, ~o
+%def AGR(xs, a, b) {AG.agr(~K, ~cmp, xs, a, b) == True{} : Bool}
+
+# a new slot agrees off it
+def agr_snoc($TO, +xs: $LN, +nl: $NL, +x: $ND, +hn: $NMEM(1n+SC.length($ND, nl), xs)) -> $AGR(xs, nl, $SNC(nl, x)):
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      L.and_intro(AG.ndeq(~K, ~cmp, $NDX(nl, j), $NDX($SNC(nl, x), j)), AG.agr(~K, ~cmp, t, nl, $SNC(nl, x)), AG.ndeq_of_eq($AO, $NDX(nl, j), $NDX($SNC(nl, x), j), Equal.sym($ND, $NDX($SNC(nl, x), j), $NDX(nl, j), nd_snoc_other(K, nl, x, j, FR.or_f_l(Nat.is_eq(j, 1n+SC.length($ND, nl)), NL.memn(1n+SC.length($ND, nl), t), hn)))), agr_snoc($AO, t, nl, x, FR.or_f_r(Nat.is_eq(j, 1n+SC.length($ND, nl)), NL.memn(1n+SC.length($ND, nl), t), hn)))
+
+# ---- the payload list ----
+
+%def MV Maybe<&2, V>
+%def PL List<&2, $MV>
+%def PV(pl, j) ST.pv(V, pl, j)
+%def E M.Entry<K, V>
+%def ENTS(xs, nl, pl) ST.ents(~K, ~V, xs, nl, pl)
+
+def pv_snoc_other(-V: Data, +pl: $PL, +w: $MV, +j: Nat, +h: $NE(j, 1n+SC.length($MV, pl))) -> {$PV(SC.snoc($MV, pl, w), j) == $PV(pl, j) : $MV}:
+  match j:
+    case 0n:
+      {==}
+    case 1n+i:
+      nth_snoc_other($MV, pl, w, i, None{}, h)
+
+def pv_snoc_same(-V: Data, +pl: $PL, +w: $MV) -> {$PV(SC.snoc($MV, pl, w), 1n+SC.length($MV, pl)) == w : $MV}:
+  nth_snoc_same($MV, pl, w, None{})
+
+def pv_ex_other(-V: Data, +pl: $PL, +id: Nat, +w: $MV, +j: Nat, +hne: $NE(id, j)) -> {$PV(PR.ex_pl(V, pl, id, w), j) == $PV(pl, j) : $MV}:
+  match id j:
+    case 0n +j:
+      {==}
+    case 1n+i 0n:
+      {==}
+    case 1n+i 1n+jj:
+      nth_upd_c($MV, pl, i, w, jj, None{}, hne, Nat.is_lt(i, SC.length($MV, pl)))
+
+def pv_ex_same(-V: Data, +pl: $PL, +i: Nat, +w: $MV, +h: {Nat.is_lt(i, SC.length($MV, pl)) == True{} : Bool}) -> {$PV(PR.ex_pl(V, pl, 1n+i, w), 1n+i) == w : $MV}:
+  %Equal.sym(Bool, Nat.is_lt(i, SC.length($MV, pl)), True{}, h) : {ST.nth_or($MV, ST.pk($PL, _, SC.update($MV, pl, i, w), pl), i, None{}) == w : $MV}
+  %Equal.sym($MV, ST.nth_or($MV, SC.update($MV, pl, i, w), i, None{}), PR.or_else($MV, SC.nth($MV, SC.update($MV, pl, i, w), i), None{}), PR.nth_or_nth($MV, SC.update($MV, pl, i, w), i, None{})) : {_ == w : $MV}
+  %Equal.sym(Maybe<&2, $MV>, SC.nth($MV, SC.update($MV, pl, i, w), i), Some{w}, LL.nth_update_same($MV, pl, i, w, h)) : {PR.or_else($MV, _, None{}) == w : $MV}
+  {==}
+
+%def TKV ~K: Data, ~V: Data
+
+def ents_psnoc($TKV, +xs: $LN, +nl: $NL, +pl: $PL, +w: $MV, +hn: $NMEM(1n+SC.length($MV, pl), xs)) -> {$ENTS(xs, nl, SC.snoc($MV, pl, w)) == $ENTS(xs, nl, pl) : List<&2, $E>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym($MV, $PV(SC.snoc($MV, pl, w), j), $PV(pl, j), pv_snoc_other(V, pl, w, j, FR.or_f_l(Nat.is_eq(j, 1n+SC.length($MV, pl)), NL.memn(1n+SC.length($MV, pl), t), hn))) : {ST.cons_m($E, ST.ent(K, V, $NDX(nl, j), _), $ENTS(t, nl, SC.snoc($MV, pl, w))) == $ENTS(Con{j, t}, nl, pl) : List<&2, $E>}
+      %Equal.sym(List<&2, $E>, $ENTS(t, nl, SC.snoc($MV, pl, w)), $ENTS(t, nl, pl), ents_psnoc(~K, ~V, t, nl, pl, w, FR.or_f_r(Nat.is_eq(j, 1n+SC.length($MV, pl)), NL.memn(1n+SC.length($MV, pl), t), hn))) : {ST.cons_m($E, ST.ent(K, V, $NDX(nl, j), $PV(pl, j)), _) == $ENTS(Con{j, t}, nl, pl) : List<&2, $E>}
+      {==}
+
+def ents_pex($TKV, +xs: $LN, +nl: $NL, +pl: $PL, +id: Nat, +w: $MV, +hn: $NMEM(id, xs)) -> {$ENTS(xs, nl, PR.ex_pl(V, pl, id, w)) == $ENTS(xs, nl, pl) : List<&2, $E>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym($MV, $PV(PR.ex_pl(V, pl, id, w), j), $PV(pl, j), pv_ex_other(V, pl, id, w, j, FR.ne_sym(j, id, FR.or_f_l(Nat.is_eq(j, id), NL.memn(id, t), hn)))) : {ST.cons_m($E, ST.ent(K, V, $NDX(nl, j), _), $ENTS(t, nl, PR.ex_pl(V, pl, id, w))) == $ENTS(Con{j, t}, nl, pl) : List<&2, $E>}
+      %Equal.sym(List<&2, $E>, $ENTS(t, nl, PR.ex_pl(V, pl, id, w)), $ENTS(t, nl, pl), ents_pex(~K, ~V, t, nl, pl, id, w, FR.or_f_r(Nat.is_eq(j, id), NL.memn(id, t), hn))) : {ST.cons_m($E, ST.ent(K, V, $NDX(nl, j), $PV(pl, j)), _) == $ENTS(Con{j, t}, nl, pl) : List<&2, $E>}
+      {==}
+
+%def OKS(xs, nl, pl) EN.oks(~K, ~V, xs, nl, pl)
+
+def oks_psnoc($TKV, +xs: $LN, +nl: $NL, +pl: $PL, +w: $MV, +hn: $NMEM(1n+SC.length($MV, pl), xs)) -> {$OKS(xs, nl, SC.snoc($MV, pl, w)) == $OKS(xs, nl, pl) : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym($MV, $PV(SC.snoc($MV, pl, w), j), $PV(pl, j), pv_snoc_other(V, pl, w, j, FR.or_f_l(Nat.is_eq(j, 1n+SC.length($MV, pl)), NL.memn(1n+SC.length($MV, pl), t), hn))) : {Bool.and(S.is_some($E, ST.ent(K, V, $NDX(nl, j), _)), $OKS(t, nl, SC.snoc($MV, pl, w))) == $OKS(Con{j, t}, nl, pl) : Bool}
+      %Equal.sym(Bool, $OKS(t, nl, SC.snoc($MV, pl, w)), $OKS(t, nl, pl), oks_psnoc(~K, ~V, t, nl, pl, w, FR.or_f_r(Nat.is_eq(j, 1n+SC.length($MV, pl)), NL.memn(1n+SC.length($MV, pl), t), hn))) : {Bool.and(S.is_some($E, ST.ent(K, V, $NDX(nl, j), $PV(pl, j))), _) == $OKS(Con{j, t}, nl, pl) : Bool}
+      {==}
+
+def oks_pex($TKV, +xs: $LN, +nl: $NL, +pl: $PL, +id: Nat, +w: $MV, +hn: $NMEM(id, xs)) -> {$OKS(xs, nl, PR.ex_pl(V, pl, id, w)) == $OKS(xs, nl, pl) : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym($MV, $PV(PR.ex_pl(V, pl, id, w), j), $PV(pl, j), pv_ex_other(V, pl, id, w, j, FR.ne_sym(j, id, FR.or_f_l(Nat.is_eq(j, id), NL.memn(id, t), hn)))) : {Bool.and(S.is_some($E, ST.ent(K, V, $NDX(nl, j), _)), $OKS(t, nl, PR.ex_pl(V, pl, id, w))) == $OKS(Con{j, t}, nl, pl) : Bool}
+      %Equal.sym(Bool, $OKS(t, nl, PR.ex_pl(V, pl, id, w)), $OKS(t, nl, pl), oks_pex(~K, ~V, t, nl, pl, id, w, FR.or_f_r(Nat.is_eq(j, id), NL.memn(id, t), hn))) : {Bool.and(S.is_some($E, ST.ent(K, V, $NDX(nl, j), $PV(pl, j))), _) == $OKS(Con{j, t}, nl, pl) : Bool}
+      {==}
+
+# ---- values from entries ----
+
+def some_of_ent(-K: Data, -V: Data, +x: $ND, +m: $MV, +h: {S.is_some($E, ST.ent(K, V, x, m)) == True{} : Bool}) -> {ST.some2(V, m) == True{} : Bool}:
+  match x m:
+    case M.Free{f} +m:
+      Empty.absurd({ST.some2(V, m) == True{} : Bool}, L.false_true(h))
+    case M.N{c, a, b, q, k} None{}:
+      Empty.absurd({ST.some2(V, None{}) == True{} : Bool}, L.false_true(h))
+    case M.N{c, a, b, q, k} Some{w}:
+      {==}
+
+%def APP(a, b) SC.append(Nat, a, b)
+
+def oks_split_l($TKV, +a: $LN, +b: $LN, +nl: $NL, +pl: $PL, +h: {$OKS($APP(a, b), nl, pl) == True{} : Bool}) -> {$OKS(a, nl, pl) == True{} : Bool}:
+  match a:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      L.and_intro(S.is_some($E, ST.ent(K, V, $NDX(nl, j), $PV(pl, j))), $OKS(t, nl, pl), L.and_left(S.is_some($E, ST.ent(K, V, $NDX(nl, j), $PV(pl, j))), $OKS($APP(t, b), nl, pl), h), oks_split_l(~K, ~V, t, b, nl, pl, L.and_right(S.is_some($E, ST.ent(K, V, $NDX(nl, j), $PV(pl, j))), $OKS($APP(t, b), nl, pl), h)))
+
+def oks_split_r($TKV, +a: $LN, +b: $LN, +nl: $NL, +pl: $PL, +h: {$OKS($APP(a, b), nl, pl) == True{} : Bool}) -> {$OKS(b, nl, pl) == True{} : Bool}:
+  match a:
+    case Nil{}:
+      h
+    case Con{+j, +t}:
+      oks_split_r(~K, ~V, t, b, nl, pl, L.and_right(S.is_some($E, ST.ent(K, V, $NDX(nl, j), $PV(pl, j))), $OKS($APP(t, b), nl, pl), h))
+
+# a tree whose ids all have entries has values
+def pay_oks($TKV, +t: ST.Tr, +nl: $NL, +pl: $PL, +h: {$OKS(ST.ids(t), nl, pl) == True{} : Bool}) -> {ST.pay(~V, t, pl) == True{} : Bool}:
+  match t:
+    case ST.TE{}:
+      {==}
+    case ST.TN{+i, +a, +b}:
+      +hr = oks_split_r(~K, ~V, ST.ids(a), Con{i, ST.ids(b)}, nl, pl, h)
+      L.and_intro(ST.some2(V, $PV(pl, i)), Bool.and(ST.pay(~V, a, pl), ST.pay(~V, b, pl)), some_of_ent(K, V, $NDX(nl, i), $PV(pl, i), L.and_left(S.is_some($E, ST.ent(K, V, $NDX(nl, i), $PV(pl, i))), $OKS(ST.ids(b), nl, pl), hr)), L.and_intro(ST.pay(~V, a, pl), ST.pay(~V, b, pl), pay_oks(~K, ~V, a, nl, pl, oks_split_l(~K, ~V, ST.ids(a), Con{i, ST.ids(b)}, nl, pl, h)), pay_oks(~K, ~V, b, nl, pl, L.and_right(S.is_some($E, ST.ent(K, V, $NDX(nl, i), $PV(pl, i))), $OKS(ST.ids(b), nl, pl), hr))))
+
+def len_ex_c(-V: Data, +pl: $PL, +i: Nat, +w: $MV, +b: Bool) -> {SC.length($MV, ST.pk($PL, b, SC.update($MV, pl, i, w), pl)) == SC.length($MV, pl) : Nat}:
+  match b:
+    case True{}:
+      LL.length_update($MV, pl, i, w)
+    case False{}:
+      {==}
+
+def len_ex(-V: Data, +pl: $PL, +id: Nat, +w: $MV) -> {SC.length($MV, PR.ex_pl(V, pl, id, w)) == SC.length($MV, pl) : Nat}:
+  match id:
+    case 0n:
+      {==}
+    case 1n+i:
+      len_ex_c(V, pl, i, w, Nat.is_lt(i, SC.length($MV, pl)))

@@ -1,15 +1,15 @@
 import Base
 import ./logic.bend as L
 import ./nat.bend as N
-import ../spec/common.bend as SC
-import ../lemmas/spec/numeric.bend as S
-import ../lemmas/proofs/numeric.bend as RN
-import ../lemmas/proofs/nat_algebra.bend as NA
-import ../lemmas/proofs/modular_addition.bend as MA
-import ../lemmas/proofs/word_value.bend as WV
-import ../lemmas/proofs/word_shift.bend as WS
-import ../lemmas/proofs/word_comparison.bend as WC
-import ../lemmas/proofs/subtraction_bounds.bend as SB
+import ./spec_common.bend as SC
+import ./lemmas/spec/numeric.bend as S
+import ./lemmas/proofs/numeric.bend as RN
+import ./lemmas/proofs/nat_algebra.bend as NA
+import ./lemmas/proofs/modular_addition.bend as MA
+import ./lemmas/proofs/word_value.bend as WV
+import ./lemmas/proofs/word_shift.bend as WS
+import ./lemmas/proofs/word_comparison.bend as WC
+import ./lemmas/proofs/subtraction_bounds.bend as SB
 
 # U32 facts needed by the new structures, derived from the retained LRU word
 # interpretation lemmas (reused, not re-derived): unsigned interpretation,

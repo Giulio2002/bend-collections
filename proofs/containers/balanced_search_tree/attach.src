@@ -1,0 +1,160 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/order.bend as O
+import ../../lib/spec_common.bend as SC
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./path.bend as P
+import ./plug.bend as PG
+import ./agree.bend as AG
+import ./setters.bend as SE
+import ./rotm.bend as RM
+import ./rotn.bend as RN
+import ./rot.bend as RT
+import ./rotp.bend as RP
+import ./fix.bend as FX
+import ./dj.bend as DJ
+import ./spath.bend as SP
+import ../../lib/nat_list.bend as NL
+
+# Attaching a new leaf where the search stopped: the node list agreeing with
+# the old one on the tree's ids and holding the new red leaf x, attach links
+# x under the path's parent on the path's side (or makes it the root); the
+# path then leads to the leaf, the ids stay without repeats, the root stays
+# black. (source: tools/generators/tm_hand/attach.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def CT List<&2, P.Fr>
+%def APP(a, b) SC.append(Nat, a, b)
+%def IDS(t) ST.ids(t)
+%def TN(i, a, b) ST.TN{i, a, b}
+%def TE ST.TE{}
+%def XT $TN(x, $TE, $TE)
+%def TO ~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AO ~K, ~cmp, ~o
+%def NDX(nl, j) ST.nd(K, nl, j)
+%def WH(c, t) $APP(P.before(c), $APP($IDS(t), P.after(c)))
+%def BA(c) $APP(P.before(c), P.after(c))
+%def REPN(t, p, x) {ST.rep(~K, t, p, x) == True{} : Bool}
+%def COKN(c, z, x) {P.ctxok(~K, c, z, x) == True{} : Bool}
+%def NDL(xs) {NL.nodupn(xs) == True{} : Bool}
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
+%def MEM(y, xs) {NL.memn(y, xs) == True{} : Bool}
+%def AGR(xs, a, b) {AG.agr(~K, ~cmp, xs, a, b) == True{} : Bool}
+%def NE(a, b) {Nat.is_eq(a, b) == False{} : Bool}
+%def A3 RM.attn(K, nla, P.top(c), x, SP.dir(c))
+%def N3 SE.setp(K, $A3, x, P.top(c))
+%def NEW M.N{True{}, 0n, 0n, P.top(c), k}
+%def AH +nl: $NL, +nla: $NL, +c: $CT, +x: Nat, +k: K, +hc0: $COKN(c, 0n, nl), +hnd: $NDL($BA(c)), +hag: $AGR($BA(c), nl, nla), +hxn: {$NDX(nla, x) == $NEW : $ND}, +hx0: {Nat.is_lt(0n, x) == True{} : Bool}, +hxf: $NMEM(x, $BA(c))
+%def AA nl, nla, c, x, k, hc0, hnd, hag, hxn, hx0, hxf
+
+# the parent (or 0) is not the new id
+def top_ne(~K: Data, +nl: $NL, +c: $CT, +x: Nat, +hc0: $COKN(c, 0n, nl), +hx0: {Nat.is_lt(0n, x) == True{} : Bool}, +hxf: $NMEM(x, $BA(c))) -> $NE(P.top(c), x):
+  match c:
+    case Nil{}:
+      RT.ne0(x, hx0)
+    case Con{P.FR{+q, +lft, +s}, +u}:
+      N.is_eq_sym_false(x, q, DJ.ne_nm(x, q, $BA(Con{P.FR{q, lft, s}, u}), hxf, FX.q_in(q, lft, s, u)))
+
+# the leaf's links
+def att_leaf($TO, $AH) -> $REPN($XT, P.top(c), $N3):
+  +e = Equal.trans($ND, $NDX($N3, x), SE.modp(K, $NDX($A3, x), P.top(c)), SE.modp(K, $NEW, P.top(c)), RN.hitp(K, $A3, x, P.top(c)), L.subst($ND, z => {SE.modp(K, $NDX($A3, x), P.top(c)) == SE.modp(K, z, P.top(c)) : $ND}, $NDX($A3, x), $NEW, Equal.trans($ND, $NDX($A3, x), $NDX(nla, x), $NEW, RN.skipa(K, nla, P.top(c), x, SP.dir(c), x, top_ne(~K, nl, c, x, hc0, hx0, hxf)), hxn), {==}))
+  RT.rep_intro(~K, $N3, x, $TE, $TE, P.top(c), hx0, L.subst($ND, z => {ST.is_node(K, z, 0n, 0n, P.top(c)) == True{} : Bool}, $NEW, $NDX($N3, x), Equal.sym($ND, $NDX($N3, x), $NEW, e), L.and_intro(Nat.is_eq(0n, 0n), Bool.and(Nat.is_eq(0n, 0n), Nat.is_eq(P.top(c), P.top(c))), {==}, L.and_intro(Nat.is_eq(0n, 0n), Nat.is_eq(P.top(c), P.top(c)), {==}, N.is_eq_refl(P.top(c))))), {==}, {==})
+
+%def FRC(q, lft, s, u) Con{P.FR{q, lft, s}, u}
+%def NQ(i, lft) SE.setp(K, RM.attn(K, nla, 1n+i, x, lft), x, 1n+i)
+%def CK(i, lft, s, u, z, m) P.cok1(~K, P.FR{1n+i, lft, s}, z, P.top(u), m)
+%def NODEQ(i, lft, s, u, z, m) ST.is_node(K, ST.nd(K, m, 1n+i), ST.pk(Nat, lft, z, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), z), P.top(u))
+%def AGS(xs, i, lft, ha, hq, hx) AG.agr_trans($AO, xs, nl, RM.attn(K, nla, 1n+i, x, lft), $NQ(i, lft), AG.agr_trans($AO, xs, nl, nla, RM.attn(K, nla, 1n+i, x, lft), ha, RN.attn_agr($AO, xs, nla, 1n+i, x, lft, hq)), SE.setp_agr($AO, xs, RM.attn(K, nla, 1n+i, x, lft), x, 1n+i, hx))
+
+# the parent's frame after attaching: the leaf on the path's side
+def att_frame($TO, +nl: $NL, +nla: $NL, +x: Nat, +k: K, +i: Nat, +lft: Bool, +s: ST.Tr, +u: $CT, +hc0: $COKN($FRC(1n+i, lft, s, u), 0n, nl), +hnd: $NDL($BA($FRC(1n+i, lft, s, u))), +hags: $AGR($IDS(s), nl, nla), +hagu: $AGR($BA(u), nl, nla), +hagq: {$NDX(nl, 1n+i) == $NDX(nla, 1n+i) : $ND}, +hq: {Nat.is_eq(x, 1n+i) == False{} : Bool}, +hxf: $NMEM(x, $BA($FRC(1n+i, lft, s, u)))) -> $COKN($FRC(1n+i, lft, s, u), x, $NQ(i, lft)):
+  +hk = L.and_left($CK(i, lft, s, u, 0n, nl), P.ctxok(~K, u, 1n+i, nl), hc0)
+  +hu = L.and_right($CK(i, lft, s, u, 0n, nl), P.ctxok(~K, u, 1n+i, nl), hc0)
+  +h0 = L.and_left(Nat.is_lt(0n, 1n+i), Bool.and($NODEQ(i, lft, s, u, 0n, nl), ST.rep(~K, s, 1n+i, nl)), hk)
+  +hqn = L.and_left($NODEQ(i, lft, s, u, 0n, nl), ST.rep(~K, s, 1n+i, nl), L.and_right(Nat.is_lt(0n, 1n+i), Bool.and($NODEQ(i, lft, s, u, 0n, nl), ST.rep(~K, s, 1n+i, nl)), hk))
+  +hs = L.and_right($NODEQ(i, lft, s, u, 0n, nl), ST.rep(~K, s, 1n+i, nl), L.and_right(Nat.is_lt(0n, 1n+i), Bool.and($NODEQ(i, lft, s, u, 0n, nl), ST.rep(~K, s, 1n+i, nl)), hk))
+  +qs = Pair.fst($NMEM(1n+i, $IDS(s)), $NMEM(1n+i, $BA(u)), RT.fq_s(1n+i, lft, s, u, hnd))
+  +qu = Pair.snd($NMEM(1n+i, $IDS(s)), $NMEM(1n+i, $BA(u)), RT.fq_s(1n+i, lft, s, u, hnd))
+  +xs = Pair.fst($NMEM(x, $IDS(s)), $NMEM(x, $BA(u)), RT.fw_s(x, 1n+i, lft, s, u, hxf))
+  +xu = Pair.snd($NMEM(x, $IDS(s)), $NMEM(x, $BA(u)), RT.fw_s(x, 1n+i, lft, s, u, hxf))
+  +e1 = Equal.trans($ND, $NDX($NQ(i, lft), 1n+i), $NDX(RM.attn(K, nla, 1n+i, x, lft), 1n+i), RN.moda(K, $NDX(nl, 1n+i), x, lft), RN.skipp(K, RM.attn(K, nla, 1n+i, x, lft), x, 1n+i, 1n+i, hq), Equal.trans($ND, $NDX(RM.attn(K, nla, 1n+i, x, lft), 1n+i), RN.moda(K, $NDX(nla, 1n+i), x, lft), RN.moda(K, $NDX(nl, 1n+i), x, lft), RN.hita(K, nla, i, x, lft), L.subst($ND, z => {RN.moda(K, $NDX(nla, 1n+i), x, lft) == RN.moda(K, z, x, lft) : $ND}, $NDX(nla, 1n+i), $NDX(nl, 1n+i), Equal.sym($ND, $NDX(nl, 1n+i), $NDX(nla, 1n+i), hagq), {==})))
+  +rq = L.subst($ND, z => {ST.is_node(K, z, ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)) == True{} : Bool}, RN.moda(K, $NDX(nl, 1n+i), x, lft), $NDX($NQ(i, lft), 1n+i), Equal.sym($ND, $NDX($NQ(i, lft), 1n+i), RN.moda(K, $NDX(nl, 1n+i), x, lft), e1), RN.isn_a(K, $NDX(nl, 1n+i), lft, 0n, ST.rid(s), P.top(u), x, hqn))
+  +hs2 = RT.rep_moved($AO, s, 1n+i, nl, $NQ(i, lft), $AGS($IDS(s), i, lft, hags, qs, xs), hs)
+  +hu2 = Equal.trans(Bool, P.ctxok(~K, u, 1n+i, $NQ(i, lft)), P.ctxok(~K, u, 1n+i, nl), True{}, AG.ctx_agr($AO, u, 1n+i, nl, $NQ(i, lft), $AGS($BA(u), i, lft, hagu, qu, xu)), hu)
+  L.and_intro(P.cok1(~K, P.FR{1n+i, lft, s}, x, P.top(u), $NQ(i, lft)), P.ctxok(~K, u, 1n+i, $NQ(i, lft)), L.and_intro(Nat.is_lt(0n, 1n+i), Bool.and($NODEQ(i, lft, s, u, x, $NQ(i, lft)), ST.rep(~K, s, 1n+i, $NQ(i, lft))), h0, L.and_intro($NODEQ(i, lft, s, u, x, $NQ(i, lft)), ST.rep(~K, s, 1n+i, $NQ(i, lft)), rq, hs2)), hu2)
+
+%def AGHD(j, t, a, b, h) AG.agr_head($AO, j, t, a, b, h)
+%def AGTL(j, t, a, b, h) L.and_right(AG.ndeq(~K, ~cmp, $NDX(a, j), $NDX(b, j)), AG.agr(~K, ~cmp, t, a, b), h)
+%def IS $IDS(s)
+%def BU P.before(u)
+%def AU P.after(u)
+
+# the path leads to the leaf
+def att_ctx($TO, $AH) -> $COKN(c, x, $N3):
+  match c:
+    case Nil{}:
+      {==}
+    case Con{P.FR{0n, +lft, +s}, +u}:
+      Empty.absurd($COKN($FRC(0n, lft, s, u), x, SE.setp(K, RM.attn(K, nla, 0n, x, lft), x, 0n)), L.false_true(L.and_left(Nat.is_lt(0n, 0n), Bool.and($NODEQ(0n, lft, s, u, 0n, nl), ST.rep(~K, s, 0n, nl)), L.and_left(P.cok1(~K, P.FR{0n, lft, s}, 0n, P.top(u), nl), P.ctxok(~K, u, 0n, nl), hc0))))
+    case Con{P.FR{1n+i, True{}, +s}, +u}:
+      +h1 = AG.agr_r($AO, $BU, Con{1n+i, $APP($IS, $AU)}, nl, nla, hag)
+      +h2 = $AGTL(1n+i, $APP($IS, $AU), nl, nla, h1)
+      +hq = N.is_eq_sym_false(x, 1n+i, DJ.ne_nm(x, 1n+i, $BA($FRC(1n+i, True{}, s, u)), hxf, FX.q_in(1n+i, True{}, s, u)))
+      att_frame($AO, nl, nla, x, k, i, True{}, s, u, hc0, hnd, AG.agr_l($AO, $IS, $AU, nl, nla, h2), AG.agr_app($AO, $BU, $AU, nl, nla, AG.agr_l($AO, $BU, Con{1n+i, $APP($IS, $AU)}, nl, nla, hag), AG.agr_r($AO, $IS, $AU, nl, nla, h2)), $AGHD(1n+i, $APP($IS, $AU), nl, nla, h1), N.is_eq_sym_false(1n+i, x, hq), hxf)
+    case Con{P.FR{1n+i, False{}, +s}, +u}:
+      +h1 = AG.agr_l($AO, $APP($BU, $APP($IS, Con{1n+i, Nil{}})), $AU, nl, nla, hag)
+      +h2 = AG.agr_r($AO, $BU, $APP($IS, Con{1n+i, Nil{}}), nl, nla, h1)
+      +hq = N.is_eq_sym_false(x, 1n+i, DJ.ne_nm(x, 1n+i, $BA($FRC(1n+i, False{}, s, u)), hxf, FX.q_in(1n+i, False{}, s, u)))
+      att_frame($AO, nl, nla, x, k, i, False{}, s, u, hc0, hnd, AG.agr_l($AO, $IS, Con{1n+i, Nil{}}, nl, nla, h2), AG.agr_app($AO, $BU, $AU, nl, nla, AG.agr_l($AO, $BU, $APP($IS, Con{1n+i, Nil{}}), nl, nla, h1), AG.agr_r($AO, $APP($BU, $APP($IS, Con{1n+i, Nil{}})), $AU, nl, nla, hag)), $AGHD(1n+i, Nil{}, nl, nla, AG.agr_r($AO, $IS, Con{1n+i, Nil{}}, nl, nla, h2)), N.is_eq_sym_false(1n+i, x, hq), hxf)
+
+# ---- the root stays black ----
+
+def agr_mem_c($TO, +j: Nat, +t: $LN, +y: Nat, +a: $NL, +b: $NL, +h: $AGR(Con{j, t}, a, b), +e: Bool, +he: {Nat.is_eq(j, y) == e : Bool}, +hm: {Bool.or(e, NL.memn(y, t)) == True{} : Bool}, ih: @+hmt: $MEM(y, t) -> {$NDX(a, y) == $NDX(b, y) : $ND}) -> {$NDX(a, y) == $NDX(b, y) : $ND}:
+  match e:
+    case True{}:
+      +ej = N.eq_from_is_eq(j, y, he)
+      L.subst(Nat, z => {$NDX(a, z) == $NDX(b, z) : $ND}, j, y, ej, $AGHD(j, t, a, b, h))
+    case False{}:
+      ih(hm)
+
+# agreeing lists agree at a member
+def agr_mem($TO, +xs: $LN, +y: Nat, +a: $NL, +b: $NL, +h: $AGR(xs, a, b), +hm: $MEM(y, xs)) -> {$NDX(a, y) == $NDX(b, y) : $ND}:
+  match xs:
+    case Nil{}:
+      Empty.absurd({$NDX(a, y) == $NDX(b, y) : $ND}, L.false_true(hm))
+    case Con{+j, +t}:
+      agr_mem_c($AO, j, t, y, a, b, h, Nat.is_eq(j, y), {==}, hm, hmt => agr_mem($AO, t, y, a, b, $AGTL(j, t, a, b, h), hmt))
+
+def red_attn(-K: Data, +nl: $NL, +q: Nat, +y: Nat, +dir: Bool, +j: Nat) -> {ST.is_red(K, $NDX(RM.attn(K, nl, q, y, dir), j)) == ST.is_red(K, $NDX(nl, j)) : Bool}:
+  match q dir:
+    case 0n +dir:
+      {==}
+    case 1n+i True{}:
+      SE.red_setl(K, nl, 1n+i, y, j)
+    case 1n+i False{}:
+      SE.red_setr(K, nl, 1n+i, y, j)
+
+%def RB(t, m) ST.root_black(~K, t, m)
+
+def att_rb($TO, $AH, +hrb: {$RB(PG.plug(c, $TE), nl) == True{} : Bool}) -> {Bool.or($RB(PG.plug(c, $XT), $N3), FX.isnil(c)) == True{} : Bool}:
+  match c:
+    case Nil{}:
+      NL.or_true_b($RB($XT, $N3))
+    case Con{P.FR{+q, True{}, +s}, +u}:
+      +mR = FX.rid_in(u, q, True{}, s, $TE)
+      +e1 = Equal.trans(Bool, ST.is_red(K, $NDX(SE.setp(K, RM.attn(K, nla, q, x, True{}), x, q), ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))), ST.is_red(K, $NDX(RM.attn(K, nla, q, x, True{}), ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))), ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))), SE.red_setp(K, RM.attn(K, nla, q, x, True{}), x, q, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE))), Equal.trans(Bool, ST.is_red(K, $NDX(RM.attn(K, nla, q, x, True{}), ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))), ST.is_red(K, $NDX(nla, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))), ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))), red_attn(K, nla, q, x, True{}, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE))), L.subst($ND, z => {ST.is_red(K, z) == ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))) : Bool}, $NDX(nl, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE))), $NDX(nla, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE))), agr_mem($AO, $BA($FRC(q, True{}, s, u)), ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)), nl, nla, hag, mR), {==})))
+      +v1 = L.subst(Nat, z => {$RB(PG.plug($FRC(q, True{}, s, u), $XT), SE.setp(K, RM.attn(K, nla, q, x, True{}), x, q)) == Bool.not(ST.is_red(K, $NDX(SE.setp(K, RM.attn(K, nla, q, x, True{}), x, q), z))) : Bool}, ST.rid(PG.plug($FRC(q, True{}, s, u), $XT)), ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)), RP.rid_plug_tn(u, q, $XT, s, $TE, s), FX.rb_rid(~K, PG.plug($FRC(q, True{}, s, u), $XT), SE.setp(K, RM.attn(K, nla, q, x, True{}), x, q)))
+      +v2 = L.subst(Bool, z => {$RB(PG.plug($FRC(q, True{}, s, u), $XT), SE.setp(K, RM.attn(K, nla, q, x, True{}), x, q)) == Bool.not(z) : Bool}, ST.is_red(K, $NDX(SE.setp(K, RM.attn(K, nla, q, x, True{}), x, q), ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))), ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE)))), e1, v1)
+      +v3 = Equal.trans(Bool, $RB(PG.plug($FRC(q, True{}, s, u), $XT), SE.setp(K, RM.attn(K, nla, q, x, True{}), x, q)), Bool.not(ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE))))), True{}, v2, Equal.trans(Bool, Bool.not(ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE))))), $RB(PG.plug($FRC(q, True{}, s, u), $TE), nl), True{}, Equal.sym(Bool, $RB(PG.plug($FRC(q, True{}, s, u), $TE), nl), Bool.not(ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, True{}, s, u), $TE))))), FX.rb_rid(~K, PG.plug($FRC(q, True{}, s, u), $TE), nl)), hrb))
+      FX.or_lt($RB(PG.plug($FRC(q, True{}, s, u), $XT), SE.setp(K, RM.attn(K, nla, q, x, True{}), x, q)), False{}, v3)
+    case Con{P.FR{+q, False{}, +s}, +u}:
+      +mR = FX.rid_in(u, q, False{}, s, $TE)
+      +e1 = Equal.trans(Bool, ST.is_red(K, $NDX(SE.setp(K, RM.attn(K, nla, q, x, False{}), x, q), ST.rid(PG.plug($FRC(q, False{}, s, u), $TE)))), ST.is_red(K, $NDX(RM.attn(K, nla, q, x, False{}), ST.rid(PG.plug($FRC(q, False{}, s, u), $TE)))), ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, False{}, s, u), $TE)))), SE.red_setp(K, RM.attn(K, nla, q, x, False{}), x, q, ST.rid(PG.plug($FRC(q, False{}, s, u), $TE))), Equal.trans(Bool, ST.is_red(K, $NDX(RM.attn(K, nla, q, x, False{}), ST.rid(PG.plug($FRC(q, False{}, s, u), $TE)))), ST.is_red(K, $NDX(nla, ST.rid(PG.plug($FRC(q, False{}, s, u), $TE)))), ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, False{}, s, u), $TE)))), red_attn(K, nla, q, x, False{}, ST.rid(PG.plug($FRC(q, False{}, s, u), $TE))), L.subst($ND, z => {ST.is_red(K, z) == ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, False{}, s, u), $TE)))) : Bool}, $NDX(nl, ST.rid(PG.plug($FRC(q, False{}, s, u), $TE))), $NDX(nla, ST.rid(PG.plug($FRC(q, False{}, s, u), $TE))), agr_mem($AO, $BA($FRC(q, False{}, s, u)), ST.rid(PG.plug($FRC(q, False{}, s, u), $TE)), nl, nla, hag, mR), {==})))
+      +v1 = L.subst(Nat, z => {$RB(PG.plug($FRC(q, False{}, s, u), $XT), SE.setp(K, RM.attn(K, nla, q, x, False{}), x, q)) == Bool.not(ST.is_red(K, $NDX(SE.setp(K, RM.attn(K, nla, q, x, False{}), x, q), z))) : Bool}, ST.rid(PG.plug($FRC(q, False{}, s, u), $XT)), ST.rid(PG.plug($FRC(q, False{}, s, u), $TE)), RP.rid_plug_tn(u, q, s, $XT, s, $TE), FX.rb_rid(~K, PG.plug($FRC(q, False{}, s, u), $XT), SE.setp(K, RM.attn(K, nla, q, x, False{}), x, q)))
+      +v2 = L.subst(Bool, z => {$RB(PG.plug($FRC(q, False{}, s, u), $XT), SE.setp(K, RM.attn(K, nla, q, x, False{}), x, q)) == Bool.not(z) : Bool}, ST.is_red(K, $NDX(SE.setp(K, RM.attn(K, nla, q, x, False{}), x, q), ST.rid(PG.plug($FRC(q, False{}, s, u), $TE)))), ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, False{}, s, u), $TE)))), e1, v1)
+      +v3 = Equal.trans(Bool, $RB(PG.plug($FRC(q, False{}, s, u), $XT), SE.setp(K, RM.attn(K, nla, q, x, False{}), x, q)), Bool.not(ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, False{}, s, u), $TE))))), True{}, v2, Equal.trans(Bool, Bool.not(ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, False{}, s, u), $TE))))), $RB(PG.plug($FRC(q, False{}, s, u), $TE), nl), True{}, Equal.sym(Bool, $RB(PG.plug($FRC(q, False{}, s, u), $TE), nl), Bool.not(ST.is_red(K, $NDX(nl, ST.rid(PG.plug($FRC(q, False{}, s, u), $TE))))), FX.rb_rid(~K, PG.plug($FRC(q, False{}, s, u), $TE), nl)), hrb))
+      FX.or_lt($RB(PG.plug($FRC(q, False{}, s, u), $XT), SE.setp(K, RM.attn(K, nla, q, x, False{}), x, q)), False{}, v3)

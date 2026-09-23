@@ -1,0 +1,192 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/order.bend as O
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./sim.bend as SM
+import ./ok.bend as OK
+import ./reads.bend as RD
+import ./ends.bend as EN
+import ./navm.bend as NM
+import ./putm.bend as PM
+import ./rmv.bend as RV
+import ./rmi.bend as RI
+import ./rmp.bend as RP
+import ./life.bend as LF
+
+# The implementation's operations refine the specification's, for every
+# good shadow and a lawful comparator. (source: tools/generators/tm_hand/api.src)
+
+%def ND M.Node<K>
+%def E M.Entry<K, V>
+%def MV Maybe<&2, V>
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def FP +n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl
+%def F n, root, lo, hi, free, l, d, nl, pl, tg, fl
+%def SH ST.SH{$F}
+%def SHT ST.Sh<K, V>
+%def TMT M.TreeMap<K, V, cmp>
+%def RL(s) ST.real($AK, s)
+%def MD(s) ST.model($AK, s)
+%def GD(s) {ST.good($AK, s) == True{} : Bool}
+%def EST ST.ents(~K, ~V, ST.ids(tg), nl, pl)
+%def FIND S.find($AK, k, $EST)
+
+# an implementation read through the simulation, given the mirror's answer
+def via(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, -X: Data, -impl: $TMT & X, -mir: $SHT & X, +s: $SHT, +o: X, +hs: {impl == MI.rp($AK, X, mir) : $TMT & X}, +hm: {mir == (s, o) : $SHT & X}) -> {impl == ($RL(s), o) : $TMT & X}:
+  L.subst($SHT & X, z => {impl == MI.rp($AK, X, z) : $TMT & X}, mir, (s, o), hm, hs)
+
+def get_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, $MV, S.get($AK, $MD(sh), k), M.get($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, $MV, $SH, hg, $FIND, S.get($AK, $MD($SH), k), M.get($AK, $RL($SH), k), {==}, via($AK, $MV, M.get($AK, $RL($SH), k), MI.get($AK, $SH, k), $SH, $FIND, SM.get_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), RD.get_m($AO, $F, k, hg)))
+
+def contains_key_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Bool, S.contains_key($AK, $MD(sh), k), M.contains_key($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Bool, $SH, hg, S.is_some(V, $FIND), S.contains_key($AK, $MD($SH), k), M.contains_key($AK, $RL($SH), k), {==}, via($AK, Bool, M.contains_key($AK, $RL($SH), k), MI.contains_key($AK, $SH, k), $SH, S.is_some(V, $FIND), SM.contains_key_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), RD.contains_key_m($AO, $F, k, hg)))
+
+def get_or_default_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K, +fb: V) -> OK.POK($AK, V, S.get_or_default($AK, $MD(sh), k, fb), M.get_or_default($AK, $RL(sh), k, fb)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, V, $SH, hg, S.or_default(V, $FIND, fb), S.get_or_default($AK, $MD($SH), k, fb), M.get_or_default($AK, $RL($SH), k, fb), {==}, via($AK, V, M.get_or_default($AK, $RL($SH), k, fb), MI.get_or_default($AK, $SH, k, fb), $SH, S.or_default(V, $FIND, fb), SM.get_or_default_s($AK, $SH, k, fb, OK.dg_good($AK, $SH, hg)), RD.get_or_default_m($AO, $F, k, fb, hg)))
+
+def size_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, Nat, S.size(K, V, $MD(sh)), M.size($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      +es = L.subst(Nat, z => {S.size(K, V, $MD($SH)) == ($MD($SH), z) : S.Model<K, V> & Nat}, SC.length($E, $EST), n, Equal.sym(Nat, n, SC.length($E, $EST), RD.size_eq($AK, $F, hg)), {==})
+      OK.pok_read($AK, Nat, $SH, hg, n, S.size(K, V, $MD($SH)), M.size($AK, $RL($SH)), es, via($AK, Nat, M.size($AK, $RL($SH)), MI.size($AK, $SH), $SH, n, SM.size_s($AK, $SH, OK.dg_good($AK, $SH, hg)), {==}))
+
+def is_empty_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, Bool, S.is_empty(K, V, $MD(sh)), M.is_empty($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      +es = L.subst(Nat, z => {S.is_empty(K, V, $MD($SH)) == ($MD($SH), Nat.is_eq(z, 0n)) : S.Model<K, V> & Bool}, SC.length($E, $EST), n, Equal.sym(Nat, n, SC.length($E, $EST), RD.size_eq($AK, $F, hg)), {==})
+      OK.pok_read($AK, Bool, $SH, hg, Nat.is_eq(n, 0n), S.is_empty(K, V, $MD($SH)), M.is_empty($AK, $RL($SH)), es, via($AK, Bool, M.is_empty($AK, $RL($SH)), MI.is_empty($AK, $SH), $SH, Nat.is_eq(n, 0n), SM.is_empty_s($AK, $SH, OK.dg_good($AK, $SH, hg)), {==}))
+
+def first_entry_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, Maybe<&2, $E>, S.first_entry(K, V, $MD(sh)), M.first_entry($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, $E>, $SH, hg, S.head($E, $EST), S.first_entry(K, V, $MD($SH)), M.first_entry($AK, $RL($SH)), {==}, via($AK, Maybe<&2, $E>, M.first_entry($AK, $RL($SH)), MI.first_entry($AK, $SH), $SH, S.head($E, $EST), SM.first_entry_s($AK, $SH, OK.dg_good($AK, $SH, hg)), EN.first_entry_m($AK, $F, hg)))
+
+def last_entry_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, Maybe<&2, $E>, S.last_entry(K, V, $MD(sh)), M.last_entry($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, $E>, $SH, hg, S.last($E, $EST), S.last_entry(K, V, $MD($SH)), M.last_entry($AK, $RL($SH)), {==}, via($AK, Maybe<&2, $E>, M.last_entry($AK, $RL($SH)), MI.last_entry($AK, $SH), $SH, S.last($E, $EST), SM.last_entry_s($AK, $SH, OK.dg_good($AK, $SH, hg)), EN.last_entry_m($AK, $F, hg)))
+
+def first_key_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, Maybe<&2, K>, S.first_key(K, V, $MD(sh)), M.first_key($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, K>, $SH, hg, S.key_m(K, V, S.head($E, $EST)), S.first_key(K, V, $MD($SH)), M.first_key($AK, $RL($SH)), {==}, via($AK, Maybe<&2, K>, M.first_key($AK, $RL($SH)), MI.first_key($AK, $SH), $SH, S.key_m(K, V, S.head($E, $EST)), SM.first_key_s($AK, $SH, OK.dg_good($AK, $SH, hg)), EN.first_key_m($AK, $F, hg)))
+
+def last_key_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, Maybe<&2, K>, S.last_key(K, V, $MD(sh)), M.last_key($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, K>, $SH, hg, S.key_m(K, V, S.last($E, $EST)), S.last_key(K, V, $MD($SH)), M.last_key($AK, $RL($SH)), {==}, via($AK, Maybe<&2, K>, M.last_key($AK, $RL($SH)), MI.last_key($AK, $SH), $SH, S.key_m(K, V, S.last($E, $EST)), SM.last_key_s($AK, $SH, OK.dg_good($AK, $SH, hg)), EN.last_key_m($AK, $F, hg)))
+
+def lower_entry_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, $E>, S.nav_entry($AK, $MD(sh), k, False{}, False{}), M.lower_entry($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, $E>, $SH, hg, S.nav($AK, k, False{}, False{}, $EST), S.nav_entry($AK, $MD($SH), k, False{}, False{}), M.lower_entry($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, $E>, M.lower_entry($AK, $RL($SH), k), MI.lower_entry($AK, $SH, k), $SH, S.nav($AK, k, False{}, False{}, $EST), SM.lower_entry_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_entry_m($AO, $F, k, False{}, False{}, hg)))
+
+def lower_key_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, K>, S.nav_key($AK, $MD(sh), k, False{}, False{}), M.lower_key($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, K>, $SH, hg, S.key_m(K, V, S.nav($AK, k, False{}, False{}, $EST)), S.nav_key($AK, $MD($SH), k, False{}, False{}), M.lower_key($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, K>, M.lower_key($AK, $RL($SH), k), MI.lower_key($AK, $SH, k), $SH, S.key_m(K, V, S.nav($AK, k, False{}, False{}, $EST)), SM.lower_key_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_key_m($AO, $F, k, False{}, False{}, hg)))
+
+def floor_entry_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, $E>, S.nav_entry($AK, $MD(sh), k, False{}, True{}), M.floor_entry($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, $E>, $SH, hg, S.nav($AK, k, False{}, True{}, $EST), S.nav_entry($AK, $MD($SH), k, False{}, True{}), M.floor_entry($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, $E>, M.floor_entry($AK, $RL($SH), k), MI.floor_entry($AK, $SH, k), $SH, S.nav($AK, k, False{}, True{}, $EST), SM.floor_entry_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_entry_m($AO, $F, k, False{}, True{}, hg)))
+
+def floor_key_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, K>, S.nav_key($AK, $MD(sh), k, False{}, True{}), M.floor_key($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, K>, $SH, hg, S.key_m(K, V, S.nav($AK, k, False{}, True{}, $EST)), S.nav_key($AK, $MD($SH), k, False{}, True{}), M.floor_key($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, K>, M.floor_key($AK, $RL($SH), k), MI.floor_key($AK, $SH, k), $SH, S.key_m(K, V, S.nav($AK, k, False{}, True{}, $EST)), SM.floor_key_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_key_m($AO, $F, k, False{}, True{}, hg)))
+
+def ceiling_entry_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, $E>, S.nav_entry($AK, $MD(sh), k, True{}, True{}), M.ceiling_entry($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, $E>, $SH, hg, S.nav($AK, k, True{}, True{}, $EST), S.nav_entry($AK, $MD($SH), k, True{}, True{}), M.ceiling_entry($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, $E>, M.ceiling_entry($AK, $RL($SH), k), MI.ceiling_entry($AK, $SH, k), $SH, S.nav($AK, k, True{}, True{}, $EST), SM.ceiling_entry_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_entry_m($AO, $F, k, True{}, True{}, hg)))
+
+def ceiling_key_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, K>, S.nav_key($AK, $MD(sh), k, True{}, True{}), M.ceiling_key($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, K>, $SH, hg, S.key_m(K, V, S.nav($AK, k, True{}, True{}, $EST)), S.nav_key($AK, $MD($SH), k, True{}, True{}), M.ceiling_key($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, K>, M.ceiling_key($AK, $RL($SH), k), MI.ceiling_key($AK, $SH, k), $SH, S.key_m(K, V, S.nav($AK, k, True{}, True{}, $EST)), SM.ceiling_key_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_key_m($AO, $F, k, True{}, True{}, hg)))
+
+def higher_entry_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, $E>, S.nav_entry($AK, $MD(sh), k, True{}, False{}), M.higher_entry($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, $E>, $SH, hg, S.nav($AK, k, True{}, False{}, $EST), S.nav_entry($AK, $MD($SH), k, True{}, False{}), M.higher_entry($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, $E>, M.higher_entry($AK, $RL($SH), k), MI.higher_entry($AK, $SH, k), $SH, S.nav($AK, k, True{}, False{}, $EST), SM.higher_entry_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_entry_m($AO, $F, k, True{}, False{}, hg)))
+
+def higher_key_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, Maybe<&2, K>, S.nav_key($AK, $MD(sh), k, True{}, False{}), M.higher_key($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.pok_read($AK, Maybe<&2, K>, $SH, hg, S.key_m(K, V, S.nav($AK, k, True{}, False{}, $EST)), S.nav_key($AK, $MD($SH), k, True{}, False{}), M.higher_key($AK, $RL($SH), k), {==}, via($AK, Maybe<&2, K>, M.higher_key($AK, $RL($SH), k), MI.higher_key($AK, $SH, k), $SH, S.key_m(K, V, S.nav($AK, k, True{}, False{}, $EST)), SM.higher_key_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), NM.nav_key_m($AO, $F, k, True{}, False{}, hg)))
+
+# ---- put ----
+
+%def PRES Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>
+
+def put_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K, +v: V) -> OK.POK($AK, $PRES, S.put($AK, $MD(sh), k, v), M.put($AK, $RL(sh), k, v)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, $PRES, S.put($AK, $MD($SH), k, v), MI.put($AK, $SH, k, v), M.put($AK, $RL($SH), k, v), SM.put_s($AK, $SH, k, v, OK.dg_good($AK, $SH, hg)), PM.put_m($AO, $F, hg, k, v))
+
+def put_if_absent_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K, +v: V) -> OK.POK($AK, $PRES, S.put_if_absent($AK, $MD(sh), k, v), M.put_if_absent($AK, $RL(sh), k, v)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, $PRES, S.put_if_absent($AK, $MD($SH), k, v), MI.put_if_absent($AK, $SH, k, v), M.put_if_absent($AK, $RL($SH), k, v), SM.put_if_absent_s($AK, $SH, k, v, OK.dg_good($AK, $SH, hg)), PM.absent_m($AO, $F, hg, k, v))
+
+def replace_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K, +v: V) -> OK.POK($AK, $MV, S.replace($AK, $MD(sh), k, v), M.replace($AK, $RL(sh), k, v)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, $MV, S.replace($AK, $MD($SH), k, v), MI.replace($AK, $SH, k, v), M.replace($AK, $RL($SH), k, v), SM.replace_s($AK, $SH, k, v, OK.dg_good($AK, $SH, hg)), PM.replace_m($AO, $F, hg, k, v))
+
+def replace_if_equal_ok($TO, ~eq: V -> V -> Bool, +sh: $SHT, +hg: $GD(sh), +k: K, +e: V, +w: V) -> OK.POK($AK, Bool, S.replace_if_equal($AK, ~eq, $MD(sh), k, e, w), M.replace_if_equal($AK, ~eq, $RL(sh), k, e, w)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, Bool, S.replace_if_equal($AK, ~eq, $MD($SH), k, e, w), MI.replace_if_equal($AK, ~eq, $SH, k, e, w), M.replace_if_equal($AK, ~eq, $RL($SH), k, e, w), SM.replace_if_equal_s($AK, ~eq, $SH, k, e, w, OK.dg_good($AK, $SH, hg)), PM.rie_m($AO, ~eq, $F, hg, k, e, w))
+
+# ---- remove ----
+
+def remove_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, $MV, S.remove($AK, $MD(sh), k), M.remove($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, $MV, S.remove($AK, $MD($SH), k), MI.remove($AK, $SH, k), M.remove($AK, $RL($SH), k), SM.remove_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), RV.rm_m($AO, $F, hg, k))
+
+def remove_if_equal_ok($TO, ~eq: V -> V -> Bool, +sh: $SHT, +hg: $GD(sh), +k: K, +e: V) -> OK.POK($AK, Bool, S.remove_if_equal($AK, ~eq, $MD(sh), k, e), M.remove_if_equal($AK, ~eq, $RL(sh), k, e)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, Bool, S.remove_if_equal($AK, ~eq, $MD($SH), k, e), MI.remove_if_equal($AK, ~eq, $SH, k, e), M.remove_if_equal($AK, ~eq, $RL($SH), k, e), SM.remove_if_equal_s($AK, ~eq, $SH, k, e, OK.dg_good($AK, $SH, hg)), RI.rmi_m($AO, ~eq, $F, hg, k, e))
+
+# ---- the polls ----
+
+%def ME Maybe<&2, $E>
+
+def poll_first_entry_ok($TO, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, $ME, S.poll_first_entry(K, V, $MD(sh)), M.poll_first_entry($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, $ME, S.poll_first_entry(K, V, $MD($SH)), MI.poll_first_entry($AK, $SH), M.poll_first_entry($AK, $RL($SH)), SM.poll_first_entry_s($AK, $SH, OK.dg_good($AK, $SH, hg)), RP.pf_m($AO, $F, hg))
+
+def poll_last_entry_ok($TO, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, $ME, S.poll_last_entry(K, V, $MD(sh)), M.poll_last_entry($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, $ME, S.poll_last_entry(K, V, $MD($SH)), MI.poll_last_entry($AK, $SH), M.poll_last_entry($AK, $RL($SH)), SM.poll_last_entry_s($AK, $SH, OK.dg_good($AK, $SH, hg)), RP.pl_m($AO, $F, hg))
+
+# ---- clear ----
+
+%def ESH(l, d) ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, ST.TE{}, Nil{}}
+%def CLT(s) Sigma<&1, &1, $SHT, s2_ => {M.clear($AK, $RL(s)) == $RL(s2_) : $TMT} & ({S.clear(K, V, $MD(s)) == $MD(s2_) : S.Model<K, V>} & $GD(s2_))>
+%def CLA {ST.real($AK, MI.clear($AK, $SH)) == ST.real($AK, $ESH(l, d)) : $TMT}
+%def CLB {S.clear(K, V, ST.model($AK, $SH)) == ST.model($AK, $ESH(l, d)) : S.Model<K, V>} & $GD($ESH(l, d))
+
+def clear_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> $CLT(sh):
+  match sh:
+    case ST.SH{$FP}:
+      ($ESH(l, d), (Equal.trans($TMT, M.clear($AK, $RL($SH)), ST.real($AK, MI.clear($AK, $SH)), $RL($ESH(l, d)), SM.clear_s($AK, $SH, OK.dg_good($AK, $SH, hg)), Pair.fst($CLA, $CLB, LF.clear_ok($AK, $F, hg))), Pair.snd($CLA, $CLB, LF.clear_ok($AK, $F, hg))))

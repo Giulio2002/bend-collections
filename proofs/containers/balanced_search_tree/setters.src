@@ -1,0 +1,748 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/order.bend as O
+import ../../lib/spec_common.bend as SC
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./prim.bend as PR
+import ./mirror.bend as MI
+import ./frame.bend as FR
+import ./agree.bend as AG
+import ./spec.bend as S
+import ./ends.bend as EN
+import ./path.bend as P
+import ../../lib/nat_list.bend as NL
+
+# The mirror's node setters as functions of the node list: each rewrites one
+# field of an id's node (nothing for a free or absent node). The written
+# node, the length, and agreement off the id.
+# (source: tools/generators/tm_hand/setters.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def AK ~K, ~V, ~cmp
+%def TO ~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AO ~K, ~cmp, ~o
+%def FT +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: $NL, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: $LN
+%def F n, root, lo, hi, free, l, d, nl, pl, tg, fl
+%def SH ST.SH{$F}
+%def SHF(x) ST.SH{n, root, lo, hi, free, l, d, x, pl, tg, fl}
+%def SHT ST.Sh<K, V>
+%def NDX(nl, j) ST.nd(K, nl, j)
+%def WR(nl, id, x) PR.wr_nl(K, nl, id, x)
+%def LEN(nl) SC.length($ND, nl)
+%def NMEM(y, xs) {NL.memn(y, xs) == False{} : Bool}
+
+# ---- left ----
+
+def setl_n(-K: Data, +nl: $NL, +id: Nat, +v: Nat, x: $ND) -> $NL:
+  match x:
+    case M.Free{f}:
+      nl
+    case M.N{+c, +a, +b, +q, +k}:
+      $WR(nl, id, M.N{c, v, b, q, k})
+
+def setl(-K: Data, +nl: $NL, +id: Nat, +v: Nat) -> $NL:
+  setl_n(K, nl, id, v, $NDX(nl, id))
+
+def set_left_node_m($TK, $FT, +id: Nat, +v: Nat, +x: $ND) -> {MI.set_left_node($AK, $SH, id, v, x) == $SHF(setl_n(K, nl, id, v, x)) : $SHT}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q, k}:
+      {==}
+
+def set_left_m($TK, $FT, +id: Nat, +v: Nat) -> {MI.set_left($AK, $SH, id, v) == $SHF(setl(K, nl, id, v)) : $SHT}:
+  set_left_node_m($AK, $F, id, v, $NDX(nl, id))
+
+def setl_same(-K: Data, +nl: $NL, +i: Nat, +v: Nat, +c: Bool, +a: Nat, +b: Nat, +q: Nat, +k: K, +hx: {$NDX(nl, 1n+i) == M.N{c, a, b, q, k} : $ND}, +hi: {Nat.is_lt(i, $LEN(nl)) == True{} : Bool}) -> {$NDX(setl(K, nl, 1n+i, v), 1n+i) == M.N{c, v, b, q, k} : $ND}:
+  %Equal.sym($ND, $NDX(nl, 1n+i), M.N{c, a, b, q, k}, hx) : {$NDX(setl_n(K, nl, 1n+i, v, _), 1n+i) == M.N{c, v, b, q, k} : $ND}
+  FR.nd_wr_same(K, nl, i, M.N{c, v, b, q, k}, hi)
+
+def setl_n_len(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +x: $ND) -> {$LEN(setl_n(K, nl, id, v, x)) == $LEN(nl) : Nat}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{+c, +a, +b, +q, +k}:
+      FR.len_wr(K, nl, id, M.N{c, v, b, q, k})
+
+def setl_len(-K: Data, +nl: $NL, +id: Nat, +v: Nat) -> {$LEN(setl(K, nl, id, v)) == $LEN(nl) : Nat}:
+  setl_n_len(K, nl, id, v, $NDX(nl, id))
+
+def setl_n_agr($TO, +xs: $LN, +nl: $NL, +id: Nat, +v: Nat, +x: $ND, +hn: $NMEM(id, xs)) -> {AG.agr(~K, ~cmp, xs, nl, setl_n(K, nl, id, v, x)) == True{} : Bool}:
+  match x:
+    case M.Free{f}:
+      AG.agr_refl($AO, xs, nl)
+    case M.N{+c, +a, +b, +q, +k}:
+      AG.agr_wr($AO, xs, nl, id, M.N{c, v, b, q, k}, hn)
+
+# agreement off the written id
+def setl_agr($TO, +xs: $LN, +nl: $NL, +id: Nat, +v: Nat, +hn: $NMEM(id, xs)) -> {AG.agr(~K, ~cmp, xs, nl, setl(K, nl, id, v)) == True{} : Bool}:
+  setl_n_agr($AO, xs, nl, id, v, $NDX(nl, id), hn)
+
+# ---- right ----
+
+def setr_n(-K: Data, +nl: $NL, +id: Nat, +v: Nat, x: $ND) -> $NL:
+  match x:
+    case M.Free{f}:
+      nl
+    case M.N{+c, +a, +b, +q, +k}:
+      $WR(nl, id, M.N{c, a, v, q, k})
+
+def setr(-K: Data, +nl: $NL, +id: Nat, +v: Nat) -> $NL:
+  setr_n(K, nl, id, v, $NDX(nl, id))
+
+def set_right_node_m($TK, $FT, +id: Nat, +v: Nat, +x: $ND) -> {MI.set_right_node($AK, $SH, id, v, x) == $SHF(setr_n(K, nl, id, v, x)) : $SHT}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q, k}:
+      {==}
+
+def set_right_m($TK, $FT, +id: Nat, +v: Nat) -> {MI.set_right($AK, $SH, id, v) == $SHF(setr(K, nl, id, v)) : $SHT}:
+  set_right_node_m($AK, $F, id, v, $NDX(nl, id))
+
+def setr_same(-K: Data, +nl: $NL, +i: Nat, +v: Nat, +c: Bool, +a: Nat, +b: Nat, +q: Nat, +k: K, +hx: {$NDX(nl, 1n+i) == M.N{c, a, b, q, k} : $ND}, +hi: {Nat.is_lt(i, $LEN(nl)) == True{} : Bool}) -> {$NDX(setr(K, nl, 1n+i, v), 1n+i) == M.N{c, a, v, q, k} : $ND}:
+  %Equal.sym($ND, $NDX(nl, 1n+i), M.N{c, a, b, q, k}, hx) : {$NDX(setr_n(K, nl, 1n+i, v, _), 1n+i) == M.N{c, a, v, q, k} : $ND}
+  FR.nd_wr_same(K, nl, i, M.N{c, a, v, q, k}, hi)
+
+def setr_n_len(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +x: $ND) -> {$LEN(setr_n(K, nl, id, v, x)) == $LEN(nl) : Nat}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{+c, +a, +b, +q, +k}:
+      FR.len_wr(K, nl, id, M.N{c, a, v, q, k})
+
+def setr_len(-K: Data, +nl: $NL, +id: Nat, +v: Nat) -> {$LEN(setr(K, nl, id, v)) == $LEN(nl) : Nat}:
+  setr_n_len(K, nl, id, v, $NDX(nl, id))
+
+def setr_n_agr($TO, +xs: $LN, +nl: $NL, +id: Nat, +v: Nat, +x: $ND, +hn: $NMEM(id, xs)) -> {AG.agr(~K, ~cmp, xs, nl, setr_n(K, nl, id, v, x)) == True{} : Bool}:
+  match x:
+    case M.Free{f}:
+      AG.agr_refl($AO, xs, nl)
+    case M.N{+c, +a, +b, +q, +k}:
+      AG.agr_wr($AO, xs, nl, id, M.N{c, a, v, q, k}, hn)
+
+# agreement off the written id
+def setr_agr($TO, +xs: $LN, +nl: $NL, +id: Nat, +v: Nat, +hn: $NMEM(id, xs)) -> {AG.agr(~K, ~cmp, xs, nl, setr(K, nl, id, v)) == True{} : Bool}:
+  setr_n_agr($AO, xs, nl, id, v, $NDX(nl, id), hn)
+
+# ---- parent ----
+
+def setp_n(-K: Data, +nl: $NL, +id: Nat, +v: Nat, x: $ND) -> $NL:
+  match x:
+    case M.Free{f}:
+      nl
+    case M.N{+c, +a, +b, +q, +k}:
+      $WR(nl, id, M.N{c, a, b, v, k})
+
+def setp(-K: Data, +nl: $NL, +id: Nat, +v: Nat) -> $NL:
+  setp_n(K, nl, id, v, $NDX(nl, id))
+
+def set_parent_node_m($TK, $FT, +id: Nat, +v: Nat, +x: $ND) -> {MI.set_parent_node($AK, $SH, id, v, x) == $SHF(setp_n(K, nl, id, v, x)) : $SHT}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q, k}:
+      {==}
+
+def set_parent_m($TK, $FT, +id: Nat, +v: Nat) -> {MI.set_parent($AK, $SH, id, v) == $SHF(setp(K, nl, id, v)) : $SHT}:
+  set_parent_node_m($AK, $F, id, v, $NDX(nl, id))
+
+def setp_same(-K: Data, +nl: $NL, +i: Nat, +v: Nat, +c: Bool, +a: Nat, +b: Nat, +q: Nat, +k: K, +hx: {$NDX(nl, 1n+i) == M.N{c, a, b, q, k} : $ND}, +hi: {Nat.is_lt(i, $LEN(nl)) == True{} : Bool}) -> {$NDX(setp(K, nl, 1n+i, v), 1n+i) == M.N{c, a, b, v, k} : $ND}:
+  %Equal.sym($ND, $NDX(nl, 1n+i), M.N{c, a, b, q, k}, hx) : {$NDX(setp_n(K, nl, 1n+i, v, _), 1n+i) == M.N{c, a, b, v, k} : $ND}
+  FR.nd_wr_same(K, nl, i, M.N{c, a, b, v, k}, hi)
+
+def setp_n_len(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +x: $ND) -> {$LEN(setp_n(K, nl, id, v, x)) == $LEN(nl) : Nat}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{+c, +a, +b, +q, +k}:
+      FR.len_wr(K, nl, id, M.N{c, a, b, v, k})
+
+def setp_len(-K: Data, +nl: $NL, +id: Nat, +v: Nat) -> {$LEN(setp(K, nl, id, v)) == $LEN(nl) : Nat}:
+  setp_n_len(K, nl, id, v, $NDX(nl, id))
+
+def setp_n_agr($TO, +xs: $LN, +nl: $NL, +id: Nat, +v: Nat, +x: $ND, +hn: $NMEM(id, xs)) -> {AG.agr(~K, ~cmp, xs, nl, setp_n(K, nl, id, v, x)) == True{} : Bool}:
+  match x:
+    case M.Free{f}:
+      AG.agr_refl($AO, xs, nl)
+    case M.N{+c, +a, +b, +q, +k}:
+      AG.agr_wr($AO, xs, nl, id, M.N{c, a, b, v, k}, hn)
+
+# agreement off the written id
+def setp_agr($TO, +xs: $LN, +nl: $NL, +id: Nat, +v: Nat, +hn: $NMEM(id, xs)) -> {AG.agr(~K, ~cmp, xs, nl, setp(K, nl, id, v)) == True{} : Bool}:
+  setp_n_agr($AO, xs, nl, id, v, $NDX(nl, id), hn)
+
+# ---- red ----
+
+def setc_n(-K: Data, +nl: $NL, +id: Nat, +v: Bool, x: $ND) -> $NL:
+  match x:
+    case M.Free{f}:
+      nl
+    case M.N{+c, +a, +b, +q, +k}:
+      $WR(nl, id, M.N{v, a, b, q, k})
+
+def setc(-K: Data, +nl: $NL, +id: Nat, +v: Bool) -> $NL:
+  setc_n(K, nl, id, v, $NDX(nl, id))
+
+def set_red_node_m($TK, $FT, +id: Nat, +v: Bool, +x: $ND) -> {MI.set_red_node($AK, $SH, id, v, x) == $SHF(setc_n(K, nl, id, v, x)) : $SHT}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q, k}:
+      {==}
+
+def set_red_m($TK, $FT, +id: Nat, +v: Bool) -> {MI.set_red($AK, $SH, id, v) == $SHF(setc(K, nl, id, v)) : $SHT}:
+  set_red_node_m($AK, $F, id, v, $NDX(nl, id))
+
+def setc_same(-K: Data, +nl: $NL, +i: Nat, +v: Bool, +c: Bool, +a: Nat, +b: Nat, +q: Nat, +k: K, +hx: {$NDX(nl, 1n+i) == M.N{c, a, b, q, k} : $ND}, +hi: {Nat.is_lt(i, $LEN(nl)) == True{} : Bool}) -> {$NDX(setc(K, nl, 1n+i, v), 1n+i) == M.N{v, a, b, q, k} : $ND}:
+  %Equal.sym($ND, $NDX(nl, 1n+i), M.N{c, a, b, q, k}, hx) : {$NDX(setc_n(K, nl, 1n+i, v, _), 1n+i) == M.N{v, a, b, q, k} : $ND}
+  FR.nd_wr_same(K, nl, i, M.N{v, a, b, q, k}, hi)
+
+def setc_n_len(-K: Data, +nl: $NL, +id: Nat, +v: Bool, +x: $ND) -> {$LEN(setc_n(K, nl, id, v, x)) == $LEN(nl) : Nat}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{+c, +a, +b, +q, +k}:
+      FR.len_wr(K, nl, id, M.N{v, a, b, q, k})
+
+def setc_len(-K: Data, +nl: $NL, +id: Nat, +v: Bool) -> {$LEN(setc(K, nl, id, v)) == $LEN(nl) : Nat}:
+  setc_n_len(K, nl, id, v, $NDX(nl, id))
+
+def setc_n_agr($TO, +xs: $LN, +nl: $NL, +id: Nat, +v: Bool, +x: $ND, +hn: $NMEM(id, xs)) -> {AG.agr(~K, ~cmp, xs, nl, setc_n(K, nl, id, v, x)) == True{} : Bool}:
+  match x:
+    case M.Free{f}:
+      AG.agr_refl($AO, xs, nl)
+    case M.N{+c, +a, +b, +q, +k}:
+      AG.agr_wr($AO, xs, nl, id, M.N{v, a, b, q, k}, hn)
+
+# agreement off the written id
+def setc_agr($TO, +xs: $LN, +nl: $NL, +id: Nat, +v: Bool, +hn: $NMEM(id, xs)) -> {AG.agr(~K, ~cmp, xs, nl, setc(K, nl, id, v)) == True{} : Bool}:
+  setc_n_agr($AO, xs, nl, id, v, $NDX(nl, id), hn)
+
+# ---- every id's node after a setter ----
+
+def fn_c(-K: Data, +c: Bool, +a: Nat, +b: Nat, +q: Nat, +k: K, +e: {M.Free{0n} == M.N{c, a, b, q, k} : $ND}) -> Empty:
+  L.true_false(L.subst($ND, z => {ST.is_free(K, M.Free{0n}, 0n) == ST.is_free(K, z, 0n) : Bool}, M.Free{0n}, M.N{c, a, b, q, k}, e, {==}))
+
+def nr_c(-K: Data, +nl: $NL, +i: Nat, +c: Bool, +a: Nat, +b: Nat, +q: Nat, +k: K, +hx: {$NDX(nl, 1n+i) == M.N{c, a, b, q, k} : $ND}, +t: Bool, +ht: {Nat.is_lt(i, $LEN(nl)) == t : Bool}) -> {t == True{} : Bool}:
+  match t:
+    case True{}:
+      {==}
+    case False{}:
+      +e = Equal.trans($ND, M.Free{0n}, $NDX(nl, 1n+i), M.N{c, a, b, q, k}, Equal.sym($ND, $NDX(nl, 1n+i), M.Free{0n}, PR.nth_hi($ND, nl, i, M.Free{0n}, ht)), hx)
+      Empty.absurd({False{} == True{} : Bool}, fn_c(K, c, a, b, q, k, e))
+
+def nd_n_range(-K: Data, +nl: $NL, +i: Nat, +c: Bool, +a: Nat, +b: Nat, +q: Nat, +k: K, +hx: {$NDX(nl, 1n+i) == M.N{c, a, b, q, k} : $ND}) -> {Nat.is_lt(i, $LEN(nl)) == True{} : Bool}:
+  nr_c(K, nl, i, c, a, b, q, k, hx, Nat.is_lt(i, $LEN(nl)), {==})
+
+def modl(-K: Data, x: $ND, +v: Nat) -> $ND:
+  match x:
+    case M.Free{+f}:
+      M.Free{f}
+    case M.N{+c, +a, +b, +q, +k}:
+      M.N{c, v, b, q, k}
+
+def wsame_l(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +c: Bool, +a: Nat, +b: Nat, +q: Nat, +k: K, +hx: {$NDX(nl, id) == M.N{c, a, b, q, k} : $ND}) -> {$NDX($WR(nl, id, M.N{c, v, b, q, k}), id) == M.N{c, v, b, q, k} : $ND}:
+  match id:
+    case 0n:
+      Empty.absurd({$NDX($WR(nl, 0n, M.N{c, v, b, q, k}), 0n) == M.N{c, v, b, q, k} : $ND}, fn_c(K, c, a, b, q, k, hx))
+    case 1n+i:
+      FR.nd_wr_same(K, nl, i, M.N{c, v, b, q, k}, nd_n_range(K, nl, i, c, a, b, q, k, hx))
+
+def ndl_c(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +j: Nat, +x: $ND, +hx: {$NDX(nl, id) == x : $ND}, +e: Bool, +he: {Nat.is_eq(id, j) == e : Bool}) -> {$NDX(setl_n(K, nl, id, v, x), j) == ST.pk($ND, e, modl(K, $NDX(nl, j), v), $NDX(nl, j)) : $ND}:
+  match x e:
+    case M.Free{f} True{}:
+      +ej = N.eq_from_is_eq(id, j, he)
+      %Equal.sym(Nat, j, id, Equal.sym(Nat, id, j, ej)) : {$NDX(nl, _) == modl(K, $NDX(nl, _), v) : $ND}
+      %Equal.sym($ND, $NDX(nl, id), M.Free{f}, hx) : {_ == modl(K, _, v) : $ND}
+      {==}
+    case M.Free{f} False{}:
+      {==}
+    case M.N{+c, +a, +b, +q, +k} True{}:
+      +ej = N.eq_from_is_eq(id, j, he)
+      %Equal.sym(Nat, j, id, Equal.sym(Nat, id, j, ej)) : {$NDX($WR(nl, id, M.N{c, v, b, q, k}), _) == modl(K, $NDX(nl, _), v) : $ND}
+      %Equal.sym($ND, $NDX(nl, id), M.N{c, a, b, q, k}, hx) : {$NDX($WR(nl, id, M.N{c, v, b, q, k}), id) == modl(K, _, v) : $ND}
+      wsame_l(K, nl, id, v, c, a, b, q, k, hx)
+    case M.N{+c, +a, +b, +q, +k} False{}:
+      FR.nd_wr_other(K, nl, id, M.N{c, v, b, q, k}, j, he)
+
+# the node at j after setting id: modified when j is id
+def ndl(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +j: Nat) -> {$NDX(setl(K, nl, id, v), j) == ST.pk($ND, Nat.is_eq(id, j), modl(K, $NDX(nl, j), v), $NDX(nl, j)) : $ND}:
+  ndl_c(K, nl, id, v, j, $NDX(nl, id), {==}, Nat.is_eq(id, j), {==})
+
+def modr(-K: Data, x: $ND, +v: Nat) -> $ND:
+  match x:
+    case M.Free{+f}:
+      M.Free{f}
+    case M.N{+c, +a, +b, +q, +k}:
+      M.N{c, a, v, q, k}
+
+def wsame_r(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +c: Bool, +a: Nat, +b: Nat, +q: Nat, +k: K, +hx: {$NDX(nl, id) == M.N{c, a, b, q, k} : $ND}) -> {$NDX($WR(nl, id, M.N{c, a, v, q, k}), id) == M.N{c, a, v, q, k} : $ND}:
+  match id:
+    case 0n:
+      Empty.absurd({$NDX($WR(nl, 0n, M.N{c, a, v, q, k}), 0n) == M.N{c, a, v, q, k} : $ND}, fn_c(K, c, a, b, q, k, hx))
+    case 1n+i:
+      FR.nd_wr_same(K, nl, i, M.N{c, a, v, q, k}, nd_n_range(K, nl, i, c, a, b, q, k, hx))
+
+def ndr_c(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +j: Nat, +x: $ND, +hx: {$NDX(nl, id) == x : $ND}, +e: Bool, +he: {Nat.is_eq(id, j) == e : Bool}) -> {$NDX(setr_n(K, nl, id, v, x), j) == ST.pk($ND, e, modr(K, $NDX(nl, j), v), $NDX(nl, j)) : $ND}:
+  match x e:
+    case M.Free{f} True{}:
+      +ej = N.eq_from_is_eq(id, j, he)
+      %Equal.sym(Nat, j, id, Equal.sym(Nat, id, j, ej)) : {$NDX(nl, _) == modr(K, $NDX(nl, _), v) : $ND}
+      %Equal.sym($ND, $NDX(nl, id), M.Free{f}, hx) : {_ == modr(K, _, v) : $ND}
+      {==}
+    case M.Free{f} False{}:
+      {==}
+    case M.N{+c, +a, +b, +q, +k} True{}:
+      +ej = N.eq_from_is_eq(id, j, he)
+      %Equal.sym(Nat, j, id, Equal.sym(Nat, id, j, ej)) : {$NDX($WR(nl, id, M.N{c, a, v, q, k}), _) == modr(K, $NDX(nl, _), v) : $ND}
+      %Equal.sym($ND, $NDX(nl, id), M.N{c, a, b, q, k}, hx) : {$NDX($WR(nl, id, M.N{c, a, v, q, k}), id) == modr(K, _, v) : $ND}
+      wsame_r(K, nl, id, v, c, a, b, q, k, hx)
+    case M.N{+c, +a, +b, +q, +k} False{}:
+      FR.nd_wr_other(K, nl, id, M.N{c, a, v, q, k}, j, he)
+
+# the node at j after setting id: modified when j is id
+def ndr(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +j: Nat) -> {$NDX(setr(K, nl, id, v), j) == ST.pk($ND, Nat.is_eq(id, j), modr(K, $NDX(nl, j), v), $NDX(nl, j)) : $ND}:
+  ndr_c(K, nl, id, v, j, $NDX(nl, id), {==}, Nat.is_eq(id, j), {==})
+
+def modp(-K: Data, x: $ND, +v: Nat) -> $ND:
+  match x:
+    case M.Free{+f}:
+      M.Free{f}
+    case M.N{+c, +a, +b, +q, +k}:
+      M.N{c, a, b, v, k}
+
+def wsame_p(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +c: Bool, +a: Nat, +b: Nat, +q: Nat, +k: K, +hx: {$NDX(nl, id) == M.N{c, a, b, q, k} : $ND}) -> {$NDX($WR(nl, id, M.N{c, a, b, v, k}), id) == M.N{c, a, b, v, k} : $ND}:
+  match id:
+    case 0n:
+      Empty.absurd({$NDX($WR(nl, 0n, M.N{c, a, b, v, k}), 0n) == M.N{c, a, b, v, k} : $ND}, fn_c(K, c, a, b, q, k, hx))
+    case 1n+i:
+      FR.nd_wr_same(K, nl, i, M.N{c, a, b, v, k}, nd_n_range(K, nl, i, c, a, b, q, k, hx))
+
+def ndp_c(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +j: Nat, +x: $ND, +hx: {$NDX(nl, id) == x : $ND}, +e: Bool, +he: {Nat.is_eq(id, j) == e : Bool}) -> {$NDX(setp_n(K, nl, id, v, x), j) == ST.pk($ND, e, modp(K, $NDX(nl, j), v), $NDX(nl, j)) : $ND}:
+  match x e:
+    case M.Free{f} True{}:
+      +ej = N.eq_from_is_eq(id, j, he)
+      %Equal.sym(Nat, j, id, Equal.sym(Nat, id, j, ej)) : {$NDX(nl, _) == modp(K, $NDX(nl, _), v) : $ND}
+      %Equal.sym($ND, $NDX(nl, id), M.Free{f}, hx) : {_ == modp(K, _, v) : $ND}
+      {==}
+    case M.Free{f} False{}:
+      {==}
+    case M.N{+c, +a, +b, +q, +k} True{}:
+      +ej = N.eq_from_is_eq(id, j, he)
+      %Equal.sym(Nat, j, id, Equal.sym(Nat, id, j, ej)) : {$NDX($WR(nl, id, M.N{c, a, b, v, k}), _) == modp(K, $NDX(nl, _), v) : $ND}
+      %Equal.sym($ND, $NDX(nl, id), M.N{c, a, b, q, k}, hx) : {$NDX($WR(nl, id, M.N{c, a, b, v, k}), id) == modp(K, _, v) : $ND}
+      wsame_p(K, nl, id, v, c, a, b, q, k, hx)
+    case M.N{+c, +a, +b, +q, +k} False{}:
+      FR.nd_wr_other(K, nl, id, M.N{c, a, b, v, k}, j, he)
+
+# the node at j after setting id: modified when j is id
+def ndp(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +j: Nat) -> {$NDX(setp(K, nl, id, v), j) == ST.pk($ND, Nat.is_eq(id, j), modp(K, $NDX(nl, j), v), $NDX(nl, j)) : $ND}:
+  ndp_c(K, nl, id, v, j, $NDX(nl, id), {==}, Nat.is_eq(id, j), {==})
+
+def modc(-K: Data, x: $ND, +v: Bool) -> $ND:
+  match x:
+    case M.Free{+f}:
+      M.Free{f}
+    case M.N{+c, +a, +b, +q, +k}:
+      M.N{v, a, b, q, k}
+
+def wsame_c(-K: Data, +nl: $NL, +id: Nat, +v: Bool, +c: Bool, +a: Nat, +b: Nat, +q: Nat, +k: K, +hx: {$NDX(nl, id) == M.N{c, a, b, q, k} : $ND}) -> {$NDX($WR(nl, id, M.N{v, a, b, q, k}), id) == M.N{v, a, b, q, k} : $ND}:
+  match id:
+    case 0n:
+      Empty.absurd({$NDX($WR(nl, 0n, M.N{v, a, b, q, k}), 0n) == M.N{v, a, b, q, k} : $ND}, fn_c(K, c, a, b, q, k, hx))
+    case 1n+i:
+      FR.nd_wr_same(K, nl, i, M.N{v, a, b, q, k}, nd_n_range(K, nl, i, c, a, b, q, k, hx))
+
+def ndc_c(-K: Data, +nl: $NL, +id: Nat, +v: Bool, +j: Nat, +x: $ND, +hx: {$NDX(nl, id) == x : $ND}, +e: Bool, +he: {Nat.is_eq(id, j) == e : Bool}) -> {$NDX(setc_n(K, nl, id, v, x), j) == ST.pk($ND, e, modc(K, $NDX(nl, j), v), $NDX(nl, j)) : $ND}:
+  match x e:
+    case M.Free{f} True{}:
+      +ej = N.eq_from_is_eq(id, j, he)
+      %Equal.sym(Nat, j, id, Equal.sym(Nat, id, j, ej)) : {$NDX(nl, _) == modc(K, $NDX(nl, _), v) : $ND}
+      %Equal.sym($ND, $NDX(nl, id), M.Free{f}, hx) : {_ == modc(K, _, v) : $ND}
+      {==}
+    case M.Free{f} False{}:
+      {==}
+    case M.N{+c, +a, +b, +q, +k} True{}:
+      +ej = N.eq_from_is_eq(id, j, he)
+      %Equal.sym(Nat, j, id, Equal.sym(Nat, id, j, ej)) : {$NDX($WR(nl, id, M.N{v, a, b, q, k}), _) == modc(K, $NDX(nl, _), v) : $ND}
+      %Equal.sym($ND, $NDX(nl, id), M.N{c, a, b, q, k}, hx) : {$NDX($WR(nl, id, M.N{v, a, b, q, k}), id) == modc(K, _, v) : $ND}
+      wsame_c(K, nl, id, v, c, a, b, q, k, hx)
+    case M.N{+c, +a, +b, +q, +k} False{}:
+      FR.nd_wr_other(K, nl, id, M.N{v, a, b, q, k}, j, he)
+
+# the node at j after setting id: modified when j is id
+def ndc(-K: Data, +nl: $NL, +id: Nat, +v: Bool, +j: Nat) -> {$NDX(setc(K, nl, id, v), j) == ST.pk($ND, Nat.is_eq(id, j), modc(K, $NDX(nl, j), v), $NDX(nl, j)) : $ND}:
+  ndc_c(K, nl, id, v, j, $NDX(nl, id), {==}, Nat.is_eq(id, j), {==})
+
+# ---- what setters keep everywhere ----
+
+%def MV Maybe<&2, V>
+%def E M.Entry<K, V>
+
+def ent_modl(-K: Data, -V: Data, +x: $ND, +v: Nat, +m: $MV) -> {ST.ent(K, V, modl(K, x, v), m) == ST.ent(K, V, x, m) : Maybe<&2, $E>}:
+  match x m:
+    case M.Free{f} +m:
+      {==}
+    case M.N{c, a, b, q, k} None{}:
+      {==}
+    case M.N{c, a, b, q, k} Some{w}:
+      {==}
+
+def free_modl(-K: Data, +x: $ND, +v: Nat, +q: Nat) -> {ST.is_free(K, modl(K, x, v), q) == ST.is_free(K, x, q) : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q2, k}:
+      {==}
+
+def ent_pkl(-K: Data, -V: Data, +e: Bool, +x: $ND, +v: Nat, +m: $MV) -> {ST.ent(K, V, ST.pk($ND, e, modl(K, x, v), x), m) == ST.ent(K, V, x, m) : Maybe<&2, $E>}:
+  match e:
+    case True{}:
+      ent_modl(K, V, x, v, m)
+    case False{}:
+      {==}
+
+def free_pkl(-K: Data, +e: Bool, +x: $ND, +v: Nat, +q: Nat) -> {ST.is_free(K, ST.pk($ND, e, modl(K, x, v), x), q) == ST.is_free(K, x, q) : Bool}:
+  match e:
+    case True{}:
+      free_modl(K, x, v, q)
+    case False{}:
+      {==}
+
+def ent_setl(-K: Data, -V: Data, +nl: $NL, +id: Nat, +v: Nat, +j: Nat, +m: $MV) -> {ST.ent(K, V, $NDX(setl(K, nl, id, v), j), m) == ST.ent(K, V, $NDX(nl, j), m) : Maybe<&2, $E>}:
+  %Equal.sym($ND, $NDX(setl(K, nl, id, v), j), ST.pk($ND, Nat.is_eq(id, j), modl(K, $NDX(nl, j), v), $NDX(nl, j)), ndl(K, nl, id, v, j)) : {ST.ent(K, V, _, m) == ST.ent(K, V, $NDX(nl, j), m) : Maybe<&2, $E>}
+  ent_pkl(K, V, Nat.is_eq(id, j), $NDX(nl, j), v, m)
+
+# a setter keeps every entry
+def ents_setl(~K: Data, ~V: Data, +xs: $LN, +nl: $NL, +pl: List<&2, $MV>, +id: Nat, +v: Nat) -> {ST.ents(~K, ~V, xs, setl(K, nl, id, v), pl) == ST.ents(~K, ~V, xs, nl, pl) : List<&2, $E>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym(Maybe<&2, $E>, ST.ent(K, V, $NDX(setl(K, nl, id, v), j), ST.pv(V, pl, j)), ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j)), ent_setl(K, V, nl, id, v, j, ST.pv(V, pl, j))) : {ST.cons_m($E, _, ST.ents(~K, ~V, t, setl(K, nl, id, v), pl)) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, $E>}
+      %Equal.sym(List<&2, $E>, ST.ents(~K, ~V, t, setl(K, nl, id, v), pl), ST.ents(~K, ~V, t, nl, pl), ents_setl(~K, ~V, t, nl, pl, id, v)) : {ST.cons_m($E, ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j)), _) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, $E>}
+      {==}
+
+def oks_setl(~K: Data, ~V: Data, +xs: $LN, +nl: $NL, +pl: List<&2, $MV>, +id: Nat, +v: Nat) -> {EN.oks(~K, ~V, xs, setl(K, nl, id, v), pl) == EN.oks(~K, ~V, xs, nl, pl) : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym(Maybe<&2, $E>, ST.ent(K, V, $NDX(setl(K, nl, id, v), j), ST.pv(V, pl, j)), ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j)), ent_setl(K, V, nl, id, v, j, ST.pv(V, pl, j))) : {Bool.and(S.is_some($E, _), EN.oks(~K, ~V, t, setl(K, nl, id, v), pl)) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      %Equal.sym(Bool, EN.oks(~K, ~V, t, setl(K, nl, id, v), pl), EN.oks(~K, ~V, t, nl, pl), oks_setl(~K, ~V, t, nl, pl, id, v)) : {Bool.and(S.is_some($E, ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j))), _) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      {==}
+
+# a setter keeps the free chain
+def fll_setl(~K: Data, +fl: $LN, +nl: $NL, +id: Nat, +v: Nat) -> {ST.fll(~K, setl(K, nl, id, v), fl) == ST.fll(~K, nl, fl) : Bool}:
+  match fl:
+    case Nil{}:
+      {==}
+    case Con{+f, +t}:
+      %Equal.sym($ND, $NDX(setl(K, nl, id, v), f), ST.pk($ND, Nat.is_eq(id, f), modl(K, $NDX(nl, f), v), $NDX(nl, f)), ndl(K, nl, id, v, f)) : {Bool.and(ST.is_free(K, _, ST.fst0(t)), ST.fll(~K, setl(K, nl, id, v), t)) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      %Equal.sym(Bool, ST.is_free(K, ST.pk($ND, Nat.is_eq(id, f), modl(K, $NDX(nl, f), v), $NDX(nl, f)), ST.fst0(t)), ST.is_free(K, $NDX(nl, f), ST.fst0(t)), free_pkl(K, Nat.is_eq(id, f), $NDX(nl, f), v, ST.fst0(t))) : {Bool.and(_, ST.fll(~K, setl(K, nl, id, v), t)) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      %Equal.sym(Bool, ST.fll(~K, setl(K, nl, id, v), t), ST.fll(~K, nl, t), fll_setl(~K, t, nl, id, v)) : {Bool.and(ST.is_free(K, $NDX(nl, f), ST.fst0(t)), _) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      {==}
+
+def ent_modr(-K: Data, -V: Data, +x: $ND, +v: Nat, +m: $MV) -> {ST.ent(K, V, modr(K, x, v), m) == ST.ent(K, V, x, m) : Maybe<&2, $E>}:
+  match x m:
+    case M.Free{f} +m:
+      {==}
+    case M.N{c, a, b, q, k} None{}:
+      {==}
+    case M.N{c, a, b, q, k} Some{w}:
+      {==}
+
+def free_modr(-K: Data, +x: $ND, +v: Nat, +q: Nat) -> {ST.is_free(K, modr(K, x, v), q) == ST.is_free(K, x, q) : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q2, k}:
+      {==}
+
+def ent_pkr(-K: Data, -V: Data, +e: Bool, +x: $ND, +v: Nat, +m: $MV) -> {ST.ent(K, V, ST.pk($ND, e, modr(K, x, v), x), m) == ST.ent(K, V, x, m) : Maybe<&2, $E>}:
+  match e:
+    case True{}:
+      ent_modr(K, V, x, v, m)
+    case False{}:
+      {==}
+
+def free_pkr(-K: Data, +e: Bool, +x: $ND, +v: Nat, +q: Nat) -> {ST.is_free(K, ST.pk($ND, e, modr(K, x, v), x), q) == ST.is_free(K, x, q) : Bool}:
+  match e:
+    case True{}:
+      free_modr(K, x, v, q)
+    case False{}:
+      {==}
+
+def ent_setr(-K: Data, -V: Data, +nl: $NL, +id: Nat, +v: Nat, +j: Nat, +m: $MV) -> {ST.ent(K, V, $NDX(setr(K, nl, id, v), j), m) == ST.ent(K, V, $NDX(nl, j), m) : Maybe<&2, $E>}:
+  %Equal.sym($ND, $NDX(setr(K, nl, id, v), j), ST.pk($ND, Nat.is_eq(id, j), modr(K, $NDX(nl, j), v), $NDX(nl, j)), ndr(K, nl, id, v, j)) : {ST.ent(K, V, _, m) == ST.ent(K, V, $NDX(nl, j), m) : Maybe<&2, $E>}
+  ent_pkr(K, V, Nat.is_eq(id, j), $NDX(nl, j), v, m)
+
+# a setter keeps every entry
+def ents_setr(~K: Data, ~V: Data, +xs: $LN, +nl: $NL, +pl: List<&2, $MV>, +id: Nat, +v: Nat) -> {ST.ents(~K, ~V, xs, setr(K, nl, id, v), pl) == ST.ents(~K, ~V, xs, nl, pl) : List<&2, $E>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym(Maybe<&2, $E>, ST.ent(K, V, $NDX(setr(K, nl, id, v), j), ST.pv(V, pl, j)), ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j)), ent_setr(K, V, nl, id, v, j, ST.pv(V, pl, j))) : {ST.cons_m($E, _, ST.ents(~K, ~V, t, setr(K, nl, id, v), pl)) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, $E>}
+      %Equal.sym(List<&2, $E>, ST.ents(~K, ~V, t, setr(K, nl, id, v), pl), ST.ents(~K, ~V, t, nl, pl), ents_setr(~K, ~V, t, nl, pl, id, v)) : {ST.cons_m($E, ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j)), _) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, $E>}
+      {==}
+
+def oks_setr(~K: Data, ~V: Data, +xs: $LN, +nl: $NL, +pl: List<&2, $MV>, +id: Nat, +v: Nat) -> {EN.oks(~K, ~V, xs, setr(K, nl, id, v), pl) == EN.oks(~K, ~V, xs, nl, pl) : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym(Maybe<&2, $E>, ST.ent(K, V, $NDX(setr(K, nl, id, v), j), ST.pv(V, pl, j)), ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j)), ent_setr(K, V, nl, id, v, j, ST.pv(V, pl, j))) : {Bool.and(S.is_some($E, _), EN.oks(~K, ~V, t, setr(K, nl, id, v), pl)) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      %Equal.sym(Bool, EN.oks(~K, ~V, t, setr(K, nl, id, v), pl), EN.oks(~K, ~V, t, nl, pl), oks_setr(~K, ~V, t, nl, pl, id, v)) : {Bool.and(S.is_some($E, ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j))), _) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      {==}
+
+# a setter keeps the free chain
+def fll_setr(~K: Data, +fl: $LN, +nl: $NL, +id: Nat, +v: Nat) -> {ST.fll(~K, setr(K, nl, id, v), fl) == ST.fll(~K, nl, fl) : Bool}:
+  match fl:
+    case Nil{}:
+      {==}
+    case Con{+f, +t}:
+      %Equal.sym($ND, $NDX(setr(K, nl, id, v), f), ST.pk($ND, Nat.is_eq(id, f), modr(K, $NDX(nl, f), v), $NDX(nl, f)), ndr(K, nl, id, v, f)) : {Bool.and(ST.is_free(K, _, ST.fst0(t)), ST.fll(~K, setr(K, nl, id, v), t)) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      %Equal.sym(Bool, ST.is_free(K, ST.pk($ND, Nat.is_eq(id, f), modr(K, $NDX(nl, f), v), $NDX(nl, f)), ST.fst0(t)), ST.is_free(K, $NDX(nl, f), ST.fst0(t)), free_pkr(K, Nat.is_eq(id, f), $NDX(nl, f), v, ST.fst0(t))) : {Bool.and(_, ST.fll(~K, setr(K, nl, id, v), t)) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      %Equal.sym(Bool, ST.fll(~K, setr(K, nl, id, v), t), ST.fll(~K, nl, t), fll_setr(~K, t, nl, id, v)) : {Bool.and(ST.is_free(K, $NDX(nl, f), ST.fst0(t)), _) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      {==}
+
+def ent_modp(-K: Data, -V: Data, +x: $ND, +v: Nat, +m: $MV) -> {ST.ent(K, V, modp(K, x, v), m) == ST.ent(K, V, x, m) : Maybe<&2, $E>}:
+  match x m:
+    case M.Free{f} +m:
+      {==}
+    case M.N{c, a, b, q, k} None{}:
+      {==}
+    case M.N{c, a, b, q, k} Some{w}:
+      {==}
+
+def free_modp(-K: Data, +x: $ND, +v: Nat, +q: Nat) -> {ST.is_free(K, modp(K, x, v), q) == ST.is_free(K, x, q) : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q2, k}:
+      {==}
+
+def ent_pkp(-K: Data, -V: Data, +e: Bool, +x: $ND, +v: Nat, +m: $MV) -> {ST.ent(K, V, ST.pk($ND, e, modp(K, x, v), x), m) == ST.ent(K, V, x, m) : Maybe<&2, $E>}:
+  match e:
+    case True{}:
+      ent_modp(K, V, x, v, m)
+    case False{}:
+      {==}
+
+def free_pkp(-K: Data, +e: Bool, +x: $ND, +v: Nat, +q: Nat) -> {ST.is_free(K, ST.pk($ND, e, modp(K, x, v), x), q) == ST.is_free(K, x, q) : Bool}:
+  match e:
+    case True{}:
+      free_modp(K, x, v, q)
+    case False{}:
+      {==}
+
+def ent_setp(-K: Data, -V: Data, +nl: $NL, +id: Nat, +v: Nat, +j: Nat, +m: $MV) -> {ST.ent(K, V, $NDX(setp(K, nl, id, v), j), m) == ST.ent(K, V, $NDX(nl, j), m) : Maybe<&2, $E>}:
+  %Equal.sym($ND, $NDX(setp(K, nl, id, v), j), ST.pk($ND, Nat.is_eq(id, j), modp(K, $NDX(nl, j), v), $NDX(nl, j)), ndp(K, nl, id, v, j)) : {ST.ent(K, V, _, m) == ST.ent(K, V, $NDX(nl, j), m) : Maybe<&2, $E>}
+  ent_pkp(K, V, Nat.is_eq(id, j), $NDX(nl, j), v, m)
+
+# a setter keeps every entry
+def ents_setp(~K: Data, ~V: Data, +xs: $LN, +nl: $NL, +pl: List<&2, $MV>, +id: Nat, +v: Nat) -> {ST.ents(~K, ~V, xs, setp(K, nl, id, v), pl) == ST.ents(~K, ~V, xs, nl, pl) : List<&2, $E>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym(Maybe<&2, $E>, ST.ent(K, V, $NDX(setp(K, nl, id, v), j), ST.pv(V, pl, j)), ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j)), ent_setp(K, V, nl, id, v, j, ST.pv(V, pl, j))) : {ST.cons_m($E, _, ST.ents(~K, ~V, t, setp(K, nl, id, v), pl)) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, $E>}
+      %Equal.sym(List<&2, $E>, ST.ents(~K, ~V, t, setp(K, nl, id, v), pl), ST.ents(~K, ~V, t, nl, pl), ents_setp(~K, ~V, t, nl, pl, id, v)) : {ST.cons_m($E, ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j)), _) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, $E>}
+      {==}
+
+def oks_setp(~K: Data, ~V: Data, +xs: $LN, +nl: $NL, +pl: List<&2, $MV>, +id: Nat, +v: Nat) -> {EN.oks(~K, ~V, xs, setp(K, nl, id, v), pl) == EN.oks(~K, ~V, xs, nl, pl) : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym(Maybe<&2, $E>, ST.ent(K, V, $NDX(setp(K, nl, id, v), j), ST.pv(V, pl, j)), ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j)), ent_setp(K, V, nl, id, v, j, ST.pv(V, pl, j))) : {Bool.and(S.is_some($E, _), EN.oks(~K, ~V, t, setp(K, nl, id, v), pl)) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      %Equal.sym(Bool, EN.oks(~K, ~V, t, setp(K, nl, id, v), pl), EN.oks(~K, ~V, t, nl, pl), oks_setp(~K, ~V, t, nl, pl, id, v)) : {Bool.and(S.is_some($E, ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j))), _) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      {==}
+
+# a setter keeps the free chain
+def fll_setp(~K: Data, +fl: $LN, +nl: $NL, +id: Nat, +v: Nat) -> {ST.fll(~K, setp(K, nl, id, v), fl) == ST.fll(~K, nl, fl) : Bool}:
+  match fl:
+    case Nil{}:
+      {==}
+    case Con{+f, +t}:
+      %Equal.sym($ND, $NDX(setp(K, nl, id, v), f), ST.pk($ND, Nat.is_eq(id, f), modp(K, $NDX(nl, f), v), $NDX(nl, f)), ndp(K, nl, id, v, f)) : {Bool.and(ST.is_free(K, _, ST.fst0(t)), ST.fll(~K, setp(K, nl, id, v), t)) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      %Equal.sym(Bool, ST.is_free(K, ST.pk($ND, Nat.is_eq(id, f), modp(K, $NDX(nl, f), v), $NDX(nl, f)), ST.fst0(t)), ST.is_free(K, $NDX(nl, f), ST.fst0(t)), free_pkp(K, Nat.is_eq(id, f), $NDX(nl, f), v, ST.fst0(t))) : {Bool.and(_, ST.fll(~K, setp(K, nl, id, v), t)) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      %Equal.sym(Bool, ST.fll(~K, setp(K, nl, id, v), t), ST.fll(~K, nl, t), fll_setp(~K, t, nl, id, v)) : {Bool.and(ST.is_free(K, $NDX(nl, f), ST.fst0(t)), _) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      {==}
+
+def ent_modc(-K: Data, -V: Data, +x: $ND, +v: Bool, +m: $MV) -> {ST.ent(K, V, modc(K, x, v), m) == ST.ent(K, V, x, m) : Maybe<&2, $E>}:
+  match x m:
+    case M.Free{f} +m:
+      {==}
+    case M.N{c, a, b, q, k} None{}:
+      {==}
+    case M.N{c, a, b, q, k} Some{w}:
+      {==}
+
+def free_modc(-K: Data, +x: $ND, +v: Bool, +q: Nat) -> {ST.is_free(K, modc(K, x, v), q) == ST.is_free(K, x, q) : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q2, k}:
+      {==}
+
+def ent_pkc(-K: Data, -V: Data, +e: Bool, +x: $ND, +v: Bool, +m: $MV) -> {ST.ent(K, V, ST.pk($ND, e, modc(K, x, v), x), m) == ST.ent(K, V, x, m) : Maybe<&2, $E>}:
+  match e:
+    case True{}:
+      ent_modc(K, V, x, v, m)
+    case False{}:
+      {==}
+
+def free_pkc(-K: Data, +e: Bool, +x: $ND, +v: Bool, +q: Nat) -> {ST.is_free(K, ST.pk($ND, e, modc(K, x, v), x), q) == ST.is_free(K, x, q) : Bool}:
+  match e:
+    case True{}:
+      free_modc(K, x, v, q)
+    case False{}:
+      {==}
+
+def ent_setc(-K: Data, -V: Data, +nl: $NL, +id: Nat, +v: Bool, +j: Nat, +m: $MV) -> {ST.ent(K, V, $NDX(setc(K, nl, id, v), j), m) == ST.ent(K, V, $NDX(nl, j), m) : Maybe<&2, $E>}:
+  %Equal.sym($ND, $NDX(setc(K, nl, id, v), j), ST.pk($ND, Nat.is_eq(id, j), modc(K, $NDX(nl, j), v), $NDX(nl, j)), ndc(K, nl, id, v, j)) : {ST.ent(K, V, _, m) == ST.ent(K, V, $NDX(nl, j), m) : Maybe<&2, $E>}
+  ent_pkc(K, V, Nat.is_eq(id, j), $NDX(nl, j), v, m)
+
+# a setter keeps every entry
+def ents_setc(~K: Data, ~V: Data, +xs: $LN, +nl: $NL, +pl: List<&2, $MV>, +id: Nat, +v: Bool) -> {ST.ents(~K, ~V, xs, setc(K, nl, id, v), pl) == ST.ents(~K, ~V, xs, nl, pl) : List<&2, $E>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym(Maybe<&2, $E>, ST.ent(K, V, $NDX(setc(K, nl, id, v), j), ST.pv(V, pl, j)), ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j)), ent_setc(K, V, nl, id, v, j, ST.pv(V, pl, j))) : {ST.cons_m($E, _, ST.ents(~K, ~V, t, setc(K, nl, id, v), pl)) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, $E>}
+      %Equal.sym(List<&2, $E>, ST.ents(~K, ~V, t, setc(K, nl, id, v), pl), ST.ents(~K, ~V, t, nl, pl), ents_setc(~K, ~V, t, nl, pl, id, v)) : {ST.cons_m($E, ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j)), _) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, $E>}
+      {==}
+
+def oks_setc(~K: Data, ~V: Data, +xs: $LN, +nl: $NL, +pl: List<&2, $MV>, +id: Nat, +v: Bool) -> {EN.oks(~K, ~V, xs, setc(K, nl, id, v), pl) == EN.oks(~K, ~V, xs, nl, pl) : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym(Maybe<&2, $E>, ST.ent(K, V, $NDX(setc(K, nl, id, v), j), ST.pv(V, pl, j)), ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j)), ent_setc(K, V, nl, id, v, j, ST.pv(V, pl, j))) : {Bool.and(S.is_some($E, _), EN.oks(~K, ~V, t, setc(K, nl, id, v), pl)) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      %Equal.sym(Bool, EN.oks(~K, ~V, t, setc(K, nl, id, v), pl), EN.oks(~K, ~V, t, nl, pl), oks_setc(~K, ~V, t, nl, pl, id, v)) : {Bool.and(S.is_some($E, ST.ent(K, V, $NDX(nl, j), ST.pv(V, pl, j))), _) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      {==}
+
+# a setter keeps the free chain
+def fll_setc(~K: Data, +fl: $LN, +nl: $NL, +id: Nat, +v: Bool) -> {ST.fll(~K, setc(K, nl, id, v), fl) == ST.fll(~K, nl, fl) : Bool}:
+  match fl:
+    case Nil{}:
+      {==}
+    case Con{+f, +t}:
+      %Equal.sym($ND, $NDX(setc(K, nl, id, v), f), ST.pk($ND, Nat.is_eq(id, f), modc(K, $NDX(nl, f), v), $NDX(nl, f)), ndc(K, nl, id, v, f)) : {Bool.and(ST.is_free(K, _, ST.fst0(t)), ST.fll(~K, setc(K, nl, id, v), t)) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      %Equal.sym(Bool, ST.is_free(K, ST.pk($ND, Nat.is_eq(id, f), modc(K, $NDX(nl, f), v), $NDX(nl, f)), ST.fst0(t)), ST.is_free(K, $NDX(nl, f), ST.fst0(t)), free_pkc(K, Nat.is_eq(id, f), $NDX(nl, f), v, ST.fst0(t))) : {Bool.and(_, ST.fll(~K, setc(K, nl, id, v), t)) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      %Equal.sym(Bool, ST.fll(~K, setc(K, nl, id, v), t), ST.fll(~K, nl, t), fll_setc(~K, t, nl, id, v)) : {Bool.and(ST.is_free(K, $NDX(nl, f), ST.fst0(t)), _) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      {==}
+
+# ---- recolouring keeps every link ----
+
+%def ISNB(x, a, b, q) ST.is_node(K, x, a, b, q)
+
+def isn_modc(-K: Data, +x: $ND, +v: Bool, +a: Nat, +b: Nat, +q: Nat) -> {$ISNB(modc(K, x, v), a, b, q) == $ISNB(x, a, b, q) : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, x1, x2, x3, k}:
+      {==}
+
+def isn_pkc(-K: Data, +e: Bool, +x: $ND, +v: Bool, +a: Nat, +b: Nat, +q: Nat) -> {$ISNB(ST.pk($ND, e, modc(K, x, v), x), a, b, q) == $ISNB(x, a, b, q) : Bool}:
+  match e:
+    case True{}:
+      isn_modc(K, x, v, a, b, q)
+    case False{}:
+      {==}
+
+def isn_setc(-K: Data, +nl: $NL, +id: Nat, +v: Bool, +j: Nat, +a: Nat, +b: Nat, +q: Nat) -> {$ISNB($NDX(setc(K, nl, id, v), j), a, b, q) == $ISNB($NDX(nl, j), a, b, q) : Bool}:
+  %Equal.sym($ND, $NDX(setc(K, nl, id, v), j), ST.pk($ND, Nat.is_eq(id, j), modc(K, $NDX(nl, j), v), $NDX(nl, j)), ndc(K, nl, id, v, j)) : {$ISNB(_, a, b, q) == $ISNB($NDX(nl, j), a, b, q) : Bool}
+  isn_pkc(K, Nat.is_eq(id, j), $NDX(nl, j), v, a, b, q)
+
+def rep_setc(~K: Data, +t: ST.Tr, +p: Nat, +nl: $NL, +id: Nat, +v: Bool) -> {ST.rep(~K, t, p, setc(K, nl, id, v)) == ST.rep(~K, t, p, nl) : Bool}:
+  match t:
+    case ST.TE{}:
+      {==}
+    case ST.TN{+i, +l, +r}:
+      %Equal.sym(Bool, $ISNB($NDX(setc(K, nl, id, v), i), ST.rid(l), ST.rid(r), p), $ISNB($NDX(nl, i), ST.rid(l), ST.rid(r), p), isn_setc(K, nl, id, v, i, ST.rid(l), ST.rid(r), p)) : {Bool.and(Nat.is_lt(0n, i), Bool.and(_, Bool.and(ST.rep(~K, l, i, setc(K, nl, id, v)), ST.rep(~K, r, i, setc(K, nl, id, v))))) == ST.rep(~K, ST.TN{i, l, r}, p, nl) : Bool}
+      %Equal.sym(Bool, ST.rep(~K, l, i, setc(K, nl, id, v)), ST.rep(~K, l, i, nl), rep_setc(~K, l, i, nl, id, v)) : {Bool.and(Nat.is_lt(0n, i), Bool.and($ISNB($NDX(nl, i), ST.rid(l), ST.rid(r), p), Bool.and(_, ST.rep(~K, r, i, setc(K, nl, id, v))))) == ST.rep(~K, ST.TN{i, l, r}, p, nl) : Bool}
+      %Equal.sym(Bool, ST.rep(~K, r, i, setc(K, nl, id, v)), ST.rep(~K, r, i, nl), rep_setc(~K, r, i, nl, id, v)) : {Bool.and(Nat.is_lt(0n, i), Bool.and($ISNB($NDX(nl, i), ST.rid(l), ST.rid(r), p), Bool.and(ST.rep(~K, l, i, nl), _))) == ST.rep(~K, ST.TN{i, l, r}, p, nl) : Bool}
+      {==}
+
+def ctx_setc(~K: Data, +c: List<&2, P.Fr>, +x: Nat, +nl: $NL, +id: Nat, +v: Bool) -> {P.ctxok(~K, c, x, setc(K, nl, id, v)) == P.ctxok(~K, c, x, nl) : Bool}:
+  match c:
+    case Nil{}:
+      {==}
+    case Con{P.FR{+p, +lft, +s}, +u}:
+      %Equal.sym(Bool, $ISNB($NDX(setc(K, nl, id, v), p), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)), $ISNB($NDX(nl, p), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)), isn_setc(K, nl, id, v, p, ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u))) : {Bool.and(Bool.and(Nat.is_lt(0n, p), Bool.and(_, ST.rep(~K, s, p, setc(K, nl, id, v)))), P.ctxok(~K, u, p, setc(K, nl, id, v))) == P.ctxok(~K, Con{P.FR{p, lft, s}, u}, x, nl) : Bool}
+      %Equal.sym(Bool, ST.rep(~K, s, p, setc(K, nl, id, v)), ST.rep(~K, s, p, nl), rep_setc(~K, s, p, nl, id, v)) : {Bool.and(Bool.and(Nat.is_lt(0n, p), Bool.and($ISNB($NDX(nl, p), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)), _)), P.ctxok(~K, u, p, setc(K, nl, id, v))) == P.ctxok(~K, Con{P.FR{p, lft, s}, u}, x, nl) : Bool}
+      %Equal.sym(Bool, P.ctxok(~K, u, p, setc(K, nl, id, v)), P.ctxok(~K, u, p, nl), ctx_setc(~K, u, p, nl, id, v)) : {Bool.and(Bool.and(Nat.is_lt(0n, p), Bool.and($ISNB($NDX(nl, p), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)), ST.rep(~K, s, p, nl))), _) == P.ctxok(~K, Con{P.FR{p, lft, s}, u}, x, nl) : Bool}
+      {==}
+
+# the recoloured node's colour
+def red_modc(-K: Data, +x: $ND, +v: Bool, +h: {ST.is_red(K, x) == ST.is_red(K, x) : Bool}) -> {ST.is_red(K, modc(K, x, False{})) == False{} : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q, k}:
+      {==}
+
+# ---- link setters keep every colour ----
+
+def red_modl(-K: Data, +x: $ND, +v: Nat) -> {ST.is_red(K, modl(K, x, v)) == ST.is_red(K, x) : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q, k}:
+      {==}
+
+def red_pkl(-K: Data, +e: Bool, +x: $ND, +v: Nat) -> {ST.is_red(K, ST.pk($ND, e, modl(K, x, v), x)) == ST.is_red(K, x) : Bool}:
+  match e:
+    case True{}:
+      red_modl(K, x, v)
+    case False{}:
+      {==}
+
+def red_setl(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +j: Nat) -> {ST.is_red(K, $NDX(setl(K, nl, id, v), j)) == ST.is_red(K, $NDX(nl, j)) : Bool}:
+  %Equal.sym($ND, $NDX(setl(K, nl, id, v), j), ST.pk($ND, Nat.is_eq(id, j), modl(K, $NDX(nl, j), v), $NDX(nl, j)), ndl(K, nl, id, v, j)) : {ST.is_red(K, _) == ST.is_red(K, $NDX(nl, j)) : Bool}
+  red_pkl(K, Nat.is_eq(id, j), $NDX(nl, j), v)
+
+def red_modr(-K: Data, +x: $ND, +v: Nat) -> {ST.is_red(K, modr(K, x, v)) == ST.is_red(K, x) : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q, k}:
+      {==}
+
+def red_pkr(-K: Data, +e: Bool, +x: $ND, +v: Nat) -> {ST.is_red(K, ST.pk($ND, e, modr(K, x, v), x)) == ST.is_red(K, x) : Bool}:
+  match e:
+    case True{}:
+      red_modr(K, x, v)
+    case False{}:
+      {==}
+
+def red_setr(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +j: Nat) -> {ST.is_red(K, $NDX(setr(K, nl, id, v), j)) == ST.is_red(K, $NDX(nl, j)) : Bool}:
+  %Equal.sym($ND, $NDX(setr(K, nl, id, v), j), ST.pk($ND, Nat.is_eq(id, j), modr(K, $NDX(nl, j), v), $NDX(nl, j)), ndr(K, nl, id, v, j)) : {ST.is_red(K, _) == ST.is_red(K, $NDX(nl, j)) : Bool}
+  red_pkr(K, Nat.is_eq(id, j), $NDX(nl, j), v)
+
+def red_modp(-K: Data, +x: $ND, +v: Nat) -> {ST.is_red(K, modp(K, x, v)) == ST.is_red(K, x) : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q, k}:
+      {==}
+
+def red_pkp(-K: Data, +e: Bool, +x: $ND, +v: Nat) -> {ST.is_red(K, ST.pk($ND, e, modp(K, x, v), x)) == ST.is_red(K, x) : Bool}:
+  match e:
+    case True{}:
+      red_modp(K, x, v)
+    case False{}:
+      {==}
+
+def red_setp(-K: Data, +nl: $NL, +id: Nat, +v: Nat, +j: Nat) -> {ST.is_red(K, $NDX(setp(K, nl, id, v), j)) == ST.is_red(K, $NDX(nl, j)) : Bool}:
+  %Equal.sym($ND, $NDX(setp(K, nl, id, v), j), ST.pk($ND, Nat.is_eq(id, j), modp(K, $NDX(nl, j), v), $NDX(nl, j)), ndp(K, nl, id, v, j)) : {ST.is_red(K, _) == ST.is_red(K, $NDX(nl, j)) : Bool}
+  red_pkp(K, Nat.is_eq(id, j), $NDX(nl, j), v)

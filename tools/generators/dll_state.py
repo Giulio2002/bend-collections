@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Generate the doubly linked list's shadow, abstraction and invariant
-(proofs/doubly_linked_list/state.bend).
+(proofs/containers/doubly_linked_list/state.bend).
 
 The invariant is a conjunction of Bool components over the shadow's fields;
 the generator writes each component, the conjunction goodF, one accessor
@@ -9,7 +9,7 @@ g_<c> per component, and good_intro, which builds goodF from the components.
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-STATE = ROOT / "proofs/doubly_linked_list/state.bend"
+STATE = ROOT / "proofs/containers/doubly_linked_list/state.bend"
 
 P = ("+tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, "
      "+vT: AR.Tree<Maybe<&2, T>>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, "
@@ -43,18 +43,18 @@ COMPS = [
 NAMES = [c for c, _ in COMPS]
 
 BASE = '''import Base
-import ../lib/logic.bend as L
-import ../lib/nat.bend as N
-import ../lib/array.bend as AR
-import ../spec/common.bend as SC
-import ../spec/doubly_linked_list.bend as S
-import ../math/u32div.bend as UD
-import ../../src/containers/doubly_linked_list.bend as D
-import ../../src/containers/internal/dlist_storage.bend as R
-import ../../src/containers/types/doubly_linked_list.bend as E
-import ../lib/nat_list.bend as NL
-import ../lib/links.bend as LK
-import ../lib/words32.bend as W32
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/array.bend as AR
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../lib/u32div.bend as UD
+import ../../../src/containers/doubly_linked_list.bend as D
+import ../../../src/containers/internal/dlist_storage.bend as R
+import ../../../src/containers/types/doubly_linked_list.bend as E
+import ../../lib/nat_list.bend as NL
+import ../../lib/links.bend as LK
+import ../../lib/words32.bend as W32
 
 # The doubly linked list's shadow: the public list's fields, one mirror tree
 # per array (values, prev links, next links, generations), the ids of the
@@ -75,7 +75,7 @@ def model(~T: Data, sh: Sh<T>) -> S.DS<T>:
     case LS{+tag, +cap, +fresh, +free, +head, +tail, +depth, +vT, +pT, +nT, +gT, +sl, +fl}:
       S.DS{tag, sl, SC.take(Maybe<&2, T>, AR.slots(Maybe<&2, T>, vT), UD.v(fresh)), SC.take(U32, AR.slots(U32, gT), UD.v(fresh)), fl}
 
-# ---- links (lnk, fst_or, last_or, nodupn: the LRU's, proofs/lru/state.bend) ----
+# ---- links (lnk, fst_or, last_or, nodupn: the LRU's, proofs/containers/lru/state.bend) ----
 
 # the segment sl: its first id's prev is p, its last id's next is q, and
 # consecutive ids are linked both ways

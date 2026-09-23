@@ -2,9 +2,9 @@ import Base
 import ./logic.bend as L
 import ./nat.bend as N
 import ./list.bend as LL
-import ../spec/common.bend as SC
+import ./spec_common.bend as SC
 import ../../src/containers/internal/vec.bend as V
-import ../lemmas/proofs/nat_algebra.bend as NA
+import ./lemmas/proofs/nat_algebra.bend as NA
 
 # Functional correctness of the persistent vector src/internal/vec.bend:
 # a perfect tree of depth d means its in-order slot list (length 2^d);

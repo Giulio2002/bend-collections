@@ -1,0 +1,50 @@
+import Base
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./tree.bend as TR
+import ./nbr.bend as NB
+
+# The extremes the deletion reads: from an id the mirror's walk is the
+# node-list walk, so from a node the path leads to it reaches the first
+# (backward) or last (forward) id of its subtree, and refreshing the ends
+# puts the tree's first and last ids in the header.
+# (source: tools/generators/tm_hand/xtr.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def MV Maybe<&2, V>
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def AK ~K, ~V, ~cmp
+%def FT +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: $NL, +pl: List<&2, $MV>, +tg: ST.Tr, +fl: List<&2, Nat>
+%def F n, root, lo, hi, free, l, d, nl, pl, tg, fl
+%def SH ST.SH{$F}
+%def SHT ST.Sh<K, V>
+
+def ext_eq($TK, $FT, +fuel: Nat, +fw: Bool, +id: Nat, +next: Nat) -> {MI.extreme_loop($AK, fuel, fw, id, ($SH, next)) == ($SH, MI.ext_loop(~K, fuel, nl, fw, id, next)) : $SHT & Nat}:
+  match fuel next:
+    case 0n 0n:
+      {==}
+    case 0n 1n+j:
+      {==}
+    case 1n+f 0n:
+      {==}
+    case 1n+f 1n+j:
+      ext_eq($AK, $F, f, fw, 1n+j, M.child(~K, ST.nd(K, nl, 1n+j), fw))
+
+def extreme_m($TK, $FT, +id: Nat, +fw: Bool) -> {MI.extreme($AK, $SH, id, fw) == ($SH, MI.ext_loop(~K, 1n+n, nl, fw, id, M.child(~K, ST.nd(K, nl, id), fw))) : $SHT & Nat}:
+  ext_eq($AK, $F, 1n+n, fw, id, M.child(~K, ST.nd(K, nl, id), fw))
+
+%def SHE(r, a, b) ST.SH{n, r, a, b, free, l, d, nl, pl, tg, fl}
+
+# refreshing the ends of a linked tree
+def refresh_m($TK, +n: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: $NL, +pl: List<&2, $MV>, +tg: ST.Tr, +fl: List<&2, Nat>, +t: ST.Tr, +hr: {ST.rep(~K, t, 0n, nl) == True{} : Bool}, +hf: {Nat.is_lt(TR.ht(t), 1n+n) == True{} : Bool}) -> {MI.refresh_ends($AK, $SHE(ST.rid(t), lo, hi)) == $SHE(ST.rid(t), ST.fst0(ST.ids(t)), ST.last0(ST.ids(t))) : $SHT}:
+  match t:
+    case ST.TE{}:
+      {==}
+    case ST.TN{+j, +a, +b}:
+      %Equal.sym($SHT & Nat, MI.extreme($AK, $SHE(j, lo, hi), j, False{}), ($SHE(j, lo, hi), MI.ext_loop(~K, 1n+n, nl, False{}, j, M.child(~K, ST.nd(K, nl, j), False{}))), extreme_m($AK, n, j, lo, hi, free, l, d, nl, pl, tg, fl, j, False{})) : {MI.refresh_ends_2($AK, j, _) == $SHE(j, ST.fst0(ST.ids(ST.TN{j, a, b})), ST.last0(ST.ids(ST.TN{j, a, b}))) : $SHT}
+      %Equal.sym(Nat, MI.ext_loop(~K, 1n+n, nl, False{}, j, M.child(~K, ST.nd(K, nl, j), False{})), ST.fst0(ST.ids(ST.TN{j, a, b})), NB.ext_l(~K, nl, 1n+n, j, a, b, 0n, hr, hf)) : {MI.refresh_ends_2($AK, j, ($SHE(j, lo, hi), _)) == $SHE(j, ST.fst0(ST.ids(ST.TN{j, a, b})), ST.last0(ST.ids(ST.TN{j, a, b}))) : $SHT}
+      %Equal.sym($SHT & Nat, MI.extreme($AK, $SHE(j, lo, hi), j, True{}), ($SHE(j, lo, hi), MI.ext_loop(~K, 1n+n, nl, True{}, j, M.child(~K, ST.nd(K, nl, j), True{}))), extreme_m($AK, n, j, lo, hi, free, l, d, nl, pl, tg, fl, j, True{})) : {MI.refresh_ends_3($AK, ST.fst0(ST.ids(ST.TN{j, a, b})), _) == $SHE(j, ST.fst0(ST.ids(ST.TN{j, a, b})), ST.last0(ST.ids(ST.TN{j, a, b}))) : $SHT}
+      %Equal.sym(Nat, MI.ext_loop(~K, 1n+n, nl, True{}, j, M.child(~K, ST.nd(K, nl, j), True{})), ST.last0(ST.ids(ST.TN{j, a, b})), NB.ext_r(~K, nl, 1n+n, j, a, b, 0n, hr, hf)) : {MI.refresh_ends_3($AK, ST.fst0(ST.ids(ST.TN{j, a, b})), ($SHE(j, lo, hi), _)) == $SHE(j, ST.fst0(ST.ids(ST.TN{j, a, b})), ST.last0(ST.ids(ST.TN{j, a, b}))) : $SHT}
+      {==}

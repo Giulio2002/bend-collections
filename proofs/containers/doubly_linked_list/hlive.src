@@ -1,0 +1,162 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/array.bend as AR
+import ../../lib/list.bend as LL
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../lib/u32div.bend as UD
+import ../../../src/containers/doubly_linked_list.bend as D
+import ../../../src/containers/internal/dlist_storage.bend as R
+import ../../../src/containers/types/internal_dlist.bend as I
+import ../../../src/containers/types/doubly_linked_list.bend as E
+import ./state.bend as ST
+import ./rel.bend as RL
+import ./vals.bend as VA
+import ./link.bend as LN
+import ./ok.bend as OK
+import ./insp.bend as IP
+import ./rm.bend as RM
+import ./hrd.bend as HR
+import ./hnb.bend as NB
+import ../../lib/nat_list.bend as NL
+import ../../lib/words32.bend as W32
+
+# The live element, split out of its list: next, prev, remove, and the
+# insertions before and after it; and the storage's stale answers for
+# remove and the insertions.
+
+%def APN(a, b) SC.append(Nat, a, b)
+%def MT Maybe<&2, T>
+%def VL AR.slots($MT, vT)
+%def PL AR.slots(U32, pT)
+%def NL AR.slots(U32, nT)
+%def GL AR.slots(U32, gT)
+%def FV UD.v(fresh)
+%def II UD.v(id)
+%def TR(x) {x == True{} : Bool}
+%def VLF SC.take($MT, $VL, $FV)
+%def GLF SC.take(U32, $GL, $FV)
+%def SHZ(z) tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, z, fl
+%def SHA $SHZ(sl)
+%def SH ST.LS{$SHA}
+%def G(c) ST.g_$c(~T, $SHA, hg)
+%def HH E.H{owner, id, g}
+%def RS ST.real(~T, $SH)
+%def MS ST.model(~T, $SH)
+%def OB E.Obs<T>
+%def ST0 E.StaleHandle{}
+%def VP +tag: U32, +cap: U32, +fresh: U32, +free: U32, +head: U32, +tail: U32, +depth: Nat, +vT: AR.Tree<$MT>, +pT: AR.Tree<U32>, +nT: AR.Tree<U32>, +gT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>, +hg: $TR(ST.goodF(~T, $SHA)), +owner: U32, +id: U32, +g: U32
+%def VA tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl, hg, owner, id, g
+%def HO +ho: {U32.is_eq(owner, tag) == True{} : Bool}
+%def CNT SC.length(Nat, sl)
+%def STF tag, fresh, free, $CNT, head, tail, depth, cap
+%def AV AR.thaw($MT, vT)
+%def AP AR.thaw(U32, pT)
+%def AN AR.thaw(U32, nT)
+%def AG AR.thaw(U32, gT)
+%def DO D.DList<T> & $OB
+%def SLAB $APN(a, Con{$II, b})
+%def LIVE(op, z) OK.POK(~T, $OB, S.live_op(T, ST.model(~T, ST.LS{$SHZ(z)}), op, $II), D.dispatch(~T, ST.real(~T, ST.LS{$SHZ(z)}), op))
+
+# ---- splitting the list at the live element ----
+
+def mem_of(~T: Data, $VP, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}) -> $TR(NL.memn($II, sl)):
+  VA.lvin_elim(~T, $VL, 0n, sl, $G(clv), $II, RL.by_eq(ST.live(T, $VL, $II), True{}, Equal.cong($MT, Bool, m => ST.some_b(T, m), S.val_of(T, $VL, $II), Some{vv}, hv), {==}))
+
+def ws_go(~T: Data, $VP, +op: E.Op<T>, sp: NL.Split($II, sl), k: @+a: List<&2, Nat> -> @+b: List<&2, Nat> -> @+hg2: $TR(ST.goodF(~T, $SHZ($SLAB))) -> $LIVE(op, $SLAB)) -> $LIVE(op, sl):
+  match sp:
+    case Tuple{+a, Tuple{+b, e}}:
+      +e2 = {e : {sl == $SLAB : List<&2, Nat>}}
+      +hg2 = L.subst(List<&2, Nat>, z => {ST.goodF(~T, $SHZ(z)) == True{} : Bool}, sl, $SLAB, e2, hg)
+      r = k(a, b, hg2)
+      L.subst(List<&2, Nat>, z => $LIVE(op, z), $SLAB, sl, Equal.sym(List<&2, Nat>, sl, $SLAB, e2), r)
+
+def with_split(~T: Data, $VP, +op: E.Op<T>, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}, k: @+a: List<&2, Nat> -> @+b: List<&2, Nat> -> @+hg2: $TR(ST.goodF(~T, $SHZ($SLAB))) -> $LIVE(op, $SLAB)) -> $LIVE(op, sl):
+  ws_go(~T, $VA, op, NL.split_mem($II, sl, mem_of(~T, $VA, vv, hv)), k)
+
+%def LP $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}, +vv: T, +hv: {S.val_of(T, $VL, $II) == Some{vv} : $MT}, +hgen: {g == W32.nth0($GL, $II) : U32}
+%def ABW(h2) tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, a, b, fl, owner, id, g, h2
+
+def next_live(~T: Data, $VP, +one: Nat, +h1: {one == 1n : Nat}, $LP) -> $LIVE(E.Next{$HH}, sl):
+  with_split(~T, $VA, E.Next{$HH}, vv, hv, a => b => hg2 => NB.nx_ab(~T, $ABW(hg2), one, h1, ho, hlt, vv, hv))
+
+def prev_live(~T: Data, $VP, +one: Nat, +h1: {one == 1n : Nat}, $LP) -> $LIVE(E.Prev{$HH}, sl):
+  with_split(~T, $VA, E.Prev{$HH}, vv, hv, a => b => hg2 => NB.pv_ab(~T, $ABW(hg2), one, h1, ho, hlt, vv, hv))
+
+def rm_live(~T: Data, $VP, +one: Nat, +h1: {one == 1n : Nat}, $LP) -> $LIVE(E.Remove{$HH}, sl):
+  with_split(~T, $VA, E.Remove{$HH}, vv, hv, a => b => hg2 => RM.rm_ok(~T, one, h1, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, a, id, b, fl, hg2, owner, ho, g, hgen, vv, hv))
+
+# ---- remove: the storage's stale answers ----
+
+%def RMC(c1, c2) D.removed(~T, tag, depth, cap, $AG, id, g, R.remove_checked(~T, c1, $STF, $AV, $AP, $AN, id, c2))
+%def RMF(r) D.removed(~T, tag, depth, cap, $AG, id, g, R.rm_found(~T, $STF, $AP, $AN, id, r))
+%def ROP E.Remove{$HH}
+
+def rm_hi(~T: Data, $VP, $HO, +hlt: {Nat.is_lt($II, $FV) == False{} : Bool}) -> {D.dispatch(~T, $RS, $ROP) == ($RS, D.failed(~T, $ROP, $ST0)) : $DO}:
+  Equal.trans($DO, $RMC(U32.is_lt(id, fresh), U32.is_eq(owner, tag)), $RMC(False{}, U32.is_eq(owner, tag)), ($RS, D.failed(~T, $ROP, $ST0)), Equal.cong(Bool, $DO, z => $RMC(z, U32.is_eq(owner, tag)), U32.is_lt(id, fresh), False{}, HR.lt_f(id, fresh, hlt)), Equal.cong(Bool, $DO, z => $RMC(False{}, z), U32.is_eq(owner, tag), True{}, ho))
+
+def rm_none(~T: Data, $VP, $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}, +hv: {S.val_of(T, $VL, $II) == None{} : $MT}) -> {D.dispatch(~T, $RS, $ROP) == ($RS, D.failed(~T, $ROP, $ST0)) : $DO}:
+  +e1 = Equal.cong(Bool, $DO, z => $RMC(z, U32.is_eq(owner, tag)), U32.is_lt(id, fresh), True{}, HR.lt_t(id, fresh, hlt))
+  +e2 = Equal.cong(Bool, $DO, z => $RMC(True{}, z), U32.is_eq(owner, tag), True{}, ho)
+  +e3 = Equal.cong(Array<$MT> & $MT, $DO, r => $RMF(r), Array.get($MT, $AV, id), ($AV, S.val_of(T, $VL, $II)), LN.vget(T, depth, $G(cdep), vT, $G(cpv), id, HR.i_lt(~T, $VA, hlt)))
+  +e4 = Equal.cong($MT, $DO, m => $RMF(($AV, m)), S.val_of(T, $VL, $II), None{}, hv)
+  Equal.trans($DO, $RMC(U32.is_lt(id, fresh), U32.is_eq(owner, tag)), $RMC(True{}, U32.is_eq(owner, tag)), ($RS, D.failed(~T, $ROP, $ST0)), e1, Equal.trans($DO, $RMC(True{}, U32.is_eq(owner, tag)), $RMC(True{}, True{}), ($RS, D.failed(~T, $ROP, $ST0)), e2, Equal.trans($DO, $RMF(Array.get($MT, $AV, id)), $RMF(($AV, S.val_of(T, $VL, $II))), ($RS, D.failed(~T, $ROP, $ST0)), e3, e4)))
+
+# ---- insert before / after ----
+
+%def ICK(af, c1, c2) D.relative_result(~T, tag, depth, cap, $AG, R.insert_checked_reuse(~T, af, c1, $STF, $AV, $AP, $AN, id, x, c2))
+%def IFD(af, r) D.relative_result(~T, tag, depth, cap, $AG, R.ins_found_reuse(~T, af, $STF, $AP, $AN, id, x, r))
+%def IBO E.InsertBefore{$HH, x}
+%def IAO E.InsertAfter{$HH, x}
+
+def ins_hi(~T: Data, $VP, +x: T, +af: Bool, $HO, +hlt: {Nat.is_lt($II, $FV) == False{} : Bool}) -> {$ICK(af, U32.is_lt(id, fresh), U32.is_eq(owner, tag)) == ($RS, E.OInsert{Fail{$ST0}}) : $DO}:
+  Equal.trans($DO, $ICK(af, U32.is_lt(id, fresh), U32.is_eq(owner, tag)), $ICK(af, False{}, U32.is_eq(owner, tag)), ($RS, E.OInsert{Fail{$ST0}}), Equal.cong(Bool, $DO, z => $ICK(af, z, U32.is_eq(owner, tag)), U32.is_lt(id, fresh), False{}, HR.lt_f(id, fresh, hlt)), Equal.cong(Bool, $DO, z => $ICK(af, False{}, z), U32.is_eq(owner, tag), True{}, ho))
+
+def ins_pre(~T: Data, $VP, +x: T, +af: Bool, $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}) -> {$ICK(af, U32.is_lt(id, fresh), U32.is_eq(owner, tag)) == $IFD(af, ($AV, S.val_of(T, $VL, $II))) : $DO}:
+  +e1 = Equal.cong(Bool, $DO, z => $ICK(af, z, U32.is_eq(owner, tag)), U32.is_lt(id, fresh), True{}, HR.lt_t(id, fresh, hlt))
+  +e2 = Equal.cong(Bool, $DO, z => $ICK(af, True{}, z), U32.is_eq(owner, tag), True{}, ho)
+  +e3 = Equal.cong(Array<$MT> & $MT, $DO, r => $IFD(af, r), Array.get($MT, $AV, id), ($AV, S.val_of(T, $VL, $II)), LN.vget(T, depth, $G(cdep), vT, $G(cpv), id, HR.i_lt(~T, $VA, hlt)))
+  Equal.trans($DO, $ICK(af, U32.is_lt(id, fresh), U32.is_eq(owner, tag)), $ICK(af, True{}, U32.is_eq(owner, tag)), $IFD(af, ($AV, S.val_of(T, $VL, $II))), e1, Equal.trans($DO, $ICK(af, True{}, U32.is_eq(owner, tag)), $ICK(af, True{}, True{}), $IFD(af, ($AV, S.val_of(T, $VL, $II))), e2, e3))
+
+def ins_none(~T: Data, $VP, +x: T, +af: Bool, $HO, +hlt: {Nat.is_lt($II, $FV) == True{} : Bool}, +hv: {S.val_of(T, $VL, $II) == None{} : $MT}) -> {$ICK(af, U32.is_lt(id, fresh), U32.is_eq(owner, tag)) == ($RS, E.OInsert{Fail{$ST0}}) : $DO}:
+  Equal.trans($DO, $ICK(af, U32.is_lt(id, fresh), U32.is_eq(owner, tag)), $IFD(af, ($AV, S.val_of(T, $VL, $II))), ($RS, E.OInsert{Fail{$ST0}}), ins_pre(~T, $VA, x, af, ho, hlt), Equal.cong($MT, $DO, m => $IFD(af, ($AV, m)), S.val_of(T, $VL, $II), None{}, hv))
+
+# the relative insertion's result is the insertion's
+def rel_done(~T: Data, +tag: U32, +depth: Nat, +cap: U32, -gens: Array<U32>, r: R.DList<T> & I.Handle) -> {D.relative_result(~T, tag, depth, cap, gens, R.done_handle(~T, r)) == D.relative_done(~T, D.inserted(~T, tag, depth, cap, gens, r)) : $DO}:
+  match r:
+    case Tuple{raw, I.H{o, +i}}:
+      {==}
+
+# a handle result mapped to an observation
+def pok_ins(~T: Data, -sp: S.DS<T> & E.Handle, -rr: D.DList<T> & E.Handle, p: OK.POK(~T, E.Handle, sp, rr)) -> OK.POK(~T, $OB, S.ins_obs(T, sp), D.relative_done(~T, rr)):
+  match p:
+    case Tuple{+sh2, Tuple{+o, Tuple{+er, Tuple{+es, hg2}}}}:
+      (sh2, (E.OInsert{Done{o}}, (Equal.cong(D.DList<T> & E.Handle, $DO, r => D.relative_done(~T, r), rr, (ST.real(~T, sh2), o), er), (Equal.cong(S.DS<T> & E.Handle, S.DS<T> & $OB, r => S.ins_obs(T, r), sp, (ST.model(~T, sh2), o), es), hg2))))
+
+def pok_push(~T: Data, -sp: S.DS<T> & E.Handle, -rr: D.DList<T> & E.Handle, p: OK.POK(~T, E.Handle, sp, rr)) -> OK.POK(~T, $OB, S.pushed(T, sp), D.pushed_obs(~T, rr)):
+  match p:
+    case Tuple{+sh2, Tuple{+o, Tuple{+er, Tuple{+es, hg2}}}}:
+      (sh2, (E.OHandle{o}, (Equal.cong(D.DList<T> & E.Handle, $DO, r => D.pushed_obs(~T, r), rr, (ST.real(~T, sh2), o), er), (Equal.cong(S.DS<T> & E.Handle, S.DS<T> & $OB, r => S.pushed(T, r), sp, (ST.model(~T, sh2), o), es), hg2))))
+
+# the specification's placement is the placement between a and b
+def ins_pos(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, $MT>, +gens: List<&2, U32>, +free: List<&2, Nat>, +x: T, +pos: S.Pos, +a: List<&2, Nat>, +b: List<&2, Nat>, e: @+n: Nat -> {S.place_order(pos, order, n) == $APN(a, Con{n, b}) : List<&2, Nat>}) -> {S.inserted(T, S.alloc(T, S.DS{tag, order, vals, gens, free}), x, pos) == IP.insAB(T, S.alloc(T, S.DS{tag, order, vals, gens, free}), x, a, b) : S.DS<T> & E.Handle}:
+  match free:
+    case Nil{}:
+      Equal.cong(List<&2, Nat>, S.DS<T> & E.Handle, z => (S.DS{tag, z, SC.update($MT, SC.snoc($MT, vals, None{}), SC.length($MT, vals), Some{x}), SC.snoc(U32, gens, 0), Nil{}}, S.handle(tag, SC.snoc(U32, gens, 0), SC.length($MT, vals))), S.place_order(pos, order, SC.length($MT, vals)), $APN(a, Con{SC.length($MT, vals), b}), e(SC.length($MT, vals)))
+    case Con{+i, +rest}:
+      Equal.cong(List<&2, Nat>, S.DS<T> & E.Handle, z => (S.DS{tag, z, SC.update($MT, vals, i, Some{x}), gens, rest}, S.handle(tag, gens, i)), S.place_order(pos, order, i), $APN(a, Con{i, b}), e(i))
+
+def ib_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +n: Nat, +h: {NL.memn(s, a) == False{} : Bool}) -> {S.ins_before($APN(a, Con{s, b}), s, n) == $APN(a, Con{n, Con{s, b}}) : List<&2, Nat>}:
+  match a:
+    case Nil{}:
+      Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{n, Con{s, b}}, Con{s, S.ins_before(b, s, n)}), Nat.is_eq(s, s), True{}, N.is_eq_refl(s))
+    case Con{+y, +t}:
+      Equal.trans(List<&2, Nat>, S.ins_before($APN(Con{y, t}, Con{s, b}), s, n), Con{y, S.ins_before($APN(t, Con{s, b}), s, n)}, $APN(Con{y, t}, Con{n, Con{s, b}}), Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{n, Con{y, $APN(t, Con{s, b})}}, Con{y, S.ins_before($APN(t, Con{s, b}), s, n)}), Nat.is_eq(y, s), False{}, NL.or_ff_l(Nat.is_eq(y, s), NL.memn(s, t), h)), LL.cons_cong(Nat, y, S.ins_before($APN(t, Con{s, b}), s, n), $APN(t, Con{n, Con{s, b}}), ib_mid(t, s, b, n, NL.or_ff_r(Nat.is_eq(y, s), NL.memn(s, t), h))))
+
+def ia_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>, +n: Nat, +h: {NL.memn(s, a) == False{} : Bool}) -> {S.ins_after($APN(a, Con{s, b}), s, n) == $APN(a, Con{s, Con{n, b}}) : List<&2, Nat>}:
+  match a:
+    case Nil{}:
+      Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{s, Con{n, b}}, Con{s, S.ins_after(b, s, n)}), Nat.is_eq(s, s), True{}, N.is_eq_refl(s))
+    case Con{+y, +t}:
+      Equal.trans(List<&2, Nat>, S.ins_after($APN(Con{y, t}, Con{s, b}), s, n), Con{y, S.ins_after($APN(t, Con{s, b}), s, n)}, $APN(Con{y, t}, Con{s, Con{n, b}}), Equal.cong(Bool, List<&2, Nat>, z => S.pick_list(z, Con{y, Con{n, $APN(t, Con{s, b})}}, Con{y, S.ins_after($APN(t, Con{s, b}), s, n)}), Nat.is_eq(y, s), False{}, NL.or_ff_l(Nat.is_eq(y, s), NL.memn(s, t), h)), LL.cons_cong(Nat, y, S.ins_after($APN(t, Con{s, b}), s, n), $APN(t, Con{s, Con{n, b}}), ia_mid(t, s, b, n, NL.or_ff_r(Nat.is_eq(y, s), NL.memn(s, t), h))))

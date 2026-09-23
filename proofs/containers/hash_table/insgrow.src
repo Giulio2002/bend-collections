@@ -1,0 +1,184 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/array.bend as AR
+import ../../lib/spec_common.bend as SC
+import ./spec.bend as S
+import ../../lib/u32div.bend as UD
+import ../../../src/math/hash.bend as HS
+import ../../../src/containers/hash_table.bend as H
+import ./keys.bend as K
+import ./table.bend as TB
+import ./buckets.bend as B
+import ./modn.bend as M
+import ./cyc.bend as CY
+import ./inv.bend as IV
+import ./state.bend as ST
+import ./size.bend as SZ
+import ./speclem.bend as SL
+import ./probe_all.bend as PA
+import ./insm.bend as IM
+import ./insu.bend as IU
+import ./insert.bend as IS
+import ./words.bend as WR
+import ./rawins.bend as RI
+import ./rehash.bend as RH
+import ./grow.bend as GR
+import ../../lib/nat_list.bend as NL
+import ../../lib/words32.bend as W32
+
+# Placing a new entry when the table must grow: the grown table holds
+# copies of every old bucket, so it looks keys up as the old one did, and
+# the new entry goes into the first empty bucket of its path there.
+
+%include insert.src
+%def N2 SC.pow2(1n+k)
+%def HYG +hk31: {Nat.is_lt(k, 31n) $TT, +hk0: {Nat.is_lt(0n, k) $TT, +hsd: {Nat.is_lt(sd, 32n) $TT, +hsdk1: {Nat.is_le(sd, k) $TT, +pt: {AR.perfect(U32, 1n+k, tabT) $TT, +pk: {AR.perfect(String, sd, ksT) $TT, +pv: {AR.perfect(Maybe<&2, V>, sd, vsT) $TT, +pn: {AR.perfect(U32, sd, nxT) $TT, +htd: {Nat.is_eq(UD.v(td), 1n+k) $TT, +hsz: {Nat.is_eq(UD.v(sz), SC.pow2(sd)) $TT, +hsdu: {Nat.is_eq(UD.v(sdU), sd) $TT, +hwell: {B.all_lt(B.PWell{$BS, sd}, $NN) $TT, +huq: {B.all_lt(B.PUniq{$BS}, $NN) $TT, +hcn: {Nat.is_eq(UD.v(n), IV.occn($BS, $NN)) $TT, +hld: {Nat.is_le(Nat.double(UD.v(n)), $NN) $TT, +hl: {B.all_lt(B.PLive{$BS, ST.lvs(~V, $VSL), UD.v(fr)}, $NN) $TT, +hfr: {Nat.is_le(UD.v(fr), UD.v(sz)) $TT, +hnf: {Nat.is_le(1n+UD.v(n), UD.v(fr)) $TT, +hfl: {ST.fl_ok($BS, $NN, $NXL, $CNT, free, UD.v(fr), Con{UD.v(s), Nil{}}) $TT, +hs: {Nat.is_lt(UD.v(s), UD.v(fr)) $TT, +hns: {ST.noslot($BS, UD.v(s), $NN) $TT, +hno: {B.all_lt(B.PNo{$BS, key}, $NN) $TT
+%def HGA hk31, hk0, hsd, hsdk1, pt, pk, pv, pn, htd, hsz, hsdu, hwell, huq, hcn, hld, hl, hfr, hnf, hfl, hs, hns, hno
+%def CAP +cap: Nat, +hc30: {Nat.is_le(cap, 30n) $TT, +hcap: {Nat.is_le(Nat.double(1n+UD.v(n)), SC.pow2(cap)) $TT
+%def CA cap, hc30, hcap
+%def OVER U32.is_gt(U32.shl(U32.inc(n)), U32.inc(CY.msk(k)))
+%def HOVT +hovi: {$OVER $TT
+
+# ---- the specification's set respects equal lookups ----
+
+def sle_c(~V: Data, +m1: List<&2, S.Entry<V>>, +m2: List<&2, S.Entry<V>>, +key: String, +x: V, +q: String, +e: {S.lookup(~V, m1, q) == S.lookup(~V, m2, q) : Maybe<&2, V>}, +c: Bool, +hc: {S.str_eq(key, q) == c : Bool}) -> {S.lookup(~V, S.set(~V, m1, key, x), q) == S.lookup(~V, S.set(~V, m2, key, x), q) : Maybe<&2, V>}:
+  match c:
+    case True{}:
+      Equal.trans(Maybe<&2, V>, S.lookup(~V, S.set(~V, m1, key, x), q), Some{x}, S.lookup(~V, S.set(~V, m2, key, x), q), SL.lookup_set_same(~V, m1, key, x, q, hc), Equal.sym(Maybe<&2, V>, S.lookup(~V, S.set(~V, m2, key, x), q), Some{x}, SL.lookup_set_same(~V, m2, key, x, q, hc)))
+    case False{}:
+      Equal.trans(Maybe<&2, V>, S.lookup(~V, S.set(~V, m1, key, x), q), S.lookup(~V, m1, q), S.lookup(~V, S.set(~V, m2, key, x), q), SL.lookup_set_other(~V, m1, key, x, q, hc), Equal.trans(Maybe<&2, V>, S.lookup(~V, m1, q), S.lookup(~V, m2, q), S.lookup(~V, S.set(~V, m2, key, x), q), e, Equal.sym(Maybe<&2, V>, S.lookup(~V, S.set(~V, m2, key, x), q), S.lookup(~V, m2, q), SL.lookup_set_other(~V, m2, key, x, q, hc))))
+
+def ssz_c(~V: Data, +m1: List<&2, S.Entry<V>>, +m2: List<&2, S.Entry<V>>, +key: String, +x: V, +hs: {S.size(~V, m1) == S.size(~V, m2) : Nat}, +mv: Maybe<&2, V>, +h1: {S.lookup(~V, m1, key) == mv : Maybe<&2, V>}, +h2: {S.lookup(~V, m2, key) == mv : Maybe<&2, V>}) -> {S.size(~V, S.set(~V, m1, key, x)) == S.size(~V, S.set(~V, m2, key, x)) : Nat}:
+  match mv:
+    case None{}:
+      Equal.trans(Nat, S.size(~V, S.set(~V, m1, key, x)), 1n+S.size(~V, m1), S.size(~V, S.set(~V, m2, key, x)), SL.size_set_new(~V, m1, key, x, h1), Equal.trans(Nat, 1n+S.size(~V, m1), 1n+S.size(~V, m2), S.size(~V, S.set(~V, m2, key, x)), Equal.cong(Nat, Nat, z => 1n+z, S.size(~V, m1), S.size(~V, m2), hs), Equal.sym(Nat, S.size(~V, S.set(~V, m2, key, x)), 1n+S.size(~V, m2), SL.size_set_new(~V, m2, key, x, h2))))
+    case Some{+v}:
+      Equal.trans(Nat, S.size(~V, S.set(~V, m1, key, x)), S.size(~V, m1), S.size(~V, S.set(~V, m2, key, x)), SL.size_set_old(~V, m1, key, x, v, h1), Equal.trans(Nat, S.size(~V, m1), S.size(~V, m2), S.size(~V, S.set(~V, m2, key, x)), hs, Equal.sym(Nat, S.size(~V, S.set(~V, m2, key, x)), S.size(~V, m2), SL.size_set_old(~V, m2, key, x, v, h2))))
+
+# THEOREM: an update refining set on one model refines it on any model with
+# the same lookups and size
+def setm_tr(~V: Data, +m1: List<&2, S.Entry<V>>, +m2: List<&2, S.Entry<V>>, +key: String, +x: V, heq: @+q: String -> {S.lookup(~V, m1, q) == S.lookup(~V, m2, q) : Maybe<&2, V>}, +hk: {S.lookup(~V, m1, key) == S.lookup(~V, m2, key) : Maybe<&2, V>}, +hs: {S.size(~V, m1) == S.size(~V, m2) : Nat}, -r: H.HashMap<&2, V>, sm: IS.SetM(~V, m1, key, x, r)) -> IS.SetM(~V, m2, key, x, r):
+  match sm:
+    case Tuple{+sh2, Tuple{er, Tuple{hg, Tuple{hlk, hsz}}}}:
+      (sh2, (er, (hg, (q => Equal.trans(Maybe<&2, V>, S.lookup(~V, ST.model(~V, sh2), q), S.lookup(~V, S.set(~V, m1, key, x), q), S.lookup(~V, S.set(~V, m2, key, x), q), hlk(q), sle_c(~V, m1, m2, key, x, q, heq(q), S.str_eq(key, q), {==})), Equal.trans(Nat, S.size(~V, ST.model(~V, sh2)), S.size(~V, S.set(~V, m1, key, x)), S.size(~V, S.set(~V, m2, key, x)), hsz, ssz_c(~V, m1, m2, key, x, hs, S.lookup(~V, m1, key), {==}, Equal.sym(Maybe<&2, V>, S.lookup(~V, m1, key), S.lookup(~V, m2, key), hk)))))))
+
+def plt_c(+a: Nat, +b: Nat, +h: {Nat.is_lt(SC.pow2(a), SC.pow2(b)) $TT, +c: Bool, +hc: {Nat.is_lt(a, b) == c : Bool}) -> {c $TT:
+  match c:
+    case True{}:
+      {==}
+    case False{}:
+      Empty.absurd({False{} $TT, L.true_false(Equal.trans(Bool, True{}, Nat.is_le(SC.pow2(b), SC.pow2(a)), False{}, Equal.sym(Bool, Nat.is_le(SC.pow2(b), SC.pow2(a)), True{}, N.pow2_mono(b, a, N.not_lt_le(a, b, hc))), N.lt_not_le(SC.pow2(a), SC.pow2(b), h))))
+
+def pow2_lt_inv(+a: Nat, +b: Nat, +h: {Nat.is_lt(SC.pow2(a), SC.pow2(b)) $TT) -> {Nat.is_lt(a, b) $TT:
+  plt_c(a, b, h, Nat.is_lt(a, b), {==})
+
+# ---- facts carried to the grown table ----
+
+def lng_c(+c: Cmp, +h: {Cmp.is_le(c) $TT) -> {Cmp.is_gt(c) $FF:
+  match c:
+    case LT{}:
+      {==}
+    case EQ{}:
+      {==}
+    case GT{}:
+      Empty.absurd({Cmp.is_gt(GT{}) $FF, L.false_true(h))
+
+def le_not_gt(+a: Nat, +b: Nat, +h: {Nat.is_le(a, b) $TT) -> {Nat.is_gt(a, b) $FF:
+  lng_c(Nat.cmp(a, b), h)
+
+%def TF UD.v(H.slot(f))
+
+def fl_from(+nbs: List<&2, B.Bk>, +obs: List<&2, B.Bk>, +j: Nat, +n2: Nat, +hf: {B.all_lt(B.PFrom{nbs, obs, j}, n2) $TT, +nxl: List<&2, U32>, +cnt: Nat, +f: U32, +fr: Nat, +seen: List<&2, Nat>, +h: {ST.fl_ok(obs, j, nxl, cnt, f, fr, seen) $TT) -> {ST.fl_ok(nbs, n2, nxl, cnt, f, fr, seen) $TT:
+  match cnt:
+    case 0n:
+      h
+    case 1n+p:
+      +x1 = Bool.not(U32.is_eq(f, 0))
+      +y = Bool.and(Nat.is_lt($TF, fr), Bool.and(ST.noslot(obs, $TF, j), Bool.not(NL.memn($TF, seen))))
+      +tl = ST.fl_ok(obs, j, nxl, p, W32.nth0(nxl, $TF), fr, Con{$TF, seen})
+      +z = Bool.and(ST.noslot(obs, $TF, j), Bool.not(NL.memn($TF, seen)))
+      +a2 = L.and_left(y, tl, L.and_right(x1, Bool.and(y, tl), h))
+      +a5 = L.and_right(y, tl, L.and_right(x1, Bool.and(y, tl), h))
+      +ns = L.and_left(ST.noslot(obs, $TF, j), Bool.not(NL.memn($TF, seen)), L.and_right(Nat.is_lt($TF, fr), z, a2))
+      +nm = L.and_right(ST.noslot(obs, $TF, j), Bool.not(NL.memn($TF, seen)), L.and_right(Nat.is_lt($TF, fr), z, a2))
+      +y2 = Bool.and(Nat.is_lt($TF, fr), Bool.and(ST.noslot(nbs, $TF, n2), Bool.not(NL.memn($TF, seen))))
+      +tl2 = ST.fl_ok(nbs, n2, nxl, p, W32.nth0(nxl, $TF), fr, Con{$TF, seen})
+      L.and_intro(x1, Bool.and(y2, tl2), L.and_left(x1, Bool.and(y, tl), h), L.and_intro(y2, tl2, L.and_intro(Nat.is_lt($TF, fr), Bool.and(ST.noslot(nbs, $TF, n2), Bool.not(NL.memn($TF, seen))), L.and_left(Nat.is_lt($TF, fr), z, a2), L.and_intro(ST.noslot(nbs, $TF, n2), Bool.not(NL.memn($TF, seen)), RH.ns_from(nbs, obs, j, n2, hf, $TF, ns, n2, N.le_refl(n2)), nm)), fl_from(nbs, obs, j, n2, hf, nxl, p, W32.nth0(nxl, $TF), fr, Con{$TF, seen}, a5)))
+
+# with 2(n + 1) <= 2^cap and cap <= 30, growth stays below 2^31 buckets
+def k30($PP, $HYG, $CAP, $HOVT) -> {Nat.is_lt(1n+k, 31n) $TT:
+  +hov = Equal.trans(Bool, Nat.is_gt(Nat.double(1n+UD.v(n)), $NN), $OVER, True{}, Equal.sym(Bool, $OVER, Nat.is_gt(Nat.double(1n+UD.v(n)), $NN), IU.over_val(one, h1, k, hk31, hk0, n, hld)), hovi)
+  +lt = N.not_le_lt(Nat.double(1n+UD.v(n)), $NN, IU.gt_true_nle(Nat.double(1n+UD.v(n)), $NN, hov))
+  N.lt_le_trans(k, cap, 30n, pow2_lt_inv(k, cap, N.lt_le_trans($NN, Nat.double(1n+UD.v(n)), SC.pow2(cap), lt, hcap)), hc30)
+
+%def NT2 TB.buckets(AR.slots(U32, NT), $KL, $N2)
+%def GRA tabT, $KL, k, sd, NT, $NN, hr
+%def HOMEg UD.v(HS.bucket($W, CY.msk(1n+k)))
+%def INSG H.ins_slot(&2, V, n, CY.msk(1n+k), U32.inc(td), fr, sz, sdU, free, AR.thaw(U32, NT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), AR.thaw(U32, nxT), s, U32.from_nat(e2), $W, $SK, x, U32.is_gt(U32.shl(U32.inc(n)), U32.inc(CY.msk(1n+k))))
+%def FIN H.ins_fin(&2, V, n, mm, U32.inc(td), fr, sz, sdU, free, tt, AR.thaw(U32, nxT), H.store(&2, V, AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), s, $SK, x))
+%def M0g ST.absm(~V, $NT2, $VSL, $N2, 0n)
+%def GP +hk30: {Nat.is_lt(1n+k, 31n) $TT, +NT: AR.Tree<U32>, +eg: {H.grow_tab(CY.msk(k), td, AR.thaw(U32, tabT)) == AR.thaw(U32, NT) : Array<U32>}, +hr: {GR.rinv(tabT, $KL, k, sd, NT, $NN) $TT
+
+def ig_2($PP, $HYG, $HOVT, $GP, fe: RI.FirstE($NT2, $N2, $HOMEg)) -> IS.SetM(~V, $M0, key, x, $INS):
+  match fe:
+    case Tuple{+e2, Tuple{+he2, Tuple{+hz2, hp0}}}:
+      +hp2 = {hp0 : {B.occpath($NT2, $N2, $HOMEg, M.dist($N2, $HOMEg, e2)) $TT}
+      +r1 = GR.r_1($GRA)
+      +r5 = N.eq_from_is_eq(IV.occn($NT2, $N2), IV.occn($BS, $NN), GR.r_5($GRA))
+      +r6 = GR.r_6($GRA)
+      +hlv = RH.live_from($NT2, $BS, $NN, $N2, r6, ST.lvs(~V, $VSL), UD.v(fr), hl, $N2, N.le_refl($N2))
+      +hns2 = RH.ns_from($NT2, $BS, $NN, $N2, r6, UD.v(s), hns, $N2, N.le_refl($N2))
+      +hno2 = RH.pno_from($NT2, $BS, $NN, $N2, r6, key, IM.nohb_pno($BS, key, $NN, hno, $NN, N.le_refl($NN)), $N2, N.le_refl($N2))
+      +hfl2 = fl_from($NT2, $BS, $NN, $N2, r6, $NXL, $CNT, free, UD.v(fr), Con{UD.v(s), Nil{}}, hfl)
+      +ecn = Equal.trans(Nat, UD.v(n), IV.occn($BS, $NN), IV.occn($NT2, $N2), N.eq_from_is_eq(UD.v(n), IV.occn($BS, $NN), hcn), Equal.sym(Nat, IV.occn($NT2, $N2), IV.occn($BS, $NN), r5))
+      +hld2 = N.le_trans(Nat.double(UD.v(n)), $NN, $N2, hld, N.lt_le($NN, $N2, N.pow2_lt_succ(k)))
+      +vtd = N.eq_from_is_eq(UD.v(td), 1n+k, htd)
+      +htd5 = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(5n)) $TT, 1n+k, UD.v(td), Equal.sym(Nat, UD.v(td), 1n+k, vtd), N.lt_trans(1n+k, 31n, 32n, hk30, {==}))
+      +etd = Equal.trans(Nat, UD.v(U32.inc(td)), 1n+UD.v(td), 2n+k, W32.inc_val(one, h1, td, W32.bound32(one, h1, UD.v(td), 5n, {==}, htd5)), Equal.cong(Nat, Nat, z => 1n+z, UD.v(td), 1n+k, vtd))
+      +ov2 = IU.over_val(one, h1, 1n+k, hk30, {==}, n, hld2)
+      +le2 = N.double_le(1n+UD.v(n), $NN, IU.over_c(one, h1, k, hk31, hk0, UD.v(n), hld))
+      +hovi2 = Equal.trans(Bool, U32.is_gt(U32.shl(U32.inc(n)), U32.inc(CY.msk(1n+k))), Nat.is_gt(Nat.double(1n+UD.v(n)), $N2), False{}, ov2, le_not_gt(Nat.double(1n+UD.v(n)), $N2, le2))
+      res = IS.ins_nogrow(~V, one, h1, n, 1n+k, U32.inc(td), fr, sz, sd, sdU, free, NT, ksT, vsT, nxT, s, e2, key, x, hk30, {==}, hsd, N.le_lt_succ(sd, k, hsdk1), r1, pk, pv, pn, IS.eq_is_eq(UD.v(U32.inc(td)), 2n+k, etd), hsz, hsdu, GR.r_3($GRA), GR.r_2($GRA), GR.r_4($GRA), IS.eq_is_eq(UD.v(n), IV.occn($NT2, $N2), ecn), hld2, hlv, hfr, hnf, hfl2, hs, hns2, he2, hz2, hp2, hno2, hovi2)
+      +ea = Equal.cong(Bool, H.HashMap<&2, V>, b => H.ins_slot(&2, V, n, CY.msk(k), td, fr, sz, sdU, free, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), AR.thaw(U32, nxT), s, $AT, $W, $SK, x, b), $OVER, True{}, hovi)
+      +eb = Equal.cong(U32, H.HashMap<&2, V>, mm => H.ins_fin(&2, V, n, mm, U32.inc(td), fr, sz, sdU, free, H.ins_raw(H.grow_tab(CY.msk(k), td, AR.thaw(U32, tabT)), mm, $W, $LK), AR.thaw(U32, nxT), H.store(&2, V, AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), s, $SK, x)), U32.inc(U32.shl(CY.msk(k))), CY.msk(1n+k), GR.msk_up(one, h1, k, hk31))
+      +ec = Equal.cong(Array<U32>, H.HashMap<&2, V>, t => H.ins_fin(&2, V, n, CY.msk(1n+k), U32.inc(td), fr, sz, sdU, free, H.ins_raw(t, CY.msk(1n+k), $W, $LK), AR.thaw(U32, nxT), H.store(&2, V, AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), s, $SK, x)), H.grow_tab(CY.msk(k), td, AR.thaw(U32, tabT)), AR.thaw(U32, NT), eg)
+      +ed = Equal.cong(Array<U32>, H.HashMap<&2, V>, tt => H.ins_fin(&2, V, n, CY.msk(1n+k), U32.inc(td), fr, sz, sdU, free, tt, AR.thaw(U32, nxT), H.store(&2, V, AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), s, $SK, x)), H.ins_raw(AR.thaw(U32, NT), CY.msk(1n+k), $W, $LK), H.put_bucket(AR.thaw(U32, NT), U32.from_nat(e2), $W, $LK), RI.raw_ok(one, h1, 1n+k, hk30, NT, r1, $KL, $W, $LK, e2, he2, hz2, hp2))
+      +ef = Equal.sym(H.HashMap<&2, V>, $INSG, H.ins_slot(&2, V, n, CY.msk(1n+k), U32.inc(td), fr, sz, sdU, free, AR.thaw(U32, NT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), AR.thaw(U32, nxT), s, U32.from_nat(e2), $W, $SK, x, False{}), Equal.cong(Bool, H.HashMap<&2, V>, b => H.ins_slot(&2, V, n, CY.msk(1n+k), U32.inc(td), fr, sz, sdU, free, AR.thaw(U32, NT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), AR.thaw(U32, nxT), s, U32.from_nat(e2), $W, $SK, x, b), U32.is_gt(U32.shl(U32.inc(n)), U32.inc(CY.msk(1n+k))), False{}, hovi2))
+      +eq = Equal.trans(H.HashMap<&2, V>, $INS, H.ins_slot(&2, V, n, CY.msk(k), td, fr, sz, sdU, free, AR.thaw(U32, tabT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), AR.thaw(U32, nxT), s, $AT, $W, $SK, x, True{}), $INSG, ea, Equal.trans(H.HashMap<&2, V>, H.ins_fin(&2, V, n, U32.inc(U32.shl(CY.msk(k))), U32.inc(td), fr, sz, sdU, free, H.ins_raw(H.grow_tab(CY.msk(k), td, AR.thaw(U32, tabT)), U32.inc(U32.shl(CY.msk(k))), $W, $LK), AR.thaw(U32, nxT), H.store(&2, V, AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), s, $SK, x)), H.ins_fin(&2, V, n, CY.msk(1n+k), U32.inc(td), fr, sz, sdU, free, H.ins_raw(H.grow_tab(CY.msk(k), td, AR.thaw(U32, tabT)), CY.msk(1n+k), $W, $LK), AR.thaw(U32, nxT), H.store(&2, V, AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), s, $SK, x)), $INSG, eb, Equal.trans(H.HashMap<&2, V>, H.ins_fin(&2, V, n, CY.msk(1n+k), U32.inc(td), fr, sz, sdU, free, H.ins_raw(H.grow_tab(CY.msk(k), td, AR.thaw(U32, tabT)), CY.msk(1n+k), $W, $LK), AR.thaw(U32, nxT), H.store(&2, V, AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), s, $SK, x)), H.ins_fin(&2, V, n, CY.msk(1n+k), U32.inc(td), fr, sz, sdU, free, H.ins_raw(AR.thaw(U32, NT), CY.msk(1n+k), $W, $LK), AR.thaw(U32, nxT), H.store(&2, V, AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), s, $SK, x)), $INSG, ec, Equal.trans(H.HashMap<&2, V>, H.ins_fin(&2, V, n, CY.msk(1n+k), U32.inc(td), fr, sz, sdU, free, H.ins_raw(AR.thaw(U32, NT), CY.msk(1n+k), $W, $LK), AR.thaw(U32, nxT), H.store(&2, V, AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), s, $SK, x)), H.ins_slot(&2, V, n, CY.msk(1n+k), U32.inc(td), fr, sz, sdU, free, AR.thaw(U32, NT), AR.thaw(String, ksT), AR.thaw(Maybe<&2, V>, vsT), AR.thaw(U32, nxT), s, U32.from_nat(e2), $W, $SK, x, False{}), $INSG, ed, ef))))
+      r2 = L.subst(H.HashMap<&2, V>, r => IS.SetM(~V, $M0g, key, x, r), $INSG, $INS, Equal.sym(H.HashMap<&2, V>, $INS, $INSG, eq), res)
+      +hsz = Equal.trans(Nat, S.size(~V, $M0g), IV.occn($NT2, $N2), S.size(~V, $M0), SZ.size_absm(~V, $NT2, $VSL, UD.v(fr), $N2, hlv, $N2, N.le_refl($N2)), Equal.trans(Nat, IV.occn($NT2, $N2), IV.occn($BS, $NN), S.size(~V, $M0), r5, Equal.sym(Nat, S.size(~V, $M0), IV.occn($BS, $NN), SZ.size_absm(~V, $BS, $VSL, UD.v(fr), $NN, hl, $NN, N.le_refl($NN)))))
+      setm_tr(~V, $M0g, $M0, key, x, q => RH.lookup_copy(~V, $NT2, $BS, $NN, $N2, r6, GR.r_7($GRA), GR.r_4($GRA), huq, $VSL, q), RH.lookup_copy(~V, $NT2, $BS, $NN, $N2, r6, GR.r_7($GRA), GR.r_4($GRA), huq, $VSL, key), hsz, $INS, r2)
+
+def ig_1($PP, $HYG, $HOVT, +hk30: {Nat.is_lt(1n+k, 31n) $TT, gg: GR.GrowOK(tabT, $KL, k, sd, td)) -> IS.SetM(~V, $M0, key, x, $INS):
+  match gg:
+    case Tuple{+NT, Tuple{+eg, +hr}}:
+      +r5 = N.eq_from_is_eq(IV.occn($NT2, $N2), IV.occn($BS, $NN), GR.r_5($GRA))
+      +ob = L.subst(Nat, z => {Nat.is_le(Nat.double(z), $NN) $TT, UD.v(n), IV.occn($BS, $NN), N.eq_from_is_eq(UD.v(n), IV.occn($BS, $NN), hcn), hld)
+      +hem = L.subst(Nat, z => {Nat.is_lt(z, $N2) $TT, IV.occn($BS, $NN), IV.occn($NT2, $N2), Equal.sym(Nat, IV.occn($NT2, $N2), IV.occn($BS, $NN), r5), N.le_lt_trans(IV.occn($BS, $NN), $NN, $N2, N.le_trans(IV.occn($BS, $NN), Nat.double(IV.occn($BS, $NN)), $NN, N.double_self_le(IV.occn($BS, $NN)), ob), N.pow2_lt_succ(k)))
+      +pno = RH.pno_from($NT2, $BS, $NN, $N2, GR.r_6($GRA), key, IM.nohb_pno($BS, key, $NN, hno, $NN, N.le_refl($NN)), $N2, N.le_refl($N2))
+      ig_2($PA, $HGA, hovi, hk30, NT, eg, hr, RI.find_e($NT2, $N2, N.succ_le_lt(0n, $N2, N.pow2_pos(1n+k)), CY.msk(1n+k), key, $HOMEg, PA.home_lt($W, 1n+k), GR.r_2($GRA), pno, hem))
+
+# THEOREM: placing a new entry into a table that must grow refines set
+def ins_grow($PP, $HYG, $CAP, $HOVT) -> IS.SetM(~V, $M0, key, x, $INS):
+  +hk30 = k30($PA, $HGA, $CA, hovi)
+  +ob = L.subst(Nat, z => {Nat.is_le(Nat.double(z), $NN) $TT, UD.v(n), IV.occn($BS, $NN), N.eq_from_is_eq(UD.v(n), IV.occn($BS, $NN), hcn), hld)
+  ig_1($PA, $HGA, hovi, hk30, GR.grow_ok(one, h1, k, hk31, hk30, hk0, tabT, pt, $KL, sd, AR.slots_length(String, sd, ksT, pk), hwell, huq, ob, td, N.eq_from_is_eq(UD.v(td), 1n+k, htd)))
+
+# ---- either way ----
+
+%def HYA $HYG, +hcl: {B.cluster($BS, $NN, CY.msk(k)) $TT, +hsdk2: {Bool.or(Nat.is_lt(sd, k), $OVER) $TT, +he: {Nat.is_lt(e, $NN) $TT, +hz: {B.at($BS, e) == B.BE{} : B.Bk}, +hp: {B.occpath($BS, $NN, $HOME, M.dist($NN, $HOME, e)) $TT
+%def HAA $HGA, hcl, hsdk2, he, hz, hp
+
+def ia_c($PP, $HYA, $CAP, +c: Bool, +hc: {$OVER == c : Bool}) -> IS.SetM(~V, $M0, key, x, $INS):
+  match c:
+    case False{}:
+      +h2 = L.subst(Bool, b => {Bool.or(Nat.is_lt(sd, k), b) $TT, $OVER, False{}, hc, hsdk2)
+      +hsdk = Equal.trans(Bool, Nat.is_lt(sd, k), Bool.or(Nat.is_lt(sd, k), False{}), True{}, Equal.sym(Bool, Bool.or(Nat.is_lt(sd, k), False{}), Nat.is_lt(sd, k), WR.or_false(Nat.is_lt(sd, k))), h2)
+      IS.ins_nogrow($PA, hk31, hk0, hsd, hsdk, pt, pk, pv, pn, htd, hsz, hsdu, hwell, hcl, huq, hcn, hld, hl, hfr, hnf, hfl, hs, hns, he, hz, hp, hno, hc)
+    case True{}:
+      ins_grow($PA, $HGA, $CA, hc)
+
+# THEOREM: placing a new entry, whether or not the table grows, refines set
+def ins_any($PP, $HYA, $CAP) -> IS.SetM(~V, $M0, key, x, $INS):
+  ia_c($PA, $HAA, $CA, $OVER, {==})
