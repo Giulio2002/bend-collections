@@ -217,12 +217,14 @@ def check_mutants(name, cases, log):
 def check_lru(log):
     """Differential checks for the key-value containers: the LRU against the
     optimized C reference and its sanitizer build (tools/lru_diff.py), the
-    hash table against a Python dict oracle (tools/check_hash_table.py), and
+    hash table against a Python dict oracle (tools/check_hash_table.py), the
+    LRU against its specification (tools/check_lru_spec.py), and
     the hash table's refinement proof (proofs/hash_table.bend)."""
     ok = True
     checks = []
     for command in [[sys.executable, 'tools/lru_diff.py'],
                     [sys.executable, 'tools/check_hash_table.py'],
+                    [sys.executable, 'tools/check_lru_spec.py'],
                     [BEND, 'proofs/hash_table.bend']]:
         p = run(command, timeout=7200)
         good = p.returncode == 0
