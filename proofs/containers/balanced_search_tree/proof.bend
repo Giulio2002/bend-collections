@@ -6,7 +6,6 @@ import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/order.bend as O
 import ../../lib/spec_common.bend as SC
-import ./spec.bend as S
 import ./api.bend as API
 import ./capi.bend as CA
 import ./ccv.bend as CV
@@ -27,6 +26,7 @@ import ./rmi.bend as RI
 import ./rmp.bend as RP
 import ./rmv.bend as RV
 import ./sim.bend as SM
+import ./spec.bend as S
 import ./state.bend as ST
 import ./vapi.bend as VA
 import ./vclr.bend as VC
@@ -44,7 +44,7 @@ import ./vw.bend as VW
 #                lists, and two ghost values: the tree of ids (ST.Tr) and the
 #                free list; ST.real(sh) is the map
 #   abstraction  ST.model(sh): the limit and the entries of the tree's ids in
-#                order, as a proofs/spec/tree_map.bend map (sorted entries);
+#                order, as a spec.bend map (sorted entries);
 #                a mirror cursor's model is the specification's cursor over
 #                that map with the keys of its next and current ids
 #                (CU.cmod), a mirror view's the specification's view
@@ -56,7 +56,7 @@ import ./vw.bend as VW
 #                the ids of tree and free list without repeats and covering
 #                the slots, the entries sorted by a lawful comparator, and the
 #                size, root and first/last ids those of the tree
-#                (proofs/tree_map/state.bend); a cursor is good when its
+#                (state.bend); a cursor is good when its
 #                shadow is and its ids are 0 or ids of the tree (CU.cgood)
 #
 # Proved for every lawful comparator (O.Order: flip, antisymmetry,

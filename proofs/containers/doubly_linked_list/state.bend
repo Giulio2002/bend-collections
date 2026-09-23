@@ -31,7 +31,7 @@ def model(~T: Data, sh: Sh<T>) -> S.DS<T>:
     case LS{+tag, +cap, +fresh, +free, +head, +tail, +depth, +vT, +pT, +nT, +gT, +sl, +fl}:
       S.DS{tag, sl, SC.take(Maybe<&2, T>, AR.slots(Maybe<&2, T>, vT), UD.v(fresh)), SC.take(U32, AR.slots(U32, gT), UD.v(fresh)), fl}
 
-# ---- links (lnk, fst_or, last_or, nodupn: the LRU's, proofs/lru/state.bend) ----
+# ---- links (lnk, fst_or, last_or, nodupn: the LRU's, proofs/containers/lru/state.bend) ----
 
 # the segment sl: its first id's prev is p, its last id's next is q, and
 # consecutive ids are linked both ways
