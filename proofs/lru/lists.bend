@@ -109,6 +109,13 @@ def nd_mid(+a: List<&2, Nat>, +s: Nat, +b: List<&2, Nat>) -> {ST.nodupn(SC.appen
 # ---- key lists ----
 
 
+def mem_app_s(+x: String, +a: List<&2, String>, +b: List<&2, String>) -> {S.mem(x, SC.append(String, a, b)) == Bool.or(S.mem(x, a), S.mem(x, b)) : Bool}:
+  match a:
+    case Nil{}:
+      {==}
+    case Con{+h, +t}:
+      Equal.trans(Bool, Bool.or(S.str_eq(h, x), S.mem(x, SC.append(String, t, b))), Bool.or(S.str_eq(h, x), Bool.or(S.mem(x, t), S.mem(x, b))), Bool.or(Bool.or(S.str_eq(h, x), S.mem(x, t)), S.mem(x, b)), Equal.cong(Bool, Bool, z => Bool.or(S.str_eq(h, x), z), S.mem(x, SC.append(String, t, b)), Bool.or(S.mem(x, t), S.mem(x, b)), mem_app_s(x, t, b)), or_assoc(S.str_eq(h, x), S.mem(x, t), S.mem(x, b)))
+
 def mem_mid_s(+x: String, +a: List<&2, String>, +s: String, +b: List<&2, String>) -> {S.mem(x, SC.append(String, a, Con{s, b})) == Bool.or(S.mem(x, SC.append(String, a, b)), S.str_eq(s, x)) : Bool}:
   match a:
     case Nil{}:
