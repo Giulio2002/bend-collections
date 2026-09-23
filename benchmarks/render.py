@@ -58,6 +58,7 @@ def main():
             'so the ratios are the meaningful column.', '']
     out += ['Reproduce:', '', '```sh', 'python3 benchmarks/full_sweep.py --report build/bench/full.json   # containers',
             'python3 benchmarks/crypto.py --report build/bench/crypto.json      # hashes',
+            'python3 benchmarks/maps/compare.py --report build/bench/maps.json  # HashMap vs Base.Map',
             'python3 benchmarks/render.py                                        # this file', '```', '']
 
     # ---- hashes ----
@@ -112,6 +113,28 @@ def main():
                 out.append('| %s | %s | %s | %s | %.2f%s |' % (op, t['workload'], ns(per_op(r, 'bend_delta_ns')),
                            ns(per_op(r, 'reference_delta_ns')), r['ratio'], ''))
         out.append('')
+    # ---- HashMap vs Base.Map ----
+    maps = load('build/bench/maps.json')
+    out += ['## Hash map vs Base.Map', '',
+            'Both sides are Bend: the hash map of `src/containers/hash_table.bend` against',
+            "the standard library's `Base.Map` (a crit-bit tree over String keys), on the",
+            'same operations, String keys and inputs, with identical checksums. Same',
+            'differential method as the containers. **Ratio = HashMap time / Base.Map time**:',
+            'below 1 the hash map is faster. `Base.Map.size` walks the tree, so the',
+            'hash map\'s O(1) size is compared against an O(n) walk. See',
+            '`benchmarks/maps/compare.py`.', '']
+    if maps:
+        out += ['| Operation | Size | HashMap (ns) | Base.Map (ns) | Ratio |', '|---|---:|---:|---:|---:|']
+        for r in maps['rows']:
+            op = r['operation'].split('.', 1)[1]
+            if r.get('ratio') is None:
+                out.append('| %s | %d | | | not timeable |' % (op, r['size']))
+            else:
+                out.append('| %s | %d | %s | %s | %.2f |' % (op, r['size'], ns(per_op(r, 'bend_delta_ns')),
+                           ns(per_op(r, 'reference_delta_ns')), r['ratio']))
+        out.append('')
+    else:
+        out += ['(not measured yet)', '']
     if pending:
         out.insert(out.index('## Containers') + 2, '**%d of %d container rows are still being measured; they show as pending.**\n' % (pending, len(TABLE)))
     (ROOT / 'BENCHMARK.md').write_text('\n'.join(out) + '\n')
