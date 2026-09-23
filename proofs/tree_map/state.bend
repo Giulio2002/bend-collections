@@ -71,6 +71,13 @@ def last0(xs: List<&2, Nat>) -> Nat:
 
 # ---- nodes read by id ----
 
+def pk(-T: Type, +b: Bool, x: T, y: T) -> T:
+  match b:
+    case True{}:
+      x
+    case False{}:
+      y
+
 def nth_or(-X: Data, xs: List<&2, X>, +i: Nat, +dflt: X) -> X:
   match xs i:
     case Nil{} _:
