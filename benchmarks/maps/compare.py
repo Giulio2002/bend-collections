@@ -74,12 +74,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--report', required=True)
     ap.add_argument('--only', help='comma-separated operations')
+    ap.add_argument('--retry-failed', action='store_true', help='re-measure only the failed rows of --report')
     a = ap.parse_args()
     bins = build(generate())
     # the reference side is the Base.Map driver: a Bend binary too
     bench.run_ref = bench.run_bend
     todo = [r for r in rows() if not a.only or r['operation'].split('.')[1] in a.only.split(',')]
     results, log = [], []
+    if a.retry_failed:
+        results = json.loads(Path(a.report).read_text())['rows']
+        ok = {(m['operation'], m['workload']) for m in results if m.get('measurement') == 'ok'}
+        todo = [r for r in todo if (r['operation'], r['workload']) not in ok]
     for r in todo:
         try:
             m = bench.measure(bins['hash_table'], bins['base_map'], r, log)
@@ -89,7 +94,9 @@ def main():
         except bench.Unmeasurable as e:
             m = {'operation': r['operation'], 'workload': r['workload'], 'size': r['size'],
                  'measurement': 'failed', 'reason': str(e)}
-        results.append(m)
+        results = [x for x in results if (x['operation'], x['workload']) != (r['operation'], r['workload'])] + [m]
+        order = [(x['operation'], x['workload']) for x in rows()]
+        results.sort(key=lambda x: order.index((x['operation'], x['workload'])))
         print('%-10s %-6s %s' % (r['operation'], r['workload'],
               '%.3f' % m['ratio'] if 'ratio' in m else 'FAILED ' + m['reason']), flush=True)
         Path(a.report).parent.mkdir(parents=True, exist_ok=True)

@@ -115,6 +115,9 @@ MAX_OPS = 2 * 1000 * 1000 * 1000
 MAX_REGION_MS = 20000       # stop growing the batch once a Bend region is this long
 RUN_TIMEOUT_S = 120         # a single measured process may not take longer
 SAMPLES = 6                 # alternating region orders, >= 5 as the contract asks
+RETRIES = 4                 # re-takes of a sample (or calibration step) disturbed by
+                            # other load: a negative or sub-minimum A - B means a
+                            # region was interrupted, not that the operation is free
 
 
 def sha(path):
@@ -233,9 +236,18 @@ def calibrate(bend_bin, ref_bin, row, log):
     if not by_count and row['operation'] == 'lru.remove_seq' and (2 * count > row['size'] or 2 * half > row['size']):
         raise Unmeasurable('isolated-removal batch would exceed the prepared entries')
     turn = 0
+    noisy = 0
     while True:
         bd, rd, ba = deltas(bend_bin, ref_bin, row, count, reps, turn % 2)
         turn += 1
+        if (bd < 0 or rd < 0) and noisy < RETRIES:
+            # a negative difference is interference, not a short batch:
+            # read the same batch again rather than growing it on noise
+            noisy += 1
+            log.append('%s %s calibrate count=%d reps=%d disturbed (bend_delta=%.0fns '
+                       'ref_delta=%.0fns), repeated' % (row['operation'], row['workload'], count, reps, bd, rd))
+            continue
+        noisy = 0
         log.append('%s %s calibrate count=%d reps=%d bend_delta=%.0fns '
                    'ref_delta=%.0fns bendA=%.0fns'
                    % (row['operation'], row['workload'], count, reps, bd, rd, ba))
@@ -296,12 +308,19 @@ def measure(bend_bin, ref_bin, row, log):
     bend_control, ref_control = [], []
     bend_checks = ref_checks = None
     for i in range(SAMPLES):
-        try:
-            ba, bb, bctrl, bc = run_bend(bend_bin, row, count, reps, i % 2)
-            ra, rb, rctrl, rc = run_ref(ref_bin, row, count, reps, i % 2)
-        except subprocess.TimeoutExpired:
-            raise Unmeasurable('a measured process exceeded %ds at count=%d reps=%d'
-                               % (RUN_TIMEOUT_S, count, reps))
+        for attempt in range(RETRIES + 1):
+            try:
+                ba, bb, bctrl, bc = run_bend(bend_bin, row, count, reps, i % 2)
+                ra, rb, rctrl, rc = run_ref(ref_bin, row, count, reps, i % 2)
+            except subprocess.TimeoutExpired:
+                raise Unmeasurable('a measured process exceeded %ds at count=%d reps=%d'
+                                   % (RUN_TIMEOUT_S, count, reps))
+            # both sides of a sample are re-taken together, so the pair
+            # still ran under the same load
+            if (ba - bb >= MIN_DELTA_NS and ra - rb >= MIN_REF_DELTA_NS) or attempt == RETRIES:
+                break
+            log.append('%s %s sample=%d disturbed (bend A-B=%.0fns ref A-B=%.0fns), re-taken'
+                       % (row['operation'], row['workload'], i, ba - bb, ra - rb))
         log.append('%s %s count=%d reps=%d sample=%d order=%s bendA=%.0f '
                    'bendB=%.0f bendC=%.0f refA=%.0f refB=%.0f refC=%.0f '
                    'bend_chk=%s ref_chk=%s'

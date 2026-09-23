@@ -8,7 +8,10 @@ import run as bench
 from workloads import TABLE, EXCLUDED_EMPTY_ROWS
 
 def main():
-    ap=argparse.ArgumentParser();ap.add_argument('--report',required=True);ap.add_argument('--html');args=ap.parse_args()
+    ap=argparse.ArgumentParser();ap.add_argument('--report',required=True);ap.add_argument('--html')
+    ap.add_argument('--retry-failed',action='store_true',help='re-measure only the failed rows of an existing --report')
+    args=ap.parse_args()
+    if args.retry_failed: return retry(Path(args.report))
     sys.path.insert(0,str(bench.ROOT/'tools'))
     render = None
     if args.html:
@@ -50,4 +53,29 @@ def main():
     report['artifacts']={str(p.relative_to(bench.ROOT)):bench.sha(p) for pair in built.values() for p in pair}
     save()
     print('Finished:',out,flush=True)
+def retry(path):
+    """Re-measure the rows of a finished report that failed (a disturbed
+    sample or calibration), replacing them in place; rows no longer in TABLE
+    are dropped."""
+    report=json.loads(path.read_text())
+    rows={(r['operation'],r['workload']):r for r in TABLE}
+    report['benchmarks']=[b for b in report['benchmarks'] if (b['operation'],b['workload']) in rows]
+    todo=[i for i,b in enumerate(report['benchmarks']) if b.get('measurement')!='ok']
+    print('retrying %d failed rows' % len(todo),flush=True)
+    built=bench.build_all(sorted({rows[(report['benchmarks'][i]['operation'],report['benchmarks'][i]['workload'])]['structure'] for i in todo}))
+    logs=[]
+    for n,i in enumerate(todo):
+        b=report['benchmarks'][i];row=rows[(b['operation'],b['workload'])]
+        try:
+            result=bench.measure(*built[row['structure']],row,logs)
+            result['ratio']=statistics.median(result['bend_ns'])/statistics.median(result['reference_ns'])
+            result['passes_speed']=result['verified'] and result['ratio']<=bench.CONTRACT['max_ratio']
+        except (SystemExit,Exception) as exc:
+            result={'operation':row['operation'],'workload':row['workload'],'size':row['size'],'seed':row['seed'],
+                    'measurement':'failed','verified':False,'reason':str(exc)}
+        report['benchmarks'][i]=result
+        print(f"[retry {n+1}/{len(todo)}] {row['operation']} {row['workload']} " + (f"{result['ratio']:.3f}x" if 'ratio' in result else f"FAILED {result.get('reason')}"),flush=True)
+        path.write_text(json.dumps(report,indent=1,sort_keys=True)+'\n')
+    (path.parent/'retry_samples.log').write_text('\n'.join(logs)+'\n')
+
 if __name__=='__main__':main()

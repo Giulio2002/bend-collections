@@ -87,7 +87,10 @@ def main():
             'an operation is the difference between two regions that run 2k and k of them',
             '(build, settle and teardown cancel); removals are measured in a restoring pair',
             'with the insertion that puts the element back. Nanoseconds per operation,',
-            'median of six samples. See `benchmarks/run.py` for the method.', '']
+            'median of six samples. A sample in which other load interrupted a region (A - B',
+            'negative or under the timing minimum) is re-taken, both sides together, up to',
+            'four times; failed rows are re-measured with `full_sweep.py --retry-failed`.',
+            'See `benchmarks/run.py` for the method.', '']
     done = {}
     for r in (full or {}).get('benchmarks', []):
         done[(r['operation'], r['workload'])] = r
