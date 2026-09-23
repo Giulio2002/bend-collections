@@ -40,28 +40,21 @@ def real(~V: Data, sh: Sh<V>) -> LR.Fast<&2, V>:
 def lnk(+s: Nat) -> U32:
   H.link(U32.from_nat(s))
 
-# the link of the first slot, 0 for none
-def fstl(xs: List<&2, Nat>) -> U32:
-  match xs:
-    case Nil{}:
-      0
-    case Con{+s, t}:
-      lnk(s)
-
-def lst_c(t: List<&2, Nat>, +s: Nat) -> U32:
+# the link of the first slot of t, q for none
+def fst_or(t: List<&2, Nat>, +q: U32) -> U32:
   match t:
     case Nil{}:
+      q
+    case Con{+s, t2}:
       lnk(s)
-    case Con{+s2, +t2}:
-      lst_c(t2, s2)
 
-# the link of the last slot, 0 for none
-def lstl(xs: List<&2, Nat>) -> U32:
-  match xs:
+# the link of the last slot of t, p for none
+def last_or(t: List<&2, Nat>, +p: U32) -> U32:
+  match t:
     case Nil{}:
-      0
-    case Con{+s, +t}:
-      lst_c(t, s)
+      p
+    case Con{+s, +t2}:
+      last_or(t2, lnk(s))
 
 # word o of slot s in lk
 def off(+s: Nat, +o: Nat) -> Nat:
@@ -70,14 +63,14 @@ def off(+s: Nat, +o: Nat) -> Nat:
 def lw(+ll: List<&2, U32>, +s: Nat, +o: Nat) -> U32:
   TB.nth0(ll, off(s, o))
 
-# the recency list: each slot's prev is the slot before it (p for the first)
-# and its next the slot after it (0 for the last)
-def dll(+ll: List<&2, U32>, sl: List<&2, Nat>, +p: U32) -> Bool:
+# the segment sl: its first slot's prev is p, its last slot's next is q,
+# and consecutive slots are linked both ways
+def seg(+ll: List<&2, U32>, sl: List<&2, Nat>, +p: U32, +q: U32) -> Bool:
   match sl:
     case Nil{}:
       True{}
     case Con{+s, +t}:
-      Bool.and(U32.is_eq(lw(ll, s, 0n), p), Bool.and(U32.is_eq(lw(ll, s, 1n), fstl(t)), dll(ll, t, lnk(s))))
+      Bool.and(U32.is_eq(lw(ll, s, 0n), p), Bool.and(U32.is_eq(lw(ll, s, 1n), fst_or(t, q)), seg(ll, t, lnk(s), q)))
 
 # the free list: each slot's next is the slot after it (0 for the last)
 def fll(+ll: List<&2, U32>, fl: List<&2, Nat>) -> Bool:
@@ -85,7 +78,7 @@ def fll(+ll: List<&2, U32>, fl: List<&2, Nat>) -> Bool:
     case Nil{}:
       True{}
     case Con{+s, +t}:
-      Bool.and(U32.is_eq(lw(ll, s, 1n), fstl(t)), fll(ll, t))
+      Bool.and(U32.is_eq(lw(ll, s, 1n), fst_or(t, 0)), fll(ll, t))
 
 def nodupn(xs: List<&2, Nat>) -> Bool:
   match xs:
@@ -97,21 +90,13 @@ def nodupn(xs: List<&2, Nat>) -> Bool:
 def live(~V: Data, +el: List<&2, Maybe<&2, V>>, +s: Nat) -> Bool:
   HT.some_b(~V, HT.nthm(~V, el, s))
 
-# every slot of xs is below fr and live
-def slok(~V: Data, xs: List<&2, Nat>, +fr: Nat, +el: List<&2, Maybe<&2, V>>) -> Bool:
-  match xs:
-    case Nil{}:
-      True{}
-    case Con{+s, t}:
-      Bool.and(Bool.and(Nat.is_lt(s, fr), live(~V, el, s)), slok(~V, t, fr, el))
+# ---- predicates on slots, and their conjunction over a list ----
 
-# every slot of xs is below fr and vacant
-def flok(~V: Data, xs: List<&2, Nat>, +fr: Nat, +el: List<&2, Maybe<&2, V>>) -> Bool:
-  match xs:
-    case Nil{}:
-      True{}
-    case Con{+s, t}:
-      Bool.and(Bool.and(Nat.is_lt(s, fr), Bool.not(live(~V, el, s))), flok(~V, t, fr, el))
+type SP1<-V: Data> is Data:
+  PLive{fr: Nat, el: List<&2, Maybe<&2, V>>}
+  PVac{fr: Nat, el: List<&2, Maybe<&2, V>>}
+  PHas{bs: List<&2, B.Bk>, m: Nat, ll: List<&2, U32>}
+  PNk{ll: List<&2, U32>, kl: List<&2, String>, key: String}
 
 # ---- the table and the slots ----
 
@@ -130,14 +115,6 @@ def anyb(+bs: List<&2, B.Bk>, +m: Nat, +l: U32, +w: U32) -> Bool:
       False{}
     case 1n+j:
       Bool.or(isbf(B.at(bs, j), w, l), anyb(bs, j, l, w))
-
-# every slot of sl has a bucket with its link and its stored check word
-def hasall(+bs: List<&2, B.Bk>, +m: Nat, +ll: List<&2, U32>, sl: List<&2, Nat>) -> Bool:
-  match sl:
-    case Nil{}:
-      True{}
-    case Con{+s, t}:
-      Bool.and(anyb(bs, m, lnk(s), lw(ll, s, 2n)), hasall(bs, m, ll, t))
 
 # a full bucket's slot is on the recency list and stores the bucket's word
 def bslb(+sl: List<&2, Nat>, +ll: List<&2, U32>, b: B.Bk) -> Bool:
@@ -190,6 +167,41 @@ def model(~V: Data, sh: Sh<V>) -> SP.Lru<V>:
   match sh:
     case LS{+cap, n, head, tail, free, +mT, k, sd, tabT, +ksT, +eT, +lkT, +sl, fl}:
       modelF(~V, cap, mT, AR.slots(String, ksT), eT, lkT, sl)
+
+def sev(~V: Data, p: SP1<V>, +s: Nat) -> Bool:
+  match p:
+    case PLive{+fr, +el}:
+      Bool.and(Nat.is_lt(s, fr), live(~V, el, s))
+    case PVac{+fr, +el}:
+      Bool.and(Nat.is_lt(s, fr), Bool.not(live(~V, el, s)))
+    case PHas{+bs, +m, +ll}:
+      anyb(bs, m, lnk(s), lw(ll, s, 2n))
+    case PNk{+ll, +kl, +key}:
+      Bool.not(S.str_eq(skey(ll, kl, s), key))
+
+# p holds for every slot of xs
+def sall(~V: Data, +p: SP1<V>, xs: List<&2, Nat>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{+s, t}:
+      Bool.and(sev(~V, p, s), sall(~V, p, t))
+
+# every slot of xs is below fr and live
+def slok(~V: Data, xs: List<&2, Nat>, +fr: Nat, +el: List<&2, Maybe<&2, V>>) -> Bool:
+  sall(~V, PLive{fr, el}, xs)
+
+# every slot of xs is below fr and vacant
+def flok(~V: Data, xs: List<&2, Nat>, +fr: Nat, +el: List<&2, Maybe<&2, V>>) -> Bool:
+  sall(~V, PVac{fr, el}, xs)
+
+# every slot of sl has a bucket with its link and its stored check word
+def hasall(~V: Data, +bs: List<&2, B.Bk>, +m: Nat, +ll: List<&2, U32>, sl: List<&2, Nat>) -> Bool:
+  sall(~V, PHas{bs, m, ll}, sl)
+
+# no slot of sl has key
+def nokey(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, sl: List<&2, Nat>, +key: String) -> Bool:
+  sall(~V, PNk{ll, kl, key}, sl)
 
 # ---- the invariant (generated) ----
 # (tools/generators/lru_state.py)
@@ -252,7 +264,7 @@ def cbsl(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: 
   bsl(TB.buckets(AR.slots(U32, tabT), kl, SC.pow2(k)), sl, AR.slots(U32, lkT), SC.pow2(k))
 
 def chas(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  hasall(TB.buckets(AR.slots(U32, tabT), kl, SC.pow2(k)), SC.pow2(k), AR.slots(U32, lkT), sl)
+  hasall(~V, TB.buckets(AR.slots(U32, tabT), kl, SC.pow2(k)), SC.pow2(k), AR.slots(U32, lkT), sl)
 
 def csl(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
   slok(~V, sl, UD.v(fr), AR.slots(Maybe<&2, V>, eT))
@@ -264,19 +276,19 @@ def clen(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: 
   Nat.is_eq(SC.length(Nat, sl), UD.v(n))
 
 def chead(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  U32.is_eq(head, fstl(sl))
+  U32.is_eq(head, fst_or(sl, 0))
 
 def ctail(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  U32.is_eq(tail, lstl(sl))
+  U32.is_eq(tail, last_or(sl, 0))
 
 def cdll(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  dll(AR.slots(U32, lkT), sl, 0)
+  seg(AR.slots(U32, lkT), sl, 0, 0)
 
 def ckeys(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
   S.nodup(SP.keys_of(~V, es(~V, AR.slots(U32, lkT), kl, AR.slots(Maybe<&2, V>, eT), sl)))
 
 def cfree(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  U32.is_eq(free, fstl(fl))
+  U32.is_eq(free, fst_or(fl, 0))
 
 def cfll(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
   fll(AR.slots(U32, lkT), fl)
