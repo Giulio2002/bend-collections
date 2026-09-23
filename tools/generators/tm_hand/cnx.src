@@ -173,7 +173,7 @@ def sep_mem(+x: Nat, +xs: $LN, +j: Nat, +hn: {HT.memn(x, xs) == False{} : Bool},
 %def CHA cu, lo2, hi2, fw
 %def SCR(nk) S.CR{$TMS, nk, CU.ck(~K, nl, cu), lo2, hi2, fw}
 %def MCR(i) MI.MC{$SH, i, cu, lo2, hi2, fw}
-%def COKE(sp, mr) CU.COK($AK, $ME, sp, mr)
+%def COKE(sp, mr) CU.CSTEP($AK, $ME, sp, mr, $SH, lo2, hi2, fw)
 %def CGJ {CU.cgood($AK, MI.MC{$SH, $J, cu, lo2, hi2, fw}) == True{} : Bool}
 %def IDX(i) CU.idok($IDS(tg), i)
 %def SEPJ Bool.or(Nat.is_eq($J, 0n), Bool.not(Nat.is_eq($J, cu)))
@@ -181,7 +181,7 @@ def sep_mem(+x: Nat, +xs: $LN, +j: Nat, +hn: {HT.memn(x, xs) == False{} : Bool},
 %def HCU L.and_left($IDX(cu), $SEPJ, L.and_right($IDX($J), Bool.and($IDX(cu), $SEPJ), L.and_right(ST.goodF($AK, $F), Bool.and($IDX($J), Bool.and($IDX(cu), $SEPJ)), hc)))
 %def HNX L.and_left($IDX($J), Bool.and($IDX(cu), $SEPJ), L.and_right(ST.goodF($AK, $F), Bool.and($IDX($J), Bool.and($IDX(cu), $SEPJ)), hc))
 %def CG0 L.and_intro(ST.goodF($AK, $F), Bool.and($IDX(0n), Bool.and($IDX(cu), Bool.or(True{}, Bool.not(Nat.is_eq(0n, cu))))), $HGC, L.and_intro($IDX(0n), Bool.and($IDX(cu), Bool.or(True{}, Bool.not(Nat.is_eq(0n, cu)))), {==}, L.and_intro($IDX(cu), Bool.or(True{}, Bool.not(Nat.is_eq(0n, cu))), $HCU, {==})))
-%def NONE_W ($MCR(0n), (None{}, ({==}, ({==}, $CG0))))
+%def NONE_W (0n, (cu, (None{}, ({==}, ({==}, $CG0)))))
 %def XS $APP(P.before(pc), $IDS(pa))
 %def YS $APP($IDS(pb), P.after(pc))
 %def SPL $APP($XS, Con{$J, $YS})
@@ -253,7 +253,7 @@ def nx_b($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, $NH, +b: Bool) -> $CO
       +es = nx_succ($AL1, $NHA)
       +ej = L.subst($ND, z => {CU.ck(~K, nl, $J) == M.node_key(~K, z) : Maybe<&2, K>}, ST.nd(K, nl, $J), M.N{c0, x1, x2, x3, k}, hx, {==})
       +esp = L.subst(Maybe<&2, K>, z => {(S.CR{$TMS, z, Some{k}, lo2, hi2, fw}, Some{$EE}) == (S.CR{$TMS, CU.ck(~K, nl, $NBR), CU.ck(~K, nl, $J), lo2, hi2, fw}, Some{$EE}) : S.Cursor<K, V> & $ME}, CU.ck(~K, nl, $NBR), S.succ($AK, k, fw, $EST), Equal.sym(Maybe<&2, K>, S.succ($AK, k, fw, $EST), CU.ck(~K, nl, $NBR), es), L.subst(Maybe<&2, K>, z => {(S.CR{$TMS, CU.ck(~K, nl, $NBR), z, lo2, hi2, fw}, Some{$EE}) == (S.CR{$TMS, CU.ck(~K, nl, $NBR), CU.ck(~K, nl, $J), lo2, hi2, fw}, Some{$EE}) : S.Cursor<K, V> & $ME}, CU.ck(~K, nl, $J), Some{k}, ej, {==}))
-      ($MCY, (Some{$EE}, ({==}, (esp, nx_cg($AO, $F, hg, j, $CHA, hc, $PHA)))))
+      ($NBR, ($J, (Some{$EE}, ({==}, (esp, nx_cg($AO, $F, hg, j, $CHA, hc, $PHA))))))
 
 # the node and its value: found, then checked against the range
 def nx_u($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, $NH) -> $COKE(S.iterator_next($AK, $SCR(Some{k})), MI.iterator_read($AK, $J, cu, lo2, hi2, fw, ($SH, Some{$EE}))):
@@ -303,7 +303,7 @@ def nx_p($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, pt: $PTJ($J, Nil{}, tg)) -
 def next_m($TO, $FT, +nx: Nat, $CH, +hc: {CU.cgood($AK, $CUR) == True{} : Bool}) -> $COKE(S.iterator_next($AK, CU.cmod($AK, $CUR)), MI.iterator_next($AK, $CUR)):
   match nx:
     case 0n:
-      ($MCR(0n), (None{}, ({==}, ({==}, hc))))
+      (0n, (cu, (None{}, ({==}, ({==}, hc)))))
     case 1n+j:
       +hg = $HGC
       nx_p($AO, $F, hg, j, $CHA, hc, path_to(~K, ~cmp, ~o, tg, nl, Nil{}, $J, ST.g_crep($AK, $F, hg), {==}, $HNX))
@@ -364,7 +364,7 @@ def cok_val($TK, -spr: $SCT & $ME, +a: $MCT, +b: $ME, p: CU.COK($AK, $ME, spr, (
 %def PSX2 Pair.snd($MCT, $ME, $XN)
 
 def next_key_m($TO, $FT, +nx: Nat, $CH, +hc: {CU.cgood($AK, $CUR) == True{} : Bool}) -> CU.COK($AK, $MK, S.iterator_next_key($AK, CU.cmod($AK, $CUR)), MI.iterator_next_key($AK, $CUR)):
-  L.subst($MCT & $ME, z => CU.COK($AK, $MK, S.key_result(K, V, $SPN0), MI.iterator_key_result($AK, z)), ($PFX2, $PSX2), $XN, Equal.sym($MCT & $ME, $XN, ($PFX2, $PSX2), $ETA), cok_key($AK, $SPN0, $PFX2, $PSX2, L.subst($MCT & $ME, z => CU.COK($AK, $ME, $SPN0, z), $XN, ($PFX2, $PSX2), $ETA, next_m($AO, $F, nx, $CHA, hc))))
+  L.subst($MCT & $ME, z => CU.COK($AK, $MK, S.key_result(K, V, $SPN0), MI.iterator_key_result($AK, z)), ($PFX2, $PSX2), $XN, Equal.sym($MCT & $ME, $XN, ($PFX2, $PSX2), $ETA), cok_key($AK, $SPN0, $PFX2, $PSX2, L.subst($MCT & $ME, z => CU.COK($AK, $ME, $SPN0, z), $XN, ($PFX2, $PSX2), $ETA, CU.cstep_cok($AK, $ME, $SPN0, $XN, $SH, lo2, hi2, fw, next_m($AO, $F, nx, $CHA, hc)))))
 
 def next_value_m($TO, $FT, +nx: Nat, $CH, +hc: {CU.cgood($AK, $CUR) == True{} : Bool}) -> CU.COK($AK, $MVV, S.iterator_next_value($AK, CU.cmod($AK, $CUR)), MI.iterator_next_value($AK, $CUR)):
-  L.subst($MCT & $ME, z => CU.COK($AK, $MVV, S.value_result(K, V, $SPN0), MI.iterator_value_result($AK, z)), ($PFX2, $PSX2), $XN, Equal.sym($MCT & $ME, $XN, ($PFX2, $PSX2), $ETA), cok_val($AK, $SPN0, $PFX2, $PSX2, L.subst($MCT & $ME, z => CU.COK($AK, $ME, $SPN0, z), $XN, ($PFX2, $PSX2), $ETA, next_m($AO, $F, nx, $CHA, hc))))
+  L.subst($MCT & $ME, z => CU.COK($AK, $MVV, S.value_result(K, V, $SPN0), MI.iterator_value_result($AK, z)), ($PFX2, $PSX2), $XN, Equal.sym($MCT & $ME, $XN, ($PFX2, $PSX2), $ETA), cok_val($AK, $SPN0, $PFX2, $PSX2, L.subst($MCT & $ME, z => CU.COK($AK, $ME, $SPN0, z), $XN, ($PFX2, $PSX2), $ETA, CU.cstep_cok($AK, $ME, $SPN0, $XN, $SH, lo2, hi2, fw, next_m($AO, $F, nx, $CHA, hc)))))
