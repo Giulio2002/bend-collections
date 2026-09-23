@@ -257,7 +257,7 @@ def main():
         name = item['id']
         if args.only and name != args.only:
             continue
-        if name in ('lifo_queue', 'simple_queue', 'priority_queue'):
+        if name in ('simple_queue', 'priority_queue'):
             # Queue facades: their drivers are checked by tools/check_queue_facades.py
             # against the stack / queue / heap oracles once all three are built.
             built = run([BEND, 'tests/%s/main.bend' % name, '-o', 'build/test-%s' % name], timeout=600)

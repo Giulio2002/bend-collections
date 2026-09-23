@@ -14,7 +14,7 @@ from workloads import TABLE  # noqa: E402
 
 NAMES = OrderedDict([
     ('dynamic_array', 'Dynamic array'), ('deque', 'Deque'), ('queue', 'FIFO queue'), ('stack', 'Stack'),
-    ('lifo_queue', 'LIFO queue'), ('simple_queue', 'Simple queue'), ('priority_queue', 'Priority queue'),
+    ('simple_queue', 'Simple queue'), ('priority_queue', 'Priority queue'),
     ('binary_heap', 'Binary heap'), ('doubly_linked_list', 'Doubly linked list'),
     ('dlist_iterator', 'List iterator'), ('balanced_search_tree', 'Tree map'), ('bitset', 'Bitset'),
     ('hash_table', 'Hash map'), ('lru', 'LRU cache')])

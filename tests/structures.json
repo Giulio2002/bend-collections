@@ -190,18 +190,6 @@
       ]
     },
     {
-      "id": "lifo_queue",
-      "implementation": "stack",
-      "operations": [
-        "new",
-        "qsize",
-        "put",
-        "get",
-        "peek",
-        "to_list"
-      ]
-    },
-    {
       "id": "simple_queue",
       "implementation": "queue",
       "operations": [

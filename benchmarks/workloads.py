@@ -285,7 +285,6 @@ _lru_rows(add, three, pair, empties, SIZE_CHANGING_FULL)
 
 # Queue facades exercise their public API using identical underlying workloads.
 for _name, _base, _rename in [
-    ('lifo_queue', 'stack', {'push':'put','pop':'get','length':'qsize'}),
     ('simple_queue', 'queue', {'enqueue':'put','dequeue':'get','length':'qsize'}),
     ('priority_queue', 'binary_heap', {'push':'put','pop':'get','length':'qsize'}),
 ]:

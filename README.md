@@ -9,7 +9,7 @@ benchmarked against optimized C implementations of the same algorithms.
 | Deque | `src/containers/deque.bend` | two-list deque |
 | FIFO queue | `src/containers/queue.bend` | two-list queue |
 | Stack | `src/containers/stack.bend` | |
-| LIFO / simple / priority queue | `src/containers/{lifo,simple,priority}_queue.bend` | facades over stack, queue and heap |
+| Simple / priority queue | `src/containers/{simple,priority}_queue.bend` | facades over queue and heap |
 | Binary heap | `src/containers/binary_heap.bend` | packed-array min-heap, static comparator |
 | Doubly linked list | `src/containers/doubly_linked_list.bend` | arena-backed, stable handles |
 | List iterator | `src/containers/dlist_iterator.bend` | owning bidirectional iterator |

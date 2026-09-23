@@ -14,6 +14,7 @@ Reproduce:
 ```sh
 python3 benchmarks/full_sweep.py --report build/bench/full.json   # containers
 python3 benchmarks/crypto.py --report build/bench/crypto.json      # hashes
+python3 benchmarks/maps/compare.py --report build/bench/maps.json  # HashMap vs Base.Map
 python3 benchmarks/render.py                                        # this file
 ```
 
@@ -88,7 +89,7 @@ C reference: official BLAKE3 C, portable only (no SIMD). Worst ratio 1.59.
 
 ## Containers
 
-**320 of 378 container rows are still being measured; they show as pending.**
+**235 of 360 container rows are still being measured; they show as pending.**
 
 Each row measures one public operation at three structure sizes. The time of
 an operation is the difference between two regions that run 2k and k of them
@@ -168,69 +169,46 @@ median of six samples. See `benchmarks/run.py` for the method.
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
 | enqueue | small | | | not timeable |
-| enqueue | medium | | | pending |
-| enqueue | large | | | pending |
-| peek | small | | | pending |
-| peek | medium | | | pending |
-| peek | large | | | pending |
-| length | small | | | pending |
-| length | medium | | | pending |
-| length | large | | | pending |
-| to_list | small | | | pending |
-| to_list | medium | | | pending |
-| to_list | large | | | pending |
-| dequeue | small | | | pending |
-| dequeue | medium | | | pending |
-| dequeue | large | | | pending |
-| new | small | | | pending |
-| new | medium | | | pending |
-| new | large | | | pending |
+| enqueue | medium | 13.4 | 21.3 | 0.63 |
+| enqueue | large | | | not timeable |
+| peek | small | 5.74 | 5.33 | 1.08 |
+| peek | medium | | | not timeable |
+| peek | large | 3.25 | 3.45 | 0.94 |
+| length | small | 1.01 | 2.86 | 0.35 |
+| length | medium | 1.05 | 3.09 | 0.34 |
+| length | large | 1.02 | 2.91 | 0.35 |
+| to_list | small | 1027 | 1080 | 0.95 |
+| to_list | medium | 79500 | 78383 | 1.01 |
+| to_list | large | 4480000 | 6853410 | 0.65 |
+| dequeue | small | 22.1 | 15.9 | 1.39 |
+| dequeue | medium | 16.4 | 21.9 | 0.75 |
+| dequeue | large | 28.0 | 45.0 | 0.62 |
+| new | small | 1.39 | 2.17 | 0.64 |
+| new | medium | 1.40 | 1.90 | 0.74 |
+| new | large | 1.35 | 1.87 | 0.72 |
 
 ### Stack
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| push | small | | | pending |
-| push | medium | | | pending |
-| push | large | | | pending |
-| peek | small | | | pending |
-| peek | medium | | | pending |
-| peek | large | | | pending |
-| length | small | | | pending |
-| length | medium | | | pending |
-| length | large | | | pending |
-| to_list | small | | | pending |
-| to_list | medium | | | pending |
-| to_list | large | | | pending |
-| pop | small | | | pending |
-| pop | medium | | | pending |
-| pop | large | | | pending |
-| new | small | | | pending |
-| new | medium | | | pending |
-| new | large | | | pending |
-
-### LIFO queue
-
-| Operation | Size | Bend (ns) | C (ns) | Ratio |
-|---|---:|---:|---:|---:|
-| put | small | | | pending |
-| put | medium | | | pending |
-| put | large | | | pending |
-| peek | small | | | pending |
-| peek | medium | | | pending |
-| peek | large | | | pending |
-| qsize | small | | | pending |
-| qsize | medium | | | pending |
-| qsize | large | | | pending |
-| to_list | small | | | pending |
-| to_list | medium | | | pending |
-| to_list | large | | | pending |
-| get | small | | | pending |
-| get | medium | | | pending |
-| get | large | | | pending |
-| new | small | | | pending |
-| new | medium | | | pending |
-| new | large | | | pending |
+| push | small | 12.4 | 24.8 | 0.50 |
+| push | medium | 11.5 | 28.5 | 0.40 |
+| push | large | 13.0 | 25.8 | 0.50 |
+| peek | small | 1.91 | 1.62 | 1.18 |
+| peek | medium | 2.18 | 1.73 | 1.26 |
+| peek | large | 2.22 | 1.47 | 1.51 |
+| length | small | 1.28 | 3.63 | 0.35 |
+| length | medium | 1.25 | 3.60 | 0.35 |
+| length | large | 1.33 | 3.86 | 0.35 |
+| to_list | small | 586 | 29.4 | 19.98 |
+| to_list | medium | 47167 | 4074 | 11.58 |
+| to_list | large | 2790000 | 457680 | 6.10 |
+| pop | small | 3.42 | 15.9 | 0.21 |
+| pop | medium | 3.91 | 16.1 | 0.24 |
+| pop | large | 3.26 | 17.2 | 0.19 |
+| new | small | 1.34 | 1.54 | 0.87 |
+| new | medium | 1.34 | 1.76 | 0.76 |
+| new | large | 1.33 | 1.62 | 0.82 |
 
 ### Simple queue
 
@@ -311,38 +289,38 @@ median of six samples. See `benchmarks/run.py` for the method.
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| push_front | small | | | pending |
-| push_front | medium | | | pending |
-| push_front | large | | | pending |
-| push_back | small | | | pending |
-| push_back | medium | | | pending |
-| push_back | large | | | pending |
-| insert_before | small | | | pending |
-| insert_before | medium | | | pending |
-| insert_before | large | | | pending |
-| insert_after | small | | | pending |
-| insert_after | medium | | | pending |
-| insert_after | large | | | pending |
-| get | small | | | pending |
-| get | medium | | | pending |
-| get | large | | | pending |
-| set | small | | | pending |
-| set | medium | | | pending |
-| set | large | | | pending |
-| next | small | | | pending |
-| next | medium | | | pending |
-| next | large | | | pending |
-| prev | small | | | pending |
-| prev | medium | | | pending |
-| prev | large | | | pending |
-| length | small | | | pending |
-| length | medium | | | pending |
-| length | large | | | pending |
-| to_list | small | | | pending |
-| to_list | medium | | | pending |
-| to_list | large | | | pending |
-| remove | small | | | pending |
-| remove | medium | | | pending |
+| push_front | small | | | not timeable |
+| push_front | medium | 19.8 | 7.97 | 2.48 |
+| push_front | large | 22.3 | 9.72 | 2.29 |
+| push_back | small | 18.9 | 6.28 | 3.01 |
+| push_back | medium | 26.6 | 9.28 | 2.86 |
+| push_back | large | | | not timeable |
+| insert_before | small | 30.7 | 8.78 | 3.50 |
+| insert_before | medium | | | not timeable |
+| insert_before | large | | | not timeable |
+| insert_after | small | 29.6 | 9.27 | 3.20 |
+| insert_after | medium | 33.4 | 9.26 | 3.61 |
+| insert_after | large | 45.3 | 15.0 | 3.02 |
+| get | small | 17.3 | 2.24 | 7.73 |
+| get | medium | 17.7 | 2.99 | 5.91 |
+| get | large | 38.6 | 2.97 | 12.98 |
+| set | small | | | not timeable |
+| set | medium | 3.74 | 2.03 | 1.84 |
+| set | large | 3.00 | 2.11 | 1.42 |
+| next | small | 4.68 | 3.10 | 1.51 |
+| next | medium | 3.97 | 2.61 | 1.52 |
+| next | large | 5.47 | 3.21 | 1.70 |
+| prev | small | 5.63 | 2.70 | 2.08 |
+| prev | medium | 5.16 | 2.28 | 2.26 |
+| prev | large | 5.26 | 3.22 | 1.63 |
+| length | small | 1.04 | 2.94 | 0.35 |
+| length | medium | 1.23 | 3.52 | 0.35 |
+| length | large | 1.35 | 4.27 | 0.32 |
+| to_list | small | 355 | 182 | 1.95 |
+| to_list | medium | | | not timeable |
+| to_list | large | 213690 | 131173 | 1.63 |
+| remove | small | | | not timeable |
+| remove | medium | | | not timeable |
 | remove | large | | | pending |
 | new | small | | | pending |
 | new | medium | | | pending |
@@ -543,4 +521,21 @@ median of six samples. See `benchmarks/run.py` for the method.
 | resize_isolated | small | | | pending |
 | resize_isolated | medium | | | pending |
 | resize_isolated | large | | | pending |
+
+## Hash map vs Base.Map
+
+Both sides are Bend: the hash map of `src/containers/hash_table.bend` against
+the standard library's `Base.Map` (a crit-bit tree over String keys), on the
+same operations, String keys and inputs, with identical checksums. Same
+differential method as the containers. **Ratio = HashMap time / Base.Map time**:
+below 1 the hash map is faster. `Base.Map.size` walks the tree, so the
+hash map's O(1) size is compared against an O(n) walk. See
+`benchmarks/maps/compare.py`.
+
+| Operation | Size | HashMap (ns) | Base.Map (ns) | Ratio |
+|---|---:|---:|---:|---:|
+| set | 64 | 22.7 | 420 | 0.05 |
+| set | 4096 | 23.4 | 939 | 0.02 |
+| set | 262144 | | | not timeable |
+| get | 64 | 26.4 | 181 | 0.15 |
 

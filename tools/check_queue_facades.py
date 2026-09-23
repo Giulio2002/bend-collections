@@ -6,7 +6,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tests/support'))
 import oracles
 report=[]
-for name,base in [('lifo_queue','stack'),('simple_queue','queue'),('priority_queue','binary_heap')]:
+for name,base in [('simple_queue','queue'),('priority_queue','binary_heap')]:
     histories=[]
     for seed in range(20):
         rng=random.Random(seed);ops=[]
