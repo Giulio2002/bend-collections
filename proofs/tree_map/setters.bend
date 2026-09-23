@@ -12,6 +12,7 @@ import ./frame.bend as FR
 import ./agree.bend as AG
 import ../spec/tree_map.bend as S
 import ./ends.bend as EN
+import ./path.bend as P
 
 # The mirror's node setters as functions of the node list: each rewrites one
 # field of an id's node (nothing for a free or absent node). The written
@@ -620,4 +621,53 @@ def fll_setc(~K: Data, +fl: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, +
       %Equal.sym(M.Node<K>, ST.nd(K, setc(K, nl, id, v), f), ST.pk(M.Node<K>, Nat.is_eq(id, f), modc(K, ST.nd(K, nl, f), v), ST.nd(K, nl, f)), ndc(K, nl, id, v, f)) : {Bool.and(ST.is_free(K, _, ST.fst0(t)), ST.fll(~K, setc(K, nl, id, v), t)) == ST.fll(~K, nl, Con{f, t}) : Bool}
       %Equal.sym(Bool, ST.is_free(K, ST.pk(M.Node<K>, Nat.is_eq(id, f), modc(K, ST.nd(K, nl, f), v), ST.nd(K, nl, f)), ST.fst0(t)), ST.is_free(K, ST.nd(K, nl, f), ST.fst0(t)), free_pkc(K, Nat.is_eq(id, f), ST.nd(K, nl, f), v, ST.fst0(t))) : {Bool.and(_, ST.fll(~K, setc(K, nl, id, v), t)) == ST.fll(~K, nl, Con{f, t}) : Bool}
       %Equal.sym(Bool, ST.fll(~K, setc(K, nl, id, v), t), ST.fll(~K, nl, t), fll_setc(~K, t, nl, id, v)) : {Bool.and(ST.is_free(K, ST.nd(K, nl, f), ST.fst0(t)), _) == ST.fll(~K, nl, Con{f, t}) : Bool}
+      {==}
+
+# ---- recolouring keeps every link ----
+
+
+def isn_modc(-K: Data, +x: M.Node<K>, +v: Bool, +a: Nat, +b: Nat, +q: Nat) -> {ST.is_node(K, modc(K, x, v), a, b, q) == ST.is_node(K, x, a, b, q) : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, x1, x2, x3, k}:
+      {==}
+
+def isn_pkc(-K: Data, +e: Bool, +x: M.Node<K>, +v: Bool, +a: Nat, +b: Nat, +q: Nat) -> {ST.is_node(K, ST.pk(M.Node<K>, e, modc(K, x, v), x), a, b, q) == ST.is_node(K, x, a, b, q) : Bool}:
+  match e:
+    case True{}:
+      isn_modc(K, x, v, a, b, q)
+    case False{}:
+      {==}
+
+def isn_setc(-K: Data, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Bool, +j: Nat, +a: Nat, +b: Nat, +q: Nat) -> {ST.is_node(K, ST.nd(K, setc(K, nl, id, v), j), a, b, q) == ST.is_node(K, ST.nd(K, nl, j), a, b, q) : Bool}:
+  %Equal.sym(M.Node<K>, ST.nd(K, setc(K, nl, id, v), j), ST.pk(M.Node<K>, Nat.is_eq(id, j), modc(K, ST.nd(K, nl, j), v), ST.nd(K, nl, j)), ndc(K, nl, id, v, j)) : {ST.is_node(K, _, a, b, q) == ST.is_node(K, ST.nd(K, nl, j), a, b, q) : Bool}
+  isn_pkc(K, Nat.is_eq(id, j), ST.nd(K, nl, j), v, a, b, q)
+
+def rep_setc(~K: Data, +t: ST.Tr, +p: Nat, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Bool) -> {ST.rep(~K, t, p, setc(K, nl, id, v)) == ST.rep(~K, t, p, nl) : Bool}:
+  match t:
+    case ST.TE{}:
+      {==}
+    case ST.TN{+i, +l, +r}:
+      %Equal.sym(Bool, ST.is_node(K, ST.nd(K, setc(K, nl, id, v), i), ST.rid(l), ST.rid(r), p), ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), p), isn_setc(K, nl, id, v, i, ST.rid(l), ST.rid(r), p)) : {Bool.and(Nat.is_lt(0n, i), Bool.and(_, Bool.and(ST.rep(~K, l, i, setc(K, nl, id, v)), ST.rep(~K, r, i, setc(K, nl, id, v))))) == ST.rep(~K, ST.TN{i, l, r}, p, nl) : Bool}
+      %Equal.sym(Bool, ST.rep(~K, l, i, setc(K, nl, id, v)), ST.rep(~K, l, i, nl), rep_setc(~K, l, i, nl, id, v)) : {Bool.and(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), p), Bool.and(_, ST.rep(~K, r, i, setc(K, nl, id, v))))) == ST.rep(~K, ST.TN{i, l, r}, p, nl) : Bool}
+      %Equal.sym(Bool, ST.rep(~K, r, i, setc(K, nl, id, v)), ST.rep(~K, r, i, nl), rep_setc(~K, r, i, nl, id, v)) : {Bool.and(Nat.is_lt(0n, i), Bool.and(ST.is_node(K, ST.nd(K, nl, i), ST.rid(l), ST.rid(r), p), Bool.and(ST.rep(~K, l, i, nl), _))) == ST.rep(~K, ST.TN{i, l, r}, p, nl) : Bool}
+      {==}
+
+def ctx_setc(~K: Data, +c: List<&2, P.Fr>, +x: Nat, +nl: List<&2, M.Node<K>>, +id: Nat, +v: Bool) -> {P.ctxok(~K, c, x, setc(K, nl, id, v)) == P.ctxok(~K, c, x, nl) : Bool}:
+  match c:
+    case Nil{}:
+      {==}
+    case Con{P.FR{+p, +lft, +s}, +u}:
+      %Equal.sym(Bool, ST.is_node(K, ST.nd(K, setc(K, nl, id, v), p), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)), ST.is_node(K, ST.nd(K, nl, p), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)), isn_setc(K, nl, id, v, p, ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u))) : {Bool.and(Bool.and(Nat.is_lt(0n, p), Bool.and(_, ST.rep(~K, s, p, setc(K, nl, id, v)))), P.ctxok(~K, u, p, setc(K, nl, id, v))) == P.ctxok(~K, Con{P.FR{p, lft, s}, u}, x, nl) : Bool}
+      %Equal.sym(Bool, ST.rep(~K, s, p, setc(K, nl, id, v)), ST.rep(~K, s, p, nl), rep_setc(~K, s, p, nl, id, v)) : {Bool.and(Bool.and(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)), _)), P.ctxok(~K, u, p, setc(K, nl, id, v))) == P.ctxok(~K, Con{P.FR{p, lft, s}, u}, x, nl) : Bool}
+      %Equal.sym(Bool, P.ctxok(~K, u, p, setc(K, nl, id, v)), P.ctxok(~K, u, p, nl), ctx_setc(~K, u, p, nl, id, v)) : {Bool.and(Bool.and(Nat.is_lt(0n, p), Bool.and(ST.is_node(K, ST.nd(K, nl, p), ST.pk(Nat, lft, x, ST.rid(s)), ST.pk(Nat, lft, ST.rid(s), x), P.top(u)), ST.rep(~K, s, p, nl))), _) == P.ctxok(~K, Con{P.FR{p, lft, s}, u}, x, nl) : Bool}
+      {==}
+
+# the recoloured node's colour
+def red_modc(-K: Data, +x: M.Node<K>, +v: Bool, +h: {ST.is_red(K, x) == ST.is_red(K, x) : Bool}) -> {ST.is_red(K, modc(K, x, False{})) == False{} : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, a, b, q, k}:
       {==}
