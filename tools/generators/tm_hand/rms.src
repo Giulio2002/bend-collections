@@ -154,3 +154,19 @@ def oks_new($TV, $MH, $XR, +h: {$OKX($OLDX, nl, pl) == True{} : Bool}) -> {$OKX(
   +okr = L.and_right($ISS($ENT(nl, pl, $S1)), $OKX(rr, nl, pl), hsr0)
   +oku = L.subst($ME, z => {$ISS(z) == True{} : Bool}, $ENT(nl, pl, $S1), $ENT($NLK, $PL4, $U), Equal.sym($ME, $ENT($NLK, $PL4, $U), $ENT(nl, pl, $S1), ent_mv(K, V, $MA)), oks)
   EN.oks_app(~K, ~V, $NLK, $PL4, xa, Con{$U, rr}, Equal.trans(Bool, $OKX(xa, $NLK, $PL4), $OKX(xa, nl, pl), True{}, oks_rest($AV, $MA, xa, hux, hsx), hx), L.and_intro($ISS($ENT($NLK, $PL4, $U)), $OKX(rr, $NLK, $PL4), oku, Equal.trans(Bool, $OKX(rr, $NLK, $PL4), $OKX(rr, nl, pl), True{}, oks_rest($AV, $MA, rr, hur, hsr), okr)))
+
+# ---- the right subtree is no bigger than the tree ----
+
+%def LAPP(xs, ys) LL.length_append(Nat, xs, ys)
+%def LE(a, b) {Nat.is_le(a, b) == True{} : Bool}
+%def L1 $LEN($IDS(tb))
+%def L2 $LEN(Con{$U, $IDS(tb)})
+%def L3 $LEN($IDS($TT))
+%def L4 $LEN($APP($IDS($TT), P.after(c)))
+%def L5 $LEN($WH(c, $TT))
+
+def sublen(+c: $CT, +ui: Nat, +ta: ST.Tr, +tb: ST.Tr) -> $LE($L1, $L5):
+  +s2 = L.subst(Nat, z => $LE($L2, z), Nat.add($LEN($IDS(ta)), $L2), $L3, Equal.sym(Nat, $L3, Nat.add($LEN($IDS(ta)), $L2), $LAPP($IDS(ta), Con{$U, $IDS(tb)})), TR.le_add_l($LEN($IDS(ta)), $L2))
+  +s3 = L.subst(Nat, z => $LE($L3, z), Nat.add($L3, $LEN(P.after(c))), $L4, Equal.sym(Nat, $L4, Nat.add($L3, $LEN(P.after(c))), $LAPP($IDS($TT), P.after(c))), N.le_add_right($L3, $LEN(P.after(c))))
+  +s4 = L.subst(Nat, z => $LE($L4, z), Nat.add($LEN(P.before(c)), $L4), $L5, Equal.sym(Nat, $L5, Nat.add($LEN(P.before(c)), $L4), $LAPP(P.before(c), $APP($IDS($TT), P.after(c)))), TR.le_add_l($LEN(P.before(c)), $L4))
+  N.le_trans($L1, $L2, $L5, N.le_succ($L1), N.le_trans($L2, $L3, $L5, s2, N.le_trans($L3, $L4, $L5, s3, s4)))
