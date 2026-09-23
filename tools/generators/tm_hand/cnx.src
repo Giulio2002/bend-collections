@@ -1,0 +1,116 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/list.bend as LL
+import ../lib/order.bend as O
+import ../spec/common.bend as SC
+import ../spec/tree_map.bend as S
+import ../../src/containers/balanced_search_tree.bend as M
+import ../hash_table/state.bend as HT
+import ../lru/state.bend as LST
+import ../lru/lists.bend as LS
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./ok.bend as OK
+import ./tree.bend as TR
+import ./ends.bend as EN
+import ./path.bend as P
+import ./plug.bend as PG
+import ./dj.bend as DJ
+import ./ord.bend as OR
+import ./navl.bend as NV
+import ./cur.bend as CU
+
+# A cursor's step: the path to any id of the tree, and in sorted entries
+# the entries strictly past (before) an entry's key are the ones after
+# (before) it. (source: tools/generators/tm_hand/cnx.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def CT List<&2, P.Fr>
+%def E M.Entry<K, V>
+%def ES List<&2, $E>
+%def ME Maybe<&2, $E>
+%def KY(e) S.key(K, V, e)
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def EAPP(a, b) SC.append($E, a, b)
+%def ORD(x) {ST.ordered($AK, x) == True{} : Bool}
+%def MID $EAPP(xs, Con{e, ys})
+
+# ---- strictly past the middle entry ----
+
+def fw_mid($TO, +xs: $ES, +e: $E, +ys: $ES, +h: $ORD($MID)) -> {S.first_where($AK, $KY(e), False{}, $MID) == S.head($E, ys) : $ME}:
+  %Equal.sym($ME, S.first_where($AK, $KY(e), False{}, $MID), OR.orm($E, S.first_where($AK, $KY(e), False{}, xs), S.first_where($AK, $KY(e), False{}, Con{e, ys})), NV.fw_app($AK, $KY(e), False{}, xs, Con{e, ys})) : {_ == S.head($E, ys) : $ME}
+  %Equal.sym($ME, S.first_where($AK, $KY(e), False{}, xs), None{}, NV.fw_none($AO, $KY(e), False{}, xs, OR.ord_mid_l($AO, xs, e, ys, h))) : {OR.orm($E, _, S.first_where($AK, $KY(e), False{}, Con{e, ys})) == S.head($E, ys) : $ME}
+  %Equal.sym(Cmp, cmp($KY(e), $KY(e)), EQ{}, O.refl(~K, ~cmp, ~o, $KY(e))) : {S.pick($ME, S.ordering_ok(_, False{}), Some{e}, S.first_where($AK, $KY(e), False{}, ys)) == S.head($E, ys) : $ME}
+  NV.fw_head($AK, $KY(e), False{}, ys, OR.ord_mid_r($AO, xs, e, ys, h))
+
+def lw_mid($TO, +xs: $ES, +e: $E, +ys: $ES, +h: $ORD($MID)) -> {S.last_where($AK, $KY(e), False{}, $MID, None{}) == S.last($E, xs) : $ME}:
+  %Equal.sym($ME, S.last_where($AK, $KY(e), False{}, $MID, None{}), S.last_where($AK, $KY(e), False{}, Con{e, ys}, S.last_where($AK, $KY(e), False{}, xs, None{})), NV.lw_app($AK, $KY(e), False{}, xs, Con{e, ys}, None{})) : {_ == S.last($E, xs) : $ME}
+  %Equal.sym($ME, S.last_where($AK, $KY(e), False{}, xs, None{}), OR.orm($E, S.last($E, xs), None{}), NV.lw_all($AK, $KY(e), False{}, xs, None{}, OR.ord_mid_l($AO, xs, e, ys, h))) : {S.last_where($AK, $KY(e), False{}, Con{e, ys}, _) == S.last($E, xs) : $ME}
+  %Equal.sym($ME, OR.orm($E, S.last($E, xs), None{}), S.last($E, xs), OR.orm_none($E, S.last($E, xs))) : {S.last_where($AK, $KY(e), False{}, Con{e, ys}, _) == S.last($E, xs) : $ME}
+  %Equal.sym(Cmp, cmp($KY(e), $KY(e)), EQ{}, O.refl(~K, ~cmp, ~o, $KY(e))) : {S.last_where($AK, $KY(e), False{}, ys, S.pick($ME, S.ordering_ok(_, False{}), Some{e}, S.last($E, xs))) == S.last($E, xs) : $ME}
+  NV.lw_none($AO, $KY(e), False{}, ys, S.last($E, xs), OR.ord_mid_r($AO, xs, e, ys, h))
+
+# ---- the path to an id of the tree ----
+
+%def APP(a, b) SC.append(Nat, a, b)
+%def IDS(t) ST.ids(t)
+%def TN(i, a, b) ST.TN{i, a, b}
+%def WH(c, t) $APP(P.before(c), $APP($IDS(t), P.after(c)))
+%def REPN(t, p) {ST.rep(~K, t, p, nl) == True{} : Bool}
+%def COKN(c, z) {P.ctxok(~K, c, z, nl) == True{} : Bool}
+%def MEM(y, xs) {HT.memn(y, xs) == True{} : Bool}
+%def TO3 ~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AO3 ~K, ~cmp, ~o
+%def PT(c, t) Sigma<&1, &1, $CT, pc_ => Sigma<&1, &1, ST.Tr, pa_ => Sigma<&1, &1, ST.Tr, pb_ => {$WH(pc_, $TN(j, pa_, pb_)) == $WH(c, t) : $LN} & ({PG.plug(pc_, $TN(j, pa_, pb_)) == PG.plug(c, t) : ST.Tr} & ($REPN($TN(j, pa_, pb_), P.top(pc_)) & $COKN(pc_, j)))>>>
+%def TT $TN(i, tl, tr)
+%def PTJ(jj, c, t) Sigma<&1, &1, $CT, pc_ => Sigma<&1, &1, ST.Tr, pa_ => Sigma<&1, &1, ST.Tr, pb_ => {$WH(pc_, $TN(jj, pa_, pb_)) == $WH(c, t) : $LN} & ({PG.plug(pc_, $TN(jj, pa_, pb_)) == PG.plug(c, t) : ST.Tr} & ($REPN($TN(jj, pa_, pb_), P.top(pc_)) & $COKN(pc_, jj)))>>>
+%def CLF Con{P.FR{i, True{}, tr}, c}
+%def CRF Con{P.FR{i, False{}, tl}, c}
+
+def pt_upl(-K: Data, +nl: $NL, +c: $CT, +i: Nat, +tl: ST.Tr, +tr: ST.Tr, +j: Nat, r: $PT($CLF, tl)) -> $PT(c, $TT):
+  match r:
+    case Tuple{+pc, Tuple{+pa, Tuple{+pb, Tuple{h1, rest}}}}:
+      (pc, (pa, (pb, (Equal.trans($LN, $WH(pc, $TN(j, pa, pb)), $WH($CLF, tl), $WH(c, $TT), h1, Equal.sym($LN, $WH(c, $TT), $WH($CLF, tl), P.ids_l(c, i, tl, tr))), rest))))
+
+def pt_upr(-K: Data, +nl: $NL, +c: $CT, +i: Nat, +tl: ST.Tr, +tr: ST.Tr, +j: Nat, r: $PT($CRF, tr)) -> $PT(c, $TT):
+  match r:
+    case Tuple{+pc, Tuple{+pa, Tuple{+pb, Tuple{h1, rest}}}}:
+      (pc, (pa, (pb, (Equal.trans($LN, $WH(pc, $TN(j, pa, pb)), $WH($CRF, tr), $WH(c, $TT), h1, Equal.sym($LN, $WH(c, $TT), $WH($CRF, tr), P.ids_r(c, i, tl, tr))), rest))))
+
+%def KL @+hrl: $REPN(tl, i) -> @+hol: $COKN($CLF, ST.rid(tl)) -> @+hml: $MEM(j, $IDS(tl)) -> $PT($CLF, tl)
+%def KR @+hrr: $REPN(tr, i) -> @+hor: $COKN($CRF, ST.rid(tr)) -> @+hmr: $MEM(j, $IDS(tr)) -> $PT($CRF, tr)
+%def OKL P.ok_l(~K, nl, c, i, tl, tr, hr, hok)
+%def OKR P.ok_r(~K, nl, c, i, tl, tr, hr, hok)
+%def PTH +nl: $NL, +c: $CT, +i: Nat, +tl: ST.Tr, +tr: ST.Tr, +j: Nat, +hr: $REPN($TT, P.top(c)), +hok: $COKN(c, i), +hm: $MEM(j, $IDS($TT))
+
+# j on the right when neither the node nor on the left
+def pt_rc($TO3, $PTH, +he: {Nat.is_eq(i, j) == False{} : Bool}, +bl: Bool, +hbl: {HT.memn(j, $IDS(tl)) == bl : Bool}, kl: $KL, kr: $KR) -> $PT(c, $TT):
+  match bl:
+    case True{}:
+      pt_upl(K, nl, c, i, tl, tr, j, kl(Pair.snd($COKN($CLF, ST.rid(tl)), $REPN(tl, i), $OKL), Pair.fst($COKN($CLF, ST.rid(tl)), $REPN(tl, i), $OKL), hbl))
+    case False{}:
+      +e1 = Equal.trans(Bool, Bool.or(HT.memn(j, $IDS(tl)), HT.memn(j, Con{i, $IDS(tr)})), HT.memn(j, $IDS($TT)), True{}, Equal.sym(Bool, HT.memn(j, $IDS($TT)), Bool.or(HT.memn(j, $IDS(tl)), HT.memn(j, Con{i, $IDS(tr)})), LS.memn_app(j, $IDS(tl), Con{i, $IDS(tr)})), hm)
+      +e2 = L.subst(Bool, z => {Bool.or(z, HT.memn(j, Con{i, $IDS(tr)})) == True{} : Bool}, HT.memn(j, $IDS(tl)), False{}, hbl, e1)
+      +e3 = L.subst(Bool, z => {Bool.or(z, HT.memn(j, $IDS(tr))) == True{} : Bool}, Nat.is_eq(i, j), False{}, he, e2)
+      pt_upr(K, nl, c, i, tl, tr, j, kr(Pair.snd($COKN($CRF, ST.rid(tr)), $REPN(tr, i), $OKR), Pair.fst($COKN($CRF, ST.rid(tr)), $REPN(tr, i), $OKR), e3))
+
+# the node itself, or below it
+def pt_c($TO3, $PTH, +e: Bool, +he: {Nat.is_eq(i, j) == e : Bool}, kl: $KL, kr: $KR) -> $PT(c, $TT):
+  match e:
+    case True{}:
+      L.subst(Nat, z => $PTJ(z, c, $TT), i, j, N.eq_from_is_eq(i, j, he), (c, (tl, (tr, ({==}, ({==}, (hr, hok)))))))
+    case False{}:
+      pt_rc($AO3, nl, c, i, tl, tr, j, hr, hok, hm, he, HT.memn(j, $IDS(tl)), {==}, kl, kr)
+
+def path_to($TO3, +t: ST.Tr, +nl: $NL, +c: $CT, +j: Nat, +hr: $REPN(t, P.top(c)), +hok: $COKN(c, ST.rid(t)), +hm: $MEM(j, $IDS(t))) -> $PT(c, t):
+  match t:
+    case ST.TE{}:
+      Empty.absurd($PT(c, ST.TE{}), L.false_true(hm))
+    case ST.TN{+i, +tl, +tr}:
+      pt_c($AO3, nl, c, i, tl, tr, j, hr, hok, hm, Nat.is_eq(i, j), {==}, hrl => hol => hml => path_to($AO3, tl, nl, $CLF, j, hrl, hol, hml), hrr => hor => hmr => path_to($AO3, tr, nl, $CRF, j, hrr, hor, hmr))
