@@ -1,0 +1,147 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/list.bend as LL
+import ../lib/order.bend as O
+import ../spec/common.bend as SC
+import ../spec/tree_map.bend as S
+import ../../src/containers/balanced_search_tree.bend as M
+import ../hash_table/state.bend as HT
+import ../lru/state.bend as LST
+import ../lru/lists.bend as LS
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./ok.bend as OK
+import ./tree.bend as TR
+import ./ends.bend as EN
+import ./path.bend as P
+import ./plug.bend as PG
+import ./dj.bend as DJ
+import ./ord.bend as OR
+import ./navl.bend as NV
+import ./cur.bend as CU
+import ./reads.bend as RD
+import ./spath.bend as SP
+import ./agree.bend as AG
+import ./find.bend as FI
+import ./slot.bend as SL
+
+# Keys present are found: a list split at a member, the entry of a member
+# found by its key in sorted entries, and the search for a present key ending
+# at a node holding it. (source: tools/generators/tm_hand/crk.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def CT List<&2, P.Fr>
+%def E M.Entry<K, V>
+%def ES List<&2, $E>
+%def ME Maybe<&2, $E>
+%def MVV Maybe<&2, V>
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def APP(a, b) SC.append(Nat, a, b)
+%def EAPP(a, b) SC.append($E, a, b)
+%def MEM(y, xs) {HT.memn(y, xs) == True{} : Bool}
+%def SPLT(xs) Sigma<&1, &1, $LN, sa_ => Sigma<&1, &1, $LN, sb_ => {xs == $APP(sa_, Con{j, sb_}) : $LN}>>
+
+def sp_up(+x: Nat, +t: $LN, +j: Nat, r: $SPLT(t)) -> $SPLT(Con{x, t}):
+  match r:
+    case Tuple{+sa, Tuple{+sb, h}}:
+      (Con{x, sa}, (sb, L.subst($LN, z => {Con{x, t} == Con{x, z} : $LN}, t, $APP(sa, Con{j, sb}), h, {==})))
+
+# a list at a member
+def split_c(+x: Nat, +t: $LN, +j: Nat, +e: Bool, +he: {Nat.is_eq(x, j) == e : Bool}, +hm: {Bool.or(e, HT.memn(j, t)) == True{} : Bool}, ih: @+hmt: $MEM(j, t) -> $SPLT(t)) -> $SPLT(Con{x, t}):
+  match e:
+    case True{}:
+      L.subst(Nat, z => $SPLT(Con{z, t}), j, x, Equal.sym(Nat, x, j, N.eq_from_is_eq(x, j, he)), (Nil{}, (t, {==})))
+    case False{}:
+      sp_up(x, t, j, ih(hm))
+
+def split_mem(+xs: $LN, +j: Nat, +hm: $MEM(j, xs)) -> $SPLT(xs):
+  match xs:
+    case Nil{}:
+      Empty.absurd($SPLT(Nil{}), L.false_true(hm))
+    case Con{+x, +t}:
+      split_c(x, t, j, Nat.is_eq(x, j), {==}, hm, hmt => split_mem(t, j, hmt))
+
+%def ENX(xs) ST.ents(~K, ~V, xs, nl, pl)
+%def NU M.N{c0, x1, x2, x3, k}
+%def EK M.Entry{k, v}
+
+def fi_s($TO, +nl: $NL, +pl: List<&2, $MVV>, +xs: $LN, +j: Nat, +hord: {ST.ordered($AK, $ENX(xs)) == True{} : Bool}, +c0: Bool, +x1: Nat, +x2: Nat, +x3: Nat, +k: K, +hx: {ST.nd(K, nl, j) == $NU : $ND}, +v: V, +hv: {ST.pv(V, pl, j) == Some{v} : $MVV}, r: $SPLT(xs)) -> {S.find_e($AK, k, $ENX(xs)) == Some{$EK} : $ME}:
+  match r:
+    case Tuple{+sa, Tuple{+sb, h}}:
+      +eent = L.subst($MVV, z => {ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j)) == ST.ent(K, V, $NU, z) : $ME}, ST.pv(V, pl, j), Some{v}, hv, L.subst($ND, z => {ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j)) == ST.ent(K, V, z, ST.pv(V, pl, j)) : $ME}, ST.nd(K, nl, j), $NU, hx, {==}))
+      +hE = Equal.trans($ES, $ENX(xs), $ENX($APP(sa, Con{j, sb})), $EAPP($ENX(sa), Con{$EK, $ENX(sb)}), L.subst($LN, z => {$ENX(xs) == $ENX(z) : $ES}, xs, $APP(sa, Con{j, sb}), h, {==}), Equal.trans($ES, $ENX($APP(sa, Con{j, sb})), $EAPP($ENX(sa), ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j)), $ENX(sb))), $EAPP($ENX(sa), Con{$EK, $ENX(sb)}), FI.ents_app(~K, ~V, sa, Con{j, sb}, nl, pl), L.subst($ME, z => {$EAPP($ENX(sa), ST.cons_m($E, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j)), $ENX(sb))) == $EAPP($ENX(sa), ST.cons_m($E, z, $ENX(sb))) : $ES}, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j)), Some{$EK}, eent, {==})))
+      Equal.trans($ME, S.find_e($AK, k, $ENX(xs)), S.find_e($AK, k, $EAPP($ENX(sa), Con{$EK, $ENX(sb)})), Some{$EK}, L.subst($ES, z => {S.find_e($AK, k, $ENX(xs)) == S.find_e($AK, k, z) : $ME}, $ENX(xs), $EAPP($ENX(sa), Con{$EK, $ENX(sb)}), hE, {==}), OR.find_mid_eq($AO, k, $ENX(sa), $EK, $ENX(sb), L.subst($ES, z => {ST.ordered($AK, z) == True{} : Bool}, $ENX(xs), $EAPP($ENX(sa), Con{$EK, $ENX(sb)}), hE, hord), O.refl(~K, ~cmp, ~o, k)))
+
+# the entry of a member, found by its key
+def find_in($TO, +nl: $NL, +pl: List<&2, $MVV>, +xs: $LN, +j: Nat, +hm: $MEM(j, xs), +hord: {ST.ordered($AK, $ENX(xs)) == True{} : Bool}, +c0: Bool, +x1: Nat, +x2: Nat, +x3: Nat, +k: K, +hx: {ST.nd(K, nl, j) == $NU : $ND}, +v: V, +hv: {ST.pv(V, pl, j) == Some{v} : $MVV}) -> {S.find_e($AK, k, $ENX(xs)) == Some{$EK} : $ME}:
+  fi_s($AO, nl, pl, xs, j, hord, c0, x1, x2, x3, k, hx, v, hv, split_mem(xs, j, hm))
+
+# ---- a present key: the search ends at a node holding it ----
+
+%def FT +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: $NL, +pl: List<&2, $MVV>, +tg: ST.Tr, +fl: $LN
+%def F n, root, lo, hi, free, l, d, nl, pl, tg, fl
+%def GF {ST.goodF($AK, $F) == True{} : Bool}
+%def IDS(t) ST.ids(t)
+%def TN(i, a, b) ST.TN{i, a, b}
+%def WH(c, t) $APP(P.before(c), $APP($IDS(t), P.after(c)))
+%def T0 $APP($IDS(tg), Nil{})
+%def EST $ENX($IDS(tg))
+%def TS TR.tsearch($AK, tg, nl, k, 0n, False{})
+%def FKR {CU.ck(~K, nl, FI.sfound($TS)) == Some{k} : Maybe<&2, K>} & {CU.idok($IDS(tg), FI.sfound($TS)) == True{} : Bool}
+%def FKT(t) {CU.ck(~K, nl, ST.rid(t)) == Some{k} : Maybe<&2, K>} & {CU.idok($IDS(tg), ST.rid(t)) == True{} : Bool}
+%def FH +k: K, +w: V, +hpv: {ST.pv(V, pl, ST.rid(t)) == Some{w} : $MVV}, +c: $CT, +hwh: {$T0 == $WH(c, t) : $LN}, +hr: {ST.rep(~K, t, P.top(c), nl) == True{} : Bool}, +hfin: {SP.fin(~K, ~cmp, k, t, nl) == True{} : Bool}
+
+def fk_x($TO, $FT, +i: Nat, +a: ST.Tr, +b: ST.Tr, +k: K, +c: $CT, +hwh: {$T0 == $WH(c, $TN(i, a, b)) : $LN}, +hr: {ST.rep(~K, $TN(i, a, b), P.top(c), nl) == True{} : Bool}, +x: $ND, +hx: {ST.nd(K, nl, i) == x : $ND}, +hq: {S.is_eq(TR.kc(~K, ~cmp, k, x)) == True{} : Bool}) -> $FKT($TN(i, a, b)):
+  match x:
+    case M.Free{f}:
+      Empty.absurd($FKT($TN(i, a, b)), L.false_true(L.subst($ND, z => {ST.is_node(K, z, ST.rid(a), ST.rid(b), P.top(c)) == True{} : Bool}, ST.nd(K, nl, i), M.Free{f}, hx, TR.rep_node(~K, i, a, b, P.top(c), nl, hr))))
+    case M.N{+c0, +x1, +x2, +x3, +key}:
+      +ek = O.antisym(~K, ~cmp, o, k, key, AG.iseq_eq(cmp(k, key), hq))
+      +eck = Equal.trans(Maybe<&2, K>, CU.ck(~K, nl, i), Some{key}, Some{k}, L.subst($ND, z => {CU.ck(~K, nl, i) == M.node_key(~K, z) : Maybe<&2, K>}, ST.nd(K, nl, i), M.N{c0, x1, x2, x3, key}, hx, {==}), L.subst(K, z => {Some{key} == Some{z} : Maybe<&2, K>}, key, k, Equal.sym(K, k, key, ek), {==}))
+      +hm0 = DJ.mem_r(i, P.before(c), $APP($IDS($TN(i, a, b)), P.after(c)), DJ.mem_l(i, $IDS($TN(i, a, b)), P.after(c), P.mem_root(i, a, b)))
+      +hm = L.subst($LN, z => $MEM(i, z), $WH(c, $TN(i, a, b)), $IDS(tg), Equal.trans($LN, $WH(c, $TN(i, a, b)), $T0, $IDS(tg), Equal.sym($LN, $T0, $WH(c, $TN(i, a, b)), hwh), LL.append_nil(Nat, $IDS(tg))), hm0)
+      (eck, CU.or_r(Nat.is_eq(i, 0n), HT.memn(i, $IDS(tg)), hm))
+
+def fk_t($TO, $FT, +t: ST.Tr, $FH) -> $FKT(t):
+  match t:
+    case ST.TE{}:
+      Empty.absurd($FKT(ST.TE{}), L.none_some(V, w, hpv))
+    case ST.TN{+i, +a, +b}:
+      fk_x($AO, $F, i, a, b, k, c, hwh, hr, ST.nd(K, nl, i), {==}, hfin)
+
+%def SPR(c, t) {$TS == M.Search{ST.rid(t), P.top(c), SP.dir(c)} : M.Search} & ({$T0 == $WH(c, t) : $LN} & ({tg == PG.plug(c, t) : ST.Tr} & ({ST.rep(~K, t, P.top(c), nl) == True{} : Bool} & ({P.ctxok(~K, c, ST.rid(t), nl) == True{} : Bool} & ({OR.ltall($AK, k, $ENX(P.before(c))) == True{} : Bool} & ({OR.gtall($AK, k, $ENX(P.after(c))) == True{} : Bool} & {SP.fin(~K, ~cmp, k, t, nl) == True{} : Bool}))))))
+%def PTL(c, t) {OR.gtall($AK, k, $ENX(P.after(c))) == True{} : Bool} & {SP.fin(~K, ~cmp, k, t, nl) == True{} : Bool}
+%def HPV {ST.pv(V, pl, FI.sfound($TS)) == Some{w} : $MVV}
+
+def fk_c2($TO, $FT, +k: K, +w: V, +c: $CT, +t: ST.Tr, +hts: {$TS == M.Search{ST.rid(t), P.top(c), SP.dir(c)} : M.Search}, +hpv0: $HPV, +hwh: {$T0 == $WH(c, t) : $LN}, +hr: {ST.rep(~K, t, P.top(c), nl) == True{} : Bool}, r2: $PTL(c, t)) -> $FKR:
+  match r2:
+    case Tuple{ha, hfin}:
+      %Equal.sym(M.Search, $TS, M.Search{ST.rid(t), P.top(c), SP.dir(c)}, hts) : {CU.ck(~K, nl, FI.sfound(_)) == Some{k} : Maybe<&2, K>} & {CU.idok($IDS(tg), FI.sfound(_)) == True{} : Bool}
+      fk_t($AO, $F, t, k, w, L.subst(M.Search, z => {ST.pv(V, pl, FI.sfound(z)) == Some{w} : $MVV}, $TS, M.Search{ST.rid(t), P.top(c), SP.dir(c)}, hts, hpv0), c, hwh, hr, hfin)
+
+def fk_c($TO, $FT, +k: K, +w: V, +hpv0: $HPV, +c: $CT, +t: ST.Tr, r: $SPR(c, t)) -> $FKR:
+  match r:
+    case Tuple{hts, Tuple{hwh, Tuple{hplug, Tuple{hr, Tuple{hokc, Tuple{hb, r2}}}}}}:
+      fk_c2($AO, $F, k, w, c, t, hts, hpv0, hwh, hr, r2)
+
+def fk_sp($TO, $FT, +k: K, +w: V, +hpv0: $HPV, sp: Sigma<&1, &1, $CT, c => Sigma<&1, &1, ST.Tr, t => $SPR(c, t)>>) -> $FKR:
+  match sp:
+    case Tuple{+c, Tuple{+t, r}}:
+      fk_c($AO, $F, k, w, hpv0, c, t, r)
+
+%def OKS0(xs) {EN.oks(~K, ~V, xs, nl, pl) == True{} : Bool}
+
+# a present key: the search's id holds it and is in the tree
+def fkey($TO, $FT, +hg: $GF, +k: K, +w: V, +hf: {S.find($AK, k, $EST) == Some{w} : $MVV}) -> $FKR:
+  +ean = LL.append_nil(Nat, $IDS(tg))
+  +hk1 = EN.oks_tree(~K, ~V, nl, pl, tg, 0n, ST.g_crep($AK, $F, hg), ST.g_cpay($AK, $F, hg))
+  +hk0 = L.subst($LN, z => $OKS0(z), $IDS(tg), $T0, Equal.sym($LN, $T0, $IDS(tg), ean), hk1)
+  +ho0 = L.subst($LN, z => {ST.ordered($AK, $ENX(z)) == True{} : Bool}, $IDS(tg), $T0, Equal.sym($LN, $T0, $IDS(tg), ean), ST.g_cord($AK, $F, hg))
+  +hpv0 = Equal.trans($MVV, ST.pv(V, pl, FI.sfound($TS)), S.find($AK, k, $EST), Some{w}, FI.tfind($AO, nl, pl, tg, 0n, False{}, k, ST.g_crep($AK, $F, hg), ST.g_cpay($AK, $F, hg), ST.g_cord($AK, $F, hg)), hf)
+  fk_sp($AO, $F, k, w, hpv0, SP.spath($AO, nl, pl, tg, Nil{}, k, ST.g_crep($AK, $F, hg), {==}, ST.g_cpay($AK, $F, hg), ho0, hk0, {==}, {==}))
