@@ -128,3 +128,59 @@ def rm_a2($TV, $FT, +hg: $GF, $AH, dh: $DHTA, r: $R1T) -> OK.MOK($AK, $MV, $ASPC
 
 def rm_a($TV, $FT, +hg: $GF, $AH, r: $R1T) -> OK.MOK($AK, $MV, $ASPC, $AMIR):
   rm_a2($AV, $F, hg, $AHA, del_hit($AV, $F, hg, k, $U, $BC, $YA, hbc, hfin, 0n, ST.rid(ch), P.top(c), ST.nd(K, nl, $U), ST.pv(V, pl, $U), {==}, {==}, TR.rep_node(~K, $U, $TE, ch, P.top(c), nl, hr), ua_hm($AV, $F, hg, $AHA)), r)
+
+# ---- no right child: the node's left subtree takes its place ----
+
+%def TB $TN($U, ch, $TE)
+%def XB $APP($BC, $IDS(ch))
+%def WQB $APP($XB, Con{$U, $AC})
+%def BSH +k: K, +c: $CT, +ui: Nat, +ch: ST.Tr, +hbc: {$IDS(tg) == $WB : $LN}, +hplug: {tg == PG.plug(c, $TB) : ST.Tr}, +hr: $REPN($TB, P.top(c), nl), +hok: $COKN(c, $U, nl), +hfin: {S.is_eq(TR.kc(~K, ~cmp, k, ST.nd(K, nl, $U))) == True{} : Bool}
+%def BSA k, c, ui, ch, hbc, hplug, hr, hok, hfin
+%def HOKB L.subst($LN, z => {EN.oks(~K, ~V, z, nl, pl) == True{} : Bool}, $IDS(tg), $WB, hbc, $OKT)
+%def EWB ID.wb_eq(fl, c, ui, ch)
+%def EI0 ID.i0_eq(fl, c, ui, ch)
+
+def ub_nd($TV, $FT, +hg: $GF, $BSH) -> $NDL($APP($WB, fl)):
+  L.subst($LN, z => $NDL($APP(z, fl)), $IDS(tg), $WB, hbc, ST.g_cnd($AK, $F, hg))
+
+def ub_nm($TV, $FT, +hg: $GF, $BSH) -> $NMEM($U, $I0):
+  DJ.dj_l($I0, Con{$U, fl}, ID.mv_b(fl, c, ui, ch, ub_nd($AV, $F, hg, $BSA)), $U, DJ.mem_hd($U, fl))
+
+def ub_hk($TV, $FT, +hg: $GF, $BSH) -> {EN.oks(~K, ~V, $I0, nl, $PL1) == True{} : Bool}:
+  +hq = L.subst($LN, z => {EN.oks(~K, ~V, z, nl, pl) == True{} : Bool}, $WB, $WQB, $EWB, $HOKB)
+  +hb = SL.oks_split_l(~K, ~V, $XB, Con{$U, $AC}, nl, pl, hq)
+  +hy = L.and_right(S.is_some($E, ST.ent(K, V, ST.nd(K, nl, $U), ST.pv(V, pl, $U))), EN.oks(~K, ~V, $AC, nl, pl), SL.oks_split_r(~K, ~V, $XB, Con{$U, $AC}, nl, pl, hq))
+  +hI = L.subst($LN, z => {EN.oks(~K, ~V, z, nl, pl) == True{} : Bool}, $APP($XB, $AC), $I0, $EI0, EN.oks_app(~K, ~V, nl, pl, $XB, $AC, hb, hy))
+  Equal.trans(Bool, EN.oks(~K, ~V, $I0, nl, $PL1), EN.oks(~K, ~V, $I0, nl, pl), True{}, SL.oks_pex(~K, ~V, $I0, nl, pl, $U, None{}, ub_nm($AV, $F, hg, $BSA)), hI)
+
+def ub_hul($TV, $FT, +hg: $GF, $BSH) -> {Nat.is_lt(ui, SC.length($ND, nl)) == True{} : Bool}:
+  +hm0 = L.subst($LN, z => $MEM($U, z), $WQB, $WB, Equal.sym($LN, $WB, $WQB, $EWB), DJ.mem_r($U, $XB, Con{$U, $AC}, DJ.mem_hd($U, $AC)))
+  +hm = L.subst($LN, z => $MEM($U, z), $WB, $IDS(tg), Equal.sym($LN, $IDS(tg), $WB, hbc), hm0)
+  +hin = AL.allin_mem($IDS(tg), SC.length($ND, nl), $U, AL.allin_l($IDS(tg), fl, SC.length($ND, nl), ST.g_cin($AK, $F, hg)), hm)
+  N.succ_le_lt(ui, SC.length($ND, nl), L.and_right(Nat.is_lt(0n, $U), Nat.is_le($U, SC.length($ND, nl)), hin))
+
+def ub_hm($TV, $FT, +hg: $GF, $BSH) -> {ST.some2(V, ST.pv(V, pl, $U)) == True{} : Bool}:
+  FI.pay_node(~V, $U, ch, $TE, pl, SL.pay_oks(~K, ~V, $TB, nl, pl, SL.oks_split_l(~K, ~V, $IDS($TB), $AC, nl, pl, SL.oks_split_r(~K, ~V, $BC, $APP($IDS($TB), $AC), nl, pl, $HOKB))))
+
+%def DHTB {$DL == $ENTS($APP($XB, $AC)) : $ES} & $ORD($DL)
+
+def rm_b3($TV, $FT, +hg: $GF, $BSH, +hd1: {$DL == $ENTS($APP($XB, $AC)) : $ES}, +hd2: $ORD($DL), r: $R1T) -> OK.MOK($AK, $MV, $ASPC, $AMIR):
+  +hnd = ID.mv_b(fl, c, ui, ch, ub_nd($AV, $F, hg, $BSA))
+  +hin = ID.ain_b(fl, c, ui, ch, SC.length($ND, nl), L.subst($LN, z => $ALLIN($APP(z, fl), SC.length($ND, nl)), $IDS(tg), $WB, hbc, ST.g_cin($AK, $F, hg)))
+  +hln0 = L.subst($LN, z => {Nat.is_eq($LEN($APP(z, fl)), SC.length($ND, nl)) == True{} : Bool}, $IDS(tg), $WB, hbc, ST.g_clen($AK, $F, hg))
+  +hln = L.subst(Nat, w => {Nat.is_eq(w, SC.length($ND, nl)) == True{} : Bool}, $LEN($APP($WB, fl)), $LEN($APP($I0, Con{$U, fl})), Equal.sym(Nat, $LEN($APP($I0, Con{$U, fl})), $LEN($APP($WB, fl)), ID.len_b(fl, c, ui, ch)), hln0)
+  +en = Equal.trans(Nat, n, $LEN($IDS(tg)), 1n+$LEN($I0), N.eq_from_is_eq(n, $LEN($IDS(tg)), ST.g_csz($AK, $F, hg)), Equal.trans(Nat, $LEN($IDS(tg)), $LEN($WB), 1n+$LEN($I0), L.subst($LN, z => {$LEN($IDS(tg)) == $LEN(z) : Nat}, $IDS(tg), $WB, hbc, {==}), ID.sz_b(fl, c, ui, ch)))
+  +esub = Equal.trans(Nat, Nat.sub(n, 1n), Nat.sub(1n+$LEN($I0), 1n), $LEN($I0), L.subst(Nat, z => {Nat.sub(n, 1n) == Nat.sub(z, 1n) : Nat}, n, 1n+$LEN($I0), en, {==}), N.add_sub_cancel(1n, $LEN($I0)))
+  +hsz = L.subst(Nat, z => {Nat.is_eq(z, $LEN($I0)) == True{} : Bool}, $LEN($I0), Nat.sub(n, 1n), Equal.sym(Nat, Nat.sub(n, 1n), $LEN($I0), esub), N.is_eq_refl($LEN($I0)))
+  +hcpl = L.subst(Nat, z => {Nat.is_eq(z, SC.length($ND, nl)) == True{} : Bool}, SC.length($MV, pl), SC.length($MV, $PL1), Equal.sym(Nat, SC.length($MV, $PL1), SC.length($MV, pl), SL.len_ex(V, pl, $U, None{})), ST.g_cpl($AK, $F, hg))
+  +hd1b = Equal.trans($ES, $DL, $ENTS($APP($XB, $AC)), $ENTS($I0), hd1, L.subst($LN, z => {$ENTS($APP($XB, $AC)) == $ENTS(z) : $ES}, $APP($XB, $AC), $I0, $EI0, {==}))
+  +hdel = Equal.trans($ES, ST.ents(~K, ~V, $I0, nl, $PL1), $ENTS($I0), $DL, SL.ents_pex(~K, ~V, $I0, nl, pl, $U, None{}, ub_nm($AV, $F, hg, $BSA)), Equal.sym($ES, $DL, $ENTS($I0), hd1b))
+  RF.rm_fin($AV, n, root, lo, hi, free, l, d, nl, $PL1, tg, fl, fl, c, ui, ch, k, $EST, ST.pv(V, pl, $U), hdel, hd2, hnd, hin, hln, hsz, ST.g_cl($AK, $F, hg), ST.g_cd($AK, $F, hg), ST.g_ccap($AK, $F, hg), hcpl, r)
+
+def rm_b2($TV, $FT, +hg: $GF, $BSH, dh: $DHTB, r: $R1T) -> OK.MOK($AK, $MV, $ASPC, $AMIR):
+  match dh:
+    case Tuple{hd1, hd2}:
+      rm_b3($AV, $F, hg, $BSA, hd1, hd2, r)
+
+def rm_b($TV, $FT, +hg: $GF, $BSH, r: $R1T) -> OK.MOK($AK, $MV, $ASPC, $AMIR):
+  rm_b2($AV, $F, hg, $BSA, del_hit($AV, $F, hg, k, $U, $XB, $AC, Equal.trans($LN, $IDS(tg), $WB, $WQB, hbc, $EWB), hfin, ST.rid(ch), 0n, P.top(c), ST.nd(K, nl, $U), ST.pv(V, pl, $U), {==}, {==}, TR.rep_node(~K, $U, ch, $TE, P.top(c), nl, hr), ub_hm($AV, $F, hg, $BSA)), r)
