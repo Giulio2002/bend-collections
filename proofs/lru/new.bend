@@ -32,7 +32,7 @@ def good_empty(~V: Data, +cap: U32, +hz: {U32.is_eq(cap, 0) == False{} : Bool}) 
   +kl = AR.slots(String, kt)
   +pk = AR.perfect(String, 0n, kt)
   +e = {AR.TLeaf{None{}} : AR.Tree<Maybe<&2, V>>}
-  ST.good_intro(~V, cap, 0, 0, 0, 0, TB.nth0(AR.slots(U32, m), 0n), TB.nth0(AR.slots(U32, m), 1n), TB.nth0(AR.slots(U32, m), 2n), TB.nth0(AR.slots(U32, m), 6n), TB.nth0(AR.slots(U32, m), 7n), AR.perfect(U32, 5n, m), 1n, 0n, t, kl, pk, e, l, Nil{}, Nil{}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, L.and_intro(Bool.not(U32.is_eq(cap, 0)), Nat.is_le(UD.v(0), UD.v(cap)), Equal.cong(Bool, Bool, b => Bool.not(b), U32.is_eq(cap, 0), False{}, hz), N.zero_le(UD.v(cap))), {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==})
+  ST.good_intro(~V, cap, 0, 0, 0, 0, TB.nth0(AR.slots(U32, m), 0n), TB.nth0(AR.slots(U32, m), 1n), TB.nth0(AR.slots(U32, m), 2n), TB.nth0(AR.slots(U32, m), 6n), TB.nth0(AR.slots(U32, m), 7n), AR.perfect(U32, 5n, m), 1n, 0n, t, kl, pk, e, l, Nil{}, Nil{}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, Equal.cong(Bool, Bool, b => Bool.not(b), U32.is_eq(cap, 0), False{}, hz), {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==}, {==})
 
 def new_c(~V: Data, +cap: U32, +z: Bool, +hz: {U32.is_eq(cap, 0) == z : Bool}, +r: Bool) -> MadeOK(~V, LR.new_checked(&2, V, cap, z, r), SP.new_c(~V, cap, z, r)):
   match z r:

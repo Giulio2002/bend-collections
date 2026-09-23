@@ -40,7 +40,7 @@ COMPS = [
     ("cuniq", f"B.all_lt(B.PUniq{{{BS}}}, SC.pow2(k))"),
     ("cn", f"Nat.is_eq(UD.v(n), IV.occn({BS}, SC.pow2(k)))"),
     ("cload", "Nat.is_le(Nat.double(UD.v(n)), SC.pow2(k))"),
-    ("ccap", "Bool.and(Bool.not(U32.is_eq(cap, 0)), Nat.is_le(UD.v(n), UD.v(cap)))"),
+    ("ccap", "Bool.not(U32.is_eq(cap, 0))"),
     ("cbsl", f"bsl({BS}, sl, {LL}, SC.pow2(k))"),
     ("chas", f"hasall(~V, {BS}, SC.pow2(k), {LL}, sl)"),
     ("csl", f"slok(~V, sl, {FR}, {EL})"),

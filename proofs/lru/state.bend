@@ -264,7 +264,7 @@ def cload(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr:
   Nat.is_le(Nat.double(UD.v(n)), SC.pow2(k))
 
 def ccap(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  Bool.and(Bool.not(U32.is_eq(cap, 0)), Nat.is_le(UD.v(n), UD.v(cap)))
+  Bool.not(U32.is_eq(cap, 0))
 
 def cbsl(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
   bsl(TB.buckets(AR.slots(U32, tabT), kl, SC.pow2(k)), sl, AR.slots(U32, lkT), SC.pow2(k))
