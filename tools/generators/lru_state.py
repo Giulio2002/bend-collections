@@ -23,7 +23,7 @@ EL = "AR.slots(Maybe<&2, V>, eT)"
 FR = "UD.v(fr)"
 
 COMPS = [
-    ("ck", "Bool.and(Nat.is_lt(k, 31n), Nat.is_lt(0n, k))"),
+    ("ck", "Bool.and(Nat.is_lt(k, 30n), Nat.is_lt(0n, k))"),
     ("csdk", "Nat.is_lt(sd, k)"),
     ("cpt", "AR.perfect(U32, 1n+k, tabT)"),
     ("cpk", "pk"),

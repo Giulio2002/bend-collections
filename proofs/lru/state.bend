@@ -207,7 +207,7 @@ def nokey(~V: Data, +ll: List<&2, U32>, +kl: List<&2, String>, sl: List<&2, Nat>
 # (tools/generators/lru_state.py)
 
 def ck(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
-  Bool.and(Nat.is_lt(k, 31n), Nat.is_lt(0n, k))
+  Bool.and(Nat.is_lt(k, 30n), Nat.is_lt(0n, k))
 
 def csdk(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, +fr: U32, +msz: U32, +mdp: U32, +mmk: U32, +mbt: U32, +pm: Bool, +k: Nat, +sd: Nat, +tabT: AR.Tree<U32>, +kl: List<&2, String>, +pk: Bool, +eT: AR.Tree<Maybe<&2, V>>, +lkT: AR.Tree<U32>, +sl: List<&2, Nat>, +fl: List<&2, Nat>) -> Bool:
   Nat.is_lt(sd, k)
