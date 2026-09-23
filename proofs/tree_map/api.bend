@@ -13,6 +13,9 @@ import ./ends.bend as EN
 import ./navm.bend as NM
 import ./putm.bend as PM
 import ./rmv.bend as RV
+import ./rmi.bend as RI
+import ./rmp.bend as RP
+import ./life.bend as LF
 
 # The implementation's operations refine the specification's, for every
 # good shadow and a lawful comparator. (source: tools/generators/tm_hand/api.src)
@@ -138,3 +141,29 @@ def remove_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +s
   match sh:
     case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
       OK.mok_pok(~K, ~V, ~cmp, Maybe<&2, V>, S.remove(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k), MI.remove(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k), M.remove(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k), SM.remove_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), RV.rm_m(~K, ~V, ~cmp, ~o, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg, k))
+
+def remove_if_equal_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), ~eq: V -> V -> Bool, +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}, +k: K, +e: V) -> OK.POK(~K, ~V, ~cmp, Bool, S.remove_if_equal(~K, ~V, ~cmp, ~eq, ST.model(~K, ~V, ~cmp, sh), k, e), M.remove_if_equal(~K, ~V, ~cmp, ~eq, ST.real(~K, ~V, ~cmp, sh), k, e)):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
+      OK.mok_pok(~K, ~V, ~cmp, Bool, S.remove_if_equal(~K, ~V, ~cmp, ~eq, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, e), MI.remove_if_equal(~K, ~V, ~cmp, ~eq, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, e), M.remove_if_equal(~K, ~V, ~cmp, ~eq, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, e), SM.remove_if_equal_s(~K, ~V, ~cmp, ~eq, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, e, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), RI.rmi_m(~K, ~V, ~cmp, ~o, ~eq, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg, k, e))
+
+# ---- the polls ----
+
+
+def poll_first_entry_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}) -> OK.POK(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, S.poll_first_entry(K, V, ST.model(~K, ~V, ~cmp, sh)), M.poll_first_entry(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh))):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
+      OK.mok_pok(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, S.poll_first_entry(K, V, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})), MI.poll_first_entry(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), M.poll_first_entry(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})), SM.poll_first_entry_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), RP.pf_m(~K, ~V, ~cmp, ~o, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg))
+
+def poll_last_entry_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}) -> OK.POK(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, S.poll_last_entry(K, V, ST.model(~K, ~V, ~cmp, sh)), M.poll_last_entry(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh))):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
+      OK.mok_pok(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, S.poll_last_entry(K, V, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})), MI.poll_last_entry(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), M.poll_last_entry(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})), SM.poll_last_entry_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), RP.pl_m(~K, ~V, ~cmp, ~o, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg))
+
+# ---- clear ----
+
+
+def clear_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}) -> Sigma<&1, &1, ST.Sh<K, V>, s2_ => {M.clear(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh)) == ST.real(~K, ~V, ~cmp, s2_) : M.TreeMap<K, V, cmp>} & ({S.clear(K, V, ST.model(~K, ~V, ~cmp, sh)) == ST.model(~K, ~V, ~cmp, s2_) : S.Model<K, V>} & {ST.good(~K, ~V, ~cmp, s2_) == True{} : Bool})>:
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
+      (ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, ST.TE{}, Nil{}}, (Equal.trans(M.TreeMap<K, V, cmp>, M.clear(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})), ST.real(~K, ~V, ~cmp, MI.clear(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})), ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, ST.TE{}, Nil{}}), SM.clear_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), Pair.fst({ST.real(~K, ~V, ~cmp, MI.clear(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})) == ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, ST.TE{}, Nil{}}) : M.TreeMap<K, V, cmp>}, {S.clear(K, V, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})) == ST.model(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, ST.TE{}, Nil{}}) : S.Model<K, V>} & {ST.good(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, ST.TE{}, Nil{}}) == True{} : Bool}, LF.clear_ok(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg))), Pair.snd({ST.real(~K, ~V, ~cmp, MI.clear(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})) == ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, ST.TE{}, Nil{}}) : M.TreeMap<K, V, cmp>}, {S.clear(K, V, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl})) == ST.model(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, ST.TE{}, Nil{}}) : S.Model<K, V>} & {ST.good(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, ST.TE{}, Nil{}}) == True{} : Bool}, LF.clear_ok(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg))))

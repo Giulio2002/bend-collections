@@ -13,6 +13,9 @@ import ./ends.bend as EN
 import ./navm.bend as NM
 import ./putm.bend as PM
 import ./rmv.bend as RV
+import ./rmi.bend as RI
+import ./rmp.bend as RP
+import ./life.bend as LF
 
 # The implementation's operations refine the specification's, for every
 # good shadow and a lawful comparator. (source: tools/generators/tm_hand/api.src)
@@ -156,3 +159,34 @@ def remove_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, $MV, S.remove(
   match sh:
     case ST.SH{$FP}:
       OK.mok_pok($AK, $MV, S.remove($AK, $MD($SH), k), MI.remove($AK, $SH, k), M.remove($AK, $RL($SH), k), SM.remove_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), RV.rm_m($AO, $F, hg, k))
+
+def remove_if_equal_ok($TO, ~eq: V -> V -> Bool, +sh: $SHT, +hg: $GD(sh), +k: K, +e: V) -> OK.POK($AK, Bool, S.remove_if_equal($AK, ~eq, $MD(sh), k, e), M.remove_if_equal($AK, ~eq, $RL(sh), k, e)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, Bool, S.remove_if_equal($AK, ~eq, $MD($SH), k, e), MI.remove_if_equal($AK, ~eq, $SH, k, e), M.remove_if_equal($AK, ~eq, $RL($SH), k, e), SM.remove_if_equal_s($AK, ~eq, $SH, k, e, OK.dg_good($AK, $SH, hg)), RI.rmi_m($AO, ~eq, $F, hg, k, e))
+
+# ---- the polls ----
+
+%def ME Maybe<&2, $E>
+
+def poll_first_entry_ok($TO, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, $ME, S.poll_first_entry(K, V, $MD(sh)), M.poll_first_entry($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, $ME, S.poll_first_entry(K, V, $MD($SH)), MI.poll_first_entry($AK, $SH), M.poll_first_entry($AK, $RL($SH)), SM.poll_first_entry_s($AK, $SH, OK.dg_good($AK, $SH, hg)), RP.pf_m($AO, $F, hg))
+
+def poll_last_entry_ok($TO, +sh: $SHT, +hg: $GD(sh)) -> OK.POK($AK, $ME, S.poll_last_entry(K, V, $MD(sh)), M.poll_last_entry($AK, $RL(sh))):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, $ME, S.poll_last_entry(K, V, $MD($SH)), MI.poll_last_entry($AK, $SH), M.poll_last_entry($AK, $RL($SH)), SM.poll_last_entry_s($AK, $SH, OK.dg_good($AK, $SH, hg)), RP.pl_m($AO, $F, hg))
+
+# ---- clear ----
+
+%def ESH(l, d) ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, ST.TE{}, Nil{}}
+%def CLT(s) Sigma<&1, &1, $SHT, s2_ => {M.clear($AK, $RL(s)) == $RL(s2_) : $TMT} & ({S.clear(K, V, $MD(s)) == $MD(s2_) : S.Model<K, V>} & $GD(s2_))>
+%def CLA {ST.real($AK, MI.clear($AK, $SH)) == ST.real($AK, $ESH(l, d)) : $TMT}
+%def CLB {S.clear(K, V, ST.model($AK, $SH)) == ST.model($AK, $ESH(l, d)) : S.Model<K, V>} & $GD($ESH(l, d))
+
+def clear_ok($TK, +sh: $SHT, +hg: $GD(sh)) -> $CLT(sh):
+  match sh:
+    case ST.SH{$FP}:
+      ($ESH(l, d), (Equal.trans($TMT, M.clear($AK, $RL($SH)), ST.real($AK, MI.clear($AK, $SH)), $RL($ESH(l, d)), SM.clear_s($AK, $SH, OK.dg_good($AK, $SH, hg)), Pair.fst($CLA, $CLB, LF.clear_ok($AK, $F, hg))), Pair.snd($CLA, $CLB, LF.clear_ok($AK, $F, hg))))
