@@ -1,0 +1,153 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/list.bend as LL
+import ../lib/order.bend as O
+import ../spec/common.bend as SC
+import ../spec/tree_map.bend as S
+import ../../src/containers/balanced_search_tree.bend as M
+import ../hash_table/state.bend as HT
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./ok.bend as OK
+import ./tree.bend as TR
+import ./ends.bend as EN
+import ./path.bend as P
+import ./dj.bend as DJ
+import ./nav.bend as NA
+import ./navm.bend as NM
+import ./cur.bend as CU
+import ./cnx.bend as CX
+import ./vdef.bend as VD
+
+# A view's cursor: it starts at the id of the first (last) entry past its
+# bound, which is 0 or an id of the tree, and whose key is the
+# specification's start. (source: tools/generators/tm_hand/vit.src)
+
+%def ND M.Node<K>
+%def NL List<&2, $ND>
+%def LN List<&2, Nat>
+%def CT List<&2, P.Fr>
+%def E M.Entry<K, V>
+%def ME Maybe<&2, $E>
+%def MK Maybe<&2, K>
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def FT +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: $NL, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: $LN
+%def FP +n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl
+%def F n, root, lo, hi, free, l, d, nl, pl, tg, fl
+%def SH ST.SH{$F}
+%def SHT ST.Sh<K, V>
+%def MVT MI.MView<K, V>
+%def MCT MI.MCursor<K, V>
+%def BD M.Bound<K>
+%def GF {ST.good($AK, $SH) == True{} : Bool}
+%def EST ST.ents(~K, ~V, ST.ids(tg), nl, pl)
+%def APP(a, b) SC.append(Nat, a, b)
+%def IDS(t) ST.ids(t)
+%def WH(c, t) $APP(P.before(c), $APP($IDS(t), P.after(c)))
+%def TN(i, a, b) ST.TN{i, a, b}
+%def CL(i, r, c) Con{P.FR{i, True{}, r}, c}
+%def CR(i, l, c) Con{P.FR{i, False{}, l}, c}
+%def IDOK(xs, j) {CU.idok(xs, j) == True{} : Bool}
+%def GN(t, c) NA.gnav(~K, ~cmp, t, c, nl, k, h, incl)
+%def PK(fw, a, b) ST.pk(Nat, fw, a, b)
+
+# ---- navigation returns 0 or an id of the tree ----
+
+def pk_ok(+xs: $LN, +h: Bool, +a: Nat, +b: Nat, +ha: $IDOK(xs, a), +hb: $IDOK(xs, b)) -> $IDOK(xs, $PK(h, a, b)):
+  match h:
+    case True{}:
+      ha
+    case False{}:
+      hb
+
+def pk3_ok(+xs: $LN, +c: Cmp, +a: Nat, +b: Nat, +z: Nat, +ha: $IDOK(xs, a), +hb: $IDOK(xs, b), +hz: $IDOK(xs, z)) -> $IDOK(xs, TR.pk3(Nat, c, a, b, z)):
+  match c:
+    case LT{}:
+      ha
+    case GT{}:
+      hb
+    case EQ{}:
+      hz
+
+def idok_self(+i: Nat, +t: $LN) -> $IDOK(Con{i, t}, i):
+  CU.or_r(Nat.is_eq(i, 0n), HT.memn(i, Con{i, t}), DJ.mem_hd(i, t))
+
+def gnav_ok(~K: Data, ~cmp: K -> K -> Cmp, +t: ST.Tr, +c: $CT, +nl: $NL, +k: K, +h: Bool, +incl: Bool) -> $IDOK($WH(c, t), $GN(t, c)):
+  match t:
+    case ST.TE{}:
+      pk_ok($WH(c, ST.TE{}), h, ST.fst0(P.after(c)), ST.last0(P.before(c)), CX.idok_suf(P.before(c), P.after(c), ST.fst0(P.after(c)), CU.fst0_ok(P.after(c))), CX.idok_pre(P.before(c), P.after(c), ST.last0(P.before(c)), CU.last0_ok(P.before(c))))
+    case ST.TN{+i, +tl, +tr}:
+      +er = Equal.sym($LN, $WH(c, $TN(i, tl, tr)), $WH($CR(i, tl, c), tr), P.ids_r(c, i, tl, tr))
+      +el = Equal.sym($LN, $WH(c, $TN(i, tl, tr)), $WH($CL(i, tr, c), tl), P.ids_l(c, i, tl, tr))
+      +ihl = L.subst($LN, z => $IDOK(z, $GN(tl, $CL(i, tr, c))), $WH($CL(i, tr, c), tl), $WH(c, $TN(i, tl, tr)), el, gnav_ok(~K, ~cmp, tl, $CL(i, tr, c), nl, k, h, incl))
+      +ihr = L.subst($LN, z => $IDOK(z, $GN(tr, $CR(i, tl, c))), $WH($CR(i, tl, c), tr), $WH(c, $TN(i, tl, tr)), er, gnav_ok(~K, ~cmp, tr, $CR(i, tl, c), nl, k, h, incl))
+      +hi = L.subst($LN, z => $IDOK(z, i), $WH($CR(i, tl, c), tr), $WH(c, $TN(i, tl, tr)), er, CX.idok_pre(P.before($CR(i, tl, c)), $APP($IDS(tr), P.after(c)), i, CX.idok_suf(P.before(c), $APP($IDS(tl), Con{i, Nil{}}), i, CX.idok_suf($IDS(tl), Con{i, Nil{}}, i, idok_self(i, Nil{})))))
+      +hnf = L.subst($LN, z => $IDOK(z, ST.fst0($APP($IDS(tr), P.after(c)))), $WH($CR(i, tl, c), tr), $WH(c, $TN(i, tl, tr)), er, CX.idok_suf(P.before($CR(i, tl, c)), $APP($IDS(tr), P.after(c)), ST.fst0($APP($IDS(tr), P.after(c))), CU.fst0_ok($APP($IDS(tr), P.after(c)))))
+      +hnl0 = CX.idok_pre($APP(P.before(c), $IDS(tl)), P.after($CL(i, tr, c)), ST.last0($APP(P.before(c), $IDS(tl))), CU.last0_ok($APP(P.before(c), $IDS(tl))))
+      +hnl1 = L.subst($LN, z => $IDOK(z, ST.last0($APP(P.before(c), $IDS(tl)))), $APP($APP(P.before(c), $IDS(tl)), P.after($CL(i, tr, c))), $WH($CL(i, tr, c), tl), LL.append_assoc(Nat, P.before(c), $IDS(tl), P.after($CL(i, tr, c))), hnl0)
+      +hnl = L.subst($LN, z => $IDOK(z, ST.last0($APP(P.before(c), $IDS(tl)))), $WH($CL(i, tr, c), tl), $WH(c, $TN(i, tl, tr)), el, hnl1)
+      pk3_ok($WH(c, $TN(i, tl, tr)), TR.kc(~K, ~cmp, k, ST.nd(K, nl, i)), $GN(tl, $CL(i, tr, c)), $GN(tr, $CR(i, tl, c)), $PK(incl, i, $PK(h, ST.fst0($APP($IDS(tr), P.after(c))), ST.last0($APP(P.before(c), $IDS(tl))))), ihl, ihr, pk_ok($WH(c, $TN(i, tl, tr)), incl, i, $PK(h, ST.fst0($APP($IDS(tr), P.after(c))), ST.last0($APP(P.before(c), $IDS(tl)))), hi, pk_ok($WH(c, $TN(i, tl, tr)), h, ST.fst0($APP($IDS(tr), P.after(c))), ST.last0($APP(P.before(c), $IDS(tl))), hnf, hnl)))
+
+# ---- the id a bound starts at ----
+
+%def G0 NA.gnav(~K, ~cmp, tg, Nil{}, nl, k, h, incl)
+%def AN LL.append_nil(Nat, $IDS(tg))
+%def OKT EN.oks_tree(~K, ~V, nl, pl, tg, 0n, ST.g_crep($AK, $F, hg), ST.g_cpay($AK, $F, hg))
+%def RSID(b, fw) Sigma<&1, &1, Nat, j => {MI.range_start($AK, $SH, b, fw) == ($SH, j) : $SHT & Nat} & ({CU.ck(~K, nl, j) == S.start($AK, b, fw, $EST) : $MK} & $IDOK($IDS(tg), j))>
+
+def g0_ok($TO, $FT, +hg: $GF, +k: K, +h: Bool, +incl: Bool) -> {CU.ck(~K, nl, $G0) == S.key_m(K, V, S.nav($AK, k, h, incl, $EST)) : $MK} & $IDOK($IDS(tg), $G0):
+  +hk = L.subst($LN, z => {EN.oks(~K, ~V, z, nl, pl) == True{} : Bool}, $IDS(tg), $APP($IDS(tg), Nil{}), Equal.sym($LN, $APP($IDS(tg), Nil{}), $IDS(tg), $AN), $OKT)
+  +e1 = Equal.sym($MK, S.key_m(K, V, ST.ent(K, V, ST.nd(K, nl, $G0), ST.pv(V, pl, $G0))), M.node_key(~K, ST.nd(K, nl, $G0)), NM.gnav_key(~K, ~V, ~cmp, nl, pl, tg, Nil{}, k, h, incl, ST.g_crep($AK, $F, hg), ST.g_cpay($AK, $F, hg), hk))
+  +e2 = L.subst($ME, z => {S.key_m(K, V, ST.ent(K, V, ST.nd(K, nl, $G0), ST.pv(V, pl, $G0))) == S.key_m(K, V, z) : $MK}, ST.ent(K, V, ST.nd(K, nl, $G0), ST.pv(V, pl, $G0)), S.nav($AK, k, h, incl, $EST), NM.gnav_ent($AO, $F, k, h, incl, hg), {==})
+  +hid = L.subst($LN, z => $IDOK(z, $G0), $APP($IDS(tg), Nil{}), $IDS(tg), $AN, gnav_ok(~K, ~cmp, tg, Nil{}, nl, k, h, incl))
+  (Equal.trans($MK, CU.ck(~K, nl, $G0), S.key_m(K, V, ST.ent(K, V, ST.nd(K, nl, $G0), ST.pv(V, pl, $G0))), S.key_m(K, V, S.nav($AK, k, h, incl, $EST)), e1, e2), hid)
+
+def rs_nav($TO, $FT, +hg: $GF, +k: K, +h: Bool, +incl: Bool, r: {CU.ck(~K, nl, $G0) == S.key_m(K, V, S.nav($AK, k, h, incl, $EST)) : $MK} & $IDOK($IDS(tg), $G0)) -> Sigma<&1, &1, Nat, j => {MI.navigate($AK, $SH, k, h, incl) == ($SH, j) : $SHT & Nat} & ({CU.ck(~K, nl, j) == S.key_m(K, V, S.nav($AK, k, h, incl, $EST)) : $MK} & $IDOK($IDS(tg), j))>:
+  match r:
+    case Tuple{ec, ei}:
+      ($G0, (NM.navigate_m($AK, $F, k, h, incl, hg), (ec, ei)))
+
+def rsid($TO, $FT, +hg: $GF, +b: $BD, +fw: Bool) -> $RSID(b, fw):
+  match b fw:
+    case M.Unbounded{} True{}:
+      +e = N.eq_from_is_eq(lo, ST.fst0($IDS(tg)), ST.g_clo($AK, $F, hg))
+      (ST.fst0($IDS(tg)), (L.subst(Nat, z => {($SH, lo) == ($SH, z) : $SHT & Nat}, lo, ST.fst0($IDS(tg)), e, {==}), (Equal.sym($MK, S.key_m(K, V, S.head($E, $EST)), CU.ck(~K, nl, ST.fst0($IDS(tg))), EN.first_key_eq(~K, ~V, nl, pl, $IDS(tg), $OKT)), CU.fst0_ok($IDS(tg)))))
+    case M.Unbounded{} False{}:
+      +e = N.eq_from_is_eq(hi, ST.last0($IDS(tg)), ST.g_chi($AK, $F, hg))
+      (ST.last0($IDS(tg)), (L.subst(Nat, z => {($SH, hi) == ($SH, z) : $SHT & Nat}, hi, ST.last0($IDS(tg)), e, {==}), (Equal.sym($MK, S.key_m(K, V, S.last($E, $EST)), CU.ck(~K, nl, ST.last0($IDS(tg))), EN.last_key_eq(~K, ~V, nl, pl, $IDS(tg), $OKT)), CU.last0_ok($IDS(tg)))))
+    case M.Inclusive{+x} _:
+      rs_nav($AO, $F, hg, x, fw, True{}, g0_ok($AO, $F, hg, x, fw, True{}))
+    case M.Exclusive{+x} _:
+      rs_nav($AO, $F, hg, x, fw, False{}, g0_ok($AO, $F, hg, x, fw, False{}))
+
+# ---- the view's cursor ----
+
+%def VB +lo2: $BD, +hi2: $BD
+%def VWS(d2) MI.MV{$SH, lo2, hi2, d2}
+%def MC0(j, fw) MI.MC{$SH, j, 0n, lo2, hi2, fw}
+%def SCR0(b, fw) S.CR{S.TM{l, $EST}, S.start($AK, b, fw, $EST), None{}, lo2, hi2, fw}
+%def CEX(mc, sp) Sigma<&1, &1, $MCT, c2 => {mc == c2 : $MCT} & ({sp == CU.cmod($AK, c2) : S.Cursor<K, V>} & {CU.cgood($AK, c2) == True{} : Bool})>
+
+def vit_q($TO, $FT, +hg: $GF, $VB, +b: $BD, +fw: Bool, +j: Nat, +h1: {MI.range_start($AK, $SH, b, fw) == ($SH, j) : $SHT & Nat}, r: {CU.ck(~K, nl, j) == S.start($AK, b, fw, $EST) : $MK} & $IDOK($IDS(tg), j)) -> $CEX(MI.cursor_started($AK, lo2, hi2, fw, MI.range_start($AK, $SH, b, fw)), $SCR0(b, fw)):
+  match r:
+    case Tuple{h2, h3}:
+      +e1 = L.subst($SHT & Nat, z => {MI.cursor_started($AK, lo2, hi2, fw, MI.range_start($AK, $SH, b, fw)) == MI.cursor_started($AK, lo2, hi2, fw, z) : $MCT}, MI.range_start($AK, $SH, b, fw), ($SH, j), h1, {==})
+      +e2 = L.subst($MK, z => {S.CR{S.TM{l, $EST}, z, None{}, lo2, hi2, fw} == S.CR{S.TM{l, $EST}, CU.ck(~K, nl, j), None{}, lo2, hi2, fw} : S.Cursor<K, V>}, CU.ck(~K, nl, j), S.start($AK, b, fw, $EST), h2, {==})
+      ($MC0(j, fw), (e1, (e2, CU.cg_start($AK, $F, hg, j, h3, fw))))
+
+def vit_r($TO, $FT, +hg: $GF, $VB, +b: $BD, +fw: Bool, r: $RSID(b, fw)) -> $CEX(MI.cursor_started($AK, lo2, hi2, fw, MI.range_start($AK, $SH, b, fw)), $SCR0(b, fw)):
+  match r:
+    case Tuple{+j, Tuple{+h1, r2}}:
+      vit_q($AO, $F, hg, lo2, hi2, b, fw, j, h1, r2)
+
+def vit_m($TO, $FT, +hg: $GF, $VB, +d2: Bool) -> $CEX(MI.view_iterator($AK, $VWS(d2)), S.view_iterator($AK, VD.vmod($AK, $VWS(d2)))):
+  match d2:
+    case True{}:
+      vit_r($AO, $F, hg, lo2, hi2, hi2, False{}, rsid($AO, $F, hg, hi2, False{}))
+    case False{}:
+      vit_r($AO, $F, hg, lo2, hi2, lo2, True{}, rsid($AO, $F, hg, lo2, True{}))
+

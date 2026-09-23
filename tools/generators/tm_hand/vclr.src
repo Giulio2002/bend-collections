@@ -1,0 +1,331 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/nat.bend as N
+import ../lib/list.bend as LL
+import ../lib/order.bend as O
+import ../spec/common.bend as SC
+import ../spec/tree_map.bend as S
+import ../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./ok.bend as OK
+import ./ord.bend as OR
+import ./dord.bend as DO
+import ./reads.bend as RD
+import ./cur.bend as CU
+import ./vsp.bend as VS
+import ./vit.bend as VI
+import ./vsz.bend as VZ
+import ./vdef.bend as VD
+
+# A view's clear: the implementation walks the view's cursor, removing each
+# entry in range, until one is out of range; each step is the specification
+# cursor's, so what is left is the entries outside the view.
+# (source: tools/generators/tm_hand/vclr.src)
+
+%def ND M.Node<K>
+%def E M.Entry<K, V>
+%def ES List<&2, $E>
+%def ME Maybe<&2, $E>
+%def MK Maybe<&2, K>
+%def MVV Maybe<&2, V>
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def MCT MI.MCursor<K, V>
+%def SCT S.Cursor<K, V>
+%def RCT M.Cursor<K, V, cmp>
+%def PT $SCT & $ME
+%def SVT S.View<K, V>
+%def BD M.Bound<K>
+%def EAPP(a, b) SC.append($E, a, b)
+%def VB +lo2: $BD, +hi2: $BD
+%def VBA lo2, hi2
+%def W(xs) S.within($AK, lo2, hi2, xs)
+%def OUT(xs) S.outside($AK, lo2, hi2, xs)
+%def IR(k) S.in_range(~K, ~cmp, k, lo2, hi2)
+%def EE M.Entry{k, v}
+%def RC(c) MI.rc($AK, c)
+%def CM(c) CU.cmod($AK, c)
+%def SCRE(es, a, b, fw) S.CR{S.TM{l, es}, a, b, lo2, hi2, fw}
+%def CPN(c) CU.CPOK($AK, $ME, S.iterator_next($AK, $CM(c)), M.iterator_next($AK, $RC(c)))
+%def CPR(c) CU.CPOK($AK, $MVV, S.iterator_remove($AK, $CM(c)), M.iterator_remove($AK, $RC(c)))
+%def HCG(c) {CU.cgood($AK, c) == True{} : Bool}
+
+# ---- the cursor's view ----
+
+def vw_of(-K: Data, -V: Data, c: $SCT) -> $SVT:
+  match c:
+    case S.CR{m, nx, cu, lo, hi, fw}:
+      S.VW{m, lo, hi, Bool.not(fw)}
+
+def iv_ok($TK, +c2: $MCT, +hc2: $HCG(c2)) -> VD.VOK($AK, vw_of(K, V, $CM(c2)), M.iterator_view($AK, $RC(c2))):
+  match c2:
+    case MI.MC{ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}, +a, +b, +lo3, +hi3, +fw3}:
+      (MI.MV{ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, lo3, hi3, Bool.not(fw3)}, ({==}, ({==}, L.and_left(ST.goodF($AK, n, root, lo, hi, free, l, d, nl, pl, tg, fl), Bool.and(CU.idok(ST.ids(tg), a), Bool.and(CU.idok(ST.ids(tg), b), Bool.or(Nat.is_eq(a, 0n), Bool.not(Nat.is_eq(a, b))))), hc2))))
+
+def is_nil(-A: Data, xs: List<&2, A>) -> Bool:
+  match xs:
+    case Nil{}:
+      True{}
+    case Con{h, t}:
+      False{}
+
+def con_nil(-A: Data, +x: A, +t: List<&2, A>, +h: {Con{x, t} == Nil{} : List<&2, A>}) -> Empty:
+  L.false_true(VS.cong(List<&2, A>, Bool, z => is_nil(A, z), Con{x, t}, Nil{}, h))
+
+# nothing within: nothing to clear
+def oid_c($TK, $VB, +e: $E, +t: $ES, +h: {$W(Con{e, t}) == Nil{} : $ES}, +b: Bool, +hb: {$IR(S.key(K, V, e)) == b : Bool}, kf: @+ht: {$W(t) == Nil{} : $ES} -> {$OUT(t) == t : $ES}) -> {$OUT(Con{e, t}) == Con{e, t} : $ES}:
+  match b:
+    case True{}:
+      Empty.absurd({$OUT(Con{e, t}) == Con{e, t} : $ES}, con_nil($E, e, $W(t), Equal.trans($ES, Con{e, $W(t)}, $W(Con{e, t}), Nil{}, Equal.sym($ES, $W(Con{e, t}), Con{e, $W(t)}, VS.w_in($AK, lo2, hi2, e, t, hb)), h)))
+    case False{}:
+      +ht = Equal.trans($ES, $W(t), $W(Con{e, t}), Nil{}, Equal.sym($ES, $W(Con{e, t}), $W(t), VS.w_out($AK, lo2, hi2, e, t, hb)), h)
+      Equal.trans($ES, $OUT(Con{e, t}), Con{e, $OUT(t)}, Con{e, t}, VS.pk_f($ES, $IR(S.key(K, V, e)), $OUT(t), Con{e, $OUT(t)}, hb), VS.cong($ES, $ES, z => Con{e, z}, $OUT(t), t, kf(ht)))
+
+def out_id($TK, $VB, +xs: $ES, +h: {$W(xs) == Nil{} : $ES}) -> {$OUT(xs) == xs : $ES}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      oid_c($AK, $VBA, e, t, h, $IR(S.key(K, V, e)), {==}, ht => out_id($AK, $VBA, t, ht))
+
+def oapp_c($TK, $VB, +e: $E, +t: $ES, +ys: $ES, +ih: {$OUT($EAPP(t, ys)) == $EAPP($OUT(t), $OUT(ys)) : $ES}, +b: Bool, +hb: {$IR(S.key(K, V, e)) == b : Bool}) -> {$OUT($EAPP(Con{e, t}, ys)) == $EAPP($OUT(Con{e, t}), $OUT(ys)) : $ES}:
+  match b:
+    case True{}:
+      +l1 = VS.pk_t($ES, $IR(S.key(K, V, e)), $OUT($EAPP(t, ys)), Con{e, $OUT($EAPP(t, ys))}, hb)
+      +r1 = VS.cong($ES, $ES, z => $EAPP(z, $OUT(ys)), $OUT(Con{e, t}), $OUT(t), VS.pk_t($ES, $IR(S.key(K, V, e)), $OUT(t), Con{e, $OUT(t)}, hb))
+      Equal.trans($ES, $OUT($EAPP(Con{e, t}, ys)), $EAPP($OUT(t), $OUT(ys)), $EAPP($OUT(Con{e, t}), $OUT(ys)), Equal.trans($ES, $OUT($EAPP(Con{e, t}, ys)), $OUT($EAPP(t, ys)), $EAPP($OUT(t), $OUT(ys)), l1, ih), Equal.sym($ES, $EAPP($OUT(Con{e, t}), $OUT(ys)), $EAPP($OUT(t), $OUT(ys)), r1))
+    case False{}:
+      +l1 = VS.pk_f($ES, $IR(S.key(K, V, e)), $OUT($EAPP(t, ys)), Con{e, $OUT($EAPP(t, ys))}, hb)
+      +r1 = VS.cong($ES, $ES, z => $EAPP(z, $OUT(ys)), $OUT(Con{e, t}), Con{e, $OUT(t)}, VS.pk_f($ES, $IR(S.key(K, V, e)), $OUT(t), Con{e, $OUT(t)}, hb))
+      Equal.trans($ES, $OUT($EAPP(Con{e, t}, ys)), Con{e, $EAPP($OUT(t), $OUT(ys))}, $EAPP($OUT(Con{e, t}), $OUT(ys)), Equal.trans($ES, $OUT($EAPP(Con{e, t}, ys)), Con{e, $OUT($EAPP(t, ys))}, Con{e, $EAPP($OUT(t), $OUT(ys))}, l1, VS.cong($ES, $ES, z => Con{e, z}, $OUT($EAPP(t, ys)), $EAPP($OUT(t), $OUT(ys)), ih)), Equal.sym($ES, $EAPP($OUT(Con{e, t}), $OUT(ys)), Con{e, $EAPP($OUT(t), $OUT(ys))}, r1))
+
+def out_app($TK, $VB, +xs: $ES, +ys: $ES) -> {$OUT($EAPP(xs, ys)) == $EAPP($OUT(xs), $OUT(ys)) : $ES}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      oapp_c($AK, $VBA, e, t, ys, out_app($AK, $VBA, t, ys), $IR(S.key(K, V, e)), {==})
+
+# ---- forward ----
+
+%def FUEL(xs) 1n+Nat.add(SC.length($E, xs), x)
+%def VWF(xs) S.VW{S.TM{l, $EAPP(xa, $OUT(xs))}, lo2, hi2, False{}}
+%def GCL(xs, c) VD.VOK($AK, $VWF(xs), M.view_clear_loop($AK, $FUEL(xs), M.iterator_next($AK, $RC(c))))
+%def NOK @+nc: $MCT -> @+nh: $HCG(nc) -> $CPN(nc)
+%def ROK @+rc: $MCT -> @+rh: $HCG(rc) -> $CPR(rc)
+%def CFH $TO, ~nok: $NOK, ~rok: $ROK, +l: Nat, $VB, +x: Nat, +xa: $ES
+%def CFA $AO, ~nok, ~rok, l, $VBA, x, xa
+%def ESC(xs) $EAPP(xa, xs)
+%def KC @+kc3: $MCT -> @+kh3: $HCG(kc3) -> @+ks3: {$CM(kc3) == $SCRE($ESC(t), S.key_m(K, V, S.head($E, t)), None{}, True{}) : $SCT} -> $GCL(t, kc3)
+
+# a cursor at the end of the run: its view
+def cf_end($TK, +l: Nat, $VB, +es: $ES, +cc: $MK, -sp: $SVT, -r: M.View<K, V, cmp>, +c2: $MCT, +hc2: $HCG(c2), +ec: {$SCRE(es, None{}, cc, True{}) == $CM(c2) : $SCT}, +hs: {S.VW{S.TM{l, es}, lo2, hi2, False{}} == sp : $SVT}, +hr: {M.iterator_view($AK, $RC(c2)) == r : M.View<K, V, cmp>}) -> VD.VOK($AK, sp, r):
+  L.subst(M.View<K, V, cmp>, z => VD.VOK($AK, sp, z), M.iterator_view($AK, $RC(c2)), r, hr, L.subst($SVT, z => VD.VOK($AK, z, M.iterator_view($AK, $RC(c2))), S.VW{S.TM{l, es}, lo2, hi2, False{}}, sp, hs, L.subst($SCT, z => VD.VOK($AK, vw_of(K, V, z), M.iterator_view($AK, $RC(c2))), $CM(c2), $SCRE(es, None{}, cc, True{}), Equal.sym($SCT, $SCRE(es, None{}, cc, True{}), $CM(c2), ec), iv_ok($AK, c2, hc2))))
+
+%def ORDX(xs) {ST.ordered($AK, xs) == True{} : Bool}
+%def ALL(xs) {VS.allal($AK, lo2, xs) == True{} : Bool}
+%def SPV(fw, nk) S.pick($PT, $IR(k), ($SCRE($ESC(Con{$EE, t}), nk, Some{k}, fw), Some{$EE}), ($SCRE($ESC(Con{$EE, t}), None{}, cc, fw), None{}))
+%def E1F VS.cong($SCT, $PT, z => S.iterator_next($AK, z), $CM(c), $SCRE($ESC(Con{$EE, t}), Some{k}, cc, True{}), hsp)
+%def E2F VZ.sp_f($AO, l, $ESC(Con{$EE, t}), xa, k, v, t, {==}, hord, cc, $VBA)
+%def CKH +k: K, +v: V, +t: $ES, +c: $MCT, +cc: $MK, +hsp: {$CM(c) == $SCRE($ESC(Con{$EE, t}), Some{k}, cc, True{}) : $SCT}, +hord: $ORDX($ESC(Con{$EE, t})), +hal: $ALL(Con{$EE, t})
+%def CKA k, v, t, c, cc, hsp, hord, hal
+%def NKF S.key_m(K, V, S.head($E, t))
+%def STF $SCRE($ESC(Con{$EE, t}), $NKF, Some{k}, True{})
+
+def cfn2($CFH, +c: $MCT, +cc: $MK, +hsp: {$CM(c) == $SCRE($ESC(Nil{}), None{}, cc, True{}) : $SCT}, +c2: $MCT, +ov: $ME, +h1: {M.iterator_next($AK, $RC(c)) == ($RC(c2), ov) : $RCT & $ME}, r: {S.iterator_next($AK, $CM(c)) == ($CM(c2), ov) : $PT} & $HCG(c2)) -> $GCL(Nil{}, c):
+  match r:
+    case Tuple{h2, h3}:
+      +heq = Equal.trans($PT, ($SCRE($ESC(Nil{}), None{}, cc, True{}), None{}), S.iterator_next($AK, $CM(c)), ($CM(c2), ov), Equal.sym($PT, S.iterator_next($AK, $CM(c)), ($SCRE($ESC(Nil{}), None{}, cc, True{}), None{}), VS.cong($SCT, $PT, z => S.iterator_next($AK, z), $CM(c), $SCRE($ESC(Nil{}), None{}, cc, True{}), hsp)), h2)
+      +eo = L.pair_snd($SCT, $ME, $SCRE($ESC(Nil{}), None{}, cc, True{}), None{}, $CM(c2), ov, heq)
+      +ec = L.pair_fst($SCT, $ME, $SCRE($ESC(Nil{}), None{}, cc, True{}), None{}, $CM(c2), ov, heq)
+      %Equal.sym($RCT & $ME, M.iterator_next($AK, $RC(c)), ($RC(c2), ov), h1) : VD.VOK($AK, $VWF(Nil{}), M.view_clear_loop($AK, $FUEL(Nil{}), _))
+      %eo : VD.VOK($AK, $VWF(Nil{}), M.view_clear_loop($AK, $FUEL(Nil{}), ($RC(c2), _)))
+      cf_end($AK, l, $VBA, $ESC(Nil{}), cc, $VWF(Nil{}), M.iterator_view($AK, $RC(c2)), c2, h3, ec, {==}, {==})
+
+def cfn($CFH, +c: $MCT, +cc: $MK, +hsp: {$CM(c) == $SCRE($ESC(Nil{}), None{}, cc, True{}) : $SCT}, p: $CPN(c)) -> $GCL(Nil{}, c):
+  match p:
+    case Tuple{+c2, Tuple{+ov, Tuple{+h1, r}}}:
+      cfn2($CFA, c, cc, hsp, c2, ov, h1, r)
+
+def cfs2($CFH, $CKH, +hb: {$IR(k) == False{} : Bool}, +c2: $MCT, +ov: $ME, +h1: {M.iterator_next($AK, $RC(c)) == ($RC(c2), ov) : $RCT & $ME}, r: {S.iterator_next($AK, $CM(c)) == ($CM(c2), ov) : $PT} & $HCG(c2)) -> $GCL(Con{$EE, t}, c):
+  match r:
+    case Tuple{h2, h3}:
+      +hsv = Equal.trans($PT, S.iterator_next($AK, $CM(c)), $SPV(True{}, $NKF), ($SCRE($ESC(Con{$EE, t}), None{}, cc, True{}), None{}), Equal.trans($PT, S.iterator_next($AK, $CM(c)), S.iterator_next($AK, $SCRE($ESC(Con{$EE, t}), Some{k}, cc, True{})), $SPV(True{}, $NKF), $E1F, $E2F), VS.pk_f($PT, $IR(k), ($STF, Some{$EE}), ($SCRE($ESC(Con{$EE, t}), None{}, cc, True{}), None{}), hb))
+      +heq = Equal.trans($PT, ($SCRE($ESC(Con{$EE, t}), None{}, cc, True{}), None{}), S.iterator_next($AK, $CM(c)), ($CM(c2), ov), Equal.sym($PT, S.iterator_next($AK, $CM(c)), ($SCRE($ESC(Con{$EE, t}), None{}, cc, True{}), None{}), hsv), h2)
+      +eo = L.pair_snd($SCT, $ME, $SCRE($ESC(Con{$EE, t}), None{}, cc, True{}), None{}, $CM(c2), ov, heq)
+      +ec = L.pair_fst($SCT, $ME, $SCRE($ESC(Con{$EE, t}), None{}, cc, True{}), None{}, $CM(c2), ov, heq)
+      +hbu = VS.bu_of(~K, ~cmp, lo2, hi2, k, L.and_left(S.above_lower(~K, ~cmp, k, lo2), VS.allal($AK, lo2, t), hal), hb)
+      +ho = OR.ord_app_r($AK, xa, Con{$EE, t}, hord)
+      +hw = Equal.trans($ES, $W(Con{$EE, t}), $W(t), Nil{}, VS.w_out($AK, lo2, hi2, $EE, t, hb), VS.wnil($AO, lo2, hi2, k, t, hbu, OR.ord_gt($AO, t, $EE, ho)))
+      +hs = VS.cong($ES, $SVT, z => S.VW{S.TM{l, $EAPP(xa, z)}, lo2, hi2, False{}}, Con{$EE, t}, $OUT(Con{$EE, t}), Equal.sym($ES, $OUT(Con{$EE, t}), Con{$EE, t}, out_id($AK, $VBA, Con{$EE, t}, hw)))
+      %Equal.sym($RCT & $ME, M.iterator_next($AK, $RC(c)), ($RC(c2), ov), h1) : VD.VOK($AK, $VWF(Con{$EE, t}), M.view_clear_loop($AK, $FUEL(Con{$EE, t}), _))
+      %eo : VD.VOK($AK, $VWF(Con{$EE, t}), M.view_clear_loop($AK, $FUEL(Con{$EE, t}), ($RC(c2), _)))
+      cf_end($AK, l, $VBA, $ESC(Con{$EE, t}), cc, $VWF(Con{$EE, t}), M.iterator_view($AK, $RC(c2)), c2, h3, ec, hs, {==})
+
+def cfs($CFH, $CKH, +hb: {$IR(k) == False{} : Bool}, p: $CPN(c)) -> $GCL(Con{$EE, t}, c):
+  match p:
+    case Tuple{+c2, Tuple{+ov, Tuple{+h1, r}}}:
+      cfs2($CFA, $CKA, hb, c2, ov, h1, r)
+
+def cft4($CFH, $CKH, +hb: {$IR(k) == True{} : Bool}, +c2: $MCT, +ec: {$STF == $CM(c2) : $SCT}, +c3: $MCT, +o3: $MVV, +g1: {M.iterator_remove($AK, $RC(c2)) == ($RC(c3), o3) : $RCT & $MVV}, r: {S.iterator_remove($AK, $CM(c2)) == ($CM(c3), o3) : $SCT & $MVV} & $HCG(c3), kont: $KC) -> VD.VOK($AK, $VWF(Con{$EE, t}), M.view_clear_loop($AK, $FUEL(t), M.view_clear_next($AK, M.iterator_remove($AK, $RC(c2))))):
+  match r:
+    case Tuple{g2, g3}:
+      +f1 = VS.cong($SCT, $SCT & $MVV, z => S.iterator_remove($AK, z), $CM(c2), $STF, Equal.sym($SCT, $STF, $CM(c2), ec))
+      +heq = Equal.trans($SCT & $MVV, S.iterator_remove($AK, $STF), S.iterator_remove($AK, $CM(c2)), ($CM(c3), o3), Equal.sym($SCT & $MVV, S.iterator_remove($AK, $CM(c2)), S.iterator_remove($AK, $STF), f1), g2)
+      +ec3 = L.pair_fst($SCT, $MVV, S.CR{S.TM{l, S.del($AK, k, $ESC(Con{$EE, t}))}, $NKF, None{}, lo2, hi2, True{}}, S.find($AK, k, $ESC(Con{$EE, t})), $CM(c3), o3, heq)
+      +hdel = DO.del_mid($AO, k, xa, $EE, t, OR.ord_mid_l($AO, xa, $EE, t, hord), O.refl(~K, ~cmp, ~o, k))
+      +hsp3 = Equal.trans($SCT, $CM(c3), S.CR{S.TM{l, S.del($AK, k, $ESC(Con{$EE, t}))}, $NKF, None{}, lo2, hi2, True{}}, $SCRE($ESC(t), $NKF, None{}, True{}), Equal.sym($SCT, S.CR{S.TM{l, S.del($AK, k, $ESC(Con{$EE, t}))}, $NKF, None{}, lo2, hi2, True{}}, $CM(c3), ec3), VS.cong($ES, $SCT, z => S.CR{S.TM{l, z}, $NKF, None{}, lo2, hi2, True{}}, S.del($AK, k, $ESC(Con{$EE, t})), $ESC(t), hdel))
+      %Equal.sym($RCT & $MVV, M.iterator_remove($AK, $RC(c2)), ($RC(c3), o3), g1) : VD.VOK($AK, $VWF(Con{$EE, t}), M.view_clear_loop($AK, $FUEL(t), M.view_clear_next($AK, _)))
+      +eo = VS.cong($ES, $SVT, z => S.VW{S.TM{l, $EAPP(xa, z)}, lo2, hi2, False{}}, $OUT(t), $OUT(Con{$EE, t}), Equal.sym($ES, $OUT(Con{$EE, t}), $OUT(t), VS.pk_t($ES, $IR(k), $OUT(t), Con{$EE, $OUT(t)}, hb)))
+      L.subst($SVT, z => VD.VOK($AK, z, M.view_clear_loop($AK, $FUEL(t), M.iterator_next($AK, $RC(c3)))), $VWF(t), $VWF(Con{$EE, t}), eo, kont(c3, g3, hsp3))
+
+def cft3($CFH, $CKH, +hb: {$IR(k) == True{} : Bool}, +c2: $MCT, +ec: {$STF == $CM(c2) : $SCT}, q: $CPR(c2), kont: $KC) -> VD.VOK($AK, $VWF(Con{$EE, t}), M.view_clear_loop($AK, $FUEL(t), M.view_clear_next($AK, M.iterator_remove($AK, $RC(c2))))):
+  match q:
+    case Tuple{+c3, Tuple{+o3, Tuple{+g1, r}}}:
+      cft4($CFA, $CKA, hb, c2, ec, c3, o3, g1, r, kont)
+
+def cft2($CFH, $CKH, +hb: {$IR(k) == True{} : Bool}, +c2: $MCT, +ov: $ME, +h1: {M.iterator_next($AK, $RC(c)) == ($RC(c2), ov) : $RCT & $ME}, r: {S.iterator_next($AK, $CM(c)) == ($CM(c2), ov) : $PT} & $HCG(c2), kont: $KC) -> $GCL(Con{$EE, t}, c):
+  match r:
+    case Tuple{h2, h3}:
+      +hsv = Equal.trans($PT, S.iterator_next($AK, $CM(c)), $SPV(True{}, $NKF), ($STF, Some{$EE}), Equal.trans($PT, S.iterator_next($AK, $CM(c)), S.iterator_next($AK, $SCRE($ESC(Con{$EE, t}), Some{k}, cc, True{})), $SPV(True{}, $NKF), $E1F, $E2F), VS.pk_t($PT, $IR(k), ($STF, Some{$EE}), ($SCRE($ESC(Con{$EE, t}), None{}, cc, True{}), None{}), hb))
+      +heq = Equal.trans($PT, ($STF, Some{$EE}), S.iterator_next($AK, $CM(c)), ($CM(c2), ov), Equal.sym($PT, S.iterator_next($AK, $CM(c)), ($STF, Some{$EE}), hsv), h2)
+      +eo = L.pair_snd($SCT, $ME, $STF, Some{$EE}, $CM(c2), ov, heq)
+      +ec = L.pair_fst($SCT, $ME, $STF, Some{$EE}, $CM(c2), ov, heq)
+      %Equal.sym($RCT & $ME, M.iterator_next($AK, $RC(c)), ($RC(c2), ov), h1) : VD.VOK($AK, $VWF(Con{$EE, t}), M.view_clear_loop($AK, $FUEL(Con{$EE, t}), _))
+      %eo : VD.VOK($AK, $VWF(Con{$EE, t}), M.view_clear_loop($AK, $FUEL(Con{$EE, t}), ($RC(c2), _)))
+      cft3($CFA, $CKA, hb, c2, ec, rok(c2, h3), kont)
+
+def cft($CFH, $CKH, +hb: {$IR(k) == True{} : Bool}, p: $CPN(c), kont: $KC) -> $GCL(Con{$EE, t}, c):
+  match p:
+    case Tuple{+c2, Tuple{+ov, Tuple{+h1, r}}}:
+      cft2($CFA, $CKA, hb, c2, ov, h1, r, kont)
+
+def cfc($CFH, $CKH, +b: Bool, +hb: {$IR(k) == b : Bool}, p: $CPN(c), kont: $KC) -> $GCL(Con{$EE, t}, c):
+  match b:
+    case True{}:
+      cft($CFA, $CKA, hb, p, kont)
+    case False{}:
+      cfs($CFA, $CKA, hb, p)
+
+# the clear forward: every entry of the run from the cursor on removed
+def clf($CFH, +bs: $ES, +c: $MCT, +cc: $MK, +hc: $HCG(c), +hsp: {$CM(c) == $SCRE($ESC(bs), S.key_m(K, V, S.head($E, bs)), cc, True{}) : $SCT}, +hord: $ORDX($ESC(bs)), +hal: $ALL(bs)) -> $GCL(bs, c):
+  match bs:
+    case Nil{}:
+      cfn($CFA, c, cc, hsp, nok(c, hc))
+    case Con{M.Entry{+k, +v}, +t}:
+      cfc($CFA, $CKA, $IR(k), {==}, nok(c, hc), kc3 => kh3 => ks3 => clf($CFA, t, kc3, None{}, kh3, ks3, DO.ord_drop($AO, xa, $EE, t, hord), L.and_right(S.above_lower(~K, ~cmp, k, lo2), VS.allal($AK, lo2, t), hal)))
+
+# ---- backward: the entries before the cursor, reversed, then the rest ----
+
+%def RV(r) SC.reverse($E, r)
+%def ESB(r) $EAPP($RV(r), bs)
+%def VWB(r) S.VW{S.TM{l, $EAPP($OUT($RV(r)), bs)}, lo2, hi2, True{}}
+%def GCB(r, c) VD.VOK($AK, $VWB(r), M.view_clear_loop($AK, $FUEL(r), M.iterator_next($AK, $RC(c))))
+%def CBH $TO, ~nok: $NOK, ~rok: $ROK, +l: Nat, $VB, +x: Nat, +bs: $ES
+%def CBA $AO, ~nok, ~rok, l, $VBA, x, bs
+%def ALB(xs) {VS.allbu($AK, hi2, xs) == True{} : Bool}
+%def KCB @+kc3: $MCT -> @+kh3: $HCG(kc3) -> @+ks3: {$CM(kc3) == $SCRE($ESB(t), S.key_m(K, V, S.last($E, $RV(t))), None{}, False{}) : $SCT} -> $GCB(t, kc3)
+%def RVC SC.snoc($E, $RV(t), $EE)
+%def ESBC $EAPP($RVC, bs)
+%def HABC LL.snoc_append_cons($E, $RV(t), $EE, bs)
+%def CKB +k: K, +v: V, +t: $ES, +c: $MCT, +cc: $MK, +hsp: {$CM(c) == $SCRE($ESBC, Some{k}, cc, False{}) : $SCT}, +hord: $ORDX($ESBC), +hbu: $ALB(Con{$EE, t})
+%def CKBA k, v, t, c, cc, hsp, hord, hbu
+%def NKB S.key_m(K, V, S.last($E, $RV(t)))
+%def STB $SCRE($ESBC, $NKB, Some{k}, False{})
+%def ORB L.subst($ES, z => $ORDX(z), $ESBC, $EAPP($RV(t), Con{$EE, bs}), $HABC, hord)
+%def SPVB S.pick($PT, $IR(k), ($STB, Some{$EE}), ($SCRE($ESBC, None{}, cc, False{}), None{}))
+%def E1B VS.cong($SCT, $PT, z => S.iterator_next($AK, z), $CM(c), $SCRE($ESBC, Some{k}, cc, False{}), hsp)
+%def E2B VZ.sp_b($AO, l, $ESBC, $RV(t), k, v, bs, $HABC, hord, cc, $VBA)
+
+def cb_end($TK, +l: Nat, $VB, +es: $ES, +cc: $MK, -sp: $SVT, -r: M.View<K, V, cmp>, +c2: $MCT, +hc2: $HCG(c2), +ec: {$SCRE(es, None{}, cc, False{}) == $CM(c2) : $SCT}, +hs: {S.VW{S.TM{l, es}, lo2, hi2, True{}} == sp : $SVT}, +hr: {M.iterator_view($AK, $RC(c2)) == r : M.View<K, V, cmp>}) -> VD.VOK($AK, sp, r):
+  L.subst(M.View<K, V, cmp>, z => VD.VOK($AK, sp, z), M.iterator_view($AK, $RC(c2)), r, hr, L.subst($SVT, z => VD.VOK($AK, z, M.iterator_view($AK, $RC(c2))), S.VW{S.TM{l, es}, lo2, hi2, True{}}, sp, hs, L.subst($SCT, z => VD.VOK($AK, vw_of(K, V, z), M.iterator_view($AK, $RC(c2))), $CM(c2), $SCRE(es, None{}, cc, False{}), Equal.sym($SCT, $SCRE(es, None{}, cc, False{}), $CM(c2), ec), iv_ok($AK, c2, hc2))))
+
+def cbn2($CBH, +c: $MCT, +cc: $MK, +hsp: {$CM(c) == $SCRE($ESB(Nil{}), None{}, cc, False{}) : $SCT}, +c2: $MCT, +ov: $ME, +h1: {M.iterator_next($AK, $RC(c)) == ($RC(c2), ov) : $RCT & $ME}, r: {S.iterator_next($AK, $CM(c)) == ($CM(c2), ov) : $PT} & $HCG(c2)) -> $GCB(Nil{}, c):
+  match r:
+    case Tuple{h2, h3}:
+      +heq = Equal.trans($PT, ($SCRE($ESB(Nil{}), None{}, cc, False{}), None{}), S.iterator_next($AK, $CM(c)), ($CM(c2), ov), Equal.sym($PT, S.iterator_next($AK, $CM(c)), ($SCRE($ESB(Nil{}), None{}, cc, False{}), None{}), VS.cong($SCT, $PT, z => S.iterator_next($AK, z), $CM(c), $SCRE($ESB(Nil{}), None{}, cc, False{}), hsp)), h2)
+      +eo = L.pair_snd($SCT, $ME, $SCRE($ESB(Nil{}), None{}, cc, False{}), None{}, $CM(c2), ov, heq)
+      +ec = L.pair_fst($SCT, $ME, $SCRE($ESB(Nil{}), None{}, cc, False{}), None{}, $CM(c2), ov, heq)
+      %Equal.sym($RCT & $ME, M.iterator_next($AK, $RC(c)), ($RC(c2), ov), h1) : VD.VOK($AK, $VWB(Nil{}), M.view_clear_loop($AK, $FUEL(Nil{}), _))
+      %eo : VD.VOK($AK, $VWB(Nil{}), M.view_clear_loop($AK, $FUEL(Nil{}), ($RC(c2), _)))
+      cb_end($AK, l, $VBA, $ESB(Nil{}), cc, $VWB(Nil{}), M.iterator_view($AK, $RC(c2)), c2, h3, ec, {==}, {==})
+
+def cbn($CBH, +c: $MCT, +cc: $MK, +hsp: {$CM(c) == $SCRE($ESB(Nil{}), None{}, cc, False{}) : $SCT}, p: $CPN(c)) -> $GCB(Nil{}, c):
+  match p:
+    case Tuple{+c2, Tuple{+ov, Tuple{+h1, r}}}:
+      cbn2($CBA, c, cc, hsp, c2, ov, h1, r)
+
+def cbs2($CBH, $CKB, +hb: {$IR(k) == False{} : Bool}, +c2: $MCT, +ov: $ME, +h1: {M.iterator_next($AK, $RC(c)) == ($RC(c2), ov) : $RCT & $ME}, r: {S.iterator_next($AK, $CM(c)) == ($CM(c2), ov) : $PT} & $HCG(c2)) -> $GCB(Con{$EE, t}, c):
+  match r:
+    case Tuple{h2, h3}:
+      +hsv = Equal.trans($PT, S.iterator_next($AK, $CM(c)), $SPVB, ($SCRE($ESBC, None{}, cc, False{}), None{}), Equal.trans($PT, S.iterator_next($AK, $CM(c)), S.iterator_next($AK, $SCRE($ESBC, Some{k}, cc, False{})), $SPVB, $E1B, $E2B), VS.pk_f($PT, $IR(k), ($STB, Some{$EE}), ($SCRE($ESBC, None{}, cc, False{}), None{}), hb))
+      +heq = Equal.trans($PT, ($SCRE($ESBC, None{}, cc, False{}), None{}), S.iterator_next($AK, $CM(c)), ($CM(c2), ov), Equal.sym($PT, S.iterator_next($AK, $CM(c)), ($SCRE($ESBC, None{}, cc, False{}), None{}), hsv), h2)
+      +eo = L.pair_snd($SCT, $ME, $SCRE($ESBC, None{}, cc, False{}), None{}, $CM(c2), ov, heq)
+      +ec = L.pair_fst($SCT, $ME, $SCRE($ESBC, None{}, cc, False{}), None{}, $CM(c2), ov, heq)
+      +hal = VS.al_of(~K, ~cmp, lo2, hi2, k, L.and_left(S.below_upper(~K, ~cmp, k, hi2), VS.allbu($AK, hi2, t), hbu), hb)
+      +hw1 = VS.wnil_lt($AO, lo2, hi2, k, $RV(t), hal, OR.ord_mid_l($AO, $RV(t), $EE, bs, $ORB))
+      +hw = Equal.trans($ES, $W($RVC), $EAPP($W($RV(t)), $W(Con{$EE, Nil{}})), Nil{}, VZ.wl_snoc($AK, $VBA, t, k, v), L.subst($ES, q => {$EAPP(q, $W(Con{$EE, Nil{}})) == Nil{} : $ES}, Nil{}, $W($RV(t)), Equal.sym($ES, $W($RV(t)), Nil{}, hw1), VS.w_out($AK, lo2, hi2, $EE, Nil{}, hb)))
+      +hs = VS.cong($ES, $SVT, z => S.VW{S.TM{l, $EAPP(z, bs)}, lo2, hi2, True{}}, $RVC, $OUT($RVC), Equal.sym($ES, $OUT($RVC), $RVC, out_id($AK, $VBA, $RVC, hw)))
+      %Equal.sym($RCT & $ME, M.iterator_next($AK, $RC(c)), ($RC(c2), ov), h1) : VD.VOK($AK, $VWB(Con{$EE, t}), M.view_clear_loop($AK, $FUEL(Con{$EE, t}), _))
+      %eo : VD.VOK($AK, $VWB(Con{$EE, t}), M.view_clear_loop($AK, $FUEL(Con{$EE, t}), ($RC(c2), _)))
+      cb_end($AK, l, $VBA, $ESBC, cc, $VWB(Con{$EE, t}), M.iterator_view($AK, $RC(c2)), c2, h3, ec, hs, {==})
+
+def cbs($CBH, $CKB, +hb: {$IR(k) == False{} : Bool}, p: $CPN(c)) -> $GCB(Con{$EE, t}, c):
+  match p:
+    case Tuple{+c2, Tuple{+ov, Tuple{+h1, r}}}:
+      cbs2($CBA, $CKBA, hb, c2, ov, h1, r)
+
+def cbt4($CBH, $CKB, +hb: {$IR(k) == True{} : Bool}, +c2: $MCT, +ec: {$STB == $CM(c2) : $SCT}, +c3: $MCT, +o3: $MVV, +g1: {M.iterator_remove($AK, $RC(c2)) == ($RC(c3), o3) : $RCT & $MVV}, r: {S.iterator_remove($AK, $CM(c2)) == ($CM(c3), o3) : $SCT & $MVV} & $HCG(c3), kont: $KCB) -> VD.VOK($AK, $VWB(Con{$EE, t}), M.view_clear_loop($AK, $FUEL(t), M.view_clear_next($AK, M.iterator_remove($AK, $RC(c2))))):
+  match r:
+    case Tuple{g2, g3}:
+      +f1 = VS.cong($SCT, $SCT & $MVV, z => S.iterator_remove($AK, z), $CM(c2), $STB, Equal.sym($SCT, $STB, $CM(c2), ec))
+      +heq = Equal.trans($SCT & $MVV, S.iterator_remove($AK, $STB), S.iterator_remove($AK, $CM(c2)), ($CM(c3), o3), Equal.sym($SCT & $MVV, S.iterator_remove($AK, $CM(c2)), S.iterator_remove($AK, $STB), f1), g2)
+      +ec3 = L.pair_fst($SCT, $MVV, S.CR{S.TM{l, S.del($AK, k, $ESBC)}, $NKB, None{}, lo2, hi2, False{}}, S.find($AK, k, $ESBC), $CM(c3), o3, heq)
+      +hdel = Equal.trans($ES, S.del($AK, k, $ESBC), S.del($AK, k, $EAPP($RV(t), Con{$EE, bs})), $ESB(t), VS.cong($ES, $ES, z => S.del($AK, k, z), $ESBC, $EAPP($RV(t), Con{$EE, bs}), $HABC), DO.del_mid($AO, k, $RV(t), $EE, bs, OR.ord_mid_l($AO, $RV(t), $EE, bs, $ORB), O.refl(~K, ~cmp, ~o, k)))
+      +hsp3 = Equal.trans($SCT, $CM(c3), S.CR{S.TM{l, S.del($AK, k, $ESBC)}, $NKB, None{}, lo2, hi2, False{}}, $SCRE($ESB(t), $NKB, None{}, False{}), Equal.sym($SCT, S.CR{S.TM{l, S.del($AK, k, $ESBC)}, $NKB, None{}, lo2, hi2, False{}}, $CM(c3), ec3), VS.cong($ES, $SCT, z => S.CR{S.TM{l, z}, $NKB, None{}, lo2, hi2, False{}}, S.del($AK, k, $ESBC), $ESB(t), hdel))
+      %Equal.sym($RCT & $MVV, M.iterator_remove($AK, $RC(c2)), ($RC(c3), o3), g1) : VD.VOK($AK, $VWB(Con{$EE, t}), M.view_clear_loop($AK, $FUEL(t), M.view_clear_next($AK, _)))
+      +eo1 = Equal.trans($ES, $OUT($RVC), $OUT($EAPP($RV(t), Con{$EE, Nil{}})), $EAPP($OUT($RV(t)), $OUT(Con{$EE, Nil{}})), VS.cong($ES, $ES, z => $OUT(z), $RVC, $EAPP($RV(t), Con{$EE, Nil{}}), LL.snoc_append($E, $RV(t), $EE)), out_app($AK, $VBA, $RV(t), Con{$EE, Nil{}}))
+      +eo2 = Equal.trans($ES, $EAPP($OUT($RV(t)), $OUT(Con{$EE, Nil{}})), $EAPP($OUT($RV(t)), Nil{}), $OUT($RV(t)), VS.cong($ES, $ES, z => $EAPP($OUT($RV(t)), z), $OUT(Con{$EE, Nil{}}), Nil{}, VS.pk_t($ES, $IR(k), Nil{}, Con{$EE, Nil{}}, hb)), LL.append_nil($E, $OUT($RV(t))))
+      +eo = VS.cong($ES, $SVT, z => S.VW{S.TM{l, $EAPP(z, bs)}, lo2, hi2, True{}}, $OUT($RV(t)), $OUT($RVC), Equal.sym($ES, $OUT($RVC), $OUT($RV(t)), Equal.trans($ES, $OUT($RVC), $EAPP($OUT($RV(t)), $OUT(Con{$EE, Nil{}})), $OUT($RV(t)), eo1, eo2)))
+      L.subst($SVT, z => VD.VOK($AK, z, M.view_clear_loop($AK, $FUEL(t), M.iterator_next($AK, $RC(c3)))), $VWB(t), $VWB(Con{$EE, t}), eo, kont(c3, g3, hsp3))
+
+def cbt3($CBH, $CKB, +hb: {$IR(k) == True{} : Bool}, +c2: $MCT, +ec: {$STB == $CM(c2) : $SCT}, q: $CPR(c2), kont: $KCB) -> VD.VOK($AK, $VWB(Con{$EE, t}), M.view_clear_loop($AK, $FUEL(t), M.view_clear_next($AK, M.iterator_remove($AK, $RC(c2))))):
+  match q:
+    case Tuple{+c3, Tuple{+o3, Tuple{+g1, r}}}:
+      cbt4($CBA, $CKBA, hb, c2, ec, c3, o3, g1, r, kont)
+
+def cbt2($CBH, $CKB, +hb: {$IR(k) == True{} : Bool}, +c2: $MCT, +ov: $ME, +h1: {M.iterator_next($AK, $RC(c)) == ($RC(c2), ov) : $RCT & $ME}, r: {S.iterator_next($AK, $CM(c)) == ($CM(c2), ov) : $PT} & $HCG(c2), kont: $KCB) -> $GCB(Con{$EE, t}, c):
+  match r:
+    case Tuple{h2, h3}:
+      +hsv = Equal.trans($PT, S.iterator_next($AK, $CM(c)), $SPVB, ($STB, Some{$EE}), Equal.trans($PT, S.iterator_next($AK, $CM(c)), S.iterator_next($AK, $SCRE($ESBC, Some{k}, cc, False{})), $SPVB, $E1B, $E2B), VS.pk_t($PT, $IR(k), ($STB, Some{$EE}), ($SCRE($ESBC, None{}, cc, False{}), None{}), hb))
+      +heq = Equal.trans($PT, ($STB, Some{$EE}), S.iterator_next($AK, $CM(c)), ($CM(c2), ov), Equal.sym($PT, S.iterator_next($AK, $CM(c)), ($STB, Some{$EE}), hsv), h2)
+      +eo = L.pair_snd($SCT, $ME, $STB, Some{$EE}, $CM(c2), ov, heq)
+      +ec = L.pair_fst($SCT, $ME, $STB, Some{$EE}, $CM(c2), ov, heq)
+      %Equal.sym($RCT & $ME, M.iterator_next($AK, $RC(c)), ($RC(c2), ov), h1) : VD.VOK($AK, $VWB(Con{$EE, t}), M.view_clear_loop($AK, $FUEL(Con{$EE, t}), _))
+      %eo : VD.VOK($AK, $VWB(Con{$EE, t}), M.view_clear_loop($AK, $FUEL(Con{$EE, t}), ($RC(c2), _)))
+      cbt3($CBA, $CKBA, hb, c2, ec, rok(c2, h3), kont)
+
+def cbt($CBH, $CKB, +hb: {$IR(k) == True{} : Bool}, p: $CPN(c), kont: $KCB) -> $GCB(Con{$EE, t}, c):
+  match p:
+    case Tuple{+c2, Tuple{+ov, Tuple{+h1, r}}}:
+      cbt2($CBA, $CKBA, hb, c2, ov, h1, r, kont)
+
+def cbc($CBH, $CKB, +b: Bool, +hb: {$IR(k) == b : Bool}, p: $CPN(c), kont: $KCB) -> $GCB(Con{$EE, t}, c):
+  match b:
+    case True{}:
+      cbt($CBA, $CKBA, hb, p, kont)
+    case False{}:
+      cbs($CBA, $CKBA, hb, p)
+
+%def HSPL Equal.trans($SCT, $CM(c), $SCRE($ESBC, S.key_m(K, V, S.last($E, $RVC)), cc, False{}), $SCRE($ESBC, Some{k}, cc, False{}), hsp, VS.cong($ME, $SCT, z => $SCRE($ESBC, S.key_m(K, V, z), cc, False{}), S.last($E, $RVC), Some{$EE}, LL.last_snoc($E, $RV(t), $EE)))
+
+# the clear backward: every entry of the run before the cursor removed
+def clb($CBH, +rr: $ES, +c: $MCT, +cc: $MK, +hc: $HCG(c), +hsp: {$CM(c) == $SCRE($ESB(rr), S.key_m(K, V, S.last($E, $RV(rr))), cc, False{}) : $SCT}, +hord: $ORDX($ESB(rr)), +hbu: $ALB(rr)) -> $GCB(rr, c):
+  match rr:
+    case Nil{}:
+      cbn($CBA, c, cc, hsp, nok(c, hc))
+    case Con{M.Entry{+k, +v}, +t}:
+      cbc($CBA, k, v, t, c, cc, $HSPL, hord, hbu, $IR(k), {==}, nok(c, hc), kc3 => kh3 => ks3 => clb($CBA, t, kc3, None{}, kh3, ks3, DO.ord_drop($AO, $RV(t), $EE, bs, $ORB), L.and_right(S.below_upper(~K, ~cmp, k, hi2), VS.allbu($AK, hi2, t), hbu)))

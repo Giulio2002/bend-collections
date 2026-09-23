@@ -1,0 +1,73 @@
+import Base
+import ../lib/logic.bend as L
+import ../spec/tree_map.bend as S
+import ../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./mirror.bend as MI
+import ./ok.bend as OK
+
+# A view's model and invariant, and the refinement of view results.
+# (source: tools/generators/tm_hand/vdef.src)
+
+%def E M.Entry<K, V>
+%def MV Maybe<&2, V>
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def FP +n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl
+%def FT +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +tg: ST.Tr, +fl: List<&2, Nat>
+%def F n, root, lo, hi, free, l, d, nl, pl, tg, fl
+%def SH ST.SH{$F}
+%def SHT ST.Sh<K, V>
+%def TMT M.TreeMap<K, V, cmp>
+%def MVT MI.MView<K, V>
+%def RVT M.View<K, V, cmp>
+%def SVT S.View<K, V>
+%def BD M.Bound<K>
+%def UNB M.Unbounded{}
+%def GD(s) {ST.good($AK, s) == True{} : Bool}
+%def EST ST.ents(~K, ~V, ST.ids(tg), nl, pl)
+%def PRES Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>
+%def RRT Result<&1, &1, M.InvalidView<K, V, cmp>, M.View<K, V, cmp>>
+%def SRT Result<&1, &1, S.InvalidView<K, V>, S.View<K, V>>
+%def MRT Result<&1, &1, MI.MInvalid<K, V>, MI.MView<K, V>>
+
+# ---- a view's model and invariant ----
+
+def vmod($TK, w: $MVT) -> $SVT:
+  match w:
+    case MI.MV{s, lo2, hi2, d2}:
+      S.VW{ST.model($AK, s), lo2, hi2, d2}
+
+def vgood($TK, w: $MVT) -> Bool:
+  match w:
+    case MI.MV{s, lo2, hi2, d2}:
+      ST.good($AK, s)
+
+def vg_dg($TK, +w: $MVT, +h: {vgood($AK, w) == True{} : Bool}) -> {MI.dgv(K, V, w) == True{} : Bool}:
+  match w:
+    case MI.MV{+s, +lo2, +hi2, +d2}:
+      OK.dg_good($AK, s, h)
+
+# a view refining a specification's
+def VOK($TK, sp: $SVT, r: $RVT) -> Type:
+  Sigma<&1, &1, $MVT, w2 => {r == MI.rv($AK, w2) : $RVT} & ({sp == vmod($AK, w2) : $SVT} & {vgood($AK, w2) == True{} : Bool})>
+
+# a mirror view result refining a specification's
+def VM($TK, -X: Data, sp: $SVT & X, mir: $MVT & X) -> Type:
+  Sigma<&1, &1, $MVT, w2 => Sigma<&1, &1, X, o => {MI.rvp($AK, X, mir) == (MI.rv($AK, w2), o) : $RVT & X} & ({sp == (vmod($AK, w2), o) : $SVT & X} & {vgood($AK, w2) == True{} : Bool})>>
+
+# an implementation view result refining a specification's
+def VPOK($TK, -X: Data, sp: $SVT & X, r: $RVT & X) -> Type:
+  Sigma<&1, &1, $MVT, w2 => Sigma<&1, &1, X, o => {r == (MI.rv($AK, w2), o) : $RVT & X} & ({sp == (vmod($AK, w2), o) : $SVT & X} & {vgood($AK, w2) == True{} : Bool})>>
+
+def vm_pok($TK, -X: Data, -sp: $SVT & X, -mir: $MVT & X, -r: $RVT & X, +hs: {r == MI.rvp($AK, X, mir) : $RVT & X}, p: VM($AK, X, sp, mir)) -> VPOK($AK, X, sp, r):
+  match p:
+    case Tuple{+w2, Tuple{+o, Tuple{+h1, rest}}}:
+      (w2, (o, (Equal.trans($RVT & X, r, MI.rvp($AK, X, mir), (MI.rv($AK, w2), o), hs, h1), rest)))
+
+# a mirror result given exactly
+def vm_exact($TK, -X: Data, -sp: $SVT & X, -mir: $MVT & X, +w2: $MVT, +o: X, +hm: {mir == (w2, o) : $MVT & X}, +hs: {sp == (vmod($AK, w2), o) : $SVT & X}, +hg: {vgood($AK, w2) == True{} : Bool}) -> VM($AK, X, sp, mir):
+  (w2, (o, (L.subst($MVT & X, z => {MI.rvp($AK, X, z) == (MI.rv($AK, w2), o) : $RVT & X}, (w2, o), mir, Equal.sym($MVT & X, mir, (w2, o), hm), {==}), (hs, hg))))
+

@@ -1,0 +1,746 @@
+import Base
+import ../lib/logic.bend as L
+import ../lib/order.bend as O
+import ../lib/list.bend as LL
+import ../spec/common.bend as SC
+import ../spec/tree_map.bend as S
+import ../../src/containers/balanced_search_tree.bend as M
+import ./state.bend as ST
+import ./ord.bend as OR
+import ./navl.bend as NV
+
+# A view's entries in sorted entries, for a lawful comparator: the bounds are
+# monotone, so the entries within them are a run; its first (last) is the
+# first entry above the lower bound (the last below the upper), when in
+# range, and a strict search from a key inside the view is the search in the
+# whole map, checked against the range. (source: tools/generators/tm_hand/vsp.src)
+
+%def E M.Entry<K, V>
+%def ES List<&2, M.Entry<K, V>>
+%def ME Maybe<&2, M.Entry<K, V>>
+%def KY(e) S.key(K, V, e)
+%def TK ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AK ~K, ~V, ~cmp
+%def AO ~K, ~V, ~cmp, ~o
+%def TK3 ~K: Data, ~cmp: K -> K -> Cmp
+%def AK3 ~K, ~cmp
+%def TO3 ~K: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AO3 ~K, ~cmp, ~o
+%def BD M.Bound<K>
+%def TT(x) {x == True{} : Bool}
+%def FF(x) {x == False{} : Bool}
+%def OKC(c, i) S.ordering_ok(c, i)
+%def ORD(x) {ST.ordered($AK, x) == True{} : Bool}
+%def GTA(k, es) {OR.gtall($AK, k, es) == True{} : Bool}
+%def LTA(k, es) {OR.ltall($AK, k, es) == True{} : Bool}
+%def AL(k) S.above_lower(~K, ~cmp, k, lw)
+%def BU(k) S.below_upper(~K, ~cmp, k, up)
+%def IR(k) S.in_range(~K, ~cmp, k, lw, up)
+%def W(es) S.within($AK, lw, up, es)
+%def FW(es) S.first_where($AK, k, incl, es)
+%def LW(es, b) S.last_where($AK, k, incl, es, b)
+%def WB $TO, +lw: $BD, +up: $BD
+%def WA $AO, lw, up
+%def WK $TK, +lw: $BD, +up: $BD
+%def WKA $AK, lw, up
+%def CHK(m) chk($WKA, m)
+%def TR(T, a, b, c, h1, h2) Equal.trans(T, a, b, c, h1, h2)
+%def SY(T, a, b, h) Equal.sym(T, a, b, h)
+
+# ---- generic ----
+
+def pk_t(-T: Type, +b: Bool, -x: T, -y: T, +h: {b == True{} : Bool}) -> {S.pick(T, b, x, y) == x : T}:
+  %Equal.sym(Bool, b, True{}, h) : {S.pick(T, _, x, y) == x : T}
+  {==}
+
+def pk_f(-T: Type, +b: Bool, -x: T, -y: T, +h: {b == False{} : Bool}) -> {S.pick(T, b, x, y) == y : T}:
+  %Equal.sym(Bool, b, False{}, h) : {S.pick(T, _, x, y) == y : T}
+  {==}
+
+def cong(-A: Type, -B: Type, -f: A -> B, -a: A, -b: A, e: {a == b : A}) -> {f(a) == f(b) : B}:
+  L.subst(A, z => {f(a) == f(z) : B}, a, b, e, {==})
+
+def and_f(+a: Bool) -> {Bool.and(a, False{}) == False{} : Bool}:
+  match a:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+def lt_tr(+c: Cmp, +h: {c == LT{} : Cmp}) -> $TT(Cmp.is_lt(c)):
+  L.subst(Cmp, z => $TT(Cmp.is_lt(z)), LT{}, c, Equal.sym(Cmp, c, LT{}, h), {==})
+
+def lt_okf(+c: Cmp, +h: $TT(Cmp.is_lt(c))) -> $TT($OKC(c, False{})):
+  L.subst(Cmp, z => $TT($OKC(z, False{})), LT{}, c, Equal.sym(Cmp, c, LT{}, O.lt_is(c, h)), {==})
+
+# ---- comparisons ----
+
+def okw_l(+c: Cmp, +i: Bool, +j: Bool, +h: $TT($OKC(c, Bool.and(i, j)))) -> $TT($OKC(c, i)):
+  match c i:
+    case LT{} True{}:
+      {==}
+    case LT{} False{}:
+      {==}
+    case EQ{} True{}:
+      {==}
+    case EQ{} False{}:
+      Empty.absurd($TT(False{}), L.false_true(h))
+    case GT{} True{}:
+      Empty.absurd($TT(False{}), L.false_true(h))
+    case GT{} False{}:
+      Empty.absurd($TT(False{}), L.false_true(h))
+
+def okw_r(+c: Cmp, +i: Bool, +j: Bool, +h: $TT($OKC(c, Bool.and(i, j)))) -> $TT($OKC(c, j)):
+  match c i:
+    case LT{} True{}:
+      {==}
+    case LT{} False{}:
+      {==}
+    case EQ{} True{}:
+      h
+    case EQ{} False{}:
+      Empty.absurd($TT(j), L.false_true(h))
+    case GT{} True{}:
+      Empty.absurd($TT(False{}), L.false_true(h))
+    case GT{} False{}:
+      Empty.absurd($TT(False{}), L.false_true(h))
+
+def okflip(+c: Cmp, +i: Bool, +h: $FF($OKC(c, i))) -> $TT($OKC(O.flipc(c), Bool.not(i))):
+  match c i:
+    case LT{} True{}:
+      Empty.absurd($TT(False{}), L.true_false(h))
+    case LT{} False{}:
+      Empty.absurd($TT(False{}), L.true_false(h))
+    case EQ{} True{}:
+      Empty.absurd($TT(False{}), L.true_false(h))
+    case EQ{} False{}:
+      {==}
+    case GT{} True{}:
+      {==}
+    case GT{} False{}:
+      {==}
+
+def okf0(+c: Cmp, +h: $TT($OKC(c, False{}))) -> {c == LT{} : Cmp}:
+  match c:
+    case LT{}:
+      {==}
+    case EQ{}:
+      Empty.absurd({EQ{} == LT{} : Cmp}, L.false_true(h))
+    case GT{}:
+      Empty.absurd({GT{} == LT{} : Cmp}, L.false_true(h))
+
+def ok_tl($TO3, +a: K, +b: K, +c: K, +i1: Bool, +i2: Bool, +hx: {cmp(a, b) == LT{} : Cmp}, +y: Cmp, +hy: {cmp(b, c) == y : Cmp}, +h2: $TT($OKC(y, i2))) -> $TT($OKC(cmp(a, c), Bool.and(i1, i2))):
+  match y:
+    case LT{}:
+      +lab = lt_tr(cmp(a, b), hx)
+      +lbc = lt_tr(cmp(b, c), hy)
+      %Equal.sym(Cmp, cmp(a, c), LT{}, O.lt_is(cmp(a, c), OR.slt_trans(~K, ~cmp, ~o, a, b, c, lab, lbc))) : $TT($OKC(_, Bool.and(i1, i2)))
+      {==}
+    case EQ{}:
+      +ebc = O.antisym(~K, ~cmp, o, b, c, hy)
+      L.subst(K, z => $TT($OKC(cmp(a, z), Bool.and(i1, i2))), b, c, ebc, L.subst(Cmp, z => $TT($OKC(z, Bool.and(i1, i2))), LT{}, cmp(a, b), Equal.sym(Cmp, cmp(a, b), LT{}, hx), {==}))
+    case GT{}:
+      Empty.absurd($TT($OKC(cmp(a, c), Bool.and(i1, i2))), L.false_true(h2))
+
+def ok_te($TO3, +a: K, +b: K, +c: K, +i1: Bool, +i2: Bool, +hx: {cmp(a, b) == EQ{} : Cmp}, +h1: $TT(i1), +h2: $TT($OKC(cmp(b, c), i2))) -> $TT($OKC(cmp(a, c), Bool.and(i1, i2))):
+  +eab = O.antisym(~K, ~cmp, o, a, b, hx)
+  %Equal.sym(Bool, i1, True{}, h1) : $TT($OKC(cmp(a, c), Bool.and(_, i2)))
+  L.subst(K, z => $TT($OKC(cmp(z, c), i2)), b, a, Equal.sym(K, a, b, eab), h2)
+
+def ok_tc($TO3, +a: K, +b: K, +c: K, +i1: Bool, +i2: Bool, +x: Cmp, +hx: {cmp(a, b) == x : Cmp}, +h1: $TT($OKC(x, i1)), +h2: $TT($OKC(cmp(b, c), i2))) -> $TT($OKC(cmp(a, c), Bool.and(i1, i2))):
+  match x:
+    case LT{}:
+      ok_tl($AO3, a, b, c, i1, i2, hx, cmp(b, c), {==}, h2)
+    case EQ{}:
+      ok_te($AO3, a, b, c, i1, i2, hx, h1, h2)
+    case GT{}:
+      Empty.absurd($TT($OKC(cmp(a, c), Bool.and(i1, i2))), L.false_true(h1))
+
+# a <= b <= c (each strict or not): a <= c, strict when either is
+def ok_trans($TO3, +a: K, +b: K, +c: K, +i1: Bool, +i2: Bool, +h1: $TT($OKC(cmp(a, b), i1)), +h2: $TT($OKC(cmp(b, c), i2))) -> $TT($OKC(cmp(a, c), Bool.and(i1, i2))):
+  ok_tc($AO3, a, b, c, i1, i2, cmp(a, b), {==}, h1, h2)
+
+def fl_ok($TO3, +x: K, +k: K, +i: Bool, +h: $FF($OKC(cmp(x, k), i))) -> $TT($OKC(cmp(k, x), Bool.not(i))):
+  L.subst(Cmp, z => $TT($OKC(z, Bool.not(i))), O.flipc(cmp(x, k)), cmp(k, x), Equal.sym(Cmp, cmp(k, x), O.flipc(cmp(x, k)), O.flip(~K, ~cmp, o, x, k)), okflip(cmp(x, k), i, h))
+
+def lt_both($TO3, +a: K, +b: K, +h1: {cmp(a, b) == LT{} : Cmp}, +h2: {cmp(b, a) == LT{} : Cmp}) -> Empty:
+  +e1 = L.subst(Cmp, z => {cmp(b, a) == O.flipc(z) : Cmp}, cmp(a, b), LT{}, h1, O.flip(~K, ~cmp, o, a, b))
+  L.cmp_lt_gt(Equal.trans(Cmp, LT{}, cmp(b, a), GT{}, Equal.sym(Cmp, cmp(b, a), LT{}, h2), e1))
+
+# ---- the bounds are monotone ----
+
+def al_mono($TO3, +lw: $BD, +a: K, +e: K, +i: Bool, +ha: $TT($AL(a)), +hp: $TT($OKC(cmp(a, e), i))) -> $TT($AL(e)):
+  match lw:
+    case M.Unbounded{}:
+      {==}
+    case M.Inclusive{+x}:
+      okw_l(cmp(x, e), True{}, i, ok_trans($AO3, x, a, e, True{}, i, ha, hp))
+    case M.Exclusive{+x}:
+      okw_l(cmp(x, e), False{}, i, ok_trans($AO3, x, a, e, False{}, i, ha, hp))
+
+def bu_mono($TO3, +up: $BD, +a: K, +e: K, +i: Bool, +ha: $TT($BU(a)), +hq: $TT($OKC(cmp(e, a), i))) -> $TT($BU(e)):
+  match up:
+    case M.Unbounded{}:
+      {==}
+    case M.Inclusive{+y}:
+      okw_r(cmp(e, y), i, True{}, ok_trans($AO3, e, a, y, i, True{}, hq, ha))
+    case M.Exclusive{+y}:
+      okw_r(cmp(e, y), i, False{}, ok_trans($AO3, e, a, y, i, False{}, hq, ha))
+
+# below the lower bound, above it: strictly less
+def al_lt($TO3, +lw: $BD, +k: K, +e: K, +hk: $FF($AL(k)), +he: $TT($AL(e))) -> {cmp(k, e) == LT{} : Cmp}:
+  match lw:
+    case M.Unbounded{}:
+      Empty.absurd({cmp(k, e) == LT{} : Cmp}, L.true_false(hk))
+    case M.Inclusive{+x}:
+      okf0(cmp(k, e), ok_trans($AO3, k, x, e, False{}, True{}, fl_ok($AO3, x, k, True{}, hk), he))
+    case M.Exclusive{+x}:
+      okf0(cmp(k, e), ok_trans($AO3, k, x, e, True{}, False{}, fl_ok($AO3, x, k, False{}, hk), he))
+
+def bu_lt($TO3, +up: $BD, +k: K, +e: K, +hk: $FF($BU(k)), +he: $TT($BU(e))) -> {cmp(e, k) == LT{} : Cmp}:
+  match up:
+    case M.Unbounded{}:
+      Empty.absurd({cmp(e, k) == LT{} : Cmp}, L.true_false(hk))
+    case M.Inclusive{+y}:
+      okf0(cmp(e, k), ok_trans($AO3, e, y, k, True{}, False{}, he, fl_ok($AO3, k, y, True{}, hk)))
+    case M.Exclusive{+y}:
+      okf0(cmp(e, k), ok_trans($AO3, e, y, k, False{}, True{}, he, fl_ok($AO3, k, y, False{}, hk)))
+
+def bu_fc($TO3, +up: $BD, +k: K, +f: K, +hk: $FF($BU(k)), +hlt: $TT(Cmp.is_lt(cmp(k, f))), +b: Bool, +hb: {$BU(f) == b : Bool}) -> $FF($BU(f)):
+  match b:
+    case True{}:
+      Empty.absurd($FF($BU(f)), lt_both($AO3, f, k, bu_lt($AO3, up, k, f, hk, hb), O.lt_is(cmp(k, f), hlt)))
+    case False{}:
+      hb
+
+# past a key above the upper bound: above it
+def bu_false($TO3, +up: $BD, +k: K, +f: K, +hk: $FF($BU(k)), +hlt: $TT(Cmp.is_lt(cmp(k, f)))) -> $FF($BU(f)):
+  bu_fc($AO3, up, k, f, hk, hlt, $BU(f), {==})
+
+def al_fc($TO3, +lw: $BD, +k: K, +f: K, +hk: $FF($AL(k)), +hlt: $TT(Cmp.is_lt(cmp(f, k))), +b: Bool, +hb: {$AL(f) == b : Bool}) -> $FF($AL(f)):
+  match b:
+    case True{}:
+      Empty.absurd($FF($AL(f)), L.true_false(Equal.trans(Bool, True{}, $AL(k), False{}, Equal.sym(Bool, $AL(k), True{}, al_mono($AO3, lw, f, k, False{}, hb, lt_okf(cmp(f, k), hlt))), hk)))
+    case False{}:
+      hb
+
+# before a key below the lower bound: below it
+def al_false($TO3, +lw: $BD, +k: K, +f: K, +hk: $FF($AL(k)), +hlt: $TT(Cmp.is_lt(cmp(f, k)))) -> $FF($AL(f)):
+  al_fc($AO3, lw, k, f, hk, hlt, $AL(f), {==})
+
+def ir_t($TK3, +lw: $BD, +up: $BD, +k: K, +ha: $TT($AL(k)), +hb: $TT($BU(k))) -> $TT($IR(k)):
+  L.and_intro($AL(k), $BU(k), ha, hb)
+
+def ir_fb($TK3, +lw: $BD, +up: $BD, +k: K, +hb: $FF($BU(k))) -> $FF($IR(k)):
+  %Equal.sym(Bool, $BU(k), False{}, hb) : $FF(Bool.and($AL(k), _))
+  and_f($AL(k))
+
+def ir_fa($TK3, +lw: $BD, +up: $BD, +k: K, +ha: $FF($AL(k))) -> $FF($IR(k)):
+  %Equal.sym(Bool, $AL(k), False{}, ha) : $FF(Bool.and(_, $BU(k)))
+  {==}
+
+# ---- the entries within ----
+
+def w_in($WK, +e: $E, +t: $ES, +h: $TT($IR($KY(e)))) -> {$W(Con{e, t}) == Con{e, $W(t)} : $ES}:
+  pk_t($ES, $IR($KY(e)), Con{e, $W(t)}, $W(t), h)
+
+def w_out($WK, +e: $E, +t: $ES, +h: $FF($IR($KY(e)))) -> {$W(Con{e, t}) == $W(t) : $ES}:
+  pk_f($ES, $IR($KY(e)), Con{e, $W(t)}, $W(t), h)
+
+def chk($WK, m: $ME) -> $ME:
+  match m:
+    case None{}:
+      None{}
+    case Some{+e}:
+      S.pick($ME, $IR($KY(e)), Some{e}, None{})
+
+def chk_in($WK, +e: $E, +h: $TT($IR($KY(e)))) -> {$CHK(Some{e}) == Some{e} : $ME}:
+  pk_t($ME, $IR($KY(e)), Some{e}, None{}, h)
+
+def chk_out($WK, +e: $E, +h: $FF($IR($KY(e)))) -> {$CHK(Some{e}) == None{} : $ME}:
+  pk_f($ME, $IR($KY(e)), Some{e}, None{}, h)
+
+# above a key past the upper bound, nothing is within
+def wnil($WB, +k: K, +t: $ES, +hk: $FF($BU(k)), +hg: $GTA(k, t)) -> {$W(t) == Nil{} : $ES}:
+  match t:
+    case Nil{}:
+      {==}
+    case Con{+e, +u}:
+      +h1 = L.and_left(Cmp.is_lt(cmp(k, $KY(e))), OR.gtall($AK, k, u), hg)
+      +h2 = L.and_right(Cmp.is_lt(cmp(k, $KY(e))), OR.gtall($AK, k, u), hg)
+      $TR($ES, $W(Con{e, u}), $W(u), Nil{}, w_out($WKA, e, u, ir_fb($AK3, lw, up, $KY(e), bu_false($AO3, up, k, $KY(e), hk, h1))), wnil($WA, k, u, hk, h2))
+
+def gt_wc($WK, +k: K, +e: $E, +u: $ES, +h1: $TT(Cmp.is_lt(cmp(k, $KY(e)))), +hu: $GTA(k, $W(u)), +b: Bool) -> $GTA(k, S.pick($ES, b, Con{e, $W(u)}, $W(u))):
+  match b:
+    case True{}:
+      L.and_intro(Cmp.is_lt(cmp(k, $KY(e))), OR.gtall($AK, k, $W(u)), h1, hu)
+    case False{}:
+      hu
+
+def gt_w($WK, +k: K, +t: $ES, +h: $GTA(k, t)) -> $GTA(k, $W(t)):
+  match t:
+    case Nil{}:
+      {==}
+    case Con{+e, +u}:
+      gt_wc($WKA, k, e, u, L.and_left(Cmp.is_lt(cmp(k, $KY(e))), OR.gtall($AK, k, u), h), gt_w($WKA, k, u, L.and_right(Cmp.is_lt(cmp(k, $KY(e))), OR.gtall($AK, k, u), h)), $IR($KY(e)))
+
+def wgt_c($WB, +k: K, +e: $E, +u: $ES, +hk: $FF($AL(k)), +hu: $GTA(k, $W(u)), +b: Bool, +hb: {$IR($KY(e)) == b : Bool}) -> $GTA(k, S.pick($ES, b, Con{e, $W(u)}, $W(u))):
+  match b:
+    case True{}:
+      L.and_intro(Cmp.is_lt(cmp(k, $KY(e))), OR.gtall($AK, k, $W(u)), lt_tr(cmp(k, $KY(e)), al_lt($AO3, lw, k, $KY(e), hk, L.and_left($AL($KY(e)), $BU($KY(e)), hb))), hu)
+    case False{}:
+      hu
+
+# a key below the lower bound is below everything within
+def wgt($WB, +k: K, +es: $ES, +hk: $FF($AL(k))) -> $GTA(k, $W(es)):
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +u}:
+      wgt_c($WA, k, e, u, hk, wgt($WA, k, u, hk), $IR($KY(e)), {==})
+
+def wlt_c($WB, +k: K, +e: $E, +u: $ES, +hk: $FF($BU(k)), +hu: $LTA(k, $W(u)), +b: Bool, +hb: {$IR($KY(e)) == b : Bool}) -> $LTA(k, S.pick($ES, b, Con{e, $W(u)}, $W(u))):
+  match b:
+    case True{}:
+      L.and_intro(Cmp.is_lt(cmp($KY(e), k)), OR.ltall($AK, k, $W(u)), lt_tr(cmp($KY(e), k), bu_lt($AO3, up, k, $KY(e), hk, L.and_right($AL($KY(e)), $BU($KY(e)), hb))), hu)
+    case False{}:
+      hu
+
+# a key above the upper bound is above everything within
+def wlt($WB, +k: K, +es: $ES, +hk: $FF($BU(k))) -> $LTA(k, $W(es)):
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +u}:
+      wlt_c($WA, k, e, u, hk, wlt($WA, k, u, hk), $IR($KY(e)), {==})
+
+# ---- the first within: the first above the lower bound, checked ----
+
+def fal($TK, +lw: $BD, es: $ES) -> $ME:
+  match es:
+    case Nil{}:
+      None{}
+    case Con{+e, +t}:
+      S.pick($ME, $AL($KY(e)), Some{e}, fal($AK, lw, t))
+
+%def FALC(t) fal($AK, lw, Con{e, t})
+%def HDW(xs) S.head($E, $W(xs))
+
+def e1_c($WB, +e: $E, +t: $ES, +h: $ORD(Con{e, t}), +ih: {$HDW(t) == $CHK(fal($AK, lw, t)) : $ME}, +a: Bool, +ha: {$AL($KY(e)) == a : Bool}, +b: Bool, +hb: {$BU($KY(e)) == b : Bool}) -> {$HDW(Con{e, t}) == $CHK($FALC(t)) : $ME}:
+  match a b:
+    case True{} True{}:
+      +hir = ir_t($AK3, lw, up, $KY(e), ha, hb)
+      +l1 = cong($ES, $ME, z => S.head($E, z), $W(Con{e, t}), Con{e, $W(t)}, w_in($WKA, e, t, hir))
+      +r1 = cong($ME, $ME, z => $CHK(z), $FALC(t), Some{e}, pk_t($ME, $AL($KY(e)), Some{e}, fal($AK, lw, t), ha))
+      $TR($ME, $HDW(Con{e, t}), Some{e}, $CHK($FALC(t)), l1, $SY($ME, $CHK($FALC(t)), Some{e}, $TR($ME, $CHK($FALC(t)), $CHK(Some{e}), Some{e}, r1, chk_in($WKA, e, hir))))
+    case True{} False{}:
+      +hir = ir_fb($AK3, lw, up, $KY(e), hb)
+      +l1 = cong($ES, $ME, z => S.head($E, z), $W(Con{e, t}), $W(t), w_out($WKA, e, t, hir))
+      +l2 = cong($ES, $ME, z => S.head($E, z), $W(t), Nil{}, wnil($WA, $KY(e), t, hb, OR.ord_gt($AO, t, e, h)))
+      +r1 = cong($ME, $ME, z => $CHK(z), $FALC(t), Some{e}, pk_t($ME, $AL($KY(e)), Some{e}, fal($AK, lw, t), ha))
+      $TR($ME, $HDW(Con{e, t}), None{}, $CHK($FALC(t)), $TR($ME, $HDW(Con{e, t}), $HDW(t), None{}, l1, l2), $SY($ME, $CHK($FALC(t)), None{}, $TR($ME, $CHK($FALC(t)), $CHK(Some{e}), None{}, r1, chk_out($WKA, e, hir))))
+    case False{} True{}:
+      +l1 = cong($ES, $ME, z => S.head($E, z), $W(Con{e, t}), $W(t), w_out($WKA, e, t, ir_fa($AK3, lw, up, $KY(e), ha)))
+      +r1 = cong($ME, $ME, z => $CHK(z), $FALC(t), fal($AK, lw, t), pk_f($ME, $AL($KY(e)), Some{e}, fal($AK, lw, t), ha))
+      $TR($ME, $HDW(Con{e, t}), $CHK(fal($AK, lw, t)), $CHK($FALC(t)), $TR($ME, $HDW(Con{e, t}), $HDW(t), $CHK(fal($AK, lw, t)), l1, ih), $SY($ME, $CHK($FALC(t)), $CHK(fal($AK, lw, t)), r1))
+    case False{} False{}:
+      +l1 = cong($ES, $ME, z => S.head($E, z), $W(Con{e, t}), $W(t), w_out($WKA, e, t, ir_fa($AK3, lw, up, $KY(e), ha)))
+      +r1 = cong($ME, $ME, z => $CHK(z), $FALC(t), fal($AK, lw, t), pk_f($ME, $AL($KY(e)), Some{e}, fal($AK, lw, t), ha))
+      $TR($ME, $HDW(Con{e, t}), $CHK(fal($AK, lw, t)), $CHK($FALC(t)), $TR($ME, $HDW(Con{e, t}), $HDW(t), $CHK(fal($AK, lw, t)), l1, ih), $SY($ME, $CHK($FALC(t)), $CHK(fal($AK, lw, t)), r1))
+
+def first_within($WB, +es: $ES, +h: $ORD(es)) -> {$HDW(es) == $CHK(fal($AK, lw, es)) : $ME}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      e1_c($WA, e, t, h, first_within($WA, t, OR.ord_tail($AK, e, t, h)), $AL($KY(e)), {==}, $BU($KY(e)), {==})
+
+# ---- the last within: the last below the upper bound, checked ----
+
+def lbu($TK, +up: $BD, es: $ES, +best: $ME) -> $ME:
+  match es:
+    case Nil{}:
+      best
+    case Con{+e, t}:
+      lbu($AK, up, t, S.pick($ME, $BU($KY(e)), Some{e}, best))
+
+# a candidate before every entry
+def bgood($TK, m: $ME, +es: $ES) -> Bool:
+  match m:
+    case None{}:
+      True{}
+    case Some{+b}:
+      OR.gtall($AK, $KY(b), es)
+
+def bg_tail($TK, +m: $ME, +e: $E, +t: $ES, +h: $TT(bgood($AK, m, Con{e, t}))) -> $TT(bgood($AK, m, t)):
+  match m:
+    case None{}:
+      {==}
+    case Some{+b}:
+      L.and_right(Cmp.is_lt(cmp($KY(b), $KY(e))), OR.gtall($AK, $KY(b), t), h)
+
+# a candidate before an entry below the lower bound is out of range
+def chk_none($WB, +m: $ME, +e: $E, +t: $ES, +hbg: $TT(bgood($AK, m, Con{e, t})), +hal: $FF($AL($KY(e)))) -> {$CHK(m) == None{} : $ME}:
+  match m:
+    case None{}:
+      {==}
+    case Some{+b}:
+      chk_out($WKA, b, ir_fa($AK3, lw, up, $KY(b), al_false($AO3, lw, $KY(e), $KY(b), hal, L.and_left(Cmp.is_lt(cmp($KY(b), $KY(e))), OR.gtall($AK, $KY(b), t), hbg))))
+
+# past a key above the upper bound, no entry is a candidate
+def lbu_none($TO, +up: $BD, +k: K, +t: $ES, +best: $ME, +hk: $FF($BU(k)), +hg: $GTA(k, t)) -> {lbu($AK, up, t, best) == best : $ME}:
+  match t:
+    case Nil{}:
+      {==}
+    case Con{+f, +u}:
+      +h1 = L.and_left(Cmp.is_lt(cmp(k, $KY(f))), OR.gtall($AK, k, u), hg)
+      +h2 = L.and_right(Cmp.is_lt(cmp(k, $KY(f))), OR.gtall($AK, k, u), hg)
+      %Equal.sym($ME, S.pick($ME, $BU($KY(f)), Some{f}, best), best, pk_f($ME, $BU($KY(f)), Some{f}, best, bu_false($AO3, up, k, $KY(f), hk, h1))) : {lbu($AK, up, u, _) == best : $ME}
+      lbu_none($AO, up, k, u, best, hk, h2)
+
+%def ORL(xs, m) OR.orm($E, S.last($E, $W(xs)), m)
+%def LBC(xs, m) $CHK(lbu($AK, up, xs, m))
+%def PKB S.pick($ME, $BU($KY(e)), Some{e}, bst)
+
+def e2_c($WB, +e: $E, +t: $ES, +bst: $ME, +h: $ORD(Con{e, t}), +hbg: $TT(bgood($AK, bst, Con{e, t})), +ih: {$ORL(t, $CHK(Some{e})) == $LBC(t, Some{e}) : $ME}, +a: Bool, +ha: {$AL($KY(e)) == a : Bool}, +b: Bool, +hb: {$BU($KY(e)) == b : Bool}) -> {$ORL(Con{e, t}, $CHK(bst)) == $LBC(Con{e, t}, bst) : $ME}:
+  match a b:
+    case True{} True{}:
+      +hir = ir_t($AK3, lw, up, $KY(e), ha, hb)
+      +l1 = cong($ES, $ME, z => OR.orm($E, S.last($E, z), $CHK(bst)), $W(Con{e, t}), Con{e, $W(t)}, w_in($WKA, e, t, hir))
+      +l2 = $SY($ME, OR.orm($E, S.last($E, $W(t)), Some{e}), OR.orm($E, S.last($E, Con{e, $W(t)}), $CHK(bst)), NV.lw_all_c(K, V, e, $W(t), $CHK(bst)))
+      +l3 = cong($ME, $ME, z => OR.orm($E, S.last($E, $W(t)), z), Some{e}, $CHK(Some{e}), $SY($ME, $CHK(Some{e}), Some{e}, chk_in($WKA, e, hir)))
+      +r1 = cong($ME, $ME, z => $CHK(lbu($AK, up, t, z)), $PKB, Some{e}, pk_t($ME, $BU($KY(e)), Some{e}, bst, hb))
+      $TR($ME, $ORL(Con{e, t}, $CHK(bst)), OR.orm($E, S.last($E, Con{e, $W(t)}), $CHK(bst)), $LBC(Con{e, t}, bst), l1, $TR($ME, OR.orm($E, S.last($E, Con{e, $W(t)}), $CHK(bst)), OR.orm($E, S.last($E, $W(t)), Some{e}), $LBC(Con{e, t}, bst), l2, $TR($ME, OR.orm($E, S.last($E, $W(t)), Some{e}), $ORL(t, $CHK(Some{e})), $LBC(Con{e, t}, bst), l3, $TR($ME, $ORL(t, $CHK(Some{e})), $LBC(t, Some{e}), $LBC(Con{e, t}, bst), ih, $SY($ME, $LBC(Con{e, t}, bst), $LBC(t, Some{e}), r1)))))
+    case True{} False{}:
+      +hir = ir_fb($AK3, lw, up, $KY(e), hb)
+      +hgt = OR.ord_gt($AO, t, e, h)
+      +l1 = cong($ES, $ME, z => OR.orm($E, S.last($E, z), $CHK(bst)), $W(Con{e, t}), Nil{}, $TR($ES, $W(Con{e, t}), $W(t), Nil{}, w_out($WKA, e, t, hir), wnil($WA, $KY(e), t, hb, hgt)))
+      +r1 = cong($ME, $ME, z => $CHK(lbu($AK, up, t, z)), $PKB, bst, pk_f($ME, $BU($KY(e)), Some{e}, bst, hb))
+      +r2 = cong($ME, $ME, z => $CHK(z), lbu($AK, up, t, bst), bst, lbu_none($AO, up, $KY(e), t, bst, hb, hgt))
+      $TR($ME, $ORL(Con{e, t}, $CHK(bst)), $CHK(bst), $LBC(Con{e, t}, bst), l1, $SY($ME, $LBC(Con{e, t}, bst), $CHK(bst), $TR($ME, $LBC(Con{e, t}, bst), $LBC(t, bst), $CHK(bst), r1, r2)))
+    case False{} True{}:
+      +hir = ir_fa($AK3, lw, up, $KY(e), ha)
+      +l1 = cong($ES, $ME, z => OR.orm($E, S.last($E, z), $CHK(bst)), $W(Con{e, t}), $W(t), w_out($WKA, e, t, hir))
+      +l2 = cong($ME, $ME, z => OR.orm($E, S.last($E, $W(t)), z), $CHK(bst), None{}, chk_none($WA, bst, e, t, hbg, ha))
+      +l3 = cong($ME, $ME, z => OR.orm($E, S.last($E, $W(t)), z), None{}, $CHK(Some{e}), $SY($ME, $CHK(Some{e}), None{}, chk_out($WKA, e, hir)))
+      +r1 = cong($ME, $ME, z => $CHK(lbu($AK, up, t, z)), $PKB, Some{e}, pk_t($ME, $BU($KY(e)), Some{e}, bst, hb))
+      $TR($ME, $ORL(Con{e, t}, $CHK(bst)), $ORL(t, $CHK(bst)), $LBC(Con{e, t}, bst), l1, $TR($ME, $ORL(t, $CHK(bst)), $ORL(t, None{}), $LBC(Con{e, t}, bst), l2, $TR($ME, $ORL(t, None{}), $ORL(t, $CHK(Some{e})), $LBC(Con{e, t}, bst), l3, $TR($ME, $ORL(t, $CHK(Some{e})), $LBC(t, Some{e}), $LBC(Con{e, t}, bst), ih, $SY($ME, $LBC(Con{e, t}, bst), $LBC(t, Some{e}), r1)))))
+    case False{} False{}:
+      +hir = ir_fb($AK3, lw, up, $KY(e), hb)
+      +hgt = OR.ord_gt($AO, t, e, h)
+      +l1 = cong($ES, $ME, z => OR.orm($E, S.last($E, z), $CHK(bst)), $W(Con{e, t}), Nil{}, $TR($ES, $W(Con{e, t}), $W(t), Nil{}, w_out($WKA, e, t, hir), wnil($WA, $KY(e), t, hb, hgt)))
+      +r1 = cong($ME, $ME, z => $CHK(lbu($AK, up, t, z)), $PKB, bst, pk_f($ME, $BU($KY(e)), Some{e}, bst, hb))
+      +r2 = cong($ME, $ME, z => $CHK(z), lbu($AK, up, t, bst), bst, lbu_none($AO, up, $KY(e), t, bst, hb, hgt))
+      $TR($ME, $ORL(Con{e, t}, $CHK(bst)), $CHK(bst), $LBC(Con{e, t}, bst), l1, $SY($ME, $LBC(Con{e, t}, bst), $CHK(bst), $TR($ME, $LBC(Con{e, t}, bst), $LBC(t, bst), $CHK(bst), r1, r2)))
+
+def e2g($WB, +es: $ES, +bst: $ME, +h: $ORD(es), +hbg: $TT(bgood($AK, bst, es))) -> {$ORL(es, $CHK(bst)) == $LBC(es, bst) : $ME}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      e2_c($WA, e, t, bst, h, hbg, e2g($WA, t, Some{e}, OR.ord_tail($AK, e, t, h), OR.ord_gt($AO, t, e, h)), $AL($KY(e)), {==}, $BU($KY(e)), {==})
+
+def last_within($WB, +es: $ES, +h: $ORD(es)) -> {S.last($E, $W(es)) == $LBC(es, None{}) : $ME}:
+  $TR($ME, S.last($E, $W(es)), $ORL(es, None{}), $LBC(es, None{}), $SY($ME, $ORL(es, None{}), S.last($E, $W(es)), OR.orm_none($E, S.last($E, $W(es)))), e2g($WA, es, None{}, h, {==}))
+
+# ---- a search from a key inside the view: the whole map's, checked ----
+
+%def NB $WB, +k: K, +incl: Bool
+%def NA $WA, k, incl
+%def PE $OKC(cmp(k, $KY(e)), incl)
+%def QE $OKC(cmp($KY(e), k), incl)
+
+# a failing first entry skipped, within or not
+def fw_skip($NB, +e: $E, +t: $ES, +hp: $FF($PE), +c: Bool, +hc: {$IR($KY(e)) == c : Bool}) -> {$FW($W(Con{e, t})) == $FW($W(t)) : $ME}:
+  match c:
+    case True{}:
+      $TR($ME, $FW($W(Con{e, t})), $FW(Con{e, $W(t)}), $FW($W(t)), cong($ES, $ME, z => $FW(z), $W(Con{e, t}), Con{e, $W(t)}, w_in($WKA, e, t, hc)), pk_f($ME, $PE, Some{e}, $FW($W(t)), hp))
+    case False{}:
+      cong($ES, $ME, z => $FW(z), $W(Con{e, t}), $W(t), w_out($WKA, e, t, hc))
+
+def n1_c($NB, +e: $E, +t: $ES, +h: $ORD(Con{e, t}), +hk: $TT($AL(k)), +ih: {$FW($W(t)) == $CHK($FW(t)) : $ME}, +pv: Bool, +hp: {$PE == pv : Bool}, +b: Bool, +hb: {$BU($KY(e)) == b : Bool}) -> {$FW($W(Con{e, t})) == $CHK($FW(Con{e, t})) : $ME}:
+  match pv b:
+    case True{} True{}:
+      +hir = ir_t($AK3, lw, up, $KY(e), al_mono($AO3, lw, k, $KY(e), incl, hk, hp), hb)
+      +l1 = $TR($ME, $FW($W(Con{e, t})), $FW(Con{e, $W(t)}), Some{e}, cong($ES, $ME, z => $FW(z), $W(Con{e, t}), Con{e, $W(t)}, w_in($WKA, e, t, hir)), pk_t($ME, $PE, Some{e}, $FW($W(t)), hp))
+      +r1 = $TR($ME, $CHK($FW(Con{e, t})), $CHK(Some{e}), Some{e}, cong($ME, $ME, z => $CHK(z), $FW(Con{e, t}), Some{e}, pk_t($ME, $PE, Some{e}, $FW(t), hp)), chk_in($WKA, e, hir))
+      $TR($ME, $FW($W(Con{e, t})), Some{e}, $CHK($FW(Con{e, t})), l1, $SY($ME, $CHK($FW(Con{e, t})), Some{e}, r1))
+    case True{} False{}:
+      +hir = ir_fb($AK3, lw, up, $KY(e), hb)
+      +l1 = $TR($ME, $FW($W(Con{e, t})), $FW($W(t)), None{}, cong($ES, $ME, z => $FW(z), $W(Con{e, t}), $W(t), w_out($WKA, e, t, hir)), cong($ES, $ME, z => $FW(z), $W(t), Nil{}, wnil($WA, $KY(e), t, hb, OR.ord_gt($AO, t, e, h))))
+      +r1 = $TR($ME, $CHK($FW(Con{e, t})), $CHK(Some{e}), None{}, cong($ME, $ME, z => $CHK(z), $FW(Con{e, t}), Some{e}, pk_t($ME, $PE, Some{e}, $FW(t), hp)), chk_out($WKA, e, hir))
+      $TR($ME, $FW($W(Con{e, t})), None{}, $CHK($FW(Con{e, t})), l1, $SY($ME, $CHK($FW(Con{e, t})), None{}, r1))
+    case False{} True{}:
+      +r1 = cong($ME, $ME, z => $CHK(z), $FW(Con{e, t}), $FW(t), pk_f($ME, $PE, Some{e}, $FW(t), hp))
+      $TR($ME, $FW($W(Con{e, t})), $CHK($FW(t)), $CHK($FW(Con{e, t})), $TR($ME, $FW($W(Con{e, t})), $FW($W(t)), $CHK($FW(t)), fw_skip($NA, e, t, hp, $IR($KY(e)), {==}), ih), $SY($ME, $CHK($FW(Con{e, t})), $CHK($FW(t)), r1))
+    case False{} False{}:
+      +r1 = cong($ME, $ME, z => $CHK(z), $FW(Con{e, t}), $FW(t), pk_f($ME, $PE, Some{e}, $FW(t), hp))
+      $TR($ME, $FW($W(Con{e, t})), $CHK($FW(t)), $CHK($FW(Con{e, t})), $TR($ME, $FW($W(Con{e, t})), $FW($W(t)), $CHK($FW(t)), fw_skip($NA, e, t, hp, $IR($KY(e)), {==}), ih), $SY($ME, $CHK($FW(Con{e, t})), $CHK($FW(t)), r1))
+
+# from a key above the lower bound, the first at or past it within is the
+# first in the map, when in range
+def fw_within($NB, +es: $ES, +h: $ORD(es), +hk: $TT($AL(k))) -> {$FW($W(es)) == $CHK($FW(es)) : $ME}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      n1_c($NA, e, t, h, hk, fw_within($NA, t, OR.ord_tail($AK, e, t, h), hk), $PE, {==}, $BU($KY(e)), {==})
+
+# from a key below the lower bound, the first within
+def fw_below($NB, +es: $ES, +hk: $FF($AL(k))) -> {$FW($W(es)) == $HDW(es) : $ME}:
+  NV.fw_head($AK, k, incl, $W(es), wgt($WA, k, es, hk))
+
+def lw_skip($NB, +e: $E, +t: $ES, +m: $ME, +hq: $FF($QE), +c: Bool, +hc: {$IR($KY(e)) == c : Bool}) -> {$LW($W(Con{e, t}), m) == $LW($W(t), m) : $ME}:
+  match c:
+    case True{}:
+      $TR($ME, $LW($W(Con{e, t}), m), $LW(Con{e, $W(t)}, m), $LW($W(t), m), cong($ES, $ME, z => $LW(z, m), $W(Con{e, t}), Con{e, $W(t)}, w_in($WKA, e, t, hc)), cong($ME, $ME, z => $LW($W(t), z), S.pick($ME, $QE, Some{e}, m), m, pk_f($ME, $QE, Some{e}, m, hq)))
+    case False{}:
+      cong($ES, $ME, z => $LW(z, m), $W(Con{e, t}), $W(t), w_out($WKA, e, t, hc))
+
+%def LWC(xs, m) $CHK($LW(xs, m))
+%def PKQ S.pick($ME, $QE, Some{e}, bst)
+
+def n3_c($NB, +e: $E, +t: $ES, +bst: $ME, +h: $ORD(Con{e, t}), +hbg: $TT(bgood($AK, bst, Con{e, t})), +hk: $TT($BU(k)), +ih1: {$LW($W(t), $CHK(Some{e})) == $LWC(t, Some{e}) : $ME}, +ih2: {$LW($W(t), $CHK(bst)) == $LWC(t, bst) : $ME}, +qv: Bool, +hq: {$QE == qv : Bool}, +a: Bool, +ha: {$AL($KY(e)) == a : Bool}) -> {$LW($W(Con{e, t}), $CHK(bst)) == $LWC(Con{e, t}, bst) : $ME}:
+  match qv a:
+    case True{} True{}:
+      +hir = ir_t($AK3, lw, up, $KY(e), ha, bu_mono($AO3, up, k, $KY(e), incl, hk, hq))
+      +l1 = cong($ES, $ME, z => $LW(z, $CHK(bst)), $W(Con{e, t}), Con{e, $W(t)}, w_in($WKA, e, t, hir))
+      +l2 = cong($ME, $ME, z => $LW($W(t), z), S.pick($ME, $QE, Some{e}, $CHK(bst)), $CHK(Some{e}), $TR($ME, S.pick($ME, $QE, Some{e}, $CHK(bst)), Some{e}, $CHK(Some{e}), pk_t($ME, $QE, Some{e}, $CHK(bst), hq), $SY($ME, $CHK(Some{e}), Some{e}, chk_in($WKA, e, hir))))
+      +r1 = cong($ME, $ME, z => $LWC(t, z), $PKQ, Some{e}, pk_t($ME, $QE, Some{e}, bst, hq))
+      $TR($ME, $LW($W(Con{e, t}), $CHK(bst)), $LW($W(t), $CHK(Some{e})), $LWC(Con{e, t}, bst), $TR($ME, $LW($W(Con{e, t}), $CHK(bst)), $LW(Con{e, $W(t)}, $CHK(bst)), $LW($W(t), $CHK(Some{e})), l1, l2), $TR($ME, $LW($W(t), $CHK(Some{e})), $LWC(t, Some{e}), $LWC(Con{e, t}, bst), ih1, $SY($ME, $LWC(Con{e, t}, bst), $LWC(t, Some{e}), r1)))
+    case True{} False{}:
+      +hir = ir_fa($AK3, lw, up, $KY(e), ha)
+      +l1 = cong($ES, $ME, z => $LW(z, $CHK(bst)), $W(Con{e, t}), $W(t), w_out($WKA, e, t, hir))
+      +l2 = cong($ME, $ME, z => $LW($W(t), z), $CHK(bst), $CHK(Some{e}), $TR($ME, $CHK(bst), None{}, $CHK(Some{e}), chk_none($WA, bst, e, t, hbg, ha), $SY($ME, $CHK(Some{e}), None{}, chk_out($WKA, e, hir))))
+      +r1 = cong($ME, $ME, z => $LWC(t, z), $PKQ, Some{e}, pk_t($ME, $QE, Some{e}, bst, hq))
+      $TR($ME, $LW($W(Con{e, t}), $CHK(bst)), $LW($W(t), $CHK(Some{e})), $LWC(Con{e, t}, bst), $TR($ME, $LW($W(Con{e, t}), $CHK(bst)), $LW($W(t), $CHK(bst)), $LW($W(t), $CHK(Some{e})), l1, l2), $TR($ME, $LW($W(t), $CHK(Some{e})), $LWC(t, Some{e}), $LWC(Con{e, t}, bst), ih1, $SY($ME, $LWC(Con{e, t}, bst), $LWC(t, Some{e}), r1)))
+    case False{} True{}:
+      +r1 = cong($ME, $ME, z => $LWC(t, z), $PKQ, bst, pk_f($ME, $QE, Some{e}, bst, hq))
+      $TR($ME, $LW($W(Con{e, t}), $CHK(bst)), $LWC(t, bst), $LWC(Con{e, t}, bst), $TR($ME, $LW($W(Con{e, t}), $CHK(bst)), $LW($W(t), $CHK(bst)), $LWC(t, bst), lw_skip($NA, e, t, $CHK(bst), hq, $IR($KY(e)), {==}), ih2), $SY($ME, $LWC(Con{e, t}, bst), $LWC(t, bst), r1))
+    case False{} False{}:
+      +r1 = cong($ME, $ME, z => $LWC(t, z), $PKQ, bst, pk_f($ME, $QE, Some{e}, bst, hq))
+      $TR($ME, $LW($W(Con{e, t}), $CHK(bst)), $LWC(t, bst), $LWC(Con{e, t}, bst), $TR($ME, $LW($W(Con{e, t}), $CHK(bst)), $LW($W(t), $CHK(bst)), $LWC(t, bst), lw_skip($NA, e, t, $CHK(bst), hq, $IR($KY(e)), {==}), ih2), $SY($ME, $LWC(Con{e, t}, bst), $LWC(t, bst), r1))
+
+def n3g($NB, +es: $ES, +bst: $ME, +h: $ORD(es), +hbg: $TT(bgood($AK, bst, es)), +hk: $TT($BU(k))) -> {$LW($W(es), $CHK(bst)) == $LWC(es, bst) : $ME}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      n3_c($NA, e, t, bst, h, hbg, hk, n3g($NA, t, Some{e}, OR.ord_tail($AK, e, t, h), OR.ord_gt($AO, t, e, h), hk), n3g($NA, t, bst, OR.ord_tail($AK, e, t, h), bg_tail($AK, bst, e, t, hbg), hk), $QE, {==}, $AL($KY(e)), {==})
+
+# from a key below the upper bound, the last at or before it within is the
+# last in the map, when in range
+def lw_within($NB, +es: $ES, +h: $ORD(es), +hk: $TT($BU(k))) -> {$LW($W(es), None{}) == $LWC(es, None{}) : $ME}:
+  n3g($NA, es, None{}, h, {==}, hk)
+
+# from a key above the upper bound, the last within
+def lw_above($NB, +es: $ES, +hk: $FF($BU(k))) -> {$LW($W(es), None{}) == S.last($E, $W(es)) : $ME}:
+  $TR($ME, $LW($W(es), None{}), OR.orm($E, S.last($E, $W(es)), None{}), S.last($E, $W(es)), NV.lw_all($AK, k, incl, $W(es), None{}, wlt($WA, k, es, hk)), OR.orm_none($E, S.last($E, $W(es))))
+
+# ---- the bounds' own searches ----
+
+def fal_u($TK, +es: $ES) -> {fal($AK, M.Unbounded{}, es) == S.head($E, es) : $ME}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      {==}
+
+def fal_i($TK, +x: K, +es: $ES) -> {fal($AK, M.Inclusive{x}, es) == S.first_where($AK, x, True{}, es) : $ME}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      cong($ME, $ME, z => S.pick($ME, $OKC(cmp(x, $KY(e)), True{}), Some{e}, z), fal($AK, M.Inclusive{x}, t), S.first_where($AK, x, True{}, t), fal_i($AK, x, t))
+
+def fal_x($TK, +x: K, +es: $ES) -> {fal($AK, M.Exclusive{x}, es) == S.first_where($AK, x, False{}, es) : $ME}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      cong($ME, $ME, z => S.pick($ME, $OKC(cmp(x, $KY(e)), False{}), Some{e}, z), fal($AK, M.Exclusive{x}, t), S.first_where($AK, x, False{}, t), fal_x($AK, x, t))
+
+def lbu_u($TK, +es: $ES, +b: $ME) -> {lbu($AK, M.Unbounded{}, es, b) == OR.orm($E, S.last($E, es), b) : $ME}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      $TR($ME, lbu($AK, M.Unbounded{}, t, Some{e}), OR.orm($E, S.last($E, t), Some{e}), OR.orm($E, S.last($E, Con{e, t}), b), lbu_u($AK, t, Some{e}), NV.lw_all_c(K, V, e, t, b))
+
+def lbu_i($TK, +y: K, +es: $ES, +b: $ME) -> {lbu($AK, M.Inclusive{y}, es, b) == S.last_where($AK, y, True{}, es, b) : $ME}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      lbu_i($AK, y, t, S.pick($ME, $OKC(cmp($KY(e), y), True{}), Some{e}, b))
+
+def lbu_x($TK, +y: K, +es: $ES, +b: $ME) -> {lbu($AK, M.Exclusive{y}, es, b) == S.last_where($AK, y, False{}, es, b) : $ME}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      lbu_x($AK, y, t, S.pick($ME, $OKC(cmp($KY(e), y), False{}), Some{e}, b))
+
+# ---- runs of entries ----
+
+%def EAPP(a, b) SC.append($E, a, b)
+
+def wapp_c($WK, +e: $E, +t: $ES, +ys: $ES, +ih: {$W($EAPP(t, ys)) == $EAPP($W(t), $W(ys)) : $ES}, +b: Bool, +hb: {$IR($KY(e)) == b : Bool}) -> {$W($EAPP(Con{e, t}, ys)) == $EAPP($W(Con{e, t}), $W(ys)) : $ES}:
+  match b:
+    case True{}:
+      +l1 = w_in($WKA, e, $EAPP(t, ys), hb)
+      +r1 = cong($ES, $ES, z => $EAPP(z, $W(ys)), $W(Con{e, t}), Con{e, $W(t)}, w_in($WKA, e, t, hb))
+      $TR($ES, $W($EAPP(Con{e, t}, ys)), Con{e, $EAPP($W(t), $W(ys))}, $EAPP($W(Con{e, t}), $W(ys)), $TR($ES, $W($EAPP(Con{e, t}, ys)), Con{e, $W($EAPP(t, ys))}, Con{e, $EAPP($W(t), $W(ys))}, l1, cong($ES, $ES, z => Con{e, z}, $W($EAPP(t, ys)), $EAPP($W(t), $W(ys)), ih)), $SY($ES, $EAPP($W(Con{e, t}), $W(ys)), Con{e, $EAPP($W(t), $W(ys))}, r1))
+    case False{}:
+      +l1 = w_out($WKA, e, $EAPP(t, ys), hb)
+      +r1 = cong($ES, $ES, z => $EAPP(z, $W(ys)), $W(Con{e, t}), $W(t), w_out($WKA, e, t, hb))
+      $TR($ES, $W($EAPP(Con{e, t}, ys)), $EAPP($W(t), $W(ys)), $EAPP($W(Con{e, t}), $W(ys)), $TR($ES, $W($EAPP(Con{e, t}, ys)), $W($EAPP(t, ys)), $EAPP($W(t), $W(ys)), l1, ih), $SY($ES, $EAPP($W(Con{e, t}), $W(ys)), $EAPP($W(t), $W(ys)), r1))
+
+def within_app($WK, +xs: $ES, +ys: $ES) -> {$W($EAPP(xs, ys)) == $EAPP($W(xs), $W(ys)) : $ES}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      wapp_c($WKA, e, t, ys, within_app($WKA, t, ys), $IR($KY(e)), {==})
+
+# every entry above the lower bound / below the upper bound
+def allal($TK, +lw: $BD, es: $ES) -> Bool:
+  match es:
+    case Nil{}:
+      True{}
+    case Con{+e, t}:
+      Bool.and($AL($KY(e)), allal($AK, lw, t))
+
+def allbu($TK, +up: $BD, es: $ES) -> Bool:
+  match es:
+    case Nil{}:
+      True{}
+    case Con{+e, t}:
+      Bool.and($BU($KY(e)), allbu($AK, up, t))
+
+# sorted, the first above the lower bound: all are
+def al_all($TO, +lw: $BD, +t: $ES, +e: $E, +h: $ORD(Con{e, t}), +ha: $TT($AL($KY(e)))) -> $TT(allal($AK, lw, Con{e, t})):
+  match t:
+    case Nil{}:
+      L.and_intro($AL($KY(e)), True{}, ha, {==})
+    case Con{+f, +u}:
+      +hlt = L.and_left(Cmp.is_lt(cmp($KY(e), $KY(f))), ST.ordered($AK, Con{f, u}), h)
+      +hf = al_mono($AO3, lw, $KY(e), $KY(f), False{}, ha, lt_okf(cmp($KY(e), $KY(f)), hlt))
+      L.and_intro($AL($KY(e)), allal($AK, lw, Con{f, u}), ha, al_all($AO, lw, u, f, L.and_right(Cmp.is_lt(cmp($KY(e), $KY(f))), ST.ordered($AK, Con{f, u}), h), hf))
+
+def allbu_app($TK, +up: $BD, +xs: $ES, +ys: $ES, +hx: $TT(allbu($AK, up, xs)), +hy: $TT(allbu($AK, up, ys))) -> $TT(allbu($AK, up, $EAPP(xs, ys))):
+  match xs:
+    case Nil{}:
+      hy
+    case Con{+e, +t}:
+      L.and_intro($BU($KY(e)), allbu($AK, up, $EAPP(t, ys)), L.and_left($BU($KY(e)), allbu($AK, up, t), hx), allbu_app($AK, up, t, ys, L.and_right($BU($KY(e)), allbu($AK, up, t), hx), hy))
+
+def allbu_rev($TK, +up: $BD, +xs: $ES, +h: $TT(allbu($AK, up, xs))) -> $TT(allbu($AK, up, SC.reverse($E, xs))):
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      +h1 = allbu_app($AK, up, SC.reverse($E, t), Con{e, Nil{}}, allbu_rev($AK, up, t, L.and_right($BU($KY(e)), allbu($AK, up, t), h)), L.and_intro($BU($KY(e)), True{}, L.and_left($BU($KY(e)), allbu($AK, up, t), h), {==}))
+      L.subst($ES, z => $TT(allbu($AK, up, z)), $EAPP(SC.reverse($E, t), Con{e, Nil{}}), SC.snoc($E, SC.reverse($E, t), e), $SY($ES, SC.snoc($E, SC.reverse($E, t), e), $EAPP(SC.reverse($E, t), Con{e, Nil{}}), LL.snoc_append($E, SC.reverse($E, t), e)), h1)
+
+# below a key under the lower bound, nothing is within
+def wnil_lt($WB, +k: K, +xs: $ES, +hk: $FF($AL(k)), +hl: $LTA(k, xs)) -> {$W(xs) == Nil{} : $ES}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+e, +u}:
+      +h1 = L.and_left(Cmp.is_lt(cmp($KY(e), k)), OR.ltall($AK, k, u), hl)
+      +h2 = L.and_right(Cmp.is_lt(cmp($KY(e), k)), OR.ltall($AK, k, u), hl)
+      $TR($ES, $W(Con{e, u}), $W(u), Nil{}, w_out($WKA, e, u, ir_fa($AK3, lw, up, $KY(e), al_false($AO3, lw, k, $KY(e), hk, h1))), wnil_lt($WA, k, u, hk, h2))
+
+def bu_of($TK3, +lw: $BD, +up: $BD, +k: K, +ha: $TT($AL(k)), +hir: $FF($IR(k))) -> $FF($BU(k)):
+  L.subst(Bool, z => $FF(Bool.and(z, $BU(k))), $AL(k), True{}, ha, hir)
+
+def al_oc($TK3, +lw: $BD, +up: $BD, +k: K, +hb: $TT($BU(k)), +hir: $FF($IR(k)), +a: Bool, +ha: {$AL(k) == a : Bool}) -> $FF($AL(k)):
+  match a:
+    case True{}:
+      Empty.absurd($FF($AL(k)), L.true_false($TR(Bool, True{}, $BU(k), False{}, $SY(Bool, $BU(k), True{}, hb), bu_of($AK3, lw, up, k, ha, hir))))
+    case False{}:
+      ha
+
+def al_of($TK3, +lw: $BD, +up: $BD, +k: K, +hb: $TT($BU(k)), +hir: $FF($IR(k))) -> $FF($AL(k)):
+  al_oc($AK3, lw, up, k, hb, hir, $AL(k), {==})
+
+# ---- a sorted list split at a bound ----
+
+%def SPF(es) Sigma<&1, &1, $ES, xa => Sigma<&1, &1, $ES, xb => {es == $EAPP(xa, xb) : $ES} & ($TT(allal($AK, lw, xb)) & ({$W(xa) == Nil{} : $ES} & {fal($AK, lw, es) == S.head($E, xb) : $ME}))>>
+
+def spf_up2($WB, +e: $E, +t: $ES, +hf: $FF($AL($KY(e))), +xa: $ES, +xb: $ES, +h1: {t == $EAPP(xa, xb) : $ES}, r: $TT(allal($AK, lw, xb)) & ({$W(xa) == Nil{} : $ES} & {fal($AK, lw, t) == S.head($E, xb) : $ME})) -> $SPF(Con{e, t}):
+  match r:
+    case Tuple{h2, Tuple{h3, h4}}:
+      (Con{e, xa}, (xb, (cong($ES, $ES, z => Con{e, z}, t, $EAPP(xa, xb), h1), (h2, ($TR($ES, $W(Con{e, xa}), $W(xa), Nil{}, w_out($WKA, e, xa, ir_fa($AK3, lw, up, $KY(e), hf)), h3), $TR($ME, fal($AK, lw, Con{e, t}), fal($AK, lw, t), S.head($E, xb), pk_f($ME, $AL($KY(e)), Some{e}, fal($AK, lw, t), hf), h4))))))
+
+def spf_up($WB, +e: $E, +t: $ES, +hf: $FF($AL($KY(e))), r: $SPF(t)) -> $SPF(Con{e, t}):
+  match r:
+    case Tuple{+xa, Tuple{+xb, Tuple{+h1, r2}}}:
+      spf_up2($WA, e, t, hf, xa, xb, h1, r2)
+
+def spf_c($WB, +e: $E, +t: $ES, +h: $ORD(Con{e, t}), r: $SPF(t), +a: Bool, +ha: {$AL($KY(e)) == a : Bool}) -> $SPF(Con{e, t}):
+  match a:
+    case True{}:
+      (Nil{}, (Con{e, t}, ({==}, (al_all($AO, lw, t, e, h, ha), ({==}, pk_t($ME, $AL($KY(e)), Some{e}, fal($AK, lw, t), ha))))))
+    case False{}:
+      spf_up($WA, e, t, ha, r)
+
+# the entries below the lower bound, then those above it
+def split_fal($WB, +es: $ES, +h: $ORD(es)) -> $SPF(es):
+  match es:
+    case Nil{}:
+      (Nil{}, (Nil{}, ({==}, ({==}, ({==}, {==})))))
+    case Con{+e, +t}:
+      spf_c($WA, e, t, h, split_fal($WA, t, OR.ord_tail($AK, e, t, h)), $AL($KY(e)), {==})
+
+%def SPB(es, bst) Sigma<&1, &1, $ES, xa => Sigma<&1, &1, $ES, xb => {es == $EAPP(xa, xb) : $ES} & ($TT(allbu($AK, up, xa)) & ({$W(xb) == Nil{} : $ES} & {lbu($AK, up, es, bst) == OR.orm($E, S.last($E, xa), bst) : $ME}))>>
+
+def spb_up2($WB, +e: $E, +t: $ES, +bst: $ME, +hb: $TT($BU($KY(e))), +xa: $ES, +xb: $ES, +h1: {t == $EAPP(xa, xb) : $ES}, r: $TT(allbu($AK, up, xa)) & ({$W(xb) == Nil{} : $ES} & {lbu($AK, up, t, Some{e}) == OR.orm($E, S.last($E, xa), Some{e}) : $ME})) -> $SPB(Con{e, t}, bst):
+  match r:
+    case Tuple{h2, Tuple{h3, h4}}:
+      +e1 = cong($ME, $ME, z => lbu($AK, up, t, z), S.pick($ME, $BU($KY(e)), Some{e}, bst), Some{e}, pk_t($ME, $BU($KY(e)), Some{e}, bst, hb))
+      (Con{e, xa}, (xb, (cong($ES, $ES, z => Con{e, z}, t, $EAPP(xa, xb), h1), (L.and_intro($BU($KY(e)), allbu($AK, up, xa), hb, h2), (h3, $TR($ME, lbu($AK, up, Con{e, t}, bst), OR.orm($E, S.last($E, xa), Some{e}), OR.orm($E, S.last($E, Con{e, xa}), bst), $TR($ME, lbu($AK, up, Con{e, t}, bst), lbu($AK, up, t, Some{e}), OR.orm($E, S.last($E, xa), Some{e}), e1, h4), NV.lw_all_c(K, V, e, xa, bst)))))))
+
+def spb_up($WB, +e: $E, +t: $ES, +bst: $ME, +hb: $TT($BU($KY(e))), r: $SPB(t, Some{e})) -> $SPB(Con{e, t}, bst):
+  match r:
+    case Tuple{+xa, Tuple{+xb, Tuple{+h1, r2}}}:
+      spb_up2($WA, e, t, bst, hb, xa, xb, h1, r2)
+
+def spb_c($WB, +e: $E, +t: $ES, +bst: $ME, +h: $ORD(Con{e, t}), r: $SPB(t, Some{e}), +b: Bool, +hb: {$BU($KY(e)) == b : Bool}) -> $SPB(Con{e, t}, bst):
+  match b:
+    case True{}:
+      spb_up($WA, e, t, bst, hb, r)
+    case False{}:
+      +hgt = OR.ord_gt($AO, t, e, h)
+      +hw = $TR($ES, $W(Con{e, t}), $W(t), Nil{}, w_out($WKA, e, t, ir_fb($AK3, lw, up, $KY(e), hb)), wnil($WA, $KY(e), t, hb, hgt))
+      +hl = $TR($ME, lbu($AK, up, Con{e, t}, bst), lbu($AK, up, t, bst), bst, cong($ME, $ME, z => lbu($AK, up, t, z), S.pick($ME, $BU($KY(e)), Some{e}, bst), bst, pk_f($ME, $BU($KY(e)), Some{e}, bst, hb)), lbu_none($AO, up, $KY(e), t, bst, hb, hgt))
+      (Nil{}, (Con{e, t}, ({==}, ({==}, (hw, hl)))))
+
+# the entries below the upper bound, then those above it
+def split_lbu($WB, +es: $ES, +bst: $ME, +h: $ORD(es)) -> $SPB(es, bst):
+  match es:
+    case Nil{}:
+      (Nil{}, (Nil{}, ({==}, ({==}, ({==}, {==})))))
+    case Con{+e, +t}:
+      spb_c($WA, e, t, bst, h, split_lbu($WA, t, Some{e}, OR.ord_tail($AK, e, t, h)), $BU($KY(e)), {==})
+
+def start_fal($TK, +lw: $BD, +es: $ES) -> {S.start($AK, lw, True{}, es) == S.key_m(K, V, fal($AK, lw, es)) : Maybe<&2, K>}:
+  match lw:
+    case M.Unbounded{}:
+      cong($ME, Maybe<&2, K>, z => S.key_m(K, V, z), S.head($E, es), fal($AK, M.Unbounded{}, es), $SY($ME, fal($AK, M.Unbounded{}, es), S.head($E, es), fal_u($AK, es)))
+    case M.Inclusive{+x}:
+      cong($ME, Maybe<&2, K>, z => S.key_m(K, V, z), S.first_where($AK, x, True{}, es), fal($AK, M.Inclusive{x}, es), $SY($ME, fal($AK, M.Inclusive{x}, es), S.first_where($AK, x, True{}, es), fal_i($AK, x, es)))
+    case M.Exclusive{+x}:
+      cong($ME, Maybe<&2, K>, z => S.key_m(K, V, z), S.first_where($AK, x, False{}, es), fal($AK, M.Exclusive{x}, es), $SY($ME, fal($AK, M.Exclusive{x}, es), S.first_where($AK, x, False{}, es), fal_x($AK, x, es)))
+
+def start_lbu($TK, +up: $BD, +es: $ES) -> {S.start($AK, up, False{}, es) == S.key_m(K, V, lbu($AK, up, es, None{})) : Maybe<&2, K>}:
+  match up:
+    case M.Unbounded{}:
+      cong($ME, Maybe<&2, K>, z => S.key_m(K, V, z), S.last($E, es), lbu($AK, M.Unbounded{}, es, None{}), $SY($ME, lbu($AK, M.Unbounded{}, es, None{}), S.last($E, es), $TR($ME, lbu($AK, M.Unbounded{}, es, None{}), OR.orm($E, S.last($E, es), None{}), S.last($E, es), lbu_u($AK, es, None{}), OR.orm_none($E, S.last($E, es)))))
+    case M.Inclusive{+y}:
+      cong($ME, Maybe<&2, K>, z => S.key_m(K, V, z), S.last_where($AK, y, True{}, es, None{}), lbu($AK, M.Inclusive{y}, es, None{}), $SY($ME, lbu($AK, M.Inclusive{y}, es, None{}), S.last_where($AK, y, True{}, es, None{}), lbu_i($AK, y, es, None{})))
+    case M.Exclusive{+y}:
+      cong($ME, Maybe<&2, K>, z => S.key_m(K, V, z), S.last_where($AK, y, False{}, es, None{}), lbu($AK, M.Exclusive{y}, es, None{}), $SY($ME, lbu($AK, M.Exclusive{y}, es, None{}), S.last_where($AK, y, False{}, es, None{}), lbu_x($AK, y, es, None{})))
