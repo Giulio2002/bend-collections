@@ -114,3 +114,57 @@ def ents_pex(~K: Data, ~V: Data, +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +
       %Equal.sym(Maybe<&2, V>, ST.pv(V, PR.ex_pl(V, pl, id, w), j), ST.pv(V, pl, j), pv_ex_other(V, pl, id, w, j, FR.ne_sym(j, id, FR.or_f_l(Nat.is_eq(j, id), HT.memn(id, t), hn)))) : {ST.cons_m(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), _), ST.ents(~K, ~V, t, nl, PR.ex_pl(V, pl, id, w))) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, M.Entry<K, V>>}
       %Equal.sym(List<&2, M.Entry<K, V>>, ST.ents(~K, ~V, t, nl, PR.ex_pl(V, pl, id, w)), ST.ents(~K, ~V, t, nl, pl), ents_pex(~K, ~V, t, nl, pl, id, w, FR.or_f_r(Nat.is_eq(j, id), HT.memn(id, t), hn))) : {ST.cons_m(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j)), _) == ST.ents(~K, ~V, Con{j, t}, nl, pl) : List<&2, M.Entry<K, V>>}
       {==}
+
+
+def oks_psnoc(~K: Data, ~V: Data, +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +w: Maybe<&2, V>, +hn: {HT.memn(1n+SC.length(Maybe<&2, V>, pl), xs) == False{} : Bool}) -> {EN.oks(~K, ~V, xs, nl, SC.snoc(Maybe<&2, V>, pl, w)) == EN.oks(~K, ~V, xs, nl, pl) : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym(Maybe<&2, V>, ST.pv(V, SC.snoc(Maybe<&2, V>, pl, w), j), ST.pv(V, pl, j), pv_snoc_other(V, pl, w, j, FR.or_f_l(Nat.is_eq(j, 1n+SC.length(Maybe<&2, V>, pl)), HT.memn(1n+SC.length(Maybe<&2, V>, pl), t), hn))) : {Bool.and(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), _)), EN.oks(~K, ~V, t, nl, SC.snoc(Maybe<&2, V>, pl, w))) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      %Equal.sym(Bool, EN.oks(~K, ~V, t, nl, SC.snoc(Maybe<&2, V>, pl, w)), EN.oks(~K, ~V, t, nl, pl), oks_psnoc(~K, ~V, t, nl, pl, w, FR.or_f_r(Nat.is_eq(j, 1n+SC.length(Maybe<&2, V>, pl)), HT.memn(1n+SC.length(Maybe<&2, V>, pl), t), hn))) : {Bool.and(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j))), _) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      {==}
+
+def oks_pex(~K: Data, ~V: Data, +xs: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +id: Nat, +w: Maybe<&2, V>, +hn: {HT.memn(id, xs) == False{} : Bool}) -> {EN.oks(~K, ~V, xs, nl, PR.ex_pl(V, pl, id, w)) == EN.oks(~K, ~V, xs, nl, pl) : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      %Equal.sym(Maybe<&2, V>, ST.pv(V, PR.ex_pl(V, pl, id, w), j), ST.pv(V, pl, j), pv_ex_other(V, pl, id, w, j, FR.ne_sym(j, id, FR.or_f_l(Nat.is_eq(j, id), HT.memn(id, t), hn)))) : {Bool.and(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), _)), EN.oks(~K, ~V, t, nl, PR.ex_pl(V, pl, id, w))) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      %Equal.sym(Bool, EN.oks(~K, ~V, t, nl, PR.ex_pl(V, pl, id, w)), EN.oks(~K, ~V, t, nl, pl), oks_pex(~K, ~V, t, nl, pl, id, w, FR.or_f_r(Nat.is_eq(j, id), HT.memn(id, t), hn))) : {Bool.and(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j))), _) == EN.oks(~K, ~V, Con{j, t}, nl, pl) : Bool}
+      {==}
+
+# ---- values from entries ----
+
+def some_of_ent(-K: Data, -V: Data, +x: M.Node<K>, +m: Maybe<&2, V>, +h: {S.is_some(M.Entry<K, V>, ST.ent(K, V, x, m)) == True{} : Bool}) -> {ST.some2(V, m) == True{} : Bool}:
+  match x m:
+    case M.Free{f} +m:
+      Empty.absurd({ST.some2(V, m) == True{} : Bool}, L.false_true(h))
+    case M.N{c, a, b, q, k} None{}:
+      Empty.absurd({ST.some2(V, None{}) == True{} : Bool}, L.false_true(h))
+    case M.N{c, a, b, q, k} Some{w}:
+      {==}
+
+
+def oks_split_l(~K: Data, ~V: Data, +a: List<&2, Nat>, +b: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +h: {EN.oks(~K, ~V, SC.append(Nat, a, b), nl, pl) == True{} : Bool}) -> {EN.oks(~K, ~V, a, nl, pl) == True{} : Bool}:
+  match a:
+    case Nil{}:
+      {==}
+    case Con{+j, +t}:
+      L.and_intro(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j))), EN.oks(~K, ~V, t, nl, pl), L.and_left(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j))), EN.oks(~K, ~V, SC.append(Nat, t, b), nl, pl), h), oks_split_l(~K, ~V, t, b, nl, pl, L.and_right(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j))), EN.oks(~K, ~V, SC.append(Nat, t, b), nl, pl), h)))
+
+def oks_split_r(~K: Data, ~V: Data, +a: List<&2, Nat>, +b: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +h: {EN.oks(~K, ~V, SC.append(Nat, a, b), nl, pl) == True{} : Bool}) -> {EN.oks(~K, ~V, b, nl, pl) == True{} : Bool}:
+  match a:
+    case Nil{}:
+      h
+    case Con{+j, +t}:
+      oks_split_r(~K, ~V, t, b, nl, pl, L.and_right(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, j), ST.pv(V, pl, j))), EN.oks(~K, ~V, SC.append(Nat, t, b), nl, pl), h))
+
+# a tree whose ids all have entries has values
+def pay_oks(~K: Data, ~V: Data, +t: ST.Tr, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +h: {EN.oks(~K, ~V, ST.ids(t), nl, pl) == True{} : Bool}) -> {ST.pay(~V, t, pl) == True{} : Bool}:
+  match t:
+    case ST.TE{}:
+      {==}
+    case ST.TN{+i, +a, +b}:
+      +hr = oks_split_r(~K, ~V, ST.ids(a), Con{i, ST.ids(b)}, nl, pl, h)
+      L.and_intro(ST.some2(V, ST.pv(V, pl, i)), Bool.and(ST.pay(~V, a, pl), ST.pay(~V, b, pl)), some_of_ent(K, V, ST.nd(K, nl, i), ST.pv(V, pl, i), L.and_left(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, i), ST.pv(V, pl, i))), EN.oks(~K, ~V, ST.ids(b), nl, pl), hr)), L.and_intro(ST.pay(~V, a, pl), ST.pay(~V, b, pl), pay_oks(~K, ~V, a, nl, pl, oks_split_l(~K, ~V, ST.ids(a), Con{i, ST.ids(b)}, nl, pl, h)), pay_oks(~K, ~V, b, nl, pl, L.and_right(S.is_some(M.Entry<K, V>, ST.ent(K, V, ST.nd(K, nl, i), ST.pv(V, pl, i))), EN.oks(~K, ~V, ST.ids(b), nl, pl), hr))))
