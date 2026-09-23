@@ -114,3 +114,18 @@ def fll_frame(~K: Data, +fl: $LN, +nl: $NL, +id: Nat, +x: $ND, +hn: $NMEM(id, fl
       %Equal.sym($ND, $NDX($WR(nl, id, x), f), $NDX(nl, f), nd_wr_other(K, nl, id, x, f, ne_sym(f, id, Pair.fst({Nat.is_eq(f, id) == False{} : Bool}, $NMEM(id, t), nm_cons(id, f, t, hn))))) : {Bool.and(ST.is_free(K, _, ST.fst0(t)), ST.fll(~K, $WR(nl, id, x), t)) == ST.fll(~K, nl, Con{f, t}) : Bool}
       %Equal.sym(Bool, ST.fll(~K, $WR(nl, id, x), t), ST.fll(~K, nl, t), fll_frame(~K, t, nl, id, x, Pair.snd({Nat.is_eq(f, id) == False{} : Bool}, $NMEM(id, t), nm_cons(id, f, t, hn)))) : {Bool.and(ST.is_free(K, $NDX(nl, f), ST.fst0(t)), _) == ST.fll(~K, nl, Con{f, t}) : Bool}
       {==}
+
+# a write keeps the length
+def len_wr_c(-K: Data, +nl: $NL, +i: Nat, +x: $ND, +b: Bool) -> {SC.length($ND, ST.pk($NL, b, SC.update($ND, nl, i, x), nl)) == SC.length($ND, nl) : Nat}:
+  match b:
+    case True{}:
+      LL.length_update($ND, nl, i, x)
+    case False{}:
+      {==}
+
+def len_wr(-K: Data, +nl: $NL, +id: Nat, +x: $ND) -> {SC.length($ND, $WR(nl, id, x)) == SC.length($ND, nl) : Nat}:
+  match id:
+    case 0n:
+      {==}
+    case 1n+i:
+      len_wr_c(K, nl, i, x, Nat.is_lt(i, SC.length($ND, nl)))

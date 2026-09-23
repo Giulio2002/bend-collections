@@ -101,3 +101,18 @@ def fll_frame(~K: Data, +fl: List<&2, Nat>, +nl: List<&2, M.Node<K>>, +id: Nat, 
       %Equal.sym(M.Node<K>, ST.nd(K, PR.wr_nl(K, nl, id, x), f), ST.nd(K, nl, f), nd_wr_other(K, nl, id, x, f, ne_sym(f, id, Pair.fst({Nat.is_eq(f, id) == False{} : Bool}, {HT.memn(id, t) == False{} : Bool}, nm_cons(id, f, t, hn))))) : {Bool.and(ST.is_free(K, _, ST.fst0(t)), ST.fll(~K, PR.wr_nl(K, nl, id, x), t)) == ST.fll(~K, nl, Con{f, t}) : Bool}
       %Equal.sym(Bool, ST.fll(~K, PR.wr_nl(K, nl, id, x), t), ST.fll(~K, nl, t), fll_frame(~K, t, nl, id, x, Pair.snd({Nat.is_eq(f, id) == False{} : Bool}, {HT.memn(id, t) == False{} : Bool}, nm_cons(id, f, t, hn)))) : {Bool.and(ST.is_free(K, ST.nd(K, nl, f), ST.fst0(t)), _) == ST.fll(~K, nl, Con{f, t}) : Bool}
       {==}
+
+# a write keeps the length
+def len_wr_c(-K: Data, +nl: List<&2, M.Node<K>>, +i: Nat, +x: M.Node<K>, +b: Bool) -> {SC.length(M.Node<K>, ST.pk(List<&2, M.Node<K>>, b, SC.update(M.Node<K>, nl, i, x), nl)) == SC.length(M.Node<K>, nl) : Nat}:
+  match b:
+    case True{}:
+      LL.length_update(M.Node<K>, nl, i, x)
+    case False{}:
+      {==}
+
+def len_wr(-K: Data, +nl: List<&2, M.Node<K>>, +id: Nat, +x: M.Node<K>) -> {SC.length(M.Node<K>, PR.wr_nl(K, nl, id, x)) == SC.length(M.Node<K>, nl) : Nat}:
+  match id:
+    case 0n:
+      {==}
+    case 1n+i:
+      len_wr_c(K, nl, i, x, Nat.is_lt(i, SC.length(M.Node<K>, nl)))
