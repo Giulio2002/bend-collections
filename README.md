@@ -84,7 +84,18 @@ String.
 bend proofs/PROOF.bend
 ```
 
-The component gates (`proofs/*_COMPONENT_PROOF.bend`, `DLL_DIRECT_PROOF`,
-`QUEUE_ADAPTER_PROOF`, `TREE_RANGE_PROOF`) check. `PROOF.bend` and
-`END_TO_END.bend` do not yet: their deque section predates the two-list deque.
-The hash map and the LRU have tests but no proofs yet.
+`PROOF.bend` checks every gate: the component gates
+(`proofs/*_COMPONENT_PROOF.bend`, `DLL_DIRECT_PROOF`, `QUEUE_ADAPTER_PROOF`,
+`TREE_RANGE_PROOF`), `END_TO_END.bend` (each `proofs/<container>.bend`), the
+math library (`MATH_PROOF.bend`) and the hash map (`proofs/hash_table.bend`).
+
+The hash map is proved against an independent association-list
+specification (`proofs/spec/hash_table.bend`) for every operation (`new`,
+`get`, `has`, `size`, `set`, `pop`, `del` and `keys`), every key and every
+value type. That covers the whole implementation: the probe, both kinds of
+key, the free list, arena and table growth (rehash), and backward-shift
+deletion. The one precondition is capacity: `set` requires the table to stay
+below 2^31 buckets.
+
+Still open: the LRU cache, the doubly linked list's universal refinement and
+the indexed TreeMap's refinement.
