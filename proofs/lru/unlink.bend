@@ -89,7 +89,7 @@ def ul_q(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +lkT: AR.Tree<U32>, +sd: N
       (AR.upd(U32, 3n+sd, lkT, UD.v(i), p), (TR.TW{b0, 0n, p, TR.TNil{}}, (ea, (MT.uset_p(3n+sd, lkT, hpl, UD.v(i), p), (es, ({==}, (L.and_intro(HT.memn(b0, Con{b0, b2}), True{}, self_in(b0, b2), {==}), hs)))))))
 
 # the predecessor's next becomes q
-def ul_p(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +lkT: AR.Tree<U32>, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +hpl: {AR.perfect(U32, 3n+sd, lkT) == True{} : Bool}, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +q: U32, +s: Nat, +a: List<&2, Nat>, +hA: {ST.seg(AR.slots(U32, lkT), a, 0, ST.lnk(s)) == True{} : Bool}, +hnA: {ST.nodupn(a) == True{} : Bool}, +hbA: {ST.sall(~V, ST.PLive{fr, el}, a) == True{} : Bool}) -> Step(lkT, sd, a, 0, q, LR.set_if(AR.thaw(U32, lkT), LR.nidx(H.slot(ST.last_or(a, 0))), q, U32.is_eq(ST.last_or(a, 0), 0))):
+def ul_p(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +lkT: AR.Tree<U32>, +sd: Nat, +hsd: {Nat.is_lt(3n+sd, 32n) == True{} : Bool}, +hpl: {AR.perfect(U32, 3n+sd, lkT) == True{} : Bool}, +fr: Nat, +el: List<&2, Maybe<&2, V>>, +hfr: {Nat.is_le(fr, SC.pow2(sd)) == True{} : Bool}, +q: U32, +x: U32, +a: List<&2, Nat>, +hA: {ST.seg(AR.slots(U32, lkT), a, 0, x) == True{} : Bool}, +hnA: {ST.nodupn(a) == True{} : Bool}, +hbA: {ST.sall(~V, ST.PLive{fr, el}, a) == True{} : Bool}) -> Step(lkT, sd, a, 0, q, LR.set_if(AR.thaw(U32, lkT), LR.nidx(H.slot(ST.last_or(a, 0))), q, U32.is_eq(ST.last_or(a, 0), 0))):
   match a:
     case Nil{}:
       (lkT, (TR.TNil{}, ({==}, (hpl, ({==}, ({==}, ({==}, {==})))))))
@@ -101,7 +101,7 @@ def ul_p(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +lkT: AR.Tree<U32>, +sd: N
       +e0 = Equal.cong(U32, Array<U32>, w => LR.set_if(AR.thaw(U32, lkT), LR.nidx(H.slot(w)), q, U32.is_eq(w, 0)), ST.last_or(a2, ST.lnk(a0)), ST.lnk(z), DL.last_lnk(a2, a0))
       +ea = Equal.trans(Array<U32>, LR.set_if(AR.thaw(U32, lkT), LR.nidx(H.slot(ST.last_or(a2, ST.lnk(a0)))), q, U32.is_eq(ST.last_or(a2, ST.lnk(a0)), 0)), LR.set_if(AR.thaw(U32, lkT), i, q, U32.is_eq(ST.lnk(z), 0)), AR.thaw(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), q)), e0, Equal.trans(Array<U32>, LR.set_if(AR.thaw(U32, lkT), i, q, U32.is_eq(ST.lnk(z), 0)), LR.set_if(AR.thaw(U32, lkT), i, q, False{}), AR.thaw(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), q)), Equal.cong(Bool, Array<U32>, w => LR.set_if(AR.thaw(U32, lkT), i, q, w), U32.is_eq(ST.lnk(z), 0), False{}, lnk_nz(one, h1, z, sd, hsd, hz)), wr(one, h1, lkT, sd, hsd, hpl, i, z, 1n, {==}, hz, ei, q)))
       +es = wr_s(lkT, sd, hpl, i, z, 1n, {==}, hz, ei, q)
-      +hs = L.subst(List<&2, U32>, w => {ST.seg(w, Con{a0, a2}, 0, q) == True{} : Bool}, SC.update(U32, AR.slots(U32, lkT), ST.off(z, 1n), q), AR.slots(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), q)), Equal.sym(List<&2, U32>, AR.slots(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), q)), SC.update(U32, AR.slots(U32, lkT), ST.off(z, 1n), q), es), DL.segq(AR.slots(U32, lkT), a2, a0, 0, ST.lnk(s), q, hA, hnA, len_ll(lkT, sd, hpl, z, 1n, {==}, hz)))
+      +hs = L.subst(List<&2, U32>, w => {ST.seg(w, Con{a0, a2}, 0, q) == True{} : Bool}, SC.update(U32, AR.slots(U32, lkT), ST.off(z, 1n), q), AR.slots(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), q)), Equal.sym(List<&2, U32>, AR.slots(U32, AR.upd(U32, 3n+sd, lkT, UD.v(i), q)), SC.update(U32, AR.slots(U32, lkT), ST.off(z, 1n), q), es), DL.segq(AR.slots(U32, lkT), a2, a0, 0, x, q, hA, hnA, len_ll(lkT, sd, hpl, z, 1n, {==}, hz)))
       (AR.upd(U32, 3n+sd, lkT, UD.v(i), q), (TR.TW{z, 1n, q, TR.TNil{}}, (ea, (MT.uset_p(3n+sd, lkT, hpl, UD.v(i), q), (es, ({==}, (L.and_intro(HT.memn(z, Con{a0, a2}), True{}, DL.lastn_mem(a2, a0), {==}), hs)))))))
 
 # ---- head and tail ----
@@ -157,7 +157,7 @@ def ul_a(~V: Data, +one: Nat, +h1: {one == 1n : Nat}, +lkT: AR.Tree<U32>, +sd: N
     case Tuple{+t1, Tuple{+tr1, Tuple{+ea1, Tuple{+hp1, Tuple{+hs1, Tuple{+hl1, Tuple{+hi1, hg1}}}}}}}:
       +out1 = TR.trout_l(tr1, a, Con{s, b}, TR.trin_cons(tr1, s, b, hi1), hnd)
       +hsA1 = L.subst(Bool, z => {z == True{} : Bool}, ST.seg(AR.slots(U32, lkT), a, 0, ST.lnk(s)), ST.seg(AR.slots(U32, t1), a, 0, ST.lnk(s)), Equal.sym(Bool, ST.seg(AR.slots(U32, t1), a, 0, ST.lnk(s)), ST.seg(AR.slots(U32, lkT), a, 0, ST.lnk(s)), L.subst(List<&2, U32>, z => {ST.seg(z, a, 0, ST.lnk(s)) == ST.seg(AR.slots(U32, lkT), a, 0, ST.lnk(s)) : Bool}, TR.app(AR.slots(U32, lkT), tr1), AR.slots(U32, t1), Equal.sym(List<&2, U32>, AR.slots(U32, t1), TR.app(AR.slots(U32, lkT), tr1), hs1), TR.seg_tr(AR.slots(U32, lkT), tr1, hl1, a, 0, ST.lnk(s), out1))), hsA)
-      ul_b(~V, one, h1, lkT, sd, hsd, hpl, cap, n, free, mT, tabT, ksT, eT, fr, el, hfr, head, tail, a, s, b, hnd, hbA, hbB, hh, ht, t1, tr1, ea1, hs1, hl1, hi1, hg1, ul_p(~V, one, h1, t1, sd, hsd, hp1, fr, el, hfr, ST.fst_or(b, 0), s, a, hsA1, LS.nd_l(a, Con{s, b}, hnd), hbA))
+      ul_b(~V, one, h1, lkT, sd, hsd, hpl, cap, n, free, mT, tabT, ksT, eT, fr, el, hfr, head, tail, a, s, b, hnd, hbA, hbB, hh, ht, t1, tr1, ea1, hs1, hl1, hi1, hg1, ul_p(~V, one, h1, t1, sd, hsd, hp1, fr, el, hfr, ST.fst_or(b, 0), ST.lnk(s), a, hsA1, LS.nd_l(a, Con{s, b}, hnd), hbA))
 
 
 # THEOREM (unlink): slot s, between a and b on the recency list, is
