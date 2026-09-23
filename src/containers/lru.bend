@@ -33,12 +33,6 @@ def pick(b: Bool, +x: U32, +y: U32) -> U32:
     case False{}:
       y
 
-def link(+s: U32) -> U32:
-  U32.inc(s)
-
-def slot(+l: U32) -> U32:
-  U32.sub(l, 1)
-
 def pidx(+s: U32) -> U32:
   U32.shl(U32.shl(U32.shl(s)))
 
@@ -161,7 +155,7 @@ def set_if(a: Array<U32>, +i: U32, +x: U32, skip: Bool) -> Array<U32>:
 def ul_fin(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, m: Array<U32>, tab: Array<U32>, ks: Array<String>, ents: Array<Maybe<a, V>>, +p: U32, r: Array<U32> & U32) -> Fast<a, V>:
   (lk, +q) = r
   F{cap, n, pick(U32.is_eq(p, 0), q, head), pick(U32.is_eq(q, 0), p, tail), free, m, tab, ks, ents,
-    set_if(set_if(lk, pidx(slot(q)), p, U32.is_eq(q, 0)), nidx(slot(p)), q, U32.is_eq(p, 0))}
+    set_if(set_if(lk, pidx(H.slot(q)), p, U32.is_eq(q, 0)), nidx(H.slot(p)), q, U32.is_eq(p, 0))}
 
 def ul_p(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, m: Array<U32>, tab: Array<U32>, ks: Array<String>, ents: Array<Maybe<a, V>>, +s: U32, r: Array<U32> & U32) -> Fast<a, V>:
   (lk, +p) = r
@@ -175,8 +169,8 @@ def unlink(a, -V: Kind(a), f: Fast<a, V>, +s: U32) -> Fast<a, V>:
 # Attach slot s as the newest.
 def link_tail(a, -V: Kind(a), f: Fast<a, V>, +s: U32) -> Fast<a, V>:
   F{cap, n, head, +tail, free, m, tab, ks, ents, lk} = f
-  F{cap, n, pick(U32.is_eq(tail, 0), link(s), head), link(s), free, m, tab, ks, ents,
-    set_if(Array.set(U32, Array.set(U32, lk, pidx(s), tail), nidx(s), 0), nidx(slot(tail)), link(s), U32.is_eq(tail, 0))}
+  F{cap, n, pick(U32.is_eq(tail, 0), H.link(s), head), H.link(s), free, m, tab, ks, ents,
+    set_if(Array.set(U32, Array.set(U32, lk, pidx(s), tail), nidx(s), 0), nidx(H.slot(tail)), H.link(s), U32.is_eq(tail, 0))}
 
 def touch_go(a, -V: Kind(a), f: Fast<a, V>, +s: U32, newest: Bool) -> Fast<a, V>:
   match newest:
@@ -187,7 +181,7 @@ def touch_go(a, -V: Kind(a), f: Fast<a, V>, +s: U32, newest: Bool) -> Fast<a, V>
 
 def touch(a, -V: Kind(a), f: Fast<a, V>, +s: U32) -> Fast<a, V>:
   F{cap, n, head, +tail, free, m, tab, ks, ents, lk} = f
-  touch_go(a, V, F{cap, n, head, tail, free, m, tab, ks, ents, lk}, s, U32.is_eq(link(s), tail))
+  touch_go(a, V, F{cap, n, head, tail, free, m, tab, ks, ents, lk}, s, U32.is_eq(H.link(s), tail))
 
 def bump_hi(k: Array<U32>, +c: U32, zero: Bool) -> Array<U32>:
   match zero:
@@ -233,7 +227,7 @@ def replace(a, -V: Kind(a), f: Fast<a, V>, +s: U32, e: Ent<a, V>) -> Fast<a, V>:
 
 def drop_e(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, m: Array<U32>, tab: Array<U32>, ks: Array<String>, lk: Array<U32>, +s: U32, +c: U32, r: Array<Maybe<a, V>> & Maybe<a, V>) -> Fast<a, V> & Maybe<a, V>:
   (ents, old) = r
-  (F{cap, U32.sub(n, 1), head, tail, link(s), bump(c, m), tab, ks, ents, Array.set(U32, lk, nidx(s), free)}, old)
+  (F{cap, U32.sub(n, 1), head, tail, H.link(s), bump(c, m), tab, ks, ents, Array.set(U32, lk, nidx(s), free)}, old)
 
 # Unlink live slot s, free it and count it (c = 1 eviction, 2 removal); the
 # table is updated by the caller.
@@ -280,7 +274,7 @@ def del_link(tab: Array<U32>, +mask: U32, +w: U32, +l: U32) -> Array<U32>:
 
 def dl_h(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, tab: Array<U32>, ks: Array<String>, ents: Array<Maybe<a, V>>, +s: U32, +c: U32, +mask: U32, m: Array<U32>, r: Array<U32> & U32) -> Fast<a, V> & Maybe<a, V>:
   (lk, +h) = r
-  drop_slot(a, V, F{cap, n, head, tail, free, m, del_link(tab, mask, h, link(s)), ks, ents, lk}, s, c)
+  drop_slot(a, V, F{cap, n, head, tail, free, m, del_link(tab, mask, h, H.link(s)), ks, ents, lk}, s, c)
 
 def hidx(+s: U32) -> U32:
   U32.add(pidx(s), 2)
@@ -300,7 +294,7 @@ def drop_v(a, -V: Kind(a), r: Fast<a, V> & Maybe<a, V>) -> Fast<a, V>:
 
 def evict_oldest(a, -V: Kind(a), f: Fast<a, V>) -> Fast<a, V>:
   F{cap, n, +head, tail, free, m, tab, ks, ents, lk} = f
-  drop_v(a, V, remove_slot(a, V, F{cap, n, head, tail, free, m, tab, ks, ents, lk}, slot(head), 1))
+  drop_v(a, V, remove_slot(a, V, F{cap, n, head, tail, free, m, tab, ks, ents, lk}, H.slot(head), 1))
 
 def ps_fin(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, m: Array<U32>, tab: Array<U32>, ks: Array<String>, +s: U32, +h: U32, r: Array<Maybe<a, V>> & Array<U32>) -> Fast<a, V>:
   (ents, lk) = r
@@ -341,7 +335,7 @@ def alloc_pick(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free
     case True{}:
       fresh_f(a, V, cap, n, head, tail, free, tab, ks, ents, lk, key, h, e, Array.get(U32, m, 0))
     case False{}:
-      free_next(a, V, cap, n, head, tail, slot(free), m, tab, ks, ents, key, h, e, Array.get(U32, lk, nidx(slot(free))))
+      free_next(a, V, cap, n, head, tail, H.slot(free), m, tab, ks, ents, key, h, e, Array.get(U32, lk, nidx(H.slot(free))))
 
 # Store a new key (its bucket already written) in a free or fresh slot.
 def insert_slot(a, -V: Kind(a), f: Fast<a, V>, key: String, +h: U32, e: Ent<a, V>) -> Fast<a, V>:
@@ -351,16 +345,16 @@ def insert_slot(a, -V: Kind(a), f: Fast<a, V>, key: String, +h: U32, e: Ent<a, V
 # The slot insert_slot will take: the free-list head, else the next fresh one.
 def next_slot_m(+free: U32, r: Array<U32> & U32) -> Array<U32> & U32:
   (m, +fresh) = r
-  (m, pick(U32.is_eq(free, 0), fresh, slot(free)))
+  (m, pick(U32.is_eq(free, 0), fresh, H.slot(free)))
 
 def set_bucket_m(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, tab: Array<U32>, ks: Array<String>, ents: Array<Maybe<a, V>>, lk: Array<U32>, +at: U32, +h: U32, r: Array<U32> & U32) -> Fast<a, V>:
   (m, +s) = r
-  F{cap, n, head, tail, free, m, H.put_bucket(tab, at, h, link(s)), ks, ents, lk}
+  F{cap, n, head, tail, free, m, H.put_bucket(tab, at, h, H.link(s)), ks, ents, lk}
 
 
 def ins_m(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, tab: Array<U32>, ks: Array<String>, ents: Array<Maybe<a, V>>, lk: Array<U32>, +h: U32, +mask: U32, r: Array<U32> & U32) -> Fast<a, V>:
   (m, +s) = r
-  F{cap, n, head, tail, free, m, H.ins_raw(tab, mask, h, link(s)), ks, ents, lk}
+  F{cap, n, head, tail, free, m, H.ins_raw(tab, mask, h, H.link(s)), ks, ents, lk}
 
 def ins_mask(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, tab: Array<U32>, ks: Array<String>, ents: Array<Maybe<a, V>>, lk: Array<U32>, +h: U32, r: Array<U32> & U32) -> Fast<a, V>:
   (m, +mask) = r
@@ -375,7 +369,7 @@ def miss_full(a, -V: Kind(a), f: Fast<a, V>, key: String, +h: U32, e: Ent<a, V>)
 # Not full: the probe's empty bucket takes the key.
 def mr_size(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, tab: Array<U32>, ks: Array<String>, ents: Array<Maybe<a, V>>, lk: Array<U32>, key: String, +at: U32, +h: U32, e: Ent<a, V>, +fresh: U32, r: Array<U32> & U32) -> Fast<a, V>:
   (m, +size) = r
-  fresh_room(a, V, cap, n, head, tail, 0, m, H.put_bucket(tab, at, h, link(fresh)), ks, ents, lk, key, h, e, fresh, size, U32.is_lt(fresh, size))
+  fresh_room(a, V, cap, n, head, tail, 0, m, H.put_bucket(tab, at, h, H.link(fresh)), ks, ents, lk, key, h, e, fresh, size, U32.is_lt(fresh, size))
 
 def mr_fresh(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, tab: Array<U32>, ks: Array<String>, ents: Array<Maybe<a, V>>, lk: Array<U32>, key: String, +at: U32, +h: U32, e: Ent<a, V>, r: Array<U32> & U32) -> Fast<a, V>:
   (m, +fresh) = r
@@ -386,7 +380,7 @@ def mr_pick(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U
     case True{}:
       mr_fresh(a, V, cap, n, head, tail, tab, ks, ents, lk, key, at, h, e, Array.get(U32, m, 0))
     case False{}:
-      free_next(a, V, cap, n, head, tail, slot(free), m, H.put_bucket(tab, at, h, free), ks, ents, key, h, e, Array.get(U32, lk, nidx(slot(free))))
+      free_next(a, V, cap, n, head, tail, H.slot(free), m, H.put_bucket(tab, at, h, free), ks, ents, key, h, e, Array.get(U32, lk, nidx(H.slot(free))))
 
 # Not full: the probe's empty bucket takes the key; the slot is chosen once.
 def miss_room(a, -V: Kind(a), f: Fast<a, V>, key: String, +at: U32, +h: U32, e: Ent<a, V>) -> Fast<a, V>:
@@ -407,7 +401,7 @@ def add_full(a, -V: Kind(a), f: Fast<a, V>, key: String, +at: U32, +h: U32, e: E
 def add_pick(a, -V: Kind(a), f: Fast<a, V>, key: String, +at: U32, +h: U32, +l: U32, e: Ent<a, V>, absent: Bool) -> Fast<a, V> & Bool:
   match absent:
     case False{}:
-      (replace(a, V, f, slot(l), e), False{})
+      (replace(a, V, f, H.slot(l), e), False{})
     case True{}:
       add_full(a, V, f, key, at, h, e)
 
@@ -542,7 +536,7 @@ def rd_pick(-V: Data, f: Fast<&2, V>, +at: U32, +l: U32, now: W.U64, +tracked: B
     case True{}:
       (miss_if(&2, V, f, tracked), None{})
     case False{}:
-      rd_hit(V, f, slot(l), at, now, tracked)
+      rd_hit(V, f, H.slot(l), at, now, tracked)
 
 def rd_fd(-V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, m: Array<U32>, ents: Array<Maybe<&2, V>>, lk: Array<U32>, now: W.U64, +tracked: Bool, fd: H.Found) -> Fast<&2, V> & Maybe<&2, V>:
   H.FD{tab, ks, key, +at, +l} = fd
@@ -618,7 +612,7 @@ def ct_found_pick(a, -V: Kind(a), f: Fast<a, V>, +at: U32, +l: U32, now: W.U64, 
     case True{}:
       (f, False{})
     case False{}:
-      ct_hit(a, V, f, slot(l), at, now)
+      ct_hit(a, V, f, H.slot(l), at, now)
 
 def ct_fd(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, m: Array<U32>, ents: Array<Maybe<a, V>>, lk: Array<U32>, now: W.U64, fd: H.Found) -> Fast<a, V> & Bool:
   H.FD{tab, ks, key, +at, +l} = fd
@@ -641,7 +635,7 @@ def contains(a, -V: Kind(a), f: Fast<a, V>, key: String, now: W.U64) -> Fast<a, 
 
 def rm_hit(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, tab: Array<U32>, ks: Array<String>, ents: Array<Maybe<a, V>>, lk: Array<U32>, +at: U32, +l: U32, r: Array<U32> & U32) -> Fast<a, V> & Maybe<a, V>:
   (m, +mask) = r
-  drop_slot(a, V, F{cap, n, head, tail, free, m, H.del_at(tab, mask, at), ks, ents, lk}, slot(l), 2)
+  drop_slot(a, V, F{cap, n, head, tail, free, m, H.del_at(tab, mask, at), ks, ents, lk}, H.slot(l), 2)
 
 def rm_go(a, -V: Kind(a), f: Fast<a, V>, +at: U32, +l: U32) -> Fast<a, V> & Maybe<a, V>:
   F{+cap, +n, +head, +tail, +free, m, tab, ks, ents, lk} = f
@@ -676,13 +670,13 @@ def qrm(a, -V: Kind(a), fuel: Nat, s: H.QStep, +mask: U32, +w: U32, +i: U32, +ca
     case 0n H.QEnd{tab}:
       (F{cap, n, head, tail, free, m, tab, ks, ents, lk}, None{})
     case 0n H.QHit{tab, +l}:
-      drop_slot(a, V, F{cap, n, head, tail, free, m, H.del_at(tab, mask, i), ks, ents, lk}, slot(l), 2)
+      drop_slot(a, V, F{cap, n, head, tail, free, m, H.del_at(tab, mask, i), ks, ents, lk}, H.slot(l), 2)
     case 0n H.QNext{tab}:
       (F{cap, n, head, tail, free, m, tab, ks, ents, lk}, None{})
     case 1n+p H.QEnd{tab}:
       (F{cap, n, head, tail, free, m, tab, ks, ents, lk}, None{})
     case 1n+p H.QHit{tab, +l}:
-      drop_slot(a, V, F{cap, n, head, tail, free, m, H.del_at(tab, mask, i), ks, ents, lk}, slot(l), 2)
+      drop_slot(a, V, F{cap, n, head, tail, free, m, H.del_at(tab, mask, i), ks, ents, lk}, H.slot(l), 2)
     case 1n+p H.QNext{tab}:
       +j = H.bnext(i, mask)
       qrm(a, V, p, H.qstep(tab, j, w), mask, w, j, cap, n, head, tail, free, m, ks, ents, lk)
@@ -803,7 +797,7 @@ def kx_g(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32,
 
 def kx_head(a, -V: Kind(a), f: Fast<a, V>, +now: W.U64) -> Kx<a, V>:
   F{+cap, +n, +head, +tail, +free, m, tab, ks, ents, lk} = f
-  kx_g(a, V, cap, n, head, tail, free, m, tab, ks, ents, gone(lk, slot(head), now))
+  kx_g(a, V, cap, n, head, tail, free, m, tab, ks, ents, gone(lk, H.slot(head), now))
 
 def kx_if(a, -V: Kind(a), f: Fast<a, V>, +now: W.U64, empty: Bool) -> Kx<a, V>:
   match empty:
@@ -818,7 +812,7 @@ def kx_check(a, -V: Kind(a), f: Fast<a, V>, +now: W.U64) -> Kx<a, V>:
 
 def drop_head(a, -V: Kind(a), f: Fast<a, V>) -> Fast<a, V>:
   F{cap, n, +head, tail, free, m, tab, ks, ents, lk} = f
-  drop_v(a, V, remove_slot(a, V, F{cap, n, head, tail, free, m, tab, ks, ents, lk}, slot(head), 2))
+  drop_v(a, V, remove_slot(a, V, F{cap, n, head, tail, free, m, tab, ks, ents, lk}, H.slot(head), 2))
 
 def kx_go(a, -V: Kind(a), fuel: Nat, +now: W.U64, s: Kx<a, V>) -> Fast<a, V>:
   match fuel s:
@@ -840,7 +834,7 @@ def wk_p(ks: Array<String>, acc: List<&2, String>, r: Array<U32> & U32) -> Walk:
 
 def wk_c(ks: Array<String>, lk: Array<U32>, acc: List<&2, String>, +at: U32, kk: String & String) -> Walk:
   (k1, k2) = kk
-  wk_p(Array.set(String, ks, slot(at), k1), Con{k2, acc}, Array.get(U32, lk, pidx(slot(at))))
+  wk_p(Array.set(String, ks, H.slot(at), k1), Con{k2, acc}, Array.get(U32, lk, pidx(H.slot(at))))
 
 def wk_k(lk: Array<U32>, acc: List<&2, String>, +at: U32, r: Array<String> & String) -> Walk:
   (ks, k) = r
@@ -849,9 +843,9 @@ def wk_k(lk: Array<U32>, acc: List<&2, String>, +at: U32, r: Array<String> & Str
 def wk_word(ks: Array<String>, acc: List<&2, String>, +at: U32, +kw: U32, lk: Array<U32>, short: Bool) -> Walk:
   match short:
     case True{}:
-      wk_p(ks, Con{SCon{Chr{U32.and(kw, 2147483647)}, SNil{}}, acc}, Array.get(U32, lk, pidx(slot(at))))
+      wk_p(ks, Con{SCon{Chr{U32.and(kw, 2147483647)}, SNil{}}, acc}, Array.get(U32, lk, pidx(H.slot(at))))
     case False{}:
-      wk_k(lk, acc, at, Array.swap(String, ks, slot(at), SNil{}))
+      wk_k(lk, acc, at, Array.swap(String, ks, H.slot(at), SNil{}))
 
 def wk_w(ks: Array<String>, acc: List<&2, String>, +at: U32, r: Array<U32> & U32) -> Walk:
   (lk, +kw) = r
@@ -860,7 +854,7 @@ def wk_w(ks: Array<String>, acc: List<&2, String>, +at: U32, r: Array<U32> & U32
 # A one-character key is stored only as its tagged word.
 def wk_step(w: Walk) -> Walk:
   WK{ks, lk, acc, +at} = w
-  wk_w(ks, acc, at, Array.get(U32, lk, hidx(slot(at))))
+  wk_w(ks, acc, at, Array.get(U32, lk, hidx(H.slot(at))))
 
 def wk_loop(fuel: Nat, w: Walk) -> Walk:
   match fuel:
