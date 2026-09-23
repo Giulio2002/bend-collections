@@ -9,7 +9,7 @@ from workloads import TABLE, EXCLUDED_EMPTY_ROWS
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--report',required=True);ap.add_argument('--html')
-    ap.add_argument('--retry-failed',action='store_true',help='re-measure only the failed rows of an existing --report')
+    ap.add_argument('--retry-failed',action='store_true',help='measure only the failed or missing rows of an existing --report (resumes an interrupted sweep)')
     args=ap.parse_args()
     if args.retry_failed: return retry(Path(args.report))
     sys.path.insert(0,str(bench.ROOT/'tools'))
@@ -60,8 +60,14 @@ def retry(path):
     report=json.loads(path.read_text())
     rows={(r['operation'],r['workload']):r for r in TABLE}
     report['benchmarks']=[b for b in report['benchmarks'] if (b['operation'],b['workload']) in rows]
+    have={(b['operation'],b['workload']) for b in report['benchmarks']}
+    for r in TABLE:   # rows an interrupted sweep never reached
+        if (r['operation'],r['workload']) not in have:
+            report['benchmarks'].append({'operation':r['operation'],'workload':r['workload'],'measurement':'missing'})
+    order={(r['operation'],r['workload']):n for n,r in enumerate(TABLE)}
+    report['benchmarks'].sort(key=lambda b:order[(b['operation'],b['workload'])])
     todo=[i for i,b in enumerate(report['benchmarks']) if b.get('measurement')!='ok']
-    print('retrying %d failed rows' % len(todo),flush=True)
+    print('measuring %d failed or missing rows' % len(todo),flush=True)
     built=bench.build_all(sorted({rows[(report['benchmarks'][i]['operation'],report['benchmarks'][i]['workload'])]['structure'] for i in todo}))
     logs=[]
     for n,i in enumerate(todo):
@@ -76,6 +82,7 @@ def retry(path):
         report['benchmarks'][i]=result
         print(f"[retry {n+1}/{len(todo)}] {row['operation']} {row['workload']} " + (f"{result['ratio']:.3f}x" if 'ratio' in result else f"FAILED {result.get('reason')}"),flush=True)
         path.write_text(json.dumps(report,indent=1,sort_keys=True)+'\n')
-    (path.parent/'retry_samples.log').write_text('\n'.join(logs)+'\n')
+        (path.parent/'retry_samples.log').write_text('\n'.join(logs)+'\n')
+    report['status']='finished';path.write_text(json.dumps(report,indent=1,sort_keys=True)+'\n')
 
 if __name__=='__main__':main()
