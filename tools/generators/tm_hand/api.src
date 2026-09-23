@@ -12,6 +12,7 @@ import ./reads.bend as RD
 import ./ends.bend as EN
 import ./navm.bend as NM
 import ./putm.bend as PM
+import ./rmv.bend as RV
 
 # The implementation's operations refine the specification's, for every
 # good shadow and a lawful comparator. (source: tools/generators/tm_hand/api.src)
@@ -148,3 +149,10 @@ def replace_if_equal_ok($TO, ~eq: V -> V -> Bool, +sh: $SHT, +hg: $GD(sh), +k: K
   match sh:
     case ST.SH{$FP}:
       OK.mok_pok($AK, Bool, S.replace_if_equal($AK, ~eq, $MD($SH), k, e, w), MI.replace_if_equal($AK, ~eq, $SH, k, e, w), M.replace_if_equal($AK, ~eq, $RL($SH), k, e, w), SM.replace_if_equal_s($AK, ~eq, $SH, k, e, w, OK.dg_good($AK, $SH, hg)), PM.rie_m($AO, ~eq, $F, hg, k, e, w))
+
+# ---- remove ----
+
+def remove_ok($TO, +sh: $SHT, +hg: $GD(sh), +k: K) -> OK.POK($AK, $MV, S.remove($AK, $MD(sh), k), M.remove($AK, $RL(sh), k)):
+  match sh:
+    case ST.SH{$FP}:
+      OK.mok_pok($AK, $MV, S.remove($AK, $MD($SH), k), MI.remove($AK, $SH, k), M.remove($AK, $RL($SH), k), SM.remove_s($AK, $SH, k, OK.dg_good($AK, $SH, hg)), RV.rm_m($AO, $F, hg, k))

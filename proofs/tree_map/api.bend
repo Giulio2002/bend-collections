@@ -12,6 +12,7 @@ import ./reads.bend as RD
 import ./ends.bend as EN
 import ./navm.bend as NM
 import ./putm.bend as PM
+import ./rmv.bend as RV
 
 # The implementation's operations refine the specification's, for every
 # good shadow and a lawful comparator. (source: tools/generators/tm_hand/api.src)
@@ -130,3 +131,10 @@ def replace_if_equal_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K,
   match sh:
     case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
       OK.mok_pok(~K, ~V, ~cmp, Bool, S.replace_if_equal(~K, ~V, ~cmp, ~eq, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, e, w), MI.replace_if_equal(~K, ~V, ~cmp, ~eq, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, e, w), M.replace_if_equal(~K, ~V, ~cmp, ~eq, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k, e, w), SM.replace_if_equal_s(~K, ~V, ~cmp, ~eq, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, e, w, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), PM.rie_m(~K, ~V, ~cmp, ~o, ~eq, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg, k, e, w))
+
+# ---- remove ----
+
+def remove_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}, +k: K) -> OK.POK(~K, ~V, ~cmp, Maybe<&2, V>, S.remove(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, sh), k), M.remove(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh), k)):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +tg, +fl}:
+      OK.mok_pok(~K, ~V, ~cmp, Maybe<&2, V>, S.remove(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k), MI.remove(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k), M.remove(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}), k), SM.remove_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, k, OK.dg_good(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, tg, fl}, hg)), RV.rm_m(~K, ~V, ~cmp, ~o, n, root, lo, hi, free, l, d, nl, pl, tg, fl, hg, k))
