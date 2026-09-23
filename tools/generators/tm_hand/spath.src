@@ -13,6 +13,7 @@ import ./tree.bend as TR
 import ./path.bend as P
 import ./navl.bend as NL
 import ./navs.bend as NS
+import ./plug.bend as PG
 
 # The search as a path: from a subtree the path leads to, the ghost search
 # stops at a subtree (empty, or a node whose key equals k) along a longer
@@ -68,7 +69,7 @@ def fin(~K: Data, ~cmp: K -> K -> Cmp, +k: K, t: ST.Tr, +nl: $NLT) -> Bool:
       S.is_eq(TR.kc(~K, ~cmp, k, ST.nd(K, nl, i)))
 
 %def TSC(t, c) TR.tsearch($AK, t, nl, k, P.top(c), dir(c))
-%def PROPS(c0, t0, c, t) {$TSC(t0, c0) == M.Search{ST.rid(t), P.top(c), dir(c)} : M.Search} & ({$WH(c0, t0) == $WH(c, t) : $LN} & ($REP(t, P.top(c)) & ($COK(c, ST.rid(t)) & ($LTA(k, $ENTS(P.before(c))) & ($GTA(k, $ENTS(P.after(c))) & {fin(~K, ~cmp, k, t, nl) == True{} : Bool})))))
+%def PROPS(c0, t0, c, t) {$TSC(t0, c0) == M.Search{ST.rid(t), P.top(c), dir(c)} : M.Search} & ({$WH(c0, t0) == $WH(c, t) : $LN} & ({PG.plug(c0, t0) == PG.plug(c, t) : ST.Tr} & ($REP(t, P.top(c)) & ($COK(c, ST.rid(t)) & ($LTA(k, $ENTS(P.before(c))) & ($GTA(k, $ENTS(P.after(c))) & {fin(~K, ~cmp, k, t, nl) == True{} : Bool}))))))
 %def SPT(c0, t0) Sigma<&1, &1, $CT, pc_ => Sigma<&1, &1, ST.Tr, pt_ => $PROPS(c0, t0, pc_, pt_)>>
 %def REST(c, t) $REP(t, P.top(c)) & ($COK(c, ST.rid(t)) & ($LTA(k, $ENTS(P.before(c))) & ($GTA(k, $ENTS(P.after(c))) & {fin(~K, ~cmp, k, t, nl) == True{} : Bool})))
 %def NODEH +nl: $NLT, +pl: $PLT, +c: $CT, +i: Nat, +l: ST.Tr, +r: ST.Tr, +k: K
@@ -80,15 +81,15 @@ def fin(~K: Data, ~cmp: K -> K -> Cmp, +k: K, t: ST.Tr, +nl: $NLT) -> Bool:
 # a step's result carried up: the search of the node is the child's
 def up_l(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $NODEH, +ekc: {$KCI == LT{} : Cmp}, +eqL: {$WH(c, $TN(i, l, r)) == $WH($CL(i, r, c), l) : $LN}, ih: $SPT($CL(i, r, c), l)) -> $SPT(c, $TN(i, l, r)):
   match ih:
-    case Tuple{+c2, Tuple{+t2, Tuple{+p1, Tuple{+p2, rest}}}}:
+    case Tuple{+c2, Tuple{+t2, Tuple{+p1, Tuple{+p2, Tuple{+p3, rest}}}}}:
       +q1 = L.subst(Cmp, z => {$PK3(z) == M.Search{ST.rid(t2), P.top(c2), dir(c2)} : M.Search}, LT{}, $KCI, Equal.sym(Cmp, $KCI, LT{}, ekc), p1)
-      (c2, (t2, (q1, (Equal.trans($LN, $WH(c, $TN(i, l, r)), $WH($CL(i, r, c), l), $WH(c2, t2), eqL, p2), rest))))
+      (c2, (t2, (q1, (Equal.trans($LN, $WH(c, $TN(i, l, r)), $WH($CL(i, r, c), l), $WH(c2, t2), eqL, p2), (p3, rest)))))
 
 def up_r(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $NODEH, +ekc: {$KCI == GT{} : Cmp}, +eqR: {$WH(c, $TN(i, l, r)) == $WH($CR(i, l, c), r) : $LN}, ih: $SPT($CR(i, l, c), r)) -> $SPT(c, $TN(i, l, r)):
   match ih:
-    case Tuple{+c2, Tuple{+t2, Tuple{+p1, Tuple{+p2, rest}}}}:
+    case Tuple{+c2, Tuple{+t2, Tuple{+p1, Tuple{+p2, Tuple{+p3, rest}}}}}:
       +q1 = L.subst(Cmp, z => {$PK3(z) == M.Search{ST.rid(t2), P.top(c2), dir(c2)} : M.Search}, GT{}, $KCI, Equal.sym(Cmp, $KCI, GT{}, ekc), p1)
-      (c2, (t2, (q1, (Equal.trans($LN, $WH(c, $TN(i, l, r)), $WH($CR(i, l, c), r), $WH(c2, t2), eqR, p2), rest))))
+      (c2, (t2, (q1, (Equal.trans($LN, $WH(c, $TN(i, l, r)), $WH($CR(i, l, c), r), $WH(c2, t2), eqR, p2), (p3, rest)))))
 
 %def X $APP(P.before(c), $IDS(l))
 %def Y $APP($IDS(r), P.after(c))
@@ -118,7 +119,7 @@ def scase($TO, $NODEH, +key: K, +v: V, +hE: {$ENT(i) == Some{$EE} : $ME}, +ho: $
       +ekc = Equal.trans(Cmp, $KCI, cmp(k, key), EQ{}, ekey, hc)
       +p1 = L.subst(Cmp, z => {$PK3(z) == M.Search{i, P.top(c), dir(c)} : M.Search}, EQ{}, $KCI, Equal.sym(Cmp, $KCI, EQ{}, ekc), {==})
       +pf = L.subst(Cmp, z => {S.is_eq(z) == True{} : Bool}, EQ{}, $KCI, Equal.sym(Cmp, $KCI, EQ{}, ekc), {==})
-      (c, ($TN(i, l, r), (p1, ({==}, (hr, (hok, (hb, (ha, pf))))))))
+      (c, ($TN(i, l, r), (p1, ({==}, ({==}, (hr, (hok, (hb, (ha, pf)))))))))
 
 def snode($TO, $NODEH, +x: $ND, +m: $MV, +hx: {ST.is_node(K, x, ST.rid(l), ST.rid(r), P.top(c)) == True{} : Bool}, +hm: {ST.some2(V, m) == True{} : Bool}, +hxi: {ST.nd(K, nl, i) == x : $ND}, +hEg: {$ENT(i) == ST.ent(K, V, x, m) : $ME}, +hW0: {$ENTS($WHT) == $EAPP($EX, ST.cons_m($E, $ENT(i), $EY)) : $ES}, +ho: $ORD($ENTS($WHT)), +hr: $REP($TN(i, l, r), P.top(c)), +hok: $COK(c, i), +hb: $LTA(k, $ENTS(P.before(c))), +ha: $GTA(k, $ENTS(P.after(c))), +eqL: {$WHT == $WH($CL(i, r, c), l) : $LN}, +eqR: {$WHT == $WH($CR(i, l, c), r) : $LN}, kl: $KL, kr: $KR) -> $SPT(c, $TN(i, l, r)):
   match x m:
@@ -135,7 +136,7 @@ def snode($TO, $NODEH, +x: $ND, +m: $MV, +hx: {ST.is_node(K, x, ST.rid(l), ST.ri
 def spath($TO, +nl: $NLT, +pl: $PLT, +t: ST.Tr, +c: $CT, +k: K, +hr: $REP(t, P.top(c)), +hok: $COK(c, ST.rid(t)), +hp: $PAY(t), +ho: $ORD($ENTS($WH(c, t))), +hk: $OKS($WH(c, t)), +hb: $LTA(k, $ENTS(P.before(c))), +ha: $GTA(k, $ENTS(P.after(c)))) -> $SPT(c, t):
   match t:
     case ST.TE{}:
-      (c, (ST.TE{}, ({==}, ({==}, (hr, (hok, (hb, (ha, {==}))))))))
+      (c, (ST.TE{}, ({==}, ({==}, ({==}, (hr, (hok, (hb, (ha, {==})))))))))
     case ST.TN{+i, +l, +r}:
       +eqW = NS.wh_node(c, i, l, r)
       +hk2 = L.subst($LN, z => $OKS(z), $WHT, $APP($X, Con{i, $Y}), eqW, hk)
