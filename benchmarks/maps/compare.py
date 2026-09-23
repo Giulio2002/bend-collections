@@ -79,6 +79,9 @@ def main():
     bins = build(generate())
     # the reference side is the Base.Map driver: a Bend binary too
     bench.run_ref = bench.run_bend
+    # Base.Map.size walks the tree: a batch long enough to time the hash
+    # map's O(1) size takes minutes on the Base.Map side
+    bench.RUN_TIMEOUT_S = 900
     todo = [r for r in rows() if not a.only or r['operation'].split('.')[1] in a.only.split(',')]
     results, log = [], []
     if a.retry_failed:

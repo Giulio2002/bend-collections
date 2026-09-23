@@ -247,7 +247,7 @@ those ratios; the unmarked rows use the full method.
 | put | large | 77.2 | 16.7 | 4.62 † |
 | peek | small | 1.56 | 2.18 | 0.72 † |
 | peek | medium | 1.46 | 1.84 | 0.80 † |
-| peek | large | | | not timeable |
+| peek | large | 1.38 | 1.20 | 1.15 † |
 | qsize | small | 1.33 | 4.02 | 0.33 † |
 | qsize | medium | 1.64 | 4.16 | 0.39 † |
 | qsize | large | 2.03 | 4.24 | 0.48 † |
@@ -399,10 +399,10 @@ those ratios; the unmarked rows use the full method.
 | range | large | 3500000 | 124450 | 28.12 † |
 | to_list | small | 3750 | 69.5 | 53.96 † |
 | to_list | medium | 300000 | 5490 | 54.64 † |
-| to_list | large | | | not timeable |
+| to_list | large | 25600000 | 837400 | 30.57 † |
 | length | small | 1.30 | 3.87 | 0.34 † |
 | length | medium | 1.33 | 3.59 | 0.37 † |
-| length | large | | | not timeable |
+| length | large | 5.62 | 3.16 | 1.78 † |
 | new | small | 23.6 | 3.73 | 6.35 † |
 | new | medium | 22.5 | 3.24 | 6.95 † |
 | new | large | | | not timeable |
@@ -457,7 +457,7 @@ those ratios; the unmarked rows use the full method.
 | get | large | 388 | 39.0 | 9.92 † |
 | has | small | 22.5 | 2.26 | 9.96 † |
 | has | medium | 22.5 | 3.24 | 6.95 † |
-| has | large | | | not timeable |
+| has | large | 17.7 | 3.98 | 4.45 † |
 | pop | small | 55.0 | 4.43 | 12.41 † |
 | pop | medium | 55.0 | 10.7 | 5.14 † |
 | pop | large | 292 | 26.2 | 11.14 † |
@@ -482,8 +482,8 @@ those ratios; the unmarked rows use the full method.
 | get | medium | 30.0 | 23.7 | 1.26 † |
 | get | large | 279 | 196 | 1.43 † |
 | peek | small | 30.0 | 19.1 | 1.57 † |
-| peek | medium | | | not timeable |
-| peek | large | | | not timeable |
+| peek | medium | 25.0 | 15.7 | 1.59 † |
+| peek | large | 306 | 29.1 | 10.52 † |
 | contains | small | 20.8 | 5.03 | 4.14 † |
 | contains | medium | 26.2 | 4.92 | 5.34 † |
 | contains | large | 166 | 42.5 | 3.90 † |
@@ -504,23 +504,23 @@ those ratios; the unmarked rows use the full method.
 | len | large | 12.5 | 7.13 | 1.75 † |
 | new | small | 65.0 | 24.3 | 2.67 † |
 | new | medium | 45.0 | 33.0 | 1.36 † |
-| new | large | | | not timeable |
+| new | large | 28.1 | 17.7 | 1.59 † |
 | capacity | small | 1.48 | 4.97 | 0.30 † |
 | capacity | medium | 1.64 | 5.11 | 0.32 † |
-| capacity | large | | | not timeable |
+| capacity | large | 1.28 | 3.47 | 0.37 † |
 | set_lifetime | small | 8.44 | 9.61 | 0.88 † |
 | set_lifetime | medium | 5.94 | 8.24 | 0.72 † |
 | set_lifetime | large | 8.59 | 9.69 | 0.89 † |
 | metrics | small | 18.4 | 10.7 | 1.72 † |
 | metrics | medium | 15.0 | 9.59 | 1.56 † |
-| metrics | large | | | not timeable |
+| metrics | large | 9.06 | 10.4 | 0.87 † |
 | expiry | small | 66.7 | 13.8 | 4.84 † |
 | expiry | medium | 55.0 | 17.9 | 3.07 † |
 | expiry | large | 400 | 120 | 3.35 † |
 | remove_seq | small | 30.5 | 6.04 | 5.06 † |
 | remove_seq | medium | 53.4 | 10.7 | 5.01 † |
 | remove_seq | large | 275 | 121 | 2.28 † |
-| purge_isolated | small | | | not timeable |
+| purge_isolated | small | 601 | 53.5 | 11.23 † |
 | purge_isolated | medium | 30556 | 12800 | 2.39 † |
 | purge_isolated | large | | | not timeable |
 | resize_isolated | small | 2031 | 215 | 9.46 † |
