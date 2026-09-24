@@ -98,7 +98,7 @@ negative or under the timing minimum) is re-taken, both sides together, up to
 four times; failed rows are re-measured with `full_sweep.py --retry-failed`.
 See `benchmarks/run.py` for the method.
 
-† quick sampling (`BENCH_QUICK=1`): a 10 ms instead of 50 ms minimum difference and
+† quick sampling (`BENCH_QUICK=1`): a 20 ms instead of 50 ms minimum difference and
 three samples instead of six, several rows in parallel. Expect about ±10% on
 those ratios; the unmarked rows use the full method.
 
@@ -127,9 +127,9 @@ those ratios; the unmarked rows use the full method.
 | to_list | small | 329 | 152 | 2.17 |
 | to_list | medium | 20429 | 10592 | 1.93 |
 | to_list | large | 933333 | 650377 | 1.44 |
-| clear | small | 342 | 13.3 | 25.74 |
-| clear | medium | 19400 | 257 | 75.55 |
-| clear | large | 1354000 | 17795 | 76.09 |
+| clear | small | 0.94 | 1.48 | 0.63 † |
+| clear | medium | 0.96 | 1.48 | 0.65 † |
+| clear | large | 1.07 | 1.52 | 0.70 † |
 | pop | small | 12.4 | 6.49 | 1.91 |
 | pop | medium | 8.63 | 6.52 | 1.32 |
 | pop | large | 8.36 | 6.73 | 1.24 |
@@ -373,39 +373,39 @@ those ratios; the unmarked rows use the full method.
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| insert | small | 194 | 37.3 | 5.21 |
-| insert | medium | 352 | 93.5 | 3.77 |
-| insert | large | 3300 | 337 | 9.78 † |
-| remove | small | 1645 | 84.2 | 19.53 |
-| remove | medium | 1960 | 166 | 11.77 |
-| remove | large | 4975 | 654 | 7.61 |
-| lookup | small | 145 | 23.5 | 6.15 |
-| lookup | medium | 315 | 55.5 | 5.67 |
-| lookup | large | 575 | 95.2 | 6.04 |
-| contains | small | 90.8 | 18.3 | 4.95 |
-| contains | medium | 205 | 38.8 | 5.28 |
-| contains | large | 450 | 85.9 | 5.24 |
-| min | small | 16.2 | 1.50 | 10.81 |
-| min | medium | 16.1 | 3.62 | 4.45 |
-| min | large | 15.8 | 5.69 | 2.77 |
-| max | small | 16.3 | 1.49 | 10.93 |
-| max | medium | 16.2 | 2.36 | 6.84 |
-| max | large | 19.5 | 4.96 | 3.93 |
-| lower_bound | small | 169 | 20.3 | 8.34 |
-| lower_bound | medium | 391 | 45.6 | 8.59 |
-| lower_bound | large | 1500 | 125 | 12.04 † |
-| range | small | 938 | 49.8 | 18.83 † |
-| range | medium | 53333 | 1513 | 35.24 † |
-| range | large | 3500000 | 124450 | 28.12 † |
-| to_list | small | 3750 | 69.5 | 53.96 † |
-| to_list | medium | 300000 | 5490 | 54.64 † |
-| to_list | large | 25600000 | 837400 | 30.57 † |
-| length | small | 1.30 | 3.87 | 0.34 † |
-| length | medium | 1.33 | 3.59 | 0.37 † |
-| length | large | 5.62 | 3.16 | 1.78 † |
-| new | small | 23.6 | 3.73 | 6.35 † |
-| new | medium | 22.5 | 3.24 | 6.95 † |
-| new | large | | | not timeable |
+| insert | small | 92.5 | 24.1 | 3.84 † |
+| insert | medium | 190 | 60.0 | 3.17 † |
+| insert | large | 338 | 147 | 2.29 † |
+| remove | small | 640 | 54.5 | 11.75 † |
+| remove | medium | 940 | 118 | 7.98 † |
+| remove | large | 1300 | 209 | 6.23 † |
+| lookup | small | 85.0 | 16.0 | 5.30 † |
+| lookup | medium | 183 | 37.1 | 4.94 † |
+| lookup | large | 320 | 83.6 | 3.83 † |
+| contains | small | 72.0 | 17.0 | 4.24 † |
+| contains | medium | 155 | 37.9 | 4.09 † |
+| contains | large | 306 | 81.4 | 3.76 † |
+| min | small | 20.0 | 1.50 | 13.33 † |
+| min | medium | 20.0 | 3.86 | 5.18 † |
+| min | large | 21.3 | 5.76 | 3.70 † |
+| max | small | 19.4 | 1.48 | 13.06 † |
+| max | medium | 20.0 | 2.92 | 6.85 † |
+| max | large | 20.3 | 5.18 | 3.92 † |
+| lower_bound | small | 92.5 | 17.1 | 5.41 † |
+| lower_bound | medium | 190 | 36.5 | 5.20 † |
+| lower_bound | large | 350 | 85.6 | 4.09 † |
+| range | small | 452 | 29.9 | 15.12 † |
+| range | medium | 29167 | 892 | 32.68 † |
+| range | large | 450000 | 11056 | 40.70 † |
+| to_list | small | 2357 | 46.6 | 50.54 † |
+| to_list | medium | 163333 | 3173 | 51.47 † |
+| to_list | large | 6400000 | 236300 | 27.08 † |
+| length | small | 0.96 | 2.63 | 0.37 † |
+| length | medium | 0.94 | 2.62 | 0.36 † |
+| length | large | 0.93 | 2.61 | 0.36 † |
+| new | small | 29.2 | 2.46 | 11.84 † |
+| new | medium | 30.0 | 2.33 | 12.88 † |
+| new | large | 27.5 | 2.21 | 12.47 † |
 
 ### Bitset
 
