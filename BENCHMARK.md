@@ -127,9 +127,9 @@ those ratios; the unmarked rows use the full method.
 | to_list | small | 329 | 152 | 2.17 |
 | to_list | medium | 20429 | 10592 | 1.93 |
 | to_list | large | 933333 | 650377 | 1.44 |
-| clear | small | 0.94 | 1.48 | 0.63 † |
-| clear | medium | 0.96 | 1.48 | 0.65 † |
-| clear | large | 1.07 | 1.52 | 0.70 † |
+| clear | small | 0.98 | 1.50 | 0.65 † |
+| clear | medium | 1.03 | 1.52 | 0.68 † |
+| clear | large | 1.17 | 1.53 | 0.77 † |
 | pop | small | 12.4 | 6.49 | 1.91 |
 | pop | medium | 8.63 | 6.52 | 1.32 |
 | pop | large | 8.36 | 6.73 | 1.24 |
@@ -219,50 +219,50 @@ those ratios; the unmarked rows use the full method.
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| put | small | 17.5 | 23.0 | 0.76 † |
-| put | medium | 18.8 | 32.1 | 0.58 † |
-| put | large | 16.2 | 48.1 | 0.34 † |
-| peek | small | 6.64 | 6.76 | 0.98 † |
-| peek | medium | 8.12 | 4.62 | 1.76 † |
-| peek | large | 13.3 | 4.81 | 2.77 † |
-| qsize | small | 1.41 | 4.08 | 0.34 † |
-| qsize | medium | 1.33 | 4.43 | 0.30 † |
-| qsize | large | 1.46 | 6.54 | 0.22 † |
-| to_list | small | 1200 | 1576 | 0.76 † |
-| to_list | medium | 80000 | 113022 | 0.71 † |
-| to_list | large | 5700000 | 7305740 | 0.78 † |
-| get | small | 21.7 | 15.8 | 1.37 † |
-| get | medium | 17.5 | 30.4 | 0.58 † |
-| get | large | 32.5 | 66.1 | 0.49 † |
-| new | small | 1.35 | 3.37 | 0.40 † |
-| new | medium | 2.08 | 5.37 | 0.39 † |
-| new | large | 1.82 | 2.95 | 0.62 † |
+| put | small | 7.81 | 11.1 | 0.70 † |
+| put | medium | 7.90 | 10.1 | 0.78 † |
+| put | large | 8.11 | 10.4 | 0.78 † |
+| peek | small | 3.20 | 3.45 | 0.93 † |
+| peek | medium | 3.33 | 3.39 | 0.98 † |
+| peek | large | 3.87 | 3.50 | 1.11 † |
+| qsize | small | 0.97 | 2.67 | 0.36 † |
+| qsize | medium | 1.00 | 2.64 | 0.38 † |
+| qsize | large | 0.99 | 2.66 | 0.37 † |
+| to_list | small | 683 | 674 | 1.01 † |
+| to_list | medium | 48000 | 42648 | 1.13 † |
+| to_list | large | 3100000 | 2968860 | 1.04 † |
+| get | small | 13.4 | 9.41 | 1.43 † |
+| get | medium | 8.06 | 9.45 | 0.85 † |
+| get | large | 12.2 | 11.2 | 1.09 † |
+| new | small | 0.97 | 1.22 | 0.79 † |
+| new | medium | 0.97 | 1.23 | 0.79 † |
+| new | large | 0.99 | 1.23 | 0.80 † |
 
 ### Priority queue
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| put | small | 47.5 | 18.4 | 2.58 † |
-| put | medium | 35.6 | 16.2 | 2.20 † |
-| put | large | 77.2 | 16.7 | 4.62 † |
-| peek | small | 1.56 | 2.18 | 0.72 † |
-| peek | medium | 1.46 | 1.84 | 0.80 † |
-| peek | large | 1.38 | 1.20 | 1.15 † |
-| qsize | small | 1.33 | 4.02 | 0.33 † |
-| qsize | medium | 1.64 | 4.16 | 0.39 † |
-| qsize | large | 2.03 | 4.24 | 0.48 † |
-| from_list | small | 200 | 68.0 | 2.94 † |
-| from_list | medium | 200 | 84.3 | 2.37 † |
-| from_list | large | 200 | 81.4 | 2.46 † |
-| to_sorted_list | small | 3667 | 728 | 5.04 † |
-| to_sorted_list | medium | 530000 | 108630 | 4.88 † |
-| to_sorted_list | large | 30600000 | 5391400 | 5.68 † |
-| get | small | 105 | 21.7 | 4.84 † |
-| get | medium | 200 | 48.1 | 4.16 † |
-| get | large | 425 | 66.8 | 6.36 † |
-| new | small | 10.9 | 2.83 | 3.86 † |
-| new | medium | 8.75 | 3.50 | 2.50 † |
-| new | large | 12.5 | 3.55 | 3.52 † |
+| put | small | 18.8 | 9.34 | 2.01 † |
+| put | medium | 18.8 | 9.18 | 2.04 † |
+| put | large | 23.8 | 8.99 | 2.65 † |
+| peek | small | 1.00 | 1.00 | 1.00 † |
+| peek | medium | 0.99 | 1.00 | 0.99 † |
+| peek | large | 1.01 | 0.99 | 1.02 † |
+| qsize | small | 0.96 | 2.62 | 0.37 † |
+| qsize | medium | 0.95 | 2.62 | 0.36 † |
+| qsize | large | 0.94 | 2.66 | 0.35 † |
+| from_list | small | 120 | 53.1 | 2.26 † |
+| from_list | medium | 117 | 53.4 | 2.19 † |
+| from_list | large | 123 | 53.7 | 2.28 † |
+| to_sorted_list | small | 2250 | 476 | 4.73 † |
+| to_sorted_list | medium | 320000 | 55480 | 5.77 † |
+| to_sorted_list | large | 16400000 | 3261800 | 5.03 † |
+| get | small | 70.0 | 13.7 | 5.12 † |
+| get | medium | 130 | 31.0 | 4.19 † |
+| get | large | 188 | 46.6 | 4.03 † |
+| new | small | 5.65 | 2.33 | 2.42 † |
+| new | medium | 5.48 | 2.32 | 2.37 † |
+| new | large | 7.74 | 2.55 | 3.03 † |
 
 ### Binary heap
 
@@ -335,197 +335,197 @@ those ratios; the unmarked rows use the full method.
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| iter_first | small | 6.88 | 4.96 | 1.39 † |
-| iter_first | medium | 7.42 | 4.96 | 1.50 † |
-| iter_first | large | 7.42 | 5.08 | 1.46 † |
-| iter_last | small | 6.88 | 5.77 | 1.19 † |
-| iter_last | medium | 6.64 | 5.18 | 1.28 † |
-| iter_last | large | 6.77 | 5.32 | 1.27 † |
-| next | small | 12.5 | 3.00 | 4.16 † |
-| next | medium | 10.4 | 4.92 | 2.12 † |
-| next | large | 11.9 | 3.17 | 3.76 † |
-| previous | small | 10.0 | 3.67 | 2.72 † |
-| previous | medium | 10.9 | 2.70 | 4.05 † |
-| previous | large | 10.9 | 2.90 | 3.77 † |
-| set | small | 1.80 | 1.95 | 0.92 † |
-| set | medium | 1.51 | 1.77 | 0.85 † |
-| set | large | 1.46 | 1.53 | 0.96 † |
-| add | small | 27.5 | 8.88 | 3.10 † |
-| add | medium | 25.0 | 8.91 | 2.81 † |
-| add | large | 37.5 | 8.48 | 4.42 † |
-| remove | small | 26.2 | 9.76 | 2.69 † |
-| remove | medium | 26.6 | 10.7 | 2.48 † |
-| remove | large | 31.2 | 13.1 | 2.39 † |
-| has_next | small | 1.33 | 1.91 | 0.70 † |
-| has_next | medium | 1.46 | 1.70 | 0.86 † |
-| has_next | large | 1.42 | 1.73 | 0.82 † |
-| has_previous | small | 1.33 | 1.62 | 0.82 † |
-| has_previous | medium | 1.32 | 1.41 | 0.93 † |
-| has_previous | large | 1.27 | 1.37 | 0.93 † |
-| position | small | 1.25 | 1.87 | 0.67 † |
-| position | medium | 1.51 | 1.99 | 0.76 † |
-| position | large | 1.27 | 1.85 | 0.69 † |
-| finish | small | 7.81 | 5.09 | 1.53 † |
-| finish | medium | 7.03 | 5.01 | 1.40 † |
-| finish | large | 7.29 | 5.50 | 1.33 † |
+| iter_first | small | 4.84 | 3.26 | 1.48 † |
+| iter_first | medium | 4.56 | 3.20 | 1.42 † |
+| iter_first | large | 4.59 | 3.20 | 1.43 † |
+| iter_last | small | 4.41 | 3.34 | 1.32 † |
+| iter_last | medium | 4.35 | 3.34 | 1.30 † |
+| iter_last | large | 4.40 | 3.37 | 1.31 † |
+| next | small | 6.67 | 1.76 | 3.79 † |
+| next | medium | 6.45 | 1.77 | 3.64 † |
+| next | large | 6.53 | 1.81 | 3.62 † |
+| previous | small | 5.97 | 2.02 | 2.95 † |
+| previous | medium | 5.76 | 1.88 | 3.06 † |
+| previous | large | 6.05 | 1.86 | 3.26 † |
+| set | small | 1.02 | 0.99 | 1.02 † |
+| set | medium | 0.99 | 1.03 | 0.96 † |
+| set | large | 1.00 | 1.03 | 0.98 † |
+| add | small | 15.6 | 5.65 | 2.77 † |
+| add | medium | 15.7 | 5.68 | 2.77 † |
+| add | large | 15.7 | 5.81 | 2.70 † |
+| remove | small | 15.5 | 5.70 | 2.72 † |
+| remove | medium | 15.3 | 5.68 | 2.70 † |
+| remove | large | 15.7 | 5.68 | 2.76 † |
+| has_next | small | 0.99 | 1.00 | 0.99 † |
+| has_next | medium | 0.95 | 1.02 | 0.94 † |
+| has_next | large | 0.95 | 0.99 | 0.96 † |
+| has_previous | small | 0.94 | 0.99 | 0.95 † |
+| has_previous | medium | 0.93 | 0.99 | 0.94 † |
+| has_previous | large | 0.98 | 1.01 | 0.97 † |
+| position | small | 0.97 | 1.00 | 0.97 † |
+| position | medium | 0.93 | 0.98 | 0.95 † |
+| position | large | 0.93 | 1.01 | 0.92 † |
+| finish | small | 4.61 | 3.19 | 1.44 † |
+| finish | medium | 4.69 | 3.13 | 1.50 † |
+| finish | large | 4.64 | 3.18 | 1.46 † |
 
 ### Tree map
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| insert | small | 92.5 | 24.1 | 3.84 † |
-| insert | medium | 190 | 60.0 | 3.17 † |
-| insert | large | 338 | 147 | 2.29 † |
-| remove | small | 640 | 54.5 | 11.75 † |
-| remove | medium | 940 | 118 | 7.98 † |
-| remove | large | 1300 | 209 | 6.23 † |
-| lookup | small | 85.0 | 16.0 | 5.30 † |
-| lookup | medium | 183 | 37.1 | 4.94 † |
-| lookup | large | 320 | 83.6 | 3.83 † |
-| contains | small | 72.0 | 17.0 | 4.24 † |
-| contains | medium | 155 | 37.9 | 4.09 † |
-| contains | large | 306 | 81.4 | 3.76 † |
-| min | small | 20.0 | 1.50 | 13.33 † |
-| min | medium | 20.0 | 3.86 | 5.18 † |
-| min | large | 21.3 | 5.76 | 3.70 † |
-| max | small | 19.4 | 1.48 | 13.06 † |
-| max | medium | 20.0 | 2.92 | 6.85 † |
-| max | large | 20.3 | 5.18 | 3.92 † |
-| lower_bound | small | 92.5 | 17.1 | 5.41 † |
-| lower_bound | medium | 190 | 36.5 | 5.20 † |
-| lower_bound | large | 350 | 85.6 | 4.09 † |
-| range | small | 452 | 29.9 | 15.12 † |
-| range | medium | 29167 | 892 | 32.68 † |
-| range | large | 450000 | 11056 | 40.70 † |
-| to_list | small | 2357 | 46.6 | 50.54 † |
-| to_list | medium | 163333 | 3173 | 51.47 † |
-| to_list | large | 6400000 | 236300 | 27.08 † |
-| length | small | 0.96 | 2.63 | 0.37 † |
-| length | medium | 0.94 | 2.62 | 0.36 † |
-| length | large | 0.93 | 2.61 | 0.36 † |
-| new | small | 29.2 | 2.46 | 11.84 † |
-| new | medium | 30.0 | 2.33 | 12.88 † |
-| new | large | 27.5 | 2.21 | 12.47 † |
+| insert | small | 92.5 | 24.8 | 3.73 † |
+| insert | medium | 190 | 62.5 | 3.04 † |
+| insert | large | 375 | 154 | 2.43 † |
+| remove | small | 640 | 55.9 | 11.45 † |
+| remove | medium | 960 | 117 | 8.20 † |
+| remove | large | 1875 | 224 | 8.39 † |
+| lookup | small | 115 | 15.5 | 7.41 † |
+| lookup | medium | 193 | 34.6 | 5.58 † |
+| lookup | large | 512 | 78.2 | 6.56 † |
+| contains | small | 72.5 | 18.8 | 3.86 † |
+| contains | medium | 155 | 41.5 | 3.74 † |
+| contains | large | 350 | 102 | 3.42 † |
+| min | small | 20.6 | 1.51 | 13.63 † |
+| min | medium | 21.2 | 3.48 | 6.11 † |
+| min | large | 19.5 | 5.94 | 3.29 † |
+| max | small | 20.6 | 1.50 | 13.73 † |
+| max | medium | 20.3 | 3.78 | 5.38 † |
+| max | large | 20.0 | 4.84 | 4.13 † |
+| lower_bound | small | 96.7 | 16.9 | 5.73 † |
+| lower_bound | medium | 200 | 38.0 | 5.27 † |
+| lower_bound | large | 375 | 94.4 | 3.97 † |
+| range | small | 452 | 31.0 | 14.58 † |
+| range | medium | 30000 | 882 | 34.03 † |
+| range | large | 381250 | 11456 | 33.28 † |
+| to_list | small | 2333 | 46.9 | 49.78 † |
+| to_list | medium | 165000 | 3230 | 51.08 † |
+| to_list | large | 6400000 | 278800 | 22.96 † |
+| length | small | 0.97 | 2.69 | 0.36 † |
+| length | medium | 0.97 | 2.63 | 0.37 † |
+| length | large | 0.97 | 2.71 | 0.36 † |
+| new | small | 28.6 | 2.33 | 12.27 † |
+| new | medium | 29.2 | 2.30 | 12.70 † |
+| new | large | 28.5 | 2.44 | 11.69 † |
 
 ### Bitset
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| set | small | 2.66 | 1.87 | 1.42 † |
-| set | medium | 2.03 | 1.71 | 1.19 † |
-| set | large | 1.21 | 2.01 | 0.60 † |
-| clear | small | 2.03 | 2.17 | 0.93 † |
-| clear | medium | 2.11 | 1.56 | 1.35 † |
-| clear | large | 1.88 | 1.65 | 1.14 † |
-| get | small | 2.19 | 1.86 | 1.17 † |
-| get | medium | 2.27 | 2.15 | 1.06 † |
-| get | large | 2.71 | 2.30 | 1.18 † |
-| count | small | 17.5 | 5.80 | 3.02 † |
-| count | medium | 550 | 298 | 1.85 † |
-| count | large | 22000 | 17442 | 1.26 † |
-| length | small | 1.33 | 3.64 | 0.36 † |
-| length | medium | 1.25 | 3.80 | 0.33 † |
-| length | large | 1.33 | 3.61 | 0.37 † |
-| to_list | small | 300 | 88.7 | 3.38 † |
-| to_list | medium | 13000 | 5255 | 2.47 † |
-| to_list | large | 1660000 | 374800 | 4.43 † |
-| union | small | 2.50 | 0.90 | 2.78 † |
-| union | medium | 78.1 | 65.2 | 1.20 † |
-| union | large | 5667 | 5676 | 1.00 † |
-| intersection | small | 3.75 | 2.86 | 1.31 † |
-| intersection | medium | 87.5 | 74.2 | 1.18 † |
-| intersection | large | 4875 | 4796 | 1.02 † |
-| difference | small | 2.29 | 3.93 | 0.58 † |
-| difference | medium | 84.4 | 97.0 | 0.87 † |
-| difference | large | 4250 | 4622 | 0.92 † |
-| xor | small | 1.88 | 1.83 | 1.02 † |
-| xor | medium | 81.2 | 86.3 | 0.94 † |
-| xor | large | 4500 | 4970 | 0.91 † |
-| new | small | 6.09 | 13.2 | 0.46 † |
-| new | medium | 7.19 | 17.9 | 0.40 † |
-| new | large | 5.94 | 18.8 | 0.32 † |
+| set | small | 1.45 | 1.28 | 1.13 † |
+| set | medium | 1.29 | 1.15 | 1.12 † |
+| set | large | 1.34 | 1.15 | 1.17 † |
+| clear | small | 1.45 | 1.26 | 1.15 † |
+| clear | medium | 1.31 | 1.15 | 1.14 † |
+| clear | large | 1.32 | 1.14 | 1.15 † |
+| get | small | 1.61 | 1.32 | 1.22 † |
+| get | medium | 1.48 | 1.19 | 1.25 † |
+| get | large | 1.47 | 1.18 | 1.24 † |
+| count | small | 11.6 | 3.91 | 2.95 † |
+| count | medium | 309 | 186 | 1.67 † |
+| count | large | 15500 | 11911 | 1.30 † |
+| length | small | 0.99 | 2.74 | 0.36 † |
+| length | medium | 0.94 | 2.62 | 0.36 † |
+| length | large | 0.95 | 3.03 | 0.31 † |
+| to_list | small | 155 | 61.1 | 2.53 † |
+| to_list | medium | 8250 | 3798 | 2.17 † |
+| to_list | large | 840000 | 242880 | 3.46 † |
+| union | small | 1.31 | 1.17 | 1.12 † |
+| union | medium | 50.0 | 48.7 | 1.03 † |
+| union | large | 2818 | 2884 | 0.98 † |
+| intersection | small | 1.23 | 1.02 | 1.20 † |
+| intersection | medium | 49.2 | 48.2 | 1.02 † |
+| intersection | large | 2839 | 2884 | 0.98 † |
+| difference | small | 1.25 | 1.10 | 1.14 † |
+| difference | medium | 50.0 | 48.5 | 1.03 † |
+| difference | large | 2774 | 2929 | 0.95 † |
+| xor | small | 1.31 | 1.06 | 1.23 † |
+| xor | medium | 51.6 | 42.0 | 1.23 † |
+| xor | large | 2710 | 2895 | 0.94 † |
+| new | small | 2.42 | 8.96 | 0.27 † |
+| new | medium | 2.50 | 9.29 | 0.27 † |
+| new | large | 2.42 | 9.24 | 0.26 † |
 
 ### Hash map
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| set | small | 16.9 | 3.49 | 4.84 † |
-| set | medium | 22.5 | 3.87 | 5.81 † |
-| set | large | 181 | 51.4 | 3.53 † |
-| get | small | 36.2 | 1.36 | 26.70 † |
-| get | medium | 51.2 | 2.64 | 19.42 † |
-| get | large | 388 | 39.0 | 9.92 † |
-| has | small | 22.5 | 2.26 | 9.96 † |
-| has | medium | 22.5 | 3.24 | 6.95 † |
-| has | large | 17.7 | 3.98 | 4.45 † |
-| pop | small | 55.0 | 4.43 | 12.41 † |
-| pop | medium | 55.0 | 10.7 | 5.14 † |
-| pop | large | 292 | 26.2 | 11.14 † |
-| size | small | 1.88 | 4.56 | 0.41 † |
-| size | medium | 1.35 | 3.30 | 0.41 † |
-| size | large | 1.98 | 3.72 | 0.53 † |
-| keys | small | 550 | 41.3 | 13.32 † |
-| keys | medium | 28000 | 4310 | 6.50 † |
-| keys | large | 475000 | 36250 | 13.10 † |
-| build | small | 2667 | 595 | 4.48 † |
-| build | medium | 262500 | 38188 | 6.87 † |
-| build | large | 2062500 | 210500 | 9.80 † |
+| set | small | 9.68 | 2.24 | 4.32 † |
+| set | medium | 10.6 | 2.24 | 4.74 † |
+| set | large | 14.3 | 2.74 | 5.21 † |
+| get | small | 22.5 | 1.50 | 15.04 † |
+| get | medium | 22.6 | 1.35 | 16.67 † |
+| get | large | 35.5 | 1.83 | 19.36 † |
+| has | small | 10.3 | 1.26 | 8.21 † |
+| has | medium | 8.75 | 1.27 | 6.91 † |
+| has | large | 10.4 | 1.44 | 7.19 † |
+| pop | small | 25.5 | 2.75 | 9.24 † |
+| pop | medium | 29.7 | 2.76 | 10.74 † |
+| pop | large | 36.7 | 3.89 | 9.43 † |
+| size | small | 0.94 | 2.28 | 0.41 † |
+| size | medium | 0.92 | 2.28 | 0.40 † |
+| size | large | 0.94 | 2.26 | 0.41 † |
+| keys | small | 258 | 54.0 | 4.79 † |
+| keys | medium | 15000 | 2898 | 5.18 † |
+| keys | large | 193750 | 22412 | 8.64 † |
+| build | small | 1719 | 416 | 4.14 † |
+| build | medium | 118750 | 20810 | 5.71 † |
+| build | large | 1142857 | 172071 | 6.64 † |
 
 ### LRU cache
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| add | small | 22.5 | 12.0 | 1.88 † |
-| add | medium | 43.8 | 11.7 | 3.75 † |
-| add | large | 575 | 17.5 | 32.86 † |
-| get | small | 27.5 | 17.3 | 1.59 † |
-| get | medium | 30.0 | 23.7 | 1.26 † |
-| get | large | 279 | 196 | 1.43 † |
-| peek | small | 30.0 | 19.1 | 1.57 † |
-| peek | medium | 25.0 | 15.7 | 1.59 † |
-| peek | large | 306 | 29.1 | 10.52 † |
-| contains | small | 20.8 | 5.03 | 4.14 † |
-| contains | medium | 26.2 | 4.92 | 5.34 † |
-| contains | large | 166 | 42.5 | 3.90 † |
-| remove | small | 80.0 | 19.2 | 4.16 † |
-| remove | medium | 80.0 | 32.5 | 2.46 † |
-| remove | large | 375 | 120 | 3.13 † |
-| purge | small | 2667 | 424 | 6.30 † |
-| purge | medium | 225000 | 65512 | 3.43 † |
-| purge | large | 25000000 | 3409000 | 7.33 † |
-| resize | small | 3833 | 495 | 7.75 † |
-| resize | medium | 225000 | 45188 | 4.98 † |
-| resize | large | 58500000 | 3968250 | 14.74 † |
-| keys | small | 1400 | 241 | 5.81 † |
-| keys | medium | 80000 | 19214 | 4.16 † |
-| keys | large | 575000 | 152950 | 3.76 † |
-| len | small | 1.56 | 4.48 | 0.35 † |
-| len | medium | 1.41 | 3.73 | 0.38 † |
-| len | large | 12.5 | 7.13 | 1.75 † |
-| new | small | 65.0 | 24.3 | 2.67 † |
-| new | medium | 45.0 | 33.0 | 1.36 † |
-| new | large | 28.1 | 17.7 | 1.59 † |
-| capacity | small | 1.48 | 4.97 | 0.30 † |
-| capacity | medium | 1.64 | 5.11 | 0.32 † |
-| capacity | large | 1.28 | 3.47 | 0.37 † |
-| set_lifetime | small | 8.44 | 9.61 | 0.88 † |
-| set_lifetime | medium | 5.94 | 8.24 | 0.72 † |
-| set_lifetime | large | 8.59 | 9.69 | 0.89 † |
-| metrics | small | 18.4 | 10.7 | 1.72 † |
-| metrics | medium | 15.0 | 9.59 | 1.56 † |
-| metrics | large | 9.06 | 10.4 | 0.87 † |
-| expiry | small | 66.7 | 13.8 | 4.84 † |
-| expiry | medium | 55.0 | 17.9 | 3.07 † |
-| expiry | large | 400 | 120 | 3.35 † |
-| remove_seq | small | 30.5 | 6.04 | 5.06 † |
-| remove_seq | medium | 53.4 | 10.7 | 5.01 † |
-| remove_seq | large | 275 | 121 | 2.28 † |
-| purge_isolated | small | 601 | 53.5 | 11.23 † |
-| purge_isolated | medium | 30556 | 12800 | 2.39 † |
+| add | small | 13.8 | 9.13 | 1.51 † |
+| add | medium | 22.9 | 10.3 | 2.21 † |
+| add | large | | | not timeable |
+| get | small | 15.8 | 10.5 | 1.50 † |
+| get | medium | 16.8 | 11.8 | 1.42 † |
+| get | large | 36.4 | 62.6 | 0.58 † |
+| peek | small | 15.6 | 9.60 | 1.63 † |
+| peek | medium | 15.5 | 9.55 | 1.62 † |
+| peek | large | 77.7 | 33.3 | 2.33 † |
+| contains | small | 11.0 | 1.41 | 7.76 † |
+| contains | medium | 10.6 | 1.27 | 8.40 † |
+| contains | large | 22.3 | 2.51 | 8.88 † |
+| remove | small | 40.0 | 12.5 | 3.19 † |
+| remove | medium | 45.0 | 11.3 | 3.98 † |
+| remove | large | 93.8 | 33.4 | 2.80 † |
+| purge | small | 1227 | 332 | 3.69 † |
+| purge | medium | 81818 | 20625 | 3.97 † |
+| purge | large | 7750000 | 1449500 | 5.35 † |
+| resize | small | 977 | 223 | 4.38 † |
+| resize | medium | 84375 | 20244 | 4.17 † |
+| resize | large | 8250000 | 1711750 | 4.82 † |
+| keys | small | 633 | 85.8 | 7.38 † |
+| keys | medium | 38000 | 11023 | 3.45 † |
+| keys | large | 291667 | 88750 | 3.29 † |
+| len | small | 1.02 | 2.70 | 0.38 † |
+| len | medium | 1.08 | 2.67 | 0.40 † |
+| len | large | 1.04 | 2.72 | 0.38 † |
+| new | small | 18.4 | 10.0 | 1.84 † |
+| new | medium | 17.7 | 10.1 | 1.75 † |
+| new | large | 23.6 | 9.65 | 2.45 † |
+| capacity | small | 0.99 | 2.74 | 0.36 † |
+| capacity | medium | 0.97 | 2.68 | 0.36 † |
+| capacity | large | 0.95 | 2.69 | 0.35 † |
+| set_lifetime | small | 3.36 | 6.06 | 0.55 † |
+| set_lifetime | medium | 3.36 | 6.16 | 0.55 † |
+| set_lifetime | large | 3.45 | 6.35 | 0.54 † |
+| metrics | small | 9.89 | 7.39 | 1.34 † |
+| metrics | medium | 9.38 | 6.43 | 1.46 † |
+| metrics | large | 9.84 | 6.39 | 1.54 † |
+| expiry | small | 34.5 | 8.31 | 4.16 † |
+| expiry | medium | 35.0 | 8.67 | 4.04 † |
+| expiry | large | 49.6 | 21.3 | 2.33 † |
+| remove_seq | small | 16.1 | 3.16 | 5.10 † |
+| remove_seq | medium | 18.2 | 6.20 | 2.94 † |
+| remove_seq | large | 31.0 | 12.7 | 2.43 † |
+| purge_isolated | small | 141 | 49.8 | 2.83 † |
+| purge_isolated | medium | 7635 | 1187 | 6.43 † |
 | purge_isolated | large | | | not timeable |
-| resize_isolated | small | 2031 | 215 | 9.46 † |
-| resize_isolated | medium | | | not timeable |
-| resize_isolated | large | 460938 | 14309 | 32.21 † |
+| resize_isolated | small | 469 | 82.8 | 5.66 † |
+| resize_isolated | medium | 10254 | 4732 | 2.17 † |
+| resize_isolated | large | 60484 | 29536 | 2.05 † |
 
 ## Hash map vs Base.Map
 
