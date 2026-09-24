@@ -1,0 +1,77 @@
+# ---- search: two field reads per level are the mirror's probes ----
+
+%def SQSRES(x) MI.rp(~K, ~V, ~cmp, M.Search, x)
+%def SQSFIN(x) M.search_fin(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), x)
+%def SQLOOP(fu, id, p, ol, pr) MI.search_loop(~K, ~V, ~cmp, fu, k, id, p, ol, pr)
+%def SQSFAST(fu, p, ol, st) M.search_fast(~K, ~V, ~cmp, fu, k, p, ol, st)
+%def SQIHT(fu) @+id2: Nat -> @+p2: Nat -> @+ol2: Bool -> {$SQSFIN($SQSFAST(fu, p2, ol2, M.search_probe(~K, ~V, ~cmp, $AA, id2, k))) == $SQSRES($SQLOOP(fu, id2, p2, ol2, MI.probe(~K, ~V, ~cmp, $SH0, id2, k))) : $TMT & M.Search}
+%def SQNN M.N{c, lf, rt, q, key}
+
+# the order of a live node decides: descend (the rest by ih) or stop
+def sr_o(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, +k: K, +f: Nat, +i: Nat, +p: Nat, +ol: Bool, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +key: K, +hy: {$NI(i) == $SQNN : $ND}, ih: $SQIHT(f), +c0: Cmp) -> {$SQSFIN($SQSFAST(1n+f, p, ol, ($AA, (1n+i, Some{c0})))) == $SQSRES($SQLOOP(1n+f, 1n+i, p, ol, ($SH0, ($SQNN, c0)))) : $TMT & M.Search}:
+  match c0:
+    case LT{}:
+      %Equal.sym($ARR & Nat, M.side_at(~K, ~V, ~cmp, $AA, True{}, i), ($AA, M.pick(Nat, True{}, M.nleft(~K, $NI(i)), M.nright(~K, $NI(i)))), side_ok(~K, ~V, ~cmp, $LDA, True{}, i)) : {$SQSFIN($SQSFAST(f, 1n+i, True{}, M.search_down2(~K, ~V, ~cmp, k, _))) == $SQSRES($SQLOOP(1n+f, 1n+i, p, ol, ($SH0, ($SQNN, LT{})))) : $TMT & M.Search}
+      %Equal.sym($ND, $NI(i), $SQNN, hy) : {$SQSFIN($SQSFAST(f, 1n+i, True{}, M.search_probe(~K, ~V, ~cmp, $AA, M.nleft(~K, _), k))) == $SQSRES($SQLOOP(1n+f, 1n+i, p, ol, ($SH0, ($SQNN, LT{})))) : $TMT & M.Search}
+      ih(lf, 1n+i, True{})
+    case GT{}:
+      %Equal.sym($ARR & Nat, M.side_at(~K, ~V, ~cmp, $AA, False{}, i), ($AA, M.pick(Nat, False{}, M.nleft(~K, $NI(i)), M.nright(~K, $NI(i)))), side_ok(~K, ~V, ~cmp, $LDA, False{}, i)) : {$SQSFIN($SQSFAST(f, 1n+i, False{}, M.search_down2(~K, ~V, ~cmp, k, _))) == $SQSRES($SQLOOP(1n+f, 1n+i, p, ol, ($SH0, ($SQNN, GT{})))) : $TMT & M.Search}
+      %Equal.sym($ND, $NI(i), $SQNN, hy) : {$SQSFIN($SQSFAST(f, 1n+i, False{}, M.search_probe(~K, ~V, ~cmp, $AA, M.nright(~K, _), k))) == $SQSRES($SQLOOP(1n+f, 1n+i, p, ol, ($SH0, ($SQNN, GT{})))) : $TMT & M.Search}
+      ih(rt, 1n+i, False{})
+    case EQ{}:
+      {==}
+
+def sr_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, +k: K, +f: Nat, +i: Nat, +p: Nat, +ol: Bool, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +key: K, +hy: {$NI(i) == $SQNN : $ND}, ih: $SQIHT(f), +c0: Cmp, +hco: {cmp(k, key) == c0 : Cmp}) -> {$SQSFIN($SQSFAST(1n+f, p, ol, ($AA, (1n+i, Some{cmp(k, key)})))) == $SQSRES($SQLOOP(1n+f, 1n+i, p, ol, ($SH0, ($SQNN, cmp(k, key))))) : $TMT & M.Search}:
+  %Equal.sym(Cmp, cmp(k, key), c0, hco) : {$SQSFIN($SQSFAST(1n+f, p, ol, ($AA, (1n+i, Some{_})))) == $SQSRES($SQLOOP(1n+f, 1n+i, p, ol, ($SH0, ($SQNN, _)))) : $TMT & M.Search}
+  sr_o(~K, ~V, ~cmp, $F, hl, hd, hc, hp, k, f, i, p, ol, c, lf, rt, q, key, hy, ih, c0)
+
+def sr_y(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, +k: K, +f: Nat, +i: Nat, +p: Nat, +ol: Bool, +y: $ND, +hy: {$NI(i) == y : $ND}, ih: $SQIHT(f)) -> {$SQSFIN($SQSFAST(1n+f, p, ol, M.search_key(~K, ~V, ~cmp, 1n+i, k, ($AA, M.nkey(~K, y))))) == $SQSRES($SQLOOP(1n+f, 1n+i, p, ol, MI.probe_node(~K, ~V, ~cmp, 1n+i, k, ($SH0, y)))) : $TMT & M.Search}:
+  match y:
+    case M.Free{z}:
+      {==}
+    case M.N{+c, +lf, +rt, +q, +key}:
+      sr_c(~K, ~V, ~cmp, $F, hl, hd, hc, hp, k, f, i, p, ol, c, lf, rt, q, key, hy, ih, cmp(k, key), {==})
+
+def s0_o(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, +k: K, +i: Nat, +p: Nat, +ol: Bool, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +key: K, +c0: Cmp) -> {$SQSFIN($SQSFAST(0n, p, ol, ($AA, (1n+i, Some{c0})))) == $SQSRES($SQLOOP(0n, 1n+i, p, ol, ($SH0, ($SQNN, c0)))) : $TMT & M.Search}:
+  match c0:
+    case LT{}:
+      {==}
+    case GT{}:
+      {==}
+    case EQ{}:
+      {==}
+
+def s0_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, +k: K, +i: Nat, +p: Nat, +ol: Bool, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +key: K, +c0: Cmp, +hco: {cmp(k, key) == c0 : Cmp}) -> {$SQSFIN($SQSFAST(0n, p, ol, ($AA, (1n+i, Some{cmp(k, key)})))) == $SQSRES($SQLOOP(0n, 1n+i, p, ol, ($SH0, ($SQNN, cmp(k, key))))) : $TMT & M.Search}:
+  %Equal.sym(Cmp, cmp(k, key), c0, hco) : {$SQSFIN($SQSFAST(0n, p, ol, ($AA, (1n+i, Some{_})))) == $SQSRES($SQLOOP(0n, 1n+i, p, ol, ($SH0, ($SQNN, _)))) : $TMT & M.Search}
+  s0_o(~K, ~V, ~cmp, $F, hl, hd, hc, hp, k, i, p, ol, c, lf, rt, q, key, c0)
+
+def s0_y(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, +k: K, +i: Nat, +p: Nat, +ol: Bool, +y: $ND) -> {$SQSFIN($SQSFAST(0n, p, ol, M.search_key(~K, ~V, ~cmp, 1n+i, k, ($AA, M.nkey(~K, y))))) == $SQSRES($SQLOOP(0n, 1n+i, p, ol, MI.probe_node(~K, ~V, ~cmp, 1n+i, k, ($SH0, y)))) : $TMT & M.Search}:
+  match y:
+    case M.Free{z}:
+      {==}
+    case M.N{+c, +lf, +rt, +q, +key}:
+      s0_c(~K, ~V, ~cmp, $F, hl, hd, hc, hp, k, i, p, ol, c, lf, rt, q, key, cmp(k, key), {==})
+
+# the fast loop, the store put back into the map, is the mirror's loop
+def sr(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, +k: K, +fuel: Nat, +id: Nat, +p: Nat, +ol: Bool) -> {$SQSFIN($SQSFAST(fuel, p, ol, M.search_probe(~K, ~V, ~cmp, $AA, id, k))) == $SQSRES($SQLOOP(fuel, id, p, ol, MI.probe(~K, ~V, ~cmp, $SH0, id, k))) : $TMT & M.Search}:
+  match fuel id:
+    case 0n 0n:
+      {==}
+    case 0n 1n+ +i:
+      %Equal.sym($ARR & Maybe<&2, K>, M.ns_key_at(~K, $AA, i), ($AA, M.nkey(~K, $NI(i))), NSL.key_at_ok(~K, $LDA, i)) : {$SQSFIN($SQSFAST(0n, p, ol, M.search_key(~K, ~V, ~cmp, 1n+i, k, _))) == $SQSRES($SQLOOP(0n, 1n+i, p, ol, MI.probe_node(~K, ~V, ~cmp, 1n+i, k, ($SH0, $NI(i))))) : $TMT & M.Search}
+      s0_y(~K, ~V, ~cmp, $F, hl, hd, hc, hp, k, i, p, ol, $NI(i))
+    case 1n+f 0n:
+      {==}
+    case 1n+ +f 1n+ +i:
+      %Equal.sym($ARR & Maybe<&2, K>, M.ns_key_at(~K, $AA, i), ($AA, M.nkey(~K, $NI(i))), NSL.key_at_ok(~K, $LDA, i)) : {$SQSFIN($SQSFAST(1n+f, p, ol, M.search_key(~K, ~V, ~cmp, 1n+i, k, _))) == $SQSRES($SQLOOP(1n+f, 1n+i, p, ol, MI.probe_node(~K, ~V, ~cmp, 1n+i, k, ($SH0, $NI(i))))) : $TMT & M.Search}
+      sr_y(~K, ~V, ~cmp, $F, hl, hd, hc, hp, k, f, i, p, ol, $NI(i), {==}, id2 => p2 => ol2 => sr(~K, ~V, ~cmp, $F, hl, hd, hc, hp, k, f, id2, p2, ol2))
+
+def search_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.search(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), k) == MI.rp(~K, ~V, ~cmp, M.Search, MI.search(~K, ~V, ~cmp, m, k)) : $TMT & M.Search}:
+  match m:
+    case ST.SH{$FP}:
+      sr(~K, ~V, ~cmp, $F, $DGS(g_m), k, 1n+n, root, 0n, False{})
+
+def search_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Search, MI.search(~K, ~V, ~cmp, m, k)) == True{} : Bool}:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      search_loop_g(~K, ~V, ~cmp, 1n+n, k, root, 0n, False{}, MI.probe(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k), probe_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k, g_m))

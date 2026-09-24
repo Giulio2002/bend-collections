@@ -1,0 +1,24 @@
+# the mirror of iterator_next reads the whole node (the implementation reads
+# four fields; sim/iterator_next.part)
+def iterator_checked(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +current: Nat, lower: M.Bound<K>, upper: M.Bound<K>, +forward: Bool, +node: M.Node<K>, entry: M.Entry<K, V>, +valid: Bool) -> MCursor<K, V> & Maybe<&2, M.Entry<K, V>>:
+  match valid:
+    case True{}:
+      iterator_yield(~K, ~V, ~cmp, id, lower, upper, forward, entry, neighbor_node(~K, ~V, ~cmp, id, forward, (m, node)))
+    case False{}:
+      (MC{m, 0n, current, lower, upper, forward}, None{})
+
+def iterator_read(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +current: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +forward: Bool, +node: M.Node<K>, r: ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>) -> MCursor<K, V> & Maybe<&2, M.Entry<K, V>>:
+  match r:
+    case Tuple{px2, None{}}:
+      (MC{px2, 0n, current, lower, upper, forward}, None{})
+    case Tuple{px2, Some{M.Entry{+px5, px6}}}:
+      iterator_checked(~K, ~V, ~cmp, px2, id, current, lower, upper, forward, node, M.Entry{px5, px6}, M.in_range(~K, ~V, ~cmp, px5, lower, upper))
+
+def iterator_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +current: Nat, lower: M.Bound<K>, upper: M.Bound<K>, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>) -> MCursor<K, V> & Maybe<&2, M.Entry<K, V>>:
+  (m, +node) = r
+  iterator_read(~K, ~V, ~cmp, id, current, lower, upper, forward, node, entry_value(~K, ~V, ~cmp, M.node_key(~K, node), get_id(~K, ~V, ~cmp, m, id)))
+
+def iterator_next(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, cursor: MCursor<K, V>) -> MCursor<K, V> & Maybe<&2, M.Entry<K, V>>:
+  MC{m, +next, current, lower, upper, forward} = cursor
+  iterator_node(~K, ~V, ~cmp, next, current, lower, upper, forward, read(~K, ~V, ~cmp, m, next))
+

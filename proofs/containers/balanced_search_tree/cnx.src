@@ -239,12 +239,13 @@ def nx_cg($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH) -> {CU.cgood($AK, $M
 %def SPN ($SCR(None{}), None{})
 
 # in range: the entry, and the neighbour next
-def nx_b($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, $NH, +b: Bool) -> $COKE(S.pick(S.Cursor<K, V> & $ME, b, $SPY, $SPN), MI.iterator_checked($AK, $SH, $J, cu, lo2, hi2, fw, $EE, b)):
+def nx_b($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, $NH, +b: Bool) -> $COKE(S.pick(S.Cursor<K, V> & $ME, b, $SPY, $SPN), MI.iterator_checked($AK, $SH, $J, cu, lo2, hi2, fw, M.N{c0, x1, x2, x3, k}, $EE, b)):
   match b:
     case False{}:
       $NONE_W
     case True{}:
       +hnd = L.subst($LN, z => {NL.nodupn(z) == True{} : Bool}, $IDS(tg), $WH(pc, $TJ), hid, DJ.ndl($IDS(tg), fl, ST.g_cnd($AK, $F, hg)))
+      %Equal.cong($ND, ST.Sh<K, V> & Nat, z => MI.neighbor_node($AK, $J, fw, ($SH, z)), ST.nd(K, nl, $J), M.N{c0, x1, x2, x3, k}, hx) : $COKE($SPY, MI.iterator_yield($AK, $J, lo2, hi2, fw, $EE, _))
       %Equal.sym(ST.Sh<K, V> & Nat, MI.neighbor($AK, $SH, $J, fw), ($SH, $NBR), NB.neighbor_m($AK, $F, pc, $J, pa, pb, h3, h4, hnd, hid, N.eq_from_is_eq(n, SC.length(Nat, $IDS(tg)), ST.g_csz($AK, $F, hg)), fw)) : $COKE($SPY, MI.iterator_yield($AK, $J, lo2, hi2, fw, $EE, _))
       +es = nx_succ($AL1, $NHA)
       +ej = L.subst($ND, z => {CU.ck(~K, nl, $J) == M.node_key(~K, z) : Maybe<&2, K>}, ST.nd(K, nl, $J), M.N{c0, x1, x2, x3, k}, hx, {==})
@@ -252,13 +253,13 @@ def nx_b($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, $NH, +b: Bool) -> $CO
       ($NBR, ($J, (Some{$EE}, ({==}, (esp, nx_cg($AO, $F, hg, j, $CHA, hc, $PHA))))))
 
 # the node and its value: found, then checked against the range
-def nx_u($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, $NH) -> $COKE(S.iterator_next($AK, $SCR(Some{k})), MI.iterator_read($AK, $J, cu, lo2, hi2, fw, ($SH, Some{$EE}))):
+def nx_u($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, $NH) -> $COKE(S.iterator_next($AK, $SCR(Some{k})), MI.iterator_read($AK, $J, cu, lo2, hi2, fw, M.N{c0, x1, x2, x3, k}, ($SH, Some{$EE}))):
   +efind = Equal.trans($ME, S.find_e($AK, k, $EST), S.find_e($AK, k, $EAPP($ENTS($XS), Con{$EE, $ENTS($YS)})), Some{$EE}, L.subst($ES, z => {S.find_e($AK, k, $EST) == S.find_e($AK, k, z) : $ME}, $EST, $EAPP($ENTS($XS), Con{$EE, $ENTS($YS)}), $HE, {==}), OR.find_mid_eq($AO, k, $ENTS($XS), $EE, $ENTS($YS), $HORD, O.refl(~K, ~cmp, ~o, k)))
-  %Equal.sym($ME, S.find_e($AK, k, $EST), Some{$EE}, efind) : $COKE(S.next_at($AK, l, $EST, CU.ck(~K, nl, cu), lo2, hi2, fw, _), MI.iterator_read($AK, $J, cu, lo2, hi2, fw, ($SH, Some{$EE})))
-  %Equal.sym(Bool, M.in_range($AK, k, lo2, hi2), S.in_range(~K, ~cmp, k, lo2, hi2), CU.inr_eq($AK, k, lo2, hi2)) : $COKE(S.next_at($AK, l, $EST, CU.ck(~K, nl, cu), lo2, hi2, fw, Some{$EE}), MI.iterator_checked($AK, $SH, $J, cu, lo2, hi2, fw, $EE, _))
+  %Equal.sym($ME, S.find_e($AK, k, $EST), Some{$EE}, efind) : $COKE(S.next_at($AK, l, $EST, CU.ck(~K, nl, cu), lo2, hi2, fw, _), MI.iterator_read($AK, $J, cu, lo2, hi2, fw, M.N{c0, x1, x2, x3, k}, ($SH, Some{$EE})))
+  %Equal.sym(Bool, M.in_range($AK, k, lo2, hi2), S.in_range(~K, ~cmp, k, lo2, hi2), CU.inr_eq($AK, k, lo2, hi2)) : $COKE(S.next_at($AK, l, $EST, CU.ck(~K, nl, cu), lo2, hi2, fw, Some{$EE}), MI.iterator_checked($AK, $SH, $J, cu, lo2, hi2, fw, M.N{c0, x1, x2, x3, k}, $EE, _))
   nx_b($AO, $F, hg, j, $CHA, hc, $PHA, $NHA, S.in_range(~K, ~cmp, k, lo2, hi2))
 
-%def NXG(x, m) $COKE(S.iterator_next($AK, $SCR(M.node_key(~K, x))), MI.iterator_read($AK, $J, cu, lo2, hi2, fw, MI.entry_value($AK, M.node_key(~K, x), ($SH, m))))
+%def NXG(x, m) $COKE(S.iterator_next($AK, $SCR(M.node_key(~K, x))), MI.iterator_read($AK, $J, cu, lo2, hi2, fw, x, MI.entry_value($AK, M.node_key(~K, x), ($SH, m))))
 
 def nx_t($TO, $FT, +hg: $GF, +j: Nat, $CH, +hc: $CGJ, $PH, +x: $ND, +hx: {ST.nd(K, nl, $J) == x : $ND}, +m: Maybe<&2, V>, +hm: {ST.pv(V, pl, $J) == m : Maybe<&2, V>}) -> $NXG(x, m):
   match x m:

@@ -320,11 +320,11 @@ def itype(t):
 
 # ---------------------------------------------------------------- classification
 
-HANDF = {"new", "with_limit", "clear", "read", "write", "exchange", "get_id", "append", "neighbor_node"}
+HANDF = {"new", "with_limit", "clear", "read", "write", "exchange", "get_id", "append", "neighbor_node", "set_left", "set_right", "set_parent", "set_red", "search", "navigate", "iterator_next"}
 SKIP = {"read_finish", "write_finish", "exchange_finish", "append_rollback", "get_id_finish", "node_slot_done",
         "neighbor_slots_finish", "append_values", "node_slot_checked", "ascend_slots_step", "node_slot",
         "extreme_slots_probe", "ascend_slots_loop", "extreme_slots_loop", "append_nodes", "append_count",
-        "neighbor_slots", "neighbor_used"}
+        "neighbor_slots", "neighbor_used", "side_at", "ascend_par", "ascend_side", "ascend_tag", "ascend_at", "extreme_tag", "extreme_at", "search_key", "search_probe", "search_down2", "search_down", "search_fast", "search_fin", "nav_fast", "nav_end", "iter_child", "iter_link", "iter_valid", "iter_kv", "iter_key", "iter_value", "iter_at"}
 
 
 def classify(fns):
@@ -455,6 +455,9 @@ def gen_mirror(fns):
     for f in fns:
         if f.name in mapped and f.name not in HANDF:
             out.append(mirror_fn(f, cx))
+        elif f.name in HANDF and (HAND / "mirror" / (f.name + ".part")).exists():
+            # a hand-written mirror placed at its function's source position
+            out.append((HAND / "mirror" / (f.name + ".part")).read_text())
     return "\n".join(out)
 
 
@@ -824,6 +827,8 @@ def gen_sim(fns):
             except Exception as ex:
                 errs += 1
                 out.append("# FAILED " + f.name + ": " + str(ex) + "\n")
+        elif f.name in HANDF and (HAND / "sim" / (f.name + ".part")).exists():
+            out.append((HAND / "sim" / (f.name + ".part")).read_text())
     import mac
     return mac.expand("\n".join(out).split("\n")), errs
 
@@ -833,4 +838,9 @@ if __name__ == "__main__":
     OUT_MIRROR.write_text(gen_mirror(fns))
     txt, errs = gen_sim(fns)
     OUT_SIM.write_text(txt)
+    # hand-written parts sit at their function's source position; a callee
+    # can still follow its caller there, so order both files by dependency
+    import subprocess
+    for out in (OUT_MIRROR, OUT_SIM):
+        subprocess.run([sys.executable, str(ROOT / "tools/toposort.py"), str(out)], check=True)
     print("mirror and sim written;", errs, "functions failed")

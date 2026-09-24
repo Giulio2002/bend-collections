@@ -1,0 +1,5 @@
+# the mirror of search (the implementation reads two fields per level; sim/search.part)
+def search(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K) -> ST.Sh<K, V> & M.Search:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      search_loop(~K, ~V, ~cmp, 1n+n, k, root, 0n, False{}, probe(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k))

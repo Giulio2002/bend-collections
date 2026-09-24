@@ -1,0 +1,5 @@
+# the mirror of navigate (the implementation reads two fields per level; sim/navigate.part)
+def navigate(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K, +higher: Bool, +inclusive: Bool) -> ST.Sh<K, V> & Nat:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      nav_loop(~K, ~V, ~cmp, 1n+n, k, higher, inclusive, root, 0n, probe(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k))

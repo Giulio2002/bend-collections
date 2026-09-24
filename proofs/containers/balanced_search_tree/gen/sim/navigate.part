@@ -1,0 +1,79 @@
+# ---- navigate: the fast descent keeps the candidate, the mirror's loop probes ----
+
+%def NQG +g: {MI.dg(K, V, $SH0) == True{} : Bool}
+%def NQRES(x) MI.rp(~K, ~V, ~cmp, Nat, x)
+%def NQEND(x) M.nav_end(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), h, inc, x)
+%def NQLOOP(fu, id, b, pr) MI.nav_loop(~K, ~V, ~cmp, fu, k, h, inc, id, b, pr)
+%def NQFAST(fu, b, st) M.nav_fast(~K, ~V, ~cmp, fu, k, h, b, st)
+%def NQIHT(fu) @+id2: Nat -> @+b2: Nat -> {$NQEND($NQFAST(fu, b2, M.search_probe(~K, ~V, ~cmp, $AA, id2, k))) == $NQRES($NQLOOP(fu, id2, b2, MI.probe(~K, ~V, ~cmp, $SH0, id2, k))) : $TMT & Nat}
+%def NQNN M.N{c, lf, rt, q, key}
+%def NQA $F, hl, hd, hc, hp, g, k, h, inc
+
+# the order of a live node decides: descend (the rest by ih) or finish at the equal node
+def nq_o(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, $NQG, +k: K, +h: Bool, +inc: Bool, +f: Nat, +i: Nat, +b: Nat, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +key: K, +hy: {$NI(i) == $NQNN : $ND}, ih: $NQIHT(f), +c0: Cmp) -> {$NQEND($NQFAST(1n+f, b, ($AA, (1n+i, Some{c0})))) == $NQRES($NQLOOP(1n+f, 1n+i, b, ($SH0, ($NQNN, c0)))) : $TMT & Nat}:
+  match c0:
+    case LT{}:
+      %Equal.sym($ARR & Nat, M.side_at(~K, ~V, ~cmp, $AA, True{}, i), ($AA, M.pick(Nat, True{}, M.nleft(~K, $NI(i)), M.nright(~K, $NI(i)))), side_ok(~K, ~V, ~cmp, $LDA, True{}, i)) : {$NQEND($NQFAST(f, M.pick(Nat, h, 1n+i, b), M.search_down2(~K, ~V, ~cmp, k, _))) == $NQRES($NQLOOP(1n+f, 1n+i, b, ($SH0, ($NQNN, LT{})))) : $TMT & Nat}
+      %Equal.sym($ND, $NI(i), $NQNN, hy) : {$NQEND($NQFAST(f, M.pick(Nat, h, 1n+i, b), M.search_probe(~K, ~V, ~cmp, $AA, M.nleft(~K, _), k))) == $NQRES($NQLOOP(1n+f, 1n+i, b, ($SH0, ($NQNN, LT{})))) : $TMT & Nat}
+      ih(lf, M.pick(Nat, h, 1n+i, b))
+    case GT{}:
+      %Equal.sym($ARR & Nat, M.side_at(~K, ~V, ~cmp, $AA, False{}, i), ($AA, M.pick(Nat, False{}, M.nleft(~K, $NI(i)), M.nright(~K, $NI(i)))), side_ok(~K, ~V, ~cmp, $LDA, False{}, i)) : {$NQEND($NQFAST(f, M.pick(Nat, h, b, 1n+i), M.search_down2(~K, ~V, ~cmp, k, _))) == $NQRES($NQLOOP(1n+f, 1n+i, b, ($SH0, ($NQNN, GT{})))) : $TMT & Nat}
+      %Equal.sym($ND, $NI(i), $NQNN, hy) : {$NQEND($NQFAST(f, M.pick(Nat, h, b, 1n+i), M.search_probe(~K, ~V, ~cmp, $AA, M.nright(~K, _), k))) == $NQRES($NQLOOP(1n+f, 1n+i, b, ($SH0, ($NQNN, GT{})))) : $TMT & Nat}
+      ih(rt, M.pick(Nat, h, b, 1n+i))
+    case EQ{}:
+      nav_equal_s(~K, ~V, ~cmp, $SH0, 1n+i, h, inc, g)
+
+def nq_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, $NQG, +k: K, +h: Bool, +inc: Bool, +f: Nat, +i: Nat, +b: Nat, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +key: K, +hy: {$NI(i) == $NQNN : $ND}, ih: $NQIHT(f), +c0: Cmp, +hco: {cmp(k, key) == c0 : Cmp}) -> {$NQEND($NQFAST(1n+f, b, ($AA, (1n+i, Some{cmp(k, key)})))) == $NQRES($NQLOOP(1n+f, 1n+i, b, ($SH0, ($NQNN, cmp(k, key))))) : $TMT & Nat}:
+  %Equal.sym(Cmp, cmp(k, key), c0, hco) : {$NQEND($NQFAST(1n+f, b, ($AA, (1n+i, Some{_})))) == $NQRES($NQLOOP(1n+f, 1n+i, b, ($SH0, ($NQNN, _)))) : $TMT & Nat}
+  nq_o(~K, ~V, ~cmp, $NQA, f, i, b, c, lf, rt, q, key, hy, ih, c0)
+
+def nq_y(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, $NQG, +k: K, +h: Bool, +inc: Bool, +f: Nat, +i: Nat, +b: Nat, +y: $ND, +hy: {$NI(i) == y : $ND}, ih: $NQIHT(f)) -> {$NQEND($NQFAST(1n+f, b, M.search_key(~K, ~V, ~cmp, 1n+i, k, ($AA, M.nkey(~K, y))))) == $NQRES($NQLOOP(1n+f, 1n+i, b, MI.probe_node(~K, ~V, ~cmp, 1n+i, k, ($SH0, y)))) : $TMT & Nat}:
+  match y:
+    case M.Free{z}:
+      {==}
+    case M.N{+c, +lf, +rt, +q, +key}:
+      nq_c(~K, ~V, ~cmp, $NQA, f, i, b, c, lf, rt, q, key, hy, ih, cmp(k, key), {==})
+
+def n0_o(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, $NQG, +k: K, +h: Bool, +inc: Bool, +i: Nat, +b: Nat, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +key: K, +c0: Cmp) -> {$NQEND($NQFAST(0n, b, ($AA, (1n+i, Some{c0})))) == $NQRES($NQLOOP(0n, 1n+i, b, ($SH0, ($NQNN, c0)))) : $TMT & Nat}:
+  match c0:
+    case LT{}:
+      {==}
+    case GT{}:
+      {==}
+    case EQ{}:
+      {==}
+
+def n0_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, $NQG, +k: K, +h: Bool, +inc: Bool, +i: Nat, +b: Nat, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +key: K, +c0: Cmp, +hco: {cmp(k, key) == c0 : Cmp}) -> {$NQEND($NQFAST(0n, b, ($AA, (1n+i, Some{cmp(k, key)})))) == $NQRES($NQLOOP(0n, 1n+i, b, ($SH0, ($NQNN, cmp(k, key))))) : $TMT & Nat}:
+  %Equal.sym(Cmp, cmp(k, key), c0, hco) : {$NQEND($NQFAST(0n, b, ($AA, (1n+i, Some{_})))) == $NQRES($NQLOOP(0n, 1n+i, b, ($SH0, ($NQNN, _)))) : $TMT & Nat}
+  n0_o(~K, ~V, ~cmp, $NQA, i, b, c, lf, rt, q, key, c0)
+
+def n0_y(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, $NQG, +k: K, +h: Bool, +inc: Bool, +i: Nat, +b: Nat, +y: $ND) -> {$NQEND($NQFAST(0n, b, M.search_key(~K, ~V, ~cmp, 1n+i, k, ($AA, M.nkey(~K, y))))) == $NQRES($NQLOOP(0n, 1n+i, b, MI.probe_node(~K, ~V, ~cmp, 1n+i, k, ($SH0, y)))) : $TMT & Nat}:
+  match y:
+    case M.Free{z}:
+      {==}
+    case M.N{+c, +lf, +rt, +q, +key}:
+      n0_c(~K, ~V, ~cmp, $NQA, i, b, c, lf, rt, q, key, cmp(k, key), {==})
+
+# the fast descent, ended in the map, is the mirror's loop
+def nq(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, $NQG, +k: K, +h: Bool, +inc: Bool, +fuel: Nat, +id: Nat, +b: Nat) -> {$NQEND($NQFAST(fuel, b, M.search_probe(~K, ~V, ~cmp, $AA, id, k))) == $NQRES($NQLOOP(fuel, id, b, MI.probe(~K, ~V, ~cmp, $SH0, id, k))) : $TMT & Nat}:
+  match fuel id:
+    case 0n 0n:
+      {==}
+    case 0n 1n+ +i:
+      %Equal.sym($ARR & Maybe<&2, K>, M.ns_key_at(~K, $AA, i), ($AA, M.nkey(~K, $NI(i))), NSL.key_at_ok(~K, $LDA, i)) : {$NQEND($NQFAST(0n, b, M.search_key(~K, ~V, ~cmp, 1n+i, k, _))) == $NQRES($NQLOOP(0n, 1n+i, b, MI.probe_node(~K, ~V, ~cmp, 1n+i, k, ($SH0, $NI(i))))) : $TMT & Nat}
+      n0_y(~K, ~V, ~cmp, $NQA, i, b, $NI(i))
+    case 1n+f 0n:
+      {==}
+    case 1n+ +f 1n+ +i:
+      %Equal.sym($ARR & Maybe<&2, K>, M.ns_key_at(~K, $AA, i), ($AA, M.nkey(~K, $NI(i))), NSL.key_at_ok(~K, $LDA, i)) : {$NQEND($NQFAST(1n+f, b, M.search_key(~K, ~V, ~cmp, 1n+i, k, _))) == $NQRES($NQLOOP(1n+f, 1n+i, b, MI.probe_node(~K, ~V, ~cmp, 1n+i, k, ($SH0, $NI(i))))) : $TMT & Nat}
+      nq_y(~K, ~V, ~cmp, $NQA, f, i, b, $NI(i), {==}, id2 => b2 => nq(~K, ~V, ~cmp, $NQA, f, id2, b2))
+
+def navigate_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +k: K, +higher: Bool, +inclusive: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.navigate(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), k, higher, inclusive) == MI.rp(~K, ~V, ~cmp, Nat, MI.navigate(~K, ~V, ~cmp, m, k, higher, inclusive)) : $TMT & Nat}:
+  match m:
+    case ST.SH{$FP}:
+      nq(~K, ~V, ~cmp, $F, $DGS(g_m), g_m, k, higher, inclusive, 1n+n, root, 0n)
+
+def navigate_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +higher: Bool, +inclusive: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.navigate(~K, ~V, ~cmp, m, k, higher, inclusive)) == True{} : Bool}:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      nav_loop_g(~K, ~V, ~cmp, 1n+n, k, higher, inclusive, root, 0n, MI.probe(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k), probe_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k, g_m))

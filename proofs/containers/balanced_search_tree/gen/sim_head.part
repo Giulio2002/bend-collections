@@ -190,76 +190,243 @@ def append_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +k: K, +v: V, +p
     case ST.SH{$FP}:
       app_s(~K, ~V, ~cmp, $F, k, v, p, $DGS(g_m), Nat.is_lt(SC.length($ND, nl), SC.pow2(d)), {==}, Nat.is_lt(d, l), {==})
 
-# ---- the neighbour walks: slot reads are the node list's ----
+
+# ---- field writes: the mirror keeps the layout ----
+
+def set_left_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_left_node(~K, ~V, ~cmp, m, id, v, node)) == True{} : Bool}:
+  match node:
+    case M.Free{+px2}:
+      g_m
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      write_g(~K, ~V, ~cmp, m, id, M.N{px3, v, px5, px6, px7}, g_m)
+
+def set_left_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +v: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.set_left_1(~K, ~V, ~cmp, id, v, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m1, +node}:
+      set_left_node_g(~K, ~V, ~cmp, m1, id, v, node, g_pair_result)
+
+def set_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_left(~K, ~V, ~cmp, m, id, v)) == True{} : Bool}:
+  set_left_1_g(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+def set_right_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_right_node(~K, ~V, ~cmp, m, id, v, node)) == True{} : Bool}:
+  match node:
+    case M.Free{+px2}:
+      g_m
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      write_g(~K, ~V, ~cmp, m, id, M.N{px3, px4, v, px6, px7}, g_m)
+
+def set_right_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +v: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.set_right_1(~K, ~V, ~cmp, id, v, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m1, +node}:
+      set_right_node_g(~K, ~V, ~cmp, m1, id, v, node, g_pair_result)
+
+def set_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_right(~K, ~V, ~cmp, m, id, v)) == True{} : Bool}:
+  set_right_1_g(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+def set_parent_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_parent_node(~K, ~V, ~cmp, m, id, v, node)) == True{} : Bool}:
+  match node:
+    case M.Free{+px2}:
+      g_m
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      write_g(~K, ~V, ~cmp, m, id, M.N{px3, px4, px5, v, px7}, g_m)
+
+def set_parent_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +v: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.set_parent_1(~K, ~V, ~cmp, id, v, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m1, +node}:
+      set_parent_node_g(~K, ~V, ~cmp, m1, id, v, node, g_pair_result)
+
+def set_parent_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_parent(~K, ~V, ~cmp, m, id, v)) == True{} : Bool}:
+  set_parent_1_g(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+def set_red_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Bool, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_red_node(~K, ~V, ~cmp, m, id, v, node)) == True{} : Bool}:
+  match node:
+    case M.Free{+px2}:
+      g_m
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      write_g(~K, ~V, ~cmp, m, id, M.N{v, px4, px5, px6, px7}, g_m)
+
+def set_red_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +v: Bool, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.set_red_1(~K, ~V, ~cmp, id, v, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m1, +node}:
+      set_red_node_g(~K, ~V, ~cmp, m1, id, v, node, g_pair_result)
+
+def set_red_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_red(~K, ~V, ~cmp, m, id, v)) == True{} : Bool}:
+  set_red_1_g(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+
+# ---- field writes: one array written is the node written ----
+
+def set_left_sc(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, +i: Nat, +v: Nat, +y: $ND, +hy: {ST.nth_or($ND, nl, i, M.Free{0n}) == y : $ND}) -> {M.TM{n, root, lo, hi, free, M.ns_set_left(~K, ST.nodes(~K, l, d, nl), i, v), ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, MI.set_left_node(~K, ~V, ~cmp, $SH0, 1n+i, v, y)) : $TMT}:
+  match y:
+    case M.Free{+z}:
+      %Equal.sym(M.NodeStore<K>, M.ns_set_left(~K, ST.nodes(~K, l, d, nl), i, v), ST.nodes(~K, l, d, nl), NSL.left_set_free(~K, l, d, nl, hl, hd, hc, i, v, z, hy)) : {M.TM{n, root, lo, hi, free, _, ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, MI.set_left_node(~K, ~V, ~cmp, $SH0, 1n+i, v, M.Free{z})) : $TMT}
+      {==}
+    case M.N{+c, +lf, +rt, +q, +k}:
+      +hlt = NSL.nth_or_lt(~K, nl, i, M.N{c, lf, rt, q, k}, {==}, hy)
+      %Equal.sym(M.NodeStore<K>, M.ns_set_left(~K, ST.nodes(~K, l, d, nl), i, v), ST.nodes(~K, l, d, SC.update($ND, nl, i, M.N{c, v, rt, q, k})), NSL.left_set_node(~K, l, d, nl, hl, hd, hc, i, v, c, lf, rt, q, k, hy)) : {M.TM{n, root, lo, hi, free, _, ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, MI.set_left_node(~K, ~V, ~cmp, $SH0, 1n+i, v, M.N{c, lf, rt, q, k})) : $TMT}
+      %Equal.sym(Bool, Nat.is_lt(i, SC.length($ND, nl)), True{}, hlt) : {M.TM{n, root, lo, hi, free, ST.nodes(~K, l, d, SC.update($ND, nl, i, M.N{c, v, rt, q, k})), ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, ST.pk(List<&2, $ND>, _, SC.update($ND, nl, i, M.N{c, v, rt, q, k}), nl), pl, t, fl}) : $TMT}
+      {==}
+
+def set_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v) == ST.real(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m, id, v)) : $TMT}:
+  match m id:
+    case ST.SH{$FP} 0n:
+      {==}
+    case ST.SH{$FP} 1n+ +i:
+      set_left_sc(~K, ~V, ~cmp, $F, $DGS(g_m), i, v, ST.nth_or($ND, nl, i, M.Free{0n}), {==})
+
+def set_right_sc(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, +i: Nat, +v: Nat, +y: $ND, +hy: {ST.nth_or($ND, nl, i, M.Free{0n}) == y : $ND}) -> {M.TM{n, root, lo, hi, free, M.ns_set_right(~K, ST.nodes(~K, l, d, nl), i, v), ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, MI.set_right_node(~K, ~V, ~cmp, $SH0, 1n+i, v, y)) : $TMT}:
+  match y:
+    case M.Free{+z}:
+      %Equal.sym(M.NodeStore<K>, M.ns_set_right(~K, ST.nodes(~K, l, d, nl), i, v), ST.nodes(~K, l, d, nl), NSL.right_set_free(~K, l, d, nl, hl, hd, hc, i, v, z, hy)) : {M.TM{n, root, lo, hi, free, _, ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, MI.set_right_node(~K, ~V, ~cmp, $SH0, 1n+i, v, M.Free{z})) : $TMT}
+      {==}
+    case M.N{+c, +lf, +rt, +q, +k}:
+      +hlt = NSL.nth_or_lt(~K, nl, i, M.N{c, lf, rt, q, k}, {==}, hy)
+      %Equal.sym(M.NodeStore<K>, M.ns_set_right(~K, ST.nodes(~K, l, d, nl), i, v), ST.nodes(~K, l, d, SC.update($ND, nl, i, M.N{c, lf, v, q, k})), NSL.right_set_node(~K, l, d, nl, hl, hd, hc, i, v, c, lf, rt, q, k, hy)) : {M.TM{n, root, lo, hi, free, _, ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, MI.set_right_node(~K, ~V, ~cmp, $SH0, 1n+i, v, M.N{c, lf, rt, q, k})) : $TMT}
+      %Equal.sym(Bool, Nat.is_lt(i, SC.length($ND, nl)), True{}, hlt) : {M.TM{n, root, lo, hi, free, ST.nodes(~K, l, d, SC.update($ND, nl, i, M.N{c, lf, v, q, k})), ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, ST.pk(List<&2, $ND>, _, SC.update($ND, nl, i, M.N{c, lf, v, q, k}), nl), pl, t, fl}) : $TMT}
+      {==}
+
+def set_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v) == ST.real(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m, id, v)) : $TMT}:
+  match m id:
+    case ST.SH{$FP} 0n:
+      {==}
+    case ST.SH{$FP} 1n+ +i:
+      set_right_sc(~K, ~V, ~cmp, $F, $DGS(g_m), i, v, ST.nth_or($ND, nl, i, M.Free{0n}), {==})
+
+def set_parent_sc(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, +i: Nat, +v: Nat, +y: $ND, +hy: {ST.nth_or($ND, nl, i, M.Free{0n}) == y : $ND}) -> {M.TM{n, root, lo, hi, free, M.ns_set_parent(~K, ST.nodes(~K, l, d, nl), i, v), ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, MI.set_parent_node(~K, ~V, ~cmp, $SH0, 1n+i, v, y)) : $TMT}:
+  match y:
+    case M.Free{+z}:
+      %Equal.sym(M.NodeStore<K>, M.ns_set_parent(~K, ST.nodes(~K, l, d, nl), i, v), ST.nodes(~K, l, d, nl), NSL.parent_set_free(~K, l, d, nl, hl, hd, hc, i, v, z, hy)) : {M.TM{n, root, lo, hi, free, _, ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, MI.set_parent_node(~K, ~V, ~cmp, $SH0, 1n+i, v, M.Free{z})) : $TMT}
+      {==}
+    case M.N{+c, +lf, +rt, +q, +k}:
+      +hlt = NSL.nth_or_lt(~K, nl, i, M.N{c, lf, rt, q, k}, {==}, hy)
+      %Equal.sym(M.NodeStore<K>, M.ns_set_parent(~K, ST.nodes(~K, l, d, nl), i, v), ST.nodes(~K, l, d, SC.update($ND, nl, i, M.N{c, lf, rt, v, k})), NSL.parent_set_node(~K, l, d, nl, hl, hd, hc, i, v, c, lf, rt, q, k, hy)) : {M.TM{n, root, lo, hi, free, _, ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, MI.set_parent_node(~K, ~V, ~cmp, $SH0, 1n+i, v, M.N{c, lf, rt, q, k})) : $TMT}
+      %Equal.sym(Bool, Nat.is_lt(i, SC.length($ND, nl)), True{}, hlt) : {M.TM{n, root, lo, hi, free, ST.nodes(~K, l, d, SC.update($ND, nl, i, M.N{c, lf, rt, v, k})), ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, ST.pk(List<&2, $ND>, _, SC.update($ND, nl, i, M.N{c, lf, rt, v, k}), nl), pl, t, fl}) : $TMT}
+      {==}
+
+def set_parent_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_parent(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v) == ST.real(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, m, id, v)) : $TMT}:
+  match m id:
+    case ST.SH{$FP} 0n:
+      {==}
+    case ST.SH{$FP} 1n+ +i:
+      set_parent_sc(~K, ~V, ~cmp, $F, $DGS(g_m), i, v, ST.nth_or($ND, nl, i, M.Free{0n}), {==})
+
+def set_red_sc(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, +i: Nat, +v: Bool, +y: $ND, +hy: {ST.nth_or($ND, nl, i, M.Free{0n}) == y : $ND}) -> {M.TM{n, root, lo, hi, free, M.ns_set_red(~K, ST.nodes(~K, l, d, nl), i, v), ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, MI.set_red_node(~K, ~V, ~cmp, $SH0, 1n+i, v, y)) : $TMT}:
+  match y:
+    case M.Free{+z}:
+      %Equal.sym(M.NodeStore<K>, M.ns_set_red(~K, ST.nodes(~K, l, d, nl), i, v), ST.nodes(~K, l, d, nl), NSL.red_set_free(~K, l, d, nl, hl, hd, hc, i, v, z, hy)) : {M.TM{n, root, lo, hi, free, _, ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, MI.set_red_node(~K, ~V, ~cmp, $SH0, 1n+i, v, M.Free{z})) : $TMT}
+      {==}
+    case M.N{+c, +lf, +rt, +q, +k}:
+      +hlt = NSL.nth_or_lt(~K, nl, i, M.N{c, lf, rt, q, k}, {==}, hy)
+      %Equal.sym(M.NodeStore<K>, M.ns_set_red(~K, ST.nodes(~K, l, d, nl), i, v), ST.nodes(~K, l, d, SC.update($ND, nl, i, M.N{v, lf, rt, q, k})), NSL.red_set_node(~K, l, d, nl, hl, hd, hc, i, v, c, lf, rt, q, k, hy)) : {M.TM{n, root, lo, hi, free, _, ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, MI.set_red_node(~K, ~V, ~cmp, $SH0, 1n+i, v, M.N{c, lf, rt, q, k})) : $TMT}
+      %Equal.sym(Bool, Nat.is_lt(i, SC.length($ND, nl)), True{}, hlt) : {M.TM{n, root, lo, hi, free, ST.nodes(~K, l, d, SC.update($ND, nl, i, M.N{v, lf, rt, q, k})), ST.pays(~V, l, d, pl)} == ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, ST.pk(List<&2, $ND>, _, SC.update($ND, nl, i, M.N{v, lf, rt, q, k}), nl), pl, t, fl}) : $TMT}
+      {==}
+
+def set_red_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +id: Nat, +v: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v) == ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, id, v)) : $TMT}:
+  match m id:
+    case ST.SH{$FP} 0n:
+      {==}
+    case ST.SH{$FP} 1n+ +i:
+      set_red_sc(~K, ~V, ~cmp, $F, $DGS(g_m), i, v, ST.nth_or($ND, nl, i, M.Free{0n}), {==})
+
+# ---- the neighbour walks: field reads are the node list's ----
 
 %def ARR M.NodeStore<K>
 %def AA ST.nodes(~K, l, d, nl)
 %def UU SC.length($ND, nl)
 %def LDN +l: Nat, +d: Nat, +nl: List<&2, $ND>, +hl: {$B1 == True{} : Bool}, +hd: {$B2 == True{} : Bool}, +hc: {$B3 == True{} : Bool}
 %def LDA l, d, nl, hl, hd, hc
+%def NI(i) ST.nth_or($ND, nl, i, M.Free{0n})
 
-%def TT MK.mk($ND, d, nl)
-%def XX SC.nth($ND, LY.somes($ND, AR.slots(Maybe<&2, $ND>, $TT)), i)
-
-def nsdone(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, -arr: $ARR, +x: Maybe<&2, $ND>) -> {M.node_slot_done(~K, ~V, ~cmp, (arr, DA.item($ND, x))) == (arr, PR.or_else($ND, x, M.Free{0n})) : $ARR & $ND}:
-  match x:
-    case None{}:
-      {==}
-    case Some{v}:
-      {==}
-
-def nsb(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +i: Nat, +b: Bool, +hb: {Nat.is_lt(i, $UU) == b : Bool}) -> {M.node_slot_checked(~K, ~V, ~cmp, $AA, i, b) == ($AA, ST.nd(K, nl, 1n+i)) : $ARR & $ND}:
-  match b:
-    case False{}:
-      %Equal.sym($ND, ST.nth_or($ND, nl, i, M.Free{0n}), M.Free{0n}, PR.nth_hi($ND, nl, i, M.Free{0n}, hb)) : {($AA, M.Free{0n}) == ($AA, _) : $ARR & $ND}
-      {==}
+def side_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +left: Bool, +i: Nat) -> {M.side_at(~K, ~V, ~cmp, $AA, left, i) == ($AA, M.pick(Nat, left, M.nleft(~K, $NI(i)), M.nright(~K, $NI(i)))) : $ARR & Nat}:
+  match left:
     case True{}:
-      %Equal.sym($ARR & Result<&2, &2, DE.Error, $ND>, M.ns_get(~K, $AA, i), ($AA, DA.item($ND, SC.nth($ND, nl, i))), NSL.ns_get_ok(~K, l, d, nl, hl, hd, hc, i)) : {M.node_slot_done(~K, ~V, ~cmp, _) == ($AA, ST.nd(K, nl, 1n+i)) : $ARR & $ND}
-      %Equal.sym($ND, ST.nth_or($ND, nl, i, M.Free{0n}), PR.or_else($ND, SC.nth($ND, nl, i), M.Free{0n}), PR.nth_or_nth($ND, nl, i, M.Free{0n})) : {M.node_slot_done(~K, ~V, ~cmp, ($AA, DA.item($ND, SC.nth($ND, nl, i)))) == ($AA, _) : $ARR & $ND}
-      nsdone(~K, ~V, ~cmp, $AA, SC.nth($ND, nl, i))
+      NSL.left_at_ok(~K, $LDA, i)
+    case False{}:
+      NSL.right_at_ok(~K, $LDA, i)
 
-def ns(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +id: Nat) -> {M.node_slot(~K, ~V, ~cmp, $AA, $UU, id) == ($AA, ST.nd(K, nl, id)) : $ARR & $ND}:
-  match id:
+def asc_y(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +x: Nat, +i: Nat, +forward: Bool, +y: $ND, +hy: {$NI(i) == y : $ND}) -> {M.ascend_tag(~K, ~V, ~cmp, x, 1n+i, i, forward, ($AA, M.ntag(~K, y))) == ($AA, MI.asc_step(K, x, 1n+i, forward, y)) : $ARR & M.Ascend}:
+  match y:
+    case M.Free{z}:
+      {==}
+    case M.N{True{}, +lf, +rt, +q, +k}:
+      %Equal.sym($ARR & Nat, M.side_at(~K, ~V, ~cmp, $AA, forward, i), ($AA, M.pick(Nat, forward, M.nleft(~K, $NI(i)), M.nright(~K, $NI(i)))), side_ok(~K, ~V, ~cmp, $LDA, forward, i)) : {M.ascend_side(~K, ~V, ~cmp, x, 1n+i, i, _) == ($AA, MI.asc_step(K, x, 1n+i, forward, M.N{True{}, lf, rt, q, k})) : $ARR & M.Ascend}
+      %Equal.sym($ARR & Nat, M.ns_parent_at(~K, $AA, i), ($AA, M.nparent(~K, $NI(i))), NSL.parent_at_ok(~K, $LDA, i)) : {M.ascend_par(~K, ~V, ~cmp, x, 1n+i, M.pick(Nat, forward, M.nleft(~K, $NI(i)), M.nright(~K, $NI(i))), _) == ($AA, MI.asc_step(K, x, 1n+i, forward, M.N{True{}, lf, rt, q, k})) : $ARR & M.Ascend}
+      %Equal.sym($ND, $NI(i), M.N{True{}, lf, rt, q, k}, hy) : {($AA, M.ascend_choice(1n+i, 1n+i, M.nparent(~K, _), Nat.is_eq(x, M.pick(Nat, forward, M.nleft(~K, _), M.nright(~K, _))))) == ($AA, MI.asc_step(K, x, 1n+i, forward, M.N{True{}, lf, rt, q, k})) : $ARR & M.Ascend}
+      {==}
+    case M.N{False{}, +lf, +rt, +q, +k}:
+      %Equal.sym($ARR & Nat, M.side_at(~K, ~V, ~cmp, $AA, forward, i), ($AA, M.pick(Nat, forward, M.nleft(~K, $NI(i)), M.nright(~K, $NI(i)))), side_ok(~K, ~V, ~cmp, $LDA, forward, i)) : {M.ascend_side(~K, ~V, ~cmp, x, 1n+i, i, _) == ($AA, MI.asc_step(K, x, 1n+i, forward, M.N{False{}, lf, rt, q, k})) : $ARR & M.Ascend}
+      %Equal.sym($ARR & Nat, M.ns_parent_at(~K, $AA, i), ($AA, M.nparent(~K, $NI(i))), NSL.parent_at_ok(~K, $LDA, i)) : {M.ascend_par(~K, ~V, ~cmp, x, 1n+i, M.pick(Nat, forward, M.nleft(~K, $NI(i)), M.nright(~K, $NI(i))), _) == ($AA, MI.asc_step(K, x, 1n+i, forward, M.N{False{}, lf, rt, q, k})) : $ARR & M.Ascend}
+      %Equal.sym($ND, $NI(i), M.N{False{}, lf, rt, q, k}, hy) : {($AA, M.ascend_choice(1n+i, 1n+i, M.nparent(~K, _), Nat.is_eq(x, M.pick(Nat, forward, M.nleft(~K, _), M.nright(~K, _))))) == ($AA, MI.asc_step(K, x, 1n+i, forward, M.N{False{}, lf, rt, q, k})) : $ARR & M.Ascend}
+      {==}
+
+# one ascending step reads the node's tag, child and parent
+def asc_at(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +x: Nat, +p: Nat, +forward: Bool) -> {M.ascend_at(~K, ~V, ~cmp, x, p, forward, $AA) == ($AA, MI.asc_step(K, x, p, forward, ST.nd(K, nl, p))) : $ARR & M.Ascend}:
+  match p:
     case 0n:
       {==}
-    case 1n+i:
-      nsb(~K, ~V, ~cmp, $LDA, i, Nat.is_lt(i, $UU), {==})
+    case 1n+ +i:
+      %Equal.sym($ARR & Nat, M.ns_tag_at(~K, $AA, i), ($AA, M.ntag(~K, $NI(i))), NSL.tag_at_ok(~K, $LDA, i)) : {M.ascend_tag(~K, ~V, ~cmp, x, 1n+i, i, forward, _) == ($AA, MI.asc_step(K, x, 1n+i, forward, $NI(i))) : $ARR & M.Ascend}
+      asc_y(~K, ~V, ~cmp, $LDA, x, i, forward, $NI(i), {==})
 
-def ass(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +p: Nat, +forward: Bool, -a: $ARR, +node: $ND) -> {M.ascend_slots_step(~K, ~V, ~cmp, x, p, forward, (a, node)) == (a, MI.asc_step(K, x, p, forward, node)) : $ARR & M.Ascend}:
-  match node:
-    case M.Free{next}:
+def ext_pick(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, -a: M.NodeStore<K>, +fw: Bool, +lf: Nat, +rt: Nat) -> {(a, M.pick(Nat, Bool.not(fw), lf, rt)) == (a, M.pick(Nat, fw, rt, lf)) : M.NodeStore<K> & Nat}:
+  match fw:
+    case True{}:
       {==}
-    case M.N{c, l, r, q, key}:
+    case False{}:
       {==}
 
-def asl(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +fuel: Nat, +forward: Bool, +st: M.Ascend) -> {M.ascend_slots_loop(~K, ~V, ~cmp, fuel, $UU, forward, ($AA, st)) == ($AA, MI.asc_loop(K, fuel, nl, forward, st)) : $ARR & Nat}:
+def ext_free(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, -a: M.NodeStore<K>, +forward: Bool, +z: Nat) -> {(a, 0n) == (a, M.child(~K, M.Free{z}, forward)) : M.NodeStore<K> & Nat}:
+  match forward:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+def ext_y(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +forward: Bool, +j: Nat, +y: $ND, +hy: {$NI(j) == y : $ND}) -> {M.extreme_tag(~K, ~V, ~cmp, forward, j, ($AA, M.ntag(~K, y))) == ($AA, M.child(~K, y, forward)) : $ARR & Nat}:
+  match y:
+    case M.Free{+z}:
+      ext_free(~K, ~V, ~cmp, $AA, forward, z)
+    case M.N{True{}, +lf, +rt, +q, +k}:
+      %Equal.sym($ARR & Nat, M.side_at(~K, ~V, ~cmp, $AA, Bool.not(forward), j), ($AA, M.pick(Nat, Bool.not(forward), M.nleft(~K, $NI(j)), M.nright(~K, $NI(j)))), side_ok(~K, ~V, ~cmp, $LDA, Bool.not(forward), j)) : {_ == ($AA, M.child(~K, M.N{True{}, lf, rt, q, k}, forward)) : $ARR & Nat}
+      %Equal.sym($ND, $NI(j), M.N{True{}, lf, rt, q, k}, hy) : {($AA, M.pick(Nat, Bool.not(forward), M.nleft(~K, _), M.nright(~K, _))) == ($AA, M.child(~K, M.N{True{}, lf, rt, q, k}, forward)) : $ARR & Nat}
+      ext_pick(~K, ~V, ~cmp, $AA, forward, lf, rt)
+    case M.N{False{}, +lf, +rt, +q, +k}:
+      %Equal.sym($ARR & Nat, M.side_at(~K, ~V, ~cmp, $AA, Bool.not(forward), j), ($AA, M.pick(Nat, Bool.not(forward), M.nleft(~K, $NI(j)), M.nright(~K, $NI(j)))), side_ok(~K, ~V, ~cmp, $LDA, Bool.not(forward), j)) : {_ == ($AA, M.child(~K, M.N{False{}, lf, rt, q, k}, forward)) : $ARR & Nat}
+      %Equal.sym($ND, $NI(j), M.N{False{}, lf, rt, q, k}, hy) : {($AA, M.pick(Nat, Bool.not(forward), M.nleft(~K, _), M.nright(~K, _))) == ($AA, M.child(~K, M.N{False{}, lf, rt, q, k}, forward)) : $ARR & Nat}
+      ext_pick(~K, ~V, ~cmp, $AA, forward, lf, rt)
+
+# one descending step reads the node's tag and one child
+def ext_at(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +forward: Bool, +j: Nat) -> {M.extreme_at(~K, ~V, ~cmp, forward, $AA, j) == ($AA, M.child(~K, $NI(j), forward)) : $ARR & Nat}:
+  %Equal.sym($ARR & Nat, M.ns_tag_at(~K, $AA, j), ($AA, M.ntag(~K, $NI(j))), NSL.tag_at_ok(~K, $LDA, j)) : {M.extreme_tag(~K, ~V, ~cmp, forward, j, _) == ($AA, M.child(~K, $NI(j), forward)) : $ARR & Nat}
+  ext_y(~K, ~V, ~cmp, $LDA, forward, j, $NI(j), {==})
+
+def asl(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +fuel: Nat, +forward: Bool, +st: M.Ascend) -> {M.ascend_slots_loop(~K, ~V, ~cmp, fuel, forward, ($AA, st)) == ($AA, MI.asc_loop(K, fuel, nl, forward, st)) : $ARR & Nat}:
   match fuel st:
     case 0n _:
       {==}
     case 1n+f M.Ascend{x, p, True{}}:
       {==}
     case 1n+f M.Ascend{+x, +p, False{}}:
-      %Equal.sym($ARR & $ND, M.node_slot(~K, ~V, ~cmp, $AA, $UU, p), ($AA, ST.nd(K, nl, p)), ns(~K, ~V, ~cmp, $LDA, p)) : {M.ascend_slots_loop(~K, ~V, ~cmp, f, $UU, forward, M.ascend_slots_step(~K, ~V, ~cmp, x, p, forward, _)) == ($AA, MI.asc_loop(K, 1n+f, nl, forward, M.Ascend{x, p, False{}})) : $ARR & Nat}
-      %Equal.sym($ARR & M.Ascend, M.ascend_slots_step(~K, ~V, ~cmp, x, p, forward, ($AA, ST.nd(K, nl, p))), ($AA, MI.asc_step(K, x, p, forward, ST.nd(K, nl, p))), ass(~K, ~V, ~cmp, x, p, forward, $AA, ST.nd(K, nl, p))) : {M.ascend_slots_loop(~K, ~V, ~cmp, f, $UU, forward, _) == ($AA, MI.asc_loop(K, 1n+f, nl, forward, M.Ascend{x, p, False{}})) : $ARR & Nat}
+      %Equal.sym($ARR & M.Ascend, M.ascend_at(~K, ~V, ~cmp, x, p, forward, $AA), ($AA, MI.asc_step(K, x, p, forward, ST.nd(K, nl, p))), asc_at(~K, ~V, ~cmp, $LDA, x, p, forward)) : {M.ascend_slots_loop(~K, ~V, ~cmp, f, forward, _) == ($AA, MI.asc_loop(K, 1n+f, nl, forward, M.Ascend{x, p, False{}})) : $ARR & Nat}
       asl(~K, ~V, ~cmp, $LDA, f, forward, MI.asc_step(K, x, p, forward, ST.nd(K, nl, p)))
 
-def esl(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +fuel: Nat, +forward: Bool, +id: Nat, +next: Nat) -> {M.extreme_slots_loop(~K, ~V, ~cmp, fuel, $UU, forward, id, ($AA, next)) == ($AA, MI.ext_loop(~K, fuel, nl, forward, id, next)) : $ARR & Nat}:
+def esl(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +fuel: Nat, +forward: Bool, +id: Nat, +next: Nat) -> {M.extreme_slots_loop(~K, ~V, ~cmp, fuel, forward, id, ($AA, next)) == ($AA, MI.ext_loop(~K, fuel, nl, forward, id, next)) : $ARR & Nat}:
   match fuel next:
     case 0n _:
       {==}
     case 1n+f 0n:
       {==}
     case 1n+f 1n+ +j:
-      %Equal.sym($ARR & $ND, M.node_slot(~K, ~V, ~cmp, $AA, $UU, 1n+j), ($AA, ST.nd(K, nl, 1n+j)), ns(~K, ~V, ~cmp, $LDA, 1n+j)) : {M.extreme_slots_loop(~K, ~V, ~cmp, f, $UU, forward, 1n+j, M.extreme_slots_probe(~K, ~V, ~cmp, forward, _)) == ($AA, MI.ext_loop(~K, 1n+f, nl, forward, id, 1n+j)) : $ARR & Nat}
-      esl(~K, ~V, ~cmp, $LDA, f, forward, 1n+j, M.child(~K, ST.nd(K, nl, 1n+j), forward))
+      %Equal.sym($ARR & Nat, M.extreme_at(~K, ~V, ~cmp, forward, $AA, j), ($AA, M.child(~K, $NI(j), forward)), ext_at(~K, ~V, ~cmp, $LDA, forward, j)) : {M.extreme_slots_loop(~K, ~V, ~cmp, f, forward, 1n+j, _) == ($AA, MI.ext_loop(~K, 1n+f, nl, forward, id, 1n+j)) : $ARR & Nat}
+      esl(~K, ~V, ~cmp, $LDA, f, forward, 1n+j, M.child(~K, $NI(j), forward))
 
-def nbl(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +n: Nat, +id: Nat, +p: Nat, +forward: Bool, +c: Nat) -> {M.neighbor_slots(~K, ~V, ~cmp, $AA, n, $UU, id, p, forward, c) == ($AA, MI.nbs(~K, nl, n, id, p, forward, c)) : $ARR & Nat}:
+def nbl(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +n: Nat, +id: Nat, +p: Nat, +forward: Bool, +c: Nat) -> {M.neighbor_slots(~K, ~V, ~cmp, $AA, n, id, p, forward, c) == ($AA, MI.nbs(~K, nl, n, id, p, forward, c)) : $ARR & Nat}:
   match c:
     case 0n:
       asl(~K, ~V, ~cmp, $LDA, 1n+n, forward, M.Ascend{id, p, False{}})
     case 1n+ +j:
-      %Equal.sym($ARR & $ND, M.node_slot(~K, ~V, ~cmp, $AA, $UU, 1n+j), ($AA, ST.nd(K, nl, 1n+j)), ns(~K, ~V, ~cmp, $LDA, 1n+j)) : {M.extreme_slots_loop(~K, ~V, ~cmp, 1n+n, $UU, Bool.not(forward), 1n+j, M.extreme_slots_probe(~K, ~V, ~cmp, Bool.not(forward), _)) == ($AA, MI.nbs(~K, nl, n, id, p, forward, 1n+j)) : $ARR & Nat}
-      esl(~K, ~V, ~cmp, $LDA, 1n+n, Bool.not(forward), 1n+j, M.child(~K, ST.nd(K, nl, 1n+j), Bool.not(forward)))
+      %Equal.sym($ARR & Nat, M.extreme_at(~K, ~V, ~cmp, Bool.not(forward), $AA, j), ($AA, M.child(~K, $NI(j), Bool.not(forward))), ext_at(~K, ~V, ~cmp, $LDA, Bool.not(forward), j)) : {M.extreme_slots_loop(~K, ~V, ~cmp, 1n+n, Bool.not(forward), 1n+j, _) == ($AA, MI.nbs(~K, nl, n, id, p, forward, 1n+j)) : $ARR & Nat}
+      esl(~K, ~V, ~cmp, $LDA, 1n+n, Bool.not(forward), 1n+j, M.child(~K, $NI(j), Bool.not(forward)))
 
 def neighbor_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +forward: Bool, r: $SHV & $ND, +g_r: {MI.dgp(K, V, $ND, r) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.neighbor_node(~K, ~V, ~cmp, id, forward, r)) == True{} : Bool}:
   match r:
@@ -269,5 +436,5 @@ def neighbor_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +forward:
 def neighbor_node_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +forward: Bool, r: $SHV & $ND, +g_r: {MI.dgp(K, V, $ND, r) == True{} : Bool}) -> {M.neighbor_node(~K, ~V, ~cmp, id, forward, MI.rp(~K, ~V, ~cmp, $ND, r)) == MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor_node(~K, ~V, ~cmp, id, forward, r)) : $TMT & Nat}:
   match r:
     case Tuple{ST.SH{$FP}, +node}:
-      %Equal.sym($ARR & Nat, M.neighbor_slots(~K, ~V, ~cmp, $AA, n, $UU, id, M.node_parent(~K, node), forward, M.child(~K, node, forward)), ($AA, MI.nbs(~K, nl, n, id, M.node_parent(~K, node), forward, M.child(~K, node, forward))), nbl(~K, ~V, ~cmp, l, d, nl, $HL(g_r), $HD(g_r), $HC(g_r), n, id, M.node_parent(~K, node), forward, M.child(~K, node, forward))) : {M.neighbor_slots_finish(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), _) == MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor_node(~K, ~V, ~cmp, id, forward, Tuple{$SH0, node})) : $TMT & Nat}
+      %Equal.sym($ARR & Nat, M.neighbor_slots(~K, ~V, ~cmp, $AA, n, id, M.node_parent(~K, node), forward, M.child(~K, node, forward)), ($AA, MI.nbs(~K, nl, n, id, M.node_parent(~K, node), forward, M.child(~K, node, forward))), nbl(~K, ~V, ~cmp, l, d, nl, $HL(g_r), $HD(g_r), $HC(g_r), n, id, M.node_parent(~K, node), forward, M.child(~K, node, forward))) : {M.neighbor_slots_finish(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), _) == MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor_node(~K, ~V, ~cmp, id, forward, Tuple{$SH0, node})) : $TMT & Nat}
       {==}

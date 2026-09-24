@@ -33,6 +33,23 @@ def mb(~K: Data, m: Maybe<&2, $ND>) -> Bool:
     case Some{x}:
       True{}
 
+def unsomeA(-A: Data, m: Maybe<&2, A>, +dv: A) -> A:
+  match m:
+    case None{}:
+      dv
+    case Some{x}:
+      x
+
+# updating a slot with the value it holds changes nothing
+def upd_same(-A: Data, +ys: List<&2, A>, +i: Nat, +z: A, +h: {SC.nth(A, ys, i) == Some{z} : Maybe<&2, A>}) -> {SC.update(A, ys, i, z) == ys : List<&2, A>}:
+  match ys i:
+    case Nil{} _:
+      {==}
+    case Con{+x, r} 0n:
+      Equal.cong(Maybe<&2, A>, List<&2, A>, w => Con{unsomeA(A, w, x), r}, Some{z}, Some{x}, Equal.sym(Maybe<&2, A>, Some{x}, Some{z}, h))
+    case Con{+x, +r} 1n+q:
+      LL.cons_cong(A, x, SC.update(A, r, q, z), r, upd_same(A, r, q, z, h))
+
 %tmpl FLD(QN, QT, QF, QV)
 def QN##s_len(~K: Data, +xs: List<&2, $ND>) -> {SC.length(QT, NR.QN##s(~K, xs)) == SC.length($ND, xs) : Nat}:
   match xs:
@@ -148,6 +165,12 @@ def QN##_drop(~K: Data, $GP, +m: Nat, +hm: {SC.length($ND, xs) == 1n+m : Nat}, +
   %Equal.sym(Array<QT>, Array.set(QT, AR.thaw(QT, t), U32.from_nat(m), QV), AR.thaw(QT, AR.upd(QT, d, t, U32.to_nat(U32.from_nat(m)), QV)), AR.set(QT, d, t, U32.from_nat(m), QV, QF(~K, y0), DAS.lt32(d, l, hd, hl), hiu, hx, BK.bk_perfect(QT, d, fl, QV))) : {_ == AR.thaw(QT, BK.bk(QT, d, NR.QN##s(~K, SC.init($ND, xs)), QV)) : Array<QT>}
   %Equal.sym(Nat, U32.to_nat(U32.from_nat(m)), m, eu) : {AR.thaw(QT, AR.upd(QT, d, t, _, QV)) == AR.thaw(QT, BK.bk(QT, d, NR.QN##s(~K, SC.init($ND, xs)), QV)) : Array<QT>}
   Equal.cong(AR.Tree<QT>, Array<QT>, z => AR.thaw(QT, z), AR.upd(QT, d, t, m, QV), BK.bk(QT, d, NR.QN##s(~K, SC.init($ND, xs)), QV), Equal.trans(AR.Tree<QT>, AR.upd(QT, d, t, m, QV), BK.bk(QT, d, SC.init(QT, fl), QV), BK.bk(QT, d, NR.QN##s(~K, SC.init($ND, xs)), QV), BK.bk_pop(QT, d, fl, QV, m, hmF, hcF), Equal.cong(List<&2, QT>, AR.Tree<QT>, z => BK.bk(QT, d, z, QV), SC.init(QT, fl), NR.QN##s(~K, SC.init($ND, xs)), QN##s_init(~K, xs))))
+
+# updating a node that keeps this field leaves the field list
+def QN##s_keep(~K: Data, +xs: List<&2, $ND>, +i: Nat, +y: $ND, +x: $ND, +hy: {SC.nth($ND, xs, i) == Some{y} : Maybe<&2, $ND>}, +he: {QF(~K, x) == QF(~K, y) : QT}) -> {NR.QN##s(~K, SC.update($ND, xs, i, x)) == NR.QN##s(~K, xs) : List<&2, QT>}:
+  %QN##s_upd(~K, xs, i, x) : {_ == NR.QN##s(~K, xs) : List<&2, QT>}
+  %Equal.sym(QT, QF(~K, x), QF(~K, y), he) : {SC.update(QT, NR.QN##s(~K, xs), i, _) == NR.QN##s(~K, xs) : List<&2, QT>}
+  upd_same(QT, NR.QN##s(~K, xs), i, QF(~K, y), QN##s_nth(~K, xs, i, y, hy))
 
 %end
 %use FLD(tag, Nat, M.ntag, 0n)

@@ -131,6 +131,65 @@ def write(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +no
     case ST.SH{n, root, lo, hi, free, l, d, +nl, pl, t, fl}:
       ST.SH{n, root, lo, hi, free, l, d, PR.wr_nl(K, nl, id, node), pl, t, fl}
 
+# ---- field writes (hand-written: the implementation writes one field array) ----
+
+def set_left_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>) -> ST.Sh<K, V>:
+  match node:
+    case M.Free{px2}:
+      m
+    case M.N{px3, px4, px5, px6, px7}:
+      write(~K, ~V, ~cmp, m, id, M.N{px3, v, px5, px6, px7})
+
+def set_right_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>) -> ST.Sh<K, V>:
+  match node:
+    case M.Free{px2}:
+      m
+    case M.N{px3, px4, px5, px6, px7}:
+      write(~K, ~V, ~cmp, m, id, M.N{px3, px4, v, px6, px7})
+
+def set_parent_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>) -> ST.Sh<K, V>:
+  match node:
+    case M.Free{px2}:
+      m
+    case M.N{px3, px4, px5, px6, px7}:
+      write(~K, ~V, ~cmp, m, id, M.N{px3, px4, px5, v, px7})
+
+def set_red_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Bool, +node: M.Node<K>) -> ST.Sh<K, V>:
+  match node:
+    case M.Free{px2}:
+      m
+    case M.N{px3, px4, px5, px6, px7}:
+      write(~K, ~V, ~cmp, m, id, M.N{v, px4, px5, px6, px7})
+
+def set_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +v: Nat, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
+  (m1, +node) = pair_result
+  set_left_node(~K, ~V, ~cmp, m1, id, v, node)
+
+def set_right_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +v: Nat, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
+  (m1, +node) = pair_result
+  set_right_node(~K, ~V, ~cmp, m1, id, v, node)
+
+def set_parent_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +v: Nat, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
+  (m1, +node) = pair_result
+  set_parent_node(~K, ~V, ~cmp, m1, id, v, node)
+
+def set_red_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +v: Bool, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
+  (m1, +node) = pair_result
+  set_red_node(~K, ~V, ~cmp, m1, id, v, node)
+
+def set_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat) -> ST.Sh<K, V>:
+  set_left_1(~K, ~V, ~cmp, id, v, read(~K, ~V, ~cmp, m, id))
+
+def set_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat) -> ST.Sh<K, V>:
+  set_right_1(~K, ~V, ~cmp, id, v, read(~K, ~V, ~cmp, m, id))
+
+def set_parent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat) -> ST.Sh<K, V>:
+  set_parent_1(~K, ~V, ~cmp, id, v, read(~K, ~V, ~cmp, m, id))
+
+def set_red(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Bool) -> ST.Sh<K, V>:
+  set_red_1(~K, ~V, ~cmp, id, v, read(~K, ~V, ~cmp, m, id))
+
+
 def exchange(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +value: Maybe<&2, V>) -> ST.Sh<K, V> & Maybe<&2, V>:
   match m:
     case ST.SH{n, root, lo, hi, free, l, d, nl, +pl, t, fl}:

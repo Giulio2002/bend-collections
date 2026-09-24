@@ -31,6 +31,23 @@ def mb(~K: Data, m: Maybe<&2, M.Node<K>>) -> Bool:
     case Some{x}:
       True{}
 
+def unsomeA(-A: Data, m: Maybe<&2, A>, +dv: A) -> A:
+  match m:
+    case None{}:
+      dv
+    case Some{x}:
+      x
+
+# updating a slot with the value it holds changes nothing
+def upd_same(-A: Data, +ys: List<&2, A>, +i: Nat, +z: A, +h: {SC.nth(A, ys, i) == Some{z} : Maybe<&2, A>}) -> {SC.update(A, ys, i, z) == ys : List<&2, A>}:
+  match ys i:
+    case Nil{} _:
+      {==}
+    case Con{+x, r} 0n:
+      Equal.cong(Maybe<&2, A>, List<&2, A>, w => Con{unsomeA(A, w, x), r}, Some{z}, Some{x}, Equal.sym(Maybe<&2, A>, Some{x}, Some{z}, h))
+    case Con{+x, +r} 1n+q:
+      LL.cons_cong(A, x, SC.update(A, r, q, z), r, upd_same(A, r, q, z, h))
+
 def tags_len(~K: Data, +xs: List<&2, M.Node<K>>) -> {SC.length(Nat, NR.tags(~K, xs)) == SC.length(M.Node<K>, xs) : Nat}:
   match xs:
     case Nil{}:
@@ -145,6 +162,12 @@ def tag_drop(~K: Data, +l: Nat, +d: Nat, +xs: List<&2, M.Node<K>>, +hl: {Nat.is_
   %Equal.sym(Array<Nat>, Array.set(Nat, AR.thaw(Nat, t), U32.from_nat(m), 0n), AR.thaw(Nat, AR.upd(Nat, d, t, U32.to_nat(U32.from_nat(m)), 0n)), AR.set(Nat, d, t, U32.from_nat(m), 0n, M.ntag(~K, y0), DAS.lt32(d, l, hd, hl), hiu, hx, BK.bk_perfect(Nat, d, fl, 0n))) : {_ == AR.thaw(Nat, BK.bk(Nat, d, NR.tags(~K, SC.init(M.Node<K>, xs)), 0n)) : Array<Nat>}
   %Equal.sym(Nat, U32.to_nat(U32.from_nat(m)), m, eu) : {AR.thaw(Nat, AR.upd(Nat, d, t, _, 0n)) == AR.thaw(Nat, BK.bk(Nat, d, NR.tags(~K, SC.init(M.Node<K>, xs)), 0n)) : Array<Nat>}
   Equal.cong(AR.Tree<Nat>, Array<Nat>, z => AR.thaw(Nat, z), AR.upd(Nat, d, t, m, 0n), BK.bk(Nat, d, NR.tags(~K, SC.init(M.Node<K>, xs)), 0n), Equal.trans(AR.Tree<Nat>, AR.upd(Nat, d, t, m, 0n), BK.bk(Nat, d, SC.init(Nat, fl), 0n), BK.bk(Nat, d, NR.tags(~K, SC.init(M.Node<K>, xs)), 0n), BK.bk_pop(Nat, d, fl, 0n, m, hmF, hcF), Equal.cong(List<&2, Nat>, AR.Tree<Nat>, z => BK.bk(Nat, d, z, 0n), SC.init(Nat, fl), NR.tags(~K, SC.init(M.Node<K>, xs)), tags_init(~K, xs))))
+
+# updating a node that keeps this field leaves the field list
+def tags_keep(~K: Data, +xs: List<&2, M.Node<K>>, +i: Nat, +y: M.Node<K>, +x: M.Node<K>, +hy: {SC.nth(M.Node<K>, xs, i) == Some{y} : Maybe<&2, M.Node<K>>}, +he: {M.ntag(~K, x) == M.ntag(~K, y) : Nat}) -> {NR.tags(~K, SC.update(M.Node<K>, xs, i, x)) == NR.tags(~K, xs) : List<&2, Nat>}:
+  %tags_upd(~K, xs, i, x) : {_ == NR.tags(~K, xs) : List<&2, Nat>}
+  %Equal.sym(Nat, M.ntag(~K, x), M.ntag(~K, y), he) : {SC.update(Nat, NR.tags(~K, xs), i, _) == NR.tags(~K, xs) : List<&2, Nat>}
+  upd_same(Nat, NR.tags(~K, xs), i, M.ntag(~K, y), tags_nth(~K, xs, i, y, hy))
 
 def lefts_len(~K: Data, +xs: List<&2, M.Node<K>>) -> {SC.length(Nat, NR.lefts(~K, xs)) == SC.length(M.Node<K>, xs) : Nat}:
   match xs:
@@ -261,6 +284,12 @@ def left_drop(~K: Data, +l: Nat, +d: Nat, +xs: List<&2, M.Node<K>>, +hl: {Nat.is
   %Equal.sym(Nat, U32.to_nat(U32.from_nat(m)), m, eu) : {AR.thaw(Nat, AR.upd(Nat, d, t, _, 0n)) == AR.thaw(Nat, BK.bk(Nat, d, NR.lefts(~K, SC.init(M.Node<K>, xs)), 0n)) : Array<Nat>}
   Equal.cong(AR.Tree<Nat>, Array<Nat>, z => AR.thaw(Nat, z), AR.upd(Nat, d, t, m, 0n), BK.bk(Nat, d, NR.lefts(~K, SC.init(M.Node<K>, xs)), 0n), Equal.trans(AR.Tree<Nat>, AR.upd(Nat, d, t, m, 0n), BK.bk(Nat, d, SC.init(Nat, fl), 0n), BK.bk(Nat, d, NR.lefts(~K, SC.init(M.Node<K>, xs)), 0n), BK.bk_pop(Nat, d, fl, 0n, m, hmF, hcF), Equal.cong(List<&2, Nat>, AR.Tree<Nat>, z => BK.bk(Nat, d, z, 0n), SC.init(Nat, fl), NR.lefts(~K, SC.init(M.Node<K>, xs)), lefts_init(~K, xs))))
 
+# updating a node that keeps this field leaves the field list
+def lefts_keep(~K: Data, +xs: List<&2, M.Node<K>>, +i: Nat, +y: M.Node<K>, +x: M.Node<K>, +hy: {SC.nth(M.Node<K>, xs, i) == Some{y} : Maybe<&2, M.Node<K>>}, +he: {M.nleft(~K, x) == M.nleft(~K, y) : Nat}) -> {NR.lefts(~K, SC.update(M.Node<K>, xs, i, x)) == NR.lefts(~K, xs) : List<&2, Nat>}:
+  %lefts_upd(~K, xs, i, x) : {_ == NR.lefts(~K, xs) : List<&2, Nat>}
+  %Equal.sym(Nat, M.nleft(~K, x), M.nleft(~K, y), he) : {SC.update(Nat, NR.lefts(~K, xs), i, _) == NR.lefts(~K, xs) : List<&2, Nat>}
+  upd_same(Nat, NR.lefts(~K, xs), i, M.nleft(~K, y), lefts_nth(~K, xs, i, y, hy))
+
 def rights_len(~K: Data, +xs: List<&2, M.Node<K>>) -> {SC.length(Nat, NR.rights(~K, xs)) == SC.length(M.Node<K>, xs) : Nat}:
   match xs:
     case Nil{}:
@@ -375,6 +404,12 @@ def right_drop(~K: Data, +l: Nat, +d: Nat, +xs: List<&2, M.Node<K>>, +hl: {Nat.i
   %Equal.sym(Array<Nat>, Array.set(Nat, AR.thaw(Nat, t), U32.from_nat(m), 0n), AR.thaw(Nat, AR.upd(Nat, d, t, U32.to_nat(U32.from_nat(m)), 0n)), AR.set(Nat, d, t, U32.from_nat(m), 0n, M.nright(~K, y0), DAS.lt32(d, l, hd, hl), hiu, hx, BK.bk_perfect(Nat, d, fl, 0n))) : {_ == AR.thaw(Nat, BK.bk(Nat, d, NR.rights(~K, SC.init(M.Node<K>, xs)), 0n)) : Array<Nat>}
   %Equal.sym(Nat, U32.to_nat(U32.from_nat(m)), m, eu) : {AR.thaw(Nat, AR.upd(Nat, d, t, _, 0n)) == AR.thaw(Nat, BK.bk(Nat, d, NR.rights(~K, SC.init(M.Node<K>, xs)), 0n)) : Array<Nat>}
   Equal.cong(AR.Tree<Nat>, Array<Nat>, z => AR.thaw(Nat, z), AR.upd(Nat, d, t, m, 0n), BK.bk(Nat, d, NR.rights(~K, SC.init(M.Node<K>, xs)), 0n), Equal.trans(AR.Tree<Nat>, AR.upd(Nat, d, t, m, 0n), BK.bk(Nat, d, SC.init(Nat, fl), 0n), BK.bk(Nat, d, NR.rights(~K, SC.init(M.Node<K>, xs)), 0n), BK.bk_pop(Nat, d, fl, 0n, m, hmF, hcF), Equal.cong(List<&2, Nat>, AR.Tree<Nat>, z => BK.bk(Nat, d, z, 0n), SC.init(Nat, fl), NR.rights(~K, SC.init(M.Node<K>, xs)), rights_init(~K, xs))))
+
+# updating a node that keeps this field leaves the field list
+def rights_keep(~K: Data, +xs: List<&2, M.Node<K>>, +i: Nat, +y: M.Node<K>, +x: M.Node<K>, +hy: {SC.nth(M.Node<K>, xs, i) == Some{y} : Maybe<&2, M.Node<K>>}, +he: {M.nright(~K, x) == M.nright(~K, y) : Nat}) -> {NR.rights(~K, SC.update(M.Node<K>, xs, i, x)) == NR.rights(~K, xs) : List<&2, Nat>}:
+  %rights_upd(~K, xs, i, x) : {_ == NR.rights(~K, xs) : List<&2, Nat>}
+  %Equal.sym(Nat, M.nright(~K, x), M.nright(~K, y), he) : {SC.update(Nat, NR.rights(~K, xs), i, _) == NR.rights(~K, xs) : List<&2, Nat>}
+  upd_same(Nat, NR.rights(~K, xs), i, M.nright(~K, y), rights_nth(~K, xs, i, y, hy))
 
 def parents_len(~K: Data, +xs: List<&2, M.Node<K>>) -> {SC.length(Nat, NR.parents(~K, xs)) == SC.length(M.Node<K>, xs) : Nat}:
   match xs:
@@ -491,6 +526,12 @@ def parent_drop(~K: Data, +l: Nat, +d: Nat, +xs: List<&2, M.Node<K>>, +hl: {Nat.
   %Equal.sym(Nat, U32.to_nat(U32.from_nat(m)), m, eu) : {AR.thaw(Nat, AR.upd(Nat, d, t, _, 0n)) == AR.thaw(Nat, BK.bk(Nat, d, NR.parents(~K, SC.init(M.Node<K>, xs)), 0n)) : Array<Nat>}
   Equal.cong(AR.Tree<Nat>, Array<Nat>, z => AR.thaw(Nat, z), AR.upd(Nat, d, t, m, 0n), BK.bk(Nat, d, NR.parents(~K, SC.init(M.Node<K>, xs)), 0n), Equal.trans(AR.Tree<Nat>, AR.upd(Nat, d, t, m, 0n), BK.bk(Nat, d, SC.init(Nat, fl), 0n), BK.bk(Nat, d, NR.parents(~K, SC.init(M.Node<K>, xs)), 0n), BK.bk_pop(Nat, d, fl, 0n, m, hmF, hcF), Equal.cong(List<&2, Nat>, AR.Tree<Nat>, z => BK.bk(Nat, d, z, 0n), SC.init(Nat, fl), NR.parents(~K, SC.init(M.Node<K>, xs)), parents_init(~K, xs))))
 
+# updating a node that keeps this field leaves the field list
+def parents_keep(~K: Data, +xs: List<&2, M.Node<K>>, +i: Nat, +y: M.Node<K>, +x: M.Node<K>, +hy: {SC.nth(M.Node<K>, xs, i) == Some{y} : Maybe<&2, M.Node<K>>}, +he: {M.nparent(~K, x) == M.nparent(~K, y) : Nat}) -> {NR.parents(~K, SC.update(M.Node<K>, xs, i, x)) == NR.parents(~K, xs) : List<&2, Nat>}:
+  %parents_upd(~K, xs, i, x) : {_ == NR.parents(~K, xs) : List<&2, Nat>}
+  %Equal.sym(Nat, M.nparent(~K, x), M.nparent(~K, y), he) : {SC.update(Nat, NR.parents(~K, xs), i, _) == NR.parents(~K, xs) : List<&2, Nat>}
+  upd_same(Nat, NR.parents(~K, xs), i, M.nparent(~K, y), parents_nth(~K, xs, i, y, hy))
+
 def keys_len(~K: Data, +xs: List<&2, M.Node<K>>) -> {SC.length(Maybe<&2, K>, NR.keys(~K, xs)) == SC.length(M.Node<K>, xs) : Nat}:
   match xs:
     case Nil{}:
@@ -605,4 +646,10 @@ def key_drop(~K: Data, +l: Nat, +d: Nat, +xs: List<&2, M.Node<K>>, +hl: {Nat.is_
   %Equal.sym(Array<Maybe<&2, K>>, Array.set(Maybe<&2, K>, AR.thaw(Maybe<&2, K>, t), U32.from_nat(m), None{}), AR.thaw(Maybe<&2, K>, AR.upd(Maybe<&2, K>, d, t, U32.to_nat(U32.from_nat(m)), None{})), AR.set(Maybe<&2, K>, d, t, U32.from_nat(m), None{}, M.nkey(~K, y0), DAS.lt32(d, l, hd, hl), hiu, hx, BK.bk_perfect(Maybe<&2, K>, d, fl, None{}))) : {_ == AR.thaw(Maybe<&2, K>, BK.bk(Maybe<&2, K>, d, NR.keys(~K, SC.init(M.Node<K>, xs)), None{})) : Array<Maybe<&2, K>>}
   %Equal.sym(Nat, U32.to_nat(U32.from_nat(m)), m, eu) : {AR.thaw(Maybe<&2, K>, AR.upd(Maybe<&2, K>, d, t, _, None{})) == AR.thaw(Maybe<&2, K>, BK.bk(Maybe<&2, K>, d, NR.keys(~K, SC.init(M.Node<K>, xs)), None{})) : Array<Maybe<&2, K>>}
   Equal.cong(AR.Tree<Maybe<&2, K>>, Array<Maybe<&2, K>>, z => AR.thaw(Maybe<&2, K>, z), AR.upd(Maybe<&2, K>, d, t, m, None{}), BK.bk(Maybe<&2, K>, d, NR.keys(~K, SC.init(M.Node<K>, xs)), None{}), Equal.trans(AR.Tree<Maybe<&2, K>>, AR.upd(Maybe<&2, K>, d, t, m, None{}), BK.bk(Maybe<&2, K>, d, SC.init(Maybe<&2, K>, fl), None{}), BK.bk(Maybe<&2, K>, d, NR.keys(~K, SC.init(M.Node<K>, xs)), None{}), BK.bk_pop(Maybe<&2, K>, d, fl, None{}, m, hmF, hcF), Equal.cong(List<&2, Maybe<&2, K>>, AR.Tree<Maybe<&2, K>>, z => BK.bk(Maybe<&2, K>, d, z, None{}), SC.init(Maybe<&2, K>, fl), NR.keys(~K, SC.init(M.Node<K>, xs)), keys_init(~K, xs))))
+
+# updating a node that keeps this field leaves the field list
+def keys_keep(~K: Data, +xs: List<&2, M.Node<K>>, +i: Nat, +y: M.Node<K>, +x: M.Node<K>, +hy: {SC.nth(M.Node<K>, xs, i) == Some{y} : Maybe<&2, M.Node<K>>}, +he: {M.nkey(~K, x) == M.nkey(~K, y) : Maybe<&2, K>}) -> {NR.keys(~K, SC.update(M.Node<K>, xs, i, x)) == NR.keys(~K, xs) : List<&2, Maybe<&2, K>>}:
+  %keys_upd(~K, xs, i, x) : {_ == NR.keys(~K, xs) : List<&2, Maybe<&2, K>>}
+  %Equal.sym(Maybe<&2, K>, M.nkey(~K, x), M.nkey(~K, y), he) : {SC.update(Maybe<&2, K>, NR.keys(~K, xs), i, _) == NR.keys(~K, xs) : List<&2, Maybe<&2, K>>}
+  upd_same(Maybe<&2, K>, NR.keys(~K, xs), i, M.nkey(~K, y), keys_nth(~K, xs, i, y, hy))
 

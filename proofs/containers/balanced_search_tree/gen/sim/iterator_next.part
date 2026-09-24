@@ -1,0 +1,89 @@
+# ---- iterator_next: the step reads four fields, the mirror's step the whole node ----
+
+%def IQG +g: {MI.dg(K, V, $SH0) == True{} : Bool}
+%def IQH n, root, lo, hi, free, ST.pays(~V, l, d, pl)
+%def IQT M.Cursor<K, V, cmp> & Maybe<&2, M.Entry<K, V>>
+%def IQC(x) MI.rcp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, x)
+%def IQNN M.N{c, lf, rt, q, key}
+%def IQE M.Entry{key, v}
+%def IQY(r) M.iterator_yield(~K, ~V, ~cmp, 1n+i, lower, upper, fw, $IQE, r)
+%def IQNS(ch) M.neighbor_slots(~K, ~V, ~cmp, $AA, n, 1n+i, q, fw, ch)
+%def IQMN MI.neighbor_node(~K, ~V, ~cmp, 1n+i, fw, ($SH0, $IQNN))
+
+# the child the step reads is the one the node's neighbour walk starts from
+def iq_f(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, +i: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +fw: Bool, +key: K, +v: V, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat) -> {$IQY(M.neighbor_slots_finish(~K, ~V, ~cmp, $IQH, $IQNS(M.pick(Nat, Bool.not(fw), lf, rt)))) == $IQY(M.neighbor_node(~K, ~V, ~cmp, 1n+i, fw, ($AR0, $IQNN))) : $IQT}:
+  match fw:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+# in range: parent and child reads, then the mirror's neighbour and yield
+def iq_v(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, $IQG, +i: Nat, +cur: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +fw: Bool, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +key: K, +v: V, +hy: {$NI(i) == $IQNN : $ND}, +b: Bool) -> {M.iter_valid(~K, ~V, ~cmp, $IQH, $AA, i, cur, lower, upper, fw, $IQE, b) == $IQC(MI.iterator_checked(~K, ~V, ~cmp, $SH0, 1n+i, cur, lower, upper, fw, $IQNN, $IQE, b)) : $IQT}:
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      %Equal.sym($ARR & Nat, M.ns_parent_at(~K, $AA, i), ($AA, M.nparent(~K, $NI(i))), NSL.parent_at_ok(~K, $LDA, i)) : {M.iter_link(~K, ~V, ~cmp, $IQH, i, lower, upper, fw, $IQE, _) == $IQC(MI.iterator_yield(~K, ~V, ~cmp, 1n+i, lower, upper, fw, $IQE, $IQMN)) : $IQT}
+      %Equal.sym($ND, $NI(i), $IQNN, hy) : {M.iter_link(~K, ~V, ~cmp, $IQH, i, lower, upper, fw, $IQE, ($AA, M.nparent(~K, _))) == $IQC(MI.iterator_yield(~K, ~V, ~cmp, 1n+i, lower, upper, fw, $IQE, $IQMN)) : $IQT}
+      %Equal.sym($ARR & Nat, M.side_at(~K, ~V, ~cmp, $AA, Bool.not(fw), i), ($AA, M.pick(Nat, Bool.not(fw), M.nleft(~K, $NI(i)), M.nright(~K, $NI(i)))), side_ok(~K, ~V, ~cmp, $LDA, Bool.not(fw), i)) : {M.iter_child(~K, ~V, ~cmp, $IQH, 1n+i, lower, upper, fw, $IQE, q, _) == $IQC(MI.iterator_yield(~K, ~V, ~cmp, 1n+i, lower, upper, fw, $IQE, $IQMN)) : $IQT}
+      %Equal.sym($ND, $NI(i), $IQNN, hy) : {M.iter_child(~K, ~V, ~cmp, $IQH, 1n+i, lower, upper, fw, $IQE, q, ($AA, M.pick(Nat, Bool.not(fw), M.nleft(~K, _), M.nright(~K, _)))) == $IQC(MI.iterator_yield(~K, ~V, ~cmp, 1n+i, lower, upper, fw, $IQE, $IQMN)) : $IQT}
+      %iterator_yield_s(~K, ~V, ~cmp, 1n+i, lower, upper, fw, $IQE, $IQMN, neighbor_node_g(~K, ~V, ~cmp, 1n+i, fw, ($SH0, $IQNN), g)) : {$IQY(M.neighbor_slots_finish(~K, ~V, ~cmp, $IQH, $IQNS(M.pick(Nat, Bool.not(fw), lf, rt)))) == _ : $IQT}
+      %neighbor_node_s(~K, ~V, ~cmp, 1n+i, fw, ($SH0, $IQNN), g) : {$IQY(M.neighbor_slots_finish(~K, ~V, ~cmp, $IQH, $IQNS(M.pick(Nat, Bool.not(fw), lf, rt)))) == $IQY(_) : $IQT}
+      iq_f(~K, ~V, ~cmp, $F, i, lower, upper, fw, key, v, c, lf, rt, q)
+
+# the key and the value decide: a live node with a value is checked, else the walk ends
+def iq_y(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, $IQG, +i: Nat, +cur: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +fw: Bool, +y: $ND, +hy: {$NI(i) == y : $ND}, +w: $MV) -> {M.iter_kv(~K, ~V, ~cmp, $IQH, $AA, i, cur, lower, upper, fw, M.nkey(~K, y), w) == $IQC(MI.iterator_read(~K, ~V, ~cmp, 1n+i, cur, lower, upper, fw, y, MI.entry_value(~K, ~V, ~cmp, M.node_key(~K, y), ($SH0, w)))) : $IQT}:
+  match y w:
+    case M.Free{z} None{}:
+      {==}
+    case M.Free{z} Some{x}:
+      {==}
+    case M.N{c, lf, rt, q, key} None{}:
+      {==}
+    case M.N{+c, +lf, +rt, +q, +key} Some{+v}:
+      iq_v(~K, ~V, ~cmp, $F, $PA, g, i, cur, lower, upper, fw, c, lf, rt, q, key, v, hy, M.in_range(~K, ~V, ~cmp, key, lower, upper))
+
+def iq_n(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, $IQG, +next: Nat, +cur: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +fw: Bool) -> {M.iter_at(~K, ~V, ~cmp, next, cur, lower, upper, fw, $AR0) == $IQC(MI.iterator_next(~K, ~V, ~cmp, MI.MC{$SH0, next, cur, lower, upper, fw})) : $IQT}:
+  match next:
+    case 0n:
+      {==}
+    case 1n+ +i:
+      %Equal.sym($TMT & $MV, M.get_id(~K, ~V, ~cmp, $AR0, 1n+i), ($AR0, ST.pv(V, pl, 1n+i)), PR.get_id_c(~K, ~V, ~cmp, $F, $PA, 1n+i)) : {M.iter_value(~K, ~V, ~cmp, i, cur, lower, upper, fw, _) == $IQC(MI.iterator_next(~K, ~V, ~cmp, MI.MC{$SH0, 1n+i, cur, lower, upper, fw})) : $IQT}
+      %Equal.sym($ARR & Maybe<&2, K>, M.ns_key_at(~K, $AA, i), ($AA, M.nkey(~K, $NI(i))), NSL.key_at_ok(~K, $LDA, i)) : {M.iter_key(~K, ~V, ~cmp, $IQH, i, cur, lower, upper, fw, ST.nth_or($MV, pl, i, None{}), _) == $IQC(MI.iterator_next(~K, ~V, ~cmp, MI.MC{$SH0, 1n+i, cur, lower, upper, fw})) : $IQT}
+      iq_y(~K, ~V, ~cmp, $F, $PA, g, i, cur, lower, upper, fw, $NI(i), {==}, ST.nth_or($MV, pl, i, None{}))
+
+def iq_m(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +next: Nat, +cur: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +fw: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.iter_at(~K, ~V, ~cmp, next, cur, lower, upper, fw, ST.real(~K, ~V, ~cmp, m)) == $IQC(MI.iterator_next(~K, ~V, ~cmp, MI.MC{m, next, cur, lower, upper, fw})) : $IQT}:
+  match m:
+    case ST.SH{$FP}:
+      iq_n(~K, ~V, ~cmp, $F, $DGS(g_m), g_m, next, cur, lower, upper, fw)
+
+def iterator_next_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +cursor: MI.MCursor<K, V>, +g_cursor: {MI.dgc(K, V, cursor) == True{} : Bool}) -> {M.iterator_next(~K, ~V, ~cmp, MI.rc(~K, ~V, ~cmp, cursor)) == $IQC(MI.iterator_next(~K, ~V, ~cmp, cursor)) : $IQT}:
+  match cursor:
+    case MI.MC{+m, +next, +current, +lower, +upper, +forward}:
+      iq_m(~K, ~V, ~cmp, m, next, current, lower, upper, forward, g_cursor)
+
+def iterator_checked_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +current: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +forward: Bool, +node: M.Node<K>, +entry: M.Entry<K, V>, +valid: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgcp(K, V, Maybe<&2, M.Entry<K, V>>, MI.iterator_checked(~K, ~V, ~cmp, m, id, current, lower, upper, forward, node, entry, valid)) == True{} : Bool}:
+  match valid:
+    case True{}:
+      iterator_yield_g(~K, ~V, ~cmp, id, lower, upper, forward, entry, MI.neighbor_node(~K, ~V, ~cmp, id, forward, (m, node)), neighbor_node_g(~K, ~V, ~cmp, id, forward, (m, node), g_m))
+    case False{}:
+      g_m
+
+def iterator_read_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +current: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +forward: Bool, +node: M.Node<K>, r: ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>, +g_r: {MI.dgp(K, V, Maybe<&2, M.Entry<K, V>>, r) == True{} : Bool}) -> {MI.dgcp(K, V, Maybe<&2, M.Entry<K, V>>, MI.iterator_read(~K, ~V, ~cmp, id, current, lower, upper, forward, node, r)) == True{} : Bool}:
+  match r:
+    case Tuple{+px2, None{}}:
+      g_r
+    case Tuple{+px2, Some{M.Entry{+px5, +px6}}}:
+      iterator_checked_g(~K, ~V, ~cmp, px2, id, current, lower, upper, forward, node, M.Entry{px5, px6}, M.in_range(~K, ~V, ~cmp, px5, lower, upper), g_r)
+
+def iterator_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +current: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {MI.dgcp(K, V, Maybe<&2, M.Entry<K, V>>, MI.iterator_node(~K, ~V, ~cmp, id, current, lower, upper, forward, r)) == True{} : Bool}:
+  match r:
+    case Tuple{+m, +node}:
+      iterator_read_g(~K, ~V, ~cmp, id, current, lower, upper, forward, node, MI.entry_value(~K, ~V, ~cmp, M.node_key(~K, node), MI.get_id(~K, ~V, ~cmp, m, id)), entry_value_g(~K, ~V, ~cmp, M.node_key(~K, node), MI.get_id(~K, ~V, ~cmp, m, id), get_id_g(~K, ~V, ~cmp, m, id, g_r)))
+
+def iterator_next_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +cursor: MI.MCursor<K, V>, +g_cursor: {MI.dgc(K, V, cursor) == True{} : Bool}) -> {MI.dgcp(K, V, Maybe<&2, M.Entry<K, V>>, MI.iterator_next(~K, ~V, ~cmp, cursor)) == True{} : Bool}:
+  match cursor:
+    case MI.MC{+m, +next, +current, +lower, +upper, +forward}:
+      iterator_node_g(~K, ~V, ~cmp, next, current, lower, upper, forward, MI.read(~K, ~V, ~cmp, m, next), read_g(~K, ~V, ~cmp, m, next, g_cursor))
+
