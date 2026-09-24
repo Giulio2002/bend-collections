@@ -373,39 +373,39 @@ those ratios; the unmarked rows use the full method.
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| insert | small | 92.5 | 24.8 | 3.73 † |
-| insert | medium | 190 | 62.5 | 3.04 † |
-| insert | large | 375 | 154 | 2.43 † |
-| remove | small | 640 | 55.9 | 11.45 † |
-| remove | medium | 960 | 117 | 8.20 † |
-| remove | large | 1875 | 224 | 8.39 † |
-| lookup | small | 115 | 15.5 | 7.41 † |
-| lookup | medium | 193 | 34.6 | 5.58 † |
-| lookup | large | 512 | 78.2 | 6.56 † |
-| contains | small | 72.5 | 18.8 | 3.86 † |
-| contains | medium | 155 | 41.5 | 3.74 † |
-| contains | large | 350 | 102 | 3.42 † |
-| min | small | 20.6 | 1.51 | 13.63 † |
-| min | medium | 21.2 | 3.48 | 6.11 † |
-| min | large | 19.5 | 5.94 | 3.29 † |
-| max | small | 20.6 | 1.50 | 13.73 † |
-| max | medium | 20.3 | 3.78 | 5.38 † |
-| max | large | 20.0 | 4.84 | 4.13 † |
-| lower_bound | small | 96.7 | 16.9 | 5.73 † |
-| lower_bound | medium | 200 | 38.0 | 5.27 † |
-| lower_bound | large | 375 | 94.4 | 3.97 † |
-| range | small | 452 | 31.0 | 14.58 † |
-| range | medium | 30000 | 882 | 34.03 † |
-| range | large | 381250 | 11456 | 33.28 † |
-| to_list | small | 2333 | 46.9 | 49.78 † |
-| to_list | medium | 165000 | 3230 | 51.08 † |
-| to_list | large | 6400000 | 278800 | 22.96 † |
-| length | small | 0.97 | 2.69 | 0.36 † |
-| length | medium | 0.97 | 2.63 | 0.37 † |
-| length | large | 0.97 | 2.71 | 0.36 † |
-| new | small | 28.6 | 2.33 | 12.27 † |
-| new | medium | 29.2 | 2.30 | 12.70 † |
-| new | large | 28.5 | 2.44 | 11.69 † |
+| insert | small | 73.5 | 23.7 | 3.10 |
+| insert | medium | 144 | 60.2 | 2.39 |
+| insert | large | 271 | 142 | 1.91 |
+| remove | small | 443 | 53.5 | 8.29 |
+| remove | medium | 700 | 114 | 6.12 |
+| remove | large | 979 | 217 | 4.52 |
+| lookup | small | 67.1 | 15.7 | 4.28 |
+| lookup | medium | 136 | 35.9 | 3.79 |
+| lookup | large | 252 | 79.9 | 3.16 |
+| contains | small | 56.3 | 17.5 | 3.21 |
+| contains | medium | 121 | 37.0 | 3.27 |
+| contains | large | 226 | 80.6 | 2.81 |
+| min | small | 19.6 | 1.49 | 13.20 |
+| min | medium | 19.9 | 3.46 | 5.75 |
+| min | large | 20.7 | 5.82 | 3.56 |
+| max | small | 20.1 | 1.49 | 13.54 |
+| max | medium | 20.0 | 2.67 | 7.50 |
+| max | large | 20.2 | 5.08 | 3.98 |
+| lower_bound | small | 77.3 | 16.6 | 4.65 |
+| lower_bound | medium | 150 | 36.8 | 4.08 |
+| lower_bound | large | 274 | 80.7 | 3.39 |
+| range | small | 220 | 29.9 | 7.35 |
+| range | medium | 14103 | 790 | 17.85 |
+| range | large | 143269 | 7212 | 19.86 |
+| to_list | small | 995 | 45.3 | 21.96 |
+| to_list | medium | 80769 | 3028 | 26.68 |
+| to_list | large | 3533333 | 211917 | 16.67 |
+| length | small | 0.91 | 2.61 | 0.35 |
+| length | medium | 0.91 | 2.62 | 0.35 |
+| length | large | 0.91 | 2.62 | 0.35 |
+| new | small | 29.2 | 2.28 | 12.81 |
+| new | medium | 28.8 | 2.28 | 12.63 |
+| new | large | 26.1 | 2.32 | 11.23 |
 
 ### Bitset
 
