@@ -155,7 +155,7 @@ def kc_from(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, -r
 # ---- set (SPARK's Include: insert, or replace the value) ----
 
 def SetPost(~V: Data, m: List<&2, S.Entry<V>>, m2: List<&2, S.Entry<V>>, key: String, x: V) -> Type:
-  {S.has(~V, m2, key) == True{} : Bool} & ((@+q: String -> @+hq: {S.str_eq(key, q) == True{} : Bool} -> {S.lookup(~V, m2, q) == Some{x} : Maybe<&2, V>}) & ((@+q: String -> @+hq: {S.str_eq(key, q) == False{} : Bool} -> {S.lookup(~V, m2, q) == S.lookup(~V, m, q) : Maybe<&2, V>}) & ({S.size(~V, m2) == Bool.pick(Nat, S.has(~V, m, key), S.size(~V, m), 1n+S.size(~V, m)) : Nat} & ((@+q: String -> {S.mem(q, S.keys(~V, m2)) == Bool.or(S.str_eq(key, q), S.mem(q, S.keys(~V, m))) : Bool}) & {S.nodup(S.keys(~V, m2)) == True{} : Bool}))))
+  {S.has(~V, m2, key) == True{} : Bool} & ((@+q: String -> @+hq: {S.str_eq(key, q) == True{} : Bool} -> {S.lookup(~V, m2, q) == Some{x} : Maybe<&2, V>}) & ((@+q: String -> @+hq: {S.str_eq(key, q) == False{} : Bool} -> {S.lookup(~V, m2, q) == S.lookup(~V, m, q) : Maybe<&2, V>}) & ({S.size(~V, m2) == Bool.pick(Nat, S.has(~V, m, key), S.size(~V, m), 1n+S.size(~V, m)) : Nat} & ((@+q: String -> {S.mem(q, S.keys(~V, m2)) == Bool.or(S.str_eq(key, q), S.mem(q, S.keys(~V, m))) : Bool}) & ({S.nodup(S.keys(~V, m2)) == True{} : Bool} & (@+hp: {S.has(~V, m, key) == True{} : Bool} -> {S.keys(~V, m2) == S.keys(~V, m) : List<&2, String>}))))))
 
 def SetContract(~V: Data, +sh: ST.Sh<V>, +key: String, +x: V, r: H.HashMap<&2, V>) -> Type:
   Sigma<&1, &1, ST.Sh<V>, sh2 => {r == ST.real(~V, sh2) : H.HashMap<&2, V>} & ({ST.good(~V, sh2) == True{} : Bool} & SetPost(~V, ST.model(~V, sh), ST.model(~V, sh2), key, x))>
@@ -170,18 +170,19 @@ def set_mem(~V: Data, +m: List<&2, S.Entry<V>>, +m2: List<&2, S.Entry<V>>, +key:
   Equal.trans(Bool, S.mem(q, S.keys(~V, m2)), S.has(~V, m2, q), Bool.or(S.str_eq(key, q), S.mem(q, S.keys(~V, m))), mem_has(~V, m2, q),
     Equal.trans(Bool, S.has(~V, m2, q), S.has(~V, S.set(~V, m, key, x), q), Bool.or(S.str_eq(key, q), S.mem(q, S.keys(~V, m))), Equal.cong(Maybe<&2, V>, Bool, z => S.is_some(~V, z), S.lookup(~V, m2, q), S.lookup(~V, S.set(~V, m, key, x), q), hl), hso_c(~V, m, key, x, q, S.str_eq(key, q), {==})))
 
-def set_post(~V: Data, ~m: List<&2, S.Entry<V>>, ~m2: List<&2, S.Entry<V>>, ~key: String, ~x: V, ~hp: (@+q: String -> {S.lookup(~V, m2, q) == S.lookup(~V, S.set(~V, m, key, x), q) : Maybe<&2, V>}) & {S.size(~V, m2) == S.size(~V, S.set(~V, m, key, x)) : Nat}, +hnd: {S.nodup(S.keys(~V, m2)) == True{} : Bool}) -> SetPost(~V, m, m2, key, x):
+def set_post(~V: Data, ~m: List<&2, S.Entry<V>>, ~m2: List<&2, S.Entry<V>>, ~key: String, ~x: V, ~hp: (@+q: String -> {S.lookup(~V, m2, q) == S.lookup(~V, S.set(~V, m, key, x), q) : Maybe<&2, V>}) & {S.size(~V, m2) == S.size(~V, S.set(~V, m, key, x)) : Nat}, +hnd: {S.nodup(S.keys(~V, m2)) == True{} : Bool}, hk: @+hq0: {S.has(~V, m, key) == True{} : Bool} -> {S.keys(~V, m2) == S.keys(~V, m) : List<&2, String>}) -> SetPost(~V, m, m2, key, x):
   (Equal.cong(Maybe<&2, V>, Bool, z => S.is_some(~V, z), S.lookup(~V, m2, key), Some{x}, set_same(~V, m, m2, key, x, key, K.str_refl(key), Pair.fst(@+q: String -> {S.lookup(~V, m2, q) == S.lookup(~V, S.set(~V, m, key, x), q) : Maybe<&2, V>}, {S.size(~V, m2) == S.size(~V, S.set(~V, m, key, x)) : Nat}, hp)(key))),
    (q => hq => set_same(~V, m, m2, key, x, q, hq, Pair.fst(@+q: String -> {S.lookup(~V, m2, q) == S.lookup(~V, S.set(~V, m, key, x), q) : Maybe<&2, V>}, {S.size(~V, m2) == S.size(~V, S.set(~V, m, key, x)) : Nat}, hp)(q)),
     (q => hq => set_other(~V, m, m2, key, x, q, hq, Pair.fst(@+q: String -> {S.lookup(~V, m2, q) == S.lookup(~V, S.set(~V, m, key, x), q) : Maybe<&2, V>}, {S.size(~V, m2) == S.size(~V, S.set(~V, m, key, x)) : Nat}, hp)(q)),
      (Equal.trans(Nat, S.size(~V, m2), S.size(~V, S.set(~V, m, key, x)), Bool.pick(Nat, S.has(~V, m, key), S.size(~V, m), 1n+S.size(~V, m)), Pair.snd(@+q: String -> {S.lookup(~V, m2, q) == S.lookup(~V, S.set(~V, m, key, x), q) : Maybe<&2, V>}, {S.size(~V, m2) == S.size(~V, S.set(~V, m, key, x)) : Nat}, hp), size_set(~V, m, key, x)),
-      (q => set_mem(~V, m, m2, key, x, q, Pair.fst(@+q: String -> {S.lookup(~V, m2, q) == S.lookup(~V, S.set(~V, m, key, x), q) : Maybe<&2, V>}, {S.size(~V, m2) == S.size(~V, S.set(~V, m, key, x)) : Nat}, hp)(q)), hnd)))))
+      (q => set_mem(~V, m, m2, key, x, q, Pair.fst(@+q: String -> {S.lookup(~V, m2, q) == S.lookup(~V, S.set(~V, m, key, x), q) : Maybe<&2, V>}, {S.size(~V, m2) == S.size(~V, S.set(~V, m, key, x)) : Nat}, hp)(q)), (hnd, hk))))))
 
 def sc_from(~V: Data, +sh: ST.Sh<V>, +key: String, +x: V, -r: H.HashMap<&2, V>, so: ST2.SetOK(~V, sh, key, x, r)) -> SetContract(~V, sh, key, x, r):
   match so:
     case Tuple{+sh2, Tuple{+e, rest}}:
-      (+hg2, rest2) = rest
-      (sh2, (e, (hg2, set_post(~V, ~ST.model(~V, sh), ~ST.model(~V, sh2), ~key, ~x, ~rest2, model_nodup(~V, sh2, hg2)))))
+      (old, kk) = rest
+      (+hg2, rest2) = old
+      (sh2, (e, (hg2, set_post(~V, ~ST.model(~V, sh), ~ST.model(~V, sh2), ~key, ~x, ~rest2, model_nodup(~V, sh2, hg2), kk))))
 
 # ---- pop and del (SPARK's Delete/Exclude) ----
 

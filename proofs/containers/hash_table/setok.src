@@ -18,6 +18,7 @@ import ./size.bend as SZ
 import ./probe_impl.bend as PI
 import ./probe_all.bend as PA
 import ./get.bend as G
+import ./lookup.bend as LK
 import ./set.bend as ST2
 import ./insert.bend as IS
 import ./setins.bend as SI
@@ -60,8 +61,18 @@ def hg2($MP) -> {ST.goodF(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, AR.slots
   +hgT = L.subst(Bool, b => {ST.goodF(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, $KL, b, vsT, nxT) $TT, AR.perfect(String, sd, ksT), True{}, pkT, hg)
   $TO {ST.goodF(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, z, AR.perfect(String, sd, K2), vsT, nxT) $TT $FROM L.subst(Bool, b => {ST.goodF(~V, n, k, td, fresh, sz, sd, sdU, free, tabT, $KL, b, vsT, nxT) $TT, True{}, AR.perfect(String, sd, K2), Equal.sym(Bool, AR.perfect(String, sd, K2), True{}, pk2), hgT))
 
-def to_sh($MP, -r: H.HashMap<&2, V>, sm: IS.SetM(~V, $M2, key, x, r)) -> ST2.SetOK(~V, $SH, key, x, r):
-  L.subst(List<&2, String>, z => IS.SetM(~V, ST.absm(~V, TB.buckets($TBL, z, $NN), $VSL, $NN, 0n), key, x, r), AR.slots(String, K2), $KL, hsl2, sm)
+# a new key: it was absent, so the key-preservation clause holds vacuously
+def keep_miss($MP, +hno: {B.all_lt(B.PNo{$BS2, key}, $NN) $TT, +sh2: ST.Sh<V>, +hp: {S.has(~V, ST.model(~V, $SH), key) $TT) -> {S.keys(~V, ST.model(~V, sh2)) == S.keys(~V, ST.model(~V, $SH)) : List<&2, String>}:
+  +ln = $TO {S.lookup(~V, ST.absm(~V, TB.buckets($TBL, z, $NN), $VSL, $NN, 0n), key) == None{} : Maybe<&2, V>}, AR.slots(String, K2), $KL, hsl2, LK.lookup_none(~V, $BS2, $VSL, key, $NN, hno))
+  Empty.absurd({S.keys(~V, ST.model(~V, sh2)) == S.keys(~V, ST.model(~V, $SH)) : List<&2, String>}, L.false_true(L.subst(Maybe<&2, V>, z => {S.is_some(~V, z) $TT, S.lookup(~V, ST.absm(~V, $BS, $VSL, $NN, 0n), key), None{}, ln, hp)))
+
+def to_sh2($MP, -r: H.HashMap<&2, V>, +hno: {B.all_lt(B.PNo{$BS2, key}, $NN) $TT, sm: IS.SetM(~V, ST.model(~V, $SH), key, x, r)) -> ST2.SetOK(~V, $SH, key, x, r):
+  match sm:
+    case Tuple{+sh2, Tuple{+e, rest}}:
+      (sh2, (e, (rest, hp => keep_miss($MA, hno, sh2, hp))))
+
+def to_sh($MP, -r: H.HashMap<&2, V>, +hno: {B.all_lt(B.PNo{$BS2, key}, $NN) $TT, sm: IS.SetM(~V, $M2, key, x, r)) -> ST2.SetOK(~V, $SH, key, x, r):
+  to_sh2($MA, r, hno, L.subst(List<&2, String>, z => IS.SetM(~V, ST.absm(~V, TB.buckets($TBL, z, $NN), $VSL, $NN, 0n), key, x, r), AR.slots(String, K2), $KL, hsl2, sm))
 
 %def EP +e: Nat, +he: {Nat.is_lt(e, $NN) $TT, +hz: {B.at($BS2, e) == B.BE{} : B.Bk}, +hp: {B.occpath($BS2, $NN, $HOME, M.dist($NN, $HOME, e)) $TT, +hno: {B.all_lt(B.PNo{$BS2, key}, $NN) $TT
 %def SIA ~V, one, h1, n, k, td, fresh, sz, sd, sdU, free, tabT, K2, vsT, nxT, hg2($MA), key, x, e, he, hz, hp, hno
@@ -82,7 +93,7 @@ def miss_c($MP, $EP, +c: Bool, +hc: {U32.is_eq(free, 0) == c : Bool}) -> IS.SetM
 
 # a new key: one of the three ways of choosing its slot
 def set_miss($MP, $EP) -> ST2.SetOK(~V, $SH, key, x, $NEWK, U32.is_eq(free, 0))):
-  to_sh($MA, $NEWK, U32.is_eq(free, 0)), miss_c($MA, e, he, hz, hp, hno, U32.is_eq(free, 0), {==}))
+  to_sh($MA, $NEWK, U32.is_eq(free, 0)), hno, miss_c($MA, e, he, hz, hp, hno, U32.is_eq(free, 0), {==}))
 
 %def HITS H.HM{n, CY.msk(k), td, fresh, sz, sdU, free, AR.thaw(U32, tabT), AR.thaw(String, K2), Array.set(Maybe<&2, V>, AR.thaw(Maybe<&2, V>, vsT), H.slot(l), Some{x}), AR.thaw(U32, nxT)}
 
