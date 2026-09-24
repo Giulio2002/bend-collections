@@ -1,0 +1,59 @@
+# ---- extreme: the field walk is the mirror's node walk ----
+
+%def XET $SHV & Nat
+%def XEL(fw, id, nx) MI.ext_loop(~K, 1n+n, nl, fw, id, nx)
+%def XEC(fw, id) M.child(~K, ST.nd(K, nl, id), fw)
+
+def xe_eq(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, +fuel: Nat, +fw: Bool, +id: Nat, +next: Nat) -> {MI.extreme_loop(~K, ~V, ~cmp, fuel, fw, id, ($SH0, next)) == ($SH0, MI.ext_loop(~K, fuel, nl, fw, id, next)) : $XET}:
+  match fuel next:
+    case 0n 0n:
+      {==}
+    case 0n 1n+j:
+      {==}
+    case 1n+f 0n:
+      {==}
+    case 1n+f 1n+j:
+      xe_eq(~K, ~V, ~cmp, $F, f, fw, 1n+j, M.child(~K, ST.nd(K, nl, 1n+j), fw))
+
+def xe_0(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, +fw: Bool) -> {M.extreme_start(~K, ~V, ~cmp, $AA, n, 0n, fw) == ($AA, $XEL(fw, 0n, $XEC(fw, 0n))) : $ARR & Nat}:
+  match fw:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+def xe_n(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, +id: Nat, +fw: Bool) -> {M.extreme_start(~K, ~V, ~cmp, $AA, n, id, fw) == ($AA, $XEL(fw, id, $XEC(fw, id))) : $ARR & Nat}:
+  match id:
+    case 0n:
+      xe_0(~K, ~V, ~cmp, $F, fw)
+    case 1n+ +j:
+      %Equal.sym($ARR & Nat, M.extreme_at(~K, ~V, ~cmp, fw, $AA, j), ($AA, M.child(~K, $NI(j), fw)), ext_at(~K, ~V, ~cmp, $LDA, fw, j)) : {M.extreme_slots_loop(~K, ~V, ~cmp, 1n+n, fw, 1n+j, _) == ($AA, $XEL(fw, 1n+j, $XEC(fw, 1n+j))) : $ARR & Nat}
+      esl(~K, ~V, ~cmp, $LDA, 1n+n, fw, 1n+j, M.child(~K, $NI(j), fw))
+
+def extreme_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +forward: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.extreme(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, forward) == MI.rp(~K, ~V, ~cmp, Nat, MI.extreme(~K, ~V, ~cmp, m, id, forward)) : $TMT & Nat}:
+  match m:
+    case ST.SH{$FP}:
+      %Equal.sym($XET, MI.extreme(~K, ~V, ~cmp, $SH0, id, forward), ($SH0, $XEL(forward, id, $XEC(forward, id))), xe_eq(~K, ~V, ~cmp, $F, 1n+n, forward, id, $XEC(forward, id))) : {M.extreme(~K, ~V, ~cmp, $AR0, id, forward) == MI.rp(~K, ~V, ~cmp, Nat, _) : $TMT & Nat}
+      %Equal.sym($ARR & Nat, M.extreme_start(~K, ~V, ~cmp, $AA, n, id, forward), ($AA, $XEL(forward, id, $XEC(forward, id))), xe_n(~K, ~V, ~cmp, $F, $DGS(g_m), id, forward)) : {M.neighbor_slots_finish(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), _) == MI.rp(~K, ~V, ~cmp, Nat, ($SH0, $XEL(forward, id, $XEC(forward, id)))) : $TMT & Nat}
+      {==}
+
+def extreme_probe_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.extreme_probe(~K, ~V, ~cmp, forward, r)) == True{} : Bool}:
+  match r:
+    case Tuple{+m, +node}:
+      g_r
+
+def extreme_loop_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, +id: Nat, st: ST.Sh<K, V> & Nat, +g_st: {MI.dgp(K, V, Nat, st) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.extreme_loop(~K, ~V, ~cmp, fuel, forward, id, st)) == True{} : Bool}:
+  match fuel st:
+    case 0n Tuple{+px4, 0n}:
+      g_st
+    case 0n Tuple{+px4, 1n+ +px6}:
+      g_st
+    case 1n+ +px3 Tuple{+px7, 0n}:
+      g_st
+    case 1n+ +px3 Tuple{+px7, 1n+ +px9}:
+      extreme_loop_g(~K, ~V, ~cmp, px3, forward, 1n+px9, MI.extreme_probe(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, px7, 1n+px9)), extreme_probe_g(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, px7, 1n+px9), read_g(~K, ~V, ~cmp, px7, 1n+px9, g_st)))
+
+def extreme_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +forward: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.extreme(~K, ~V, ~cmp, m, id, forward)) == True{} : Bool}:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      extreme_loop_g(~K, ~V, ~cmp, 1n+n, forward, id, MI.extreme_probe(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id)), extreme_probe_g(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id), read_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, g_m)))

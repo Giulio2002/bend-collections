@@ -679,17 +679,6 @@ fun('contains_found',f'r: {T} & Search',T+' & Bool','  (m, Search{id, p, left}) 
 fun('contains_key',f'm: {T}, k: K',T+' & Bool',f'  contains_found({A}, search({A}, m, k))')
 
 # Extremal descent and parent-linked successor/predecessor.
-fun('extreme_probe',f'forward: Bool, r: {T} & Node<K>',T+' & Nat', '''  (m, node) = r
-  (m, child(K, node, forward))''')
-fun('extreme_loop',f'fuel: Nat, +forward: Bool, id: Nat, st: {T} & Nat',T+' & Nat',f'''  match fuel st:
-    case 0n Tuple{{m, next}}:
-      (m, id)
-    case 1n+p Tuple{{m, 0n}}:
-      (m, id)
-    case 1n+p Tuple{{m, 1n+ +j}}:
-      extreme_loop({A}, p, forward, 1n+j, extreme_probe({A}, forward, read({A}, m, 1n+j)))''')
-fun('extreme',f'm: {T}, +id: Nat, +forward: Bool',T+' & Nat',f'''  TM{{+n, root, lo, hi, free, nodes, values}} = m
-  extreme_loop({A}, 1n+n, forward, id, extreme_probe({A}, forward, read({A}, TM{{n, root, lo, hi, free, nodes, values}}, id)))''')
 raw('''type Ascend is Data:
   Ascend{child: Nat, parent: Nat, done: Bool}
 ''')
@@ -762,6 +751,15 @@ fun('neighbor_slots',f'nodes: {NA}, n: Nat, id: Nat, p: Nat, forward: Bool, c: N
     case 1n+ +j:
       extreme_slots_loop({A}, 1n+n, Bool.not(forward), 1n+j, extreme_at({A}, Bool.not(forward), nodes, j))''')
 fun('neighbor_slots_finish',f'n: Nat, root: Nat, lo: Nat, hi: Nat, free: Nat, values: D.DynArray<&2, Maybe<&2, V>>, r: {NA} & Nat',T+' & Nat','  (nodes, id) = r\n  (TM{n, root, lo, hi, free, nodes, values}, id)')
+# the descent to the first or last id below a node reads a tag and one child
+# per level (the whole node was read before)
+fun('extreme_start',f'nodes: {NA}, n: Nat, id: Nat, forward: Bool',NA+' & Nat',f'''  match id:
+    case 0n:
+      (nodes, 0n)
+    case 1n+ +j:
+      extreme_slots_loop({A}, 1n+n, forward, 1n+j, extreme_at({A}, forward, nodes, j))''')
+fun('extreme',f'm: {T}, +id: Nat, +forward: Bool',T+' & Nat',f'''  TM{{+n, root, lo, hi, free, nodes, values}} = m
+  neighbor_slots_finish({A}, n, root, lo, hi, free, values, extreme_start({A}, nodes, n, id, forward))''')
 fun('neighbor_node',f'id: Nat, forward: Bool, r: {T} & Node<K>',T+' & Nat',f'''  (TM{{+n, root, lo, hi, free, nodes, values}}, +node) = r
   neighbor_slots_finish({A}, n, root, lo, hi, free, values, neighbor_slots({A}, nodes, n, id, parent(K, node), forward, child(K, node, forward)))''')
 fun('neighbor',f'm: {T}, id: Nat, forward: Bool',T+' & Nat',f'  neighbor_node({A}, id, forward, read({A}, m, id))')
@@ -927,15 +925,24 @@ seq('remove_entry_id',[('m',T),('id','Nat')],T+' & Maybe<&2, Entry<K, V>>',[
 fun('poll_ready',f'r: {T} & Nat',T+' & Maybe<&2, Entry<K, V>>',f'  (m, id) = r\n  remove_entry_id({A}, m, id)')
 for name in ['first','last']:
     fun('poll_'+name+'_entry',f'm: {T}',T+' & Maybe<&2, Entry<K, V>>',f'  poll_ready({A}, {name}_id({A}, m))')
-# Data entry snapshots preserve ownership of the map.
-raw(f'''def entry_snapshot_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, id: Nat, r: {T} & Node<K>) -> {T} & Maybe<&2, Entry<K, V>>:
-  (m, node) = r
-  entry_value({A}, node_key(K, node), get_id({A}, m, id))
-
-def entry_snapshot(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: {T} & Nat) -> {T} & Maybe<&2, Entry<K, V>>:
-  (m, +id) = r
-  entry_snapshot_value({A}, id, read({A}, m, id))
-''')
+# Data entry snapshots preserve ownership of the map; a snapshot reads the
+# key and the value, never the whole node.
+fun('snap_kv',f'n: Nat, root: Nat, lo: Nat, hi: Nat, free: Nat, payloads: D.DynArray<&2, Maybe<&2, V>>, nodes: {NA}, mk: Maybe<&2, K>, mv: Maybe<&2, V>',T+' & Maybe<&2, Entry<K, V>>','''  match mk mv:
+    case Some{key} Some{v}:
+      (TM{n, root, lo, hi, free, nodes, payloads}, Some{Entry{key, v}})
+    case _ _:
+      (TM{n, root, lo, hi, free, nodes, payloads}, None{})''')
+fun('snap_key',f'n: Nat, root: Nat, lo: Nat, hi: Nat, free: Nat, payloads: D.DynArray<&2, Maybe<&2, V>>, mv: Maybe<&2, V>, r: {NA} & Maybe<&2, K>',T+' & Maybe<&2, Entry<K, V>>',f'''  (nodes, mk) = r
+  snap_kv({A}, n, root, lo, hi, free, payloads, nodes, mk, mv)''')
+fun('snap_value',f'i: Nat, r: {T} & Maybe<&2, V>',T+' & Maybe<&2, Entry<K, V>>',f'''  (TM{{+n, +root, +lo, +hi, +free, nodes, payloads}}, mv) = r
+  snap_key({A}, n, root, lo, hi, free, payloads, mv, ns_key_at(~K, nodes, i))''')
+fun('snap_at',f'id: Nat, m: {T}',T+' & Maybe<&2, Entry<K, V>>',f'''  match id:
+    case 0n:
+      (m, None{{}})
+    case 1n+ +i:
+      snap_value({A}, i, get_id({A}, m, 1n+i))''')
+fun('entry_snapshot',f'r: {T} & Nat',T+' & Maybe<&2, Entry<K, V>>',f'''  (m, +id) = r
+  snap_at({A}, id, m)''')
 for name,higher,inclusive in [('lower',False,False),('floor',False,True),('ceiling',True,True),('higher',True,False)]:
     raw(f'''def {name}_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: {T}, k: K) -> {T} & Maybe<&2, Entry<K, V>>:
   entry_snapshot({A}, navigate({A}, m, k, {str(higher)}{{}}, {str(inclusive)}{{}}))''')

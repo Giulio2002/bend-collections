@@ -320,11 +320,11 @@ def itype(t):
 
 # ---------------------------------------------------------------- classification
 
-HANDF = {"new", "with_limit", "clear", "read", "write", "exchange", "get_id", "append", "neighbor_node", "set_left", "set_right", "set_parent", "set_red", "search", "navigate", "iterator_next"}
+HANDF = {"new", "with_limit", "clear", "read", "write", "exchange", "get_id", "append", "neighbor_node", "set_left", "set_right", "set_parent", "set_red", "search", "navigate", "iterator_next", "entry_snapshot", "extreme"}
 SKIP = {"read_finish", "write_finish", "exchange_finish", "append_rollback", "get_id_finish", "node_slot_done",
         "neighbor_slots_finish", "append_values", "node_slot_checked", "ascend_slots_step", "node_slot",
         "extreme_slots_probe", "ascend_slots_loop", "extreme_slots_loop", "append_nodes", "append_count",
-        "neighbor_slots", "neighbor_used", "side_at", "ascend_par", "ascend_side", "ascend_tag", "ascend_at", "extreme_tag", "extreme_at", "search_key", "search_probe", "search_down2", "search_down", "search_fast", "search_fin", "nav_fast", "nav_end", "iter_child", "iter_link", "iter_valid", "iter_kv", "iter_key", "iter_value", "iter_at"}
+        "neighbor_slots", "neighbor_used", "side_at", "ascend_par", "ascend_side", "ascend_tag", "ascend_at", "extreme_tag", "extreme_at", "search_key", "search_probe", "search_down2", "search_down", "search_fast", "search_fin", "nav_fast", "nav_end", "iter_child", "iter_link", "iter_valid", "iter_kv", "iter_key", "iter_value", "iter_at", "snap_kv", "snap_key", "snap_value", "snap_at", "extreme_start"}
 
 
 def classify(fns):

@@ -1,0 +1,10 @@
+# the mirror of entry_snapshot reads the whole node (the implementation reads
+# the key and the value; sim/entry_snapshot.part)
+def entry_snapshot_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, id: Nat, r: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
+  (m, node) = r
+  entry_value(~K, ~V, ~cmp, M.node_key(~K, node), get_id(~K, ~V, ~cmp, m, id))
+
+def entry_snapshot(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
+  (m, +id) = r
+  entry_snapshot_value(~K, ~V, ~cmp, id, read(~K, ~V, ~cmp, m, id))
+

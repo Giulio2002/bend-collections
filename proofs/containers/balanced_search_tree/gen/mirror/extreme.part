@@ -1,0 +1,22 @@
+# the mirror of extreme reads whole nodes (the implementation reads a tag and
+# one child per level; sim/extreme.part)
+def extreme_probe(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & Nat:
+  (m, node) = r
+  (m, M.child(~K, node, forward))
+
+def extreme_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, +id: Nat, st: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Nat:
+  match fuel st:
+    case 0n Tuple{px4, 0n}:
+      (px4, id)
+    case 0n Tuple{px4, 1n+px6}:
+      (px4, id)
+    case 1n+px3 Tuple{px7, 0n}:
+      (px7, id)
+    case 1n+px3 Tuple{px7, 1n+ +px9}:
+      extreme_loop(~K, ~V, ~cmp, px3, forward, 1n+px9, extreme_probe(~K, ~V, ~cmp, forward, read(~K, ~V, ~cmp, px7, 1n+px9)))
+
+def extreme(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +forward: Bool) -> ST.Sh<K, V> & Nat:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      extreme_loop(~K, ~V, ~cmp, 1n+n, forward, id, extreme_probe(~K, ~V, ~cmp, forward, read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id)))
+

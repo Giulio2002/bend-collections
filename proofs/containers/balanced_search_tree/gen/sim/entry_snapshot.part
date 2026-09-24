@@ -1,0 +1,44 @@
+# ---- entry_snapshot: the key and the value, the mirror's whole node ----
+
+%def ESH n, root, lo, hi, free, ST.pays(~V, l, d, pl)
+%def EST M.TreeMap<K, V, cmp> & Maybe<&2, M.Entry<K, V>>
+
+def es_y(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, +y: $ND, +w: $MV) -> {M.snap_kv(~K, ~V, ~cmp, $ESH, $AA, M.nkey(~K, y), w) == MI.rp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.entry_value(~K, ~V, ~cmp, M.node_key(~K, y), ($SH0, w))) : $EST}:
+  match y w:
+    case M.Free{z} None{}:
+      {==}
+    case M.Free{z} Some{x}:
+      {==}
+    case M.N{c, lf, rt, q, key} None{}:
+      {==}
+    case M.N{c, lf, rt, q, key} Some{v}:
+      {==}
+
+def es_n(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, $PT, +id: Nat) -> {M.snap_at(~K, ~V, ~cmp, id, $AR0) == MI.rp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.entry_snapshot(~K, ~V, ~cmp, ($SH0, id))) : $EST}:
+  match id:
+    case 0n:
+      {==}
+    case 1n+ +i:
+      %Equal.sym($TMT & $MV, M.get_id(~K, ~V, ~cmp, $AR0, 1n+i), ($AR0, ST.pv(V, pl, 1n+i)), PR.get_id_c(~K, ~V, ~cmp, $F, $PA, 1n+i)) : {M.snap_value(~K, ~V, ~cmp, i, _) == MI.rp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.entry_snapshot(~K, ~V, ~cmp, ($SH0, 1n+i))) : $EST}
+      %Equal.sym($ARR & Maybe<&2, K>, M.ns_key_at(~K, $AA, i), ($AA, M.nkey(~K, $NI(i))), NSL.key_at_ok(~K, $LDA, i)) : {M.snap_key(~K, ~V, ~cmp, $ESH, ST.nth_or($MV, pl, i, None{}), _) == MI.rp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.entry_snapshot(~K, ~V, ~cmp, ($SH0, 1n+i))) : $EST}
+      es_y(~K, ~V, ~cmp, $F, $NI(i), ST.nth_or($MV, pl, i, None{}))
+
+def es_m(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +id: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.snap_at(~K, ~V, ~cmp, id, ST.real(~K, ~V, ~cmp, m)) == MI.rp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.entry_snapshot(~K, ~V, ~cmp, (m, id))) : $EST}:
+  match m:
+    case ST.SH{$FP}:
+      es_n(~K, ~V, ~cmp, $F, $DGS(g_m), id)
+
+def entry_snapshot_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat, +g_r: {MI.dgp(K, V, Nat, r) == True{} : Bool}) -> {M.entry_snapshot(~K, ~V, ~cmp, MI.rp(~K, ~V, ~cmp, Nat, r)) == MI.rp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.entry_snapshot(~K, ~V, ~cmp, r)) : $EST}:
+  match r:
+    case Tuple{+m, +id}:
+      es_m(~K, ~V, ~cmp, m, id, g_r)
+
+def entry_snapshot_value_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {MI.dgp(K, V, Maybe<&2, M.Entry<K, V>>, MI.entry_snapshot_value(~K, ~V, ~cmp, id, r)) == True{} : Bool}:
+  match r:
+    case Tuple{+m, +node}:
+      entry_value_g(~K, ~V, ~cmp, M.node_key(~K, node), MI.get_id(~K, ~V, ~cmp, m, id), get_id_g(~K, ~V, ~cmp, m, id, g_r))
+
+def entry_snapshot_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat, +g_r: {MI.dgp(K, V, Nat, r) == True{} : Bool}) -> {MI.dgp(K, V, Maybe<&2, M.Entry<K, V>>, MI.entry_snapshot(~K, ~V, ~cmp, r)) == True{} : Bool}:
+  match r:
+    case Tuple{+m, +id}:
+      entry_snapshot_value_g(~K, ~V, ~cmp, id, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_r))

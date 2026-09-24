@@ -473,14 +473,6 @@ def get_found(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & M.Search
   (m, M.Search{id, p, on_left}) = r
   get_id(~K, ~V, ~cmp, m, id)
 
-def extreme_probe(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & Nat:
-  (m, node) = r
-  (m, M.child(~K, node, forward))
-
-def entry_snapshot_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, id: Nat, r: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
-  (m, node) = r
-  entry_value(~K, ~V, ~cmp, M.node_key(~K, node), get_id(~K, ~V, ~cmp, m, id))
-
 def replace_found(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +v: V, r: ST.Sh<K, V> & M.Search) -> ST.Sh<K, V> & Maybe<&2, V>:
   match r:
     case Tuple{px2, M.Search{0n, px5, px6}}:
@@ -572,6 +564,17 @@ def recycle(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat) -
     case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
       release_header(~K, ~V, ~cmp, write(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free}), id)
 
+# the mirror of entry_snapshot reads the whole node (the implementation reads
+# the key and the value; sim/entry_snapshot.part)
+def entry_snapshot_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, id: Nat, r: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
+  (m, node) = r
+  entry_value(~K, ~V, ~cmp, M.node_key(~K, node), get_id(~K, ~V, ~cmp, m, id))
+
+def entry_snapshot(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
+  (m, +id) = r
+  entry_snapshot_value(~K, ~V, ~cmp, id, read(~K, ~V, ~cmp, m, id))
+
+
 def rotate_left_3(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, +yn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
   (m3, +pn) = pair_result
   set_parent(~K, ~V, ~cmp, set_left(~K, ~V, ~cmp, attach(~K, ~V, ~cmp, set_parent(~K, ~V, ~cmp, set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x), x, M.node_right(~K, xn))
@@ -593,6 +596,12 @@ def alloc_read(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +p: Nat, +k: K
 def set_key_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +k: K, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
   (m1, +node) = pair_result
   set_key_node(~K, ~V, ~cmp, m1, id, k, node)
+
+def first_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
+  entry_snapshot(~K, ~V, ~cmp, first_id(~K, ~V, ~cmp, m))
+
+def last_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
+  entry_snapshot(~K, ~V, ~cmp, last_id(~K, ~V, ~cmp, m))
 
 def probe(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +k: K) -> ST.Sh<K, V> & (M.Node<K> & Cmp):
   probe_node(~K, ~V, ~cmp, id, k, read(~K, ~V, ~cmp, m, id))
@@ -636,6 +645,29 @@ def get(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K) -> ST.Sh
 def contains_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K) -> ST.Sh<K, V> & Bool:
   contains_found(~K, ~V, ~cmp, search(~K, ~V, ~cmp, m, k))
 
+# the mirror of extreme reads whole nodes (the implementation reads a tag and
+# one child per level; sim/extreme.part)
+def extreme_probe(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & Nat:
+  (m, node) = r
+  (m, M.child(~K, node, forward))
+
+def extreme_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, +id: Nat, st: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Nat:
+  match fuel st:
+    case 0n Tuple{px4, 0n}:
+      (px4, id)
+    case 0n Tuple{px4, 1n+px6}:
+      (px4, id)
+    case 1n+px3 Tuple{px7, 0n}:
+      (px7, id)
+    case 1n+px3 Tuple{px7, 1n+ +px9}:
+      extreme_loop(~K, ~V, ~cmp, px3, forward, 1n+px9, extreme_probe(~K, ~V, ~cmp, forward, read(~K, ~V, ~cmp, px7, 1n+px9)))
+
+def extreme(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +forward: Bool) -> ST.Sh<K, V> & Nat:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      extreme_loop(~K, ~V, ~cmp, 1n+n, forward, id, extreme_probe(~K, ~V, ~cmp, forward, read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id)))
+
+
 def replace(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K, +v: V) -> ST.Sh<K, V> & Maybe<&2, V>:
   replace_found(~K, ~V, ~cmp, v, search(~K, ~V, ~cmp, m, k))
 
@@ -657,17 +689,6 @@ def rotate_right_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node
   (m2, +yn) = pair_result
   rotate_right_3(~K, ~V, ~cmp, x, xn, yn, read(~K, ~V, ~cmp, m2, M.node_parent(~K, xn)))
 
-def extreme_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, +id: Nat, st: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Nat:
-  match fuel st:
-    case 0n Tuple{px4, 0n}:
-      (px4, id)
-    case 0n Tuple{px4, 1n+px6}:
-      (px4, id)
-    case 1n+px3 Tuple{px7, 0n}:
-      (px7, id)
-    case 1n+px3 Tuple{px7, 1n+ +px9}:
-      extreme_loop(~K, ~V, ~cmp, px3, forward, 1n+px9, extreme_probe(~K, ~V, ~cmp, forward, read(~K, ~V, ~cmp, px7, 1n+px9)))
-
 def ascend_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, st: ST.Sh<K, V> & M.Ascend) -> ST.Sh<K, V> & Nat:
   match fuel st:
     case 0n Tuple{px4, px5}:
@@ -683,13 +704,13 @@ def neighbor(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, 
 def set_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +k: K) -> ST.Sh<K, V>:
   set_key_1(~K, ~V, ~cmp, id, k, read(~K, ~V, ~cmp, m, id))
 
+def refresh_ends_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +r: Nat, pair_result: ST.Sh<K, V> & Nat) -> ST.Sh<K, V>:
+  (m2, +lo) = pair_result
+  refresh_ends_3(~K, ~V, ~cmp, lo, extreme(~K, ~V, ~cmp, m2, r, True{}))
+
 def key_id(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Maybe<&2, K>:
   (m, id) = r
   key_finish(~K, ~V, ~cmp, read(~K, ~V, ~cmp, m, id))
-
-def entry_snapshot(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
-  (m, +id) = r
-  entry_snapshot_value(~K, ~V, ~cmp, id, read(~K, ~V, ~cmp, m, id))
 
 def get_or_default(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K, +fallback: V) -> ST.Sh<K, V> & V:
   default_value(~K, ~V, ~cmp, fallback, get(~K, ~V, ~cmp, m, k))
@@ -713,17 +734,16 @@ def rotate_right_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result
   (m1, +xn) = pair_result
   rotate_right_2(~K, ~V, ~cmp, x, xn, read(~K, ~V, ~cmp, m1, M.node_left(~K, xn)))
 
-def extreme(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +forward: Bool) -> ST.Sh<K, V> & Nat:
-  match m:
-    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
-      extreme_loop(~K, ~V, ~cmp, 1n+n, forward, id, extreme_probe(~K, ~V, ~cmp, forward, read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id)))
-
 def copy_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +target: Nat, +node: M.Node<K>) -> ST.Sh<K, V>:
   match node:
     case M.Free{px2}:
       m
     case M.N{px3, px4, px5, px6, px7}:
       set_key(~K, ~V, ~cmp, m, target, px7)
+
+def refresh_ends_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, pair_result: ST.Sh<K, V> & Nat) -> ST.Sh<K, V>:
+  (m1, +r) = pair_result
+  refresh_ends_2(~K, ~V, ~cmp, r, extreme(~K, ~V, ~cmp, m1, r, False{}))
 
 def nav_equal(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +higher: Bool, +inclusive: Bool) -> ST.Sh<K, V> & Nat:
   match inclusive:
@@ -737,12 +757,6 @@ def first_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<
 
 def last_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V> & Maybe<&2, K>:
   key_id(~K, ~V, ~cmp, last_id(~K, ~V, ~cmp, m))
-
-def first_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
-  entry_snapshot(~K, ~V, ~cmp, first_id(~K, ~V, ~cmp, m))
-
-def last_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
-  entry_snapshot(~K, ~V, ~cmp, last_id(~K, ~V, ~cmp, m))
 
 def view_get(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K) -> MView<K, V> & Maybe<&2, V>:
   MV{m, +lower, +upper, descending} = view
@@ -758,9 +772,8 @@ def move_successor_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +sou
   (m2, value) = pair_result
   move_successor_3(~K, ~V, ~cmp, source, exchange(~K, ~V, ~cmp, copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value))
 
-def refresh_ends_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +r: Nat, pair_result: ST.Sh<K, V> & Nat) -> ST.Sh<K, V>:
-  (m2, +lo) = pair_result
-  refresh_ends_3(~K, ~V, ~cmp, lo, extreme(~K, ~V, ~cmp, m2, r, True{}))
+def refresh_ends(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V>:
+  refresh_ends_1(~K, ~V, ~cmp, root_id(~K, ~V, ~cmp, m))
 
 def nav_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +k: K, +higher: Bool, +inclusive: Bool, +id: Nat, +best: Nat, st: ST.Sh<K, V> & (M.Node<K> & Cmp)) -> ST.Sh<K, V> & Nat:
   match fuel st:
@@ -816,10 +829,6 @@ def delete_borrow_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, 
 def delete_borrow_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>) -> ST.Sh<K, V> & M.DeleteFix:
   (rotate_right(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}), p), M.DF{0n, 0n, False{}})
 
-def refresh_ends_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, pair_result: ST.Sh<K, V> & Nat) -> ST.Sh<K, V>:
-  (m1, +r) = pair_result
-  refresh_ends_2(~K, ~V, ~cmp, r, extreme(~K, ~V, ~cmp, m1, r, False{}))
-
 # the mirror of navigate (the implementation reads two fields per level; sim/navigate.part)
 def navigate(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K, +higher: Bool, +inclusive: Bool) -> ST.Sh<K, V> & Nat:
   match m:
@@ -854,9 +863,6 @@ def delete_borrow_read_left_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, 
 def delete_borrow_read_right_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & M.DeleteFix:
   (m2, +wn) = pair_result
   delete_borrow_right(~K, ~V, ~cmp, m2, p, M.node_left(~K, pn), pn, wn)
-
-def refresh_ends(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V>:
-  refresh_ends_1(~K, ~V, ~cmp, root_id(~K, ~V, ~cmp, m))
 
 def lower_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K) -> ST.Sh<K, V> & Maybe<&2, K>:
   key_id(~K, ~V, ~cmp, navigate(~K, ~V, ~cmp, m, k, False{}, False{}))
