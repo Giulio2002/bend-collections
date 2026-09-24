@@ -372,6 +372,28 @@ def main():
               % (name, row['runtime'], row['boundaries'], row['differential'],
                  row['structural'], row['mutations'], row['trace_proof']), flush=True)
 
+    # src/math/natural.bend: differential test against CPython's math
+    # module (tools/check_math.py) and the proof package proofs/math.
+    math_row = None
+    if not args.only or args.only == 'math':
+        (ROOT / 'build/math').mkdir(parents=True, exist_ok=True)
+        checks = []
+        for command, limit in [([BEND, 'tests/math/natural.bend', '-o', 'build/math/natural'], 600),
+                               ([sys.executable, 'tools/check_math.py'], 1200),
+                               ([BEND, 'proofs/math/proof.bend'], 3600)]:
+            result = run(command, timeout=limit)
+            passed = result.returncode == 0 and (command[1] != 'proofs/math/proof.bend' or 'All terms check' in result.stdout)
+            checks.append({'command': command, 'passed': passed, 'output': result.stdout + result.stderr})
+            if not passed:
+                fail('math', 'math check failed: ' + repr(command))
+                break
+        good = len(checks) == 3 and all(x['passed'] for x in checks)
+        math_row = {'id': 'math', 'implementation': 'src/math/natural.bend',
+                    'differential': 'passed' if good else 'failed',
+                    'proof': 'passed' if good else 'failed', 'checks': checks}
+        (LOGDIR / 'math.log').write_text('\n'.join(x['output'] for x in checks))
+        print('%-22s differential=%s proof=%s' % ('math', math_row['differential'], math_row['proof']), flush=True)
+
     lru_log = []
     lru_ok, lru_detail = check_lru(lru_log)
     (LOGDIR / 'lru.log').write_text('\n'.join(lru_log))
@@ -387,6 +409,7 @@ def main():
     complete = (not FAILURES) and lru_ok and len(rows) == len(inventory)
     report = {
         'structures': rows,
+        'math': math_row,
         'lru_reuse': 'passed' if lru_ok else 'failed',
         'lru_detail': lru_detail,
         'complete': bool(complete),

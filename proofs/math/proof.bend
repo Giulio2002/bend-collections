@@ -12,8 +12,9 @@ import ../lib/u32div.bend as UD
 import ./hash/hash.bend as PH
 import ../lib/word.bend as WD
 import ../lib/lemmas/proofs/word_addition.bend as WA
+import ./natural/proof.bend as NT
 
-# Gate for src/math. Every theorem is against the independent specification
+# Gate for src/math (natural.bend's theorems live in natural/proof.bend). Every theorem is against the independent specification
 # in proofs/lemmas/spec/numeric.bend (64-bit words, Nat interpretation) or
 # against Nat arithmetic; none assumes a hole or an axiom.
 

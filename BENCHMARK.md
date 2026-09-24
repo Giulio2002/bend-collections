@@ -14,6 +14,7 @@ Reproduce:
 ```sh
 python3 benchmarks/full_sweep.py --report build/bench/full.json   # containers
 python3 benchmarks/crypto.py --report build/bench/crypto.json      # hashes
+python3 benchmarks/natural.py --report build/bench/math.json       # math
 python3 benchmarks/maps/compare.py --report build/bench/maps.json  # HashMap vs Base.Map
 python3 benchmarks/render.py                                        # this file
 ```
@@ -86,6 +87,31 @@ C reference: official BLAKE3 C, portable only (no SIMD). Worst ratio 1.59.
 | 16 KiB | 24.4 | 20.4 | 1.20 |
 | 64 KiB | 89.8 | 91.6 | 0.98 |
 | 1 MiB | 1438 | 1330 | 1.08 |
+
+## Math
+
+`src/math/natural.bend` against idiomatic C (`benchmarks/native/math.c`: Euclid
+with `%`, `sqrt` plus an integer correction, `__builtin_clzll`, binary
+exponentiation, extended Euclid). Each row makes COUNT calls on arguments from
+the same MINSTD stream and folds every result into a checksum that must agree;
+the `loop` row is the generator and the fold alone, and is part of every other
+row. Median of five alternating samples after a warm-up; nanoseconds per call.
+
+| Operation | Bend (ns) | C (ns) | Ratio |
+|---|---:|---:|---:|
+| loop | 6.90 | 6.85 | 1.01 |
+| gcd | 69.2 | 70.4 | 0.98 |
+| lcm | 46.3 | 47.6 | 0.97 |
+| isqrt | 24.9 | 6.69 | 3.72 |
+| iroot3 | 62.0 | 11.3 | 5.51 |
+| ilog10 | 6.67 | 12.2 | 0.55 |
+| bit_length | 15.5 | 6.46 | 2.40 |
+| factorial | 14.9 | 13.1 | 1.14 |
+| perm | 16.4 | 14.1 | 1.16 |
+| comb | 27.2 | 15.4 | 1.77 |
+| pow_mod | 68.8 | 67.7 | 1.01 |
+| mod_inverse | 79.3 | 60.8 | 1.30 |
+| divmod | 7.65 | 6.69 | 1.14 |
 
 ## Containers
 
