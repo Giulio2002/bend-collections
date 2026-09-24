@@ -1,0 +1,81 @@
+import Base
+import ./graph.bend as G
+import ./edits.bend as E
+import ../../lib/logic.bend as Logic
+
+%def TK ~N: Data, ~R: Data, ~P: Data
+%def EK $TK, ~eq: N -> N -> Bool
+%def RK $EK, ~req: R -> R -> Bool
+%def GN ~N, ~R, ~P
+%def GE $GN, ~eq
+%def GR $GE, ~req
+%def ST G.Graph<N,R,P>
+%def MN Maybe<&2,N>
+%def LN List<&2,N>
+
+# The split fields are proof witnesses, not runtime arguments to remove.
+# They name the old ordered sequence independently of the link algorithm.
+type Edit<-N: Data> is Data:
+  Prepend{node: N}
+  RemoveHead{node: N, rest: List<&2,N>}
+  RemoveAfter{prefix: List<&2,N>, previous: N, node: N, suffix: List<&2,N>}
+
+def order(~N: Data, op: Edit<N>, xs: $LN) -> $LN:
+  match op:
+    case Prepend{n}: Con{n,xs}
+    case RemoveHead{n,rest}: rest
+    case RemoveAfter{a,p,n,b}: G.append(~N,G.append(~N,a,Con{p,Nil{}}),b)
+
+def step($RK, g: $ST, r: R, op: Edit<N>) -> $ST:
+  match op:
+    case Prepend{n}: G.prepend($GN,~req,g,r,n)
+    case RemoveHead{n,rest}: G.remove($GE,g,r,n)
+    case RemoveAfter{a,p,n,b}: G.remove($GE,g,r,n)
+
+def permitted($EK, +g: $ST, op: Edit<N>, +xs: $LN) -> Data:
+  match op:
+    case Prepend{+n}: G.both(G.away(~N,~eq,n,xs),G.both({G.prev($GE,g,n) == None{} : $MN},{G.next($GE,g,n) == None{} : $MN}))
+    case RemoveHead{n,rest}: {xs == Con{n,rest} : $LN}
+    case RemoveAfter{a,p,n,b}: {xs == G.append(~N,G.append(~N,a,Con{p,Nil{}}),Con{n,b}) : $LN}
+
+def legal($RK, ops: List<&2,Edit<N>>, +g: $ST, +r: R, +xs: $LN) -> Data:
+  match ops:
+    case Nil{}: Unit
+    case Con{+op,+rest}: G.both(permitted($GE,g,op,xs),legal($GR,rest,step($GR,g,r,op),r,order(~N,op,xs)))
+
+def run($RK, ops: List<&2,Edit<N>>, g: $ST, +r: R) -> $ST:
+  match ops:
+    case Nil{}: g
+    case Con{op,rest}: run($GR,rest,step($GR,g,r,op),r)
+
+def orders(~N: Data, ops: List<&2,Edit<N>>, xs: $LN) -> $LN:
+  match ops:
+    case Nil{}: xs
+    case Con{op,rest}: orders(~N,rest,order(~N,op,xs))
+
+def step_preserves($RK, ~reflex: @x: N -> {eq(x,x) == True{} : Bool}, +g: $ST, +r: R, +op: Edit<N>, +xs: $LN, rsame: {req(r,r) == True{} : Bool}, pre: permitted($GE,g,op,xs), good: G.valid($GR,g,r,xs)) -> G.valid($GR,step($GR,g,r,op),r,order(~N,op,xs)):
+  match op pre:
+    case Prepend{+n} Tuple{away,Tuple{hp,hn}}: E.prepend_preserves($GR,~reflex,g,r,n,xs,rsame,away,hp,good)
+    case RemoveHead{+n,+rest} equation:
+      E.remove_head_preserves($GR,~reflex,g,r,n,rest,rsame,Logic.subst($LN,ys => G.valid($GR,g,r,ys),xs,Con{n,rest},equation,good))
+    case RemoveAfter{+a,+p,+n,+b} equation:
+      E.remove_nonhead_preserves($GR,~reflex,g,r,n,a,p,b,Logic.subst($LN,ys => G.valid($GR,g,r,ys),xs,G.append(~N,G.append(~N,a,Con{p,Nil{}}),Con{n,b}),equation,good))
+
+# Induction over any finite legal history, not a bound or enumeration.
+def run_preserves($RK, ~reflex: @x: N -> {eq(x,x) == True{} : Bool}, +ops: List<&2,Edit<N>>, +g: $ST, +r: R, +xs: $LN, +rsame: {req(r,r) == True{} : Bool}, history: legal($GR,ops,g,r,xs), good: G.valid($GR,g,r,xs)) -> G.valid($GR,run($GR,ops,g,r),r,orders(~N,ops,xs)):
+  match ops history:
+    case Nil{} _: good
+    case Con{+op,+rest} Tuple{pre,ht}:
+      run_preserves($GR,~reflex,rest,step($GR,g,r,op),r,order(~N,op,xs),rsame,ht,step_preserves($GR,~reflex,g,r,op,xs,rsame,pre,good))
+
+def step_frame($RK, +g: $ST, +r: R, +op: Edit<N>) -> {G.frame($GN,step($GR,g,r,op)) == G.frame($GN,g) : P}:
+  match op:
+    case Prepend{+n}: E.attach_frame($GN,g,r,n,G.head($GN,~req,g,r))
+    case RemoveHead{+n,rest}: E.cut_frame($GN,g,r,n,G.prev($GE,g,n),G.next($GE,g,n))
+    case RemoveAfter{a,p,+n,b}: E.cut_frame($GN,g,r,n,G.prev($GE,g,n),G.next($GE,g,n))
+
+def run_frame($RK, +ops: List<&2,Edit<N>>, +g: $ST, +r: R) -> {G.frame($GN,run($GR,ops,g,r)) == G.frame($GN,g) : P}:
+  match ops:
+    case Nil{}: {==}
+    case Con{+op,+rest}:
+      Equal.trans(P,G.frame($GN,run($GR,rest,step($GR,g,r,op),r)),G.frame($GN,step($GR,g,r,op)),G.frame($GN,g),run_frame($GR,rest,step($GR,g,r,op),r),step_frame($GR,g,r,op))

@@ -1,0 +1,1037 @@
+{
+  "schema": 2,
+  "timestamp_utc": "2026-09-24T20:24:42.181265+00:00",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "cpu": "AMD EPYC 9V74 80-Core Processor",
+  "compiler": "bend 2.0.25",
+  "compiler_sha256": "d9c0dad1f77be6a13dd8dcc16aef4f59047a956a2744f25d5c220cb8de384693",
+  "cc": "Ubuntu clang version 18.1.3 (1ubuntu1)",
+  "c_flags": "-O3 -std=gnu11 -pthread -lm",
+  "workers": 1,
+  "samples": 10,
+  "min_batch_ms": 10,
+  "allocation_scope": "Bend heap_alloc calls; separate instrumented binaries; no timing counter",
+  "memory_scope": "live Bend heap blocks, rounded to allocator size classes; process-wide at churn entry/exit and peak during churn; excludes free lists, stack, runtime reservations and OS allocations",
+  "comparison_scope": "different contracts; storage diagnostic removes generation facade and generation handle-map traffic, retaining bounds/owner/live-slot checks, tail, count, arenas and slot mapping",
+  "timing_scope": "churn only; setup, prewarm, validation and destruction excluded",
+  "checks": {
+    "cases": [
+      {
+        "workload": "transfer",
+        "size": 1,
+        "count": 257,
+        "seed": 0,
+        "output": "4293746610 0 0"
+      },
+      {
+        "workload": "transfer",
+        "size": 1,
+        "count": 257,
+        "seed": 1,
+        "output": "4293746610 0 0"
+      },
+      {
+        "workload": "transfer",
+        "size": 1,
+        "count": 257,
+        "seed": 4294967295,
+        "output": "4293746610 0 0"
+      },
+      {
+        "workload": "transfer",
+        "size": 3,
+        "count": 257,
+        "seed": 0,
+        "output": "18271715 0 0"
+      },
+      {
+        "workload": "transfer",
+        "size": 3,
+        "count": 257,
+        "seed": 1,
+        "output": "18271715 0 0"
+      },
+      {
+        "workload": "transfer",
+        "size": 3,
+        "count": 257,
+        "seed": 4294967295,
+        "output": "18271715 0 0"
+      },
+      {
+        "workload": "transfer",
+        "size": 32,
+        "count": 257,
+        "seed": 0,
+        "output": "1799146798 0 0"
+      },
+      {
+        "workload": "transfer",
+        "size": 32,
+        "count": 257,
+        "seed": 1,
+        "output": "2358983438 0 0"
+      },
+      {
+        "workload": "transfer",
+        "size": 32,
+        "count": 257,
+        "seed": 4294967295,
+        "output": "22351950 0 0"
+      },
+      {
+        "workload": "pulses",
+        "size": 1,
+        "count": 5,
+        "seed": 0,
+        "output": "194877546 1 0"
+      },
+      {
+        "workload": "pulses",
+        "size": 1,
+        "count": 5,
+        "seed": 1,
+        "output": "2927870840 1 0"
+      },
+      {
+        "workload": "pulses",
+        "size": 1,
+        "count": 5,
+        "seed": 4294967295,
+        "output": "1756851548 1 0"
+      },
+      {
+        "workload": "pulses",
+        "size": 3,
+        "count": 5,
+        "seed": 0,
+        "output": "3923112065 3 0"
+      },
+      {
+        "workload": "pulses",
+        "size": 3,
+        "count": 5,
+        "seed": 1,
+        "output": "3080702787 3 0"
+      },
+      {
+        "workload": "pulses",
+        "size": 3,
+        "count": 5,
+        "seed": 4294967295,
+        "output": "470554047 3 0"
+      },
+      {
+        "workload": "pulses",
+        "size": 32,
+        "count": 5,
+        "seed": 0,
+        "output": "1998393264 32 0"
+      },
+      {
+        "workload": "pulses",
+        "size": 32,
+        "count": 5,
+        "seed": 1,
+        "output": "3850169072 32 0"
+      },
+      {
+        "workload": "pulses",
+        "size": 32,
+        "count": 5,
+        "seed": 4294967295,
+        "output": "146617456 32 0"
+      }
+    ],
+    "backends_per_case": 7,
+    "positive_controls": {
+      "transfer_intrusive": {
+        "baseline": 0,
+        "control": 1
+      },
+      "transfer_dlist": {
+        "baseline": 0,
+        "control": 1
+      },
+      "transfer_storage": {
+        "baseline": 0,
+        "control": 1
+      },
+      "pulses_intrusive": {
+        "baseline": 0,
+        "control": 1
+      },
+      "pulses_dlist": {
+        "baseline": 0,
+        "control": 1
+      },
+      "pulses_storage": {
+        "baseline": 0,
+        "control": 1
+      }
+    },
+    "memory_controls": {
+      "transfer_intrusive": {
+        "baseline": {
+          "ns": 140,
+          "allocations": 0,
+          "live_bytes": {
+            "entry": 2048,
+            "exit": 2048,
+            "hot_peak": 2048
+          }
+        },
+        "control": {
+          "ns": 180,
+          "allocations": 1,
+          "live_bytes": {
+            "entry": 2048,
+            "exit": 2048,
+            "hot_peak": 10240
+          }
+        }
+      },
+      "transfer_dlist": {
+        "baseline": {
+          "ns": 1051,
+          "allocations": 0,
+          "live_bytes": {
+            "entry": 3840,
+            "exit": 3840,
+            "hot_peak": 3840
+          }
+        },
+        "control": {
+          "ns": 1121,
+          "allocations": 1,
+          "live_bytes": {
+            "entry": 3840,
+            "exit": 3840,
+            "hot_peak": 12032
+          }
+        }
+      },
+      "transfer_storage": {
+        "baseline": {
+          "ns": 942,
+          "allocations": 0,
+          "live_bytes": {
+            "entry": 3584,
+            "exit": 3584,
+            "hot_peak": 3584
+          }
+        },
+        "control": {
+          "ns": 801,
+          "allocations": 1,
+          "live_bytes": {
+            "entry": 3584,
+            "exit": 3584,
+            "hot_peak": 11776
+          }
+        }
+      },
+      "pulses_intrusive": {
+        "baseline": {
+          "ns": 1122,
+          "allocations": 0,
+          "live_bytes": {
+            "entry": 2048,
+            "exit": 2048,
+            "hot_peak": 2048
+          }
+        },
+        "control": {
+          "ns": 1232,
+          "allocations": 1,
+          "live_bytes": {
+            "entry": 2048,
+            "exit": 2048,
+            "hot_peak": 10240
+          }
+        }
+      },
+      "pulses_dlist": {
+        "baseline": {
+          "ns": 3595,
+          "allocations": 0,
+          "live_bytes": {
+            "entry": 2944,
+            "exit": 2944,
+            "hot_peak": 2944
+          }
+        },
+        "control": {
+          "ns": 3706,
+          "allocations": 1,
+          "live_bytes": {
+            "entry": 2944,
+            "exit": 2944,
+            "hot_peak": 11136
+          }
+        }
+      },
+      "pulses_storage": {
+        "baseline": {
+          "ns": 2985,
+          "allocations": 0,
+          "live_bytes": {
+            "entry": 2816,
+            "exit": 2816,
+            "hot_peak": 2816
+          }
+        },
+        "control": {
+          "ns": 3015,
+          "allocations": 1,
+          "live_bytes": {
+            "entry": 2816,
+            "exit": 2816,
+            "hot_peak": 11008
+          }
+        }
+      }
+    },
+    "passed": true
+  },
+  "rows": [
+    {
+      "workload": "transfer",
+      "size": 32,
+      "iterations": 3670016,
+      "units": 3670016,
+      "unit": "transfer (remove + prepend)",
+      "seed": 1,
+      "output": "2902702254 0 0",
+      "factory_calls_in_hot_loop": 0,
+      "metrics": {
+        "intrusive": {
+          "samples_ns": [
+            21593487,
+            19227893,
+            19716698,
+            19770619,
+            20688879,
+            20829073,
+            26375861,
+            20355201,
+            19916521,
+            21693193
+          ],
+          "median_ns_per_unit": 5.5918121337890625,
+          "min_ns_per_unit": 5.239185060773577,
+          "max_ns_per_unit": 7.18685177394322,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 2048,
+            "exit": 2048,
+            "hot_peak": 2048
+          }
+        },
+        "dlist": {
+          "samples_ns": [
+            177484063,
+            190587974,
+            187591351,
+            184320046,
+            180961850,
+            183046460,
+            178891714,
+            195740614,
+            188485096,
+            195496141
+          ],
+          "median_ns_per_unit": 50.66890675680978,
+          "min_ns_per_unit": 48.360569272722515,
+          "max_ns_per_unit": 53.33508464268276,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 3840,
+            "exit": 3840,
+            "hot_peak": 3840
+          }
+        },
+        "storage": {
+          "samples_ns": [
+            149028213,
+            178508082,
+            151118644,
+            146298917,
+            152950257,
+            153262474,
+            156371639,
+            151742810,
+            156924636,
+            165963989
+          ],
+          "median_ns_per_unit": 41.718173844473704,
+          "min_ns_per_unit": 39.86329133169992,
+          "max_ns_per_unit": 48.63959230695452,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 3584,
+            "exit": 3584,
+            "hot_peak": 3584
+          }
+        },
+        "c": {
+          "samples_ns": [
+            12567015,
+            12568256,
+            12540775,
+            12642447,
+            12671799,
+            12520793,
+            12635696,
+            12798460,
+            12830719,
+            12735526
+          ],
+          "median_ns_per_unit": 3.4438736779349193,
+          "min_ns_per_unit": 3.4116453443254744,
+          "max_ns_per_unit": 3.4960934775216237,
+          "heap_alloc_calls": null
+        },
+        "intrusive_repeat": {
+          "samples_ns": [
+            19698992,
+            20179153,
+            19698751,
+            21284945,
+            19789057,
+            21697669,
+            23812778,
+            21059920,
+            20649493,
+            20205315
+          ],
+          "median_ns_per_unit": 5.566025870186942,
+          "min_ns_per_unit": 5.3674836839948386,
+          "max_ns_per_unit": 6.488467080252511,
+          "heap_alloc_calls": 0
+        }
+      },
+      "aa_repeat_ratio": 0.9953885676082884,
+      "aa_within_10_percent": true
+    },
+    {
+      "workload": "transfer",
+      "size": 1024,
+      "iterations": 3407872,
+      "units": 3407872,
+      "unit": "transfer (remove + prepend)",
+      "seed": 1,
+      "output": "596575742 0 0",
+      "factory_calls_in_hot_loop": 0,
+      "metrics": {
+        "intrusive": {
+          "samples_ns": [
+            19763760,
+            21361452,
+            19183878,
+            18629044,
+            19270818,
+            18351086,
+            20089740,
+            19487735,
+            20394318,
+            19816209
+          ],
+          "median_ns_per_unit": 5.758945024930513,
+          "min_ns_per_unit": 5.384910583496094,
+          "max_ns_per_unit": 6.2682671180138225,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 65536,
+            "exit": 65536,
+            "hot_peak": 65536
+          }
+        },
+        "dlist": {
+          "samples_ns": [
+            199075169,
+            194930979,
+            252837516,
+            191713221,
+            203938084,
+            199041478,
+            199641915,
+            193943524,
+            191636717,
+            193155159
+          ],
+          "median_ns_per_unit": 57.80329440190242,
+          "min_ns_per_unit": 56.233543102557846,
+          "max_ns_per_unit": 74.19219853327824,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 122880,
+            "exit": 122880,
+            "hot_peak": 122880
+          }
+        },
+        "storage": {
+          "samples_ns": [
+            163510676,
+            169397676,
+            156357803,
+            159767910,
+            156552997,
+            183773407,
+            170626173,
+            167558380,
+            165855883,
+            185585410
+          ],
+          "median_ns_per_unit": 48.91824913024902,
+          "min_ns_per_unit": 45.8813602740948,
+          "max_ns_per_unit": 54.45785815899189,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 114688,
+            "exit": 114688,
+            "hot_peak": 114688
+          }
+        },
+        "c": {
+          "samples_ns": [
+            11220818,
+            11768150,
+            11217442,
+            10839234,
+            10873887,
+            12251928,
+            11587639,
+            11029840,
+            10948178,
+            11875852
+          ],
+          "median_ns_per_unit": 3.2921218872070312,
+          "min_ns_per_unit": 3.1806458693284254,
+          "max_ns_per_unit": 3.595184326171875,
+          "heap_alloc_calls": null
+        },
+        "intrusive_repeat": {
+          "samples_ns": [
+            18798158,
+            19613944,
+            27515973,
+            27284074,
+            21237075,
+            21414491,
+            19756158,
+            18417156,
+            20353747,
+            18937687
+          ],
+          "median_ns_per_unit": 5.884890189537635,
+          "min_ns_per_unit": 5.404298048753005,
+          "max_ns_per_unit": 8.074238997239332,
+          "heap_alloc_calls": 0
+        }
+      },
+      "aa_repeat_ratio": 1.0218694854807442,
+      "aa_within_10_percent": true
+    },
+    {
+      "workload": "transfer",
+      "size": 65536,
+      "iterations": 2097152,
+      "units": 2097152,
+      "unit": "transfer (remove + prepend)",
+      "seed": 1,
+      "output": "2026544318 0 0",
+      "factory_calls_in_hot_loop": 0,
+      "metrics": {
+        "intrusive": {
+          "samples_ns": [
+            17320963,
+            17748035,
+            18576311,
+            19225907,
+            26050454,
+            20912176,
+            19187439,
+            21777722,
+            20080150,
+            17578640
+          ],
+          "median_ns_per_unit": 9.15845537185669,
+          "min_ns_per_unit": 8.259278774261475,
+          "max_ns_per_unit": 12.42182445526123,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 4194304,
+            "exit": 4194304,
+            "hot_peak": 4194304
+          }
+        },
+        "dlist": {
+          "samples_ns": [
+            243617448,
+            248580869,
+            214205752,
+            214879415,
+            226468634,
+            190798721,
+            187556438,
+            197658381,
+            226662425,
+            254333184
+          ],
+          "median_ns_per_unit": 105.22557473182678,
+          "min_ns_per_unit": 89.4338788986206,
+          "max_ns_per_unit": 121.2755126953125,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 7864320,
+            "exit": 7864320,
+            "hot_peak": 7864320
+          }
+        },
+        "storage": {
+          "samples_ns": [
+            191873978,
+            163624939,
+            182948603,
+            162682924,
+            180294138,
+            198140686,
+            168419165,
+            208700428,
+            167001399,
+            187492199
+          ],
+          "median_ns_per_unit": 86.60381817817688,
+          "min_ns_per_unit": 77.57326316833496,
+          "max_ns_per_unit": 99.5161190032959,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 7340032,
+            "exit": 7340032,
+            "hot_peak": 7340032
+          }
+        },
+        "c": {
+          "samples_ns": [
+            12861762,
+            13466911,
+            12709213,
+            12056871,
+            13231052,
+            12109250,
+            12140347,
+            14358480,
+            12530854,
+            13022486
+          ],
+          "median_ns_per_unit": 6.096595525741577,
+          "min_ns_per_unit": 5.74916410446167,
+          "max_ns_per_unit": 6.846656799316406,
+          "heap_alloc_calls": null
+        },
+        "intrusive_repeat": {
+          "samples_ns": [
+            17501294,
+            21642574,
+            19991147,
+            19792348,
+            18810202,
+            18722330,
+            17604620,
+            17833163,
+            19314440,
+            20415134
+          ],
+          "median_ns_per_unit": 9.089622974395752,
+          "min_ns_per_unit": 8.345267295837402,
+          "max_ns_per_unit": 10.31998348236084,
+          "heap_alloc_calls": 0
+        }
+      },
+      "aa_repeat_ratio": 0.9924842787712375,
+      "aa_within_10_percent": true
+    },
+    {
+      "workload": "pulses",
+      "size": 32,
+      "iterations": 163840,
+      "units": 5242880,
+      "unit": "complete node lifecycle",
+      "seed": 1,
+      "output": "1499254800 32 0",
+      "factory_calls_in_hot_loop": 0,
+      "metrics": {
+        "intrusive": {
+          "samples_ns": [
+            22424604,
+            23049854,
+            25767228,
+            25635200,
+            26673391,
+            25724974,
+            24471230,
+            23045898,
+            22106777,
+            22342491
+          ],
+          "median_ns_per_unit": 4.531963729858399,
+          "min_ns_per_unit": 4.216533088684082,
+          "max_ns_per_unit": 5.087545585632324,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 2048,
+            "exit": 2048,
+            "hot_peak": 2048
+          }
+        },
+        "dlist": {
+          "samples_ns": [
+            96618363,
+            82538566,
+            81839626,
+            81539535,
+            90779161,
+            106760743,
+            80569036,
+            82635282,
+            83656390,
+            79875634
+          ],
+          "median_ns_per_unit": 15.752205657958985,
+          "min_ns_per_unit": 15.235068130493165,
+          "max_ns_per_unit": 20.36299571990967,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 2944,
+            "exit": 2944,
+            "hot_peak": 2944
+          }
+        },
+        "storage": {
+          "samples_ns": [
+            64030749,
+            81472218,
+            68875751,
+            74355357,
+            78036960,
+            75260207,
+            63852531,
+            62958247,
+            64266112,
+            77377235
+          ],
+          "median_ns_per_unit": 13.659582901000977,
+          "min_ns_per_unit": 12.008332633972168,
+          "max_ns_per_unit": 15.539592361450195,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 2816,
+            "exit": 2816,
+            "hot_peak": 2816
+          }
+        },
+        "c": {
+          "samples_ns": [
+            19406238,
+            18670402,
+            23610627,
+            20831771,
+            20603517,
+            22394789,
+            21193154,
+            18902401,
+            27654444,
+            18554882
+          ],
+          "median_ns_per_unit": 3.951576995849609,
+          "min_ns_per_unit": 3.5390628814697265,
+          "max_ns_per_unit": 5.274666595458984,
+          "heap_alloc_calls": null
+        },
+        "intrusive_repeat": {
+          "samples_ns": [
+            28336600,
+            26966471,
+            21913156,
+            23639911,
+            23193059,
+            25664294,
+            21834558,
+            23228503,
+            24911132,
+            27388140
+          ],
+          "median_ns_per_unit": 4.630188274383545,
+          "min_ns_per_unit": 4.164611434936523,
+          "max_ns_per_unit": 5.404777526855469,
+          "heap_alloc_calls": 0
+        }
+      },
+      "aa_repeat_ratio": 1.0216737269713796,
+      "aa_within_10_percent": true
+    },
+    {
+      "workload": "pulses",
+      "size": 1024,
+      "iterations": 3072,
+      "units": 3145728,
+      "unit": "complete node lifecycle",
+      "seed": 1,
+      "output": "3372859904 1024 0",
+      "factory_calls_in_hot_loop": 0,
+      "metrics": {
+        "intrusive": {
+          "samples_ns": [
+            18974588,
+            13925494,
+            13709839,
+            15676305,
+            13553644,
+            13405802,
+            13571576,
+            18616073,
+            19151869,
+            16867257
+          ],
+          "median_ns_per_unit": 4.705079237620036,
+          "min_ns_per_unit": 4.261589686075847,
+          "max_ns_per_unit": 6.088215192159017,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 65536,
+            "exit": 65536,
+            "hot_peak": 65536
+          }
+        },
+        "dlist": {
+          "samples_ns": [
+            66078911,
+            67669477,
+            47731390,
+            48239485,
+            48130251,
+            55382051,
+            52108587,
+            61196484,
+            47264367,
+            53711446
+          ],
+          "median_ns_per_unit": 16.81964127222697,
+          "min_ns_per_unit": 15.024937629699707,
+          "max_ns_per_unit": 21.511547406514484,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 94208,
+            "exit": 94208,
+            "hot_peak": 94208
+          }
+        },
+        "storage": {
+          "samples_ns": [
+            47693073,
+            40598818,
+            42971505,
+            38404460,
+            39230672,
+            42470603,
+            41108861,
+            42017485,
+            50179645,
+            38993683
+          ],
+          "median_ns_per_unit": 13.212576866149902,
+          "min_ns_per_unit": 12.208449045817057,
+          "max_ns_per_unit": 15.951679547627768,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 90112,
+            "exit": 90112,
+            "hot_peak": 90112
+          }
+        },
+        "c": {
+          "samples_ns": [
+            12234752,
+            11979107,
+            11688280,
+            13764380,
+            13599363,
+            13230378,
+            12071793,
+            12923132,
+            18274901,
+            23353314
+          ],
+          "median_ns_per_unit": 4.156988461812337,
+          "min_ns_per_unit": 3.7156041463216147,
+          "max_ns_per_unit": 7.423818588256836,
+          "heap_alloc_calls": null
+        },
+        "intrusive_repeat": {
+          "samples_ns": [
+            14805175,
+            14514909,
+            13583729,
+            14402931,
+            14724714,
+            13238471,
+            15448205,
+            15365530,
+            14142093,
+            13610855
+          ],
+          "median_ns_per_unit": 4.596366882324219,
+          "min_ns_per_unit": 4.208396593729655,
+          "max_ns_per_unit": 4.910852114359538,
+          "heap_alloc_calls": 0
+        }
+      },
+      "aa_repeat_ratio": 0.9768946812996061,
+      "aa_within_10_percent": true
+    },
+    {
+      "workload": "pulses",
+      "size": 65536,
+      "iterations": 64,
+      "units": 4194304,
+      "unit": "complete node lifecycle",
+      "seed": 1,
+      "output": "2484109312 65536 0",
+      "factory_calls_in_hot_loop": 0,
+      "metrics": {
+        "intrusive": {
+          "samples_ns": [
+            19962226,
+            19092599,
+            18956305,
+            19256305,
+            21500348,
+            20966470,
+            19128283,
+            27808260,
+            19887134,
+            19193952
+          ],
+          "median_ns_per_unit": 4.666261553764343,
+          "min_ns_per_unit": 4.519535303115845,
+          "max_ns_per_unit": 6.630005836486816,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 4194304,
+            "exit": 4194304,
+            "hot_peak": 4194304
+          }
+        },
+        "dlist": {
+          "samples_ns": [
+            68341338,
+            64829529,
+            71960454,
+            71011913,
+            71477543,
+            69156323,
+            70305951,
+            70436868,
+            65079836,
+            70678561
+          ],
+          "median_ns_per_unit": 16.777851462364197,
+          "min_ns_per_unit": 15.45656418800354,
+          "max_ns_per_unit": 17.15670919418335,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 6029312,
+            "exit": 6029312,
+            "hot_peak": 6029312
+          }
+        },
+        "storage": {
+          "samples_ns": [
+            53920962,
+            55396510,
+            58334672,
+            54705401,
+            62277083,
+            54427123,
+            53376885,
+            57509967,
+            56884507,
+            58236299
+          ],
+          "median_ns_per_unit": 13.384940266609192,
+          "min_ns_per_unit": 12.726041078567505,
+          "max_ns_per_unit": 14.848013639450073,
+          "heap_alloc_calls": 0,
+          "live_bytes": {
+            "entry": 5767168,
+            "exit": 5767168,
+            "hot_peak": 5767168
+          }
+        },
+        "c": {
+          "samples_ns": [
+            18494840,
+            16946223,
+            17790942,
+            17485994,
+            17157290,
+            20333626,
+            17933387,
+            18567390,
+            19224808,
+            20161346
+          ],
+          "median_ns_per_unit": 4.342583060264587,
+          "min_ns_per_unit": 4.040294408798218,
+          "max_ns_per_unit": 4.847914218902588,
+          "heap_alloc_calls": null
+        },
+        "intrusive_repeat": {
+          "samples_ns": [
+            19696016,
+            20502488,
+            19909327,
+            20224130,
+            18862184,
+            19648154,
+            19133420,
+            18844056,
+            19860414,
+            20191972
+          ],
+          "median_ns_per_unit": 4.71549391746521,
+          "min_ns_per_unit": 4.492773056030273,
+          "max_ns_per_unit": 4.888174057006836,
+          "heap_alloc_calls": 0
+        }
+      },
+      "aa_repeat_ratio": 1.0105507081276124,
+      "aa_within_10_percent": true
+    }
+  ],
+  "source_sha256": {
+    "benchmarks/bend/common.bend": "8205553c1bdc07704789eb17a6e7b92286469b003384e72c412621f5d6176428",
+    "benchmarks/bend/intrusive_dlist_support.bend": "29935840b49efd47703bb0e63a2a076d491509ef2c83f585b7ce68341aa8a46c",
+    "benchmarks/bend/intrusive_pulses.bend": "5ec7d86c6a09cb777ac8b9c11c13cdd39f3186e236b91bea41448f528b3af29e",
+    "benchmarks/bend/intrusive_pulses_dlist.bend": "b6cb54deee1b4d22c9070a3fe062fb281c7e286fd6c2f94334f5d2de09df93ec",
+    "benchmarks/bend/intrusive_pulses_storage.bend": "af56d82f624a5b206d9103a9fd70a91fba9f27270b035bfea3910beacca01e18",
+    "benchmarks/bend/intrusive_storage_support.bend": "610548ff3ee27d779402419778461f0da34e0098c79a6cae696eac63facd5bf0",
+    "benchmarks/bend/intrusive_support.bend": "70346d701b48ba9793e55faf20cd122edc5f59a56bc011fcfcdfbb0188b68b06",
+    "benchmarks/bend/intrusive_transfer.bend": "e798647437539f0820baeb8c56d3e3ea162523977cc168e0ca583ad95bae613e",
+    "benchmarks/bend/intrusive_transfer_dlist.bend": "3ef32252a49e83f6a359327ebd935d25810a4e3df60234cceed5803aee157b05",
+    "benchmarks/bend/intrusive_transfer_storage.bend": "cde93b4c463bac0a9c6b6f181f5780414d2174940a17f0cd707ba59d5eb60185",
+    "benchmarks/intrusive.py": "f0970d5f89d07f678b236b4b90691e575d1b5650c2e5c7623bccde7fa971c964",
+    "benchmarks/native/intrusive_workloads.c": "a9654bc59a4cb75f3f2e7832e8dbbcefc76b9fadf509232b6a35ce77aaaa795c",
+    "src/containers/doubly_linked_list.bend": "f3a99e0b7b4367014492c9661e864dd18a75f0bf346967a3daf33e24def67cf2",
+    "src/containers/internal/dlist_storage.bend": "18bbb1d764230acebf6bc8a97f7778697efa20328ba7f7ab203c0457bdfdd62a",
+    "src/containers/internal/intrusive_list.bend": "3d0aea1271390669147cb5fa4da3085c1f32e1ff5cd29c1f02b4fe5a5e994f2c",
+    "src/containers/intrusive_doubly_linked_list.bend": "23abb5a72109771542897dd168ca405951f7565d9f907061adcff3adaf5b1779",
+    "src/containers/types/doubly_linked_list.bend": "4af259699ffcd3f6c32d1fbc338b3415a65eb3c7e8d211965eea64cd60fd2c28",
+    "src/containers/types/internal_dlist.bend": "03b9955e20b723852743131d9707907504d5e8d0d2db072e5a7cdc835915b7f7",
+    "src/containers/types/intrusive_doubly_linked_list.bend": "c1ea5b4ae457b3fd84d94c0804ec6492a7a259bfc2afbb0ed12e350c52287ebe",
+    "tools/intrusive_measurement.py": "85e314bc9acc7d56caedf452665b7575e626c3fea839f6631e9d9f47b8836997"
+  },
+  "passed": true
+}

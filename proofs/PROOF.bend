@@ -1,4 +1,5 @@
 import Base
+import ./containers/intrusive_doubly_linked_list/proof.bend as IntrusiveList
 import ./containers/dlist_iterator/proof.bend as IteratorComponents
 import ./containers/balanced_search_tree/components.bend as TreeMapComponents
 import ./END_TO_END.bend as End

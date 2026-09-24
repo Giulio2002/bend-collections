@@ -1,0 +1,250 @@
+import Base
+import ./graph.bend as G
+
+%def TK ~N: Data, ~R: Data, ~P: Data
+%def EK $TK, ~eq: N -> N -> Bool
+%def GN ~N, ~R, ~P
+%def GE $GN, ~eq
+%def ST G.Graph<N,R,P>
+%def MN Maybe<&2,N>
+%def LN List<&2,N>
+
+# The graph is a proof shadow. These are pointwise map laws, proved here,
+# not postconditions assumed of the list operation.
+
+def next_sn($EK, +g: $ST, +n: N, +v: $MN, +x: N) -> {G.next($GE,G.sn($GN,g,n,v),x) == G.choose(~$MN,eq(n,x),v,G.next($GE,g,x)) : $MN}:
+  match g:
+    case G.Graph{ns,ps,rs,f}: {==}
+
+def prev_sn($EK, +g: $ST, +n: N, +v: $MN, +x: N) -> {G.prev($GE,G.sn($GN,g,n,v),x) == G.prev($GE,g,x) : $MN}:
+  match g:
+    case G.Graph{ns,ps,rs,f}: {==}
+
+def next_sp($EK, +g: $ST, +n: N, +v: $MN, +x: N) -> {G.next($GE,G.sp($GN,g,n,v),x) == G.next($GE,g,x) : $MN}:
+  match g:
+    case G.Graph{ns,ps,rs,f}: {==}
+
+def prev_sp($EK, +g: $ST, +n: N, +v: $MN, +x: N) -> {G.prev($GE,G.sp($GN,g,n,v),x) == G.choose(~$MN,eq(n,x),v,G.prev($GE,g,x)) : $MN}:
+  match g:
+    case G.Graph{ns,ps,rs,f}: {==}
+
+def next_sh($EK, +g: $ST, +r: R, +v: $MN, +x: N) -> {G.next($GE,G.sh($GN,g,r,v),x) == G.next($GE,g,x) : $MN}:
+  match g:
+    case G.Graph{ns,ps,rs,f}: {==}
+
+def prev_sh($EK, +g: $ST, +r: R, +v: $MN, +x: N) -> {G.prev($GE,G.sh($GN,g,r,v),x) == G.prev($GE,g,x) : $MN}:
+  match g:
+    case G.Graph{ns,ps,rs,f}: {==}
+
+def next_sn_other($EK, +g: $ST, +n: N, +v: $MN, +x: N, neq: {eq(n,x) == False{} : Bool}) -> {G.next($GE,G.sn($GN,g,n,v),x) == G.next($GE,g,x) : $MN}:
+  %Equal.sym($MN,G.next($GE,G.sn($GN,g,n,v),x),G.choose(~$MN,eq(n,x),v,G.next($GE,g,x)),next_sn($GE,g,n,v,x)) : {_ == G.next($GE,g,x) : $MN}
+  %Equal.sym(Bool,eq(n,x),False{},neq) : {G.choose(~$MN,_,v,G.next($GE,g,x)) == G.next($GE,g,x) : $MN}
+  {==}
+
+def prev_sp_other($EK, +g: $ST, +n: N, +v: $MN, +x: N, neq: {eq(n,x) == False{} : Bool}) -> {G.prev($GE,G.sp($GN,g,n,v),x) == G.prev($GE,g,x) : $MN}:
+  %Equal.sym($MN,G.prev($GE,G.sp($GN,g,n,v),x),G.choose(~$MN,eq(n,x),v,G.prev($GE,g,x)),prev_sp($GE,g,n,v,x)) : {_ == G.prev($GE,g,x) : $MN}
+  %Equal.sym(Bool,eq(n,x),False{},neq) : {G.choose(~$MN,_,v,G.prev($GE,g,x)) == G.prev($GE,g,x) : $MN}
+  {==}
+
+def next_sn_self($EK, +g: $ST, +n: N, +v: $MN, same: {eq(n,n) == True{} : Bool}) -> {G.next($GE,G.sn($GN,g,n,v),n) == v : $MN}:
+  %Equal.sym($MN,G.next($GE,G.sn($GN,g,n,v),n),G.choose(~$MN,eq(n,n),v,G.next($GE,g,n)),next_sn($GE,g,n,v,n)) : {_ == v : $MN}
+  %Equal.sym(Bool,eq(n,n),True{},same) : {G.choose(~$MN,_,v,G.next($GE,g,n)) == v : $MN}
+  {==}
+
+def prev_sp_self($EK, +g: $ST, +n: N, +v: $MN, same: {eq(n,n) == True{} : Bool}) -> {G.prev($GE,G.sp($GN,g,n,v),n) == v : $MN}:
+  %Equal.sym($MN,G.prev($GE,G.sp($GN,g,n,v),n),G.choose(~$MN,eq(n,n),v,G.prev($GE,g,n)),prev_sp($GE,g,n,v,n)) : {_ == v : $MN}
+  %Equal.sym(Bool,eq(n,n),True{},same) : {G.choose(~$MN,_,v,G.prev($GE,g,n)) == v : $MN}
+  {==}
+
+def segment_sn_frame($EK, +g: $ST, +n: N, +v: $MN, +xs: $LN, +p: $MN, +q: $MN, away: G.away(~N,~eq,n,xs), good: G.segment($GE,g,p,xs,q)) -> G.segment($GE,G.sn($GN,g,n,v),p,xs,q):
+  match xs away good:
+    case Nil{} _ _: Unit{}
+    case Con{+x,+rest} Tuple{Tuple{neq,rev},ar} Tuple{hp,Tuple{hn,ht}}:
+      (Equal.trans($MN,G.prev($GE,G.sn($GN,g,n,v),x),G.prev($GE,g,x),p,prev_sn($GE,g,n,v,x),hp),
+       (Equal.trans($MN,G.next($GE,G.sn($GN,g,n,v),x),G.next($GE,g,x),G.first(~N,rest,q),next_sn_other($GE,g,n,v,x,neq),hn),
+        segment_sn_frame($GE,g,n,v,rest,Some{x},q,ar,ht)))
+
+def segment_sp_frame($EK, +g: $ST, +n: N, +v: $MN, +xs: $LN, +p: $MN, +q: $MN, away: G.away(~N,~eq,n,xs), good: G.segment($GE,g,p,xs,q)) -> G.segment($GE,G.sp($GN,g,n,v),p,xs,q):
+  match xs away good:
+    case Nil{} _ _: Unit{}
+    case Con{+x,+rest} Tuple{Tuple{neq,rev},ar} Tuple{hp,Tuple{hn,ht}}:
+      (Equal.trans($MN,G.prev($GE,G.sp($GN,g,n,v),x),G.prev($GE,g,x),p,prev_sp_other($GE,g,n,v,x,neq),hp),
+       (Equal.trans($MN,G.next($GE,G.sp($GN,g,n,v),x),G.next($GE,g,x),G.first(~N,rest,q),next_sp($GE,g,n,v,x),hn),
+        segment_sp_frame($GE,g,n,v,rest,Some{x},q,ar,ht)))
+
+def segment_sh_frame($EK, +g: $ST, +r: R, +v: $MN, +xs: $LN, +p: $MN, +q: $MN, good: G.segment($GE,g,p,xs,q)) -> G.segment($GE,G.sh($GN,g,r,v),p,xs,q):
+  match xs good:
+    case Nil{} _: Unit{}
+    case Con{+x,+rest} Tuple{hp,Tuple{hn,ht}}:
+      (Equal.trans($MN,G.prev($GE,G.sh($GN,g,r,v),x),G.prev($GE,g,x),p,prev_sh($GE,g,r,v,x),hp),
+       (Equal.trans($MN,G.next($GE,G.sh($GN,g,r,v),x),G.next($GE,g,x),G.first(~N,rest,q),next_sh($GE,g,r,v,x),hn),
+        segment_sh_frame($GE,g,r,v,rest,Some{x},q,ht)))
+
+# Changing a segment's first predecessor preserves its entire suffix.
+def segment_first_prev($EK, +g: $ST, +x: N, +rest: $LN, +p: $MN, +q: $MN, +v: $MN, same: {eq(x,x) == True{} : Bool}, away: G.away(~N,~eq,x,rest), good: G.segment($GE,g,p,Con{x,rest},q)) -> G.segment($GE,G.sp($GN,g,x,v),v,Con{x,rest},q):
+  match good:
+    case Tuple{hp,Tuple{hn,ht}}:
+      (prev_sp_self($GE,g,x,v,same),
+       (Equal.trans($MN,G.next($GE,G.sp($GN,g,x,v),x),G.next($GE,g,x),G.first(~N,rest,q),next_sp($GE,g,x,v,x),hn),
+        segment_sp_frame($GE,g,x,v,rest,Some{x},q,away,ht)))
+
+def away_at(~N: Data, ~eq: N -> N -> Bool, +prefix: $LN, +n: N, +suffix: $LN, +x: N, h: G.away(~N,~eq,x,G.append(~N,prefix,Con{n,suffix}))) -> G.both({eq(x,n) == False{} : Bool}, {eq(n,x) == False{} : Bool}):
+  match prefix h:
+    case Nil{} Tuple{hn,ht}: hn
+    case Con{a,rest} Tuple{ha,ht}: away_at(~N,~eq,rest,n,suffix,x,ht)
+
+def away_delete(~N: Data, ~eq: N -> N -> Bool, +prefix: $LN, +n: N, +suffix: $LN, +x: N, h: G.away(~N,~eq,x,G.append(~N,prefix,Con{n,suffix}))) -> G.away(~N,~eq,x,G.append(~N,prefix,suffix)):
+  match prefix h:
+    case Nil{} Tuple{hn,ht}: ht
+    case Con{a,rest} Tuple{ha,ht}: (ha,away_delete(~N,~eq,rest,n,suffix,x,ht))
+
+def unique_delete(~N: Data, ~eq: N -> N -> Bool, +prefix: $LN, +n: N, +suffix: $LN, h: G.unique(~N,~eq,G.append(~N,prefix,Con{n,suffix}))) -> G.unique(~N,~eq,G.append(~N,prefix,suffix)):
+  match prefix h:
+    case Nil{} Tuple{hn,ht}: ht
+    case Con{+a,+rest} Tuple{ha,ht}: (away_delete(~N,~eq,rest,n,suffix,a,ha),unique_delete(~N,~eq,rest,n,suffix,ht))
+
+def swapped(~N: Data, ~eq: N -> N -> Bool, +a: N, +b: N, h: G.both({eq(a,b) == False{} : Bool}, {eq(b,a) == False{} : Bool})) -> G.both({eq(b,a) == False{} : Bool}, {eq(a,b) == False{} : Bool}):
+  match h:
+    case Tuple{ab,ba}: (ba,ab)
+
+def deleted_away(~N: Data, ~eq: N -> N -> Bool, +prefix: $LN, +n: N, +suffix: $LN, h: G.unique(~N,~eq,G.append(~N,prefix,Con{n,suffix}))) -> G.away(~N,~eq,n,G.append(~N,prefix,suffix)):
+  match prefix h:
+    case Nil{} Tuple{hn,ht}: hn
+    case Con{+a,+rest} Tuple{ha,ht}: (swapped(~N,~eq,a,n,away_at(~N,~eq,rest,n,suffix,a,ha)),deleted_away(~N,~eq,rest,n,suffix,ht))
+
+def first_append(~N: Data, +a: $LN, +b: $LN, +q: $MN) -> {G.first(~N,G.append(~N,a,b),q) == G.first(~N,a,G.first(~N,b,q)) : $MN}:
+  match a:
+    case Nil{}: {==}
+    case Con{x,rest}: {==}
+
+def first_end(~N: Data, +a: $LN, +n: N, +q: $MN, +v: $MN) -> {G.first(~N,G.append(~N,a,Con{n,Nil{}}),q) == G.first(~N,G.append(~N,a,Con{n,Nil{}}),v) : $MN}:
+  match a:
+    case Nil{}: {==}
+    case Con{x,rest}: {==}
+
+def segment_last_next($EK, +g: $ST, +prefix: $LN, +n: N, +p: $MN, +q: $MN, +v: $MN, +same: {eq(n,n) == True{} : Bool}, unique: G.unique(~N,~eq,G.append(~N,prefix,Con{n,Nil{}})), good: G.segment($GE,g,p,G.append(~N,prefix,Con{n,Nil{}}),q)) -> G.segment($GE,G.sn($GN,g,n,v),p,G.append(~N,prefix,Con{n,Nil{}}),v):
+  match prefix unique good:
+    case Nil{} _ Tuple{hp,Tuple{hn,ht}}:
+      (Equal.trans($MN,G.prev($GE,G.sn($GN,g,n,v),n),G.prev($GE,g,n),p,prev_sn($GE,g,n,v,n),hp),(next_sn_self($GE,g,n,v,same),Unit{}))
+    case Con{+x,+rest} Tuple{away,un} Tuple{hp,Tuple{hn,ht}}:
+      (Equal.trans($MN,G.prev($GE,G.sn($GN,g,n,v),x),G.prev($GE,g,x),p,prev_sn($GE,g,n,v,x),hp),
+       (Equal.trans($MN,G.next($GE,G.sn($GN,g,n,v),x),G.next($GE,g,x),G.first(~N,G.append(~N,rest,Con{n,Nil{}}),v),next_sn_other($GE,g,n,v,x,G.right({eq(x,n) == False{} : Bool},{eq(n,x) == False{} : Bool},away_at(~N,~eq,rest,n,Nil{},x,away))),Equal.trans($MN,G.next($GE,g,x),G.first(~N,G.append(~N,rest,Con{n,Nil{}}),q),G.first(~N,G.append(~N,rest,Con{n,Nil{}}),v),hn,first_end(~N,rest,n,q,v))),
+        segment_last_next($GE,g,rest,n,Some{x},q,v,same,un,ht)))
+
+def segment_join($EK, +a: $LN, +g: $ST, +b: $LN, +p: $MN, +q: $MN, ga: G.segment($GE,g,p,a,G.first(~N,b,q)), gb: G.segment($GE,g,G.last(~N,a,p),b,q)) -> G.segment($GE,g,p,G.append(~N,a,b),q):
+  match a ga:
+    case Nil{} _: gb
+    case Con{+x,+rest} Tuple{hp,Tuple{hn,ht}}:
+      (hp,(Equal.trans($MN,G.next($GE,g,x),G.first(~N,rest,G.first(~N,b,q)),G.first(~N,G.append(~N,rest,b),q),hn,Equal.sym($MN,G.first(~N,G.append(~N,rest,b),q),G.first(~N,rest,G.first(~N,b,q)),first_append(~N,rest,b,q))),segment_join($GE,rest,g,b,Some{x},q,ht,gb)))
+
+def away_join(~N: Data, ~eq: N -> N -> Bool, +a: $LN, +b: $LN, +n: N, ga: G.away(~N,~eq,n,a), gb: G.away(~N,~eq,n,b)) -> G.away(~N,~eq,n,G.append(~N,a,b)):
+  match a ga:
+    case Nil{} _: gb
+    case Con{x,rest} Tuple{hx,ht}: (hx,away_join(~N,~eq,rest,b,n,ht,gb))
+
+def unique_join(~N: Data, ~eq: N -> N -> Bool, +a: $LN, +b: $LN, ua: G.unique(~N,~eq,a), +ub: G.unique(~N,~eq,b), dis: G.disjoint(~N,~eq,a,b)) -> G.unique(~N,~eq,G.append(~N,a,b)):
+  match a ua dis:
+    case Nil{} _ _: ub
+    case Con{+x,+rest} Tuple{away,ut} Tuple{ab,dt}: (away_join(~N,~eq,rest,b,x,away,ab),unique_join(~N,~eq,rest,b,ut,ub,dt))
+
+def disjoint_last(~N: Data, ~eq: N -> N -> Bool, +prefix: $LN, +n: N, +suffix: $LN, dis: G.disjoint(~N,~eq,G.append(~N,prefix,Con{n,Nil{}}),suffix)) -> G.away(~N,~eq,n,suffix):
+  match prefix dis:
+    case Nil{} Tuple{a,d}: a
+    case Con{x,rest} Tuple{a,d}: disjoint_last(~N,~eq,rest,n,suffix,d)
+
+def disjoint_head(~N: Data, ~eq: N -> N -> Bool, +prefix: $LN, +n: N, +suffix: $LN, dis: G.disjoint(~N,~eq,prefix,Con{n,suffix})) -> G.away(~N,~eq,n,prefix):
+  match prefix dis:
+    case Nil{} _: Unit{}
+    case Con{+x,+rest} Tuple{Tuple{hn,ht},dt}: (swapped(~N,~eq,x,n,hn),disjoint_head(~N,~eq,rest,n,suffix,dt))
+
+def last_end(~N: Data, +a: $LN, +n: N, +p: $MN) -> {G.last(~N,G.append(~N,a,Con{n,Nil{}}),p) == Some{n} : $MN}:
+  match a:
+    case Nil{}: {==}
+    case Con{x,rest}: last_end(~N,rest,n,Some{x})
+
+# A prefix/suffix split is the ordinary witness for removing a known member.
+# The following lemmas extract the representation facts from the whole chain.
+def first_middle(~N: Data, +a: $LN, +n: N, +b: $LN, +q: $MN) -> {G.first(~N,G.append(~N,a,Con{n,b}),q) == G.first(~N,a,Some{n}) : $MN}:
+  match a:
+    case Nil{}: {==}
+    case Con{x,rest}: {==}
+
+def prefix_segment($EK, +a: $LN, +g: $ST, +n: N, +b: $LN, +p: $MN, +q: $MN, good: G.segment($GE,g,p,G.append(~N,a,Con{n,b}),q)) -> G.segment($GE,g,p,a,Some{n}):
+  match a good:
+    case Nil{} _: Unit{}
+    case Con{+x,+rest} Tuple{hp,Tuple{hn,ht}}:
+      (hp,(Equal.trans($MN,G.next($GE,g,x),G.first(~N,G.append(~N,rest,Con{n,b}),q),G.first(~N,rest,Some{n}),hn,first_middle(~N,rest,n,b,q)),prefix_segment($GE,rest,g,n,b,Some{x},q,ht)))
+
+def member_prev($EK, +a: $LN, +g: $ST, +n: N, +b: $LN, +p: $MN, +q: $MN, good: G.segment($GE,g,p,G.append(~N,a,Con{n,b}),q)) -> {G.prev($GE,g,n) == G.last(~N,a,p) : $MN}:
+  match a good:
+    case Nil{} Tuple{hp,tail}: hp
+    case Con{x,rest} Tuple{hp,Tuple{hn,ht}}: member_prev($GE,rest,g,n,b,Some{x},q,ht)
+
+def member_next($EK, +a: $LN, +g: $ST, +n: N, +b: $LN, +p: $MN, +q: $MN, good: G.segment($GE,g,p,G.append(~N,a,Con{n,b}),q)) -> {G.next($GE,g,n) == G.first(~N,b,q) : $MN}:
+  match a good:
+    case Nil{} Tuple{hp,Tuple{hn,ht}}: hn
+    case Con{x,rest} Tuple{hp,Tuple{hn,ht}}: member_next($GE,rest,g,n,b,Some{x},q,ht)
+
+def suffix_segment($EK, +a: $LN, +g: $ST, +n: N, +b: $LN, +p: $MN, +q: $MN, good: G.segment($GE,g,p,G.append(~N,a,Con{n,b}),q)) -> G.segment($GE,g,Some{n},b,q):
+  match a good:
+    case Nil{} Tuple{hp,Tuple{hn,ht}}: ht
+    case Con{x,rest} Tuple{hp,Tuple{hn,ht}}: suffix_segment($GE,rest,g,n,b,Some{x},q,ht)
+
+def head_sn($TK, ~req: R -> R -> Bool, +g: $ST, +n: N, +v: $MN, +r: R) -> {G.head($GN,~req,G.sn($GN,g,n,v),r) == G.head($GN,~req,g,r) : $MN}:
+  match g:
+    case G.Graph{ns,ps,rs,f}: {==}
+
+def head_sp($TK, ~req: R -> R -> Bool, +g: $ST, +n: N, +v: $MN, +r: R) -> {G.head($GN,~req,G.sp($GN,g,n,v),r) == G.head($GN,~req,g,r) : $MN}:
+  match g:
+    case G.Graph{ns,ps,rs,f}: {==}
+
+def frame_sn($TK, +g: $ST, +n: N, +v: $MN) -> {G.frame($GN,G.sn($GN,g,n,v)) == G.frame($GN,g) : P}:
+  match g:
+    case G.Graph{ns,ps,rs,f}: {==}
+
+def frame_sp($TK, +g: $ST, +n: N, +v: $MN) -> {G.frame($GN,G.sp($GN,g,n,v)) == G.frame($GN,g) : P}:
+  match g:
+    case G.Graph{ns,ps,rs,f}: {==}
+
+def frame_sh($TK, +g: $ST, +r: R, +v: $MN) -> {G.frame($GN,G.sh($GN,g,r,v)) == G.frame($GN,g) : P}:
+  match g:
+    case G.Graph{ns,ps,rs,f}: {==}
+
+def head_sh($TK, ~req: R -> R -> Bool, +g: $ST, +r: R, +v: $MN, +x: R) -> {G.head($GN,~req,G.sh($GN,g,r,v),x) == G.choose(~$MN,req(r,x),v,G.head($GN,~req,g,x)) : $MN}:
+  match g:
+    case G.Graph{ns,ps,rs,f}: {==}
+
+def head_sh_self($TK, ~req: R -> R -> Bool, +g: $ST, +r: R, +v: $MN, same: {req(r,r) == True{} : Bool}) -> {G.head($GN,~req,G.sh($GN,g,r,v),r) == v : $MN}:
+  %Equal.sym($MN,G.head($GN,~req,G.sh($GN,g,r,v),r),G.choose(~$MN,req(r,r),v,G.head($GN,~req,g,r)),head_sh($GN,~req,g,r,v,r)) : {_ == v : $MN}
+  %Equal.sym(Bool,req(r,r),True{},same) : {G.choose(~$MN,_,v,G.head($GN,~req,g,r)) == v : $MN}
+  {==}
+
+def head_sh_other($TK, ~req: R -> R -> Bool, +g: $ST, +r: R, +v: $MN, +x: R, neq: {req(r,x) == False{} : Bool}) -> {G.head($GN,~req,G.sh($GN,g,r,v),x) == G.head($GN,~req,g,x) : $MN}:
+  %Equal.sym($MN,G.head($GN,~req,G.sh($GN,g,r,v),x),G.choose(~$MN,req(r,x),v,G.head($GN,~req,g,x)),head_sh($GN,~req,g,r,v,x)) : {_ == G.head($GN,~req,g,x) : $MN}
+  %Equal.sym(Bool,req(r,x),False{},neq) : {G.choose(~$MN,_,v,G.head($GN,~req,g,x)) == G.head($GN,~req,g,x) : $MN}
+  {==}
+
+def away_left(~N: Data, ~eq: N -> N -> Bool, +a: $LN, +b: $LN, +n: N, h: G.away(~N,~eq,n,G.append(~N,a,b))) -> G.away(~N,~eq,n,a):
+  match a h:
+    case Nil{} _: Unit{}
+    case Con{x,rest} Tuple{hx,ht}: (hx,away_left(~N,~eq,rest,b,n,ht))
+
+def away_right(~N: Data, ~eq: N -> N -> Bool, +a: $LN, +b: $LN, +n: N, h: G.away(~N,~eq,n,G.append(~N,a,b))) -> G.away(~N,~eq,n,b):
+  match a h:
+    case Nil{} _: h
+    case Con{x,rest} Tuple{hx,ht}: away_right(~N,~eq,rest,b,n,ht)
+
+def unique_left(~N: Data, ~eq: N -> N -> Bool, +a: $LN, +b: $LN, h: G.unique(~N,~eq,G.append(~N,a,b))) -> G.unique(~N,~eq,a):
+  match a h:
+    case Nil{} _: Unit{}
+    case Con{+x,+rest} Tuple{ax,ut}: (away_left(~N,~eq,rest,b,x,ax),unique_left(~N,~eq,rest,b,ut))
+
+def unique_right(~N: Data, ~eq: N -> N -> Bool, +a: $LN, +b: $LN, h: G.unique(~N,~eq,G.append(~N,a,b))) -> G.unique(~N,~eq,b):
+  match a h:
+    case Nil{} _: h
+    case Con{x,rest} Tuple{ax,ut}: unique_right(~N,~eq,rest,b,ut)
+
+def disjoint_unique(~N: Data, ~eq: N -> N -> Bool, +a: $LN, +b: $LN, h: G.unique(~N,~eq,G.append(~N,a,b))) -> G.disjoint(~N,~eq,a,b):
+  match a h:
+    case Nil{} _: Unit{}
+    case Con{+x,+rest} Tuple{ax,ut}: (away_right(~N,~eq,rest,b,x,ax),disjoint_unique(~N,~eq,rest,b,ut))
