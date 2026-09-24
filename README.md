@@ -12,6 +12,7 @@ benchmarked against optimized C implementations of the same algorithms.
 | Simple / priority queue | `src/containers/{simple,priority}_queue.bend` | facades over queue and heap |
 | Binary heap | `src/containers/binary_heap.bend` | packed-array min-heap, static comparator |
 | Doubly linked list | `src/containers/doubly_linked_list.bend` | arena-backed, stable handles |
+| Intrusive doubly linked list | `src/containers/intrusive_doubly_linked_list.bend` | application-owned nodes, O(1) membership edits; [guide](INTRUSIVE_LIST.md) |
 | List iterator | `src/containers/dlist_iterator.bend` | owning bidirectional iterator |
 | Tree map | `src/containers/balanced_search_tree.bend` | indexed red-black tree |
 | Bitset | `src/containers/bitset.bend` | packed words |
@@ -47,7 +48,7 @@ fetched), so an import never changes under you; each release lists its hash.
 ## Layout
 
 ```
-src/containers/   the collections, their internals (internal/) and API types (types/)
+src/containers/   collections, internals (internal/), API types (types/), optional compat/
 src/math/         64-bit words, hashing, powers of two
 src/crypto/       SHA-256 (sha/), Keccak-256 (keccak/), BLAKE2s, BLAKE2b and BLAKE3 (blake/)
 proofs/           one proof package per src package, mirroring src/:

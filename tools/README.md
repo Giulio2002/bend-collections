@@ -61,6 +61,7 @@ what it generates from.
 
 | Generator | Writes |
 |---|---|
+| `generators/intrusive_list.py` | intrusive core/compatibility facades and shared internal implementation; `--check` verifies committed output without rewriting |
 | `generators/tree_map.py` | the implementation `src/containers/balanced_search_tree.bend` (state threading lowered into helpers) |
 | `generators/tm_state.py` | the TreeMap's shadow, model and invariant (`proofs/containers/balanced_search_tree/state.bend`) |
 | `generators/tm_mirror.py` | the TreeMap's mirror of the implementation over shadows (`mirror.bend`) and the proofs that the implementation computes the mirror (`sim.bend`); hand-written heads in `balanced_search_tree/gen/*.part` |
@@ -79,6 +80,9 @@ what it generates from.
 
 | Script | Checks |
 |---|---|
+| `check_intrusive_proofs.py --bend bend` | regenerate proof sources, clean semantic and concrete-adapter checks, coordinated specification and adapter negative controls |
+| `check_intrusive.py --bend bend --cc clang` | intrusive-list proofs, C/JS conformance, examples, semantic mutants and native heap-allocation measurements; see [guide](../INTRUSIVE_LIST.md) |
+| `../benchmarks/intrusive.py --bend bend --cc clang` | warmed entity transfers and pooled lifecycles against the public DList API and C; independent oracle, generation-layer diagnostic, A/A control, separate timing/allocation/live-byte binaries, raw samples; [method and results](../benchmarks/INTRUSIVE_LIST.md) |
 | `validate.py --report build/validation.json` | every container in `tests/structures.json`: builds `tests/<id>/main.bend`, compares its output with the Python oracle in `tests/support/oracles.py` on functional, boundary, differential and structural scenarios (`scenarios.py`), runs semantic mutants that must be caught (`mutants.py`), and checks the container's proof |
 | `check_hash_table.py` | the hash map against a Python dict on random histories (growth, backward-shift deletion, every key kind) |
 | `check_lru_spec.py` | the LRU against its executable specification, step by step with a moving clock |

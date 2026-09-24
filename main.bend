@@ -18,6 +18,7 @@ import ./src/containers/bitset.bend as Bitset
 import ./src/containers/deque.bend as Deque
 import ./src/containers/dlist_iterator.bend as ListIterator
 import ./src/containers/doubly_linked_list.bend as LinkedList
+import ./src/containers/intrusive_doubly_linked_list.bend as IntrusiveDoublyLinkedList
 import ./src/containers/dynamic_array.bend as DynArray
 import ./src/containers/hash_table.bend as HashMap
 import ./src/containers/lru.bend as LRU
@@ -37,3 +38,4 @@ import ./src/crypto/blake/blake2b/blake2b.bend as BLAKE2b
 import ./src/crypto/blake/blake2b/hex.bend as BLAKE2bHex
 import ./src/crypto/blake/blake3/blake3.bend as BLAKE3
 import ./src/crypto/blake/blake3/hex.bend as BLAKE3Hex
+import ./src/containers/compat/intrusive_doubly_linked_list.bend as IntrusiveListCompatibility
