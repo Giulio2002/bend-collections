@@ -27,6 +27,11 @@ import ./src/containers/simple_queue.bend as SimpleQueue
 import ./src/containers/stack.bend as Stack
 import ./src/math/hash.bend as Hash
 import ./src/math/natural.bend as Natural
+import ./src/math/num.bend as Num
+import ./src/math/generic.bend as Generic
+import ./src/math/instances.bend as Instances
+import ./src/math/f64.bend as F64
+import ./src/math/wide.bend as Wide
 import ./src/math/pow2.bend as Pow2
 import ./src/math/u64.bend as U64
 import ./src/crypto/sha/sha256.bend as SHA256

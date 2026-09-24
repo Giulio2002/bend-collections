@@ -24,6 +24,7 @@ benchmarked against optimized C implementations of the same algorithms.
 | BLAKE2b | `src/crypto/blake/blake2b/blake2b.bend` | RFC 7693, 64-byte digest |
 | BLAKE3 | `src/crypto/blake/blake3/blake3.bend` | hash mode, 32-byte digest |
 | Integer math | `src/math/natural.bend` | Python-style `math` integer functions, see below |
+| Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 
 The hash map and the LRU follow Base's conventions: signatures are
 quantity-polymorphic (`a, -V: Kind(a)`, as `Base.Map` uses), and reads that
@@ -57,13 +58,60 @@ following the reference's error model. Every function is proved against
 its specification in `proofs/math/natural/` (statement shapes follow Lean 4
 Mathlib, the Why3 gallery and HACL*; each file cites its source), and
 `tools/check_math.py` compares ~5000 random and edge-case calls with
-CPython. Floating point (`math.sqrt`, `exp`, `sin`, ...), `cmath`,
-`fractions`, `decimal`, `statistics` and `random` are not included: Bend
-has no binary64 type (only `F32`, with no rounding guarantees to prove
-against), and exact rationals need unbounded integers — Bend's native
-backend stops at 2^48 - 1 per Nat, so results and intermediates of these
-functions must stay below that at run time (the proofs are over all
-naturals).
+CPython. Elementary float functions (`exp`, `sin`, ...), `cmath`,
+`fractions`, `decimal`, `statistics` and `random` are not included:
+exact rationals need unbounded integers, and Bend's native backend stops at
+2^48 - 1 per Nat, so results and intermediates of these functions must stay
+below that at run time (the proofs are over all naturals). The same
+functions for U32, U64, F32 and a software binary64 follow below.
+
+## Math per type: U32, U64, F32, F64
+
+`src/math/generic.bend` writes the functions above once, as templates over a
+numeric interface (`src/math/num.bend`) passed as `~num`:
+
+```python
+import ./src/math/generic.bend as G
+import ./src/math/instances.bend as I
+import ./src/math/f64.bend as F64
+import ./src/math/u64.bend as W
+
+G.gcd(~U32, ~I.u32(), 12, 18)                 # 6
+G.comb(~W.U64, ~I.u64(), n, k)                # Done{C(n, k)} or Fail{Overflow}
+G.clamp(~F32, ~I.f32(), x, lo, hi)
+G.pow(~F64.F64, ~F64.arith(), x, 10n)
+```
+
+| Instance | Type | Functions |
+|---|---|---|
+| `I.u32()` | Base `U32` | all of them |
+| `I.u64()` | `src/math/u64.bend`'s two-word `U64` | all of them |
+| `I.f32()` | Base `F32` | `min max clamp abs sign sum prod pow` |
+| `F64.arith()` | `src/math/f64.bend`'s software binary64 | `min max clamp abs sign sum prod pow` |
+
+The integer functions (`gcd lcm gcd_all lcm_all isqrt iroot ilog factorial
+perm comb pow_mod mod_inverse divmod bit_length`) need an `Integer`
+instance; the ordered ones (`min max clamp abs sign sum prod pow`) any
+`Arith`. Fixed widths are checked: a result (or a partial product of `sum`,
+`prod`, `lcm_all`) that does not fit is `Fail{Overflow}`, never a wrapped
+value (the design reference's rule for fixed-width integers). `comb` reduces
+by a gcd at every step and `pow_mod` / `mod_inverse` multiply mod m without
+overflow, so they fail only when the true result does not fit.
+
+`src/math/f64.bend` is IEEE-754 binary64 in software on two `U32` words
+(Bend 2 has only `F32`): `add sub mul div sqrt`, each computing the exact
+result on wide naturals (`src/math/wide.bend`) and rounding once to
+nearest-even, with subnormals, signed zeros, infinities and NaN as IEEE
+754; `lt le eq`, `neg abs copysign`, the classification predicates and
+`of_nat`.
+
+These instances are tested, not proved (the Nat functions above are the
+proved reference): `tools/check_generic.py` compares every function on
+every type with Python (U32/U64 with overflow detection, F32 through numpy
+`float32`, F64 through Python floats), and `tools/check_f64.py` compares the
+software binary64 with the machine's doubles on random bit patterns of every
+class (zeros, subnormals, normals, infinities, NaN, cancellations). Both run
+in `tools/validate.py`.
 
 ## Install
 
@@ -84,7 +132,8 @@ fetched), so an import never changes under you; each release lists its hash.
 
 ```
 src/containers/   the collections, their internals (internal/) and API types (types/)
-src/math/         integer math (natural.bend), 64-bit words, hashing, powers of two
+src/math/         integer math (natural.bend), the same per type (num, generic, instances),
+                  software binary64 (f64, wide), 64-bit words, hashing, powers of two
 src/crypto/       SHA-256 (sha/), Keccak-256 (keccak/), BLAKE2s, BLAKE2b and BLAKE3 (blake/)
 proofs/           one proof package per src package, mirroring src/:
   containers/<pkg>/   spec.bend (the independent specification), the lemmas,

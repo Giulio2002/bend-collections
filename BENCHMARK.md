@@ -15,6 +15,7 @@ Reproduce:
 python3 benchmarks/full_sweep.py --report build/bench/full.json   # containers
 python3 benchmarks/crypto.py --report build/bench/crypto.json      # hashes
 python3 benchmarks/natural.py --report build/bench/math.json       # math
+python3 benchmarks/typed.py --report build/bench/typed.json        # math per type
 python3 benchmarks/maps/compare.py --report build/bench/maps.json  # HashMap vs Base.Map
 python3 benchmarks/render.py                                        # this file
 ```
@@ -112,6 +113,37 @@ row. Median of five alternating samples after a warm-up; nanoseconds per call.
 | pow_mod | 68.8 | 67.7 | 1.01 |
 | mod_inverse | 79.3 | 60.8 | 1.30 |
 | divmod | 7.65 | 6.69 | 1.14 |
+
+### Math per type
+
+The templated math of `src/math/generic.bend` instantiated for U32, U64 (two
+U32 words) and F32, and the software binary64 of `src/math/f64.bend`, against
+C with `uint32_t`, `uint64_t` (a 128-bit product for `mod m`), `float` and
+`double` (`benchmarks/native/typed.c`), with the same checked semantics (a
+result that does not fit counts as 0) and the same square-and-multiply order
+for powers. The F64 rows compare software arithmetic with the hardware FPU.
+Same method as above; nanoseconds per call.
+
+| Operation | Bend (ns) | C (ns) | Ratio |
+|---|---:|---:|---:|
+| loop | 6.00 | 5.91 | 1.02 |
+| u32_gcd | 560 | 61.2 | 9.15 |
+| u32_isqrt | 1050 | 6.49 | 161.79 |
+| u32_comb | 790 | 27.4 | 28.80 |
+| u32_factorial | 332 | 10.9 | 30.50 |
+| u32_pow_mod | 1550 | 103 | 15.12 |
+| u64_gcd | 7120 | 121 | 59.02 |
+| u64_isqrt | 5917 | 6.50 | 910.26 |
+| u64_comb | 4743 | 43.3 | 109.43 |
+| u64_factorial | 1690 | 12.3 | 137.85 |
+| u64_pow_mod | 23571 | 493 | 47.84 |
+| f32_pow | 58.5 | 8.56 | 6.83 |
+| f32_clamp | 28.5 | 6.00 | 4.75 |
+| f64_add | 612 | 5.95 | 102.82 |
+| f64_mul | 824 | 5.95 | 138.48 |
+| f64_div | 8400 | 5.95 | 1411.76 |
+| f64_sqrt | 9167 | 5.89 | 1556.60 |
+| f64_pow | 3511 | 8.62 | 407.22 |
 
 ## Containers
 

@@ -373,22 +373,30 @@ def main():
                  row['structural'], row['mutations'], row['trace_proof']), flush=True)
 
     # src/math/natural.bend: differential test against CPython's math
-    # module (tools/check_math.py) and the proof package proofs/math.
+    # module (tools/check_math.py) and the proof package proofs/math; the
+    # templated math per type (tools/check_generic.py: U32, U64, F32, F64)
+    # and the software binary64 against the machine's doubles
+    # (tools/check_f64.py).
     math_row = None
     if not args.only or args.only == 'math':
         (ROOT / 'build/math').mkdir(parents=True, exist_ok=True)
         checks = []
-        for command, limit in [([BEND, 'tests/math/natural.bend', '-o', 'build/math/natural'], 600),
-                               ([sys.executable, 'tools/check_math.py'], 1200),
-                               ([BEND, 'proofs/math/proof.bend'], 3600)]:
+        math_checks = [([BEND, 'tests/math/natural.bend', '-o', 'build/math/natural'], 600),
+                       ([sys.executable, 'tools/check_math.py'], 1200),
+                       ([BEND, 'tests/math/generic.bend', '-o', 'build/math/generic'], 1800),
+                       ([sys.executable, 'tools/check_generic.py'], 1800),
+                       ([BEND, 'tests/math/f64.bend', '-o', 'build/math/f64'], 1800),
+                       ([sys.executable, 'tools/check_f64.py'], 1800),
+                       ([BEND, 'proofs/math/proof.bend'], 3600)]
+        for command, limit in math_checks:
             result = run(command, timeout=limit)
             passed = result.returncode == 0 and (command[1] != 'proofs/math/proof.bend' or 'All terms check' in result.stdout)
             checks.append({'command': command, 'passed': passed, 'output': result.stdout + result.stderr})
             if not passed:
                 fail('math', 'math check failed: ' + repr(command))
                 break
-        good = len(checks) == 3 and all(x['passed'] for x in checks)
-        math_row = {'id': 'math', 'implementation': 'src/math/natural.bend',
+        good = len(checks) == len(math_checks) and all(x['passed'] for x in checks)
+        math_row = {'id': 'math', 'implementation': 'src/math/natural.bend, generic.bend, f64.bend',
                     'differential': 'passed' if good else 'failed',
                     'proof': 'passed' if good else 'failed', 'checks': checks}
         (LOGDIR / 'math.log').write_text('\n'.join(x['output'] for x in checks))
