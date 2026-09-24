@@ -41,6 +41,13 @@ import ./containers/bitset/proof.bend as BIP
 import ./containers/bitset/state.bend as BIST
 import ./containers/bitset/steps.bend as BISP
 import ./containers/bitset/trace.bend as BITR
+import ../src/containers/bitlist.bend as BLI
+import ../src/containers/types/bitlist.bend as BLT
+import ./containers/bitlist/spec.bend as BLS
+import ./containers/bitlist/state.bend as BLST
+import ./containers/bitlist/steps.bend as BLSP
+import ./containers/bitlist/trace.bend as BLTR
+import ./containers/bitlist/proof.bend as BLP
 import ./containers/balanced_search_tree/spec_recursive.bend as BTS
 import ../src/containers/types/balanced_search_tree.bend as BTT
 
@@ -632,3 +639,48 @@ def bitset_trace(n, ops, h):
 # (String, String.order). Values are an erased type. The invariant
 # (strictly increasing keys, red-black balance, cached size) is kept by
 # every operation, and balance is also restated in textbook form.
+
+# ============================== bitlist ===============================
+
+law bitlist_new_is_the_constructor:
+  {BLI.new() == BLST.real(BLTR.initial(None{})) : BLI.Bitlist}
+def bitlist_new_is_the_constructor():
+  BLP.new_real()
+
+law bitlist_new:
+  {BLST.model(BLTR.initial(None{})) == BLS.new() : BLS.Model}
+def bitlist_new():
+  BLP.new_model()
+
+law bitlist_with_limit:
+  for +n: Nat
+  {BLST.model(BLTR.initial(Some{n})) == BLS.with_limit(n) : BLS.Model}
+def bitlist_with_limit(n):
+  BLP.with_limit_model(n)
+
+law bitlist_step:
+  for +sh: BLST.Sh
+  for +op: BLT.Op
+  for +g: {BLST.good(sh) == True{} : Bool}
+  BLSP.StepOK(sh, op)
+def bitlist_step(sh, op, g):
+  BLP.step_ok(sh, op, g)
+
+law bitlist_trace:
+  for +ops: List<&2, BLT.Op>
+  BLTR.TraceOK(ops, BLTR.initial(None{}))
+def bitlist_trace(ops):
+  BLP.trace_new(ops)
+
+law bitlist_trace_limited:
+  for +n: Nat
+  for +ops: List<&2, BLT.Op>
+  BLTR.TraceOK(ops, BLTR.initial(Some{n}))
+def bitlist_trace_limited(n, ops):
+  BLP.trace_with_limit(n, ops)
+
+law bitlist_from_bools:
+  for +bs: List<&2, Bool>
+  BLTR.FromOK(bs, BLTR.initial(None{}))
+def bitlist_from_bools(bs):
+  BLP.from_bools(bs)

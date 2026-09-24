@@ -15,6 +15,7 @@ benchmarked against optimized C implementations of the same algorithms.
 | List iterator | `src/containers/dlist_iterator.bend` | owning bidirectional iterator |
 | Tree map | `src/containers/balanced_search_tree.bend` | indexed red-black tree |
 | Bitset | `src/containers/bitset.bend` | packed words |
+| Bit list | `src/containers/bitlist.bend` | growable packed bits, optional limit (SSZ `Bitlist[N]`) |
 | Hash map | `src/containers/hash_table.bend` | String keys, Base.Map-style API |
 | LRU cache | `src/containers/lru.bend` | String keys, lifetimes, 64-bit metrics |
 | SHA-256 | `src/crypto/sha/sha256.bend` | FIPS 180-4, from [bend-sha256](https://github.com/Giulio2002/bend-sha256) |

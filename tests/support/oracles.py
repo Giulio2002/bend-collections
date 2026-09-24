@@ -294,6 +294,48 @@ def bitset(args):
             out.append('N %d' % len(xs))
     return out
 
+def bitlist(args):
+    lim = None if args[0] == 'none' else nat_of(args[0])
+    (xs, out) = ([], [])
+    for tok in args[1:]:
+        p = fields(tok)
+        n = p[0]
+        if n == 'len':
+            out.append('N %d' % len(xs))
+        elif n == 'limit':
+            out.append('LIMIT none' if lim is None else 'LIMIT %d' % lim)
+        elif n == 'get':
+            i = nat_of(field(p, 1))
+            out.append('ERR IndexOutOfRange' if i >= len(xs) else ('OK 1' if xs[i] else 'OK 0'))
+        elif n == 'set':
+            i = nat_of(field(p, 1))
+            if i >= len(xs):
+                out.append('ERR IndexOutOfRange')
+            else:
+                xs[i] = field(p, 2) == '1'
+                out.append('OK')
+        elif n == 'push':
+            if lim is not None and len(xs) >= lim:
+                out.append('ERR Full')
+            else:
+                xs.append(field(p, 1) == '1')
+                out.append('OK')
+        elif n == 'pop':
+            if not xs:
+                out.append('ERR Empty')
+            else:
+                out.append('OK 1' if xs.pop() else 'OK 0')
+        elif n == 'clear':
+            xs = []
+            out.append('OK')
+        elif n == 'count':
+            out.append('N %d' % sum(xs))
+        elif n == 'list':
+            out.append('BITS ' + ''.join('1' if b else '0' for b in xs))
+        else:
+            out.append('N %d' % len(xs))
+    return out
+
 def _init_u32(s):
     p = fields(s)
     if field(p, 0) == 'list':
@@ -344,4 +386,4 @@ def lru(args):
         else:
             out.append('LEN %d' % len(d))
     return out
-ORACLES = {'dynamic_array': dynamic_array, 'stack': stack, 'deque': deque, 'queue': queue, 'doubly_linked_list': doubly_linked_list, 'binary_heap': binary_heap, 'balanced_search_tree': balanced_search_tree, 'bitset': bitset, 'lru': lru}
+ORACLES = {'bitlist': bitlist, 'dynamic_array': dynamic_array, 'stack': stack, 'deque': deque, 'queue': queue, 'doubly_linked_list': doubly_linked_list, 'binary_heap': binary_heap, 'balanced_search_tree': balanced_search_tree, 'bitset': bitset, 'lru': lru}

@@ -1,0 +1,64 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/spec_common.bend as SC
+import ../../../src/containers/bitlist.bend as BLI
+import ../dynamic_array/state.bend as DAS
+import ../bitset/lists.bend as BL
+import ../bitset/state.bend as ST
+import ./spec.bend as S
+import ./da.bend as DI
+
+# Shadow, invariant and abstraction of a bitlist.
+#   shadow  BSh{limit, len, w}: w is a good dynamic-array shadow of the words
+#   F       ST.flat(DI.ws(w)): every stored bit, word by word, bit 0 first
+#   good    the word array is good and ST.invf(len, F): len <= |F| and every
+#           stored bit at a position >= len is zero (the masked tail)
+#   model   S.M{limit, DI.lim(w), take(F, len)}: the storage capacity exponent
+#           is the word array's depth limit (2^lim words of 32 bits)
+# (source: proofs/containers/bitlist/state.src)
+
+
+type Sh is Data:
+  BSh{limit: Maybe<&2, Nat>, len: Nat, w: DAS.Shadow<U32>}
+
+def fl(w: DAS.Shadow<U32>) -> List<&2, Bool>:
+  ST.flat(DI.ws(w))
+
+def real(sh: Sh) -> BLI.Bitlist:
+  match sh:
+    case BSh{l, n, w}:
+      BLI.BL{l, n, DAS.real(U32, w)}
+
+def good(sh: Sh) -> Bool:
+  match sh:
+    case BSh{l, +n, +w}:
+      Bool.and(DAS.good(U32, w), ST.invf(n, fl(w)))
+
+def model(sh: Sh) -> S.Model:
+  match sh:
+    case BSh{l, +n, +w}:
+      S.M{l, DI.lim(w), SC.take(Bool, fl(w), n)}
+
+
+def g_w(+l: Maybe<&2, Nat>, +n: Nat, +w: DAS.Shadow<U32>, +g: {good(BSh{l, n, w}) == True{} : Bool}) -> {DAS.good(U32, w) == True{} : Bool}:
+  L.and_left(DAS.good(U32, w), ST.invf(n, fl(w)), g)
+
+def g_inv(+l: Maybe<&2, Nat>, +n: Nat, +w: DAS.Shadow<U32>, +g: {good(BSh{l, n, w}) == True{} : Bool}) -> {ST.invf(n, fl(w)) == True{} : Bool}:
+  L.and_right(DAS.good(U32, w), ST.invf(n, fl(w)), g)
+
+def g_mk(+l: Maybe<&2, Nat>, +n: Nat, +w: DAS.Shadow<U32>, +gw: {DAS.good(U32, w) == True{} : Bool}, +gi: {ST.invf(n, fl(w)) == True{} : Bool}) -> {good(BSh{l, n, w}) == True{} : Bool}:
+  L.and_intro(DAS.good(U32, w), ST.invf(n, fl(w)), gw, gi)
+
+# A word array with the same words: the invariant and the model carry over.
+def same_good(+l: Maybe<&2, Nat>, +n: Nat, +w: DAS.Shadow<U32>, +w2: DAS.Shadow<U32>, +gw2: {DAS.good(U32, w2) == True{} : Bool}, +e: {DI.ws(w2) == DI.ws(w) : List<&2, U32>}, +g: {good(BSh{l, n, w}) == True{} : Bool}) -> {good(BSh{l, n, w2}) == True{} : Bool}:
+  g_mk(l, n, w2, gw2, L.subst(List<&2, U32>, z => {ST.invf(n, ST.flat(z)) == True{} : Bool}, DI.ws(w), DI.ws(w2), Equal.sym(List<&2, U32>, DI.ws(w2), DI.ws(w), e), g_inv(l, n, w, g)))
+
+# The model of a shadow with given words and depth limit.
+def model_of(+l: Maybe<&2, Nat>, +n: Nat, +w2: DAS.Shadow<U32>, +xs: List<&2, U32>, +c: Nat, +e: {DI.ws(w2) == xs : List<&2, U32>}, +ec: {DI.lim(w2) == c : Nat}) -> {model(BSh{l, n, w2}) == S.M{l, c, SC.take(Bool, ST.flat(xs), n)} : S.Model}:
+  %Equal.sym(List<&2, U32>, DI.ws(w2), xs, e) : {S.M{l, DI.lim(w2), SC.take(Bool, ST.flat(_), n)} == S.M{l, c, SC.take(Bool, ST.flat(xs), n)} : S.Model}
+  %Equal.sym(Nat, DI.lim(w2), c, ec) : {S.M{l, _, SC.take(Bool, ST.flat(xs), n)} == S.M{l, c, SC.take(Bool, ST.flat(xs), n)} : S.Model}
+  {==}
+
+def good_of(+l: Maybe<&2, Nat>, +n: Nat, +w2: DAS.Shadow<U32>, +xs: List<&2, U32>, +gw2: {DAS.good(U32, w2) == True{} : Bool}, +e: {DI.ws(w2) == xs : List<&2, U32>}, +gi: {ST.invf(n, ST.flat(xs)) == True{} : Bool}) -> {good(BSh{l, n, w2}) == True{} : Bool}:
+  g_mk(l, n, w2, gw2, L.subst(List<&2, U32>, z => {ST.invf(n, ST.flat(z)) == True{} : Bool}, xs, DI.ws(w2), Equal.sym(List<&2, U32>, DI.ws(w2), xs, e), gi))

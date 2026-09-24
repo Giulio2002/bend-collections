@@ -1,0 +1,170 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/list.bend as LL
+import ../../lib/spec_common.bend as SC
+import ../../../src/containers/bitset.bend as B
+import ../../../src/containers/bitlist.bend as BLI
+import ../../../src/containers/dynamic_array.bend as D
+import ../../../src/containers/types/dynamic_array.bend as DE
+import ../dynamic_array/spec.bend as DS
+import ../dynamic_array/state.bend as DAS
+import ../dynamic_array/steps.bend as DSP
+import ../dynamic_array/trace.bend as DTR
+import ../bitset/listx.bend as LX
+import ../bitset/model.bend as MD
+import ../bitset/walk.bend as WK
+import ../bitset/state.bend as ST
+import ../bitset/fastcount.bend as FC
+import ./da.bend as DI
+import ./bits.bend as BT
+
+# The two whole-array walks of src/containers/bitlist.bend: count sums the
+# populations of the words upward, to_list emits the first n bits from the
+# last word down. Each word read goes through the dynamic array's contract,
+# which hands back a new good shadow with the same words, so the loop
+# invariant carries "a good shadow whose words are xs".
+# (source: proofs/containers/bitlist/loops.src)
+
+%def W DAS.Shadow<U32>
+%def DA D.DynArray<&2, U32>
+%def XL List<&2, U32>
+%def SAME(s2) {DAS.good(U32, s2) == True{} : Bool} & ({DI.ws(s2) == xs : $XL} & {DI.lim(s2) == c : Nat})
+%def GW +s: $W, +gs: {DAS.good(U32, s) == True{} : Bool}, +xs: $XL, +c: Nat, +es: {DI.ws(s) == xs : $XL}, +ec: {DI.lim(s) == c : Nat}
+%def GSH(q) DI.gsh(s, gs, q)
+%def SOB(q) DTR.so_obs(U32, s, DE.Get{q}, DSP.step_ok(U32, s, DE.Get{q}, gs))
+
+# a read of word q: the new shadow keeps the words; the value is word q
+def read_same($GW, +q: Nat) -> $SAME($GSH(q)):
+  (DI.get_good(s, gs, q), (Equal.trans($XL, DI.ws($GSH(q)), DI.ws(s), xs, DI.get_ws(s, gs, q), es), Equal.trans(Nat, DI.lim($GSH(q)), DI.lim(s), c, DI.get_lim(s, gs, q), ec)))
+
+%def RR $DA & Result<&2, &2, DE.Error, U32>
+
+def read_eq($GW, +q: Nat) -> {D.get(U32, DAS.real(U32, s), q) == (DAS.real(U32, $GSH(q)), DS.item_result(U32, SC.nth(U32, xs, q))) : $RR}:
+  %Equal.sym($RR, D.get(U32, DAS.real(U32, s), q), (DAS.real(U32, $GSH(q)), DI.unitem($SOB(q))), DI.get_eq(s, gs, q)) : {_ == (DAS.real(U32, $GSH(q)), DS.item_result(U32, SC.nth(U32, xs, q))) : $RR}
+  %Equal.sym(Result<&2, &2, DE.Error, U32>, DI.unitem($SOB(q)), DS.item_result(U32, SC.nth(U32, DI.ws(s), q)), DI.get_val(s, gs, q)) : {(DAS.real(U32, $GSH(q)), _) == (DAS.real(U32, $GSH(q)), DS.item_result(U32, SC.nth(U32, xs, q))) : $RR}
+  %Equal.sym($XL, DI.ws(s), xs, es) : {(DAS.real(U32, $GSH(q)), DS.item_result(U32, SC.nth(U32, _, q))) == (DAS.real(U32, $GSH(q)), DS.item_result(U32, SC.nth(U32, xs, q))) : $RR}
+  {==}
+
+# ---- count ----
+
+%def CW(k, q) MD.count_words(SC.take(U32, SC.drop(U32, xs, q), k))
+
+def CountOK(k: Nat, s: $W, acc: Nat, q: Nat, xs: $XL, c: Nat) -> Type:
+  Sigma<&1, &1, $W, s_2 => {BLI.count_go(k, (DAS.real(U32, s), acc), q) == (DAS.real(U32, s_2), Nat.add(acc, $CW(k, q))) : $DA & Nat} & $SAME(s_2)>
+
+def drop_none(-A: Data, +xs: List<&2, A>, +q: Nat, +h: {SC.nth(A, xs, q) == None{} : Maybe<&2, A>}) -> {SC.drop(A, xs, q) == Nil{} : List<&2, A>}:
+  match xs q:
+    case Nil{} 0n:
+      {==}
+    case Nil{} 1n+p:
+      {==}
+    case Con{x, t} 0n:
+      Empty.absurd({SC.drop(A, Con{x, t}, 0n) == Nil{} : List<&2, A>}, L.none_some(A, x, Equal.sym(Maybe<&2, A>, Some{x}, None{}, h)))
+    case Con{+x, +t} 1n+ +p:
+      drop_none(A, t, p, h)
+
+def nth_none_succ(-A: Data, +xs: List<&2, A>, +q: Nat, +h: {SC.nth(A, xs, q) == None{} : Maybe<&2, A>}) -> {SC.nth(A, xs, 1n+q) == None{} : Maybe<&2, A>}:
+  match xs q:
+    case Nil{} 0n:
+      {==}
+    case Nil{} 1n+p:
+      {==}
+    case Con{x, t} 0n:
+      Empty.absurd({SC.nth(A, Con{x, t}, 1n) == None{} : Maybe<&2, A>}, L.none_some(A, x, Equal.sym(Maybe<&2, A>, Some{x}, None{}, h)))
+    case Con{+x, +t} 1n+ +p:
+      nth_none_succ(A, t, p, h)
+
+def cw_none(+xs: $XL, +k: Nat, +q: Nat, +h: {SC.nth(U32, xs, q) == None{} : Maybe<&2, U32>}) -> {$CW(1n+k, q) == $CW(k, 1n+q) : Nat}:
+  %Equal.sym($XL, SC.drop(U32, xs, q), Nil{}, drop_none(U32, xs, q, h)) : {MD.count_words(SC.take(U32, _, 1n+k)) == $CW(k, 1n+q) : Nat}
+  %Equal.sym($XL, SC.drop(U32, xs, 1n+q), Nil{}, drop_none(U32, xs, 1n+q, nth_none_succ(U32, xs, q, h))) : {MD.count_words(SC.take(U32, Nil{}, 1n+k)) == MD.count_words(SC.take(U32, _, k)) : Nat}
+  {==}
+
+def cw_some(+xs: $XL, +k: Nat, +q: Nat, +x: U32, +h: {SC.nth(U32, xs, q) == Some{x} : Maybe<&2, U32>}) -> {$CW(1n+k, q) == Nat.add(B.word_count(32n, x), $CW(k, 1n+q)) : Nat}:
+  %Equal.sym($XL, SC.drop(U32, xs, q), Con{x, SC.drop(U32, xs, 1n+q)}, LX.drop_cons(U32, xs, q, x, h)) : {MD.count_words(SC.take(U32, _, 1n+k)) == Nat.add(B.word_count(32n, x), $CW(k, 1n+q)) : Nat}
+  {==}
+
+%def CG(k, a, q) BLI.count_go(k, a, q)
+%def G1 $GSH(q)
+
+def count_lift(+r: Nat, s: $W, +acc: Nat, +q: Nat, +xs: $XL, +c: Nat, s1: $W, +acc1: Nat, +e_step: {$CG(1n+r, (DAS.real(U32, s), acc), q) == $CG(r, (DAS.real(U32, s1), acc1), 1n+q) : $DA & Nat}, +e_sum: {Nat.add(acc1, $CW(r, 1n+q)) == Nat.add(acc, $CW(1n+r, q)) : Nat}, ih: CountOK(r, s1, acc1, 1n+q, xs, c)) -> CountOK(1n+r, s, acc, q, xs, c):
+  match ih:
+    case Tuple{s2, Tuple{e2, same}}:
+      (s2, (Equal.trans($DA & Nat, $CG(1n+r, (DAS.real(U32, s), acc), q), $CG(r, (DAS.real(U32, s1), acc1), 1n+q), (DAS.real(U32, s2), Nat.add(acc, $CW(1n+r, q))), e_step,
+              Equal.trans($DA & Nat, $CG(r, (DAS.real(U32, s1), acc1), 1n+q), (DAS.real(U32, s2), Nat.add(acc1, $CW(r, 1n+q))), (DAS.real(U32, s2), Nat.add(acc, $CW(1n+r, q))), e2,
+                Equal.cong(Nat, $DA & Nat, z => (DAS.real(U32, s2), z), Nat.add(acc1, $CW(r, 1n+q)), Nat.add(acc, $CW(1n+r, q)), e_sum))), same))
+
+%def CA(y) BLI.count_add((DAS.real(U32, $G1), DS.item_result(U32, y)), acc)
+
+def count_rd(+r: Nat, $GW, +acc: Nat, +q: Nat, +y: Maybe<&2, U32>, +hy: {SC.nth(U32, xs, q) == y : Maybe<&2, U32>}) -> {$CG(1n+r, (DAS.real(U32, s), acc), q) == $CG(r, $CA(y), 1n+q) : $DA & Nat}:
+  %Equal.sym($RR, D.get(U32, DAS.real(U32, s), q), (DAS.real(U32, $G1), DS.item_result(U32, SC.nth(U32, xs, q))), read_eq(s, gs, xs, c, es, ec, q)) : {$CG(r, BLI.count_add(_, acc), 1n+q) == $CG(r, $CA(y), 1n+q) : $DA & Nat}
+  %Equal.sym(Maybe<&2, U32>, SC.nth(U32, xs, q), y, hy) : {$CG(r, BLI.count_add((DAS.real(U32, $G1), DS.item_result(U32, _)), acc), 1n+q) == $CG(r, $CA(y), 1n+q) : $DA & Nat}
+  {==}
+
+%def REC(r) @+a2: Nat -> @+q2: Nat -> @+s2: $W -> @+g2: {DAS.good(U32, s2) == True{} : Bool} -> @+e2: {DI.ws(s2) == xs : $XL} -> @+f2: {DI.lim(s2) == c : Nat} -> CountOK(r, s2, a2, q2, xs, c)
+
+%def NA Nat.add
+
+def count_sum(+acc: Nat, +r: Nat, +q: Nat, +xs: $XL, +x: U32, +hy: {SC.nth(U32, xs, q) == Some{x} : Maybe<&2, U32>}) -> {$NA(B.count_word(x, acc, U32.is_eq(x, 0)), $CW(r, 1n+q)) == $NA(acc, $CW(1n+r, q)) : Nat}:
+  %Equal.sym(Nat, B.count_word(x, acc, U32.is_eq(x, 0)), $NA(acc, B.word_count(32n, x)), FC.count_word_ok(x, acc, U32.is_eq(x, 0), {==})) : {$NA(_, $CW(r, 1n+q)) == $NA(acc, $CW(1n+r, q)) : Nat}
+  %Equal.sym(Nat, $CW(1n+r, q), $NA(B.word_count(32n, x), $CW(r, 1n+q)), cw_some(xs, r, q, x, hy)) : {$NA($NA(acc, B.word_count(32n, x)), $CW(r, 1n+q)) == $NA(acc, _) : Nat}
+  N.add_assoc(acc, B.word_count(32n, x), $CW(r, 1n+q))
+
+def count_y(+r: Nat, $GW, +acc: Nat, +q: Nat, +y: Maybe<&2, U32>, +hy: {SC.nth(U32, xs, q) == y : Maybe<&2, U32>}, +e_rd: {$CG(1n+r, (DAS.real(U32, s), acc), q) == $CG(r, $CA(y), 1n+q) : $DA & Nat}, rec: $REC(r)) -> CountOK(1n+r, s, acc, q, xs, c):
+  match y:
+    case None{}:
+      +gs1 = DI.get_good(s, gs, q)
+      +es1 = Equal.trans($XL, DI.ws($G1), DI.ws(s), xs, DI.get_ws(s, gs, q), es)
+      +ec1 = Equal.trans(Nat, DI.lim($G1), DI.lim(s), c, DI.get_lim(s, gs, q), ec)
+      +e_sum = Equal.cong(Nat, Nat, z => $NA(acc, z), $CW(r, 1n+q), $CW(1n+r, q), Equal.sym(Nat, $CW(1n+r, q), $CW(r, 1n+q), cw_none(xs, r, q, hy)))
+      count_lift(r, s, acc, q, xs, c, $G1, acc, e_rd, e_sum, rec(acc, 1n+q, $G1, gs1, es1, ec1))
+    case Some{+x}:
+      +gs1 = DI.get_good(s, gs, q)
+      +es1 = Equal.trans($XL, DI.ws($G1), DI.ws(s), xs, DI.get_ws(s, gs, q), es)
+      +ec1 = Equal.trans(Nat, DI.lim($G1), DI.lim(s), c, DI.get_lim(s, gs, q), ec)
+      count_lift(r, s, acc, q, xs, c, $G1, B.count_word(x, acc, U32.is_eq(x, 0)), e_rd, count_sum(acc, r, q, xs, x, hy), rec(B.count_word(x, acc, U32.is_eq(x, 0)), 1n+q, $G1, gs1, es1, ec1))
+
+def count_loop(k: Nat, $GW, +acc: Nat, +q: Nat) -> CountOK(k, s, acc, q, xs, c):
+  match k:
+    case 0n:
+      (s, (%Equal.sym($XL, SC.take(U32, SC.drop(U32, xs, q), 0n), Nil{}, LX.take_zero(U32, SC.drop(U32, xs, q))) : {(DAS.real(U32, s), acc) == (DAS.real(U32, s), Nat.add(acc, MD.count_words(_))) : $DA & Nat}
+           %Equal.sym(Nat, Nat.add(acc, 0n), acc, N.add_zero(acc)) : {(DAS.real(U32, s), acc) == (DAS.real(U32, s), _) : $DA & Nat}
+           {==}, (gs, (es, ec))))
+    case 1n+ +r:
+      count_y(r, s, gs, xs, c, es, ec, acc, q, SC.nth(U32, xs, q), {==}, count_rd(r, s, gs, xs, c, es, ec, acc, q, SC.nth(U32, xs, q), {==}), (a2 => q2 => s2 => g2 => e2 => f2 => count_loop(r, s2, g2, xs, c, e2, f2, a2, q2)))
+
+# ---- to_list ----
+
+%def FD(q) ST.flat(SC.drop(U32, xs, q))
+%def SQ(q) Nat.sub(n, Nat.mul(q, 32n))
+%def TK(q) SC.take(Bool, $FD(q), $SQ(q))
+%def BG(k, a) BLI.bits_go(k, a, n)
+%def BB List<&2, Bool>
+
+def BitsOK(k: Nat, s: $W, n: Nat, xs: $XL, c: Nat) -> Type:
+  Sigma<&1, &1, $W, s_2 => {$BG(k, (DAS.real(U32, s), $TK(k))) == (DAS.real(U32, s_2), $TK(0n)) : $DA & $BB} & $SAME(s_2)>
+
+def bits_lift(+q: Nat, s: $W, +n: Nat, +xs: $XL, +c: Nat, s1: $W, +e_step: {$BG(1n+q, (DAS.real(U32, s), $TK(1n+q))) == $BG(q, (DAS.real(U32, s1), $TK(q))) : $DA & $BB}, ih: BitsOK(q, s1, n, xs, c)) -> BitsOK(1n+q, s, n, xs, c):
+  match ih:
+    case Tuple{s2, Tuple{e2, same}}:
+      (s2, (Equal.trans($DA & $BB, $BG(1n+q, (DAS.real(U32, s), $TK(1n+q))), $BG(q, (DAS.real(U32, s1), $TK(q))), (DAS.real(U32, s2), $TK(0n)), e_step, e2), same))
+
+%def XQ WK.nthw(xs, q)
+
+def bits_rd($GW, +n: Nat, +q: Nat, +hq: {Nat.is_lt(q, SC.length(U32, xs)) == True{} : Bool}) -> {$BG(1n+q, (DAS.real(U32, s), $TK(1n+q))) == $BG(q, (DAS.real(U32, $G1), $TK(q))) : $DA & $BB}:
+  +hx = WK.nthw_nth(xs, q, hq)
+  %Equal.sym($RR, D.get(U32, DAS.real(U32, s), q), (DAS.real(U32, $G1), DS.item_result(U32, SC.nth(U32, xs, q))), read_eq(s, gs, xs, c, es, ec, q)) : {$BG(q, BLI.bits_add(Nat.min(32n, $SQ(q)), $TK(1n+q), _)) == $BG(q, (DAS.real(U32, $G1), $TK(q))) : $DA & $BB}
+  %Equal.sym(Maybe<&2, U32>, SC.nth(U32, xs, q), Some{$XQ}, hx) : {$BG(q, BLI.bits_add(Nat.min(32n, $SQ(q)), $TK(1n+q), (DAS.real(U32, $G1), DS.item_result(U32, _)))) == $BG(q, (DAS.real(U32, $G1), $TK(q))) : $DA & $BB}
+  %Equal.sym($BB, BLI.word_bits(Nat.min(32n, $SQ(q)), $XQ, $TK(1n+q)), $TK(q), Equal.sym($BB, $TK(q), BLI.word_bits(Nat.min(32n, $SQ(q)), $XQ, $TK(1n+q)), BT.bits_step(xs, n, q, $XQ, hx))) : {$BG(q, (DAS.real(U32, $G1), _)) == $BG(q, (DAS.real(U32, $G1), $TK(q))) : $DA & $BB}
+  {==}
+
+def bits_loop(k: Nat, $GW, +n: Nat, +hk: {Nat.is_le(k, SC.length(U32, xs)) == True{} : Bool}) -> BitsOK(k, s, n, xs, c):
+  match k:
+    case 0n:
+      (s, ({==}, (gs, (es, ec))))
+    case 1n+ +q:
+      +hq = N.succ_le_lt(q, SC.length(U32, xs), hk)
+      +gs1 = DI.get_good(s, gs, q)
+      +es1 = Equal.trans($XL, DI.ws($G1), DI.ws(s), xs, DI.get_ws(s, gs, q), es)
+      +ec1 = Equal.trans(Nat, DI.lim($G1), DI.lim(s), c, DI.get_lim(s, gs, q), ec)
+      bits_lift(q, s, n, xs, c, $G1, bits_rd(s, gs, xs, c, es, ec, n, q, hq), bits_loop(q, $G1, gs1, xs, c, es1, ec1, n, N.lt_le(q, SC.length(U32, xs), hq)))
