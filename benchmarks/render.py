@@ -16,7 +16,7 @@ NAMES = OrderedDict([
     ('dynamic_array', 'Dynamic array'), ('deque', 'Deque'), ('queue', 'FIFO queue'), ('stack', 'Stack'),
     ('simple_queue', 'Simple queue'), ('priority_queue', 'Priority queue'),
     ('binary_heap', 'Binary heap'), ('doubly_linked_list', 'Doubly linked list'),
-    ('dlist_iterator', 'List iterator'), ('balanced_search_tree', 'Tree map'), ('bitset', 'Bitset'),
+    ('dlist_iterator', 'List iterator'), ('balanced_search_tree', 'Tree map'), ('bitset', 'Bitset'), ('bitlist', 'Bit list'),
     ('hash_table', 'Hash map'), ('lru', 'LRU cache')])
 HASHES = OrderedDict([
     ('sha256', ('SHA-256', 'portable FIPS 180-4 C (`benchmarks/native/sha256.c`)')),

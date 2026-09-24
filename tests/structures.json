@@ -213,6 +213,22 @@
         "from_list",
         "to_sorted_list"
       ]
+    },
+    {
+      "id": "bitlist",
+      "operations": [
+        "new",
+        "with_limit",
+        "length",
+        "limit",
+        "get",
+        "assign",
+        "push",
+        "pop",
+        "clear",
+        "count",
+        "to_list"
+      ]
     }
   ],
   "excluded_existing": {

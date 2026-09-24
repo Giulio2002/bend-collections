@@ -1,0 +1,169 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/list.bend as LL
+import ../../lib/spec_common.bend as SC
+import ../../../src/containers/bitlist.bend as BLI
+import ../../../src/containers/types/bitlist.bend as E
+import ../dynamic_array/trace.bend as DTR
+import ./spec.bend as S
+import ./state.bend as SS
+import ./steps.bend as BS
+
+# Arbitrary finite operation traces: the real runner refines the spec runner
+# (the same shadow form as the per-step laws), from the constructors new and
+# with_limit, and from_bools builds exactly the list its bits spell.
+# (source: proofs/containers/bitlist/trace.src)
+
+%def ML S.Model & List<&2, E.Obs>
+%def RL BLI.Bitlist & List<&2, E.Obs>
+%def OL List<&2, E.Obs>
+
+def srun_obs(ops: List<&2, E.Op>, m: S.Model) -> $OL:
+  Pair.snd(S.Model, $OL, S.run(ops, m))
+
+def srun_state(ops: List<&2, E.Op>, m: S.Model) -> S.Model:
+  Pair.fst(S.Model, $OL, S.run(ops, m))
+
+def so_sh(-sh: SS.Sh, -op: E.Op, so: BS.StepOK(sh, op)) -> SS.Sh:
+  match so:
+    case Tuple{sh2, r}:
+      sh2
+
+def so_obs(-sh: SS.Sh, -op: E.Op, so: BS.StepOK(sh, op)) -> E.Obs:
+  match so:
+    case Tuple{sh2, Tuple{o, r}}:
+      o
+
+def so_step(-sh: SS.Sh, -op: E.Op, so: BS.StepOK(sh, op)) -> {BLI.step(SS.real(sh), op) == (SS.real(so_sh(sh, op, so)), so_obs(sh, op, so)) : BLI.Bitlist & E.Obs}:
+  match so:
+    case Tuple{sh2, Tuple{o, Tuple{e, r}}}:
+      e
+
+def so_good(-sh: SS.Sh, -op: E.Op, so: BS.StepOK(sh, op)) -> {SS.good(so_sh(sh, op, so)) == True{} : Bool}:
+  match so:
+    case Tuple{sh2, Tuple{o, Tuple{e, Tuple{g, s}}}}:
+      g
+
+def so_spec(-sh: SS.Sh, -op: E.Op, so: BS.StepOK(sh, op)) -> {(SS.model(so_sh(sh, op, so)), so_obs(sh, op, so)) == S.step(SS.model(sh), op) : S.Model & E.Obs}:
+  match so:
+    case Tuple{sh2, Tuple{o, Tuple{e, Tuple{g, s}}}}:
+      s
+
+def spec_run_cons(+op: E.Op, +rest: List<&2, E.Op>, +m: S.Model, +m1: S.Model, +o: E.Obs, +e: {(m1, o) == S.step(m, op) : S.Model & E.Obs}) -> {S.run(Con{op, rest}, m) == (srun_state(rest, m1), Con{o, srun_obs(rest, m1)}) : $ML}:
+  %e : {S.cons_obs(Pair.snd(S.Model, E.Obs, _), S.run(rest, Pair.fst(S.Model, E.Obs, _))) == (srun_state(rest, m1), Con{o, srun_obs(rest, m1)}) : $ML}
+  %Equal.sym($ML, S.run(rest, m1), (srun_state(rest, m1), srun_obs(rest, m1)), L.pair_eta(S.Model, $OL, S.run(rest, m1))) : {S.cons_obs(o, _) == (srun_state(rest, m1), Con{o, srun_obs(rest, m1)}) : $ML}
+  {==}
+
+def RunOK(ops: List<&2, E.Op>, sh: SS.Sh, acc: $OL) -> Type:
+  Sigma<&1, &1, SS.Sh, sh_2 => {BLI.run_acc(ops, (SS.real(sh), acc)) == (SS.real(sh_2), List.reverse.go(&2, E.Obs, srun_obs(ops, SS.model(sh)), acc)) : $RL} & ({SS.good(sh_2) == True{} : Bool} & {SS.model(sh_2) == srun_state(ops, SS.model(sh)) : S.Model})>
+
+def ro_sh(-ops: List<&2, E.Op>, -sh: SS.Sh, -acc: $OL, r: RunOK(ops, sh, acc)) -> SS.Sh:
+  match r:
+    case Tuple{sh2, x}:
+      sh2
+
+def ro_run(-ops: List<&2, E.Op>, -sh: SS.Sh, -acc: $OL, r: RunOK(ops, sh, acc)) -> {BLI.run_acc(ops, (SS.real(sh), acc)) == (SS.real(ro_sh(ops, sh, acc, r)), List.reverse.go(&2, E.Obs, srun_obs(ops, SS.model(sh)), acc)) : $RL}:
+  match r:
+    case Tuple{sh2, Tuple{e, x}}:
+      e
+
+def ro_good(-ops: List<&2, E.Op>, -sh: SS.Sh, -acc: $OL, r: RunOK(ops, sh, acc)) -> {SS.good(ro_sh(ops, sh, acc, r)) == True{} : Bool}:
+  match r:
+    case Tuple{sh2, Tuple{e, Tuple{g, m}}}:
+      g
+
+def ro_model(-ops: List<&2, E.Op>, -sh: SS.Sh, -acc: $OL, r: RunOK(ops, sh, acc)) -> {SS.model(ro_sh(ops, sh, acc, r)) == srun_state(ops, SS.model(sh)) : S.Model}:
+  match r:
+    case Tuple{sh2, Tuple{e, Tuple{g, m}}}:
+      m
+
+def run_ok(+ops: List<&2, E.Op>, +sh: SS.Sh, +acc: $OL, +g: {SS.good(sh) == True{} : Bool}) -> RunOK(ops, sh, acc):
+  match ops:
+    case Nil{}:
+      (sh, ({==}, (g, {==})))
+    case Con{+op, +rest}:
+      +m = SS.model(sh)
+      +sh1 = so_sh(sh, op, BS.step_ok(sh, op, g))
+      +o = so_obs(sh, op, BS.step_ok(sh, op, g))
+      +g1 = so_good(sh, op, BS.step_ok(sh, op, g))
+      +m1 = SS.model(sh1)
+      +acc1 = {Con{o, acc} : $OL}
+      +sh2 = ro_sh(rest, sh1, acc1, run_ok(rest, sh1, acc1, g1))
+      +es = spec_run_cons(op, rest, m, m1, o, so_spec(sh, op, BS.step_ok(sh, op, g)))
+      -R = S.run(rest, m1)
+      (sh2, (
+        %Equal.sym(BLI.Bitlist & E.Obs, BLI.step(SS.real(sh), op), (SS.real(sh1), o), so_step(sh, op, BS.step_ok(sh, op, g))) : {BLI.run_acc(rest, BLI.record(acc, _)) == (SS.real(sh2), List.reverse.go(&2, E.Obs, srun_obs(Con{op, rest}, m), acc)) : $RL}
+        %Equal.sym($RL, BLI.run_acc(rest, (SS.real(sh1), acc1)), (SS.real(sh2), List.reverse.go(&2, E.Obs, srun_obs(rest, m1), acc1)), ro_run(rest, sh1, acc1, run_ok(rest, sh1, acc1, g1))) : {_ == (SS.real(sh2), List.reverse.go(&2, E.Obs, srun_obs(Con{op, rest}, m), acc)) : $RL}
+        %Equal.sym($ML, S.run(Con{op, rest}, m), (Pair.fst(S.Model, $OL, R), Con{o, Pair.snd(S.Model, $OL, R)}), es) : {(SS.real(sh2), List.reverse.go(&2, E.Obs, srun_obs(rest, m1), acc1)) == (SS.real(sh2), List.reverse.go(&2, E.Obs, Pair.snd(S.Model, $OL, _), acc)) : $RL}
+        {==},
+        (ro_good(rest, sh1, acc1, run_ok(rest, sh1, acc1, g1)),
+         %Equal.sym($ML, S.run(Con{op, rest}, m), (Pair.fst(S.Model, $OL, R), Con{o, Pair.snd(S.Model, $OL, R)}), es) : {SS.model(sh2) == Pair.fst(S.Model, $OL, _) : S.Model}
+         ro_model(rest, sh1, acc1, run_ok(rest, sh1, acc1, g1)))))
+
+def run_from(+ops: List<&2, E.Op>, +sh0: SS.Sh, +g0: {SS.good(sh0) == True{} : Bool}) -> {BLI.run(ops, SS.real(sh0)) == (SS.real(ro_sh(ops, sh0, Nil{}, run_ok(ops, sh0, Nil{}, g0))), srun_obs(ops, SS.model(sh0))) : $RL}:
+  +sh2 = ro_sh(ops, sh0, Nil{}, run_ok(ops, sh0, Nil{}, g0))
+  +os = srun_obs(ops, SS.model(sh0))
+  %Equal.sym($RL, BLI.run_acc(ops, (SS.real(sh0), Nil{})), (SS.real(sh2), List.reverse.go(&2, E.Obs, os, Nil{})), ro_run(ops, sh0, Nil{}, run_ok(ops, sh0, Nil{}, g0))) : {BLI.finish(_) == (SS.real(sh2), os) : $RL}
+  %Equal.sym($OL, List.reverse(&2, E.Obs, List.reverse.go(&2, E.Obs, os, Nil{})), os, LL.rev_rev(E.Obs, os)) : {(SS.real(sh2), _) == (SS.real(sh2), os) : $RL}
+  {==}
+
+def TraceOK(ops: List<&2, E.Op>, sh0: SS.Sh) -> Type:
+  Sigma<&1, &1, SS.Sh, sh_2 => {BLI.run(ops, SS.real(sh0)) == (SS.real(sh_2), srun_obs(ops, SS.model(sh0))) : $RL} & ({SS.good(sh_2) == True{} : Bool} & {SS.model(sh_2) == srun_state(ops, SS.model(sh0)) : S.Model})>
+
+def trace_from(+ops: List<&2, E.Op>, +sh0: SS.Sh, +g0: {SS.good(sh0) == True{} : Bool}) -> TraceOK(ops, sh0):
+  (ro_sh(ops, sh0, Nil{}, run_ok(ops, sh0, Nil{}, g0)),
+   (run_from(ops, sh0, g0),
+    (ro_good(ops, sh0, Nil{}, run_ok(ops, sh0, Nil{}, g0)),
+     ro_model(ops, sh0, Nil{}, run_ok(ops, sh0, Nil{}, g0)))))
+
+# ---- the constructors ----
+
+def initial(+l: Maybe<&2, Nat>) -> SS.Sh:
+  {SS.BSh{l, 0n, DTR.initial(U32)} : SS.Sh}
+
+def new_real() -> {BLI.new() == SS.real(initial(None{})) : BLI.Bitlist}:
+  {==}
+
+def with_limit_real(+n: Nat) -> {BLI.with_limit(n) == SS.real(initial(Some{n})) : BLI.Bitlist}:
+  {==}
+
+def initial_good(+l: Maybe<&2, Nat>) -> {SS.good(initial(l)) == True{} : Bool}:
+  {==}
+
+def new_model() -> {SS.model(initial(None{})) == S.new() : S.Model}:
+  {==}
+
+def with_limit_model(+n: Nat) -> {SS.model(initial(Some{n})) == S.with_limit(n) : S.Model}:
+  {==}
+
+# ---- from_bools ----
+
+def fpush(p: BLI.Bitlist & Result<&2, &2, E.Error, Unit>) -> {BLI.from_push(p) == Pair.fst(BLI.Bitlist, E.Obs, BLI.obs_unit(p)) : BLI.Bitlist}:
+  match p:
+    case Tuple{s, r}:
+      {==}
+
+def FromOK(bs: List<&2, Bool>, sh: SS.Sh) -> Type:
+  Sigma<&1, &1, SS.Sh, sh_2 => {BLI.from_go(bs, SS.real(sh)) == SS.real(sh_2) : BLI.Bitlist} & ({SS.good(sh_2) == True{} : Bool} & {SS.model(sh_2) == S.push_all(bs, SS.model(sh)) : S.Model})>
+
+def from_lift(+b: Bool, +t: List<&2, Bool>, sh: SS.Sh, +sh1: SS.Sh, +e1: {BLI.from_push(BLI.push(SS.real(sh), b)) == SS.real(sh1) : BLI.Bitlist}, +m1: {SS.model(sh1) == Pair.fst(S.Model, E.Obs, S.step(SS.model(sh), E.Push{b})) : S.Model}, ih: FromOK(t, sh1)) -> FromOK(Con{b, t}, sh):
+  match ih:
+    case Tuple{sh2, Tuple{e2, Tuple{g2, mm}}}:
+      (sh2, (%Equal.sym(BLI.Bitlist, BLI.from_push(BLI.push(SS.real(sh), b)), SS.real(sh1), e1) : {BLI.from_go(t, _) == SS.real(sh2) : BLI.Bitlist}
+             e2,
+            (g2, %Equal.sym(S.Model, Pair.fst(S.Model, E.Obs, S.step(SS.model(sh), E.Push{b})), SS.model(sh1), Equal.sym(S.Model, SS.model(sh1), Pair.fst(S.Model, E.Obs, S.step(SS.model(sh), E.Push{b})), m1)) : {SS.model(sh2) == S.push_all(t, _) : S.Model}
+                 mm)))
+
+def from_ok(+bs: List<&2, Bool>, +sh: SS.Sh, +g: {SS.good(sh) == True{} : Bool}) -> FromOK(bs, sh):
+  match bs:
+    case Nil{}:
+      (sh, ({==}, (g, {==})))
+    case Con{+b, +t}:
+      +sh1 = so_sh(sh, E.Push{b}, BS.step_ok(sh, E.Push{b}, g))
+      +e1 = Equal.trans(BLI.Bitlist, BLI.from_push(BLI.push(SS.real(sh), b)), Pair.fst(BLI.Bitlist, E.Obs, BLI.step(SS.real(sh), E.Push{b})), SS.real(sh1), fpush(BLI.push(SS.real(sh), b)),
+        Equal.cong(BLI.Bitlist & E.Obs, BLI.Bitlist, p => Pair.fst(BLI.Bitlist, E.Obs, p), BLI.step(SS.real(sh), E.Push{b}), (SS.real(sh1), so_obs(sh, E.Push{b}, BS.step_ok(sh, E.Push{b}, g))), so_step(sh, E.Push{b}, BS.step_ok(sh, E.Push{b}, g))))
+      +m1 = Equal.cong(S.Model & E.Obs, S.Model, p => Pair.fst(S.Model, E.Obs, p), (SS.model(sh1), so_obs(sh, E.Push{b}, BS.step_ok(sh, E.Push{b}, g))), S.step(SS.model(sh), E.Push{b}), so_spec(sh, E.Push{b}, BS.step_ok(sh, E.Push{b}, g)))
+      from_lift(b, t, sh, sh1, e1, m1, from_ok(t, sh1, so_good(sh, E.Push{b}, BS.step_ok(sh, E.Push{b}, g))))
+
+def from_bools_ok(+bs: List<&2, Bool>) -> FromOK(bs, initial(None{})):
+  from_ok(bs, initial(None{}), initial_good(None{}))

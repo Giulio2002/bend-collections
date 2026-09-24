@@ -1,0 +1,523 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/list.bend as LL
+import ../../lib/spec_common.bend as SC
+import ../../lib/arith.bend as AT
+import ../../../src/containers/bitset.bend as B
+import ../../../src/containers/bitlist.bend as BLI
+import ../../../src/containers/types/bitlist.bend as E
+import ../../../src/containers/dynamic_array.bend as D
+import ../../../src/containers/types/dynamic_array.bend as DE
+import ../dynamic_array/spec.bend as DS
+import ../dynamic_array/state.bend as DAS
+import ../dynamic_array/steps.bend as DSP
+import ../dynamic_array/trace.bend as DTR
+import ../bitset/lists.bend as BL
+import ../bitset/listx.bend as LX
+import ../bitset/model.bend as MD
+import ../bitset/walk.bend as WK
+import ../bitset/state.bend as ST
+import ../bitset/steps.bend as BSS
+import ./spec.bend as S
+import ./da.bend as DI
+import ./bits.bend as BT
+import ./state.bend as SS
+import ./loops.bend as LP
+
+# Every public bitlist operation, errors included, lands on the bitlist of
+# another good shadow whose model and answer are the specification step
+# (the SPARK-style "effect on the whole model" statement: S.step is the
+# postcondition, the shared StepOK shape carries the frame conditions).
+# (source: proofs/containers/bitlist/steps.src)
+
+%def TO BLI.Bitlist & E.Obs
+%def MO S.Model & E.Obs
+%def W DAS.Shadow<U32>
+%def SH0 SS.BSh{l, n, w}
+%def XS DI.ws(w)
+%def F ST.flat(DI.ws(w))
+%def RW DAS.real(U32, w)
+%def GP +l: Maybe<&2, Nat>, +n: Nat, +w: $W, +g: {SS.good($SH0) == True{} : Bool}, +gw: {DAS.good(U32, w) == True{} : Bool}
+%def GA l, n, w, g, gw
+%def DOB(op) DTR.so_obs(U32, w, op, DSP.step_ok(U32, w, op, gw))
+%def GI SS.g_inv(l, n, w, g)
+%def MD0 S.M{l, DI.lim(w), SC.take(Bool, $F, n)}
+
+def StepOK(sh: SS.Sh, op: E.Op) -> Type:
+  Sigma<&1, &1, SS.Sh, sh_2 => Sigma<&1, &1, E.Obs, o_2 => {BLI.step(SS.real(sh), op) == (SS.real(sh_2), o_2) : $TO} & ({SS.good(sh_2) == True{} : Bool} & {(SS.model(sh_2), o_2) == S.step(SS.model(sh), op) : $MO})>>
+
+# ---- index facts ----
+
+def len_flat($GP) -> {SC.length(Bool, $F) == Nat.mul(SC.length(U32, $XS), 32n) : Nat}:
+  ST.length_flat($XS)
+
+def n_le_flat($GP) -> {Nat.is_le(n, SC.length(Bool, $F)) == True{} : Bool}:
+  ST.inv_le(n, $F, $GI)
+
+def wq($GP, +i: Nat, +hi: {Nat.is_lt(i, SC.length(Bool, $F)) == True{} : Bool}) -> {Nat.is_lt(B.wordix(i), SC.length(U32, $XS)) == True{} : Bool}:
+  ST.wordix_lt(i, SC.length(U32, $XS), L.subst(Nat, z => {Nat.is_lt(i, z) == True{} : Bool}, SC.length(Bool, $F), Nat.mul(SC.length(U32, $XS), 32n), len_flat($GA), hi))
+
+def in_flat($GP, +i: Nat, +hi: {Nat.is_lt(i, n) == True{} : Bool}) -> {Nat.is_lt(i, SC.length(Bool, $F)) == True{} : Bool}:
+  N.lt_le_trans(i, n, SC.length(Bool, $F), hi, n_le_flat($GA))
+
+# ---- length and limit ----
+
+def length_ok($GP) -> StepOK($SH0, E.Length{}):
+  ($SH0, (E.ONat{n}, ({==}, (g,
+    %Equal.sym(Nat, SC.length(Bool, SC.take(Bool, $F, n)), n, ST.length_abs(n, $F, $GI)) : {($MD0, E.ONat{n}) == ($MD0, E.ONat{_}) : $MO}
+    {==}))))
+
+def limit_ok($GP) -> StepOK($SH0, E.Limit{}):
+  ($SH0, (E.OLimit{l}, ({==}, (g, {==}))))
+
+# ---- get ----
+
+%def GQ(i) B.wordix(i)
+%def GSH(i) DI.gsh(w, gw, $GQ(i))
+%def GX(i) WK.nthw($XS, $GQ(i))
+
+def get_real($GP, +i: Nat, +hi: {Nat.is_lt(i, n) == True{} : Bool}) -> {BLI.get_word(i, l, n, D.get(U32, $RW, $GQ(i))) == (SS.real(SS.BSh{l, n, $GSH(i)}), Done{B.word_get($GX(i), B.bitix(i))}) : BLI.Bitlist & Result<&2, &2, E.Error, Bool>}:
+  %Equal.sym(D.DynArray<&2, U32> & Result<&2, &2, DE.Error, U32>, D.get(U32, $RW, $GQ(i)), (DAS.real(U32, $GSH(i)), DI.unitem($DOB(DE.Get{$GQ(i)}))), DI.get_eq(w, gw, $GQ(i))) : {BLI.get_word(i, l, n, _) == (SS.real(SS.BSh{l, n, $GSH(i)}), Done{B.word_get($GX(i), B.bitix(i))}) : BLI.Bitlist & Result<&2, &2, E.Error, Bool>}
+  %Equal.sym(Result<&2, &2, DE.Error, U32>, DI.unitem($DOB(DE.Get{$GQ(i)})), DS.item_result(U32, SC.nth(U32, $XS, $GQ(i))), DI.get_val(w, gw, $GQ(i))) : {BLI.get_word(i, l, n, (DAS.real(U32, $GSH(i)), _)) == (SS.real(SS.BSh{l, n, $GSH(i)}), Done{B.word_get($GX(i), B.bitix(i))}) : BLI.Bitlist & Result<&2, &2, E.Error, Bool>}
+  %Equal.sym(Maybe<&2, U32>, SC.nth(U32, $XS, $GQ(i)), Some{$GX(i)}, WK.nthw_nth($XS, $GQ(i), wq($GA, i, in_flat($GA, i, hi)))) : {BLI.get_word(i, l, n, (DAS.real(U32, $GSH(i)), DS.item_result(U32, _))) == (SS.real(SS.BSh{l, n, $GSH(i)}), Done{B.word_get($GX(i), B.bitix(i))}) : BLI.Bitlist & Result<&2, &2, E.Error, Bool>}
+  {==}
+
+def get_model($GP, +i: Nat) -> {SS.model(SS.BSh{l, n, $GSH(i)}) == $MD0 : S.Model}:
+  SS.model_of(l, n, $GSH(i), $XS, DI.lim(w), DI.get_ws(w, gw, $GQ(i)), DI.get_lim(w, gw, $GQ(i)))
+
+def get_good($GP, +i: Nat) -> {SS.good(SS.BSh{l, n, $GSH(i)}) == True{} : Bool}:
+  SS.same_good(l, n, w, $GSH(i), DI.get_good(w, gw, $GQ(i)), DI.get_ws(w, gw, $GQ(i)), g)
+
+def get_bit($GP, +i: Nat, +hi: {Nat.is_lt(i, n) == True{} : Bool}) -> {Some{B.word_get($GX(i), B.bitix(i))} == SC.nth(Bool, SC.take(Bool, $F, n), i) : Maybe<&2, Bool>}:
+  %WK.get_index($XS, i) : {Some{_} == SC.nth(Bool, SC.take(Bool, $F, n), i) : Maybe<&2, Bool>}
+  BSS.nth_in(n, $XS, i, hi, $GI)
+
+def get_case($GP, +i: Nat, b: Bool, +eb: {Nat.is_lt(i, n) == b : Bool}) -> StepOK($SH0, E.Get{i}):
+  match b:
+    case True{}:
+      (SS.BSh{l, n, $GSH(i)}, (E.OBit{Done{B.word_get($GX(i), B.bitix(i))}},
+        (%Equal.sym(Bool, Nat.is_lt(i, n), True{}, eb) : {BLI.obs_bit(BLI.get_if(_, l, n, $RW, i)) == (SS.real(SS.BSh{l, n, $GSH(i)}), E.OBit{Done{B.word_get($GX(i), B.bitix(i))}}) : $TO}
+         %Equal.sym(BLI.Bitlist & Result<&2, &2, E.Error, Bool>, BLI.get_word(i, l, n, D.get(U32, $RW, $GQ(i))), (SS.real(SS.BSh{l, n, $GSH(i)}), Done{B.word_get($GX(i), B.bitix(i))}), get_real($GA, i, eb)) : {BLI.obs_bit(_) == (SS.real(SS.BSh{l, n, $GSH(i)}), E.OBit{Done{B.word_get($GX(i), B.bitix(i))}}) : $TO}
+         {==},
+        (get_good($GA, i),
+         %Equal.sym(S.Model, SS.model(SS.BSh{l, n, $GSH(i)}), $MD0, get_model($GA, i)) : {(_, E.OBit{Done{B.word_get($GX(i), B.bitix(i))}}) == ($MD0, E.OBit{S.bit(SC.nth(Bool, SC.take(Bool, $F, n), i))}) : $MO}
+         %Equal.sym(Maybe<&2, Bool>, SC.nth(Bool, SC.take(Bool, $F, n), i), Some{B.word_get($GX(i), B.bitix(i))}, Equal.sym(Maybe<&2, Bool>, Some{B.word_get($GX(i), B.bitix(i))}, SC.nth(Bool, SC.take(Bool, $F, n), i), get_bit($GA, i, eb))) : {($MD0, E.OBit{Done{B.word_get($GX(i), B.bitix(i))}}) == ($MD0, E.OBit{S.bit(_)}) : $MO}
+         {==}))))
+    case False{}:
+      ($SH0, (E.OBit{Fail{E.IndexOutOfRange{}}},
+        (%Equal.sym(Bool, Nat.is_lt(i, n), False{}, eb) : {BLI.obs_bit(BLI.get_if(_, l, n, $RW, i)) == (SS.real($SH0), E.OBit{Fail{E.IndexOutOfRange{}}}) : $TO}
+         {==},
+        (g,
+         %Equal.sym(Maybe<&2, Bool>, SC.nth(Bool, SC.take(Bool, $F, n), i), None{}, Equal.sym(Maybe<&2, Bool>, None{}, SC.nth(Bool, SC.take(Bool, $F, n), i), BSS.nth_out(n, $XS, i, eb, $GI))) : {($MD0, E.OBit{Fail{E.IndexOutOfRange{}}}) == ($MD0, E.OBit{S.bit(_)}) : $MO}
+         {==}))))
+
+# ---- assign (and so set / unset) ----
+
+%def GG1(i) DI.get_good(w, gw, $GQ(i))
+%def YW(i, v) B.word_put(v, $GX(i), B.bitix(i))
+%def S2(i, v) DI.ssh($GSH(i), $GG1(i), $GQ(i), $YW(i, v))
+%def DOB2(i, op) DTR.so_obs(U32, $GSH(i), op, DSP.step_ok(U32, $GSH(i), op, $GG1(i)))
+%def RU Result<&2, &2, E.Error, Unit>
+
+def q_in2($GP, +i: Nat, +hi: {Nat.is_lt(i, n) == True{} : Bool}) -> {Nat.is_lt($GQ(i), SC.length(U32, DI.ws($GSH(i)))) == True{} : Bool}:
+  L.subst(List<&2, U32>, z => {Nat.is_lt($GQ(i), SC.length(U32, z)) == True{} : Bool}, $XS, DI.ws($GSH(i)), Equal.sym(List<&2, U32>, DI.ws($GSH(i)), $XS, DI.get_ws(w, gw, $GQ(i))), wq($GA, i, in_flat($GA, i, hi)))
+
+def ws2($GP, +i: Nat, +v: Bool, +hi: {Nat.is_lt(i, n) == True{} : Bool}) -> {DI.ws($S2(i, v)) == MD.put_walk($XS, i, v) : List<&2, U32>}:
+  %Equal.sym(List<&2, U32>, DI.ws($S2(i, v)), SC.update(U32, DI.ws($GSH(i)), $GQ(i), $YW(i, v)), DI.set_ws($GSH(i), $GG1(i), $GQ(i), $YW(i, v), q_in2($GA, i, hi))) : {_ == MD.put_walk($XS, i, v) : List<&2, U32>}
+  %Equal.sym(List<&2, U32>, DI.ws($GSH(i)), $XS, DI.get_ws(w, gw, $GQ(i))) : {SC.update(U32, _, $GQ(i), $YW(i, v)) == MD.put_walk($XS, i, v) : List<&2, U32>}
+  Equal.sym(List<&2, U32>, MD.put_walk($XS, i, v), SC.update(U32, $XS, $GQ(i), $YW(i, v)), WK.put_index($XS, i, v))
+
+def lim2($GP, +i: Nat, +v: Bool, +hi: {Nat.is_lt(i, n) == True{} : Bool}) -> {DI.lim($S2(i, v)) == DI.lim(w) : Nat}:
+  Equal.trans(Nat, DI.lim($S2(i, v)), DI.lim($GSH(i)), DI.lim(w), DI.set_lim($GSH(i), $GG1(i), $GQ(i), $YW(i, v), q_in2($GA, i, hi)), DI.get_lim(w, gw, $GQ(i)))
+
+def assign_real($GP, +i: Nat, +v: Bool, +hi: {Nat.is_lt(i, n) == True{} : Bool}) -> {BLI.assign_word(i, v, l, n, D.get(U32, $RW, $GQ(i))) == (SS.real(SS.BSh{l, n, $S2(i, v)}), Done{Unit{}}) : BLI.Bitlist & $RU}:
+  %Equal.sym(D.DynArray<&2, U32> & Result<&2, &2, DE.Error, U32>, D.get(U32, $RW, $GQ(i)), (DAS.real(U32, $GSH(i)), DI.unitem($DOB(DE.Get{$GQ(i)}))), DI.get_eq(w, gw, $GQ(i))) : {BLI.assign_word(i, v, l, n, _) == (SS.real(SS.BSh{l, n, $S2(i, v)}), Done{Unit{}}) : BLI.Bitlist & $RU}
+  %Equal.sym(Result<&2, &2, DE.Error, U32>, DI.unitem($DOB(DE.Get{$GQ(i)})), DS.item_result(U32, SC.nth(U32, $XS, $GQ(i))), DI.get_val(w, gw, $GQ(i))) : {BLI.assign_word(i, v, l, n, (DAS.real(U32, $GSH(i)), _)) == (SS.real(SS.BSh{l, n, $S2(i, v)}), Done{Unit{}}) : BLI.Bitlist & $RU}
+  %Equal.sym(Maybe<&2, U32>, SC.nth(U32, $XS, $GQ(i)), Some{$GX(i)}, WK.nthw_nth($XS, $GQ(i), wq($GA, i, in_flat($GA, i, hi)))) : {BLI.assign_word(i, v, l, n, (DAS.real(U32, $GSH(i)), DS.item_result(U32, _))) == (SS.real(SS.BSh{l, n, $S2(i, v)}), Done{Unit{}}) : BLI.Bitlist & $RU}
+  %Equal.sym(D.DynArray<&2, U32> & Result<&2, &2, DE.Error, Unit>, D.set(U32, DAS.real(U32, $GSH(i)), $GQ(i), $YW(i, v)), (DAS.real(U32, $S2(i, v)), DI.ununit($DOB2(i, DE.Set{$GQ(i), $YW(i, v)}))), DI.set_eq($GSH(i), $GG1(i), $GQ(i), $YW(i, v))) : {BLI.assign_set(l, n, _) == (SS.real(SS.BSh{l, n, $S2(i, v)}), Done{Unit{}}) : BLI.Bitlist & $RU}
+  %Equal.sym(Result<&2, &2, DE.Error, Unit>, DI.ununit($DOB2(i, DE.Set{$GQ(i), $YW(i, v)})), Done{Unit{}}, DI.set_val($GSH(i), $GG1(i), $GQ(i), $YW(i, v), q_in2($GA, i, hi))) : {BLI.assign_set(l, n, (DAS.real(U32, $S2(i, v)), _)) == (SS.real(SS.BSh{l, n, $S2(i, v)}), Done{Unit{}}) : BLI.Bitlist & $RU}
+  {==}
+
+def assign_model($GP, +i: Nat, +v: Bool, +hi: {Nat.is_lt(i, n) == True{} : Bool}) -> {SS.model(SS.BSh{l, n, $S2(i, v)}) == S.M{l, DI.lim(w), SC.update(Bool, SC.take(Bool, $F, n), i, v)} : S.Model}:
+  %Equal.sym(S.Model, SS.model(SS.BSh{l, n, $S2(i, v)}), S.M{l, DI.lim(w), SC.take(Bool, ST.flat(MD.put_walk($XS, i, v)), n)}, SS.model_of(l, n, $S2(i, v), MD.put_walk($XS, i, v), DI.lim(w), ws2($GA, i, v, hi), lim2($GA, i, v, hi))) : {_ == S.M{l, DI.lim(w), SC.update(Bool, SC.take(Bool, $F, n), i, v)} : S.Model}
+  %Equal.sym(List<&2, Bool>, SC.take(Bool, ST.flat(MD.put_walk($XS, i, v)), n), SC.update(Bool, SC.take(Bool, $F, n), i, v), ST.put_abs(n, $XS, i, v)) : {S.M{l, DI.lim(w), _} == S.M{l, DI.lim(w), SC.update(Bool, SC.take(Bool, $F, n), i, v)} : S.Model}
+  {==}
+
+def assign_good($GP, +i: Nat, +v: Bool, +hi: {Nat.is_lt(i, n) == True{} : Bool}) -> {SS.good(SS.BSh{l, n, $S2(i, v)}) == True{} : Bool}:
+  SS.good_of(l, n, $S2(i, v), MD.put_walk($XS, i, v), DI.set_good($GSH(i), $GG1(i), $GQ(i), $YW(i, v)), ws2($GA, i, v, hi), ST.put_inv(n, $XS, i, v, hi, $GI))
+
+def assign_case($GP, +i: Nat, +v: Bool, b: Bool, +eb: {Nat.is_lt(i, n) == b : Bool}) -> StepOK($SH0, E.Assign{i, v}):
+  match b:
+    case True{}:
+      (SS.BSh{l, n, $S2(i, v)}, (E.OUnit{Done{Unit{}}},
+        (%Equal.sym(Bool, Nat.is_lt(i, n), True{}, eb) : {BLI.obs_unit(BLI.assign_if(_, l, n, $RW, i, v)) == (SS.real(SS.BSh{l, n, $S2(i, v)}), E.OUnit{Done{Unit{}}}) : $TO}
+         %Equal.sym(BLI.Bitlist & $RU, BLI.assign_word(i, v, l, n, D.get(U32, $RW, $GQ(i))), (SS.real(SS.BSh{l, n, $S2(i, v)}), Done{Unit{}}), assign_real($GA, i, v, eb)) : {BLI.obs_unit(_) == (SS.real(SS.BSh{l, n, $S2(i, v)}), E.OUnit{Done{Unit{}}}) : $TO}
+         {==},
+        (assign_good($GA, i, v, eb),
+         %Equal.sym(S.Model, SS.model(SS.BSh{l, n, $S2(i, v)}), S.M{l, DI.lim(w), SC.update(Bool, SC.take(Bool, $F, n), i, v)}, assign_model($GA, i, v, eb)) : {(_, E.OUnit{Done{Unit{}}}) == S.assign_at(SC.nth(Bool, SC.take(Bool, $F, n), i), l, DI.lim(w), SC.take(Bool, $F, n), i, v) : $MO}
+         %Equal.sym(Maybe<&2, Bool>, SC.nth(Bool, SC.take(Bool, $F, n), i), Some{B.word_get($GX(i), B.bitix(i))}, Equal.sym(Maybe<&2, Bool>, Some{B.word_get($GX(i), B.bitix(i))}, SC.nth(Bool, SC.take(Bool, $F, n), i), get_bit($GA, i, eb))) : {(S.M{l, DI.lim(w), SC.update(Bool, SC.take(Bool, $F, n), i, v)}, E.OUnit{Done{Unit{}}}) == S.assign_at(_, l, DI.lim(w), SC.take(Bool, $F, n), i, v) : $MO}
+         {==}))))
+    case False{}:
+      ($SH0, (E.OUnit{Fail{E.IndexOutOfRange{}}},
+        (%Equal.sym(Bool, Nat.is_lt(i, n), False{}, eb) : {BLI.obs_unit(BLI.assign_if(_, l, n, $RW, i, v)) == (SS.real($SH0), E.OUnit{Fail{E.IndexOutOfRange{}}}) : $TO}
+         {==},
+        (g,
+         %Equal.sym(Maybe<&2, Bool>, SC.nth(Bool, SC.take(Bool, $F, n), i), None{}, Equal.sym(Maybe<&2, Bool>, None{}, SC.nth(Bool, SC.take(Bool, $F, n), i), BSS.nth_out(n, $XS, i, eb, $GI))) : {($MD0, E.OUnit{Fail{E.IndexOutOfRange{}}}) == S.assign_at(_, l, DI.lim(w), SC.take(Bool, $F, n), i, v) : $MO}
+         {==}))))
+
+# ---- push ----
+
+%def CAP(c) Nat.mul(SC.pow2(c), 32n)
+
+def sp_push_t(+l: Maybe<&2, Nat>, +c: Nat, +xs: List<&2, Bool>, +v: Bool, +n: Nat, +hlen: {SC.length(Bool, xs) == n : Nat}, +hl: {S.below(l, n) == True{} : Bool}, +hn: {Nat.is_lt(n, $CAP(c)) == True{} : Bool}) -> {S.step_parts(l, c, xs, E.Push{v}) == (S.M{l, c, SC.snoc(Bool, xs, v)}, E.OUnit{Done{Unit{}}}) : $MO}:
+  %Equal.sym(Nat, SC.length(Bool, xs), n, hlen) : {S.push_if(Bool.and(S.below(l, _), Nat.is_lt(_, $CAP(c))), l, c, xs, v) == (S.M{l, c, SC.snoc(Bool, xs, v)}, E.OUnit{Done{Unit{}}}) : $MO}
+  %Equal.sym(Bool, S.below(l, n), True{}, hl) : {S.push_if(Bool.and(_, Nat.is_lt(n, $CAP(c))), l, c, xs, v) == (S.M{l, c, SC.snoc(Bool, xs, v)}, E.OUnit{Done{Unit{}}}) : $MO}
+  %Equal.sym(Bool, Nat.is_lt(n, $CAP(c)), True{}, hn) : {S.push_if(Bool.and(True{}, _), l, c, xs, v) == (S.M{l, c, SC.snoc(Bool, xs, v)}, E.OUnit{Done{Unit{}}}) : $MO}
+  {==}
+
+def sp_push_fl(+l: Maybe<&2, Nat>, +c: Nat, +xs: List<&2, Bool>, +v: Bool, +n: Nat, +hlen: {SC.length(Bool, xs) == n : Nat}, +hl: {S.below(l, n) == False{} : Bool}) -> {S.step_parts(l, c, xs, E.Push{v}) == (S.M{l, c, xs}, E.OUnit{Fail{E.Full{}}}) : $MO}:
+  %Equal.sym(Nat, SC.length(Bool, xs), n, hlen) : {S.push_if(Bool.and(S.below(l, _), Nat.is_lt(_, $CAP(c))), l, c, xs, v) == (S.M{l, c, xs}, E.OUnit{Fail{E.Full{}}}) : $MO}
+  %Equal.sym(Bool, S.below(l, n), False{}, hl) : {S.push_if(Bool.and(_, Nat.is_lt(n, $CAP(c))), l, c, xs, v) == (S.M{l, c, xs}, E.OUnit{Fail{E.Full{}}}) : $MO}
+  {==}
+
+def sp_push_fc(+l: Maybe<&2, Nat>, +c: Nat, +xs: List<&2, Bool>, +v: Bool, +n: Nat, +hlen: {SC.length(Bool, xs) == n : Nat}, +hl: {S.below(l, n) == True{} : Bool}, +hn: {Nat.is_lt(n, $CAP(c)) == False{} : Bool}) -> {S.step_parts(l, c, xs, E.Push{v}) == (S.M{l, c, xs}, E.OUnit{Fail{E.Full{}}}) : $MO}:
+  %Equal.sym(Nat, SC.length(Bool, xs), n, hlen) : {S.push_if(Bool.and(S.below(l, _), Nat.is_lt(_, $CAP(c))), l, c, xs, v) == (S.M{l, c, xs}, E.OUnit{Fail{E.Full{}}}) : $MO}
+  %Equal.sym(Bool, S.below(l, n), True{}, hl) : {S.push_if(Bool.and(_, Nat.is_lt(n, $CAP(c))), l, c, xs, v) == (S.M{l, c, xs}, E.OUnit{Fail{E.Full{}}}) : $MO}
+  %Equal.sym(Bool, Nat.is_lt(n, $CAP(c)), False{}, hn) : {S.push_if(Bool.and(True{}, _), l, c, xs, v) == (S.M{l, c, xs}, E.OUnit{Fail{E.Full{}}}) : $MO}
+  {==}
+
+%def LSH DI.lsh(w, gw)
+%def GL DI.len_good(w, gw)
+%def KL SC.length(U32, $XS)
+%def NW(v) B.word_put(v, 0, 0n)
+%def PSH(v) DI.psh($LSH, $GL, $NW(v))
+%def POB(v) DTR.so_obs(U32, $LSH, DE.Push{$NW(v)}, DSP.step_ok(U32, $LSH, DE.Push{$NW(v)}, $GL))
+%def HLEN ST.length_abs(n, $F, $GI)
+%def RBU BLI.Bitlist & $RU
+
+# the length read of the word array
+def push_len($GP, +v: Bool) -> {BLI.push_room(l, n, v, D.length(U32, $RW)) == BLI.push_where(Nat.is_lt(n, Nat.mul($KL, 32n)), l, n, DAS.real(U32, $LSH), v) : $RBU}:
+  %Equal.sym(D.DynArray<&2, U32> & Nat, D.length(U32, $RW), (DAS.real(U32, $LSH), DI.unnat($DOB(DE.Length{}))), DI.len_eq(w, gw)) : {BLI.push_room(l, n, v, _) == BLI.push_where(Nat.is_lt(n, Nat.mul($KL, 32n)), l, n, DAS.real(U32, $LSH), v) : $RBU}
+  %Equal.sym(Nat, DI.unnat($DOB(DE.Length{})), $KL, DI.len_val(w, gw)) : {BLI.push_room(l, n, v, (DAS.real(U32, $LSH), _)) == BLI.push_where(Nat.is_lt(n, Nat.mul($KL, 32n)), l, n, DAS.real(U32, $LSH), v) : $RBU}
+  {==}
+
+def room_in($GP, +d: {Nat.is_lt(n, Nat.mul($KL, 32n)) == True{} : Bool}) -> {Nat.is_lt(n, $CAP(DI.lim(w))) == True{} : Bool}:
+  N.lt_le_trans(n, Nat.mul($KL, 32n), $CAP(DI.lim(w)), d, AT.mul_le($KL, SC.pow2(DI.lim(w)), 32n, DI.wcap(w, gw)))
+
+def in_f($GP, +d: {Nat.is_lt(n, Nat.mul($KL, 32n)) == True{} : Bool}) -> {Nat.is_lt(n, SC.length(Bool, $F)) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_lt(n, z) == True{} : Bool}, Nat.mul($KL, 32n), SC.length(Bool, $F), Equal.sym(Nat, SC.length(Bool, $F), Nat.mul($KL, 32n), len_flat($GA)), d)
+
+def g_inc($GP, +d: {Nat.is_lt(n, Nat.mul($KL, 32n)) == True{} : Bool}) -> {SS.good(SS.BSh{l, 1n+n, $LSH}) == True{} : Bool}:
+  SS.good_of(l, 1n+n, $LSH, $XS, $GL, DI.len_ws(w, gw), BT.invf_succ(n, $F, in_f($GA, d), $GI))
+
+def m_inc($GP) -> {SS.model(SS.BSh{l, 1n+n, $LSH}) == S.M{l, DI.lim(w), SC.take(Bool, $F, 1n+n)} : S.Model}:
+  SS.model_of(l, 1n+n, $LSH, $XS, DI.lim(w), DI.len_ws(w, gw), DI.len_lim(w, gw))
+
+%def GI1 g_inc($GA, d)
+%def S2L DI.ssh(DI.gsh($LSH, $GL, B.wordix(n)), DI.get_good($LSH, $GL, B.wordix(n)), B.wordix(n), B.word_put(True{}, WK.nthw(DI.ws($LSH), B.wordix(n)), B.bitix(n)))
+%def FL ST.flat(DI.ws($LSH))
+%def TP SC.take(Bool, $F, n)
+
+# the zero bit below the new length: the stored bits spell the list plus it
+def take_inc($GP, +d: {Nat.is_lt(n, Nat.mul($KL, 32n)) == True{} : Bool}) -> {SC.take(Bool, $F, 1n+n) == SC.snoc(Bool, $TP, False{}) : List<&2, Bool>}:
+  BT.push_zero(n, $F, in_f($GA, d), $GI)
+
+def set_last($GP, +d: {Nat.is_lt(n, Nat.mul($KL, 32n)) == True{} : Bool}) -> {S.M{l, DI.lim($LSH), SC.update(Bool, SC.take(Bool, $FL, 1n+n), n, True{})} == S.M{l, DI.lim(w), SC.snoc(Bool, $TP, True{})} : S.Model}:
+  %Equal.sym(List<&2, U32>, DI.ws($LSH), $XS, DI.len_ws(w, gw)) : {S.M{l, DI.lim($LSH), SC.update(Bool, SC.take(Bool, ST.flat(_), 1n+n), n, True{})} == S.M{l, DI.lim(w), SC.snoc(Bool, $TP, True{})} : S.Model}
+  %Equal.sym(Nat, DI.lim($LSH), DI.lim(w), DI.len_lim(w, gw)) : {S.M{l, _, SC.update(Bool, SC.take(Bool, $F, 1n+n), n, True{})} == S.M{l, DI.lim(w), SC.snoc(Bool, $TP, True{})} : S.Model}
+  %Equal.sym(List<&2, Bool>, SC.take(Bool, $F, 1n+n), SC.snoc(Bool, $TP, False{}), take_inc($GA, d)) : {S.M{l, DI.lim(w), SC.update(Bool, _, n, True{})} == S.M{l, DI.lim(w), SC.snoc(Bool, $TP, True{})} : S.Model}
+  %Equal.sym(Nat, n, SC.length(Bool, $TP), Equal.sym(Nat, SC.length(Bool, $TP), n, $HLEN)) : {S.M{l, DI.lim(w), SC.update(Bool, SC.snoc(Bool, $TP, False{}), _, True{})} == S.M{l, DI.lim(w), SC.snoc(Bool, $TP, True{})} : S.Model}
+  %Equal.sym(List<&2, Bool>, SC.update(Bool, SC.snoc(Bool, $TP, False{}), SC.length(Bool, $TP), True{}), SC.snoc(Bool, $TP, True{}), BT.upd_snoc_end($TP, False{}, True{})) : {S.M{l, DI.lim(w), _} == S.M{l, DI.lim(w), SC.snoc(Bool, $TP, True{})} : S.Model}
+  {==}
+
+def push_in_v($GP, +v: Bool, +d: {Nat.is_lt(n, Nat.mul($KL, 32n)) == True{} : Bool}, +hb: {BLI.below(l, n) == True{} : Bool}, +hs: {S.step_parts(l, DI.lim(w), $TP, E.Push{v}) == (S.M{l, DI.lim(w), SC.snoc(Bool, $TP, v)}, E.OUnit{Done{Unit{}}}) : $MO}) -> StepOK($SH0, E.Push{v}):
+  match v:
+    case False{}:
+      (SS.BSh{l, 1n+n, $LSH}, (E.OUnit{Done{Unit{}}},
+        (%Equal.sym(Bool, BLI.below(l, n), True{}, hb) : {BLI.obs_unit(BLI.push_if(_, l, n, $RW, False{})) == (SS.real(SS.BSh{l, 1n+n, $LSH}), E.OUnit{Done{Unit{}}}) : $TO}
+         %Equal.sym($RBU, BLI.push_room(l, n, False{}, D.length(U32, $RW)), BLI.push_where(Nat.is_lt(n, Nat.mul($KL, 32n)), l, n, DAS.real(U32, $LSH), False{}), push_len($GA, False{})) : {BLI.obs_unit(_) == (SS.real(SS.BSh{l, 1n+n, $LSH}), E.OUnit{Done{Unit{}}}) : $TO}
+         %Equal.sym(Bool, Nat.is_lt(n, Nat.mul($KL, 32n)), True{}, d) : {BLI.obs_unit(BLI.push_where(_, l, n, DAS.real(U32, $LSH), False{})) == (SS.real(SS.BSh{l, 1n+n, $LSH}), E.OUnit{Done{Unit{}}}) : $TO}
+         {==},
+        ($GI1,
+         %Equal.sym(S.Model, SS.model(SS.BSh{l, 1n+n, $LSH}), S.M{l, DI.lim(w), SC.take(Bool, $F, 1n+n)}, m_inc($GA)) : {(_, E.OUnit{Done{Unit{}}}) == S.step_parts(l, DI.lim(w), $TP, E.Push{False{}}) : $MO}
+         %Equal.sym(List<&2, Bool>, SC.take(Bool, $F, 1n+n), SC.snoc(Bool, $TP, False{}), take_inc($GA, d)) : {(S.M{l, DI.lim(w), _}, E.OUnit{Done{Unit{}}}) == S.step_parts(l, DI.lim(w), $TP, E.Push{False{}}) : $MO}
+         Equal.sym($MO, S.step_parts(l, DI.lim(w), $TP, E.Push{False{}}), (S.M{l, DI.lim(w), SC.snoc(Bool, $TP, False{})}, E.OUnit{Done{Unit{}}}), hs)))))
+    case True{}:
+      (SS.BSh{l, 1n+n, $S2L}, (E.OUnit{Done{Unit{}}},
+        (%Equal.sym(Bool, BLI.below(l, n), True{}, hb) : {BLI.obs_unit(BLI.push_if(_, l, n, $RW, True{})) == (SS.real(SS.BSh{l, 1n+n, $S2L}), E.OUnit{Done{Unit{}}}) : $TO}
+         %Equal.sym($RBU, BLI.push_room(l, n, True{}, D.length(U32, $RW)), BLI.push_where(Nat.is_lt(n, Nat.mul($KL, 32n)), l, n, DAS.real(U32, $LSH), True{}), push_len($GA, True{})) : {BLI.obs_unit(_) == (SS.real(SS.BSh{l, 1n+n, $S2L}), E.OUnit{Done{Unit{}}}) : $TO}
+         %Equal.sym(Bool, Nat.is_lt(n, Nat.mul($KL, 32n)), True{}, d) : {BLI.obs_unit(BLI.push_where(_, l, n, DAS.real(U32, $LSH), True{})) == (SS.real(SS.BSh{l, 1n+n, $S2L}), E.OUnit{Done{Unit{}}}) : $TO}
+         %Equal.sym($RBU, BLI.assign_word(n, True{}, l, 1n+n, D.get(U32, DAS.real(U32, $LSH), B.wordix(n))), (SS.real(SS.BSh{l, 1n+n, $S2L}), Done{Unit{}}), assign_real(l, 1n+n, $LSH, $GI1, $GL, n, True{}, N.lt_succ(n))) : {BLI.obs_unit(_) == (SS.real(SS.BSh{l, 1n+n, $S2L}), E.OUnit{Done{Unit{}}}) : $TO}
+         {==},
+        (assign_good(l, 1n+n, $LSH, $GI1, $GL, n, True{}, N.lt_succ(n)),
+         %Equal.sym(S.Model, SS.model(SS.BSh{l, 1n+n, $S2L}), S.M{l, DI.lim($LSH), SC.update(Bool, SC.take(Bool, $FL, 1n+n), n, True{})}, assign_model(l, 1n+n, $LSH, $GI1, $GL, n, True{}, N.lt_succ(n))) : {(_, E.OUnit{Done{Unit{}}}) == S.step_parts(l, DI.lim(w), $TP, E.Push{True{}}) : $MO}
+         %Equal.sym(S.Model, S.M{l, DI.lim($LSH), SC.update(Bool, SC.take(Bool, $FL, 1n+n), n, True{})}, S.M{l, DI.lim(w), SC.snoc(Bool, $TP, True{})}, set_last($GA, d)) : {(_, E.OUnit{Done{Unit{}}}) == S.step_parts(l, DI.lim(w), $TP, E.Push{True{}}) : $MO}
+         Equal.sym($MO, S.step_parts(l, DI.lim(w), $TP, E.Push{True{}}), (S.M{l, DI.lim(w), SC.snoc(Bool, $TP, True{})}, E.OUnit{Done{Unit{}}}), hs)))))
+
+def push_in_case($GP, +v: Bool, +d: {Nat.is_lt(n, Nat.mul($KL, 32n)) == True{} : Bool}, +hb: {BLI.below(l, n) == True{} : Bool}) -> StepOK($SH0, E.Push{v}):
+  +hs = sp_push_t(l, DI.lim(w), $TP, v, n, $HLEN, Equal.trans(Bool, S.below(l, n), BLI.below(l, n), True{}, Equal.sym(Bool, BLI.below(l, n), S.below(l, n), BT.below_eq(l, n)), hb), room_in($GA, d))
+  push_in_v($GA, v, d, hb, hs)
+
+# ---- push into a new word (every stored bit in use) ----
+
+%def FN ST.flat(SC.snoc(U32, $XS, $NW(v)))
+%def CL SC.pow2(DI.lim(w))
+
+def n_eq($GP, +d: {Nat.is_lt(n, Nat.mul($KL, 32n)) == False{} : Bool}) -> {n == SC.length(Bool, $F) : Nat}:
+  N.le_antisym(n, SC.length(Bool, $F), n_le_flat($GA), L.subst(Nat, z => {Nat.is_le(z, n) == True{} : Bool}, Nat.mul($KL, 32n), SC.length(Bool, $F), Equal.sym(Nat, SC.length(Bool, $F), Nat.mul($KL, 32n), len_flat($GA)), N.not_lt_le(n, Nat.mul($KL, 32n), d)))
+
+def n_eq32($GP, +d: {Nat.is_lt(n, Nat.mul($KL, 32n)) == False{} : Bool}) -> {n == Nat.mul($KL, 32n) : Nat}:
+  Equal.trans(Nat, n, SC.length(Bool, $F), Nat.mul($KL, 32n), n_eq($GA, d), len_flat($GA))
+
+def room_lsh($GP, r: Bool, +er: {Nat.is_lt($KL, $CL) == r : Bool}) -> {Nat.is_lt(SC.length(U32, DI.ws($LSH)), SC.pow2(DI.lim($LSH))) == r : Bool}:
+  %Equal.sym(List<&2, U32>, DI.ws($LSH), $XS, DI.len_ws(w, gw)) : {Nat.is_lt(SC.length(U32, _), SC.pow2(DI.lim($LSH))) == r : Bool}
+  %Equal.sym(Nat, DI.lim($LSH), DI.lim(w), DI.len_lim(w, gw)) : {Nat.is_lt($KL, SC.pow2(_)) == r : Bool}
+  er
+
+def ws_new($GP, +v: Bool, +hr: {Nat.is_lt($KL, $CL) == True{} : Bool}) -> {DI.ws($PSH(v)) == SC.snoc(U32, $XS, $NW(v)) : List<&2, U32>}:
+  %Equal.sym(List<&2, U32>, DI.ws($PSH(v)), SC.snoc(U32, DI.ws($LSH), $NW(v)), DI.push_ws($LSH, $GL, $NW(v), room_lsh($GA, True{}, hr))) : {_ == SC.snoc(U32, $XS, $NW(v)) : List<&2, U32>}
+  %Equal.sym(List<&2, U32>, DI.ws($LSH), $XS, DI.len_ws(w, gw)) : {SC.snoc(U32, _, $NW(v)) == SC.snoc(U32, $XS, $NW(v)) : List<&2, U32>}
+  {==}
+
+def lim_new($GP, +v: Bool, +hr: {Nat.is_lt($KL, $CL) == True{} : Bool}) -> {DI.lim($PSH(v)) == DI.lim(w) : Nat}:
+  Equal.trans(Nat, DI.lim($PSH(v)), DI.lim($LSH), DI.lim(w), DI.push_lim($LSH, $GL, $NW(v), room_lsh($GA, True{}, hr)), DI.len_lim(w, gw))
+
+def ws_full($GP, +v: Bool, +hr: {Nat.is_lt($KL, $CL) == False{} : Bool}) -> {DI.ws($PSH(v)) == $XS : List<&2, U32>}:
+  Equal.trans(List<&2, U32>, DI.ws($PSH(v)), DI.ws($LSH), $XS, DI.full_ws($LSH, $GL, $NW(v), room_lsh($GA, False{}, hr)), DI.len_ws(w, gw))
+
+def lim_full($GP, +v: Bool, +hr: {Nat.is_lt($KL, $CL) == False{} : Bool}) -> {DI.lim($PSH(v)) == DI.lim(w) : Nat}:
+  Equal.trans(Nat, DI.lim($PSH(v)), DI.lim($LSH), DI.lim(w), DI.full_lim($LSH, $GL, $NW(v), room_lsh($GA, False{}, hr)), DI.len_lim(w, gw))
+
+def nlt_mul32(+a: Nat, +b: Nat, +h: {Nat.is_lt(a, b) == False{} : Bool}) -> {Nat.is_lt(Nat.mul(a, 32n), Nat.mul(b, 32n)) == False{} : Bool}:
+  N.le_not_lt(Nat.mul(a, 32n), Nat.mul(b, 32n), AT.mul_le(b, a, 32n, N.not_lt_le(a, b, h)))
+
+def new_real($GP, +v: Bool, r: Bool, +er: {Nat.is_lt($KL, $CL) == r : Bool}) -> {BLI.push_new(l, n, D.push(U32, DAS.real(U32, $LSH), $NW(v))) == BLI.push_new(l, n, (DAS.real(U32, $PSH(v)), DI.ununit($POB(v)))) : $RBU}:
+  %Equal.sym(D.DynArray<&2, U32> & Result<&2, &2, DE.Error, Unit>, D.push(U32, DAS.real(U32, $LSH), $NW(v)), (DAS.real(U32, $PSH(v)), DI.ununit($POB(v))), DI.push_eq($LSH, $GL, $NW(v))) : {BLI.push_new(l, n, _) == BLI.push_new(l, n, (DAS.real(U32, $PSH(v)), DI.ununit($POB(v)))) : $RBU}
+  {==}
+
+def push_new_case($GP, +v: Bool, +d: {Nat.is_lt(n, Nat.mul($KL, 32n)) == False{} : Bool}, +hb: {BLI.below(l, n) == True{} : Bool}, r: Bool, +er: {Nat.is_lt($KL, $CL) == r : Bool}) -> StepOK($SH0, E.Push{v}):
+  match r:
+    case True{}:
+      +hn = L.subst(Nat, z => {Nat.is_lt(z, $CAP(DI.lim(w))) == True{} : Bool}, Nat.mul($KL, 32n), n, Equal.sym(Nat, n, Nat.mul($KL, 32n), n_eq32($GA, d)), BT.lt_mul32($KL, $CL, er))
+      +hs = sp_push_t(l, DI.lim(w), $TP, v, n, $HLEN, Equal.trans(Bool, S.below(l, n), BLI.below(l, n), True{}, Equal.sym(Bool, BLI.below(l, n), S.below(l, n), BT.below_eq(l, n)), hb), hn)
+      +gi = L.subst(Nat, z => {ST.invf(1n+z, $FN) == True{} : Bool}, SC.length(Bool, $F), n, Equal.sym(Nat, n, SC.length(Bool, $F), n_eq($GA, d)), BT.push_new_inv($XS, v))
+      +ma = L.subst(Nat, z => {SC.take(Bool, $FN, 1n+z) == SC.snoc(Bool, SC.take(Bool, $F, z), v) : List<&2, Bool>}, SC.length(Bool, $F), n, Equal.sym(Nat, n, SC.length(Bool, $F), n_eq($GA, d)), BT.push_new_abs($XS, v))
+      (SS.BSh{l, 1n+n, $PSH(v)}, (E.OUnit{Done{Unit{}}},
+        (%Equal.sym(Bool, BLI.below(l, n), True{}, hb) : {BLI.obs_unit(BLI.push_if(_, l, n, $RW, v)) == (SS.real(SS.BSh{l, 1n+n, $PSH(v)}), E.OUnit{Done{Unit{}}}) : $TO}
+         %Equal.sym($RBU, BLI.push_room(l, n, v, D.length(U32, $RW)), BLI.push_where(Nat.is_lt(n, Nat.mul($KL, 32n)), l, n, DAS.real(U32, $LSH), v), push_len($GA, v)) : {BLI.obs_unit(_) == (SS.real(SS.BSh{l, 1n+n, $PSH(v)}), E.OUnit{Done{Unit{}}}) : $TO}
+         %Equal.sym(Bool, Nat.is_lt(n, Nat.mul($KL, 32n)), False{}, d) : {BLI.obs_unit(BLI.push_where(_, l, n, DAS.real(U32, $LSH), v)) == (SS.real(SS.BSh{l, 1n+n, $PSH(v)}), E.OUnit{Done{Unit{}}}) : $TO}
+         %Equal.sym($RBU, BLI.push_new(l, n, D.push(U32, DAS.real(U32, $LSH), $NW(v))), BLI.push_new(l, n, (DAS.real(U32, $PSH(v)), DI.ununit($POB(v)))), new_real($GA, v, True{}, er)) : {BLI.obs_unit(_) == (SS.real(SS.BSh{l, 1n+n, $PSH(v)}), E.OUnit{Done{Unit{}}}) : $TO}
+         %Equal.sym(Result<&2, &2, DE.Error, Unit>, DI.ununit($POB(v)), Done{Unit{}}, DI.push_val($LSH, $GL, $NW(v), room_lsh($GA, True{}, er))) : {BLI.obs_unit(BLI.push_new(l, n, (DAS.real(U32, $PSH(v)), _))) == (SS.real(SS.BSh{l, 1n+n, $PSH(v)}), E.OUnit{Done{Unit{}}}) : $TO}
+         {==},
+        (SS.good_of(l, 1n+n, $PSH(v), SC.snoc(U32, $XS, $NW(v)), DI.push_good($LSH, $GL, $NW(v)), ws_new($GA, v, er), gi),
+         %Equal.sym(S.Model, SS.model(SS.BSh{l, 1n+n, $PSH(v)}), S.M{l, DI.lim(w), SC.take(Bool, $FN, 1n+n)}, SS.model_of(l, 1n+n, $PSH(v), SC.snoc(U32, $XS, $NW(v)), DI.lim(w), ws_new($GA, v, er), lim_new($GA, v, er))) : {(_, E.OUnit{Done{Unit{}}}) == S.step_parts(l, DI.lim(w), $TP, E.Push{v}) : $MO}
+         %Equal.sym(List<&2, Bool>, SC.take(Bool, $FN, 1n+n), SC.snoc(Bool, $TP, v), ma) : {(S.M{l, DI.lim(w), _}, E.OUnit{Done{Unit{}}}) == S.step_parts(l, DI.lim(w), $TP, E.Push{v}) : $MO}
+         Equal.sym($MO, S.step_parts(l, DI.lim(w), $TP, E.Push{v}), (S.M{l, DI.lim(w), SC.snoc(Bool, $TP, v)}, E.OUnit{Done{Unit{}}}), hs)))))
+    case False{}:
+      +hn = L.subst(Nat, z => {Nat.is_lt(z, $CAP(DI.lim(w))) == False{} : Bool}, Nat.mul($KL, 32n), n, Equal.sym(Nat, n, Nat.mul($KL, 32n), n_eq32($GA, d)), nlt_mul32($KL, $CL, er))
+      +hs = sp_push_fc(l, DI.lim(w), $TP, v, n, $HLEN, Equal.trans(Bool, S.below(l, n), BLI.below(l, n), True{}, Equal.sym(Bool, BLI.below(l, n), S.below(l, n), BT.below_eq(l, n)), hb), hn)
+      (SS.BSh{l, n, $PSH(v)}, (E.OUnit{Fail{E.Full{}}},
+        (%Equal.sym(Bool, BLI.below(l, n), True{}, hb) : {BLI.obs_unit(BLI.push_if(_, l, n, $RW, v)) == (SS.real(SS.BSh{l, n, $PSH(v)}), E.OUnit{Fail{E.Full{}}}) : $TO}
+         %Equal.sym($RBU, BLI.push_room(l, n, v, D.length(U32, $RW)), BLI.push_where(Nat.is_lt(n, Nat.mul($KL, 32n)), l, n, DAS.real(U32, $LSH), v), push_len($GA, v)) : {BLI.obs_unit(_) == (SS.real(SS.BSh{l, n, $PSH(v)}), E.OUnit{Fail{E.Full{}}}) : $TO}
+         %Equal.sym(Bool, Nat.is_lt(n, Nat.mul($KL, 32n)), False{}, d) : {BLI.obs_unit(BLI.push_where(_, l, n, DAS.real(U32, $LSH), v)) == (SS.real(SS.BSh{l, n, $PSH(v)}), E.OUnit{Fail{E.Full{}}}) : $TO}
+         %Equal.sym($RBU, BLI.push_new(l, n, D.push(U32, DAS.real(U32, $LSH), $NW(v))), BLI.push_new(l, n, (DAS.real(U32, $PSH(v)), DI.ununit($POB(v)))), new_real($GA, v, False{}, er)) : {BLI.obs_unit(_) == (SS.real(SS.BSh{l, n, $PSH(v)}), E.OUnit{Fail{E.Full{}}}) : $TO}
+         %Equal.sym(Result<&2, &2, DE.Error, Unit>, DI.ununit($POB(v)), Fail{DE.CapacityExceeded{}}, DI.full_val($LSH, $GL, $NW(v), room_lsh($GA, False{}, er))) : {BLI.obs_unit(BLI.push_new(l, n, (DAS.real(U32, $PSH(v)), _))) == (SS.real(SS.BSh{l, n, $PSH(v)}), E.OUnit{Fail{E.Full{}}}) : $TO}
+         {==},
+        (SS.good_of(l, n, $PSH(v), $XS, DI.push_good($LSH, $GL, $NW(v)), ws_full($GA, v, er), $GI),
+         %Equal.sym(S.Model, SS.model(SS.BSh{l, n, $PSH(v)}), $MD0, SS.model_of(l, n, $PSH(v), $XS, DI.lim(w), ws_full($GA, v, er), lim_full($GA, v, er))) : {(_, E.OUnit{Fail{E.Full{}}}) == S.step_parts(l, DI.lim(w), $TP, E.Push{v}) : $MO}
+         Equal.sym($MO, S.step_parts(l, DI.lim(w), $TP, E.Push{v}), ($MD0, E.OUnit{Fail{E.Full{}}}), hs)))))
+
+def push_room_case($GP, +v: Bool, +hb: {BLI.below(l, n) == True{} : Bool}, d: Bool, +ed: {Nat.is_lt(n, Nat.mul($KL, 32n)) == d : Bool}) -> StepOK($SH0, E.Push{v}):
+  match d:
+    case True{}:
+      push_in_case($GA, v, ed, hb)
+    case False{}:
+      push_new_case($GA, v, ed, hb, Nat.is_lt($KL, $CL), {==})
+
+def push_case($GP, +v: Bool, c: Bool, +ec: {BLI.below(l, n) == c : Bool}) -> StepOK($SH0, E.Push{v}):
+  match c:
+    case True{}:
+      push_room_case($GA, v, ec, Nat.is_lt(n, Nat.mul($KL, 32n)), {==})
+    case False{}:
+      +hs = sp_push_fl(l, DI.lim(w), $TP, v, n, $HLEN, Equal.trans(Bool, S.below(l, n), BLI.below(l, n), False{}, Equal.sym(Bool, BLI.below(l, n), S.below(l, n), BT.below_eq(l, n)), ec))
+      ($SH0, (E.OUnit{Fail{E.Full{}}},
+        (%Equal.sym(Bool, BLI.below(l, n), False{}, ec) : {BLI.obs_unit(BLI.push_if(_, l, n, $RW, v)) == (SS.real($SH0), E.OUnit{Fail{E.Full{}}}) : $TO}
+         {==},
+        (g, Equal.sym($MO, S.step_parts(l, DI.lim(w), $TP, E.Push{v}), ($MD0, E.OUnit{Fail{E.Full{}}}), hs)))))
+
+# ---- pop ----
+
+%def P1 SS.BSh{l, 1n+m, w}
+%def PP +l: Maybe<&2, Nat>, +m: Nat, +w: $W, +g: {SS.good($P1) == True{} : Bool}, +gw: {DAS.good(U32, w) == True{} : Bool}
+%def PA l, 1n+m, w, g, gw
+%def GIP SS.g_inv(l, 1n+m, w, g)
+%def BM B.word_get($GX(m), B.bitix(m))
+%def RBB BLI.Bitlist & Result<&2, &2, E.Error, Bool>
+
+def pop_read($PP) -> {BLI.pop_at(l, 1n+m, $RW) == BLI.pop_bit(l, m, DAS.real(U32, $GSH(m)), $GX(m), $BM) : $RBB}:
+  %Equal.sym(D.DynArray<&2, U32> & Result<&2, &2, DE.Error, U32>, D.get(U32, $RW, $GQ(m)), (DAS.real(U32, $GSH(m)), DI.unitem($DOB(DE.Get{$GQ(m)}))), DI.get_eq(w, gw, $GQ(m))) : {BLI.pop_word(l, m, _) == BLI.pop_bit(l, m, DAS.real(U32, $GSH(m)), $GX(m), $BM) : $RBB}
+  %Equal.sym(Result<&2, &2, DE.Error, U32>, DI.unitem($DOB(DE.Get{$GQ(m)})), DS.item_result(U32, SC.nth(U32, $XS, $GQ(m))), DI.get_val(w, gw, $GQ(m))) : {BLI.pop_word(l, m, (DAS.real(U32, $GSH(m)), _)) == BLI.pop_bit(l, m, DAS.real(U32, $GSH(m)), $GX(m), $BM) : $RBB}
+  %Equal.sym(Maybe<&2, U32>, SC.nth(U32, $XS, $GQ(m)), Some{$GX(m)}, WK.nthw_nth($XS, $GQ(m), wq($PA, m, in_flat($PA, m, N.lt_succ(m))))) : {BLI.pop_word(l, m, (DAS.real(U32, $GSH(m)), DS.item_result(U32, _))) == BLI.pop_bit(l, m, DAS.real(U32, $GSH(m)), $GX(m), $BM) : $RBB}
+  {==}
+
+# the last stored bit of the list is bit m of F
+def last_nth($PP) -> {SC.nth(Bool, $F, m) == Some{$BM} : Maybe<&2, Bool>}:
+  Equal.trans(Maybe<&2, Bool>, SC.nth(Bool, $F, m), SC.nth(Bool, SC.take(Bool, $F, 1n+m), m), Some{$BM},
+    Equal.sym(Maybe<&2, Bool>, SC.nth(Bool, SC.take(Bool, $F, 1n+m), m), SC.nth(Bool, $F, m), BL.nth_take($F, 1n+m, m, N.lt_succ(m))),
+    Equal.sym(Maybe<&2, Bool>, Some{$BM}, SC.nth(Bool, SC.take(Bool, $F, 1n+m), m), get_bit($PA, m, N.lt_succ(m))))
+
+def last_is($PP, b: Bool, +eb: {$BM == b : Bool}) -> {SC.nth(Bool, $F, m) == Some{b} : Maybe<&2, Bool>}:
+  L.subst(Bool, z => {SC.nth(Bool, $F, m) == Some{z} : Maybe<&2, Bool>}, $BM, b, eb, last_nth(l, m, w, g, gw))
+
+def pop_bit_case($PP, b: Bool, +eb: {$BM == b : Bool}) -> StepOK($P1, E.Pop{}):
+  match b:
+    case False{}:
+      +hz = last_is(l, m, w, g, gw, False{}, eb)
+      (SS.BSh{l, m, $GSH(m)}, (E.OBit{Done{False{}}},
+        (%Equal.sym($RBB, BLI.pop_at(l, 1n+m, $RW), BLI.pop_bit(l, m, DAS.real(U32, $GSH(m)), $GX(m), $BM), pop_read(l, m, w, g, gw)) : {BLI.obs_bit(_) == (SS.real(SS.BSh{l, m, $GSH(m)}), E.OBit{Done{False{}}}) : $TO}
+         %Equal.sym(Bool, $BM, False{}, eb) : {BLI.obs_bit(BLI.pop_bit(l, m, DAS.real(U32, $GSH(m)), $GX(m), _)) == (SS.real(SS.BSh{l, m, $GSH(m)}), E.OBit{Done{False{}}}) : $TO}
+         {==},
+        (SS.good_of(l, m, $GSH(m), $XS, $GG1(m), DI.get_ws(w, gw, $GQ(m)), BT.pop_keep_inv(m, $F, $GIP, hz)),
+         %Equal.sym(S.Model, SS.model(SS.BSh{l, m, $GSH(m)}), S.M{l, DI.lim(w), SC.take(Bool, $F, m)}, SS.model_of(l, m, $GSH(m), $XS, DI.lim(w), DI.get_ws(w, gw, $GQ(m)), DI.get_lim(w, gw, $GQ(m)))) : {(_, E.OBit{Done{False{}}}) == S.pop(l, DI.lim(w), SC.take(Bool, $F, 1n+m)) : $MO}
+         %Equal.sym(List<&2, Bool>, SC.take(Bool, $F, 1n+m), SC.snoc(Bool, SC.take(Bool, $F, m), False{}), LX.take_succ(Bool, $F, m, False{}, hz)) : {(S.M{l, DI.lim(w), SC.take(Bool, $F, m)}, E.OBit{Done{False{}}}) == S.pop(l, DI.lim(w), _) : $MO}
+         Equal.sym($MO, S.pop(l, DI.lim(w), SC.snoc(Bool, SC.take(Bool, $F, m), False{})), (S.M{l, DI.lim(w), SC.take(Bool, $F, m)}, E.OBit{Done{False{}}}), BT.pop_spec(l, DI.lim(w), SC.take(Bool, $F, m), False{}))))))
+    case True{}:
+      +ho = last_is(l, m, w, g, gw, True{}, eb)
+      +hq = q_in2($PA, m, N.lt_succ(m))
+      +ew = Equal.trans(List<&2, U32>, DI.ws($S2(m, False{})), MD.put_walk($XS, m, False{}), MD.put_walk($XS, m, False{}), ws2($PA, m, False{}, N.lt_succ(m)), {==})
+      +gi = L.subst(List<&2, Bool>, z => {ST.invf(m, z) == True{} : Bool}, SC.update(Bool, $F, m, False{}), ST.flat(MD.put_walk($XS, m, False{})), Equal.sym(List<&2, Bool>, ST.flat(MD.put_walk($XS, m, False{})), SC.update(Bool, $F, m, False{}), ST.put_walk($XS, m, False{})), BT.pop_clear_inv(m, $F, $GIP))
+      (SS.BSh{l, m, $S2(m, False{})}, (E.OBit{Done{True{}}},
+        (%Equal.sym($RBB, BLI.pop_at(l, 1n+m, $RW), BLI.pop_bit(l, m, DAS.real(U32, $GSH(m)), $GX(m), $BM), pop_read(l, m, w, g, gw)) : {BLI.obs_bit(_) == (SS.real(SS.BSh{l, m, $S2(m, False{})}), E.OBit{Done{True{}}}) : $TO}
+         %Equal.sym(Bool, $BM, True{}, eb) : {BLI.obs_bit(BLI.pop_bit(l, m, DAS.real(U32, $GSH(m)), $GX(m), _)) == (SS.real(SS.BSh{l, m, $S2(m, False{})}), E.OBit{Done{True{}}}) : $TO}
+         %Equal.sym(D.DynArray<&2, U32> & Result<&2, &2, DE.Error, Unit>, D.set(U32, DAS.real(U32, $GSH(m)), $GQ(m), $YW(m, False{})), (DAS.real(U32, $S2(m, False{})), DI.ununit($DOB2(m, DE.Set{$GQ(m), $YW(m, False{})}))), DI.set_eq($GSH(m), $GG1(m), $GQ(m), $YW(m, False{}))) : {BLI.obs_bit(BLI.pop_set(l, m, _)) == (SS.real(SS.BSh{l, m, $S2(m, False{})}), E.OBit{Done{True{}}}) : $TO}
+         %Equal.sym(Result<&2, &2, DE.Error, Unit>, DI.ununit($DOB2(m, DE.Set{$GQ(m), $YW(m, False{})})), Done{Unit{}}, DI.set_val($GSH(m), $GG1(m), $GQ(m), $YW(m, False{}), hq)) : {BLI.obs_bit(BLI.pop_set(l, m, (DAS.real(U32, $S2(m, False{})), _))) == (SS.real(SS.BSh{l, m, $S2(m, False{})}), E.OBit{Done{True{}}}) : $TO}
+         {==},
+        (SS.good_of(l, m, $S2(m, False{}), MD.put_walk($XS, m, False{}), DI.set_good($GSH(m), $GG1(m), $GQ(m), $YW(m, False{})), ew, gi),
+         %Equal.sym(S.Model, SS.model(SS.BSh{l, m, $S2(m, False{})}), S.M{l, DI.lim(w), SC.take(Bool, ST.flat(MD.put_walk($XS, m, False{})), m)}, SS.model_of(l, m, $S2(m, False{}), MD.put_walk($XS, m, False{}), DI.lim(w), ew, lim2($PA, m, False{}, N.lt_succ(m)))) : {(_, E.OBit{Done{True{}}}) == S.pop(l, DI.lim(w), SC.take(Bool, $F, 1n+m)) : $MO}
+         %Equal.sym(List<&2, Bool>, ST.flat(MD.put_walk($XS, m, False{})), SC.update(Bool, $F, m, False{}), ST.put_walk($XS, m, False{})) : {(S.M{l, DI.lim(w), SC.take(Bool, _, m)}, E.OBit{Done{True{}}}) == S.pop(l, DI.lim(w), SC.take(Bool, $F, 1n+m)) : $MO}
+         %Equal.sym(List<&2, Bool>, SC.take(Bool, SC.update(Bool, $F, m, False{}), m), SC.take(Bool, $F, m), LX.take_update(Bool, $F, m, False{})) : {(S.M{l, DI.lim(w), _}, E.OBit{Done{True{}}}) == S.pop(l, DI.lim(w), SC.take(Bool, $F, 1n+m)) : $MO}
+         %Equal.sym(List<&2, Bool>, SC.take(Bool, $F, 1n+m), SC.snoc(Bool, SC.take(Bool, $F, m), True{}), LX.take_succ(Bool, $F, m, True{}, ho)) : {(S.M{l, DI.lim(w), SC.take(Bool, $F, m)}, E.OBit{Done{True{}}}) == S.pop(l, DI.lim(w), _) : $MO}
+         Equal.sym($MO, S.pop(l, DI.lim(w), SC.snoc(Bool, SC.take(Bool, $F, m), True{})), (S.M{l, DI.lim(w), SC.take(Bool, $F, m)}, E.OBit{Done{True{}}}), BT.pop_spec(l, DI.lim(w), SC.take(Bool, $F, m), True{}))))))
+
+def pop_case($GP) -> StepOK($SH0, E.Pop{}):
+  match n:
+    case 0n:
+      (SS.BSh{l, 0n, w}, (E.OBit{Fail{E.Empty{}}}, ({==}, (g,
+        %Equal.sym(List<&2, Bool>, SC.take(Bool, $F, 0n), Nil{}, LL.sc_take_zero(Bool, $F)) : {(S.M{l, DI.lim(w), _}, E.OBit{Fail{E.Empty{}}}) == S.pop(l, DI.lim(w), _) : $MO}
+        {==}))))
+    case 1n+ +m:
+      pop_bit_case(l, m, w, g, gw, $BM, {==})
+
+# ---- clear ----
+
+%def CSH DI.csh(w, gw)
+
+def clear_ok($GP) -> StepOK($SH0, E.Clear{}):
+  (SS.BSh{l, 0n, $CSH}, (E.OUnit{Done{Unit{}}},
+    (%Equal.sym(D.DynArray<&2, U32>, D.clear(U32, $RW), DAS.real(U32, $CSH), DI.clear_eq(w, gw)) : {(BLI.BL{l, 0n, _}, E.OUnit{Done{Unit{}}}) == (SS.real(SS.BSh{l, 0n, $CSH}), E.OUnit{Done{Unit{}}}) : $TO}
+     {==},
+    (SS.good_of(l, 0n, $CSH, Nil{}, DI.clear_good(w, gw), DI.clear_ws(w, gw), {==}),
+     %Equal.sym(S.Model, SS.model(SS.BSh{l, 0n, $CSH}), S.M{l, DI.lim(w), SC.take(Bool, ST.flat(Nil{}), 0n)}, SS.model_of(l, 0n, $CSH, Nil{}, DI.lim(w), DI.clear_ws(w, gw), DI.clear_lim(w, gw))) : {(_, E.OUnit{Done{Unit{}}}) == (S.M{l, DI.lim(w), Nil{}}, E.OUnit{Done{Unit{}}}) : $MO}
+     {==}))))
+
+# ---- count ----
+
+%def CWK MD.count_words(SC.take(U32, SC.drop(U32, $XS, 0n), $KL))
+%def LEQ(rs) BLI.count_len(l, n, rs)
+
+def cw_all($GP) -> {$CWK == S.count(SC.take(Bool, $F, n)) : Nat}:
+  %Equal.sym(List<&2, U32>, SC.drop(U32, $XS, 0n), $XS, LX.drop_zero(U32, $XS)) : {MD.count_words(SC.take(U32, _, $KL)) == S.count(SC.take(Bool, $F, n)) : Nat}
+  %Equal.sym(List<&2, U32>, SC.take(U32, $XS, $KL), $XS, LX.take_all(U32, $XS)) : {MD.count_words(_) == S.count(SC.take(Bool, $F, n)) : Nat}
+  %Equal.sym(Nat, MD.count_words($XS), S.count($F), ST.count_words($XS)) : {_ == S.count(SC.take(Bool, $F, n)) : Nat}
+  BSS.count_abs(n, $F, $GI)
+
+def count_read($GP) -> {BLI.count_len(l, n, D.length(U32, $RW)) == BLI.count_fin(l, n, BLI.count_go($KL, (DAS.real(U32, $LSH), 0n), 0n)) : BLI.Bitlist & Nat}:
+  %Equal.sym(D.DynArray<&2, U32> & Nat, D.length(U32, $RW), (DAS.real(U32, $LSH), DI.unnat($DOB(DE.Length{}))), DI.len_eq(w, gw)) : {BLI.count_len(l, n, _) == BLI.count_fin(l, n, BLI.count_go($KL, (DAS.real(U32, $LSH), 0n), 0n)) : BLI.Bitlist & Nat}
+  %Equal.sym(Nat, DI.unnat($DOB(DE.Length{})), $KL, DI.len_val(w, gw)) : {BLI.count_len(l, n, (DAS.real(U32, $LSH), _)) == BLI.count_fin(l, n, BLI.count_go($KL, (DAS.real(U32, $LSH), 0n), 0n)) : BLI.Bitlist & Nat}
+  {==}
+
+def count_done2($GP, +s2: $W, e2: {BLI.count_go($KL, (DAS.real(U32, $LSH), 0n), 0n) == (DAS.real(U32, s2), Nat.add(0n, $CWK)) : D.DynArray<&2, U32> & Nat}, +g2: {DAS.good(U32, s2) == True{} : Bool}, +wx: {DI.ws(s2) == $XS : List<&2, U32>}, +f2: {DI.lim(s2) == DI.lim(w) : Nat}) -> StepOK($SH0, E.Count{}):
+  (SS.BSh{l, n, s2}, (E.ONat{$CWK},
+    (%Equal.sym(BLI.Bitlist & Nat, BLI.count_len(l, n, D.length(U32, $RW)), BLI.count_fin(l, n, BLI.count_go($KL, (DAS.real(U32, $LSH), 0n), 0n)), count_read($GA)) : {BLI.obs_nat(_) == (SS.real(SS.BSh{l, n, s2}), E.ONat{$CWK}) : $TO}
+     %Equal.sym(D.DynArray<&2, U32> & Nat, BLI.count_go($KL, (DAS.real(U32, $LSH), 0n), 0n), (DAS.real(U32, s2), $CWK), e2) : {BLI.obs_nat(BLI.count_fin(l, n, _)) == (SS.real(SS.BSh{l, n, s2}), E.ONat{$CWK}) : $TO}
+     {==},
+    (SS.good_of(l, n, s2, $XS, g2, wx, $GI),
+     %Equal.sym(S.Model, SS.model(SS.BSh{l, n, s2}), $MD0, SS.model_of(l, n, s2, $XS, DI.lim(w), wx, f2)) : {(_, E.ONat{$CWK}) == ($MD0, E.ONat{S.count(SC.take(Bool, $F, n))}) : $MO}
+     %Equal.sym(Nat, $CWK, S.count(SC.take(Bool, $F, n)), cw_all($GA)) : {($MD0, E.ONat{_}) == ($MD0, E.ONat{S.count(SC.take(Bool, $F, n))}) : $MO}
+     {==}))))
+
+def count_done($GP, ih: LP.CountOK($KL, $LSH, 0n, 0n, $XS, DI.lim(w))) -> StepOK($SH0, E.Count{}):
+  match ih:
+    case Tuple{s2, Tuple{e2, Tuple{g2, Tuple{w2, f2}}}}:
+      count_done2($GA, s2, e2, g2, w2, f2)
+
+def count_ok($GP) -> StepOK($SH0, E.Count{}):
+  count_done($GA, LP.count_loop($KL, $LSH, $GL, $XS, DI.lim(w), DI.len_ws(w, gw), DI.len_lim(w, gw), 0n, 0n))
+
+# ---- to_list ----
+
+%def TK0 SC.take(Bool, ST.flat(SC.drop(U32, $XS, 0n)), Nat.sub(n, 0n))
+%def TKK SC.take(Bool, ST.flat(SC.drop(U32, $XS, $KL)), Nat.sub(n, Nat.mul($KL, 32n)))
+%def RBL BLI.Bitlist & List<&2, Bool>
+
+def tk0($GP) -> {$TK0 == SC.take(Bool, $F, n) : List<&2, Bool>}:
+  %Equal.sym(List<&2, U32>, SC.drop(U32, $XS, 0n), $XS, LX.drop_zero(U32, $XS)) : {SC.take(Bool, ST.flat(_), Nat.sub(n, 0n)) == SC.take(Bool, $F, n) : List<&2, Bool>}
+  %Equal.sym(Nat, Nat.sub(n, 0n), n, N.sub_zero(n)) : {SC.take(Bool, $F, _) == SC.take(Bool, $F, n) : List<&2, Bool>}
+  {==}
+
+def tkk($GP) -> {Nil{} == $TKK : List<&2, Bool>}:
+  %Equal.sym(List<&2, U32>, SC.drop(U32, $XS, $KL), Nil{}, LX.drop_all(U32, $XS)) : {Nil{} == SC.take(Bool, ST.flat(_), Nat.sub(n, Nat.mul($KL, 32n))) : List<&2, Bool>}
+  {==}
+
+def list_read($GP) -> {BLI.to_list_len(l, n, D.length(U32, $RW)) == BLI.to_list_fin(l, n, BLI.bits_go($KL, (DAS.real(U32, $LSH), $TKK), n)) : $RBL}:
+  %Equal.sym(D.DynArray<&2, U32> & Nat, D.length(U32, $RW), (DAS.real(U32, $LSH), DI.unnat($DOB(DE.Length{}))), DI.len_eq(w, gw)) : {BLI.to_list_len(l, n, _) == BLI.to_list_fin(l, n, BLI.bits_go($KL, (DAS.real(U32, $LSH), $TKK), n)) : $RBL}
+  %Equal.sym(Nat, DI.unnat($DOB(DE.Length{})), $KL, DI.len_val(w, gw)) : {BLI.to_list_len(l, n, (DAS.real(U32, $LSH), _)) == BLI.to_list_fin(l, n, BLI.bits_go($KL, (DAS.real(U32, $LSH), $TKK), n)) : $RBL}
+  %Equal.sym(List<&2, Bool>, Nil{}, $TKK, tkk($GA)) : {BLI.to_list_fin(l, n, BLI.bits_go($KL, (DAS.real(U32, $LSH), _), n)) == BLI.to_list_fin(l, n, BLI.bits_go($KL, (DAS.real(U32, $LSH), $TKK), n)) : $RBL}
+  {==}
+
+def list_done2($GP, +s2: $W, e2: {BLI.bits_go($KL, (DAS.real(U32, $LSH), $TKK), n) == (DAS.real(U32, s2), $TK0) : D.DynArray<&2, U32> & List<&2, Bool>}, +g2: {DAS.good(U32, s2) == True{} : Bool}, +wx: {DI.ws(s2) == $XS : List<&2, U32>}, +f2: {DI.lim(s2) == DI.lim(w) : Nat}) -> StepOK($SH0, E.ToList{}):
+  (SS.BSh{l, n, s2}, (E.OBits{$TK0},
+    (%Equal.sym($RBL, BLI.to_list_len(l, n, D.length(U32, $RW)), BLI.to_list_fin(l, n, BLI.bits_go($KL, (DAS.real(U32, $LSH), $TKK), n)), list_read($GA)) : {BLI.obs_bits(_) == (SS.real(SS.BSh{l, n, s2}), E.OBits{$TK0}) : $TO}
+     %Equal.sym(D.DynArray<&2, U32> & List<&2, Bool>, BLI.bits_go($KL, (DAS.real(U32, $LSH), $TKK), n), (DAS.real(U32, s2), $TK0), e2) : {BLI.obs_bits(BLI.to_list_fin(l, n, _)) == (SS.real(SS.BSh{l, n, s2}), E.OBits{$TK0}) : $TO}
+     {==},
+    (SS.good_of(l, n, s2, $XS, g2, wx, $GI),
+     %Equal.sym(S.Model, SS.model(SS.BSh{l, n, s2}), $MD0, SS.model_of(l, n, s2, $XS, DI.lim(w), wx, f2)) : {(_, E.OBits{$TK0}) == ($MD0, E.OBits{SC.take(Bool, $F, n)}) : $MO}
+     %Equal.sym(List<&2, Bool>, $TK0, SC.take(Bool, $F, n), tk0($GA)) : {($MD0, E.OBits{_}) == ($MD0, E.OBits{SC.take(Bool, $F, n)}) : $MO}
+     {==}))))
+
+def list_done($GP, ih: LP.BitsOK($KL, $LSH, n, $XS, DI.lim(w))) -> StepOK($SH0, E.ToList{}):
+  match ih:
+    case Tuple{s2, Tuple{e2, Tuple{g2, Tuple{w2, f2}}}}:
+      list_done2($GA, s2, e2, g2, w2, f2)
+
+def tolist_ok($GP) -> StepOK($SH0, E.ToList{}):
+  list_done($GA, LP.bits_loop($KL, $LSH, $GL, $XS, DI.lim(w), DI.len_ws(w, gw), DI.len_lim(w, gw), n, N.le_refl($KL)))
+
+# ---- every operation ----
+
+def step_at($GP, +op: E.Op) -> StepOK($SH0, op):
+  match op:
+    case E.Length{}:
+      length_ok($GA)
+    case E.Limit{}:
+      limit_ok($GA)
+    case E.Get{+i}:
+      get_case($GA, i, Nat.is_lt(i, n), {==})
+    case E.Assign{+i, +v}:
+      assign_case($GA, i, v, Nat.is_lt(i, n), {==})
+    case E.Push{+v}:
+      push_case($GA, v, BLI.below(l, n), {==})
+    case E.Pop{}:
+      pop_case($GA)
+    case E.Clear{}:
+      clear_ok($GA)
+    case E.Count{}:
+      count_ok($GA)
+    case E.ToList{}:
+      tolist_ok($GA)
+
+def step_ok(+sh: SS.Sh, +op: E.Op, +g: {SS.good(sh) == True{} : Bool}) -> StepOK(sh, op):
+  match sh:
+    case SS.BSh{+l, +n, +w}:
+      step_at(l, n, w, g, SS.g_w(l, n, w, g), op)

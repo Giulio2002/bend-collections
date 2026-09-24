@@ -278,6 +278,21 @@ empties('bitset', [('new', 10), ('length', 4), ('get', 2), ('set', 0),
                    ('clear', 1), ('count', 3), ('union', 6), ('intersection', 7),
                    ('difference', 8), ('xor', 9), ('to_list', 5)])
 
+# ------------------------------------------------------------------ bitlist
+BLS = (64, 4096, 262144)
+three('bitlist', 'push', 0, BLS, FAST)
+three('bitlist', 'get', 2, BLS, FAST)
+three('bitlist', 'set', 3, BLS, FAST)
+three('bitlist', 'length', 4, BLS, FAST)
+three('bitlist', 'count', 5, BLS, BIW)
+three('bitlist', 'to_list', 6, BLS, (20000, 2000, 50))
+pair('bitlist', 'pop', 7, BLS, FAST)
+add('bitlist', 'new', 10, 'small', 64, 200000)
+add('bitlist', 'new', 10, 'medium', 4096, 200000)
+add('bitlist', 'new', 10, 'large', 262144, 50000)
+empties('bitlist', [('new', 10), ('length', 4), ('get', 2), ('set', 3),
+                    ('push', 0), ('pop', 7), ('count', 5), ('to_list', 6)])
+
 # Include the existing LRU driver workloads in full sweeps. These were
 # previously measured only by the supplemental lru_measure tool.
 from lru_workloads import rows as _lru_rows

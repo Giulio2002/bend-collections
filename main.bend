@@ -13,6 +13,7 @@ import Base
 
 import ./src/containers/balanced_search_tree.bend as TreeMap
 import ./src/containers/binary_heap.bend as BinaryHeap
+import ./src/containers/bitlist.bend as Bitlist
 import ./src/containers/bitset.bend as Bitset
 import ./src/containers/deque.bend as Deque
 import ./src/containers/dlist_iterator.bend as ListIterator

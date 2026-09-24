@@ -445,6 +445,35 @@ those ratios; the unmarked rows use the full method.
 | new | medium | 2.50 | 9.29 | 0.27 † |
 | new | large | 2.42 | 9.24 | 0.26 † |
 
+### Bit list
+
+| Operation | Size | Bend (ns) | C (ns) | Ratio |
+|---|---:|---:|---:|---:|
+| push | small | 3.79 | 2.58 | 1.47 |
+| push | medium | 3.81 | 2.45 | 1.56 |
+| push | large | 3.91 | 2.44 | 1.60 |
+| get | small | 1.94 | 1.32 | 1.47 |
+| get | medium | 1.81 | 1.20 | 1.51 |
+| get | large | 1.80 | 1.19 | 1.52 |
+| set | small | 2.05 | 1.27 | 1.62 |
+| set | medium | 1.93 | 1.15 | 1.68 |
+| set | large | 1.93 | 1.15 | 1.67 |
+| length | small | 0.99 | 2.64 | 0.37 |
+| length | medium | 0.92 | 2.64 | 0.35 |
+| length | large | 0.92 | 2.64 | 0.35 |
+| count | small | 7.12 | 3.29 | 2.16 |
+| count | medium | 337 | 189 | 1.78 |
+| count | large | 21450 | 12066 | 1.78 |
+| to_list | small | 235 | 34.7 | 6.75 |
+| to_list | medium | 12550 | 2142 | 5.86 |
+| to_list | large | 786667 | 136693 | 5.75 |
+| pop | small | 4.02 | 2.04 | 1.97 |
+| pop | medium | 5.70 | 2.76 | 2.07 |
+| pop | large | 3.95 | 2.05 | 1.92 |
+| new | small | 5.53 | 9.18 | 0.60 |
+| new | medium | 5.53 | 9.12 | 0.61 |
+| new | large | 5.52 | 9.30 | 0.59 |
+
 ### Hash map
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
@@ -477,7 +506,7 @@ those ratios; the unmarked rows use the full method.
 |---|---:|---:|---:|---:|
 | add | small | 13.8 | 9.13 | 1.51 † |
 | add | medium | 22.9 | 10.3 | 2.21 † |
-| add | large | | | not timeable |
+| add | large | 32.4 | 23.8 | 1.36 |
 | get | small | 15.8 | 10.5 | 1.50 † |
 | get | medium | 16.8 | 11.8 | 1.42 † |
 | get | large | 36.4 | 62.6 | 0.58 † |

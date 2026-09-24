@@ -1,0 +1,337 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/array.bend as AR
+import ../../lib/spec_common.bend as SC
+import ../../../src/containers/dynamic_array.bend as D
+import ../../../src/containers/types/dynamic_array.bend as DE
+import ../dynamic_array/spec.bend as DS
+import ../dynamic_array/layout.bend as LY
+import ../dynamic_array/state.bend as DAS
+import ../dynamic_array/steps.bend as DSP
+import ../dynamic_array/trace.bend as DTR
+
+# The word array of a bitlist, used only through the dynamic array's proved
+# contract (proofs/containers/dynamic_array: DSP.step_ok / DTR.so_*): each
+# operation on the array of a good shadow lands on the array of another good
+# shadow, whose model and answer are the dynamic-array spec step. Nothing
+# here looks inside the array; only the item list `ws` and the depth limit
+# `lim` of the model are used.
+# (source: proofs/containers/bitlist/da.src)
+
+%def W DAS.Shadow<U32>
+%def DA D.DynArray<&2, U32>
+%def DM DS.Model<U32>
+%def DO DE.Obs<U32>
+%def RW Result<&2, &2, DE.Error, U32>
+%def RU Result<&2, &2, DE.Error, Unit>
+%def MT Maybe<&2, U32>
+%def GW +w: $W, +g: {DAS.good(U32, w) == True{} : Bool}
+%def SO(x, op) DSP.step_ok(U32, x, op, g)
+%def NSH(x, op) DTR.so_sh(U32, x, op, $SO(x, op))
+%def NOB(x, op) DTR.so_obs(U32, x, op, $SO(x, op))
+%def W0 DAS.Sh{l, d, n, t}
+%def XS LY.somes(U32, AR.slots($MT, t))
+
+def items(m: $DM) -> List<&2, U32>:
+  match m:
+    case DS.M{l, d, xs}:
+      xs
+
+def mlim(m: $DM) -> Nat:
+  match m:
+    case DS.M{l, d, xs}:
+      l
+
+# The stored words and the depth limit of a shadow.
+def ws(w: $W) -> List<&2, U32>:
+  items(DAS.model(U32, w))
+
+def lim(w: $W) -> Nat:
+  mlim(DAS.model(U32, w))
+
+def unitem(o: $DO) -> $RW:
+  match o:
+    case DE.OItem{x}:
+      x
+    case DE.ONat{k}:
+      Fail{DE.IndexOutOfRange{}}
+    case DE.OUnit{r}:
+      Fail{DE.IndexOutOfRange{}}
+    case DE.OList{xs}:
+      Fail{DE.IndexOutOfRange{}}
+
+def ununit(o: $DO) -> $RU:
+  match o:
+    case DE.OItem{x}:
+      Fail{DE.IndexOutOfRange{}}
+    case DE.ONat{k}:
+      Fail{DE.IndexOutOfRange{}}
+    case DE.OUnit{r}:
+      r
+    case DE.OList{xs}:
+      Fail{DE.IndexOutOfRange{}}
+
+def unnat(o: $DO) -> Nat:
+  match o:
+    case DE.OItem{x}:
+      0n
+    case DE.ONat{k}:
+      k
+    case DE.OUnit{r}:
+      0n
+    case DE.OList{xs}:
+      0n
+
+def uitem(p: $DA & $DO) -> $DA & $RW:
+  (a, o) = p
+  (a, unitem(o))
+
+def uunit(p: $DA & $DO) -> $DA & $RU:
+  (a, o) = p
+  (a, ununit(o))
+
+def unat(p: $DA & $DO) -> $DA & Nat:
+  (a, o) = p
+  (a, unnat(o))
+
+def uitem_obs(r: $DA & $RW) -> {uitem(D.obs_item(U32, r)) == r : $DA & $RW}:
+  match r:
+    case Tuple{a, x}:
+      {==}
+
+def uunit_obs(r: $DA & $RU) -> {uunit(D.obs_unit(U32, r)) == r : $DA & $RU}:
+  match r:
+    case Tuple{a, x}:
+      {==}
+
+def unat_obs(r: $DA & Nat) -> {unat(D.obs_nat(U32, r)) == r : $DA & Nat}:
+  match r:
+    case Tuple{a, x}:
+      {==}
+
+# ---- reading the pieces of a spec answer ----
+
+def p_items(+a: $DM, o: $DO, +b: $DM, o2: $DO, e: {(a, o) == (b, o2) : $DM & $DO}) -> {items(a) == items(b) : List<&2, U32>}:
+  Equal.cong($DM & $DO, List<&2, U32>, p => items(Pair.fst($DM, $DO, p)), (a, o), (b, o2), e)
+
+def p_lim(+a: $DM, o: $DO, +b: $DM, o2: $DO, e: {(a, o) == (b, o2) : $DM & $DO}) -> {mlim(a) == mlim(b) : Nat}:
+  Equal.cong($DM & $DO, Nat, p => mlim(Pair.fst($DM, $DO, p)), (a, o), (b, o2), e)
+
+def p_item(+a: $DM, o: $DO, +b: $DM, o2: $DO, e: {(a, o) == (b, o2) : $DM & $DO}) -> {unitem(o) == unitem(o2) : $RW}:
+  Equal.cong($DM & $DO, $RW, p => unitem(Pair.snd($DM, $DO, p)), (a, o), (b, o2), e)
+
+def p_unit(+a: $DM, o: $DO, +b: $DM, o2: $DO, e: {(a, o) == (b, o2) : $DM & $DO}) -> {ununit(o) == ununit(o2) : $RU}:
+  Equal.cong($DM & $DO, $RU, p => ununit(Pair.snd($DM, $DO, p)), (a, o), (b, o2), e)
+
+def p_nat(+a: $DM, o: $DO, +b: $DM, o2: $DO, e: {(a, o) == (b, o2) : $DM & $DO}) -> {unnat(o) == unnat(o2) : Nat}:
+  Equal.cong($DM & $DO, Nat, p => unnat(Pair.snd($DM, $DO, p)), (a, o), (b, o2), e)
+
+# ---- facts of a good shadow ----
+
+def ws_len(+l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<$MT>, +g: {DAS.good(U32, $W0) == True{} : Bool}) -> {SC.length(U32, ws($W0)) == n : Nat}:
+  LY.lay_len(U32, AR.slots($MT, t), n, DAS.g_lay(U32, l, d, n, t, g))
+
+# at most 2^lim words
+def ws_cap(+l: Nat, +d: Nat, +n: Nat, +t: AR.Tree<$MT>, +g: {DAS.good(U32, $W0) == True{} : Bool}) -> {Nat.is_le(SC.length(U32, ws($W0)), SC.pow2(lim($W0))) == True{} : Bool}:
+  %Equal.sym(Nat, SC.length(U32, ws($W0)), n, ws_len(l, d, n, t, g)) : {Nat.is_le(_, SC.pow2(l)) == True{} : Bool}
+  N.le_trans(n, SC.pow2(d), SC.pow2(l), DSP.n_le_cap(U32, l, d, n, t, g), N.pow2_mono(d, l, DAS.g_depth(U32, l, d, n, t, g)))
+
+def wcap($GW) -> {Nat.is_le(SC.length(U32, ws(w)), SC.pow2(lim(w))) == True{} : Bool}:
+  match w:
+    case DAS.Sh{+l, +d, +n, +t}:
+      ws_cap(l, d, n, t, g)
+
+# ---- get ----
+
+def gsh($GW, +q: Nat) -> $W:
+  $NSH(w, DE.Get{q})
+
+def get_eq($GW, +q: Nat) -> {D.get(U32, DAS.real(U32, w), q) == (DAS.real(U32, gsh(w, g, q)), unitem($NOB(w, DE.Get{q}))) : $DA & $RW}:
+  Equal.trans($DA & $RW, D.get(U32, DAS.real(U32, w), q), uitem(D.obs_item(U32, D.get(U32, DAS.real(U32, w), q))), (DAS.real(U32, gsh(w, g, q)), unitem($NOB(w, DE.Get{q}))),
+    Equal.sym($DA & $RW, uitem(D.obs_item(U32, D.get(U32, DAS.real(U32, w), q))), D.get(U32, DAS.real(U32, w), q), uitem_obs(D.get(U32, DAS.real(U32, w), q))),
+    Equal.cong($DA & $DO, $DA & $RW, p => uitem(p), D.step(U32, DAS.real(U32, w), DE.Get{q}), (DAS.real(U32, $NSH(w, DE.Get{q})), $NOB(w, DE.Get{q})), DTR.so_step(U32, w, DE.Get{q}, $SO(w, DE.Get{q}))))
+
+def get_good($GW, +q: Nat) -> {DAS.good(U32, gsh(w, g, q)) == True{} : Bool}:
+  DTR.so_good(U32, w, DE.Get{q}, $SO(w, DE.Get{q}))
+
+def get_all($GW, +q: Nat) -> {(DAS.model(U32, gsh(w, g, q)), $NOB(w, DE.Get{q})) == (DAS.model(U32, w), DE.OItem{DS.item_result(U32, SC.nth(U32, ws(w), q))}) : $DM & $DO}:
+  match w:
+    case DAS.Sh{+l, +d, +n, +t}:
+      DTR.so_spec(U32, $W0, DE.Get{q}, $SO($W0, DE.Get{q}))
+
+def get_val($GW, +q: Nat) -> {unitem($NOB(w, DE.Get{q})) == DS.item_result(U32, SC.nth(U32, ws(w), q)) : $RW}:
+  p_item(DAS.model(U32, gsh(w, g, q)), $NOB(w, DE.Get{q}), DAS.model(U32, w), DE.OItem{DS.item_result(U32, SC.nth(U32, ws(w), q))}, get_all(w, g, q))
+
+def get_ws($GW, +q: Nat) -> {ws(gsh(w, g, q)) == ws(w) : List<&2, U32>}:
+  p_items(DAS.model(U32, gsh(w, g, q)), $NOB(w, DE.Get{q}), DAS.model(U32, w), DE.OItem{DS.item_result(U32, SC.nth(U32, ws(w), q))}, get_all(w, g, q))
+
+def get_lim($GW, +q: Nat) -> {lim(gsh(w, g, q)) == lim(w) : Nat}:
+  p_lim(DAS.model(U32, gsh(w, g, q)), $NOB(w, DE.Get{q}), DAS.model(U32, w), DE.OItem{DS.item_result(U32, SC.nth(U32, ws(w), q))}, get_all(w, g, q))
+
+# ---- length ----
+
+def lsh($GW) -> $W:
+  $NSH(w, DE.Length{})
+
+def len_eq($GW) -> {D.length(U32, DAS.real(U32, w)) == (DAS.real(U32, lsh(w, g)), unnat($NOB(w, DE.Length{}))) : $DA & Nat}:
+  Equal.trans($DA & Nat, D.length(U32, DAS.real(U32, w)), unat(D.obs_nat(U32, D.length(U32, DAS.real(U32, w)))), (DAS.real(U32, lsh(w, g)), unnat($NOB(w, DE.Length{}))),
+    Equal.sym($DA & Nat, unat(D.obs_nat(U32, D.length(U32, DAS.real(U32, w)))), D.length(U32, DAS.real(U32, w)), unat_obs(D.length(U32, DAS.real(U32, w)))),
+    Equal.cong($DA & $DO, $DA & Nat, p => unat(p), D.step(U32, DAS.real(U32, w), DE.Length{}), (DAS.real(U32, $NSH(w, DE.Length{})), $NOB(w, DE.Length{})), DTR.so_step(U32, w, DE.Length{}, $SO(w, DE.Length{}))))
+
+def len_good($GW) -> {DAS.good(U32, lsh(w, g)) == True{} : Bool}:
+  DTR.so_good(U32, w, DE.Length{}, $SO(w, DE.Length{}))
+
+def len_all($GW) -> {(DAS.model(U32, lsh(w, g)), $NOB(w, DE.Length{})) == (DAS.model(U32, w), DE.ONat{SC.length(U32, ws(w))}) : $DM & $DO}:
+  match w:
+    case DAS.Sh{+l, +d, +n, +t}:
+      DTR.so_spec(U32, $W0, DE.Length{}, $SO($W0, DE.Length{}))
+
+def len_val($GW) -> {unnat($NOB(w, DE.Length{})) == SC.length(U32, ws(w)) : Nat}:
+  p_nat(DAS.model(U32, lsh(w, g)), $NOB(w, DE.Length{}), DAS.model(U32, w), DE.ONat{SC.length(U32, ws(w))}, len_all(w, g))
+
+def len_ws($GW) -> {ws(lsh(w, g)) == ws(w) : List<&2, U32>}:
+  p_items(DAS.model(U32, lsh(w, g)), $NOB(w, DE.Length{}), DAS.model(U32, w), DE.ONat{SC.length(U32, ws(w))}, len_all(w, g))
+
+def len_lim($GW) -> {lim(lsh(w, g)) == lim(w) : Nat}:
+  p_lim(DAS.model(U32, lsh(w, g)), $NOB(w, DE.Length{}), DAS.model(U32, w), DE.ONat{SC.length(U32, ws(w))}, len_all(w, g))
+
+def dep(w: $W) -> Nat:
+  match w:
+    case DAS.Sh{l, d, n, t}:
+      d
+
+# ---- set (an index below the length) ----
+
+def sp_set(+l: Nat, +d: Nat, +xs: List<&2, U32>, +q: Nat, +v: U32, +h: {Nat.is_lt(q, SC.length(U32, xs)) == True{} : Bool}) -> {DS.step_parts(U32, l, d, xs, DE.Set{q, v}) == (DS.M{l, d, SC.update(U32, xs, q, v)}, DE.OUnit{Done{Unit{}}}) : $DM & $DO}:
+  %Equal.sym(Bool, Nat.is_lt(q, SC.length(U32, xs)), True{}, h) : {Bool.pick($DM & $DO, _, (DS.M{l, d, SC.update(U32, xs, q, v)}, DE.OUnit{DS.ok_unit()}), (DS.M{l, d, xs}, DE.OUnit{Fail{DE.IndexOutOfRange{}}})) == (DS.M{l, d, SC.update(U32, xs, q, v)}, DE.OUnit{Done{Unit{}}}) : $DM & $DO}
+  {==}
+
+def ssh($GW, +q: Nat, +v: U32) -> $W:
+  $NSH(w, DE.Set{q, v})
+
+def set_eq($GW, +q: Nat, +v: U32) -> {D.set(U32, DAS.real(U32, w), q, v) == (DAS.real(U32, ssh(w, g, q, v)), ununit($NOB(w, DE.Set{q, v}))) : $DA & $RU}:
+  Equal.trans($DA & $RU, D.set(U32, DAS.real(U32, w), q, v), uunit(D.obs_unit(U32, D.set(U32, DAS.real(U32, w), q, v))), (DAS.real(U32, ssh(w, g, q, v)), ununit($NOB(w, DE.Set{q, v}))),
+    Equal.sym($DA & $RU, uunit(D.obs_unit(U32, D.set(U32, DAS.real(U32, w), q, v))), D.set(U32, DAS.real(U32, w), q, v), uunit_obs(D.set(U32, DAS.real(U32, w), q, v))),
+    Equal.cong($DA & $DO, $DA & $RU, p => uunit(p), D.step(U32, DAS.real(U32, w), DE.Set{q, v}), (DAS.real(U32, $NSH(w, DE.Set{q, v})), $NOB(w, DE.Set{q, v})), DTR.so_step(U32, w, DE.Set{q, v}, $SO(w, DE.Set{q, v}))))
+
+def set_good($GW, +q: Nat, +v: U32) -> {DAS.good(U32, ssh(w, g, q, v)) == True{} : Bool}:
+  DTR.so_good(U32, w, DE.Set{q, v}, $SO(w, DE.Set{q, v}))
+
+def set_all($GW, +q: Nat, +v: U32, +h: {Nat.is_lt(q, SC.length(U32, ws(w))) == True{} : Bool}) -> {(DAS.model(U32, ssh(w, g, q, v)), $NOB(w, DE.Set{q, v})) == (DS.M{lim(w), dep(w), SC.update(U32, ws(w), q, v)}, DE.OUnit{Done{Unit{}}}) : $DM & $DO}:
+  match w:
+    case DAS.Sh{+l, +d, +n, +t}:
+      Equal.trans($DM & $DO, (DAS.model(U32, ssh($W0, g, q, v)), $NOB($W0, DE.Set{q, v})), DS.step_parts(U32, l, d, $XS, DE.Set{q, v}), (DS.M{l, d, SC.update(U32, $XS, q, v)}, DE.OUnit{Done{Unit{}}}),
+        DTR.so_spec(U32, $W0, DE.Set{q, v}, $SO($W0, DE.Set{q, v})), sp_set(l, d, $XS, q, v, h))
+
+def set_val($GW, +q: Nat, +v: U32, +h: {Nat.is_lt(q, SC.length(U32, ws(w))) == True{} : Bool}) -> {ununit($NOB(w, DE.Set{q, v})) == Done{Unit{}} : $RU}:
+  p_unit(DAS.model(U32, ssh(w, g, q, v)), $NOB(w, DE.Set{q, v}), DS.M{lim(w), dep(w), SC.update(U32, ws(w), q, v)}, DE.OUnit{Done{Unit{}}}, set_all(w, g, q, v, h))
+
+def set_ws($GW, +q: Nat, +v: U32, +h: {Nat.is_lt(q, SC.length(U32, ws(w))) == True{} : Bool}) -> {ws(ssh(w, g, q, v)) == SC.update(U32, ws(w), q, v) : List<&2, U32>}:
+  p_items(DAS.model(U32, ssh(w, g, q, v)), $NOB(w, DE.Set{q, v}), DS.M{lim(w), dep(w), SC.update(U32, ws(w), q, v)}, DE.OUnit{Done{Unit{}}}, set_all(w, g, q, v, h))
+
+def set_lim($GW, +q: Nat, +v: U32, +h: {Nat.is_lt(q, SC.length(U32, ws(w))) == True{} : Bool}) -> {lim(ssh(w, g, q, v)) == lim(w) : Nat}:
+  p_lim(DAS.model(U32, ssh(w, g, q, v)), $NOB(w, DE.Set{q, v}), DS.M{lim(w), dep(w), SC.update(U32, ws(w), q, v)}, DE.OUnit{Done{Unit{}}}, set_all(w, g, q, v, h))
+
+# ---- push ----
+
+%def PB(xs, d, v) Bool.pick(Nat, Nat.is_lt(SC.length(U32, xs), SC.pow2(d)), d, 1n+d)
+
+# below the depth limit a push succeeds (in place, or after one doubling)
+def sp_push_c(+l: Nat, +d: Nat, +xs: List<&2, U32>, +v: U32, c: Bool, +ec: {Nat.is_lt(d, l) == c : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +h: {Nat.is_lt(SC.length(U32, xs), SC.pow2(l)) == True{} : Bool}, +e1: {Nat.is_lt(SC.length(U32, xs), SC.pow2(d)) == False{} : Bool}) -> {Bool.pick($DM & $DO, Nat.is_lt(d, l), (DS.M{l, 1n+d, SC.snoc(U32, xs, v)}, DE.OUnit{DS.ok_unit()}), (DS.M{l, d, xs}, DE.OUnit{Fail{DE.CapacityExceeded{}}})) == (DS.M{l, 1n+d, SC.snoc(U32, xs, v)}, DE.OUnit{Done{Unit{}}}) : $DM & $DO}:
+  match c:
+    case True{}:
+      %Equal.sym(Bool, Nat.is_lt(d, l), True{}, ec) : {Bool.pick($DM & $DO, _, (DS.M{l, 1n+d, SC.snoc(U32, xs, v)}, DE.OUnit{DS.ok_unit()}), (DS.M{l, d, xs}, DE.OUnit{Fail{DE.CapacityExceeded{}}})) == (DS.M{l, 1n+d, SC.snoc(U32, xs, v)}, DE.OUnit{Done{Unit{}}}) : $DM & $DO}
+      {==}
+    case False{}:
+      +edl = N.le_antisym(d, l, hd, N.not_lt_le(d, l, ec))
+      Empty.absurd({Bool.pick($DM & $DO, Nat.is_lt(d, l), (DS.M{l, 1n+d, SC.snoc(U32, xs, v)}, DE.OUnit{DS.ok_unit()}), (DS.M{l, d, xs}, DE.OUnit{Fail{DE.CapacityExceeded{}}})) == (DS.M{l, 1n+d, SC.snoc(U32, xs, v)}, DE.OUnit{Done{Unit{}}}) : $DM & $DO}, L.true_not_false(Nat.is_lt(SC.length(U32, xs), SC.pow2(d)), L.subst(Nat, x => {Nat.is_lt(SC.length(U32, xs), SC.pow2(x)) == True{} : Bool}, l, d, Equal.sym(Nat, d, l, edl), h), e1))
+
+def sp_push_b(+l: Nat, +d: Nat, +xs: List<&2, U32>, +v: U32, b: Bool, +eb: {Nat.is_lt(SC.length(U32, xs), SC.pow2(d)) == b : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +h: {Nat.is_lt(SC.length(U32, xs), SC.pow2(l)) == True{} : Bool}) -> {DS.step_parts(U32, l, d, xs, DE.Push{v}) == (DS.M{l, $PB(xs, d, v), SC.snoc(U32, xs, v)}, DE.OUnit{Done{Unit{}}}) : $DM & $DO}:
+  match b:
+    case True{}:
+      %Equal.sym(Bool, Nat.is_lt(SC.length(U32, xs), SC.pow2(d)), True{}, eb) : {Bool.pick($DM & $DO, _, (DS.M{l, d, SC.snoc(U32, xs, v)}, DE.OUnit{DS.ok_unit()}), Bool.pick($DM & $DO, Nat.is_lt(d, l), (DS.M{l, 1n+d, SC.snoc(U32, xs, v)}, DE.OUnit{DS.ok_unit()}), (DS.M{l, d, xs}, DE.OUnit{Fail{DE.CapacityExceeded{}}}))) == (DS.M{l, Bool.pick(Nat, _, d, 1n+d), SC.snoc(U32, xs, v)}, DE.OUnit{Done{Unit{}}}) : $DM & $DO}
+      {==}
+    case False{}:
+      %Equal.sym(Bool, Nat.is_lt(SC.length(U32, xs), SC.pow2(d)), False{}, eb) : {Bool.pick($DM & $DO, _, (DS.M{l, d, SC.snoc(U32, xs, v)}, DE.OUnit{DS.ok_unit()}), Bool.pick($DM & $DO, Nat.is_lt(d, l), (DS.M{l, 1n+d, SC.snoc(U32, xs, v)}, DE.OUnit{DS.ok_unit()}), (DS.M{l, d, xs}, DE.OUnit{Fail{DE.CapacityExceeded{}}}))) == (DS.M{l, Bool.pick(Nat, _, d, 1n+d), SC.snoc(U32, xs, v)}, DE.OUnit{Done{Unit{}}}) : $DM & $DO}
+      sp_push_c(l, d, xs, v, Nat.is_lt(d, l), {==}, hd, h, eb)
+
+# at the depth limit with every slot used a push is rejected
+def sp_full_c(+l: Nat, +d: Nat, +xs: List<&2, U32>, +v: U32, c: Bool, +ec: {Nat.is_lt(d, l) == c : Bool}, +hc: {Nat.is_le(SC.length(U32, xs), SC.pow2(d)) == True{} : Bool}, +h: {Nat.is_lt(SC.length(U32, xs), SC.pow2(l)) == False{} : Bool}) -> {Bool.pick($DM & $DO, Nat.is_lt(d, l), (DS.M{l, 1n+d, SC.snoc(U32, xs, v)}, DE.OUnit{DS.ok_unit()}), (DS.M{l, d, xs}, DE.OUnit{Fail{DE.CapacityExceeded{}}})) == (DS.M{l, d, xs}, DE.OUnit{Fail{DE.CapacityExceeded{}}}) : $DM & $DO}:
+  match c:
+    case False{}:
+      %Equal.sym(Bool, Nat.is_lt(d, l), False{}, ec) : {Bool.pick($DM & $DO, _, (DS.M{l, 1n+d, SC.snoc(U32, xs, v)}, DE.OUnit{DS.ok_unit()}), (DS.M{l, d, xs}, DE.OUnit{Fail{DE.CapacityExceeded{}}})) == (DS.M{l, d, xs}, DE.OUnit{Fail{DE.CapacityExceeded{}}}) : $DM & $DO}
+      {==}
+    case True{}:
+      Empty.absurd({Bool.pick($DM & $DO, Nat.is_lt(d, l), (DS.M{l, 1n+d, SC.snoc(U32, xs, v)}, DE.OUnit{DS.ok_unit()}), (DS.M{l, d, xs}, DE.OUnit{Fail{DE.CapacityExceeded{}}})) == (DS.M{l, d, xs}, DE.OUnit{Fail{DE.CapacityExceeded{}}}) : $DM & $DO}, L.true_not_false(Nat.is_lt(SC.length(U32, xs), SC.pow2(l)), N.le_lt_trans(SC.length(U32, xs), SC.pow2(d), SC.pow2(l), hc, N.pow2_strict(d, l, ec)), h))
+
+def sp_full(+l: Nat, +d: Nat, +xs: List<&2, U32>, +v: U32, +hc: {Nat.is_le(SC.length(U32, xs), SC.pow2(d)) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +h: {Nat.is_lt(SC.length(U32, xs), SC.pow2(l)) == False{} : Bool}) -> {DS.step_parts(U32, l, d, xs, DE.Push{v}) == (DS.M{l, d, xs}, DE.OUnit{Fail{DE.CapacityExceeded{}}}) : $DM & $DO}:
+  +h1 = N.le_not_lt(SC.length(U32, xs), SC.pow2(d), N.le_trans(SC.pow2(d), SC.pow2(l), SC.length(U32, xs), N.pow2_mono(d, l, hd), N.not_lt_le(SC.length(U32, xs), SC.pow2(l), h)))
+  %Equal.sym(Bool, Nat.is_lt(SC.length(U32, xs), SC.pow2(d)), False{}, h1) : {Bool.pick($DM & $DO, _, (DS.M{l, d, SC.snoc(U32, xs, v)}, DE.OUnit{DS.ok_unit()}), Bool.pick($DM & $DO, Nat.is_lt(d, l), (DS.M{l, 1n+d, SC.snoc(U32, xs, v)}, DE.OUnit{DS.ok_unit()}), (DS.M{l, d, xs}, DE.OUnit{Fail{DE.CapacityExceeded{}}}))) == (DS.M{l, d, xs}, DE.OUnit{Fail{DE.CapacityExceeded{}}}) : $DM & $DO}
+  sp_full_c(l, d, xs, v, Nat.is_lt(d, l), {==}, hc, h)
+
+def psh($GW, +v: U32) -> $W:
+  $NSH(w, DE.Push{v})
+
+def push_eq($GW, +v: U32) -> {D.push(U32, DAS.real(U32, w), v) == (DAS.real(U32, psh(w, g, v)), ununit($NOB(w, DE.Push{v}))) : $DA & $RU}:
+  Equal.trans($DA & $RU, D.push(U32, DAS.real(U32, w), v), uunit(D.obs_unit(U32, D.push(U32, DAS.real(U32, w), v))), (DAS.real(U32, psh(w, g, v)), ununit($NOB(w, DE.Push{v}))),
+    Equal.sym($DA & $RU, uunit(D.obs_unit(U32, D.push(U32, DAS.real(U32, w), v))), D.push(U32, DAS.real(U32, w), v), uunit_obs(D.push(U32, DAS.real(U32, w), v))),
+    Equal.cong($DA & $DO, $DA & $RU, p => uunit(p), D.step(U32, DAS.real(U32, w), DE.Push{v}), (DAS.real(U32, $NSH(w, DE.Push{v})), $NOB(w, DE.Push{v})), DTR.so_step(U32, w, DE.Push{v}, $SO(w, DE.Push{v}))))
+
+def push_good($GW, +v: U32) -> {DAS.good(U32, psh(w, g, v)) == True{} : Bool}:
+  DTR.so_good(U32, w, DE.Push{v}, $SO(w, DE.Push{v}))
+
+%def PD(x) Bool.pick(Nat, Nat.is_lt(SC.length(U32, ws(x)), SC.pow2(dep(x))), dep(x), 1n+dep(x))
+
+def push_all($GW, +v: U32, +h: {Nat.is_lt(SC.length(U32, ws(w)), SC.pow2(lim(w))) == True{} : Bool}) -> {(DAS.model(U32, psh(w, g, v)), $NOB(w, DE.Push{v})) == (DS.M{lim(w), $PD(w), SC.snoc(U32, ws(w), v)}, DE.OUnit{Done{Unit{}}}) : $DM & $DO}:
+  match w:
+    case DAS.Sh{+l, +d, +n, +t}:
+      Equal.trans($DM & $DO, (DAS.model(U32, psh($W0, g, v)), $NOB($W0, DE.Push{v})), DS.step_parts(U32, l, d, $XS, DE.Push{v}), (DS.M{l, $PB($XS, d, v), SC.snoc(U32, $XS, v)}, DE.OUnit{Done{Unit{}}}),
+        DTR.so_spec(U32, $W0, DE.Push{v}, $SO($W0, DE.Push{v})), sp_push_b(l, d, $XS, v, Nat.is_lt(SC.length(U32, $XS), SC.pow2(d)), {==}, DAS.g_depth(U32, l, d, n, t, g), h))
+
+def push_val($GW, +v: U32, +h: {Nat.is_lt(SC.length(U32, ws(w)), SC.pow2(lim(w))) == True{} : Bool}) -> {ununit($NOB(w, DE.Push{v})) == Done{Unit{}} : $RU}:
+  p_unit(DAS.model(U32, psh(w, g, v)), $NOB(w, DE.Push{v}), DS.M{lim(w), $PD(w), SC.snoc(U32, ws(w), v)}, DE.OUnit{Done{Unit{}}}, push_all(w, g, v, h))
+
+def push_ws($GW, +v: U32, +h: {Nat.is_lt(SC.length(U32, ws(w)), SC.pow2(lim(w))) == True{} : Bool}) -> {ws(psh(w, g, v)) == SC.snoc(U32, ws(w), v) : List<&2, U32>}:
+  p_items(DAS.model(U32, psh(w, g, v)), $NOB(w, DE.Push{v}), DS.M{lim(w), $PD(w), SC.snoc(U32, ws(w), v)}, DE.OUnit{Done{Unit{}}}, push_all(w, g, v, h))
+
+def push_lim($GW, +v: U32, +h: {Nat.is_lt(SC.length(U32, ws(w)), SC.pow2(lim(w))) == True{} : Bool}) -> {lim(psh(w, g, v)) == lim(w) : Nat}:
+  p_lim(DAS.model(U32, psh(w, g, v)), $NOB(w, DE.Push{v}), DS.M{lim(w), $PD(w), SC.snoc(U32, ws(w), v)}, DE.OUnit{Done{Unit{}}}, push_all(w, g, v, h))
+
+def full_all($GW, +v: U32, +h: {Nat.is_lt(SC.length(U32, ws(w)), SC.pow2(lim(w))) == False{} : Bool}) -> {(DAS.model(U32, psh(w, g, v)), $NOB(w, DE.Push{v})) == (DS.M{lim(w), dep(w), ws(w)}, DE.OUnit{Fail{DE.CapacityExceeded{}}}) : $DM & $DO}:
+  match w:
+    case DAS.Sh{+l, +d, +n, +t}:
+      +hc = L.subst(Nat, x => {Nat.is_le(x, SC.pow2(d)) == True{} : Bool}, n, SC.length(U32, $XS), Equal.sym(Nat, SC.length(U32, $XS), n, ws_len(l, d, n, t, g)), DSP.n_le_cap(U32, l, d, n, t, g))
+      Equal.trans($DM & $DO, (DAS.model(U32, psh($W0, g, v)), $NOB($W0, DE.Push{v})), DS.step_parts(U32, l, d, $XS, DE.Push{v}), (DS.M{l, d, $XS}, DE.OUnit{Fail{DE.CapacityExceeded{}}}),
+        DTR.so_spec(U32, $W0, DE.Push{v}, $SO($W0, DE.Push{v})), sp_full(l, d, $XS, v, hc, DAS.g_depth(U32, l, d, n, t, g), h))
+
+def full_val($GW, +v: U32, +h: {Nat.is_lt(SC.length(U32, ws(w)), SC.pow2(lim(w))) == False{} : Bool}) -> {ununit($NOB(w, DE.Push{v})) == Fail{DE.CapacityExceeded{}} : $RU}:
+  p_unit(DAS.model(U32, psh(w, g, v)), $NOB(w, DE.Push{v}), DS.M{lim(w), dep(w), ws(w)}, DE.OUnit{Fail{DE.CapacityExceeded{}}}, full_all(w, g, v, h))
+
+def full_ws($GW, +v: U32, +h: {Nat.is_lt(SC.length(U32, ws(w)), SC.pow2(lim(w))) == False{} : Bool}) -> {ws(psh(w, g, v)) == ws(w) : List<&2, U32>}:
+  p_items(DAS.model(U32, psh(w, g, v)), $NOB(w, DE.Push{v}), DS.M{lim(w), dep(w), ws(w)}, DE.OUnit{Fail{DE.CapacityExceeded{}}}, full_all(w, g, v, h))
+
+def full_lim($GW, +v: U32, +h: {Nat.is_lt(SC.length(U32, ws(w)), SC.pow2(lim(w))) == False{} : Bool}) -> {lim(psh(w, g, v)) == lim(w) : Nat}:
+  p_lim(DAS.model(U32, psh(w, g, v)), $NOB(w, DE.Push{v}), DS.M{lim(w), dep(w), ws(w)}, DE.OUnit{Fail{DE.CapacityExceeded{}}}, full_all(w, g, v, h))
+
+# ---- clear ----
+
+def csh($GW) -> $W:
+  $NSH(w, DE.Clear{})
+
+def clear_eq($GW) -> {D.clear(U32, DAS.real(U32, w)) == DAS.real(U32, csh(w, g)) : $DA}:
+  L.pair_fst($DA, $DO, D.clear(U32, DAS.real(U32, w)), DE.OUnit{Done{Unit{}}}, DAS.real(U32, csh(w, g)), $NOB(w, DE.Clear{}), DTR.so_step(U32, w, DE.Clear{}, $SO(w, DE.Clear{})))
+
+def clear_good($GW) -> {DAS.good(U32, csh(w, g)) == True{} : Bool}:
+  DTR.so_good(U32, w, DE.Clear{}, $SO(w, DE.Clear{}))
+
+def clear_all($GW) -> {(DAS.model(U32, csh(w, g)), $NOB(w, DE.Clear{})) == (DS.M{lim(w), dep(w), Nil{}}, DE.OUnit{Done{Unit{}}}) : $DM & $DO}:
+  match w:
+    case DAS.Sh{+l, +d, +n, +t}:
+      DTR.so_spec(U32, $W0, DE.Clear{}, $SO($W0, DE.Clear{}))
+
+def clear_ws($GW) -> {ws(csh(w, g)) == Nil{} : List<&2, U32>}:
+  p_items(DAS.model(U32, csh(w, g)), $NOB(w, DE.Clear{}), DS.M{lim(w), dep(w), Nil{}}, DE.OUnit{Done{Unit{}}}, clear_all(w, g))
+
+def clear_lim($GW) -> {lim(csh(w, g)) == lim(w) : Nat}:
+  p_lim(DAS.model(U32, csh(w, g)), $NOB(w, DE.Clear{}), DS.M{lim(w), dep(w), Nil{}}, DE.OUnit{Done{Unit{}}}, clear_all(w, g))
