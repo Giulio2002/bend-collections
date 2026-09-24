@@ -71,13 +71,13 @@ def slots(~cmp: U32 -> U32 -> Cmp, fuel: Nat, +i: Nat, acc: String, st: M.TreeMa
     case 1n+f Tuple{m, v}:
       slots(~cmp, f, 1n+i, acc ++ ";" ++ v, slot(~cmp, m, 1n+i))
 
-def dump_count(~cmp: U32 -> U32 -> Cmp, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, values: D.DynArray<&2, Maybe<&2, U32>>, r: D.DynArray<&2, M.Node<U32>> & Nat) -> M.TreeMap<U32, U32, cmp> & String:
+def dump_count(~cmp: U32 -> U32 -> Cmp, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, values: D.DynArray<&2, Maybe<&2, U32>>, r: M.NodeStore<U32> & Nat) -> M.TreeMap<U32, U32, cmp> & String:
   (nodes, +used) = r
   slots(~cmp, used, 1n, Nat.show(n) ++ "," ++ Nat.show(root) ++ "," ++ Nat.show(lo) ++ "," ++ Nat.show(hi) ++ "," ++ Nat.show(free), slot(~cmp, M.TM{n, root, lo, hi, free, nodes, values}, 1n))
 
 def dump(~cmp: U32 -> U32 -> Cmp, m: M.TreeMap<U32, U32, cmp>) -> M.TreeMap<U32, U32, cmp> & String:
   M.TM{+n, +root, +lo, +hi, +free, nodes, values} = m
-  dump_count(~cmp, n, root, lo, hi, free, values, D.length(M.Node<U32>, nodes))
+  dump_count(~cmp, n, root, lo, hi, free, values, M.ns_length(~U32, nodes))
 
 def walk_modified(~cmp: U32 -> U32 -> Cmp, r: M.Cursor<U32, U32, cmp> & Maybe<&2, U32>) -> M.Cursor<U32, U32, cmp>:
   (cursor, old) = r

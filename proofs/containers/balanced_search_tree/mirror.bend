@@ -410,40 +410,6 @@ def iterator(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> MCursor
 def descending_iterator(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> MCursor<K, V>:
   cursor_started(~K, ~V, ~cmp, M.Unbounded{}, M.Unbounded{}, False{}, last_id(~K, ~V, ~cmp, m))
 
-def set_left_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>) -> ST.Sh<K, V>:
-  match node:
-    case M.Free{px2}:
-      m
-    case M.N{px3, px4, px5, px6, px7}:
-      write(~K, ~V, ~cmp, m, id, M.N{px3, v, px5, px6, px7})
-
-def set_right_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>) -> ST.Sh<K, V>:
-  match node:
-    case M.Free{px2}:
-      m
-    case M.N{px3, px4, px5, px6, px7}:
-      write(~K, ~V, ~cmp, m, id, M.N{px3, px4, v, px6, px7})
-
-def set_parent_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>) -> ST.Sh<K, V>:
-  match node:
-    case M.Free{px2}:
-      m
-    case M.N{px3, px4, px5, px6, px7}:
-      write(~K, ~V, ~cmp, m, id, M.N{px3, px4, px5, v, px7})
-
-def set_red_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Bool, +node: M.Node<K>) -> ST.Sh<K, V>:
-  match node:
-    case M.Free{px2}:
-      m
-    case M.N{px3, px4, px5, px6, px7}:
-      write(~K, ~V, ~cmp, m, id, M.N{v, px4, px5, px6, px7})
-
-def probe(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +k: K) -> ST.Sh<K, V> & (M.Node<K> & Cmp):
-  probe_node(~K, ~V, ~cmp, id, k, read(~K, ~V, ~cmp, m, id))
-
-def reuse_slot(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +next: Nat, +p: Nat, +k: K, +v: V) -> ST.Sh<K, V> & Result<&2, &2, M.Rejected<K, V>, Nat>:
-  reuse_slot_1(~K, ~V, ~cmp, id, exchange(~K, ~V, ~cmp, write(~K, ~V, ~cmp, free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}), id, Some{v}))
-
 def get_found(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & M.Search) -> ST.Sh<K, V> & Maybe<&2, V>:
   (m, M.Search{id, p, on_left}) = r
   get_id(~K, ~V, ~cmp, m, id)
@@ -451,31 +417,6 @@ def get_found(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & M.Search
 def extreme_probe(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & Nat:
   (m, node) = r
   (m, M.child(~K, node, forward))
-
-def ascend_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, st: ST.Sh<K, V> & M.Ascend) -> ST.Sh<K, V> & Nat:
-  match fuel st:
-    case 0n Tuple{px4, px5}:
-      (px4, 0n)
-    case 1n+px3 Tuple{px6, M.Ascend{px8, px9, True{}}}:
-      (px6, px9)
-    case 1n+px3 Tuple{px6, M.Ascend{+px8, +px9, False{}}}:
-      ascend_loop(~K, ~V, ~cmp, px3, forward, ascend_step_node(~K, ~V, ~cmp, px8, px9, forward, read(~K, ~V, ~cmp, px6, px9)))
-
-def set_key_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +k: K, +node: M.Node<K>) -> ST.Sh<K, V>:
-  match node:
-    case M.Free{px2}:
-      m
-    case M.N{px3, px4, px5, px6, px7}:
-      write(~K, ~V, ~cmp, m, id, M.N{px3, px4, px5, px6, k})
-
-def recycle(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat) -> ST.Sh<K, V>:
-  match m:
-    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
-      release_header(~K, ~V, ~cmp, write(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free}), id)
-
-def key_id(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Maybe<&2, K>:
-  (m, id) = r
-  key_finish(~K, ~V, ~cmp, read(~K, ~V, ~cmp, m, id))
 
 def entry_snapshot_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, id: Nat, r: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
   (m, node) = r
@@ -514,6 +455,74 @@ def replace_if_apply(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +i
     case True{}:
       changed_value(~K, ~V, ~cmp, exchange(~K, ~V, ~cmp, m, id, Some{replacement}))
 
+def replace_if_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +id: Nat, +expected: V, +replacement: V, r: ST.Sh<K, V> & Maybe<&2, V>) -> ST.Sh<K, V> & Bool:
+  match r:
+    case Tuple{px2, None{}}:
+      (px2, False{})
+    case Tuple{px2, Some{px4}}:
+      replace_if_apply(~K, ~V, ~cmp, px2, id, replacement, eq(px4, expected))
+
+def iterator_has_checked(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +next: Nat, +current: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>) -> MCursor<K, V> & Bool:
+  match r:
+    case Tuple{px2, M.Free{px4}}:
+      (MC{px2, next, current, lower, upper, forward}, False{})
+    case Tuple{px2, M.N{px5, px6, px7, px8, px9}}:
+      (MC{px2, next, current, lower, upper, forward}, M.in_range(~K, ~V, ~cmp, px9, lower, upper))
+
+def view_entry_result(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +lower: M.Bound<K>, +upper: M.Bound<K>, +descending: Bool, r: ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
+  match r:
+    case Tuple{px2, None{}}:
+      (MV{px2, lower, upper, descending}, None{})
+    case Tuple{px2, Some{M.Entry{+px5, px6}}}:
+      view_entry_checked(~K, ~V, ~cmp, px2, lower, upper, descending, M.Entry{px5, px6}, M.in_range(~K, ~V, ~cmp, px5, lower, upper))
+
+def replace_if_found(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +expected: V, +replacement: V, r: ST.Sh<K, V> & M.Search) -> ST.Sh<K, V> & Bool:
+  (m, M.Search{+id, p, on_left}) = r
+  replace_if_value(~K, ~V, ~cmp, ~eq, id, expected, replacement, get_id(~K, ~V, ~cmp, m, id))
+
+def set_left_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>) -> ST.Sh<K, V>:
+  match node:
+    case M.Free{px2}:
+      m
+    case M.N{px3, px4, px5, px6, px7}:
+      write(~K, ~V, ~cmp, m, id, M.N{px3, v, px5, px6, px7})
+
+def set_right_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>) -> ST.Sh<K, V>:
+  match node:
+    case M.Free{px2}:
+      m
+    case M.N{px3, px4, px5, px6, px7}:
+      write(~K, ~V, ~cmp, m, id, M.N{px3, px4, v, px6, px7})
+
+def set_parent_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>) -> ST.Sh<K, V>:
+  match node:
+    case M.Free{px2}:
+      m
+    case M.N{px3, px4, px5, px6, px7}:
+      write(~K, ~V, ~cmp, m, id, M.N{px3, px4, px5, v, px7})
+
+def set_red_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Bool, +node: M.Node<K>) -> ST.Sh<K, V>:
+  match node:
+    case M.Free{px2}:
+      m
+    case M.N{px3, px4, px5, px6, px7}:
+      write(~K, ~V, ~cmp, m, id, M.N{v, px4, px5, px6, px7})
+
+def reuse_slot(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +next: Nat, +p: Nat, +k: K, +v: V) -> ST.Sh<K, V> & Result<&2, &2, M.Rejected<K, V>, Nat>:
+  reuse_slot_1(~K, ~V, ~cmp, id, exchange(~K, ~V, ~cmp, write(~K, ~V, ~cmp, free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}), id, Some{v}))
+
+def set_key_node(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +k: K, +node: M.Node<K>) -> ST.Sh<K, V>:
+  match node:
+    case M.Free{px2}:
+      m
+    case M.N{px3, px4, px5, px6, px7}:
+      write(~K, ~V, ~cmp, m, id, M.N{px3, px4, px5, px6, k})
+
+def recycle(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat) -> ST.Sh<K, V>:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      release_header(~K, ~V, ~cmp, write(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free}), id)
+
 def set_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +v: Nat, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
   (m1, +node) = pair_result
   set_left_node(~K, ~V, ~cmp, m1, id, v, node)
@@ -529,6 +538,78 @@ def set_parent_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +v: Nat, pai
 def set_red_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +v: Bool, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
   (m1, +node) = pair_result
   set_red_node(~K, ~V, ~cmp, m1, id, v, node)
+
+def alloc_read(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +p: Nat, +k: K, +v: V, r: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & Result<&2, &2, M.Rejected<K, V>, Nat>:
+  match r:
+    case Tuple{px2, M.Free{px4}}:
+      reuse_slot(~K, ~V, ~cmp, px2, id, px4, p, k, v)
+    case Tuple{px2, M.N{px5, px6, px7, px8, px9}}:
+      (px2, Fail{M.Rejected{M.CapacityExceeded{}, k, v}})
+
+def set_key_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +k: K, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
+  (m1, +node) = pair_result
+  set_key_node(~K, ~V, ~cmp, m1, id, k, node)
+
+def set_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat) -> ST.Sh<K, V>:
+  set_left_1(~K, ~V, ~cmp, id, v, read(~K, ~V, ~cmp, m, id))
+
+def set_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat) -> ST.Sh<K, V>:
+  set_right_1(~K, ~V, ~cmp, id, v, read(~K, ~V, ~cmp, m, id))
+
+def set_parent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat) -> ST.Sh<K, V>:
+  set_parent_1(~K, ~V, ~cmp, id, v, read(~K, ~V, ~cmp, m, id))
+
+def set_red(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Bool) -> ST.Sh<K, V>:
+  set_red_1(~K, ~V, ~cmp, id, v, read(~K, ~V, ~cmp, m, id))
+
+def probe(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +k: K) -> ST.Sh<K, V> & (M.Node<K> & Cmp):
+  probe_node(~K, ~V, ~cmp, id, k, read(~K, ~V, ~cmp, m, id))
+
+def extreme_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, +id: Nat, st: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Nat:
+  match fuel st:
+    case 0n Tuple{px4, 0n}:
+      (px4, id)
+    case 0n Tuple{px4, 1n+px6}:
+      (px4, id)
+    case 1n+px3 Tuple{px7, 0n}:
+      (px7, id)
+    case 1n+px3 Tuple{px7, 1n+ +px9}:
+      extreme_loop(~K, ~V, ~cmp, px3, forward, 1n+px9, extreme_probe(~K, ~V, ~cmp, forward, read(~K, ~V, ~cmp, px7, 1n+px9)))
+
+def ascend_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, st: ST.Sh<K, V> & M.Ascend) -> ST.Sh<K, V> & Nat:
+  match fuel st:
+    case 0n Tuple{px4, px5}:
+      (px4, 0n)
+    case 1n+px3 Tuple{px6, M.Ascend{px8, px9, True{}}}:
+      (px6, px9)
+    case 1n+px3 Tuple{px6, M.Ascend{+px8, +px9, False{}}}:
+      ascend_loop(~K, ~V, ~cmp, px3, forward, ascend_step_node(~K, ~V, ~cmp, px8, px9, forward, read(~K, ~V, ~cmp, px6, px9)))
+
+def set_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +k: K) -> ST.Sh<K, V>:
+  set_key_1(~K, ~V, ~cmp, id, k, read(~K, ~V, ~cmp, m, id))
+
+def key_id(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Maybe<&2, K>:
+  (m, id) = r
+  key_finish(~K, ~V, ~cmp, read(~K, ~V, ~cmp, m, id))
+
+def entry_snapshot(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
+  (m, +id) = r
+  entry_snapshot_value(~K, ~V, ~cmp, id, read(~K, ~V, ~cmp, m, id))
+
+def iterator_has_next(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, cursor: MCursor<K, V>) -> MCursor<K, V> & Bool:
+  MC{m, +next, current, lower, upper, forward} = cursor
+  iterator_has_checked(~K, ~V, ~cmp, next, current, lower, upper, forward, read(~K, ~V, ~cmp, m, next))
+
+def attach_side(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat, +x: Nat, +on_left: Bool) -> ST.Sh<K, V>:
+  match p on_left:
+    case 0n True{}:
+      set_root(~K, ~V, ~cmp, m, x)
+    case 0n False{}:
+      set_root(~K, ~V, ~cmp, m, x)
+    case 1n+px3 True{}:
+      set_left(~K, ~V, ~cmp, m, 1n+px3, x)
+    case 1n+px3 False{}:
+      set_right(~K, ~V, ~cmp, m, 1n+px3, x)
 
 def search_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +k: K, +id: Nat, +p: Nat, +on_left: Bool, st: ST.Sh<K, V> & (M.Node<K> & Cmp)) -> ST.Sh<K, V> & M.Search:
   match fuel st:
@@ -557,127 +638,14 @@ def search_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +k: K, +id:
     case 1n+px3 Tuple{px14, Tuple{M.N{px19, px20, px21, px22, px23}, EQ{}}}:
       (px14, M.Search{id, p, on_left})
 
-def alloc_read(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +p: Nat, +k: K, +v: V, r: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & Result<&2, &2, M.Rejected<K, V>, Nat>:
-  match r:
-    case Tuple{px2, M.Free{px4}}:
-      reuse_slot(~K, ~V, ~cmp, px2, id, px4, p, k, v)
-    case Tuple{px2, M.N{px5, px6, px7, px8, px9}}:
-      (px2, Fail{M.Rejected{M.CapacityExceeded{}, k, v}})
-
-def extreme_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, +id: Nat, st: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Nat:
-  match fuel st:
-    case 0n Tuple{px4, 0n}:
-      (px4, id)
-    case 0n Tuple{px4, 1n+px6}:
-      (px4, id)
-    case 1n+px3 Tuple{px7, 0n}:
-      (px7, id)
-    case 1n+px3 Tuple{px7, 1n+ +px9}:
-      extreme_loop(~K, ~V, ~cmp, px3, forward, 1n+px9, extreme_probe(~K, ~V, ~cmp, forward, read(~K, ~V, ~cmp, px7, 1n+px9)))
-
-def set_key_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +k: K, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
-  (m1, +node) = pair_result
-  set_key_node(~K, ~V, ~cmp, m1, id, k, node)
-
-def first_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V> & Maybe<&2, K>:
-  key_id(~K, ~V, ~cmp, first_id(~K, ~V, ~cmp, m))
-
-def last_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V> & Maybe<&2, K>:
-  key_id(~K, ~V, ~cmp, last_id(~K, ~V, ~cmp, m))
-
-def entry_snapshot(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
-  (m, +id) = r
-  entry_snapshot_value(~K, ~V, ~cmp, id, read(~K, ~V, ~cmp, m, id))
-
-def replace_if_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +id: Nat, +expected: V, +replacement: V, r: ST.Sh<K, V> & Maybe<&2, V>) -> ST.Sh<K, V> & Bool:
-  match r:
-    case Tuple{px2, None{}}:
-      (px2, False{})
-    case Tuple{px2, Some{px4}}:
-      replace_if_apply(~K, ~V, ~cmp, px2, id, replacement, eq(px4, expected))
-
-def iterator_has_checked(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +next: Nat, +current: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>) -> MCursor<K, V> & Bool:
-  match r:
-    case Tuple{px2, M.Free{px4}}:
-      (MC{px2, next, current, lower, upper, forward}, False{})
-    case Tuple{px2, M.N{px5, px6, px7, px8, px9}}:
-      (MC{px2, next, current, lower, upper, forward}, M.in_range(~K, ~V, ~cmp, px9, lower, upper))
-
-def view_entry_result(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +lower: M.Bound<K>, +upper: M.Bound<K>, +descending: Bool, r: ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
-  match r:
-    case Tuple{px2, None{}}:
-      (MV{px2, lower, upper, descending}, None{})
-    case Tuple{px2, Some{M.Entry{+px5, px6}}}:
-      view_entry_checked(~K, ~V, ~cmp, px2, lower, upper, descending, M.Entry{px5, px6}, M.in_range(~K, ~V, ~cmp, px5, lower, upper))
-
-def set_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat) -> ST.Sh<K, V>:
-  set_left_1(~K, ~V, ~cmp, id, v, read(~K, ~V, ~cmp, m, id))
-
-def set_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat) -> ST.Sh<K, V>:
-  set_right_1(~K, ~V, ~cmp, id, v, read(~K, ~V, ~cmp, m, id))
-
-def set_parent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Nat) -> ST.Sh<K, V>:
-  set_parent_1(~K, ~V, ~cmp, id, v, read(~K, ~V, ~cmp, m, id))
-
-def set_red(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +v: Bool) -> ST.Sh<K, V>:
-  set_red_1(~K, ~V, ~cmp, id, v, read(~K, ~V, ~cmp, m, id))
-
-def search(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K) -> ST.Sh<K, V> & M.Search:
-  match m:
-    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
-      search_loop(~K, ~V, ~cmp, 1n+n, k, root, 0n, False{}, probe(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k))
+def black_root_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, pair_result: ST.Sh<K, V> & Nat) -> ST.Sh<K, V>:
+  (m1, +r) = pair_result
+  set_red(~K, ~V, ~cmp, m1, r, False{})
 
 def extreme(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +forward: Bool) -> ST.Sh<K, V> & Nat:
   match m:
     case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
       extreme_loop(~K, ~V, ~cmp, 1n+n, forward, id, extreme_probe(~K, ~V, ~cmp, forward, read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id)))
-
-def set_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +k: K) -> ST.Sh<K, V>:
-  set_key_1(~K, ~V, ~cmp, id, k, read(~K, ~V, ~cmp, m, id))
-
-def first_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
-  entry_snapshot(~K, ~V, ~cmp, first_id(~K, ~V, ~cmp, m))
-
-def last_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
-  entry_snapshot(~K, ~V, ~cmp, last_id(~K, ~V, ~cmp, m))
-
-def replace_if_found(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +expected: V, +replacement: V, r: ST.Sh<K, V> & M.Search) -> ST.Sh<K, V> & Bool:
-  (m, M.Search{+id, p, on_left}) = r
-  replace_if_value(~K, ~V, ~cmp, ~eq, id, expected, replacement, get_id(~K, ~V, ~cmp, m, id))
-
-def iterator_has_next(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, cursor: MCursor<K, V>) -> MCursor<K, V> & Bool:
-  MC{m, +next, current, lower, upper, forward} = cursor
-  iterator_has_checked(~K, ~V, ~cmp, next, current, lower, upper, forward, read(~K, ~V, ~cmp, m, next))
-
-def attach_side(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat, +x: Nat, +on_left: Bool) -> ST.Sh<K, V>:
-  match p on_left:
-    case 0n True{}:
-      set_root(~K, ~V, ~cmp, m, x)
-    case 0n False{}:
-      set_root(~K, ~V, ~cmp, m, x)
-    case 1n+px3 True{}:
-      set_left(~K, ~V, ~cmp, m, 1n+px3, x)
-    case 1n+px3 False{}:
-      set_right(~K, ~V, ~cmp, m, 1n+px3, x)
-
-def black_root_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, pair_result: ST.Sh<K, V> & Nat) -> ST.Sh<K, V>:
-  (m1, +r) = pair_result
-  set_red(~K, ~V, ~cmp, m1, r, False{})
-
-def allocate(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat, +k: K, +v: V) -> ST.Sh<K, V> & Result<&2, &2, M.Rejected<K, V>, Nat>:
-  match m:
-    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
-      match free:
-        case 0n:
-          append(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 0n, l_0, d_0, nl_0, pl_0, t_0, fl_0}, k, v, p)
-        case 1n+ +px2:
-          alloc_read(~K, ~V, ~cmp, 1n+px2, p, k, v, read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}, 1n+px2))
-
-def get(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K) -> ST.Sh<K, V> & Maybe<&2, V>:
-  get_found(~K, ~V, ~cmp, search(~K, ~V, ~cmp, m, k))
-
-def contains_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K) -> ST.Sh<K, V> & Bool:
-  contains_found(~K, ~V, ~cmp, search(~K, ~V, ~cmp, m, k))
 
 def copy_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +target: Nat, +node: M.Node<K>) -> ST.Sh<K, V>:
   match node:
@@ -686,9 +654,58 @@ def copy_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +target: N
     case M.N{px3, px4, px5, px6, px7}:
       set_key(~K, ~V, ~cmp, m, target, px7)
 
+def first_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V> & Maybe<&2, K>:
+  key_id(~K, ~V, ~cmp, first_id(~K, ~V, ~cmp, m))
+
+def last_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V> & Maybe<&2, K>:
+  key_id(~K, ~V, ~cmp, last_id(~K, ~V, ~cmp, m))
+
+def first_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
+  entry_snapshot(~K, ~V, ~cmp, first_id(~K, ~V, ~cmp, m))
+
+def last_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>:
+  entry_snapshot(~K, ~V, ~cmp, last_id(~K, ~V, ~cmp, m))
+
+def attach(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat, +x: Nat, +on_left: Bool) -> ST.Sh<K, V>:
+  set_parent(~K, ~V, ~cmp, attach_side(~K, ~V, ~cmp, m, p, x, on_left), x, p)
+
+def search(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K) -> ST.Sh<K, V> & M.Search:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      search_loop(~K, ~V, ~cmp, 1n+n, k, root, 0n, False{}, probe(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k))
+
+def black_root(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V>:
+  black_root_1(~K, ~V, ~cmp, root_id(~K, ~V, ~cmp, m))
+
+def move_successor_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +source: Nat, +source_node: M.Node<K>, pair_result: ST.Sh<K, V> & Maybe<&2, V>) -> ST.Sh<K, V> & Nat:
+  (m2, value) = pair_result
+  move_successor_3(~K, ~V, ~cmp, source, exchange(~K, ~V, ~cmp, copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value))
+
 def refresh_ends_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +r: Nat, pair_result: ST.Sh<K, V> & Nat) -> ST.Sh<K, V>:
   (m2, +lo) = pair_result
   refresh_ends_3(~K, ~V, ~cmp, lo, extreme(~K, ~V, ~cmp, m2, r, True{}))
+
+def rotate_left_3(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, +yn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
+  (m3, +pn) = pair_result
+  set_parent(~K, ~V, ~cmp, set_left(~K, ~V, ~cmp, attach(~K, ~V, ~cmp, set_parent(~K, ~V, ~cmp, set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x), x, M.node_right(~K, xn))
+
+def rotate_right_3(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, +yn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
+  (m3, +pn) = pair_result
+  set_parent(~K, ~V, ~cmp, set_right(~K, ~V, ~cmp, attach(~K, ~V, ~cmp, set_parent(~K, ~V, ~cmp, set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x), x, M.node_left(~K, xn))
+
+def get(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K) -> ST.Sh<K, V> & Maybe<&2, V>:
+  get_found(~K, ~V, ~cmp, search(~K, ~V, ~cmp, m, k))
+
+def contains_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K) -> ST.Sh<K, V> & Bool:
+  contains_found(~K, ~V, ~cmp, search(~K, ~V, ~cmp, m, k))
+
+def move_successor_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +source: Nat, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & Nat:
+  (m1, +source_node) = pair_result
+  move_successor_2(~K, ~V, ~cmp, target, source, source_node, exchange(~K, ~V, ~cmp, m1, source, None{}))
+
+def refresh_ends_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, pair_result: ST.Sh<K, V> & Nat) -> ST.Sh<K, V>:
+  (m1, +r) = pair_result
+  refresh_ends_2(~K, ~V, ~cmp, r, extreme(~K, ~V, ~cmp, m1, r, False{}))
 
 def replace(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K, +v: V) -> ST.Sh<K, V> & Maybe<&2, V>:
   replace_found(~K, ~V, ~cmp, v, search(~K, ~V, ~cmp, m, k))
@@ -703,22 +720,19 @@ def iterator_reseek(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, k: Maybe<&2, K>, lo
 def replace_if_equal(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, m: ST.Sh<K, V>, +k: K, +expected: V, +replacement: V) -> ST.Sh<K, V> & Bool:
   replace_if_found(~K, ~V, ~cmp, ~eq, expected, replacement, search(~K, ~V, ~cmp, m, k))
 
-def attach(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat, +x: Nat, +on_left: Bool) -> ST.Sh<K, V>:
-  set_parent(~K, ~V, ~cmp, attach_side(~K, ~V, ~cmp, m, p, x, on_left), x, p)
+def rotate_left_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
+  (m2, +yn) = pair_result
+  rotate_left_3(~K, ~V, ~cmp, x, xn, yn, read(~K, ~V, ~cmp, m2, M.node_parent(~K, xn)))
 
-def black_root(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V>:
-  black_root_1(~K, ~V, ~cmp, root_id(~K, ~V, ~cmp, m))
+def rotate_right_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
+  (m2, +yn) = pair_result
+  rotate_right_3(~K, ~V, ~cmp, x, xn, yn, read(~K, ~V, ~cmp, m2, M.node_parent(~K, xn)))
 
-def neighbor(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +forward: Bool) -> ST.Sh<K, V> & Nat:
-  neighbor_node(~K, ~V, ~cmp, id, forward, read(~K, ~V, ~cmp, m, id))
+def move_successor(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +target: Nat, +source: Nat) -> ST.Sh<K, V> & Nat:
+  move_successor_1(~K, ~V, ~cmp, target, source, read(~K, ~V, ~cmp, m, source))
 
-def move_successor_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +source: Nat, +source_node: M.Node<K>, pair_result: ST.Sh<K, V> & Maybe<&2, V>) -> ST.Sh<K, V> & Nat:
-  (m2, value) = pair_result
-  move_successor_3(~K, ~V, ~cmp, source, exchange(~K, ~V, ~cmp, copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value))
-
-def refresh_ends_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, pair_result: ST.Sh<K, V> & Nat) -> ST.Sh<K, V>:
-  (m1, +r) = pair_result
-  refresh_ends_2(~K, ~V, ~cmp, r, extreme(~K, ~V, ~cmp, m1, r, False{}))
+def refresh_ends(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V>:
+  refresh_ends_1(~K, ~V, ~cmp, root_id(~K, ~V, ~cmp, m))
 
 def get_or_default(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K, +fallback: V) -> ST.Sh<K, V> & V:
   default_value(~K, ~V, ~cmp, fallback, get(~K, ~V, ~cmp, m, k))
@@ -730,20 +744,52 @@ def view_get_checked(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k
     case False{}:
       (MV{m, lower, upper, descending}, None{})
 
-def rotate_left_3(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, +yn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
-  (m3, +pn) = pair_result
-  set_parent(~K, ~V, ~cmp, set_left(~K, ~V, ~cmp, attach(~K, ~V, ~cmp, set_parent(~K, ~V, ~cmp, set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x), x, M.node_right(~K, xn))
+def rotate_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
+  (m1, +xn) = pair_result
+  rotate_left_2(~K, ~V, ~cmp, x, xn, read(~K, ~V, ~cmp, m1, M.node_right(~K, xn)))
 
-def rotate_right_3(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, +yn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
-  (m3, +pn) = pair_result
-  set_parent(~K, ~V, ~cmp, set_right(~K, ~V, ~cmp, attach(~K, ~V, ~cmp, set_parent(~K, ~V, ~cmp, set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x), x, M.node_left(~K, xn))
+def rotate_right_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
+  (m1, +xn) = pair_result
+  rotate_right_2(~K, ~V, ~cmp, x, xn, read(~K, ~V, ~cmp, m1, M.node_left(~K, xn)))
 
-def move_successor_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +source: Nat, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & Nat:
-  (m1, +source_node) = pair_result
-  move_successor_2(~K, ~V, ~cmp, target, source, source_node, exchange(~K, ~V, ~cmp, m1, source, None{}))
+def allocate(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat, +k: K, +v: V) -> ST.Sh<K, V> & Result<&2, &2, M.Rejected<K, V>, Nat>:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      match free:
+        case 0n:
+          append(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 0n, l_0, d_0, nl_0, pl_0, t_0, fl_0}, k, v, p)
+        case 1n+ +px2:
+          alloc_read(~K, ~V, ~cmp, 1n+px2, p, k, v, read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}, 1n+px2))
 
-def refresh_ends(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>) -> ST.Sh<K, V>:
-  refresh_ends_1(~K, ~V, ~cmp, root_id(~K, ~V, ~cmp, m))
+def neighbor(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +forward: Bool) -> ST.Sh<K, V> & Nat:
+  neighbor_node(~K, ~V, ~cmp, id, forward, read(~K, ~V, ~cmp, m, id))
+
+def successor_ready(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, r: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Nat:
+  (m, source) = r
+  move_successor(~K, ~V, ~cmp, m, target, source)
+
+def view_get(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K) -> MView<K, V> & Maybe<&2, V>:
+  MV{m, +lower, +upper, descending} = view
+  view_get_checked(~K, ~V, ~cmp, m, k, lower, upper, descending, M.in_range(~K, ~V, ~cmp, k, lower, upper))
+
+def rotate_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +x: Nat) -> ST.Sh<K, V>:
+  rotate_left_1(~K, ~V, ~cmp, x, read(~K, ~V, ~cmp, m, x))
+
+def rotate_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +x: Nat) -> ST.Sh<K, V>:
+  rotate_right_1(~K, ~V, ~cmp, x, read(~K, ~V, ~cmp, m, x))
+
+def delete_target(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, r: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & Nat:
+  match r:
+    case Tuple{px2, M.N{px5, 1n+px10, 1n+px11, px8, px9}}:
+      successor_ready(~K, ~V, ~cmp, id, extreme(~K, ~V, ~cmp, px2, 1n+px11, False{}))
+    case Tuple{px2, M.Free{px4}}:
+      (px2, id)
+    case Tuple{px2, M.N{px5, 0n, 0n, px8, px9}}:
+      (px2, id)
+    case Tuple{px2, M.N{px5, 0n, 1n+px12, px8, px9}}:
+      (px2, id)
+    case Tuple{px2, M.N{px5, 1n+px10, 0n, px8, px9}}:
+      (px2, id)
 
 def nav_equal(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +higher: Bool, +inclusive: Bool) -> ST.Sh<K, V> & Nat:
   match inclusive:
@@ -752,10 +798,6 @@ def nav_equal(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat,
     case False{}:
       neighbor(~K, ~V, ~cmp, m, id, higher)
 
-def view_get(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K) -> MView<K, V> & Maybe<&2, V>:
-  MV{m, +lower, +upper, descending} = view
-  view_get_checked(~K, ~V, ~cmp, m, k, lower, upper, descending, M.in_range(~K, ~V, ~cmp, k, lower, upper))
-
 def iterator_checked(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +current: Nat, lower: M.Bound<K>, upper: M.Bound<K>, +forward: Bool, entry: M.Entry<K, V>, +valid: Bool) -> MCursor<K, V> & Maybe<&2, M.Entry<K, V>>:
   match valid:
     case True{}:
@@ -763,16 +805,28 @@ def iterator_checked(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +i
     case False{}:
       (MC{m, 0n, current, lower, upper, forward}, None{})
 
-def rotate_left_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
-  (m2, +yn) = pair_result
-  rotate_left_3(~K, ~V, ~cmp, x, xn, yn, read(~K, ~V, ~cmp, m2, M.node_parent(~K, xn)))
+def view_contains_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K) -> MView<K, V> & Bool:
+  view_contains_value(~K, ~V, ~cmp, view_get(~K, ~V, ~cmp, view, k))
 
-def rotate_right_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
-  (m2, +yn) = pair_result
-  rotate_right_3(~K, ~V, ~cmp, x, xn, yn, read(~K, ~V, ~cmp, m2, M.node_parent(~K, xn)))
+def insert_black_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool) -> ST.Sh<K, V> & M.Fix:
+  match triangle:
+    case True{}:
+      (rotate_right(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g), M.Fix{0n, False{}})
+    case False{}:
+      (rotate_right(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g), M.Fix{0n, False{}})
 
-def move_successor(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +target: Nat, +source: Nat) -> ST.Sh<K, V> & Nat:
-  move_successor_1(~K, ~V, ~cmp, target, source, read(~K, ~V, ~cmp, m, source))
+def insert_black_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool) -> ST.Sh<K, V> & M.Fix:
+  match triangle:
+    case True{}:
+      (rotate_left(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g), M.Fix{0n, False{}})
+    case False{}:
+      (rotate_left(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g), M.Fix{0n, False{}})
+
+def delete_borrow_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>) -> ST.Sh<K, V> & M.DeleteFix:
+  (rotate_left(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{}), p), M.DF{0n, 0n, False{}})
+
+def delete_borrow_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>) -> ST.Sh<K, V> & M.DeleteFix:
+  (rotate_right(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}), p), M.DF{0n, 0n, False{}})
 
 def nav_loop(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +k: K, +higher: Bool, +inclusive: Bool, +id: Nat, +best: Nat, st: ST.Sh<K, V> & (M.Node<K> & Cmp)) -> ST.Sh<K, V> & Nat:
   match fuel st:
@@ -808,20 +862,31 @@ def iterator_read(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +current: N
     case Tuple{px2, Some{M.Entry{+px5, px6}}}:
       iterator_checked(~K, ~V, ~cmp, px2, id, current, lower, upper, forward, M.Entry{px5, px6}, M.in_range(~K, ~V, ~cmp, px5, lower, upper))
 
-def view_contains_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K) -> MView<K, V> & Bool:
-  view_contains_value(~K, ~V, ~cmp, view_get(~K, ~V, ~cmp, view, k))
+def insert_uncle_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +u: Nat, +triangle: Bool, +uncle: M.Node<K>) -> ST.Sh<K, V> & M.Fix:
+  match uncle:
+    case M.N{True{}, px4, px5, px6, px7}:
+      (set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{}), M.Fix{g, True{}})
+    case M.Free{px2}:
+      insert_black_left(~K, ~V, ~cmp, m, z, p, g, triangle)
+    case M.N{False{}, px4, px5, px6, px7}:
+      insert_black_left(~K, ~V, ~cmp, m, z, p, g, triangle)
 
-def rotate_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
-  (m1, +xn) = pair_result
-  rotate_left_2(~K, ~V, ~cmp, x, xn, read(~K, ~V, ~cmp, m1, M.node_right(~K, xn)))
+def insert_uncle_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +u: Nat, +triangle: Bool, +uncle: M.Node<K>) -> ST.Sh<K, V> & M.Fix:
+  match uncle:
+    case M.N{True{}, px4, px5, px6, px7}:
+      (set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{}), M.Fix{g, True{}})
+    case M.Free{px2}:
+      insert_black_right(~K, ~V, ~cmp, m, z, p, g, triangle)
+    case M.N{False{}, px4, px5, px6, px7}:
+      insert_black_right(~K, ~V, ~cmp, m, z, p, g, triangle)
 
-def rotate_right_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V>:
-  (m1, +xn) = pair_result
-  rotate_right_2(~K, ~V, ~cmp, x, xn, read(~K, ~V, ~cmp, m1, M.node_left(~K, xn)))
+def delete_borrow_read_left_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & M.DeleteFix:
+  (m2, +wn) = pair_result
+  delete_borrow_left(~K, ~V, ~cmp, m2, p, M.node_right(~K, pn), pn, wn)
 
-def successor_ready(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, r: ST.Sh<K, V> & Nat) -> ST.Sh<K, V> & Nat:
-  (m, source) = r
-  move_successor(~K, ~V, ~cmp, m, target, source)
+def delete_borrow_read_right_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & M.DeleteFix:
+  (m2, +wn) = pair_result
+  delete_borrow_right(~K, ~V, ~cmp, m2, p, M.node_left(~K, pn), pn, wn)
 
 def navigate(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K, +higher: Bool, +inclusive: Bool) -> ST.Sh<K, V> & Nat:
   match m:
@@ -832,24 +897,21 @@ def iterator_next(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, cursor: MCursor<K, V>
   MC{m, +next, current, lower, upper, forward} = cursor
   iterator_read(~K, ~V, ~cmp, next, current, lower, upper, forward, entry_snapshot(~K, ~V, ~cmp, (m, next)))
 
-def rotate_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +x: Nat) -> ST.Sh<K, V>:
-  rotate_left_1(~K, ~V, ~cmp, x, read(~K, ~V, ~cmp, m, x))
+def insert_side_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & M.Fix:
+  (m1, +un) = pair_result
+  insert_uncle_left(~K, ~V, ~cmp, m1, z, p, g, M.node_right(~K, gn), Nat.is_eq(z, M.node_right(~K, pn)), un)
 
-def rotate_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +x: Nat) -> ST.Sh<K, V>:
-  rotate_right_1(~K, ~V, ~cmp, x, read(~K, ~V, ~cmp, m, x))
+def insert_side_right_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & M.Fix:
+  (m1, +un) = pair_result
+  insert_uncle_right(~K, ~V, ~cmp, m1, z, p, g, M.node_left(~K, gn), Nat.is_eq(z, M.node_left(~K, pn)), un)
 
-def delete_target(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, r: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & Nat:
-  match r:
-    case Tuple{px2, M.N{px5, 1n+px10, 1n+px11, px8, px9}}:
-      successor_ready(~K, ~V, ~cmp, id, extreme(~K, ~V, ~cmp, px2, 1n+px11, False{}))
-    case Tuple{px2, M.Free{px4}}:
-      (px2, id)
-    case Tuple{px2, M.N{px5, 0n, 0n, px8, px9}}:
-      (px2, id)
-    case Tuple{px2, M.N{px5, 0n, 1n+px12, px8, px9}}:
-      (px2, id)
-    case Tuple{px2, M.N{px5, 1n+px10, 0n, px8, px9}}:
-      (px2, id)
+def delete_borrow_read_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & M.DeleteFix:
+  (m1, +pn) = pair_result
+  delete_borrow_read_left_2(~K, ~V, ~cmp, p, pn, read(~K, ~V, ~cmp, m1, M.node_right(~K, pn)))
+
+def delete_borrow_read_right_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & M.DeleteFix:
+  (m1, +pn) = pair_result
+  delete_borrow_read_right_2(~K, ~V, ~cmp, p, pn, read(~K, ~V, ~cmp, m1, M.node_left(~K, pn)))
 
 def lower_key(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +k: K) -> ST.Sh<K, V> & Maybe<&2, K>:
   key_id(~K, ~V, ~cmp, navigate(~K, ~V, ~cmp, m, k, False{}, False{}))
@@ -924,25 +986,17 @@ def view_clear_next(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: MCursor<K, V> & 
   (cursor, removed) = r
   iterator_next(~K, ~V, ~cmp, cursor)
 
-def insert_black_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool) -> ST.Sh<K, V> & M.Fix:
-  match triangle:
-    case True{}:
-      (rotate_right(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g), M.Fix{0n, False{}})
-    case False{}:
-      (rotate_right(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g), M.Fix{0n, False{}})
+def insert_side_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>) -> ST.Sh<K, V> & M.Fix:
+  insert_side_left_1(~K, ~V, ~cmp, z, p, g, pn, gn, read(~K, ~V, ~cmp, m, M.node_right(~K, gn)))
 
-def insert_black_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool) -> ST.Sh<K, V> & M.Fix:
-  match triangle:
-    case True{}:
-      (rotate_left(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g), M.Fix{0n, False{}})
-    case False{}:
-      (rotate_left(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g), M.Fix{0n, False{}})
+def insert_side_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>) -> ST.Sh<K, V> & M.Fix:
+  insert_side_right_1(~K, ~V, ~cmp, z, p, g, pn, gn, read(~K, ~V, ~cmp, m, M.node_left(~K, gn)))
 
-def delete_borrow_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>) -> ST.Sh<K, V> & M.DeleteFix:
-  (rotate_left(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{}), p), M.DF{0n, 0n, False{}})
+def delete_borrow_read_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat) -> ST.Sh<K, V> & M.DeleteFix:
+  delete_borrow_read_left_1(~K, ~V, ~cmp, p, read(~K, ~V, ~cmp, m, p))
 
-def delete_borrow_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>) -> ST.Sh<K, V> & M.DeleteFix:
-  (rotate_right(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}), p), M.DF{0n, 0n, False{}})
+def delete_borrow_read_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat) -> ST.Sh<K, V> & M.DeleteFix:
+  delete_borrow_read_right_1(~K, ~V, ~cmp, p, read(~K, ~V, ~cmp, m, p))
 
 def view_iterator(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>) -> MCursor<K, V>:
   MV{m, +lower, +upper, +descending} = view
@@ -964,91 +1018,6 @@ def view_extreme(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +fi
   +up = M.pick(Bool, descending, Bool.not(first), first)
   view_entry_result(~K, ~V, ~cmp, lower, upper, descending, entry_snapshot(~K, ~V, ~cmp, range_start(~K, ~V, ~cmp, m, M.pick(M.Bound<K>, up, lower, upper), up)))
 
-def insert_uncle_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +u: Nat, +triangle: Bool, +uncle: M.Node<K>) -> ST.Sh<K, V> & M.Fix:
-  match uncle:
-    case M.N{True{}, px4, px5, px6, px7}:
-      (set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{}), M.Fix{g, True{}})
-    case M.Free{px2}:
-      insert_black_left(~K, ~V, ~cmp, m, z, p, g, triangle)
-    case M.N{False{}, px4, px5, px6, px7}:
-      insert_black_left(~K, ~V, ~cmp, m, z, p, g, triangle)
-
-def insert_uncle_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +u: Nat, +triangle: Bool, +uncle: M.Node<K>) -> ST.Sh<K, V> & M.Fix:
-  match uncle:
-    case M.N{True{}, px4, px5, px6, px7}:
-      (set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{}), M.Fix{g, True{}})
-    case M.Free{px2}:
-      insert_black_right(~K, ~V, ~cmp, m, z, p, g, triangle)
-    case M.N{False{}, px4, px5, px6, px7}:
-      insert_black_right(~K, ~V, ~cmp, m, z, p, g, triangle)
-
-def delete_borrow_read_left_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & M.DeleteFix:
-  (m2, +wn) = pair_result
-  delete_borrow_left(~K, ~V, ~cmp, m2, p, M.node_right(~K, pn), pn, wn)
-
-def delete_borrow_read_right_2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & M.DeleteFix:
-  (m2, +wn) = pair_result
-  delete_borrow_right(~K, ~V, ~cmp, m2, p, M.node_left(~K, pn), pn, wn)
-
-def contains_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, m: ST.Sh<K, V>, +wanted: V) -> ST.Sh<K, V> & Bool:
-  contains_value_start(~K, ~V, ~cmp, ~eq, wanted, size(~K, ~V, ~cmp, m))
-
-def view_nav(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K, +higher: Bool, +inclusive: Bool) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
-  MV{m, +lower, +upper, +descending} = view
-  +up = M.pick(Bool, descending, Bool.not(higher), higher)
-  view_entry_result(~K, ~V, ~cmp, lower, upper, descending, entry_snapshot(~K, ~V, ~cmp, view_nav_start(~K, ~V, ~cmp, m, k, lower, upper, up, inclusive, M.pick(Bool, up, M.above_lower(~K, ~V, ~cmp, k, lower), M.below_upper(~K, ~V, ~cmp, k, upper)))))
-
-def view_first_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
-  view_extreme(~K, ~V, ~cmp, view, True{})
-
-def view_last_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
-  view_extreme(~K, ~V, ~cmp, view, False{})
-
-def view_size(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>) -> MView<K, V> & Nat:
-  match view:
-    case MV{ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}, lower, upper, descending}:
-      view_count_loop(~K, ~V, ~cmp, 1n+n, 0n, iterator_next(~K, ~V, ~cmp, view_iterator(~K, ~V, ~cmp, MV{ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, lower, upper, descending})))
-
-def insert_side_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & M.Fix:
-  (m1, +un) = pair_result
-  insert_uncle_left(~K, ~V, ~cmp, m1, z, p, g, M.node_right(~K, gn), Nat.is_eq(z, M.node_right(~K, pn)), un)
-
-def insert_side_right_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & M.Fix:
-  (m1, +un) = pair_result
-  insert_uncle_right(~K, ~V, ~cmp, m1, z, p, g, M.node_left(~K, gn), Nat.is_eq(z, M.node_left(~K, pn)), un)
-
-def delete_borrow_read_left_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & M.DeleteFix:
-  (m1, +pn) = pair_result
-  delete_borrow_read_left_2(~K, ~V, ~cmp, p, pn, read(~K, ~V, ~cmp, m1, M.node_right(~K, pn)))
-
-def delete_borrow_read_right_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & M.DeleteFix:
-  (m1, +pn) = pair_result
-  delete_borrow_read_right_2(~K, ~V, ~cmp, p, pn, read(~K, ~V, ~cmp, m1, M.node_left(~K, pn)))
-
-def view_lower_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
-  view_nav(~K, ~V, ~cmp, view, k, False{}, False{})
-
-def view_floor_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
-  view_nav(~K, ~V, ~cmp, view, k, False{}, True{})
-
-def view_ceiling_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
-  view_nav(~K, ~V, ~cmp, view, k, True{}, True{})
-
-def view_higher_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
-  view_nav(~K, ~V, ~cmp, view, k, True{}, False{})
-
-def insert_side_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>) -> ST.Sh<K, V> & M.Fix:
-  insert_side_left_1(~K, ~V, ~cmp, z, p, g, pn, gn, read(~K, ~V, ~cmp, m, M.node_right(~K, gn)))
-
-def insert_side_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>) -> ST.Sh<K, V> & M.Fix:
-  insert_side_right_1(~K, ~V, ~cmp, z, p, g, pn, gn, read(~K, ~V, ~cmp, m, M.node_left(~K, gn)))
-
-def delete_borrow_read_left(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat) -> ST.Sh<K, V> & M.DeleteFix:
-  delete_borrow_read_left_1(~K, ~V, ~cmp, p, read(~K, ~V, ~cmp, m, p))
-
-def delete_borrow_read_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p: Nat) -> ST.Sh<K, V> & M.DeleteFix:
-  delete_borrow_read_right_1(~K, ~V, ~cmp, p, read(~K, ~V, ~cmp, m, p))
-
 def insert_side(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, +on_left: Bool) -> ST.Sh<K, V> & M.Fix:
   match on_left:
     case True{}:
@@ -1069,6 +1038,25 @@ def delete_far_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +p
       delete_borrow_right(~K, ~V, ~cmp, m, p, w, pn, wn)
     case False{}:
       delete_borrow_read_right(~K, ~V, ~cmp, rotate_left(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}), w), p)
+
+def contains_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, m: ST.Sh<K, V>, +wanted: V) -> ST.Sh<K, V> & Bool:
+  contains_value_start(~K, ~V, ~cmp, ~eq, wanted, size(~K, ~V, ~cmp, m))
+
+def view_nav(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K, +higher: Bool, +inclusive: Bool) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
+  MV{m, +lower, +upper, +descending} = view
+  +up = M.pick(Bool, descending, Bool.not(higher), higher)
+  view_entry_result(~K, ~V, ~cmp, lower, upper, descending, entry_snapshot(~K, ~V, ~cmp, view_nav_start(~K, ~V, ~cmp, m, k, lower, upper, up, inclusive, M.pick(Bool, up, M.above_lower(~K, ~V, ~cmp, k, lower), M.below_upper(~K, ~V, ~cmp, k, upper)))))
+
+def view_first_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
+  view_extreme(~K, ~V, ~cmp, view, True{})
+
+def view_last_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
+  view_extreme(~K, ~V, ~cmp, view, False{})
+
+def view_size(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>) -> MView<K, V> & Nat:
+  match view:
+    case MV{ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}, lower, upper, descending}:
+      view_count_loop(~K, ~V, ~cmp, 1n+n, 0n, iterator_next(~K, ~V, ~cmp, view_iterator(~K, ~V, ~cmp, MV{ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, lower, upper, descending})))
 
 def insert_grand_1(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>) -> ST.Sh<K, V> & M.Fix:
   (m1, +gn) = pair_result
@@ -1095,6 +1083,18 @@ def delete_children_right(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V
       delete_far_right(~K, ~V, ~cmp, m, p, w, pn, wn, far_red)
     case False{} True{}:
       delete_far_right(~K, ~V, ~cmp, m, p, w, pn, wn, far_red)
+
+def view_lower_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
+  view_nav(~K, ~V, ~cmp, view, k, False{}, False{})
+
+def view_floor_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
+  view_nav(~K, ~V, ~cmp, view, k, False{}, True{})
+
+def view_ceiling_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
+  view_nav(~K, ~V, ~cmp, view, k, True{}, True{})
+
+def view_higher_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, view: MView<K, V>, +k: K) -> MView<K, V> & Maybe<&2, M.Entry<K, V>>:
+  view_nav(~K, ~V, ~cmp, view, k, True{}, False{})
 
 def insert_grand(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +z: Nat, +p: Nat, +pn: M.Node<K>) -> ST.Sh<K, V> & M.Fix:
   insert_grand_1(~K, ~V, ~cmp, z, p, pn, read(~K, ~V, ~cmp, m, M.node_parent(~K, pn)))

@@ -19,7 +19,7 @@ def new_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp) -> {ST.real(~K, ~V, ~cmp, ST
   ({==}, ({==}, good_empty(~K, ~V, ~cmp, 31n, 0n, {==}, {==})))
 
 
-def wl_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: Nat, +b: Bool, +hb: {Nat.is_lt(k, 31n) == b : Bool}) -> {ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, D.clamp_limit(k, b), 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == M.TM{0n, 0n, 0n, 0n, 0n, D.DA{D.clamp_limit(k, b), 0n, 1n, 0n, D.empty_slots_at(~M.Node<K>, 0n)}, D.DA{D.clamp_limit(k, b), 0n, 1n, 0n, D.empty_slots_at(~Maybe<&2, V>, 0n)}} : M.TreeMap<K, V, cmp>} & ({ST.model(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, D.clamp_limit(k, b), 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == S.TM{S.pick(Nat, b, k, 31n), Nil{}} : S.Model<K, V>} & {ST.good(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, D.clamp_limit(k, b), 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == True{} : Bool}):
+def wl_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: Nat, +b: Bool, +hb: {Nat.is_lt(k, 31n) == b : Bool}) -> {ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, D.clamp_limit(k, b), 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == M.TM{0n, 0n, 0n, 0n, 0n, M.NS{D.clamp_limit(k, b), 0n, 1n, 0n, M.ns_nats(0n), M.ns_nats(0n), M.ns_nats(0n), M.ns_nats(0n), M.ns_nokeys(~K, 0n)}, D.DA{D.clamp_limit(k, b), 0n, 1n, 0n, D.empty_slots_at(~Maybe<&2, V>, 0n)}} : M.TreeMap<K, V, cmp>} & ({ST.model(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, D.clamp_limit(k, b), 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == S.TM{S.pick(Nat, b, k, 31n), Nil{}} : S.Model<K, V>} & {ST.good(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, D.clamp_limit(k, b), 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == True{} : Bool}):
   match b:
     case True{}:
       ({==}, ({==}, good_empty(~K, ~V, ~cmp, k, 0n, N.lt_le(k, 31n, hb), N.zero_le(k))))

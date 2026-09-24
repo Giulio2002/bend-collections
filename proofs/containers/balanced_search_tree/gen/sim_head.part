@@ -16,6 +16,7 @@ import ./mk.bend as MK
 import ./da.bend as DA
 import ./arr.bend as AB
 import ./prim.bend as PR
+import ./nsl.bend as NSL
 import ./mirror.bend as MI
 
 # The simulation: every implementation function applied to realizations of
@@ -124,7 +125,7 @@ def clear_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +g_m: {MI.dg(K, V
 def clear_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.clear(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m)) == ST.real(~K, ~V, ~cmp, MI.clear(~K, ~V, ~cmp, m)) : $TMT}:
   match m:
     case ST.SH{$FP}:
-      %Equal.sym(D.DynArray<&2, $ND>, D.clear_at(~$ND, ST.nodes(~K, l, d, nl)), DAS.real($ND, DAS.Sh{l, d, 0n, MK.mk($ND, d, Nil{})}), AB.blk_clear(~$ND, l, d, nl, $HL(g_m), $HD(g_m), $HC(g_m))) : {M.TM{0n, 0n, 0n, 0n, 0n, _, D.clear_at(~$MV, ST.pays(~V, l, d, pl))} == ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, t, fl}) : $TMT}
+      %Equal.sym(M.NodeStore<K>, M.ns_clear(~K, ST.nodes(~K, l, d, nl)), ST.nodes(~K, l, d, Nil{}), NSL.ns_clear_ok(~K, l, d, nl, $HL(g_m), $HD(g_m), $HC(g_m))) : {M.TM{0n, 0n, 0n, 0n, 0n, _, D.clear_at(~$MV, ST.pays(~V, l, d, pl))} == ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, t, fl}) : $TMT}
       %Equal.sym(D.DynArray<&2, $MV>, D.clear_at(~$MV, ST.pays(~V, l, d, pl)), DAS.real($MV, DAS.Sh{l, d, 0n, MK.mk($MV, d, Nil{})}), AB.blk_clear(~$MV, l, d, pl, $HL(g_m), $HD(g_m), L.subst(Nat, z => {Nat.is_le(z, SC.pow2(d)) == True{} : Bool}, SC.length($ND, nl), SC.length($MV, pl), Equal.sym(Nat, SC.length($MV, pl), SC.length($ND, nl), N.eq_from_is_eq(SC.length($MV, pl), SC.length($ND, nl), $HP(g_m))), $HC(g_m)))) : {M.TM{0n, 0n, 0n, 0n, 0n, ST.nodes(~K, l, d, Nil{}), _} == ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, t, fl}) : $TMT}
       {==}
 
@@ -163,19 +164,20 @@ def app_g(~K: Data, ~V: Data, $FT, +k: K, +v: V, +p: Nat, $PT, +room: Bool, +hr:
 %def PS ST.pays(~V, l, d, pl)
 %def RJ Result<&2, &2, M.Rejected<K, V>, Nat>
 %def DRU(T) D.DynArray<&2, T> & Result<&2, &2, DE.Error, Unit>
+%def NRU M.NodeStore<K> & Result<&2, &2, DE.Error, Unit>
 
-def app_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, +k: K, +v: V, +p: Nat, $PT, +room: Bool, +hr: {Nat.is_lt(SC.length($ND, nl), SC.pow2(d)) == room : Bool}, +grow: Bool, +hgr: {Nat.is_lt(d, l) == grow : Bool}) -> {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, k, v, 1n+SC.length($ND, nl), D.push_at(~$ND, $NS, $NN)) == MI.rp(~K, ~V, ~cmp, $RJ, $APP(room, grow)) : $TMT & $RJ}:
+def app_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FT, +k: K, +v: V, +p: Nat, $PT, +room: Bool, +hr: {Nat.is_lt(SC.length($ND, nl), SC.pow2(d)) == room : Bool}, +grow: Bool, +hgr: {Nat.is_lt(d, l) == grow : Bool}) -> {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, k, v, 1n+SC.length($ND, nl), M.ns_push(~K, $NS, $NN)) == MI.rp(~K, ~V, ~cmp, $RJ, $APP(room, grow)) : $TMT & $RJ}:
   match room grow:
     case True{} _:
-      %Equal.sym($DRU($ND), D.push_at(~$ND, $NS, $NN), (ST.nodes(~K, l, d, SC.snoc($ND, nl, $NN)), Done{Unit{}}), AB.blk_push_room(~$ND, l, d, nl, hl, hd, hc, $NN, hr)) : {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, k, v, 1n+SC.length($ND, nl), _) == MI.rp(~K, ~V, ~cmp, $RJ, $APP(True{}, grow)) : $TMT & $RJ}
+      %Equal.sym($NRU, M.ns_push(~K, $NS, $NN), (ST.nodes(~K, l, d, SC.snoc($ND, nl, $NN)), Done{Unit{}}), NSL.ns_push_room(~K, l, d, nl, hl, hd, hc, $NN, hr)) : {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, k, v, 1n+SC.length($ND, nl), _) == MI.rp(~K, ~V, ~cmp, $RJ, $APP(True{}, grow)) : $TMT & $RJ}
       %Equal.sym($DRU($MV), D.push_at(~$MV, $PS, Some{v}), (ST.pays(~V, l, d, SC.snoc($MV, pl, Some{v})), Done{Unit{}}), AB.blk_push_room(~$MV, l, d, pl, hl, hd, le_pl(~K, ~V, nl, pl, SC.pow2(d), hp, hc), Some{v}, lt_pl(~K, ~V, nl, pl, SC.pow2(d), True{}, hp, hr))) : {M.append_values(~K, ~V, ~cmp, n, root, lo, hi, free, ST.nodes(~K, l, d, SC.snoc($ND, nl, $NN)), k, v, 1n+SC.length($ND, nl), _) == MI.rp(~K, ~V, ~cmp, $RJ, $APP(True{}, grow)) : $TMT & $RJ}
       {==}
     case False{} True{}:
-      %Equal.sym($DRU($ND), D.push_at(~$ND, $NS, $NN), (ST.nodes(~K, l, 1n+d, SC.snoc($ND, nl, $NN)), Done{Unit{}}), AB.blk_push_grow(~$ND, l, d, nl, hl, hd, hc, $NN, hr, hgr)) : {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, k, v, 1n+SC.length($ND, nl), _) == MI.rp(~K, ~V, ~cmp, $RJ, $APP(False{}, True{})) : $TMT & $RJ}
+      %Equal.sym($NRU, M.ns_push(~K, $NS, $NN), (ST.nodes(~K, l, 1n+d, SC.snoc($ND, nl, $NN)), Done{Unit{}}), NSL.ns_push_grow(~K, l, d, nl, hl, hd, hc, $NN, hr, hgr)) : {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, k, v, 1n+SC.length($ND, nl), _) == MI.rp(~K, ~V, ~cmp, $RJ, $APP(False{}, True{})) : $TMT & $RJ}
       %Equal.sym($DRU($MV), D.push_at(~$MV, $PS, Some{v}), (ST.pays(~V, l, 1n+d, SC.snoc($MV, pl, Some{v})), Done{Unit{}}), AB.blk_push_grow(~$MV, l, d, pl, hl, hd, le_pl(~K, ~V, nl, pl, SC.pow2(d), hp, hc), Some{v}, lt_pl(~K, ~V, nl, pl, SC.pow2(d), False{}, hp, hr), hgr)) : {M.append_values(~K, ~V, ~cmp, n, root, lo, hi, free, ST.nodes(~K, l, 1n+d, SC.snoc($ND, nl, $NN)), k, v, 1n+SC.length($ND, nl), _) == MI.rp(~K, ~V, ~cmp, $RJ, $APP(False{}, True{})) : $TMT & $RJ}
       {==}
     case False{} False{}:
-      %Equal.sym($DRU($ND), D.push_at(~$ND, $NS, $NN), ($NS, Fail{DE.CapacityExceeded{}}), AB.blk_push_full(~$ND, l, d, nl, hl, hd, hc, $NN, hr, hgr)) : {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, k, v, 1n+SC.length($ND, nl), _) == MI.rp(~K, ~V, ~cmp, $RJ, $APP(False{}, False{})) : $TMT & $RJ}
+      %Equal.sym($NRU, M.ns_push(~K, $NS, $NN), ($NS, Fail{DE.CapacityExceeded{}}), NSL.ns_push_full(~K, l, d, nl, hl, hd, hc, $NN, hr, hgr)) : {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, k, v, 1n+SC.length($ND, nl), _) == MI.rp(~K, ~V, ~cmp, $RJ, $APP(False{}, False{})) : $TMT & $RJ}
       {==}
 
 def append_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +k: K, +v: V, +p: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, $RJ, MI.append(~K, ~V, ~cmp, m, k, v, p)) == True{} : Bool}:
@@ -190,8 +192,8 @@ def append_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +k: K, +v: V, +p
 
 # ---- the neighbour walks: slot reads are the node list's ----
 
-%def ARR Array<Maybe<&2, $ND>>
-%def AA AR.thaw(Maybe<&2, $ND>, MK.mk($ND, d, nl))
+%def ARR M.NodeStore<K>
+%def AA ST.nodes(~K, l, d, nl)
 %def UU SC.length($ND, nl)
 %def LDN +l: Nat, +d: Nat, +nl: List<&2, $ND>, +hl: {$B1 == True{} : Bool}, +hd: {$B2 == True{} : Bool}, +hc: {$B3 == True{} : Bool}
 %def LDA l, d, nl, hl, hd, hc
@@ -199,7 +201,7 @@ def append_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +k: K, +v: V, +p
 %def TT MK.mk($ND, d, nl)
 %def XX SC.nth($ND, LY.somes($ND, AR.slots(Maybe<&2, $ND>, $TT)), i)
 
-def nsdone(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, -arr: $ARR, +x: Maybe<&2, $ND>) -> {M.node_slot_done(~K, ~V, ~cmp, (arr, x)) == (arr, PR.or_else($ND, x, M.Free{0n})) : $ARR & $ND}:
+def nsdone(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, -arr: $ARR, +x: Maybe<&2, $ND>) -> {M.node_slot_done(~K, ~V, ~cmp, (arr, DA.item($ND, x))) == (arr, PR.or_else($ND, x, M.Free{0n})) : $ARR & $ND}:
   match x:
     case None{}:
       {==}
@@ -212,11 +214,8 @@ def nsb(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +i: Nat, +b: Bool, +hb: {
       %Equal.sym($ND, ST.nth_or($ND, nl, i, M.Free{0n}), M.Free{0n}, PR.nth_hi($ND, nl, i, M.Free{0n}, hb)) : {($AA, M.Free{0n}) == ($AA, _) : $ARR & $ND}
       {==}
     case True{}:
-      +g = AB.good_mk($ND, l, d, nl, hl, hd, hc)
-      +e = AR.get(Maybe<&2, $ND>, d, $TT, U32.from_nat(i), $XX, DAS.lt32(d, l, DAS.g_depth($ND, l, d, $UU, $TT, g), DAS.g_limit($ND, l, d, $UU, $TT, g)), DST.idx_lt($ND, l, d, $UU, $TT, i, g, DA.lt_cap(~$ND, l, d, $UU, $TT, g, i, hb)), DST.idx_slot($ND, l, d, $UU, $TT, i, $XX, g, DA.lt_cap(~$ND, l, d, $UU, $TT, g, i, hb), DA.slot_at(~$ND, l, d, $UU, $TT, g, i, hb)), DAS.g_perfect($ND, l, d, $UU, $TT, g))
-      %Equal.sym($ARR & Maybe<&2, $ND>, Array.get(Maybe<&2, $ND>, $AA, U32.from_nat(i)), ($AA, $XX), e) : {M.node_slot_done(~K, ~V, ~cmp, _) == ($AA, ST.nd(K, nl, 1n+i)) : $ARR & $ND}
-      %Equal.sym(List<&2, $ND>, LY.somes($ND, AR.slots(Maybe<&2, $ND>, $TT)), nl, AB.somes_mk($ND, d, nl, hc)) : {M.node_slot_done(~K, ~V, ~cmp, ($AA, SC.nth($ND, _, i))) == ($AA, ST.nd(K, nl, 1n+i)) : $ARR & $ND}
-      %Equal.sym($ND, ST.nth_or($ND, nl, i, M.Free{0n}), PR.or_else($ND, SC.nth($ND, nl, i), M.Free{0n}), PR.nth_or_nth($ND, nl, i, M.Free{0n})) : {M.node_slot_done(~K, ~V, ~cmp, ($AA, SC.nth($ND, nl, i))) == ($AA, _) : $ARR & $ND}
+      %Equal.sym($ARR & Result<&2, &2, DE.Error, $ND>, M.ns_get(~K, $AA, i), ($AA, DA.item($ND, SC.nth($ND, nl, i))), NSL.ns_get_ok(~K, l, d, nl, hl, hd, hc, i)) : {M.node_slot_done(~K, ~V, ~cmp, _) == ($AA, ST.nd(K, nl, 1n+i)) : $ARR & $ND}
+      %Equal.sym($ND, ST.nth_or($ND, nl, i, M.Free{0n}), PR.or_else($ND, SC.nth($ND, nl, i), M.Free{0n}), PR.nth_or_nth($ND, nl, i, M.Free{0n})) : {M.node_slot_done(~K, ~V, ~cmp, ($AA, DA.item($ND, SC.nth($ND, nl, i)))) == ($AA, _) : $ARR & $ND}
       nsdone(~K, ~V, ~cmp, $AA, SC.nth($ND, nl, i))
 
 def ns(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $LDN, +id: Nat) -> {M.node_slot(~K, ~V, ~cmp, $AA, $UU, id) == ($AA, ST.nd(K, nl, id)) : $ARR & $ND}:
@@ -270,5 +269,5 @@ def neighbor_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +forward:
 def neighbor_node_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +forward: Bool, r: $SHV & $ND, +g_r: {MI.dgp(K, V, $ND, r) == True{} : Bool}) -> {M.neighbor_node(~K, ~V, ~cmp, id, forward, MI.rp(~K, ~V, ~cmp, $ND, r)) == MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor_node(~K, ~V, ~cmp, id, forward, r)) : $TMT & Nat}:
   match r:
     case Tuple{ST.SH{$FP}, +node}:
-      %Equal.sym($ARR & Nat, M.neighbor_slots(~K, ~V, ~cmp, $AA, n, $UU, id, M.node_parent(~K, node), forward, M.child(~K, node, forward)), ($AA, MI.nbs(~K, nl, n, id, M.node_parent(~K, node), forward, M.child(~K, node, forward))), nbl(~K, ~V, ~cmp, l, d, nl, $HL(g_r), $HD(g_r), $HC(g_r), n, id, M.node_parent(~K, node), forward, M.child(~K, node, forward))) : {M.neighbor_slots_finish(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, SC.pow2(d), $UU, ST.pays(~V, l, d, pl), _) == MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor_node(~K, ~V, ~cmp, id, forward, Tuple{$SH0, node})) : $TMT & Nat}
+      %Equal.sym($ARR & Nat, M.neighbor_slots(~K, ~V, ~cmp, $AA, n, $UU, id, M.node_parent(~K, node), forward, M.child(~K, node, forward)), ($AA, MI.nbs(~K, nl, n, id, M.node_parent(~K, node), forward, M.child(~K, node, forward))), nbl(~K, ~V, ~cmp, l, d, nl, $HL(g_r), $HD(g_r), $HC(g_r), n, id, M.node_parent(~K, node), forward, M.child(~K, node, forward))) : {M.neighbor_slots_finish(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), _) == MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor_node(~K, ~V, ~cmp, id, forward, Tuple{$SH0, node})) : $TMT & Nat}
       {==}

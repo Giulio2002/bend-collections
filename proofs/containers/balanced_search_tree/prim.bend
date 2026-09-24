@@ -8,6 +8,7 @@ import ../../../src/containers/types/dynamic_array.bend as DE
 import ./state.bend as ST
 import ./da.bend as DA
 import ./arr.bend as AB
+import ./nsl.bend as NSL
 
 # The TreeMap's node and payload accesses over the shadow: a read returns
 # the list's node, a write or exchange updates the list in range.
@@ -56,7 +57,7 @@ def read_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +n: Nat, +root: Nat, +lo: Na
     case 0n:
       {==}
     case 1n+i:
-      %Equal.sym(D.DynArray<&2, M.Node<K>> & Result<&2, &2, DE.Error, M.Node<K>>, D.get_at(~M.Node<K>, ST.nodes(~K, l, d, nl), i), (ST.nodes(~K, l, d, nl), DA.item(M.Node<K>, SC.nth(M.Node<K>, nl, i))), AB.blk_get(~M.Node<K>, l, d, nl, hl, hd, hc, i)) : {M.read_finish(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), _) == (ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl}), ST.nd(K, nl, 1n+i)) : M.TreeMap<K, V, cmp> & M.Node<K>}
+      %Equal.sym(M.NodeStore<K> & Result<&2, &2, DE.Error, M.Node<K>>, M.ns_get(~K, ST.nodes(~K, l, d, nl), i), (ST.nodes(~K, l, d, nl), DA.item(M.Node<K>, SC.nth(M.Node<K>, nl, i))), NSL.ns_get_ok(~K, l, d, nl, hl, hd, hc, i)) : {M.read_finish(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), _) == (ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl}), ST.nd(K, nl, 1n+i)) : M.TreeMap<K, V, cmp> & M.Node<K>}
       %Equal.sym(M.Node<K>, ST.nth_or(M.Node<K>, nl, i, M.Free{0n}), or_else(M.Node<K>, SC.nth(M.Node<K>, nl, i), M.Free{0n}), nth_or_nth(M.Node<K>, nl, i, M.Free{0n})) : {M.read_finish(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), (ST.nodes(~K, l, d, nl), DA.item(M.Node<K>, SC.nth(M.Node<K>, nl, i)))) == (ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl}), _) : M.TreeMap<K, V, cmp> & M.Node<K>}
       rf(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, t, fl, SC.nth(M.Node<K>, nl, i))
 
@@ -91,10 +92,10 @@ def wr_nl(-K: Data, +nl: List<&2, M.Node<K>>, +id: Nat, +x: M.Node<K>) -> List<&
 def wr_c2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +t: ST.Tr, +fl: List<&2, Nat>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)) == True{} : Bool}, +hp: {Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)) == True{} : Bool}, +i: Nat, +x: M.Node<K>, +b: Bool, +hb: {Nat.is_lt(i, SC.length(M.Node<K>, nl)) == b : Bool}) -> {M.write(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl}), 1n+i, x) == ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, ST.pk(List<&2, M.Node<K>>, b, SC.update(M.Node<K>, nl, i, x), nl), pl, t, fl}) : M.TreeMap<K, V, cmp>}:
   match b:
     case True{}:
-      %Equal.sym(D.DynArray<&2, M.Node<K>> & Result<&2, &2, DE.Error, Unit>, D.set_at(~M.Node<K>, ST.nodes(~K, l, d, nl), i, x), (ST.nodes(~K, l, d, SC.update(M.Node<K>, nl, i, x)), Done{Unit{}}), AB.blk_set(~M.Node<K>, l, d, nl, hl, hd, hc, i, x, hb)) : {M.write_finish(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), _) == ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, SC.update(M.Node<K>, nl, i, x), pl, t, fl}) : M.TreeMap<K, V, cmp>}
+      %Equal.sym(M.NodeStore<K> & Result<&2, &2, DE.Error, Unit>, M.ns_set(~K, ST.nodes(~K, l, d, nl), i, x), (ST.nodes(~K, l, d, SC.update(M.Node<K>, nl, i, x)), Done{Unit{}}), NSL.ns_set_in(~K, l, d, nl, hl, hd, hc, i, x, hb)) : {M.write_finish(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), _) == ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, SC.update(M.Node<K>, nl, i, x), pl, t, fl}) : M.TreeMap<K, V, cmp>}
       {==}
     case False{}:
-      %Equal.sym(D.DynArray<&2, M.Node<K>> & Result<&2, &2, DE.Error, Unit>, D.set_at(~M.Node<K>, ST.nodes(~K, l, d, nl), i, x), (ST.nodes(~K, l, d, nl), Fail{DE.IndexOutOfRange{}}), AB.blk_set_out(~M.Node<K>, l, d, nl, hl, hd, hc, i, x, hb)) : {M.write_finish(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), _) == ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl}) : M.TreeMap<K, V, cmp>}
+      %Equal.sym(M.NodeStore<K> & Result<&2, &2, DE.Error, Unit>, M.ns_set(~K, ST.nodes(~K, l, d, nl), i, x), (ST.nodes(~K, l, d, nl), Fail{DE.IndexOutOfRange{}}), NSL.ns_set_out(~K, l, d, nl, hl, hd, hc, i, x, hb)) : {M.write_finish(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), _) == ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl}) : M.TreeMap<K, V, cmp>}
       {==}
 
 def write_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +t: ST.Tr, +fl: List<&2, Nat>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)) == True{} : Bool}, +hp: {Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)) == True{} : Bool}, +id: Nat, +x: M.Node<K>) -> {M.write(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl}), id, x) == ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, wr_nl(K, nl, id, x), pl, t, fl}) : M.TreeMap<K, V, cmp>}:

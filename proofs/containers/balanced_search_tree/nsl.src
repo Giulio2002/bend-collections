@@ -1,0 +1,217 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/list.bend as LL
+import ../../lib/array.bend as AR
+import ../../lib/spec_common.bend as SC
+import ../../../src/containers/balanced_search_tree.bend as M
+import ../../../src/containers/types/dynamic_array.bend as DE
+import ./bk.bend as BK
+import ./nsr.bend as NR
+import ./nsf.bend as NF
+import ./da.bend as DA
+
+# The TreeMap's node store (the ns_* functions of the implementation) on the
+# realization of a node list xs of length at most 2^d, d <= l <= 31: a read
+# returns the list's node, a write in range updates the list, an append
+# snocs it (doubling the capacity when full and below the limit), clear
+# empties it. These are the statements the dynamic-array lemmas of arr.bend
+# make for a dynamic array of nodes.
+
+%def ND M.Node<K>
+%def NSK M.NodeStore<K>
+%def RES Result<&2, &2, DE.Error, $ND>
+%def RU Result<&2, &2, DE.Error, Unit>
+%def NRL(d, xs) NR.real(~K, l, d, xs)
+%def TB(d, xs) AR.thaw(Nat, BK.bk(Nat, d, NR.tags(~K, xs), 0n))
+%def LB(d, xs) AR.thaw(Nat, BK.bk(Nat, d, NR.lefts(~K, xs), 0n))
+%def RB(d, xs) AR.thaw(Nat, BK.bk(Nat, d, NR.rights(~K, xs), 0n))
+%def PB(d, xs) AR.thaw(Nat, BK.bk(Nat, d, NR.parents(~K, xs), 0n))
+%def KB(d, xs) AR.thaw(Maybe<&2, K>, BK.bk(Maybe<&2, K>, d, NR.keys(~K, xs), None{}))
+%def ARRS(d, xs) $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)
+%def GP +l: Nat, +d: Nat, +xs: List<&2, $ND>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length($ND, xs), SC.pow2(d)) == True{} : Bool}
+%def GA l, d, xs, hl, hd, hc
+%def N0 SC.length($ND, xs)
+%def P0 SC.pow2(d)
+
+def isj(-A: Data, m: Maybe<&2, A>) -> Bool:
+  match m:
+    case None{}:
+      False{}
+    case Some{x}:
+      True{}
+
+# a slot below the length holds something
+def nth_isj(-A: Data, +xs: List<&2, A>, +i: Nat, +h: {Nat.is_lt(i, SC.length(A, xs)) == True{} : Bool}) -> {isj(A, SC.nth(A, xs, i)) == True{} : Bool}:
+  match xs i:
+    case Nil{} _:
+      Empty.absurd({isj(A, SC.nth(A, Nil{}, i)) == True{} : Bool}, N.lt_zero_absurd(i, h))
+    case Con{x, r} 0n:
+      {==}
+    case Con{x, +r} 1n+q:
+      nth_isj(A, r, q, h)
+
+def len_init(-A: Data, +xs: List<&2, A>, +m: Nat, +h: {SC.length(A, xs) == 1n+m : Nat}) -> {SC.length(A, SC.init(A, xs)) == m : Nat}:
+  match xs m:
+    case Nil{} _:
+      Empty.absurd({SC.length(A, SC.init(A, Nil{})) == m : Nat}, N.zero_succ(m, h))
+    case Con{x, Nil{}} 0n:
+      {==}
+    case Con{x, Nil{}} 1n+q:
+      Empty.absurd({SC.length(A, SC.init(A, Con{x, Nil{}})) == 1n+q : Nat}, N.zero_succ(q, N.succ_inj(0n, 1n+q, h)))
+    case Con{x, Con{y, t}} 0n:
+      Empty.absurd({SC.length(A, SC.init(A, Con{x, Con{y, t}})) == 0n : Nat}, N.succ_zero(SC.length(A, t), N.succ_inj(1n+SC.length(A, t), 0n, h)))
+    case Con{x, Con{+y, +t}} 1n+q:
+      N.succ_cong(SC.length(A, SC.init(A, Con{y, t})), q, len_init(A, Con{y, t}, q, N.succ_inj(1n+SC.length(A, t), 1n+q, h)))
+
+# a node is its encoding read back
+def mk_enc(~K: Data, +y: $ND) -> {M.mk_node(~K, M.ntag(~K, y), M.nleft(~K, y), M.nright(~K, y), M.nparent(~K, y), M.nkey(~K, y)) == y : $ND}:
+  match y:
+    case M.Free{x}:
+      {==}
+    case M.N{True{}, lf, rt, pa, k}:
+      {==}
+    case M.N{False{}, lf, rt, pa, k}:
+      {==}
+
+# ---- length ----
+
+def ns_length_ok(~K: Data, $GP) -> {M.ns_length(~K, $NRL(d, xs)) == ($NRL(d, xs), $N0) : $NSK & Nat}:
+  {==}
+
+# ---- read ----
+
+def get_some(~K: Data, $GP, +i: Nat, +y: $ND, +hy: {SC.nth($ND, xs, i) == Some{y} : Maybe<&2, $ND>}) -> {M.ns_get_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, True{}) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}:
+  %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $TB(d, xs), U32.from_nat(i)), ($TB(d, xs), M.ntag(~K, y)), NF.tag_get(~K, $GA, i, y, hy)) : {M.ns_rt(~K, l, d, $P0, $N0, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), U32.from_nat(i), _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
+  %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $LB(d, xs), U32.from_nat(i)), ($LB(d, xs), M.nleft(~K, y)), NF.left_get(~K, $GA, i, y, hy)) : {M.ns_rl(~K, l, d, $P0, $N0, $TB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), U32.from_nat(i), M.ntag(~K, y), _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
+  %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $RB(d, xs), U32.from_nat(i)), ($RB(d, xs), M.nright(~K, y)), NF.right_get(~K, $GA, i, y, hy)) : {M.ns_rr(~K, l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $PB(d, xs), $KB(d, xs), U32.from_nat(i), M.ntag(~K, y), M.nleft(~K, y), _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
+  %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $PB(d, xs), U32.from_nat(i)), ($PB(d, xs), M.nparent(~K, y)), NF.parent_get(~K, $GA, i, y, hy)) : {M.ns_rp(~K, l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $KB(d, xs), U32.from_nat(i), M.ntag(~K, y), M.nleft(~K, y), M.nright(~K, y), _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
+  %Equal.sym(Array<Maybe<&2, K>> & Maybe<&2, K>, Array.get(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i)), ($KB(d, xs), M.nkey(~K, y)), NF.key_get(~K, $GA, i, y, hy)) : {M.ns_rk(~K, l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, xs), M.ntag(~K, y), M.nleft(~K, y), M.nright(~K, y), M.nparent(~K, y), _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
+  %Equal.sym($ND, M.mk_node(~K, M.ntag(~K, y), M.nleft(~K, y), M.nright(~K, y), M.nparent(~K, y), M.nkey(~K, y)), y, mk_enc(~K, y)) : {(M.NS{l, d, $P0, $N0, $ARRS(d, xs)}, Done{_}) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
+  {==}
+
+def gs(~K: Data, $GP, +i: Nat, +mv: Maybe<&2, $ND>, +hmv: {SC.nth($ND, xs, i) == mv : Maybe<&2, $ND>}, +hi: {Nat.is_lt(i, $N0) == True{} : Bool}) -> {M.ns_get_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, True{}) == ($NRL(d, xs), DA.item($ND, mv)) : $NSK & $RES}:
+  match mv:
+    case None{}:
+      Empty.absurd({M.ns_get_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, True{}) == ($NRL(d, xs), DA.item($ND, None{})) : $NSK & $RES}, L.false_true(L.subst(Maybe<&2, $ND>, z => {isj($ND, z) == True{} : Bool}, SC.nth($ND, xs, i), None{}, hmv, nth_isj($ND, xs, i, hi))))
+    case Some{+y}:
+      get_some(~K, $GA, i, y, hmv)
+
+def gc(~K: Data, $GP, +i: Nat, +b: Bool, +hb: {Nat.is_lt(i, $N0) == b : Bool}) -> {M.ns_get_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, b) == ($NRL(d, xs), DA.item($ND, SC.nth($ND, xs, i))) : $NSK & $RES}:
+  match b:
+    case True{}:
+      gs(~K, $GA, i, SC.nth($ND, xs, i), {==}, hb)
+    case False{}:
+      %Equal.sym(Maybe<&2, $ND>, SC.nth($ND, xs, i), None{}, LL.nth_none($ND, xs, i, N.not_lt_le(i, $N0, hb))) : {M.ns_get_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, False{}) == ($NRL(d, xs), DA.item($ND, _)) : $NSK & $RES}
+      {==}
+
+# a read returns the list's node (IndexOutOfRange past the length)
+def ns_get_ok(~K: Data, $GP, +i: Nat) -> {M.ns_get(~K, $NRL(d, xs), i) == ($NRL(d, xs), DA.item($ND, SC.nth($ND, xs, i))) : $NSK & $RES}:
+  gc(~K, $GA, i, Nat.is_lt(i, $N0), {==})
+
+# ---- write ----
+
+%def UPD SC.update($ND, xs, i, x)
+
+def set_some(~K: Data, $GP, +i: Nat, +x: $ND, +y0: $ND, +hy0: {SC.nth($ND, xs, i) == Some{y0} : Maybe<&2, $ND>}) -> {M.ns_set_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, x, True{}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}:
+  %Equal.sym(Array<Nat>, Array.set(Nat, $TB(d, xs), U32.from_nat(i), M.ntag(~K, x)), $TB(d, $UPD), NF.tag_set(~K, $GA, i, y0, hy0, x)) : {(M.NS{l, d, $P0, $N0, _, Array.set(Nat, $LB(d, xs), U32.from_nat(i), M.nleft(~K, x)), Array.set(Nat, $RB(d, xs), U32.from_nat(i), M.nright(~K, x)), Array.set(Nat, $PB(d, xs), U32.from_nat(i), M.nparent(~K, x)), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i), M.nkey(~K, x))}, Done{Unit{}}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}
+  %Equal.sym(Array<Nat>, Array.set(Nat, $LB(d, xs), U32.from_nat(i), M.nleft(~K, x)), $LB(d, $UPD), NF.left_set(~K, $GA, i, y0, hy0, x)) : {(M.NS{l, d, $P0, $N0, $TB(d, $UPD), _, Array.set(Nat, $RB(d, xs), U32.from_nat(i), M.nright(~K, x)), Array.set(Nat, $PB(d, xs), U32.from_nat(i), M.nparent(~K, x)), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i), M.nkey(~K, x))}, Done{Unit{}}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}
+  %Equal.sym(Array<Nat>, Array.set(Nat, $RB(d, xs), U32.from_nat(i), M.nright(~K, x)), $RB(d, $UPD), NF.right_set(~K, $GA, i, y0, hy0, x)) : {(M.NS{l, d, $P0, $N0, $TB(d, $UPD), $LB(d, $UPD), _, Array.set(Nat, $PB(d, xs), U32.from_nat(i), M.nparent(~K, x)), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i), M.nkey(~K, x))}, Done{Unit{}}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}
+  %Equal.sym(Array<Nat>, Array.set(Nat, $PB(d, xs), U32.from_nat(i), M.nparent(~K, x)), $PB(d, $UPD), NF.parent_set(~K, $GA, i, y0, hy0, x)) : {(M.NS{l, d, $P0, $N0, $TB(d, $UPD), $LB(d, $UPD), $RB(d, $UPD), _, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i), M.nkey(~K, x))}, Done{Unit{}}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}
+  %Equal.sym(Array<Maybe<&2, K>>, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i), M.nkey(~K, x)), $KB(d, $UPD), NF.key_set(~K, $GA, i, y0, hy0, x)) : {(M.NS{l, d, $P0, $N0, $TB(d, $UPD), $LB(d, $UPD), $RB(d, $UPD), $PB(d, $UPD), _}, Done{Unit{}}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}
+  %Equal.sym(Nat, SC.length($ND, $UPD), $N0, LL.length_update($ND, xs, i, x)) : {(M.NS{l, d, $P0, $N0, $ARRS(d, $UPD)}, Done{Unit{}}) == (M.NS{l, d, $P0, _, $ARRS(d, $UPD)}, Done{Unit{}}) : $NSK & $RU}
+  {==}
+
+def ws(~K: Data, $GP, +i: Nat, +x: $ND, +mv: Maybe<&2, $ND>, +hmv: {SC.nth($ND, xs, i) == mv : Maybe<&2, $ND>}, +hi: {Nat.is_lt(i, $N0) == True{} : Bool}) -> {M.ns_set_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, x, True{}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}:
+  match mv:
+    case None{}:
+      Empty.absurd({M.ns_set_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, x, True{}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}, L.false_true(L.subst(Maybe<&2, $ND>, z => {isj($ND, z) == True{} : Bool}, SC.nth($ND, xs, i), None{}, hmv, nth_isj($ND, xs, i, hi))))
+    case Some{+y0}:
+      set_some(~K, $GA, i, x, y0, hmv)
+
+# a write below the length updates the list
+def ns_set_in(~K: Data, $GP, +i: Nat, +x: $ND, +h: {Nat.is_lt(i, $N0) == True{} : Bool}) -> {M.ns_set(~K, $NRL(d, xs), i, x) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}:
+  %Equal.sym(Bool, Nat.is_lt(i, $N0), True{}, h) : {M.ns_set_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, x, _) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}
+  ws(~K, $GA, i, x, SC.nth($ND, xs, i), {==}, h)
+
+# a write past the length changes nothing
+def ns_set_out(~K: Data, $GP, +i: Nat, +x: $ND, +h: {Nat.is_lt(i, $N0) == False{} : Bool}) -> {M.ns_set(~K, $NRL(d, xs), i, x) == ($NRL(d, xs), Fail{DE.IndexOutOfRange{}}) : $NSK & $RU}:
+  %Equal.sym(Bool, Nat.is_lt(i, $N0), False{}, h) : {M.ns_set_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, x, _) == ($NRL(d, xs), Fail{DE.IndexOutOfRange{}}) : $NSK & $RU}
+  {==}
+
+# ---- append ----
+
+%def SN SC.snoc($ND, xs, x)
+%def PUT(dd, arr) M.ns_put(~K, l, dd, arr, U32.from_nat($N0), x)
+
+def push_at(~K: Data, $GP, +x: $ND, +hn: {Nat.is_lt($N0, $P0) == True{} : Bool}) -> {M.ns_put(~K, l, d, $P0, 1n+$N0, $ARRS(d, xs), U32.from_nat($N0), x) == $NRL(d, $SN) : $NSK}:
+  %Equal.sym(Array<Nat>, Array.set(Nat, $TB(d, xs), U32.from_nat($N0), M.ntag(~K, x)), $TB(d, $SN), NF.tag_push(~K, $GA, x, hn)) : {M.NS{l, d, $P0, 1n+$N0, _, Array.set(Nat, $LB(d, xs), U32.from_nat($N0), M.nleft(~K, x)), Array.set(Nat, $RB(d, xs), U32.from_nat($N0), M.nright(~K, x)), Array.set(Nat, $PB(d, xs), U32.from_nat($N0), M.nparent(~K, x)), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat($N0), M.nkey(~K, x))} == $NRL(d, $SN) : $NSK}
+  %Equal.sym(Array<Nat>, Array.set(Nat, $LB(d, xs), U32.from_nat($N0), M.nleft(~K, x)), $LB(d, $SN), NF.left_push(~K, $GA, x, hn)) : {M.NS{l, d, $P0, 1n+$N0, $TB(d, $SN), _, Array.set(Nat, $RB(d, xs), U32.from_nat($N0), M.nright(~K, x)), Array.set(Nat, $PB(d, xs), U32.from_nat($N0), M.nparent(~K, x)), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat($N0), M.nkey(~K, x))} == $NRL(d, $SN) : $NSK}
+  %Equal.sym(Array<Nat>, Array.set(Nat, $RB(d, xs), U32.from_nat($N0), M.nright(~K, x)), $RB(d, $SN), NF.right_push(~K, $GA, x, hn)) : {M.NS{l, d, $P0, 1n+$N0, $TB(d, $SN), $LB(d, $SN), _, Array.set(Nat, $PB(d, xs), U32.from_nat($N0), M.nparent(~K, x)), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat($N0), M.nkey(~K, x))} == $NRL(d, $SN) : $NSK}
+  %Equal.sym(Array<Nat>, Array.set(Nat, $PB(d, xs), U32.from_nat($N0), M.nparent(~K, x)), $PB(d, $SN), NF.parent_push(~K, $GA, x, hn)) : {M.NS{l, d, $P0, 1n+$N0, $TB(d, $SN), $LB(d, $SN), $RB(d, $SN), _, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat($N0), M.nkey(~K, x))} == $NRL(d, $SN) : $NSK}
+  %Equal.sym(Array<Maybe<&2, K>>, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat($N0), M.nkey(~K, x)), $KB(d, $SN), NF.key_push(~K, $GA, x, hn)) : {M.NS{l, d, $P0, 1n+$N0, $TB(d, $SN), $LB(d, $SN), $RB(d, $SN), $PB(d, $SN), _} == $NRL(d, $SN) : $NSK}
+  %Equal.sym(Nat, SC.length($ND, $SN), 1n+$N0, LL.length_snoc($ND, xs, x)) : {M.NS{l, d, $P0, 1n+$N0, $ARRS(d, $SN)} == M.NS{l, d, $P0, _, $ARRS(d, $SN)} : $NSK}
+  {==}
+
+# with room: the node appended
+def ns_push_room(~K: Data, $GP, +x: $ND, +hn: {Nat.is_lt($N0, $P0) == True{} : Bool}) -> {M.ns_push(~K, $NRL(d, xs), x) == ($NRL(d, $SN), Done{Unit{}}) : $NSK & $RU}:
+  %Equal.sym(Bool, Nat.is_lt($N0, $P0), True{}, hn) : {M.ns_push_room(~K, l, d, $P0, $N0, $ARRS(d, xs), x, _, Nat.is_lt(d, l)) == ($NRL(d, $SN), Done{Unit{}}) : $NSK & $RU}
+  Equal.cong($NSK, $NSK & $RU, z => (z, Done{Unit{}}), M.ns_put(~K, l, d, $P0, 1n+$N0, $ARRS(d, xs), U32.from_nat($N0), x), $NRL(d, $SN), push_at(~K, $GA, x, hn))
+
+# full and below the limit: the blocks doubled, then the node appended
+def ns_push_grow(~K: Data, $GP, +x: $ND, +hn: {Nat.is_lt($N0, $P0) == False{} : Bool}, +hdl: {Nat.is_lt(d, l) == True{} : Bool}) -> {M.ns_push(~K, $NRL(d, xs), x) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}:
+  +hd1 = N.lt_succ_le_succ(d, l, hdl)
+  +hc1 = N.le_trans($N0, $P0, SC.pow2(1n+d), hc, N.lt_le($P0, SC.pow2(1n+d), N.pow2_lt_succ(d)))
+  +hn1 = N.le_lt_trans($N0, $P0, SC.pow2(1n+d), hc, N.pow2_lt_succ(d))
+  %Equal.sym(Bool, Nat.is_lt($N0, $P0), False{}, hn) : {M.ns_push_room(~K, l, d, $P0, $N0, $ARRS(d, xs), x, _, Nat.is_lt(d, l)) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
+  %Equal.sym(Bool, Nat.is_lt(d, l), True{}, hdl) : {M.ns_push_room(~K, l, d, $P0, $N0, $ARRS(d, xs), x, False{}, _) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
+  %Equal.sym(Array<Nat>, ANode{$TB(d, xs), Array.new(Nat, d, 0n)}, $TB(1n+d, xs), NF.tag_grow(~K, $GA)) : {(M.ns_put(~K, l, 1n+d, Nat.double($P0), 1n+$N0, _, M.ns_grow_nats(d, $LB(d, xs)), M.ns_grow_nats(d, $RB(d, xs)), M.ns_grow_nats(d, $PB(d, xs)), M.ns_grow_keys(~K, d, $KB(d, xs)), U32.from_nat($N0), x), Done{Unit{}}) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
+  %Equal.sym(Array<Nat>, ANode{$LB(d, xs), Array.new(Nat, d, 0n)}, $LB(1n+d, xs), NF.left_grow(~K, $GA)) : {(M.ns_put(~K, l, 1n+d, Nat.double($P0), 1n+$N0, $TB(1n+d, xs), _, M.ns_grow_nats(d, $RB(d, xs)), M.ns_grow_nats(d, $PB(d, xs)), M.ns_grow_keys(~K, d, $KB(d, xs)), U32.from_nat($N0), x), Done{Unit{}}) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
+  %Equal.sym(Array<Nat>, ANode{$RB(d, xs), Array.new(Nat, d, 0n)}, $RB(1n+d, xs), NF.right_grow(~K, $GA)) : {(M.ns_put(~K, l, 1n+d, Nat.double($P0), 1n+$N0, $TB(1n+d, xs), $LB(1n+d, xs), _, M.ns_grow_nats(d, $PB(d, xs)), M.ns_grow_keys(~K, d, $KB(d, xs)), U32.from_nat($N0), x), Done{Unit{}}) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
+  %Equal.sym(Array<Nat>, ANode{$PB(d, xs), Array.new(Nat, d, 0n)}, $PB(1n+d, xs), NF.parent_grow(~K, $GA)) : {(M.ns_put(~K, l, 1n+d, Nat.double($P0), 1n+$N0, $TB(1n+d, xs), $LB(1n+d, xs), $RB(1n+d, xs), _, M.ns_grow_keys(~K, d, $KB(d, xs)), U32.from_nat($N0), x), Done{Unit{}}) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
+  %Equal.sym(Array<Maybe<&2, K>>, ANode{$KB(d, xs), Array.new(Maybe<&2, K>, d, None{})}, $KB(1n+d, xs), NF.key_grow(~K, $GA)) : {(M.ns_put(~K, l, 1n+d, Nat.double($P0), 1n+$N0, $TB(1n+d, xs), $LB(1n+d, xs), $RB(1n+d, xs), $PB(1n+d, xs), _, U32.from_nat($N0), x), Done{Unit{}}) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
+  Equal.cong($NSK, $NSK & $RU, z => (z, Done{Unit{}}), M.ns_put(~K, l, 1n+d, SC.pow2(1n+d), 1n+$N0, $ARRS(1n+d, xs), U32.from_nat($N0), x), $NRL(1n+d, $SN), push_at(~K, l, 1n+d, xs, hl, hd1, hc1, x, hn1))
+
+# full at the limit: nothing changes
+def ns_push_full(~K: Data, $GP, +x: $ND, +hn: {Nat.is_lt($N0, $P0) == False{} : Bool}, +hdl: {Nat.is_lt(d, l) == False{} : Bool}) -> {M.ns_push(~K, $NRL(d, xs), x) == ($NRL(d, xs), Fail{DE.CapacityExceeded{}}) : $NSK & $RU}:
+  %Equal.sym(Bool, Nat.is_lt($N0, $P0), False{}, hn) : {M.ns_push_room(~K, l, d, $P0, $N0, $ARRS(d, xs), x, _, Nat.is_lt(d, l)) == ($NRL(d, xs), Fail{DE.CapacityExceeded{}}) : $NSK & $RU}
+  %Equal.sym(Bool, Nat.is_lt(d, l), False{}, hdl) : {M.ns_push_room(~K, l, d, $P0, $N0, $ARRS(d, xs), x, False{}, _) == ($NRL(d, xs), Fail{DE.CapacityExceeded{}}) : $NSK & $RU}
+  {==}
+
+# ---- clear ----
+
+%def IN SC.init($ND, xs)
+
+def drop_some(~K: Data, $GP, +m: Nat, +hm: {$N0 == 1n+m : Nat}, +y0: $ND, +hy0: {SC.nth($ND, xs, m) == Some{y0} : Maybe<&2, $ND>}) -> {M.ns_drop(~K, $NRL(d, xs), m) == $NRL(d, $IN) : $NSK}:
+  %Equal.sym(Array<Nat>, Array.set(Nat, $TB(d, xs), U32.from_nat(m), M.ntag(~K, M.Free{0n})), $TB(d, $IN), NF.tag_drop(~K, $GA, m, hm, y0, hy0)) : {M.NS{l, d, $P0, m, _, Array.set(Nat, $LB(d, xs), U32.from_nat(m), M.nleft(~K, M.Free{0n})), Array.set(Nat, $RB(d, xs), U32.from_nat(m), M.nright(~K, M.Free{0n})), Array.set(Nat, $PB(d, xs), U32.from_nat(m), M.nparent(~K, M.Free{0n})), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(m), M.nkey(~K, M.Free{0n}))} == $NRL(d, $IN) : $NSK}
+  %Equal.sym(Array<Nat>, Array.set(Nat, $LB(d, xs), U32.from_nat(m), M.nleft(~K, M.Free{0n})), $LB(d, $IN), NF.left_drop(~K, $GA, m, hm, y0, hy0)) : {M.NS{l, d, $P0, m, $TB(d, $IN), _, Array.set(Nat, $RB(d, xs), U32.from_nat(m), M.nright(~K, M.Free{0n})), Array.set(Nat, $PB(d, xs), U32.from_nat(m), M.nparent(~K, M.Free{0n})), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(m), M.nkey(~K, M.Free{0n}))} == $NRL(d, $IN) : $NSK}
+  %Equal.sym(Array<Nat>, Array.set(Nat, $RB(d, xs), U32.from_nat(m), M.nright(~K, M.Free{0n})), $RB(d, $IN), NF.right_drop(~K, $GA, m, hm, y0, hy0)) : {M.NS{l, d, $P0, m, $TB(d, $IN), $LB(d, $IN), _, Array.set(Nat, $PB(d, xs), U32.from_nat(m), M.nparent(~K, M.Free{0n})), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(m), M.nkey(~K, M.Free{0n}))} == $NRL(d, $IN) : $NSK}
+  %Equal.sym(Array<Nat>, Array.set(Nat, $PB(d, xs), U32.from_nat(m), M.nparent(~K, M.Free{0n})), $PB(d, $IN), NF.parent_drop(~K, $GA, m, hm, y0, hy0)) : {M.NS{l, d, $P0, m, $TB(d, $IN), $LB(d, $IN), $RB(d, $IN), _, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(m), M.nkey(~K, M.Free{0n}))} == $NRL(d, $IN) : $NSK}
+  %Equal.sym(Array<Maybe<&2, K>>, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(m), M.nkey(~K, M.Free{0n})), $KB(d, $IN), NF.key_drop(~K, $GA, m, hm, y0, hy0)) : {M.NS{l, d, $P0, m, $TB(d, $IN), $LB(d, $IN), $RB(d, $IN), $PB(d, $IN), _} == $NRL(d, $IN) : $NSK}
+  %Equal.sym(Nat, SC.length($ND, $IN), m, len_init($ND, xs, m, hm)) : {M.NS{l, d, $P0, m, $ARRS(d, $IN)} == M.NS{l, d, $P0, _, $ARRS(d, $IN)} : $NSK}
+  {==}
+
+def dr(~K: Data, $GP, +m: Nat, +hm: {$N0 == 1n+m : Nat}, +mv: Maybe<&2, $ND>, +hmv: {SC.nth($ND, xs, m) == mv : Maybe<&2, $ND>}) -> {M.ns_drop(~K, $NRL(d, xs), m) == $NRL(d, $IN) : $NSK}:
+  match mv:
+    case None{}:
+      +hi = L.subst(Nat, z => {Nat.is_lt(m, z) == True{} : Bool}, 1n+m, $N0, Equal.sym(Nat, $N0, 1n+m, hm), N.lt_succ(m))
+      Empty.absurd({M.ns_drop(~K, $NRL(d, xs), m) == $NRL(d, $IN) : $NSK}, L.false_true(L.subst(Maybe<&2, $ND>, z => {isj($ND, z) == True{} : Bool}, SC.nth($ND, xs, m), None{}, hmv, nth_isj($ND, xs, m, hi))))
+    case Some{+y0}:
+      drop_some(~K, $GA, m, hm, y0, hmv)
+
+# dropping the last live slot: the list without its last node
+def ns_drop_ok(~K: Data, $GP, +m: Nat, +hm: {$N0 == 1n+m : Nat}) -> {M.ns_drop(~K, $NRL(d, xs), m) == $NRL(d, $IN) : $NSK}:
+  dr(~K, $GA, m, hm, SC.nth($ND, xs, m), {==})
+
+def clr(~K: Data, +k: Nat, $GP, +hk: {$N0 == k : Nat}) -> {M.ns_clear_go(~K, k, $NRL(d, xs)) == $NRL(d, Nil{}) : $NSK}:
+  match k:
+    case 0n:
+      Equal.cong(List<&2, $ND>, $NSK, z => $NRL(d, z), xs, Nil{}, LL.length_zero_nil($ND, xs, hk))
+    case 1n+ +m:
+      +hm2 = len_init($ND, xs, m, hk)
+      %Equal.sym($NSK, M.ns_drop(~K, $NRL(d, xs), m), $NRL(d, $IN), ns_drop_ok(~K, $GA, m, hk)) : {M.ns_clear_go(~K, m, _) == $NRL(d, Nil{}) : $NSK}
+      clr(~K, m, l, d, $IN, hl, hd, N.le_trans(SC.length($ND, $IN), 1n+m, $P0, L.subst(Nat, z => {Nat.is_le(z, 1n+m) == True{} : Bool}, m, SC.length($ND, $IN), Equal.sym(Nat, SC.length($ND, $IN), m, hm2), N.le_succ(m)), L.subst(Nat, z => {Nat.is_le(z, $P0) == True{} : Bool}, $N0, 1n+m, hk, hc)), hm2)
+
+# clear empties the list, keeping the capacity
+def ns_clear_ok(~K: Data, $GP) -> {M.ns_clear(~K, $NRL(d, xs)) == $NRL(d, Nil{}) : $NSK}:
+  clr(~K, $N0, $GA, {==})

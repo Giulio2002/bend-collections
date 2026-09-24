@@ -324,7 +324,7 @@ HANDF = {"new", "with_limit", "clear", "read", "write", "exchange", "get_id", "a
 SKIP = {"read_finish", "write_finish", "exchange_finish", "append_rollback", "get_id_finish", "node_slot_done",
         "neighbor_slots_finish", "append_values", "node_slot_checked", "ascend_slots_step", "node_slot",
         "extreme_slots_probe", "ascend_slots_loop", "extreme_slots_loop", "append_nodes", "append_count",
-        "neighbor_slots"}
+        "neighbor_slots", "neighbor_used"}
 
 
 def classify(fns):

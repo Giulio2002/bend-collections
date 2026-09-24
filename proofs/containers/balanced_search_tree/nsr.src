@@ -1,0 +1,29 @@
+import Base
+import ../../lib/spec_common.bend as SC
+import ../../lib/array.bend as AR
+import ../../../src/containers/balanced_search_tree.bend as M
+import ./bk.bend as BK
+
+# The TreeMap's node store realized from a node list: one block per field
+# (bk.bend), each holding that field of every node (ntag, nleft, nright,
+# nparent, nkey) padded with the encoding of Free{0}.
+
+%def ND M.Node<K>
+
+%tmpl FL(QN, QT, QF)
+def QN##s(~K: Data, xs: List<&2, $ND>) -> List<&2, QT>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{x, r}:
+      Con{QF(~K, x), QN##s(~K, r)}
+
+%end
+%use FL(tag, Nat, M.ntag)
+%use FL(left, Nat, M.nleft)
+%use FL(right, Nat, M.nright)
+%use FL(parent, Nat, M.nparent)
+%use FL(key, <|Maybe<&2, K>|>, M.nkey)
+
+def real(~K: Data, +l: Nat, +d: Nat, +nl: List<&2, $ND>) -> M.NodeStore<K>:
+  M.NS{l, d, SC.pow2(d), SC.length($ND, nl), AR.thaw(Nat, BK.bk(Nat, d, tags(~K, nl), 0n)), AR.thaw(Nat, BK.bk(Nat, d, lefts(~K, nl), 0n)), AR.thaw(Nat, BK.bk(Nat, d, rights(~K, nl), 0n)), AR.thaw(Nat, BK.bk(Nat, d, parents(~K, nl), 0n)), AR.thaw(Maybe<&2, K>, BK.bk(Maybe<&2, K>, d, keys(~K, nl), None{}))}

@@ -8,6 +8,7 @@ import ../../../src/containers/types/dynamic_array.bend as DE
 import ./state.bend as ST
 import ./da.bend as DA
 import ./arr.bend as AB
+import ./nsl.bend as NSL
 
 # The TreeMap's node and payload accesses over the shadow: a read returns
 # the list's node, a write or exchange updates the list in range.
@@ -69,7 +70,7 @@ def read_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FP, $DG, +id: Nat) -> {M.re
     case 0n:
       {==}
     case 1n+i:
-      %Equal.sym($DR($ND), D.get_at(~$ND, $NS, i), ($NS, DA.item($ND, SC.nth($ND, nl, i))), AB.blk_get(~$ND, l, d, nl, hl, hd, hc, i)) : {M.read_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, _) == ($R0, ST.nd(K, nl, 1n+i)) : $TMT & $ND}
+      %Equal.sym(M.NodeStore<K> & Result<&2, &2, DE.Error, $ND>, M.ns_get(~K, $NS, i), ($NS, DA.item($ND, SC.nth($ND, nl, i))), NSL.ns_get_ok(~K, l, d, nl, hl, hd, hc, i)) : {M.read_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, _) == ($R0, ST.nd(K, nl, 1n+i)) : $TMT & $ND}
       %Equal.sym($ND, ST.nth_or($ND, nl, i, M.Free{0n}), or_else($ND, SC.nth($ND, nl, i), M.Free{0n}), nth_or_nth($ND, nl, i, M.Free{0n})) : {M.read_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, ($NS, DA.item($ND, SC.nth($ND, nl, i)))) == ($R0, _) : $TMT & $ND}
       rf(~K, ~V, ~cmp, $F, SC.nth($ND, nl, i))
 
@@ -104,10 +105,10 @@ def wr_nl(-K: Data, +nl: List<&2, $ND>, +id: Nat, +x: $ND) -> List<&2, $ND>:
 def wr_c2(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FP, $DG, +i: Nat, +x: $ND, +b: Bool, +hb: {Nat.is_lt(i, SC.length($ND, nl)) == b : Bool}) -> {M.write(~K, ~V, ~cmp, $R0, 1n+i, x) == $RS(n, root, lo, hi, free, l, d, ST.pk(List<&2, $ND>, b, SC.update($ND, nl, i, x), nl), pl, t, fl) : $TMT}:
   match b:
     case True{}:
-      %Equal.sym(D.DynArray<&2, $ND> & Result<&2, &2, DE.Error, Unit>, D.set_at(~$ND, $NS, i, x), (ST.nodes(~K, l, d, SC.update($ND, nl, i, x)), Done{Unit{}}), AB.blk_set(~$ND, l, d, nl, hl, hd, hc, i, x, hb)) : {M.write_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, _) == $RS(n, root, lo, hi, free, l, d, SC.update($ND, nl, i, x), pl, t, fl) : $TMT}
+      %Equal.sym(M.NodeStore<K> & Result<&2, &2, DE.Error, Unit>, M.ns_set(~K, $NS, i, x), (ST.nodes(~K, l, d, SC.update($ND, nl, i, x)), Done{Unit{}}), NSL.ns_set_in(~K, l, d, nl, hl, hd, hc, i, x, hb)) : {M.write_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, _) == $RS(n, root, lo, hi, free, l, d, SC.update($ND, nl, i, x), pl, t, fl) : $TMT}
       {==}
     case False{}:
-      %Equal.sym(D.DynArray<&2, $ND> & Result<&2, &2, DE.Error, Unit>, D.set_at(~$ND, $NS, i, x), ($NS, Fail{DE.IndexOutOfRange{}}), AB.blk_set_out(~$ND, l, d, nl, hl, hd, hc, i, x, hb)) : {M.write_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, _) == $R0 : $TMT}
+      %Equal.sym(M.NodeStore<K> & Result<&2, &2, DE.Error, Unit>, M.ns_set(~K, $NS, i, x), ($NS, Fail{DE.IndexOutOfRange{}}), NSL.ns_set_out(~K, l, d, nl, hl, hd, hc, i, x, hb)) : {M.write_finish(~K, ~V, ~cmp, n, root, lo, hi, free, $PS, _) == $R0 : $TMT}
       {==}
 
 def write_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $FP, $DG, +id: Nat, +x: $ND) -> {M.write(~K, ~V, ~cmp, $R0, id, x) == $RS(n, root, lo, hi, free, l, d, wr_nl(K, nl, id, x), pl, t, fl) : $TMT}:

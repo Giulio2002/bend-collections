@@ -1,5 +1,6 @@
 import Base
 import ../../../src/containers/balanced_search_tree.bend as M
+import ../../../src/containers/types/dynamic_array.bend as DE
 
 # Universal local laws for the traversal optimization, not a proof of the
 # complete indexed TreeMap or of arbitrary iterator histories.
@@ -10,14 +11,14 @@ def choice_equivalent(+x: Nat, +p: Nat, +q: Nat, +found: Bool) -> {M.ascend_choi
     case True{}:
       {==}
 
-def slot_preserves_buffer(nodes: Array<Maybe<&2, M.Node<U32>>>, value: Maybe<&2, M.Node<U32>>) -> {Pair.fst(Array<Maybe<&2, M.Node<U32>>>, M.Node<U32>, M.node_slot_done(~U32, ~U32, ~U32.cmp, (nodes, value))) == nodes : Array<Maybe<&2, M.Node<U32>>>}:
+def slot_preserves_buffer(nodes: M.NodeStore<U32>, value: Result<&2, &2, DE.Error, M.Node<U32>>) -> {Pair.fst(M.NodeStore<U32>, M.Node<U32>, M.node_slot_done(~U32, ~U32, ~U32.cmp, (nodes, value))) == nodes : M.NodeStore<U32>}:
   match value:
-    case None{}:
+    case Fail{e}:
       {==}
-    case Some{node}:
+    case Done{node}:
       {==}
 
-def step_preserves_buffer(x: Nat, p: Nat, forward: Bool, nodes: Array<Maybe<&2, M.Node<U32>>>, node: M.Node<U32>) -> {Pair.fst(Array<Maybe<&2, M.Node<U32>>>, M.Ascend, M.ascend_slots_step(~U32, ~U32, ~U32.cmp, x, p, forward, (nodes, node))) == nodes : Array<Maybe<&2, M.Node<U32>>>}:
+def step_preserves_buffer(x: Nat, p: Nat, forward: Bool, nodes: M.NodeStore<U32>, node: M.Node<U32>) -> {Pair.fst(M.NodeStore<U32>, M.Ascend, M.ascend_slots_step(~U32, ~U32, ~U32.cmp, x, p, forward, (nodes, node))) == nodes : M.NodeStore<U32>}:
   match node:
     case M.Free{next}:
       {==}

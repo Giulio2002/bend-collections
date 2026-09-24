@@ -16,6 +16,7 @@ import ./mk.bend as MK
 import ./da.bend as DA
 import ./arr.bend as AB
 import ./prim.bend as PR
+import ./nsl.bend as NSL
 import ./mirror.bend as MI
 
 # The simulation: every implementation function applied to realizations of
@@ -106,7 +107,7 @@ def clear_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m: {MI.
 def clear_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.clear(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m)) == ST.real(~K, ~V, ~cmp, MI.clear(~K, ~V, ~cmp, m)) : M.TreeMap<K, V, cmp>}:
   match m:
     case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +t, +fl}:
-      %Equal.sym(D.DynArray<&2, M.Node<K>>, D.clear_at(~M.Node<K>, ST.nodes(~K, l, d, nl)), DAS.real(M.Node<K>, DAS.Sh{l, d, 0n, MK.mk(M.Node<K>, d, Nil{})}), AB.blk_clear(~M.Node<K>, l, d, nl, L.and_left(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_m), L.and_left(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), L.and_right(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_m)), L.and_left(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)), L.and_right(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), L.and_right(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_m))))) : {M.TM{0n, 0n, 0n, 0n, 0n, _, D.clear_at(~Maybe<&2, V>, ST.pays(~V, l, d, pl))} == ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, t, fl}) : M.TreeMap<K, V, cmp>}
+      %Equal.sym(M.NodeStore<K>, M.ns_clear(~K, ST.nodes(~K, l, d, nl)), ST.nodes(~K, l, d, Nil{}), NSL.ns_clear_ok(~K, l, d, nl, L.and_left(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_m), L.and_left(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), L.and_right(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_m)), L.and_left(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)), L.and_right(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), L.and_right(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_m))))) : {M.TM{0n, 0n, 0n, 0n, 0n, _, D.clear_at(~Maybe<&2, V>, ST.pays(~V, l, d, pl))} == ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, t, fl}) : M.TreeMap<K, V, cmp>}
       %Equal.sym(D.DynArray<&2, Maybe<&2, V>>, D.clear_at(~Maybe<&2, V>, ST.pays(~V, l, d, pl)), DAS.real(Maybe<&2, V>, DAS.Sh{l, d, 0n, MK.mk(Maybe<&2, V>, d, Nil{})}), AB.blk_clear(~Maybe<&2, V>, l, d, pl, L.and_left(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_m), L.and_left(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), L.and_right(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_m)), L.subst(Nat, z => {Nat.is_le(z, SC.pow2(d)) == True{} : Bool}, SC.length(M.Node<K>, nl), SC.length(Maybe<&2, V>, pl), Equal.sym(Nat, SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl), N.eq_from_is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl), L.and_right(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)), L.and_right(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), L.and_right(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_m))))), L.and_left(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)), L.and_right(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), L.and_right(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_m)))))) : {M.TM{0n, 0n, 0n, 0n, 0n, ST.nodes(~K, l, d, Nil{}), _} == ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, l, d, Nil{}, Nil{}, t, fl}) : M.TreeMap<K, V, cmp>}
       {==}
 
@@ -136,18 +137,18 @@ def app_g(~K: Data, ~V: Data, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Na
       L.and_intro(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), hl, L.and_intro(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), hd, L.and_intro(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)), hc, hp)))
 
 
-def app_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +t: ST.Tr, +fl: List<&2, Nat>, +k: K, +v: V, +p: Nat, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)) == True{} : Bool}, +hp: {Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)) == True{} : Bool}, +room: Bool, +hr: {Nat.is_lt(SC.length(M.Node<K>, nl), SC.pow2(d)) == room : Bool}, +grow: Bool, +hgr: {Nat.is_lt(d, l) == grow : Bool}) -> {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), k, v, 1n+SC.length(M.Node<K>, nl), D.push_at(~M.Node<K>, ST.nodes(~K, l, d, nl), M.N{True{}, 0n, 0n, p, k})) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.app_room(~K, ~V, n, root, lo, hi, free, l, d, nl, pl, t, fl, k, v, p, room, grow)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}:
+def app_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +pl: List<&2, Maybe<&2, V>>, +t: ST.Tr, +fl: List<&2, Nat>, +k: K, +v: V, +p: Nat, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)) == True{} : Bool}, +hp: {Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)) == True{} : Bool}, +room: Bool, +hr: {Nat.is_lt(SC.length(M.Node<K>, nl), SC.pow2(d)) == room : Bool}, +grow: Bool, +hgr: {Nat.is_lt(d, l) == grow : Bool}) -> {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), k, v, 1n+SC.length(M.Node<K>, nl), M.ns_push(~K, ST.nodes(~K, l, d, nl), M.N{True{}, 0n, 0n, p, k})) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.app_room(~K, ~V, n, root, lo, hi, free, l, d, nl, pl, t, fl, k, v, p, room, grow)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}:
   match room grow:
     case True{} _:
-      %Equal.sym(D.DynArray<&2, M.Node<K>> & Result<&2, &2, DE.Error, Unit>, D.push_at(~M.Node<K>, ST.nodes(~K, l, d, nl), M.N{True{}, 0n, 0n, p, k}), (ST.nodes(~K, l, d, SC.snoc(M.Node<K>, nl, M.N{True{}, 0n, 0n, p, k})), Done{Unit{}}), AB.blk_push_room(~M.Node<K>, l, d, nl, hl, hd, hc, M.N{True{}, 0n, 0n, p, k}, hr)) : {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), k, v, 1n+SC.length(M.Node<K>, nl), _) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.app_room(~K, ~V, n, root, lo, hi, free, l, d, nl, pl, t, fl, k, v, p, True{}, grow)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
+      %Equal.sym(M.NodeStore<K> & Result<&2, &2, DE.Error, Unit>, M.ns_push(~K, ST.nodes(~K, l, d, nl), M.N{True{}, 0n, 0n, p, k}), (ST.nodes(~K, l, d, SC.snoc(M.Node<K>, nl, M.N{True{}, 0n, 0n, p, k})), Done{Unit{}}), NSL.ns_push_room(~K, l, d, nl, hl, hd, hc, M.N{True{}, 0n, 0n, p, k}, hr)) : {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), k, v, 1n+SC.length(M.Node<K>, nl), _) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.app_room(~K, ~V, n, root, lo, hi, free, l, d, nl, pl, t, fl, k, v, p, True{}, grow)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
       %Equal.sym(D.DynArray<&2, Maybe<&2, V>> & Result<&2, &2, DE.Error, Unit>, D.push_at(~Maybe<&2, V>, ST.pays(~V, l, d, pl), Some{v}), (ST.pays(~V, l, d, SC.snoc(Maybe<&2, V>, pl, Some{v})), Done{Unit{}}), AB.blk_push_room(~Maybe<&2, V>, l, d, pl, hl, hd, le_pl(~K, ~V, nl, pl, SC.pow2(d), hp, hc), Some{v}, lt_pl(~K, ~V, nl, pl, SC.pow2(d), True{}, hp, hr))) : {M.append_values(~K, ~V, ~cmp, n, root, lo, hi, free, ST.nodes(~K, l, d, SC.snoc(M.Node<K>, nl, M.N{True{}, 0n, 0n, p, k})), k, v, 1n+SC.length(M.Node<K>, nl), _) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.app_room(~K, ~V, n, root, lo, hi, free, l, d, nl, pl, t, fl, k, v, p, True{}, grow)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
       {==}
     case False{} True{}:
-      %Equal.sym(D.DynArray<&2, M.Node<K>> & Result<&2, &2, DE.Error, Unit>, D.push_at(~M.Node<K>, ST.nodes(~K, l, d, nl), M.N{True{}, 0n, 0n, p, k}), (ST.nodes(~K, l, 1n+d, SC.snoc(M.Node<K>, nl, M.N{True{}, 0n, 0n, p, k})), Done{Unit{}}), AB.blk_push_grow(~M.Node<K>, l, d, nl, hl, hd, hc, M.N{True{}, 0n, 0n, p, k}, hr, hgr)) : {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), k, v, 1n+SC.length(M.Node<K>, nl), _) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.app_room(~K, ~V, n, root, lo, hi, free, l, d, nl, pl, t, fl, k, v, p, False{}, True{})) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
+      %Equal.sym(M.NodeStore<K> & Result<&2, &2, DE.Error, Unit>, M.ns_push(~K, ST.nodes(~K, l, d, nl), M.N{True{}, 0n, 0n, p, k}), (ST.nodes(~K, l, 1n+d, SC.snoc(M.Node<K>, nl, M.N{True{}, 0n, 0n, p, k})), Done{Unit{}}), NSL.ns_push_grow(~K, l, d, nl, hl, hd, hc, M.N{True{}, 0n, 0n, p, k}, hr, hgr)) : {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), k, v, 1n+SC.length(M.Node<K>, nl), _) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.app_room(~K, ~V, n, root, lo, hi, free, l, d, nl, pl, t, fl, k, v, p, False{}, True{})) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
       %Equal.sym(D.DynArray<&2, Maybe<&2, V>> & Result<&2, &2, DE.Error, Unit>, D.push_at(~Maybe<&2, V>, ST.pays(~V, l, d, pl), Some{v}), (ST.pays(~V, l, 1n+d, SC.snoc(Maybe<&2, V>, pl, Some{v})), Done{Unit{}}), AB.blk_push_grow(~Maybe<&2, V>, l, d, pl, hl, hd, le_pl(~K, ~V, nl, pl, SC.pow2(d), hp, hc), Some{v}, lt_pl(~K, ~V, nl, pl, SC.pow2(d), False{}, hp, hr), hgr)) : {M.append_values(~K, ~V, ~cmp, n, root, lo, hi, free, ST.nodes(~K, l, 1n+d, SC.snoc(M.Node<K>, nl, M.N{True{}, 0n, 0n, p, k})), k, v, 1n+SC.length(M.Node<K>, nl), _) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.app_room(~K, ~V, n, root, lo, hi, free, l, d, nl, pl, t, fl, k, v, p, False{}, True{})) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
       {==}
     case False{} False{}:
-      %Equal.sym(D.DynArray<&2, M.Node<K>> & Result<&2, &2, DE.Error, Unit>, D.push_at(~M.Node<K>, ST.nodes(~K, l, d, nl), M.N{True{}, 0n, 0n, p, k}), (ST.nodes(~K, l, d, nl), Fail{DE.CapacityExceeded{}}), AB.blk_push_full(~M.Node<K>, l, d, nl, hl, hd, hc, M.N{True{}, 0n, 0n, p, k}, hr, hgr)) : {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), k, v, 1n+SC.length(M.Node<K>, nl), _) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.app_room(~K, ~V, n, root, lo, hi, free, l, d, nl, pl, t, fl, k, v, p, False{}, False{})) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
+      %Equal.sym(M.NodeStore<K> & Result<&2, &2, DE.Error, Unit>, M.ns_push(~K, ST.nodes(~K, l, d, nl), M.N{True{}, 0n, 0n, p, k}), (ST.nodes(~K, l, d, nl), Fail{DE.CapacityExceeded{}}), NSL.ns_push_full(~K, l, d, nl, hl, hd, hc, M.N{True{}, 0n, 0n, p, k}, hr, hgr)) : {M.append_nodes(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), k, v, 1n+SC.length(M.Node<K>, nl), _) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.app_room(~K, ~V, n, root, lo, hi, free, l, d, nl, pl, t, fl, k, v, p, False{}, False{})) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
       {==}
 
 def append_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +v: V, +p: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.append(~K, ~V, ~cmp, m, k, v, p)) == True{} : Bool}:
@@ -164,67 +165,64 @@ def append_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +v
 
 
 
-def nsdone(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, -arr: Array<Maybe<&2, M.Node<K>>>, +x: Maybe<&2, M.Node<K>>) -> {M.node_slot_done(~K, ~V, ~cmp, (arr, x)) == (arr, PR.or_else(M.Node<K>, x, M.Free{0n})) : Array<Maybe<&2, M.Node<K>>> & M.Node<K>}:
+def nsdone(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, -arr: M.NodeStore<K>, +x: Maybe<&2, M.Node<K>>) -> {M.node_slot_done(~K, ~V, ~cmp, (arr, DA.item(M.Node<K>, x))) == (arr, PR.or_else(M.Node<K>, x, M.Free{0n})) : M.NodeStore<K> & M.Node<K>}:
   match x:
     case None{}:
       {==}
     case Some{v}:
       {==}
 
-def nsb(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)) == True{} : Bool}, +i: Nat, +b: Bool, +hb: {Nat.is_lt(i, SC.length(M.Node<K>, nl)) == b : Bool}) -> {M.node_slot_checked(~K, ~V, ~cmp, AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), i, b) == (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), ST.nd(K, nl, 1n+i)) : Array<Maybe<&2, M.Node<K>>> & M.Node<K>}:
+def nsb(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)) == True{} : Bool}, +i: Nat, +b: Bool, +hb: {Nat.is_lt(i, SC.length(M.Node<K>, nl)) == b : Bool}) -> {M.node_slot_checked(~K, ~V, ~cmp, ST.nodes(~K, l, d, nl), i, b) == (ST.nodes(~K, l, d, nl), ST.nd(K, nl, 1n+i)) : M.NodeStore<K> & M.Node<K>}:
   match b:
     case False{}:
-      %Equal.sym(M.Node<K>, ST.nth_or(M.Node<K>, nl, i, M.Free{0n}), M.Free{0n}, PR.nth_hi(M.Node<K>, nl, i, M.Free{0n}, hb)) : {(AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), M.Free{0n}) == (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), _) : Array<Maybe<&2, M.Node<K>>> & M.Node<K>}
+      %Equal.sym(M.Node<K>, ST.nth_or(M.Node<K>, nl, i, M.Free{0n}), M.Free{0n}, PR.nth_hi(M.Node<K>, nl, i, M.Free{0n}, hb)) : {(ST.nodes(~K, l, d, nl), M.Free{0n}) == (ST.nodes(~K, l, d, nl), _) : M.NodeStore<K> & M.Node<K>}
       {==}
     case True{}:
-      +g = AB.good_mk(M.Node<K>, l, d, nl, hl, hd, hc)
-      +e = AR.get(Maybe<&2, M.Node<K>>, d, MK.mk(M.Node<K>, d, nl), U32.from_nat(i), SC.nth(M.Node<K>, LY.somes(M.Node<K>, AR.slots(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl))), i), DAS.lt32(d, l, DAS.g_depth(M.Node<K>, l, d, SC.length(M.Node<K>, nl), MK.mk(M.Node<K>, d, nl), g), DAS.g_limit(M.Node<K>, l, d, SC.length(M.Node<K>, nl), MK.mk(M.Node<K>, d, nl), g)), DST.idx_lt(M.Node<K>, l, d, SC.length(M.Node<K>, nl), MK.mk(M.Node<K>, d, nl), i, g, DA.lt_cap(~M.Node<K>, l, d, SC.length(M.Node<K>, nl), MK.mk(M.Node<K>, d, nl), g, i, hb)), DST.idx_slot(M.Node<K>, l, d, SC.length(M.Node<K>, nl), MK.mk(M.Node<K>, d, nl), i, SC.nth(M.Node<K>, LY.somes(M.Node<K>, AR.slots(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl))), i), g, DA.lt_cap(~M.Node<K>, l, d, SC.length(M.Node<K>, nl), MK.mk(M.Node<K>, d, nl), g, i, hb), DA.slot_at(~M.Node<K>, l, d, SC.length(M.Node<K>, nl), MK.mk(M.Node<K>, d, nl), g, i, hb)), DAS.g_perfect(M.Node<K>, l, d, SC.length(M.Node<K>, nl), MK.mk(M.Node<K>, d, nl), g))
-      %Equal.sym(Array<Maybe<&2, M.Node<K>>> & Maybe<&2, M.Node<K>>, Array.get(Maybe<&2, M.Node<K>>, AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), U32.from_nat(i)), (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), SC.nth(M.Node<K>, LY.somes(M.Node<K>, AR.slots(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl))), i)), e) : {M.node_slot_done(~K, ~V, ~cmp, _) == (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), ST.nd(K, nl, 1n+i)) : Array<Maybe<&2, M.Node<K>>> & M.Node<K>}
-      %Equal.sym(List<&2, M.Node<K>>, LY.somes(M.Node<K>, AR.slots(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl))), nl, AB.somes_mk(M.Node<K>, d, nl, hc)) : {M.node_slot_done(~K, ~V, ~cmp, (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), SC.nth(M.Node<K>, _, i))) == (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), ST.nd(K, nl, 1n+i)) : Array<Maybe<&2, M.Node<K>>> & M.Node<K>}
-      %Equal.sym(M.Node<K>, ST.nth_or(M.Node<K>, nl, i, M.Free{0n}), PR.or_else(M.Node<K>, SC.nth(M.Node<K>, nl, i), M.Free{0n}), PR.nth_or_nth(M.Node<K>, nl, i, M.Free{0n})) : {M.node_slot_done(~K, ~V, ~cmp, (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), SC.nth(M.Node<K>, nl, i))) == (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), _) : Array<Maybe<&2, M.Node<K>>> & M.Node<K>}
-      nsdone(~K, ~V, ~cmp, AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), SC.nth(M.Node<K>, nl, i))
+      %Equal.sym(M.NodeStore<K> & Result<&2, &2, DE.Error, M.Node<K>>, M.ns_get(~K, ST.nodes(~K, l, d, nl), i), (ST.nodes(~K, l, d, nl), DA.item(M.Node<K>, SC.nth(M.Node<K>, nl, i))), NSL.ns_get_ok(~K, l, d, nl, hl, hd, hc, i)) : {M.node_slot_done(~K, ~V, ~cmp, _) == (ST.nodes(~K, l, d, nl), ST.nd(K, nl, 1n+i)) : M.NodeStore<K> & M.Node<K>}
+      %Equal.sym(M.Node<K>, ST.nth_or(M.Node<K>, nl, i, M.Free{0n}), PR.or_else(M.Node<K>, SC.nth(M.Node<K>, nl, i), M.Free{0n}), PR.nth_or_nth(M.Node<K>, nl, i, M.Free{0n})) : {M.node_slot_done(~K, ~V, ~cmp, (ST.nodes(~K, l, d, nl), DA.item(M.Node<K>, SC.nth(M.Node<K>, nl, i)))) == (ST.nodes(~K, l, d, nl), _) : M.NodeStore<K> & M.Node<K>}
+      nsdone(~K, ~V, ~cmp, ST.nodes(~K, l, d, nl), SC.nth(M.Node<K>, nl, i))
 
-def ns(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)) == True{} : Bool}, +id: Nat) -> {M.node_slot(~K, ~V, ~cmp, AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), SC.length(M.Node<K>, nl), id) == (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), ST.nd(K, nl, id)) : Array<Maybe<&2, M.Node<K>>> & M.Node<K>}:
+def ns(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)) == True{} : Bool}, +id: Nat) -> {M.node_slot(~K, ~V, ~cmp, ST.nodes(~K, l, d, nl), SC.length(M.Node<K>, nl), id) == (ST.nodes(~K, l, d, nl), ST.nd(K, nl, id)) : M.NodeStore<K> & M.Node<K>}:
   match id:
     case 0n:
       {==}
     case 1n+i:
       nsb(~K, ~V, ~cmp, l, d, nl, hl, hd, hc, i, Nat.is_lt(i, SC.length(M.Node<K>, nl)), {==})
 
-def ass(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +p: Nat, +forward: Bool, -a: Array<Maybe<&2, M.Node<K>>>, +node: M.Node<K>) -> {M.ascend_slots_step(~K, ~V, ~cmp, x, p, forward, (a, node)) == (a, MI.asc_step(K, x, p, forward, node)) : Array<Maybe<&2, M.Node<K>>> & M.Ascend}:
+def ass(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +p: Nat, +forward: Bool, -a: M.NodeStore<K>, +node: M.Node<K>) -> {M.ascend_slots_step(~K, ~V, ~cmp, x, p, forward, (a, node)) == (a, MI.asc_step(K, x, p, forward, node)) : M.NodeStore<K> & M.Ascend}:
   match node:
     case M.Free{next}:
       {==}
     case M.N{c, l, r, q, key}:
       {==}
 
-def asl(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)) == True{} : Bool}, +fuel: Nat, +forward: Bool, +st: M.Ascend) -> {M.ascend_slots_loop(~K, ~V, ~cmp, fuel, SC.length(M.Node<K>, nl), forward, (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), st)) == (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), MI.asc_loop(K, fuel, nl, forward, st)) : Array<Maybe<&2, M.Node<K>>> & Nat}:
+def asl(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)) == True{} : Bool}, +fuel: Nat, +forward: Bool, +st: M.Ascend) -> {M.ascend_slots_loop(~K, ~V, ~cmp, fuel, SC.length(M.Node<K>, nl), forward, (ST.nodes(~K, l, d, nl), st)) == (ST.nodes(~K, l, d, nl), MI.asc_loop(K, fuel, nl, forward, st)) : M.NodeStore<K> & Nat}:
   match fuel st:
     case 0n _:
       {==}
     case 1n+f M.Ascend{x, p, True{}}:
       {==}
     case 1n+f M.Ascend{+x, +p, False{}}:
-      %Equal.sym(Array<Maybe<&2, M.Node<K>>> & M.Node<K>, M.node_slot(~K, ~V, ~cmp, AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), SC.length(M.Node<K>, nl), p), (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), ST.nd(K, nl, p)), ns(~K, ~V, ~cmp, l, d, nl, hl, hd, hc, p)) : {M.ascend_slots_loop(~K, ~V, ~cmp, f, SC.length(M.Node<K>, nl), forward, M.ascend_slots_step(~K, ~V, ~cmp, x, p, forward, _)) == (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), MI.asc_loop(K, 1n+f, nl, forward, M.Ascend{x, p, False{}})) : Array<Maybe<&2, M.Node<K>>> & Nat}
-      %Equal.sym(Array<Maybe<&2, M.Node<K>>> & M.Ascend, M.ascend_slots_step(~K, ~V, ~cmp, x, p, forward, (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), ST.nd(K, nl, p))), (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), MI.asc_step(K, x, p, forward, ST.nd(K, nl, p))), ass(~K, ~V, ~cmp, x, p, forward, AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), ST.nd(K, nl, p))) : {M.ascend_slots_loop(~K, ~V, ~cmp, f, SC.length(M.Node<K>, nl), forward, _) == (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), MI.asc_loop(K, 1n+f, nl, forward, M.Ascend{x, p, False{}})) : Array<Maybe<&2, M.Node<K>>> & Nat}
+      %Equal.sym(M.NodeStore<K> & M.Node<K>, M.node_slot(~K, ~V, ~cmp, ST.nodes(~K, l, d, nl), SC.length(M.Node<K>, nl), p), (ST.nodes(~K, l, d, nl), ST.nd(K, nl, p)), ns(~K, ~V, ~cmp, l, d, nl, hl, hd, hc, p)) : {M.ascend_slots_loop(~K, ~V, ~cmp, f, SC.length(M.Node<K>, nl), forward, M.ascend_slots_step(~K, ~V, ~cmp, x, p, forward, _)) == (ST.nodes(~K, l, d, nl), MI.asc_loop(K, 1n+f, nl, forward, M.Ascend{x, p, False{}})) : M.NodeStore<K> & Nat}
+      %Equal.sym(M.NodeStore<K> & M.Ascend, M.ascend_slots_step(~K, ~V, ~cmp, x, p, forward, (ST.nodes(~K, l, d, nl), ST.nd(K, nl, p))), (ST.nodes(~K, l, d, nl), MI.asc_step(K, x, p, forward, ST.nd(K, nl, p))), ass(~K, ~V, ~cmp, x, p, forward, ST.nodes(~K, l, d, nl), ST.nd(K, nl, p))) : {M.ascend_slots_loop(~K, ~V, ~cmp, f, SC.length(M.Node<K>, nl), forward, _) == (ST.nodes(~K, l, d, nl), MI.asc_loop(K, 1n+f, nl, forward, M.Ascend{x, p, False{}})) : M.NodeStore<K> & Nat}
       asl(~K, ~V, ~cmp, l, d, nl, hl, hd, hc, f, forward, MI.asc_step(K, x, p, forward, ST.nd(K, nl, p)))
 
-def esl(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)) == True{} : Bool}, +fuel: Nat, +forward: Bool, +id: Nat, +next: Nat) -> {M.extreme_slots_loop(~K, ~V, ~cmp, fuel, SC.length(M.Node<K>, nl), forward, id, (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), next)) == (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), MI.ext_loop(~K, fuel, nl, forward, id, next)) : Array<Maybe<&2, M.Node<K>>> & Nat}:
+def esl(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)) == True{} : Bool}, +fuel: Nat, +forward: Bool, +id: Nat, +next: Nat) -> {M.extreme_slots_loop(~K, ~V, ~cmp, fuel, SC.length(M.Node<K>, nl), forward, id, (ST.nodes(~K, l, d, nl), next)) == (ST.nodes(~K, l, d, nl), MI.ext_loop(~K, fuel, nl, forward, id, next)) : M.NodeStore<K> & Nat}:
   match fuel next:
     case 0n _:
       {==}
     case 1n+f 0n:
       {==}
     case 1n+f 1n+ +j:
-      %Equal.sym(Array<Maybe<&2, M.Node<K>>> & M.Node<K>, M.node_slot(~K, ~V, ~cmp, AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), SC.length(M.Node<K>, nl), 1n+j), (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), ST.nd(K, nl, 1n+j)), ns(~K, ~V, ~cmp, l, d, nl, hl, hd, hc, 1n+j)) : {M.extreme_slots_loop(~K, ~V, ~cmp, f, SC.length(M.Node<K>, nl), forward, 1n+j, M.extreme_slots_probe(~K, ~V, ~cmp, forward, _)) == (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), MI.ext_loop(~K, 1n+f, nl, forward, id, 1n+j)) : Array<Maybe<&2, M.Node<K>>> & Nat}
+      %Equal.sym(M.NodeStore<K> & M.Node<K>, M.node_slot(~K, ~V, ~cmp, ST.nodes(~K, l, d, nl), SC.length(M.Node<K>, nl), 1n+j), (ST.nodes(~K, l, d, nl), ST.nd(K, nl, 1n+j)), ns(~K, ~V, ~cmp, l, d, nl, hl, hd, hc, 1n+j)) : {M.extreme_slots_loop(~K, ~V, ~cmp, f, SC.length(M.Node<K>, nl), forward, 1n+j, M.extreme_slots_probe(~K, ~V, ~cmp, forward, _)) == (ST.nodes(~K, l, d, nl), MI.ext_loop(~K, 1n+f, nl, forward, id, 1n+j)) : M.NodeStore<K> & Nat}
       esl(~K, ~V, ~cmp, l, d, nl, hl, hd, hc, f, forward, 1n+j, M.child(~K, ST.nd(K, nl, 1n+j), forward))
 
-def nbl(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)) == True{} : Bool}, +n: Nat, +id: Nat, +p: Nat, +forward: Bool, +c: Nat) -> {M.neighbor_slots(~K, ~V, ~cmp, AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), n, SC.length(M.Node<K>, nl), id, p, forward, c) == (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), MI.nbs(~K, nl, n, id, p, forward, c)) : Array<Maybe<&2, M.Node<K>>> & Nat}:
+def nbl(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +d: Nat, +nl: List<&2, M.Node<K>>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)) == True{} : Bool}, +n: Nat, +id: Nat, +p: Nat, +forward: Bool, +c: Nat) -> {M.neighbor_slots(~K, ~V, ~cmp, ST.nodes(~K, l, d, nl), n, SC.length(M.Node<K>, nl), id, p, forward, c) == (ST.nodes(~K, l, d, nl), MI.nbs(~K, nl, n, id, p, forward, c)) : M.NodeStore<K> & Nat}:
   match c:
     case 0n:
       asl(~K, ~V, ~cmp, l, d, nl, hl, hd, hc, 1n+n, forward, M.Ascend{id, p, False{}})
     case 1n+ +j:
-      %Equal.sym(Array<Maybe<&2, M.Node<K>>> & M.Node<K>, M.node_slot(~K, ~V, ~cmp, AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), SC.length(M.Node<K>, nl), 1n+j), (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), ST.nd(K, nl, 1n+j)), ns(~K, ~V, ~cmp, l, d, nl, hl, hd, hc, 1n+j)) : {M.extreme_slots_loop(~K, ~V, ~cmp, 1n+n, SC.length(M.Node<K>, nl), Bool.not(forward), 1n+j, M.extreme_slots_probe(~K, ~V, ~cmp, Bool.not(forward), _)) == (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), MI.nbs(~K, nl, n, id, p, forward, 1n+j)) : Array<Maybe<&2, M.Node<K>>> & Nat}
+      %Equal.sym(M.NodeStore<K> & M.Node<K>, M.node_slot(~K, ~V, ~cmp, ST.nodes(~K, l, d, nl), SC.length(M.Node<K>, nl), 1n+j), (ST.nodes(~K, l, d, nl), ST.nd(K, nl, 1n+j)), ns(~K, ~V, ~cmp, l, d, nl, hl, hd, hc, 1n+j)) : {M.extreme_slots_loop(~K, ~V, ~cmp, 1n+n, SC.length(M.Node<K>, nl), Bool.not(forward), 1n+j, M.extreme_slots_probe(~K, ~V, ~cmp, Bool.not(forward), _)) == (ST.nodes(~K, l, d, nl), MI.nbs(~K, nl, n, id, p, forward, 1n+j)) : M.NodeStore<K> & Nat}
       esl(~K, ~V, ~cmp, l, d, nl, hl, hd, hc, 1n+n, Bool.not(forward), 1n+j, M.child(~K, ST.nd(K, nl, 1n+j), Bool.not(forward)))
 
 def neighbor_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.neighbor_node(~K, ~V, ~cmp, id, forward, r)) == True{} : Bool}:
@@ -235,7 +233,7 @@ def neighbor_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +forward:
 def neighbor_node_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {M.neighbor_node(~K, ~V, ~cmp, id, forward, MI.rp(~K, ~V, ~cmp, M.Node<K>, r)) == MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor_node(~K, ~V, ~cmp, id, forward, r)) : M.TreeMap<K, V, cmp> & Nat}:
   match r:
     case Tuple{ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +t, +fl}, +node}:
-      %Equal.sym(Array<Maybe<&2, M.Node<K>>> & Nat, M.neighbor_slots(~K, ~V, ~cmp, AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), n, SC.length(M.Node<K>, nl), id, M.node_parent(~K, node), forward, M.child(~K, node, forward)), (AR.thaw(Maybe<&2, M.Node<K>>, MK.mk(M.Node<K>, d, nl)), MI.nbs(~K, nl, n, id, M.node_parent(~K, node), forward, M.child(~K, node, forward))), nbl(~K, ~V, ~cmp, l, d, nl, L.and_left(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_r), L.and_left(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), L.and_right(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_r)), L.and_left(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)), L.and_right(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), L.and_right(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_r))), n, id, M.node_parent(~K, node), forward, M.child(~K, node, forward))) : {M.neighbor_slots_finish(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, SC.pow2(d), SC.length(M.Node<K>, nl), ST.pays(~V, l, d, pl), _) == MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor_node(~K, ~V, ~cmp, id, forward, Tuple{ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl}, node})) : M.TreeMap<K, V, cmp> & Nat}
+      %Equal.sym(M.NodeStore<K> & Nat, M.neighbor_slots(~K, ~V, ~cmp, ST.nodes(~K, l, d, nl), n, SC.length(M.Node<K>, nl), id, M.node_parent(~K, node), forward, M.child(~K, node, forward)), (ST.nodes(~K, l, d, nl), MI.nbs(~K, nl, n, id, M.node_parent(~K, node), forward, M.child(~K, node, forward))), nbl(~K, ~V, ~cmp, l, d, nl, L.and_left(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_r), L.and_left(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), L.and_right(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_r)), L.and_left(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)), L.and_right(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), L.and_right(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_r))), n, id, M.node_parent(~K, node), forward, M.child(~K, node, forward))) : {M.neighbor_slots_finish(~K, ~V, ~cmp, n, root, lo, hi, free, ST.pays(~V, l, d, pl), _) == MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor_node(~K, ~V, ~cmp, id, forward, Tuple{ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl}, node})) : M.TreeMap<K, V, cmp> & Nat}
       {==}
 
 def size_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.size(~K, ~V, ~cmp, m)) == True{} : Bool}:
@@ -746,84 +744,6 @@ def descending_iterator_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, 
   cursor_started_s(~K, ~V, ~cmp, M.Unbounded{}, M.Unbounded{}, False{}, MI.last_id(~K, ~V, ~cmp, m), last_id_g(~K, ~V, ~cmp, m, g_m))
 
 
-def set_left_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_left_node(~K, ~V, ~cmp, m, id, v, node)) == True{} : Bool}:
-  match node:
-    case M.Free{+px2}:
-      g_m
-    case M.N{+px3, +px4, +px5, +px6, +px7}:
-      write_g(~K, ~V, ~cmp, m, id, M.N{px3, v, px5, px6, px7}, g_m)
-
-def set_left_node_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_left_node(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v, node) == ST.real(~K, ~V, ~cmp, MI.set_left_node(~K, ~V, ~cmp, m, id, v, node)) : M.TreeMap<K, V, cmp>}:
-  match node:
-    case M.Free{+px2}:
-      {==}
-    case M.N{+px3, +px4, +px5, +px6, +px7}:
-      write_s(~K, ~V, ~cmp, m, id, M.N{px3, v, px5, px6, px7}, g_m)
-
-
-def set_right_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_right_node(~K, ~V, ~cmp, m, id, v, node)) == True{} : Bool}:
-  match node:
-    case M.Free{+px2}:
-      g_m
-    case M.N{+px3, +px4, +px5, +px6, +px7}:
-      write_g(~K, ~V, ~cmp, m, id, M.N{px3, px4, v, px6, px7}, g_m)
-
-def set_right_node_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_right_node(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v, node) == ST.real(~K, ~V, ~cmp, MI.set_right_node(~K, ~V, ~cmp, m, id, v, node)) : M.TreeMap<K, V, cmp>}:
-  match node:
-    case M.Free{+px2}:
-      {==}
-    case M.N{+px3, +px4, +px5, +px6, +px7}:
-      write_s(~K, ~V, ~cmp, m, id, M.N{px3, px4, v, px6, px7}, g_m)
-
-
-def set_parent_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_parent_node(~K, ~V, ~cmp, m, id, v, node)) == True{} : Bool}:
-  match node:
-    case M.Free{+px2}:
-      g_m
-    case M.N{+px3, +px4, +px5, +px6, +px7}:
-      write_g(~K, ~V, ~cmp, m, id, M.N{px3, px4, px5, v, px7}, g_m)
-
-def set_parent_node_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_parent_node(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v, node) == ST.real(~K, ~V, ~cmp, MI.set_parent_node(~K, ~V, ~cmp, m, id, v, node)) : M.TreeMap<K, V, cmp>}:
-  match node:
-    case M.Free{+px2}:
-      {==}
-    case M.N{+px3, +px4, +px5, +px6, +px7}:
-      write_s(~K, ~V, ~cmp, m, id, M.N{px3, px4, px5, v, px7}, g_m)
-
-
-def set_red_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Bool, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_red_node(~K, ~V, ~cmp, m, id, v, node)) == True{} : Bool}:
-  match node:
-    case M.Free{+px2}:
-      g_m
-    case M.N{+px3, +px4, +px5, +px6, +px7}:
-      write_g(~K, ~V, ~cmp, m, id, M.N{v, px4, px5, px6, px7}, g_m)
-
-def set_red_node_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Bool, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_red_node(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v, node) == ST.real(~K, ~V, ~cmp, MI.set_red_node(~K, ~V, ~cmp, m, id, v, node)) : M.TreeMap<K, V, cmp>}:
-  match node:
-    case M.Free{+px2}:
-      {==}
-    case M.N{+px3, +px4, +px5, +px6, +px7}:
-      write_s(~K, ~V, ~cmp, m, id, M.N{v, px4, px5, px6, px7}, g_m)
-
-
-def probe_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, (M.Node<K> & Cmp), MI.probe(~K, ~V, ~cmp, m, id, k)) == True{} : Bool}:
-  probe_node_g(~K, ~V, ~cmp, id, k, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
-
-def probe_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.probe(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, k) == MI.rp(~K, ~V, ~cmp, (M.Node<K> & Cmp), MI.probe(~K, ~V, ~cmp, m, id, k)) : M.TreeMap<K, V, cmp> & (M.Node<K> & Cmp)}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_m)) : {M.probe_node(~K, ~V, ~cmp, id, k, _) == MI.rp(~K, ~V, ~cmp, (M.Node<K> & Cmp), MI.probe(~K, ~V, ~cmp, m, id, k)) : M.TreeMap<K, V, cmp> & (M.Node<K> & Cmp)}
-  probe_node_s(~K, ~V, ~cmp, id, k, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
-
-
-def reuse_slot_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +next: Nat, +p: Nat, +k: K, +v: V, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.reuse_slot(~K, ~V, ~cmp, m, id, next, p, k, v)) == True{} : Bool}:
-  reuse_slot_1_g(~K, ~V, ~cmp, id, MI.exchange(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}), id, Some{v}), exchange_g(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}), id, Some{v}, write_g(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}, free_header_g(~K, ~V, ~cmp, m, next, g_m))))
-
-def reuse_slot_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +next: Nat, +p: Nat, +k: K, +v: V, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.reuse_slot(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, next, p, k, v) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.reuse_slot(~K, ~V, ~cmp, m, id, next, p, k, v)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}:
-  %Equal.sym(M.TreeMap<K, V, cmp>, M.free_header(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), next), ST.real(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next)), free_header_s(~K, ~V, ~cmp, m, next, g_m)) : {M.reuse_slot_1(~K, ~V, ~cmp, id, M.exchange(~K, ~V, ~cmp, M.write(~K, ~V, ~cmp, _, id, M.N{True{}, 0n, 0n, p, k}), id, Some{v})) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.reuse_slot(~K, ~V, ~cmp, m, id, next, p, k, v)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
-  %Equal.sym(M.TreeMap<K, V, cmp>, M.write(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next)), id, M.N{True{}, 0n, 0n, p, k}), ST.real(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k})), write_s(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}, free_header_g(~K, ~V, ~cmp, m, next, g_m))) : {M.reuse_slot_1(~K, ~V, ~cmp, id, M.exchange(~K, ~V, ~cmp, _, id, Some{v})) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.reuse_slot(~K, ~V, ~cmp, m, id, next, p, k, v)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
-  %Equal.sym(M.TreeMap<K, V, cmp> & Maybe<&2, V>, M.exchange(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k})), id, Some{v}), MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, MI.exchange(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}), id, Some{v})), exchange_s(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}), id, Some{v}, write_g(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}, free_header_g(~K, ~V, ~cmp, m, next, g_m)))) : {M.reuse_slot_1(~K, ~V, ~cmp, id, _) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.reuse_slot(~K, ~V, ~cmp, m, id, next, p, k, v)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
-  reuse_slot_1_s(~K, ~V, ~cmp, id, MI.exchange(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}), id, Some{v}), exchange_g(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}), id, Some{v}, write_g(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}, free_header_g(~K, ~V, ~cmp, m, next, g_m))))
-
-
 def get_found_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & M.Search, +g_r: {MI.dgp(K, V, M.Search, r) == True{} : Bool}) -> {MI.dgp(K, V, Maybe<&2, V>, MI.get_found(~K, ~V, ~cmp, r)) == True{} : Bool}:
   match r:
     case Tuple{+m, M.Search{+id, +p, +on_left}}:
@@ -844,66 +764,6 @@ def extreme_probe_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +forward: Bool, r: 
   match r:
     case Tuple{+m, +node}:
       {==}
-
-
-def ascend_loop_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, st: ST.Sh<K, V> & M.Ascend, +g_st: {MI.dgp(K, V, M.Ascend, st) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.ascend_loop(~K, ~V, ~cmp, fuel, forward, st)) == True{} : Bool}:
-  match fuel st:
-    case 0n Tuple{+px4, +px5}:
-      g_st
-    case 1n+ +px3 Tuple{+px6, M.Ascend{+px8, +px9, True{}}}:
-      g_st
-    case 1n+ +px3 Tuple{+px6, M.Ascend{+px8, +px9, False{}}}:
-      ascend_loop_g(~K, ~V, ~cmp, px3, forward, MI.ascend_step_node(~K, ~V, ~cmp, px8, px9, forward, MI.read(~K, ~V, ~cmp, px6, px9)), ascend_step_node_g(~K, ~V, ~cmp, px8, px9, forward, MI.read(~K, ~V, ~cmp, px6, px9), read_g(~K, ~V, ~cmp, px6, px9, g_st)))
-
-def ascend_loop_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, st: ST.Sh<K, V> & M.Ascend, +g_st: {MI.dgp(K, V, M.Ascend, st) == True{} : Bool}) -> {M.ascend_loop(~K, ~V, ~cmp, fuel, forward, MI.rp(~K, ~V, ~cmp, M.Ascend, st)) == MI.rp(~K, ~V, ~cmp, Nat, MI.ascend_loop(~K, ~V, ~cmp, fuel, forward, st)) : M.TreeMap<K, V, cmp> & Nat}:
-  match fuel st:
-    case 0n Tuple{+px4, +px5}:
-      {==}
-    case 1n+ +px3 Tuple{+px6, M.Ascend{+px8, +px9, True{}}}:
-      {==}
-    case 1n+ +px3 Tuple{+px6, M.Ascend{+px8, +px9, False{}}}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, px6), px9), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, px6, px9)), read_s(~K, ~V, ~cmp, px6, px9, g_st)) : {M.ascend_loop(~K, ~V, ~cmp, px3, forward, M.ascend_step_node(~K, ~V, ~cmp, px8, px9, forward, _)) == MI.rp(~K, ~V, ~cmp, Nat, MI.ascend_loop(~K, ~V, ~cmp, 1n+ px3, forward, Tuple{px6, M.Ascend{px8, px9, False{}}})) : M.TreeMap<K, V, cmp> & Nat}
-      %Equal.sym(M.TreeMap<K, V, cmp> & M.Ascend, M.ascend_step_node(~K, ~V, ~cmp, px8, px9, forward, MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, px6, px9))), MI.rp(~K, ~V, ~cmp, M.Ascend, MI.ascend_step_node(~K, ~V, ~cmp, px8, px9, forward, MI.read(~K, ~V, ~cmp, px6, px9))), ascend_step_node_s(~K, ~V, ~cmp, px8, px9, forward, MI.read(~K, ~V, ~cmp, px6, px9), read_g(~K, ~V, ~cmp, px6, px9, g_st))) : {M.ascend_loop(~K, ~V, ~cmp, px3, forward, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.ascend_loop(~K, ~V, ~cmp, 1n+ px3, forward, Tuple{px6, M.Ascend{px8, px9, False{}}})) : M.TreeMap<K, V, cmp> & Nat}
-      ascend_loop_s(~K, ~V, ~cmp, px3, forward, MI.ascend_step_node(~K, ~V, ~cmp, px8, px9, forward, MI.read(~K, ~V, ~cmp, px6, px9)), ascend_step_node_g(~K, ~V, ~cmp, px8, px9, forward, MI.read(~K, ~V, ~cmp, px6, px9), read_g(~K, ~V, ~cmp, px6, px9, g_st)))
-
-
-def set_key_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +k: K, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_key_node(~K, ~V, ~cmp, m, id, k, node)) == True{} : Bool}:
-  match node:
-    case M.Free{+px2}:
-      g_m
-    case M.N{+px3, +px4, +px5, +px6, +px7}:
-      write_g(~K, ~V, ~cmp, m, id, M.N{px3, px4, px5, px6, k}, g_m)
-
-def set_key_node_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +k: K, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_key_node(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, k, node) == ST.real(~K, ~V, ~cmp, MI.set_key_node(~K, ~V, ~cmp, m, id, k, node)) : M.TreeMap<K, V, cmp>}:
-  match node:
-    case M.Free{+px2}:
-      {==}
-    case M.N{+px3, +px4, +px5, +px6, +px7}:
-      write_s(~K, ~V, ~cmp, m, id, M.N{px3, px4, px5, px6, k}, g_m)
-
-
-def recycle_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.recycle(~K, ~V, ~cmp, m, id)) == True{} : Bool}:
-  match m:
-    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
-      release_header_g(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free}), id, write_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free}, g_m))
-
-def recycle_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.recycle(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id) == ST.real(~K, ~V, ~cmp, MI.recycle(~K, ~V, ~cmp, m, id)) : M.TreeMap<K, V, cmp>}:
-  match m:
-    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.write(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}), id, M.Free{free}), ST.real(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free})), write_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free}, g_m)) : {M.release_header(~K, ~V, ~cmp, _, id) == ST.real(~K, ~V, ~cmp, MI.recycle(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id)) : M.TreeMap<K, V, cmp>}
-      release_header_s(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free}), id, write_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free}, g_m))
-
-
-def key_id_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat, +g_r: {MI.dgp(K, V, Nat, r) == True{} : Bool}) -> {MI.dgp(K, V, Maybe<&2, K>, MI.key_id(~K, ~V, ~cmp, r)) == True{} : Bool}:
-  match r:
-    case Tuple{+m, +id}:
-      key_finish_g(~K, ~V, ~cmp, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_r))
-
-def key_id_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat, +g_r: {MI.dgp(K, V, Nat, r) == True{} : Bool}) -> {M.key_id(~K, ~V, ~cmp, MI.rp(~K, ~V, ~cmp, Nat, r)) == MI.rp(~K, ~V, ~cmp, Maybe<&2, K>, MI.key_id(~K, ~V, ~cmp, r)) : M.TreeMap<K, V, cmp> & Maybe<&2, K>}:
-  match r:
-    case Tuple{+m, +id}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_r)) : {M.key_finish(~K, ~V, ~cmp, _) == MI.rp(~K, ~V, ~cmp, Maybe<&2, K>, MI.key_id(~K, ~V, ~cmp, Tuple{m, id})) : M.TreeMap<K, V, cmp> & Maybe<&2, K>}
-      key_finish_s(~K, ~V, ~cmp, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_r))
 
 
 def entry_snapshot_value_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {MI.dgp(K, V, Maybe<&2, M.Entry<K, V>>, MI.entry_snapshot_value(~K, ~V, ~cmp, id, r)) == True{} : Bool}:
@@ -993,6 +853,160 @@ def replace_if_apply_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>,
       changed_value_s(~K, ~V, ~cmp, MI.exchange(~K, ~V, ~cmp, m, id, Some{replacement}), exchange_g(~K, ~V, ~cmp, m, id, Some{replacement}, g_m))
 
 
+def replace_if_value_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +id: Nat, +expected: V, +replacement: V, r: ST.Sh<K, V> & Maybe<&2, V>, +g_r: {MI.dgp(K, V, Maybe<&2, V>, r) == True{} : Bool}) -> {MI.dgp(K, V, Bool, MI.replace_if_value(~K, ~V, ~cmp, ~eq, id, expected, replacement, r)) == True{} : Bool}:
+  match r:
+    case Tuple{+px2, None{}}:
+      g_r
+    case Tuple{+px2, Some{+px4}}:
+      replace_if_apply_g(~K, ~V, ~cmp, px2, id, replacement, eq(px4, expected), g_r)
+
+def replace_if_value_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +id: Nat, +expected: V, +replacement: V, r: ST.Sh<K, V> & Maybe<&2, V>, +g_r: {MI.dgp(K, V, Maybe<&2, V>, r) == True{} : Bool}) -> {M.replace_if_value(~K, ~V, ~cmp, ~eq, id, expected, replacement, MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, r)) == MI.rp(~K, ~V, ~cmp, Bool, MI.replace_if_value(~K, ~V, ~cmp, ~eq, id, expected, replacement, r)) : M.TreeMap<K, V, cmp> & Bool}:
+  match r:
+    case Tuple{+px2, None{}}:
+      {==}
+    case Tuple{+px2, Some{+px4}}:
+      replace_if_apply_s(~K, ~V, ~cmp, px2, id, replacement, eq(px4, expected), g_r)
+
+
+def iterator_has_checked_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +next: Nat, +current: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {MI.dgcp(K, V, Bool, MI.iterator_has_checked(~K, ~V, ~cmp, next, current, lower, upper, forward, r)) == True{} : Bool}:
+  match r:
+    case Tuple{+px2, M.Free{+px4}}:
+      g_r
+    case Tuple{+px2, M.N{+px5, +px6, +px7, +px8, +px9}}:
+      g_r
+
+def iterator_has_checked_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +next: Nat, +current: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {M.iterator_has_checked(~K, ~V, ~cmp, next, current, lower, upper, forward, MI.rp(~K, ~V, ~cmp, M.Node<K>, r)) == MI.rcp(~K, ~V, ~cmp, Bool, MI.iterator_has_checked(~K, ~V, ~cmp, next, current, lower, upper, forward, r)) : M.Cursor<K, V, cmp> & Bool}:
+  match r:
+    case Tuple{+px2, M.Free{+px4}}:
+      {==}
+    case Tuple{+px2, M.N{+px5, +px6, +px7, +px8, +px9}}:
+      {==}
+
+
+def view_entry_result_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +lower: M.Bound<K>, +upper: M.Bound<K>, +descending: Bool, r: ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>, +g_r: {MI.dgp(K, V, Maybe<&2, M.Entry<K, V>>, r) == True{} : Bool}) -> {MI.dgvp(K, V, Maybe<&2, M.Entry<K, V>>, MI.view_entry_result(~K, ~V, ~cmp, lower, upper, descending, r)) == True{} : Bool}:
+  match r:
+    case Tuple{+px2, None{}}:
+      g_r
+    case Tuple{+px2, Some{M.Entry{+px5, +px6}}}:
+      view_entry_checked_g(~K, ~V, ~cmp, px2, lower, upper, descending, M.Entry{px5, px6}, M.in_range(~K, ~V, ~cmp, px5, lower, upper), g_r)
+
+def view_entry_result_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +lower: M.Bound<K>, +upper: M.Bound<K>, +descending: Bool, r: ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>, +g_r: {MI.dgp(K, V, Maybe<&2, M.Entry<K, V>>, r) == True{} : Bool}) -> {M.view_entry_result(~K, ~V, ~cmp, lower, upper, descending, MI.rp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, r)) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.view_entry_result(~K, ~V, ~cmp, lower, upper, descending, r)) : M.View<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}:
+  match r:
+    case Tuple{+px2, None{}}:
+      {==}
+    case Tuple{+px2, Some{M.Entry{+px5, +px6}}}:
+      view_entry_checked_s(~K, ~V, ~cmp, px2, lower, upper, descending, M.Entry{px5, px6}, M.in_range(~K, ~V, ~cmp, px5, lower, upper), g_r)
+
+
+def replace_if_found_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +expected: V, +replacement: V, r: ST.Sh<K, V> & M.Search, +g_r: {MI.dgp(K, V, M.Search, r) == True{} : Bool}) -> {MI.dgp(K, V, Bool, MI.replace_if_found(~K, ~V, ~cmp, ~eq, expected, replacement, r)) == True{} : Bool}:
+  match r:
+    case Tuple{+m, M.Search{+id, +p, +on_left}}:
+      replace_if_value_g(~K, ~V, ~cmp, ~eq, id, expected, replacement, MI.get_id(~K, ~V, ~cmp, m, id), get_id_g(~K, ~V, ~cmp, m, id, g_r))
+
+def replace_if_found_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +expected: V, +replacement: V, r: ST.Sh<K, V> & M.Search, +g_r: {MI.dgp(K, V, M.Search, r) == True{} : Bool}) -> {M.replace_if_found(~K, ~V, ~cmp, ~eq, expected, replacement, MI.rp(~K, ~V, ~cmp, M.Search, r)) == MI.rp(~K, ~V, ~cmp, Bool, MI.replace_if_found(~K, ~V, ~cmp, ~eq, expected, replacement, r)) : M.TreeMap<K, V, cmp> & Bool}:
+  match r:
+    case Tuple{+m, M.Search{+id, +p, +on_left}}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & Maybe<&2, V>, M.get_id(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, MI.get_id(~K, ~V, ~cmp, m, id)), get_id_s(~K, ~V, ~cmp, m, id, g_r)) : {M.replace_if_value(~K, ~V, ~cmp, ~eq, id, expected, replacement, _) == MI.rp(~K, ~V, ~cmp, Bool, MI.replace_if_found(~K, ~V, ~cmp, ~eq, expected, replacement, Tuple{m, M.Search{id, p, on_left}})) : M.TreeMap<K, V, cmp> & Bool}
+      replace_if_value_s(~K, ~V, ~cmp, ~eq, id, expected, replacement, MI.get_id(~K, ~V, ~cmp, m, id), get_id_g(~K, ~V, ~cmp, m, id, g_r))
+
+
+def set_left_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_left_node(~K, ~V, ~cmp, m, id, v, node)) == True{} : Bool}:
+  match node:
+    case M.Free{+px2}:
+      g_m
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      write_g(~K, ~V, ~cmp, m, id, M.N{px3, v, px5, px6, px7}, g_m)
+
+def set_left_node_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_left_node(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v, node) == ST.real(~K, ~V, ~cmp, MI.set_left_node(~K, ~V, ~cmp, m, id, v, node)) : M.TreeMap<K, V, cmp>}:
+  match node:
+    case M.Free{+px2}:
+      {==}
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      write_s(~K, ~V, ~cmp, m, id, M.N{px3, v, px5, px6, px7}, g_m)
+
+
+def set_right_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_right_node(~K, ~V, ~cmp, m, id, v, node)) == True{} : Bool}:
+  match node:
+    case M.Free{+px2}:
+      g_m
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      write_g(~K, ~V, ~cmp, m, id, M.N{px3, px4, v, px6, px7}, g_m)
+
+def set_right_node_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_right_node(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v, node) == ST.real(~K, ~V, ~cmp, MI.set_right_node(~K, ~V, ~cmp, m, id, v, node)) : M.TreeMap<K, V, cmp>}:
+  match node:
+    case M.Free{+px2}:
+      {==}
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      write_s(~K, ~V, ~cmp, m, id, M.N{px3, px4, v, px6, px7}, g_m)
+
+
+def set_parent_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_parent_node(~K, ~V, ~cmp, m, id, v, node)) == True{} : Bool}:
+  match node:
+    case M.Free{+px2}:
+      g_m
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      write_g(~K, ~V, ~cmp, m, id, M.N{px3, px4, px5, v, px7}, g_m)
+
+def set_parent_node_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_parent_node(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v, node) == ST.real(~K, ~V, ~cmp, MI.set_parent_node(~K, ~V, ~cmp, m, id, v, node)) : M.TreeMap<K, V, cmp>}:
+  match node:
+    case M.Free{+px2}:
+      {==}
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      write_s(~K, ~V, ~cmp, m, id, M.N{px3, px4, px5, v, px7}, g_m)
+
+
+def set_red_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Bool, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_red_node(~K, ~V, ~cmp, m, id, v, node)) == True{} : Bool}:
+  match node:
+    case M.Free{+px2}:
+      g_m
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      write_g(~K, ~V, ~cmp, m, id, M.N{v, px4, px5, px6, px7}, g_m)
+
+def set_red_node_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Bool, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_red_node(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v, node) == ST.real(~K, ~V, ~cmp, MI.set_red_node(~K, ~V, ~cmp, m, id, v, node)) : M.TreeMap<K, V, cmp>}:
+  match node:
+    case M.Free{+px2}:
+      {==}
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      write_s(~K, ~V, ~cmp, m, id, M.N{v, px4, px5, px6, px7}, g_m)
+
+
+def reuse_slot_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +next: Nat, +p: Nat, +k: K, +v: V, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.reuse_slot(~K, ~V, ~cmp, m, id, next, p, k, v)) == True{} : Bool}:
+  reuse_slot_1_g(~K, ~V, ~cmp, id, MI.exchange(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}), id, Some{v}), exchange_g(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}), id, Some{v}, write_g(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}, free_header_g(~K, ~V, ~cmp, m, next, g_m))))
+
+def reuse_slot_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +next: Nat, +p: Nat, +k: K, +v: V, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.reuse_slot(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, next, p, k, v) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.reuse_slot(~K, ~V, ~cmp, m, id, next, p, k, v)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}:
+  %Equal.sym(M.TreeMap<K, V, cmp>, M.free_header(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), next), ST.real(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next)), free_header_s(~K, ~V, ~cmp, m, next, g_m)) : {M.reuse_slot_1(~K, ~V, ~cmp, id, M.exchange(~K, ~V, ~cmp, M.write(~K, ~V, ~cmp, _, id, M.N{True{}, 0n, 0n, p, k}), id, Some{v})) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.reuse_slot(~K, ~V, ~cmp, m, id, next, p, k, v)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
+  %Equal.sym(M.TreeMap<K, V, cmp>, M.write(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next)), id, M.N{True{}, 0n, 0n, p, k}), ST.real(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k})), write_s(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}, free_header_g(~K, ~V, ~cmp, m, next, g_m))) : {M.reuse_slot_1(~K, ~V, ~cmp, id, M.exchange(~K, ~V, ~cmp, _, id, Some{v})) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.reuse_slot(~K, ~V, ~cmp, m, id, next, p, k, v)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
+  %Equal.sym(M.TreeMap<K, V, cmp> & Maybe<&2, V>, M.exchange(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k})), id, Some{v}), MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, MI.exchange(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}), id, Some{v})), exchange_s(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}), id, Some{v}, write_g(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}, free_header_g(~K, ~V, ~cmp, m, next, g_m)))) : {M.reuse_slot_1(~K, ~V, ~cmp, id, _) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.reuse_slot(~K, ~V, ~cmp, m, id, next, p, k, v)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
+  reuse_slot_1_s(~K, ~V, ~cmp, id, MI.exchange(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}), id, Some{v}), exchange_g(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}), id, Some{v}, write_g(~K, ~V, ~cmp, MI.free_header(~K, ~V, ~cmp, m, next), id, M.N{True{}, 0n, 0n, p, k}, free_header_g(~K, ~V, ~cmp, m, next, g_m))))
+
+
+def set_key_node_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +k: K, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_key_node(~K, ~V, ~cmp, m, id, k, node)) == True{} : Bool}:
+  match node:
+    case M.Free{+px2}:
+      g_m
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      write_g(~K, ~V, ~cmp, m, id, M.N{px3, px4, px5, px6, k}, g_m)
+
+def set_key_node_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +k: K, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_key_node(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, k, node) == ST.real(~K, ~V, ~cmp, MI.set_key_node(~K, ~V, ~cmp, m, id, k, node)) : M.TreeMap<K, V, cmp>}:
+  match node:
+    case M.Free{+px2}:
+      {==}
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      write_s(~K, ~V, ~cmp, m, id, M.N{px3, px4, px5, px6, k}, g_m)
+
+
+def recycle_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.recycle(~K, ~V, ~cmp, m, id)) == True{} : Bool}:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      release_header_g(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free}), id, write_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free}, g_m))
+
+def recycle_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.recycle(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id) == ST.real(~K, ~V, ~cmp, MI.recycle(~K, ~V, ~cmp, m, id)) : M.TreeMap<K, V, cmp>}:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.write(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}), id, M.Free{free}), ST.real(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free})), write_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free}, g_m)) : {M.release_header(~K, ~V, ~cmp, _, id) == ST.real(~K, ~V, ~cmp, MI.recycle(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id)) : M.TreeMap<K, V, cmp>}
+      release_header_s(~K, ~V, ~cmp, MI.write(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free}), id, write_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, M.Free{free}, g_m))
+
+
 def set_left_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +v: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.set_left_1(~K, ~V, ~cmp, id, v, pair_result)) == True{} : Bool}:
   match pair_result:
     case Tuple{+m1, +node}:
@@ -1035,6 +1049,185 @@ def set_red_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +v: Bool, pai
   match pair_result:
     case Tuple{+m1, +node}:
       set_red_node_s(~K, ~V, ~cmp, m1, id, v, node, g_pair_result)
+
+
+def alloc_read_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +p: Nat, +k: K, +v: V, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {MI.dgp(K, V, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.alloc_read(~K, ~V, ~cmp, id, p, k, v, r)) == True{} : Bool}:
+  match r:
+    case Tuple{+px2, M.Free{+px4}}:
+      reuse_slot_g(~K, ~V, ~cmp, px2, id, px4, p, k, v, g_r)
+    case Tuple{+px2, M.N{+px5, +px6, +px7, +px8, +px9}}:
+      g_r
+
+def alloc_read_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +p: Nat, +k: K, +v: V, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {M.alloc_read(~K, ~V, ~cmp, id, p, k, v, MI.rp(~K, ~V, ~cmp, M.Node<K>, r)) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.alloc_read(~K, ~V, ~cmp, id, p, k, v, r)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}:
+  match r:
+    case Tuple{+px2, M.Free{+px4}}:
+      reuse_slot_s(~K, ~V, ~cmp, px2, id, px4, p, k, v, g_r)
+    case Tuple{+px2, M.N{+px5, +px6, +px7, +px8, +px9}}:
+      {==}
+
+
+def set_key_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +k: K, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.set_key_1(~K, ~V, ~cmp, id, k, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m1, +node}:
+      set_key_node_g(~K, ~V, ~cmp, m1, id, k, node, g_pair_result)
+
+def set_key_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +k: K, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.set_key_1(~K, ~V, ~cmp, id, k, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == ST.real(~K, ~V, ~cmp, MI.set_key_1(~K, ~V, ~cmp, id, k, pair_result)) : M.TreeMap<K, V, cmp>}:
+  match pair_result:
+    case Tuple{+m1, +node}:
+      set_key_node_s(~K, ~V, ~cmp, m1, id, k, node, g_pair_result)
+
+
+def set_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_left(~K, ~V, ~cmp, m, id, v)) == True{} : Bool}:
+  set_left_1_g(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+def set_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v) == ST.real(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_m)) : {M.set_left_1(~K, ~V, ~cmp, id, v, _) == ST.real(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}
+  set_left_1_s(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+
+def set_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_right(~K, ~V, ~cmp, m, id, v)) == True{} : Bool}:
+  set_right_1_g(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+def set_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v) == ST.real(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_m)) : {M.set_right_1(~K, ~V, ~cmp, id, v, _) == ST.real(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}
+  set_right_1_s(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+
+def set_parent_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_parent(~K, ~V, ~cmp, m, id, v)) == True{} : Bool}:
+  set_parent_1_g(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+def set_parent_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_parent(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v) == ST.real(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_m)) : {M.set_parent_1(~K, ~V, ~cmp, id, v, _) == ST.real(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}
+  set_parent_1_s(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+
+def set_red_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_red(~K, ~V, ~cmp, m, id, v)) == True{} : Bool}:
+  set_red_1_g(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+def set_red_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v) == ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_m)) : {M.set_red_1(~K, ~V, ~cmp, id, v, _) == ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}
+  set_red_1_s(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+
+def probe_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, (M.Node<K> & Cmp), MI.probe(~K, ~V, ~cmp, m, id, k)) == True{} : Bool}:
+  probe_node_g(~K, ~V, ~cmp, id, k, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+def probe_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.probe(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, k) == MI.rp(~K, ~V, ~cmp, (M.Node<K> & Cmp), MI.probe(~K, ~V, ~cmp, m, id, k)) : M.TreeMap<K, V, cmp> & (M.Node<K> & Cmp)}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_m)) : {M.probe_node(~K, ~V, ~cmp, id, k, _) == MI.rp(~K, ~V, ~cmp, (M.Node<K> & Cmp), MI.probe(~K, ~V, ~cmp, m, id, k)) : M.TreeMap<K, V, cmp> & (M.Node<K> & Cmp)}
+  probe_node_s(~K, ~V, ~cmp, id, k, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+
+def extreme_loop_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, +id: Nat, st: ST.Sh<K, V> & Nat, +g_st: {MI.dgp(K, V, Nat, st) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.extreme_loop(~K, ~V, ~cmp, fuel, forward, id, st)) == True{} : Bool}:
+  match fuel st:
+    case 0n Tuple{+px4, 0n}:
+      g_st
+    case 0n Tuple{+px4, 1n+ +px6}:
+      g_st
+    case 1n+ +px3 Tuple{+px7, 0n}:
+      g_st
+    case 1n+ +px3 Tuple{+px7, 1n+ +px9}:
+      extreme_loop_g(~K, ~V, ~cmp, px3, forward, 1n+px9, MI.extreme_probe(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, px7, 1n+px9)), extreme_probe_g(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, px7, 1n+px9), read_g(~K, ~V, ~cmp, px7, 1n+px9, g_st)))
+
+def extreme_loop_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, +id: Nat, st: ST.Sh<K, V> & Nat, +g_st: {MI.dgp(K, V, Nat, st) == True{} : Bool}) -> {M.extreme_loop(~K, ~V, ~cmp, fuel, forward, id, MI.rp(~K, ~V, ~cmp, Nat, st)) == MI.rp(~K, ~V, ~cmp, Nat, MI.extreme_loop(~K, ~V, ~cmp, fuel, forward, id, st)) : M.TreeMap<K, V, cmp> & Nat}:
+  match fuel st:
+    case 0n Tuple{+px4, 0n}:
+      {==}
+    case 0n Tuple{+px4, 1n+ +px6}:
+      {==}
+    case 1n+ +px3 Tuple{+px7, 0n}:
+      {==}
+    case 1n+ +px3 Tuple{+px7, 1n+ +px9}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, px7), 1n+px9), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, px7, 1n+px9)), read_s(~K, ~V, ~cmp, px7, 1n+px9, g_st)) : {M.extreme_loop(~K, ~V, ~cmp, px3, forward, 1n+px9, M.extreme_probe(~K, ~V, ~cmp, forward, _)) == MI.rp(~K, ~V, ~cmp, Nat, MI.extreme_loop(~K, ~V, ~cmp, 1n+ px3, forward, id, Tuple{px7, 1n+ px9})) : M.TreeMap<K, V, cmp> & Nat}
+      %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.extreme_probe(~K, ~V, ~cmp, forward, MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, px7, 1n+px9))), MI.rp(~K, ~V, ~cmp, Nat, MI.extreme_probe(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, px7, 1n+px9))), extreme_probe_s(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, px7, 1n+px9), read_g(~K, ~V, ~cmp, px7, 1n+px9, g_st))) : {M.extreme_loop(~K, ~V, ~cmp, px3, forward, 1n+px9, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.extreme_loop(~K, ~V, ~cmp, 1n+ px3, forward, id, Tuple{px7, 1n+ px9})) : M.TreeMap<K, V, cmp> & Nat}
+      extreme_loop_s(~K, ~V, ~cmp, px3, forward, 1n+px9, MI.extreme_probe(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, px7, 1n+px9)), extreme_probe_g(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, px7, 1n+px9), read_g(~K, ~V, ~cmp, px7, 1n+px9, g_st)))
+
+
+def ascend_loop_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, st: ST.Sh<K, V> & M.Ascend, +g_st: {MI.dgp(K, V, M.Ascend, st) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.ascend_loop(~K, ~V, ~cmp, fuel, forward, st)) == True{} : Bool}:
+  match fuel st:
+    case 0n Tuple{+px4, +px5}:
+      g_st
+    case 1n+ +px3 Tuple{+px6, M.Ascend{+px8, +px9, True{}}}:
+      g_st
+    case 1n+ +px3 Tuple{+px6, M.Ascend{+px8, +px9, False{}}}:
+      ascend_loop_g(~K, ~V, ~cmp, px3, forward, MI.ascend_step_node(~K, ~V, ~cmp, px8, px9, forward, MI.read(~K, ~V, ~cmp, px6, px9)), ascend_step_node_g(~K, ~V, ~cmp, px8, px9, forward, MI.read(~K, ~V, ~cmp, px6, px9), read_g(~K, ~V, ~cmp, px6, px9, g_st)))
+
+def ascend_loop_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, st: ST.Sh<K, V> & M.Ascend, +g_st: {MI.dgp(K, V, M.Ascend, st) == True{} : Bool}) -> {M.ascend_loop(~K, ~V, ~cmp, fuel, forward, MI.rp(~K, ~V, ~cmp, M.Ascend, st)) == MI.rp(~K, ~V, ~cmp, Nat, MI.ascend_loop(~K, ~V, ~cmp, fuel, forward, st)) : M.TreeMap<K, V, cmp> & Nat}:
+  match fuel st:
+    case 0n Tuple{+px4, +px5}:
+      {==}
+    case 1n+ +px3 Tuple{+px6, M.Ascend{+px8, +px9, True{}}}:
+      {==}
+    case 1n+ +px3 Tuple{+px6, M.Ascend{+px8, +px9, False{}}}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, px6), px9), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, px6, px9)), read_s(~K, ~V, ~cmp, px6, px9, g_st)) : {M.ascend_loop(~K, ~V, ~cmp, px3, forward, M.ascend_step_node(~K, ~V, ~cmp, px8, px9, forward, _)) == MI.rp(~K, ~V, ~cmp, Nat, MI.ascend_loop(~K, ~V, ~cmp, 1n+ px3, forward, Tuple{px6, M.Ascend{px8, px9, False{}}})) : M.TreeMap<K, V, cmp> & Nat}
+      %Equal.sym(M.TreeMap<K, V, cmp> & M.Ascend, M.ascend_step_node(~K, ~V, ~cmp, px8, px9, forward, MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, px6, px9))), MI.rp(~K, ~V, ~cmp, M.Ascend, MI.ascend_step_node(~K, ~V, ~cmp, px8, px9, forward, MI.read(~K, ~V, ~cmp, px6, px9))), ascend_step_node_s(~K, ~V, ~cmp, px8, px9, forward, MI.read(~K, ~V, ~cmp, px6, px9), read_g(~K, ~V, ~cmp, px6, px9, g_st))) : {M.ascend_loop(~K, ~V, ~cmp, px3, forward, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.ascend_loop(~K, ~V, ~cmp, 1n+ px3, forward, Tuple{px6, M.Ascend{px8, px9, False{}}})) : M.TreeMap<K, V, cmp> & Nat}
+      ascend_loop_s(~K, ~V, ~cmp, px3, forward, MI.ascend_step_node(~K, ~V, ~cmp, px8, px9, forward, MI.read(~K, ~V, ~cmp, px6, px9)), ascend_step_node_g(~K, ~V, ~cmp, px8, px9, forward, MI.read(~K, ~V, ~cmp, px6, px9), read_g(~K, ~V, ~cmp, px6, px9, g_st)))
+
+
+def set_key_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_key(~K, ~V, ~cmp, m, id, k)) == True{} : Bool}:
+  set_key_1_g(~K, ~V, ~cmp, id, k, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+def set_key_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_key(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, k) == ST.real(~K, ~V, ~cmp, MI.set_key(~K, ~V, ~cmp, m, id, k)) : M.TreeMap<K, V, cmp>}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_m)) : {M.set_key_1(~K, ~V, ~cmp, id, k, _) == ST.real(~K, ~V, ~cmp, MI.set_key(~K, ~V, ~cmp, m, id, k)) : M.TreeMap<K, V, cmp>}
+  set_key_1_s(~K, ~V, ~cmp, id, k, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+
+def key_id_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat, +g_r: {MI.dgp(K, V, Nat, r) == True{} : Bool}) -> {MI.dgp(K, V, Maybe<&2, K>, MI.key_id(~K, ~V, ~cmp, r)) == True{} : Bool}:
+  match r:
+    case Tuple{+m, +id}:
+      key_finish_g(~K, ~V, ~cmp, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_r))
+
+def key_id_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat, +g_r: {MI.dgp(K, V, Nat, r) == True{} : Bool}) -> {M.key_id(~K, ~V, ~cmp, MI.rp(~K, ~V, ~cmp, Nat, r)) == MI.rp(~K, ~V, ~cmp, Maybe<&2, K>, MI.key_id(~K, ~V, ~cmp, r)) : M.TreeMap<K, V, cmp> & Maybe<&2, K>}:
+  match r:
+    case Tuple{+m, +id}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_r)) : {M.key_finish(~K, ~V, ~cmp, _) == MI.rp(~K, ~V, ~cmp, Maybe<&2, K>, MI.key_id(~K, ~V, ~cmp, Tuple{m, id})) : M.TreeMap<K, V, cmp> & Maybe<&2, K>}
+      key_finish_s(~K, ~V, ~cmp, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_r))
+
+
+def entry_snapshot_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat, +g_r: {MI.dgp(K, V, Nat, r) == True{} : Bool}) -> {MI.dgp(K, V, Maybe<&2, M.Entry<K, V>>, MI.entry_snapshot(~K, ~V, ~cmp, r)) == True{} : Bool}:
+  match r:
+    case Tuple{+m, +id}:
+      entry_snapshot_value_g(~K, ~V, ~cmp, id, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_r))
+
+def entry_snapshot_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat, +g_r: {MI.dgp(K, V, Nat, r) == True{} : Bool}) -> {M.entry_snapshot(~K, ~V, ~cmp, MI.rp(~K, ~V, ~cmp, Nat, r)) == MI.rp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.entry_snapshot(~K, ~V, ~cmp, r)) : M.TreeMap<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}:
+  match r:
+    case Tuple{+m, +id}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_r)) : {M.entry_snapshot_value(~K, ~V, ~cmp, id, _) == MI.rp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.entry_snapshot(~K, ~V, ~cmp, Tuple{m, id})) : M.TreeMap<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}
+      entry_snapshot_value_s(~K, ~V, ~cmp, id, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_r))
+
+
+def iterator_has_next_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +cursor: MI.MCursor<K, V>, +g_cursor: {MI.dgc(K, V, cursor) == True{} : Bool}) -> {MI.dgcp(K, V, Bool, MI.iterator_has_next(~K, ~V, ~cmp, cursor)) == True{} : Bool}:
+  match cursor:
+    case MI.MC{+m, +next, +current, +lower, +upper, +forward}:
+      iterator_has_checked_g(~K, ~V, ~cmp, next, current, lower, upper, forward, MI.read(~K, ~V, ~cmp, m, next), read_g(~K, ~V, ~cmp, m, next, g_cursor))
+
+def iterator_has_next_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +cursor: MI.MCursor<K, V>, +g_cursor: {MI.dgc(K, V, cursor) == True{} : Bool}) -> {M.iterator_has_next(~K, ~V, ~cmp, MI.rc(~K, ~V, ~cmp, cursor)) == MI.rcp(~K, ~V, ~cmp, Bool, MI.iterator_has_next(~K, ~V, ~cmp, cursor)) : M.Cursor<K, V, cmp> & Bool}:
+  match cursor:
+    case MI.MC{+m, +next, +current, +lower, +upper, +forward}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), next), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, next)), read_s(~K, ~V, ~cmp, m, next, g_cursor)) : {M.iterator_has_checked(~K, ~V, ~cmp, next, current, lower, upper, forward, _) == MI.rcp(~K, ~V, ~cmp, Bool, MI.iterator_has_next(~K, ~V, ~cmp, MI.MC{m, next, current, lower, upper, forward})) : M.Cursor<K, V, cmp> & Bool}
+      iterator_has_checked_s(~K, ~V, ~cmp, next, current, lower, upper, forward, MI.read(~K, ~V, ~cmp, m, next), read_g(~K, ~V, ~cmp, m, next, g_cursor))
+
+
+def attach_side_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +x: Nat, +on_left: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.attach_side(~K, ~V, ~cmp, m, p, x, on_left)) == True{} : Bool}:
+  match p on_left:
+    case 0n True{}:
+      set_root_g(~K, ~V, ~cmp, m, x, g_m)
+    case 0n False{}:
+      set_root_g(~K, ~V, ~cmp, m, x, g_m)
+    case 1n+ +px3 True{}:
+      set_left_g(~K, ~V, ~cmp, m, 1n+px3, x, g_m)
+    case 1n+ +px3 False{}:
+      set_right_g(~K, ~V, ~cmp, m, 1n+px3, x, g_m)
+
+def attach_side_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +x: Nat, +on_left: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.attach_side(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, x, on_left) == ST.real(~K, ~V, ~cmp, MI.attach_side(~K, ~V, ~cmp, m, p, x, on_left)) : M.TreeMap<K, V, cmp>}:
+  match p on_left:
+    case 0n True{}:
+      set_root_s(~K, ~V, ~cmp, m, x, g_m)
+    case 0n False{}:
+      set_root_s(~K, ~V, ~cmp, m, x, g_m)
+    case 1n+ +px3 True{}:
+      set_left_s(~K, ~V, ~cmp, m, 1n+px3, x, g_m)
+    case 1n+ +px3 False{}:
+      set_right_s(~K, ~V, ~cmp, m, 1n+px3, x, g_m)
 
 
 def search_loop_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +k: K, +id: Nat, +p: Nat, +on_left: Bool, st: ST.Sh<K, V> & (M.Node<K> & Cmp), +g_st: {MI.dgp(K, V, (M.Node<K> & Cmp), st) == True{} : Bool}) -> {MI.dgp(K, V, M.Search, MI.search_loop(~K, ~V, ~cmp, fuel, k, id, p, on_left, st)) == True{} : Bool}:
@@ -1094,55 +1287,43 @@ def search_loop_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +k: K, +i
       {==}
 
 
-def alloc_read_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +p: Nat, +k: K, +v: V, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {MI.dgp(K, V, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.alloc_read(~K, ~V, ~cmp, id, p, k, v, r)) == True{} : Bool}:
-  match r:
-    case Tuple{+px2, M.Free{+px4}}:
-      reuse_slot_g(~K, ~V, ~cmp, px2, id, px4, p, k, v, g_r)
-    case Tuple{+px2, M.N{+px5, +px6, +px7, +px8, +px9}}:
-      g_r
-
-def alloc_read_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +p: Nat, +k: K, +v: V, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {M.alloc_read(~K, ~V, ~cmp, id, p, k, v, MI.rp(~K, ~V, ~cmp, M.Node<K>, r)) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.alloc_read(~K, ~V, ~cmp, id, p, k, v, r)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}:
-  match r:
-    case Tuple{+px2, M.Free{+px4}}:
-      reuse_slot_s(~K, ~V, ~cmp, px2, id, px4, p, k, v, g_r)
-    case Tuple{+px2, M.N{+px5, +px6, +px7, +px8, +px9}}:
-      {==}
-
-
-def extreme_loop_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, +id: Nat, st: ST.Sh<K, V> & Nat, +g_st: {MI.dgp(K, V, Nat, st) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.extreme_loop(~K, ~V, ~cmp, fuel, forward, id, st)) == True{} : Bool}:
-  match fuel st:
-    case 0n Tuple{+px4, 0n}:
-      g_st
-    case 0n Tuple{+px4, 1n+ +px6}:
-      g_st
-    case 1n+ +px3 Tuple{+px7, 0n}:
-      g_st
-    case 1n+ +px3 Tuple{+px7, 1n+ +px9}:
-      extreme_loop_g(~K, ~V, ~cmp, px3, forward, 1n+px9, MI.extreme_probe(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, px7, 1n+px9)), extreme_probe_g(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, px7, 1n+px9), read_g(~K, ~V, ~cmp, px7, 1n+px9, g_st)))
-
-def extreme_loop_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +forward: Bool, +id: Nat, st: ST.Sh<K, V> & Nat, +g_st: {MI.dgp(K, V, Nat, st) == True{} : Bool}) -> {M.extreme_loop(~K, ~V, ~cmp, fuel, forward, id, MI.rp(~K, ~V, ~cmp, Nat, st)) == MI.rp(~K, ~V, ~cmp, Nat, MI.extreme_loop(~K, ~V, ~cmp, fuel, forward, id, st)) : M.TreeMap<K, V, cmp> & Nat}:
-  match fuel st:
-    case 0n Tuple{+px4, 0n}:
-      {==}
-    case 0n Tuple{+px4, 1n+ +px6}:
-      {==}
-    case 1n+ +px3 Tuple{+px7, 0n}:
-      {==}
-    case 1n+ +px3 Tuple{+px7, 1n+ +px9}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, px7), 1n+px9), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, px7, 1n+px9)), read_s(~K, ~V, ~cmp, px7, 1n+px9, g_st)) : {M.extreme_loop(~K, ~V, ~cmp, px3, forward, 1n+px9, M.extreme_probe(~K, ~V, ~cmp, forward, _)) == MI.rp(~K, ~V, ~cmp, Nat, MI.extreme_loop(~K, ~V, ~cmp, 1n+ px3, forward, id, Tuple{px7, 1n+ px9})) : M.TreeMap<K, V, cmp> & Nat}
-      %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.extreme_probe(~K, ~V, ~cmp, forward, MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, px7, 1n+px9))), MI.rp(~K, ~V, ~cmp, Nat, MI.extreme_probe(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, px7, 1n+px9))), extreme_probe_s(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, px7, 1n+px9), read_g(~K, ~V, ~cmp, px7, 1n+px9, g_st))) : {M.extreme_loop(~K, ~V, ~cmp, px3, forward, 1n+px9, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.extreme_loop(~K, ~V, ~cmp, 1n+ px3, forward, id, Tuple{px7, 1n+ px9})) : M.TreeMap<K, V, cmp> & Nat}
-      extreme_loop_s(~K, ~V, ~cmp, px3, forward, 1n+px9, MI.extreme_probe(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, px7, 1n+px9)), extreme_probe_g(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, px7, 1n+px9), read_g(~K, ~V, ~cmp, px7, 1n+px9, g_st)))
-
-
-def set_key_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +k: K, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.set_key_1(~K, ~V, ~cmp, id, k, pair_result)) == True{} : Bool}:
+def black_root_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, pair_result: ST.Sh<K, V> & Nat, +g_pair_result: {MI.dgp(K, V, Nat, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.black_root_1(~K, ~V, ~cmp, pair_result)) == True{} : Bool}:
   match pair_result:
-    case Tuple{+m1, +node}:
-      set_key_node_g(~K, ~V, ~cmp, m1, id, k, node, g_pair_result)
+    case Tuple{+m1, +r}:
+      set_red_g(~K, ~V, ~cmp, m1, r, False{}, g_pair_result)
 
-def set_key_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +k: K, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.set_key_1(~K, ~V, ~cmp, id, k, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == ST.real(~K, ~V, ~cmp, MI.set_key_1(~K, ~V, ~cmp, id, k, pair_result)) : M.TreeMap<K, V, cmp>}:
+def black_root_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, pair_result: ST.Sh<K, V> & Nat, +g_pair_result: {MI.dgp(K, V, Nat, pair_result) == True{} : Bool}) -> {M.black_root_1(~K, ~V, ~cmp, MI.rp(~K, ~V, ~cmp, Nat, pair_result)) == ST.real(~K, ~V, ~cmp, MI.black_root_1(~K, ~V, ~cmp, pair_result)) : M.TreeMap<K, V, cmp>}:
   match pair_result:
-    case Tuple{+m1, +node}:
-      set_key_node_s(~K, ~V, ~cmp, m1, id, k, node, g_pair_result)
+    case Tuple{+m1, +r}:
+      set_red_s(~K, ~V, ~cmp, m1, r, False{}, g_pair_result)
+
+
+def extreme_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +forward: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.extreme(~K, ~V, ~cmp, m, id, forward)) == True{} : Bool}:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      extreme_loop_g(~K, ~V, ~cmp, 1n+n, forward, id, MI.extreme_probe(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id)), extreme_probe_g(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id), read_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, g_m)))
+
+def extreme_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +forward: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.extreme(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, forward) == MI.rp(~K, ~V, ~cmp, Nat, MI.extreme(~K, ~V, ~cmp, m, id, forward)) : M.TreeMap<K, V, cmp> & Nat}:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id)), read_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, g_m)) : {M.extreme_loop(~K, ~V, ~cmp, 1n+n, forward, id, M.extreme_probe(~K, ~V, ~cmp, forward, _)) == MI.rp(~K, ~V, ~cmp, Nat, MI.extreme(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, forward)) : M.TreeMap<K, V, cmp> & Nat}
+      %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.extreme_probe(~K, ~V, ~cmp, forward, MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id))), MI.rp(~K, ~V, ~cmp, Nat, MI.extreme_probe(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id))), extreme_probe_s(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id), read_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, g_m))) : {M.extreme_loop(~K, ~V, ~cmp, 1n+n, forward, id, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.extreme(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, forward)) : M.TreeMap<K, V, cmp> & Nat}
+      extreme_loop_s(~K, ~V, ~cmp, 1n+n, forward, id, MI.extreme_probe(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id)), extreme_probe_g(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id), read_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, g_m)))
+
+
+def copy_key_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +target: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.copy_key(~K, ~V, ~cmp, m, target, node)) == True{} : Bool}:
+  match node:
+    case M.Free{+px2}:
+      g_m
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      set_key_g(~K, ~V, ~cmp, m, target, px7, g_m)
+
+def copy_key_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +target: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.copy_key(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), target, node) == ST.real(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m, target, node)) : M.TreeMap<K, V, cmp>}:
+  match node:
+    case M.Free{+px2}:
+      {==}
+    case M.N{+px3, +px4, +px5, +px6, +px7}:
+      set_key_s(~K, ~V, ~cmp, m, target, px7, g_m)
 
 
 def first_key_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Maybe<&2, K>, MI.first_key(~K, ~V, ~cmp, m)) == True{} : Bool}:
@@ -1161,128 +1342,6 @@ def last_key_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m: {
   key_id_s(~K, ~V, ~cmp, MI.last_id(~K, ~V, ~cmp, m), last_id_g(~K, ~V, ~cmp, m, g_m))
 
 
-def entry_snapshot_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat, +g_r: {MI.dgp(K, V, Nat, r) == True{} : Bool}) -> {MI.dgp(K, V, Maybe<&2, M.Entry<K, V>>, MI.entry_snapshot(~K, ~V, ~cmp, r)) == True{} : Bool}:
-  match r:
-    case Tuple{+m, +id}:
-      entry_snapshot_value_g(~K, ~V, ~cmp, id, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_r))
-
-def entry_snapshot_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: ST.Sh<K, V> & Nat, +g_r: {MI.dgp(K, V, Nat, r) == True{} : Bool}) -> {M.entry_snapshot(~K, ~V, ~cmp, MI.rp(~K, ~V, ~cmp, Nat, r)) == MI.rp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.entry_snapshot(~K, ~V, ~cmp, r)) : M.TreeMap<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}:
-  match r:
-    case Tuple{+m, +id}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_r)) : {M.entry_snapshot_value(~K, ~V, ~cmp, id, _) == MI.rp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.entry_snapshot(~K, ~V, ~cmp, Tuple{m, id})) : M.TreeMap<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}
-      entry_snapshot_value_s(~K, ~V, ~cmp, id, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_r))
-
-
-def replace_if_value_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +id: Nat, +expected: V, +replacement: V, r: ST.Sh<K, V> & Maybe<&2, V>, +g_r: {MI.dgp(K, V, Maybe<&2, V>, r) == True{} : Bool}) -> {MI.dgp(K, V, Bool, MI.replace_if_value(~K, ~V, ~cmp, ~eq, id, expected, replacement, r)) == True{} : Bool}:
-  match r:
-    case Tuple{+px2, None{}}:
-      g_r
-    case Tuple{+px2, Some{+px4}}:
-      replace_if_apply_g(~K, ~V, ~cmp, px2, id, replacement, eq(px4, expected), g_r)
-
-def replace_if_value_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +id: Nat, +expected: V, +replacement: V, r: ST.Sh<K, V> & Maybe<&2, V>, +g_r: {MI.dgp(K, V, Maybe<&2, V>, r) == True{} : Bool}) -> {M.replace_if_value(~K, ~V, ~cmp, ~eq, id, expected, replacement, MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, r)) == MI.rp(~K, ~V, ~cmp, Bool, MI.replace_if_value(~K, ~V, ~cmp, ~eq, id, expected, replacement, r)) : M.TreeMap<K, V, cmp> & Bool}:
-  match r:
-    case Tuple{+px2, None{}}:
-      {==}
-    case Tuple{+px2, Some{+px4}}:
-      replace_if_apply_s(~K, ~V, ~cmp, px2, id, replacement, eq(px4, expected), g_r)
-
-
-def iterator_has_checked_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +next: Nat, +current: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {MI.dgcp(K, V, Bool, MI.iterator_has_checked(~K, ~V, ~cmp, next, current, lower, upper, forward, r)) == True{} : Bool}:
-  match r:
-    case Tuple{+px2, M.Free{+px4}}:
-      g_r
-    case Tuple{+px2, M.N{+px5, +px6, +px7, +px8, +px9}}:
-      g_r
-
-def iterator_has_checked_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +next: Nat, +current: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +forward: Bool, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {M.iterator_has_checked(~K, ~V, ~cmp, next, current, lower, upper, forward, MI.rp(~K, ~V, ~cmp, M.Node<K>, r)) == MI.rcp(~K, ~V, ~cmp, Bool, MI.iterator_has_checked(~K, ~V, ~cmp, next, current, lower, upper, forward, r)) : M.Cursor<K, V, cmp> & Bool}:
-  match r:
-    case Tuple{+px2, M.Free{+px4}}:
-      {==}
-    case Tuple{+px2, M.N{+px5, +px6, +px7, +px8, +px9}}:
-      {==}
-
-
-def view_entry_result_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +lower: M.Bound<K>, +upper: M.Bound<K>, +descending: Bool, r: ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>, +g_r: {MI.dgp(K, V, Maybe<&2, M.Entry<K, V>>, r) == True{} : Bool}) -> {MI.dgvp(K, V, Maybe<&2, M.Entry<K, V>>, MI.view_entry_result(~K, ~V, ~cmp, lower, upper, descending, r)) == True{} : Bool}:
-  match r:
-    case Tuple{+px2, None{}}:
-      g_r
-    case Tuple{+px2, Some{M.Entry{+px5, +px6}}}:
-      view_entry_checked_g(~K, ~V, ~cmp, px2, lower, upper, descending, M.Entry{px5, px6}, M.in_range(~K, ~V, ~cmp, px5, lower, upper), g_r)
-
-def view_entry_result_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +lower: M.Bound<K>, +upper: M.Bound<K>, +descending: Bool, r: ST.Sh<K, V> & Maybe<&2, M.Entry<K, V>>, +g_r: {MI.dgp(K, V, Maybe<&2, M.Entry<K, V>>, r) == True{} : Bool}) -> {M.view_entry_result(~K, ~V, ~cmp, lower, upper, descending, MI.rp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, r)) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.view_entry_result(~K, ~V, ~cmp, lower, upper, descending, r)) : M.View<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}:
-  match r:
-    case Tuple{+px2, None{}}:
-      {==}
-    case Tuple{+px2, Some{M.Entry{+px5, +px6}}}:
-      view_entry_checked_s(~K, ~V, ~cmp, px2, lower, upper, descending, M.Entry{px5, px6}, M.in_range(~K, ~V, ~cmp, px5, lower, upper), g_r)
-
-
-def set_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_left(~K, ~V, ~cmp, m, id, v)) == True{} : Bool}:
-  set_left_1_g(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
-
-def set_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v) == ST.real(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_m)) : {M.set_left_1(~K, ~V, ~cmp, id, v, _) == ST.real(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}
-  set_left_1_s(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
-
-
-def set_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_right(~K, ~V, ~cmp, m, id, v)) == True{} : Bool}:
-  set_right_1_g(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
-
-def set_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v) == ST.real(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_m)) : {M.set_right_1(~K, ~V, ~cmp, id, v, _) == ST.real(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}
-  set_right_1_s(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
-
-
-def set_parent_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_parent(~K, ~V, ~cmp, m, id, v)) == True{} : Bool}:
-  set_parent_1_g(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
-
-def set_parent_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_parent(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v) == ST.real(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_m)) : {M.set_parent_1(~K, ~V, ~cmp, id, v, _) == ST.real(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}
-  set_parent_1_s(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
-
-
-def set_red_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_red(~K, ~V, ~cmp, m, id, v)) == True{} : Bool}:
-  set_red_1_g(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
-
-def set_red_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +v: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, v) == ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_m)) : {M.set_red_1(~K, ~V, ~cmp, id, v, _) == ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, id, v)) : M.TreeMap<K, V, cmp>}
-  set_red_1_s(~K, ~V, ~cmp, id, v, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
-
-
-def search_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Search, MI.search(~K, ~V, ~cmp, m, k)) == True{} : Bool}:
-  match m:
-    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
-      search_loop_g(~K, ~V, ~cmp, 1n+n, k, root, 0n, False{}, MI.probe(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k), probe_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k, g_m))
-
-def search_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.search(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), k) == MI.rp(~K, ~V, ~cmp, M.Search, MI.search(~K, ~V, ~cmp, m, k)) : M.TreeMap<K, V, cmp> & M.Search}:
-  match m:
-    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & (M.Node<K> & Cmp), M.probe(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}), root, k), MI.rp(~K, ~V, ~cmp, (M.Node<K> & Cmp), MI.probe(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k)), probe_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k, g_m)) : {M.search_loop(~K, ~V, ~cmp, 1n+n, k, root, 0n, False{}, _) == MI.rp(~K, ~V, ~cmp, M.Search, MI.search(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, k)) : M.TreeMap<K, V, cmp> & M.Search}
-      search_loop_s(~K, ~V, ~cmp, 1n+n, k, root, 0n, False{}, MI.probe(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k), probe_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k, g_m))
-
-
-def extreme_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +forward: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.extreme(~K, ~V, ~cmp, m, id, forward)) == True{} : Bool}:
-  match m:
-    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
-      extreme_loop_g(~K, ~V, ~cmp, 1n+n, forward, id, MI.extreme_probe(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id)), extreme_probe_g(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id), read_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, g_m)))
-
-def extreme_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +forward: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.extreme(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, forward) == MI.rp(~K, ~V, ~cmp, Nat, MI.extreme(~K, ~V, ~cmp, m, id, forward)) : M.TreeMap<K, V, cmp> & Nat}:
-  match m:
-    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id)), read_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, g_m)) : {M.extreme_loop(~K, ~V, ~cmp, 1n+n, forward, id, M.extreme_probe(~K, ~V, ~cmp, forward, _)) == MI.rp(~K, ~V, ~cmp, Nat, MI.extreme(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, forward)) : M.TreeMap<K, V, cmp> & Nat}
-      %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.extreme_probe(~K, ~V, ~cmp, forward, MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id))), MI.rp(~K, ~V, ~cmp, Nat, MI.extreme_probe(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id))), extreme_probe_s(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id), read_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, g_m))) : {M.extreme_loop(~K, ~V, ~cmp, 1n+n, forward, id, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.extreme(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, forward)) : M.TreeMap<K, V, cmp> & Nat}
-      extreme_loop_s(~K, ~V, ~cmp, 1n+n, forward, id, MI.extreme_probe(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id)), extreme_probe_g(~K, ~V, ~cmp, forward, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id), read_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, id, g_m)))
-
-
-def set_key_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.set_key(~K, ~V, ~cmp, m, id, k)) == True{} : Bool}:
-  set_key_1_g(~K, ~V, ~cmp, id, k, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
-
-def set_key_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.set_key(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, k) == ST.real(~K, ~V, ~cmp, MI.set_key(~K, ~V, ~cmp, m, id, k)) : M.TreeMap<K, V, cmp>}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_m)) : {M.set_key_1(~K, ~V, ~cmp, id, k, _) == ST.real(~K, ~V, ~cmp, MI.set_key(~K, ~V, ~cmp, m, id, k)) : M.TreeMap<K, V, cmp>}
-  set_key_1_s(~K, ~V, ~cmp, id, k, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
-
-
 def first_entry_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Maybe<&2, M.Entry<K, V>>, MI.first_entry(~K, ~V, ~cmp, m)) == True{} : Bool}:
   entry_snapshot_g(~K, ~V, ~cmp, MI.first_id(~K, ~V, ~cmp, m), first_id_g(~K, ~V, ~cmp, m, g_m))
 
@@ -1299,82 +1358,87 @@ def last_entry_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m:
   entry_snapshot_s(~K, ~V, ~cmp, MI.last_id(~K, ~V, ~cmp, m), last_id_g(~K, ~V, ~cmp, m, g_m))
 
 
-def replace_if_found_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +expected: V, +replacement: V, r: ST.Sh<K, V> & M.Search, +g_r: {MI.dgp(K, V, M.Search, r) == True{} : Bool}) -> {MI.dgp(K, V, Bool, MI.replace_if_found(~K, ~V, ~cmp, ~eq, expected, replacement, r)) == True{} : Bool}:
-  match r:
-    case Tuple{+m, M.Search{+id, +p, +on_left}}:
-      replace_if_value_g(~K, ~V, ~cmp, ~eq, id, expected, replacement, MI.get_id(~K, ~V, ~cmp, m, id), get_id_g(~K, ~V, ~cmp, m, id, g_r))
+def attach_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +x: Nat, +on_left: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.attach(~K, ~V, ~cmp, m, p, x, on_left)) == True{} : Bool}:
+  set_parent_g(~K, ~V, ~cmp, MI.attach_side(~K, ~V, ~cmp, m, p, x, on_left), x, p, attach_side_g(~K, ~V, ~cmp, m, p, x, on_left, g_m))
 
-def replace_if_found_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +expected: V, +replacement: V, r: ST.Sh<K, V> & M.Search, +g_r: {MI.dgp(K, V, M.Search, r) == True{} : Bool}) -> {M.replace_if_found(~K, ~V, ~cmp, ~eq, expected, replacement, MI.rp(~K, ~V, ~cmp, M.Search, r)) == MI.rp(~K, ~V, ~cmp, Bool, MI.replace_if_found(~K, ~V, ~cmp, ~eq, expected, replacement, r)) : M.TreeMap<K, V, cmp> & Bool}:
-  match r:
-    case Tuple{+m, M.Search{+id, +p, +on_left}}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & Maybe<&2, V>, M.get_id(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, MI.get_id(~K, ~V, ~cmp, m, id)), get_id_s(~K, ~V, ~cmp, m, id, g_r)) : {M.replace_if_value(~K, ~V, ~cmp, ~eq, id, expected, replacement, _) == MI.rp(~K, ~V, ~cmp, Bool, MI.replace_if_found(~K, ~V, ~cmp, ~eq, expected, replacement, Tuple{m, M.Search{id, p, on_left}})) : M.TreeMap<K, V, cmp> & Bool}
-      replace_if_value_s(~K, ~V, ~cmp, ~eq, id, expected, replacement, MI.get_id(~K, ~V, ~cmp, m, id), get_id_g(~K, ~V, ~cmp, m, id, g_r))
+def attach_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +x: Nat, +on_left: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.attach(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, x, on_left) == ST.real(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, m, p, x, on_left)) : M.TreeMap<K, V, cmp>}:
+  %Equal.sym(M.TreeMap<K, V, cmp>, M.attach_side(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, x, on_left), ST.real(~K, ~V, ~cmp, MI.attach_side(~K, ~V, ~cmp, m, p, x, on_left)), attach_side_s(~K, ~V, ~cmp, m, p, x, on_left, g_m)) : {M.set_parent(~K, ~V, ~cmp, _, x, p) == ST.real(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, m, p, x, on_left)) : M.TreeMap<K, V, cmp>}
+  set_parent_s(~K, ~V, ~cmp, MI.attach_side(~K, ~V, ~cmp, m, p, x, on_left), x, p, attach_side_g(~K, ~V, ~cmp, m, p, x, on_left, g_m))
 
 
-def iterator_has_next_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +cursor: MI.MCursor<K, V>, +g_cursor: {MI.dgc(K, V, cursor) == True{} : Bool}) -> {MI.dgcp(K, V, Bool, MI.iterator_has_next(~K, ~V, ~cmp, cursor)) == True{} : Bool}:
-  match cursor:
-    case MI.MC{+m, +next, +current, +lower, +upper, +forward}:
-      iterator_has_checked_g(~K, ~V, ~cmp, next, current, lower, upper, forward, MI.read(~K, ~V, ~cmp, m, next), read_g(~K, ~V, ~cmp, m, next, g_cursor))
-
-def iterator_has_next_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +cursor: MI.MCursor<K, V>, +g_cursor: {MI.dgc(K, V, cursor) == True{} : Bool}) -> {M.iterator_has_next(~K, ~V, ~cmp, MI.rc(~K, ~V, ~cmp, cursor)) == MI.rcp(~K, ~V, ~cmp, Bool, MI.iterator_has_next(~K, ~V, ~cmp, cursor)) : M.Cursor<K, V, cmp> & Bool}:
-  match cursor:
-    case MI.MC{+m, +next, +current, +lower, +upper, +forward}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), next), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, next)), read_s(~K, ~V, ~cmp, m, next, g_cursor)) : {M.iterator_has_checked(~K, ~V, ~cmp, next, current, lower, upper, forward, _) == MI.rcp(~K, ~V, ~cmp, Bool, MI.iterator_has_next(~K, ~V, ~cmp, MI.MC{m, next, current, lower, upper, forward})) : M.Cursor<K, V, cmp> & Bool}
-      iterator_has_checked_s(~K, ~V, ~cmp, next, current, lower, upper, forward, MI.read(~K, ~V, ~cmp, m, next), read_g(~K, ~V, ~cmp, m, next, g_cursor))
-
-
-def attach_side_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +x: Nat, +on_left: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.attach_side(~K, ~V, ~cmp, m, p, x, on_left)) == True{} : Bool}:
-  match p on_left:
-    case 0n True{}:
-      set_root_g(~K, ~V, ~cmp, m, x, g_m)
-    case 0n False{}:
-      set_root_g(~K, ~V, ~cmp, m, x, g_m)
-    case 1n+ +px3 True{}:
-      set_left_g(~K, ~V, ~cmp, m, 1n+px3, x, g_m)
-    case 1n+ +px3 False{}:
-      set_right_g(~K, ~V, ~cmp, m, 1n+px3, x, g_m)
-
-def attach_side_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +x: Nat, +on_left: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.attach_side(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, x, on_left) == ST.real(~K, ~V, ~cmp, MI.attach_side(~K, ~V, ~cmp, m, p, x, on_left)) : M.TreeMap<K, V, cmp>}:
-  match p on_left:
-    case 0n True{}:
-      set_root_s(~K, ~V, ~cmp, m, x, g_m)
-    case 0n False{}:
-      set_root_s(~K, ~V, ~cmp, m, x, g_m)
-    case 1n+ +px3 True{}:
-      set_left_s(~K, ~V, ~cmp, m, 1n+px3, x, g_m)
-    case 1n+ +px3 False{}:
-      set_right_s(~K, ~V, ~cmp, m, 1n+px3, x, g_m)
-
-
-def black_root_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, pair_result: ST.Sh<K, V> & Nat, +g_pair_result: {MI.dgp(K, V, Nat, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.black_root_1(~K, ~V, ~cmp, pair_result)) == True{} : Bool}:
-  match pair_result:
-    case Tuple{+m1, +r}:
-      set_red_g(~K, ~V, ~cmp, m1, r, False{}, g_pair_result)
-
-def black_root_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, pair_result: ST.Sh<K, V> & Nat, +g_pair_result: {MI.dgp(K, V, Nat, pair_result) == True{} : Bool}) -> {M.black_root_1(~K, ~V, ~cmp, MI.rp(~K, ~V, ~cmp, Nat, pair_result)) == ST.real(~K, ~V, ~cmp, MI.black_root_1(~K, ~V, ~cmp, pair_result)) : M.TreeMap<K, V, cmp>}:
-  match pair_result:
-    case Tuple{+m1, +r}:
-      set_red_s(~K, ~V, ~cmp, m1, r, False{}, g_pair_result)
-
-
-def allocate_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +k: K, +v: V, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.allocate(~K, ~V, ~cmp, m, p, k, v)) == True{} : Bool}:
+def search_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Search, MI.search(~K, ~V, ~cmp, m, k)) == True{} : Bool}:
   match m:
     case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
-      match free:
-        case 0n:
-          append_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 0n, l_0, d_0, nl_0, pl_0, t_0, fl_0}, k, v, p, g_m)
-        case 1n+ +px2:
-          alloc_read_g(~K, ~V, ~cmp, 1n+px2, p, k, v, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}, 1n+px2), read_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}, 1n+px2, g_m))
+      search_loop_g(~K, ~V, ~cmp, 1n+n, k, root, 0n, False{}, MI.probe(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k), probe_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k, g_m))
 
-def allocate_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +k: K, +v: V, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.allocate(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, k, v) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.allocate(~K, ~V, ~cmp, m, p, k, v)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}:
+def search_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.search(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), k) == MI.rp(~K, ~V, ~cmp, M.Search, MI.search(~K, ~V, ~cmp, m, k)) : M.TreeMap<K, V, cmp> & M.Search}:
   match m:
     case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
-      match free:
-        case 0n:
-          append_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 0n, l_0, d_0, nl_0, pl_0, t_0, fl_0}, k, v, p, g_m)
-        case 1n+ +px2:
-          %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}), 1n+px2), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}, 1n+px2)), read_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}, 1n+px2, g_m)) : {M.alloc_read(~K, ~V, ~cmp, 1n+px2, p, k, v, _) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.allocate(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, p, k, v)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
-          alloc_read_s(~K, ~V, ~cmp, 1n+px2, p, k, v, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}, 1n+px2), read_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}, 1n+px2, g_m))
+      %Equal.sym(M.TreeMap<K, V, cmp> & (M.Node<K> & Cmp), M.probe(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}), root, k), MI.rp(~K, ~V, ~cmp, (M.Node<K> & Cmp), MI.probe(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k)), probe_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k, g_m)) : {M.search_loop(~K, ~V, ~cmp, 1n+n, k, root, 0n, False{}, _) == MI.rp(~K, ~V, ~cmp, M.Search, MI.search(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, k)) : M.TreeMap<K, V, cmp> & M.Search}
+      search_loop_s(~K, ~V, ~cmp, 1n+n, k, root, 0n, False{}, MI.probe(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k), probe_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, root, k, g_m))
+
+
+def black_root_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.black_root(~K, ~V, ~cmp, m)) == True{} : Bool}:
+  black_root_1_g(~K, ~V, ~cmp, MI.root_id(~K, ~V, ~cmp, m), root_id_g(~K, ~V, ~cmp, m, g_m))
+
+def black_root_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.black_root(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m)) == ST.real(~K, ~V, ~cmp, MI.black_root(~K, ~V, ~cmp, m)) : M.TreeMap<K, V, cmp>}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.root_id(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m)), MI.rp(~K, ~V, ~cmp, Nat, MI.root_id(~K, ~V, ~cmp, m)), root_id_s(~K, ~V, ~cmp, m, g_m)) : {M.black_root_1(~K, ~V, ~cmp, _) == ST.real(~K, ~V, ~cmp, MI.black_root(~K, ~V, ~cmp, m)) : M.TreeMap<K, V, cmp>}
+  black_root_1_s(~K, ~V, ~cmp, MI.root_id(~K, ~V, ~cmp, m), root_id_g(~K, ~V, ~cmp, m, g_m))
+
+
+def move_successor_2_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +source: Nat, +source_node: M.Node<K>, pair_result: ST.Sh<K, V> & Maybe<&2, V>, +g_pair_result: {MI.dgp(K, V, Maybe<&2, V>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.move_successor_2(~K, ~V, ~cmp, target, source, source_node, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m2, +value}:
+      move_successor_3_g(~K, ~V, ~cmp, source, MI.exchange(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value), exchange_g(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value, copy_key_g(~K, ~V, ~cmp, m2, target, source_node, g_pair_result)))
+
+def move_successor_2_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +source: Nat, +source_node: M.Node<K>, pair_result: ST.Sh<K, V> & Maybe<&2, V>, +g_pair_result: {MI.dgp(K, V, Maybe<&2, V>, pair_result) == True{} : Bool}) -> {M.move_successor_2(~K, ~V, ~cmp, target, source, source_node, MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, pair_result)) == MI.rp(~K, ~V, ~cmp, Nat, MI.move_successor_2(~K, ~V, ~cmp, target, source, source_node, pair_result)) : M.TreeMap<K, V, cmp> & Nat}:
+  match pair_result:
+    case Tuple{+m2, +value}:
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.copy_key(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m2), target, source_node), ST.real(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node)), copy_key_s(~K, ~V, ~cmp, m2, target, source_node, g_pair_result)) : {M.move_successor_3(~K, ~V, ~cmp, source, M.exchange(~K, ~V, ~cmp, _, target, value)) == MI.rp(~K, ~V, ~cmp, Nat, MI.move_successor_2(~K, ~V, ~cmp, target, source, source_node, Tuple{m2, value})) : M.TreeMap<K, V, cmp> & Nat}
+      %Equal.sym(M.TreeMap<K, V, cmp> & Maybe<&2, V>, M.exchange(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node)), target, value), MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, MI.exchange(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value)), exchange_s(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value, copy_key_g(~K, ~V, ~cmp, m2, target, source_node, g_pair_result))) : {M.move_successor_3(~K, ~V, ~cmp, source, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.move_successor_2(~K, ~V, ~cmp, target, source, source_node, Tuple{m2, value})) : M.TreeMap<K, V, cmp> & Nat}
+      move_successor_3_s(~K, ~V, ~cmp, source, MI.exchange(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value), exchange_g(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value, copy_key_g(~K, ~V, ~cmp, m2, target, source_node, g_pair_result)))
+
+
+def refresh_ends_2_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +r: Nat, pair_result: ST.Sh<K, V> & Nat, +g_pair_result: {MI.dgp(K, V, Nat, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.refresh_ends_2(~K, ~V, ~cmp, r, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m2, +lo}:
+      refresh_ends_3_g(~K, ~V, ~cmp, lo, MI.extreme(~K, ~V, ~cmp, m2, r, True{}), extreme_g(~K, ~V, ~cmp, m2, r, True{}, g_pair_result))
+
+def refresh_ends_2_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +r: Nat, pair_result: ST.Sh<K, V> & Nat, +g_pair_result: {MI.dgp(K, V, Nat, pair_result) == True{} : Bool}) -> {M.refresh_ends_2(~K, ~V, ~cmp, r, MI.rp(~K, ~V, ~cmp, Nat, pair_result)) == ST.real(~K, ~V, ~cmp, MI.refresh_ends_2(~K, ~V, ~cmp, r, pair_result)) : M.TreeMap<K, V, cmp>}:
+  match pair_result:
+    case Tuple{+m2, +lo}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.extreme(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m2), r, True{}), MI.rp(~K, ~V, ~cmp, Nat, MI.extreme(~K, ~V, ~cmp, m2, r, True{})), extreme_s(~K, ~V, ~cmp, m2, r, True{}, g_pair_result)) : {M.refresh_ends_3(~K, ~V, ~cmp, lo, _) == ST.real(~K, ~V, ~cmp, MI.refresh_ends_2(~K, ~V, ~cmp, r, Tuple{m2, lo})) : M.TreeMap<K, V, cmp>}
+      refresh_ends_3_s(~K, ~V, ~cmp, lo, MI.extreme(~K, ~V, ~cmp, m2, r, True{}), extreme_g(~K, ~V, ~cmp, m2, r, True{}, g_pair_result))
+
+
+def rotate_left_3_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, +yn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.rotate_left_3(~K, ~V, ~cmp, x, xn, yn, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m3, +pn}:
+      set_parent_g(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x), x, M.node_right(~K, xn), set_left_g(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x, attach_g(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x, set_right_g(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn), g_pair_result)))))
+
+def rotate_left_3_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, +yn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.rotate_left_3(~K, ~V, ~cmp, x, xn, yn, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == ST.real(~K, ~V, ~cmp, MI.rotate_left_3(~K, ~V, ~cmp, x, xn, yn, pair_result)) : M.TreeMap<K, V, cmp>}:
+  match pair_result:
+    case Tuple{+m3, +pn}:
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m3), x, M.node_left(~K, yn)), ST.real(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn))), set_right_s(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn), g_pair_result)) : {M.set_parent(~K, ~V, ~cmp, M.set_left(~K, ~V, ~cmp, M.attach(~K, ~V, ~cmp, M.set_parent(~K, ~V, ~cmp, _, M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x), x, M.node_right(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_left_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_parent(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn))), M.node_left(~K, yn), x), ST.real(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x)), set_parent_s(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x, set_right_g(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn), g_pair_result))) : {M.set_parent(~K, ~V, ~cmp, M.set_left(~K, ~V, ~cmp, M.attach(~K, ~V, ~cmp, _, M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x), x, M.node_right(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_left_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.attach(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x)), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), ST.real(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x))), attach_s(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x, set_right_g(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn), g_pair_result)))) : {M.set_parent(~K, ~V, ~cmp, M.set_left(~K, ~V, ~cmp, _, M.node_right(~K, xn), x), x, M.node_right(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_left_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x))), M.node_right(~K, xn), x), ST.real(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x)), set_left_s(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x, attach_g(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x, set_right_g(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn), g_pair_result))))) : {M.set_parent(~K, ~V, ~cmp, _, x, M.node_right(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_left_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
+      set_parent_s(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x), x, M.node_right(~K, xn), set_left_g(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x, attach_g(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x, set_right_g(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn), g_pair_result)))))
+
+
+def rotate_right_3_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, +yn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.rotate_right_3(~K, ~V, ~cmp, x, xn, yn, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m3, +pn}:
+      set_parent_g(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x), x, M.node_left(~K, xn), set_right_g(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x, attach_g(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x, set_left_g(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn), g_pair_result)))))
+
+def rotate_right_3_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, +yn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.rotate_right_3(~K, ~V, ~cmp, x, xn, yn, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == ST.real(~K, ~V, ~cmp, MI.rotate_right_3(~K, ~V, ~cmp, x, xn, yn, pair_result)) : M.TreeMap<K, V, cmp>}:
+  match pair_result:
+    case Tuple{+m3, +pn}:
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m3), x, M.node_right(~K, yn)), ST.real(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn))), set_left_s(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn), g_pair_result)) : {M.set_parent(~K, ~V, ~cmp, M.set_right(~K, ~V, ~cmp, M.attach(~K, ~V, ~cmp, M.set_parent(~K, ~V, ~cmp, _, M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x), x, M.node_left(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_right_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_parent(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn))), M.node_right(~K, yn), x), ST.real(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x)), set_parent_s(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x, set_left_g(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn), g_pair_result))) : {M.set_parent(~K, ~V, ~cmp, M.set_right(~K, ~V, ~cmp, M.attach(~K, ~V, ~cmp, _, M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x), x, M.node_left(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_right_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.attach(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x)), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), ST.real(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x))), attach_s(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x, set_left_g(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn), g_pair_result)))) : {M.set_parent(~K, ~V, ~cmp, M.set_right(~K, ~V, ~cmp, _, M.node_left(~K, xn), x), x, M.node_left(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_right_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x))), M.node_left(~K, xn), x), ST.real(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x)), set_right_s(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x, attach_g(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x, set_left_g(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn), g_pair_result))))) : {M.set_parent(~K, ~V, ~cmp, _, x, M.node_left(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_right_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
+      set_parent_s(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x), x, M.node_left(~K, xn), set_right_g(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x, attach_g(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x, set_left_g(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn), g_pair_result)))))
 
 
 def get_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Maybe<&2, V>, MI.get(~K, ~V, ~cmp, m, k)) == True{} : Bool}:
@@ -1393,31 +1457,28 @@ def contains_key_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k:
   contains_found_s(~K, ~V, ~cmp, MI.search(~K, ~V, ~cmp, m, k), search_g(~K, ~V, ~cmp, m, k, g_m))
 
 
-def copy_key_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +target: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.copy_key(~K, ~V, ~cmp, m, target, node)) == True{} : Bool}:
-  match node:
-    case M.Free{+px2}:
-      g_m
-    case M.N{+px3, +px4, +px5, +px6, +px7}:
-      set_key_g(~K, ~V, ~cmp, m, target, px7, g_m)
-
-def copy_key_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +target: Nat, +node: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.copy_key(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), target, node) == ST.real(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m, target, node)) : M.TreeMap<K, V, cmp>}:
-  match node:
-    case M.Free{+px2}:
-      {==}
-    case M.N{+px3, +px4, +px5, +px6, +px7}:
-      set_key_s(~K, ~V, ~cmp, m, target, px7, g_m)
-
-
-def refresh_ends_2_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +r: Nat, pair_result: ST.Sh<K, V> & Nat, +g_pair_result: {MI.dgp(K, V, Nat, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.refresh_ends_2(~K, ~V, ~cmp, r, pair_result)) == True{} : Bool}:
+def move_successor_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +source: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.move_successor_1(~K, ~V, ~cmp, target, source, pair_result)) == True{} : Bool}:
   match pair_result:
-    case Tuple{+m2, +lo}:
-      refresh_ends_3_g(~K, ~V, ~cmp, lo, MI.extreme(~K, ~V, ~cmp, m2, r, True{}), extreme_g(~K, ~V, ~cmp, m2, r, True{}, g_pair_result))
+    case Tuple{+m1, +source_node}:
+      move_successor_2_g(~K, ~V, ~cmp, target, source, source_node, MI.exchange(~K, ~V, ~cmp, m1, source, None{}), exchange_g(~K, ~V, ~cmp, m1, source, None{}, g_pair_result))
 
-def refresh_ends_2_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +r: Nat, pair_result: ST.Sh<K, V> & Nat, +g_pair_result: {MI.dgp(K, V, Nat, pair_result) == True{} : Bool}) -> {M.refresh_ends_2(~K, ~V, ~cmp, r, MI.rp(~K, ~V, ~cmp, Nat, pair_result)) == ST.real(~K, ~V, ~cmp, MI.refresh_ends_2(~K, ~V, ~cmp, r, pair_result)) : M.TreeMap<K, V, cmp>}:
+def move_successor_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +source: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.move_successor_1(~K, ~V, ~cmp, target, source, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == MI.rp(~K, ~V, ~cmp, Nat, MI.move_successor_1(~K, ~V, ~cmp, target, source, pair_result)) : M.TreeMap<K, V, cmp> & Nat}:
   match pair_result:
-    case Tuple{+m2, +lo}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.extreme(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m2), r, True{}), MI.rp(~K, ~V, ~cmp, Nat, MI.extreme(~K, ~V, ~cmp, m2, r, True{})), extreme_s(~K, ~V, ~cmp, m2, r, True{}, g_pair_result)) : {M.refresh_ends_3(~K, ~V, ~cmp, lo, _) == ST.real(~K, ~V, ~cmp, MI.refresh_ends_2(~K, ~V, ~cmp, r, Tuple{m2, lo})) : M.TreeMap<K, V, cmp>}
-      refresh_ends_3_s(~K, ~V, ~cmp, lo, MI.extreme(~K, ~V, ~cmp, m2, r, True{}), extreme_g(~K, ~V, ~cmp, m2, r, True{}, g_pair_result))
+    case Tuple{+m1, +source_node}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & Maybe<&2, V>, M.exchange(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m1), source, None{}), MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, MI.exchange(~K, ~V, ~cmp, m1, source, None{})), exchange_s(~K, ~V, ~cmp, m1, source, None{}, g_pair_result)) : {M.move_successor_2(~K, ~V, ~cmp, target, source, source_node, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.move_successor_1(~K, ~V, ~cmp, target, source, Tuple{m1, source_node})) : M.TreeMap<K, V, cmp> & Nat}
+      move_successor_2_s(~K, ~V, ~cmp, target, source, source_node, MI.exchange(~K, ~V, ~cmp, m1, source, None{}), exchange_g(~K, ~V, ~cmp, m1, source, None{}, g_pair_result))
+
+
+def refresh_ends_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, pair_result: ST.Sh<K, V> & Nat, +g_pair_result: {MI.dgp(K, V, Nat, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.refresh_ends_1(~K, ~V, ~cmp, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m1, +r}:
+      refresh_ends_2_g(~K, ~V, ~cmp, r, MI.extreme(~K, ~V, ~cmp, m1, r, False{}), extreme_g(~K, ~V, ~cmp, m1, r, False{}, g_pair_result))
+
+def refresh_ends_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, pair_result: ST.Sh<K, V> & Nat, +g_pair_result: {MI.dgp(K, V, Nat, pair_result) == True{} : Bool}) -> {M.refresh_ends_1(~K, ~V, ~cmp, MI.rp(~K, ~V, ~cmp, Nat, pair_result)) == ST.real(~K, ~V, ~cmp, MI.refresh_ends_1(~K, ~V, ~cmp, pair_result)) : M.TreeMap<K, V, cmp>}:
+  match pair_result:
+    case Tuple{+m1, +r}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.extreme(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m1), r, False{}), MI.rp(~K, ~V, ~cmp, Nat, MI.extreme(~K, ~V, ~cmp, m1, r, False{})), extreme_s(~K, ~V, ~cmp, m1, r, False{}, g_pair_result)) : {M.refresh_ends_2(~K, ~V, ~cmp, r, _) == ST.real(~K, ~V, ~cmp, MI.refresh_ends_1(~K, ~V, ~cmp, Tuple{m1, r})) : M.TreeMap<K, V, cmp>}
+      refresh_ends_2_s(~K, ~V, ~cmp, r, MI.extreme(~K, ~V, ~cmp, m1, r, False{}), extreme_g(~K, ~V, ~cmp, m1, r, False{}, g_pair_result))
 
 
 def replace_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +v: V, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Maybe<&2, V>, MI.replace(~K, ~V, ~cmp, m, k, v)) == True{} : Bool}:
@@ -1452,171 +1513,6 @@ def replace_if_equal_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> B
   replace_if_found_s(~K, ~V, ~cmp, ~eq, expected, replacement, MI.search(~K, ~V, ~cmp, m, k), search_g(~K, ~V, ~cmp, m, k, g_m))
 
 
-def attach_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +x: Nat, +on_left: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.attach(~K, ~V, ~cmp, m, p, x, on_left)) == True{} : Bool}:
-  set_parent_g(~K, ~V, ~cmp, MI.attach_side(~K, ~V, ~cmp, m, p, x, on_left), x, p, attach_side_g(~K, ~V, ~cmp, m, p, x, on_left, g_m))
-
-def attach_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +x: Nat, +on_left: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.attach(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, x, on_left) == ST.real(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, m, p, x, on_left)) : M.TreeMap<K, V, cmp>}:
-  %Equal.sym(M.TreeMap<K, V, cmp>, M.attach_side(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, x, on_left), ST.real(~K, ~V, ~cmp, MI.attach_side(~K, ~V, ~cmp, m, p, x, on_left)), attach_side_s(~K, ~V, ~cmp, m, p, x, on_left, g_m)) : {M.set_parent(~K, ~V, ~cmp, _, x, p) == ST.real(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, m, p, x, on_left)) : M.TreeMap<K, V, cmp>}
-  set_parent_s(~K, ~V, ~cmp, MI.attach_side(~K, ~V, ~cmp, m, p, x, on_left), x, p, attach_side_g(~K, ~V, ~cmp, m, p, x, on_left, g_m))
-
-
-def black_root_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.black_root(~K, ~V, ~cmp, m)) == True{} : Bool}:
-  black_root_1_g(~K, ~V, ~cmp, MI.root_id(~K, ~V, ~cmp, m), root_id_g(~K, ~V, ~cmp, m, g_m))
-
-def black_root_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.black_root(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m)) == ST.real(~K, ~V, ~cmp, MI.black_root(~K, ~V, ~cmp, m)) : M.TreeMap<K, V, cmp>}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.root_id(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m)), MI.rp(~K, ~V, ~cmp, Nat, MI.root_id(~K, ~V, ~cmp, m)), root_id_s(~K, ~V, ~cmp, m, g_m)) : {M.black_root_1(~K, ~V, ~cmp, _) == ST.real(~K, ~V, ~cmp, MI.black_root(~K, ~V, ~cmp, m)) : M.TreeMap<K, V, cmp>}
-  black_root_1_s(~K, ~V, ~cmp, MI.root_id(~K, ~V, ~cmp, m), root_id_g(~K, ~V, ~cmp, m, g_m))
-
-
-def neighbor_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +forward: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.neighbor(~K, ~V, ~cmp, m, id, forward)) == True{} : Bool}:
-  neighbor_node_g(~K, ~V, ~cmp, id, forward, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
-
-def neighbor_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +forward: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.neighbor(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, forward) == MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor(~K, ~V, ~cmp, m, id, forward)) : M.TreeMap<K, V, cmp> & Nat}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_m)) : {M.neighbor_node(~K, ~V, ~cmp, id, forward, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor(~K, ~V, ~cmp, m, id, forward)) : M.TreeMap<K, V, cmp> & Nat}
-  neighbor_node_s(~K, ~V, ~cmp, id, forward, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
-
-
-def move_successor_2_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +source: Nat, +source_node: M.Node<K>, pair_result: ST.Sh<K, V> & Maybe<&2, V>, +g_pair_result: {MI.dgp(K, V, Maybe<&2, V>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.move_successor_2(~K, ~V, ~cmp, target, source, source_node, pair_result)) == True{} : Bool}:
-  match pair_result:
-    case Tuple{+m2, +value}:
-      move_successor_3_g(~K, ~V, ~cmp, source, MI.exchange(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value), exchange_g(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value, copy_key_g(~K, ~V, ~cmp, m2, target, source_node, g_pair_result)))
-
-def move_successor_2_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +source: Nat, +source_node: M.Node<K>, pair_result: ST.Sh<K, V> & Maybe<&2, V>, +g_pair_result: {MI.dgp(K, V, Maybe<&2, V>, pair_result) == True{} : Bool}) -> {M.move_successor_2(~K, ~V, ~cmp, target, source, source_node, MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, pair_result)) == MI.rp(~K, ~V, ~cmp, Nat, MI.move_successor_2(~K, ~V, ~cmp, target, source, source_node, pair_result)) : M.TreeMap<K, V, cmp> & Nat}:
-  match pair_result:
-    case Tuple{+m2, +value}:
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.copy_key(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m2), target, source_node), ST.real(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node)), copy_key_s(~K, ~V, ~cmp, m2, target, source_node, g_pair_result)) : {M.move_successor_3(~K, ~V, ~cmp, source, M.exchange(~K, ~V, ~cmp, _, target, value)) == MI.rp(~K, ~V, ~cmp, Nat, MI.move_successor_2(~K, ~V, ~cmp, target, source, source_node, Tuple{m2, value})) : M.TreeMap<K, V, cmp> & Nat}
-      %Equal.sym(M.TreeMap<K, V, cmp> & Maybe<&2, V>, M.exchange(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node)), target, value), MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, MI.exchange(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value)), exchange_s(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value, copy_key_g(~K, ~V, ~cmp, m2, target, source_node, g_pair_result))) : {M.move_successor_3(~K, ~V, ~cmp, source, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.move_successor_2(~K, ~V, ~cmp, target, source, source_node, Tuple{m2, value})) : M.TreeMap<K, V, cmp> & Nat}
-      move_successor_3_s(~K, ~V, ~cmp, source, MI.exchange(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value), exchange_g(~K, ~V, ~cmp, MI.copy_key(~K, ~V, ~cmp, m2, target, source_node), target, value, copy_key_g(~K, ~V, ~cmp, m2, target, source_node, g_pair_result)))
-
-
-def refresh_ends_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, pair_result: ST.Sh<K, V> & Nat, +g_pair_result: {MI.dgp(K, V, Nat, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.refresh_ends_1(~K, ~V, ~cmp, pair_result)) == True{} : Bool}:
-  match pair_result:
-    case Tuple{+m1, +r}:
-      refresh_ends_2_g(~K, ~V, ~cmp, r, MI.extreme(~K, ~V, ~cmp, m1, r, False{}), extreme_g(~K, ~V, ~cmp, m1, r, False{}, g_pair_result))
-
-def refresh_ends_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, pair_result: ST.Sh<K, V> & Nat, +g_pair_result: {MI.dgp(K, V, Nat, pair_result) == True{} : Bool}) -> {M.refresh_ends_1(~K, ~V, ~cmp, MI.rp(~K, ~V, ~cmp, Nat, pair_result)) == ST.real(~K, ~V, ~cmp, MI.refresh_ends_1(~K, ~V, ~cmp, pair_result)) : M.TreeMap<K, V, cmp>}:
-  match pair_result:
-    case Tuple{+m1, +r}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.extreme(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m1), r, False{}), MI.rp(~K, ~V, ~cmp, Nat, MI.extreme(~K, ~V, ~cmp, m1, r, False{})), extreme_s(~K, ~V, ~cmp, m1, r, False{}, g_pair_result)) : {M.refresh_ends_2(~K, ~V, ~cmp, r, _) == ST.real(~K, ~V, ~cmp, MI.refresh_ends_1(~K, ~V, ~cmp, Tuple{m1, r})) : M.TreeMap<K, V, cmp>}
-      refresh_ends_2_s(~K, ~V, ~cmp, r, MI.extreme(~K, ~V, ~cmp, m1, r, False{}), extreme_g(~K, ~V, ~cmp, m1, r, False{}, g_pair_result))
-
-
-def get_or_default_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +fallback: V, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, V, MI.get_or_default(~K, ~V, ~cmp, m, k, fallback)) == True{} : Bool}:
-  default_value_g(~K, ~V, ~cmp, fallback, MI.get(~K, ~V, ~cmp, m, k), get_g(~K, ~V, ~cmp, m, k, g_m))
-
-def get_or_default_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +fallback: V, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.get_or_default(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), k, fallback) == MI.rp(~K, ~V, ~cmp, V, MI.get_or_default(~K, ~V, ~cmp, m, k, fallback)) : M.TreeMap<K, V, cmp> & V}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & Maybe<&2, V>, M.get(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), k), MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, MI.get(~K, ~V, ~cmp, m, k)), get_s(~K, ~V, ~cmp, m, k, g_m)) : {M.default_value(~K, ~V, ~cmp, fallback, _) == MI.rp(~K, ~V, ~cmp, V, MI.get_or_default(~K, ~V, ~cmp, m, k, fallback)) : M.TreeMap<K, V, cmp> & V}
-  default_value_s(~K, ~V, ~cmp, fallback, MI.get(~K, ~V, ~cmp, m, k), get_g(~K, ~V, ~cmp, m, k, g_m))
-
-
-def view_get_checked_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +lower: M.Bound<K>, +upper: M.Bound<K>, +descending: Bool, +valid: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgvp(K, V, Maybe<&2, V>, MI.view_get_checked(~K, ~V, ~cmp, m, k, lower, upper, descending, valid)) == True{} : Bool}:
-  match valid:
-    case True{}:
-      view_value_g(~K, ~V, ~cmp, lower, upper, descending, MI.get(~K, ~V, ~cmp, m, k), get_g(~K, ~V, ~cmp, m, k, g_m))
-    case False{}:
-      g_m
-
-def view_get_checked_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +lower: M.Bound<K>, +upper: M.Bound<K>, +descending: Bool, +valid: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.view_get_checked(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), k, lower, upper, descending, valid) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, V>, MI.view_get_checked(~K, ~V, ~cmp, m, k, lower, upper, descending, valid)) : M.View<K, V, cmp> & Maybe<&2, V>}:
-  match valid:
-    case True{}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & Maybe<&2, V>, M.get(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), k), MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, MI.get(~K, ~V, ~cmp, m, k)), get_s(~K, ~V, ~cmp, m, k, g_m)) : {M.view_value(~K, ~V, ~cmp, lower, upper, descending, _) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, V>, MI.view_get_checked(~K, ~V, ~cmp, m, k, lower, upper, descending, True{})) : M.View<K, V, cmp> & Maybe<&2, V>}
-      view_value_s(~K, ~V, ~cmp, lower, upper, descending, MI.get(~K, ~V, ~cmp, m, k), get_g(~K, ~V, ~cmp, m, k, g_m))
-    case False{}:
-      {==}
-
-
-def rotate_left_3_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, +yn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.rotate_left_3(~K, ~V, ~cmp, x, xn, yn, pair_result)) == True{} : Bool}:
-  match pair_result:
-    case Tuple{+m3, +pn}:
-      set_parent_g(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x), x, M.node_right(~K, xn), set_left_g(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x, attach_g(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x, set_right_g(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn), g_pair_result)))))
-
-def rotate_left_3_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, +yn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.rotate_left_3(~K, ~V, ~cmp, x, xn, yn, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == ST.real(~K, ~V, ~cmp, MI.rotate_left_3(~K, ~V, ~cmp, x, xn, yn, pair_result)) : M.TreeMap<K, V, cmp>}:
-  match pair_result:
-    case Tuple{+m3, +pn}:
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m3), x, M.node_left(~K, yn)), ST.real(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn))), set_right_s(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn), g_pair_result)) : {M.set_parent(~K, ~V, ~cmp, M.set_left(~K, ~V, ~cmp, M.attach(~K, ~V, ~cmp, M.set_parent(~K, ~V, ~cmp, _, M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x), x, M.node_right(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_left_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_parent(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn))), M.node_left(~K, yn), x), ST.real(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x)), set_parent_s(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x, set_right_g(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn), g_pair_result))) : {M.set_parent(~K, ~V, ~cmp, M.set_left(~K, ~V, ~cmp, M.attach(~K, ~V, ~cmp, _, M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x), x, M.node_right(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_left_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.attach(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x)), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), ST.real(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x))), attach_s(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x, set_right_g(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn), g_pair_result)))) : {M.set_parent(~K, ~V, ~cmp, M.set_left(~K, ~V, ~cmp, _, M.node_right(~K, xn), x), x, M.node_right(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_left_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x))), M.node_right(~K, xn), x), ST.real(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x)), set_left_s(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x, attach_g(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x, set_right_g(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn), g_pair_result))))) : {M.set_parent(~K, ~V, ~cmp, _, x, M.node_right(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_left_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
-      set_parent_s(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x), x, M.node_right(~K, xn), set_left_g(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_right(~K, xn), x, attach_g(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x), M.node_parent(~K, xn), M.node_right(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn)), M.node_left(~K, yn), x, set_right_g(~K, ~V, ~cmp, m3, x, M.node_left(~K, yn), g_pair_result)))))
-
-
-def rotate_right_3_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, +yn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.rotate_right_3(~K, ~V, ~cmp, x, xn, yn, pair_result)) == True{} : Bool}:
-  match pair_result:
-    case Tuple{+m3, +pn}:
-      set_parent_g(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x), x, M.node_left(~K, xn), set_right_g(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x, attach_g(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x, set_left_g(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn), g_pair_result)))))
-
-def rotate_right_3_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, +yn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.rotate_right_3(~K, ~V, ~cmp, x, xn, yn, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == ST.real(~K, ~V, ~cmp, MI.rotate_right_3(~K, ~V, ~cmp, x, xn, yn, pair_result)) : M.TreeMap<K, V, cmp>}:
-  match pair_result:
-    case Tuple{+m3, +pn}:
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m3), x, M.node_right(~K, yn)), ST.real(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn))), set_left_s(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn), g_pair_result)) : {M.set_parent(~K, ~V, ~cmp, M.set_right(~K, ~V, ~cmp, M.attach(~K, ~V, ~cmp, M.set_parent(~K, ~V, ~cmp, _, M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x), x, M.node_left(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_right_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_parent(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn))), M.node_right(~K, yn), x), ST.real(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x)), set_parent_s(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x, set_left_g(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn), g_pair_result))) : {M.set_parent(~K, ~V, ~cmp, M.set_right(~K, ~V, ~cmp, M.attach(~K, ~V, ~cmp, _, M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x), x, M.node_left(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_right_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.attach(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x)), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), ST.real(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x))), attach_s(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x, set_left_g(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn), g_pair_result)))) : {M.set_parent(~K, ~V, ~cmp, M.set_right(~K, ~V, ~cmp, _, M.node_left(~K, xn), x), x, M.node_left(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_right_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x))), M.node_left(~K, xn), x), ST.real(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x)), set_right_s(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x, attach_g(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x, set_left_g(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn), g_pair_result))))) : {M.set_parent(~K, ~V, ~cmp, _, x, M.node_left(~K, xn)) == ST.real(~K, ~V, ~cmp, MI.rotate_right_3(~K, ~V, ~cmp, x, xn, yn, Tuple{m3, pn})) : M.TreeMap<K, V, cmp>}
-      set_parent_s(~K, ~V, ~cmp, MI.set_right(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x), x, M.node_left(~K, xn), set_right_g(~K, ~V, ~cmp, MI.attach(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x)), M.node_left(~K, xn), x, attach_g(~K, ~V, ~cmp, MI.set_parent(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x), M.node_parent(~K, xn), M.node_left(~K, xn), Nat.is_eq(M.node_left(~K, pn), x), set_parent_g(~K, ~V, ~cmp, MI.set_left(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn)), M.node_right(~K, yn), x, set_left_g(~K, ~V, ~cmp, m3, x, M.node_right(~K, yn), g_pair_result)))))
-
-
-def move_successor_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +source: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.move_successor_1(~K, ~V, ~cmp, target, source, pair_result)) == True{} : Bool}:
-  match pair_result:
-    case Tuple{+m1, +source_node}:
-      move_successor_2_g(~K, ~V, ~cmp, target, source, source_node, MI.exchange(~K, ~V, ~cmp, m1, source, None{}), exchange_g(~K, ~V, ~cmp, m1, source, None{}, g_pair_result))
-
-def move_successor_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, +source: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.move_successor_1(~K, ~V, ~cmp, target, source, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == MI.rp(~K, ~V, ~cmp, Nat, MI.move_successor_1(~K, ~V, ~cmp, target, source, pair_result)) : M.TreeMap<K, V, cmp> & Nat}:
-  match pair_result:
-    case Tuple{+m1, +source_node}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & Maybe<&2, V>, M.exchange(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m1), source, None{}), MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, MI.exchange(~K, ~V, ~cmp, m1, source, None{})), exchange_s(~K, ~V, ~cmp, m1, source, None{}, g_pair_result)) : {M.move_successor_2(~K, ~V, ~cmp, target, source, source_node, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.move_successor_1(~K, ~V, ~cmp, target, source, Tuple{m1, source_node})) : M.TreeMap<K, V, cmp> & Nat}
-      move_successor_2_s(~K, ~V, ~cmp, target, source, source_node, MI.exchange(~K, ~V, ~cmp, m1, source, None{}), exchange_g(~K, ~V, ~cmp, m1, source, None{}, g_pair_result))
-
-
-def refresh_ends_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.refresh_ends(~K, ~V, ~cmp, m)) == True{} : Bool}:
-  refresh_ends_1_g(~K, ~V, ~cmp, MI.root_id(~K, ~V, ~cmp, m), root_id_g(~K, ~V, ~cmp, m, g_m))
-
-def refresh_ends_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.refresh_ends(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m)) == ST.real(~K, ~V, ~cmp, MI.refresh_ends(~K, ~V, ~cmp, m)) : M.TreeMap<K, V, cmp>}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.root_id(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m)), MI.rp(~K, ~V, ~cmp, Nat, MI.root_id(~K, ~V, ~cmp, m)), root_id_s(~K, ~V, ~cmp, m, g_m)) : {M.refresh_ends_1(~K, ~V, ~cmp, _) == ST.real(~K, ~V, ~cmp, MI.refresh_ends(~K, ~V, ~cmp, m)) : M.TreeMap<K, V, cmp>}
-  refresh_ends_1_s(~K, ~V, ~cmp, MI.root_id(~K, ~V, ~cmp, m), root_id_g(~K, ~V, ~cmp, m, g_m))
-
-
-def nav_equal_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +higher: Bool, +inclusive: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.nav_equal(~K, ~V, ~cmp, m, id, higher, inclusive)) == True{} : Bool}:
-  match inclusive:
-    case True{}:
-      g_m
-    case False{}:
-      neighbor_g(~K, ~V, ~cmp, m, id, higher, g_m)
-
-def nav_equal_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +higher: Bool, +inclusive: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.nav_equal(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, higher, inclusive) == MI.rp(~K, ~V, ~cmp, Nat, MI.nav_equal(~K, ~V, ~cmp, m, id, higher, inclusive)) : M.TreeMap<K, V, cmp> & Nat}:
-  match inclusive:
-    case True{}:
-      {==}
-    case False{}:
-      neighbor_s(~K, ~V, ~cmp, m, id, higher, g_m)
-
-
-def view_get_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {MI.dgvp(K, V, Maybe<&2, V>, MI.view_get(~K, ~V, ~cmp, view, k)) == True{} : Bool}:
-  match view:
-    case MI.MV{+m, +lower, +upper, +descending}:
-      view_get_checked_g(~K, ~V, ~cmp, m, k, lower, upper, descending, M.in_range(~K, ~V, ~cmp, k, lower, upper), g_view)
-
-def view_get_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {M.view_get(~K, ~V, ~cmp, MI.rv(~K, ~V, ~cmp, view), k) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, V>, MI.view_get(~K, ~V, ~cmp, view, k)) : M.View<K, V, cmp> & Maybe<&2, V>}:
-  match view:
-    case MI.MV{+m, +lower, +upper, +descending}:
-      view_get_checked_s(~K, ~V, ~cmp, m, k, lower, upper, descending, M.in_range(~K, ~V, ~cmp, k, lower, upper), g_view)
-
-
-def iterator_checked_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +current: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +forward: Bool, +entry: M.Entry<K, V>, +valid: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgcp(K, V, Maybe<&2, M.Entry<K, V>>, MI.iterator_checked(~K, ~V, ~cmp, m, id, current, lower, upper, forward, entry, valid)) == True{} : Bool}:
-  match valid:
-    case True{}:
-      iterator_yield_g(~K, ~V, ~cmp, id, lower, upper, forward, entry, MI.neighbor(~K, ~V, ~cmp, m, id, forward), neighbor_g(~K, ~V, ~cmp, m, id, forward, g_m))
-    case False{}:
-      g_m
-
-def iterator_checked_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +current: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +forward: Bool, +entry: M.Entry<K, V>, +valid: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.iterator_checked(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, current, lower, upper, forward, entry, valid) == MI.rcp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.iterator_checked(~K, ~V, ~cmp, m, id, current, lower, upper, forward, entry, valid)) : M.Cursor<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}:
-  match valid:
-    case True{}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.neighbor(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, forward), MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor(~K, ~V, ~cmp, m, id, forward)), neighbor_s(~K, ~V, ~cmp, m, id, forward, g_m)) : {M.iterator_yield(~K, ~V, ~cmp, id, lower, upper, forward, entry, _) == MI.rcp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.iterator_checked(~K, ~V, ~cmp, m, id, current, lower, upper, forward, entry, True{})) : M.Cursor<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}
-      iterator_yield_s(~K, ~V, ~cmp, id, lower, upper, forward, entry, MI.neighbor(~K, ~V, ~cmp, m, id, forward), neighbor_g(~K, ~V, ~cmp, m, id, forward, g_m))
-    case False{}:
-      {==}
-
-
 def rotate_left_2_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, +xn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.rotate_left_2(~K, ~V, ~cmp, x, xn, pair_result)) == True{} : Bool}:
   match pair_result:
     case Tuple{+m2, +yn}:
@@ -1647,6 +1543,261 @@ def move_successor_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +
 def move_successor_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +target: Nat, +source: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.move_successor(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), target, source) == MI.rp(~K, ~V, ~cmp, Nat, MI.move_successor(~K, ~V, ~cmp, m, target, source)) : M.TreeMap<K, V, cmp> & Nat}:
   %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), source), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, source)), read_s(~K, ~V, ~cmp, m, source, g_m)) : {M.move_successor_1(~K, ~V, ~cmp, target, source, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.move_successor(~K, ~V, ~cmp, m, target, source)) : M.TreeMap<K, V, cmp> & Nat}
   move_successor_1_s(~K, ~V, ~cmp, target, source, MI.read(~K, ~V, ~cmp, m, source), read_g(~K, ~V, ~cmp, m, source, g_m))
+
+
+def refresh_ends_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.refresh_ends(~K, ~V, ~cmp, m)) == True{} : Bool}:
+  refresh_ends_1_g(~K, ~V, ~cmp, MI.root_id(~K, ~V, ~cmp, m), root_id_g(~K, ~V, ~cmp, m, g_m))
+
+def refresh_ends_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.refresh_ends(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m)) == ST.real(~K, ~V, ~cmp, MI.refresh_ends(~K, ~V, ~cmp, m)) : M.TreeMap<K, V, cmp>}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.root_id(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m)), MI.rp(~K, ~V, ~cmp, Nat, MI.root_id(~K, ~V, ~cmp, m)), root_id_s(~K, ~V, ~cmp, m, g_m)) : {M.refresh_ends_1(~K, ~V, ~cmp, _) == ST.real(~K, ~V, ~cmp, MI.refresh_ends(~K, ~V, ~cmp, m)) : M.TreeMap<K, V, cmp>}
+  refresh_ends_1_s(~K, ~V, ~cmp, MI.root_id(~K, ~V, ~cmp, m), root_id_g(~K, ~V, ~cmp, m, g_m))
+
+
+def get_or_default_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +fallback: V, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, V, MI.get_or_default(~K, ~V, ~cmp, m, k, fallback)) == True{} : Bool}:
+  default_value_g(~K, ~V, ~cmp, fallback, MI.get(~K, ~V, ~cmp, m, k), get_g(~K, ~V, ~cmp, m, k, g_m))
+
+def get_or_default_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +fallback: V, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.get_or_default(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), k, fallback) == MI.rp(~K, ~V, ~cmp, V, MI.get_or_default(~K, ~V, ~cmp, m, k, fallback)) : M.TreeMap<K, V, cmp> & V}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & Maybe<&2, V>, M.get(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), k), MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, MI.get(~K, ~V, ~cmp, m, k)), get_s(~K, ~V, ~cmp, m, k, g_m)) : {M.default_value(~K, ~V, ~cmp, fallback, _) == MI.rp(~K, ~V, ~cmp, V, MI.get_or_default(~K, ~V, ~cmp, m, k, fallback)) : M.TreeMap<K, V, cmp> & V}
+  default_value_s(~K, ~V, ~cmp, fallback, MI.get(~K, ~V, ~cmp, m, k), get_g(~K, ~V, ~cmp, m, k, g_m))
+
+
+def view_get_checked_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +lower: M.Bound<K>, +upper: M.Bound<K>, +descending: Bool, +valid: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgvp(K, V, Maybe<&2, V>, MI.view_get_checked(~K, ~V, ~cmp, m, k, lower, upper, descending, valid)) == True{} : Bool}:
+  match valid:
+    case True{}:
+      view_value_g(~K, ~V, ~cmp, lower, upper, descending, MI.get(~K, ~V, ~cmp, m, k), get_g(~K, ~V, ~cmp, m, k, g_m))
+    case False{}:
+      g_m
+
+def view_get_checked_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +lower: M.Bound<K>, +upper: M.Bound<K>, +descending: Bool, +valid: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.view_get_checked(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), k, lower, upper, descending, valid) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, V>, MI.view_get_checked(~K, ~V, ~cmp, m, k, lower, upper, descending, valid)) : M.View<K, V, cmp> & Maybe<&2, V>}:
+  match valid:
+    case True{}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & Maybe<&2, V>, M.get(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), k), MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, MI.get(~K, ~V, ~cmp, m, k)), get_s(~K, ~V, ~cmp, m, k, g_m)) : {M.view_value(~K, ~V, ~cmp, lower, upper, descending, _) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, V>, MI.view_get_checked(~K, ~V, ~cmp, m, k, lower, upper, descending, True{})) : M.View<K, V, cmp> & Maybe<&2, V>}
+      view_value_s(~K, ~V, ~cmp, lower, upper, descending, MI.get(~K, ~V, ~cmp, m, k), get_g(~K, ~V, ~cmp, m, k, g_m))
+    case False{}:
+      {==}
+
+
+def rotate_left_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.rotate_left_1(~K, ~V, ~cmp, x, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m1, +xn}:
+      rotate_left_2_g(~K, ~V, ~cmp, x, xn, MI.read(~K, ~V, ~cmp, m1, M.node_right(~K, xn)), read_g(~K, ~V, ~cmp, m1, M.node_right(~K, xn), g_pair_result))
+
+def rotate_left_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.rotate_left_1(~K, ~V, ~cmp, x, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == ST.real(~K, ~V, ~cmp, MI.rotate_left_1(~K, ~V, ~cmp, x, pair_result)) : M.TreeMap<K, V, cmp>}:
+  match pair_result:
+    case Tuple{+m1, +xn}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m1), M.node_right(~K, xn)), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m1, M.node_right(~K, xn))), read_s(~K, ~V, ~cmp, m1, M.node_right(~K, xn), g_pair_result)) : {M.rotate_left_2(~K, ~V, ~cmp, x, xn, _) == ST.real(~K, ~V, ~cmp, MI.rotate_left_1(~K, ~V, ~cmp, x, Tuple{m1, xn})) : M.TreeMap<K, V, cmp>}
+      rotate_left_2_s(~K, ~V, ~cmp, x, xn, MI.read(~K, ~V, ~cmp, m1, M.node_right(~K, xn)), read_g(~K, ~V, ~cmp, m1, M.node_right(~K, xn), g_pair_result))
+
+
+def rotate_right_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.rotate_right_1(~K, ~V, ~cmp, x, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m1, +xn}:
+      rotate_right_2_g(~K, ~V, ~cmp, x, xn, MI.read(~K, ~V, ~cmp, m1, M.node_left(~K, xn)), read_g(~K, ~V, ~cmp, m1, M.node_left(~K, xn), g_pair_result))
+
+def rotate_right_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.rotate_right_1(~K, ~V, ~cmp, x, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == ST.real(~K, ~V, ~cmp, MI.rotate_right_1(~K, ~V, ~cmp, x, pair_result)) : M.TreeMap<K, V, cmp>}:
+  match pair_result:
+    case Tuple{+m1, +xn}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m1), M.node_left(~K, xn)), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m1, M.node_left(~K, xn))), read_s(~K, ~V, ~cmp, m1, M.node_left(~K, xn), g_pair_result)) : {M.rotate_right_2(~K, ~V, ~cmp, x, xn, _) == ST.real(~K, ~V, ~cmp, MI.rotate_right_1(~K, ~V, ~cmp, x, Tuple{m1, xn})) : M.TreeMap<K, V, cmp>}
+      rotate_right_2_s(~K, ~V, ~cmp, x, xn, MI.read(~K, ~V, ~cmp, m1, M.node_left(~K, xn)), read_g(~K, ~V, ~cmp, m1, M.node_left(~K, xn), g_pair_result))
+
+
+def allocate_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +k: K, +v: V, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.allocate(~K, ~V, ~cmp, m, p, k, v)) == True{} : Bool}:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      match free:
+        case 0n:
+          append_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 0n, l_0, d_0, nl_0, pl_0, t_0, fl_0}, k, v, p, g_m)
+        case 1n+ +px2:
+          alloc_read_g(~K, ~V, ~cmp, 1n+px2, p, k, v, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}, 1n+px2), read_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}, 1n+px2, g_m))
+
+def allocate_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +k: K, +v: V, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.allocate(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, k, v) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.allocate(~K, ~V, ~cmp, m, p, k, v)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}:
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l_0, +d_0, +nl_0, +pl_0, +t_0, +fl_0}:
+      match free:
+        case 0n:
+          append_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 0n, l_0, d_0, nl_0, pl_0, t_0, fl_0}, k, v, p, g_m)
+        case 1n+ +px2:
+          %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}), 1n+px2), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}, 1n+px2)), read_s(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}, 1n+px2, g_m)) : {M.alloc_read(~K, ~V, ~cmp, 1n+px2, p, k, v, _) == MI.rp(~K, ~V, ~cmp, Result<&2, &2, M.Rejected<K, V>, Nat>, MI.allocate(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, p, k, v)) : M.TreeMap<K, V, cmp> & Result<&2, &2, M.Rejected<K, V>, Nat>}
+          alloc_read_s(~K, ~V, ~cmp, 1n+px2, p, k, v, MI.read(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}, 1n+px2), read_g(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, 1n+px2, l_0, d_0, nl_0, pl_0, t_0, fl_0}, 1n+px2, g_m))
+
+
+def neighbor_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +forward: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.neighbor(~K, ~V, ~cmp, m, id, forward)) == True{} : Bool}:
+  neighbor_node_g(~K, ~V, ~cmp, id, forward, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+def neighbor_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +forward: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.neighbor(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, forward) == MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor(~K, ~V, ~cmp, m, id, forward)) : M.TreeMap<K, V, cmp> & Nat}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)), read_s(~K, ~V, ~cmp, m, id, g_m)) : {M.neighbor_node(~K, ~V, ~cmp, id, forward, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor(~K, ~V, ~cmp, m, id, forward)) : M.TreeMap<K, V, cmp> & Nat}
+  neighbor_node_s(~K, ~V, ~cmp, id, forward, MI.read(~K, ~V, ~cmp, m, id), read_g(~K, ~V, ~cmp, m, id, g_m))
+
+
+def successor_ready_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, r: ST.Sh<K, V> & Nat, +g_r: {MI.dgp(K, V, Nat, r) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.successor_ready(~K, ~V, ~cmp, target, r)) == True{} : Bool}:
+  match r:
+    case Tuple{+m, +source}:
+      move_successor_g(~K, ~V, ~cmp, m, target, source, g_r)
+
+def successor_ready_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, r: ST.Sh<K, V> & Nat, +g_r: {MI.dgp(K, V, Nat, r) == True{} : Bool}) -> {M.successor_ready(~K, ~V, ~cmp, target, MI.rp(~K, ~V, ~cmp, Nat, r)) == MI.rp(~K, ~V, ~cmp, Nat, MI.successor_ready(~K, ~V, ~cmp, target, r)) : M.TreeMap<K, V, cmp> & Nat}:
+  match r:
+    case Tuple{+m, +source}:
+      move_successor_s(~K, ~V, ~cmp, m, target, source, g_r)
+
+
+def view_get_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {MI.dgvp(K, V, Maybe<&2, V>, MI.view_get(~K, ~V, ~cmp, view, k)) == True{} : Bool}:
+  match view:
+    case MI.MV{+m, +lower, +upper, +descending}:
+      view_get_checked_g(~K, ~V, ~cmp, m, k, lower, upper, descending, M.in_range(~K, ~V, ~cmp, k, lower, upper), g_view)
+
+def view_get_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {M.view_get(~K, ~V, ~cmp, MI.rv(~K, ~V, ~cmp, view), k) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, V>, MI.view_get(~K, ~V, ~cmp, view, k)) : M.View<K, V, cmp> & Maybe<&2, V>}:
+  match view:
+    case MI.MV{+m, +lower, +upper, +descending}:
+      view_get_checked_s(~K, ~V, ~cmp, m, k, lower, upper, descending, M.in_range(~K, ~V, ~cmp, k, lower, upper), g_view)
+
+
+def rotate_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +x: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.rotate_left(~K, ~V, ~cmp, m, x)) == True{} : Bool}:
+  rotate_left_1_g(~K, ~V, ~cmp, x, MI.read(~K, ~V, ~cmp, m, x), read_g(~K, ~V, ~cmp, m, x, g_m))
+
+def rotate_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +x: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.rotate_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), x) == ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, x)) : M.TreeMap<K, V, cmp>}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), x), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, x)), read_s(~K, ~V, ~cmp, m, x, g_m)) : {M.rotate_left_1(~K, ~V, ~cmp, x, _) == ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, x)) : M.TreeMap<K, V, cmp>}
+  rotate_left_1_s(~K, ~V, ~cmp, x, MI.read(~K, ~V, ~cmp, m, x), read_g(~K, ~V, ~cmp, m, x, g_m))
+
+
+def rotate_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +x: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.rotate_right(~K, ~V, ~cmp, m, x)) == True{} : Bool}:
+  rotate_right_1_g(~K, ~V, ~cmp, x, MI.read(~K, ~V, ~cmp, m, x), read_g(~K, ~V, ~cmp, m, x, g_m))
+
+def rotate_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +x: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.rotate_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), x) == ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, x)) : M.TreeMap<K, V, cmp>}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), x), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, x)), read_s(~K, ~V, ~cmp, m, x, g_m)) : {M.rotate_right_1(~K, ~V, ~cmp, x, _) == ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, x)) : M.TreeMap<K, V, cmp>}
+  rotate_right_1_s(~K, ~V, ~cmp, x, MI.read(~K, ~V, ~cmp, m, x), read_g(~K, ~V, ~cmp, m, x, g_m))
+
+
+def delete_target_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.delete_target(~K, ~V, ~cmp, id, r)) == True{} : Bool}:
+  match r:
+    case Tuple{+px2, M.N{+px5, 1n+ +px10, 1n+ +px11, +px8, +px9}}:
+      successor_ready_g(~K, ~V, ~cmp, id, MI.extreme(~K, ~V, ~cmp, px2, 1n+px11, False{}), extreme_g(~K, ~V, ~cmp, px2, 1n+px11, False{}, g_r))
+    case Tuple{+px2, M.Free{+px4}}:
+      g_r
+    case Tuple{+px2, M.N{+px5, 0n, 0n, +px8, +px9}}:
+      g_r
+    case Tuple{+px2, M.N{+px5, 0n, 1n+ +px12, +px8, +px9}}:
+      g_r
+    case Tuple{+px2, M.N{+px5, 1n+ +px10, 0n, +px8, +px9}}:
+      g_r
+
+def delete_target_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {M.delete_target(~K, ~V, ~cmp, id, MI.rp(~K, ~V, ~cmp, M.Node<K>, r)) == MI.rp(~K, ~V, ~cmp, Nat, MI.delete_target(~K, ~V, ~cmp, id, r)) : M.TreeMap<K, V, cmp> & Nat}:
+  match r:
+    case Tuple{+px2, M.N{+px5, 1n+ +px10, 1n+ +px11, +px8, +px9}}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.extreme(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, px2), 1n+px11, False{}), MI.rp(~K, ~V, ~cmp, Nat, MI.extreme(~K, ~V, ~cmp, px2, 1n+px11, False{})), extreme_s(~K, ~V, ~cmp, px2, 1n+px11, False{}, g_r)) : {M.successor_ready(~K, ~V, ~cmp, id, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.delete_target(~K, ~V, ~cmp, id, Tuple{px2, M.N{px5, 1n+ px10, 1n+ px11, px8, px9}})) : M.TreeMap<K, V, cmp> & Nat}
+      successor_ready_s(~K, ~V, ~cmp, id, MI.extreme(~K, ~V, ~cmp, px2, 1n+px11, False{}), extreme_g(~K, ~V, ~cmp, px2, 1n+px11, False{}, g_r))
+    case Tuple{+px2, M.Free{+px4}}:
+      {==}
+    case Tuple{+px2, M.N{+px5, 0n, 0n, +px8, +px9}}:
+      {==}
+    case Tuple{+px2, M.N{+px5, 0n, 1n+ +px12, +px8, +px9}}:
+      {==}
+    case Tuple{+px2, M.N{+px5, 1n+ +px10, 0n, +px8, +px9}}:
+      {==}
+
+
+def nav_equal_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +higher: Bool, +inclusive: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.nav_equal(~K, ~V, ~cmp, m, id, higher, inclusive)) == True{} : Bool}:
+  match inclusive:
+    case True{}:
+      g_m
+    case False{}:
+      neighbor_g(~K, ~V, ~cmp, m, id, higher, g_m)
+
+def nav_equal_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +higher: Bool, +inclusive: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.nav_equal(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, higher, inclusive) == MI.rp(~K, ~V, ~cmp, Nat, MI.nav_equal(~K, ~V, ~cmp, m, id, higher, inclusive)) : M.TreeMap<K, V, cmp> & Nat}:
+  match inclusive:
+    case True{}:
+      {==}
+    case False{}:
+      neighbor_s(~K, ~V, ~cmp, m, id, higher, g_m)
+
+
+def iterator_checked_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +current: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +forward: Bool, +entry: M.Entry<K, V>, +valid: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgcp(K, V, Maybe<&2, M.Entry<K, V>>, MI.iterator_checked(~K, ~V, ~cmp, m, id, current, lower, upper, forward, entry, valid)) == True{} : Bool}:
+  match valid:
+    case True{}:
+      iterator_yield_g(~K, ~V, ~cmp, id, lower, upper, forward, entry, MI.neighbor(~K, ~V, ~cmp, m, id, forward), neighbor_g(~K, ~V, ~cmp, m, id, forward, g_m))
+    case False{}:
+      g_m
+
+def iterator_checked_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +current: Nat, +lower: M.Bound<K>, +upper: M.Bound<K>, +forward: Bool, +entry: M.Entry<K, V>, +valid: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.iterator_checked(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, current, lower, upper, forward, entry, valid) == MI.rcp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.iterator_checked(~K, ~V, ~cmp, m, id, current, lower, upper, forward, entry, valid)) : M.Cursor<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}:
+  match valid:
+    case True{}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.neighbor(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id, forward), MI.rp(~K, ~V, ~cmp, Nat, MI.neighbor(~K, ~V, ~cmp, m, id, forward)), neighbor_s(~K, ~V, ~cmp, m, id, forward, g_m)) : {M.iterator_yield(~K, ~V, ~cmp, id, lower, upper, forward, entry, _) == MI.rcp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.iterator_checked(~K, ~V, ~cmp, m, id, current, lower, upper, forward, entry, True{})) : M.Cursor<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}
+      iterator_yield_s(~K, ~V, ~cmp, id, lower, upper, forward, entry, MI.neighbor(~K, ~V, ~cmp, m, id, forward), neighbor_g(~K, ~V, ~cmp, m, id, forward, g_m))
+    case False{}:
+      {==}
+
+
+def view_contains_key_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {MI.dgvp(K, V, Bool, MI.view_contains_key(~K, ~V, ~cmp, view, k)) == True{} : Bool}:
+  view_contains_value_g(~K, ~V, ~cmp, MI.view_get(~K, ~V, ~cmp, view, k), view_get_g(~K, ~V, ~cmp, view, k, g_view))
+
+def view_contains_key_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {M.view_contains_key(~K, ~V, ~cmp, MI.rv(~K, ~V, ~cmp, view), k) == MI.rvp(~K, ~V, ~cmp, Bool, MI.view_contains_key(~K, ~V, ~cmp, view, k)) : M.View<K, V, cmp> & Bool}:
+  %Equal.sym(M.View<K, V, cmp> & Maybe<&2, V>, M.view_get(~K, ~V, ~cmp, MI.rv(~K, ~V, ~cmp, view), k), MI.rvp(~K, ~V, ~cmp, Maybe<&2, V>, MI.view_get(~K, ~V, ~cmp, view, k)), view_get_s(~K, ~V, ~cmp, view, k, g_view)) : {M.view_contains_value(~K, ~V, ~cmp, _) == MI.rvp(~K, ~V, ~cmp, Bool, MI.view_contains_key(~K, ~V, ~cmp, view, k)) : M.View<K, V, cmp> & Bool}
+  view_contains_value_s(~K, ~V, ~cmp, MI.view_get(~K, ~V, ~cmp, view, k), view_get_g(~K, ~V, ~cmp, view, k, g_view))
+
+
+def insert_black_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, triangle)) == True{} : Bool}:
+  match triangle:
+    case True{}:
+      rotate_right_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}, rotate_left_g(~K, ~V, ~cmp, m, p, g_m))))
+    case False{}:
+      rotate_right_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))
+
+def insert_black_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.insert_black_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), z, p, g, triangle) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, triangle)) : M.TreeMap<K, V, cmp> & M.Fix}:
+  match triangle:
+    case True{}:
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p), ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p)), rotate_left_s(~K, ~V, ~cmp, m, p, g_m)) : {(M.rotate_right(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, z, False{}), g, True{}), g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p)), z, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{})), set_red_s(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}, rotate_left_g(~K, ~V, ~cmp, m, p, g_m))) : {(M.rotate_right(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, g, True{}), g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{})), g, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}, rotate_left_g(~K, ~V, ~cmp, m, p, g_m)))) : {(M.rotate_right(~K, ~V, ~cmp, _, g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{})), g), ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g)), rotate_right_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}, rotate_left_g(~K, ~V, ~cmp, m, p, g_m))))) : {(_, M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
+      {==}
+    case False{}:
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), set_red_s(~K, ~V, ~cmp, m, p, False{}, g_m)) : {(M.rotate_right(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, g, True{}), g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, False{})) : M.TreeMap<K, V, cmp> & M.Fix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), g, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m))) : {(M.rotate_right(~K, ~V, ~cmp, _, g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, False{})) : M.TreeMap<K, V, cmp> & M.Fix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{})), g), ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g)), rotate_right_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))) : {(_, M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, False{})) : M.TreeMap<K, V, cmp> & M.Fix}
+      {==}
+
+
+def insert_black_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, triangle)) == True{} : Bool}:
+  match triangle:
+    case True{}:
+      rotate_left_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}, rotate_right_g(~K, ~V, ~cmp, m, p, g_m))))
+    case False{}:
+      rotate_left_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))
+
+def insert_black_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.insert_black_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), z, p, g, triangle) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, triangle)) : M.TreeMap<K, V, cmp> & M.Fix}:
+  match triangle:
+    case True{}:
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p), ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p)), rotate_right_s(~K, ~V, ~cmp, m, p, g_m)) : {(M.rotate_left(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, z, False{}), g, True{}), g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p)), z, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{})), set_red_s(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}, rotate_right_g(~K, ~V, ~cmp, m, p, g_m))) : {(M.rotate_left(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, g, True{}), g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{})), g, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}, rotate_right_g(~K, ~V, ~cmp, m, p, g_m)))) : {(M.rotate_left(~K, ~V, ~cmp, _, g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{})), g), ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g)), rotate_left_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}, rotate_right_g(~K, ~V, ~cmp, m, p, g_m))))) : {(_, M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
+      {==}
+    case False{}:
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), set_red_s(~K, ~V, ~cmp, m, p, False{}, g_m)) : {(M.rotate_left(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, g, True{}), g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, False{})) : M.TreeMap<K, V, cmp> & M.Fix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), g, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m))) : {(M.rotate_left(~K, ~V, ~cmp, _, g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, False{})) : M.TreeMap<K, V, cmp> & M.Fix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{})), g), ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g)), rotate_left_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))) : {(_, M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, False{})) : M.TreeMap<K, V, cmp> & M.Fix}
+      {==}
+
+
+def delete_borrow_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_left(~K, ~V, ~cmp, m, p, w, pn, wn)) == True{} : Bool}:
+  rotate_left_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{}), p, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m))))
+
+def delete_borrow_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.delete_borrow_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, w, pn, wn) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_left(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
+  %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), w, M.node_red(~K, pn)), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn))), set_red_s(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m)) : {(M.rotate_left(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, p, False{}), M.node_right(~K, wn), False{}), p), M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_left(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+  %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn))), p, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m))) : {(M.rotate_left(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, M.node_right(~K, wn), False{}), p), M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_left(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+  %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{})), M.node_right(~K, wn), False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m)))) : {(M.rotate_left(~K, ~V, ~cmp, _, p), M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_left(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+  %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{})), p), ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{}), p)), rotate_left_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{}), p, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m))))) : {(_, M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_left(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+  {==}
+
+
+def delete_borrow_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_right(~K, ~V, ~cmp, m, p, w, pn, wn)) == True{} : Bool}:
+  rotate_right_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}), p, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m))))
+
+def delete_borrow_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.delete_borrow_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, w, pn, wn) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_right(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
+  %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), w, M.node_red(~K, pn)), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn))), set_red_s(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m)) : {(M.rotate_right(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, p, False{}), M.node_left(~K, wn), False{}), p), M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_right(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+  %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn))), p, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m))) : {(M.rotate_right(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, M.node_left(~K, wn), False{}), p), M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_right(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+  %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{})), M.node_left(~K, wn), False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m)))) : {(M.rotate_right(~K, ~V, ~cmp, _, p), M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_right(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+  %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{})), p), ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}), p)), rotate_right_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}), p, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m))))) : {(_, M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_right(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+  {==}
 
 
 def nav_loop_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +fuel: Nat, +k: K, +higher: Bool, +inclusive: Bool, +id: Nat, +best: Nat, st: ST.Sh<K, V> & (M.Node<K> & Cmp), +g_st: {MI.dgp(K, V, (M.Node<K> & Cmp), st) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.nav_loop(~K, ~V, ~cmp, fuel, k, higher, inclusive, id, best, st)) == True{} : Bool}:
@@ -1721,47 +1872,70 @@ def iterator_read_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, +current:
       iterator_checked_s(~K, ~V, ~cmp, px2, id, current, lower, upper, forward, M.Entry{px5, px6}, M.in_range(~K, ~V, ~cmp, px5, lower, upper), g_r)
 
 
-def view_contains_key_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {MI.dgvp(K, V, Bool, MI.view_contains_key(~K, ~V, ~cmp, view, k)) == True{} : Bool}:
-  view_contains_value_g(~K, ~V, ~cmp, MI.view_get(~K, ~V, ~cmp, view, k), view_get_g(~K, ~V, ~cmp, view, k, g_view))
+def insert_uncle_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +u: Nat, +triangle: Bool, +uncle: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_uncle_left(~K, ~V, ~cmp, m, z, p, g, u, triangle, uncle)) == True{} : Bool}:
+  match uncle:
+    case M.N{True{}, +px4, +px5, +px6, +px7}:
+      set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))
+    case M.Free{+px2}:
+      insert_black_left_g(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
+    case M.N{False{}, +px4, +px5, +px6, +px7}:
+      insert_black_left_g(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
 
-def view_contains_key_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {M.view_contains_key(~K, ~V, ~cmp, MI.rv(~K, ~V, ~cmp, view), k) == MI.rvp(~K, ~V, ~cmp, Bool, MI.view_contains_key(~K, ~V, ~cmp, view, k)) : M.View<K, V, cmp> & Bool}:
-  %Equal.sym(M.View<K, V, cmp> & Maybe<&2, V>, M.view_get(~K, ~V, ~cmp, MI.rv(~K, ~V, ~cmp, view), k), MI.rvp(~K, ~V, ~cmp, Maybe<&2, V>, MI.view_get(~K, ~V, ~cmp, view, k)), view_get_s(~K, ~V, ~cmp, view, k, g_view)) : {M.view_contains_value(~K, ~V, ~cmp, _) == MI.rvp(~K, ~V, ~cmp, Bool, MI.view_contains_key(~K, ~V, ~cmp, view, k)) : M.View<K, V, cmp> & Bool}
-  view_contains_value_s(~K, ~V, ~cmp, MI.view_get(~K, ~V, ~cmp, view, k), view_get_g(~K, ~V, ~cmp, view, k, g_view))
+def insert_uncle_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +u: Nat, +triangle: Bool, +uncle: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.insert_uncle_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), z, p, g, u, triangle, uncle) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_left(~K, ~V, ~cmp, m, z, p, g, u, triangle, uncle)) : M.TreeMap<K, V, cmp> & M.Fix}:
+  match uncle:
+    case M.N{True{}, +px4, +px5, +px6, +px7}:
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), set_red_s(~K, ~V, ~cmp, m, p, False{}, g_m)) : {(M.set_red(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, u, False{}), g, True{}), M.Fix{g, True{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_left(~K, ~V, ~cmp, m, z, p, g, u, triangle, M.N{True{}, px4, px5, px6, px7})) : M.TreeMap<K, V, cmp> & M.Fix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), u, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m))) : {(M.set_red(~K, ~V, ~cmp, _, g, True{}), M.Fix{g, True{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_left(~K, ~V, ~cmp, m, z, p, g, u, triangle, M.N{True{}, px4, px5, px6, px7})) : M.TreeMap<K, V, cmp> & M.Fix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{})), g, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))) : {(_, M.Fix{g, True{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_left(~K, ~V, ~cmp, m, z, p, g, u, triangle, M.N{True{}, px4, px5, px6, px7})) : M.TreeMap<K, V, cmp> & M.Fix}
+      {==}
+    case M.Free{+px2}:
+      insert_black_left_s(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
+    case M.N{False{}, +px4, +px5, +px6, +px7}:
+      insert_black_left_s(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
 
 
-def rotate_left_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.rotate_left_1(~K, ~V, ~cmp, x, pair_result)) == True{} : Bool}:
+def insert_uncle_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +u: Nat, +triangle: Bool, +uncle: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_uncle_right(~K, ~V, ~cmp, m, z, p, g, u, triangle, uncle)) == True{} : Bool}:
+  match uncle:
+    case M.N{True{}, +px4, +px5, +px6, +px7}:
+      set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))
+    case M.Free{+px2}:
+      insert_black_right_g(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
+    case M.N{False{}, +px4, +px5, +px6, +px7}:
+      insert_black_right_g(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
+
+def insert_uncle_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +u: Nat, +triangle: Bool, +uncle: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.insert_uncle_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), z, p, g, u, triangle, uncle) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_right(~K, ~V, ~cmp, m, z, p, g, u, triangle, uncle)) : M.TreeMap<K, V, cmp> & M.Fix}:
+  match uncle:
+    case M.N{True{}, +px4, +px5, +px6, +px7}:
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), set_red_s(~K, ~V, ~cmp, m, p, False{}, g_m)) : {(M.set_red(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, u, False{}), g, True{}), M.Fix{g, True{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_right(~K, ~V, ~cmp, m, z, p, g, u, triangle, M.N{True{}, px4, px5, px6, px7})) : M.TreeMap<K, V, cmp> & M.Fix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), u, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m))) : {(M.set_red(~K, ~V, ~cmp, _, g, True{}), M.Fix{g, True{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_right(~K, ~V, ~cmp, m, z, p, g, u, triangle, M.N{True{}, px4, px5, px6, px7})) : M.TreeMap<K, V, cmp> & M.Fix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{})), g, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))) : {(_, M.Fix{g, True{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_right(~K, ~V, ~cmp, m, z, p, g, u, triangle, M.N{True{}, px4, px5, px6, px7})) : M.TreeMap<K, V, cmp> & M.Fix}
+      {==}
+    case M.Free{+px2}:
+      insert_black_right_s(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
+    case M.N{False{}, +px4, +px5, +px6, +px7}:
+      insert_black_right_s(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
+
+
+def delete_borrow_read_left_2_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_read_left_2(~K, ~V, ~cmp, p, pn, pair_result)) == True{} : Bool}:
   match pair_result:
-    case Tuple{+m1, +xn}:
-      rotate_left_2_g(~K, ~V, ~cmp, x, xn, MI.read(~K, ~V, ~cmp, m1, M.node_right(~K, xn)), read_g(~K, ~V, ~cmp, m1, M.node_right(~K, xn), g_pair_result))
+    case Tuple{+m2, +wn}:
+      delete_borrow_left_g(~K, ~V, ~cmp, m2, p, M.node_right(~K, pn), pn, wn, g_pair_result)
 
-def rotate_left_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.rotate_left_1(~K, ~V, ~cmp, x, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == ST.real(~K, ~V, ~cmp, MI.rotate_left_1(~K, ~V, ~cmp, x, pair_result)) : M.TreeMap<K, V, cmp>}:
+def delete_borrow_read_left_2_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.delete_borrow_read_left_2(~K, ~V, ~cmp, p, pn, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_left_2(~K, ~V, ~cmp, p, pn, pair_result)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
   match pair_result:
-    case Tuple{+m1, +xn}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m1), M.node_right(~K, xn)), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m1, M.node_right(~K, xn))), read_s(~K, ~V, ~cmp, m1, M.node_right(~K, xn), g_pair_result)) : {M.rotate_left_2(~K, ~V, ~cmp, x, xn, _) == ST.real(~K, ~V, ~cmp, MI.rotate_left_1(~K, ~V, ~cmp, x, Tuple{m1, xn})) : M.TreeMap<K, V, cmp>}
-      rotate_left_2_s(~K, ~V, ~cmp, x, xn, MI.read(~K, ~V, ~cmp, m1, M.node_right(~K, xn)), read_g(~K, ~V, ~cmp, m1, M.node_right(~K, xn), g_pair_result))
+    case Tuple{+m2, +wn}:
+      delete_borrow_left_s(~K, ~V, ~cmp, m2, p, M.node_right(~K, pn), pn, wn, g_pair_result)
 
 
-def rotate_right_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dg(K, V, MI.rotate_right_1(~K, ~V, ~cmp, x, pair_result)) == True{} : Bool}:
+def delete_borrow_read_right_2_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_read_right_2(~K, ~V, ~cmp, p, pn, pair_result)) == True{} : Bool}:
   match pair_result:
-    case Tuple{+m1, +xn}:
-      rotate_right_2_g(~K, ~V, ~cmp, x, xn, MI.read(~K, ~V, ~cmp, m1, M.node_left(~K, xn)), read_g(~K, ~V, ~cmp, m1, M.node_left(~K, xn), g_pair_result))
+    case Tuple{+m2, +wn}:
+      delete_borrow_right_g(~K, ~V, ~cmp, m2, p, M.node_left(~K, pn), pn, wn, g_pair_result)
 
-def rotate_right_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +x: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.rotate_right_1(~K, ~V, ~cmp, x, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == ST.real(~K, ~V, ~cmp, MI.rotate_right_1(~K, ~V, ~cmp, x, pair_result)) : M.TreeMap<K, V, cmp>}:
+def delete_borrow_read_right_2_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.delete_borrow_read_right_2(~K, ~V, ~cmp, p, pn, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_right_2(~K, ~V, ~cmp, p, pn, pair_result)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
   match pair_result:
-    case Tuple{+m1, +xn}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m1), M.node_left(~K, xn)), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m1, M.node_left(~K, xn))), read_s(~K, ~V, ~cmp, m1, M.node_left(~K, xn), g_pair_result)) : {M.rotate_right_2(~K, ~V, ~cmp, x, xn, _) == ST.real(~K, ~V, ~cmp, MI.rotate_right_1(~K, ~V, ~cmp, x, Tuple{m1, xn})) : M.TreeMap<K, V, cmp>}
-      rotate_right_2_s(~K, ~V, ~cmp, x, xn, MI.read(~K, ~V, ~cmp, m1, M.node_left(~K, xn)), read_g(~K, ~V, ~cmp, m1, M.node_left(~K, xn), g_pair_result))
-
-
-def successor_ready_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, r: ST.Sh<K, V> & Nat, +g_r: {MI.dgp(K, V, Nat, r) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.successor_ready(~K, ~V, ~cmp, target, r)) == True{} : Bool}:
-  match r:
-    case Tuple{+m, +source}:
-      move_successor_g(~K, ~V, ~cmp, m, target, source, g_r)
-
-def successor_ready_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +target: Nat, r: ST.Sh<K, V> & Nat, +g_r: {MI.dgp(K, V, Nat, r) == True{} : Bool}) -> {M.successor_ready(~K, ~V, ~cmp, target, MI.rp(~K, ~V, ~cmp, Nat, r)) == MI.rp(~K, ~V, ~cmp, Nat, MI.successor_ready(~K, ~V, ~cmp, target, r)) : M.TreeMap<K, V, cmp> & Nat}:
-  match r:
-    case Tuple{+m, +source}:
-      move_successor_s(~K, ~V, ~cmp, m, target, source, g_r)
+    case Tuple{+m2, +wn}:
+      delete_borrow_right_s(~K, ~V, ~cmp, m2, p, M.node_left(~K, pn), pn, wn, g_pair_result)
 
 
 def navigate_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +higher: Bool, +inclusive: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.navigate(~K, ~V, ~cmp, m, k, higher, inclusive)) == True{} : Bool}:
@@ -1788,48 +1962,50 @@ def iterator_next_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +cursor: MI.MCursor
       iterator_read_s(~K, ~V, ~cmp, next, current, lower, upper, forward, MI.entry_snapshot(~K, ~V, ~cmp, (m, next)), entry_snapshot_g(~K, ~V, ~cmp, (m, next), g_cursor))
 
 
-def rotate_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +x: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.rotate_left(~K, ~V, ~cmp, m, x)) == True{} : Bool}:
-  rotate_left_1_g(~K, ~V, ~cmp, x, MI.read(~K, ~V, ~cmp, m, x), read_g(~K, ~V, ~cmp, m, x, g_m))
+def insert_side_left_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_side_left_1(~K, ~V, ~cmp, z, p, g, pn, gn, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m1, +un}:
+      insert_uncle_left_g(~K, ~V, ~cmp, m1, z, p, g, M.node_right(~K, gn), Nat.is_eq(z, M.node_right(~K, pn)), un, g_pair_result)
 
-def rotate_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +x: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.rotate_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), x) == ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, x)) : M.TreeMap<K, V, cmp>}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), x), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, x)), read_s(~K, ~V, ~cmp, m, x, g_m)) : {M.rotate_left_1(~K, ~V, ~cmp, x, _) == ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, x)) : M.TreeMap<K, V, cmp>}
-  rotate_left_1_s(~K, ~V, ~cmp, x, MI.read(~K, ~V, ~cmp, m, x), read_g(~K, ~V, ~cmp, m, x, g_m))
-
-
-def rotate_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +x: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dg(K, V, MI.rotate_right(~K, ~V, ~cmp, m, x)) == True{} : Bool}:
-  rotate_right_1_g(~K, ~V, ~cmp, x, MI.read(~K, ~V, ~cmp, m, x), read_g(~K, ~V, ~cmp, m, x, g_m))
-
-def rotate_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +x: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.rotate_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), x) == ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, x)) : M.TreeMap<K, V, cmp>}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), x), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, x)), read_s(~K, ~V, ~cmp, m, x, g_m)) : {M.rotate_right_1(~K, ~V, ~cmp, x, _) == ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, x)) : M.TreeMap<K, V, cmp>}
-  rotate_right_1_s(~K, ~V, ~cmp, x, MI.read(~K, ~V, ~cmp, m, x), read_g(~K, ~V, ~cmp, m, x, g_m))
+def insert_side_left_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.insert_side_left_1(~K, ~V, ~cmp, z, p, g, pn, gn, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_side_left_1(~K, ~V, ~cmp, z, p, g, pn, gn, pair_result)) : M.TreeMap<K, V, cmp> & M.Fix}:
+  match pair_result:
+    case Tuple{+m1, +un}:
+      insert_uncle_left_s(~K, ~V, ~cmp, m1, z, p, g, M.node_right(~K, gn), Nat.is_eq(z, M.node_right(~K, pn)), un, g_pair_result)
 
 
-def delete_target_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {MI.dgp(K, V, Nat, MI.delete_target(~K, ~V, ~cmp, id, r)) == True{} : Bool}:
-  match r:
-    case Tuple{+px2, M.N{+px5, 1n+ +px10, 1n+ +px11, +px8, +px9}}:
-      successor_ready_g(~K, ~V, ~cmp, id, MI.extreme(~K, ~V, ~cmp, px2, 1n+px11, False{}), extreme_g(~K, ~V, ~cmp, px2, 1n+px11, False{}, g_r))
-    case Tuple{+px2, M.Free{+px4}}:
-      g_r
-    case Tuple{+px2, M.N{+px5, 0n, 0n, +px8, +px9}}:
-      g_r
-    case Tuple{+px2, M.N{+px5, 0n, 1n+ +px12, +px8, +px9}}:
-      g_r
-    case Tuple{+px2, M.N{+px5, 1n+ +px10, 0n, +px8, +px9}}:
-      g_r
+def insert_side_right_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_side_right_1(~K, ~V, ~cmp, z, p, g, pn, gn, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m1, +un}:
+      insert_uncle_right_g(~K, ~V, ~cmp, m1, z, p, g, M.node_left(~K, gn), Nat.is_eq(z, M.node_left(~K, pn)), un, g_pair_result)
 
-def delete_target_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +id: Nat, r: ST.Sh<K, V> & M.Node<K>, +g_r: {MI.dgp(K, V, M.Node<K>, r) == True{} : Bool}) -> {M.delete_target(~K, ~V, ~cmp, id, MI.rp(~K, ~V, ~cmp, M.Node<K>, r)) == MI.rp(~K, ~V, ~cmp, Nat, MI.delete_target(~K, ~V, ~cmp, id, r)) : M.TreeMap<K, V, cmp> & Nat}:
-  match r:
-    case Tuple{+px2, M.N{+px5, 1n+ +px10, 1n+ +px11, +px8, +px9}}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & Nat, M.extreme(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, px2), 1n+px11, False{}), MI.rp(~K, ~V, ~cmp, Nat, MI.extreme(~K, ~V, ~cmp, px2, 1n+px11, False{})), extreme_s(~K, ~V, ~cmp, px2, 1n+px11, False{}, g_r)) : {M.successor_ready(~K, ~V, ~cmp, id, _) == MI.rp(~K, ~V, ~cmp, Nat, MI.delete_target(~K, ~V, ~cmp, id, Tuple{px2, M.N{px5, 1n+ px10, 1n+ px11, px8, px9}})) : M.TreeMap<K, V, cmp> & Nat}
-      successor_ready_s(~K, ~V, ~cmp, id, MI.extreme(~K, ~V, ~cmp, px2, 1n+px11, False{}), extreme_g(~K, ~V, ~cmp, px2, 1n+px11, False{}, g_r))
-    case Tuple{+px2, M.Free{+px4}}:
-      {==}
-    case Tuple{+px2, M.N{+px5, 0n, 0n, +px8, +px9}}:
-      {==}
-    case Tuple{+px2, M.N{+px5, 0n, 1n+ +px12, +px8, +px9}}:
-      {==}
-    case Tuple{+px2, M.N{+px5, 1n+ +px10, 0n, +px8, +px9}}:
-      {==}
+def insert_side_right_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.insert_side_right_1(~K, ~V, ~cmp, z, p, g, pn, gn, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_side_right_1(~K, ~V, ~cmp, z, p, g, pn, gn, pair_result)) : M.TreeMap<K, V, cmp> & M.Fix}:
+  match pair_result:
+    case Tuple{+m1, +un}:
+      insert_uncle_right_s(~K, ~V, ~cmp, m1, z, p, g, M.node_left(~K, gn), Nat.is_eq(z, M.node_left(~K, pn)), un, g_pair_result)
+
+
+def delete_borrow_read_left_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_read_left_1(~K, ~V, ~cmp, p, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m1, +pn}:
+      delete_borrow_read_left_2_g(~K, ~V, ~cmp, p, pn, MI.read(~K, ~V, ~cmp, m1, M.node_right(~K, pn)), read_g(~K, ~V, ~cmp, m1, M.node_right(~K, pn), g_pair_result))
+
+def delete_borrow_read_left_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.delete_borrow_read_left_1(~K, ~V, ~cmp, p, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_left_1(~K, ~V, ~cmp, p, pair_result)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
+  match pair_result:
+    case Tuple{+m1, +pn}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m1), M.node_right(~K, pn)), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m1, M.node_right(~K, pn))), read_s(~K, ~V, ~cmp, m1, M.node_right(~K, pn), g_pair_result)) : {M.delete_borrow_read_left_2(~K, ~V, ~cmp, p, pn, _) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_left_1(~K, ~V, ~cmp, p, Tuple{m1, pn})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+      delete_borrow_read_left_2_s(~K, ~V, ~cmp, p, pn, MI.read(~K, ~V, ~cmp, m1, M.node_right(~K, pn)), read_g(~K, ~V, ~cmp, m1, M.node_right(~K, pn), g_pair_result))
+
+
+def delete_borrow_read_right_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_read_right_1(~K, ~V, ~cmp, p, pair_result)) == True{} : Bool}:
+  match pair_result:
+    case Tuple{+m1, +pn}:
+      delete_borrow_read_right_2_g(~K, ~V, ~cmp, p, pn, MI.read(~K, ~V, ~cmp, m1, M.node_left(~K, pn)), read_g(~K, ~V, ~cmp, m1, M.node_left(~K, pn), g_pair_result))
+
+def delete_borrow_read_right_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.delete_borrow_read_right_1(~K, ~V, ~cmp, p, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_right_1(~K, ~V, ~cmp, p, pair_result)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
+  match pair_result:
+    case Tuple{+m1, +pn}:
+      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m1), M.node_left(~K, pn)), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m1, M.node_left(~K, pn))), read_s(~K, ~V, ~cmp, m1, M.node_left(~K, pn), g_pair_result)) : {M.delete_borrow_read_right_2(~K, ~V, ~cmp, p, pn, _) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_right_1(~K, ~V, ~cmp, p, Tuple{m1, pn})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+      delete_borrow_read_right_2_s(~K, ~V, ~cmp, p, pn, MI.read(~K, ~V, ~cmp, m1, M.node_left(~K, pn)), read_g(~K, ~V, ~cmp, m1, M.node_left(~K, pn), g_pair_result))
 
 
 def lower_key_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +k: K, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Maybe<&2, K>, MI.lower_key(~K, ~V, ~cmp, m, k)) == True{} : Bool}:
@@ -2016,70 +2192,36 @@ def view_clear_next_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, r: MI.MCursor<K, 
       iterator_next_s(~K, ~V, ~cmp, cursor, g_r)
 
 
-def insert_black_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, triangle)) == True{} : Bool}:
-  match triangle:
-    case True{}:
-      rotate_right_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}, rotate_left_g(~K, ~V, ~cmp, m, p, g_m))))
-    case False{}:
-      rotate_right_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))
+def insert_side_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_side_left(~K, ~V, ~cmp, m, z, p, g, pn, gn)) == True{} : Bool}:
+  insert_side_left_1_g(~K, ~V, ~cmp, z, p, g, pn, gn, MI.read(~K, ~V, ~cmp, m, M.node_right(~K, gn)), read_g(~K, ~V, ~cmp, m, M.node_right(~K, gn), g_m))
 
-def insert_black_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.insert_black_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), z, p, g, triangle) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, triangle)) : M.TreeMap<K, V, cmp> & M.Fix}:
-  match triangle:
-    case True{}:
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p), ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p)), rotate_left_s(~K, ~V, ~cmp, m, p, g_m)) : {(M.rotate_right(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, z, False{}), g, True{}), g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p)), z, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{})), set_red_s(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}, rotate_left_g(~K, ~V, ~cmp, m, p, g_m))) : {(M.rotate_right(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, g, True{}), g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{})), g, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}, rotate_left_g(~K, ~V, ~cmp, m, p, g_m)))) : {(M.rotate_right(~K, ~V, ~cmp, _, g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{})), g), ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g)), rotate_right_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, m, p), z, False{}, rotate_left_g(~K, ~V, ~cmp, m, p, g_m))))) : {(_, M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
-      {==}
-    case False{}:
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), set_red_s(~K, ~V, ~cmp, m, p, False{}, g_m)) : {(M.rotate_right(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, g, True{}), g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, False{})) : M.TreeMap<K, V, cmp> & M.Fix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), g, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m))) : {(M.rotate_right(~K, ~V, ~cmp, _, g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, False{})) : M.TreeMap<K, V, cmp> & M.Fix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{})), g), ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g)), rotate_right_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))) : {(_, M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_left(~K, ~V, ~cmp, m, z, p, g, False{})) : M.TreeMap<K, V, cmp> & M.Fix}
-      {==}
+def insert_side_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.insert_side_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), z, p, g, pn, gn) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_side_left(~K, ~V, ~cmp, m, z, p, g, pn, gn)) : M.TreeMap<K, V, cmp> & M.Fix}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), M.node_right(~K, gn)), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, M.node_right(~K, gn))), read_s(~K, ~V, ~cmp, m, M.node_right(~K, gn), g_m)) : {M.insert_side_left_1(~K, ~V, ~cmp, z, p, g, pn, gn, _) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_side_left(~K, ~V, ~cmp, m, z, p, g, pn, gn)) : M.TreeMap<K, V, cmp> & M.Fix}
+  insert_side_left_1_s(~K, ~V, ~cmp, z, p, g, pn, gn, MI.read(~K, ~V, ~cmp, m, M.node_right(~K, gn)), read_g(~K, ~V, ~cmp, m, M.node_right(~K, gn), g_m))
 
 
-def insert_black_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, triangle)) == True{} : Bool}:
-  match triangle:
-    case True{}:
-      rotate_left_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}, rotate_right_g(~K, ~V, ~cmp, m, p, g_m))))
-    case False{}:
-      rotate_left_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))
+def insert_side_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_side_right(~K, ~V, ~cmp, m, z, p, g, pn, gn)) == True{} : Bool}:
+  insert_side_right_1_g(~K, ~V, ~cmp, z, p, g, pn, gn, MI.read(~K, ~V, ~cmp, m, M.node_left(~K, gn)), read_g(~K, ~V, ~cmp, m, M.node_left(~K, gn), g_m))
 
-def insert_black_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +triangle: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.insert_black_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), z, p, g, triangle) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, triangle)) : M.TreeMap<K, V, cmp> & M.Fix}:
-  match triangle:
-    case True{}:
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p), ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p)), rotate_right_s(~K, ~V, ~cmp, m, p, g_m)) : {(M.rotate_left(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, z, False{}), g, True{}), g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p)), z, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{})), set_red_s(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}, rotate_right_g(~K, ~V, ~cmp, m, p, g_m))) : {(M.rotate_left(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, g, True{}), g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{})), g, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}, rotate_right_g(~K, ~V, ~cmp, m, p, g_m)))) : {(M.rotate_left(~K, ~V, ~cmp, _, g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{})), g), ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g)), rotate_left_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, m, p), z, False{}, rotate_right_g(~K, ~V, ~cmp, m, p, g_m))))) : {(_, M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, True{})) : M.TreeMap<K, V, cmp> & M.Fix}
-      {==}
-    case False{}:
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), set_red_s(~K, ~V, ~cmp, m, p, False{}, g_m)) : {(M.rotate_left(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, g, True{}), g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, False{})) : M.TreeMap<K, V, cmp> & M.Fix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), g, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m))) : {(M.rotate_left(~K, ~V, ~cmp, _, g), M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, False{})) : M.TreeMap<K, V, cmp> & M.Fix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{})), g), ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g)), rotate_left_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}), g, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))) : {(_, M.Fix{0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_black_right(~K, ~V, ~cmp, m, z, p, g, False{})) : M.TreeMap<K, V, cmp> & M.Fix}
-      {==}
+def insert_side_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.insert_side_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), z, p, g, pn, gn) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_side_right(~K, ~V, ~cmp, m, z, p, g, pn, gn)) : M.TreeMap<K, V, cmp> & M.Fix}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), M.node_left(~K, gn)), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, M.node_left(~K, gn))), read_s(~K, ~V, ~cmp, m, M.node_left(~K, gn), g_m)) : {M.insert_side_right_1(~K, ~V, ~cmp, z, p, g, pn, gn, _) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_side_right(~K, ~V, ~cmp, m, z, p, g, pn, gn)) : M.TreeMap<K, V, cmp> & M.Fix}
+  insert_side_right_1_s(~K, ~V, ~cmp, z, p, g, pn, gn, MI.read(~K, ~V, ~cmp, m, M.node_left(~K, gn)), read_g(~K, ~V, ~cmp, m, M.node_left(~K, gn), g_m))
 
 
-def delete_borrow_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_left(~K, ~V, ~cmp, m, p, w, pn, wn)) == True{} : Bool}:
-  rotate_left_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{}), p, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m))))
+def delete_borrow_read_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_read_left(~K, ~V, ~cmp, m, p)) == True{} : Bool}:
+  delete_borrow_read_left_1_g(~K, ~V, ~cmp, p, MI.read(~K, ~V, ~cmp, m, p), read_g(~K, ~V, ~cmp, m, p, g_m))
 
-def delete_borrow_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.delete_borrow_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, w, pn, wn) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_left(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
-  %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), w, M.node_red(~K, pn)), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn))), set_red_s(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m)) : {(M.rotate_left(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, p, False{}), M.node_right(~K, wn), False{}), p), M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_left(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-  %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn))), p, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m))) : {(M.rotate_left(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, M.node_right(~K, wn), False{}), p), M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_left(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-  %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{})), M.node_right(~K, wn), False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m)))) : {(M.rotate_left(~K, ~V, ~cmp, _, p), M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_left(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-  %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{})), p), ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{}), p)), rotate_left_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{}), p, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_right(~K, wn), False{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m))))) : {(_, M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_left(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-  {==}
+def delete_borrow_read_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.delete_borrow_read_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_left(~K, ~V, ~cmp, m, p)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, p)), read_s(~K, ~V, ~cmp, m, p, g_m)) : {M.delete_borrow_read_left_1(~K, ~V, ~cmp, p, _) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_left(~K, ~V, ~cmp, m, p)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+  delete_borrow_read_left_1_s(~K, ~V, ~cmp, p, MI.read(~K, ~V, ~cmp, m, p), read_g(~K, ~V, ~cmp, m, p, g_m))
 
 
-def delete_borrow_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_right(~K, ~V, ~cmp, m, p, w, pn, wn)) == True{} : Bool}:
-  rotate_right_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}), p, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m))))
+def delete_borrow_read_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_read_right(~K, ~V, ~cmp, m, p)) == True{} : Bool}:
+  delete_borrow_read_right_1_g(~K, ~V, ~cmp, p, MI.read(~K, ~V, ~cmp, m, p), read_g(~K, ~V, ~cmp, m, p, g_m))
 
-def delete_borrow_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.delete_borrow_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, w, pn, wn) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_right(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
-  %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), w, M.node_red(~K, pn)), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn))), set_red_s(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m)) : {(M.rotate_right(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, p, False{}), M.node_left(~K, wn), False{}), p), M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_right(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-  %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn))), p, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m))) : {(M.rotate_right(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, M.node_left(~K, wn), False{}), p), M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_right(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-  %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{})), M.node_left(~K, wn), False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m)))) : {(M.rotate_right(~K, ~V, ~cmp, _, p), M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_right(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-  %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{})), p), ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}), p)), rotate_right_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}), p, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}), M.node_left(~K, wn), False{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, w, M.node_red(~K, pn)), p, False{}, set_red_g(~K, ~V, ~cmp, m, w, M.node_red(~K, pn), g_m))))) : {(_, M.DF{0n, 0n, False{}}) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_right(~K, ~V, ~cmp, m, p, w, pn, wn)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-  {==}
+def delete_borrow_read_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.delete_borrow_read_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_right(~K, ~V, ~cmp, m, p)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
+  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, p)), read_s(~K, ~V, ~cmp, m, p, g_m)) : {M.delete_borrow_read_right_1(~K, ~V, ~cmp, p, _) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_right(~K, ~V, ~cmp, m, p)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+  delete_borrow_read_right_1_s(~K, ~V, ~cmp, p, MI.read(~K, ~V, ~cmp, m, p), read_g(~K, ~V, ~cmp, m, p, g_m))
 
 
 def view_iterator_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {MI.dgc(K, V, MI.view_iterator(~K, ~V, ~cmp, view)) == True{} : Bool}:
@@ -2137,70 +2279,55 @@ def view_extreme_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V
       view_entry_result_s(~K, ~V, ~cmp, lower, upper, descending, MI.entry_snapshot(~K, ~V, ~cmp, MI.range_start(~K, ~V, ~cmp, m, M.pick(M.Bound<K>, up, lower, upper), up)), entry_snapshot_g(~K, ~V, ~cmp, MI.range_start(~K, ~V, ~cmp, m, M.pick(M.Bound<K>, up, lower, upper), up), range_start_g(~K, ~V, ~cmp, m, M.pick(M.Bound<K>, up, lower, upper), up, g_view)))
 
 
-def insert_uncle_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +u: Nat, +triangle: Bool, +uncle: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_uncle_left(~K, ~V, ~cmp, m, z, p, g, u, triangle, uncle)) == True{} : Bool}:
-  match uncle:
-    case M.N{True{}, +px4, +px5, +px6, +px7}:
-      set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))
-    case M.Free{+px2}:
-      insert_black_left_g(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
-    case M.N{False{}, +px4, +px5, +px6, +px7}:
-      insert_black_left_g(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
+def insert_side_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, +on_left: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_side(~K, ~V, ~cmp, m, z, p, g, pn, gn, on_left)) == True{} : Bool}:
+  match on_left:
+    case True{}:
+      insert_side_left_g(~K, ~V, ~cmp, m, z, p, g, pn, gn, g_m)
+    case False{}:
+      insert_side_right_g(~K, ~V, ~cmp, m, z, p, g, pn, gn, g_m)
 
-def insert_uncle_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +u: Nat, +triangle: Bool, +uncle: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.insert_uncle_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), z, p, g, u, triangle, uncle) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_left(~K, ~V, ~cmp, m, z, p, g, u, triangle, uncle)) : M.TreeMap<K, V, cmp> & M.Fix}:
-  match uncle:
-    case M.N{True{}, +px4, +px5, +px6, +px7}:
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), set_red_s(~K, ~V, ~cmp, m, p, False{}, g_m)) : {(M.set_red(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, u, False{}), g, True{}), M.Fix{g, True{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_left(~K, ~V, ~cmp, m, z, p, g, u, triangle, M.N{True{}, px4, px5, px6, px7})) : M.TreeMap<K, V, cmp> & M.Fix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), u, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m))) : {(M.set_red(~K, ~V, ~cmp, _, g, True{}), M.Fix{g, True{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_left(~K, ~V, ~cmp, m, z, p, g, u, triangle, M.N{True{}, px4, px5, px6, px7})) : M.TreeMap<K, V, cmp> & M.Fix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{})), g, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))) : {(_, M.Fix{g, True{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_left(~K, ~V, ~cmp, m, z, p, g, u, triangle, M.N{True{}, px4, px5, px6, px7})) : M.TreeMap<K, V, cmp> & M.Fix}
-      {==}
-    case M.Free{+px2}:
-      insert_black_left_s(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
-    case M.N{False{}, +px4, +px5, +px6, +px7}:
-      insert_black_left_s(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
+def insert_side_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, +on_left: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.insert_side(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), z, p, g, pn, gn, on_left) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_side(~K, ~V, ~cmp, m, z, p, g, pn, gn, on_left)) : M.TreeMap<K, V, cmp> & M.Fix}:
+  match on_left:
+    case True{}:
+      insert_side_left_s(~K, ~V, ~cmp, m, z, p, g, pn, gn, g_m)
+    case False{}:
+      insert_side_right_s(~K, ~V, ~cmp, m, z, p, g, pn, gn, g_m)
 
 
-def insert_uncle_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +u: Nat, +triangle: Bool, +uncle: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_uncle_right(~K, ~V, ~cmp, m, z, p, g, u, triangle, uncle)) == True{} : Bool}:
-  match uncle:
-    case M.N{True{}, +px4, +px5, +px6, +px7}:
-      set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))
-    case M.Free{+px2}:
-      insert_black_right_g(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
-    case M.N{False{}, +px4, +px5, +px6, +px7}:
-      insert_black_right_g(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
+def delete_far_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +far_red: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_far_left(~K, ~V, ~cmp, m, p, w, pn, wn, far_red)) == True{} : Bool}:
+  match far_red:
+    case True{}:
+      delete_borrow_left_g(~K, ~V, ~cmp, m, p, w, pn, wn, g_m)
+    case False{}:
+      delete_borrow_read_left_g(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}), w), p, rotate_right_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}), w, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}, g_m))))
 
-def insert_uncle_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +u: Nat, +triangle: Bool, +uncle: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.insert_uncle_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), z, p, g, u, triangle, uncle) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_right(~K, ~V, ~cmp, m, z, p, g, u, triangle, uncle)) : M.TreeMap<K, V, cmp> & M.Fix}:
-  match uncle:
-    case M.N{True{}, +px4, +px5, +px6, +px7}:
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), set_red_s(~K, ~V, ~cmp, m, p, False{}, g_m)) : {(M.set_red(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, u, False{}), g, True{}), M.Fix{g, True{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_right(~K, ~V, ~cmp, m, z, p, g, u, triangle, M.N{True{}, px4, px5, px6, px7})) : M.TreeMap<K, V, cmp> & M.Fix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{})), u, False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m))) : {(M.set_red(~K, ~V, ~cmp, _, g, True{}), M.Fix{g, True{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_right(~K, ~V, ~cmp, m, z, p, g, u, triangle, M.N{True{}, px4, px5, px6, px7})) : M.TreeMap<K, V, cmp> & M.Fix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{})), g, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}), g, True{}, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, p, False{}), u, False{}, set_red_g(~K, ~V, ~cmp, m, p, False{}, g_m)))) : {(_, M.Fix{g, True{}}) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_uncle_right(~K, ~V, ~cmp, m, z, p, g, u, triangle, M.N{True{}, px4, px5, px6, px7})) : M.TreeMap<K, V, cmp> & M.Fix}
-      {==}
-    case M.Free{+px2}:
-      insert_black_right_s(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
-    case M.N{False{}, +px4, +px5, +px6, +px7}:
-      insert_black_right_s(~K, ~V, ~cmp, m, z, p, g, triangle, g_m)
+def delete_far_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +far_red: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.delete_far_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, w, pn, wn, far_red) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_left(~K, ~V, ~cmp, m, p, w, pn, wn, far_red)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
+  match far_red:
+    case True{}:
+      delete_borrow_left_s(~K, ~V, ~cmp, m, p, w, pn, wn, g_m)
+    case False{}:
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), M.node_left(~K, wn), False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{})), set_red_s(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}, g_m)) : {M.delete_borrow_read_left(~K, ~V, ~cmp, M.rotate_right(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, w, True{}), w), p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_left(~K, ~V, ~cmp, m, p, w, pn, wn, False{})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{})), w, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}, g_m))) : {M.delete_borrow_read_left(~K, ~V, ~cmp, M.rotate_right(~K, ~V, ~cmp, _, w), p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_left(~K, ~V, ~cmp, m, p, w, pn, wn, False{})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{})), w), ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}), w)), rotate_right_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}), w, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}, g_m)))) : {M.delete_borrow_read_left(~K, ~V, ~cmp, _, p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_left(~K, ~V, ~cmp, m, p, w, pn, wn, False{})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+      delete_borrow_read_left_s(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}), w), p, rotate_right_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}), w, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}, g_m))))
 
 
-def delete_borrow_read_left_2_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_read_left_2(~K, ~V, ~cmp, p, pn, pair_result)) == True{} : Bool}:
-  match pair_result:
-    case Tuple{+m2, +wn}:
-      delete_borrow_left_g(~K, ~V, ~cmp, m2, p, M.node_right(~K, pn), pn, wn, g_pair_result)
+def delete_far_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +far_red: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_far_right(~K, ~V, ~cmp, m, p, w, pn, wn, far_red)) == True{} : Bool}:
+  match far_red:
+    case True{}:
+      delete_borrow_right_g(~K, ~V, ~cmp, m, p, w, pn, wn, g_m)
+    case False{}:
+      delete_borrow_read_right_g(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}), w), p, rotate_left_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}), w, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}, g_m))))
 
-def delete_borrow_read_left_2_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.delete_borrow_read_left_2(~K, ~V, ~cmp, p, pn, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_left_2(~K, ~V, ~cmp, p, pn, pair_result)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
-  match pair_result:
-    case Tuple{+m2, +wn}:
-      delete_borrow_left_s(~K, ~V, ~cmp, m2, p, M.node_right(~K, pn), pn, wn, g_pair_result)
-
-
-def delete_borrow_read_right_2_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_read_right_2(~K, ~V, ~cmp, p, pn, pair_result)) == True{} : Bool}:
-  match pair_result:
-    case Tuple{+m2, +wn}:
-      delete_borrow_right_g(~K, ~V, ~cmp, m2, p, M.node_left(~K, pn), pn, wn, g_pair_result)
-
-def delete_borrow_read_right_2_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.delete_borrow_read_right_2(~K, ~V, ~cmp, p, pn, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_right_2(~K, ~V, ~cmp, p, pn, pair_result)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
-  match pair_result:
-    case Tuple{+m2, +wn}:
-      delete_borrow_right_s(~K, ~V, ~cmp, m2, p, M.node_left(~K, pn), pn, wn, g_pair_result)
+def delete_far_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +far_red: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.delete_far_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, w, pn, wn, far_red) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_right(~K, ~V, ~cmp, m, p, w, pn, wn, far_red)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
+  match far_red:
+    case True{}:
+      delete_borrow_right_s(~K, ~V, ~cmp, m, p, w, pn, wn, g_m)
+    case False{}:
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), M.node_right(~K, wn), False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{})), set_red_s(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}, g_m)) : {M.delete_borrow_read_right(~K, ~V, ~cmp, M.rotate_left(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, w, True{}), w), p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_right(~K, ~V, ~cmp, m, p, w, pn, wn, False{})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{})), w, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}, g_m))) : {M.delete_borrow_read_right(~K, ~V, ~cmp, M.rotate_left(~K, ~V, ~cmp, _, w), p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_right(~K, ~V, ~cmp, m, p, w, pn, wn, False{})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{})), w), ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}), w)), rotate_left_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}), w, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}, g_m)))) : {M.delete_borrow_read_right(~K, ~V, ~cmp, _, p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_right(~K, ~V, ~cmp, m, p, w, pn, wn, False{})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
+      delete_borrow_read_right_s(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}), w), p, rotate_left_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}), w, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}, g_m))))
 
 
 def contains_value_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~eq: V -> V -> Bool, +m: ST.Sh<K, V>, +wanted: V, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Bool, MI.contains_value(~K, ~V, ~cmp, ~eq, m, wanted)) == True{} : Bool}:
@@ -2251,163 +2378,6 @@ def view_size_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, 
       %Equal.sym(M.Cursor<K, V, cmp>, M.view_iterator(~K, ~V, ~cmp, M.View{ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}), lower, upper, descending}), MI.rc(~K, ~V, ~cmp, MI.view_iterator(~K, ~V, ~cmp, MI.MV{ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, lower, upper, descending})), view_iterator_s(~K, ~V, ~cmp, MI.MV{ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, lower, upper, descending}, g_view)) : {M.view_count_loop(~K, ~V, ~cmp, 1n+n, 0n, M.iterator_next(~K, ~V, ~cmp, _)) == MI.rvp(~K, ~V, ~cmp, Nat, MI.view_size(~K, ~V, ~cmp, MI.MV{ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, lower, upper, descending})) : M.View<K, V, cmp> & Nat}
       %Equal.sym(M.Cursor<K, V, cmp> & Maybe<&2, M.Entry<K, V>>, M.iterator_next(~K, ~V, ~cmp, MI.rc(~K, ~V, ~cmp, MI.view_iterator(~K, ~V, ~cmp, MI.MV{ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, lower, upper, descending}))), MI.rcp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.iterator_next(~K, ~V, ~cmp, MI.view_iterator(~K, ~V, ~cmp, MI.MV{ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, lower, upper, descending}))), iterator_next_s(~K, ~V, ~cmp, MI.view_iterator(~K, ~V, ~cmp, MI.MV{ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, lower, upper, descending}), view_iterator_g(~K, ~V, ~cmp, MI.MV{ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, lower, upper, descending}, g_view))) : {M.view_count_loop(~K, ~V, ~cmp, 1n+n, 0n, _) == MI.rvp(~K, ~V, ~cmp, Nat, MI.view_size(~K, ~V, ~cmp, MI.MV{ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, lower, upper, descending})) : M.View<K, V, cmp> & Nat}
       view_count_loop_s(~K, ~V, ~cmp, 1n+n, 0n, MI.iterator_next(~K, ~V, ~cmp, MI.view_iterator(~K, ~V, ~cmp, MI.MV{ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, lower, upper, descending})), iterator_next_g(~K, ~V, ~cmp, MI.view_iterator(~K, ~V, ~cmp, MI.MV{ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, lower, upper, descending}), view_iterator_g(~K, ~V, ~cmp, MI.MV{ST.SH{n, root, lo, hi, free, l_0, d_0, nl_0, pl_0, t_0, fl_0}, lower, upper, descending}, g_view)))
-
-
-def insert_side_left_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_side_left_1(~K, ~V, ~cmp, z, p, g, pn, gn, pair_result)) == True{} : Bool}:
-  match pair_result:
-    case Tuple{+m1, +un}:
-      insert_uncle_left_g(~K, ~V, ~cmp, m1, z, p, g, M.node_right(~K, gn), Nat.is_eq(z, M.node_right(~K, pn)), un, g_pair_result)
-
-def insert_side_left_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.insert_side_left_1(~K, ~V, ~cmp, z, p, g, pn, gn, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_side_left_1(~K, ~V, ~cmp, z, p, g, pn, gn, pair_result)) : M.TreeMap<K, V, cmp> & M.Fix}:
-  match pair_result:
-    case Tuple{+m1, +un}:
-      insert_uncle_left_s(~K, ~V, ~cmp, m1, z, p, g, M.node_right(~K, gn), Nat.is_eq(z, M.node_right(~K, pn)), un, g_pair_result)
-
-
-def insert_side_right_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_side_right_1(~K, ~V, ~cmp, z, p, g, pn, gn, pair_result)) == True{} : Bool}:
-  match pair_result:
-    case Tuple{+m1, +un}:
-      insert_uncle_right_g(~K, ~V, ~cmp, m1, z, p, g, M.node_left(~K, gn), Nat.is_eq(z, M.node_left(~K, pn)), un, g_pair_result)
-
-def insert_side_right_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.insert_side_right_1(~K, ~V, ~cmp, z, p, g, pn, gn, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_side_right_1(~K, ~V, ~cmp, z, p, g, pn, gn, pair_result)) : M.TreeMap<K, V, cmp> & M.Fix}:
-  match pair_result:
-    case Tuple{+m1, +un}:
-      insert_uncle_right_s(~K, ~V, ~cmp, m1, z, p, g, M.node_left(~K, gn), Nat.is_eq(z, M.node_left(~K, pn)), un, g_pair_result)
-
-
-def delete_borrow_read_left_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_read_left_1(~K, ~V, ~cmp, p, pair_result)) == True{} : Bool}:
-  match pair_result:
-    case Tuple{+m1, +pn}:
-      delete_borrow_read_left_2_g(~K, ~V, ~cmp, p, pn, MI.read(~K, ~V, ~cmp, m1, M.node_right(~K, pn)), read_g(~K, ~V, ~cmp, m1, M.node_right(~K, pn), g_pair_result))
-
-def delete_borrow_read_left_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.delete_borrow_read_left_1(~K, ~V, ~cmp, p, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_left_1(~K, ~V, ~cmp, p, pair_result)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
-  match pair_result:
-    case Tuple{+m1, +pn}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m1), M.node_right(~K, pn)), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m1, M.node_right(~K, pn))), read_s(~K, ~V, ~cmp, m1, M.node_right(~K, pn), g_pair_result)) : {M.delete_borrow_read_left_2(~K, ~V, ~cmp, p, pn, _) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_left_1(~K, ~V, ~cmp, p, Tuple{m1, pn})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-      delete_borrow_read_left_2_s(~K, ~V, ~cmp, p, pn, MI.read(~K, ~V, ~cmp, m1, M.node_right(~K, pn)), read_g(~K, ~V, ~cmp, m1, M.node_right(~K, pn), g_pair_result))
-
-
-def delete_borrow_read_right_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_read_right_1(~K, ~V, ~cmp, p, pair_result)) == True{} : Bool}:
-  match pair_result:
-    case Tuple{+m1, +pn}:
-      delete_borrow_read_right_2_g(~K, ~V, ~cmp, p, pn, MI.read(~K, ~V, ~cmp, m1, M.node_left(~K, pn)), read_g(~K, ~V, ~cmp, m1, M.node_left(~K, pn), g_pair_result))
-
-def delete_borrow_read_right_1_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +p: Nat, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {M.delete_borrow_read_right_1(~K, ~V, ~cmp, p, MI.rp(~K, ~V, ~cmp, M.Node<K>, pair_result)) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_right_1(~K, ~V, ~cmp, p, pair_result)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
-  match pair_result:
-    case Tuple{+m1, +pn}:
-      %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m1), M.node_left(~K, pn)), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m1, M.node_left(~K, pn))), read_s(~K, ~V, ~cmp, m1, M.node_left(~K, pn), g_pair_result)) : {M.delete_borrow_read_right_2(~K, ~V, ~cmp, p, pn, _) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_right_1(~K, ~V, ~cmp, p, Tuple{m1, pn})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-      delete_borrow_read_right_2_s(~K, ~V, ~cmp, p, pn, MI.read(~K, ~V, ~cmp, m1, M.node_left(~K, pn)), read_g(~K, ~V, ~cmp, m1, M.node_left(~K, pn), g_pair_result))
-
-
-def view_lower_entry_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {MI.dgvp(K, V, Maybe<&2, M.Entry<K, V>>, MI.view_lower_entry(~K, ~V, ~cmp, view, k)) == True{} : Bool}:
-  view_nav_g(~K, ~V, ~cmp, view, k, False{}, False{}, g_view)
-
-def view_lower_entry_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {M.view_lower_entry(~K, ~V, ~cmp, MI.rv(~K, ~V, ~cmp, view), k) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.view_lower_entry(~K, ~V, ~cmp, view, k)) : M.View<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}:
-  view_nav_s(~K, ~V, ~cmp, view, k, False{}, False{}, g_view)
-
-
-def view_floor_entry_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {MI.dgvp(K, V, Maybe<&2, M.Entry<K, V>>, MI.view_floor_entry(~K, ~V, ~cmp, view, k)) == True{} : Bool}:
-  view_nav_g(~K, ~V, ~cmp, view, k, False{}, True{}, g_view)
-
-def view_floor_entry_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {M.view_floor_entry(~K, ~V, ~cmp, MI.rv(~K, ~V, ~cmp, view), k) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.view_floor_entry(~K, ~V, ~cmp, view, k)) : M.View<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}:
-  view_nav_s(~K, ~V, ~cmp, view, k, False{}, True{}, g_view)
-
-
-def view_ceiling_entry_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {MI.dgvp(K, V, Maybe<&2, M.Entry<K, V>>, MI.view_ceiling_entry(~K, ~V, ~cmp, view, k)) == True{} : Bool}:
-  view_nav_g(~K, ~V, ~cmp, view, k, True{}, True{}, g_view)
-
-def view_ceiling_entry_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {M.view_ceiling_entry(~K, ~V, ~cmp, MI.rv(~K, ~V, ~cmp, view), k) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.view_ceiling_entry(~K, ~V, ~cmp, view, k)) : M.View<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}:
-  view_nav_s(~K, ~V, ~cmp, view, k, True{}, True{}, g_view)
-
-
-def view_higher_entry_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {MI.dgvp(K, V, Maybe<&2, M.Entry<K, V>>, MI.view_higher_entry(~K, ~V, ~cmp, view, k)) == True{} : Bool}:
-  view_nav_g(~K, ~V, ~cmp, view, k, True{}, False{}, g_view)
-
-def view_higher_entry_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {M.view_higher_entry(~K, ~V, ~cmp, MI.rv(~K, ~V, ~cmp, view), k) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.view_higher_entry(~K, ~V, ~cmp, view, k)) : M.View<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}:
-  view_nav_s(~K, ~V, ~cmp, view, k, True{}, False{}, g_view)
-
-
-def insert_side_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_side_left(~K, ~V, ~cmp, m, z, p, g, pn, gn)) == True{} : Bool}:
-  insert_side_left_1_g(~K, ~V, ~cmp, z, p, g, pn, gn, MI.read(~K, ~V, ~cmp, m, M.node_right(~K, gn)), read_g(~K, ~V, ~cmp, m, M.node_right(~K, gn), g_m))
-
-def insert_side_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.insert_side_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), z, p, g, pn, gn) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_side_left(~K, ~V, ~cmp, m, z, p, g, pn, gn)) : M.TreeMap<K, V, cmp> & M.Fix}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), M.node_right(~K, gn)), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, M.node_right(~K, gn))), read_s(~K, ~V, ~cmp, m, M.node_right(~K, gn), g_m)) : {M.insert_side_left_1(~K, ~V, ~cmp, z, p, g, pn, gn, _) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_side_left(~K, ~V, ~cmp, m, z, p, g, pn, gn)) : M.TreeMap<K, V, cmp> & M.Fix}
-  insert_side_left_1_s(~K, ~V, ~cmp, z, p, g, pn, gn, MI.read(~K, ~V, ~cmp, m, M.node_right(~K, gn)), read_g(~K, ~V, ~cmp, m, M.node_right(~K, gn), g_m))
-
-
-def insert_side_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_side_right(~K, ~V, ~cmp, m, z, p, g, pn, gn)) == True{} : Bool}:
-  insert_side_right_1_g(~K, ~V, ~cmp, z, p, g, pn, gn, MI.read(~K, ~V, ~cmp, m, M.node_left(~K, gn)), read_g(~K, ~V, ~cmp, m, M.node_left(~K, gn), g_m))
-
-def insert_side_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.insert_side_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), z, p, g, pn, gn) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_side_right(~K, ~V, ~cmp, m, z, p, g, pn, gn)) : M.TreeMap<K, V, cmp> & M.Fix}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), M.node_left(~K, gn)), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, M.node_left(~K, gn))), read_s(~K, ~V, ~cmp, m, M.node_left(~K, gn), g_m)) : {M.insert_side_right_1(~K, ~V, ~cmp, z, p, g, pn, gn, _) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_side_right(~K, ~V, ~cmp, m, z, p, g, pn, gn)) : M.TreeMap<K, V, cmp> & M.Fix}
-  insert_side_right_1_s(~K, ~V, ~cmp, z, p, g, pn, gn, MI.read(~K, ~V, ~cmp, m, M.node_left(~K, gn)), read_g(~K, ~V, ~cmp, m, M.node_left(~K, gn), g_m))
-
-
-def delete_borrow_read_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_read_left(~K, ~V, ~cmp, m, p)) == True{} : Bool}:
-  delete_borrow_read_left_1_g(~K, ~V, ~cmp, p, MI.read(~K, ~V, ~cmp, m, p), read_g(~K, ~V, ~cmp, m, p, g_m))
-
-def delete_borrow_read_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.delete_borrow_read_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_left(~K, ~V, ~cmp, m, p)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, p)), read_s(~K, ~V, ~cmp, m, p, g_m)) : {M.delete_borrow_read_left_1(~K, ~V, ~cmp, p, _) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_left(~K, ~V, ~cmp, m, p)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-  delete_borrow_read_left_1_s(~K, ~V, ~cmp, p, MI.read(~K, ~V, ~cmp, m, p), read_g(~K, ~V, ~cmp, m, p, g_m))
-
-
-def delete_borrow_read_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_borrow_read_right(~K, ~V, ~cmp, m, p)) == True{} : Bool}:
-  delete_borrow_read_right_1_g(~K, ~V, ~cmp, p, MI.read(~K, ~V, ~cmp, m, p), read_g(~K, ~V, ~cmp, m, p, g_m))
-
-def delete_borrow_read_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.delete_borrow_read_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_right(~K, ~V, ~cmp, m, p)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
-  %Equal.sym(M.TreeMap<K, V, cmp> & M.Node<K>, M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p), MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, p)), read_s(~K, ~V, ~cmp, m, p, g_m)) : {M.delete_borrow_read_right_1(~K, ~V, ~cmp, p, _) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_borrow_read_right(~K, ~V, ~cmp, m, p)) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-  delete_borrow_read_right_1_s(~K, ~V, ~cmp, p, MI.read(~K, ~V, ~cmp, m, p), read_g(~K, ~V, ~cmp, m, p, g_m))
-
-
-def insert_side_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, +on_left: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_side(~K, ~V, ~cmp, m, z, p, g, pn, gn, on_left)) == True{} : Bool}:
-  match on_left:
-    case True{}:
-      insert_side_left_g(~K, ~V, ~cmp, m, z, p, g, pn, gn, g_m)
-    case False{}:
-      insert_side_right_g(~K, ~V, ~cmp, m, z, p, g, pn, gn, g_m)
-
-def insert_side_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +g: Nat, +pn: M.Node<K>, +gn: M.Node<K>, +on_left: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.insert_side(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), z, p, g, pn, gn, on_left) == MI.rp(~K, ~V, ~cmp, M.Fix, MI.insert_side(~K, ~V, ~cmp, m, z, p, g, pn, gn, on_left)) : M.TreeMap<K, V, cmp> & M.Fix}:
-  match on_left:
-    case True{}:
-      insert_side_left_s(~K, ~V, ~cmp, m, z, p, g, pn, gn, g_m)
-    case False{}:
-      insert_side_right_s(~K, ~V, ~cmp, m, z, p, g, pn, gn, g_m)
-
-
-def delete_far_left_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +far_red: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_far_left(~K, ~V, ~cmp, m, p, w, pn, wn, far_red)) == True{} : Bool}:
-  match far_red:
-    case True{}:
-      delete_borrow_left_g(~K, ~V, ~cmp, m, p, w, pn, wn, g_m)
-    case False{}:
-      delete_borrow_read_left_g(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}), w), p, rotate_right_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}), w, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}, g_m))))
-
-def delete_far_left_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +far_red: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.delete_far_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, w, pn, wn, far_red) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_left(~K, ~V, ~cmp, m, p, w, pn, wn, far_red)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
-  match far_red:
-    case True{}:
-      delete_borrow_left_s(~K, ~V, ~cmp, m, p, w, pn, wn, g_m)
-    case False{}:
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), M.node_left(~K, wn), False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{})), set_red_s(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}, g_m)) : {M.delete_borrow_read_left(~K, ~V, ~cmp, M.rotate_right(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, w, True{}), w), p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_left(~K, ~V, ~cmp, m, p, w, pn, wn, False{})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{})), w, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}, g_m))) : {M.delete_borrow_read_left(~K, ~V, ~cmp, M.rotate_right(~K, ~V, ~cmp, _, w), p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_left(~K, ~V, ~cmp, m, p, w, pn, wn, False{})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{})), w), ST.real(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}), w)), rotate_right_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}), w, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}, g_m)))) : {M.delete_borrow_read_left(~K, ~V, ~cmp, _, p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_left(~K, ~V, ~cmp, m, p, w, pn, wn, False{})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-      delete_borrow_read_left_s(~K, ~V, ~cmp, MI.rotate_right(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}), w), p, rotate_right_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}), w, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_left(~K, wn), False{}, g_m))))
-
-
-def delete_far_right_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +far_red: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.DeleteFix, MI.delete_far_right(~K, ~V, ~cmp, m, p, w, pn, wn, far_red)) == True{} : Bool}:
-  match far_red:
-    case True{}:
-      delete_borrow_right_g(~K, ~V, ~cmp, m, p, w, pn, wn, g_m)
-    case False{}:
-      delete_borrow_read_right_g(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}), w), p, rotate_left_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}), w, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}, g_m))))
-
-def delete_far_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +p: Nat, +w: Nat, +pn: M.Node<K>, +wn: M.Node<K>, +far_red: Bool, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.delete_far_right(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), p, w, pn, wn, far_red) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_right(~K, ~V, ~cmp, m, p, w, pn, wn, far_red)) : M.TreeMap<K, V, cmp> & M.DeleteFix}:
-  match far_red:
-    case True{}:
-      delete_borrow_right_s(~K, ~V, ~cmp, m, p, w, pn, wn, g_m)
-    case False{}:
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), M.node_right(~K, wn), False{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{})), set_red_s(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}, g_m)) : {M.delete_borrow_read_right(~K, ~V, ~cmp, M.rotate_left(~K, ~V, ~cmp, M.set_red(~K, ~V, ~cmp, _, w, True{}), w), p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_right(~K, ~V, ~cmp, m, p, w, pn, wn, False{})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.set_red(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{})), w, True{}), ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{})), set_red_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}, g_m))) : {M.delete_borrow_read_right(~K, ~V, ~cmp, M.rotate_left(~K, ~V, ~cmp, _, w), p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_right(~K, ~V, ~cmp, m, p, w, pn, wn, False{})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-      %Equal.sym(M.TreeMap<K, V, cmp>, M.rotate_left(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{})), w), ST.real(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}), w)), rotate_left_s(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}), w, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}, g_m)))) : {M.delete_borrow_read_right(~K, ~V, ~cmp, _, p) == MI.rp(~K, ~V, ~cmp, M.DeleteFix, MI.delete_far_right(~K, ~V, ~cmp, m, p, w, pn, wn, False{})) : M.TreeMap<K, V, cmp> & M.DeleteFix}
-      delete_borrow_read_right_s(~K, ~V, ~cmp, MI.rotate_left(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}), w), p, rotate_left_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}), w, set_red_g(~K, ~V, ~cmp, MI.set_red(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}), w, True{}, set_red_g(~K, ~V, ~cmp, m, M.node_right(~K, wn), False{}, g_m))))
 
 
 def insert_grand_1_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +z: Nat, +p: Nat, +pn: M.Node<K>, pair_result: ST.Sh<K, V> & M.Node<K>, +g_pair_result: {MI.dgp(K, V, M.Node<K>, pair_result) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_grand_1(~K, ~V, ~cmp, z, p, pn, pair_result)) == True{} : Bool}:
@@ -2467,6 +2437,34 @@ def delete_children_right_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K
       delete_far_right_s(~K, ~V, ~cmp, m, p, w, pn, wn, far_red, g_m)
     case False{} True{}:
       delete_far_right_s(~K, ~V, ~cmp, m, p, w, pn, wn, far_red, g_m)
+
+
+def view_lower_entry_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {MI.dgvp(K, V, Maybe<&2, M.Entry<K, V>>, MI.view_lower_entry(~K, ~V, ~cmp, view, k)) == True{} : Bool}:
+  view_nav_g(~K, ~V, ~cmp, view, k, False{}, False{}, g_view)
+
+def view_lower_entry_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {M.view_lower_entry(~K, ~V, ~cmp, MI.rv(~K, ~V, ~cmp, view), k) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.view_lower_entry(~K, ~V, ~cmp, view, k)) : M.View<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}:
+  view_nav_s(~K, ~V, ~cmp, view, k, False{}, False{}, g_view)
+
+
+def view_floor_entry_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {MI.dgvp(K, V, Maybe<&2, M.Entry<K, V>>, MI.view_floor_entry(~K, ~V, ~cmp, view, k)) == True{} : Bool}:
+  view_nav_g(~K, ~V, ~cmp, view, k, False{}, True{}, g_view)
+
+def view_floor_entry_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {M.view_floor_entry(~K, ~V, ~cmp, MI.rv(~K, ~V, ~cmp, view), k) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.view_floor_entry(~K, ~V, ~cmp, view, k)) : M.View<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}:
+  view_nav_s(~K, ~V, ~cmp, view, k, False{}, True{}, g_view)
+
+
+def view_ceiling_entry_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {MI.dgvp(K, V, Maybe<&2, M.Entry<K, V>>, MI.view_ceiling_entry(~K, ~V, ~cmp, view, k)) == True{} : Bool}:
+  view_nav_g(~K, ~V, ~cmp, view, k, True{}, True{}, g_view)
+
+def view_ceiling_entry_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {M.view_ceiling_entry(~K, ~V, ~cmp, MI.rv(~K, ~V, ~cmp, view), k) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.view_ceiling_entry(~K, ~V, ~cmp, view, k)) : M.View<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}:
+  view_nav_s(~K, ~V, ~cmp, view, k, True{}, True{}, g_view)
+
+
+def view_higher_entry_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {MI.dgvp(K, V, Maybe<&2, M.Entry<K, V>>, MI.view_higher_entry(~K, ~V, ~cmp, view, k)) == True{} : Bool}:
+  view_nav_g(~K, ~V, ~cmp, view, k, True{}, False{}, g_view)
+
+def view_higher_entry_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +view: MI.MView<K, V>, +k: K, +g_view: {MI.dgv(K, V, view) == True{} : Bool}) -> {M.view_higher_entry(~K, ~V, ~cmp, MI.rv(~K, ~V, ~cmp, view), k) == MI.rvp(~K, ~V, ~cmp, Maybe<&2, M.Entry<K, V>>, MI.view_higher_entry(~K, ~V, ~cmp, view, k)) : M.View<K, V, cmp> & Maybe<&2, M.Entry<K, V>>}:
+  view_nav_s(~K, ~V, ~cmp, view, k, True{}, False{}, g_view)
 
 
 def insert_grand_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +z: Nat, +p: Nat, +pn: M.Node<K>, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Fix, MI.insert_grand(~K, ~V, ~cmp, m, z, p, pn)) == True{} : Bool}:
