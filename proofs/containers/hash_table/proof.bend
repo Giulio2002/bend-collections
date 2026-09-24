@@ -11,6 +11,7 @@ import ./set.bend as ST2
 import ./setok.bend as SO
 import ./pop.bend as PO
 import ./keysw.bend as KW
+import ./contracts.bend as CT
 
 # Hash map (src/containers/hash_table.bend): public proof entry point.
 #   shadow       ST.Sh: the map's U32 fields, the table and arena exponents
@@ -32,6 +33,13 @@ import ./keysw.bend as KW
 #   pop/del        the specification's lookup, then its remove
 #   keys           the model's keys, in order
 # and each result shadow satisfies the invariant again.
+#
+# The *_contract theorems restate set, pop, del and keys as SPARK-style
+# contracts (proofs/containers/hash_table/contracts.bend, after SPARKlib's
+# formal hashed maps): what each operation changes and what it preserves in
+# the model (the value of every key), the length and the key sequence. The
+# key_* laws make key comparison an equivalence under which equivalent keys
+# are identical, so every function of a key (the hash too) agrees on them.
 
 def new_ok(~V: Data) -> {H.new(&2, V) == ST.real(~V, NW.empty(~V)) : H.HashMap<&2, V>} & ({ST.good(~V, NW.empty(~V)) == True{} : Bool} & {ST.model(~V, NW.empty(~V)) == Nil{} : List<&2, S.Entry<V>>}):
   NW.new_ok(~V)
@@ -56,3 +64,29 @@ def del_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +ke
 
 def keys_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}) -> KW.KeysOK(~V, sh, H.keys(&2, V, ST.real(~V, sh))):
   KW.keys_ok(~V, sh, hg)
+
+# ---- contracts ----
+
+def set_contract(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +cap: Nat, +hc30: {Nat.is_le(cap, 30n) == True{} : Bool}, +hcap: {Nat.is_le(Nat.double(1n+S.size(~V, ST.model(~V, sh))), SC.pow2(cap)) == True{} : Bool}, +key: String, +x: V) -> CT.SetContract(~V, sh, key, x, H.set(&2, V, ST.real(~V, sh), key, x)):
+  CT.sc_from(~V, sh, key, x, H.set(&2, V, ST.real(~V, sh), key, x), SO.set_ok(~V, sh, hg, cap, hc30, hcap, key, x))
+
+def pop_contract(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +key: String) -> CT.PopContract(~V, sh, key, H.pop(&2, V, ST.real(~V, sh), key)):
+  CT.pc_from(~V, sh, hg, key, H.pop(&2, V, ST.real(~V, sh), key), PO.pop_ok(~V, sh, hg, key))
+
+def del_contract(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +key: String) -> CT.DelContract(~V, sh, key, H.del(&2, V, ST.real(~V, sh), key)):
+  CT.dc_from(~V, sh, hg, key, H.del(&2, V, ST.real(~V, sh), key), PO.del_ok(~V, sh, hg, key))
+
+def keys_contract(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}) -> CT.KeysContract(~V, sh, H.keys(&2, V, ST.real(~V, sh))):
+  CT.kc_from(~V, sh, hg, H.keys(&2, V, ST.real(~V, sh)), KW.keys_ok(~V, sh, hg))
+
+def key_refl(+a: String) -> {S.str_eq(a, a) == True{} : Bool}:
+  CT.key_refl(a)
+
+def key_sym(+a: String, +b: String) -> {S.str_eq(a, b) == S.str_eq(b, a) : Bool}:
+  CT.key_sym(a, b)
+
+def key_trans(+a: String, +b: String, +c: String, +hab: {S.str_eq(a, b) == True{} : Bool}, +hbc: {S.str_eq(b, c) == True{} : Bool}) -> {S.str_eq(a, c) == True{} : Bool}:
+  CT.key_trans(a, b, c, hab, hbc)
+
+def key_same(+a: String, +b: String, +h: {S.str_eq(a, b) == True{} : Bool}) -> {a == b : String}:
+  CT.key_same(a, b, h)
