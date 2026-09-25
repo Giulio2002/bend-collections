@@ -2,12 +2,12 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/list.bend as LL
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../../src/containers/bitset.bend as B
 import ../../../src/containers/bitlist.bend as BLI
 import ../../../src/containers/dynamic_array.bend as D
 import ../../../src/containers/types/dynamic_array.bend as DE
-import ../dynamic_array/spec.bend as DS
+import ../../../spec/containers/dynamic_array.bend as DS
 import ../dynamic_array/state.bend as DAS
 import ../dynamic_array/steps.bend as DSP
 import ../dynamic_array/trace.bend as DTR

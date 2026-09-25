@@ -2,14 +2,14 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/list.bend as LL
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../lib/arith.bend as AT
 import ../../../src/containers/bitset.bend as B
 import ../../../src/containers/bitlist.bend as BLI
 import ../../../src/containers/types/bitlist.bend as E
 import ../../../src/containers/dynamic_array.bend as D
 import ../../../src/containers/types/dynamic_array.bend as DE
-import ../dynamic_array/spec.bend as DS
+import ../../../spec/containers/dynamic_array.bend as DS
 import ../dynamic_array/state.bend as DAS
 import ../dynamic_array/steps.bend as DSP
 import ../dynamic_array/trace.bend as DTR
@@ -19,7 +19,7 @@ import ../bitset/model.bend as MD
 import ../bitset/walk.bend as WK
 import ../bitset/state.bend as ST
 import ../bitset/steps.bend as BSS
-import ./spec.bend as S
+import ../../../spec/containers/bitlist.bend as S
 import ./da.bend as DI
 import ./bits.bend as BT
 import ./state.bend as SS

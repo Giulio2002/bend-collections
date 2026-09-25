@@ -1,7 +1,7 @@
 import Base
 import ../../lib/logic.bend as L
 import ../../lib/u32alg.bend as A
-import ./spec.bend as S
+import ../../../spec/containers/hash_table.bend as S
 import ../../../src/containers/hash_table.bend as H
 import ./strings.bend as STR
 import ../../lib/u32.bend as UW

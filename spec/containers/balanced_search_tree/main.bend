@@ -1,6 +1,7 @@
 import Base
-import ../../lib/spec_common.bend as C
+import ../../lib/common.bend as C
 import ../../../src/containers/balanced_search_tree.bend as M
+import ../../lib/order.bend as SO
 
 # Independent model of the indexed TreeMap: a limit exponent (at most
 # 2^limit entries) and the entries in key order under the comparator ~cmp.
@@ -594,3 +595,171 @@ def view_iterator(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, w: View<K, V>) -> Cur
   match w:
     case VW{TM{+l, +es}, +lo, +hi, +d}:
       CR{TM{l, es}, start(~K, ~V, ~cmp, pick(M.Bound<K>, d, hi, lo), Bool.not(d), es), None{}, lo, hi, Bool.not(d)}
+
+# the map's invariant: consecutive keys strictly increasing (SPARK's ordered
+# maps keep Keys (Container) sorted; Formal_Ordered_Maps, Formal_Model.K)
+def ordered(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, es: List<&2, M.Entry<K, V>>) -> Bool:
+  match es:
+    case Nil{}:
+      True{}
+    case Con{e, t}:
+      match t:
+        case Nil{}:
+          True{}
+        case Con{+e2, +u}:
+          Bool.and(Cmp.is_lt(cmp(key(K, V, e), key(K, V, e2))), ordered(~K, ~V, ~cmp, Con{e2, u}))
+
+# ---- contract (SPARK formal containers) ----
+# Each `<Subprogram>.<clause>` definition below states one Post clause of
+# that SPARK subprogram, as a proposition on this model; the table names the
+# clauses. proofs/containers/balanced_search_tree/ proves every clause under its clause name,
+# and its `impl` lemma carries them to the implementation.
+#
+# Contracts of the TreeMap in the style of SPARK's formal ordered maps
+# (SPARKlib src/full/spark-containers-formal-ordered_maps.ads, AdaCore/
+# SPARKlib master), stated on the independent model (this file: a limit and
+# the entries in key order). The refinement proof (proof.bend, api/capi/
+# vapi) shows the implementation returns exactly the model's result for
+# every operation, so each clause holds of the implementation.
+# Model (K) = S.find (K, es); keys are compared by ~cmp, a total order
+# (O.Order: flip, antisymmetry, transitivity); the entries are ordered
+# (ST.ordered), which is the model's invariant.
+#
+#   SPARK subprogram (.ads line)          ours                 clauses
+#   Empty_Map (101)                       new                  new_empty
+#   Length (114), Is_Empty (425)          size, is_empty       size_value, is_empty_value
+#   Clear (433)                           clear                clear_empty
+#   Element (Key) (1283), Find (1257)     get, get_or_default  get_value, get_or_default_value
+#   Contains (1332)                       contains_key         contains_value
+#   Include (754)                         put                  put_present, put_absent, put_full,
+#                                                              put_found_present, put_found_absent,
+#                                                              find_set_other, find_ins_other (others unchanged),
+#                                                              set_length, ins_length
+#   Insert (612/697, keeps a present key) put_if_absent        put_if_absent_present, put_if_absent_absent
+#   Replace (846)                         replace              replace_present, replace_absent,
+#                                                              find_set_same, find_set_other
+#   Exclude (884) / Delete (937)          remove               remove_present, remove_absent,
+#                                                              find_del_same (gone), find_del_other, del_length
+#   First/First_Element/First_Key (1116-1137)                  first_value
+#   Last/Last_Element/Last_Key (1148-1171)                     last_value
+#   Floor (1291), Ceiling (1312)          floor/ceiling/lower/higher (key, entry)   nav_value
+#   Delete_First (1037), Delete_Last (1077)  poll_first/last_entry   (model: S.poll_*; refinement: proof.bend)
+# Not in this API: "=", Assign/Copy/Move, Reference, Replace_Element and
+# Key/Element/Next/Previous by cursor (the map's cursors are its iterators,
+# whose steps the refinement proof relates to S.succ), Has_Element.
+
+# Include (754)
+def Include.find_ins_other(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +v: V, +q: K, +hq: {is_eq(cmp(q, k)) == False{} : Bool}, +es: List<&2, M.Entry<K, V>>) -> Type:
+  {find_e(~K, ~V, ~cmp, q, ins(~K, ~V, ~cmp, k, v, es)) == find_e(~K, ~V, ~cmp, q, es) : Maybe<&2, M.Entry<K, V>>}
+
+# Include (754)
+def Include.ins_length(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +v: V, +es: List<&2, M.Entry<K, V>>) -> Type:
+  {C.length(M.Entry<K, V>, ins(~K, ~V, ~cmp, k, v, es)) == 1n+C.length(M.Entry<K, V>, es) : Nat}
+
+# Replace (846)
+def Replace.find_set_same(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +v: V, +e0: M.Entry<K, V>, +es: List<&2, M.Entry<K, V>>, +hp: {find_e(~K, ~V, ~cmp, k, es) == Some{e0} : Maybe<&2, M.Entry<K, V>>}) -> Type:
+  {find(~K, ~V, ~cmp, k, set_val(~K, ~V, ~cmp, k, v, es)) == Some{v} : Maybe<&2, V>}
+
+# Include (754)
+def Include.find_set_other(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: SO.Order(~K, ~cmp), +k: K, +v: V, +q: K, +hq: {is_eq(cmp(q, k)) == False{} : Bool}, +es: List<&2, M.Entry<K, V>>) -> Type:
+  {find_e(~K, ~V, ~cmp, q, set_val(~K, ~V, ~cmp, k, v, es)) == find_e(~K, ~V, ~cmp, q, es) : Maybe<&2, M.Entry<K, V>>}
+
+# Include (754)
+def Include.set_length(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +v: V, +es: List<&2, M.Entry<K, V>>) -> Type:
+  {C.length(M.Entry<K, V>, set_val(~K, ~V, ~cmp, k, v, es)) == C.length(M.Entry<K, V>, es) : Nat}
+
+# Exclude (884) / Delete (937)
+def Exclude.find_del_other(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: SO.Order(~K, ~cmp), +k: K, +q: K, +hq: {is_eq(cmp(q, k)) == False{} : Bool}, +es: List<&2, M.Entry<K, V>>) -> Type:
+  {find_e(~K, ~V, ~cmp, q, del(~K, ~V, ~cmp, k, es)) == find_e(~K, ~V, ~cmp, q, es) : Maybe<&2, M.Entry<K, V>>}
+
+# Exclude (884) / Delete (937)
+def Exclude.find_del_same(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: SO.Order(~K, ~cmp), +k: K, +es: List<&2, M.Entry<K, V>>, +hord: {ordered(~K, ~V, ~cmp, es) == True{} : Bool}) -> Type:
+  {find_e(~K, ~V, ~cmp, k, del(~K, ~V, ~cmp, k, es)) == None{} : Maybe<&2, M.Entry<K, V>>}
+
+# Exclude (884) / Delete (937)
+def Exclude.del_length(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +e0: M.Entry<K, V>, +es: List<&2, M.Entry<K, V>>, +hp: {find_e(~K, ~V, ~cmp, k, es) == Some{e0} : Maybe<&2, M.Entry<K, V>>}) -> Type:
+  {1n+C.length(M.Entry<K, V>, del(~K, ~V, ~cmp, k, es)) == C.length(M.Entry<K, V>, es) : Nat}
+
+# Empty_Map (101)
+def Empty_Map.new_empty(-K: Data, -V: Data) -> Type:
+  {new(K, V) == TM{31n, Nil{}} : Model<K, V>}
+
+# Length (114), Is_Empty (425)
+def Length.size_value(-K: Data, -V: Data, +l: Nat, +es: List<&2, M.Entry<K, V>>) -> Type:
+  {size(K, V, TM{l, es}) == (TM{l, es}, C.length(M.Entry<K, V>, es)) : Model<K, V> & Nat}
+
+# Length (114), Is_Empty (425)
+def Length.is_empty_value(-K: Data, -V: Data, +l: Nat, +es: List<&2, M.Entry<K, V>>) -> Type:
+  {is_empty(K, V, TM{l, es}) == (TM{l, es}, Nat.is_eq(C.length(M.Entry<K, V>, es), 0n)) : Model<K, V> & Bool}
+
+# Clear (433)
+def Clear.clear_empty(-K: Data, -V: Data, +l: Nat, +es: List<&2, M.Entry<K, V>>) -> Type:
+  {clear(K, V, TM{l, es}) == TM{l, Nil{}} : Model<K, V>}
+
+# Element (Key) (1283), Find (1257)
+def Element.get_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K) -> Type:
+  {get(~K, ~V, ~cmp, TM{l, es}, k) == (TM{l, es}, find(~K, ~V, ~cmp, k, es)) : Model<K, V> & Maybe<&2, V>}
+
+# Element (Key) (1283), Find (1257)
+def Element.get_or_default_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +d: V) -> Type:
+  {get_or_default(~K, ~V, ~cmp, TM{l, es}, k, d) == (TM{l, es}, or_default(V, find(~K, ~V, ~cmp, k, es), d)) : Model<K, V> & V}
+
+# Contains (1332)
+def Contains.contains_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K) -> Type:
+  {contains_key(~K, ~V, ~cmp, TM{l, es}, k) == (TM{l, es}, is_some(V, find(~K, ~V, ~cmp, k, es))) : Model<K, V> & Bool}
+
+# Include (754)
+def Include.put_present(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +e0: M.Entry<K, V>, +hp: {find_e(~K, ~V, ~cmp, k, es) == Some{e0} : Maybe<&2, M.Entry<K, V>>}) -> Type:
+  {put(~K, ~V, ~cmp, TM{l, es}, k, v) == (TM{l, set_val(~K, ~V, ~cmp, k, v, es)}, Done{Some{val(K, V, e0)}}) : Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>}
+
+# Include (754)
+def Include.put_absent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +ha: {find_e(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, M.Entry<K, V>>}, +hr: {Nat.is_lt(C.length(M.Entry<K, V>, es), C.pow2(l)) == True{} : Bool}) -> Type:
+  {put(~K, ~V, ~cmp, TM{l, es}, k, v) == (TM{l, ins(~K, ~V, ~cmp, k, v, es)}, Done{None{}}) : Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>}
+
+# Include (754)
+def Include.put_full(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +ha: {find_e(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, M.Entry<K, V>>}, +hr: {Nat.is_lt(C.length(M.Entry<K, V>, es), C.pow2(l)) == False{} : Bool}) -> Type:
+  {put(~K, ~V, ~cmp, TM{l, es}, k, v) == (TM{l, es}, Fail{M.Rejected{M.CapacityExceeded{}, k, v}}) : Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>}
+
+# Include (754)
+def Include.put_found_present(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +e0: M.Entry<K, V>, +hp: {find_e(~K, ~V, ~cmp, k, es) == Some{e0} : Maybe<&2, M.Entry<K, V>>}) -> Type:
+  {find(~K, ~V, ~cmp, k, set_val(~K, ~V, ~cmp, k, v, es)) == Some{v} : Maybe<&2, V>}
+
+# Include (754)
+def Include.put_found_absent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: SO.Order(~K, ~cmp), +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +ha: {find_e(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, M.Entry<K, V>>}) -> Type:
+  {find(~K, ~V, ~cmp, k, ins(~K, ~V, ~cmp, k, v, es)) == Some{v} : Maybe<&2, V>}
+
+# Insert (612/697, keeps a present key) put_if_absent
+def Insert.put_if_absent_present(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +e0: M.Entry<K, V>, +hp: {find_e(~K, ~V, ~cmp, k, es) == Some{e0} : Maybe<&2, M.Entry<K, V>>}) -> Type:
+  {put_if_absent(~K, ~V, ~cmp, TM{l, es}, k, v) == (TM{l, es}, Done{Some{val(K, V, e0)}}) : Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>}
+
+# Insert (612/697, keeps a present key) put_if_absent
+def Insert.put_if_absent_absent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +ha: {find_e(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, M.Entry<K, V>>}, +hr: {Nat.is_lt(C.length(M.Entry<K, V>, es), C.pow2(l)) == True{} : Bool}) -> Type:
+  {put_if_absent(~K, ~V, ~cmp, TM{l, es}, k, v) == (TM{l, ins(~K, ~V, ~cmp, k, v, es)}, Done{None{}}) : Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>}
+
+# Replace (846)
+def Replace.replace_present(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +e0: M.Entry<K, V>, +hp: {find_e(~K, ~V, ~cmp, k, es) == Some{e0} : Maybe<&2, M.Entry<K, V>>}) -> Type:
+  {replace(~K, ~V, ~cmp, TM{l, es}, k, v) == (TM{l, set_val(~K, ~V, ~cmp, k, v, es)}, Some{val(K, V, e0)}) : Model<K, V> & Maybe<&2, V>}
+
+# Replace (846)
+def Replace.replace_absent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +ha: {find_e(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, M.Entry<K, V>>}) -> Type:
+  {replace(~K, ~V, ~cmp, TM{l, es}, k, v) == (TM{l, es}, None{}) : Model<K, V> & Maybe<&2, V>}
+
+# Exclude (884) / Delete (937)
+def Exclude.remove_present(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +e0: M.Entry<K, V>, +hp: {find_e(~K, ~V, ~cmp, k, es) == Some{e0} : Maybe<&2, M.Entry<K, V>>}) -> Type:
+  {remove(~K, ~V, ~cmp, TM{l, es}, k) == (TM{l, del(~K, ~V, ~cmp, k, es)}, Some{val(K, V, e0)}) : Model<K, V> & Maybe<&2, V>}
+
+# Exclude (884) / Delete (937)
+def Exclude.remove_absent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +ha: {find_e(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, M.Entry<K, V>>}) -> Type:
+  {remove(~K, ~V, ~cmp, TM{l, es}, k) == (TM{l, es}, None{}) : Model<K, V> & Maybe<&2, V>}
+
+# First/First_Element/First_Key (1116-1137)
+def First.first_value(-K: Data, -V: Data, +l: Nat, +es: List<&2, M.Entry<K, V>>) -> Type:
+  {first_entry(K, V, TM{l, es}) == (TM{l, es}, head(M.Entry<K, V>, es)) : Model<K, V> & Maybe<&2, M.Entry<K, V>>}
+
+# Last/Last_Element/Last_Key (1148-1171)
+def Last.last_value(-K: Data, -V: Data, +l: Nat, +es: List<&2, M.Entry<K, V>>) -> Type:
+  {last_entry(K, V, TM{l, es}) == (TM{l, es}, last(M.Entry<K, V>, es)) : Model<K, V> & Maybe<&2, M.Entry<K, V>>}
+
+# Floor (1291), Ceiling (1312)
+def Floor.nav_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +up: Bool, +inclusive: Bool) -> Type:
+  {nav_entry(~K, ~V, ~cmp, TM{l, es}, k, up, inclusive) == (TM{l, es}, nav(~K, ~V, ~cmp, k, up, inclusive, es)) : Model<K, V> & Maybe<&2, M.Entry<K, V>>}

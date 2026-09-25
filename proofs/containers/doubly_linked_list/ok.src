@@ -1,6 +1,6 @@
 import Base
 import ../../lib/logic.bend as L
-import ./spec.bend as S
+import ../../../spec/containers/doubly_linked_list.bend as S
 import ../../../src/containers/doubly_linked_list.bend as D
 import ./state.bend as ST
 

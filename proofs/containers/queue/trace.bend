@@ -1,7 +1,7 @@
 import Base
 import ../../lib/logic.bend as L
 import ../../lib/list.bend as LL
-import ./spec.bend as S
+import ../../../spec/containers/queue.bend as S
 import ../../../src/containers/queue.bend as DQ
 import ../../../src/containers/types/queue.bend as E
 import ./state.bend as ST

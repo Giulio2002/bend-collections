@@ -6,7 +6,7 @@ import Base
 import ../../../../src/crypto/blake/blake2s/types.bend as T
 import ../../../../src/crypto/blake/blake2s/compress.bend as C
 import ../../../../src/crypto/blake/blake2s/blake2s.bend as K
-import ./spec.bend as R
+import ../../../../spec/crypto/blake/blake2s.bend as R
 import ./compress.bend as P
 import ./bytes.bend as B
 import ./array.bend as A

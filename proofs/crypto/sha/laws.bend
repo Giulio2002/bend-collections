@@ -1,6 +1,6 @@
 import Base
 import ../../../src/crypto/sha/sha256.bend as SHA
-import ./spec.bend as FIPS
+import ../../../spec/crypto/sha.bend as FIPS
 
 # These claims mention the actual public API and the complete independent spec.
 # There are no arbitrary preprocessing functions, tables, or correctness premises.

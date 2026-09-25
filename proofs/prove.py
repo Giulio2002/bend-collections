@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Check every proof.
 
-Each package of src/ has its proof package here: proofs/containers/<pkg>/ and
-proofs/math/<pkg>/ (spec.bend, the lemmas, and proof.bend, the entry point).
-A proof file that no other package file imports is a root; checking the
-roots checks every file. PROOF.bend and END_TO_END.bend (the whole-library
+Each module of src/ has its specification in spec/ (spec/ mirrors src/: the
+abstract model and its contracts) and its proof package here:
+proofs/containers/<pkg>/, proofs/crypto/<pkg>/, proofs/math/<pkg>/ (the lemmas,
+and proof.bend, the entry point). A file of proofs/ or spec/ that no other
+such file imports is a root; checking the roots checks every file. PROOF.bend and END_TO_END.bend (the whole-library
 gates) are roots too. This script checks all roots (or those of the packages named),
 several at a time, and reports each.
 
@@ -20,18 +21,21 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
+SPEC = ROOT / 'spec'
 IMP = re.compile(r'^import (\S+\.bend) as \w+$', re.M)
 
 
 def package(f):
-    parts = f.relative_to(HERE).parts
+    parts = f.relative_to(SPEC if SPEC in f.parents else HERE).parts
+    if SPEC in f.parents and len(parts) > 1:
+        return Path(parts[1]).stem
     if parts[0] in ('containers', 'math', 'crypto') and len(parts) > 2:
         return parts[1]
     return parts[0] if len(parts) > 1 else f.stem
 
 
 def roots():
-    files = sorted(HERE.rglob('*.bend'))
+    files = sorted(HERE.rglob('*.bend')) + sorted(SPEC.rglob('*.bend'))
     imported = set()
     for f in files:
         if f.parent == HERE:          # PROOF.bend and END_TO_END.bend aggregate the packages

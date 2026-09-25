@@ -119,3 +119,11 @@ def drop(-A: Data, xs: List<&2, A>, n: Nat) -> List<&2, A>:
       Con{h, t}
     case Con{h, t} 1n+p:
       drop(A, t, p)
+
+# membership of a natural number in a list of them
+def memn(+s: Nat, xs: List<&2, Nat>) -> Bool:
+  match xs:
+    case Nil{}:
+      False{}
+    case Con{+x, t}:
+      Bool.or(Nat.is_eq(x, s), memn(s, t))

@@ -1,7 +1,7 @@
 import Base
 import ../../lib/array.bend as AR
-import ../../lib/spec_common.bend as SC
-import ./spec.bend as SP
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/lru.bend as SP
 import ../../../src/containers/lru.bend as LR
 import ./state.bend as ST
 import ./basic.bend as BA

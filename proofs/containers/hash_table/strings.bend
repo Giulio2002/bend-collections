@@ -1,5 +1,5 @@
 import Base
-import ./spec.bend as S
+import ../../../spec/containers/hash_table.bend as S
 import ../../../src/math/hash.bend as HS
 import ../../../src/containers/hash_table.bend as H
 

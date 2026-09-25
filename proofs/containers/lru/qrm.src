@@ -2,7 +2,7 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/array.bend as AR
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../lib/u32div.bend as UD
 import ../../lib/word.bend as WD
 import ../../../src/containers/hash_table.bend as H

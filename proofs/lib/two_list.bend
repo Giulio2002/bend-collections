@@ -1,7 +1,7 @@
 import Base
 import ./nat.bend as N
 import ./list.bend as LL
-import ./spec_common.bend as SC
+import ../../spec/lib/common.bend as SC
 import ../../src/containers/deque.bend as D
 
 # List facts for the two-list deque and queue: splitting a back list for a

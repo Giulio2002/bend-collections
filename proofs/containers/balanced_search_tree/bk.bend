@@ -5,7 +5,7 @@ import ../../lib/u32.bend as U
 import ../../lib/array.bend as AR
 import ../../lib/array_ext.bend as AX
 import ../../lib/list.bend as LL
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 
 # The block of a list with a default: a perfect tree of depth d whose slots
 # are the list's items followed by the default v. (mk.bend is the Maybe

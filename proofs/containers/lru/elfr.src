@@ -1,8 +1,8 @@
 import Base
 import ../../lib/logic.bend as L
-import ../../lib/spec_common.bend as SC
-import ../hash_table/spec.bend as S
-import ./spec.bend as SP
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/hash_table.bend as S
+import ../../../spec/containers/lru.bend as SP
 import ../hash_table/state.bend as HT
 import ../hash_table/tools.bend as TL
 import ./state.bend as ST

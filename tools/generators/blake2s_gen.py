@@ -10,7 +10,7 @@ Writes, relative to the repository root:
   proofs/crypto/blake/blake2s/compress.bend  F refinement (per round, then composed)
   proofs/crypto/blake/blake2s/reads.bend   block-read refinement and the API theorem
 
-The hand-written files (types.bend, hex.bend, spec.bend, proof.bend, laws.bend)
+The hand-written files (types.bend, hex.bend, proof.bend, laws.bend; the spec is spec/crypto/blake/blake2s.bend)
 are not generated.
 """
 import os
@@ -254,7 +254,7 @@ def gen_compress_proof():
          'import Base',
          'import ../../../../src/crypto/blake/blake2s/types.bend as T',
          'import ../../../../src/crypto/blake/blake2s/compress.bend as C',
-         'import ./spec.bend as R',
+         'import ../../../../spec/crypto/blake/blake2s.bend as R',
          '',
          '# The work vector as the RFC list v[0..15], one projection per entry, so',
          '# that the list has its shape even when the vector is abstract.']
@@ -377,7 +377,7 @@ def gen_bytes_proof():
          '# The bit-level facts are proven on the 32 Bool digits of a U32.',
          'import Base',
          'import ../../../../src/crypto/blake/blake2s/blake2s.bend as K',
-         'import ./spec.bend as R',
+         'import ../../../../spec/crypto/blake/blake2s.bend as R',
          '',
          '# Two words are equal when their digits are.',
          'law bits32:']
@@ -486,7 +486,7 @@ def gen_reads_proof():
          'import ../../../../src/crypto/blake/blake2s/types.bend as T',
          'import ../../../../src/crypto/blake/blake2s/compress.bend as C',
          'import ../../../../src/crypto/blake/blake2s/blake2s.bend as K',
-         'import ./spec.bend as R',
+         'import ../../../../spec/crypto/blake/blake2s.bend as R',
          'import ./compress.bend as P',
          'import ./bytes.bend as B',
          'import ./array.bend as A',

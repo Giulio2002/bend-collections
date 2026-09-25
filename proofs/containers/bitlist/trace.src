@@ -1,11 +1,11 @@
 import Base
 import ../../lib/logic.bend as L
 import ../../lib/list.bend as LL
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../../src/containers/bitlist.bend as BLI
 import ../../../src/containers/types/bitlist.bend as E
 import ../dynamic_array/trace.bend as DTR
-import ./spec.bend as S
+import ../../../spec/containers/bitlist.bend as S
 import ./state.bend as SS
 import ./steps.bend as BS
 

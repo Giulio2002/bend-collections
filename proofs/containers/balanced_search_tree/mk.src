@@ -5,7 +5,7 @@ import ../../lib/u32.bend as U
 import ../../lib/array.bend as AR
 import ../../lib/array_ext.bend as AX
 import ../../lib/list.bend as LL
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../dynamic_array/layout.bend as LY
 
 # The canonical block of a list: a perfect tree of depth d whose slots are

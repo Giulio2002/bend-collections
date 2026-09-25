@@ -4,7 +4,7 @@ import ../../src/math/hash.bend as HS
 import ../../src/math/pow2.bend as PW
 import ../lib/lemmas/spec/numeric.bend as S
 import ../lib/lemmas/types/model.bend as T
-import ../lib/spec_common.bend as SC
+import ../../spec/lib/common.bend as SC
 import ./pow2/pow2.bend as P2
 import ./u64/u64.bend as P
 import ./u64/u64div.bend as PD

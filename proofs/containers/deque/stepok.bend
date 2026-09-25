@@ -1,5 +1,5 @@
 import Base
-import ./spec.bend as S
+import ../../../spec/containers/deque.bend as S
 import ../../../src/containers/deque.bend as DQ
 import ../../../src/containers/types/deque.bend as E
 import ./state.bend as ST

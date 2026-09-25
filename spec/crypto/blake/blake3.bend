@@ -1,6 +1,6 @@
 import Base
-import ../../../../src/crypto/blake/blake3/types.bend as T
-import ../../../lib/spec_common.bend as SC
+import ../../../src/crypto/blake/blake3/types.bend as T
+import ../../lib/common.bend as SC
 
 # BLAKE3 in hash mode with a 32-byte output, written from the BLAKE3
 # specification document (O'Connor, Aumasson, Neves, Wilcox-O'Hearn, 2020):

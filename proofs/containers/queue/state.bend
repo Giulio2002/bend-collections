@@ -1,5 +1,5 @@
 import Base
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../../src/containers/queue.bend as Q
 
 # The two-list queue QU{front, back, count} as a Data shadow: the two lists,

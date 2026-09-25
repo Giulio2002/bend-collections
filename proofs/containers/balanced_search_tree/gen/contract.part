@@ -1,0 +1,286 @@
+import Base
+import ../../../spec/containers/balanced_search_tree/main.bend as S
+import ../../lib/logic.bend as L
+import ../../../src/containers/balanced_search_tree.bend as M
+import ../../lib/order.bend as O
+import ../../../spec/lib/order.bend as SO
+import ../../../spec/lib/common.bend as SC
+import ./ord.bend as OR
+
+# ==== the contract of main (stated in spec/containers/balanced_search_tree/main.bend) ====================
+
+# ---- lookups after an insertion ----
+def fis_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: SO.Order(~K, ~cmp), +k: K, +v: V, +e: M.Entry<K, V>, +t: List<&2, M.Entry<K, V>>, +c: Cmp, +hc: {cmp(k, S.key(K, V, e)) == c : Cmp}, +ha: {S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(c), Some{e}, S.find_e(~K, ~V, ~cmp, k, t)) == None{} : Maybe<&2, M.Entry<K, V>>}, ih: @+ha2: {S.find_e(~K, ~V, ~cmp, k, t) == None{} : Maybe<&2, M.Entry<K, V>>} -> {S.find_e(~K, ~V, ~cmp, k, S.ins(~K, ~V, ~cmp, k, v, t)) == Some{M.Entry{k, v}} : Maybe<&2, M.Entry<K, V>>}) -> {S.find_e(~K, ~V, ~cmp, k, S.pick(List<&2, M.Entry<K, V>>, Cmp.is_lt(c), Con{M.Entry{k, v}, Con{e, t}}, Con{e, S.ins(~K, ~V, ~cmp, k, v, t)})) == Some{M.Entry{k, v}} : Maybe<&2, M.Entry<K, V>>}:
+  match c:
+    case LT{}:
+      %Equal.sym(Cmp, cmp(k, k), EQ{}, O.refl(~K, ~cmp, ~o, k)) : {S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(_), Some{M.Entry{k, v}}, S.find_e(~K, ~V, ~cmp, k, Con{e, t})) == Some{M.Entry{k, v}} : Maybe<&2, M.Entry<K, V>>}
+      {==}
+    case EQ{}:
+      Empty.absurd({S.find_e(~K, ~V, ~cmp, k, Con{e, S.ins(~K, ~V, ~cmp, k, v, t)}) == Some{M.Entry{k, v}} : Maybe<&2, M.Entry<K, V>>}, L.none_some(M.Entry<K, V>, e, Equal.sym(Maybe<&2, M.Entry<K, V>>, Some{e}, None{}, ha)))
+    case GT{}:
+      %Equal.sym(Cmp, cmp(k, S.key(K, V, e)), GT{}, hc) : {S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(_), Some{e}, S.find_e(~K, ~V, ~cmp, k, S.ins(~K, ~V, ~cmp, k, v, t))) == Some{M.Entry{k, v}} : Maybe<&2, M.Entry<K, V>>}
+      ih(ha)
+
+# the inserted key is found, with its value
+def find_ins_same(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: SO.Order(~K, ~cmp), +k: K, +v: V, +es: List<&2, M.Entry<K, V>>, +ha: {S.find_e(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, M.Entry<K, V>>}) -> {S.find_e(~K, ~V, ~cmp, k, S.ins(~K, ~V, ~cmp, k, v, es)) == Some{M.Entry{k, v}} : Maybe<&2, M.Entry<K, V>>}:
+  match es:
+    case Nil{}:
+      %Equal.sym(Cmp, cmp(k, k), EQ{}, O.refl(~K, ~cmp, ~o, k)) : {S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(_), Some{M.Entry{k, v}}, None{}) == Some{M.Entry{k, v}} : Maybe<&2, M.Entry<K, V>>}
+      {==}
+    case Con{+e, +t}:
+      fis_c(~K, ~V, ~cmp, ~o, k, v, e, t, cmp(k, S.key(K, V, e)), {==}, ha, ha2 => find_ins_same(~K, ~V, ~cmp, ~o, k, v, t, ha2))
+
+def fio_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +v: V, +q: K, +hq: {S.is_eq(cmp(q, k)) == False{} : Bool}, +e: M.Entry<K, V>, +t: List<&2, M.Entry<K, V>>, +c: Cmp, +ih: {S.find_e(~K, ~V, ~cmp, q, S.ins(~K, ~V, ~cmp, k, v, t)) == S.find_e(~K, ~V, ~cmp, q, t) : Maybe<&2, M.Entry<K, V>>}) -> {S.find_e(~K, ~V, ~cmp, q, S.pick(List<&2, M.Entry<K, V>>, Cmp.is_lt(c), Con{M.Entry{k, v}, Con{e, t}}, Con{e, S.ins(~K, ~V, ~cmp, k, v, t)})) == S.find_e(~K, ~V, ~cmp, q, Con{e, t}) : Maybe<&2, M.Entry<K, V>>}:
+  match c:
+    case LT{}:
+      %Equal.sym(Bool, S.is_eq(cmp(q, k)), False{}, hq) : {S.pick(Maybe<&2, M.Entry<K, V>>, _, Some{M.Entry{k, v}}, S.find_e(~K, ~V, ~cmp, q, Con{e, t})) == S.find_e(~K, ~V, ~cmp, q, Con{e, t}) : Maybe<&2, M.Entry<K, V>>}
+      {==}
+    case EQ{}:
+      Equal.cong(Maybe<&2, M.Entry<K, V>>, Maybe<&2, M.Entry<K, V>>, z => S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(cmp(q, S.key(K, V, e))), Some{e}, z), S.find_e(~K, ~V, ~cmp, q, S.ins(~K, ~V, ~cmp, k, v, t)), S.find_e(~K, ~V, ~cmp, q, t), ih)
+    case GT{}:
+      Equal.cong(Maybe<&2, M.Entry<K, V>>, Maybe<&2, M.Entry<K, V>>, z => S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(cmp(q, S.key(K, V, e))), Some{e}, z), S.find_e(~K, ~V, ~cmp, q, S.ins(~K, ~V, ~cmp, k, v, t)), S.find_e(~K, ~V, ~cmp, q, t), ih)
+
+# every other key is unchanged
+def find_ins_other(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +v: V, +q: K, +hq: {S.is_eq(cmp(q, k)) == False{} : Bool}, +es: List<&2, M.Entry<K, V>>) -> S.Include.find_ins_other(~K, ~V, ~cmp, k, v, q, hq, es):
+  match es:
+    case Nil{}:
+      %Equal.sym(Bool, S.is_eq(cmp(q, k)), False{}, hq) : {S.pick(Maybe<&2, M.Entry<K, V>>, _, Some{M.Entry{k, v}}, None{}) == None{} : Maybe<&2, M.Entry<K, V>>}
+      {==}
+    case Con{+e, +t}:
+      fio_c(~K, ~V, ~cmp, k, v, q, hq, e, t, cmp(k, S.key(K, V, e)), find_ins_other(~K, ~V, ~cmp, k, v, q, hq, t))
+
+def ins_len_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +v: V, +e: M.Entry<K, V>, +t: List<&2, M.Entry<K, V>>, +c: Cmp, +ih: {SC.length(M.Entry<K, V>, S.ins(~K, ~V, ~cmp, k, v, t)) == 1n+SC.length(M.Entry<K, V>, t) : Nat}) -> {SC.length(M.Entry<K, V>, S.pick(List<&2, M.Entry<K, V>>, Cmp.is_lt(c), Con{M.Entry{k, v}, Con{e, t}}, Con{e, S.ins(~K, ~V, ~cmp, k, v, t)})) == 1n+SC.length(M.Entry<K, V>, Con{e, t}) : Nat}:
+  match c:
+    case LT{}:
+      {==}
+    case EQ{}:
+      Equal.cong(Nat, Nat, z => 1n+z, SC.length(M.Entry<K, V>, S.ins(~K, ~V, ~cmp, k, v, t)), 1n+SC.length(M.Entry<K, V>, t), ih)
+    case GT{}:
+      Equal.cong(Nat, Nat, z => 1n+z, SC.length(M.Entry<K, V>, S.ins(~K, ~V, ~cmp, k, v, t)), 1n+SC.length(M.Entry<K, V>, t), ih)
+
+def ins_length(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +v: V, +es: List<&2, M.Entry<K, V>>) -> S.Include.ins_length(~K, ~V, ~cmp, k, v, es):
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      ins_len_c(~K, ~V, ~cmp, k, v, e, t, cmp(k, S.key(K, V, e)), ins_length(~K, ~V, ~cmp, k, v, t))
+
+# ---- lookups after a replacement ----
+def fss_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +v: V, +e0: M.Entry<K, V>, +e: M.Entry<K, V>, +t: List<&2, M.Entry<K, V>>, +c: Cmp, +hc: {cmp(k, S.key(K, V, e)) == c : Cmp}, +hp: {S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(c), Some{e}, S.find_e(~K, ~V, ~cmp, k, t)) == Some{e0} : Maybe<&2, M.Entry<K, V>>}, ih: @+hp2: {S.find_e(~K, ~V, ~cmp, k, t) == Some{e0} : Maybe<&2, M.Entry<K, V>>} -> {S.find(~K, ~V, ~cmp, k, S.set_val(~K, ~V, ~cmp, k, v, t)) == Some{v} : Maybe<&2, V>}) -> {S.find(~K, ~V, ~cmp, k, S.pick(List<&2, M.Entry<K, V>>, S.is_eq(c), Con{M.Entry{S.key(K, V, e), v}, t}, Con{e, S.set_val(~K, ~V, ~cmp, k, v, t)})) == Some{v} : Maybe<&2, V>}:
+  match c:
+    case EQ{}:
+      %Equal.sym(Cmp, cmp(k, S.key(K, V, e)), EQ{}, hc) : {S.val_m(K, V, S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(_), Some{M.Entry{S.key(K, V, e), v}}, S.find_e(~K, ~V, ~cmp, k, t))) == Some{v} : Maybe<&2, V>}
+      {==}
+    case LT{}:
+      %Equal.sym(Cmp, cmp(k, S.key(K, V, e)), LT{}, hc) : {S.val_m(K, V, S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(_), Some{e}, S.find_e(~K, ~V, ~cmp, k, S.set_val(~K, ~V, ~cmp, k, v, t)))) == Some{v} : Maybe<&2, V>}
+      ih(hp)
+    case GT{}:
+      %Equal.sym(Cmp, cmp(k, S.key(K, V, e)), GT{}, hc) : {S.val_m(K, V, S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(_), Some{e}, S.find_e(~K, ~V, ~cmp, k, S.set_val(~K, ~V, ~cmp, k, v, t)))) == Some{v} : Maybe<&2, V>}
+      ih(hp)
+
+# a present key reads the new value
+def find_set_same(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +v: V, +e0: M.Entry<K, V>, +es: List<&2, M.Entry<K, V>>, +hp: {S.find_e(~K, ~V, ~cmp, k, es) == Some{e0} : Maybe<&2, M.Entry<K, V>>}) -> S.Replace.find_set_same(~K, ~V, ~cmp, k, v, e0, es, hp):
+  match es:
+    case Nil{}:
+      Empty.absurd({None{} == Some{v} : Maybe<&2, V>}, L.none_some(M.Entry<K, V>, e0, hp))
+    case Con{+e, +t}:
+      fss_c(~K, ~V, ~cmp, k, v, e0, e, t, cmp(k, S.key(K, V, e)), {==}, hp, hp2 => find_set_same(~K, ~V, ~cmp, k, v, e0, t, hp2))
+
+def fso_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: SO.Order(~K, ~cmp), +k: K, +v: V, +q: K, +hq: {S.is_eq(cmp(q, k)) == False{} : Bool}, +e: M.Entry<K, V>, +t: List<&2, M.Entry<K, V>>, +c: Cmp, +hc: {cmp(k, S.key(K, V, e)) == c : Cmp}, +ih: {S.find_e(~K, ~V, ~cmp, q, S.set_val(~K, ~V, ~cmp, k, v, t)) == S.find_e(~K, ~V, ~cmp, q, t) : Maybe<&2, M.Entry<K, V>>}) -> {S.find_e(~K, ~V, ~cmp, q, S.pick(List<&2, M.Entry<K, V>>, S.is_eq(c), Con{M.Entry{S.key(K, V, e), v}, t}, Con{e, S.set_val(~K, ~V, ~cmp, k, v, t)})) == S.find_e(~K, ~V, ~cmp, q, Con{e, t}) : Maybe<&2, M.Entry<K, V>>}:
+  match c:
+    case EQ{}:
+      %O.antisym(~K, ~cmp, o, k, S.key(K, V, e), hc) : {S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(cmp(q, _)), Some{M.Entry{S.key(K, V, e), v}}, S.find_e(~K, ~V, ~cmp, q, t)) == S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(cmp(q, _)), Some{e}, S.find_e(~K, ~V, ~cmp, q, t)) : Maybe<&2, M.Entry<K, V>>}
+      %Equal.sym(Bool, S.is_eq(cmp(q, k)), False{}, hq) : {S.pick(Maybe<&2, M.Entry<K, V>>, _, Some{M.Entry{S.key(K, V, e), v}}, S.find_e(~K, ~V, ~cmp, q, t)) == S.pick(Maybe<&2, M.Entry<K, V>>, _, Some{e}, S.find_e(~K, ~V, ~cmp, q, t)) : Maybe<&2, M.Entry<K, V>>}
+      {==}
+    case LT{}:
+      Equal.cong(Maybe<&2, M.Entry<K, V>>, Maybe<&2, M.Entry<K, V>>, z => S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(cmp(q, S.key(K, V, e))), Some{e}, z), S.find_e(~K, ~V, ~cmp, q, S.set_val(~K, ~V, ~cmp, k, v, t)), S.find_e(~K, ~V, ~cmp, q, t), ih)
+    case GT{}:
+      Equal.cong(Maybe<&2, M.Entry<K, V>>, Maybe<&2, M.Entry<K, V>>, z => S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(cmp(q, S.key(K, V, e))), Some{e}, z), S.find_e(~K, ~V, ~cmp, q, S.set_val(~K, ~V, ~cmp, k, v, t)), S.find_e(~K, ~V, ~cmp, q, t), ih)
+
+# every other key is unchanged
+def find_set_other(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: SO.Order(~K, ~cmp), +k: K, +v: V, +q: K, +hq: {S.is_eq(cmp(q, k)) == False{} : Bool}, +es: List<&2, M.Entry<K, V>>) -> S.Include.find_set_other(~K, ~V, ~cmp, ~o, k, v, q, hq, es):
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      fso_c(~K, ~V, ~cmp, ~o, k, v, q, hq, e, t, cmp(k, S.key(K, V, e)), {==}, find_set_other(~K, ~V, ~cmp, ~o, k, v, q, hq, t))
+
+def set_len_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +v: V, +e: M.Entry<K, V>, +t: List<&2, M.Entry<K, V>>, +c: Cmp, +ih: {SC.length(M.Entry<K, V>, S.set_val(~K, ~V, ~cmp, k, v, t)) == SC.length(M.Entry<K, V>, t) : Nat}) -> {SC.length(M.Entry<K, V>, S.pick(List<&2, M.Entry<K, V>>, S.is_eq(c), Con{M.Entry{S.key(K, V, e), v}, t}, Con{e, S.set_val(~K, ~V, ~cmp, k, v, t)})) == SC.length(M.Entry<K, V>, Con{e, t}) : Nat}:
+  match c:
+    case EQ{}:
+      {==}
+    case LT{}:
+      Equal.cong(Nat, Nat, z => 1n+z, SC.length(M.Entry<K, V>, S.set_val(~K, ~V, ~cmp, k, v, t)), SC.length(M.Entry<K, V>, t), ih)
+    case GT{}:
+      Equal.cong(Nat, Nat, z => 1n+z, SC.length(M.Entry<K, V>, S.set_val(~K, ~V, ~cmp, k, v, t)), SC.length(M.Entry<K, V>, t), ih)
+
+def set_length(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +v: V, +es: List<&2, M.Entry<K, V>>) -> S.Include.set_length(~K, ~V, ~cmp, k, v, es):
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      set_len_c(~K, ~V, ~cmp, k, v, e, t, cmp(k, S.key(K, V, e)), set_length(~K, ~V, ~cmp, k, v, t))
+
+# ---- lookups after a deletion ----
+def fdo_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: SO.Order(~K, ~cmp), +k: K, +q: K, +hq: {S.is_eq(cmp(q, k)) == False{} : Bool}, +e: M.Entry<K, V>, +t: List<&2, M.Entry<K, V>>, +c: Cmp, +hc: {cmp(k, S.key(K, V, e)) == c : Cmp}, +ih: {S.find_e(~K, ~V, ~cmp, q, S.del(~K, ~V, ~cmp, k, t)) == S.find_e(~K, ~V, ~cmp, q, t) : Maybe<&2, M.Entry<K, V>>}) -> {S.find_e(~K, ~V, ~cmp, q, S.pick(List<&2, M.Entry<K, V>>, S.is_eq(c), t, Con{e, S.del(~K, ~V, ~cmp, k, t)})) == S.find_e(~K, ~V, ~cmp, q, Con{e, t}) : Maybe<&2, M.Entry<K, V>>}:
+  match c:
+    case EQ{}:
+      %O.antisym(~K, ~cmp, o, k, S.key(K, V, e), hc) : {S.find_e(~K, ~V, ~cmp, q, t) == S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(cmp(q, _)), Some{e}, S.find_e(~K, ~V, ~cmp, q, t)) : Maybe<&2, M.Entry<K, V>>}
+      %Equal.sym(Bool, S.is_eq(cmp(q, k)), False{}, hq) : {S.find_e(~K, ~V, ~cmp, q, t) == S.pick(Maybe<&2, M.Entry<K, V>>, _, Some{e}, S.find_e(~K, ~V, ~cmp, q, t)) : Maybe<&2, M.Entry<K, V>>}
+      {==}
+    case LT{}:
+      Equal.cong(Maybe<&2, M.Entry<K, V>>, Maybe<&2, M.Entry<K, V>>, z => S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(cmp(q, S.key(K, V, e))), Some{e}, z), S.find_e(~K, ~V, ~cmp, q, S.del(~K, ~V, ~cmp, k, t)), S.find_e(~K, ~V, ~cmp, q, t), ih)
+    case GT{}:
+      Equal.cong(Maybe<&2, M.Entry<K, V>>, Maybe<&2, M.Entry<K, V>>, z => S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(cmp(q, S.key(K, V, e))), Some{e}, z), S.find_e(~K, ~V, ~cmp, q, S.del(~K, ~V, ~cmp, k, t)), S.find_e(~K, ~V, ~cmp, q, t), ih)
+
+# every other key is unchanged
+def find_del_other(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: SO.Order(~K, ~cmp), +k: K, +q: K, +hq: {S.is_eq(cmp(q, k)) == False{} : Bool}, +es: List<&2, M.Entry<K, V>>) -> S.Exclude.find_del_other(~K, ~V, ~cmp, ~o, k, q, hq, es):
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      fdo_c(~K, ~V, ~cmp, ~o, k, q, hq, e, t, cmp(k, S.key(K, V, e)), {==}, find_del_other(~K, ~V, ~cmp, ~o, k, q, hq, t))
+
+def fds_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: SO.Order(~K, ~cmp), +k: K, +e: M.Entry<K, V>, +t: List<&2, M.Entry<K, V>>, +c: Cmp, +hc: {cmp(k, S.key(K, V, e)) == c : Cmp}, +hord: {S.ordered(~K, ~V, ~cmp, Con{e, t}) == True{} : Bool}, ih: @+h2: {S.ordered(~K, ~V, ~cmp, t) == True{} : Bool} -> {S.find_e(~K, ~V, ~cmp, k, S.del(~K, ~V, ~cmp, k, t)) == None{} : Maybe<&2, M.Entry<K, V>>}) -> {S.find_e(~K, ~V, ~cmp, k, S.pick(List<&2, M.Entry<K, V>>, S.is_eq(c), t, Con{e, S.del(~K, ~V, ~cmp, k, t)})) == None{} : Maybe<&2, M.Entry<K, V>>}:
+  match c:
+    case EQ{}:
+      %Equal.sym(K, k, S.key(K, V, e), O.antisym(~K, ~cmp, o, k, S.key(K, V, e), hc)) : {S.find_e(~K, ~V, ~cmp, _, t) == None{} : Maybe<&2, M.Entry<K, V>>}
+      OR.gt_none(~K, ~V, ~cmp, S.key(K, V, e), t, OR.ord_gt(~K, ~V, ~cmp, ~o, t, e, hord))
+    case LT{}:
+      %Equal.sym(Cmp, cmp(k, S.key(K, V, e)), LT{}, hc) : {S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(_), Some{e}, S.find_e(~K, ~V, ~cmp, k, S.del(~K, ~V, ~cmp, k, t))) == None{} : Maybe<&2, M.Entry<K, V>>}
+      ih(OR.ord_tail(~K, ~V, ~cmp, e, t, hord))
+    case GT{}:
+      %Equal.sym(Cmp, cmp(k, S.key(K, V, e)), GT{}, hc) : {S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(_), Some{e}, S.find_e(~K, ~V, ~cmp, k, S.del(~K, ~V, ~cmp, k, t))) == None{} : Maybe<&2, M.Entry<K, V>>}
+      ih(OR.ord_tail(~K, ~V, ~cmp, e, t, hord))
+
+# in an ordered map the deleted key is gone
+def find_del_same(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: SO.Order(~K, ~cmp), +k: K, +es: List<&2, M.Entry<K, V>>, +hord: {S.ordered(~K, ~V, ~cmp, es) == True{} : Bool}) -> S.Exclude.find_del_same(~K, ~V, ~cmp, ~o, k, es, hord):
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      fds_c(~K, ~V, ~cmp, ~o, k, e, t, cmp(k, S.key(K, V, e)), {==}, hord, h2 => find_del_same(~K, ~V, ~cmp, ~o, k, t, h2))
+
+def del_len_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +e0: M.Entry<K, V>, +e: M.Entry<K, V>, +t: List<&2, M.Entry<K, V>>, +c: Cmp, +hp: {S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(c), Some{e}, S.find_e(~K, ~V, ~cmp, k, t)) == Some{e0} : Maybe<&2, M.Entry<K, V>>}, ih: @+hp2: {S.find_e(~K, ~V, ~cmp, k, t) == Some{e0} : Maybe<&2, M.Entry<K, V>>} -> {1n+SC.length(M.Entry<K, V>, S.del(~K, ~V, ~cmp, k, t)) == SC.length(M.Entry<K, V>, t) : Nat}) -> {1n+SC.length(M.Entry<K, V>, S.pick(List<&2, M.Entry<K, V>>, S.is_eq(c), t, Con{e, S.del(~K, ~V, ~cmp, k, t)})) == SC.length(M.Entry<K, V>, Con{e, t}) : Nat}:
+  match c:
+    case EQ{}:
+      {==}
+    case LT{}:
+      Equal.cong(Nat, Nat, z => 1n+z, 1n+SC.length(M.Entry<K, V>, S.del(~K, ~V, ~cmp, k, t)), SC.length(M.Entry<K, V>, t), ih(hp))
+    case GT{}:
+      Equal.cong(Nat, Nat, z => 1n+z, 1n+SC.length(M.Entry<K, V>, S.del(~K, ~V, ~cmp, k, t)), SC.length(M.Entry<K, V>, t), ih(hp))
+
+# deleting a present key removes exactly one entry
+def del_length(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +e0: M.Entry<K, V>, +es: List<&2, M.Entry<K, V>>, +hp: {S.find_e(~K, ~V, ~cmp, k, es) == Some{e0} : Maybe<&2, M.Entry<K, V>>}) -> S.Exclude.del_length(~K, ~V, ~cmp, k, e0, es, hp):
+  match es:
+    case Nil{}:
+      Empty.absurd({1n+SC.length(M.Entry<K, V>, S.del(~K, ~V, ~cmp, k, Nil{})) == SC.length(M.Entry<K, V>, Nil{}) : Nat}, L.none_some(M.Entry<K, V>, e0, hp))
+    case Con{+e, +t}:
+      del_len_c(~K, ~V, ~cmp, k, e0, e, t, cmp(k, S.key(K, V, e)), hp, hp2 => del_length(~K, ~V, ~cmp, k, e0, t, hp2))
+
+def del_abs_c(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +e: M.Entry<K, V>, +t: List<&2, M.Entry<K, V>>, +c: Cmp, +ha: {S.pick(Maybe<&2, M.Entry<K, V>>, S.is_eq(c), Some{e}, S.find_e(~K, ~V, ~cmp, k, t)) == None{} : Maybe<&2, M.Entry<K, V>>}, ih: @+ha2: {S.find_e(~K, ~V, ~cmp, k, t) == None{} : Maybe<&2, M.Entry<K, V>>} -> {S.del(~K, ~V, ~cmp, k, t) == t : List<&2, M.Entry<K, V>>}) -> {S.pick(List<&2, M.Entry<K, V>>, S.is_eq(c), t, Con{e, S.del(~K, ~V, ~cmp, k, t)}) == Con{e, t} : List<&2, M.Entry<K, V>>}:
+  match c:
+    case EQ{}:
+      Empty.absurd({t == Con{e, t} : List<&2, M.Entry<K, V>>}, L.none_some(M.Entry<K, V>, e, Equal.sym(Maybe<&2, M.Entry<K, V>>, Some{e}, None{}, ha)))
+    case LT{}:
+      Equal.cong(List<&2, M.Entry<K, V>>, List<&2, M.Entry<K, V>>, z => Con{e, z}, S.del(~K, ~V, ~cmp, k, t), t, ih(ha))
+    case GT{}:
+      Equal.cong(List<&2, M.Entry<K, V>>, List<&2, M.Entry<K, V>>, z => Con{e, z}, S.del(~K, ~V, ~cmp, k, t), t, ih(ha))
+
+# deleting an absent key changes nothing
+def del_absent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +es: List<&2, M.Entry<K, V>>, +ha: {S.find_e(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, M.Entry<K, V>>}) -> {S.del(~K, ~V, ~cmp, k, es) == es : List<&2, M.Entry<K, V>>}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      del_abs_c(~K, ~V, ~cmp, k, e, t, cmp(k, S.key(K, V, e)), ha, ha2 => del_absent(~K, ~V, ~cmp, k, t, ha2))
+
+# ---- the operations, on the model ----
+def new_empty(-K: Data, -V: Data) -> S.Empty_Map.new_empty(K, V):
+  {==}
+
+def size_value(-K: Data, -V: Data, +l: Nat, +es: List<&2, M.Entry<K, V>>) -> S.Length.size_value(K, V, l, es):
+  {==}
+
+def is_empty_value(-K: Data, -V: Data, +l: Nat, +es: List<&2, M.Entry<K, V>>) -> S.Length.is_empty_value(K, V, l, es):
+  {==}
+
+def clear_empty(-K: Data, -V: Data, +l: Nat, +es: List<&2, M.Entry<K, V>>) -> S.Clear.clear_empty(K, V, l, es):
+  {==}
+
+# Element / Find: the model's value, the map unchanged
+def get_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K) -> S.Element.get_value(~K, ~V, ~cmp, l, es, k):
+  {==}
+
+def get_or_default_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +d: V) -> S.Element.get_or_default_value(~K, ~V, ~cmp, l, es, k, d):
+  {==}
+
+def contains_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K) -> S.Contains.contains_value(~K, ~V, ~cmp, l, es, k):
+  {==}
+
+# Include: a present key is replaced (put_found, put_others via find_set_*)
+def put_present(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +e0: M.Entry<K, V>, +hp: {S.find_e(~K, ~V, ~cmp, k, es) == Some{e0} : Maybe<&2, M.Entry<K, V>>}) -> S.Include.put_present(~K, ~V, ~cmp, l, es, k, v, e0, hp):
+  %Equal.sym(Maybe<&2, M.Entry<K, V>>, S.find_e(~K, ~V, ~cmp, k, es), Some{e0}, hp) : {S.put_at(~K, ~V, ~cmp, l, es, k, v, S.val_m(K, V, _)) == (S.TM{l, S.set_val(~K, ~V, ~cmp, k, v, es)}, Done{Some{S.val(K, V, e0)}}) : S.Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>}
+  {==}
+
+# an absent key with room is inserted (put_found, put_others via find_ins_*)
+def put_absent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +ha: {S.find_e(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, M.Entry<K, V>>}, +hr: {Nat.is_lt(SC.length(M.Entry<K, V>, es), SC.pow2(l)) == True{} : Bool}) -> S.Include.put_absent(~K, ~V, ~cmp, l, es, k, v, ha, hr):
+  %Equal.sym(Maybe<&2, M.Entry<K, V>>, S.find_e(~K, ~V, ~cmp, k, es), None{}, ha) : {S.put_at(~K, ~V, ~cmp, l, es, k, v, S.val_m(K, V, _)) == (S.TM{l, S.ins(~K, ~V, ~cmp, k, v, es)}, Done{None{}}) : S.Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>}
+  %Equal.sym(Bool, Nat.is_lt(SC.length(M.Entry<K, V>, es), SC.pow2(l)), True{}, hr) : {S.pick(S.Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>, _, (S.TM{l, S.ins(~K, ~V, ~cmp, k, v, es)}, Done{None{}}), (S.TM{l, es}, Fail{M.Rejected{M.CapacityExceeded{}, k, v}})) == (S.TM{l, S.ins(~K, ~V, ~cmp, k, v, es)}, Done{None{}}) : S.Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>}
+  {==}
+
+# a full map rejects a new key and changes nothing (SPARK: Pre => Length < Capacity)
+def put_full(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +ha: {S.find_e(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, M.Entry<K, V>>}, +hr: {Nat.is_lt(SC.length(M.Entry<K, V>, es), SC.pow2(l)) == False{} : Bool}) -> S.Include.put_full(~K, ~V, ~cmp, l, es, k, v, ha, hr):
+  %Equal.sym(Maybe<&2, M.Entry<K, V>>, S.find_e(~K, ~V, ~cmp, k, es), None{}, ha) : {S.put_at(~K, ~V, ~cmp, l, es, k, v, S.val_m(K, V, _)) == (S.TM{l, es}, Fail{M.Rejected{M.CapacityExceeded{}, k, v}}) : S.Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>}
+  %Equal.sym(Bool, Nat.is_lt(SC.length(M.Entry<K, V>, es), SC.pow2(l)), False{}, hr) : {S.pick(S.Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>, _, (S.TM{l, S.ins(~K, ~V, ~cmp, k, v, es)}, Done{None{}}), (S.TM{l, es}, Fail{M.Rejected{M.CapacityExceeded{}, k, v}})) == (S.TM{l, es}, Fail{M.Rejected{M.CapacityExceeded{}, k, v}}) : S.Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>}
+  {==}
+
+# the included key is found with its value, whether it was present or not
+def put_found_present(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +e0: M.Entry<K, V>, +hp: {S.find_e(~K, ~V, ~cmp, k, es) == Some{e0} : Maybe<&2, M.Entry<K, V>>}) -> S.Include.put_found_present(~K, ~V, ~cmp, l, es, k, v, e0, hp):
+  find_set_same(~K, ~V, ~cmp, k, v, e0, es, hp)
+
+def put_found_absent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: SO.Order(~K, ~cmp), +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +ha: {S.find_e(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, M.Entry<K, V>>}) -> S.Include.put_found_absent(~K, ~V, ~cmp, ~o, l, es, k, v, ha):
+  Equal.cong(Maybe<&2, M.Entry<K, V>>, Maybe<&2, V>, z => S.val_m(K, V, z), S.find_e(~K, ~V, ~cmp, k, S.ins(~K, ~V, ~cmp, k, v, es)), Some{M.Entry{k, v}}, find_ins_same(~K, ~V, ~cmp, ~o, k, v, es, ha))
+
+# Insert (put_if_absent): a present key is left as it is
+def put_if_absent_present(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +e0: M.Entry<K, V>, +hp: {S.find_e(~K, ~V, ~cmp, k, es) == Some{e0} : Maybe<&2, M.Entry<K, V>>}) -> S.Insert.put_if_absent_present(~K, ~V, ~cmp, l, es, k, v, e0, hp):
+  %Equal.sym(Maybe<&2, M.Entry<K, V>>, S.find_e(~K, ~V, ~cmp, k, es), Some{e0}, hp) : {S.absent_at(~K, ~V, ~cmp, l, es, k, v, S.val_m(K, V, _)) == (S.TM{l, es}, Done{Some{S.val(K, V, e0)}}) : S.Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>}
+  {==}
+
+def put_if_absent_absent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +ha: {S.find_e(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, M.Entry<K, V>>}, +hr: {Nat.is_lt(SC.length(M.Entry<K, V>, es), SC.pow2(l)) == True{} : Bool}) -> S.Insert.put_if_absent_absent(~K, ~V, ~cmp, l, es, k, v, ha, hr):
+  %Equal.sym(Maybe<&2, M.Entry<K, V>>, S.find_e(~K, ~V, ~cmp, k, es), None{}, ha) : {S.absent_at(~K, ~V, ~cmp, l, es, k, v, S.val_m(K, V, _)) == (S.TM{l, S.ins(~K, ~V, ~cmp, k, v, es)}, Done{None{}}) : S.Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>}
+  %Equal.sym(Bool, Nat.is_lt(SC.length(M.Entry<K, V>, es), SC.pow2(l)), True{}, hr) : {S.pick(S.Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>, _, (S.TM{l, S.ins(~K, ~V, ~cmp, k, v, es)}, Done{None{}}), (S.TM{l, es}, Fail{M.Rejected{M.CapacityExceeded{}, k, v}})) == (S.TM{l, S.ins(~K, ~V, ~cmp, k, v, es)}, Done{None{}}) : S.Model<K, V> & Result<&2, &2, M.Rejected<K, V>, Maybe<&2, V>>}
+  {==}
+
+# Replace: only a present key, returning the old value
+def replace_present(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +e0: M.Entry<K, V>, +hp: {S.find_e(~K, ~V, ~cmp, k, es) == Some{e0} : Maybe<&2, M.Entry<K, V>>}) -> S.Replace.replace_present(~K, ~V, ~cmp, l, es, k, v, e0, hp):
+  %Equal.sym(Maybe<&2, M.Entry<K, V>>, S.find_e(~K, ~V, ~cmp, k, es), Some{e0}, hp) : {S.replace_at(~K, ~V, ~cmp, l, es, k, v, S.val_m(K, V, _)) == (S.TM{l, S.set_val(~K, ~V, ~cmp, k, v, es)}, Some{S.val(K, V, e0)}) : S.Model<K, V> & Maybe<&2, V>}
+  {==}
+
+def replace_absent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +v: V, +ha: {S.find_e(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, M.Entry<K, V>>}) -> S.Replace.replace_absent(~K, ~V, ~cmp, l, es, k, v, ha):
+  %Equal.sym(Maybe<&2, M.Entry<K, V>>, S.find_e(~K, ~V, ~cmp, k, es), None{}, ha) : {S.replace_at(~K, ~V, ~cmp, l, es, k, v, S.val_m(K, V, _)) == (S.TM{l, es}, None{}) : S.Model<K, V> & Maybe<&2, V>}
+  {==}
+
+# Delete / Exclude: a present key is removed and its value returned
+# (remove_gone: find_del_same, remove_others: find_del_other,
+#  remove_length: del_length)
+def remove_present(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +e0: M.Entry<K, V>, +hp: {S.find_e(~K, ~V, ~cmp, k, es) == Some{e0} : Maybe<&2, M.Entry<K, V>>}) -> S.Exclude.remove_present(~K, ~V, ~cmp, l, es, k, e0, hp):
+  %Equal.sym(Maybe<&2, M.Entry<K, V>>, S.find_e(~K, ~V, ~cmp, k, es), Some{e0}, hp) : {(S.TM{l, S.del(~K, ~V, ~cmp, k, es)}, S.val_m(K, V, _)) == (S.TM{l, S.del(~K, ~V, ~cmp, k, es)}, Some{S.val(K, V, e0)}) : S.Model<K, V> & Maybe<&2, V>}
+  {==}
+
+# an absent key: nothing changes
+def remove_absent(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +ha: {S.find_e(~K, ~V, ~cmp, k, es) == None{} : Maybe<&2, M.Entry<K, V>>}) -> S.Exclude.remove_absent(~K, ~V, ~cmp, l, es, k, ha):
+  %Equal.sym(Maybe<&2, M.Entry<K, V>>, S.find_e(~K, ~V, ~cmp, k, es), None{}, ha) : {(S.TM{l, S.del(~K, ~V, ~cmp, k, es)}, S.val_m(K, V, _)) == (S.TM{l, es}, None{}) : S.Model<K, V> & Maybe<&2, V>}
+  %Equal.sym(List<&2, M.Entry<K, V>>, S.del(~K, ~V, ~cmp, k, es), es, del_absent(~K, ~V, ~cmp, k, es, ha)) : {(S.TM{l, _}, None{}) == (S.TM{l, es}, None{}) : S.Model<K, V> & Maybe<&2, V>}
+  {==}
+
+# First / Last: the first and last entries of the order, the map unchanged
+def first_value(-K: Data, -V: Data, +l: Nat, +es: List<&2, M.Entry<K, V>>) -> S.First.first_value(K, V, l, es):
+  {==}
+
+def last_value(-K: Data, -V: Data, +l: Nat, +es: List<&2, M.Entry<K, V>>) -> S.Last.last_value(K, V, l, es):
+  {==}
+
+# Floor / Ceiling (and the strict lower / higher): the model's nav
+def nav_value(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +l: Nat, +es: List<&2, M.Entry<K, V>>, +k: K, +up: Bool, +inclusive: Bool) -> S.Floor.nav_value(~K, ~V, ~cmp, l, es, k, up, inclusive):
+  {==}

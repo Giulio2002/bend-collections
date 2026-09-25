@@ -1,5 +1,5 @@
 import Base
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../lib/array.bend as AR
 import ../../../src/containers/balanced_search_tree.bend as M
 import ./bk.bend as BK

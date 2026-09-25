@@ -46,8 +46,8 @@ BASE = '''import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/array.bend as AR
-import ../../lib/spec_common.bend as SC
-import ./spec.bend as S
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/doubly_linked_list.bend as S
 import ../../lib/u32div.bend as UD
 import ../../../src/containers/doubly_linked_list.bend as D
 import ../../../src/containers/internal/dlist_storage.bend as R

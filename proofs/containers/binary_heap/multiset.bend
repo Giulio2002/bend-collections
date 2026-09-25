@@ -2,19 +2,12 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/order.bend as O
 import ../../lib/list.bend as LL
-import ../../lib/spec_common.bend as SC
-import ./spec.bend as S
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/binary_heap.bend as S
 
 # Insertion-sorted lists as canonical multisets, under a total order ~o.
 # All lemmas are templates over (~A, ~cmp, ~o); they are checked through the
 # U32 and String instances at the end of this file and in END_TO_END.bend.
-
-def all_ge(~A: Data, ~cmp: A -> A -> Cmp, +z: A, xs: List<&2, A>) -> Bool:
-  match xs:
-    case Nil{}:
-      True{}
-    case Con{h, t}:
-      Bool.and(S.le(~A, ~cmp, z, h), all_ge(~A, ~cmp, z, t))
 
 def and_swap(+a: Bool, +b: Bool, +c: Bool) -> {Bool.and(a, Bool.and(b, c)) == Bool.and(b, Bool.and(a, c)) : Bool}:
   match a b:
@@ -31,17 +24,17 @@ def ins_cons(~A: Data, ~cmp: A -> A -> Cmp, +x: A, +h: A, +t: List<&2, A>, +b: B
   %e : {S.ins(~A, ~cmp, x, Con{h, t}) == Bool.pick(List<&2, A>, _, Con{x, Con{h, t}}, Con{h, S.ins(~A, ~cmp, x, t)}) : List<&2, A>}
   {==}
 
-def all_ge_ins_c(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +x: A, +h: A, +t: List<&2, A>, +b: Bool, +e: {S.le(~A, ~cmp, x, h) == b : Bool}, +ih: {all_ge(~A, ~cmp, z, S.ins(~A, ~cmp, x, t)) == Bool.and(S.le(~A, ~cmp, z, x), all_ge(~A, ~cmp, z, t)) : Bool}) -> {all_ge(~A, ~cmp, z, S.ins(~A, ~cmp, x, Con{h, t})) == Bool.and(S.le(~A, ~cmp, z, x), all_ge(~A, ~cmp, z, Con{h, t})) : Bool}:
+def all_ge_ins_c(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +x: A, +h: A, +t: List<&2, A>, +b: Bool, +e: {S.le(~A, ~cmp, x, h) == b : Bool}, +ih: {S.all_ge(~A, ~cmp, z, S.ins(~A, ~cmp, x, t)) == Bool.and(S.le(~A, ~cmp, z, x), S.all_ge(~A, ~cmp, z, t)) : Bool}) -> {S.all_ge(~A, ~cmp, z, S.ins(~A, ~cmp, x, Con{h, t})) == Bool.and(S.le(~A, ~cmp, z, x), S.all_ge(~A, ~cmp, z, Con{h, t})) : Bool}:
   match b:
     case True{}:
-      %Equal.sym(List<&2, A>, S.ins(~A, ~cmp, x, Con{h, t}), Con{x, Con{h, t}}, ins_cons(~A, ~cmp, x, h, t, True{}, e)) : {all_ge(~A, ~cmp, z, _) == Bool.and(S.le(~A, ~cmp, z, x), all_ge(~A, ~cmp, z, Con{h, t})) : Bool}
+      %Equal.sym(List<&2, A>, S.ins(~A, ~cmp, x, Con{h, t}), Con{x, Con{h, t}}, ins_cons(~A, ~cmp, x, h, t, True{}, e)) : {S.all_ge(~A, ~cmp, z, _) == Bool.and(S.le(~A, ~cmp, z, x), S.all_ge(~A, ~cmp, z, Con{h, t})) : Bool}
       {==}
     case False{}:
-      %Equal.sym(List<&2, A>, S.ins(~A, ~cmp, x, Con{h, t}), Con{h, S.ins(~A, ~cmp, x, t)}, ins_cons(~A, ~cmp, x, h, t, False{}, e)) : {all_ge(~A, ~cmp, z, _) == Bool.and(S.le(~A, ~cmp, z, x), all_ge(~A, ~cmp, z, Con{h, t})) : Bool}
-      %Equal.sym(Bool, all_ge(~A, ~cmp, z, S.ins(~A, ~cmp, x, t)), Bool.and(S.le(~A, ~cmp, z, x), all_ge(~A, ~cmp, z, t)), ih) : {Bool.and(S.le(~A, ~cmp, z, h), _) == Bool.and(S.le(~A, ~cmp, z, x), Bool.and(S.le(~A, ~cmp, z, h), all_ge(~A, ~cmp, z, t))) : Bool}
-      and_swap(S.le(~A, ~cmp, z, h), S.le(~A, ~cmp, z, x), all_ge(~A, ~cmp, z, t))
+      %Equal.sym(List<&2, A>, S.ins(~A, ~cmp, x, Con{h, t}), Con{h, S.ins(~A, ~cmp, x, t)}, ins_cons(~A, ~cmp, x, h, t, False{}, e)) : {S.all_ge(~A, ~cmp, z, _) == Bool.and(S.le(~A, ~cmp, z, x), S.all_ge(~A, ~cmp, z, Con{h, t})) : Bool}
+      %Equal.sym(Bool, S.all_ge(~A, ~cmp, z, S.ins(~A, ~cmp, x, t)), Bool.and(S.le(~A, ~cmp, z, x), S.all_ge(~A, ~cmp, z, t)), ih) : {Bool.and(S.le(~A, ~cmp, z, h), _) == Bool.and(S.le(~A, ~cmp, z, x), Bool.and(S.le(~A, ~cmp, z, h), S.all_ge(~A, ~cmp, z, t))) : Bool}
+      and_swap(S.le(~A, ~cmp, z, h), S.le(~A, ~cmp, z, x), S.all_ge(~A, ~cmp, z, t))
 
-def all_ge_ins(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +x: A, +xs: List<&2, A>) -> {all_ge(~A, ~cmp, z, S.ins(~A, ~cmp, x, xs)) == Bool.and(S.le(~A, ~cmp, z, x), all_ge(~A, ~cmp, z, xs)) : Bool}:
+def all_ge_ins(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +x: A, +xs: List<&2, A>) -> {S.all_ge(~A, ~cmp, z, S.ins(~A, ~cmp, x, xs)) == Bool.and(S.le(~A, ~cmp, z, x), S.all_ge(~A, ~cmp, z, xs)) : Bool}:
   match xs:
     case Nil{}:
       {==}
@@ -49,12 +42,12 @@ def all_ge_ins(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +x: 
       all_ge_ins_c(~A, ~cmp, ~o, z, x, h, t, S.le(~A, ~cmp, x, h), {==}, all_ge_ins(~A, ~cmp, ~o, z, x, t))
 
 # A value not larger than every element goes first.
-def ins_min(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +x: A, +xs: List<&2, A>, +h: {all_ge(~A, ~cmp, x, xs) == True{} : Bool}) -> {S.ins(~A, ~cmp, x, xs) == Con{x, xs} : List<&2, A>}:
+def ins_min(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +x: A, +xs: List<&2, A>, +h: {S.all_ge(~A, ~cmp, x, xs) == True{} : Bool}) -> {S.ins(~A, ~cmp, x, xs) == Con{x, xs} : List<&2, A>}:
   match xs:
     case Nil{}:
       {==}
     case Con{+y, +t}:
-      %Equal.sym(Bool, S.le(~A, ~cmp, x, y), True{}, L.and_left(S.le(~A, ~cmp, x, y), all_ge(~A, ~cmp, x, t), h)) : {Bool.pick(List<&2, A>, _, Con{x, Con{y, t}}, Con{y, S.ins(~A, ~cmp, x, t)}) == Con{x, Con{y, t}} : List<&2, A>}
+      %Equal.sym(Bool, S.le(~A, ~cmp, x, y), True{}, L.and_left(S.le(~A, ~cmp, x, y), S.all_ge(~A, ~cmp, x, t), h)) : {Bool.pick(List<&2, A>, _, Con{x, Con{y, t}}, Con{y, S.ins(~A, ~cmp, x, t)}) == Con{x, Con{y, t}} : List<&2, A>}
       {==}
 
 # Insertion order is irrelevant (uses totality, transitivity, antisymmetry).

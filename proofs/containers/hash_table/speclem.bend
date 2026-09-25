@@ -1,6 +1,6 @@
 import Base
 import ../../lib/logic.bend as L
-import ./spec.bend as S
+import ../../../spec/containers/hash_table.bend as S
 import ./keys.bend as K
 
 # Facts about the specification's association-list map.

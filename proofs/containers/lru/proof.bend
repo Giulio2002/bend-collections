@@ -1,6 +1,6 @@
 import Base
-import ./spec.bend as SP
-import ../../lib/spec_common.bend as SC
+import ../../../spec/containers/lru.bend as SP
+import ../../../spec/lib/common.bend as SC
 import ../../lib/array.bend as AR
 import ../../../src/math/u64.bend as W
 import ../../../src/containers/lru.bend as LR
@@ -93,3 +93,151 @@ def purge_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}) -
 
 def keys_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +now: W.U64) -> RM.POK(~V, List<&2, String>, SP.keys(~V, ST.model(~V, sh), now), LR.keys(&2, V, ST.real(~V, sh), now)):
   KY.keys_ok(~V, 1n, {==}, now, sh, hg)
+
+# ==== the contract of lru (stated in spec/containers/lru.bend) ====================
+
+# ---- list facts ----
+def lg_snoc(~V: Data, +t: List<&2, SP.Ent<V>>, +h: SP.Ent<V>, +e: SP.Ent<V>) -> {SP.last_go(~V, SP.snoc(~V, t, e), h) == Some{e} : Maybe<&2, SP.Ent<V>>}:
+  match t:
+    case Nil{}:
+      {==}
+    case Con{+h2, +t2}:
+      lg_snoc(~V, t2, h2, e)
+
+# the appended entry is the newest (the SP.last of the recency order)
+def snoc_last(~V: Data, +es: List<&2, SP.Ent<V>>, +e: SP.Ent<V>) -> {SP.last(~V, SP.snoc(~V, es, e)) == Some{e} : Maybe<&2, SP.Ent<V>>}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+h, +t}:
+      lg_snoc(~V, t, h, e)
+
+def snoc_length(~V: Data, +es: List<&2, SP.Ent<V>>, +e: SP.Ent<V>) -> {SP.length(~V, SP.snoc(~V, es, e)) == 1n+SP.length(~V, es) : Nat}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+h, +t}:
+      Equal.cong(Nat, Nat, x => 1n+x, SP.length(~V, SP.snoc(~V, t, e)), 1n+SP.length(~V, t), snoc_length(~V, t, e))
+
+# ---- Empty_Map, Length, Capacity ----
+def new_empty(~V: Data, +cap: U32, +hz: {U32.is_eq(cap, 0) == False{} : Bool}, +hm: {U32.is_eq(cap, 4294967295) == False{} : Bool}) -> SP.Empty_Map.new_empty(~V, cap, hz, hm):
+  %Equal.sym(Bool, U32.is_eq(cap, 0), False{}, hz) : {SP.new_c(~V, cap, _, U32.is_eq(cap, 4294967295)) == SP.Made{SP.L{cap, 0, W.zero(), Nil{}, SP.zero_ctr()}} : SP.Made<V>}
+  %Equal.sym(Bool, U32.is_eq(cap, 4294967295), False{}, hm) : {SP.new_c(~V, cap, False{}, _) == SP.Made{SP.L{cap, 0, W.zero(), Nil{}, SP.zero_ctr()}} : SP.Made<V>}
+  {==}
+
+def new_rejects_zero(~V: Data) -> SP.Empty_Map.new_rejects_zero(~V):
+  {==}
+
+def new_rejects_max(~V: Data) -> SP.Empty_Map.new_rejects_max(~V):
+  {==}
+
+def length_value(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr) -> SP.Length.length_value(~V, cap, on, life, es, c):
+  {==}
+
+def capacity_value(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr) -> SP.Capacity.capacity_value(~V, cap, on, life, es, c):
+  {==}
+
+# ---- Include (add) ----
+# a present key: its old entry is dropped and the new one is the newest
+def add_present_order(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +v: V, +now: W.U64, +old: SP.Ent<V>, +hf: {SP.find(~V, es, key) == Some{old} : Maybe<&2, SP.Ent<V>>}) -> SP.Include.add_present_order(~V, cap, on, life, es, c, key, v, now, old, hf):
+  %Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, es, key), Some{old}, hf) : {SP.add_found(~V, cap, on, life, es, c, key, SP.mk(~V, on, life, key, v, now), _) == (SP.L{cap, on, life, SP.snoc(~V, SP.drop(~V, es, key), SP.mk(~V, on, life, key, v, now)), SP.c_ins(c)}, False{}) : SP.Lru<V> & Bool}
+  {==}
+
+def add_present_newest(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +v: V, +now: W.U64, +old: SP.Ent<V>, +hf: {SP.find(~V, es, key) == Some{old} : Maybe<&2, SP.Ent<V>>}) -> SP.Include.add_present_newest(~V, cap, on, life, es, c, key, v, now, old, hf):
+  %Equal.sym(SP.Lru<V> & Bool, SP.add(~V, SP.L{cap, on, life, es, c}, key, v, now), (SP.L{cap, on, life, SP.snoc(~V, SP.drop(~V, es, key), SP.mk(~V, on, life, key, v, now)), SP.c_ins(c)}, False{}), add_present_order(~V, cap, on, life, es, c, key, v, now, old, hf)) : {SP.last(~V, SP.es_of(~V, Pair.fst(SP.Lru<V>, Bool, _))) == Some{SP.mk(~V, on, life, key, v, now)} : Maybe<&2, SP.Ent<V>>}
+  snoc_last(~V, SP.drop(~V, es, key), SP.mk(~V, on, life, key, v, now))
+
+def add_present_length(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +v: V, +now: W.U64, +old: SP.Ent<V>, +hf: {SP.find(~V, es, key) == Some{old} : Maybe<&2, SP.Ent<V>>}) -> SP.Include.add_present_length(~V, cap, on, life, es, c, key, v, now, old, hf):
+  %Equal.sym(SP.Lru<V> & Bool, SP.add(~V, SP.L{cap, on, life, es, c}, key, v, now), (SP.L{cap, on, life, SP.snoc(~V, SP.drop(~V, es, key), SP.mk(~V, on, life, key, v, now)), SP.c_ins(c)}, False{}), add_present_order(~V, cap, on, life, es, c, key, v, now, old, hf)) : {SP.length(~V, SP.es_of(~V, Pair.fst(SP.Lru<V>, Bool, _))) == 1n+SP.length(~V, SP.drop(~V, es, key)) : Nat}
+  snoc_length(~V, SP.drop(~V, es, key), SP.mk(~V, on, life, key, v, now))
+
+# an absent key with room: appended as the newest, nothing evicted
+def add_room_order(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +v: V, +now: W.U64, +hf: {SP.find(~V, es, key) == None{} : Maybe<&2, SP.Ent<V>>}, +hr: {U32.is_le(cap, U32.from_nat(SP.length(~V, es))) == False{} : Bool}) -> SP.Include.add_room_order(~V, cap, on, life, es, c, key, v, now, hf, hr):
+  %Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, es, key), None{}, hf) : {SP.add_found(~V, cap, on, life, es, c, key, SP.mk(~V, on, life, key, v, now), _) == (SP.L{cap, on, life, SP.snoc(~V, es, SP.mk(~V, on, life, key, v, now)), SP.c_ins(c)}, False{}) : SP.Lru<V> & Bool}
+  %Equal.sym(Bool, U32.is_le(cap, U32.from_nat(SP.length(~V, es))), False{}, hr) : {SP.add_absent(~V, cap, on, life, es, c, SP.mk(~V, on, life, key, v, now), _) == (SP.L{cap, on, life, SP.snoc(~V, es, SP.mk(~V, on, life, key, v, now)), SP.c_ins(c)}, False{}) : SP.Lru<V> & Bool}
+  {==}
+
+def add_room_newest(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +v: V, +now: W.U64, +hf: {SP.find(~V, es, key) == None{} : Maybe<&2, SP.Ent<V>>}, +hr: {U32.is_le(cap, U32.from_nat(SP.length(~V, es))) == False{} : Bool}) -> SP.Include.add_room_newest(~V, cap, on, life, es, c, key, v, now, hf, hr):
+  %Equal.sym(SP.Lru<V> & Bool, SP.add(~V, SP.L{cap, on, life, es, c}, key, v, now), (SP.L{cap, on, life, SP.snoc(~V, es, SP.mk(~V, on, life, key, v, now)), SP.c_ins(c)}, False{}), add_room_order(~V, cap, on, life, es, c, key, v, now, hf, hr)) : {SP.last(~V, SP.es_of(~V, Pair.fst(SP.Lru<V>, Bool, _))) == Some{SP.mk(~V, on, life, key, v, now)} : Maybe<&2, SP.Ent<V>>}
+  snoc_last(~V, es, SP.mk(~V, on, life, key, v, now))
+
+def add_room_length(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +v: V, +now: W.U64, +hf: {SP.find(~V, es, key) == None{} : Maybe<&2, SP.Ent<V>>}, +hr: {U32.is_le(cap, U32.from_nat(SP.length(~V, es))) == False{} : Bool}) -> SP.Include.add_room_length(~V, cap, on, life, es, c, key, v, now, hf, hr):
+  %Equal.sym(SP.Lru<V> & Bool, SP.add(~V, SP.L{cap, on, life, es, c}, key, v, now), (SP.L{cap, on, life, SP.snoc(~V, es, SP.mk(~V, on, life, key, v, now)), SP.c_ins(c)}, False{}), add_room_order(~V, cap, on, life, es, c, key, v, now, hf, hr)) : {SP.length(~V, SP.es_of(~V, Pair.fst(SP.Lru<V>, Bool, _))) == 1n+SP.length(~V, es) : Nat}
+  snoc_length(~V, es, SP.mk(~V, on, life, key, v, now))
+
+# an absent key when full: the oldest is evicted (reported), the new one is newest
+def add_evict_order(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +v: V, +now: W.U64, +hf: {SP.find(~V, es, key) == None{} : Maybe<&2, SP.Ent<V>>}, +hfu: {U32.is_le(cap, U32.from_nat(SP.length(~V, es))) == True{} : Bool}) -> SP.Include.add_evict_order(~V, cap, on, life, es, c, key, v, now, hf, hfu):
+  %Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, es, key), None{}, hf) : {SP.add_found(~V, cap, on, life, es, c, key, SP.mk(~V, on, life, key, v, now), _) == (SP.L{cap, on, life, SP.snoc(~V, SP.tail(~V, es), SP.mk(~V, on, life, key, v, now)), SP.c_ins(SP.c_ev(c))}, True{}) : SP.Lru<V> & Bool}
+  %Equal.sym(Bool, U32.is_le(cap, U32.from_nat(SP.length(~V, es))), True{}, hfu) : {SP.add_absent(~V, cap, on, life, es, c, SP.mk(~V, on, life, key, v, now), _) == (SP.L{cap, on, life, SP.snoc(~V, SP.tail(~V, es), SP.mk(~V, on, life, key, v, now)), SP.c_ins(SP.c_ev(c))}, True{}) : SP.Lru<V> & Bool}
+  {==}
+
+def add_evict_newest(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +v: V, +now: W.U64, +hf: {SP.find(~V, es, key) == None{} : Maybe<&2, SP.Ent<V>>}, +hfu: {U32.is_le(cap, U32.from_nat(SP.length(~V, es))) == True{} : Bool}) -> SP.Include.add_evict_newest(~V, cap, on, life, es, c, key, v, now, hf, hfu):
+  %Equal.sym(SP.Lru<V> & Bool, SP.add(~V, SP.L{cap, on, life, es, c}, key, v, now), (SP.L{cap, on, life, SP.snoc(~V, SP.tail(~V, es), SP.mk(~V, on, life, key, v, now)), SP.c_ins(SP.c_ev(c))}, True{}), add_evict_order(~V, cap, on, life, es, c, key, v, now, hf, hfu)) : {SP.last(~V, SP.es_of(~V, Pair.fst(SP.Lru<V>, Bool, _))) == Some{SP.mk(~V, on, life, key, v, now)} : Maybe<&2, SP.Ent<V>>}
+  snoc_last(~V, SP.tail(~V, es), SP.mk(~V, on, life, key, v, now))
+
+# eviction keeps the length (the cache holds at least the evicted entry)
+def add_evict_length(~V: Data, +cap: U32, +on: U32, +life: W.U64, +h: SP.Ent<V>, +t: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +v: V, +now: W.U64, +hf: {SP.find(~V, Con{h, t}, key) == None{} : Maybe<&2, SP.Ent<V>>}, +hfu: {U32.is_le(cap, U32.from_nat(SP.length(~V, Con{h, t}))) == True{} : Bool}) -> SP.Include.add_evict_length(~V, cap, on, life, h, t, c, key, v, now, hf, hfu):
+  %Equal.sym(SP.Lru<V> & Bool, SP.add(~V, SP.L{cap, on, life, Con{h, t}, c}, key, v, now), (SP.L{cap, on, life, SP.snoc(~V, t, SP.mk(~V, on, life, key, v, now)), SP.c_ins(SP.c_ev(c))}, True{}), add_evict_order(~V, cap, on, life, Con{h, t}, c, key, v, now, hf, hfu)) : {SP.length(~V, SP.es_of(~V, Pair.fst(SP.Lru<V>, Bool, _))) == SP.length(~V, Con{h, t}) : Nat}
+  snoc_length(~V, t, SP.mk(~V, on, life, key, v, now))
+
+# ---- Element: get (touches) and peek (does not) ----
+# a live hit returns the value and makes the key the newest
+def get_hit(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +now: W.U64, +e: SP.Ent<V>, +hf: {SP.find(~V, es, key) == Some{e} : Maybe<&2, SP.Ent<V>>}, +hg: {SP.gone(~V, e, now) == False{} : Bool}) -> SP.Element.get_hit(~V, cap, on, life, es, c, key, now, e, hf, hg):
+  %Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, es, key), Some{e}, hf) : {SP.read_found(~V, cap, on, life, es, c, key, now, True{}, _) == (SP.L{cap, on, life, SP.snoc(~V, SP.drop(~V, es, key), e), SP.c_hit(c)}, Some{SP.val_of(~V, e)}) : SP.Lru<V> & Maybe<&2, V>}
+  %Equal.sym(Bool, SP.gone(~V, e, now), False{}, hg) : {Bool.pick(SP.Lru<V> & Maybe<&2, V>, _, (SP.L{cap, on, life, SP.drop(~V, es, key), SP.c_miss_if(SP.c_rm(c), True{})}, None{}), SP.read_live(~V, cap, on, life, es, c, key, e, True{})) == (SP.L{cap, on, life, SP.snoc(~V, SP.drop(~V, es, key), e), SP.c_hit(c)}, Some{SP.val_of(~V, e)}) : SP.Lru<V> & Maybe<&2, V>}
+  {==}
+
+def get_hit_newest(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +now: W.U64, +e: SP.Ent<V>, +hf: {SP.find(~V, es, key) == Some{e} : Maybe<&2, SP.Ent<V>>}, +hg: {SP.gone(~V, e, now) == False{} : Bool}) -> SP.Element.get_hit_newest(~V, cap, on, life, es, c, key, now, e, hf, hg):
+  %Equal.sym(SP.Lru<V> & Maybe<&2, V>, SP.get(~V, SP.L{cap, on, life, es, c}, key, now), (SP.L{cap, on, life, SP.snoc(~V, SP.drop(~V, es, key), e), SP.c_hit(c)}, Some{SP.val_of(~V, e)}), get_hit(~V, cap, on, life, es, c, key, now, e, hf, hg)) : {SP.last(~V, SP.es_of(~V, Pair.fst(SP.Lru<V>, Maybe<&2, V>, _))) == Some{e} : Maybe<&2, SP.Ent<V>>}
+  snoc_last(~V, SP.drop(~V, es, key), e)
+
+# a miss leaves the entries unchanged and reads as absent
+def get_miss(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +now: W.U64, +hf: {SP.find(~V, es, key) == None{} : Maybe<&2, SP.Ent<V>>}) -> SP.Element.get_miss(~V, cap, on, life, es, c, key, now, hf):
+  %Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, es, key), None{}, hf) : {SP.read_found(~V, cap, on, life, es, c, key, now, True{}, _) == (SP.L{cap, on, life, es, SP.c_miss_if(c, True{})}, None{}) : SP.Lru<V> & Maybe<&2, V>}
+  {==}
+
+# an expired entry reads as absent and is removed
+def read_expired(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +now: W.U64, +tracked: Bool, +e: SP.Ent<V>, +hf: {SP.find(~V, es, key) == Some{e} : Maybe<&2, SP.Ent<V>>}, +hg: {SP.gone(~V, e, now) == True{} : Bool}) -> SP.Iter_Model.read_expired(~V, cap, on, life, es, c, key, now, tracked, e, hf, hg):
+  %Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, es, key), Some{e}, hf) : {SP.read_found(~V, cap, on, life, es, c, key, now, tracked, _) == (SP.L{cap, on, life, SP.drop(~V, es, key), SP.c_miss_if(SP.c_rm(c), tracked)}, None{}) : SP.Lru<V> & Maybe<&2, V>}
+  %Equal.sym(Bool, SP.gone(~V, e, now), True{}, hg) : {Bool.pick(SP.Lru<V> & Maybe<&2, V>, _, (SP.L{cap, on, life, SP.drop(~V, es, key), SP.c_miss_if(SP.c_rm(c), tracked)}, None{}), SP.read_live(~V, cap, on, life, es, c, key, e, tracked)) == (SP.L{cap, on, life, SP.drop(~V, es, key), SP.c_miss_if(SP.c_rm(c), tracked)}, None{}) : SP.Lru<V> & Maybe<&2, V>}
+  {==}
+
+# peek: a live hit returns the value and changes nothing
+def peek_hit(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +now: W.U64, +e: SP.Ent<V>, +hf: {SP.find(~V, es, key) == Some{e} : Maybe<&2, SP.Ent<V>>}, +hg: {SP.gone(~V, e, now) == False{} : Bool}) -> SP.Element.peek_hit(~V, cap, on, life, es, c, key, now, e, hf, hg):
+  %Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, es, key), Some{e}, hf) : {SP.read_found(~V, cap, on, life, es, c, key, now, False{}, _) == (SP.L{cap, on, life, es, c}, Some{SP.val_of(~V, e)}) : SP.Lru<V> & Maybe<&2, V>}
+  %Equal.sym(Bool, SP.gone(~V, e, now), False{}, hg) : {Bool.pick(SP.Lru<V> & Maybe<&2, V>, _, (SP.L{cap, on, life, SP.drop(~V, es, key), SP.c_miss_if(SP.c_rm(c), False{})}, None{}), SP.read_live(~V, cap, on, life, es, c, key, e, False{})) == (SP.L{cap, on, life, es, c}, Some{SP.val_of(~V, e)}) : SP.Lru<V> & Maybe<&2, V>}
+  {==}
+
+def peek_miss(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +now: W.U64, +hf: {SP.find(~V, es, key) == None{} : Maybe<&2, SP.Ent<V>>}) -> SP.Element.peek_miss(~V, cap, on, life, es, c, key, now, hf):
+  %Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, es, key), None{}, hf) : {SP.read_found(~V, cap, on, life, es, c, key, now, False{}, _) == (SP.L{cap, on, life, es, SP.c_miss_if(c, False{})}, None{}) : SP.Lru<V> & Maybe<&2, V>}
+  {==}
+
+# ---- Contains ----
+def contains_live(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +now: W.U64, +e: SP.Ent<V>, +hf: {SP.find(~V, es, key) == Some{e} : Maybe<&2, SP.Ent<V>>}, +hg: {SP.gone(~V, e, now) == False{} : Bool}) -> SP.Contains.contains_live(~V, cap, on, life, es, c, key, now, e, hf, hg):
+  %Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, es, key), Some{e}, hf) : {SP.contains_found(~V, cap, on, life, es, c, key, now, _) == (SP.L{cap, on, life, es, c}, True{}) : SP.Lru<V> & Bool}
+  %Equal.sym(Bool, SP.gone(~V, e, now), False{}, hg) : {Bool.pick(SP.Lru<V> & Bool, _, (SP.L{cap, on, life, SP.drop(~V, es, key), SP.c_rm(c)}, False{}), (SP.L{cap, on, life, es, c}, True{})) == (SP.L{cap, on, life, es, c}, True{}) : SP.Lru<V> & Bool}
+  {==}
+
+def contains_expired(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +now: W.U64, +e: SP.Ent<V>, +hf: {SP.find(~V, es, key) == Some{e} : Maybe<&2, SP.Ent<V>>}, +hg: {SP.gone(~V, e, now) == True{} : Bool}) -> SP.Contains.contains_expired(~V, cap, on, life, es, c, key, now, e, hf, hg):
+  %Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, es, key), Some{e}, hf) : {SP.contains_found(~V, cap, on, life, es, c, key, now, _) == (SP.L{cap, on, life, SP.drop(~V, es, key), SP.c_rm(c)}, False{}) : SP.Lru<V> & Bool}
+  %Equal.sym(Bool, SP.gone(~V, e, now), True{}, hg) : {Bool.pick(SP.Lru<V> & Bool, _, (SP.L{cap, on, life, SP.drop(~V, es, key), SP.c_rm(c)}, False{}), (SP.L{cap, on, life, es, c}, True{})) == (SP.L{cap, on, life, SP.drop(~V, es, key), SP.c_rm(c)}, False{}) : SP.Lru<V> & Bool}
+  {==}
+
+def contains_absent(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +now: W.U64, +hf: {SP.find(~V, es, key) == None{} : Maybe<&2, SP.Ent<V>>}) -> SP.Contains.contains_absent(~V, cap, on, life, es, c, key, now, hf):
+  %Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, es, key), None{}, hf) : {SP.contains_found(~V, cap, on, life, es, c, key, now, _) == (SP.L{cap, on, life, es, c}, False{}) : SP.Lru<V> & Bool}
+  {==}
+
+# ---- Delete / Exclude (remove), Clear (purge), Iter_Model (keys) ----
+def remove_present(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +e: SP.Ent<V>, +hf: {SP.find(~V, es, key) == Some{e} : Maybe<&2, SP.Ent<V>>}) -> SP.Delete.remove_present(~V, cap, on, life, es, c, key, e, hf):
+  %Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, es, key), Some{e}, hf) : {SP.remove_found(~V, cap, on, life, es, c, key, _) == (SP.L{cap, on, life, SP.drop(~V, es, key), SP.c_rm(c)}, Some{SP.val_of(~V, e)}) : SP.Lru<V> & Maybe<&2, V>}
+  {==}
+
+def remove_absent(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr, +key: String, +hf: {SP.find(~V, es, key) == None{} : Maybe<&2, SP.Ent<V>>}) -> SP.Delete.remove_absent(~V, cap, on, life, es, c, key, hf):
+  %Equal.sym(Maybe<&2, SP.Ent<V>>, SP.find(~V, es, key), None{}, hf) : {SP.remove_found(~V, cap, on, life, es, c, key, _) == (SP.L{cap, on, life, es, c}, None{}) : SP.Lru<V> & Maybe<&2, V>}
+  {==}
+
+def purge_value(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr) -> SP.Clear.purge_value(~V, cap, on, life, es, c):
+  {==}
+
+def keys_fin_value(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr) -> SP.Iter_Model.keys_fin_value(~V, cap, on, life, es, c):
+  {==}

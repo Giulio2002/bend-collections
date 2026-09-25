@@ -3,7 +3,7 @@ import ./logic.bend as L
 import ./nat.bend as N
 import ./u32.bend as U
 import ./list.bend as LL
-import ./spec_common.bend as SC
+import ../../spec/lib/common.bend as SC
 import ./lemmas/proofs/nat_algebra.bend as NA
 
 # Functional correctness of the installed Base.Array get/swap/set/new

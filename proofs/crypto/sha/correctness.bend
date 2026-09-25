@@ -1,7 +1,7 @@
 import Base
 import ../../../src/crypto/sha/state.bend as State
 import ../../../src/crypto/sha/sha256.bend as SHA
-import ./spec.bend as FIPS
+import ../../../spec/crypto/sha.bend as FIPS
 import ./conformance.bend as Conformance
 import ./laws.bend as Laws
 

@@ -3,7 +3,7 @@ import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/u32alg.bend as UA
 import ../../lib/list.bend as LL
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../../src/containers/bitset.bend as B
 
 # The counting loop of src/bitset.bend (eight bits per iteration, a zero word

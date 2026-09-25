@@ -1,5 +1,5 @@
 import Base
-import ./spec_common.bend as SC
+import ../../spec/lib/common.bend as SC
 import ./logic.bend as L
 import ./nat.bend as N
 import ./list.bend as LL
@@ -8,12 +8,9 @@ import ./list.bend as LL
 # split over appends; the last of a list; splitting a list at a member; the
 # reversed append. Shared by every structure that threads ids through arrays.
 
+# stated in spec/lib/common.bend
 def memn(+s: Nat, xs: List<&2, Nat>) -> Bool:
-  match xs:
-    case Nil{}:
-      False{}
-    case Con{+x, t}:
-      Bool.or(Nat.is_eq(x, s), memn(s, t))
+  SC.memn(s, xs)
 
 def nodupn(xs: List<&2, Nat>) -> Bool:
   match xs:

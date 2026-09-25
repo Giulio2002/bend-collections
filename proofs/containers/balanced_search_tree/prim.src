@@ -1,7 +1,7 @@
 import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../../src/containers/balanced_search_tree.bend as M
 import ../../../src/containers/dynamic_array.bend as D
 import ../../../src/containers/types/dynamic_array.bend as DE

@@ -2,8 +2,8 @@ import Base
 import ../../../../src/crypto/blake/blake3/types.bend as T
 import ../../../../src/crypto/blake/blake3/blake3.bend as K
 import ../../../lib/nat.bend as N
-import ../../../lib/spec_common.bend as SC
-import ./spec.bend as S
+import ../../../../spec/lib/common.bend as SC
+import ../../../../spec/crypto/blake/blake3.bend as S
 import ./array.bend as A
 import ./lists.bend as LS
 import ./chunk.bend as CH

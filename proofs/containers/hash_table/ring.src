@@ -2,7 +2,7 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ./buckets.bend as B
 import ./modn.bend as M
 import ./inv.bend as IV

@@ -2,7 +2,7 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/list.bend as LL
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../lib/arith.bend as AR
 import ../../lib/two_list.bend as TL
 import ../../../src/containers/deque.bend as DQ

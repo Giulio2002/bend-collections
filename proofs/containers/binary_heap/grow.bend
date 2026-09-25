@@ -3,8 +3,8 @@ import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/list.bend as LL
 import ../../lib/array.bend as AR
-import ../../lib/spec_common.bend as SC
-import ./spec.bend as S
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/binary_heap.bend as S
 import ../../../src/containers/binary_heap.bend as H
 import ./idx.bend as IX
 import ./slots.bend as SL

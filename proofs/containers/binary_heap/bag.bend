@@ -3,8 +3,8 @@ import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/list.bend as LL
 import ../../lib/order.bend as O
-import ../../lib/spec_common.bend as SC
-import ./spec.bend as S
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/binary_heap.bend as S
 import ./multiset.bend as M
 import ./slots.bend as SL
 import ./vals.bend as V
@@ -16,28 +16,9 @@ import ./vals.bend as V
 # The first element that compares EQ to z is removed. `b` is "does the head
 # compare EQ to z": a loop that branches on a computed value has to carry the
 # decision in its arguments (Bend matches only on parameters).
-def eq_head(~A: Data, ~cmp: A -> A -> Cmp, +z: A, xs: List<&2, A>) -> Bool:
-  match xs:
-    case Nil{}:
-      False{}
-    case Con{h, t}:
-      Cmp.is_eq(cmp(z, h))
-
-def del(~A: Data, ~cmp: A -> A -> Cmp, +z: A, xs: List<&2, A>, b: Bool) -> List<&2, A>:
-  match xs b:
-    case Nil{} _:
-      Nil{}
-    case Con{h, t} True{}:
-      t
-    case Con{h, +t} False{}:
-      Con{h, del(~A, ~cmp, z, t, eq_head(~A, ~cmp, z, t))}
-
-def delf(~A: Data, ~cmp: A -> A -> Cmp, +z: A, +xs: List<&2, A>) -> List<&2, A>:
-  del(~A, ~cmp, z, xs, eq_head(~A, ~cmp, z, xs))
-
 # z is removed from a list it was just inserted into.
-def del_head(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +xs: List<&2, A>) -> {delf(~A, ~cmp, z, Con{z, xs}) == xs : List<&2, A>}:
-  %Equal.sym(Cmp, cmp(z, z), EQ{}, O.refl(~A, ~cmp, ~o, z)) : {del(~A, ~cmp, z, Con{z, xs}, Cmp.is_eq(_)) == xs : List<&2, A>}
+def del_head(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +xs: List<&2, A>) -> {S.delf(~A, ~cmp, z, Con{z, xs}) == xs : List<&2, A>}:
+  %Equal.sym(Cmp, cmp(z, z), EQ{}, O.refl(~A, ~cmp, ~o, z)) : {S.del(~A, ~cmp, z, Con{z, xs}, Cmp.is_eq(_)) == xs : List<&2, A>}
   {==}
 
 def not_le_not_eq_c(c: Cmp, +e: {Cmp.is_le(c) == False{} : Bool}) -> {Cmp.is_eq(c) == False{} : Bool}:
@@ -52,17 +33,17 @@ def not_le_not_eq_c(c: Cmp, +e: {Cmp.is_le(c) == False{} : Bool}) -> {Cmp.is_eq(
 def not_le_not_eq(~A: Data, ~cmp: A -> A -> Cmp, +z: A, +h: A, +e: {S.le(~A, ~cmp, z, h) == False{} : Bool}) -> {Cmp.is_eq(cmp(z, h)) == False{} : Bool}:
   not_le_not_eq_c(cmp(z, h), e)
 
-def del_ins_cons(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +h: A, +t: List<&2, A>, b: Bool, +eb: {S.le(~A, ~cmp, z, h) == b : Bool}, +ih: {delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, t)) == t : List<&2, A>}) -> {delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, Con{h, t})) == Con{h, t} : List<&2, A>}:
+def del_ins_cons(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +h: A, +t: List<&2, A>, b: Bool, +eb: {S.le(~A, ~cmp, z, h) == b : Bool}, +ih: {S.delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, t)) == t : List<&2, A>}) -> {S.delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, Con{h, t})) == Con{h, t} : List<&2, A>}:
   match b:
     case True{}:
-      %Equal.sym(List<&2, A>, S.ins(~A, ~cmp, z, Con{h, t}), Con{z, Con{h, t}}, M.ins_cons(~A, ~cmp, z, h, t, True{}, eb)) : {delf(~A, ~cmp, z, _) == Con{h, t} : List<&2, A>}
+      %Equal.sym(List<&2, A>, S.ins(~A, ~cmp, z, Con{h, t}), Con{z, Con{h, t}}, M.ins_cons(~A, ~cmp, z, h, t, True{}, eb)) : {S.delf(~A, ~cmp, z, _) == Con{h, t} : List<&2, A>}
       del_head(~A, ~cmp, ~o, z, Con{h, t})
     case False{}:
-      %Equal.sym(List<&2, A>, S.ins(~A, ~cmp, z, Con{h, t}), Con{h, S.ins(~A, ~cmp, z, t)}, M.ins_cons(~A, ~cmp, z, h, t, False{}, eb)) : {delf(~A, ~cmp, z, _) == Con{h, t} : List<&2, A>}
-      %Equal.sym(Bool, Cmp.is_eq(cmp(z, h)), False{}, not_le_not_eq(~A, ~cmp, z, h, eb)) : {del(~A, ~cmp, z, Con{h, S.ins(~A, ~cmp, z, t)}, _) == Con{h, t} : List<&2, A>}
-      LL.cons_cong(A, h, delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, t)), t, ih)
+      %Equal.sym(List<&2, A>, S.ins(~A, ~cmp, z, Con{h, t}), Con{h, S.ins(~A, ~cmp, z, t)}, M.ins_cons(~A, ~cmp, z, h, t, False{}, eb)) : {S.delf(~A, ~cmp, z, _) == Con{h, t} : List<&2, A>}
+      %Equal.sym(Bool, Cmp.is_eq(cmp(z, h)), False{}, not_le_not_eq(~A, ~cmp, z, h, eb)) : {S.del(~A, ~cmp, z, Con{h, S.ins(~A, ~cmp, z, t)}, _) == Con{h, t} : List<&2, A>}
+      LL.cons_cong(A, h, S.delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, t)), t, ih)
 
-def del_ins(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, xs: List<&2, A>) -> {delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, xs)) == xs : List<&2, A>}:
+def del_ins(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, xs: List<&2, A>) -> {S.delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, xs)) == xs : List<&2, A>}:
   match xs:
     case Nil{}:
       del_head(~A, ~cmp, ~o, z, Nil{})
@@ -71,10 +52,10 @@ def del_ins(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, xs: Lis
 
 # Insertion is injective in the list: the sorted multiset is determined.
 def ins_inj(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +xs: List<&2, A>, +ys: List<&2, A>, +e: {S.ins(~A, ~cmp, z, xs) == S.ins(~A, ~cmp, z, ys) : List<&2, A>}) -> {xs == ys : List<&2, A>}:
-  Equal.trans(List<&2, A>, xs, delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, xs)), ys,
-    Equal.sym(List<&2, A>, delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, xs)), xs, del_ins(~A, ~cmp, ~o, z, xs)),
-    Equal.trans(List<&2, A>, delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, xs)), delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, ys)), ys,
-      Equal.cong(List<&2, A>, List<&2, A>, l => delf(~A, ~cmp, z, l), S.ins(~A, ~cmp, z, xs), S.ins(~A, ~cmp, z, ys), e),
+  Equal.trans(List<&2, A>, xs, S.delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, xs)), ys,
+    Equal.sym(List<&2, A>, S.delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, xs)), xs, del_ins(~A, ~cmp, ~o, z, xs)),
+    Equal.trans(List<&2, A>, S.delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, xs)), S.delf(~A, ~cmp, z, S.ins(~A, ~cmp, z, ys)), ys,
+      Equal.cong(List<&2, A>, List<&2, A>, l => S.delf(~A, ~cmp, z, l), S.ins(~A, ~cmp, z, xs), S.ins(~A, ~cmp, z, ys), e),
       del_ins(~A, ~cmp, ~o, z, ys)))
 
 # ---- swapping two slots ----
@@ -93,13 +74,13 @@ def slot_l1(~A: Data, +ss: List<&2, Maybe<&2, A>>, +i: Nat, +p: Nat, +b: A, +hne
 
 # ---- a value below every slot is below every element of the multiset ----
 
-def all_ge_cons(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +m: Maybe<&2, A>, +xs: List<&2, A>, +hm: {SL.mle(~A, ~cmp, Some{z}, m) == True{} : Bool}, +hxs: {M.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, xs)) == True{} : Bool}) -> {M.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, V.cons_slot(~A, m, xs))) == True{} : Bool}:
+def all_ge_cons(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, +m: Maybe<&2, A>, +xs: List<&2, A>, +hm: {SL.mle(~A, ~cmp, Some{z}, m) == True{} : Bool}, +hxs: {S.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, xs)) == True{} : Bool}) -> {S.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, V.cons_slot(~A, m, xs))) == True{} : Bool}:
   match m:
     case None{}:
       hxs
     case Some{+w}:
-      %Equal.sym(Bool, M.all_ge(~A, ~cmp, z, S.ins(~A, ~cmp, w, V.msort(~A, ~cmp, xs))), Bool.and(S.le(~A, ~cmp, z, w), M.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, xs))), M.all_ge_ins(~A, ~cmp, ~o, z, w, V.msort(~A, ~cmp, xs))) : {_ == True{} : Bool}
-      L.and_intro(S.le(~A, ~cmp, z, w), M.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, xs)), hm, hxs)
+      %Equal.sym(Bool, S.all_ge(~A, ~cmp, z, S.ins(~A, ~cmp, w, V.msort(~A, ~cmp, xs))), Bool.and(S.le(~A, ~cmp, z, w), S.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, xs))), M.all_ge_ins(~A, ~cmp, ~o, z, w, V.msort(~A, ~cmp, xs))) : {_ == True{} : Bool}
+      L.and_intro(S.le(~A, ~cmp, z, w), S.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, xs)), hm, hxs)
 
 def low_all(~A: Data, ~cmp: A -> A -> Cmp, +ss: List<&2, Maybe<&2, A>>, +z: A, k: Nat) -> Bool:
   match k:
@@ -108,7 +89,7 @@ def low_all(~A: Data, ~cmp: A -> A -> Cmp, +ss: List<&2, Maybe<&2, A>>, +z: A, k
     case 1n+ +m:
       Bool.and(SL.mle(~A, ~cmp, Some{z}, SL.slot(~A, ss, m)), low_all(~A, ~cmp, ss, z, m))
 
-def all_ge_vals(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ss: List<&2, Maybe<&2, A>>, +z: A, k: Nat, +h: {low_all(~A, ~cmp, ss, z, k) == True{} : Bool}) -> {M.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, V.vals(~A, ss, k))) == True{} : Bool}:
+def all_ge_vals(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ss: List<&2, Maybe<&2, A>>, +z: A, k: Nat, +h: {low_all(~A, ~cmp, ss, z, k) == True{} : Bool}) -> {S.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, V.vals(~A, ss, k))) == True{} : Bool}:
   match k:
     case 0n:
       {==}

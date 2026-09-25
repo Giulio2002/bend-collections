@@ -1,7 +1,7 @@
 import Base
 import ../../../src/crypto/keccak/types.bend as T
 import ../../../src/crypto/keccak/permutation.bend as P
-import ./spec_permutation.bend as S
+import ../../../spec/crypto/keccak/permutation.bend as S
 
 law round_correct:
   for +s: T.State

@@ -1,6 +1,6 @@
 import Base
 import ../../lib/logic.bend as L
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ./frame.bend as FR
 import ./path.bend as P
 import ../../lib/nat_list.bend as NL

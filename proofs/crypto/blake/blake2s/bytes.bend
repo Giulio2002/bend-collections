@@ -5,7 +5,7 @@
 # The bit-level facts are proven on the 32 Bool digits of a U32.
 import Base
 import ../../../../src/crypto/blake/blake2s/blake2s.bend as K
-import ./spec.bend as R
+import ../../../../spec/crypto/blake/blake2s.bend as R
 
 # Two words are equal when their digits are.
 law bits32:

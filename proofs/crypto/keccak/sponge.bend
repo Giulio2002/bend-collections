@@ -2,8 +2,8 @@ import Base
 import ../../../src/crypto/keccak/types.bend as T
 import ../../../src/crypto/keccak/keccak.bend as K
 import ../../../src/crypto/keccak/permutation.bend as P
-import ./spec_permutation.bend as F
-import ./spec.bend as R
+import ../../../spec/crypto/keccak/permutation.bend as F
+import ../../../spec/crypto/keccak/main.bend as R
 import ./permutation.bend as Q
 import ./array.bend as A
 

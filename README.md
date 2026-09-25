@@ -50,19 +50,30 @@ fetched), so an import never changes under you; each release lists its hash.
 src/containers/   the collections, their internals (internal/) and API types (types/)
 src/math/         64-bit words, hashing, powers of two
 src/crypto/       SHA-256 (sha/), Keccak-256 (keccak/), BLAKE2s, BLAKE2b and BLAKE3 (blake/)
-proofs/           one proof package per src package, mirroring src/:
-  containers/<pkg>/   spec.bend (the independent specification), the lemmas,
-                      the .src sources they expand from, and proof.bend (the
-                      package's entry point: its theorems)
+spec/             the specifications, mirroring src/: what each module does,
+                  independent of how
+  containers/<pkg>.bend  the abstract model and its contract: every SPARK
+                      formal-container Post clause as a `<Subprogram>.<clause>`
+                      proposition (docs/SPARK_CONTRACTS.md); a spec spanning
+                      several files is a directory with a main.bend
+  crypto/             FIPS 180-4 SHA-256, the Keccak sponge, RFC 7693 BLAKE2,
+                      BLAKE3
+  lib/                shared model definitions (lists, the SPARK sequence
+                      predicates, order laws, U32 sequences)
+proofs/           only proofs: one package per src package, mirroring src/,
+                  each importing its spec from spec/:
+  containers/<pkg>/   the lemmas, the .src sources they expand from, and
+                      proof.bend (the package's entry point: the refinement
+                      theorems and the proof of every contract clause)
   math/<pkg>/         the same for src/math (math/proof.bend gates all three)
-  crypto/<pkg>/       the same for src/crypto: sha/ proves SHA-256 equal to an
+  crypto/<pkg>/       the same for src/crypto: sha/ proves SHA-256 equal to its
                       executable FIPS 180-4 specification for every input,
-                      keccak/ the packed API equal to an independent sponge
+                      keccak/ the packed API equal to the independent sponge
                       specification (padding, absorption, rejection, all words)
   lib/                proof library shared by the packages (logic, Nat, lists,
                       U32 words, arrays, order laws)
   PROOF.bend          the whole library; END_TO_END.bend the public laws
-  prove.py            checks every proof
+  prove.py            checks every proof and every spec
 tests/            native test drivers, one per container; oracles in tests/support/
 benchmarks/       bend/ and native/ (C) drivers, workload table, runner
 tools/            proof generators (mac.py expands the .src proof sources),

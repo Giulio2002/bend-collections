@@ -1,6 +1,6 @@
 import Base
 import ../../lib/array.bend as AR
-import ./spec.bend as SP
+import ../../../spec/containers/lru.bend as SP
 import ../../../src/math/u64.bend as W
 import ../../../src/containers/lru.bend as LR
 import ./state.bend as ST

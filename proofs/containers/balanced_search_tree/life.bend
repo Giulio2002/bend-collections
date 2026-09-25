@@ -1,7 +1,7 @@
 import Base
 import ../../lib/nat.bend as N
-import ../../lib/spec_common.bend as SC
-import ./spec.bend as S
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/balanced_search_tree/main.bend as S
 import ../../../src/containers/balanced_search_tree.bend as M
 import ../../../src/containers/dynamic_array.bend as D
 import ./state.bend as ST

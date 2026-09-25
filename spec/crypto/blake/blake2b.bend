@@ -1,5 +1,5 @@
 import Base
-import ../../../../src/crypto/blake/blake2b/types.bend as T
+import ../../../src/crypto/blake/blake2b/types.bend as T
 
 # BLAKE2b-512 (RFC 7693), unkeyed, as an executable specification.
 #

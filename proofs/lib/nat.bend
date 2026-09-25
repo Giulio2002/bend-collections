@@ -1,7 +1,7 @@
 import Base
 import ./logic.bend as L
 import ./lemmas/proofs/nat_algebra.bend as NA
-import ./spec_common.bend as SC
+import ../../spec/lib/common.bend as SC
 import ./lemmas/spec/numeric.bend as S
 
 # Natural-number order and arithmetic facts on Base Nat (Bool-valued
