@@ -2,8 +2,8 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/array.bend as AR
-import ../../lib/spec_common.bend as SC
-import ./spec.bend as S
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/balanced_search_tree/main.bend as S
 import ../dynamic_array/layout.bend as LY
 import ../dynamic_array/state.bend as DAS
 import ../../../src/containers/balanced_search_tree.bend as M
@@ -188,17 +188,9 @@ def ents(~K: Data, ~V: Data, ix: List<&2, Nat>, +xs: List<&2, M.Node<K>>, +ys: L
     case Con{+i, t}:
       cons_m(M.Entry<K, V>, ent(K, V, nd(K, xs, i), pv(V, ys, i)), ents(~K, ~V, t, xs, ys))
 
-# consecutive keys strictly increasing
+# consecutive keys strictly increasing (the model invariant, stated in the spec)
 def ordered(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, es: List<&2, M.Entry<K, V>>) -> Bool:
-  match es:
-    case Nil{}:
-      True{}
-    case Con{e, t}:
-      match t:
-        case Nil{}:
-          True{}
-        case Con{+e2, +u}:
-          Bool.and(Cmp.is_lt(cmp(S.key(K, V, e), S.key(K, V, e2))), ordered(~K, ~V, ~cmp, Con{e2, u}))
+  S.ordered(~K, ~V, ~cmp, es)
 
 def root_black(~K: Data, t: Tr, +xs: List<&2, M.Node<K>>) -> Bool:
   match t:

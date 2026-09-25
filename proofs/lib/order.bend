@@ -1,4 +1,5 @@
 import Base
+import ../../spec/lib/order.bend as SO
 import ./logic.bend as L
 import ./nat.bend as N
 import ./u32.bend as U
@@ -11,19 +12,14 @@ import ./lemmas/proofs/native_map.bend as NM
 #   trans:   a <= b and b <= c  implies  a <= c     (<= is cmp in {LT, EQ})
 
 def flipc(c: Cmp) -> Cmp:
-  match c:
-    case LT{}:
-      GT{}
-    case EQ{}:
-      EQ{}
-    case GT{}:
-      LT{}
+  SO.flipc(c)
 
 def lec(c: Cmp) -> Bool:
   Cmp.is_le(c)
 
+# the laws are stated in spec/lib/order.bend
 def Order(~A: Data, ~cmp: A -> A -> Cmp) -> Type:
-  (@+a: A -> @+b: A -> {cmp(b, a) == flipc(cmp(a, b)) : Cmp}) & ((@+a: A -> @+b: A -> @+e: {cmp(a, b) == EQ{} : Cmp} -> {a == b : A}) & (@+a: A -> @+b: A -> @+c: A -> @+ab: {Cmp.is_le(cmp(a, b)) == True{} : Bool} -> @+bc: {Cmp.is_le(cmp(b, c)) == True{} : Bool} -> {Cmp.is_le(cmp(a, c)) == True{} : Bool}))
+  SO.Order(~A, ~cmp)
 
 def flip(~A: Data, ~cmp: A -> A -> Cmp, o: Order(~A, ~cmp), +a: A, +b: A) -> {cmp(b, a) == flipc(cmp(a, b)) : Cmp}:
   match o:

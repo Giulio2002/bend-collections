@@ -4,7 +4,7 @@ import ../../lib/nat.bend as N
 import ../../lib/list.bend as LL
 import ../../lib/u32.bend as U
 import ../../lib/array.bend as AR
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../../src/containers/dynamic_array.bend as DA
 import ./layout.bend as LY
 import ./state.bend as ST

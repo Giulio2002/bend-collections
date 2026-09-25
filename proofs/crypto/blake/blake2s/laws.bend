@@ -2,7 +2,7 @@ import Base
 import ../../../../src/crypto/blake/blake2s/types.bend as T
 import ../../../../src/crypto/blake/blake2s/compress.bend as C
 import ../../../../src/crypto/blake/blake2s/blake2s.bend as K
-import ./spec.bend as R
+import ../../../../spec/crypto/blake/blake2s.bend as R
 
 # The public API: for every packed input array and every byte length, the
 # implementation returns exactly what the RFC 7693 specification returns

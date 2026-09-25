@@ -1,7 +1,7 @@
 import Base
 import ../../src/containers/hash_table.bend as H
 import ./u32.bend as UW
-import ./spec_common.bend as SC
+import ../../spec/lib/common.bend as SC
 import ./nat_list.bend as NL
 import ./logic.bend as L
 import ./nat.bend as N

@@ -1,6 +1,6 @@
 import Base
 import ../../lib/nat.bend as N
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../lib/u32div.bend as UD
 import ../../../src/containers/hash_table.bend as H
 import ./buckets.bend as B

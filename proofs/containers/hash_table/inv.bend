@@ -2,14 +2,14 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/u32alg.bend as A
-import ./spec.bend as S
+import ../../../spec/containers/hash_table.bend as S
 import ../../lib/u32div.bend as UD
 import ../../../src/math/hash.bend as HS
 import ./keys.bend as K
 import ./buckets.bend as B
 import ./modn.bend as M
 import ./cyc.bend as CY
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../../src/containers/hash_table.bend as H
 
 # Facts derived from the table invariants for a probed key.

@@ -3,6 +3,7 @@ import ../../../src/containers/dlist_iterator.bend as I
 import ../../../src/containers/doubly_linked_list.bend as D
 import ../../../src/containers/types/doubly_linked_list.bend as E
 import ../../../src/containers/internal/dlist_storage.bend as R
+import ../../../spec/containers/dlist_iterator.bend as S
 
 # Component laws over the actual cursor implementation. These are not a full
 # sequence-refinement proof for all edits/traces or the underlying arena.
@@ -89,3 +90,17 @@ def move_backward_cursor(n: U32, last: U32, f: Bool, +i: Nat, +h: U32, +x: U32) 
 
 def failed_move_preserves_cursor(+n: U32, +last: U32, +f: Bool, +i: Nat, h: U32, after: U32, forward: Bool, +e: I.Error) -> {I.move_meta(~U32, n, last, f, i, h, after, forward, Fail{e}) == I.M{n, last, f, i, Fail{e}} : I.Move<U32>}:
   {==}
+
+# ==== the contract of dlist_iterator (stated in spec/containers/dlist_iterator.bend) ====================
+
+def has_element(s: D.DList<U32>, +n: U32, +last: U32, +f: Bool, +i: Nat) -> {I.has_next(~U32, I.IT{s, n, last, f, i}) == (I.IT{s, n, last, f, i}, I.present(n)) : I.Iterator<U32> & Bool}:
+  has_next_state(s, n, last, f, i)
+
+def next_at_end(s: D.DList<U32>, +last: U32, +f: Bool, +i: Nat) -> {I.next(~U32, I.IT{s, 0, last, f, i}) == (I.IT{s, 0, last, f, i}, Fail{I.Exhausted{}}) : I.Iterator<U32> & Result<&2, &2, I.Error, U32>}:
+  next_exhausted(s, last, f, i)
+
+def replace_pre(s: D.DList<U32>, +n: U32, +f: Bool, +i: Nat, x: U32) -> {I.set(~U32, I.IT{s, n, 0, f, i}, x) == (I.IT{s, n, 0, f, i}, Fail{I.NoCurrent{}}) : I.Iterator<U32> & Result<&2, &2, I.Error, Unit>}:
+  set_requires_current(s, n, f, i, x)
+
+def delete_pre(s: D.DList<U32>, +n: U32, +f: Bool, +i: Nat) -> {I.remove(~U32, I.IT{s, n, 0, f, i}) == (I.IT{s, n, 0, f, i}, Fail{I.NoCurrent{}}) : I.Iterator<U32> & Result<&2, &2, I.Error, Unit>}:
+  remove_requires_current(s, n, f, i)

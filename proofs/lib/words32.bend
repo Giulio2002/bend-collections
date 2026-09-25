@@ -5,7 +5,7 @@ import ./u32.bend as UW
 import ./word.bend as WD
 import ./u32div.bend as UD
 import ./nat.bend as N
-import ./spec_common.bend as SC
+import ../../spec/lib/common.bend as SC
 import ../../src/containers/hash_table.bend as H
 import ./arith.bend as AT
 

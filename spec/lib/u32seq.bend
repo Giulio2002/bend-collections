@@ -1,5 +1,5 @@
 import Base
-import ./spec_common.bend as C
+import ./common.bend as C
 
 # Sequences of U32 values with wrapping (mod 2^32) addition, shared by the
 # Fenwick and segment tree specifications. Imports only spec/ and Base.

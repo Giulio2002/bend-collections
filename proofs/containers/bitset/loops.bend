@@ -3,7 +3,7 @@ import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/list.bend as LL
 import ../../lib/array.bend as A
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../../src/containers/bitset.bend as B
 import ./fastcount.bend as FC
 import ./model.bend as MD

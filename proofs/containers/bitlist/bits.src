@@ -2,18 +2,18 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/list.bend as LL
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../lib/arith.bend as AT
 import ../../../src/containers/bitset.bend as B
 import ../../../src/containers/bitlist.bend as BLI
 import ../../../src/containers/types/bitlist.bend as E
-import ../bitset/spec.bend as BS
+import ../../../spec/containers/bitset.bend as BS
 import ../bitset/lists.bend as BL
 import ../bitset/listx.bend as LX
 import ../bitset/word.bend as W
 import ../bitset/model.bend as MD
 import ../bitset/state.bend as ST
-import ./spec.bend as S
+import ../../../spec/containers/bitlist.bend as S
 
 # List-level facts about the stored bits: F = ST.flat(ws) is every stored
 # bit, the bitlist is its first n bits, and ST.invf(n, F) says n <= |F| and

@@ -1,5 +1,5 @@
 import Base
-import ../../../src/crypto/sha/state.bend as Types
+import ../../src/crypto/sha/state.bend as Types
 
 # Executable specification of the byte-oriented SHA-256 algorithm in FIPS 180-4.
 # Only the neutral state representation is shared with the implementation.

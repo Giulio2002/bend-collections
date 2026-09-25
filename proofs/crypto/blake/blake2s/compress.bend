@@ -9,7 +9,7 @@
 import Base
 import ../../../../src/crypto/blake/blake2s/types.bend as T
 import ../../../../src/crypto/blake/blake2s/compress.bend as C
-import ./spec.bend as R
+import ../../../../spec/crypto/blake/blake2s.bend as R
 
 # The work vector as the RFC list v[0..15], one projection per entry, so
 # that the list has its shape even when the vector is abstract.

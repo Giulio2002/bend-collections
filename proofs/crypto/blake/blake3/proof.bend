@@ -1,15 +1,15 @@
 import Base
 import ../../../../src/crypto/blake/blake3/types.bend as T
 import ../../../../src/crypto/blake/blake3/blake3.bend as K
-import ../../../lib/spec_common.bend as SC
-import ./spec.bend as S
+import ../../../../spec/lib/common.bend as SC
+import ../../../../spec/crypto/blake/blake3.bend as S
 import ./array.bend as A
 import ./compress.bend as P
 import ./loop.bend as LP
 
 # BLAKE3 public API theorem: for every packed input array and every
 # byte_length, the implementation's blake3 equals the specification's
-# (proofs/crypto/blake/blake3/spec.bend), including the rejection of lengths
+# (spec/crypto/blake/blake3.bend), including the rejection of lengths
 # past 4 * capacity. No axioms, no holes.
 #
 # The chain: compress.bend (the unrolled compression function is the list

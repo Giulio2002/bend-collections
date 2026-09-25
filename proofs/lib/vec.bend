@@ -2,7 +2,7 @@ import Base
 import ./logic.bend as L
 import ./nat.bend as N
 import ./list.bend as LL
-import ./spec_common.bend as SC
+import ../../spec/lib/common.bend as SC
 import ../../src/containers/internal/vec.bend as V
 import ./lemmas/proofs/nat_algebra.bend as NA
 

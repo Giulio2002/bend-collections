@@ -1,6 +1,6 @@
 import Base
 import ../../lib/array.bend as AR
-import ./spec.bend as S
+import ../../../spec/containers/hash_table.bend as S
 import ../../../src/containers/hash_table.bend as H
 import ./state.bend as ST
 

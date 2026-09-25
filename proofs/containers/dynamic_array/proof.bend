@@ -3,7 +3,7 @@ import ../../lib/logic.bend as L
 import ../../lib/list.bend as LL
 import ../../lib/nat.bend as N
 import ../../lib/array.bend as AR
-import ./spec.bend as S
+import ../../../spec/containers/dynamic_array.bend as S
 import ../../../src/containers/dynamic_array.bend as DA
 import ../../../src/containers/types/dynamic_array.bend as E
 import ./state.bend as ST
@@ -12,6 +12,9 @@ import ./trace.bend as TR
 import ./closed.bend as CL
 import ./owned_instances.bend as OWN
 import ./owned_swap.bend as OS
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/lib/sequence.bend as V
+import ../../lib/sequence.bend as VL
 
 # Dynamic array: public proof entry point.
 #   abstraction  ST.abs   (Base.Array slots -> item sequence, via AR.freeze)
@@ -145,3 +148,158 @@ def trace_with_limit_at_inv(~T: Data, +k: Nat, +ops: List<&2, E.Op<T>>) -> ST.In
   %Equal.sym(DA.DynArray<&2, T>, DA.with_limit_at(~T, k), DA.with_limit(T, k), CL.with_limit_eq(~T, k)) : ST.Inv(T, Pair.fst(DA.DynArray<&2, T>, List<&2, E.Obs<T>>, DA.run_at(~T, ops, _)))
   %Equal.sym(DA.DynArray<&2, T> & List<&2, E.Obs<T>>, DA.run_at(~T, ops, ST.real(T, TR.limited(T, k))), DA.run(T, ops, ST.real(T, TR.limited(T, k))), CL.run_eq(~T, ops, TR.limited(T, k), limit_good(T, k))) : ST.Inv(T, Pair.fst(DA.DynArray<&2, T>, List<&2, E.Obs<T>>, _))
   trace_with_limit_inv(T, k, ops)
+
+# ==== the contract of dynamic_array (stated in spec/containers/dynamic_array.bend) ====================
+
+# ---- the implementation ----
+# every Post below is a property of S.step; it holds of DA.step read back
+# through the abstraction (view1), on every good array
+def impl(-T: Data, +sh: ST.Shadow<T>, +op: E.Op<T>, +g: {ST.good(T, sh) == True{} : Bool}, -Post: (S.Model<T> & E.Obs<T>) -> Type, pf: Post(S.step(T, ST.abs(T, ST.real(T, sh)), op))) -> Post(view1(T, DA.step(T, ST.real(T, sh), op))):
+  L.subst(S.Model<T> & E.Obs<T>, Post, S.step(T, ST.abs(T, ST.real(T, sh)), op), view1(T, DA.step(T, ST.real(T, sh), op)), Equal.sym(S.Model<T> & E.Obs<T>, view1(T, DA.step(T, ST.real(T, sh), op)), S.step(T, ST.abs(T, ST.real(T, sh)), op), step_refines(T, sh, op, g)), pf)
+
+# ---- Length, Capacity, iteration: the value, and nothing changes ----
+def length_result(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>) -> S.Length.length_result(T, l, d, xs):
+  {==}
+
+def length_frame(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>) -> S.Length.length_frame(T, l, d, xs):
+  {==}
+
+def capacity_result(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>) -> S.Capacity.capacity_result(T, l, d, xs):
+  {==}
+
+def capacity_frame(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>) -> S.Capacity.capacity_frame(T, l, d, xs):
+  {==}
+
+def to_list_model(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>) -> S.Iteration.to_list_model(T, l, d, xs):
+  {==}
+
+def to_list_frame(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>) -> S.Iteration.to_list_frame(T, l, d, xs):
+  {==}
+
+# ---- Empty_Vector: Length 0 (the default capacity is 2^0) ----
+def new_empty(-T: Data) -> S.Empty_Vector.new_empty(T):
+  {==}
+
+def new_capacity(-T: Data) -> S.Empty_Vector.new_capacity(T):
+  {==}
+
+def new_impl(-T: Data) -> {ST.abs(T, DA.new(T)) == S.new(T) : S.Model<T>}:
+  new_abs(T)
+
+def with_limit_empty(-T: Data, +k: Nat) -> S.Empty_Vector.with_limit_empty(T, k):
+  {==}
+
+def with_limit_impl(-T: Data, +k: Nat) -> {ST.abs(T, DA.with_limit(T, k)) == S.with_limit(T, k) : S.Model<T>}:
+  with_limit_abs(T, k)
+
+# ---- Reserve_Capacity: M.Equal (Model, Model'Old) ----
+def re_c(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +n: Nat, +c1: Bool, +h1: {Nat.is_le(n, SC.pow2(d)) == c1 : Bool}, +c2: Bool, +h2: {Nat.is_le(n, SC.pow2(l)) == c2 : Bool}) -> {S.items(T, S.nx(T, S.M{l, d, xs}, E.Reserve{n})) == xs : List<&2, T>}:
+  match c1 c2:
+    case True{} _:
+      %Equal.sym(Bool, Nat.is_le(n, SC.pow2(d)), True{}, h1) : {S.items(T, Pair.fst(S.Model<T>, E.Obs<T>, Bool.pick(S.Model<T> & E.Obs<T>, _, (S.M{l, d, xs}, E.OUnit{S.ok_unit()}), Bool.pick(S.Model<T> & E.Obs<T>, Nat.is_le(n, SC.pow2(l)), (S.M{l, S.fit(n, d, n), xs}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}))))) == xs : List<&2, T>}
+      {==}
+    case False{} True{}:
+      %Equal.sym(Bool, Nat.is_le(n, SC.pow2(d)), False{}, h1) : {S.items(T, Pair.fst(S.Model<T>, E.Obs<T>, Bool.pick(S.Model<T> & E.Obs<T>, _, (S.M{l, d, xs}, E.OUnit{S.ok_unit()}), Bool.pick(S.Model<T> & E.Obs<T>, Nat.is_le(n, SC.pow2(l)), (S.M{l, S.fit(n, d, n), xs}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}))))) == xs : List<&2, T>}
+      %Equal.sym(Bool, Nat.is_le(n, SC.pow2(l)), True{}, h2) : {S.items(T, Pair.fst(S.Model<T>, E.Obs<T>, Bool.pick(S.Model<T> & E.Obs<T>, False{}, (S.M{l, d, xs}, E.OUnit{S.ok_unit()}), Bool.pick(S.Model<T> & E.Obs<T>, _, (S.M{l, S.fit(n, d, n), xs}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}))))) == xs : List<&2, T>}
+      {==}
+    case False{} False{}:
+      %Equal.sym(Bool, Nat.is_le(n, SC.pow2(d)), False{}, h1) : {S.items(T, Pair.fst(S.Model<T>, E.Obs<T>, Bool.pick(S.Model<T> & E.Obs<T>, _, (S.M{l, d, xs}, E.OUnit{S.ok_unit()}), Bool.pick(S.Model<T> & E.Obs<T>, Nat.is_le(n, SC.pow2(l)), (S.M{l, S.fit(n, d, n), xs}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}))))) == xs : List<&2, T>}
+      %Equal.sym(Bool, Nat.is_le(n, SC.pow2(l)), False{}, h2) : {S.items(T, Pair.fst(S.Model<T>, E.Obs<T>, Bool.pick(S.Model<T> & E.Obs<T>, False{}, (S.M{l, d, xs}, E.OUnit{S.ok_unit()}), Bool.pick(S.Model<T> & E.Obs<T>, _, (S.M{l, S.fit(n, d, n), xs}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}))))) == xs : List<&2, T>}
+      {==}
+
+def reserve_equal(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +n: Nat) -> S.Reserve_Capacity.reserve_equal(T, l, d, xs, n):
+  re_c(T, l, d, xs, n, Nat.is_le(n, SC.pow2(d)), {==}, Nat.is_le(n, SC.pow2(l)), {==})
+
+# ---- Clear: Length 0 (the capacity is kept) ----
+def clear_length(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>) -> S.Clear.clear_length(T, l, d, xs):
+  {==}
+
+def clear_capacity(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>) -> S.Clear.clear_capacity(T, l, d, xs):
+  {==}
+
+# ---- Element / First_Element / Last_Element ----
+def get_element(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +i: Nat, +v: T, +h: {SC.nth(T, xs, i) == Some{v} : Maybe<&2, T>}) -> S.Element.get_element(T, l, d, xs, i, v, h):
+  %Equal.sym(Maybe<&2, T>, SC.nth(T, xs, i), Some{v}, h) : {E.OItem{S.item_result(T, _)} == E.OItem{Done{v}} : E.Obs<T>}
+  {==}
+
+def get_frame(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +i: Nat) -> S.Element.get_frame(T, l, d, xs, i):
+  {==}
+
+def get_outside(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +i: Nat, +h: {Nat.is_le(SC.length(T, xs), i) == True{} : Bool}) -> S.Element.get_outside(T, l, d, xs, i, h):
+  %Equal.sym(Maybe<&2, T>, SC.nth(T, xs, i), None{}, LL.nth_none(T, xs, i, h)) : {E.OItem{S.item_result(T, _)} == E.OItem{Fail{E.IndexOutOfRange{}}} : E.Obs<T>}
+  {==}
+
+def first_element(-T: Data, +l: Nat, +d: Nat, +h: T, +t: List<&2, T>) -> S.First_Element.first_element(T, l, d, h, t):
+  {==}
+
+def last_element(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>) -> S.Last_Element.last_element(T, l, d, xs):
+  {==}
+
+# ---- Replace_Element: Length kept, Element (Index) = New_Item, Equal_Except elsewhere ----
+def set_step(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +i: Nat, +v: T, +h: {Nat.is_lt(i, SC.length(T, xs)) == True{} : Bool}) -> {S.step(T, S.M{l, d, xs}, E.Set{i, v}) == (S.M{l, d, SC.update(T, xs, i, v)}, E.OUnit{Done{Unit{}}}) : S.Model<T> & E.Obs<T>}:
+  %Equal.sym(Bool, Nat.is_lt(i, SC.length(T, xs)), True{}, h) : {Bool.pick(S.Model<T> & E.Obs<T>, _, (S.M{l, d, SC.update(T, xs, i, v)}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.IndexOutOfRange{}}})) == (S.M{l, d, SC.update(T, xs, i, v)}, E.OUnit{Done{Unit{}}}) : S.Model<T> & E.Obs<T>}
+  {==}
+
+def set_items(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +i: Nat, +v: T, +h: {Nat.is_lt(i, SC.length(T, xs)) == True{} : Bool}) -> {S.items(T, S.nx(T, S.M{l, d, xs}, E.Set{i, v})) == SC.update(T, xs, i, v) : List<&2, T>}:
+  %Equal.sym(S.Model<T> & E.Obs<T>, S.step(T, S.M{l, d, xs}, E.Set{i, v}), (S.M{l, d, SC.update(T, xs, i, v)}, E.OUnit{Done{Unit{}}}), set_step(T, l, d, xs, i, v, h)) : {S.items(T, Pair.fst(S.Model<T>, E.Obs<T>, _)) == SC.update(T, xs, i, v) : List<&2, T>}
+  {==}
+
+def set_length(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +i: Nat, +v: T, +h: {Nat.is_lt(i, SC.length(T, xs)) == True{} : Bool}) -> S.Replace_Element.set_length(T, l, d, xs, i, v, h):
+  %Equal.sym(List<&2, T>, S.items(T, S.nx(T, S.M{l, d, xs}, E.Set{i, v})), SC.update(T, xs, i, v), set_items(T, l, d, xs, i, v, h)) : {SC.length(T, _) == SC.length(T, xs) : Nat}
+  VL.update_length(T, xs, i, v)
+
+def set_element(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +i: Nat, +v: T, +h: {Nat.is_lt(i, SC.length(T, xs)) == True{} : Bool}) -> S.Replace_Element.set_element(T, l, d, xs, i, v, h):
+  %Equal.sym(List<&2, T>, S.items(T, S.nx(T, S.M{l, d, xs}, E.Set{i, v})), SC.update(T, xs, i, v), set_items(T, l, d, xs, i, v, h)) : {SC.nth(T, _, i) == Some{v} : Maybe<&2, T>}
+  VL.update_at(T, xs, i, v, h)
+
+def set_except(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +i: Nat, +v: T, +h: {Nat.is_lt(i, SC.length(T, xs)) == True{} : Bool}) -> S.Replace_Element.set_except(T, l, d, xs, i, v, h):
+  L.subst(List<&2, T>, z => V.EqualExcept(T, xs, z, i), SC.update(T, xs, i, v), S.items(T, S.nx(T, S.M{l, d, xs}, E.Set{i, v})), Equal.sym(List<&2, T>, S.items(T, S.nx(T, S.M{l, d, xs}, E.Set{i, v})), SC.update(T, xs, i, v), set_items(T, l, d, xs, i, v, h)), VL.update_except(T, xs, i, v))
+
+def set_outside(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +i: Nat, +v: T, +h: {Nat.is_lt(i, SC.length(T, xs)) == False{} : Bool}) -> S.Replace_Element.set_outside(T, l, d, xs, i, v, h):
+  %Equal.sym(Bool, Nat.is_lt(i, SC.length(T, xs)), False{}, h) : {Bool.pick(S.Model<T> & E.Obs<T>, _, (S.M{l, d, SC.update(T, xs, i, v)}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.IndexOutOfRange{}}})) == (S.M{l, d, xs}, E.OUnit{Fail{E.IndexOutOfRange{}}}) : S.Model<T> & E.Obs<T>}
+  {==}
+
+def pi_c(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +v: T, +c1: Bool, +h1: {Nat.is_lt(SC.length(T, xs), SC.pow2(d)) == c1 : Bool}, +c2: Bool, +h2: {Nat.is_lt(d, l) == c2 : Bool}, +hr: {Bool.or(c1, c2) == True{} : Bool}) -> {S.items(T, S.nx(T, S.M{l, d, xs}, E.Push{v})) == SC.snoc(T, xs, v) : List<&2, T>}:
+  match c1 c2:
+    case True{} _:
+      %Equal.sym(Bool, Nat.is_lt(SC.length(T, xs), SC.pow2(d)), True{}, h1) : {S.items(T, Pair.fst(S.Model<T>, E.Obs<T>, Bool.pick(S.Model<T> & E.Obs<T>, _, (S.M{l, d, SC.snoc(T, xs, v)}, E.OUnit{S.ok_unit()}), Bool.pick(S.Model<T> & E.Obs<T>, Nat.is_lt(d, l), (S.M{l, 1n+d, SC.snoc(T, xs, v)}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}))))) == SC.snoc(T, xs, v) : List<&2, T>}
+      {==}
+    case False{} True{}:
+      %Equal.sym(Bool, Nat.is_lt(SC.length(T, xs), SC.pow2(d)), False{}, h1) : {S.items(T, Pair.fst(S.Model<T>, E.Obs<T>, Bool.pick(S.Model<T> & E.Obs<T>, _, (S.M{l, d, SC.snoc(T, xs, v)}, E.OUnit{S.ok_unit()}), Bool.pick(S.Model<T> & E.Obs<T>, Nat.is_lt(d, l), (S.M{l, 1n+d, SC.snoc(T, xs, v)}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}))))) == SC.snoc(T, xs, v) : List<&2, T>}
+      %Equal.sym(Bool, Nat.is_lt(d, l), True{}, h2) : {S.items(T, Pair.fst(S.Model<T>, E.Obs<T>, Bool.pick(S.Model<T> & E.Obs<T>, False{}, (S.M{l, d, SC.snoc(T, xs, v)}, E.OUnit{S.ok_unit()}), Bool.pick(S.Model<T> & E.Obs<T>, _, (S.M{l, 1n+d, SC.snoc(T, xs, v)}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}))))) == SC.snoc(T, xs, v) : List<&2, T>}
+      {==}
+    case False{} False{}:
+      Empty.absurd({S.items(T, S.nx(T, S.M{l, d, xs}, E.Push{v})) == SC.snoc(T, xs, v) : List<&2, T>}, L.false_true(hr))
+
+def push_items(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +v: T, +hr: {S.room(T, l, d, xs) == True{} : Bool}) -> {S.items(T, S.nx(T, S.M{l, d, xs}, E.Push{v})) == SC.snoc(T, xs, v) : List<&2, T>}:
+  pi_c(T, l, d, xs, v, Nat.is_lt(SC.length(T, xs), SC.pow2(d)), {==}, Nat.is_lt(d, l), {==}, hr)
+
+def push_length(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +v: T, +hr: {S.room(T, l, d, xs) == True{} : Bool}) -> S.Append.push_length(T, l, d, xs, v, hr):
+  %Equal.sym(List<&2, T>, S.items(T, S.nx(T, S.M{l, d, xs}, E.Push{v})), SC.snoc(T, xs, v), push_items(T, l, d, xs, v, hr)) : {SC.length(T, _) == 1n+SC.length(T, xs) : Nat}
+  VL.snoc_length(T, xs, v)
+
+def push_prefix(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +v: T, +hr: {S.room(T, l, d, xs) == True{} : Bool}) -> S.Append.push_prefix(T, l, d, xs, v, hr):
+  L.subst(List<&2, T>, z => V.EqualPrefix(T, xs, z), SC.snoc(T, xs, v), S.items(T, S.nx(T, S.M{l, d, xs}, E.Push{v})), Equal.sym(List<&2, T>, S.items(T, S.nx(T, S.M{l, d, xs}, E.Push{v})), SC.snoc(T, xs, v), push_items(T, l, d, xs, v, hr)), VL.snoc_prefix(T, xs, v))
+
+def push_element(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +v: T, +hr: {S.room(T, l, d, xs) == True{} : Bool}) -> S.Append.push_element(T, l, d, xs, v, hr):
+  %Equal.sym(List<&2, T>, S.items(T, S.nx(T, S.M{l, d, xs}, E.Push{v})), SC.snoc(T, xs, v), push_items(T, l, d, xs, v, hr)) : {SC.nth(T, _, SC.length(T, xs)) == Some{v} : Maybe<&2, T>}
+  VL.snoc_last(T, xs, v)
+
+def push_full(-T: Data, +l: Nat, +d: Nat, +xs: List<&2, T>, +v: T, +h1: {Nat.is_lt(SC.length(T, xs), SC.pow2(d)) == False{} : Bool}, +h2: {Nat.is_lt(d, l) == False{} : Bool}) -> S.Append.push_full(T, l, d, xs, v, h1, h2):
+  %Equal.sym(Bool, Nat.is_lt(SC.length(T, xs), SC.pow2(d)), False{}, h1) : {Bool.pick(S.Model<T> & E.Obs<T>, _, (S.M{l, d, SC.snoc(T, xs, v)}, E.OUnit{S.ok_unit()}), Bool.pick(S.Model<T> & E.Obs<T>, Nat.is_lt(d, l), (S.M{l, 1n+d, SC.snoc(T, xs, v)}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}))) == (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}) : S.Model<T> & E.Obs<T>}
+  %Equal.sym(Bool, Nat.is_lt(d, l), False{}, h2) : {Bool.pick(S.Model<T> & E.Obs<T>, False{}, (S.M{l, d, SC.snoc(T, xs, v)}, E.OUnit{S.ok_unit()}), Bool.pick(S.Model<T> & E.Obs<T>, _, (S.M{l, 1n+d, SC.snoc(T, xs, v)}, E.OUnit{S.ok_unit()}), (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}))) == (S.M{l, d, xs}, E.OUnit{Fail{E.CapacityExceeded{}}}) : S.Model<T> & E.Obs<T>}
+  {==}
+
+# ---- Delete_Last: Length - 1, Equal_Prefix (Model, Model'Old); pop returns Last_Element'Old ----
+def pop_length(-T: Data, +l: Nat, +d: Nat, +h: T, +t: List<&2, T>) -> S.Delete_Last.pop_length(T, l, d, h, t):
+  VL.init_length(T, t, h)
+
+def pop_prefix(-T: Data, +l: Nat, +d: Nat, +h: T, +t: List<&2, T>) -> S.Delete_Last.pop_prefix(T, l, d, h, t):
+  VL.init_prefix(T, t, h)
+
+def pop_result(-T: Data, +l: Nat, +d: Nat, +h: T, +t: List<&2, T>) -> S.Delete_Last.pop_result(T, l, d, h, t):
+  %Equal.sym(Maybe<&2, T>, SC.last(T, Con{h, t}), V.last_elem(T, Con{h, t}), VL.last_is_elem(T, t, h)) : {E.OItem{S.item_result(T, _)} == E.OItem{S.item_result(T, V.last_elem(T, Con{h, t}))} : E.Obs<T>}
+  {==}
+
+def pop_empty(-T: Data, +l: Nat, +d: Nat) -> S.Delete_Last.pop_empty(T, l, d):
+  {==}

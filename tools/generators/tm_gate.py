@@ -21,7 +21,7 @@ HEADER = '''# Indexed TreeMap (src/containers/balanced_search_tree.bend): public
 #                lists, and two ghost values: the tree of ids (ST.Tr) and the
 #                free list; ST.real(sh) is the map
 #   abstraction  ST.model(sh): the limit and the entries of the tree's ids in
-#                order, as a spec.bend map (sorted entries);
+#                order, as a spec map (sorted entries);
 #                a mirror cursor's model is the specification's cursor over
 #                that map with the keys of its next and current ids
 #                (CU.cmod), a mirror view's the specification's view
@@ -128,6 +128,20 @@ for op in ['key_set', 'values', 'entry_set']:
     ret = it[2].replace('M.iterator(', 'M.%s(' % op, 1)
     defs.append(('%s_ok' % op, it[1], ret, it[3].replace('CA.iterator_ok', 'CA.iterator_ok')))
 
+# the SPARK Formal_Ordered_Maps contract (stated in spec/containers/
+# balanced_search_tree/main.bend) is proved by the hand-written gen/contract.part
+part = TM / 'gen' / 'contract.part'
+part_body = []
+if part.exists():
+    for ln in part.read_text().split('\n'):
+        m = re.match(r'import (\S+) as (\w+)$', ln)
+        if m:
+            if imports.get(m.group(2), m.group(1)) != m.group(1):
+                raise SystemExit('contract.part: alias %s clashes' % m.group(2))
+            imports[m.group(2)] = m.group(1)
+        elif ln != 'import Base':
+            part_body.append(ln)
+
 out = ['import Base']
 for a, p in sorted(imports.items(), key=lambda x: x[1]):
     out.append('import %s as %s' % (p, a))
@@ -137,5 +151,6 @@ for name, params, ret, body in defs:
     out.append('def %s(%s) -> %s:' % (name, params, ret))
     out.append('  ' + body)
     out.append('')
-(TM / 'proof.bend').write_text('\n'.join(out))
+out += part_body
+(TM / 'proof.bend').write_text('\n'.join(out).rstrip('\n') + '\n')
 print('%d theorems' % len(defs))

@@ -1,6 +1,6 @@
 import Base
 import ../../../src/crypto/keccak/types.bend as T
-import ./spec_permutation.bend as F
+import ./permutation.bend as F
 
 def initial() -> T.State:
   T.S{T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0},T.W{0,0}}

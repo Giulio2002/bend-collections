@@ -5,8 +5,8 @@ import ../../lib/list.bend as LL
 import ../../lib/order.bend as O
 import ../../lib/array.bend as AR
 import ../../lib/u32.bend as U
-import ../../lib/spec_common.bend as SC
-import ./spec.bend as S
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/binary_heap.bend as S
 import ../../../src/containers/binary_heap.bend as H
 import ./idx.bend as IX
 import ./u32idx.bend as UX

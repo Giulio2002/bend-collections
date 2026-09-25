@@ -2,7 +2,7 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/list.bend as LL
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ./state.bend as ST
 import ./path.bend as P
 import ./dj.bend as DJ

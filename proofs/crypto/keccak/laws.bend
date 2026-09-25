@@ -1,9 +1,9 @@
 import Base
 import ../../../src/crypto/keccak/types.bend as T
 import ../../../src/crypto/keccak/permutation.bend as P
-import ./spec_permutation.bend as S
+import ../../../spec/crypto/keccak/permutation.bend as S
 import ../../../src/crypto/keccak/keccak.bend as K
-import ./spec.bend as Sponge
+import ../../../spec/crypto/keccak/main.bend as Sponge
 
 # Universal permutation refinement; instantiating n=24 and i=0 gives Keccak-f[1600].
 law permutation_rounds:

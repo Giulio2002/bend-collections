@@ -1,7 +1,7 @@
 import Base
 import ./proof.bend as P
 import ../../../src/containers/stack.bend as D
-import ./spec.bend as S
+import ../../../spec/containers/stack.bend as S
 import ../../../src/containers/types/stack.bend as E
 
 def step_u32(+xs: List<&2, U32>, +op: E.Op<U32>) -> {D.step(~U32, P.real(~U32, xs), op) == P.lift(~U32, S.step(U32, xs, op)) : D.Stack<U32> & E.Obs<U32>}:

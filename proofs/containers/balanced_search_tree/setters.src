@@ -2,14 +2,14 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/order.bend as O
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../../src/containers/balanced_search_tree.bend as M
 import ./state.bend as ST
 import ./prim.bend as PR
 import ./mirror.bend as MI
 import ./frame.bend as FR
 import ./agree.bend as AG
-import ./spec.bend as S
+import ../../../spec/containers/balanced_search_tree/main.bend as S
 import ./ends.bend as EN
 import ./path.bend as P
 import ../../lib/nat_list.bend as NL

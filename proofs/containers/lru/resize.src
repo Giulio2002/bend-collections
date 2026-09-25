@@ -2,7 +2,7 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/array.bend as AR
-import ./spec.bend as SP
+import ../../../spec/containers/lru.bend as SP
 import ../../lib/u32div.bend as UD
 import ../../../src/containers/lru.bend as LR
 import ./state.bend as ST

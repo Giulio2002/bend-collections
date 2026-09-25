@@ -1,7 +1,7 @@
 import Base
 import ../../../lib/logic.bend as L
 import ../../../lib/nat.bend as N
-import ../../../lib/spec_common.bend as SC
+import ../../../../spec/lib/common.bend as SC
 
 # List and arithmetic facts used by the tree proof (generic over the element
 # type, on the spec/common list functions).

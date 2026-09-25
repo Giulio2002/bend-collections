@@ -2,9 +2,9 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/array.bend as AR
-import ../../lib/spec_common.bend as SC
-import ../hash_table/spec.bend as S
-import ./spec.bend as SP
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/hash_table.bend as S
+import ../../../spec/containers/lru.bend as SP
 import ../../lib/u32div.bend as UD
 import ../../../src/math/u64.bend as W
 import ../../../src/containers/lru.bend as LR

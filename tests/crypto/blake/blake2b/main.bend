@@ -2,7 +2,7 @@
 import Base
 import ../../../../src/crypto/blake/blake2b/blake2b.bend as B
 import ../../../../src/crypto/blake/blake2b/hex.bend as H
-import ../../../../proofs/crypto/blake/blake2b/spec.bend as S
+import ../../../../spec/crypto/blake/blake2b.bend as S
 
 # BLAKE2b-512 test vectors. Expected digests come from Python's hashlib.blake2b
 # (and RFC 7693 Appendix A for "abc"). Each line prints "ok" or "FAIL"; the last

@@ -1,5 +1,5 @@
 import Base
-import ./spec.bend as F
+import ../../../spec/crypto/sha.bend as F
 
 # Universal bridge from implementation modular padding to the FIPS piecewise rule.
 # Every Nat is either one of 0..119 or 120+p. Each branch closes by reduction.

@@ -1,5 +1,5 @@
 import Base
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../../src/containers/deque.bend as DQ
 
 # The two-list deque DE{front, back, nf, nb} as a Data shadow: the two

@@ -2,8 +2,8 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/list.bend as LL
-import ../../lib/spec_common.bend as SC
-import ./spec.bend as S
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/queue.bend as S
 import ../../../src/containers/queue.bend as Q
 import ../../../src/containers/types/queue.bend as E
 import ./state.bend as ST

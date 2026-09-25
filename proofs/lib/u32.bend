@@ -1,7 +1,7 @@
 import Base
 import ./logic.bend as L
 import ./nat.bend as N
-import ./spec_common.bend as SC
+import ../../spec/lib/common.bend as SC
 import ./lemmas/spec/numeric.bend as S
 import ./lemmas/proofs/numeric.bend as RN
 import ./lemmas/proofs/nat_algebra.bend as NA

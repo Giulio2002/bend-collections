@@ -1,11 +1,18 @@
 import Base
-import ./spec.bend as S
+import ../../../spec/containers/doubly_linked_list.bend as S
 import ../../../src/containers/doubly_linked_list.bend as D
 import ../../../src/containers/types/doubly_linked_list.bend as E
 import ./state.bend as ST
 import ./ok.bend as OK
 import ./trace.bend as TR
 import ./api.bend as API
+import ../../lib/logic.bend as L
+import ../../lib/list.bend as LL
+import ../../../spec/lib/common.bend as SC
+import ../../lib/nat.bend as N
+import ../../lib/nat_list.bend as NL
+import ../../../spec/lib/sequence.bend as V
+import ../../lib/sequence.bend as VL
 
 # Doubly linked list with generational handles
 # (src/containers/doubly_linked_list.bend over
@@ -88,3 +95,418 @@ def length_ok(~T: Data, +sh: ST.Sh<T>) -> {D.length(~T, ST.real(~T, sh)) == (ST.
 
 def to_list_ok(~T: Data, +sh: ST.Sh<T>, +hg: {ST.good(~T, sh) == True{} : Bool}) -> {D.to_list(~T, ST.real(~T, sh)) == (ST.real(~T, sh), S.list_of(T, ST.model(~T, sh))) : D.DList<T> & List<&2, T>}:
   API.to_list_ok(~T, 1n, {==}, sh, hg)
+
+# ==== the contract of doubly_linked_list (stated in spec/containers/doubly_linked_list.bend) ====================
+
+# ---- the implementation ----
+def Impl(~T: Data, sh: ST.Sh<T>, op: E.Op<T>, Post: (S.DS<T> & E.Obs<T>) -> Type) -> Type:
+  Sigma<&1, &1, ST.Sh<T>, sh2 => Sigma<&1, &1, E.Obs<T>, o => {D.step(~T, ST.real(~T, sh), op) == (ST.real(~T, sh2), o) : D.DList<T> & E.Obs<T>} & ({ST.good(~T, sh2) == True{} : Bool} & Post((ST.model(~T, sh2), o)))>>
+
+def impl_of(~T: Data, -sh: ST.Sh<T>, -op: E.Op<T>, -Post: (S.DS<T> & E.Obs<T>) -> Type, k: OK.POK(~T, E.Obs<T>, S.step(T, ST.model(~T, sh), op), D.step(~T, ST.real(~T, sh), op)), pf: Post(S.step(T, ST.model(~T, sh), op))) -> Impl(~T, sh, op, Post):
+  match k:
+    case Tuple{sh2, Tuple{o, Tuple{er, Tuple{es, g2}}}}:
+      (sh2, (o, (er, (g2, L.subst(S.DS<T> & E.Obs<T>, Post, S.step(T, ST.model(~T, sh), op), (ST.model(~T, sh2), o), es, pf)))))
+
+# a good list with room for one more element (TR.room, 2^29 ids)
+def impl(~T: Data, +cz: Nat, +hcz: {cz == 29n : Nat}, +sh: ST.Sh<T>, +hg: {ST.good(~T, sh) == True{} : Bool}, +hr: {TR.room(T, ST.model(~T, sh), cz) == True{} : Bool}, +op: E.Op<T>, -Post: (S.DS<T> & E.Obs<T>) -> Type, pf: Post(S.step(T, ST.model(~T, sh), op))) -> Impl(~T, sh, op, Post):
+  impl_of(~T, sh, op, Post, step_ok(~T, cz, hcz, sh, hg, hr, op), pf)
+
+def fs_up(+x: Nat, +i: Nat, +t: List<&2, Nat>, +hx: {Nat.is_eq(x, i) == False{} : Bool}, r: S.FSplit(i, t)) -> S.FSplit(i, Con{x, t}):
+  match r:
+    case Tuple{+a, Tuple{+b, Tuple{e, +hn}}}:
+      (Con{x, a}, (b, (LL.cons_cong(Nat, x, t, SC.append(Nat, a, Con{i, b}), e), L.subst(Bool, z => {Bool.or(z, SC.memn(i, a)) == False{} : Bool}, False{}, Nat.is_eq(x, i), Equal.sym(Bool, Nat.is_eq(x, i), False{}, hx), hn))))
+
+def fs_c(+x: Nat, +i: Nat, +t: List<&2, Nat>, +c: Bool, +hc: {Nat.is_eq(x, i) == c : Bool}, +hm: {Bool.or(c, SC.memn(i, t)) == True{} : Bool}, rec: @h: {SC.memn(i, t) == True{} : Bool} -> S.FSplit(i, t)) -> S.FSplit(i, Con{x, t}):
+  match c:
+    case True{}:
+      (Nil{}, (t, (Equal.cong(Nat, List<&2, Nat>, z => Con{z, t}, x, i, N.eq_from_is_eq(x, i, hc)), {==})))
+    case False{}:
+      fs_up(x, i, t, hc, rec(hm))
+
+def fsplit(+i: Nat, +xs: List<&2, Nat>, +hm: {SC.memn(i, xs) == True{} : Bool}) -> S.FSplit(i, xs):
+  match xs:
+    case Nil{}:
+      Empty.absurd(S.FSplit(i, Nil{}), L.false_true(hm))
+    case Con{+x, +t}:
+      fs_c(x, i, t, Nat.is_eq(x, i), {==}, hm, h => fsplit(i, t, h))
+
+# ---- the order operations on a split order ----
+def ib_app(+a: List<&2, Nat>, +i: Nat, +b: List<&2, Nat>, +n: Nat, +hn: {SC.memn(i, a) == False{} : Bool}) -> {S.ins_before(SC.append(Nat, a, Con{i, b}), i, n) == SC.append(Nat, a, Con{n, Con{i, b}}) : List<&2, Nat>}:
+  match a:
+    case Nil{}:
+      %Equal.sym(Bool, Nat.is_eq(i, i), True{}, N.is_eq_refl(i)) : {S.pick_list(_, Con{n, Con{i, b}}, Con{i, S.ins_before(b, i, n)}) == Con{n, Con{i, b}} : List<&2, Nat>}
+      {==}
+    case Con{+x, +t}:
+      %Equal.sym(Bool, Nat.is_eq(x, i), False{}, NL.or_ff_l(Nat.is_eq(x, i), SC.memn(i, t), hn)) : {S.pick_list(_, Con{n, Con{x, SC.append(Nat, t, Con{i, b})}}, Con{x, S.ins_before(SC.append(Nat, t, Con{i, b}), i, n)}) == Con{x, SC.append(Nat, t, Con{n, Con{i, b}})} : List<&2, Nat>}
+      LL.cons_cong(Nat, x, S.ins_before(SC.append(Nat, t, Con{i, b}), i, n), SC.append(Nat, t, Con{n, Con{i, b}}), ib_app(t, i, b, n, NL.or_ff_r(Nat.is_eq(x, i), SC.memn(i, t), hn)))
+
+def ia_app(+a: List<&2, Nat>, +i: Nat, +b: List<&2, Nat>, +n: Nat, +hn: {SC.memn(i, a) == False{} : Bool}) -> {S.ins_after(SC.append(Nat, a, Con{i, b}), i, n) == SC.append(Nat, a, Con{i, Con{n, b}}) : List<&2, Nat>}:
+  match a:
+    case Nil{}:
+      %Equal.sym(Bool, Nat.is_eq(i, i), True{}, N.is_eq_refl(i)) : {S.pick_list(_, Con{i, Con{n, b}}, Con{i, S.ins_after(b, i, n)}) == Con{i, Con{n, b}} : List<&2, Nat>}
+      {==}
+    case Con{+x, +t}:
+      %Equal.sym(Bool, Nat.is_eq(x, i), False{}, NL.or_ff_l(Nat.is_eq(x, i), SC.memn(i, t), hn)) : {S.pick_list(_, Con{x, Con{n, SC.append(Nat, t, Con{i, b})}}, Con{x, S.ins_after(SC.append(Nat, t, Con{i, b}), i, n)}) == Con{x, SC.append(Nat, t, Con{i, Con{n, b}})} : List<&2, Nat>}
+      LL.cons_cong(Nat, x, S.ins_after(SC.append(Nat, t, Con{i, b}), i, n), SC.append(Nat, t, Con{i, Con{n, b}}), ia_app(t, i, b, n, NL.or_ff_r(Nat.is_eq(x, i), SC.memn(i, t), hn)))
+
+def del_app(+a: List<&2, Nat>, +i: Nat, +b: List<&2, Nat>, +hn: {SC.memn(i, a) == False{} : Bool}) -> {S.delete(SC.append(Nat, a, Con{i, b}), i) == SC.append(Nat, a, b) : List<&2, Nat>}:
+  match a:
+    case Nil{}:
+      %Equal.sym(Bool, Nat.is_eq(i, i), True{}, N.is_eq_refl(i)) : {S.pick_list(_, b, Con{i, S.delete(b, i)}) == b : List<&2, Nat>}
+      {==}
+    case Con{+x, +t}:
+      %Equal.sym(Bool, Nat.is_eq(x, i), False{}, NL.or_ff_l(Nat.is_eq(x, i), SC.memn(i, t), hn)) : {S.pick_list(_, SC.append(Nat, t, Con{i, b}), Con{x, S.delete(SC.append(Nat, t, Con{i, b}), i)}) == Con{x, SC.append(Nat, t, b)} : List<&2, Nat>}
+      LL.cons_cong(Nat, x, S.delete(SC.append(Nat, t, Con{i, b}), i), SC.append(Nat, t, b), del_app(t, i, b, NL.or_ff_r(Nat.is_eq(x, i), SC.memn(i, t), hn)))
+
+def after_app(+a: List<&2, Nat>, +i: Nat, +b: List<&2, Nat>, +hn: {SC.memn(i, a) == False{} : Bool}) -> {S.after(SC.append(Nat, a, Con{i, b}), i) == S.first(b) : Maybe<&2, Nat>}:
+  match a:
+    case Nil{}:
+      %Equal.sym(Bool, Nat.is_eq(i, i), True{}, N.is_eq_refl(i)) : {S.pick_maybe(_, S.first(b), S.after(b, i)) == S.first(b) : Maybe<&2, Nat>}
+      {==}
+    case Con{+x, +t}:
+      %Equal.sym(Bool, Nat.is_eq(x, i), False{}, NL.or_ff_l(Nat.is_eq(x, i), SC.memn(i, t), hn)) : {S.pick_maybe(_, S.first(SC.append(Nat, t, Con{i, b})), S.after(SC.append(Nat, t, Con{i, b}), i)) == S.first(b) : Maybe<&2, Nat>}
+      after_app(t, i, b, NL.or_ff_r(Nat.is_eq(x, i), SC.memn(i, t), hn))
+
+def before_app(+a: List<&2, Nat>, +i: Nat, +b: List<&2, Nat>, +p: Maybe<&2, Nat>, +hn: {SC.memn(i, a) == False{} : Bool}) -> {S.before(SC.append(Nat, a, Con{i, b}), i, p) == S.lastm(a, p) : Maybe<&2, Nat>}:
+  match a:
+    case Nil{}:
+      %Equal.sym(Bool, Nat.is_eq(i, i), True{}, N.is_eq_refl(i)) : {S.pick_maybe(_, p, S.before(b, i, Some{i})) == p : Maybe<&2, Nat>}
+      {==}
+    case Con{+x, +t}:
+      %Equal.sym(Bool, Nat.is_eq(x, i), False{}, NL.or_ff_l(Nat.is_eq(x, i), SC.memn(i, t), hn)) : {S.pick_maybe(_, p, S.before(SC.append(Nat, t, Con{i, b}), i, Some{x})) == S.lastm(t, Some{x}) : Maybe<&2, Nat>}
+      before_app(t, i, b, Some{x}, NL.or_ff_r(Nat.is_eq(x, i), SC.memn(i, t), hn))
+
+# Next is the element at Position + 1
+def next_position(+a: List<&2, Nat>, +i: Nat, +b: List<&2, Nat>) -> S.Next.next_position(a, i, b):
+  match a:
+    case Nil{}:
+      match b:
+        case Nil{}:
+          {==}
+        case Con{y, r}:
+          {==}
+    case Con{+x, +t}:
+      next_position(t, i, b)
+
+# Previous is the element at Position - 1 (none at the first position)
+def prev_position(+t: List<&2, Nat>, +x: Nat, +i: Nat, +b: List<&2, Nat>, +p: Maybe<&2, Nat>) -> S.Previous.prev_position(t, x, i, b, p):
+  match t:
+    case Nil{}:
+      {==}
+    case Con{+y, +r}:
+      prev_position(r, y, i, b, Some{x})
+
+# ---- values by id ----
+def val_update_same(-T: Data, +vs: List<&2, Maybe<&2, T>>, +i: Nat, +m: Maybe<&2, T>, +h: {Nat.is_lt(i, SC.length(Maybe<&2, T>, vs)) == True{} : Bool}) -> {S.val_of(T, SC.update(Maybe<&2, T>, vs, i, m), i) == m : Maybe<&2, T>}:
+  match vs i:
+    case Nil{} _:
+      Empty.absurd({S.val_of(T, SC.update(Maybe<&2, T>, Nil{}, i, m), i) == m : Maybe<&2, T>}, N.lt_zero_absurd(i, h))
+    case Con{v, t} 0n:
+      {==}
+    case Con{v, +t} 1n+ +p:
+      val_update_same(T, t, p, m, h)
+
+def val_update_other(-T: Data, +vs: List<&2, Maybe<&2, T>>, +i: Nat, +j: Nat, +m: Maybe<&2, T>, +ne: {Nat.is_eq(i, j) == False{} : Bool}) -> {S.val_of(T, SC.update(Maybe<&2, T>, vs, i, m), j) == S.val_of(T, vs, j) : Maybe<&2, T>}:
+  match vs i j:
+    case Nil{} _ _:
+      {==}
+    case Con{v, t} 0n 0n:
+      Empty.absurd({S.val_of(T, SC.update(Maybe<&2, T>, Con{v, t}, 0n, m), 0n) == S.val_of(T, Con{v, t}, 0n) : Maybe<&2, T>}, L.true_false(ne))
+    case Con{v, t} 0n 1n+q:
+      {==}
+    case Con{v, t} 1n+p 0n:
+      {==}
+    case Con{v, +t} 1n+ +p 1n+ +q:
+      val_update_other(T, t, p, q, m, ne)
+
+def val_lt(-T: Data, +vs: List<&2, Maybe<&2, T>>, +i: Nat, +v: T, +h: {S.val_of(T, vs, i) == Some{v} : Maybe<&2, T>}) -> {Nat.is_lt(i, SC.length(Maybe<&2, T>, vs)) == True{} : Bool}:
+  match vs i:
+    case Nil{} _:
+      Empty.absurd({Nat.is_lt(i, 0n) == True{} : Bool}, L.none_some(T, v, h))
+    case Con{w, t} 0n:
+      {==}
+    case Con{w, +t} 1n+ +p:
+      val_lt(T, t, p, v, h)
+
+# a valid handle names a live element (Has_Element => Element is defined)
+def vl_m(-T: Data, +m: Maybe<&2, T>, +same: Bool, +hv: {S.live_gen(T, m, same) == None{} : Maybe<&2, E.Error>}) -> Sigma<&1, &1, T, v => {m == Some{v} : Maybe<&2, T>}>:
+  match m same:
+    case None{} _:
+      Empty.absurd(Sigma<&1, &1, T, v => {None{} == Some{v} : Maybe<&2, T>}>, L.none_some(E.Error, E.StaleHandle{}, Equal.sym(Maybe<&2, E.Error>, Some{E.StaleHandle{}}, None{}, hv)))
+    case Some{+v} True{}:
+      (v, {==})
+    case Some{v} False{}:
+      Empty.absurd(Sigma<&1, &1, T, w => {Some{v} == Some{w} : Maybe<&2, T>}>, L.none_some(E.Error, E.StaleHandle{}, Equal.sym(Maybe<&2, E.Error>, Some{E.StaleHandle{}}, None{}, hv)))
+
+def vl_own(-T: Data, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +i: Nat, +g: U32, +mine: Bool, +hv: {S.valid_own(T, vals, gens, i, g, mine) == None{} : Maybe<&2, E.Error>}) -> Sigma<&1, &1, T, v => {S.val_of(T, vals, i) == Some{v} : Maybe<&2, T>}>:
+  match mine:
+    case False{}:
+      Empty.absurd(Sigma<&1, &1, T, v => {S.val_of(T, vals, i) == Some{v} : Maybe<&2, T>}>, L.none_some(E.Error, E.ForeignHandle{}, Equal.sym(Maybe<&2, E.Error>, Some{E.ForeignHandle{}}, None{}, hv)))
+    case True{}:
+      vl_m(T, S.val_of(T, vals, i), U32.is_eq(S.gen_of(gens, i), g), hv)
+
+def valid_live(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, order, vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}) -> S.Has_Element.valid_live(T, tag, order, vals, gens, free, h, hv):
+  match h:
+    case E.H{+owner, +id, +g}:
+      vl_own(T, vals, gens, U32.to_nat(id), g, U32.is_eq(owner, tag), hv)
+
+# ---- the step on a valid handle is the live operation ----
+def live(-T: Data, +s: S.DS<T>, +op: E.Op<T>, +h: E.Handle, +hv: {S.validate(T, s, h) == None{} : Maybe<&2, E.Error>}) -> {S.checked(T, s, op, h, S.validate(T, s, h)) == S.live_op(T, s, op, S.handle_id(h)) : S.DS<T> & E.Obs<T>}:
+  %Equal.sym(Maybe<&2, E.Error>, S.validate(T, s, h), None{}, hv) : {S.checked(T, s, op, h, _) == S.live_op(T, s, op, S.handle_id(h)) : S.DS<T> & E.Obs<T>}
+  {==}
+
+# ---- Length, iteration, Empty_List ----
+def length_result(-T: Data, +s: S.DS<T>) -> S.Length.length_result(T, s):
+  {==}
+
+def length_frame(-T: Data, +s: S.DS<T>) -> S.Length.length_frame(T, s):
+  {==}
+
+def to_list_model(-T: Data, +s: S.DS<T>) -> S.Iteration.to_list_model(T, s):
+  {==}
+
+def to_list_frame(-T: Data, +s: S.DS<T>) -> S.Iteration.to_list_frame(T, s):
+  {==}
+
+def new_empty(-T: Data, +tag: U32) -> S.Empty_List.new_empty(T, tag):
+  {==}
+
+# ---- Element: the value of the handle's element; nothing changes ----
+def get_step(-T: Data, +s: S.DS<T>, +h: E.Handle, +hv: {S.validate(T, s, h) == None{} : Maybe<&2, E.Error>}) -> {S.step(T, s, E.Get{h}) == S.get_live(T, s, S.handle_id(h)) : S.DS<T> & E.Obs<T>}:
+  live(T, s, E.Get{h}, h, hv)
+
+def get_frame(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, order, vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}) -> S.Element.get_frame(T, tag, order, vals, gens, free, h, hv):
+  %Equal.sym(S.DS<T> & E.Obs<T>, S.step(T, S.DS{tag, order, vals, gens, free}, E.Get{h}), S.get_live(T, S.DS{tag, order, vals, gens, free}, S.handle_id(h)), get_step(T, S.DS{tag, order, vals, gens, free}, h, hv)) : {Pair.fst(S.DS<T>, E.Obs<T>, _) == S.DS{tag, order, vals, gens, free} : S.DS<T>}
+  {==}
+
+def get_element(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, order, vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +v: T, +hval: {S.val_of(T, vals, S.handle_id(h)) == Some{v} : Maybe<&2, T>}) -> S.Element.get_element(T, tag, order, vals, gens, free, h, hv, v, hval):
+  %Equal.sym(S.DS<T> & E.Obs<T>, S.step(T, S.DS{tag, order, vals, gens, free}, E.Get{h}), S.get_live(T, S.DS{tag, order, vals, gens, free}, S.handle_id(h)), get_step(T, S.DS{tag, order, vals, gens, free}, h, hv)) : {Pair.snd(S.DS<T>, E.Obs<T>, _) == E.OVal{Done{v}} : E.Obs<T>}
+  %Equal.sym(Maybe<&2, T>, S.val_of(T, vals, S.handle_id(h)), Some{v}, hval) : {E.OVal{S.maybe_done(T, E.StaleHandle{}, _)} == E.OVal{Done{v}} : E.Obs<T>}
+  {==}
+
+# ---- Replace_Element: positions and generations kept, the handle's value is x, others kept ----
+def set_step(-T: Data, +s: S.DS<T>, +h: E.Handle, +x: T, +hv: {S.validate(T, s, h) == None{} : Maybe<&2, E.Error>}) -> {S.step(T, s, E.Set{h, x}) == S.set_live(T, s, S.handle_id(h), x) : S.DS<T> & E.Obs<T>}:
+  live(T, s, E.Set{h, x}, h, hv)
+
+def set_is(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, order, vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}) -> {S.nx(T, S.DS{tag, order, vals, gens, free}, E.Set{h, x}) == S.DS{tag, order, SC.update(Maybe<&2, T>, vals, S.handle_id(h), Some{x}), gens, free} : S.DS<T>}:
+  %Equal.sym(S.DS<T> & E.Obs<T>, S.step(T, S.DS{tag, order, vals, gens, free}, E.Set{h, x}), S.set_live(T, S.DS{tag, order, vals, gens, free}, S.handle_id(h), x), set_step(T, S.DS{tag, order, vals, gens, free}, h, x, hv)) : {Pair.fst(S.DS<T>, E.Obs<T>, _) == S.DS{tag, order, SC.update(Maybe<&2, T>, vals, S.handle_id(h), Some{x}), gens, free} : S.DS<T>}
+  {==}
+
+def set_positions(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, order, vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}) -> S.Replace_Element.set_positions(T, tag, order, vals, gens, free, h, x, hv):
+  %Equal.sym(S.DS<T>, S.nx(T, S.DS{tag, order, vals, gens, free}, E.Set{h, x}), S.DS{tag, order, SC.update(Maybe<&2, T>, vals, S.handle_id(h), Some{x}), gens, free}, set_is(T, tag, order, vals, gens, free, h, x, hv)) : {S.ord(T, _) == order : List<&2, Nat>}
+  {==}
+
+def set_gens(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, order, vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}) -> S.Replace_Element.set_gens(T, tag, order, vals, gens, free, h, x, hv):
+  %Equal.sym(S.DS<T>, S.nx(T, S.DS{tag, order, vals, gens, free}, E.Set{h, x}), S.DS{tag, order, SC.update(Maybe<&2, T>, vals, S.handle_id(h), Some{x}), gens, free}, set_is(T, tag, order, vals, gens, free, h, x, hv)) : {S.gns(T, _) == gens : List<&2, U32>}
+  {==}
+
+def set_element(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, order, vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +v: T, +hval: {S.val_of(T, vals, S.handle_id(h)) == Some{v} : Maybe<&2, T>}) -> S.Replace_Element.set_element(T, tag, order, vals, gens, free, h, x, hv, v, hval):
+  %Equal.sym(S.DS<T>, S.nx(T, S.DS{tag, order, vals, gens, free}, E.Set{h, x}), S.DS{tag, order, SC.update(Maybe<&2, T>, vals, S.handle_id(h), Some{x}), gens, free}, set_is(T, tag, order, vals, gens, free, h, x, hv)) : {S.val_of(T, S.vls(T, _), S.handle_id(h)) == Some{x} : Maybe<&2, T>}
+  val_update_same(T, vals, S.handle_id(h), Some{x}, val_lt(T, vals, S.handle_id(h), v, hval))
+
+def set_others(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, order, vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +j: Nat, +ne: {Nat.is_eq(S.handle_id(h), j) == False{} : Bool}) -> S.Replace_Element.set_others(T, tag, order, vals, gens, free, h, x, hv, j, ne):
+  %Equal.sym(S.DS<T>, S.nx(T, S.DS{tag, order, vals, gens, free}, E.Set{h, x}), S.DS{tag, order, SC.update(Maybe<&2, T>, vals, S.handle_id(h), Some{x}), gens, free}, set_is(T, tag, order, vals, gens, free, h, x, hv)) : {S.val_of(T, S.vls(T, _), j) == S.val_of(T, vals, j) : Maybe<&2, T>}
+  val_update_other(T, vals, S.handle_id(h), j, Some{x}, ne)
+
+# ---- inserting: the order gains the new id n at its place ----
+def alloc_order(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +x: T, +pos: S.Pos) -> {S.ord(T, Pair.fst(S.DS<T>, E.Handle, S.inserted(T, S.alloc(T, S.DS{tag, order, vals, gens, free}), x, pos))) == S.place_order(pos, order, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free}))) : List<&2, Nat>}:
+  match free:
+    case Nil{}:
+      {==}
+    case Con{+i, +rest}:
+      {==}
+
+def push_front_order(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +x: T) -> {S.ord(T, S.nx(T, S.DS{tag, order, vals, gens, free}, E.PushFront{x})) == Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free})), order} : List<&2, Nat>}:
+  match free:
+    case Nil{}:
+      {==}
+    case Con{+i, +rest}:
+      {==}
+
+def push_front_positions(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +x: T) -> S.Prepend.push_front_positions(T, tag, order, vals, gens, free, x):
+  L.subst(List<&2, Nat>, z => V.RangeShifted(Nat, order, z, 0n, SC.length(Nat, order), 1n), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free})), order}, S.ord(T, S.nx(T, S.DS{tag, order, vals, gens, free}, E.PushFront{x})), Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, order, vals, gens, free}, E.PushFront{x})), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free})), order}, push_front_order(T, tag, order, vals, gens, free, x)), VL.cons_shifted(Nat, order, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free}))))
+
+def push_front_first(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +x: T) -> S.Prepend.push_front_first(T, tag, order, vals, gens, free, x):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, order, vals, gens, free}, E.PushFront{x})), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free})), order}, push_front_order(T, tag, order, vals, gens, free, x)) : {SC.nth(Nat, _, 0n) == Some{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free}))} : Maybe<&2, Nat>}
+  {==}
+
+def push_front_length(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +x: T) -> S.Prepend.push_front_length(T, tag, order, vals, gens, free, x):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, order, vals, gens, free}, E.PushFront{x})), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free})), order}, push_front_order(T, tag, order, vals, gens, free, x)) : {SC.length(Nat, _) == 1n+SC.length(Nat, order) : Nat}
+  {==}
+
+def push_back_order(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +x: T) -> {S.ord(T, S.nx(T, S.DS{tag, order, vals, gens, free}, E.PushBack{x})) == SC.snoc(Nat, order, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free}))) : List<&2, Nat>}:
+  match free:
+    case Nil{}:
+      {==}
+    case Con{+i, +rest}:
+      {==}
+
+def push_back_positions(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +x: T) -> S.Append.push_back_positions(T, tag, order, vals, gens, free, x):
+  L.subst(List<&2, Nat>, z => V.EqualPrefix(Nat, order, z), SC.snoc(Nat, order, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free}))), S.ord(T, S.nx(T, S.DS{tag, order, vals, gens, free}, E.PushBack{x})), Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, order, vals, gens, free}, E.PushBack{x})), SC.snoc(Nat, order, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free}))), push_back_order(T, tag, order, vals, gens, free, x)), VL.snoc_prefix(Nat, order, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free}))))
+
+def push_back_last(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +x: T) -> S.Append.push_back_last(T, tag, order, vals, gens, free, x):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, order, vals, gens, free}, E.PushBack{x})), SC.snoc(Nat, order, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free}))), push_back_order(T, tag, order, vals, gens, free, x)) : {SC.nth(Nat, _, SC.length(Nat, order)) == Some{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free}))} : Maybe<&2, Nat>}
+  VL.snoc_last(Nat, order, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free})))
+
+def push_back_length(-T: Data, +tag: U32, +order: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +x: T) -> S.Append.push_back_length(T, tag, order, vals, gens, free, x):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, order, vals, gens, free}, E.PushBack{x})), SC.snoc(Nat, order, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free}))), push_back_order(T, tag, order, vals, gens, free, x)) : {SC.length(Nat, _) == 1n+SC.length(Nat, order) : Nat}
+  VL.snoc_length(Nat, order, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, order, vals, gens, free})))
+
+# ---- Insert (Before) ----
+def ib_free(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}) -> {S.ord(T, Pair.fst(S.DS<T>, E.Obs<T>, S.live_op(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertBefore{h, x}, S.handle_id(h)))) == SC.append(Nat, a, Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), Con{S.handle_id(h), b}}) : List<&2, Nat>}:
+  match free:
+    case Nil{}:
+      ib_app(a, S.handle_id(h), b, SC.length(Maybe<&2, T>, vals), hn)
+    case Con{+i, +rest}:
+      ib_app(a, S.handle_id(h), b, i, hn)
+
+def insert_before_order(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}) -> {S.ord(T, S.nx(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertBefore{h, x})) == SC.append(Nat, a, Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), Con{S.handle_id(h), b}}) : List<&2, Nat>}:
+  %Equal.sym(S.DS<T> & E.Obs<T>, S.checked(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertBefore{h, x}, h, S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h)), S.live_op(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertBefore{h, x}, S.handle_id(h)), live(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertBefore{h, x}, h, hv)) : {S.ord(T, Pair.fst(S.DS<T>, E.Obs<T>, _)) == SC.append(Nat, a, Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), Con{S.handle_id(h), b}}) : List<&2, Nat>}
+  ib_free(T, tag, a, b, vals, gens, free, h, x, hn)
+
+# positions before the new element are unchanged
+def insert_before_equal(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}) -> S.Insert.insert_before_equal(T, tag, a, b, vals, gens, free, h, x, hv, hn):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertBefore{h, x})), SC.append(Nat, a, Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), Con{S.handle_id(h), b}}), insert_before_order(T, tag, a, b, vals, gens, free, h, x, hv, hn)) : V.RangeEqual(Nat, SC.append(Nat, a, Con{S.handle_id(h), b}), _, 0n, SC.length(Nat, a))
+  VL.mid_equal(Nat, a, Con{S.handle_id(h), b}, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})))
+
+# the new element is at Before's old position
+def insert_before_at(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}) -> S.Insert.insert_before_at(T, tag, a, b, vals, gens, free, h, x, hv, hn):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertBefore{h, x})), SC.append(Nat, a, Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), Con{S.handle_id(h), b}}), insert_before_order(T, tag, a, b, vals, gens, free, h, x, hv, hn)) : {SC.nth(Nat, _, SC.length(Nat, a)) == Some{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}))} : Maybe<&2, Nat>}
+  VL.mid_at(Nat, a, Con{S.handle_id(h), b}, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})))
+
+# Before and the positions after it move up by one
+def insert_before_shifted(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}) -> S.Insert.insert_before_shifted(T, tag, a, b, vals, gens, free, h, x, hv, hn):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertBefore{h, x})), SC.append(Nat, a, Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), Con{S.handle_id(h), b}}), insert_before_order(T, tag, a, b, vals, gens, free, h, x, hv, hn)) : V.RangeShifted(Nat, SC.append(Nat, a, Con{S.handle_id(h), b}), _, SC.length(Nat, a), SC.length(Nat, SC.append(Nat, a, Con{S.handle_id(h), b})), 1n)
+  VL.mid_shifted(Nat, a, Con{S.handle_id(h), b}, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})))
+
+def insert_before_length(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}) -> S.Insert.insert_before_length(T, tag, a, b, vals, gens, free, h, x, hv, hn):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertBefore{h, x})), SC.append(Nat, a, Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), Con{S.handle_id(h), b}}), insert_before_order(T, tag, a, b, vals, gens, free, h, x, hv, hn)) : {SC.length(Nat, _) == 1n+SC.length(Nat, SC.append(Nat, a, Con{S.handle_id(h), b})) : Nat}
+  VL.mid_length(Nat, a, Con{S.handle_id(h), b}, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})))
+
+# ---- Insert after (SPARK: Insert before Next (Position)) ----
+def ia_free(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}) -> {S.ord(T, Pair.fst(S.DS<T>, E.Obs<T>, S.live_op(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertAfter{h, x}, S.handle_id(h)))) == SC.append(Nat, a, Con{S.handle_id(h), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b}}) : List<&2, Nat>}:
+  match free:
+    case Nil{}:
+      ia_app(a, S.handle_id(h), b, SC.length(Maybe<&2, T>, vals), hn)
+    case Con{+i, +rest}:
+      ia_app(a, S.handle_id(h), b, i, hn)
+
+def insert_after_order(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}) -> {S.ord(T, S.nx(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertAfter{h, x})) == SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b}) : List<&2, Nat>}:
+  %Equal.sym(S.DS<T> & E.Obs<T>, S.checked(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertAfter{h, x}, h, S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h)), S.live_op(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertAfter{h, x}, S.handle_id(h)), live(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertAfter{h, x}, h, hv)) : {S.ord(T, Pair.fst(S.DS<T>, E.Obs<T>, _)) == SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b}) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b}), SC.append(Nat, a, Con{S.handle_id(h), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b}}), LL.snoc_append_cons(Nat, a, S.handle_id(h), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b})) : {S.ord(T, Pair.fst(S.DS<T>, E.Obs<T>, S.live_op(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertAfter{h, x}, S.handle_id(h)))) == _ : List<&2, Nat>}
+  ia_free(T, tag, a, b, vals, gens, free, h, x, hn)
+
+# the old order split after Position
+def split_after(+a: List<&2, Nat>, +i: Nat, +b: List<&2, Nat>) -> {SC.append(Nat, a, Con{i, b}) == SC.append(Nat, SC.snoc(Nat, a, i), b) : List<&2, Nat>}:
+  Equal.sym(List<&2, Nat>, SC.append(Nat, SC.snoc(Nat, a, i), b), SC.append(Nat, a, Con{i, b}), LL.snoc_append_cons(Nat, a, i, b))
+
+# Position and the positions before it are unchanged
+def insert_after_equal(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}) -> S.Insert.insert_after_equal(T, tag, a, b, vals, gens, free, h, x, hv, hn):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertAfter{h, x})), SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b}), insert_after_order(T, tag, a, b, vals, gens, free, h, x, hv, hn)) : V.RangeEqual(Nat, SC.append(Nat, a, Con{S.handle_id(h), b}), _, 0n, 1n+SC.length(Nat, a))
+  %Equal.sym(List<&2, Nat>, SC.append(Nat, a, Con{S.handle_id(h), b}), SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), b), split_after(a, S.handle_id(h), b)) : V.RangeEqual(Nat, _, SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b}), 0n, 1n+SC.length(Nat, a))
+  %LL.length_snoc(Nat, a, S.handle_id(h)) : V.RangeEqual(Nat, SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), b), SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b}), 0n, _)
+  VL.mid_equal(Nat, SC.snoc(Nat, a, S.handle_id(h)), b, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})))
+
+# the new element is right after Position
+def insert_after_at(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}) -> S.Insert.insert_after_at(T, tag, a, b, vals, gens, free, h, x, hv, hn):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertAfter{h, x})), SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b}), insert_after_order(T, tag, a, b, vals, gens, free, h, x, hv, hn)) : {SC.nth(Nat, _, 1n+SC.length(Nat, a)) == Some{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}))} : Maybe<&2, Nat>}
+  %LL.length_snoc(Nat, a, S.handle_id(h)) : {SC.nth(Nat, SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b}), _) == Some{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}))} : Maybe<&2, Nat>}
+  VL.mid_at(Nat, SC.snoc(Nat, a, S.handle_id(h)), b, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})))
+
+# the positions after Position move up by one
+def insert_after_shifted(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}) -> S.Insert.insert_after_shifted(T, tag, a, b, vals, gens, free, h, x, hv, hn):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertAfter{h, x})), SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b}), insert_after_order(T, tag, a, b, vals, gens, free, h, x, hv, hn)) : V.RangeShifted(Nat, SC.append(Nat, a, Con{S.handle_id(h), b}), _, 1n+SC.length(Nat, a), SC.length(Nat, SC.append(Nat, a, Con{S.handle_id(h), b})), 1n)
+  %Equal.sym(List<&2, Nat>, SC.append(Nat, a, Con{S.handle_id(h), b}), SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), b), split_after(a, S.handle_id(h), b)) : V.RangeShifted(Nat, _, SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b}), 1n+SC.length(Nat, a), SC.length(Nat, _), 1n)
+  %LL.length_snoc(Nat, a, S.handle_id(h)) : V.RangeShifted(Nat, SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), b), SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b}), _, SC.length(Nat, SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), b)), 1n)
+  VL.mid_shifted(Nat, SC.snoc(Nat, a, S.handle_id(h)), b, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})))
+
+def insert_after_length(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +x: T, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}) -> S.Insert.insert_after_length(T, tag, a, b, vals, gens, free, h, x, hv, hn):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.InsertAfter{h, x})), SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b}), insert_after_order(T, tag, a, b, vals, gens, free, h, x, hv, hn)) : {SC.length(Nat, _) == 1n+SC.length(Nat, SC.append(Nat, a, Con{S.handle_id(h), b})) : Nat}
+  %Equal.sym(List<&2, Nat>, SC.append(Nat, a, Con{S.handle_id(h), b}), SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), b), split_after(a, S.handle_id(h), b)) : {SC.length(Nat, SC.append(Nat, SC.snoc(Nat, a, S.handle_id(h)), Con{Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})), b})) == 1n+SC.length(Nat, _) : Nat}
+  VL.mid_length(Nat, SC.snoc(Nat, a, S.handle_id(h)), b, Pair.snd(S.DS<T>, Nat, S.alloc(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free})))
+
+# ---- Delete ----
+def remove_step(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +v: T, +hval: {S.val_of(T, vals, S.handle_id(h)) == Some{v} : Maybe<&2, T>}) -> {S.step(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Remove{h}) == S.removed(T, tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, S.handle_id(h), v, S.retire(gens, S.handle_id(h), free, S.gen_of(gens, S.handle_id(h)), U32.is_eq(S.gen_of(gens, S.handle_id(h)), 4294967295))) : S.DS<T> & E.Obs<T>}:
+  %Equal.sym(S.DS<T> & E.Obs<T>, S.checked(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Remove{h}, h, S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h)), S.live_op(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Remove{h}, S.handle_id(h)), live(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Remove{h}, h, hv)) : {_ == S.removed(T, tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, S.handle_id(h), v, S.retire(gens, S.handle_id(h), free, S.gen_of(gens, S.handle_id(h)), U32.is_eq(S.gen_of(gens, S.handle_id(h)), 4294967295))) : S.DS<T> & E.Obs<T>}
+  %Equal.sym(Maybe<&2, T>, S.val_of(T, vals, S.handle_id(h)), Some{v}, hval) : {S.remove_m(T, tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free, S.handle_id(h), _) == S.removed(T, tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, S.handle_id(h), v, S.retire(gens, S.handle_id(h), free, S.gen_of(gens, S.handle_id(h)), U32.is_eq(S.gen_of(gens, S.handle_id(h)), 4294967295))) : S.DS<T> & E.Obs<T>}
+  {==}
+
+def rm_ord(-T: Data, +tag: U32, +o: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +i: Nat, +v: T, r: List<&2, U32> & List<&2, Nat>) -> {S.ord(T, Pair.fst(S.DS<T>, E.Obs<T>, S.removed(T, tag, o, vals, i, v, r))) == S.delete(o, i) : List<&2, Nat>}:
+  match r:
+    case Tuple{g, f}:
+      {==}
+
+def rm_obs(-T: Data, +tag: U32, +o: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +i: Nat, +v: T, r: List<&2, U32> & List<&2, Nat>) -> {Pair.snd(S.DS<T>, E.Obs<T>, S.removed(T, tag, o, vals, i, v, r)) == E.OVal{Done{v}} : E.Obs<T>}:
+  match r:
+    case Tuple{g, f}:
+      {==}
+
+def remove_order(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}, +v: T, +hval: {S.val_of(T, vals, S.handle_id(h)) == Some{v} : Maybe<&2, T>}) -> {S.ord(T, S.nx(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Remove{h})) == SC.append(Nat, a, b) : List<&2, Nat>}:
+  %Equal.sym(S.DS<T> & E.Obs<T>, S.step(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Remove{h}), S.removed(T, tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, S.handle_id(h), v, S.retire(gens, S.handle_id(h), free, S.gen_of(gens, S.handle_id(h)), U32.is_eq(S.gen_of(gens, S.handle_id(h)), 4294967295))), remove_step(T, tag, a, b, vals, gens, free, h, hv, v, hval)) : {S.ord(T, Pair.fst(S.DS<T>, E.Obs<T>, _)) == SC.append(Nat, a, b) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, S.ord(T, Pair.fst(S.DS<T>, E.Obs<T>, S.removed(T, tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, S.handle_id(h), v, S.retire(gens, S.handle_id(h), free, S.gen_of(gens, S.handle_id(h)), U32.is_eq(S.gen_of(gens, S.handle_id(h)), 4294967295))))), S.delete(SC.append(Nat, a, Con{S.handle_id(h), b}), S.handle_id(h)), rm_ord(T, tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, S.handle_id(h), v, S.retire(gens, S.handle_id(h), free, S.gen_of(gens, S.handle_id(h)), U32.is_eq(S.gen_of(gens, S.handle_id(h)), 4294967295)))) : {_ == SC.append(Nat, a, b) : List<&2, Nat>}
+  del_app(a, S.handle_id(h), b, hn)
+
+# the returned element is the deleted one
+def remove_result(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +v: T, +hval: {S.val_of(T, vals, S.handle_id(h)) == Some{v} : Maybe<&2, T>}) -> S.Delete.remove_result(T, tag, a, b, vals, gens, free, h, hv, v, hval):
+  %Equal.sym(S.DS<T> & E.Obs<T>, S.step(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Remove{h}), S.removed(T, tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, S.handle_id(h), v, S.retire(gens, S.handle_id(h), free, S.gen_of(gens, S.handle_id(h)), U32.is_eq(S.gen_of(gens, S.handle_id(h)), 4294967295))), remove_step(T, tag, a, b, vals, gens, free, h, hv, v, hval)) : {Pair.snd(S.DS<T>, E.Obs<T>, _) == E.OVal{Done{v}} : E.Obs<T>}
+  rm_obs(T, tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, S.handle_id(h), v, S.retire(gens, S.handle_id(h), free, S.gen_of(gens, S.handle_id(h)), U32.is_eq(S.gen_of(gens, S.handle_id(h)), 4294967295)))
+
+# positions before Position are unchanged
+def remove_equal(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}, +v: T, +hval: {S.val_of(T, vals, S.handle_id(h)) == Some{v} : Maybe<&2, T>}) -> S.Delete.remove_equal(T, tag, a, b, vals, gens, free, h, hv, hn, v, hval):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Remove{h})), SC.append(Nat, a, b), remove_order(T, tag, a, b, vals, gens, free, h, hv, hn, v, hval)) : V.RangeEqual(Nat, _, SC.append(Nat, a, Con{S.handle_id(h), b}), 0n, SC.length(Nat, a))
+  VL.mid_equal(Nat, a, b, S.handle_id(h))
+
+# the positions after it move down by one
+def remove_shifted(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}, +v: T, +hval: {S.val_of(T, vals, S.handle_id(h)) == Some{v} : Maybe<&2, T>}) -> S.Delete.remove_shifted(T, tag, a, b, vals, gens, free, h, hv, hn, v, hval):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Remove{h})), SC.append(Nat, a, b), remove_order(T, tag, a, b, vals, gens, free, h, hv, hn, v, hval)) : V.RangeShifted(Nat, _, SC.append(Nat, a, Con{S.handle_id(h), b}), SC.length(Nat, a), SC.length(Nat, _), 1n)
+  VL.mid_shifted(Nat, a, b, S.handle_id(h))
+
+def remove_length(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}, +v: T, +hval: {S.val_of(T, vals, S.handle_id(h)) == Some{v} : Maybe<&2, T>}) -> S.Delete.remove_length(T, tag, a, b, vals, gens, free, h, hv, hn, v, hval):
+  %Equal.sym(List<&2, Nat>, S.ord(T, S.nx(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Remove{h})), SC.append(Nat, a, b), remove_order(T, tag, a, b, vals, gens, free, h, hv, hn, v, hval)) : {SC.length(Nat, SC.append(Nat, a, Con{S.handle_id(h), b})) == 1n+SC.length(Nat, _) : Nat}
+  VL.mid_length(Nat, a, b, S.handle_id(h))
+
+# the handle no longer designates an element (SPARK: Position = No_Element)
+def stale_own(-T: Data, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +i: Nat, +g: U32, +mine: Bool, +hl: {Nat.is_lt(i, SC.length(Maybe<&2, T>, vals)) == True{} : Bool}) -> {S.has_of(S.valid_own(T, SC.update(Maybe<&2, T>, vals, i, None{}), gens, i, g, mine)) == False{} : Bool}:
+  match mine:
+    case False{}:
+      {==}
+    case True{}:
+      %Equal.sym(Maybe<&2, T>, S.val_of(T, SC.update(Maybe<&2, T>, vals, i, None{}), i), None{}, val_update_same(T, vals, i, None{}, hl)) : {S.has_of(S.live_gen(T, _, U32.is_eq(S.gen_of(gens, i), g))) == False{} : Bool}
+      {==}
+
+def stale_h(-T: Data, +h: E.Handle, +tag: U32, +o: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +g2: List<&2, U32>, +f2: List<&2, Nat>, +hl: {Nat.is_lt(S.handle_id(h), SC.length(Maybe<&2, T>, vals)) == True{} : Bool}) -> {S.has_element(T, S.DS{tag, S.delete(o, S.handle_id(h)), SC.update(Maybe<&2, T>, vals, S.handle_id(h), None{}), g2, f2}, h) == False{} : Bool}:
+  match h:
+    case E.H{+owner, +id, +g}:
+      stale_own(T, vals, g2, U32.to_nat(id), g, U32.is_eq(owner, tag), hl)
+
+def stale_r(-T: Data, +tag: U32, +o: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +h: E.Handle, +v: T, +hl: {Nat.is_lt(S.handle_id(h), SC.length(Maybe<&2, T>, vals)) == True{} : Bool}, r: List<&2, U32> & List<&2, Nat>) -> {S.has_element(T, Pair.fst(S.DS<T>, E.Obs<T>, S.removed(T, tag, o, vals, S.handle_id(h), v, r)), h) == False{} : Bool}:
+  match r:
+    case Tuple{+g2, +f2}:
+      stale_h(T, h, tag, o, vals, g2, f2, hl)
+
+def remove_stale(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +v: T, +hval: {S.val_of(T, vals, S.handle_id(h)) == Some{v} : Maybe<&2, T>}) -> S.Delete.remove_stale(T, tag, a, b, vals, gens, free, h, hv, v, hval):
+  %Equal.sym(S.DS<T> & E.Obs<T>, S.step(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Remove{h}), S.removed(T, tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, S.handle_id(h), v, S.retire(gens, S.handle_id(h), free, S.gen_of(gens, S.handle_id(h)), U32.is_eq(S.gen_of(gens, S.handle_id(h)), 4294967295))), remove_step(T, tag, a, b, vals, gens, free, h, hv, v, hval)) : {S.has_element(T, Pair.fst(S.DS<T>, E.Obs<T>, _), h) == False{} : Bool}
+  stale_r(T, tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, h, v, val_lt(T, vals, S.handle_id(h), v, hval), S.retire(gens, S.handle_id(h), free, S.gen_of(gens, S.handle_id(h)), U32.is_eq(S.gen_of(gens, S.handle_id(h)), 4294967295)))
+
+# ---- Next / Previous ----
+def next_result(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}) -> S.Next.next_result(T, tag, a, b, vals, gens, free, h, hv, hn):
+  %Equal.sym(S.DS<T> & E.Obs<T>, S.checked(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Next{h}, h, S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h)), S.live_op(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Next{h}, S.handle_id(h)), live(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Next{h}, h, hv)) : {Pair.snd(S.DS<T>, E.Obs<T>, _) == E.ONbr{Done{S.nbr(tag, gens, S.first(b))}} : E.Obs<T>}
+  %Equal.sym(Maybe<&2, Nat>, S.after(SC.append(Nat, a, Con{S.handle_id(h), b}), S.handle_id(h)), S.first(b), after_app(a, S.handle_id(h), b, hn)) : {E.ONbr{Done{S.nbr(tag, gens, _)}} == E.ONbr{Done{S.nbr(tag, gens, S.first(b))}} : E.Obs<T>}
+  {==}
+
+def next_frame(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}) -> S.Next.next_frame(T, tag, a, b, vals, gens, free, h, hv):
+  %Equal.sym(S.DS<T> & E.Obs<T>, S.checked(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Next{h}, h, S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h)), S.live_op(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Next{h}, S.handle_id(h)), live(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Next{h}, h, hv)) : {Pair.fst(S.DS<T>, E.Obs<T>, _) == S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free} : S.DS<T>}
+  {==}
+
+def prev_result(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}, +hn: {SC.memn(S.handle_id(h), a) == False{} : Bool}) -> S.Previous.prev_result(T, tag, a, b, vals, gens, free, h, hv, hn):
+  %Equal.sym(S.DS<T> & E.Obs<T>, S.checked(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Prev{h}, h, S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h)), S.live_op(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Prev{h}, S.handle_id(h)), live(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Prev{h}, h, hv)) : {Pair.snd(S.DS<T>, E.Obs<T>, _) == E.ONbr{Done{S.nbr(tag, gens, S.lastm(a, None{}))}} : E.Obs<T>}
+  %Equal.sym(Maybe<&2, Nat>, S.before(SC.append(Nat, a, Con{S.handle_id(h), b}), S.handle_id(h), None{}), S.lastm(a, None{}), before_app(a, S.handle_id(h), b, None{}, hn)) : {E.ONbr{Done{S.nbr(tag, gens, _)}} == E.ONbr{Done{S.nbr(tag, gens, S.lastm(a, None{}))}} : E.Obs<T>}
+  {==}
+
+# the first element has no previous one
+def prev_first(-T: Data, +tag: U32, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, Con{S.handle_id(h), b}, vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}) -> S.Previous.prev_first(T, tag, b, vals, gens, free, h, hv):
+  prev_result(T, tag, Nil{}, b, vals, gens, free, h, hv, {==})
+
+def prev_frame(-T: Data, +tag: U32, +a: List<&2, Nat>, +b: List<&2, Nat>, +vals: List<&2, Maybe<&2, T>>, +gens: List<&2, U32>, +free: List<&2, Nat>, +h: E.Handle, +hv: {S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h) == None{} : Maybe<&2, E.Error>}) -> S.Previous.prev_frame(T, tag, a, b, vals, gens, free, h, hv):
+  %Equal.sym(S.DS<T> & E.Obs<T>, S.checked(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Prev{h}, h, S.validate(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, h)), S.live_op(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Prev{h}, S.handle_id(h)), live(T, S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free}, E.Prev{h}, h, hv)) : {Pair.fst(S.DS<T>, E.Obs<T>, _) == S.DS{tag, SC.append(Nat, a, Con{S.handle_id(h), b}), vals, gens, free} : S.DS<T>}
+  {==}

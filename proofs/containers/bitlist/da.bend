@@ -2,10 +2,10 @@ import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/array.bend as AR
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../../src/containers/dynamic_array.bend as D
 import ../../../src/containers/types/dynamic_array.bend as DE
-import ../dynamic_array/spec.bend as DS
+import ../../../spec/containers/dynamic_array.bend as DS
 import ../dynamic_array/layout.bend as LY
 import ../dynamic_array/state.bend as DAS
 import ../dynamic_array/steps.bend as DSP

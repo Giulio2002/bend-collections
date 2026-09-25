@@ -2,9 +2,9 @@ import Base
 import ../../../../src/crypto/blake/blake2b/types.bend as T
 import ../../../../src/crypto/blake/blake2b/compress.bend as F
 import ../../../../src/crypto/blake/blake2b/blake2b.bend as I
-import ./spec.bend as S
+import ../../../../spec/crypto/blake/blake2b.bend as S
 
-# The public BLAKE2b-512 API equals the RFC 7693 specification of spec.bend for
+# The public BLAKE2b-512 API equals the RFC 7693 specification of spec/crypto/blake/blake2b.bend for
 # every packed input array and every byte length: the same digest, or None for
 # both when byte_length exceeds 4 * the array's capacity.
 law blake2b_correct:

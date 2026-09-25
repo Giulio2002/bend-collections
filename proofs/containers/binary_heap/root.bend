@@ -3,8 +3,8 @@ import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/list.bend as LL
 import ../../lib/order.bend as O
-import ../../lib/spec_common.bend as SC
-import ./spec.bend as S
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/binary_heap.bend as S
 import ./idx.bend as IX
 import ./slots.bend as SL
 import ./vals.bend as V
@@ -67,14 +67,14 @@ def low_all_mk(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ss: List<&
 
 # ---- from slots to the multiset ----
 
-def all_ge_cons(~A: Data, ~cmp: A -> A -> Cmp, +z: A, m: Maybe<&2, A>, +xs: List<&2, A>, +hm: {SL.mle(~A, ~cmp, Some{z}, m) == True{} : Bool}, +ih: {M.all_ge(~A, ~cmp, z, xs) == True{} : Bool}) -> {M.all_ge(~A, ~cmp, z, V.cons_slot(~A, m, xs)) == True{} : Bool}:
+def all_ge_cons(~A: Data, ~cmp: A -> A -> Cmp, +z: A, m: Maybe<&2, A>, +xs: List<&2, A>, +hm: {SL.mle(~A, ~cmp, Some{z}, m) == True{} : Bool}, +ih: {S.all_ge(~A, ~cmp, z, xs) == True{} : Bool}) -> {S.all_ge(~A, ~cmp, z, V.cons_slot(~A, m, xs)) == True{} : Bool}:
   match m:
     case None{}:
       ih
     case Some{+v}:
-      L.and_intro(S.le(~A, ~cmp, z, v), M.all_ge(~A, ~cmp, z, xs), hm, ih)
+      L.and_intro(S.le(~A, ~cmp, z, v), S.all_ge(~A, ~cmp, z, xs), hm, ih)
 
-def all_ge_vals(~A: Data, ~cmp: A -> A -> Cmp, +ss: List<&2, Maybe<&2, A>>, n: Nat, +z: A, +h: {low_all(~A, ~cmp, ss, n, z) == True{} : Bool}) -> {M.all_ge(~A, ~cmp, z, V.vals(~A, ss, n)) == True{} : Bool}:
+def all_ge_vals(~A: Data, ~cmp: A -> A -> Cmp, +ss: List<&2, Maybe<&2, A>>, n: Nat, +z: A, +h: {low_all(~A, ~cmp, ss, n, z) == True{} : Bool}) -> {S.all_ge(~A, ~cmp, z, V.vals(~A, ss, n)) == True{} : Bool}:
   match n:
     case 0n:
       {==}
@@ -83,15 +83,15 @@ def all_ge_vals(~A: Data, ~cmp: A -> A -> Cmp, +ss: List<&2, Maybe<&2, A>>, n: N
         L.and_left(SL.mle(~A, ~cmp, Some{z}, SL.slot(~A, ss, m)), low_all(~A, ~cmp, ss, m, z), h),
         all_ge_vals(~A, ~cmp, ss, m, z, L.and_right(SL.mle(~A, ~cmp, Some{z}, SL.slot(~A, ss, m)), low_all(~A, ~cmp, ss, m, z), h)))
 
-def all_ge_msort(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, xs: List<&2, A>, +h: {M.all_ge(~A, ~cmp, z, xs) == True{} : Bool}) -> {M.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, xs)) == True{} : Bool}:
+def all_ge_msort(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +z: A, xs: List<&2, A>, +h: {S.all_ge(~A, ~cmp, z, xs) == True{} : Bool}) -> {S.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, xs)) == True{} : Bool}:
   match xs:
     case Nil{}:
       {==}
     case Con{+x, +t}:
-      %Equal.sym(Bool, M.all_ge(~A, ~cmp, z, S.ins(~A, ~cmp, x, V.msort(~A, ~cmp, t))), Bool.and(S.le(~A, ~cmp, z, x), M.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, t))), M.all_ge_ins(~A, ~cmp, ~o, z, x, V.msort(~A, ~cmp, t))) : {_ == True{} : Bool}
-      L.and_intro(S.le(~A, ~cmp, z, x), M.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, t)),
-        L.and_left(S.le(~A, ~cmp, z, x), M.all_ge(~A, ~cmp, z, t), h),
-        all_ge_msort(~A, ~cmp, ~o, z, t, L.and_right(S.le(~A, ~cmp, z, x), M.all_ge(~A, ~cmp, z, t), h)))
+      %Equal.sym(Bool, S.all_ge(~A, ~cmp, z, S.ins(~A, ~cmp, x, V.msort(~A, ~cmp, t))), Bool.and(S.le(~A, ~cmp, z, x), S.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, t))), M.all_ge_ins(~A, ~cmp, ~o, z, x, V.msort(~A, ~cmp, t))) : {_ == True{} : Bool}
+      L.and_intro(S.le(~A, ~cmp, z, x), S.all_ge(~A, ~cmp, z, V.msort(~A, ~cmp, t)),
+        L.and_left(S.le(~A, ~cmp, z, x), S.all_ge(~A, ~cmp, z, t), h),
+        all_ge_msort(~A, ~cmp, ~o, z, t, L.and_right(S.le(~A, ~cmp, z, x), S.all_ge(~A, ~cmp, z, t), h)))
 
 # x is not larger than any slot of [0, k) => it comes first in the multiset.
 def front(~A: Data, ~cmp: A -> A -> Cmp, ~o: O.Order(~A, ~cmp), +ss: List<&2, Maybe<&2, A>>, +k: Nat, +z: A, +h: {low_all(~A, ~cmp, ss, k, z) == True{} : Bool}) -> {S.ins(~A, ~cmp, z, V.msort(~A, ~cmp, V.vals(~A, ss, k))) == Con{z, V.msort(~A, ~cmp, V.vals(~A, ss, k))} : List<&2, A>}:

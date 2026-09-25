@@ -1,7 +1,7 @@
 import Base
 import ../../lib/logic.bend as L
 import ../../lib/list.bend as LL
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ./state.bend as ST
 import ./path.bend as P
 import ./alls.bend as AL

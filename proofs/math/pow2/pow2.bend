@@ -1,6 +1,6 @@
 import Base
 import ../../lib/logic.bend as L
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../../src/math/pow2.bend as P
 
 # The tail-recursive 2^d (src/pow2.bend) is the structural spec pow2.

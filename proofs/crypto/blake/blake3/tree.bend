@@ -4,8 +4,8 @@ import ../../../../src/crypto/blake/blake3/compress.bend as C
 import ../../../../src/crypto/blake/blake3/blake3.bend as K
 import ../../../lib/logic.bend as L
 import ../../../lib/nat.bend as N
-import ../../../lib/spec_common.bend as SC
-import ./spec.bend as S
+import ../../../../spec/lib/common.bend as SC
+import ../../../../spec/crypto/blake/blake3.bend as S
 import ./compress.bend as P
 import ./lists.bend as LS
 

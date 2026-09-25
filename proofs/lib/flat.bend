@@ -1,7 +1,7 @@
 import Base
 import ./logic.bend as L
 import ./nat.bend as N
-import ./spec_common.bend as SC
+import ../../spec/lib/common.bend as SC
 import ./lemmas/proofs/nat_algebra.bend as NA
 
 # Shared arithmetic and list facts for the FLAT SPLIT-POINT LAYOUT that the

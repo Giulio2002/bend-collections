@@ -1,5 +1,5 @@
 import Base
-import ../../lib/spec_common.bend as C
+import ../../lib/common.bend as C
 import ../../../src/containers/types/balanced_search_tree.bend as E
 
 # Independent model: a finite map as its list of entries in strictly

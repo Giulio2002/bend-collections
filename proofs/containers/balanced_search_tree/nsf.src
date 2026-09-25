@@ -4,7 +4,7 @@ import ../../lib/nat.bend as N
 import ../../lib/u32.bend as U
 import ../../lib/list.bend as LL
 import ../../lib/array.bend as AR
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../../src/containers/balanced_search_tree.bend as M
 import ../dynamic_array/state.bend as DAS
 import ./bk.bend as BK

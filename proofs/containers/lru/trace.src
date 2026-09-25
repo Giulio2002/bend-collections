@@ -1,8 +1,8 @@
 import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
-import ../../lib/spec_common.bend as SC
-import ./spec.bend as SP
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/lru.bend as SP
 import ../hash_table/buckets.bend as B
 import ../hash_table/insa.bend as IA
 import ./state.bend as ST

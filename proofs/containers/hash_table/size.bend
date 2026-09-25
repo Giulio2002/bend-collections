@@ -3,8 +3,8 @@ import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/list.bend as LL
 import ../../lib/array.bend as AR
-import ../../lib/spec_common.bend as SC
-import ./spec.bend as S
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/hash_table.bend as S
 import ../../lib/u32div.bend as UD
 import ../../../src/containers/hash_table.bend as H
 import ./table.bend as TB

@@ -275,7 +275,7 @@ def compress_proof():
     ms = ws(16, 'm')
     pat = 'T.V{%s}' % csv('T.W{l%d,u%d}' % (i, i) for i in range(16))
     s = HEADER + ('import Base\nimport ../../../../src/crypto/blake/blake2b/types.bend as T\n'
-                  'import ../../../../src/crypto/blake/blake2b/compress.bend as I\nimport ./spec.bend as S\n\n')
+                  'import ../../../../src/crypto/blake/blake2b/compress.bend as I\nimport ../../../../spec/crypto/blake/blake2b.bend as S\n\n')
     mlist = '[%s]' % csv(ms)
     for r in range(ROUNDS):
         for nm, quads in (('column%d' % r, COLS), ('diagonal%d' % r, DIAGS)):
@@ -378,7 +378,7 @@ def blocks_proof():
     s = HEADER + ('import Base\nimport ../../../../src/crypto/blake/blake2b/types.bend as T\n'
                   'import ../../../../src/crypto/blake/blake2b/compress.bend as F\n'
                   'import ../../../../src/crypto/blake/blake2b/blake2b.bend as I\n'
-                  'import ./spec.bend as S\nimport ./compress.bend as C\nimport ./array.bend as A\n\n')
+                  'import ../../../../spec/crypto/blake/blake2b.bend as S\nimport ./compress.bend as C\nimport ./array.bend as A\n\n')
     lanes = csv('T.W{w%d,w%d}' % (2 * i, 2 * i + 1) for i in range(16))
     # read chain (non-final blocks)
     for k in range(NW - 1, -1, -1):
@@ -573,7 +573,7 @@ def tests_src():
     s = HEADER + '''import Base
 import ../../../../src/crypto/blake/blake2b/blake2b.bend as B
 import ../../../../src/crypto/blake/blake2b/hex.bend as H
-import ../../../../proofs/crypto/blake/blake2b/spec.bend as S
+import ../../../../spec/crypto/blake/blake2b.bend as S
 
 # BLAKE2b-512 test vectors. Expected digests come from Python's hashlib.blake2b
 # (and RFC 7693 Appendix A for "abc"). Each line prints "ok" or "FAIL"; the last

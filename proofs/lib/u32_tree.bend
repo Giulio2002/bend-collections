@@ -1,7 +1,7 @@
 import Base
 import ./logic.bend as L
 import ./array.bend as AR
-import ./spec_common.bend as SC
+import ../../spec/lib/common.bend as SC
 import ./u32div.bend as UD
 import ./words32.bend as W32
 

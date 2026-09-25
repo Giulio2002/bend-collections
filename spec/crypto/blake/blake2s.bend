@@ -1,5 +1,5 @@
 import Base
-import ../../../../src/crypto/blake/blake2s/types.bend as T
+import ../../../src/crypto/blake/blake2s/types.bend as T
 
 # Executable specification of unkeyed BLAKE2s-256, written from RFC 7693.
 # Only the neutral chaining-value record T.State is shared with the

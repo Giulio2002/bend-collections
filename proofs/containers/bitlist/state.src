@@ -1,12 +1,12 @@
 import Base
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
-import ../../lib/spec_common.bend as SC
+import ../../../spec/lib/common.bend as SC
 import ../../../src/containers/bitlist.bend as BLI
 import ../dynamic_array/state.bend as DAS
 import ../bitset/lists.bend as BL
 import ../bitset/state.bend as ST
-import ./spec.bend as S
+import ../../../spec/containers/bitlist.bend as S
 import ./da.bend as DI
 
 # Shadow, invariant and abstraction of a bitlist.

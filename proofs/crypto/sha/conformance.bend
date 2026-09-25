@@ -1,7 +1,7 @@
 import Base
 import ../../../src/crypto/sha/state.bend as S
 import ../../../src/crypto/sha/core.bend as C
-import ./spec.bend as F
+import ../../../spec/crypto/sha.bend as F
 import ./list_proofs.bend as L
 import ./padding.bend as Padding
 

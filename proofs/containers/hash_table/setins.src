@@ -4,8 +4,8 @@ import ../../lib/nat.bend as N
 import ../../lib/u32.bend as U
 import ../../lib/u32alg.bend as A
 import ../../lib/array.bend as AR
-import ../../lib/spec_common.bend as SC
-import ./spec.bend as S
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/hash_table.bend as S
 import ../../lib/u32div.bend as UD
 import ../../../src/math/hash.bend as HS
 import ../../../src/containers/hash_table.bend as H
