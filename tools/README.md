@@ -10,8 +10,12 @@ committed `.bend` proofs check without it.
 `toolchain.json` pins the Bend release the project is checked with (2.0.25) by
 path and SHA-256, and `toolchain.py` exposes it to the scripts. Paths may start
 with `~`. To use a private copy of the pinned release, set `BEND_HOME` to a
-directory holding `.bend/bin/bend` and `.bend/bend2`. The benchmark and proof
-scripts outside `tools/` fall back to `$BEND` or `bend` on the PATH.
+directory holding `.bend/bin/bend` and `.bend/bend2`. To use another compiler
+(a development build, say), set `BEND` to it, a path or a name on the PATH, and
+optionally `BEND_BASE` to its `base.bend`: every script then uses it, the pin
+check warns instead of failing, and reports record the unpinned build. The
+benchmark and proof scripts outside `tools/` fall back to `$BEND` or `bend` on
+the PATH.
 
 ## Proof sources: `.src` files and `generators/mac.py`
 
