@@ -1,0 +1,83 @@
+import Base
+import ./graph.bend as G
+import ./spec.bend as Spec
+import ./writes.bend as W
+import ../../../src/containers/intrusive_doubly_linked_list.bend as L
+
+%def TK ~S: Type, ~N: Data, ~R: Data, ~P: Data, ~I: Data
+%def GN ~N, ~R, ~P
+%def ST G.Graph<N,R,P>
+%def MN Maybe<&2,N>
+%def ED Spec.Edit<N,I>
+%def ES List<&2,$ED>
+%def AK $TK, ~real: $ST -> S, ~root: I -> R, ~sn: S -> N -> $MN -> S, ~sp: S -> N -> $MN -> S, ~sh: S -> I -> $MN -> S, ~sf: S -> I -> N -> S
+%def AA ~S, ~N, ~R, ~P, ~I, ~real, ~root, ~sn, ~sp, ~sh, ~sf
+%def SA ~S, ~N, ~I, ~sn, ~sp, ~sh, ~sf
+%def MA $GN, ~I, ~root
+
+# A shadow can contain proof-only history. real need not be injective: two
+# finite-map logs may denote the same physical array. This is a simulation
+# relation, not an impossible requirement that arrays retain the write log.
+def apply(~N: Data, ~R: Data, ~P: Data, ~I: Data, ~root: I -> R, g: $ST, e: $ED) -> $ST:
+  match e:
+    case Spec.Next{n,m}: G.sn($GN,g,n,m)
+    case Spec.Prev{n,m}: G.sp($GN,g,n,m)
+    case Spec.Head{i,m}: G.sh($GN,g,root(i),m)
+    case Spec.Nonempty{i,n}: G.sh($GN,g,root(i),Some{n})
+
+def run(~N: Data, ~R: Data, ~P: Data, ~I: Data, ~root: I -> R, es: $ES, g: $ST) -> $ST:
+  match es:
+    case Nil{}: g
+    case Con{e,rest}: run($MA,rest,apply($MA,g,e))
+
+# Only primitive setter equations are premises. They can be discharged for
+# each reachable, in-bounds state; no universal law about invalid IDs or an
+# out-of-bounds array operation is required. No list postcondition appears.
+def laws($AK, es: $ES, +g: $ST) -> Data:
+  match es:
+    case Nil{}: Unit
+    case Con{+e,+rest}: G.both({Spec.apply($SA,real(g),e) == real(apply($MA,g,e)) : S},laws($AA,rest,apply($MA,g,e)))
+
+def program_refines($AK, +es: $ES, +g: $ST, hs: laws($AA,es,g)) -> {Spec.run($SA,es,real(g)) == real(run($MA,es,g)) : S}:
+  match es hs:
+    case Nil{} _: {==}
+    case Con{+e,+rest} Tuple{he,ht}:
+      %Equal.sym(S,Spec.apply($SA,real(g),e),real(apply($MA,g,e)),he) : {Spec.run($SA,rest,_) == real(run($MA,rest,apply($MA,g,e))) : S}
+      program_refines($AA,rest,apply($MA,g,e),ht)
+
+def remove_program(~N: Data, ~R: Data, ~P: Data, ~I: Data, ~root: I -> R, +g: $ST, +i: I, +n: N, +p: $MN, +q: $MN) -> {run($MA,Spec.remove(N,I,i,n,p,q),g) == G.cut($GN,g,root(i),n,p,q) : $ST}:
+  match p q:
+    case None{} None{}: {==}
+    case None{} Some{x}: {==}
+    case Some{x} None{}: {==}
+    case Some{x} Some{y}: {==}
+
+def prepend_program(~N: Data, ~R: Data, ~P: Data, ~I: Data, ~root: I -> R, +g: $ST, +i: I, +n: N, +h: $MN) -> {run($MA,Spec.prepend(N,I,i,n,h),g) == G.attach($GN,g,root(i),n,h) : $ST}:
+  match h:
+    case None{}: {==}
+    case Some{x}: {==}
+
+%def NEXT ~next: S -> N -> S & $MN
+%def PREV ~prev: S -> N -> S & $MN
+%def GP G.prev($GN,~eq,g,n)
+%def GQ G.next($GN,~eq,g,n)
+%def RE Spec.remove(N,I,i,n,$GP,$GQ)
+%def RM L.remove(~S,~N,~I,~next,~prev,~sn,~sp,~sh,real(g),i,n)
+
+# The source/model connection reaches the actual exported remove function.
+def remove_refines($AK, ~eq: N -> N -> Bool, $NEXT, $PREV, +g: $ST, +i: I, +n: N, hn: {next(real(g),n) == (real(g),$GQ) : S & $MN}, hp: {prev(real(g),n) == (real(g),$GP) : S & $MN}, hs: laws($AA,$RE,g)) -> {$RM == real(G.remove($GN,~eq,g,root(i),n)) : S}:
+  Equal.trans(S,$RM,Spec.run($SA,$RE,real(g)),real(G.remove($GN,~eq,g,root(i),n)),
+    W.remove_writes(~S,~N,~I,~next,~prev,~sn,~sp,~sh,~sf,real(g),real(g),real(g),i,n,$GP,$GQ,hn,hp),
+    Equal.trans(S,Spec.run($SA,$RE,real(g)),real(run($MA,$RE,g)),real(G.remove($GN,~eq,g,root(i),n)),program_refines($AA,$RE,g,hs),Equal.cong($ST,S,real,run($MA,$RE,g),G.cut($GN,g,root(i),n,$GP,$GQ),remove_program($MA,g,i,n,$GP,$GQ))))
+
+%def GET ~get: S -> H -> S & $MN
+%def GH G.head($GN,~req,g,root(i))
+%def PE Spec.prepend(N,I,i,n,$GH)
+%def PP L.prepend_as(~S,~N,~H,~I,~get,~sn,~sp,~sf,real(g),h,i,n)
+
+# H and I remain distinct. The read equation expresses coherence of the
+# particular reader/writer contexts; it does not force identical types.
+def prepend_refines($AK, ~H: Data, ~req: R -> R -> Bool, $GET, +g: $ST, +h: H, +i: I, +n: N, hg: {get(real(g),h) == (real(g),$GH) : S & $MN}, hs: laws($AA,$PE,g)) -> {$PP == real(G.prepend($GN,~req,g,root(i),n)) : S}:
+  Equal.trans(S,$PP,Spec.run($SA,$PE,real(g)),real(G.prepend($GN,~req,g,root(i),n)),
+    W.prepend_writes(~S,~N,~H,~I,~get,~sn,~sp,~sh,~sf,real(g),real(g),h,i,n,$GH,hg),
+    Equal.trans(S,Spec.run($SA,$PE,real(g)),real(run($MA,$PE,g)),real(G.prepend($GN,~req,g,root(i),n)),program_refines($AA,$PE,g,hs),Equal.cong($ST,S,real,run($MA,$PE,g),G.attach($GN,g,root(i),n,$GH),prepend_program($MA,g,i,n,$GH))))

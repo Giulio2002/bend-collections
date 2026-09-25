@@ -1,0 +1,82 @@
+import Base
+import ./graph.bend as G
+import ./shape.bend as S
+
+%def TK ~N: Data, ~R: Data, ~P: Data
+%def EK $TK, ~eq: N -> N -> Bool
+%def GN ~N, ~R, ~P
+%def GE $GN, ~eq
+%def ST G.Graph<N,R,P>
+%def MN Maybe<&2,N>
+%def LN List<&2,N>
+
+def separated(~N: Data, ~eq: N -> N -> Bool, at: $MN, xs: $LN) -> Data:
+  match at:
+    case None{}: Unit
+    case Some{n}: G.away(~N,~eq,n,xs)
+
+def optional_frame($EK, +g: $ST, +at: $MN, +v: $MN, +xs: $LN, +p: $MN, +q: $MN, sep: separated(~N,~eq,at,xs), good: G.segment($GE,g,p,xs,q)) -> G.segment($GE,G.optional_prev($GN,g,at,v),p,xs,q):
+  match at:
+    case None{}: good
+    case Some{n}: S.segment_sp_frame($GE,g,n,v,xs,p,q,sep,good)
+
+# Any other chain disjoint from the edited node and its two neighbours keeps
+# every next/prev link. It may be another root in the same association.
+def remove_segment_frame($EK, +g: $ST, +r: R, +n: N, +before: $MN, +after: $MN, +xs: $LN, +p: $MN, +q: $MN, +an: G.away(~N,~eq,n,xs), ap: separated(~N,~eq,before,xs), aq: separated(~N,~eq,after,xs), good: G.segment($GE,g,p,xs,q)) -> G.segment($GE,G.cut($GN,g,r,n,before,after),p,xs,q):
+  match before:
+    case None{}:
+      S.segment_sn_frame($GE,G.sh($GN,G.optional_prev($GN,g,after,None{}),r,after),n,None{},xs,p,q,an,S.segment_sh_frame($GE,G.optional_prev($GN,g,after,None{}),r,after,xs,p,q,optional_frame($GE,g,after,None{},xs,p,q,aq,good)))
+    case Some{+prev}:
+      S.segment_sn_frame($GE,G.sp($GN,G.sn($GN,G.optional_prev($GN,g,after,Some{prev}),prev,after),n,None{}),n,None{},xs,p,q,an,
+        S.segment_sp_frame($GE,G.sn($GN,G.optional_prev($GN,g,after,Some{prev}),prev,after),n,None{},xs,p,q,an,
+          S.segment_sn_frame($GE,G.optional_prev($GN,g,after,Some{prev}),prev,after,xs,p,q,ap,optional_frame($GE,g,after,Some{prev},xs,p,q,aq,good))))
+
+def prepend_segment_frame($EK, +g: $ST, +r: R, +n: N, +head: $MN, +xs: $LN, +p: $MN, +q: $MN, an: G.away(~N,~eq,n,xs), ah: separated(~N,~eq,head,xs), good: G.segment($GE,g,p,xs,q)) -> G.segment($GE,G.attach($GN,g,r,n,head),p,xs,q):
+  S.segment_sh_frame($GE,G.optional_prev($GN,G.sn($GN,g,n,head),head,Some{n}),r,Some{n},xs,p,q,optional_frame($GE,G.sn($GN,g,n,head),head,Some{n},xs,p,q,ah,S.segment_sn_frame($GE,g,n,head,xs,p,q,an,good)))
+
+def root_effect($TK, ~req: R -> R -> Bool, +g: $ST, +r: R, p: $MN, q: $MN, +x: R) -> $MN:
+  match p:
+    case None{}: G.choose(~$MN,req(r,x),q,G.head($GN,~req,g,x))
+    case Some{n}: G.head($GN,~req,g,x)
+
+def remove_root_effect($TK, ~req: R -> R -> Bool, +g: $ST, +r: R, +n: N, +p: $MN, +q: $MN, +x: R) -> {G.head($GN,~req,G.cut($GN,g,r,n,p,q),x) == root_effect($GN,~req,g,r,p,q,x) : $MN}:
+  match g p q:
+    case G.Graph{ns,ps,rs,f} None{} None{}: {==}
+    case G.Graph{ns,ps,rs,f} None{} Some{a}: {==}
+    case G.Graph{ns,ps,rs,f} Some{a} None{}: {==}
+    case G.Graph{ns,ps,rs,f} Some{a} Some{b}: {==}
+
+def root_effect_other($TK, ~req: R -> R -> Bool, +g: $ST, +r: R, +p: $MN, +q: $MN, +x: R, neq: {req(r,x) == False{} : Bool}) -> {root_effect($GN,~req,g,r,p,q,x) == G.head($GN,~req,g,x) : $MN}:
+  match p:
+    case None{}:
+      %Equal.sym(Bool,req(r,x),False{},neq) : {G.choose(~$MN,_,q,G.head($GN,~req,g,x)) == G.head($GN,~req,g,x) : $MN}
+      {==}
+    case Some{n}: {==}
+
+def remove_other_root($TK, ~req: R -> R -> Bool, +g: $ST, +r: R, +n: N, +p: $MN, +q: $MN, +x: R, neq: {req(r,x) == False{} : Bool}) -> {G.head($GN,~req,G.cut($GN,g,r,n,p,q),x) == G.head($GN,~req,g,x) : $MN}:
+  Equal.trans($MN,G.head($GN,~req,G.cut($GN,g,r,n,p,q),x),root_effect($GN,~req,g,r,p,q,x),G.head($GN,~req,g,x),remove_root_effect($GN,~req,g,r,n,p,q,x),root_effect_other($GN,~req,g,r,p,q,x,neq))
+
+def prepend_root_effect($TK, ~req: R -> R -> Bool, +g: $ST, +r: R, +n: N, +h: $MN, +x: R) -> {G.head($GN,~req,G.attach($GN,g,r,n,h),x) == G.choose(~$MN,req(r,x),Some{n},G.head($GN,~req,g,x)) : $MN}:
+  match g h:
+    case G.Graph{ns,ps,rs,f} None{}: {==}
+    case G.Graph{ns,ps,rs,f} Some{a}: {==}
+
+def prepend_other_root($TK, ~req: R -> R -> Bool, +g: $ST, +r: R, +n: N, +h: $MN, +x: R, neq: {req(r,x) == False{} : Bool}) -> {G.head($GN,~req,G.attach($GN,g,r,n,h),x) == G.head($GN,~req,g,x) : $MN}:
+  %Equal.sym($MN,G.head($GN,~req,G.attach($GN,g,r,n,h),x),G.choose(~$MN,req(r,x),Some{n},G.head($GN,~req,g,x)),prepend_root_effect($GN,~req,g,r,n,h,x)) : {_ == G.head($GN,~req,g,x) : $MN}
+  %Equal.sym(Bool,req(r,x),False{},neq) : {G.choose(~$MN,_,Some{n},G.head($GN,~req,g,x)) == G.head($GN,~req,g,x) : $MN}
+  {==}
+
+def removed_next($EK, +g: $ST, +r: R, +n: N, +p: $MN, +q: $MN, same: {eq(n,n) == True{} : Bool}) -> {G.next($GE,G.cut($GN,g,r,n,p,q),n) == None{} : $MN}:
+  match p:
+    case None{}: S.next_sn_self($GE,G.sh($GN,G.optional_prev($GN,g,q,None{}),r,q),n,None{},same)
+    case Some{prev}: S.next_sn_self($GE,G.sp($GN,G.sn($GN,G.optional_prev($GN,g,q,Some{prev}),prev,q),n,None{}),n,None{},same)
+
+def removed_nonhead_prev($EK, +g: $ST, +r: R, +n: N, +p: N, +q: $MN, same: {eq(n,n) == True{} : Bool}) -> {G.prev($GE,G.cut($GN,g,r,n,Some{p},q),n) == None{} : $MN}:
+  Equal.trans($MN,G.prev($GE,G.cut($GN,g,r,n,Some{p},q),n),G.prev($GE,G.sp($GN,G.sn($GN,G.optional_prev($GN,g,q,Some{p}),p,q),n,None{}),n),None{},S.prev_sn($GE,G.sp($GN,G.sn($GN,G.optional_prev($GN,g,q,Some{p}),p,q),n,None{}),n,None{},n),S.prev_sp_self($GE,G.sn($GN,G.optional_prev($GN,g,q,Some{p}),p,q),n,None{},same))
+
+def removed_head_prev($EK, +g: $ST, +r: R, +n: N, +q: $MN, hp: {G.prev($GE,g,n) == None{} : $MN}, aq: separated(~N,~eq,q,Con{n,Nil{}})) -> {G.prev($GE,G.cut($GN,g,r,n,None{},q),n) == None{} : $MN}:
+  match q aq:
+    case None{} _:
+      Equal.trans($MN,G.prev($GE,G.cut($GN,g,r,n,None{},None{}),n),G.prev($GE,G.sh($GN,g,r,None{}),n),None{},S.prev_sn($GE,G.sh($GN,g,r,None{}),n,None{},n),Equal.trans($MN,G.prev($GE,G.sh($GN,g,r,None{}),n),G.prev($GE,g,n),None{},S.prev_sh($GE,g,r,None{},n),hp))
+    case Some{+x} Tuple{Tuple{neq,rev},rest}:
+      Equal.trans($MN,G.prev($GE,G.cut($GN,g,r,n,None{},Some{x}),n),G.prev($GE,G.sh($GN,G.sp($GN,g,x,None{}),r,Some{x}),n),None{},S.prev_sn($GE,G.sh($GN,G.sp($GN,g,x,None{}),r,Some{x}),n,None{},n),Equal.trans($MN,G.prev($GE,G.sh($GN,G.sp($GN,g,x,None{}),r,Some{x}),n),G.prev($GE,G.sp($GN,g,x,None{}),n),None{},S.prev_sh($GE,G.sp($GN,g,x,None{}),r,Some{x},n),Equal.trans($MN,G.prev($GE,G.sp($GN,g,x,None{}),n),G.prev($GE,g,n),None{},S.prev_sp_other($GE,g,x,None{},n,neq),hp)))

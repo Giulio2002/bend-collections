@@ -1,0 +1,129 @@
+import Base
+import ./graph.bend as G
+import ./shape.bend as S
+
+%def TK ~N: Data, ~R: Data, ~P: Data
+%def EK $TK, ~eq: N -> N -> Bool
+%def RK $EK, ~req: R -> R -> Bool
+%def GN ~N, ~R, ~P
+%def GE $GN, ~eq
+%def GR $GE, ~req
+%def ST G.Graph<N,R,P>
+%def MN Maybe<&2,N>
+%def LN List<&2,N>
+%def A1 G.sn($GN,g,n,Some{h})
+%def A2 G.sp($GN,$A1,h,Some{n})
+%def A3 G.sh($GN,$A2,r,Some{n})
+
+# Prepend preserves a whole reciprocal, unique chain. Identity comparison is
+# proof-only; the production algorithm still performs only its field accesses.
+def prepend_valid($RK, ~reflex: @x: N -> {eq(x,x) == True{} : Bool}, +g: $ST, +r: R, +n: N, +xs: $LN, +rsame: {req(r,r) == True{} : Bool}, +un: G.unique(~N,~eq,xs), +away: G.away(~N,~eq,n,xs), +detached: {G.prev($GE,g,n) == None{} : $MN}, good: G.segment($GE,g,None{},xs,None{})) -> G.valid($GR,G.attach($GN,g,r,n,G.first(~N,xs,None{})),r,Con{n,xs}):
+  match xs un away:
+    case Nil{} _ _:
+      ((Unit{},Unit{}),
+       (S.head_sh_self($GN,~req,G.sn($GN,g,n,None{}),r,Some{n},rsame),
+        (Equal.trans($MN,G.prev($GE,G.sh($GN,G.sn($GN,g,n,None{}),r,Some{n}),n),G.prev($GE,G.sn($GN,g,n,None{}),n),None{},S.prev_sh($GE,G.sn($GN,g,n,None{}),r,Some{n},n),Equal.trans($MN,G.prev($GE,G.sn($GN,g,n,None{}),n),G.prev($GE,g,n),None{},S.prev_sn($GE,g,n,None{},n),detached)),
+         (Equal.trans($MN,G.next($GE,G.sh($GN,G.sn($GN,g,n,None{}),r,Some{n}),n),G.next($GE,G.sn($GN,g,n,None{}),n),None{},S.next_sh($GE,G.sn($GN,g,n,None{}),r,Some{n},n),S.next_sn_self($GE,g,n,None{},reflex(n))),Unit{}))))
+    case Con{+h,+tail} Tuple{+ah,+ut} Tuple{Tuple{+nh,+hn},+at}:
+      (((((nh,hn),at)),(ah,ut)),
+       (S.head_sh_self($GN,~req,$A2,r,Some{n},rsame),
+        (Equal.trans($MN,G.prev($GE,$A3,n),G.prev($GE,$A2,n),None{},S.prev_sh($GE,$A2,r,Some{n},n),Equal.trans($MN,G.prev($GE,$A2,n),G.prev($GE,$A1,n),None{},S.prev_sp_other($GE,$A1,h,Some{n},n,hn),Equal.trans($MN,G.prev($GE,$A1,n),G.prev($GE,g,n),None{},S.prev_sn($GE,g,n,Some{h},n),detached))),
+         (Equal.trans($MN,G.next($GE,$A3,n),G.next($GE,$A2,n),Some{h},S.next_sh($GE,$A2,r,Some{n},n),Equal.trans($MN,G.next($GE,$A2,n),G.next($GE,$A1,n),Some{h},S.next_sp($GE,$A1,h,Some{n},n),S.next_sn_self($GE,g,n,Some{h},reflex(n)))),
+          S.segment_sh_frame($GE,$A2,r,Some{n},Con{h,tail},Some{n},None{},S.segment_first_prev($GE,$A1,h,tail,None{},None{},Some{n},reflex(h),ah,S.segment_sn_frame($GE,g,n,Some{h},Con{h,tail},None{},None{},((nh,hn),at),good)))))))
+
+%def H1 G.optional_prev($GN,g,G.first(~N,xs,None{}),None{})
+%def H2 G.sh($GN,$H1,r,G.first(~N,xs,None{}))
+%def H3 G.sn($GN,$H2,n,None{})
+
+def remove_head_valid($RK, ~reflex: @x: N -> {eq(x,x) == True{} : Bool}, +g: $ST, +r: R, +n: N, +xs: $LN, +rsame: {req(r,r) == True{} : Bool}, +un: G.unique(~N,~eq,xs), away: G.away(~N,~eq,n,xs), good: G.segment($GE,g,Some{n},xs,None{})) -> G.valid($GR,G.cut($GN,g,r,n,None{},G.first(~N,xs,None{})),r,xs):
+  match xs un:
+    case Nil{} _:
+      (Unit{},(Equal.trans($MN,G.head($GN,~req,G.sn($GN,G.sh($GN,g,r,None{}),n,None{}),r),G.head($GN,~req,G.sh($GN,g,r,None{}),r),None{},S.head_sn($GN,~req,G.sh($GN,g,r,None{}),n,None{},r),S.head_sh_self($GN,~req,g,r,None{},rsame)),Unit{}))
+    case Con{+h,+tail} Tuple{+ah,+ut}:
+      ((ah,ut),
+       (Equal.trans($MN,G.head($GN,~req,$H3,r),G.head($GN,~req,$H2,r),Some{h},S.head_sn($GN,~req,$H2,n,None{},r),S.head_sh_self($GN,~req,$H1,r,Some{h},rsame)),
+        S.segment_sn_frame($GE,$H2,n,None{},Con{h,tail},None{},None{},away,S.segment_sh_frame($GE,$H1,r,Some{h},Con{h,tail},None{},None{},S.segment_first_prev($GE,g,h,tail,Some{n},None{},None{},reflex(h),ah,good)))))
+
+def optional_prefix($EK, +g: $ST, +prefix: $LN, +suffix: $LN, +p: N, +n: N, dis: G.disjoint(~N,~eq,prefix,suffix), good: G.segment($GE,g,None{},prefix,Some{n})) -> G.segment($GE,G.optional_prev($GN,g,G.first(~N,suffix,None{}),Some{p}),None{},prefix,Some{n}):
+  match suffix:
+    case Nil{}: good
+    case Con{+h,+tail}: S.segment_sp_frame($GE,g,h,Some{p},prefix,None{},Some{n},S.disjoint_head(~N,~eq,prefix,h,tail,dis),good)
+
+def optional_suffix($EK, ~reflex: @x: N -> {eq(x,x) == True{} : Bool}, +g: $ST, +suffix: $LN, +p: N, +n: N, un: G.unique(~N,~eq,suffix), good: G.segment($GE,g,Some{n},suffix,None{})) -> G.segment($GE,G.optional_prev($GN,g,G.first(~N,suffix,None{}),Some{p}),Some{p},suffix,None{}):
+  match suffix un:
+    case Nil{} _: Unit{}
+    case Con{+h,+tail} Tuple{ah,ut}: S.segment_first_prev($GE,g,h,tail,Some{n},None{},Some{p},reflex(h),ah,good)
+
+def cut_nonhead_root($TK, ~req: R -> R -> Bool, +g: $ST, +r: R, +n: N, +p: N, +q: $MN, +x: R) -> {G.head($GN,~req,G.cut($GN,g,r,n,Some{p},q),x) == G.head($GN,~req,g,x) : $MN}:
+  match g q:
+    case G.Graph{ns,ps,rs,f} None{}: {==}
+    case G.Graph{ns,ps,rs,f} Some{h}: {==}
+
+def join_last($EK, +a: $LN, +g: $ST, +p: N, +b: $LN, ga: G.segment($GE,g,None{},G.append(~N,a,Con{p,Nil{}}),G.first(~N,b,None{})), gb: G.segment($GE,g,Some{p},b,None{})) -> G.segment($GE,g,None{},G.append(~N,G.append(~N,a,Con{p,Nil{}}),b),None{}):
+  S.segment_join($GE,G.append(~N,a,Con{p,Nil{}}),g,b,None{},None{},ga,
+    %Equal.sym($MN,G.last(~N,G.append(~N,a,Con{p,Nil{}}),None{}),Some{p},S.last_end(~N,a,p,None{})) : G.segment($GE,g,_,b,None{})
+    gb)
+
+%def PREFIX G.append(~N,a,Con{p,Nil{}})
+%def Q G.first(~N,b,None{})
+%def C1 G.optional_prev($GN,g,$Q,Some{p})
+%def C2 G.sn($GN,$C1,p,$Q)
+%def C3 G.sp($GN,$C2,n,None{})
+%def C4 G.sn($GN,$C3,n,None{})
+
+# The input is a zipper around the known member. Its premises are exactly
+# separate, unique prefix/member/suffix identities and their old field facts;
+# no postcondition is assumed. Prefix and suffix can have arbitrary lengths.
+def remove_nonhead_valid($RK, ~reflex: @x: N -> {eq(x,x) == True{} : Bool}, +g: $ST, +r: R, +n: N, +a: $LN, +p: N, +b: $LN, +up: G.unique(~N,~eq,$PREFIX), +ub: G.unique(~N,~eq,b), +dis: G.disjoint(~N,~eq,$PREFIX,b), +np: G.away(~N,~eq,n,$PREFIX), +nb: G.away(~N,~eq,n,b), root: {G.head($GN,~req,g,r) == G.first(~N,$PREFIX,None{}) : $MN}, prefix: G.segment($GE,g,None{},$PREFIX,Some{n}), suffix: G.segment($GE,g,Some{n},b,None{})) -> G.valid($GR,G.cut($GN,g,r,n,Some{p},$Q),r,G.append(~N,$PREFIX,b)):
+  (S.unique_join(~N,~eq,$PREFIX,b,up,ub,dis),
+   (Equal.trans($MN,G.head($GN,~req,$C4,r),G.head($GN,~req,g,r),G.first(~N,G.append(~N,$PREFIX,b),None{}),cut_nonhead_root($GN,~req,g,r,n,p,$Q,r),
+      Equal.trans($MN,G.head($GN,~req,g,r),G.first(~N,$PREFIX,None{}),G.first(~N,G.append(~N,$PREFIX,b),None{}),root,
+        Equal.trans($MN,G.first(~N,$PREFIX,None{}),G.first(~N,$PREFIX,$Q),G.first(~N,G.append(~N,$PREFIX,b),None{}),S.first_end(~N,a,p,None{},$Q),Equal.sym($MN,G.first(~N,G.append(~N,$PREFIX,b),None{}),G.first(~N,$PREFIX,$Q),S.first_append(~N,$PREFIX,b,None{}))))),
+    join_last($GE,a,$C4,p,b,
+      S.segment_sn_frame($GE,$C3,n,None{},$PREFIX,None{},$Q,np,
+        S.segment_sp_frame($GE,$C2,n,None{},$PREFIX,None{},$Q,np,
+          S.segment_last_next($GE,$C1,a,p,None{},Some{n},$Q,reflex(p),up,optional_prefix($GE,g,$PREFIX,b,p,n,dis,prefix)))),
+      S.segment_sn_frame($GE,$C3,n,None{},b,Some{p},None{},nb,
+        S.segment_sp_frame($GE,$C2,n,None{},b,Some{p},None{},nb,
+          S.segment_sn_frame($GE,$C1,p,$Q,b,Some{p},None{},S.disjoint_last(~N,~eq,a,p,b,dis),optional_suffix($GE,~reflex,g,b,p,n,ub,suffix)))))))
+
+# Public semantic statements: all input facts are taken from valid(g,order).
+def prepend_preserves($RK, ~reflex: @x: N -> {eq(x,x) == True{} : Bool}, +g: $ST, +r: R, +n: N, +xs: $LN, rsame: {req(r,r) == True{} : Bool}, away: G.away(~N,~eq,n,xs), detached: {G.prev($GE,g,n) == None{} : $MN}, valid: G.valid($GR,g,r,xs)) -> G.valid($GR,G.prepend($GN,~req,g,r,n),r,Con{n,xs}):
+  match valid:
+    case Tuple{un,Tuple{root,good}}:
+      %Equal.sym($MN,G.head($GN,~req,g,r),G.first(~N,xs,None{}),root) : G.valid($GR,G.attach($GN,g,r,n,_),r,Con{n,xs})
+      prepend_valid($GR,~reflex,g,r,n,xs,rsame,un,away,detached,good)
+
+def remove_head_preserves($RK, ~reflex: @x: N -> {eq(x,x) == True{} : Bool}, +g: $ST, +r: R, +n: N, +xs: $LN, rsame: {req(r,r) == True{} : Bool}, valid: G.valid($GR,g,r,Con{n,xs})) -> G.valid($GR,G.remove($GE,g,r,n),r,xs):
+  match valid:
+    case Tuple{Tuple{away,un},Tuple{root,Tuple{hp,Tuple{hn,good}}}}:
+      %Equal.sym($MN,G.prev($GE,g,n),None{},hp) : G.valid($GR,G.cut($GN,g,r,n,_,G.next($GE,g,n)),r,xs)
+      %Equal.sym($MN,G.next($GE,g,n),G.first(~N,xs,None{}),hn) : G.valid($GR,G.cut($GN,g,r,n,None{},_),r,xs)
+      remove_head_valid($GR,~reflex,g,r,n,xs,rsame,un,away,good)
+
+def remove_nonhead_preserves($RK, ~reflex: @x: N -> {eq(x,x) == True{} : Bool}, +g: $ST, +r: R, +n: N, +a: $LN, +p: N, +b: $LN, valid: G.valid($GR,g,r,G.append(~N,$PREFIX,Con{n,b}))) -> G.valid($GR,G.remove($GE,g,r,n),r,G.append(~N,$PREFIX,b)):
+  match valid:
+    case Tuple{un0,Tuple{root,good0}}:
+      +un : G.unique(~N,~eq,G.append(~N,$PREFIX,Con{n,b})) = un0
+      +good : G.segment($GE,g,None{},G.append(~N,$PREFIX,Con{n,b}),None{}) = good0
+      +remaining : G.unique(~N,~eq,G.append(~N,$PREFIX,b)) = S.unique_delete(~N,~eq,$PREFIX,n,b,un)
+      +away : G.away(~N,~eq,n,G.append(~N,$PREFIX,b)) = S.deleted_away(~N,~eq,$PREFIX,n,b,un)
+      %Equal.sym($MN,G.prev($GE,g,n),Some{p},Equal.trans($MN,G.prev($GE,g,n),G.last(~N,$PREFIX,None{}),Some{p},S.member_prev($GE,$PREFIX,g,n,b,None{},None{},good),S.last_end(~N,a,p,None{}))) : G.valid($GR,G.cut($GN,g,r,n,_,G.next($GE,g,n)),r,G.append(~N,$PREFIX,b))
+      %Equal.sym($MN,G.next($GE,g,n),$Q,S.member_next($GE,$PREFIX,g,n,b,None{},None{},good)) : G.valid($GR,G.cut($GN,g,r,n,Some{p},_),r,G.append(~N,$PREFIX,b))
+      remove_nonhead_valid($GR,~reflex,g,r,n,a,p,b,
+        S.unique_left(~N,~eq,$PREFIX,b,remaining),S.unique_right(~N,~eq,$PREFIX,b,remaining),S.disjoint_unique(~N,~eq,$PREFIX,b,remaining),
+        S.away_left(~N,~eq,$PREFIX,b,n,away),S.away_right(~N,~eq,$PREFIX,b,n,away),
+        Equal.trans($MN,G.head($GN,~req,g,r),G.first(~N,G.append(~N,$PREFIX,Con{n,b}),None{}),G.first(~N,$PREFIX,None{}),root,Equal.trans($MN,G.first(~N,G.append(~N,$PREFIX,Con{n,b}),None{}),G.first(~N,$PREFIX,Some{n}),G.first(~N,$PREFIX,None{}),S.first_middle(~N,$PREFIX,n,b,None{}),S.first_end(~N,a,p,Some{n},None{}))),
+        S.prefix_segment($GE,$PREFIX,g,n,b,None{},None{},good),S.suffix_segment($GE,$PREFIX,g,n,b,None{},None{},good))
+
+def attach_frame($TK, +g: $ST, +r: R, +n: N, +h: $MN) -> {G.frame($GN,G.attach($GN,g,r,n,h)) == G.frame($GN,g) : P}:
+  match g h:
+    case G.Graph{ns,ps,rs,f} None{}: {==}
+    case G.Graph{ns,ps,rs,f} Some{x}: {==}
+
+def cut_frame($TK, +g: $ST, +r: R, +n: N, +p: $MN, +q: $MN) -> {G.frame($GN,G.cut($GN,g,r,n,p,q)) == G.frame($GN,g) : P}:
+  match g p q:
+    case G.Graph{ns,ps,rs,f} None{} None{}: {==}
+    case G.Graph{ns,ps,rs,f} None{} Some{x}: {==}
+    case G.Graph{ns,ps,rs,f} Some{x} None{}: {==}
+    case G.Graph{ns,ps,rs,f} Some{x} Some{y}: {==}
