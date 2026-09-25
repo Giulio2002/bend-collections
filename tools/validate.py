@@ -51,7 +51,7 @@ import oracles  # noqa: E402
 import scenarios  # noqa: E402
 from mutants import MUTANTS  # noqa: E402
 
-from toolchain import LOCK, BEND, BASE, ENV  # noqa: E402
+from toolchain import LOCK, BEND, BASE, ENV, PINNED, VERSION  # noqa: E402
 BUILD = ROOT / 'build'
 BIN = BUILD / 'bin'
 MUTDIR = BUILD / 'mutants'
@@ -244,7 +244,9 @@ def main():
     ap.add_argument('--only', default=None, help='validate a single structure')
     args = ap.parse_args()
 
-    if sha(BEND) != LOCK['binary_sha256'] or sha(BASE) != LOCK['base_sha256']:
+    if not PINNED:
+        print('unpinned toolchain (BEND=%s): the report records it as such' % BEND, file=sys.stderr)
+    elif sha(BEND) != LOCK['binary_sha256'] or sha(BASE) != LOCK['base_sha256']:
         print('pinned toolchain changed', file=sys.stderr)
         return 1
 
@@ -393,8 +395,9 @@ def main():
         'failures': FAILURES,
         'trace_seeds': scenarios.SEEDS,
         'source_sha256': hashed,
-        'toolchain': {'bend': BEND, 'bend_version': LOCK['version'],
-                      'bend_sha256': sha(BEND), 'base_sha256': sha(BASE),
+        'toolchain': {'bend': BEND, 'bend_version': VERSION, 'pinned': PINNED,
+                      'bend_sha256': sha(BEND),
+                      'base_sha256': sha(BASE) if Path(BASE).exists() else None,
                       'backend': 'native-c (bend <file> -o <bin>)',
                       'lru_backend': 'retained reference: bend run mode (its Word(64n) metrics exceed the native arity limit); benchmarked port src/lru/fast.bend: native-c'},
         'environment': {'platform': platform.platform(),

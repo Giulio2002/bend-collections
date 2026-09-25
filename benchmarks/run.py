@@ -83,12 +83,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'benchmarks'))
 from workloads import TABLE  # noqa: E402
 
-_PIN = ROOT / 'tools' / 'toolchain.json'   # a local pin, when present
-if _PIN.exists():
+_PIN = ROOT / 'tools' / 'toolchain.json'   # a local pin, when present; $BEND overrides it
+if _PIN.exists() and not os.environ.get('BEND'):
     LOCK = json.loads(_PIN.read_text())
 else:
     _b = os.environ.get('BEND', shutil.which('bend') or 'bend')
-    LOCK = {'binary': _b, 'version': subprocess.run([_b, '--version'], capture_output=True, text=True).stdout.strip()}
+    _b = shutil.which(os.path.expanduser(_b)) or _b
+    _v = [subprocess.run([_b, f], capture_output=True, text=True) for f in ('--version', 'version')]  # releases, newer builds
+    LOCK = {'binary': _b, 'version': next((p.stdout.strip() for p in _v if p.returncode == 0 and p.stdout.strip()), 'unknown')}
 CONTRACT = json.loads((ROOT / 'benchmarks' / 'contract.json').read_text())
 BEND = os.path.expanduser(LOCK['binary'])
 ENV = {**os.environ, 'BEND_NO_TELEMETRY': '1'}
