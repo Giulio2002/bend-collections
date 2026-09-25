@@ -113,7 +113,7 @@ law store:
   for +value: V
   for +deadline: T.Int64
   for flag: Bool
-  for events: List<&2, T.Event<K, V>>
+  for events: List<&2, T.LruEvent<K, V>>
   for +valid: {F.storage_critbit(K, V, c) == True{} : Bool}
   for +populated: {Packed.storage_populated(K, V, c) == True{} : Bool}
   for +included: {D.membership(K, V, c) == True{} : Bool}

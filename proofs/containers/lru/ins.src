@@ -45,7 +45,6 @@ import ../hash_table/insm.bend as IM
 import ../hash_table/insu.bend as IU
 import ../hash_table/insert.bend as IS
 import ../hash_table/modn.bend as M
-import ../../../src/math/hash.bend as HS
 import ../../lib/u32.bend as UW
 import ../../lib/nat_list.bend as NL
 import ../../lib/links.bend as LK

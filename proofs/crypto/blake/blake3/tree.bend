@@ -60,13 +60,13 @@ def emps(h: Nat, y: K.Stack) -> K.Stack:
 # The stack t with h empty slots below it (the empty stack stays empty).
 def E(+h: Nat, t: K.Stack) -> K.Stack:
   match t:
-    case K.SNil{}: K.SNil{}
+    case K.StkNil{}: K.StkNil{}
     case K.SEmpty{r}: emps(h,K.SEmpty{r})
     case K.SFull{c,r}: emps(h,K.SFull{c,r})
 
 def lift(t: K.Stack) -> K.Stack:
   match t:
-    case K.SNil{}: K.SNil{}
+    case K.StkNil{}: K.StkNil{}
     case K.SEmpty{r}: K.SEmpty{K.SEmpty{r}}
     case K.SFull{c,r}: K.SEmpty{K.SFull{c,r}}
 
@@ -86,31 +86,31 @@ def cvs(xs: List<&2,T.Out>) -> List<&2,T.CV>:
 
 def E_succ(+g: Nat, +t: K.Stack) -> {E(1n+g,t) == E(g,lift(t)) : K.Stack}:
   match t:
-    case K.SNil{}: {==}
+    case K.StkNil{}: {==}
     case K.SEmpty{+r}: {==}
     case K.SFull{+c,+r}: {==}
 
 def E_zero(+t: K.Stack) -> {E(0n,t) == t : K.Stack}:
   match t:
-    case K.SNil{}: {==}
+    case K.StkNil{}: {==}
     case K.SEmpty{+r}: {==}
     case K.SFull{+c,+r}: {==}
 
 def push_lift(+t: K.Stack, +c: T.CV) -> {K.push(lift(t),c) == K.SFull{c,t} : K.Stack}:
   match t:
-    case K.SNil{}: {==}
+    case K.StkNil{}: {==}
     case K.SEmpty{+r}: {==}
     case K.SFull{+d,+r}: {==}
 
 def lift_push(+t: K.Stack, +c: T.CV) -> {lift(K.push(t,c)) == K.SEmpty{K.push(t,c)} : K.Stack}:
   match t:
-    case K.SNil{}: {==}
+    case K.StkNil{}: {==}
     case K.SEmpty{+r}: {==}
     case K.SFull{+d,+r}: {==}
 
 def finish_lift(+t: K.Stack, +o: T.Out) -> {K.finish(lift(t),o) == K.finish(t,o) : T.Out}:
   match t:
-    case K.SNil{}: {==}
+    case K.StkNil{}: {==}
     case K.SEmpty{+r}: {==}
     case K.SFull{+d,+r}: {==}
 
@@ -303,5 +303,5 @@ def partial(+g: Nat, +fs: List<&2,T.Out>, +o: T.Out, +t: K.Stack, +hl: {Nat.is_l
       partial_split(p,fs,o,t,hl,Nat.is_lt(SC.length(T.Out,fs),SC.pow2(p)),{==},f2 => t2 => h2 => partial(p,f2,o,t2,h2))
 
 # The whole message: the stack starts empty and the height is the chunk count.
-def tree_stack(+fs: List<&2,T.Out>, +o: T.Out) -> {K.finish(push_all(K.SNil{},cvs(fs)),o) == S.tree(1n+SC.length(T.Out,fs),SC.append(T.Out,fs,Con{o,Nil{}})) : T.Out}:
-  partial(1n+SC.length(T.Out,fs),fs,o,K.SNil{},LS.lt_pow2_succ(SC.length(T.Out,fs)))
+def tree_stack(+fs: List<&2,T.Out>, +o: T.Out) -> {K.finish(push_all(K.StkNil{},cvs(fs)),o) == S.tree(1n+SC.length(T.Out,fs),SC.append(T.Out,fs,Con{o,Nil{}})) : T.Out}:
+  partial(1n+SC.length(T.Out,fs),fs,o,K.StkNil{},LS.lt_pow2_succ(SC.length(T.Out,fs)))

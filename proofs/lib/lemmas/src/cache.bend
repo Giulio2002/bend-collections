@@ -7,7 +7,7 @@ type Cache<-K: Data, -V: Data> is Data:
   State{capacity: Nat, table: Map<&2, Maybe<&2, T.Entry<K, V>>>, order: List<&2, String>, lifetime: T.Int64, counts: T.Metrics, callback: Bool}
 
 type Step<-K: Data, -V: Data> is Data:
-  Out{cache: Cache<K, V>, item: Maybe<&2, T.Entry<K, V>>, flag: Bool, events: List<&2, T.Event<K, V>>}
+  Out{cache: Cache<K, V>, item: Maybe<&2, T.Entry<K, V>>, flag: Bool, events: List<&2, T.LruEvent<K, V>>}
 
 def init(-K: Data, -V: Data, capacity: Nat) -> Cache<K, V>:
   State{capacity, Map.new(&2, Maybe<&2, T.Entry<K, V>>), Nil{}, T.I64{Word.zero(64n)}, T.zero_metrics(), False{}}
@@ -59,7 +59,7 @@ def without(xs, key):
     case Con{+h, tail}:
       without_keep(h, without(tail, key), String.eq(h, key))
 
-def events(-K: Data, -V: Data, cb: Bool, e: T.Entry<K, V>) -> List<&2, T.Event<K, V>>:
+def events(-K: Data, -V: Data, cb: Bool, e: T.Entry<K, V>) -> List<&2, T.LruEvent<K, V>>:
   match cb:
     case False{}:
       Nil{}
@@ -111,7 +111,7 @@ def remove_oldest(-K: Data, -V: Data, +c: Cache<K, V>, evict: Bool) -> Step<K, V
   State{cap, m, order, life, counts, cb} = c
   oldest_remove(K, V, c, order, evict)
 
-def store(-K: Data, -V: Data, +c: Cache<K, V>, +code: String, key: K, value: V, deadline: T.Int64, flag: Bool, evs: List<&2, T.Event<K, V>>) -> Step<K, V>:
+def store(-K: Data, -V: Data, +c: Cache<K, V>, +code: String, key: K, value: V, deadline: T.Int64, flag: Bool, evs: List<&2, T.LruEvent<K, V>>) -> Step<K, V>:
   State{cap, m, order, life, counts, cb} = c
   T.Counts{i, e, r, h, s} = counts
   Out{State{cap, Map.set(&2, Maybe<&2, T.Entry<K, V>>, m, code, Some{T.Item{key, value, deadline}}), List.append(&2, String, without(order, code), Con{code, Nil{}}), life, T.Counts{Word.inc(64n, i), e, r, h, s}, cb}, None{}, flag, evs}
@@ -241,7 +241,7 @@ def step_cache(-K: Data, -V: Data, s: Step<K, V>) -> Cache<K, V>:
   Out{c, item, flag, evs} = s
   c
 
-def step_events(-K: Data, -V: Data, s: Step<K, V>) -> List<&2, T.Event<K, V>>:
+def step_events(-K: Data, -V: Data, s: Step<K, V>) -> List<&2, T.LruEvent<K, V>>:
   Out{c, item, flag, evs} = s
   evs
 
@@ -257,7 +257,7 @@ def purge_loop(-K: Data, -V: Data, fuel: Nat, c: Cache<K, V>) -> Step<K, V>:
     case 1n+p:
       +step = remove_oldest(K, V, c, False{})
       +rest = purge_loop(K, V, p, step_cache(K, V, step))
-      Out{step_cache(K, V, rest), None{}, False{}, List.append(&2, T.Event<K, V>, step_events(K, V, step), step_events(K, V, rest))}
+      Out{step_cache(K, V, rest), None{}, False{}, List.append(&2, T.LruEvent<K, V>, step_events(K, V, step), step_events(K, V, rest))}
 
 def purge(-K: Data, -V: Data, +c: Cache<K, V>) -> Step<K, V>:
   purge_loop(K, V, len(K, V, c), c)

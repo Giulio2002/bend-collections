@@ -19,6 +19,7 @@ benchmarked against optimized C implementations of the same algorithms.
 | Hash map | `src/containers/hash_table.bend` | String keys, Base.Map-style API |
 | LRU cache | `src/containers/lru.bend` | String keys, lifetimes, 64-bit metrics |
 | SHA-256 | `src/crypto/sha/sha256.bend` | FIPS 180-4, from [bend-sha256](https://github.com/Giulio2002/bend-sha256) |
+| SHA-256 (packed) | `src/crypto/sha/packed/sha256.bend` | the same hash over a packed `Array<U32>` and a byte length, no list on the path; laws in `proofs/crypto/sha/packed/laws.bend` |
 | Keccak-256 | `src/crypto/keccak/keccak.bend` | Ethereum Keccak-256 (MIT), from [bend-keccak](https://github.com/Giulio2002/bend-keccak) |
 | BLAKE2s | `src/crypto/blake/blake2s/blake2s.bend` | RFC 7693, 32-byte digest |
 | BLAKE2b | `src/crypto/blake/blake2b/blake2b.bend` | RFC 7693, 64-byte digest |
@@ -82,7 +83,7 @@ tools/            proof generators (mac.py expands the .src proof sources),
 
 ## Requirements
 
-Bend 2.0.25 (pinned in `tools/toolchain.json`), clang and Python 3.
+Bend 2.0.28 (pinned in `tools/toolchain.json`), clang and Python 3.
 
 ## Test
 

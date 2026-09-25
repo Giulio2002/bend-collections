@@ -13,11 +13,11 @@ import ./cache_key_identity.bend as Key
 
 # Direct native-operation observations, before host conversions. Wrapping the
 # native results below does not claim the TypeScript caller has been verified.
-def metrics(-K: Data, -V: Data, c: C.Cache<K, V>, events: List<&2, Clock.Event>) -> {Public.Returned{F.abstract(K, V, c), Public.Counters{C.metrics(K, V, c)}, events, 0n} == Public.metrics(K, V, F.abstract(K, V, c), events) : Public.Result<K, V>}:
+def metrics(-K: Data, -V: Data, c: C.Cache<K, V>, events: List<&2, Clock.ClockEvent>) -> {Public.Returned{F.abstract(K, V, c), Public.Counters{C.metrics(K, V, c)}, events, 0n} == Public.metrics(K, V, F.abstract(K, V, c), events) : Public.CmdResult<K, V>}:
   C.State{cap, table, order, life, counts, cb} = c
   {==}
 
-def reset(-K: Data, -V: Data, c: C.Cache<K, V>, events: List<&2, Clock.Event>) -> {Public.Returned{F.abstract(K, V, C.clear_metrics(K, V, c)), Public.Counters{C.metrics(K, V, c)}, events, 0n} == Public.reset(K, V, F.abstract(K, V, c), events) : Public.Result<K, V>}:
+def reset(-K: Data, -V: Data, c: C.Cache<K, V>, events: List<&2, Clock.ClockEvent>) -> {Public.Returned{F.abstract(K, V, C.clear_metrics(K, V, c)), Public.Counters{C.metrics(K, V, c)}, events, 0n} == Public.reset(K, V, F.abstract(K, V, c), events) : Public.CmdResult<K, V>}:
   C.State{cap, table, order, life, counts, cb} = c
   {==}
 

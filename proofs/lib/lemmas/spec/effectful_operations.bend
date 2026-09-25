@@ -9,8 +9,8 @@ import ./clock.bend as Clock
 # failed request. No implementation or proof import and no successful-transport
 # premise occurs here. Public marshalling and host composition remain separate.
 type Outcome<-K: Data, -V: Data> is Data:
-  Returned{observation: S.Observation<K, V>, remaining: List<&2, Clock.Event>, requests: Nat}
-  Failed{state: S.Model<K, V>, error: Clock.Error, remaining: List<&2, Clock.Event>, requests: Nat}
+  Returned{observation: S.Observation<K, V>, remaining: List<&2, Clock.ClockEvent>, requests: Nat}
+  Failed{state: S.Model<K, V>, error: Clock.Error, remaining: List<&2, Clock.ClockEvent>, requests: Nat}
 
 type PreparedAdd<-K: Data, -V: Data> is Data:
   Prepared{state: S.Model<K, V>, original: K, evicted: Bool}
@@ -54,20 +54,20 @@ def sampled_add(~K: Data, ~same: K -> K -> Bool, -V: Data, prepared: PreparedAdd
     case Clock.Rejected{error, remaining}: Failed{s, error, remaining, 1n}
     case Clock.Accepted{now, remaining}: Returned{O.write(~K, ~same, V, s, key, value, N.deadline(now, ns), was_evicted, Nil{}), remaining, 1n}
 
-def immortal_add(~K: Data, ~same: K -> K -> Bool, -V: Data, prepared: PreparedAdd<K, V>, value: V, events: List<&2, Clock.Event>) -> Outcome<K, V>:
+def immortal_add(~K: Data, ~same: K -> K -> Bool, -V: Data, prepared: PreparedAdd<K, V>, value: V, events: List<&2, Clock.ClockEvent>) -> Outcome<K, V>:
   Prepared{s, key, was_evicted} = prepared
   Returned{O.write(~K, ~same, V, s, key, value, T.I64{Word.zero(64n)}, was_evicted, Nil{}), events, 0n}
 
-def add_lifetime(~K: Data, ~same: K -> K -> Bool, -V: Data, prepared: PreparedAdd<K, V>, value: V, ns: T.Int64, events: List<&2, Clock.Event>, immortal: Bool) -> Outcome<K, V>:
+def add_lifetime(~K: Data, ~same: K -> K -> Bool, -V: Data, prepared: PreparedAdd<K, V>, value: V, ns: T.Int64, events: List<&2, Clock.ClockEvent>, immortal: Bool) -> Outcome<K, V>:
   match immortal:
     case True{}: immortal_add(~K, ~same, V, prepared, value, events)
     case False{}: sampled_add(~K, ~same, V, prepared, value, ns, Clock.request(events))
 
-def add_with_lifetime(~K: Data, ~same: K -> K -> Bool, -V: Data, s: S.Model<K, V>, key: K, value: V, ns: T.Int64, events: List<&2, Clock.Event>) -> Outcome<K, V>:
+def add_with_lifetime(~K: Data, ~same: K -> K -> Bool, -V: Data, s: S.Model<K, V>, key: K, value: V, ns: T.Int64, events: List<&2, Clock.ClockEvent>) -> Outcome<K, V>:
   T.I64{+bits} = ns
   add_lifetime(~K, ~same, V, prepare_add(~K, ~same, V, s, key), value, T.I64{bits}, events, N.zero(bits))
 
-def add(~K: Data, ~same: K -> K -> Bool, -V: Data, +s: S.Model<K, V>, key: K, value: V, events: List<&2, Clock.Event>) -> Outcome<K, V>:
+def add(~K: Data, ~same: K -> K -> Bool, -V: Data, +s: S.Model<K, V>, key: K, value: V, events: List<&2, Clock.ClockEvent>) -> Outcome<K, V>:
   S.Abstract{cap, bindings, order, life, counts, cb} = s
   add_with_lifetime(~K, ~same, V, s, key, value, life, events)
 
@@ -83,22 +83,22 @@ def sampled_refresh(~K: Data, ~same: K -> K -> Bool, -V: Data, prepared: S.Model
     case Clock.Rejected{error, remaining}: Failed{prepared, error, remaining, 1n}
     case Clock.Accepted{now, remaining}: Returned{refresh_deadline(~K, ~same, V, prepared, entry, N.deadline(now, ns)), remaining, 1n}
 
-def refresh_lifetime(~K: Data, ~same: K -> K -> Bool, -V: Data, prepared: S.Model<K, V>, entry: T.Entry<K, V>, ns: T.Int64, events: List<&2, Clock.Event>, immortal: Bool) -> Outcome<K, V>:
+def refresh_lifetime(~K: Data, ~same: K -> K -> Bool, -V: Data, prepared: S.Model<K, V>, entry: T.Entry<K, V>, ns: T.Int64, events: List<&2, Clock.ClockEvent>, immortal: Bool) -> Outcome<K, V>:
   match immortal:
     case True{}: Returned{refresh_deadline(~K, ~same, V, prepared, entry, T.I64{Word.zero(64n)}), events, 0n}
     case False{}: sampled_refresh(~K, ~same, V, prepared, entry, ns, Clock.request(events))
 
-def refresh_hit(~K: Data, ~same: K -> K -> Bool, -V: Data, s: S.Model<K, V>, ns: T.Int64, events: List<&2, Clock.Event>, entry: T.Entry<K, V>) -> Outcome<K, V>:
+def refresh_hit(~K: Data, ~same: K -> K -> Bool, -V: Data, s: S.Model<K, V>, ns: T.Int64, events: List<&2, Clock.ClockEvent>, entry: T.Entry<K, V>) -> Outcome<K, V>:
   T.I64{+bits} = ns
   T.Item{+key, value, deadline} = entry
   refresh_lifetime(~K, ~same, V, O.hit_state(~K, ~same, V, s, key, True{}), T.Item{key, value, deadline}, T.I64{bits}, events, N.zero(bits))
 
-def refresh_found(~K: Data, ~same: K -> K -> Bool, -V: Data, s: S.Model<K, V>, ns: T.Int64, events: List<&2, Clock.Event>, found: Maybe<&2, T.Entry<K, V>>) -> Outcome<K, V>:
+def refresh_found(~K: Data, ~same: K -> K -> Bool, -V: Data, s: S.Model<K, V>, ns: T.Int64, events: List<&2, Clock.ClockEvent>, found: Maybe<&2, T.Entry<K, V>>) -> Outcome<K, V>:
   match found:
     case None{}: Returned{S.missing_get(K, V, s), events, 0n}
     case Some{entry}: refresh_hit(~K, ~same, V, s, ns, events, entry)
 
-def refresh(~K: Data, ~same: K -> K -> Bool, -V: Data, +s: S.Model<K, V>, key: K, ns: T.Int64, events: List<&2, Clock.Event>) -> Outcome<K, V>:
+def refresh(~K: Data, ~same: K -> K -> Bool, -V: Data, +s: S.Model<K, V>, key: K, ns: T.Int64, events: List<&2, Clock.ClockEvent>) -> Outcome<K, V>:
   S.Abstract{cap, bindings, order, life, counts, cb} = s
   refresh_found(~K, ~same, V, s, ns, events, S.find(~K, ~same, V, bindings, key))
 
@@ -109,16 +109,16 @@ def sampled_read(~K: Data, ~same: K -> K -> Bool, -V: Data, s: S.Model<K, V>, ke
     case Clock.Rejected{error, remaining}: Failed{s, error, remaining, 1n}
     case Clock.Accepted{now, remaining}: Returned{O.read_found(~K, ~same, V, s, key, now, tracked, Some{entry}), remaining, 1n}
 
-def read_lifetime(~K: Data, ~same: K -> K -> Bool, -V: Data, s: S.Model<K, V>, key: K, entry: T.Entry<K, V>, tracked: Bool, events: List<&2, Clock.Event>, immortal: Bool) -> Outcome<K, V>:
+def read_lifetime(~K: Data, ~same: K -> K -> Bool, -V: Data, s: S.Model<K, V>, key: K, entry: T.Entry<K, V>, tracked: Bool, events: List<&2, Clock.ClockEvent>, immortal: Bool) -> Outcome<K, V>:
   match immortal:
     case True{}: Returned{O.read_decide(~K, ~same, V, s, key, entry, tracked, False{}), events, 0n}
     case False{}: sampled_read(~K, ~same, V, s, key, entry, tracked, Clock.request(events))
 
-def read_found(~K: Data, ~same: K -> K -> Bool, -V: Data, s: S.Model<K, V>, key: K, tracked: Bool, events: List<&2, Clock.Event>, found: Maybe<&2, T.Entry<K, V>>) -> Outcome<K, V>:
+def read_found(~K: Data, ~same: K -> K -> Bool, -V: Data, s: S.Model<K, V>, key: K, tracked: Bool, events: List<&2, Clock.ClockEvent>, found: Maybe<&2, T.Entry<K, V>>) -> Outcome<K, V>:
   match found:
     case None{}: Returned{S.Observed{O.count_miss(K, V, s, tracked), None{}, False{}, Nil{}}, events, 0n}
     case Some{T.Item{original, value, T.I64{+bits}}}: read_lifetime(~K, ~same, V, s, key, T.Item{original, value, T.I64{bits}}, tracked, events, N.zero(bits))
 
-def read(~K: Data, ~same: K -> K -> Bool, -V: Data, +s: S.Model<K, V>, +key: K, tracked: Bool, events: List<&2, Clock.Event>) -> Outcome<K, V>:
+def read(~K: Data, ~same: K -> K -> Bool, -V: Data, +s: S.Model<K, V>, +key: K, tracked: Bool, events: List<&2, Clock.ClockEvent>) -> Outcome<K, V>:
   S.Abstract{cap, bindings, order, life, counts, cb} = s
   read_found(~K, ~same, V, s, key, tracked, events, S.find(~K, ~same, V, bindings, key))

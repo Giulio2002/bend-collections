@@ -150,7 +150,7 @@ law store:
   for +value: V
   for +deadline: T.Int64
   for +flag: Bool
-  for +events: List<&2, T.Event<K, V>>
+  for +events: List<&2, T.LruEvent<K, V>>
   for +invariant: {storage(K, V, c) == True{} : Bool}
   {storage(K, V, C.step_cache(K, V, C.store(K, V, c, code, key, value, deadline, flag, events))) == True{} : Bool}
 def store(K, V, c, code, key, value, deadline, flag, events, invariant):

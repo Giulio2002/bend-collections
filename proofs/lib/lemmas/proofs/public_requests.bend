@@ -22,7 +22,7 @@ import ./public_diagnostics.bend as PublicDiagnostics
 
 # Every public request of the actual start/drive machine refines the
 # independent typed command semantics, for every provider-event list.
-def string_request(-V: Data, zero_key: String, +zero_value: V, +c: C.Cache<String, V>, +events: List<&2, Clock.Event>, request: Pub.Request<String, V>, +valid: {Inv.representation(~String, ~Codec.string_encode, V, c) == True{} : Bool}, +disabled: {Disabled.flag(String, V, c) == False{} : Bool}) -> R.results(~String, ~Lookup.string_same, V, D.execute(~String, ~Codec.string_encode, V, zero_key, zero_value, c, events, request), PC.execute(~String, ~Lookup.string_same, V, F.abstract(String, V, c), zero_key, zero_value, events, R.command(String, V, request))):
+def string_request(-V: Data, zero_key: String, +zero_value: V, +c: C.Cache<String, V>, +events: List<&2, Clock.ClockEvent>, request: Pub.Request<String, V>, +valid: {Inv.representation(~String, ~Codec.string_encode, V, c) == True{} : Bool}, +disabled: {Disabled.flag(String, V, c) == False{} : Bool}) -> R.results(~String, ~Lookup.string_same, V, D.execute(~String, ~Codec.string_encode, V, zero_key, zero_value, c, events, request), PC.execute(~String, ~Lookup.string_same, V, F.abstract(String, V, c), zero_key, zero_value, events, R.command(String, V, request))):
   match request:
     case Pub.Add{+k, +v}: PublicAdd.add(V, zero_key, zero_value, c, k, v, events, valid, disabled)
     case Pub.AddWithLifetime{+k, +v, +ns}: PublicAdd.with_lifetime(V, zero_key, zero_value, c, k, v, ns, events, valid, disabled)

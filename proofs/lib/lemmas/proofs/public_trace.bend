@@ -29,7 +29,7 @@ def commands(-V: Data, requests: List<&2, Pub.Request<String, V>>) -> List<&2, S
     case Nil{}: Nil{}
     case Con{request, tail}: Con{R.command(String, V, request), commands(V, tail)}
 
-def outcomes(-V: Data, actual: List<&2, D.Outcome<String, V>>, expected: List<&2, PC.Result<String, V>>) -> Type:
+def outcomes(-V: Data, actual: List<&2, D.Outcome<String, V>>, expected: List<&2, PC.CmdResult<String, V>>) -> Type:
   match actual expected:
     case Nil{} Nil{}: Unit
     case Con{o, os} Con{r, rs}: R.results(~String, ~Lookup.string_same, V, o, r) & outcomes(V, os, rs)
@@ -41,9 +41,9 @@ def outcomes(-V: Data, actual: List<&2, D.Outcome<String, V>>, expected: List<&2
 def traces(-V: Data, actual: D.Trace<String, V>, expected: Traces.Trace<String, V>) -> Type:
   match actual expected:
     case D.Ran{c, ea, os, na} Traces.Finished{s, eb, rs, nb}:
-      E.states(~String, ~Lookup.string_same, V, F.abstract(String, V, c), s) & {ea == eb : List<&2, Clock.Event>} & {na == nb : Nat} & outcomes(V, os, rs)
+      E.states(~String, ~Lookup.string_same, V, F.abstract(String, V, c), s) & {ea == eb : List<&2, Clock.ClockEvent>} & {na == nb : Nat} & outcomes(V, os, rs)
 
-def result_state(-V: Data, o: D.Outcome<String, V>, r: PC.Result<String, V>, related: R.results(~String, ~Lookup.string_same, V, o, r)) -> E.states(~String, ~Lookup.string_same, V, F.abstract(String, V, D.cache(String, V, o)), Traces.state(String, V, r)):
+def result_state(-V: Data, o: D.Outcome<String, V>, r: PC.CmdResult<String, V>, related: R.results(~String, ~Lookup.string_same, V, o, r)) -> E.states(~String, ~Lookup.string_same, V, F.abstract(String, V, D.cache(String, V, o)), Traces.state(String, V, r)):
   match o r:
     case D.Returned{c, a, e, n} PC.Returned{s, x, f, m}:
       (st, rp, ev, ct) = related
@@ -54,7 +54,7 @@ def result_state(-V: Data, o: D.Outcome<String, V>, r: PC.Result<String, V>, rel
     case D.Returned{c, a, e, n} PC.Failed{s, x, f, m}: Empty.absurd(E.states(~String, ~Lookup.string_same, V, F.abstract(String, V, c), s), related)
     case D.Failed{c, a, e, n} PC.Returned{s, x, f, m}: Empty.absurd(E.states(~String, ~Lookup.string_same, V, F.abstract(String, V, c), s), related)
 
-def result_remaining(-V: Data, o: D.Outcome<String, V>, r: PC.Result<String, V>, related: R.results(~String, ~Lookup.string_same, V, o, r)) -> {D.remaining(String, V, o) == Traces.remaining(String, V, r) : List<&2, Clock.Event>}:
+def result_remaining(-V: Data, o: D.Outcome<String, V>, r: PC.CmdResult<String, V>, related: R.results(~String, ~Lookup.string_same, V, o, r)) -> {D.remaining(String, V, o) == Traces.remaining(String, V, r) : List<&2, Clock.ClockEvent>}:
   match o r:
     case D.Returned{c, a, e, n} PC.Returned{s, x, f, m}:
       (st, rp, ev, ct) = related
@@ -62,10 +62,10 @@ def result_remaining(-V: Data, o: D.Outcome<String, V>, r: PC.Result<String, V>,
     case D.Failed{c, a, e, n} PC.Failed{s, x, f, m}:
       (st, er, ev, ct) = related
       ev
-    case D.Returned{c, a, e, n} PC.Failed{s, x, f, m}: Empty.absurd({e == f : List<&2, Clock.Event>}, related)
-    case D.Failed{c, a, e, n} PC.Returned{s, x, f, m}: Empty.absurd({e == f : List<&2, Clock.Event>}, related)
+    case D.Returned{c, a, e, n} PC.Failed{s, x, f, m}: Empty.absurd({e == f : List<&2, Clock.ClockEvent>}, related)
+    case D.Failed{c, a, e, n} PC.Returned{s, x, f, m}: Empty.absurd({e == f : List<&2, Clock.ClockEvent>}, related)
 
-def result_requests(-V: Data, o: D.Outcome<String, V>, r: PC.Result<String, V>, related: R.results(~String, ~Lookup.string_same, V, o, r)) -> {D.requests(String, V, o) == Traces.requests(String, V, r) : Nat}:
+def result_requests(-V: Data, o: D.Outcome<String, V>, r: PC.CmdResult<String, V>, related: R.results(~String, ~Lookup.string_same, V, o, r)) -> {D.requests(String, V, o) == Traces.requests(String, V, r) : Nat}:
   match o r:
     case D.Returned{c, a, e, n} PC.Returned{s, x, f, m}:
       (st, rp, ev, ct) = related
@@ -76,7 +76,7 @@ def result_requests(-V: Data, o: D.Outcome<String, V>, r: PC.Result<String, V>, 
     case D.Returned{c, a, e, n} PC.Failed{s, x, f, m}: Empty.absurd({n == m : Nat}, related)
     case D.Failed{c, a, e, n} PC.Returned{s, x, f, m}: Empty.absurd({n == m : Nat}, related)
 
-def prepend_related(-V: Data, +o: D.Outcome<String, V>, +r: PC.Result<String, V>, step: R.results(~String, ~Lookup.string_same, V, o, r), requests: {D.requests(String, V, o) == Traces.requests(String, V, r) : Nat}, actual: D.Trace<String, V>, expected: Traces.Trace<String, V>, rest: traces(V, actual, expected)) -> traces(V, D.prepend(String, V, o, actual), Traces.prepend(String, V, r, expected)):
+def prepend_related(-V: Data, +o: D.Outcome<String, V>, +r: PC.CmdResult<String, V>, step: R.results(~String, ~Lookup.string_same, V, o, r), requests: {D.requests(String, V, o) == Traces.requests(String, V, r) : Nat}, actual: D.Trace<String, V>, expected: Traces.Trace<String, V>, rest: traces(V, actual, expected)) -> traces(V, D.prepend(String, V, o, actual), Traces.prepend(String, V, r, expected)):
   D.Ran{+c, +ea, os, +na} = actual
   Traces.Finished{+s, +eb, rs, +nb} = expected
   (st, ev, ct, later) = rest
@@ -91,12 +91,12 @@ def ok_disabled(-V: Data, c: C.Cache<String, V>, safe: Safety.ok(V, c)) -> {Disa
   disabled
 
 # One request against any related independent model.
-def step_results(-V: Data, +zero_key: String, +zero_value: V, +c: C.Cache<String, V>, +s: S.Model<String, V>, +events: List<&2, Clock.Event>, +request: Pub.Request<String, V>, +valid: {Inv.representation(~String, ~Codec.string_encode, V, c) == True{} : Bool}, +disabled: {Disabled.flag(String, V, c) == False{} : Bool}, +related: E.states(~String, ~Lookup.string_same, V, F.abstract(String, V, c), s)) -> R.results(~String, ~Lookup.string_same, V, D.execute(~String, ~Codec.string_encode, V, zero_key, zero_value, c, events, request), PC.execute(~String, ~Lookup.string_same, V, s, zero_key, zero_value, events, R.command(String, V, request))):
+def step_results(-V: Data, +zero_key: String, +zero_value: V, +c: C.Cache<String, V>, +s: S.Model<String, V>, +events: List<&2, Clock.ClockEvent>, +request: Pub.Request<String, V>, +valid: {Inv.representation(~String, ~Codec.string_encode, V, c) == True{} : Bool}, +disabled: {Disabled.flag(String, V, c) == False{} : Bool}, +related: E.states(~String, ~Lookup.string_same, V, F.abstract(String, V, c), s)) -> R.results(~String, ~Lookup.string_same, V, D.execute(~String, ~Codec.string_encode, V, zero_key, zero_value, c, events, request), PC.execute(~String, ~Lookup.string_same, V, s, zero_key, zero_value, events, R.command(String, V, request))):
   Congruence.compose(V, D.execute(~String, ~Codec.string_encode, V, zero_key, zero_value, c, events, request), PC.execute(~String, ~Lookup.string_same, V, F.abstract(String, V, c), zero_key, zero_value, events, R.command(String, V, request)), PC.execute(~String, ~Lookup.string_same, V, s, zero_key, zero_value, events, R.command(String, V, request)), Requests.string_request(V, zero_key, zero_value, c, events, request, valid, disabled), Congruence.execute_cong(V, zero_key, zero_value, F.abstract(String, V, c), s, events, related, R.command(String, V, request)))
 
 # Every finite request list, every provider-event list, from any safe cache and
 # any related independent model.
-def trace(-V: Data, +zero_key: String, +zero_value: V, requests: List<&2, Pub.Request<String, V>>, +c: C.Cache<String, V>, +s: S.Model<String, V>, +events: List<&2, Clock.Event>, +valid: {Inv.representation(~String, ~Codec.string_encode, V, c) == True{} : Bool}, +disabled: {Disabled.flag(String, V, c) == False{} : Bool}, +related: E.states(~String, ~Lookup.string_same, V, F.abstract(String, V, c), s)) -> traces(V, D.run(~String, ~Codec.string_encode, V, requests, c, zero_key, zero_value, events), Traces.run(~String, ~Lookup.string_same, V, commands(V, requests), s, zero_key, zero_value, events)):
+def trace(-V: Data, +zero_key: String, +zero_value: V, requests: List<&2, Pub.Request<String, V>>, +c: C.Cache<String, V>, +s: S.Model<String, V>, +events: List<&2, Clock.ClockEvent>, +valid: {Inv.representation(~String, ~Codec.string_encode, V, c) == True{} : Bool}, +disabled: {Disabled.flag(String, V, c) == False{} : Bool}, +related: E.states(~String, ~Lookup.string_same, V, F.abstract(String, V, c), s)) -> traces(V, D.run(~String, ~Codec.string_encode, V, requests, c, zero_key, zero_value, events), Traces.run(~String, ~Lookup.string_same, V, commands(V, requests), s, zero_key, zero_value, events)):
   match requests:
     case Nil{}: (related, {==}, {==}, Unit{})
     case Con{+request, +tail}:
@@ -105,20 +105,20 @@ def trace(-V: Data, +zero_key: String, +zero_value: V, requests: List<&2, Pub.Re
 
 # From actual construction: rejected inputs give the same error; accepted
 # inputs start a trace related to the independent initial model.
-def created_rel(-V: Data, +zero_key: String, +zero_value: V, +requests: List<&2, Pub.Request<String, V>>, +events: List<&2, Clock.Event>, actual: Result<&2, &2, String, C.Cache<String, V>>, expected: Result<&2, &2, String, S.Model<String, V>>) -> Type:
+def created_rel(-V: Data, +zero_key: String, +zero_value: V, +requests: List<&2, Pub.Request<String, V>>, +events: List<&2, Clock.ClockEvent>, actual: Result<&2, &2, String, C.Cache<String, V>>, expected: Result<&2, &2, String, S.Model<String, V>>) -> Type:
   match actual expected:
     case Fail{ea} Fail{eb}: {ea == eb : String}
     case Done{c} Done{s}: traces(V, D.run(~String, ~Codec.string_encode, V, requests, c, zero_key, zero_value, events), Traces.run(~String, ~Lookup.string_same, V, commands(V, requests), s, zero_key, zero_value, events))
     case Fail{ea} Done{s}: Empty
     case Done{c} Fail{eb}: Empty
 
-def created(-V: Data, +zero_key: String, +zero_value: V, +requests: List<&2, Pub.Request<String, V>>, +events: List<&2, Clock.Event>, result: Result<&2, &2, String, C.Cache<String, V>>, safe: ConstructorSafety.safe_result(~String, ~Codec.string_encode, V, result)) -> created_rel(V, zero_key, zero_value, requests, events, result, F.abstract_created(String, V, result)):
+def created(-V: Data, +zero_key: String, +zero_value: V, +requests: List<&2, Pub.Request<String, V>>, +events: List<&2, Clock.ClockEvent>, result: Result<&2, &2, String, C.Cache<String, V>>, safe: ConstructorSafety.safe_result(~String, ~Codec.string_encode, V, result)) -> created_rel(V, zero_key, zero_value, requests, events, result, F.abstract_created(String, V, result)):
   match result:
     case Fail{error}: {==}
     case Done{+c}:
       (+valid, +disabled) = safe
       trace(V, zero_key, zero_value, requests, c, F.abstract(String, V, c), events, valid, disabled, Ext.string_reflexive(V, F.abstract(String, V, c)))
 
-def from_construction(-V: Data, +zero_key: String, +zero_value: V, +capacity: U32, +size: U32, +requests: List<&2, Pub.Request<String, V>>, +events: List<&2, Clock.Event>) -> created_rel(V, zero_key, zero_value, requests, events, C.new_with_size(String, V, capacity, size), S.new_with_size(String, V, capacity, size)):
+def from_construction(-V: Data, +zero_key: String, +zero_value: V, +capacity: U32, +size: U32, +requests: List<&2, Pub.Request<String, V>>, +events: List<&2, Clock.ClockEvent>) -> created_rel(V, zero_key, zero_value, requests, events, C.new_with_size(String, V, capacity, size), S.new_with_size(String, V, capacity, size)):
   %F.new_with_size_refines(String, V, capacity, size) : created_rel(V, zero_key, zero_value, requests, events, C.new_with_size(String, V, capacity, size), _)
   created(V, zero_key, zero_value, requests, events, C.new_with_size(String, V, capacity, size), ConstructorSafety.string_new(V, capacity, size))

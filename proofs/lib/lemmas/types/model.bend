@@ -14,7 +14,7 @@ type Metrics is Data:
 type Entry<-K: Data, -V: Data> is Data:
   Item{key: K, value: V, deadline: Int64}
 
-type Event<-K: Data, -V: Data> is Data:
+type LruEvent<-K: Data, -V: Data> is Data:
   Evicted{key: K, value: V}
 
 def zero_metrics() -> Metrics:

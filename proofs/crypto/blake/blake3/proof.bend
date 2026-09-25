@@ -40,15 +40,15 @@ def unchecked_view(a,length,view):
       +cs = S.chunks(n,0,0,last,S.chunk_at(n,0,0,last,A.thaw(tree)))
       %Equal.sym(Array<U32>,a,A.thaw(tree),pf) : {K.unchecked(_,length) == S.hash(_,length) : T.CV}
       Equal.trans(T.CV,
-        K.root_cv(K.chunks(n,0,0,last,(A.thaw(tree),K.SNil{}))),
-        K.root_cv(LP.run(K.SNil{},cs)),
+        K.root_cv(K.chunks(n,0,0,last,(A.thaw(tree),K.StkNil{}))),
+        K.root_cv(LP.run(K.StkNil{},cs)),
         S.root(S.tree(SC.length(T.Out,cs),cs)),
-        Equal.cong(T.Out,T.CV,o => K.root_cv(o),K.chunks(n,0,0,last,(A.thaw(tree),K.SNil{})),LP.run(K.SNil{},cs),LP.fuse(n,0,0,last,A.thaw(tree),K.SNil{})),
+        Equal.cong(T.Out,T.CV,o => K.root_cv(o),K.chunks(n,0,0,last,(A.thaw(tree),K.StkNil{})),LP.run(K.StkNil{},cs),LP.fuse(n,0,0,last,A.thaw(tree),K.StkNil{})),
         Equal.trans(T.CV,
-          K.root_cv(LP.run(K.SNil{},cs)),
+          K.root_cv(LP.run(K.StkNil{},cs)),
           K.root_cv(S.tree(SC.length(T.Out,cs),cs)),
           S.root(S.tree(SC.length(T.Out,cs),cs)),
-          Equal.cong(T.Out,T.CV,o => K.root_cv(o),LP.run(K.SNil{},cs),S.tree(SC.length(T.Out,cs),cs),LP.run_chunks(n,0,0,last,S.chunk_at(n,0,0,last,A.thaw(tree)))),
+          Equal.cong(T.Out,T.CV,o => K.root_cv(o),LP.run(K.StkNil{},cs),S.tree(SC.length(T.Out,cs),cs),LP.run_chunks(n,0,0,last,S.chunk_at(n,0,0,last,A.thaw(tree)))),
           root_correct(S.tree(SC.length(T.Out,cs),cs))))
 
 law digest_correct:

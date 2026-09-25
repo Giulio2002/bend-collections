@@ -11,7 +11,7 @@ type Model<-K: Data, -V: Data> is Data:
   Abstract{capacity: Nat, bindings: List<&2, T.Entry<K, V>>, recency: List<&2, K>, lifetime: T.Int64, counts: T.Metrics, callback: Bool}
 
 type Observation<-K: Data, -V: Data> is Data:
-  Observed{state: Model<K, V>, returned: Maybe<&2, T.Entry<K, V>>, present: Bool, callbacks: List<&2, T.Event<K, V>>}
+  Observed{state: Model<K, V>, returned: Maybe<&2, T.Entry<K, V>>, present: Bool, callbacks: List<&2, T.LruEvent<K, V>>}
 
 def initial(-K: Data, -V: Data, capacity: Nat) -> Model<K, V>:
   Abstract{capacity, Nil{}, Nil{}, T.I64{Word.zero(64n)}, T.zero_metrics(), False{}}
@@ -41,7 +41,7 @@ def is_expired(deadline: T.Int64, now: T.Int64) -> Bool:
 
 # Legacy pure event metadata. Supported initial states disable it and expose
 # no registration command; no user function is represented or executed here.
-def callbacks(-K: Data, -V: Data, entries: List<&2, T.Entry<K, V>>, +enabled: Bool) -> List<&2, T.Event<K, V>>:
+def callbacks(-K: Data, -V: Data, entries: List<&2, T.Entry<K, V>>, +enabled: Bool) -> List<&2, T.LruEvent<K, V>>:
   match entries enabled:
     case Nil{} b:
       Nil{}

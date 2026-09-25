@@ -1,13 +1,13 @@
 {
-  "version": "2.0.25",
+  "version": "2.0.28",
   "binary": "~/.bend/bin/bend",
-  "binary_sha256": "3850c7cd281a687715a181ad6a2ecdef041704f320ea2b4304cf9e802309203c",
+  "binary_sha256": "8ff8223fa61c04400ed2359ad013eacaa6f760e42ed248ce96f6bb844a1a9147",
   "base": "~/.bend/bend2/base.bend",
-  "base_sha256": "e5639663177f2de93ef34867c029698aa4e68a98d46629f0b15452b67b99d798",
+  "base_sha256": "22eea83911e2395f63594fea7c10ac0c1e5b548251681fc97cd7667e0eb7031b",
   "previous": {
-    "version": "2.0.16",
-    "binary": "~/.bend/bin/bend-2.0.16",
-    "binary_sha256": "da9bc51449f04a65bf633351fb754cd6f883f5f5d9ab0c4e947f5c6f19eb7386",
-    "reason": "updated on user request 2026-09-22; 2.0.16 mis-laid Array<Maybe<a,V>> in quantity-generic code"
+    "version": "2.0.25",
+    "binary": "~/.bend-backup-2.0.25-20260925/bin/bend",
+    "binary_sha256": "3850c7cd281a687715a181ad6a2ecdef041704f320ea2b4304cf9e802309203c",
+    "reason": "updated on user request 2026-09-25; 2.0.28 Base declares Window and checks constructor names globally (SHA-256 Window and BLAKE3 SNil renamed)"
   }
 }

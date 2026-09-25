@@ -23,35 +23,35 @@ import ./write_congruence.bend as Write
 # related models give equal replies/errors/events/counts and related states.
 # This is a property of the specification alone (String keys).
 
-def sres(-V: Data, a: PC.Result<String, V>, b: PC.Result<String, V>) -> Type:
+def sres(-V: Data, a: PC.CmdResult<String, V>, b: PC.CmdResult<String, V>) -> Type:
   match a b:
     case PC.Returned{sa, ra, ea, na} PC.Returned{sb, rb, eb, nb}:
-      E.states(~String, ~Lookup.string_same, V, sa, sb) & {ra == rb : PC.Reply<String, V>} & {ea == eb : List<&2, Clock.Event>} & {na == nb : Nat}
+      E.states(~String, ~Lookup.string_same, V, sa, sb) & {ra == rb : PC.Reply<String, V>} & {ea == eb : List<&2, Clock.ClockEvent>} & {na == nb : Nat}
     case PC.Failed{sa, xa, ea, na} PC.Failed{sb, xb, eb, nb}:
-      E.states(~String, ~Lookup.string_same, V, sa, sb) & {xa == xb : Clock.Error} & {ea == eb : List<&2, Clock.Event>} & {na == nb : Nat}
+      E.states(~String, ~Lookup.string_same, V, sa, sb) & {xa == xb : Clock.Error} & {ea == eb : List<&2, Clock.ClockEvent>} & {na == nb : Nat}
     case PC.Returned{sa, ra, ea, na} PC.Failed{sb, xb, eb, nb}: Empty
     case PC.Failed{sa, xa, ea, na} PC.Returned{sb, rb, eb, nb}: Empty
 
 def eres(-V: Data, a: Eff.Outcome<String, V>, b: Eff.Outcome<String, V>) -> Type:
   match a b:
     case Eff.Returned{oa, ea, na} Eff.Returned{ob, eb, nb}:
-      E.observations(~String, ~Lookup.string_same, V, oa, ob) & {ea == eb : List<&2, Clock.Event>} & {na == nb : Nat}
+      E.observations(~String, ~Lookup.string_same, V, oa, ob) & {ea == eb : List<&2, Clock.ClockEvent>} & {na == nb : Nat}
     case Eff.Failed{sa, xa, ea, na} Eff.Failed{sb, xb, eb, nb}:
-      E.states(~String, ~Lookup.string_same, V, sa, sb) & {xa == xb : Clock.Error} & {ea == eb : List<&2, Clock.Event>} & {na == nb : Nat}
+      E.states(~String, ~Lookup.string_same, V, sa, sb) & {xa == xb : Clock.Error} & {ea == eb : List<&2, Clock.ClockEvent>} & {na == nb : Nat}
     case Eff.Returned{oa, ea, na} Eff.Failed{sb, xb, eb, nb}: Empty
     case Eff.Failed{sa, xa, ea, na} Eff.Returned{ob, eb, nb}: Empty
 
 # Composition: actual-versus-spec results followed by spec congruence.
-def compose(-V: Data, actual: D.Outcome<String, V>, x: PC.Result<String, V>, y: PC.Result<String, V>, first: R.results(~String, ~Lookup.string_same, V, actual, x), second: sres(V, x, y)) -> R.results(~String, ~Lookup.string_same, V, actual, y):
+def compose(-V: Data, actual: D.Outcome<String, V>, x: PC.CmdResult<String, V>, y: PC.CmdResult<String, V>, first: R.results(~String, ~Lookup.string_same, V, actual, x), second: sres(V, x, y)) -> R.results(~String, ~Lookup.string_same, V, actual, y):
   match actual x y:
     case D.Returned{c, answer, events, count} PC.Returned{sx, rx, ex, nx} PC.Returned{sy, ry, ey, ny}:
       (st1, rp1, ev1, ct1) = first
       (st2, rp2, ev2, ct2) = second
-      (Ext.string_transitive(V, F.abstract(String, V, c), sx, sy, st1, st2), Equal.trans(PC.Reply<String, V>, R.reply(String, V, answer), rx, ry, rp1, rp2), Equal.trans(List<&2, Clock.Event>, events, ex, ey, ev1, ev2), Equal.trans(Nat, count, nx, ny, ct1, ct2))
+      (Ext.string_transitive(V, F.abstract(String, V, c), sx, sy, st1, st2), Equal.trans(PC.Reply<String, V>, R.reply(String, V, answer), rx, ry, rp1, rp2), Equal.trans(List<&2, Clock.ClockEvent>, events, ex, ey, ev1, ev2), Equal.trans(Nat, count, nx, ny, ct1, ct2))
     case D.Failed{c, error, events, count} PC.Failed{sx, xx, ex, nx} PC.Failed{sy, xy, ey, ny}:
       (st1, er1, ev1, ct1) = first
       (st2, er2, ev2, ct2) = second
-      (Ext.string_transitive(V, F.abstract(String, V, c), sx, sy, st1, st2), Equal.trans(Clock.Error, error, xx, xy, er1, er2), Equal.trans(List<&2, Clock.Event>, events, ex, ey, ev1, ev2), Equal.trans(Nat, count, nx, ny, ct1, ct2))
+      (Ext.string_transitive(V, F.abstract(String, V, c), sx, sy, st1, st2), Equal.trans(Clock.Error, error, xx, xy, er1, er2), Equal.trans(List<&2, Clock.ClockEvent>, events, ex, ey, ev1, ev2), Equal.trans(Nat, count, nx, ny, ct1, ct2))
     case D.Returned{c, answer, events, count} PC.Returned{sx, rx, ex, nx} PC.Failed{sy, xy, ey, ny}: Empty.absurd(R.results(~String, ~Lookup.string_same, V, D.Returned{c, answer, events, count}, PC.Failed{sy, xy, ey, ny}), second)
     case D.Returned{c, answer, events, count} PC.Failed{sx, xx, ex, nx} y: Empty.absurd(R.results(~String, ~Lookup.string_same, V, D.Returned{c, answer, events, count}, y), first)
     case D.Failed{c, error, events, count} PC.Failed{sx, xx, ex, nx} PC.Returned{sy, ry, ey, ny}: Empty.absurd(R.results(~String, ~Lookup.string_same, V, D.Failed{c, error, events, count}, PC.Returned{sy, ry, ey, ny}), second)
@@ -67,7 +67,7 @@ def project_cong(-V: Data, +zero_key: String, +zero_value: V, +sa: S.Model<Strin
     case PC.Keys{}: Equal.cong(List<&2, T.Entry<String, V>>, PC.Reply<String, V>, xs => PC.KeyList{O.entry_keys(String, V, xs)}, O.all_entries(~String, ~Lookup.string_same, V, sa), O.all_entries(~String, ~Lookup.string_same, V, sb), CS.entries_agreement(V, sa, sb, related))
     case PC.Values{}: Equal.cong(List<&2, T.Entry<String, V>>, PC.Reply<String, V>, xs => PC.ValueList{O.entry_values(String, V, xs)}, O.all_entries(~String, ~Lookup.string_same, V, sa), O.all_entries(~String, ~Lookup.string_same, V, sb), CS.entries_agreement(V, sa, sb, related))
 
-def observation_cong(-V: Data, +zero_key: String, +zero_value: V, +kind: PC.Projection<String>, a: S.Observation<String, V>, b: S.Observation<String, V>, +events: List<&2, Clock.Event>, +count: Nat, related: E.observations(~String, ~Lookup.string_same, V, a, b)) -> sres(V, PC.observation(~String, ~Lookup.string_same, V, zero_key, zero_value, kind, a, events, count), PC.observation(~String, ~Lookup.string_same, V, zero_key, zero_value, kind, b, events, count)):
+def observation_cong(-V: Data, +zero_key: String, +zero_value: V, +kind: PC.Projection<String>, a: S.Observation<String, V>, b: S.Observation<String, V>, +events: List<&2, Clock.ClockEvent>, +count: Nat, related: E.observations(~String, ~Lookup.string_same, V, a, b)) -> sres(V, PC.observation(~String, ~Lookup.string_same, V, zero_key, zero_value, kind, a, events, count), PC.observation(~String, ~Lookup.string_same, V, zero_key, zero_value, kind, b, events, count)):
   S.Observed{+sa, +ia, +fa, ea} = a
   S.Observed{+sb, +ib, +fb, eb} = b
   (+st, +it, +fl, ev) = related
@@ -130,7 +130,7 @@ def remove_found_obs(-V: Data, +sc: Nat, +sb: List<&2, T.Entry<String, V>>, +so:
     case Some{+entry}:
       +states = Equal.trans(E.Canonical<String, V>, E.canonical(~String, ~Lookup.string_same, V, S.Abstract{sc, S.erase(~String, ~Lookup.string_same, V, sb, k), S.unlist(~String, ~Lookup.string_same, so, k), sl, T.Counts{si, se, Word.inc(64n, sr), sh, sm}, sf}), Can.c_drop(~String, ~Lookup.string_same, V, Can.c_removed(String, V, E.canonical(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, T.Counts{si, se, sr, sh, sm}, sf})), k), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{tc, S.erase(~String, ~Lookup.string_same, V, tb, k), S.unlist(~String, ~Lookup.string_same, to, k), tl, T.Counts{ti, te, Word.inc(64n, tr), th, tm}, tf}), CS.drop_transform(V, sc, sb, so, sl, T.Counts{si, se, Word.inc(64n, sr), sh, sm}, sf, k), Equal.trans(E.Canonical<String, V>, Can.c_drop(~String, ~Lookup.string_same, V, Can.c_removed(String, V, E.canonical(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, T.Counts{si, se, sr, sh, sm}, sf})), k), Can.c_drop(~String, ~Lookup.string_same, V, Can.c_removed(String, V, E.canonical(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, T.Counts{ti, te, tr, th, tm}, tf})), k), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{tc, S.erase(~String, ~Lookup.string_same, V, tb, k), S.unlist(~String, ~Lookup.string_same, to, k), tl, T.Counts{ti, te, Word.inc(64n, tr), th, tm}, tf}), Equal.cong(E.Canonical<String, V>, E.Canonical<String, V>, c => Can.c_drop(~String, ~Lookup.string_same, V, Can.c_removed(String, V, c), k), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, T.Counts{si, se, sr, sh, sm}, sf}), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, T.Counts{ti, te, tr, th, tm}, tf}), related), Equal.sym(E.Canonical<String, V>, E.canonical(~String, ~Lookup.string_same, V, S.Abstract{tc, S.erase(~String, ~Lookup.string_same, V, tb, k), S.unlist(~String, ~Lookup.string_same, to, k), tl, T.Counts{ti, te, Word.inc(64n, tr), th, tm}, tf}), Can.c_drop(~String, ~Lookup.string_same, V, Can.c_removed(String, V, E.canonical(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, T.Counts{ti, te, tr, th, tm}, tf})), k), CS.drop_transform(V, tc, tb, to, tl, T.Counts{ti, te, Word.inc(64n, tr), th, tm}, tf, k))))
       +cbs = Equal.cong(E.Canonical<String, V>, Bool, c => cb_of(V, c), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, T.Counts{si, se, sr, sh, sm}, sf}), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, T.Counts{ti, te, tr, th, tm}, tf}), related)
-      (states, {==}, {==}, Equal.cong(Bool, List<&2, T.Event<String, V>>, f => S.callbacks(String, V, Con{entry, Nil{}}, f), sf, tf, cbs))
+      (states, {==}, {==}, Equal.cong(Bool, List<&2, T.LruEvent<String, V>>, f => S.callbacks(String, V, Con{entry, Nil{}}, f), sf, tf, cbs))
 
 def remove_obs(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +k: String, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> E.observations(~String, ~Lookup.string_same, V, S.remove(~String, ~Lookup.string_same, V, s, k), S.remove(~String, ~Lookup.string_same, V, t, k)):
   S.Abstract{+sc, +sb, +so, +sl, T.Counts{+si, +se, +sr, +sh, +sm}, +sf} = s
@@ -175,7 +175,7 @@ def decide_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +k: St
     case False{}: (hit_cong(V, s, t, k, tracked, related), {==}, {==}, {==})
     case True{}: Ext.expired_result(~String, ~Lookup.string_same, V, S.remove(~String, ~Lookup.string_same, V, s, k), S.remove(~String, ~Lookup.string_same, V, t, k), tracked, remove_obs(V, s, t, k, related))
 
-def read_life_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +k: String, +o: String, +v: V, +bits: Word(64n), +tracked: Bool, +related: E.states(~String, ~Lookup.string_same, V, s, t), immortal: Bool, events: List<&2, Clock.Event>) -> eres(V, Eff.read_lifetime(~String, ~Lookup.string_same, V, s, k, T.Item{o, v, T.I64{bits}}, tracked, events, immortal), Eff.read_lifetime(~String, ~Lookup.string_same, V, t, k, T.Item{o, v, T.I64{bits}}, tracked, events, immortal)):
+def read_life_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +k: String, +o: String, +v: V, +bits: Word(64n), +tracked: Bool, +related: E.states(~String, ~Lookup.string_same, V, s, t), immortal: Bool, events: List<&2, Clock.ClockEvent>) -> eres(V, Eff.read_lifetime(~String, ~Lookup.string_same, V, s, k, T.Item{o, v, T.I64{bits}}, tracked, events, immortal), Eff.read_lifetime(~String, ~Lookup.string_same, V, t, k, T.Item{o, v, T.I64{bits}}, tracked, events, immortal)):
   match immortal:
     case True{}: (decide_cong(V, s, t, k, T.Item{o, v, T.I64{bits}}, tracked, related, False{}), {==}, {==})
     case False{}:
@@ -185,19 +185,19 @@ def read_life_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +k:
         case Con{Clock.ProviderException{reason}, tail}: (related, {==}, {==}, {==})
         case Con{Clock.Sample{+now}, tail}: (decide_cong(V, s, t, k, T.Item{o, v, T.I64{bits}}, tracked, related, N.expired(T.I64{bits}, now)), {==}, {==})
 
-def read_found_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +k: String, +tracked: Bool, +events: List<&2, Clock.Event>, +related: E.states(~String, ~Lookup.string_same, V, s, t), found: Maybe<&2, T.Entry<String, V>>) -> eres(V, Eff.read_found(~String, ~Lookup.string_same, V, s, k, tracked, events, found), Eff.read_found(~String, ~Lookup.string_same, V, t, k, tracked, events, found)):
+def read_found_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +k: String, +tracked: Bool, +events: List<&2, Clock.ClockEvent>, +related: E.states(~String, ~Lookup.string_same, V, s, t), found: Maybe<&2, T.Entry<String, V>>) -> eres(V, Eff.read_found(~String, ~Lookup.string_same, V, s, k, tracked, events, found), Eff.read_found(~String, ~Lookup.string_same, V, t, k, tracked, events, found)):
   match found:
     case None{}: ((Ext.count_miss(~String, ~Lookup.string_same, V, s, t, tracked, related), {==}, {==}, {==}), {==}, {==})
     case Some{T.Item{+o, +v, T.I64{+bits}}}: read_life_cong(V, s, t, k, o, v, bits, tracked, related, N.zero(bits), events)
 
-def read_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +k: String, +tracked: Bool, +events: List<&2, Clock.Event>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> eres(V, Eff.read(~String, ~Lookup.string_same, V, s, k, tracked, events), Eff.read(~String, ~Lookup.string_same, V, t, k, tracked, events)):
+def read_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +k: String, +tracked: Bool, +events: List<&2, Clock.ClockEvent>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> eres(V, Eff.read(~String, ~Lookup.string_same, V, s, k, tracked, events), Eff.read(~String, ~Lookup.string_same, V, t, k, tracked, events)):
   S.Abstract{+sc, +sb, +so, +sl, +sm, +sf} = s
   S.Abstract{+tc, +tb, +to, +tl, +tm, +tf} = t
   %find_cong(V, S.Abstract{sc, sb, so, sl, sm, sf}, S.Abstract{tc, tb, to, tl, tm, tf}, related, k) : eres(V, Eff.read_found(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}, k, tracked, events, S.find(~String, ~Lookup.string_same, V, sb, k)), Eff.read_found(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, tm, tf}, k, tracked, events, _))
   read_found_cong(V, S.Abstract{sc, sb, so, sl, sm, sf}, S.Abstract{tc, tb, to, tl, tm, tf}, k, tracked, events, related, S.find(~String, ~Lookup.string_same, V, sb, k))
 
 # GetAndRefresh.
-def refresh_life_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +key: String, +value: V, +deadline: T.Int64, +bits: Word(64n), +related: E.states(~String, ~Lookup.string_same, V, s, t), immortal: Bool, events: List<&2, Clock.Event>) -> eres(V, Eff.refresh_lifetime(~String, ~Lookup.string_same, V, O.hit_state(~String, ~Lookup.string_same, V, s, key, True{}), T.Item{key, value, deadline}, T.I64{bits}, events, immortal), Eff.refresh_lifetime(~String, ~Lookup.string_same, V, O.hit_state(~String, ~Lookup.string_same, V, t, key, True{}), T.Item{key, value, deadline}, T.I64{bits}, events, immortal)):
+def refresh_life_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +key: String, +value: V, +deadline: T.Int64, +bits: Word(64n), +related: E.states(~String, ~Lookup.string_same, V, s, t), immortal: Bool, events: List<&2, Clock.ClockEvent>) -> eres(V, Eff.refresh_lifetime(~String, ~Lookup.string_same, V, O.hit_state(~String, ~Lookup.string_same, V, s, key, True{}), T.Item{key, value, deadline}, T.I64{bits}, events, immortal), Eff.refresh_lifetime(~String, ~Lookup.string_same, V, O.hit_state(~String, ~Lookup.string_same, V, t, key, True{}), T.Item{key, value, deadline}, T.I64{bits}, events, immortal)):
   match immortal:
     case True{}: (refreshed_cong(V, s, t, key, value, deadline, T.I64{Word.zero(64n)}, related), {==}, {==})
     case False{}:
@@ -207,14 +207,14 @@ def refresh_life_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, 
         case Con{Clock.ProviderException{reason}, tail}: (hit_cong(V, s, t, key, True{}, related), {==}, {==}, {==})
         case Con{Clock.Sample{+now}, tail}: (refreshed_cong(V, s, t, key, value, deadline, N.deadline(now, T.I64{bits}), related), {==}, {==})
 
-def refresh_found_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +ns: T.Int64, +events: List<&2, Clock.Event>, +related: E.states(~String, ~Lookup.string_same, V, s, t), found: Maybe<&2, T.Entry<String, V>>) -> eres(V, Eff.refresh_found(~String, ~Lookup.string_same, V, s, ns, events, found), Eff.refresh_found(~String, ~Lookup.string_same, V, t, ns, events, found)):
+def refresh_found_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +ns: T.Int64, +events: List<&2, Clock.ClockEvent>, +related: E.states(~String, ~Lookup.string_same, V, s, t), found: Maybe<&2, T.Entry<String, V>>) -> eres(V, Eff.refresh_found(~String, ~Lookup.string_same, V, s, ns, events, found), Eff.refresh_found(~String, ~Lookup.string_same, V, t, ns, events, found)):
   T.I64{+bits} = ns
   match found:
     case None{}: (miss_cong(V, s, t, related), {==}, {==})
     case Some{T.Item{+key, +value, +deadline}}:
       refresh_life_cong(V, s, t, key, value, deadline, bits, related, N.zero(bits), events)
 
-def refresh_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +k: String, +ns: T.Int64, +events: List<&2, Clock.Event>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> eres(V, Eff.refresh(~String, ~Lookup.string_same, V, s, k, ns, events), Eff.refresh(~String, ~Lookup.string_same, V, t, k, ns, events)):
+def refresh_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +k: String, +ns: T.Int64, +events: List<&2, Clock.ClockEvent>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> eres(V, Eff.refresh(~String, ~Lookup.string_same, V, s, k, ns, events), Eff.refresh(~String, ~Lookup.string_same, V, t, k, ns, events)):
   S.Abstract{+sc, +sb, +so, +sl, +sm, +sf} = s
   S.Abstract{+tc, +tb, +to, +tl, +tm, +tf} = t
   %find_cong(V, S.Abstract{sc, sb, so, sl, sm, sf}, S.Abstract{tc, tb, to, tl, tm, tf}, related, k) : eres(V, Eff.refresh_found(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}, ns, events, S.find(~String, ~Lookup.string_same, V, sb, k)), Eff.refresh_found(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, tm, tf}, ns, events, _))
@@ -232,7 +232,7 @@ def apply_prefix_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, 
     case A.Finished{+removed, retained, events, requests}: ((remove_entries_cong(V, removed, s, t, related), {==}, {==}, {==}), {==}, {==})
     case A.Failed{error, +removed, retained, events, requests}: (remove_entries_cong(V, removed, s, t, related), {==}, {==}, {==})
 
-def aggregate_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +events: List<&2, Clock.Event>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> eres(V, A.purge_expired(~String, ~Lookup.string_same, V, s, events), A.purge_expired(~String, ~Lookup.string_same, V, t, events)):
+def aggregate_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +events: List<&2, Clock.ClockEvent>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> eres(V, A.purge_expired(~String, ~Lookup.string_same, V, s, events), A.purge_expired(~String, ~Lookup.string_same, V, t, events)):
   %CS.entries_agreement(V, s, t, related) : eres(V, A.apply_prefix(~String, ~Lookup.string_same, V, s, A.prefix(String, V, O.all_entries(~String, ~Lookup.string_same, V, s), events)), A.apply_prefix(~String, ~Lookup.string_same, V, t, A.prefix(String, V, _, events)))
   apply_prefix_cong(V, s, t, related, A.prefix(String, V, O.all_entries(~String, ~Lookup.string_same, V, s), events))
 
@@ -277,7 +277,7 @@ def prepare_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +k: Str
   %find_cong(V, S.Abstract{sc, sb, so, sl, sm, sf}, S.Abstract{tc, tb, to, tl, tm, tf}, related, k) : prel(V, Eff.prepare_found(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}, k, S.find(~String, ~Lookup.string_same, V, sb, k)), Eff.prepare_found(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, tm, tf}, k, _))
   prepare_found_cong(V, sc, sb, so, sl, sm, sf, tc, tb, to, tl, tm, tf, k, related, S.find(~String, ~Lookup.string_same, V, sb, k))
 
-def add_life_known(-V: Data, +sa: S.Model<String, V>, +sb: S.Model<String, V>, +ka: String, +ea: Bool, +value: V, +ns: T.Int64, +st: E.states(~String, ~Lookup.string_same, V, sa, sb), immortal: Bool, events: List<&2, Clock.Event>) -> eres(V, Eff.add_lifetime(~String, ~Lookup.string_same, V, Eff.Prepared{sa, ka, ea}, value, ns, events, immortal), Eff.add_lifetime(~String, ~Lookup.string_same, V, Eff.Prepared{sb, ka, ea}, value, ns, events, immortal)):
+def add_life_known(-V: Data, +sa: S.Model<String, V>, +sb: S.Model<String, V>, +ka: String, +ea: Bool, +value: V, +ns: T.Int64, +st: E.states(~String, ~Lookup.string_same, V, sa, sb), immortal: Bool, events: List<&2, Clock.ClockEvent>) -> eres(V, Eff.add_lifetime(~String, ~Lookup.string_same, V, Eff.Prepared{sa, ka, ea}, value, ns, events, immortal), Eff.add_lifetime(~String, ~Lookup.string_same, V, Eff.Prepared{sb, ka, ea}, value, ns, events, immortal)):
   match immortal:
     case True{}: (Write.observation(V, sa, sb, ka, value, T.I64{Word.zero(64n)}, ea, Nil{}, st), {==}, {==})
     case False{}:
@@ -287,7 +287,7 @@ def add_life_known(-V: Data, +sa: S.Model<String, V>, +sb: S.Model<String, V>, +
         case Con{Clock.ProviderException{reason}, tail}: (st, {==}, {==}, {==})
         case Con{Clock.Sample{+now}, tail}: (Write.observation(V, sa, sb, ka, value, N.deadline(now, ns), ea, Nil{}, st), {==}, {==})
 
-def add_life_cong(-V: Data, a: Eff.PreparedAdd<String, V>, b: Eff.PreparedAdd<String, V>, +value: V, +ns: T.Int64, related: prel(V, a, b), +immortal: Bool, +events: List<&2, Clock.Event>) -> eres(V, Eff.add_lifetime(~String, ~Lookup.string_same, V, a, value, ns, events, immortal), Eff.add_lifetime(~String, ~Lookup.string_same, V, b, value, ns, events, immortal)):
+def add_life_cong(-V: Data, a: Eff.PreparedAdd<String, V>, b: Eff.PreparedAdd<String, V>, +value: V, +ns: T.Int64, related: prel(V, a, b), +immortal: Bool, +events: List<&2, Clock.ClockEvent>) -> eres(V, Eff.add_lifetime(~String, ~Lookup.string_same, V, a, value, ns, events, immortal), Eff.add_lifetime(~String, ~Lookup.string_same, V, b, value, ns, events, immortal)):
   Eff.Prepared{+sa, +ka, +ea} = a
   Eff.Prepared{+sb, +kb, +eb} = b
   (+st, +keys, flags) = related
@@ -295,25 +295,25 @@ def add_life_cong(-V: Data, a: Eff.PreparedAdd<String, V>, b: Eff.PreparedAdd<St
   %flags : eres(V, Eff.add_lifetime(~String, ~Lookup.string_same, V, Eff.Prepared{sa, ka, ea}, value, ns, events, immortal), Eff.add_lifetime(~String, ~Lookup.string_same, V, Eff.Prepared{sb, ka, _}, value, ns, events, immortal))
   add_life_known(V, sa, sb, ka, ea, value, ns, st, immortal, events)
 
-def add_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +k: String, +value: V, ns: T.Int64, events: List<&2, Clock.Event>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> eres(V, Eff.add_with_lifetime(~String, ~Lookup.string_same, V, s, k, value, ns, events), Eff.add_with_lifetime(~String, ~Lookup.string_same, V, t, k, value, ns, events)):
+def add_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +k: String, +value: V, ns: T.Int64, events: List<&2, Clock.ClockEvent>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> eres(V, Eff.add_with_lifetime(~String, ~Lookup.string_same, V, s, k, value, ns, events), Eff.add_with_lifetime(~String, ~Lookup.string_same, V, t, k, value, ns, events)):
   T.I64{+bits} = ns
   add_life_cong(V, Eff.prepare_add(~String, ~Lookup.string_same, V, s, k), Eff.prepare_add(~String, ~Lookup.string_same, V, t, k), value, T.I64{bits}, prepare_cong(V, s, t, k, related), N.zero(bits), events)
 
 # ---------------------------------------------------------------------------
 # GetOldest and RemoveOldest act on the (equal) recency head.
-def oldest_binding_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +zero_key: String, +zero_value: V, +events: List<&2, Clock.Event>, +related: E.states(~String, ~Lookup.string_same, V, s, t), found: Maybe<&2, T.Entry<String, V>>) -> sres(V, PC.oldest_binding(~String, ~Lookup.string_same, V, s, zero_key, zero_value, events, found), PC.oldest_binding(~String, ~Lookup.string_same, V, t, zero_key, zero_value, events, found)):
+def oldest_binding_cong(-V: Data, +s: S.Model<String, V>, +t: S.Model<String, V>, +zero_key: String, +zero_value: V, +events: List<&2, Clock.ClockEvent>, +related: E.states(~String, ~Lookup.string_same, V, s, t), found: Maybe<&2, T.Entry<String, V>>) -> sres(V, PC.oldest_binding(~String, ~Lookup.string_same, V, s, zero_key, zero_value, events, found), PC.oldest_binding(~String, ~Lookup.string_same, V, t, zero_key, zero_value, events, found)):
   match found:
     case None{}: (related, {==}, {==}, {==})
     case Some{T.Item{+original, v, d}}: effect_cong(V, zero_key, zero_value, PC.CapturedOldest{original}, Eff.read(~String, ~Lookup.string_same, V, s, original, False{}, events), Eff.read(~String, ~Lookup.string_same, V, t, original, False{}, events), read_cong(V, s, t, original, False{}, events, related))
 
-def oldest_order_cong(-V: Data, +sc: Nat, +sb: List<&2, T.Entry<String, V>>, +so: List<&2, String>, +sl: T.Int64, +sm: T.Metrics, +sf: Bool, +tc: Nat, +tb: List<&2, T.Entry<String, V>>, +to: List<&2, String>, +tl: T.Int64, +tm: T.Metrics, +tf: Bool, +zero_key: String, +zero_value: V, +events: List<&2, Clock.Event>, +related: E.states(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}, S.Abstract{tc, tb, to, tl, tm, tf}), order: List<&2, String>) -> sres(V, PC.oldest_order(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}, sb, order, zero_key, zero_value, events), PC.oldest_order(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, tm, tf}, tb, order, zero_key, zero_value, events)):
+def oldest_order_cong(-V: Data, +sc: Nat, +sb: List<&2, T.Entry<String, V>>, +so: List<&2, String>, +sl: T.Int64, +sm: T.Metrics, +sf: Bool, +tc: Nat, +tb: List<&2, T.Entry<String, V>>, +to: List<&2, String>, +tl: T.Int64, +tm: T.Metrics, +tf: Bool, +zero_key: String, +zero_value: V, +events: List<&2, Clock.ClockEvent>, +related: E.states(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}, S.Abstract{tc, tb, to, tl, tm, tf}), order: List<&2, String>) -> sres(V, PC.oldest_order(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}, sb, order, zero_key, zero_value, events), PC.oldest_order(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, tm, tf}, tb, order, zero_key, zero_value, events)):
   match order:
     case Nil{}: (related, {==}, {==}, {==})
     case Con{+first, tail}:
       %find_cong(V, S.Abstract{sc, sb, so, sl, sm, sf}, S.Abstract{tc, tb, to, tl, tm, tf}, related, first) : sres(V, PC.oldest_binding(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}, zero_key, zero_value, events, S.find(~String, ~Lookup.string_same, V, sb, first)), PC.oldest_binding(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, tm, tf}, zero_key, zero_value, events, _))
       oldest_binding_cong(V, S.Abstract{sc, sb, so, sl, sm, sf}, S.Abstract{tc, tb, to, tl, tm, tf}, zero_key, zero_value, events, related, S.find(~String, ~Lookup.string_same, V, sb, first))
 
-def oldest_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +zero_key: String, +zero_value: V, +events: List<&2, Clock.Event>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> sres(V, PC.oldest(~String, ~Lookup.string_same, V, s, zero_key, zero_value, events), PC.oldest(~String, ~Lookup.string_same, V, t, zero_key, zero_value, events)):
+def oldest_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +zero_key: String, +zero_value: V, +events: List<&2, Clock.ClockEvent>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> sres(V, PC.oldest(~String, ~Lookup.string_same, V, s, zero_key, zero_value, events), PC.oldest(~String, ~Lookup.string_same, V, t, zero_key, zero_value, events)):
   S.Abstract{+sc, +sb, +so, +sl, +sm, +sf} = s
   S.Abstract{+tc, +tb, +to, +tl, +tm, +tf} = t
   %Equal.cong(E.Canonical<String, V>, List<&2, String>, c => order_of(V, c), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, tm, tf}), related) : sres(V, PC.oldest_order(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}, sb, so, zero_key, zero_value, events), PC.oldest_order(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, tm, tf}, tb, _, zero_key, zero_value, events))
@@ -332,17 +332,17 @@ def remove_oldest_obs(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +r
 
 # ---------------------------------------------------------------------------
 # Configuration, counters and diagnostics.
-def metrics_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +events: List<&2, Clock.Event>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> sres(V, PC.metrics(String, V, s, events), PC.metrics(String, V, t, events)):
+def metrics_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +events: List<&2, Clock.ClockEvent>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> sres(V, PC.metrics(String, V, s, events), PC.metrics(String, V, t, events)):
   S.Abstract{+sc, +sb, +so, +sl, +sm, +sf} = s
   S.Abstract{+tc, +tb, +to, +tl, +tm, +tf} = t
   (related, Equal.cong(T.Metrics, PC.Reply<String, V>, m => PC.Counters{m}, sm, tm, Equal.cong(E.Canonical<String, V>, T.Metrics, c => Ext.counts_of(String, V, c), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, tm, tf}), related)), {==}, {==})
 
-def reset_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +events: List<&2, Clock.Event>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> sres(V, PC.reset(String, V, s, events), PC.reset(String, V, t, events)):
+def reset_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +events: List<&2, Clock.ClockEvent>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> sres(V, PC.reset(String, V, s, events), PC.reset(String, V, t, events)):
   S.Abstract{+sc, +sb, +so, +sl, +sm, +sf} = s
   S.Abstract{+tc, +tb, +to, +tl, +tm, +tf} = t
   (Equal.cong(E.Canonical<String, V>, E.Canonical<String, V>, c => Ext.with_counts(String, V, c, T.zero_metrics()), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, tm, tf}), related), Equal.cong(T.Metrics, PC.Reply<String, V>, m => PC.Counters{m}, sm, tm, Equal.cong(E.Canonical<String, V>, T.Metrics, c => Ext.counts_of(String, V, c), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, tm, tf}), related)), {==}, {==})
 
-def diagnostics_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +events: List<&2, Clock.Event>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> sres(V, PC.diagnostics(~String, ~Lookup.string_same, V, s, events), PC.diagnostics(~String, ~Lookup.string_same, V, t, events)):
+def diagnostics_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +events: List<&2, Clock.ClockEvent>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> sres(V, PC.diagnostics(~String, ~Lookup.string_same, V, s, events), PC.diagnostics(~String, ~Lookup.string_same, V, t, events)):
   S.Abstract{+sc, +sb, +so, +sl, +sm, +sf} = s
   S.Abstract{+tc, +tb, +to, +tl, +tm, +tf} = t
   +entries = CS.entries_agreement(V, S.Abstract{sc, sb, so, sl, sm, sf}, S.Abstract{tc, tb, to, tl, tm, tf}, related)
@@ -355,14 +355,14 @@ def diagnostics_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +ev
   %counts : sres(V, PC.Returned{S.Abstract{sc, sb, so, sl, sm, sf}, PC.Storage{List.length(&2, T.Entry<String, V>, O.all_entries(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf})), List.length(&2, String, so), sc, sm}, events, 0n}, PC.Returned{S.Abstract{tc, tb, to, tl, tm, tf}, PC.Storage{List.length(&2, T.Entry<String, V>, O.all_entries(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf})), List.length(&2, String, so), sc, _}, events, 0n})
   (related, {==}, {==}, {==})
 
-def add_plain_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +k: String, +value: V, +events: List<&2, Clock.Event>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> eres(V, Eff.add(~String, ~Lookup.string_same, V, s, k, value, events), Eff.add(~String, ~Lookup.string_same, V, t, k, value, events)):
+def add_plain_cong(-V: Data, s: S.Model<String, V>, t: S.Model<String, V>, +k: String, +value: V, +events: List<&2, Clock.ClockEvent>, +related: E.states(~String, ~Lookup.string_same, V, s, t)) -> eres(V, Eff.add(~String, ~Lookup.string_same, V, s, k, value, events), Eff.add(~String, ~Lookup.string_same, V, t, k, value, events)):
   S.Abstract{+sc, +sb, +so, +sl, +sm, +sf} = s
   S.Abstract{+tc, +tb, +to, +tl, +tm, +tf} = t
   %Equal.cong(E.Canonical<String, V>, T.Int64, c => life_of(V, c), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}), E.canonical(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, tm, tf}), related) : eres(V, Eff.add_with_lifetime(~String, ~Lookup.string_same, V, S.Abstract{sc, sb, so, sl, sm, sf}, k, value, sl, events), Eff.add_with_lifetime(~String, ~Lookup.string_same, V, S.Abstract{tc, tb, to, tl, tm, tf}, k, value, _, events))
   add_cong(V, S.Abstract{sc, sb, so, sl, sm, sf}, S.Abstract{tc, tb, to, tl, tm, tf}, k, value, sl, events, related)
 
 # The whole independent public semantics respects the canonical relation.
-def execute_cong(-V: Data, +zero_key: String, +zero_value: V, +s: S.Model<String, V>, +t: S.Model<String, V>, +events: List<&2, Clock.Event>, +related: E.states(~String, ~Lookup.string_same, V, s, t), command: S.Command<String, V>) -> sres(V, PC.execute(~String, ~Lookup.string_same, V, s, zero_key, zero_value, events, command), PC.execute(~String, ~Lookup.string_same, V, t, zero_key, zero_value, events, command)):
+def execute_cong(-V: Data, +zero_key: String, +zero_value: V, +s: S.Model<String, V>, +t: S.Model<String, V>, +events: List<&2, Clock.ClockEvent>, +related: E.states(~String, ~Lookup.string_same, V, s, t), command: S.Command<String, V>) -> sres(V, PC.execute(~String, ~Lookup.string_same, V, s, zero_key, zero_value, events, command), PC.execute(~String, ~Lookup.string_same, V, t, zero_key, zero_value, events, command)):
   match command:
     case S.Add{+k, +v}: effect_cong(V, zero_key, zero_value, PC.Flag{}, Eff.add(~String, ~Lookup.string_same, V, s, k, v, events), Eff.add(~String, ~Lookup.string_same, V, t, k, v, events), add_plain_cong(V, s, t, k, v, events, related))
     case S.AddWithLifetime{+k, +v, +ns}: effect_cong(V, zero_key, zero_value, PC.Flag{}, Eff.add_with_lifetime(~String, ~Lookup.string_same, V, s, k, v, ns, events), Eff.add_with_lifetime(~String, ~Lookup.string_same, V, t, k, v, ns, events), add_cong(V, s, t, k, v, ns, events, related))

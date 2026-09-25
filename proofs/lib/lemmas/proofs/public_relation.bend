@@ -35,7 +35,7 @@ def command(-K: Data, -V: Data, request: Pub.Request<K, V>) -> S.Command<K, V>:
 
 def reply(-K: Data, -V: Data, answer: Pub.Answer<K, V>) -> PC.Reply<K, V>:
   match answer:
-    case Pub.Empty{}: PC.Unit{}
+    case Pub.Empty{}: PC.NoReply{}
     case Pub.Boolean{b}: PC.Boolean{b}
     case Pub.Value{v, found}: PC.Value{v, found}
     case Pub.Oldest{k, v, found}: PC.Oldest{k, v, found}
@@ -48,11 +48,11 @@ def reply(-K: Data, -V: Data, answer: Pub.Answer<K, V>) -> PC.Reply<K, V>:
 # Executed outcome versus independent result: same success/failure class, exact
 # reply or error, exact unused provider events and request count, and
 # extensionally equal finite-map state with exact recency and metrics.
-def results(~K: Data, ~same: K -> K -> Bool, -V: Data, actual: D.Outcome<K, V>, expected: PC.Result<K, V>) -> Type:
+def results(~K: Data, ~same: K -> K -> Bool, -V: Data, actual: D.Outcome<K, V>, expected: PC.CmdResult<K, V>) -> Type:
   match actual expected:
     case D.Returned{c, answer, events, count} PC.Returned{s, expected_reply, expected_events, expected_count}:
-      E.states(~K, ~same, V, F.abstract(K, V, c), s) & {reply(K, V, answer) == expected_reply : PC.Reply<K, V>} & {events == expected_events : List<&2, Clock.Event>} & {count == expected_count : Nat}
+      E.states(~K, ~same, V, F.abstract(K, V, c), s) & {reply(K, V, answer) == expected_reply : PC.Reply<K, V>} & {events == expected_events : List<&2, Clock.ClockEvent>} & {count == expected_count : Nat}
     case D.Failed{c, error, events, count} PC.Failed{s, expected_error, expected_events, expected_count}:
-      E.states(~K, ~same, V, F.abstract(K, V, c), s) & {error == expected_error : Clock.Error} & {events == expected_events : List<&2, Clock.Event>} & {count == expected_count : Nat}
+      E.states(~K, ~same, V, F.abstract(K, V, c), s) & {error == expected_error : Clock.Error} & {events == expected_events : List<&2, Clock.ClockEvent>} & {count == expected_count : Nat}
     case D.Returned{c, answer, events, count} PC.Failed{s, expected_error, expected_events, expected_count}: Empty
     case D.Failed{c, error, events, count} PC.Returned{s, expected_reply, expected_events, expected_count}: Empty

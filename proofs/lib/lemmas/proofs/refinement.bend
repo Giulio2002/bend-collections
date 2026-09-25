@@ -222,7 +222,7 @@ law store_lookup:
   for +value: V
   for +deadline: T.Int64
   for flag: Bool
-  for events: List<&2, T.Event<K, V>>
+  for events: List<&2, T.LruEvent<K, V>>
   {C.lookup(K, V, C.step_cache(K, V, C.store(K, V, c, code, key, value, deadline, flag, events)), code) == Some{T.Item{key, value, deadline}} : Maybe<&2, T.Entry<K, V>>}
 def store_lookup(K, V, c, code, key, value, deadline, flag, events):
   match c:
@@ -347,7 +347,7 @@ law store_preserves_storage_critbit:
   for value: V
   for deadline: T.Int64
   for flag: Bool
-  for events: List<&2, T.Event<K, V>>
+  for events: List<&2, T.LruEvent<K, V>>
   for invariant: {storage_critbit(K, V, c) == True{} : Bool}
   {storage_critbit(K, V, C.step_cache(K, V, C.store(K, V, c, code, key, value, deadline, flag, events))) == True{} : Bool}
 def store_preserves_storage_critbit(K, V, c, code, key, value, deadline, flag, events, invariant):
@@ -366,7 +366,7 @@ law store_other_lookup:
   for +value: V
   for +deadline: T.Int64
   for flag: Bool
-  for events: List<&2, T.Event<K, V>>
+  for events: List<&2, T.LruEvent<K, V>>
   for +query: String
   for unequal: {String.eq(query, code) == False{} : Bool}
   for invariant: {storage_critbit(K, V, c) == True{} : Bool}

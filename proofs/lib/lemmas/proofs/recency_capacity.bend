@@ -89,7 +89,7 @@ law store_preserves_bound:
   for value: V
   for deadline: T.Int64
   for flag: Bool
-  for events: List<&2, T.Event<K, V>>
+  for events: List<&2, T.LruEvent<K, V>>
   for bound: {Nat.is_le(C.len(K, V, c), C.capacity(K, V, c)) == True{} : Bool}
   for ready: room_or_present(K, V, c, code)
   {Nat.is_le(C.len(K, V, C.step_cache(K, V, C.store(K, V, c, code, key, value, deadline, flag, events))), C.capacity(K, V, c)) == True{} : Bool}

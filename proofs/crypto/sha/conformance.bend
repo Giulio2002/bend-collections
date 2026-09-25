@@ -661,7 +661,7 @@ def mod_tail(x, k):
 # is one unfolding followed by the next round's lemma.
 law kr64_correct:
   for +q: Nat
-  for +win: C.Window
+  for +win: C.ShaWindow
   for +s: S.State
   {C.kr64(q, win, s) == C.window_rounds(q, win, Nil{}, s) : S.State}
 

@@ -34,11 +34,8 @@ import ./miss.bend as MS
 import ./repl.bend as RP
 import ./ent.bend as ENT
 import ./room.bend as RO
-import ./find.bend as FD
-import ./tfind.bend as TF
 import ./resize.bend as RZ
 import ../hash_table/modn.bend as M
-import ../../../src/math/hash.bend as HS
 import ../../lib/nat_list.bend as NL
 import ../../lib/words32.bend as W32
 import ../../lib/u32_tree.bend as UT

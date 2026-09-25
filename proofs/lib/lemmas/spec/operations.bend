@@ -6,7 +6,7 @@ import ./numeric.bend as N
 # Independent finite-map transition semantics. No implementation/proof imports.
 # Supplied 'now' is the explicit sample at the operation's clock-read point.
 # User callbacks are excluded. Legacy event fields are inert on initial states.
-def write(~K: Data, ~same: K -> K -> Bool, -V: Data, s: S.Model<K, V>, +key: K, value: V, deadline: T.Int64, evicted: Bool, events: List<&2, T.Event<K, V>>) -> S.Observation<K, V>:
+def write(~K: Data, ~same: K -> K -> Bool, -V: Data, s: S.Model<K, V>, +key: K, value: V, deadline: T.Int64, evicted: Bool, events: List<&2, T.LruEvent<K, V>>) -> S.Observation<K, V>:
   S.Abstract{cap, bindings, order, life, T.Counts{i, e, r, h, m}, cb} = s
   S.Observed{S.Abstract{cap, Con{T.Item{key, value, deadline}, S.erase(~K, ~same, V, bindings, key)}, List.append(&2, K, S.unlist(~K, ~same, order, key), Con{key, Nil{}}), life, T.Counts{Word.inc(64n, i), e, r, h, m}, cb}, None{}, evicted, events}
 
@@ -172,7 +172,7 @@ type AggregateFailure<-K: Data, -V: Data> is Data:
   AggregateFailed{error: String, state: S.Model<K, V>, unused_clock: List<&2, T.Int64>}
 
 type AggregateResult<-K: Data, -V: Data> is Data:
-  Aggregate{state: S.Model<K, V>, keys: List<&2, K>, values: List<&2, V>, callbacks: List<&2, T.Event<K, V>>, unused_clock: List<&2, T.Int64>}
+  Aggregate{state: S.Model<K, V>, keys: List<&2, K>, values: List<&2, V>, callbacks: List<&2, T.LruEvent<K, V>>, unused_clock: List<&2, T.Int64>}
 
 def entry_keys(-K: Data, -V: Data, entries: List<&2, T.Entry<K, V>>) -> List<&2, K>:
   match entries:

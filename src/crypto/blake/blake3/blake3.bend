@@ -154,20 +154,20 @@ def parent_cv(l: T.CV, r: T.CV) -> T.CV:
 # The subtree stack, smallest subtree first: slot i is empty or holds the
 # chaining value of a complete subtree of 2^i chunks.
 type Stack is Data:
-  SNil{}
+  StkNil{}
   SEmpty{rest: Stack}
   SFull{cv: T.CV, rest: Stack}
 
 def push(s: Stack, c: T.CV) -> Stack:
   match s:
-    case SNil{}: SFull{c,SNil{}}
+    case StkNil{}: SFull{c,StkNil{}}
     case SEmpty{r}: SFull{c,r}
     case SFull{d,r}: SEmpty{push(r,parent_cv(d,c))}
 
 # Folds the stack into the pending output of the rightmost subtree.
 def finish(s: Stack, o: T.Out) -> T.Out:
   match s:
-    case SNil{}: o
+    case StkNil{}: o
     case SEmpty{r}: finish(r,o)
     case SFull{d,r}: finish(r,parent_out(d,out_cv(o)))
 
@@ -183,7 +183,7 @@ def chunks(n: Nat, +counter: U32, +index: U32, +len: Nat, pair: Array<U32> & Sta
 
 def unchecked(a: Array<U32>, +length: Nat) -> T.CV:
   +n = Nat.div(Nat.sub(length,1n),1024n)
-  root_cv(chunks(n,0,0,Nat.sub(length,Nat.mul(n,1024n)),(a,SNil{})))
+  root_cv(chunks(n,0,0,Nat.sub(length,Nat.mul(n,1024n)),(a,StkNil{})))
 
 def digest(c: T.CV) -> Array<U32>:
   match c:

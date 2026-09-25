@@ -29,7 +29,6 @@ import ./insp.bend as IP
 import ./grow.bend as GW
 import ./evictk.bend as EK
 import ./bumpk.bend as BK
-import ./tfind.bend as TF
 import ./walk.bend as WL
 import ./linktail.bend as LT
 import ../hash_table/rawins.bend as RI
@@ -37,7 +36,6 @@ import ../hash_table/grow.bend as GR
 import ./ins1.bend as I1
 import ../../lib/u32.bend as U
 import ../hash_table/modn.bend as M
-import ../../../src/math/hash.bend as HS
 import ../../lib/nat_list.bend as NL
 import ../../lib/links.bend as LK
 import ../../lib/words32.bend as W32

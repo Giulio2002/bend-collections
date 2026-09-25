@@ -97,7 +97,7 @@ law store:
   for value: V
   for deadline: T.Int64
   for found: Bool
-  for events: List<&2, T.Event<K, V>>
+  for events: List<&2, T.LruEvent<K, V>>
   {step_flag(K, V, C.store(K, V, c, code, key, value, deadline, found, events)) == flag(K, V, c) : Bool}
 def store(K, V, c, code, key, value, deadline, found, events):
   C.State{cap, table, order, life, counts, cb} = c

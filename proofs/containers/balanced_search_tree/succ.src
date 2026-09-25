@@ -8,9 +8,6 @@ import ./state.bend as ST
 import ./path.bend as P
 import ./plug.bend as PG
 import ./frame.bend as FRM
-import ./frame.bend as FRM
-import ./prim.bend as PR
-import ./mirror.bend as MI
 import ./prim.bend as PR
 import ./mirror.bend as MI
 import ./nbr.bend as NB

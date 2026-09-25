@@ -58,7 +58,7 @@ law store:
   for value: V
   for deadline: T.Int64
   for flag: Bool
-  for events: List<&2, T.Event<K, V>>
+  for events: List<&2, T.LruEvent<K, V>>
   {C.capacity(K, V, C.step_cache(K, V, C.store(K, V, c, code, key, value, deadline, flag, events))) == C.capacity(K, V, c) : Nat}
 def store(K, V, c, code, key, value, deadline, flag, events):
   C.State{cap, table, order, life, T.Counts{i, e, r, h, m}, cb} = c

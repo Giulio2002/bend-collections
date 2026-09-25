@@ -145,7 +145,7 @@ law store_preserves_populated:
   for value: V
   for deadline: T.Int64
   for flag: Bool
-  for events: List<&2, T.Event<K, V>>
+  for events: List<&2, T.LruEvent<K, V>>
   for invariant: {storage_populated(K, V, c) == True{} : Bool}
   {storage_populated(K, V, C.step_cache(K, V, C.store(K, V, c, code, key, value, deadline, flag, events))) == True{} : Bool}
 def store_preserves_populated(K, V, c, code, key, value, deadline, flag, events, invariant):

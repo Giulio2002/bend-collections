@@ -21,7 +21,6 @@ import ./succ.bend as SU
 import ./rmv.bend as RV
 import ./mokx.bend as MX
 import ./dord.bend as DO
-import ./slot.bend as SL
 
 # The polls: the first (last) id of the header is the leftmost (rightmost)
 # node, reached from the root by a path of left (right) turns; it is removed

@@ -225,7 +225,7 @@ law store_preserves_unique_recency:
   for value: V
   for deadline: T.Int64
   for flag: Bool
-  for events: List<&2, T.Event<K, V>>
+  for events: List<&2, T.LruEvent<K, V>>
   for unique: {unique_recency(K, V, c) == True{} : Bool}
   {unique_recency(K, V, C.step_cache(K, V, C.store(K, V, c, code, key, value, deadline, flag, events))) == True{} : Bool}
 def store_preserves_unique_recency(K, V, c, code, key, value, deadline, flag, events, unique):

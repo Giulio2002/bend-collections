@@ -28,7 +28,6 @@ import ./idx.bend as ID
 import ../../lib/u32.bend as U
 import ../hash_table/insert.bend as IS
 import ../hash_table/modn.bend as M
-import ../../../src/math/hash.bend as HS
 import ../../lib/nat_list.bend as NL
 import ../../lib/links.bend as LK
 import ../../lib/words32.bend as W32

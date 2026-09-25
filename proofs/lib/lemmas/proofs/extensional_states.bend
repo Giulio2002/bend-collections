@@ -96,4 +96,4 @@ def observation_transitive(~K: Data, ~same: K -> K -> Bool, -V: Data, a: S.Obser
   S.Observed{sc, ic, fc, ec} = c
   (states1, items1, flags1, events1) = first
   (states2, items2, flags2, events2) = second
-  (transitive(~K, ~same, V, sa, sb, sc, states1, states2), Equal.trans(Maybe<&2, T.Entry<K, V>>, ia, ib, ic, items1, items2), Equal.trans(Bool, fa, fb, fc, flags1, flags2), Equal.trans(List<&2, T.Event<K, V>>, ea, eb, ec, events1, events2))
+  (transitive(~K, ~same, V, sa, sb, sc, states1, states2), Equal.trans(Maybe<&2, T.Entry<K, V>>, ia, ib, ic, items1, items2), Equal.trans(Bool, fa, fb, fc, flags1, flags2), Equal.trans(List<&2, T.LruEvent<K, V>>, ea, eb, ec, events1, events2))

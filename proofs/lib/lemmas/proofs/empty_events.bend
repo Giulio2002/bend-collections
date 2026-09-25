@@ -9,7 +9,7 @@ import ./disabled.bend as D
 # event check cannot reject these actual protocol steps from disabled states.
 # They do not prove the TypeScript commit/dispatch bridge.
 def empty(-K: Data, -V: Data, step: C.Step<K, V>) -> Type:
-  {C.step_events(K, V, step) == Nil{} : List<&2, T.Event<K, V>>}
+  {C.step_events(K, V, step) == Nil{} : List<&2, T.LruEvent<K, V>>}
 
 law detach_present:
   for -K: Data
@@ -21,7 +21,7 @@ law detach_present:
   empty(K, V, P.detach_present(K, V, c, code, entry))
 def detach_present(K, V, c, code, entry, disabled):
   C.State{cap, table, order, life, counts, cb} = c
-  Equal.cong(Bool, List<&2, T.Event<K, V>>, b => C.events(K, V, b, entry), cb, False{}, disabled)
+  Equal.cong(Bool, List<&2, T.LruEvent<K, V>>, b => C.events(K, V, b, entry), cb, False{}, disabled)
 
 law detach_found:
   for -K: Data
@@ -330,7 +330,7 @@ law remove_present:
   empty(K, V, C.remove_present(K, V, c, code, evict, entry))
 def remove_present(K, V, c, code, evict, entry, disabled):
   C.State{cap, table, order, life, counts, cb} = c
-  Equal.cong(Bool, List<&2, T.Event<K, V>>, b => C.events(K, V, b, entry), cb, False{}, disabled)
+  Equal.cong(Bool, List<&2, T.LruEvent<K, V>>, b => C.events(K, V, b, entry), cb, False{}, disabled)
 
 law remove_found:
   for -K: Data
@@ -383,8 +383,8 @@ law store:
   for value: V
   for deadline: T.Int64
   for flag: Bool
-  for events: List<&2, T.Event<K, V>>
-  {C.step_events(K, V, C.store(K, V, c, code, key, value, deadline, flag, events)) == events : List<&2, T.Event<K, V>>}
+  for events: List<&2, T.LruEvent<K, V>>
+  {C.step_events(K, V, C.store(K, V, c, code, key, value, deadline, flag, events)) == events : List<&2, T.LruEvent<K, V>>}
 def store(K, V, c, code, key, value, deadline, flag, events):
   C.State{cap, table, order, life, T.Counts{i, e, r, h, m}, cb} = c
   {==}
@@ -401,7 +401,7 @@ law after_evict:
   empty(K, V, C.store_after_evict(K, V, code, key, value, deadline, step))
 def after_evict(K, V, code, key, value, deadline, step, no_events):
   C.Out{+c, item, +flag, +events} = step
-  Equal.trans(List<&2, T.Event<K, V>>, C.step_events(K, V, C.store(K, V, c, code, key, value, deadline, flag, events)), events, Nil{}, store(K, V, c, code, key, value, deadline, flag, events), no_events)
+  Equal.trans(List<&2, T.LruEvent<K, V>>, C.step_events(K, V, C.store(K, V, c, code, key, value, deadline, flag, events)), events, Nil{}, store(K, V, c, code, key, value, deadline, flag, events), no_events)
 
 law add_room:
   for -K: Data

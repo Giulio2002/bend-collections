@@ -47,4 +47,4 @@ def states(~K: Data, ~same: K -> K -> Bool, -V: Data, a: S.Model<K, V>, b: S.Mod
 def observations(~K: Data, ~same: K -> K -> Bool, -V: Data, a: S.Observation<K, V>, b: S.Observation<K, V>) -> Type:
   match a b:
     case S.Observed{as, ai, af, ae} S.Observed{bs, bi, bf, be}:
-      states(~K, ~same, V, as, bs) & {ai == bi : Maybe<&2, T.Entry<K, V>>} & {af == bf : Bool} & {ae == be : List<&2, T.Event<K, V>>}
+      states(~K, ~same, V, as, bs) & {ai == bi : Maybe<&2, T.Entry<K, V>>} & {af == bf : Bool} & {ae == be : List<&2, T.LruEvent<K, V>>}

@@ -9,7 +9,8 @@ import Base
 #   import 0x<hash>/src/containers/hash_table.bend as H
 #
 # Proofs live in proofs/ (entry point proofs/PROOF.bend) and are published
-# as a separate package.
+# as a separate package, except the SHA-256 specification and laws imported
+# below, which proofs about code that hashes (bend-ssz) build on.
 
 import ./src/containers/balanced_search_tree.bend as TreeMap
 import ./src/containers/binary_heap.bend as BinaryHeap
@@ -29,6 +30,13 @@ import ./src/math/hash.bend as Hash
 import ./src/math/pow2.bend as Pow2
 import ./src/math/u64.bend as U64
 import ./src/crypto/sha/sha256.bend as SHA256
+import ./src/crypto/sha/packed/sha256.bend as SHA256Packed
+import ./spec/crypto/sha.bend as SHA256Spec
+import ./spec/crypto/sha/packed.bend as SHA256PackedSpec
+import ./proofs/crypto/sha/laws.bend as SHA256Laws
+import ./proofs/crypto/sha/correctness.bend as SHA256Correctness
+import ./proofs/crypto/sha/packed/laws.bend as SHA256PackedLaws
+import ./proofs/crypto/sha/packed/proof.bend as SHA256PackedCorrectness
 import ./src/crypto/keccak/keccak.bend as Keccak
 import ./src/crypto/keccak/hex.bend as KeccakHex
 import ./src/crypto/blake/blake2s/blake2s.bend as BLAKE2s

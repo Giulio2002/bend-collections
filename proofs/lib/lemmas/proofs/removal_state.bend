@@ -42,9 +42,9 @@ def correspondence(-V: Data, +c: C.Cache<String, V>, +key: String, +entry: T.Ent
   %Equal.sym(S.Model<String, V>, F.abstract(String, V, c), Order.normal(V, c), Order.normalize(V, c, valid)) : E.states(~String, ~Lookup.string_same, V, Order.normal(V, C.step_cache(String, V, C.remove_present(String, V, c, key, False{}, entry))), O.observed_state(String, V, S.remove_existing(~String, ~Lookup.string_same, V, _, key, entry)))
   normalized(V, c, key, entry, valid)
 
-def no_events(-V: Data, +entry: T.Entry<String, V>, cb: Bool, disabled: {cb == False{} : Bool}) -> {C.events(String, V, cb, entry) == S.callbacks(String, V, Con{entry, Nil{}}, cb) : List<&2, T.Event<String, V>>}:
+def no_events(-V: Data, +entry: T.Entry<String, V>, cb: Bool, disabled: {cb == False{} : Bool}) -> {C.events(String, V, cb, entry) == S.callbacks(String, V, Con{entry, Nil{}}, cb) : List<&2, T.LruEvent<String, V>>}:
   T.Item{+original, +value, +deadline} = entry
-  %Equal.sym(Bool, cb, False{}, disabled) : {C.events(String, V, _, T.Item{original, value, deadline}) == S.callbacks(String, V, Con{T.Item{original, value, deadline}, Nil{}}, _) : List<&2, T.Event<String, V>>}
+  %Equal.sym(Bool, cb, False{}, disabled) : {C.events(String, V, _, T.Item{original, value, deadline}) == S.callbacks(String, V, Con{T.Item{original, value, deadline}, Nil{}}, _) : List<&2, T.LruEvent<String, V>>}
   {==}
 
 def observation(-V: Data, +c: C.Cache<String, V>, +key: String, +entry: T.Entry<String, V>, valid: {Inv.representation(~String, ~Codec.string_encode, V, c) == True{} : Bool}, disabled: {Disabled.flag(String, V, c) == False{} : Bool}) -> E.observations(~String, ~Lookup.string_same, V, F.observe(String, V, C.remove_present(String, V, c, key, False{}, entry)), S.remove_existing(~String, ~Lookup.string_same, V, F.abstract(String, V, c), key, entry)):

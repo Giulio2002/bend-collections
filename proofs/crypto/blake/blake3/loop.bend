@@ -50,19 +50,19 @@ def len_init2(+r: List<&2,T.Out>, +x: T.Out) -> {SC.length(T.Out,init2(r,x)) == 
     case Nil{}: {==}
     case Con{+y,+q}: N.succ_cong(SC.length(T.Out,init2(q,y)),SC.length(T.Out,q),len_init2(q,y))
 
-def run_tree_go(+x: T.Out, +r: List<&2,T.Out>) -> {K.finish(TR.push_all(K.SNil{},TR.cvs(init2(r,x))),last2(r,x)) == S.tree(1n+SC.length(T.Out,r),Con{x,r}) : T.Out}:
-  %snoc2(r,x) : {K.finish(TR.push_all(K.SNil{},TR.cvs(init2(r,x))),last2(r,x)) == S.tree(1n+SC.length(T.Out,r),_) : T.Out}
-  %len_init2(r,x) : {K.finish(TR.push_all(K.SNil{},TR.cvs(init2(r,x))),last2(r,x)) == S.tree(1n+_,SC.append(T.Out,init2(r,x),Con{last2(r,x),Nil{}})) : T.Out}
+def run_tree_go(+x: T.Out, +r: List<&2,T.Out>) -> {K.finish(TR.push_all(K.StkNil{},TR.cvs(init2(r,x))),last2(r,x)) == S.tree(1n+SC.length(T.Out,r),Con{x,r}) : T.Out}:
+  %snoc2(r,x) : {K.finish(TR.push_all(K.StkNil{},TR.cvs(init2(r,x))),last2(r,x)) == S.tree(1n+SC.length(T.Out,r),_) : T.Out}
+  %len_init2(r,x) : {K.finish(TR.push_all(K.StkNil{},TR.cvs(init2(r,x))),last2(r,x)) == S.tree(1n+_,SC.append(T.Out,init2(r,x),Con{last2(r,x),Nil{}})) : T.Out}
   TR.tree_stack(init2(r,x),last2(r,x))
 
 # A nonempty list of outputs: the stack run is the tree of height |list|.
-def run_tree(+x: T.Out, +r: List<&2,T.Out>) -> {run(K.SNil{},Con{x,r}) == S.tree(SC.length(T.Out,Con{x,r}),Con{x,r}) : T.Out}:
-  Equal.trans(T.Out,run2(r,K.SNil{},x),K.finish(TR.push_all(K.SNil{},TR.cvs(init2(r,x))),last2(r,x)),S.tree(1n+SC.length(T.Out,r),Con{x,r}),
-    run2_split(r,K.SNil{},x),
+def run_tree(+x: T.Out, +r: List<&2,T.Out>) -> {run(K.StkNil{},Con{x,r}) == S.tree(SC.length(T.Out,Con{x,r}),Con{x,r}) : T.Out}:
+  Equal.trans(T.Out,run2(r,K.StkNil{},x),K.finish(TR.push_all(K.StkNil{},TR.cvs(init2(r,x))),last2(r,x)),S.tree(1n+SC.length(T.Out,r),Con{x,r}),
+    run2_split(r,K.StkNil{},x),
     run_tree_go(x,r))
 
 # The specification's chunk list is never empty.
-def run_chunks(+n: Nat, +t: U32, +index: U32, +len: Nat, q: Array<U32> & T.Out) -> {run(K.SNil{},S.chunks(n,t,index,len,q)) == S.tree(SC.length(T.Out,S.chunks(n,t,index,len,q)),S.chunks(n,t,index,len,q)) : T.Out}:
+def run_chunks(+n: Nat, +t: U32, +index: U32, +len: Nat, q: Array<U32> & T.Out) -> {run(K.StkNil{},S.chunks(n,t,index,len,q)) == S.tree(SC.length(T.Out,S.chunks(n,t,index,len,q)),S.chunks(n,t,index,len,q)) : T.Out}:
   match n q:
     case 0n Tuple{a,o}: run_tree(o,Nil{})
     case 1n+p Tuple{a,o}: run_tree(o,S.chunks(p,U32.inc(t),U32.add(index,256),len,S.chunk_at(p,U32.inc(t),U32.add(index,256),len,a)))
