@@ -11,6 +11,7 @@ import ./w64mul.bend as W64M
 import ./w64div.bend as W64D
 import ./w64add.bend as WA
 import ./w64dm.bend as DM
+import ./w64est.bend as W64E
 import ./w64m128.bend as M128
 import ./width.bend as WW
 import ./u32laws.bend as LW
@@ -51,8 +52,8 @@ def red_fin(+one: Nat, +h1: {one == 1n : Nat}, +x0: U32, +y0: U32, +y1: U32, +ml
 def x96_eq(+x0: U32, +y0: U32, +y1: U32) -> {DM.X96(WU.U64{x0, y0}, y1) == Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))) : Nat}:
   Equal.trans(Nat, Nat.add(Nat.add(v(x0), C.shift(32n, v(y0))), C.shift(64n, v(y1))), Nat.add(Nat.add(v(x0), C.shift(32n, v(y0))), C.shift(32n, C.shift(32n, v(y1)))), Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), Equal.cong(Nat, Nat, z => Nat.add(Nat.add(v(x0), C.shift(32n, v(y0))), z), C.shift(64n, v(y1)), C.shift(32n, C.shift(32n, v(y1))), WW.shift_comp(32n, 32n, v(y1))), Equal.trans(Nat, Nat.add(Nat.add(v(x0), C.shift(32n, v(y0))), C.shift(32n, C.shift(32n, v(y1)))), Nat.add(v(x0), Nat.add(C.shift(32n, v(y0)), C.shift(32n, C.shift(32n, v(y1))))), Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), NA.add_assoc(v(x0), C.shift(32n, v(y0)), C.shift(32n, C.shift(32n, v(y1)))), Equal.cong(Nat, Nat, z => Nat.add(v(x0), z), Nat.add(C.shift(32n, v(y0)), C.shift(32n, C.shift(32n, v(y1)))), C.shift(32n, SW.value(WU.U64{y0, y1})), Equal.sym(Nat, C.shift(32n, SW.value(WU.U64{y0, y1})), Nat.add(C.shift(32n, v(y0)), C.shift(32n, C.shift(32n, v(y1)))), WW.shift_add(32n, v(y0), C.shift(32n, v(y1)))))))
 
-# red96(xh, x0, m) == (x0 + 2^32 xh) mod m for xh < m, m >= 2^32
-def red_ve(+one: Nat, +h1: {one == 1n : Nat}, +x0: U32, +y0: U32, +y1: U32, +ml: U32, +mh: U32, +e: U32, +hx: {Nat.is_lt(SW.value(WU.U64{y0, y1}), SW.value(WU.U64{ml, mh})) == True{} : Bool}, +hz: {U32.is_zero(mh) == False{} : Bool}) -> {SW.value(X.sub(WU.U64{x0, y0}, X.fst_q(X.mul_32_64(X.q_start(WU.U64{x0, y0}, y1, WU.U64{ml, mh}, e), WU.U64{ml, mh})))) == Nat.mod(Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), SW.value(WU.U64{ml, mh})) : Nat}:
+# x0 + 2^32 xh < 2^32 m
+def red_hx(+one: Nat, +h1: {one == 1n : Nat}, +x0: U32, +y0: U32, +y1: U32, +ml: U32, +mh: U32, +hx: {Nat.is_lt(SW.value(WU.U64{y0, y1}), SW.value(WU.U64{ml, mh})) == True{} : Bool}) -> {Nat.is_lt(DM.X96(WU.U64{x0, y0}, y1), Nat.mul(C.shift(32n, one), SW.value(WU.U64{ml, mh}))) == True{} : Bool}:
   +PP = C.shift(32n, one)
   +ex = x96_eq(x0, y0, y1)
   +h0 = N.lt_add_r2(v(x0), PP, C.shift(32n, SW.value(WU.U64{y0, y1})), WW.lt_one(32n, one, h1, v(x0), LW.vb(x0)))
@@ -60,16 +61,21 @@ def red_ve(+one: Nat, +h1: {one == 1n : Nat}, +x0: U32, +y0: U32, +y1: U32, +ml:
   +h2 = WW.shift_mono(32n, Nat.add(one, SW.value(WU.U64{y0, y1})), SW.value(WU.U64{ml, mh}), L.subst(Nat, z => {Nat.is_le(Nat.add(z, SW.value(WU.U64{y0, y1})), SW.value(WU.U64{ml, mh})) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), N.lt_succ_le_succ(SW.value(WU.U64{y0, y1}), SW.value(WU.U64{ml, mh}), hx)))
   +e2 = Equal.trans(Nat, C.shift(32n, SW.value(WU.U64{ml, mh})), Nat.mul(SW.value(WU.U64{ml, mh}), PP), Nat.mul(PP, SW.value(WU.U64{ml, mh})), WW.shift_mul_one(32n, one, h1, SW.value(WU.U64{ml, mh})), NA.mul_comm(SW.value(WU.U64{ml, mh}), PP))
   +hY = N.lt_le_trans(Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), C.shift(32n, Nat.add(one, SW.value(WU.U64{y0, y1}))), Nat.mul(PP, SW.value(WU.U64{ml, mh})), L.subst(Nat, z => {Nat.is_lt(Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), z) == True{} : Bool}, Nat.add(PP, C.shift(32n, SW.value(WU.U64{y0, y1}))), C.shift(32n, Nat.add(one, SW.value(WU.U64{y0, y1}))), e1, h0), L.subst(Nat, z => {Nat.is_le(C.shift(32n, Nat.add(one, SW.value(WU.U64{y0, y1}))), z) == True{} : Bool}, C.shift(32n, SW.value(WU.U64{ml, mh})), Nat.mul(PP, SW.value(WU.U64{ml, mh})), e2, h2))
-  +hX = L.subst(Nat, z => {Nat.is_lt(z, Nat.mul(PP, SW.value(WU.U64{ml, mh}))) == True{} : Bool}, Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), DM.X96(WU.U64{x0, y0}, y1), Equal.sym(Nat, DM.X96(WU.U64{x0, y0}, y1), Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), ex), hY)
+  L.subst(Nat, z => {Nat.is_lt(z, Nat.mul(PP, SW.value(WU.U64{ml, mh}))) == True{} : Bool}, Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), DM.X96(WU.U64{x0, y0}, y1), Equal.sym(Nat, DM.X96(WU.U64{x0, y0}, y1), Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), ex), hY)
+
+# red96(xh, x0, m) == (x0 + 2^32 xh) mod m for xh < m, m >= 2^32
+def red_ve(+one: Nat, +h1: {one == 1n : Nat}, +x0: U32, +y0: U32, +y1: U32, +ml: U32, +mh: U32, +e: U32, +hx: {Nat.is_lt(SW.value(WU.U64{y0, y1}), SW.value(WU.U64{ml, mh})) == True{} : Bool}, +hz: {U32.is_zero(mh) == False{} : Bool}, +he: {Nat.is_lt(DM.X96(WU.U64{x0, y0}, y1), Nat.mul(1n+v(e), SW.value(WU.U64{ml, mh}))) == True{} : Bool}) -> {SW.value(X.sub(WU.U64{x0, y0}, X.fst_q(X.mul_32_64(X.q_start(WU.U64{x0, y0}, y1, WU.U64{ml, mh}, e), WU.U64{ml, mh})))) == Nat.mod(Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), SW.value(WU.U64{ml, mh})) : Nat}:
+  +ex = x96_eq(x0, y0, y1)
+  +hX = red_hx(one, h1, x0, y0, y1, ml, mh, hx)
   +bp = Nat.sub(SW.value(WU.U64{ml, mh}), 1n)
   +hB = Equal.sym(Nat, 1n+bp, SW.value(WU.U64{ml, mh}), N.sub_add(SW.value(WU.U64{ml, mh}), 1n, N.le_trans(1n, 1n+SW.value(WU.U64{y0, y1}), SW.value(WU.U64{ml, mh}), N.zero_le(SW.value(WU.U64{y0, y1})), N.lt_succ_le_succ(SW.value(WU.U64{y0, y1}), SW.value(WU.U64{ml, mh}), hx))))
-  pr = DM.qs_pair(one, h1, WU.U64{x0, y0}, y1, WU.U64{ml, mh}, e, 4294967295, {==}, hX)
+  pr = DM.qs_pair(one, h1, WU.U64{x0, y0}, y1, WU.U64{ml, mh}, e, 4294967295, {==}, hX, he)
   +r1 = red_fin(one, h1, x0, y0, y1, ml, mh, DM.QS(WU.U64{x0, y0}, y1, WU.U64{ml, mh}, e, 4294967295), bp, hB, pr)
   +eq = red_q(x0, y0, ml, mh, X.q_start(WU.U64{x0, y0}, y1, WU.U64{ml, mh}, e), DM.QS(WU.U64{x0, y0}, y1, WU.U64{ml, mh}, e, 4294967295), DM.impl_qs(WU.U64{x0, y0}, y1, WU.U64{ml, mh}, e))
   Equal.trans(Nat, SW.value(X.sub(WU.U64{x0, y0}, X.fst_q(X.mul_32_64(X.q_start(WU.U64{x0, y0}, y1, WU.U64{ml, mh}, e), WU.U64{ml, mh})))), SW.value(X.sub(WU.U64{x0, y0}, X.fst_q(X.mul_32_64(DM.QS(WU.U64{x0, y0}, y1, WU.U64{ml, mh}, e, 4294967295), WU.U64{ml, mh})))), Nat.mod(Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), SW.value(WU.U64{ml, mh})), eq, Equal.trans(Nat, SW.value(X.sub(WU.U64{x0, y0}, X.fst_q(X.mul_32_64(DM.QS(WU.U64{x0, y0}, y1, WU.U64{ml, mh}, e, 4294967295), WU.U64{ml, mh})))), Nat.mod(DM.X96(WU.U64{x0, y0}, y1), SW.value(WU.U64{ml, mh})), Nat.mod(Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), SW.value(WU.U64{ml, mh})), r1, Equal.cong(Nat, Nat, z => Nat.mod(z, SW.value(WU.U64{ml, mh})), DM.X96(WU.U64{x0, y0}, y1), Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), ex)))
 
 def red_v(+one: Nat, +h1: {one == 1n : Nat}, +x0: U32, +y0: U32, +y1: U32, +ml: U32, +mh: U32, +hx: {Nat.is_lt(SW.value(WU.U64{y0, y1}), SW.value(WU.U64{ml, mh})) == True{} : Bool}, +hz: {U32.is_zero(mh) == False{} : Bool}) -> {SW.value(X.red96(WU.U64{y0, y1}, x0, WU.U64{ml, mh})) == Nat.mod(Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), SW.value(WU.U64{ml, mh})) : Nat}:
-  L.subst(Bool, t => {SW.value(X.red96_z(WU.U64{y0, y1}, x0, WU.U64{ml, mh}, t)) == Nat.mod(Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), SW.value(WU.U64{ml, mh})) : Nat}, False{}, U32.is_zero(mh), Equal.sym(Bool, U32.is_zero(mh), False{}, hz), red_ve(one, h1, x0, y0, y1, ml, mh, X.q_clamp(X.fst_q(X.div32(X.shr96_t(WU.U64{X.hi(WU.U64{x0, y0}), y1}, X.lo(WU.U64{x0, y0}), X.bitlen(mh)), X.lo(X.shr_t(WU.U64{ml, mh}, X.bitlen(mh)))))), hx, hz))
+  L.subst(Bool, t => {SW.value(X.red96_z(WU.U64{y0, y1}, x0, WU.U64{ml, mh}, t)) == Nat.mod(Nat.add(v(x0), C.shift(32n, SW.value(WU.U64{y0, y1}))), SW.value(WU.U64{ml, mh})) : Nat}, False{}, U32.is_zero(mh), Equal.sym(Bool, U32.is_zero(mh), False{}, hz), red_ve(one, h1, x0, y0, y1, ml, mh, X.q_est(WU.U64{x0, y0}, y1, WU.U64{ml, mh}, X.bitlen(mh)), hx, hz, W64E.est_up(one, h1, WU.U64{x0, y0}, y1, ml, mh, hz, red_hx(one, h1, x0, y0, y1, ml, mh, hx))))
 
 def red_vg(+one: Nat, +h1: {one == 1n : Nat}, +x0: U32, +xh: WU.U64, +ml: U32, +mh: U32, +hx: {Nat.is_lt(SW.value(xh), SW.value(WU.U64{ml, mh})) == True{} : Bool}, +hz: {U32.is_zero(mh) == False{} : Bool}) -> {SW.value(X.red96(xh, x0, WU.U64{ml, mh})) == Nat.mod(Nat.add(v(x0), C.shift(32n, SW.value(xh))), SW.value(WU.U64{ml, mh})) : Nat}:
   match xh:

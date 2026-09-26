@@ -7,10 +7,10 @@ import ./u64.bend as W
 #
 #   mul32(a, b)        the full 64-bit product of two U32, by 16-bit halves
 #   div32(a, d)        a / d and a mod d for a 64-bit a and a U32 d > 0, the
-#                      low word by 8/12/12-bit digits (partial dividends < 2^44)
+#                      low word by two 16-bit digits (partial dividends < 2^48)
 #   divmod(a, b)       64 / 64: for b >= 2^32 the quotient has 32 bits and is
-#                      estimated from the top 32 bits of b (at most 2 over,
-#                      Knuth's Theorem B), then corrected
+#                      estimated from the top 32 bits of b (never under and
+#                      at most 2 over, Knuth's Theorem B), then corrected down
 #   mulmod(a, b, m)    a * b mod m for a, b < m: the 128-bit product reduced
 #                      twice by the same estimate
 #   isqrt(n)           an F32 estimate, one Newton step, then correction
@@ -106,41 +106,35 @@ def mul_over(+a: W.U64, +b: W.U64) -> Bool:
 # ---- 64 / 32 ----
 
 # One digit of the long division by d: (r * base + g) / d and mod d, for a
-# remainder r < d < 2^32 and a digit g < base <= 2^12, so every partial
-# dividend is below 2^44 (the runtime's Nat bound is 2^48). The low word is
-# taken as 8, 12 and 12-bit digits: every Nat constant stays at most 2^12,
-# which the proof checker can expand.
+# remainder r < d < 2^32 and a digit g < base = 2^16, so every partial
+# dividend r * 2^16 + g is below 2^48 (the runtime's Nat bound). The low word
+# is taken as two 16-bit digits; the base is written 256 * 256 so the proof
+# checker never expands a 17-bit literal.
 def dig_t(+r: Nat, +base: Nat, +g: Nat) -> Nat:
   Nat.add(Nat.mul(r, base), g)
 
 def dig1(+lo: U32) -> Nat:
-  U32.to_nat(U32.div(lo, 16777216))
+  U32.to_nat(U32.div(lo, 65536))
 
 def dig2(+lo: U32) -> Nat:
-  U32.to_nat(U32.and(U32.div(lo, 4096), 4095))
+  U32.to_nat(U32.and(lo, 65535))
 
-def dig3(+lo: U32) -> Nat:
-  U32.to_nat(U32.and(lo, 4095))
-
-def div32_fin(+qh: U32, +q1: Nat, +q2: Nat, +t3: Nat, +d: Nat) -> W.U64 & U32:
-  (W.U64{U32.from_nat(Nat.add(Nat.mul(Nat.add(Nat.mul(q1, 4096n), q2), 4096n), Nat.div(t3, d))), qh}, U32.from_nat(Nat.mod(t3, d)))
-
-def div32_t2(+qh: U32, +lo: U32, +q1: Nat, +t2: Nat, +d: Nat) -> W.U64 & U32:
-  div32_fin(qh, q1, Nat.div(t2, d), dig_t(Nat.mod(t2, d), 4096n, dig3(lo)), d)
+def div32_fin(+qh: U32, +q1: Nat, +t2: Nat, +d: Nat) -> W.U64 & U32:
+  (W.U64{U32.from_nat(Nat.add(Nat.mul(q1, Nat.mul(256n, 256n)), Nat.div(t2, d))), qh}, U32.from_nat(Nat.mod(t2, d)))
 
 def div32_t1(+qh: U32, +lo: U32, +t1: Nat, +d: Nat) -> W.U64 & U32:
-  div32_t2(qh, lo, Nat.div(t1, d), dig_t(Nat.mod(t1, d), 4096n, dig2(lo)), d)
+  div32_fin(qh, Nat.div(t1, d), dig_t(Nat.mod(t1, d), Nat.mul(256n, 256n), dig2(lo)), d)
 
 # (a / d, a mod d) for d > 0: the high word natively, the low word by digits
 def div32(+a: W.U64, +d: U32) -> W.U64 & U32:
-  div32_t1(U32.div(hi(a), d), lo(a), dig_t(U32.to_nat(U32.mod(hi(a), d)), 256n, dig1(lo(a))), U32.to_nat(d))
+  div32_t1(U32.div(hi(a), d), lo(a), dig_t(U32.to_nat(U32.mod(hi(a), d)), Nat.mul(256n, 256n), dig1(lo(a))), U32.to_nat(d))
 
 def mod_step(+r: Nat, +base: Nat, +g: Nat, +d: Nat) -> Nat:
   Nat.mod(dig_t(r, base, g), d)
 
 # a mod d for d > 0
 def mod32(+a: W.U64, +d: U32) -> U32:
-  U32.from_nat(mod_step(mod_step(mod_step(U32.to_nat(U32.mod(hi(a), d)), 256n, dig1(lo(a)), U32.to_nat(d)), 4096n, dig2(lo(a)), U32.to_nat(d)), 4096n, dig3(lo(a)), U32.to_nat(d)))
+  U32.from_nat(mod_step(mod_step(U32.to_nat(U32.mod(hi(a), d)), Nat.mul(256n, 256n), dig1(lo(a)), U32.to_nat(d)), Nat.mul(256n, 256n), dig2(lo(a)), U32.to_nat(d)))
 
 # ---- shifts by a variable count ----
 
@@ -231,21 +225,51 @@ def bl_fin(st: Nat & U32) -> Nat:
 def bitlen(+x: U32) -> Nat:
   bl_fin(bl_step(1n, bl_step(2n, bl_step(4n, bl_step(8n, bl_step(16n, (0n, x)))))))
 
-# a >> t for 1 <= t <= 32
-def shr_t(+a: W.U64, +t: Nat) -> W.U64:
-  match t:
-    case 32n:
-      W.U64{hi(a), 0}
-    case _:
-      W.U64{U32.add(U32.div(lo(a), pow2(t)), U32.mul(hi(a), pow2(Nat.sub(32n, t)))), U32.div(hi(a), pow2(t))}
+def shl_lt(+a: W.U64, +k: Nat) -> W.U64:
+  match k:
+    case 0n:
+      a
+    case 1n+ +j:
+      W.U64{U32.mul(lo(a), pow2(1n+j)), U32.add(U32.mul(hi(a), pow2(1n+j)), U32.div(lo(a), pow2(Nat.sub(32n, 1n+j))))}
 
-# (xh * 2^32 + x0) >> t for 1 <= t <= 32, when the result fits 64 bits
-def shr96_t(+xh: W.U64, +x0: U32, +t: Nat) -> W.U64:
-  match t:
-    case 32n:
-      xh
-    case _:
-      W.U64{U32.add(U32.mul(lo(xh), pow2(Nat.sub(32n, t))), U32.div(x0, pow2(t))), U32.add(U32.mul(hi(xh), pow2(Nat.sub(32n, t))), U32.div(lo(xh), pow2(t)))}
+def shl_ge(+a: W.U64, +k: Nat) -> W.U64:
+  W.U64{0, U32.mul(lo(a), pow2(Nat.sub(k, 32n)))}
+
+def shl_pick(+a: W.U64, +k: Nat, small: Bool) -> W.U64:
+  match small:
+    case True{}:
+      shl_lt(a, k)
+    case False{}:
+      shl_ge(a, k)
+
+# a << k mod 2^64 for k < 64
+def shl(+a: W.U64, +k: Nat) -> W.U64:
+  shl_pick(a, k, Nat.is_lt(k, 32n))
+
+def shr_lt(+a: W.U64, +k: Nat) -> W.U64:
+  match k:
+    case 0n:
+      a
+    case 1n+ +j:
+      W.U64{U32.add(U32.div(lo(a), pow2(1n+j)), U32.mul(hi(a), pow2(Nat.sub(32n, 1n+j)))), U32.div(hi(a), pow2(1n+j))}
+
+def shr_ge(+a: W.U64, +k: Nat, huge: Bool) -> W.U64:
+  match huge:
+    case True{}:
+      W.U64{0, 0}
+    case False{}:
+      W.U64{U32.div(hi(a), pow2(Nat.sub(k, 32n))), 0}
+
+def shr_pick(+a: W.U64, +k: Nat, small: Bool) -> W.U64:
+  match small:
+    case True{}:
+      shr_lt(a, k)
+    case False{}:
+      shr_ge(a, k, Nat.is_le(64n, k))
+
+# a >> k (0 for k >= 64)
+def shr(+a: W.U64, +k: Nat) -> W.U64:
+  shr_pick(a, k, Nat.is_lt(k, 32n))
 
 def fst_q(p: W.U64 & U32) -> W.U64:
   (q, r) = p
@@ -278,7 +302,7 @@ def over96(+xl: W.U64, +xh: U32, p: W.U64 & U32) -> Bool:
   (+pl, +ph) = p
   Bool.or(U32.is_lt(xh, ph), Bool.and(U32.is_eq(xh, ph), lt(xl, pl)))
 
-# q - 1 while q * b > x: from any estimate at most q steps (fuel q + 1)
+# q - 1 while q * b > x: at most q steps (fuel q + 1)
 def q_fix(fuel: Nat, +xl: W.U64, +xh: U32, +b: W.U64, +q: U32, over: Bool) -> U32:
   match fuel over:
     case 0n _:
@@ -288,33 +312,21 @@ def q_fix(fuel: Nat, +xl: W.U64, +xh: U32, +b: W.U64, +q: U32, over: Bool) -> U3
     case 1n+f True{}:
       q_fix(f, xl, xh, b, U32.sub(q, 1), over96(xl, xh, mul_32_64(U32.sub(q, 1), b)))
 
-def q_up_ok(+xl: W.U64, +xh: U32, +b: W.U64, +q: U32) -> Bool:
-  Bool.and(U32.is_lt(q, 4294967295), Bool.not(over96(xl, xh, mul_32_64(U32.add(q, 1), b))))
-
-# q + 1 while q < 2^32 - 1 and (q + 1) * b <= x: at most 2^32 - 1 - q steps
-def q_up(fuel: Nat, +xl: W.U64, +xh: U32, +b: W.U64, +q: U32, up: Bool) -> U32:
-  match fuel up:
-    case 0n _:
-      q
-    case 1n+f False{}:
-      q
-    case 1n+f True{}:
-      q_up(f, xl, xh, b, U32.add(q, 1), q_up_ok(xl, xh, b, U32.add(q, 1)))
-
-def q_fix_up(+xl: W.U64, +xh: U32, +b: W.U64, +q: U32) -> U32:
-  q_up(1n+U32.to_nat(U32.sub(4294967295, q)), xl, xh, b, q, q_up_ok(xl, xh, b, q))
-
-# floor(x / b), capped at 2^32 - 1, from any estimate q: down while q * b > x,
-# then up while (q + 1) * b <= x. The estimate is at most 2 over (Knuth's
-# Theorem B), so the loops take a step or two; the fuel covers any estimate,
-# so the result never depends on the estimate's accuracy.
+# floor(x / b) from an estimate q >= floor(x / b): down while q * b > x (at
+# most q steps, fuel q + 1)
 def q_start(+xl: W.U64, +xh: U32, +b: W.U64, +q: U32) -> U32:
-  q_fix_up(xl, xh, b, q_fix(1n+U32.to_nat(q), xl, xh, b, q, over96(xl, xh, mul_32_64(q, b))))
+  q_fix(1n+U32.to_nat(q), xl, xh, b, q, over96(xl, xh, mul_32_64(q, b)))
 
-# floor(x / b) for x = xh * 2^64 + xl < b * 2^32 and b >= 2^32, t = bits(hi(b)):
-# with Y = x >> t and B = b >> t in [2^31, 2^32), q <= floor(Y / B) <= q + 2
+# Knuth's estimate for x = xh * 2^64 + xl < b * 2^32 and b >= 2^32, t =
+# bits(hi(b)): with Y = x >> t (below 2^64) and B = b >> t in [2^31, 2^32),
+# min(floor(Y / B), 2^32 - 1) is at least floor(x / b) (as B 2^t <= b) and at
+# most 2 over it (Theorem B), so q_start takes a step or two
+def q_est(+xl: W.U64, +xh: U32, +b: W.U64, +t: Nat) -> U32:
+  q_clamp(fst_q(div32(add(shr(xl, t), shl(W.U64{xh, 0}, Nat.sub(64n, t))), lo(shr(b, t)))))
+
+# floor(x / b) for x = xh * 2^64 + xl < b * 2^32 and b >= 2^32, t = bits(hi(b))
 def q96(+xl: W.U64, +xh: U32, +b: W.U64, +t: Nat) -> U32:
-  q_start(xl, xh, b, q_clamp(fst_q(div32(shr96_t(W.U64{hi(xl), xh}, lo(xl), t), lo(shr_t(b, t))))))
+  q_start(xl, xh, b, q_est(xl, xh, b, t))
 
 # ---- 64 / 64 ----
 
@@ -499,52 +511,6 @@ def w_pow2(+k: Nat, small: Bool) -> W.U64:
 def or_bit(+a: W.U64, b: Bool) -> W.U64:
   W.U64{U32.or(lo(a), b32(b)), hi(a)}
 
-def shl_lt(+a: W.U64, +k: Nat) -> W.U64:
-  match k:
-    case 0n:
-      a
-    case 1n+ +j:
-      W.U64{U32.mul(lo(a), pow2(1n+j)), U32.add(U32.mul(hi(a), pow2(1n+j)), U32.div(lo(a), pow2(Nat.sub(32n, 1n+j))))}
-
-def shl_ge(+a: W.U64, +k: Nat) -> W.U64:
-  W.U64{0, U32.mul(lo(a), pow2(Nat.sub(k, 32n)))}
-
-def shl_pick(+a: W.U64, +k: Nat, small: Bool) -> W.U64:
-  match small:
-    case True{}:
-      shl_lt(a, k)
-    case False{}:
-      shl_ge(a, k)
-
-# a << k mod 2^64 for k < 64
-def shl(+a: W.U64, +k: Nat) -> W.U64:
-  shl_pick(a, k, Nat.is_lt(k, 32n))
-
-def shr_lt(+a: W.U64, +k: Nat) -> W.U64:
-  match k:
-    case 0n:
-      a
-    case 1n+ +j:
-      W.U64{U32.add(U32.div(lo(a), pow2(1n+j)), U32.mul(hi(a), pow2(Nat.sub(32n, 1n+j)))), U32.div(hi(a), pow2(1n+j))}
-
-def shr_ge(+a: W.U64, +k: Nat, huge: Bool) -> W.U64:
-  match huge:
-    case True{}:
-      W.U64{0, 0}
-    case False{}:
-      W.U64{U32.div(hi(a), pow2(Nat.sub(k, 32n))), 0}
-
-def shr_pick(+a: W.U64, +k: Nat, small: Bool) -> W.U64:
-  match small:
-    case True{}:
-      shr_lt(a, k)
-    case False{}:
-      shr_ge(a, k, Nat.is_le(64n, k))
-
-# a >> k (0 for k >= 64)
-def shr(+a: W.U64, +k: Nat) -> W.U64:
-  shr_pick(a, k, Nat.is_lt(k, 32n))
-
 def jam_pick(+a: W.U64, +k: Nat, huge: Bool) -> W.U64:
   match huge:
     case True{}:
@@ -583,3 +549,142 @@ def cmp_pick(less: Bool, same: Bool) -> Cmp:
 
 def cmp(+a: W.U64, +b: W.U64) -> Cmp:
   cmp_pick(lt(a, b), eq(a, b))
+
+# ---- Montgomery multiplication (odd m, 2^32 <= m < 2^63, R = 2^64) ----
+# REDC (Montgomery 1985; the word-level algorithm HACL* and Fiat Crypto
+# verify): for t < m^2 and mp = -1/m mod 2^64, u = t mp mod 2^64 makes
+# t + u m divisible by 2^64, and r = (t + u m) / 2^64 < 2 m is t / 2^64 mod m
+# after one conditional subtraction.
+
+# x (2 - m x): doubles the correct low bits of an inverse of m mod 2^64
+def inv_step(+m: W.U64, +x: W.U64) -> W.U64:
+  mul(x, sub(W.U64{2, 0}, mul(m, x)))
+
+# -1 / m mod 2^64 for odd m (m is its own inverse mod 8; five Newton steps
+# reach 96 >= 64 bits)
+def minv(+m: W.U64) -> W.U64:
+  sub(W.U64{0, 0}, inv_step(m, inv_step(m, inv_step(m, inv_step(m, inv_step(m, m))))))
+
+def sub_if(+r: W.U64, +m: W.U64, big: Bool) -> W.U64:
+  match big:
+    case True{}:
+      sub(r, m)
+    case False{}:
+      r
+
+def redc_r(+m: W.U64, +r: W.U64) -> W.U64:
+  sub_if(r, m, le(m, r))
+
+def redc_p(+m: W.U64, +tl: W.U64, +th: W.U64, p: W.U64 & W.U64) -> W.U64:
+  (+pl, +ph) = p
+  redc_r(m, add(add(th, ph), W.U64{b32(add_over(tl, pl)), 0}))
+
+# t / 2^64 mod m for t = (tl, th) < m^2
+def redc(+m: W.U64, +mp: W.U64, t: W.U64 & W.U64) -> W.U64:
+  (+tl, +th) = t
+  redc_p(m, tl, th, mul128(mul(tl, mp), m))
+
+# a b / 2^64 mod m for a, b < m
+def mont(+m: W.U64, +mp: W.U64, +a: W.U64, +b: W.U64) -> W.U64:
+  redc(m, mp, mul128(a, b))
+
+def mbit(odd: Bool, +m: W.U64, +mp: W.U64, +b: W.U64, +acc: W.U64) -> W.U64:
+  match odd:
+    case False{}:
+      acc
+    case True{}:
+      mont(m, mp, acc, b)
+
+# pow_mod_go of generic.bend on Montgomery forms x 2^64 mod m
+def mpow_go(fuel: Nat, +m: W.U64, +mp: W.U64, +b: W.U64, +acc: W.U64, st: W.U64 & Bool) -> W.U64:
+  match fuel st:
+    case 0n _:
+      acc
+    case 1n+f Tuple{e, True{}}:
+      acc
+    case 1n+f Tuple{+e, False{}}:
+      mpow_go(f, m, mp, mont(m, mp, b, b), mbit(odd(e), m, mp, b, acc), (half(e), is_zero(half(e))))
+
+# x 2^64 mod m for x < m, m >= 2^32
+def to_mont(+x: W.U64, +m: W.U64) -> W.U64:
+  red96(red96(x, 0, m), 0, m)
+
+# m odd with 2^32 <= m < 2^63 and m minv(m) = -1 mod 2^64 (always so for odd
+# m; checked, so the proof needs no Hensel lemma)
+def mont_ok(+m: W.U64) -> Bool:
+  Bool.and(Bool.and(odd(m), eq(mul(m, minv(m)), W.U64{4294967295, 4294967295})), Bool.and(Bool.not(U32.is_zero(hi(m))), U32.is_lt(hi(m), 2147483648)))
+
+def mpow_m(+b: W.U64, +e: W.U64, +m: W.U64, +mp: W.U64) -> W.U64:
+  mont(m, mp, mpow_go(140n, m, mp, to_mont(b, m), to_mont(rem(W.U64{1, 0}, m), m), (e, is_zero(e))), W.U64{1, 0})
+
+# b^e mod m for b < m and mont_ok(m)
+def mpow(+b: W.U64, +e: W.U64, +m: W.U64) -> W.U64:
+  mpow_m(b, e, m, minv(m))
+
+# ---- 32-bit Montgomery multiplication (odd m, R = 2^32) ----
+
+def inv32_step(+m: U32, +x: U32) -> U32:
+  U32.mul(x, U32.sub(2, U32.mul(m, x)))
+
+# -1 / m mod 2^32 for odd m
+def minv32(+m: U32) -> U32:
+  U32.sub(0, inv32_step(m, inv32_step(m, inv32_step(m, inv32_step(m, m)))))
+
+def sub_if32(+r: W.U64, +m: U32, big: Bool) -> U32:
+  match big:
+    case True{}:
+      lo(sub(r, W.U64{m, 0}))
+    case False{}:
+      lo(r)
+
+def redc32_r(+m: U32, +r: W.U64) -> U32:
+  sub_if32(r, m, le(W.U64{m, 0}, r))
+
+def redc32_s(+m: U32, +s1: U32, +s2: U32, +c1: Bool) -> U32:
+  redc32_r(m, W.U64{s2, U32.add(b32(c1), b32(U32.is_lt(s2, s1)))})
+
+def redc32_p(+m: U32, +t: W.U64, +p: W.U64) -> U32:
+  redc32_s(m, U32.add(hi(t), hi(p)), U32.add(U32.add(hi(t), hi(p)), b32(U32.is_lt(U32.add(lo(t), lo(p)), lo(t)))), U32.is_lt(U32.add(hi(t), hi(p)), hi(t)))
+
+def redc32(+m: U32, +mp: U32, +t: W.U64) -> U32:
+  redc32_p(m, t, mul32(U32.mul(lo(t), mp), m))
+
+def mont32(+m: U32, +mp: U32, +a: U32, +b: U32) -> U32:
+  redc32(m, mp, mul32(a, b))
+
+def mbit32(odd: Bool, +m: U32, +mp: U32, +b: U32, +acc: U32) -> U32:
+  match odd:
+    case False{}:
+      acc
+    case True{}:
+      mont32(m, mp, acc, b)
+
+def mpow32_go(fuel: Nat, +m: U32, +mp: U32, +b: U32, +acc: U32, st: U32 & Bool) -> U32:
+  match fuel st:
+    case 0n _:
+      acc
+    case 1n+f Tuple{e, True{}}:
+      acc
+    case 1n+f Tuple{+e, False{}}:
+      mpow32_go(f, m, mp, mont32(m, mp, b, b), mbit32(U32.is_eq(U32.and(e, 1), 1), m, mp, b, acc), (U32.shr(e), U32.is_zero(U32.shr(e))))
+
+def mont32_ok(+m: U32) -> Bool:
+  Bool.and(U32.is_eq(U32.and(m, 1), 1), U32.is_eq(U32.mul(m, minv32(m)), 4294967295))
+
+def mpow32_m(+b: U32, +e: U32, +m: U32, +mp: U32) -> U32:
+  mont32(m, mp, mpow32_go(140n, m, mp, mod32(W.U64{0, b}, m), mod32(W.U64{0, U32.mod(1, m)}, m), (e, U32.is_zero(e))), 1)
+
+def mpow32(+b: U32, +e: U32, +m: U32) -> U32:
+  mpow32_m(b, e, m, minv32(m))
+
+# a and b fit 48 bits (runtime Nats) and a has more than 16: the binary gcd
+# then hands them to Euclid on Nat (native division); below 2^16 its few
+# steps are cheaper
+def small2(+a: W.U64, +b: W.U64) -> Bool:
+  Bool.and(Bool.and(U32.is_lt(hi(a), 65536), U32.is_lt(hi(b), 65536)), Bool.or(Bool.not(U32.is_zero(hi(a))), U32.is_lt(65535, lo(a))))
+
+def n48(+a: W.U64) -> Nat:
+  Nat.add(U32.to_nat(lo(a)), Nat.mul(Nat.mul(U32.to_nat(hi(a)), Nat.mul(256n, 256n)), Nat.mul(256n, 256n)))
+
+def of48(+g: Nat) -> W.U64:
+  W.U64{U32.from_nat(Nat.mod(g, Nat.mul(Nat.mul(256n, 256n), Nat.mul(256n, 256n)))), U32.from_nat(Nat.div(g, Nat.mul(Nat.mul(256n, 256n), Nat.mul(256n, 256n))))}

@@ -25,7 +25,18 @@ import Base
 #   MulMod             a * b mod m for a, b < m (never overflows)
 #   Pow2               2^k, for 2^k below the width
 #   Sqrt               the integer square root (instances may use hardware)
+#   PowMod             a^e mod m for a < m, only formed when Mont{m} holds
+#   GcdSmall           gcd(a, b), only formed when Small{a, b} holds
 #   Lt, AddOver, MulOver, Odd, IsZero
+#   FastDiv            True when Quot/Rem are native machine divisions, so
+#                      gcd runs Euclid's algorithm; False (U64: division is
+#                      software long division) picks the binary gcd, which
+#                      only halves, subtracts and compares
+#   Mont{m}            True when the instance computes PowMod mod m itself
+#                      (U64: Montgomery multiplication for odd m in
+#                      [2^32, 2^63)); False keeps the generic MulMod loop
+#   Small{a, b}        True when the binary gcd should hand (a, b) to GcdSmall
+#                      (U64: both below 2^48, a at least 2^16: Euclid on Nat)
 #
 # Errors are values, as in natural.bend, with Overflow for results that do
 # not fit a fixed width (design reference section 2.6: checked results).
@@ -50,6 +61,8 @@ type Op<-T: Data> is Data:
   MulMod{a: T, b: T, m: T}
   Pow2{k: Nat}
   Sqrt{a: T}
+  PowMod{a: T, e: T, m: T}
+  GcdSmall{a: T, b: T}
 
 type Test<-T: Data> is Data:
   Lt{a: T, b: T}
@@ -57,3 +70,6 @@ type Test<-T: Data> is Data:
   MulOver{a: T, b: T}
   Odd{a: T}
   IsZero{a: T}
+  FastDiv{}
+  Mont{m: T}
+  Small{a: T, b: T}

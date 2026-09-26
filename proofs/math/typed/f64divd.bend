@@ -20,11 +20,11 @@ def v(+x: U32) -> Nat:
   U32.to_nat(x)
 
 # the remainder digit
-def dig_r(+one: Nat, +h1: {one == 1n : Nat}, +rl: U32, +rh: U32, +ml: U32, +mh: U32, +e: U32, +hx: {Nat.is_lt(SW.value(WU.U64{rl, rh}), SW.value(WU.U64{ml, mh})) == True{} : Bool}, +hz: {U32.is_zero(mh) == False{} : Bool}) -> {SW.value(X.sub(WU.U64{0, rl}, X.fst_q(X.mul_32_64(X.q_start(WU.U64{0, rl}, rh, WU.U64{ml, mh}, e), WU.U64{ml, mh})))) == Nat.mod(C.shift(32n, SW.value(WU.U64{rl, rh})), SW.value(WU.U64{ml, mh})) : Nat}:
-  MM.red_ve(one, h1, 0, rl, rh, ml, mh, e, hx, hz)
+def dig_r(+one: Nat, +h1: {one == 1n : Nat}, +rl: U32, +rh: U32, +ml: U32, +mh: U32, +e: U32, +hx: {Nat.is_lt(SW.value(WU.U64{rl, rh}), SW.value(WU.U64{ml, mh})) == True{} : Bool}, +hz: {U32.is_zero(mh) == False{} : Bool}, +he: {Nat.is_lt(DM.X96(WU.U64{0, rl}, rh), Nat.mul(1n+v(e), SW.value(WU.U64{ml, mh}))) == True{} : Bool}) -> {SW.value(X.sub(WU.U64{0, rl}, X.fst_q(X.mul_32_64(X.q_start(WU.U64{0, rl}, rh, WU.U64{ml, mh}, e), WU.U64{ml, mh})))) == Nat.mod(C.shift(32n, SW.value(WU.U64{rl, rh})), SW.value(WU.U64{ml, mh})) : Nat}:
+  MM.red_ve(one, h1, 0, rl, rh, ml, mh, e, hx, hz, he)
 
 # the quotient digit
-def dig_q(+one: Nat, +h1: {one == 1n : Nat}, +rl: U32, +rh: U32, +ml: U32, +mh: U32, +e: U32, +hx: {Nat.is_lt(SW.value(WU.U64{rl, rh}), SW.value(WU.U64{ml, mh})) == True{} : Bool}, +hz: {U32.is_zero(mh) == False{} : Bool}) -> {v(X.q_start(WU.U64{0, rl}, rh, WU.U64{ml, mh}, e)) == Nat.div(C.shift(32n, SW.value(WU.U64{rl, rh})), SW.value(WU.U64{ml, mh})) : Nat}:
+def dig_q(+one: Nat, +h1: {one == 1n : Nat}, +rl: U32, +rh: U32, +ml: U32, +mh: U32, +e: U32, +hx: {Nat.is_lt(SW.value(WU.U64{rl, rh}), SW.value(WU.U64{ml, mh})) == True{} : Bool}, +hz: {U32.is_zero(mh) == False{} : Bool}, +he: {Nat.is_lt(DM.X96(WU.U64{0, rl}, rh), Nat.mul(1n+v(e), SW.value(WU.U64{ml, mh}))) == True{} : Bool}) -> {v(X.q_start(WU.U64{0, rl}, rh, WU.U64{ml, mh}, e)) == Nat.div(C.shift(32n, SW.value(WU.U64{rl, rh})), SW.value(WU.U64{ml, mh})) : Nat}:
   +PP = C.shift(32n, one)
   +ex = MM.x96_eq(0, rl, rh)
   +h0 = N.lt_add_r2(v(0), PP, C.shift(32n, SW.value(WU.U64{rl, rh})), WW.lt_one(32n, one, h1, v(0), LW.vb(0)))
@@ -35,7 +35,7 @@ def dig_q(+one: Nat, +h1: {one == 1n : Nat}, +rl: U32, +rh: U32, +ml: U32, +mh: 
   +hX = L.subst(Nat, z => {Nat.is_lt(z, Nat.mul(PP, SW.value(WU.U64{ml, mh}))) == True{} : Bool}, Nat.add(v(0), C.shift(32n, SW.value(WU.U64{rl, rh}))), DM.X96(WU.U64{0, rl}, rh), Equal.sym(Nat, DM.X96(WU.U64{0, rl}, rh), Nat.add(v(0), C.shift(32n, SW.value(WU.U64{rl, rh}))), ex), hY)
   +bp = Nat.sub(SW.value(WU.U64{ml, mh}), 1n)
   +hB = Equal.sym(Nat, 1n+bp, SW.value(WU.U64{ml, mh}), N.sub_add(SW.value(WU.U64{ml, mh}), 1n, N.le_trans(1n, 1n+SW.value(WU.U64{rl, rh}), SW.value(WU.U64{ml, mh}), N.zero_le(SW.value(WU.U64{rl, rh})), N.lt_succ_le_succ(SW.value(WU.U64{rl, rh}), SW.value(WU.U64{ml, mh}), hx))))
-  pr = DM.qs_pair(one, h1, WU.U64{0, rl}, rh, WU.U64{ml, mh}, e, 4294967295, {==}, hX)
+  pr = DM.qs_pair(one, h1, WU.U64{0, rl}, rh, WU.U64{ml, mh}, e, 4294967295, {==}, hX, he)
   pq = DM.qs_fin2(DM.X96(WU.U64{0, rl}, rh), v(DM.QS(WU.U64{0, rl}, rh, WU.U64{ml, mh}, e, 4294967295)), SW.value(WU.U64{ml, mh}), bp, hB, pr)
   +dq = DM.pr1({Nat.div(DM.X96(WU.U64{0, rl}, rh), 1n+bp) == v(DM.QS(WU.U64{0, rl}, rh, WU.U64{ml, mh}, e, 4294967295)) : Nat}, {Nat.mod(DM.X96(WU.U64{0, rl}, rh), 1n+bp) == Nat.sub(DM.X96(WU.U64{0, rl}, rh), Nat.mul(v(DM.QS(WU.U64{0, rl}, rh, WU.U64{ml, mh}, e, 4294967295)), 1n+bp)) : Nat}, pq)
   +eq = Equal.cong(U32, Nat, w => v(w), X.q_start(WU.U64{0, rl}, rh, WU.U64{ml, mh}, e), DM.QS(WU.U64{0, rl}, rh, WU.U64{ml, mh}, e, 4294967295), DM.impl_qs(WU.U64{0, rl}, rh, WU.U64{ml, mh}, e))

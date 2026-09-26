@@ -11,6 +11,7 @@ import ./w64add.bend as WA
 import ./width.bend as WW
 import ./u32laws.bend as LW
 import ./w64dm.bend as DM
+import ./w64est.bend as W64E
 
 # DivMod.quot and DivMod.rem of spec/math/w64.bend: the 32-bit divisor by
 # div32, the wide one by the corrected quotient of w64dm.bend.
@@ -29,10 +30,10 @@ def vb_pos(+bl: U32, +bh: U32, +hz: {U32.is_zero(bh) == False{} : Bool}) -> {Nat
 def dmq_s(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +hb: {X.is_zero(WU.U64{bl, bh}) == False{} : Bool}, +hz: {U32.is_zero(bh) == True{} : Bool}) -> {SW.value(X.pfst(X.dm_pick(WU.U64{al, ah}, WU.U64{bl, bh}, True{}))) == Nat.div(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})) : Nat}:
   Equal.trans(Nat, SW.value(X.fst_q(X.div32(WU.U64{al, ah}, bl))), Nat.div(SW.value(WU.U64{al, ah}), DM.v(bl)), Nat.div(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})), W64D.div32_quot(WU.U64{al, ah}, bl, hd_small(bl, bh, hb, hz)), Equal.cong(Nat, Nat, t => Nat.div(SW.value(WU.U64{al, ah}), t), DM.v(bl), SW.value(WU.U64{bl, bh}), Equal.sym(Nat, SW.value(WU.U64{bl, bh}), DM.v(bl), vb_small(bl, bh, hz))))
 
-def dmq_bg(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +e: U32, +hb: {X.is_zero(WU.U64{bl, bh}) == False{} : Bool}, +hz: {U32.is_zero(bh) == False{} : Bool}) -> {SW.value(WU.U64{X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e), 0}) == Nat.div(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})) : Nat}:
+def dmq_bg(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +e: U32, +hb: {X.is_zero(WU.U64{bl, bh}) == False{} : Bool}, +hz: {U32.is_zero(bh) == False{} : Bool}, +he: {Nat.is_lt(DM.X96(WU.U64{al, ah}, 0), Nat.mul(1n+DM.v(e), SW.value(WU.U64{bl, bh}))) == True{} : Bool}) -> {SW.value(WU.U64{X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e), 0}) == Nat.div(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})) : Nat}:
   +bp = Nat.sub(SW.value(WU.U64{bl, bh}), 1n)
   +hB = Equal.sym(Nat, 1n+bp, SW.value(WU.U64{bl, bh}), N.sub_add(SW.value(WU.U64{bl, bh}), 1n, vb_pos(bl, bh, hz)))
-  dp = DM.dm_pair(one, h1, al, ah, bl, bh, e, hz, bp, hB)
+  dp = DM.dm_pair(one, h1, al, ah, bl, bh, e, hz, he, bp, hB)
   +d1 = DM.pr1({Nat.div(SW.value(WU.U64{al, ah}), 1n+bp) == DM.v(DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)) : Nat}, {Nat.mod(SW.value(WU.U64{al, ah}), 1n+bp) == Nat.sub(SW.value(WU.U64{al, ah}), Nat.mul(DM.v(DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)), 1n+bp)) : Nat}, dp)
   +eq = Equal.cong(U32, Nat, t => DM.v(t), X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e), DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295), DM.impl_qs(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e))
   Equal.trans(Nat, SW.value(WU.U64{X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e), 0}), DM.v(X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e)), Nat.div(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})), DM.u32_0(X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e)), Equal.trans(Nat, DM.v(X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e)), DM.v(DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)), Nat.div(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})), eq, Equal.trans(Nat, DM.v(DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)), Nat.div(SW.value(WU.U64{al, ah}), 1n+bp), Nat.div(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})), Equal.sym(Nat, Nat.div(SW.value(WU.U64{al, ah}), 1n+bp), DM.v(DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)), d1), Equal.cong(Nat, Nat, t => Nat.div(SW.value(WU.U64{al, ah}), t), 1n+bp, SW.value(WU.U64{bl, bh}), Equal.sym(Nat, SW.value(WU.U64{bl, bh}), 1n+bp, hB)))))
@@ -40,7 +41,7 @@ def dmq_bg(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh:
 
 
 def dmq_b(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +hb: {X.is_zero(WU.U64{bl, bh}) == False{} : Bool}, +hz: {U32.is_zero(bh) == False{} : Bool}) -> {SW.value(X.pfst(X.dm_pick(WU.U64{al, ah}, WU.U64{bl, bh}, False{}))) == Nat.div(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})) : Nat}:
-  dmq_bg(one, h1, al, ah, bl, bh, X.q_clamp(X.fst_q(X.div32(X.shr96_t(WU.U64{X.hi(WU.U64{al, ah}), 0}, X.lo(WU.U64{al, ah}), X.bitlen(bh)), X.lo(X.shr_t(WU.U64{bl, bh}, X.bitlen(bh)))))), hb, hz)
+  dmq_bg(one, h1, al, ah, bl, bh, X.q_est(WU.U64{al, ah}, 0, WU.U64{bl, bh}, X.bitlen(bh)), hb, hz, W64E.est_up(one, h1, WU.U64{al, ah}, 0, bl, bh, hz, DM.dm_hx(one, h1, al, ah, bl, bh, hz)))
 
 def dmq(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +hb: {X.is_zero(WU.U64{bl, bh}) == False{} : Bool}, +z: Bool, +hz: {U32.is_zero(bh) == z : Bool}) -> {SW.value(X.pfst(X.dm_pick(WU.U64{al, ah}, WU.U64{bl, bh}, z))) == Nat.div(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})) : Nat}:
   match z:
