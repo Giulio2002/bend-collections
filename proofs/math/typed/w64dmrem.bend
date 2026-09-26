@@ -11,6 +11,7 @@ import ./w64add.bend as WA
 import ./width.bend as WW
 import ./u32laws.bend as LW
 import ./w64dm.bend as DM
+import ./w64est.bend as W64E
 
 # DivMod.quot and DivMod.rem of spec/math/w64.bend: the 32-bit divisor by
 # div32, the wide one by the corrected quotient of w64dm.bend.
@@ -37,19 +38,19 @@ def rem_core(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +b
   sv = WA.sub_value(WU.U64{al, ah}, F, hs)
   Equal.trans(Nat, SW.value(X.sub(WU.U64{al, ah}, F)), Nat.sub(SW.value(WU.U64{al, ah}), SW.value(F)), Nat.mod(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})), sv, Equal.trans(Nat, Nat.sub(SW.value(WU.U64{al, ah}), SW.value(F)), Nat.sub(SW.value(WU.U64{al, ah}), mq), Nat.mod(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})), Equal.cong(Nat, Nat, t => Nat.sub(SW.value(WU.U64{al, ah}), t), SW.value(F), mq, eF), Equal.sym(Nat, Nat.mod(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})), Nat.sub(SW.value(WU.U64{al, ah}), mq), hm)))
 
-def le_qs(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +e: U32, +hz: {U32.is_zero(bh) == False{} : Bool}) -> {Nat.is_le(Nat.mul(DM.v(X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e)), SW.value(WU.U64{bl, bh})), SW.value(WU.U64{al, ah})) == True{} : Bool}:
-  L.subst(U32, z => {Nat.is_le(Nat.mul(DM.v(z), SW.value(WU.U64{bl, bh})), SW.value(WU.U64{al, ah})) == True{} : Bool}, DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295), X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e), Equal.sym(U32, X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e), DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295), DM.impl_qs(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e)), DM.dm_le(one, h1, al, ah, bl, bh, e, hz))
+def le_qs(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +e: U32, +hz: {U32.is_zero(bh) == False{} : Bool}, +he: {Nat.is_lt(DM.X96(WU.U64{al, ah}, 0), Nat.mul(1n+DM.v(e), SW.value(WU.U64{bl, bh}))) == True{} : Bool}) -> {Nat.is_le(Nat.mul(DM.v(X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e)), SW.value(WU.U64{bl, bh})), SW.value(WU.U64{al, ah})) == True{} : Bool}:
+  L.subst(U32, z => {Nat.is_le(Nat.mul(DM.v(z), SW.value(WU.U64{bl, bh})), SW.value(WU.U64{al, ah})) == True{} : Bool}, DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295), X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e), Equal.sym(U32, X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e), DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295), DM.impl_qs(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e)), DM.dm_le(one, h1, al, ah, bl, bh, e, hz, he))
 
-def mod_qs(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +e: U32, +hz: {U32.is_zero(bh) == False{} : Bool}) -> {Nat.mod(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})) == Nat.sub(SW.value(WU.U64{al, ah}), Nat.mul(DM.v(X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e)), SW.value(WU.U64{bl, bh}))) : Nat}:
+def mod_qs(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +e: U32, +hz: {U32.is_zero(bh) == False{} : Bool}, +he: {Nat.is_lt(DM.X96(WU.U64{al, ah}, 0), Nat.mul(1n+DM.v(e), SW.value(WU.U64{bl, bh}))) == True{} : Bool}) -> {Nat.mod(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})) == Nat.sub(SW.value(WU.U64{al, ah}), Nat.mul(DM.v(X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e)), SW.value(WU.U64{bl, bh}))) : Nat}:
   +bp = Nat.sub(SW.value(WU.U64{bl, bh}), 1n)
   +hB = Equal.sym(Nat, 1n+bp, SW.value(WU.U64{bl, bh}), N.sub_add(SW.value(WU.U64{bl, bh}), 1n, vb_pos(bl, bh, hz)))
-  dp = DM.dm_pair(one, h1, al, ah, bl, bh, e, hz, bp, hB)
+  dp = DM.dm_pair(one, h1, al, ah, bl, bh, e, hz, he, bp, hB)
   +d2 = DM.pr2({Nat.div(SW.value(WU.U64{al, ah}), 1n+bp) == DM.v(DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)) : Nat}, {Nat.mod(SW.value(WU.U64{al, ah}), 1n+bp) == Nat.sub(SW.value(WU.U64{al, ah}), Nat.mul(DM.v(DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)), 1n+bp)) : Nat}, dp)
   +hm = L.subst(Nat, t => {Nat.mod(SW.value(WU.U64{al, ah}), t) == Nat.sub(SW.value(WU.U64{al, ah}), Nat.mul(DM.v(DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)), t)) : Nat}, 1n+bp, SW.value(WU.U64{bl, bh}), Equal.sym(Nat, SW.value(WU.U64{bl, bh}), 1n+bp, hB), d2)
   L.subst(U32, z => {Nat.mod(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})) == Nat.sub(SW.value(WU.U64{al, ah}), Nat.mul(DM.v(z), SW.value(WU.U64{bl, bh}))) : Nat}, DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295), X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e), Equal.sym(U32, X.q_start(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e), DM.QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295), DM.impl_qs(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e)), hm)
 
 def dmr_b(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +hb: {X.is_zero(WU.U64{bl, bh}) == False{} : Bool}, +hz: {U32.is_zero(bh) == False{} : Bool}) -> {SW.value(X.psnd(X.dm_pick(WU.U64{al, ah}, WU.U64{bl, bh}, False{}))) == Nat.mod(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})) : Nat}:
-  rem_core(one, h1, al, ah, bl, bh, X.q96(WU.U64{al, ah}, 0, WU.U64{bl, bh}, X.bitlen(bh)), le_qs(one, h1, al, ah, bl, bh, X.q_clamp(X.fst_q(X.div32(X.shr96_t(WU.U64{X.hi(WU.U64{al, ah}), 0}, X.lo(WU.U64{al, ah}), X.bitlen(bh)), X.lo(X.shr_t(WU.U64{bl, bh}, X.bitlen(bh)))))), hz), mod_qs(one, h1, al, ah, bl, bh, X.q_clamp(X.fst_q(X.div32(X.shr96_t(WU.U64{X.hi(WU.U64{al, ah}), 0}, X.lo(WU.U64{al, ah}), X.bitlen(bh)), X.lo(X.shr_t(WU.U64{bl, bh}, X.bitlen(bh)))))), hz))
+  rem_core(one, h1, al, ah, bl, bh, X.q96(WU.U64{al, ah}, 0, WU.U64{bl, bh}, X.bitlen(bh)), le_qs(one, h1, al, ah, bl, bh, X.q_est(WU.U64{al, ah}, 0, WU.U64{bl, bh}, X.bitlen(bh)), hz, W64E.est_up(one, h1, WU.U64{al, ah}, 0, bl, bh, hz, DM.dm_hx(one, h1, al, ah, bl, bh, hz))), mod_qs(one, h1, al, ah, bl, bh, X.q_est(WU.U64{al, ah}, 0, WU.U64{bl, bh}, X.bitlen(bh)), hz, W64E.est_up(one, h1, WU.U64{al, ah}, 0, bl, bh, hz, DM.dm_hx(one, h1, al, ah, bl, bh, hz))))
 
 def dmr(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +hb: {X.is_zero(WU.U64{bl, bh}) == False{} : Bool}, +z: Bool, +hz: {U32.is_zero(bh) == z : Bool}) -> {SW.value(X.psnd(X.dm_pick(WU.U64{al, ah}, WU.U64{bl, bh}, z))) == Nat.mod(SW.value(WU.U64{al, ah}), SW.value(WU.U64{bl, bh})) : Nat}:
   match z:

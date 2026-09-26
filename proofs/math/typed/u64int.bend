@@ -15,6 +15,9 @@ import ./u32.bend as U32P
 import ./u64laws.bend as LW
 import ../../../src/math/u64.bend as WU
 import ./natfuel.bend as NF
+import ./u64bgcd.bend as UB
+import ./u64mont.bend as MO
+import ../../../src/math/w64.bend as X
 import ./combnat.bend as CN
 import ../../lib/arith.bend as AR2
 import ../natural/fact.bend as FA
@@ -176,8 +179,7 @@ def gcd_sim(+f: Nat, +a: WU.U64, +b: WU.U64, +cz: Bool, +nb: Nat, +hcz: {I.u64_i
       Equal.trans(Nat, v(G.gcd_go(~WU.U64, ~I.u64_op, ~I.u64_is, g, b, (rm, I.u64_is(NM.IsZero{rm})))), M.gcd_go(g, v(b), v(rm)), M.gcd_go(g, 1n+bp, Nat.mod(v(a), 1n+bp)), ih, Equal.trans(Nat, M.gcd_go(g, v(b), v(rm)), M.gcd_go(g, 1n+bp, v(rm)), M.gcd_go(g, 1n+bp, Nat.mod(v(a), 1n+bp)), Equal.cong(Nat, Nat, t => M.gcd_go(g, t, v(rm)), v(b), 1n+bp, hnb), Equal.cong(Nat, Nat, t => M.gcd_go(g, 1n+bp, t), v(rm), Nat.mod(v(a), 1n+bp), erm)))
 
 def gcd_val_k(+k: Nat, +hk: {k == 64n : Nat}, +a: WU.U64, +b: WU.U64) -> {v(G.gcd(~WU.U64, ~I.u64_op, ~I.u64_is, a, b)) == M.gcd(v(a), v(b)) : Nat}:
-  +hk2 = L.subst(Nat, z => {Nat.is_le(1n+Nat.double(z), 140n) == True{} : Bool}, 64n, k, Equal.sym(Nat, k, 64n, hk), {==})
-  Equal.trans(Nat, v(G.gcd(~WU.U64, ~I.u64_op, ~I.u64_is, a, b)), M.gcd_go(140n, v(a), v(b)), M.gcd(v(a), v(b)), gcd_sim(140n, a, b, I.u64_is(NM.IsZero{b}), v(b), {==}, {==}), NF.gcd_140(k, v(a), v(b), hk2, LW.val_lt(k, hk, b)))
+  UB.gcd_val(k, hk, a, b)
 
 def gcd_val(+a: WU.U64, +b: WU.U64) -> {v(G.gcd(~WU.U64, ~I.u64_op, ~I.u64_is, a, b)) == M.gcd(v(a), v(b)) : Nat}:
   gcd_val_k(64n, {==}, a, b)
@@ -458,6 +460,33 @@ def pm_rem(+x: WU.U64, +m: WU.U64, +mp: Nat, +hm: {v(m) == 1n+mp : Nat}) -> {v(I
   +hq = Equal.trans(Bool, Nat.is_eq(v(m), 0n), Nat.is_eq(1n+mp, 0n), False{}, Equal.cong(Nat, Bool, t => Nat.is_eq(t, 0n), v(m), 1n+mp, hm), {==})
   Equal.trans(Nat, v(I.u64_op(NM.Rem{x, m})), Nat.mod(v(x), v(m)), Nat.mod(v(x), 1n+mp), LW.ops_rem(x, m, hq), Equal.cong(Nat, Nat, t => Nat.mod(v(x), t), v(m), 1n+mp, hm))
 
+
+# the generic MulMod loop (mont_ok(m) False)
+def pm_gen(+k: Nat, +hk: {k == 64n : Nat}, +b: WU.U64, +e: WU.U64, +m: WU.U64, +mp: Nat, +hnm: {v(m) == 1n+mp : Nat}) -> {v(G.pow_mod_go(~WU.U64, ~I.u64_op, ~I.u64_is, 140n, m, I.u64_op(NM.Rem{b, m}), I.u64_op(NM.Rem{I.u64_op(NM.One{}), m}), (e, I.u64_is(NM.IsZero{e})))) == M.pow_mod_go(v(e), 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp)) : Nat}:
+  +rb = I.u64_op(NM.Rem{b, m})
+  +ra = I.u64_op(NM.Rem{I.u64_op(NM.One{}), m})
+  +eb = pm_rem(b, m, mp, hnm)
+  +ea = Equal.trans(Nat, v(ra), Nat.mod(v(I.u64_op(NM.One{})), 1n+mp), Nat.mod(1n, 1n+mp), pm_rem(I.u64_op(NM.One{}), m, mp, hnm), Equal.cong(Nat, Nat, t => Nat.mod(t, 1n+mp), v(I.u64_op(NM.One{})), 1n, one_v()))
+  +hb = L.subst(Nat, z => {Nat.is_lt(z, 1n+mp) == True{} : Bool}, Nat.mod(v(b), 1n+mp), v(rb), Equal.sym(Nat, v(rb), Nat.mod(v(b), 1n+mp), eb), NR.dm_lt(mp, v(b)))
+  +ha = L.subst(Nat, z => {Nat.is_lt(z, 1n+mp) == True{} : Bool}, Nat.mod(1n, 1n+mp), v(ra), Equal.sym(Nat, v(ra), Nat.mod(1n, 1n+mp), ea), NR.dm_lt(mp, 1n))
+  +hj = L.subst(Nat, z => {Nat.is_le(z, 140n) == True{} : Bool}, 64n, k, Equal.sym(Nat, k, 64n, hk), {==})
+  +s = pmsim(140n, m, rb, ra, e, mp, hnm, hb, ha, I.u64_is(NM.IsZero{e}), v(e), {==}, {==})
+  +c1 = Equal.trans(Nat, M.pow_mod_go(140n, 1n+mp, v(e), v(rb), v(ra)), M.pow_mod_go(140n, 1n+mp, v(e), Nat.mod(v(b), 1n+mp), v(ra)), M.pow_mod_go(140n, 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp)), Equal.cong(Nat, Nat, t => M.pow_mod_go(140n, 1n+mp, v(e), t, v(ra)), v(rb), Nat.mod(v(b), 1n+mp), eb), Equal.cong(Nat, Nat, t => M.pow_mod_go(140n, 1n+mp, v(e), Nat.mod(v(b), 1n+mp), t), v(ra), Nat.mod(1n, 1n+mp), ea))
+  +c2 = NF.pm_140(k, 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp), hj, LW.val_lt(k, hk, e))
+  Equal.trans(Nat, v(G.pow_mod_go(~WU.U64, ~I.u64_op, ~I.u64_is, 140n, m, I.u64_op(NM.Rem{b, m}), I.u64_op(NM.Rem{I.u64_op(NM.One{}), m}), (e, I.u64_is(NM.IsZero{e})))), M.pow_mod_go(140n, 1n+mp, v(e), v(rb), v(ra)), M.pow_mod_go(v(e), 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp)), s, Equal.trans(Nat, M.pow_mod_go(140n, 1n+mp, v(e), v(rb), v(ra)), M.pow_mod_go(140n, 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp)), M.pow_mod_go(v(e), 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp)), c1, c2))
+
+# Montgomery multiplication (mont_ok(m) True)
+def pm_mont(+k: Nat, +hk: {k == 64n : Nat}, +b: WU.U64, +e: WU.U64, +m: WU.U64, +mp: Nat, +hnm: {v(m) == 1n+mp : Nat}, +hok: {X.mont_ok(m) == True{} : Bool}) -> {v(I.u64_op(NM.PowMod{I.u64_op(NM.Rem{b, m}), e, m})) == M.pow_mod_go(v(e), 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp)) : Nat}:
+  +hj = L.subst(Nat, z => {Nat.is_le(z, 140n) == True{} : Bool}, 64n, k, Equal.sym(Nat, k, 64n, hk), {==})
+  Equal.trans(Nat, v(X.mpow(X.rem(b, m), e, m)), M.pow_mod_go(140n, 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp)), M.pow_mod_go(v(e), 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp)), MO.mpow_top(1n, {==}, mp, m, hnm, hok, b, e), NF.pm_140(k, 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp), hj, LW.val_lt(k, hk, e)))
+
+def pm_pick(+k: Nat, +hk: {k == 64n : Nat}, +b: WU.U64, +e: WU.U64, +m: WU.U64, +mp: Nat, +hnm: {v(m) == 1n+mp : Nat}, +c: Bool, +hc: {X.mont_ok(m) == c : Bool}) -> {v(G.pow_mod_pick(~WU.U64, ~I.u64_op, ~I.u64_is, b, e, m, c)) == M.pow_mod_go(v(e), 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp)) : Nat}:
+  match c:
+    case True{}:
+      pm_mont(k, hk, b, e, m, mp, hnm, hc)
+    case False{}:
+      pm_gen(k, hk, b, e, m, mp, hnm)
+
 def pm_top(+k: Nat, +hk: {k == 64n : Nat}, +b: WU.U64, +e: WU.U64, +m: WU.U64, +c: Bool, +hc: {I.u64_is(NM.IsZero{m}) == c : Bool}, +nm: Nat, +hnm: {v(m) == nm : Nat}) -> {G.pow_mod_ok(~WU.U64, ~I.u64_op, ~I.u64_is, b, e, m, c) == SG.lift(~WU.U64, ~SG.u64_of, M.pow_mod(v(b), v(e), nm)) : Result<&2, &2, NM.NumError, WU.U64>}:
   match c nm:
     case True{} 0n:
@@ -467,19 +496,9 @@ def pm_top(+k: Nat, +hk: {k == 64n : Nat}, +b: WU.U64, +e: WU.U64, +m: WU.U64, +
     case True{} 1n+ +mp:
       Empty.absurd({G.pow_mod_ok(~WU.U64, ~I.u64_op, ~I.u64_is, b, e, m, True{}) == SG.lift(~WU.U64, ~SG.u64_of, M.pow_mod(v(b), v(e), 1n+mp)) : Result<&2, &2, NM.NumError, WU.U64>}, true_ne_false(Equal.trans(Bool, True{}, I.u64_is(NM.IsZero{m}), False{}, Equal.sym(Bool, I.u64_is(NM.IsZero{m}), True{}, hc), iz(m, 1n+mp, hnm))))
     case False{} 1n+ +mp:
-      +rb = I.u64_op(NM.Rem{b, m})
-      +ra = I.u64_op(NM.Rem{I.u64_op(NM.One{}), m})
-      +eb = pm_rem(b, m, mp, hnm)
-      +ea = Equal.trans(Nat, v(ra), Nat.mod(v(I.u64_op(NM.One{})), 1n+mp), Nat.mod(1n, 1n+mp), pm_rem(I.u64_op(NM.One{}), m, mp, hnm), Equal.cong(Nat, Nat, t => Nat.mod(t, 1n+mp), v(I.u64_op(NM.One{})), 1n, one_v()))
-      +hb = L.subst(Nat, z => {Nat.is_lt(z, 1n+mp) == True{} : Bool}, Nat.mod(v(b), 1n+mp), v(rb), Equal.sym(Nat, v(rb), Nat.mod(v(b), 1n+mp), eb), NR.dm_lt(mp, v(b)))
-      +ha = L.subst(Nat, z => {Nat.is_lt(z, 1n+mp) == True{} : Bool}, Nat.mod(1n, 1n+mp), v(ra), Equal.sym(Nat, v(ra), Nat.mod(1n, 1n+mp), ea), NR.dm_lt(mp, 1n))
-      +hj = L.subst(Nat, z => {Nat.is_le(z, 140n) == True{} : Bool}, 64n, k, Equal.sym(Nat, k, 64n, hk), {==})
-      +s = pmsim(140n, m, rb, ra, e, mp, hnm, hb, ha, I.u64_is(NM.IsZero{e}), v(e), {==}, {==})
-      +c1 = Equal.trans(Nat, M.pow_mod_go(140n, 1n+mp, v(e), v(rb), v(ra)), M.pow_mod_go(140n, 1n+mp, v(e), Nat.mod(v(b), 1n+mp), v(ra)), M.pow_mod_go(140n, 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp)), Equal.cong(Nat, Nat, t => M.pow_mod_go(140n, 1n+mp, v(e), t, v(ra)), v(rb), Nat.mod(v(b), 1n+mp), eb), Equal.cong(Nat, Nat, t => M.pow_mod_go(140n, 1n+mp, v(e), Nat.mod(v(b), 1n+mp), t), v(ra), Nat.mod(1n, 1n+mp), ea))
-      +c2 = NF.pm_140(k, 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp), hj, LW.val_lt(k, hk, e))
-      +g = G.pow_mod_go(~WU.U64, ~I.u64_op, ~I.u64_is, 140n, m, rb, ra, (e, I.u64_is(NM.IsZero{e})))
+      +g = G.pow_mod_pick(~WU.U64, ~I.u64_op, ~I.u64_is, b, e, m, I.u64_is(NM.Mont{m}))
       +r = M.pow_mod_go(v(e), 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp))
-      Equal.cong(WU.U64, Result<&2, &2, NM.NumError, WU.U64>, t => Done{t}, g, of(r), as_of(g, r, Equal.trans(Nat, v(g), M.pow_mod_go(140n, 1n+mp, v(e), v(rb), v(ra)), r, s, Equal.trans(Nat, M.pow_mod_go(140n, 1n+mp, v(e), v(rb), v(ra)), M.pow_mod_go(140n, 1n+mp, v(e), Nat.mod(v(b), 1n+mp), Nat.mod(1n, 1n+mp)), r, c1, c2))))
+      Equal.cong(WU.U64, Result<&2, &2, NM.NumError, WU.U64>, t => Done{t}, g, of(r), as_of(g, r, pm_pick(k, hk, b, e, m, mp, hnm, X.mont_ok(m), {==})))
 
 def powmod_agrees(+b: WU.U64, +e: WU.U64, +m: WU.U64) -> SG.PowMod.agrees(~WU.U64, ~I.u64_op, ~I.u64_is, ~SG.u64_val, ~SG.u64_of, b, e, m):
   pm_top(64n, {==}, b, e, m, I.u64_is(NM.IsZero{m}), {==}, v(m), {==})

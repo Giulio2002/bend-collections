@@ -23,12 +23,13 @@ import ./u32laws.bend as LW
 import ./natfuel.bend as NF
 
 # 64 / 64 division, a * b mod m and the 64-bit square root of
-# src/math/w64.bend. The quotient loops take any 32-bit estimate down while
-# q b > x and up while (q + 1) b <= x, so the proofs never use the estimate's
-# accuracy (Knuth's Theorem B only bounds the loops' run time); the proof is
-# the loop invariant of the Why3 gallery's integer square root and division
-# examples, closed by the uniqueness of floor(x / b) (Mathlib Nat.div_add_mod,
-# Nat.div_eq_of_lt_le).
+# src/math/w64.bend. The quotient loop takes an estimate q with x < (q + 1) b
+# down while q b > x, so it ends at floor(x / b); w64est.bend shows Knuth's
+# normalised estimate is never below the quotient (the easy half of Theorem
+# B; the other half, at most 2 over, only bounds the loop's run time). The
+# proof is the loop invariant of the Why3 gallery's integer square root and
+# division examples, closed by the uniqueness of floor(x / b) (Mathlib
+# Nat.div_add_mod, Nat.div_eq_of_lt_le).
 
 def v(+x: U32) -> Nat:
   U32.to_nat(x)
@@ -121,91 +122,25 @@ def qdn(+fu: Nat, +one: Nat, +h1: {one == 1n : Nat}, +xl: WU.U64, +xh: U32, +b: 
       +hf1 = L.subst(Nat, z => {Nat.is_lt(z, g) == True{} : Bool}, qp, v(q1), Equal.sym(Nat, v(q1), qp, e1), L.subst(Nat, z => {Nat.is_lt(z, 1n+g) == True{} : Bool}, v(q), 1n+qp, hnq, hf))
       qdn(g, one, h1, xl, xh, b, q1, X.over96(xl, xh, X.mul_32_64(q1, b)), qp, hf1, {==}, e1)
 
-def not_not(+c: Bool) -> {Bool.not(Bool.not(c)) == c : Bool}:
-  match c:
-    case True{}:
-      {==}
-    case False{}:
-      {==}
-
-def q_up_okg(+xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32, +m: U32) -> Bool:
-  Bool.and(U32.is_lt(q, m), Bool.not(X.over96(xl, xh, X.mul_32_64(U32.add(q, 1), b))))
-
-def q_upg(fuel: Nat, +xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32, up: Bool, +m: U32) -> U32:
-  match fuel up:
-    case 0n _:
-      q
-    case 1n+f False{}:
-      q
-    case 1n+f True{}:
-      q_upg(f, xl, xh, b, U32.add(q, 1), q_up_okg(xl, xh, b, U32.add(q, 1), m), m)
-
-def impl_qup(+fuel: Nat, +xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32, +up: Bool) -> {X.q_up(fuel, xl, xh, b, q, up) == q_upg(fuel, xl, xh, b, q, up, 4294967295) : U32}:
-  match fuel up:
-    case 0n _:
-      {==}
-    case 1n+ +f False{}:
-      {==}
-    case 1n+ +f True{}:
-      impl_qup(f, xl, xh, b, U32.add(q, 1), X.q_up_ok(xl, xh, b, U32.add(q, 1)))
-
-def and_l(+a: Bool, +b: Bool, +h: {Bool.and(a, b) == True{} : Bool}) -> {a == True{} : Bool}:
-  W64S.and_l(a, b, h)
-
-def and_r(+a: Bool, +b: Bool, +h: {Bool.and(a, b) == True{} : Bool}) -> {b == True{} : Bool}:
-  W64S.and_r(a, b, h)
-
-def not_t(+x: Bool, +h: {Bool.not(x) == True{} : Bool}) -> {x == False{} : Bool}:
-  match x:
-    case True{}:
-      Empty.absurd({True{} == False{} : Bool}, true_ne_false(Equal.sym(Bool, False{}, True{}, h)))
-    case False{}:
-      {==}
-
-# 1 + v(m) == 2^32 for the all-ones word
-def m32(+one: Nat, +h1: {one == 1n : Nat}, +m: U32, +pm: {m == U32{WD.mask(32n, 32n)} : U32}) -> {1n+v(m) == C.shift(32n, one) : Nat}:
-  Equal.trans(Nat, 1n+v(m), WD.sc(32n, one), C.shift(32n, one), W64S.mask_v(32n, {==}, one, h1, m, pm), Equal.sym(Nat, C.shift(32n, one), WD.sc(32n, one), W64M.shift_sc(32n, one)))
-
-# q + 1 for q < m
-def succ_m(+one: Nat, +h1: {one == 1n : Nat}, +q: U32, +m: U32, +pm: {m == U32{WD.mask(32n, 32n)} : U32}, +lt: {Nat.is_lt(v(q), v(m)) == True{} : Bool}) -> {v(U32.add(q, 1)) == 1n+v(q) : Nat}:
-  +em = m32(one, h1, m, pm)
-  +h = N.le_lt_trans(Nat.add(v(q), 1n), v(m), C.shift(32n, one), L.subst(Nat, z => {Nat.is_le(z, v(m)) == True{} : Bool}, 1n+v(q), Nat.add(v(q), 1n), Equal.sym(Nat, Nat.add(v(q), 1n), 1n+v(q), WA.plus1(v(q))), N.lt_succ_le_succ(v(q), v(m), lt)), L.subst(Nat, z => {Nat.is_lt(v(m), z) == True{} : Bool}, 1n+v(m), C.shift(32n, one), em, N.lt_succ(v(m))))
-  Equal.trans(Nat, v(U32.add(q, 1)), Nat.add(v(q), 1n), 1n+v(q), WA.add_exact(one, h1, q, 1, WW.fits_one(32n, one, h1, Nat.add(v(q), 1n), h)), WA.plus1(v(q)))
-
-def qstop(+one: Nat, +h1: {one == 1n : Nat}, +xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32, +m: U32, +pm: {m == U32{WD.mask(32n, 32n)} : U32}, +hle: {Nat.is_le(v(q), v(m)) == True{} : Bool}, +hX: {Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(m), SW.value(b))) == True{} : Bool}, +a: Bool, +ha: {U32.is_lt(q, m) == a : Bool}, +c: Bool, +hcb: {Bool.not(X.over96(xl, xh, X.mul_32_64(U32.add(q, 1), b))) == c : Bool}, +hstop: {Bool.and(a, c) == False{} : Bool}) -> {Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(q), SW.value(b))) == True{} : Bool}:
-  match a c:
-    case False{} _:
-      +nl = Equal.trans(Bool, Nat.is_lt(v(q), v(m)), U32.is_lt(q, m), False{}, Equal.sym(Bool, U32.is_lt(q, m), Nat.is_lt(v(q), v(m)), U.is_lt_nat(q, m)), ha)
-      +eq = N.le_antisym(v(q), v(m), hle, N.not_lt_le(v(q), v(m), nl))
-      L.subst(Nat, z => {Nat.is_lt(X96(xl, xh), Nat.mul(1n+z, SW.value(b))) == True{} : Bool}, v(m), v(q), Equal.sym(Nat, v(q), v(m), eq), hX)
-    case True{} False{}:
-      +lt = Equal.trans(Bool, Nat.is_lt(v(q), v(m)), U32.is_lt(q, m), True{}, Equal.sym(Bool, U32.is_lt(q, m), Nat.is_lt(v(q), v(m)), U.is_lt_nat(q, m)), ha)
-      +e1 = succ_m(one, h1, q, m, pm, lt)
-      +ov = Equal.trans(Bool, Nat.is_lt(X96(xl, xh), QB(b, U32.add(q, 1))), X.over96(xl, xh, X.mul_32_64(U32.add(q, 1), b)), True{}, Equal.sym(Bool, X.over96(xl, xh, X.mul_32_64(U32.add(q, 1), b)), Nat.is_lt(X96(xl, xh), QB(b, U32.add(q, 1))), ovq(one, h1, xl, xh, b, U32.add(q, 1))), Equal.trans(Bool, X.over96(xl, xh, X.mul_32_64(U32.add(q, 1), b)), Bool.not(Bool.not(X.over96(xl, xh, X.mul_32_64(U32.add(q, 1), b)))), True{}, Equal.sym(Bool, Bool.not(Bool.not(X.over96(xl, xh, X.mul_32_64(U32.add(q, 1), b)))), X.over96(xl, xh, X.mul_32_64(U32.add(q, 1), b)), not_not(X.over96(xl, xh, X.mul_32_64(U32.add(q, 1), b)))), Equal.cong(Bool, Bool, t => Bool.not(t), Bool.not(X.over96(xl, xh, X.mul_32_64(U32.add(q, 1), b))), False{}, hcb)))
-      L.subst(Nat, z => {Nat.is_lt(X96(xl, xh), Nat.mul(z, SW.value(b))) == True{} : Bool}, v(U32.add(q, 1)), 1n+v(q), e1, ov)
-    case True{} True{}:
-      Empty.absurd({Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(q), SW.value(b))) == True{} : Bool}, true_ne_false(hstop))
-
-
-# up: q + 1 while q < m and (q + 1) b <= x; ends with q b <= x < (q + 1) b
-def qup(+fu: Nat, +one: Nat, +h1: {one == 1n : Nat}, +xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32, +m: U32, +pm: {m == U32{WD.mask(32n, 32n)} : U32}, +ub: Bool, +hf: {Nat.is_lt(Nat.sub(v(m), v(q)), fu) == True{} : Bool}, +hle: {Nat.is_le(v(q), v(m)) == True{} : Bool}, +hs: {Nat.is_le(QB(b, q), X96(xl, xh)) == True{} : Bool}, +hX: {Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(m), SW.value(b))) == True{} : Bool}, +hub: {q_up_okg(xl, xh, b, q, m) == ub : Bool}) -> {Nat.is_le(QB(b, q_upg(fu, xl, xh, b, q, ub, m)), X96(xl, xh)) == True{} : Bool} & {Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(q_upg(fu, xl, xh, b, q, ub, m)), SW.value(b))) == True{} : Bool}:
-  match fu ub:
-    case 0n _:
-      Empty.absurd({Nat.is_le(QB(b, q_upg(0n, xl, xh, b, q, ub, m)), X96(xl, xh)) == True{} : Bool} & {Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(q_upg(0n, xl, xh, b, q, ub, m)), SW.value(b))) == True{} : Bool}, N.lt_zero_absurd(Nat.sub(v(m), v(q)), hf))
-    case 1n+g False{}:
-      (hs, qstop(one, h1, xl, xh, b, q, m, pm, hle, hX, U32.is_lt(q, m), {==}, Bool.not(X.over96(xl, xh, X.mul_32_64(U32.add(q, 1), b))), {==}, hub))
-    case 1n+ +g True{}:
-      +q1 = U32.add(q, 1)
-      +ha = and_l(U32.is_lt(q, m), Bool.not(X.over96(xl, xh, X.mul_32_64(q1, b))), hub)
-      +hb = and_r(U32.is_lt(q, m), Bool.not(X.over96(xl, xh, X.mul_32_64(q1, b))), hub)
-      +lt = Equal.trans(Bool, Nat.is_lt(v(q), v(m)), U32.is_lt(q, m), True{}, Equal.sym(Bool, U32.is_lt(q, m), Nat.is_lt(v(q), v(m)), U.is_lt_nat(q, m)), ha)
-      +e1 = succ_m(one, h1, q, m, pm, lt)
-      +nov = not_t(X.over96(xl, xh, X.mul_32_64(q1, b)), hb)
-      +hs1 = N.not_lt_le(X96(xl, xh), QB(b, q1), Equal.trans(Bool, Nat.is_lt(X96(xl, xh), QB(b, q1)), X.over96(xl, xh, X.mul_32_64(q1, b)), False{}, Equal.sym(Bool, X.over96(xl, xh, X.mul_32_64(q1, b)), Nat.is_lt(X96(xl, xh), QB(b, q1)), ovq(one, h1, xl, xh, b, q1)), nov))
-      +hle1 = L.subst(Nat, z => {Nat.is_le(z, v(m)) == True{} : Bool}, 1n+v(q), v(q1), Equal.sym(Nat, v(q1), 1n+v(q), e1), N.lt_succ_le_succ(v(q), v(m), lt))
-      +hf0 = L.subst(Nat, z => {Nat.is_lt(z, 1n+g) == True{} : Bool}, Nat.sub(v(m), v(q)), 1n+Nat.sub(v(m), 1n+v(q)), W64S.sub_succ_r(v(q), v(m), lt), hf)
-      +hf1 = L.subst(Nat, z => {Nat.is_lt(Nat.sub(v(m), z), g) == True{} : Bool}, 1n+v(q), v(q1), Equal.sym(Nat, v(q1), 1n+v(q), e1), hf0)
-      qup(g, one, h1, xl, xh, b, q1, m, pm, q_up_okg(xl, xh, b, q1, m), hf1, hle1, hs1, hX, {==})
+# down keeps x < (q + 1) b: a step is taken only when x < q b
+def qup2(+fu: Nat, +one: Nat, +h1: {one == 1n : Nat}, +xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32, +cb: Bool, +nq: Nat, +hf: {Nat.is_lt(v(q), fu) == True{} : Bool}, +hc: {X.over96(xl, xh, X.mul_32_64(q, b)) == cb : Bool}, +hnq: {v(q) == nq : Nat}, +hu: {Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(q), SW.value(b))) == True{} : Bool}) -> {Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(X.q_fix(fu, xl, xh, b, q, cb)), SW.value(b))) == True{} : Bool}:
+  match fu cb nq:
+    case 0n _ _:
+      Empty.absurd({Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(X.q_fix(0n, xl, xh, b, q, cb)), SW.value(b))) == True{} : Bool}, N.lt_zero_absurd(v(q), hf))
+    case 1n+g False{} _:
+      hu
+    case 1n+g True{} 0n:
+      +h0 = Equal.trans(Bool, Nat.is_lt(X96(xl, xh), QB(b, q)), X.over96(xl, xh, X.mul_32_64(q, b)), True{}, Equal.sym(Bool, X.over96(xl, xh, X.mul_32_64(q, b)), Nat.is_lt(X96(xl, xh), QB(b, q)), ovq(one, h1, xl, xh, b, q)), hc)
+      +h1b = L.subst(Nat, z => {Nat.is_lt(X96(xl, xh), Nat.mul(z, SW.value(b))) == True{} : Bool}, v(q), 0n, hnq, h0)
+      Empty.absurd({Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(X.q_fix(1n+g, xl, xh, b, q, True{})), SW.value(b))) == True{} : Bool}, N.lt_zero_absurd(X96(xl, xh), h1b))
+    case 1n+ +g True{} 1n+ +qp:
+      +q1 = U32.sub(q, 1)
+      +e1 = Equal.trans(Nat, v(q1), Nat.sub(v(q), 1n), qp, U.sub_nat(q, 1, L.subst(Nat, z => {Nat.is_le(1n, z) == True{} : Bool}, 1n+qp, v(q), Equal.sym(Nat, v(q), 1n+qp, hnq), N.zero_le(qp))), Equal.trans(Nat, Nat.sub(v(q), 1n), Nat.sub(1n+qp, 1n), qp, Equal.cong(Nat, Nat, t => Nat.sub(t, 1n), v(q), 1n+qp, hnq), N.sub_zero(qp)))
+      +hf1 = L.subst(Nat, z => {Nat.is_lt(z, g) == True{} : Bool}, qp, v(q1), Equal.sym(Nat, v(q1), qp, e1), L.subst(Nat, z => {Nat.is_lt(z, 1n+g) == True{} : Bool}, v(q), 1n+qp, hnq, hf))
+      +h0 = Equal.trans(Bool, Nat.is_lt(X96(xl, xh), QB(b, q)), X.over96(xl, xh, X.mul_32_64(q, b)), True{}, Equal.sym(Bool, X.over96(xl, xh, X.mul_32_64(q, b)), Nat.is_lt(X96(xl, xh), QB(b, q)), ovq(one, h1, xl, xh, b, q)), hc)
+      +h2 = L.subst(Nat, z => {Nat.is_lt(X96(xl, xh), Nat.mul(z, SW.value(b))) == True{} : Bool}, v(q), 1n+qp, hnq, h0)
+      +hu1 = L.subst(Nat, z => {Nat.is_lt(X96(xl, xh), Nat.mul(1n+z, SW.value(b))) == True{} : Bool}, qp, v(q1), Equal.sym(Nat, v(q1), qp, e1), h2)
+      qup2(g, one, h1, xl, xh, b, q1, X.over96(xl, xh, X.mul_32_64(q1, b)), qp, hf1, {==}, e1, hu1)
 
 # r b <= x < (r + 1) b: r == x / b and x - r b == x mod b
 def div_uniq(+x: Nat, +r: Nat, +bp: Nat, +h1: {Nat.is_le(Nat.mul(r, 1n+bp), x) == True{} : Bool}, +h2: {Nat.is_lt(x, Nat.mul(1n+r, 1n+bp)) == True{} : Bool}) -> {Nat.div(x, 1n+bp) == r : Nat} & {Nat.mod(x, 1n+bp) == Nat.sub(x, Nat.mul(r, 1n+bp)) : Nat}:
@@ -215,12 +150,6 @@ def div_uniq(+x: Nat, +r: Nat, +bp: Nat, +h1: {Nat.is_le(Nat.mul(r, 1n+bp), x) =
   +h4 = L.subst(Nat, z => {Nat.is_lt(Nat.add(Nat.mul(r, 1n+bp), t), z) == True{} : Bool}, Nat.add(1n+bp, Nat.mul(r, 1n+bp)), Nat.add(Nat.mul(r, 1n+bp), 1n+bp), N.add_comm(1n+bp, Nat.mul(r, 1n+bp)), h3)
   +ht = Equal.trans(Bool, Nat.is_lt(t, 1n+bp), Nat.is_lt(Nat.add(Nat.mul(r, 1n+bp), t), Nat.add(Nat.mul(r, 1n+bp), 1n+bp)), True{}, Equal.sym(Bool, Nat.is_lt(Nat.add(Nat.mul(r, 1n+bp), t), Nat.add(Nat.mul(r, 1n+bp), 1n+bp)), Nat.is_lt(t, 1n+bp), WW.lt_cancel_l(Nat.mul(r, 1n+bp), t, 1n+bp)), h4)
   (Equal.trans(Nat, Nat.div(x, 1n+bp), Nat.div(Nat.add(Nat.mul(r, 1n+bp), t), 1n+bp), r, Equal.cong(Nat, Nat, z => Nat.div(z, 1n+bp), x, Nat.add(Nat.mul(r, 1n+bp), t), Equal.sym(Nat, Nat.add(Nat.mul(r, 1n+bp), t), x, ex)), NR.div_of(r, bp, t, ht)), Equal.trans(Nat, Nat.mod(x, 1n+bp), Nat.mod(Nat.add(Nat.mul(r, 1n+bp), t), 1n+bp), t, Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+bp), x, Nat.add(Nat.mul(r, 1n+bp), t), Equal.sym(Nat, Nat.add(Nat.mul(r, 1n+bp), t), x, ex)), NR.mod_of(r, bp, t, ht)))
-
-def qfu_g(+xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32, +m: U32) -> U32:
-  q_upg(1n+v(U32.sub(m, q)), xl, xh, b, q, q_up_okg(xl, xh, b, q, m), m)
-
-def impl_qfu(+xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32) -> {X.q_fix_up(xl, xh, b, q) == qfu_g(xl, xh, b, q, 4294967295) : U32}:
-  impl_qup(1n+v(U32.sub(4294967295, q)), xl, xh, b, q, X.q_up_ok(xl, xh, b, q))
 
 def qs_fin(+x: Nat, +r: Nat, +bp: Nat, +hB: {SW.value(WU.U64{0, 0}) == 0n : Nat}, p: {Nat.is_le(Nat.mul(r, 1n+bp), x) == True{} : Bool} & {Nat.is_lt(x, Nat.mul(1n+r, 1n+bp)) == True{} : Bool}) -> {Nat.div(x, 1n+bp) == r : Nat} & {Nat.mod(x, 1n+bp) == Nat.sub(x, Nat.mul(r, 1n+bp)) : Nat}:
   (+a, +c) = p
@@ -235,21 +164,14 @@ def qle_fin(+x: Nat, +r: Nat, +B: Nat, p: {Nat.is_le(Nat.mul(r, B), x) == True{}
   a
 
 def QS(+xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32, +m: U32) -> U32:
-  qfu_g(xl, xh, b, X.q_fix(1n+v(q), xl, xh, b, q, X.over96(xl, xh, X.mul_32_64(q, b))), m)
+  X.q_fix(1n+v(q), xl, xh, b, q, X.over96(xl, xh, X.mul_32_64(q, b)))
 
-# the quotient loops from any estimate q: q' b <= x < (q' + 1) b
-def qs_pair(+one: Nat, +h1: {one == 1n : Nat}, +xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32, +m: U32, +pm: {m == U32{WD.mask(32n, 32n)} : U32}, +hX: {Nat.is_lt(X96(xl, xh), Nat.mul(C.shift(32n, one), SW.value(b))) == True{} : Bool}) -> {Nat.is_le(QB(b, QS(xl, xh, b, q, m)), X96(xl, xh)) == True{} : Bool} & {Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(QS(xl, xh, b, q, m)), SW.value(b))) == True{} : Bool}:
-  +q1 = X.q_fix(1n+v(q), xl, xh, b, q, X.over96(xl, xh, X.mul_32_64(q, b)))
-  +hs = qdn(1n+v(q), one, h1, xl, xh, b, q, X.over96(xl, xh, X.mul_32_64(q, b)), v(q), N.lt_succ(v(q)), {==}, {==})
-  +em = m32(one, h1, m, pm)
-  +hle = N.lt_succ_le(v(q1), v(m), L.subst(Nat, z => {Nat.is_lt(v(q1), z) == True{} : Bool}, C.shift(32n, one), 1n+v(m), Equal.sym(Nat, 1n+v(m), C.shift(32n, one), em), WW.lt_one(32n, one, h1, v(q1), vb(q1))))
-  +hX1 = L.subst(Nat, z => {Nat.is_lt(X96(xl, xh), Nat.mul(z, SW.value(b))) == True{} : Bool}, C.shift(32n, one), 1n+v(m), Equal.sym(Nat, 1n+v(m), C.shift(32n, one), em), hX)
-  +esub = U.sub_nat(m, q1, hle)
-  +hf = L.subst(Nat, z => {Nat.is_lt(Nat.sub(v(m), v(q1)), 1n+z) == True{} : Bool}, Nat.sub(v(m), v(q1)), v(U32.sub(m, q1)), Equal.sym(Nat, v(U32.sub(m, q1)), Nat.sub(v(m), v(q1)), esub), N.lt_succ(Nat.sub(v(m), v(q1))))
-  qup(1n+v(U32.sub(m, q1)), one, h1, xl, xh, b, q1, m, pm, q_up_okg(xl, xh, b, q1, m), hf, hle, hs, hX1, {==})
+# the down loop from an estimate q with x < (q + 1) b: q' b <= x < (q' + 1) b
+def qs_pair(+one: Nat, +h1: {one == 1n : Nat}, +xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32, +m: U32, +pm: {m == U32{WD.mask(32n, 32n)} : U32}, +hX: {Nat.is_lt(X96(xl, xh), Nat.mul(C.shift(32n, one), SW.value(b))) == True{} : Bool}, +hu: {Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(q), SW.value(b))) == True{} : Bool}) -> {Nat.is_le(QB(b, QS(xl, xh, b, q, m)), X96(xl, xh)) == True{} : Bool} & {Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(QS(xl, xh, b, q, m)), SW.value(b))) == True{} : Bool}:
+  (qdn(1n+v(q), one, h1, xl, xh, b, q, X.over96(xl, xh, X.mul_32_64(q, b)), v(q), N.lt_succ(v(q)), {==}, {==}), qup2(1n+v(q), one, h1, xl, xh, b, q, X.over96(xl, xh, X.mul_32_64(q, b)), v(q), N.lt_succ(v(q)), {==}, {==}, hu))
 
 def impl_qs(+xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32) -> {X.q_start(xl, xh, b, q) == QS(xl, xh, b, q, 4294967295) : U32}:
-  impl_qfu(xl, xh, b, X.q_fix(1n+v(q), xl, xh, b, q, X.over96(xl, xh, X.mul_32_64(q, b))))
+  {==}
 
 # ---- 64 / 64 ----
 
@@ -275,8 +197,8 @@ def x96_0(+a: WU.U64) -> {X96(a, 0) == SW.value(a) : Nat}:
 def u32_0(+q: U32) -> {SW.value(WU.U64{q, 0}) == v(q) : Nat}:
   Equal.trans(Nat, Nat.add(v(q), C.shift(32n, 0n)), Nat.add(v(q), 0n), v(q), Equal.cong(Nat, Nat, z => Nat.add(v(q), z), C.shift(32n, 0n), 0n, WW.shift_zero(32n)), N.add_zero(v(q)))
 
-# the big-divisor quotient: q b <= a < (q + 1) b
-def dm_pair(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +e: U32, +hz: {U32.is_zero(bh) == False{} : Bool}, +bp: Nat, +hB: {SW.value(WU.U64{bl, bh}) == 1n+bp : Nat}) -> {Nat.div(SW.value(WU.U64{al, ah}), 1n+bp) == v(QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)) : Nat} & {Nat.mod(SW.value(WU.U64{al, ah}), 1n+bp) == Nat.sub(SW.value(WU.U64{al, ah}), Nat.mul(v(QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)), 1n+bp)) : Nat}:
+# a < 2^32 b for b >= 2^32
+def dm_hx(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +hz: {U32.is_zero(bh) == False{} : Bool}) -> {Nat.is_lt(X96(WU.U64{al, ah}, 0), Nat.mul(C.shift(32n, one), SW.value(WU.U64{bl, bh}))) == True{} : Bool}:
   +PP = C.shift(32n, one)
   +vbv = SW.value(WU.U64{bl, bh})
   +hbh = L.subst(Nat, z => {Nat.is_le(z, v(bh)) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), WA.pos_ne(v(bh), Equal.trans(Bool, Nat.is_eq(v(bh), 0n), U32.is_zero(bh), False{}, Equal.sym(Bool, U32.is_zero(bh), Nat.is_eq(v(bh), 0n), LW.zero_nat(bh)), hz)))
@@ -284,19 +206,18 @@ def dm_pair(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh
   +eS = Equal.trans(Nat, C.shift(64n, one), C.shift(32n, PP), Nat.mul(PP, PP), WW.shift_comp(32n, 32n, one), WW.shift_mul_one(32n, one, h1, PP))
   +ha = L.subst(Nat, z => {Nat.is_lt(SW.value(WU.U64{al, ah}), z) == True{} : Bool}, C.shift(64n, one), Nat.mul(PP, PP), eS, WW.lt_one(64n, one, h1, SW.value(WU.U64{al, ah}), fit64(WU.U64{al, ah})))
   +hX0 = N.lt_le_trans(SW.value(WU.U64{al, ah}), Nat.mul(PP, PP), Nat.mul(PP, vbv), ha, W64M.le_mul_r(PP, PP, vbv, hPb))
-  +hX = L.subst(Nat, z => {Nat.is_lt(z, Nat.mul(PP, vbv)) == True{} : Bool}, SW.value(WU.U64{al, ah}), X96(WU.U64{al, ah}, 0), Equal.sym(Nat, X96(WU.U64{al, ah}, 0), SW.value(WU.U64{al, ah}), x96_0(WU.U64{al, ah})), hX0)
-  pr = qs_pair(one, h1, WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295, {==}, hX)
+  L.subst(Nat, z => {Nat.is_lt(z, Nat.mul(PP, vbv)) == True{} : Bool}, SW.value(WU.U64{al, ah}), X96(WU.U64{al, ah}, 0), Equal.sym(Nat, X96(WU.U64{al, ah}, 0), SW.value(WU.U64{al, ah}), x96_0(WU.U64{al, ah})), hX0)
+
+# the big-divisor quotient: q b <= a < (q + 1) b
+def dm_pair(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +e: U32, +hz: {U32.is_zero(bh) == False{} : Bool}, +he: {Nat.is_lt(X96(WU.U64{al, ah}, 0), Nat.mul(1n+v(e), SW.value(WU.U64{bl, bh}))) == True{} : Bool}, +bp: Nat, +hB: {SW.value(WU.U64{bl, bh}) == 1n+bp : Nat}) -> {Nat.div(SW.value(WU.U64{al, ah}), 1n+bp) == v(QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)) : Nat} & {Nat.mod(SW.value(WU.U64{al, ah}), 1n+bp) == Nat.sub(SW.value(WU.U64{al, ah}), Nat.mul(v(QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)), 1n+bp)) : Nat}:
+  +vbv = SW.value(WU.U64{bl, bh})
+  +hX = dm_hx(one, h1, al, ah, bl, bh, hz)
+  pr = qs_pair(one, h1, WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295, {==}, hX, he)
   dv = qs_fin2(X96(WU.U64{al, ah}, 0), v(QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)), vbv, bp, hB, pr)
   L.subst(Nat, z => {Nat.div(z, 1n+bp) == v(QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)) : Nat} & {Nat.mod(z, 1n+bp) == Nat.sub(z, Nat.mul(v(QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)), 1n+bp)) : Nat}, X96(WU.U64{al, ah}, 0), SW.value(WU.U64{al, ah}), x96_0(WU.U64{al, ah}), dv)
 
-def dm_le(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +e: U32, +hz: {U32.is_zero(bh) == False{} : Bool}) -> {Nat.is_le(Nat.mul(v(QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)), SW.value(WU.U64{bl, bh})), SW.value(WU.U64{al, ah})) == True{} : Bool}:
-  +PP = C.shift(32n, one)
+def dm_le(+one: Nat, +h1: {one == 1n : Nat}, +al: U32, +ah: U32, +bl: U32, +bh: U32, +e: U32, +hz: {U32.is_zero(bh) == False{} : Bool}, +he: {Nat.is_lt(X96(WU.U64{al, ah}, 0), Nat.mul(1n+v(e), SW.value(WU.U64{bl, bh}))) == True{} : Bool}) -> {Nat.is_le(Nat.mul(v(QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)), SW.value(WU.U64{bl, bh})), SW.value(WU.U64{al, ah})) == True{} : Bool}:
   +vbv = SW.value(WU.U64{bl, bh})
-  +hbh = L.subst(Nat, z => {Nat.is_le(z, v(bh)) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), WA.pos_ne(v(bh), Equal.trans(Bool, Nat.is_eq(v(bh), 0n), U32.is_zero(bh), False{}, Equal.sym(Bool, U32.is_zero(bh), Nat.is_eq(v(bh), 0n), LW.zero_nat(bh)), hz)))
-  +hPb = N.le_trans(PP, C.shift(32n, v(bh)), vbv, WW.shift_mono(32n, one, v(bh), hbh), L.subst(Nat, z => {Nat.is_le(C.shift(32n, v(bh)), z) == True{} : Bool}, Nat.add(C.shift(32n, v(bh)), v(bl)), vbv, N.add_comm(C.shift(32n, v(bh)), v(bl)), N.le_add_right(C.shift(32n, v(bh)), v(bl))))
-  +eS = Equal.trans(Nat, C.shift(64n, one), C.shift(32n, PP), Nat.mul(PP, PP), WW.shift_comp(32n, 32n, one), WW.shift_mul_one(32n, one, h1, PP))
-  +ha = L.subst(Nat, z => {Nat.is_lt(SW.value(WU.U64{al, ah}), z) == True{} : Bool}, C.shift(64n, one), Nat.mul(PP, PP), eS, WW.lt_one(64n, one, h1, SW.value(WU.U64{al, ah}), fit64(WU.U64{al, ah})))
-  +hX0 = N.lt_le_trans(SW.value(WU.U64{al, ah}), Nat.mul(PP, PP), Nat.mul(PP, vbv), ha, W64M.le_mul_r(PP, PP, vbv, hPb))
-  +hX = L.subst(Nat, z => {Nat.is_lt(z, Nat.mul(PP, vbv)) == True{} : Bool}, SW.value(WU.U64{al, ah}), X96(WU.U64{al, ah}, 0), Equal.sym(Nat, X96(WU.U64{al, ah}, 0), SW.value(WU.U64{al, ah}), x96_0(WU.U64{al, ah})), hX0)
-  pr = qs_pair(one, h1, WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295, {==}, hX)
+  +hX = dm_hx(one, h1, al, ah, bl, bh, hz)
+  pr = qs_pair(one, h1, WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295, {==}, hX, he)
   L.subst(Nat, z => {Nat.is_le(Nat.mul(v(QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)), vbv), z) == True{} : Bool}, X96(WU.U64{al, ah}, 0), SW.value(WU.U64{al, ah}), x96_0(WU.U64{al, ah}), qle_fin(X96(WU.U64{al, ah}, 0), v(QS(WU.U64{al, ah}, 0, WU.U64{bl, bh}, e, 4294967295)), vbv, pr))

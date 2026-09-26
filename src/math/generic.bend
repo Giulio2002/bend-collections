@@ -207,8 +207,111 @@ def gcd_go(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, fuel: Nat, +a:
     case 1n+f Tuple{+b, False{}}:
       gcd_go(~T, ~op, ~test, f, b, zst(~T, ~test, op(N.Rem{a, b})))
 
+# ---- binary gcd (Stein): halve, subtract, compare; no division ----
+#
+# Knuth TAOCP vol. 2, 4.5.2 Algorithm B; proved in proofs/math/typed/bgcd*.bend.
+
+def hst(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +x: T) -> T & Bool:
+  (op(N.Half{x}), test(N.Odd{op(N.Half{x})}))
+
+# x with its factors of two removed (x != 0)
+def strip_go(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, fuel: Nat, st: T & Bool) -> T:
+  match fuel st:
+    case 0n Tuple{x, o}:
+      x
+    case 1n+f Tuple{x, True{}}:
+      x
+    case 1n+f Tuple{+x, False{}}:
+      strip_go(~T, ~op, ~test, f, hst(~T, ~op, ~test, x))
+
+def strip(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +x: T) -> T:
+  strip_go(~T, ~op, ~test, fuel(), (x, test(N.Odd{x})))
+
+# (d, d == 0, a and d small)
+def zsm(~T: Data, ~test: N.Test<T> -> Bool, +a: T, +d: T) -> T & (Bool & Bool):
+  (d, (test(N.IsZero{d}), test(N.Small{a, d})))
+
+def bnx2(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +a: T, +b: T, less: Bool) -> T & (T & (Bool & Bool)):
+  match less:
+    case True{}:
+      (b, zsm(~T, ~test, b, op(N.Sub{a, b})))
+    case False{}:
+      (a, zsm(~T, ~test, a, op(N.Sub{b, a})))
+
+def bnx(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +a: T, +b: T) -> T & (T & (Bool & Bool)):
+  bnx2(~T, ~op, ~test, a, b, test(N.Lt{b, a}))
+
+# (a odd, (d, d == 0, small)): once a and d fit the instance's small type
+# (Small), their gcd is taken there (GcdSmall: U64 runs Euclid on U32)
+def bloop(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, fuel: Nat, st: T & (T & (Bool & Bool))) -> T:
+  match fuel st:
+    case 0n Tuple{a, x}:
+      a
+    case 1n+f Tuple{a, Tuple{d, Tuple{True{}, sm}}}:
+      a
+    case 1n+f Tuple{+a, Tuple{+d, Tuple{False{}, True{}}}}:
+      op(N.GcdSmall{a, d})
+    case 1n+f Tuple{+a, Tuple{+d, Tuple{False{}, False{}}}}:
+      bloop(~T, ~op, ~test, f, bnx(~T, ~op, ~test, a, strip(~T, ~op, ~test, d)))
+
+def bl_start(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +a: T, +b: T) -> T:
+  bloop(~T, ~op, ~test, fuel(), (a, zsm(~T, ~test, a, b)))
+
+def dbl(~T: Data, ~op: N.Op<T> -> T, c: Nat, +x: T) -> T:
+  match c:
+    case 0n:
+      x
+    case 1n+k:
+      dbl(~T, ~op, k, op(N.Add{x, x}))
+
+def ev2(~T: Data, ~test: N.Test<T> -> Bool, +a: T, +b: T) -> Bool:
+  Bool.not(Bool.or(test(N.Odd{a}), test(N.Odd{b})))
+
+def tw(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, fl: Nat, +a: T, +b: T, +c: Nat, both: Bool) -> T:
+  match fl both:
+    case 0n _:
+      dbl(~T, ~op, c, bl_start(~T, ~op, ~test, strip(~T, ~op, ~test, a), b))
+    case 1n+f False{}:
+      dbl(~T, ~op, c, bl_start(~T, ~op, ~test, strip(~T, ~op, ~test, a), b))
+    case 1n+f True{}:
+      tw(~T, ~op, ~test, f, op(N.Half{a}), op(N.Half{b}), 1n+c, ev2(~T, ~test, op(N.Half{a}), op(N.Half{b})))
+
+def bg_b(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +a: T, +b: T, bz: Bool) -> T:
+  match bz:
+    case True{}:
+      a
+    case False{}:
+      tw(~T, ~op, ~test, fuel(), a, b, 0n, ev2(~T, ~test, a, b))
+
+def bg_a(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +a: T, +b: T, az: Bool) -> T:
+  match az:
+    case True{}:
+      b
+    case False{}:
+      bg_b(~T, ~op, ~test, a, b, test(N.IsZero{b}))
+
+def gcd_rb(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +a: T, +b: T, bz: Bool) -> T:
+  match bz:
+    case True{}:
+      a
+    case False{}:
+      bg_a(~T, ~op, ~test, b, op(N.Rem{a, b}), test(N.IsZero{b}))
+
+# one Euclid step first (so a tiny b costs one division, not a bit per
+# subtraction), then the binary loop
+def gcd_bin(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +a: T, +b: T) -> T:
+  gcd_rb(~T, ~op, ~test, a, b, test(N.IsZero{b}))
+
+def gcd_pick(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +a: T, +b: T, fast: Bool) -> T:
+  match fast:
+    case True{}:
+      gcd_go(~T, ~op, ~test, fuel(), a, zst(~T, ~test, b))
+    case False{}:
+      gcd_bin(~T, ~op, ~test, a, b)
+
+# Euclid when division is native, the binary gcd otherwise
 def gcd(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +a: T, +b: T) -> T:
-  gcd_go(~T, ~op, ~test, fuel(), a, zst(~T, ~test, b))
+  gcd_pick(~T, ~op, ~test, a, b, test(N.FastDiv{}))
 
 def lcm_ok(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +a: T, +b: T, zero: Bool) -> Result<&2, &2, N.NumError, T>:
   match zero:
@@ -429,12 +532,19 @@ def pow_mod_go(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, fuel: Nat,
     case 1n+f Tuple{+e, False{}}:
       pow_mod_go(~T, ~op, ~test, f, m, op(N.MulMod{b, b, m}), mm_bit(~T, ~op, test(N.Odd{e}), m, b, acc), zst(~T, ~test, op(N.Half{e})))
 
+def pow_mod_pick(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +b: T, +e: T, +m: T, mont: Bool) -> T:
+  match mont:
+    case True{}:
+      op(N.PowMod{op(N.Rem{b, m}), e, m})
+    case False{}:
+      pow_mod_go(~T, ~op, ~test, fuel(), m, op(N.Rem{b, m}), op(N.Rem{op(N.One{}), m}), zst(~T, ~test, e))
+
 def pow_mod_ok(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +b: T, +e: T, +m: T, zero: Bool) -> Result<&2, &2, N.NumError, T>:
   match zero:
     case True{}:
       Fail{N.DivByZero{}}
     case False{}:
-      Done{pow_mod_go(~T, ~op, ~test, fuel(), m, op(N.Rem{b, m}), op(N.Rem{op(N.One{}), m}), zst(~T, ~test, e))}
+      Done{pow_mod_pick(~T, ~op, ~test, b, e, m, test(N.Mont{m}))}
 
 # Python's pow(b, e, m) for m > 0
 def pow_mod(~T: Data, ~op: N.Op<T> -> T, ~test: N.Test<T> -> Bool, +b: T, +e: T, +m: T) -> Result<&2, &2, N.NumError, T>:

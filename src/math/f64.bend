@@ -9,8 +9,8 @@ import ./natural.bend as M
 # addMags/subMags, f64_mul, roundPackToF64 and normRoundPackToF64, round to
 # nearest with ties to even), on 64-bit significands held as two U32 limbs
 # (w64.bend). Division is exact long division by 32-bit quotient digits and
-# the square root an integer square root with one Newton step, each followed
-# by a sticky bit, so every result is correctly rounded: subnormals, overflow
+# the square root one step of Zimmermann's Karatsuba square root with its
+# exact remainder, each followed by a sticky bit, so every result is correctly rounded: subnormals, overflow
 # to infinity, signed zeros and NaN follow IEEE 754 (x + (-x) is +0, 0/0 and
 # inf - inf are NaN; a NaN result is the canonical quiet NaN).
 #
@@ -425,46 +425,56 @@ def div(+x: F64, +y: F64) -> F64:
 
 # ---- square root ----
 
-# r * r > n * 2^64
-def sq_over(+nh: W.U64, p: W.U64 & W.U64) -> Bool:
-  (+pl, +ph) = p
-  Bool.or(X.lt(nh, ph), Bool.and(X.eq(nh, ph), nz(pl)))
+def sq_fin(+e: Nat, +t: W.U64, sticky: Bool) -> F64:
+  round_pack(False{}, e, X.or_bit(t, sticky))
 
-def sq_exact(+nh: W.U64, p: W.U64 & W.U64) -> Bool:
-  (+pl, +ph) = p
-  Bool.and(X.eq(nh, ph), X.is_zero(pl))
+# the root is S0 - 2: remainder (2 S0 - 3) - (D - (2 S0 - 1)) with c = 2 S0 - 1
+def sq_d2(+e: Nat, +s0: W.U64, +d: W.U64, +c: W.U64) -> F64:
+  sq_fin(e, X.sub(s0, W.U64{2, 0}), Bool.not(X.eq(X.sub(c, W.U64{2, 0}), X.sub(d, c))))
 
-def sq_down(fuel: Nat, +nh: W.U64, +r: W.U64, over: Bool) -> W.U64:
-  match fuel over:
-    case 0n _:
-      r
-    case 1n+f False{}:
-      r
-    case 1n+f True{}:
-      sq_down(f, nh, X.sub(r, W.U64{1, 0}), sq_over(nh, X.mul128(X.sub(r, W.U64{1, 0}), X.sub(r, W.U64{1, 0}))))
+# S0^2 - N = D > 0: the root is S0 - 1 when D <= 2 S0 - 1 (remainder c - D)
+def sq_d1(+e: Nat, +s0: W.U64, +d: W.U64, +c: W.U64, small: Bool) -> F64:
+  match small:
+    case True{}:
+      sq_fin(e, X.sub(s0, W.U64{1, 0}), Bool.not(X.eq(c, d)))
+    case False{}:
+      sq_d2(e, s0, d, c)
 
-def sq_newton2(+nh: W.U64, +r0: W.U64, +d1: U32, p: U32 & W.U64) -> W.U64:
-  (+d2, +r2) = p
-  X.half(X.add(r0, W.U64{d2, d1}))
+def sq_neg(+e: Nat, +s0: W.U64, +d: W.U64) -> F64:
+  sq_d1(e, s0, d, X.sub(X.add(s0, s0), W.U64{1, 0}), X.le(d, X.sub(X.add(s0, s0), W.U64{1, 0})))
 
-def sq_newton1(+nh: W.U64, +r0: W.U64, +t: Nat, p: U32 & W.U64) -> W.U64:
-  (+d1, +r1) = p
-  sq_newton2(nh, r0, d1, digit(r1, r0, t))
+# N - S0^2 = a - b for a = u 2^32, b = q^2: the root is S0 when b <= a
+def sq_rem(+e: Nat, +s0: W.U64, +a: W.U64, +b: W.U64, ge: Bool) -> F64:
+  match ge:
+    case True{}:
+      sq_fin(e, s0, Bool.not(X.eq(a, b)))
+    case False{}:
+      sq_neg(e, s0, X.sub(b, a))
 
-def sq_r1(+nh: W.U64, +r1: W.U64) -> W.U64:
-  sq_down(6n, nh, r1, sq_over(nh, X.mul128(r1, r1)))
+def sq_qu(+e: Nat, +s: U32, +q: U32, +u: U32) -> F64:
+  sq_rem(e, W.U64{q, s}, W.U64{0, u}, X.mul32(q, q), X.le(X.mul32(q, q), W.U64{0, u}))
 
-# floor(sqrt(nh * 2^64)) for 2^60 <= nh < 2^62: r0 = (isqrt(nh) + 1) * 2^32 is
-# at or above it and within 2^32, so one Newton step (r0 + N / r0) / 2 lands
-# within 2 above it, and a few steps down finish
-def isqrt128(+nh: W.U64, +r0: W.U64) -> W.U64:
-  sq_r1(nh, sq_newton1(nh, r0, X.bitlen(X.hi(r0)), digit(nh, r0, X.bitlen(X.hi(r0)))))
+# q = 2^32 (r = 2 s) is taken as q = 2^32 - 1 with u = 2 s
+def sq_clamp(+e: Nat, +s: U32, +q: W.U64, +u: U32, small: Bool) -> F64:
+  match small:
+    case True{}:
+      sq_qu(e, s, X.lo(q), u)
+    case False{}:
+      sq_qu(e, s, 4294967295, U32.add(s, s))
 
-def sq_fin(+e: Nat, +nh: W.U64, +r: W.U64) -> F64:
-  round_pack(False{}, e, X.or_bit(r, Bool.not(sq_exact(nh, X.mul128(r, r)))))
+def sq_div(+e: Nat, +s: U32, p: W.U64 & U32) -> F64:
+  (+q, +u) = p
+  sq_clamp(e, s, q, u, U32.is_zero(X.hi(q)))
+
+# one step of Zimmermann's SqrtRem (Karatsuba square root) from s = isqrt(nh):
+# r = nh - s^2, (q, u) = divmod(r 2^32, 2 s) give S0 = s 2^32 + q with
+# N - S0^2 = u 2^32 - q^2 for N = nh 2^64; S0 - 2 <= isqrt(N) <= S0 and the
+# exact remainder decides the root and its sticky bit without squaring S0
+def sq_root_s(+e: Nat, +nh: W.U64, +s: U32) -> F64:
+  sq_div(e, s, X.div32(W.U64{0, X.lo(X.sub(nh, X.mul32(s, s)))}, U32.add(s, s)))
 
 def sq_root(+e: Nat, +nh: W.U64) -> F64:
-  sq_fin(e, nh, isqrt128(nh, W.U64{0, U32.add(X.lo(X.isqrt(nh)), 1)}))
+  sq_root_s(e, nh, X.lo(X.isqrt(nh)))
 
 # m * 2^(E - OFF - 1075) with the unbiased exponent made even (E odd); the
 # root of m * 2^72 has its top bit at 62
@@ -645,6 +655,10 @@ def f64_op(o: N.Op<F64>) -> F64:
       pow2(k)
     case N.Sqrt{a}:
       sqrt(a)
+    case N.PowMod{a, e, m}:
+      nan()
+    case N.GcdSmall{a, b}:
+      nan()
 
 def f64_is(t: N.Test<F64>) -> Bool:
   match t:
@@ -658,3 +672,9 @@ def f64_is(t: N.Test<F64>) -> Bool:
       False{}
     case N.IsZero{a}:
       is_zero(a)
+    case N.FastDiv{}:
+      True{}
+    case N.Mont{m}:
+      False{}
+    case N.Small{a, b}:
+      False{}

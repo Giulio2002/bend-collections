@@ -12,6 +12,7 @@ import ../natural/arith.bend as NR
 import ./width.bend as WW
 import ./f64round.bend as FR
 import ./f64sqv.bend as QV
+import ./f64sqr.bend as QR
 import ./f64sqs.bend as QS
 import ./f64sqx.bend as QX
 
@@ -46,7 +47,7 @@ def sqg(+one: Nat, +h1: {one == 1n : Nat}, +nh: WU.U64, +h62: {C.fits(62n, SW.va
   +hle = Equal.trans(Bool, Nat.is_le(Nat.add(1132n, 1048n), Nat.add(p, 1048n)), Nat.is_le(1132n, p), True{}, FR.le_cancel_r(1132n, p, 1048n), pge)
   +hxs = Equal.trans(Nat, Nat.add(Nat.sub(Nat.add(p, 1048n), 2180n), 2180n), Nat.add(2180n, Nat.sub(Nat.add(p, 1048n), 2180n)), Nat.add(p, 1048n), NA.add_comm(Nat.sub(Nat.add(p, 1048n), 2180n), 2180n), N.sub_add(Nat.add(p, 1048n), 2180n, hle))
   +hx = Equal.trans(Nat, Nat.add(Nat.sub(Nat.add(p, 1048n), 2180n), 2180n), Nat.add(p, 1048n), Nat.add(Nat.div(Nat.sub(Nat.add(Ep, F.off()), 1075n), 2n), 1048n), hxs, Equal.sym(Nat, Nat.add(Nat.div(Nat.sub(Nat.add(Ep, F.off()), 1075n), 2n), 1048n), Nat.add(p, 1048n), hpv))
-  +r1 = QV.sq_root_v(one, h1, nh, h62, h60, Nat.add(Nat.div(Nat.sub(Nat.add(Ep, F.off()), 1075n), 2n), 1048n), Nat.sub(Nat.add(p, 1048n), 2180n), hx)
+  +r1 = QR.sqr_root_v(one, h1, nh, h62, h60, Nat.add(Nat.div(Nat.sub(Nat.add(Ep, F.off()), 1075n), 2n), 1048n), Nat.sub(Nat.add(p, 1048n), 2180n), hx)
   +hEs = Equal.trans(Nat, Nat.sub(Nat.add(Nat.div(Xq, 2n), 1500n), 101n), Nat.sub(Nat.add(q, 1500n), 101n), Nat.add(q, 1399n), Equal.cong(Nat, Nat, z => Nat.sub(Nat.add(z, 1500n), 101n), Nat.div(Xq, 2n), q, hqd), FR.sub_add_a(q, 1500n, 101n, {==}))
   +g = QX.sqexp(q, p, j, Nat.sub(Nat.add(p, 1048n), 2180n), XX, EN, Ep, sa, ci, cs, hq, hp, hE, hEN, hj, hxs)
   +hEx = Equal.trans(Nat, Nat.add(Nat.sub(Nat.add(Nat.div(Xq, 2n), 1500n), 101n), 1n+j), Nat.add(Nat.add(q, 1399n), 1n+j), Nat.sub(Nat.add(p, 1048n), 2180n), Equal.cong(Nat, Nat, z => Nat.add(z, 1n+j), Nat.sub(Nat.add(Nat.div(Xq, 2n), 1500n), 101n), Nat.add(q, 1399n), hEs), g)

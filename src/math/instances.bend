@@ -2,6 +2,8 @@ import Base
 import ./num.bend as N
 import ./u64.bend as W
 import ./w64.bend as X
+import ./generic.bend as G
+import ./natural.bend as M
 
 # Numeric instances for generic.bend (num.bend's Op and Test per type):
 # U32 (Base), U64 (the two-limb U64 of u64.bend, fast arithmetic in
@@ -51,7 +53,11 @@ def u32_op(o: N.Op<U32>) -> U32:
       X.pow2(k)
     case N.Sqrt{a}:
       X.isqrt32(a)
+    case N.PowMod{a, e, m}:
+      X.mpow32(a, e, m)
 
+    case N.GcdSmall{a, b}:
+      0
 def u32_add_over(+a: U32, +b: U32) -> Bool:
   U32.is_lt(U32.add(a, b), a)
 
@@ -70,8 +76,14 @@ def u32_is(t: N.Test<U32>) -> Bool:
       u32_odd(a)
     case N.IsZero{a}:
       U32.is_zero(a)
+    case N.FastDiv{}:
+      True{}
+    case N.Mont{m}:
+      X.mont32_ok(m)
 
 # ---- U64 ----
+    case N.Small{a, b}:
+      False{}
 
 # 2^k for k < 64
 def u64_pow2(+k: Nat) -> W.U64:
@@ -105,7 +117,11 @@ def u64_op(o: N.Op<W.U64>) -> W.U64:
       u64_pow2(k)
     case N.Sqrt{a}:
       X.isqrt(a)
+    case N.PowMod{a, e, m}:
+      X.mpow(a, e, m)
 
+    case N.GcdSmall{a, b}:
+      X.of48(M.gcd(X.n48(a), X.n48(b)))
 def u64_is(t: N.Test<W.U64>) -> Bool:
   match t:
     case N.Lt{a, b}:
@@ -118,6 +134,12 @@ def u64_is(t: N.Test<W.U64>) -> Bool:
       X.odd(a)
     case N.IsZero{a}:
       X.is_zero(a)
+    case N.FastDiv{}:
+      False{}
+    case N.Mont{m}:
+      X.mont_ok(m)
+    case N.Small{a, b}:
+      X.small2(a, b)
 
 # ---- F32 ----
 
@@ -149,7 +171,11 @@ def f32_op(o: N.Op<F32>) -> F32:
       F32.pow(2.0, F32.from_nat(k))
     case N.Sqrt{a}:
       F32.sqrt(a)
+    case N.PowMod{a, e, m}:
+      0.0
 
+    case N.GcdSmall{a, b}:
+      0.0
 def f32_is(t: N.Test<F32>) -> Bool:
   match t:
     case N.Lt{a, b}:
@@ -162,3 +188,10 @@ def f32_is(t: N.Test<F32>) -> Bool:
       False{}
     case N.IsZero{a}:
       F32.is_eq(a, 0.0)
+    case N.FastDiv{}:
+      True{}
+    case N.Mont{m}:
+      False{}
+
+    case N.Small{a, b}:
+      False{}

@@ -18,6 +18,8 @@ import ./f64rtools.bend as RT
 import ./f64mulp.bend as MP
 import ./f64adda.bend as AA
 import ./f64divd.bend as DD
+import ./w64mm.bend as MM
+import ./w64est.bend as W64E
 import ./f64divn.bend as DN
 import ./f64divq.bend as DQ
 
@@ -29,17 +31,17 @@ def v(+x: U32) -> Nat:
   U32.to_nat(x)
 
 def e0(+rl: U32, +rh: U32, +ml: U32, +mh: U32, +t: Nat) -> U32:
-  X.q_clamp(X.fst_q(X.div32(X.shr96_t(WU.U64{rl, rh}, 0, t), X.lo(X.shr_t(WU.U64{ml, mh}, t)))))
+  X.q_est(WU.U64{0, rl}, rh, WU.U64{ml, mh}, t)
 
-def dq96q(+one: Nat, +h1: {one == 1n : Nat}, +r: WU.U64, +b: WU.U64, +t: Nat, +hx: {Nat.is_lt(SW.value(r), SW.value(b)) == True{} : Bool}, +hz: {U32.is_zero(X.hi(b)) == False{} : Bool}) -> {v(X.q96(WU.U64{0, X.lo(r)}, X.hi(r), b, t)) == Nat.div(C.shift(32n, SW.value(r)), SW.value(b)) : Nat}:
+def dq96q(+one: Nat, +h1: {one == 1n : Nat}, +r: WU.U64, +b: WU.U64, +t: Nat, +hx: {Nat.is_lt(SW.value(r), SW.value(b)) == True{} : Bool}, +hz: {U32.is_zero(X.hi(b)) == False{} : Bool}, +ht: {X.bitlen(X.hi(b)) == t : Nat}) -> {v(X.q96(WU.U64{0, X.lo(r)}, X.hi(r), b, t)) == Nat.div(C.shift(32n, SW.value(r)), SW.value(b)) : Nat}:
   match r b:
     case WU.U64{+rl, +rh} WU.U64{+ml, +mh}:
-      DD.dig_q(one, h1, rl, rh, ml, mh, e0(rl, rh, ml, mh, t), hx, hz)
+      DD.dig_q(one, h1, rl, rh, ml, mh, e0(rl, rh, ml, mh, t), hx, hz, W64E.est_t(one, h1, WU.U64{0, rl}, rh, ml, mh, hz, MM.red_hx(one, h1, 0, rl, rh, ml, mh, hx), t, ht))
 
-def dq96r(+one: Nat, +h1: {one == 1n : Nat}, +r: WU.U64, +b: WU.U64, +t: Nat, +hx: {Nat.is_lt(SW.value(r), SW.value(b)) == True{} : Bool}, +hz: {U32.is_zero(X.hi(b)) == False{} : Bool}) -> {SW.value(X.sub(WU.U64{0, X.lo(r)}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(r)}, X.hi(r), b, t), b)))) == Nat.mod(C.shift(32n, SW.value(r)), SW.value(b)) : Nat}:
+def dq96r(+one: Nat, +h1: {one == 1n : Nat}, +r: WU.U64, +b: WU.U64, +t: Nat, +hx: {Nat.is_lt(SW.value(r), SW.value(b)) == True{} : Bool}, +hz: {U32.is_zero(X.hi(b)) == False{} : Bool}, +ht: {X.bitlen(X.hi(b)) == t : Nat}) -> {SW.value(X.sub(WU.U64{0, X.lo(r)}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(r)}, X.hi(r), b, t), b)))) == Nat.mod(C.shift(32n, SW.value(r)), SW.value(b)) : Nat}:
   match r b:
     case WU.U64{+rl, +rh} WU.U64{+ml, +mh}:
-      DD.dig_r(one, h1, rl, rh, ml, mh, e0(rl, rh, ml, mh, t), hx, hz)
+      DD.dig_r(one, h1, rl, rh, ml, mh, e0(rl, rh, ml, mh, t), hx, hz, W64E.est_t(one, h1, WU.U64{0, rl}, rh, ml, mh, hz, MM.red_hx(one, h1, 0, rl, rh, ml, mh, hx), t, ht))
 
 def dm2(+l: Bool, +r: Bool) -> {Bool.or(Bool.not(r), Bool.not(l)) == Bool.not(Bool.and(l, r)) : Bool}:
   match l r:
@@ -67,11 +69,11 @@ def dgen(+one: Nat, +h1: {one == 1n : Nat}, +s: Bool, +e: Nat, +x: Nat, +hx: {Na
   sv = WA.sub_value(aw, bw, hle)
   +eR = Equal.trans(Nat, SW.value(X.sub(aw, bw)), Nat.sub(SW.value(aw), SW.value(bw)), Nat.sub(SW.value(aw), SW.value(bw)), sv, {==})
   +hx1 = L.subst(Nat, z => {Nat.is_lt(z, SW.value(bw)) == True{} : Bool}, Nat.sub(SW.value(aw), SW.value(bw)), SW.value(X.sub(aw, bw)), Equal.sym(Nat, SW.value(X.sub(aw, bw)), Nat.sub(SW.value(aw), SW.value(bw)), eR), hRlt)
-  +q1 = dq96q(one, h1, X.sub(aw, bw), bw, X.bitlen(X.hi(bw)), hx1, hhi)
-  +r1 = dq96r(one, h1, X.sub(aw, bw), bw, X.bitlen(X.hi(bw)), hx1, hhi)
+  +q1 = dq96q(one, h1, X.sub(aw, bw), bw, X.bitlen(X.hi(bw)), hx1, hhi, {==})
+  +r1 = dq96r(one, h1, X.sub(aw, bw), bw, X.bitlen(X.hi(bw)), hx1, hhi, {==})
   +hx2 = L.subst(Nat, z => {Nat.is_lt(SW.value(X.sub(WU.U64{0, X.lo(X.sub(aw, bw))}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw))), bw)))), z) == True{} : Bool}, 1n+bp, SW.value(bw), Equal.sym(Nat, SW.value(bw), 1n+bp, hBp), L.subst(Nat, z => {Nat.is_lt(z, 1n+bp) == True{} : Bool}, Nat.mod(C.shift(32n, SW.value(X.sub(aw, bw))), 1n+bp), SW.value(X.sub(WU.U64{0, X.lo(X.sub(aw, bw))}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw))), bw)))), Equal.sym(Nat, SW.value(X.sub(WU.U64{0, X.lo(X.sub(aw, bw))}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw))), bw)))), Nat.mod(C.shift(32n, SW.value(X.sub(aw, bw))), 1n+bp), Equal.trans(Nat, SW.value(X.sub(WU.U64{0, X.lo(X.sub(aw, bw))}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw))), bw)))), Nat.mod(C.shift(32n, SW.value(X.sub(aw, bw))), SW.value(bw)), Nat.mod(C.shift(32n, SW.value(X.sub(aw, bw))), 1n+bp), r1, Equal.cong(Nat, Nat, z => Nat.mod(C.shift(32n, SW.value(X.sub(aw, bw))), z), SW.value(bw), 1n+bp, hBp))), NR.dm_lt(bp, C.shift(32n, SW.value(X.sub(aw, bw))))))
-  +q2 = dq96q(one, h1, X.sub(WU.U64{0, X.lo(X.sub(aw, bw))}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw))), bw))), bw, X.bitlen(X.hi(bw)), hx2, hhi)
-  +r2 = dq96r(one, h1, X.sub(WU.U64{0, X.lo(X.sub(aw, bw))}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw))), bw))), bw, X.bitlen(X.hi(bw)), hx2, hhi)
+  +q2 = dq96q(one, h1, X.sub(WU.U64{0, X.lo(X.sub(aw, bw))}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw))), bw))), bw, X.bitlen(X.hi(bw)), hx2, hhi, {==})
+  +r2 = dq96r(one, h1, X.sub(WU.U64{0, X.lo(X.sub(aw, bw))}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw))), bw))), bw, X.bitlen(X.hi(bw)), hx2, hhi, {==})
   +e1 = Equal.trans(Nat, v(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw)))), Nat.div(C.shift(32n, SW.value(X.sub(aw, bw))), SW.value(bw)), Nat.div(C.shift(32n, SW.value(X.sub(aw, bw))), 1n+bp), q1, Equal.cong(Nat, Nat, z => Nat.div(C.shift(32n, SW.value(X.sub(aw, bw))), z), SW.value(bw), 1n+bp, hBp))
   +f1 = Equal.trans(Nat, SW.value(X.sub(WU.U64{0, X.lo(X.sub(aw, bw))}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw))), bw)))), Nat.mod(C.shift(32n, SW.value(X.sub(aw, bw))), SW.value(bw)), Nat.mod(C.shift(32n, SW.value(X.sub(aw, bw))), 1n+bp), r1, Equal.cong(Nat, Nat, z => Nat.mod(C.shift(32n, SW.value(X.sub(aw, bw))), z), SW.value(bw), 1n+bp, hBp))
   +e2 = Equal.trans(Nat, v(X.q96(WU.U64{0, X.lo(X.sub(WU.U64{0, X.lo(X.sub(aw, bw))}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw))), bw))))}, X.hi(X.sub(WU.U64{0, X.lo(X.sub(aw, bw))}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw))), bw)))), bw, X.bitlen(X.hi(bw)))), Nat.div(C.shift(32n, SW.value(X.sub(WU.U64{0, X.lo(X.sub(aw, bw))}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw))), bw))))), SW.value(bw)), Nat.div(C.shift(32n, SW.value(X.sub(WU.U64{0, X.lo(X.sub(aw, bw))}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw))), bw))))), 1n+bp), q2, Equal.cong(Nat, Nat, z => Nat.div(C.shift(32n, SW.value(X.sub(WU.U64{0, X.lo(X.sub(aw, bw))}, X.fst_q(X.mul_32_64(X.q96(WU.U64{0, X.lo(X.sub(aw, bw))}, X.hi(X.sub(aw, bw)), bw, X.bitlen(X.hi(bw))), bw))))), z), SW.value(bw), 1n+bp, hBp))
