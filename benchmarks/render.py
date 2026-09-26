@@ -45,6 +45,28 @@ def per_op(row, key):
     return statistics.median(d) / row['operations_per_sample']
 
 
+def intrusive_section(rep):
+    """Application-owned lists (benchmarks/intrusive.py): the same entity
+    workloads through the intrusive list, the handle DList and C."""
+    out = ['### Intrusive doubly linked list', '',
+           'Entity workloads from `benchmarks/intrusive.py` (contributed in',
+           '[#5](https://github.com/Giulio2002/bend-collections/pull/5)): **transfer** removes an',
+           'entity from one list and prepends it to another; **pulses** is a pooled',
+           'lifecycle. The same application-owned entity array drives the intrusive list',
+           '(links inside the entities), the handle-checked `DList`, and C. Every run',
+           'must produce the reference checksum; the hot loops allocate nothing (checked',
+           'with positive controls). Median of the samples, nanoseconds per unit.', '']
+    if not rep:
+        return out + ['(not measured yet)', '']
+    out += ['| Workload | Entities | Intrusive (ns) | DList (ns) | C (ns) | Intrusive / C | DList / Intrusive |',
+            '|---|---:|---:|---:|---:|---:|---:|']
+    for r in rep['rows']:
+        m = r['metrics']
+        i, d, c = (m[k]['median_ns_per_unit'] for k in ('intrusive', 'dlist', 'c'))
+        out.append('| %s | %d | %.2f | %.2f | %.2f | %.2f | %.1f |' % (r['workload'], r['size'], i, d, c, i / c, d / i))
+    return out + ['']
+
+
 def main():
     full, crypto = load('build/bench/full.json'), load('build/bench/crypto.json')
     maths = load('build/bench/math.json')
@@ -117,6 +139,8 @@ def main():
         out.append('')
     else:
         out += ['(not measured yet)', '']
+
+    out += intrusive_section(load('build/bench/intrusive.json'))
 
     # ---- containers ----
     out += ['## Containers', '',

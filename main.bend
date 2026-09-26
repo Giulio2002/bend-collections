@@ -19,6 +19,8 @@ import ./src/containers/bitset.bend as Bitset
 import ./src/containers/deque.bend as Deque
 import ./src/containers/dlist_iterator.bend as ListIterator
 import ./src/containers/doubly_linked_list.bend as LinkedList
+import ./src/containers/intrusive_doubly_linked_list.bend as IntrusiveDoublyLinkedList
+import ./src/containers/intrusive_links.bend as IntrusiveLinks
 import ./src/containers/dynamic_array.bend as DynArray
 import ./src/containers/hash_table.bend as HashMap
 import ./src/containers/lru.bend as LRU

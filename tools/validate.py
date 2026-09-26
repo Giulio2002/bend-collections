@@ -303,6 +303,21 @@ def main():
             (LOGDIR / (name + '.log')).write_text('\n'.join(x['output'] for x in checks))
             print('%-22s runtime=%s refinement_proof=%s' % (name, rows[-1]['runtime'], rows[-1]['trace_proof']), flush=True)
             continue
+        if name == 'intrusive_doubly_linked_list':
+            # Application-owned lists (contributed in #5): the proof package
+            # (every-size link table, contract clauses, histories), C/JS
+            # conformance against an independent oracle, examples, semantic
+            # mutants and native heap-allocation controls, in one gate.
+            result = run([sys.executable, 'tools/check_intrusive.py', '--bend', BEND,
+                          '--cc', os.environ.get('CC', 'cc')], timeout=7200)
+            state = 'passed' if result.returncode == 0 else 'failed'
+            if state != 'passed':
+                fail(name, 'intrusive gate failed: %s' % (result.stdout + result.stderr)[-400:])
+            rows.append({'id': name, 'runtime': state, 'boundaries': state, 'differential': state,
+                         'structural': 'n/a', 'mutations': state, 'trace_proof': state})
+            (LOGDIR / (name + '.log')).write_text(result.stdout + result.stderr)
+            print('%-22s runtime=%s differential=%s proofs=%s' % (name, state, state, state), flush=True)
+            continue
         log = []
         t0 = time.time()
         binary = BIN / name
