@@ -1,5 +1,8 @@
 # Intrusive doubly linked lists
 
+Contributed by Ryan Berckmans in
+[#5](https://github.com/Giulio2002/bend-collections/pull/5).
+
 `src/containers/intrusive_doubly_linked_list.bend` maintains membership of
 application-owned nodes. Given a node identity, `remove` detaches it and
 `prepend` attaches it to a root. Both perform a constant number of accesses;
@@ -35,7 +38,7 @@ does not require allocating an entity or a separate collection node.
 | Stale/foreign membership | Checked by the collection | Application responsibility |
 
 Both warmed implementations measured zero Bend allocator calls in the
-[comparative workloads](benchmarks/INTRUSIVE_LIST.md). Choose this module for
+[comparative workloads](INTRUSIVE_LIST_BENCHMARKS.md). Choose this module for
 the ownership and representation model; choose `DList` when its checked,
 owning API is the better fit.
 
@@ -174,7 +177,7 @@ are the reference; state-threading helpers live in `internal/`.
 | Value wrapper | `new_node`, `types.DefaultNode<N,V>` | Optional `{next, prev, value}` storage record |
 
 Applications needing the extended callback protocols can import
-`src/containers/compat/intrusive_doubly_linked_list.bend`. It contains all the
+`src/containers/intrusive_doubly_linked_list.bend` (one public module since the merge; the former `compat/` facade is folded in). It contains all the
 primary operations plus the following helpers. Both facades forward to the
 same implementation, without runtime dispatch or an extra callback record.
 
@@ -289,6 +292,21 @@ need synchronization or partitioned ownership outside this module. Separate
 worlds can be processed independently. There are no atomics or lock-free
 claims in this API.
 
+## Ready-made link table
+
+`src/containers/intrusive_links.bend` is a link table you can use as is: one
+`U32` per link (0 means "no entity"), entity ids `1 .. 2^node_depth - 1`, roots
+`0 .. 2^root_depth - 1`:
+
+```bend
+s : Links = IntrusiveLinks.new(10n, 2n)             # 1023 entities, 4 roots
+s : Links = IntrusiveLinks.prepend(s, 0, entity)    # O(1)
+s : Links = IntrusiveLinks.remove(s, 0, entity)     # O(1)
+```
+
+Its `remove` and `prepend` are proved equal to the model graph's for every
+table size (`links.src`), so the list theorems apply to it directly.
+
 ## Verification and performance
 
 Run the complete focused gate with Bend 2.0.25, clang, Node.js and Python 3.10+:
@@ -307,16 +325,18 @@ pool state and callback events.
 
 ### What the proofs establish
 
-The [proof entry point](proofs/containers/intrusive_doubly_linked_list/proof.bend)
+The [proof entry point](../proofs/containers/intrusive_doubly_linked_list/proof.bend)
 checks these layers. The ghost model is used only by the checker, never by the
 runtime list operations.
 
 | Layer | Checked statement | Files in the proof package |
 |---|---|---|
-| Ordered sequences | Distinct members, matching root, reciprocal next/prev links, null outer ends; preservation under prepend and head/interior/tail removal | `graph.bend`, `shape.src`, `edits.src` |
-| Primitive execution | Actual exported prepend/remove equal independent write programs, then the graph edits, given primitive accessor equations | `writes.bend`, `adapter.src`, `spec.bend` |
+| Contract | The SPARK `Formal_Doubly_Linked_Lists` clauses of the specification (Prepend, Delete, First), with the caller's membership obligations as preconditions | `spec/containers/intrusive_doubly_linked_list/main.bend`, `proof.bend` |
+| Ordered sequences | Distinct members, matching root, reciprocal next/prev links, null outer ends; preservation under prepend and head/interior/tail removal | `spec/.../model.bend`, `shape.src`, `edits.src` |
+| Primitive execution | Actual exported prepend/remove equal independent write programs, then the graph edits, given primitive accessor equations | `writes.bend`, `adapter.src`, `spec/.../programs.bend` |
 | Arbitrary finite histories | Every legal history preserves the ordered-sequence invariant; payload/other-association frame is unchanged | `history.src` |
 | Concrete owned storage | Actual `Base.Array.get/set` satisfy every primitive law for four nominal node IDs and two nominal roots, with separate reader/writer types; public-function histories refine the valid final sequence | `array_adapter.src` |
+| Ready-made table, every size | `src/containers/intrusive_links.bend` (one U32 per link, 0 = no entity): its reads and writes meet the adapter laws for every size 2^dn x 2^dr, so its `remove` and `prepend` ARE the model graph's; a fresh table is the empty graph. Premises: ids written in range, links read nonzero | `links.src` |
 | Unrelated membership | Disjoint chains keep every link; other roots retain their heads; removed nodes have cleared links under the stated validity premises | `frames.src` |
 | Constant write bound | Remove has at most four primitive writes; prepend at most three, independent of list size | `costs.bend` |
 | Nonempty witness | Eight legal edits exercise middle/head/tail removal and identity reuse with all initial and history premises discharged | `example.bend` |
@@ -374,7 +394,7 @@ changing cross-root membership at several working-set sizes. It compares the
 direct public `DList` API, a DList storage diagnostic without the generation
 facade, this module and plain C against an independent ordered-map/stack oracle. Timing uses separate binaries without allocator
 counters and an independent repeat of the same executable as an A/A control.
-Separate builds measure live allocator-block bytes, including prewarmed arenas. The [benchmark notes](benchmarks/INTRUSIVE_LIST.md) give the work
+Separate builds measure live allocator-block bytes, including prewarmed arenas. The [benchmark notes](INTRUSIVE_LIST_BENCHMARKS.md) give the work
 definition, warmup, allocation scope, raw results and reproduction command.
 The focused gate runs its correctness and allocation checks; the timing sweep
 is an explicit benchmark command, without a machine-dependent speed gate.

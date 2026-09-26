@@ -229,6 +229,35 @@
         "count",
         "to_list"
       ]
+    },
+    {
+      "id": "intrusive_doubly_linked_list",
+      "operations": [
+        "next",
+        "prev",
+        "value",
+        "get_head",
+        "remove",
+        "prepend_as",
+        "prepend",
+        "is_empty",
+        "non_empty",
+        "at_least_two",
+        "fold_left",
+        "foreach",
+        "find",
+        "exists",
+        "forall",
+        "count",
+        "length",
+        "to_list",
+        "from_values",
+        "from_nodes",
+        "pool_free",
+        "pool_next",
+        "pool_new",
+        "new_node"
+      ]
     }
   ],
   "excluded_existing": {

@@ -1,5 +1,5 @@
 import Base
-import ./graph.bend as G
+import ../../../spec/containers/intrusive_doubly_linked_list/model.bend as G
 
 %def TK ~N: Data, ~R: Data, ~P: Data
 %def EK $TK, ~eq: N -> N -> Bool

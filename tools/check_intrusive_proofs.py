@@ -65,19 +65,20 @@ def main():
         stage = Path(temporary)
         shutil.copytree(ROOT / 'src', stage / 'src')
         shutil.copytree(ROOT / 'proofs', stage / 'proofs')
+        shutil.copytree(ROOT / 'spec', stage / 'spec')
         package = stage / PACKAGE
         # Retain the old head: all three descriptions of execution agree on
         # this bug, while the ordered-sequence invariant remains unchanged.
         replace(stage / IMPL,
                 'set_next(set_head(s, i, after), node, None{})',
                 'set_next(s, node, None{})')
-        replace(package / 'spec.bend',
+        replace(stage / 'spec/containers/intrusive_doubly_linked_list/programs.bend',
                 'Con{Head{root, None{}}, Con{Next{node, None{}}, Nil{}}}',
                 'Con{Next{node, None{}}, Nil{}}')
-        replace(package / 'spec.bend',
+        replace(stage / 'spec/containers/intrusive_doubly_linked_list/programs.bend',
                 'Con{Prev{q, None{}}, Con{Head{root, Some{q}}, Con{Next{node, None{}}, Nil{}}}}',
                 'Con{Prev{q, None{}}, Con{Next{node, None{}}, Nil{}}}')
-        replace(package / 'graph.bend',
+        replace(stage / 'spec/containers/intrusive_doubly_linked_list/model.bend',
                 'case None{}: sn(~N,~R,~P,sh(~N,~R,~P,g,r,q),n,None{})',
                 'case None{}: sn(~N,~R,~P,g,n,None{})')
         check(bend, stage / IMPL)
@@ -92,6 +93,7 @@ def main():
         stage = Path(temporary)
         shutil.copytree(ROOT / 'src', stage / 'src')
         shutil.copytree(ROOT / 'proofs', stage / 'proofs')
+        shutil.copytree(ROOT / 'spec', stage / 'spec')
         path = stage / PACKAGE / 'array_adapter.bend'
         replace(path, 'Store{Array.set(Maybe<&2,Node>,cells,i,v),f}', 'Store{cells,f}')
         runtime = path.with_name('bad_adapter_runtime.bend')
@@ -101,6 +103,19 @@ def main():
         results.append({'mutant': 'array-setter-ignores-write',
                         'implementation_well_typed': True,
                         'adapter_law_rejected': True, 'diagnostic': diagnostic})
+    with tempfile.TemporaryDirectory(prefix='links-mutant-', dir=build) as temporary:
+        stage = Path(temporary)
+        shutil.copytree(ROOT / 'src', stage / 'src')
+        shutil.copytree(ROOT / 'proofs', stage / 'proofs')
+        shutil.copytree(ROOT / 'spec', stage / 'spec')
+        replace(stage / 'src/containers/intrusive_links.bend',
+                'Links{Array.set(U32, nexts, n, encode(m)), prevs, heads}',
+                'Links{nexts, prevs, heads}')
+        check(bend, stage / 'src/containers/intrusive_links.bend')
+        diagnostic = check(bend, stage / PACKAGE / 'links.bend', clean=False)
+        results.append({'mutant': 'links-set-next-ignores-write',
+                        'implementation_well_typed': True,
+                        'every_size_adapter_rejected': True, 'diagnostic': diagnostic})
     report = {'regenerated': regenerated, 'mutants': results,
               'sources': {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
                           for p in sorted((ROOT / PACKAGE).glob('*')) if p.is_file()},

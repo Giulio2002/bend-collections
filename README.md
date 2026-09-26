@@ -12,7 +12,7 @@ benchmarked against optimized C implementations of the same algorithms.
 | Simple / priority queue | `src/containers/{simple,priority}_queue.bend` | facades over queue and heap |
 | Binary heap | `src/containers/binary_heap.bend` | packed-array min-heap, static comparator |
 | Doubly linked list | `src/containers/doubly_linked_list.bend` | arena-backed, stable handles |
-| Intrusive doubly linked list | `src/containers/intrusive_doubly_linked_list.bend` | application-owned nodes, O(1) membership edits; [guide](INTRUSIVE_LIST.md) |
+| Intrusive doubly linked list | `src/containers/intrusive_doubly_linked_list.bend` | application-owned nodes, O(1) membership edits; [guide](docs/INTRUSIVE_LIST.md); contributed by Ryan Berckmans in [#5](https://github.com/Giulio2002/bend-collections/pull/5) |
 | List iterator | `src/containers/dlist_iterator.bend` | owning bidirectional iterator |
 | Tree map | `src/containers/balanced_search_tree.bend` | indexed red-black tree |
 | Bitset | `src/containers/bitset.bend` | packed words |

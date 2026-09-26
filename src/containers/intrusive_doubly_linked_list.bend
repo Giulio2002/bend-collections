@@ -3,9 +3,10 @@ import Base
 import ./internal/intrusive_list.bend as Impl
 import ./types/intrusive_doubly_linked_list.bend as E
 
-# Application-owned membership. Bind static accessors once; see INTRUSIVE_LIST.md.
+# Application-owned membership. Bind static accessors once; see docs/INTRUSIVE_LIST.md.
 # Known-member edits require valid membership; callbacks must obey the documented
-# traversal contract. Legacy callback order and aliases live in compat/.
+# traversal contract. clear visits the suffix before the original head; the
+# map_* builders visit tail-first.
 
 # Read the next identity without changing membership.
 def next(~S: Type, ~N: Data, ~next_of: S -> N -> S & Maybe<&2, N>, s: S, +node: N) -> S & Maybe<&2, N>:
@@ -61,6 +62,10 @@ def foreach(~S: Type, ~N: Data, ~V: Data, ~C: Data, ~H: Data, ~get_head: S -> H 
 def find(~S: Type, ~N: Data, ~V: Data, ~C: Data, ~H: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~value: S -> N -> S & V, ~pred: S -> C -> V -> S & Bool, +fuel: Nat, s: S, +h: H, +c: C) -> S & Result<&2, &1, E.Error, Maybe<&2, N>>:
   Impl.find(~S, ~N, ~V, ~C, ~H, ~get_head, ~next, ~value, ~pred, fuel, s, h, c)
 
+# Compatibility alias of find; Bend needs no preallocated Option wrapper.
+def find_some_this(~S: Type, ~N: Data, ~V: Data, ~C: Data, ~H: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~value: S -> N -> S & V, ~pred: S -> C -> V -> S & Bool, +fuel: Nat, s: S, +h: H, +c: C) -> S & Result<&2, &1, E.Error, Maybe<&2, N>>:
+  Impl.find_some_this(~S, ~N, ~V, ~C, ~H, ~get_head, ~next, ~value, ~pred, fuel, s, h, c)
+
 # Short-circuit on the first true predicate; False for an empty list.
 def exists(~S: Type, ~N: Data, ~V: Data, ~C: Data, ~H: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~value: S -> N -> S & V, ~pred: S -> C -> V -> S & Bool, +fuel: Nat, s: S, +h: H, +c: C) -> S & Result<&2, &1, E.Error, Bool>:
   Impl.exists(~S, ~N, ~V, ~C, ~H, ~get_head, ~next, ~value, ~pred, fuel, s, h, c)
@@ -77,6 +82,70 @@ def count(~S: Type, ~N: Data, ~V: Data, ~C: Data, ~H: Data, ~get_head: S -> H ->
 def length(~S: Type, ~N: Data, ~H: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, +fuel: Nat, s: S, +h: H) -> S & Result<&2, &1, E.Error, Nat>:
   Impl.length(~S, ~N, ~H, ~get_head, ~next, fuel, s, h)
 
+# Convert once per visited value, skip failed conversions, return the original node.
+def find_convert(~S: Type, ~N: Data, ~V: Data, ~D: Data, ~C: Data, ~H: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~value: S -> N -> S & V, ~convert: S -> V -> S & Maybe<&2, D>, ~pred: S -> C -> D -> S & Bool, +fuel: Nat, s: S, +h: H, +c: C) -> S & Result<&2, &1, E.Error, Maybe<&2, N>>:
+  Impl.find_convert(~S, ~N, ~V, ~D, ~C, ~H, ~get_head, ~next, ~value, ~convert, ~pred, fuel, s, h, c)
+
+# Find with eq(wanted, observed_value), returning the node identity.
+def find_value(~S: Type, ~N: Data, ~V: Data, ~H: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~value: S -> N -> S & V, ~eq: V -> V -> Bool, +fuel: Nat, s: S, +h: H, +wanted: V) -> S & Result<&2, &1, E.Error, Maybe<&2, N>>:
+  Impl.find_value(~S, ~N, ~V, ~H, ~get_head, ~next, ~value, ~eq, fuel, s, h, wanted)
+
+# Find with eq(converted_value, wanted), returning the original node.
+def find_value_convert(~S: Type, ~N: Data, ~V: Data, ~D: Data, ~H: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~value: S -> N -> S & V, ~convert: S -> V -> S & Maybe<&2, D>, ~eq: D -> D -> Bool, +fuel: Nat, s: S, +h: H, +wanted: D) -> S & Result<&2, &1, E.Error, Maybe<&2, N>>:
+  Impl.find_value_convert(~S, ~N, ~V, ~D, ~H, ~get_head, ~next, ~value, ~convert, ~eq, fuel, s, h, wanted)
+
+# Preflight the bound, publish an empty root, detach suffix then original head.
+# Call post_remove once per detached node; a no-op callback needs no allocation.
+def clear_list_as(~S: Type, ~N: Data, ~H: Data, ~I: Data, ~C: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~set_next: S -> N -> Maybe<&2, N> -> S, ~set_prev: S -> N -> Maybe<&2, N> -> S, ~set_head: S -> I -> Maybe<&2, N> -> S, ~post_remove: S -> C -> N -> S, +fuel: Nat, s: S, +h: H, +i: I, +c: C) -> S & Result<&2, &1, E.Error, Unit>:
+  Impl.clear_list_as(~S, ~N, ~H, ~I, ~C, ~get_head, ~next, ~set_next, ~set_prev, ~set_head, ~post_remove, fuel, s, h, i, c)
+
+# Clear using one root context; see clear_list_as for callback order.
+def clear_list(~S: Type, ~N: Data, ~H: Data, ~C: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~set_next: S -> N -> Maybe<&2, N> -> S, ~set_prev: S -> N -> Maybe<&2, N> -> S, ~set_head: S -> H -> Maybe<&2, N> -> S, ~post_remove: S -> C -> N -> S, +fuel: Nat, s: S, +h: H, +c: C) -> S & Result<&2, &1, E.Error, Unit>:
+  Impl.clear_list(~S, ~N, ~H, ~C, ~get_head, ~next, ~set_next, ~set_prev, ~set_head, ~post_remove, fuel, s, h, c)
+
+# Clear using a callback that returns each detached node to an application pool.
+# The pool argument locates that pool in S; post_remove performs the free.
+def clear_list_with_pool_as(~S: Type, ~N: Data, ~H: Data, ~I: Data, ~C: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~set_next: S -> N -> Maybe<&2, N> -> S, ~set_prev: S -> N -> Maybe<&2, N> -> S, ~set_head: S -> I -> Maybe<&2, N> -> S, ~post_remove: S -> C -> N -> S, +fuel: Nat, s: S, +h: H, +i: I, +pool: C) -> S & Result<&2, &1, E.Error, Unit>:
+  Impl.clear_list_with_pool_as(~S, ~N, ~H, ~I, ~C, ~get_head, ~next, ~set_next, ~set_prev, ~set_head, ~post_remove, fuel, s, h, i, pool)
+
+# Clear to a pool using one root context.
+def clear_list_with_pool(~S: Type, ~N: Data, ~H: Data, ~C: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~set_next: S -> N -> Maybe<&2, N> -> S, ~set_prev: S -> N -> Maybe<&2, N> -> S, ~set_head: S -> H -> Maybe<&2, N> -> S, ~post_remove: S -> C -> N -> S, +fuel: Nat, s: S, +h: H, +pool: C) -> S & Result<&2, &1, E.Error, Unit>:
+  Impl.clear_list_with_pool(~S, ~N, ~H, ~C, ~get_head, ~next, ~set_next, ~set_prev, ~set_head, ~post_remove, fuel, s, h, pool)
+
+# Keep true values, detach false values, then call post_remove on the removed node.
+# Re-read the live head in the prefix; save next when visiting the retained tail.
+def foreach_remove_filter_as(~S: Type, ~N: Data, ~V: Data, ~H: Data, ~I: Data, ~C: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~prev: S -> N -> S & Maybe<&2, N>, ~set_next: S -> N -> Maybe<&2, N> -> S, ~set_prev: S -> N -> Maybe<&2, N> -> S, ~set_head: S -> I -> Maybe<&2, N> -> S, ~value: S -> N -> S & V, ~pred: S -> C -> V -> S & Bool, ~post_remove: S -> C -> N -> S, +fuel: Nat, s: S, +h: H, +i: I, +c: C) -> S & Result<&2, &1, E.Error, Unit>:
+  Impl.foreach_remove_filter_as(~S, ~N, ~V, ~H, ~I, ~C, ~get_head, ~next, ~prev, ~set_next, ~set_prev, ~set_head, ~value, ~pred, ~post_remove, fuel, s, h, i, c)
+
+# Removal filter with one root context.
+def foreach_remove_filter(~S: Type, ~N: Data, ~V: Data, ~H: Data, ~C: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~prev: S -> N -> S & Maybe<&2, N>, ~set_next: S -> N -> Maybe<&2, N> -> S, ~set_prev: S -> N -> Maybe<&2, N> -> S, ~set_head: S -> H -> Maybe<&2, N> -> S, ~value: S -> N -> S & V, ~pred: S -> C -> V -> S & Bool, ~post_remove: S -> C -> N -> S, +fuel: Nat, s: S, +h: H, +c: C) -> S & Result<&2, &1, E.Error, Unit>:
+  Impl.foreach_remove_filter(~S, ~N, ~V, ~H, ~C, ~get_head, ~next, ~prev, ~set_next, ~set_prev, ~set_head, ~value, ~pred, ~post_remove, fuel, s, h, c)
+
+# Remove failed conversions and false predicates; convert each visited value once.
+def foreach_remove_convert_filter_as(~S: Type, ~N: Data, ~V: Data, ~D: Data, ~H: Data, ~I: Data, ~C: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~prev: S -> N -> S & Maybe<&2, N>, ~set_next: S -> N -> Maybe<&2, N> -> S, ~set_prev: S -> N -> Maybe<&2, N> -> S, ~set_head: S -> I -> Maybe<&2, N> -> S, ~value: S -> N -> S & V, ~convert: S -> V -> S & Maybe<&2, D>, ~pred: S -> C -> D -> S & Bool, ~post_remove: S -> C -> N -> S, +fuel: Nat, s: S, +h: H, +i: I, +c: C) -> S & Result<&2, &1, E.Error, Unit>:
+  Impl.foreach_remove_convert_filter_as(~S, ~N, ~V, ~D, ~H, ~I, ~C, ~get_head, ~next, ~prev, ~set_next, ~set_prev, ~set_head, ~value, ~convert, ~pred, ~post_remove, fuel, s, h, i, c)
+
+# Conversion/removal filter with one root context.
+def foreach_remove_convert_filter(~S: Type, ~N: Data, ~V: Data, ~D: Data, ~H: Data, ~C: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~prev: S -> N -> S & Maybe<&2, N>, ~set_next: S -> N -> Maybe<&2, N> -> S, ~set_prev: S -> N -> Maybe<&2, N> -> S, ~set_head: S -> H -> Maybe<&2, N> -> S, ~value: S -> N -> S & V, ~convert: S -> V -> S & Maybe<&2, D>, ~pred: S -> C -> D -> S & Bool, ~post_remove: S -> C -> N -> S, +fuel: Nat, s: S, +h: H, +c: C) -> S & Result<&2, &1, E.Error, Unit>:
+  Impl.foreach_remove_convert_filter(~S, ~N, ~V, ~D, ~H, ~C, ~get_head, ~next, ~prev, ~set_next, ~set_prev, ~set_head, ~value, ~convert, ~pred, ~post_remove, fuel, s, h, c)
+
+# Visit successfully converted values, remove failed conversions.
+def foreach_remove_convert_as(~S: Type, ~N: Data, ~V: Data, ~D: Data, ~H: Data, ~I: Data, ~C: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~prev: S -> N -> S & Maybe<&2, N>, ~set_next: S -> N -> Maybe<&2, N> -> S, ~set_prev: S -> N -> Maybe<&2, N> -> S, ~set_head: S -> I -> Maybe<&2, N> -> S, ~value: S -> N -> S & V, ~convert: S -> V -> S & Maybe<&2, D>, ~fn: S -> C -> D -> S, ~post_remove: S -> C -> N -> S, +fuel: Nat, s: S, +h: H, +i: I, +c: C) -> S & Result<&2, &1, E.Error, Unit>:
+  Impl.foreach_remove_convert_as(~S, ~N, ~V, ~D, ~H, ~I, ~C, ~get_head, ~next, ~prev, ~set_next, ~set_prev, ~set_head, ~value, ~convert, ~fn, ~post_remove, fuel, s, h, i, c)
+
+# Conversion/removal visitor with one root context.
+def foreach_remove_convert(~S: Type, ~N: Data, ~V: Data, ~D: Data, ~H: Data, ~C: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~prev: S -> N -> S & Maybe<&2, N>, ~set_next: S -> N -> Maybe<&2, N> -> S, ~set_prev: S -> N -> Maybe<&2, N> -> S, ~set_head: S -> H -> Maybe<&2, N> -> S, ~value: S -> N -> S & V, ~convert: S -> V -> S & Maybe<&2, D>, ~fn: S -> C -> D -> S, ~post_remove: S -> C -> N -> S, +fuel: Nat, s: S, +h: H, +c: C) -> S & Result<&2, &1, E.Error, Unit>:
+  Impl.foreach_remove_convert(~S, ~N, ~V, ~D, ~H, ~C, ~get_head, ~next, ~prev, ~set_next, ~set_prev, ~set_head, ~value, ~convert, ~fn, ~post_remove, fuel, s, h, c)
+
+# Option filter-map: zero or one output per input. Callbacks run tail to head;
+# the newly allocated owning result list retains forward input order.
+def flat_map_to_list(~S: Type, ~N: Data, ~V: Data, ~T: Type, ~C: Data, ~H: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~prev: S -> N -> S & Maybe<&2, N>, ~value: S -> N -> S & V, ~fn: S -> C -> V -> S & Maybe<&1, T>, +fuel: Nat, s: S, +h: H, +c: C) -> S & Result<&2, &1, E.Error, List<&1, T>>:
+  Impl.flat_map_to_list(~S, ~N, ~V, ~T, ~C, ~H, ~get_head, ~next, ~prev, ~value, ~fn, fuel, s, h, c)
+
+# Allocate a result list in forward order; evaluate callbacks tail to head.
+def map_to_list(~S: Type, ~N: Data, ~V: Data, ~T: Type, ~C: Data, ~H: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~prev: S -> N -> S & Maybe<&2, N>, ~value: S -> N -> S & V, ~fn: S -> C -> V -> S & T, +fuel: Nat, s: S, +h: H, +c: C) -> S & Result<&2, &1, E.Error, List<&1, T>>:
+  Impl.map_to_list(~S, ~N, ~V, ~T, ~C, ~H, ~get_head, ~next, ~prev, ~value, ~fn, fuel, s, h, c)
+
 # Allocate an owning list of observed values in forward order.
 def to_list(~S: Type, ~N: Data, ~V: Data, ~H: Data, ~get_head: S -> H -> S & Maybe<&2, N>, ~next: S -> N -> S & Maybe<&2, N>, ~prev: S -> N -> S & Maybe<&2, N>, ~value: S -> N -> S & V, +fuel: Nat, s: S, +h: H) -> S & Result<&2, &1, E.Error, List<&1, V>>:
   Impl.to_list(~S, ~N, ~V, ~H, ~get_head, ~next, ~prev, ~value, fuel, s, h)
@@ -89,6 +158,14 @@ def from_values(~S: Type, ~N: Data, ~V: Data, ~C: Data, ~set_next: S -> N -> May
 # Link distinct detached nodes in input order; return the head without allocating nodes.
 def from_nodes(~S: Type, ~N: Data, ~set_next: S -> N -> Maybe<&2, N> -> S, ~set_prev: S -> N -> Maybe<&2, N> -> S, s: S, +xs: List<&2, N>) -> S & Maybe<&2, N>:
   Impl.from_nodes(~S, ~N, ~set_next, ~set_prev, s, xs)
+
+# Convert then construct each node, both in forward order; return the head.
+def map_from_values(~S: Type, ~N: Data, ~V: Data, ~D: Data, ~C: Data, ~set_next: S -> N -> Maybe<&2, N> -> S, ~set_prev: S -> N -> Maybe<&2, N> -> S, ~convert: S -> C -> V -> S & D, ~make: S -> C -> D -> S & N, s: S, +xs: List<&2, V>, +c: C) -> S & Maybe<&2, N>:
+  Impl.map_from_values(~S, ~N, ~V, ~D, ~C, ~set_next, ~set_prev, ~convert, ~make, s, xs, c)
+
+# Map each input to a detached node in forward order; return the head.
+def map_from_nodes(~S: Type, ~N: Data, ~V: Data, ~C: Data, ~set_next: S -> N -> Maybe<&2, N> -> S, ~set_prev: S -> N -> Maybe<&2, N> -> S, ~make: S -> C -> V -> S & N, s: S, +xs: List<&2, V>, +c: C) -> S & Maybe<&2, N>:
+  Impl.map_from_nodes(~S, ~N, ~V, ~C, ~set_next, ~set_prev, ~make, s, xs, c)
 
 # Push a detached node onto the LIFO pool; leave its payload unchanged. O(1).
 def pool_free(~S: Type, ~N: Data, ~set_next: S -> N -> Maybe<&2, N> -> S, s: S, pool: E.Pool<N>, +node: N) -> S & E.Pool<N>:

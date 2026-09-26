@@ -1,5 +1,5 @@
 import Base
-import ./graph.bend as G
+import ../../../spec/containers/intrusive_doubly_linked_list/model.bend as G
 import ./history.bend as H
 import ./array_adapter.bend as A
 

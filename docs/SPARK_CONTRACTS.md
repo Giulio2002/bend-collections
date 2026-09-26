@@ -17,7 +17,9 @@ another interface: their specs restate the underlying contract clause by
 clause, and their proofs are the underlying ones.
 
 SPARK's preconditions (index in range, not empty, room left, valid cursor)
-are defensive checks here: the operation returns an error value and changes
+are defensive checks here (except for the intrusive list, where the caller owns
+membership, so validity, detachment and membership are stated preconditions of
+its clauses, as SPARK's `Pre`): the operation returns an error value and changes
 nothing, and that is proved too (`*_outside`, `*_empty`, `*_full`,
 `*_stale`, …).
 
@@ -30,6 +32,7 @@ nothing, and that is proved too (`*_outside`, `*_empty`, `*_full`,
 | queue, simple_queue | Formal_Vectors (oldest first) | Length, Empty_Vector, Append, Delete_First, First_Element, iteration (6) | Capacity, Clear, indexed access, Prepend, Delete_Last, Last_Element, search |
 | doubly_linked_list | Formal_Doubly_Linked_Lists | Length, Empty_List, Has_Element, Element, Replace_Element, Prepend, Append, Insert (before), Insert after, Delete, Next, Previous, iteration (13) | `=`, Is_Empty, Clear, Assign/Copy/Move, counted Insert/Delete, Delete_First/Last, First/Last(_Element), Reverse_Elements, Swap, Swap_Links, Splice, Find, Reverse_Find, Contains |
 | dlist_iterator | Formal_Doubly_Linked_Lists (cursor part) | the cursor-state clauses of Has_Element, Next at the end, the Pre of Replace_Element and Delete, the cursor after Delete and Insert (6) | element-level Post clauses: the iterator walks the list's storage directly and has no sequence refinement yet (the list itself has them all) |
+| intrusive_doubly_linked_list | Formal_Doubly_Linked_Lists (model: entity links + roots) | Prepend (valid, other roots, frame), Delete (first, inner, other roots, frame, detached), First (9 clauses, `spec/containers/intrusive_doubly_linked_list/main.bend`) | Append, Insert after, Last, counted Length, Element, Clear/Copy/Move/Splice, Find (no tail or count in a root, payload and storage owned by the application; bounded traversals are proved in `fold`/`clear`) |
 | hash_table | Formal_Hashed_Maps | Empty_Map, Length, Element, Contains, Include, Delete, Exclude, iteration (keys), Equivalent_Keys (9) | `=`, Capacity, Reserve_Capacity, Is_Empty, Clear, Assign/Copy/Move, cursors (First/Next/Key/Element/Has_Element), Find, Replace_Element, Insert and Replace (Include subsumes them), Default_Modulus |
 | lru | Formal_Hashed_Maps + recency order | Empty_Map, Length, Capacity, Include (present / room / eviction), Element (get touches, peek does not), Contains, Delete/Exclude, Clear, iteration, expiry (10) | `=`, Is_Empty, Assign/Copy/Move, cursors, Find, Insert-fails-if-present, Replace |
 | balanced_search_tree (TreeMap) | Formal_Ordered_Maps | Empty_Map, Length, Is_Empty, Clear, Element, Find, Contains, Include, Insert, Replace, Exclude, Delete, First(_Element/_Key), Last(_Element/_Key), Floor, Ceiling (16) | `=`, Assign/Copy/Move, Reference, cursors (Key/Element/Next/Previous/Has_Element by cursor: the map's iterators, related to the model by the refinement proof) |

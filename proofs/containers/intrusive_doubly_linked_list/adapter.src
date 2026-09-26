@@ -1,6 +1,6 @@
 import Base
-import ./graph.bend as G
-import ./spec.bend as Spec
+import ../../../spec/containers/intrusive_doubly_linked_list/model.bend as G
+import ../../../spec/containers/intrusive_doubly_linked_list/programs.bend as Spec
 import ./writes.bend as W
 import ../../../src/containers/intrusive_doubly_linked_list.bend as L
 

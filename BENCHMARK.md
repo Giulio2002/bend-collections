@@ -145,6 +145,25 @@ Same method as above; nanoseconds per call.
 | f64_sqrt | 92.0 | 5.99 | 15.36 |
 | f64_pow | 70.0 | 8.72 | 8.03 |
 
+### Intrusive doubly linked list
+
+Entity workloads from `benchmarks/intrusive.py` (contributed in
+[#5](https://github.com/Giulio2002/bend-collections/pull/5)): **transfer** removes an
+entity from one list and prepends it to another; **pulses** is a pooled
+lifecycle. The same application-owned entity array drives the intrusive list
+(links inside the entities), the handle-checked `DList`, and C. Every run
+must produce the reference checksum; the hot loops allocate nothing (checked
+with positive controls). Median of the samples, nanoseconds per unit.
+
+| Workload | Entities | Intrusive (ns) | DList (ns) | C (ns) | Intrusive / C | DList / Intrusive |
+|---|---:|---:|---:|---:|---:|---:|
+| transfer | 32 | 3.83 | 38.35 | 2.47 | 1.55 | 10.0 |
+| transfer | 1024 | 2.75 | 35.29 | 1.65 | 1.67 | 12.8 |
+| transfer | 65536 | 3.11 | 41.65 | 2.28 | 1.37 | 13.4 |
+| pulses | 32 | 2.60 | 5.82 | 2.79 | 0.93 | 2.2 |
+| pulses | 1024 | 3.03 | 5.42 | 2.99 | 1.02 | 1.8 |
+| pulses | 65536 | 2.81 | 6.25 | 2.91 | 0.97 | 2.2 |
+
 ## Containers
 
 Each row measures one public operation at three structure sizes. The time of

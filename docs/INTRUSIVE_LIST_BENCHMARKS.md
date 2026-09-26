@@ -167,7 +167,7 @@ Live bytes at churn entry, exit and hot-loop peak are equal within every row:
 
 The common external entity array is included. Transfers prewarm two arenas; pulses prewarm one. These totals describe the measured representation, not a minimum object size or total process memory.
 
-[Raw samples, A/A results, checksums, memory controls and source hashes](results/intrusive-linux-x86_64-2.0.25.json).
+Raw samples, A/A results, checksums, memory controls and source hashes were published with [PR #5](https://github.com/Giulio2002/bend-collections/pull/5); rerun `python3 benchmarks/intrusive.py` to regenerate them.
 
 Results describe trusted IDs, primitive-array storage, these payloads and the
 recorded compiler. The C reference uses intrusive links without DList's safety

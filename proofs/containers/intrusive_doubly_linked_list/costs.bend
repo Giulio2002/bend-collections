@@ -1,5 +1,5 @@
 import Base
-import ./spec.bend as S
+import ../../../spec/containers/intrusive_doubly_linked_list/programs.bend as S
 
 def writes(~N: Data, ~I: Data, es: List<&2,S.Edit<N,I>>) -> Nat:
   match es:

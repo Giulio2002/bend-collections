@@ -1,5 +1,5 @@
 import Base
-import ./graph.bend as G
+import ../../../spec/containers/intrusive_doubly_linked_list/model.bend as G
 
 
 # The graph is a proof shadow. These are pointwise map laws, proved here,

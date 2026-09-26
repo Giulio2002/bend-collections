@@ -30,7 +30,7 @@ def main():
     run([sys.executable,'tools/generators/intrusive_list.py','--check'])
     checked=[]
     for f in ['main.bend', 'src/containers/intrusive_doubly_linked_list.bend',
-              'src/containers/compat/intrusive_doubly_linked_list.bend',
+              'src/containers/intrusive_links.bend', 'spec/containers/intrusive_doubly_linked_list/main.bend',
               'proofs/containers/intrusive_doubly_linked_list/proof.bend',
               'tests/intrusive_doubly_linked_list/main.bend',
               'tests/intrusive_doubly_linked_list/example.bend',
@@ -44,9 +44,10 @@ def main():
     prefix='tests/intrusive_doubly_linked_list/'
     examples = {'example': 'Group 0: 1 3 \nGroup 1: 2', 'affine': '6',
                 'scheduler': 'Ready: 2 3 \nWaiting: 1 \nRender: 1 2 3 \nPayload sum: 600',
-                'pooled_pulses': '3 pulses, 12 uses\nNodes created: 4 (all during prewarm)\nNodes available: 4\nPayload sum: 2430'}
+                'pooled_pulses': '3 pulses, 12 uses\nNodes created: 4 (all during prewarm)\nNodes available: 4\nPayload sum: 2430',
+                'links': '1 3 | 2'}
     for source,name in [('main.bend','test'),('example.bend','example'),('affine.bend','affine'),
-                        ('pooled_pulses.bend','pooled_pulses'),('scheduler.bend','scheduler')]:
+                        ('pooled_pulses.bend','pooled_pulses'),('scheduler.bend','scheduler'),('links.bend','links')]:
         run([bend,prefix+source,'-o',str(BUILD/(name+'.c'))])
         run([cc,'-O3','-std=gnu11','-pthread',str(BUILD/(name+'.c')),'-lm','-o',str(BUILD/name)])
         run([bend,prefix+source,'-o',str(BUILD/(name+'.js'))])

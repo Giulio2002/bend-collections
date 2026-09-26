@@ -65,7 +65,7 @@ what it generates from.
 
 | Generator | Writes |
 |---|---|
-| `generators/intrusive_list.py` | intrusive core/compatibility facades and shared internal implementation; `--check` verifies committed output without rewriting |
+| `generators/intrusive_list.py` | intrusive public module and shared internal implementation; `--check` verifies committed output without rewriting |
 | `generators/tree_map.py` | the implementation `src/containers/balanced_search_tree.bend` (state threading lowered into helpers) |
 | `generators/tm_state.py` | the TreeMap's shadow, model and invariant (`proofs/containers/balanced_search_tree/state.bend`) |
 | `generators/tm_mirror.py` | the TreeMap's mirror of the implementation over shadows (`mirror.bend`) and the proofs that the implementation computes the mirror (`sim.bend`); hand-written heads in `balanced_search_tree/gen/*.part` |

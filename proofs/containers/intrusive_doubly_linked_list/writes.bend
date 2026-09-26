@@ -1,5 +1,5 @@
 import Base
-import ./spec.bend as Spec
+import ../../../spec/containers/intrusive_doubly_linked_list/programs.bend as Spec
 import ./fold.bend as Fold
 import ./clear.bend as Clear
 import ../../lib/nat.bend as NN

@@ -1,7 +1,7 @@
 import Base
 import ./fixture.bend as F
 import ./churn.bend as C
-import ../../src/containers/compat/intrusive_doubly_linked_list.bend as L
+import ../../src/containers/intrusive_doubly_linked_list.bend as L
 import ../../src/containers/types/intrusive_doubly_linked_list.bend as E
 import ../support/text.bend as X
 
