@@ -1,4 +1,5 @@
 import Base
+import ../../spec/lib/numeric.bend as SNUM
 import ./lemmas/spec/numeric.bend as S
 import ./nat.bend as N
 import ./logic.bend as L
@@ -248,13 +249,7 @@ def add_one(+p: Nat, +x: Word(1n+p)) -> {Word.add(1n+p, x, one_word(p)) == Word.
 
 # the low k bits set
 def mask(+n: Nat, +k: Nat) -> Word(n):
-  match n k:
-    case 0n _:
-      WNil{}
-    case 1n+p 0n:
-      WCon{False{}, mask(p, 0n)}
-    case 1n+p 1n+j:
-      WCon{True{}, mask(p, j)}
+  SNUM.mask(n, k)
 
 # the bits of x above the low k
 def hi_part(+n: Nat, +k: Nat, +x: Word(n)) -> Nat:

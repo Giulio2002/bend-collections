@@ -1,4 +1,5 @@
 import Base
+import ../../../spec/math/u64.bend as SU
 import ../../../src/math/u64.bend as U
 import ../../lib/lemmas/src/wide.bend as W
 import ../../lib/lemmas/spec/numeric.bend as S
@@ -13,13 +14,11 @@ import ../../lib/lemmas/proofs/word_addition.bend as WA
 import ../../lib/word.bend as WD
 import ../../lib/u32div.bend as UD
 
-# src/math/u64.bend against the 64-bit specification of proofs/lemmas/spec:
-# a U64 denotes the 64-bit word whose low 32 bits are lo and high 32 bits hi.
+# src/math/u64.bend against its specification spec/math/u64.bend: a U64
+# denotes the 64-bit word bits(a) (low limb first).
 
 def bits(a: U.U64) -> Word(64n):
-  match a:
-    case U.U64{lo, hi}:
-      W.pack(lo, hi)
+  SU.bits(a)
 
 # ---- comparison ----
 
