@@ -14,6 +14,8 @@ Reproduce:
 ```sh
 python3 benchmarks/full_sweep.py --report build/bench/full.json   # containers
 python3 benchmarks/crypto.py --report build/bench/crypto.json      # hashes
+python3 benchmarks/natural.py --report build/bench/math.json       # math
+python3 benchmarks/typed.py --report build/bench/typed.json        # math per type
 python3 benchmarks/maps/compare.py --report build/bench/maps.json  # HashMap vs Base.Map
 python3 benchmarks/render.py                                        # this file
 ```
@@ -86,6 +88,62 @@ C reference: official BLAKE3 C, portable only (no SIMD). Worst ratio 1.59.
 | 16 KiB | 24.4 | 20.4 | 1.20 |
 | 64 KiB | 89.8 | 91.6 | 0.98 |
 | 1 MiB | 1438 | 1330 | 1.08 |
+
+## Math
+
+`src/math/natural.bend` against idiomatic C (`benchmarks/native/math.c`: Euclid
+with `%`, `sqrt` plus an integer correction, `__builtin_clzll`, binary
+exponentiation, extended Euclid). Each row makes COUNT calls on arguments from
+the same MINSTD stream and folds every result into a checksum that must agree;
+the `loop` row is the generator and the fold alone, and is part of every other
+row. Median of five alternating samples after a warm-up; nanoseconds per call.
+
+| Operation | Bend (ns) | C (ns) | Ratio |
+|---|---:|---:|---:|
+| loop | 6.90 | 6.85 | 1.01 |
+| gcd | 69.2 | 70.4 | 0.98 |
+| lcm | 46.3 | 47.6 | 0.97 |
+| isqrt | 24.9 | 6.69 | 3.72 |
+| iroot3 | 62.0 | 11.3 | 5.51 |
+| ilog10 | 6.67 | 12.2 | 0.55 |
+| bit_length | 15.5 | 6.46 | 2.40 |
+| factorial | 14.9 | 13.1 | 1.14 |
+| perm | 16.4 | 14.1 | 1.16 |
+| comb | 27.2 | 15.4 | 1.77 |
+| pow_mod | 68.8 | 67.7 | 1.01 |
+| mod_inverse | 79.3 | 60.8 | 1.30 |
+| divmod | 7.65 | 6.69 | 1.14 |
+
+### Math per type
+
+The templated math of `src/math/generic.bend` instantiated for U32, U64 (two
+U32 words) and F32, and the software binary64 of `src/math/f64.bend`, against
+C with `uint32_t`, `uint64_t` (a 128-bit product for `mod m`), `float` and
+`double` (`benchmarks/native/typed.c`), with the same checked semantics (a
+result that does not fit counts as 0) and the same square-and-multiply order
+for powers. The F64 rows compare software arithmetic with the hardware FPU.
+Same method as above; nanoseconds per call.
+
+| Operation | Bend (ns) | C (ns) | Ratio |
+|---|---:|---:|---:|
+| loop | 6.00 | 5.99 | 1.00 |
+| u32_gcd | 98.0 | 62.2 | 1.58 |
+| u32_isqrt | 6.45 | 6.61 | 0.98 |
+| u32_comb | 37.2 | 28.1 | 1.32 |
+| u32_factorial | 11.4 | 11.1 | 1.03 |
+| u32_pow_mod | 335 | 104 | 3.21 |
+| u64_gcd | 960 | 123 | 7.82 |
+| u64_isqrt | 14.5 | 6.62 | 2.19 |
+| u64_comb | 242 | 43.8 | 5.53 |
+| u64_factorial | 29.2 | 12.4 | 2.35 |
+| u64_pow_mod | 3029 | 497 | 6.09 |
+| f32_pow | 9.50 | 8.70 | 1.09 |
+| f32_clamp | 6.20 | 6.08 | 1.02 |
+| f64_add | 9.33 | 6.05 | 1.54 |
+| f64_mul | 17.7 | 6.05 | 2.92 |
+| f64_div | 70.7 | 6.02 | 11.74 |
+| f64_sqrt | 92.0 | 5.99 | 15.36 |
+| f64_pow | 70.0 | 8.72 | 8.03 |
 
 ## Containers
 

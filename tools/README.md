@@ -89,6 +89,10 @@ what it generates from.
 | `lru_diff.py` | the Bend LRU against the C reference and its ASan/UBSan build, bit for bit |
 | `check_tree_map.py`, `check_tree.py`, `check_tree_map_mutations.py` | the TreeMap against an ordered-map oracle with red-black invariant checks, and mutations that must be caught |
 | `check_iterators.py`, `check_queue_facades.py`, `check_two_list.py`, `check_two_list_mutations.py`, `check_owned_array.py`, `check_owned_array_guards.py` | the iterators, the queue facades, the two-list deque and queue, and owning arrays against independent oracles |
+| `check_math.py` | `src/math/natural.bend` against CPython's `math` on random and edge-case calls, errors included |
+| `check_generic.py` | every templated math function (`src/math/generic.bend`) at U32, U64, F32 and F64 against Python, naming the `spec/math/generic.bend` clause of each case |
+| `check_f64.py` | the software binary64 (`src/math/f64.bend`) against the machine's doubles on random bit patterns of every class and rounding ties |
+| `check_f64_spec.py` | the binary64 specification `spec/math/f64.bend` itself against the machine's doubles, through a line-by-line mirror |
 
 The hash functions are fuzzed by `tests/crypto/fuzz.py` (random messages
 against hashlib, pycryptodome and the official BLAKE3 C).

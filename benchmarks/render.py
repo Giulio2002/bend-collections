@@ -47,6 +47,8 @@ def per_op(row, key):
 
 def main():
     full, crypto = load('build/bench/full.json'), load('build/bench/crypto.json')
+    maths = load('build/bench/math.json')
+    typed = load('build/bench/typed.json')
     out = ['# Benchmarks', '',
            'Every row runs the same algorithm in Bend (native C backend, one thread) and in C',
            '(`-O3 -march=native`), with identical inputs, and the two results must agree',
@@ -58,6 +60,8 @@ def main():
             'so the ratios are the meaningful column.', '']
     out += ['Reproduce:', '', '```sh', 'python3 benchmarks/full_sweep.py --report build/bench/full.json   # containers',
             'python3 benchmarks/crypto.py --report build/bench/crypto.json      # hashes',
+            'python3 benchmarks/natural.py --report build/bench/math.json       # math',
+            'python3 benchmarks/typed.py --report build/bench/typed.json        # math per type',
             'python3 benchmarks/maps/compare.py --report build/bench/maps.json  # HashMap vs Base.Map',
             'python3 benchmarks/render.py                                        # this file', '```', '']
 
@@ -78,6 +82,39 @@ def main():
                 size = '%d B' % b if b < 1024 else '%d KiB' % (b // 1024) if b < 1048576 else '%d MiB' % (b // 1048576)
                 out.append('| %s | %s | %s | %.2f |' % (size, ns(r['us_per_hash']['bend']), ns(r['us_per_hash']['c']), r['ratio']))
             out.append('')
+    else:
+        out += ['(not measured yet)', '']
+
+    # ---- math ----
+    out += ['## Math', '',
+            '`src/math/natural.bend` against idiomatic C (`benchmarks/native/math.c`: Euclid',
+            'with `%`, `sqrt` plus an integer correction, `__builtin_clzll`, binary',
+            'exponentiation, extended Euclid). Each row makes COUNT calls on arguments from',
+            'the same MINSTD stream and folds every result into a checksum that must agree;',
+            'the `loop` row is the generator and the fold alone, and is part of every other',
+            'row. Median of five alternating samples after a warm-up; nanoseconds per call.', '']
+    if maths:
+        out += ['| Operation | Bend (ns) | C (ns) | Ratio |', '|---|---:|---:|---:|']
+        for r in maths['rows']:
+            out.append('| %s | %s | %s | %.2f |' % (r['operation'], ns(r['ns_per_call']['bend']), ns(r['ns_per_call']['c']), r['ratio']))
+        out.append('')
+    else:
+        out += ['(not measured yet)', '']
+
+    # ---- math per type ----
+    out += ['### Math per type', '',
+            'The templated math of `src/math/generic.bend` instantiated for U32, U64 (two',
+            'U32 words) and F32, and the software binary64 of `src/math/f64.bend`, against',
+            'C with `uint32_t`, `uint64_t` (a 128-bit product for `mod m`), `float` and',
+            '`double` (`benchmarks/native/typed.c`), with the same checked semantics (a',
+            'result that does not fit counts as 0) and the same square-and-multiply order',
+            'for powers. The F64 rows compare software arithmetic with the hardware FPU.',
+            'Same method as above; nanoseconds per call.', '']
+    if typed:
+        out += ['| Operation | Bend (ns) | C (ns) | Ratio |', '|---|---:|---:|---:|']
+        for r in typed['rows']:
+            out.append('| %s | %s | %s | %.2f |' % (r['operation'], ns(r['ns_per_call']['bend']), ns(r['ns_per_call']['c']), r['ratio']))
+        out.append('')
     else:
         out += ['(not measured yet)', '']
 

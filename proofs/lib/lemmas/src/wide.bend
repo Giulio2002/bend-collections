@@ -1,4 +1,5 @@
 import Base
+import ../../../../spec/lib/numeric.bend as NM
 
 # All bits are represented explicitly: no Nat holds a full-width integer.
 def zero() -> Word(64n):
@@ -101,13 +102,7 @@ def milliseconds(+w: Word(64n)) -> Word(64n):
 
 # Exact limb boundary used by the host bridge; limbs themselves are primitive U32.
 def join(n: Nat, +m: Nat, a: Word(n), b: Word(m)) -> Word(Nat.add(n, m)):
-  match n:
-    case 0n:
-      b
-    case 1n+p:
-      match a:
-        case WCon{h, tail}:
-          WCon{h, join(p, m, tail, b)}
+  NM.join(n, m, a, b)
 
 type Parts<-n: Nat, -m: Nat> is Data:
   Split{low: Word(n), high: Word(m)}
@@ -126,9 +121,7 @@ def split(n: Nat, +m: Nat, w: Word(Nat.add(n, m))) -> Parts<n, m>:
           split_cons(p, m, h, split(p, m, tail))
 
 def pack(low: U32, high: U32) -> Word(64n):
-  match low high:
-    case U32{lo} U32{hi}:
-      join(32n, 32n, lo, hi)
+  NM.pack(low, high)
 
 def limbs(parts: Parts<32n, 32n>) -> U32 & U32:
   Split{lo, hi} = parts

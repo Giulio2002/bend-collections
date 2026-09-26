@@ -11,6 +11,55 @@ def pow2(k: Nat) -> Nat:
     case 1n+p:
       Nat.double(pow2(p))
 
+# Widths without powers: x * 2^k, n div 2^k and n mod 2^k by k doublings or
+# halvings, and "n fits k bits". A literal 2^32 or 2^64 is beyond what the
+# proof checker expands, so the fixed-width specifications (spec/math/generic,
+# instances, w64) state widths through these; for a symbolic k they equal the
+# pow2 forms (proofs/math/typed/width.bend).
+def shift(k: Nat, +x: Nat) -> Nat:
+  match k:
+    case 0n:
+      x
+    case 1n+p:
+      Nat.double(shift(p, x))
+
+# n div 2 and n mod 2, structurally
+def half(n: Nat) -> Nat:
+  match n:
+    case 0n:
+      0n
+    case 1n:
+      0n
+    case 2n+q:
+      1n+half(q)
+
+def bit(n: Nat) -> Nat:
+  match n:
+    case 0n:
+      0n
+    case 1n:
+      1n
+    case 2n+q:
+      bit(q)
+
+def high(k: Nat, +n: Nat) -> Nat:
+  match k:
+    case 0n:
+      n
+    case 1n+p:
+      high(p, half(n))
+
+def low(k: Nat, +n: Nat) -> Nat:
+  match k:
+    case 0n:
+      0n
+    case 1n+p:
+      Nat.add(bit(n), Nat.double(low(p, half(n))))
+
+# n < 2^k
+def fits(+k: Nat, +n: Nat) -> Bool:
+  Nat.is_eq(high(k, n), 0n)
+
 def length(-A: Data, xs: List<&2, A>) -> Nat:
   match xs:
     case Nil{}:

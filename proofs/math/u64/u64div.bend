@@ -1,4 +1,5 @@
 import Base
+import ../../../spec/math/u64.bend as SU
 import ../../../src/math/u64.bend as U
 import ../../lib/lemmas/src/wide.bend as W
 import ../../lib/lemmas/spec/numeric.bend as S
@@ -336,11 +337,7 @@ def nz_neg(+w: Word(64n), +hn: {S.negative(w) == True{} : Bool}) -> {W.is_zero(6
   nz_g(w, W.is_zero(64n, w), {==}, hn)
 
 def qs(w: Word(64n), neg: Bool, +d: U32) -> Word(64n):
-  match neg:
-    case False{}:
-      S.unsigned_quotient(64n, w, d)
-    case True{}:
-      S.negative_quotient(64n, w, d)
+  SU.signed_quotient(w, neg, d)
 
 def signed_g(+lo: U32, +hi: U32, +d: U32, +hd0: {U32.is_zero(d) == False{} : Bool}, +hle: {U32.is_le(d, 1048576) == True{} : Bool}, +g: Bool, +hg: {S.negative(W.pack(lo, hi)) == g : Bool}) -> {P.bits(U.div_sign(U.U64{lo, hi}, d, g)) == qs(W.pack(lo, hi), g, d) : Word(64n)}:
   match g:
