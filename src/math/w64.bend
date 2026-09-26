@@ -80,7 +80,7 @@ def odd(+a: W.U64) -> Bool:
 # ---- products ----
 
 def mul32_fin(+ll: U32, +mid: U32, +hh: U32, mc: Bool) -> W.U64:
-  add_fin(U32.add(ll, U32.mul(mid, 65536)), ll, hh, U32.add(U32.div(mid, 65536), U32.mul(b32(mc), 65536)))
+  add_fin(U32.add(ll, U32.mul(mid, 65536)), ll, hh, U32.add(U32.shrn(mid, 16n), U32.mul(b32(mc), 65536)))
 
 def mul32_mid(+ll: U32, +lh: U32, +hl: U32, +hh: U32) -> W.U64:
   mul32_fin(ll, U32.add(lh, hl), hh, U32.is_lt(U32.add(lh, hl), lh))
@@ -90,7 +90,7 @@ def mul32_h(+al: U32, +ah: U32, +bl: U32, +bh: U32) -> W.U64:
 
 # the full product of two U32
 def mul32(+a: U32, +b: U32) -> W.U64:
-  mul32_h(U32.and(a, 65535), U32.div(a, 65536), U32.and(b, 65535), U32.div(b, 65536))
+  mul32_h(U32.and(a, 65535), U32.shrn(a, 16n), U32.and(b, 65535), U32.shrn(b, 16n))
 
 # a * b mod 2^64
 def mul(+a: W.U64, +b: W.U64) -> W.U64:
@@ -114,7 +114,7 @@ def dig_t(+r: Nat, +base: Nat, +g: Nat) -> Nat:
   Nat.add(Nat.mul(r, base), g)
 
 def dig1(+lo: U32) -> Nat:
-  U32.to_nat(U32.div(lo, 65536))
+  U32.to_nat(U32.shrn(lo, 16n))
 
 def dig2(+lo: U32) -> Nat:
   U32.to_nat(U32.and(lo, 65535))
@@ -209,7 +209,7 @@ def pow2(k: Nat) -> U32:
 def bl_pick(+x: U32, +t: U32, +k: Nat, +base: Nat, big: Bool) -> Nat & U32:
   match big:
     case True{}:
-      (Nat.add(base, k), U32.div(x, t))
+      (Nat.add(base, k), U32.shrn(x, k))
     case False{}:
       (base, x)
 
@@ -230,7 +230,7 @@ def shl_lt(+a: W.U64, +k: Nat) -> W.U64:
     case 0n:
       a
     case 1n+ +j:
-      W.U64{U32.mul(lo(a), pow2(1n+j)), U32.add(U32.mul(hi(a), pow2(1n+j)), U32.div(lo(a), pow2(Nat.sub(32n, 1n+j))))}
+      W.U64{U32.mul(lo(a), pow2(1n+j)), U32.add(U32.mul(hi(a), pow2(1n+j)), U32.shrn(lo(a), Nat.sub(32n, 1n+j)))}
 
 def shl_ge(+a: W.U64, +k: Nat) -> W.U64:
   W.U64{0, U32.mul(lo(a), pow2(Nat.sub(k, 32n)))}
@@ -251,14 +251,14 @@ def shr_lt(+a: W.U64, +k: Nat) -> W.U64:
     case 0n:
       a
     case 1n+ +j:
-      W.U64{U32.add(U32.div(lo(a), pow2(1n+j)), U32.mul(hi(a), pow2(Nat.sub(32n, 1n+j)))), U32.div(hi(a), pow2(1n+j))}
+      W.U64{U32.add(U32.shrn(lo(a), 1n+j), U32.mul(hi(a), pow2(Nat.sub(32n, 1n+j)))), U32.shrn(hi(a), 1n+j)}
 
 def shr_ge(+a: W.U64, +k: Nat, huge: Bool) -> W.U64:
   match huge:
     case True{}:
       W.U64{0, 0}
     case False{}:
-      W.U64{U32.div(hi(a), pow2(Nat.sub(k, 32n))), 0}
+      W.U64{U32.shrn(hi(a), Nat.sub(k, 32n)), 0}
 
 def shr_pick(+a: W.U64, +k: Nat, small: Bool) -> W.U64:
   match small:
@@ -321,8 +321,28 @@ def q_start(+xl: W.U64, +xh: U32, +b: W.U64, +q: U32) -> U32:
 # bits(hi(b)): with Y = x >> t (below 2^64) and B = b >> t in [2^31, 2^32),
 # min(floor(Y / B), 2^32 - 1) is at least floor(x / b) (as B 2^t <= b) and at
 # most 2 over it (Theorem B), so q_start takes a step or two
+def est_lo(+q1: Nat, +t2: Nat, +d: Nat) -> U32:
+  U32.from_nat(Nat.add(Nat.mul(q1, Nat.mul(256n, 256n)), Nat.div(t2, d)))
+
+def est_mid(+lo: U32, +t1: Nat, +d: Nat) -> U32:
+  est_lo(Nat.div(t1, d), dig_t(Nat.mod(t1, d), Nat.mul(256n, 256n), dig2(lo)), d)
+
+# min(floor(y / d), 2^32 - 1) for d > 0: when hi(y) >= d the quotient needs
+# more than 32 bits; otherwise the high word is its own remainder, and div32's
+# two 16-bit Nat digit steps finish the division without dividing the high
+# word.
+def est_pick(+y: W.U64, +d: U32, big: Bool) -> U32:
+  match big:
+    case True{}:
+      4294967295
+    case False{}:
+      est_mid(lo(y), dig_t(U32.to_nat(hi(y)), Nat.mul(256n, 256n), dig1(lo(y))), U32.to_nat(d))
+
+def est32(+y: W.U64, +d: U32) -> U32:
+  est_pick(y, d, U32.is_le(d, hi(y)))
+
 def q_est(+xl: W.U64, +xh: U32, +b: W.U64, +t: Nat) -> U32:
-  q_clamp(fst_q(div32(add(shr(xl, t), shl(W.U64{xh, 0}, Nat.sub(64n, t))), lo(shr(b, t)))))
+  est32(add(shr(xl, t), shl(W.U64{xh, 0}, Nat.sub(64n, t))), lo(shr(b, t)))
 
 # floor(x / b) for x = xh * 2^64 + xl < b * 2^32 and b >= 2^32, t = bits(hi(b))
 def q96(+xl: W.U64, +xh: U32, +b: W.U64, +t: Nat) -> U32:

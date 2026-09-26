@@ -379,8 +379,11 @@ def dq_mid(+s: Bool, +e: Nat, +b: W.U64, +t: Nat, p: U32 & W.U64) -> F64:
   dq_fin(s, e, d1, digit(r1, b, t))
 
 # a in [b, 2b): 2^62 + floor((a - b) * 2^62 / b), sticky, by two 32-bit digits
+def div_qt(+s: Bool, +e: Nat, +a: W.U64, +b: W.U64, +t: Nat) -> F64:
+  dq_mid(s, e, b, t, digit(X.sub(a, b), b, t))
+
 def div_q(+s: Bool, +e: Nat, +a: W.U64, +b: W.U64) -> F64:
-  dq_mid(s, e, b, X.bitlen(X.hi(b)), digit(X.sub(a, b), b, X.bitlen(X.hi(b))))
+  div_qt(s, e, a, b, X.bitlen(X.hi(b)))
 
 def div_ab(+s: Bool, +ea: Nat, +a: W.U64, +eb: Nat, +b: W.U64, less: Bool) -> F64:
   match less:

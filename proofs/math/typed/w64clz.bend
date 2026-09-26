@@ -14,6 +14,7 @@ import ./natfuel.bend as NF
 import ./w64sqrt.bend as W64S
 import ./w64add.bend as WA
 import ./w64sh.bend as SH
+import ./shrn.bend as SR
 import ./width.bend as WW
 import ./u32laws.bend as LW
 
@@ -93,10 +94,10 @@ def blstep_c(+k: Nat, +hk: {Nat.is_lt(k, 32n) == True{} : Bool}, +n: Nat, +base:
     case True{}:
       +hle = L.subst(Nat, z => {Nat.is_le(z, v(y)) == True{} : Bool}, v(X.pow2(k)), C.pow2(k), SH.p2v(k, hk), Equal.trans(Bool, Nat.is_le(v(X.pow2(k)), v(y)), U32.is_le(X.pow2(k), y), True{}, Equal.sym(Bool, U32.is_le(X.pow2(k), y), Nat.is_le(v(X.pow2(k)), v(y)), W64S.is_le_nat(X.pow2(k), y)), hc))
       +hh = C.high(k, v(y))
-      +ed = SH.div_p2(y, k, hk)
+      +ed = SR.shrn_high(y, k)
       +eb = bl_high(k, v(y), high_pos(k, v(y), hle))
-      +e1 = Equal.trans(Nat, M.bit_length(n), Nat.add(base, Nat.add(k, M.bit_length(hh))), Nat.add(Nat.add(base, k), M.bit_length(v(U32.div(y, X.pow2(k))))), Equal.trans(Nat, M.bit_length(n), Nat.add(base, M.bit_length(v(y))), Nat.add(base, Nat.add(k, M.bit_length(hh))), inv, Equal.cong(Nat, Nat, z => Nat.add(base, z), M.bit_length(v(y)), Nat.add(k, M.bit_length(hh)), eb)), Equal.trans(Nat, Nat.add(base, Nat.add(k, M.bit_length(hh))), Nat.add(Nat.add(base, k), M.bit_length(hh)), Nat.add(Nat.add(base, k), M.bit_length(v(U32.div(y, X.pow2(k))))), Equal.sym(Nat, Nat.add(Nat.add(base, k), M.bit_length(hh)), Nat.add(base, Nat.add(k, M.bit_length(hh))), NA.add_assoc(base, k, M.bit_length(hh))), Equal.cong(Nat, Nat, z => Nat.add(Nat.add(base, k), M.bit_length(z)), hh, v(U32.div(y, X.pow2(k))), Equal.sym(Nat, v(U32.div(y, X.pow2(k))), hh, ed))))
-      +f1 = L.subst(Nat, z => {C.fits(k, z) == True{} : Bool}, hh, v(U32.div(y, X.pow2(k))), Equal.sym(Nat, v(U32.div(y, X.pow2(k))), hh, ed), SH.fits_high(k, k, v(y), hy))
+      +e1 = Equal.trans(Nat, M.bit_length(n), Nat.add(base, Nat.add(k, M.bit_length(hh))), Nat.add(Nat.add(base, k), M.bit_length(v(U32.shrn(y, k)))), Equal.trans(Nat, M.bit_length(n), Nat.add(base, M.bit_length(v(y))), Nat.add(base, Nat.add(k, M.bit_length(hh))), inv, Equal.cong(Nat, Nat, z => Nat.add(base, z), M.bit_length(v(y)), Nat.add(k, M.bit_length(hh)), eb)), Equal.trans(Nat, Nat.add(base, Nat.add(k, M.bit_length(hh))), Nat.add(Nat.add(base, k), M.bit_length(hh)), Nat.add(Nat.add(base, k), M.bit_length(v(U32.shrn(y, k)))), Equal.sym(Nat, Nat.add(Nat.add(base, k), M.bit_length(hh)), Nat.add(base, Nat.add(k, M.bit_length(hh))), NA.add_assoc(base, k, M.bit_length(hh))), Equal.cong(Nat, Nat, z => Nat.add(Nat.add(base, k), M.bit_length(z)), hh, v(U32.shrn(y, k)), Equal.sym(Nat, v(U32.shrn(y, k)), hh, ed))))
+      +f1 = L.subst(Nat, z => {C.fits(k, z) == True{} : Bool}, hh, v(U32.shrn(y, k)), Equal.sym(Nat, v(U32.shrn(y, k)), hh, ed), SH.fits_high(k, k, v(y), hy))
       (e1, f1)
     case False{}:
       +nl = Equal.trans(Bool, Nat.is_le(C.pow2(k), v(y)), Nat.is_le(v(X.pow2(k)), v(y)), False{}, Equal.cong(Nat, Bool, z => Nat.is_le(z, v(y)), C.pow2(k), v(X.pow2(k)), Equal.sym(Nat, v(X.pow2(k)), C.pow2(k), SH.p2v(k, hk))), Equal.trans(Bool, Nat.is_le(v(X.pow2(k)), v(y)), U32.is_le(X.pow2(k), y), False{}, Equal.sym(Bool, U32.is_le(X.pow2(k), y), Nat.is_le(v(X.pow2(k)), v(y)), W64S.is_le_nat(X.pow2(k), y)), hc))
