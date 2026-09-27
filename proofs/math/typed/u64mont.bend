@@ -297,14 +297,18 @@ def pm_lt(+bp: Nat, +f: Nat, +e: Nat, +base: Nat, +acc: Nat, +ha: {Nat.is_lt(acc
       pm_lt(bp, g, Nat.div(1n+ep, 2n), Nat.mod(Nat.mul(base, base), 1n+bp), M.pow_mod_odd(1n+bp, Nat.mod(1n+ep, 2n), base, acc), pmo_lt(bp, Nat.mod(1n+ep, 2n), base, acc, ha))
 
 # 2 <= m for a nonzero high word
+# 2 <= lo + 2^(1+k) h for h > 0, over an open width (k is 31 at the use):
+# a closed 2^32 in a goal is expanded by the checker
+def two_le_k(+k: Nat, +lo: Nat, +h: Nat, +hh: {Nat.is_eq(h, 0n) == False{} : Bool}) -> {Nat.is_le(2n, Nat.add(lo, C.shift(1n+k, h))) == True{} : Bool}:
+  +a1 = WW.shift_mono(1n+k, 1n, h, WA.pos_ne(h, hh))
+  +s1 = C.shift(k, 1n)
+  +a2 = SQ2.le_add2(1n, s1, 1n, s1, WW.shift_ge(k, 1n), WW.shift_ge(k, 1n))
+  +a3 = L.subst(Nat, z => {Nat.is_le(2n, z) == True{} : Bool}, Nat.add(s1, s1), C.shift(1n+k, 1n), Equal.sym(Nat, C.shift(1n+k, 1n), Nat.add(s1, s1), NA.double_self(s1)), a2)
+  +a4 = N.le_trans(2n, C.shift(1n+k, 1n), C.shift(1n+k, h), a3, a1)
+  N.le_trans(2n, C.shift(1n+k, h), Nat.add(lo, C.shift(1n+k, h)), a4, L.subst(Nat, z => {Nat.is_le(C.shift(1n+k, h), z) == True{} : Bool}, Nat.add(C.shift(1n+k, h), lo), Nat.add(lo, C.shift(1n+k, h)), NA.add_comm(C.shift(1n+k, h), lo), N.le_add_right(C.shift(1n+k, h), lo)))
+
 def two_le(+ml: U32, +mh: U32, +hz: {U32.is_zero(mh) == False{} : Bool}) -> {Nat.is_le(2n, SW.value(WU.U64{ml, mh})) == True{} : Bool}:
-  +h1 = WA.pos_ne(v(mh), Equal.trans(Bool, Nat.is_eq(v(mh), 0n), U32.is_zero(mh), False{}, Equal.sym(Bool, U32.is_zero(mh), Nat.is_eq(v(mh), 0n), LW.zero_nat(mh)), hz))
-  +a1 = WW.shift_mono(32n, 1n, v(mh), h1)
-  +s1 = C.shift(31n, 1n)
-  +a2 = SQ2.le_add2(1n, s1, 1n, s1, WW.shift_ge(31n, 1n), WW.shift_ge(31n, 1n))
-  +a3 = L.subst(Nat, z => {Nat.is_le(2n, z) == True{} : Bool}, Nat.add(s1, s1), C.shift(32n, 1n), Equal.sym(Nat, C.shift(32n, 1n), Nat.add(s1, s1), NA.double_self(s1)), a2)
-  +a4 = N.le_trans(2n, C.shift(32n, 1n), C.shift(32n, v(mh)), a3, a1)
-  N.le_trans(2n, C.shift(32n, v(mh)), SW.value(WU.U64{ml, mh}), a4, L.subst(Nat, z => {Nat.is_le(C.shift(32n, v(mh)), z) == True{} : Bool}, Nat.add(C.shift(32n, v(mh)), v(ml)), SW.value(WU.U64{ml, mh}), NA.add_comm(C.shift(32n, v(mh)), v(ml)), N.le_add_right(C.shift(32n, v(mh)), v(ml))))
+  two_le_k(31n, v(ml), v(mh), Equal.trans(Bool, Nat.is_eq(v(mh), 0n), U32.is_zero(mh), False{}, Equal.sym(Bool, U32.is_zero(mh), Nat.is_eq(v(mh), 0n), LW.zero_nat(mh)), hz))
 
 
 # the Montgomery pow_mod is pow_mod_go on the values
