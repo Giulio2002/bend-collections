@@ -270,8 +270,18 @@ def main_est(+one: Nat, +h1: {one == 1n : Nat}, +x: U32, +e: U32, +m: U32, +pm: 
   main_sqrt(one, h1, x, U32.min(e, m), m, pm, min_le(e, m, U32.is_lt(e, m), {==}))
 
 # Isqrt32.value: floor(sqrt(x)) for every U32, whatever the F32 estimate is
+# The source writes its loop fuel as X.fuel(y) = Nat.add(U32.to_nat(y), 1n)
+# (the released compiler wraps 1n+U32.to_nat(y) at y = 2^32 - 1); it is
+# 1n+U32.to_nat(y), the form the lemmas above count with.
+def fuel_succ(+y: U32) -> {X.fuel(y) == 1n+U32.to_nat(y) : Nat}:
+  Equal.trans(Nat, Nat.add(U32.to_nat(y), 1n), 1n+Nat.add(U32.to_nat(y), 0n), 1n+U32.to_nat(y), NA.add_succ(U32.to_nat(y), 0n), Equal.cong(Nat, Nat, t => 1n+t, Nat.add(U32.to_nat(y), 0n), U32.to_nat(y), N.add_zero(U32.to_nat(y))))
+
 def isqrt32_value(+x: U32) -> SW.Isqrt32.value(x):
   +r0 = U32.min(F32.to_u32(F32.sqrt(U32.to_f32(x))), 65535)
+  +rn = X.down32(X.fuel(r0), x, r0, U32.is_lt(x, U32.mul(r0, r0)))
   +rd = X.down32(1n+U32.to_nat(r0), x, r0, U32.is_lt(x, U32.mul(r0, r0)))
+  +ed = Equal.cong(Nat, U32, f => X.down32(f, x, r0, U32.is_lt(x, U32.mul(r0, r0))), X.fuel(r0), 1n+U32.to_nat(r0), fuel_succ(r0))
+  %Equal.sym(U32, rn, rd, ed) : {U32.to_nat(X.up32(X.fuel(U32.sub(65535, _)), x, _, X.up_ok(x, _))) == M.isqrt(U32.to_nat(x)) : Nat}
+  %Equal.sym(Nat, X.fuel(U32.sub(65535, rd)), 1n+U32.to_nat(U32.sub(65535, rd)), fuel_succ(U32.sub(65535, rd))) : {U32.to_nat(X.up32(_, x, rd, X.up_ok(x, rd))) == M.isqrt(U32.to_nat(x)) : Nat}
   %Equal.sym(U32, X.up32(1n+U32.to_nat(U32.sub(65535, rd)), x, rd, X.up_ok(x, rd)), up32g(1n+U32.to_nat(U32.sub(65535, rd)), x, rd, X.up_ok(x, rd), 65535), impl_up(1n+U32.to_nat(U32.sub(65535, rd)), x, rd, X.up_ok(x, rd))) : {U32.to_nat(_) == M.isqrt(U32.to_nat(x)) : Nat}
   main_est(1n, {==}, x, F32.to_u32(F32.sqrt(U32.to_f32(x))), 65535, {==})

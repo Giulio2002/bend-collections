@@ -303,6 +303,13 @@ def over96(+xl: W.U64, +xh: U32, p: W.U64 & U32) -> Bool:
   Bool.or(U32.is_lt(xh, ph), Bool.and(U32.is_eq(xh, ph), lt(xl, pl)))
 
 # q - 1 while q * b > x: at most q steps (fuel q + 1)
+# Loop fuel one above a U32 count. Written Nat.add(..., 1n): the released
+# Bend 2.0.28 compiler evaluates 1n+U32.to_nat(x) in 32-bit arithmetic, so
+# at x = 2^32 - 1 it wraps to 0 and the loop never runs
+# (docs/bend-miscompile-1n-plus.md).
+def fuel(+x: U32) -> Nat:
+  Nat.add(U32.to_nat(x), 1n)
+
 def q_fix(fuel: Nat, +xl: W.U64, +xh: U32, +b: W.U64, +q: U32, over: Bool) -> U32:
   match fuel over:
     case 0n _:
@@ -450,14 +457,14 @@ def up32(fuel: Nat, +x: U32, +r: U32, up: Bool) -> U32:
       up32(f, x, U32.add(r, 1), up_ok(x, U32.add(r, 1)))
 
 def isqrt32_fix(+x: U32, +r: U32) -> U32:
-  up32(1n+U32.to_nat(U32.sub(65535, r)), x, r, up_ok(x, r))
+  up32(fuel(U32.sub(65535, r)), x, r, up_ok(x, r))
 
 # floor(sqrt(x)) from any estimate r <= 65535: down while r^2 > x, then up
 # while (r + 1)^2 <= x. The F32 square root lands within 1, so both loops
 # take at most a step or two; the fuel covers any estimate, so the result
 # never depends on F32's accuracy.
 def isqrt32_est(+x: U32, +r: U32) -> U32:
-  isqrt32_fix(x, down32(1n+U32.to_nat(r), x, r, U32.is_lt(x, U32.mul(r, r))))
+  isqrt32_fix(x, down32(fuel(r), x, r, U32.is_lt(x, U32.mul(r, r))))
 
 def isqrt32(+x: U32) -> U32:
   isqrt32_est(x, U32.min(F32.to_u32(F32.sqrt(U32.to_f32(x))), 65535))
@@ -487,12 +494,12 @@ def up64(fuel: Nat, +n: W.U64, +r: U32, up: Bool) -> U32:
       up64(f, n, U32.add(r, 1), up64_ok(n, U32.add(r, 1)))
 
 def isqrt64_fix(+n: W.U64, +r: U32) -> U32:
-  up64(1n+U32.to_nat(U32.sub(4294967295, r)), n, r, up64_ok(n, r))
+  up64(fuel(U32.sub(4294967295, r)), n, r, up64_ok(n, r))
 
 # floor(sqrt(n)) from any estimate r1: down while r^2 > n, then up while
 # (r + 1)^2 <= n; the fuel covers any estimate
 def isqrt_newton(+n: W.U64, +r1: U32) -> U32:
-  isqrt64_fix(n, down64(1n+U32.to_nat(r1), n, r1, sq_over(n, r1)))
+  isqrt64_fix(n, down64(fuel(r1), n, r1, sq_over(n, r1)))
 
 # one Newton step from the F32 estimate r0 > 0 lands within a few units of
 # floor(sqrt(n)); the correction makes the result exact for any r0

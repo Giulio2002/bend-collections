@@ -177,6 +177,45 @@ def cases(rng, per):
     return out
 
 
+# Deterministic edge values (word and limb boundaries); they run on every seed.
+EDGE = [0, 1, 2, (1 << 16) - 1, 1 << 16, (1 << 16) + 1, 1 << 31, (1 << 32) - 1, 1 << 32, (1 << 32) + 1,
+        (1 << 48) - 1, 1 << 48, 1 << 63, (1 << 64) - 2, (1 << 64) - 1]
+
+
+def edge_cases():
+    out = []
+    for w, ty in ((32, 'u32'), (64, 'u64')):
+        e = [v for v in EDGE if v < (1 << w)]
+        for op in BINARY:
+            for a in e:
+                for b in e:
+                    out.append(('%s:%s:%s:%s' % (ty, op, show(a, w), show(b, w)), expect(op, w, a, b)))
+        for op in EXPONENT:
+            for a in e:
+                for k in (0, 1, 2, 31, 32, 33, 63, 64, 65, (1 << 32) - 1):
+                    out.append(('%s:%s:%s:%d' % (ty, op, show(a, w), k), expect(op, w, a, k)))
+        for op in SHIFT:
+            for a in e:
+                for k in (0, 1, w - 1, w, w + 1, 2 * w, (1 << 32) - 1):
+                    out.append(('%s:%s:%s:%d' % (ty, op, show(a, w), k), expect(op, w, a, k)))
+        for a in e:
+            out.append(('%s:bit_count:%s' % (ty, show(a, w)), str(bin(a).count('1'))))
+            le = [(a >> (8 * i)) & 255 for i in range(w // 8)]
+            out.append(('%s:to_bytes_le:%s' % (ty, show(a, w)), ','.join(map(str, le))))
+            out.append(('%s:to_bytes_be:%s' % (ty, show(a, w)), ','.join(map(str, le[::-1]))))
+            out.append(('%s:from_bytes_le:%s' % (ty, '.'.join(map(str, le))), show(a, w)))
+            out.append(('%s:from_bytes_be:%s' % (ty, '.'.join(map(str, le[::-1]))), show(a, w)))
+    for n in [v for v in EDGE if v < (1 << 32)] + [4294967291, 4294967290, 4294967292]:
+        out.append(('u32:is_prime:%d' % n, '1' if is_prime(n) else '0'))
+        m = n + 1
+        while m < (1 << 32) and not is_prime(m):
+            m += 1
+        out.append(('u32:next_prime:%d' % n, str(m) if m < (1 << 32) else 'None'))
+    for k in [v for v in EDGE if v < (1 << 48)] + [(1 << 47) - 1]:
+        out.append(('nat:bit_count:%d' % k, str(bin(k).count('1'))))
+    return out
+
+
 def egcd_ok(got, a, b):
     try:
         g, x, y, neg = got.split(',')
@@ -206,7 +245,7 @@ def main():
     seed = int(sys.argv[1]) if len(sys.argv) > 1 else 2026
     per = int(sys.argv[2]) if len(sys.argv) > 2 else 40
     rng = random.Random(seed)
-    cs = cases(rng, per)
+    cs = cases(rng, per) + edge_cases()
     got = run([t for t, _ in cs])
     bad, covered = [], {}
     for (t, e), g in zip(cs, got):

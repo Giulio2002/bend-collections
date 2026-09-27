@@ -161,6 +161,28 @@ def show_int(e, w):
     return enc_int(e, w)
 
 
+# Deterministic edge values: limb and word boundaries where 32-bit carries,
+# loop fuel built from U32 values, and the U64 two-limb paths change
+# behaviour. Every case below runs on every seed.
+EDGE = [0, 1, 2, (1 << 16) - 1, 1 << 16, (1 << 16) + 1, 1 << 31, (1 << 32) - 1, 1 << 32, (1 << 32) + 1,
+        (1 << 48) - 1, 1 << 48, 1 << 63, (1 << 64) - 2, (1 << 64) - 1]
+
+
+def edges(w):
+    return [v for v in EDGE if v < (1 << w)]
+
+
+def edge_args(op, w):
+    e = edges(w)
+    if op in ('isqrt', 'bit_length', 'abs', 'sign', 'factorial'): return [[a] for a in e]
+    if op == 'iroot': return [[a, k] for a in e for k in range(0, 9)]
+    if op == 'ilog': return [[a, b] for a in e for b in sorted(set([0, 1, 2, 3, 10, 16] + e))]
+    if op in ('pow_mod', 'clamp'): return [[a, b, c] for a in e for b in e for c in e]
+    if op == 'pow': return [[a, k] for a in e for k in (0, 1, 2, 3, 31, 32, 33, 63, 64, 69)]
+    if op in ('gcd_all', 'lcm_all', 'prod', 'sum'): return [[]] + [[a] for a in e] + [[a, b] for a in e for b in e]
+    return [[a, b] for a in e for b in e]
+
+
 F32 = np.float32
 
 
@@ -298,6 +320,10 @@ def main():
                 a = int_args(rng, op, w)
                 if op == 'pow': tok = f'{ty}:{op}:{enc_int(a[0], w)}:{a[1]}'
                 elif op == 'iroot': tok = f'{ty}:{op}:{enc_int(a[0], w)}:{a[1]}'
+                else: tok = ':'.join([ty, op] + [enc_int(x, w) for x in a])
+                cases.append((tok, show_int(int_expect(op, a, w), w)))
+            for a in edge_args(op, w):
+                if op in ('pow', 'iroot'): tok = f'{ty}:{op}:{enc_int(a[0], w)}:{a[1]}'
                 else: tok = ':'.join([ty, op] + [enc_int(x, w) for x in a])
                 cases.append((tok, show_int(int_expect(op, a, w), w)))
     for op in F_OPS:
