@@ -182,8 +182,8 @@ def est_eq_c(+y: WU.U64, +d: U32, +hd: {U32.is_zero(d) == False{} : Bool}, +bp: 
     case False{}:
       +h0 = Equal.trans(Bool, Nat.is_le(v(d), v(X.hi(y))), U32.is_le(d, X.hi(y)), False{}, Equal.sym(Bool, U32.is_le(d, X.hi(y)), Nat.is_le(v(d), v(X.hi(y))), W64S.is_le_nat(d, X.hi(y))), hc)
       +hl = L.subst(Nat, z => {Nat.is_lt(v(X.hi(y)), z) == True{} : Bool}, v(d), 1n+bp, hn, N.not_le_lt(v(d), v(X.hi(y)), h0))
-      %Equal.sym(U32, U32.mod(X.hi(y), d), X.hi(y), msmall(X.hi(y), d, hd, bp, hn, hl)) : {X.est_pick(y, d, False{}) == X.q_clamp(X.fst_q(X.div32_t1(U32.div(X.hi(y), d), X.lo(y), X.dig_t(U32.to_nat(_), Nat.mul(256n, 256n), X.dig1(X.lo(y))), U32.to_nat(d)))) : U32}
-      %Equal.sym(U32, U32.div(X.hi(y), d), 0, dsmall(X.hi(y), d, hd, bp, hn, hl)) : {X.est_pick(y, d, False{}) == X.q_clamp(X.fst_q(X.div32_t1(_, X.lo(y), X.dig_t(U32.to_nat(X.hi(y)), Nat.mul(256n, 256n), X.dig1(X.lo(y))), U32.to_nat(d)))) : U32}
+      %Equal.sym(U32, U32.mod(X.hi(y), d), X.hi(y), msmall(X.hi(y), d, hd, bp, hn, hl)) : {X.est_pick(y, d, False{}) == X.q_clamp(X.fst_q(X.div32_t1(U32.div(X.hi(y), d), X.lo(y), X.dig_t(U32.to_nat(_), 65536n, X.dig1(X.lo(y))), U32.to_nat(d)))) : U32}
+      %Equal.sym(U32, U32.div(X.hi(y), d), 0, dsmall(X.hi(y), d, hd, bp, hn, hl)) : {X.est_pick(y, d, False{}) == X.q_clamp(X.fst_q(X.div32_t1(_, X.lo(y), X.dig_t(U32.to_nat(X.hi(y)), 65536n, X.dig1(X.lo(y))), U32.to_nat(d)))) : U32}
       {==}
 
 def est_eq_n(+y: WU.U64, +d: U32, +hd: {U32.is_zero(d) == False{} : Bool}, +n: Nat, +hn: {v(d) == n : Nat}) -> {X.est32(y, d) == X.q_clamp(X.fst_q(X.div32(y, d))) : U32}:

@@ -49,7 +49,7 @@ def check(bend, f, timeout):
     t0 = time.time()
     try:
         p = subprocess.run([bend, str(f.relative_to(ROOT))], cwd=ROOT, capture_output=True, text=True, timeout=timeout)
-        ok = p.returncode == 0 and (('ALL PROOFS CHECK' in p.stdout and 'SOME PROOFS FAIL' not in p.stdout) or 'All terms check' in p.stdout)
+        ok = p.returncode == 0 and 'ALL PROOFS CHECK' in p.stdout and 'SOME PROOFS FAIL' not in p.stdout
         out = (p.stdout + p.stderr).strip()
     except subprocess.TimeoutExpired:
         ok, out = False, 'timeout after %ds' % timeout

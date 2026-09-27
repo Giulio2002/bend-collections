@@ -120,21 +120,21 @@ def dig2(+lo: U32) -> Nat:
   U32.to_nat(U32.and(lo, 65535))
 
 def div32_fin(+qh: U32, +q1: Nat, +t2: Nat, +d: Nat) -> W.U64 & U32:
-  (W.U64{U32.from_nat(Nat.add(Nat.mul(q1, Nat.mul(256n, 256n)), Nat.div(t2, d))), qh}, U32.from_nat(Nat.mod(t2, d)))
+  (W.U64{U32.from_nat(Nat.add(Nat.mul(q1, 65536n), Nat.div(t2, d))), qh}, U32.from_nat(Nat.mod(t2, d)))
 
 def div32_t1(+qh: U32, +lo: U32, +t1: Nat, +d: Nat) -> W.U64 & U32:
-  div32_fin(qh, Nat.div(t1, d), dig_t(Nat.mod(t1, d), Nat.mul(256n, 256n), dig2(lo)), d)
+  div32_fin(qh, Nat.div(t1, d), dig_t(Nat.mod(t1, d), 65536n, dig2(lo)), d)
 
 # (a / d, a mod d) for d > 0: the high word natively, the low word by digits
 def div32(+a: W.U64, +d: U32) -> W.U64 & U32:
-  div32_t1(U32.div(hi(a), d), lo(a), dig_t(U32.to_nat(U32.mod(hi(a), d)), Nat.mul(256n, 256n), dig1(lo(a))), U32.to_nat(d))
+  div32_t1(U32.div(hi(a), d), lo(a), dig_t(U32.to_nat(U32.mod(hi(a), d)), 65536n, dig1(lo(a))), U32.to_nat(d))
 
 def mod_step(+r: Nat, +base: Nat, +g: Nat, +d: Nat) -> Nat:
   Nat.mod(dig_t(r, base, g), d)
 
 # a mod d for d > 0
 def mod32(+a: W.U64, +d: U32) -> U32:
-  U32.from_nat(mod_step(mod_step(U32.to_nat(U32.mod(hi(a), d)), Nat.mul(256n, 256n), dig1(lo(a)), U32.to_nat(d)), Nat.mul(256n, 256n), dig2(lo(a)), U32.to_nat(d)))
+  U32.from_nat(mod_step(mod_step(U32.to_nat(U32.mod(hi(a), d)), 65536n, dig1(lo(a)), U32.to_nat(d)), 65536n, dig2(lo(a)), U32.to_nat(d)))
 
 # ---- shifts by a variable count ----
 
@@ -322,10 +322,10 @@ def q_start(+xl: W.U64, +xh: U32, +b: W.U64, +q: U32) -> U32:
 # min(floor(Y / B), 2^32 - 1) is at least floor(x / b) (as B 2^t <= b) and at
 # most 2 over it (Theorem B), so q_start takes a step or two
 def est_lo(+q1: Nat, +t2: Nat, +d: Nat) -> U32:
-  U32.from_nat(Nat.add(Nat.mul(q1, Nat.mul(256n, 256n)), Nat.div(t2, d)))
+  U32.from_nat(Nat.add(Nat.mul(q1, 65536n), Nat.div(t2, d)))
 
 def est_mid(+lo: U32, +t1: Nat, +d: Nat) -> U32:
-  est_lo(Nat.div(t1, d), dig_t(Nat.mod(t1, d), Nat.mul(256n, 256n), dig2(lo)), d)
+  est_lo(Nat.div(t1, d), dig_t(Nat.mod(t1, d), 65536n, dig2(lo)), d)
 
 # min(floor(y / d), 2^32 - 1) for d > 0: when hi(y) >= d the quotient needs
 # more than 32 bits; otherwise the high word is its own remainder, and div32's
@@ -336,7 +336,7 @@ def est_pick(+y: W.U64, +d: U32, big: Bool) -> U32:
     case True{}:
       4294967295
     case False{}:
-      est_mid(lo(y), dig_t(U32.to_nat(hi(y)), Nat.mul(256n, 256n), dig1(lo(y))), U32.to_nat(d))
+      est_mid(lo(y), dig_t(U32.to_nat(hi(y)), 65536n, dig1(lo(y))), U32.to_nat(d))
 
 def est32(+y: W.U64, +d: U32) -> U32:
   est_pick(y, d, U32.is_le(d, hi(y)))
@@ -704,7 +704,7 @@ def small2(+a: W.U64, +b: W.U64) -> Bool:
   Bool.and(Bool.and(U32.is_lt(hi(a), 65536), U32.is_lt(hi(b), 65536)), Bool.or(Bool.not(U32.is_zero(hi(a))), U32.is_lt(65535, lo(a))))
 
 def n48(+a: W.U64) -> Nat:
-  Nat.add(U32.to_nat(lo(a)), Nat.mul(Nat.mul(U32.to_nat(hi(a)), Nat.mul(256n, 256n)), Nat.mul(256n, 256n)))
+  Nat.add(U32.to_nat(lo(a)), Nat.mul(Nat.mul(U32.to_nat(hi(a)), 65536n), 65536n))
 
 def of48(+g: Nat) -> W.U64:
-  W.U64{U32.from_nat(Nat.mod(g, Nat.mul(Nat.mul(256n, 256n), Nat.mul(256n, 256n)))), U32.from_nat(Nat.div(g, Nat.mul(Nat.mul(256n, 256n), Nat.mul(256n, 256n))))}
+  W.U64{U32.from_nat(Nat.mod(g, Nat.mul(65536n, 65536n))), U32.from_nat(Nat.div(g, Nat.mul(65536n, 65536n)))}

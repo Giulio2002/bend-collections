@@ -132,7 +132,7 @@ def compile_all(args, build):
     flags = ['-O3', '-std=gnu11', '-pthread']
     for name, source in SOURCES.items():
         checked = run([args.bend, source, '--check-only'])
-        if (checked.stdout + checked.stderr).strip().splitlines()[:1] not in (['All terms check.'], ['ALL PROOFS CHECK']):
+        if (checked.stdout + checked.stderr).strip().splitlines()[:1] != ['ALL PROOFS CHECK']:
             raise RuntimeError(f'{source}: checker not clean')
         emitted = build / f'{name}.c'
         run([args.bend, source, '-o', emitted])

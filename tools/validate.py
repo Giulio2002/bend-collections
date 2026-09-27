@@ -62,9 +62,8 @@ FAILURES = []
 
 
 def proved(out):
-    """A proof verdict: Bend 2.0.32+ prints ALL PROOFS CHECK / SOME PROOFS FAIL,
-    earlier releases All terms check."""
-    return ('ALL PROOFS CHECK' in out and 'SOME PROOFS FAIL' not in out) or 'All terms check' in out
+    """The checker's verdict: ALL PROOFS CHECK, or SOME PROOFS FAIL."""
+    return 'ALL PROOFS CHECK' in out and 'SOME PROOFS FAIL' not in out
 
 def fail(where, message):
     FAILURES.append('%s: %s' % (where, message))

@@ -27,7 +27,7 @@ def check(bend, path, clean=True):
                        env={**os.environ, 'BEND_NO_TELEMETRY': '1'})
     message = (p.stdout + p.stderr).strip()
     if clean:
-        if p.returncode or message.splitlines()[:1] not in (['All terms check.'], ['ALL PROOFS CHECK']):
+        if p.returncode or message.splitlines()[:1] != ['ALL PROOFS CHECK']:
             raise RuntimeError(f'{path}: {message}')
     elif (p.returncode == 0 or 'Error:' not in message or
           '- expected :' not in message or '- observed :' not in message or

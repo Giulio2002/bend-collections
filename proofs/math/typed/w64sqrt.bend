@@ -240,6 +240,12 @@ def min_le(+e: U32, +m: U32, +c: Bool, +hc: {U32.is_lt(e, m) == c : Bool}) -> {N
     case False{}:
       N.le_refl(v(m))
 
+# Base 2.0.32 opens both words before it compares them.
+def min_pick(+e: U32, +m: U32) -> {U32.min(e, m) == Bool.pick(U32, U32.is_lt(e, m), e, m) : U32}:
+  match e m:
+    case U32{x} U32{y}:
+      {==}
+
 # ---- floor(sqrt(x)) from any start below 2^16 ----
 
 def lt16(+one: Nat, +h1: {one == 1n : Nat}, +r: U32, +m: U32, +pm: {m == U32{WD.mask(32n, 16n)} : U32}, +h: {Nat.is_le(v(r), v(m)) == True{} : Bool}) -> {Nat.is_lt(v(r), WD.sc(16n, one)) == True{} : Bool}:
@@ -267,7 +273,7 @@ def main_sqrt(+one: Nat, +h1: {one == 1n : Nat}, +x: U32, +r0: U32, +m: U32, +pm
 
 # from any estimate e, clamped to m == 2^16 - 1
 def main_est(+one: Nat, +h1: {one == 1n : Nat}, +x: U32, +e: U32, +m: U32, +pm: {m == U32{WD.mask(32n, 16n)} : U32}) -> {v(up32g(1n+U32.to_nat(U32.sub(m, X.down32(1n+U32.to_nat(U32.min(e, m)), x, U32.min(e, m), U32.is_lt(x, U32.mul(U32.min(e, m), U32.min(e, m)))))), x, X.down32(1n+U32.to_nat(U32.min(e, m)), x, U32.min(e, m), U32.is_lt(x, U32.mul(U32.min(e, m), U32.min(e, m)))), up_okg(x, X.down32(1n+U32.to_nat(U32.min(e, m)), x, U32.min(e, m), U32.is_lt(x, U32.mul(U32.min(e, m), U32.min(e, m)))), m), m)) == M.isqrt(v(x)) : Nat}:
-  main_sqrt(one, h1, x, U32.min(e, m), m, pm, min_le(e, m, U32.is_lt(e, m), {==}))
+  main_sqrt(one, h1, x, U32.min(e, m), m, pm, %Equal.sym(U32, U32.min(e, m), Bool.pick(U32, U32.is_lt(e, m), e, m), min_pick(e, m)) : {Nat.is_le(v(_), v(m)) == True{} : Bool} min_le(e, m, U32.is_lt(e, m), {==}))
 
 # Isqrt32.value: floor(sqrt(x)) for every U32, whatever the F32 estimate is
 def isqrt32_value(+x: U32) -> SW.Isqrt32.value(x):
