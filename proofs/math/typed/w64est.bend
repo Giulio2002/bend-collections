@@ -101,14 +101,26 @@ def lo_hi0(+w: WU.U64, +hz: {U32.is_zero(X.hi(w)) == True{} : Bool}) -> {v(X.lo(
 def m32(+one: Nat, +h1: {one == 1n : Nat}, +m: U32, +pm: {m == U32{WD.mask(32n, 32n)} : U32}) -> {1n+v(m) == C.shift(32n, one) : Nat}:
   Equal.trans(Nat, 1n+v(m), WD.sc(32n, one), C.shift(32n, one), W64S.mask_v(32n, {==}, one, h1, m, pm), Equal.sym(Nat, C.shift(32n, one), WD.sc(32n, one), W64M.shift_sc(32n, one)))
 
-# the clamp to 2^32 - 1 keeps x < (q + 1) b, as x < 2^32 b
-def cl(+one: Nat, +h1: {one == 1n : Nat}, +m: U32, +pm: {m == U32{WD.mask(32n, 32n)} : U32}, +hm: {4294967295 == m : U32}, +x: Nat, +bv: Nat, +q: WU.U64, +c: Bool, +hc: {U32.is_zero(X.hi(q)) == c : Bool}, +hq: {Nat.is_lt(x, Nat.mul(1n+SW.value(q), bv)) == True{} : Bool}, +hX: {Nat.is_lt(x, Nat.mul(C.shift(32n, one), bv)) == True{} : Bool}) -> {Nat.is_lt(x, Nat.mul(1n+v(X.q_clamp_z(X.lo(q), c)), bv)) == True{} : Bool}:
+# the clamp to 2^32 - 1 keeps x < (q + 1) b, as x < 2^32 b. The clamped word is
+# the variable w: with the literal 2^32 - 1 in the goal the checker would expand
+# (2^32 - 1) * b.
+def cl_w(+one: Nat, +h1: {one == 1n : Nat}, +m: U32, +pm: {m == U32{WD.mask(32n, 32n)} : U32}, +hm: {4294967295 == m : U32}, +x: Nat, +bv: Nat, +q: WU.U64, +c: Bool, +hc: {U32.is_zero(X.hi(q)) == c : Bool}, +w: U32, +hw: {X.q_clamp_z(X.lo(q), c) == w : U32}, +hq: {Nat.is_lt(x, Nat.mul(1n+SW.value(q), bv)) == True{} : Bool}, +hX: {Nat.is_lt(x, Nat.mul(C.shift(32n, one), bv)) == True{} : Bool}) -> {Nat.is_lt(x, Nat.mul(1n+v(w), bv)) == True{} : Bool}:
   match c:
     case True{}:
-      L.subst(Nat, z => {Nat.is_lt(x, Nat.mul(1n+z, bv)) == True{} : Bool}, SW.value(q), v(X.lo(q)), Equal.sym(Nat, v(X.lo(q)), SW.value(q), lo_hi0(q, hc)), hq)
+      +hl = L.subst(Nat, z => {Nat.is_lt(x, Nat.mul(1n+z, bv)) == True{} : Bool}, SW.value(q), v(X.lo(q)), Equal.sym(Nat, v(X.lo(q)), SW.value(q), lo_hi0(q, hc)), hq)
+      L.subst(U32, z => {Nat.is_lt(x, Nat.mul(1n+v(z), bv)) == True{} : Bool}, X.lo(q), w, hw, hl)
     case False{}:
       +hm1 = L.subst(Nat, z => {Nat.is_lt(x, Nat.mul(z, bv)) == True{} : Bool}, C.shift(32n, one), 1n+v(m), Equal.sym(Nat, 1n+v(m), C.shift(32n, one), m32(one, h1, m, pm)), hX)
-      L.subst(U32, z => {Nat.is_lt(x, Nat.mul(1n+v(z), bv)) == True{} : Bool}, m, 4294967295, Equal.sym(U32, 4294967295, m, hm), hm1)
+      L.subst(U32, z => {Nat.is_lt(x, Nat.mul(1n+v(z), bv)) == True{} : Bool}, m, w, Equal.trans(U32, m, 4294967295, w, Equal.sym(U32, 4294967295, m, hm), hw), hm1)
+
+def cl(+one: Nat, +h1: {one == 1n : Nat}, +m: U32, +pm: {m == U32{WD.mask(32n, 32n)} : U32}, +hm: {4294967295 == m : U32}, +x: Nat, +bv: Nat, +q: WU.U64, +c: Bool, +hc: {U32.is_zero(X.hi(q)) == c : Bool}, +hq: {Nat.is_lt(x, Nat.mul(1n+SW.value(q), bv)) == True{} : Bool}, +hX: {Nat.is_lt(x, Nat.mul(C.shift(32n, one), bv)) == True{} : Bool}) -> {Nat.is_lt(x, Nat.mul(1n+v(X.q_clamp_z(X.lo(q), c)), bv)) == True{} : Bool}:
+  cl_w(one, h1, m, pm, hm, x, bv, q, c, hc, X.q_clamp_z(X.lo(q), c), {==}, hq, hX)
+
+# C.low(n, y << k) == y << k when y < 2^t and k + t == n; n stays a variable,
+# as a closed 2^64 in a goal is expanded by the checker.
+def low_shift(+n: Nat, +k: Nat, +t: Nat, +y: Nat, +e: {Nat.add(k, t) == n : Nat}, +hs0: {Nat.is_lt(C.shift(k, y), C.shift(k, C.pow2(t))) == True{} : Bool}) -> {C.low(n, C.shift(k, y)) == C.shift(k, y) : Nat}:
+  +hs = L.subst(Nat, z => {Nat.is_lt(C.shift(k, y), z) == True{} : Bool}, C.shift(k, C.pow2(t)), C.pow2(n), Equal.trans(Nat, C.shift(k, C.pow2(t)), C.pow2(Nat.add(k, t)), C.pow2(n), WW.shift_pow2(k, t), Equal.cong(Nat, Nat, z => C.pow2(z), Nat.add(k, t), n, e)), hs0)
+  WW.low_fit(n, C.shift(k, y), WW.fits_of_lt(n, C.shift(k, y), hs))
 
 # x >> t as the sum of xl >> t and xh << (64 - t), below 2^64
 def yv(+xl: WU.U64, +xh: U32, +t: Nat, +t1: {Nat.is_le(1n, t) == True{} : Bool}, +t32: {Nat.is_le(t, 32n) == True{} : Bool}, +hx: {C.fits(Nat.add(64n, t), DM.X96(xl, xh)) == True{} : Bool}) -> {SW.value(X.add(X.shr(xl, t), X.shl(WU.U64{xh, 0}, Nat.sub(64n, t)))) == C.high(t, DM.X96(xl, xh)) : Nat}:
@@ -123,8 +135,7 @@ def yv(+xl: WU.U64, +xh: U32, +t: Nat, +t1: {Nat.is_le(1n, t) == True{} : Bool},
   +s = C.shift(k, v(xh))
   +eka = Equal.trans(Nat, Nat.add(k, t), Nat.add(t, k), 64n, N.add_comm(k, t), ek)
   +hs0 = WW.shift_lt(k, v(xh), C.pow2(t), WW.lt_of_fits(t, v(xh), fxh))
-  +hs = L.subst(Nat, z => {Nat.is_lt(s, z) == True{} : Bool}, C.shift(k, C.pow2(t)), C.pow2(64n), Equal.trans(Nat, C.shift(k, C.pow2(t)), C.pow2(Nat.add(k, t)), C.pow2(64n), WW.shift_pow2(k, t), Equal.cong(Nat, Nat, z => C.pow2(z), Nat.add(k, t), 64n, eka)), hs0)
-  +els = WW.low_fit(64n, s, WW.fits_of_lt(64n, s, hs))
+  +els = low_shift(64n, k, t, v(xh), eka, hs0)
   +esh = Equal.trans(Nat, C.shift(64n, v(xh)), C.shift(Nat.add(t, k), v(xh)), C.shift(t, s), Equal.cong(Nat, Nat, z => C.shift(z, v(xh)), 64n, Nat.add(t, k), Equal.sym(Nat, Nat.add(t, k), 64n, ek)), WW.shift_comp(t, k, v(xh)))
   +ex = Equal.cong(Nat, Nat, z => Nat.add(SW.value(xl), z), C.shift(64n, v(xh)), C.shift(t, s), esh)
   +ehx = Equal.trans(Nat, C.high(t, x9), C.high(t, Nat.add(SW.value(xl), C.shift(t, s))), Nat.add(C.high(t, SW.value(xl)), s), Equal.cong(Nat, Nat, z => C.high(t, z), x9, Nat.add(SW.value(xl), C.shift(t, s)), ex), WW.high_add_shift(t, SW.value(xl), s))
@@ -137,14 +148,17 @@ def yv(+xl: WU.U64, +xh: U32, +t: Nat, +t1: {Nat.is_le(1n, t) == True{} : Bool},
   Equal.trans(Nat, SW.value(X.add(a, bw)), C.low(64n, Nat.add(SW.value(a), SW.value(bw))), C.high(t, x9), WA.add_value(a, bw), Equal.trans(Nat, C.low(64n, Nat.add(SW.value(a), SW.value(bw))), C.low(64n, C.high(t, x9)), C.high(t, x9), Equal.cong(Nat, Nat, z => C.low(64n, z), Nat.add(SW.value(a), SW.value(bw)), C.high(t, x9), esum), WW.low_fit(64n, C.high(t, x9), fy)))
 
 # 1 <= high(t, b) for t <= 32 and b >= 2^32
-def hpos_le(+one: Nat, +h1: {one == 1n : Nat}, +bl: U32, +bh: U32, +t: Nat, +t32: {Nat.is_le(t, 32n) == True{} : Bool}, +hz: {U32.is_zero(bh) == False{} : Bool}) -> {Nat.is_le(1n, C.high(t, SW.value(WU.U64{bl, bh}))) == True{} : Bool}:
-  +bv = SW.value(WU.U64{bl, bh})
-  +hH0 = Equal.trans(Bool, Nat.is_eq(v(bh), 0n), U32.is_zero(bh), False{}, Equal.sym(Bool, U32.is_zero(bh), Nat.is_eq(v(bh), 0n), LW.zero_nat(bh)), hz)
-  +a1 = WW.shift_mono(32n, 1n, v(bh), WA.pos_ne(v(bh), hH0))
-  +a2 = L.subst(Nat, z => {Nat.is_le(C.shift(32n, v(bh)), z) == True{} : Bool}, Nat.add(C.shift(32n, v(bh)), v(bl)), bv, N.add_comm(C.shift(32n, v(bh)), v(bl)), N.le_add_right(C.shift(32n, v(bh)), v(bl)))
-  +a3 = L.subst(Nat, z => {Nat.is_le(z, bv) == True{} : Bool}, C.shift(32n, 1n), C.pow2(32n), WW.shift_one(32n), N.le_trans(C.shift(32n, 1n), C.shift(32n, v(bh)), bv, a1, a2))
-  +hle = N.le_trans(C.pow2(t), C.pow2(32n), bv, N.pow2_mono(t, 32n, t32), a3)
+# the bound 2^w stays open (w is 32 at the use): a closed 2^32 is expanded
+def hpos_le_w(+w: Nat, +lo: Nat, +h: Nat, +t: Nat, +tw: {Nat.is_le(t, w) == True{} : Bool}, +hh: {Nat.is_eq(h, 0n) == False{} : Bool}) -> {Nat.is_le(1n, C.high(t, Nat.add(lo, C.shift(w, h)))) == True{} : Bool}:
+  +bv = Nat.add(lo, C.shift(w, h))
+  +a1 = WW.shift_mono(w, 1n, h, WA.pos_ne(h, hh))
+  +a2 = L.subst(Nat, z => {Nat.is_le(C.shift(w, h), z) == True{} : Bool}, Nat.add(C.shift(w, h), lo), bv, N.add_comm(C.shift(w, h), lo), N.le_add_right(C.shift(w, h), lo))
+  +a3 = L.subst(Nat, z => {Nat.is_le(z, bv) == True{} : Bool}, C.shift(w, 1n), C.pow2(w), WW.shift_one(w), N.le_trans(C.shift(w, 1n), C.shift(w, h), bv, a1, a2))
+  +hle = N.le_trans(C.pow2(t), C.pow2(w), bv, N.pow2_mono(t, w, tw), a3)
   WA.pos_ne(C.high(t, bv), hpos(t, bv, Nat.is_eq(C.high(t, bv), 0n), {==}, hle))
+
+def hpos_le(+one: Nat, +h1: {one == 1n : Nat}, +bl: U32, +bh: U32, +t: Nat, +t32: {Nat.is_le(t, 32n) == True{} : Bool}, +hz: {U32.is_zero(bh) == False{} : Bool}) -> {Nat.is_le(1n, C.high(t, SW.value(WU.U64{bl, bh}))) == True{} : Bool}:
+  hpos_le_w(32n, v(bl), v(bh), t, t32, Equal.trans(Bool, Nat.is_eq(v(bh), 0n), U32.is_zero(bh), False{}, Equal.sym(Bool, U32.is_zero(bh), Nat.is_eq(v(bh), 0n), LW.zero_nat(bh)), hz))
 
 # ---- est32 is the clamped div32 quotient ----
 
@@ -219,6 +233,10 @@ def est_m(+one: Nat, +h1: {one == 1n : Nat}, +xl: WU.U64, +xh: U32, +bl: U32, +b
       cl(one, h1, 4294967295, {==}, {==}, x9, bv, qw, U32.is_zero(X.hi(qw)), {==}, hq, hX)
 
 
+# WW.two_limb_lt from C.fits(k, r): the bound 2^k stays open (k is 32 at the use)
+def two_limb_fits(+k: Nat, +j: Nat, +r: Nat, +x: Nat, +hr: {C.fits(k, r) == True{} : Bool}, +hx: {Nat.is_lt(x, C.pow2(j)) == True{} : Bool}) -> {Nat.is_lt(Nat.add(r, C.shift(k, x)), C.pow2(Nat.add(k, j))) == True{} : Bool}:
+  WW.two_limb_lt(k, j, r, x, WW.lt_of_fits(k, r, hr), hx)
+
 def est_t(+one: Nat, +h1: {one == 1n : Nat}, +xl: WU.U64, +xh: U32, +bl: U32, +bh: U32, +hz: {U32.is_zero(bh) == False{} : Bool}, +hX: {Nat.is_lt(DM.X96(xl, xh), Nat.mul(C.shift(32n, one), SW.value(WU.U64{bl, bh}))) == True{} : Bool}, +t: Nat, +ht: {X.bitlen(bh) == t : Nat}) -> {Nat.is_lt(DM.X96(xl, xh), Nat.mul(1n+v(X.q_est(xl, xh, WU.U64{bl, bh}, t)), SW.value(WU.U64{bl, bh}))) == True{} : Bool}:
   +hh = v(bh)
   +bv = SW.value(WU.U64{bl, bh})
@@ -228,7 +246,7 @@ def est_t(+one: Nat, +h1: {one == 1n : Nat}, +xl: WU.U64, +xh: U32, +bl: U32, +b
   +t1 = BL.bl_pos(hh, hH0, t, et)
   +t32 = L.subst(Nat, z => {Nat.is_le(z, 32n) == True{} : Bool}, M.bit_length(hh), t, et, BL.bl_le(32n, hh, LW.vb(bh), Nat.is_le(M.bit_length(hh), 32n), {==}))
   +hht = L.subst(Nat, z => {Nat.is_lt(hh, C.pow2(z)) == True{} : Bool}, M.bit_length(hh), t, et, BT.bit_length_lt(hh))
-  +hbv = WW.two_limb_lt(32n, t, v(bl), hh, WW.lt_of_fits(32n, v(bl), LW.vb(bl)), hht)
+  +hbv = two_limb_fits(32n, t, v(bl), hh, LW.vb(bl), hht)
   +fb = SH.fits_high(t, 32n, bv, WW.fits_of_lt(Nat.add(t, 32n), bv, L.subst(Nat, z => {Nat.is_lt(bv, C.pow2(z)) == True{} : Bool}, Nat.add(32n, t), Nat.add(t, 32n), N.add_comm(32n, t), hbv)))
   +s32 = C.shift(32n, one)
   +em = Equal.trans(Nat, Nat.mul(s32, bv), Nat.mul(bv, s32), C.shift(32n, bv), NA.mul_comm(s32, bv), Equal.sym(Nat, C.shift(32n, bv), Nat.mul(bv, s32), WW.shift_mul_one(32n, one, h1, bv)))

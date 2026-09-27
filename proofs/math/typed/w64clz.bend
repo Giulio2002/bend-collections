@@ -139,7 +139,8 @@ def S5(+x: U32) -> Nat & U32:
 
 def bl_fin_v(+x: U32, p: INV(1n, v(x), S5(x))) -> {X.bl_fin(S5(x)) == M.bit_length(v(x)) : Nat}:
   (a, b) = p
-  +em = small_c(P2(S5(x)), U32.is_lt(P2(S5(x)), 1), {==}, v(P2(S5(x))), {==}, b)
+  +em0 = small_c(P2(S5(x)), U32.is_lt(P2(S5(x)), 1), {==}, v(P2(S5(x))), {==}, b)
+  +em = L.subst(U32, w => {v(w) == M.bit_length(v(P2(S5(x)))) : Nat}, Bool.pick(U32, U32.is_lt(P2(S5(x)), 1), P2(S5(x)), 1), U32.min(P2(S5(x)), 1), Equal.sym(U32, U32.min(P2(S5(x)), 1), Bool.pick(U32, U32.is_lt(P2(S5(x)), 1), P2(S5(x)), 1), W64S.min_pick(P2(S5(x)), 1)), em0)
   Equal.trans(Nat, X.bl_fin(S5(x)), X.bl_fin((P1(S5(x)), P2(S5(x)))), M.bit_length(v(x)), eta_fin(S5(x)), Equal.trans(Nat, Nat.add(P1(S5(x)), v(U32.min(P2(S5(x)), 1))), Nat.add(P1(S5(x)), M.bit_length(v(P2(S5(x))))), M.bit_length(v(x)), Equal.cong(Nat, Nat, z => Nat.add(P1(S5(x)), z), v(U32.min(P2(S5(x)), 1)), M.bit_length(v(P2(S5(x)))), em), Equal.sym(Nat, M.bit_length(v(x)), Nat.add(P1(S5(x)), M.bit_length(v(P2(S5(x))))), a)))
 
 def bstep2(+k: Nat, +hk: {Nat.is_lt(k, 32n) == True{} : Bool}, +n: Nat, +b: Nat, +y: U32, p: {M.bit_length(n) == Nat.add(b, M.bit_length(v(y))) : Nat} & {C.fits(Nat.add(k, k), v(y)) == True{} : Bool}) -> INV(k, n, X.bl_step(k, (b, y))):
