@@ -20,6 +20,8 @@ import ./w64clz.bend as CLZ
 import ./f64bl.bend as BL
 import ./width.bend as WW
 import ./u32laws.bend as LW
+import ../../lib/u32.bend as U3
+import ../../lib/u32div.bend as UD
 
 # The quotient estimate of src/math/w64.bend's q96 is never below the
 # quotient: for x = xh 2^64 + xl < b 2^32, b >= 2^32 and t = bits(hi(b)),
@@ -144,6 +146,58 @@ def hpos_le(+one: Nat, +h1: {one == 1n : Nat}, +bl: U32, +bh: U32, +t: Nat, +t32
   +hle = N.le_trans(C.pow2(t), C.pow2(32n), bv, N.pow2_mono(t, 32n, t32), a3)
   WA.pos_ne(C.high(t, bv), hpos(t, bv, Nat.is_eq(C.high(t, bv), 0n), {==}, hle))
 
+# ---- est32 is the clamped div32 quotient ----
+
+# a high word below the divisor: quotient 0, remainder itself
+def dsmall(+hi: U32, +d: U32, +hd: {U32.is_zero(d) == False{} : Bool}, +bp: Nat, +hb: {v(d) == 1n+bp : Nat}, +hl: {Nat.is_lt(v(hi), 1n+bp) == True{} : Bool}) -> {U32.div(hi, d) == 0 : U32}:
+  +e1 = Equal.trans(Nat, v(U32.div(hi, d)), Nat.div(v(hi), v(d)), Nat.div(v(hi), 1n+bp), UD.div_nat(hi, d, hd), Equal.cong(Nat, Nat, z => Nat.div(v(hi), z), v(d), 1n+bp, hb))
+  U3.injective(U32.div(hi, d), 0, Equal.trans(Nat, v(U32.div(hi, d)), Nat.div(v(hi), 1n+bp), 0n, e1, NR.div_of(0n, bp, v(hi), hl)))
+
+def msmall(+hi: U32, +d: U32, +hd: {U32.is_zero(d) == False{} : Bool}, +bp: Nat, +hb: {v(d) == 1n+bp : Nat}, +hl: {Nat.is_lt(v(hi), 1n+bp) == True{} : Bool}) -> {U32.mod(hi, d) == hi : U32}:
+  +e1 = Equal.trans(Nat, v(U32.mod(hi, d)), Nat.mod(v(hi), v(d)), Nat.mod(v(hi), 1n+bp), UD.mod_nat(hi, d, hd), Equal.cong(Nat, Nat, z => Nat.mod(v(hi), z), v(d), 1n+bp, hb))
+  U3.injective(U32.mod(hi, d), hi, Equal.trans(Nat, v(U32.mod(hi, d)), Nat.mod(v(hi), 1n+bp), v(hi), e1, NR.mod_of(0n, bp, v(hi), hl)))
+
+def ne0(+n: Nat, +h: {Nat.is_le(1n, n) == True{} : Bool}) -> {Nat.is_eq(n, 0n) == False{} : Bool}:
+  match n:
+    case 0n:
+      Empty.absurd({Nat.is_eq(0n, 0n) == False{} : Bool}, LW.true_ne_false(Equal.sym(Bool, False{}, True{}, h)))
+    case 1n+p:
+      {==}
+
+# a divisor at most the high word: the high quotient word is nonzero
+def dpos(+hi: U32, +d: U32, +hd: {U32.is_zero(d) == False{} : Bool}, +bp: Nat, +hb: {v(d) == 1n+bp : Nat}, +hle: {Nat.is_le(1n+bp, v(hi)) == True{} : Bool}) -> {U32.is_zero(U32.div(hi, d)) == False{} : Bool}:
+  +q = Nat.div(v(hi), 1n+bp)
+  +e1 = Equal.trans(Nat, v(U32.div(hi, d)), Nat.div(v(hi), v(d)), q, UD.div_nat(hi, d, hd), Equal.cong(Nat, Nat, z => Nat.div(v(hi), z), v(d), 1n+bp, hb))
+  +hm = L.subst(Nat, z => {Nat.is_le(z, v(hi)) == True{} : Bool}, 1n+bp, Nat.mul(1n, 1n+bp), Equal.sym(Nat, Nat.mul(1n, 1n+bp), 1n+bp, N.add_zero(1n+bp)), hle)
+  +hq1 = Equal.trans(Bool, Nat.is_le(1n, q), Nat.is_le(Nat.mul(1n, 1n+bp), v(hi)), True{}, NR.le_div(bp, 1n, v(hi)), hm)
+  Equal.trans(Bool, U32.is_zero(U32.div(hi, d)), Nat.is_eq(v(U32.div(hi, d)), 0n), False{}, LW.zero_nat(U32.div(hi, d)), Equal.trans(Bool, Nat.is_eq(v(U32.div(hi, d)), 0n), Nat.is_eq(q, 0n), False{}, Equal.cong(Nat, Bool, z => Nat.is_eq(z, 0n), v(U32.div(hi, d)), q, e1), ne0(q, hq1)))
+
+def est_eq_c(+y: WU.U64, +d: U32, +hd: {U32.is_zero(d) == False{} : Bool}, +bp: Nat, +hn: {v(d) == 1n+bp : Nat}, +c: Bool, +hc: {U32.is_le(d, X.hi(y)) == c : Bool}) -> {X.est_pick(y, d, c) == X.q_clamp(X.fst_q(X.div32(y, d))) : U32}:
+  match c:
+    case True{}:
+      +h0 = Equal.trans(Bool, Nat.is_le(v(d), v(X.hi(y))), U32.is_le(d, X.hi(y)), True{}, Equal.sym(Bool, U32.is_le(d, X.hi(y)), Nat.is_le(v(d), v(X.hi(y))), W64S.is_le_nat(d, X.hi(y))), hc)
+      +hle = L.subst(Nat, z => {Nat.is_le(z, v(X.hi(y))) == True{} : Bool}, v(d), 1n+bp, hn, h0)
+      %Equal.sym(Bool, U32.is_zero(U32.div(X.hi(y), d)), False{}, dpos(X.hi(y), d, hd, bp, hn, hle)) : {4294967295 == X.q_clamp_z(X.lo(X.fst_q(X.div32(y, d))), _) : U32}
+      {==}
+    case False{}:
+      +h0 = Equal.trans(Bool, Nat.is_le(v(d), v(X.hi(y))), U32.is_le(d, X.hi(y)), False{}, Equal.sym(Bool, U32.is_le(d, X.hi(y)), Nat.is_le(v(d), v(X.hi(y))), W64S.is_le_nat(d, X.hi(y))), hc)
+      +hl = L.subst(Nat, z => {Nat.is_lt(v(X.hi(y)), z) == True{} : Bool}, v(d), 1n+bp, hn, N.not_le_lt(v(d), v(X.hi(y)), h0))
+      %Equal.sym(U32, U32.mod(X.hi(y), d), X.hi(y), msmall(X.hi(y), d, hd, bp, hn, hl)) : {X.est_pick(y, d, False{}) == X.q_clamp(X.fst_q(X.div32_t1(U32.div(X.hi(y), d), X.lo(y), X.dig_t(U32.to_nat(_), Nat.mul(256n, 256n), X.dig1(X.lo(y))), U32.to_nat(d)))) : U32}
+      %Equal.sym(U32, U32.div(X.hi(y), d), 0, dsmall(X.hi(y), d, hd, bp, hn, hl)) : {X.est_pick(y, d, False{}) == X.q_clamp(X.fst_q(X.div32_t1(_, X.lo(y), X.dig_t(U32.to_nat(X.hi(y)), Nat.mul(256n, 256n), X.dig1(X.lo(y))), U32.to_nat(d)))) : U32}
+      {==}
+
+def est_eq_n(+y: WU.U64, +d: U32, +hd: {U32.is_zero(d) == False{} : Bool}, +n: Nat, +hn: {v(d) == n : Nat}) -> {X.est32(y, d) == X.q_clamp(X.fst_q(X.div32(y, d))) : U32}:
+  match n:
+    case 0n:
+      Empty.absurd({X.est32(y, d) == X.q_clamp(X.fst_q(X.div32(y, d))) : U32}, LW.true_ne_false(Equal.trans(Bool, True{}, U32.is_zero(d), False{}, Equal.sym(Bool, U32.is_zero(d), True{}, Equal.trans(Bool, U32.is_zero(d), Nat.is_eq(v(d), 0n), True{}, LW.zero_nat(d), Equal.cong(Nat, Bool, z => Nat.is_eq(z, 0n), v(d), 0n, hn))), hd)))
+    case 1n+ +bp:
+      est_eq_c(y, d, hd, bp, hn, U32.is_le(d, X.hi(y)), {==})
+
+# the estimate est32 of q_est is min(floor(y / d), 2^32 - 1), the clamped
+# div32 quotient
+def est_eq(+y: WU.U64, +d: U32, +hd: {U32.is_zero(d) == False{} : Bool}) -> {X.est32(y, d) == X.q_clamp(X.fst_q(X.div32(y, d))) : U32}:
+  est_eq_n(y, d, hd, v(d), {==})
+
 # the estimate for B = high(t, b) = 1 + bp
 def est_m(+one: Nat, +h1: {one == 1n : Nat}, +xl: WU.U64, +xh: U32, +bl: U32, +bh: U32, +hz: {U32.is_zero(bh) == False{} : Bool}, +t: Nat, +t1: {Nat.is_le(1n, t) == True{} : Bool}, +t32: {Nat.is_le(t, 32n) == True{} : Bool}, +hx: {C.fits(Nat.add(64n, t), DM.X96(xl, xh)) == True{} : Bool}, +fb: {C.fits(32n, C.high(t, SW.value(WU.U64{bl, bh}))) == True{} : Bool}, +hX: {Nat.is_lt(DM.X96(xl, xh), Nat.mul(C.shift(32n, one), SW.value(WU.U64{bl, bh}))) == True{} : Bool}, +nb: Nat, +hnb: {C.high(t, SW.value(WU.U64{bl, bh})) == nb : Nat}) -> {Nat.is_lt(DM.X96(xl, xh), Nat.mul(1n+v(X.q_est(xl, xh, WU.U64{bl, bh}, t)), SW.value(WU.U64{bl, bh}))) == True{} : Bool}:
   match nb:
@@ -158,6 +212,7 @@ def est_m(+one: Nat, +h1: {one == 1n : Nat}, +xl: WU.U64, +xh: U32, +bl: U32, +b
       +bw = X.lo(sw)
       +ebw = Equal.trans(Nat, v(bw), SW.value(sw), 1n+bp, lo_fit(sw, L.subst(Nat, z => {C.fits(32n, z) == True{} : Bool}, C.high(t, bv), SW.value(sw), Equal.sym(Nat, SW.value(sw), C.high(t, bv), SH.shr_value(b, t)), fb)), Equal.trans(Nat, SW.value(sw), C.high(t, bv), 1n+bp, SH.shr_value(b, t), hnb))
       +hd = Equal.trans(Bool, U32.is_zero(bw), Nat.is_eq(v(bw), 0n), False{}, LW.zero_nat(bw), Equal.cong(Nat, Bool, z => Nat.is_eq(z, 0n), v(bw), 1n+bp, ebw))
+      %Equal.sym(U32, X.est32(yw, bw), X.q_clamp(X.fst_q(X.div32(yw, bw))), est_eq(yw, bw, hd)) : {Nat.is_lt(x9, Nat.mul(1n+v(_), bv)) == True{} : Bool}
       +qw = X.fst_q(X.div32(yw, bw))
       +eq = Equal.trans(Nat, SW.value(qw), Nat.div(SW.value(yw), v(bw)), Nat.div(C.high(t, x9), 1n+bp), W64D.div32_quot(yw, bw, hd), Equal.trans(Nat, Nat.div(SW.value(yw), v(bw)), Nat.div(C.high(t, x9), v(bw)), Nat.div(C.high(t, x9), 1n+bp), Equal.cong(Nat, Nat, z => Nat.div(z, v(bw)), SW.value(yw), C.high(t, x9), yv(xl, xh, t, t1, t32, hx)), Equal.cong(Nat, Nat, z => Nat.div(C.high(t, x9), z), v(bw), 1n+bp, ebw)))
       +hq = L.subst(Nat, z => {Nat.is_lt(x9, Nat.mul(1n+z, bv)) == True{} : Bool}, Nat.div(C.high(t, x9), 1n+bp), SW.value(qw), Equal.sym(Nat, SW.value(qw), Nat.div(C.high(t, x9), 1n+bp), eq), core(t, x9, bv, bp, hnb))

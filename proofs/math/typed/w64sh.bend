@@ -17,6 +17,7 @@ import ./w64mul.bend as W64M
 import ./w64add.bend as WA
 import ./width.bend as WW
 import ./u32laws.bend as LW
+import ./shrn.bend as SR
 
 # Shifts and leading zeros of src/math/w64.bend (the software F64's
 # significand arithmetic) against spec/math/w64.bend: a shift right is
@@ -151,33 +152,33 @@ def shr_small(+l: U32, +h: U32, +j: Nat, +hk: {Nat.is_lt(1n+j, 32n) == True{} : 
   +hl = C.high(t, v(l))
   +lh = C.low(t, v(h))
   +hh = C.high(t, v(h))
-  +a1 = div_p2(l, t, hk)
+  +a1 = SR.shrn_high(l, t)
   +a2 = Equal.trans(Nat, v(U32.mul(h, X.pow2(s))), C.low(32n, C.shift(s, v(h))), C.shift(s, lh), mul_p2(h, s, hs), Equal.trans(Nat, C.low(32n, C.shift(s, v(h))), C.low(Nat.add(s, t), C.shift(s, v(h))), C.shift(s, lh), Equal.cong(Nat, Nat, z => C.low(z, C.shift(s, v(h))), 32n, Nat.add(s, t), Equal.sym(Nat, Nat.add(s, t), 32n, hst)), WW.low_shift(s, t, v(h))))
-  +a3 = div_p2(h, t, hk)
+  +a3 = SR.shrn_high(h, t)
   +hr = WW.lt_of_fits(s, hl, fits_high(t, s, v(l), fits32(t, s, hts, l)))
   +hsum = WW.two_limb_lt(s, t, hl, lh, hr, WW.low_lt(t, v(h)))
-  +es = Equal.trans(Nat, Nat.add(v(U32.div(l, X.pow2(t))), v(U32.mul(h, X.pow2(s)))), Nat.add(hl, v(U32.mul(h, X.pow2(s)))), Nat.add(hl, C.shift(s, lh)), Equal.cong(Nat, Nat, z => Nat.add(z, v(U32.mul(h, X.pow2(s)))), v(U32.div(l, X.pow2(t))), hl, a1), Equal.cong(Nat, Nat, z => Nat.add(hl, z), v(U32.mul(h, X.pow2(s))), C.shift(s, lh), a2))
-  +hf = L.subst(Nat, z => {C.fits(z, Nat.add(v(U32.div(l, X.pow2(t))), v(U32.mul(h, X.pow2(s))))) == True{} : Bool}, Nat.add(s, t), 32n, hst, WW.fits_of_lt(Nat.add(s, t), Nat.add(v(U32.div(l, X.pow2(t))), v(U32.mul(h, X.pow2(s)))), L.subst(Nat, z => {Nat.is_lt(z, C.pow2(Nat.add(s, t))) == True{} : Bool}, Nat.add(hl, C.shift(s, lh)), Nat.add(v(U32.div(l, X.pow2(t))), v(U32.mul(h, X.pow2(s)))), Equal.sym(Nat, Nat.add(v(U32.div(l, X.pow2(t))), v(U32.mul(h, X.pow2(s)))), Nat.add(hl, C.shift(s, lh)), es), hsum)))
-  +elo = Equal.trans(Nat, v(U32.add(U32.div(l, X.pow2(t)), U32.mul(h, X.pow2(s)))), Nat.add(v(U32.div(l, X.pow2(t))), v(U32.mul(h, X.pow2(s)))), Nat.add(hl, C.shift(s, lh)), WA.add_exact(1n, {==}, U32.div(l, X.pow2(t)), U32.mul(h, X.pow2(s)), hf), es)
-  +ev = Equal.trans(Nat, Nat.add(v(U32.add(U32.div(l, X.pow2(t)), U32.mul(h, X.pow2(s)))), C.shift(32n, v(U32.div(h, X.pow2(t))))), Nat.add(Nat.add(hl, C.shift(s, lh)), C.shift(32n, v(U32.div(h, X.pow2(t))))), Nat.add(Nat.add(hl, C.shift(s, lh)), C.shift(32n, hh)), Equal.cong(Nat, Nat, z => Nat.add(z, C.shift(32n, v(U32.div(h, X.pow2(t))))), v(U32.add(U32.div(l, X.pow2(t)), U32.mul(h, X.pow2(s)))), Nat.add(hl, C.shift(s, lh)), elo), Equal.cong(Nat, Nat, z => Nat.add(Nat.add(hl, C.shift(s, lh)), C.shift(32n, z)), v(U32.div(h, X.pow2(t))), hh, a3))
+  +es = Equal.trans(Nat, Nat.add(v(U32.shrn(l, t)), v(U32.mul(h, X.pow2(s)))), Nat.add(hl, v(U32.mul(h, X.pow2(s)))), Nat.add(hl, C.shift(s, lh)), Equal.cong(Nat, Nat, z => Nat.add(z, v(U32.mul(h, X.pow2(s)))), v(U32.shrn(l, t)), hl, a1), Equal.cong(Nat, Nat, z => Nat.add(hl, z), v(U32.mul(h, X.pow2(s))), C.shift(s, lh), a2))
+  +hf = L.subst(Nat, z => {C.fits(z, Nat.add(v(U32.shrn(l, t)), v(U32.mul(h, X.pow2(s))))) == True{} : Bool}, Nat.add(s, t), 32n, hst, WW.fits_of_lt(Nat.add(s, t), Nat.add(v(U32.shrn(l, t)), v(U32.mul(h, X.pow2(s)))), L.subst(Nat, z => {Nat.is_lt(z, C.pow2(Nat.add(s, t))) == True{} : Bool}, Nat.add(hl, C.shift(s, lh)), Nat.add(v(U32.shrn(l, t)), v(U32.mul(h, X.pow2(s)))), Equal.sym(Nat, Nat.add(v(U32.shrn(l, t)), v(U32.mul(h, X.pow2(s)))), Nat.add(hl, C.shift(s, lh)), es), hsum)))
+  +elo = Equal.trans(Nat, v(U32.add(U32.shrn(l, t), U32.mul(h, X.pow2(s)))), Nat.add(v(U32.shrn(l, t)), v(U32.mul(h, X.pow2(s)))), Nat.add(hl, C.shift(s, lh)), WA.add_exact(1n, {==}, U32.shrn(l, t), U32.mul(h, X.pow2(s)), hf), es)
+  +ev = Equal.trans(Nat, Nat.add(v(U32.add(U32.shrn(l, t), U32.mul(h, X.pow2(s)))), C.shift(32n, v(U32.shrn(h, t)))), Nat.add(Nat.add(hl, C.shift(s, lh)), C.shift(32n, v(U32.shrn(h, t)))), Nat.add(Nat.add(hl, C.shift(s, lh)), C.shift(32n, hh)), Equal.cong(Nat, Nat, z => Nat.add(z, C.shift(32n, v(U32.shrn(h, t)))), v(U32.add(U32.shrn(l, t), U32.mul(h, X.pow2(s)))), Nat.add(hl, C.shift(s, lh)), elo), Equal.cong(Nat, Nat, z => Nat.add(Nat.add(hl, C.shift(s, lh)), C.shift(32n, z)), v(U32.shrn(h, t)), hh, a3))
   +e32 = Equal.trans(Nat, C.shift(32n, v(h)), C.shift(Nat.add(t, s), v(h)), C.shift(t, C.shift(s, v(h))), Equal.cong(Nat, Nat, z => C.shift(z, v(h)), 32n, Nat.add(t, s), Equal.sym(Nat, Nat.add(t, s), 32n, hts)), WW.shift_comp(t, s, v(h)))
   +eh1 = Equal.trans(Nat, C.high(t, val(l, h)), C.high(t, Nat.add(v(l), C.shift(t, C.shift(s, v(h))))), Nat.add(hl, C.shift(s, v(h))), Equal.cong(Nat, Nat, z => C.high(t, Nat.add(v(l), z)), C.shift(32n, v(h)), C.shift(t, C.shift(s, v(h))), e32), WW.high_add_shift(t, v(l), C.shift(s, v(h))))
   +esh = Equal.trans(Nat, C.shift(s, v(h)), C.shift(s, Nat.add(lh, C.shift(t, hh))), Nat.add(C.shift(s, lh), C.shift(32n, hh)), Equal.cong(Nat, Nat, z => C.shift(s, z), v(h), Nat.add(lh, C.shift(t, hh)), WW.low_high(t, v(h))), Equal.trans(Nat, C.shift(s, Nat.add(lh, C.shift(t, hh))), Nat.add(C.shift(s, lh), C.shift(s, C.shift(t, hh))), Nat.add(C.shift(s, lh), C.shift(32n, hh)), WW.shift_add(s, lh, C.shift(t, hh)), Equal.cong(Nat, Nat, z => Nat.add(C.shift(s, lh), z), C.shift(s, C.shift(t, hh)), C.shift(32n, hh), Equal.trans(Nat, C.shift(s, C.shift(t, hh)), C.shift(Nat.add(s, t), hh), C.shift(32n, hh), Equal.sym(Nat, C.shift(Nat.add(s, t), hh), C.shift(s, C.shift(t, hh)), WW.shift_comp(s, t, hh)), Equal.cong(Nat, Nat, z => C.shift(z, hh), Nat.add(s, t), 32n, hst)))))
   +et = Equal.trans(Nat, C.high(t, val(l, h)), Nat.add(hl, Nat.add(C.shift(s, lh), C.shift(32n, hh))), Nat.add(Nat.add(hl, C.shift(s, lh)), C.shift(32n, hh)), Equal.trans(Nat, C.high(t, val(l, h)), Nat.add(hl, C.shift(s, v(h))), Nat.add(hl, Nat.add(C.shift(s, lh), C.shift(32n, hh))), eh1, Equal.cong(Nat, Nat, z => Nat.add(hl, z), C.shift(s, v(h)), Nat.add(C.shift(s, lh), C.shift(32n, hh)), esh)), Equal.sym(Nat, Nat.add(Nat.add(hl, C.shift(s, lh)), C.shift(32n, hh)), Nat.add(hl, Nat.add(C.shift(s, lh), C.shift(32n, hh))), NA.add_assoc(hl, C.shift(s, lh), C.shift(32n, hh))))
-  Equal.trans(Nat, Nat.add(v(U32.add(U32.div(l, X.pow2(t)), U32.mul(h, X.pow2(s)))), C.shift(32n, v(U32.div(h, X.pow2(t))))), Nat.add(Nat.add(hl, C.shift(s, lh)), C.shift(32n, hh)), C.high(t, val(l, h)), ev, Equal.sym(Nat, C.high(t, val(l, h)), Nat.add(Nat.add(hl, C.shift(s, lh)), C.shift(32n, hh)), et))
+  Equal.trans(Nat, Nat.add(v(U32.add(U32.shrn(l, t), U32.mul(h, X.pow2(s)))), C.shift(32n, v(U32.shrn(h, t)))), Nat.add(Nat.add(hl, C.shift(s, lh)), C.shift(32n, hh)), C.high(t, val(l, h)), ev, Equal.sym(Nat, C.high(t, val(l, h)), Nat.add(Nat.add(hl, C.shift(s, lh)), C.shift(32n, hh)), et))
 
 def zero64(+l: U32, +h: U32, +k: Nat, +hk: {Nat.is_le(64n, k) == True{} : Bool}) -> {SW.value(WU.U64{0, 0}) == C.high(k, val(l, h)) : Nat}:
   +hf = fits_mono(64n, k, val(l, h), hk, fit64(l, h))
   Equal.trans(Nat, SW.value(WU.U64{0, 0}), v(0), C.high(k, val(l, h)), val0(0), Equal.sym(Nat, C.high(k, val(l, h)), 0n, N.eq_from_is_eq(C.high(k, val(l, h)), 0n, hf)))
 
 # 32 <= k < 64: the high word shifted by k - 32
-def shr_big(+l: U32, +h: U32, +k: Nat, +hge: {Nat.is_le(32n, k) == True{} : Bool}, +hlt: {Nat.is_lt(k, 64n) == True{} : Bool}) -> {SW.value(WU.U64{U32.div(h, X.pow2(Nat.sub(k, 32n))), 0}) == C.high(k, val(l, h)) : Nat}:
+def shr_big(+l: U32, +h: U32, +k: Nat, +hge: {Nat.is_le(32n, k) == True{} : Bool}, +hlt: {Nat.is_lt(k, 64n) == True{} : Bool}) -> {SW.value(WU.U64{U32.shrn(h, Nat.sub(k, 32n)), 0}) == C.high(k, val(l, h)) : Nat}:
   +d = Nat.sub(k, 32n)
   +ek = N.sub_add(k, 32n, hge)
   +hd = L.subst(Nat, z => {Nat.is_lt(d, z) == True{} : Bool}, Nat.sub(64n, 32n), 32n, {==}, WW.sub_lt_sub(k, 64n, 32n, hlt, hge))
   +e1 = Equal.trans(Nat, C.high(k, val(l, h)), C.high(Nat.add(32n, d), val(l, h)), C.high(d, C.high(32n, val(l, h))), Equal.cong(Nat, Nat, z => C.high(z, val(l, h)), k, Nat.add(32n, d), Equal.sym(Nat, Nat.add(32n, d), k, ek)), WW.high_comp(d, 32n, val(l, h)))
   +e2 = Equal.trans(Nat, C.high(k, val(l, h)), C.high(d, C.high(32n, val(l, h))), C.high(d, v(h)), e1, Equal.cong(Nat, Nat, z => C.high(d, z), C.high(32n, val(l, h)), v(h), WW.high_u(32n, v(l), v(h), vb(l))))
-  Equal.trans(Nat, SW.value(WU.U64{U32.div(h, X.pow2(d)), 0}), v(U32.div(h, X.pow2(d))), C.high(k, val(l, h)), val0(U32.div(h, X.pow2(d))), Equal.trans(Nat, v(U32.div(h, X.pow2(d))), C.high(d, v(h)), C.high(k, val(l, h)), div_p2(h, d, hd), Equal.sym(Nat, C.high(k, val(l, h)), C.high(d, v(h)), e2)))
+  Equal.trans(Nat, SW.value(WU.U64{U32.shrn(h, d), 0}), v(U32.shrn(h, d)), C.high(k, val(l, h)), val0(U32.shrn(h, d)), Equal.trans(Nat, v(U32.shrn(h, d)), C.high(d, v(h)), C.high(k, val(l, h)), SR.shrn_high(h, d), Equal.sym(Nat, C.high(k, val(l, h)), C.high(d, v(h)), e2)))
 
 def shr_ge_c(+l: U32, +h: U32, +k: Nat, +hge: {Nat.is_le(32n, k) == True{} : Bool}, +c: Bool, +hc: {Nat.is_le(64n, k) == c : Bool}) -> {SW.value(X.shr_ge(WU.U64{l, h}, k, c)) == C.high(k, val(l, h)) : Nat}:
   match c:
@@ -215,11 +216,11 @@ def shl_small(+l: U32, +h: U32, +j: Nat, +hk: {Nat.is_lt(1n+j, 32n) == True{} : 
   +hs = L.subst(Nat, z => {Nat.is_lt(s, z) == True{} : Bool}, Nat.add(t, s), 32n, hts, N.le_lt_trans(s, Nat.add(j, s), 1n+Nat.add(j, s), L.subst(Nat, z => {Nat.is_le(s, z) == True{} : Bool}, Nat.add(s, j), Nat.add(j, s), N.add_comm(s, j), N.le_add_right(s, j)), N.lt_succ(Nat.add(j, s))))
   +a1 = Equal.trans(Nat, v(U32.mul(l, X.pow2(t))), C.low(32n, C.shift(t, v(l))), C.shift(t, C.low(s, v(l))), mul_p2(l, t, hk), Equal.trans(Nat, C.low(32n, C.shift(t, v(l))), C.low(Nat.add(t, s), C.shift(t, v(l))), C.shift(t, C.low(s, v(l))), Equal.cong(Nat, Nat, z => C.low(z, C.shift(t, v(l))), 32n, Nat.add(t, s), Equal.sym(Nat, Nat.add(t, s), 32n, hts)), WW.low_shift(t, s, v(l))))
   +a2 = Equal.trans(Nat, v(U32.mul(h, X.pow2(t))), C.low(32n, C.shift(t, v(h))), C.shift(t, C.low(s, v(h))), mul_p2(h, t, hk), Equal.trans(Nat, C.low(32n, C.shift(t, v(h))), C.low(Nat.add(t, s), C.shift(t, v(h))), C.shift(t, C.low(s, v(h))), Equal.cong(Nat, Nat, z => C.low(z, C.shift(t, v(h))), 32n, Nat.add(t, s), Equal.sym(Nat, Nat.add(t, s), 32n, hts)), WW.low_shift(t, s, v(h))))
-  +a3 = div_p2(l, s, hs)
+  +a3 = SR.shrn_high(l, s)
   +hr = WW.lt_of_fits(t, C.high(s, v(l)), fits_high(s, t, v(l), fits32(s, t, hst, l)))
   +hsum = WW.two_limb_lt(t, s, C.high(s, v(l)), C.low(s, v(h)), hr, WW.low_lt(s, v(h)))
   +x1 = U32.mul(h, X.pow2(t))
-  +x2 = U32.div(l, X.pow2(s))
+  +x2 = U32.shrn(l, s)
   +es = Equal.trans(Nat, Nat.add(v(x1), v(x2)), Nat.add(C.shift(t, C.low(s, v(h))), C.high(s, v(l))), Nat.add(C.high(s, v(l)), C.shift(t, C.low(s, v(h)))), Equal.trans(Nat, Nat.add(v(x1), v(x2)), Nat.add(C.shift(t, C.low(s, v(h))), v(x2)), Nat.add(C.shift(t, C.low(s, v(h))), C.high(s, v(l))), Equal.cong(Nat, Nat, z => Nat.add(z, v(x2)), v(x1), C.shift(t, C.low(s, v(h))), a2), Equal.cong(Nat, Nat, z => Nat.add(C.shift(t, C.low(s, v(h))), z), v(x2), C.high(s, v(l)), a3)), N.add_comm(C.shift(t, C.low(s, v(h))), C.high(s, v(l))))
   +hf = L.subst(Nat, z => {C.fits(z, Nat.add(v(x1), v(x2))) == True{} : Bool}, Nat.add(t, s), 32n, hts, WW.fits_of_lt(Nat.add(t, s), Nat.add(v(x1), v(x2)), L.subst(Nat, z => {Nat.is_lt(z, C.pow2(Nat.add(t, s))) == True{} : Bool}, Nat.add(C.high(s, v(l)), C.shift(t, C.low(s, v(h)))), Nat.add(v(x1), v(x2)), Equal.sym(Nat, Nat.add(v(x1), v(x2)), Nat.add(C.high(s, v(l)), C.shift(t, C.low(s, v(h)))), es), hsum)))
   +ehi = Equal.trans(Nat, v(U32.add(x1, x2)), Nat.add(v(x1), v(x2)), Nat.add(C.high(s, v(l)), C.shift(t, C.low(s, v(h)))), WA.add_exact(1n, {==}, x1, x2, hf), es)

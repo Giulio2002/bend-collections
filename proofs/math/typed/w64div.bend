@@ -15,6 +15,7 @@ import ../natural/arith.bend as NR
 import ../u64/u64div.bend as PD
 import ./w64mul.bend as WM
 import ./u32.bend as U32P
+import ./shrn.bend as SR
 
 # Mod32.value and Div32 of spec/math/w64.bend: 64 / 32 long division, the
 # high word by U32 division and the low word by two 16-bit digits (Knuth
@@ -84,7 +85,12 @@ def d2g(+lo: U32, +m16: U32) -> Nat:
 def mod32g(+a: WU.U64, +d: U32, +c16: U32, +m16: U32) -> U32:
   U32.from_nat(X.mod_step(X.mod_step(U32.to_nat(U32.mod(X.hi(a), d)), Nat.mul(256n, 256n), d1g(X.lo(a), c16), U32.to_nat(d)), Nat.mul(256n, 256n), d2g(X.lo(a), m16), U32.to_nat(d)))
 
+# the high digit is a shift, U32.shrn(lo, 16), the word U32.div(lo, 2^16)
+def dig1_eq(+lo: U32) -> {X.dig1(lo) == d1g(lo, 65536) : Nat}:
+  Equal.cong(U32, Nat, z => U32.to_nat(z), U32.shrn(lo, 16n), U32.div(lo, 65536), SR.shr16(lo))
+
 def impl_mod(+a: WU.U64, +d: U32) -> {X.mod32(a, d) == mod32g(a, d, 65536, 65535) : U32}:
+  %Equal.sym(Nat, X.dig1(X.lo(a)), d1g(X.lo(a), 65536), dig1_eq(X.lo(a))) : {U32.from_nat(X.mod_step(X.mod_step(U32.to_nat(U32.mod(X.hi(a), d)), Nat.mul(256n, 256n), _, U32.to_nat(d)), Nat.mul(256n, 256n), X.dig2(X.lo(a)), U32.to_nat(d))) == mod32g(a, d, 65536, 65535) : U32}
   {==}
 
 def mod_inner(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk: {k == 32n : Nat}, +lo: U32, +hi: U32, +d: U32, +hd: {U32.is_zero(d) == False{} : Bool}, +c16: U32, +p16: {c16 == U32{WD.pw(32n, 16n)} : U32}, +m16: U32, +pm16: {m16 == U32{WD.mask(32n, 16n)} : U32}, +nd: Nat, +hnd: {v(d) == nd : Nat}) -> {v(mod32g(WU.U64{lo, hi}, d, c16, m16)) == Nat.mod(SW.value(WU.U64{lo, hi}), v(d)) : Nat}:
@@ -144,6 +150,7 @@ def div32q_g(+lo: U32, +hi: U32, +d: U32, +c16: U32, +m16: U32) -> WU.U64:
   WU.U64{U32.from_nat(Nat.add(Nat.mul(Nat.div(X.dig_t(v(U32.mod(hi, d)), Nat.mul(256n, 256n), d1g(lo, c16)), U32.to_nat(d)), Nat.mul(256n, 256n)), Nat.div(X.dig_t(Nat.mod(X.dig_t(v(U32.mod(hi, d)), Nat.mul(256n, 256n), d1g(lo, c16)), U32.to_nat(d)), Nat.mul(256n, 256n), d2g(lo, m16)), U32.to_nat(d)))), U32.div(hi, d)}
 
 def impl_q(+lo: U32, +hi: U32, +d: U32) -> {X.fst_q(X.div32(WU.U64{lo, hi}, d)) == div32q_g(lo, hi, d, 65536, 65535) : WU.U64}:
+  %Equal.sym(Nat, X.dig1(lo), d1g(lo, 65536), dig1_eq(lo)) : {X.fst_q(X.div32_t1(U32.div(hi, d), lo, X.dig_t(U32.to_nat(U32.mod(hi, d)), Nat.mul(256n, 256n), _), U32.to_nat(d))) == div32q_g(lo, hi, d, 65536, 65535) : WU.U64}
   {==}
 
 def quot_core(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk: {k == 32n : Nat}, +lo: U32, +hi: U32, +d: U32, +hd: {U32.is_zero(d) == False{} : Bool}, +c16: U32, +p16: {c16 == U32{WD.pw(32n, 16n)} : U32}, +m16: U32, +pm16: {m16 == U32{WD.mask(32n, 16n)} : U32}, +dp: Nat, +hnd: {v(d) == 1n+dp : Nat}) -> {Nat.add(U32.to_nat(U32.from_nat(Nat.add(Nat.mul(Nat.div(X.dig_t(v(U32.mod(hi, d)), Nat.mul(256n, 256n), d1g(lo, c16)), 1n+dp), Nat.mul(256n, 256n)), Nat.div(X.dig_t(Nat.mod(X.dig_t(v(U32.mod(hi, d)), Nat.mul(256n, 256n), d1g(lo, c16)), 1n+dp), Nat.mul(256n, 256n), d2g(lo, m16)), 1n+dp)))), C.shift(32n, v(U32.div(hi, d)))) == Nat.div(SW.value(WU.U64{lo, hi}), 1n+dp) : Nat}:

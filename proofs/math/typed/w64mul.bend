@@ -15,6 +15,7 @@ import ../../lib/lemmas/spec/numeric.bend as S
 import ../u64/u64div.bend as PD
 import ../u64/u64.bend as P64
 import ./width.bend as WW
+import ./shrn.bend as SR
 
 # Mul32.value of spec/math/w64.bend: the full 64-bit product of two U32 by
 # 16-bit halves (Knuth TAOCP 4.3.1 algorithm M with 2^16 digits; the same
@@ -257,8 +258,19 @@ def h_g(+al: U32, +ah: U32, +bl: U32, +bh: U32, +c: U32) -> WU.U64:
 def mul32g(+a: U32, +b: U32, +c: U32, +m: U32) -> WU.U64:
   h_g(U32.and(a, m), U32.div(a, c), U32.and(b, m), U32.div(b, c), c)
 
-def impl(+a: U32, +b: U32) -> {X.mul32(a, b) == mul32g(a, b, 65536, 65535) : WU.U64}:
+# the implementation splits by U32.shrn(_, 16), a shift; the generalised
+# product by U32.div(_, 65536): the same words (SR.shr16)
+def fin_eq(+ll: U32, +mid: U32, +hh: U32, +mc: Bool) -> {X.mul32_fin(ll, mid, hh, mc) == fin_g(ll, mid, hh, mc, 65536) : WU.U64}:
+  %Equal.sym(U32, U32.shrn(mid, 16n), U32.div(mid, 65536), SR.shr16(mid)) : {X.add_fin(U32.add(ll, U32.mul(mid, 65536)), ll, hh, U32.add(_, U32.mul(X.b32(mc), 65536))) == fin_g(ll, mid, hh, mc, 65536) : WU.U64}
   {==}
+
+def h_eq(+al: U32, +ah: U32, +bl: U32, +bh: U32) -> {X.mul32_h(al, ah, bl, bh) == h_g(al, ah, bl, bh, 65536) : WU.U64}:
+  fin_eq(U32.mul(al, bl), U32.add(U32.mul(al, bh), U32.mul(ah, bl)), U32.mul(ah, bh), U32.is_lt(U32.add(U32.mul(al, bh), U32.mul(ah, bl)), U32.mul(al, bh)))
+
+def impl(+a: U32, +b: U32) -> {X.mul32(a, b) == mul32g(a, b, 65536, 65535) : WU.U64}:
+  %Equal.sym(U32, U32.shrn(a, 16n), U32.div(a, 65536), SR.shr16(a)) : {X.mul32_h(U32.and(a, 65535), _, U32.and(b, 65535), U32.shrn(b, 16n)) == mul32g(a, b, 65536, 65535) : WU.U64}
+  %Equal.sym(U32, U32.shrn(b, 16n), U32.div(b, 65536), SR.shr16(b)) : {X.mul32_h(U32.and(a, 65535), U32.div(a, 65536), U32.and(b, 65535), _) == mul32g(a, b, 65536, 65535) : WU.U64}
+  h_eq(U32.and(a, 65535), U32.div(a, 65536), U32.and(b, 65535), U32.div(b, 65536))
 
 # the value of the generalised product, constants symbolic
 def mulval(+one: Nat, +h1: {one == 1n : Nat}, +a: U32, +b: U32, +c: U32, +pc: {c == U32{WD.pw(32n, 16n)} : U32}, +m: U32, +pm: {m == U32{WD.mask(32n, 16n)} : U32}) -> {SW.value(mul32g(a, b, c, m)) == Nat.mul(v(a), v(b)) : Nat}:
