@@ -85,9 +85,11 @@ law branch:
 def branch(V, lo, hi, p, key, bit, e, position, side, left, right, lp, hp):
   match bit:
     case False{}:
+      %Equal.sym(Map<&2, V> & Maybe<&2, V>, Map.pop(&2, V, MNode{p, lo, hi}, key), MB.pop_bit(&2, V, lo, hi, p, Map.bit(key, p)), MB.pop_node(&2, V, p, lo, hi, key)) : R.routed(V, Map.del.fin(&2, V, _), position, side)
       %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : R.routed(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), position, side)
       low(V, p, hi, Map.pop(&2, V, lo, key), position, side, lp(left), right)
     case True{}:
+      %Equal.sym(Map<&2, V> & Maybe<&2, V>, Map.pop(&2, V, MNode{p, lo, hi}, key), MB.pop_bit(&2, V, lo, hi, p, Map.bit(key, p)), MB.pop_node(&2, V, p, lo, hi, key)) : R.routed(V, Map.del.fin(&2, V, _), position, side)
       %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : R.routed(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), position, side)
       high(V, p, lo, Map.pop(&2, V, hi, key), position, side, left, hp(right))
 
@@ -186,9 +188,11 @@ law branch_valid:
 def branch_valid(V, lo, hi, p, key, bit, e, lr, hr, lv, hv, lp, hp):
   match bit:
     case False{}:
+      %Equal.sym(Map<&2, V> & Maybe<&2, V>, Map.pop(&2, V, MNode{p, lo, hi}, key), MB.pop_bit(&2, V, lo, hi, p, Map.bit(key, p)), MB.pop_node(&2, V, p, lo, hi, key)) : R.valid(V, Map.del.fin(&2, V, _))
       %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : R.valid(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)))
       low_valid(V, p, hi, Map.pop(&2, V, lo, key), preserves_routing(V, lo, key, p, False{}, lr), hr, lp(lv), hv)
     case True{}:
+      %Equal.sym(Map<&2, V> & Maybe<&2, V>, Map.pop(&2, V, MNode{p, lo, hi}, key), MB.pop_bit(&2, V, lo, hi, p, Map.bit(key, p)), MB.pop_node(&2, V, p, lo, hi, key)) : R.valid(V, Map.del.fin(&2, V, _))
       %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : R.valid(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)))
       high_valid(V, p, lo, Map.pop(&2, V, hi, key), lr, preserves_routing(V, hi, key, p, True{}, hr), lv, hp(hv))
 

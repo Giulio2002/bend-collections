@@ -97,9 +97,11 @@ law branch:
 def branch(V, lo, hi, p, key, bit, e, whole, limit, left, right, lp, hp):
   match bit:
     case False{}:
+      %Equal.sym(Map<&2, V> & Maybe<&2, V>, Map.pop(&2, V, MNode{p, lo, hi}, key), MB.pop_bit(&2, V, lo, hi, p, Map.bit(key, p)), MB.pop_node(&2, V, p, lo, hi, key)) : {Inv.common_prefix(V, Map.del.fin(&2, V, _), whole, limit) == True{} : Bool}
       %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {Inv.common_prefix(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), whole, limit) == True{} : Bool}
       low(V, p, hi, Map.pop(&2, V, lo, key), whole, limit, lp(left), right)
     case True{}:
+      %Equal.sym(Map<&2, V> & Maybe<&2, V>, Map.pop(&2, V, MNode{p, lo, hi}, key), MB.pop_bit(&2, V, lo, hi, p, Map.bit(key, p)), MB.pop_node(&2, V, p, lo, hi, key)) : {Inv.common_prefix(V, Map.del.fin(&2, V, _), whole, limit) == True{} : Bool}
       %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {Inv.common_prefix(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), whole, limit) == True{} : Bool}
       high(V, p, lo, Map.pop(&2, V, hi, key), whole, limit, left, hp(right))
 

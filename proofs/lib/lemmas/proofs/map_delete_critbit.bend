@@ -87,6 +87,7 @@ def branch(V, p, lo, hi, key, bit, route, parts, lp, hp):
       (prefix, ln, hn, lb, hb, lr, hr, lv0, hv0) = parts
       +lv = {lv0 : {Inv.critbit(V, lo) == True{} : Bool}}
       +hv = {hv0 : {Inv.critbit(V, hi) == True{} : Bool}}
+      %Equal.sym(Map<&2, V> & Maybe<&2, V>, Map.pop(&2, V, MNode{p, lo, hi}, key), MB.pop_bit(&2, V, lo, hi, p, Map.bit(key, p)), MB.pop_node(&2, V, p, lo, hi, key)) : {Inv.critbit(V, Map.del.fin(&2, V, _)) == True{} : Bool}
       %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), route) : {Inv.critbit(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _))) == True{} : Bool}
       low(V, p, hi, Map.pop(&2, V, lo, key),
         %route : {Inv.common_prefix(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), p) == True{} : Bool}
@@ -97,6 +98,7 @@ def branch(V, p, lo, hi, key, bit, route, parts, lp, hp):
       (prefix, ln, hn, lb, hb, lr, hr, lv0, hv0) = parts
       +lv = {lv0 : {Inv.critbit(V, lo) == True{} : Bool}}
       +hv = {hv0 : {Inv.critbit(V, hi) == True{} : Bool}}
+      %Equal.sym(Map<&2, V> & Maybe<&2, V>, Map.pop(&2, V, MNode{p, lo, hi}, key), MB.pop_bit(&2, V, lo, hi, p, Map.bit(key, p)), MB.pop_node(&2, V, p, lo, hi, key)) : {Inv.critbit(V, Map.del.fin(&2, V, _)) == True{} : Bool}
       %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), route) : {Inv.critbit(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _))) == True{} : Bool}
       high(V, p, lo, Map.pop(&2, V, hi, key),
         %route : {Inv.common_prefix(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), p) == True{} : Bool}

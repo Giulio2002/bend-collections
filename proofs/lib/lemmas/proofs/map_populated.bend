@@ -139,6 +139,7 @@ def put_preserves_populated(V, tree, key, value, fresh, existing):
     case MTip{}: fresh
     case MLeaf{stored, old}: fresh
     case MNode{+p, +lo, +hi}:
+      %Equal.sym(Map<&2, Maybe<&2, V>>, Map.put(&2, Maybe<&2, V>, MNode{p, lo, hi}, key, value), MB.put_bit(&2, Maybe<&2, V>, value, p, lo, hi, Map.bit(key, p)), MB.put_node(&2, Maybe<&2, V>, value, p, lo, hi, key)) : {populated(V, _) == True{} : Bool}
       %Equal.sym(String & Bool, Map.bit(key, p), (key, I.route_bit(Map.bit(key, p))), I.route_shape(key, p)) : {populated(V, MB.put_bit(&2, Maybe<&2, V>, value, p, lo, hi, _)) == True{} : Bool}
       put_branch(V, key, value, lo, hi, p, I.route_bit(Map.bit(key, p)), R.and_left(populated(V, lo), populated(V, hi), existing), R.and_right(populated(V, lo), populated(V, hi), existing), put_preserves_populated(V, lo, key, value, fresh, R.and_left(populated(V, lo), populated(V, hi), existing)), put_preserves_populated(V, hi, key, value, fresh, R.and_right(populated(V, lo), populated(V, hi), existing)))
 
