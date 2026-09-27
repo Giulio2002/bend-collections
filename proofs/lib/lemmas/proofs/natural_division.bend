@@ -1,6 +1,6 @@
 import Base
 import ./map_index.bend as Index
-import ./native_map.bend as N
+import ./string_compare.bend as N
 
 # Complete one period of the existing Base countdown division. The remaining
 # input n is arbitrary; this does not enumerate durations or replace division.

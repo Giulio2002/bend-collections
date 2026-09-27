@@ -1,6 +1,6 @@
 import Base
 import ./map_insert.bend as I
-import ./native_map.bend as N
+import ./string_compare.bend as N
 import ./map_set_critbit.bend as Set
 import ./map_routing.bend as R
 

@@ -2,7 +2,7 @@ import Base
 import ../spec/numeric.bend as S
 import ../src/wide.bend as W
 import ./numeric.bend as N
-import ./native_map.bend as A
+import ./string_compare.bend as A
 
 # Carry is computed from input bits; it is not an assumed property of Word.add.
 def sum_bit(r: Bool & Bool) -> Bool:

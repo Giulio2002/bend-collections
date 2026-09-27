@@ -1,6 +1,6 @@
 import Base
 import ./invariants.bend as Inv
-import ./native_map.bend as N
+import ./string_compare.bend as N
 import ./map_insert.bend as I
 import ./map_difference_order.bend as O
 import ./map_string_prefix.bend as Prefix

@@ -1,6 +1,6 @@
 import Base
 import ./invariants.bend as Inv
-import ./native_map.bend as N
+import ./string_compare.bend as N
 import ./map_insert.bend as I
 import ./map_critbit_parts.bend as Parts
 import ./map_delete_below.bend as Below

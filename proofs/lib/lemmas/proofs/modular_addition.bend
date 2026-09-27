@@ -7,7 +7,7 @@ import ./addition.bend as Add
 import ./counter.bend as Counter
 import ./numeric.bend as N
 import ./map_index.bend as Index
-import ./native_map.bend as NatLaws
+import ./string_compare.bend as NatLaws
 
 # The binary constructor in the independent specification uses Base Nat.divmod.
 # Establish its behavior against that existing algorithm, for arbitrary Nat.

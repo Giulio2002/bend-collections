@@ -2,7 +2,7 @@ import Base
 import ../spec/numeric.bend as S
 import ./addition.bend as Add
 import ./counter.bend as Counter
-import ./native_map.bend as Natural
+import ./string_compare.bend as Natural
 import ./map_index.bend as Index
 import ./map_routing.bend as Logic
 

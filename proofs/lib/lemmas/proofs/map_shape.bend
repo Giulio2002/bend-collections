@@ -1,6 +1,6 @@
 import Base
 import ./map_insert.bend as I
-import ./native_map.bend as N
+import ./string_compare.bend as N
 
 # Value erasure records the existing native tree's full discriminators and keys.
 # It is a proof observation, never a lookup or runtime storage representation.

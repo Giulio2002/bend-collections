@@ -2,7 +2,7 @@ import Base
 import ../spec/numeric.bend as S
 import ./map_difference_order.bend as Order
 import ./map_routing.bend as Logic
-import ./native_map.bend as Natural
+import ./string_compare.bend as Natural
 import ./natural_products.bend as Product
 import ./addition_bounds.bend as Bounds
 import ./counter.bend as Counter

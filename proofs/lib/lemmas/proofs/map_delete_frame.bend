@@ -1,5 +1,5 @@
 import Base
-import ./native_map.bend as N
+import ./string_compare.bend as N
 import ./map_insert.bend as I
 import ./map_lookup.bend as L
 import ./map_routing.bend as R

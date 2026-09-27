@@ -3,7 +3,7 @@ import ./map_insert.bend as I
 import ./map_lookup.bend as L
 import ./map_routing.bend as R
 import ./invariants.bend as Inv
-import ./native_map.bend as N
+import ./string_compare.bend as N
 
 law different_sides:
   for side: Bool

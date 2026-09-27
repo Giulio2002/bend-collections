@@ -3,7 +3,7 @@ import ../spec/numeric.bend as S
 import ./addition.bend as Add
 import ./addition_bounds.bend as Bounds
 import ./modular_addition.bend as M
-import ./native_map.bend as Natural
+import ./string_compare.bend as Natural
 
 def carry(n: Nat, input: Bool, word: Word(n)) -> Bool:
   match n:
