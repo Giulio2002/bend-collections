@@ -3,8 +3,9 @@
 // float / double code with the same checked semantics (a result that does
 // not fit counts as 0): Euclid with %, sqrt with an integer correction,
 // comb and factorial in a wider type with an overflow test, binary
-// exponentiation (a 128-bit product for u64 mod m), and float/double powers
-// by the same square-and-multiply order. Prints BENCH_MS=<ms> and the sum.
+// exponentiation (a 128-bit product for u64 mod m), float/double powers by
+// the same square-and-multiply order, and libm's floor, nearbyint (ties to
+// even), fmod, remainder, frexp, ldexp and nextafter for the F64 rows. Prints BENCH_MS=<ms> and the sum.
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -69,6 +70,10 @@ static double dfrom(u64 hi, u64 lo) { u64 b = (hi << 32) | lo; double d; memcpy(
 static float fv(u64 x) { return (float)(x % 1000) / 7.0f; }
 static double da(u64 x, u64 y) { return dfrom(1072693248ULL + x % 1048576, y); }
 static double db(u64 x, u64 y) { return dfrom(1073741824ULL + y % 1048576, x); }
+static double dc(u64 x, u64 y) { return dfrom(1088421888ULL + x % 1048576 + ((y & 1) << 31), y); }
+static double dp(u64 x, u64 y) { return dfrom(1088421888ULL + x % 1048576, y); }
+static double dbig(u64 x, u64 y) { return dfrom(1127219200ULL + x % 1048576, y); }
+static u64 frexp_sum(double d) { int e; double m = frexp(d, &e); return dbits(m) + (u64)(e < 0 ? -e : e); }
 static float clampf_py(float x, float lo, float hi) {
   if (hi < lo) return 0.0f;
   float m = lo > x ? lo : x;      // max(x, lo): x unless x < lo
@@ -125,6 +130,14 @@ static u64 step(int op, u64 x, u64 y) {
     case 22: return (u64)is_prime32((u32)(x % 1000000));
     case 23: return next_prime32((u32)(x % 1000000));
     case 24: return egcd_sum(x, y);
+    case 25: return dbits(floor(dc(x, y)));
+    case 26: return dbits(nearbyint(dc(x, y)));
+    case 27: return (u64)dp(x, y);
+    case 28: return dbits(fmod(dbig(x, y), db(x, y)));
+    case 29: return dbits(remainder(dbig(x, y), db(x, y)));
+    case 30: return frexp_sum(dc(x, y));
+    case 31: return dbits(ldexp(da(x, y), (x & 1) ? -(int)(y % 64) : (int)(y % 64)));
+    case 32: return dbits(nextafter(da(x, y), db(x, y)));
   }
   return 0;
 }
@@ -132,12 +145,14 @@ static u64 step(int op, u64 x, u64 y) {
 static const char *NAMES[] = {"u32_gcd", "u32_isqrt", "u32_comb", "u32_factorial", "u32_pow_mod", "u64_gcd",
   "u64_isqrt", "u64_comb", "u64_factorial", "u64_pow_mod", "f32_pow", "f32_clamp", "f64_add", "f64_mul",
   "f64_div", "f64_sqrt", "f64_pow", "loop", "u32_checked_mul", "u64_checked_mul", "u32_bit_count",
-  "u64_bit_count", "u32_is_prime", "u32_next_prime", "egcd"};
+  "u64_bit_count", "u32_is_prime", "u32_next_prime", "egcd",
+  "f64_floor", "f64_round", "f64_to_u64", "f64_fmod",
+  "f64_remainder", "f64_frexp", "f64_ldexp", "f64_nextafter"};
 
 int main(void) {
   const char *name = getenv("TYPED_OP"), *cs = getenv("TYPED_COUNT");
   int op = -1;
-  for (int i = 0; i < 25; i++) if (name && !strcmp(name, NAMES[i])) op = i;
+  for (int i = 0; i < 33; i++) if (name && !strcmp(name, NAMES[i])) op = i;
   u64 count = cs ? strtoull(cs, 0, 10) : 0, r = 12345, c = 0;
   struct timespec t0, t1;
   clock_gettime(CLOCK_MONOTONIC, &t0);
