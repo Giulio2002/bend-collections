@@ -195,9 +195,9 @@ def dm_if(+aw: Word(32n), +b: U32, +z: Bool, +hz: {z == False{} : Bool}, +hb: {N
 
 # THEOREM: div and mod are Euclidean division by any nonzero divisor.
 def div_mod(+a: U32, +b: U32, +hb: {U32.is_zero(b) == False{} : Bool}) -> {Nat.add(Nat.mul(v(U32.div(a, b)), v(b)), v(U32.mod(a, b))) == v(a) : Nat} & {Nat.is_lt(v(U32.mod(a, b)), v(b)) == True{} : Bool}:
-  match a:
-    case U32{+aw}:
-      dm_if(aw, b, U32.is_zero(b), hb, pos(b, hb))
+  match a b:
+    case U32{+aw} U32{+bw}:
+      dm_if(aw, U32{bw}, U32.is_zero(U32{bw}), hb, pos(U32{bw}, hb))
 
 def mod_identify(+q: Nat, +d: Nat, +r: Nat, +bound: {Nat.is_lt(r, d) == True{} : Bool}) -> {Nat.mod(Nat.add(Nat.mul(q, d), r), d) == r : Nat}:
   match d:
