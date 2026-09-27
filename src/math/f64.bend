@@ -628,6 +628,630 @@ def of_nat(+n: Nat) -> F64:
 def pow2(+k: Nat) -> F64:
   pack(False{}, Nat.add(1022n, k), W.U64{0, 1048576})
 
+# ---- decoding and exact rounding (the tools of everything below) ----
+
+# the significand with its hidden bit (bit 52 of a normal number) and the
+# scale of its unit, the exponent plus Z = 3000 (1926 for subnormals), as in
+# spec/math/f64.bend's mant and xexp
+def dmant_z(+f: W.U64, z: Bool) -> W.U64:
+  match z:
+    case True{}:
+      f
+    case False{}:
+      X.add(f, W.U64{0, 1048576})
+
+def dmant(+x: F64) -> W.U64:
+  dmant_z(frac(x), Nat.is_eq(exp_field(x), 0n))
+
+def dexp_z(+e: Nat, z: Bool) -> Nat:
+  match z:
+    case True{}:
+      1926n
+    case False{}:
+      Nat.add(e, 1925n)
+
+def dexp(+x: F64) -> Nat:
+  dexp_z(exp_field(x), Nat.is_eq(exp_field(x), 0n))
+
+def rw_top(+s: Bool, +x: Nat, +w: W.U64, top: Bool) -> F64:
+  match top:
+    case True{}:
+      norm_round_pack(s, Nat.add(x, 2181n), X.shr_jam(w, 1n))
+    case False{}:
+      norm_round_pack(s, Nat.add(x, 2180n), w)
+
+def rw_z(+s: Bool, +x: Nat, +w: W.U64, z: Bool) -> F64:
+  match z:
+    case True{}:
+      zero(s)
+    case False{}:
+      rw_top(s, x, w, X.le(W.U64{0, 2147483648}, w))
+
+# the double nearest to (-1)^s * w * 2^(x - 3000), for x >= 63: every exact
+# result below is an integer of at most 64 bits at a scale, rounded once
+def round_w(+s: Bool, +x: Nat, +w: W.U64) -> F64:
+  rw_z(s, x, w, X.is_zero(w))
+
+# ---- rounding to an integral value (IEEE roundToIntegral) ----
+
+type RMode is Data:
+  Trunc{}
+  Floor{}
+  Ceil{}
+  Even{}
+
+def b64(b: Bool) -> W.U64:
+  match b:
+    case True{}:
+      W.U64{1, 0}
+    case False{}:
+      W.U64{0, 0}
+
+# whether the integer part q (remainder r, half h of the unit) moves up one
+def ri_up(m: RMode, +s: Bool, +q: W.U64, +r: W.U64, +h: W.U64) -> Bool:
+  match m:
+    case Trunc{}:
+      False{}
+    case Floor{}:
+      Bool.and(s, Bool.not(X.is_zero(r)))
+    case Ceil{}:
+      Bool.and(Bool.not(s), Bool.not(X.is_zero(r)))
+    case Even{}:
+      Bool.or(X.lt(h, r), Bool.and(X.eq(r, h), X.odd(q)))
+
+def ri_q(m: RMode, +s: Bool, +q: W.U64, +r: W.U64, +h: W.U64) -> F64:
+  round_w(s, 3000n, X.add(q, b64(ri_up(m, s, q, r, h))))
+
+# k < 64 fractional bits: q = w >> k, r = w - (q << k), h = 2^(k-1)
+def ri_k(m: RMode, +s: Bool, +w: W.U64, +k: Nat, small: Bool) -> F64:
+  match small:
+    case True{}:
+      ri_q(m, s, X.shr(w, k), X.sub(w, X.shl(X.shr(w, k), k)), X.shl(W.U64{1, 0}, Nat.sub(k, 1n)))
+    case False{}:
+      ri_q(m, s, W.U64{0, 0}, w, W.U64{0, 2147483648})
+
+def ri_fin(m: RMode, +x: F64, int: Bool) -> F64:
+  match int:
+    case True{}:
+      x
+    case False{}:
+      ri_k(m, signbit(x), dmant(x), Nat.sub(3000n, dexp(x)), Nat.is_lt(Nat.sub(3000n, dexp(x)), 64n))
+
+def ri_cls(m: RMode, +x: F64, top: Bool) -> F64:
+  match top:
+    case True{}:
+      nan_or(x, nz(frac(x)))
+    case False{}:
+      ri_fin(m, x, Nat.is_le(3000n, dexp(x)))
+
+def to_integral(m: RMode, +x: F64) -> F64:
+  ri_cls(m, x, Nat.is_eq(exp_field(x), 2047n))
+
+def trunc(+x: F64) -> F64:
+  to_integral(Trunc{}, x)
+
+def floor(+x: F64) -> F64:
+  to_integral(Floor{}, x)
+
+def ceil(+x: F64) -> F64:
+  to_integral(Ceil{}, x)
+
+# ties to even (Python's round(x) and C's rint)
+def round(+x: F64) -> F64:
+  to_integral(Even{}, x)
+
+# ---- conversions to and from unsigned integers ----
+
+def tu_neg(+w: W.U64, bad: Bool) -> Result<&2, &2, N.NumError, W.U64>:
+  match bad:
+    case True{}:
+      Fail{N.Overflow{}}
+    case False{}:
+      Done{w}
+
+def tu_int(+s: Bool, +w: W.U64) -> Result<&2, &2, N.NumError, W.U64>:
+  tu_neg(w, Bool.and(s, Bool.not(X.is_zero(w))))
+
+# |x| >= 2^52: w << k with k + bit_length(w) <= 64
+def tu_big(+s: Bool, +w: W.U64, +k: Nat, fits: Bool) -> Result<&2, &2, N.NumError, W.U64>:
+  match fits:
+    case True{}:
+      tu_int(s, X.shl(w, k))
+    case False{}:
+      Fail{N.Overflow{}}
+
+def tu_fin(+x: F64, big: Bool) -> Result<&2, &2, N.NumError, W.U64>:
+  match big:
+    case True{}:
+      tu_big(signbit(x), dmant(x), Nat.sub(dexp(x), 3000n), Nat.is_le(Nat.add(Nat.sub(dexp(x), 3000n), Nat.sub(64n, X.clz(dmant(x)))), 64n))
+    case False{}:
+      tu_int(signbit(x), X.shr(dmant(x), Nat.sub(3000n, dexp(x))))
+
+def tu_top(isn: Bool) -> Result<&2, &2, N.NumError, W.U64>:
+  match isn:
+    case True{}:
+      Fail{N.BadDomain{}}
+    case False{}:
+      Fail{N.Overflow{}}
+
+def tu_cls(+x: F64, top: Bool) -> Result<&2, &2, N.NumError, W.U64>:
+  match top:
+    case True{}:
+      tu_top(nz(frac(x)))
+    case False{}:
+      tu_fin(x, Nat.is_le(3000n, dexp(x)))
+
+# x truncated toward zero as an unsigned 64-bit integer: NaN is a domain
+# error, a value outside [0, 2^64) (infinities included) an overflow
+def to_u64(+x: F64) -> Result<&2, &2, N.NumError, W.U64>:
+  tu_cls(x, Nat.is_eq(exp_field(x), 2047n))
+
+def tu32_w(+w: W.U64, fits: Bool) -> Result<&2, &2, N.NumError, U32>:
+  match fits:
+    case True{}:
+      Done{X.lo(w)}
+    case False{}:
+      Fail{N.Overflow{}}
+
+def tu32(r: Result<&2, &2, N.NumError, W.U64>) -> Result<&2, &2, N.NumError, U32>:
+  match r:
+    case Fail{e}:
+      Fail{e}
+    case Done{+w}:
+      tu32_w(w, U32.is_zero(X.hi(w)))
+
+def to_u32(+x: F64) -> Result<&2, &2, N.NumError, U32>:
+  tu32(to_u64(x))
+
+def floor_u64(+x: F64) -> Result<&2, &2, N.NumError, W.U64>:
+  to_u64(floor(x))
+
+def ceil_u64(+x: F64) -> Result<&2, &2, N.NumError, W.U64>:
+  to_u64(ceil(x))
+
+def round_u64(+x: F64) -> Result<&2, &2, N.NumError, W.U64>:
+  to_u64(round(x))
+
+# the double nearest to an unsigned 64-bit integer (exact below 2^53)
+def of_u64(+w: W.U64) -> F64:
+  round_w(False{}, 3000n, w)
+
+def of_u32(+u: U32) -> F64:
+  of_u64(W.U64{u, 0})
+
+# ---- exponents: frexp, ldexp, ulp ----
+
+# a signed exponent: -mag when neg
+type Exp is Data:
+  Exp{neg: Bool, mag: Nat}
+
+def exp_pick(+t: Nat, pos: Bool) -> Exp:
+  match pos:
+    case True{}:
+      Exp{False{}, Nat.sub(t, 3000n)}
+    case False{}:
+      Exp{True{}, Nat.sub(3000n, t)}
+
+# t - 3000 as a signed exponent
+def exp_of(+t: Nat) -> Exp:
+  exp_pick(t, Nat.is_le(3000n, t))
+
+def fx_fin(+x: F64, +w: W.U64, +b: Nat) -> F64 & Exp:
+  (round_w(signbit(x), Nat.sub(3000n, b), w), exp_of(Nat.add(dexp(x), b)))
+
+def fx_z(+x: F64, z: Bool) -> F64 & Exp:
+  match z:
+    case True{}:
+      (x, Exp{False{}, 0n})
+    case False{}:
+      fx_fin(x, dmant(x), Nat.sub(64n, X.clz(dmant(x))))
+
+def fx_cls(+x: F64, top: Bool) -> F64 & Exp:
+  match top:
+    case True{}:
+      (nan_or(x, nz(frac(x))), Exp{False{}, 0n})
+    case False{}:
+      fx_z(x, is_zero(x))
+
+# (m, e) with x = m * 2^e and 0.5 <= |m| < 1; zeros and infinities give (x, 0)
+def frexp(+x: F64) -> F64 & Exp:
+  fx_cls(x, Nat.is_eq(exp_field(x), 2047n))
+
+def ld_neg(+x: F64, +k: Nat, tiny: Bool) -> F64:
+  match tiny:
+    case True{}:
+      zero(signbit(x))
+    case False{}:
+      round_w(signbit(x), Nat.sub(dexp(x), k), dmant(x))
+
+def ld_fin(+x: F64, +neg: Bool, +k: Nat) -> F64:
+  match neg:
+    case True{}:
+      ld_neg(x, k, Nat.is_lt(dexp(x), Nat.add(k, 63n)))
+    case False{}:
+      round_w(signbit(x), Nat.add(dexp(x), k), dmant(x))
+
+def ld_e(+x: F64, +e: Exp) -> F64:
+  match e:
+    case Exp{+neg, +k}:
+      ld_fin(x, neg, k)
+
+def ld_z(+x: F64, +e: Exp, z: Bool) -> F64:
+  match z:
+    case True{}:
+      x
+    case False{}:
+      ld_e(x, e)
+
+def ld_cls(+x: F64, +e: Exp, top: Bool) -> F64:
+  match top:
+    case True{}:
+      nan_or(x, nz(frac(x)))
+    case False{}:
+      ld_z(x, e, is_zero(x))
+
+# x * 2^e, rounded once (overflow to infinity, gradual underflow)
+def ldexp(+x: F64, +e: Exp) -> F64:
+  ld_cls(x, e, Nat.is_eq(exp_field(x), 2047n))
+
+def ulp_cls(+x: F64, top: Bool) -> F64:
+  match top:
+    case True{}:
+      nan_or(inf(False{}), nz(frac(x)))
+    case False{}:
+      round_w(False{}, dexp(x), W.U64{1, 0})
+
+# the value of the least significant bit of x (Python's math.ulp)
+def ulp(+x: F64) -> F64:
+  ulp_cls(x, Nat.is_eq(exp_field(x), 2047n))
+
+# ---- neighbours and NaN-ignoring extrema ----
+
+def with_sign(+s: Bool, +w: W.U64) -> F64:
+  Bits{X.lo(w), U32.add(X.hi(w), sgn(s))}
+
+def na_step(+x: F64, up: Bool) -> F64:
+  match up:
+    case True{}:
+      with_sign(signbit(x), X.add(mag(x), W.U64{1, 0}))
+    case False{}:
+      with_sign(signbit(x), X.sub(mag(x), W.U64{1, 0}))
+
+def na_z(+x: F64, +y: F64, z: Bool) -> F64:
+  match z:
+    case True{}:
+      Bits{1, sgn(signbit(y))}
+    case False{}:
+      na_step(x, Bool.xor(lt(x, y), signbit(x)))
+
+def na_eq(+x: F64, +y: F64, same: Bool) -> F64:
+  match same:
+    case True{}:
+      y
+    case False{}:
+      na_z(x, y, is_zero(x))
+
+def na_nan(+x: F64, +y: F64, bad: Bool) -> F64:
+  match bad:
+    case True{}:
+      nan()
+    case False{}:
+      na_eq(x, y, eq(x, y))
+
+# the next double after x toward y (IEEE nextAfter; y when x == y)
+def nextafter(+x: F64, +y: F64) -> F64:
+  na_nan(x, y, unordered(x, y))
+
+def fpick(+x: F64, +y: F64, first: Bool) -> F64:
+  match first:
+    case True{}:
+      x
+    case False{}:
+      y
+
+def fmin_z(+x: F64, +y: F64, z: Bool) -> F64:
+  match z:
+    case True{}:
+      zero(Bool.or(signbit(x), signbit(y)))
+    case False{}:
+      fpick(x, y, lt(x, y))
+
+def fmin_ny(+x: F64, +y: F64, ny: Bool) -> F64:
+  match ny:
+    case True{}:
+      x
+    case False{}:
+      fmin_z(x, y, zeros(x, y))
+
+def fmin_nx(+x: F64, +y: F64, nx: Bool) -> F64:
+  match nx:
+    case True{}:
+      nan_or(y, is_nan(y))
+    case False{}:
+      fmin_ny(x, y, is_nan(y))
+
+# IEEE 754-2019 minimumNumber: a NaN operand is ignored, -0 < +0
+def fmin(+x: F64, +y: F64) -> F64:
+  fmin_nx(x, y, is_nan(x))
+
+def fmax_z(+x: F64, +y: F64, z: Bool) -> F64:
+  match z:
+    case True{}:
+      zero(Bool.and(signbit(x), signbit(y)))
+    case False{}:
+      fpick(x, y, lt(y, x))
+
+def fmax_ny(+x: F64, +y: F64, ny: Bool) -> F64:
+  match ny:
+    case True{}:
+      x
+    case False{}:
+      fmax_z(x, y, zeros(x, y))
+
+def fmax_nx(+x: F64, +y: F64, nx: Bool) -> F64:
+  match nx:
+    case True{}:
+      nan_or(y, is_nan(y))
+    case False{}:
+      fmax_ny(x, y, is_nan(y))
+
+# IEEE 754-2019 maximumNumber
+def fmax(+x: F64, +y: F64) -> F64:
+  fmax_nx(x, y, is_nan(x))
+
+# ---- classification, bit casts, integrality ----
+
+def is_normal(+x: F64) -> Bool:
+  Bool.and(Bool.not(Nat.is_eq(exp_field(x), 0n)), Nat.is_lt(exp_field(x), 2047n))
+
+def is_subnormal(+x: F64) -> Bool:
+  Bool.and(Nat.is_eq(exp_field(x), 0n), nz(frac(x)))
+
+def to_bits(+x: F64) -> W.U64:
+  W.U64{word_lo(x), word_hi(x)}
+
+def of_bits64(+w: W.U64) -> F64:
+  Bits{X.lo(w), X.hi(w)}
+
+def ii_k(+w: W.U64, +k: Nat, small: Bool) -> Bool:
+  match small:
+    case True{}:
+      X.eq(X.shl(X.shr(w, k), k), w)
+    case False{}:
+      X.is_zero(w)
+
+def ii_fin(+x: F64, int: Bool) -> Bool:
+  match int:
+    case True{}:
+      True{}
+    case False{}:
+      ii_k(dmant(x), Nat.sub(3000n, dexp(x)), Nat.is_lt(Nat.sub(3000n, dexp(x)), 64n))
+
+# finite with no fractional bits
+def is_integer(+x: F64) -> Bool:
+  Bool.and(is_finite(x), ii_fin(x, Nat.is_le(3000n, dexp(x))))
+
+# ---- the fractional part and the exact remainders ----
+
+def mf_frac(+s: Bool, +w: W.U64, +u: Nat, +k: Nat, small: Bool) -> F64:
+  match small:
+    case True{}:
+      round_w(s, u, X.sub(w, X.shl(X.shr(w, k), k)))
+    case False{}:
+      round_w(s, u, w)
+
+def mf_fin(+x: F64, int: Bool) -> F64 & F64:
+  match int:
+    case True{}:
+      (zero(signbit(x)), x)
+    case False{}:
+      (mf_frac(signbit(x), dmant(x), dexp(x), Nat.sub(3000n, dexp(x)), Nat.is_lt(Nat.sub(3000n, dexp(x)), 64n)), trunc(x))
+
+def mf_cls(+x: F64, top: Bool) -> F64 & F64:
+  match top:
+    case True{}:
+      (nan_or(zero(signbit(x)), nz(frac(x))), nan_or(x, nz(frac(x))))
+    case False{}:
+      mf_fin(x, Nat.is_le(3000n, dexp(x)))
+
+# (fractional part, integral part), both with the sign of x (Python's modf)
+def modf(+x: F64) -> F64 & F64:
+  mf_cls(x, Nat.is_eq(exp_field(x), 2047n))
+
+# (q, r) of mx * 2^d by b from (q0, r0) of mx by b: ten bits a step, so each
+# partial remainder r * 2^t stays below 2^63
+def fm_go(fuel: Nat, +b: W.U64, +d: Nat, st: W.U64 & W.U64) -> W.U64 & W.U64:
+  match fuel d:
+    case 0n _:
+      st
+    case 1n+f 0n:
+      st
+    case 1n+f 1n+e:
+      fm_go(f, b, Nat.sub(1n+e, Nat.min(1n+e, 10n)), X.divmod(X.shl(X.psnd(st), Nat.min(1n+e, 10n)), b))
+
+# the last quotient digit and remainder of mant(x) * 2^(e(x) - e(y)) by mant(y)
+def fm_qr(+x: F64, +y: F64) -> W.U64 & W.U64:
+  fm_go(Nat.sub(dexp(x), dexp(y)), dmant(y), Nat.sub(dexp(x), dexp(y)), X.divmod(dmant(x), dmant(y)))
+
+def fmod_fin(+x: F64, +y: F64, far: Bool) -> F64:
+  match far:
+    case True{}:
+      x
+    case False{}:
+      round_w(signbit(x), dexp(y), X.psnd(fm_qr(x, y)))
+
+def fmod_z(+x: F64, +y: F64, zx: Bool) -> F64:
+  match zx:
+    case True{}:
+      x
+    case False{}:
+      fmod_fin(x, y, Nat.is_lt(dexp(x), dexp(y)))
+
+def fmod_yi(+x: F64, +y: F64, yi: Bool) -> F64:
+  match yi:
+    case True{}:
+      x
+    case False{}:
+      fmod_z(x, y, is_zero(x))
+
+def fmod_bad(+x: F64, +y: F64, bad: Bool) -> F64:
+  match bad:
+    case True{}:
+      nan()
+    case False{}:
+      fmod_yi(x, y, is_inf(y))
+
+# x - n y for n = trunc(x / y), exact, with the sign of x (C's fmod)
+def fmod(+x: F64, +y: F64) -> F64:
+  fmod_bad(x, y, Bool.or(Bool.or(unordered(x, y), is_inf(x)), is_zero(y)))
+
+def rm_pick(+s: Bool, +u: Nat, +b: W.U64, +r: W.U64, flip: Bool) -> F64:
+  match flip:
+    case True{}:
+      round_w(Bool.not(s), u, X.sub(b, r))
+    case False{}:
+      round_w(s, u, r)
+
+# remainder r of divisor b at scale u, last quotient digit q: round the
+# quotient to nearest (ties to even) by flipping to r - b
+def rm_fix(+s: Bool, +u: Nat, +b: W.U64, +r: W.U64, +q: W.U64) -> F64:
+  rm_pick(s, u, b, r, Bool.or(X.lt(b, X.add(r, r)), Bool.and(X.eq(X.add(r, r), b), X.odd(q))))
+
+def rm_qr(+x: F64, +y: F64, p: W.U64 & W.U64) -> F64:
+  (+q, +r) = p
+  rm_fix(signbit(x), dexp(y), dmant(y), r, q)
+
+def rm_near(+x: F64, +y: F64, one: Bool) -> F64:
+  match one:
+    case True{}:
+      rm_fix(signbit(x), dexp(x), X.add(dmant(y), dmant(y)), dmant(x), W.U64{0, 0})
+    case False{}:
+      x
+
+def rm_far(+x: F64, +y: F64, far: Bool) -> F64:
+  match far:
+    case True{}:
+      rm_near(x, y, Nat.is_eq(Nat.sub(dexp(y), dexp(x)), 1n))
+    case False{}:
+      rm_qr(x, y, fm_qr(x, y))
+
+def rm_z(+x: F64, +y: F64, zx: Bool) -> F64:
+  match zx:
+    case True{}:
+      x
+    case False{}:
+      rm_far(x, y, Nat.is_lt(dexp(x), dexp(y)))
+
+def rm_yi(+x: F64, +y: F64, yi: Bool) -> F64:
+  match yi:
+    case True{}:
+      x
+    case False{}:
+      rm_z(x, y, is_zero(x))
+
+def rm_bad(+x: F64, +y: F64, bad: Bool) -> F64:
+  match bad:
+    case True{}:
+      nan()
+    case False{}:
+      rm_yi(x, y, is_inf(y))
+
+# IEEE remainder: x - n y for n = x / y rounded to nearest, ties to even
+def remainder(+x: F64, +y: F64) -> F64:
+  rm_bad(x, y, Bool.or(Bool.or(unordered(x, y), is_inf(x)), is_zero(y)))
+
+# ---- closeness and exact ratios ----
+
+def ic_d(+a: F64, +b: F64, +rel: F64, +at: F64, +d: F64) -> Bool:
+  Bool.or(Bool.or(le(d, abs(mul(rel, b))), le(d, abs(mul(rel, a)))), le(d, at))
+
+def ic_inf(+a: F64, +b: F64, +rel: F64, +at: F64, big: Bool) -> Bool:
+  match big:
+    case True{}:
+      False{}
+    case False{}:
+      ic_d(a, b, rel, at, abs(sub(b, a)))
+
+def ic_eq(+a: F64, +b: F64, +rel: F64, +at: F64, same: Bool) -> Bool:
+  match same:
+    case True{}:
+      True{}
+    case False{}:
+      ic_inf(a, b, rel, at, Bool.or(is_inf(a), is_inf(b)))
+
+def ic_tol(+a: F64, +b: F64, +rel: F64, +at: F64, bad: Bool) -> Result<&2, &2, N.NumError, Bool>:
+  match bad:
+    case True{}:
+      Fail{N.BadDomain{}}
+    case False{}:
+      Done{ic_eq(a, b, rel, at, eq(a, b))}
+
+# Python's math.isclose (CPython's algorithm): a negative tolerance is a
+# domain error
+def isclose(+a: F64, +b: F64, +rel: F64, +at: F64) -> Result<&2, &2, N.NumError, Bool>:
+  ic_tol(a, b, rel, at, Bool.or(lt(rel, zero(False{})), lt(at, zero(False{}))))
+
+# +-num / 2^den in lowest terms (num odd or den = 0)
+type Ratio is Data:
+  Ratio{neg: Bool, num: W.U64, den: Nat}
+
+# trailing zeros of w (at most fuel), one halving at a time
+def ctz_go(fuel: Nat, +w: W.U64, odd: Bool) -> Nat:
+  match fuel odd:
+    case 0n _:
+      0n
+    case 1n+f True{}:
+      0n
+    case 1n+f False{}:
+      1n+ctz_go(f, X.half(w), X.odd(X.half(w)))
+
+def ctz(+w: W.U64) -> Nat:
+  ctz_go(64n, w, X.odd(w))
+
+def ar_small(+s: Bool, +w: W.U64, +k: Nat, +j: Nat) -> Result<&2, &2, N.NumError, Ratio>:
+  Done{Ratio{s, X.shr(w, j), Nat.sub(k, j)}}
+
+def ar_big(+s: Bool, +w: W.U64, +k: Nat, fits: Bool) -> Result<&2, &2, N.NumError, Ratio>:
+  match fits:
+    case True{}:
+      Done{Ratio{s, X.shl(w, k), 0n}}
+    case False{}:
+      Fail{N.Overflow{}}
+
+def ar_fin(+x: F64, big: Bool) -> Result<&2, &2, N.NumError, Ratio>:
+  match big:
+    case True{}:
+      ar_big(signbit(x), dmant(x), Nat.sub(dexp(x), 3000n), Nat.is_le(Nat.add(Nat.sub(dexp(x), 3000n), Nat.sub(64n, X.clz(dmant(x)))), 64n))
+    case False{}:
+      ar_small(signbit(x), dmant(x), Nat.sub(3000n, dexp(x)), Nat.min(ctz(dmant(x)), Nat.sub(3000n, dexp(x))))
+
+def ar_z(+x: F64, z: Bool) -> Result<&2, &2, N.NumError, Ratio>:
+  match z:
+    case True{}:
+      Done{Ratio{False{}, W.U64{0, 0}, 0n}}
+    case False{}:
+      ar_fin(x, Nat.is_le(3000n, dexp(x)))
+
+def ar_top(isn: Bool) -> Result<&2, &2, N.NumError, Ratio>:
+  match isn:
+    case True{}:
+      Fail{N.BadDomain{}}
+    case False{}:
+      Fail{N.Overflow{}}
+
+def ar_cls(+x: F64, top: Bool) -> Result<&2, &2, N.NumError, Ratio>:
+  match top:
+    case True{}:
+      ar_top(nz(frac(x)))
+    case False{}:
+      ar_z(x, is_zero(x))
+
+# x = +-num / 2^den exactly, in lowest terms (Python's as_integer_ratio with
+# the denominator's exponent); NaN is a domain error, infinities and integers
+# of 2^64 or more overflow
+def as_integer_ratio(+x: F64) -> Result<&2, &2, N.NumError, Ratio>:
+  ar_cls(x, Nat.is_eq(exp_field(x), 2047n))
+
 # ---- the num.bend instance ----
 
 def f64_op(o: N.Op<F64>) -> F64:

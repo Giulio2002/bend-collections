@@ -397,7 +397,9 @@ def main():
     # binary64 specification itself against them (tools/check_f64_spec.py),
     # the fixed-width U32/U64 families, bit counts, primality and bytes
     # against Python integers with Rust's semantics (tools/check_fixed.py),
-    # the typed clauses' checker-evaluated examples and the math specs.
+    # the software binary64's rounding / conversion / remainder functions
+    # against CPython (tools/check_f64x.py), the typed clauses'
+    # checker-evaluated examples and the math specs.
     math_row = None
     if not args.only or args.only == 'math':
         (ROOT / 'build/math').mkdir(parents=True, exist_ok=True)
@@ -412,6 +414,8 @@ def main():
                        ([BEND, 'tests/math/fixed.bend', '-o', 'build/math/fixed'], 1800),
                        ([sys.executable, 'tools/check_fixed.py', '2026'], 1800),
                        ([sys.executable, 'tools/check_fixed.py', '7'], 1800),
+                       ([BEND, 'tests/math/f64x.bend', '-o', 'build/math/f64x'], 1800),
+                       ([sys.executable, 'tools/check_f64x.py'], 1800),
                        ([BEND, 'proofs/math/proof.bend'], 3600),
                        ([BEND, 'proofs/math/typed/examples.bend'], 1800)] + \
                       [([BEND, str(f.relative_to(ROOT))], 1800) for f in sorted((ROOT / 'spec/math').glob('*.bend'))]
