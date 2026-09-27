@@ -315,7 +315,7 @@ def q_fix(fuel: Nat, +xl: W.U64, +xh: U32, +b: W.U64, +q: U32, over: Bool) -> U3
 # floor(x / b) from an estimate q >= floor(x / b): down while q * b > x (at
 # most q steps, fuel q + 1)
 def q_start(+xl: W.U64, +xh: U32, +b: W.U64, +q: U32) -> U32:
-  q_fix(1n+U32.to_nat(q), xl, xh, b, q, over96(xl, xh, mul_32_64(q, b)))
+  q_fix(Nat.add(U32.to_nat(q), 1n), xl, xh, b, q, over96(xl, xh, mul_32_64(q, b)))
 
 # Knuth's estimate for x = xh * 2^64 + xl < b * 2^32 and b >= 2^32, t =
 # bits(hi(b)): with Y = x >> t (below 2^64) and B = b >> t in [2^31, 2^32),

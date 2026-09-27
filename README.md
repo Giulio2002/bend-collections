@@ -27,6 +27,7 @@ benchmarked against optimized C implementations of the same algorithms.
 | BLAKE3 | `src/crypto/blake/blake3/blake3.bend` | hash mode, 32-byte digest |
 | Integer math | `src/math/natural.bend` | Python-style `math` integer functions, see below |
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
+| Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |
 
 The hash map and the LRU follow Base's conventions: signatures are
 quantity-polymorphic (`a, -V: Kind(a)`, as `Base.Map` uses), and reads that
@@ -146,6 +147,43 @@ clauses and instance laws at concrete U32 inputs. All run in
 `tools/validate.py`; `docs/MATH_CONTRACTS.md` has the function-by-type
 matrix.
 
+## Fixed-width integers and number theory
+
+`src/math/fixed.bend` gives U32 and U64 (`src/math/u64.bend`'s two-word
+`U64`) the four families Rust defines for `u32`/`u64` (design reference
+section 2.6), plus the integer extras of sections 3.2 and 10;
+`src/math/number.bend` has the `Nat` versions of the extras:
+
+| Functions (`u32_` and `u64_` prefixed) | Result |
+|---|---|
+| `checked_add sub mul div rem pow shl shr` | `Some` exact result, `None` on overflow, a zero divisor, or a shift >= the width |
+| `wrapping_add sub mul pow shl shr` | the result modulo 2^w; shifts by the amount mod w |
+| `saturating_add sub mul pow` | clamped to [0, 2^w - 1] |
+| `overflowing_add sub mul pow shl shr` | `OV{wrapping value, overflowed}` |
+| `bit_count` | number of 1 bits (`int.bit_count`, `count_ones`) |
+| `to_bytes_le/be`, `from_bytes_le/be` | w/8 bytes as U32s in [0, 256); `from_bytes` is `None` for any other length or a value >= 256 |
+| `u32_is_prime`, `u32_next_prime` | trial division (exact); the least prime above n below 2^32, or `None` |
+| `NB.bit_count`, `NB.egcd`, `NB.is_prime` (Nat) | 1 bits; `EG{g, x, y, neg}` with a x - b y == g (b y - a x when `neg`), g == gcd(a, b); primality |
+
+Unsigned division never overflows, so Rust's `wrapping_`, `saturating_` and
+`overflowing_` `div`/`rem` are plain division, and `div_euclid`/`rem_euclid`
+equal `div`/`rem` for unsigned types (the remainder is already
+non-negative); only `checked_div`/`checked_rem` add something (the zero
+divisor). `is_prime`/`next_prime` at U64 are not provided: the fast
+deterministic Miller-Rabin needs the base-set theorem ("bases 2..37 decide
+every n < 2^64"), which is a finite computation over all 64-bit composites
+and not provable here without an axiom, and exact trial division is too
+slow at 64 bits.
+
+Every function is proved against `spec/math/fixed.bend` and
+`spec/math/number.bend` (77 clauses, gate `proofs/math/number/proof.bend`:
+the checked results are the Nat operation on the values when it fits, the
+wrapping ones that result modulo 2^w, a wrapping difference plus b is a plus
+2^w exactly when a < b, `next_prime` returns the least prime above n or
+`None` only when none is left below 2^32, the bytes are the base-256 digits
+of the value). `tools/check_fixed.py` compares every function with Python
+integers under Rust's semantics, naming the clause of each case.
+
 ## Install
 
 The library is published on the Bend hub. Import any module by its path in
@@ -166,7 +204,8 @@ fetched), so an import never changes under you; each release lists its hash.
 ```
 src/containers/   the collections, their internals (internal/) and API types (types/)
 src/math/         integer math (natural.bend), the same per type (num, generic, instances),
-                  software binary64 (f64), 64-bit words (u64, w64), hashing, powers of two
+                  software binary64 (f64), 64-bit words (u64, w64), fixed-width U32/U64
+                  families and number theory (fixed, number), hashing, powers of two
 src/crypto/       SHA-256 (sha/), Keccak-256 (keccak/), BLAKE2s, BLAKE2b and BLAKE3 (blake/)
 spec/             the specifications, mirroring src/: what each module does,
                   independent of how
@@ -190,7 +229,8 @@ proofs/           only proofs: one package per src package, mirroring src/,
                       theorems and the proof of every contract clause)
   math/<pkg>/         the same for src/math: natural/proof.bend proves every
                       clause of spec/math/natural.bend, math/proof.bend those
-                      of u64, hash and pow2; typed/examples.bend checks the
+                      of u64, hash and pow2, number/proof.bend those of
+                      number and fixed; typed/examples.bend checks the
                       typed clauses at concrete U32 inputs
   crypto/<pkg>/       the same for src/crypto: sha/ proves SHA-256 equal to its
                       executable FIPS 180-4 specification for every input,

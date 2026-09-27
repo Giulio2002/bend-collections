@@ -75,6 +75,29 @@ static float clampf_py(float x, float lo, float hi) {
   return hi < m ? hi : m;         // min(m, hi): m unless hi < m
 }
 
+// fixed-width checked multiply (Rust checked_mul), popcount, trial-division
+// primality as src/math/number.bend's (d = 2, 3, ... while d * d <= n), the
+// next prime above n, and the extended Euclid recursion of number.bend
+// (x' = y, y' = x + q y, the sign flipping at each level)
+static u64 checked_mul32(u32 a, u32 b) { u32 r; return __builtin_mul_overflow(a, b, &r) ? 0 : r; }
+static u64 checked_mul64(u64 a, u64 b) { u64 r; return __builtin_mul_overflow(a, b, &r) ? 0 : r; }
+static int is_prime32(u32 n) {
+  if (n < 2) return 0;
+  for (u64 d = 2; d * d <= n; d++) if (n % d == 0) return 0;
+  return 1;
+}
+static u64 next_prime32(u32 n) {
+  for (u64 m = (u64)n + 1; m <= 0xFFFFFFFFULL; m++) if (is_prime32((u32)m)) return m;
+  return 0;
+}
+static void egcd_rec(u64 a, u64 b, u64 *g, u64 *x, u64 *y, int *neg) {
+  if (!b) { *g = a; *x = 1; *y = 0; *neg = 0; return; }
+  u64 G, X, Y; int N;
+  egcd_rec(b, a % b, &G, &X, &Y, &N);
+  *g = G; *x = Y; *y = X + (a / b) * Y; *neg = !N;
+}
+static u64 egcd_sum(u64 a, u64 b) { u64 g, x, y; int n; egcd_rec(a, b, &g, &x, &y, &n); return g + x + y + (u64)n; }
+
 static u64 step(int op, u64 x, u64 y) {
   switch (op) {
     case 0: return gcd64((u32)x, (u32)y);
@@ -95,18 +118,26 @@ static u64 step(int op, u64 x, u64 y) {
     case 15: return dbits(sqrt(db(x, y)));
     case 16: return dbits(pow_sm(da(x, y), (unsigned)(y % 16)));
     case 17: return dbits(da(x, y));
+    case 18: return checked_mul32((u32)x, (u32)(y % 131072));
+    case 19: return checked_mul64(((x % 4096) << 32) | y, y);
+    case 20: return (u64)__builtin_popcount((u32)(x * 2 + y % 2));
+    case 21: return (u64)__builtin_popcountll(((x * 2) << 32) | y);
+    case 22: return (u64)is_prime32((u32)(x % 1000000));
+    case 23: return next_prime32((u32)(x % 1000000));
+    case 24: return egcd_sum(x, y);
   }
   return 0;
 }
 
 static const char *NAMES[] = {"u32_gcd", "u32_isqrt", "u32_comb", "u32_factorial", "u32_pow_mod", "u64_gcd",
   "u64_isqrt", "u64_comb", "u64_factorial", "u64_pow_mod", "f32_pow", "f32_clamp", "f64_add", "f64_mul",
-  "f64_div", "f64_sqrt", "f64_pow", "loop"};
+  "f64_div", "f64_sqrt", "f64_pow", "loop", "u32_checked_mul", "u64_checked_mul", "u32_bit_count",
+  "u64_bit_count", "u32_is_prime", "u32_next_prime", "egcd"};
 
 int main(void) {
   const char *name = getenv("TYPED_OP"), *cs = getenv("TYPED_COUNT");
   int op = -1;
-  for (int i = 0; i < 18; i++) if (name && !strcmp(name, NAMES[i])) op = i;
+  for (int i = 0; i < 25; i++) if (name && !strcmp(name, NAMES[i])) op = i;
   u64 count = cs ? strtoull(cs, 0, 10) : 0, r = 12345, c = 0;
   struct timespec t0, t1;
   clock_gettime(CLOCK_MONOTONIC, &t0);

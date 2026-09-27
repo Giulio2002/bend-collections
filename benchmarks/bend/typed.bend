@@ -5,6 +5,8 @@ import ../../src/math/instances.bend as I
 import ../../src/math/u64.bend as W
 import ../../src/math/w64.bend as X
 import ../../src/math/f64.bend as F
+import ../../src/math/fixed.bend as FX
+import ../../src/math/number.bend as NB
 
 # The templated math per type: COUNT calls of TYPED_OP on arguments drawn
 # from the MINSTD generator (as benchmarks/bend/math.bend), each result folded
@@ -128,10 +130,59 @@ def f64_pow(+x: Nat, +y: Nat) -> Nat:
 def f64_loop(+x: Nat, +y: Nat) -> Nat:
   vd(da(x, y))
 
+# ---- fixed-width families, bit counts, primality, egcd ----
+
+def mb32(m: Maybe<&2, U32>) -> Nat:
+  match m:
+    case Some{x}:
+      v32(x)
+    case None{}:
+      0n
+
+def mb64(m: Maybe<&2, W.U64>) -> Nat:
+  match m:
+    case Some{x}:
+      v64(x)
+    case None{}:
+      0n
+
+def bn(b: Bool) -> Nat:
+  match b:
+    case True{}:
+      1n
+    case False{}:
+      0n
+
+def u32_checked_mul(+x: Nat, +y: Nat) -> Nat:
+  mb32(FX.u32_checked_mul(u(x), u(Nat.mod(y, 131072n))))
+
+def u64_checked_mul(+x: Nat, +y: Nat) -> Nat:
+  mb64(FX.u64_checked_mul(w(Nat.mod(x, 4096n), y), w(0n, y)))
+
+def u32_bit_count(+x: Nat, +y: Nat) -> Nat:
+  FX.u32_bit_count(u(Nat.add(Nat.mul(x, 2n), Nat.mod(y, 2n))))
+
+def u64_bit_count(+x: Nat, +y: Nat) -> Nat:
+  FX.u64_bit_count(w(Nat.mul(x, 2n), y))
+
+def u32_is_prime(+x: Nat, +y: Nat) -> Nat:
+  bn(FX.u32_is_prime(u(Nat.mod(x, 1000000n))))
+
+def u32_next_prime(+x: Nat, +y: Nat) -> Nat:
+  mb32(FX.u32_next_prime(u(Nat.mod(x, 1000000n))))
+
+def eg_sum(r: NB.EGcd) -> Nat:
+  match r:
+    case NB.EG{g, a, b, neg}:
+      Nat.add(Nat.add(g, a), Nat.add(b, bn(neg)))
+
+def egcd(+x: Nat, +y: Nat) -> Nat:
+  eg_sum(NB.egcd(x, y))
+
 # ---- dispatch ----
 
 def names() -> List<&2, String>:
-  Con{"u32_gcd", Con{"u32_isqrt", Con{"u32_comb", Con{"u32_factorial", Con{"u32_pow_mod", Con{"u64_gcd", Con{"u64_isqrt", Con{"u64_comb", Con{"u64_factorial", Con{"u64_pow_mod", Con{"f32_pow", Con{"f32_clamp", Con{"f64_add", Con{"f64_mul", Con{"f64_div", Con{"f64_sqrt", Con{"f64_pow", Con{"loop", Nil{}}}}}}}}}}}}}}}}}}}
+  Con{"u32_gcd", Con{"u32_isqrt", Con{"u32_comb", Con{"u32_factorial", Con{"u32_pow_mod", Con{"u64_gcd", Con{"u64_isqrt", Con{"u64_comb", Con{"u64_factorial", Con{"u64_pow_mod", Con{"f32_pow", Con{"f32_clamp", Con{"f64_add", Con{"f64_mul", Con{"f64_div", Con{"f64_sqrt", Con{"f64_pow", Con{"loop", Con{"u32_checked_mul", Con{"u64_checked_mul", Con{"u32_bit_count", Con{"u64_bit_count", Con{"u32_is_prime", Con{"u32_next_prime", Con{"egcd", Nil{}}}}}}}}}}}}}}}}}}}}}}}}}}
 
 def pick_i(+hit: Bool, +i: Nat, +acc: Nat) -> Nat:
   match hit:
@@ -185,6 +236,20 @@ def run(code: Nat, +k: Nat) -> Nat:
       loop(~(x => y => f64_pow(x, y)), k, 12345n, 0n)
     case 17n:
       loop(~(x => y => f64_loop(x, y)), k, 12345n, 0n)
+    case 18n:
+      loop(~(x => y => u32_checked_mul(x, y)), k, 12345n, 0n)
+    case 19n:
+      loop(~(x => y => u64_checked_mul(x, y)), k, 12345n, 0n)
+    case 20n:
+      loop(~(x => y => u32_bit_count(x, y)), k, 12345n, 0n)
+    case 21n:
+      loop(~(x => y => u64_bit_count(x, y)), k, 12345n, 0n)
+    case 22n:
+      loop(~(x => y => u32_is_prime(x, y)), k, 12345n, 0n)
+    case 23n:
+      loop(~(x => y => u32_next_prime(x, y)), k, 12345n, 0n)
+    case 24n:
+      loop(~(x => y => egcd(x, y)), k, 12345n, 0n)
     case _:
       0n
 

@@ -14,7 +14,8 @@ Two strengths of evidence:
 
 - **proved**: `proofs/math/` proves the clause for every input, under the
   clause's name (`proofs/math/natural/proof.bend` for `natural`,
-  `proofs/math/proof.bend` for `u64`, `hash`, `pow2`, and
+  `proofs/math/proof.bend` for `u64`, `hash`, `pow2`,
+  `proofs/math/number/proof.bend` for `number` and `fixed`, and
   `proofs/math/typed/u32.bend` for the five selection clauses at U32:
   `Abs.identity`, `Min.agrees`, `Max.agrees`, `Sign.agrees`,
   `Clamp.agrees`). No holes, no axioms.
@@ -93,6 +94,34 @@ right-to-left binary exponentiation, the selections through the type's IEEE
 | | neg, abs, copysign, classification, of_nat | `Neg.value`, `Abs.value`, `Copysign.value`, `IsNan.value`, `IsInf.value`, `IsFinite.value`, `IsZero.value`, `Signbit.value`, `OfNat.value` | P (`f64bits.bend`, `f64ofnat.bend`) |
 | `w64.bend` | mul32, add, sub, mul, div32, quot/rem, mulmod, isqrt, shifts, clz, comparisons | 24 clauses: each the Nat operation on the values modulo 2^64 | P (`w64*.bend`) |
 | `u64.bend` | is_zero, le_signed, add, neg, div_small, div_small_signed | `IsZero.value`, `LeSigned.value`, `Add.bits`, `Add.modular`, `Neg.bits`, `DivSmall.quotient`, `DivSmallSigned.quotient` | P |
+
+## Fixed-width integers and number theory
+
+`src/math/fixed.bend` (U32 and U64) and `src/math/number.bend` (Nat); gate
+`proofs/math/number/proof.bend`, every clause under its name at both widths.
+
+| Module | Functions | Clauses | Mirrors | Evidence |
+|---|---|---|---|---|
+| `number.bend` | bit_count | `BitCount.value` | Python `int.bit_count`; Mathlib `Nat.bits` | P (`number/bitcount.bend`) |
+| | egcd | `Egcd.gcd`, `Egcd.bezout` | Knuth 4.5.2 Algorithm X; Mathlib `Nat.xgcd`, `Nat.gcd_eq_gcd_ab` | P (`number/egcd.bend`) |
+| | is_prime | `IsPrime.value` | Mathlib `Nat.Prime`; bound `Nat.minFac_sq_le_self` | P (`number/prime.bend`) |
+| `fixed.bend` | checked_{add,sub,mul,div,rem,pow,shl,shr} | `Checked*.value`: Some exact result exactly when it fits / the divisor is nonzero / the shift is below w | Rust `u32::checked_*`, `u64::checked_*` | P (`typed/fix32.bend`, `typed/fix64.bend`) |
+| | wrapping_{add,sub,mul,pow,shl,shr} | `Wrapping*.value`: the result mod 2^w (`WrappingSub`: r + b == a + 2^w [a < b]) | Rust `wrapping_*`; HACL* `Lib.IntTypes` modular semantics | P (same) |
+| | saturating_{add,sub,mul,pow} | `Saturating*.value`: the result when it fits, else the largest value | Rust `saturating_*` | P (same) |
+| | overflowing_{add,sub,mul,pow,shl,shr} | `Overflowing*.value` (the wrapping value), `Overflowing*.flag` | Rust `overflowing_*` | P (same) |
+| | bit_count | `BitCount.value`: `ones(w, value)` | Rust `count_ones` | P (`typed/fixbits.bend`) |
+| | is_prime, next_prime (U32) | `IsPrime.value`, `NextPrime.found` (a prime above n, none in between), `NextPrime.none` (no prime left below 2^32) | Mathlib `Nat.Prime`, `Nat.find` | P (`number/fixprime.bend`) |
+| | to_bytes_le/be, from_bytes_le/be | `ToBytes.le`, `ToBytes.be` (the w/8 base-256 digits), `FromBytes.le`, `FromBytes.be` (the value of exactly w/8 digits below 256, else None) | Python `int.to_bytes`/`from_bytes`; Rust `to_le_bytes`/`from_le_bytes`; Mathlib `Nat.digits` | P (`typed/fixbytes.bend`) |
+
+Not provided, and why: `div_euclid`/`rem_euclid` equal `div`/`rem` on
+unsigned types, and unsigned `wrapping_`/`saturating_`/`overflowing_`
+`div`/`rem` equal plain division (it never overflows); `egcd` is Nat-only
+(a typed version would add nothing but coefficient-width checks);
+`is_prime`/`next_prime` at U64 would need deterministic Miller-Rabin, whose
+correctness rests on the base-set theorem (the first 12 prime bases decide
+every n < 2^64), a computation over all 64-bit strong pseudoprimes that
+cannot be proved here without an axiom; exact trial division is too slow at
+64 bits.
 
 ## Not proved, and why
 
