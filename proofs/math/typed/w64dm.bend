@@ -164,11 +164,11 @@ def qle_fin(+x: Nat, +r: Nat, +B: Nat, p: {Nat.is_le(Nat.mul(r, B), x) == True{}
   a
 
 def QS(+xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32, +m: U32) -> U32:
-  X.q_fix(1n+v(q), xl, xh, b, q, X.over96(xl, xh, X.mul_32_64(q, b)))
+  X.q_fix(Nat.add(v(q), 1n), xl, xh, b, q, X.over96(xl, xh, X.mul_32_64(q, b)))
 
 # the down loop from an estimate q with x < (q + 1) b: q' b <= x < (q' + 1) b
 def qs_pair(+one: Nat, +h1: {one == 1n : Nat}, +xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32, +m: U32, +pm: {m == U32{WD.mask(32n, 32n)} : U32}, +hX: {Nat.is_lt(X96(xl, xh), Nat.mul(C.shift(32n, one), SW.value(b))) == True{} : Bool}, +hu: {Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(q), SW.value(b))) == True{} : Bool}) -> {Nat.is_le(QB(b, QS(xl, xh, b, q, m)), X96(xl, xh)) == True{} : Bool} & {Nat.is_lt(X96(xl, xh), Nat.mul(1n+v(QS(xl, xh, b, q, m)), SW.value(b))) == True{} : Bool}:
-  (qdn(1n+v(q), one, h1, xl, xh, b, q, X.over96(xl, xh, X.mul_32_64(q, b)), v(q), N.lt_succ(v(q)), {==}, {==}), qup2(1n+v(q), one, h1, xl, xh, b, q, X.over96(xl, xh, X.mul_32_64(q, b)), v(q), N.lt_succ(v(q)), {==}, {==}, hu))
+  (qdn(Nat.add(v(q), 1n), one, h1, xl, xh, b, q, X.over96(xl, xh, X.mul_32_64(q, b)), v(q), L.subst(Nat, z => {Nat.is_lt(v(q), z) == True{} : Bool}, 1n+v(q), Nat.add(v(q), 1n), Equal.sym(Nat, Nat.add(v(q), 1n), 1n+v(q), WA.plus1(v(q))), N.lt_succ(v(q))), {==}, {==}), qup2(Nat.add(v(q), 1n), one, h1, xl, xh, b, q, X.over96(xl, xh, X.mul_32_64(q, b)), v(q), L.subst(Nat, z => {Nat.is_lt(v(q), z) == True{} : Bool}, 1n+v(q), Nat.add(v(q), 1n), Equal.sym(Nat, Nat.add(v(q), 1n), 1n+v(q), WA.plus1(v(q))), N.lt_succ(v(q))), {==}, {==}, hu))
 
 def impl_qs(+xl: WU.U64, +xh: U32, +b: WU.U64, +q: U32) -> {X.q_start(xl, xh, b, q) == QS(xl, xh, b, q, 4294967295) : U32}:
   {==}

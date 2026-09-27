@@ -144,6 +144,18 @@ Same method as above; nanoseconds per call.
 | f64_div | 39.3 | 5.94 | 6.63 |
 | f64_sqrt | 44.0 | 6.05 | 7.33 |
 | f64_pow | 56.0 | 8.61 | 6.52 |
+| u32_checked_mul | 13.5 | 12.9 | 1.05 |
+| u64_checked_mul | 19 | 12.6 | 1.50 |
+| u32_bit_count | 39.8 | 13.2 | 3.02 |
+| u64_bit_count | 62.5 | 13.1 | 4.76 |
+| u32_is_prime | 215 | 131 | 1.64 |
+| u32_next_prime | 2350 | 1551 | 1.52 |
+| egcd | 219 | 186 | 1.18 |
+
+The last seven rows (fixed-width, bit counts, primality, egcd: `src/math/fixed.bend`,
+`src/math/number.bend`) were measured in a separate run on a busier machine
+(its `loop` row: 12.0 ns Bend, 12.8 ns C), so compare their ratios, not their
+absolute times, with the rows above.
 
 ### Intrusive doubly linked list
 

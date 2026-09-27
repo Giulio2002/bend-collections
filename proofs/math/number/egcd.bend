@@ -1,0 +1,100 @@
+import Base
+import ../../lib/lemmas/proofs/nat_algebra.bend as A
+import ../../../src/math/natural.bend as M
+import ../../../src/math/number.bend as NB
+import ../../../spec/math/number.bend as SN
+import ../natural/arith.bend as R
+
+# The extended Euclidean algorithm (Knuth 4.5.2, Algorithm X; Lean 4
+# Mathlib Nat.xgcd with Nat.gcd_eq_gcd_ab: a * gcdA a b + b * gcdB a b =
+# gcd a b). The recursion is natural.bend's gcd_go step for step, so its
+# gcd is gcd_go's; the Bezout identity is carried up the recursion with the
+# sign flipping at each level (the magnitudes of Algorithm X).
+
+# ---- the gcd ----
+
+def up_gcd(+q: Nat, r: NB.EGcd) -> {SN.eg_gcd(NB.eg_up(q, r)) == SN.eg_gcd(r) : Nat}:
+  match r:
+    case NB.EG{+g, +x, +y, +neg}:
+      {==}
+
+def gcd_go(+f: Nat, +a: Nat, +b: Nat) -> {SN.eg_gcd(NB.egcd_go(f, a, b)) == M.gcd_go(f, a, b) : Nat}:
+  match f b:
+    case 0n _:
+      {==}
+    case 1n+ +g 0n:
+      {==}
+    case 1n+ +g 1n+ +bp:
+      %Equal.sym(Nat, SN.eg_gcd(NB.eg_up(Nat.div(a, 1n+bp), NB.egcd_go(g, 1n+bp, Nat.mod(a, 1n+bp)))), SN.eg_gcd(NB.egcd_go(g, 1n+bp, Nat.mod(a, 1n+bp))), up_gcd(Nat.div(a, 1n+bp), NB.egcd_go(g, 1n+bp, Nat.mod(a, 1n+bp)))) : {_ == M.gcd_go(1n+g, a, 1n+bp) : Nat}
+      gcd_go(g, 1n+bp, Nat.mod(a, 1n+bp))
+
+def egcd_gcd(+a: Nat, +b: Nat) -> SN.Egcd.gcd(a, b):
+  gcd_go(b, a, b)
+
+# ---- the Bezout identity ----
+
+# (q b) y == b (q y)
+def qby(+q: Nat, +b: Nat, +y: Nat) -> {Nat.mul(Nat.mul(q, b), y) == Nat.mul(b, Nat.mul(q, y)) : Nat}:
+  %Equal.sym(Nat, Nat.mul(q, b), Nat.mul(b, q), A.mul_comm(q, b)) : {Nat.mul(_, y) == Nat.mul(b, Nat.mul(q, y)) : Nat}
+  A.mul_assoc(b, q, y)
+
+# (q b + r) y == b (q y) + r y
+def spread(+q: Nat, +b: Nat, +r: Nat, +y: Nat) -> {Nat.mul(Nat.add(Nat.mul(q, b), r), y) == Nat.add(Nat.mul(b, Nat.mul(q, y)), Nat.mul(r, y)) : Nat}:
+  %Equal.sym(Nat, Nat.mul(Nat.add(Nat.mul(q, b), r), y), Nat.add(Nat.mul(Nat.mul(q, b), y), Nat.mul(r, y)), A.mul_add_right(Nat.mul(q, b), r, y)) : {_ == Nat.add(Nat.mul(b, Nat.mul(q, y)), Nat.mul(r, y)) : Nat}
+  %Equal.sym(Nat, Nat.mul(Nat.mul(q, b), y), Nat.mul(b, Nat.mul(q, y)), qby(q, b, y)) : {Nat.add(_, Nat.mul(r, y)) == Nat.add(Nat.mul(b, Nat.mul(q, y)), Nat.mul(r, y)) : Nat}
+  {==}
+
+# child b x == g + r y  gives  b (x + q y) == g + (q b + r) y
+def alg_pos(+g: Nat, +x: Nat, +y: Nat, +q: Nat, +b: Nat, +r: Nat, +ih: {Nat.mul(b, x) == Nat.add(g, Nat.mul(r, y)) : Nat}) -> {Nat.mul(b, Nat.add(x, Nat.mul(q, y))) == Nat.add(g, Nat.mul(Nat.add(Nat.mul(q, b), r), y)) : Nat}:
+  %Equal.sym(Nat, Nat.mul(b, Nat.add(x, Nat.mul(q, y))), Nat.add(Nat.mul(b, x), Nat.mul(b, Nat.mul(q, y))), A.mul_add_left(b, x, Nat.mul(q, y))) : {_ == Nat.add(g, Nat.mul(Nat.add(Nat.mul(q, b), r), y)) : Nat}
+  %Equal.sym(Nat, Nat.mul(Nat.add(Nat.mul(q, b), r), y), Nat.add(Nat.mul(b, Nat.mul(q, y)), Nat.mul(r, y)), spread(q, b, r, y)) : {Nat.add(Nat.mul(b, x), Nat.mul(b, Nat.mul(q, y))) == Nat.add(g, _) : Nat}
+  %Equal.sym(Nat, Nat.mul(b, x), Nat.add(g, Nat.mul(r, y)), ih) : {Nat.add(_, Nat.mul(b, Nat.mul(q, y))) == Nat.add(g, Nat.add(Nat.mul(b, Nat.mul(q, y)), Nat.mul(r, y))) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.mul(b, Nat.mul(q, y)), Nat.mul(r, y)), Nat.add(Nat.mul(r, y), Nat.mul(b, Nat.mul(q, y))), A.add_comm(Nat.mul(b, Nat.mul(q, y)), Nat.mul(r, y))) : {Nat.add(Nat.add(g, Nat.mul(r, y)), Nat.mul(b, Nat.mul(q, y))) == Nat.add(g, _) : Nat}
+  A.add_assoc(g, Nat.mul(r, y), Nat.mul(b, Nat.mul(q, y)))
+
+# child r y == g + b x  gives  (q b + r) y == g + b (x + q y)
+def alg_neg(+g: Nat, +x: Nat, +y: Nat, +q: Nat, +b: Nat, +r: Nat, +ih: {Nat.mul(r, y) == Nat.add(g, Nat.mul(b, x)) : Nat}) -> {Nat.mul(Nat.add(Nat.mul(q, b), r), y) == Nat.add(g, Nat.mul(b, Nat.add(x, Nat.mul(q, y)))) : Nat}:
+  %Equal.sym(Nat, Nat.mul(Nat.add(Nat.mul(q, b), r), y), Nat.add(Nat.mul(b, Nat.mul(q, y)), Nat.mul(r, y)), spread(q, b, r, y)) : {_ == Nat.add(g, Nat.mul(b, Nat.add(x, Nat.mul(q, y)))) : Nat}
+  %Equal.sym(Nat, Nat.mul(r, y), Nat.add(g, Nat.mul(b, x)), ih) : {Nat.add(Nat.mul(b, Nat.mul(q, y)), _) == Nat.add(g, Nat.mul(b, Nat.add(x, Nat.mul(q, y)))) : Nat}
+  %Equal.sym(Nat, Nat.mul(b, Nat.add(x, Nat.mul(q, y))), Nat.add(Nat.mul(b, x), Nat.mul(b, Nat.mul(q, y))), A.mul_add_left(b, x, Nat.mul(q, y))) : {Nat.add(Nat.mul(b, Nat.mul(q, y)), Nat.add(g, Nat.mul(b, x))) == Nat.add(g, _) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.mul(b, Nat.mul(q, y)), Nat.add(g, Nat.mul(b, x))), Nat.add(g, Nat.add(Nat.mul(b, Nat.mul(q, y)), Nat.mul(b, x))), A.add_swap(Nat.mul(b, Nat.mul(q, y)), g, Nat.mul(b, x))) : {_ == Nat.add(g, Nat.add(Nat.mul(b, x), Nat.mul(b, Nat.mul(q, y)))) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.mul(b, Nat.mul(q, y)), Nat.mul(b, x)), Nat.add(Nat.mul(b, x), Nat.mul(b, Nat.mul(q, y))), A.add_comm(Nat.mul(b, Nat.mul(q, y)), Nat.mul(b, x))) : {Nat.add(g, _) == Nat.add(g, Nat.add(Nat.mul(b, x), Nat.mul(b, Nat.mul(q, y)))) : Nat}
+  {==}
+
+# the base case: a * 1 == a + b * 0
+def base(+a: Nat, +b: Nat) -> {Nat.mul(a, 1n) == Nat.add(a, Nat.mul(b, 0n)) : Nat}:
+  %Equal.sym(Nat, Nat.mul(a, 1n), a, A.mul_one(a)) : {_ == Nat.add(a, Nat.mul(b, 0n)) : Nat}
+  %Equal.sym(Nat, Nat.mul(b, 0n), 0n, A.mul_zero(b)) : {a == Nat.add(a, _) : Nat}
+  Equal.sym(Nat, Nat.add(a, 0n), a, A.add_zero(a))
+
+def up_sign(+a: Nat, +b: Nat, +q: Nat, +r: Nat, +ha: {a == Nat.add(Nat.mul(q, b), r) : Nat}, +g: Nat, +x: Nat, +y: Nat, +neg: Bool, +ih: {SN.eg_pos(b, r, NB.EG{g, x, y, neg}) == SN.eg_neg(b, r, NB.EG{g, x, y, neg}) : Nat}) -> {SN.eg_pos(a, b, NB.eg_up(q, NB.EG{g, x, y, neg})) == SN.eg_neg(a, b, NB.eg_up(q, NB.EG{g, x, y, neg})) : Nat}:
+  match neg:
+    case False{}:
+      %Equal.sym(Nat, a, Nat.add(Nat.mul(q, b), r), ha) : {Nat.mul(b, Nat.add(x, Nat.mul(q, y))) == Nat.add(g, Nat.mul(_, y)) : Nat}
+      alg_pos(g, x, y, q, b, r, ih)
+    case True{}:
+      %Equal.sym(Nat, a, Nat.add(Nat.mul(q, b), r), ha) : {Nat.mul(_, y) == Nat.add(g, Nat.mul(b, Nat.add(x, Nat.mul(q, y)))) : Nat}
+      alg_neg(g, x, y, q, b, r, ih)
+
+# one level up: from the child's identity for (b, r) to the parent's for
+# (a, b), a == q b + r
+def up_bez(+a: Nat, +b: Nat, +q: Nat, +r: Nat, +ha: {a == Nat.add(Nat.mul(q, b), r) : Nat}, c: NB.EGcd, +ih: {SN.eg_pos(b, r, c) == SN.eg_neg(b, r, c) : Nat}) -> {SN.eg_pos(a, b, NB.eg_up(q, c)) == SN.eg_neg(a, b, NB.eg_up(q, c)) : Nat}:
+  match c:
+    case NB.EG{+g, +x, +y, +neg}:
+      up_sign(a, b, q, r, ha, g, x, y, neg, ih)
+
+# a == (a div b) b + a mod b
+def split(+a: Nat, +bp: Nat) -> {a == Nat.add(Nat.mul(Nat.div(a, 1n+bp), 1n+bp), Nat.mod(a, 1n+bp)) : Nat}:
+  R.dm_eq(bp, a)
+
+def bez_go(+f: Nat, +a: Nat, +b: Nat) -> {SN.eg_pos(a, b, NB.egcd_go(f, a, b)) == SN.eg_neg(a, b, NB.egcd_go(f, a, b)) : Nat}:
+  match f b:
+    case 0n _:
+      base(a, b)
+    case 1n+ +g 0n:
+      base(a, 0n)
+    case 1n+ +g 1n+ +bp:
+      up_bez(a, 1n+bp, Nat.div(a, 1n+bp), Nat.mod(a, 1n+bp), split(a, bp), NB.egcd_go(g, 1n+bp, Nat.mod(a, 1n+bp)), bez_go(g, 1n+bp, Nat.mod(a, 1n+bp)))
+
+def egcd_bezout(+a: Nat, +b: Nat) -> SN.Egcd.bezout(a, b):
+  bez_go(b, a, b)

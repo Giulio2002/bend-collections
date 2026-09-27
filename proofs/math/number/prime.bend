@@ -1,0 +1,208 @@
+import Base
+import ../../lib/nat.bend as N
+import ../../lib/logic.bend as L
+import ../../lib/arith.bend as AR
+import ../../lib/lemmas/proofs/nat_algebra.bend as A
+import ../../../src/math/number.bend as NB
+import ../../../spec/math/number.bend as SN
+import ../natural/arith.bend as R
+import ../typed/natfuel.bend as NF
+
+# Trial division decides primality (Lean 4 Mathlib Nat.Prime: 2 <= n and no
+# divisor in [2, n); the stopping bound is Nat.minFac_sq_le_self: the least
+# divisor d of a composite n has d * d <= n). The loop visits d = 2, 3, ...
+# while d * d <= n and stops at the first divisor; once d * d > n with no
+# divisor below d, none lies in [d, n) either: a divisor e >= d would give
+# n == c * e with 2 <= c < d dividing n.
+
+# ---- small order facts ----
+
+def sub_big(+n: Nat, +d: Nat, +h: {Nat.is_le(n, d) == True{} : Bool}) -> {Nat.sub(n, d) == 0n : Nat}:
+  match n d:
+    case 0n _:
+      R.zsub(d)
+    case 1n+np 0n:
+      Empty.absurd({Nat.sub(1n+np, 0n) == 0n : Nat}, L.false_true(h))
+    case 1n+ +np 1n+ +dp:
+      sub_big(np, dp, h)
+
+# d < n: n - d == 1 + (n - (d + 1))
+def sub_split(+n: Nat, +d: Nat, +h: {Nat.is_lt(d, n) == True{} : Bool}) -> {Nat.sub(n, d) == 1n+Nat.sub(n, 1n+d) : Nat}:
+  match n d:
+    case 0n _:
+      Empty.absurd({Nat.sub(0n, d) == 1n+Nat.sub(0n, 1n+d) : Nat}, N.lt_zero_absurd(d, h))
+    case 1n+ +np 0n:
+      %Equal.sym(Nat, Nat.sub(np, 0n), np, N.sub_zero(np)) : {1n+np == 1n+_ : Nat}
+      {==}
+    case 1n+ +np 1n+ +dp:
+      sub_split(np, dp, h)
+
+# 2 <= d: d < d * d
+def lt_sq(+dq: Nat) -> {Nat.is_lt(2n+dq, Nat.mul(2n+dq, 2n+dq)) == True{} : Bool}:
+  +h1 = NF.dbl_le_mul(2n+dq, dq)
+  +h2 = N.succ_le_lt(2n+dq, Nat.double(2n+dq), N.double_succ_le(2n+dq, {==}))
+  N.lt_le_trans(2n+dq, Nat.double(2n+dq), Nat.mul(2n+dq, 2n+dq), h2, h1)
+
+def le_step(+d: Nat, +e: Nat, +h: {Nat.is_le(d, e) == True{} : Bool}) -> {Nat.is_le(d, 1n+e) == True{} : Bool}:
+  N.le_trans(d, e, 1n+e, h, N.le_succ(e))
+
+# ---- nodiv ----
+
+# a d with lo <= e < lo + k, where nodiv(k, n, lo) holds, does not divide n
+def at_c(p: Nat, +n: Nat, +d: Nat, +e: Nat, +h1: {Bool.not(Nat.is_eq(Nat.mod(n, d), 0n)) == True{} : Bool}, +h2: {SN.nodiv(p, n, 1n+d) == True{} : Bool}, +hlo: {Nat.is_le(d, e) == True{} : Bool}, +hhi: {Nat.is_lt(e, Nat.add(d, 1n+p)) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(d, e) == c : Bool}, ih: @+e2: Nat -> @+hl: {Nat.is_le(1n+d, e2) == True{} : Bool} -> @+hh: {Nat.is_lt(e2, Nat.add(1n+d, p)) == True{} : Bool} -> {Nat.is_eq(Nat.mod(n, e2), 0n) == False{} : Bool}) -> {Nat.is_eq(Nat.mod(n, e), 0n) == False{} : Bool}:
+  match c:
+    case True{}:
+      %N.eq_from_is_eq(d, e, hc) : {Nat.is_eq(Nat.mod(n, _), 0n) == False{} : Bool}
+      L.not_true(Nat.is_eq(Nat.mod(n, d), 0n), h1)
+    case False{}:
+      +hlt = N.lt_or_eq(d, e, hlo, hc)
+      +hh = Equal.trans(Bool, Nat.is_lt(e, 1n+Nat.add(d, p)), Nat.is_lt(e, Nat.add(d, 1n+p)), True{}, Equal.cong(Nat, Bool, t => Nat.is_lt(e, t), 1n+Nat.add(d, p), Nat.add(d, 1n+p), Equal.sym(Nat, Nat.add(d, 1n+p), 1n+Nat.add(d, p), A.add_succ(d, p))), hhi)
+      ih(e, N.lt_succ_le_succ(d, e, hlt), hh)
+
+def nodiv_at(k: Nat, +n: Nat, +d: Nat, +e: Nat, +h: {SN.nodiv(k, n, d) == True{} : Bool}, +hlo: {Nat.is_le(d, e) == True{} : Bool}, +hhi: {Nat.is_lt(e, Nat.add(d, k)) == True{} : Bool}) -> {Nat.is_eq(Nat.mod(n, e), 0n) == False{} : Bool}:
+  match k:
+    case 0n:
+      +hh = Equal.trans(Bool, Nat.is_lt(e, d), Nat.is_lt(e, Nat.add(d, 0n)), True{}, Equal.cong(Nat, Bool, t => Nat.is_lt(e, t), d, Nat.add(d, 0n), Equal.sym(Nat, Nat.add(d, 0n), d, A.add_zero(d))), hhi)
+      Empty.absurd({Nat.is_eq(Nat.mod(n, e), 0n) == False{} : Bool}, L.true_not_false(Nat.is_lt(d, d), N.le_lt_trans(d, e, d, hlo, hh), N.lt_irrefl(d)))
+    case 1n+ +p:
+      +h1 = L.and_left(Bool.not(Nat.is_eq(Nat.mod(n, d), 0n)), SN.nodiv(p, n, 1n+d), h)
+      +h2 = L.and_right(Bool.not(Nat.is_eq(Nat.mod(n, d), 0n)), SN.nodiv(p, n, 1n+d), h)
+      at_c(p, n, d, e, h1, h2, hlo, hhi, Nat.is_eq(d, e), {==}, e2 => hl => hh => nodiv_at(p, n, 1n+d, e2, h2, hl, hh))
+
+def and_true(+b: Bool) -> {Bool.and(b, True{}) == b : Bool}:
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+# nodiv(1 + k, n, d) adds the test of d + k
+def and_assoc(+x: Bool, +y: Bool, +z: Bool) -> {Bool.and(x, Bool.and(y, z)) == Bool.and(Bool.and(x, y), z) : Bool}:
+  match x:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+def snoc(k: Nat, +n: Nat, +d: Nat) -> {SN.nodiv(1n+k, n, d) == Bool.and(SN.nodiv(k, n, d), Bool.not(Nat.is_eq(Nat.mod(n, Nat.add(d, k)), 0n))) : Bool}:
+  match k:
+    case 0n:
+      %Equal.sym(Nat, Nat.add(d, 0n), d, A.add_zero(d)) : {SN.nodiv(1n, n, d) == Bool.and(True{}, Bool.not(Nat.is_eq(Nat.mod(n, _), 0n))) : Bool}
+      and_true(Bool.not(Nat.is_eq(Nat.mod(n, d), 0n)))
+    case 1n+ +m:
+      %Equal.sym(Nat, Nat.add(d, 1n+m), 1n+Nat.add(d, m), A.add_succ(d, m)) : {SN.nodiv(2n+m, n, d) == Bool.and(SN.nodiv(1n+m, n, d), Bool.not(Nat.is_eq(Nat.mod(n, _), 0n))) : Bool}
+      %Equal.sym(Bool, SN.nodiv(1n+m, n, 1n+d), Bool.and(SN.nodiv(m, n, 1n+d), Bool.not(Nat.is_eq(Nat.mod(n, Nat.add(1n+d, m)), 0n))), snoc(m, n, 1n+d)) : {Bool.and(Bool.not(Nat.is_eq(Nat.mod(n, d), 0n)), _) == Bool.and(SN.nodiv(1n+m, n, d), Bool.not(Nat.is_eq(Nat.mod(n, 1n+Nat.add(d, m)), 0n))) : Bool}
+      and_assoc(Bool.not(Nat.is_eq(Nat.mod(n, d), 0n)), SN.nodiv(m, n, 1n+d), Bool.not(Nat.is_eq(Nat.mod(n, 1n+Nat.add(d, m)), 0n)))
+
+# ---- no divisor above sqrt(n) without one below ----
+
+def mul0(+x: Nat) -> {Nat.mul(0n, x) == 0n : Nat}:
+  Equal.trans(Nat, Nat.mul(0n, x), Nat.mul(x, 0n), 0n, A.mul_comm(0n, x), A.mul_zero(x))
+
+def mul1(+x: Nat) -> {Nat.mul(1n, x) == x : Nat}:
+  Equal.trans(Nat, Nat.mul(1n, x), Nat.mul(x, 1n), x, A.mul_comm(1n, x), A.mul_one(x))
+
+# n == q e with q >= 2 and q < d would divide n, which nodiv(dq, n, 2) rules out
+def c_small(+n: Nat, +dq: Nat, +eq: Nat, +qq: Nat, +hn: {n == Nat.mul(2n+qq, 2n+eq) : Nat}, +hs: {SN.nodiv(dq, n, 2n) == True{} : Bool}, +hq: {Nat.is_lt(2n+qq, 2n+dq) == True{} : Bool}) -> Empty:
+  +hf = nodiv_at(dq, n, 2n, 2n+qq, hs, N.zero_le(qq), hq)
+  +hm = Equal.trans(Nat, Nat.mod(n, 2n+qq), Nat.mod(Nat.add(Nat.mul(2n+eq, 2n+qq), 0n), 2n+qq), 0n, Equal.cong(Nat, Nat, t => Nat.mod(t, 2n+qq), n, Nat.add(Nat.mul(2n+eq, 2n+qq), 0n), Equal.trans(Nat, n, Nat.mul(2n+qq, 2n+eq), Nat.add(Nat.mul(2n+eq, 2n+qq), 0n), hn, Equal.trans(Nat, Nat.mul(2n+qq, 2n+eq), Nat.mul(2n+eq, 2n+qq), Nat.add(Nat.mul(2n+eq, 2n+qq), 0n), A.mul_comm(2n+qq, 2n+eq), Equal.sym(Nat, Nat.add(Nat.mul(2n+eq, 2n+qq), 0n), Nat.mul(2n+eq, 2n+qq), A.add_zero(Nat.mul(2n+eq, 2n+qq)))))), R.mod_of(2n+eq, 1n+qq, 0n, {==}))
+  +ht = Equal.cong(Nat, Bool, t => Nat.is_eq(t, 0n), Nat.mod(n, 2n+qq), 0n, hm)
+  L.true_not_false(Nat.is_eq(Nat.mod(n, 2n+qq), 0n), ht, hf)
+
+# ... and q >= d gives d * d <= q * d <= q * e == n, against n < d * d
+def c_big(+n: Nat, +dq: Nat, +eq: Nat, +q: Nat, +hn: {n == Nat.mul(q, 2n+eq) : Nat}, +hdd: {Nat.is_lt(n, Nat.mul(2n+dq, 2n+dq)) == True{} : Bool}, +hde: {Nat.is_le(2n+dq, 2n+eq) == True{} : Bool}, +hq: {Nat.is_le(2n+dq, q) == True{} : Bool}) -> Empty:
+  +h1 = AR.mul_le(2n+dq, q, 2n+dq, hq)
+  +h2 = NF.mul_le_r(q, 2n+dq, 2n+eq, hde)
+  +h3 = N.eq_le(Nat.mul(q, 2n+eq), n, Equal.sym(Nat, n, Nat.mul(q, 2n+eq), hn))
+  +h4 = N.le_trans(Nat.mul(2n+dq, 2n+dq), Nat.mul(q, 2n+dq), n, h1, N.le_trans(Nat.mul(q, 2n+dq), Nat.mul(q, 2n+eq), n, h2, h3))
+  L.true_not_false(Nat.is_lt(Nat.mul(2n+dq, 2n+dq), Nat.mul(2n+dq, 2n+dq)), N.le_lt_trans(Nat.mul(2n+dq, 2n+dq), n, Nat.mul(2n+dq, 2n+dq), h4, hdd), N.lt_irrefl(Nat.mul(2n+dq, 2n+dq)))
+
+def c_two(+n: Nat, +dq: Nat, +eq: Nat, +qq: Nat, +hn: {n == Nat.mul(2n+qq, 2n+eq) : Nat}, +hdd: {Nat.is_lt(n, Nat.mul(2n+dq, 2n+dq)) == True{} : Bool}, +hs: {SN.nodiv(dq, n, 2n) == True{} : Bool}, +hde: {Nat.is_le(2n+dq, 2n+eq) == True{} : Bool}, +c: Bool, +hc: {Nat.is_lt(2n+qq, 2n+dq) == c : Bool}) -> Empty:
+  match c:
+    case True{}:
+      c_small(n, dq, eq, qq, hn, hs, hc)
+    case False{}:
+      c_big(n, dq, eq, 2n+qq, hn, hdd, hde, N.not_lt_le(2n+qq, 2n+dq, hc))
+
+# e divides n with d <= e < n, d * d > n and no divisor in [2, d): impossible
+def contra(+n: Nat, +dq: Nat, +eq: Nat, +q: Nat, +hn: {n == Nat.mul(q, 2n+eq) : Nat}, +hen: {Nat.is_lt(2n+eq, n) == True{} : Bool}, +hdd: {Nat.is_lt(n, Nat.mul(2n+dq, 2n+dq)) == True{} : Bool}, +hs: {SN.nodiv(dq, n, 2n) == True{} : Bool}, +hde: {Nat.is_le(2n+dq, 2n+eq) == True{} : Bool}) -> Empty:
+  match q:
+    case 0n:
+      +hz = Equal.trans(Nat, n, Nat.mul(0n, 2n+eq), 0n, hn, mul0(2n+eq))
+      N.lt_zero_absurd(2n+eq, Equal.trans(Bool, Nat.is_lt(2n+eq, 0n), Nat.is_lt(2n+eq, n), True{}, Equal.cong(Nat, Bool, t => Nat.is_lt(2n+eq, t), 0n, n, Equal.sym(Nat, n, 0n, hz)), hen))
+    case 1n:
+      +he = Equal.trans(Nat, n, Nat.mul(1n, 2n+eq), 2n+eq, hn, mul1(2n+eq))
+      L.true_not_false(Nat.is_lt(2n+eq, 2n+eq), Equal.trans(Bool, Nat.is_lt(2n+eq, 2n+eq), Nat.is_lt(2n+eq, n), True{}, Equal.cong(Nat, Bool, t => Nat.is_lt(2n+eq, t), 2n+eq, n, Equal.sym(Nat, n, 2n+eq, he)), hen), N.lt_irrefl(2n+eq))
+    case 2n+ +qq:
+      c_two(n, dq, eq, qq, hn, hdd, hs, hde, Nat.is_lt(2n+qq, 2n+dq), {==})
+
+# e < e + (1 + p)
+def lt_add1(+e: Nat, +p: Nat) -> {Nat.is_lt(e, Nat.add(e, 1n+p)) == True{} : Bool}:
+  %Equal.sym(Nat, Nat.add(e, 1n+p), 1n+Nat.add(e, p), A.add_succ(e, p)) : {Nat.is_lt(e, _) == True{} : Bool}
+  N.le_lt_succ(e, Nat.add(e, p), N.le_add_right(e, p))
+
+def head_c(+n: Nat, +dq: Nat, +eq: Nat, +p: Nat, +hdd: {Nat.is_lt(n, Nat.mul(2n+dq, 2n+dq)) == True{} : Bool}, +hs: {SN.nodiv(dq, n, 2n) == True{} : Bool}, +hde: {Nat.is_le(2n+dq, 2n+eq) == True{} : Bool}, +hek: {Nat.is_le(Nat.add(2n+eq, 1n+p), n) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(Nat.mod(n, 2n+eq), 0n) == c : Bool}) -> {Bool.not(Nat.is_eq(Nat.mod(n, 2n+eq), 0n)) == True{} : Bool}:
+  match c:
+    case False{}:
+      %Equal.sym(Bool, Nat.is_eq(Nat.mod(n, 2n+eq), 0n), False{}, hc) : {Bool.not(_) == True{} : Bool}
+      {==}
+    case True{}:
+      +hm = N.eq_from_is_eq(Nat.mod(n, 2n+eq), 0n, hc)
+      +hn0 = R.dm_eq(1n+eq, n)
+      +hn1 = Equal.trans(Nat, n, Nat.add(Nat.mul(Nat.div(n, 2n+eq), 2n+eq), Nat.mod(n, 2n+eq)), Nat.mul(Nat.div(n, 2n+eq), 2n+eq), hn0, Equal.trans(Nat, Nat.add(Nat.mul(Nat.div(n, 2n+eq), 2n+eq), Nat.mod(n, 2n+eq)), Nat.add(Nat.mul(Nat.div(n, 2n+eq), 2n+eq), 0n), Nat.mul(Nat.div(n, 2n+eq), 2n+eq), Equal.cong(Nat, Nat, t => Nat.add(Nat.mul(Nat.div(n, 2n+eq), 2n+eq), t), Nat.mod(n, 2n+eq), 0n, hm), A.add_zero(Nat.mul(Nat.div(n, 2n+eq), 2n+eq))))
+      +hen = N.lt_le_trans(2n+eq, Nat.add(2n+eq, 1n+p), n, lt_add1(2n+eq, p), hek)
+      Empty.absurd({Bool.not(Nat.is_eq(Nat.mod(n, 2n+eq), 0n)) == True{} : Bool}, contra(n, dq, eq, Nat.div(n, 2n+eq), hn1, hen, hdd, hs, hde))
+
+# every e in [2 + eq, 2 + eq + k) with d <= e, e + k <= n: none divides n
+def big(k: Nat, +n: Nat, +dq: Nat, +eq: Nat, +hdd: {Nat.is_lt(n, Nat.mul(2n+dq, 2n+dq)) == True{} : Bool}, +hs: {SN.nodiv(dq, n, 2n) == True{} : Bool}, +hde: {Nat.is_le(2n+dq, 2n+eq) == True{} : Bool}, +hek: {Nat.is_le(Nat.add(2n+eq, k), n) == True{} : Bool}) -> {SN.nodiv(k, n, 2n+eq) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+ +p:
+      +hk2 = Equal.trans(Bool, Nat.is_le(Nat.add(3n+eq, p), n), Nat.is_le(Nat.add(2n+eq, 1n+p), n), True{}, Equal.cong(Nat, Bool, t => Nat.is_le(t, n), Nat.add(3n+eq, p), Nat.add(2n+eq, 1n+p), Equal.sym(Nat, Nat.add(2n+eq, 1n+p), 1n+Nat.add(2n+eq, p), A.add_succ(2n+eq, p))), hek)
+      L.and_intro(Bool.not(Nat.is_eq(Nat.mod(n, 2n+eq), 0n)), SN.nodiv(p, n, 3n+eq), head_c(n, dq, eq, p, hdd, hs, hde, hek, Nat.is_eq(Nat.mod(n, 2n+eq), 0n), {==}), big(p, n, dq, 1n+eq, hdd, hs, le_step(2n+dq, 2n+eq, hde), hk2))
+
+# ---- the loop ----
+
+# the stop at d * d > n: nothing in [d, n) divides n
+def stop(+n: Nat, +dq: Nat, +hdd: {Nat.is_lt(n, Nat.mul(2n+dq, 2n+dq)) == True{} : Bool}, +hs: {SN.nodiv(dq, n, 2n) == True{} : Bool}, +c: Bool, +hc: {Nat.is_le(2n+dq, n) == c : Bool}) -> {True{} == SN.nodiv(Nat.sub(n, 2n+dq), n, 2n+dq) : Bool}:
+  match c:
+    case True{}:
+      +hk = N.eq_le(Nat.add(2n+dq, Nat.sub(n, 2n+dq)), n, N.sub_add(n, 2n+dq, hc))
+      Equal.sym(Bool, SN.nodiv(Nat.sub(n, 2n+dq), n, 2n+dq), True{}, big(Nat.sub(n, 2n+dq), n, dq, dq, hdd, hs, N.le_refl(2n+dq), hk))
+    case False{}:
+      %Equal.sym(Nat, Nat.sub(n, 2n+dq), 0n, sub_big(n, 2n+dq, N.lt_le(n, 2n+dq, N.not_le_lt(2n+dq, n, hc)))) : {True{} == SN.nodiv(_, n, 2n+dq) : Bool}
+      {==}
+
+# d * d <= n: d < n
+def below(+n: Nat, +dq: Nat, +hdd: {Nat.is_lt(n, Nat.mul(2n+dq, 2n+dq)) == False{} : Bool}) -> {Nat.is_lt(2n+dq, n) == True{} : Bool}:
+  N.lt_le_trans(2n+dq, Nat.mul(2n+dq, 2n+dq), n, lt_sq(dq), N.not_lt_le(n, Nat.mul(2n+dq, 2n+dq), hdd))
+
+def loop(+f: Nat, +n: Nat, +dq: Nat, +done: Bool, +hdone: {Nat.is_lt(n, Nat.mul(2n+dq, 2n+dq)) == done : Bool}, +dv: Bool, +hdv: {Nat.is_eq(Nat.mod(n, 2n+dq), 0n) == dv : Bool}, +hs: {SN.nodiv(dq, n, 2n) == True{} : Bool}, +hf: {Nat.add(f, 2n+dq) == Nat.add(n, 2n) : Nat}) -> {NB.prime_go(f, n, 2n+dq, done, dv) == SN.nodiv(Nat.sub(n, 2n+dq), n, 2n+dq) : Bool}:
+  match f done dv:
+    case 0n _ _:
+      +hle = Equal.trans(Bool, Nat.is_le(n, 2n+dq), Nat.is_le(n, Nat.add(n, 2n)), True{}, Equal.cong(Nat, Bool, t => Nat.is_le(n, t), 2n+dq, Nat.add(n, 2n), hf), N.le_add_right(n, 2n))
+      %Equal.sym(Nat, Nat.sub(n, 2n+dq), 0n, sub_big(n, 2n+dq, hle)) : {True{} == SN.nodiv(_, n, 2n+dq) : Bool}
+      {==}
+    case 1n+ +g True{} _:
+      stop(n, dq, hdone, hs, Nat.is_le(2n+dq, n), {==})
+    case 1n+ +g False{} True{}:
+      %Equal.sym(Nat, Nat.sub(n, 2n+dq), 1n+Nat.sub(n, 3n+dq), sub_split(n, 2n+dq, below(n, dq, hdone))) : {False{} == SN.nodiv(_, n, 2n+dq) : Bool}
+      %Equal.sym(Bool, Nat.is_eq(Nat.mod(n, 2n+dq), 0n), True{}, hdv) : {False{} == Bool.and(Bool.not(_), SN.nodiv(Nat.sub(n, 3n+dq), n, 3n+dq)) : Bool}
+      {==}
+    case 1n+ +g False{} False{}:
+      %Equal.sym(Nat, Nat.sub(n, 2n+dq), 1n+Nat.sub(n, 3n+dq), sub_split(n, 2n+dq, below(n, dq, hdone))) : {NB.prime_go(g, n, 3n+dq, Nat.is_lt(n, Nat.mul(3n+dq, 3n+dq)), Nat.is_eq(Nat.mod(n, 3n+dq), 0n)) == SN.nodiv(_, n, 2n+dq) : Bool}
+      %Equal.sym(Bool, Nat.is_eq(Nat.mod(n, 2n+dq), 0n), False{}, hdv) : {NB.prime_go(g, n, 3n+dq, Nat.is_lt(n, Nat.mul(3n+dq, 3n+dq)), Nat.is_eq(Nat.mod(n, 3n+dq), 0n)) == Bool.and(Bool.not(_), SN.nodiv(Nat.sub(n, 3n+dq), n, 3n+dq)) : Bool}
+      +hs2 = Equal.trans(Bool, SN.nodiv(1n+dq, n, 2n), Bool.and(SN.nodiv(dq, n, 2n), Bool.not(Nat.is_eq(Nat.mod(n, Nat.add(2n, dq)), 0n))), True{}, snoc(dq, n, 2n), L.and_intro(SN.nodiv(dq, n, 2n), Bool.not(Nat.is_eq(Nat.mod(n, 2n+dq), 0n)), hs, L.not_false(Nat.is_eq(Nat.mod(n, 2n+dq), 0n), hdv)))
+      +hf2 = Equal.trans(Nat, Nat.add(g, 3n+dq), 1n+Nat.add(g, 2n+dq), Nat.add(n, 2n), A.add_succ(g, 2n+dq), hf)
+      loop(g, n, 1n+dq, Nat.is_lt(n, Nat.mul(3n+dq, 3n+dq)), {==}, Nat.is_eq(Nat.mod(n, 3n+dq), 0n), {==}, hs2, hf2)
+
+def is_prime_value(+n: Nat) -> SN.IsPrime.value(n):
+  match n:
+    case 0n:
+      {==}
+    case 1n:
+      {==}
+    case 2n+ +p:
+      %N.sub_zero(p) : {NB.is_prime(2n+p) == SN.nodiv(_, 2n+p, 2n) : Bool}
+      loop(2n+p, 2n+p, 0n, Nat.is_lt(2n+p, 4n), {==}, Nat.is_eq(Nat.mod(2n+p, 2n), 0n), {==}, {==}, {==})
