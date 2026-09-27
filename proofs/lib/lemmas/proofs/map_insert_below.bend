@@ -58,7 +58,7 @@ law preserves_below:
   for -V: Data
   for tree: Map<&2, V>
   for +key: String
-  for value: V
+  for +value: V
   for +discriminator: Nat
   for +parent: Nat
   for fresh: {Nat.is_lt(parent, discriminator) == True{} : Bool}
@@ -69,5 +69,6 @@ def preserves_below(V, tree, key, value, discriminator, parent, fresh, existing)
     case MTip{}: {==}
     case MLeaf{stored, old}:
       splice_bit(V, value, MLeaf{stored, old}, discriminator, Map.bit(key, discriminator), parent, fresh)
-    case MNode{+position, lo, hi}:
+    case MNode{+position, +lo, +hi}:
+      %Equal.sym(Map<&2, V>, Map.ins(&2, V, MNode{position, lo, hi}, key, value, discriminator), MB.ins_if(&2, V, key, value, lo, hi, position, discriminator, Nat.is_lt(position, discriminator)), MB.ins_node(&2, V, position, lo, hi, key, value, discriminator)) : {Inv.below(V, _, parent) == True{} : Bool}
       branch(V, key, value, lo, hi, position, discriminator, Nat.is_lt(position, discriminator), parent, fresh, existing)

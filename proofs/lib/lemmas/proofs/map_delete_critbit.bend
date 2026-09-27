@@ -91,6 +91,7 @@ def branch(V, p, lo, hi, key, bit, route, parts, lp, hp):
       %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), route) : {Inv.critbit(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _))) == True{} : Bool}
       low(V, p, hi, Map.pop(&2, V, lo, key),
         %route : {Inv.common_prefix(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), p) == True{} : Bool}
+          %MB.pop_node(&2, V, p, lo, hi, key) : {Inv.common_prefix(V, Map.del.fin(&2, V, _), Map.del.fin(&2, V, _), p) == True{} : Bool}
           Common.preserves_common_prefix(V, MNode{p, lo, hi}, MNode{p, lo, hi}, key, p, prefix),
         hn, Below.preserves_below(V, lo, key, p, lv, lb), hb,
         Routes.deletion_preserves(V, lo, key, p, False{}, lr), hr, lp(lv), hv)
@@ -102,6 +103,7 @@ def branch(V, p, lo, hi, key, bit, route, parts, lp, hp):
       %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), route) : {Inv.critbit(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _))) == True{} : Bool}
       high(V, p, lo, Map.pop(&2, V, hi, key),
         %route : {Inv.common_prefix(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), p) == True{} : Bool}
+          %MB.pop_node(&2, V, p, lo, hi, key) : {Inv.common_prefix(V, Map.del.fin(&2, V, _), Map.del.fin(&2, V, _), p) == True{} : Bool}
           Common.preserves_common_prefix(V, MNode{p, lo, hi}, MNode{p, lo, hi}, key, p, prefix),
         ln, lb, Below.preserves_below(V, hi, key, p, hv, hb),
         lr, Routes.deletion_preserves(V, hi, key, p, True{}, hr), lv, hp(hv))

@@ -103,6 +103,7 @@ def preserves_binding(V, tree, key, item, discriminator, query, value, member):
     case MLeaf{stored, old}:
       splice(V, key, item, MLeaf{stored, old}, discriminator, query, value, member)
     case MNode{+parent, +lo, +hi}:
+      %Equal.sym(Map<&2, Maybe<&2, V>>, Map.ins(&2, Maybe<&2, V>, MNode{parent, lo, hi}, key, item, discriminator), MB.ins_if(&2, Maybe<&2, V>, key, item, lo, hi, parent, discriminator, Nat.is_lt(parent, discriminator)), MB.ins_node(&2, Maybe<&2, V>, parent, lo, hi, key, item, discriminator)) : L.leaf(V, _, query, value)
       branch(V, key, item, lo, hi, discriminator, parent, Nat.is_lt(parent, discriminator), query, value,
         m => preserves_binding(V, lo, key, item, discriminator, query, value, m),
         m => preserves_binding(V, hi, key, item, discriminator, query, value, m), member)

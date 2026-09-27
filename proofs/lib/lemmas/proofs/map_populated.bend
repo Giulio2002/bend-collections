@@ -104,6 +104,7 @@ def insertion_preserves_populated(V, tree, key, value, discriminator, fresh, exi
     case MNode{+parent, +lo, +hi}:
       +left = R.and_left(populated(V, lo), populated(V, hi), existing)
       +right = R.and_right(populated(V, lo), populated(V, hi), existing)
+      %Equal.sym(Map<&2, Maybe<&2, V>>, Map.ins(&2, Maybe<&2, V>, MNode{parent, lo, hi}, key, value, discriminator), MB.ins_if(&2, Maybe<&2, V>, key, value, lo, hi, parent, discriminator, Nat.is_lt(parent, discriminator)), MB.ins_node(&2, Maybe<&2, V>, parent, lo, hi, key, value, discriminator)) : {populated(V, _) == True{} : Bool}
       branch(V, key, value, lo, hi, discriminator, parent, Nat.is_lt(parent, discriminator), fresh, left, right,
         insertion_preserves_populated(V, lo, key, value, discriminator, fresh, left),
         insertion_preserves_populated(V, hi, key, value, discriminator, fresh, right))

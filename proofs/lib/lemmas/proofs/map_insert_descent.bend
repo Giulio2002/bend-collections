@@ -28,6 +28,7 @@ law deep_common:
   {Inv.common_prefix(V, MB.ins_deep(&2, V, value, lo, hi, discriminator, position, Map.bit(key, position)), MB.ins_deep(&2, V, value, lo, hi, discriminator, position, Map.bit(key, position)), position) == True{} : Bool}
 def deep_common(V, lo, hi, position, discriminator, key, value, descend, fresh, common):
   %descend : {Inv.common_prefix(V, MB.ins_if(&2, V, key, value, lo, hi, position, discriminator, _), MB.ins_if(&2, V, key, value, lo, hi, position, discriminator, _), position) == True{} : Bool}
+  %MB.ins_node(&2, V, position, lo, hi, key, value, discriminator) : {Inv.common_prefix(V, _, _, position) == True{} : Bool}
   Common.preserves_common_prefix(V, MNode{position, lo, hi}, key, value, discriminator, position, fresh, common)
 
 law common_bit:
@@ -127,6 +128,7 @@ law from_parts:
   {Inv.critbit(V, Map.ins(&2, V, MNode{position, lo, hi}, key, value, Map.diff(key, stored))) == True{} : Bool}
 def from_parts(V, lo, hi, position, key, stored, value, found, descend, parts, lp, hp):
   (common, nl, nh, bl, bh, rl, rh, vl, vh) = parts
+  %Equal.sym(Map<&2, V>, Map.ins(&2, V, MNode{position, lo, hi}, key, value, Map.diff(key, stored)), MB.ins_if(&2, V, key, value, lo, hi, position, Map.diff(key, stored), Nat.is_lt(position, Map.diff(key, stored))), MB.ins_node(&2, V, position, lo, hi, key, value, Map.diff(key, stored))) : {Inv.critbit(V, _) == True{} : Bool}
   %Equal.sym(Bool, Nat.is_lt(position, Map.diff(key, stored)), True{}, descend) : {Inv.critbit(V, MB.ins_if(&2, V, key, value, lo, hi, position, Map.diff(key, stored), _)) == True{} : Bool}
   %Equal.sym(String & Bool, Map.bit(key, position), (key, I.route_bit(Map.bit(key, position))), I.route_shape(key, position)) : {Inv.critbit(V, MB.ins_deep(&2, V, value, lo, hi, Map.diff(key, stored), position, _)) == True{} : Bool}
   deep_bit(V, lo, hi, position, key, stored, value, I.route_bit(Map.bit(key, position)), I.route_shape(key, position), found, descend, common, nl, nh, bl, bh, rl, rh, vl, vh, lp, hp)

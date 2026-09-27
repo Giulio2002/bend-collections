@@ -50,7 +50,7 @@ law insertion_nonempty:
   for -V: Data
   for tree: Map<&2, V>
   for +key: String
-  for value: V
+  for +value: V
   for +discriminator: Nat
   {Inv.nonempty(V, Map.ins(&2, V, tree, key, value, discriminator)) == True{} : Bool}
 def insertion_nonempty(V, tree, key, value, discriminator):
@@ -58,5 +58,6 @@ def insertion_nonempty(V, tree, key, value, discriminator):
     case MTip{}: {==}
     case MLeaf{stored, old}:
       splice_nonempty(V, value, MLeaf{stored, old}, discriminator, Map.bit(key, discriminator))
-    case MNode{+position, lo, hi}:
+    case MNode{+position, +lo, +hi}:
+      %Equal.sym(Map<&2, V>, Map.ins(&2, V, MNode{position, lo, hi}, key, value, discriminator), MB.ins_if(&2, V, key, value, lo, hi, position, discriminator, Nat.is_lt(position, discriminator)), MB.ins_node(&2, V, position, lo, hi, key, value, discriminator)) : {Inv.nonempty(V, _) == True{} : Bool}
       branch_nonempty(V, key, value, lo, hi, position, discriminator, Nat.is_lt(position, discriminator))

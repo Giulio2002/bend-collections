@@ -108,6 +108,7 @@ def preserves_routing(V, tree, key, value, discriminator, position, side, fresh,
     case MNode{+parent, +lo, +hi}:
       +left = R.and_left(Inv.routed(V, lo, position, side), Inv.routed(V, hi, position, side), existing)
       +right = R.and_right(Inv.routed(V, lo, position, side), Inv.routed(V, hi, position, side), existing)
+      %Equal.sym(Map<&2, V>, Map.ins(&2, V, MNode{parent, lo, hi}, key, value, discriminator), MB.ins_if(&2, V, key, value, lo, hi, parent, discriminator, Nat.is_lt(parent, discriminator)), MB.ins_node(&2, V, parent, lo, hi, key, value, discriminator)) : {Inv.routed(V, _, position, side) == True{} : Bool}
       branch(V, key, value, lo, hi, discriminator, parent, Nat.is_lt(parent, discriminator), position, side, fresh, left, right,
         preserves_routing(V, lo, key, value, discriminator, position, side, fresh, left),
         preserves_routing(V, hi, key, value, discriminator, position, side, fresh, right))

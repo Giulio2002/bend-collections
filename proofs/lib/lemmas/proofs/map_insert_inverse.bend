@@ -123,5 +123,5 @@ def no_new_other_binding(V, tree, key, item, discriminator, query, value, unequa
     case MNode{+parent, +lo, +hi}:
       branch(V, key, item, lo, hi, discriminator, parent, Nat.is_lt(parent, discriminator), query, value,
         m => no_new_other_binding(V, lo, key, item, discriminator, query, value, unequal, m),
-        m => no_new_other_binding(V, hi, key, item, discriminator, query, value, unequal, m), unequal, member)
+        m => no_new_other_binding(V, hi, key, item, discriminator, query, value, unequal, m), unequal, %MB.ins_node(&2, Maybe<&2, V>, parent, lo, hi, key, item, discriminator) : L.leaf(V, _, query, value) member)
 

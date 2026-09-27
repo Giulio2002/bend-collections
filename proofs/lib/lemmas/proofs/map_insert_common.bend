@@ -113,6 +113,7 @@ def preserves_rows(V, tree, key, value, discriminator, position, side, fresh, ex
     case MNode{+parent, +lo, +hi}:
       +left = R.and_left(rows(V, lo, position, side), rows(V, hi, position, side), existing)
       +right = R.and_right(rows(V, lo, position, side), rows(V, hi, position, side), existing)
+      %Equal.sym(Map<&2, V>, Map.ins(&2, V, MNode{parent, lo, hi}, key, value, discriminator), MB.ins_if(&2, V, key, value, lo, hi, parent, discriminator, Nat.is_lt(parent, discriminator)), MB.ins_node(&2, V, parent, lo, hi, key, value, discriminator)) : {rows(V, _, position, side) == True{} : Bool}
       branch(V, key, value, lo, hi, discriminator, parent, Nat.is_lt(parent, discriminator), position, side, fresh, left, right,
         preserves_rows(V, lo, key, value, discriminator, position, side, fresh, left),
         preserves_rows(V, hi, key, value, discriminator, position, side, fresh, right))
