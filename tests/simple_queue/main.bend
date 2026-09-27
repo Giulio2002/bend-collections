@@ -122,4 +122,4 @@ def out(r: K.Queue<Nat> & List<&2, E.Obs<Nat>>) -> List<&2, String>:
 def main() -> IO(Unit):
   do IO<Unit>:
     args : List<String> <- IO.args()
-    X.print_lines(out(run(~Nat, parse_all(X.shared(args)), Q.new(~Nat))))
+    X.print_lines(out(run(~Nat, parse_all(X.program_args(args)), Q.new(~Nat))))

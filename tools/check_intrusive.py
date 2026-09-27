@@ -38,7 +38,7 @@ def main():
               'tests/intrusive_doubly_linked_list/scheduler.bend',
               'tests/intrusive_doubly_linked_list/affine.bend']:
         r=run([bend,f,'--check-only'])
-        if (r.stdout+r.stderr).strip()!='All terms check.':
+        if (r.stdout+r.stderr).strip().splitlines()[:1] not in (['All terms check.'],['ALL PROOFS CHECK']):
             raise RuntimeError(f'{f}: checker was not clean:\n{r.stdout}\n{r.stderr}')
         checked.append(f)
     prefix='tests/intrusive_doubly_linked_list/'

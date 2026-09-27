@@ -60,6 +60,12 @@ LOGDIR = BUILD / 'validation-logs'
 FAILURES = []
 
 
+
+def proved(out):
+    """A proof verdict: Bend 2.0.32+ prints ALL PROOFS CHECK / SOME PROOFS FAIL,
+    earlier releases All terms check."""
+    return ('ALL PROOFS CHECK' in out and 'SOME PROOFS FAIL' not in out) or 'All terms check' in out
+
 def fail(where, message):
     FAILURES.append('%s: %s' % (where, message))
     print('FAIL %s: %s' % (where, message), file=sys.stderr)
@@ -229,7 +235,7 @@ def check_lru(log):
                     [BEND, 'proofs/containers/hash_table/proof.bend'],
                     [BEND, 'proofs/containers/lru/proof.bend']]:
         p = run(command, timeout=7200)
-        good = p.returncode == 0 and (command[0] != BEND or 'All terms check' in p.stdout)
+        good = p.returncode == 0 and (command[0] != BEND or proved(p.stdout))
         last = (p.stdout.strip().splitlines() or [''])[-1]
         checks.append({'command': command, 'passed': good, 'output': last})
         log.append('[kv] %s -> %s' % (' '.join(command), last))
@@ -289,7 +295,7 @@ def main():
                                    ([BEND, 'proofs/containers/balanced_search_tree/range.bend'], 120),
                                    ([BEND, 'proofs/containers/balanced_search_tree/proof.bend'], 21600)]:
                 result = run(command, timeout=limit)
-                passed = result.returncode == 0 and (command[1] != 'proofs/containers/balanced_search_tree/proof.bend' or 'All terms check' in result.stdout)
+                passed = result.returncode == 0 and (command[1] != 'proofs/containers/balanced_search_tree/proof.bend' or proved(result.stdout))
                 checks.append({'command': command, 'passed': passed,
                                'output': result.stdout + result.stderr})
                 if not passed:
@@ -357,7 +363,7 @@ def main():
             fail(name, 'driver binary %s disappeared during validation' % binary)
             func_ok = False
         p = run([BEND, 'proofs/containers/%s/proof.bend' % name], timeout=7200)
-        proof_ok = p.returncode == 0 and 'All terms check' in p.stdout
+        proof_ok = p.returncode == 0 and proved(p.stdout)
         proof_line = (p.stdout.strip().splitlines() or [''])[-1]
         log.append('[proof] proofs/containers/%s/proof.bend -> %s' % (name, proof_line))
         if not proof_ok:
@@ -417,7 +423,7 @@ def main():
                       [([BEND, str(f.relative_to(ROOT))], 1800) for f in sorted((ROOT / 'spec/math').glob('*.bend'))]
         for command, limit in math_checks:
             result = run(command, timeout=limit)
-            passed = result.returncode == 0 and (not command[1].endswith('.bend') or '-o' in command or 'All terms check' in result.stdout)
+            passed = result.returncode == 0 and (not command[1].endswith('.bend') or '-o' in command or proved(result.stdout))
             checks.append({'command': command, 'passed': passed, 'output': result.stdout + result.stderr})
             if not passed:
                 fail('math', 'math check failed: ' + repr(command))

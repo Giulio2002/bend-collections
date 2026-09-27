@@ -191,4 +191,4 @@ def run(tokens: List<&2, String>, st: I.Iterator<U32> & List<&2, String>) -> Lis
 def main() -> IO(Unit):
   do IO<Unit>:
     args : List<String> <- IO.args()
-    X.print_lines(run(X.shared(args), (I.iter_first(~U32, D.new(~U32, 1)), Nil{})))
+    X.print_lines(run(X.program_args(args), (I.iter_first(~U32, D.new(~U32, 1)), Nil{})))

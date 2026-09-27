@@ -325,4 +325,4 @@ def run(tokens: List<&2, String>, r: F.World & List<&2, String>) -> List<&2, Str
 def main() -> IO(Unit):
   do IO<Unit>:
     args : List<String> <- IO.args()
-    X.print_lines(run(X.shared(args), (F.new(), Nil{})))
+    X.print_lines(run(X.program_args(args), (F.new(), Nil{})))

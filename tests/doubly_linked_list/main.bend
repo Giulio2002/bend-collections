@@ -154,4 +154,4 @@ def start(args: List<&2, String>) -> List<&2, String>:
 def main() -> IO(Unit):
   do IO<Unit>:
     args : List<String> <- IO.args()
-    X.print_lines(start(X.shared(args)))
+    X.print_lines(start(X.program_args(args)))
