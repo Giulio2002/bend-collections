@@ -1,4 +1,5 @@
 import Base
+import ./map_bridge.bend as MB
 import ./map_insert.bend as I
 import ./string_compare.bend as N
 import ./map_set_critbit.bend as Set
@@ -56,22 +57,22 @@ law branch:
 def branch(V, d, p, lo, hi, key, stored, item, query, kb, qb, kr, qr, selected, left, right):
   match kb qb:
     case False{} False{}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), kr) : {I.lookup(V, d, Map.put.bit(&2, V, item, p, lo, hi, _), query) == I.lookup(V, d, MNode{p, lo, hi}, query) : V}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), kr) : {I.lookup(V, d, MB.put_bit(&2, V, item, p, lo, hi, _), query) == I.lookup(V, d, MNode{p, lo, hi}, query) : V}
       %Equal.sym(V, I.lookup(V, d, MNode{p, Map.put(&2, V, lo, key, item), hi}, query), I.lookup(V, d, Map.put(&2, V, lo, key, item), query), I.node_left(V, d, Map.put(&2, V, lo, key, item), hi, p, query, qr)) : {_ == I.lookup(V, d, MNode{p, lo, hi}, query) : V}
       %Equal.sym(V, I.lookup(V, d, MNode{p, lo, hi}, query), I.lookup(V, d, lo, query), I.node_left(V, d, lo, hi, p, query, qr)) : {I.lookup(V, d, Map.put(&2, V, lo, key, item), query) == _ : V}
       left(Equal.trans(Maybe<&2, String>, I.seek_found(V, Map.seek(&2, V, lo, key)), I.seek_found(V, Map.seek(&2, V, MNode{p, lo, hi}, key)), Some{stored}, Equal.sym(Maybe<&2, String>, I.seek_found(V, Map.seek(&2, V, MNode{p, lo, hi}, key)), I.seek_found(V, Map.seek(&2, V, lo, key)), I.seek_left(V, lo, hi, p, key, kr)), selected))
     case False{} True{}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), kr) : {I.lookup(V, d, Map.put.bit(&2, V, item, p, lo, hi, _), query) == I.lookup(V, d, MNode{p, lo, hi}, query) : V}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), kr) : {I.lookup(V, d, MB.put_bit(&2, V, item, p, lo, hi, _), query) == I.lookup(V, d, MNode{p, lo, hi}, query) : V}
       %Equal.sym(V, I.lookup(V, d, MNode{p, Map.put(&2, V, lo, key, item), hi}, query), I.lookup(V, d, hi, query), I.node_right(V, d, Map.put(&2, V, lo, key, item), hi, p, query, qr)) : {_ == I.lookup(V, d, MNode{p, lo, hi}, query) : V}
       %Equal.sym(V, I.lookup(V, d, MNode{p, lo, hi}, query), I.lookup(V, d, hi, query), I.node_right(V, d, lo, hi, p, query, qr)) : {I.lookup(V, d, hi, query) == _ : V}
       {==}
     case True{} False{}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), kr) : {I.lookup(V, d, Map.put.bit(&2, V, item, p, lo, hi, _), query) == I.lookup(V, d, MNode{p, lo, hi}, query) : V}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), kr) : {I.lookup(V, d, MB.put_bit(&2, V, item, p, lo, hi, _), query) == I.lookup(V, d, MNode{p, lo, hi}, query) : V}
       %Equal.sym(V, I.lookup(V, d, MNode{p, lo, Map.put(&2, V, hi, key, item)}, query), I.lookup(V, d, lo, query), I.node_left(V, d, lo, Map.put(&2, V, hi, key, item), p, query, qr)) : {_ == I.lookup(V, d, MNode{p, lo, hi}, query) : V}
       %Equal.sym(V, I.lookup(V, d, MNode{p, lo, hi}, query), I.lookup(V, d, lo, query), I.node_left(V, d, lo, hi, p, query, qr)) : {I.lookup(V, d, lo, query) == _ : V}
       {==}
     case True{} True{}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), kr) : {I.lookup(V, d, Map.put.bit(&2, V, item, p, lo, hi, _), query) == I.lookup(V, d, MNode{p, lo, hi}, query) : V}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), kr) : {I.lookup(V, d, MB.put_bit(&2, V, item, p, lo, hi, _), query) == I.lookup(V, d, MNode{p, lo, hi}, query) : V}
       %Equal.sym(V, I.lookup(V, d, MNode{p, lo, Map.put(&2, V, hi, key, item)}, query), I.lookup(V, d, Map.put(&2, V, hi, key, item), query), I.node_right(V, d, lo, Map.put(&2, V, hi, key, item), p, query, qr)) : {_ == I.lookup(V, d, MNode{p, lo, hi}, query) : V}
       %Equal.sym(V, I.lookup(V, d, MNode{p, lo, hi}, query), I.lookup(V, d, hi, query), I.node_right(V, d, lo, hi, p, query, qr)) : {I.lookup(V, d, Map.put(&2, V, hi, key, item), query) == _ : V}
       right(Equal.trans(Maybe<&2, String>, I.seek_found(V, Map.seek(&2, V, hi, key)), I.seek_found(V, Map.seek(&2, V, MNode{p, lo, hi}, key)), Some{stored}, Equal.sym(Maybe<&2, String>, I.seek_found(V, Map.seek(&2, V, MNode{p, lo, hi}, key)), I.seek_found(V, Map.seek(&2, V, hi, key)), I.seek_right(V, lo, hi, p, key, kr)), selected))

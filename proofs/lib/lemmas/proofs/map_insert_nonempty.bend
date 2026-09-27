@@ -1,4 +1,5 @@
 import Base
+import ./map_bridge.bend as MB
 import ./invariants.bend as Inv
 
 law splice_nonempty:
@@ -21,7 +22,7 @@ law deep_nonempty:
   for discriminator: Nat
   for position: Nat
   for route: String & Bool
-  {Inv.nonempty(V, Map.ins.deep(&2, V, value, lo, hi, discriminator, position, route)) == True{} : Bool}
+  {Inv.nonempty(V, MB.ins_deep(&2, V, value, lo, hi, discriminator, position, route)) == True{} : Bool}
 def deep_nonempty(V, value, lo, hi, discriminator, position, route):
   match route:
     case Tuple{key, False{}}: {==}
@@ -36,7 +37,7 @@ law branch_nonempty:
   for +position: Nat
   for +discriminator: Nat
   for descend: Bool
-  {Inv.nonempty(V, Map.ins.if(&2, V, key, value, lo, hi, position, discriminator, descend)) == True{} : Bool}
+  {Inv.nonempty(V, MB.ins_if(&2, V, key, value, lo, hi, position, discriminator, descend)) == True{} : Bool}
 def branch_nonempty(V, key, value, lo, hi, position, discriminator, descend):
   match descend:
     case False{}:

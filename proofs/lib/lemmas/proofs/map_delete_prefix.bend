@@ -1,4 +1,5 @@
 import Base
+import ./map_bridge.bend as MB
 import ./string_compare.bend as N
 import ./map_insert.bend as I
 import ./map_routing.bend as R
@@ -95,10 +96,10 @@ law branch:
 def branch(V, lo, hi, p, key, bit, e, query, limit, left, right, lp, hp):
   match bit:
     case False{}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {Inv.prefix_against(V, query, Map.del.fin(&2, V, Map.pop.bit(&2, V, lo, hi, p, _)), limit) == True{} : Bool}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {Inv.prefix_against(V, query, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), limit) == True{} : Bool}
       low(V, p, hi, Map.pop(&2, V, lo, key), query, limit, lp(left), right)
     case True{}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {Inv.prefix_against(V, query, Map.del.fin(&2, V, Map.pop.bit(&2, V, lo, hi, p, _)), limit) == True{} : Bool}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {Inv.prefix_against(V, query, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), limit) == True{} : Bool}
       high(V, p, lo, Map.pop(&2, V, hi, key), query, limit, left, hp(right))
 
 law preserves_prefix_against:

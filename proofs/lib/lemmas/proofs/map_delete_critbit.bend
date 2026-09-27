@@ -1,4 +1,5 @@
 import Base
+import ./map_bridge.bend as MB
 import ./invariants.bend as Inv
 import ./string_compare.bend as N
 import ./map_insert.bend as I
@@ -86,9 +87,9 @@ def branch(V, p, lo, hi, key, bit, route, parts, lp, hp):
       (prefix, ln, hn, lb, hb, lr, hr, lv0, hv0) = parts
       +lv = {lv0 : {Inv.critbit(V, lo) == True{} : Bool}}
       +hv = {hv0 : {Inv.critbit(V, hi) == True{} : Bool}}
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), route) : {Inv.critbit(V, Map.del.fin(&2, V, Map.pop.bit(&2, V, lo, hi, p, _))) == True{} : Bool}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), route) : {Inv.critbit(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _))) == True{} : Bool}
       low(V, p, hi, Map.pop(&2, V, lo, key),
-        %route : {Inv.common_prefix(V, Map.del.fin(&2, V, Map.pop.bit(&2, V, lo, hi, p, _)), Map.del.fin(&2, V, Map.pop.bit(&2, V, lo, hi, p, _)), p) == True{} : Bool}
+        %route : {Inv.common_prefix(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), p) == True{} : Bool}
           Common.preserves_common_prefix(V, MNode{p, lo, hi}, MNode{p, lo, hi}, key, p, prefix),
         hn, Below.preserves_below(V, lo, key, p, lv, lb), hb,
         Routes.deletion_preserves(V, lo, key, p, False{}, lr), hr, lp(lv), hv)
@@ -96,9 +97,9 @@ def branch(V, p, lo, hi, key, bit, route, parts, lp, hp):
       (prefix, ln, hn, lb, hb, lr, hr, lv0, hv0) = parts
       +lv = {lv0 : {Inv.critbit(V, lo) == True{} : Bool}}
       +hv = {hv0 : {Inv.critbit(V, hi) == True{} : Bool}}
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), route) : {Inv.critbit(V, Map.del.fin(&2, V, Map.pop.bit(&2, V, lo, hi, p, _))) == True{} : Bool}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), route) : {Inv.critbit(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _))) == True{} : Bool}
       high(V, p, lo, Map.pop(&2, V, hi, key),
-        %route : {Inv.common_prefix(V, Map.del.fin(&2, V, Map.pop.bit(&2, V, lo, hi, p, _)), Map.del.fin(&2, V, Map.pop.bit(&2, V, lo, hi, p, _)), p) == True{} : Bool}
+        %route : {Inv.common_prefix(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), p) == True{} : Bool}
           Common.preserves_common_prefix(V, MNode{p, lo, hi}, MNode{p, lo, hi}, key, p, prefix),
         ln, lb, Below.preserves_below(V, hi, key, p, hv, hb),
         lr, Routes.deletion_preserves(V, hi, key, p, True{}, hr), lv, hp(hv))

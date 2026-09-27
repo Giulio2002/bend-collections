@@ -1,4 +1,5 @@
 import Base
+import ./map_bridge.bend as MB
 import ./invariants.bend as Inv
 import ./map_insert.bend as I
 import ./map_routing.bend as R
@@ -53,7 +54,7 @@ law deep_bit:
   for right: {Inv.routed(V, hi, position, side) == True{} : Bool}
   for changed_left: {Inv.routed(V, Map.ins(&2, V, lo, key, value, discriminator), position, side) == True{} : Bool}
   for changed_right: {Inv.routed(V, Map.ins(&2, V, hi, key, value, discriminator), position, side) == True{} : Bool}
-  {Inv.routed(V, Map.ins.deep(&2, V, value, lo, hi, discriminator, parent, (key, bit)), position, side) == True{} : Bool}
+  {Inv.routed(V, MB.ins_deep(&2, V, value, lo, hi, discriminator, parent, (key, bit)), position, side) == True{} : Bool}
 def deep_bit(V, key, value, lo, hi, discriminator, parent, bit, position, side, left, right, changed_left, changed_right):
   match bit:
     case False{}:
@@ -77,13 +78,13 @@ law branch:
   for right: {Inv.routed(V, hi, position, side) == True{} : Bool}
   for changed_left: {Inv.routed(V, Map.ins(&2, V, lo, key, value, discriminator), position, side) == True{} : Bool}
   for changed_right: {Inv.routed(V, Map.ins(&2, V, hi, key, value, discriminator), position, side) == True{} : Bool}
-  {Inv.routed(V, Map.ins.if(&2, V, key, value, lo, hi, parent, discriminator, descend), position, side) == True{} : Bool}
+  {Inv.routed(V, MB.ins_if(&2, V, key, value, lo, hi, parent, discriminator, descend), position, side) == True{} : Bool}
 def branch(V, key, value, lo, hi, discriminator, parent, descend, position, side, fresh, left, right, changed_left, changed_right):
   match descend:
     case False{}:
       splice(V, key, value, MNode{parent, lo, hi}, discriminator, position, side, fresh, P.conjunction(Inv.routed(V, lo, position, side), Inv.routed(V, hi, position, side), left, right))
     case True{}:
-      %Equal.sym(String & Bool, Map.bit(key, parent), (key, I.route_bit(Map.bit(key, parent))), I.route_shape(key, parent)) : {Inv.routed(V, Map.ins.deep(&2, V, value, lo, hi, discriminator, parent, _), position, side) == True{} : Bool}
+      %Equal.sym(String & Bool, Map.bit(key, parent), (key, I.route_bit(Map.bit(key, parent))), I.route_shape(key, parent)) : {Inv.routed(V, MB.ins_deep(&2, V, value, lo, hi, discriminator, parent, _), position, side) == True{} : Bool}
       deep_bit(V, key, value, lo, hi, discriminator, parent, I.route_bit(Map.bit(key, parent)), position, side, left, right, changed_left, changed_right)
 
 # Inserting a key that satisfies an existing routing constraint preserves that
