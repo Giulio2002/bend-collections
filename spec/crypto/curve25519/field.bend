@@ -121,10 +121,10 @@ def MulSmall.value(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +k: U32
 def MulSmall.tight(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +k: U32, +ha: {tight(a) == True{} : Bool}, +hk: {Nat.is_lt(U32.to_nat(k), C.shift(17n, one)) == True{} : Bool}) -> Type:
   {tight(F.mul_small(a, k)) == True{} : Bool}
 
-def Select.zero(+a: List<&2, U32>, +b: List<&2, U32>, +ha: {tight(a) == True{} : Bool}, +hb: {tight(b) == True{} : Bool}) -> Type:
+def Select.zero(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +b: List<&2, U32>, +ha: {tight(a) == True{} : Bool}, +hb: {tight(b) == True{} : Bool}) -> Type:
   {F.select(0, a, b) == a : List<&2, U32>}
 
-def Select.one(+a: List<&2, U32>, +b: List<&2, U32>, +ha: {tight(a) == True{} : Bool}, +hb: {tight(b) == True{} : Bool}) -> Type:
+def Select.one(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +b: List<&2, U32>, +ha: {tight(a) == True{} : Bool}, +hb: {tight(b) == True{} : Bool}) -> Type:
   {F.select(1, a, b) == b : List<&2, U32>}
 
 def Inv.value(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +ha: {tight(a) == True{} : Bool}) -> Type:
