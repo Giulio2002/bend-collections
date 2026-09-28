@@ -23,20 +23,29 @@ import ./cong.bend as G
 def v(+x: U32) -> Nat:
   U32.to_nat(x)
 
-# 2^n - 1 as 2^(n-1) + ... + 1
-def Fo(+one: Nat, n: Nat) -> Nat:
-  match n:
-    case 0n:
-      0n
-    case 1n+ +m:
-      Nat.add(WD.sc(m, one), Fo(one, m))
+# 2^n - 1
+def Fo(+one: Nat, +n: Nat) -> Nat:
+  Nat.sub(WD.sc(n, one), one)
 
-def fo_sum(+one: Nat, +n: Nat) -> {Nat.add(Fo(one, n), one) == WD.sc(n, one) : Nat}:
-  match n:
-    case 0n:
-      {==}
-    case 1n+ +m:
-      Equal.trans(Nat, Nat.add(Nat.add(WD.sc(m, one), Fo(one, m)), one), Nat.add(WD.sc(m, one), Nat.add(Fo(one, m), one)), WD.sc(1n+m, one), NA.add_assoc(WD.sc(m, one), Fo(one, m), one), Equal.trans(Nat, Nat.add(WD.sc(m, one), Nat.add(Fo(one, m), one)), Nat.add(WD.sc(m, one), WD.sc(m, one)), WD.sc(1n+m, one), M.cong_r(WD.sc(m, one), Nat.add(Fo(one, m), one), WD.sc(m, one), fo_sum(one, m)), M.sc_dbl(m, one)))
+def one_le_sc(+one: Nat, +h1: {one == 1n : Nat}, +n: Nat) -> {Nat.is_le(one, WD.sc(n, one)) == True{} : Bool}:
+  +a = N.lt_succ_le_succ(0n, WD.sc(n, one), LM.sc_pos1(n, one, h1))
+  L.subst(Nat, o => {Nat.is_le(o, WD.sc(n, one)) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), a)
+
+def fo_sum(+one: Nat, +h1: {one == 1n : Nat}, +n: Nat) -> {Nat.add(Fo(one, n), one) == WD.sc(n, one) : Nat}:
+  Equal.trans(Nat, Nat.add(Fo(one, n), one), Nat.add(one, Fo(one, n)), WD.sc(n, one), NA.add_comm(Fo(one, n), one), N.sub_add(WD.sc(n, one), one, one_le_sc(one, h1, n)))
+
+# (a + c) - b == a + (c - b) for b <= c
+def sub_add_r(+a: Nat, +c: Nat, +b: Nat, +h: {Nat.is_le(b, c) == True{} : Bool}) -> {Nat.sub(Nat.add(a, c), b) == Nat.add(a, Nat.sub(c, b)) : Nat}:
+  +d = Nat.sub(c, b)
+  +e1 = Equal.cong(Nat, Nat, t => Nat.sub(Nat.add(a, t), b), c, Nat.add(b, d), Equal.sym(Nat, Nat.add(b, d), c, N.sub_add(c, b, h)))
+  +e2 = Equal.cong(Nat, Nat, t => Nat.sub(t, b), Nat.add(a, Nat.add(b, d)), Nat.add(b, Nat.add(a, d)), NA.add_swap(a, b, d))
+  Equal.trans(Nat, Nat.sub(Nat.add(a, c), b), Nat.sub(Nat.add(a, Nat.add(b, d)), b), Nat.add(a, d), e1, Equal.trans(Nat, Nat.sub(Nat.add(a, Nat.add(b, d)), b), Nat.sub(Nat.add(b, Nat.add(a, d)), b), Nat.add(a, d), e2, N.add_sub_cancel(b, Nat.add(a, d))))
+
+# 2^m + (2^m - 1) == 2^(m+1) - 1
+def fo_step(+one: Nat, +h1: {one == 1n : Nat}, +m: Nat) -> {Nat.add(WD.sc(m, one), Fo(one, m)) == Fo(one, 1n+m) : Nat}:
+  +S = WD.sc(m, one)
+  +e1 = Equal.cong(Nat, Nat, t => Nat.sub(t, one), Nat.double(S), Nat.add(S, S), NA.double_self(S))
+  Equal.sym(Nat, Nat.sub(Nat.double(S), one), Nat.add(S, Nat.sub(S, one)), Equal.trans(Nat, Nat.sub(Nat.double(S), one), Nat.sub(Nat.add(S, S), one), Nat.add(S, Nat.sub(S, one)), e1, sub_add_r(S, S, one, one_le_sc(one, h1, m))))
 
 def bexp(b: Bool) -> Nat:
   match b:
@@ -143,8 +152,11 @@ def sq_pow(+a: Nat, +y: Nat, +s: Nat, +z: Nat, +s2: Nat, +hs: {Nat.add(s, s) == 
 def po_val(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +n: Nat, +x: List<&2, U32>, +acc: List<&2, U32>, +hx: {LM.okb(32n, x, 255n) == True{} : Bool}, +ha: {LM.okb(32n, acc, 255n) == True{} : Bool}) -> G.ceq(pp, FS.value(F.pow_ones(x, n, acc)), Nat.mul(Nat.pow(FS.value(acc), WD.sc(n, one)), Nat.pow(FS.value(x), Fo(one, n)))):
   match n:
     case 0n:
-      %Equal.sym(List<&2, U32>, F.pow_ones(x, 0n, acc), acc, po_zero(x, acc, hx)) : G.ceq(pp, FS.value(_), Nat.mul(Nat.pow(FS.value(acc), one), 1n))
-      G.c_eq(pp, FS.value(acc), Nat.mul(Nat.pow(FS.value(acc), one), 1n), Equal.sym(Nat, Nat.mul(Nat.pow(FS.value(acc), one), 1n), FS.value(acc), pow_one_one(one, h1, FS.value(acc))))
+      +A = FS.value(acc)
+      +R = Nat.mul(Nat.pow(A, one), Nat.pow(FS.value(x), Fo(one, 0n)))
+      %Equal.sym(List<&2, U32>, F.pow_ones(x, 0n, acc), acc, po_zero(x, acc, hx)) : G.ceq(pp, FS.value(_), R)
+      +e0 = Equal.cong(Nat, Nat, t => Nat.mul(Nat.pow(A, one), Nat.pow(FS.value(x), t)), Fo(one, 0n), 0n, N.sub_self(one))
+      G.c_eq(pp, A, R, Equal.sym(Nat, R, A, Equal.trans(Nat, R, Nat.mul(Nat.pow(A, one), 1n), A, e0, pow_one_one(one, h1, A))))
     case 1n+ +m:
       +A = FS.value(acc)
       +X = FS.value(x)
@@ -153,12 +165,13 @@ def po_val(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n
       +Fm = Fo(one, m)
       +ha2 = MW.mul_okb(one, h1, F.sq(acc), x, MW.sq_okb(one, h1, acc, ha), hx)
       +ih = po_val(one, h1, pp, hP, m, x, acc2, hx, ha2)
-      %Equal.sym(List<&2, U32>, F.pow_ones(x, 1n+m, acc), F.pow_ones(x, m, acc2), po_step(x, m, acc, hx)) : G.ceq(pp, FS.value(_), Nat.mul(Nat.pow(A, WD.sc(1n+m, one)), Nat.pow(X, Nat.add(S, Fm))))
+      %Equal.sym(List<&2, U32>, F.pow_ones(x, 1n+m, acc), F.pow_ones(x, m, acc2), po_step(x, m, acc, hx)) : G.ceq(pp, FS.value(_), Nat.mul(Nat.pow(A, WD.sc(1n+m, one)), Nat.pow(X, Fo(one, 1n+m))))
       +e1 = G.c_mul(pp, Nat.pow(FS.value(acc2), S), Nat.pow(Nat.mul(Nat.mul(A, A), X), S), Nat.pow(X, Fm), Nat.pow(X, Fm), G.c_pow(pp, FS.value(acc2), Nat.mul(Nat.mul(A, A), X), S, step_c(one, h1, pp, hP, acc, x, ha, hx)), G.c_refl(pp, Nat.pow(X, Fm)))
       +e2 = sq_pow(A, X, S, Nat.pow(X, Fm), WD.sc(1n+m, one), M.sc_dbl(m, one))
       +e3 = Equal.cong(Nat, Nat, t => Nat.mul(Nat.pow(A, WD.sc(1n+m, one)), t), Nat.mul(Nat.pow(X, S), Nat.pow(X, Fm)), Nat.pow(X, Nat.add(S, Fm)), Equal.sym(Nat, Nat.pow(X, Nat.add(S, Fm)), Nat.mul(Nat.pow(X, S), Nat.pow(X, Fm)), NR.pow_add(X, S, Fm)))
-      G.c_trans(pp, FS.value(F.pow_ones(x, m, acc2)), Nat.mul(Nat.pow(FS.value(acc2), S), Nat.pow(X, Fm)), Nat.mul(Nat.pow(A, WD.sc(1n+m, one)), Nat.pow(X, Nat.add(S, Fm))), ih,
+      +fin = G.c_trans(pp, FS.value(F.pow_ones(x, m, acc2)), Nat.mul(Nat.pow(FS.value(acc2), S), Nat.pow(X, Fm)), Nat.mul(Nat.pow(A, WD.sc(1n+m, one)), Nat.pow(X, Nat.add(S, Fm))), ih,
         G.c_trans(pp, Nat.mul(Nat.pow(FS.value(acc2), S), Nat.pow(X, Fm)), Nat.mul(Nat.pow(Nat.mul(Nat.mul(A, A), X), S), Nat.pow(X, Fm)), Nat.mul(Nat.pow(A, WD.sc(1n+m, one)), Nat.pow(X, Nat.add(S, Fm))), e1, G.c_eq(pp, Nat.mul(Nat.pow(Nat.mul(Nat.mul(A, A), X), S), Nat.pow(X, Fm)), Nat.mul(Nat.pow(A, WD.sc(1n+m, one)), Nat.pow(X, Nat.add(S, Fm))), Equal.trans(Nat, Nat.mul(Nat.pow(Nat.mul(Nat.mul(A, A), X), S), Nat.pow(X, Fm)), Nat.mul(Nat.pow(A, WD.sc(1n+m, one)), Nat.mul(Nat.pow(X, S), Nat.pow(X, Fm))), Nat.mul(Nat.pow(A, WD.sc(1n+m, one)), Nat.pow(X, Nat.add(S, Fm))), e2, e3))))
+      G.c_trans(pp, FS.value(F.pow_ones(x, m, acc2)), Nat.mul(Nat.pow(A, WD.sc(1n+m, one)), Nat.pow(X, Nat.add(S, Fm))), Nat.mul(Nat.pow(A, WD.sc(1n+m, one)), Nat.pow(X, Fo(one, 1n+m))), fin, G.c_eq(pp, Nat.mul(Nat.pow(A, WD.sc(1n+m, one)), Nat.pow(X, Nat.add(S, Fm))), Nat.mul(Nat.pow(A, WD.sc(1n+m, one)), Nat.pow(X, Fo(one, 1n+m))), Equal.cong(Nat, Nat, t => Nat.mul(Nat.pow(A, WD.sc(1n+m, one)), Nat.pow(X, t)), Nat.add(S, Fm), Fo(one, 1n+m), fo_step(one, h1, m))))
 
 def pb_val(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +b: Bool, +x: List<&2, U32>, +acc: List<&2, U32>, +hx: {LM.okb(32n, x, 255n) == True{} : Bool}, +ha: {LM.okb(32n, acc, 255n) == True{} : Bool}) -> G.ceq(pp, FS.value(F.pow_bit(b, x, acc)), Nat.mul(Nat.mul(FS.value(acc), FS.value(acc)), Nat.pow(FS.value(x), bexp(b)))):
   match b:
@@ -206,7 +219,7 @@ def chain_val(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 
   +S = WD.sc(blen(bs), one)
   +ha1 = po_okb(one, h1, n, x, x, hx, hx)
   +e1 = po_val(one, h1, pp, hP, n, x, x, hx, hx)
-  +e1b = Equal.sym(Nat, Nat.pow(X, Nat.add(WD.sc(n, one), Fo(one, n))), Nat.mul(Nat.pow(X, WD.sc(n, one)), Nat.pow(X, Fo(one, n))), NR.pow_add(X, WD.sc(n, one), Fo(one, n)))
+  +e1b = Equal.trans(Nat, Nat.mul(Nat.pow(X, WD.sc(n, one)), Nat.pow(X, Fo(one, n))), Nat.pow(X, Nat.add(WD.sc(n, one), Fo(one, n))), Nat.pow(X, F2), Equal.sym(Nat, Nat.pow(X, Nat.add(WD.sc(n, one), Fo(one, n))), Nat.mul(Nat.pow(X, WD.sc(n, one)), Nat.pow(X, Fo(one, n))), NR.pow_add(X, WD.sc(n, one), Fo(one, n))), Equal.cong(Nat, Nat, t => Nat.pow(X, t), Nat.add(WD.sc(n, one), Fo(one, n)), F2, fo_step(one, h1, n)))
   +v1 = G.c_trans(pp, FS.value(a1), Nat.mul(Nat.pow(X, WD.sc(n, one)), Nat.pow(X, Fo(one, n))), Nat.pow(X, F2), e1, G.c_eq(pp, Nat.mul(Nat.pow(X, WD.sc(n, one)), Nat.pow(X, Fo(one, n))), Nat.pow(X, F2), e1b))
   +e2 = pbs_val(one, h1, pp, hP, bs, x, a1, hx, ha1)
   +e3 = G.c_mul(pp, Nat.pow(FS.value(a1), S), Nat.pow(Nat.pow(X, F2), S), Nat.pow(X, eb(one, bs)), Nat.pow(X, eb(one, bs)), G.c_pow(pp, FS.value(a1), Nat.pow(X, F2), S, v1), G.c_refl(pp, Nat.pow(X, eb(one, bs))))
@@ -222,7 +235,7 @@ def cancel_r(+a: Nat, +b: Nat, +c: Nat, +e: {Nat.add(a, c) == Nat.add(b, c) : Na
 def f32(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}) -> {Nat.add(Nat.mul(Fo(one, 250n), 32n), 32n) == Nat.add(1n+pp, 19n) : Nat}:
   +F2 = Fo(one, 250n)
   +e1 = Equal.trans(Nat, Nat.add(Nat.mul(F2, 32n), 32n), Nat.add(Nat.mul(F2, 32n), Nat.mul(one, 32n)), Nat.mul(Nat.add(F2, one), 32n), M.cong_r(Nat.mul(F2, 32n), 32n, Nat.mul(one, 32n), Equal.sym(Nat, Nat.mul(one, 32n), 32n, K.one_k(one, h1, 32n))), Equal.sym(Nat, Nat.mul(Nat.add(F2, one), 32n), Nat.add(Nat.mul(F2, 32n), Nat.mul(one, 32n)), NA.mul_add_right(F2, one, 32n)))
-  +e2 = Equal.cong(Nat, Nat, t => Nat.mul(t, 32n), Nat.add(F2, one), WD.sc(250n, one), fo_sum(one, 250n))
+  +e2 = Equal.cong(Nat, Nat, t => Nat.mul(t, 32n), Nat.add(F2, one), WD.sc(250n, one), fo_sum(one, h1, 250n))
   +e3 = AR.mul_sc(5n, WD.sc(250n, one))
   Equal.trans(Nat, Nat.add(Nat.mul(F2, 32n), 32n), Nat.mul(Nat.add(F2, one), 32n), Nat.add(1n+pp, 19n), e1, Equal.trans(Nat, Nat.mul(Nat.add(F2, one), 32n), Nat.mul(WD.sc(250n, one), 32n), Nat.add(1n+pp, 19n), e2, Equal.trans(Nat, Nat.mul(WD.sc(250n, one), 32n), WD.sc(255n, one), Nat.add(1n+pp, 19n), e3, Equal.sym(Nat, Nat.add(1n+pp, 19n), WD.sc(255n, one), hP))))
 
