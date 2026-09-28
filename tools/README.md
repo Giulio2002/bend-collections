@@ -78,6 +78,7 @@ what it generates from.
 | `generators/blake2s_gen.py`, `blake2s_tests.py` | BLAKE2s's unrolled compression, block reads, proof lemmas and test vectors |
 | `generators/blake2b_gen.py` | BLAKE2b's lanes, unrolled compression, block reads, proof lemmas and tests |
 | `generators/blake3/gen.py`, `proofs.py`, `tests.py` | BLAKE3's compression and block reads, their proof modules, and test vectors from the official C |
+| `generators/chacha8rand_gen.py` | ChaCha8Rand's unrolled double round, block and four-block group (`src/math/random/chacha8/block.bend`) and their proof against the list-based C2SP specification (`proofs/math/random/chacha8/rounds.bend`) |
 | `toposort.py` | reorders the definitions of a Bend file so every callee precedes its callers (Bend has no forward references) |
 
 ## Validation and differential tests
@@ -87,6 +88,7 @@ what it generates from.
 | `check_intrusive_proofs.py --bend bend` | regenerate proof sources, clean semantic and concrete-adapter checks, coordinated specification and adapter negative controls |
 | `check_intrusive.py --bend bend --cc clang` | intrusive-list proofs, C/JS conformance, examples, semantic mutants and native heap-allocation measurements; see [guide](../INTRUSIVE_LIST.md) |
 | `../benchmarks/intrusive.py --bend bend --cc clang` | warmed entity transfers and pooled lifecycles against the public DList API and C; independent oracle, generation-layer diagnostic, A/A control, separate timing/allocation/live-byte binaries, raw samples; [method and results](../benchmarks/INTRUSIVE_LIST.md) |
+| `check_random.py [seed]` | `src/math/random.bend` and `src/crypto/random.bend` (driver `build/math/random` from `tests/math/random.bend`): Go's published vectors (ChaCha8, the Read transcript hash, PCG, regressGolden), a Python mirror of Go's math/rand/v2 and C2SP chacha8rand on random keys, seeds and call sequences, the OS-keyed generator, and a chi-square smoke test of `uint64n` |
 | `validate.py --report build/validation.json` | every container in `tests/structures.json`: builds `tests/<id>/main.bend`, compares its output with the Python oracle in `tests/support/oracles.py` on functional, boundary, differential and structural scenarios (`scenarios.py`), runs semantic mutants that must be caught (`mutants.py`), and checks the container's proof |
 | `check_hash_table.py` | the hash map against a Python dict on random histories (growth, backward-shift deletion, every key kind) |
 | `check_lru_spec.py` | the LRU against its executable specification, step by step with a moving clock |
