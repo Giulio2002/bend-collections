@@ -1,10 +1,13 @@
 # Crypto contracts
 
-What each `src/crypto` module promises, what is proved about it (for every
-input, no holes, no axioms, checked by stock Bend) and what is only tested.
-Constant time is never a proved property: Bend has no timing model. Where a
-module says "constant time" it describes the shape of the code (no branch
-and no table index on secret data), not a theorem.
+Each `src/crypto` module has an executable specification in `spec/crypto/`
+transcribed from its standard (HACL*'s `Spec.*` modules are the model) and a
+proof package in `proofs/crypto/<module>/` whose `laws.bend` states the
+public clauses and whose `proof.bend` proves them, for every input, with no
+holes, axioms or `@unsafe` code (`python3 proofs/prove.py <package>` on the
+pinned stock Bend). Constant time cannot be proved in Bend (there is no
+timing model); where a module claims it, the claim is about the shape of
+the code and is documented as such.
 
 ## AES and AES-GCM
 
@@ -80,16 +83,23 @@ nonce of another length, or a decryption input shorter than a tag, gives
 |---|---|---|
 | `Sbox.value` | the S-box circuit equals FIPS 197's inverse-then-affine S-box, on every U32 (both read its low byte) | proved (all 256 bytes, `sbox.bend`) |
 | `Cipher.value` | `encrypt(Nk, Nr, key, s)` (key expansion + cipher) equals FIPS 197's `Cipher(KeyExpansion(key))`, for every `Nk`, `Nr`, key and state | proved (`cipher.bend`) |
-| `Block.aes128`, `Block.aes256` | for a 16- (32-) byte key and any 16-byte block, `encrypt_block(expand_key(key), block)` is the AES-128 (AES-256) spec output | proved |
+| `Block.value` | for a key of 16, 24 or 32 bytes and any 16-byte block, `encrypt_block(expand_key(key), block)` is the spec's AES with the key's `Nk = length / 4`, `Nr = Nk + 6` (FIPS 197 Figure 4) | proved |
+| `Block.aes128`, `Block.aes192`, `Block.aes256` | a 16-, 24-, 32-byte key has `Nk` 4, 6, 8 (so `Nr` 10, 12, 14) | proved |
 | `Gcm.seal`, `Gcm.open` | the implementation's GCM-AE / GCM-AD equal SP 800-38D's, for every key schedule, 96-bit nonce, AAD and input | proved (`gf.bend`, `ghash*.bend`, `gcm.bend`) |
 | `Aead.roundtrip` | spec: `open(K, IV, A, seal(K, IV, A, P)) == Some(P)`, for every `Nk`, `Nr`, key, IV, AAD, message | proved (`aead.bend`) |
 | `Aead.forgery` | spec: for a 16-byte `T` other than the tag of `C`, `open(K, IV, A, C || T) == None` | proved (`aead.bend`) |
-| `Api128.encrypt`, `Api256.encrypt` | `aesN_gcm_encrypt(key, nonce, aad, pt) == Some(seal(...))` for a key of the right length and a 12-byte nonce | proved |
-| `Api128.decrypt`, `Api256.decrypt` | `aesN_gcm_decrypt(key, nonce, aad, ct) == open(...)` (same conditions) | proved |
+| `Api128.encrypt`, `Api256.encrypt` | `aesN_gcm_encrypt(key, nonce, aad, pt) == Some(aes_seal(key, nonce, aad, pt))` (the spec's GCM-AE with the key's `Nk`, `Nr`) for a key of the right length and a 12-byte nonce | proved |
+| `Api128.decrypt`, `Api256.decrypt` | `aesN_gcm_decrypt(key, nonce, aad, ct) == aes_open(key, nonce, aad, ct)` (same conditions) | proved |
 | `Api128.roundtrip`, `Api256.roundtrip` | decrypting what `aesN_gcm_encrypt` returned gives `Some(pt)` | proved |
 | `Api128.forgery`, `Api256.forgery` | `aesN_gcm_decrypt(key, nonce, aad, C || T) == None` when `T` is not the tag of `C` | proved |
 | `ApiN.bad_key`, `ApiN.bad_key_open` | a key of another length gives `None` | proved |
 | `ApiN.bad_nonce`, `ApiN.bad_nonce_open` | a nonce that is not 12 bytes gives `None` | proved |
+
+The key size stays symbolic in every proof (`Nk = length / 4`): with a
+concrete size the checker would unfold the whole key expansion of a
+symbolic key (its terms grow exponentially with the rounds), which is why
+the byte API computes `Nk` and `Nr` from the key length rather than from a
+table of the three sizes.
 
 The central step of the GHASH proof is algebraic (`gf.bend`, for any
 modulus `x^n + low(x)`): reduction is linear, multiplication by `x` is

@@ -53,11 +53,11 @@ law Cipher.value:
   for +s: T.State
   {A.encrypt(nk, nr, key, s) == S.encrypt(nk, nr, key, s) : T.State}
 
-# The byte API: a 16- (32-) byte key encrypts a 16-byte block with AES-128
-# (AES-256).
-law Block.aes128:
+# The byte API: a key of 16, 24 or 32 bytes encrypts a 16-byte block with
+# AES under the key's Nk = length/4 and Nr = Nk + 6 (FIPS 197 Figure 4).
+law Block.value:
   for +key: List<&2, U32>
-  for +h: {List.length(&2, U32, key) == 16n : Nat}
+  for +h: {A.valid_length(List.length(&2, U32, key)) == True{} : Bool}
   for +b0: U32
   for +b1: U32
   for +b2: U32
@@ -74,28 +74,24 @@ law Block.aes128:
   for +b13: U32
   for +b14: U32
   for +b15: U32
-  {block_with(A.expand_key(key), [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15]) == Some{S.bytes_of(S.aes128(key, S.state_of([b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15])))} : Maybe<&2, List<&2, U32>>}
+  {block_with(A.expand_key(key), [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15]) == Some{S.bytes_of(S.aes(key, S.state_of([b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15])))} : Maybe<&2, List<&2, U32>>}
+
+# A 16-, 24-, 32-byte key is AES-128 (Nk = 4, Nr = 10), AES-192 (6, 12),
+# AES-256 (8, 14).
+law Block.aes128:
+  for +key: List<&2, U32>
+  for +h: {List.length(&2, U32, key) == 16n : Nat}
+  {S.nk(key) == 4n : Nat}
+
+law Block.aes192:
+  for +key: List<&2, U32>
+  for +h: {List.length(&2, U32, key) == 24n : Nat}
+  {S.nk(key) == 6n : Nat}
 
 law Block.aes256:
   for +key: List<&2, U32>
   for +h: {List.length(&2, U32, key) == 32n : Nat}
-  for +b0: U32
-  for +b1: U32
-  for +b2: U32
-  for +b3: U32
-  for +b4: U32
-  for +b5: U32
-  for +b6: U32
-  for +b7: U32
-  for +b8: U32
-  for +b9: U32
-  for +b10: U32
-  for +b11: U32
-  for +b12: U32
-  for +b13: U32
-  for +b14: U32
-  for +b15: U32
-  {block_with(A.expand_key(key), [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15]) == Some{S.bytes_of(S.aes256(key, S.state_of([b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15])))} : Maybe<&2, List<&2, U32>>}
+  {S.nk(key) == 8n : Nat}
 
 # ---- GCM (SP 800-38D) ----
 
@@ -197,7 +193,7 @@ law Api128.encrypt:
   for +n11: U32
   for +aad: List<&2, U32>
   for +pt: List<&2, U32>
-  {GCM.aes128_gcm_encrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt) == Some{G.seal(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)} : Maybe<&2, List<&2, U32>>}
+  {GCM.aes128_gcm_encrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt) == Some{G.aes_seal(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)} : Maybe<&2, List<&2, U32>>}
 
 law Api128.decrypt:
   for +key: List<&2, U32>
@@ -216,7 +212,7 @@ law Api128.decrypt:
   for +n11: U32
   for +aad: List<&2, U32>
   for +ct: List<&2, U32>
-  {GCM.aes128_gcm_decrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) == G.open(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) : Maybe<&2, List<&2, U32>>}
+  {GCM.aes128_gcm_decrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) == G.aes_open(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) : Maybe<&2, List<&2, U32>>}
 
 # decrypt(encrypt(x)) == Some(x).
 law Api128.roundtrip:
@@ -272,7 +268,7 @@ law Api128.forgery:
   for +t13: U32
   for +t14: U32
   for +t15: U32
-  for ne: {[t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15] != G.tag(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, c) : List<&2, U32>}
+  for ne: {[t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15] != G.aes_tag(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, c) : List<&2, U32>}
   {GCM.aes128_gcm_decrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, List.append(&2, U32, c, [t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15])) == None{} : Maybe<&2, List<&2, U32>>}
 
 # A key of another length is rejected.
@@ -328,7 +324,7 @@ law Api256.encrypt:
   for +n11: U32
   for +aad: List<&2, U32>
   for +pt: List<&2, U32>
-  {GCM.aes256_gcm_encrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt) == Some{G.seal(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)} : Maybe<&2, List<&2, U32>>}
+  {GCM.aes256_gcm_encrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt) == Some{G.aes_seal(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)} : Maybe<&2, List<&2, U32>>}
 
 law Api256.decrypt:
   for +key: List<&2, U32>
@@ -347,7 +343,7 @@ law Api256.decrypt:
   for +n11: U32
   for +aad: List<&2, U32>
   for +ct: List<&2, U32>
-  {GCM.aes256_gcm_decrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) == G.open(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) : Maybe<&2, List<&2, U32>>}
+  {GCM.aes256_gcm_decrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) == G.aes_open(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) : Maybe<&2, List<&2, U32>>}
 
 # decrypt(encrypt(x)) == Some(x).
 law Api256.roundtrip:
@@ -403,7 +399,7 @@ law Api256.forgery:
   for +t13: U32
   for +t14: U32
   for +t15: U32
-  for ne: {[t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15] != G.tag(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, c) : List<&2, U32>}
+  for ne: {[t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15] != G.aes_tag(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, c) : List<&2, U32>}
   {GCM.aes256_gcm_decrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, List.append(&2, U32, c, [t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15])) == None{} : Maybe<&2, List<&2, U32>>}
 
 # A key of another length is rejected.

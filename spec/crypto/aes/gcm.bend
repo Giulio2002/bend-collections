@@ -171,3 +171,13 @@ def open_split(+nk: Nat, +nr: Nat, +key: List<&2, U32>, +iv: List<&2, U32>, +aad
 def open(+nk: Nat, +nr: Nat, +key: List<&2, U32>, +iv: List<&2, U32>, +aad: List<&2, U32>, +input: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
   +n = List.length(&2, U32, input)
   open_split(nk, nr, key, iv, aad, input, n, Nat.is_lt(n, 16n))
+
+# GCM over AES with the key's own Nk and Nr (FIPS 197 Figure 4).
+def aes_seal(+key: List<&2, U32>, +iv: List<&2, U32>, +aad: List<&2, U32>, pt: List<&2, U32>) -> List<&2, U32>:
+  seal(AES.nk(key), AES.nr(key), key, iv, aad, pt)
+
+def aes_open(+key: List<&2, U32>, +iv: List<&2, U32>, +aad: List<&2, U32>, +input: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  open(AES.nk(key), AES.nr(key), key, iv, aad, input)
+
+def aes_tag(+key: List<&2, U32>, +iv: List<&2, U32>, +aad: List<&2, U32>, +c: List<&2, U32>) -> List<&2, U32>:
+  tag(AES.nk(key), AES.nr(key), key, iv, aad, c)

@@ -66,19 +66,30 @@ law Cipher.value:
   for +s: T.State
   {A.encrypt(nk, nr, key, s) == S.encrypt(nk, nr, key, s) : T.State}
 
-# The byte API: a 16- (32-) byte key encrypts a 16-byte block with AES-128
-# (AES-256).
+# The byte API: a key of 16, 24 or 32 bytes encrypts a 16-byte block with
+# AES under the key's Nk = length/4 and Nr = Nk + 6 (FIPS 197 Figure 4).
+law Block.value:
+  for +key: List<&2, U32>
+  for +h: {A.valid_length(List.length(&2, U32, key)) == True{} : Bool}
+%s
+  {block_with(A.expand_key(key), %s) == Some{S.bytes_of(S.aes(key, S.state_of(%s)))} : Maybe<&2, List<&2, U32>>}
+
+# A 16-, 24-, 32-byte key is AES-128 (Nk = 4, Nr = 10), AES-192 (6, 12),
+# AES-256 (8, 14).
 law Block.aes128:
   for +key: List<&2, U32>
   for +h: {List.length(&2, U32, key) == 16n : Nat}
-%s
-  {block_with(A.expand_key(key), %s) == Some{S.bytes_of(S.aes128(key, S.state_of(%s)))} : Maybe<&2, List<&2, U32>>}
+  {S.nk(key) == 4n : Nat}
+
+law Block.aes192:
+  for +key: List<&2, U32>
+  for +h: {List.length(&2, U32, key) == 24n : Nat}
+  {S.nk(key) == 6n : Nat}
 
 law Block.aes256:
   for +key: List<&2, U32>
   for +h: {List.length(&2, U32, key) == 32n : Nat}
-%s
-  {block_with(A.expand_key(key), %s) == Some{S.bytes_of(S.aes256(key, S.state_of(%s)))} : Maybe<&2, List<&2, U32>>}
+  {S.nk(key) == 8n : Nat}
 
 # ---- GCM (SP 800-38D) ----
 
@@ -123,7 +134,7 @@ law Aead.forgery:
 %s
   for ne: {%s != G.tag(nk, nr, key, iv, aad, c) : List<&2, U32>}
   {G.open(nk, nr, key, iv, aad, List.append(&2, U32, c, %s)) == None{} : Maybe<&2, List<&2, U32>>}
-''' % (BP, L(bs), L(bs), BP, L(bs), L(bs), NP, NW, NL, NP, NW, NL, TP, L(ts), L(ts))
+''' % (BP, L(bs), L(bs), NP, NW, NL, NP, NW, NL, TP, L(ts), L(ts))
 for (w, nk, nr, name) in [(16, 4, 10, '128'), (32, 8, 14, '256')]:
     laws += '''
 # ---- the AES-%s-GCM API (src/crypto/aesgcm.bend) ----
@@ -134,7 +145,7 @@ law Api%s.encrypt:
 %s
   for +aad: List<&2, U32>
   for +pt: List<&2, U32>
-  {GCM.aes%s_gcm_encrypt(key, %s, aad, pt) == Some{G.seal(%dn, %dn, key, %s, aad, pt)} : Maybe<&2, List<&2, U32>>}
+  {GCM.aes%s_gcm_encrypt(key, %s, aad, pt) == Some{G.aes_seal(key, %s, aad, pt)} : Maybe<&2, List<&2, U32>>}
 
 law Api%s.decrypt:
   for +key: List<&2, U32>
@@ -142,7 +153,7 @@ law Api%s.decrypt:
 %s
   for +aad: List<&2, U32>
   for +ct: List<&2, U32>
-  {GCM.aes%s_gcm_decrypt(key, %s, aad, ct) == G.open(%dn, %dn, key, %s, aad, ct) : Maybe<&2, List<&2, U32>>}
+  {GCM.aes%s_gcm_decrypt(key, %s, aad, ct) == G.aes_open(key, %s, aad, ct) : Maybe<&2, List<&2, U32>>}
 
 # decrypt(encrypt(x)) == Some(x).
 law Api%s.roundtrip:
@@ -161,7 +172,7 @@ law Api%s.forgery:
   for +aad: List<&2, U32>
   for +c: List<&2, U32>
 %s
-  for ne: {%s != G.tag(%dn, %dn, key, %s, aad, c) : List<&2, U32>}
+  for ne: {%s != G.aes_tag(key, %s, aad, c) : List<&2, U32>}
   {GCM.aes%s_gcm_decrypt(key, %s, aad, List.append(&2, U32, c, %s)) == None{} : Maybe<&2, List<&2, U32>>}
 
 # A key of another length is rejected.
@@ -197,10 +208,10 @@ law Api%s.bad_nonce_open:
   for +aad: List<&2, U32>
   for +ct: List<&2, U32>
   {GCM.aes%s_gcm_decrypt(key, nonce, aad, ct) == None{} : Maybe<&2, List<&2, U32>>}
-''' % (name, name, w, NP, name, NL, nk, nr, NL,
-       name, w, NP, name, NL, nk, nr, NL,
+''' % (name, name, w, NP, name, NL, NL,
+       name, w, NP, name, NL, NL,
        name, w, NP, name, NL, name, NL,
-       name, w, NP, TP, L(ts), nk, nr, NL, name, NL, L(ts),
+       name, w, NP, TP, L(ts), NL, name, NL, L(ts),
        name, w, name, name, w, name, name, name, name, name)
 open('proofs/crypto/aes/laws.bend','w').write(laws)
 

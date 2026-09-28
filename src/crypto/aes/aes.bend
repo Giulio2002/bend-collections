@@ -155,20 +155,22 @@ def encrypt(+nk: Nat, +nr: Nat, key: List<&2, U32>, block: T.State) -> T.State:
 type Schedule is Data:
   Schedule{rounds: Nat, keys: List<&2, T.State>}
 
-def schedule_for(+n: Nat, +key: List<&2, U32>) -> Maybe<&2, Schedule>:
-  match n:
-    case 16n:
-      Some{Schedule{10n, expand(4n, 10n, key)}}
-    case 24n:
-      Some{Schedule{12n, expand(6n, 12n, key)}}
-    case 32n:
-      Some{Schedule{14n, expand(8n, 14n, key)}}
-    case _:
+# FIPS 197 Figure 4: a key of 16, 24 or 32 bytes; Nk = its length in words,
+# Nr = Nk + 6.
+def valid_length(+n: Nat) -> Bool:
+  Bool.or(Nat.is_eq(n, 16n), Bool.or(Nat.is_eq(n, 24n), Nat.is_eq(n, 32n)))
+
+def schedule_if(ok: Bool, +nk: Nat, +key: List<&2, U32>) -> Maybe<&2, Schedule>:
+  match ok:
+    case True{}:
+      Some{Schedule{Nat.add(nk, 6n), expand(nk, Nat.add(nk, 6n), key)}}
+    case False{}:
       None{}
 
 # A 16-, 24- or 32-byte key (AES-128, AES-192, AES-256); None otherwise.
 def expand_key(+key: List<&2, U32>) -> Maybe<&2, Schedule>:
-  schedule_for(List.length(&2, U32, key), key)
+  +n = List.length(&2, U32, key)
+  schedule_if(valid_length(n), Nat.div(n, 4n), key)
 
 def encrypt_state(sched: Schedule, s: T.State) -> T.State:
   match sched:

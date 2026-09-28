@@ -229,7 +229,18 @@ def key_expansion(+nk: Nat, +nr: Nat, key: List<&2, U32>) -> List<&2, T.Quad>:
 def encrypt(+nk: Nat, +nr: Nat, key: List<&2, U32>, block: T.State) -> T.State:
   cipher(nr, block, key_expansion(nk, nr, key))
 
-# AES-128: Nk = 4, Nr = 10; AES-256: Nk = 8, Nr = 14 (Figure 4).
+# Figure 4: Nk is the key length in 32-bit words and Nr = Nk + 6
+# (AES-128: 4, 10; AES-192: 6, 12; AES-256: 8, 14).
+def nk(+key: List<&2, U32>) -> Nat:
+  Nat.div(List.length(&2, U32, key), 4n)
+
+def nr(+key: List<&2, U32>) -> Nat:
+  Nat.add(nk(key), 6n)
+
+# AES with the key's own Nk and Nr.
+def aes(+key: List<&2, U32>, block: T.State) -> T.State:
+  encrypt(nk(key), nr(key), key, block)
+
 def aes128(key: List<&2, U32>, block: T.State) -> T.State:
   encrypt(4n, 10n, key, block)
 
