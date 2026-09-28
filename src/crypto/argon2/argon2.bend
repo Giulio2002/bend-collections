@@ -137,8 +137,17 @@ def small(+x: Nat) -> T.Lane:
   T.W{U32.from_nat(x), 0}
 
 # Z = (r, l, s, m', t, y, i), zero-padded to a block.
-def input_block(+r: Nat, +l: Nat, +s: Nat, +mm: Nat, +t: Nat, +ctr: Nat) -> A.Block:
+def input_of(+r: Nat, +l: Nat, +s: Nat, +mm: Nat, +t: Nat, +ctr: Nat) -> A.Block:
   A.B{T.V{small(r), small(l), small(s), small(mm), small(t), small(2n), small(ctr), T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}}, T.V{T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}}, T.V{T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}}, T.V{T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}}, T.V{T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}}, T.V{T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}}, T.V{T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}}, T.V{T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}, T.W{0, 0}}}
+
+# (r is inspected first, so the proofs keep an input block with a symbolic
+# pass folded instead of compressing it symbolically.)
+def input_block(r: Nat, +l: Nat, +s: Nat, +mm: Nat, +t: Nat, +ctr: Nat) -> A.Block:
+  match r:
+    case 0n:
+      input_of(0n, l, s, mm, t, ctr)
+    case 1n+x:
+      input_of(1n+x, l, s, mm, t, ctr)
 
 # The address block of counter ctr: G(0, G(0, Z)).
 def addresses(+r: Nat, +l: Nat, +s: Nat, +mm: Nat, +t: Nat, +ctr: Nat) -> A.Block:

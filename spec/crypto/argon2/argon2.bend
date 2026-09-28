@@ -207,8 +207,17 @@ def small(+x: Nat) -> T.Lane:
   T.W{U32.from_nat(x), 0}
 
 # Z = (r, l, s, m', t, y, i) as the first seven 64-bit lanes of a zero block.
-def input_block(+r: Nat, +l: Nat, +s: Nat, +mm: Nat, +t: Nat, +ctr: Nat) -> A.Block:
+def input_of(+r: Nat, +l: Nat, +s: Nat, +mm: Nat, +t: Nat, +ctr: Nat) -> A.Block:
   G.put_lanes([0n, 1n, 2n, 3n, 4n, 5n, 6n], [small(r), small(l), small(s), small(mm), small(t), small(2n), small(ctr)], G.zero())
+
+# (r is inspected first, so that proofs keep an input block with a symbolic
+# pass number folded instead of evaluating G on it.)
+def input_block(r: Nat, +l: Nat, +s: Nat, +mm: Nat, +t: Nat, +ctr: Nat) -> A.Block:
+  match r:
+    case 0n:
+      input_of(0n, l, s, mm, t, ctr)
+    case 1n+x:
+      input_of(1n+x, l, s, mm, t, ctr)
 
 # The address block with counter ctr: G(ZERO, G(ZERO, Z)).
 def addresses(+r: Nat, +l: Nat, +s: Nat, +mm: Nat, +t: Nat, +ctr: Nat) -> A.Block:
