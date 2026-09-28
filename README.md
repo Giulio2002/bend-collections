@@ -25,6 +25,10 @@ benchmarked against optimized C implementations of the same algorithms.
 | BLAKE2s | `src/crypto/blake/blake2s/blake2s.bend` | RFC 7693, 32-byte digest |
 | BLAKE2b | `src/crypto/blake/blake2b/blake2b.bend` | RFC 7693, 64-byte digest |
 | BLAKE3 | `src/crypto/blake/blake3/blake3.bend` | hash mode, 32-byte digest |
+| SHA-512 | `src/crypto/sha512/sha512.bend` | FIPS 180-4, 64-byte digest; proved equal to `spec/crypto/sha512.bend` for every input |
+| SHA3-256 | `src/crypto/sha3/sha3_256.bend` | FIPS 202 on the Keccak-f[1600] of `keccak/`; proved equal to `spec/crypto/sha3.bend` |
+| Hashing facade | `src/crypto/hash.bend` | one-shot `sha256`/`sha512`/`sha3_256` and an incremental `Hasher` (`new_*`, `update`, `digest`); see below |
+| Constant-time compare | `src/crypto/subtle.bend` | `eq(a, b)` on byte lists, proved `True` exactly when `a == b` |
 | ChaCha20 | `src/crypto/chacha/chacha20.bend` | RFC 8439: `chacha20_block`, `chacha20(key, counter, nonce, bytes)`, HChaCha20 and XChaCha20 (draft-irtf-cfrg-xchacha-03); the core `src/crypto/chacha/core.bend` takes the number of double rounds (ChaCha8/12 reuse it); proved equal to the RFC spec `spec/crypto/chacha.bend` for every input and round count, decryption is encryption; RFC 8439 / XChaCha vectors; [contracts](docs/CRYPTO_CONTRACTS.md) |
 | Poly1305 | `src/crypto/poly1305/poly1305.bend` | RFC 8439: `poly1305(key, msg)`, `verify` (constant-time `subtle.eq`); arithmetic mod 2^130-5 on 17 radix-2^8 U32 limbs, proved equal to the Nat spec `spec/crypto/poly1305.bend` for every input; RFC 8439 vectors |
 | AEAD | `src/crypto/aead.bend` | `encrypt(alg, key, nonce, aad, pt)`, `decrypt(alg, key, nonce, aad, ct)` for `CHACHA20_POLY1305` (RFC 8439) and `XCHACHA20_POLY1305`; proved: each algorithm equals its spec, `decrypt(encrypt(x)) == Some(x)`, every tag other than the expected one is rejected; RFC 8439 / XChaCha vectors, differential test against `cryptography` |
@@ -187,6 +191,29 @@ wrapping ones that result modulo 2^w, a wrapping difference plus b is a plus
 of the value). `tools/check_fixed.py` compares every function with Python
 integers under Rust's semantics, naming the clause of each case.
 
+## Hashing
+
+`src/crypto/hash.bend` is the entry point for hashing byte lists
+(`List<&2, U32>`, each value < 256):
+
+```python
+import ./src/crypto/hash.bend as Hash
+
+Hash.sha256(bytes)                       # 32 bytes (FIPS 180-4)
+Hash.sha512(bytes)                       # 64 bytes (FIPS 180-4)
+Hash.sha3_256(bytes)                     # 32 bytes (FIPS 202)
+h = Hash.update(Hash.update(Hash.new_sha512(), part1), part2)
+Hash.digest(h)                           # == Hash.sha512(part1 ++ part2)
+```
+
+Every function is proved against its standard's executable specification
+(`spec/crypto/sha.bend`, `sha512.bend`, `sha3.bend`), and the incremental
+`Hasher` is proved equal to the one-shot hash for every split of the input
+(`proofs/crypto/hash/laws.bend`); `src/crypto/subtle.bend`'s `eq` compares
+digests and tags without an early exit, proved to return `True` exactly on
+equal lists. `docs/CRYPTO_CONTRACTS.md` lists the clauses and their evidence;
+`tools/check_crypto_hash.py` tests all of it against Python's `hashlib`.
+
 ## Install
 
 The library is published on the Bend hub. Import any module by its path in
@@ -209,15 +236,17 @@ src/containers/   the collections, their internals (internal/) and API types (ty
 src/math/         integer math (natural.bend), the same per type (num, generic, instances),
                   software binary64 (f64), 64-bit words (u64, w64), fixed-width U32/U64
                   families and number theory (fixed, number), hashing, powers of two
-src/crypto/       SHA-256 (sha/), Keccak-256 (keccak/), BLAKE2s, BLAKE2b and BLAKE3 (blake/)
+src/crypto/       SHA-256 (sha/), SHA-512 (sha512/), Keccak-256 (keccak/), SHA3-256 (sha3/),
+                  BLAKE2s, BLAKE2b and BLAKE3 (blake/), the hashing facade (hash.bend)
+                  and constant-time comparison (subtle.bend)
 spec/             the specifications, mirroring src/: what each module does,
                   independent of how
   containers/<pkg>.bend  the abstract model and its contract: every SPARK
                       formal-container Post clause as a `<Subprogram>.<clause>`
                       proposition (docs/SPARK_CONTRACTS.md); a spec spanning
                       several files is a directory with a main.bend
-  crypto/             FIPS 180-4 SHA-256, the Keccak sponge, RFC 7693 BLAKE2,
-                      BLAKE3
+  crypto/             FIPS 180-4 SHA-256 and SHA-512, the Keccak sponge, FIPS 202
+                      SHA3-256, RFC 7693 BLAKE2, BLAKE3, list equality (subtle)
   math/<module>.bend  each src/math module's contract as `<Function>.<clause>`
                       propositions (docs/MATH_CONTRACTS.md): proved for
                       natural, u64, hash and pow2; stated and tested for the
@@ -238,7 +267,9 @@ proofs/           only proofs: one package per src package, mirroring src/,
   crypto/<pkg>/       the same for src/crypto: sha/ proves SHA-256 equal to its
                       executable FIPS 180-4 specification for every input,
                       keccak/ the packed API equal to the independent sponge
-                      specification (padding, absorption, rejection, all words)
+                      specification (padding, absorption, rejection, all words),
+                      sha512/ and sha3/ likewise, hash/ the facade and the
+                      incremental hasher, subtle/ eq; docs/CRYPTO_CONTRACTS.md
   lib/                proof library shared by the packages (logic, Nat, lists,
                       U32 words, arrays, order laws)
   PROOF.bend          the whole library; END_TO_END.bend the public laws
@@ -259,6 +290,7 @@ Bend 2.0.32, built from bendlang/bend main at b2111cf4 (pinned in
 ```sh
 bend tests/<container>/main.bend    # each container's test driver
 bend tests/math/natural.bend -o build/math/natural && python3 tools/check_math.py   # math vs CPython
+python3 tools/check_crypto_hash.py      # subtle, SHA-512, SHA3-256, the hash facade vs hashlib
 ```
 
 ## Benchmark

@@ -78,6 +78,9 @@ what it generates from.
 | `generators/blake2s_gen.py`, `blake2s_tests.py` | BLAKE2s's unrolled compression, block reads, proof lemmas and test vectors |
 | `generators/blake2b_gen.py` | BLAKE2b's lanes, unrolled compression, block reads, proof lemmas and tests |
 | `generators/blake3/gen.py`, `proofs.py`, `tests.py` | BLAKE3's compression and block reads, their proof modules, and test vectors from the official C |
+| `generators/sha512_gen.py` | SHA-512's implementation (fused rotations, constants computed from the primes) and its conformance proof's enumerations |
+| `generators/sha3_gen.py` | SHA3-256's implementation (17-lane block XOR, padding) and its conformance proof |
+| `generators/hash_gen.py` | the hashing facade `src/crypto/hash.bend` (block readers per algorithm) and the incremental hasher's proofs |
 | `toposort.py` | reorders the definitions of a Bend file so every callee precedes its callers (Bend has no forward references) |
 
 ## Validation and differential tests
@@ -97,6 +100,7 @@ what it generates from.
 | `check_generic.py` | every templated math function (`src/math/generic.bend`) at U32, U64, F32 and F64 against Python, naming the `spec/math/generic.bend` clause of each case |
 | `check_f64.py` | the software binary64 (`src/math/f64.bend`) against the machine's doubles on random bit patterns of every class and rounding ties |
 | `check_f64_spec.py` | the binary64 specification `spec/math/f64.bend` itself against the machine's doubles, through a line-by-line mirror |
+| `check_crypto_hash.py` | `src/crypto/subtle.bend`, SHA-512, SHA3-256 and the hashing facade (one-shot and incremental, random chunkings) against Python's `hashlib` and `==`, plus the FIPS vectors of `tests/crypto/{subtle,sha512,sha3,hash}/main.bend` |
 
 The hash functions are fuzzed by `tests/crypto/fuzz.py` (random messages
 against hashlib, pycryptodome and the official BLAKE3 C).
