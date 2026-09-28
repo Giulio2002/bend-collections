@@ -673,3 +673,67 @@ def ev_lt(xs, one, h1, h):
       +a1 = A.lt_le_add(v(x), C.shift(8n, ev(t)), C.pow2(8n), C.shift(8n, ev(t)), hx, N.le_refl(C.shift(8n, ev(t))))
       +e1 = A.tr(Nat.add(C.pow2(8n), C.shift(8n, ev(t))), Nat.add(C.shift(8n, 1n), C.shift(8n, ev(t))), C.shift(8n, 1n+ev(t)), {==}, A.sy(C.shift(8n, 1n+ev(t)), Nat.add(C.shift(8n, 1n), C.shift(8n, ev(t))), WW.shift_add(8n, 1n, ev(t))))
       N.lt_le_trans(Nat.add(v(x), C.shift(8n, ev(t))), C.shift(8n, 1n+ev(t)), C.shift(8n, p), A.lt_subst(Nat.add(v(x), C.shift(8n, ev(t))), Nat.add(C.pow2(8n), C.shift(8n, ev(t))), C.shift(8n, 1n+ev(t)), e1, a1), WW.shift_mono(8n, 1n+ev(t), p, N.lt_succ_le_succ(ev(t), p, ht)))
+
+law fit_take_nil:
+  for +n: Nat
+  for +k: Nat
+  {fit_all(Li.take(n, []), k) == True{} : Bool}
+
+def fit_take_nil(n, k):
+  match n:
+    case 0n: {==}
+    case 1n+m: {==}
+
+law split_fit:
+  for +n: Nat
+  for +xs: List<&2, U32>
+  for +h: {fit_all(Li.take(n, xs), 8n) == True{} : Bool}
+  {fit_all(Li.split(n, xs), 8n) == True{} : Bool}
+
+def split_fit(n, xs, h):
+  match n:
+    case 0n:
+      +x = Li.hd0(xs)
+      L.and_intro(C.fits(8n, v(U32.and(x, 3))), True{}, SH.fits_mono(2n, 8n, v(U32.and(x, 3)), {==}, A.fits_subst(2n, C.low(2n, v(x)), v(U32.and(x, 3)), A.sy(v(U32.and(x, 3)), C.low(2n, v(x)), FB.andm(x, 2n, 3, {==})), WW.low_fits(2n, v(x)))), {==})
+    case 1n+k:
+      match xs:
+        case Nil{}: L.and_intro(C.fits(8n, 0n), fit_all(Li.split(k, []), 8n), {==}, split_fit(k, [], fit_take_nil(k, 8n)))
+        case x <> t: L.and_intro(C.fits(8n, v(x)), fit_all(Li.split(k, t), 8n), L.and_left(C.fits(8n, v(x)), fit_all(Li.take(k, t), 8n), h), split_fit(k, t, L.and_right(C.fits(8n, v(x)), fit_all(Li.take(k, t), 8n), h)))
+
+law fit_split:
+  for +n: Nat
+  for +xs: List<&2, U32>
+  for +k: Nat
+  for +h1: {fit_all(Li.take(n, xs), k) == True{} : Bool}
+  for +h2: {fit_all(Li.skip(n, xs), k) == True{} : Bool}
+  {fit_all(xs, k) == True{} : Bool}
+
+def fit_split(n, xs, k, h1, h2):
+  match n xs:
+    case 0n _: h2
+    case 1n+m Nil{}: {==}
+    case 1n+m x <> t: L.and_intro(C.fits(k, v(x)), fit_all(t, k), L.and_left(C.fits(k, v(x)), fit_all(Li.take(m, t), k), h1), fit_split(m, t, k, L.and_right(C.fits(k, v(x)), fit_all(Li.take(m, t), k), h1), h2))
+
+law quot_top:
+  for +n: Nat
+  for +xs: List<&2, U32>
+  {Li.quot(n, xs) == U32.shrn(Li.hd0(Li.skip(n, xs)), 2n) : U32}
+
+def quot_top(n, xs):
+  match n:
+    case 0n: {==}
+    case 1n+k: Equal.trans(U32, Li.quot(k, Li.tl(xs)), U32.shrn(Li.hd0(Li.skip(k, Li.tl(xs))), 2n), U32.shrn(Li.hd0(Li.skip(1n+k, xs)), 2n), quot_top(k, Li.tl(xs)),
+      Equal.cong(List<&2, U32>, U32, l => U32.shrn(Li.hd0(l), 2n), Li.skip(k, Li.tl(xs)), Li.skip(1n+k, xs), Equal.sym(List<&2, U32>, Li.skip(1n+k, xs), Li.skip(k, Li.tl(xs)), skip_succ(k, xs))))
+
+law ev_one:
+  for +xs: List<&2, U32>
+  for +h: {Nat.is_le(len(xs), 1n) == True{} : Bool}
+  {ev(xs) == v(Li.hd0(xs)) : Nat}
+
+def ev_one(xs, h):
+  match xs:
+    case Nil{}: {==}
+    case x <> t:
+      match t:
+        case Nil{}: N.add_zero(v(x))
+        case y <> u: Empty.absurd({ev(x <> y <> u) == v(x) : Nat}, L.false_true(h))

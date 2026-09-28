@@ -129,3 +129,102 @@ def fold_len(z, hl):
   V.len_add(Li.take(17n, z), Li.scale(320, Li.skip(17n, z)), 17n, V.len_take(17n, z),
     A.le_substl(V.len(Li.skip(17n, z)), V.len(Li.scale(320, Li.skip(17n, z))), 17n, A.sy(V.len(Li.scale(320, Li.skip(17n, z))), V.len(Li.skip(17n, z)), V.len_scale(320, Li.skip(17n, z))),
       N.le_trans(V.len(Li.skip(17n, z)), 16n, 17n, V.len_skip(17n, z, 16n, hl), {==})))
+
+# ---- the partial reduction ----
+
+def pv(+d: List<&2, U32>) -> Nat:
+  V.v(Li.quot(16n, Li.carry(16n, d, 0)))
+
+# the limb invariant: at most 17 limbs, all of 8 bits, limb 16 at most 4
+def inv(+h: List<&2, U32>) -> Bool:
+  Bool.and(Nat.is_le(V.len(h), 17n), Bool.and(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n)))
+
+# v(quot) fits 29 bits: the pass-1 top limb fits 31
+law q29:
+  for +d: List<&2, U32>
+  for +hd: {V.fit_all(d, 30n) == True{} : Bool}
+  {C.fits(29n, pv(d)) == True{} : Bool}
+
+def q29(d, hd):
+  +t = Li.carry(16n, d, 0)
+  +top = Li.hd0(Li.skip(16n, t))
+  +ftop = V.carry_top(16n, d, 0, 22n, {==}, hd, {==})
+  +eq = A.tr(pv(d), V.v(U32.shrn(top, 2n)), C.high(2n, V.v(top)), Equal.cong(U32, Nat, w => V.v(w), Li.quot(16n, t), U32.shrn(top, 2n), V.quot_top(16n, t)), SHN.shrn_high(top, 2n))
+  A.fits_subst(29n, C.high(2n, V.v(top)), pv(d), A.sy(pv(d), C.high(2n, V.v(top)), eq), SH.fits_high(2n, 29n, V.v(top), ftop))
+
+# pass 2 on the split: its value is 5 q + the split
+law pass2_ev:
+  for +d: List<&2, U32>
+  for +hd: {V.fit_all(d, 30n) == True{} : Bool}
+  {V.ev(Li.reduce(d)) == Nat.add(Nat.mul(pv(d), 5n), V.ev(Li.split(16n, Li.carry(16n, d, 0)))) : Nat}
+
+def pass2_ev(d, hd):
+  +t = Li.carry(16n, d, 0)
+  +q = Li.quot(16n, t)
+  +vq = V.v(q)
+  +a5 = U32.mul(q, 5)
+  +t0 = Li.hd0(t)
+  +y0 = U32.add(a5, t0)
+  +s0 = U32.add(0, y0)
+  +u1 = U32.shrn(s0, 8n)
+  +rr = Li.split(15n, Li.tl(t))
+  +hlo = V.carry_lo(16n, d, 0)
+  +hq = q29(d, hd)
+  +ea5 = A.tr(V.v(a5), C.low(32n, Nat.mul(vq, 5n)), Nat.mul(vq, 5n), SH.mul_low(q, 5), WW.low_fit(32n, Nat.mul(vq, 5n), A.fits_mul(29n, 3n, vq, 5n, hq, {==})))
+  +ht0 = L.and_left(C.fits(8n, V.v(t0)), V.fit_all(Li.take(15n, Li.tl(t)), 8n), hlo)
+  +hy0a = A.fits_5q(29n, vq, V.v(t0), hq, SH.fits_mono(8n, 29n, V.v(t0), {==}, ht0))
+  +hy0 = A.fits_subst(32n, Nat.add(Nat.mul(vq, 5n), V.v(t0)), Nat.add(V.v(a5), V.v(t0)), WM.cong_l(Nat.mul(vq, 5n), V.v(a5), V.v(t0), A.sy(V.v(a5), Nat.mul(vq, 5n), ea5)), hy0a)
+  +ey0 = WA.add_exact(1n, {==}, a5, t0, hy0)
+  +hy = A.fits_subst(32n, Nat.add(V.v(a5), V.v(t0)), V.v(y0), A.sy(V.v(y0), Nat.add(V.v(a5), V.v(t0)), ey0), hy0)
+  +es0 = WA.add_exact(1n, {==}, 0, y0, hy)
+  +hs0 = A.fits_subst(32n, V.v(y0), V.v(s0), A.sy(V.v(s0), V.v(y0), es0), hy)
+  +eu1 = SHN.shrn_high(s0, 8n)
+  +hu1 = A.fits_subst(24n, C.high(8n, V.v(s0)), V.v(u1), A.sy(V.v(u1), C.high(8n, V.v(s0)), eu1), SH.fits_high(8n, 24n, V.v(s0), hs0))
+  +hr = V.fit_mono(rr, 8n, 24n, {==}, V.split_fit(15n, Li.tl(t), L.and_right(C.fits(8n, V.v(t0)), V.fit_all(Li.take(15n, Li.tl(t)), 8n), hlo)))
+  +c15 = V.ev(Li.carry(15n, rr, u1))
+  +ce = V.carry_ev(15n, rr, u1, 16n, {==}, hr, hu1)
+  +ec = A.tr(c15, Nat.add(c15, 0n), Nat.add(V.v(u1), V.ev(rr)), A.sy(Nat.add(c15, 0n), c15, N.add_zero(c15)), ce)
+  +lo = V.v(U32.and(s0, 255))
+  +elo = FB.andm(s0, 8n, 255, {==})
+  +e4 = A.tr(Nat.add(lo, C.shift(8n, V.v(u1))), Nat.add(C.low(8n, V.v(s0)), C.shift(8n, C.high(8n, V.v(s0)))), V.v(s0),
+    A.cadd(lo, C.low(8n, V.v(s0)), C.shift(8n, V.v(u1)), C.shift(8n, C.high(8n, V.v(s0))), elo, A.csh(8n, V.v(u1), C.high(8n, V.v(s0)), eu1)),
+    A.sy(V.v(s0), Nat.add(C.low(8n, V.v(s0)), C.shift(8n, C.high(8n, V.v(s0)))), WW.low_high(8n, V.v(s0))))
+  +er = C.shift(8n, V.ev(rr))
+  A.tr(Nat.add(lo, C.shift(8n, c15)), Nat.add(lo, C.shift(8n, Nat.add(V.v(u1), V.ev(rr)))), Nat.add(Nat.mul(vq, 5n), Nat.add(V.v(t0), er)),
+    WM.cong_r(lo, C.shift(8n, c15), C.shift(8n, Nat.add(V.v(u1), V.ev(rr))), A.csh(8n, c15, Nat.add(V.v(u1), V.ev(rr)), ec)),
+    A.tr(Nat.add(lo, C.shift(8n, Nat.add(V.v(u1), V.ev(rr)))), Nat.add(Nat.add(lo, C.shift(8n, V.v(u1))), er), Nat.add(Nat.mul(vq, 5n), Nat.add(V.v(t0), er)),
+      A.sy(Nat.add(Nat.add(lo, C.shift(8n, V.v(u1))), er), Nat.add(lo, C.shift(8n, Nat.add(V.v(u1), V.ev(rr)))), V.sh3(lo, V.v(u1), V.ev(rr))),
+      A.tr(Nat.add(Nat.add(lo, C.shift(8n, V.v(u1))), er), Nat.add(V.v(s0), er), Nat.add(Nat.mul(vq, 5n), Nat.add(V.v(t0), er)),
+        WM.cong_l(Nat.add(lo, C.shift(8n, V.v(u1))), V.v(s0), er, e4),
+        A.tr(Nat.add(V.v(s0), er), Nat.add(Nat.add(V.v(a5), V.v(t0)), er), Nat.add(Nat.mul(vq, 5n), Nat.add(V.v(t0), er)),
+          WM.cong_l(V.v(s0), Nat.add(V.v(a5), V.v(t0)), er, A.tr(V.v(s0), V.v(y0), Nat.add(V.v(a5), V.v(t0)), es0, ey0)),
+          A.tr(Nat.add(Nat.add(V.v(a5), V.v(t0)), er), Nat.add(V.v(a5), Nat.add(V.v(t0), er)), Nat.add(Nat.mul(vq, 5n), Nat.add(V.v(t0), er)),
+            N.add_assoc(V.v(a5), V.v(t0), er),
+            WM.cong_l(V.v(a5), Nat.mul(vq, 5n), Nat.add(V.v(t0), er), ea5))))))
+
+law reduce_ev:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +d: List<&2, U32>
+  for +hd: {V.fit_all(d, 30n) == True{} : Bool}
+  for +hl: {Nat.is_le(V.len(d), 17n) == True{} : Bool}
+  {V.ev(d) == Nat.add(V.ev(Li.reduce(d)), Nat.mul(pv(d), pm(one))) : Nat}
+
+def reduce_ev(one, h1, d, hd, hl):
+  +t = Li.carry(16n, d, 0)
+  +vq = pv(d)
+  +esp = V.ev(Li.split(16n, t))
+  +c = V.carry_ev(16n, d, 0, 22n, {==}, hd, {==})
+  +sk = V.skip_long(17n, d, hl)
+  +et = A.tr(V.ev(t), Nat.add(V.ev(t), 0n), V.ev(d), A.sy(Nat.add(V.ev(t), 0n), V.ev(t), N.add_zero(V.ev(t))),
+    A.tr(Nat.add(V.ev(t), 0n), Nat.add(V.ev(t), V.pos(17n, V.ev(Li.skip(17n, d)))), V.ev(d), Equal.cong(List<&2, U32>, Nat, l => Nat.add(V.ev(t), V.pos(17n, V.ev(l))), [], Li.skip(17n, d), Equal.sym(List<&2, U32>, Li.skip(17n, d), [], sk)), c))
+  +sq = V.sq_ev(16n, t)
+  +et2 = A.tr(V.ev(t), Nat.add(Nat.add(esp, C.shift(130n, vq)), 0n), Nat.add(esp, C.shift(130n, vq)), A.sy(Nat.add(Nat.add(esp, C.shift(130n, vq)), 0n), V.ev(t), sq), N.add_zero(Nat.add(esp, C.shift(130n, vq))))
+  +e2 = pass2_ev(d, hd)
+  A.tr(V.ev(d), Nat.add(esp, C.shift(130n, vq)), Nat.add(V.ev(Li.reduce(d)), Nat.mul(vq, pm(one))), A.tr(V.ev(d), V.ev(t), Nat.add(esp, C.shift(130n, vq)), A.sy(V.ev(t), V.ev(d), et), et2),
+    A.tr(Nat.add(esp, C.shift(130n, vq)), Nat.add(esp, Nat.add(Nat.mul(vq, pm(one)), Nat.mul(vq, 5n))), Nat.add(V.ev(Li.reduce(d)), Nat.mul(vq, pm(one))),
+      WM.cong_r(esp, C.shift(130n, vq), Nat.add(Nat.mul(vq, pm(one)), Nat.mul(vq, 5n)), big130(one, h1, vq)),
+      A.tr(Nat.add(esp, Nat.add(Nat.mul(vq, pm(one)), Nat.mul(vq, 5n))), Nat.add(Nat.add(esp, Nat.mul(vq, 5n)), Nat.mul(vq, pm(one))), Nat.add(V.ev(Li.reduce(d)), Nat.mul(vq, pm(one))),
+        rot(esp, Nat.mul(vq, pm(one)), Nat.mul(vq, 5n)),
+        WM.cong_l(Nat.add(esp, Nat.mul(vq, 5n)), V.ev(Li.reduce(d)), Nat.mul(vq, pm(one)),
+          A.tr(Nat.add(esp, Nat.mul(vq, 5n)), Nat.add(Nat.mul(vq, 5n), esp), V.ev(Li.reduce(d)), N.add_comm(esp, Nat.mul(vq, 5n)), A.sy(V.ev(Li.reduce(d)), Nat.add(Nat.mul(vq, 5n), esp), e2))))))
