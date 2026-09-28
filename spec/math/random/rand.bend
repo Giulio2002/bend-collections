@@ -24,8 +24,9 @@ import ./source.bend as SRC
 #                            accepted draw among 1 + f draws (Go's loop,
 #                            which is unbounded; the last candidate if every
 #                            draw is rejected)
-#   occurrences(~p, xs)      #{i : p(xs[i])}: two lists are permutations of
-#                            each other when these agree for every p
+#   occurrences(~rel, v, xs) #{i : rel(xs[i], v)}: two lists are permutations
+#                            of each other when these agree for an equality
+#                            rel and every v
 
 def b2n(b: Bool) -> Nat:
   match b:
@@ -110,17 +111,10 @@ def below(~S: Data, ~next: S -> W.U64 & S, fuel: Nat, +n: Nat, +s: S) -> Nat & S
     case 1n+ +f:
       choose(S, draw(64n, SW.value(SRC.fst64(S, next(s))), n), SRC.snd64(S, next(s)), below(~S, ~next, f, n, SRC.snd64(S, next(s))))
 
-def occurrences(~A: Data, ~p: A -> Bool, xs: List<&2, A>) -> Nat:
+# #{i : rel(xs[i], v)}; with an equality rel, the number of copies of v
+def occurrences(~A: Data, ~V: Data, ~rel: A -> V -> Bool, +v: V, xs: List<&2, A>) -> Nat:
   match xs:
     case Nil{}:
       0n
     case Con{+x, rest}:
-      Nat.add(b2n(p(x)), occurrences(~A, ~p, rest))
-
-# #{i : xs[i] == v}
-def count_eq(+v: Nat, xs: List<&2, Nat>) -> Nat:
-  match xs:
-    case Nil{}:
-      0n
-    case Con{+x, rest}:
-      Nat.add(b2n(Nat.is_eq(x, v)), count_eq(v, rest))
+      Nat.add(b2n(rel(x, v)), occurrences(~A, ~V, ~rel, v, rest))

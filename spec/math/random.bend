@@ -40,8 +40,9 @@ import ./random/rand.bend as SR
 #                           exactly floor(2^w / n) of the 2^w source outputs
 #                           draw k: a uniform source gives a uniform result
 #   Permutations (Fisher-Yates, as Go's Shuffle and Perm)
-#     Shuffle.permutation   shuffle(xs) has as many elements satisfying p as
-#                           xs, for every predicate p (the same multiset)
+#     Shuffle.permutation   shuffle(xs) has as many elements related to v as
+#                           xs, for every relation and v (with an equality:
+#                           the same multiset)
 #     Perm.permutation      perm(n) holds every i < n exactly once and
 #                           nothing else
 #   Floats
@@ -96,11 +97,11 @@ def Uint64n.lt(~S: Data, ~next: S -> W.U64 & S, +s: S, +n: W.U64, +hn: {X.is_zer
 def Lemire.unbiased(+w: Nat, +n: Nat, +k: Nat, +hn: {Nat.is_lt(0n, n) == True{} : Bool}, +hw: {C.fits(w, n) == True{} : Bool}, +hk: {Nat.is_lt(k, n) == True{} : Bool}) -> Type:
   {SR.count(w, n, k, C.shift(w, 1n)) == Nat.div(C.shift(w, 1n), n) : Nat}
 
-def Shuffle.permutation(~A: Data, ~S: Data, ~next: S -> W.U64 & S, ~p: A -> Bool, +s: S, +xs: List<&2, A>) -> Type:
-  {SR.occurrences(~A, ~p, R.fst(List<&2, A>, S, R.shuffle(~A, ~S, ~next, s, xs))) == SR.occurrences(~A, ~p, xs) : Nat}
+def Shuffle.permutation(~A: Data, ~V: Data, ~rel: A -> V -> Bool, ~S: Data, ~next: S -> W.U64 & S, +s: S, +xs: List<&2, A>, +v: V) -> Type:
+  {SR.occurrences(~A, ~V, ~rel, v, R.fst(List<&2, A>, S, R.shuffle(~A, ~S, ~next, s, xs))) == SR.occurrences(~A, ~V, ~rel, v, xs) : Nat}
 
 def Perm.permutation(~S: Data, ~next: S -> W.U64 & S, +s: S, +n: Nat, +i: Nat) -> Type:
-  {SR.count_eq(i, R.fst(List<&2, Nat>, S, R.perm(~S, ~next, s, n))) == SR.b2n(Nat.is_lt(i, n)) : Nat}
+  {SR.occurrences(~Nat, ~Nat, ~Nat.is_eq, i, R.fst(List<&2, Nat>, S, R.perm(~S, ~next, s, n))) == SR.b2n(Nat.is_lt(i, n)) : Nat}
 
 def Float64.value(+x: W.U64) -> Type:
   {R.to_float(x) == SF.round(False{}, C.low(53n, SW.value(x)), Nat.sub(SF.zb(), 53n)) : F.F64}

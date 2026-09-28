@@ -261,33 +261,42 @@ def swap_at(-A: Data, -S: Data, xs: List<&2, A>, +i: Nat, p: W.U64 & S) -> List<
   (+j, s) = p
   (swap(A, xs, i, X.n48(j)), s)
 
-def shuffle_step(~A: Data, ~S: Data, ~next: S -> W.U64 & S, +i: Nat, st: List<&2, A> & S) -> List<&2, A> & S:
-  (xs, s) = st
-  swap_at(A, S, xs, i, uint64n(~S, ~next, s, X.of48(Nat.add(i, 1n))))
+# the length as a 64-bit word
+def len64(-A: Data, xs: List<&2, A>) -> W.U64:
+  match xs:
+    case Nil{}:
+      W.U64{0, 0}
+    case Con{x, rest}:
+      X.add(len64(A, rest), W.U64{1, 0})
 
-# i = k, k - 1, ..., 1: swap element i with a uniform j <= i
-def shuffle_go(~A: Data, ~S: Data, ~next: S -> W.U64 & S, k: Nat, st: List<&2, A> & S) -> List<&2, A> & S:
+# swap element i with a uniform j < n = i + 1
+def shuffle_step(~A: Data, ~S: Data, ~next: S -> W.U64 & S, +i: Nat, +n: W.U64, st: List<&2, A> & S) -> List<&2, A> & S:
+  (xs, s) = st
+  swap_at(A, S, xs, i, uint64n(~S, ~next, s, n))
+
+# i = k, k - 1, ..., 1 with the bound n = i + 1 as a 64-bit word
+def shuffle_go(~A: Data, ~S: Data, ~next: S -> W.U64 & S, k: Nat, +n: W.U64, st: List<&2, A> & S) -> List<&2, A> & S:
   match k:
     case 0n:
       st
     case 1n+ +p:
-      shuffle_go(~A, ~S, ~next, p, shuffle_step(~A, ~S, ~next, 1n+p, st))
+      shuffle_go(~A, ~S, ~next, p, X.sub(n, W.U64{1, 0}), shuffle_step(~A, ~S, ~next, 1n+p, n, st))
 
 # Go's Shuffle (Fisher-Yates, from the last index down), for fewer than 2^48
 # elements
 def shuffle(~A: Data, ~S: Data, ~next: S -> W.U64 & S, s: S, +xs: List<&2, A>) -> List<&2, A> & S:
-  shuffle_go(~A, ~S, ~next, Nat.sub(List.length(&2, A, xs), 1n), (xs, s))
+  shuffle_go(~A, ~S, ~next, Nat.sub(List.length(&2, A, xs), 1n), len64(A, xs), (xs, s))
 
-def range_go(n: Nat, +i: Nat) -> List<&2, Nat>:
+def range_go(n: Nat, acc: List<&2, Nat>) -> List<&2, Nat>:
   match n:
     case 0n:
-      []
-    case 1n+p:
-      Con{i, range_go(p, Nat.add(i, 1n))}
+      acc
+    case 1n+ +p:
+      range_go(p, Con{p, acc})
 
 # [0, 1, ..., n - 1]
 def range(n: Nat) -> List<&2, Nat>:
-  range_go(n, 0n)
+  range_go(n, [])
 
 # Go's Perm: a shuffle of 0..n-1
 def perm(~S: Data, ~next: S -> W.U64 & S, s: S, +n: Nat) -> List<&2, Nat> & S:
