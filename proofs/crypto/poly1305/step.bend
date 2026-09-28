@@ -270,3 +270,159 @@ def reduce_top(one, h1, d, hd):
   +la3 = A.le_substl(a3v, a3, 3n, A.sy(a3, a3v, N.add_zero(a3v)), N.lt_succ_le(a3v, 3n, la))
   +lt5 = N.lt_le_trans(tt, Nat.add(1n, Nat.add(1n, a3)), 5n, lt3, la3)
   A.le_substl(tt, tp, 4n, N.add_zero(tp), N.lt_succ_le(tt, 4n, lt5))
+
+law reduce_inv:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +d: List<&2, U32>
+  for +hd: {V.fit_all(d, 30n) == True{} : Bool}
+  {inv(Li.reduce(d)) == True{} : Bool}
+
+def reduce_inv(one, h1, d, hd):
+  +h2 = Li.reduce(d)
+  +t = Li.carry(16n, d, 0)
+  +y = Li.add([U32.mul(Li.quot(16n, t), 5)], Li.split(16n, t))
+  +tp = V.v(Li.hd0(Li.skip(16n, h2)))
+  +htop = reduce_top(one, h1, d, hd)
+  +f8 = WW.fits_of_lt(8n, tp, N.le_lt_trans(tp, 4n, C.pow2(8n), htop, {==}))
+  +hf = V.fit_split(16n, h2, 8n, V.carry_lo(16n, y, 0), L.and_intro(C.fits(8n, tp), True{}, f8, {==}))
+  L.and_intro(Nat.is_le(V.len(h2), 17n), Bool.and(V.fit_all(h2, 8n), Nat.is_le(tp, 4n)), {==}, L.and_intro(V.fit_all(h2, 8n), Nat.is_le(tp, 4n), hf, htop))
+
+# ---- one block ----
+
+def zz(+r: List<&2, U32>, +h: List<&2, U32>, +c: List<&2, U32>) -> List<&2, U32>:
+  Li.mul(Li.add(h, c), r)
+
+# the multiple of p dropped by one block
+def bk(+r: List<&2, U32>, +h: List<&2, U32>, +c: List<&2, U32>) -> Nat:
+  Nat.add(C.shift(6n, V.ev(Li.skip(17n, zz(r, h, c)))), pv(Li.fold(zz(r, h, c))))
+
+# the product's limbs are at most 2^21, its length at most 33
+law z_le:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +r: List<&2, U32>
+  for +h: List<&2, U32>
+  for +c: List<&2, U32>
+  for +hh: {V.fit_all(h, 8n) == True{} : Bool}
+  for +hcf: {V.fit_all(c, 8n) == True{} : Bool}
+  for +hrl: {V.len(r) == 16n : Nat}
+  for +hrf: {V.fit_all(r, 8n) == True{} : Bool}
+  {V.le_all(zz(r, h, c), s21(one)) == True{} : Bool}
+
+def s8fit(+one: Nat, +h1: {one == 1n : Nat}) -> {C.fits(32n, Nat.add(C.shift(8n, one), C.shift(8n, one))) == True{} : Bool}:
+  +s8 = C.shift(8n, one)
+  +f9 = A.fits_le_one(8n, one, h1, s8, N.le_refl(s8))
+  SH.fits_mono(10n, 32n, Nat.add(s8, s8), {==}, A.fits_add(9n, s8, s8, f9, f9))
+
+# len(r) * (2^9 * 2^8) == 2^21
+def mbound(+one: Nat, +h1: {one == 1n : Nat}, +r: List<&2, U32>, +hrl: {V.len(r) == 16n : Nat}) -> {Nat.mul(V.len(r), Nat.mul(Nat.add(C.shift(8n, one), C.shift(8n, one)), C.shift(8n, one))) == s21(one) : Nat}:
+  +s8 = C.shift(8n, one)
+  +m = Nat.mul(Nat.add(s8, s8), s8)
+  +em = A.tr(m, Nat.mul(C.shift(9n, one), s8), C.shift(17n, one), A.cmul(Nat.add(s8, s8), C.shift(9n, one), s8, s8, A.sy(Nat.double(s8), Nat.add(s8, s8), NA.double_self(s8)), {==}), A.shmul(9n, 8n, one, h1))
+  A.tr(Nat.mul(V.len(r), m), Nat.mul(16n, m), s21(one), Equal.cong(Nat, Nat, t => Nat.mul(t, m), V.len(r), 16n, hrl),
+    A.tr(Nat.mul(16n, m), Nat.mul(m, 16n), s21(one), NA.mul_comm(16n, m),
+      A.tr(Nat.mul(m, 16n), C.shift(4n, m), s21(one), A.mul_pow(4n, m), A.csh(4n, m, C.shift(17n, one), em))))
+
+def z_le(one, h1, r, h, c, hh, hcf, hrl, hrf):
+  +s8 = C.shift(8n, one)
+  +x = Li.add(h, c)
+  +hf1 = s8fit(one, h1)
+  +hx = V.add_le(h, c, s8, s8, V.fit_le(h, 8n, one, h1, hh), V.fit_le(c, 8n, one, h1, hcf), hf1)
+  +eb = mbound(one, h1, r, hrl)
+  +b = Nat.mul(V.len(r), Nat.mul(Nat.add(s8, s8), s8))
+  +hf2 = A.fits_subst(32n, s21(one), b, A.sy(b, s21(one), eb), SH.fits_mono(22n, 32n, s21(one), {==}, A.fits_le_one(21n, one, h1, s21(one), N.le_refl(s21(one)))))
+  V.le_mono(zz(r, h, c), b, s21(one), N.eq_le(b, s21(one), eb), V.mul_le(x, r, Nat.add(s8, s8), s8, hx, V.fit_le(r, 8n, one, h1, hrf), hf2))
+
+law z_ev:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +r: List<&2, U32>
+  for +h: List<&2, U32>
+  for +c: List<&2, U32>
+  for +hh: {V.fit_all(h, 8n) == True{} : Bool}
+  for +hcf: {V.fit_all(c, 8n) == True{} : Bool}
+  for +hrl: {V.len(r) == 16n : Nat}
+  for +hrf: {V.fit_all(r, 8n) == True{} : Bool}
+  {V.ev(zz(r, h, c)) == Nat.mul(Nat.add(V.ev(h), V.ev(c)), V.ev(r)) : Nat}
+
+def z_ev(one, h1, r, h, c, hh, hcf, hrl, hrf):
+  +s8 = C.shift(8n, one)
+  +x = Li.add(h, c)
+  +hf1 = s8fit(one, h1)
+  +hx = V.add_le(h, c, s8, s8, V.fit_le(h, 8n, one, h1, hh), V.fit_le(c, 8n, one, h1, hcf), hf1)
+  +ex = V.add_ev(h, c, s8, s8, V.fit_le(h, 8n, one, h1, hh), V.fit_le(c, 8n, one, h1, hcf), hf1)
+  +eb = mbound(one, h1, r, hrl)
+  +b = Nat.mul(V.len(r), Nat.mul(Nat.add(s8, s8), s8))
+  +hf2 = A.fits_subst(32n, s21(one), b, A.sy(b, s21(one), eb), SH.fits_mono(22n, 32n, s21(one), {==}, A.fits_le_one(21n, one, h1, s21(one), N.le_refl(s21(one)))))
+  A.tr(V.ev(zz(r, h, c)), Nat.mul(V.ev(x), V.ev(r)), Nat.mul(Nat.add(V.ev(h), V.ev(c)), V.ev(r)),
+    V.mul_ev(x, r, Nat.add(s8, s8), s8, hx, V.fit_le(r, 8n, one, h1, hrf), hf2),
+    Equal.cong(Nat, Nat, t => Nat.mul(t, V.ev(r)), V.ev(x), Nat.add(V.ev(h), V.ev(c)), ex))
+
+law z_len:
+  for +r: List<&2, U32>
+  for +h: List<&2, U32>
+  for +c: List<&2, U32>
+  for +hhl: {Nat.is_le(V.len(h), 17n) == True{} : Bool}
+  for +hcl: {Nat.is_le(V.len(c), 17n) == True{} : Bool}
+  for +hrl: {V.len(r) == 16n : Nat}
+  {Nat.is_le(V.len(zz(r, h, c)), 33n) == True{} : Bool}
+
+def z_len(r, h, c, hhl, hcl, hrl):
+  A.le_subst(V.len(zz(r, h, c)), Nat.add(V.len(r), 17n), 33n, Equal.cong(Nat, Nat, t => Nat.add(t, 17n), V.len(r), 16n, hrl),
+    V.len_mul(Li.add(h, c), r, 17n, V.len_add(h, c, 17n, hhl, hcl)))
+
+# (h + c) r == block(r, h, c) + bk p
+law block_ev:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +r: List<&2, U32>
+  for +h: List<&2, U32>
+  for +c: List<&2, U32>
+  for +hh: {inv(h) == True{} : Bool}
+  for +hcl: {Nat.is_le(V.len(c), 17n) == True{} : Bool}
+  for +hcf: {V.fit_all(c, 8n) == True{} : Bool}
+  for +hrl: {V.len(r) == 16n : Nat}
+  for +hrf: {V.fit_all(r, 8n) == True{} : Bool}
+  {Nat.mul(Nat.add(V.ev(h), V.ev(c)), V.ev(r)) == Nat.add(V.ev(Li.block(r, h, c)), Nat.mul(bk(r, h, c), pm(one))) : Nat}
+
+def block_ev(one, h1, r, h, c, hh, hcl, hcf, hrl, hrf):
+  +hhl = L.and_left(Nat.is_le(V.len(h), 17n), Bool.and(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n)), hh)
+  +hr2 = L.and_right(Nat.is_le(V.len(h), 17n), Bool.and(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n)), hh)
+  +hhf = L.and_left(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n), hr2)
+  +z = zz(r, h, c)
+  +d = Li.fold(z)
+  +hz = z_le(one, h1, r, h, c, hhf, hcf, hrl, hrf)
+  +hd = fold_fit(one, h1, z, hz)
+  +hdl = fold_len(z, z_len(r, h, c, hhl, hcl, hrl))
+  +f = C.shift(6n, V.ev(Li.skip(17n, z)))
+  +q = pv(d)
+  +p = pm(one)
+  +e1 = A.sy(V.ev(z), Nat.mul(Nat.add(V.ev(h), V.ev(c)), V.ev(r)), z_ev(one, h1, r, h, c, hhf, hcf, hrl, hrf))
+  +e2 = fold_ev(one, h1, z, hz)
+  +e3 = WM.cong_l(V.ev(d), Nat.add(V.ev(Li.reduce(d)), Nat.mul(q, p)), Nat.mul(f, p), reduce_ev(one, h1, d, hd, hdl))
+  +e4 = A.tr(Nat.add(Nat.add(V.ev(Li.reduce(d)), Nat.mul(q, p)), Nat.mul(f, p)), Nat.add(V.ev(Li.reduce(d)), Nat.add(Nat.mul(q, p), Nat.mul(f, p))), Nat.add(V.ev(Li.reduce(d)), Nat.mul(Nat.add(f, q), p)),
+    N.add_assoc(V.ev(Li.reduce(d)), Nat.mul(q, p), Nat.mul(f, p)),
+    WM.cong_r(V.ev(Li.reduce(d)), Nat.add(Nat.mul(q, p), Nat.mul(f, p)), Nat.mul(Nat.add(f, q), p),
+      A.tr(Nat.add(Nat.mul(q, p), Nat.mul(f, p)), Nat.add(Nat.mul(f, p), Nat.mul(q, p)), Nat.mul(Nat.add(f, q), p), N.add_comm(Nat.mul(q, p), Nat.mul(f, p)), A.sy(Nat.mul(Nat.add(f, q), p), Nat.add(Nat.mul(f, p), Nat.mul(q, p)), NA.mul_add_right(f, q, p)))))
+  A.tr(Nat.mul(Nat.add(V.ev(h), V.ev(c)), V.ev(r)), V.ev(z), Nat.add(V.ev(Li.reduce(d)), Nat.mul(Nat.add(f, q), p)), e1,
+    A.tr(V.ev(z), Nat.add(V.ev(d), Nat.mul(f, p)), Nat.add(V.ev(Li.reduce(d)), Nat.mul(Nat.add(f, q), p)), e2,
+      A.tr(Nat.add(V.ev(d), Nat.mul(f, p)), Nat.add(Nat.add(V.ev(Li.reduce(d)), Nat.mul(q, p)), Nat.mul(f, p)), Nat.add(V.ev(Li.reduce(d)), Nat.mul(Nat.add(f, q), p)), e3, e4)))
+
+law block_inv:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +r: List<&2, U32>
+  for +h: List<&2, U32>
+  for +c: List<&2, U32>
+  for +hh: {inv(h) == True{} : Bool}
+  for +hcf: {V.fit_all(c, 8n) == True{} : Bool}
+  for +hrl: {V.len(r) == 16n : Nat}
+  for +hrf: {V.fit_all(r, 8n) == True{} : Bool}
+  {inv(Li.block(r, h, c)) == True{} : Bool}
+
+def block_inv(one, h1, r, h, c, hh, hcf, hrl, hrf):
+  +hr2 = L.and_right(Nat.is_le(V.len(h), 17n), Bool.and(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n)), hh)
+  +hhf = L.and_left(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n), hr2)
+  +z = zz(r, h, c)
+  reduce_inv(one, h1, Li.fold(z), fold_fit(one, h1, z, z_le(one, h1, r, h, c, hhf, hcf, hrl, hrf)))
