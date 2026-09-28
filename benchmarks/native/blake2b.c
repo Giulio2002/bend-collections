@@ -1,6 +1,9 @@
 /* C BLAKE2b-512 driver over the official portable reference (benchmarks/native/blake/blake2b-ref.c,
    CC0), the reference for benchmarks/bend/blake2b.bend. Build:
    cc -O3 -march=native -Ibenchmarks/native/blake benchmarks/native/blake2b.c benchmarks/native/blake/blake2b-ref.c */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L  /* clock_gettime under -std=c11 on glibc */
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

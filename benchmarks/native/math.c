@@ -3,6 +3,9 @@
 // function (Euclid with %, sqrt with an integer correction, clz for
 // bit_length, left-to-right loops for factorial / perm / comb, binary
 // exponentiation, extended Euclid). Prints BENCH_MS=<ms> and the checksum.
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L  /* clock_gettime under -std=c11 on glibc */
+#endif
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
