@@ -150,38 +150,53 @@ def one(bs: List<&2, U32>) -> String & List<&2, U32>:
 '''
 
 # one record = algorithm tag, chunk count, chunks; prints one-shot and incremental digests
-FACADE_BODY = '''def start(+tag: U32) -> Hash.Hasher:
-  match U32.to_nat(tag):
+FACADE_BODY = '''def pick(n: Nat) -> Hash.Hasher:
+  match n:
     case 0n: Hash.new_sha256()
     case 1n: Hash.new_sha512()
     case _: Hash.new_sha3_256()
 
-def oneshot(+tag: U32, msg: List<&2, U32>) -> List<&2, U32>:
-  match U32.to_nat(tag):
+def once(n: Nat, msg: List<&2, U32>) -> List<&2, U32>:
+  match n:
     case 0n: Hash.sha256(msg)
     case 1n: Hash.sha512(msg)
     case _: Hash.sha3_256(msg)
 
-# n chunks into h; also collects the whole message
-def feed(n: Nat, h: Hash.Hasher, msg: List<&2, U32>, bs: List<&2, U32>) -> (Hash.Hasher & List<&2, U32>) & List<&2, U32>:
+# n >= 1 chunks, the next one already read
+def chunks(n: Nat, acc: List<&2, List<&2, U32>>, pair: List<&2, U32> & List<&2, U32>) -> List<&2, List<&2, U32>> & List<&2, U32>:
   match n:
-    case 0n: ((h, msg), bs)
-    case 1n+p:
-      (chunk, rest) = field(bs)
-      +c = chunk
-      feed(p, Hash.update(h, c), List.append(&2, U32, msg, c), rest)
+    case 0n:
+      (c, rest) = pair
+      (List.reverse(&2, List<&2, U32>, acc), rest)
+    case 1n:
+      (c, rest) = pair
+      (List.reverse(&2, List<&2, U32>, c <> acc), rest)
+    case 2n+p:
+      (c, rest) = pair
+      chunks(1n+p, c <> acc, field(rest))
 
-def both(+tag: U32, r: (Hash.Hasher & List<&2, U32>) & List<&2, U32>) -> String & List<&2, U32>:
-  ((h, msg), rest) = r
-  (hex(oneshot(tag, msg)) ++ " " ++ hex(Hash.digest(h)), rest)
+def read_chunks(n: Nat, bs: List<&2, U32>) -> List<&2, List<&2, U32>> & List<&2, U32>:
+  match n:
+    case 0n: (Nil{}, bs)
+    case 1n+p: chunks(1n+p, Nil{}, field(bs))
 
-def chunks(+tag: U32, pair: U32 & List<&2, U32>) -> String & List<&2, U32>:
+# the one-shot digest of the concatenation, then the incremental digest
+def both(+tag: U32, pair: List<&2, List<&2, U32>> & List<&2, U32>) -> String & List<&2, U32>:
+  (cs, rest) = pair
+  +parts = cs
+  (hex(once(U32.to_nat(tag), List.concat(&2, U32, parts))) ++ " " ++
+    hex(Hash.digest(Hash.update_all(pick(U32.to_nat(tag)), parts))), rest)
+
+def counted(+tag: U32, pair: U32 & List<&2, U32>) -> String & List<&2, U32>:
   (n, rest) = pair
-  both(tag, feed(U32.to_nat(n), start(tag), Nil{}, rest))
+  both(tag, read_chunks(U32.to_nat(n), rest))
+
+def tagged(pair: U32 & List<&2, U32>) -> String & List<&2, U32>:
+  (tag, rest) = pair
+  counted(tag, word(rest))
 
 def one(bs: List<&2, U32>) -> String & List<&2, U32>:
-  (tag, rest) = word(bs)
-  chunks(tag, word(rest))
+  tagged(word(bs))
 '''
 
 CHECKS = {
@@ -287,7 +302,7 @@ def check_facade(n, seed):
     for i in range(n):
         tag = i % 3
         algo = algos[tag]
-        total = rng.choice(lengths(rng, BLOCK[algo], 1))
+        total = rng.choice(lengths(rng, BLOCK[algo], 1)) if rng.random() > 0.03 else rng.randrange(10000, 70000)
         cuts = sorted(rng.randrange(total + 1) for _ in range(rng.randrange(0, 5)))
         if rng.random() < 0.2:
             cuts += [cuts[-1]] if cuts else [0]        # an empty chunk
@@ -303,15 +318,42 @@ def check_facade(n, seed):
     return report('hash', run('hash', build('hash'), recs), want, what)
 
 
+def check_vectors():
+    """The drivers of tests/crypto/{subtle,sha512,sha3,hash}/main.bend against their expected output."""
+    fips = [b'', b'abc', VECTORS[2], VECTORS[3]]
+    expect = {
+        'subtle': ['1', '1', '0', '0', '0', '0', '1', '0'],
+        'sha512': [hashlib.sha512(m).hexdigest() for m in (b'', b'abc', VECTORS[3])],
+        'sha3': [hashlib.sha3_256(m).hexdigest() for m in fips],
+        'hash': [f(b'abc').hexdigest() for f in (hashlib.sha256, hashlib.sha256, hashlib.sha512,
+                                                 hashlib.sha512, hashlib.sha3_256, hashlib.sha3_256)],
+    }
+    ok = True
+    OUT.mkdir(parents=True, exist_ok=True)
+    for name, want in expect.items():
+        binary = OUT / ('vectors_%s' % name)
+        b = subprocess.run([BEND, 'tests/crypto/%s/main.bend' % name, '-o', str(binary.relative_to(ROOT))],
+                           cwd=ROOT, capture_output=True, text=True)
+        got = subprocess.run([str(binary)], capture_output=True, text=True).stdout.split() if binary.exists() else []
+        good = b.returncode == 0 and got == want
+        ok &= good
+        print('vectors   %s  tests/crypto/%s/main.bend (%d lines)' % ('ok  ' if good else 'FAIL', name, len(want)), flush=True)
+        if not good:
+            print('  got  %s\n  want %s' % (got, want))
+    return ok
+
+
 def main():
     ap = argparse.ArgumentParser(description='Differential tests of the hash modules.')
-    ap.add_argument('checks', nargs='*', default=['subtle', 'sha512', 'sha3_256', 'hash'])
+    ap.add_argument('checks', nargs='*', default=['vectors', 'subtle', 'sha512', 'sha3_256', 'hash'])
     ap.add_argument('-n', type=int, default=300)
     ap.add_argument('--seed', type=int, default=1)
     a = ap.parse_args()
     ok = True
     for c in a.checks:
-        if c == 'subtle':
+        if c == 'vectors':
+            ok &= check_vectors()
+        elif c == 'subtle':
             ok &= check_subtle(a.n, a.seed)
         elif c == 'hash':
             ok &= check_facade(a.n, a.seed)
