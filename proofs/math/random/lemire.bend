@@ -351,3 +351,255 @@ def lemire_count(+w: Nat, +m: Nat, +k: Nat, +hp: {Nat.is_eq(SR.and_bits(w, 1n+m,
         Equal.trans(Nat, cnt_lt(1n+m, b, W), Nat.min(W, Cb), Nat.add(q, Ca),
           cnt_min(m, b, W),
           Equal.trans(Nat, Nat.min(W, Cb), Cb, Nat.add(q, Ca), mb, bq)))))
+
+# ---- the mask branch: n = 2^j, x & (n - 1) ----
+
+# #{x < N : and_bits(w, x, m) == k}
+def cm(+w: Nat, +m: Nat, +k: Nat, N: Nat) -> Nat:
+  match N:
+    case 0n:
+      0n
+    case 1n+ +x:
+      Nat.add(cm(w, m, k, x), b2n(Nat.is_eq(SR.and_bits(w, x, m), k)))
+
+# the same count taken over the pairs 2y, 2y + 1 with y < N
+def cm2(+w: Nat, +m: Nat, +k: Nat, N: Nat) -> Nat:
+  match N:
+    case 0n:
+      0n
+    case 1n+ +y:
+      Nat.add(cm2(w, m, k, y), Nat.add(b2n(Nat.is_eq(SR.and_bits(w, Nat.double(y), m), k)), b2n(Nat.is_eq(SR.and_bits(w, 1n+Nat.double(y), m), k))))
+
+def split(+w: Nat, +m: Nat, +k: Nat, +N: Nat) -> {cm(w, m, k, Nat.double(N)) == cm2(w, m, k, N) : Nat}:
+  match N:
+    case 0n:
+      {==}
+    case 1n+ +y:
+      +f0 = b2n(Nat.is_eq(SR.and_bits(w, Nat.double(y), m), k))
+      +f1 = b2n(Nat.is_eq(SR.and_bits(w, 1n+Nat.double(y), m), k))
+      Equal.trans(Nat, Nat.add(Nat.add(cm(w, m, k, Nat.double(y)), f0), f1), Nat.add(cm(w, m, k, Nat.double(y)), Nat.add(f0, f1)), Nat.add(cm2(w, m, k, y), Nat.add(f0, f1)),
+        N.add_assoc(cm(w, m, k, Nat.double(y)), f0, f1),
+        Equal.cong(Nat, Nat, z => Nat.add(z, Nat.add(f0, f1)), cm(w, m, k, Nat.double(y)), cm2(w, m, k, y), split(w, m, k, y)))
+
+# [2a == k] + [2a + 1 == k] == [a == k / 2]
+def pair_eq(+a: Nat, +k: Nat) -> {Nat.add(b2n(Nat.is_eq(Nat.double(a), k)), b2n(Nat.is_eq(1n+Nat.double(a), k))) == b2n(Nat.is_eq(a, C.half(k))) : Nat}:
+  match a k:
+    case 0n 0n:
+      {==}
+    case 0n 1n:
+      {==}
+    case 0n 2n+q:
+      {==}
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n:
+      {==}
+    case 1n+p 2n+q:
+      pair_eq(p, q)
+
+def bit_dbl0(+y: Nat) -> {C.bit(Nat.double(y)) == 0n : Nat}:
+  WI.bit_dbl(0n, y)
+
+def half_dbl0(+y: Nat) -> {C.half(Nat.double(y)) == y : Nat}:
+  WI.half_dbl(0n, y)
+
+def bit_dbl1(+y: Nat) -> {C.bit(1n+Nat.double(y)) == 1n : Nat}:
+  WI.bit_dbl(1n, y)
+
+def half_dbl1(+y: Nat) -> {C.half(1n+Nat.double(y)) == y : Nat}:
+  WI.half_dbl(1n, y)
+
+# with m = 2h + 1: the pair 2y, 2y + 1 draws k once exactly when y draws k / 2
+# one width lower with h
+def pair_and(+v: Nat, +h: Nat, +k: Nat, +y: Nat) -> {Nat.add(b2n(Nat.is_eq(SR.and_bits(1n+v, Nat.double(y), 1n+Nat.double(h)), k)), b2n(Nat.is_eq(SR.and_bits(1n+v, 1n+Nat.double(y), 1n+Nat.double(h)), k))) == b2n(Nat.is_eq(SR.and_bits(v, y, h), C.half(k))) : Nat}:
+  +M = {1n+Nat.double(h) : Nat}
+  %Equal.sym(Nat, C.bit(M), 1n, bit_dbl1(h)) : {Nat.add(b2n(Nat.is_eq(Nat.add(Nat.mul(C.bit(Nat.double(y)), _), Nat.double(SR.and_bits(v, C.half(Nat.double(y)), C.half(M)))), k)), b2n(Nat.is_eq(Nat.add(Nat.mul(C.bit(1n+Nat.double(y)), _), Nat.double(SR.and_bits(v, C.half(1n+Nat.double(y)), C.half(M)))), k))) == b2n(Nat.is_eq(SR.and_bits(v, y, h), C.half(k))) : Nat}
+  %Equal.sym(Nat, C.half(M), h, half_dbl1(h)) : {Nat.add(b2n(Nat.is_eq(Nat.add(Nat.mul(C.bit(Nat.double(y)), 1n), Nat.double(SR.and_bits(v, C.half(Nat.double(y)), _))), k)), b2n(Nat.is_eq(Nat.add(Nat.mul(C.bit(1n+Nat.double(y)), 1n), Nat.double(SR.and_bits(v, C.half(1n+Nat.double(y)), _))), k))) == b2n(Nat.is_eq(SR.and_bits(v, y, h), C.half(k))) : Nat}
+  %Equal.sym(Nat, C.bit(Nat.double(y)), 0n, bit_dbl0(y)) : {Nat.add(b2n(Nat.is_eq(Nat.add(Nat.mul(_, 1n), Nat.double(SR.and_bits(v, C.half(Nat.double(y)), h))), k)), b2n(Nat.is_eq(Nat.add(Nat.mul(C.bit(1n+Nat.double(y)), 1n), Nat.double(SR.and_bits(v, C.half(1n+Nat.double(y)), h))), k))) == b2n(Nat.is_eq(SR.and_bits(v, y, h), C.half(k))) : Nat}
+  %Equal.sym(Nat, C.half(Nat.double(y)), y, half_dbl0(y)) : {Nat.add(b2n(Nat.is_eq(Nat.add(Nat.mul(0n, 1n), Nat.double(SR.and_bits(v, _, h))), k)), b2n(Nat.is_eq(Nat.add(Nat.mul(C.bit(1n+Nat.double(y)), 1n), Nat.double(SR.and_bits(v, C.half(1n+Nat.double(y)), h))), k))) == b2n(Nat.is_eq(SR.and_bits(v, y, h), C.half(k))) : Nat}
+  %Equal.sym(Nat, C.bit(1n+Nat.double(y)), 1n, bit_dbl1(y)) : {Nat.add(b2n(Nat.is_eq(Nat.double(SR.and_bits(v, y, h)), k)), b2n(Nat.is_eq(Nat.add(Nat.mul(_, 1n), Nat.double(SR.and_bits(v, C.half(1n+Nat.double(y)), h))), k))) == b2n(Nat.is_eq(SR.and_bits(v, y, h), C.half(k))) : Nat}
+  %Equal.sym(Nat, C.half(1n+Nat.double(y)), y, half_dbl1(y)) : {Nat.add(b2n(Nat.is_eq(Nat.double(SR.and_bits(v, y, h)), k)), b2n(Nat.is_eq(Nat.add(1n, Nat.double(SR.and_bits(v, _, h))), k))) == b2n(Nat.is_eq(SR.and_bits(v, y, h), C.half(k))) : Nat}
+  pair_eq(SR.and_bits(v, y, h), k)
+
+# the pairs one width up count what the lower width counts
+def pairs(+v: Nat, +h: Nat, +k: Nat, +N: Nat) -> {cm2(1n+v, 1n+Nat.double(h), k, N) == cm(v, h, C.half(k), N) : Nat}:
+  match N:
+    case 0n:
+      {==}
+    case 1n+ +y:
+      Equal.trans(Nat, Nat.add(cm2(1n+v, 1n+Nat.double(h), k, y), Nat.add(b2n(Nat.is_eq(SR.and_bits(1n+v, Nat.double(y), 1n+Nat.double(h)), k)), b2n(Nat.is_eq(SR.and_bits(1n+v, 1n+Nat.double(y), 1n+Nat.double(h)), k)))), Nat.add(cm(v, h, C.half(k), y), Nat.add(b2n(Nat.is_eq(SR.and_bits(1n+v, Nat.double(y), 1n+Nat.double(h)), k)), b2n(Nat.is_eq(SR.and_bits(1n+v, 1n+Nat.double(y), 1n+Nat.double(h)), k)))), Nat.add(cm(v, h, C.half(k), y), b2n(Nat.is_eq(SR.and_bits(v, y, h), C.half(k)))),
+        Equal.cong(Nat, Nat, z => Nat.add(z, Nat.add(b2n(Nat.is_eq(SR.and_bits(1n+v, Nat.double(y), 1n+Nat.double(h)), k)), b2n(Nat.is_eq(SR.and_bits(1n+v, 1n+Nat.double(y), 1n+Nat.double(h)), k)))), cm2(1n+v, 1n+Nat.double(h), k, y), cm(v, h, C.half(k), y), pairs(v, h, k, y)),
+        Equal.cong(Nat, Nat, z => Nat.add(cm(v, h, C.half(k), y), z), Nat.add(b2n(Nat.is_eq(SR.and_bits(1n+v, Nat.double(y), 1n+Nat.double(h)), k)), b2n(Nat.is_eq(SR.and_bits(1n+v, 1n+Nat.double(y), 1n+Nat.double(h)), k))), b2n(Nat.is_eq(SR.and_bits(v, y, h), C.half(k))), pair_and(v, h, k, y)))
+
+# x & 0 == 0
+def and0(+w: Nat, +x: Nat) -> {SR.and_bits(w, x, 0n) == 0n : Nat}:
+  match w:
+    case 0n:
+      {==}
+    case 1n+v:
+      %Equal.sym(Nat, Nat.mul(C.bit(x), 0n), 0n, NA.mul_zero(C.bit(x))) : {Nat.add(_, Nat.double(SR.and_bits(v, C.half(x), 0n))) == 0n : Nat}
+      %Equal.sym(Nat, SR.and_bits(v, C.half(x), 0n), 0n, and0(v, C.half(x))) : {Nat.add(0n, Nat.double(_)) == 0n : Nat}
+      {==}
+
+# n = 1: every output draws 0
+def cm0(+w: Nat, +N: Nat) -> {cm(w, 0n, 0n, N) == N : Nat}:
+  match N:
+    case 0n:
+      {==}
+    case 1n+ +x:
+      %Equal.sym(Nat, SR.and_bits(w, x, 0n), 0n, and0(w, x)) : {Nat.add(cm(w, 0n, 0n, x), b2n(Nat.is_eq(_, 0n))) == 1n+x : Nat}
+      %Equal.sym(Nat, cm(w, 0n, 0n, x), x, cm0(w, x)) : {Nat.add(_, 1n) == 1n+x : Nat}
+      Equal.trans(Nat, Nat.add(x, 1n), 1n+Nat.add(x, 0n), 1n+x, N.add_succ(x, 0n), Equal.cong(Nat, Nat, z => 1n+z, Nat.add(x, 0n), x, N.add_zero(x)))
+
+def cm0k(+w: Nat, +k: Nat, +N: Nat, +hk: {Nat.is_lt(k, 1n) == True{} : Bool}) -> {cm(w, 0n, k, N) == N : Nat}:
+  match k:
+    case 0n:
+      cm0(w, N)
+    case 1n+q:
+      Empty.absurd({cm(w, 0n, 1n+q, N) == N : Nat}, N.lt_zero_absurd(q, hk))
+
+def div_one(+N: Nat) -> {Nat.div(N, 1n) == N : Nat}:
+  %Equal.sym(Nat, N, Nat.add(Nat.mul(N, 1n), 0n), Equal.trans(Nat, N, Nat.mul(N, 1n), Nat.add(Nat.mul(N, 1n), 0n), Equal.sym(Nat, Nat.mul(N, 1n), N, NA.mul_one(N)), Equal.sym(Nat, Nat.add(Nat.mul(N, 1n), 0n), Nat.mul(N, 1n), N.add_zero(Nat.mul(N, 1n))))) : {Nat.div(_, 1n) == N : Nat}
+  AR.div_of(N, 0n, 0n, {==})
+
+# 2a / 2n = a / n
+def div_double(+a: Nat, +h: Nat) -> {Nat.div(Nat.double(a), 2n+Nat.double(h)) == Nat.div(a, 1n+h) : Nat}:
+  +q = Nat.div(a, 1n+h)
+  +r = Nat.mod(a, 1n+h)
+  %Equal.sym(Nat, a, Nat.add(Nat.mul(q, 1n+h), r), AR.dm_eq(h, a)) : {Nat.div(Nat.double(_), 2n+Nat.double(h)) == q : Nat}
+  %N.add_double(Nat.mul(q, 1n+h), r) : {Nat.div(_, 2n+Nat.double(h)) == q : Nat}
+  %Equal.sym(Nat, Nat.double(Nat.mul(q, 1n+h)), Nat.mul(q, Nat.double(1n+h)), WI.dbl_mul(q, 1n+h)) : {Nat.div(Nat.add(_, Nat.double(r)), 2n+Nat.double(h)) == q : Nat}
+  AR.div_of(q, 1n+Nat.double(h), Nat.double(r), N.double_lt(r, 1n+h, AR.dm_lt(h, a)))
+
+# bit * bit == bit
+def bitsq_b(+b: Nat, +h: {Nat.is_le(b, 1n) == True{} : Bool}) -> {Nat.mul(b, b) == b : Nat}:
+  match b:
+    case 0n:
+      {==}
+    case 1n:
+      {==}
+    case 2n+q:
+      Empty.absurd({Nat.mul(2n+q, 2n+q) == 2n+q : Nat}, L.false_true(h))
+
+# x & x is the low w bits of x
+def and_self(+w: Nat, +x: Nat) -> {SR.and_bits(w, x, x) == C.low(w, x) : Nat}:
+  match w:
+    case 0n:
+      {==}
+    case 1n+v:
+      %Equal.sym(Nat, Nat.mul(C.bit(x), C.bit(x)), C.bit(x), bitsq_b(C.bit(x), WI.bit_le1(x))) : {Nat.add(_, Nat.double(SR.and_bits(v, C.half(x), C.half(x)))) == Nat.add(C.bit(x), Nat.double(C.low(v, C.half(x)))) : Nat}
+      Equal.cong(Nat, Nat, z => Nat.add(C.bit(x), Nat.double(z)), SR.and_bits(v, C.half(x), C.half(x)), C.low(v, C.half(x)), and_self(v, C.half(x)))
+
+def dbl0(+z: Nat, +h: {Nat.double(z) == 0n : Nat}) -> {z == 0n : Nat}:
+  match z:
+    case 0n:
+      {==}
+    case 1n+p:
+      Empty.absurd({1n+p == 0n : Nat}, N.succ_zero(1n+Nat.double(p), h))
+
+# m = bit(m) + 2 half(m)
+def decomp(+m: Nat, +b: Nat, +h: Nat, +hb: {C.bit(m) == b : Nat}, +hh: {C.half(m) == h : Nat}) -> {m == Nat.add(b, Nat.double(h)) : Nat}:
+  Equal.trans(Nat, m, Nat.add(C.bit(m), Nat.double(C.half(m))), Nat.add(b, Nat.double(h)), WI.hb(m),
+    Equal.trans(Nat, Nat.add(C.bit(m), Nat.double(C.half(m))), Nat.add(b, Nat.double(C.half(m))), Nat.add(b, Nat.double(h)),
+      Equal.cong(Nat, Nat, z => Nat.add(z, Nat.double(C.half(m))), C.bit(m), b, hb),
+      Equal.cong(Nat, Nat, z => Nat.add(b, Nat.double(z)), C.half(m), h, hh)))
+
+# n = 2h + 2, m = 2h + 1: n & m is twice (h + 1) & h one width lower
+def and_even(+w: Nat, +h: Nat) -> {SR.and_bits(1n+w, 2n+Nat.double(h), 1n+Nat.double(h)) == Nat.double(SR.and_bits(w, 1n+h, h)) : Nat}:
+  %Equal.sym(Nat, C.bit(Nat.double(h)), 0n, bit_dbl0(h)) : {Nat.add(Nat.mul(_, C.bit(1n+Nat.double(h))), Nat.double(SR.and_bits(w, 1n+C.half(Nat.double(h)), C.half(1n+Nat.double(h))))) == Nat.double(SR.and_bits(w, 1n+h, h)) : Nat}
+  %Equal.sym(Nat, C.half(Nat.double(h)), h, half_dbl0(h)) : {Nat.add(Nat.mul(0n, C.bit(1n+Nat.double(h))), Nat.double(SR.and_bits(w, 1n+_, C.half(1n+Nat.double(h))))) == Nat.double(SR.and_bits(w, 1n+h, h)) : Nat}
+  %Equal.sym(Nat, C.half(1n+Nat.double(h)), h, half_dbl1(h)) : {Nat.add(Nat.mul(0n, C.bit(1n+Nat.double(h))), Nat.double(SR.and_bits(w, 1n+h, _))) == Nat.double(SR.and_bits(w, 1n+h, h)) : Nat}
+  {==}
+
+# n = 2g + 3, m = 2g + 2: n & m is twice the low bits of g + 1
+def and_odd(+w: Nat, +g: Nat) -> {SR.and_bits(1n+w, 3n+Nat.double(g), 2n+Nat.double(g)) == Nat.double(C.low(w, 1n+g)) : Nat}:
+  %Equal.sym(Nat, C.bit(Nat.double(g)), 0n, bit_dbl0(g)) : {Nat.add(Nat.mul(C.bit(1n+Nat.double(g)), _), Nat.double(SR.and_bits(w, 1n+C.half(1n+Nat.double(g)), 1n+C.half(Nat.double(g))))) == Nat.double(C.low(w, 1n+g)) : Nat}
+  %Equal.sym(Nat, C.half(Nat.double(g)), g, half_dbl0(g)) : {Nat.add(Nat.mul(C.bit(1n+Nat.double(g)), 0n), Nat.double(SR.and_bits(w, 1n+C.half(1n+Nat.double(g)), 1n+_))) == Nat.double(C.low(w, 1n+g)) : Nat}
+  %Equal.sym(Nat, C.half(1n+Nat.double(g)), g, half_dbl1(g)) : {Nat.add(Nat.mul(C.bit(1n+Nat.double(g)), 0n), Nat.double(SR.and_bits(w, 1n+_, 1n+g))) == Nat.double(C.low(w, 1n+g)) : Nat}
+  %Equal.sym(Nat, C.bit(1n+Nat.double(g)), 1n, bit_dbl1(g)) : {Nat.add(Nat.mul(_, 0n), Nat.double(SR.and_bits(w, 1n+g, 1n+g))) == Nat.double(C.low(w, 1n+g)) : Nat}
+  Equal.cong(Nat, Nat, z => Nat.double(z), SR.and_bits(w, 1n+g, 1n+g), C.low(w, 1n+g), and_self(w, 1n+g))
+
+# THEOREM (the mask branch): with n = 1 + m, n & m == 0 and n < 2^v, each
+# k < n is the low bits of floor(2^v / n) outputs
+def mask(+v: Nat, +m: Nat, +k: Nat, +b: Nat, +h: Nat, +hb: {C.bit(m) == b : Nat}, +hh: {C.half(m) == h : Nat}, +hp: {SR.and_bits(v, 1n+m, m) == 0n : Nat}, +hw: {C.fits(v, 1n+m) == True{} : Bool}, +hk: {Nat.is_lt(k, 1n+m) == True{} : Bool}) -> {cm(v, m, k, C.shift(v, 1n)) == Nat.div(C.shift(v, 1n), 1n+m) : Nat}:
+  match v:
+    case 0n:
+      Empty.absurd({cm(0n, m, k, 1n) == Nat.div(1n, 1n+m) : Nat}, L.false_true(hw))
+    case 1n+w:
+      match b h:
+        case 0n 0n:
+          +hm = decomp(m, 0n, 0n, hb, hh)
+          %Equal.sym(Nat, m, 0n, hm) : {cm(1n+w, _, k, C.shift(1n+w, 1n)) == Nat.div(C.shift(1n+w, 1n), 1n+_) : Nat}
+          Equal.trans(Nat, cm(1n+w, 0n, k, C.shift(1n+w, 1n)), C.shift(1n+w, 1n), Nat.div(C.shift(1n+w, 1n), 1n),
+            cm0k(1n+w, k, C.shift(1n+w, 1n), Equal.trans(Bool, Nat.is_lt(k, 1n), Nat.is_lt(k, 1n+m), True{}, Equal.cong(Nat, Bool, z => Nat.is_lt(k, 1n+z), 0n, m, Equal.sym(Nat, m, 0n, hm)), hk)),
+            Equal.sym(Nat, Nat.div(C.shift(1n+w, 1n), 1n), C.shift(1n+w, 1n), div_one(C.shift(1n+w, 1n))))
+        case 0n 1n+g:
+          +hm = decomp(m, 0n, 1n+g, hb, hh)
+          +hp2 = Equal.trans(Nat, SR.and_bits(1n+w, 3n+Nat.double(g), 2n+Nat.double(g)), SR.and_bits(1n+w, 1n+m, m), 0n, Equal.cong(Nat, Nat, z => SR.and_bits(1n+w, 1n+z, z), 2n+Nat.double(g), m, Equal.sym(Nat, m, 2n+Nat.double(g), hm)), hp)
+          +hw2 = Equal.trans(Bool, C.fits(w, 1n+g), C.fits(1n+w, 1n+m), True{},
+            Equal.trans(Bool, C.fits(w, 1n+g), C.fits(w, 1n+C.half(1n+Nat.double(g))), C.fits(1n+w, 1n+m),
+              Equal.cong(Nat, Bool, z => C.fits(w, 1n+z), g, C.half(1n+Nat.double(g)), Equal.sym(Nat, C.half(1n+Nat.double(g)), g, half_dbl1(g))),
+              Equal.cong(Nat, Bool, z => C.fits(1n+w, 1n+z), 2n+Nat.double(g), m, Equal.sym(Nat, m, 2n+Nat.double(g), hm))),
+            hw)
+          +zero = Equal.trans(Nat, Nat.double(1n+g), Nat.double(C.low(w, 1n+g)), 0n,
+            Equal.cong(Nat, Nat, z => Nat.double(z), 1n+g, C.low(w, 1n+g), Equal.sym(Nat, C.low(w, 1n+g), 1n+g, WI.low_fit(w, 1n+g, hw2))),
+            Equal.trans(Nat, Nat.double(C.low(w, 1n+g)), SR.and_bits(1n+w, 3n+Nat.double(g), 2n+Nat.double(g)), 0n, Equal.sym(Nat, SR.and_bits(1n+w, 3n+Nat.double(g), 2n+Nat.double(g)), Nat.double(C.low(w, 1n+g)), and_odd(w, g)), hp2))
+          Empty.absurd({cm(1n+w, m, k, C.shift(1n+w, 1n)) == Nat.div(C.shift(1n+w, 1n), 1n+m) : Nat}, N.succ_zero(g, dbl0(1n+g, zero)))
+        case 1n _:
+          +hm = decomp(m, 1n, h, hb, hh)
+          +W = C.shift(w, 1n)
+          +hp2 = Equal.trans(Nat, SR.and_bits(1n+w, 2n+Nat.double(h), 1n+Nat.double(h)), SR.and_bits(1n+w, 1n+m, m), 0n, Equal.cong(Nat, Nat, z => SR.and_bits(1n+w, 1n+z, z), 1n+Nat.double(h), m, Equal.sym(Nat, m, 1n+Nat.double(h), hm)), hp)
+          +hp3 = dbl0(SR.and_bits(w, 1n+h, h), Equal.trans(Nat, Nat.double(SR.and_bits(w, 1n+h, h)), SR.and_bits(1n+w, 2n+Nat.double(h), 1n+Nat.double(h)), 0n, Equal.sym(Nat, SR.and_bits(1n+w, 2n+Nat.double(h), 1n+Nat.double(h)), Nat.double(SR.and_bits(w, 1n+h, h)), and_even(w, h)), hp2))
+          +hw3 = Equal.trans(Bool, C.fits(w, 1n+h), C.fits(1n+w, 1n+m), True{},
+            Equal.trans(Bool, C.fits(w, 1n+h), C.fits(w, 1n+C.half(Nat.double(h))), C.fits(1n+w, 1n+m),
+              Equal.cong(Nat, Bool, z => C.fits(w, 1n+z), h, C.half(Nat.double(h)), Equal.sym(Nat, C.half(Nat.double(h)), h, half_dbl0(h))),
+              Equal.cong(Nat, Bool, z => C.fits(1n+w, 1n+z), 1n+Nat.double(h), m, Equal.sym(Nat, m, 1n+Nat.double(h), hm))),
+            hw)
+          +hk3 = Equal.trans(Bool, Nat.is_lt(C.half(k), 1n+h), Nat.is_lt(k, 1n+m), True{},
+            Equal.trans(Bool, Nat.is_lt(C.half(k), 1n+h), Nat.is_lt(k, Nat.double(1n+h)), Nat.is_lt(k, 1n+m), WI.lt_half(k, 1n+h),
+              Equal.cong(Nat, Bool, z => Nat.is_lt(k, 1n+z), 1n+Nat.double(h), m, Equal.sym(Nat, m, 1n+Nat.double(h), hm))),
+            hk)
+          %Equal.sym(Nat, m, 1n+Nat.double(h), hm) : {cm(1n+w, _, k, Nat.double(W)) == Nat.div(Nat.double(W), 1n+_) : Nat}
+          Equal.trans(Nat, cm(1n+w, 1n+Nat.double(h), k, Nat.double(W)), cm2(1n+w, 1n+Nat.double(h), k, W), Nat.div(Nat.double(W), 2n+Nat.double(h)),
+            split(1n+w, 1n+Nat.double(h), k, W),
+            Equal.trans(Nat, cm2(1n+w, 1n+Nat.double(h), k, W), cm(w, h, C.half(k), W), Nat.div(Nat.double(W), 2n+Nat.double(h)),
+              pairs(w, h, k, W),
+              Equal.trans(Nat, cm(w, h, C.half(k), W), Nat.div(W, 1n+h), Nat.div(Nat.double(W), 2n+Nat.double(h)),
+                mask(w, h, C.half(k), C.bit(h), C.half(h), {==}, {==}, hp3, hw3, hk3),
+                Equal.sym(Nat, Nat.div(Nat.double(W), 2n+Nat.double(h)), Nat.div(W, 1n+h), div_double(W, h)))))
+        case 2n+q _:
+          Empty.absurd({cm(1n+w, m, k, C.shift(1n+w, 1n)) == Nat.div(C.shift(1n+w, 1n), 1n+m) : Nat}, L.false_true(Equal.trans(Bool, Nat.is_le(2n+q, 1n), Nat.is_le(C.bit(m), 1n), True{}, Equal.cong(Nat, Bool, z => Nat.is_le(z, 1n), 2n+q, C.bit(m), Equal.sym(Nat, C.bit(m), 2n+q, hb)), WI.bit_le1(m))))
+
+# ---- both branches ----
+
+# the draw is the mask when n is a power of two
+def draw_mask(+w: Nat, +m: Nat, +x: Nat, +hp: {Nat.is_eq(SR.and_bits(w, 1n+m, m), 0n) == True{} : Bool}) -> {SR.draw(w, x, 1n+m) == Some{SR.and_bits(w, x, m)} : Maybe<&2, Nat>}:
+  %Equal.sym(Bool, Nat.is_eq(SR.and_bits(w, 1n+m, m), 0n), True{}, hp) : {SR.draw_pos(w, x, 1n+m, m, _) == Some{SR.and_bits(w, x, m)} : Maybe<&2, Nat>}
+  {==}
+
+def count_mask(+w: Nat, +m: Nat, +k: Nat, +N: Nat, +hp: {Nat.is_eq(SR.and_bits(w, 1n+m, m), 0n) == True{} : Bool}) -> {SR.count(w, 1n+m, k, N) == cm(w, m, k, N) : Nat}:
+  match N:
+    case 0n:
+      {==}
+    case 1n+ +x:
+      %Equal.sym(Nat, SR.count(w, 1n+m, k, x), cm(w, m, k, x), count_mask(w, m, k, x, hp)) : {Nat.add(_, SR.hit(SR.draw(w, x, 1n+m), k)) == Nat.add(cm(w, m, k, x), b2n(Nat.is_eq(SR.and_bits(w, x, m), k))) : Nat}
+      %Equal.sym(Maybe<&2, Nat>, SR.draw(w, x, 1n+m), Some{SR.and_bits(w, x, m)}, draw_mask(w, m, x, hp)) : {Nat.add(cm(w, m, k, x), SR.hit(_, k)) == Nat.add(cm(w, m, k, x), b2n(Nat.is_eq(SR.and_bits(w, x, m), k))) : Nat}
+      {==}
+
+def unbiased_c(+w: Nat, +m: Nat, +k: Nat, +hw: {C.fits(w, 1n+m) == True{} : Bool}, +hk: {Nat.is_lt(k, 1n+m) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(SR.and_bits(w, 1n+m, m), 0n) == c : Bool}) -> {SR.count(w, 1n+m, k, C.shift(w, 1n)) == Nat.div(C.shift(w, 1n), 1n+m) : Nat}:
+  match c:
+    case False{}:
+      lemire_count(w, m, k, hc, hw, hk)
+    case True{}:
+      Equal.trans(Nat, SR.count(w, 1n+m, k, C.shift(w, 1n)), cm(w, m, k, C.shift(w, 1n)), Nat.div(C.shift(w, 1n), 1n+m),
+        count_mask(w, m, k, C.shift(w, 1n), hc),
+        mask(w, m, k, C.bit(m), C.half(m), {==}, {==}, N.eq_from_is_eq(SR.and_bits(w, 1n+m, m), 0n, hc), hw, hk))
+
+# THEOREM (Lemire.unbiased): for every width w, bound 0 < n < 2^w and
+# k < n, exactly floor(2^w / n) of the 2^w outputs draw k
+def unbiased(+w: Nat, +n: Nat, +k: Nat, +hn: {Nat.is_lt(0n, n) == True{} : Bool}, +hw: {C.fits(w, n) == True{} : Bool}, +hk: {Nat.is_lt(k, n) == True{} : Bool}) -> {SR.count(w, n, k, C.shift(w, 1n)) == Nat.div(C.shift(w, 1n), n) : Nat}:
+  match n:
+    case 0n:
+      Empty.absurd({SR.count(w, 0n, k, C.shift(w, 1n)) == Nat.div(C.shift(w, 1n), 0n) : Nat}, L.false_true(hn))
+    case 1n+m:
+      unbiased_c(w, m, k, hw, hk, Nat.is_eq(SR.and_bits(w, 1n+m, m), 0n), {==})
