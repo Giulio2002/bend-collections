@@ -17,7 +17,8 @@ import ../f64.bend as F
 # are chacha8.bend's ChaCha8 and pcg.bend's PCG:
 #
 #   import ./src/math/random.bend as R
-#   (k, g) = R.uint64n(~R.ChaCha8, ~R.chacha8_next, g, n)
+#   import ./src/math/random/chacha8.bend as C8
+#   (k, g) = R.uint64n(~C8.ChaCha8, ~R.chacha8_next, g, n)
 #
 # A later module (math/statistics: normal, exponential, ...) is written the
 # same way, once for every source, on top of these functions:

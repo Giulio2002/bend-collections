@@ -11,10 +11,12 @@ import ./random/pcg.bend as P
 # value next to the advanced generator.
 #
 #   import ./src/math/random.bend as R
+#   import ./src/math/random/pcg.bend as PCG           (the state types:
+#   import ./src/math/random/chacha8.bend as C8         PCG.PCG, C8.ChaCha8)
 #
-#   g = R.pcg(W.U64{1, 0}, W.U64{2, 0})                   Go: rand.NewPCG(1, 2)
-#   (k, g) = R.uint64n(~R.Pcg, ~R.pcg_next, g, n)          Go: r.Uint64N(n)
-#   (xs, g) = R.shuffle(~U32, ~R.Pcg, ~R.pcg_next, g, xs)  Go: r.Shuffle
+#   g = R.pcg(W.U64{1, 0}, W.U64{2, 0})                  Go: rand.NewPCG(1, 2)
+#   (k, g) = R.uint64n(~PCG.PCG, ~R.pcg_next, g, n)       Go: r.Uint64N(n)
+#   (xs, g) = R.shuffle(~U32, ~PCG.PCG, ~R.pcg_next, g, xs)   Go: r.Shuffle
 #
 # Sources (the Source interface of random/rand.bend: a state type S and
 # ~next: S -> W.U64 & S, passed as templates):
@@ -38,12 +40,6 @@ import ./random/pcg.bend as P
 # on naturals, uint64n(n) < n, Lemire's acceptance is exactly unbiased
 # (every k < n has floor(2^64 / n) accepted inputs), shuffle and perm return
 # permutations, float64 < 1.
-
-def Chacha8() -> Type:
-  C8.ChaCha8
-
-def Pcg() -> Type:
-  P.PCG
 
 def chacha8(+seed: List<&2, U32>) -> Maybe<&2, C8.ChaCha8>:
   C8.new(seed)

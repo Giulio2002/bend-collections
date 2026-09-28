@@ -91,7 +91,7 @@ def next(g: Gen) -> W.U64 & Gen:
 def le_bytes(+x: W.U64) -> List<&2, U32>:
   +l = X.lo(x)
   +h = X.hi(x)
-  [U32.and(l, 255), U32.and(U32.shrn(l, 8n), 255), U32.and(U32.shrn(l, 16n), 255), U32.shrn(l, 24n), U32.and(h, 255), U32.and(U32.shrn(h, 8n), 255), U32.and(U32.shrn(h, 16n), 255), U32.shrn(h, 24n)]
+  [U32.and(l, 255), U32.and(U32.shrn(l, 8n), 255), U32.and(U32.shrn(l, 16n), 255), U32.and(U32.shrn(l, 24n), 255), U32.and(h, 255), U32.and(U32.shrn(h, 8n), 255), U32.and(U32.shrn(h, 16n), 255), U32.and(U32.shrn(h, 24n), 255)]
 
 # the bytes read so far (latest first), the generator and its pending bytes
 type Fill is Data:

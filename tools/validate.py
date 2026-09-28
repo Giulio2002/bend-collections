@@ -434,6 +434,35 @@ def main():
         (LOGDIR / 'math.log').write_text('\n'.join(x['output'] for x in checks))
         print('%-22s differential=%s proof=%s' % ('math', math_row['differential'], math_row['proof']), flush=True)
 
+    # src/math/random.bend and src/crypto/random.bend (Go's math/rand/v2 and
+    # C2SP chacha8rand): Go's published vectors, a Python mirror of Go on
+    # random keys and call sequences, a chi-square smoke test of uint64n
+    # (tools/check_random.py), the two proof roots and the specs.
+    random_row = None
+    if not args.only or args.only == 'random':
+        (ROOT / 'build/math').mkdir(parents=True, exist_ok=True)
+        checks = []
+        random_checks = [([BEND, 'tests/math/random.bend', '-o', 'build/math/random'], 1800),
+                         ([sys.executable, 'tools/check_random.py', '2026'], 1800),
+                         ([sys.executable, 'tools/check_random.py', '7'], 1800),
+                         ([BEND, 'proofs/math/random/proof.bend'], 7200),
+                         ([BEND, 'proofs/crypto/random/proof.bend'], 7200)] + \
+                        [([BEND, str(f.relative_to(ROOT))], 1800) for f in sorted((ROOT / 'spec/math/random').glob('*.bend'))] + \
+                        [([BEND, 'spec/math/random.bend'], 1800), ([BEND, 'spec/crypto/random.bend'], 1800)]
+        for command, limit in random_checks:
+            result = run(command, timeout=limit)
+            passed = result.returncode == 0 and (not command[1].endswith('.bend') or '-o' in command or proved(result.stdout))
+            checks.append({'command': command, 'passed': passed, 'output': result.stdout + result.stderr})
+            if not passed:
+                fail('random', 'random check failed: ' + repr(command))
+                break
+        good = len(checks) == len(random_checks) and all(x['passed'] for x in checks)
+        random_row = {'id': 'random', 'implementation': 'src/math/random/, src/crypto/random.bend',
+                      'differential': 'passed' if good else 'failed',
+                      'proof': 'passed' if good else 'failed', 'checks': checks}
+        (LOGDIR / 'random.log').write_text('\n'.join(x['output'] for x in checks))
+        print('%-22s differential=%s proof=%s' % ('random', random_row['differential'], random_row['proof']), flush=True)
+
     lru_log = []
     lru_ok, lru_detail = check_lru(lru_log)
     (LOGDIR / 'lru.log').write_text('\n'.join(lru_log))
@@ -450,6 +479,7 @@ def main():
     report = {
         'structures': rows,
         'math': math_row,
+        'random': random_row,
         'lru_reuse': 'passed' if lru_ok else 'failed',
         'lru_detail': lru_detail,
         'complete': bool(complete),
