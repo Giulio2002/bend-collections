@@ -8,12 +8,10 @@ import ../../../spec/crypto/subtle.bend as RS
 import ../../../spec/crypto/chacha20poly1305.bend as R
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
-import ../chacha/laws.bend as CL
-import ../chacha/proof.bend as CLP
 import ../chacha/stream.bend as T
+import ../chacha/xchacha.bend as X
 import ../chacha/involution.bend as V
-import ../poly1305/laws.bend as PL
-import ../poly1305/proof.bend as PLP
+import ../poly1305/mac.bend as PM
 import ../subtle/laws.bend as SL
 import ../subtle/proof.bend as SLP
 
@@ -37,7 +35,7 @@ law poly_key_eq:
 def poly_key_eq(key, nonce):
   Equal.trans(List<&2, U32>, CH.take(32n, CH.block_rounds(10n, key, 0, nonce)), RC.prefix(32n, CH.block_rounds(10n, key, 0, nonce)), RC.prefix(32n, RC.block(key, 0, nonce)),
     T.take_eq(32n, CH.block_rounds(10n, key, 0, nonce)),
-    Equal.cong(List<&2, U32>, List<&2, U32>, l => RC.prefix(32n, l), CH.block_rounds(10n, key, 0, nonce), RC.block(key, 0, nonce), CL.block_rounds(10n, key, 0, nonce)))
+    Equal.cong(List<&2, U32>, List<&2, U32>, l => RC.prefix(32n, l), CH.block_rounds(10n, key, 0, nonce), RC.block(key, 0, nonce), T.block_rounds_correct(10n, key, 0, nonce)))
 
 law mac_data_eq:
   for +aad: List<&2, U32>
@@ -56,7 +54,7 @@ law tag_eq:
 
 def tag_eq(key, nonce, aad, ct):
   Equal.trans(List<&2, U32>, I.tag(key, nonce, aad, ct), RP.mac(I.poly_key(key, nonce), I.mac_data(aad, ct)), R.tag(key, nonce, aad, ct),
-    PL.mac_correct(I.poly_key(key, nonce), I.mac_data(aad, ct)),
+    PM.mac_correct(I.poly_key(key, nonce), I.mac_data(aad, ct)),
     Equal.trans(List<&2, U32>, RP.mac(I.poly_key(key, nonce), I.mac_data(aad, ct)), RP.mac(R.poly_key(key, nonce), I.mac_data(aad, ct)), R.tag(key, nonce, aad, ct),
       Equal.cong(List<&2, U32>, List<&2, U32>, l => RP.mac(l, I.mac_data(aad, ct)), I.poly_key(key, nonce), R.poly_key(key, nonce), poly_key_eq(key, nonce)),
       Equal.cong(List<&2, U32>, List<&2, U32>, l => RP.mac(R.poly_key(key, nonce), l), I.mac_data(aad, ct), R.mac_data(aad, ct), mac_data_eq(aad, ct))))
@@ -75,7 +73,7 @@ def seal_eq(key, nonce, aad, pt):
   +ci = CH.encrypt_rounds(10n, key, 1, nonce, pt)
   +cr = RC.encrypt(key, 1, nonce, pt)
   Equal.trans(List<&2, U32>, iseal(key, nonce, aad, ci), iseal(key, nonce, aad, cr), R.seal(key, nonce, aad, pt),
-    Equal.cong(List<&2, U32>, List<&2, U32>, l => iseal(key, nonce, aad, l), ci, cr, CL.encrypt_rounds(10n, key, 1, nonce, pt)),
+    Equal.cong(List<&2, U32>, List<&2, U32>, l => iseal(key, nonce, aad, l), ci, cr, T.encrypt_correct(10n, key, 1, nonce, pt)),
     Equal.cong(List<&2, U32>, List<&2, U32>, l => List.append(&2, U32, cr, l), I.tag(key, nonce, aad, cr), R.tag(key, nonce, aad, cr), tag_eq(key, nonce, aad, cr)))
 
 law open_tag_eq:
@@ -88,7 +86,7 @@ law open_tag_eq:
 def open_tag_eq(ok, key, nonce, ct):
   match ok:
     case True{}:
-      Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => Some{l}, CH.encrypt_rounds(10n, key, 1, nonce, ct), RC.encrypt(key, 1, nonce, ct), CL.encrypt_rounds(10n, key, 1, nonce, ct))
+      Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => Some{l}, CH.encrypt_rounds(10n, key, 1, nonce, ct), RC.encrypt(key, 1, nonce, ct), T.encrypt_correct(10n, key, 1, nonce, ct))
     case False{}: {==}
 
 law open_split_eq:
@@ -145,7 +143,7 @@ law xkey_eq:
 
 def xkey_eq(key, nonce):
   Equal.trans(List<&2, U32>, CH.hchacha20_unchecked(key, CH.take(16n, nonce)), RC.hchacha20(key, CH.take(16n, nonce)), RC.hchacha20(key, RC.prefix(16n, nonce)),
-    CL.hchacha20(key, CH.take(16n, nonce)),
+    X.hchacha20_correct(key, CH.take(16n, nonce)),
     Equal.cong(List<&2, U32>, List<&2, U32>, l => RC.hchacha20(key, l), CH.take(16n, nonce), RC.prefix(16n, nonce), T.take_eq(16n, nonce)))
 
 law xnonce_eq:
@@ -282,7 +280,7 @@ def roundtrip(key, nonce, aad, pt):
   +ct = RC.encrypt(key, 1, nonce, pt)
   +t = R.tag(key, nonce, aad, ct)
   Equal.trans(Maybe<&2, List<&2, U32>>, R.open(key, nonce, aad, List.append(&2, U32, ct, t)), R.open_split(key, nonce, aad, ct, t), Some{pt},
-    open_append(key, nonce, aad, ct, t, PL.mac_length(R.poly_key(key, nonce), R.mac_data(aad, ct))),
+    open_append(key, nonce, aad, ct, t, PM.mac_length(R.poly_key(key, nonce), R.mac_data(aad, ct))),
     Equal.trans(Maybe<&2, List<&2, U32>>, R.open_tag(RS.equal(t, t), key, nonce, ct), R.open_tag(True{}, key, nonce, ct), Some{pt},
       Equal.cong(Bool, Maybe<&2, List<&2, U32>>, b => R.open_tag(b, key, nonce, ct), RS.equal(t, t), True{}, SLP.equal_refl(t)),
       Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => Some{l}, RC.encrypt(key, 1, nonce, ct), pt, V.involution(10n, key, 1, nonce, pt))))
