@@ -80,6 +80,19 @@ def rung(+x1: List<&2, U32>, st: St, +kt: U32) -> St:
       +sw = U32.xor(swap, kt)
       step(x1, F.select(sw, x2, x3), F.select(sw, z2, z3), F.select(sw, x3, x2), F.select(sw, z3, z2), kt)
 
+# the ladder's bit count, 8 len(k) - 1: 255 for a 32-byte scalar (RFC 7748
+# `bits`). Taken from the scalar, it keeps the proof checker from unfolding
+# the 255 steps for an unknown scalar.
+def len(xs: List<&2, U32>) -> Nat:
+  match xs:
+    case Nil{}:
+      0n
+    case Con{x, xt}:
+      1n+len(xt)
+
+def nbits(+k: List<&2, U32>) -> Nat:
+  Nat.sub(Nat.mul(8n, len(k)), 1n)
+
 # bits t = n - 1 down to 0
 def ladder(n: Nat, +k: List<&2, U32>, +x1: List<&2, U32>, st: St) -> St:
   match n:
@@ -97,7 +110,8 @@ def finish(st: St) -> List<&2, U32>:
 # X25519 on two 32-byte strings of bytes below 256
 def x25519_raw(k: List<&2, U32>, u: List<&2, U32>) -> List<&2, U32>:
   +x1 = F.of_bytes(u)
-  finish(ladder(255n, clamp(k), x1, St{F.one(), F.zero(), x1, F.one(), 0}))
+  +kc = clamp(k)
+  finish(ladder(nbits(kc), kc, x1, St{F.one(), F.zero(), x1, F.one(), 0}))
 
 # 32 values, each below 256
 def valid_bytes(n: Nat, xs: List<&2, U32>) -> Bool:

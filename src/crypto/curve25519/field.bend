@@ -197,14 +197,22 @@ def select(+s: U32, xs: List<&2, U32>, ys: List<&2, U32>) -> List<&2, U32>:
           Con{U32.add(U32.mul(x, U32.sub(1, s)), U32.mul(y, s)), select(s, xt, yt)}
 
 # ---- powers (public exponents) ----
+#
+# The loops take the base x first and inspect it before their counter, so
+# the proof checker never unfolds a fixed-count loop over an unknown base
+# (it keeps pow_ones(x, 249n, x) as a call until x is known).
 
 # acc^(2^n) * x^(2^n - 1): n steps of acc = acc^2 * x
-def pow_ones(n: Nat, +x: List<&2, U32>, acc: List<&2, U32>) -> List<&2, U32>:
-  match n:
-    case 0n:
+def pow_ones(+x: List<&2, U32>, n: Nat, acc: List<&2, U32>) -> List<&2, U32>:
+  match x:
+    case Nil{}:
       acc
-    case 1n+m:
-      pow_ones(m, x, mul(sq(acc), x))
+    case Con{h, t}:
+      match n:
+        case 0n:
+          acc
+        case 1n+m:
+          pow_ones(x, m, mul(sq(acc), x))
 
 # one bit of a public exponent, most significant first: acc^2 (* x)
 def pow_bit(b: Bool, +x: List<&2, U32>, acc: List<&2, U32>) -> List<&2, U32>:
@@ -214,20 +222,24 @@ def pow_bit(b: Bool, +x: List<&2, U32>, acc: List<&2, U32>) -> List<&2, U32>:
     case False{}:
       sq(acc)
 
-def pow_bits(bs: List<&2, Bool>, +x: List<&2, U32>, acc: List<&2, U32>) -> List<&2, U32>:
-  match bs:
+def pow_bits(+x: List<&2, U32>, bs: List<&2, Bool>, acc: List<&2, U32>) -> List<&2, U32>:
+  match x:
     case Nil{}:
       acc
-    case Con{b, bt}:
-      pow_bits(bt, x, pow_bit(b, x, acc))
+    case Con{h, t}:
+      match bs:
+        case Nil{}:
+          acc
+        case Con{b, bt}:
+          pow_bits(x, bt, pow_bit(b, x, acc))
 
-# x^(p - 2) = x^(2^255 - 21): 250 one bits, then 0 1 0 1 1
+# x^(p - 2) = x^(2^255 - 21): 250 one bits (x, then 249 steps), then 0 1 0 1 1
 def inv(+x: List<&2, U32>) -> List<&2, U32>:
-  pow_bits([False{}, True{}, False{}, True{}, True{}], x, pow_ones(250n, x, one()))
+  pow_bits(x, [False{}, True{}, False{}, True{}, True{}], pow_ones(x, 249n, x))
 
 # x^((p - 5) / 8) = x^(2^252 - 3): 250 one bits, then 0 1
 def pow_p58(+x: List<&2, U32>) -> List<&2, U32>:
-  pow_bits([False{}, True{}], x, pow_ones(250n, x, one()))
+  pow_bits(x, [False{}, True{}], pow_ones(x, 249n, x))
 
 # ---- canonical form ----
 

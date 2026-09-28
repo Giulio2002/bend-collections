@@ -131,9 +131,13 @@ def finish(+p: Nat, st: LSt) -> List<&2, U32>:
     case LSt{x2, z2, x3, z3, +swap}:
       encode_u(p, FS.fmul(p, cs_fst(swap, x2, x3), FS.finv(p, cs_fst(swap, z2, z3))))
 
-def x25519_p(+one: Nat, +p: Nat, k: List<&2, U32>, u: List<&2, U32>) -> List<&2, U32>:
+# RFC 7748's `bits` (255 for X25519) as 8 * len(k) - 1 of the 32-byte scalar
+def bits(k: List<&2, U32>) -> Nat:
+  Nat.sub(Nat.mul(8n, C.length(U32, k)), 1n)
+
+def x25519_p(+one: Nat, +p: Nat, +k: List<&2, U32>, u: List<&2, U32>) -> List<&2, U32>:
   +x1 = Nat.mod(decode_u(u), p)
-  finish(p, ladder(one, p, 255n, decode_scalar(k), x1, LSt{1n, 0n, x1, 1n, 0n}))
+  finish(p, ladder(one, p, bits(k), decode_scalar(k), x1, LSt{1n, 0n, x1, 1n, 0n}))
 
 def x25519(+one: Nat, k: List<&2, U32>, u: List<&2, U32>) -> List<&2, U32>:
   x25519_p(one, FS.prime(one), k, u)
