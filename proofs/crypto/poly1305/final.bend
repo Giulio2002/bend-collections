@@ -148,3 +148,47 @@ def len_take_eq(n, xs, h):
     case 0n _: {==}
     case 1n+k Nil{}: Empty.absurd({V.len(Li.take(1n+k, [])) == 1n+k : Nat}, L.false_true(h))
     case 1n+k x <> t: Equal.cong(Nat, Nat, z => 1n+z, V.len(Li.take(k, t)), k, len_take_eq(k, t, h))
+
+# ---- freeze ----
+
+# x < 2x for x >= 1
+def lt_dbl(+x: Nat, +h: {Nat.is_le(1n, x) == True{} : Bool}) -> {Nat.is_lt(x, Nat.double(x)) == True{} : Bool}:
+  A.lt_subst(x, Nat.add(x, x), Nat.double(x), A.sy(Nat.double(x), Nat.add(x, x), NA.double_self(x)),
+    A.lt_substl(Nat.add(x, 0n), x, Nat.add(x, x), N.add_zero(x), N.lt_add_left(0n, x, x, N.succ_le_lt(0n, x, h))))
+
+# the facts about h, g = carry(h + 5) and the choice bit shared by both cases
+def hval(+h: List<&2, U32>) -> Nat:
+  V.ev(h)
+
+def gg(+h: List<&2, U32>) -> List<&2, U32>:
+  Li.carry(16n, Li.add(h, [5]), 0)
+
+def qq(+h: List<&2, U32>) -> Nat:
+  C.high(130n, Nat.add(V.ev(h), 5n))
+
+law g_ev:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +h: List<&2, U32>
+  for +hh: {ST.inv(h) == True{} : Bool}
+  {V.ev(gg(h)) == Nat.add(V.ev(h), 5n) : Nat}
+
+def g_ev(one, h1, h, hh):
+  +s8 = C.shift(8n, one)
+  +hl = N.eq_from_is_eq(V.len(h), 17n, L.and_left(Nat.is_eq(V.len(h), 17n), Bool.and(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n)), hh))
+  +hr2 = L.and_right(Nat.is_eq(V.len(h), 17n), Bool.and(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n)), hh)
+  +hf = L.and_left(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n), hr2)
+  +a = Li.add(h, [5])
+  +h5 = V.cons_le(5, [], s8, L.subst(Nat, z => {Nat.is_le(5n, C.shift(8n, z)) == True{} : Bool}, 1n, one, A.sy(one, 1n, h1), {==}), {==})
+  +hf1 = ST.s8fit(one, h1)
+  +ea = V.add_ev(h, [5], s8, s8, V.fit_le(h, 8n, one, h1, hf), h5, hf1)
+  +s9 = C.shift(9n, one)
+  +l10 = A.lt_substl(s9, Nat.add(s8, s8), Nat.double(s9), NA.double_self(s8), lt_dbl(s9, A.one_le_shift(9n, one, h1)))
+  +ha = V.le_fit(a, Nat.add(s8, s8), 10n, one, h1, l10, V.add_le(h, [5], s8, s8, V.fit_le(h, 8n, one, h1, hf), h5, hf1))
+  +hal = V.len_add(h, [5], 17n, N.eq_le(V.len(h), 17n, hl), {==})
+  +ce = V.carry_ev(16n, a, 0, 2n, {==}, ha, {==})
+  +sk = V.skip_long(17n, a, hal)
+  A.tr(V.ev(gg(h)), Nat.add(V.ev(gg(h)), V.pos(17n, V.ev(Li.skip(17n, a)))), Nat.add(V.ev(h), 5n),
+    A.tr(V.ev(gg(h)), Nat.add(V.ev(gg(h)), 0n), Nat.add(V.ev(gg(h)), V.pos(17n, V.ev(Li.skip(17n, a)))), A.sy(Nat.add(V.ev(gg(h)), 0n), V.ev(gg(h)), N.add_zero(V.ev(gg(h)))),
+      Equal.cong(List<&2, U32>, Nat, l => Nat.add(V.ev(gg(h)), V.pos(17n, V.ev(l))), [], Li.skip(17n, a), Equal.sym(List<&2, U32>, Li.skip(17n, a), [], sk))),
+    A.tr(Nat.add(V.ev(gg(h)), V.pos(17n, V.ev(Li.skip(17n, a)))), V.ev(a), Nat.add(V.ev(h), 5n), ce, ea))
