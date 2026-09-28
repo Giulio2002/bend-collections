@@ -110,9 +110,17 @@ def add_words(xs: List<&2, U32>, ys: List<&2, U32>) -> List<&2, U32>:
 
 # chacha20_block with n double rounds: working state after n inner blocks,
 # added to the initial state, serialized little-endian (64 bytes).
-def block_rounds(+n: Nat, +key: List<&2, U32>, counter: U32, +nonce: List<&2, U32>) -> List<&2, U32>:
+def block_body(+n: Nat, +key: List<&2, U32>, counter: U32, +nonce: List<&2, U32>) -> List<&2, U32>:
   +s = state(words(key), counter, words(nonce))
   serialize(add_words(s, inner_blocks(n, s)))
+
+# The same, entered through a match on the key's first cell. Both arms are
+# block_body; the match only keeps the proof checker from evaluating the
+# rounds on a symbolic key (it compares types by evaluating them).
+def block_rounds(+n: Nat, key: List<&2, U32>, counter: U32, +nonce: List<&2, U32>) -> List<&2, U32>:
+  match key:
+    case Nil{}: block_body(n, Nil{}, counter, nonce)
+    case b <> rest: block_body(n, b <> rest, counter, nonce)
 
 def block(+key: List<&2, U32>, counter: U32, +nonce: List<&2, U32>) -> List<&2, U32>:
   block_rounds(10n, key, counter, nonce)
@@ -172,9 +180,18 @@ def hstate(+k: List<&2, U32>, +n: List<&2, U32>) -> List<&2, U32>:
     [get(k, 0n), get(k, 1n), get(k, 2n), get(k, 3n), get(k, 4n), get(k, 5n), get(k, 6n), get(k, 7n),
      get(n, 0n), get(n, 1n), get(n, 2n), get(n, 3n)])
 
-def hchacha20(+key: List<&2, U32>, +nonce: List<&2, U32>) -> List<&2, U32>:
-  +s = inner_blocks(10n, hstate(words(key), words(nonce)))
+def hchacha_body(+n: Nat, +key: List<&2, U32>, +nonce: List<&2, U32>) -> List<&2, U32>:
+  +s = inner_blocks(n, hstate(words(key), words(nonce)))
   serialize([get(s, 0n), get(s, 1n), get(s, 2n), get(s, 3n), get(s, 12n), get(s, 13n), get(s, 14n), get(s, 15n)])
+
+# Entered through a match on the key, as block_rounds.
+def hchacha_rounds(+n: Nat, key: List<&2, U32>, +nonce: List<&2, U32>) -> List<&2, U32>:
+  match key:
+    case Nil{}: hchacha_body(n, Nil{}, nonce)
+    case b <> rest: hchacha_body(n, b <> rest, nonce)
+
+def hchacha20(+key: List<&2, U32>, +nonce: List<&2, U32>) -> List<&2, U32>:
+  hchacha_rounds(10n, key, nonce)
 
 # Section 2.3: XChaCha20 is ChaCha20 under the HChaCha20 subkey of the
 # first 16 nonce bytes, with the nonce 0x00000000 || nonce[16..24].

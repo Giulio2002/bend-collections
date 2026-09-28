@@ -88,8 +88,16 @@ def stream(fuel: Nat, +xs: List<&2, U32>, +r: Nat, +k: Key, +counter: U32, +n: N
 def encrypt_rounds(+r: Nat, key_bytes: List<&2, U32>, counter: U32, nonce_bytes: List<&2, U32>, +plaintext: List<&2, U32>) -> List<&2, U32>:
   stream(List.length(&2, U32, plaintext), plaintext, r, key(key_bytes), counter, nonce(nonce_bytes))
 
-def block_rounds(+r: Nat, key_bytes: List<&2, U32>, counter: U32, nonce_bytes: List<&2, U32>) -> List<&2, U32>:
+def block_body(+r: Nat, key_bytes: List<&2, U32>, counter: U32, nonce_bytes: List<&2, U32>) -> List<&2, U32>:
   keystream(r, key(key_bytes), counter, nonce(nonce_bytes))
+
+# The block function entered through a match on the key's first cell: both
+# arms are block_body; with a symbolic key the proof checker leaves the call
+# unevaluated instead of unrolling the rounds when it compares types.
+def block_rounds(+r: Nat, key_bytes: List<&2, U32>, counter: U32, nonce_bytes: List<&2, U32>) -> List<&2, U32>:
+  match key_bytes:
+    case Nil{}: block_body(r, Nil{}, counter, nonce_bytes)
+    case b <> rest: block_body(r, b <> rest, counter, nonce_bytes)
 
 # ---------------------------------------------------------------- HChaCha20 / XChaCha20
 
@@ -98,8 +106,16 @@ def hstate(k: Key, +ws: List<&2, U32>) -> C.State:
     case K{k0, k1, k2, k3, k4, k5, k6, k7}:
       C.hinit(k0, k1, k2, k3, k4, k5, k6, k7, at(ws, 0n), at(ws, 1n), at(ws, 2n), at(ws, 3n))
 
+def hchacha_body(+r: Nat, key_bytes: List<&2, U32>, nonce_bytes: List<&2, U32>) -> List<&2, U32>:
+  C.hbytes(C.rounds(r, hstate(key(key_bytes), words(nonce_bytes))))
+
+def hchacha_rounds(+r: Nat, key_bytes: List<&2, U32>, nonce_bytes: List<&2, U32>) -> List<&2, U32>:
+  match key_bytes:
+    case Nil{}: hchacha_body(r, Nil{}, nonce_bytes)
+    case b <> rest: hchacha_body(r, b <> rest, nonce_bytes)
+
 def hchacha20_unchecked(key_bytes: List<&2, U32>, nonce_bytes: List<&2, U32>) -> List<&2, U32>:
-  C.hbytes(C.rounds(10n, hstate(key(key_bytes), words(nonce_bytes))))
+  hchacha_rounds(10n, key_bytes, nonce_bytes)
 
 def take(n: Nat, xs: List<&2, U32>) -> List<&2, U32>:
   match n xs:
