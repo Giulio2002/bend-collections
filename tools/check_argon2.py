@@ -22,17 +22,116 @@ ROOT = Path(__file__).resolve().parent.parent
 BIN = ROOT / 'build/argon2/test'
 SRC = [ROOT / 'tests/crypto/argon2/main.bend'] + sorted((ROOT / 'src/crypto/argon2').glob('*.bend')) + \
       [ROOT / 'src/crypto/blake/blake2b/sized.bend']
+PWBIN = ROOT / 'build/argon2/password'
+PWSRC = [ROOT / 'tests/crypto/password/main.bend', ROOT / 'src/crypto/password.bend', ROOT / 'src/crypto/subtle.bend'] + SRC[1:]
 BEND = os.environ.get('BEND', 'bend')
 BATCH = 40
 
 
-def build():
-    if BIN.exists() and all(BIN.stat().st_mtime > f.stat().st_mtime for f in SRC):
+def build(binary=BIN, driver='tests/crypto/argon2/main.bend', srcs=SRC):
+    if binary.exists() and all(binary.stat().st_mtime > f.stat().st_mtime for f in srcs):
         return True, ''
-    BIN.parent.mkdir(parents=True, exist_ok=True)
-    p = subprocess.run([BEND, 'tests/crypto/argon2/main.bend', '-o', str(BIN)], cwd=ROOT,
+    binary.parent.mkdir(parents=True, exist_ok=True)
+    p = subprocess.run([BEND, driver, '-o', str(binary)], cwd=ROOT,
                        capture_output=True, text=True, timeout=1800)
-    return BIN.exists(), p.stdout + p.stderr
+    return binary.exists(), p.stdout + p.stderr
+
+
+def run_pw(toks):
+    out = []
+    for i in range(0, len(toks), BATCH):
+        p = subprocess.run([str(PWBIN)] + toks[i:i + BATCH], capture_output=True, text=True, timeout=1800)
+        got = p.stdout.split('\n')
+        out += (got + [''] * BATCH)[:len(toks[i:i + BATCH])]
+    return [g.strip() for g in out]
+
+
+def password_cases(rng, fails):
+    """hash_password / verify_password / needs_rehash against argon2-cffi's PasswordHasher."""
+    from argon2 import PasswordHasher, Parameters, Type as T
+    from argon2.exceptions import VerifyMismatchError
+    from argon2 import extract_parameters
+    n = 0
+    params = []
+    for _ in range(40):
+        p = rng.choice([1, 1, 2])
+        m = rng.choice([8 * p, 16, 32, 64, rng.randrange(8 * p, 100)])
+        m = max(m, 8 * p)
+        t = rng.choice([1, 2, 3])
+        tag = rng.choice([4, 16, 32, 33, 64, 65])
+        pw = rbytes(rng, rng.choice([0, 1, 8, 20, 64]))
+        salt = rbytes(rng, rng.choice([8, 16, 32]))
+        params.append((pw, salt, m, t, p, tag))
+    # ours -> argon2-cffi
+    hashed = run_pw(['hash:%s:%s:%d:%d:%d:%d' % (hx(pw), hx(salt), m, t, p, tag) for pw, salt, m, t, p, tag in params])
+    for (pw, salt, m, t, p, tag), h in zip(params, hashed):
+        n += 1
+        ref = '$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s' % (m, t, p, b64(salt), b64(hash_secret_raw(pw, salt, t, m, p, tag, Type.ID, 19)))
+        if h != ref:
+            fails.append({'password_hash': [hx(pw), hx(salt), m, t, p, tag], 'expected': ref, 'got': h})
+            continue
+        try:
+            PasswordHasher().verify(h, pw)
+        except Exception as e:
+            fails.append({'cffi_rejects_ours': h, 'error': repr(e)})
+    # argon2-cffi -> ours, right and wrong passwords
+    toks, want = [], []
+    for pw, salt, m, t, p, tag in params:
+        ph = PasswordHasher(time_cost=t, memory_cost=m, parallelism=p, hash_len=tag, salt_len=len(salt))
+        h = ph.hash(pw)
+        toks += ['verify:%s:%s' % (hx(pw), h), 'verify:%s:%s' % (hx(pw + b'x'), h)]
+        want += ['true', 'false']
+        # a flipped tag byte is rejected
+        parts = h.split('$')
+        raw = bytearray(b64d(parts[-1]))
+        raw[0] ^= 1
+        toks.append('verify:%s:%s' % (hx(pw), '$'.join(parts[:-1] + [b64(bytes(raw))])))
+        want.append('false')
+        # needs_rehash: the same parameters, then each one changed
+        toks.append('rehash:%s:%d:%d:%d:%d:%d' % (h, m, t, p, tag, len(salt)))
+        want.append('false')
+        for dm, dt, dp, dtag, dsalt in [(1, 0, 0, 0, 0), (0, 1, 0, 0, 0), (0, 0, 1, 0, 0), (0, 0, 0, 1, 0), (0, 0, 0, 0, 1)]:
+            toks.append('rehash:%s:%d:%d:%d:%d:%d' % (h, m + dm, t + dt, p + dp, tag + dtag, len(salt) + dsalt))
+            want.append('true')
+    # malformed or foreign strings: never verified, always rehashed
+    bad = ['', '$argon2i$v=19$m=64,t=2,p=1$c29tZXNhbHQ$FqGkmHNGCd0BRW2kBt6fPZ2pPmyGwwChL8FGUhTOSSI',
+           '$argon2id$v=16$m=64,t=2,p=1$c29tZXNhbHQ$FqGkmHNGCd0BRW2kBt6fPZ2pPmyGwwChL8FGUhTOSSI',
+           '$argon2id$v=19$m=64,t=2,p=1$c29tZXNhbHQ', '$argon2id$v=19$m=64,t=2$c29tZXNhbHQ$FqGk',
+           '$argon2id$v=19$m=64,t=2,p=1$c29tZXNhbHQ$FqGkmHNGCd0BRW2kBt6fPZ2pPmyGwwChL8FGUhTOSSJ',
+           '$argon2id$v=19$m=,t=2,p=1$c29tZXNhbHQ$FqGkmHNGCd0BRW2kBt6fPZ2pPmyGwwChL8FGUhTOSSI']
+    for b in bad:
+        toks += ['verify:70617373776f7264:%s' % b, 'rehash:%s:64:2:1:32:8' % b]
+        want += ['false', 'true']
+    got = run_pw(toks)
+    for tk, w, g in zip(toks, want, got):
+        n += 1
+        if w != g:
+            fails.append({'password': tk, 'expected': w, 'got': g})
+    # the OS-salted variant: fresh 16-byte salts, verified by argon2-cffi
+    got = run_pw(['os:70617373776f7264:32:1:1:32:16'] * 4)
+    salts = set()
+    for g in got:
+        n += 1
+        try:
+            PasswordHasher().verify(g, b'password')
+            salts.add(g.split('$')[4])
+            if len(b64d(g.split('$')[4])) != 16:
+                fails.append({'os_salt_length': g})
+        except Exception as e:
+            fails.append({'os': g, 'error': repr(e)})
+    if len(salts) != 4:
+        fails.append({'os_salts_repeat': sorted(salts)})
+    return n
+
+
+def b64(b):
+    import base64
+    return base64.b64encode(b).decode().rstrip('=')
+
+
+def b64d(s):
+    import base64
+    return base64.b64decode(s + '=' * (-len(s) % 4))
 
 
 def hx(b):
@@ -40,7 +139,7 @@ def hx(b):
 
 
 def reference(pw, salt, key, ad, t, m, p, tl):
-    if not (1 <= p < 2 ** 24 and 4 <= tl and m >= 8 * p and t >= 1 and len(salt) >= 8):
+    if not (1 <= p < 2 ** 24 and 4 <= tl and 8 * p <= m <= 2 ** 23 and t >= 1 and len(salt) >= 8):
         return 'invalid'
     # argon2-cffi's low-level binding has no secret/ad arguments; use the raw
     # C binding for those through argon2._ffi when they are present.
@@ -88,6 +187,7 @@ def cases(rng):
         out.append((rbytes(rng, 16), rbytes(rng, 16), b'', b'', t, m, p, 32))
     # rejections
     out += [(b'pw', b'saltsalt', b'', b'', 1, 15, 2, 32), (b'pw', b'short', b'', b'', 1, 8, 1, 32),
+            (b'pw', b'saltsalt', b'', b'', 1, 2 ** 23 + 1, 1, 32),
             (b'pw', b'saltsalt', b'', b'', 0, 8, 1, 32), (b'pw', b'saltsalt', b'', b'', 1, 8, 1, 3),
             (b'pw', b'saltsalt', b'', b'', 1, 8, 0, 32)]
     return out
@@ -116,8 +216,14 @@ def main():
             if g.strip() != e:
                 fails.append({'case': [hx(c[0]), hx(c[1]), hx(c[2]), hx(c[3])] + list(c[4:]),
                               'expected': e, 'got': g.strip()})
+    ok, log = build(PWBIN, 'tests/crypto/password/main.bend', PWSRC)
+    if not ok:
+        fails.append({'error': 'password driver build failed', 'log': log[-2000:]})
+        pw_cases = 0
+    else:
+        pw_cases = password_cases(rng, fails)
     print(json.dumps({'passed': not fails, 'seed': seed, 'vectors': len(vec),
-                      'cases': len(todo), 'seconds': round(time.time() - t0, 1),
+                      'cases': len(todo), 'password_cases': pw_cases, 'seconds': round(time.time() - t0, 1),
                       'failures': fails[:20]}, indent=1))
     return 0 if not fails else 1
 
