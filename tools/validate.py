@@ -455,7 +455,9 @@ def main():
                 ran = subprocess.run([str(binary)], env=ENV, text=True, capture_output=True, timeout=1800)
                 out += ran.stdout + ran.stderr
                 last = [ln for ln in ran.stdout.splitlines() if ln.startswith(label + ':')]
-                counts = last[-1].split()[1].split('/') if last else ['0', '1']
+                import re
+                m = re.search(r'(\d+)\s*/\s*(\d+)', last[-1]) if last else None
+                counts = [m.group(1), m.group(2)] if m else ['0', '1']
                 passed = ran.returncode == 0 and 'FAIL' not in ran.stdout and counts[0] == counts[1]
             checks.append({'command': [BEND, source], 'passed': passed, 'output': out})
             if not passed:
