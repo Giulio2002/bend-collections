@@ -278,16 +278,17 @@ def mask_top(xs: List<&2, U32>) -> List<&2, U32>:
 def of_bytes(bs: List<&2, U32>) -> List<&2, U32>:
   mask_top(bs)
 
-# 1 when every limb is 0 (x canonical), else 0; no early exit
-def or_all(xs: List<&2, U32>, acc: U32) -> U32:
+# the sum of the limbs (below 2^13 for 32 bytes); no early exit
+def sum_all(xs: List<&2, U32>, acc: U32) -> U32:
   match xs:
     case Nil{}:
       acc
     case Con{x, xt}:
-      or_all(xt, U32.or(acc, x))
+      sum_all(xt, U32.add(acc, x))
 
+# x == 0 in the field: every byte of the canonical form is 0
 def is_zero(+x: List<&2, U32>) -> Bool:
-  U32.is_eq(or_all(freeze(x), 0), 0)
+  U32.is_eq(sum_all(freeze(x), 0), 0)
 
 # a == b in the field
 def eq(+a: List<&2, U32>, +b: List<&2, U32>) -> Bool:

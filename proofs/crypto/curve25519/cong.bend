@@ -82,3 +82,6 @@ def pow_pow(+x: Nat, +a: Nat, +b: Nat) -> {Nat.pow(Nat.pow(x, a), b) == Nat.pow(
       +e2 = Equal.sym(Nat, Nat.pow(x, Nat.add(a, Nat.mul(a, q))), Nat.mul(Nat.pow(x, a), Nat.pow(x, Nat.mul(a, q))), NR.pow_add(x, a, Nat.mul(a, q)))
       +e3 = Equal.cong(Nat, Nat, t => Nat.pow(x, t), Nat.add(a, Nat.mul(a, q)), Nat.mul(a, 1n+q), Equal.sym(Nat, Nat.mul(a, 1n+q), Nat.add(a, Nat.mul(a, q)), NA.mul_succ(a, q)))
       Equal.trans(Nat, Nat.mul(Nat.pow(x, a), Nat.pow(Nat.pow(x, a), q)), Nat.mul(Nat.pow(x, a), Nat.pow(x, Nat.mul(a, q))), Nat.pow(x, Nat.mul(a, 1n+q)), e1, Equal.trans(Nat, Nat.mul(Nat.pow(x, a), Nat.pow(x, Nat.mul(a, q))), Nat.pow(x, Nat.add(a, Nat.mul(a, q))), Nat.pow(x, Nat.mul(a, 1n+q)), e2, e3))
+
+def cancel_r(+a: Nat, +b: Nat, +c: Nat, +e: {Nat.add(a, c) == Nat.add(b, c) : Nat}) -> {a == b : Nat}:
+  NR.add_cancel(c, a, b, Equal.trans(Nat, Nat.add(c, a), Nat.add(a, c), Nat.add(c, b), NA.add_comm(c, a), Equal.trans(Nat, Nat.add(a, c), Nat.add(b, c), Nat.add(c, b), e, NA.add_comm(b, c))))
