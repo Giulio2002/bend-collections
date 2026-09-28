@@ -286,3 +286,167 @@ def fit_ev(n, xs):
     case 0n _: {==}
     case 1n+k Nil{}: A.tr(C.shift(8n, ev(Li.fit(k, []))), C.shift(8n, 0n), 0n, A.csh(8n, ev(Li.fit(k, [])), 0n, A.tr(ev(Li.fit(k, [])), ev(Li.take(k, [])), 0n, fit_ev(k, []), take_nil_ev(k))), {==})
     case 1n+k x <> t: WM.cong_r(v(x), C.shift(8n, ev(Li.fit(k, t))), C.shift(8n, ev(Li.take(k, t))), A.csh(8n, ev(Li.fit(k, t)), ev(Li.take(k, t)), fit_ev(k, t)))
+
+# ---- carry passes ----
+
+def fit_all(xs: List<&2, U32>, +k: Nat) -> Bool:
+  match xs:
+    case Nil{}: True{}
+    case x <> t: Bool.and(C.fits(k, v(x)), fit_all(t, k))
+
+law fits_zero:
+  for +k: Nat
+  {C.fits(k, 0n) == True{} : Bool}
+
+def fits_zero(k):
+  match k:
+    case 0n: {==}
+    case 1n+p: fits_zero(p)
+
+def hd0_fit(+ds: List<&2, U32>, +k: Nat, +h: {fit_all(ds, k) == True{} : Bool}) -> {C.fits(k, v(Li.hd0(ds))) == True{} : Bool}:
+  match ds:
+    case Nil{}: fits_zero(k)
+    case x <> t: L.and_left(C.fits(k, v(x)), fit_all(t, k), h)
+
+def tl_fit(+ds: List<&2, U32>, +k: Nat, +h: {fit_all(ds, k) == True{} : Bool}) -> {fit_all(Li.tl(ds), k) == True{} : Bool}:
+  match ds:
+    case Nil{}: {==}
+    case x <> t: L.and_right(C.fits(k, v(x)), fit_all(t, k), h)
+
+def hd_tl_ev(+ds: List<&2, U32>) -> {ev(ds) == Nat.add(v(Li.hd0(ds)), C.shift(8n, ev(Li.tl(ds)))) : Nat}:
+  match ds:
+    case Nil{}: {==}
+    case x <> t: {==}
+
+def skip_succ(+k: Nat, +ds: List<&2, U32>) -> {Li.skip(1n+k, ds) == Li.skip(k, Li.tl(ds)) : List<&2, U32>}:
+  match ds:
+    case Nil{}: Equal.sym(List<&2, U32>, Li.skip(k, []), [], skip_nil(k))
+    case x <> t: {==}
+
+# (a + 2^8 b) + 2^8 c == a + 2^8 (b + c)
+def sh3(+a: Nat, +b: Nat, +c: Nat) -> {Nat.add(Nat.add(a, C.shift(8n, b)), C.shift(8n, c)) == Nat.add(a, C.shift(8n, Nat.add(b, c))) : Nat}:
+  A.tr(Nat.add(Nat.add(a, C.shift(8n, b)), C.shift(8n, c)), Nat.add(a, Nat.add(C.shift(8n, b), C.shift(8n, c))), Nat.add(a, C.shift(8n, Nat.add(b, c))),
+    N.add_assoc(a, C.shift(8n, b), C.shift(8n, c)),
+    WM.cong_r(a, Nat.add(C.shift(8n, b), C.shift(8n, c)), C.shift(8n, Nat.add(b, c)), A.sy(C.shift(8n, Nat.add(b, c)), Nat.add(C.shift(8n, b), C.shift(8n, c)), WW.shift_add(8n, b, c))))
+
+def sh4(+a: Nat, +b: Nat, +c: Nat, +d: Nat) -> {Nat.add(Nat.add(Nat.add(a, C.shift(8n, b)), C.shift(8n, c)), C.shift(8n, d)) == Nat.add(a, C.shift(8n, Nat.add(Nat.add(b, c), d))) : Nat}:
+  A.tr(Nat.add(Nat.add(Nat.add(a, C.shift(8n, b)), C.shift(8n, c)), C.shift(8n, d)), Nat.add(Nat.add(a, C.shift(8n, Nat.add(b, c))), C.shift(8n, d)), Nat.add(a, C.shift(8n, Nat.add(Nat.add(b, c), d))),
+    WM.cong_l(Nat.add(Nat.add(a, C.shift(8n, b)), C.shift(8n, c)), Nat.add(a, C.shift(8n, Nat.add(b, c))), C.shift(8n, d), sh3(a, b, c)),
+    sh3(a, Nat.add(b, c), d))
+
+# the sum u + ds[0] of one carry step, exact and within 9 + j bits
+def step_fit(+ds: List<&2, U32>, +u: U32, +j: Nat, +hd: {fit_all(ds, Nat.add(8n, j)) == True{} : Bool}, +hu: {C.fits(Nat.add(8n, j), v(u)) == True{} : Bool}) -> {C.fits(Nat.add(9n, j), Nat.add(v(u), v(Li.hd0(ds)))) == True{} : Bool}:
+  A.fits_add(Nat.add(8n, j), v(u), v(Li.hd0(ds)), hu, hd0_fit(ds, Nat.add(8n, j), hd))
+
+def step_ev(+ds: List<&2, U32>, +u: U32, +j: Nat, +hj: {Nat.is_le(Nat.add(9n, j), 32n) == True{} : Bool}, +hd: {fit_all(ds, Nat.add(8n, j)) == True{} : Bool}, +hu: {C.fits(Nat.add(8n, j), v(u)) == True{} : Bool}) -> {v(U32.add(u, Li.hd0(ds))) == Nat.add(v(u), v(Li.hd0(ds))) : Nat}:
+  WA.add_exact(1n, {==}, u, Li.hd0(ds), SH.fits_mono(Nat.add(9n, j), 32n, Nat.add(v(u), v(Li.hd0(ds))), hj, step_fit(ds, u, j, hd, hu)))
+
+# the next carry high(8, s) fits 8 + j bits again
+def next_fit(+ds: List<&2, U32>, +u: U32, +j: Nat, +hj: {Nat.is_le(Nat.add(9n, j), 32n) == True{} : Bool}, +hd: {fit_all(ds, Nat.add(8n, j)) == True{} : Bool}, +hu: {C.fits(Nat.add(8n, j), v(u)) == True{} : Bool}) -> {C.fits(Nat.add(8n, j), v(U32.shrn(U32.add(u, Li.hd0(ds)), 8n))) == True{} : Bool}:
+  +s = U32.add(u, Li.hd0(ds))
+  +h1 = A.fits_subst(Nat.add(9n, j), Nat.add(v(u), v(Li.hd0(ds))), v(s), A.sy(v(s), Nat.add(v(u), v(Li.hd0(ds))), step_ev(ds, u, j, hj, hd, hu)), step_fit(ds, u, j, hd, hu))
+  +h2 = SH.fits_high(8n, 1n+j, v(s), h1)
+  +h3 = SH.fits_mono(1n+j, Nat.add(8n, j), C.high(8n, v(s)), A.le_add_l(7n, j), h2)
+  A.fits_subst(Nat.add(8n, j), C.high(8n, v(s)), v(U32.shrn(s, 8n)), A.sy(v(U32.shrn(s, 8n)), C.high(8n, v(s)), SHN.shrn_high(s, 8n)), h3)
+
+# A carry pass over n limbs keeps the value: carry(n, ds, u) + 2^(8(n+1)) ds[n+1..] == u + ds.
+law carry_ev:
+  for +n: Nat
+  for +ds: List<&2, U32>
+  for +u: U32
+  for +j: Nat
+  for +hj: {Nat.is_le(Nat.add(9n, j), 32n) == True{} : Bool}
+  for +hd: {fit_all(ds, Nat.add(8n, j)) == True{} : Bool}
+  for +hu: {C.fits(Nat.add(8n, j), v(u)) == True{} : Bool}
+  {Nat.add(ev(Li.carry(n, ds, u)), pos(1n+n, ev(Li.skip(1n+n, ds)))) == Nat.add(v(u), ev(ds)) : Nat}
+
+def carry_ev(n, ds, u, j, hj, hd, hu):
+  match n:
+    case 0n:
+      +h = Li.hd0(ds)
+      +s = U32.add(u, h)
+      +es = step_ev(ds, u, j, hj, hd, hu)
+      +et = ev(Li.tl(ds))
+      A.tr(Nat.add(Nat.add(v(s), 0n), C.shift(8n, ev(Li.skip(1n, ds)))), Nat.add(v(s), C.shift(8n, et)), Nat.add(v(u), ev(ds)),
+        A.cadd(Nat.add(v(s), 0n), v(s), C.shift(8n, ev(Li.skip(1n, ds))), C.shift(8n, et), N.add_zero(v(s)), A.csh(8n, ev(Li.skip(1n, ds)), et, Equal.cong(List<&2, U32>, Nat, l => ev(l), Li.skip(1n, ds), Li.tl(ds), skip_succ(0n, ds)))),
+        A.tr(Nat.add(v(s), C.shift(8n, et)), Nat.add(Nat.add(v(u), v(h)), C.shift(8n, et)), Nat.add(v(u), ev(ds)),
+          WM.cong_l(v(s), Nat.add(v(u), v(h)), C.shift(8n, et), es),
+          A.tr(Nat.add(Nat.add(v(u), v(h)), C.shift(8n, et)), Nat.add(v(u), Nat.add(v(h), C.shift(8n, et))), Nat.add(v(u), ev(ds)), N.add_assoc(v(u), v(h), C.shift(8n, et)),
+            WM.cong_r(v(u), Nat.add(v(h), C.shift(8n, et)), ev(ds), A.sy(ev(ds), Nat.add(v(h), C.shift(8n, et)), hd_tl_ev(ds))))))
+    case 1n+k:
+      +h = Li.hd0(ds)
+      +s = U32.add(u, h)
+      +es = step_ev(ds, u, j, hj, hd, hu)
+      +et = ev(Li.tl(ds))
+      +u2 = U32.shrn(s, 8n)
+      +lo = v(U32.and(s, 255))
+      +c1 = ev(Li.carry(k, Li.tl(ds), u2))
+      +p1 = pos(1n+k, ev(Li.skip(1n+k, Li.tl(ds))))
+      +ih = carry_ev(k, Li.tl(ds), u2, j, hj, tl_fit(ds, Nat.add(8n, j), hd), next_fit(ds, u, j, hj, hd, hu))
+      +e0 = WM.cong_r(Nat.add(lo, C.shift(8n, c1)), C.shift(8n, pos(1n+k, ev(Li.skip(2n+k, ds)))), C.shift(8n, p1),
+        A.csh(8n, pos(1n+k, ev(Li.skip(2n+k, ds))), p1, Equal.cong(List<&2, U32>, Nat, l => pos(1n+k, ev(l)), Li.skip(2n+k, ds), Li.skip(1n+k, Li.tl(ds)), skip_succ(1n+k, ds))))
+      +e1 = sh3(lo, c1, p1)
+      +e2 = WM.cong_r(lo, C.shift(8n, Nat.add(c1, p1)), C.shift(8n, Nat.add(v(u2), et)), A.csh(8n, Nat.add(c1, p1), Nat.add(v(u2), et), ih))
+      +e3 = A.sy(Nat.add(Nat.add(lo, C.shift(8n, v(u2))), C.shift(8n, et)), Nat.add(lo, C.shift(8n, Nat.add(v(u2), et))), sh3(lo, v(u2), et))
+      +elo = A.tr(lo, C.low(8n, v(s)), C.low(8n, v(s)), FB.andm(s, 8n, 255, {==}), {==})
+      +ehi = SHN.shrn_high(s, 8n)
+      +e4 = A.tr(Nat.add(lo, C.shift(8n, v(u2))), Nat.add(C.low(8n, v(s)), C.shift(8n, C.high(8n, v(s)))), v(s),
+        A.cadd(lo, C.low(8n, v(s)), C.shift(8n, v(u2)), C.shift(8n, C.high(8n, v(s))), elo, A.csh(8n, v(u2), C.high(8n, v(s)), ehi)),
+        A.sy(v(s), Nat.add(C.low(8n, v(s)), C.shift(8n, C.high(8n, v(s)))), WW.low_high(8n, v(s))))
+      +e5 = WM.cong_l(Nat.add(lo, C.shift(8n, v(u2))), v(s), C.shift(8n, et), e4)
+      +e6 = A.tr(Nat.add(v(s), C.shift(8n, et)), Nat.add(Nat.add(v(u), v(h)), C.shift(8n, et)), Nat.add(v(u), ev(ds)),
+          WM.cong_l(v(s), Nat.add(v(u), v(h)), C.shift(8n, et), es),
+          A.tr(Nat.add(Nat.add(v(u), v(h)), C.shift(8n, et)), Nat.add(v(u), Nat.add(v(h), C.shift(8n, et))), Nat.add(v(u), ev(ds)), N.add_assoc(v(u), v(h), C.shift(8n, et)),
+            WM.cong_r(v(u), Nat.add(v(h), C.shift(8n, et)), ev(ds), A.sy(ev(ds), Nat.add(v(h), C.shift(8n, et)), hd_tl_ev(ds)))))
+      A.tr(Nat.add(Nat.add(lo, C.shift(8n, c1)), C.shift(8n, pos(1n+k, ev(Li.skip(2n+k, ds))))), Nat.add(Nat.add(lo, C.shift(8n, c1)), C.shift(8n, p1)), Nat.add(v(u), ev(ds)), e0,
+        A.tr(Nat.add(Nat.add(lo, C.shift(8n, c1)), C.shift(8n, p1)), Nat.add(lo, C.shift(8n, Nat.add(c1, p1))), Nat.add(v(u), ev(ds)), e1,
+          A.tr(Nat.add(lo, C.shift(8n, Nat.add(c1, p1))), Nat.add(lo, C.shift(8n, Nat.add(v(u2), et))), Nat.add(v(u), ev(ds)), e2,
+            A.tr(Nat.add(lo, C.shift(8n, Nat.add(v(u2), et))), Nat.add(Nat.add(lo, C.shift(8n, v(u2))), C.shift(8n, et)), Nat.add(v(u), ev(ds)), e3,
+              A.tr(Nat.add(Nat.add(lo, C.shift(8n, v(u2))), C.shift(8n, et)), Nat.add(v(s), C.shift(8n, et)), Nat.add(v(u), ev(ds)), e5, e6)))))
+
+# every limb below the top one has 8 bits
+law carry_lo:
+  for +n: Nat
+  for +ds: List<&2, U32>
+  for +u: U32
+  {fit_all(Li.take(n, Li.carry(n, ds, u)), 8n) == True{} : Bool}
+
+def carry_lo(n, ds, u):
+  match n:
+    case 0n: {==}
+    case 1n+k:
+      +s = U32.add(u, Li.hd0(ds))
+      L.and_intro(C.fits(8n, v(U32.and(s, 255))), fit_all(Li.take(k, Li.carry(k, Li.tl(ds), U32.shrn(s, 8n))), 8n),
+        A.fits_subst(8n, C.low(8n, v(s)), v(U32.and(s, 255)), A.sy(v(U32.and(s, 255)), C.low(8n, v(s)), FB.andm(s, 8n, 255, {==})), WW.low_fits(8n, v(s))),
+        carry_lo(k, Li.tl(ds), U32.shrn(s, 8n)))
+
+# the top limb fits 9 + j bits
+law carry_top:
+  for +n: Nat
+  for +ds: List<&2, U32>
+  for +u: U32
+  for +j: Nat
+  for +hj: {Nat.is_le(Nat.add(9n, j), 32n) == True{} : Bool}
+  for +hd: {fit_all(ds, Nat.add(8n, j)) == True{} : Bool}
+  for +hu: {C.fits(Nat.add(8n, j), v(u)) == True{} : Bool}
+  {C.fits(Nat.add(9n, j), v(Li.hd0(Li.skip(n, Li.carry(n, ds, u))))) == True{} : Bool}
+
+def carry_top(n, ds, u, j, hj, hd, hu):
+  match n:
+    case 0n:
+      A.fits_subst(Nat.add(9n, j), Nat.add(v(u), v(Li.hd0(ds))), v(U32.add(u, Li.hd0(ds))), A.sy(v(U32.add(u, Li.hd0(ds))), Nat.add(v(u), v(Li.hd0(ds))), step_ev(ds, u, j, hj, hd, hu)), step_fit(ds, u, j, hd, hu))
+    case 1n+k:
+      carry_top(k, Li.tl(ds), U32.shrn(U32.add(u, Li.hd0(ds)), 8n), j, hj, tl_fit(ds, Nat.add(8n, j), hd), next_fit(ds, u, j, hj, hd, hu))
+
+law carry_len:
+  for +n: Nat
+  for +ds: List<&2, U32>
+  for +u: U32
+  {List.length(&2, U32, Li.carry(n, ds, u)) == 1n+n : Nat}
+
+def carry_len(n, ds, u):
+  match n:
+    case 0n: {==}
+    case 1n+k:
+      +s = U32.add(u, Li.hd0(ds))
+      Equal.cong(Nat, Nat, t => 1n+t, List.length(&2, U32, Li.carry(k, Li.tl(ds), U32.shrn(s, 8n))), 1n+k, carry_len(k, Li.tl(ds), U32.shrn(s, 8n)))
