@@ -228,3 +228,45 @@ def reduce_ev(one, h1, d, hd, hl):
         rot(esp, Nat.mul(vq, pm(one)), Nat.mul(vq, 5n)),
         WM.cong_l(Nat.add(esp, Nat.mul(vq, 5n)), V.ev(Li.reduce(d)), Nat.mul(vq, pm(one)),
           A.tr(Nat.add(esp, Nat.mul(vq, 5n)), Nat.add(Nat.mul(vq, 5n), esp), V.ev(Li.reduce(d)), N.add_comm(esp, Nat.mul(vq, 5n)), A.sy(V.ev(Li.reduce(d)), Nat.add(Nat.mul(vq, 5n), esp), e2))))))
+
+# the top limb after the reduction is at most 4 (its value is below 5 * 2^128)
+law reduce_top:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +d: List<&2, U32>
+  for +hd: {V.fit_all(d, 30n) == True{} : Bool}
+  {Nat.is_le(V.v(Li.hd0(Li.skip(16n, Li.reduce(d)))), 4n) == True{} : Bool}
+
+def reduce_top(one, h1, d, hd):
+  +h2 = Li.reduce(d)
+  +t = Li.carry(16n, d, 0)
+  +sp = Li.split(16n, t)
+  +vq5 = Nat.mul(pv(d), 5n)
+  +tp = V.v(Li.hd0(Li.skip(16n, h2)))
+  +tt = Nat.add(tp, 0n)
+  +x16 = V.ev(Li.take(16n, h2))
+  +e16 = V.ev(Li.take(16n, t))
+  +a3 = Nat.add(V.v(U32.and(Li.hd0(Li.skip(16n, t)), 3)), 0n)
+  +p1 = V.pos(16n, one)
+  +ts1 = V.ts_ev(16n, h2)
+  +ts2 = V.ts_ev(16n, sp)
+  +e2 = pass2_ev(d, hd)
+  # ev(h2) = 5q + ev(take16 t) + 2^128 a3
+  +ev2 = A.tr(V.ev(h2), Nat.add(vq5, V.ev(sp)), Nat.add(vq5, Nat.add(e16, V.pos(16n, a3))), e2, WM.cong_r(vq5, V.ev(sp), Nat.add(e16, V.pos(16n, a3)), ts2))
+  +l1 = N.lt_le_trans(vq5, C.shift(32n, one), p1, WW.lt_one(32n, one, h1, vq5, A.fits_mul(29n, 3n, pv(d), 5n, q29(d, hd), {==})), WW.shift_ge(96n, C.shift(32n, one)))
+  +l2 = V.ev_lt(Li.take(16n, t), one, h1, V.carry_lo(16n, d, 0))
+  +b2 = A.lt_add2(vq5, Nat.add(e16, V.pos(16n, a3)), p1, Nat.add(p1, V.pos(16n, a3)), l1, A.lt_le_add(e16, V.pos(16n, a3), p1, V.pos(16n, a3), l2, N.le_refl(V.pos(16n, a3))))
+  +e3 = A.tr(Nat.add(p1, Nat.add(p1, V.pos(16n, a3))), Nat.add(p1, V.pos(16n, Nat.add(one, a3))), V.pos(16n, Nat.add(one, Nat.add(one, a3))),
+    WM.cong_r(p1, Nat.add(p1, V.pos(16n, a3)), V.pos(16n, Nat.add(one, a3)), A.sy(V.pos(16n, Nat.add(one, a3)), Nat.add(p1, V.pos(16n, a3)), V.pos_add(16n, one, a3))),
+    A.sy(V.pos(16n, Nat.add(one, Nat.add(one, a3))), Nat.add(p1, V.pos(16n, Nat.add(one, a3))), V.pos_add(16n, one, Nat.add(one, a3))))
+  +b1 = A.le_subst(V.pos(16n, tt), Nat.add(x16, V.pos(16n, tt)), V.ev(h2), A.sy(V.ev(h2), Nat.add(x16, V.pos(16n, tt)), ts1), A.le_add_l(x16, V.pos(16n, tt)))
+  +b1b = A.le_subst(V.pos(16n, tt), V.ev(h2), Nat.add(vq5, Nat.add(e16, V.pos(16n, a3))), ev2, b1)
+  +lt1 = N.le_lt_trans(V.pos(16n, tt), Nat.add(vq5, Nat.add(e16, V.pos(16n, a3))), V.pos(16n, Nat.add(one, Nat.add(one, a3))), b1b, A.lt_subst(Nat.add(vq5, Nat.add(e16, V.pos(16n, a3))), Nat.add(p1, Nat.add(p1, V.pos(16n, a3))), V.pos(16n, Nat.add(one, Nat.add(one, a3))), e3, b2))
+  +lt2 = A.shift_cancel(128n, tt, Nat.add(one, Nat.add(one, a3)), lt1)
+  +lt3 = L.subst(Nat, z => {Nat.is_lt(tt, Nat.add(z, Nat.add(z, a3))) == True{} : Bool}, one, 1n, h1, lt2)
+  +a3v = V.v(U32.and(Li.hd0(Li.skip(16n, t)), 3))
+  +xt = V.v(Li.hd0(Li.skip(16n, t)))
+  +la = A.lt_substl(C.low(2n, xt), a3v, 4n, A.sy(a3v, C.low(2n, xt), FB.andm(Li.hd0(Li.skip(16n, t)), 2n, 3, {==})), WW.low_lt(2n, xt))
+  +la3 = A.le_substl(a3v, a3, 3n, A.sy(a3, a3v, N.add_zero(a3v)), N.lt_succ_le(a3v, 3n, la))
+  +lt5 = N.lt_le_trans(tt, Nat.add(1n, Nat.add(1n, a3)), 5n, lt3, la3)
+  A.le_substl(tt, tp, 4n, N.add_zero(tp), N.lt_succ_le(tt, 4n, lt5))
