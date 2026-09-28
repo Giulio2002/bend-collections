@@ -9,7 +9,7 @@ ts=['t%d'%i for i in range(16)]
 L=lambda v: '[%s]' % ', '.join(v)
 K='nk, nr, key'
 KT='+nk: Nat, +nr: Nat, +key: List<&2, U32>'
-def ks(cb, i): return 'S.nth_byte(G.ciph(nk, nr, key, %s), %dn)' % (cb, i)
+def ks(cb, i): return 'kb(nk, nr, key, %s, %dn)' % (cb, i)
 def cons(items, tail): return ' <> '.join(items + [tail])
 ST='S.encrypt(nk, nr, key, S.state_of(cb))'
 EXPL=L(['S.nth_byte(S.bytes_of(%s), %dn)' % (ST, i) for i in range(16)])
@@ -59,6 +59,34 @@ def ks_ok(+st: T.State) -> {S.bytes_of(st) == %s : List<&2, U32>}:
     case T.S{T.W{a0, a1, a2, a3}, T.W{a4, a5, a6, a7}, T.W{a8, a9, a10, a11}, T.W{a12, a13, a14, a15}}:
       {==}
 ''' % L(['S.nth_byte(S.bytes_of(st), %dn)' % i for i in range(16)])]
+
+ks_names = ['k%d' % i for i in range(16)]
+out.append("""# Byte i of the keystream block of counter block cb.
+def kb(+nk: Nat, +nr: Nat, +key: List<&2, U32>, +cb: List<&2, U32>, +i: Nat) -> U32:
+  S.nth_byte(G.ciph(nk, nr, key, cb), i)
+""")
+def cancel_lemma(n, tail):
+    xv, kv = xs[:n], ks_names[:n]
+    items = ['U32.xor(U32.xor(%s, %s), %s)' % (xv[i], kv[i], kv[i]) for i in range(n)]
+    params = ', '.join('+%s: U32' % v for v in xv + kv)
+    if tail:
+        lhs, rhs = cons(items, 'r1'), cons(xv, 'r2')
+        head = 'def cancel%d(%s, +r1: List<&2, U32>, +r2: List<&2, U32>, +e: {r1 == r2 : List<&2, U32>}) -> {%s == %s : List<&2, U32>}:' % (n, params, lhs, rhs)
+        lines = [head, '  %%e : {%s == %s : List<&2, U32>}' % (lhs, cons(xv, '_'))]
+        for i in range(n):
+            lines.append('  %%xor_inv(%s, %s) : {%s == %s : List<&2, U32>}' % (xv[i], kv[i], lhs, cons(items[:i] + ['_'] + xv[i + 1:], 'r1')))
+    else:
+        lhs, rhs = L(items), L(xv)
+        head = 'def cancel%d(%s) -> {%s == %s : List<&2, U32>}:' % (n, params, lhs, rhs)
+        lines = [head]
+        for i in range(n):
+            lines.append('  %%xor_inv(%s, %s) : {%s == %s : List<&2, U32>}' % (xv[i], kv[i], lhs, L(items[:i] + ['_'] + xv[i + 1:])))
+    lines.append('  {==}')
+    return '\n'.join(lines) + '\n'
+out.append('# (x xor k) xor k == x, position by position.')
+out.append(cancel_lemma(16, True))
+for n in range(1, 16):
+    out.append(cancel_lemma(n, False))
 # gctr_block
 rhs = cons(['U32.xor(%s, %s)' % (xs[i], ks('cb', i)) for i in range(16)], 'G.gctr(nk, nr, key, rest, G.inc32(cb))')
 out.append('''# One whole block of counter mode.
@@ -84,11 +112,7 @@ E2 = cons(E2items, 'G.gctr(nk, nr, key, G.gctr(nk, nr, key, rest, G.inc32(cb)), 
 lines = ['    case %s:' % full,
          '      %%Equal.sym(List<&2, U32>, G.gctr(nk, nr, key, %s, cb), %s, gctr_block(nk, nr, key, %s, rest, cb)) : {G.gctr(nk, nr, key, _, cb) == %s : List<&2, U32>}' % (full, E1, ', '.join(xs), full),
          '      %%Equal.sym(List<&2, U32>, G.gctr(nk, nr, key, %s, cb), %s, gctr_block(nk, nr, key, %s, G.gctr(nk, nr, key, rest, G.inc32(cb)), cb)) : {_ == %s : List<&2, U32>}' % (E1, E2, E1args, full)]
-for i in range(16):
-    motive = cons(E2items[:i] + ['_'] + xs[i+1:], 'rest')
-    lines.append('      %%xor_inv(%s, %s) : {%s == %s : List<&2, U32>}' % (xs[i], ks('cb', i), E2, motive))
-lines.append('      %%gctr_inv(nk, nr, key, rest, G.inc32(cb)) : {%s == %s : List<&2, U32>}' % (E2, cons(E2items, '_')))
-lines.append('      {==}')
+lines.append('      cancel16(%s, %s, G.gctr(nk, nr, key, G.gctr(nk, nr, key, rest, G.inc32(cb)), G.inc32(cb)), rest, gctr_inv(nk, nr, key, rest, G.inc32(cb)))' % (', '.join(xs), ', '.join(ks('cb', i) for i in range(16))))
 cases.append('\n'.join(lines))
 cases.append('    case Nil{}:\n      {==}')
 for k in range(1, 16):
@@ -98,10 +122,7 @@ for k in range(1, 16):
     lines = ['    case %s:' % cons(v, 'Nil{}'),
              '      %%Equal.sym(List<&2, U32>, G.gctr(nk, nr, key, %s, cb), %s, gctr_part%d(nk, nr, key, %s, cb)) : {G.gctr(nk, nr, key, _, cb) == %s : List<&2, U32>}' % (L(v), e1, k, ', '.join(v), L(v)),
              '      %%Equal.sym(List<&2, U32>, G.gctr(nk, nr, key, %s, cb), %s, gctr_part%d(nk, nr, key, %s, cb)) : {_ == %s : List<&2, U32>}' % (e1, L(e2items), k, ', '.join('U32.xor(%s, %s)' % (v[i], ks('cb', i)) for i in range(k)), L(v))]
-    for i in range(k):
-        motive = L(e2items[:i] + ['_'] + v[i+1:])
-        lines.append('      %%xor_inv(%s, %s) : {%s == %s : List<&2, U32>}' % (v[i], ks('cb', i), L(e2items), motive))
-    lines.append('      {==}')
+    lines.append('      cancel%d(%s, %s)' % (k, ', '.join(v), ', '.join(ks('cb', i) for i in range(k))))
     cases.append('\n'.join(lines))
 out.append('''# Counter mode is an involution (the keystream is XORed twice).
 def gctr_inv(%s, +xs: List<&2, U32>, +cb: List<&2, U32>) -> {G.gctr(nk, nr, key, G.gctr(nk, nr, key, xs, cb), cb) == xs : List<&2, U32>}:
@@ -119,9 +140,16 @@ out.append('''def bb16(+w: Word(128n)) -> {G.block_bytes(w) == %s : List<&2, U32
 ''' % (L(['S.nth_byte(G.block_bytes(w), %dn)' % i for i in range(16)]), wpat))
 # tag16
 W='G.ghash(G.hash_key(nk, nr, key), List.append(&2, U32, G.pad(aad), List.append(&2, U32, G.pad(c), List.append(&2, U32, G.len64(aad), G.len64(c)))), Word.zero(128n))'
-BB='G.block_bytes(%s)' % W
+BB='hb(nk, nr, key, aad, c)'
 bb=['S.nth_byte(%s, %dn)' % (BB, i) for i in range(16)]
-TT=L(['U32.xor(%s, %s)' % (bb[i], ks('G.j0(iv)', i)) for i in range(16)])
+TT=L(['tb(nk, nr, key, iv, aad, c, %dn)' % i for i in range(16)])
+out.append('''# The GHASH block of the tag, as bytes, and byte i of the tag.
+def hb(+nk: Nat, +nr: Nat, +key: List<&2, U32>, +aad: List<&2, U32>, +c: List<&2, U32>) -> List<&2, U32>:
+  G.block_bytes(%s)
+
+def tb(+nk: Nat, +nr: Nat, +key: List<&2, U32>, +iv: List<&2, U32>, +aad: List<&2, U32>, +c: List<&2, U32>, +i: Nat) -> U32:
+  U32.xor(S.nth_byte(hb(nk, nr, key, aad, c), i), kb(nk, nr, key, G.j0(iv), i))
+''' % W)
 out.append('''# The tag is a 16-byte list.
 def tag16(%s, +iv: List<&2, U32>, +aad: List<&2, U32>, +c: List<&2, U32>) -> {G.tag(nk, nr, key, iv, aad, c) == %s : List<&2, U32>}:
   %%Equal.sym(List<&2, U32>, %s, %s, bb16(%s)) : {G.gctr(nk, nr, key, _, G.j0(iv)) == %s : List<&2, U32>}
@@ -197,9 +225,7 @@ def equal_false(+a: List<&2, U32>, +b: List<&2, U32>, ne: {a != b : List<&2, U32
        IN, ', '.join(ts), IN, T16,
        IN, T16, ', '.join(ts), T16))
 C='G.gctr(nk, nr, key, pt, G.inc32(G.j0(iv)))'
-W2 = W.replace('G.pad(c)', 'G.pad(%s)' % C).replace('G.len64(c)', 'G.len64(%s)' % C)
-BB2='G.block_bytes(%s)' % W2
-tt2=['U32.xor(S.nth_byte(%s, %dn), %s)' % (BB2, i, ks('G.j0(iv)', i)) for i in range(16)]
+tt2=['tb(nk, nr, key, iv, aad, %s, %dn)' % (C, i) for i in range(16)]
 TT2=L(tt2)
 out.append('''# Opening what seal produced gives the plaintext back.
 def roundtrip(%s, +iv: List<&2, U32>, +aad: List<&2, U32>, +pt: List<&2, U32>) -> {G.open(nk, nr, key, iv, aad, G.seal(nk, nr, key, iv, aad, pt)) == Some{pt} : Maybe<&2, List<&2, U32>>}:
