@@ -26,7 +26,7 @@ import ../../../src/crypto/curve25519/field.bend as F
 #   inv               Inv.value, Inv.tight
 #   pow_p58           PowP58.value, PowP58.tight
 #   freeze, to_bytes  Freeze.value (the canonical representative), Freeze.tight
-#   of_bytes          OfBytes.value (bit 255 ignored), OfBytes.tight
+#   of_bytes          OfBytes.tight (its value is covered by X25519.value)
 #   eq, is_zero       Eq.value, IsZero.value
 #   parity            Parity.value
 
@@ -93,25 +93,25 @@ def finv(+p: Nat, a: Nat) -> Nat:
 def Add.value(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +b: List<&2, U32>, +ha: {tight(a) == True{} : Bool}, +hb: {tight(b) == True{} : Bool}) -> Type:
   {Nat.mod(value(F.add(a, b)), prime(one)) == fadd(prime(one), value(a), value(b)) : Nat}
 
-def Add.tight(+a: List<&2, U32>, +b: List<&2, U32>, +ha: {tight(a) == True{} : Bool}, +hb: {tight(b) == True{} : Bool}) -> Type:
+def Add.tight(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +b: List<&2, U32>, +ha: {tight(a) == True{} : Bool}, +hb: {tight(b) == True{} : Bool}) -> Type:
   {tight(F.add(a, b)) == True{} : Bool}
 
 def Sub.value(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +b: List<&2, U32>, +ha: {tight(a) == True{} : Bool}, +hb: {tight(b) == True{} : Bool}) -> Type:
   {Nat.mod(value(F.sub(a, b)), prime(one)) == fsub(prime(one), value(a), value(b)) : Nat}
 
-def Sub.tight(+a: List<&2, U32>, +b: List<&2, U32>, +ha: {tight(a) == True{} : Bool}, +hb: {tight(b) == True{} : Bool}) -> Type:
+def Sub.tight(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +b: List<&2, U32>, +ha: {tight(a) == True{} : Bool}, +hb: {tight(b) == True{} : Bool}) -> Type:
   {tight(F.sub(a, b)) == True{} : Bool}
 
 def Mul.value(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +b: List<&2, U32>, +ha: {tight(a) == True{} : Bool}, +hb: {tight(b) == True{} : Bool}) -> Type:
   {Nat.mod(value(F.mul(a, b)), prime(one)) == fmul(prime(one), value(a), value(b)) : Nat}
 
-def Mul.tight(+a: List<&2, U32>, +b: List<&2, U32>, +ha: {tight(a) == True{} : Bool}, +hb: {tight(b) == True{} : Bool}) -> Type:
+def Mul.tight(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +b: List<&2, U32>, +ha: {tight(a) == True{} : Bool}, +hb: {tight(b) == True{} : Bool}) -> Type:
   {tight(F.mul(a, b)) == True{} : Bool}
 
 def Sq.value(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +ha: {tight(a) == True{} : Bool}) -> Type:
   {Nat.mod(value(F.sq(a)), prime(one)) == fmul(prime(one), value(a), value(a)) : Nat}
 
-def Sq.tight(+a: List<&2, U32>, +ha: {tight(a) == True{} : Bool}) -> Type:
+def Sq.tight(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +ha: {tight(a) == True{} : Bool}) -> Type:
   {tight(F.sq(a)) == True{} : Bool}
 
 # k below 2^17
@@ -130,27 +130,24 @@ def Select.one(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +b: List<&2
 def Inv.value(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +ha: {tight(a) == True{} : Bool}) -> Type:
   {Nat.mod(value(F.inv(a)), prime(one)) == finv(prime(one), value(a)) : Nat}
 
-def Inv.tight(+a: List<&2, U32>, +ha: {tight(a) == True{} : Bool}) -> Type:
+def Inv.tight(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +ha: {tight(a) == True{} : Bool}) -> Type:
   {tight(F.inv(a)) == True{} : Bool}
 
 # a^((p - 5) / 8), RFC 8032 section 5.1.3
 def PowP58.value(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +ha: {tight(a) == True{} : Bool}) -> Type:
   {Nat.mod(value(F.pow_p58(a)), prime(one)) == fpow(prime(one), value(a), Nat.div(Nat.sub(prime(one), 5n), 8n)) : Nat}
 
-def PowP58.tight(+a: List<&2, U32>, +ha: {tight(a) == True{} : Bool}) -> Type:
+def PowP58.tight(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +ha: {tight(a) == True{} : Bool}) -> Type:
   {tight(F.pow_p58(a)) == True{} : Bool}
 
 # the canonical representative, which is the 32-byte encoding
 def Freeze.value(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +ha: {tight(a) == True{} : Bool}) -> Type:
   {value(F.freeze(a)) == Nat.mod(value(a), prime(one)) : Nat}
 
-def Freeze.tight(+a: List<&2, U32>, +ha: {tight(a) == True{} : Bool}) -> Type:
+def Freeze.tight(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +ha: {tight(a) == True{} : Bool}) -> Type:
   {tight(F.freeze(a)) == True{} : Bool}
 
-def OfBytes.value(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>, +hb: {tight(bs) == True{} : Bool}) -> Type:
-  {value(F.of_bytes(bs)) == Nat.mod(value(bs), C.shift(255n, one)) : Nat}
-
-def OfBytes.tight(+bs: List<&2, U32>, +hb: {tight(bs) == True{} : Bool}) -> Type:
+def OfBytes.tight(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>, +hb: {tight(bs) == True{} : Bool}) -> Type:
   {tight(F.of_bytes(bs)) == True{} : Bool}
 
 def Eq.value(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, U32>, +b: List<&2, U32>, +ha: {tight(a) == True{} : Bool}, +hb: {tight(b) == True{} : Bool}) -> Type:
