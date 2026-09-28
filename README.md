@@ -25,6 +25,9 @@ benchmarked against optimized C implementations of the same algorithms.
 | BLAKE2s | `src/crypto/blake/blake2s/blake2s.bend` | RFC 7693, 32-byte digest |
 | BLAKE2b | `src/crypto/blake/blake2b/blake2b.bend` | RFC 7693, 64-byte digest |
 | BLAKE3 | `src/crypto/blake/blake3/blake3.bend` | hash mode, 32-byte digest |
+| ChaCha20 | `src/crypto/chacha/chacha20.bend` | RFC 8439: `chacha20_block`, `chacha20(key, counter, nonce, bytes)`, HChaCha20 and XChaCha20 (draft-irtf-cfrg-xchacha-03); the core `src/crypto/chacha/core.bend` takes the number of double rounds (ChaCha8/12 reuse it); proved equal to the RFC spec `spec/crypto/chacha.bend` for every input and round count, decryption is encryption; RFC 8439 / XChaCha vectors; [contracts](docs/CRYPTO_CONTRACTS.md) |
+| Poly1305 | `src/crypto/poly1305/poly1305.bend` | RFC 8439: `poly1305(key, msg)`, `verify` (constant-time `subtle.eq`); arithmetic mod 2^130-5 on 17 radix-2^8 U32 limbs, proved equal to the Nat spec `spec/crypto/poly1305.bend` for every input; RFC 8439 vectors |
+| AEAD | `src/crypto/aead.bend` | `encrypt(alg, key, nonce, aad, pt)`, `decrypt(alg, key, nonce, aad, ct)` for `CHACHA20_POLY1305` (RFC 8439) and `XCHACHA20_POLY1305`; proved: each algorithm equals its spec, `decrypt(encrypt(x)) == Some(x)`, every tag other than the expected one is rejected; RFC 8439 / XChaCha vectors, differential test against `cryptography` |
 | Integer math | `src/math/natural.bend` | Python-style `math` integer functions, see below |
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 | Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |

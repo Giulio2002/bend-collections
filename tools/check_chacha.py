@@ -265,6 +265,30 @@ def cases(rng, n, ops):
     return out
 
 
+WYCHEPROOF = ROOT / 'tests' / 'crypto' / 'aead' / 'wycheproof.txt'
+
+
+def wycheproof():
+    """(case, expected) pairs from the vendored Wycheproof subset: sealing a
+    valid case gives its ct || tag, opening gives its message; an invalid case
+    opens to "invalid", and seals to "invalid" when its nonce size is wrong."""
+    out = []
+    for line in WYCHEPROOF.read_text().splitlines():
+        if line.startswith('#') or not line.strip():
+            continue
+        x, tc, result, *fields = line.split()
+        key, iv, aad, msg, ct, tag = [bytes.fromhex(f) if f != '-' else b'' for f in fields]
+        x = int(x)
+        seal_op, open_op = (5, 6) if x else (3, 4)
+        nlen = 24 if x else 12
+        if result == 'valid':
+            out.append(((seal_op, 0, key, iv, aad, msg), (ct + tag).hex()))
+        elif len(iv) != nlen:
+            out.append(((seal_op, 0, key, iv, aad, msg), 'invalid'))
+        out.append(((open_op, 0, key, iv, aad, ct + tag), msg.hex() if result == 'valid' else 'invalid'))
+    return out
+
+
 def encode(cs):
     b = bytearray()
     for op, counter, key, nonce, aad, msg in cs:
@@ -279,6 +303,7 @@ def main():
     ap.add_argument('-n', type=int, default=2000, help='cases per operation')
     ap.add_argument('--seed', type=int, default=8439)
     ap.add_argument('--ops', default='0,1,2,3,4,5,6', help='operations to test (0-6)')
+    ap.add_argument('--no-wycheproof', action='store_true', help='skip the vendored Wycheproof vectors')
     a = ap.parse_args()
     rng = random.Random(a.seed)
     # the references themselves against the published vectors
@@ -296,6 +321,9 @@ def main():
         return 1
     ops = [int(x) for x in a.ops.split(',')]
     cs = cases(rng, a.n, ops)
+    wp = [w for w in wycheproof() if w[0][0] in ops] if not a.no_wycheproof else []
+    wanted = [ref(*c) for c in cs] + [w[1] for w in wp]
+    cs = cs + [w[0] for w in wp]
     inp = OUT / 'input.bin'
     inp.write_bytes(encode(cs))
     env = dict(os.environ, CHECK_INPUT=str(inp), CHECK_COUNT=str(len(cs)))
@@ -306,7 +334,7 @@ def main():
     fails = {}
     rejected = {}
     for i, c in enumerate(cs):
-        want = ref(*c)
+        want = wanted[i]
         g = got[i] if i < len(got) else '<missing>'
         if want == 'invalid':
             rejected[c[0]] = rejected.get(c[0], 0) + 1
@@ -317,9 +345,9 @@ def main():
     for op, name in enumerate(names):
         if op not in ops:
             continue
-        print('%-28s %5d cases, %4d rejected, %d failures' % (name, a.n, rejected.get(op, 0), fails.get(op, 0)))
+        print('%-28s %5d cases, %4d rejected, %d failures' % (name, sum(1 for c in cs if c[0] == op), rejected.get(op, 0), fails.get(op, 0)))
     total = sum(fails.values())
-    print('check_chacha: %d cases, %d failures (seed %d)' % (len(cs), total, a.seed))
+    print('check_chacha: %d cases (%d Wycheproof), %d failures (seed %d)' % (len(cs), len(wp), total, a.seed))
     return 1 if total or run.returncode != 0 else 0
 
 
