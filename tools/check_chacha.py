@@ -26,7 +26,7 @@ import sys
 from pathlib import Path
 
 from cryptography.exceptions import InvalidTag
-from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM, ChaCha20Poly1305
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'build' / 'check_chacha'
@@ -82,6 +82,10 @@ def run_n(op: Nat, counter: U32, key: List<&2, U32>, nonce: List<&2, U32>, aad: 
     case 4n: show(A.decrypt(A.CHACHA20_POLY1305{}, key, nonce, aad, msg))
     case 5n: show(A.encrypt(A.XCHACHA20_POLY1305{}, key, nonce, aad, msg))
     case 6n: show(A.decrypt(A.XCHACHA20_POLY1305{}, key, nonce, aad, msg))
+    case 7n: show(A.encrypt(A.AES_128_GCM{}, key, nonce, aad, msg))
+    case 8n: show(A.decrypt(A.AES_128_GCM{}, key, nonce, aad, msg))
+    case 9n: show(A.encrypt(A.AES_256_GCM{}, key, nonce, aad, msg))
+    case 10n: show(A.decrypt(A.AES_256_GCM{}, key, nonce, aad, msg))
     case _: "bad op"
 
 def run(op: U32, counter: U32, key: List<&2, U32>, nonce: List<&2, U32>, aad: List<&2, U32>, msg: List<&2, U32>) -> String:
@@ -191,6 +195,16 @@ def hchacha20(key, nonce16):
 
 
 def ref(op, counter, key, nonce, aad, msg):
+    if op >= 7:
+        if len(key) != (16 if op in (7, 8) else 32) or len(nonce) != 12:
+            return 'invalid'
+        aead = AESGCM(key)
+        if op in (7, 9):
+            return aead.encrypt(nonce, msg, aad).hex()
+        try:
+            return aead.decrypt(nonce, msg, aad).hex()
+        except InvalidTag:
+            return 'invalid'
     if len(key) != 32:
         return 'invalid'
     if op == 0:
@@ -236,8 +250,8 @@ def cases(rng, n, ops):
     out = []
     for op in ops:
         for i in range(n):
-            nlen = {0: 12, 1: 16, 2: 24, 3: 12, 4: 12, 5: 24, 6: 24}[op]
-            klen = 32
+            nlen = {0: 12, 1: 16, 2: 24, 3: 12, 4: 12, 5: 24, 6: 24}.get(op, 12)
+            klen = 16 if op in (7, 8) else 32
             r = rng.random()
             if r < 0.03:
                 klen = rng.choice([0, 16, 31, 33])
@@ -247,7 +261,7 @@ def cases(rng, n, ops):
             counter = rng.choice([0, 1, 2, rng.getrandbits(32), MASK, MASK - 1]) if op in (0, 2) else 0
             aad = rbytes(rng, length(rng, EDGES)) if op >= 3 else b''
             msg = rbytes(rng, length(rng, EDGES))
-            if op in (4, 6):
+            if op in (4, 6, 8, 10):
                 # a sealed message under the same parameters (when they are valid), then maybe damaged
                 good = ref(op - 1, 0, key, nonce, aad, msg)
                 data = bytes.fromhex(good) if good != 'invalid' else msg
@@ -302,7 +316,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('-n', type=int, default=2000, help='cases per operation')
     ap.add_argument('--seed', type=int, default=8439)
-    ap.add_argument('--ops', default='0,1,2,3,4,5,6', help='operations to test (0-6)')
+    ap.add_argument('--ops', default='0,1,2,3,4,5,6,7,8,9,10', help='operations to test (0-10)')
     ap.add_argument('--no-wycheproof', action='store_true', help='skip the vendored Wycheproof vectors')
     a = ap.parse_args()
     rng = random.Random(a.seed)
@@ -330,7 +344,8 @@ def main():
     run = subprocess.run([str(binary)], capture_output=True, text=True, env=env, timeout=3600)
     got = run.stdout.split('\n')
     names = ['chacha20', 'hchacha20', 'xchacha20', 'chacha20poly1305.encrypt', 'chacha20poly1305.decrypt',
-             'xchacha20poly1305.encrypt', 'xchacha20poly1305.decrypt']
+             'xchacha20poly1305.encrypt', 'xchacha20poly1305.decrypt', 'aes128gcm.encrypt', 'aes128gcm.decrypt',
+             'aes256gcm.encrypt', 'aes256gcm.decrypt']
     fails = {}
     rejected = {}
     for i, c in enumerate(cs):

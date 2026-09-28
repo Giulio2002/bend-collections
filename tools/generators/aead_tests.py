@@ -16,7 +16,7 @@ import os
 import struct
 
 from cryptography.exceptions import InvalidTag
-from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM, ChaCha20Poly1305
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 OUT = os.path.join(ROOT, 'tests/crypto/aead/main.bend')
@@ -71,6 +71,28 @@ assert seal(False, KEY, N282, AAD, SUNSCREEN)[-16:].hex() == '1ae10b594f09e26a7e
 assert seal(True, KEY, NX, AAD, SUNSCREEN)[-16:].hex() == 'c0875924c1c7987947deafd8780acf49'
 
 
+def aes_seal(key, nonce, aad, pt):
+    return AESGCM(key).encrypt(nonce, pt, aad) if len(nonce) == 12 else None
+
+
+def aes_open(key, nonce, aad, data):
+    if len(nonce) != 12:
+        return None
+    try:
+        return AESGCM(key).decrypt(nonce, data, aad)
+    except InvalidTag:
+        return None
+
+
+# NIST GCM test case 4 (McGrew and Viega, "The Galois/Counter Mode of Operation"):
+# AES-128, 60-byte plaintext, 20-byte aad.
+GCM_K = bytes.fromhex('feffe9928665731c6d6a8f9467308308')
+GCM_N = bytes.fromhex('cafebabefacedbaddecaf888')
+GCM_P = bytes.fromhex('d9313225f88406e5a55909c5aff5269a86a7a9531534f7da2e4c303d8a318a721c3c0c95956809532fcf0e2449a6b525b16aedf5aa0de657ba637b39')
+GCM_A = bytes.fromhex('feedfacedeadbeeffeedfacedeadbeefabaddad2')
+assert AESGCM(GCM_K).encrypt(GCM_N, GCM_P, GCM_A)[-16:].hex() == '5bc94fbc3221a5db94fae95ae7121a47'
+
+
 def blit(bs):
     return '[' + ', '.join(str(b) for b in bs) + ']'
 
@@ -94,10 +116,38 @@ def t_open(label, x, key, nonce, aad, data):
                   r.hex() if r is not None else 'invalid'))
 
 
+def t_aes(label, alg_name, key, nonce, aad, pt=None, data=None):
+    if pt is not None:
+        want = aes_seal(key, nonce, aad, pt) if len(key) == {'A.AES_128_GCM{}': 16, 'A.AES_256_GCM{}': 32}[alg_name] else None
+        CASES.append((label, 'show(A.encrypt(%s, %s, %s, %s, %s))' % (alg_name, blit(key), blit(nonce), blit(aad), blit(pt)),
+                      want.hex() if want is not None else 'invalid'))
+    else:
+        want = aes_open(key, nonce, aad, data) if len(key) == {'A.AES_128_GCM{}': 16, 'A.AES_256_GCM{}': 32}[alg_name] else None
+        CASES.append((label, 'show(A.decrypt(%s, %s, %s, %s, %s))' % (alg_name, blit(key), blit(nonce), blit(aad), blit(data)),
+                      want.hex() if want is not None else 'invalid'))
+
+
 def flip(bs, bit):
     b = bytearray(bs)
     b[bit // 8] ^= 1 << (bit % 8)
     return bytes(b)
+
+
+def build_aes():
+    sealed = aes_seal(GCM_K, GCM_N, GCM_A, GCM_P)
+    t_aes('aes128gcm gcm tc4 seal', 'A.AES_128_GCM{}', GCM_K, GCM_N, GCM_A, pt=GCM_P)
+    t_aes('aes128gcm gcm tc4 open', 'A.AES_128_GCM{}', GCM_K, GCM_N, GCM_A, data=sealed)
+    t_aes('aes128gcm flipped tag bit', 'A.AES_128_GCM{}', GCM_K, GCM_N, GCM_A, data=flip(sealed, 8 * len(sealed) - 1))
+    t_aes('aes128gcm changed aad', 'A.AES_128_GCM{}', GCM_K, GCM_N, flip(GCM_A, 3), data=sealed)
+    t_aes('aes128gcm key 32', 'A.AES_128_GCM{}', GCM_K * 2, GCM_N, GCM_A, pt=GCM_P)
+    t_aes('aes128gcm nonce 16', 'A.AES_128_GCM{}', GCM_K, GCM_N + bytes(4), GCM_A, pt=GCM_P)
+    k256 = bytes(range(32))
+    for n in [0, 1, 16, 33]:
+        pt = bytes((5 * i + 1) & 255 for i in range(n))
+        t_aes('aes256gcm length %d' % n, 'A.AES_256_GCM{}', k256, GCM_N, GCM_A, pt=pt)
+        t_aes('aes256gcm open length %d' % n, 'A.AES_256_GCM{}', k256, GCM_N, GCM_A, data=aes_seal(k256, GCM_N, GCM_A, pt))
+    t_aes('aes256gcm flipped ciphertext bit', 'A.AES_256_GCM{}', k256, GCM_N, GCM_A, data=flip(aes_seal(k256, GCM_N, GCM_A, b'abcdefgh'), 2))
+    t_aes('aes256gcm key 16', 'A.AES_256_GCM{}', GCM_K, GCM_N, GCM_A, pt=GCM_P)
 
 
 def build():
@@ -175,6 +225,7 @@ def count(b: Bool, n: Nat) -> Nat:
 
 def main():
     build()
+    build_aes()
     out = [HEAD]
     parts = [CASES[i:i + 12] for i in range(0, len(CASES), 12)]
     for k, part in enumerate(parts):

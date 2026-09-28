@@ -266,47 +266,61 @@ tag, plus wrong key lengths; 51 checks) and `tools/check_poly1305.py`
 (random keys and messages around the 16-byte block, the implementation and
 a Python mirror of the specification against `cryptography`'s Poly1305).
 
-## ChaCha20-Poly1305 and XChaCha20-Poly1305 (`src/crypto/aead.bend`)
+## The AEAD facade `src/crypto/aead.bend`: ChaCha20-Poly1305, XChaCha20-Poly1305, AES-GCM
 
-`src/crypto/aead.bend` is the AEAD facade: `encrypt(alg, key, nonce, aad,
-pt)` returns `Some(ciphertext || tag)`, `decrypt(alg, key, nonce, aad,
-ciphertext || tag)` returns `Some(pt)`, for `alg` one of
-`CHACHA20_POLY1305` (RFC 8439 2.8: 32-byte key, 12-byte nonce) and
-`XCHACHA20_POLY1305` (draft-irtf-cfrg-xchacha-03: 24-byte nonce). Both
-return `None` for other key or nonce lengths; `decrypt` returns `None` for
-an input shorter than the 16-byte tag and whenever the tag is not the one
-computed over aad and ciphertext, compared with `subtle.eq` before any
-plaintext is produced. An algorithm is a constructor of `Alg` with its
-`key_size`/`nonce_size` row and its cases in `seal`, `open` and
-`expected_tag`; the facade clauses below are proved by one case per
-constructor (AES-GCM adds its cases the same way).
-`src/crypto/aead/chacha20poly1305.bend` has the per-algorithm functions.
+`src/crypto/aead.bend`: `encrypt(alg, key, nonce, aad, pt)` returns
+`Some(ciphertext || tag)`, `decrypt(alg, key, nonce, aad, ciphertext ||
+tag)` returns `Some(pt)`, for `alg` one of
 
-Specification: `spec/crypto/chacha20poly1305.bend`, RFC 8439 2.6 and 2.8
-over the ChaCha20 and Poly1305 specifications: the one-time key is the
-first 32 bytes of the block with counter 0; the ciphertext is ChaCha20 from
-counter 1; mac_data = aad | pad16(aad) | ciphertext | pad16(ciphertext) |
-le64(len aad) | le64(len ciphertext); opening splits off the last 16 bytes
-and releases the plaintext only when they equal the recomputed tag.
+| `Alg` | key | nonce | standard | per-algorithm module |
+|---|---|---|---|---|
+| `CHACHA20_POLY1305` | 32 | 12 | RFC 8439 2.8 | `src/crypto/aead/chacha20poly1305.bend` |
+| `XCHACHA20_POLY1305` | 32 | 24 | draft-irtf-cfrg-xchacha-03 | `src/crypto/aead/chacha20poly1305.bend` |
+| `AES_128_GCM` | 16 | 12 | FIPS 197 + SP 800-38D | `src/crypto/aesgcm.bend` (W-aes) |
+| `AES_256_GCM` | 32 | 12 | FIPS 197 + SP 800-38D | `src/crypto/aesgcm.bend` (W-aes) |
+
+Both return `None` for other key or nonce lengths; `decrypt` returns `None`
+for an input shorter than the 16-byte tag and whenever the tag is not the
+one computed over aad and ciphertext (compared with `subtle.eq` before any
+plaintext is produced). An algorithm is a constructor of `Alg` with its
+`key_size`/`nonce_size` row and its cases in `seal` and `open`; the facade
+clauses below are proved by one case per constructor.
+
+ChaCha20-Poly1305 specification: `spec/crypto/chacha20poly1305.bend`, RFC
+8439 2.6 and 2.8 over the ChaCha20 and Poly1305 specifications: the
+one-time key is the first 32 bytes of the block with counter 0; the
+ciphertext is ChaCha20 from counter 1; mac_data = aad | pad16(aad) |
+ciphertext | pad16(ciphertext) | le64(len aad) | le64(len ciphertext);
+opening splits off the last 16 bytes and releases the plaintext only when
+they equal the recomputed tag. XChaCha20-Poly1305 is the same under the
+HChaCha20 subkey and nonce 0^4 || nonce[16..24]. AES-GCM: W-aes's
+`spec/crypto/aes/gcm.bend` (`aes_seal`, `aes_open`, `aes_tag`).
 
 | Clause (`proofs/crypto/aead/laws.bend`) | Statement | Evidence |
 |---|---|---|
-| `chacha20poly1305.seal` / `.open` | `seal(CHACHA20_POLY1305, ...) == Spec.seal(...)`, `open(...) == Spec.open(...)` | proved |
+| `chacha20poly1305.seal` / `.open` | `seal(CHACHA20_POLY1305, ...) == Some(Spec.seal(...))`, `open(...) == Spec.open(...)`, any key/nonce lists | proved |
 | `xchacha20poly1305.seal` / `.open` | the same for XChaCha20-Poly1305 | proved |
-| `*.encrypt`, `*.decrypt` | the per-algorithm functions are the facade's | proved |
-| `encrypt.valid` / `.invalid` | `Some(seal(alg, ...))` on the algorithm's lengths, `None` otherwise | proved |
+| `aes128gcm.seal` / `.open`, `aes256gcm.*` | `seal(AES_*_GCM, ...) == Some(G.aes_seal(...))`, `open(...) == G.aes_open(...)` on 16/32-byte keys and 12-byte nonces | proved |
+| `*.encrypt`, `*.decrypt` | the per-algorithm ChaCha functions are the facade's | proved |
+| `encrypt.valid` / `.invalid` | `seal(alg, ...)` on the algorithm's lengths, `None` otherwise | proved |
 | `decrypt.valid` / `.invalid` | `open(alg, ...)` on the algorithm's lengths, `None` otherwise | proved |
-| `roundtrip` | `decrypt(alg, k, n, aad, seal(alg, k, n, aad, pt)) == Some(pt)` | proved |
-| `forgery` | `length(t) == 16` and `t != expected_tag(alg, k, n, aad, ct)` imply `decrypt(alg, k, n, aad, ct ++ t) == None` | proved |
-| `seal_layout` | `seal(alg, k, n, aad, pt) == ct ++ expected_tag(alg, k, n, aad, ct)` for some ct | proved |
+| `roundtrip` | decrypt of what `encrypt(alg, k, n, aad, pt)` returned is `Some(pt)`, every alg | proved |
+| `forgery` | `length(t) == 16` and `t != expected_tag(alg, k, n, aad, ct)` imply `decrypt(alg, k, n, aad, ct ++ t) == None`, every alg | proved |
+| `seal_layout` | `encrypt(alg, k, n, aad, pt) == Some(ct ++ expected_tag(alg, k, n, aad, ct))` for some ct | proved |
 
-(`proofs/crypto/aead/chacha20poly1305.bend` also proves the specification's
-own `roundtrip` and `forgery`, for every key and nonce list.) The
-composition follows HACL*'s `Spec.Chacha20Poly1305` and the EasyCrypt proof
-of Almeida et al. (2020): the AEAD is its two primitives plus framing, the
-primitives entering only through their proved refinements; the round trip
-uses the ChaCha20 involution, the Poly1305 tag length and `subtle.eq`'s
-`Eq.refl`; forgery rejection uses `Eq.sound`.
+`expected_tag` is the specification's tag (RFC 8439's or SP 800-38D's).
+(`proofs/crypto/aead/chacha20poly1305.bend` also proves the
+ChaCha20-Poly1305 specification's own round trip and forgery rejection for
+every key and nonce list.) The composition follows HACL*'s
+`Spec.Chacha20Poly1305` and the EasyCrypt proof of Almeida et al. (2020):
+the AEAD is its two primitives plus framing, the primitives entering only
+through their proved refinements; the round trip uses the ChaCha20
+involution, the Poly1305 tag length and `subtle.eq`'s `Eq.refl`; forgery
+rejection uses `Eq.sound`. The AES-GCM cases use W-aes's AES-GCM API
+lemmas, restated for nonce and tag lists of the right length in
+`proofs/crypto/aead/aes.bend` (the proofs are those of
+`proofs/crypto/aes/proof.bend`, copied so that that file stays the aes
+package's root).
 
 Not proved: constant time (the only branch after the tag comparison is the
 public accept/reject), and nothing about security (unforgeability is a
@@ -314,18 +328,18 @@ computational property, outside functional correctness).
 
 Tests: `tests/crypto/aead/main.bend` (`tools/generators/aead_tests.py`:
 RFC 8439 2.8.2 and XChaCha A.3.1, whose printed tags the generator asserts,
-lengths around 16 and 64 bytes, decryption of sealed messages, rejection of
-a flipped ciphertext bit, a flipped tag bit, a changed or dropped aad, a
-wrong key or nonce, inputs shorter than a tag, wrong key/nonce lengths;
-66 vectors) and `tools/check_chacha.py`: 2000 random records per operation
-(ChaCha20 with random counters including wrap-around, HChaCha20, XChaCha20,
-both AEADs' encryption and decryption of sealed, bit-flipped, aad-modified
-and truncated inputs, occasional wrong key/nonce lengths) against
-`cryptography`'s `ChaCha20Poly1305` and Python ChaCha20/HChaCha20, plus the
-602 Wycheproof ChaCha20-Poly1305 and XChaCha20-Poly1305 vectors with
-messages and aad of at most 128 bytes (`tests/crypto/aead/wycheproof.txt`,
-including the Poly1305 edge cases). Both run in `tools/validate.py` (row
-`chacha`).
+GCM test case 4 (McGrew-Viega), lengths around 16 and 64 bytes, decryption
+of sealed messages, rejection of a flipped ciphertext bit, a flipped tag
+bit, a changed or dropped aad, a wrong key or nonce, inputs shorter than a
+tag, wrong key/nonce lengths; 82 vectors) and `tools/check_chacha.py`:
+2000 random records per operation (ChaCha20 with random counters including
+wrap-around, HChaCha20, XChaCha20, all four AEADs' encryption and decryption
+of sealed, bit-flipped, aad-modified and truncated inputs, occasional wrong
+key/nonce lengths) against `cryptography`'s `ChaCha20Poly1305` and `AESGCM`
+and Python ChaCha20/HChaCha20, plus the 602 Wycheproof ChaCha20-Poly1305 and
+XChaCha20-Poly1305 vectors with messages and aad of at most 128 bytes
+(`tests/crypto/aead/wycheproof.txt`, including the Poly1305 edge cases).
+Both run in `tools/validate.py` (row `chacha`).
 
 ## AES and AES-GCM
 
