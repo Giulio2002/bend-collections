@@ -75,8 +75,8 @@ def unpack(z: Block) -> List<&2, U32>:
 def word(q: T.Quad) -> U32:
   match q:
     case T.W{a, b, c, d}:
-      U32.or(U32.or(U32.or(U32.shln(U32.and(255, a), 24n), U32.shln(U32.and(255, b), 16n)),
-        U32.shln(U32.and(255, c), 8n)), U32.and(255, d))
+      U32.or(U32.shln(U32.and(255, a), 24n), U32.or(U32.shln(U32.and(255, b), 16n),
+        U32.or(U32.shln(U32.and(255, c), 8n), U32.and(255, d))))
 
 # An AES state as a block: its columns are the words.
 def pack(s: T.State) -> Block:
