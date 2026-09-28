@@ -242,8 +242,12 @@ def absorb_inv(one, h1, fuel, msg, r, h, hrl, hrf, hh):
   match fuel msg:
     case 0n _: hh
     case 1n+k Nil{}: hh
-    case 1n+k b <> rest:
-      +m = {b <> rest : List<&2, U32>}
+    case 1n+k b <> Nil{}:
+      +m = {[b] : List<&2, U32>}
+      +c = P.load(Li.take(16n, m))
+      absorb_inv(one, h1, k, Li.skip(16n, m), r, Li.block(r, h, c), hrl, hrf, ST.block_inv(one, h1, r, h, c, hh, mask_fit(List.append(&2, U32, Li.take(16n, m), [1])), hrl, hrf))
+    case 1n+k b <> d <> rest:
+      +m = {b <> d <> rest : List<&2, U32>}
       +c = P.load(Li.take(16n, m))
       absorb_inv(one, h1, k, Li.skip(16n, m), r, Li.block(r, h, c), hrl, hrf, ST.block_inv(one, h1, r, h, c, hh, mask_fit(List.append(&2, U32, Li.take(16n, m), [1])), hrl, hrf))
 
@@ -280,8 +284,8 @@ def absorb_ok(one, h1, bp, h5, fuel, msg, r, h, a, hrl, hrf, hh, ha):
   match fuel msg:
     case 0n _: ha
     case 1n+k Nil{}: ha
-    case 1n+k b <> rest:
-      +m = {b <> rest : List<&2, U32>}
+    case 1n+k b <> Nil{}:
+      +m = {[b] : List<&2, U32>}
       +c = P.load(Li.take(16n, m))
       +h2 = Li.block(r, h, c)
       +a2 = R.modp(Nat.mul(V.ev(r), Nat.add(a, R.le_num(List.append(&2, U32, R.prefix(16n, m), [1])))))
@@ -290,3 +294,87 @@ def absorb_ok(one, h1, bp, h5, fuel, msg, r, h, a, hrl, hrf, hh, ha):
       +ih = absorb_ok(one, h1, bp, h5, k, Li.skip(16n, m), r, h2, a2, hrl, hrf, hh2, ha2)
       A.tr(Nat.mod(V.ev(P.absorb(k, Li.skip(16n, m), r, h2)), 1n+bp), R.absorb(R.blocks(k, Li.skip(16n, m)), V.ev(r), a2), R.absorb(R.blocks(k, R.suffix(16n, m)), V.ev(r), a2), ih,
         Equal.cong(List<&2, U32>, Nat, l => R.absorb(R.blocks(k, l), V.ev(r), a2), Li.skip(16n, m), R.suffix(16n, m), skip_suffix(16n, m)))
+    case 1n+k b <> d <> rest:
+      +m = {b <> d <> rest : List<&2, U32>}
+      +c = P.load(Li.take(16n, m))
+      +h2 = Li.block(r, h, c)
+      +a2 = R.modp(Nat.mul(V.ev(r), Nat.add(a, R.le_num(List.append(&2, U32, R.prefix(16n, m), [1])))))
+      +hh2 = ST.block_inv(one, h1, r, h, c, hh, mask_fit(List.append(&2, U32, Li.take(16n, m), [1])), hrl, hrf)
+      +ha2 = A.sy(a2, Nat.mod(V.ev(h2), 1n+bp), step_mod(one, h1, bp, h5, r, h, m, a, hrl, hrf, hh, ha))
+      +ih = absorb_ok(one, h1, bp, h5, k, Li.skip(16n, m), r, h2, a2, hrl, hrf, hh2, ha2)
+      A.tr(Nat.mod(V.ev(P.absorb(k, Li.skip(16n, m), r, h2)), 1n+bp), R.absorb(R.blocks(k, Li.skip(16n, m)), V.ev(r), a2), R.absorb(R.blocks(k, R.suffix(16n, m)), V.ev(r), a2), ih,
+        Equal.cong(List<&2, U32>, Nat, l => R.absorb(R.blocks(k, l), V.ev(r), a2), Li.skip(16n, m), R.suffix(16n, m), skip_suffix(16n, m)))
+
+# ---- the tag ----
+
+def bpv(+one: Nat) -> Nat:
+  Nat.sub(C.shift(130n, one), 6n)
+
+law bp5:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  {Nat.add(1n+bpv(one), 5n) == C.shift(130n, one) : Nat}
+
+def bp5(one, h1):
+  +s = C.shift(130n, one)
+  +h6 = N.le_trans(6n, C.shift(3n, one), s, L.subst(Nat, z => {Nat.is_le(6n, C.shift(3n, z)) == True{} : Bool}, 1n, one, A.sy(one, 1n, h1), {==}), WW.shift_ge(127n, C.shift(3n, one)))
+  A.tr(Nat.add(1n+bpv(one), 5n), Nat.add(5n, 1n+bpv(one)), s, N.add_comm(1n+bpv(one), 5n), N.sub_add(s, 6n, h6))
+
+law tag_main:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +key: List<&2, U32>
+  for +msg: List<&2, U32>
+  {P.tag(key, msg) == R.poly1305_mac(key, msg) : List<&2, U32>}
+
+def tag_main(one, h1, key, msg):
+  +bp = bpv(one)
+  +h5 = bp5(one, h1)
+  +r = rl(key)
+  +s = sl(key)
+  +hrf = fit_fit(16n, P.mask(P.clamp(Li.take(16n, key), 0n)), mask_fit(P.clamp(Li.take(16n, key), 0n)))
+  +fuel = List.length(&2, U32, msg)
+  +h = P.absorb(fuel, msg, r, P.zero())
+  +hh = absorb_inv(one, h1, fuel, msg, r, P.zero(), {==}, hrf, {==})
+  +ea = absorb_ok(one, h1, bp, h5, fuel, msg, r, P.zero(), 0n, {==}, hrf, {==}, {==})
+  +rs = R.le_num(R.clamp(R.prefix(16n, key)))
+  +ss = R.le_num(R.prefix(16n, R.suffix(16n, key)))
+  +bs = R.blocks(fuel, msg)
+  +te = F.tag_eq(one, h1, bp, h5, h, hh, s, mask_fit(Li.take(16n, Li.skip(16n, key))))
+  +e1 = A.tr(Nat.add(Nat.mod(V.ev(h), 1n+bp), V.ev(s)), Nat.add(R.absorb(bs, V.ev(r), 0n), ss), Nat.add(R.absorb(bs, rs, 0n), ss),
+    A.cadd(Nat.mod(V.ev(h), 1n+bp), R.absorb(bs, V.ev(r), 0n), V.ev(s), ss, ea, s_ev(key)),
+    WM.cong_l(R.absorb(bs, V.ev(r), 0n), R.absorb(bs, rs, 0n), ss, Equal.cong(Nat, Nat, z => R.absorb(bs, z, 0n), V.ev(r), rs, r_ev(key))))
+  Equal.trans(List<&2, U32>, P.tag(key, msg), R.le_bytes(16n, Nat.add(Nat.mod(V.ev(h), 1n+bp), V.ev(s))), R.poly1305_mac(key, msg), te,
+    Equal.cong(Nat, List<&2, U32>, z => R.le_bytes(16n, z), Nat.add(Nat.mod(V.ev(h), 1n+bp), V.ev(s)), Nat.add(R.absorb(bs, rs, 0n), ss), e1))
+
+# The implementation's tag is the RFC 8439 tag, for every key and message.
+law mac_correct:
+  for +key: List<&2, U32>
+  for +msg: List<&2, U32>
+  {P.mac(key, msg) == R.mac(key, msg) : List<&2, U32>}
+
+def mac_correct(key, msg):
+  match msg:
+    case Nil{}: tag_main(1n, {==}, key, [])
+    case b <> rest: tag_main(1n, {==}, key, b <> rest)
+
+law le_bytes_len:
+  for +n: Nat
+  for +x: Nat
+  {List.length(&2, U32, R.le_bytes(n, x)) == n : Nat}
+
+def le_bytes_len(n, x):
+  match n:
+    case 0n: {==}
+    case 1n+k: Equal.cong(Nat, Nat, z => 1n+z, List.length(&2, U32, R.le_bytes(k, C.high(8n, x))), k, le_bytes_len(k, C.high(8n, x)))
+
+# The tag has 16 bytes.
+law mac_length:
+  for +key: List<&2, U32>
+  for +msg: List<&2, U32>
+  {List.length(&2, U32, R.mac(key, msg)) == 16n : Nat}
+
+def mac_length(key, msg):
+  match msg:
+    case Nil{}: le_bytes_len(16n, Nat.add(R.absorb(R.blocks(0n, []), R.le_num(R.clamp(R.prefix(16n, key))), 0n), R.le_num(R.prefix(16n, R.suffix(16n, key)))))
+    case b <> rest: le_bytes_len(16n, Nat.add(R.absorb(R.blocks(List.length(&2, U32, b <> rest), b <> rest), R.le_num(R.clamp(R.prefix(16n, key))), 0n), R.le_num(R.prefix(16n, R.suffix(16n, key)))))

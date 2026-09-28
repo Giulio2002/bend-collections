@@ -36,13 +36,16 @@ def load(b: List<&2, U32>) -> List<&2, U32>:
   mask(List.append(&2, U32, b, [1]))
 
 # The accumulator over 16-byte blocks (the last one possibly shorter); fuel
-# bounds the number of blocks.
+# bounds the number of blocks. (A one-byte message is its own case only so
+# that a proof about a message b <> rest with rest unknown stays small.)
 def absorb(fuel: Nat, +msg: List<&2, U32>, +r: List<&2, U32>, h: List<&2, U32>) -> List<&2, U32>:
   match fuel msg:
     case 0n _: h
     case 1n+k Nil{}: h
-    case 1n+k b <> rest:
-      absorb(k, L.skip(16n, b <> rest), r, L.block(r, h, load(L.take(16n, b <> rest))))
+    case 1n+k b <> Nil{}:
+      absorb(k, L.skip(16n, [b]), r, L.block(r, h, load(L.take(16n, [b]))))
+    case 1n+k b <> c <> rest:
+      absorb(k, L.skip(16n, b <> c <> rest), r, L.block(r, h, load(L.take(16n, b <> c <> rest))))
 
 def zero() -> List<&2, U32>:
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
