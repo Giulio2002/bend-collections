@@ -408,3 +408,87 @@ law freeze_ev:
 
 def freeze_ev(one, h1, bp, h5, h, hh):
   frz_c(one, h1, bp, h5, h, hh, Nat.is_eq(qq(h), 0n), {==})
+
+# ---- the tag bytes ----
+
+law bytes_le:
+  for +n: Nat
+  for +ds: List<&2, U32>
+  for +u: U32
+  for +k: Nat
+  for +j: Nat
+  for +hj: {Nat.is_le(Nat.add(9n, j), 32n) == True{} : Bool}
+  for +hd: {V.fit_all(ds, Nat.add(8n, j)) == True{} : Bool}
+  for +hu: {C.fits(Nat.add(8n, j), V.v(u)) == True{} : Bool}
+  {Li.bytes(n, ds, u) == R.le_bytes(n, Nat.add(Nat.add(V.v(u), V.ev(ds)), V.pos(n, k))) : List<&2, U32>}
+
+def bytes_le(n, ds, u, k, j, hj, hd, hu):
+  match n:
+    case 0n: {==}
+    case 1n+m:
+      +h = Li.hd0(ds)
+      +s = U32.add(u, h)
+      +vs = V.v(s)
+      +u2 = U32.shrn(s, 8n)
+      +et = V.ev(Li.tl(ds))
+      +pk = V.pos(m, k)
+      +y = Nat.add(Nat.add(V.v(u), V.ev(ds)), C.shift(8n, pk))
+      +y2 = Nat.add(vs, C.shift(8n, Nat.add(et, pk)))
+      +es = V.step_ev(ds, u, j, hj, hd, hu)
+      +ey = A.tr(y, Nat.add(Nat.add(V.v(u), Nat.add(V.v(h), C.shift(8n, et))), C.shift(8n, pk)), y2,
+        WM.cong_l(Nat.add(V.v(u), V.ev(ds)), Nat.add(V.v(u), Nat.add(V.v(h), C.shift(8n, et))), C.shift(8n, pk), WM.cong_r(V.v(u), V.ev(ds), Nat.add(V.v(h), C.shift(8n, et)), V.hd_tl_ev(ds))),
+        A.tr(Nat.add(Nat.add(V.v(u), Nat.add(V.v(h), C.shift(8n, et))), C.shift(8n, pk)), Nat.add(Nat.add(Nat.add(V.v(u), V.v(h)), C.shift(8n, et)), C.shift(8n, pk)), y2,
+          WM.cong_l(Nat.add(V.v(u), Nat.add(V.v(h), C.shift(8n, et))), Nat.add(Nat.add(V.v(u), V.v(h)), C.shift(8n, et)), C.shift(8n, pk), A.sy(Nat.add(Nat.add(V.v(u), V.v(h)), C.shift(8n, et)), Nat.add(V.v(u), Nat.add(V.v(h), C.shift(8n, et))), N.add_assoc(V.v(u), V.v(h), C.shift(8n, et)))),
+          A.tr(Nat.add(Nat.add(Nat.add(V.v(u), V.v(h)), C.shift(8n, et)), C.shift(8n, pk)), Nat.add(Nat.add(V.v(u), V.v(h)), C.shift(8n, Nat.add(et, pk))), y2,
+            V.sh3(Nat.add(V.v(u), V.v(h)), et, pk),
+            WM.cong_l(Nat.add(V.v(u), V.v(h)), vs, C.shift(8n, Nat.add(et, pk)), A.sy(vs, Nat.add(V.v(u), V.v(h)), es)))))
+      +elo = WW.low_add_shift(8n, vs, Nat.add(et, pk))
+      +ehi = A.tr(C.high(8n, y2), Nat.add(C.high(8n, vs), Nat.add(et, pk)), Nat.add(Nat.add(V.v(u2), et), pk), WW.high_add_shift(8n, vs, Nat.add(et, pk)),
+        A.tr(Nat.add(C.high(8n, vs), Nat.add(et, pk)), Nat.add(V.v(u2), Nat.add(et, pk)), Nat.add(Nat.add(V.v(u2), et), pk), WM.cong_l(C.high(8n, vs), V.v(u2), Nat.add(et, pk), A.sy(V.v(u2), C.high(8n, vs), SHN.shrn_high(s, 8n))), A.sy(Nat.add(Nat.add(V.v(u2), et), pk), Nat.add(V.v(u2), Nat.add(et, pk)), N.add_assoc(V.v(u2), et, pk))))
+      +lo8 = C.low(8n, vs)
+      +eb = U3.injective(U32.and(s, 255), U32.from_nat(lo8), A.tr(V.v(U32.and(s, 255)), lo8, V.v(U32.from_nat(lo8)), FB.andm(s, 8n, 255, {==}), A.sy(V.v(U32.from_nat(lo8)), lo8, U3.to_nat_from_nat(lo8, 8n, {==}, WW.low_lt(8n, vs)))))
+      +ih = bytes_le(m, Li.tl(ds), u2, k, j, hj, V.tl_fit(ds, Nat.add(8n, j), hd), V.next_fit(ds, u, j, hj, hd, hu))
+      Equal.trans(List<&2, U32>, U32.and(s, 255) <> Li.bytes(m, Li.tl(ds), u2), R.le_bytes(1n+m, y2), R.le_bytes(1n+m, y),
+        Equal.trans(List<&2, U32>, U32.and(s, 255) <> Li.bytes(m, Li.tl(ds), u2), U32.from_nat(lo8) <> R.le_bytes(m, Nat.add(Nat.add(V.v(u2), et), pk)), R.le_bytes(1n+m, y2),
+          Equal.trans(List<&2, U32>, U32.and(s, 255) <> Li.bytes(m, Li.tl(ds), u2), U32.from_nat(lo8) <> Li.bytes(m, Li.tl(ds), u2), U32.from_nat(lo8) <> R.le_bytes(m, Nat.add(Nat.add(V.v(u2), et), pk)),
+            Equal.cong(U32, List<&2, U32>, z => z <> Li.bytes(m, Li.tl(ds), u2), U32.and(s, 255), U32.from_nat(lo8), eb),
+            Equal.cong(List<&2, U32>, List<&2, U32>, z => U32.from_nat(lo8) <> z, Li.bytes(m, Li.tl(ds), u2), R.le_bytes(m, Nat.add(Nat.add(V.v(u2), et), pk)), ih)),
+          Equal.trans(List<&2, U32>, U32.from_nat(lo8) <> R.le_bytes(m, Nat.add(Nat.add(V.v(u2), et), pk)), U32.from_nat(C.low(8n, y2)) <> R.le_bytes(m, Nat.add(Nat.add(V.v(u2), et), pk)), R.le_bytes(1n+m, y2),
+            Equal.cong(Nat, List<&2, U32>, z => U32.from_nat(z) <> R.le_bytes(m, Nat.add(Nat.add(V.v(u2), et), pk)), lo8, C.low(8n, y2), A.sy(C.low(8n, y2), lo8, elo)),
+            Equal.cong(Nat, List<&2, U32>, z => U32.from_nat(C.low(8n, y2)) <> R.le_bytes(m, z), Nat.add(Nat.add(V.v(u2), et), pk), C.high(8n, y2), A.sy(C.high(8n, y2), Nat.add(Nat.add(V.v(u2), et), pk), ehi)))),
+        Equal.cong(Nat, List<&2, U32>, z => R.le_bytes(1n+m, z), y2, y, A.sy(y, y2, ey)))
+
+# the tag: (h mod p + s) mod 2^128 as 16 bytes
+law tag_eq:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +bp: Nat
+  for +h5: {Nat.add(1n+bp, 5n) == C.shift(130n, one) : Nat}
+  for +h: List<&2, U32>
+  for +hh: {ST.inv(h) == True{} : Bool}
+  for +s: List<&2, U32>
+  for +hs: {V.fit_all(s, 8n) == True{} : Bool}
+  {Li.bytes(16n, Li.add(Li.freeze(h), s), 0) == R.le_bytes(16n, Nat.add(Nat.mod(V.ev(h), 1n+bp), V.ev(s))) : List<&2, U32>}
+
+def tag_eq(one, h1, bp, h5, h, hh, s, hs):
+  +s8 = C.shift(8n, one)
+  +s9 = C.shift(9n, one)
+  +fz = Li.freeze(h)
+  +a = Nat.mod(V.ev(h), 1n+bp)
+  +lo = C.low(128n, a)
+  +kk = C.high(128n, a)
+  +ds = Li.add(fz, s)
+  +hf = freeze_fit(one, h1, h, hh)
+  +hf1 = ST.s8fit(one, h1)
+  +ed = V.add_ev(fz, s, s8, s8, V.fit_le(fz, 8n, one, h1, hf), V.fit_le(s, 8n, one, h1, hs), hf1)
+  +l10 = A.lt_substl(s9, Nat.add(s8, s8), Nat.double(s9), NA.double_self(s8), lt_dbl(s9, A.one_le_shift(9n, one, h1)))
+  +hd = V.le_fit(ds, Nat.add(s8, s8), 10n, one, h1, l10, V.add_le(fz, s, s8, s8, V.fit_le(fz, 8n, one, h1, hf), V.fit_le(s, 8n, one, h1, hs), hf1))
+  +bl = bytes_le(16n, ds, 0, kk, 2n, {==}, hd, {==})
+  # ev ds + 2^128 kk == a + ev s
+  +e1 = A.tr(Nat.add(V.ev(ds), V.pos(16n, kk)), Nat.add(Nat.add(lo, V.ev(s)), V.pos(16n, kk)), Nat.add(a, V.ev(s)),
+    WM.cong_l(V.ev(ds), Nat.add(lo, V.ev(s)), V.pos(16n, kk), A.tr(V.ev(ds), Nat.add(V.ev(fz), V.ev(s)), Nat.add(lo, V.ev(s)), ed, WM.cong_l(V.ev(fz), lo, V.ev(s), freeze_ev(one, h1, bp, h5, h, hh)))),
+    A.tr(Nat.add(Nat.add(lo, V.ev(s)), V.pos(16n, kk)), Nat.add(Nat.add(lo, V.pos(16n, kk)), V.ev(s)), Nat.add(a, V.ev(s)),
+      A.tr(Nat.add(Nat.add(lo, V.ev(s)), V.pos(16n, kk)), Nat.add(lo, Nat.add(V.ev(s), V.pos(16n, kk))), Nat.add(Nat.add(lo, V.pos(16n, kk)), V.ev(s)), N.add_assoc(lo, V.ev(s), V.pos(16n, kk)), ST.rot(lo, V.ev(s), V.pos(16n, kk))),
+      WM.cong_l(Nat.add(lo, V.pos(16n, kk)), a, V.ev(s), A.sy(a, Nat.add(lo, V.pos(16n, kk)), WW.low_high(128n, a)))))
+  Equal.trans(List<&2, U32>, Li.bytes(16n, ds, 0), R.le_bytes(16n, Nat.add(V.ev(ds), V.pos(16n, kk))), R.le_bytes(16n, Nat.add(a, V.ev(s))), bl,
+    Equal.cong(Nat, List<&2, U32>, z => R.le_bytes(16n, z), Nat.add(V.ev(ds), V.pos(16n, kk)), Nat.add(a, V.ev(s)), e1))
