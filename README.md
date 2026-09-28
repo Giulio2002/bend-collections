@@ -25,6 +25,8 @@ benchmarked against optimized C implementations of the same algorithms.
 | BLAKE2s | `src/crypto/blake/blake2s/blake2s.bend` | RFC 7693, 32-byte digest |
 | BLAKE2b | `src/crypto/blake/blake2b/blake2b.bend` | RFC 7693, 64-byte digest |
 | BLAKE3 | `src/crypto/blake/blake3/blake3.bend` | hash mode, 32-byte digest |
+| HMAC-SHA256 | `src/crypto/mac.bend` | RFC 2104: `sign(key, msg)`, `verify(key, msg, tag)` (constant-time `subtle.eq`); proved equal to the RFC/FIPS 198-1 spec `spec/crypto/hmac.bend` for every input, `verify(k, m, sign(k, m))` and rejection of every other tag; RFC 4231 vectors; [contracts](docs/CRYPTO_CONTRACTS.md) |
+| HKDF-SHA256 | `src/crypto/kdf.bend` | RFC 5869: `extract`, `expand`, `hkdf`, lengths above 255 * 32 are the value `LengthTooLarge`; proved equal to `spec/crypto/hkdf.bend` for every input, output length and prefix laws; RFC 5869 vectors |
 | Integer math | `src/math/natural.bend` | Python-style `math` integer functions, see below |
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 | Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |

@@ -434,6 +434,29 @@ def main():
         (LOGDIR / 'math.log').write_text('\n'.join(x['output'] for x in checks))
         print('%-22s differential=%s proof=%s' % ('math', math_row['differential'], math_row['proof']), flush=True)
 
+    # src/crypto/mac.bend and src/crypto/kdf.bend (HMAC-SHA256, HKDF-SHA256):
+    # the RFC 4231 / RFC 5869 vectors run by the Bend runtime and the
+    # differential test against hmac/hashlib/cryptography
+    # (tools/check_mac.py), and their proof packages.
+    mac_row = None
+    if not args.only or args.only == 'mac':
+        checks = []
+        mac_checks = [([sys.executable, 'tools/check_mac.py'], 3600),
+                      ([BEND, 'proofs/crypto/mac/proof.bend'], 3600),
+                      ([BEND, 'proofs/crypto/kdf/proof.bend'], 3600)]
+        for command, limit in mac_checks:
+            result = run(command, timeout=limit)
+            passed = result.returncode == 0 and (command[0] != BEND or proved(result.stdout))
+            checks.append({'command': command, 'passed': passed, 'output': result.stdout + result.stderr})
+            if not passed:
+                fail('mac', 'mac/kdf check failed: ' + repr(command))
+        good = all(x['passed'] for x in checks)
+        mac_row = {'id': 'mac', 'implementation': 'src/crypto/mac.bend, src/crypto/kdf.bend',
+                   'differential': 'passed' if checks[0]['passed'] else 'failed',
+                   'proof': 'passed' if good else 'failed', 'checks': checks}
+        (LOGDIR / 'mac.log').write_text('\n'.join(x['output'] for x in checks))
+        print('%-22s differential=%s proof=%s' % ('mac', mac_row['differential'], mac_row['proof']), flush=True)
+
     lru_log = []
     lru_ok, lru_detail = check_lru(lru_log)
     (LOGDIR / 'lru.log').write_text('\n'.join(lru_log))
@@ -450,6 +473,7 @@ def main():
     report = {
         'structures': rows,
         'math': math_row,
+        'mac': mac_row,
         'lru_reuse': 'passed' if lru_ok else 'failed',
         'lru_detail': lru_detail,
         'complete': bool(complete),

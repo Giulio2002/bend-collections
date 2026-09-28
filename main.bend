@@ -45,6 +45,10 @@ import ./proofs/crypto/sha/laws.bend as SHA256Laws
 import ./proofs/crypto/sha/correctness.bend as SHA256Correctness
 import ./proofs/crypto/sha/packed/laws.bend as SHA256PackedLaws
 import ./proofs/crypto/sha/packed/proof.bend as SHA256PackedCorrectness
+import ./src/crypto/mac.bend as MAC
+import ./src/crypto/kdf.bend as KDF
+import ./spec/crypto/hmac.bend as HMACSpec
+import ./spec/crypto/hkdf.bend as HKDFSpec
 import ./src/crypto/keccak/keccak.bend as Keccak
 import ./src/crypto/keccak/hex.bend as KeccakHex
 import ./src/crypto/blake/blake2s/blake2s.bend as BLAKE2s
