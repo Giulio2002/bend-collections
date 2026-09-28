@@ -6,6 +6,9 @@
 // exponentiation (a 128-bit product for u64 mod m), float/double powers by
 // the same square-and-multiply order, and libm's floor, nearbyint (ties to
 // even), fmod, remainder, frexp, ldexp and nextafter for the F64 rows. Prints BENCH_MS=<ms> and the sum.
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L  /* clock_gettime under -std=c11 on glibc */
+#endif
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>

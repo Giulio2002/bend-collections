@@ -1,4 +1,7 @@
 /* Same fixed fields, LCG, four edits/round and final hash as churn.bend. */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L  /* clock_gettime under -std=c11 on glibc */
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
