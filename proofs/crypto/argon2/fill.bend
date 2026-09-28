@@ -266,3 +266,96 @@ def seg_eq(+d: Nat, +n: Nat, +idx: Nat, +first: Bool, +addr: A.Block, +mem: List
       %Equal.sym(Array<U32> & A.Block, M.get(pvs, ar), (ar, pb), MEM.get_block(d, mem, pvs, hd, hc, hpv)) : {I.seg_go(rest, Nat.add(idx, 1n), False{}, a2s, I.step(r, l, s, idx, p, q, sl, cur, indep, a2s, _), r, l, s, p, q, sl, mm, t, indep) == goal : Array<U32>}
       %Equal.sym(Array<U32>, I.step(r, l, s, idx, p, q, sl, cur, indep, a2s, (ar, pb)), AR.thaw(U32, MEM.mt(d, m2)), step_eq(d, mem, r, l, s, idx, p, q, sl, cur, indep, a2s, pb, hd, hc, hlen, hq, hp, hsl, hl, hs, hi, hcur)) : {I.seg_go(rest, Nat.add(idx, 1n), False{}, a2s, _, r, l, s, p, q, sl, mm, t, indep) == goal : Array<U32>}
       seg_eq(d, rest, Nat.add(idx, 1n), False{}, a2s, m2, r, l, s, p, q, sl, mm, t, indep, hd, hc2, hlen2, hq, hp, hsl, hl, hs, le_shift(idx, rest, sl, hidx))
+
+def start_index_le(+f: Bool, +sl: Nat, +h2: {Nat.is_le(2n, sl) == True{} : Bool}) -> {Nat.is_le(SA.start_index(f), sl) == True{} : Bool}:
+  match f:
+    case True{}:
+      h2
+    case False{}:
+      N.zero_le(sl)
+
+def segment_len(+r: Nat, +s: Nat, +l: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +mem: List<&2, A.Block>) -> {SC.length(A.Block, SA.segment(r, s, l, p, q, sl, mm, t, mem)) == SC.length(A.Block, mem) : Nat}:
+  +r0 = Nat.is_eq(r, 0n)
+  +st = SA.start_index(Bool.and(r0, Nat.is_eq(s, 0n)))
+  seg_len(Nat.sub(sl, st), st, True{}, SG.zero(), mem, r, l, s, p, q, sl, mm, t, Bool.and(r0, Nat.is_lt(s, 2n)))
+
+# One segment.
+def segment_eq(+d: Nat, +r: Nat, +s: Nat, +l: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +mem: List<&2, A.Block>, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hc: {Nat.is_le(Nat.mul(SC.length(A.Block, mem), 256n), SC.pow2(d)) == True{} : Bool}, +hlen: {SC.length(A.Block, mem) == Nat.mul(p, q) : Nat}, +hq: {q == Nat.mul(4n, sl) : Nat}, +hp: {Nat.is_le(1n, p) == True{} : Bool}, +hsl: {Nat.is_le(2n, sl) == True{} : Bool}, +hl: {Nat.is_lt(l, p) == True{} : Bool}, +hs: {Nat.is_lt(s, 4n) == True{} : Bool}) -> {I.segment(r, s, l, p, q, sl, mm, t, AR.thaw(U32, MEM.mt(d, mem))) == AR.thaw(U32, MEM.mt(d, SA.segment(r, s, l, p, q, sl, mm, t, mem))) : Array<U32>}:
+  +r0 = Nat.is_eq(r, 0n)
+  +f = Bool.and(r0, Nat.is_eq(s, 0n))
+  +ind = Bool.and(r0, Nat.is_lt(s, 2n))
+  +sti = I.start_index(f)
+  +sts = SA.start_index(f)
+  +hsl1 = N.le_trans(1n, 2n, sl, {==}, hsl)
+  +hidx = N.eq_le(Nat.add(sts, Nat.sub(sl, sts)), sl, N.sub_add(sl, sts, start_index_le(f, sl, hsl)))
+  -ar = AR.thaw(U32, MEM.mt(d, mem))
+  -goal = AR.thaw(U32, MEM.mt(d, SA.segment(r, s, l, p, q, sl, mm, t, mem)))
+  %Equal.sym(Nat, sti, sts, IX.start_index_eq(f)) : {I.seg_go(Nat.sub(sl, _), _, True{}, G.zero(), ar, r, l, s, p, q, sl, mm, t, ind) == goal : Array<U32>}
+  %Equal.sym(A.Block, G.zero(), SG.zero(), BL.zero_correct()) : {I.seg_go(Nat.sub(sl, sts), sts, True{}, _, ar, r, l, s, p, q, sl, mm, t, ind) == goal : Array<U32>}
+  seg_eq(d, Nat.sub(sl, sts), sts, True{}, SG.zero(), mem, r, l, s, p, q, sl, mm, t, ind, hd, hc, hlen, hq, hp, hsl1, hl, hs, hidx)
+
+def lanes_len(+n: Nat, +l: Nat, +r: Nat, +s: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +mem: List<&2, A.Block>) -> {SC.length(A.Block, SA.lanes_go(n, l, r, s, p, q, sl, mm, t, mem)) == SC.length(A.Block, mem) : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +rest:
+      +m2 = SA.segment(r, s, l, p, q, sl, mm, t, mem)
+      Equal.trans(Nat, SC.length(A.Block, SA.lanes_go(rest, Nat.add(l, 1n), r, s, p, q, sl, mm, t, m2)), SC.length(A.Block, m2), SC.length(A.Block, mem),
+        lanes_len(rest, Nat.add(l, 1n), r, s, p, q, sl, mm, t, m2), segment_len(r, s, l, p, q, sl, mm, t, mem))
+
+def keep_c(+d: Nat, +m1: List<&2, A.Block>, +m2: List<&2, A.Block>, +e: {SC.length(A.Block, m2) == SC.length(A.Block, m1) : Nat}, +hc: {Nat.is_le(Nat.mul(SC.length(A.Block, m1), 256n), SC.pow2(d)) == True{} : Bool}) -> {Nat.is_le(Nat.mul(SC.length(A.Block, m2), 256n), SC.pow2(d)) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_le(Nat.mul(z, 256n), SC.pow2(d)) == True{} : Bool}, SC.length(A.Block, m1), SC.length(A.Block, m2), Equal.sym(Nat, SC.length(A.Block, m2), SC.length(A.Block, m1), e), hc)
+
+def keep_len(+m1: List<&2, A.Block>, +m2: List<&2, A.Block>, +x: Nat, +e: {SC.length(A.Block, m2) == SC.length(A.Block, m1) : Nat}, +h: {SC.length(A.Block, m1) == x : Nat}) -> {SC.length(A.Block, m2) == x : Nat}:
+  Equal.trans(Nat, SC.length(A.Block, m2), SC.length(A.Block, m1), x, e, h)
+
+# The lanes l .. l + n - 1 of a slice.
+def lanes_eq(+d: Nat, +n: Nat, +l: Nat, +r: Nat, +s: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +mem: List<&2, A.Block>, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hc: {Nat.is_le(Nat.mul(SC.length(A.Block, mem), 256n), SC.pow2(d)) == True{} : Bool}, +hlen: {SC.length(A.Block, mem) == Nat.mul(p, q) : Nat}, +hq: {q == Nat.mul(4n, sl) : Nat}, +hp: {Nat.is_le(1n, p) == True{} : Bool}, +hsl: {Nat.is_le(2n, sl) == True{} : Bool}, +hs: {Nat.is_lt(s, 4n) == True{} : Bool}, +hln: {Nat.is_le(Nat.add(l, n), p) == True{} : Bool}) -> {I.lanes_go(n, l, r, s, p, q, sl, mm, t, AR.thaw(U32, MEM.mt(d, mem))) == AR.thaw(U32, MEM.mt(d, SA.lanes_go(n, l, r, s, p, q, sl, mm, t, mem))) : Array<U32>}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +rest:
+      +m2 = SA.segment(r, s, l, p, q, sl, mm, t, mem)
+      +e = segment_len(r, s, l, p, q, sl, mm, t, mem)
+      %Equal.sym(Array<U32>, I.segment(r, s, l, p, q, sl, mm, t, AR.thaw(U32, MEM.mt(d, mem))), AR.thaw(U32, MEM.mt(d, m2)), segment_eq(d, r, s, l, p, q, sl, mm, t, mem, hd, hc, hlen, hq, hp, hsl, lt_of_add_succ(l, rest, p, hln), hs)) : {I.lanes_go(rest, Nat.add(l, 1n), r, s, p, q, sl, mm, t, _) == AR.thaw(U32, MEM.mt(d, SA.lanes_go(rest, Nat.add(l, 1n), r, s, p, q, sl, mm, t, m2))) : Array<U32>}
+      lanes_eq(d, rest, Nat.add(l, 1n), r, s, p, q, sl, mm, t, m2, hd, keep_c(d, mem, m2, e, hc), keep_len(mem, m2, Nat.mul(p, q), e, hlen), hq, hp, hsl, hs, le_shift(l, rest, p, hln))
+
+def slices_len(+n: Nat, +s: Nat, +r: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +mem: List<&2, A.Block>) -> {SC.length(A.Block, SA.slices_go(n, s, r, p, q, sl, mm, t, mem)) == SC.length(A.Block, mem) : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +rest:
+      +m2 = SA.lanes_go(p, 0n, r, s, p, q, sl, mm, t, mem)
+      Equal.trans(Nat, SC.length(A.Block, SA.slices_go(rest, Nat.add(s, 1n), r, p, q, sl, mm, t, m2)), SC.length(A.Block, m2), SC.length(A.Block, mem),
+        slices_len(rest, Nat.add(s, 1n), r, p, q, sl, mm, t, m2), lanes_len(p, 0n, r, s, p, q, sl, mm, t, mem))
+
+# Slices s .. s + n - 1 of a pass.
+def slices_eq(+d: Nat, +n: Nat, +s: Nat, +r: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +mem: List<&2, A.Block>, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hc: {Nat.is_le(Nat.mul(SC.length(A.Block, mem), 256n), SC.pow2(d)) == True{} : Bool}, +hlen: {SC.length(A.Block, mem) == Nat.mul(p, q) : Nat}, +hq: {q == Nat.mul(4n, sl) : Nat}, +hp: {Nat.is_le(1n, p) == True{} : Bool}, +hsl: {Nat.is_le(2n, sl) == True{} : Bool}, +hsn: {Nat.is_le(Nat.add(s, n), 4n) == True{} : Bool}) -> {I.slices_go(n, s, r, p, q, sl, mm, t, AR.thaw(U32, MEM.mt(d, mem))) == AR.thaw(U32, MEM.mt(d, SA.slices_go(n, s, r, p, q, sl, mm, t, mem))) : Array<U32>}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +rest:
+      +m2 = SA.lanes_go(p, 0n, r, s, p, q, sl, mm, t, mem)
+      +e = lanes_len(p, 0n, r, s, p, q, sl, mm, t, mem)
+      %Equal.sym(Array<U32>, I.lanes_go(p, 0n, r, s, p, q, sl, mm, t, AR.thaw(U32, MEM.mt(d, mem))), AR.thaw(U32, MEM.mt(d, m2)), lanes_eq(d, p, 0n, r, s, p, q, sl, mm, t, mem, hd, hc, hlen, hq, hp, hsl, lt_of_add_succ(s, rest, 4n, hsn), N.le_refl(p))) : {I.slices_go(rest, Nat.add(s, 1n), r, p, q, sl, mm, t, _) == AR.thaw(U32, MEM.mt(d, SA.slices_go(rest, Nat.add(s, 1n), r, p, q, sl, mm, t, m2))) : Array<U32>}
+      slices_eq(d, rest, Nat.add(s, 1n), r, p, q, sl, mm, t, m2, hd, keep_c(d, mem, m2, e, hc), keep_len(mem, m2, Nat.mul(p, q), e, hlen), hq, hp, hsl, le_shift(s, rest, 4n, hsn))
+
+def passes_len(+n: Nat, +r: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +mem: List<&2, A.Block>) -> {SC.length(A.Block, SA.passes_go(n, r, p, q, sl, mm, t, mem)) == SC.length(A.Block, mem) : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +rest:
+      +m2 = SA.slices_go(4n, 0n, r, p, q, sl, mm, t, mem)
+      Equal.trans(Nat, SC.length(A.Block, SA.passes_go(rest, Nat.add(r, 1n), p, q, sl, mm, t, m2)), SC.length(A.Block, m2), SC.length(A.Block, mem),
+        passes_len(rest, Nat.add(r, 1n), p, q, sl, mm, t, m2), slices_len(4n, 0n, r, p, q, sl, mm, t, mem))
+
+# Passes r .. r + n - 1.
+def passes_eq(+d: Nat, +n: Nat, +r: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +mem: List<&2, A.Block>, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hc: {Nat.is_le(Nat.mul(SC.length(A.Block, mem), 256n), SC.pow2(d)) == True{} : Bool}, +hlen: {SC.length(A.Block, mem) == Nat.mul(p, q) : Nat}, +hq: {q == Nat.mul(4n, sl) : Nat}, +hp: {Nat.is_le(1n, p) == True{} : Bool}, +hsl: {Nat.is_le(2n, sl) == True{} : Bool}) -> {I.passes_go(n, r, p, q, sl, mm, t, AR.thaw(U32, MEM.mt(d, mem))) == AR.thaw(U32, MEM.mt(d, SA.passes_go(n, r, p, q, sl, mm, t, mem))) : Array<U32>}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +rest:
+      +m2 = SA.slices_go(4n, 0n, r, p, q, sl, mm, t, mem)
+      +e = slices_len(4n, 0n, r, p, q, sl, mm, t, mem)
+      %Equal.sym(Array<U32>, I.slices_go(4n, 0n, r, p, q, sl, mm, t, AR.thaw(U32, MEM.mt(d, mem))), AR.thaw(U32, MEM.mt(d, m2)), slices_eq(d, 4n, 0n, r, p, q, sl, mm, t, mem, hd, hc, hlen, hq, hp, hsl, N.le_refl(4n))) : {I.passes_go(rest, Nat.add(r, 1n), p, q, sl, mm, t, _) == AR.thaw(U32, MEM.mt(d, SA.passes_go(rest, Nat.add(r, 1n), p, q, sl, mm, t, m2))) : Array<U32>}
+      passes_eq(d, rest, Nat.add(r, 1n), p, q, sl, mm, t, m2, hd, keep_c(d, mem, m2, e, hc), keep_len(mem, m2, Nat.mul(p, q), e, hlen), hq, hp, hsl)
