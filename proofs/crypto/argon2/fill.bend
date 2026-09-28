@@ -188,3 +188,81 @@ def step_eq(+d: Nat, +mem: List<&2, A.Block>, +r: Nat, +l: Nat, +s: Nat, +idx: N
   %Equal.sym(Nat, ixi(r0, s, l, idx, p, q, sl, pri), ix, ei) : {I.with_ref(r0, cur, pb, M.get(_, AR.thaw(U32, MEM.mt(d, mem)))) == AR.thaw(U32, MEM.mt(d, SA.store(r0, cur, pb, SA.get(mem, ix), mem))) : Array<U32>}
   %Equal.sym(Array<U32> & A.Block, M.get(ix, AR.thaw(U32, MEM.mt(d, mem))), (AR.thaw(U32, MEM.mt(d, mem)), SA.get(mem, ix)), MEM.get_block(d, mem, ix, hd, hc, hix)) : {I.with_ref(r0, cur, pb, _) == AR.thaw(U32, MEM.mt(d, SA.store(r0, cur, pb, SA.get(mem, ix), mem))) : Array<U32>}
   store_eq(d, mem, r0, cur, pb, SA.get(mem, ix), hd, hc, hcur)
+
+# ---------------------------------------------------------------- segments
+
+def step_len(+r: Nat, +l: Nat, +s: Nat, +idx: Nat, +p: Nat, +q: Nat, +sl: Nat, +cur: Nat, +indep: Bool, +addr: A.Block, +pb: A.Block, +mem: List<&2, A.Block>) -> {SC.length(A.Block, SA.step(r, l, s, idx, p, q, sl, cur, indep, addr, pb, mem)) == SC.length(A.Block, mem) : Nat}:
+  +r0 = Nat.is_eq(r, 0n)
+  store_len(r0, cur, pb, SA.get(mem, ixs(r0, s, l, idx, p, q, sl, SA.pick(indep, addr, idx, pb))), mem)
+
+def sub1_lt(+q: Nat, +hq1: {Nat.is_le(1n, q) == True{} : Bool}) -> {Nat.is_lt(Nat.sub(q, 1n), q) == True{} : Bool}:
+  match q:
+    case 0n:
+      Empty.absurd({Nat.is_lt(Nat.sub(0n, 1n), 0n) == True{} : Bool}, L.false_true(hq1))
+    case 1n+ +k:
+      %Equal.sym(Nat, Nat.sub(k, 0n), k, N.sub_zero(k)) : {Nat.is_lt(_, 1n+k) == True{} : Bool}
+      N.lt_succ(k)
+
+# The previous block is in the memory.
+def prev_lt(+l: Nat, +p: Nat, +q: Nat, +j: Nat, +b: Bool, +hl: {Nat.is_lt(l, p) == True{} : Bool}, +hj: {Nat.is_lt(j, q) == True{} : Bool}, +hq1: {Nat.is_le(1n, q) == True{} : Bool}) -> {Nat.is_lt(SA.prev_index(l, q, j, b), Nat.mul(p, q)) == True{} : Bool}:
+  match b:
+    case True{}:
+      lt_mul_add(l, p, Nat.sub(q, 1n), q, hl, sub1_lt(q, hq1))
+    case False{}:
+      N.le_lt_trans(Nat.sub(Nat.add(Nat.mul(l, q), j), 1n), Nat.add(Nat.mul(l, q), j), Nat.mul(p, q), AR2.sub_le2(Nat.add(Nat.mul(l, q), j), 1n), lt_mul_add(l, p, j, q, hl, hj))
+
+def lt_of_add_succ(+a: Nat, +r: Nat, +n: Nat, +h: {Nat.is_le(Nat.add(a, 1n+r), n) == True{} : Bool}) -> {Nat.is_lt(a, n) == True{} : Bool}:
+  N.lt_le_trans(a, Nat.add(a, 1n+r), n, MEM.lt_add_succ(a, r), h)
+
+def le_shift(+a: Nat, +r: Nat, +n: Nat, +h: {Nat.is_le(Nat.add(a, 1n+r), n) == True{} : Bool}) -> {Nat.is_le(Nat.add(Nat.add(a, 1n), r), n) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_le(z, n) == True{} : Bool}, Nat.add(a, 1n+r), Nat.add(Nat.add(a, 1n), r), Equal.sym(Nat, Nat.add(Nat.add(a, 1n), r), Nat.add(a, 1n+r), MEM.add_one_assoc(a, r)), h)
+
+def lt_q(+q: Nat, +sl: Nat, +x: Nat, +hq: {q == Nat.mul(4n, sl) : Nat}, +h: {Nat.is_lt(x, Nat.mul(4n, sl)) == True{} : Bool}) -> {Nat.is_lt(x, q) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_lt(x, z) == True{} : Bool}, Nat.mul(4n, sl), q, Equal.sym(Nat, q, Nat.mul(4n, sl), hq), h)
+
+def lt_len(+x: Nat, +mem: List<&2, A.Block>, +p: Nat, +q: Nat, +hlen: {SC.length(A.Block, mem) == Nat.mul(p, q) : Nat}, +h: {Nat.is_lt(x, Nat.mul(p, q)) == True{} : Bool}) -> {Nat.is_lt(x, SC.length(A.Block, mem)) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_lt(x, z) == True{} : Bool}, Nat.mul(p, q), SC.length(A.Block, mem), Equal.sym(Nat, SC.length(A.Block, mem), Nat.mul(p, q), hlen), h)
+
+def seg_len(+n: Nat, +idx: Nat, +first: Bool, +addr: A.Block, +mem: List<&2, A.Block>, +r: Nat, +l: Nat, +s: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +indep: Bool) -> {SC.length(A.Block, SA.seg_go(n, idx, first, addr, mem, r, l, s, p, q, sl, mm, t, indep)) == SC.length(A.Block, mem) : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +rest:
+      +a2 = SA.regen(Bool.and(indep, Bool.or(first, Nat.is_eq(Nat.mod(idx, 128n), 0n))), addr, r, l, s, mm, t, idx)
+      +j = Nat.add(Nat.mul(s, sl), idx)
+      +m2 = SA.step(r, l, s, idx, p, q, sl, Nat.add(Nat.mul(l, q), j), indep, a2, SA.get(mem, SA.prev_index(l, q, j, Nat.is_eq(j, 0n))), mem)
+      Equal.trans(Nat, SC.length(A.Block, SA.seg_go(rest, Nat.add(idx, 1n), False{}, a2, m2, r, l, s, p, q, sl, mm, t, indep)), SC.length(A.Block, m2), SC.length(A.Block, mem),
+        seg_len(rest, Nat.add(idx, 1n), False{}, a2, m2, r, l, s, p, q, sl, mm, t, indep),
+        step_len(r, l, s, idx, p, q, sl, Nat.add(Nat.mul(l, q), j), indep, a2, SA.get(mem, SA.prev_index(l, q, j, Nat.is_eq(j, 0n))), mem))
+
+# Positions idx .. idx + n - 1 of a segment.
+def seg_eq(+d: Nat, +n: Nat, +idx: Nat, +first: Bool, +addr: A.Block, +mem: List<&2, A.Block>, +r: Nat, +l: Nat, +s: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +indep: Bool, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hc: {Nat.is_le(Nat.mul(SC.length(A.Block, mem), 256n), SC.pow2(d)) == True{} : Bool}, +hlen: {SC.length(A.Block, mem) == Nat.mul(p, q) : Nat}, +hq: {q == Nat.mul(4n, sl) : Nat}, +hp: {Nat.is_le(1n, p) == True{} : Bool}, +hsl: {Nat.is_le(1n, sl) == True{} : Bool}, +hl: {Nat.is_lt(l, p) == True{} : Bool}, +hs: {Nat.is_lt(s, 4n) == True{} : Bool}, +hidx: {Nat.is_le(Nat.add(idx, n), sl) == True{} : Bool}) -> {I.seg_go(n, idx, first, addr, AR.thaw(U32, MEM.mt(d, mem)), r, l, s, p, q, sl, mm, t, indep) == AR.thaw(U32, MEM.mt(d, SA.seg_go(n, idx, first, addr, mem, r, l, s, p, q, sl, mm, t, indep))) : Array<U32>}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +rest:
+      +need = Bool.and(indep, Bool.or(first, Nat.is_eq(Nat.mod(idx, 128n), 0n)))
+      +a2i = I.regen(need, addr, r, l, s, mm, t, idx)
+      +a2s = SA.regen(need, addr, r, l, s, mm, t, idx)
+      +j = Nat.add(Nat.mul(s, sl), idx)
+      +cur = Nat.add(Nat.mul(l, q), j)
+      +b0 = Nat.is_eq(j, 0n)
+      +pvi = I.prev_index(l, q, j, b0)
+      +pvs = SA.prev_index(l, q, j, b0)
+      +hi = lt_of_add_succ(idx, rest, sl, hidx)
+      +hq1 = q_pos(q, sl, hq, hsl)
+      +hj = lt_q(q, sl, j, hq, seg_lt(s, sl, idx, hs, hi))
+      +hcur = lt_len(cur, mem, p, q, hlen, lt_mul_add(l, p, j, q, hl, hj))
+      +hpv = lt_len(pvs, mem, p, q, hlen, prev_lt(l, p, q, j, b0, hl, hj, hq1))
+      +pb = SA.get(mem, pvs)
+      +m2 = SA.step(r, l, s, idx, p, q, sl, cur, indep, a2s, pb, mem)
+      +hl2 = step_len(r, l, s, idx, p, q, sl, cur, indep, a2s, pb, mem)
+      +hc2 = L.subst(Nat, z => {Nat.is_le(Nat.mul(z, 256n), SC.pow2(d)) == True{} : Bool}, SC.length(A.Block, mem), SC.length(A.Block, m2), Equal.sym(Nat, SC.length(A.Block, m2), SC.length(A.Block, mem), hl2), hc)
+      +hlen2 = Equal.trans(Nat, SC.length(A.Block, m2), SC.length(A.Block, mem), Nat.mul(p, q), hl2, hlen)
+      -ar = AR.thaw(U32, MEM.mt(d, mem))
+      -goal = AR.thaw(U32, MEM.mt(d, SA.seg_go(rest, Nat.add(idx, 1n), False{}, a2s, m2, r, l, s, p, q, sl, mm, t, indep)))
+      %Equal.sym(A.Block, a2i, a2s, IX.regen_eq(need, addr, r, l, s, mm, t, idx)) : {I.seg_go(rest, Nat.add(idx, 1n), False{}, _, I.step(r, l, s, idx, p, q, sl, cur, indep, _, M.get(pvi, ar)), r, l, s, p, q, sl, mm, t, indep) == goal : Array<U32>}
+      %Equal.sym(Nat, pvi, pvs, IX.prev_index_eq(l, q, j, b0)) : {I.seg_go(rest, Nat.add(idx, 1n), False{}, a2s, I.step(r, l, s, idx, p, q, sl, cur, indep, a2s, M.get(_, ar)), r, l, s, p, q, sl, mm, t, indep) == goal : Array<U32>}
+      %Equal.sym(Array<U32> & A.Block, M.get(pvs, ar), (ar, pb), MEM.get_block(d, mem, pvs, hd, hc, hpv)) : {I.seg_go(rest, Nat.add(idx, 1n), False{}, a2s, I.step(r, l, s, idx, p, q, sl, cur, indep, a2s, _), r, l, s, p, q, sl, mm, t, indep) == goal : Array<U32>}
+      %Equal.sym(Array<U32>, I.step(r, l, s, idx, p, q, sl, cur, indep, a2s, (ar, pb)), AR.thaw(U32, MEM.mt(d, m2)), step_eq(d, mem, r, l, s, idx, p, q, sl, cur, indep, a2s, pb, hd, hc, hlen, hq, hp, hsl, hl, hs, hi, hcur)) : {I.seg_go(rest, Nat.add(idx, 1n), False{}, a2s, _, r, l, s, p, q, sl, mm, t, indep) == goal : Array<U32>}
+      seg_eq(d, rest, Nat.add(idx, 1n), False{}, a2s, m2, r, l, s, p, q, sl, mm, t, indep, hd, hc2, hlen2, hq, hp, hsl, hl, hs, le_shift(idx, rest, sl, hidx))
