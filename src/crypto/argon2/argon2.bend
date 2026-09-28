@@ -117,8 +117,10 @@ def at(v: T.State, +j: Nat) -> T.Lane:
       x13
     case T.V{x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15} 14n:
       x14
-    case T.V{x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15} _:
+    case T.V{x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15} 15n:
       x15
+    case T.V{x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15} _:
+      T.W{0, 0}
 
 # Lane n (0 <= n < 128) of a block.
 def lane(+b: A.Block, +n: Nat) -> T.Lane:
@@ -217,32 +219,34 @@ def pick(indep: Bool, +addr: A.Block, +idx: Nat, +prev: A.Block) -> T.Lane:
 
 # ---------------------------------------------------------------- filling (RFC 9106 section 3.2, steps 5-6)
 
-def store_xor(+k: Nat, +cur: Nat, +prev: A.Block, +refb: A.Block, p: Array<U32> & A.Block) -> Array<U32>:
-  (a, old) = p
+def store_xor(+cur: Nat, +prev: A.Block, +refb: A.Block, pair: Array<U32> & A.Block) -> Array<U32>:
+  (a, old) = pair
   M.set(cur, G.compress_xor(prev, refb, old), a)
 
-def store(r0: Bool, +k: Nat, +cur: Nat, +prev: A.Block, +refb: A.Block, a: Array<U32>) -> Array<U32>:
+# B[l][j] = G(B[l][j-1], B[l'][z']), XORed into the old block after the first pass.
+def store(r0: Bool, +cur: Nat, +prev: A.Block, +refb: A.Block, a: Array<U32>) -> Array<U32>:
   match r0:
     case True{}:
       M.set(cur, G.compress(prev, refb), a)
     case False{}:
-      store_xor(k, cur, prev, refb, M.get(cur, a))
+      store_xor(cur, prev, refb, M.get(cur, a))
 
-def with_ref(+r: Nat, +l: Nat, +s: Nat, +idx: Nat, +p: Nat, +q: Nat, +sl: Nat, +k: Nat, +cur: Nat, +prev: A.Block, +rl: Nat, +j1: U32, pair: Array<U32> & A.Block) -> Array<U32>:
+def with_ref(r0: Bool, +cur: Nat, +prev: A.Block, pair: Array<U32> & A.Block) -> Array<U32>:
   (a, +refb) = pair
-  store(Nat.is_eq(r, 0n), k, cur, prev, refb, a)
+  store(r0, cur, prev, refb, a)
 
-def with_prev(+r: Nat, +l: Nat, +s: Nat, +idx: Nat, +p: Nat, +q: Nat, +sl: Nat, +k: Nat, +cur: Nat, +indep: Bool, +addr: A.Block, pair: Array<U32> & A.Block) -> Array<U32>:
+# One block: pair holds the memory and the previous block.
+def step(+r: Nat, +l: Nat, +s: Nat, +idx: Nat, +p: Nat, +q: Nat, +sl: Nat, +cur: Nat, +indep: Bool, +addr: A.Block, pair: Array<U32> & A.Block) -> Array<U32>:
   (a, +prev) = pair
   +r0 = Nat.is_eq(r, 0n)
   +pr = pick(indep, addr, idx, prev)
   +rl = ref_lane(Bool.and(r0, Nat.is_eq(s, 0n)), l, hi(pr), p)
   +w = area(area_base(r0, s, sl, q), idx, Nat.is_eq(rl, l))
   +ri = Nat.mod(Nat.add(start(r0, s, sl), rel(w, G.lo(pr))), q)
-  with_ref(r, l, s, idx, p, q, sl, k, cur, prev, rl, G.lo(pr), M.get(Nat.add(Nat.mul(rl, q), ri), a))
+  with_ref(r0, cur, prev, M.get(Nat.add(Nat.mul(rl, q), ri), a))
 
 # Positions idx .. idx + n - 1 of segment (r, s) of lane l.
-def seg_go(n: Nat, +idx: Nat, first: Bool, addr: A.Block, a: Array<U32>, +r: Nat, +l: Nat, +s: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +k: Nat, +indep: Bool) -> Array<U32>:
+def seg_go(n: Nat, +idx: Nat, first: Bool, addr: A.Block, a: Array<U32>, +r: Nat, +l: Nat, +s: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +indep: Bool) -> Array<U32>:
   match n:
     case 0n:
       a
@@ -250,8 +254,7 @@ def seg_go(n: Nat, +idx: Nat, first: Bool, addr: A.Block, a: Array<U32>, +r: Nat
       +addr2 = regen(Bool.and(indep, Bool.or(first, Nat.is_eq(Nat.mod(idx, 128n), 0n))), addr, r, l, s, mm, t, idx)
       +j = Nat.add(Nat.mul(s, sl), idx)
       +cur = Nat.add(Nat.mul(l, q), j)
-      +prev = prev_index(l, q, j, Nat.is_eq(j, 0n))
-      seg_go(rest, Nat.add(idx, 1n), False{}, addr2, with_prev(r, l, s, idx, p, q, sl, k, cur, indep, addr2, M.get(prev, a)), r, l, s, p, q, sl, mm, t, k, indep)
+      seg_go(rest, Nat.add(idx, 1n), False{}, addr2, step(r, l, s, idx, p, q, sl, cur, indep, addr2, M.get(prev_index(l, q, j, Nat.is_eq(j, 0n)), a)), r, l, s, p, q, sl, mm, t, indep)
 
 def start_index(first: Bool) -> Nat:
   match first:
@@ -260,51 +263,52 @@ def start_index(first: Bool) -> Nat:
     case False{}:
       0n
 
-# One segment: the first two blocks of each lane are already set in the first slice of the first pass.
-def segment(+r: Nat, +s: Nat, +l: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +k: Nat, a: Array<U32>) -> Array<U32>:
+# Segment s of lane l in pass r; data-independent addressing in the first two
+# slices of the first pass. The first two blocks of each lane are already set.
+def segment(+r: Nat, +s: Nat, +l: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, a: Array<U32>) -> Array<U32>:
   +r0 = Nat.is_eq(r, 0n)
   +st = start_index(Bool.and(r0, Nat.is_eq(s, 0n)))
-  seg_go(Nat.sub(sl, st), st, True{}, G.zero(), a, r, l, s, p, q, sl, mm, t, k, Bool.and(r0, Nat.is_lt(s, 2n)))
+  seg_go(Nat.sub(sl, st), st, True{}, G.zero(), a, r, l, s, p, q, sl, mm, t, Bool.and(r0, Nat.is_lt(s, 2n)))
 
-def lanes_go(n: Nat, +l: Nat, +r: Nat, +s: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +k: Nat, a: Array<U32>) -> Array<U32>:
+def lanes_go(n: Nat, +l: Nat, +r: Nat, +s: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, a: Array<U32>) -> Array<U32>:
   match n:
     case 0n:
       a
     case 1n+rest:
-      lanes_go(rest, Nat.add(l, 1n), r, s, p, q, sl, mm, t, k, segment(r, s, l, p, q, sl, mm, t, k, a))
+      lanes_go(rest, Nat.add(l, 1n), r, s, p, q, sl, mm, t, segment(r, s, l, p, q, sl, mm, t, a))
 
-def slices_go(n: Nat, +s: Nat, +r: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +k: Nat, a: Array<U32>) -> Array<U32>:
+def slices_go(n: Nat, +s: Nat, +r: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, a: Array<U32>) -> Array<U32>:
   match n:
     case 0n:
       a
     case 1n+rest:
-      slices_go(rest, Nat.add(s, 1n), r, p, q, sl, mm, t, k, lanes_go(p, 0n, r, s, p, q, sl, mm, t, k, a))
+      slices_go(rest, Nat.add(s, 1n), r, p, q, sl, mm, t, lanes_go(p, 0n, r, s, p, q, sl, mm, t, a))
 
-def passes_go(n: Nat, +r: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +k: Nat, a: Array<U32>) -> Array<U32>:
+def passes_go(n: Nat, +r: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, a: Array<U32>) -> Array<U32>:
   match n:
     case 0n:
       a
     case 1n+rest:
-      passes_go(rest, Nat.add(r, 1n), p, q, sl, mm, t, k, slices_go(4n, 0n, r, p, q, sl, mm, t, k, a))
+      passes_go(rest, Nat.add(r, 1n), p, q, sl, mm, t, slices_go(4n, 0n, r, p, q, sl, mm, t, a))
 
 # B[l][0] = H'^1024(H0 || LE32(0) || LE32(l)), B[l][1] = H'^1024(H0 || LE32(1) || LE32(l)).
-def init_go(n: Nat, +l: Nat, +q: Nat, +k: Nat, +hh: List<&2, U32>, a: Array<U32>) -> Array<U32>:
+def init_go(n: Nat, +l: Nat, +q: Nat, +hh: List<&2, U32>, a: Array<U32>) -> Array<U32>:
   match n:
     case 0n:
       a
     case 1n+rest:
       +b0 = block_of(hprime(1024n, cat(hh, cat(le32(0n), le32(l)))))
       +b1 = block_of(hprime(1024n, cat(hh, cat(le32(1n), le32(l)))))
-      init_go(rest, Nat.add(l, 1n), q, k, hh, M.set(Nat.add(Nat.mul(l, q), 1n), b1, M.set(Nat.mul(l, q), b0, a)))
+      init_go(rest, Nat.add(l, 1n), q, hh, M.set(Nat.add(Nat.mul(l, q), 1n), b1, M.set(Nat.mul(l, q), b0, a)))
 
 # C = B[0][q-1] XOR .. XOR B[p-1][q-1]: pair holds the memory and B[l][q-1],
 # n more lanes follow.
-def final_go(n: Nat, +l: Nat, +q: Nat, +k: Nat, c: A.Block, pair: Array<U32> & A.Block) -> A.Block:
+def final_go(n: Nat, +l: Nat, +q: Nat, c: A.Block, pair: Array<U32> & A.Block) -> A.Block:
   match n pair:
     case 0n Tuple{a, b}:
       G.xor(c, b)
     case 1n+rest Tuple{a, b}:
-      final_go(rest, Nat.add(l, 1n), q, k, G.xor(c, b), M.get(Nat.add(Nat.mul(Nat.add(l, 1n), q), Nat.sub(q, 1n)), a))
+      final_go(rest, Nat.add(l, 1n), q, G.xor(c, b), M.get(Nat.add(Nat.mul(Nat.add(l, 1n), q), Nat.sub(q, 1n)), a))
 
 # ---------------------------------------------------------------- Argon2id
 
@@ -324,9 +328,8 @@ def run(+pw: List<&2, U32>, +salt: List<&2, U32>, +key: List<&2, U32>, +ad: List
   +sl = Nat.div(q, 4n)
   +k = M.levels(mm)
   +hh = h0(p, tl, m, t, pw, salt, key, ad)
-  a = init_go(p, 0n, q, k, hh, M.new(k))
-  a = passes_go(t, 0n, p, q, sl, mm, t, k, a)
-  hprime(tl, block_bytes(final_go(Nat.sub(p, 1n), 0n, q, k, G.zero(), M.get(Nat.sub(q, 1n), a))))
+  a = passes_go(t, 0n, p, q, sl, mm, t, init_go(p, 0n, q, hh, M.new(k)))
+  hprime(tl, block_bytes(final_go(Nat.sub(p, 1n), 0n, q, G.zero(), M.get(Nat.sub(q, 1n), a))))
 
 def checked(ok: Bool, +pw: List<&2, U32>, +salt: List<&2, U32>, +key: List<&2, U32>, +ad: List<&2, U32>, +t: Nat, +m: Nat, +p: Nat, +tl: Nat) -> Maybe<&2, List<&2, U32>>:
   match ok:
