@@ -16,9 +16,11 @@ def prod(+a: U32, +b: U32) -> T.Lane:
   T.W{X.lo(m),X.hi(m)}
 
 # fBlaMka(x, y) = x + y + 2 * trunc(x) * trunc(y) mod 2^64 (RFC 9106 section 3.6).
-def bla(+x: T.Lane, +y: T.Lane) -> T.Lane:
-  +p = prod(lo(x),lo(y))
-  L.add(L.add(x,y),L.add(p,p))
+def bla(x: T.Lane, y: T.Lane) -> T.Lane:
+  match x y:
+    case T.W{+xl,+xh} T.W{+yl,+yh}:
+      +p = prod(xl,yl)
+      L.add(L.add(T.W{xl,xh},T.W{yl,yh}),L.add(p,p))
 
 # GB (RFC 9106 section 3.6), one assignment pair per function.
 def gb4(+a2: T.Lane, +b1: T.Lane, +c2: T.Lane, +d2: T.Lane) -> T.Quad:

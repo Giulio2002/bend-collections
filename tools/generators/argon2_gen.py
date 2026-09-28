@@ -109,9 +109,11 @@ def blamka():
           '  +m = X.mul32(a,b)\n'
           '  T.W{X.lo(m),X.hi(m)}\n\n'
           '# fBlaMka(x, y) = x + y + 2 * trunc(x) * trunc(y) mod 2^64 (RFC 9106 section 3.6).\n'
-          'def bla(+x: T.Lane, +y: T.Lane) -> T.Lane:\n'
-          '  +p = prod(lo(x),lo(y))\n'
-          '  L.add(L.add(x,y),L.add(p,p))\n\n')
+          'def bla(x: T.Lane, y: T.Lane) -> T.Lane:\n'
+          '  match x y:\n'
+          '    case T.W{+xl,+xh} T.W{+yl,+yh}:\n'
+          '      +p = prod(xl,yl)\n'
+          '      L.add(L.add(T.W{xl,xh},T.W{yl,yh}),L.add(p,p))\n\n')
     s += ('# GB (RFC 9106 section 3.6), one assignment pair per function.\n'
           'def gb4(+a2: T.Lane, +b1: T.Lane, +c2: T.Lane, +d2: T.Lane) -> T.Quad:\n'
           '  T.Q{a2,L.rot63(L.xor(b1,c2)),c2,d2}\n\n'
@@ -210,10 +212,120 @@ def sub():
     return s
 
 
+def proof_blamka():
+    """proofs/crypto/argon2/blamka.bend: P, the rows and columns, XOR and G."""
+    s = HEADER
+    s += ('import Base\n'
+          'import ../../../src/crypto/blake/blake2b/types.bend as T\n'
+          'import ../../../src/crypto/argon2/types.bend as A\n'
+          'import ../../../src/crypto/argon2/blamka.bend as I\n'
+          'import ../../../spec/crypto/argon2/blamka.bend as S\n'
+          'import ./gb.bend as GB\n\n'
+          '# The compression function of the implementation equals G of the\n'
+          '# specification for every two blocks: P step by step (each step one GB,\n'
+          '# gb.bend), then P on the rows and on the columns, then the XORs.\n'
+          '# Every function the proofs apply to symbolic arguments matches its\n'
+          '# argument first, so the checker keeps such calls folded.\n\n')
+    xs = ['x%d' % i for i in range(16)]
+    for k, (a, b, c, d) in enumerate(STEPS):
+        others = [i for i in range(16) if i not in (a, b, c, d)]
+        oth = csv('x%d' % i for i in others)
+        s += ('def step%d_correct(+v: T.State) -> {I.step%d(v) == S.GBi(v, %dn, %dn, %dn, %dn) : T.State}:\n'
+              '  match v:\n'
+              '    case %s:\n'
+              '      Equal.cong(T.Quad, T.State, q => I.put%d(q, %s), I.gb(x%d, x%d, x%d, x%d), S.GB(x%d, x%d, x%d, x%d), GB.gb_correct(x%d, x%d, x%d, x%d))\n\n'
+              % (k, k, a, b, c, d, st(xs), k, oth, a, b, c, d, a, b, c, d, a, b, c, d))
+    # p_correct
+    sv = ['v']
+    for k, (a, b, c, d) in enumerate(STEPS):
+        sv.append('S.GBi(%s, %dn, %dn, %dn, %dn)' % (sv[-1], a, b, c, d))
+    def impl_after(k, z):
+        # I.step7(..I.step_k(z)..)
+        t = z
+        for j in range(k, 8):
+            t = 'I.step%d(%s)' % (j, t)
+        return t
+    def chain(k):
+        # proof of impl_after(k, sv[k]) == sv[8]
+        if k == 7:
+            return 'step7_correct(%s)' % sv[7]
+        return ('Equal.trans(T.State, %s, %s, %s,\n    Equal.cong(T.State, T.State, z => %s, I.step%d(%s), %s, step%d_correct(%s)),\n    %s)'
+                % (impl_after(k, sv[k]), impl_after(k + 1, sv[k + 1]), sv[8], impl_after(k + 1, 'z'), k, sv[k], sv[k + 1], k, sv[k], chain(k + 1)))
+    s += ('# P, one GB at a time.\n'
+          'def p_correct(+v: T.State) -> {I.p(v) == S.P(v) : T.State}:\n'
+          '  ' + chain(0) + '\n\n')
+    # rows
+    L = lanes()
+    V = [st(L[16 * r:16 * r + 16]) for r in range(8)]
+    def rows_mid(k):
+        return blk(['S.P(%s)' % V[r] if r < k else 'I.p(%s)' % V[r] for r in range(8)])
+    def rows_chain(k):
+        if k == 8:
+            return None
+        hole = blk(['S.P(%s)' % V[r] if r < k else ('z' if r == k else 'I.p(%s)' % V[r]) for r in range(8)])
+        step = 'Equal.cong(T.State, A.Block, z => %s, I.p(%s), S.P(%s), p_correct(%s))' % (hole, V[k], V[k], V[k])
+        rest = rows_chain(k + 1)
+        if rest is None:
+            return step
+        return 'Equal.trans(A.Block, %s, %s, %s,\n        %s,\n        %s)' % (rows_mid(k), rows_mid(k + 1), rows_mid(8), step, rest)
+    s += ('# P on the rows: the rows are the specification\'s gathered lanes.\n'
+          'def rows_correct(+b: A.Block) -> {I.rows(b) == S.rows(b) : A.Block}:\n'
+          '  match b:\n'
+          '    case ' + block_of_lanes(L) + ':\n'
+          '      ' + rows_chain(0) + '\n\n')
+    # cols
+    C = [st(['l%d' % n for n in col_lanes(i)]) for i in range(8)]
+    def cols_mid(k):
+        return 'I.untr(' + csv('S.P(%s)' % C[i] if i < k else 'I.p(%s)' % C[i] for i in range(8)) + ')'
+    def cols_chain(k):
+        if k == 8:
+            return None
+        hole = 'I.untr(' + csv('S.P(%s)' % C[i] if i < k else ('z' if i == k else 'I.p(%s)' % C[i]) for i in range(8)) + ')'
+        step = 'Equal.cong(T.State, A.Block, z => %s, I.p(%s), S.P(%s), p_correct(%s))' % (hole, C[k], C[k], C[k])
+        rest = cols_chain(k + 1)
+        if rest is None:
+            return step
+        return 'Equal.trans(A.Block, %s, %s, %s,\n        %s,\n        %s)' % (cols_mid(k), cols_mid(k + 1), cols_mid(8), step, rest)
+    s += ('# P on the columns: column i of the specification is lanes 2i, 2i+1, 2i+16, ...\n'
+          'def cols_correct(+b: A.Block) -> {I.cols(b) == S.cols(b) : A.Block}:\n'
+          '  match b:\n'
+          '    case ' + block_of_lanes(L) + ':\n'
+          '      ' + cols_chain(0) + '\n\n')
+    # xor
+    xw = ['T.W{a%d,b%d}' % (i, i) for i in range(128)]
+    yw = ['T.W{c%d,d%d}' % (i, i) for i in range(128)]
+    s += ('# X XOR Y, lane by lane.\n'
+          'def xor_correct(+x: A.Block, +y: A.Block) -> {I.xor(x, y) == S.xor(x, y) : A.Block}:\n'
+          '  match x y:\n'
+          '    case ' + block_of_lanes(xw) + ' ' + block_of_lanes(yw) + ':\n'
+          '      {==}\n\n')
+    # compress
+    R = 'S.xor(x, y)'
+    s += ('# G(X, Y): the compression function.\n'
+          'def compress_correct(+x: A.Block, +y: A.Block) -> {I.compress(x, y) == S.G(x, y) : A.Block}:\n'
+          '  Equal.trans(A.Block, I.xor(I.cols(I.rows(I.xor(x, y))), I.xor(x, y)), I.xor(I.cols(I.rows(%(R)s)), %(R)s), S.xor(S.cols(S.rows(%(R)s)), %(R)s),\n'
+          '    Equal.cong(A.Block, A.Block, +z => I.xor(I.cols(I.rows(z)), z), I.xor(x, y), %(R)s, xor_correct(x, y)),\n'
+          '    Equal.trans(A.Block, I.xor(I.cols(I.rows(%(R)s)), %(R)s), I.xor(I.cols(S.rows(%(R)s)), %(R)s), S.xor(S.cols(S.rows(%(R)s)), %(R)s),\n'
+          '      Equal.cong(A.Block, A.Block, z => I.xor(I.cols(z), %(R)s), I.rows(%(R)s), S.rows(%(R)s), rows_correct(%(R)s)),\n'
+          '      Equal.trans(A.Block, I.xor(I.cols(S.rows(%(R)s)), %(R)s), I.xor(S.cols(S.rows(%(R)s)), %(R)s), S.xor(S.cols(S.rows(%(R)s)), %(R)s),\n'
+          '        Equal.cong(A.Block, A.Block, z => I.xor(z, %(R)s), I.cols(S.rows(%(R)s)), S.cols(S.rows(%(R)s)), cols_correct(S.rows(%(R)s))),\n'
+          '        xor_correct(S.cols(S.rows(%(R)s)), %(R)s))))\n\n' % {'R': R})
+    s += ('# Version 0x13 passes after the first: G(X, Y) XOR the old block.\n'
+          'def compress_xor_correct(+x: A.Block, +y: A.Block, +old: A.Block) -> {I.compress_xor(x, y, old) == S.xor(S.G(x, y), old) : A.Block}:\n'
+          '  Equal.trans(A.Block, I.xor(I.compress(x, y), old), I.xor(S.G(x, y), old), S.xor(S.G(x, y), old),\n'
+          '    Equal.cong(A.Block, A.Block, z => I.xor(z, old), I.compress(x, y), S.G(x, y), compress_correct(x, y)),\n'
+          '    xor_correct(S.G(x, y), old))\n\n'
+          '# The all-zero block.\n'
+          'def zero_correct() -> {I.zero() == S.zero() : A.Block}:\n'
+          '  {==}\n')
+    return s
+
+
 def main():
     write(os.path.join(SRC, 'types.bend'), types())
     write(os.path.join(SRC, 'blamka.bend'), blamka())
     write(os.path.join(SRC, 'sub.bend'), sub())
+    write(os.path.join(PRF, 'blamka.bend'), proof_blamka())
 
 
 if __name__ == '__main__':
