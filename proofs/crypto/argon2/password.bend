@@ -9,8 +9,7 @@ import ../../math/typed/u32laws.bend as LW
 import ../../math/typed/width.bend as WW
 import ../../math/typed/w64sh.bend as SH
 import ../../math/typed/shrn.bend as SR
-import ../subtle/proof.bend as SubtleProof
-import ../subtle/laws.bend as SubtleLaws
+import ../subtle/word.bend as SW
 import ../../../src/crypto/blake/blake2b/types.bend as T
 import ../../../src/crypto/blake/blake2b/sized.bend as H
 import ../../../src/crypto/argon2/argon2.bend as A2
@@ -234,6 +233,22 @@ def tag_len(+pw: List<&2, U32>, +salt: List<&2, U32>, +t: Nat, +m: Nat, +p: Nat,
   +ok = Bool.and(A2.valid(pw, salt, Nil{}, Nil{}, t, m, p, tl), A2.fits(m, p))
   L.subst(List<&2, U32>, z => {len(z) == tl : Nat}, A2.run(pw, salt, Nil{}, Nil{}, t, m, p, tl), tag, tag_of(ok, pw, salt, t, m, p, tl, tag, er), run_len(pw, salt, t, m, p, tl))
 
+# ---------------------------------------------------------------- subtle.eq(a, a)
+
+def diff_self(+a: List<&2, U32>, +acc: U32, +h: {U32.is_eq(acc, 0) == True{} : Bool}) -> {U32.is_eq(Subtle.diff(a, a, acc), 0) == True{} : Bool}:
+  match a:
+    case Nil{}:
+      h
+    case +x <> +xs:
+      +acc2 = U32.or(acc, U32.xor(x, x))
+      +e = Equal.trans(Bool, U32.is_eq(acc2, 0), Bool.and(U32.is_eq(acc, 0), U32.is_eq(U32.xor(x, x), 0)), True{}, SW.u32_or_zero(acc, U32.xor(x, x)),
+        L.and_intro(U32.is_eq(acc, 0), U32.is_eq(U32.xor(x, x), 0), h, Equal.trans(Bool, U32.is_eq(U32.xor(x, x), 0), U32.is_eq(x, x), True{}, SW.u32_xor_zero(x, x), SW.u32_refl(x))))
+      diff_self(xs, acc2, e)
+
+# subtle.eq(a, a) == True (proofs/crypto/subtle proves it too, as Eq.refl).
+def eq_refl(+a: List<&2, U32>) -> {Subtle.eq(a, a) == True{} : Bool}:
+  L.and_intro(Nat.is_eq(List.length(&2, U32, a), List.length(&2, U32, a)), U32.is_eq(Subtle.diff(a, a, 0), 0), N.is_eq_refl(List.length(&2, U32, a)), diff_self(a, 0, {==}))
+
 # ---------------------------------------------------------------- the facade
 
 # The result of hash_password verifies (vacuously when it is None).
@@ -260,7 +275,7 @@ def enc_ver(+pw: List<&2, U32>, +salt: List<&2, U32>, +m: Nat, +t: Nat, +p: Nat,
       %Equal.sym(Maybe<&2, PH.Phc>, PH.parse(PH.format(PH.Phc{m, t, p, salt, h})), Some{PH.Phc{m, t, p, salt, h}}, PP.parse_format(m, t, p, salt, h, hs, tag_ok(pw, salt, t, m, p, tl, h, er))) : {PW.verify_parsed(pw, _) == True{} : Bool}
       %Equal.sym(Nat, len(h), tl, tag_len(pw, salt, t, m, p, tl, h, er)) : {PW.verify_tag(h, A2.argon2id(pw, salt, Nil{}, Nil{}, t, m, p, _)) == True{} : Bool}
       %Equal.sym(Maybe<&2, List<&2, U32>>, A2.argon2id(pw, salt, Nil{}, Nil{}, t, m, p, tl), Some{h}, er) : {PW.verify_tag(h, _) == True{} : Bool}
-      SubtleLaws.Eq.refl(h)
+      eq_refl(h)
 
 # verify_password(pw, hash_password(pw, salt, params)) == True whenever
 # hash_password returns a string, for every salt of bytes below 256.
