@@ -487,3 +487,189 @@ def sq_ev(n, xs):
           A.tr(Nat.add(v(h), C.shift(8n, Nat.add(Nat.add(sp, pq), pr))), Nat.add(v(h), C.shift(8n, et)), ev(xs),
             WM.cong_r(v(h), C.shift(8n, Nat.add(Nat.add(sp, pq), pr)), C.shift(8n, et), A.csh(8n, Nat.add(Nat.add(sp, pq), pr), et, sq_ev(k, Li.tl(xs)))),
             A.sy(ev(xs), Nat.add(v(h), C.shift(8n, et)), hd_tl_ev(xs)))))
+
+# ---- lengths ----
+
+def len(xs: List<&2, U32>) -> Nat:
+  List.length(&2, U32, xs)
+
+law len_add:
+  for +a: List<&2, U32>
+  for +b: List<&2, U32>
+  for +n: Nat
+  for +ha: {Nat.is_le(len(a), n) == True{} : Bool}
+  for +hb: {Nat.is_le(len(b), n) == True{} : Bool}
+  {Nat.is_le(len(Li.add(a, b)), n) == True{} : Bool}
+
+def len_add(a, b, n, ha, hb):
+  match a b:
+    case Nil{} _: hb
+    case x <> at Nil{}: ha
+    case x <> at y <> bt:
+      match n:
+        case 0n: Empty.absurd({Nat.is_le(len(Li.add(x <> at, y <> bt)), 0n) == True{} : Bool}, L.false_true(ha))
+        case 1n+m: len_add(at, bt, m, ha, hb)
+
+law len_scale:
+  for +c: U32
+  for +a: List<&2, U32>
+  {len(Li.scale(c, a)) == len(a) : Nat}
+
+def len_scale(c, a):
+  match a:
+    case Nil{}: {==}
+    case x <> t: Equal.cong(Nat, Nat, z => 1n+z, len(Li.scale(c, t)), len(t), len_scale(c, t))
+
+law len_mul:
+  for +x: List<&2, U32>
+  for +r: List<&2, U32>
+  for +n: Nat
+  for +hx: {Nat.is_le(len(x), n) == True{} : Bool}
+  {Nat.is_le(len(Li.mul(x, r)), Nat.add(len(r), n)) == True{} : Bool}
+
+def len_mul(x, r, n, hx):
+  match r:
+    case Nil{}: N.zero_le(n)
+    case r0 <> rs:
+      len_add(Li.scale(r0, x), 0 <> Li.mul(x, rs), Nat.add(1n+len(rs), n),
+        A.le_substl(len(x), len(Li.scale(r0, x)), Nat.add(1n+len(rs), n), A.sy(len(Li.scale(r0, x)), len(x), len_scale(r0, x)), N.le_trans(len(x), n, Nat.add(1n+len(rs), n), hx, A.le_add_l(1n+len(rs), n))),
+        len_mul(x, rs, n, hx))
+
+law len_take:
+  for +n: Nat
+  for +xs: List<&2, U32>
+  {Nat.is_le(len(Li.take(n, xs)), n) == True{} : Bool}
+
+def len_take(n, xs):
+  match n xs:
+    case 0n _: {==}
+    case 1n+k Nil{}: {==}
+    case 1n+k x <> t: len_take(k, t)
+
+law len_skip:
+  for +n: Nat
+  for +xs: List<&2, U32>
+  for +b: Nat
+  for +h: {Nat.is_le(len(xs), Nat.add(n, b)) == True{} : Bool}
+  {Nat.is_le(len(Li.skip(n, xs)), b) == True{} : Bool}
+
+def len_skip(n, xs, b, h):
+  match n xs:
+    case 0n _: h
+    case 1n+k Nil{}: N.zero_le(b)
+    case 1n+k x <> t: len_skip(k, t, b, h)
+
+law skip_long:
+  for +n: Nat
+  for +xs: List<&2, U32>
+  for +h: {Nat.is_le(len(xs), n) == True{} : Bool}
+  {Li.skip(n, xs) == [] : List<&2, U32>}
+
+def skip_long(n, xs, h):
+  match n xs:
+    case 0n Nil{}: {==}
+    case 0n x <> t: Empty.absurd({Li.skip(0n, x <> t) == [] : List<&2, U32>}, L.false_true(h))
+    case 1n+k Nil{}: {==}
+    case 1n+k x <> t: skip_long(k, t, h)
+
+# ---- bounds ----
+
+law le_take:
+  for +n: Nat
+  for +xs: List<&2, U32>
+  for +b: Nat
+  for +h: {le_all(xs, b) == True{} : Bool}
+  {le_all(Li.take(n, xs), b) == True{} : Bool}
+
+def le_take(n, xs, b, h):
+  match n xs:
+    case 0n _: {==}
+    case 1n+k Nil{}: {==}
+    case 1n+k x <> t: cons_le(x, Li.take(k, t), b, hd_le(x, t, b, h), le_take(k, t, b, tl_le(x, t, b, h)))
+
+law le_skip:
+  for +n: Nat
+  for +xs: List<&2, U32>
+  for +b: Nat
+  for +h: {le_all(xs, b) == True{} : Bool}
+  {le_all(Li.skip(n, xs), b) == True{} : Bool}
+
+def le_skip(n, xs, b, h):
+  match n xs:
+    case 0n _: h
+    case 1n+k Nil{}: {==}
+    case 1n+k x <> t: le_skip(k, t, b, tl_le(x, t, b, h))
+
+law fit_le:
+  for +xs: List<&2, U32>
+  for +k: Nat
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +h: {fit_all(xs, k) == True{} : Bool}
+  {le_all(xs, C.shift(k, one)) == True{} : Bool}
+
+def fit_le(xs, k, one, h1, h):
+  match xs:
+    case Nil{}: {==}
+    case x <> t: cons_le(x, t, C.shift(k, one), A.le_one(k, one, h1, v(x), L.and_left(C.fits(k, v(x)), fit_all(t, k), h)), fit_le(t, k, one, h1, L.and_right(C.fits(k, v(x)), fit_all(t, k), h)))
+
+law le_fit:
+  for +xs: List<&2, U32>
+  for +b: Nat
+  for +k: Nat
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +hb: {Nat.is_lt(b, C.shift(k, one)) == True{} : Bool}
+  for +h: {le_all(xs, b) == True{} : Bool}
+  {fit_all(xs, k) == True{} : Bool}
+
+def le_fit(xs, b, k, one, h1, hb, h):
+  match xs:
+    case Nil{}: {==}
+    case x <> t: L.and_intro(C.fits(k, v(x)), fit_all(t, k), WW.fits_one(k, one, h1, v(x), N.le_lt_trans(v(x), b, C.shift(k, one), hd_le(x, t, b, h), hb)), le_fit(t, b, k, one, h1, hb, tl_le(x, t, b, h)))
+
+law fit_mono:
+  for +xs: List<&2, U32>
+  for +a: Nat
+  for +b: Nat
+  for +hab: {Nat.is_le(a, b) == True{} : Bool}
+  for +h: {fit_all(xs, a) == True{} : Bool}
+  {fit_all(xs, b) == True{} : Bool}
+
+def fit_mono(xs, a, b, hab, h):
+  match xs:
+    case Nil{}: {==}
+    case x <> t: L.and_intro(C.fits(b, v(x)), fit_all(t, b), SH.fits_mono(a, b, v(x), hab, L.and_left(C.fits(a, v(x)), fit_all(t, a), h)), fit_mono(t, a, b, hab, L.and_right(C.fits(a, v(x)), fit_all(t, a), h)))
+
+law fit_take:
+  for +n: Nat
+  for +xs: List<&2, U32>
+  for +k: Nat
+  for +h: {fit_all(xs, k) == True{} : Bool}
+  {fit_all(Li.take(n, xs), k) == True{} : Bool}
+
+def fit_take(n, xs, k, h):
+  match n xs:
+    case 0n _: {==}
+    case 1n+m Nil{}: {==}
+    case 1n+m x <> t: L.and_intro(C.fits(k, v(x)), fit_all(Li.take(m, t), k), L.and_left(C.fits(k, v(x)), fit_all(t, k), h), fit_take(m, t, k, L.and_right(C.fits(k, v(x)), fit_all(t, k), h)))
+
+# limbs of 8 bits: the value is below 2^(8 len)
+law ev_lt:
+  for +xs: List<&2, U32>
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +h: {fit_all(xs, 8n) == True{} : Bool}
+  {Nat.is_lt(ev(xs), pos(len(xs), one)) == True{} : Bool}
+
+def ev_lt(xs, one, h1, h):
+  match xs:
+    case Nil{}: A.lt_subst(0n, 1n, one, A.sy(one, 1n, h1), {==})
+    case x <> t:
+      +ht = ev_lt(t, one, h1, L.and_right(C.fits(8n, v(x)), fit_all(t, 8n), h))
+      +hx = WW.lt_of_fits(8n, v(x), L.and_left(C.fits(8n, v(x)), fit_all(t, 8n), h))
+      +p = pos(len(t), one)
+      # v x + 2^8 ev t < 2^8 + 2^8 ev t = 2^8 (1 + ev t) <= 2^8 p
+      +a1 = A.lt_le_add(v(x), C.shift(8n, ev(t)), C.pow2(8n), C.shift(8n, ev(t)), hx, N.le_refl(C.shift(8n, ev(t))))
+      +e1 = A.tr(Nat.add(C.pow2(8n), C.shift(8n, ev(t))), Nat.add(C.shift(8n, 1n), C.shift(8n, ev(t))), C.shift(8n, 1n+ev(t)), {==}, A.sy(C.shift(8n, 1n+ev(t)), Nat.add(C.shift(8n, 1n), C.shift(8n, ev(t))), WW.shift_add(8n, 1n, ev(t))))
+      N.lt_le_trans(Nat.add(v(x), C.shift(8n, ev(t))), C.shift(8n, 1n+ev(t)), C.shift(8n, p), A.lt_subst(Nat.add(v(x), C.shift(8n, ev(t))), Nat.add(C.pow2(8n), C.shift(8n, ev(t))), C.shift(8n, 1n+ev(t)), e1, a1), WW.shift_mono(8n, 1n+ev(t), p, N.lt_succ_le_succ(ev(t), p, ht)))
