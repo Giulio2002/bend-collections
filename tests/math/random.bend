@@ -29,6 +29,8 @@ import ../support/text.bend as X
 #   p:N                 perm(N)       s:N   shuffle of [100, 101, ..., 99 + N]
 #   b:N                 N bytes (crypto/random only)
 #   c:N:K               chi-square counts: K draws of uint64n(N), N counts
+#
+# or the single argument "os": 32 bytes of a generator keyed by the OS.
 
 def u64_show(a: W.U64) -> String:
   match a:
@@ -230,7 +232,24 @@ def all(args: List<&2, String>) -> List<&2, String>:
       +kind = X.field(ps, 0n)
       by_kind(ps, toks, String.eq(kind, "c8"), String.eq(kind, "c8b"), String.eq(kind, "pcg"), String.eq(kind, "cr"), String.eq(kind, "crb"))
 
+def os_bytes(r: List<&2, U32> & CR.Gen) -> String:
+  (bs, g) = r
+  X.join_u32(bs)
+
+# "os": 32 bytes from a generator keyed by the operating system
+def run_os(os: Bool, +args: List<&2, String>) -> IO(Unit):
+  match os:
+    case True{}:
+      do IO<Unit>:
+        g : CR.Gen <- CR.from_os()
+        IO.print(os_bytes(CR.bytes(g, 32n)))
+    case False{}:
+      X.print_lines(all(args))
+
+def start(+ps: List<&2, String>) -> IO(Unit):
+  run_os(String.eq(X.field(ps, 0n), "os"), ps)
+
 def main() -> IO(Unit):
   do IO<Unit>:
     args : List<String> <- IO.args()
-    X.print_lines(all(X.program_args(args)))
+    start(X.program_args(args))

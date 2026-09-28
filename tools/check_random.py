@@ -21,7 +21,8 @@ Runs build/math/random (tests/math/random.bend) and compares it with
      edge bounds of uint64n (1, powers of two, 2^32 +- 1, 2^63 + 1, where
      almost half the draws are rejected, 2^64 - 1 and 0, read as 2^64);
   3. a chi-square test of uint64n's buckets (smoke test of uniformity: the
-     exact unbiasedness is proved, proofs/math/random/lemire.bend).
+     exact unbiasedness is proved, proofs/math/random/lemire.bend);
+  4. from_os: 32 bytes below 256, different on every run.
 
 Prints a JSON verdict; exit status 1 on any mismatch.
 """
@@ -473,6 +474,19 @@ def differentials(seed):
         check('crb rejects %d bytes, max %d' % (len(bad), max(bad)), got, ['bad seed'])
 
 
+def os_seeded():
+    # from_os: 32 bytes below 256, different on every run (equal with
+    # probability 2^-256 for a working OS source)
+    outs = []
+    for _ in range(3):
+        p = subprocess.run([str(BIN), '--threads', '1', '--', 'os'], capture_output=True, text=True, timeout=600)
+        if p.returncode != 0:
+            raise RuntimeError('os run failed: ' + p.stderr[-300:])
+        outs.append([int(x) for x in p.stdout.split()[0].split(',')])
+    check('from_os 32 bytes below 256', all(len(o) == 32 and max(o) < 256 for o in outs), True)
+    check('from_os runs differ', len({tuple(o) for o in outs}), 3)
+
+
 def chi_critical(df, z=4.753):
     # Wilson-Hilferty: the upper quantile of chi-square(df) at z standard deviations (p ~ 1e-6)
     return df * (1 - 2 / (9 * df) + z * math.sqrt(2 / (9 * df))) ** 3
@@ -501,6 +515,7 @@ def main():
     seed = int(sys.argv[1]) if len(sys.argv) > 1 else 2026
     go_vectors()
     differentials(seed)
+    os_seeded()
     stats = chi_square(seed)
     verdict = {'checks': sum(COUNTS.values()), 'failures': FAILURES, 'seed': seed, 'chi_square': stats}
     print(json.dumps(verdict, indent=1))
