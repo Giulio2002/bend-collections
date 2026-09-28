@@ -312,18 +312,26 @@ def final_go(n: Nat, +l: Nat, +q: Nat, c: A.Block, pair: Array<U32> & A.Block) -
 
 # ---------------------------------------------------------------- Argon2id
 
-# RFC 9106 section 3.1 ranges: 1 <= p < 2^24, 4 <= T < 2^32, 8p <= m,
-# 1 <= t < 2^32, 8 <= |S| < 2^32, |P|, |K|, |X| < 2^32; m <= 2^23 KiB (8 GiB)
-# is this implementation's limit (the RFC's is 2^32 - 1): the memory array
-# has at most 2^31 words.
+# RFC 9106 section 3.1 ranges: 1 <= p <= 2^24 - 1, 4 <= T <= 2^32 - 1,
+# 8p <= m <= 2^32 - 1, 1 <= t <= 2^32 - 1, 8 <= |S| <= 2^32 - 1 and |P|,
+# |K|, |X| <= 2^32 - 1.
 def valid(+pw: List<&2, U32>, +salt: List<&2, U32>, +key: List<&2, U32>, +ad: List<&2, U32>, +t: Nat, +m: Nat, +p: Nat, +tl: Nat) -> Bool:
   Bool.and(Bool.and(Bool.and(Nat.is_le(1n, p), Nat.is_le(p, 16777215n)), Bool.and(Nat.is_le(4n, tl), Nat.is_le(tl, 4294967295n))),
-    Bool.and(Bool.and(Bool.and(Nat.is_le(Nat.mul(8n, p), m), Nat.is_le(m, 8388608n)), Bool.and(Nat.is_le(1n, t), Nat.is_le(t, 4294967295n))),
+    Bool.and(Bool.and(Bool.and(Nat.is_le(Nat.mul(8n, p), m), Nat.is_le(m, 4294967295n)), Bool.and(Nat.is_le(1n, t), Nat.is_le(t, 4294967295n))),
       Bool.and(Bool.and(Nat.is_le(8n, len(salt)), Nat.is_le(len(salt), 4294967295n)), Bool.and(Nat.is_le(len(pw), 4294967295n), Bool.and(Nat.is_le(len(key), 4294967295n), Nat.is_le(len(ad), 4294967295n))))))
+
+# m' = 4p floor(m / 4p), the number of blocks.
+def blocks(+m: Nat, +p: Nat) -> Nat:
+  Nat.mul(Nat.mul(4n, p), Nat.div(m, Nat.mul(4n, p)))
+
+# This implementation's limit: the memory of m' blocks is an array of at most
+# 2^31 words, so m' <= 2^23 (8 GiB), the RFC allowing up to 2^32 - 1 KiB.
+def fits(+m: Nat, +p: Nat) -> Bool:
+  Nat.is_le(M.levels(blocks(m, p)), 23n)
 
 # The tag for valid parameters.
 def run(+pw: List<&2, U32>, +salt: List<&2, U32>, +key: List<&2, U32>, +ad: List<&2, U32>, +t: Nat, +m: Nat, +p: Nat, +tl: Nat) -> List<&2, U32>:
-  +mm = Nat.mul(Nat.mul(4n, p), Nat.div(m, Nat.mul(4n, p)))
+  +mm = blocks(m, p)
   +q = Nat.div(mm, p)
   +sl = Nat.div(q, 4n)
   +k = M.levels(mm)
@@ -339,6 +347,7 @@ def checked(ok: Bool, +pw: List<&2, U32>, +salt: List<&2, U32>, +key: List<&2, U
       None{}
 
 # Argon2id(P, S, K, X; t passes, m KiB, p lanes, T tag bytes): the T-byte tag,
-# or None when a parameter is out of the RFC 9106 ranges.
+# or None when a parameter is out of the RFC 9106 ranges or the memory does
+# not fit (fits).
 def argon2id(+pw: List<&2, U32>, +salt: List<&2, U32>, +key: List<&2, U32>, +ad: List<&2, U32>, +t: Nat, +m: Nat, +p: Nat, +tl: Nat) -> Maybe<&2, List<&2, U32>>:
-  checked(valid(pw, salt, key, ad, t, m, p, tl), pw, salt, key, ad, t, m, p, tl)
+  checked(Bool.and(valid(pw, salt, key, ad, t, m, p, tl), fits(m, p)), pw, salt, key, ad, t, m, p, tl)

@@ -139,7 +139,8 @@ def hx(b):
 
 
 def reference(pw, salt, key, ad, t, m, p, tl):
-    if not (1 <= p < 2 ** 24 and 4 <= tl and 8 * p <= m <= 2 ** 23 and t >= 1 and len(salt) >= 8):
+    mm = 4 * p * (m // (4 * p)) if p else 0
+    if not (1 <= p < 2 ** 24 and 4 <= tl and 8 * p <= m < 2 ** 32 and t >= 1 and len(salt) >= 8 and mm <= 2 ** 23):
         return 'invalid'
     # argon2-cffi's low-level binding has no secret/ad arguments; use the raw
     # C binding for those through argon2._ffi when they are present.
@@ -187,7 +188,7 @@ def cases(rng):
         out.append((rbytes(rng, 16), rbytes(rng, 16), b'', b'', t, m, p, 32))
     # rejections
     out += [(b'pw', b'saltsalt', b'', b'', 1, 15, 2, 32), (b'pw', b'short', b'', b'', 1, 8, 1, 32),
-            (b'pw', b'saltsalt', b'', b'', 1, 2 ** 23 + 1, 1, 32),
+            (b'pw', b'saltsalt', b'', b'', 1, 2 ** 23 + 4, 1, 32), (b'pw', b'saltsalt', b'', b'', 1, 2 ** 24 + 3, 2, 32),
             (b'pw', b'saltsalt', b'', b'', 0, 8, 1, 32), (b'pw', b'saltsalt', b'', b'', 1, 8, 1, 3),
             (b'pw', b'saltsalt', b'', b'', 1, 8, 0, 32)]
     return out
