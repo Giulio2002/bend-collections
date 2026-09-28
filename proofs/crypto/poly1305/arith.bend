@@ -129,6 +129,33 @@ def shmul(+a: Nat, +b: Nat, +one: Nat, +h1: {one == 1n : Nat}) -> {Nat.mul(C.shi
       csh(a, Nat.mul(one, sb), sb, L.subst(Nat, z => {Nat.mul(z, sb) == sb : Nat}, 1n, one, sy(one, 1n, h1), AR.one_mul(sb))),
       sy(C.shift(Nat.add(a, b), one), C.shift(a, sb), WW.shift_comp(a, b, one))))
 
-# 2^k c = c * 2^k
-def mul_pow(+c: Nat, +k: Nat, +x: Nat) -> {Nat.mul(x, C.pow2(k)) == C.shift(k, x) : Nat}:
+# x * 2^k = shift(k, x)
+def mul_pow(+k: Nat, +x: Nat) -> {Nat.mul(x, C.pow2(k)) == C.shift(k, x) : Nat}:
   tr(Nat.mul(x, C.pow2(k)), Nat.mul(x, C.shift(k, 1n)), C.shift(k, x), Equal.cong(Nat, Nat, t => Nat.mul(x, t), C.pow2(k), C.shift(k, 1n), sy(C.shift(k, 1n), C.pow2(k), WW.shift_one(k))), sy(C.shift(k, x), Nat.mul(x, C.shift(k, 1n)), WW.shift_mul(k, x)))
+
+# a >= 1, b < c: a b < a c
+def lt_mul_l(+a: Nat, +b: Nat, +c: Nat, +ha: {Nat.is_le(1n, a) == True{} : Bool}, +h: {Nat.is_lt(b, c) == True{} : Bool}) -> {Nat.is_lt(Nat.mul(a, b), Nat.mul(a, c)) == True{} : Bool}:
+  +ab = Nat.mul(a, b)
+  +s1 = N.lt_le_trans(ab, 1n+ab, Nat.add(a, ab), N.lt_succ(ab), WW.le_add_r(1n, a, ab, ha))
+  +s2 = le_substl(Nat.mul(a, 1n+b), Nat.add(a, ab), Nat.mul(a, c), NA.mul_succ(a, b), WM.le_mul_r(a, 1n+b, c, N.lt_succ_le_succ(b, c, h)))
+  N.lt_le_trans(ab, Nat.add(a, ab), Nat.mul(a, c), s1, s2)
+
+def cancel_c(+k: Nat, +a: Nat, +b: Nat, +h: {Nat.is_lt(C.shift(k, a), C.shift(k, b)) == True{} : Bool}, o: Or({Nat.is_lt(a, b) == True{} : Bool}, {Nat.is_lt(a, b) == False{} : Bool})) -> {Nat.is_lt(a, b) == True{} : Bool}:
+  match o:
+    case Inl{e}: e
+    case Inr{e}:
+      +bad = N.lt_le_trans(C.shift(k, a), C.shift(k, b), C.shift(k, a), h, WW.shift_mono(k, b, a, N.not_lt_le(a, b, e)))
+      Empty.absurd({Nat.is_lt(a, b) == True{} : Bool}, L.false_true(Equal.trans(Bool, False{}, Nat.is_lt(C.shift(k, a), C.shift(k, a)), True{}, Equal.sym(Bool, Nat.is_lt(C.shift(k, a), C.shift(k, a)), False{}, N.lt_irrefl(C.shift(k, a))), bad)))
+
+# shift(k, a) < shift(k, b): a < b
+def shift_cancel(+k: Nat, +a: Nat, +b: Nat, +h: {Nat.is_lt(C.shift(k, a), C.shift(k, b)) == True{} : Bool}) -> {Nat.is_lt(a, b) == True{} : Bool}:
+  cancel_c(k, a, b, h, L.bool_cases(Nat.is_lt(a, b)))
+
+# q and a fit k bits: 5 q + a fits k + 3 bits
+def fits_5q(+k: Nat, +q: Nat, +a: Nat, +hq: {C.fits(k, q) == True{} : Bool}, +ha: {C.fits(k, a) == True{} : Bool}) -> {C.fits(3n+k, Nat.add(Nat.mul(q, 5n), a)) == True{} : Bool}:
+  +p = C.pow2(k)
+  +s1 = lt_add2(Nat.mul(q, 5n), a, Nat.mul(p, 6n), p, lt_mul(q, 5n, p, 6n, WW.lt_of_fits(k, q, hq), {==}), WW.lt_of_fits(k, a, ha))
+  +e7 = tr(Nat.add(Nat.mul(p, 6n), p), Nat.add(p, Nat.mul(p, 6n)), Nat.mul(p, 7n), N.add_comm(Nat.mul(p, 6n), p), sy(Nat.mul(p, 7n), Nat.add(p, Nat.mul(p, 6n)), NA.mul_succ(p, 6n)))
+  +s2 = lt_subst(Nat.add(Nat.mul(q, 5n), a), Nat.add(Nat.mul(p, 6n), p), Nat.mul(p, 7n), e7, s1)
+  +s3 = N.lt_le_trans(Nat.add(Nat.mul(q, 5n), a), Nat.mul(p, 7n), Nat.mul(p, 8n), s2, WM.le_mul_r(p, 7n, 8n, {==}))
+  WW.fits_of_lt(3n+k, Nat.add(Nat.mul(q, 5n), a), lt_subst(Nat.add(Nat.mul(q, 5n), a), Nat.mul(p, 8n), C.shift(3n, p), mul_pow(3n, p), s3))
