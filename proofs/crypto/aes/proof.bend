@@ -1,0 +1,100 @@
+import Base
+import ../../../src/crypto/aes/types.bend as T
+import ../../../src/crypto/aes/aes.bend as A
+import ../../../src/crypto/aes/gcm.bend as GI
+import ../../../src/crypto/aesgcm.bend as GCM
+import ../../../spec/crypto/aes/aes.bend as S
+import ../../../spec/crypto/aes/gcm.bend as G
+import ./laws.bend as Laws
+import ./sbox.bend as SB
+import ./cipher.bend as C
+import ./gcm.bend as GP
+import ./aead.bend as AD
+
+# Gate for AES and AES-GCM: `bend proofs/crypto/aes/proof.bend` checks every
+# clause of laws.bend, for every input:
+#   sbox.bend    the S-box circuit and the doublings, on all 256 bytes
+#   cipher.bend  SubBytes .. AddRoundKey, the rounds, KeyExpansion, Cipher
+#   gf.bend      polynomial product mod m == Algorithm 1 (any modulus)
+#   ghash*.bend  the word-level GHASH == SP 800-38D's GHASH
+#   gcm.bend     GCTR, the tag, GCM-AE and GCM-AD == SP 800-38D
+#   aead.bend    open(seal(x)) == Some(x); a wrong tag gives None
+
+def Laws.Sbox.value(x):
+  SB.sbox_ok(x)
+
+def Laws.Cipher.value(nk, nr, key, s):
+  C.encrypt_ok(nk, nr, key, s)
+
+def Laws.Block.aes128(key, h, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15):
+  %Equal.sym(Nat, List.length(&2, U32, key), 16n, h) : {Laws.block_with(A.schedule_for(_, key), [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15]) == Some{S.bytes_of(S.aes128(key, S.state_of([b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15])))} : Maybe<&2, List<&2, U32>>}
+  %C.encrypt_ok(4n, 10n, key, T.S{T.W{b0, b1, b2, b3}, T.W{b4, b5, b6, b7}, T.W{b8, b9, b10, b11}, T.W{b12, b13, b14, b15}}) : {Laws.block_with(A.schedule_for(16n, key), [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15]) == Some{S.bytes_of(_)} : Maybe<&2, List<&2, U32>>}
+  %GP.bytes_of_ok(A.encrypt(4n, 10n, key, T.S{T.W{b0, b1, b2, b3}, T.W{b4, b5, b6, b7}, T.W{b8, b9, b10, b11}, T.W{b12, b13, b14, b15}})) : {Laws.block_with(A.schedule_for(16n, key), [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15]) == Some{_} : Maybe<&2, List<&2, U32>>}
+  {==}
+
+def Laws.Block.aes256(key, h, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15):
+  %Equal.sym(Nat, List.length(&2, U32, key), 32n, h) : {Laws.block_with(A.schedule_for(_, key), [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15]) == Some{S.bytes_of(S.aes256(key, S.state_of([b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15])))} : Maybe<&2, List<&2, U32>>}
+  %C.encrypt_ok(8n, 14n, key, T.S{T.W{b0, b1, b2, b3}, T.W{b4, b5, b6, b7}, T.W{b8, b9, b10, b11}, T.W{b12, b13, b14, b15}}) : {Laws.block_with(A.schedule_for(32n, key), [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15]) == Some{S.bytes_of(_)} : Maybe<&2, List<&2, U32>>}
+  %GP.bytes_of_ok(A.encrypt(8n, 14n, key, T.S{T.W{b0, b1, b2, b3}, T.W{b4, b5, b6, b7}, T.W{b8, b9, b10, b11}, T.W{b12, b13, b14, b15}})) : {Laws.block_with(A.schedule_for(32n, key), [b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15]) == Some{_} : Maybe<&2, List<&2, U32>>}
+  {==}
+
+def Laws.Gcm.seal(nk, nr, key, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, pt):
+  GP.seal_ok(nk, nr, key, T.W{n0, n1, n2, n3}, T.W{n4, n5, n6, n7}, T.W{n8, n9, n10, n11}, aad, pt)
+
+def Laws.Gcm.open(nk, nr, key, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, input):
+  GP.open_ok(nk, nr, key, T.W{n0, n1, n2, n3}, T.W{n4, n5, n6, n7}, T.W{n8, n9, n10, n11}, aad, input)
+
+def Laws.Aead.roundtrip(nk, nr, key, iv, aad, pt):
+  AD.roundtrip(nk, nr, key, iv, aad, pt)
+
+def Laws.Aead.forgery(nk, nr, key, iv, aad, c, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, ne):
+  AD.forgery(nk, nr, key, iv, aad, c, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, ne)
+
+def Laws.Api128.encrypt(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, pt):
+  %Equal.sym(Nat, List.length(&2, U32, key), 16n, h) : {GI.seal_key(GI.schedule_if(Nat.is_eq(_, 16n), key), [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt) == Some{G.seal(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)} : Maybe<&2, List<&2, U32>>}
+  %Equal.sym(Nat, List.length(&2, U32, key), 16n, h) : {GI.seal_key(A.schedule_for(_, key), [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt) == Some{G.seal(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)} : Maybe<&2, List<&2, U32>>}
+  %GP.seal_ok(4n, 10n, key, T.W{n0, n1, n2, n3}, T.W{n4, n5, n6, n7}, T.W{n8, n9, n10, n11}, aad, pt) : {Some{GI.seal_core(A.Schedule{10n, A.expand(4n, 10n, key)}, T.W{n0, n1, n2, n3}, T.W{n4, n5, n6, n7}, T.W{n8, n9, n10, n11}, aad, pt)} == Some{_} : Maybe<&2, List<&2, U32>>}
+  {==}
+
+def Laws.Api128.decrypt(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, ct):
+  %Equal.sym(Nat, List.length(&2, U32, key), 16n, h) : {GI.open_key(GI.schedule_if(Nat.is_eq(_, 16n), key), [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) == G.open(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) : Maybe<&2, List<&2, U32>>}
+  %Equal.sym(Nat, List.length(&2, U32, key), 16n, h) : {GI.open_key(A.schedule_for(_, key), [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) == G.open(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) : Maybe<&2, List<&2, U32>>}
+  GP.open_ok(4n, 10n, key, T.W{n0, n1, n2, n3}, T.W{n4, n5, n6, n7}, T.W{n8, n9, n10, n11}, aad, ct)
+
+def Laws.Api128.roundtrip(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, pt):
+  %Equal.sym(Maybe<&2, List<&2, U32>>, GCM.aes128_gcm_encrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt), Some{G.seal(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)}, Laws.Api128.encrypt(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, pt)) : {Laws.open128(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, _) == Some{pt} : Maybe<&2, List<&2, U32>>}
+  %Equal.sym(Maybe<&2, List<&2, U32>>, GCM.aes128_gcm_decrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, G.seal(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)), G.open(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, G.seal(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)), Laws.Api128.decrypt(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, G.seal(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt))) : {_ == Some{pt} : Maybe<&2, List<&2, U32>>}
+  AD.roundtrip(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)
+
+def Laws.Api128.forgery(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, c, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, ne):
+  %Equal.sym(Maybe<&2, List<&2, U32>>, GCM.aes128_gcm_decrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, List.append(&2, U32, c, [t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15])), G.open(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, List.append(&2, U32, c, [t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15])), Laws.Api128.decrypt(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, List.append(&2, U32, c, [t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15]))) : {_ == None{} : Maybe<&2, List<&2, U32>>}
+  AD.forgery(4n, 10n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, c, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, ne)
+
+def Laws.Api128.bad_key(key, h, nonce, aad, pt):
+  %Equal.sym(Bool, Nat.is_eq(List.length(&2, U32, key), 16n), False{}, h) : {GI.seal_key(GI.schedule_if(_, key), nonce, aad, pt) == None{} : Maybe<&2, List<&2, U32>>}
+  {==}
+
+def Laws.Api256.encrypt(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, pt):
+  %Equal.sym(Nat, List.length(&2, U32, key), 32n, h) : {GI.seal_key(GI.schedule_if(Nat.is_eq(_, 32n), key), [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt) == Some{G.seal(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)} : Maybe<&2, List<&2, U32>>}
+  %Equal.sym(Nat, List.length(&2, U32, key), 32n, h) : {GI.seal_key(A.schedule_for(_, key), [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt) == Some{G.seal(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)} : Maybe<&2, List<&2, U32>>}
+  %GP.seal_ok(8n, 14n, key, T.W{n0, n1, n2, n3}, T.W{n4, n5, n6, n7}, T.W{n8, n9, n10, n11}, aad, pt) : {Some{GI.seal_core(A.Schedule{14n, A.expand(8n, 14n, key)}, T.W{n0, n1, n2, n3}, T.W{n4, n5, n6, n7}, T.W{n8, n9, n10, n11}, aad, pt)} == Some{_} : Maybe<&2, List<&2, U32>>}
+  {==}
+
+def Laws.Api256.decrypt(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, ct):
+  %Equal.sym(Nat, List.length(&2, U32, key), 32n, h) : {GI.open_key(GI.schedule_if(Nat.is_eq(_, 32n), key), [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) == G.open(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) : Maybe<&2, List<&2, U32>>}
+  %Equal.sym(Nat, List.length(&2, U32, key), 32n, h) : {GI.open_key(A.schedule_for(_, key), [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) == G.open(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, ct) : Maybe<&2, List<&2, U32>>}
+  GP.open_ok(8n, 14n, key, T.W{n0, n1, n2, n3}, T.W{n4, n5, n6, n7}, T.W{n8, n9, n10, n11}, aad, ct)
+
+def Laws.Api256.roundtrip(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, pt):
+  %Equal.sym(Maybe<&2, List<&2, U32>>, GCM.aes256_gcm_encrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt), Some{G.seal(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)}, Laws.Api256.encrypt(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, pt)) : {Laws.open256(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, _) == Some{pt} : Maybe<&2, List<&2, U32>>}
+  %Equal.sym(Maybe<&2, List<&2, U32>>, GCM.aes256_gcm_decrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, G.seal(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)), G.open(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, G.seal(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)), Laws.Api256.decrypt(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, G.seal(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt))) : {_ == Some{pt} : Maybe<&2, List<&2, U32>>}
+  AD.roundtrip(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, pt)
+
+def Laws.Api256.forgery(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, c, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, ne):
+  %Equal.sym(Maybe<&2, List<&2, U32>>, GCM.aes256_gcm_decrypt(key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, List.append(&2, U32, c, [t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15])), G.open(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, List.append(&2, U32, c, [t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15])), Laws.Api256.decrypt(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, List.append(&2, U32, c, [t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15]))) : {_ == None{} : Maybe<&2, List<&2, U32>>}
+  AD.forgery(8n, 14n, key, [n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11], aad, c, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, ne)
+
+def Laws.Api256.bad_key(key, h, nonce, aad, pt):
+  %Equal.sym(Bool, Nat.is_eq(List.length(&2, U32, key), 32n), False{}, h) : {GI.seal_key(GI.schedule_if(_, key), nonce, aad, pt) == None{} : Maybe<&2, List<&2, U32>>}
+  {==}
+
