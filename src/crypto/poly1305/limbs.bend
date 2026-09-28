@@ -95,10 +95,6 @@ def reduce(+d: List<&2, U32>) -> List<&2, U32>:
 def block(+r: List<&2, U32>, h: List<&2, U32>, c: List<&2, U32>) -> List<&2, U32>:
   reduce(fold(mul(add(h, c), r)))
 
-# 2^136 - p = 5 + 252 * 2^128.
-def minus_p() -> List<&2, U32>:
-  [5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252]
-
 # a when m is all zeros, b when m is all ones.
 def pick(+m: U32, +a: U32, b: U32) -> U32:
   U32.xor(a, U32.and(m, U32.xor(a, b)))
@@ -108,12 +104,12 @@ def select(+m: U32, a: List<&2, U32>, b: List<&2, U32>) -> List<&2, U32>:
     case x <> at y <> bt: pick(m, x, y) <> select(m, at, bt)
     case _ _: Nil{}
 
-# The low 16 limbs of h mod p, for h below 2p: e = h + 2^136 - p has bit 136
-# set exactly when h >= p, and then its low limbs are those of h - p.
+# The low 16 limbs of h mod p, for h below 2p: g = h + 5 has bit 130 set
+# exactly when h >= p, and then its low 128 bits are those of h - p.
 def freeze(+h: List<&2, U32>) -> List<&2, U32>:
-  +e = carry(16n, add(h, minus_p()), 0)
-  +b = U32.shrn(hd0(skip(16n, e)), 8n)
-  select(U32.sub(0, b), take(16n, h), take(16n, e))
+  +g = carry(16n, add(h, [5]), 0)
+  +b = U32.shrn(hd0(skip(16n, g)), 2n)
+  select(U32.sub(0, b), take(16n, h), take(16n, g))
 
 # n bytes of the value of ds + u (mod 2^(8n)).
 def bytes(n: Nat, +ds: List<&2, U32>, u: U32) -> List<&2, U32>:

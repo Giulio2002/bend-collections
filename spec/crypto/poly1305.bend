@@ -112,7 +112,14 @@ def absorb(bs: List<&2, List<&2, U32>>, +r: Nat, a: Nat) -> Nat:
 
 # poly1305_mac(msg, key): r = clamp(key[0..16]), s = key[16..32];
 # a = 0, absorb every block, a += s; the tag is num_to_16_le_bytes(a).
-def mac(+key: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
+def poly1305_mac(+key: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
   +r = le_num(clamp(prefix(16n, key)))
   +s = le_num(prefix(16n, suffix(16n, key)))
   le_bytes(16n, Nat.add(absorb(blocks(List.length(&2, U32, msg), msg), r, 0n), s))
+
+# The same function, split on the message first so that a proof about an
+# unknown message does not unfold it.
+def mac(+key: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
+  match msg:
+    case Nil{}: poly1305_mac(key, [])
+    case b <> rest: poly1305_mac(key, b <> rest)

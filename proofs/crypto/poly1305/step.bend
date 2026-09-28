@@ -135,9 +135,9 @@ def fold_len(z, hl):
 def pv(+d: List<&2, U32>) -> Nat:
   V.v(Li.quot(16n, Li.carry(16n, d, 0)))
 
-# the limb invariant: at most 17 limbs, all of 8 bits, limb 16 at most 4
+# the limb invariant: 17 limbs, all of 8 bits, limb 16 at most 4
 def inv(+h: List<&2, U32>) -> Bool:
-  Bool.and(Nat.is_le(V.len(h), 17n), Bool.and(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n)))
+  Bool.and(Nat.is_eq(V.len(h), 17n), Bool.and(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n)))
 
 # v(quot) fits 29 bits: the pass-1 top limb fits 31
 law q29:
@@ -286,7 +286,7 @@ def reduce_inv(one, h1, d, hd):
   +htop = reduce_top(one, h1, d, hd)
   +f8 = WW.fits_of_lt(8n, tp, N.le_lt_trans(tp, 4n, C.pow2(8n), htop, {==}))
   +hf = V.fit_split(16n, h2, 8n, V.carry_lo(16n, y, 0), L.and_intro(C.fits(8n, tp), True{}, f8, {==}))
-  L.and_intro(Nat.is_le(V.len(h2), 17n), Bool.and(V.fit_all(h2, 8n), Nat.is_le(tp, 4n)), {==}, L.and_intro(V.fit_all(h2, 8n), Nat.is_le(tp, 4n), hf, htop))
+  L.and_intro(Nat.is_eq(V.len(h2), 17n), Bool.and(V.fit_all(h2, 8n), Nat.is_le(tp, 4n)), {==}, L.and_intro(V.fit_all(h2, 8n), Nat.is_le(tp, 4n), hf, htop))
 
 # ---- one block ----
 
@@ -387,8 +387,8 @@ law block_ev:
   {Nat.mul(Nat.add(V.ev(h), V.ev(c)), V.ev(r)) == Nat.add(V.ev(Li.block(r, h, c)), Nat.mul(bk(r, h, c), pm(one))) : Nat}
 
 def block_ev(one, h1, r, h, c, hh, hcl, hcf, hrl, hrf):
-  +hhl = L.and_left(Nat.is_le(V.len(h), 17n), Bool.and(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n)), hh)
-  +hr2 = L.and_right(Nat.is_le(V.len(h), 17n), Bool.and(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n)), hh)
+  +hhl = N.eq_le(V.len(h), 17n, N.eq_from_is_eq(V.len(h), 17n, L.and_left(Nat.is_eq(V.len(h), 17n), Bool.and(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n)), hh)))
+  +hr2 = L.and_right(Nat.is_eq(V.len(h), 17n), Bool.and(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n)), hh)
   +hhf = L.and_left(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n), hr2)
   +z = zz(r, h, c)
   +d = Li.fold(z)
@@ -422,7 +422,7 @@ law block_inv:
   {inv(Li.block(r, h, c)) == True{} : Bool}
 
 def block_inv(one, h1, r, h, c, hh, hcf, hrl, hrf):
-  +hr2 = L.and_right(Nat.is_le(V.len(h), 17n), Bool.and(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n)), hh)
+  +hr2 = L.and_right(Nat.is_eq(V.len(h), 17n), Bool.and(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n)), hh)
   +hhf = L.and_left(V.fit_all(h, 8n), Nat.is_le(V.v(Li.hd0(Li.skip(16n, h))), 4n), hr2)
   +z = zz(r, h, c)
   reduce_inv(one, h1, Li.fold(z), fold_fit(one, h1, z, z_le(one, h1, r, h, c, hhf, hcf, hrl, hrf)))

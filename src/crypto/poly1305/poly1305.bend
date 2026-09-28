@@ -47,12 +47,18 @@ def absorb(fuel: Nat, +msg: List<&2, U32>, +r: List<&2, U32>, h: List<&2, U32>) 
 def zero() -> List<&2, U32>:
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-# The 16-byte tag of msg under key = r || s.
-def mac(+key: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
+def tag(+key: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
   +r = L.fit(16n, mask(clamp(L.take(16n, key), 0n)))
   +s = mask(L.take(16n, L.skip(16n, key)))
   +h = absorb(List.length(&2, U32, msg), msg, r, zero())
   L.bytes(16n, L.add(L.freeze(h), s), 0)
+
+# The 16-byte tag of msg under key = r || s. (The match on msg only keeps a
+# proof's goal small while msg is unknown; both arms are the same.)
+def mac(+key: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
+  match msg:
+    case Nil{}: tag(key, [])
+    case b <> rest: tag(key, b <> rest)
 
 def has_key(+key: List<&2, U32>) -> Bool:
   Nat.is_eq(List.length(&2, U32, key), 32n)
