@@ -206,7 +206,7 @@ def int_range(~S: Data, ~next: S -> W.U64 & S, s: S, +lo: Nat, +hi: Nat) -> Nat 
 # zeros (11 <= c <= 63), m << (c - 11) has its top bit at 52, and the value
 # m 2^-53 is that significand with biased exponent 1033 - c (below 1023)
 def f53(+m: W.U64, +c: Nat) -> F.F64:
-  F.Bits{X.lo(X.shl(m, Nat.sub(c, 11n))), U32.or(U32.mul(U32.from_nat(Nat.sub(1033n, c)), 1048576), U32.and(X.hi(X.shl(m, Nat.sub(c, 11n))), 1048575))}
+  F.Bits{X.lo(X.shl(m, Nat.sub(c, 11n))), U32.add(U32.mul(U32.from_nat(Nat.sub(1033n, c)), 1048576), U32.and(X.hi(X.shl(m, Nat.sub(c, 11n))), 1048575))}
 
 def f53_z(+m: W.U64, z: Bool) -> F.F64:
   match z:

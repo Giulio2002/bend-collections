@@ -86,9 +86,9 @@ def next(g: ChaCha8) -> W.U64 & ChaCha8:
 
 # ---- seeds ----
 
-# the little-endian word of four bytes
+# the little-endian word of four bytes (Go's byteorder.LEUint32)
 def le32(+b0: U32, +b1: U32, +b2: U32, +b3: U32) -> U32:
-  U32.or(U32.or(b0, U32.shln(b1, 8n)), U32.or(U32.shln(b2, 16n), U32.shln(b3, 24n)))
+  U32.or(U32.or(U32.or(b0, U32.shln(b1, 8n)), U32.shln(b2, 16n)), U32.shln(b3, 24n))
 
 def all_bytes(bs: List<&2, U32>) -> Bool:
   match bs:

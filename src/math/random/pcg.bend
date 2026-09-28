@@ -49,30 +49,34 @@ def xor64(+a: W.U64, +b: W.U64) -> W.U64:
   W.U64{U32.xor(X.lo(a), X.lo(b)), U32.xor(X.hi(a), X.hi(b))}
 
 # the new state from the product's low word l and high word h
-def step_fin(+l: W.U64, +h: W.U64) -> PCG:
-  P{X.add(X.add(h, inc_hi()), W.U64{X.b32(X.add_over(l, inc_lo())), 0}), X.add(l, inc_lo())}
+def step_fin(+ih: W.U64, +il: W.U64, +l: W.U64, +h: W.U64) -> PCG:
+  P{X.add(X.add(h, ih), W.U64{X.b32(X.add_over(l, il)), 0}), X.add(l, il)}
 
-def step_mul(+hi: W.U64, +lo: W.U64, p: W.U64 & W.U64) -> PCG:
+def step_mul(+mh: W.U64, +ml: W.U64, +ih: W.U64, +il: W.U64, +hi: W.U64, +lo: W.U64, p: W.U64 & W.U64) -> PCG:
   (+l, +h) = p
-  step_fin(l, X.add(h, X.add(X.mul(hi, mul_lo()), X.mul(lo, mul_hi()))))
+  step_fin(ih, il, l, X.add(h, X.add(X.mul(hi, ml), X.mul(lo, mh))))
 
-# state * MUL + INC mod 2^128 (Go's (*PCG).next)
-def step(p: PCG) -> PCG:
+# state * (mh:ml) + (ih:il) mod 2^128 (Go's (*PCG).next with its constants
+# as parameters)
+def step_with(+mh: W.U64, +ml: W.U64, +ih: W.U64, +il: W.U64, p: PCG) -> PCG:
   match p:
     case P{+hi, +lo}:
-      step_mul(hi, lo, X.mul128(lo, mul_lo()))
+      step_mul(mh, ml, ih, il, hi, lo, X.mul128(lo, ml))
+
+def step(p: PCG) -> PCG:
+  step_with(mul_hi(), mul_lo(), inc_hi(), inc_lo(), p)
 
 def dxsm2(+h: W.U64, +lo: W.U64) -> W.U64:
   X.mul(xor64(h, X.shr(h, 48n)), W.U64{U32.or(X.lo(lo), 1), X.hi(lo)})
 
-# the DXSM output of a state
-def dxsm(+hi: W.U64, +lo: W.U64) -> W.U64:
-  dxsm2(X.mul(xor64(hi, X.shr(hi, 32n)), cheap_mul()), lo)
+# the DXSM output of a state hi:lo with the multiplier cm
+def dxsm_with(+cm: W.U64, +hi: W.U64, +lo: W.U64) -> W.U64:
+  dxsm2(X.mul(xor64(hi, X.shr(hi, 32n)), cm), lo)
 
 def out(+p: PCG) -> W.U64 & PCG:
   match p:
     case P{+hi, +lo}:
-      (dxsm(hi, lo), P{hi, lo})
+      (dxsm_with(cheap_mul(), hi, lo), P{hi, lo})
 
 def next(p: PCG) -> W.U64 & PCG:
   out(step(p))

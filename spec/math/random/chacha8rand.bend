@@ -1,13 +1,15 @@
 import Base
 import ../../../src/math/u64.bend as W
+import ../../../src/math/random/chacha8/block.bend as B
 
 # Executable specification of ChaCha8Rand, transcribed from C2SP
 # chacha8rand (https://c2sp.org/chacha8rand, the generator of Go's
 # math/rand/v2.ChaCha8 and runtime) and, for the ChaCha block function, from
 # RFC 8439 sections 2.1-2.3 with eight rounds (Bernstein's ChaCha8). The
 # state is the RFC's list x[0..15] of 32-bit words, indexed as in the RFC;
-# nothing of the implementation is used except the neutral 64-bit word record
-# W.U64{lo, hi}, the little-endian reading of eight output bytes.
+# nothing of the implementation is used except the neutral records W.U64{lo,
+# hi} (the little-endian reading of eight output bytes) and B.K (a key as
+# eight words, key_list).
 #
 #   quarter(x, a, b, c, d)   RFC 8439 2.1-2.2, on state indices
 #   double_round(x)          RFC 8439 2.3 inner_block: columns, then diagonals
@@ -24,6 +26,12 @@ import ../../../src/math/u64.bend as W
 #   key_of_seed(seed)        the eight little-endian words of a 32-byte seed
 #                            (Go's byteorder.LEUint32), None unless 32 bytes
 #                            below 256
+
+# the key record as the list of its eight little-endian words
+def key_list(k: B.Key) -> List<&2, U32>:
+  match k:
+    case B.K{k0, k1, k2, k3, k4, k5, k6, k7}:
+      [k0, k1, k2, k3, k4, k5, k6, k7]
 
 def get(xs: List<&2, U32>, i: Nat) -> U32:
   match xs i:
@@ -60,16 +68,20 @@ def quarter(+x: List<&2, U32>, +a: Nat, +b: Nat, +c: Nat, +d: Nat) -> List<&2, U
   +b2 = rotl(U32.xor(b1, c2), 7n)
   put(put(put(put(x, a, a2), b, b2), c, c2), d, d2)
 
-# RFC 8439 2.3 inner_block
+# RFC 8439 2.3 inner_block (on the sixteen words of a state)
 def double_round(x: List<&2, U32>) -> List<&2, U32>:
-  x1 = quarter(x, 0n, 4n, 8n, 12n)
-  x2 = quarter(x1, 1n, 5n, 9n, 13n)
-  x3 = quarter(x2, 2n, 6n, 10n, 14n)
-  x4 = quarter(x3, 3n, 7n, 11n, 15n)
-  x5 = quarter(x4, 0n, 5n, 10n, 15n)
-  x6 = quarter(x5, 1n, 6n, 11n, 12n)
-  x7 = quarter(x6, 2n, 7n, 8n, 13n)
-  quarter(x7, 3n, 4n, 9n, 14n)
+  match x:
+    case [x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15]:
+      y1 = quarter([x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15], 0n, 4n, 8n, 12n)
+      y2 = quarter(y1, 1n, 5n, 9n, 13n)
+      y3 = quarter(y2, 2n, 6n, 10n, 14n)
+      y4 = quarter(y3, 3n, 7n, 11n, 15n)
+      y5 = quarter(y4, 0n, 5n, 10n, 15n)
+      y6 = quarter(y5, 1n, 6n, 11n, 12n)
+      y7 = quarter(y6, 2n, 7n, 8n, 13n)
+      quarter(y7, 3n, 4n, 9n, 14n)
+    case _:
+      x
 
 def double_rounds(n: Nat, x: List<&2, U32>) -> List<&2, U32>:
   match n:
@@ -78,10 +90,6 @@ def double_rounds(n: Nat, x: List<&2, U32>) -> List<&2, U32>:
     case 1n+p:
       double_rounds(p, double_round(x))
 
-# "expand 32-byte k"
-def constants() -> List<&2, U32>:
-  [1634760805, 857760878, 2036477234, 1797285236]
-
 def append(xs: List<&2, U32>, ys: List<&2, U32>) -> List<&2, U32>:
   match xs:
     case Nil{}:
@@ -89,9 +97,13 @@ def append(xs: List<&2, U32>, ys: List<&2, U32>) -> List<&2, U32>:
     case Con{x, rest}:
       Con{x, append(rest, ys)}
 
-# RFC 8439 2.3: constants, key, block counter, nonce (here zero)
-def initial(+key: List<&2, U32>, +ctr: U32) -> List<&2, U32>:
-  append(constants(), append(key, [ctr, 0, 0, 0]))
+# RFC 8439 2.3: constants, key (eight words), block counter, nonce (here zero)
+def initial(key: List<&2, U32>, +ctr: U32) -> List<&2, U32>:
+  match key:
+    case [k0, k1, k2, k3, k4, k5, k6, k7]:
+      [1634760805, 857760878, 2036477234, 1797285236, k0, k1, k2, k3, k4, k5, k6, k7, ctr, 0, 0, 0]
+    case _:
+      []
 
 def add_words(xs: List<&2, U32>, ys: List<&2, U32>) -> List<&2, U32>:
   match xs ys:
@@ -109,9 +121,11 @@ def sub_at(+x: List<&2, U32>, +i: Nat, +c: U32) -> List<&2, U32>:
 
 # C2SP: for each block, subtract the constants from words 0..3 and the block
 # counter from word 12
-def c2sp_block(+key: List<&2, U32>, +i: U32) -> List<&2, U32>:
-  +b = chacha8(key, i)
+def subtract(+b: List<&2, U32>, +i: U32) -> List<&2, U32>:
   sub_at(sub_at(sub_at(sub_at(sub_at(b, 0n, 1634760805), 1n, 857760878), 2n, 2036477234), 3n, 1797285236), 12n, i)
+
+def c2sp_block(+key: List<&2, U32>, +i: U32) -> List<&2, U32>:
+  subtract(chacha8(key, i), i)
 
 # C2SP: "for each sequence of four blocks, first we output the first four
 # bytes of each block, then the next four bytes of each block, and so on"
@@ -226,4 +240,4 @@ def key_if(+bs: List<&2, U32>, ok: Bool) -> Maybe<&2, List<&2, U32>>:
 
 # the key of a seed: 32 bytes, each below 256
 def key_of_seed(+seed: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  key_if(seed, Bool.and(Nat.is_eq(length(seed), 32n), bytes_ok(seed)))
+  key_if(seed, Bool.and(bytes_ok(seed), Nat.is_eq(length(seed), 32n)))
