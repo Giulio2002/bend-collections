@@ -178,43 +178,18 @@ def blamka():
 
 
 def sub():
-    """Blocks as the 256 leaves of a depth-8 subtree of the packed memory array."""
+    """Blocks as lists of 256 words (the memory stores lane n at words 2n, 2n+1)."""
     s = HEADER
     s += ('import Base\n'
           'import ../blake/blake2b/types.bend as T\n'
           'import ./types.bend as A\n\n')
-    # build
-    def tree(ws):
-        if len(ws) == 1:
-            return 'ALeaf{%s}' % ws[0]
-        h = len(ws) // 2
-        return 'ANode{%s,%s}' % (tree(ws[:h]), tree(ws[h:]))
-    ws = []
+    wl = []
     for n in range(128):
-        ws += ['l%d' % n, 'h%d' % n]
-    s += ('# The block as a perfect depth-8 array of 256 words: lane n is words 2n (low)\n'
-          '# and 2n+1 (high).\n'
-          'def build(b: A.Block) -> Array<U32>:\n'
+        wl += ['l%d' % n, 'h%d' % n]
+    s += ('# The 256 words of a block: lane n is words 2n (low) and 2n+1 (high).\n'
+          'def words(b: A.Block) -> List<&2,U32>:\n'
           '  match b:\n    case ' + block_of_lanes(['T.W{l%d,h%d}' % (n, n) for n in range(128)]) + ':\n'
-          '      ' + tree(ws) + '\n\n')
-    # leaves, one function per level (no mutual recursion)
-    s += '# The words of a depth-k array in order, prepended to acc; the array is handed back.\n'
-    s += ('def leaves0(t: Array<U32>, acc: List<&2,U32>) -> Array<U32> & List<&2,U32>:\n'
-          '  match t:\n'
-          '    case ALeaf{+x}: (ALeaf{x},x <> acc)\n'
-          '    case ANode{l,r}: (ANode{l,r},acc)\n\n')
-    for k in range(1, 9):
-        s += ('def leaves%d_b(r: Array<U32>, p: Array<U32> & List<&2,U32>) -> Array<U32> & List<&2,U32>:\n'
-              '  (l,acc) = p\n'
-              '  (ANode{l,r},acc)\n\n' % k)
-        s += ('def leaves%d_a(l: Array<U32>, p: Array<U32> & List<&2,U32>) -> Array<U32> & List<&2,U32>:\n'
-              '  (r,acc) = p\n'
-              '  leaves%d_b(r,leaves%d(l,acc))\n\n' % (k, k, k - 1))
-        s += ('def leaves%d(t: Array<U32>, acc: List<&2,U32>) -> Array<U32> & List<&2,U32>:\n'
-              '  match t:\n'
-              '    case ALeaf{+x}: (ALeaf{x},acc)\n'
-              '    case ANode{l,r}: leaves%d_a(l,leaves%d(r,acc))\n\n' % (k, k, k - 1))
-    # row of words
+          '      [' + csv(wl) + ']\n\n')
     w = ['w%d' % i for i in range(32)]
     s += ('# Sixteen lanes from 32 words, and the words left over.\n'
           'def row(ws: List<&2,U32>) -> T.State & List<&2,U32>:\n'
@@ -230,14 +205,8 @@ def sub():
             s += '  rows8_%d(%srow(ws))\n\n' % (r + 1, ''.join('r%d,' % i for i in range(r + 1)))
         else:
             s += '  A.B{r0,r1,r2,r3,r4,r5,r6,r7}\n\n'
-    s += '# Eight rows from 256 words.\n'
-    s += 'def rows8(ws: List<&2,U32>) -> A.Block:\n  rows8_0(row(ws))\n\n'
-    s += ('def read_fin(p: Array<U32> & List<&2,U32>) -> Array<U32> & A.Block:\n'
-          '  (t,ws) = p\n'
-          '  (t,rows8(ws))\n\n'
-          '# The block stored in a depth-8 subtree; the subtree is handed back.\n'
-          'def read(t: Array<U32>) -> Array<U32> & A.Block:\n'
-          '  read_fin(leaves8(t,Nil{}))\n')
+    s += '# The block of 256 words (the inverse of words).\n'
+    s += 'def rows8(ws: List<&2,U32>) -> A.Block:\n  rows8_0(row(ws))\n'
     return s
 
 

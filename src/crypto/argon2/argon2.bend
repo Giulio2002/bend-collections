@@ -219,14 +219,14 @@ def pick(indep: Bool, +addr: A.Block, +idx: Nat, +prev: A.Block) -> T.Lane:
 
 def store_xor(+k: Nat, +cur: Nat, +prev: A.Block, +refb: A.Block, p: Array<U32> & A.Block) -> Array<U32>:
   (a, old) = p
-  M.set(k, cur, G.compress_xor(prev, refb, old), a)
+  M.set(cur, G.compress_xor(prev, refb, old), a)
 
 def store(r0: Bool, +k: Nat, +cur: Nat, +prev: A.Block, +refb: A.Block, a: Array<U32>) -> Array<U32>:
   match r0:
     case True{}:
-      M.set(k, cur, G.compress(prev, refb), a)
+      M.set(cur, G.compress(prev, refb), a)
     case False{}:
-      store_xor(k, cur, prev, refb, M.get(k, cur, a))
+      store_xor(k, cur, prev, refb, M.get(cur, a))
 
 def with_ref(+r: Nat, +l: Nat, +s: Nat, +idx: Nat, +p: Nat, +q: Nat, +sl: Nat, +k: Nat, +cur: Nat, +prev: A.Block, +rl: Nat, +j1: U32, pair: Array<U32> & A.Block) -> Array<U32>:
   (a, +refb) = pair
@@ -239,7 +239,7 @@ def with_prev(+r: Nat, +l: Nat, +s: Nat, +idx: Nat, +p: Nat, +q: Nat, +sl: Nat, 
   +rl = ref_lane(Bool.and(r0, Nat.is_eq(s, 0n)), l, hi(pr), p)
   +w = area(area_base(r0, s, sl, q), idx, Nat.is_eq(rl, l))
   +ri = Nat.mod(Nat.add(start(r0, s, sl), rel(w, G.lo(pr))), q)
-  with_ref(r, l, s, idx, p, q, sl, k, cur, prev, rl, G.lo(pr), M.get(k, Nat.add(Nat.mul(rl, q), ri), a))
+  with_ref(r, l, s, idx, p, q, sl, k, cur, prev, rl, G.lo(pr), M.get(Nat.add(Nat.mul(rl, q), ri), a))
 
 # Positions idx .. idx + n - 1 of segment (r, s) of lane l.
 def seg_go(n: Nat, +idx: Nat, first: Bool, addr: A.Block, a: Array<U32>, +r: Nat, +l: Nat, +s: Nat, +p: Nat, +q: Nat, +sl: Nat, +mm: Nat, +t: Nat, +k: Nat, +indep: Bool) -> Array<U32>:
@@ -251,7 +251,7 @@ def seg_go(n: Nat, +idx: Nat, first: Bool, addr: A.Block, a: Array<U32>, +r: Nat
       +j = Nat.add(Nat.mul(s, sl), idx)
       +cur = Nat.add(Nat.mul(l, q), j)
       +prev = prev_index(l, q, j, Nat.is_eq(j, 0n))
-      seg_go(rest, Nat.add(idx, 1n), False{}, addr2, with_prev(r, l, s, idx, p, q, sl, k, cur, indep, addr2, M.get(k, prev, a)), r, l, s, p, q, sl, mm, t, k, indep)
+      seg_go(rest, Nat.add(idx, 1n), False{}, addr2, with_prev(r, l, s, idx, p, q, sl, k, cur, indep, addr2, M.get(prev, a)), r, l, s, p, q, sl, mm, t, k, indep)
 
 def start_index(first: Bool) -> Nat:
   match first:
@@ -295,7 +295,7 @@ def init_go(n: Nat, +l: Nat, +q: Nat, +k: Nat, +hh: List<&2, U32>, a: Array<U32>
     case 1n+rest:
       +b0 = block_of(hprime(1024n, cat(hh, cat(le32(0n), le32(l)))))
       +b1 = block_of(hprime(1024n, cat(hh, cat(le32(1n), le32(l)))))
-      init_go(rest, Nat.add(l, 1n), q, k, hh, M.set(k, Nat.add(Nat.mul(l, q), 1n), b1, M.set(k, Nat.mul(l, q), b0, a)))
+      init_go(rest, Nat.add(l, 1n), q, k, hh, M.set(Nat.add(Nat.mul(l, q), 1n), b1, M.set(Nat.mul(l, q), b0, a)))
 
 # C = B[0][q-1] XOR .. XOR B[p-1][q-1]: pair holds the memory and B[l][q-1],
 # n more lanes follow.
@@ -304,7 +304,7 @@ def final_go(n: Nat, +l: Nat, +q: Nat, +k: Nat, c: A.Block, pair: Array<U32> & A
     case 0n Tuple{a, b}:
       G.xor(c, b)
     case 1n+rest Tuple{a, b}:
-      final_go(rest, Nat.add(l, 1n), q, k, G.xor(c, b), M.get(k, Nat.add(Nat.mul(Nat.add(l, 1n), q), Nat.sub(q, 1n)), a))
+      final_go(rest, Nat.add(l, 1n), q, k, G.xor(c, b), M.get(Nat.add(Nat.mul(Nat.add(l, 1n), q), Nat.sub(q, 1n)), a))
 
 # ---------------------------------------------------------------- Argon2id
 
@@ -324,7 +324,7 @@ def run(+pw: List<&2, U32>, +salt: List<&2, U32>, +key: List<&2, U32>, +ad: List
   +hh = h0(p, tl, m, t, pw, salt, key, ad)
   a = init_go(p, 0n, q, k, hh, M.new(k))
   a = passes_go(t, 0n, p, q, sl, mm, t, k, a)
-  hprime(tl, block_bytes(final_go(Nat.sub(p, 1n), 0n, q, k, G.zero(), M.get(k, Nat.sub(q, 1n), a))))
+  hprime(tl, block_bytes(final_go(Nat.sub(p, 1n), 0n, q, k, G.zero(), M.get(Nat.sub(q, 1n), a))))
 
 def checked(ok: Bool, +pw: List<&2, U32>, +salt: List<&2, U32>, +key: List<&2, U32>, +ad: List<&2, U32>, +t: Nat, +m: Nat, +p: Nat, +tl: Nat) -> Maybe<&2, List<&2, U32>>:
   match ok:
