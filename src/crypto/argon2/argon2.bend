@@ -26,12 +26,16 @@ def le32(+n: Nat) -> List<&2, U32>:
 
 # H' for T > 64 (RFC 9106 section 3.3): W1 || .. || Wr || V_{r+1}, where
 # Wi is the first 32 bytes of Vi, V_{i+1} = H^64(Vi) and V_{r+1} = H^{T-32r}(Vr).
-def hp_go(n: Nat, +v: List<&2, U32>, +last: Nat) -> List<&2, U32>:
-  match n:
-    case 0n:
-      cat(List.take(&2, U32, v, 32n), H.hash(last, v))
-    case 1n+p:
-      cat(List.take(&2, U32, v, 32n), hp_go(p, H.hash(64n, v), last))
+# (V_i is a 64-byte digest, never empty; it is inspected first so that proofs
+# keep the chain of hashes folded.)
+def hp_go(n: Nat, v: List<&2, U32>, +last: Nat) -> List<&2, U32>:
+  match n v:
+    case _ Nil{}:
+      Nil{}
+    case 0n +x <> +r:
+      cat(List.take(&2, U32, x <> r, 32n), H.hash(last, x <> r))
+    case 1n+p +x <> +r:
+      cat(List.take(&2, U32, x <> r, 32n), hp_go(p, H.hash(64n, x <> r), last))
 
 def hp_pick(+tl: Nat, +x: List<&2, U32>, short: Bool) -> List<&2, U32>:
   match short:

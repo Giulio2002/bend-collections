@@ -92,13 +92,15 @@ def hash_eq(+nn: Nat, +bs: List<&2, U32>) -> {IH.hash(nn, bs) == SA.hash(nn, bs)
 # ---------------------------------------------------------------- H' and H0
 
 def hp_go_eq(+n: Nat, +v: List<&2, U32>, +last: Nat) -> {I.hp_go(n, v, last) == SA.hp_go(n, v, last) : List<&2, U32>}:
-  match n:
-    case 0n:
-      Equal.cong(List<&2, U32>, List<&2, U32>, z => List.append(&2, U32, List.take(&2, U32, v, 32n), z), IH.hash(last, v), SA.hash(last, v), hash_eq(last, v))
-    case 1n+ +p:
-      Equal.trans(List<&2, U32>, List.append(&2, U32, List.take(&2, U32, v, 32n), I.hp_go(p, IH.hash(64n, v), last)), List.append(&2, U32, List.take(&2, U32, v, 32n), I.hp_go(p, SA.hash(64n, v), last)), List.append(&2, U32, List.take(&2, U32, v, 32n), SA.hp_go(p, SA.hash(64n, v), last)),
-        Equal.cong(List<&2, U32>, List<&2, U32>, z => List.append(&2, U32, List.take(&2, U32, v, 32n), I.hp_go(p, z, last)), IH.hash(64n, v), SA.hash(64n, v), hash_eq(64n, v)),
-        Equal.cong(List<&2, U32>, List<&2, U32>, z => List.append(&2, U32, List.take(&2, U32, v, 32n), z), I.hp_go(p, SA.hash(64n, v), last), SA.hp_go(p, SA.hash(64n, v), last), hp_go_eq(p, SA.hash(64n, v), last)))
+  match n v:
+    case _ Nil{}:
+      {==}
+    case 0n +x <> +r:
+      Equal.cong(List<&2, U32>, List<&2, U32>, z => List.append(&2, U32, List.take(&2, U32, x <> r, 32n), z), IH.hash(last, x <> r), SA.hash(last, x <> r), hash_eq(last, x <> r))
+    case 1n+ +p +x <> +r:
+      Equal.trans(List<&2, U32>, List.append(&2, U32, List.take(&2, U32, x <> r, 32n), I.hp_go(p, IH.hash(64n, x <> r), last)), List.append(&2, U32, List.take(&2, U32, x <> r, 32n), I.hp_go(p, SA.hash(64n, x <> r), last)), List.append(&2, U32, List.take(&2, U32, x <> r, 32n), SA.hp_go(p, SA.hash(64n, x <> r), last)),
+        Equal.cong(List<&2, U32>, List<&2, U32>, z => List.append(&2, U32, List.take(&2, U32, x <> r, 32n), I.hp_go(p, z, last)), IH.hash(64n, x <> r), SA.hash(64n, x <> r), hash_eq(64n, x <> r)),
+        Equal.cong(List<&2, U32>, List<&2, U32>, z => List.append(&2, U32, List.take(&2, U32, x <> r, 32n), z), I.hp_go(p, SA.hash(64n, x <> r), last), SA.hp_go(p, SA.hash(64n, x <> r), last), hp_go_eq(p, SA.hash(64n, x <> r), last)))
 
 def hp_pick_eq(+tl: Nat, +x: List<&2, U32>, +short: Bool) -> {I.hp_pick(tl, x, short) == SA.hp_pick(tl, x, short) : List<&2, U32>}:
   match short:

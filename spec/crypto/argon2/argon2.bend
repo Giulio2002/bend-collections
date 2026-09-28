@@ -110,12 +110,16 @@ def hash(+nn: Nat, +bs: List<&2, U32>) -> List<&2, U32>:
 # r = ceil(T / 32) - 2; V1 = H^64(LE32(T) || A), V_{i+1} = H^64(V_i),
 # V_{r+1} = H^{T - 32r}(V_r); the output is W1 || .. || Wr || V_{r+1}, Wi
 # the first 32 bytes of Vi.
-def hp_go(n: Nat, +v: List<&2, U32>, +last: Nat) -> List<&2, U32>:
-  match n:
-    case 0n:
-      cat(List.take(&2, U32, v, 32n), hash(last, v))
-    case 1n+p:
-      cat(List.take(&2, U32, v, 32n), hp_go(p, hash(64n, v), last))
+# (V_i is a 64-byte digest, never empty; it is inspected first so that proofs
+# keep the chain of hashes folded.)
+def hp_go(n: Nat, v: List<&2, U32>, +last: Nat) -> List<&2, U32>:
+  match n v:
+    case _ Nil{}:
+      Nil{}
+    case 0n +x <> +r:
+      cat(List.take(&2, U32, x <> r, 32n), hash(last, x <> r))
+    case 1n+p +x <> +r:
+      cat(List.take(&2, U32, x <> r, 32n), hp_go(p, hash(64n, x <> r), last))
 
 def hp_pick(+tl: Nat, +x: List<&2, U32>, short: Bool) -> List<&2, U32>:
   match short:
