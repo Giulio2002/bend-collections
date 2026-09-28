@@ -28,6 +28,8 @@ benchmarked against optimized C implementations of the same algorithms.
 | Integer math | `src/math/natural.bend` | Python-style `math` integer functions, see below |
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 | Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |
+| Random numbers | `src/math/random.bend` (`src/math/random/`) | Go's `math/rand/v2` bit for bit: a Source interface for any seeded generator, ChaCha8 (C2SP chacha8rand) and PCG-DXSM sources, unbiased bounded integers (Lemire), floats, Fisher-Yates shuffles; see below |
+| Secure random | `src/crypto/random.bend` | ChaCha8Rand generator: seeded or OS-seeded (`IO.random_u32`), `bytes`, `uint_below`, `shuffle`; [contract and caveats](docs/CRYPTO_CONTRACTS.md) |
 
 The hash map and the LRU follow Base's conventions: signatures are
 quantity-polymorphic (`a, -V: Kind(a)`, as `Base.Map` uses), and reads that
@@ -184,6 +186,55 @@ wrapping ones that result modulo 2^w, a wrapping difference plus b is a plus
 of the value). `tools/check_fixed.py` compares every function with Python
 integers under Rust's semantics, naming the clause of each case.
 
+## Random numbers
+
+`src/math/random.bend` follows Go's `math/rand/v2`: a generator is a value
+built from a seed the caller chooses, and every call returns its value next
+to the advanced generator (Bend is pure). The same seed gives Go's exact
+sequence (Go's test vectors pass).
+
+```python
+import ./src/math/random.bend as R
+import ./src/math/random/pcg.bend as PCG
+import ./src/math/u64.bend as W
+
+def gen() -> PCG.PCG:
+  R.pcg(W.U64{1, 0}, W.U64{2, 0})                     # Go: rand.New(rand.NewPCG(1, 2))
+
+# a die roll and the advanced generator              # Go: r.Uint64N(6)
+def roll(g: PCG.PCG) -> W.U64 & PCG.PCG:
+  R.uint64n(~PCG.PCG, ~R.pcg_next, g, W.U64{6, 0})
+
+def deal(g: PCG.PCG, +cards: List<&2, U32>) -> List<&2, U32> & PCG.PCG:
+  R.shuffle(~U32, ~PCG.PCG, ~R.pcg_next, g, cards)    # Go: r.Shuffle
+```
+
+A source is any state type `S` with `~next: S -> U64 & S`, passed as
+templates like `src/math/num.bend`'s `~op`: every function of
+`src/math/random/rand.bend` (`uint64 uint32 int64 int32 uint64n/uint_below
+uint32n intn int_range float64 shuffle perm`) is written once for all
+sources, and so will math/statistics be (a `normal(~S, ~next, s)` on top of
+`float64`). Sources: `R.chacha8(seed)` (Go's `ChaCha8`, C2SP chacha8rand,
+a 32-byte seed) and `R.pcg(seed1, seed2)` (Go's `PCG`, 128-bit LCG with the
+DXSM output). `uint64n` is Lemire's nearly divisionless method exactly as
+Go's (a power of two masks, otherwise multiply and reject while the low half
+is below 2^64 mod n), with at most 128 draws where Go loops forever.
+
+Proved for every input (`proofs/math/random/proof.bend`,
+`docs/MATH_CONTRACTS.md`): the ChaCha8 generator outputs C2SP's stream for
+every key and seed; a PCG step is the 128-bit LCG and the output DXSM on
+naturals; `uint64n` computes the specification's draw and is below n for
+every source; Lemire's rejection is exactly unbiased (for every width, bound
+and k < n, exactly floor(2^w / n) source outputs draw k); `shuffle` and
+`perm` return permutations for every source; `float64` is m 2^-53 exactly
+and below 1. Tested: Go's vectors and a Python mirror of Go on random seeds
+and call sequences, plus a chi-square smoke test (`tools/check_random.py`).
+
+`src/crypto/random.bend` is the secure generator: ChaCha8Rand keyed from
+the OS (`from_os()`, eight `IO.random_u32`) or from a secret seed (`new`),
+with `bytes` (Go's `ChaCha8.Read`), `uint_below` and `shuffle`; proofs and
+security caveats in [docs/CRYPTO_CONTRACTS.md](docs/CRYPTO_CONTRACTS.md).
+
 ## Install
 
 The library is published on the Bend hub. Import any module by its path in
@@ -205,8 +256,10 @@ fetched), so an import never changes under you; each release lists its hash.
 src/containers/   the collections, their internals (internal/) and API types (types/)
 src/math/         integer math (natural.bend), the same per type (num, generic, instances),
                   software binary64 (f64), 64-bit words (u64, w64), fixed-width U32/U64
-                  families and number theory (fixed, number), hashing, powers of two
-src/crypto/       SHA-256 (sha/), Keccak-256 (keccak/), BLAKE2s, BLAKE2b and BLAKE3 (blake/)
+                  families and number theory (fixed, number), hashing, powers of two,
+                  random numbers (random.bend, random/: Go's math/rand/v2)
+src/crypto/       SHA-256 (sha/), Keccak-256 (keccak/), BLAKE2s, BLAKE2b and BLAKE3 (blake/),
+                  the secure random generator (random.bend)
 spec/             the specifications, mirroring src/: what each module does,
                   independent of how
   containers/<pkg>.bend  the abstract model and its contract: every SPARK
@@ -256,6 +309,7 @@ Bend 2.0.32, built from bendlang/bend main at b2111cf4 (pinned in
 ```sh
 bend tests/<container>/main.bend    # each container's test driver
 bend tests/math/natural.bend -o build/math/natural && python3 tools/check_math.py   # math vs CPython
+bend tests/math/random.bend -o build/math/random && python3 tools/check_random.py   # random vs Go
 ```
 
 ## Benchmark

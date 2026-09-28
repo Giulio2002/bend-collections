@@ -14,9 +14,12 @@ import ./random/pcg.bend as P
 #   import ./src/math/random/pcg.bend as PCG           (the state types:
 #   import ./src/math/random/chacha8.bend as C8         PCG.PCG, C8.ChaCha8)
 #
-#   g = R.pcg(W.U64{1, 0}, W.U64{2, 0})                  Go: rand.NewPCG(1, 2)
-#   (k, g) = R.uint64n(~PCG.PCG, ~R.pcg_next, g, n)       Go: r.Uint64N(n)
-#   (xs, g) = R.shuffle(~U32, ~PCG.PCG, ~R.pcg_next, g, xs)   Go: r.Shuffle
+#   R.pcg(W.U64{1, 0}, W.U64{2, 0})                   Go: rand.NewPCG(1, 2)
+#   R.uint64n(~PCG.PCG, ~R.pcg_next, g, n)            Go: r.Uint64N(n)
+#   R.shuffle(~U32, ~PCG.PCG, ~R.pcg_next, g, xs)     Go: r.Shuffle
+#
+# (each call returns the value next to the advanced generator: a pair, taken
+# apart in a helper def, as Bend matches only parameters)
 #
 # Sources (the Source interface of random/rand.bend: a state type S and
 # ~next: S -> W.U64 & S, passed as templates):

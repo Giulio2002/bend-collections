@@ -41,6 +41,7 @@ Two strengths of evidence:
 | `spec/math/instances.bend` (what each instance operation computes) | 17 | proved at U32 and U64 (`proofs/math/typed/u32laws.bend`, `u64laws.bend`) |
 | `spec/math/w64.bend` (U64 arithmetic) | 24 | proved (`proofs/math/typed/w64*.bend`) |
 | `spec/math/f64.bend` (software binary64) | 17 | proved (bit fields, order, `OfNat`, `Add`, `Sub`, `Mul`, `Div`, `Sqrt`; `proofs/math/typed/f64*.bend`); the reference itself tested against the machine |
+| `spec/math/random.bend` (Go's math/rand/v2: ChaCha8, PCG, bounded draws, shuffles, floats) | 12 | proved (`proofs/math/random/proof.bend`); see [Random numbers](#random-numbers) |
 
 `src/math/num.bend` is the numeric interface's types; its laws are the
 instance clauses of `spec/math/instances.bend`.
@@ -122,6 +123,61 @@ correctness rests on the base-set theorem (the first 12 prime bases decide
 every n < 2^64), a computation over all 64-bit strong pseudoprimes that
 cannot be proved here without an axiom; exact trial division is too slow at
 64 bits.
+
+## Random numbers
+
+`src/math/random.bend` is Go's `math/rand/v2` (bit for bit: Go's own test
+vectors pass, `tools/check_random.py`): sources are values built from a seed
+the caller chooses, threaded explicitly; every function of
+`src/math/random/rand.bend` is written once for any source, a state type `S`
+with `~next: S -> U64 & S` passed as templates (the Source interface; a
+later math/statistics module is written the same way, and its laws can be
+proved for an arbitrary `~next`, as `Uint64n.lt` and `Shuffle.permutation`
+are). The contract is `spec/math/random.bend`; the executable
+specifications are `spec/math/random/chacha8rand.bend` (C2SP chacha8rand
+with the RFC 8439 ChaCha block at 8 rounds), `pcg.bend` (the 128-bit LCG and
+DXSM on naturals), `rand.bend` (Go's `uint64n` decision, Lemire's
+acceptance, the bounded draw, occurrence counts) and `source.bend` (a
+source's output sequence). Gate: `proofs/math/random/proof.bend`, every
+clause under its name, for every input.
+
+| Function | Clause | Statement | Mirrors | Evidence |
+|---|---|---|---|---|
+| ChaCha8 `of_key`, `next` | `ChaCha8.stream` | the n outputs of the generator keyed by k are C2SP's stream keyed by k's eight words (every key, every n: blocks, subtractions, interleaving, 992-byte key erasure) | C2SP chacha8rand; Go `internal/chacha8rand`; HACL* `Spec.Chacha20` for the block | P (`chacha8/rounds.bend`, `block.bend`, `stream.bend`) |
+| ChaCha8 `new` | `ChaCha8.seeded` | None unless the seed is 32 bytes below 256; otherwise the stream of its little-endian words | Go `NewChaCha8([32]byte)` | P (`chacha8/seed.bend`) |
+| PCG `step_with` | `PCG.step` | one step is s * mul + inc mod 2^128, for every multiplier and increment | Go `pcg.go` `next`; O'Neill 2014 | P (`pcg.bend`) |
+| PCG `dxsm_with` | `PCG.output` | the output is DXSM of the state on naturals, for every multiplier | Go `(*PCG).Uint64` | P (`pcg.bend`) |
+| PCG `next` | `PCG.constants` | `next` is the step and output with Go's constants | Go `pcg.go` | P |
+| `uint64n` | `Uint64n.value` | for every source, state and bound, the value of `uint64n(n)` is the specification's bounded draw: the first of at most 128 draws Go's `uint64n` accepts (n = 0 read as 2^64, powers of two masked, else Lemire) | Go `rand.go` `uint64n`; Lemire 2019 Algorithm 5 | P (`uint64n.bend`, `bits.bend`) |
+| `uint64n` | `Uint64n.lt` | `uint64n(n) < n` for n > 0, every source | Go `Uint64N` | P (`below.bend`) |
+| Lemire's rejection | `Lemire.unbiased` | for every width w, 0 < n < 2^w and k < n, exactly floor(2^w / n) of the 2^w outputs x draw k (both branches: the mask and the multiply-and-reject), so a uniform source gives an exactly uniform result | Lemire 2019, section 4 (the count of accepted x per k) | P (`lemire.bend`) |
+| `shuffle` | `Shuffle.permutation` | for every relation `rel` and value v, the result has as many elements related to v as the input (with an equality: the same multiset), for every source | Go `Shuffle`; Coq/Isabelle Fisher-Yates permutation proofs | P (`shuffle.bend`) |
+| `perm` | `Perm.permutation` | `perm(n)` holds every i < n exactly once and nothing else | Go `Perm` | P (`shuffle.bend`) |
+| `float64` | `Float64.value` | the double m 2^-53, m the low 53 bits of the output (exact, the spec's round of m 2^-53) | Go `Float64` | P (`float.bend`) |
+| `float64` | `Float64.lt_one` | `float64 < 1.0` | Go `Float64` | P (`float.bend`) |
+
+Tested, not proved, and why:
+
+- **Go's exact outputs.** The specifications are transcriptions; that they
+  (and the implementation, proved equal to them) are Go's generator bit for
+  bit is tested: `tools/check_random.py` checks Go's published vectors
+  (`chacha8_test.go` 372 outputs through three key erasures and the Read
+  transcript hash, `pcg_test.go`, and `regress_test.go`'s golden values for
+  Float64, Int, Int32, Int32N, Int64, Int64N, IntN, Perm, Uint32, Uint32N,
+  Uint64, Uint64N, UintN), then random keys, seeds and call sequences against
+  a Python mirror of Go written from Go's source and the C2SP pseudocode.
+- **The rejection bound.** Go's `uint64n` retries forever; Bend requires
+  termination, so at most 128 draws are made. A uniform source rejects with
+  probability below 1/2 per draw, so a 128th rejection has probability below
+  2^-128; the result is below n even then (`Uint64n.lt`), and the proved
+  count (`Lemire.unbiased`) is about the acceptance rule itself.
+- **Uniformity of the sources.** That ChaCha8 or PCG outputs look uniform
+  is not a theorem: `tools/check_random.py` runs a chi-square smoke test of
+  `uint64n` buckets (n = 3, 7, 10, 64, 100; 20000 draws each) for ChaCha8,
+  PCG and the crypto generator, at a critical value with p = 1e-6.
+- **`intn`, `int_range`, `uint32`, `int64`, `int32`, `uint32n`** are thin
+  wrappers of `uint64n` and word slicing; they are tested (Go vectors and the
+  mirror), not stated separately.
 
 ## Not proved, and why
 

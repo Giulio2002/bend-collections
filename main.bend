@@ -37,6 +37,10 @@ import ./src/math/f64.bend as F64
 import ./src/math/w64.bend as W64
 import ./src/math/pow2.bend as Pow2
 import ./src/math/u64.bend as U64
+import ./src/math/random.bend as Random
+import ./src/math/random/rand.bend as RandomGeneric
+import ./src/math/random/chacha8.bend as ChaCha8
+import ./src/math/random/pcg.bend as PCG
 import ./src/crypto/sha/sha256.bend as SHA256
 import ./src/crypto/sha/packed/sha256.bend as SHA256Packed
 import ./spec/crypto/sha.bend as SHA256Spec
@@ -53,3 +57,4 @@ import ./src/crypto/blake/blake2b/blake2b.bend as BLAKE2b
 import ./src/crypto/blake/blake2b/hex.bend as BLAKE2bHex
 import ./src/crypto/blake/blake3/blake3.bend as BLAKE3
 import ./src/crypto/blake/blake3/hex.bend as BLAKE3Hex
+import ./src/crypto/random.bend as CryptoRandom
