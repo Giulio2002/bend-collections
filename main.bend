@@ -53,3 +53,5 @@ import ./src/crypto/blake/blake2b/blake2b.bend as BLAKE2b
 import ./src/crypto/blake/blake2b/hex.bend as BLAKE2bHex
 import ./src/crypto/blake/blake3/blake3.bend as BLAKE3
 import ./src/crypto/blake/blake3/hex.bend as BLAKE3Hex
+import ./src/crypto/aes/aes.bend as AES
+import ./src/crypto/aesgcm.bend as AESGCM

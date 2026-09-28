@@ -434,6 +434,22 @@ def main():
         (LOGDIR / 'math.log').write_text('\n'.join(x['output'] for x in checks))
         print('%-22s differential=%s proof=%s' % ('math', math_row['differential'], math_row['proof']), flush=True)
 
+    # src/crypto/aes and src/crypto/aesgcm.bend: the FIPS 197 and NIST CAVP GCM
+    # vectors and a differential test against the `cryptography` package
+    # (tools/check_aes.py); the proofs are checked by proofs/prove.py (aes).
+    crypto_rows = []
+    for cid, command in [('aes', [sys.executable, 'tools/check_aes.py'])]:
+        if args.only and args.only != cid:
+            continue
+        result = run(command, timeout=1800)
+        passed = result.returncode == 0
+        if not passed:
+            fail(cid, 'check failed: ' + repr(command))
+        crypto_rows.append({'id': cid, 'differential': 'passed' if passed else 'failed',
+                            'output': result.stdout + result.stderr})
+        (LOGDIR / (cid + '.log')).write_text(result.stdout + result.stderr)
+        print('%-22s differential=%s' % (cid, 'passed' if passed else 'failed'), flush=True)
+
     lru_log = []
     lru_ok, lru_detail = check_lru(lru_log)
     (LOGDIR / 'lru.log').write_text('\n'.join(lru_log))
@@ -450,6 +466,7 @@ def main():
     report = {
         'structures': rows,
         'math': math_row,
+        'crypto': crypto_rows,
         'lru_reuse': 'passed' if lru_ok else 'failed',
         'lru_detail': lru_detail,
         'complete': bool(complete),

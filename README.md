@@ -25,6 +25,8 @@ benchmarked against optimized C implementations of the same algorithms.
 | BLAKE2s | `src/crypto/blake/blake2s/blake2s.bend` | RFC 7693, 32-byte digest |
 | BLAKE2b | `src/crypto/blake/blake2b/blake2b.bend` | RFC 7693, 64-byte digest |
 | BLAKE3 | `src/crypto/blake/blake3/blake3.bend` | hash mode, 32-byte digest |
+| AES | `src/crypto/aes/aes.bend` | FIPS 197 block cipher, 128/192/256-bit keys; S-box as a constant-time Boyar-Peralta circuit (no table); proved equal to the FIPS 197 specification for every key and block, see [docs/CRYPTO_CONTRACTS.md](docs/CRYPTO_CONTRACTS.md) |
+| AES-GCM | `src/crypto/aesgcm.bend` | SP 800-38D AES-128-GCM and AES-256-GCM, 12-byte nonces, 16-byte tags appended, tag checked with `subtle.eq`; proved equal to the SP 800-38D specification, `decrypt(encrypt(x)) == Some(x)`, a wrong tag gives `None` |
 | Integer math | `src/math/natural.bend` | Python-style `math` integer functions, see below |
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 | Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |
@@ -206,7 +208,8 @@ src/containers/   the collections, their internals (internal/) and API types (ty
 src/math/         integer math (natural.bend), the same per type (num, generic, instances),
                   software binary64 (f64), 64-bit words (u64, w64), fixed-width U32/U64
                   families and number theory (fixed, number), hashing, powers of two
-src/crypto/       SHA-256 (sha/), Keccak-256 (keccak/), BLAKE2s, BLAKE2b and BLAKE3 (blake/)
+src/crypto/       SHA-256 (sha/), Keccak-256 (keccak/), BLAKE2s, BLAKE2b and BLAKE3 (blake/),
+                  AES and GCM (aes/, facade aesgcm.bend)
 spec/             the specifications, mirroring src/: what each module does,
                   independent of how
   containers/<pkg>.bend  the abstract model and its contract: every SPARK
@@ -214,7 +217,8 @@ spec/             the specifications, mirroring src/: what each module does,
                       proposition (docs/SPARK_CONTRACTS.md); a spec spanning
                       several files is a directory with a main.bend
   crypto/             FIPS 180-4 SHA-256, the Keccak sponge, RFC 7693 BLAKE2,
-                      BLAKE3
+                      BLAKE3, FIPS 197 AES and SP 800-38D GCM (aes/: GF(2)
+                      polynomials, the cipher, GHASH/GCTR/GCM)
   math/<module>.bend  each src/math module's contract as `<Function>.<clause>`
                       propositions (docs/MATH_CONTRACTS.md): proved for
                       natural, u64, hash and pow2; stated and tested for the
@@ -235,7 +239,9 @@ proofs/           only proofs: one package per src package, mirroring src/,
   crypto/<pkg>/       the same for src/crypto: sha/ proves SHA-256 equal to its
                       executable FIPS 180-4 specification for every input,
                       keccak/ the packed API equal to the independent sponge
-                      specification (padding, absorption, rejection, all words)
+                      specification (padding, absorption, rejection, all words),
+                      aes/ AES and AES-GCM equal to FIPS 197 / SP 800-38D and
+                      the AEAD laws (docs/CRYPTO_CONTRACTS.md)
   lib/                proof library shared by the packages (logic, Nat, lists,
                       U32 words, arrays, order laws)
   PROOF.bend          the whole library; END_TO_END.bend the public laws
@@ -256,6 +262,7 @@ Bend 2.0.32, built from bendlang/bend main at b2111cf4 (pinned in
 ```sh
 bend tests/<container>/main.bend    # each container's test driver
 bend tests/math/natural.bend -o build/math/natural && python3 tools/check_math.py   # math vs CPython
+python3 tools/check_aes.py           # AES / AES-GCM: FIPS 197, NIST CAVP GCM vectors, `cryptography`
 ```
 
 ## Benchmark
