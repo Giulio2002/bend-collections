@@ -85,3 +85,37 @@ def pow_pow(+x: Nat, +a: Nat, +b: Nat) -> {Nat.pow(Nat.pow(x, a), b) == Nat.pow(
 
 def cancel_r(+a: Nat, +b: Nat, +c: Nat, +e: {Nat.add(a, c) == Nat.add(b, c) : Nat}) -> {a == b : Nat}:
   NR.add_cancel(c, a, b, Equal.trans(Nat, Nat.add(c, a), Nat.add(a, c), Nat.add(c, b), NA.add_comm(c, a), Equal.trans(Nat, Nat.add(a, c), Nat.add(b, c), Nat.add(c, b), e, NA.add_comm(b, c))))
+
+# (z + m) + t == k + z when m + t == k
+def shift3(+z: Nat, +m: Nat, +t: Nat, +k: Nat, +e: {Nat.add(m, t) == k : Nat}) -> {Nat.add(Nat.add(z, m), t) == Nat.add(k, z) : Nat}:
+  Equal.trans(Nat, Nat.add(Nat.add(z, m), t), Nat.add(z, Nat.add(m, t)), Nat.add(k, z), NA.add_assoc(z, m, t), Equal.trans(Nat, Nat.add(z, Nat.add(m, t)), Nat.add(z, k), Nat.add(k, z), Equal.cong(Nat, Nat, w => Nat.add(z, w), Nat.add(m, t), k, e), NA.add_comm(z, k)))
+
+# X + m == Y + m (mod p) -> X == Y (mod p): add p - (m mod p) to both
+def c_cancel(+pp: Nat, +X: Nat, +Y: Nat, +m: Nat, +h: ceq(pp, Nat.add(X, m), Nat.add(Y, m))) -> ceq(pp, X, Y):
+  +P = {1n+pp : Nat}
+  +q = Nat.div(m, P)
+  +r = Nat.mod(m, P)
+  +t = Nat.sub(P, r)
+  +hm = NR.dm_eq(pp, m)
+  +hrt = N.sub_add(P, r, N.lt_le(r, P, NR.dm_lt(pp, m)))
+  +k = Nat.add(Nat.mul(q, P), P)
+  +hk = Equal.trans(Nat, Nat.add(m, t), Nat.add(Nat.add(Nat.mul(q, P), r), t), k, Equal.cong(Nat, Nat, z => Nat.add(z, t), m, Nat.add(Nat.mul(q, P), r), hm), Equal.trans(Nat, Nat.add(Nat.add(Nat.mul(q, P), r), t), Nat.add(Nat.mul(q, P), Nat.add(r, t)), k, NA.add_assoc(Nat.mul(q, P), r, t), Equal.cong(Nat, Nat, z => Nat.add(Nat.mul(q, P), z), Nat.add(r, t), P, hrt)))
+  +hk2 = Equal.trans(Nat, Nat.add(m, t), k, Nat.mul(1n+q, P), hk, NA.add_comm(Nat.mul(q, P), P))
+  +ex = c_trans(pp, X, Nat.add(Nat.mul(1n+q, P), X), Nat.add(Nat.add(X, m), t), c_sym(pp, Nat.add(Nat.mul(1n+q, P), X), X, NR.absorb(pp, 1n+q, X)), c_eq(pp, Nat.add(Nat.mul(1n+q, P), X), Nat.add(Nat.add(X, m), t), Equal.sym(Nat, Nat.add(Nat.add(X, m), t), Nat.add(Nat.mul(1n+q, P), X), shift3(X, m, t, Nat.mul(1n+q, P), hk2))))
+  +ey = c_trans(pp, Nat.add(Nat.add(Y, m), t), Nat.add(Nat.mul(1n+q, P), Y), Y, c_eq(pp, Nat.add(Nat.add(Y, m), t), Nat.add(Nat.mul(1n+q, P), Y), shift3(Y, m, t, Nat.mul(1n+q, P), hk2)), NR.absorb(pp, 1n+q, Y))
+  c_trans(pp, X, Nat.add(Nat.add(X, m), t), Y, ex, c_trans(pp, Nat.add(Nat.add(X, m), t), Nat.add(Nat.add(Y, m), t), Y, c_add(pp, Nat.add(X, m), Nat.add(Y, m), t, t, h, c_refl(pp, t)), ey))
+
+def le_add_l(+a: Nat, +b: Nat) -> {Nat.is_le(b, Nat.add(a, b)) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_le(b, z) == True{} : Bool}, Nat.add(b, a), Nat.add(a, b), NA.add_comm(b, a), N.le_add_right(b, a))
+
+# (X + p) - m == (Y + p) - m (mod p) for X == Y (mod p) and m <= p
+def c_subm(+pp: Nat, +X: Nat, +Y: Nat, +m: Nat, +h: ceq(pp, X, Y), +hm: {Nat.is_le(m, 1n+pp) == True{} : Bool}) -> ceq(pp, Nat.sub(Nat.add(X, 1n+pp), m), Nat.sub(Nat.add(Y, 1n+pp), m)):
+  +P = {1n+pp : Nat}
+  +X2 = Nat.sub(Nat.add(X, P), m)
+  +Y2 = Nat.sub(Nat.add(Y, P), m)
+  +mx = N.le_trans(m, P, Nat.add(X, P), hm, le_add_l(X, P))
+  +my = N.le_trans(m, P, Nat.add(Y, P), hm, le_add_l(Y, P))
+  +ex = Equal.trans(Nat, Nat.add(X2, m), Nat.add(m, X2), Nat.add(X, P), NA.add_comm(X2, m), N.sub_add(Nat.add(X, P), m, mx))
+  +ey = Equal.trans(Nat, Nat.add(Y2, m), Nat.add(m, Y2), Nat.add(Y, P), NA.add_comm(Y2, m), N.sub_add(Nat.add(Y, P), m, my))
+  +e = c_trans(pp, Nat.add(X2, m), Nat.add(X, P), Nat.add(Y2, m), c_eq(pp, Nat.add(X2, m), Nat.add(X, P), ex), c_trans(pp, Nat.add(X, P), Nat.add(Y, P), Nat.add(Y2, m), c_add(pp, X, Y, P, P, h, c_refl(pp, P)), c_eq(pp, Nat.add(Y, P), Nat.add(Y2, m), Equal.sym(Nat, Nat.add(Y2, m), Nat.add(Y, P), ey))))
+  c_cancel(pp, X2, Y2, m, e)

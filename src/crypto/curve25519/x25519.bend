@@ -60,8 +60,13 @@ def clamp(bs: List<&2, U32>) -> List<&2, U32>:
     case Con{b, bt}:
       clamp_top(Con{U32.and(b, 248), bt})
 
-# one ladder step on the swapped pair (x2 : z2), (x3 : z3)
-def step(+x1: List<&2, U32>, +x2: List<&2, U32>, +z2: List<&2, U32>, +x3: List<&2, U32>, +z3: List<&2, U32>, kt: U32) -> St:
+# a24 = 121665 as a field element
+def a24() -> List<&2, U32>:
+  [65, 219, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+# one ladder step on the swapped pair (x2 : z2), (x3 : z3); c24 is a24
+def step(+c24: List<&2, U32>, +x1: List<&2, U32>, +x2: List<&2, U32>, +z2: List<&2, U32>, +x3: List<&2, U32>, +z3: List<&2, U32>, kt: U32) -> St:
   +a = F.add(x2, z2)
   +aa = F.sq(a)
   +b = F.sub(x2, z2)
@@ -71,14 +76,14 @@ def step(+x1: List<&2, U32>, +x2: List<&2, U32>, +z2: List<&2, U32>, +x3: List<&
   +d = F.sub(x3, z3)
   +da = F.mul(d, a)
   +cb = F.mul(c, b)
-  St{F.mul(aa, bb), F.mul(e, F.add(aa, F.mul_small(e, 121665))), F.sq(F.add(da, cb)), F.mul(x1, F.sq(F.sub(da, cb))), kt}
+  St{F.mul(aa, bb), F.mul(e, F.add(aa, F.mul(e, c24))), F.sq(F.add(da, cb)), F.mul(x1, F.sq(F.sub(da, cb))), kt}
 
 # swap ^= k_t; cswap; the step; swap = k_t
-def rung(+x1: List<&2, U32>, st: St, +kt: U32) -> St:
+def rung(+c24: List<&2, U32>, +x1: List<&2, U32>, st: St, +kt: U32) -> St:
   match st:
     case St{+x2, +z2, +x3, +z3, swap}:
       +sw = U32.xor(swap, kt)
-      step(x1, F.select(sw, x2, x3), F.select(sw, z2, z3), F.select(sw, x3, x2), F.select(sw, z3, z2), kt)
+      step(c24, x1, F.select(sw, x2, x3), F.select(sw, z2, z3), F.select(sw, x3, x2), F.select(sw, z3, z2), kt)
 
 # the ladder's bit count, 8 len(k) - 1: 255 for a 32-byte scalar (RFC 7748
 # `bits`). Taken from the scalar, it keeps the proof checker from unfolding
@@ -94,12 +99,12 @@ def nbits(+k: List<&2, U32>) -> Nat:
   Nat.sub(Nat.mul(8n, len(k)), 1n)
 
 # bits t = n - 1 down to 0
-def ladder(n: Nat, +k: List<&2, U32>, +x1: List<&2, U32>, st: St) -> St:
+def ladder(n: Nat, +c24: List<&2, U32>, +k: List<&2, U32>, +x1: List<&2, U32>, st: St) -> St:
   match n:
     case 0n:
       st
     case 1n+ +t:
-      ladder(t, k, x1, rung(x1, st, kbit(k, t)))
+      ladder(t, c24, k, x1, rung(c24, x1, st, kbit(k, t)))
 
 # the final cswap, then x2 * z2^(p - 2), encoded
 def finish(st: St) -> List<&2, U32>:
@@ -108,10 +113,9 @@ def finish(st: St) -> List<&2, U32>:
       F.to_bytes(F.mul(F.select(swap, x2, x3), F.inv(F.select(swap, z2, z3))))
 
 # X25519 on two 32-byte strings of bytes below 256
-def x25519_raw(k: List<&2, U32>, u: List<&2, U32>) -> List<&2, U32>:
+def x25519_raw(+k: List<&2, U32>, u: List<&2, U32>) -> List<&2, U32>:
   +x1 = F.of_bytes(u)
-  +kc = clamp(k)
-  finish(ladder(nbits(kc), kc, x1, St{F.one(), F.zero(), x1, F.one(), 0}))
+  finish(ladder(nbits(k), a24(), clamp(k), x1, St{F.one(), F.zero(), x1, F.one(), 0}))
 
 # 32 values, each below 256
 def valid_bytes(n: Nat, xs: List<&2, U32>) -> Bool:
