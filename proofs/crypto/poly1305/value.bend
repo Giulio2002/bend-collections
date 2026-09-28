@@ -450,3 +450,40 @@ def carry_len(n, ds, u):
     case 1n+k:
       +s = U32.add(u, Li.hd0(ds))
       Equal.cong(Nat, Nat, t => 1n+t, List.length(&2, U32, Li.carry(k, Li.tl(ds), U32.shrn(s, 8n))), 1n+k, carry_len(k, Li.tl(ds), U32.shrn(s, 8n)))
+
+# ---- the 2^130 split of limb n ----
+
+law sq_ev:
+  for +n: Nat
+  for +xs: List<&2, U32>
+  {Nat.add(Nat.add(ev(Li.split(n, xs)), pos(n, C.shift(2n, v(Li.quot(n, xs))))), pos(1n+n, ev(Li.skip(1n+n, xs)))) == ev(xs) : Nat}
+
+def sq_ev(n, xs):
+  match n:
+    case 0n:
+      +h = Li.hd0(xs)
+      +la = v(U32.and(h, 3))
+      +vq = v(U32.shrn(h, 2n))
+      +et = ev(Li.tl(xs))
+      +e0 = A.cadd(Nat.add(Nat.add(la, 0n), C.shift(2n, vq)), Nat.add(la, C.shift(2n, vq)), C.shift(8n, ev(Li.skip(1n, xs))), C.shift(8n, et),
+        WM.cong_l(Nat.add(la, 0n), la, C.shift(2n, vq), N.add_zero(la)),
+        A.csh(8n, ev(Li.skip(1n, xs)), et, Equal.cong(List<&2, U32>, Nat, l => ev(l), Li.skip(1n, xs), Li.tl(xs), skip_succ(0n, xs))))
+      +e1 = A.tr(Nat.add(la, C.shift(2n, vq)), Nat.add(C.low(2n, v(h)), C.shift(2n, C.high(2n, v(h)))), v(h),
+        A.cadd(la, C.low(2n, v(h)), C.shift(2n, vq), C.shift(2n, C.high(2n, v(h))), FB.andm(h, 2n, 3, {==}), A.csh(2n, vq, C.high(2n, v(h)), SHN.shrn_high(h, 2n))),
+        A.sy(v(h), Nat.add(C.low(2n, v(h)), C.shift(2n, C.high(2n, v(h)))), WW.low_high(2n, v(h))))
+      A.tr(Nat.add(Nat.add(Nat.add(la, 0n), C.shift(2n, vq)), C.shift(8n, ev(Li.skip(1n, xs)))), Nat.add(Nat.add(la, C.shift(2n, vq)), C.shift(8n, et)), ev(xs), e0,
+        A.tr(Nat.add(Nat.add(la, C.shift(2n, vq)), C.shift(8n, et)), Nat.add(v(h), C.shift(8n, et)), ev(xs), WM.cong_l(Nat.add(la, C.shift(2n, vq)), v(h), C.shift(8n, et), e1),
+          A.sy(ev(xs), Nat.add(v(h), C.shift(8n, et)), hd_tl_ev(xs))))
+    case 1n+k:
+      +h = Li.hd0(xs)
+      +sp = ev(Li.split(k, Li.tl(xs)))
+      +pq = pos(k, C.shift(2n, v(Li.quot(k, Li.tl(xs)))))
+      +pr = pos(1n+k, ev(Li.skip(1n+k, Li.tl(xs))))
+      +et = ev(Li.tl(xs))
+      +e0 = WM.cong_r(Nat.add(Nat.add(v(h), C.shift(8n, sp)), C.shift(8n, pq)), C.shift(8n, pos(1n+k, ev(Li.skip(2n+k, xs)))), C.shift(8n, pr),
+        A.csh(8n, pos(1n+k, ev(Li.skip(2n+k, xs))), pr, Equal.cong(List<&2, U32>, Nat, l => pos(1n+k, ev(l)), Li.skip(2n+k, xs), Li.skip(1n+k, Li.tl(xs)), skip_succ(1n+k, xs))))
+      A.tr(Nat.add(Nat.add(Nat.add(v(h), C.shift(8n, sp)), C.shift(8n, pq)), C.shift(8n, pos(1n+k, ev(Li.skip(2n+k, xs))))), Nat.add(Nat.add(Nat.add(v(h), C.shift(8n, sp)), C.shift(8n, pq)), C.shift(8n, pr)), ev(xs), e0,
+        A.tr(Nat.add(Nat.add(Nat.add(v(h), C.shift(8n, sp)), C.shift(8n, pq)), C.shift(8n, pr)), Nat.add(v(h), C.shift(8n, Nat.add(Nat.add(sp, pq), pr))), ev(xs), sh4(v(h), sp, pq, pr),
+          A.tr(Nat.add(v(h), C.shift(8n, Nat.add(Nat.add(sp, pq), pr))), Nat.add(v(h), C.shift(8n, et)), ev(xs),
+            WM.cong_r(v(h), C.shift(8n, Nat.add(Nat.add(sp, pq), pr)), C.shift(8n, et), A.csh(8n, Nat.add(Nat.add(sp, pq), pr), et, sq_ev(k, Li.tl(xs)))),
+            A.sy(ev(xs), Nat.add(v(h), C.shift(8n, et)), hd_tl_ev(xs)))))
