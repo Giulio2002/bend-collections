@@ -7,7 +7,15 @@ import ../lib/common.bend as C
 # is one Nat reduced mod p = 2^130 - 5 after every block, as in HACL*'s
 # Spec.Poly1305. Numbers are little-endian byte strings; a byte is the low 8
 # bits of a U32. Multiplication by 256 is written C.shift(8n, x) (eight
-# doublings, spec/lib/common.bend) and 2^k as C.pow2(k).
+# doublings, spec/lib/common.bend).
+#
+# The proof checker expands a closed Nat in unary, so 2^130 is never formed
+# (as spec/math/w64.bend never forms 2^64): "x mod p" is modp(x) below, which
+# uses only 2^130 = p + 5 through C.low / C.high (k halvings). That modp(x)
+# is Nat.mod(x, 2^130 - 5) is proved for every x in
+# proofs/crypto/poly1305/modp.bend (law modp_mod, stated with 2^130 written
+# C.shift(130n, one) for a variable one = 1). p() below is the constant,
+# for the reader; no proof unfolds it.
 #
 # Bend's native runtime keeps a Nat below 2^48, so this specification is a
 # proof object; tools/check_poly1305.py runs a line-by-line mirror of it.
@@ -15,6 +23,31 @@ import ../lib/common.bend as C
 # p = 2^130 - 5
 def p() -> Nat:
   Nat.sub(C.pow2(130n), 5n)
+
+# x = lo + 2^130 hi is congruent to lo + 5 hi mod p (2^130 = p + 5); the fold
+# strictly decreases x while hi > 0, so x folds bring x below 2^130.
+def fold(+x: Nat) -> Nat:
+  Nat.add(C.low(130n, x), Nat.mul(C.high(130n, x), 5n))
+
+def folds(n: Nat, x: Nat) -> Nat:
+  match n:
+    case 0n: x
+    case 1n+k: folds(k, fold(x))
+
+def pick(b: Bool, x: Nat, y: Nat) -> Nat:
+  match b:
+    case True{}: x
+    case False{}: y
+
+# y < 2^130: y itself when y < p, else y - p = (y + 5) - 2^130.
+def canon(+y: Nat) -> Nat:
+  match y:
+    case 0n: 0n
+    case 1n+z: pick(C.fits(130n, Nat.add(1n+z, 5n)), 1n+z, C.low(130n, Nat.add(1n+z, 5n)))
+
+# x mod p
+def modp(+x: Nat) -> Nat:
+  canon(folds(x, x))
 
 # le_bytes_to_num
 def le_num(bytes: List<&2, U32>) -> Nat:
@@ -75,7 +108,7 @@ def absorb(bs: List<&2, List<&2, U32>>, +r: Nat, a: Nat) -> Nat:
     case Nil{}: a
     case b <> rest:
       +n = le_num(List.append(&2, U32, b, [1]))
-      absorb(rest, r, Nat.mod(Nat.mul(r, Nat.add(a, n)), p()))
+      absorb(rest, r, modp(Nat.mul(r, Nat.add(a, n))))
 
 # poly1305_mac(msg, key): r = clamp(key[0..16]), s = key[16..32];
 # a = 0, absorb every block, a += s; the tag is num_to_16_le_bytes(a).
