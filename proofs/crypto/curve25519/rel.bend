@@ -19,8 +19,8 @@ import ./cong.bend as G
 # arguments to a result related to the specification's operation
 # (spec/crypto/curve25519/field.bend: fadd, fsub, fmul, finv).
 
-def R(+pp: Nat, +x: List<&2, U32>, +a: Nat) -> Type:
-  {LM.okb(32n, x, 255n) == True{} : Bool} & G.ceq(pp, FS.value(x), a)
+def R(+pp: Nat, +x: List<&2, U32>, +a: Nat) -> Data:
+  Sigma<&2, &2, {LM.okb(32n, x, 255n) == True{} : Bool}, _ => G.ceq(pp, FS.value(x), a)>
 
 def rc_add(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +x: List<&2, U32>, +y: List<&2, U32>, +a: Nat, +b: Nat, +ox: {LM.okb(32n, x, 255n) == True{} : Bool}, +cx: G.ceq(pp, FS.value(x), a), +oy: {LM.okb(32n, y, 255n) == True{} : Bool}, +cy: G.ceq(pp, FS.value(y), b)) -> G.ceq(pp, FS.value(F.add(x, y)), FS.fadd(1n+pp, a, b)):
   +e = G.c_trans(pp, FS.value(F.add(x, y)), Nat.add(FS.value(x), FS.value(y)), FS.fadd(1n+pp, a, b), FO.add_mod(one, h1, pp, hP, x, y, ox, oy), G.c_trans(pp, Nat.add(FS.value(x), FS.value(y)), Nat.add(a, b), FS.fadd(1n+pp, a, b), G.c_add(pp, FS.value(x), a, FS.value(y), b, cx, cy), G.c_sym(pp, Nat.mod(Nat.add(a, b), 1n+pp), Nat.add(a, b), G.c_mod(pp, Nat.add(a, b)))))
@@ -72,3 +72,13 @@ def rc_p58(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n
 
 def r_p58(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +x: List<&2, U32>, +a: Nat, +ox: {LM.okb(32n, x, 255n) == True{} : Bool}, +cx: G.ceq(pp, FS.value(x), a)) -> R(pp, F.pow_p58(x), FS.fpow(1n+pp, a, Nat.div(Nat.sub(1n+pp, 5n), 8n))):
   (PW.p58_okb(one, h1, x, ox), rc_p58(one, h1, pp, hP, x, a, ox, cx))
+
+def r_o(+pp: Nat, +x: List<&2, U32>, +a: Nat, +r: R(pp, x, a)) -> {LM.okb(32n, x, 255n) == True{} : Bool}:
+  match r:
+    case (o, c):
+      o
+
+def r_c(+pp: Nat, +x: List<&2, U32>, +a: Nat, +r: R(pp, x, a)) -> G.ceq(pp, FS.value(x), a):
+  match r:
+    case (o, c):
+      c
