@@ -332,7 +332,11 @@ def mpow_v(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +ml: U32, +mh: U32, +mp:
   +c2 = MN.cancel(bp, hh, hH, 64n, o, M.pow_mod_go(140n, 1n+bp, SW.value(e), SW.value(b), Nat.mod(1n, 1n+bp)), c1)
   +lo = mont_lt(one, h1, bp, WU.U64{ml, mh}, mp, hM, hinv, h63, go, WU.U64{1, 0}, lg, l1)
   +hP = pm_lt(bp, 140n, SW.value(e), SW.value(b), Nat.mod(1n, 1n+bp), mlt(bp, 1n))
-  Equal.trans(Nat, o, Nat.mod(o, 1n+bp), M.pow_mod_go(140n, 1n+bp, SW.value(e), SW.value(b), Nat.mod(1n, 1n+bp)), Equal.sym(Nat, Nat.mod(o, 1n+bp), o, NR.mod_of(0n, bp, o, lo)), Equal.trans(Nat, Nat.mod(o, 1n+bp), Nat.mod(M.pow_mod_go(140n, 1n+bp, SW.value(e), SW.value(b), Nat.mod(1n, 1n+bp)), 1n+bp), M.pow_mod_go(140n, 1n+bp, SW.value(e), SW.value(b), Nat.mod(1n, 1n+bp)), c2, NR.mod_of(0n, bp, M.pow_mod_go(140n, 1n+bp, SW.value(e), SW.value(b), Nat.mod(1n, 1n+bp)), hP)))
+  +z1 = Equal.sym(Nat, Nat.mod(o, 1n+bp), o, NR.mod_of(0n, bp, o, lo))
+  +z2 = NR.mod_of(0n, bp, M.pow_mod_go(140n, 1n+bp, SW.value(e), SW.value(b), Nat.mod(1n, 1n+bp)), hP)
+  +z3 = Equal.trans(Nat, Nat.mod(o, 1n+bp), Nat.mod(M.pow_mod_go(140n, 1n+bp, SW.value(e), SW.value(b), Nat.mod(1n, 1n+bp)), 1n+bp), M.pow_mod_go(140n, 1n+bp, SW.value(e), SW.value(b), Nat.mod(1n, 1n+bp)), c2, z2)
+  +z4 = Equal.trans(Nat, o, Nat.mod(o, 1n+bp), M.pow_mod_go(140n, 1n+bp, SW.value(e), SW.value(b), Nat.mod(1n, 1n+bp)), z1, z3)
+  z4
 
 
 # what mont_ok(m) gives
