@@ -1,0 +1,150 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../src/crypto/secp256k1/limbs.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/logic.bend as Lg
+import ../../lib/arith.bend as AR
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../math/natural/arith.bend as NR
+import ../../math/typed/width.bend as WW
+import ./semiring.bend as SR
+import ./limbs.bend as LV
+import ./ineq.bend as I
+import ./bounds.bend as B
+import ./reduce.bend as R
+
+# The bits of limb lists (src/crypto/secp256k1/limbs.bend bits, bits_of,
+# cbits) and the number they spell, most significant first, with every
+# bit worth `one` (hv), so that a 256-bit exponent stays symbolic.
+
+def hv(bs: List<&2, Nat>, +one: Nat, +e: Nat) -> Nat:
+  match bs:
+    case Nil{}: e
+    case b <> t: hv(t, one, Nat.add(Nat.double(e), Nat.mul(b, one)))
+
+def hv_app(+one: Nat, xs: List<&2, Nat>, +e: Nat, +ys: List<&2, Nat>) -> {hv(List.append(&2, Nat, xs, ys), one, e) == hv(ys, one, hv(xs, one, e)) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case +x <> +t:
+      hv_app(one, t, Nat.add(Nat.double(e), Nat.mul(x, one)), ys)
+
+def all01(bs: List<&2, Nat>) -> Bool:
+  match bs:
+    case Nil{}: True{}
+    case b <> t: Bool.and(Nat.is_lt(b, 2n), all01(t))
+
+def all01_app(xs: List<&2, Nat>, +ys: List<&2, Nat>, +hx: {all01(xs) == True{} : Bool}, +hy: {all01(ys) == True{} : Bool}) -> {all01(List.append(&2, Nat, xs, ys)) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      hy
+    case +x <> +t:
+      Lg.and_intro(Nat.is_lt(x, 2n), all01(List.append(&2, Nat, t, ys)), Lg.and_left(Nat.is_lt(x, 2n), all01(t), hx), all01_app(t, ys, Lg.and_right(Nat.is_lt(x, 2n), all01(t), hx), hy))
+
+def mod2_lt(+x: Nat) -> {Nat.is_lt(Nat.mod(x, 2n), 2n) == True{} : Bool}:
+  NR.dm_lt(1n, x)
+
+def bits_of01(k: Nat, +x: Nat) -> {all01(L.bits_of(k, x)) == True{} : Bool}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+ +j:
+      all01_app(L.bits_of(j, Nat.div(x, 2n)), [Nat.mod(x, 2n)], bits_of01(j, Nat.div(x, 2n)), Lg.and_intro(Nat.is_lt(Nat.mod(x, 2n), 2n), True{}, mod2_lt(x), {==}))
+
+def bits01(xs: List<&2, Nat>) -> {all01(L.bits(xs)) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case +x <> +t:
+      all01_app(L.bits(t), L.bits_of(16n, x), bits01(t), bits_of01(16n, x))
+
+# ---- the value of bits_of ----
+
+# d < 2 s gives d / 2 < s
+def two_x(+x: Nat) -> {Nat.mul(x, 2n) == Nat.add(x, x) : Nat}:
+  %rw NA.mul_comm(x, 2n)
+  %goal {Nat.add(x, Nat.add(x, 0n)) == Nat.add(x, x) : Nat}
+  %norm
+
+def half_lt(+d: Nat, +s: Nat, +h: {Nat.is_lt(d, Nat.double(s)) == True{} : Bool}) -> {Nat.is_lt(Nat.div(d, 2n), s) == True{} : Bool}:
+  +q = Nat.div(d, 2n)
+  +le = I.le_subst_r(Nat.mul(q, 2n), Nat.add(Nat.mul(q, 2n), Nat.mod(d, 2n)), d, Equal.sym(Nat, d, Nat.add(Nat.mul(q, 2n), Nat.mod(d, 2n)), NR.dm_eq(1n, d)), N.le_add_right(Nat.mul(q, 2n), Nat.mod(d, 2n)))
+  +e2 = Equal.trans(Nat, Nat.double(s), Nat.add(s, s), Nat.mul(s, 2n), NA.double_self(s), Equal.sym(Nat, Nat.mul(s, 2n), Nat.add(s, s), two_x(s)))
+  R.mul_lt_cancel(2n, q, s, N.le_lt_trans(Nat.mul(q, 2n), d, Nat.mul(s, 2n), le, I.lt_subst_r(d, Nat.double(s), Nat.mul(s, 2n), e2, h)), Nat.is_lt(q, s), {==})
+
+# the k bits of d < 2^k spell d
+def bits_of_v(+one: Nat, +h1: {one == 1n : Nat}, k: Nat, +d: Nat, +e: Nat, +hd: {Nat.is_lt(d, C.shift(k, one)) == True{} : Bool}) -> {hv(L.bits_of(k, d), one, e) == Nat.add(C.shift(k, e), Nat.mul(one, d)) : Nat}:
+  match k:
+    case 0n:
+      +d0 = N.lt_succ_le(d, 0n, I.lt_subst_r(d, one, 1n, h1, hd))
+      +ez = N.le_antisym(d, 0n, d0, N.zero_le(d))
+      %goal {e == Nat.add(e, Nat.mul(one, d)) : Nat}
+      %rwh ez : {d == 0n : Nat}
+      %norm
+    case 1n+ +j:
+      +q = Nat.div(d, 2n)
+      +r = Nat.mod(d, 2n)
+      %goal {hv(List.append(&2, Nat, L.bits_of(j, Nat.div(d, 2n)), [Nat.mod(d, 2n)]), one, e) == Nat.add(Nat.double(C.shift(j, e)), Nat.mul(one, d)) : Nat}
+      %rw hv_app(one, L.bits_of(j, Nat.div(d, 2n)), e, [Nat.mod(d, 2n)])
+      %rw bits_of_v(one, h1, j, Nat.div(d, 2n), e, half_lt(d, C.shift(j, one), hd))
+      %goal {Nat.add(Nat.double(Nat.add(C.shift(j, e), Nat.mul(one, Nat.div(d, 2n)))), Nat.mul(Nat.mod(d, 2n), one)) == Nat.add(Nat.double(C.shift(j, e)), Nat.mul(one, d)) : Nat}
+      %rw@r NR.dm_eq(1n, d)
+      %norm
+
+# the bits of n limbs below 2^16 spell their value
+def bits_v(+one: Nat, +h1: {one == 1n : Nat}, n: Nat, xs: List<&2, Nat>, +e: Nat, +hx: {FS.limbs16(one, n, xs) == True{} : Bool}) -> {hv(L.bits(xs), one, e) == Nat.add(LV.pos(n, e), FS.digits(one, xs)) : Nat}:
+  match n xs:
+    case 0n Nil{}:
+      %goal {e == Nat.add(e, 0n) : Nat}
+      %norm
+    case 0n x <> t:
+      Empty.absurd({hv(L.bits(x <> t), one, e) == Nat.add(LV.pos(0n, e), FS.digits(one, x <> t)) : Nat}, Lg.false_true(hx))
+    case 1n+k Nil{}:
+      Empty.absurd({hv(L.bits([]), one, e) == Nat.add(LV.pos(1n+k, e), FS.digits(one, [])) : Nat}, Lg.false_true(hx))
+    case 1n+ +k +x <> +t:
+      +hx0 = Lg.and_left(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, k, t), hx)
+      +ht = Lg.and_right(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, k, t), hx)
+      %goal {hv(List.append(&2, Nat, L.bits(t), L.bits_of(16n, x)), one, e) == Nat.add(C.shift(16n, LV.pos(k, e)), Nat.add(Nat.mul(one, x), C.shift(16n, FS.digits(one, t)))) : Nat}
+      %rw hv_app(one, L.bits(t), e, L.bits_of(16n, x))
+      %rw bits_of_v(one, h1, 16n, x, hv(L.bits(t), one, e), hx0)
+      %rw bits_v(one, h1, k, t, e, ht)
+      %norm
+
+# ---- flipped bits ----
+
+def cbit(b: Nat, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}) -> {Nat.add(Nat.sub(1n, b), b) == 1n : Nat}:
+  match b:
+    case 0n:
+      {==}
+    case 1n:
+      {==}
+    case 2n+ +k:
+      Empty.absurd({Nat.add(Nat.sub(1n, 2n+k), 2n+k) == 1n : Nat}, N.lt_zero_absurd(k, hb))
+
+# (1 - b) one + b one = one
+def cbit_one(+one: Nat, +b: Nat, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}) -> {Nat.add(Nat.mul(Nat.sub(1n, b), one), Nat.mul(b, one)) == one : Nat}:
+  %rw <- NA.mul_add_right(Nat.sub(1n, b), b, one)
+  %rw cbit(b, hb)
+  SR.one_mul(one)
+
+# hv(e1, flipped bits) + hv(e2, bits) + one = 2^length (e1 + e2 + one)
+def arr(+a: Nat, +b: Nat, +c: Nat, +d: Nat, +e: Nat) -> {Nat.add(Nat.add(Nat.add(a, b), Nat.add(c, d)), e) == Nat.add(Nat.add(Nat.add(a, c), e), Nat.add(b, d)) : Nat}:
+  %norm
+
+def cb(+one: Nat, bs: List<&2, Nat>, +e1: Nat, +e2: Nat, +hb: {all01(bs) == True{} : Bool}) -> {Nat.add(Nat.add(hv(L.cbits(bs), one, e1), hv(bs, one, e2)), one) == C.shift(List.length(&2, Nat, bs), Nat.add(Nat.add(e1, e2), one)) : Nat}:
+  match bs:
+    case Nil{}:
+      {==}
+    case +b <> +t:
+      +h0 = Lg.and_left(Nat.is_lt(b, 2n), all01(t), hb)
+      +ht = Lg.and_right(Nat.is_lt(b, 2n), all01(t), hb)
+      %goal {Nat.add(Nat.add(hv(L.cbits(t), one, Nat.add(Nat.double(e1), Nat.mul(Nat.sub(1n, b), one))), hv(t, one, Nat.add(Nat.double(e2), Nat.mul(b, one)))), one) == Nat.double(C.shift(List.length(&2, Nat, t), Nat.add(Nat.add(e1, e2), one))) : Nat}
+      %rw cb(one, t, Nat.add(Nat.double(e1), Nat.mul(Nat.sub(1n, b), one)), Nat.add(Nat.double(e2), Nat.mul(b, one)), ht)
+      %rw <- WW.shift_dbl(List.length(&2, Nat, t), Nat.add(Nat.add(e1, e2), one))
+      %goal {C.shift(List.length(&2, Nat, t), Nat.add(Nat.add(Nat.add(Nat.double(e1), Nat.mul(Nat.sub(1n, b), one)), Nat.add(Nat.double(e2), Nat.mul(b, one))), one)) == C.shift(List.length(&2, Nat, t), Nat.double(Nat.add(Nat.add(e1, e2), one))) : Nat}
+      %rw arr(Nat.double(e1), Nat.mul(Nat.sub(1n, b), one), Nat.double(e2), Nat.mul(b, one), one)
+      %rw cbit_one(one, b, h0)
+      %norm
+
+# (a + b) + (c + d) + e = (a + c + e) + (b + d)

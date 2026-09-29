@@ -114,6 +114,10 @@ class P:
         if s.startswith('_', i) and not re.match(r'[A-Za-z0-9_]', s[i + 1:i + 2] or ' '):
             self.i += 1
             return ('hole',)
+        m = re.compile(r'&\d').match(s, i)
+        if m:
+            self.i = m.end()
+            return ('var', m.group(0))
         m = re.compile(r'\d+n?').match(s, i)
         if m:
             self.i = m.end()
@@ -129,6 +133,18 @@ class P:
             raise SyntaxError('bad term at %r' % s[i:i + 40])
         self.i = m.end()
         name = m.group(0)
+        if s.startswith('<', self.i):
+            depth, j = 0, self.i
+            while True:
+                if s[j] == '<':
+                    depth += 1
+                elif s[j] == '>':
+                    depth -= 1
+                    if depth == 0:
+                        break
+                j += 1
+            self.i = j + 1
+            return ('var', name + s[m.end():j + 1])
         if s.startswith('(', self.i):
             self.i += 1
             return ('app', name, self.args(')'))
@@ -509,6 +525,9 @@ def step_rules(t):
             return b, 'SR.one_mul(%s)' % show(b)
         if b == ONE:
             return a, 'NA.mul_one(%s)' % show(a)
+        if is_lit(b) and 2 <= litv(b) <= 16 and not is_lit(a):
+            k1 = ('lit', '%dn' % (litv(b) - 1))
+            return A(a, M(a, k1)), 'NA.mul_succ(%s, %s)' % (show(a), show(k1))
         if isop(b, 'Nat.add'):
             return A(M(a, b[2][0]), M(a, b[2][1])), 'NA.mul_add_left(%s, %s, %s)' % (show(a), show(b[2][0]), show(b[2][1]))
         if isop(a, 'Nat.add'):
