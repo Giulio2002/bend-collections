@@ -57,3 +57,5 @@ import ./src/crypto/sha512/sha512.bend as SHA512
 import ./src/crypto/sha3/sha3_256.bend as SHA3_256
 import ./src/crypto/hash.bend as CryptoHash
 import ./src/crypto/subtle.bend as Subtle
+import ./src/crypto/kex.bend as Kex
+import ./src/crypto/sign.bend as Sign

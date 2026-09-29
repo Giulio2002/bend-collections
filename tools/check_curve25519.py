@@ -9,9 +9,10 @@ build/crypto/c25519 (tests/crypto/curve25519/main.bend) is run on
     Ed25519): public keys, shared secrets, signatures, verification of
     valid, tampered and non-canonical (S + L) signatures,
   - malformed input (wrong lengths, bytes >= 256): None / false.
-Prints a JSON verdict; exit status 1 on any mismatch.
+The driver is compiled first (bend, or $BEND). Prints a JSON verdict; exit
+status 1 on any mismatch.
 """
-import json, random, subprocess, sys
+import json, os, random, shutil, subprocess, sys
 from pathlib import Path
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
@@ -107,7 +108,20 @@ def cases(rng):
     yield 'ever:%s:00:%s' % ('00' * 31, RFC8032[0][3]), 'false'
 
 
+def build():
+    bend = os.environ.get('BEND', shutil.which('bend') or 'bend')
+    BIN.parent.mkdir(parents=True, exist_ok=True)
+    b = subprocess.run([bend, 'tests/crypto/curve25519/main.bend', '-o', str(BIN.relative_to(ROOT))],
+                       cwd=ROOT, capture_output=True, text=True, timeout=3600)
+    if b.returncode != 0 or not BIN.exists():
+        print(json.dumps({'passed': False, 'build': (b.stdout + b.stderr)[-2000:]}, indent=1))
+        return False
+    return True
+
+
 def main():
+    if not build():
+        return 1
     rng = random.Random(int(sys.argv[1]) if len(sys.argv) > 1 else 25519)
     todo = list(cases(rng))
     fails = []

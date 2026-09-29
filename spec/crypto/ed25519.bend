@@ -98,9 +98,10 @@ def smul(+p: Nat, +d: Nat, n: Nat, +k: Nat, +a: EPt, q: EPt) -> EPt:
       +q2 = double(p, q)
       smul(p, d, t, k, a, pick(SX.kbit(k, t), q2, add(p, d, q2, a)))
 
-# [k] a for a scalar below 2^256
-def mul(+p: Nat, +d: Nat, +k: Nat, +a: EPt) -> EPt:
-  smul(p, d, 256n, k, a, identity())
+# [k] a for a scalar below 2^256: 256 bits, written 2^8 one (one == 1), so
+# the proof checker never unrolls the loop
+def mul(+one: Nat, +p: Nat, +d: Nat, +k: Nat, +a: EPt) -> EPt:
+  smul(p, d, C.shift(8n, one), k, a, identity())
 
 # ---- encoding, 5.1.2 ----
 
@@ -220,20 +221,20 @@ def cat(xs: List<&2, U32>, ys: List<&2, U32>) -> List<&2, U32>:
 def secret(+h: List<&2, U32>) -> Nat:
   FS.value(SX.clamp(first(32n, h)))
 
-def public_of(+p: Nat, +d: Nat, +h: List<&2, U32>) -> List<&2, U32>:
-  encode(p, mul(p, d, secret(h), base(p, d)))
+def public_of(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>) -> List<&2, U32>:
+  encode(p, mul(one, p, d, secret(h), base(p, d)))
 
 def public_key(+one: Nat, +seed: List<&2, U32>) -> List<&2, U32>:
   +p = FS.prime(one)
-  public_of(p, dconst(one, p), SHA.sha512_bytes(seed))
+  public_of(one, p, dconst(one, p), SHA.sha512_bytes(seed))
 
 # ---- 5.1.6 signing ----
 
 def sign_with(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
   +el = ell(one)
-  +a = public_of(p, d, h)
+  +a = public_of(one, p, d, h)
   +r = Nat.mod(FS.value(SHA.sha512_bytes(cat(rest(32n, h), msg))), el)
-  +rb = encode(p, mul(p, d, r, base(p, d)))
+  +rb = encode(p, mul(one, p, d, r, base(p, d)))
   +k = Nat.mod(FS.value(SHA.sha512_bytes(cat(rb, cat(a, msg)))), el)
   cat(rb, SX.le_bytes(32n, Nat.mod(Nat.add(r, Nat.mul(k, secret(h))), el)))
 
@@ -247,7 +248,7 @@ def check(+one: Nat, +p: Nat, +d: Nat, +s: Nat, +rb: List<&2, U32>, +pk: List<&2
   match ra aa:
     case Some{r} Some{+a}:
       +k = Nat.mod(FS.value(SHA.sha512_bytes(cat(rb, cat(pk, msg)))), ell(one))
-      equal(p, mul(p, d, s, base(p, d)), add(p, d, r, mul(p, d, k, a)))
+      equal(p, mul(one, p, d, s, base(p, d)), add(p, d, r, mul(one, p, d, k, a)))
     case _ _:
       False{}
 

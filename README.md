@@ -29,6 +29,8 @@ benchmarked against optimized C implementations of the same algorithms.
 | SHA3-256 | `src/crypto/sha3/sha3_256.bend` | FIPS 202 on the Keccak-f[1600] of `keccak/`; proved equal to `spec/crypto/sha3.bend` |
 | Hashing facade | `src/crypto/hash.bend` | one-shot `sha256`/`sha512`/`sha3_256` and an incremental `Hasher` (`new_*`, `update`, `digest`); see below |
 | Constant-time compare | `src/crypto/subtle.bend` | `eq(a, b)` on byte lists, proved `True` exactly when `a == b` |
+| X25519 key exchange | `src/crypto/kex.bend` | RFC 7748: `generate_keypair(seed)`, `generate_keypair_os()`, `shared_secret(sk, pk)` (all-zero result rejected); field arithmetic mod 2^255 - 19 in `src/crypto/curve25519/`; proved equal to `spec/crypto/curve25519/x25519.bend` |
+| Ed25519 signatures | `src/crypto/sign.bend` | RFC 8032 section 5.1: `generate_keypair`, `sign`, `verify` (cofactorless, S < L enforced); proved equal to `spec/crypto/ed25519.bend` |
 | Integer math | `src/math/natural.bend` | Python-style `math` integer functions, see below |
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 | Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |
@@ -210,6 +212,29 @@ Every function is proved against its standard's executable specification
 digests and tags without an early exit, proved to return `True` exactly on
 equal lists. `docs/CRYPTO_CONTRACTS.md` lists the clauses and their evidence;
 `tools/check_crypto_hash.py` tests all of it against Python's `hashlib`.
+
+## Key exchange and signatures
+
+```python
+import ./src/crypto/kex.bend as Kex
+import ./src/crypto/sign.bend as Sign
+
+Kex.generate_keypair(seed)               # Some{Keypair{secret, public}} for 32 bytes
+Kex.shared_secret(sk, pk)                # X25519(sk, pk), None if all zero or malformed
+Sign.generate_keypair(seed)              # Ed25519 key pair from a 32-byte seed
+Sign.sign(sk, msg)                       # Some{64-byte signature}
+Sign.verify(pk, msg, sig)                # True iff valid (S >= L rejected)
+```
+
+X25519 (RFC 7748) and Ed25519 (RFC 8032) run on one field implementation
+(`src/crypto/curve25519/field.bend`, 32 limbs of 8 bits, every operation
+proved to compute its value mod p with bounded limbs). Each facade is proved
+equal to a transcription of its RFC (`spec/crypto/curve25519/x25519.bend`,
+`spec/crypto/ed25519.bend`) for every input, with SHA-512 proved equal to
+FIPS 180-4; `tools/check_curve25519.py` runs the RFC vectors and a
+differential test against Python's `cryptography`. Secret-dependent steps are
+branch-free (selection by arithmetic, fixed bit counts); Bend has no timing
+model, so constant time is a property of the code's shape, not a theorem.
 
 ## Install
 

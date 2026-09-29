@@ -140,8 +140,152 @@ SHA-512 and SHA3-256, by the SHA-256 package's `stream_correct` for SHA-256).
 The round parameters (48, 64, 24) stay variables in every lemma that unfolds
 a block.
 
+## GF(2^255 - 19): `src/crypto/curve25519/field.bend`
+
+A field element is 32 limbs of 8 bits (`List<&2, U32>`, little-endian);
+"tight" (`FS.tight`) is 32 limbs each below 256. Additions and subtractions
+work limb-wise (subtraction adds 8p first); a product is the 63-limb schoolbook
+convolution with every partial sum proved below 2^32, then three carry passes
+fold 2^256 = 38 (mod p). `inv` is Fermat (a^(p-2)) and `pow_p58` is
+a^((p-5)/8), both as square-and-multiply chains over the exponent's bits.
+`freeze` subtracts p conditionally (by selection, not by branching), and
+`to_bytes` is its limbs. The specification (`spec/crypto/curve25519/field.bend`)
+is arithmetic on natural numbers mod p (`fadd`, `fsub`, `fmul`, `fpow`,
+`finv`). Its clauses take a symbolic `one` with `one == 1` and write
+p = 2^255·one − 19, so that the proof checker never unfolds a 255-bit
+constant (the same device keeps every loop count symbolic).
+
+| Clause | Statement (a, b tight) | Evidence |
+|---|---|---|
+| `Add.value`, `Sub.value`, `Mul.value`, `Sq.value` | `value(op(a, b)) mod p == (a op b) mod p` | proved |
+| `MulSmall.value` | the same for a · k, k < 2^17 | proved |
+| `Add.tight`, `Sub.tight`, `Mul.tight`, `Sq.tight`, `MulSmall.tight` | the result is tight | proved |
+| `Select.zero`, `Select.one` | `select(0, a, b) == a`, `select(1, a, b) == b` (arithmetic selection) | proved |
+| `Inv.value`, `Inv.tight` | `inv(a)` is a^(p-2) mod p | proved |
+| `PowP58.value`, `PowP58.tight` | `pow_p58(a)` is a^((p-5)/8) mod p | proved |
+| `Freeze.value`, `Freeze.tight` | `value(freeze(a)) == value(a) mod p`: the canonical representative | proved |
+| `OfBytes.tight` | decoding 32 bytes (bit 255 masked) gives a tight element | proved |
+| `Eq.value`, `IsZero.value`, `Parity.value` | equality, zero test and low bit of the canonical values | proved |
+
+Proof (`proofs/crypto/curve25519/`): the carry-pass invariant `value(limbs) +
+2^(8n) carry == value(input) + carry_in` with its limb bounds, the
+convolution's value (`limbs.bend`, `poly.bend`, `fold.bend`, `reduce.bend`,
+`mulw.bend`); congruence mod p as a relation with `+`, `·` and `^` rules
+(`cong.bend`, Mathlib's `ZMod` style: the implementation is related to the
+spec's value through `R(x, a) := tight(x) ∧ value(x) ≡ a (mod p)`, the shape
+of Fiat-Crypto's and HACL*'s `feval`); exponentiation chains by the binary
+expansion of the exponent (`pow.bend`); the canonical form (`freeze.bend`,
+`canon.bend`).
+
+## X25519 and key exchange: `src/crypto/curve25519/x25519.bend`, `src/crypto/kex.bend`
+
+`x25519(k, u)` is RFC 7748 section 5: the scalar clamped, u with its top bit
+masked, the Montgomery ladder over bits 254 down to 0 with conditional swaps
+by arithmetic selection, and the result frozen to 32 bytes. The
+specification (`spec/crypto/curve25519/x25519.bend`) transcribes the RFC's
+pseudocode (`decodeScalar25519`, `decodeUCoordinate`, the ladder with
+`cswap`, `encodeUCoordinate`) over natural numbers mod p. `src/crypto/kex.bend`:
+`generate_keypair(seed)` (the seed is the secret, the public key is
+X25519(seed, 9)), `generate_keypair_os()` (32 bytes of `IO.random_u32`) and
+`shared_secret(sk, pk)`, which returns `None` when the result is all zero
+(RFC 7748 section 6.1) or the input is malformed.
+
+| Clause | Statement | Evidence |
+|---|---|---|
+| `X25519.value` | for 32-byte k, u (bytes < 256), the implementation equals the RFC 7748 specification | proved |
+| `X25519.checked` | the checked entry point is `Some` of it on valid input, `None` otherwise | proved |
+| `Kex.public` | `generate_keypair(seed)` is `Some{Keypair{seed, X25519(seed, 9)}}` | proved |
+| `Kex.shared` | `shared_secret(sk, pk)` is X25519(sk, pk), or `None` when that is all zero | proved |
+| `Kex.reject` | malformed input gives `None` | proved |
+
+Proof (`proofs/crypto/curve25519/xbits.bend`, `ladder.bend`, root
+`proof.bend`): one ladder step preserves the relation of the five-register
+state to the specification's; the bit count comes from the scalar's length,
+so the checker never unrolls 255 steps; clamping, masking and the byte
+encoding are equal as lists. `generate_keypair_os` is the proved
+`generate_keypair` on random bytes (the randomness itself is not a clause).
+
+## Ed25519: `src/crypto/ed25519/`, `src/crypto/sign.bend`
+
+RFC 8032 section 5.1 (pure Ed25519, no context or prehash). Points are
+extended homogeneous coordinates (X : Y : Z : T) on the same field
+(`point.bend`: the RFC's addition and doubling formulas, encoding,
+decoding with the square root by (p-5)/8 powers and sqrt(-1), rejection of
+y ≥ p and of x = 0 with the sign bit set; the curve constants d, 2d and
+sqrt(-1) are computed once from small integers by the proved field
+operations). Scalars mod L (`scalar.bend`) are 32 tight limbs: `reduce`
+(value mod L of a 64-byte digest) and `mul_add` ((r + k s) mod L) are
+double-and-add loops whose every step is a sum and one conditional
+subtraction of L, by selection. `ed25519.bend`: key generation (the secret
+scalar is the clamped lower half of SHA-512(seed)), signing, and
+cofactorless verification [S]B == R + [k]A, with S ≥ L rejected
+(non-canonical S) and both points decoded strictly. `sign.bend` is the
+facade: `generate_keypair(seed)`, `generate_keypair_os()`, `sign(sk, msg)`
+(`None` for a malformed key) and `verify(pk, msg, sig)` (`False` for
+malformed input).
+
+The specification (`spec/crypto/ed25519.bend`) transcribes sections 5.1.2
+to 5.1.7 over natural numbers: every field operation mod p, every scalar mod
+L, SHA-512 as FIPS 180-4 (`spec/crypto/sha512.bend`). Scalar multiplication
+is double-and-add over 256 bits, most significant first (HACL*'s
+`Spec.Ed25519` fixes an algorithm the same way); the count is written
+2^8·one.
+
+| Clause | Statement | Evidence |
+|---|---|---|
+| `Scalar.reduce` | for 64 bytes, `value(reduce(bs)) == value(bs) mod L` | proved |
+| `Scalar.mul_add` | for tight k, s, r with s, r < L, `value(mul_add(k, s, r)) == (r + k s) mod L` | proved |
+| `Ed25519.public` | `public_key(seed)` equals the RFC's (5.1.5) | proved |
+| `Ed25519.sign` | `sign_raw(seed, msg)` equals the RFC's signature (5.1.6), for every message | proved |
+| `Ed25519.verify` | for a 32-byte key and a 64-byte signature, the verdict equals the RFC's (5.1.7, cofactorless, S < L required) | proved |
+| `Sign.keypair`, `Sign.sign`, `Sign.verify` | the facade on well-formed input is the specification | proved |
+| `Sign.reject_seed`, `Sign.reject_key`, `Sign.reject` | malformed seed, key or signature: `None` / `False` | proved |
+
+Proof (`proofs/crypto/ed25519/`, root `proof.bend`): the point relation
+`Rp` (each coordinate related by `R`) is preserved by addition, doubling,
+selection and the double-and-add loop (`prel.bend`); encoding, equality and
+decoding are related through canonical values (`pcodec.bend`, `pdec.bend`:
+each decoding branch, including both square-root cases and the failures);
+the scalar loops are proved for a generic modulus 1 + m with a certified
+complement 2^256 − L (`adc.bend`, `scalar.bend`, `scalar2.bend`,
+`scalar3.bend`); SHA-512 digests are 64 bytes below 256 and equal FIPS 180-4
+(`bytes.bend`, reusing `proofs/crypto/sha512/`); `top.bend` composes key
+generation, signing and verification. The curve constants are passed to the
+point functions as data computed from an input list, so the checker never
+evaluates field arithmetic on them.
+
+What is not claimed: that the specification's points lie on the curve or
+form a group (the clauses are implementation == RFC transcription, the
+HACL* notion of functional correctness, not the mathematical security of
+Ed25519), and constant time (below).
+
+### Constant time
+
+Every secret-dependent step is branch-free: the ladder swaps and the
+double-and-add selections are arithmetic (`select(s, a, b)` computes
+`a + s (b - a)` limb-wise), loop counts come from public lengths, the
+conditional subtractions of p and L are selections, and nothing matches on
+secret data. Bend has no timing model, so this is a property of the code's
+shape, not a proved clause. Verification works on public data only.
+
+### Tests
+
+`tools/check_curve25519.py` (run by `tools/validate.py`) compiles
+`tests/crypto/curve25519/main.bend` and runs: RFC 7748 section 5.2 (both
+vectors, 1 and 1000 iterations) and section 6.1 (Alice, Bob, the shared
+secret); RFC 8032 section 7.1 TEST 1, 2, 3, 1024 and SHA(abc); random
+X25519, key-exchange and Ed25519 keys and messages against Python's
+`cryptography`; tampered signatures, non-canonical S + L, and malformed
+input (wrong lengths, bytes ≥ 256).
+
 ## Sources
 
+- RFC 7748, *Elliptic Curves for Security* (X25519); RFC 8032, *EdDSA*
+  (Ed25519, section 5.1 and the test vectors of section 7.1).
+- HACL*: `Spec.Curve25519`, `Spec.Ed25519` (specification shape), the
+  field's `feval` relation; Fiat-Crypto (limb arithmetic proved against
+  `Z/pZ`); Mathlib's `ZMod` (congruence as the relation to the spec);
+  s2n-bignum (carry-chain invariants).
 - FIPS 180-4, *Secure Hash Standard* (SHA-256, SHA-512); FIPS 202, *SHA-3
   Standard* (Keccak-p, the sponge, SHA3-256).
 - HACL*: `Spec.SHA2`, `Spec.SHA3`, `Spec.Hash.Definitions` (specification
