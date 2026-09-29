@@ -471,6 +471,9 @@ ONE = ('lit', '1n')
 
 def step_rules(t):
     """One rewrite at the root of t: (new, proof of {t == new}) or None."""
+    if t[0] == 'succ':
+        k = int(t[1][:-1])
+        return A(t[2], ('lit', '%dn' % k)), 'SR.succ_add(%s, %s)' % (t[1], show(t[2]))
     if isop(t, 'Nat.double') if False else (t[0] == 'app' and t[1] == 'Nat.double' and len(t[2]) == 1):
         x = t[2][0]
         return A(x, x), 'NA.double_self(%s)' % show(x)
@@ -536,6 +539,12 @@ def step_rules(t):
 def first_redex(t, path=()):
     """Leftmost-innermost redex: (path, new, proof)."""
     k = t[0]
+    if k == 'succ':
+        r = first_redex(t[2], path + (0,))
+        if r:
+            return r
+        r = step_rules(t)
+        return (path, r[0], r[1])
     if k == 'app' and t[1] in ('Nat.add', 'Nat.mul', 'C.shift', 'Nat.double'):
         for i, a in enumerate(t[2]):
             if t[1] == 'C.shift' and i == 0:

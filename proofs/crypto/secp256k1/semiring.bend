@@ -26,3 +26,6 @@ def mul_swap(+a: Nat, +b: Nat, +c: Nat) -> {Nat.mul(a, Nat.mul(b, c)) == Nat.mul
 
 def shift_shift(+j: Nat, +k: Nat, +x: Nat) -> {C.shift(j, C.shift(k, x)) == C.shift(Nat.add(j, k), x) : Nat}:
   Equal.sym(Nat, C.shift(Nat.add(j, k), x), C.shift(j, C.shift(k, x)), WW.shift_comp(j, k, x))
+
+def succ_add(+k: Nat, +x: Nat) -> {Nat.add(k, x) == Nat.add(x, k) : Nat}:
+  NA.add_comm(k, x)
