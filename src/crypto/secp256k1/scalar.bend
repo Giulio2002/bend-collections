@@ -17,8 +17,11 @@ def reduce(xs: List<&2, Nat>) -> List<&2, Nat>:
 def zero() -> List<&2, Nat>:
   L.norm16([])
 
+def small(+k: Nat) -> List<&2, Nat>:
+  L.norm16([k])
+
 def one() -> List<&2, Nat>:
-  L.norm16([1n])
+  small(1n)
 
 def add(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
   reduce(L.add(a, b))
@@ -47,7 +50,7 @@ def pow(x: List<&2, Nat>, bits: List<&2, Nat>, +acc: List<&2, Nat>) -> List<&2, 
 
 # the bits of n - 2 = 2^256 - 1 - (c + 1): those of c + 1, flipped
 def inv_bits() -> List<&2, Nat>:
-  L.cbits(L.bits(L.norm16([48832n, 12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n])))
+  L.cbits(L.bits([48832n, 12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]))
 
 # a^(n - 2): the inverse of a nonzero a, 0 for 0
 def inv(+a: List<&2, Nat>) -> List<&2, Nat>:
