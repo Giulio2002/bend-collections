@@ -124,3 +124,36 @@ def reduce4_v(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +c: List<&2, Nat>, +h
 
 def reduce4_l(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +hcc: {Nat.is_lt(Nat.add(LV.ev(c), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}, +hb1: {Nat.is_le(Nat.mul(1n+LV.ev(c), LV.ev(c)), Nat.mul(4n, C.shift(256n, one))) == True{} : Bool}, +hb2: {Nat.is_le(Nat.add(Nat.mul(5n, LV.ev(c)), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {FS.limbs16(one, 16n, L.reduce(c, 4n, xs)) == True{} : Bool}:
   red_fin_l(one, h1, c, hcc, L.rounds(4n, c, L.carry(32n, xs, 0n)), r4_lo(one, h1, c, xs), red4_x4(one, h1, c, xs, hb1, hb2, hx))
+
+# ---- with the hypotheses on c in the specification's terms ----
+
+def hv_ev(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>) -> {FS.value(one, c) == LV.ev(c) : Nat}:
+  LV.ev_value(one, h1, c)
+
+def reduce3_vv(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +c: List<&2, Nat>, +hm: {Nat.add(1n+mp, FS.value(one, c)) == C.shift(256n, one) : Nat}, +hcc: {Nat.is_lt(Nat.add(FS.value(one, c), FS.value(one, c)), C.shift(256n, one)) == True{} : Bool}, +hb: {Nat.is_le(Nat.add(Nat.mul(1n+FS.value(one, c), FS.value(one, c)), FS.value(one, c)), C.shift(256n, one)) == True{} : Bool}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {LV.ev(L.reduce(c, 3n, xs)) == Nat.mod(LV.ev(xs), 1n+mp) : Nat}:
+  +e = hv_ev(one, h1, c)
+  +hm2 = Lg.subst(Nat, z => {Nat.add(1n+mp, z) == C.shift(256n, one) : Nat}, FS.value(one, c), LV.ev(c), e, hm)
+  +hcc2 = Lg.subst(Nat, z => {Nat.is_lt(Nat.add(z, z), C.shift(256n, one)) == True{} : Bool}, FS.value(one, c), LV.ev(c), e, hcc)
+  +hb2 = Lg.subst(Nat, z => {Nat.is_le(Nat.add(Nat.mul(1n+z, z), z), C.shift(256n, one)) == True{} : Bool}, FS.value(one, c), LV.ev(c), e, hb)
+  reduce3_v(one, h1, mp, c, hm2, hcc2, hb2, xs, hx)
+
+def reduce3_lv(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +hcc: {Nat.is_lt(Nat.add(FS.value(one, c), FS.value(one, c)), C.shift(256n, one)) == True{} : Bool}, +hb: {Nat.is_le(Nat.add(Nat.mul(1n+FS.value(one, c), FS.value(one, c)), FS.value(one, c)), C.shift(256n, one)) == True{} : Bool}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {FS.limbs16(one, 16n, L.reduce(c, 3n, xs)) == True{} : Bool}:
+  +e = hv_ev(one, h1, c)
+  +hcc2 = Lg.subst(Nat, z => {Nat.is_lt(Nat.add(z, z), C.shift(256n, one)) == True{} : Bool}, FS.value(one, c), LV.ev(c), e, hcc)
+  +hb2 = Lg.subst(Nat, z => {Nat.is_le(Nat.add(Nat.mul(1n+z, z), z), C.shift(256n, one)) == True{} : Bool}, FS.value(one, c), LV.ev(c), e, hb)
+  reduce3_l(one, h1, c, hcc2, hb2, xs, hx)
+
+def reduce4_vv(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +c: List<&2, Nat>, +hm: {Nat.add(1n+mp, FS.value(one, c)) == C.shift(256n, one) : Nat}, +hcc: {Nat.is_lt(Nat.add(FS.value(one, c), FS.value(one, c)), C.shift(256n, one)) == True{} : Bool}, +hb1: {Nat.is_le(Nat.mul(1n+FS.value(one, c), FS.value(one, c)), Nat.mul(4n, C.shift(256n, one))) == True{} : Bool}, +hb2: {Nat.is_le(Nat.add(Nat.mul(5n, FS.value(one, c)), FS.value(one, c)), C.shift(256n, one)) == True{} : Bool}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {LV.ev(L.reduce(c, 4n, xs)) == Nat.mod(LV.ev(xs), 1n+mp) : Nat}:
+  +e = hv_ev(one, h1, c)
+  +hm2 = Lg.subst(Nat, z => {Nat.add(1n+mp, z) == C.shift(256n, one) : Nat}, FS.value(one, c), LV.ev(c), e, hm)
+  +hcc2 = Lg.subst(Nat, z => {Nat.is_lt(Nat.add(z, z), C.shift(256n, one)) == True{} : Bool}, FS.value(one, c), LV.ev(c), e, hcc)
+  +hb12 = Lg.subst(Nat, z => {Nat.is_le(Nat.mul(1n+z, z), Nat.mul(4n, C.shift(256n, one))) == True{} : Bool}, FS.value(one, c), LV.ev(c), e, hb1)
+  +hb22 = Lg.subst(Nat, z => {Nat.is_le(Nat.add(Nat.mul(5n, z), z), C.shift(256n, one)) == True{} : Bool}, FS.value(one, c), LV.ev(c), e, hb2)
+  reduce4_v(one, h1, mp, c, hm2, hcc2, hb12, hb22, xs, hx)
+
+def reduce4_lv(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +hcc: {Nat.is_lt(Nat.add(FS.value(one, c), FS.value(one, c)), C.shift(256n, one)) == True{} : Bool}, +hb1: {Nat.is_le(Nat.mul(1n+FS.value(one, c), FS.value(one, c)), Nat.mul(4n, C.shift(256n, one))) == True{} : Bool}, +hb2: {Nat.is_le(Nat.add(Nat.mul(5n, FS.value(one, c)), FS.value(one, c)), C.shift(256n, one)) == True{} : Bool}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {FS.limbs16(one, 16n, L.reduce(c, 4n, xs)) == True{} : Bool}:
+  +e = hv_ev(one, h1, c)
+  +hcc2 = Lg.subst(Nat, z => {Nat.is_lt(Nat.add(z, z), C.shift(256n, one)) == True{} : Bool}, FS.value(one, c), LV.ev(c), e, hcc)
+  +hb12 = Lg.subst(Nat, z => {Nat.is_le(Nat.mul(1n+z, z), Nat.mul(4n, C.shift(256n, one))) == True{} : Bool}, FS.value(one, c), LV.ev(c), e, hb1)
+  +hb22 = Lg.subst(Nat, z => {Nat.is_le(Nat.add(Nat.mul(5n, z), z), C.shift(256n, one)) == True{} : Bool}, FS.value(one, c), LV.ev(c), e, hb2)
+  reduce4_l(one, h1, c, hcc2, hb12, hb22, xs, hx)

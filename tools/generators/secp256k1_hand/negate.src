@@ -1,0 +1,34 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../src/crypto/secp256k1/limbs.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/logic.bend as Lg
+import ../../lib/arith.bend as AR
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../math/natural/arith.bend as NR
+import ../../math/typed/width.bend as WW
+import ./semiring.bend as SR
+import ./limbs.bend as LV
+import ./ineq.bend as I
+import ./bounds.bend as B
+import ./reduce.bend as R
+
+# Complements and the borrow-free negation of src/crypto/secp256k1/limbs.bend:
+# comp(x) + x + 1 = 2^(16 n) for n limbs below 2^16
+def comp_v(+one: Nat, +h1: {one == 1n : Nat}, n: Nat, xs: List<&2, Nat>, +h: {FS.limbs16(one, n, xs) == True{} : Bool}) -> {Nat.add(Nat.add(LV.ev(L.comp(xs)), LV.ev(xs)), one) == LV.pos(n, one) : Nat}:
+  match n xs:
+    case 0n Nil{}:
+      {==}
+    case 0n x <> t:
+      Empty.absurd({Nat.add(Nat.add(LV.ev(L.comp(x <> t)), LV.ev(x <> t)), one) == LV.pos(0n, one) : Nat}, Lg.false_true(h))
+    case 1n+k Nil{}:
+      Empty.absurd({Nat.add(Nat.add(LV.ev(L.comp([])), LV.ev([])), one) == LV.pos(1n+k, one) : Nat}, Lg.false_true(h))
+    case 1n+ +k +x <> +t:
+      +hx = Lg.and_left(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, k, t), h)
+      +ht = Lg.and_right(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, k, t), h)
+      %goal {Nat.add(Nat.add(Nat.add(L.comp1(x), C.shift(16n, LV.ev(L.comp(t)))), Nat.add(x, C.shift(16n, LV.ev(t)))), one) == C.shift(16n, LV.pos(k, one)) : Nat}
+      %rw <- comp_v(one, h1, k, t, ht)
+      %nf
+      %rw <- comp1_o(one, h1, x, hx)
+      %norm
