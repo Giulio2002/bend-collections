@@ -9,6 +9,7 @@ import ../subtle/word.bend as SW
 import ./modp.bend as MP
 import ./mac.bend as M
 import ./laws.bend as Laws
+import ./poly.bend as PY
 
 # Entry point: `bend proofs/crypto/poly1305/proof.bend` checks every clause of
 # laws.bend. The work is in value.bend (limb values), step.bend (one block),
@@ -125,3 +126,14 @@ def Laws.verify_rejects(key, msg, tag, h):
   Equal.trans(Bool, P.verify(key, msg, tag), Bool.and(P.has_key(key), SS.equal(P.mac(key, msg), tag)), False{},
     Equal.cong(Bool, Bool, b => Bool.and(P.has_key(key), b), Subtle.eq(P.mac(key, msg), tag), SS.equal(P.mac(key, msg), tag), fold(P.mac(key, msg), tag, 0)),
     rej_c(key, msg, tag, h, SS.equal(P.mac(key, msg), tag), {==}))
+
+# ---- the polynomial
+
+def Laws.absorb_poly(one, h1, bs, r):
+  PY.absorb_poly(one, h1, bs, r)
+
+def Laws.mac_poly(one, h1, key, msg):
+  +r = R.le_num(R.clamp(R.prefix(16n, key)))
+  +s = R.le_num(R.prefix(16n, R.suffix(16n, key)))
+  +bs = R.blocks(List.length(&2, U32, msg), msg)
+  Equal.cong(Nat, List<&2, U32>, z => R.le_bytes(16n, Nat.add(z, s)), R.absorb(bs, r, 0n), Nat.mod(R.poly(bs, r), Nat.sub(C.shift(130n, one), 5n)), PY.absorb_poly(one, h1, bs, r))

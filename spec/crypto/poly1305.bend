@@ -123,3 +123,20 @@ def mac(+key: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
   match msg:
     case Nil{}: poly1305_mac(key, [])
     case b <> rest: poly1305_mac(key, b <> rest)
+
+# ---------------------------------------------------------------- the polynomial
+
+# RFC 8439 2.5 describes the accumulator as the evaluation, at r and
+# modulo p, of the polynomial whose coefficients are the blocks (each with
+# its 0x01 byte): with q blocks n_1 .. n_q,
+#   poly(r) = n_1 r^q + n_2 r^(q-1) + ... + n_q r
+# (as Spec.Poly1305 in HACL* and the field statements of Mathlib's ZMod p).
+# Clause absorb_poly (proofs/crypto/poly1305/poly.bend) proves
+# absorb(blocks, r, 0) == poly(blocks, r) mod (2^130 - 5).
+def coeff(b: List<&2, U32>) -> Nat:
+  le_num(List.append(&2, U32, b, [1]))
+
+def poly(+bs: List<&2, List<&2, U32>>, +r: Nat) -> Nat:
+  match bs:
+    case Nil{}: 0n
+    case b <> rest: Nat.add(Nat.mul(coeff(b), Nat.pow(r, 1n+List.length(&2, List<&2, U32>, rest))), poly(rest, r))

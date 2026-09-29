@@ -249,6 +249,8 @@ spec reduces with `modp` (folds using 2^130 = p + 5, through `C.low` /
 | `poly1305_valid` / `_invalid` | `Some(Spec.mac(key, msg))` for a 32-byte key, `None` otherwise | proved |
 | `verify_accepts` | `verify(key, msg, Spec.mac(key, msg)) == True` (32-byte key) | proved |
 | `verify_rejects` | `tag != Spec.mac(key, msg)` implies `verify(key, msg, tag) == False` | proved |
+| `absorb_poly` | `Spec.absorb(blocks, r, 0) == poly(blocks, r) mod (2^130 - 5)`, poly(r) = n_1 r^q + ... + n_q r (the RFC's polynomial; Horner's rule and reduction commuting with + and *) | proved |
+| `mac_poly` | `Spec.poly1305_mac(key, msg)` is the 16 low bytes of `(poly(blocks, r) mod (2^130 - 5)) + s` | proved |
 
 The proof is the limb-value argument of HACL*'s `Hacl.Spec.Poly1305.Field32xN`
 and Fiat-Crypto: `eval` of a limb list (Horner, base 2^8) is linear in the
@@ -307,6 +309,7 @@ HChaCha20 subkey and nonce 0^4 || nonce[16..24]. AES-GCM: W-aes's
 | `roundtrip` | decrypt of what `encrypt(alg, k, n, aad, pt)` returned is `Some(pt)`, every alg | proved |
 | `forgery` | `length(t) == 16` and `t != expected_tag(alg, k, n, aad, ct)` imply `decrypt(alg, k, n, aad, ct ++ t) == None`, every alg | proved |
 | `seal_layout` | `encrypt(alg, k, n, aad, pt) == Some(ct ++ expected_tag(alg, k, n, aad, ct))` for some ct | proved |
+| `decrypt_sound` | `decrypt(alg, k, n, aad, data) == Some(p)` implies `encrypt(alg, k, n, aad, p) == Some(data)`: every accepted input is the honest sealing of what it returns | proved |
 
 `expected_tag` is the specification's tag (RFC 8439's or SP 800-38D's).
 (`proofs/crypto/aead/chacha20poly1305.bend` also proves the
