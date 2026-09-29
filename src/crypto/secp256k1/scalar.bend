@@ -34,10 +34,16 @@ def pow_step(b: Nat, +x: List<&2, Nat>, +s: List<&2, Nat>) -> List<&2, Nat>:
     case 0n: s
     case 1n+k: mul(s, x)
 
-def pow(+x: List<&2, Nat>, bits: List<&2, Nat>, +acc: List<&2, Nat>) -> List<&2, Nat>:
+def pow_go(+x: List<&2, Nat>, bits: List<&2, Nat>, +acc: List<&2, Nat>) -> List<&2, Nat>:
   match bits:
     case Nil{}: acc
-    case b <> t: pow(x, t, pow_step(b, x, mul(acc, acc)))
+    case b <> t: pow_go(x, t, pow_step(b, x, mul(acc, acc)))
+
+# x is looked at first, so that on an unknown x nothing is unfolded
+def pow(x: List<&2, Nat>, bits: List<&2, Nat>, +acc: List<&2, Nat>) -> List<&2, Nat>:
+  match x:
+    case Nil{}: pow_go(Nil{}, bits, acc)
+    case +y <> +t: pow_go(y <> t, bits, acc)
 
 # the bits of n - 2 = 2^256 - 1 - (c + 1): those of c + 1, flipped
 def inv_bits() -> List<&2, Nat>:

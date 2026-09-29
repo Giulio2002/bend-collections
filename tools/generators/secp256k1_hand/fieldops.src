@@ -17,6 +17,7 @@ import ./reduce.bend as R
 import ./reducek.bend as RK
 import ./consts.bend as K
 import ./negate.bend as NG
+import ./listops.bend as LO
 
 # GF(p) of src/crypto/secp256k1/field.bend against spec/crypto/secp256k1/field.bend:
 # on reduced inputs (16 limbs below 2^16, value below p) every operation
@@ -172,3 +173,49 @@ def neg_v(+one: Nat, +h1: {one == 1n : Nat}, +b: List<&2, Nat>, +hb: {FS.reduced
 
 def neg_r(+one: Nat, +h1: {one == 1n : Nat}, +b: List<&2, Nat>, +hb: {FS.reduced(one, FS.prime(one), b) == True{} : Bool}) -> {FS.reduced(one, FS.prime(one), F.neg(b)) == True{} : Bool}:
   red_r(one, h1, L.neg_raw(F.c(), b), neg_hx(one, h1, b, hb))
+
+# ---- in the limb value ev ----
+
+def mul_e(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +b: List<&2, Nat>, +ha: {FS.reduced(one, FS.prime(one), a) == True{} : Bool}, +hb: {FS.reduced(one, FS.prime(one), b) == True{} : Bool}) -> {LV.ev(F.mul(a, b)) == Nat.mod(Nat.mul(LV.ev(a), LV.ev(b)), 1n+K.pp(one)) : Nat}:
+  %goal {LV.ev(F.reduce(L.conv(a, b))) == Nat.mod(Nat.mul(LV.ev(a), LV.ev(b)), 1n+K.pp(one)) : Nat}
+  %rw red_e(one, h1, L.conv(a, b), mul_hx(one, h1, a, b, ha, hb))
+  %rw LV.conv_v(a, b)
+  %close
+
+# ---- small constants ----
+
+def small_r(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk: {Nat.is_lt(k, FS.prime(one)) == True{} : Bool}) -> {FS.reduced(one, FS.prime(one), F.small(k)) == True{} : Bool}:
+  +hk2 = I.lt_subst_r(k, FS.prime(one), 1n+K.pp(one), K.prime_eq(one, h1), hk)
+  +hkt = N.lt_le_trans(k, 1n+K.pp(one), C.shift(256n, one), hk2, I.le_subst_r(1n+K.pp(one), Nat.add(1n+K.pp(one), FS.cp(one)), C.shift(256n, one), K.hm_p(one, h1), N.le_add_right(1n+K.pp(one), FS.cp(one))))
+  +ev = LO.small_v(one, h1, k, hkt)
+  +lt = I.lt_subst_l(k, FS.value(one, F.small(k)), FS.prime(one), Equal.sym(Nat, FS.value(one, F.small(k)), k, Equal.trans(Nat, FS.value(one, F.small(k)), LV.ev(F.small(k)), k, LV.ev_value(one, h1, F.small(k)), ev)), hk)
+  Lg.and_intro(FS.limbs16(one, 16n, F.small(k)), Nat.is_lt(FS.value(one, F.small(k)), FS.prime(one)), LO.small_l(one, h1, k), lt)
+
+def small_val(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk: {Nat.is_lt(k, FS.prime(one)) == True{} : Bool}) -> {FS.value(one, F.small(k)) == k : Nat}:
+  +hk2 = I.lt_subst_r(k, FS.prime(one), 1n+K.pp(one), K.prime_eq(one, h1), hk)
+  +hkt = N.lt_le_trans(k, 1n+K.pp(one), C.shift(256n, one), hk2, I.le_subst_r(1n+K.pp(one), Nat.add(1n+K.pp(one), FS.cp(one)), C.shift(256n, one), K.hm_p(one, h1), N.le_add_right(1n+K.pp(one), FS.cp(one))))
+  Equal.trans(Nat, FS.value(one, F.small(k)), LV.ev(F.small(k)), k, LV.ev_value(one, h1, F.small(k)), LO.small_v(one, h1, k, hkt))
+
+# m + c = h + h and c <= h: h <= m
+def le_cancel_r(+x: Nat, +y: Nat, +c: Nat) -> {Nat.is_le(Nat.add(x, c), Nat.add(y, c)) == Nat.is_le(x, y) : Bool}:
+  %rw NA.add_comm(x, c)
+  %rw NA.add_comm(y, c)
+  NR.le_add_cancel(c, x, y)
+
+# small k < 2^32 is below p
+def lt_p_half(+h: Nat, +m: Nat, +c: Nat, +e: {Nat.add(m, c) == Nat.add(h, h) : Nat}, +hc: {Nat.is_le(c, h) == True{} : Bool}) -> {Nat.is_le(h, m) == True{} : Bool}:
+  +s1 = N.le_add_left(c, h, h, hc)
+  +s2 = I.le_subst_r(Nat.add(h, c), Nat.add(h, h), Nat.add(m, c), Equal.sym(Nat, Nat.add(m, c), Nat.add(h, h), e), s1)
+  +s3 = Equal.trans(Bool, Nat.is_le(h, m), Nat.is_le(Nat.add(h, c), Nat.add(m, c)), True{}, Equal.sym(Bool, Nat.is_le(Nat.add(h, c), Nat.add(m, c)), Nat.is_le(h, m), le_cancel_r(h, m, c)), s2)
+  s3
+
+def small_lt_p(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat, +hk: {Nat.is_lt(k, C.shift(10n, 1n)) == True{} : Bool}) -> {Nat.is_lt(k, FS.prime(one)) == True{} : Bool}:
+  +hk1 = I.lt_subst_r(k, C.shift(10n, 1n), C.shift(10n, one), Equal.cong(Nat, Nat, z => C.shift(10n, z), 1n, one, Equal.sym(Nat, one, 1n, h1)), hk)
+  +s1 = N.lt_le_trans(k, C.shift(10n, one), C.shift(255n, one), hk1, K.shift_le_k(10n, 255n, one, 245n, {==}))
+  +pp = K.pp(one)
+  # 2^255 <= p: p + c = 2^256 = 2^255 + 2^255 and c <= 2^33 <= 2^255
+  +c = FS.cp(one)
+  +e1 = Equal.trans(Nat, Nat.add(1n+pp, c), C.shift(256n, one), Nat.add(C.shift(255n, one), C.shift(255n, one)), K.hm_p(one, h1), Equal.sym(Nat, Nat.add(C.shift(255n, one), C.shift(255n, one)), C.shift(256n, one), K.shift_twice(255n, one)))
+  +ch = N.le_trans(c, C.shift(33n, one), C.shift(255n, one), K.cp_le(one, h1), K.shift_le_k(33n, 255n, one, 222n, {==}))
+  +s2 = lt_p_half(C.shift(255n, one), 1n+pp, c, e1, ch)
+  I.lt_subst_r(k, 1n+pp, FS.prime(one), Equal.sym(Nat, FS.prime(one), 1n+pp, K.prime_eq(one, h1)), N.lt_le_trans(k, C.shift(255n, one), 1n+pp, s1, s2))

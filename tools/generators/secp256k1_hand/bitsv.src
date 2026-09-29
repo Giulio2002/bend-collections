@@ -21,14 +21,14 @@ import ./reduce.bend as R
 def hv(bs: List<&2, Nat>, +one: Nat, +e: Nat) -> Nat:
   match bs:
     case Nil{}: e
-    case b <> t: hv(t, one, Nat.add(Nat.double(e), Nat.mul(b, one)))
+    case b <> t: hv(t, one, Nat.add(Nat.mul(b, one), Nat.double(e)))
 
 def hv_app(+one: Nat, xs: List<&2, Nat>, +e: Nat, +ys: List<&2, Nat>) -> {hv(List.append(&2, Nat, xs, ys), one, e) == hv(ys, one, hv(xs, one, e)) : Nat}:
   match xs:
     case Nil{}:
       {==}
     case +x <> +t:
-      hv_app(one, t, Nat.add(Nat.double(e), Nat.mul(x, one)), ys)
+      hv_app(one, t, Nat.add(Nat.mul(x, one), Nat.double(e)), ys)
 
 def all01(bs: List<&2, Nat>) -> Bool:
   match bs:
@@ -88,7 +88,7 @@ def bits_of_v(+one: Nat, +h1: {one == 1n : Nat}, k: Nat, +d: Nat, +e: Nat, +hd: 
       %goal {hv(List.append(&2, Nat, L.bits_of(j, Nat.div(d, 2n)), [Nat.mod(d, 2n)]), one, e) == Nat.add(Nat.double(C.shift(j, e)), Nat.mul(one, d)) : Nat}
       %rw hv_app(one, L.bits_of(j, Nat.div(d, 2n)), e, [Nat.mod(d, 2n)])
       %rw bits_of_v(one, h1, j, Nat.div(d, 2n), e, half_lt(d, C.shift(j, one), hd))
-      %goal {Nat.add(Nat.double(Nat.add(C.shift(j, e), Nat.mul(one, Nat.div(d, 2n)))), Nat.mul(Nat.mod(d, 2n), one)) == Nat.add(Nat.double(C.shift(j, e)), Nat.mul(one, d)) : Nat}
+      %goal {Nat.add(Nat.mul(Nat.mod(d, 2n), one), Nat.double(Nat.add(C.shift(j, e), Nat.mul(one, Nat.div(d, 2n))))) == Nat.add(Nat.double(C.shift(j, e)), Nat.mul(one, d)) : Nat}
       %rw@r NR.dm_eq(1n, d)
       %norm
 
@@ -139,12 +139,28 @@ def cb(+one: Nat, bs: List<&2, Nat>, +e1: Nat, +e2: Nat, +hb: {all01(bs) == True
     case +b <> +t:
       +h0 = Lg.and_left(Nat.is_lt(b, 2n), all01(t), hb)
       +ht = Lg.and_right(Nat.is_lt(b, 2n), all01(t), hb)
-      %goal {Nat.add(Nat.add(hv(L.cbits(t), one, Nat.add(Nat.double(e1), Nat.mul(Nat.sub(1n, b), one))), hv(t, one, Nat.add(Nat.double(e2), Nat.mul(b, one)))), one) == Nat.double(C.shift(List.length(&2, Nat, t), Nat.add(Nat.add(e1, e2), one))) : Nat}
-      %rw cb(one, t, Nat.add(Nat.double(e1), Nat.mul(Nat.sub(1n, b), one)), Nat.add(Nat.double(e2), Nat.mul(b, one)), ht)
+      %goal {Nat.add(Nat.add(hv(L.cbits(t), one, Nat.add(Nat.mul(Nat.sub(1n, b), one), Nat.double(e1))), hv(t, one, Nat.add(Nat.mul(b, one), Nat.double(e2)))), one) == Nat.double(C.shift(List.length(&2, Nat, t), Nat.add(Nat.add(e1, e2), one))) : Nat}
+      %rw cb(one, t, Nat.add(Nat.mul(Nat.sub(1n, b), one), Nat.double(e1)), Nat.add(Nat.mul(b, one), Nat.double(e2)), ht)
       %rw <- WW.shift_dbl(List.length(&2, Nat, t), Nat.add(Nat.add(e1, e2), one))
-      %goal {C.shift(List.length(&2, Nat, t), Nat.add(Nat.add(Nat.add(Nat.double(e1), Nat.mul(Nat.sub(1n, b), one)), Nat.add(Nat.double(e2), Nat.mul(b, one))), one)) == C.shift(List.length(&2, Nat, t), Nat.double(Nat.add(Nat.add(e1, e2), one))) : Nat}
-      %rw arr(Nat.double(e1), Nat.mul(Nat.sub(1n, b), one), Nat.double(e2), Nat.mul(b, one), one)
+      %goal {C.shift(List.length(&2, Nat, t), Nat.add(Nat.add(Nat.add(Nat.mul(Nat.sub(1n, b), one), Nat.double(e1)), Nat.add(Nat.mul(b, one), Nat.double(e2))), one)) == C.shift(List.length(&2, Nat, t), Nat.double(Nat.add(Nat.add(e1, e2), one))) : Nat}
+      %rw arr(Nat.mul(Nat.sub(1n, b), one), Nat.double(e1), Nat.mul(b, one), Nat.double(e2), one)
       %rw cbit_one(one, b, h0)
       %norm
 
 # (a + b) + (c + d) + e = (a + c + e) + (b + d)
+
+def sub1_lt(b: Nat) -> {Nat.is_lt(Nat.sub(1n, b), 2n) == True{} : Bool}:
+  match b:
+    case 0n:
+      {==}
+    case 1n+k:
+      %goal {Nat.is_lt(Nat.sub(0n, k), 2n) == True{} : Bool}
+      %rw NR.zsub(k)
+      %close
+
+def cbits01(bs: List<&2, Nat>) -> {all01(L.cbits(bs)) == True{} : Bool}:
+  match bs:
+    case Nil{}:
+      {==}
+    case +b <> +t:
+      Lg.and_intro(Nat.is_lt(Nat.sub(1n, b), 2n), all01(L.cbits(t)), sub1_lt(b), cbits01(t))
