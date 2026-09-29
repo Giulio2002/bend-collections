@@ -1,0 +1,293 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../spec/crypto/secp256k1/curve.bend as CV
+import ../../../src/crypto/secp256k1/limbs.bend as L
+import ../../../src/crypto/secp256k1/bytes.bend as B
+import ../../lib/nat.bend as N
+import ../../lib/logic.bend as Lg
+import ../../lib/word.bend as WD
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../math/natural/arith.bend as NR
+import ../../math/typed/width.bend as WW
+import ../../math/typed/f64bits.bend as FB
+import ./semiring.bend as SR
+import ./limbs.bend as LV
+import ./ineq.bend as I
+import ./bounds.bend as B2
+
+# Octet strings (SEC 1 OS2IP / I2OSP, spec/crypto/secp256k1/curve.bend)
+# and the 16-bit limbs of src/crypto/secp256k1/bytes.bend.
+
+# the little-endian value of bytes
+def le_val(bs: List<&2, U32>) -> Nat:
+  match bs:
+    case Nil{}: 0n
+    case b <> t: Nat.add(B.byte(b), C.shift(8n, le_val(t)))
+
+def pw8(n: Nat, +y: Nat) -> Nat:
+  match n:
+    case 0n: y
+    case 1n+k: C.shift(8n, pw8(k, y))
+
+def pw8_add(n: Nat, +x: Nat, +y: Nat) -> {pw8(n, Nat.add(x, y)) == Nat.add(pw8(n, x), pw8(n, y)) : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +k:
+      %goal {C.shift(8n, pw8(k, Nat.add(x, y))) == Nat.add(C.shift(8n, pw8(k, x)), C.shift(8n, pw8(k, y))) : Nat}
+      %rw pw8_add(k, x, y)
+      %norm
+
+def pw8_zero(n: Nat) -> {pw8(n, 0n) == 0n : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +k:
+      %goal {C.shift(8n, pw8(k, 0n)) == 0n : Nat}
+      %rw pw8_zero(k)
+      %norm
+
+def pw8_shift(n: Nat, +y: Nat) -> {pw8(n, C.shift(8n, y)) == C.shift(8n, pw8(n, y)) : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +k:
+      %goal {C.shift(8n, pw8(k, C.shift(8n, y))) == C.shift(8n, C.shift(8n, pw8(k, y))) : Nat}
+      %rw pw8_shift(k, y)
+      %close
+
+def le_app(xs: List<&2, U32>, +ys: List<&2, U32>) -> {le_val(List.append(&2, U32, xs, ys)) == Nat.add(le_val(xs), pw8(List.length(&2, U32, xs), le_val(ys))) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case +x <> +t:
+      %goal {Nat.add(B.byte(x), C.shift(8n, le_val(List.append(&2, U32, t, ys)))) == Nat.add(Nat.add(B.byte(x), C.shift(8n, le_val(t))), C.shift(8n, pw8(List.length(&2, U32, t), le_val(ys)))) : Nat}
+      %rw le_app(t, ys)
+      %norm
+
+# ---- reverse ----
+
+def app_assoc(xs: List<&2, U32>, +ys: List<&2, U32>, +zs: List<&2, U32>) -> {List.append(&2, U32, List.append(&2, U32, xs, ys), zs) == List.append(&2, U32, xs, List.append(&2, U32, ys, zs)) : List<&2, U32>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case +x <> +t:
+      Equal.cong(List<&2, U32>, List<&2, U32>, l => x <> l, List.append(&2, U32, List.append(&2, U32, t, ys), zs), List.append(&2, U32, t, List.append(&2, U32, ys, zs)), app_assoc(t, ys, zs))
+
+def rev_go(xs: List<&2, U32>, +acc: List<&2, U32>) -> {List.reverse.go(&2, U32, xs, acc) == List.append(&2, U32, List.reverse.go(&2, U32, xs, Nil{}), acc) : List<&2, U32>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case +x <> +t:
+      Equal.trans(List<&2, U32>, List.reverse.go(&2, U32, t, x <> acc), List.append(&2, U32, List.reverse.go(&2, U32, t, Nil{}), x <> acc), List.append(&2, U32, List.reverse.go(&2, U32, t, [x]), acc), rev_go(t, x <> acc),
+        Equal.trans(List<&2, U32>, List.append(&2, U32, List.reverse.go(&2, U32, t, Nil{}), x <> acc), List.append(&2, U32, List.append(&2, U32, List.reverse.go(&2, U32, t, Nil{}), [x]), acc), List.append(&2, U32, List.reverse.go(&2, U32, t, [x]), acc),
+          Equal.sym(List<&2, U32>, List.append(&2, U32, List.append(&2, U32, List.reverse.go(&2, U32, t, Nil{}), [x]), acc), List.append(&2, U32, List.reverse.go(&2, U32, t, Nil{}), x <> acc), app_assoc(List.reverse.go(&2, U32, t, Nil{}), [x], acc)),
+          Equal.cong(List<&2, U32>, List<&2, U32>, l => List.append(&2, U32, l, acc), List.append(&2, U32, List.reverse.go(&2, U32, t, Nil{}), [x]), List.reverse.go(&2, U32, t, [x]), Equal.sym(List<&2, U32>, List.reverse.go(&2, U32, t, [x]), List.append(&2, U32, List.reverse.go(&2, U32, t, Nil{}), [x]), rev_go(t, [x])))))
+
+def rev_cons(+x: U32, +t: List<&2, U32>) -> {List.reverse(&2, U32, x <> t) == List.append(&2, U32, List.reverse(&2, U32, t), [x]) : List<&2, U32>}:
+  rev_go(t, [x])
+
+def len_app(xs: List<&2, U32>, +ys: List<&2, U32>) -> {List.length(&2, U32, List.append(&2, U32, xs, ys)) == Nat.add(List.length(&2, U32, xs), List.length(&2, U32, ys)) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case +x <> +t:
+      Equal.cong(Nat, Nat, n => 1n+n, List.length(&2, U32, List.append(&2, U32, t, ys)), Nat.add(List.length(&2, U32, t), List.length(&2, U32, ys)), len_app(t, ys))
+
+def len_rev(xs: List<&2, U32>) -> {List.length(&2, U32, List.reverse(&2, U32, xs)) == List.length(&2, U32, xs) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case +x <> +t:
+      %goal {List.length(&2, U32, List.reverse(&2, U32, x <> t)) == 1n+List.length(&2, U32, t) : Nat}
+      %rw rev_cons(x, t)
+      %rw len_app(List.reverse(&2, U32, t), [x])
+      %rw len_rev(t)
+      %goal {Nat.add(List.length(&2, U32, t), 1n) == 1n+List.length(&2, U32, t) : Nat}
+      %norm
+
+# ---- OS2IP ----
+
+def os2ip_go_v(bs: List<&2, U32>, +acc: Nat) -> {CV.os2ip_go(bs, acc) == Nat.add(pw8(List.length(&2, U32, bs), acc), le_val(List.reverse(&2, U32, bs))) : Nat}:
+  match bs:
+    case Nil{}:
+      %goal {acc == Nat.add(acc, 0n) : Nat}
+      %norm
+    case +b <> +t:
+      %goal {CV.os2ip_go(t, Nat.add(C.shift(8n, acc), B.byte(b))) == Nat.add(C.shift(8n, pw8(List.length(&2, U32, t), acc)), le_val(List.reverse(&2, U32, b <> t))) : Nat}
+      %rw os2ip_go_v(t, Nat.add(C.shift(8n, acc), B.byte(b)))
+      %rw rev_cons(b, t)
+      %rw le_app(List.reverse(&2, U32, t), [b])
+      %rw len_rev(t)
+      %rw pw8_add(List.length(&2, U32, t), C.shift(8n, acc), B.byte(b))
+      %rw pw8_shift(List.length(&2, U32, t), acc)
+      %goal {Nat.add(Nat.add(C.shift(8n, pw8(List.length(&2, U32, t), acc)), pw8(List.length(&2, U32, t), B.byte(b))), le_val(List.reverse(&2, U32, t))) == Nat.add(C.shift(8n, pw8(List.length(&2, U32, t), acc)), Nat.add(le_val(List.reverse(&2, U32, t)), pw8(List.length(&2, U32, t), Nat.add(B.byte(b), C.shift(8n, 0n))))) : Nat}
+      %rw WW.shift_zero(8n)
+      %rw NA.add_zero(B.byte(b))
+      %norm
+
+def os2ip_v(+bs: List<&2, U32>) -> {CV.os2ip(bs) == le_val(List.reverse(&2, U32, bs)) : Nat}:
+  %goal {CV.os2ip_go(bs, 0n) == le_val(List.reverse(&2, U32, bs)) : Nat}
+  %rw os2ip_go_v(bs, 0n)
+  %rw pw8_zero(List.length(&2, U32, bs))
+  %close
+
+# ---- limbs of bytes ----
+
+def limbs_le_v(cs: List<&2, U32>) -> {LV.ev(B.limbs_le(cs)) == le_val(cs) : Nat}:
+  match cs:
+    case Nil{}:
+      {==}
+    case +b0 <> Nil{}:
+      %goal {Nat.add(B.byte(b0), C.shift(16n, 0n)) == Nat.add(B.byte(b0), C.shift(8n, 0n)) : Nat}
+      %norm
+    case +b0 <> +b1 <> +t:
+      %goal {Nat.add(Nat.add(Nat.mul(B.byte(b1), 256n), B.byte(b0)), C.shift(16n, LV.ev(B.limbs_le(t)))) == Nat.add(B.byte(b0), C.shift(8n, Nat.add(B.byte(b1), C.shift(8n, le_val(t))))) : Nat}
+      %rw limbs_le_v(t)
+      %rw LV.m256(B.byte(b1))
+      %norm
+
+def of_be_v(+bs: List<&2, U32>) -> {LV.ev(B.of_be(bs)) == CV.os2ip(bs) : Nat}:
+  %goal {LV.ev(B.limbs_le(List.reverse(&2, U32, bs))) == CV.os2ip(bs) : Nat}
+  %rw limbs_le_v(List.reverse(&2, U32, bs))
+  %rw os2ip_v(bs)
+  %close
+
+def of_be_value(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>) -> {FS.value(one, B.of_be(bs)) == CV.os2ip(bs) : Nat}:
+  %rw LV.ev_value(one, h1, B.of_be(bs))
+  of_be_v(bs)
+
+# ---- limb bounds ----
+
+def byte_lt(+b: U32) -> {Nat.is_lt(B.byte(b), 256n) == True{} : Bool}:
+  %goal {Nat.is_lt(U32.to_nat(U32.and(b, 255)), 256n) == True{} : Bool}
+  %rwh FB.andm(b, 8n, 255, {==}) : {U32.to_nat(U32.and(b, 255)) == C.low(8n, U32.to_nat(b)) : Nat}
+  WW.low_lt(8n, U32.to_nat(b))
+
+def byte_lt1(+one: Nat, +h1: {one == 1n : Nat}, +b: U32) -> {Nat.is_lt(B.byte(b), C.shift(8n, one)) == True{} : Bool}:
+  %rw LV.b8(one, h1)
+  byte_lt(b)
+
+# y 256 + x < 2^16 for bytes x, y
+def limb_lt(+one: Nat, +h1: {one == 1n : Nat}, +x: U32, +y: U32) -> {Nat.is_lt(Nat.add(Nat.mul(B.byte(y), 256n), B.byte(x)), C.shift(16n, one)) == True{} : Bool}:
+  %rw LV.m256(B.byte(y))
+  %rw NA.add_comm(C.shift(8n, B.byte(y)), B.byte(x))
+  %rw <- SR.shift_shift(8n, 8n, one)
+  I.digit_lt(8n, one, h1, B.byte(x), B.byte(y), C.shift(8n, one), byte_lt1(one, h1, x), byte_lt1(one, h1, y))
+
+def limbs_le_ok(+one: Nat, +h1: {one == 1n : Nat}, k: Nat, cs: List<&2, U32>, +h: {B.has_len(Nat.double(k), cs) == True{} : Bool}) -> {FS.limbs16(one, k, B.limbs_le(cs)) == True{} : Bool}:
+  match k cs:
+    case 0n Nil{}:
+      {==}
+    case 0n c <> t:
+      Empty.absurd({FS.limbs16(one, 0n, B.limbs_le(c <> t)) == True{} : Bool}, Lg.false_true(h))
+    case 1n+j Nil{}:
+      Empty.absurd({FS.limbs16(one, 1n+j, B.limbs_le([])) == True{} : Bool}, Lg.false_true(h))
+    case 1n+j b0 <> Nil{}:
+      Empty.absurd({FS.limbs16(one, 1n+j, B.limbs_le([b0])) == True{} : Bool}, Lg.false_true(h))
+    case 1n+ +j +b0 <> +b1 <> +t:
+      Lg.and_intro(Nat.is_lt(Nat.add(Nat.mul(B.byte(b1), 256n), B.byte(b0)), C.shift(16n, one)), FS.limbs16(one, j, B.limbs_le(t)), limb_lt(one, h1, b0, b1), limbs_le_ok(one, h1, j, t, h))
+
+def has_len_v(n: Nat, bs: List<&2, U32>) -> {B.has_len(n, bs) == Nat.is_eq(List.length(&2, U32, bs), n) : Bool}:
+  match n bs:
+    case 0n Nil{}:
+      {==}
+    case 0n b <> t:
+      {==}
+    case 1n+k Nil{}:
+      {==}
+    case 1n+ +k b <> +t:
+      has_len_v(k, t)
+
+def has_len_rev(+n: Nat, +bs: List<&2, U32>, +h: {B.has_len(n, bs) == True{} : Bool}) -> {B.has_len(n, List.reverse(&2, U32, bs)) == True{} : Bool}:
+  %rw has_len_v(n, List.reverse(&2, U32, bs))
+  %rw len_rev(bs)
+  %rw <- has_len_v(n, bs)
+  h
+
+def of_be_limbs(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>, +h: {B.has_len(32n, bs) == True{} : Bool}) -> {FS.limbs16(one, 16n, B.of_be(bs)) == True{} : Bool}:
+  limbs_le_ok(one, h1, 16n, List.reverse(&2, U32, bs), has_len_rev(32n, bs, h))
+
+# ---- I2OSP ----
+
+def low8(+n: Nat) -> {C.low(8n, n) == Nat.mod(n, 256n) : Nat}:
+  +lo = C.low(8n, n)
+  +hi = C.high(8n, n)
+  +e = Equal.trans(Nat, n, Nat.add(lo, C.shift(8n, hi)), Nat.add(Nat.mul(hi, 256n), lo), WW.low_high(8n, n), Equal.trans(Nat, Nat.add(lo, C.shift(8n, hi)), Nat.add(C.shift(8n, hi), lo), Nat.add(Nat.mul(hi, 256n), lo), NA.add_comm(lo, C.shift(8n, hi)), Equal.cong(Nat, Nat, z => Nat.add(z, lo), C.shift(8n, hi), Nat.mul(hi, 256n), Equal.sym(Nat, Nat.mul(hi, 256n), C.shift(8n, hi), LV.m256(hi)))))
+  %rwh@r e : {n == Nat.add(Nat.mul(C.high(8n, n), 256n), C.low(8n, n)) : Nat}
+  Equal.sym(Nat, Nat.mod(Nat.add(Nat.mul(hi, 256n), lo), 256n), lo, NR.mod_of(hi, 255n, lo, WW.low_lt(8n, n)))
+
+def high8(+n: Nat) -> {C.high(8n, n) == Nat.div(n, 256n) : Nat}:
+  +lo = C.low(8n, n)
+  +hi = C.high(8n, n)
+  +e = Equal.trans(Nat, n, Nat.add(lo, C.shift(8n, hi)), Nat.add(Nat.mul(hi, 256n), lo), WW.low_high(8n, n), Equal.trans(Nat, Nat.add(lo, C.shift(8n, hi)), Nat.add(C.shift(8n, hi), lo), Nat.add(Nat.mul(hi, 256n), lo), NA.add_comm(lo, C.shift(8n, hi)), Equal.cong(Nat, Nat, z => Nat.add(z, lo), C.shift(8n, hi), Nat.mul(hi, 256n), Equal.sym(Nat, Nat.mul(hi, 256n), C.shift(8n, hi), LV.m256(hi)))))
+  %rwh@r e : {n == Nat.add(Nat.mul(C.high(8n, n), 256n), C.low(8n, n)) : Nat}
+  Equal.sym(Nat, Nat.div(Nat.add(Nat.mul(hi, 256n), lo), 256n), hi, NR.div_of(hi, 255n, lo, WW.low_lt(8n, n)))
+
+# x < 2^k (2^k with a symbolic one): x fits k bits
+def fits_one(k: Nat, +one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +hx: {Nat.is_lt(x, C.shift(k, one)) == True{} : Bool}) -> {C.fits(k, x) == True{} : Bool}:
+  match k:
+    case 0n:
+      +hx1 = I.lt_subst_r(x, one, 1n, h1, hx)
+      +e0 = N.le_antisym(x, 0n, N.lt_succ_le(x, 0n, hx1), N.zero_le(x))
+      %goal {Nat.is_eq(x, 0n) == True{} : Bool}
+      %rwh e0 : {x == 0n : Nat}
+      %close
+    case 1n+ +j:
+      +hh = Equal.trans(Bool, Nat.is_lt(C.half(x), C.shift(j, one)), Nat.is_lt(x, Nat.double(C.shift(j, one))), True{}, WW.lt_half(x, C.shift(j, one)), hx)
+      fits_one(j, one, h1, C.half(x), hh)
+
+# low 8 bits of x + 2^16 r: those of x
+def low_v(+x: Nat, +r: Nat) -> {C.low(8n, Nat.add(x, C.shift(16n, r))) == Nat.mod(x, 256n) : Nat}:
+  %rw <- SR.shift_shift(8n, 8n, r)
+  %rw WW.low_add_shift(8n, x, C.shift(8n, r))
+  low8(x)
+
+def fh8(+x: Nat, +f16: {C.fits(16n, x) == True{} : Bool}) -> {C.fits(8n, C.high(8n, x)) == True{} : Bool}:
+  %goal {Nat.is_eq(C.high(8n, C.high(8n, x)), 0n) == True{} : Bool}
+  %rw <- WW.high_comp(8n, 8n, x)
+  f16
+
+# the next 8 bits: x div 256 (x < 2^16)
+def mid_v(+x: Nat, +r: Nat, +f16: {C.fits(16n, x) == True{} : Bool}) -> {C.low(8n, C.high(8n, Nat.add(x, C.shift(16n, r)))) == Nat.div(x, 256n) : Nat}:
+  %rw <- SR.shift_shift(8n, 8n, r)
+  %rw WW.high_add_shift(8n, x, C.shift(8n, r))
+  %rw WW.low_add_shift(8n, C.high(8n, x), r)
+  %rw WW.low_fit(8n, C.high(8n, x), fh8(x, f16))
+  high8(x)
+
+# the rest: r
+def top_v(+x: Nat, +r: Nat, +f16: {C.fits(16n, x) == True{} : Bool}) -> {C.high(8n, C.high(8n, Nat.add(x, C.shift(16n, r)))) == r : Nat}:
+  %rw <- WW.high_comp(8n, 8n, Nat.add(x, C.shift(16n, r)))
+  %rw WW.high_add_shift(16n, x, r)
+  %rw N.eq_from_is_eq(C.high(16n, x), 0n, f16)
+  %close
+
+def bytes_le_v(+one: Nat, +h1: {one == 1n : Nat}, k: Nat, xs: List<&2, Nat>, +h: {FS.limbs16(one, k, xs) == True{} : Bool}) -> {B.bytes_le(xs) == CV.i2osp_le(Nat.double(k), LV.ev(xs)) : List<&2, U32>}:
+  match k xs:
+    case 0n Nil{}:
+      {==}
+    case 0n x <> t:
+      Empty.absurd({B.bytes_le(x <> t) == CV.i2osp_le(Nat.double(0n), LV.ev(x <> t)) : List<&2, U32>}, Lg.false_true(h))
+    case 1n+j Nil{}:
+      Empty.absurd({B.bytes_le([]) == CV.i2osp_le(Nat.double(1n+j), LV.ev([])) : List<&2, U32>}, Lg.false_true(h))
+    case 1n+ +j +x <> +t:
+      +hx = Lg.and_left(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, j, t), h)
+      +ht = Lg.and_right(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, j, t), h)
+      +f16 = fits_one(16n, one, h1, x, hx)
+      +v = Nat.add(x, C.shift(16n, LV.ev(t)))
+      +e1 = low_v(x, LV.ev(t))
+      +e2 = mid_v(x, LV.ev(t), f16)
+      +e3 = top_v(x, LV.ev(t), f16)
+      %goal {U32.from_nat(Nat.mod(x, 256n)) <> U32.from_nat(Nat.div(x, 256n)) <> B.bytes_le(t) == U32.from_nat(C.low(8n, Nat.add(x, C.shift(16n, LV.ev(t))))) <> U32.from_nat(C.low(8n, C.high(8n, Nat.add(x, C.shift(16n, LV.ev(t)))))) <> CV.i2osp_le(Nat.double(j), C.high(8n, C.high(8n, Nat.add(x, C.shift(16n, LV.ev(t)))))) : List<&2, U32>}
+      %rwh e1 : {C.low(8n, Nat.add(x, C.shift(16n, LV.ev(t)))) == Nat.mod(x, 256n) : Nat}
+      %rwh e2 : {C.low(8n, C.high(8n, Nat.add(x, C.shift(16n, LV.ev(t))))) == Nat.div(x, 256n) : Nat}
+      %rwh e3 : {C.high(8n, C.high(8n, Nat.add(x, C.shift(16n, LV.ev(t))))) == LV.ev(t) : Nat}
+      %rw bytes_le_v(one, h1, j, t, ht)
+      %close
+
+def to_be_v(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, Nat>, +h: {FS.limbs16(one, 16n, xs) == True{} : Bool}) -> {B.to_be(xs) == CV.i2osp(32n, LV.ev(xs)) : List<&2, U32>}:
+  %goal {List.reverse(&2, U32, B.bytes_le(xs)) == List.reverse(&2, U32, CV.i2osp_le(32n, LV.ev(xs))) : List<&2, U32>}
+  %rw bytes_le_v(one, h1, 16n, xs, h)
+  %close
