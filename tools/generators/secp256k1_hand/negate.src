@@ -15,6 +15,79 @@ import ./bounds.bend as B
 import ./reduce.bend as R
 
 # Complements and the borrow-free negation of src/crypto/secp256k1/limbs.bend:
+# comp(x) + x + 1 = 2^(16 n) for n limbs below 2^16, and
+# negraw(c, b) + b = 2 m for m = 2^256 - c (so a + negraw(c, b) is congruent
+# to a - b), with 256 written as the symbolic 2^8 = C.shift(8n, one).
+
+def e255(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.sub(C.shift(8n, one), 1n) == 255n : Nat}:
+  %rwh h1 : {one == 1n : Nat}
+  %close
+
+def bb_sq(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.mul(C.shift(8n, one), C.shift(8n, one)) == C.shift(16n, one) : Nat}:
+  %rw WW.shift_mul_l(8n, one, C.shift(8n, one))
+  %rw LV.mul_one_l(one, h1, C.shift(8n, one))
+  %rw SR.shift_shift(8n, 8n, one)
+  %close
+
+def bb_pos(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_le(1n, C.shift(8n, one)) == True{} : Bool}:
+  %rwh h1 : {one == 1n : Nat}
+  %close
+
+# (B - 1) + 1 = B
+def pred_succ(+b: Nat, +h: {Nat.is_le(1n, b) == True{} : Bool}) -> {Nat.add(Nat.sub(b, 1n), 1n) == b : Nat}:
+  %rw NA.add_comm(Nat.sub(b, 1n), 1n)
+  N.sub_add(b, 1n, h)
+
+# (B - 1) + (B - 1) B + 1 = B B
+def digit_max(+b: Nat, +h: {Nat.is_le(1n, b) == True{} : Bool}) -> {Nat.add(Nat.add(Nat.sub(b, 1n), Nat.mul(Nat.sub(b, 1n), b)), 1n) == Nat.mul(b, b) : Nat}:
+  %rw NA.add_assoc(Nat.sub(b, 1n), Nat.mul(Nat.sub(b, 1n), b), 1n)
+  %rw NA.add_comm(Nat.mul(Nat.sub(b, 1n), b), 1n)
+  %rw <- NA.add_assoc(Nat.sub(b, 1n), 1n, Nat.mul(Nat.sub(b, 1n), b))
+  %rw pred_succ(b, h)
+  %rw@l <- NA.mul_one(b)
+  %rw NA.mul_comm(b, 1n)
+  %rw <- NA.mul_add_right(1n, Nat.sub(b, 1n), b)
+  %rw NA.add_comm(1n, Nat.sub(b, 1n))
+  %rw pred_succ(b, h)
+  %close
+
+# x < 2^16: x div 256 < 256
+def hi_byte_lt(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +hx: {Nat.is_lt(x, C.shift(16n, one)) == True{} : Bool}) -> {Nat.is_lt(Nat.div(x, 256n), 256n) == True{} : Bool}:
+  +bq = C.shift(8n, one)
+  +hi = Nat.div(x, 256n)
+  +le = I.le_subst_r(Nat.mul(hi, 256n), Nat.add(Nat.mul(hi, 256n), Nat.mod(x, 256n)), x, Equal.sym(Nat, x, Nat.add(Nat.mul(hi, 256n), Nat.mod(x, 256n)), NR.dm_eq(255n, x)), N.le_add_right(Nat.mul(hi, 256n), Nat.mod(x, 256n)))
+  +le2 = I.le_subst_l(Nat.mul(hi, 256n), Nat.mul(hi, bq), x, Equal.cong(Nat, Nat, z => Nat.mul(hi, z), 256n, bq, Equal.sym(Nat, bq, 256n, LV.b8(one, h1))), le)
+  +s1 = N.le_lt_trans(Nat.mul(hi, bq), x, C.shift(16n, one), le2, hx)
+  +s2 = I.lt_subst_r(Nat.mul(hi, bq), C.shift(16n, one), Nat.mul(bq, bq), Equal.sym(Nat, Nat.mul(bq, bq), C.shift(16n, one), bb_sq(one, h1)), s1)
+  +s3 = R.mul_lt_cancel(bq, hi, bq, s2, Nat.is_lt(hi, bq), {==})
+  I.lt_subst_r(hi, bq, 256n, LV.b8(one, h1), s3)
+
+# (l + h B) + (h' B + l') = (l' + l) + (h' + h) B
+def combine(+l: Nat, +h: Nat, +h2: Nat, +l2: Nat, +b: Nat) -> {Nat.add(Nat.add(l, Nat.mul(h, b)), Nat.add(Nat.mul(h2, b), l2)) == Nat.add(Nat.add(l2, l), Nat.mul(Nat.add(h2, h), b)) : Nat}:
+  %norm
+
+# comp1(x) + x + 1 = 2^16 for x < 2^16
+def comp1_v(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +hx: {Nat.is_lt(x, C.shift(16n, one)) == True{} : Bool}) -> {Nat.add(Nat.add(L.comp1(x), x), 1n) == C.shift(16n, one) : Nat}:
+  +lo = Nat.mod(x, 256n)
+  +hi = Nat.div(x, 256n)
+  +hl = N.lt_succ_le(lo, 255n, NR.dm_lt(255n, x))
+  +hh = N.lt_succ_le(hi, 255n, hi_byte_lt(one, h1, x, hx))
+  %goal {Nat.add(Nat.add(Nat.add(Nat.sub(255n, Nat.mod(x, 256n)), Nat.mul(Nat.sub(255n, Nat.div(x, 256n)), 256n)), x), 1n) == C.shift(16n, one) : Nat}
+  %rw@3@l NR.dm_eq(255n, x)
+  %goal {Nat.add(Nat.add(Nat.add(Nat.sub(255n, Nat.mod(x, 256n)), Nat.mul(Nat.sub(255n, Nat.div(x, 256n)), 256n)), Nat.add(Nat.mul(Nat.div(x, 256n), 256n), Nat.mod(x, 256n))), 1n) == C.shift(16n, one) : Nat}
+  %rw combine(Nat.sub(255n, Nat.mod(x, 256n)), Nat.sub(255n, Nat.div(x, 256n)), Nat.div(x, 256n), Nat.mod(x, 256n), 256n)
+  %rw@5 <- LV.b8(one, h1)
+  %rw N.sub_add(255n, Nat.mod(x, 256n), hl)
+  %rw N.sub_add(255n, Nat.div(x, 256n), hh)
+  %rw <- e255(one, h1)
+  %rw <- e255(one, h1)
+  %rw digit_max(C.shift(8n, one), bb_pos(one, h1))
+  bb_sq(one, h1)
+
+def comp1_o(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +hx: {Nat.is_lt(x, C.shift(16n, one)) == True{} : Bool}) -> {Nat.add(Nat.add(L.comp1(x), x), one) == C.shift(16n, one) : Nat}:
+  %rwh@l h1 : {one == 1n : Nat}
+  comp1_v(one, h1, x, hx)
+
 # comp(x) + x + 1 = 2^(16 n) for n limbs below 2^16
 def comp_v(+one: Nat, +h1: {one == 1n : Nat}, n: Nat, xs: List<&2, Nat>, +h: {FS.limbs16(one, n, xs) == True{} : Bool}) -> {Nat.add(Nat.add(LV.ev(L.comp(xs)), LV.ev(xs)), one) == LV.pos(n, one) : Nat}:
   match n xs:
