@@ -9,8 +9,9 @@ import ../../lib/common.bend as C
 #   lcg(mul, inc, s)       one step of the 128-bit state: s * mul + inc
 #                          mod 2^128
 #   dxsm(cm, hi, lo)       the output of the state hi * 2^64 + lo:
-#                          hi ^= hi >> 32; hi *= cm; hi ^= hi >> 48;
-#                          hi *= lo | 1, each product mod 2^64
+#                          hi ^= hi >> 32; hi *= cm (dxsm1); then
+#                          hi ^= hi >> 48; hi *= lo | 1 (dxsm3), each
+#                          product mod 2^64
 #
 # Go's constants are mul = 2549297995355413924 * 2^64 + 4865540595714422341,
 # inc = 6364136223846793005 * 2^64 + 1442695040888963407 and
@@ -39,5 +40,9 @@ def lcg(+mul: Nat, +inc: Nat, +s: Nat) -> Nat:
 def dxsm3(+h: Nat, +lo: Nat) -> Nat:
   C.low(64n, Nat.mul(xor_bits(64n, h, C.high(48n, h)), Nat.add(Nat.double(C.half(lo)), 1n)))
 
+# the first half: hi ^= hi >> 32; hi *= cm
+def dxsm1(+cm: Nat, +hi: Nat) -> Nat:
+  C.low(64n, Nat.mul(xor_bits(64n, hi, C.high(32n, hi)), cm))
+
 def dxsm(+cm: Nat, +hi: Nat, +lo: Nat) -> Nat:
-  dxsm3(C.low(64n, Nat.mul(xor_bits(64n, hi, C.high(32n, hi)), cm)), lo)
+  dxsm3(dxsm1(cm, hi), lo)

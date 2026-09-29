@@ -30,7 +30,8 @@ import ./random/rand.bend as SR
 #     PCG.step              one step is s * mul + inc mod 2^128, for every
 #                           multiplier and increment
 #     PCG.output            the output is DXSM of the new state, for every
-#                           DXSM multiplier
+#                           DXSM multiplier: dxsm3 of the first half's
+#                           value dxsm1
 #     PCG.constants         next uses Go's constants
 #   Bounded integers (Lemire, as Go's uint64n)
 #     Uint64n.value         uint64n(n) is the first accepted draw of the
@@ -78,8 +79,11 @@ def value128(p: P.PCG) -> Nat:
 def PCG.step(+mh: W.U64, +ml: W.U64, +ih: W.U64, +il: W.U64, +p: P.PCG) -> Type:
   {value128(P.step_with(mh, ml, ih, il, p)) == SP.lcg(value128(P.P{mh, ml}), value128(P.P{ih, il}), value128(p)) : Nat}
 
-def PCG.output(+cm: W.U64, +hi: W.U64, +lo: W.U64) -> Type:
-  {SW.value(P.dxsm_with(cm, hi, lo)) == SP.dxsm(SW.value(cm), SW.value(hi), SW.value(lo)) : Nat}
+# stated through the intermediate value t of the first half (so the
+# checker never compares two copies of the nested 64-bit recursion);
+# t = dxsm1(cm, hi) gives output == dxsm(cm, hi, lo)
+def PCG.output(+cm: W.U64, +hi: W.U64, +lo: W.U64, +t: Nat, +ht: {t == SP.dxsm1(SW.value(cm), SW.value(hi)) : Nat}) -> Type:
+  {SW.value(P.dxsm_with(cm, hi, lo)) == SP.dxsm3(t, SW.value(lo)) : Nat}
 
 def PCG.constants(+p: P.PCG) -> Type:
   {P.next(p) == P.out(P.step_with(P.mul_hi(), P.mul_lo(), P.inc_hi(), P.inc_lo(), p)) : W.U64 & P.PCG}

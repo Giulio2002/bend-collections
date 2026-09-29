@@ -44,20 +44,26 @@ def or_value(+lo: WU.U64) -> {SW.value(WU.U64{U32.or(X.lo(lo), 1), X.hi(lo)}) ==
 
 def d2(+h: WU.U64, +lo: WU.U64) -> {SW.value(P.dxsm2(h, lo)) == SP.dxsm3(SW.value(h), SW.value(lo)) : Nat}:
   +x = P.xor64(h, X.shr(h, 48n))
-  +o = WU.U64{U32.or(X.lo(lo), 1), X.hi(lo)}
+  +o : WU.U64 = WU.U64{U32.or(X.lo(lo), 1), X.hi(lo)}
   Equal.trans(Nat, SW.value(X.mul(x, o)), C.low(64n, Nat.mul(SW.value(x), SW.value(o))), SP.dxsm3(SW.value(h), SW.value(lo)),
     WA.mul_value(x, o),
     Equal.trans(Nat, C.low(64n, Nat.mul(SW.value(x), SW.value(o))), C.low(64n, Nat.mul(SP.xor_bits(64n, SW.value(h), C.high(48n, SW.value(h))), SW.value(o))), SP.dxsm3(SW.value(h), SW.value(lo)),
       Equal.cong(Nat, Nat, z => C.low(64n, Nat.mul(z, SW.value(o))), SW.value(x), SP.xor_bits(64n, SW.value(h), C.high(48n, SW.value(h))), xs(h, 48n)),
       Equal.cong(Nat, Nat, z => C.low(64n, Nat.mul(SP.xor_bits(64n, SW.value(h), C.high(48n, SW.value(h))), z)), SW.value(o), Nat.add(Nat.double(C.half(SW.value(lo))), 1n), or_value(lo))))
 
-# THEOREM: dxsm_with is DXSM on values
-def output(+cm: WU.U64, +hi: WU.U64, +lo: WU.U64) -> {SW.value(P.dxsm_with(cm, hi, lo)) == SP.dxsm(SW.value(cm), SW.value(hi), SW.value(lo)) : Nat}:
-  +x = P.xor64(hi, X.shr(hi, 32n))
-  +h1 = X.mul(x, cm)
-  +eh = Equal.trans(Nat, SW.value(h1), C.low(64n, Nat.mul(SW.value(x), SW.value(cm))), C.low(64n, Nat.mul(SP.xor_bits(64n, SW.value(hi), C.high(32n, SW.value(hi))), SW.value(cm))),
+def eh_of(+cm: WU.U64, +hi: WU.U64, +x: WU.U64, +ex: {SW.value(x) == SP.xor_bits(64n, SW.value(hi), C.high(32n, SW.value(hi))) : Nat}) -> {SW.value(X.mul(x, cm)) == C.low(64n, Nat.mul(SP.xor_bits(64n, SW.value(hi), C.high(32n, SW.value(hi))), SW.value(cm))) : Nat}:
+  Equal.trans(Nat, SW.value(X.mul(x, cm)), C.low(64n, Nat.mul(SW.value(x), SW.value(cm))), C.low(64n, Nat.mul(SP.xor_bits(64n, SW.value(hi), C.high(32n, SW.value(hi))), SW.value(cm))),
     WA.mul_value(x, cm),
-    Equal.cong(Nat, Nat, z => C.low(64n, Nat.mul(z, SW.value(cm))), SW.value(x), SP.xor_bits(64n, SW.value(hi), C.high(32n, SW.value(hi))), xs(hi, 32n)))
-  Equal.trans(Nat, SW.value(P.dxsm2(h1, lo)), SP.dxsm3(SW.value(h1), SW.value(lo)), SP.dxsm(SW.value(cm), SW.value(hi), SW.value(lo)),
-    d2(h1, lo),
-    Equal.cong(Nat, Nat, z => SP.dxsm3(z, SW.value(lo)), SW.value(h1), C.low(64n, Nat.mul(SP.xor_bits(64n, SW.value(hi), C.high(32n, SW.value(hi))), SW.value(cm))), eh))
+    Equal.cong(Nat, Nat, z => C.low(64n, Nat.mul(z, SW.value(cm))), SW.value(x), SP.xor_bits(64n, SW.value(hi), C.high(32n, SW.value(hi))), ex))
+
+# the first half's value is t
+def half1(+cm: WU.U64, +hi: WU.U64, +t: Nat, +ht: {t == SP.dxsm1(SW.value(cm), SW.value(hi)) : Nat}) -> {SW.value(X.mul(P.xor64(hi, X.shr(hi, 32n)), cm)) == t : Nat}:
+  Equal.trans(Nat, SW.value(X.mul(P.xor64(hi, X.shr(hi, 32n)), cm)), SP.dxsm1(SW.value(cm), SW.value(hi)), t,
+    eh_of(cm, hi, P.xor64(hi, X.shr(hi, 32n)), xs(hi, 32n)),
+    Equal.sym(Nat, t, SP.dxsm1(SW.value(cm), SW.value(hi)), ht))
+
+# THEOREM (PCG.output)
+def output(+cm: WU.U64, +hi: WU.U64, +lo: WU.U64, +t: Nat, +ht: {t == SP.dxsm1(SW.value(cm), SW.value(hi)) : Nat}) -> {SW.value(P.dxsm_with(cm, hi, lo)) == SP.dxsm3(t, SW.value(lo)) : Nat}:
+  Equal.trans(Nat, SW.value(P.dxsm2(X.mul(P.xor64(hi, X.shr(hi, 32n)), cm), lo)), SP.dxsm3(SW.value(X.mul(P.xor64(hi, X.shr(hi, 32n)), cm)), SW.value(lo)), SP.dxsm3(t, SW.value(lo)),
+    d2(X.mul(P.xor64(hi, X.shr(hi, 32n)), cm), lo),
+    Equal.cong(Nat, Nat, z => SP.dxsm3(z, SW.value(lo)), SW.value(X.mul(P.xor64(hi, X.shr(hi, 32n)), cm)), t, half1(cm, hi, t, ht)))
