@@ -19,11 +19,11 @@ def c() -> List<&2, Nat>:
 def reduce(xs: List<&2, Nat>) -> List<&2, Nat>:
   L.reduce(c(), 3n, xs)
 
-def zero() -> List<&2, Nat>:
-  L.norm16([])
-
 def small(+k: Nat) -> List<&2, Nat>:
   L.norm16([k])
+
+def zero() -> List<&2, Nat>:
+  small(0n)
 
 def one() -> List<&2, Nat>:
   small(1n)

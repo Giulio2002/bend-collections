@@ -42,10 +42,17 @@ def exec(+p: Nat, op: SOp, +regs: List<&2, Nat>) -> Nat:
     case SMul{i, j}: FS.mmul(p, nth(i, regs), nth(j, regs))
 
 # run a program: each instruction appends its result as a new register
-def run(+p: Nat, prog: List<&2, SOp>, +regs: List<&2, Nat>) -> List<&2, Nat>:
+def run_go(+p: Nat, prog: List<&2, SOp>, +regs: List<&2, Nat>) -> List<&2, Nat>:
   match prog:
     case Nil{}: regs
-    case op <> t: run(p, t, List.append(&2, Nat, regs, [exec(p, op, regs)]))
+    case op <> t: run_go(p, t, List.append(&2, Nat, regs, [exec(p, op, regs)]))
+
+# (the first register is looked at first; the result is run_go's)
+def run(+p: Nat, prog: List<&2, SOp>, regs: List<&2, Nat>) -> List<&2, Nat>:
+  match regs:
+    case Nil{}: run_go(p, prog, Nil{})
+    case 0n <> t: run_go(p, prog, 0n <> t)
+    case (1n+k) <> t: run_go(p, prog, (1n+k) <> t)
 
 # RCB Algorithm 7 (a = 0). Registers: 0 X1, 1 Y1, 2 Z1, 3 X2, 4 Y2, 5 Z2,
 # 6 b3; the paper's lines, in order, write registers 7..39:
@@ -126,9 +133,11 @@ def mul_go(i: Nat, +p: Nat, +k: Nat, +a: SPoint, r: SPoint) -> SPoint:
     case 0n: r
     case 1n+ +j: mul_go(j, p, k, a, step(bit(j, k), p, a, pdbl(p, r)))
 
-# [k] A for 0 <= k < 2^256
-def pmul(+p: Nat, +k: Nat, +a: SPoint) -> SPoint:
-  mul_go(256n, p, k, a, infinity())
+# [k] A for 0 <= k < 2^256 (k is looked at first; the result is mul_go's)
+def pmul(+p: Nat, k: Nat, +a: SPoint) -> SPoint:
+  match k:
+    case 0n: mul_go(256n, p, 0n, a, infinity())
+    case 1n+j: mul_go(256n, p, 1n+j, a, infinity())
 
 # G (SEC 2), with z = 1
 def g(+one: Nat) -> SPoint:

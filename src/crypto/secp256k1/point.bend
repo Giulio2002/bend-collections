@@ -42,10 +42,18 @@ def exec(op: Op, +regs: List<&2, List<&2, Nat>>) -> List<&2, Nat>:
     case OSub{i, j}: F.sub(nth(i, regs), nth(j, regs))
     case OMul{i, j}: F.mul(nth(i, regs), nth(j, regs))
 
-def run(prog: List<&2, Op>, +regs: List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+def run_go(prog: List<&2, Op>, +regs: List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
   match prog:
     case Nil{}: regs
-    case op <> t: run(t, List.append(&2, List<&2, Nat>, regs, [exec(op, regs)]))
+    case op <> t: run_go(t, List.append(&2, List<&2, Nat>, regs, [exec(op, regs)]))
+
+# The first register is looked at before the program runs, so that the
+# proof checker stops at once on unknown inputs (the result is run_go's).
+def run(prog: List<&2, Op>, regs: List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
+  match regs:
+    case Nil{}: run_go(prog, Nil{})
+    case Nil{} <> t: run_go(prog, Nil{} <> t)
+    case (y <> u) <> t: run_go(prog, (y <> u) <> t)
 
 # RCB 2016 Algorithm 7 (a = 0): registers X1 Y1 Z1 X2 Y2 Z2 b3 = 0..6;
 # the result is X3 Y3 Z3 = registers 33, 36, 39.
