@@ -54,3 +54,22 @@ law verify_rejects:
   for +tag: List<&2, U32>
   for h: {tag != R.mac(key, msg) : List<&2, U32>}
   {P.verify(key, msg, tag) == False{} : Bool}
+
+# The RFC's polynomial reading of the accumulator: absorbing the blocks
+# (reducing after every block) is evaluating the polynomial of the blocks at
+# r and reducing once mod 2^130 - 5 (2^130 written C.shift(130n, one)).
+law absorb_poly:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +bs: List<&2, List<&2, U32>>
+  for +r: Nat
+  {R.absorb(bs, r, 0n) == Nat.mod(R.poly(bs, r), Nat.sub(C.shift(130n, one), 5n)) : Nat}
+
+# Hence the tag: ((poly(blocks, r) mod p) + s) mod 2^128, as 16 little-endian
+# bytes, with r the clamped first half of the key and s the second half.
+law mac_poly:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +key: List<&2, U32>
+  for +msg: List<&2, U32>
+  {R.poly1305_mac(key, msg) == R.le_bytes(16n, Nat.add(Nat.mod(R.poly(R.blocks(List.length(&2, U32, msg), msg), R.le_num(R.clamp(R.prefix(16n, key)))), Nat.sub(C.shift(130n, one), 5n)), R.le_num(R.prefix(16n, R.suffix(16n, key))))) : List<&2, U32>}
