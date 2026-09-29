@@ -43,8 +43,8 @@ nonce of another length, or a decryption input shorter than a tag, gives
 - `spec/crypto/aes/aes.bend` transcribes FIPS 197: bytes as polynomials
   (3.2), multiplication modulo `m(x) = x^8 + x^4 + x^3 + x + 1` (4.2), the
   S-box defined as in 5.1.1, the multiplicative inverse (`a^254`, which is
-  `a^-1` in the 255-element group GF(2^8)*, and `{00}` to itself; the
-  generator checks `a * a^254 = {01}` for every nonzero byte) followed by the affine
+  `a^-1` in the 255-element group GF(2^8)*, and `{00}` to itself; proved to
+  be the multiplicative inverse, clauses `Inverse.unit` / `Inverse.zero`) followed by the affine
   map of equation (5.1); ShiftRows, MixColumns (5.6) as the field products
   by `{02}` and `{03}`, AddRoundKey, the Cipher of Figure 5 and the
   KeyExpansion of Figure 11 with `Rcon[j] = [x^(j-1), 0, 0, 0]`, all for any
@@ -83,6 +83,7 @@ nonce of another length, or a decryption input shorter than a tag, gives
 | Clause | Statement | Evidence |
 |---|---|---|
 | `Sbox.value` | the S-box circuit equals FIPS 197's inverse-then-affine S-box, on every U32 (both read its low byte) | proved (all 256 bytes, `sbox.bend`) |
+| `Inverse.unit` / `Inverse.zero` | `S.mul(x, S.inverse(x)) == {01}` for every U32 whose low byte is nonzero; `S.inverse(0) == 0` (FIPS 197 4.4 / 5.1.1) | proved (256 closed evaluations) |
 | `Cipher.value` | `encrypt(Nk, Nr, key, s)` (key expansion + cipher) equals FIPS 197's `Cipher(KeyExpansion(key))`, for every `Nk`, `Nr`, key and state | proved (`cipher.bend`) |
 | `Block.value` | for a key of 16, 24 or 32 bytes and any 16-byte block, `encrypt_block(expand_key(key), block)` is the spec's AES with the key's `Nk = length / 4`, `Nr = Nk + 6` (FIPS 197 Figure 4) | proved |
 | `Block.aes128`, `Block.aes192`, `Block.aes256` | a 16-, 24-, 32-byte key has `Nk` 4, 6, 8 (so `Nr` 10, 12, 14) | proved |
@@ -112,10 +113,11 @@ proved bit by bit on the 32 bits of each word (`ghash_bits.bend`, generated
 by `tools/generators/aes_ghash_proofs.py`).
 
 What is not proved: constant time (see above); that the specification's
-field is a field (the specification's inverse, `a^254`, is proved to agree
-with the circuit on all 256 inputs, which is all the cipher needs; that it is
-the byte `b` with `a * b = {01}` is checked in Python for all 256 bytes, not
-proved in Bend); anything about nonce reuse
+field is a field in general (what the cipher needs is proved on all 256
+bytes: the specification's inverse `a^254` satisfies `a * a^254 = {01}` for
+every nonzero byte and maps `{00}` to `{00}` (`Inverse.unit`,
+`Inverse.zero`, proofs/crypto/aes/inverse.bend), and the circuit equals
+the specification's S-box); anything about nonce reuse
 or IV lengths other than 96 bits (not supported).
 
 ### Tests

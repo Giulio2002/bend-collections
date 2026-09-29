@@ -44,6 +44,17 @@ law Sbox.value:
   for +x: U32
   {B.sbox(x) == S.sbox(x) : U32}
 
+# The specification's inverse (a^254) is the multiplicative inverse of
+# FIPS 197 section 4.4: a * a^-1 = {01} for every nonzero byte, and {00}
+# goes to {00} (5.1.1); so S.sbox is "inverse, then affine map".
+law Inverse.unit:
+  for +x: U32
+  for +h: {U32.is_eq(U32.and(255, x), 0) == False{} : Bool}
+  {S.mul(x, S.inverse(x)) == 1 : U32}
+
+law Inverse.zero:
+  {S.inverse(0) == 0 : U32}
+
 # The implementation's cipher with its expanded key is FIPS 197's Cipher
 # with KeyExpansion, for every Nk, Nr, key and state.
 law Cipher.value:
