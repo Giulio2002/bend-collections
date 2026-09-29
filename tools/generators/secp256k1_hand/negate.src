@@ -105,3 +105,50 @@ def comp_v(+one: Nat, +h1: {one == 1n : Nat}, n: Nat, xs: List<&2, Nat>, +h: {FS
       %nf
       %rw <- comp1_o(one, h1, x, hx)
       %norm
+
+# ---- neg_raw(c, b) + b = m ----
+
+# b + c as 16 limbs, when b + c < 2^256
+def bc_limbs(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +b: List<&2, Nat>) -> {FS.limbs16(one, 16n, L.norm16(L.add(b, c))) == True{} : Bool}:
+  B.carry_limbs(one, h1, 32n, 16n, L.add(b, c), 0n, {==})
+
+def bc_v(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +b: List<&2, Nat>, +hbc: {Nat.is_lt(Nat.add(LV.ev(b), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}) -> {LV.ev(L.norm16(L.add(b, c))) == Nat.add(LV.ev(b), LV.ev(c)) : Nat}:
+  +x = L.carry(32n, L.add(b, c), 0n)
+  +ex = Equal.trans(Nat, LV.ev(x), LV.ev(L.add(b, c)), Nat.add(LV.ev(b), LV.ev(c)), LV.carry_v(32n, L.add(b, c), 0n), LV.add_v(b, c))
+  +hx = I.lt_subst_l(Nat.add(LV.ev(b), LV.ev(c)), LV.ev(x), C.shift(256n, one), Equal.sym(Nat, LV.ev(x), Nat.add(LV.ev(b), LV.ev(c)), ex), hbc)
+  %goal {LV.ev(L.take(16n, L.carry(32n, L.add(b, c), 0n))) == Nat.add(LV.ev(b), LV.ev(c)) : Nat}
+  %rw R.take_small(one, h1, L.carry(32n, L.add(b, c), 0n), hx)
+  %rwh ex : {LV.ev(L.carry(32n, L.add(b, c), 0n)) == Nat.add(LV.ev(b), LV.ev(c)) : Nat}
+  %close
+
+# neg_raw(c, b) + b + c = 2^256
+def neg_t(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +b: List<&2, Nat>, +hbc: {Nat.is_lt(Nat.add(LV.ev(b), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}) -> {Nat.add(LV.ev(L.neg_raw(c, b)), Nat.add(LV.ev(b), LV.ev(c))) == C.shift(256n, one) : Nat}:
+  %goal {Nat.add(LV.ev(L.add(L.comp(L.norm16(L.add(b, c))), [1n])), Nat.add(LV.ev(b), LV.ev(c))) == C.shift(256n, one) : Nat}
+  %rw LV.add_v(L.comp(L.norm16(L.add(b, c))), [1n])
+  %rw <- bc_v(one, h1, c, b, hbc)
+  %rw <- B.pos16(one)
+  %rw <- comp_v(one, h1, 16n, L.norm16(L.add(b, c)), bc_limbs(one, h1, c, b))
+  %rwh h1 : {one == 1n : Nat}
+  %goal {Nat.add(Nat.add(LV.ev(L.comp(L.norm16(L.add(b, c)))), Nat.add(1n, C.shift(16n, 0n))), LV.ev(L.norm16(L.add(b, c)))) == Nat.add(Nat.add(LV.ev(L.comp(L.norm16(L.add(b, c)))), LV.ev(L.norm16(L.add(b, c)))), 1n) : Nat}
+  %norm
+
+# neg_raw(c, b) + b = m, for b < m = 2^256 - c
+def neg_v(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +c: List<&2, Nat>, +hm: {Nat.add(1n+mp, LV.ev(c)) == C.shift(256n, one) : Nat}, +b: List<&2, Nat>, +hb: {Nat.is_lt(LV.ev(b), 1n+mp) == True{} : Bool}) -> {Nat.add(LV.ev(L.neg_raw(c, b)), LV.ev(b)) == 1n+mp : Nat}:
+  +nb = LV.ev(L.neg_raw(c, b))
+  +bv = LV.ev(b)
+  +cv = LV.ev(c)
+  +hbc = I.lt_subst_r(Nat.add(bv, cv), Nat.add(1n+mp, cv), C.shift(256n, one), hm, N.lt_add_r2(bv, 1n+mp, cv, hb))
+  +e1 = Equal.trans(Nat, Nat.add(Nat.add(nb, bv), cv), Nat.add(nb, Nat.add(bv, cv)), Nat.add(1n+mp, cv), NA.add_assoc(nb, bv, cv), Equal.trans(Nat, Nat.add(nb, Nat.add(bv, cv)), C.shift(256n, one), Nat.add(1n+mp, cv), neg_t(one, h1, c, b, hbc), Equal.sym(Nat, Nat.add(1n+mp, cv), C.shift(256n, one), hm)))
+  NR.add_cancel(cv, Nat.add(nb, bv), 1n+mp, Equal.trans(Nat, Nat.add(cv, Nat.add(nb, bv)), Nat.add(Nat.add(nb, bv), cv), Nat.add(cv, 1n+mp), NA.add_comm(cv, Nat.add(nb, bv)), Equal.trans(Nat, Nat.add(Nat.add(nb, bv), cv), Nat.add(1n+mp, cv), Nat.add(cv, 1n+mp), e1, NA.add_comm(1n+mp, cv))))
+
+def neg_vv(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +c: List<&2, Nat>, +hm: {Nat.add(1n+mp, FS.value(one, c)) == C.shift(256n, one) : Nat}, +b: List<&2, Nat>, +hb: {Nat.is_lt(LV.ev(b), 1n+mp) == True{} : Bool}) -> {Nat.add(LV.ev(L.neg_raw(c, b)), LV.ev(b)) == 1n+mp : Nat}:
+  neg_v(one, h1, mp, c, Lg.subst(Nat, z => {Nat.add(1n+mp, z) == C.shift(256n, one) : Nat}, FS.value(one, c), LV.ev(c), LV.ev_value(one, h1, c), hm), b, hb)
+
+# a + (m - b) = (a + m) - b, for b < m
+def sub_mod(+mp: Nat, +a: Nat, +b: Nat, +nb: Nat, +hlt: {Nat.is_lt(b, 1n+mp) == True{} : Bool}, +hn: {Nat.add(nb, b) == 1n+mp : Nat}) -> {Nat.mod(Nat.add(a, nb), 1n+mp) == Nat.mod(Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), 1n+mp) : Nat}:
+  %rwh NR.mod_of(0n, mp, b, hlt) : {Nat.mod(b, 1n+mp) == b : Nat}
+  %rwh@2 <- hn : {Nat.add(nb, b) == 1n+mp : Nat}
+  %rw <- NA.add_assoc(a, nb, b)
+  %rw NA.add_comm(Nat.add(a, nb), b)
+  %rw N.add_sub_cancel(b, Nat.add(a, nb))
+  %close

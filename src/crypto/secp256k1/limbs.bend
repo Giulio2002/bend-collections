@@ -109,12 +109,11 @@ def carry(n: Nat, xs: List<&2, Nat>, u: Nat) -> List<&2, Nat>:
       +s = Nat.add(u, x)
       lo16(s) <> carry(k, t, hi16(s))
 
-# n limbs 2^16 - 1 - x (the missing limbs read as 0)
-def comp(n: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
-  match n xs:
-    case 0n _: Nil{}
-    case 1n+k Nil{}: comp1(0n) <> comp(k, Nil{})
-    case 1n+k x <> t: comp1(x) <> comp(k, t)
+# every limb x becomes 2^16 - 1 - x
+def comp(xs: List<&2, Nat>) -> List<&2, Nat>:
+  match xs:
+    case Nil{}: Nil{}
+    case x <> t: comp1(x) <> comp(t)
 
 # b x + (1 - b) y, limb-wise, for b in {0, 1}
 def pick1(+b: Nat, +x: Nat, +y: Nat) -> Nat:
@@ -140,25 +139,30 @@ def rounds(k: Nat, +c: List<&2, Nat>, xs: List<&2, Nat>) -> List<&2, Nat>:
     case 0n: xs
     case 1n+j: rounds(j, c, carry(32n, fold(c, xs), 0n))
 
+# the part of a carried value above 2^256 (0 or 1 below)
+def top(xs: List<&2, Nat>) -> Nat:
+  horner(drop(16n, xs))
+
 # t (16 limbs, value below 2^256) mod m: t + c has bit 256 set exactly when
 # t >= m, and then its low 256 bits are t - m
 def canon(+c: List<&2, Nat>, +t: List<&2, Nat>) -> List<&2, Nat>:
   +u = carry(32n, add(t, c), 0n)
-  select(horner(drop(16n, u)), take(16n, u), t)
+  select(top(u), take(16n, u), t)
 
 # x mod m for x below 2^512, in k folds
 def reduce(+c: List<&2, Nat>, k: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
   canon(c, take(16n, rounds(k, c, carry(32n, xs, 0n))))
 
-# ---- constants derived from c ----
+# ---- negation and comparison modulo m, from c ----
 
-# m = (2^256 - 1 - c) + 1
-def modulus(+c: List<&2, Nat>) -> List<&2, Nat>:
-  norm16(add(comp(16n, c), [1n]))
+# m - b = (2^256 - 1 - (b + c)) + 1, for b < m (so b + c < 2^256); no
+# constant but c is ever formed
+def neg_raw(+c: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
+  add(comp(norm16(add(b, c))), [1n])
 
-# 2m - b, for b of 16 limbs below 2^16: (2^256 - 1 - b) + (2^256 - 1 - 2c) + 2
-def negraw(+c: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
-  add(add(comp(16n, b), comp(16n, norm16(scal(2n, c)))), [2n])
+# x < m, i.e. x + c < 2^256, for x of 16 limbs below 2^16
+def ltm(+c: List<&2, Nat>, x: List<&2, Nat>) -> Bool:
+  Nat.is_eq(top(carry(32n, add(x, c), 0n)), 0n)
 
 # ---- comparisons and bits ----
 
@@ -171,7 +175,7 @@ def b2n(b: Bool) -> Nat:
 # borrow out of xs - ys - br), for lists of the same length
 def borrow(xs: List<&2, Nat>, ys: List<&2, Nat>, br: Nat) -> Nat:
   match xs ys:
-    case x <> xt y <> yt: borrow(xt, yt, b2n(Nat.is_lt(x, Nat.add(y, br))))
+    case x <> xt y <> yt: borrow(xt, yt, b2n(Nat.is_lt(x, Nat.add(br, y))))
     case _ _: br
 
 def lt(xs: List<&2, Nat>, ys: List<&2, Nat>) -> Bool:
@@ -199,6 +203,12 @@ def bits_of(k: Nat, +x: Nat) -> List<&2, Nat>:
   match k:
     case 0n: Nil{}
     case 1n+j: List.append(&2, Nat, bits_of(j, Nat.div(x, 2n)), [Nat.mod(x, 2n)])
+
+# every bit flipped: the bits of 2^k - 1 - x from those of x
+def cbits(bs: List<&2, Nat>) -> List<&2, Nat>:
+  match bs:
+    case Nil{}: Nil{}
+    case b <> t: Nat.sub(1n, b) <> cbits(t)
 
 # all bits of a limb list, most significant first (16 per limb)
 def bits(xs: List<&2, Nat>) -> List<&2, Nat>:

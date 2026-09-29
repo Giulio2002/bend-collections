@@ -227,16 +227,28 @@ def recover_r(+z: List<&2, Nat>, +r: List<&2, Nat>, +s: List<&2, Nat>, m: Maybe<
       +q = P.add(P.mul(S.mul(S.neg(z), ri), P.g()), P.mul(S.mul(s, ri), pr))
       recover_q(q, P.is_inf(q))
 
-def recover_x(+z: List<&2, Nat>, +r: List<&2, Nat>, +s: List<&2, Nat>, +id: Nat, +xs: List<&2, Nat>, ok: Bool) -> Maybe<&2, List<&2, U32>>:
+def recover_x(+z: List<&2, Nat>, +r: List<&2, Nat>, +s: List<&2, Nat>, +id: Nat, +x: List<&2, Nat>, ok: Bool) -> Maybe<&2, List<&2, U32>>:
   match ok:
-    case True{}: recover_r(z, r, s, P.decompress(L.take(16n, xs), Nat.mod(id, 2n)))
+    case True{}: recover_r(z, r, s, P.decompress(x, Nat.mod(id, 2n)))
     case False{}: None{}
 
+# c_n = 2^256 - n and c_p = 2^256 - p as 16-limb field elements
+def cn_fe() -> List<&2, Nat>:
+  [48831n, 12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]
+
+def cp_fe() -> List<&2, Nat>:
+  [977n, 0n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]
+
+# r + n as a field element: r + n = r - c_n + 2^256 = r - c_n + c_p (mod p)
+def rn_fe(+r: List<&2, Nat>) -> List<&2, Nat>:
+  F.add(F.sub(r, cn_fe()), cp_fe())
+
+# x = r + j n with j = id / 2; for j = 1 it must stay below p: r + c_p < c_n
 def recover_ok(+z: List<&2, Nat>, +r: List<&2, Nat>, +s: List<&2, Nat>, +id: Nat, ok: Bool) -> Maybe<&2, List<&2, U32>>:
   match ok:
     case True{}:
-      +xs = L.carry(32n, L.add(r, F.select(Nat.div(id, 2n), S.modulus(), F.zero())), 0n)
-      recover_x(z, r, s, id, xs, Bool.and(L.is_zero(L.drop(16n, xs)), F.lt_p(L.take(16n, xs))))
+      +j = Nat.div(id, 2n)
+      recover_x(z, r, s, id, F.select(j, rn_fe(r), r), Bool.or(Nat.is_eq(j, 0n), L.lt(L.norm16(L.add(r, cp_fe())), cn_fe())))
     case False{}: None{}
 
 def recover_sig(+h: List<&2, U32>, +sig: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:

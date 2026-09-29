@@ -479,6 +479,10 @@ def step_rules(t):
         return A(x, x), 'NA.double_self(%s)' % show(x)
     if isop(t, 'Nat.add'):
         a, b = t[2]
+        if is_lit(a) and is_lit(b) and litv(a) + litv(b) <= 4096:
+            return ('lit', '%dn' % (litv(a) + litv(b))), '{==}'
+        if is_lit(a) and isop(b, 'Nat.add') and is_lit(b[2][0]) and litv(a) + litv(b[2][0]) <= 4096:
+            return A(('lit', '%dn' % (litv(a) + litv(b[2][0]))), b[2][1]), '{==}'
         if a == ZERO:
             return b, 'SR.zero_add(%s)' % show(b)
         if b == ZERO:
@@ -495,6 +499,8 @@ def step_rules(t):
         return None
     if isop(t, 'Nat.mul'):
         a, b = t[2]
+        if is_lit(a) and is_lit(b) and litv(a) * litv(b) <= 4096:
+            return ('lit', '%dn' % (litv(a) * litv(b))), '{==}'
         if a == ZERO:
             return ZERO, 'SR.zero_mul(%s)' % show(b)
         if b == ZERO:
@@ -558,7 +564,7 @@ def first_redex(t, path=()):
     return None
 
 
-def normalize(goal, max_steps=4000):
+def normalize(goal, max_steps=4000, close=True):
     for side in (0, 1):
         n = 0
         while True:
@@ -574,6 +580,8 @@ def normalize(goal, max_steps=4000):
             n += 1
             if n > max_steps:
                 raise SystemExit('normalize: no fixpoint on %s' % show(goal.g))
+    if not close:
+        return
     if goal.g[1] != goal.g[2]:
         raise SystemExit('normalize: sides differ:\n  %s\n  %s' % (show(goal.g[1]), show(goal.g[2])))
     goal.out.append(goal.indent + '{==}')
@@ -601,7 +609,7 @@ def expand(src_path, text, dst_path=None):
                 goal = None
         s = line.strip()
         indent = line[:len(line) - len(line.lstrip())]
-        if not re.match(r'%(rw|rwh|goal|norm|close|show)(@|\b)', s):
+        if not re.match(r'%(rw|rwh|goal|norm|nf|close|show)(@|\b)', s):
             out.append(line)
             continue
         m = re.match(r'%goal (.*)$', s)
@@ -640,6 +648,10 @@ def expand(src_path, text, dst_path=None):
         if s == '%norm':
             normalize(G)
             goal = None
+            continue
+        if s == '%nf':
+            normalize(G, close=False)
+            goal = G.g
             continue
         if s == '%close':
             out.append(indent + '{==}')

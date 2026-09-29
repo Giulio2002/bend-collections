@@ -147,7 +147,7 @@ def take_drop_v(n: Nat, xs: List<&2, Nat>) -> {ev(xs) == Nat.add(ev(L.take(n, xs
     case 1n+ +k Nil{}:
       %Equal.sym(Nat, pos(k, 0n), 0n, pos_zero(k)) : {0n == Nat.add(0n, C.shift(16n, _)) : Nat}
       %Equal.sym(Nat, C.shift(16n, 0n), 0n, WW.shift_zero(16n)) : {0n == Nat.add(0n, _) : Nat}
-      %Equal.sym(Nat, Nat.add(0n, 0n), 0n, SR.zero_add(0n)) : {0n == _ : Nat}
+      %Equal.sym(Nat, Nat.add(0n, 0n), 0n, {==}) : {0n == _ : Nat}
       {==}
     case 1n+ +k +x <> +t:
       %Equal.sym(Nat, ev(t), Nat.add(ev(L.take(k, t)), pos(k, ev(L.drop(k, t)))), take_drop_v(k, t)) : {Nat.add(x, C.shift(16n, _)) == Nat.add(Nat.add(x, C.shift(16n, ev(L.take(k, t)))), C.shift(16n, pos(k, ev(L.drop(k, t))))) : Nat}

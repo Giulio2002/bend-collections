@@ -138,7 +138,7 @@ def digits_split(+one: Nat, n: Nat, ds: List<&2, Nat>) -> {FS.digits(one, ds) ==
     case 1n+ +k Nil{}:
       %Equal.sym(Nat, LV.pos(k, 0n), 0n, LV.pos_zero(k)) : {0n == Nat.add(0n, C.shift(16n, _)) : Nat}
       %Equal.sym(Nat, C.shift(16n, 0n), 0n, WW.shift_zero(16n)) : {0n == Nat.add(0n, _) : Nat}
-      %Equal.sym(Nat, Nat.add(0n, 0n), 0n, SR.zero_add(0n)) : {0n == _ : Nat}
+      %Equal.sym(Nat, Nat.add(0n, 0n), 0n, {==}) : {0n == _ : Nat}
       {==}
     case 1n+ +k +d <> +t:
       %Equal.sym(Nat, FS.digits(one, t), Nat.add(FS.digits(one, L.take(k, t)), LV.pos(k, FS.digits(one, L.drop(k, t)))), digits_split(one, k, t)) : {Nat.add(Nat.mul(one, d), C.shift(16n, _)) == Nat.add(Nat.add(Nat.mul(one, d), C.shift(16n, FS.digits(one, L.take(k, t)))), C.shift(16n, LV.pos(k, FS.digits(one, L.drop(k, t))))) : Nat}
