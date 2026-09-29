@@ -226,8 +226,9 @@ every key and seed; a PCG step is the 128-bit LCG and the output DXSM on
 naturals; `uint64n` computes the specification's draw and is below n for
 every source; Lemire's rejection is exactly unbiased (for every width, bound
 and k < n, exactly floor(2^w / n) source outputs draw k); `shuffle` and
-`perm` return permutations for every source; `float64` is m 2^-53 exactly
-and below 1. Tested: Go's vectors and a Python mirror of Go on random seeds
+`perm` return permutations for every source (Mathlib's `List.Perm`, by
+counts); `float64` is m 2^-53 exactly and below 1; the word slices and the
+bounded wrappers (`uint32n`, `intn`, `int_range`) are what they say. Tested: Go's vectors and a Python mirror of Go on random seeds
 and call sequences, plus a chi-square smoke test (`tools/check_random.py`).
 
 `src/crypto/random.bend` is the secure generator: ChaCha8Rand keyed from
