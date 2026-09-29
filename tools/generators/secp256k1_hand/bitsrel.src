@@ -1,0 +1,140 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../spec/crypto/secp256k1/curve.bend as CV
+import ../../../src/crypto/secp256k1/limbs.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/logic.bend as Lg
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../math/natural/arith.bend as NR
+import ../../math/typed/width.bend as WW
+import ./semiring.bend as SR
+import ./limbs.bend as LV
+import ./bytes.bend as BY
+
+# The bits of a scalar's limbs (src/crypto/secp256k1/limbs.bend bits) are
+# the specification's bits of its value, most significant first:
+# bits(k) = [bit(255, K), ..., bit(0, K)] (spec/crypto/secp256k1/curve.bend bit).
+
+# bits off + i - 1 down to off of K
+def sb(i: Nat, +off: Nat, +k: Nat) -> List<&2, Nat>:
+  match i:
+    case 0n: Nil{}
+    case 1n+ +j: CV.bit(Nat.add(off, j), k) <> sb(j, off, k)
+
+def app_nat(xs: List<&2, Nat>, +ys: List<&2, Nat>, +zs: List<&2, Nat>) -> {List.append(&2, Nat, List.append(&2, Nat, xs, ys), zs) == List.append(&2, Nat, xs, List.append(&2, Nat, ys, zs)) : List<&2, Nat>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case +x <> +t:
+      Equal.cong(List<&2, Nat>, List<&2, Nat>, l => x <> l, List.append(&2, Nat, List.append(&2, Nat, t, ys), zs), List.append(&2, Nat, t, List.append(&2, Nat, ys, zs)), app_nat(t, ys, zs))
+
+def div2(x: Nat) -> {Nat.div(x, 2n) == C.half(x) : Nat}:
+  match x:
+    case 0n:
+      {==}
+    case 1n:
+      {==}
+    case 2n+ +q:
+      %goal {Nat.div(Nat.add(2n, q), 2n) == 1n+C.half(q) : Nat}
+      %rw N.div2_step(q)
+      Equal.cong(Nat, Nat, z => 1n+z, Nat.div(q, 2n), C.half(q), div2(q))
+
+# offset 1 is offset 0 of the half
+def sb_one(j: Nat, +x: Nat) -> {sb(j, 1n, x) == sb(j, 0n, C.half(x)) : List<&2, Nat>}:
+  match j:
+    case 0n:
+      {==}
+    case 1n+ +i:
+      Equal.cong(List<&2, Nat>, List<&2, Nat>, l => CV.bit(i, C.half(x)) <> l, sb(i, 1n, x), sb(i, 0n, C.half(x)), sb_one(i, x))
+
+# the last bit comes off the end
+def sb_last(j: Nat, +x: Nat) -> {sb(1n+j, 0n, x) == List.append(&2, Nat, sb(j, 1n, x), [CV.bit(0n, x)]) : List<&2, Nat>}:
+  match j:
+    case 0n:
+      {==}
+    case 1n+ +i:
+      Equal.cong(List<&2, Nat>, List<&2, Nat>, l => CV.bit(1n+i, x) <> l, sb(1n+i, 0n, x), List.append(&2, Nat, sb(i, 1n, x), [CV.bit(0n, x)]), sb_last(i, x))
+
+def bits_of_sb(j: Nat, +x: Nat) -> {L.bits_of(j, x) == sb(j, 0n, x) : List<&2, Nat>}:
+  match j:
+    case 0n:
+      {==}
+    case 1n+ +i:
+      %goal {List.append(&2, Nat, L.bits_of(i, Nat.div(x, 2n)), [Nat.mod(x, 2n)]) == sb(1n+i, 0n, x) : List<&2, Nat>}
+      %rw bits_of_sb(i, Nat.div(x, 2n))
+      %rw div2(x)
+      %rw <- WW.bit_mod(x)
+      %rw sb_last(i, x)
+      %rw sb_one(i, x)
+      %close
+
+# sb(a + b, 0) = sb(a, b) ++ sb(b, 0)
+def sb_split(a: Nat, +b: Nat, +k: Nat) -> {sb(Nat.add(a, b), 0n, k) == List.append(&2, Nat, sb(a, b, k), sb(b, 0n, k)) : List<&2, Nat>}:
+  match a:
+    case 0n:
+      {==}
+    case 1n+ +i:
+      %goal {CV.bit(Nat.add(i, b), k) <> sb(Nat.add(i, b), 0n, k) == CV.bit(Nat.add(b, i), k) <> List.append(&2, Nat, sb(i, b, k), sb(b, 0n, k)) : List<&2, Nat>}
+      %rw sb_split(i, b, k)
+      %rw NA.add_comm(i, b)
+      %close
+
+# above 16: the bits of the rest
+def sb_hi(i: Nat, +x: Nat, +r: Nat, +f16: {C.fits(16n, x) == True{} : Bool}) -> {sb(i, 16n, Nat.add(x, C.shift(16n, r))) == sb(i, 0n, r) : List<&2, Nat>}:
+  match i:
+    case 0n:
+      {==}
+    case 1n+ +j:
+      %goal {C.bit(C.high(Nat.add(16n, j), Nat.add(x, C.shift(16n, r)))) <> sb(j, 16n, Nat.add(x, C.shift(16n, r))) == C.bit(C.high(j, r)) <> sb(j, 0n, r) : List<&2, Nat>}
+      %rw sb_hi(j, x, r, f16)
+      %rw WW.high_comp(j, 16n, Nat.add(x, C.shift(16n, r)))
+      %rw WW.high_add_shift(16n, x, r)
+      %rw N.eq_from_is_eq(C.high(16n, x), 0n, f16)
+      %close
+
+# below 16: the bits of the limb (j + 1 + d = 16)
+def bit_lo(+j: Nat, +d: Nat, +x: Nat, +r: Nat) -> {C.bit(C.high(j, Nat.add(x, C.shift(Nat.add(j, 1n+d), r)))) == C.bit(C.high(j, x)) : Nat}:
+  %rw WW.shift_comp(j, 1n+d, r)
+  %rw WW.high_add_shift(j, x, C.shift(1n+d, r))
+  %goal {C.bit(Nat.add(C.high(j, x), Nat.double(C.shift(d, r)))) == C.bit(C.high(j, x)) : Nat}
+  WW.bit_dbl(C.high(j, x), C.shift(d, r))
+
+def sh_idx(+j: Nat, +d: Nat, +r: Nat) -> {C.shift(Nat.add(1n+j, d), r) == C.shift(Nat.add(j, 1n+d), r) : Nat}:
+  %rw NA.add_succ(j, d)
+  %close
+
+def sb_lo(i: Nat, +d: Nat, +x: Nat, +r: Nat) -> {sb(i, 0n, Nat.add(x, C.shift(Nat.add(i, d), r))) == sb(i, 0n, x) : List<&2, Nat>}:
+  match i:
+    case 0n:
+      {==}
+    case 1n+ +j:
+      %goal {C.bit(C.high(j, Nat.add(x, C.shift(Nat.add(1n+j, d), r)))) <> sb(j, 0n, Nat.add(x, C.shift(Nat.add(1n+j, d), r))) == C.bit(C.high(j, x)) <> sb(j, 0n, x) : List<&2, Nat>}
+      %rw sh_idx(j, d, r)
+      %rw sh_idx(j, d, r)
+      %rw sb_lo(j, 1n+d, x, r)
+      %rw bit_lo(j, d, x, r)
+      %close
+
+# the bits of n limbs below 2^16
+def bits_sb(+one: Nat, +h1: {one == 1n : Nat}, n: Nat, xs: List<&2, Nat>, +h: {FS.limbs16(one, n, xs) == True{} : Bool}) -> {L.bits(xs) == sb(Nat.mul(n, 16n), 0n, LV.ev(xs)) : List<&2, Nat>}:
+  match n xs:
+    case 0n Nil{}:
+      {==}
+    case 0n x <> t:
+      Empty.absurd({L.bits(x <> t) == sb(Nat.mul(0n, 16n), 0n, LV.ev(x <> t)) : List<&2, Nat>}, Lg.false_true(h))
+    case 1n+k Nil{}:
+      Empty.absurd({L.bits([]) == sb(Nat.mul(1n+k, 16n), 0n, LV.ev([])) : List<&2, Nat>}, Lg.false_true(h))
+    case 1n+ +k +x <> +t:
+      +hx = Lg.and_left(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, k, t), h)
+      +ht = Lg.and_right(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, k, t), h)
+      +f16 = BY.fits_one(16n, one, h1, x, hx)
+      %goal {List.append(&2, Nat, L.bits(t), L.bits_of(16n, x)) == sb(Nat.add(16n, Nat.mul(k, 16n)), 0n, Nat.add(x, C.shift(16n, LV.ev(t)))) : List<&2, Nat>}
+      %rw NA.add_comm(16n, Nat.mul(k, 16n))
+      %rw sb_split(Nat.mul(k, 16n), 16n, Nat.add(x, C.shift(16n, LV.ev(t))))
+      %rw sb_hi(Nat.mul(k, 16n), x, LV.ev(t), f16)
+      %rw bits_sb(one, h1, k, t, ht)
+      %rw bits_of_sb(16n, x)
+      %goal {List.append(&2, Nat, sb(Nat.mul(k, 16n), 0n, LV.ev(t)), sb(16n, 0n, x)) == List.append(&2, Nat, sb(Nat.mul(k, 16n), 0n, LV.ev(t)), sb(16n, 0n, Nat.add(x, C.shift(16n, LV.ev(t))))) : List<&2, Nat>}
+      %rw sb_lo(16n, 0n, x, LV.ev(t))
+      %close
