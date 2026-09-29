@@ -202,9 +202,9 @@ through 2-bit crumbs: a byte is four crumbs, a base64 digit three, so base64
 only regroups crumbs, and the finite facts (crumbs of the 256 bytes, digits
 and their values for the 64 values, the ten decimal digits) are checked value
 by value; the decimal round trip is an induction on the digits with
-`n = 10 (n / 10) + n mod 10`. The facade laws follow from `argon2id_correct`
-not at all: they need only that the tag has T bytes below 256 and
-`subtle.eq(a, a) == True`.
+`n = 10 (n / 10) + n mod 10`. The facade laws do not depend on
+`argon2id_correct`: they need that the tag has T bytes, each below 256, the
+PHC round trip and `subtle.eq(a, a) == True`.
 
 Not proved, and not claimed: the timing behaviour (no timing model; the
 comparison of tags is `subtle.eq`, the compression and indexing have no
