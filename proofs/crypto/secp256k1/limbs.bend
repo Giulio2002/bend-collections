@@ -196,24 +196,35 @@ def horner_v(xs: List<&2, Nat>) -> {L.horner(xs) == ev(xs) : Nat}:
       {==}
 
 # a carry pass keeps the value: the carry in plus the limbs
-def carry_v(n: Nat, +xs: List<&2, Nat>, +u: Nat) -> {ev(L.carry(n, xs, u)) == Nat.add(u, ev(xs)) : Nat}:
-  match n:
-    case 0n:
-      %Equal.sym(Nat, L.horner(xs), ev(xs), horner_v(xs)) : {Nat.add(Nat.add(u, _), C.shift(16n, 0n)) == Nat.add(u, ev(xs)) : Nat}
-      %Equal.sym(Nat, Nat.add(u, ev(xs)), Nat.add(ev(xs), u), NA.add_comm(u, ev(xs))) : {Nat.add(_, C.shift(16n, 0n)) == Nat.add(u, ev(xs)) : Nat}
-      %Equal.sym(Nat, C.shift(16n, 0n), 0n, WW.shift_zero(16n)) : {Nat.add(Nat.add(ev(xs), u), _) == Nat.add(u, ev(xs)) : Nat}
-      %Equal.sym(Nat, Nat.add(Nat.add(ev(xs), u), 0n), Nat.add(ev(xs), u), NA.add_zero(Nat.add(ev(xs), u))) : {_ == Nat.add(u, ev(xs)) : Nat}
-      %Equal.sym(Nat, Nat.add(u, ev(xs)), Nat.add(ev(xs), u), NA.add_comm(u, ev(xs))) : {Nat.add(ev(xs), u) == _ : Nat}
+def carry_v(n: Nat, xs: List<&2, Nat>, +u: Nat) -> {ev(L.carry(n, xs, u)) == Nat.add(u, ev(xs)) : Nat}:
+  match n xs:
+    case 0n Nil{}:
+      %Equal.sym(Nat, C.shift(16n, 0n), 0n, WW.shift_zero(16n)) : {Nat.add(u, _) == Nat.add(u, 0n) : Nat}
+      %Equal.sym(Nat, Nat.add(u, 0n), u, NA.add_zero(u)) : {_ == Nat.add(u, 0n) : Nat}
+      %Equal.sym(Nat, Nat.add(u, 0n), u, NA.add_zero(u)) : {u == _ : Nat}
       {==}
-    case 1n+ +k:
-      %Equal.sym(Nat, ev(L.carry(k, L.tl(xs), L.hi16(Nat.add(u, L.hd0(xs))))), Nat.add(L.hi16(Nat.add(u, L.hd0(xs))), ev(L.tl(xs))), carry_v(k, L.tl(xs), L.hi16(Nat.add(u, L.hd0(xs))))) : {Nat.add(L.lo16(Nat.add(u, L.hd0(xs))), C.shift(16n, _)) == Nat.add(u, ev(xs)) : Nat}
-      %Equal.sym(Nat, ev(xs), Nat.add(L.hd0(xs), C.shift(16n, ev(L.tl(xs)))), hd_tl_v(xs)) : {Nat.add(L.lo16(Nat.add(u, L.hd0(xs))), C.shift(16n, Nat.add(L.hi16(Nat.add(u, L.hd0(xs))), ev(L.tl(xs))))) == Nat.add(u, _) : Nat}
-      %Equal.sym(Nat, C.shift(16n, Nat.add(L.hi16(Nat.add(u, L.hd0(xs))), ev(L.tl(xs)))), Nat.add(C.shift(16n, L.hi16(Nat.add(u, L.hd0(xs)))), C.shift(16n, ev(L.tl(xs)))), WW.shift_add(16n, L.hi16(Nat.add(u, L.hd0(xs))), ev(L.tl(xs)))) : {Nat.add(L.lo16(Nat.add(u, L.hd0(xs))), _) == Nat.add(u, Nat.add(L.hd0(xs), C.shift(16n, ev(L.tl(xs))))) : Nat}
-      %Equal.sym(Nat, Nat.add(L.lo16(Nat.add(u, L.hd0(xs))), Nat.add(C.shift(16n, L.hi16(Nat.add(u, L.hd0(xs)))), C.shift(16n, ev(L.tl(xs))))), Nat.add(Nat.add(L.lo16(Nat.add(u, L.hd0(xs))), C.shift(16n, L.hi16(Nat.add(u, L.hd0(xs))))), C.shift(16n, ev(L.tl(xs)))), Equal.sym(Nat, Nat.add(Nat.add(L.lo16(Nat.add(u, L.hd0(xs))), C.shift(16n, L.hi16(Nat.add(u, L.hd0(xs))))), C.shift(16n, ev(L.tl(xs)))), Nat.add(L.lo16(Nat.add(u, L.hd0(xs))), Nat.add(C.shift(16n, L.hi16(Nat.add(u, L.hd0(xs)))), C.shift(16n, ev(L.tl(xs))))), NA.add_assoc(L.lo16(Nat.add(u, L.hd0(xs))), C.shift(16n, L.hi16(Nat.add(u, L.hd0(xs)))), C.shift(16n, ev(L.tl(xs)))))) : {_ == Nat.add(u, Nat.add(L.hd0(xs), C.shift(16n, ev(L.tl(xs))))) : Nat}
-      %Equal.sym(Nat, Nat.add(L.lo16(Nat.add(u, L.hd0(xs))), C.shift(16n, L.hi16(Nat.add(u, L.hd0(xs))))), Nat.add(u, L.hd0(xs)), lohi(Nat.add(u, L.hd0(xs)))) : {Nat.add(_, C.shift(16n, ev(L.tl(xs)))) == Nat.add(u, Nat.add(L.hd0(xs), C.shift(16n, ev(L.tl(xs))))) : Nat}
-      %Equal.sym(Nat, Nat.add(u, L.hd0(xs)), Nat.add(L.hd0(xs), u), NA.add_comm(u, L.hd0(xs))) : {Nat.add(_, C.shift(16n, ev(L.tl(xs)))) == Nat.add(u, Nat.add(L.hd0(xs), C.shift(16n, ev(L.tl(xs))))) : Nat}
-      %Equal.sym(Nat, Nat.add(Nat.add(L.hd0(xs), u), C.shift(16n, ev(L.tl(xs)))), Nat.add(L.hd0(xs), Nat.add(u, C.shift(16n, ev(L.tl(xs))))), NA.add_assoc(L.hd0(xs), u, C.shift(16n, ev(L.tl(xs))))) : {_ == Nat.add(u, Nat.add(L.hd0(xs), C.shift(16n, ev(L.tl(xs))))) : Nat}
-      %Equal.sym(Nat, Nat.add(u, C.shift(16n, ev(L.tl(xs)))), Nat.add(C.shift(16n, ev(L.tl(xs))), u), NA.add_comm(u, C.shift(16n, ev(L.tl(xs))))) : {Nat.add(L.hd0(xs), _) == Nat.add(u, Nat.add(L.hd0(xs), C.shift(16n, ev(L.tl(xs))))) : Nat}
-      %Equal.sym(Nat, Nat.add(u, Nat.add(L.hd0(xs), C.shift(16n, ev(L.tl(xs))))), Nat.add(L.hd0(xs), Nat.add(u, C.shift(16n, ev(L.tl(xs))))), NA.add_swap(u, L.hd0(xs), C.shift(16n, ev(L.tl(xs))))) : {Nat.add(L.hd0(xs), Nat.add(C.shift(16n, ev(L.tl(xs))), u)) == _ : Nat}
-      %Equal.sym(Nat, Nat.add(u, C.shift(16n, ev(L.tl(xs)))), Nat.add(C.shift(16n, ev(L.tl(xs))), u), NA.add_comm(u, C.shift(16n, ev(L.tl(xs))))) : {Nat.add(L.hd0(xs), Nat.add(C.shift(16n, ev(L.tl(xs))), u)) == Nat.add(L.hd0(xs), _) : Nat}
+    case 0n +x <> +t:
+      %Equal.sym(Nat, L.horner(x <> t), ev(x <> t), horner_v(x <> t)) : {Nat.add(Nat.add(u, _), C.shift(16n, 0n)) == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %Equal.sym(Nat, Nat.add(x, C.shift(16n, ev(t))), Nat.add(C.shift(16n, ev(t)), x), NA.add_comm(x, C.shift(16n, ev(t)))) : {Nat.add(Nat.add(u, _), C.shift(16n, 0n)) == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %Equal.sym(Nat, Nat.add(u, Nat.add(C.shift(16n, ev(t)), x)), Nat.add(C.shift(16n, ev(t)), Nat.add(u, x)), NA.add_swap(u, C.shift(16n, ev(t)), x)) : {Nat.add(_, C.shift(16n, 0n)) == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %Equal.sym(Nat, C.shift(16n, 0n), 0n, WW.shift_zero(16n)) : {Nat.add(Nat.add(C.shift(16n, ev(t)), Nat.add(u, x)), _) == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %Equal.sym(Nat, Nat.add(Nat.add(C.shift(16n, ev(t)), Nat.add(u, x)), 0n), Nat.add(C.shift(16n, ev(t)), Nat.add(u, x)), NA.add_zero(Nat.add(C.shift(16n, ev(t)), Nat.add(u, x)))) : {_ == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %Equal.sym(Nat, Nat.add(x, C.shift(16n, ev(t))), Nat.add(C.shift(16n, ev(t)), x), NA.add_comm(x, C.shift(16n, ev(t)))) : {Nat.add(C.shift(16n, ev(t)), Nat.add(u, x)) == Nat.add(u, _) : Nat}
+      %Equal.sym(Nat, Nat.add(u, Nat.add(C.shift(16n, ev(t)), x)), Nat.add(C.shift(16n, ev(t)), Nat.add(u, x)), NA.add_swap(u, C.shift(16n, ev(t)), x)) : {Nat.add(C.shift(16n, ev(t)), Nat.add(u, x)) == _ : Nat}
+      {==}
+    case 1n+ +k Nil{}:
+      %Equal.sym(Nat, ev(L.carry(k, [], L.hi16(Nat.add(u, 0n)))), Nat.add(L.hi16(Nat.add(u, 0n)), ev([])), carry_v(k, [], L.hi16(Nat.add(u, 0n)))) : {Nat.add(L.lo16(Nat.add(u, 0n)), C.shift(16n, _)) == Nat.add(u, 0n) : Nat}
+      %Equal.sym(Nat, Nat.add(L.hi16(Nat.add(u, 0n)), 0n), L.hi16(Nat.add(u, 0n)), NA.add_zero(L.hi16(Nat.add(u, 0n)))) : {Nat.add(L.lo16(Nat.add(u, 0n)), C.shift(16n, _)) == Nat.add(u, 0n) : Nat}
+      %Equal.sym(Nat, Nat.add(L.lo16(Nat.add(u, 0n)), C.shift(16n, L.hi16(Nat.add(u, 0n)))), Nat.add(u, 0n), lohi(Nat.add(u, 0n))) : {_ == Nat.add(u, 0n) : Nat}
+      {==}
+    case 1n+ +k +x <> +t:
+      %Equal.sym(Nat, ev(L.carry(k, t, L.hi16(Nat.add(u, x)))), Nat.add(L.hi16(Nat.add(u, x)), ev(t)), carry_v(k, t, L.hi16(Nat.add(u, x)))) : {Nat.add(L.lo16(Nat.add(u, x)), C.shift(16n, _)) == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %Equal.sym(Nat, C.shift(16n, Nat.add(L.hi16(Nat.add(u, x)), ev(t))), Nat.add(C.shift(16n, L.hi16(Nat.add(u, x))), C.shift(16n, ev(t))), WW.shift_add(16n, L.hi16(Nat.add(u, x)), ev(t))) : {Nat.add(L.lo16(Nat.add(u, x)), _) == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %Equal.sym(Nat, Nat.add(L.lo16(Nat.add(u, x)), Nat.add(C.shift(16n, L.hi16(Nat.add(u, x))), C.shift(16n, ev(t)))), Nat.add(Nat.add(L.lo16(Nat.add(u, x)), C.shift(16n, L.hi16(Nat.add(u, x)))), C.shift(16n, ev(t))), Equal.sym(Nat, Nat.add(Nat.add(L.lo16(Nat.add(u, x)), C.shift(16n, L.hi16(Nat.add(u, x)))), C.shift(16n, ev(t))), Nat.add(L.lo16(Nat.add(u, x)), Nat.add(C.shift(16n, L.hi16(Nat.add(u, x))), C.shift(16n, ev(t)))), NA.add_assoc(L.lo16(Nat.add(u, x)), C.shift(16n, L.hi16(Nat.add(u, x))), C.shift(16n, ev(t))))) : {_ == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %Equal.sym(Nat, Nat.add(L.lo16(Nat.add(u, x)), C.shift(16n, L.hi16(Nat.add(u, x)))), Nat.add(u, x), lohi(Nat.add(u, x))) : {Nat.add(_, C.shift(16n, ev(t))) == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %Equal.sym(Nat, Nat.add(Nat.add(u, x), C.shift(16n, ev(t))), Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))), NA.add_assoc(u, x, C.shift(16n, ev(t)))) : {_ == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %Equal.sym(Nat, Nat.add(x, C.shift(16n, ev(t))), Nat.add(C.shift(16n, ev(t)), x), NA.add_comm(x, C.shift(16n, ev(t)))) : {Nat.add(u, _) == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %Equal.sym(Nat, Nat.add(u, Nat.add(C.shift(16n, ev(t)), x)), Nat.add(C.shift(16n, ev(t)), Nat.add(u, x)), NA.add_swap(u, C.shift(16n, ev(t)), x)) : {_ == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %Equal.sym(Nat, Nat.add(x, C.shift(16n, ev(t))), Nat.add(C.shift(16n, ev(t)), x), NA.add_comm(x, C.shift(16n, ev(t)))) : {Nat.add(C.shift(16n, ev(t)), Nat.add(u, x)) == Nat.add(u, _) : Nat}
+      %Equal.sym(Nat, Nat.add(u, Nat.add(C.shift(16n, ev(t)), x)), Nat.add(C.shift(16n, ev(t)), Nat.add(u, x)), NA.add_swap(u, C.shift(16n, ev(t)), x)) : {Nat.add(C.shift(16n, ev(t)), Nat.add(u, x)) == _ : Nat}
       {==}

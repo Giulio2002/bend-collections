@@ -170,7 +170,13 @@ def show(t):
 
 
 def canon(t):
-    # `kn+ln` is the literal k + l, as Bend reads it
+    # `kn+ln` is the literal k + l, as Bend reads it; a sum or product of
+    # two small literals is written as its value (the checker computes it)
+    if t[0] == 'app' and t[1] in ('Nat.add', 'Nat.mul') and len(t[2]) == 2 and all(a[0] == 'lit' and a[1].endswith('n') for a in t[2]):
+        a, b = int(t[2][0][1][:-1]), int(t[2][1][1][:-1])
+        v = a + b if t[1] == 'Nat.add' else a * b
+        if v <= 4096:
+            return ('lit', '%dn' % v)
     if t[0] == 'succ':
         inner = canon(t[2])
         if inner[0] == 'lit' and inner[1].endswith('n'):
@@ -188,7 +194,7 @@ def subst0(t, env):
     if k == 'var':
         return env.get(t[1], t)
     if k in ('app', 'ctr'):
-        return (k, t[1], [subst(a, env) for a in t[2]])
+        return canon((k, t[1], [subst(a, env) for a in t[2]]))
     if k == 'list':
         return ('list', [subst(a, env) for a in t[1]])
     if k == 'cons':
@@ -285,6 +291,37 @@ DEF = re.compile(r'^def ([A-Za-z0-9_.]+)\((.*)\) -> (\{.*\}):\s*$')
 LAW = re.compile(r'^law ([A-Za-z0-9_.]+):\s*$')
 
 
+def imports_of(path):
+    d = os.path.dirname(os.path.abspath(path))
+    text = open(path).read()
+    return {m.group(2): os.path.normpath(os.path.join(d, m.group(1))) for m in re.finditer(r'^import (\S+\.bend) as (\w+)$', text, re.M)}
+
+
+def local_names(path):
+    text = open(path).read()
+    names = set(re.findall(r'^(?:def|law) ([A-Za-z0-9_.]+)', text, re.M))
+    names |= set(re.findall(r'^type ([A-Za-z0-9_]+)', text, re.M))
+    names |= set(re.findall(r'^  ([A-Z][A-Za-z0-9_]*)\{', text, re.M))
+    return names
+
+
+def rename(t, f):
+    k = t[0]
+    if k == 'var':
+        return ('var', f(t[1]))
+    if k in ('app', 'ctr'):
+        return (k, f(t[1]), [rename(a, f) for a in t[2]])
+    if k == 'list':
+        return ('list', [rename(a, f) for a in t[1]])
+    if k == 'cons':
+        return ('cons', rename(t[1], f), rename(t[2], f))
+    if k == 'succ':
+        return ('succ', t[1], rename(t[2], f))
+    if k == 'eq':
+        return ('eq', rename(t[1], f), rename(t[2], f), t[3])
+    return t
+
+
 def lemmas_of(path, cache={}):
     if path in cache:
         return cache[path]
@@ -323,9 +360,25 @@ class Ctx:
         if '.' in name:
             alias, rest = name.split('.', 1)
             if alias in self.imports:
-                t = lemmas_of(self.imports[alias])
+                path = self.imports[alias]
+                t = lemmas_of(path)
                 if rest in t:
-                    return t[rest]
+                    params, eq = t[rest]
+                    theirs = imports_of(path)
+                    mine = {p: a for a, p in self.imports.items()}
+                    locs = local_names(path)
+
+                    def f(n, alias=alias, theirs=theirs, mine=mine, locs=locs, params=params):
+                        if n in params:
+                            return n
+                        if '.' in n:
+                            a, r = n.split('.', 1)
+                            if a in theirs and theirs[a] in mine:
+                                return mine[theirs[a]] + '.' + r
+                        if n in locs:
+                            return alias + '.' + n
+                        return n
+                    return params, rename(eq, f)
         if name in self.local:
             return self.local[name]
         raise KeyError('no equation lemma %s' % name)

@@ -301,7 +301,9 @@ def eth_address(+pk: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
 # ---- Ethereum's ECRECOVER precompile (address 0x01) ----
 
 def zeros_ok(bs: List<&2, U32>) -> Bool:
-  L.is_zero(B.of_be(bs))
+  match bs:
+    case Nil{}: True{}
+    case b <> t: Bool.and(U32.is_eq(b, 0), zeros_ok(t))
 
 def eth_word(m: Maybe<&2, List<&2, U32>>) -> Maybe<&2, List<&2, U32>>:
   match m:

@@ -163,17 +163,27 @@ def horner_v(xs: List<&2, Nat>) -> {L.horner(xs) == ev(xs) : Nat}:
       %norm
 
 # a carry pass keeps the value: the carry in plus the limbs
-def carry_v(n: Nat, +xs: List<&2, Nat>, +u: Nat) -> {ev(L.carry(n, xs, u)) == Nat.add(u, ev(xs)) : Nat}:
-  match n:
-    case 0n:
-      %goal {Nat.add(Nat.add(u, L.horner(xs)), C.shift(16n, 0n)) == Nat.add(u, ev(xs)) : Nat}
-      %rw horner_v(xs)
+def carry_v(n: Nat, xs: List<&2, Nat>, +u: Nat) -> {ev(L.carry(n, xs, u)) == Nat.add(u, ev(xs)) : Nat}:
+  match n xs:
+    case 0n Nil{}:
+      %goal {Nat.add(u, C.shift(16n, 0n)) == Nat.add(u, 0n) : Nat}
       %norm
-    case 1n+ +k:
-      %goal {Nat.add(L.lo16(Nat.add(u, L.hd0(xs))), C.shift(16n, ev(L.carry(k, L.tl(xs), L.hi16(Nat.add(u, L.hd0(xs))))))) == Nat.add(u, ev(xs)) : Nat}
-      %rw carry_v(k, L.tl(xs), L.hi16(Nat.add(u, L.hd0(xs))))
-      %rw@r hd_tl_v(xs)
-      %rw WW.shift_add(16n, L.hi16(Nat.add(u, L.hd0(xs))), ev(L.tl(xs)))
-      %rw <- NA.add_assoc(L.lo16(Nat.add(u, L.hd0(xs))), C.shift(16n, L.hi16(Nat.add(u, L.hd0(xs)))), C.shift(16n, ev(L.tl(xs))))
-      %rw lohi(Nat.add(u, L.hd0(xs)))
+    case 0n +x <> +t:
+      %goal {Nat.add(Nat.add(u, L.horner(x <> t)), C.shift(16n, 0n)) == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %rw horner_v(x <> t)
+      %goal {Nat.add(Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))), C.shift(16n, 0n)) == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %norm
+    case 1n+ +k Nil{}:
+      %goal {Nat.add(L.lo16(Nat.add(u, 0n)), C.shift(16n, ev(L.carry(k, [], L.hi16(Nat.add(u, 0n)))))) == Nat.add(u, 0n) : Nat}
+      %rw carry_v(k, [], L.hi16(Nat.add(u, 0n)))
+      %goal {Nat.add(L.lo16(Nat.add(u, 0n)), C.shift(16n, Nat.add(L.hi16(Nat.add(u, 0n)), 0n))) == Nat.add(u, 0n) : Nat}
+      %rw NA.add_zero(L.hi16(Nat.add(u, 0n)))
+      %rw@l lohi(Nat.add(u, 0n))
+      %close
+    case 1n+ +k +x <> +t:
+      %goal {Nat.add(L.lo16(Nat.add(u, x)), C.shift(16n, ev(L.carry(k, t, L.hi16(Nat.add(u, x)))))) == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %rw carry_v(k, t, L.hi16(Nat.add(u, x)))
+      %rw WW.shift_add(16n, L.hi16(Nat.add(u, x)), ev(t))
+      %rw <- NA.add_assoc(L.lo16(Nat.add(u, x)), C.shift(16n, L.hi16(Nat.add(u, x))), C.shift(16n, ev(t)))
+      %rw lohi(Nat.add(u, x))
       %norm

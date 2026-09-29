@@ -96,19 +96,25 @@ def horner(xs: List<&2, Nat>) -> Nat:
 # A carry pass: n limbs, each below 2^16, then one limb holding the carry u
 # out of them plus the value of whatever is left of xs past n limbs (on
 # every call below xs has at most n limbs, so that is the carry alone).
-def carry(n: Nat, +xs: List<&2, Nat>, u: Nat) -> List<&2, Nat>:
-  match n:
-    case 0n:
-      [Nat.add(u, horner(xs))]
-    case 1n+k:
-      +s = Nat.add(u, hd0(xs))
-      lo16(s) <> carry(k, tl(xs), hi16(s))
+# Every function here looks at its list before producing anything, so that
+# on a symbolic argument the proof checker stops at once.
+def carry(n: Nat, xs: List<&2, Nat>, u: Nat) -> List<&2, Nat>:
+  match n xs:
+    case 0n Nil{}: [u]
+    case 0n x <> t: [Nat.add(u, horner(x <> t))]
+    case 1n+k Nil{}:
+      +s = Nat.add(u, 0n)
+      lo16(s) <> carry(k, Nil{}, hi16(s))
+    case 1n+k x <> t:
+      +s = Nat.add(u, x)
+      lo16(s) <> carry(k, t, hi16(s))
 
 # n limbs 2^16 - 1 - x (the missing limbs read as 0)
-def comp(n: Nat, +xs: List<&2, Nat>) -> List<&2, Nat>:
-  match n:
-    case 0n: Nil{}
-    case 1n+k: comp1(hd0(xs)) <> comp(k, tl(xs))
+def comp(n: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
+  match n xs:
+    case 0n _: Nil{}
+    case 1n+k Nil{}: comp1(0n) <> comp(k, Nil{})
+    case 1n+k x <> t: comp1(x) <> comp(k, t)
 
 # b x + (1 - b) y, limb-wise, for b in {0, 1}
 def pick1(+b: Nat, +x: Nat, +y: Nat) -> Nat:
@@ -138,7 +144,7 @@ def rounds(k: Nat, +c: List<&2, Nat>, xs: List<&2, Nat>) -> List<&2, Nat>:
 # t >= m, and then its low 256 bits are t - m
 def canon(+c: List<&2, Nat>, +t: List<&2, Nat>) -> List<&2, Nat>:
   +u = carry(32n, add(t, c), 0n)
-  select(hd0(drop(16n, u)), take(16n, u), t)
+  select(horner(drop(16n, u)), take(16n, u), t)
 
 # x mod m for x below 2^512, in k folds
 def reduce(+c: List<&2, Nat>, k: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
