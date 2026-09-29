@@ -11,108 +11,157 @@ import Base
 type State is Data:
   S{x0: U32, x1: U32, x2: U32, x3: U32, x4: U32, x5: U32, x6: U32, x7: U32, x8: U32, x9: U32, x10: U32, x11: U32, x12: U32, x13: U32, x14: U32, x15: U32}
 
+# QUARTERROUND(0, 4, 8, 12).
+def qr0(s: State) -> State:
+  match s:
+    case S{+x0,x1,x2,x3,+x4,x5,x6,x7,+x8,x9,x10,x11,+x12,x13,x14,x15}:
+      +a1 = U32.add(x0,x4)
+      +d1x = U32.xor(x12,a1)
+      +d1 = U32.or(U32.shln(d1x,16n),U32.shrn(d1x,16n))
+      +c1 = U32.add(x8,d1)
+      +b1x = U32.xor(x4,c1)
+      +b1 = U32.or(U32.shln(b1x,12n),U32.shrn(b1x,20n))
+      +a2 = U32.add(a1,b1)
+      +d2x = U32.xor(d1,a2)
+      +d2 = U32.or(U32.shln(d2x,8n),U32.shrn(d2x,24n))
+      +c2 = U32.add(c1,d2)
+      +b2x = U32.xor(b1,c2)
+      +b2 = U32.or(U32.shln(b2x,7n),U32.shrn(b2x,25n))
+      S{a2,x1,x2,x3,b2,x5,x6,x7,c2,x9,x10,x11,d2,x13,x14,x15}
+
+# QUARTERROUND(1, 5, 9, 13).
+def qr1(s: State) -> State:
+  match s:
+    case S{x0,+x1,x2,x3,x4,+x5,x6,x7,x8,+x9,x10,x11,x12,+x13,x14,x15}:
+      +a1 = U32.add(x1,x5)
+      +d1x = U32.xor(x13,a1)
+      +d1 = U32.or(U32.shln(d1x,16n),U32.shrn(d1x,16n))
+      +c1 = U32.add(x9,d1)
+      +b1x = U32.xor(x5,c1)
+      +b1 = U32.or(U32.shln(b1x,12n),U32.shrn(b1x,20n))
+      +a2 = U32.add(a1,b1)
+      +d2x = U32.xor(d1,a2)
+      +d2 = U32.or(U32.shln(d2x,8n),U32.shrn(d2x,24n))
+      +c2 = U32.add(c1,d2)
+      +b2x = U32.xor(b1,c2)
+      +b2 = U32.or(U32.shln(b2x,7n),U32.shrn(b2x,25n))
+      S{x0,a2,x2,x3,x4,b2,x6,x7,x8,c2,x10,x11,x12,d2,x14,x15}
+
+# QUARTERROUND(2, 6, 10, 14).
+def qr2(s: State) -> State:
+  match s:
+    case S{x0,x1,+x2,x3,x4,x5,+x6,x7,x8,x9,+x10,x11,x12,x13,+x14,x15}:
+      +a1 = U32.add(x2,x6)
+      +d1x = U32.xor(x14,a1)
+      +d1 = U32.or(U32.shln(d1x,16n),U32.shrn(d1x,16n))
+      +c1 = U32.add(x10,d1)
+      +b1x = U32.xor(x6,c1)
+      +b1 = U32.or(U32.shln(b1x,12n),U32.shrn(b1x,20n))
+      +a2 = U32.add(a1,b1)
+      +d2x = U32.xor(d1,a2)
+      +d2 = U32.or(U32.shln(d2x,8n),U32.shrn(d2x,24n))
+      +c2 = U32.add(c1,d2)
+      +b2x = U32.xor(b1,c2)
+      +b2 = U32.or(U32.shln(b2x,7n),U32.shrn(b2x,25n))
+      S{x0,x1,a2,x3,x4,x5,b2,x7,x8,x9,c2,x11,x12,x13,d2,x15}
+
+# QUARTERROUND(3, 7, 11, 15).
+def qr3(s: State) -> State:
+  match s:
+    case S{x0,x1,x2,+x3,x4,x5,x6,+x7,x8,x9,x10,+x11,x12,x13,x14,+x15}:
+      +a1 = U32.add(x3,x7)
+      +d1x = U32.xor(x15,a1)
+      +d1 = U32.or(U32.shln(d1x,16n),U32.shrn(d1x,16n))
+      +c1 = U32.add(x11,d1)
+      +b1x = U32.xor(x7,c1)
+      +b1 = U32.or(U32.shln(b1x,12n),U32.shrn(b1x,20n))
+      +a2 = U32.add(a1,b1)
+      +d2x = U32.xor(d1,a2)
+      +d2 = U32.or(U32.shln(d2x,8n),U32.shrn(d2x,24n))
+      +c2 = U32.add(c1,d2)
+      +b2x = U32.xor(b1,c2)
+      +b2 = U32.or(U32.shln(b2x,7n),U32.shrn(b2x,25n))
+      S{x0,x1,x2,a2,x4,x5,x6,b2,x8,x9,x10,c2,x12,x13,x14,d2}
+
+# QUARTERROUND(0, 5, 10, 15).
+def qr4(s: State) -> State:
+  match s:
+    case S{+x0,x1,x2,x3,x4,+x5,x6,x7,x8,x9,+x10,x11,x12,x13,x14,+x15}:
+      +a1 = U32.add(x0,x5)
+      +d1x = U32.xor(x15,a1)
+      +d1 = U32.or(U32.shln(d1x,16n),U32.shrn(d1x,16n))
+      +c1 = U32.add(x10,d1)
+      +b1x = U32.xor(x5,c1)
+      +b1 = U32.or(U32.shln(b1x,12n),U32.shrn(b1x,20n))
+      +a2 = U32.add(a1,b1)
+      +d2x = U32.xor(d1,a2)
+      +d2 = U32.or(U32.shln(d2x,8n),U32.shrn(d2x,24n))
+      +c2 = U32.add(c1,d2)
+      +b2x = U32.xor(b1,c2)
+      +b2 = U32.or(U32.shln(b2x,7n),U32.shrn(b2x,25n))
+      S{a2,x1,x2,x3,x4,b2,x6,x7,x8,x9,c2,x11,x12,x13,x14,d2}
+
+# QUARTERROUND(1, 6, 11, 12).
+def qr5(s: State) -> State:
+  match s:
+    case S{x0,+x1,x2,x3,x4,x5,+x6,x7,x8,x9,x10,+x11,+x12,x13,x14,x15}:
+      +a1 = U32.add(x1,x6)
+      +d1x = U32.xor(x12,a1)
+      +d1 = U32.or(U32.shln(d1x,16n),U32.shrn(d1x,16n))
+      +c1 = U32.add(x11,d1)
+      +b1x = U32.xor(x6,c1)
+      +b1 = U32.or(U32.shln(b1x,12n),U32.shrn(b1x,20n))
+      +a2 = U32.add(a1,b1)
+      +d2x = U32.xor(d1,a2)
+      +d2 = U32.or(U32.shln(d2x,8n),U32.shrn(d2x,24n))
+      +c2 = U32.add(c1,d2)
+      +b2x = U32.xor(b1,c2)
+      +b2 = U32.or(U32.shln(b2x,7n),U32.shrn(b2x,25n))
+      S{x0,a2,x2,x3,x4,x5,b2,x7,x8,x9,x10,c2,d2,x13,x14,x15}
+
+# QUARTERROUND(2, 7, 8, 13).
+def qr6(s: State) -> State:
+  match s:
+    case S{x0,x1,+x2,x3,x4,x5,x6,+x7,+x8,x9,x10,x11,x12,+x13,x14,x15}:
+      +a1 = U32.add(x2,x7)
+      +d1x = U32.xor(x13,a1)
+      +d1 = U32.or(U32.shln(d1x,16n),U32.shrn(d1x,16n))
+      +c1 = U32.add(x8,d1)
+      +b1x = U32.xor(x7,c1)
+      +b1 = U32.or(U32.shln(b1x,12n),U32.shrn(b1x,20n))
+      +a2 = U32.add(a1,b1)
+      +d2x = U32.xor(d1,a2)
+      +d2 = U32.or(U32.shln(d2x,8n),U32.shrn(d2x,24n))
+      +c2 = U32.add(c1,d2)
+      +b2x = U32.xor(b1,c2)
+      +b2 = U32.or(U32.shln(b2x,7n),U32.shrn(b2x,25n))
+      S{x0,x1,a2,x3,x4,x5,x6,b2,c2,x9,x10,x11,x12,d2,x14,x15}
+
+# QUARTERROUND(3, 4, 9, 14).
+def qr7(s: State) -> State:
+  match s:
+    case S{x0,x1,x2,+x3,+x4,x5,x6,x7,x8,+x9,x10,x11,x12,x13,+x14,x15}:
+      +a1 = U32.add(x3,x4)
+      +d1x = U32.xor(x14,a1)
+      +d1 = U32.or(U32.shln(d1x,16n),U32.shrn(d1x,16n))
+      +c1 = U32.add(x9,d1)
+      +b1x = U32.xor(x4,c1)
+      +b1 = U32.or(U32.shln(b1x,12n),U32.shrn(b1x,20n))
+      +a2 = U32.add(a1,b1)
+      +d2x = U32.xor(d1,a2)
+      +d2 = U32.or(U32.shln(d2x,8n),U32.shrn(d2x,24n))
+      +c2 = U32.add(c1,d2)
+      +b2x = U32.xor(b1,c2)
+      +b2 = U32.or(U32.shln(b2x,7n),U32.shrn(b2x,25n))
+      S{x0,x1,x2,a2,b2,x5,x6,x7,x8,c2,x10,x11,x12,x13,d2,x15}
+
 # One double round: QUARTERROUND on the columns (0,4,8,12) .. (3,7,11,15),
 # then on the diagonals (0,5,10,15) (1,6,11,12) (2,7,8,13) (3,4,9,14).
+# (One quarter round per function: the proofs compare one quarter round at a
+# time, so that no check has to expand a whole round over symbolic words.)
 def double_round(s: State) -> State:
-  match s:
-    case S{+a0,+a1,+a2,+a3,+a4,+a5,+a6,+a7,+a8,+a9,+a10,+a11,+a12,+a13,+a14,+a15}:
-      +q0a1 = U32.add(a0,a4)
-      +q0d1x = U32.xor(a12,q0a1)
-      +q0d1 = U32.or(U32.shln(q0d1x,16n),U32.shrn(q0d1x,16n))
-      +q0c1 = U32.add(a8,q0d1)
-      +q0b1x = U32.xor(a4,q0c1)
-      +q0b1 = U32.or(U32.shln(q0b1x,12n),U32.shrn(q0b1x,20n))
-      +q0a2 = U32.add(q0a1,q0b1)
-      +q0d2x = U32.xor(q0d1,q0a2)
-      +q0d2 = U32.or(U32.shln(q0d2x,8n),U32.shrn(q0d2x,24n))
-      +q0c2 = U32.add(q0c1,q0d2)
-      +q0b2x = U32.xor(q0b1,q0c2)
-      +q0b2 = U32.or(U32.shln(q0b2x,7n),U32.shrn(q0b2x,25n))
-      +q1a1 = U32.add(a1,a5)
-      +q1d1x = U32.xor(a13,q1a1)
-      +q1d1 = U32.or(U32.shln(q1d1x,16n),U32.shrn(q1d1x,16n))
-      +q1c1 = U32.add(a9,q1d1)
-      +q1b1x = U32.xor(a5,q1c1)
-      +q1b1 = U32.or(U32.shln(q1b1x,12n),U32.shrn(q1b1x,20n))
-      +q1a2 = U32.add(q1a1,q1b1)
-      +q1d2x = U32.xor(q1d1,q1a2)
-      +q1d2 = U32.or(U32.shln(q1d2x,8n),U32.shrn(q1d2x,24n))
-      +q1c2 = U32.add(q1c1,q1d2)
-      +q1b2x = U32.xor(q1b1,q1c2)
-      +q1b2 = U32.or(U32.shln(q1b2x,7n),U32.shrn(q1b2x,25n))
-      +q2a1 = U32.add(a2,a6)
-      +q2d1x = U32.xor(a14,q2a1)
-      +q2d1 = U32.or(U32.shln(q2d1x,16n),U32.shrn(q2d1x,16n))
-      +q2c1 = U32.add(a10,q2d1)
-      +q2b1x = U32.xor(a6,q2c1)
-      +q2b1 = U32.or(U32.shln(q2b1x,12n),U32.shrn(q2b1x,20n))
-      +q2a2 = U32.add(q2a1,q2b1)
-      +q2d2x = U32.xor(q2d1,q2a2)
-      +q2d2 = U32.or(U32.shln(q2d2x,8n),U32.shrn(q2d2x,24n))
-      +q2c2 = U32.add(q2c1,q2d2)
-      +q2b2x = U32.xor(q2b1,q2c2)
-      +q2b2 = U32.or(U32.shln(q2b2x,7n),U32.shrn(q2b2x,25n))
-      +q3a1 = U32.add(a3,a7)
-      +q3d1x = U32.xor(a15,q3a1)
-      +q3d1 = U32.or(U32.shln(q3d1x,16n),U32.shrn(q3d1x,16n))
-      +q3c1 = U32.add(a11,q3d1)
-      +q3b1x = U32.xor(a7,q3c1)
-      +q3b1 = U32.or(U32.shln(q3b1x,12n),U32.shrn(q3b1x,20n))
-      +q3a2 = U32.add(q3a1,q3b1)
-      +q3d2x = U32.xor(q3d1,q3a2)
-      +q3d2 = U32.or(U32.shln(q3d2x,8n),U32.shrn(q3d2x,24n))
-      +q3c2 = U32.add(q3c1,q3d2)
-      +q3b2x = U32.xor(q3b1,q3c2)
-      +q3b2 = U32.or(U32.shln(q3b2x,7n),U32.shrn(q3b2x,25n))
-      +q4a1 = U32.add(q0a2,q1b2)
-      +q4d1x = U32.xor(q3d2,q4a1)
-      +q4d1 = U32.or(U32.shln(q4d1x,16n),U32.shrn(q4d1x,16n))
-      +q4c1 = U32.add(q2c2,q4d1)
-      +q4b1x = U32.xor(q1b2,q4c1)
-      +q4b1 = U32.or(U32.shln(q4b1x,12n),U32.shrn(q4b1x,20n))
-      +q4a2 = U32.add(q4a1,q4b1)
-      +q4d2x = U32.xor(q4d1,q4a2)
-      +q4d2 = U32.or(U32.shln(q4d2x,8n),U32.shrn(q4d2x,24n))
-      +q4c2 = U32.add(q4c1,q4d2)
-      +q4b2x = U32.xor(q4b1,q4c2)
-      +q4b2 = U32.or(U32.shln(q4b2x,7n),U32.shrn(q4b2x,25n))
-      +q5a1 = U32.add(q1a2,q2b2)
-      +q5d1x = U32.xor(q0d2,q5a1)
-      +q5d1 = U32.or(U32.shln(q5d1x,16n),U32.shrn(q5d1x,16n))
-      +q5c1 = U32.add(q3c2,q5d1)
-      +q5b1x = U32.xor(q2b2,q5c1)
-      +q5b1 = U32.or(U32.shln(q5b1x,12n),U32.shrn(q5b1x,20n))
-      +q5a2 = U32.add(q5a1,q5b1)
-      +q5d2x = U32.xor(q5d1,q5a2)
-      +q5d2 = U32.or(U32.shln(q5d2x,8n),U32.shrn(q5d2x,24n))
-      +q5c2 = U32.add(q5c1,q5d2)
-      +q5b2x = U32.xor(q5b1,q5c2)
-      +q5b2 = U32.or(U32.shln(q5b2x,7n),U32.shrn(q5b2x,25n))
-      +q6a1 = U32.add(q2a2,q3b2)
-      +q6d1x = U32.xor(q1d2,q6a1)
-      +q6d1 = U32.or(U32.shln(q6d1x,16n),U32.shrn(q6d1x,16n))
-      +q6c1 = U32.add(q0c2,q6d1)
-      +q6b1x = U32.xor(q3b2,q6c1)
-      +q6b1 = U32.or(U32.shln(q6b1x,12n),U32.shrn(q6b1x,20n))
-      +q6a2 = U32.add(q6a1,q6b1)
-      +q6d2x = U32.xor(q6d1,q6a2)
-      +q6d2 = U32.or(U32.shln(q6d2x,8n),U32.shrn(q6d2x,24n))
-      +q6c2 = U32.add(q6c1,q6d2)
-      +q6b2x = U32.xor(q6b1,q6c2)
-      +q6b2 = U32.or(U32.shln(q6b2x,7n),U32.shrn(q6b2x,25n))
-      +q7a1 = U32.add(q3a2,q0b2)
-      +q7d1x = U32.xor(q2d2,q7a1)
-      +q7d1 = U32.or(U32.shln(q7d1x,16n),U32.shrn(q7d1x,16n))
-      +q7c1 = U32.add(q1c2,q7d1)
-      +q7b1x = U32.xor(q0b2,q7c1)
-      +q7b1 = U32.or(U32.shln(q7b1x,12n),U32.shrn(q7b1x,20n))
-      +q7a2 = U32.add(q7a1,q7b1)
-      +q7d2x = U32.xor(q7d1,q7a2)
-      +q7d2 = U32.or(U32.shln(q7d2x,8n),U32.shrn(q7d2x,24n))
-      +q7c2 = U32.add(q7c1,q7d2)
-      +q7b2x = U32.xor(q7b1,q7c2)
-      +q7b2 = U32.or(U32.shln(q7b2x,7n),U32.shrn(q7b2x,25n))
-      S{q4a2,q5a2,q6a2,q7a2,q7b2,q4b2,q5b2,q6b2,q6c2,q7c2,q4c2,q5c2,q5d2,q6d2,q7d2,q4d2}
+  qr7(qr6(qr5(qr4(qr3(qr2(qr1(qr0(s))))))))
+
 # n double rounds (2n rounds).
 def rounds(n: Nat, s: State) -> State:
   match n:

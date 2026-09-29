@@ -78,13 +78,85 @@ def p15(s: C.State) -> U32:
 def vec(+s: C.State) -> List<&2, U32>:
   [p0(s), p1(s), p2(s), p3(s), p4(s), p5(s), p6(s), p7(s), p8(s), p9(s), p10(s), p11(s), p12(s), p13(s), p14(s), p15(s)]
 
+law qr0_correct:
+  for +s: C.State
+  {vec(C.qr0(s)) == R.quarter(vec(s), 0n, 4n, 8n, 12n) : List<&2, U32>}
+
+def qr0_correct(s):
+  match s:
+    case C.S{a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15}: {==}
+
+law qr1_correct:
+  for +s: C.State
+  {vec(C.qr1(s)) == R.quarter(vec(s), 1n, 5n, 9n, 13n) : List<&2, U32>}
+
+def qr1_correct(s):
+  match s:
+    case C.S{a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15}: {==}
+
+law qr2_correct:
+  for +s: C.State
+  {vec(C.qr2(s)) == R.quarter(vec(s), 2n, 6n, 10n, 14n) : List<&2, U32>}
+
+def qr2_correct(s):
+  match s:
+    case C.S{a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15}: {==}
+
+law qr3_correct:
+  for +s: C.State
+  {vec(C.qr3(s)) == R.quarter(vec(s), 3n, 7n, 11n, 15n) : List<&2, U32>}
+
+def qr3_correct(s):
+  match s:
+    case C.S{a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15}: {==}
+
+law qr4_correct:
+  for +s: C.State
+  {vec(C.qr4(s)) == R.quarter(vec(s), 0n, 5n, 10n, 15n) : List<&2, U32>}
+
+def qr4_correct(s):
+  match s:
+    case C.S{a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15}: {==}
+
+law qr5_correct:
+  for +s: C.State
+  {vec(C.qr5(s)) == R.quarter(vec(s), 1n, 6n, 11n, 12n) : List<&2, U32>}
+
+def qr5_correct(s):
+  match s:
+    case C.S{a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15}: {==}
+
+law qr6_correct:
+  for +s: C.State
+  {vec(C.qr6(s)) == R.quarter(vec(s), 2n, 7n, 8n, 13n) : List<&2, U32>}
+
+def qr6_correct(s):
+  match s:
+    case C.S{a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15}: {==}
+
+law qr7_correct:
+  for +s: C.State
+  {vec(C.qr7(s)) == R.quarter(vec(s), 3n, 4n, 9n, 14n) : List<&2, U32>}
+
+def qr7_correct(s):
+  match s:
+    case C.S{a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15}: {==}
+
+
 law double_round_correct:
   for +s: C.State
   {vec(C.double_round(s)) == R.inner_block(vec(s)) : List<&2, U32>}
 
 def double_round_correct(s):
-  match s:
-    case C.S{a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15}: {==}
+  +e0 = qr0_correct(s)
+  +e1 = Equal.trans(List<&2, U32>, vec(C.qr1(C.qr0(s))), R.quarter(vec(C.qr0(s)), 1n, 5n, 9n, 13n), R.quarter(R.quarter(vec(s), 0n, 4n, 8n, 12n), 1n, 5n, 9n, 13n), qr1_correct(C.qr0(s)), Equal.cong(List<&2, U32>, List<&2, U32>, l => R.quarter(l, 1n, 5n, 9n, 13n), vec(C.qr0(s)), R.quarter(vec(s), 0n, 4n, 8n, 12n), e0))
+  +e2 = Equal.trans(List<&2, U32>, vec(C.qr2(C.qr1(C.qr0(s)))), R.quarter(vec(C.qr1(C.qr0(s))), 2n, 6n, 10n, 14n), R.quarter(R.quarter(R.quarter(vec(s), 0n, 4n, 8n, 12n), 1n, 5n, 9n, 13n), 2n, 6n, 10n, 14n), qr2_correct(C.qr1(C.qr0(s))), Equal.cong(List<&2, U32>, List<&2, U32>, l => R.quarter(l, 2n, 6n, 10n, 14n), vec(C.qr1(C.qr0(s))), R.quarter(R.quarter(vec(s), 0n, 4n, 8n, 12n), 1n, 5n, 9n, 13n), e1))
+  +e3 = Equal.trans(List<&2, U32>, vec(C.qr3(C.qr2(C.qr1(C.qr0(s))))), R.quarter(vec(C.qr2(C.qr1(C.qr0(s)))), 3n, 7n, 11n, 15n), R.quarter(R.quarter(R.quarter(R.quarter(vec(s), 0n, 4n, 8n, 12n), 1n, 5n, 9n, 13n), 2n, 6n, 10n, 14n), 3n, 7n, 11n, 15n), qr3_correct(C.qr2(C.qr1(C.qr0(s)))), Equal.cong(List<&2, U32>, List<&2, U32>, l => R.quarter(l, 3n, 7n, 11n, 15n), vec(C.qr2(C.qr1(C.qr0(s)))), R.quarter(R.quarter(R.quarter(vec(s), 0n, 4n, 8n, 12n), 1n, 5n, 9n, 13n), 2n, 6n, 10n, 14n), e2))
+  +e4 = Equal.trans(List<&2, U32>, vec(C.qr4(C.qr3(C.qr2(C.qr1(C.qr0(s)))))), R.quarter(vec(C.qr3(C.qr2(C.qr1(C.qr0(s))))), 0n, 5n, 10n, 15n), R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(vec(s), 0n, 4n, 8n, 12n), 1n, 5n, 9n, 13n), 2n, 6n, 10n, 14n), 3n, 7n, 11n, 15n), 0n, 5n, 10n, 15n), qr4_correct(C.qr3(C.qr2(C.qr1(C.qr0(s))))), Equal.cong(List<&2, U32>, List<&2, U32>, l => R.quarter(l, 0n, 5n, 10n, 15n), vec(C.qr3(C.qr2(C.qr1(C.qr0(s))))), R.quarter(R.quarter(R.quarter(R.quarter(vec(s), 0n, 4n, 8n, 12n), 1n, 5n, 9n, 13n), 2n, 6n, 10n, 14n), 3n, 7n, 11n, 15n), e3))
+  +e5 = Equal.trans(List<&2, U32>, vec(C.qr5(C.qr4(C.qr3(C.qr2(C.qr1(C.qr0(s))))))), R.quarter(vec(C.qr4(C.qr3(C.qr2(C.qr1(C.qr0(s)))))), 1n, 6n, 11n, 12n), R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(vec(s), 0n, 4n, 8n, 12n), 1n, 5n, 9n, 13n), 2n, 6n, 10n, 14n), 3n, 7n, 11n, 15n), 0n, 5n, 10n, 15n), 1n, 6n, 11n, 12n), qr5_correct(C.qr4(C.qr3(C.qr2(C.qr1(C.qr0(s)))))), Equal.cong(List<&2, U32>, List<&2, U32>, l => R.quarter(l, 1n, 6n, 11n, 12n), vec(C.qr4(C.qr3(C.qr2(C.qr1(C.qr0(s)))))), R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(vec(s), 0n, 4n, 8n, 12n), 1n, 5n, 9n, 13n), 2n, 6n, 10n, 14n), 3n, 7n, 11n, 15n), 0n, 5n, 10n, 15n), e4))
+  +e6 = Equal.trans(List<&2, U32>, vec(C.qr6(C.qr5(C.qr4(C.qr3(C.qr2(C.qr1(C.qr0(s)))))))), R.quarter(vec(C.qr5(C.qr4(C.qr3(C.qr2(C.qr1(C.qr0(s))))))), 2n, 7n, 8n, 13n), R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(vec(s), 0n, 4n, 8n, 12n), 1n, 5n, 9n, 13n), 2n, 6n, 10n, 14n), 3n, 7n, 11n, 15n), 0n, 5n, 10n, 15n), 1n, 6n, 11n, 12n), 2n, 7n, 8n, 13n), qr6_correct(C.qr5(C.qr4(C.qr3(C.qr2(C.qr1(C.qr0(s))))))), Equal.cong(List<&2, U32>, List<&2, U32>, l => R.quarter(l, 2n, 7n, 8n, 13n), vec(C.qr5(C.qr4(C.qr3(C.qr2(C.qr1(C.qr0(s))))))), R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(vec(s), 0n, 4n, 8n, 12n), 1n, 5n, 9n, 13n), 2n, 6n, 10n, 14n), 3n, 7n, 11n, 15n), 0n, 5n, 10n, 15n), 1n, 6n, 11n, 12n), e5))
+  +e7 = Equal.trans(List<&2, U32>, vec(C.qr7(C.qr6(C.qr5(C.qr4(C.qr3(C.qr2(C.qr1(C.qr0(s))))))))), R.quarter(vec(C.qr6(C.qr5(C.qr4(C.qr3(C.qr2(C.qr1(C.qr0(s)))))))), 3n, 4n, 9n, 14n), R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(vec(s), 0n, 4n, 8n, 12n), 1n, 5n, 9n, 13n), 2n, 6n, 10n, 14n), 3n, 7n, 11n, 15n), 0n, 5n, 10n, 15n), 1n, 6n, 11n, 12n), 2n, 7n, 8n, 13n), 3n, 4n, 9n, 14n), qr7_correct(C.qr6(C.qr5(C.qr4(C.qr3(C.qr2(C.qr1(C.qr0(s)))))))), Equal.cong(List<&2, U32>, List<&2, U32>, l => R.quarter(l, 3n, 4n, 9n, 14n), vec(C.qr6(C.qr5(C.qr4(C.qr3(C.qr2(C.qr1(C.qr0(s)))))))), R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(R.quarter(vec(s), 0n, 4n, 8n, 12n), 1n, 5n, 9n, 13n), 2n, 6n, 10n, 14n), 3n, 7n, 11n, 15n), 0n, 5n, 10n, 15n), 1n, 6n, 11n, 12n), 2n, 7n, 8n, 13n), e6))
+  e7
 
 law rounds_correct:
   for +n: Nat

@@ -32,6 +32,37 @@ def rotl(x, n):
     return 'U32.or(U32.shln(%s,%dn),U32.shrn(%s,%dn))' % (x, n, x, 32 - n)
 
 
+def quarter_fn(k, q):
+    a, b, c, d = q
+    fields = ['x%d' % i for i in range(16)]
+    pat = ','.join(('+' if i in q else '') + f for i, f in enumerate(fields))
+    lines = [
+        '+a1 = U32.add(x%d,x%d)' % (a, b),
+        '+d1x = U32.xor(x%d,a1)' % d,
+        '+d1 = %s' % rotl('d1x', 16),
+        '+c1 = U32.add(x%d,d1)' % c,
+        '+b1x = U32.xor(x%d,c1)' % b,
+        '+b1 = %s' % rotl('b1x', 12),
+        '+a2 = U32.add(a1,b1)',
+        '+d2x = U32.xor(d1,a2)',
+        '+d2 = %s' % rotl('d2x', 8),
+        '+c2 = U32.add(c1,d2)',
+        '+b2x = U32.xor(b1,c2)',
+        '+b2 = %s' % rotl('b2x', 7),
+    ]
+    out = list(fields)
+    out[a], out[b], out[c], out[d] = 'a2', 'b2', 'c2', 'd2'
+    body = '\n'.join('      ' + l for l in lines)
+    return """# QUARTERROUND(%d, %d, %d, %d).
+def qr%d(s: State) -> State:
+  match s:
+    case S{%s}:
+%s
+      S{%s}
+
+""" % (a, b, c, d, k, pat, body, ','.join(out))
+
+
 def double_round():
     cur = ['a%d' % i for i in range(16)]
     lines = []
@@ -75,13 +106,16 @@ type State is Data:
   S{%s}
 
 ''' % ', '.join('x%d: U32' % i for i in range(16)))
+    for k, q in enumerate(QS):
+        out.append(quarter_fn(k, q))
     out.append('''# One double round: QUARTERROUND on the columns (0,4,8,12) .. (3,7,11,15),
 # then on the diagonals (0,5,10,15) (1,6,11,12) (2,7,8,13) (3,4,9,14).
+# (One quarter round per function: the proofs compare one quarter round at a
+# time, so that no check has to expand a whole round over symbolic words.)
 def double_round(s: State) -> State:
-  match s:
-    case S{%s}:
-%s
-''' % (PALL, double_round()))
+  qr7(qr6(qr5(qr4(qr3(qr2(qr1(qr0(s))))))))
+
+''')
     out.append('''# n double rounds (2n rounds).
 def rounds(n: Nat, s: State) -> State:
   match n:
@@ -143,13 +177,13 @@ import ../../../spec/crypto/chacha.bend as R
 PROOF_BODY = '''def vec(+s: C.State) -> List<&2, U32>:
   [@VEC@]
 
+@QRS@
 law double_round_correct:
   for +s: C.State
   {vec(C.double_round(s)) == R.inner_block(vec(s)) : List<&2, U32>}
 
 def double_round_correct(s):
-  match s:
-    case C.S{@A@}: {==}
+@CHAIN@
 
 law rounds_correct:
   for +n: Nat
@@ -249,8 +283,37 @@ def proof_core():
     out = [PROOF_HEAD]
     for i in range(16):
         out.append('def p%d(s: C.State) -> U32:\n  match s:\n    case C.S{%s}: a%d\n\n' % (i, A, i))
+    qrs = []
+    for k, (a, b, c, d) in enumerate(QS):
+        qrs.append("""law qr%d_correct:
+  for +s: C.State
+  {vec(C.qr%d(s)) == R.quarter(vec(s), %dn, %dn, %dn, %dn) : List<&2, U32>}
+
+def qr%d_correct(s):
+  match s:
+    case C.S{%s}: {==}
+
+""" % (k, k, a, b, c, d, k, A))
+    def T(k):
+        t = 's'
+        for j in range(k + 1):
+            t = 'C.qr%d(%s)' % (j, t)
+        return t
+    def Q(k):
+        t = 'vec(s)'
+        for j in range(k + 1):
+            a, b, c, d = QS[j]
+            t = 'R.quarter(%s, %dn, %dn, %dn, %dn)' % (t, a, b, c, d)
+        return t
+    L = 'List<&2, U32>'
+    chain = ['  +e0 = qr0_correct(s)']
+    for k in range(1, 8):
+        a, b, c, d = QS[k]
+        chain.append('  +e%d = Equal.trans(%s, vec(%s), R.quarter(vec(%s), %dn, %dn, %dn, %dn), %s, qr%d_correct(%s), Equal.cong(%s, %s, l => R.quarter(l, %dn, %dn, %dn, %dn), vec(%s), %s, e%d))'
+                     % (k, L, T(k), T(k - 1), a, b, c, d, Q(k), k, T(k - 1), L, L, a, b, c, d, T(k - 1), Q(k - 1), k - 1))
+    chain.append('  e7')
     out.append(PROOF_BODY.replace('@VEC@', ', '.join('p%d(s)' % i for i in range(16)))
-               .replace('@A@', A).replace('@B@', B))
+               .replace('@A@', A).replace('@B@', B).replace('@QRS@', ''.join(qrs)).replace('@CHAIN@', '\n'.join(chain)))
     return ''.join(out)
 
 
