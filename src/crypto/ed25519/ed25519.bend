@@ -25,14 +25,15 @@ def prefix(+h: List<&2, U32>) -> List<&2, U32>:
   F.drop(32n, h)
 
 def public_of(+c: PT.Cs, +h: List<&2, U32>) -> List<&2, U32>:
-  PT.encode(PT.mul(c, secret(h), PT.base(c)))
+  PT.encode(PT.mul(c, secret(h), PT.base(c, h)))
 
 # A = [s]B, encoded
 def public_key(+seed: List<&2, U32>) -> List<&2, U32>:
-  public_of(PT.consts(), H.sha512(seed))
+  +h = H.sha512(seed)
+  public_of(PT.consts(h), h)
 
 def sign_with(+c: PT.Cs, +h: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
-  +b = PT.base(c)
+  +b = PT.base(c, h)
   +a = public_of(c, h)
   +r = SC.reduce(H.sha512(cat(prefix(h), msg)))
   +rb = PT.encode(PT.mul(c, r, b))
@@ -40,13 +41,14 @@ def sign_with(+c: PT.Cs, +h: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32
   cat(rb, SC.mul_add(k, SC.reduce(secret(h)), r))
 
 def sign_raw(+seed: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
-  sign_with(PT.consts(), H.sha512(seed), msg)
+  +h = H.sha512(seed)
+  sign_with(PT.consts(h), h, msg)
 
 def check(+c: PT.Cs, +sb: List<&2, U32>, +rb: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, ra: Maybe<&2, PT.Pt>, aa: Maybe<&2, PT.Pt>) -> Bool:
   match ra aa:
     case Some{r} Some{+a}:
       +k = SC.reduce(H.sha512(cat(rb, cat(pk, msg))))
-      +b = PT.base(c)
+      +b = PT.base(c, pk)
       PT.equal(PT.mul(c, sb, b), PT.add(c, r, PT.mul(c, k, a)))
     case _ _:
       False{}
@@ -60,4 +62,4 @@ def verify_with(+c: PT.Cs, +pk: List<&2, U32>, +msg: List<&2, U32>, +rb: List<&2
 
 def verify_raw(+pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
   +sb = F.drop(32n, sig)
-  verify_with(PT.consts(), pk, msg, F.take(32n, sig), sb, SC.lt_l(sb))
+  verify_with(PT.consts(pk), pk, msg, F.take(32n, sig), sb, SC.lt_l(sb))

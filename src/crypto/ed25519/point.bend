@@ -43,11 +43,22 @@ def cs_s(c: Cs) -> List<&2, U32>:
     case Cs{d, d2, s}:
       s
 
-def cs_of(+d: List<&2, U32>) -> Cs:
-  Cs{d, F.add(d, d), pow_p14(F.small(2))}
+# k itself; taking an input list xs keeps the proof checker from computing
+# with the constant k while xs is unknown (it would otherwise evaluate the
+# whole field arithmetic on constants whenever it compares two terms)
+def lit(xs: List<&2, U32>, k: List<&2, U32>) -> List<&2, U32>:
+  match xs:
+    case Nil{}:
+      k
+    case Con{h, t}:
+      k
 
-def consts() -> Cs:
-  cs_of(F.mul(F.neg(c121665()), F.inv(c121666())))
+def cs_of(+d: List<&2, U32>, +xs: List<&2, U32>) -> Cs:
+  Cs{d, F.add(d, d), pow_p14(lit(xs, F.small(2)))}
+
+# the curve constants, computed (xs is any input, see lit)
+def consts(+xs: List<&2, U32>) -> Cs:
+  cs_of(F.mul(F.neg(lit(xs, c121665())), F.inv(lit(xs, c121666()))), xs)
 
 def identity() -> Pt:
   Pt{F.zero(), F.one(), F.one(), F.zero()}
@@ -118,9 +129,9 @@ def encode(p: Pt) -> List<&2, U32>:
       +zi = F.inv(z)
       set_top(F.to_bytes(F.mul(y, zi)), F.parity(F.mul(x, zi)))
 
-# y >= p: the carry of y + 2^256 - p is 1
+# y >= p: the carry of y + 2^256 - p is not 0
 def ge_p(+y: List<&2, U32>) -> Bool:
-  U32.is_eq(F.cr_out(F.carry(F.addl(y, F.comp_p()), 0)), 1)
+  Bool.not(U32.is_eq(F.cr_out(F.carry(F.addl(y, F.comp_p()), 0)), 0))
 
 def dec_fin(+x: List<&2, U32>, +y: List<&2, U32>, +x0: U32, fail: Bool) -> Maybe<&2, Pt>:
   match fail:
@@ -175,5 +186,5 @@ def base_of(m: Maybe<&2, Pt>) -> Pt:
     case Some{p}:
       p
 
-def base(+c: Cs) -> Pt:
-  base_of(decode(c, F.to_bytes(F.mul(F.small(4), F.inv(F.small(5))))))
+def base(+c: Cs, +xs: List<&2, U32>) -> Pt:
+  base_of(decode(c, F.to_bytes(F.mul(lit(xs, F.small(4)), F.inv(lit(xs, F.small(5)))))))
