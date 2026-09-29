@@ -503,13 +503,13 @@ def acc2(i: Nat, m: Nat, +d: Nat, +r: Nat) -> {Nat.divmod.go(i, m, 1n+d, r) == b
 def peel2(+i: Nat, +d: Nat) -> {Nat.divmod.go(Nat.add(2n, i), 1n, d, 0n) == Nat.divmod.go(i, 1n, 1n+d, 0n) : Nat & Nat}:
   {==}
 
-def fst_bump2(p: Nat & Nat) -> {Nat.div.fin(bump2(p)) == 1n+Nat.div.fin(p) : Nat}:
+def fst_bump2(p: Nat & Nat) -> {Pair.fst(Nat, Nat, bump2(p)) == 1n+Pair.fst(Nat, Nat, p) : Nat}:
   (q, r) = p
   {==}
 
 def div2_step(+i: Nat) -> {Nat.div(Nat.add(2n, i), 2n) == 1n+Nat.div(i, 2n) : Nat}:
-  Equal.trans(Nat, Nat.div.fin(Nat.divmod.go(Nat.add(2n, i), 1n, 0n, 0n)), Nat.div.fin(bump2(Nat.divmod.go(i, 1n, 0n, 0n))), 1n+Nat.div.fin(Nat.divmod.go(i, 1n, 0n, 0n)),
-    Equal.cong(Nat & Nat, Nat, Nat.div.fin, Nat.divmod.go(Nat.add(2n, i), 1n, 0n, 0n), bump2(Nat.divmod.go(i, 1n, 0n, 0n)),
+  Equal.trans(Nat, Pair.fst(Nat, Nat, Nat.divmod.go(Nat.add(2n, i), 1n, 0n, 0n)), Pair.fst(Nat, Nat, bump2(Nat.divmod.go(i, 1n, 0n, 0n))), 1n+Pair.fst(Nat, Nat, Nat.divmod.go(i, 1n, 0n, 0n)),
+    Equal.cong(Nat & Nat, Nat, pq => Pair.fst(Nat, Nat, pq), Nat.divmod.go(Nat.add(2n, i), 1n, 0n, 0n), bump2(Nat.divmod.go(i, 1n, 0n, 0n)),
       Equal.trans(Nat & Nat, Nat.divmod.go(Nat.add(2n, i), 1n, 0n, 0n), Nat.divmod.go(i, 1n, 1n, 0n), bump2(Nat.divmod.go(i, 1n, 0n, 0n)),
         peel2(i, 0n), acc2(i, 1n, 0n, 0n))),
     fst_bump2(Nat.divmod.go(i, 1n, 0n, 0n)))
