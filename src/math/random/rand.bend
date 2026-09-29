@@ -178,6 +178,26 @@ def lo32(-S: Data, p: W.U64 & S) -> U32 & S:
 def uint32n(~S: Data, ~next: S -> W.U64 & S, s: S, +n: U32) -> U32 & S:
   lo32(S, uint64n(~S, ~next, s, W.U64{n, 0}))
 
+# the 32-bit word of the low 8k bits of n, a byte at a time
+def w_go(k: Nat, +n: Nat) -> U32:
+  match k:
+    case 0n:
+      0
+    case 1n+j:
+      U32.add(U32.from_nat(Nat.mod(n, 256n)), U32.mul(w_go(j, Nat.div(n, 256n)), X.pow2(8n)))
+
+# n div 2^(8k)
+def skip(k: Nat, +n: Nat) -> Nat:
+  match k:
+    case 0n:
+      n
+    case 1n+j:
+      skip(j, Nat.div(n, 256n))
+
+# the 64-bit word of n < 2^64
+def nat64(+n: Nat) -> W.U64:
+  W.U64{w_go(4n, n), w_go(4n, skip(4n, n))}
+
 def to_nat(-S: Data, p: W.U64 & S) -> Nat & S:
   (x, s) = p
   (X.n48(x), s)
@@ -187,7 +207,7 @@ def intn_z(~S: Data, ~next: S -> W.U64 & S, s: S, +n: Nat, z: Bool) -> Nat & S:
     case True{}:
       (0n, s)
     case False{}:
-      to_nat(S, uint64n(~S, ~next, s, X.of48(n)))
+      to_nat(S, uint64n(~S, ~next, s, nat64(n)))
 
 # uniform in [0, n) for 0 < n < 2^48 (Go's IntN); (0, s) for n == 0
 def intn(~S: Data, ~next: S -> W.U64 & S, s: S, +n: Nat) -> Nat & S:

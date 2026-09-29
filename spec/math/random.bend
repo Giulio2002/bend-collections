@@ -46,6 +46,14 @@ import ./random/rand.bend as SR
 #                           the same multiset)
 #     Perm.permutation      perm(n) holds every i < n exactly once and
 #                           nothing else
+#   Words and bounded wrappers
+#     Uint32.value, Int64.value, Int32.value   the top 32, low 63 and top
+#                           31 bits of the source output (Go's Uint32, Int64,
+#                           Int32)
+#     Uint32n.lt            uint32n(n) < n for n > 0
+#     Intn.lt               intn(n) < n for 0 < n < 2^64 (a run-time Nat is
+#                           below 2^48)
+#     IntRange.bounds       lo <= int_range(lo, hi) < hi for lo < hi
 #   Floats
 #     Float64.value         float64 is the double m * 2^-53, m the low 53
 #                           bits of the source output (exact, as Go)
@@ -112,3 +120,27 @@ def Float64.value(+x: W.U64) -> Type:
 
 def Float64.lt_one(+x: W.U64) -> Type:
   {F.lt(R.to_float(x), F.one()) == True{} : Bool}
+
+# ---- the word slices and the bounded wrappers (Go's Uint32, Int64, Int32,
+# Uint32N, IntN and lo + IntN(hi - lo)) ----
+
+def x0(~S: Data, ~next: S -> W.U64 & S, +s: S) -> Nat:
+  SW.value(SRC.fst64(S, next(s)))
+
+def Uint32.value(~S: Data, ~next: S -> W.U64 & S, +s: S) -> Type:
+  {U32.to_nat(R.fst(U32, S, R.uint32(~S, ~next, s))) == C.high(32n, x0(~S, ~next, s)) : Nat}
+
+def Int64.value(~S: Data, ~next: S -> W.U64 & S, +s: S) -> Type:
+  {SW.value(R.fst(W.U64, S, R.int64(~S, ~next, s))) == C.low(63n, x0(~S, ~next, s)) : Nat}
+
+def Int32.value(~S: Data, ~next: S -> W.U64 & S, +s: S) -> Type:
+  {U32.to_nat(R.fst(U32, S, R.int32(~S, ~next, s))) == C.high(33n, x0(~S, ~next, s)) : Nat}
+
+def Uint32n.lt(~S: Data, ~next: S -> W.U64 & S, +s: S, +n: U32, +hn: {U32.is_zero(n) == False{} : Bool}) -> Type:
+  {Nat.is_lt(U32.to_nat(R.fst(U32, S, R.uint32n(~S, ~next, s, n))), U32.to_nat(n)) == True{} : Bool}
+
+def Intn.lt(~S: Data, ~next: S -> W.U64 & S, +s: S, +n: Nat, +hn: {Nat.is_lt(0n, n) == True{} : Bool}, +hw: {C.fits(64n, n) == True{} : Bool}) -> Type:
+  {Nat.is_lt(R.fst(Nat, S, R.intn(~S, ~next, s, n)), n) == True{} : Bool}
+
+def IntRange.bounds(~S: Data, ~next: S -> W.U64 & S, +s: S, +lo: Nat, +hi: Nat, +h: {Nat.is_lt(lo, hi) == True{} : Bool}, +hw: {C.fits(64n, Nat.sub(hi, lo)) == True{} : Bool}) -> Type:
+  {Bool.and(Nat.is_le(lo, R.fst(Nat, S, R.int_range(~S, ~next, s, lo, hi))), Nat.is_lt(R.fst(Nat, S, R.int_range(~S, ~next, s, lo, hi)), hi)) == True{} : Bool}
