@@ -79,6 +79,16 @@ def drop(n: Nat, xs: List<&2, U32>) -> List<&2, U32>:
 type Cr is Data:
   Cr{limbs: List<&2, U32>, out: U32}
 
+def cr_limbs(r: Cr) -> List<&2, U32>:
+  match r:
+    case Cr{a, c}:
+      a
+
+def cr_out(r: Cr) -> U32:
+  match r:
+    case Cr{a, c}:
+      c
+
 def carry_con(l: U32, r: Cr) -> Cr:
   match r:
     case Cr{a, c}:
