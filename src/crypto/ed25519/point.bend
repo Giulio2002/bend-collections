@@ -97,7 +97,7 @@ def smul(n: Nat, +c: Cs, +bs: List<&2, U32>, +p: Pt, q: Pt) -> Pt:
 
 # [k] p for a byte-string scalar k
 def mul(+c: Cs, +k: List<&2, U32>, +p: Pt) -> Pt:
-  smul(Nat.mul(8n, X.len(k)), c, k, p, identity())
+  smul(X.bitlen(k), c, k, p, identity())
 
 # the last byte with bit 7 set to b (the canonical y has it clear)
 def set_top(xs: List<&2, U32>, +b: U32) -> List<&2, U32>:

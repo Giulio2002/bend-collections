@@ -63,14 +63,10 @@ def lea(xs: List<&2, U32>, +b: Nat) -> Bool:
       Bool.and(Nat.is_le(U32.to_nat(x), b), lea(xt, b))
 
 def cl(r: F.Cr) -> List<&2, U32>:
-  match r:
-    case F.Cr{a, c}:
-      a
+  F.cr_limbs(r)
 
 def cc(r: F.Cr) -> U32:
-  match r:
-    case F.Cr{a, c}:
-      c
+  F.cr_out(r)
 
 # ---- shapes ----
 

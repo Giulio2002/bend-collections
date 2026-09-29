@@ -95,6 +95,14 @@ def len(xs: List<&2, U32>) -> Nat:
     case Con{x, xt}:
       1n+len(xt)
 
+# 8 len(xs), the bit count of a byte string
+def bitlen(xs: List<&2, U32>) -> Nat:
+  match xs:
+    case Nil{}:
+      0n
+    case Con{x, xt}:
+      Nat.add(8n, bitlen(xt))
+
 def nbits(+k: List<&2, U32>) -> Nat:
   Nat.sub(Nat.mul(8n, len(k)), 1n)
 

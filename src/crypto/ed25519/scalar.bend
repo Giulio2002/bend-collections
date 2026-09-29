@@ -43,10 +43,10 @@ def mac(n: Nat, +bs: List<&2, U32>, +s: List<&2, U32>, +acc: List<&2, U32>) -> L
       mac(t, bs, s, addm(a2, F.select(X.kbit(bs, t), F.zero(), s)))
 
 def reduce(+bs: List<&2, U32>) -> List<&2, U32>:
-  mac(Nat.mul(8n, X.len(bs)), bs, F.one(), F.zero())
+  mac(X.bitlen(bs), bs, F.one(), F.zero())
 
 def mul_add(+k: List<&2, U32>, +s: List<&2, U32>, r: List<&2, U32>) -> List<&2, U32>:
-  addm(mac(Nat.mul(8n, X.len(k)), k, s, F.zero()), r)
+  addm(mac(X.bitlen(k), k, s, F.zero()), r)
 
 # x < L: the carry of x + 2^256 - L is 0
 def lt_l(+x: List<&2, U32>) -> Bool:
