@@ -44,6 +44,7 @@ import ../../../spec/crypto/aes/aes.bend as S
 import ../../../spec/crypto/aes/gcm.bend as G
 import ./laws.bend as Laws
 import ./sbox.bend as SB
+import ./inverse.bend as INV
 import ./cipher.bend as C
 import ./gcm.bend as GP
 import ./aead.bend as AD
@@ -90,6 +91,12 @@ def valid_of(+key: List<&2, U32>, +w: Nat, +h: {List.length(&2, U32, key) == w :
 
 def Laws.Sbox.value(x):
   SB.sbox_ok(x)
+
+def Laws.Inverse.unit(x, h):
+  INV.inverse_unit(x, h)
+
+def Laws.Inverse.zero():
+  INV.inverse_zero()
 
 def Laws.Cipher.value(nk, nr, key, s):
   C.encrypt_ok(nk, nr, key, s)
