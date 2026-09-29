@@ -10,6 +10,51 @@ import ./sbox.bend as L
 # AddRoundKey, the rounds, the key expansion and the cipher, for every key
 # (of any length and any Nk, Nr) and every state.
 
+# Congruence of the record constructors (one rewrite per field, on variables).
+law quad_cong:
+  for +a: U32
+  for +b: U32
+  for +c: U32
+  for +d: U32
+  for +a2: U32
+  for +b2: U32
+  for +c2: U32
+  for +d2: U32
+  for +ea: {a == a2 : U32}
+  for +eb: {b == b2 : U32}
+  for +ec: {c == c2 : U32}
+  for +ed: {d == d2 : U32}
+  {T.W{a, b, c, d} == T.W{a2, b2, c2, d2} : T.Quad}
+
+def quad_cong(a, b, c, d, a2, b2, c2, d2, ea, eb, ec, ed):
+  %ea : {T.W{a, b, c, d} == T.W{_, b2, c2, d2} : T.Quad}
+  %eb : {T.W{a, b, c, d} == T.W{a, _, c2, d2} : T.Quad}
+  %ec : {T.W{a, b, c, d} == T.W{a, b, _, d2} : T.Quad}
+  %ed : {T.W{a, b, c, d} == T.W{a, b, c, _} : T.Quad}
+  {==}
+
+law state_cong:
+  for +a: T.Quad
+  for +b: T.Quad
+  for +c: T.Quad
+  for +d: T.Quad
+  for +a2: T.Quad
+  for +b2: T.Quad
+  for +c2: T.Quad
+  for +d2: T.Quad
+  for +ea: {a == a2 : T.Quad}
+  for +eb: {b == b2 : T.Quad}
+  for +ec: {c == c2 : T.Quad}
+  for +ed: {d == d2 : T.Quad}
+  {T.S{a, b, c, d} == T.S{a2, b2, c2, d2} : T.State}
+
+def state_cong(a, b, c, d, a2, b2, c2, d2, ea, eb, ec, ed):
+  %ea : {T.S{a, b, c, d} == T.S{_, b2, c2, d2} : T.State}
+  %eb : {T.S{a, b, c, d} == T.S{a, _, c2, d2} : T.State}
+  %ec : {T.S{a, b, c, d} == T.S{a, b, _, d2} : T.State}
+  %ed : {T.S{a, b, c, d} == T.S{a, b, c, _} : T.State}
+  {==}
+
 law sub_word_ok:
   for +w: T.Quad
   {I.sub_word(w) == S.sub_word(w) : T.Quad}
@@ -17,11 +62,7 @@ law sub_word_ok:
 def sub_word_ok(w):
   match w:
     case T.W{a, b, c, d}:
-      %L.sbox_ok(a) : {T.W{B.sbox(a), B.sbox(b), B.sbox(c), B.sbox(d)} == T.W{_, S.sbox(b), S.sbox(c), S.sbox(d)} : T.Quad}
-      %L.sbox_ok(b) : {T.W{B.sbox(a), B.sbox(b), B.sbox(c), B.sbox(d)} == T.W{B.sbox(a), _, S.sbox(c), S.sbox(d)} : T.Quad}
-      %L.sbox_ok(c) : {T.W{B.sbox(a), B.sbox(b), B.sbox(c), B.sbox(d)} == T.W{B.sbox(a), B.sbox(b), _, S.sbox(d)} : T.Quad}
-      %L.sbox_ok(d) : {T.W{B.sbox(a), B.sbox(b), B.sbox(c), B.sbox(d)} == T.W{B.sbox(a), B.sbox(b), B.sbox(c), _} : T.Quad}
-      {==}
+      quad_cong(B.sbox(a), B.sbox(b), B.sbox(c), B.sbox(d), S.sbox(a), S.sbox(b), S.sbox(c), S.sbox(d), L.sbox_ok(a), L.sbox_ok(b), L.sbox_ok(c), L.sbox_ok(d))
 
 law sub_bytes_ok:
   for +s: T.State
@@ -30,11 +71,7 @@ law sub_bytes_ok:
 def sub_bytes_ok(s):
   match s:
     case T.S{c0, c1, c2, c3}:
-      %sub_word_ok(c0) : {T.S{I.sub_word(c0), I.sub_word(c1), I.sub_word(c2), I.sub_word(c3)} == T.S{_, S.sub_word(c1), S.sub_word(c2), S.sub_word(c3)} : T.State}
-      %sub_word_ok(c1) : {T.S{I.sub_word(c0), I.sub_word(c1), I.sub_word(c2), I.sub_word(c3)} == T.S{I.sub_word(c0), _, S.sub_word(c2), S.sub_word(c3)} : T.State}
-      %sub_word_ok(c2) : {T.S{I.sub_word(c0), I.sub_word(c1), I.sub_word(c2), I.sub_word(c3)} == T.S{I.sub_word(c0), I.sub_word(c1), _, S.sub_word(c3)} : T.State}
-      %sub_word_ok(c3) : {T.S{I.sub_word(c0), I.sub_word(c1), I.sub_word(c2), I.sub_word(c3)} == T.S{I.sub_word(c0), I.sub_word(c1), I.sub_word(c2), _} : T.State}
-      {==}
+      state_cong(I.sub_word(c0), I.sub_word(c1), I.sub_word(c2), I.sub_word(c3), S.sub_word(c0), S.sub_word(c1), S.sub_word(c2), S.sub_word(c3), sub_word_ok(c0), sub_word_ok(c1), sub_word_ok(c2), sub_word_ok(c3))
 
 law shift_rows_ok:
   for +s: T.State
@@ -45,6 +82,28 @@ def shift_rows_ok(s):
     case T.S{T.W{a0, a1, a2, a3}, T.W{b0, b1, b2, b3}, T.W{c0, c1, c2, c3}, T.W{d0, d1, d2, d3}}:
       {==}
 
+law xor4_cong:
+  for +p: U32
+  for +q: U32
+  for +r: U32
+  for +s: U32
+  for +p2: U32
+  for +q2: U32
+  for +r2: U32
+  for +s2: U32
+  for +ep: {p == p2 : U32}
+  for +eq: {q == q2 : U32}
+  for +er: {r == r2 : U32}
+  for +es: {s == s2 : U32}
+  {U32.xor(U32.xor(U32.xor(p, q), r), s) == U32.xor(U32.xor(U32.xor(p2, q2), r2), s2) : U32}
+
+def xor4_cong(p, q, r, s, p2, q2, r2, s2, ep, eq, er, es):
+  %ep : {U32.xor(U32.xor(U32.xor(p, q), r), s) == U32.xor(U32.xor(U32.xor(_, q2), r2), s2) : U32}
+  %eq : {U32.xor(U32.xor(U32.xor(p, q), r), s) == U32.xor(U32.xor(U32.xor(p, _), r2), s2) : U32}
+  %er : {U32.xor(U32.xor(U32.xor(p, q), r), s) == U32.xor(U32.xor(U32.xor(p, q), _), s2) : U32}
+  %es : {U32.xor(U32.xor(U32.xor(p, q), r), s) == U32.xor(U32.xor(U32.xor(p, q), r), _) : U32}
+  {==}
+
 law mix_column_ok:
   for +w: T.Quad
   {I.mix_column(w) == S.mix_column(w) : T.Quad}
@@ -52,15 +111,8 @@ law mix_column_ok:
 def mix_column_ok(w):
   match w:
     case T.W{a, b, c, d}:
-      %L.xtime_ok(a) : {I.mix_column(T.W{a, b, c, d}) == T.W{U32.xor(U32.xor(U32.xor(_, S.mul(3, b)), c), d), U32.xor(U32.xor(U32.xor(a, S.mul(2, b)), S.mul(3, c)), d), U32.xor(U32.xor(U32.xor(a, b), S.mul(2, c)), S.mul(3, d)), U32.xor(U32.xor(U32.xor(S.mul(3, a), b), c), S.mul(2, d))} : T.Quad}
-      %L.mul3_ok(b) : {I.mix_column(T.W{a, b, c, d}) == T.W{U32.xor(U32.xor(U32.xor(B.xtime(a), _), c), d), U32.xor(U32.xor(U32.xor(a, S.mul(2, b)), S.mul(3, c)), d), U32.xor(U32.xor(U32.xor(a, b), S.mul(2, c)), S.mul(3, d)), U32.xor(U32.xor(U32.xor(S.mul(3, a), b), c), S.mul(2, d))} : T.Quad}
-      %L.xtime_ok(b) : {I.mix_column(T.W{a, b, c, d}) == T.W{U32.xor(U32.xor(U32.xor(B.xtime(a), B.mul3(b)), c), d), U32.xor(U32.xor(U32.xor(a, _), S.mul(3, c)), d), U32.xor(U32.xor(U32.xor(a, b), S.mul(2, c)), S.mul(3, d)), U32.xor(U32.xor(U32.xor(S.mul(3, a), b), c), S.mul(2, d))} : T.Quad}
-      %L.mul3_ok(c) : {I.mix_column(T.W{a, b, c, d}) == T.W{U32.xor(U32.xor(U32.xor(B.xtime(a), B.mul3(b)), c), d), U32.xor(U32.xor(U32.xor(a, B.xtime(b)), _), d), U32.xor(U32.xor(U32.xor(a, b), S.mul(2, c)), S.mul(3, d)), U32.xor(U32.xor(U32.xor(S.mul(3, a), b), c), S.mul(2, d))} : T.Quad}
-      %L.xtime_ok(c) : {I.mix_column(T.W{a, b, c, d}) == T.W{U32.xor(U32.xor(U32.xor(B.xtime(a), B.mul3(b)), c), d), U32.xor(U32.xor(U32.xor(a, B.xtime(b)), B.mul3(c)), d), U32.xor(U32.xor(U32.xor(a, b), _), S.mul(3, d)), U32.xor(U32.xor(U32.xor(S.mul(3, a), b), c), S.mul(2, d))} : T.Quad}
-      %L.mul3_ok(d) : {I.mix_column(T.W{a, b, c, d}) == T.W{U32.xor(U32.xor(U32.xor(B.xtime(a), B.mul3(b)), c), d), U32.xor(U32.xor(U32.xor(a, B.xtime(b)), B.mul3(c)), d), U32.xor(U32.xor(U32.xor(a, b), B.xtime(c)), _), U32.xor(U32.xor(U32.xor(S.mul(3, a), b), c), S.mul(2, d))} : T.Quad}
-      %L.mul3_ok(a) : {I.mix_column(T.W{a, b, c, d}) == T.W{U32.xor(U32.xor(U32.xor(B.xtime(a), B.mul3(b)), c), d), U32.xor(U32.xor(U32.xor(a, B.xtime(b)), B.mul3(c)), d), U32.xor(U32.xor(U32.xor(a, b), B.xtime(c)), B.mul3(d)), U32.xor(U32.xor(U32.xor(_, b), c), S.mul(2, d))} : T.Quad}
-      %L.xtime_ok(d) : {I.mix_column(T.W{a, b, c, d}) == T.W{U32.xor(U32.xor(U32.xor(B.xtime(a), B.mul3(b)), c), d), U32.xor(U32.xor(U32.xor(a, B.xtime(b)), B.mul3(c)), d), U32.xor(U32.xor(U32.xor(a, b), B.xtime(c)), B.mul3(d)), U32.xor(U32.xor(U32.xor(B.mul3(a), b), c), _)} : T.Quad}
-      {==}
+      quad_cong(U32.xor(U32.xor(U32.xor(B.xtime(a), B.mul3(b)), c), d), U32.xor(U32.xor(U32.xor(a, B.xtime(b)), B.mul3(c)), d), U32.xor(U32.xor(U32.xor(a, b), B.xtime(c)), B.mul3(d)), U32.xor(U32.xor(U32.xor(B.mul3(a), b), c), B.xtime(d)), U32.xor(U32.xor(U32.xor(S.mul(2, a), S.mul(3, b)), c), d), U32.xor(U32.xor(U32.xor(a, S.mul(2, b)), S.mul(3, c)), d), U32.xor(U32.xor(U32.xor(a, b), S.mul(2, c)), S.mul(3, d)), U32.xor(U32.xor(U32.xor(S.mul(3, a), b), c), S.mul(2, d)),
+        xor4_cong(B.xtime(a), B.mul3(b), c, d, S.mul(2, a), S.mul(3, b), c, d, L.xtime_ok(a), L.mul3_ok(b), {==}, {==}), xor4_cong(a, B.xtime(b), B.mul3(c), d, a, S.mul(2, b), S.mul(3, c), d, {==}, L.xtime_ok(b), L.mul3_ok(c), {==}), xor4_cong(a, b, B.xtime(c), B.mul3(d), a, b, S.mul(2, c), S.mul(3, d), {==}, {==}, L.xtime_ok(c), L.mul3_ok(d)), xor4_cong(B.mul3(a), b, c, B.xtime(d), S.mul(3, a), b, c, S.mul(2, d), L.mul3_ok(a), {==}, {==}, L.xtime_ok(d)))
 
 law mix_columns_ok:
   for +s: T.State
@@ -69,11 +121,7 @@ law mix_columns_ok:
 def mix_columns_ok(s):
   match s:
     case T.S{c0, c1, c2, c3}:
-      %mix_column_ok(c0) : {T.S{I.mix_column(c0), I.mix_column(c1), I.mix_column(c2), I.mix_column(c3)} == T.S{_, S.mix_column(c1), S.mix_column(c2), S.mix_column(c3)} : T.State}
-      %mix_column_ok(c1) : {T.S{I.mix_column(c0), I.mix_column(c1), I.mix_column(c2), I.mix_column(c3)} == T.S{I.mix_column(c0), _, S.mix_column(c2), S.mix_column(c3)} : T.State}
-      %mix_column_ok(c2) : {T.S{I.mix_column(c0), I.mix_column(c1), I.mix_column(c2), I.mix_column(c3)} == T.S{I.mix_column(c0), I.mix_column(c1), _, S.mix_column(c3)} : T.State}
-      %mix_column_ok(c3) : {T.S{I.mix_column(c0), I.mix_column(c1), I.mix_column(c2), I.mix_column(c3)} == T.S{I.mix_column(c0), I.mix_column(c1), I.mix_column(c2), _} : T.State}
-      {==}
+      state_cong(I.mix_column(c0), I.mix_column(c1), I.mix_column(c2), I.mix_column(c3), S.mix_column(c0), S.mix_column(c1), S.mix_column(c2), S.mix_column(c3), mix_column_ok(c0), mix_column_ok(c1), mix_column_ok(c2), mix_column_ok(c3))
 
 law xor_word_ok:
   for +a: T.Quad

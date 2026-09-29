@@ -26,17 +26,21 @@ def low() -> Word(8n):
 def mul(+a: U32, +b: U32) -> U32:
   byte(P.reduce(8n, low(), P.mul(bits(a), bits(b))))
 
-# Section 4.4 / 5.1.1: the multiplicative inverse b of a nonzero a is the byte
-# with a * b = {01}; {00} is mapped to itself. Searched among {01}..{ff}.
-def search(n: Nat, +a: U32, +b: U32) -> U32:
-  match n:
-    case 0n:
-      0
-    case 1n+p:
-      Bool.pick(U32, U32.is_eq(mul(a, b), 1), b, search(p, a, U32.inc(b)))
-
+# Section 4.4 / 5.1.1: the multiplicative inverse of a nonzero a in GF(2^8),
+# {00} mapped to itself. The multiplicative group of GF(2^8) has 255
+# elements, so a^255 = {01} and a^-1 = a^254 for a != {00} (and
+# {00}^254 = {00}): computed by squaring, a^254 = a^2 a^4 a^8 ... a^128.
+# (tools/check_aes.py checks this against the defining property a * b = {01}
+# for all 256 bytes.)
 def inverse(+a: U32) -> U32:
-  search(255n, a, 1)
+  +a2 = mul(a, a)
+  +a4 = mul(a2, a2)
+  +a8 = mul(a4, a4)
+  +a16 = mul(a8, a8)
+  +a32 = mul(a16, a16)
+  +a64 = mul(a32, a32)
+  +a128 = mul(a64, a64)
+  mul(a2, mul(a4, mul(a8, mul(a16, mul(a32, mul(a64, a128))))))
 
 def nth_bit(xs: List<&2, Bool>, n: Nat) -> Bool:
   match xs n:

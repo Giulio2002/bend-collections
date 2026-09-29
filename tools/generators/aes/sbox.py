@@ -5,8 +5,7 @@ Each lemma states, for every U32 x, that an implementation function of
 src/crypto/aes/sbox.bend equals its FIPS 197 counterpart in
 spec/crypto/aes/aes.bend. Both sides read only the low eight bits of x, so
 the proof splits x into its 32 bits and case-splits the low eight: 256
-cases, each closed by evaluation ({==}); the S-box's 256 cases are separate
-lemmas (each evaluates the specification's inverse search once).
+cases, each closed by evaluation ({==}).
 
   python3 tools/generators/aes/sbox.py
 """
@@ -23,6 +22,22 @@ def word(names):
     return 'U32{%s}' % s
 
 
+def lemma(name, impl, spec):
+    w = word(BITS)
+    out = ['law %s_bits:' % name]
+    out += ['  for b%d: Bool' % i for i in range(32)]
+    out += ['  {%s == %s : U32}' % (impl % w, spec % w), '',
+            'def %s_bits(%s):' % (name, ', '.join(BITS)),
+            '  match b0 b1 b2 b3 b4 b5 b6 b7:']
+    for v in range(256):
+        out.append('    case %s:' % ' '.join('True{}' if (v >> i) & 1 else 'False{}' for i in range(8)))
+        out.append('      {==}')
+    out += ['', 'law %s_ok:' % name, '  for +x: U32', '  {%s == %s : U32}' % (impl % 'x', spec % 'x'), '',
+            'def %s_ok(x):' % name, '  match x:', '    case %s:' % w,
+            '      %s_bits(%s)' % (name, ', '.join(BITS)), '']
+    return out
+
+
 def gmul(a, b):
     r = 0
     for i in range(8):
@@ -34,81 +49,28 @@ def gmul(a, b):
     return r
 
 
-def ginv(a):
-    for b in range(1, 256):
-        if gmul(a, b) == 1:
-            return b
-    return 0
-
-
-def sbox_lemma():
-    """The S-box: per low-byte value, the circuit equals affine(inverse(x)),
-    the inverse computed through sbox_inv.bend's sharing-free search."""
-    w = word(BITS)
-    hi = BITS[8:]
-    spec = 'S.affine(S.inverse(%s))'
-    out = []
-    for v in range(256):
-        lo = ['True{}' if (v >> i) & 1 else 'False{}' for i in range(8)]
-        wv = word(lo + hi)
-        out += ['law sbox_%d:' % v] + ['  for %s: Bool' % b for b in hi]
-        out += ['  {B.sbox(%s) == %s : U32}' % (wv, spec % wv), '',
-                'def sbox_%d(%s):' % (v, ', '.join(hi)),
-                '  +w = {%s : U32}' % wv,
-                '  Equal.trans(U32, B.sbox(w), S.affine(%d), S.affine(S.inverse(w)), {==},' % ginv(v),
-                '    Equal.trans(U32, S.affine(%d), S.affine(I.searchf(255n, w, 1)), S.affine(S.inverse(w)),' % ginv(v),
-                '      Equal.cong(U32, U32, z => S.affine(z), %d, I.searchf(255n, w, 1), Equal.sym(U32, I.searchf(255n, w, 1), %d, {==})),' % (ginv(v), ginv(v)),
-                '      Equal.sym(U32, S.affine(S.inverse(w)), S.affine(I.searchf(255n, w, 1)), Equal.cong(U32, U32, z => S.affine(z), S.inverse(w), I.searchf(255n, w, 1), I.inverse_eq(w)))))', '']
-    out += ['law sbox_bits:'] + ['  for b%d: Bool' % i for i in range(32)]
-    out += ['  {B.sbox(%s) == %s : U32}' % (w, spec % w), '',
-            'def sbox_bits(%s):' % ', '.join(BITS), '  match b0 b1 b2 b3 b4 b5 b6 b7:']
-    for v in range(256):
-        out.append('    case %s:' % ' '.join('True{}' if (v >> i) & 1 else 'False{}' for i in range(8)))
-        out.append('      sbox_%d(%s)' % (v, ', '.join(hi)))
-    out += ['', 'law sbox_ok:', '  for +x: U32', '  {B.sbox(x) == S.sbox(x) : U32}', '',
-            'def sbox_ok(x):', '  match x:', '    case %s:' % w,
-            '      sbox_bits(%s)' % ', '.join(BITS), '']
-    return out
-
-
-def lemma(name, impl, spec, split=False):
-    w = word(BITS)
-    out = []
-    if split:
-        # One lemma per value of the low byte: each is its own definition, so
-        # the BendTT kernel checks one S-box entry (one inverse search) per
-        # fuel budget instead of all 256 in one.
-        hi = BITS[8:]
-        for v in range(256):
-            lo = ['True{}' if (v >> i) & 1 else 'False{}' for i in range(8)]
-            wv = word(lo + hi)
-            out += ['law %s_%d:' % (name, v)] + ['  for %s: Bool' % b for b in hi]
-            out += ['  {%s == %s : U32}' % (impl % wv, spec % wv), '',
-                    'def %s_%d(%s):' % (name, v, ', '.join(hi)), '  {==}', '']
-    out += ['law %s_bits:' % name]
-    out += ['  for b%d: Bool' % i for i in range(32)]
-    out += ['  {%s == %s : U32}' % (impl % w, spec % w), '',
-            'def %s_bits(%s):' % (name, ', '.join(BITS)),
-            '  match b0 b1 b2 b3 b4 b5 b6 b7:']
-    for v in range(256):
-        out.append('    case %s:' % ' '.join('True{}' if (v >> i) & 1 else 'False{}' for i in range(8)))
-        out.append('      %s' % ('%s_%d(%s)' % (name, v, ', '.join(BITS[8:])) if split else '{==}'))
-    out += ['', 'law %s_ok:' % name, '  for +x: U32', '  {%s == %s : U32}' % (impl % 'x', spec % 'x'), '',
-            'def %s_ok(x):' % name, '  match x:', '    case %s:' % w,
-            '      %s_bits(%s)' % (name, ', '.join(BITS)), '']
-    return out
+def check_inverse():
+    """spec/crypto/aes/aes.bend states the inverse as a^254: check it is the
+    field inverse (a * a^254 = {01} for a != 0, and 0 -> 0)."""
+    for a in range(256):
+        p, x = 1, a
+        for bit in range(8):
+            if (254 >> bit) & 1:
+                p = gmul(p, x)
+            x = gmul(x, x)
+        assert (a == 0 and p == 0) or gmul(a, p) == 1, a
 
 
 def main():
+    check_inverse()
     out = ['import Base',
            'import ../../../src/crypto/aes/sbox.bend as B',
            'import ../../../spec/crypto/aes/aes.bend as S',
-           'import ./sbox_inv.bend as I',
            '',
            '# Generated by tools/generators/aes/sbox.py. The constant-time byte',
            '# functions equal FIPS 197 on every U32 (both read only the low 8 bits).',
            '']
-    out += sbox_lemma()
+    out += lemma('sbox', 'B.sbox(%s)', 'S.sbox(%s)')
     out += lemma('xtime', 'B.xtime(%s)', 'S.mul(2, %s)')
     out += lemma('mul3', 'B.mul3(%s)', 'S.mul(3, %s)')
     (ROOT / 'proofs/crypto/aes/sbox.bend').write_text('\n'.join(out))
