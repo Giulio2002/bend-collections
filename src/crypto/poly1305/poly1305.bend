@@ -50,9 +50,16 @@ def absorb(fuel: Nat, +msg: List<&2, U32>, +r: List<&2, U32>, h: List<&2, U32>) 
 def zero() -> List<&2, U32>:
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
+# r = clamp(key[0..16]) and s = key[16..32], as limbs.
+def r_key(+key: List<&2, U32>) -> List<&2, U32>:
+  L.fit(16n, mask(clamp(L.take(16n, key), 0n)))
+
+def s_key(+key: List<&2, U32>) -> List<&2, U32>:
+  mask(L.take(16n, L.skip(16n, key)))
+
 def tag(+key: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
-  +r = L.fit(16n, mask(clamp(L.take(16n, key), 0n)))
-  +s = mask(L.take(16n, L.skip(16n, key)))
+  +r = r_key(key)
+  +s = s_key(key)
   +h = absorb(List.length(&2, U32, msg), msg, r, zero())
   L.bytes(16n, L.add(L.freeze(h), s), 0)
 

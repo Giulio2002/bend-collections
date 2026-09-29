@@ -150,21 +150,15 @@ def take_all(n, xs, h):
     case 1n+k x <> t: Equal.cong(List<&2, U32>, List<&2, U32>, z => x <> z, Li.take(k, t), t, take_all(k, t, h))
 
 # the key's r and s limbs
-def rl(+key: List<&2, U32>) -> List<&2, U32>:
-  Li.fit(16n, P.mask(P.clamp(Li.take(16n, key), 0n)))
-
-def sl(+key: List<&2, U32>) -> List<&2, U32>:
-  P.mask(Li.take(16n, Li.skip(16n, key)))
-
 law r_ev:
   for +key: List<&2, U32>
-  {V.ev(rl(key)) == R.le_num(R.clamp(R.prefix(16n, key))) : Nat}
+  {V.ev(P.r_key(key)) == R.le_num(R.clamp(R.prefix(16n, key))) : Nat}
 
 def r_ev(key):
   +t = Li.take(16n, key)
   +m = P.mask(P.clamp(t, 0n))
   +hl = A.le_substl(V.len(t), V.len(m), 16n, A.sy(V.len(m), V.len(t), A.tr(V.len(m), V.len(P.clamp(t, 0n)), V.len(t), mask_len(P.clamp(t, 0n)), clamp_len(t, 0n))), V.len_take(16n, key))
-  A.tr(V.ev(rl(key)), V.ev(Li.take(16n, m)), R.le_num(R.clamp(R.prefix(16n, key))), V.fit_ev(16n, m),
+  A.tr(V.ev(P.r_key(key)), V.ev(Li.take(16n, m)), R.le_num(R.clamp(R.prefix(16n, key))), V.fit_ev(16n, m),
     A.tr(V.ev(Li.take(16n, m)), V.ev(m), R.le_num(R.clamp(R.prefix(16n, key))), Equal.cong(List<&2, U32>, Nat, l => V.ev(l), Li.take(16n, m), m, take_all(16n, m, hl)),
       A.tr(V.ev(m), R.le_num(P.clamp(t, 0n)), R.le_num(R.clamp(R.prefix(16n, key))), mask_ev(P.clamp(t, 0n)),
         Equal.cong(List<&2, U32>, Nat, l => R.le_num(l), P.clamp(t, 0n), R.clamp(R.prefix(16n, key)),
@@ -172,10 +166,10 @@ def r_ev(key):
 
 law s_ev:
   for +key: List<&2, U32>
-  {V.ev(sl(key)) == R.le_num(R.prefix(16n, R.suffix(16n, key))) : Nat}
+  {V.ev(P.s_key(key)) == R.le_num(R.prefix(16n, R.suffix(16n, key))) : Nat}
 
 def s_ev(key):
-  A.tr(V.ev(sl(key)), R.le_num(Li.take(16n, Li.skip(16n, key))), R.le_num(R.prefix(16n, R.suffix(16n, key))), mask_ev(Li.take(16n, Li.skip(16n, key))),
+  A.tr(V.ev(P.s_key(key)), R.le_num(Li.take(16n, Li.skip(16n, key))), R.le_num(R.prefix(16n, R.suffix(16n, key))), mask_ev(Li.take(16n, Li.skip(16n, key))),
     Equal.cong(List<&2, U32>, Nat, l => R.le_num(l), Li.take(16n, Li.skip(16n, key)), R.prefix(16n, R.suffix(16n, key)),
       Equal.trans(List<&2, U32>, Li.take(16n, Li.skip(16n, key)), R.prefix(16n, Li.skip(16n, key)), R.prefix(16n, R.suffix(16n, key)), take_prefix(16n, Li.skip(16n, key)),
         Equal.cong(List<&2, U32>, List<&2, U32>, l => R.prefix(16n, l), Li.skip(16n, key), R.suffix(16n, key), skip_suffix(16n, key)))))
@@ -330,8 +324,8 @@ law tag_main:
 def tag_main(one, h1, key, msg):
   +bp = bpv(one)
   +h5 = bp5(one, h1)
-  +r = rl(key)
-  +s = sl(key)
+  +r = P.r_key(key)
+  +s = P.s_key(key)
   +hrf = fit_fit(16n, P.mask(P.clamp(Li.take(16n, key), 0n)), mask_fit(P.clamp(Li.take(16n, key), 0n)))
   +fuel = List.length(&2, U32, msg)
   +h = P.absorb(fuel, msg, r, P.zero())
