@@ -1,15 +1,18 @@
 import Base
+import ./gb.bend as GB
+import ./blamka.bend as BL
+import ./hash.bend as HS
+import ./memory.bend as MEM
+import ./index.bend as IX
+import ./fill.bend as FL
+import ./run.bend as RN
+import ./top.bend as TOP
+import ./phc.bend as PP
+import ./password.bend as PWP
 import ../../../spec/lib/common.bend as SC
 import ../../lib/u32.bend as U
 import ../../lib/logic.bend as L
 import ./laws.bend as Laws
-import ./gb.bend as GB
-import ./blamka.bend as BL
-import ./hash.bend as HS
-import ./index.bend as IX
-import ./top.bend as TOP
-import ./phc.bend as PP
-import ./password.bend as PWP
 
 # Gate for the Argon2id package: `bend proofs/crypto/argon2/proof.bend`
 # prints ALL PROOFS CHECK when every law of laws.bend holds.

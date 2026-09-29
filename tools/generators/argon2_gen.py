@@ -160,10 +160,13 @@ def blamka():
     # xor
     xs = lanes('x')
     zs = lanes('y')
-    s += ('# Lane-wise XOR of two blocks.\n'
+    s += ('# Lane-wise XOR of two rows, and of two blocks (row by row).\n'
+          'def xs(s: T.State, t: T.State) -> T.State:\n'
+          '  match s t:\n    case ' + st(['x%d' % i for i in range(16)]) + ' ' + st(['y%d' % i for i in range(16)]) + ':\n'
+          '      ' + st(['L.xor(x%d,y%d)' % (i, i) for i in range(16)]) + '\n\n'
           'def xor(x: A.Block, y: A.Block) -> A.Block:\n'
-          '  match x y:\n    case ' + block_of_lanes(xs) + ' ' + block_of_lanes(zs) + ':\n'
-          '      ' + block_of_lanes(['L.xor(x%d,y%d)' % (i, i) for i in range(128)]) + '\n\n')
+          '  match x y:\n    case A.B{x0,x1,x2,x3,x4,x5,x6,x7} A.B{y0,y1,y2,y3,y4,y5,y6,y7}:\n'
+          '      A.B{' + csv('xs(x%d,y%d)' % (i, i) for i in range(8)) + '}\n\n')
     s += ('# G(X, Y) = P(R) XOR R with R = X XOR Y, P on the rows then the columns\n'
           '# (RFC 9106 section 3.5).\n'
           'def fin(+r: A.Block) -> A.Block:\n'
@@ -188,10 +191,19 @@ def sub():
     wl = []
     for n in range(128):
         wl += ['l%d' % n, 'h%d' % n]
-    s += ('# The 256 words of a block: lane n is words 2n (low) and 2n+1 (high).\n'
+    rl = []
+    for n in range(16):
+        rl += ['l%d' % n, 'h%d' % n]
+    s += ('# The 32 words of a row: lane n is words 2n (low) and 2n+1 (high).\n'
+          'def row_words(v: T.State) -> List<&2,U32>:\n'
+          '  match v:\n    case ' + st(['T.W{l%d,h%d}' % (n, n) for n in range(16)]) + ':\n'
+          '      [' + csv(rl) + ']\n\n'
+          'def app(xs: List<&2,U32>, ys: List<&2,U32>) -> List<&2,U32>:\n'
+          '  List.append(&2, U32, xs, ys)\n\n'
+          '# The 256 words of a block, row after row.\n'
           'def words(b: A.Block) -> List<&2,U32>:\n'
-          '  match b:\n    case ' + block_of_lanes(['T.W{l%d,h%d}' % (n, n) for n in range(128)]) + ':\n'
-          '      [' + csv(wl) + ']\n\n')
+          '  match b:\n    case A.B{r0,r1,r2,r3,r4,r5,r6,r7}:\n'
+          '      ' + ''.join('app(row_words(r%d),' % i for i in range(8)) + 'Nil{}' + ')' * 8 + '\n\n')
     w = ['w%d' % i for i in range(32)]
     s += ('# Sixteen lanes from 32 words, and the words left over.\n'
           'def row(ws: List<&2,U32>) -> T.State & List<&2,U32>:\n'
@@ -294,11 +306,25 @@ def proof_blamka():
     # xor
     xw = ['T.W{a%d,b%d}' % (i, i) for i in range(128)]
     yw = ['T.W{c%d,d%d}' % (i, i) for i in range(128)]
-    s += ('# X XOR Y, lane by lane.\n'
-          'def xor_correct(+x: A.Block, +y: A.Block) -> {I.xor(x, y) == S.xor(x, y) : A.Block}:\n'
-          '  match x y:\n'
-          '    case ' + block_of_lanes(xw) + ' ' + block_of_lanes(yw) + ':\n'
+    s += ('# Two rows XORed, lane by lane.\n'
+          'def xs_correct(+s: T.State, +t: T.State) -> {I.xs(s, t) == S.xor_state(s, t) : T.State}:\n'
+          '  match s t:\n'
+          '    case ' + st(['T.W{a%d,b%d}' % (i, i) for i in range(16)]) + ' ' + st(['T.W{c%d,d%d}' % (i, i) for i in range(16)]) + ':\n'
           '      {==}\n\n')
+    xr = ['x%d' % i for i in range(8)]
+    yr = ['y%d' % i for i in range(8)]
+    out = ('# X XOR Y, row by row.\n'
+           'def xor_correct(+x: A.Block, +y: A.Block) -> {I.xor(x, y) == S.xor(x, y) : A.Block}:\n'
+           '  match x y:\n'
+           '    case A.B{+x0,+x1,+x2,+x3,+x4,+x5,+x6,+x7} A.B{+y0,+y1,+y2,+y3,+y4,+y5,+y6,+y7}:\n')
+    cur = ['I.xs(x%d, y%d)' % (i, i) for i in range(8)]
+    for i in range(8):
+        pat = list(cur); pat[i] = '_'
+        out += ('      %%Equal.sym(T.State, I.xs(x%d, y%d), S.xor_state(x%d, y%d), xs_correct(x%d, y%d)) : {A.B{%s} == S.xor(A.B{%s}, A.B{%s}) : A.Block}\n'
+                % (i, i, i, i, i, i, ', '.join(pat), csv(xr), csv(yr)))
+        cur[i] = 'S.xor_state(x%d, y%d)' % (i, i)
+    out += '      {==}\n\n'
+    s += out
     # compress
     R = 'S.xor(x, y)'
     s += ('# G(X, Y): the compression function.\n'

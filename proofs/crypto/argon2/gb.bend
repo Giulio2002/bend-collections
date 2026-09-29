@@ -4,7 +4,7 @@ import ../../../spec/math/w64.bend as SW
 import ../../../src/math/w64.bend as X
 import ../../../src/math/u64.bend as WU
 import ../../math/typed/w64mul.bend as W64M
-import ../../math/typed/u32laws.bend as LW
+import ./words.bend as LW
 import ../../math/typed/width.bend as WW
 import ../../../src/crypto/blake/blake2b/types.bend as T
 import ../../../src/crypto/blake/blake2b/lane.bend as L

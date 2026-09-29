@@ -6,6 +6,7 @@ finite case analyses on crumbs, base64 digits and decimal digits.
   python3 tools/generators/argon2_phc_gen.py
 """
 import os
+import re
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 OUT = os.path.join(ROOT, 'proofs/crypto/argon2/phc.bend')
@@ -44,12 +45,24 @@ def sym(ty, a, b, e):
     return 'Equal.sym(%s, %s, %s, %s)' % (ty, a, b, e)
 
 
+def fix_tn(s):
+    out = []
+    for line in s.split('\n'):
+        m = re.match(r'  %tn\((.*), (NR\.dm_lt\(.*\)|t3_lt\(x, h\))\) : \{(.*)$', line)
+        if m:
+            e, pr, rest = m.groups()
+            line = '  %%Equal.sym(Nat, U32.to_nat(U32.from_nat(%s)), %s, tn(%s, %s)) : {%s' % (e, e, e, pr, rest)
+        out.append(line)
+    return '\n'.join(out)
+
+
 def gen():
     s = HEADER
     s += '''import Base
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
-import ../../math/typed/u32laws.bend as LW
+import ../../lib/u32.bend as U
+import ./words.bend as LW
 import ../../math/hash/hash.bend as HH
 import ../../math/natural/arith.bend as NR
 import ../../../src/crypto/argon2/phc.bend as PH
@@ -91,24 +104,46 @@ def u(+n: Nat) -> U32:
           '  nd_n(U32.to_nat(x), h)\n\n')
     # ---- crumbs of a byte
     s += '# ---------------------------------------------------------------- crumbs\n\n'
-    s += ('def c3_n(+n: Nat, +h: {Nat.is_lt(n, 256n) == True{} : Bool}) -> {Nat.is_lt(U32.to_nat(PH.c3(u(n))), 4n) == True{} : Bool}:\n'
-          + nat_cases('n', 256, lambda k: '{==}', ab('Nat.is_lt(U32.to_nat(PH.c3(u(256n+r))), 4n) == True{} : Bool')) + '\n')
-    s += ('def byte_n(+n: Nat, +h: {Nat.is_lt(n, 256n) == True{} : Bool}) -> {PH.byte_of(PH.c3(u(n)), PH.c2(u(n)), PH.c1(u(n)), PH.c0(u(n))) == u(n) : U32}:\n'
-          + nat_cases('n', 256, lambda k: '{==}', ab('PH.byte_of(PH.c3(u(256n+r)), PH.c2(u(256n+r)), PH.c1(u(256n+r)), PH.c0(u(256n+r))) == u(256n+r) : U32')) + '\n')
-    s += ('def c3_lt(+x: U32, +h: {Nat.is_lt(U32.to_nat(x), 256n) == True{} : Bool}) -> {Nat.is_lt(U32.to_nat(PH.c3(x)), 4n) == True{} : Bool}:\n'
-          '  %LW.rt(x) : {Nat.is_lt(U32.to_nat(PH.c3(_)), 4n) == True{} : Bool}\n'
-          '  c3_n(U32.to_nat(x), h)\n\n'
-          'def and3_lt(+x: U32) -> {Nat.is_lt(U32.to_nat(U32.and(x, 3)), 4n) == True{} : Bool}:\n'
-          '  N.le_lt_succ(U32.to_nat(U32.and(x, 3)), 3n, HH.and_le32(x, 3))\n\n'
-          'def c2_lt(+x: U32) -> {Nat.is_lt(U32.to_nat(PH.c2(x)), 4n) == True{} : Bool}:\n'
-          '  and3_lt(U32.shrn(x, 4n))\n\n'
-          'def c1_lt(+x: U32) -> {Nat.is_lt(U32.to_nat(PH.c1(x)), 4n) == True{} : Bool}:\n'
-          '  and3_lt(U32.shrn(x, 2n))\n\n'
+    Q1 = 'Nat.div(U32.to_nat(x), 4n)'
+    Q2 = 'Nat.div(%s, 4n)' % Q1
+    T0 = 'Nat.mod(U32.to_nat(x), 4n)'
+    T1 = 'Nat.mod(%s, 4n)' % Q1
+    T2 = 'Nat.mod(%s, 4n)' % Q2
+    T3 = 'Nat.div(%s, 4n)' % Q2
+    s += ('# A value below 4 round-trips through U32.\n'
+          'def tn(+i: Nat, +h: {Nat.is_lt(i, 4n) == True{} : Bool}) -> {U32.to_nat(U32.from_nat(i)) == i : Nat}:\n'
+          '  U.to_nat_from_nat(i, 2n, {==}, h)\n\n'
+          '# m < K * 4 gives m / 4 < K.\n'
+          'def div4_lt(+m: Nat, +k: Nat, +h: {Nat.is_lt(m, Nat.mul(k, 4n)) == True{} : Bool}) -> {Nat.is_lt(Nat.div(m, 4n), k) == True{} : Bool}:\n'
+          '  N.not_le_lt(k, Nat.div(m, 4n), Equal.trans(Bool, Nat.is_le(k, Nat.div(m, 4n)), Nat.is_le(Nat.mul(k, 4n), m), False{}, NR.le_div(3n, k, m), N.lt_not_le(m, Nat.mul(k, 4n), h)))\n\n'
           'def c0_lt(+x: U32) -> {Nat.is_lt(U32.to_nat(PH.c0(x)), 4n) == True{} : Bool}:\n'
-          '  and3_lt(x)\n\n'
+          '  %%tn(%s, NR.dm_lt(3n, U32.to_nat(x))) : {Nat.is_lt(_, 4n) == True{} : Bool}\n'
+          '  NR.dm_lt(3n, U32.to_nat(x))\n\n' % T0 +
+          'def c1_lt(+x: U32) -> {Nat.is_lt(U32.to_nat(PH.c1(x)), 4n) == True{} : Bool}:\n'
+          '  %%tn(%s, NR.dm_lt(3n, %s)) : {Nat.is_lt(_, 4n) == True{} : Bool}\n'
+          '  NR.dm_lt(3n, %s)\n\n' % (T1, Q1, Q1) +
+          'def c2_lt(+x: U32) -> {Nat.is_lt(U32.to_nat(PH.c2(x)), 4n) == True{} : Bool}:\n'
+          '  %%tn(%s, NR.dm_lt(3n, %s)) : {Nat.is_lt(_, 4n) == True{} : Bool}\n'
+          '  NR.dm_lt(3n, %s)\n\n' % (T2, Q2, Q2) +
+          'def t3_lt(+x: U32, +h: {Nat.is_lt(U32.to_nat(x), 256n) == True{} : Bool}) -> {Nat.is_lt(%s, 4n) == True{} : Bool}:\n'
+          '  div4_lt(%s, 4n, div4_lt(%s, 16n, div4_lt(U32.to_nat(x), 64n, h)))\n\n' % (T3, Q2, Q1) +
+          'def c3_lt(+x: U32, +h: {Nat.is_lt(U32.to_nat(x), 256n) == True{} : Bool}) -> {Nat.is_lt(U32.to_nat(PH.c3(x)), 4n) == True{} : Bool}:\n'
+          '  %%tn(%s, t3_lt(x, h)) : {Nat.is_lt(_, 4n) == True{} : Bool}\n'
+          '  t3_lt(x, h)\n\n' % T3)
+    H = lambda a3, a2, a1, a0: 'Nat.add(Nat.mul(Nat.add(Nat.mul(Nat.add(Nat.mul(%s, 4n), %s), 4n), %s), 4n), %s)' % (a3, a2, a1, a0)
+    g = Goal('U32.from_nat(%s)' % H('U32.to_nat(PH.c3(x))', 'U32.to_nat(PH.c2(x))', 'U32.to_nat(PH.c1(x))', 'U32.to_nat(PH.c0(x))'), 'x', 'U32')
+    g.rw('U32.to_nat(PH.c3(x))', T3, sym('Nat', 'U32.to_nat(U32.from_nat(%s))' % T3, T3, 'tn(%s, t3_lt(x, h))' % T3))
+    g.rw('U32.to_nat(PH.c2(x))', T2, sym('Nat', 'U32.to_nat(U32.from_nat(%s))' % T2, T2, 'tn(%s, NR.dm_lt(3n, %s))' % (T2, Q2)))
+    g.rw('U32.to_nat(PH.c1(x))', T1, sym('Nat', 'U32.to_nat(U32.from_nat(%s))' % T1, T1, 'tn(%s, NR.dm_lt(3n, %s))' % (T1, Q1)))
+    g.rw('U32.to_nat(PH.c0(x))', T0, sym('Nat', 'U32.to_nat(U32.from_nat(%s))' % T0, T0, 'tn(%s, NR.dm_lt(3n, U32.to_nat(x)))' % T0))
+    g.rw('Nat.add(Nat.mul(%s, 4n), %s)' % (T3, T2), Q2, 'NR.dm_eq(3n, %s)' % Q2)
+    g.rw('Nat.add(Nat.mul(%s, 4n), %s)' % (Q2, T1), Q1, 'NR.dm_eq(3n, %s)' % Q1)
+    g.rw('Nat.add(Nat.mul(%s, 4n), %s)' % (Q1, T0), 'U32.to_nat(x)', 'NR.dm_eq(3n, U32.to_nat(x))')
+    s = fix_tn(s)
+    s += ('# A byte is the byte of its crumbs.\n'
           'def byte_rt(+x: U32, +h: {Nat.is_lt(U32.to_nat(x), 256n) == True{} : Bool}) -> {PH.byte_of(PH.c3(x), PH.c2(x), PH.c1(x), PH.c0(x)) == x : U32}:\n'
-          '  %LW.rt(x) : {PH.byte_of(PH.c3(_), PH.c2(_), PH.c1(_), PH.c0(_)) == _ : U32}\n'
-          '  byte_n(U32.to_nat(x), h)\n\n')
+          + g.done('LW.rt(x)') + '\n')
+
     # ---- three crumbs as a digit value
     def sext_lemma(name, concl_n, concl_u):
         out = 'def %s_n(+a: Nat, +b: Nat, +c: Nat, +ha: {Nat.is_lt(a, 4n) == True{} : Bool}, +hb: {Nat.is_lt(b, 4n) == True{} : Bool}, +hc: {Nat.is_lt(c, 4n) == True{} : Bool}) -> {%s}:\n' % (name, concl_n('u(a)', 'u(b)', 'u(c)'))

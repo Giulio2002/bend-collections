@@ -3,11 +3,20 @@ import Base
 import ../blake/blake2b/types.bend as T
 import ./types.bend as A
 
-# The 256 words of a block: lane n is words 2n (low) and 2n+1 (high).
+# The 32 words of a row: lane n is words 2n (low) and 2n+1 (high).
+def row_words(v: T.State) -> List<&2,U32>:
+  match v:
+    case T.V{T.W{l0,h0},T.W{l1,h1},T.W{l2,h2},T.W{l3,h3},T.W{l4,h4},T.W{l5,h5},T.W{l6,h6},T.W{l7,h7},T.W{l8,h8},T.W{l9,h9},T.W{l10,h10},T.W{l11,h11},T.W{l12,h12},T.W{l13,h13},T.W{l14,h14},T.W{l15,h15}}:
+      [l0,h0,l1,h1,l2,h2,l3,h3,l4,h4,l5,h5,l6,h6,l7,h7,l8,h8,l9,h9,l10,h10,l11,h11,l12,h12,l13,h13,l14,h14,l15,h15]
+
+def app(xs: List<&2,U32>, ys: List<&2,U32>) -> List<&2,U32>:
+  List.append(&2, U32, xs, ys)
+
+# The 256 words of a block, row after row.
 def words(b: A.Block) -> List<&2,U32>:
   match b:
-    case A.B{T.V{T.W{l0,h0},T.W{l1,h1},T.W{l2,h2},T.W{l3,h3},T.W{l4,h4},T.W{l5,h5},T.W{l6,h6},T.W{l7,h7},T.W{l8,h8},T.W{l9,h9},T.W{l10,h10},T.W{l11,h11},T.W{l12,h12},T.W{l13,h13},T.W{l14,h14},T.W{l15,h15}},T.V{T.W{l16,h16},T.W{l17,h17},T.W{l18,h18},T.W{l19,h19},T.W{l20,h20},T.W{l21,h21},T.W{l22,h22},T.W{l23,h23},T.W{l24,h24},T.W{l25,h25},T.W{l26,h26},T.W{l27,h27},T.W{l28,h28},T.W{l29,h29},T.W{l30,h30},T.W{l31,h31}},T.V{T.W{l32,h32},T.W{l33,h33},T.W{l34,h34},T.W{l35,h35},T.W{l36,h36},T.W{l37,h37},T.W{l38,h38},T.W{l39,h39},T.W{l40,h40},T.W{l41,h41},T.W{l42,h42},T.W{l43,h43},T.W{l44,h44},T.W{l45,h45},T.W{l46,h46},T.W{l47,h47}},T.V{T.W{l48,h48},T.W{l49,h49},T.W{l50,h50},T.W{l51,h51},T.W{l52,h52},T.W{l53,h53},T.W{l54,h54},T.W{l55,h55},T.W{l56,h56},T.W{l57,h57},T.W{l58,h58},T.W{l59,h59},T.W{l60,h60},T.W{l61,h61},T.W{l62,h62},T.W{l63,h63}},T.V{T.W{l64,h64},T.W{l65,h65},T.W{l66,h66},T.W{l67,h67},T.W{l68,h68},T.W{l69,h69},T.W{l70,h70},T.W{l71,h71},T.W{l72,h72},T.W{l73,h73},T.W{l74,h74},T.W{l75,h75},T.W{l76,h76},T.W{l77,h77},T.W{l78,h78},T.W{l79,h79}},T.V{T.W{l80,h80},T.W{l81,h81},T.W{l82,h82},T.W{l83,h83},T.W{l84,h84},T.W{l85,h85},T.W{l86,h86},T.W{l87,h87},T.W{l88,h88},T.W{l89,h89},T.W{l90,h90},T.W{l91,h91},T.W{l92,h92},T.W{l93,h93},T.W{l94,h94},T.W{l95,h95}},T.V{T.W{l96,h96},T.W{l97,h97},T.W{l98,h98},T.W{l99,h99},T.W{l100,h100},T.W{l101,h101},T.W{l102,h102},T.W{l103,h103},T.W{l104,h104},T.W{l105,h105},T.W{l106,h106},T.W{l107,h107},T.W{l108,h108},T.W{l109,h109},T.W{l110,h110},T.W{l111,h111}},T.V{T.W{l112,h112},T.W{l113,h113},T.W{l114,h114},T.W{l115,h115},T.W{l116,h116},T.W{l117,h117},T.W{l118,h118},T.W{l119,h119},T.W{l120,h120},T.W{l121,h121},T.W{l122,h122},T.W{l123,h123},T.W{l124,h124},T.W{l125,h125},T.W{l126,h126},T.W{l127,h127}}}:
-      [l0,h0,l1,h1,l2,h2,l3,h3,l4,h4,l5,h5,l6,h6,l7,h7,l8,h8,l9,h9,l10,h10,l11,h11,l12,h12,l13,h13,l14,h14,l15,h15,l16,h16,l17,h17,l18,h18,l19,h19,l20,h20,l21,h21,l22,h22,l23,h23,l24,h24,l25,h25,l26,h26,l27,h27,l28,h28,l29,h29,l30,h30,l31,h31,l32,h32,l33,h33,l34,h34,l35,h35,l36,h36,l37,h37,l38,h38,l39,h39,l40,h40,l41,h41,l42,h42,l43,h43,l44,h44,l45,h45,l46,h46,l47,h47,l48,h48,l49,h49,l50,h50,l51,h51,l52,h52,l53,h53,l54,h54,l55,h55,l56,h56,l57,h57,l58,h58,l59,h59,l60,h60,l61,h61,l62,h62,l63,h63,l64,h64,l65,h65,l66,h66,l67,h67,l68,h68,l69,h69,l70,h70,l71,h71,l72,h72,l73,h73,l74,h74,l75,h75,l76,h76,l77,h77,l78,h78,l79,h79,l80,h80,l81,h81,l82,h82,l83,h83,l84,h84,l85,h85,l86,h86,l87,h87,l88,h88,l89,h89,l90,h90,l91,h91,l92,h92,l93,h93,l94,h94,l95,h95,l96,h96,l97,h97,l98,h98,l99,h99,l100,h100,l101,h101,l102,h102,l103,h103,l104,h104,l105,h105,l106,h106,l107,h107,l108,h108,l109,h109,l110,h110,l111,h111,l112,h112,l113,h113,l114,h114,l115,h115,l116,h116,l117,h117,l118,h118,l119,h119,l120,h120,l121,h121,l122,h122,l123,h123,l124,h124,l125,h125,l126,h126,l127,h127]
+    case A.B{r0,r1,r2,r3,r4,r5,r6,r7}:
+      app(row_words(r0),app(row_words(r1),app(row_words(r2),app(row_words(r3),app(row_words(r4),app(row_words(r5),app(row_words(r6),app(row_words(r7),Nil{}))))))))
 
 # Sixteen lanes from 32 words, and the words left over.
 def row(ws: List<&2,U32>) -> T.State & List<&2,U32>:

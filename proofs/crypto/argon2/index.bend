@@ -6,9 +6,8 @@ import ../../../src/math/u64.bend as WU
 import ../../lib/u32.bend as U
 import ../../lib/logic.bend as L
 import ../../math/typed/w64mul.bend as W64M
-import ../../math/typed/u32laws.bend as LW
+import ./words.bend as LW
 import ../../math/typed/width.bend as WW
-import ../../math/typed/w64sh.bend as SH
 import ../../../src/crypto/blake/blake2b/types.bend as T
 import ../../../src/crypto/argon2/types.bend as A
 import ../../../src/crypto/argon2/blamka.bend as G
@@ -173,7 +172,7 @@ def fits_value(+x: WU.U64) -> {C.fits(64n, SW.value(x)) == True{} : Bool}:
 def hi_mul(+a: U32, +b: U32) -> {U32.to_nat(X.hi(X.mul32(a, b))) == C.high(32n, Nat.mul(U32.to_nat(a), U32.to_nat(b))) : Nat}:
   +n = Nat.mul(U32.to_nat(a), U32.to_nat(b))
   +f64 = L.subst(Nat, z => {C.fits(64n, z) == True{} : Bool}, SW.value(X.mul32(a, b)), n, W64M.mul32_value(a, b), fits_value(X.mul32(a, b)))
-  +f32 = SH.fits_high(32n, 32n, n, f64)
+  +f32 = LW.fits_high(32n, 32n, n, f64)
   %Equal.sym(WU.U64, X.mul32(a, b), SW.of_nat(n), GB.mul32_of(a, b)) : {U32.to_nat(X.hi(_)) == C.high(32n, n) : Nat}
   LW.vo(C.high(32n, n), f32)
 

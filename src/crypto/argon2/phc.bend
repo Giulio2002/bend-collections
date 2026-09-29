@@ -26,21 +26,22 @@ type Cut is Data:
 
 # ---------------------------------------------------------------- crumbs
 
-def c3(+b: U32) -> U32:
-  U32.shrn(b, 6n)
-
-def c2(+b: U32) -> U32:
-  U32.and(U32.shrn(b, 4n), 3)
+# The crumbs of a byte n, high first: n = ((c3 * 4 + c2) * 4 + c1) * 4 + c0.
+def c0(+b: U32) -> U32:
+  U32.from_nat(Nat.mod(U32.to_nat(b), 4n))
 
 def c1(+b: U32) -> U32:
-  U32.and(U32.shrn(b, 2n), 3)
+  U32.from_nat(Nat.mod(Nat.div(U32.to_nat(b), 4n), 4n))
 
-def c0(+b: U32) -> U32:
-  U32.and(b, 3)
+def c2(+b: U32) -> U32:
+  U32.from_nat(Nat.mod(Nat.div(Nat.div(U32.to_nat(b), 4n), 4n), 4n))
+
+def c3(+b: U32) -> U32:
+  U32.from_nat(Nat.div(Nat.div(Nat.div(U32.to_nat(b), 4n), 4n), 4n))
 
 # The byte of four crumbs, high first.
 def byte_of(+w: U32, +x: U32, +y: U32, +z: U32) -> U32:
-  U32.or(U32.or(U32.shln(w, 6n), U32.shln(x, 4n)), U32.or(U32.shln(y, 2n), z))
+  U32.from_nat(Nat.add(Nat.mul(Nat.add(Nat.mul(Nat.add(Nat.mul(U32.to_nat(w), 4n), U32.to_nat(x)), 4n), U32.to_nat(y)), 4n), U32.to_nat(z)))
 
 # The base64 digit value of three crumbs, high first, and back.
 def sext(+x: U32, +y: U32, +z: U32) -> U32:

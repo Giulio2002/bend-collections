@@ -5,9 +5,8 @@ import ../../lib/logic.bend as L
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/natural/arith.bend as NR
 import ../../math/hash/hash.bend as HH
-import ../../math/typed/u32laws.bend as LW
+import ./words.bend as LW
 import ../../math/typed/width.bend as WW
-import ../../math/typed/w64sh.bend as SH
 import ../../math/typed/shrn.bend as SR
 import ../subtle/word.bend as SW
 import ../../../src/crypto/blake/blake2b/types.bend as T
@@ -152,7 +151,7 @@ def and255(+w: U32) -> {Nat.is_lt(U32.to_nat(U32.and(w, 255)), 256n) == True{} :
   N.le_lt_succ(U32.to_nat(U32.and(w, 255)), 255n, HH.and_le32(w, 255))
 
 def top8(+w: U32) -> {Nat.is_lt(U32.to_nat(U32.shrn(w, 24n)), 256n) == True{} : Bool}:
-  +f = SH.fits_high(24n, 8n, LW.v(w), LW.vb(w))
+  +f = LW.fits_high(24n, 8n, LW.v(w), LW.vb(w))
   %Equal.sym(Nat, SR.v(U32.shrn(w, 24n)), C.high(24n, SR.v(w)), SR.shrn_high(w, 24n)) : {Nat.is_lt(_, 256n) == True{} : Bool}
   WW.lt_of_fits(8n, C.high(24n, LW.v(w)), f)
 
