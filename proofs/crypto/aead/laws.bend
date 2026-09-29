@@ -198,3 +198,18 @@ law seal_layout:
   for +hn: {List.length(&2, U32, nonce) == A.nonce_size(alg) : Nat}
   exs ct: List<&2, U32>
   {A.encrypt(alg, key, nonce, aad, pt) == Some{List.append(&2, U32, ct, expected_tag(alg, key, nonce, aad, ct))} : Maybe<&2, List<&2, U32>>}
+
+# Decryption is sound: whatever decrypt accepts is exactly what encrypt
+# produces for the returned plaintext (so every accepted input is the honest
+# ciphertext of its plaintext under this key, nonce and aad).
+law decrypt_sound:
+  for +alg: A.Alg
+  for +key: List<&2, U32>
+  for +nonce: List<&2, U32>
+  for +aad: List<&2, U32>
+  for +data: List<&2, U32>
+  for +p: List<&2, U32>
+  for +hk: {List.length(&2, U32, key) == A.key_size(alg) : Nat}
+  for +hn: {List.length(&2, U32, nonce) == A.nonce_size(alg) : Nat}
+  for +h: {A.decrypt(alg, key, nonce, aad, data) == Some{p} : Maybe<&2, List<&2, U32>>}
+  {A.encrypt(alg, key, nonce, aad, p) == Some{data} : Maybe<&2, List<&2, U32>>}

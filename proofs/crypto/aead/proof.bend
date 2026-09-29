@@ -10,6 +10,7 @@ import ../../lib/nat.bend as N
 import ./laws.bend as Laws
 import ./chacha20poly1305.bend as C
 import ./aes.bend as AE
+import ./sound.bend as SD
 
 # Entry point: `bend proofs/crypto/aead/proof.bend` checks the clauses of
 # laws.bend. Each algorithm-generic clause is proved by one case per
@@ -302,3 +303,50 @@ def Laws.seal_layout(alg, key, nonce, aad, pt, hk, hn):
     case A.AES_256_GCM{}:
       (gct(key, nonce, pt), Equal.trans(Maybe<&2, List<&2, U32>>, A.encrypt(A.AES_256_GCM{}, key, nonce, aad, pt), A.seal(A.AES_256_GCM{}, key, nonce, aad, pt), Some{G.aes_seal(key, nonce, aad, pt)},
         encrypt_valid(A.AES_256_GCM{}, key, nonce, aad, pt, hk, hn), AE.aes256_encrypt_l(key, hk, nonce, hn, aad, pt)))
+
+# ---- soundness of decryption
+
+def smaybe(+x: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  Some{x}
+
+law open_sound:
+  for +alg: A.Alg
+  for +key: List<&2, U32>
+  for +nonce: List<&2, U32>
+  for +aad: List<&2, U32>
+  for +data: List<&2, U32>
+  for +p: List<&2, U32>
+  for +hk: {List.length(&2, U32, key) == A.key_size(alg) : Nat}
+  for +hn: {List.length(&2, U32, nonce) == A.nonce_size(alg) : Nat}
+  for +h: {A.open(alg, key, nonce, aad, data) == Some{p} : Maybe<&2, List<&2, U32>>}
+  {A.seal(alg, key, nonce, aad, p) == Some{data} : Maybe<&2, List<&2, U32>>}
+
+def open_sound(alg, key, nonce, aad, data, p, hk, hn, h):
+  match alg:
+    case A.CHACHA20_POLY1305{}:
+      +hs = Equal.trans(Maybe<&2, List<&2, U32>>, R.open(key, nonce, aad, data), CP.open(key, nonce, aad, data), Some{p}, Equal.sym(Maybe<&2, List<&2, U32>>, CP.open(key, nonce, aad, data), R.open(key, nonce, aad, data), C.open_eq(key, nonce, aad, data)), h)
+      Equal.trans(Maybe<&2, List<&2, U32>>, smaybe(CP.seal(key, nonce, aad, p)), smaybe(R.seal(key, nonce, aad, p)), Some{data},
+        Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => smaybe(l), CP.seal(key, nonce, aad, p), R.seal(key, nonce, aad, p), C.seal_eq(key, nonce, aad, p)),
+        Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => smaybe(l), R.seal(key, nonce, aad, p), data, SD.chacha_sound(key, nonce, aad, data, p, hs)))
+    case A.XCHACHA20_POLY1305{}:
+      +hs = Equal.trans(Maybe<&2, List<&2, U32>>, R.xopen(key, nonce, aad, data), CP.xopen(key, nonce, aad, data), Some{p}, Equal.sym(Maybe<&2, List<&2, U32>>, CP.xopen(key, nonce, aad, data), R.xopen(key, nonce, aad, data), C.xopen_eq(key, nonce, aad, data)), h)
+      Equal.trans(Maybe<&2, List<&2, U32>>, smaybe(CP.xseal(key, nonce, aad, p)), smaybe(R.xseal(key, nonce, aad, p)), Some{data},
+        Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => smaybe(l), CP.xseal(key, nonce, aad, p), R.xseal(key, nonce, aad, p), C.xseal_eq(key, nonce, aad, p)),
+        Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => smaybe(l), R.xseal(key, nonce, aad, p), data, SD.chacha_sound(RC.xsubkey(key, nonce), RC.xnonce(nonce), aad, data, p, hs)))
+    case A.AES_128_GCM{}:
+      +hs = Equal.trans(Maybe<&2, List<&2, U32>>, G.aes_open(key, nonce, aad, data), GCM.aes128_gcm_decrypt(key, nonce, aad, data), Some{p}, Equal.sym(Maybe<&2, List<&2, U32>>, GCM.aes128_gcm_decrypt(key, nonce, aad, data), G.aes_open(key, nonce, aad, data), AE.aes128_decrypt_l(key, hk, nonce, hn, aad, data)), h)
+      Equal.trans(Maybe<&2, List<&2, U32>>, GCM.aes128_gcm_encrypt(key, nonce, aad, p), smaybe(G.aes_seal(key, nonce, aad, p)), Some{data},
+        AE.aes128_encrypt_l(key, hk, nonce, hn, aad, p),
+        Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => smaybe(l), G.aes_seal(key, nonce, aad, p), data, SD.gcm_sound(S.nk(key), S.nr(key), key, nonce, aad, data, p, hs)))
+    case A.AES_256_GCM{}:
+      +hs = Equal.trans(Maybe<&2, List<&2, U32>>, G.aes_open(key, nonce, aad, data), GCM.aes256_gcm_decrypt(key, nonce, aad, data), Some{p}, Equal.sym(Maybe<&2, List<&2, U32>>, GCM.aes256_gcm_decrypt(key, nonce, aad, data), G.aes_open(key, nonce, aad, data), AE.aes256_decrypt_l(key, hk, nonce, hn, aad, data)), h)
+      Equal.trans(Maybe<&2, List<&2, U32>>, GCM.aes256_gcm_encrypt(key, nonce, aad, p), smaybe(G.aes_seal(key, nonce, aad, p)), Some{data},
+        AE.aes256_encrypt_l(key, hk, nonce, hn, aad, p),
+        Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => smaybe(l), G.aes_seal(key, nonce, aad, p), data, SD.gcm_sound(S.nk(key), S.nr(key), key, nonce, aad, data, p, hs)))
+
+def Laws.decrypt_sound(alg, key, nonce, aad, data, p, hk, hn, h):
+  +ho = Equal.trans(Maybe<&2, List<&2, U32>>, A.open(alg, key, nonce, aad, data), A.decrypt(alg, key, nonce, aad, data), Some{p},
+    Equal.sym(Maybe<&2, List<&2, U32>>, A.decrypt(alg, key, nonce, aad, data), A.open(alg, key, nonce, aad, data), decrypt_valid(alg, key, nonce, aad, data, hk, hn)), h)
+  Equal.trans(Maybe<&2, List<&2, U32>>, A.encrypt(alg, key, nonce, aad, p), A.seal(alg, key, nonce, aad, p), Some{data},
+    encrypt_valid(alg, key, nonce, aad, p, hk, hn),
+    open_sound(alg, key, nonce, aad, data, p, hk, hn, ho))

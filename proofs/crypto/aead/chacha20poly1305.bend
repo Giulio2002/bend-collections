@@ -12,8 +12,7 @@ import ../chacha/stream.bend as T
 import ../chacha/xchacha.bend as X
 import ../chacha/involution.bend as V
 import ../poly1305/mac.bend as PM
-import ../subtle/laws.bend as SL
-import ../subtle/proof.bend as SLP
+import ./subtle_eq.bend as SE
 
 # ChaCha20-Poly1305 and XChaCha20-Poly1305 of src/crypto/aead/ against
 # spec/crypto/chacha20poly1305.bend (for every key, nonce, aad and message
@@ -100,7 +99,7 @@ law open_split_eq:
 def open_split_eq(key, nonce, aad, ct, t):
   Equal.trans(Maybe<&2, List<&2, U32>>, I.open_tag(S.eq(t, I.tag(key, nonce, aad, ct)), key, nonce, ct), I.open_tag(RS.equal(t, R.tag(key, nonce, aad, ct)), key, nonce, ct), R.open_split(key, nonce, aad, ct, t),
     Equal.trans(Maybe<&2, List<&2, U32>>, I.open_tag(S.eq(t, I.tag(key, nonce, aad, ct)), key, nonce, ct), I.open_tag(RS.equal(t, I.tag(key, nonce, aad, ct)), key, nonce, ct), I.open_tag(RS.equal(t, R.tag(key, nonce, aad, ct)), key, nonce, ct),
-      Equal.cong(Bool, Maybe<&2, List<&2, U32>>, b => I.open_tag(b, key, nonce, ct), S.eq(t, I.tag(key, nonce, aad, ct)), RS.equal(t, I.tag(key, nonce, aad, ct)), SL.Eq.value(t, I.tag(key, nonce, aad, ct))),
+      Equal.cong(Bool, Maybe<&2, List<&2, U32>>, b => I.open_tag(b, key, nonce, ct), S.eq(t, I.tag(key, nonce, aad, ct)), RS.equal(t, I.tag(key, nonce, aad, ct)), SE.eq_value(t, I.tag(key, nonce, aad, ct))),
       Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => I.open_tag(RS.equal(t, l), key, nonce, ct), I.tag(key, nonce, aad, ct), R.tag(key, nonce, aad, ct), tag_eq(key, nonce, aad, ct))),
     open_tag_eq(RS.equal(t, R.tag(key, nonce, aad, ct)), key, nonce, ct))
 
@@ -282,7 +281,7 @@ def roundtrip(key, nonce, aad, pt):
   Equal.trans(Maybe<&2, List<&2, U32>>, R.open(key, nonce, aad, List.append(&2, U32, ct, t)), R.open_split(key, nonce, aad, ct, t), Some{pt},
     open_append(key, nonce, aad, ct, t, PM.mac_length(R.poly_key(key, nonce), R.mac_data(aad, ct))),
     Equal.trans(Maybe<&2, List<&2, U32>>, R.open_tag(RS.equal(t, t), key, nonce, ct), R.open_tag(True{}, key, nonce, ct), Some{pt},
-      Equal.cong(Bool, Maybe<&2, List<&2, U32>>, b => R.open_tag(b, key, nonce, ct), RS.equal(t, t), True{}, SLP.equal_refl(t)),
+      Equal.cong(Bool, Maybe<&2, List<&2, U32>>, b => R.open_tag(b, key, nonce, ct), RS.equal(t, t), True{}, SE.equal_refl(t)),
       Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => Some{l}, RC.encrypt(key, 1, nonce, ct), pt, V.involution(10n, key, 1, nonce, pt))))
 
 law open_tag_false:
@@ -298,7 +297,7 @@ law open_tag_false:
 
 def open_tag_false(key, nonce, aad, ct, t, ne, b, hb):
   match b:
-    case True{}: Empty.absurd({R.open_tag(True{}, key, nonce, ct) == None{} : Maybe<&2, List<&2, U32>>}, ne(SLP.equal_sound(t, R.tag(key, nonce, aad, ct), hb)))
+    case True{}: Empty.absurd({R.open_tag(True{}, key, nonce, ct) == None{} : Maybe<&2, List<&2, U32>>}, ne(SE.equal_sound(t, R.tag(key, nonce, aad, ct), hb)))
     case False{}: {==}
 
 # Opening ciphertext || t fails for every 16-byte t that is not the tag of
