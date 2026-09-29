@@ -34,7 +34,7 @@ def addm(a: List<&2, U32>, b: List<&2, U32>) -> List<&2, U32>:
   csub(F.cr_limbs(F.carry(F.addl(a, b), 0)))
 
 # bits t = n - 1 down to 0 of bs: acc = 2 acc + bit s (mod L)
-def mac(n: Nat, +bs: List<&2, U32>, +s: List<&2, U32>, acc: List<&2, U32>) -> List<&2, U32>:
+def mac(n: Nat, +bs: List<&2, U32>, +s: List<&2, U32>, +acc: List<&2, U32>) -> List<&2, U32>:
   match n:
     case 0n:
       acc

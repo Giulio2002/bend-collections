@@ -66,9 +66,6 @@ def run(op: Nat, +parts: List<&2, String>) -> String:
     case _:
       bool(SG.verify(f(parts, 1n), f(parts, 2n), f(parts, 3n)))
 
-def op_of(+s: String) -> Nat:
-  op_pick(String.eq(s, "x"), String.eq(s, "iter"), String.eq(s, "kpk"), String.eq(s, "ss"), String.eq(s, "epk"), String.eq(s, "esig"))
-
 def op_pick(a: Bool, b: Bool, c: Bool, d: Bool, e: Bool, g: Bool) -> Nat:
   match a:
     case True{}:
@@ -95,6 +92,9 @@ def op_pick(a: Bool, b: Bool, c: Bool, d: Bool, e: Bool, g: Bool) -> Nat:
                           5n
                         case False{}:
                           6n
+
+def op_of(+s: String) -> Nat:
+  op_pick(String.eq(s, "x"), String.eq(s, "iter"), String.eq(s, "kpk"), String.eq(s, "ss"), String.eq(s, "epk"), String.eq(s, "esig"))
 
 def line(s: String) -> String:
   +parts = T.fields(s)
