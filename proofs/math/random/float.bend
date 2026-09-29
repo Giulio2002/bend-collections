@@ -337,11 +337,13 @@ def iz(+m: WU.U64, +vm: Nat, +hv: {SW.value(m) == vm : Nat}) -> {X.is_zero(m) ==
 def hl_of(+x: WU.U64, +vm: Nat, +hv: {SW.value(mm(x)) == vm : Nat}) -> {C.low(53n, SW.value(x)) == vm : Nat}:
   Equal.trans(Nat, C.low(53n, SW.value(x)), SW.value(mm(x)), vm, Equal.sym(Nat, SW.value(mm(x)), C.low(53n, SW.value(x)), m_val(x)), hv)
 
+def round0(+xv: Nat) -> {SF.round(False{}, 0n, xv) == SF.zero(False{}) : F.F64}:
+  {==}
+
 def value_z(+x: WU.U64, +xv: Nat, +hv: {SW.value(mm(x)) == 0n : Nat}) -> {R.to_float(x) == SF.round(False{}, C.low(53n, SW.value(x)), xv) : F.F64}:
-  +n = C.low(53n, SW.value(x))
-  +hz = Equal.cong(Nat, Bool, z => Nat.is_eq(z, 0n), n, 0n, hl_of(x, 0n, hv))
-  %Equal.sym(Bool, X.is_zero(mm(x)), Nat.is_eq(0n, 0n), iz(mm(x), 0n, hv)) : {R.f53_z(mm(x), _) == SF.round(False{}, n, xv) : F.F64}
-  Equal.trans(F.F64, R.f53_z(mm(x), Nat.is_eq(0n, 0n)), SF.zero(False{}), SF.round(False{}, n, xv), {==}, Equal.sym(F.F64, SF.round(False{}, n, xv), SF.zero(False{}), Equal.cong(Bool, F.F64, t => SF.pick(F.F64, t, SF.zero(False{}), SF.round_u(False{}, n, xv, Nat.max(Nat.sub(Nat.add(xv, M.bit_length(n)), 53n), Nat.sub(SF.zb(), 1074n)))), Nat.is_eq(n, 0n), True{}, hz)))
+  %Equal.sym(Nat, C.low(53n, SW.value(x)), 0n, hl_of(x, 0n, hv)) : {R.to_float(x) == SF.round(False{}, _, xv) : F.F64}
+  %Equal.sym(Bool, X.is_zero(mm(x)), Nat.is_eq(0n, 0n), iz(mm(x), 0n, hv)) : {R.f53_z(mm(x), _) == SF.round(False{}, 0n, xv) : F.F64}
+  Equal.trans(F.F64, R.f53_z(mm(x), Nat.is_eq(0n, 0n)), SF.zero(False{}), SF.round(False{}, 0n, xv), {==}, Equal.sym(F.F64, SF.round(False{}, 0n, xv), SF.zero(False{}), round0(xv)))
 
 def value_s(+x: WU.U64, +np: Nat, +xv: Nat, +hx: {Nat.sub(SF.zb(), 53n) == xv : Nat}, +hv: {SW.value(mm(x)) == 1n+np : Nat}) -> {R.to_float(x) == SF.round(False{}, C.low(53n, SW.value(x)), xv) : F.F64}:
   +hl = hl_of(x, 1n+np, hv)
@@ -358,8 +360,8 @@ def value_c(+vm: Nat, +x: WU.U64, +xv: Nat, +hx: {Nat.sub(SF.zb(), 53n) == xv : 
       value_s(x, np, xv, hx, hv)
 
 # THEOREM (Float64.value)
-def value(+x: WU.U64) -> SR.Float64.value(x):
-  value_c(SW.value(mm(x)), x, Nat.sub(SF.zb(), 53n), {==}, {==})
+def value(+x: WU.U64, +xv: Nat, +hx: {Nat.sub(SF.zb(), 53n) == xv : Nat}) -> SR.Float64.value(x, xv, hx):
+  value_c(SW.value(mm(x)), x, xv, hx, {==})
 
 # ---- Float64.lt_one ----
 # The comparison is F.lt itself (Go's <): the checker evaluates what it can
@@ -374,23 +376,27 @@ def and_f(+b: Bool) -> {Bool.and(b, False{}) == False{} : Bool}:
     case False{}:
       {==}
 
-# the value of the high word of 1.0 without its sign bit: 1023 * 2^20
-def hv_one(+H: U32, +K: U32, +hH: {U32.and(H, 2147483647) == U32.mul(K, X.pow2(20n)) : U32}, +hK: {U32.to_nat(K) == 1023n : Nat}) -> {v(U32.and(H, 2147483647)) == C.shift(20n, 1023n) : Nat}:
-  Equal.trans(Nat, v(U32.and(H, 2147483647)), v(U32.mul(K, X.pow2(20n))), C.shift(20n, 1023n),
+# the value of the high word of 1.0 without its sign bit: k * 2^20 (k = 1023,
+# kept a variable so no 30-bit constant is ever expanded)
+def hv_one(+H: U32, +K: U32, +k: Nat, +hk: {C.fits(12n, k) == True{} : Bool}, +hH: {U32.and(H, 2147483647) == U32.mul(K, X.pow2(20n)) : U32}, +hK: {U32.to_nat(K) == k : Nat}) -> {v(U32.and(H, 2147483647)) == C.shift(20n, k) : Nat}:
+  Equal.trans(Nat, v(U32.and(H, 2147483647)), v(U32.mul(K, X.pow2(20n))), C.shift(20n, k),
     Equal.cong(U32, Nat, z => v(z), U32.and(H, 2147483647), U32.mul(K, X.pow2(20n)), hH),
-    Equal.trans(Nat, v(U32.mul(K, X.pow2(20n))), C.low(32n, C.shift(20n, v(K))), C.shift(20n, 1023n),
+    Equal.trans(Nat, v(U32.mul(K, X.pow2(20n))), C.low(32n, C.shift(20n, v(K))), C.shift(20n, k),
       SH.mul_p2(K, 20n, {==}),
-      Equal.trans(Nat, C.low(32n, C.shift(20n, v(K))), C.low(32n, C.shift(20n, 1023n)), C.shift(20n, 1023n),
-        Equal.cong(Nat, Nat, z => C.low(32n, C.shift(20n, z)), v(K), 1023n, hK),
-        WW.low_fit(32n, C.shift(20n, 1023n), fits_shift(20n, 12n, 1023n, {==})))))
+      Equal.trans(Nat, C.low(32n, C.shift(20n, v(K))), C.low(32n, C.shift(20n, k)), C.shift(20n, k),
+        Equal.cong(Nat, Nat, z => C.low(32n, C.shift(20n, z)), v(K), k, hK),
+        WW.low_fit(32n, C.shift(20n, k), fits_shift(20n, 12n, k, hk)))))
 
-# a double Bits{l, hw(E, qh)} with E < 1023 is below 1.0 = Bits{0, H}
-def below_one(+l: U32, +qh: U32, +E: Nat, +H: U32, +K: U32, +hE: {Nat.is_lt(E, 1023n) == True{} : Bool}, +hn: {F.is_nan(F.Bits{0, H}) == False{} : Bool}, +hz: {F.is_zero(F.Bits{0, H}) == False{} : Bool}, +hs: {F.signbit(F.Bits{0, H}) == False{} : Bool}, +hH: {U32.and(H, 2147483647) == U32.mul(K, X.pow2(20n)) : U32}, +hK: {U32.to_nat(K) == 1023n : Nat}) -> {F.lt(F.Bits{l, hw(E, qh)}, F.Bits{0, H}) == True{} : Bool}:
+# a double Bits{l, hw(E, qh)} with E < k <= 2047 is below Bits{0, H} whose
+# high word (without sign) is k * 2^20
+def below_one(+l: U32, +qh: U32, +E: Nat, +H: U32, +K: U32, +k: Nat, +hE: {Nat.is_lt(E, k) == True{} : Bool}, +hk: {C.fits(11n, k) == True{} : Bool}, +hn: {F.is_nan(F.Bits{0, H}) == False{} : Bool}, +hz: {F.is_zero(F.Bits{0, H}) == False{} : Bool}, +hs: {F.signbit(F.Bits{0, H}) == False{} : Bool}, +hH: {U32.and(H, 2147483647) == U32.mul(K, X.pow2(20n)) : U32}, +hK: {U32.to_nat(K) == k : Nat}) -> {F.lt(F.Bits{l, hw(E, qh)}, F.Bits{0, H}) == True{} : Bool}:
   +h = hw(E, qh)
   +x = {F.Bits{l, h} : F.F64}
   +y = {F.Bits{0, H} : F.F64}
   +lq = C.low(20n, v(qh))
-  +he = N.lt_trans(E, 1023n, 2048n, hE, {==})
+  +hk2 = WW.lt_of_fits(11n, k, hk)
+  +he = N.lt_trans(E, k, 2048n, hE, hk2)
+  +hk12 = SH.fits_mono(11n, 12n, k, {==}, hk)
   +vh = hw_value(1n, {==}, E, qh, he)
   +f11 = fits_lt11(E, he)
   +f31 = Equal.trans(Bool, C.fits(31n, v(h)), C.fits(31n, Nat.add(lq, C.shift(20n, E))), True{}, Equal.cong(Nat, Bool, z => C.fits(31n, z), v(h), Nat.add(lq, C.shift(20n, E)), vh), WW.limbs_fit(20n, 11n, lq, E, WW.low_fits(20n, v(qh)), f11))
@@ -398,32 +404,34 @@ def below_one(+l: U32, +qh: U32, +E: Nat, +H: U32, +K: U32, +hE: {Nat.is_lt(E, 1
     Equal.trans(Nat, C.low(11n, C.high(20n, v(h))), C.low(11n, E), E,
       Equal.cong(Nat, Nat, z => C.low(11n, z), C.high(20n, v(h)), E, Equal.trans(Nat, C.high(20n, v(h)), C.high(20n, Nat.add(lq, C.shift(20n, E))), E, Equal.cong(Nat, Nat, z => C.high(20n, z), v(h), Nat.add(lq, C.shift(20n, E)), vh), WW.high_u(20n, lq, E, WW.low_fits(20n, v(qh))))),
       WW.low_fit(11n, E, f11)))
-  +hne = N.is_eq_lt(E, 2047n, N.lt_trans(E, 1023n, 2047n, hE, {==}))
+  +hne = N.is_eq_lt(E, 2047n, N.lt_le_trans(E, k, 2047n, hE, N.lt_succ_le(k, 2047n, hk2)))
   +nanx = Equal.trans(Bool, F.is_nan(x), Bool.and(Nat.is_eq(E, 2047n), F.nz(F.frac(x))), False{},
     Equal.cong(Nat, Bool, z => Bool.and(Nat.is_eq(z, 2047n), F.nz(F.frac(x))), v(U32.and(U32.div(h, 1048576), 2047)), E, ef),
-    %hne : {Bool.and(_, F.nz(F.frac(x))) == False{} : Bool}
-    {==})
+    Equal.cong(Bool, Bool, z => Bool.and(z, F.nz(F.frac(x))), Nat.is_eq(E, 2047n), False{}, hne))
   +uo = Equal.trans(Bool, F.unordered(x, y), Bool.or(False{}, F.is_nan(y)), False{}, Equal.cong(Bool, Bool, z => Bool.or(z, F.is_nan(y)), F.is_nan(x), False{}, nanx), hn)
   +zs = Equal.trans(Bool, F.zeros(x, y), Bool.and(F.is_zero(x), False{}), False{}, Equal.cong(Bool, Bool, z => Bool.and(F.is_zero(x), z), F.is_zero(y), False{}, hz), and_f(F.is_zero(x)))
   +sx = Equal.trans(Bool, F.signbit(x), SF.sign(x), False{}, FB.signbit_g(1n, {==}, l, h, 2147483648, {==}),
-    %f31 : {Bool.not(_) == False{} : Bool}
-    {==})
+    Equal.cong(Bool, Bool, z => Bool.not(z), C.fits(31n, v(h)), True{}, f31))
   +vmx = Equal.trans(Nat, SW.value(F.mag(x)), Nat.add(v(l), C.shift(32n, C.low(31n, v(h)))), Nat.add(v(l), C.shift(32n, v(h))),
     Equal.cong(Nat, Nat, z => Nat.add(v(l), C.shift(32n, z)), v(U32.and(h, 2147483647)), C.low(31n, v(h)), FB.andm(h, 31n, 2147483647, {==})),
     Equal.cong(Nat, Nat, z => Nat.add(v(l), C.shift(32n, z)), C.low(31n, v(h)), v(h), WW.low_fit(31n, v(h), f31)))
-  +vmy = Equal.cong(Nat, Nat, z => C.shift(32n, z), v(U32.and(H, 2147483647)), C.shift(20n, 1023n), hv_one(H, K, hH, hK))
-  +hlt = WW.lt_hi(32n, v(l), v(h), 0n, C.shift(20n, 1023n), LW.vb(l),
-    %vh : {Nat.is_lt(_, C.shift(20n, 1023n)) == True{} : Bool}
-    WW.lt_hi(20n, lq, E, 0n, 1023n, WW.low_fits(20n, v(qh)), hE))
+  +vmy = Equal.cong(Nat, Nat, z => C.shift(32n, z), v(U32.and(H, 2147483647)), C.shift(20n, k), hv_one(H, K, k, hk12, hH, hK))
+  +hvh = Equal.trans(Bool, Nat.is_lt(v(h), C.shift(20n, k)), Nat.is_lt(Nat.add(lq, C.shift(20n, E)), C.shift(20n, k)), True{}, Equal.cong(Nat, Bool, z => Nat.is_lt(z, C.shift(20n, k)), v(h), Nat.add(lq, C.shift(20n, E)), vh), WW.lt_hi(20n, lq, E, 0n, k, WW.low_fits(20n, v(qh)), hE))
+  +hlt = WW.lt_hi(32n, v(l), v(h), 0n, C.shift(20n, k), LW.vb(l), hvh)
   +cmp = Equal.trans(Bool, X.lt(F.mag(x), F.mag(y)), Nat.is_lt(SW.value(F.mag(x)), SW.value(F.mag(y))), True{}, WA.lt_value(F.mag(x), F.mag(y)),
-    %vmx : {Nat.is_lt(_, SW.value(F.mag(y))) == True{} : Bool}
-    %vmy : {Nat.is_lt(Nat.add(v(l), C.shift(32n, v(h))), _) == True{} : Bool}
-    hlt)
-  %Equal.sym(Bool, F.unordered(x, y), False{}, uo) : {F.lt_z(x, y, _, F.zeros(x, y)) == True{} : Bool}
-  %Equal.sym(Bool, F.zeros(x, y), False{}, zs) : {F.lt_z(x, y, False{}, _) == True{} : Bool}
-  %Equal.sym(Bool, F.signbit(x), False{}, sx) : {F.lt_s(x, y, _, F.signbit(y)) == True{} : Bool}
-  %Equal.sym(Bool, F.signbit(y), False{}, hs) : {F.lt_s(x, y, False{}, _) == True{} : Bool}
-  cmp
+    Equal.trans(Bool, Nat.is_lt(SW.value(F.mag(x)), SW.value(F.mag(y))), Nat.is_lt(Nat.add(v(l), C.shift(32n, v(h))), C.shift(32n, C.shift(20n, k))), True{},
+      Equal.trans(Bool, Nat.is_lt(SW.value(F.mag(x)), SW.value(F.mag(y))), Nat.is_lt(Nat.add(v(l), C.shift(32n, v(h))), SW.value(F.mag(y))), Nat.is_lt(Nat.add(v(l), C.shift(32n, v(h))), C.shift(32n, C.shift(20n, k))),
+        Equal.cong(Nat, Bool, z => Nat.is_lt(z, SW.value(F.mag(y))), SW.value(F.mag(x)), Nat.add(v(l), C.shift(32n, v(h))), vmx),
+        Equal.cong(Nat, Bool, z => Nat.is_lt(Nat.add(v(l), C.shift(32n, v(h))), z), SW.value(F.mag(y)), C.shift(32n, C.shift(20n, k)), vmy)),
+      hlt))
+  +c1 = Equal.cong(Bool, Bool, z => F.lt_z(x, y, z, F.zeros(x, y)), F.unordered(x, y), False{}, uo)
+  +c2 = Equal.cong(Bool, Bool, z => F.lt_z(x, y, False{}, z), F.zeros(x, y), False{}, zs)
+  +c3 = Equal.cong(Bool, Bool, z => F.lt_s(x, y, z, F.signbit(y)), F.signbit(x), False{}, sx)
+  +c4 = Equal.cong(Bool, Bool, z => F.lt_s(x, y, False{}, z), F.signbit(y), False{}, hs)
+  Equal.trans(Bool, F.lt(x, y), F.lt_z(x, y, False{}, F.zeros(x, y)), True{}, c1,
+    Equal.trans(Bool, F.lt_z(x, y, False{}, F.zeros(x, y)), F.lt_z(x, y, False{}, False{}), True{}, c2,
+      Equal.trans(Bool, F.lt_s(x, y, F.signbit(x), F.signbit(y)), F.lt_s(x, y, False{}, F.signbit(y)), True{}, c3,
+        Equal.trans(Bool, F.lt_s(x, y, False{}, F.signbit(y)), F.lt_s(x, y, False{}, False{}), True{}, c4, cmp))))
 
 def lt_z_case(+x: WU.U64, +hv: {SW.value(mm(x)) == 0n : Nat}) -> {F.lt(R.to_float(x), F.one()) == True{} : Bool}:
   %Equal.sym(Bool, X.is_zero(mm(x)), Nat.is_eq(0n, 0n), iz(mm(x), 0n, hv)) : {F.lt(R.f53_z(mm(x), _), F.one()) == True{} : Bool}
@@ -436,8 +444,8 @@ def lt_s_case(+x: WU.U64, +np: Nat, +hv: {SW.value(mm(x)) == 1n+np : Nat}) -> {F
   +Q = X.shl(mm(x), Nat.sub(52n, j))
   +hE = Equal.trans(Bool, Nat.is_lt(Nat.add(j, 970n), 1023n), Nat.is_lt(j, 53n), True{}, WW.lt_cancel_r(j, 53n, 970n), N.le_lt_succ(j, 52n, j52(np, hf)))
   %Equal.sym(Bool, X.is_zero(mm(x)), Nat.is_eq(1n+np, 0n), iz(mm(x), 1n+np, hv)) : {F.lt(R.f53_z(mm(x), _), F.one()) == True{} : Bool}
-  %impl_eq(mm(x), np, hv, j, j52(np, hf), WC.bl_succ(np)) : {F.lt(_, F.one()) == True{} : Bool}
-  below_one(X.lo(Q), X.hi(Q), Nat.add(j, 970n), 1072693248, 1023, hE, {==}, {==}, {==}, {==}, {==})
+  %Equal.sym(F.F64, R.f53(mm(x), X.clz(mm(x))), bits(Q, Nat.add(j, 970n)), impl_eq(mm(x), np, hv, j, j52(np, hf), WC.bl_succ(np))) : {F.lt(_, F.one()) == True{} : Bool}
+  below_one(X.lo(Q), X.hi(Q), Nat.add(j, 970n), 1072693248, 1023, 1023n, hE, {==}, {==}, {==}, {==}, {==}, {==})
 
 def lt_c(+vm: Nat, +x: WU.U64, +hv: {SW.value(mm(x)) == vm : Nat}) -> {F.lt(R.to_float(x), F.one()) == True{} : Bool}:
   match vm:

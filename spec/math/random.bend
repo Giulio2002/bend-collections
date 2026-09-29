@@ -115,8 +115,10 @@ def Shuffle.permutation(~A: Data, ~V: Data, ~rel: A -> V -> Bool, ~S: Data, ~nex
 def Perm.permutation(~S: Data, ~next: S -> W.U64 & S, +s: S, +n: Nat, +i: Nat) -> Type:
   {SR.occurrences(~Nat, ~Nat, ~Nat.is_eq, i, R.fst(List<&2, Nat>, S, R.perm(~S, ~next, s, n))) == SR.b2n(Nat.is_lt(i, n)) : Nat}
 
-def Float64.value(+x: W.U64) -> Type:
-  {R.to_float(x) == SF.round(False{}, C.low(53n, SW.value(x)), Nat.sub(SF.zb(), 53n)) : F.F64}
+# the exact double m * 2^-53 (the exponent zb - 53 as a variable xv, so no
+# closed 3000-step natural is compared)
+def Float64.value(+x: W.U64, +xv: Nat, +hx: {Nat.sub(SF.zb(), 53n) == xv : Nat}) -> Type:
+  {R.to_float(x) == SF.round(False{}, C.low(53n, SW.value(x)), xv) : F.F64}
 
 def Float64.lt_one(+x: W.U64) -> Type:
   {F.lt(R.to_float(x), F.one()) == True{} : Bool}
