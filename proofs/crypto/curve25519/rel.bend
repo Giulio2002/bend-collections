@@ -82,3 +82,6 @@ def r_c(+pp: Nat, +x: List<&2, U32>, +a: Nat, +r: R(pp, x, a)) -> G.ceq(pp, FS.v
   match r:
     case (o, c):
       c
+
+def mkR(+pp: Nat, +x: List<&2, U32>, +a: Nat, +o: {LM.okb(32n, x, 255n) == True{} : Bool}, +c: G.ceq(pp, FS.value(x), a)) -> R(pp, x, a):
+  (o, c)
