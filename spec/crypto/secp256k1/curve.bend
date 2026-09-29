@@ -124,7 +124,7 @@ def step(b: Nat, +p: Nat, +a: SPoint, +d: SPoint) -> SPoint:
 def mul_go(i: Nat, +p: Nat, +k: Nat, +a: SPoint, r: SPoint) -> SPoint:
   match i:
     case 0n: r
-    case 1n+j: mul_go(j, p, k, a, step(bit(j, k), p, a, pdbl(p, r)))
+    case 1n+ +j: mul_go(j, p, k, a, step(bit(j, k), p, a, pdbl(p, r)))
 
 # [k] A for 0 <= k < 2^256
 def pmul(+p: Nat, +k: Nat, +a: SPoint) -> SPoint:
@@ -229,10 +229,13 @@ def encode_uncompressed(+p: Nat, a: SPoint) -> List<&2, U32>:
 
 # y = (x^3 + 7)^((p + 1) / 4), then y or p - y to get the wanted parity;
 # no point when that y does not square to x^3 + 7
-def pick_parity(+p: Nat, +y: Nat, +par: Nat) -> Nat:
-  match Nat.is_eq(Nat.mod(y, 2n), par):
+def pick_if(+p: Nat, +y: Nat, same: Bool) -> Nat:
+  match same:
     case True{}: y
     case False{}: FS.mneg(p, y)
+
+def pick_parity(+p: Nat, +y: Nat, +par: Nat) -> Nat:
+  pick_if(p, y, Nat.is_eq(Nat.mod(y, 2n), par))
 
 def decompress_if(+x: Nat, +y: Nat, ok: Bool) -> Maybe<&2, SPoint>:
   match ok:
@@ -245,20 +248,24 @@ def decompress_y(+p: Nat, +x: Nat, +par: Nat, +y: Nat) -> Maybe<&2, SPoint>:
 def decompress(+p: Nat, +x: Nat, +par: Nat) -> Maybe<&2, SPoint>:
   decompress_y(p, x, par, FS.fsqrt(p, rhs(p, x)))
 
-def decode_c(+p: Nat, +pre: U32, +x: Nat) -> Maybe<&2, SPoint>:
-  match Bool.and(Bool.or(U32.is_eq(pre, 2), U32.is_eq(pre, 3)), Nat.is_lt(x, p)):
+def decode_c_if(+p: Nat, +pre: U32, +x: Nat, ok: Bool) -> Maybe<&2, SPoint>:
+  match ok:
     case True{}: decompress(p, x, U32.to_nat(U32.and(pre, 1)))
     case False{}: None{}
 
+def decode_c(+p: Nat, +pre: U32, +x: Nat) -> Maybe<&2, SPoint>:
+  decode_c_if(p, pre, x, Bool.and(Bool.or(U32.is_eq(pre, 2), U32.is_eq(pre, 3)), Nat.is_lt(x, p)))
+
 def decode_u(+p: Nat, +pre: U32, +x: Nat, +y: Nat) -> Maybe<&2, SPoint>:
-  match Bool.and(Bool.and(U32.is_eq(pre, 4), Bool.and(Nat.is_lt(x, p), Nat.is_lt(y, p))), on_curve(p, x, y)):
-    case True{}: Some{SPoint{x, y, 1n}}
-    case False{}: None{}
+  decompress_if(x, y, Bool.and(Bool.and(U32.is_eq(pre, 4), Bool.and(Nat.is_lt(x, p), Nat.is_lt(y, p))), on_curve(p, x, y)))
 
 # a compressed (33 bytes) or uncompressed (65 bytes) public key; None when
 # malformed, a coordinate is not below p, or the point is not on the curve
-def decode(+p: Nat, +bs: List<&2, U32>) -> Maybe<&2, SPoint>:
-  match length_is(33n, bs) length_is(65n, bs):
+def decode_len(+p: Nat, +bs: List<&2, U32>, c33: Bool, c65: Bool) -> Maybe<&2, SPoint>:
+  match c33 c65:
     case True{} _: decode_c(p, head(bs), os2ip(after(1n, bs)))
     case False{} True{}: decode_u(p, head(bs), os2ip(first(32n, after(1n, bs))), os2ip(after(33n, bs)))
     case False{} False{}: None{}
+
+def decode(+p: Nat, +bs: List<&2, U32>) -> Maybe<&2, SPoint>:
+  decode_len(p, bs, length_is(33n, bs), length_is(65n, bs))
