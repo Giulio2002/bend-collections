@@ -19,6 +19,7 @@ import ./consts.bend as K
 import ./fieldops.bend as FO
 import ./cong.bend as G
 import ./freeze.bend as FZ
+import ./mulw.bend as MW
 
 # freeze, is_zero and parity: the canonical representative is the value
 # mod p; is_zero tests it is 0; parity is its low bit.
@@ -105,7 +106,7 @@ def sumv(xs: List<&2, U32>) -> Nat:
     case Con{x, xt}:
       Nat.add(U32.to_nat(x), sumv(xt))
 
-def sum_v(+one: Nat, +h1: {one == 1n : Nat}, +n: Nat, +xs: List<&2, U32>, +acc: U32, +e: {LM.okb(n, xs, 255n) == True{} : Bool}, +ha: {Nat.is_lt(Nat.add(v(acc), PL.cbn(n, 255n)), WD.sc(32n, one)) == True{} : Bool}) -> {v(F.sum_all(xs, acc)) == Nat.add(v(acc), sumv(xs)) : Nat}:
+def sum_v(+one: Nat, +h1: {one == 1n : Nat}, +n: Nat, +xs: List<&2, U32>, +acc: U32, +e: {LM.okb(n, xs, 255n) == True{} : Bool}, +ha: {Nat.is_lt(Nat.add(v(acc), PL.cbn(n, WD.sc(8n, one))), WD.sc(32n, one)) == True{} : Bool}) -> {v(F.sum_all(xs, acc)) == Nat.add(v(acc), sumv(xs)) : Nat}:
   match n xs:
     case 0n Nil{}:
       Equal.sym(Nat, Nat.add(v(acc), 0n), v(acc), N.add_zero(v(acc)))
@@ -114,12 +115,12 @@ def sum_v(+one: Nat, +h1: {one == 1n : Nat}, +n: Nat, +xs: List<&2, U32>, +acc: 
     case 1n+m Nil{}:
       Empty.absurd({v(acc) == Nat.add(v(acc), 0n) : Nat}, L.false_true(e))
     case 1n+ +m Con{+y, +yt}:
-      +hy = LM.okb_head(m, y, yt, 255n, e)
-      +b1 = N.le_lt_trans(Nat.add(v(acc), v(y)), Nat.add(v(acc), Nat.add(255n, PL.cbn(m, 255n))), WD.sc(32n, one), N.le_add_left(v(y), Nat.add(255n, PL.cbn(m, 255n)), v(acc), N.le_trans(v(y), 255n, Nat.add(255n, PL.cbn(m, 255n)), hy, N.le_add_right(255n, PL.cbn(m, 255n)))), ha)
+      +hy = N.le_trans(v(y), 255n, WD.sc(8n, one), LM.okb_head(m, y, yt, 255n, e), FD.le255(one, h1, 0n))
+      +b1 = N.le_lt_trans(Nat.add(v(acc), v(y)), Nat.add(v(acc), Nat.add(WD.sc(8n, one), PL.cbn(m, WD.sc(8n, one)))), WD.sc(32n, one), N.le_add_left(v(y), Nat.add(WD.sc(8n, one), PL.cbn(m, WD.sc(8n, one))), v(acc), N.le_trans(v(y), WD.sc(8n, one), Nat.add(WD.sc(8n, one), PL.cbn(m, WD.sc(8n, one))), hy, N.le_add_right(WD.sc(8n, one), PL.cbn(m, WD.sc(8n, one))))), ha)
       +ea = LM.add_v(one, h1, acc, y, b1)
-      +b2a = M.le_add_r(Nat.add(v(acc), v(y)), Nat.add(v(acc), 255n), PL.cbn(m, 255n), N.le_add_left(v(y), 255n, v(acc), hy))
-      +b2b = L.subst(Nat, z => {Nat.is_le(Nat.add(Nat.add(v(acc), v(y)), PL.cbn(m, 255n)), z) == True{} : Bool}, Nat.add(Nat.add(v(acc), 255n), PL.cbn(m, 255n)), Nat.add(v(acc), Nat.add(255n, PL.cbn(m, 255n))), NA.add_assoc(v(acc), 255n, PL.cbn(m, 255n)), b2a)
-      +b2 = L.subst(Nat, z => {Nat.is_lt(Nat.add(z, PL.cbn(m, 255n)), WD.sc(32n, one)) == True{} : Bool}, Nat.add(v(acc), v(y)), v(U32.add(acc, y)), Equal.sym(Nat, v(U32.add(acc, y)), Nat.add(v(acc), v(y)), ea), N.le_lt_trans(Nat.add(Nat.add(v(acc), v(y)), PL.cbn(m, 255n)), Nat.add(v(acc), Nat.add(255n, PL.cbn(m, 255n))), WD.sc(32n, one), b2b, ha))
+      +b2a = M.le_add_r(Nat.add(v(acc), v(y)), Nat.add(v(acc), WD.sc(8n, one)), PL.cbn(m, WD.sc(8n, one)), N.le_add_left(v(y), WD.sc(8n, one), v(acc), hy))
+      +b2b = L.subst(Nat, z => {Nat.is_le(Nat.add(Nat.add(v(acc), v(y)), PL.cbn(m, WD.sc(8n, one))), z) == True{} : Bool}, Nat.add(Nat.add(v(acc), WD.sc(8n, one)), PL.cbn(m, WD.sc(8n, one))), Nat.add(v(acc), Nat.add(WD.sc(8n, one), PL.cbn(m, WD.sc(8n, one)))), NA.add_assoc(v(acc), WD.sc(8n, one), PL.cbn(m, WD.sc(8n, one))), b2a)
+      +b2 = L.subst(Nat, z => {Nat.is_lt(Nat.add(z, PL.cbn(m, WD.sc(8n, one))), WD.sc(32n, one)) == True{} : Bool}, Nat.add(v(acc), v(y)), v(U32.add(acc, y)), Equal.sym(Nat, v(U32.add(acc, y)), Nat.add(v(acc), v(y)), ea), N.le_lt_trans(Nat.add(Nat.add(v(acc), v(y)), PL.cbn(m, WD.sc(8n, one))), Nat.add(v(acc), Nat.add(WD.sc(8n, one), PL.cbn(m, WD.sc(8n, one)))), WD.sc(32n, one), b2b, ha))
       +ih = sum_v(one, h1, m, yt, U32.add(acc, y), LM.okb_tail(m, y, yt, 255n, e), b2)
       Equal.trans(Nat, v(F.sum_all(yt, U32.add(acc, y))), Nat.add(v(U32.add(acc, y)), sumv(yt)), Nat.add(v(acc), Nat.add(v(y), sumv(yt))), ih, Equal.trans(Nat, Nat.add(v(U32.add(acc, y)), sumv(yt)), Nat.add(Nat.add(v(acc), v(y)), sumv(yt)), Nat.add(v(acc), Nat.add(v(y), sumv(yt))), M.cong_l(v(U32.add(acc, y)), Nat.add(v(acc), v(y)), sumv(yt), ea), NA.add_assoc(v(acc), v(y), sumv(yt))))
 
@@ -157,9 +158,9 @@ def iz_sum(+xs: List<&2, U32>) -> {Nat.is_eq(sumv(xs), 0n) == Nat.is_eq(FS.value
 def u32_iz(+a: U32) -> {U32.is_eq(a, 0) == Nat.is_eq(v(a), 0n) : Bool}:
   Equal.cong(Cmp, Bool, c => Cmp.is_eq(c), U32.cmp(a, 0), Nat.cmp(v(a), 0n), U.u32_cmp(a, 0))
 
-def cb32_lt(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(Nat.add(v(0), PL.cbn(32n, 255n)), WD.sc(32n, one)) == True{} : Bool}:
-  +a = L.subst(Nat, o => {Nat.is_le(8192n, WD.sc(13n, o)) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), {==})
-  N.le_lt_trans(Nat.add(v(0), PL.cbn(32n, 255n)), WD.sc(13n, one), WD.sc(32n, one), N.le_trans(Nat.add(v(0), PL.cbn(32n, 255n)), 8192n, WD.sc(13n, one), {==}, a), LM.sc_lt(18n, 13n, one, h1))
+def cb32_lt(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(Nat.add(v(0), PL.cbn(32n, WD.sc(8n, one))), WD.sc(32n, one)) == True{} : Bool}:
+  +b = MW.cbn_pow(5n, WD.sc(8n, one))
+  L.subst(Nat, z => {Nat.is_lt(z, WD.sc(32n, one)) == True{} : Bool}, WD.sc(5n, WD.sc(8n, one)), PL.cbn(32n, WD.sc(8n, one)), Equal.sym(Nat, PL.cbn(32n, WD.sc(8n, one)), WD.sc(5n, WD.sc(8n, one)), b), LM.sc_lt(18n, 13n, one, h1))
 
 def is_zero_val(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +x: List<&2, U32>, +hx: {LM.okb(32n, x, 255n) == True{} : Bool}) -> {F.is_zero(x) == Nat.is_eq(Nat.mod(FS.value(x), 1n+pp), 0n) : Bool}:
   +y = F.freeze(x)
