@@ -140,6 +140,92 @@ SHA-512 and SHA3-256, by the SHA-256 package's `stream_correct` for SHA-256).
 The round parameters (48, 64, 24) stay variables in every lemma that unfolds
 a block.
 
+## Argon2id: `src/crypto/argon2/` and `src/crypto/password.bend`
+
+`argon2id(pw, salt, key, ad, t, m, p, T)` (`src/crypto/argon2/argon2.bend`)
+is RFC 9106 Argon2id, version 0x13, with a secret `key` and associated data
+`ad`: `Some{tag}` of T bytes, or `None` when a parameter is out of the RFC
+9106 section 3.1 ranges or the memory does not fit this implementation
+(m' = 4p floor(m/4p) blocks, at most 2^23 KiB: the memory is one packed
+`Array<U32>` of at most 2^31 words). The implementation keeps 64-bit lanes as
+two `U32` (the BLAKE2b representation), computes the BlaMka product
+2 trunc(a) trunc(b) with `src/math/w64.bend`'s proved `mul32`, compresses a
+block as eight 16-lane rows (the permutation P generated in
+`src/crypto/argon2/blamka.bend` by `tools/generators/argon2_gen.py`), reads
+and writes whole blocks with Base's `Array.get`/`Array.set` (O(1) on the
+packed buffer), and fills the lanes one after the other within a slice. H0
+and H' hash with the proved BLAKE2b-512 block function and a parameter block
+with the digest length (`src/crypto/blake/blake2b/sized.bend`).
+
+The specification (`spec/crypto/argon2/`) is RFC 9106 transcribed: the
+64-bit arithmetic of the RFC 7693 BLAKE2b specification, `fBlaMka(x, y) =
+x + y + 2 trunc(x) trunc(y)` with the product defined on `Nat`, `GB` and P by
+lane index (the RFC's register indices), P on rows then columns as
+gather/scatter over lane numbers, the memory as a list of blocks, the
+reference index of section 3.4.1.2 on `Nat` (`x = J1^2 / 2^32`, `y = |W| x /
+2^32`, `zz = |W| - 1 - y`), the address blocks `G(0, G(0, Z))`, H0 and H'
+over byte lists, and the final XOR. Its segment schedule is the reference
+implementation's (pass, slice, lane, index), which computes the RFC's
+parallel lanes sequentially.
+
+| Clause (`proofs/crypto/argon2/laws.bend`) | Statement | Evidence |
+|---|---|---|
+| `gb_correct` | `gb(a, b, c, d) == GB(a, b, c, d)` for all lanes | proved |
+| `p_correct` | the permutation P equals the RFC's | proved |
+| `compress_correct` | `compress(X, Y) == G(X, Y)` for all blocks | proved |
+| `compress_xor_correct` | `compress_xor(X, Y, B) == G(X, Y) XOR B` (passes after the first) | proved |
+| `hash_correct` | BLAKE2b with digest length nn equals the specification's (on RFC 7693) | proved |
+| `hprime_correct`, `h0_correct` | H' and H0 equal the specification's | proved |
+| `rel_correct` | the reference position of section 3.4.1.2 (U32 products) equals the Nat formula for |W| < 2^32 | proved |
+| `addresses_correct` | the address blocks of the data-independent segments | proved |
+| `argon2id_correct` | for every password, salt, secret, associated data, t, m, p, T with `fits(m, p)`: `argon2id(..) == Spec.argon2id(..)` (both `None` on invalid parameters) | proved |
+| `tag_length`, `tag_bytes` | H'^T has T bytes, each below 256 | proved |
+| `parse_format` | `parse(format(x)) == Some{x}` for PHC fields whose bytes are below 256 | proved |
+| `verify_hash` | whenever `hash_password(pw, salt, params)` returns `Some{s}`, `verify_password(pw, s) == True` (salt bytes below 256) | proved |
+| `rehash_hash` | whenever it returns `Some{s}`, `needs_rehash(s, params) == False` (salt of `params`' salt length) | proved |
+
+Proof (`proofs/crypto/argon2/`, 31 s on the server): GB is rewritten one
+fBlaMka at a time, the only non-bit step being the product (`mul32`'s proved
+value and the two-limb round trip give `mul32(a, b) == of_nat(a * b)`); P,
+the rows, the columns and G then compose by congruence, every function being
+written so that it inspects its argument first (so the checker keeps
+symbolic calls folded instead of expanding 16 rounds). The memory is related
+to the specification's list through the mirror trees of
+`proofs/lib/array.bend` (Base's `Array.get`/`Array.set` proved against list
+`nth`/`update`): the array of a list of blocks is the tree of its 256-word
+blocks followed by zeros, a block read is 256 `get`s (a run of the word
+list), a block write 256 `set`s (a splice). The fill is then an induction on
+the segment, lane, slice and pass loops, with the index bounds (the
+reference block and the previous block lie in the memory) proved from
+`J2 mod p < p` and `(start + rel) mod q < q`. The PHC round trip goes
+through 2-bit crumbs: a byte is four crumbs, a base64 digit three, so base64
+only regroups crumbs, and the finite facts (crumbs of the 256 bytes, digits
+and their values for the 64 values, the ten decimal digits) are checked value
+by value; the decimal round trip is an induction on the digits with
+`n = 10 (n / 10) + n mod 10`. The facade laws follow from `argon2id_correct`
+not at all: they need only that the tag has T bytes below 256 and
+`subtle.eq(a, a) == True`.
+
+Not proved, and not claimed: the timing behaviour (no timing model; the
+comparison of tags is `subtle.eq`, the compression and indexing have no
+branch on secret data except the data-dependent addressing Argon2id is
+defined with) and `hash_password_os`, which draws the salt from
+`IO.random_u32` (an effect; it returns `hash_password` of that salt, so the
+laws above apply to its result). The equality with the RFC holds for every
+input; its conformance with the reference implementation is tested:
+`tools/check_argon2.py` runs the RFC 9106 section 5.3 vector (with secret
+and associated data, and its H0) and compares 150 random Argon2id tags
+(m = 8..64 KiB and three larger memories up to 4 MiB, t = 1..3, p = 1..4,
+T = 4..128 across the H' boundary at 64, with and without secret and
+associated data) with argon2-cffi's `argon2_ctx`, then PHC strings both ways
+with `PasswordHasher` (hash, verify with right and wrong passwords and a
+flipped tag bit, `needs_rehash` for each changed parameter, malformed
+strings, the OS-salted variant).
+
+Speed (server, one thread): the RFC vector (m = 32 KiB, t = 3, p = 4) takes
+7 ms; OWASP's m = 19 MiB, t = 2, p = 1 takes 0.63 s (argon2-cffi: 0.03 s);
+m = 64 MiB, t = 3, p = 4 takes 3.4 s (argon2-cffi, four threads: 0.05 s).
+
 ## Sources
 
 - FIPS 180-4, *Secure Hash Standard* (SHA-256, SHA-512); FIPS 202, *SHA-3
@@ -149,3 +235,11 @@ a block.
   `Lib.ByteBuffer.lbytes_eq` (constant-time comparison).
 - A. W. Appel, *Verification of a Cryptographic Primitive: SHA-256*, TOPLAS
   2015 (functional spec vs. implementation, the padding and schedule lemmas).
+- RFC 9106, *Argon2 Memory-Hard Function for Password Hashing and
+  Proof-of-Work Applications*, and its reference implementation (the
+  segment schedule and `index_alpha`); RFC 7693 (BLAKE2); the PHC string
+  format (P-H-C/phc-string-format) as argon2-cffi writes it.
+- HACL*'s `Spec.Blake2` / `Hacl.Blake2b` proofs (the lane representation and
+  the round-by-round equivalence), and Almeida et al.'s Jasmin/EasyCrypt
+  work on high-assurance, constant-time cryptography (implementation ==
+  executable specification as the correctness statement).

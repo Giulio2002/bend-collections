@@ -442,7 +442,9 @@ def main():
     if not args.only or args.only == 'crypto':
         checks = []
         crypto_checks = [([sys.executable, 'tools/check_crypto_hash.py'], 3600),
-                         ([sys.executable, 'proofs/prove.py', '-j', '4', 'subtle', 'sha512', 'sha3', 'hash'], 7200)]
+                         # Argon2id / password: RFC 9106 5.3 vector, argon2-cffi differential, PHC strings
+                         ([sys.executable, 'tools/check_argon2.py'], 3600),
+                         ([sys.executable, 'proofs/prove.py', '-j', '4', 'subtle', 'sha512', 'sha3', 'hash', 'argon2'], 7200)]
         for command, limit in crypto_checks:
             result = run(command, timeout=limit)
             passed = result.returncode == 0
@@ -450,7 +452,7 @@ def main():
             if not passed:
                 fail('crypto', 'crypto check failed: ' + repr(command))
         good = all(x['passed'] for x in checks)
-        crypto_row = {'id': 'crypto', 'implementation': 'src/crypto/subtle.bend, sha512/, sha3/, hash.bend',
+        crypto_row = {'id': 'crypto', 'implementation': 'src/crypto/subtle.bend, sha512/, sha3/, hash.bend, argon2/, password.bend',
                       'differential': 'passed' if checks[0]['passed'] else 'failed',
                       'proof': 'passed' if checks[-1]['passed'] else 'failed', 'checks': checks}
         (LOGDIR / 'crypto.log').write_text('\n'.join(x['output'] for x in checks))

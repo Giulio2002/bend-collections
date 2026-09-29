@@ -29,6 +29,8 @@ benchmarked against optimized C implementations of the same algorithms.
 | SHA3-256 | `src/crypto/sha3/sha3_256.bend` | FIPS 202 on the Keccak-f[1600] of `keccak/`; proved equal to `spec/crypto/sha3.bend` |
 | Hashing facade | `src/crypto/hash.bend` | one-shot `sha256`/`sha512`/`sha3_256` and an incremental `Hasher` (`new_*`, `update`, `digest`); see below |
 | Constant-time compare | `src/crypto/subtle.bend` | `eq(a, b)` on byte lists, proved `True` exactly when `a == b` |
+| Argon2id | `src/crypto/argon2/argon2.bend` | RFC 9106 (v0x13), with secret and associated data; proved equal to `spec/crypto/argon2/` for every input that fits (m' <= 2^23 blocks) |
+| Password hashing | `src/crypto/password.bend` | Argon2id PHC strings: `hash_password`, `hash_password_os`, `verify_password`, `needs_rehash`; see below |
 | Integer math | `src/math/natural.bend` | Python-style `math` integer functions, see below |
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 | Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |
@@ -211,6 +213,33 @@ digests and tags without an early exit, proved to return `True` exactly on
 equal lists. `docs/CRYPTO_CONTRACTS.md` lists the clauses and their evidence;
 `tools/check_crypto_hash.py` tests all of it against Python's `hashlib`.
 
+## Password hashing
+
+`src/crypto/password.bend` stores Argon2id hashes as PHC strings
+(`$argon2id$v=19$m=..,t=..,p=..$salt$hash`, unpadded base64), as the
+reference implementation and argon2-cffi write them:
+
+```python
+import ./src/crypto/password.bend as PW
+
+PW.hash_password(pw, salt, PW.owasp())   # Some{"$argon2id$v=19$m=19456,t=2,p=1$..."}, None if out of range
+PW.hash_password_os(pw, PW.rfc9106())    # IO: the same with a fresh 16-byte salt (IO.random_u32)
+PW.verify_password(pw, encoded)          # recompute and compare with subtle.eq
+PW.needs_rehash(encoded, PW.owasp())     # not Argon2id v=19 with exactly these parameters
+```
+
+`owasp()` is m = 19 MiB, t = 2, p = 1; `rfc9106()` is RFC 9106 section 4's
+second recommendation (m = 64 MiB, t = 3, p = 4); both use 16-byte salts and
+32-byte tags, and any `PW.Params{m, t, p, tag, salt}` works. The core,
+`src/crypto/argon2/argon2.bend`'s `argon2id(pw, salt, key, ad, t, m, p, T)`,
+also takes a secret and associated data. Proved: the implementation equals
+the RFC 9106 specification (`spec/crypto/argon2/`, on the BLAKE2b
+specification) for every input whose memory fits (m' <= 2^23 KiB), a hash
+returned by `hash_password` verifies with its password and needs no rehash
+with its parameters, and `parse(format(x)) == Some{x}` for PHC strings
+(`docs/CRYPTO_CONTRACTS.md`). `tools/check_argon2.py` tests the RFC 9106
+section 5.3 vector and compares tags and PHC strings with argon2-cffi.
+
 ## Install
 
 The library is published on the Bend hub. Import any module by its path in
@@ -234,8 +263,9 @@ src/math/         integer math (natural.bend), the same per type (num, generic, 
                   software binary64 (f64), 64-bit words (u64, w64), fixed-width U32/U64
                   families and number theory (fixed, number), hashing, powers of two
 src/crypto/       SHA-256 (sha/), SHA-512 (sha512/), Keccak-256 (keccak/), SHA3-256 (sha3/),
-                  BLAKE2s, BLAKE2b and BLAKE3 (blake/), the hashing facade (hash.bend)
-                  and constant-time comparison (subtle.bend)
+                  BLAKE2s, BLAKE2b and BLAKE3 (blake/), the hashing facade (hash.bend),
+                  constant-time comparison (subtle.bend), Argon2id (argon2/) and
+                  password hashing (password.bend)
 spec/             the specifications, mirroring src/: what each module does,
                   independent of how
   containers/<pkg>.bend  the abstract model and its contract: every SPARK
@@ -243,7 +273,8 @@ spec/             the specifications, mirroring src/: what each module does,
                       proposition (docs/SPARK_CONTRACTS.md); a spec spanning
                       several files is a directory with a main.bend
   crypto/             FIPS 180-4 SHA-256 and SHA-512, the Keccak sponge, FIPS 202
-                      SHA3-256, RFC 7693 BLAKE2, BLAKE3, list equality (subtle)
+                      SHA3-256, RFC 7693 BLAKE2, BLAKE3, list equality (subtle),
+                      RFC 9106 Argon2id (argon2/)
   math/<module>.bend  each src/math module's contract as `<Function>.<clause>`
                       propositions (docs/MATH_CONTRACTS.md): proved for
                       natural, u64, hash and pow2; stated and tested for the
@@ -266,7 +297,8 @@ proofs/           only proofs: one package per src package, mirroring src/,
                       keccak/ the packed API equal to the independent sponge
                       specification (padding, absorption, rejection, all words),
                       sha512/ and sha3/ likewise, hash/ the facade and the
-                      incremental hasher, subtle/ eq; docs/CRYPTO_CONTRACTS.md
+                      incremental hasher, subtle/ eq, argon2/ Argon2id and the
+                      password facade; docs/CRYPTO_CONTRACTS.md
   lib/                proof library shared by the packages (logic, Nat, lists,
                       U32 words, arrays, order laws)
   PROOF.bend          the whole library; END_TO_END.bend the public laws
@@ -288,6 +320,7 @@ Bend 2.0.32, built from bendlang/bend main at b2111cf4 (pinned in
 bend tests/<container>/main.bend    # each container's test driver
 bend tests/math/natural.bend -o build/math/natural && python3 tools/check_math.py   # math vs CPython
 python3 tools/check_crypto_hash.py      # subtle, SHA-512, SHA3-256, the hash facade vs hashlib
+python3 tools/check_argon2.py           # Argon2id (RFC 9106 vector) and PHC strings vs argon2-cffi
 ```
 
 ## Benchmark
