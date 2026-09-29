@@ -1,0 +1,106 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../src/crypto/secp256k1/limbs.bend as L
+import ../../../src/crypto/secp256k1/field.bend as F
+import ../../../src/crypto/secp256k1/scalar.bend as S
+import ../../lib/nat.bend as N
+import ../../lib/logic.bend as Lg
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../math/typed/width.bend as WW
+import ./semiring.bend as SR
+import ./limbs.bend as LV
+import ./consts.bend as K
+import ./listops.bend as LO
+
+# The tests of src/crypto/secp256k1/field.bend and scalar.bend (zero,
+# equality, parity, a < p, a < n, a > n / 2) are the specification's tests
+# on the values.
+
+# ---- GF(p) ----
+
+def is_zero_f(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>) -> {F.is_zero(a) == Nat.is_eq(FS.value(one, a), 0n) : Bool}:
+  %goal {L.is_zero(a) == Nat.is_eq(FS.value(one, a), 0n) : Bool}
+  %rw LO.is_zero_v(a)
+  %rw LV.ev_value(one, h1, a)
+  %close
+
+def eq_f(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +b: List<&2, Nat>, +ha: {FS.limbs16(one, 16n, a) == True{} : Bool}, +hb: {FS.limbs16(one, 16n, b) == True{} : Bool}) -> {F.eq(a, b) == Nat.is_eq(FS.value(one, a), FS.value(one, b)) : Bool}:
+  %goal {L.eq(a, b) == Nat.is_eq(FS.value(one, a), FS.value(one, b)) : Bool}
+  %rw LO.eq_v(one, h1, a, b, ha, hb)
+  %rw LV.ev_value(one, h1, a)
+  %rw LV.ev_value(one, h1, b)
+  %close
+
+def parity_f(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>) -> {F.parity(a) == Nat.mod(FS.value(one, a), 2n) : Nat}:
+  %goal {Nat.mod(L.hd0(a), 2n) == Nat.mod(FS.value(one, a), 2n) : Nat}
+  %rw LO.parity_v(a)
+  %rw LV.ev_value(one, h1, a)
+  %close
+
+def lt_p_f(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>) -> {F.lt_p(a) == Nat.is_lt(FS.value(one, a), FS.prime(one)) : Bool}:
+  %goal {L.ltm(F.c(), a) == Nat.is_lt(FS.value(one, a), FS.prime(one)) : Bool}
+  %rw LO.ltm_vv(one, h1, K.pp(one), F.c(), K.hm_p(one, h1), a)
+  %rw LV.ev_value(one, h1, a)
+  %rw K.prime_eq(one, h1)
+  %close
+
+# ---- Z / n ----
+
+def is_zero_s(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>) -> {S.is_zero(a) == Nat.is_eq(FS.value(one, a), 0n) : Bool}:
+  %goal {L.is_zero(a) == Nat.is_eq(FS.value(one, a), 0n) : Bool}
+  %rw LO.is_zero_v(a)
+  %rw LV.ev_value(one, h1, a)
+  %close
+
+def eq_s(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +b: List<&2, Nat>, +ha: {FS.limbs16(one, 16n, a) == True{} : Bool}, +hb: {FS.limbs16(one, 16n, b) == True{} : Bool}) -> {S.eq(a, b) == Nat.is_eq(FS.value(one, a), FS.value(one, b)) : Bool}:
+  %goal {L.eq(a, b) == Nat.is_eq(FS.value(one, a), FS.value(one, b)) : Bool}
+  %rw LO.eq_v(one, h1, a, b, ha, hb)
+  %rw LV.ev_value(one, h1, a)
+  %rw LV.ev_value(one, h1, b)
+  %close
+
+def lt_n_s(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>) -> {S.lt_n(a) == Nat.is_lt(FS.value(one, a), FS.order(one)) : Bool}:
+  %goal {L.ltm(S.c(), a) == Nat.is_lt(FS.value(one, a), FS.order(one)) : Bool}
+  %rw LO.ltm_vv(one, h1, K.np(one), S.c(), K.hm_n(one, h1), a)
+  %rw LV.ev_value(one, h1, a)
+  %rw K.order_eq(one, h1)
+  %close
+
+# a leading digit one larger
+def dig1(+one: Nat, +h1: {one == 1n : Nat}, +d: Nat, +r: Nat) -> {Nat.add(Nat.mul(one, 1n+d), r) == 1n+Nat.add(Nat.mul(one, d), r) : Nat}:
+  %rwh h1 : {one == 1n : Nat}
+  %rwh h1 : {one == 1n : Nat}
+  %norm
+
+# n + 1 + (2^256 - n - 1) = 2^256
+def hm_n1(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.add(1n+(1n+K.np(one)), FS.value(one, S.cm1())) == C.shift(256n, one) : Nat}:
+  +r = C.shift(16n, FS.digits(one, [12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n]))
+  %goal {Nat.add(1n+(1n+K.np(one)), Nat.add(Nat.mul(one, 48830n), r)) == C.shift(256n, one) : Nat}
+  %rwh@r <- K.hm_n(one, h1) : {Nat.add(1n+K.np(one), FS.cn(one)) == C.shift(256n, one) : Nat}
+  %goal {Nat.add(1n+(1n+K.np(one)), Nat.add(Nat.mul(one, 48830n), r)) == Nat.add(1n+K.np(one), Nat.add(Nat.mul(one, 1n+48830n), r)) : Nat}
+  %rw dig1(one, h1, 48830n, r)
+  %norm
+
+# not (x < m + 1) is m < x
+def nlt(x: Nat, m: Nat) -> {Bool.not(Nat.is_lt(x, 1n+m)) == Nat.is_lt(m, x) : Bool}:
+  match x m:
+    case 0n _:
+      Equal.sym(Bool, Nat.is_lt(m, 0n), False{}, N.not_lt_zero(m))
+    case 1n+y 0n:
+      %goal {Bool.not(Nat.is_lt(y, 0n)) == True{} : Bool}
+      %rw N.not_lt_zero(y)
+      %close
+    case 1n+y 1n+k:
+      nlt(y, k)
+
+def is_high_s(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>) -> {S.is_high(a) == Nat.is_lt(FS.order(one), Nat.double(FS.value(one, a))) : Bool}:
+  %goal {Bool.not(L.ltm(S.cm1(), L.scal(2n, a))) == Nat.is_lt(FS.order(one), Nat.double(FS.value(one, a))) : Bool}
+  %rw LO.ltm_vv(one, h1, 1n+K.np(one), S.cm1(), hm_n1(one, h1), L.scal(2n, a))
+  %rw LV.scal_v(2n, a)
+  %rw LV.ev_value(one, h1, a)
+  %rw nlt(Nat.mul(LV.ev(a), 2n), 1n+K.np(one))
+  %rw K.order_eq(one, h1)
+  %rw NA.double_mul(LV.ev(a))
+  %rw NA.mul_comm(2n, LV.ev(a))
+  %close

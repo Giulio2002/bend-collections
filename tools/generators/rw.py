@@ -694,9 +694,19 @@ def gen(src, dst):
 
 if __name__ == '__main__' and sys.argv[1] == '--all':
     d, od = sys.argv[2], sys.argv[3]
-    for name in sorted(os.listdir(d)):
-        if name.endswith('.src'):
-            gen(os.path.join(d, name), os.path.join(od, name[:-4] + '.bend'))
+    # a file may use lemmas of a file generated after it: retry failures
+    # until no more progress is made
+    todo = sorted(n for n in os.listdir(d) if n.endswith('.src'))
+    while todo:
+        failed = []
+        for name in todo:
+            try:
+                gen(os.path.join(d, name), os.path.join(od, name[:-4] + '.bend'))
+            except KeyError:
+                failed.append(name)
+        if len(failed) == len(todo):
+            gen(os.path.join(d, failed[0]), os.path.join(od, failed[0][:-4] + '.bend'))
+        todo = failed
     sys.exit(0)
 
 if __name__ == '__main__':

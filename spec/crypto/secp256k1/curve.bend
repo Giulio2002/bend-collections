@@ -133,11 +133,9 @@ def mul_go(i: Nat, +p: Nat, +k: Nat, +a: SPoint, r: SPoint) -> SPoint:
     case 0n: r
     case 1n+ +j: mul_go(j, p, k, a, step(bit(j, k), p, a, pdbl(p, r)))
 
-# [k] A for 0 <= k < 2^256 (k is looked at first; the result is mul_go's)
-def pmul(+p: Nat, k: Nat, +a: SPoint) -> SPoint:
-  match k:
-    case 0n: mul_go(256n, p, 0n, a, infinity())
-    case 1n+j: mul_go(256n, p, 1n+j, a, infinity())
+# [k] A for 0 <= k < 2^256
+def pmul(+p: Nat, +k: Nat, +a: SPoint) -> SPoint:
+  mul_go(256n, p, k, a, infinity())
 
 # G (SEC 2), with z = 1
 def g(+one: Nat) -> SPoint:

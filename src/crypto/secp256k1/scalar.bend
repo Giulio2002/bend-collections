@@ -66,10 +66,14 @@ def eq(a: List<&2, Nat>, b: List<&2, Nat>) -> Bool:
 def lt_n(a: List<&2, Nat>) -> Bool:
   L.ltm(c(), a)
 
-# a > n / 2 for a reduced scalar: 2 a >= n (n is odd, so 2 a != n), i.e.
-# 2 a + c >= 2^256
+# 2^256 - n - 1
+def cm1() -> List<&2, Nat>:
+  [48830n, 12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n]
+
+# a > n / 2 (n is odd), i.e. 2 a >= n + 1 = 2^256 - cm1: the carry out of
+# 2 a + cm1
 def is_high(a: List<&2, Nat>) -> Bool:
-  Bool.not(Nat.is_eq(L.top(L.carry(32n, L.add(L.scal(2n, a), c()), 0n)), 0n))
+  Bool.not(L.ltm(cm1(), L.scal(2n, a)))
 
 def select(+b: Nat, x: List<&2, Nat>, y: List<&2, Nat>) -> List<&2, Nat>:
   L.select(b, x, y)
