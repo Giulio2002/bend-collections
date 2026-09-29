@@ -334,7 +334,7 @@ def tag_main(one, h1, key, msg):
   +rs = R.le_num(R.clamp(R.prefix(16n, key)))
   +ss = R.le_num(R.prefix(16n, R.suffix(16n, key)))
   +bs = R.blocks(fuel, msg)
-  +te = F.tag_eq(one, h1, bp, h5, h, hh, s, mask_fit(Li.take(16n, Li.skip(16n, key))))
+  +te = F.fin_eq(one, h1, bp, h5, h, hh, s, mask_fit(Li.take(16n, Li.skip(16n, key))))
   +e1 = A.tr(Nat.add(Nat.mod(V.ev(h), 1n+bp), V.ev(s)), Nat.add(R.absorb(bs, V.ev(r), 0n), ss), Nat.add(R.absorb(bs, rs, 0n), ss),
     A.cadd(Nat.mod(V.ev(h), 1n+bp), R.absorb(bs, V.ev(r), 0n), V.ev(s), ss, ea, s_ev(key)),
     WM.cong_l(R.absorb(bs, V.ev(r), 0n), R.absorb(bs, rs, 0n), ss, Equal.cong(Nat, Nat, z => R.absorb(bs, z, 0n), V.ev(r), rs, r_ev(key))))

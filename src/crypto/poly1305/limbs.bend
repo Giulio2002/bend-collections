@@ -118,3 +118,11 @@ def bytes(n: Nat, +ds: List<&2, U32>, u: U32) -> List<&2, U32>:
     case 1n+k:
       +s = U32.add(u, hd0(ds))
       U32.and(s, 255) <> bytes(k, tl(ds), U32.shrn(s, 8n))
+
+# The tag bytes: the low 128 bits of (h mod p) + s. (Entered through a match
+# on s, both arms the same: while s is unknown a proof's goal stays one call
+# instead of sixteen unfolded byte steps.)
+def fin(+h: List<&2, U32>, s: List<&2, U32>) -> List<&2, U32>:
+  match s:
+    case Nil{}: bytes(16n, add(freeze(h), Nil{}), 0)
+    case y <> ys: bytes(16n, add(freeze(h), y <> ys), 0)

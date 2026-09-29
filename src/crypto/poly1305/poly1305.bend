@@ -61,7 +61,7 @@ def tag(+key: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
   +r = r_key(key)
   +s = s_key(key)
   +h = absorb(List.length(&2, U32, msg), msg, r, zero())
-  L.bytes(16n, L.add(L.freeze(h), s), 0)
+  L.fin(h, s)
 
 # The 16-byte tag of msg under key = r || s. (The match on msg only keeps a
 # proof's goal small while msg is unknown; both arms are the same.)

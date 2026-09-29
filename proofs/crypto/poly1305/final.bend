@@ -522,3 +522,20 @@ def tag_eq(one, h1, bp, h5, h, hh, s, hs):
       WM.cong_l(Nat.add(lo, V.pos(16n, kk)), a, V.ev(s), A.sy(a, Nat.add(lo, V.pos(16n, kk)), WW.low_high(128n, a)))))
   Equal.trans(List<&2, U32>, Li.bytes(16n, ds, 0), R.le_bytes(16n, Nat.add(V.ev(ds), V.pos(16n, kk))), R.le_bytes(16n, Nat.add(a, V.ev(s))), bl,
     Equal.cong(Nat, List<&2, U32>, z => R.le_bytes(16n, z), Nat.add(V.ev(ds), V.pos(16n, kk)), Nat.add(a, V.ev(s)), e1))
+
+# tag_eq through Li.fin (the implementation's entry point).
+law fin_eq:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +bp: Nat
+  for +h5: {Nat.add(1n+bp, 5n) == C.shift(130n, one) : Nat}
+  for +h: List<&2, U32>
+  for +hh: {ST.inv(h) == True{} : Bool}
+  for +s: List<&2, U32>
+  for +hs: {V.fit_all(s, 8n) == True{} : Bool}
+  {Li.fin(h, s) == R.le_bytes(16n, Nat.add(Nat.mod(V.ev(h), 1n+bp), V.ev(s))) : List<&2, U32>}
+
+def fin_eq(one, h1, bp, h5, h, hh, s, hs):
+  match s:
+    case Nil{}: tag_eq(one, h1, bp, h5, h, hh, Nil{}, hs)
+    case y <> ys: tag_eq(one, h1, bp, h5, h, hh, y <> ys, hs)
