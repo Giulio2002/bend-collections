@@ -350,6 +350,39 @@ def freeze_len(one, h1, h, hh):
   fz_len_o(h, which_c(one, h1, h, hh, Nat.is_eq(qq(h), 0n), {==}))
 
 # the value: the low 128 bits of h mod p
+# lgv == low(k, d) when x = lgv + 2^k tgv with lgv < 2^k and x = d + 2^k s2,
+# for a symbolic k (so that no check unfolds low(128, _) level by level).
+law elg_k:
+  for +k: Nat
+  for +x: Nat
+  for +lgv: Nat
+  for +tgv: Nat
+  for +d: Nat
+  for +s2: Nat
+  for +hs: {x == Nat.add(lgv, C.shift(k, tgv)) : Nat}
+  for +hf: {C.fits(k, lgv) == True{} : Bool}
+  for +hx: {x == Nat.add(d, C.shift(k, s2)) : Nat}
+  {lgv == C.low(k, d) : Nat}
+
+def elg_k(k, x, lgv, tgv, d, s2, hs, hf, hx):
+  A.tr(lgv, C.low(k, x), C.low(k, d),
+    A.sy(C.low(k, x), lgv, A.tr(C.low(k, x), C.low(k, Nat.add(lgv, C.shift(k, tgv))), lgv, Equal.cong(Nat, Nat, z => C.low(k, z), x, Nat.add(lgv, C.shift(k, tgv)), hs), WW.low_u(k, lgv, tgv, hf))),
+    A.tr(C.low(k, x), C.low(k, Nat.add(d, C.shift(k, s2))), C.low(k, d), Equal.cong(Nat, Nat, z => C.low(k, z), x, Nat.add(d, C.shift(k, s2)), hx), WW.low_add_shift(k, d, s2)))
+
+law fin_k:
+  for +k: Nat
+  for +a: Nat
+  for +b: Nat
+  for +c: Nat
+  for +m: Nat
+  for +e1: {a == b : Nat}
+  for +e2: {b == C.low(k, c) : Nat}
+  for +e3: {m == c : Nat}
+  {a == C.low(k, m) : Nat}
+
+def fin_k(k, a, b, c, m, e1, e2, e3):
+  A.tr(a, b, C.low(k, m), e1, A.tr(b, C.low(k, c), C.low(k, m), e2, Equal.cong(Nat, Nat, z => C.low(k, z), c, m, A.sy(m, c, e3))))
+
 def frz_c(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 5n) == C.shift(130n, one) : Nat}, +h: List<&2, U32>, +hh: {ST.inv(h) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(qq(h), 0n) == c : Bool}) -> {V.ev(Li.freeze(h)) == C.low(128n, Nat.mod(V.ev(h), 1n+bp)) : Nat}:
   match c:
     case True{}:
@@ -391,11 +424,8 @@ def frz_c(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 5n) 
       +em = A.tr(Nat.mod(V.ev(h), pp), Nat.mod(Nat.add(Nat.mul(1n, pp), d), pp), d,
         Equal.cong(Nat, Nat, z => Nat.mod(z, pp), V.ev(h), Nat.add(Nat.mul(1n, pp), d), A.tr(V.ev(h), Nat.add(d, pp), Nat.add(Nat.mul(1n, pp), d), eh, A.tr(Nat.add(d, pp), Nat.add(pp, d), Nat.add(Nat.mul(1n, pp), d), N.add_comm(d, pp), WM.cong_l(pp, Nat.mul(1n, pp), d, A.sy(Nat.mul(1n, pp), pp, AR.one_mul(pp)))))),
         NR.mod_of(1n, bp, d, ldp))
-      +elg = A.tr(lg(h), C.low(128n, x), C.low(128n, d),
-        A.sy(C.low(128n, x), lg(h), A.tr(C.low(128n, x), C.low(128n, Nat.add(lg(h), C.shift(128n, tg(h)))), lg(h), Equal.cong(Nat, Nat, z => C.low(128n, z), x, Nat.add(lg(h), C.shift(128n, tg(h))), gsplit(one, h1, h, hh)), WW.low_u(128n, lg(h), tg(h), flg(one, h1, h)))),
-        A.tr(C.low(128n, x), C.low(128n, Nat.add(d, s)), C.low(128n, d), Equal.cong(Nat, Nat, z => C.low(128n, z), x, Nat.add(d, s), ex), WW.low_add_shift(128n, d, C.shift(2n, one))))
-      A.tr(V.ev(Li.freeze(h)), lg(h), C.low(128n, Nat.mod(V.ev(h), pp)), ef,
-        A.tr(lg(h), C.low(128n, d), C.low(128n, Nat.mod(V.ev(h), pp)), elg, Equal.cong(Nat, Nat, z => C.low(128n, z), d, Nat.mod(V.ev(h), pp), A.sy(Nat.mod(V.ev(h), pp), d, em))))
+      +elg = elg_k(128n, x, lg(h), tg(h), d, C.shift(2n, one), gsplit(one, h1, h, hh), flg(one, h1, h), ex)
+      fin_k(128n, V.ev(Li.freeze(h)), lg(h), d, Nat.mod(V.ev(h), pp), ef, elg, em)
 
 law freeze_ev:
   for +one: Nat
