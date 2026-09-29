@@ -9,7 +9,7 @@ import ../../../spec/crypto/aes/gcm.bend as G
 import ../../lib/nat.bend as N
 import ./laws.bend as Laws
 import ./chacha20poly1305.bend as C
-import ./aes.bend as AE
+import ../aes/api.bend as AE
 import ./sound.bend as SD
 
 # Entry point: `bend proofs/crypto/aead/proof.bend` checks the clauses of

@@ -7,19 +7,20 @@ import ../../../src/crypto/aes/gcm.bend as GI
 import ../../../src/crypto/aesgcm.bend as GCM
 import ../../../spec/crypto/aes/aes.bend as S
 import ../../../spec/crypto/aes/gcm.bend as G
-import ../aes/gcm.bend as GP
-import ../aes/aead.bend as AD
+import ./gcm.bend as GP
+import ./aead.bend as AD
 
-# The AES-128-GCM / AES-256-GCM API clauses of proofs/crypto/aes/laws.bend
-# (W-aes's Api128/Api256 roundtrip, forgery, encrypt, decrypt) restated as
-# plain lemmas for the AEAD facade, with the same proofs (copied from
-# proofs/crypto/aes/proof.bend, which stays the root of the aes package:
-# a proof root that another file imports stops being a root).
+# The AES-128-GCM / AES-256-GCM API clauses of laws.bend (Api128/Api256
+# encrypt, decrypt, roundtrip, forgery) as plain lemmas: proof.bend fills the
+# laws with them, and the AEAD facade (proofs/crypto/aead) imports them
+# (importing proof.bend would stop it being the aes package's root). The
+# *_l versions take the nonce and tag as lists of the right length.
 
 def valid_of(+key: List<&2, U32>, +w: Nat, +h: {List.length(&2, U32, key) == w : Nat}, +v: {A.valid_length(w) == True{} : Bool}) -> {A.valid_length(List.length(&2, U32, key)) == True{} : Bool}:
   %Equal.sym(Nat, List.length(&2, U32, key), w, h) : {A.valid_length(_) == True{} : Bool}
   v
 
+# Decrypt what an encryption returned (None stays None).
 def open128(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, m: Maybe<&2, List<&2, U32>>) -> Maybe<&2, List<&2, U32>>:
   match m:
     case None{}:
