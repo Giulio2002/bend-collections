@@ -1,4 +1,7 @@
 import Base
+# (imported first: Bend 2.0.34 overflows its stack checking this module after
+# proofs/crypto/chacha/core.bend, but not before it)
+import ../poly1305/mac.bend as PM
 import ../../../src/crypto/chacha/chacha20.bend as CH
 import ../../../src/crypto/aead/chacha20poly1305.bend as I
 import ../../../src/crypto/subtle.bend as S
@@ -11,7 +14,6 @@ import ../../lib/nat.bend as N
 import ../chacha/stream.bend as T
 import ../chacha/xchacha.bend as X
 import ../chacha/involution.bend as V
-import ../poly1305/mac.bend as PM
 import ./subtle_eq.bend as SE
 
 # ChaCha20-Poly1305 and XChaCha20-Poly1305 of src/crypto/aead/ against
