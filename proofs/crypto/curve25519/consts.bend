@@ -115,3 +115,14 @@ def eight_p_val(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp
   +tot2 = Equal.trans(Nat, Nat.add(V, 152n), Nat.add(V, b), Nat.add(Nat.mul(8n, 1n+pp), 152n), M.cong_r(V, 152n, b, Equal.sym(Nat, b, 152n, one_k(one, h1, 152n))), Equal.trans(Nat, Nat.add(V, b), WD.sc(258n, one), Nat.add(Nat.mul(8n, 1n+pp), 152n), tot, s258(one, h1, pp, hP)))
   +tot3 = Equal.trans(Nat, Nat.add(152n, V), Nat.add(V, 152n), Nat.add(152n, Nat.mul(8n, 1n+pp)), NA.add_comm(152n, V), Equal.trans(Nat, Nat.add(V, 152n), Nat.add(Nat.mul(8n, 1n+pp), 152n), Nat.add(152n, Nat.mul(8n, 1n+pp)), tot2, NA.add_comm(Nat.mul(8n, 1n+pp), 152n)))
   NR.add_cancel(152n, V, Nat.mul(8n, 1n+pp), tot3)
+
+# valo guarded on one: kept folded by the checker (see FS.gdigits)
+def vg(+one: Nat, xs: List<&2, U32>) -> Nat:
+  match one:
+    case 0n:
+      0n
+    case 1n+z:
+      valo(1n+z, xs)
+
+def vg_valo(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>) -> {vg(one, xs) == valo(one, xs) : Nat}:
+  L.subst(Nat, o => {vg(o, xs) == valo(o, xs) : Nat}, 1n, one, Equal.sym(Nat, one, 1n, h1), {==})

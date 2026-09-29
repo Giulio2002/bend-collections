@@ -27,9 +27,13 @@ import ../../src/crypto/ed25519/scalar.bend as ESC
 
 # ---- scalars ----
 
-# L = 2^252 + 27742317777372353535851937790883648493, little-endian digits
+# L = 2^252 + 27742317777372353535851937790883648493, little-endian bytes
+def ell_bytes() -> List<&2, U32>:
+  [237, 211, 245, 92, 26, 99, 18, 88, 214, 156, 247, 162, 222, 249, 222, 20,
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16]
+
 def ell(+one: Nat) -> Nat:
-  FS.digits(one, [237n, 211n, 245n, 92n, 26n, 99n, 18n, 88n, 214n, 156n, 247n, 162n, 222n, 249n, 222n, 20n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 16n])
+  FS.uvalue(one, ell_bytes())
 
 # ---- the curve ----
 

@@ -67,6 +67,15 @@ def digits(+one: Nat, ds: List<&2, Nat>) -> Nat:
     case Con{d, dt}:
       Nat.add(Nat.mul(one, d), C.shift(8n, digits(one, dt)))
 
+# a constant from its little-endian bytes (U32 values), each scaled by the
+# symbolic one: uvalue(one, bs) is value(bs) for one == 1
+def uvalue(+one: Nat, xs: List<&2, U32>) -> Nat:
+  match xs:
+    case Nil{}:
+      0n
+    case Con{x, xt}:
+      Nat.add(Nat.mul(one, U32.to_nat(x)), C.shift(8n, uvalue(one, xt)))
+
 # p = 2^255 - 19
 def prime(+one: Nat) -> Nat:
   Nat.sub(C.shift(255n, one), 19n)

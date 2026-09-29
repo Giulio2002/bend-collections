@@ -78,3 +78,34 @@ def adc_val(+one: Nat, +xs: List<&2, U32>, +ys: List<&2, U32>, +zs: List<&2, U32
       Empty.absurd({Nat.add(Nat.add(K.valo(one, Con{x, xt}), 0n), Nat.mul(one, c)) == Nat.add(K.valo(one, zs), LM.sh(Con{x, xt}, Nat.mul(one, co))) : Nat}, L.false_true(h))
     case Con{x, xt} Con{y, yt} Nil{}:
       Empty.absurd({Nat.add(Nat.add(K.valo(one, Con{x, xt}), K.valo(one, Con{y, yt})), Nat.mul(one, c)) == Nat.add(0n, LM.sh(Con{x, xt}, Nat.mul(one, co))) : Nat}, L.false_true(h))
+
+# a limb list and a digit list agree
+def digs_eq(xs: List<&2, U32>, ds: List<&2, Nat>) -> Bool:
+  match xs ds:
+    case Nil{} Nil{}:
+      True{}
+    case Con{x, xt} Con{d, dt}:
+      Bool.and(Nat.is_eq(U32.to_nat(x), d), digs_eq(xt, dt))
+    case _ _:
+      False{}
+
+def valo_digits(+one: Nat, +xs: List<&2, U32>, +ds: List<&2, Nat>, +h: {digs_eq(xs, ds) == True{} : Bool}) -> {K.valo(one, xs) == FS.digits(one, ds) : Nat}:
+  match xs ds:
+    case Nil{} Nil{}:
+      {==}
+    case Con{+x, +xt} Con{+d, +dt}:
+      +e1 = N.eq_from_is_eq(v(x), d, L.and_left(Nat.is_eq(v(x), d), digs_eq(xt, dt), h))
+      +e2 = valo_digits(one, xt, dt, L.and_right(Nat.is_eq(v(x), d), digs_eq(xt, dt), h))
+      M.cong_add(Nat.mul(one, v(x)), Nat.mul(one, d), C.shift(8n, K.valo(one, xt)), C.shift(8n, FS.digits(one, dt)), Equal.cong(Nat, Nat, z => Nat.mul(one, z), v(x), d, e1), M.cong_sc(8n, K.valo(one, xt), FS.digits(one, dt), e2))
+    case Nil{} Con{d, dt}:
+      Empty.absurd({0n == FS.digits(one, Con{d, dt}) : Nat}, L.false_true(h))
+    case Con{x, xt} Nil{}:
+      Empty.absurd({K.valo(one, Con{x, xt}) == 0n : Nat}, L.false_true(h))
+
+def valo_u(+one: Nat, +xs: List<&2, U32>) -> {K.valo(one, xs) == FS.uvalue(one, xs) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +xt}:
+      M.cong_r(Nat.mul(one, v(x)), C.shift(8n, K.valo(one, xt)), C.shift(8n, FS.uvalue(one, xt)), M.cong_sc(8n, K.valo(one, xt), FS.uvalue(one, xt), valo_u(one, xt)))
+
