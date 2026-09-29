@@ -38,7 +38,31 @@ def lemma(name, impl, spec):
     return out
 
 
+def gmul(a, b):
+    r = 0
+    for i in range(8):
+        if (b >> i) & 1:
+            r ^= a << i
+    for i in range(15, 7, -1):
+        if (r >> i) & 1:
+            r ^= 0x11b << (i - 8)
+    return r
+
+
+def check_inverse():
+    """spec/crypto/aes/aes.bend states the inverse as a^254: check it is the
+    field inverse (a * a^254 = {01} for a != 0, and 0 -> 0)."""
+    for a in range(256):
+        p, x = 1, a
+        for bit in range(8):
+            if (254 >> bit) & 1:
+                p = gmul(p, x)
+            x = gmul(x, x)
+        assert (a == 0 and p == 0) or gmul(a, p) == 1, a
+
+
 def main():
+    check_inverse()
     out = ['import Base',
            'import ../../../src/crypto/aes/sbox.bend as B',
            'import ../../../spec/crypto/aes/aes.bend as S',
