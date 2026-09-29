@@ -53,3 +53,7 @@ import ./src/crypto/blake/blake2b/blake2b.bend as BLAKE2b
 import ./src/crypto/blake/blake2b/hex.bend as BLAKE2bHex
 import ./src/crypto/blake/blake3/blake3.bend as BLAKE3
 import ./src/crypto/blake/blake3/hex.bend as BLAKE3Hex
+import ./src/crypto/sha512/sha512.bend as SHA512
+import ./src/crypto/sha3/sha3_256.bend as SHA3_256
+import ./src/crypto/hash.bend as CryptoHash
+import ./src/crypto/subtle.bend as Subtle
