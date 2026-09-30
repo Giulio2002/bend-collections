@@ -51,6 +51,56 @@ def load16(+ys: List<&2, U32>, pb: Nat) -> L.F:
   +y15 = tl(y14)
   L.load(hd(ys), hd(y1), hd(y2), hd(y3), hd(y4), hd(y5), hd(y6), hd(y7), hd(y8), hd(y9), hd(y10), hd(y11), hd(y12), hd(y13), hd(y14), hd(y15), pb)
 
+# The first 17 bytes of ys (zeros past its end) as limbs, byte 16 at 2^128.
+def load17(+ys: List<&2, U32>) -> L.F:
+  +y1 = tl(ys)
+  +y2 = tl(y1)
+  +y3 = tl(y2)
+  +y4 = tl(y3)
+  +y5 = tl(y4)
+  +y6 = tl(y5)
+  +y7 = tl(y6)
+  +y8 = tl(y7)
+  +y9 = tl(y8)
+  +y10 = tl(y9)
+  +y11 = tl(y10)
+  +y12 = tl(y11)
+  +y13 = tl(y12)
+  +y14 = tl(y13)
+  +y15 = tl(y14)
+  L.load(hd(ys), hd(y1), hd(y2), hd(y3), hd(y4), hd(y5), hd(y6), hd(y7), hd(y8), hd(y9), hd(y10), hd(y11), hd(y12), hd(y13), hd(y14), hd(y15), hd(tl(y15)))
+
+def take(n: Nat, xs: List<&2, U32>) -> List<&2, U32>:
+  match n xs:
+    case 0n _: Nil{}
+    case 1n+j Nil{}: Nil{}
+    case 1n+j x <> rest: x <> take(j, rest)
+
+def skip(n: Nat, xs: List<&2, U32>) -> List<&2, U32>:
+  match n xs:
+    case 0n _: xs
+    case 1n+j Nil{}: Nil{}
+    case 1n+j x <> rest: skip(j, rest)
+
+# The accumulator block by block with take and skip (fuel bounds the
+# number of blocks): the RFC's loop as written. absorb below runs it only
+# on a last block shorter than 16 bytes.
+def absorb_gen(+w: Nat, +b: Nat, fuel: Nat, +msg: List<&2, U32>, +k: L.K, h: L.F) -> L.F:
+  match fuel msg:
+    case 0n _: h
+    case 1n+f Nil{}: h
+    case 1n+f x <> rest:
+      absorb_gen(w, b, f, skip(16n, x <> rest), k, L.block(w, b, k, h, load17(List.append(&2, U32, take(16n, x <> rest), [1]))))
+
+# The same with the last block zero-padded to 16 bytes and loaded as a
+# full block (RFC 8439 2.8's msg | pad16(msg)).
+def absorb_gen_pad(+w: Nat, +b: Nat, fuel: Nat, +msg: List<&2, U32>, +k: L.K, h: L.F) -> L.F:
+  match fuel msg:
+    case 0n _: h
+    case 1n+f Nil{}: h
+    case 1n+f x <> rest:
+      absorb_gen_pad(w, b, f, skip(16n, x <> rest), k, L.block(w, b, k, h, load16(take(16n, x <> rest), 1n)))
+
 # The accumulator over the message's 16-byte blocks, each with its 0x01
 # byte (at 2^128 for a full block); a last block of 1..15 bytes gets the
 # 0x01 byte right after its bytes.
@@ -59,7 +109,7 @@ def absorb(+w: Nat, +b: Nat, msg: List<&2, U32>, +k: L.K, h: L.F) -> L.F:
     case Nil{}: h
     case x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest:
       absorb(w, b, rest, k, L.block(w, b, k, h, L.load(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), 1n)))
-    case x <> rest: L.block(w, b, k, h, load16(List.append(&2, U32, x <> rest, [1]), 0n))
+    case +x <> +rest: absorb_gen(w, b, List.length(&2, U32, x <> rest), x <> rest, k, h)
 
 # The accumulator and the byte count.
 type A is Data:
@@ -73,7 +123,7 @@ def absorb_pad(+w: Nat, +b: Nat, msg: List<&2, U32>, +k: L.K, h: L.F, n: Nat) ->
     case Nil{}: A{h, n}
     case x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest:
       absorb_pad(w, b, rest, k, L.block(w, b, k, h, L.load(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), 1n)), Nat.add(n, 16n))
-    case +x <> +rest: A{L.block(w, b, k, h, load16(x <> rest, 1n)), Nat.add(n, List.length(&2, U32, x <> rest))}
+    case +x <> +rest: A{absorb_gen_pad(w, b, List.length(&2, U32, x <> rest), x <> rest, k, h), Nat.add(n, List.length(&2, U32, x <> rest))}
 
 # ---- keys ----
 
@@ -85,12 +135,18 @@ def r_of(+k0: U32, +k1: U32, +k2: U32, +k3: U32, +k4: U32, +k5: U32, +k6: U32, +
 def s_of(+k16: U32, +k17: U32, +k18: U32, +k19: U32, +k20: U32, +k21: U32, +k22: U32, +k23: U32, +k24: U32, +k25: U32, +k26: U32, +k27: U32, +k28: U32, +k29: U32, +k30: U32, +k31: U32) -> L.F:
   L.load(L.byte(k16), L.byte(k17), L.byte(k18), L.byte(k19), L.byte(k20), L.byte(k21), L.byte(k22), L.byte(k23), L.byte(k24), L.byte(k25), L.byte(k26), L.byte(k27), L.byte(k28), L.byte(k29), L.byte(k30), L.byte(k31), 0n)
 
-# Key byte i (0 past the end), for keys that are not 32 bytes long.
-def kb(i: Nat, xs: List<&2, U32>) -> U32:
-  match i xs:
-    case _ Nil{}: 0
-    case 0n x <> t: x
-    case 1n+j x <> t: kb(j, t)
+# The first byte (0 for none) and the rest.
+def kh(xs: List<&2, U32>) -> U32:
+  match xs:
+    case Nil{}: 0
+    case x <> t: x
+
+# The first n bytes of the key, zero bytes past its end (RFC 8439 reads a
+# key as r || s; missing bytes are zero here, as absent bytes in the spec).
+def pad(n: Nat, +xs: List<&2, U32>) -> List<&2, U32>:
+  match n:
+    case 0n: Nil{}
+    case 1n+j: kh(xs) <> pad(j, tl(xs))
 
 # ---- the tag ----
 
@@ -98,12 +154,16 @@ def tag(+w: Nat, +b: Nat, +k0: U32, +k1: U32, +k2: U32, +k3: U32, +k4: U32, +k5:
   +k = L.key(b, r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15))
   L.fin(w, absorb(w, b, msg, k, L.zero()), s_of(k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31))
 
-def mac_w(+w: Nat, +b: Nat, +key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
+# The tag under a 32-byte list (pad gives one).
+def tag_list(+w: Nat, +b: Nat, key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
   match key:
     case k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> k29 <> k30 <> k31 <> rest:
       tag(w, b, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, msg)
     case _:
-      tag(w, b, kb(0n, key), kb(1n, key), kb(2n, key), kb(3n, key), kb(4n, key), kb(5n, key), kb(6n, key), kb(7n, key), kb(8n, key), kb(9n, key), kb(10n, key), kb(11n, key), kb(12n, key), kb(13n, key), kb(14n, key), kb(15n, key), kb(16n, key), kb(17n, key), kb(18n, key), kb(19n, key), kb(20n, key), kb(21n, key), kb(22n, key), kb(23n, key), kb(24n, key), kb(25n, key), kb(26n, key), kb(27n, key), kb(28n, key), kb(29n, key), kb(30n, key), kb(31n, key), msg)
+      Nil{}
+
+def mac_w(+w: Nat, +b: Nat, +key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
+  tag_list(w, b, pad(32n, key), msg)
 
 # The 16-byte tag of msg under key = r || s.
 def mac(+key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
@@ -153,12 +213,15 @@ def tag2(+w: Nat, +b: Nat, +k0: U32, +k1: U32, +k2: U32, +k3: U32, +k4: U32, +k5
   +k = L.key(b, r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15))
   tag_ct(w, b, k, s_of(k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31), absorb_pad(w, b, aad, k, L.zero(), 0n), ct)
 
-def mac_aead_w(+w: Nat, +b: Nat, +key: List<&2, U32>, aad: List<&2, U32>, ct: List<&2, U32>) -> List<&2, U32>:
+def tag2_list(+w: Nat, +b: Nat, key: List<&2, U32>, aad: List<&2, U32>, ct: List<&2, U32>) -> List<&2, U32>:
   match key:
     case k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> k29 <> k30 <> k31 <> rest:
       tag2(w, b, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, aad, ct)
     case _:
-      tag2(w, b, kb(0n, key), kb(1n, key), kb(2n, key), kb(3n, key), kb(4n, key), kb(5n, key), kb(6n, key), kb(7n, key), kb(8n, key), kb(9n, key), kb(10n, key), kb(11n, key), kb(12n, key), kb(13n, key), kb(14n, key), kb(15n, key), kb(16n, key), kb(17n, key), kb(18n, key), kb(19n, key), kb(20n, key), kb(21n, key), kb(22n, key), kb(23n, key), kb(24n, key), kb(25n, key), kb(26n, key), kb(27n, key), kb(28n, key), kb(29n, key), kb(30n, key), kb(31n, key), aad, ct)
+      Nil{}
+
+def mac_aead_w(+w: Nat, +b: Nat, +key: List<&2, U32>, aad: List<&2, U32>, ct: List<&2, U32>) -> List<&2, U32>:
+  tag2_list(w, b, pad(32n, key), aad, ct)
 
 # The RFC 8439 2.8 tag: Poly1305 under key over
 # aad | pad16(aad) | ct | pad16(ct) | le64(len aad) | le64(len ct),
