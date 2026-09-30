@@ -272,7 +272,48 @@ def gen_ext():
     c.write('id_ext_dbl.bend', '# RFC 8032 point doubling in extended coordinates is the affine doubling.\n')
 
 
-GENS = {'ext': gen_ext, 'frac': gen_fracs, 'rule': gen_rule, 'comm': gen_comm, 'unit': gen_unit, 'closure': gen_closure, 'compl': gen_compl,
+def gen_dec():
+    # x recovery (RFC 8032 section 5.1.3): u = y^2 - 1, v = d y^2 + 1
+    c = Ctx(['x', 'y', 'd', 'w', 'r'])
+    x, y, d, w, r = c.vars('x', 'y', 'd', 'w', 'r')
+    one = c.const(1)
+    u = c.specdef('du', c.sub(c.sq(y), one))
+    v = c.specdef('dv', c.add(c.mul(d, c.sq(y)), one))
+    c.conseq('dec_uv', c.sub(u, c.mul(v, c.sq(x))), [(lhs(c, (x, y)), rhs(c, (x, y), d), one)], (), '(x, y) on the curve: u == v x^2')
+    rw = [lin_rule(c, w, one, 'hw')]
+    c.conseq('dec_on', c.sub(lhs(c, (c.mul(r, w), c.mul(y, w))), rhs(c, (c.mul(r, w), c.mul(y, w)), d)), [(c.mul(v, c.sq(r)), u, neg(c, one))], rw,
+             'v r^2 == u and w == 1: (r w, y w) is on the curve')
+    c.ident('dec_negsq', c.mul(v, c.sq(neg(c, r))), c.mul(v, c.sq(r)), (), 'v (-r)^2 == v r^2')
+    c.ident('dec_t', c.mul(c.mul(r, y), one), c.mul(r, y), (), '(r y) 1 == r y')
+    c.ident('dec_nn', neg(c, neg(c, x)), x, (), '-(-x) == x')
+    c.conseq('dec_pm', c.mul(c.mul(c.sub(r, x), c.add(r, x)), v), [(c.mul(v, c.sq(r)), u, one), (u, c.mul(v, c.sq(x)), one)], (), 'v r^2 == u == v x^2: (r - x) (r + x) v == 0')
+    c.conseq('dec_x0', neg(c, x), [(x, c.zero(), neg(c, one))], (), 'x == 0: -x == 0')
+    c.conseq('dec_r0', x, [(r, c.zero(), one), (c.sub(r, x), c.zero(), neg(c, one))], (), 'r == 0 and r - x == 0: x == 0')
+    c.conseq('dec_r0n', x, [(r, c.zero(), neg(c, one)), (c.add(r, x), c.zero(), one)], (), 'r == 0 and r + x == 0: x == 0')
+    c.write('id_dec.bend', '# Point decoding: the recovered x is on the curve.\n')
+    # the candidate root xc = (u v^3) g with g = (u v^7)^((p - 5) / 8)
+    c = Ctx(['u', 'v', 'g', 'x', 'i', 'ww', 'xc'])
+    u, v, g, x, i, W, xc = c.vars('u', 'v', 'g', 'x', 'i', 'ww', 'xc')
+    one = c.const(1)
+    v3 = c.mul(c.mul(v, v), v)
+    v7 = c.mul(c.mul(v3, v3), v)
+    b = c.specdef('db', c.mul(u, v7))
+    a = c.specdef('da', c.mul(x, c.mul(c.mul(v, v), c.mul(v, v))))
+    cand = c.specdef('dc', c.mul(c.mul(u, v3), g))
+    c.conseq('dec_b', c.sub(b, c.sq(a)), [(u, c.mul(v, c.sq(x)), v7)], (), 'u == v x^2: u v^7 == (x v^4)^2')
+    c.conseq('dec_vxx', c.sub(c.mul(v, c.sq(cand)), c.mul(u, W)), [(c.mul(b, c.mul(g, g)), W, u)], (), '(u v^7) g^2 == W: v xc^2 == u W')
+    c.conseq('dec_w2', c.mul(c.sub(W, one), c.add(W, one)), [(c.mul(W, W), one, one)], (), 'W^2 == 1: (W - 1) (W + 1) == 0')
+    c.conseq('dec_wp', c.sub(c.mul(u, W), u), [(c.sub(W, one), c.zero(), u)], (), 'W - 1 == 0: u W == u')
+    c.conseq('dec_wm', c.sub(c.mul(u, W), neg(c, u)), [(c.add(W, one), c.zero(), u)], (), 'W + 1 == 0: u W == -u')
+    c.conseq('dec_r2', c.sub(c.mul(v, c.sq(c.mul(xc, i))), u), [(c.add(c.sq(i), one), c.zero(), c.mul(v, c.sq(xc))), (c.mul(v, c.sq(xc)), neg(c, u), neg(c, one))], (),
+             'i^2 + 1 == 0 and v xc^2 == -u: v (xc i)^2 == u')
+    c.conseq('dec_c0', cand, [(u, c.zero(), c.mul(v3, g))], (), 'u == 0: xc == 0')
+    c.conseq('dec_u0', u, [(u, c.mul(v, c.sq(x)), one), (x, c.zero(), c.mul(v, x))], (), 'u == v x^2 and x == 0: u == 0')
+    c.conseq('dec_a0', x, [(a, c.zero(), one)], (), 'placeholder')  if False else None
+    c.write('id_dec2.bend', '# Point decoding: the candidate square root.\n')
+
+
+GENS = {'dec': gen_dec, 'ext': gen_ext, 'frac': gen_fracs, 'rule': gen_rule, 'comm': gen_comm, 'unit': gen_unit, 'closure': gen_closure, 'compl': gen_compl,
         'assoc_x': lambda: gen_assoc('x'), 'assoc_y': lambda: gen_assoc('y')}
 
 if __name__ == '__main__':
