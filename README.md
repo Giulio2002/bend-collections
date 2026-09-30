@@ -31,6 +31,8 @@ benchmarked against optimized C implementations of the same algorithms.
 | Constant-time compare | `src/crypto/subtle.bend` | `eq(a, b)` on byte lists, proved `True` exactly when `a == b` |
 | HMAC-SHA256 | `src/crypto/mac.bend` | RFC 2104: `sign(key, msg)`, `verify(key, msg, tag)` (constant-time `subtle.eq`); proved equal to the RFC/FIPS 198-1 spec `spec/crypto/hmac.bend` for every input, `verify(k, m, sign(k, m))` and rejection of every other tag; RFC 4231 vectors; [contracts](docs/CRYPTO_CONTRACTS.md) |
 | HKDF-SHA256 | `src/crypto/kdf.bend` | RFC 5869: `extract`, `expand`, `hkdf`, lengths above 255 * 32 are the value `LengthTooLarge`; proved equal to `spec/crypto/hkdf.bend` for every input, output length and prefix laws; RFC 5869 vectors |
+| AES | `src/crypto/aes/aes.bend` | FIPS 197 block cipher, 128/192/256-bit keys; S-box as a constant-time Boyar-Peralta circuit (no table); proved equal to the FIPS 197 specification for every key and block, see [docs/CRYPTO_CONTRACTS.md](docs/CRYPTO_CONTRACTS.md) |
+| AES-GCM | `src/crypto/aesgcm.bend` | SP 800-38D AES-128-GCM and AES-256-GCM, 12-byte nonces, 16-byte tags appended, tag checked with `subtle.eq`; proved equal to the SP 800-38D specification, `decrypt(encrypt(x)) == Some(x)`, a wrong tag gives `None` |
 | Integer math | `src/math/natural.bend` | Python-style `math` integer functions, see below |
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 | Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |
@@ -238,6 +240,8 @@ src/math/         integer math (natural.bend), the same per type (num, generic, 
 src/crypto/       SHA-256 (sha/), SHA-512 (sha512/), Keccak-256 (keccak/), SHA3-256 (sha3/),
                   BLAKE2s, BLAKE2b and BLAKE3 (blake/), the hashing facade (hash.bend)
                   and constant-time comparison (subtle.bend)
+src/crypto/       SHA-256 (sha/), Keccak-256 (keccak/), BLAKE2s, BLAKE2b and BLAKE3 (blake/),
+                  AES and GCM (aes/, facade aesgcm.bend)
 spec/             the specifications, mirroring src/: what each module does,
                   independent of how
   containers/<pkg>.bend  the abstract model and its contract: every SPARK
@@ -246,6 +250,9 @@ spec/             the specifications, mirroring src/: what each module does,
                       several files is a directory with a main.bend
   crypto/             FIPS 180-4 SHA-256 and SHA-512, the Keccak sponge, FIPS 202
                       SHA3-256, RFC 7693 BLAKE2, BLAKE3, list equality (subtle)
+  crypto/             FIPS 180-4 SHA-256, the Keccak sponge, RFC 7693 BLAKE2,
+                      BLAKE3, FIPS 197 AES and SP 800-38D GCM (aes/: GF(2)
+                      polynomials, the cipher, GHASH/GCTR/GCM)
   math/<module>.bend  each src/math module's contract as `<Function>.<clause>`
                       propositions (docs/MATH_CONTRACTS.md): proved for
                       natural, u64, hash and pow2; stated and tested for the
@@ -269,6 +276,8 @@ proofs/           only proofs: one package per src package, mirroring src/,
                       specification (padding, absorption, rejection, all words),
                       sha512/ and sha3/ likewise, hash/ the facade and the
                       incremental hasher, subtle/ eq; docs/CRYPTO_CONTRACTS.md
+                      aes/ AES and AES-GCM equal to FIPS 197 / SP 800-38D and
+                      the AEAD laws (docs/CRYPTO_CONTRACTS.md)
   lib/                proof library shared by the packages (logic, Nat, lists,
                       U32 words, arrays, order laws)
   PROOF.bend          the whole library; END_TO_END.bend the public laws
@@ -290,6 +299,7 @@ Bend 2.0.32, built from bendlang/bend main at b2111cf4 (pinned in
 bend tests/<container>/main.bend    # each container's test driver
 bend tests/math/natural.bend -o build/math/natural && python3 tools/check_math.py   # math vs CPython
 python3 tools/check_crypto_hash.py      # subtle, SHA-512, SHA3-256, the hash facade vs hashlib
+python3 tools/check_aes.py           # AES / AES-GCM: FIPS 197, NIST CAVP GCM vectors, `cryptography`
 ```
 
 ## Benchmark

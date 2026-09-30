@@ -477,6 +477,39 @@ def main():
                    'proof': 'passed' if good else 'failed', 'checks': checks}
         (LOGDIR / 'mac.log').write_text('\n'.join(x['output'] for x in checks))
         print('%-22s differential=%s proof=%s' % ('mac', mac_row['differential'], mac_row['proof']), flush=True)
+    # src/crypto/aes and src/crypto/aesgcm.bend (AES, AES-GCM): the FIPS 197
+    # and GCM example vectors run by tests/crypto/aes/main.bend, the NIST CAVP
+    # GCM vectors and the differential test against `cryptography`
+    # (tools/check_aes.py), and the proof package.
+    aes_row = None
+    if not args.only or args.only == 'aes':
+        (ROOT / 'build/aes').mkdir(parents=True, exist_ok=True)
+        expected = ['69c4e0d86a7b0430d8cdb78070b4c55a', 'dda97ca4864cdfe06eaf70a0ec0d7191',
+                    '8ea2b7ca516745bfeafc49904b496089',
+                    '0388dace60b6a392f328c2b971b2fe78ab6e47d42cec13bdf53a67b21257bddf',
+                    'cea7403d4d606b6e074ec5d3baf39d18d0d1c8a799996bf0265b98b5d48ab919',
+                    '00000000000000000000000000000000']
+        checks = []
+        aes_checks = [([BEND, 'tests/crypto/aes/main.bend', '-o', 'build/aes/main'], 1800),
+                      (['build/aes/main'], 300),
+                      ([sys.executable, 'tools/check_aes.py'], 3600),
+                      ([BEND, 'proofs/crypto/aes/proof.bend'], 7200)]
+        for command, limit in aes_checks:
+            result = run(command, timeout=limit)
+            if command[0] == 'build/aes/main':
+                passed = result.returncode == 0 and result.stdout.split() == expected
+            else:
+                passed = result.returncode == 0 and (command[0] != BEND or '-o' in command or proved(result.stdout))
+            checks.append({'command': command, 'passed': passed, 'output': result.stdout + result.stderr})
+            if not passed:
+                fail('aes', 'aes check failed: ' + repr(command))
+                break
+        good = len(checks) == len(aes_checks) and all(x['passed'] for x in checks)
+        aes_row = {'id': 'aes', 'implementation': 'src/crypto/aes/, src/crypto/aesgcm.bend',
+                   'differential': 'passed' if len(checks) >= 3 and all(x['passed'] for x in checks[:3]) else 'failed',
+                   'proof': 'passed' if good else 'failed', 'checks': checks}
+        (LOGDIR / 'aes.log').write_text('\n'.join(x['output'] for x in checks))
+        print('%-22s differential=%s proof=%s' % ('aes', aes_row['differential'], aes_row['proof']), flush=True)
 
     lru_log = []
     lru_ok, lru_detail = check_lru(lru_log)
@@ -496,6 +529,7 @@ def main():
         'math': math_row,
         'crypto': crypto_row,
         'mac': mac_row,
+        'aes': aes_row,
         'lru_reuse': 'passed' if lru_ok else 'failed',
         'lru_detail': lru_detail,
         'complete': bool(complete),
