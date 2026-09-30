@@ -1,5 +1,5 @@
 import Base
-import ./native_map.bend as Natural
+import ./string_compare.bend as Natural
 import ./numeric.bend as Numeric
 import ../spec/numeric.bend as S
 import ../src/wide.bend as W

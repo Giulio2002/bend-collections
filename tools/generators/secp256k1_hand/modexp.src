@@ -1,0 +1,28 @@
+import Base
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../math/natural/arith.bend as NR
+
+# Square-and-multiply steps on residues: with a = x^E mod m,
+# a a mod m = x^(2 E) mod m and a x mod m = x^(E + 1) mod m.
+
+def sq_step(+mp: Nat, +x: Nat, +e: Nat, +a: Nat, +he: {a == Nat.mod(Nat.pow(x, e), 1n+mp) : Nat}) -> {Nat.mod(Nat.mul(a, a), 1n+mp) == Nat.mod(Nat.pow(x, Nat.double(e)), 1n+mp) : Nat}:
+  %rwh@l he : {a == Nat.mod(Nat.pow(x, e), 1n+mp) : Nat}
+  %rwh@l he : {a == Nat.mod(Nat.pow(x, e), 1n+mp) : Nat}
+  %rw NR.mod_mul_l(mp, Nat.pow(x, e), Nat.mod(Nat.pow(x, e), 1n+mp))
+  %rw NR.mod_mul_r(mp, Nat.pow(x, e), Nat.pow(x, e))
+  %rw NA.double_self(e)
+  %rw NR.pow_add(x, e, e)
+  %close
+
+def mul_step(+mp: Nat, +x: Nat, +e: Nat, +a: Nat, +he: {a == Nat.mod(Nat.pow(x, e), 1n+mp) : Nat}) -> {Nat.mod(Nat.mul(a, x), 1n+mp) == Nat.mod(Nat.pow(x, Nat.add(e, 1n)), 1n+mp) : Nat}:
+  %rwh@l he : {a == Nat.mod(Nat.pow(x, e), 1n+mp) : Nat}
+  %rw NR.mod_mul_l(mp, Nat.pow(x, e), x)
+  %rw NR.pow_add(x, e, 1n)
+  %goal {Nat.mod(Nat.mul(Nat.pow(x, e), x), 1n+mp) == Nat.mod(Nat.mul(Nat.pow(x, e), Nat.mul(x, 1n)), 1n+mp) : Nat}
+  %rw NA.mul_one(x)
+  %close
+
+# x^0 mod m = 1 for m > 1
+def pow0(+mp: Nat, +x: Nat, +h: {Nat.is_lt(1n, 1n+mp) == True{} : Bool}) -> {1n == Nat.mod(Nat.pow(x, 0n), 1n+mp) : Nat}:
+  %goal {1n == Nat.mod(1n, 1n+mp) : Nat}
+  Equal.sym(Nat, Nat.mod(1n, 1n+mp), 1n, NR.mod_of(0n, mp, 1n, h))

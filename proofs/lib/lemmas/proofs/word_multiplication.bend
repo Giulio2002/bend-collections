@@ -6,7 +6,7 @@ import ./word_shift.bend as Shift
 import ./natural_products.bend as P
 import ./modular_addition.bend as M
 import ./counter.bend as Counter
-import ./native_map.bend as Natural
+import ./string_compare.bend as Natural
 import ./numeric.bend as Numeric
 
 # Overflow is calculated from input bits and the existing primitive carries.

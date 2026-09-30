@@ -55,4 +55,4 @@ def go(+g: B.Args) -> String:
 def main() -> IO(Unit):
   do IO<Unit>:
     raw : List<String> <- IO.args()
-    IO.print(go(B.parse(raw)))
+    IO.print(go(B.parse_args(raw)))

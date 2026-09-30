@@ -1,4 +1,5 @@
 import Base
+import ./map_bridge.bend as MB
 
 # These unfold installed Base algorithms; no map axioms or replacement map.
 law empty_lookup:
@@ -445,7 +446,7 @@ law lookup_branch_preserves:
   for kb: String & Bool
   for lp: @key: String -> {lookup_map(V, Map.get(V, d, lo, key)) == lo : Map<&2, V>}
   for hp: @key: String -> {lookup_map(V, Map.get(V, d, hi, key)) == hi : Map<&2, V>}
-  {lookup_map(V, Map.get.bit(V, d, lo, hi, p, kb)) == MNode{p, lo, hi} : Map<&2, V>}
+  {lookup_map(V, MB.get_bit(V, d, lo, hi, p, kb)) == MNode{p, lo, hi} : Map<&2, V>}
 def lookup_branch_preserves(V, d, lo, hi, p, kb, lp, hp):
   match kb:
     case Tuple{+key, False{}}:
@@ -467,6 +468,7 @@ def lookup_preserves_map(V, d, m, key):
       %Equal.sym((String & String) & Cmp, String.cmp(key, stored), ((key, stored), comparison_tag(String, String.cmp(key, stored))), string_comparison_shape(key, stored)) : {lookup_map(V, Map.get.leaf(V, d, v, _)) == MLeaf{stored, v} : Map<&2, V>}
       lookup_leaf_preserves(V, d, v, key, stored, comparison_tag(String, String.cmp(key, stored)))
     case MNode{+p, +lo, +hi}:
+      %Equal.sym(Map<&2, V> & V, Map.get(V, d, MNode{p, lo, hi}, key), MB.get_bit(V, d, lo, hi, p, Map.bit(key, p)), MB.get_node(V, d, p, lo, hi, key)) : {lookup_map(V, _) == MNode{p, lo, hi} : Map<&2, V>}
       lookup_branch_preserves(V, d, lo, hi, p, Map.bit(key, p), q => lookup_preserves_map(V, d, lo, q), q => lookup_preserves_map(V, d, hi, q))
 
 law natural_add_associative:

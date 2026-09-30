@@ -1,5 +1,6 @@
 import Base
-import ./native_map.bend as N
+import ./map_bridge.bend as MB
+import ./string_compare.bend as N
 import ./map_insert.bend as I
 import ./map_lookup.bend as L
 import ./map_routing.bend as R
@@ -136,10 +137,12 @@ law branch:
 def branch(V, lo, hi, p, removed, bit, e, key, value, distinct, lp, hp, member):
   match bit:
     case False{}:
-      %Equal.sym(String & Bool, Map.bit(removed, p), (removed, False{}), e) : L.leaf(V, Map.del.fin(&2, Maybe<&2, V>, Map.pop.bit(&2, Maybe<&2, V>, lo, hi, p, _)), key, value)
+      %Equal.sym(Map<&2, Maybe<&2, V>> & Maybe<&2, Maybe<&2, V>>, Map.pop(&2, Maybe<&2, V>, MNode{p, lo, hi}, removed), MB.pop_bit(&2, Maybe<&2, V>, lo, hi, p, Map.bit(removed, p)), MB.pop_node(&2, Maybe<&2, V>, p, lo, hi, removed)) : L.leaf(V, Map.del.fin(&2, Maybe<&2, V>, _), key, value)
+      %Equal.sym(String & Bool, Map.bit(removed, p), (removed, False{}), e) : L.leaf(V, Map.del.fin(&2, Maybe<&2, V>, MB.pop_bit(&2, Maybe<&2, V>, lo, hi, p, _)), key, value)
       selected_low(V, lo, hi, p, removed, key, value, distinct, lp, member)
     case True{}:
-      %Equal.sym(String & Bool, Map.bit(removed, p), (removed, True{}), e) : L.leaf(V, Map.del.fin(&2, Maybe<&2, V>, Map.pop.bit(&2, Maybe<&2, V>, lo, hi, p, _)), key, value)
+      %Equal.sym(Map<&2, Maybe<&2, V>> & Maybe<&2, Maybe<&2, V>>, Map.pop(&2, Maybe<&2, V>, MNode{p, lo, hi}, removed), MB.pop_bit(&2, Maybe<&2, V>, lo, hi, p, Map.bit(removed, p)), MB.pop_node(&2, Maybe<&2, V>, p, lo, hi, removed)) : L.leaf(V, Map.del.fin(&2, Maybe<&2, V>, _), key, value)
+      %Equal.sym(String & Bool, Map.bit(removed, p), (removed, True{}), e) : L.leaf(V, Map.del.fin(&2, Maybe<&2, V>, MB.pop_bit(&2, Maybe<&2, V>, lo, hi, p, _)), key, value)
       selected_high(V, lo, hi, p, removed, key, value, distinct, hp, member)
 
 law other_binding_survives:
@@ -286,9 +289,9 @@ law original_branch:
 def original_branch(V, lo, hi, p, removed, bit, e, key, value, lp, hp, member):
   match bit:
     case False{}:
-      restore_low(V, lo, hi, p, removed, key, value, lp, uncollapse_low(V, p, hi, Map.pop(&2, Maybe<&2, V>, lo, removed), key, value, %e : L.leaf(V, Map.del.fin(&2, Maybe<&2, V>, Map.pop.bit(&2, Maybe<&2, V>, lo, hi, p, _)), key, value) member))
+      restore_low(V, lo, hi, p, removed, key, value, lp, uncollapse_low(V, p, hi, Map.pop(&2, Maybe<&2, V>, lo, removed), key, value, %e : L.leaf(V, Map.del.fin(&2, Maybe<&2, V>, MB.pop_bit(&2, Maybe<&2, V>, lo, hi, p, _)), key, value) %MB.pop_node(&2, Maybe<&2, V>, p, lo, hi, removed) : L.leaf(V, Map.del.fin(&2, Maybe<&2, V>, _), key, value) member))
     case True{}:
-      restore_high(V, lo, hi, p, removed, key, value, hp, uncollapse_high(V, p, lo, Map.pop(&2, Maybe<&2, V>, hi, removed), key, value, %e : L.leaf(V, Map.del.fin(&2, Maybe<&2, V>, Map.pop.bit(&2, Maybe<&2, V>, lo, hi, p, _)), key, value) member))
+      restore_high(V, lo, hi, p, removed, key, value, hp, uncollapse_high(V, p, lo, Map.pop(&2, Maybe<&2, V>, hi, removed), key, value, %e : L.leaf(V, Map.del.fin(&2, Maybe<&2, V>, MB.pop_bit(&2, Maybe<&2, V>, lo, hi, p, _)), key, value) %MB.pop_node(&2, Maybe<&2, V>, p, lo, hi, removed) : L.leaf(V, Map.del.fin(&2, Maybe<&2, V>, _), key, value) member))
 
 law no_new_binding:
   for -V: Data

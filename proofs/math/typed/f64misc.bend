@@ -1,17 +1,14 @@
 import Base
 import ../../../spec/lib/common.bend as C
 import ../../../spec/math/f64.bend as SF
-import ../../../spec/math/w64.bend as SW
 import ../../../src/math/f64.bend as F
 import ../../../src/math/w64.bend as X
 import ../../../src/math/u64.bend as WU
 import ../../lib/nat.bend as N
-import ../../lib/logic.bend as L
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ./width.bend as WW
 import ./f64bits.bend as FB
 import ./f64cmp.bend as FC
-import ./f64round.bend as FR
 import ./f64tools.bend as T
 
 # The conversion from unsigned integers, ulp, the classification predicates

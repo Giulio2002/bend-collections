@@ -6,7 +6,7 @@ import ./division_no_overflow.bend as Overflow
 import ./division_invariant.bend as Inv
 import ./division_candidate_bound.bend as Bound
 import ./natural_products.bend as P
-import ./native_map.bend as Natural
+import ./string_compare.bend as Natural
 import ./numeric.bend as Numeric
 import ./map_index.bend as Index
 

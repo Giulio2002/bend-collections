@@ -2,7 +2,7 @@ import Base
 import ../spec/numeric.bend as S
 import ./numeric.bend as N
 import ./map_index.bend as Index
-import ./native_map.bend as Natural
+import ./string_compare.bend as Natural
 import ./map_difference_order.bend as Order
 
 # Elementary semiring equations proved over the existing Base Nat definitions.

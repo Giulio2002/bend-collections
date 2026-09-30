@@ -3,7 +3,6 @@ import ../../../spec/lib/common.bend as C
 import ../../../spec/math/w64.bend as SW
 import ../../../src/math/w64.bend as X
 import ../../../src/math/u64.bend as WU
-import ../../../src/math/natural.bend as M
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA

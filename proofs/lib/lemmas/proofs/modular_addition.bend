@@ -7,7 +7,7 @@ import ./addition.bend as Add
 import ./counter.bend as Counter
 import ./numeric.bend as N
 import ./map_index.bend as Index
-import ./native_map.bend as NatLaws
+import ./string_compare.bend as NatLaws
 
 # The binary constructor in the independent specification uses Base Nat.divmod.
 # Establish its behavior against that existing algorithm, for arbitrary Nat.
@@ -28,10 +28,10 @@ def binary_division(value: Nat, +bit: Bool) -> {Nat.divmod(Nat.add(S.bit_value(b
           Equal.trans(Nat & Nat, Nat.divmod(3n+Nat.double(p), 2n), Index.next_quotient(Nat.divmod(1n+Nat.double(p), 2n)), (1n+p, 1n), stride(1n+Nat.double(p)), Equal.cong(Nat & Nat, Nat & Nat, Index.next_quotient, Nat.divmod(1n+Nat.double(p), 2n), (p, 1n), binary_division(p, True{})))
 
 def binary_quotient(+value: Nat, +bit: Bool) -> {Nat.div(Nat.add(S.bit_value(bit), Nat.double(value)), 2n) == value : Nat}:
-  Equal.cong(Nat & Nat, Nat, Nat.div.fin, Nat.divmod(Nat.add(S.bit_value(bit), Nat.double(value)), 2n), (value, S.bit_value(bit)), binary_division(value, bit))
+  Equal.cong(Nat & Nat, Nat, pq => Pair.fst(Nat, Nat, pq), Nat.divmod(Nat.add(S.bit_value(bit), Nat.double(value)), 2n), (value, S.bit_value(bit)), binary_division(value, bit))
 
 def binary_remainder(+value: Nat, +bit: Bool) -> {Nat.mod(Nat.add(S.bit_value(bit), Nat.double(value)), 2n) == S.bit_value(bit) : Nat}:
-  Equal.cong(Nat & Nat, Nat, Nat.mod.fin, Nat.divmod(Nat.add(S.bit_value(bit), Nat.double(value)), 2n), (value, S.bit_value(bit)), binary_division(value, bit))
+  Equal.cong(Nat & Nat, Nat, pq => Pair.snd(Nat, Nat, pq), Nat.divmod(Nat.add(S.bit_value(bit), Nat.double(value)), 2n), (value, S.bit_value(bit)), binary_division(value, bit))
 
 def bit_roundtrip(bit: Bool) -> {Nat.is_eq(S.bit_value(bit), 1n) == bit : Bool}:
   match bit:
@@ -60,9 +60,13 @@ def reconstruct(+n: Nat, word: Word(n), +multiple: Nat) -> {S.from_nat(n, Nat.ad
           Equal.trans(Word(1n+p), S.from_nat(1n+p, Nat.add(S.bit_value(bit), Nat.double(Nat.add(S.unsigned(p, tail), S.scale_binary(p, multiple))))), WCon{bit, S.from_nat(p, Nat.add(S.unsigned(p, tail), S.scale_binary(p, multiple)))}, WCon{bit, tail}, binary_constructor(p, Nat.add(S.unsigned(p, tail), S.scale_binary(p, multiple)), bit), Equal.cong(Word(p), Word(1n+p), w => WCon{bit, w}, S.from_nat(p, Nat.add(S.unsigned(p, tail), S.scale_binary(p, multiple))), tail, reconstruct(p, tail, multiple)))
 
 # Actual full-width ripple addition equals independent mathematical conversion.
+# ripple addition at any width: the checker never expands a literal-width word
+def add_refines_n(+n: Nat, +a: Word(n), +b: Word(n)) -> {Word.adc(n, a, b, False{}, False{}) == S.from_nat(n, Nat.add(S.unsigned(n, a), S.unsigned(n, b))) : Word(n)}:
+  %Add.adc_conservation(n, a, b, False{}) : {Word.adc(n, a, b, False{}, False{}) == S.from_nat(n, _) : Word(n)}
+  Equal.sym(Word(n), S.from_nat(n, Nat.add(S.unsigned(n, Word.adc(n, a, b, False{}, False{})), S.scale_binary(n, S.bit_value(Add.carry_out(n, a, b, False{}))))), Word.adc(n, a, b, False{}, False{}), reconstruct(n, Word.adc(n, a, b, False{}, False{}), S.bit_value(Add.carry_out(n, a, b, False{}))))
+
 def add_refines(+a: Word(64n), +b: Word(64n)) -> {W.add(a, b) == S.from_nat(64n, Nat.add(S.unsigned(64n, a), S.unsigned(64n, b))) : Word(64n)}:
-  %Add.addition_conservation(a, b) : {W.add(a, b) == S.from_nat(64n, _) : Word(64n)}
-  Equal.sym(Word(64n), S.from_nat(64n, Nat.add(S.unsigned(64n, W.add(a, b)), S.scale_binary(64n, S.bit_value(Add.carry_out(64n, a, b, False{}))))), W.add(a, b), reconstruct(64n, W.add(a, b), S.bit_value(Add.carry_out(64n, a, b, False{}))))
+  add_refines_n(64n, a, b)
 
 def time_add_refines(a: T.Int64, b: T.Int64) -> {Time.add(a, b) == S.add(a, b) : T.Int64}:
   match a b:

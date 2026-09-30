@@ -12,10 +12,9 @@ import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ./width.bend as WW
 import ./w64add.bend as WA
 import ./w64sh.bend as SH
-import ./u64laws.bend as UL
 import ./f64bits.bend as FB
+import ./f64light.bend as FL
 import ./f64round.bend as FR
-import ./f64adda.bend as AA
 import ./f64tools.bend as T
 
 # Rounding to an integral value (IEEE 754-2019 5.3.1 roundToIntegral, C99
@@ -125,7 +124,7 @@ def half_v(+j: Nat, +hb: {Nat.is_lt(1n+j, 64n) == True{} : Bool}) -> {SW.value(X
   +hj = N.lt_trans(j, 1n+j, 64n, N.lt_succ(j), hb)
   +hl = N.lt_le(1n+j, 64n, hb)
   +hj1 = L.subst(Nat, t => {Nat.is_le(t, 64n) == True{} : Bool}, 1n+j, Nat.add(j, 1n), Equal.sym(Nat, Nat.add(j, 1n), 1n+j, Equal.trans(Nat, Nat.add(j, 1n), 1n+Nat.add(j, 0n), 1n+j, N.add_succ(j, 0n), Equal.cong(Nat, Nat, t => 1n+t, Nat.add(j, 0n), j, N.add_zero(j)))), hl)
-  +e = AA.shl_v(WU.U64{1, 0}, j, 1n, hj, hj1, {==})
+  +e = FL.shl_v(WU.U64{1, 0}, j, 1n, hj, hj1, {==})
   L.subst(Nat, t => {SW.value(X.shl(WU.U64{1, 0}, t)) == C.shift(j, 1n) : Nat}, j, Nat.sub(j, 0n), Equal.sym(Nat, Nat.sub(j, 0n), j, N.sub_zero(j)), e)
 
 def small_case(+m: F.RMode, +s: Bool, +w: WU.U64, +j: Nat, +hb: {Nat.is_lt(1n+j, 64n) == True{} : Bool}) -> {F.ri_k(m, s, w, 1n+j, True{}) == G(m, s, C.high(1n+j, SW.value(w)), C.low(1n+j, SW.value(w)), C.shift(j, 1n)) : F.F64}:
@@ -140,16 +139,16 @@ def small_case(+m: F.RMode, +s: Bool, +w: WU.U64, +j: Nat, +hb: {Nat.is_lt(1n+j,
   eq1 = SH.shr_value(w, 1n+j)
   eq2 = SH.shr_value(w, 1n+j)
   eq3 = SH.shr_value(w, 1n+j)
-  +hQ = L.subst(Nat, t => {C.fits(63n, t) == True{} : Bool}, Hq, SW.value(q), Equal.sym(Nat, SW.value(q), Hq, eq1), hfit(j, V, UL.vb(w)))
+  +hQ = L.subst(Nat, t => {C.fits(63n, t) == True{} : Bool}, Hq, SW.value(q), Equal.sym(Nat, SW.value(q), Hq, eq1), hfit(j, V, FL.vb64(w)))
   esl0 = SH.shl_value(q, 1n+j, hb)
   +esl1 = Equal.cong(Nat, Nat, t => C.low(64n, C.shift(1n+j, t)), SW.value(q), Hq, eq2)
   +eV = WW.low_high(1n+j, V)
   +eV2 = WW.low_high(1n+j, V)
   +hSV0 = L.subst(Nat, t => {Nat.is_le(S, t) == True{} : Bool}, Nat.add(S, Lq), Nat.add(Lq, S), NA.add_comm(S, Lq), N.le_add_right(S, Lq))
   +hSV = L.subst(Nat, t => {Nat.is_le(S, t) == True{} : Bool}, Nat.add(Lq, S), V, Equal.sym(Nat, V, Nat.add(Lq, S), eV), hSV0)
-  +hSf = SH.fits_lek(64n, S, V, hSV, UL.vb(w))
+  +hSf = SH.fits_lek(64n, S, V, hSV, FL.vb64(w))
   +esl = Equal.trans(Nat, SW.value(sq), C.low(64n, S), S, Equal.trans(Nat, SW.value(sq), C.low(64n, C.shift(1n+j, SW.value(q))), C.low(64n, S), esl0, esl1), WW.low_fit(64n, S, hSf))
-  +esl2 = Equal.trans(Nat, SW.value(sq), C.low(64n, S), S, Equal.trans(Nat, SW.value(sq), C.low(64n, C.shift(1n+j, SW.value(q))), C.low(64n, S), SH.shl_value(q, 1n+j, hb), Equal.cong(Nat, Nat, t => C.low(64n, C.shift(1n+j, t)), SW.value(q), Hq, eq3)), WW.low_fit(64n, S, SH.fits_lek(64n, S, V, L.subst(Nat, t => {Nat.is_le(S, t) == True{} : Bool}, Nat.add(Lq, S), V, Equal.sym(Nat, V, Nat.add(Lq, S), eV2), L.subst(Nat, t => {Nat.is_le(S, t) == True{} : Bool}, Nat.add(S, Lq), Nat.add(Lq, S), NA.add_comm(S, Lq), N.le_add_right(S, Lq))), UL.vb(w))))
+  +esl2 = Equal.trans(Nat, SW.value(sq), C.low(64n, S), S, Equal.trans(Nat, SW.value(sq), C.low(64n, C.shift(1n+j, SW.value(q))), C.low(64n, S), SH.shl_value(q, 1n+j, hb), Equal.cong(Nat, Nat, t => C.low(64n, C.shift(1n+j, t)), SW.value(q), Hq, eq3)), WW.low_fit(64n, S, SH.fits_lek(64n, S, V, L.subst(Nat, t => {Nat.is_le(S, t) == True{} : Bool}, Nat.add(Lq, S), V, Equal.sym(Nat, V, Nat.add(Lq, S), eV2), L.subst(Nat, t => {Nat.is_le(S, t) == True{} : Bool}, Nat.add(S, Lq), Nat.add(Lq, S), NA.add_comm(S, Lq), N.le_add_right(S, Lq))), FL.vb64(w))))
   +hle = L.subst(Nat, t => {Nat.is_le(t, V) == True{} : Bool}, S, SW.value(sq), Equal.sym(Nat, SW.value(sq), S, esl), hSV)
   er0 = WA.sub_value(w, sq, hle)
   +er1 = Equal.cong(Nat, Nat, t => Nat.sub(V, t), SW.value(sq), S, esl2)
@@ -214,7 +213,7 @@ def rik_c(+m: F.RMode, +s: Bool, +w: WU.U64, +j: Nat, +hw: {C.fits(53n, SW.value
 def rik(+m: F.RMode, +s: Bool, +w: WU.U64, +k: Nat, +hk: {Nat.is_le(1n, k) == True{} : Bool}, +hw: {C.fits(53n, SW.value(w)) == True{} : Bool}) -> {F.ri_k(m, s, w, k, Nat.is_lt(k, 64n)) == SF.round(s, SF.integral(m, s, SW.value(w), k), 3000n) : F.F64}:
   match k:
     case 0n:
-      Empty.absurd({F.ri_k(m, s, w, 0n, Nat.is_lt(0n, 64n)) == SF.round(s, SF.integral(m, s, SW.value(w), 0n), 3000n) : F.F64}, UL.true_ne_false(Equal.sym(Bool, False{}, True{}, hk)))
+      Empty.absurd({F.ri_k(m, s, w, 0n, Nat.is_lt(0n, 64n)) == SF.round(s, SF.integral(m, s, SW.value(w), 0n), 3000n) : F.F64}, FL.true_ne_false(Equal.sym(Bool, False{}, True{}, hk)))
     case 1n+ +j:
       rik_c(m, s, w, j, hw, Nat.is_lt(1n+j, 64n), {==})
 

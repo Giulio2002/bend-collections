@@ -1,0 +1,132 @@
+import Base
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../spec/crypto/secp256k1/curve.bend as CV
+import ../../../spec/crypto/secp256k1/ecdsa.bend as ES
+import ../../../src/crypto/secp256k1/scalar.bend as S
+import ../../../src/crypto/secp256k1/bytes.bend as B
+import ../../../src/crypto/secp256k1/point.bend as P
+import ../../../src/crypto/secp256k1/ecdsa.bend as E
+import ../../lib/logic.bend as Lg
+import ./scalarops.bend as SO
+import ./scalarpow.bend as SP
+import ./fwrap.bend as FW
+import ./bytes.bend as BY
+import ./point.bend as PT
+import ./sel.bend as SL
+import ./pmul.bend as PM
+import ./paff.bend as PA
+import ./penc.bend as PE
+import ./pdec.bend as PD
+import ./blist.bend as BL
+import ./pscal.bend as SQ
+
+# ECDSA verification of src/crypto/secp256k1/ecdsa.bend (verify and
+# verify_strict) against spec/crypto/secp256k1/ecdsa.bend.
+
+def aff_x_v(+one: Nat, a: P.Affine) -> {FS.value(one, P.aff_x(a)) == CV.aff_x(PA.av(one, a)) : Nat}:
+  match a:
+    case P.Affine{x, y}:
+      {==}
+
+def aff_x_l(+one: Nat, a: P.Affine, +ha: {PA.ared(one, a) == True{} : Bool}) -> {FS.limbs16(one, 16n, P.aff_x(a)) == True{} : Bool}:
+  match a:
+    case P.Affine{+x, +y}:
+      SL.l16(one, x, Lg.and_left(PT.red(one, x), PT.red(one, y), ha))
+
+# R not the point at infinity and x(R) mod n = r
+def vfin(+one: Nat, +h1: {one == 1n : Nat}, +rr: P.Point, +hrr: {PT.pred(one, rr) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}) -> {Bool.and(Bool.not(P.is_inf(rr)), S.eq(S.reduce(P.aff_x(P.to_affine(rr))), r)) == Bool.and(Bool.not(CV.is_inf(PT.pv(one, rr))), Nat.is_eq(Nat.mod(CV.aff_x(CV.to_affine(FS.prime(one), PT.pv(one, rr))), FS.order(one)), FS.value(one, r))) : Bool}:
+  +ha = PA.aff_r(one, h1, rr, hrr)
+  +hx = aff_x_l(one, P.to_affine(rr), ha)
+  %rw PA.is_inf_v(one, h1, rr)
+  %rw FW.eq_s(one, h1, S.reduce(P.aff_x(P.to_affine(rr))), r, SL.sl16(one, S.reduce(P.aff_x(P.to_affine(rr))), SQ.sred_r(one, h1, P.aff_x(P.to_affine(rr)), hx)), SL.sl16(one, r, hr))
+  %rw SQ.sred_v(one, h1, P.aff_x(P.to_affine(rr)), hx)
+  %rw aff_x_v(one, P.to_affine(rr))
+  %rw PA.aff_v(one, h1, rr, hrr)
+  %close
+
+def vrs(+one: Nat, +h1: {one == 1n : Nat}, +q: P.Point, +hq: {PT.pred(one, q) == True{} : Bool}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}) -> {E.verify_rs(q, z, r, s) == ES.verify_rs(one, PT.pv(one, q), FS.value(one, z), FS.value(one, r), FS.value(one, s)) : Bool}:
+  +hw = SP.inv_r(one, h1, s, hs)
+  +hu1 = SO.mul_r(one, h1, z, S.inv(s), hz, hw)
+  +hu2 = SO.mul_r(one, h1, r, S.inv(s), hr, hw)
+  +hg = PA.g_r(one, h1)
+  +hp1 = PM.mul_r(one, h1, S.mul(z, S.inv(s)), P.g(), SL.sl16(one, S.mul(z, S.inv(s)), hu1), hg)
+  +hp2 = PM.mul_r(one, h1, S.mul(r, S.inv(s)), q, SL.sl16(one, S.mul(r, S.inv(s)), hu2), hq)
+  +hrr = PT.padd_r(one, h1, P.mul(S.mul(z, S.inv(s)), P.g()), P.mul(S.mul(r, S.inv(s)), q), hp1, hp2)
+  %goal {Bool.and(Bool.not(P.is_inf(P.add(P.mul(S.mul(z, S.inv(s)), P.g()), P.mul(S.mul(r, S.inv(s)), q)))), S.eq(S.reduce(P.aff_x(P.to_affine(P.add(P.mul(S.mul(z, S.inv(s)), P.g()), P.mul(S.mul(r, S.inv(s)), q))))), r)) == Bool.and(Bool.not(CV.is_inf(CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.mmul(FS.order(one), FS.value(one, z), FS.minv(FS.order(one), FS.value(one, s))), CV.g(one)), CV.pmul(FS.prime(one), FS.mmul(FS.order(one), FS.value(one, r), FS.minv(FS.order(one), FS.value(one, s))), PT.pv(one, q))))), Nat.is_eq(Nat.mod(CV.aff_x(CV.to_affine(FS.prime(one), CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.mmul(FS.order(one), FS.value(one, z), FS.minv(FS.order(one), FS.value(one, s))), CV.g(one)), CV.pmul(FS.prime(one), FS.mmul(FS.order(one), FS.value(one, r), FS.minv(FS.order(one), FS.value(one, s))), PT.pv(one, q))))), FS.order(one)), FS.value(one, r))) : Bool}
+  %rw vfin(one, h1, P.add(P.mul(S.mul(z, S.inv(s)), P.g()), P.mul(S.mul(r, S.inv(s)), q)), hrr, r, hr)
+  %rw PT.padd_v(one, h1, P.mul(S.mul(z, S.inv(s)), P.g()), P.mul(S.mul(r, S.inv(s)), q), hp1, hp2)
+  %rw PT.padd_v(one, h1, P.mul(S.mul(z, S.inv(s)), P.g()), P.mul(S.mul(r, S.inv(s)), q), hp1, hp2)
+  %rw PM.mul_v(one, h1, S.mul(z, S.inv(s)), P.g(), SL.sl16(one, S.mul(z, S.inv(s)), hu1), hg)
+  %rw PM.mul_v(one, h1, S.mul(z, S.inv(s)), P.g(), SL.sl16(one, S.mul(z, S.inv(s)), hu1), hg)
+  %rw PM.mul_v(one, h1, S.mul(r, S.inv(s)), q, SL.sl16(one, S.mul(r, S.inv(s)), hu2), hq)
+  %rw PM.mul_v(one, h1, S.mul(r, S.inv(s)), q, SL.sl16(one, S.mul(r, S.inv(s)), hu2), hq)
+  %rw PA.g_v(one, h1)
+  %rw PA.g_v(one, h1)
+  %rw SO.mul_v(one, h1, z, S.inv(s), hz, hw)
+  %rw SO.mul_v(one, h1, z, S.inv(s), hz, hw)
+  %rw SO.mul_v(one, h1, r, S.inv(s), hr, hw)
+  %rw SO.mul_v(one, h1, r, S.inv(s), hr, hw)
+  %rw SP.inv_v(one, h1, s, hs)
+  %rw SP.inv_v(one, h1, s, hs)
+  %rw SP.inv_v(one, h1, s, hs)
+  %rw SP.inv_v(one, h1, s, hs)
+  %close
+
+# a valid scalar (1 <= x < n) is reduced
+def ok_red(+one: Nat, +x: List<&2, Nat>, +hl: {FS.limbs16(one, 16n, x) == True{} : Bool}, +h: {ES.scalar_ok(one, FS.value(one, x)) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), x) == True{} : Bool}:
+  Lg.and_intro(FS.limbs16(one, 16n, x), Nat.is_lt(FS.value(one, x), FS.order(one)), hl, Lg.and_right(Bool.not(Nat.is_eq(FS.value(one, x), 0n)), Nat.is_lt(FS.value(one, x), FS.order(one)), h))
+
+def vok(+one: Nat, +h1: {one == 1n : Nat}, +q: P.Point, +hq: {PT.pred(one, q) == True{} : Bool}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hlr: {FS.limbs16(one, 16n, r) == True{} : Bool}, +s: List<&2, Nat>, +hls: {FS.limbs16(one, 16n, s) == True{} : Bool}, a: Bool, b: Bool, c: Bool, +ha: {ES.scalar_ok(one, FS.value(one, r)) == a : Bool}, +hb: {ES.scalar_ok(one, FS.value(one, s)) == b : Bool}) -> {E.verify_ok(q, z, r, s, Bool.and(Bool.and(a, b), c)) == ES.verify_ok(one, PT.pv(one, q), FS.value(one, z), FS.value(one, r), FS.value(one, s), Bool.and(Bool.and(a, b), c)) : Bool}:
+  match a b c:
+    case True{} True{} True{}:
+      vrs(one, h1, q, hq, z, hz, r, ok_red(one, r, hlr, ha), s, ok_red(one, s, hls, hb))
+    case True{} True{} False{}:
+      {==}
+    case True{} False{} _:
+      {==}
+    case False{} _ _:
+      {==}
+
+def vq(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +hh: {B.has_len(32n, h) == True{} : Bool}, +sig: List<&2, U32>, +hsig: {B.has_len(64n, sig) == True{} : Bool}, strict: Bool, m: Maybe<&2, P.Point>, +hm: {PE.mpred(one, m) == True{} : Bool}) -> {E.verify_q(h, sig, strict, m) == ES.verify_q(one, h, sig, strict, PE.mpv(one, m)) : Bool}:
+  match m:
+    case None{}:
+      {==}
+    case Some{+q}:
+      +r = B.of_be(B.prefix(32n, sig))
+      +s = B.of_be(B.suffix(32n, sig))
+      +hlr = BY.of_be_limbs(one, h1, B.prefix(32n, sig), BL.pl32(sig, hsig))
+      +hls = BY.of_be_limbs(one, h1, B.suffix(32n, sig), BL.sl32(sig, hsig))
+      %goal {E.verify_ok(q, E.hash_scalar(h), B.of_be(B.prefix(32n, sig)), B.of_be(B.suffix(32n, sig)), Bool.and(Bool.and(E.scalar_ok(B.of_be(B.prefix(32n, sig))), E.scalar_ok(B.of_be(B.suffix(32n, sig)))), Bool.or(Bool.not(strict), Bool.not(S.is_high(B.of_be(B.suffix(32n, sig))))))) == ES.verify_ok(one, PT.pv(one, q), ES.hash_scalar(one, h), CV.os2ip(CV.first(32n, sig)), CV.os2ip(CV.after(32n, sig)), Bool.and(Bool.and(ES.scalar_ok(one, CV.os2ip(CV.first(32n, sig))), ES.scalar_ok(one, CV.os2ip(CV.after(32n, sig)))), Bool.or(Bool.not(strict), Bool.not(Nat.is_lt(FS.order(one), Nat.double(CV.os2ip(CV.after(32n, sig)))))))) : Bool}
+      %rw SQ.scalar_ok_v(one, h1, B.of_be(B.prefix(32n, sig)))
+      %rw SQ.scalar_ok_v(one, h1, B.of_be(B.suffix(32n, sig)))
+      %rw FW.is_high_s(one, h1, B.of_be(B.suffix(32n, sig)))
+      %rw <- SQ.hash_v(one, h1, h, hh)
+      %rw <- BL.prefix_first(32n, sig)
+      %rw <- BL.prefix_first(32n, sig)
+      %rw <- BL.suffix_after(32n, sig)
+      %rw <- BL.suffix_after(32n, sig)
+      %rw <- BL.suffix_after(32n, sig)
+      %rw <- BY.of_be_value(one, h1, B.prefix(32n, sig))
+      %rw <- BY.of_be_value(one, h1, B.prefix(32n, sig))
+      %rw <- BY.of_be_value(one, h1, B.suffix(32n, sig))
+      %rw <- BY.of_be_value(one, h1, B.suffix(32n, sig))
+      %rw <- BY.of_be_value(one, h1, B.suffix(32n, sig))
+      vok(one, h1, q, hm, E.hash_scalar(h), SQ.hash_r(one, h1, h, hh), B.of_be(B.prefix(32n, sig)), hlr, B.of_be(B.suffix(32n, sig)), hls, ES.scalar_ok(one, FS.value(one, B.of_be(B.prefix(32n, sig)))), ES.scalar_ok(one, FS.value(one, B.of_be(B.suffix(32n, sig)))), Bool.or(Bool.not(strict), Bool.not(Nat.is_lt(FS.order(one), Nat.double(FS.value(one, B.of_be(B.suffix(32n, sig))))))), {==}, {==})
+
+def vlen(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +h: List<&2, U32>, +sig: List<&2, U32>, strict: Bool, a: Bool, b: Bool, +ha: {B.has_len(32n, h) == a : Bool}, +hb: {B.has_len(64n, sig) == b : Bool}) -> {E.verify_len(pk, h, sig, strict, Bool.and(a, b)) == ES.verify_len(one, pk, h, sig, strict, Bool.and(a, b)) : Bool}:
+  match a b:
+    case True{} True{}:
+      %goal {E.verify_q(h, sig, strict, P.decode(pk)) == ES.verify_q(one, h, sig, strict, CV.decode(FS.prime(one), pk)) : Bool}
+      %rw <- PD.decode_v(one, h1, pk)
+      vq(one, h1, h, ha, sig, hb, strict, P.decode(pk), PD.decode_r(one, h1, pk))
+    case True{} False{}:
+      {==}
+    case False{} _:
+      {==}
+
+# verify (strict = False) and verify_strict (strict = True)
+def verify_v(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +h: List<&2, U32>, +sig: List<&2, U32>, strict: Bool) -> {E.verify_with(pk, h, sig, strict) == ES.verify(one, pk, h, sig, strict) : Bool}:
+  %goal {E.verify_len(pk, h, sig, strict, Bool.and(B.has_len(32n, h), B.has_len(64n, sig))) == ES.verify_len(one, pk, h, sig, strict, Bool.and(CV.length_is(32n, h), CV.length_is(64n, sig))) : Bool}
+  %rw BL.hl_is(32n, h)
+  %rw BL.hl_is(64n, sig)
+  vlen(one, h1, pk, h, sig, strict, CV.length_is(32n, h), CV.length_is(64n, sig), BL.hl_is(32n, h), BL.hl_is(64n, sig))

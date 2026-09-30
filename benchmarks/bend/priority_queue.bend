@@ -312,4 +312,4 @@ def go(+g: B.Args) -> IO(Unit):
 def main() -> IO(Unit):
   do IO<Unit>:
     raw : List<String> <- IO.args()
-    go(B.parse(raw))
+    go(B.parse_args(raw))

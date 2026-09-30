@@ -108,17 +108,29 @@ def esub(+E: Nat) -> {Nat.sub(Nat.add(E, SF.zb()), 1075n) == Nat.add(1925n, E) :
 def xsh(+E: Nat, +b: Bool, +m: Nat) -> {C.shift(SF.pick(Nat, b, Nat.sub(SF.zb(), 1074n), Nat.sub(Nat.add(E, SF.zb()), 1075n)), m) == C.shift(1925n, C.shift(SF.pick(Nat, b, 1n, E), m)) : Nat}:
   match b:
     case True{}:
-      WW.shift_comp(1925n, 1n, m)
+      # each step is stated in the goal's own terms: a conversion that
+      # unfolded C.shift(1925n, _) would walk 1925 doublings per level
+      +e1 = Equal.cong(Nat, Nat, z => C.shift(z, m), SF.pick(Nat, True{}, Nat.sub(SF.zb(), 1074n), Nat.sub(Nat.add(E, SF.zb()), 1075n)), Nat.add(1925n, 1n), {==})
+      +e2 = Equal.cong(Nat, Nat, z => C.shift(1925n, C.shift(z, m)), 1n, SF.pick(Nat, True{}, 1n, E), {==})
+      Equal.trans(Nat, C.shift(SF.pick(Nat, True{}, Nat.sub(SF.zb(), 1074n), Nat.sub(Nat.add(E, SF.zb()), 1075n)), m), C.shift(Nat.add(1925n, 1n), m), C.shift(1925n, C.shift(SF.pick(Nat, True{}, 1n, E), m)), e1, Equal.trans(Nat, C.shift(Nat.add(1925n, 1n), m), C.shift(1925n, C.shift(1n, m)), C.shift(1925n, C.shift(SF.pick(Nat, True{}, 1n, E), m)), WW.shift_comp(1925n, 1n, m), e2))
     case False{}:
-      Equal.trans(Nat, C.shift(Nat.sub(Nat.add(E, SF.zb()), 1075n), m), C.shift(Nat.add(1925n, E), m), C.shift(1925n, C.shift(E, m)), Equal.cong(Nat, Nat, z => C.shift(z, m), Nat.sub(Nat.add(E, SF.zb()), 1075n), Nat.add(1925n, E), esub(E)), WW.shift_comp(1925n, E, m))
+      +e1 = Equal.cong(Nat, Nat, z => C.shift(z, m), SF.pick(Nat, False{}, Nat.sub(SF.zb(), 1074n), Nat.sub(Nat.add(E, SF.zb()), 1075n)), Nat.add(1925n, E), esub(E))
+      +e2 = Equal.cong(Nat, Nat, z => C.shift(1925n, C.shift(z, m)), E, SF.pick(Nat, False{}, 1n, E), {==})
+      Equal.trans(Nat, C.shift(SF.pick(Nat, False{}, Nat.sub(SF.zb(), 1074n), Nat.sub(Nat.add(E, SF.zb()), 1075n)), m), C.shift(Nat.add(1925n, E), m), C.shift(1925n, C.shift(SF.pick(Nat, False{}, 1n, E), m)), e1, Equal.trans(Nat, C.shift(Nat.add(1925n, E), m), C.shift(1925n, C.shift(E, m)), C.shift(1925n, C.shift(SF.pick(Nat, False{}, 1n, E), m)), WW.shift_comp(1925n, E, m), e2))
+
+# xsh at a double, stated with SF.xexp as mcf uses it (the unfolding of
+# xexp is a small step here, so no conversion walks C.shift(1925n, _))
+def xshx(+x: F.F64) -> {C.shift(SF.xexp(x), SF.mant(x)) == C.shift(1925n, C.shift(SF.pick(Nat, Nat.is_eq(SF.efield(x), 0n), 1n, SF.efield(x)), SF.mant(x))) : Nat}:
+  +P = SF.pick(Nat, Nat.is_eq(SF.efield(x), 0n), Nat.sub(SF.zb(), 1074n), Nat.sub(Nat.add(SF.efield(x), SF.zb()), 1075n))
+  Equal.trans(Nat, C.shift(SF.xexp(x), SF.mant(x)), C.shift(P, SF.mant(x)), C.shift(1925n, C.shift(SF.pick(Nat, Nat.is_eq(SF.efield(x), 0n), 1n, SF.efield(x)), SF.mant(x))), Equal.cong(Nat, Nat, z => C.shift(z, SF.mant(x)), SF.xexp(x), P, {==}), xsh(SF.efield(x), Nat.is_eq(SF.efield(x), 0n), SF.mant(x)))
 
 # the finite branch of mag_cmp compares K
 def mcf(+one: Nat, +h1: {one == 1n : Nat}, +xl: U32, +xh: U32, +yl: U32, +yh: U32) -> {Nat.cmp(C.shift(Nat.sub(SF.xexp(F.Bits{xl, xh}), Nat.min(SF.xexp(F.Bits{xl, xh}), SF.xexp(F.Bits{yl, yh}))), SF.mant(F.Bits{xl, xh})), C.shift(Nat.sub(SF.xexp(F.Bits{yl, yh}), Nat.min(SF.xexp(F.Bits{xl, xh}), SF.xexp(F.Bits{yl, yh}))), SF.mant(F.Bits{yl, yh}))) == Nat.cmp(Nat.add(SF.frac(F.Bits{xl, xh}), C.shift(52n, SF.efield(F.Bits{xl, xh}))), Nat.add(SF.frac(F.Bits{yl, yh}), C.shift(52n, SF.efield(F.Bits{yl, yh})))) : Cmp}:
   +hFx = hF(xl, xh)
   +hFy = hF(yl, yh)
   +e1 = NC.cmp_min(SF.xexp(F.Bits{xl, xh}), SF.xexp(F.Bits{yl, yh}), SF.mant(F.Bits{xl, xh}), SF.mant(F.Bits{yl, yh}))
-  +ex = xsh(SF.efield(F.Bits{xl, xh}), Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n), SF.mant(F.Bits{xl, xh}))
-  +ey = xsh(SF.efield(F.Bits{yl, yh}), Nat.is_eq(SF.efield(F.Bits{yl, yh}), 0n), SF.mant(F.Bits{yl, yh}))
+  +ex = xshx(F.Bits{xl, xh})
+  +ey = xshx(F.Bits{yl, yh})
   +e2 = Equal.trans(Cmp, Nat.cmp(C.shift(SF.xexp(F.Bits{xl, xh}), SF.mant(F.Bits{xl, xh})), C.shift(SF.xexp(F.Bits{yl, yh}), SF.mant(F.Bits{yl, yh}))), Nat.cmp(C.shift(1925n, C.shift(SF.pick(Nat, Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n), 1n, SF.efield(F.Bits{xl, xh})), SF.mant(F.Bits{xl, xh}))), C.shift(SF.xexp(F.Bits{yl, yh}), SF.mant(F.Bits{yl, yh}))), Nat.cmp(C.shift(1925n, C.shift(SF.pick(Nat, Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n), 1n, SF.efield(F.Bits{xl, xh})), SF.mant(F.Bits{xl, xh}))), C.shift(1925n, C.shift(SF.pick(Nat, Nat.is_eq(SF.efield(F.Bits{yl, yh}), 0n), 1n, SF.efield(F.Bits{yl, yh})), SF.mant(F.Bits{yl, yh})))), Equal.cong(Nat, Cmp, z => Nat.cmp(z, C.shift(SF.xexp(F.Bits{yl, yh}), SF.mant(F.Bits{yl, yh}))), C.shift(SF.xexp(F.Bits{xl, xh}), SF.mant(F.Bits{xl, xh})), C.shift(1925n, C.shift(SF.pick(Nat, Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n), 1n, SF.efield(F.Bits{xl, xh})), SF.mant(F.Bits{xl, xh}))), ex), Equal.cong(Nat, Cmp, z => Nat.cmp(C.shift(1925n, C.shift(SF.pick(Nat, Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n), 1n, SF.efield(F.Bits{xl, xh})), SF.mant(F.Bits{xl, xh}))), z), C.shift(SF.xexp(F.Bits{yl, yh}), SF.mant(F.Bits{yl, yh})), C.shift(1925n, C.shift(SF.pick(Nat, Nat.is_eq(SF.efield(F.Bits{yl, yh}), 0n), 1n, SF.efield(F.Bits{yl, yh})), SF.mant(F.Bits{yl, yh}))), ey))
   +e3 = NC.cmp_shift(1925n, C.shift(SF.pick(Nat, Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n), 1n, SF.efield(F.Bits{xl, xh})), SF.mant(F.Bits{xl, xh})), C.shift(SF.pick(Nat, Nat.is_eq(SF.efield(F.Bits{yl, yh}), 0n), 1n, SF.efield(F.Bits{yl, yh})), SF.mant(F.Bits{yl, yh})))
   +e4 = gcmp(one, h1, SF.efield(F.Bits{xl, xh}), Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n), {==}, SF.b2n(Bool.not(Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n))), {==}, SF.frac(F.Bits{xl, xh}), hFx, SF.efield(F.Bits{yl, yh}), Nat.is_eq(SF.efield(F.Bits{yl, yh}), 0n), {==}, SF.b2n(Bool.not(Nat.is_eq(SF.efield(F.Bits{yl, yh}), 0n))), {==}, SF.frac(F.Bits{yl, yh}), hFy)

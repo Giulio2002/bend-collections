@@ -1,5 +1,6 @@
 import Base
-import ./native_map.bend as N
+import ./map_bridge.bend as MB
+import ./string_compare.bend as N
 import ./map_insert.bend as I
 import ./map_routing.bend as R
 import ./map_delete_prefix.bend as P
@@ -54,7 +55,7 @@ law deep_bit:
   for right: {populated(V, hi) == True{} : Bool}
   for changed_left: {populated(V, Map.ins(&2, Maybe<&2, V>, lo, key, value, discriminator)) == True{} : Bool}
   for changed_right: {populated(V, Map.ins(&2, Maybe<&2, V>, hi, key, value, discriminator)) == True{} : Bool}
-  {populated(V, Map.ins.deep(&2, Maybe<&2, V>, value, lo, hi, discriminator, parent, (key, bit))) == True{} : Bool}
+  {populated(V, MB.ins_deep(&2, Maybe<&2, V>, value, lo, hi, discriminator, parent, (key, bit))) == True{} : Bool}
 def deep_bit(V, key, value, lo, hi, discriminator, parent, bit, left, right, changed_left, changed_right):
   match bit:
     case False{}:
@@ -76,13 +77,13 @@ law branch:
   for right: {populated(V, hi) == True{} : Bool}
   for changed_left: {populated(V, Map.ins(&2, Maybe<&2, V>, lo, key, value, discriminator)) == True{} : Bool}
   for changed_right: {populated(V, Map.ins(&2, Maybe<&2, V>, hi, key, value, discriminator)) == True{} : Bool}
-  {populated(V, Map.ins.if(&2, Maybe<&2, V>, key, value, lo, hi, parent, discriminator, descend)) == True{} : Bool}
+  {populated(V, MB.ins_if(&2, Maybe<&2, V>, key, value, lo, hi, parent, discriminator, descend)) == True{} : Bool}
 def branch(V, key, value, lo, hi, discriminator, parent, descend, fresh, left, right, changed_left, changed_right):
   match descend:
     case False{}:
       splice(V, key, value, MNode{parent, lo, hi}, discriminator, fresh, P.conjunction(populated(V, lo), populated(V, hi), left, right))
     case True{}:
-      %Equal.sym(String & Bool, Map.bit(key, parent), (key, I.route_bit(Map.bit(key, parent))), I.route_shape(key, parent)) : {populated(V, Map.ins.deep(&2, Maybe<&2, V>, value, lo, hi, discriminator, parent, _)) == True{} : Bool}
+      %Equal.sym(String & Bool, Map.bit(key, parent), (key, I.route_bit(Map.bit(key, parent))), I.route_shape(key, parent)) : {populated(V, MB.ins_deep(&2, Maybe<&2, V>, value, lo, hi, discriminator, parent, _)) == True{} : Bool}
       deep_bit(V, key, value, lo, hi, discriminator, parent, I.route_bit(Map.bit(key, parent)), left, right, changed_left, changed_right)
 
 # Actual native insertion preserves populated leaves when the new value is present.
@@ -103,6 +104,7 @@ def insertion_preserves_populated(V, tree, key, value, discriminator, fresh, exi
     case MNode{+parent, +lo, +hi}:
       +left = R.and_left(populated(V, lo), populated(V, hi), existing)
       +right = R.and_right(populated(V, lo), populated(V, hi), existing)
+      %Equal.sym(Map<&2, Maybe<&2, V>>, Map.ins(&2, Maybe<&2, V>, MNode{parent, lo, hi}, key, value, discriminator), MB.ins_if(&2, Maybe<&2, V>, key, value, lo, hi, parent, discriminator, Nat.is_lt(parent, discriminator)), MB.ins_node(&2, Maybe<&2, V>, parent, lo, hi, key, value, discriminator)) : {populated(V, _) == True{} : Bool}
       branch(V, key, value, lo, hi, discriminator, parent, Nat.is_lt(parent, discriminator), fresh, left, right,
         insertion_preserves_populated(V, lo, key, value, discriminator, fresh, left),
         insertion_preserves_populated(V, hi, key, value, discriminator, fresh, right))
@@ -119,7 +121,7 @@ law put_branch:
   for right: {populated(V, hi) == True{} : Bool}
   for changed_left: {populated(V, Map.put(&2, Maybe<&2, V>, lo, key, value)) == True{} : Bool}
   for changed_right: {populated(V, Map.put(&2, Maybe<&2, V>, hi, key, value)) == True{} : Bool}
-  {populated(V, Map.put.bit(&2, Maybe<&2, V>, value, p, lo, hi, (key, bit))) == True{} : Bool}
+  {populated(V, MB.put_bit(&2, Maybe<&2, V>, value, p, lo, hi, (key, bit))) == True{} : Bool}
 def put_branch(V, key, value, lo, hi, p, bit, left, right, changed_left, changed_right):
   match bit:
     case False{}: P.conjunction(populated(V, Map.put(&2, Maybe<&2, V>, lo, key, value)), populated(V, hi), changed_left, right)
@@ -138,7 +140,8 @@ def put_preserves_populated(V, tree, key, value, fresh, existing):
     case MTip{}: fresh
     case MLeaf{stored, old}: fresh
     case MNode{+p, +lo, +hi}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, I.route_bit(Map.bit(key, p))), I.route_shape(key, p)) : {populated(V, Map.put.bit(&2, Maybe<&2, V>, value, p, lo, hi, _)) == True{} : Bool}
+      %Equal.sym(Map<&2, Maybe<&2, V>>, Map.put(&2, Maybe<&2, V>, MNode{p, lo, hi}, key, value), MB.put_bit(&2, Maybe<&2, V>, value, p, lo, hi, Map.bit(key, p)), MB.put_node(&2, Maybe<&2, V>, value, p, lo, hi, key)) : {populated(V, _) == True{} : Bool}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, I.route_bit(Map.bit(key, p))), I.route_shape(key, p)) : {populated(V, MB.put_bit(&2, Maybe<&2, V>, value, p, lo, hi, _)) == True{} : Bool}
       put_branch(V, key, value, lo, hi, p, I.route_bit(Map.bit(key, p)), R.and_left(populated(V, lo), populated(V, hi), existing), R.and_right(populated(V, lo), populated(V, hi), existing), put_preserves_populated(V, lo, key, value, fresh, R.and_left(populated(V, lo), populated(V, hi), existing)), put_preserves_populated(V, hi, key, value, fresh, R.and_right(populated(V, lo), populated(V, hi), existing)))
 
 law comparison_case:

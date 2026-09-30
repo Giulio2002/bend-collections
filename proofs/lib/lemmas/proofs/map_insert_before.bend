@@ -1,4 +1,5 @@
 import Base
+import ./map_bridge.bend as MB
 import ./invariants.bend as Inv
 import ./map_critbit_parts.bend as Parts
 import ./map_insert.bend as I
@@ -64,5 +65,6 @@ law insertion_before:
   for valid: {Inv.critbit(V, MNode{position, lo, hi}) == True{} : Bool}
   {Inv.critbit(V, Map.ins(&2, V, MNode{position, lo, hi}, key, value, Map.diff(key, stored))) == True{} : Bool}
 def insertion_before(V, key, stored, value, lo, hi, position, distinct, found, earlier, valid):
-  %Equal.sym(Bool, Nat.is_lt(position, Map.diff(key, stored)), False{}, reverse_not_less(Map.diff(key, stored), position, earlier)) : {Inv.critbit(V, Map.ins.if(&2, V, key, value, lo, hi, position, Map.diff(key, stored), _)) == True{} : Bool}
+  %Equal.sym(Map<&2, V>, Map.ins(&2, V, MNode{position, lo, hi}, key, value, Map.diff(key, stored)), MB.ins_if(&2, V, key, value, lo, hi, position, Map.diff(key, stored), Nat.is_lt(position, Map.diff(key, stored))), MB.ins_node(&2, V, position, lo, hi, key, value, Map.diff(key, stored))) : {Inv.critbit(V, _) == True{} : Bool}
+  %Equal.sym(Bool, Nat.is_lt(position, Map.diff(key, stored)), False{}, reverse_not_less(Map.diff(key, stored), position, earlier)) : {Inv.critbit(V, MB.ins_if(&2, V, key, value, lo, hi, position, Map.diff(key, stored), _)) == True{} : Bool}
   splice_before(V, key, stored, value, lo, hi, position, distinct, found, earlier, valid)

@@ -1,7 +1,7 @@
 import Base
 import ./invariants.bend as Inv
 import ./map_lookup.bend as L
-import ./native_map.bend as N
+import ./string_compare.bend as N
 import ./map_routing.bend as R
 import ./recency_unique.bend as U
 
@@ -11,7 +11,7 @@ law eq_true:
   for same: {a == b : String}
   {String.eq(a, b) == True{} : Bool}
 def eq_true(a, b, same):
-  %Equal.sym((String & String) & Cmp, String.cmp(a, b), ((a, b), EQ{}), N.string_equal_comparison(a, b, same)) : {String.eq.fin(_) == True{} : Bool}
+  %Equal.sym((String & String) & Cmp, String.cmp(a, b), ((a, b), EQ{}), N.string_equal_comparison(a, b, same)) : {Cmp.is_eq(Pair.snd(String & String, Cmp, _)) == True{} : Bool}
   {==}
 
 law or_true:

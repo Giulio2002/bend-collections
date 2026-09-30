@@ -16,15 +16,13 @@ import ./w64add.bend as WA
 import ./w64sh.bend as SH
 import ./w64dmrem.bend as DR
 import ./w64dmtop.bend as DQ
-import ./u64laws.bend as UL
 import ./f64bits.bend as FB
+import ./f64light.bend as FL
 import ./f64round.bend as FR
 import ./f64rtools.bend as RT
 import ./f64adda.bend as AA
-import ./f64addf.bend as AF
 import ./f64cmp.bend as FC
 import ./f64bl.bend as BL
-import ./f64divf.bend as DF
 import ./f64tools.bend as T
 import ./f64exp.bend as EX
 
@@ -116,7 +114,7 @@ def rfit(+bp: Nat, +hB: {C.fits(53n, 1n+bp) == True{} : Bool}, +rw: WU.U64, +N0:
 def shl_t(+rw: WU.U64, +t: Nat, +ht: {Nat.is_le(t, 10n) == True{} : Bool}, +hf: {C.fits(53n, SW.value(rw)) == True{} : Bool}) -> {SW.value(X.shl(rw, t)) == C.shift(t, SW.value(rw)) : Nat}:
   +hk = N.le_lt_trans(t, 10n, 64n, ht, {==})
   +hj = N.le_trans(Nat.add(t, 53n), Nat.add(10n, 53n), 64n, Equal.trans(Bool, Nat.is_le(Nat.add(t, 53n), Nat.add(10n, 53n)), Nat.is_le(t, 10n), True{}, FR.le_cancel_r(t, 10n, 53n), ht), {==})
-  AA.shl_v(rw, t, 53n, hk, hj, hf)
+  FL.shl_v(rw, t, 53n, hk, hj, hf)
 
 def step_r(+b: WU.U64, +bp: Nat, +eB: {SW.value(b) == 1n+bp : Nat}, +hB: {C.fits(53n, 1n+bp) == True{} : Bool}, +hbz: {X.is_zero(b) == False{} : Bool}, +rw: WU.U64, +N0: Nat, +t: Nat, +ht: {Nat.is_le(t, 10n) == True{} : Bool}, +hr: {SW.value(rw) == Nat.mod(N0, 1n+bp) : Nat}) -> {SW.value(X.psnd(X.divmod(X.shl(rw, t), b))) == Nat.mod(C.shift(t, N0), 1n+bp) : Nat}:
   +A = X.shl(rw, t)
@@ -160,7 +158,7 @@ def loop_r(fuel: Nat, +b: WU.U64, +bp: Nat, +eB: {SW.value(b) == 1n+bp : Nat}, +
     case 0n 0n:
       hr
     case 0n 1n+ +e:
-      Empty.absurd({SW.value(X.psnd(F.fm_go(0n, b, 1n+e, (q, r)))) == Nat.mod(C.shift(1n+e, N0), 1n+bp) : Nat}, UL.true_ne_false(Equal.sym(Bool, False{}, True{}, hd)))
+      Empty.absurd({SW.value(X.psnd(F.fm_go(0n, b, 1n+e, (q, r)))) == Nat.mod(C.shift(1n+e, N0), 1n+bp) : Nat}, FL.true_ne_false(Equal.sym(Bool, False{}, True{}, hd)))
     case 1n+ +f 0n:
       hr
     case 1n+ +f 1n+ +e:
@@ -178,7 +176,7 @@ def loop_q(fuel: Nat, +b: WU.U64, +bp: Nat, +eB: {SW.value(b) == 1n+bp : Nat}, +
     case 0n 0n:
       hq
     case 0n 1n+ +e:
-      Empty.absurd({Nat.mod(SW.value(X.pfst(F.fm_go(0n, b, 1n+e, (q, r)))), 2n) == Nat.mod(Nat.div(C.shift(1n+e, N0), 1n+bp), 2n) : Nat}, UL.true_ne_false(Equal.sym(Bool, False{}, True{}, hd)))
+      Empty.absurd({Nat.mod(SW.value(X.pfst(F.fm_go(0n, b, 1n+e, (q, r)))), 2n) == Nat.mod(Nat.div(C.shift(1n+e, N0), 1n+bp), 2n) : Nat}, FL.true_ne_false(Equal.sym(Bool, False{}, True{}, hd)))
     case 1n+ +f 0n:
       hq
     case 1n+ +f 1n+ +e:
@@ -211,6 +209,23 @@ def dec(+x: F.F64) -> {x == SF.encode(SF.sign(x), SF.efield(x), SF.frac(x)) : F.
       +a3 = Nat.add(C.low(20n, H), C.shift(20n, Nat.add(C.low(11n, H20), C.shift(11n, SF.b2n(SF.sign(F.Bits{l, h}))))))
       FB.enc_g(l, h, SF.sign(F.Bits{l, h}), h, Equal.trans(Nat, H, a1, a3, e1, Equal.trans(Nat, a1, a2, a3, e2, e4)))
 
+# a significand of at most 52 bits at its own ulp u encodes as a subnormal;
+# u stays abstract, so pack's exponent arithmetic is never evaluated on a
+# literal (rt_sub instantiates u = 1926)
+def ru_self(+s: Bool, +Fr: Nat, +u: Nat, +hF: {C.fits(52n, Fr) == True{} : Bool}) -> {SF.round_u(s, Fr, u, u) == SF.encode(s, 0n, Fr) : F.F64}:
+  +f53 = SH.fits_mono(52n, 53n, Fr, {==}, hF)
+  +l1 = EX.ru(s, Fr, u, u)
+  +l2 = Equal.cong(Bool, F.F64, b => SF.pack(s, SF.pick(Nat, b, SF.rne(Fr, Nat.sub(u, u)), C.shift(Nat.sub(u, u), Fr)), u), Nat.is_le(u, u), True{}, N.le_refl(u))
+  +l3 = Equal.cong(Nat, F.F64, t => SF.pack(s, SF.rne(Fr, t), u), Nat.sub(u, u), 0n, N.sub_self(u))
+  +l4 = Equal.cong(Bool, F.F64, b => SF.pick(F.F64, b, SF.pack_n(s, Fr, u), SF.pack_e(s, Nat.sub(Nat.add(1n+u, 1075n), SF.zb()), 0n)), C.fits(53n, Fr), True{}, f53)
+  +l5 = Equal.cong(Bool, F.F64, b => SF.pick(F.F64, b, SF.encode(s, 0n, Fr), SF.pack_e(s, Nat.sub(Nat.add(u, 1075n), SF.zb()), C.low(52n, Fr))), C.fits(52n, Fr), True{}, hF)
+  +p1 = SF.pack(s, SF.pick(Nat, Nat.is_le(u, u), SF.rne(Fr, Nat.sub(u, u)), C.shift(Nat.sub(u, u), Fr)), u)
+  +p2 = SF.pack(s, SF.rne(Fr, Nat.sub(u, u)), u)
+  +p3 = SF.pack(s, Fr, u)
+  +p4 = SF.pack_n(s, Fr, u)
+  +G = SF.encode(s, 0n, Fr)
+  Equal.trans(F.F64, SF.round_u(s, Fr, u, u), p1, G, l1, Equal.trans(F.F64, p1, p2, G, l2, Equal.trans(F.F64, p2, p3, G, l3, Equal.trans(F.F64, p3, p4, G, l4, l5))))
+
 def rt_sub(+s: Bool, +Fr: Nat, +hF: {C.fits(52n, Fr) == True{} : Bool}, +z: Bool, +hz: {Nat.is_eq(Fr, 0n) == z : Bool}) -> {SF.round(s, Fr, 1926n) == SF.encode(s, 0n, Fr) : F.F64}:
   match z:
     case True{}:
@@ -226,20 +241,16 @@ def rt_sub(+s: Bool, +Fr: Nat, +hF: {C.fits(52n, Fr) == True{} : Bool}, +z: Bool
       +emax = EX.max_le(A, 1926n, N.le_trans(B, 52n, 53n, hB, {==}))
       +e1 = Equal.cong(Bool, F.F64, b => SF.pick(F.F64, b, SF.zero(s), SF.round_u(s, Fr, 1926n, Nat.max(A, Nat.sub(SF.zb(), 1074n)))), Nat.is_eq(Fr, 0n), False{}, hz)
       +e2 = Equal.cong(Nat, F.F64, u => SF.round_u(s, Fr, 1926n, u), Nat.max(A, 1926n), 1926n, emax)
-      +f53 = SH.fits_mono(52n, 53n, Fr, {==}, hF)
-      +e3 = Equal.cong(Bool, F.F64, b => SF.pick(F.F64, b, SF.pack_n(s, Fr, 1926n), SF.pack_e(s, Nat.sub(Nat.add(1n+1926n, 1075n), SF.zb()), 0n)), C.fits(53n, Fr), True{}, f53)
-      +e4 = Equal.cong(Bool, F.F64, b => SF.pick(F.F64, b, SF.encode(s, 0n, Fr), SF.pack_e(s, Nat.sub(Nat.add(1926n, 1075n), SF.zb()), C.low(52n, Fr))), C.fits(52n, Fr), True{}, hF)
       +r1 = SF.round_u(s, Fr, 1926n, Nat.max(A, 1926n))
       +r2 = SF.round_u(s, Fr, 1926n, 1926n)
-      +r3 = SF.pack_n(s, Fr, 1926n)
-      Equal.trans(F.F64, SF.round(s, Fr, 1926n), r1, SF.encode(s, 0n, Fr), e1, Equal.trans(F.F64, r1, r2, SF.encode(s, 0n, Fr), e2, Equal.trans(F.F64, r2, r3, SF.encode(s, 0n, Fr), e3, e4)))
+      Equal.trans(F.F64, SF.round(s, Fr, 1926n), r1, SF.encode(s, 0n, Fr), e1, Equal.trans(F.F64, r1, r2, SF.encode(s, 0n, Fr), e2, ru_self(s, Fr, 1926n, hF)))
 
 def rt_norm(+s: Bool, +E: Nat, +Fr: Nat, +one: Nat, +h1: {one == 1n : Nat}, +hE0: {Nat.is_eq(E, 0n) == False{} : Bool}, +hE: {Nat.is_lt(E, 2047n) == True{} : Bool}, +hF: {C.fits(52n, Fr) == True{} : Bool}) -> {SF.round(s, Nat.add(Fr, C.shift(52n, one)), Nat.add(1925n, E)) == SF.encode(s, E, Fr) : F.F64}:
   +Mn = Nat.add(Fr, C.shift(52n, one))
   +X0 = Nat.add(1925n, E)
   +hz0 = Equal.trans(Bool, Nat.is_eq(Mn, 0n), Bool.and(Nat.is_eq(Fr, 0n), Nat.is_eq(one, 0n)), False{}, FB.z2(Fr, 52n, one), Equal.trans(Bool, Bool.and(Nat.is_eq(Fr, 0n), Nat.is_eq(one, 0n)), Bool.and(Nat.is_eq(Fr, 0n), False{}), False{}, Equal.cong(Nat, Bool, t => Bool.and(Nat.is_eq(Fr, 0n), Nat.is_eq(t, 0n)), one, 1n, h1), FR.and_f(Nat.is_eq(Fr, 0n))))
   +ebl = FR.bl_c(52n, Mn, AA.n52(one, h1, Fr), AA.f53(one, h1, Fr, hF), Nat.cmp(M.bit_length(Mn), 53n), {==})
-  +emx = FR.max_l(X0, 1926n, AF.nz_le(E, hE0))
+  +emx = FR.max_l(X0, 1926n, FL.nz_le(E, hE0))
   +e1 = Equal.cong(Bool, F.F64, b => SF.pick(F.F64, b, SF.zero(s), SF.round_u(s, Mn, X0, Nat.max(Nat.sub(Nat.add(X0, M.bit_length(Mn)), 53n), Nat.sub(SF.zb(), 1074n)))), Nat.is_eq(Mn, 0n), False{}, hz0)
   +e2 = Equal.cong(Nat, F.F64, t => SF.round_u(s, Mn, X0, Nat.max(Nat.sub(Nat.add(X0, t), 53n), 1926n)), M.bit_length(Mn), 53n, ebl)
   +e3 = Equal.cong(Nat, F.F64, t => SF.round_u(s, Mn, X0, Nat.max(t, 1926n)), Nat.sub(Nat.add(X0, 53n), 53n), X0, FR.sub_add_l(X0, 53n))
@@ -267,7 +278,7 @@ def rt_norm(+s: Bool, +E: Nat, +Fr: Nat, +one: Nat, +h1: {one == 1n : Nat}, +hE0
 def frac52(+x: F.F64) -> {C.fits(52n, SF.frac(x)) == True{} : Bool}:
   match x:
     case F.Bits{+xl, +xh}:
-      AF.hF(xl, xh)
+      FL.hF(xl, xh)
 
 def rt_c(+x: F.F64, +hfin: {Nat.is_lt(SF.efield(x), 2047n) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +z: Bool, +hz: {Nat.is_eq(SF.efield(x), 0n) == z : Bool}) -> {SF.round(SF.sign(x), SF.mant(x), SF.xexp(x)) == x : F.F64}:
   match z:
@@ -325,7 +336,7 @@ def xge_c(+x: F.F64, +c: Bool, +hc: {Nat.is_eq(SF.efield(x), 0n) == c : Bool}) -
     case True{}:
       {==}
     case False{}:
-      L.subst(Nat, t => {Nat.is_le(1926n, t) == True{} : Bool}, Nat.add(1925n, SF.efield(x)), Nat.sub(Nat.add(SF.efield(x), SF.zb()), 1075n), Equal.sym(Nat, Nat.sub(Nat.add(SF.efield(x), SF.zb()), 1075n), Nat.add(1925n, SF.efield(x)), FC.esub(SF.efield(x))), AF.nz_le(SF.efield(x), hc))
+      L.subst(Nat, t => {Nat.is_le(1926n, t) == True{} : Bool}, Nat.add(1925n, SF.efield(x)), Nat.sub(Nat.add(SF.efield(x), SF.zb()), 1075n), Equal.sym(Nat, Nat.sub(Nat.add(SF.efield(x), SF.zb()), 1075n), Nat.add(1925n, SF.efield(x)), FC.esub(SF.efield(x))), FL.nz_le(SF.efield(x), hc))
 
 def xge(+x: F.F64) -> {Nat.is_le(1926n, SF.xexp(x)) == True{} : Bool}:
   xge_c(x, Nat.is_eq(SF.efield(x), 0n), {==})
@@ -336,7 +347,7 @@ def yn_c(+x: F.F64, +y: F.F64, +hlt: {Nat.is_lt(SF.xexp(x), SF.xexp(y)) == True{
     case True{}:
       +h1 = L.subst(Bool, b => {Nat.is_lt(SF.xexp(x), SF.pick(Nat, b, Nat.sub(SF.zb(), 1074n), Nat.sub(Nat.add(SF.efield(y), SF.zb()), 1075n))) == True{} : Bool}, Nat.is_eq(SF.efield(y), 0n), True{}, hc, hlt)
       +h2 = N.le_not_lt(SF.xexp(x), 1926n, xge(x))
-      Empty.absurd({True{} == False{} : Bool}, UL.true_ne_false(Equal.trans(Bool, True{}, Nat.is_lt(SF.xexp(x), 1926n), False{}, Equal.sym(Bool, Nat.is_lt(SF.xexp(x), 1926n), True{}, h1), h2)))
+      Empty.absurd({True{} == False{} : Bool}, FL.true_ne_false(Equal.trans(Bool, True{}, Nat.is_lt(SF.xexp(x), 1926n), False{}, Equal.sym(Bool, Nat.is_lt(SF.xexp(x), 1926n), True{}, h1), h2)))
     case False{}:
       {==}
 
@@ -351,7 +362,7 @@ def far_lt(+x: F.F64, +y: F.F64, +hlt: {Nat.is_lt(SF.xexp(x), SF.xexp(y)) == Tru
   +hy = yn_c(x, y, hlt, Nat.is_eq(SF.efield(y), 0n), {==})
   +f1 = Equal.trans(Bool, C.fits(Nat.add(k, 52n), S), C.fits(52n, SF.mant(y)), False{}, RT.fits_sh(k, 52n, SF.mant(y)), nf52(y, hy))
   +h53 = Equal.trans(Bool, Nat.is_le(Nat.add(1n, 52n), Nat.add(k, 52n)), Nat.is_le(1n, k), True{}, FR.le_cancel_r(1n, k, 52n), hk)
-  +f2 = DF.nfit_mono(53n, Nat.add(k, 52n), S, h53, f1)
+  +f2 = FL.nfit_mono(53n, Nat.add(k, 52n), S, h53, f1)
   +l1 = Equal.trans(Bool, Nat.is_lt(SF.mant(x), C.shift(53n, one)), C.fits(53n, SF.mant(x)), True{}, FR.lt_fit(53n, one, h1, SF.mant(x)), T.mant_fits(x))
   +l2 = Equal.trans(Bool, Nat.is_le(C.shift(53n, one), S), Bool.not(C.fits(53n, S)), True{}, FB.le_fit(53n, one, h1, S), Equal.cong(Bool, Bool, b => Bool.not(b), C.fits(53n, S), False{}, f2))
   N.lt_le_trans(SF.mant(x), C.shift(53n, one), S, l1, l2)
@@ -380,7 +391,7 @@ def fm_zero(+x: F.F64, +y: F.F64, +hzx: {SF.is_zero(x) == True{} : Bool}, +hzy: 
   +em = N.eq_from_is_eq(SF.mant(x), 0n, Equal.trans(Bool, Nat.is_eq(SF.mant(x), 0n), SF.is_zero(x), True{}, T.mant_z(x), hzx))
   +a = Nat.sub(SF.xexp(x), SF.rsc(x, y))
   +rb = SF.rb(x, y)
-  +hmy = AF.nz_le(SF.mant(y), Equal.trans(Bool, Nat.is_eq(SF.mant(y), 0n), SF.is_zero(y), False{}, T.mant_z(y), hzy))
+  +hmy = FL.nz_le(SF.mant(y), Equal.trans(Bool, Nat.is_eq(SF.mant(y), 0n), SF.is_zero(y), False{}, T.mant_z(y), hzy))
   +hrb = N.succ_le_lt(0n, rb, N.le_trans(1n, SF.mant(y), rb, hmy, WW.shift_ge(Nat.sub(SF.xexp(y), SF.rsc(x, y)), SF.mant(y))))
   +e1 = Equal.cong(Nat, F.F64, t => SF.round(s, Nat.mod(C.shift(a, t), rb), SF.rsc(x, y)), SF.mant(x), 0n, em)
   +e2 = Equal.cong(Nat, F.F64, t => SF.round(s, Nat.mod(t, rb), SF.rsc(x, y)), C.shift(a, 0n), 0n, WW.shift_zero(a))
@@ -401,7 +412,7 @@ def ynz(+y: F.F64, +hzy: {SF.is_zero(y) == False{} : Bool}) -> {Nat.is_eq(SW.val
   Equal.trans(Bool, Nat.is_eq(SW.value(F.dmant(y)), 0n), SF.is_zero(y), False{}, T.dmz(y), hzy)
 
 def eBy(+y: F.F64, +hzy: {SF.is_zero(y) == False{} : Bool}) -> {SW.value(F.dmant(y)) == 1n+bpv(y) : Nat}:
-  Equal.sym(Nat, Nat.add(1n, bpv(y)), SW.value(F.dmant(y)), N.sub_add(SW.value(F.dmant(y)), 1n, AF.nz_le(SW.value(F.dmant(y)), ynz(y, hzy))))
+  Equal.sym(Nat, Nat.add(1n, bpv(y)), SW.value(F.dmant(y)), N.sub_add(SW.value(F.dmant(y)), 1n, FL.nz_le(SW.value(F.dmant(y)), ynz(y, hzy))))
 
 def hbzy(+y: F.F64, +hzy: {SF.is_zero(y) == False{} : Bool}) -> {X.is_zero(F.dmant(y)) == False{} : Bool}:
   Equal.trans(Bool, X.is_zero(F.dmant(y)), Nat.is_eq(SW.value(F.dmant(y)), 0n), False{}, WA.is_zero_value(F.dmant(y)), ynz(y, hzy))
@@ -612,7 +623,7 @@ def rnd_v(+x: F.F64, +y: F.F64) -> {RNd(F.signbit(x), F.dexp(x), F.dexp(y), SW.v
 def modlt(+n: Nat, +V: Nat, +hne: {Nat.is_eq(V, 0n) == False{} : Bool}) -> {Nat.is_lt(Nat.mod(n, V), V) == True{} : Bool}:
   match V:
     case 0n:
-      Empty.absurd({Nat.is_lt(Nat.mod(n, 0n), 0n) == True{} : Bool}, UL.true_ne_false(hne))
+      Empty.absurd({Nat.is_lt(Nat.mod(n, 0n), 0n) == True{} : Bool}, FL.true_ne_false(hne))
     case 1n+ +vp:
       MS.divmod_lt(n, vp)
 
@@ -673,9 +684,9 @@ def rm_one(+x: F.F64, +y: F.F64, +hlt: {Nat.is_lt(SF.xexp(x), SF.xexp(y)) == Tru
 def two_le(+k: Nat, +h1: {Nat.is_le(1n, k) == True{} : Bool}, +h2: {Nat.is_eq(k, 1n) == False{} : Bool}) -> {Nat.is_le(2n, k) == True{} : Bool}:
   match k:
     case 0n:
-      Empty.absurd({Nat.is_le(2n, 0n) == True{} : Bool}, UL.true_ne_false(Equal.sym(Bool, False{}, True{}, h1)))
+      Empty.absurd({Nat.is_le(2n, 0n) == True{} : Bool}, FL.true_ne_false(Equal.sym(Bool, False{}, True{}, h1)))
     case 1n:
-      Empty.absurd({Nat.is_le(2n, 1n) == True{} : Bool}, UL.true_ne_false(h2))
+      Empty.absurd({Nat.is_le(2n, 1n) == True{} : Bool}, FL.true_ne_false(h2))
     case 2n+ +kp:
       N.zero_le(kp)
 
@@ -686,7 +697,7 @@ def big54(+x: F.F64, +y: F.F64, +hlt: {Nat.is_lt(SF.xexp(x), SF.xexp(y)) == True
   +hk2 = two_le(k, FR.lt_sub_pos(SF.xexp(x), SF.xexp(y), hlt), hk)
   +f1 = Equal.trans(Bool, C.fits(Nat.add(k, 52n), S), C.fits(52n, SF.mant(y)), False{}, RT.fits_sh(k, 52n, SF.mant(y)), nf52(y, yn_c(x, y, hlt, Nat.is_eq(SF.efield(y), 0n), {==})))
   +h54 = Equal.trans(Bool, Nat.is_le(Nat.add(2n, 52n), Nat.add(k, 52n)), Nat.is_le(2n, k), True{}, FR.le_cancel_r(2n, k, 52n), hk2)
-  +f2 = DF.nfit_mono(54n, Nat.add(k, 52n), S, h54, f1)
+  +f2 = FL.nfit_mono(54n, Nat.add(k, 52n), S, h54, f1)
   +f3 = FR.fits_add1(53n, SF.mant(x), SF.mant(x), T.mant_fits(x), T.mant_fits(x))
   +l1 = Equal.trans(Bool, Nat.is_lt(m2, C.shift(54n, one)), C.fits(54n, m2), True{}, FR.lt_fit(54n, one, h1, m2), f3)
   +l2 = Equal.trans(Bool, Nat.is_le(C.shift(54n, one), S), Bool.not(C.fits(54n, S)), True{}, FB.le_fit(54n, one, h1, S), Equal.cong(Bool, Bool, b => Bool.not(b), C.fits(54n, S), False{}, f2))
@@ -713,12 +724,12 @@ def rm_zero(+x: F.F64, +y: F.F64, +hzx: {SF.is_zero(x) == True{} : Bool}, +hzy: 
   +a = Nat.sub(SF.xexp(x), SF.rsc(x, y))
   +rb = SF.rb(x, y)
   +u = SF.rsc(x, y)
-  +hmy = AF.nz_le(SF.mant(y), Equal.trans(Bool, Nat.is_eq(SF.mant(y), 0n), SF.is_zero(y), False{}, T.mant_z(y), hzy))
+  +hmy = FL.nz_le(SF.mant(y), Equal.trans(Bool, Nat.is_eq(SF.mant(y), 0n), SF.is_zero(y), False{}, T.mant_z(y), hzy))
   +hrb = N.succ_le_lt(0n, rb, N.le_trans(1n, SF.mant(y), rb, hmy, WW.shift_ge(Nat.sub(SF.xexp(y), SF.rsc(x, y)), SF.mant(y))))
   +e1 = Equal.cong(Nat, F.F64, t => SF.rnear(s, Nat.mod(C.shift(a, t), rb), rb, Nat.div(C.shift(a, t), rb), u), SF.mant(x), 0n, em)
   +e2 = Equal.cong(Nat, F.F64, t => SF.rnear(s, Nat.mod(t, rb), rb, Nat.div(t, rb), u), C.shift(a, 0n), 0n, WW.shift_zero(a))
   +e3 = Equal.cong(Nat, F.F64, t => SF.rnear(s, t, rb, Nat.div(0n, rb), u), Nat.mod(0n, rb), 0n, mod_small(0n, rb, hrb))
-  +e4 = Equal.cong(Nat, F.F64, t => SF.rnear(s, 0n, rb, t, u), Nat.div(0n, rb), 0n, div_small(0n, rb, N.succ_le_lt(0n, rb, N.le_trans(1n, SF.mant(y), rb, AF.nz_le(SF.mant(y), Equal.trans(Bool, Nat.is_eq(SF.mant(y), 0n), SF.is_zero(y), False{}, T.mant_z(y), hzy)), WW.shift_ge(Nat.sub(SF.xexp(y), SF.rsc(x, y)), SF.mant(y))))))
+  +e4 = Equal.cong(Nat, F.F64, t => SF.rnear(s, 0n, rb, t, u), Nat.div(0n, rb), 0n, div_small(0n, rb, N.succ_le_lt(0n, rb, N.le_trans(1n, SF.mant(y), rb, FL.nz_le(SF.mant(y), Equal.trans(Bool, Nat.is_eq(SF.mant(y), 0n), SF.is_zero(y), False{}, T.mant_z(y), hzy)), WW.shift_ge(Nat.sub(SF.xexp(y), SF.rsc(x, y)), SF.mant(y))))))
   +fl = or_ff(Nat.is_lt(rb, 0n), Bool.and(Nat.is_eq(0n, rb), False{}), N.not_lt_zero(rb), FR.and_f(Nat.is_eq(0n, rb)))
   +e5 = Equal.cong(Bool, F.F64, b => SF.pick(F.F64, b, SF.round(Bool.not(s), Nat.sub(rb, 0n), u), SF.round(s, 0n, u)), SF.rflip(0n, rb, 0n), False{}, fl)
   +e6 = Equal.cong(Nat, F.F64, t => SF.round(s, t, SF.xexp(x)), 0n, SF.mant(x), Equal.sym(Nat, SF.mant(x), 0n, N.eq_from_is_eq(SF.mant(x), 0n, Equal.trans(Bool, Nat.is_eq(SF.mant(x), 0n), SF.is_zero(x), True{}, T.mant_z(x), hzx))))

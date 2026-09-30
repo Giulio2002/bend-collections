@@ -1,4 +1,5 @@
 import Base
+import ./map_bridge.bend as MB
 import ./invariants.bend as Inv
 
 law splice_bit:
@@ -25,7 +26,7 @@ law deep_bit:
   for route: String & Bool
   for +parent: Nat
   for ordered: {Nat.is_lt(parent, position) == True{} : Bool}
-  {Inv.below(V, Map.ins.deep(&2, V, value, lo, hi, discriminator, position, route), parent) == True{} : Bool}
+  {Inv.below(V, MB.ins_deep(&2, V, value, lo, hi, discriminator, position, route), parent) == True{} : Bool}
 def deep_bit(V, value, lo, hi, discriminator, position, route, parent, ordered):
   match route:
     case Tuple{key, False{}}: ordered
@@ -43,7 +44,7 @@ law branch:
   for +parent: Nat
   for fresh: {Nat.is_lt(parent, discriminator) == True{} : Bool}
   for existing: {Nat.is_lt(parent, position) == True{} : Bool}
-  {Inv.below(V, Map.ins.if(&2, V, key, value, lo, hi, position, discriminator, descend), parent) == True{} : Bool}
+  {Inv.below(V, MB.ins_if(&2, V, key, value, lo, hi, position, discriminator, descend), parent) == True{} : Bool}
 def branch(V, key, value, lo, hi, position, discriminator, descend, parent, fresh, existing):
   match descend:
     case False{}:
@@ -57,7 +58,7 @@ law preserves_below:
   for -V: Data
   for tree: Map<&2, V>
   for +key: String
-  for value: V
+  for +value: V
   for +discriminator: Nat
   for +parent: Nat
   for fresh: {Nat.is_lt(parent, discriminator) == True{} : Bool}
@@ -68,5 +69,6 @@ def preserves_below(V, tree, key, value, discriminator, parent, fresh, existing)
     case MTip{}: {==}
     case MLeaf{stored, old}:
       splice_bit(V, value, MLeaf{stored, old}, discriminator, Map.bit(key, discriminator), parent, fresh)
-    case MNode{+position, lo, hi}:
+    case MNode{+position, +lo, +hi}:
+      %Equal.sym(Map<&2, V>, Map.ins(&2, V, MNode{position, lo, hi}, key, value, discriminator), MB.ins_if(&2, V, key, value, lo, hi, position, discriminator, Nat.is_lt(position, discriminator)), MB.ins_node(&2, V, position, lo, hi, key, value, discriminator)) : {Inv.below(V, _, parent) == True{} : Bool}
       branch(V, key, value, lo, hi, position, discriminator, Nat.is_lt(position, discriminator), parent, fresh, existing)

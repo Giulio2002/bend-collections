@@ -12,16 +12,13 @@ import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ./width.bend as WW
 import ./w64add.bend as WA
 import ./w64sh.bend as SH
-import ./u64laws.bend as UL
 import ./f64bits.bend as FB
+import ./f64light.bend as FL
 import ./f64round.bend as FR
 import ./f64rtools.bend as RT
 import ./f64norm.bend as NM
 import ./f64nrp.bend as NR
-import ./f64adda.bend as AA
-import ./f64addf.bend as AF
 import ./f64cmp.bend as FC
-import ./f64divf.bend as DF
 import ./natcmp.bend as NC
 import ../../lib/word.bend as WD
 
@@ -46,8 +43,11 @@ def dz(+E: Nat, +z: Bool) -> {F.dexp_z(E, z) == SF.pick(Nat, z, Nat.sub(SF.zb(),
 def dexp_value(+x: F.F64) -> {F.dexp(x) == SF.xexp(x) : Nat}:
   match x:
     case F.Bits{+xl, +xh}:
-      +e1 = Equal.cong(Nat, Nat, t => F.dexp_z(t, Nat.is_eq(t, 0n)), F.exp_field(F.Bits{xl, xh}), SF.efield(F.Bits{xl, xh}), AF.hea(xl, xh))
+      +e1 = Equal.cong(Nat, Nat, t => F.dexp_z(t, Nat.is_eq(t, 0n)), F.exp_field(F.Bits{xl, xh}), SF.efield(F.Bits{xl, xh}), FL.hea(xl, xh))
       Equal.trans(Nat, F.dexp(F.Bits{xl, xh}), F.dexp_z(SF.efield(F.Bits{xl, xh}), Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n)), SF.xexp(F.Bits{xl, xh}), e1, dz(SF.efield(F.Bits{xl, xh}), Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n)))
+
+def dmf(+f: WU.U64) -> {SW.value(F.dmant_z(f, False{})) == SW.value(X.add(f, WU.U64{0, 1048576})) : Nat}:
+  {==}
 
 def dm(+one: Nat, +h1: {one == 1n : Nat}, +f: WU.U64, +Fr: Nat, +hf: {SW.value(f) == Fr : Nat}, +hF: {C.fits(52n, Fr) == True{} : Bool}, +z: Bool) -> {SW.value(F.dmant_z(f, z)) == Nat.add(Fr, C.shift(52n, SF.b2n(Bool.not(z)))) : Nat}:
   match z:
@@ -58,14 +58,21 @@ def dm(+one: Nat, +h1: {one == 1n : Nat}, +f: WU.U64, +Fr: Nat, +hf: {SW.value(f
       +hFf = L.subst(Nat, t => {C.fits(52n, t) == True{} : Bool}, Fr, SW.value(f), Equal.sym(Nat, SW.value(f), Fr, hf), hF)
       +e1 = NM.hid(one, h1, f, hFf, 1048576, {==})
       +e2 = Equal.cong(Nat, Nat, t => Nat.add(t, C.shift(52n, one)), SW.value(f), Fr, hf)
-      +e3 = Equal.cong(Nat, Nat, t => Nat.add(Fr, C.shift(52n, t)), one, 1n, h1)
-      Equal.trans(Nat, SW.value(X.add(f, WU.U64{0, 1048576})), Nat.add(SW.value(f), C.shift(52n, one)), Nat.add(Fr, C.shift(52n, 1n)), e1, Equal.trans(Nat, Nat.add(SW.value(f), C.shift(52n, one)), Nat.add(Fr, C.shift(52n, one)), Nat.add(Fr, C.shift(52n, 1n)), e2, e3))
+      # the hidden bit stays `one` / `b2n(not False)`: the checker never
+      # meets the closed 2^52
+      +eo = Equal.trans(Nat, one, 1n, SF.b2n(Bool.not(False{})), h1, {==})
+      +e3 = Equal.cong(Nat, Nat, t => Nat.add(Fr, C.shift(52n, t)), one, SF.b2n(Bool.not(False{})), eo)
+      # the implementation's side unfolds on its own (dmant_z), the spec's
+      # side is the goal's term as written, so the conversion is syntactic
+      +e4 = Equal.trans(Nat, SW.value(X.add(f, WU.U64{0, 1048576})), Nat.add(SW.value(f), C.shift(52n, one)), Nat.add(Fr, C.shift(52n, SF.b2n(Bool.not(False{})))), e1, Equal.trans(Nat, Nat.add(SW.value(f), C.shift(52n, one)), Nat.add(Fr, C.shift(52n, one)), Nat.add(Fr, C.shift(52n, SF.b2n(Bool.not(False{})))), e2, e3))
+      +e5 = dmf(f)
+      Equal.trans(Nat, SW.value(F.dmant_z(f, False{})), SW.value(X.add(f, WU.U64{0, 1048576})), Nat.add(Fr, C.shift(52n, SF.b2n(Bool.not(False{})))), e5, e4)
 
 def dmant_value(+x: F.F64) -> {SW.value(F.dmant(x)) == SF.mant(x) : Nat}:
   match x:
     case F.Bits{+xl, +xh}:
-      +e1 = Equal.cong(Nat, Nat, t => SW.value(F.dmant_z(F.frac(F.Bits{xl, xh}), Nat.is_eq(t, 0n))), F.exp_field(F.Bits{xl, xh}), SF.efield(F.Bits{xl, xh}), AF.hea(xl, xh))
-      Equal.trans(Nat, SW.value(F.dmant(F.Bits{xl, xh})), SW.value(F.dmant_z(F.frac(F.Bits{xl, xh}), Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n))), SF.mant(F.Bits{xl, xh}), e1, dm(1n, {==}, F.frac(F.Bits{xl, xh}), SF.frac(F.Bits{xl, xh}), AF.hfr(xl, xh), AF.hF(xl, xh), Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n)))
+      +e1 = Equal.cong(Nat, Nat, t => SW.value(F.dmant_z(F.frac(F.Bits{xl, xh}), Nat.is_eq(t, 0n))), F.exp_field(F.Bits{xl, xh}), SF.efield(F.Bits{xl, xh}), FL.hea(xl, xh))
+      Equal.trans(Nat, SW.value(F.dmant(F.Bits{xl, xh})), SW.value(F.dmant_z(F.frac(F.Bits{xl, xh}), Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n))), SF.mant(F.Bits{xl, xh}), e1, dm(1n, {==}, F.frac(F.Bits{xl, xh}), SF.frac(F.Bits{xl, xh}), FL.hfr(xl, xh), FL.hF(xl, xh), Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n)))
 
 def b2n_fits(+b: Bool) -> {C.fits(1n, SF.b2n(b)) == True{} : Bool}:
   match b:
@@ -78,7 +85,7 @@ def b2n_fits(+b: Bool) -> {C.fits(1n, SF.b2n(b)) == True{} : Bool}:
 def mant_fits(+x: F.F64) -> {C.fits(53n, SF.mant(x)) == True{} : Bool}:
   match x:
     case F.Bits{+xl, +xh}:
-      WW.limbs_fit(52n, 1n, SF.frac(F.Bits{xl, xh}), SF.b2n(Bool.not(Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n))), AF.hF(xl, xh), b2n_fits(Bool.not(Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n))))
+      WW.limbs_fit(52n, 1n, SF.frac(F.Bits{xl, xh}), SF.b2n(Bool.not(Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n))), FL.hF(xl, xh), b2n_fits(Bool.not(Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n))))
 
 # ---- round_w ----
 
@@ -112,9 +119,9 @@ def rw_hi(+one: Nat, +h1: {one == 1n : Nat}, +s: Bool, +x: Nat, +w: WU.U64, +hx:
   ej1 = SH.shr_jam_value(w, 1n)
   ej2 = SH.shr_jam_value(w, 1n)
   ej3 = SH.shr_jam_value(w, 1n)
-  +fh = Equal.trans(Bool, C.fits(63n, C.high(1n, V)), C.fits(64n, V), True{}, Equal.sym(Bool, C.fits(64n, V), C.fits(63n, C.high(1n, V)), FR.fits_hc(1n, 63n, V)), UL.vb(w))
+  +fh = Equal.trans(Bool, C.fits(63n, C.high(1n, V)), C.fits(64n, V), True{}, Equal.sym(Bool, C.fits(64n, V), C.fits(63n, C.high(1n, V)), FR.fits_hc(1n, 63n, V)), FL.vb64(w))
   +fJ = Equal.trans(Bool, C.fits(63n, J), C.fits(63n, C.high(1n, V)), True{}, RT.jam_fits(62n, C.high(1n, V), C.low(1n, V)), fh)
-  +nh = DF.nfit_mono(1n, 63n, V, {==}, hnf)
+  +nh = FL.nfit_mono(1n, 63n, V, {==}, hnf)
   +nzJ = nz_mono(C.high(1n, V), J, le_jam(C.high(1n, V), C.low(1n, V)), nh)
   +h63 = L.subst(Nat, t => {C.fits(63n, t) == True{} : Bool}, J, SW.value(X.shr_jam(w, 1n)), Equal.sym(Nat, SW.value(X.shr_jam(w, 1n)), J, ej1), fJ)
   +hz = L.subst(Nat, t => {Nat.is_eq(t, 0n) == False{} : Bool}, J, SW.value(X.shr_jam(w, 1n)), Equal.sym(Nat, SW.value(X.shr_jam(w, 1n)), J, ej2), nzJ)
@@ -122,7 +129,7 @@ def rw_hi(+one: Nat, +h1: {one == 1n : Nat}, +s: Bool, +x: Nat, +w: WU.U64, +hx:
   +ex = NA.add_assoc(x, 1n, 2180n)
   +r1 = NR.nrp(one, h1, s, Nat.add(x, 2181n), X.shr_jam(w, 1n), Nat.add(x, 1n), ex, hz, h63, hx1)
   +r2 = Equal.cong(Nat, F.F64, t => SF.round(s, t, Nat.add(x, 1n)), SW.value(X.shr_jam(w, 1n)), J, ej3)
-  +hb = N.le_trans(56n, 64n, M.bit_length(V), {==}, AA.nfit_bl(63n, V, hnf))
+  +hb = N.le_trans(56n, 64n, M.bit_length(V), {==}, FL.nfit_bl(63n, V, hnf))
   +r3 = RT.round_jam(s, 1n, V, x, hb)
   Equal.trans(F.F64, F.norm_round_pack(s, Nat.add(x, 2181n), X.shr_jam(w, 1n)), SF.round(s, SW.value(X.shr_jam(w, 1n)), Nat.add(x, 1n)), SF.round(s, V, x), r1, Equal.trans(F.F64, SF.round(s, SW.value(X.shr_jam(w, 1n)), Nat.add(x, 1n)), SF.round(s, J, Nat.add(x, 1n)), SF.round(s, V, x), r2, Equal.sym(F.F64, SF.round(s, V, x), SF.round(s, J, Nat.add(x, 1n)), r3)))
 
@@ -164,12 +171,12 @@ def rw_value(+s: Bool, +x: Nat, +w: WU.U64, +hx: {Nat.is_le(63n, x) == True{} : 
 def ea(+x: F.F64) -> {F.exp_field(x) == SF.efield(x) : Nat}:
   match x:
     case F.Bits{+xl, +xh}:
-      AF.hea(xl, xh)
+      FL.hea(xl, xh)
 
 def fz(+x: F.F64) -> {X.is_zero(F.frac(x)) == Nat.is_eq(SF.frac(x), 0n) : Bool}:
   match x:
     case F.Bits{+xl, +xh}:
-      Equal.trans(Bool, X.is_zero(F.frac(F.Bits{xl, xh})), Nat.is_eq(SW.value(F.frac(F.Bits{xl, xh})), 0n), Nat.is_eq(SF.frac(F.Bits{xl, xh}), 0n), WA.is_zero_value(F.frac(F.Bits{xl, xh})), Equal.cong(Nat, Bool, t => Nat.is_eq(t, 0n), SW.value(F.frac(F.Bits{xl, xh})), SF.frac(F.Bits{xl, xh}), AF.hfr(xl, xh)))
+      Equal.trans(Bool, X.is_zero(F.frac(F.Bits{xl, xh})), Nat.is_eq(SW.value(F.frac(F.Bits{xl, xh})), 0n), Nat.is_eq(SF.frac(F.Bits{xl, xh}), 0n), WA.is_zero_value(F.frac(F.Bits{xl, xh})), Equal.cong(Nat, Bool, t => Nat.is_eq(t, 0n), SW.value(F.frac(F.Bits{xl, xh})), SF.frac(F.Bits{xl, xh}), FL.hfr(xl, xh)))
 
 # the scale of a finite double is at least 1926 (the subnormal scale)
 def dge_z(+e: Nat, +z: Bool) -> {Nat.is_le(63n, F.dexp_z(e, z)) == True{} : Bool}:

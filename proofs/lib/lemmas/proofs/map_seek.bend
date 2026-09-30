@@ -1,6 +1,6 @@
 import Base
 import ./map_insert.bend as I
-import ./native_map.bend as N
+import ./string_compare.bend as N
 import ./map_shape.bend as Shape
 
 # Successful lookup and seek traverse the actual same native routing path.

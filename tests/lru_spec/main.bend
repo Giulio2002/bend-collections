@@ -222,4 +222,4 @@ def go(+a: List<&2, String>) -> List<&2, String>:
 def main() -> IO(Unit):
   do IO<Unit>:
     args : List<String> <- IO.args()
-    X.print_lines(go(X.shared(args)))
+    X.print_lines(go(X.program_args(args)))

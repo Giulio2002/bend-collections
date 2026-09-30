@@ -34,7 +34,7 @@ def shift_carry(+bp: Nat, +n: Nat, +m: Nat, +r: Nat, inv: {Nat.add(0n, r) == bp 
   A.add_succ(Nat.add(m, bp), n)
 
 def go_equation(bp: Nat, n: Nat, m: Nat, d: Nat, r: Nat) -> Type:
-  {Nat.add(Nat.add(Nat.mul(d, 1n+bp), r), n) == Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(n, m, d, r)), 1n+bp), Nat.mod.fin(Nat.divmod.go(n, m, d, r))) : Nat} & {Nat.is_le(Nat.mod.fin(Nat.divmod.go(n, m, d, r)), bp) == True{} : Bool}
+  {Nat.add(Nat.add(Nat.mul(d, 1n+bp), r), n) == Nat.add(Nat.mul(Pair.fst(Nat, Nat, Nat.divmod.go(n, m, d, r)), 1n+bp), Pair.snd(Nat, Nat, Nat.divmod.go(n, m, d, r))) : Nat} & {Nat.is_le(Pair.snd(Nat, Nat, Nat.divmod.go(n, m, d, r)), bp) == True{} : Bool}
 
 def bound_zero(+bp: Nat, +m: Nat, +r: Nat, inv: {Nat.add(m, r) == bp : Nat}) -> {Nat.is_le(r, bp) == True{} : Bool}:
   %inv : {Nat.is_le(r, _) == True{} : Bool}
@@ -53,9 +53,9 @@ def go(+bp: Nat, n: Nat, m: Nat, +d: Nat, +r: Nat, +inv: {Nat.add(m, r) == bp : 
     case 1n++np:
       match m:
         case 0n:
-          extend(Nat.add(Nat.add(Nat.mul(d, 1n+bp), r), 1n+np), Nat.add(Nat.add(Nat.mul(1n+d, 1n+bp), 0n), np), Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(np, r, 1n+d, 0n)), 1n+bp), Nat.mod.fin(Nat.divmod.go(np, r, 1n+d, 0n))), {Nat.is_le(Nat.mod.fin(Nat.divmod.go(np, r, 1n+d, 0n)), bp) == True{} : Bool}, shift_carry(bp, np, Nat.mul(d, 1n+bp), r, inv), go(bp, np, r, 1n+d, 0n, Equal.trans(Nat, Nat.add(r, 0n), r, bp, A.add_zero(r), inv)))
+          extend(Nat.add(Nat.add(Nat.mul(d, 1n+bp), r), 1n+np), Nat.add(Nat.add(Nat.mul(1n+d, 1n+bp), 0n), np), Nat.add(Nat.mul(Pair.fst(Nat, Nat, Nat.divmod.go(np, r, 1n+d, 0n)), 1n+bp), Pair.snd(Nat, Nat, Nat.divmod.go(np, r, 1n+d, 0n))), {Nat.is_le(Pair.snd(Nat, Nat, Nat.divmod.go(np, r, 1n+d, 0n)), bp) == True{} : Bool}, shift_carry(bp, np, Nat.mul(d, 1n+bp), r, inv), go(bp, np, r, 1n+d, 0n, Equal.trans(Nat, Nat.add(r, 0n), r, bp, A.add_zero(r), inv)))
         case 1n++mp:
-          extend(Nat.add(Nat.add(Nat.mul(d, 1n+bp), r), 1n+np), Nat.add(Nat.add(Nat.mul(d, 1n+bp), 1n+r), np), Nat.add(Nat.mul(Nat.div.fin(Nat.divmod.go(np, mp, d, 1n+r)), 1n+bp), Nat.mod.fin(Nat.divmod.go(np, mp, d, 1n+r))), {Nat.is_le(Nat.mod.fin(Nat.divmod.go(np, mp, d, 1n+r)), bp) == True{} : Bool}, shift_count(Nat.mul(d, 1n+bp), r, np), go(bp, np, mp, d, 1n+r, Equal.trans(Nat, Nat.add(mp, 1n+r), 1n+Nat.add(mp, r), bp, A.add_succ(mp, r), inv)))
+          extend(Nat.add(Nat.add(Nat.mul(d, 1n+bp), r), 1n+np), Nat.add(Nat.add(Nat.mul(d, 1n+bp), 1n+r), np), Nat.add(Nat.mul(Pair.fst(Nat, Nat, Nat.divmod.go(np, mp, d, 1n+r)), 1n+bp), Pair.snd(Nat, Nat, Nat.divmod.go(np, mp, d, 1n+r))), {Nat.is_le(Pair.snd(Nat, Nat, Nat.divmod.go(np, mp, d, 1n+r)), bp) == True{} : Bool}, shift_count(Nat.mul(d, 1n+bp), r, np), go(bp, np, mp, d, 1n+r, Equal.trans(Nat, Nat.add(mp, 1n+r), 1n+Nat.add(mp, r), bp, A.add_succ(mp, r), inv)))
 
 # v == 2*(v/2) + v%2 and v%2 <= 1, for the actual Nat.divmod.
 def half(+v: Nat) -> {Nat.add(Nat.add(Nat.mul(0n, 2n), 0n), v) == Nat.add(Nat.mul(Nat.div(v, 2n), 2n), Nat.mod(v, 2n)) : Nat} & {Nat.is_le(Nat.mod(v, 2n), 1n) == True{} : Bool}:

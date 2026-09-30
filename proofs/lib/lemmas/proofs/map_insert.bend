@@ -1,4 +1,5 @@
 import Base
+import ./map_bridge.bend as MB
 import ./native_map.bend as N
 
 # Projections of actual native results; no alternative lookup algorithm.
@@ -53,28 +54,30 @@ def high_value(V, p, lo, r):
 
 law node_left:
   for -V: Data
-  for d: V
-  for lo: Map<&2, V>
-  for hi: Map<&2, V>
-  for p: Nat
-  for key: String
+  for +d: V
+  for +lo: Map<&2, V>
+  for +hi: Map<&2, V>
+  for +p: Nat
+  for +key: String
   for e: {Map.bit(key, p) == (key, False{}) : String & Bool}
   {lookup(V, d, MNode{p, lo, hi}, key) == lookup(V, d, lo, key) : V}
 def node_left(V, d, lo, hi, p, key, e):
-  %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {value(V, Map.get.bit(V, d, lo, hi, p, _)) == lookup(V, d, lo, key) : V}
+  %Equal.sym(Map<&2, V> & V, Map.get(V, d, MNode{p, lo, hi}, key), MB.get_bit(V, d, lo, hi, p, Map.bit(key, p)), MB.get_node(V, d, p, lo, hi, key)) : {value(V, _) == lookup(V, d, lo, key) : V}
+  %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {value(V, MB.get_bit(V, d, lo, hi, p, _)) == lookup(V, d, lo, key) : V}
   low_value(V, p, hi, Map.get(V, d, lo, key))
 
 law node_right:
   for -V: Data
-  for d: V
-  for lo: Map<&2, V>
-  for hi: Map<&2, V>
-  for p: Nat
-  for key: String
+  for +d: V
+  for +lo: Map<&2, V>
+  for +hi: Map<&2, V>
+  for +p: Nat
+  for +key: String
   for e: {Map.bit(key, p) == (key, True{}) : String & Bool}
   {lookup(V, d, MNode{p, lo, hi}, key) == lookup(V, d, hi, key) : V}
 def node_right(V, d, lo, hi, p, key, e):
-  %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {value(V, Map.get.bit(V, d, lo, hi, p, _)) == lookup(V, d, hi, key) : V}
+  %Equal.sym(Map<&2, V> & V, Map.get(V, d, MNode{p, lo, hi}, key), MB.get_bit(V, d, lo, hi, p, Map.bit(key, p)), MB.get_node(V, d, p, lo, hi, key)) : {value(V, _) == lookup(V, d, hi, key) : V}
+  %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {value(V, MB.get_bit(V, d, lo, hi, p, _)) == lookup(V, d, hi, key) : V}
   high_value(V, p, lo, Map.get(V, d, hi, key))
 
 law leaf_same:
@@ -128,7 +131,7 @@ law deep_same_bit:
   for e: {Map.bit(key, q) == (key, bit) : String & Bool}
   for lp: {lookup(V, d, Map.ins(&2, V, lo, key, x, p), key) == x : V}
   for hp: {lookup(V, d, Map.ins(&2, V, hi, key, x, p), key) == x : V}
-  {lookup(V, d, Map.ins.deep(&2, V, x, lo, hi, p, q, (key, bit)), key) == x : V}
+  {lookup(V, d, MB.ins_deep(&2, V, x, lo, hi, p, q, (key, bit)), key) == x : V}
 def deep_same_bit(V, d, x, lo, hi, p, q, key, bit, e, lp, hp):
   match bit:
     case False{}:
@@ -148,13 +151,13 @@ law insertion_branch_same:
   for descend: Bool
   for lp: {lookup(V, d, Map.ins(&2, V, lo, key, x, p), key) == x : V}
   for hp: {lookup(V, d, Map.ins(&2, V, hi, key, x, p), key) == x : V}
-  {lookup(V, d, Map.ins.if(&2, V, key, x, lo, hi, q, p, descend), key) == x : V}
+  {lookup(V, d, MB.ins_if(&2, V, key, x, lo, hi, q, p, descend), key) == x : V}
 def insertion_branch_same(V, d, x, lo, hi, p, q, key, descend, lp, hp):
   match descend:
     case False{}:
       splice_same(V, d, x, MNode{q, lo, hi}, p, key)
     case True{}:
-      %Equal.sym(String & Bool, Map.bit(key, q), (key, route_bit(Map.bit(key, q))), route_shape(key, q)) : {lookup(V, d, Map.ins.deep(&2, V, x, lo, hi, p, q, _), key) == x : V}
+      %Equal.sym(String & Bool, Map.bit(key, q), (key, route_bit(Map.bit(key, q))), route_shape(key, q)) : {lookup(V, d, MB.ins_deep(&2, V, x, lo, hi, p, q, _), key) == x : V}
       deep_same_bit(V, d, x, lo, hi, p, q, key, route_bit(Map.bit(key, q)), route_shape(key, q), lp, hp)
 
 # This actual native insertion law needs no well-formedness assumption: querying
@@ -175,6 +178,7 @@ def insertion_same(V, d, m, key, x, p):
     case MLeaf{k, v}:
       splice_same(V, d, x, MLeaf{k, v}, p, key)
     case MNode{+q, +lo, +hi}:
+      %Equal.sym(Map<&2, V>, Map.ins(&2, V, MNode{q, lo, hi}, key, x, p), MB.ins_if(&2, V, key, x, lo, hi, q, p, Nat.is_lt(q, p)), MB.ins_node(&2, V, q, lo, hi, key, x, p)) : {lookup(V, d, _, key) == x : V}
       insertion_branch_same(V, d, x, lo, hi, p, q, key, Nat.is_lt(q, p), insertion_same(V, d, lo, key, x, p), insertion_same(V, d, hi, key, x, p))
 
 def seek_found(-V: Data, r: Map<&2, V> & String & Maybe<&2, String>) -> Maybe<&2, String>:
@@ -205,54 +209,58 @@ def seek_high_found(V, p, lo, r):
 
 law seek_left:
   for -V: Data
-  for lo: Map<&2, V>
-  for hi: Map<&2, V>
-  for p: Nat
-  for key: String
+  for +lo: Map<&2, V>
+  for +hi: Map<&2, V>
+  for +p: Nat
+  for +key: String
   for e: {Map.bit(key, p) == (key, False{}) : String & Bool}
   {seek_found(V, Map.seek(&2, V, MNode{p, lo, hi}, key)) == seek_found(V, Map.seek(&2, V, lo, key)) : Maybe<&2, String>}
 def seek_left(V, lo, hi, p, key, e):
-  %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {seek_found(V, Map.seek.bit(&2, V, lo, hi, p, _)) == seek_found(V, Map.seek(&2, V, lo, key)) : Maybe<&2, String>}
+  %Equal.sym(Map<&2, V> & String & Maybe<&2, String>, Map.seek(&2, V, MNode{p, lo, hi}, key), MB.seek_bit(&2, V, lo, hi, p, Map.bit(key, p)), MB.seek_node(&2, V, p, lo, hi, key)) : {seek_found(V, _) == seek_found(V, Map.seek(&2, V, lo, key)) : Maybe<&2, String>}
+  %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {seek_found(V, MB.seek_bit(&2, V, lo, hi, p, _)) == seek_found(V, Map.seek(&2, V, lo, key)) : Maybe<&2, String>}
   seek_low_found(V, p, hi, Map.seek(&2, V, lo, key))
 
 law seek_right:
   for -V: Data
-  for lo: Map<&2, V>
-  for hi: Map<&2, V>
-  for p: Nat
-  for key: String
+  for +lo: Map<&2, V>
+  for +hi: Map<&2, V>
+  for +p: Nat
+  for +key: String
   for e: {Map.bit(key, p) == (key, True{}) : String & Bool}
   {seek_found(V, Map.seek(&2, V, MNode{p, lo, hi}, key)) == seek_found(V, Map.seek(&2, V, hi, key)) : Maybe<&2, String>}
 def seek_right(V, lo, hi, p, key, e):
-  %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {seek_found(V, Map.seek.bit(&2, V, lo, hi, p, _)) == seek_found(V, Map.seek(&2, V, hi, key)) : Maybe<&2, String>}
+  %Equal.sym(Map<&2, V> & String & Maybe<&2, String>, Map.seek(&2, V, MNode{p, lo, hi}, key), MB.seek_bit(&2, V, lo, hi, p, Map.bit(key, p)), MB.seek_node(&2, V, p, lo, hi, key)) : {seek_found(V, _) == seek_found(V, Map.seek(&2, V, hi, key)) : Maybe<&2, String>}
+  %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {seek_found(V, MB.seek_bit(&2, V, lo, hi, p, _)) == seek_found(V, Map.seek(&2, V, hi, key)) : Maybe<&2, String>}
   seek_high_found(V, p, lo, Map.seek(&2, V, hi, key))
 
 law replace_left:
   for -V: Data
   for d: V
-  for lo: Map<&2, V>
-  for hi: Map<&2, V>
+  for +lo: Map<&2, V>
+  for +hi: Map<&2, V>
   for +p: Nat
   for +key: String
-  for x: V
+  for +x: V
   for +e: {Map.bit(key, p) == (key, False{}) : String & Bool}
   {lookup(V, d, Map.put(&2, V, MNode{p, lo, hi}, key, x), key) == lookup(V, d, Map.put(&2, V, lo, key, x), key) : V}
 def replace_left(V, d, lo, hi, p, key, x, e):
-  %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {lookup(V, d, Map.put.bit(&2, V, x, p, lo, hi, _), key) == lookup(V, d, Map.put(&2, V, lo, key, x), key) : V}
+  %Equal.sym(Map<&2, V>, Map.put(&2, V, MNode{p, lo, hi}, key, x), MB.put_bit(&2, V, x, p, lo, hi, Map.bit(key, p)), MB.put_node(&2, V, x, p, lo, hi, key)) : {lookup(V, d, _, key) == lookup(V, d, Map.put(&2, V, lo, key, x), key) : V}
+  %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {lookup(V, d, MB.put_bit(&2, V, x, p, lo, hi, _), key) == lookup(V, d, Map.put(&2, V, lo, key, x), key) : V}
   node_left(V, d, Map.put(&2, V, lo, key, x), hi, p, key, e)
 
 law replace_right:
   for -V: Data
   for d: V
-  for lo: Map<&2, V>
-  for hi: Map<&2, V>
+  for +lo: Map<&2, V>
+  for +hi: Map<&2, V>
   for +p: Nat
   for +key: String
-  for x: V
+  for +x: V
   for +e: {Map.bit(key, p) == (key, True{}) : String & Bool}
   {lookup(V, d, Map.put(&2, V, MNode{p, lo, hi}, key, x), key) == lookup(V, d, Map.put(&2, V, hi, key, x), key) : V}
 def replace_right(V, d, lo, hi, p, key, x, e):
-  %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {lookup(V, d, Map.put.bit(&2, V, x, p, lo, hi, _), key) == lookup(V, d, Map.put(&2, V, hi, key, x), key) : V}
+  %Equal.sym(Map<&2, V>, Map.put(&2, V, MNode{p, lo, hi}, key, x), MB.put_bit(&2, V, x, p, lo, hi, Map.bit(key, p)), MB.put_node(&2, V, x, p, lo, hi, key)) : {lookup(V, d, _, key) == lookup(V, d, Map.put(&2, V, hi, key, x), key) : V}
+  %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {lookup(V, d, MB.put_bit(&2, V, x, p, lo, hi, _), key) == lookup(V, d, Map.put(&2, V, hi, key, x), key) : V}
   node_right(V, d, lo, Map.put(&2, V, hi, key, x), p, key, e)
 
 def replacement_certificate(-V: Data, d: V, m: Map<&2, V>, key: String, x: V, found: Maybe<&2, String>) -> Type:
@@ -370,7 +378,7 @@ law seek_branch_shape:
   for -V: Data
   for +lo: Map<&2, V>
   for +hi: Map<&2, V>
-  for p: Nat
+  for +p: Nat
   for +key: String
   for +bit: Bool
   for e: {Map.bit(key, p) == (key, bit) : String & Bool}
@@ -380,10 +388,12 @@ law seek_branch_shape:
 def seek_branch_shape(V, lo, hi, p, key, bit, e, lp, hp):
   match bit:
     case False{}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {Map.seek.bit(&2, V, lo, hi, p, _) == (MNode{p, lo, hi}, key, seek_found(V, Map.seek.bit(&2, V, lo, hi, p, _))) : Map<&2, V> & String & Maybe<&2, String>}
+      %Equal.sym(Map<&2, V> & String & Maybe<&2, String>, Map.seek(&2, V, MNode{p, lo, hi}, key), MB.seek_bit(&2, V, lo, hi, p, Map.bit(key, p)), MB.seek_node(&2, V, p, lo, hi, key)) : {_ == (MNode{p, lo, hi}, key, seek_found(V, _)) : Map<&2, V> & String & Maybe<&2, String>}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {MB.seek_bit(&2, V, lo, hi, p, _) == (MNode{p, lo, hi}, key, seek_found(V, MB.seek_bit(&2, V, lo, hi, p, _))) : Map<&2, V> & String & Maybe<&2, String>}
       seek_low_shape(V, p, lo, hi, key, Map.seek(&2, V, lo, key), lp)
     case True{}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {Map.seek.bit(&2, V, lo, hi, p, _) == (MNode{p, lo, hi}, key, seek_found(V, Map.seek.bit(&2, V, lo, hi, p, _))) : Map<&2, V> & String & Maybe<&2, String>}
+      %Equal.sym(Map<&2, V> & String & Maybe<&2, String>, Map.seek(&2, V, MNode{p, lo, hi}, key), MB.seek_bit(&2, V, lo, hi, p, Map.bit(key, p)), MB.seek_node(&2, V, p, lo, hi, key)) : {_ == (MNode{p, lo, hi}, key, seek_found(V, _)) : Map<&2, V> & String & Maybe<&2, String>}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {MB.seek_bit(&2, V, lo, hi, p, _) == (MNode{p, lo, hi}, key, seek_found(V, MB.seek_bit(&2, V, lo, hi, p, _))) : Map<&2, V> & String & Maybe<&2, String>}
       seek_high_shape(V, p, lo, hi, key, Map.seek(&2, V, hi, key), hp)
 
 law seek_shape:

@@ -1,6 +1,7 @@
 import Base
+import ./map_bridge.bend as MB
 import ./map_insert.bend as I
-import ./native_map.bend as N
+import ./string_compare.bend as N
 
 # Value erasure records the existing native tree's full discriminators and keys.
 # It is a proof observation, never a lookup or runtime storage representation.
@@ -38,7 +39,8 @@ def lift_left(V, lo, hi, p, key, x, found, e, cp):
     case None{}:
       Unit{}
     case Some{stored}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {skeleton(V, Map.put.bit(&2, V, x, p, lo, hi, _)) == skeleton(V, MNode{p, lo, hi}) : Map<&2, Unit>}
+      %Equal.sym(Map<&2, V>, Map.put(&2, V, MNode{p, lo, hi}, key, x), MB.put_bit(&2, V, x, p, lo, hi, Map.bit(key, p)), MB.put_node(&2, V, x, p, lo, hi, key)) : {skeleton(V, _) == skeleton(V, MNode{p, lo, hi}) : Map<&2, Unit>}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {skeleton(V, MB.put_bit(&2, V, x, p, lo, hi, _)) == skeleton(V, MNode{p, lo, hi}) : Map<&2, Unit>}
       Equal.cong(Map<&2, Unit>, Map<&2, Unit>, child => MNode{p, child, skeleton(V, hi)}, skeleton(V, Map.put(&2, V, lo, key, x)), skeleton(V, lo), cp)
 
 law lift_right:
@@ -57,7 +59,8 @@ def lift_right(V, lo, hi, p, key, x, found, e, cp):
     case None{}:
       Unit{}
     case Some{stored}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {skeleton(V, Map.put.bit(&2, V, x, p, lo, hi, _)) == skeleton(V, MNode{p, lo, hi}) : Map<&2, Unit>}
+      %Equal.sym(Map<&2, V>, Map.put(&2, V, MNode{p, lo, hi}, key, x), MB.put_bit(&2, V, x, p, lo, hi, Map.bit(key, p)), MB.put_node(&2, V, x, p, lo, hi, key)) : {skeleton(V, _) == skeleton(V, MNode{p, lo, hi}) : Map<&2, Unit>}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {skeleton(V, MB.put_bit(&2, V, x, p, lo, hi, _)) == skeleton(V, MNode{p, lo, hi}) : Map<&2, Unit>}
       Equal.cong(Map<&2, Unit>, Map<&2, Unit>, child => MNode{p, skeleton(V, lo), child}, skeleton(V, Map.put(&2, V, hi, key, x)), skeleton(V, hi), cp)
 
 law branch:

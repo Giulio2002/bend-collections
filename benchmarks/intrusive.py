@@ -132,7 +132,7 @@ def compile_all(args, build):
     flags = ['-O3', '-std=gnu11', '-pthread']
     for name, source in SOURCES.items():
         checked = run([args.bend, source, '--check-only'])
-        if (checked.stdout + checked.stderr).strip() != 'All terms check.':
+        if (checked.stdout + checked.stderr).strip().splitlines()[:1] != ['ALL PROOFS CHECK']:
             raise RuntimeError(f'{source}: checker not clean')
         emitted = build / f'{name}.c'
         run([args.bend, source, '-o', emitted])
@@ -145,7 +145,7 @@ def compile_all(args, build):
                 anchor = 'il_peak_bytes = il_live_bytes;' if mode == 'memory_control' else 'il_active = 1;'
                 # Use a larger size class for a visible high-water positive
                 # control; free it immediately so retained bytes are equal.
-                probe = ' Loc probe = heap_alloc(e, 10); heap_free(e, 10, probe);'
+                probe = ' heap_free(e, 10, heap_alloc(e, 10));'
                 if mode == 'memory_control':
                     # The same expression also occurs in the allocator hook.
                     anchor = 'long long il_entry_bytes = il_live_bytes; il_peak_bytes = il_live_bytes;'

@@ -14,13 +14,11 @@ import ./width.bend as WW
 import ./w64add.bend as WA
 import ./w64sh.bend as SH
 import ./w64clz.bend as CZ
-import ./u64laws.bend as UL
 import ./u32laws.bend as LW
 import ./f64bits.bend as FB
+import ./f64light.bend as FL
 import ./f64round.bend as FR
 import ./f64rtools.bend as RT
-import ./f64adda.bend as AA
-import ./f64divf.bend as DF
 import ./f64nrp.bend as NR
 import ./f64bl.bend as BL
 import ./f64tools.bend as T
@@ -73,7 +71,7 @@ def small_nat(+s: Bool, +w: WU.U64, +k: Nat) -> {SF.rv64(F.tu_int(s, X.shr(w, k)
   +H = C.high(k, V)
   +e1 = tuint_v(s, X.shr(w, k))
   +e2 = Equal.cong(Nat, Result<&2, &2, NE.NumError, Nat>, n => TS(s, n), SW.value(X.shr(w, k)), H, SH.shr_value(w, k))
-  +hf = Equal.trans(Bool, C.fits(64n, H), C.fits(Nat.add(k, 64n), V), True{}, Equal.sym(Bool, C.fits(Nat.add(k, 64n), V), C.fits(64n, H), FR.fits_hc(k, 64n, V)), SH.fits_mono(64n, Nat.add(k, 64n), V, le_k64(k), UL.vb(w)))
+  +hf = Equal.trans(Bool, C.fits(64n, H), C.fits(Nat.add(k, 64n), V), True{}, Equal.sym(Bool, C.fits(Nat.add(k, 64n), V), C.fits(64n, H), FR.fits_hc(k, 64n, V)), SH.fits_mono(64n, Nat.add(k, 64n), V, le_k64(k), FL.vb64(w)))
   Equal.trans(Result<&2, &2, NE.NumError, Nat>, SF.rv64(F.tu_int(s, X.shr(w, k))), TS(s, SW.value(X.shr(w, k))), TN(s, H), e1, Equal.trans(Result<&2, &2, NE.NumError, Nat>, TS(s, SW.value(X.shr(w, k))), TS(s, H), TN(s, H), e2, tn_fit(s, H, hf)))
 
 # ---- at least 2^52: a left shift that must fit ----
@@ -91,7 +89,7 @@ def big_c(+s: Bool, +w: WU.U64, +k: Nat, +hz: {Nat.is_eq(SW.value(w), 0n) == Fal
       +hb1 = BL.bl_pos(V, hz, B, {==})
       +hkl = Equal.trans(Bool, Nat.is_lt(k, Nat.add(k, B)), Nat.is_lt(Nat.add(k, 0n), Nat.add(k, B)), True{}, Equal.cong(Nat, Bool, t => Nat.is_lt(t, Nat.add(k, B)), k, Nat.add(k, 0n), Equal.sym(Nat, Nat.add(k, 0n), k, N.add_zero(k))), N.lt_add_left(0n, B, k, N.succ_le_lt(0n, B, hb1)))
       +hk = N.lt_le_trans(k, Nat.add(k, B), 64n, hkl, hc)
-      +ev = AA.shl_v(w, k, B, hk, hc, RT.bl_fit(V))
+      +ev = FL.shl_v(w, k, B, hk, hc, RT.bl_fit(V))
       +e1 = tuint_v(s, X.shl(w, k))
       +e2 = Equal.cong(Nat, Result<&2, &2, NE.NumError, Nat>, n => TS(s, n), SW.value(X.shl(w, k)), S, ev)
       +hf = SH.fits_mono(Nat.add(k, B), 64n, S, hc, NR.tbf(k, V, Nat.add(k, B), {==}))
@@ -107,7 +105,7 @@ def big_c(+s: Bool, +w: WU.U64, +k: Nat, +hz: {Nat.is_eq(SW.value(w), 0n) == Fal
       +hJ1 = N.le_trans(1n, 65n, J, {==}, N.lt_succ_le_succ(64n, J, hJ))
       +ek = Equal.sym(Nat, Nat.add(1n, K), J, N.sub_add(J, 1n, hJ1))
       +hK = N.lt_succ_le(64n, K, L.subst(Nat, t => {Nat.is_lt(64n, t) == True{} : Bool}, J, 1n+K, ek, hJ))
-      +nf = DF.nfit_mono(64n, K, S, hK, NR.tbn(k, V, K, hz, ek))
+      +nf = FL.nfit_mono(64n, K, S, hK, NR.tbn(k, V, K, hz, ek))
       +e1 = Equal.cong(Bool, Result<&2, &2, NE.NumError, Nat>, b => SF.pick(Result<&2, &2, NE.NumError, Nat>, Bool.or(A, Bool.not(b)), Fail{NE.Overflow{}}, Done{S}), C.fits(64n, S), False{}, nf)
       +e2 = Equal.cong(Bool, Result<&2, &2, NE.NumError, Nat>, b => SF.pick(Result<&2, &2, NE.NumError, Nat>, b, Fail{NE.Overflow{}}, Done{S}), Bool.or(A, True{}), True{}, FR.or_t(A))
       Equal.sym(Result<&2, &2, NE.NumError, Nat>, TN(s, S), Fail{NE.Overflow{}}, Equal.trans(Result<&2, &2, NE.NumError, Nat>, TN(s, S), SF.pick(Result<&2, &2, NE.NumError, Nat>, Bool.or(A, True{}), Fail{NE.Overflow{}}, Done{S}), Fail{NE.Overflow{}}, e1, e2))
@@ -123,16 +121,24 @@ def big_nat(+s: Bool, +w: WU.U64, +k: Nat, +hz: {Nat.is_eq(SW.value(w), 0n) == F
 # ---- the finite case ----
 
 # a double with scale at least Z is normal, so its significand is not zero
+# the significand at an abstract exponent-is-zero bit b: instantiated at
+# False, the hidden bit 2^52 is never evaluated
+def mz(+x: F.F64, +b: Bool, +hb: {Nat.is_eq(SF.efield(x), 0n) == b : Bool}) -> {Nat.is_eq(SF.mant(x), 0n) == Nat.is_eq(Nat.add(SF.frac(x), C.shift(52n, SF.b2n(Bool.not(b)))), 0n) : Bool}:
+  Equal.cong(Bool, Bool, t => Nat.is_eq(Nat.add(SF.frac(x), C.shift(52n, SF.b2n(Bool.not(t)))), 0n), Nat.is_eq(SF.efield(x), 0n), b, hb)
+
 def bnz_c(+x: F.F64, +z: Bool, +hz: {Nat.is_eq(F.exp_field(x), 0n) == z : Bool}, +h: {Nat.is_le(3000n, F.dexp_z(F.exp_field(x), z)) == True{} : Bool}) -> {Nat.is_eq(SF.mant(x), 0n) == False{} : Bool}:
   match z:
     case True{}:
-      Empty.absurd({Nat.is_eq(SF.mant(x), 0n) == False{} : Bool}, UL.true_ne_false(Equal.sym(Bool, False{}, True{}, h)))
+      Empty.absurd({Nat.is_eq(SF.mant(x), 0n) == False{} : Bool}, FL.true_ne_false(Equal.sym(Bool, False{}, True{}, h)))
     case False{}:
       +hz2 = L.subst(Nat, t => {Nat.is_eq(t, 0n) == False{} : Bool}, F.exp_field(x), SF.efield(x), T.ea(x), hz)
       +Fr = SF.frac(x)
-      +e1 = Equal.cong(Bool, Bool, b => Nat.is_eq(Nat.add(Fr, C.shift(52n, SF.b2n(Bool.not(b)))), 0n), Nat.is_eq(SF.efield(x), 0n), False{}, hz2)
-      +e2 = FB.z2(Fr, 52n, 1n)
-      Equal.trans(Bool, Nat.is_eq(SF.mant(x), 0n), Nat.is_eq(Nat.add(Fr, C.shift(52n, 1n)), 0n), False{}, e1, Equal.trans(Bool, Nat.is_eq(Nat.add(Fr, C.shift(52n, 1n)), 0n), Bool.and(Nat.is_eq(Fr, 0n), False{}), False{}, e2, FR.and_f(Nat.is_eq(Fr, 0n))))
+      +e1 = mz(x, False{}, hz2)
+      # the hidden bit stays b2n(not False): no closed 2^52
+      +H = SF.b2n(Bool.not(False{}))
+      +e2 = FB.z2(Fr, 52n, H)
+      +e3 = Equal.cong(Bool, Bool, t => Bool.and(Nat.is_eq(Fr, 0n), t), Nat.is_eq(H, 0n), False{}, {==})
+      Equal.trans(Bool, Nat.is_eq(SF.mant(x), 0n), Nat.is_eq(Nat.add(Fr, C.shift(52n, H)), 0n), False{}, e1, Equal.trans(Bool, Nat.is_eq(Nat.add(Fr, C.shift(52n, H)), 0n), Bool.and(Nat.is_eq(Fr, 0n), Nat.is_eq(H, 0n)), False{}, e2, Equal.trans(Bool, Bool.and(Nat.is_eq(Fr, 0n), Nat.is_eq(H, 0n)), Bool.and(Nat.is_eq(Fr, 0n), False{}), False{}, e3, FR.and_f(Nat.is_eq(Fr, 0n)))))
 
 def big_nz(+x: F.F64, +h: {Nat.is_le(3000n, F.dexp(x)) == True{} : Bool}) -> {Nat.is_eq(SW.value(F.dmant(x)), 0n) == False{} : Bool}:
   L.subst(Nat, t => {Nat.is_eq(t, 0n) == False{} : Bool}, SF.mant(x), SW.value(F.dmant(x)), Equal.sym(Nat, SW.value(F.dmant(x)), SF.mant(x), T.dmant_value(x)), bnz_c(x, Nat.is_eq(F.exp_field(x), 0n), {==}, h))
@@ -236,7 +242,7 @@ def s32_c(+a: Bool, +b: Bool, +c: Bool, +n: Nat, +f: Bool, +hf: {C.fits(64n, n) 
     case False{} False{} False{} True{}:
       pn(C.fits(32n, n), n)
     case False{} False{} False{} False{}:
-      +g = DF.nfit_mono(32n, 64n, n, {==}, hf)
+      +g = FL.nfit_mono(32n, 64n, n, {==}, hf)
       Equal.cong(Bool, Result<&2, &2, NE.NumError, Nat>, t => TNR(False{}, False{}, False{}, n, t), False{}, C.fits(32n, n), Equal.sym(Bool, C.fits(32n, n), False{}, g))
 
 def to_u32_value(+x: F.F64) -> SF.ToU32.value(x):

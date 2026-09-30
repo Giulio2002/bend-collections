@@ -1,5 +1,6 @@
 import Base
-import ./native_map.bend as N
+import ./map_bridge.bend as MB
+import ./string_compare.bend as N
 import ./map_insert.bend as I
 import ./map_routing.bend as R
 import ./map_delete_prefix.bend as P
@@ -77,10 +78,12 @@ law branch:
 def branch(V, lo, hi, p, key, bit, e, left, right, lp, hp):
   match bit:
     case False{}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {Pop.populated(V, Map.del.fin(&2, Maybe<&2, V>, Map.pop.bit(&2, Maybe<&2, V>, lo, hi, p, _))) == True{} : Bool}
+      %Equal.sym(Map<&2, Maybe<&2, V>> & Maybe<&2, Maybe<&2, V>>, Map.pop(&2, Maybe<&2, V>, MNode{p, lo, hi}, key), MB.pop_bit(&2, Maybe<&2, V>, lo, hi, p, Map.bit(key, p)), MB.pop_node(&2, Maybe<&2, V>, p, lo, hi, key)) : {Pop.populated(V, Map.del.fin(&2, Maybe<&2, V>, _)) == True{} : Bool}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {Pop.populated(V, Map.del.fin(&2, Maybe<&2, V>, MB.pop_bit(&2, Maybe<&2, V>, lo, hi, p, _))) == True{} : Bool}
       low(V, p, hi, Map.pop(&2, Maybe<&2, V>, lo, key), lp(left), right)
     case True{}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {Pop.populated(V, Map.del.fin(&2, Maybe<&2, V>, Map.pop.bit(&2, Maybe<&2, V>, lo, hi, p, _))) == True{} : Bool}
+      %Equal.sym(Map<&2, Maybe<&2, V>> & Maybe<&2, Maybe<&2, V>>, Map.pop(&2, Maybe<&2, V>, MNode{p, lo, hi}, key), MB.pop_bit(&2, Maybe<&2, V>, lo, hi, p, Map.bit(key, p)), MB.pop_node(&2, Maybe<&2, V>, p, lo, hi, key)) : {Pop.populated(V, Map.del.fin(&2, Maybe<&2, V>, _)) == True{} : Bool}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {Pop.populated(V, Map.del.fin(&2, Maybe<&2, V>, MB.pop_bit(&2, Maybe<&2, V>, lo, hi, p, _))) == True{} : Bool}
       high(V, p, lo, Map.pop(&2, Maybe<&2, V>, hi, key), left, hp(right))
 
 law preserves_populated:

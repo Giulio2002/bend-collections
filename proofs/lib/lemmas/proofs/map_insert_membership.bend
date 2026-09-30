@@ -1,4 +1,5 @@
 import Base
+import ./map_bridge.bend as MB
 import ./invariants.bend as Inv
 import ./map_insert_critbit.bend as Valid
 import ./map_routing.bend as R
@@ -49,7 +50,7 @@ law deep:
   for lp: L.leaf(V, lo, query, value) -> L.leaf(V, Map.ins(&2, Maybe<&2, V>, lo, key, item, discriminator), query, value)
   for hp: L.leaf(V, hi, query, value) -> L.leaf(V, Map.ins(&2, Maybe<&2, V>, hi, key, item, discriminator), query, value)
   for member: L.leaf(V, MNode{parent, lo, hi}, query, value)
-  L.leaf(V, Map.ins.deep(&2, Maybe<&2, V>, item, lo, hi, discriminator, parent, (key, bit)), query, value)
+  L.leaf(V, MB.ins_deep(&2, Maybe<&2, V>, item, lo, hi, discriminator, parent, (key, bit)), query, value)
 def deep(V, key, item, lo, hi, discriminator, parent, bit, query, value, lp, hp, member):
   match bit:
     case False{}:
@@ -75,12 +76,12 @@ law branch:
   for lp: L.leaf(V, lo, query, value) -> L.leaf(V, Map.ins(&2, Maybe<&2, V>, lo, key, item, discriminator), query, value)
   for hp: L.leaf(V, hi, query, value) -> L.leaf(V, Map.ins(&2, Maybe<&2, V>, hi, key, item, discriminator), query, value)
   for member: L.leaf(V, MNode{parent, lo, hi}, query, value)
-  L.leaf(V, Map.ins.if(&2, Maybe<&2, V>, key, item, lo, hi, parent, discriminator, descend), query, value)
+  L.leaf(V, MB.ins_if(&2, Maybe<&2, V>, key, item, lo, hi, parent, discriminator, descend), query, value)
 def branch(V, key, item, lo, hi, discriminator, parent, descend, query, value, lp, hp, member):
   match descend:
     case False{}: splice(V, key, item, MNode{parent, lo, hi}, discriminator, query, value, member)
     case True{}:
-      %Equal.sym(String & Bool, Map.bit(key, parent), (key, I.route_bit(Map.bit(key, parent))), I.route_shape(key, parent)) : L.leaf(V, Map.ins.deep(&2, Maybe<&2, V>, item, lo, hi, discriminator, parent, _), query, value)
+      %Equal.sym(String & Bool, Map.bit(key, parent), (key, I.route_bit(Map.bit(key, parent))), I.route_shape(key, parent)) : L.leaf(V, MB.ins_deep(&2, Maybe<&2, V>, item, lo, hi, discriminator, parent, _), query, value)
       deep(V, key, item, lo, hi, discriminator, parent, I.route_bit(Map.bit(key, parent)), query, value, lp, hp, member)
 
 # Native insertion retains every existing exact key/value leaf, independently
@@ -102,6 +103,7 @@ def preserves_binding(V, tree, key, item, discriminator, query, value, member):
     case MLeaf{stored, old}:
       splice(V, key, item, MLeaf{stored, old}, discriminator, query, value, member)
     case MNode{+parent, +lo, +hi}:
+      %Equal.sym(Map<&2, Maybe<&2, V>>, Map.ins(&2, Maybe<&2, V>, MNode{parent, lo, hi}, key, item, discriminator), MB.ins_if(&2, Maybe<&2, V>, key, item, lo, hi, parent, discriminator, Nat.is_lt(parent, discriminator)), MB.ins_node(&2, Maybe<&2, V>, parent, lo, hi, key, item, discriminator)) : L.leaf(V, _, query, value)
       branch(V, key, item, lo, hi, discriminator, parent, Nat.is_lt(parent, discriminator), query, value,
         m => preserves_binding(V, lo, key, item, discriminator, query, value, m),
         m => preserves_binding(V, hi, key, item, discriminator, query, value, m), member)

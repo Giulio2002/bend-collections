@@ -7,8 +7,9 @@ committed `.bend` proofs check without it.
 
 ## Toolchain
 
-`toolchain.json` pins the Bend release the project is checked with (2.0.28) by
-path and SHA-256, and `toolchain.py` exposes it to the scripts. Paths may start
+`toolchain.json` pins the Bend build the project is checked with (the 2.0.34
+release, installed under `~/.bend/v2.0.34/bend`) by path and SHA-256 (one
+binary hash per platform, one Base hash), and `toolchain.py` exposes it to the scripts. Paths may start
 with `~`. To use a private copy of the pinned release, set `BEND_HOME` to a
 directory holding `.bend/bin/bend` and `.bend/bend2`. To use another compiler
 (a development build, say), set `BEND` to it, a path or a name on the PATH, and
@@ -78,6 +79,10 @@ what it generates from.
 | `generators/blake2s_gen.py`, `blake2s_tests.py` | BLAKE2s's unrolled compression, block reads, proof lemmas and test vectors |
 | `generators/blake2b_gen.py` | BLAKE2b's lanes, unrolled compression, block reads, proof lemmas and tests |
 | `generators/blake3/gen.py`, `proofs.py`, `tests.py` | BLAKE3's compression and block reads, their proof modules, and test vectors from the official C |
+| `generators/sha512_gen.py` | SHA-512's implementation (fused rotations, constants computed from the primes) and its conformance proof's enumerations |
+| `generators/sha3_gen.py` | SHA3-256's implementation (17-lane block XOR, padding) and its conformance proof |
+| `generators/hash_gen.py` | the hashing facade `src/crypto/hash.bend` (block readers per algorithm) and the incremental hasher's proofs |
+| `generators/chacha8rand_gen.py` | ChaCha8Rand's unrolled double round, block and four-block group (`src/math/random/chacha8/block.bend`) and their proof against the list-based C2SP specification (`proofs/math/random/chacha8/rounds.bend`) |
 | `toposort.py` | reorders the definitions of a Bend file so every callee precedes its callers (Bend has no forward references) |
 
 ## Validation and differential tests
@@ -87,6 +92,7 @@ what it generates from.
 | `check_intrusive_proofs.py --bend bend` | regenerate proof sources, clean semantic and concrete-adapter checks, coordinated specification and adapter negative controls |
 | `check_intrusive.py --bend bend --cc clang` | intrusive-list proofs, C/JS conformance, examples, semantic mutants and native heap-allocation measurements; see [guide](../INTRUSIVE_LIST.md) |
 | `../benchmarks/intrusive.py --bend bend --cc clang` | warmed entity transfers and pooled lifecycles against the public DList API and C; independent oracle, generation-layer diagnostic, A/A control, separate timing/allocation/live-byte binaries, raw samples; [method and results](../benchmarks/INTRUSIVE_LIST.md) |
+| `check_random.py [seed]` | `src/math/random.bend` and `src/crypto/random.bend` (driver `build/math/random` from `tests/math/random.bend`): Go's published vectors (ChaCha8, the Read transcript hash, PCG, regressGolden), a Python mirror of Go's math/rand/v2 and C2SP chacha8rand on random keys, seeds and call sequences, the OS-keyed generator, and a chi-square smoke test of `uint64n` |
 | `validate.py --report build/validation.json` | every container in `tests/structures.json`: builds `tests/<id>/main.bend`, compares its output with the Python oracle in `tests/support/oracles.py` on functional, boundary, differential and structural scenarios (`scenarios.py`), runs semantic mutants that must be caught (`mutants.py`), and checks the container's proof |
 | `check_hash_table.py` | the hash map against a Python dict on random histories (growth, backward-shift deletion, every key kind) |
 | `check_lru_spec.py` | the LRU against its executable specification, step by step with a moving clock |
@@ -97,6 +103,7 @@ what it generates from.
 | `check_generic.py` | every templated math function (`src/math/generic.bend`) at U32, U64, F32 and F64 against Python, naming the `spec/math/generic.bend` clause of each case |
 | `check_f64.py` | the software binary64 (`src/math/f64.bend`) against the machine's doubles on random bit patterns of every class and rounding ties |
 | `check_f64_spec.py` | the binary64 specification `spec/math/f64.bend` itself against the machine's doubles, through a line-by-line mirror |
+| `check_crypto_hash.py` | `src/crypto/subtle.bend`, SHA-512, SHA3-256 and the hashing facade (one-shot and incremental, random chunkings) against Python's `hashlib` and `==`, plus the FIPS vectors of `tests/crypto/{subtle,sha512,sha3,hash}/main.bend` |
 
 The hash functions are fuzzed by `tests/crypto/fuzz.py` (random messages
 against hashlib, pycryptodome and the official BLAKE3 C).
@@ -106,6 +113,6 @@ against hashlib, pycryptodome and the official BLAKE3 C).
 1. Edit the `.src` (or the generator), regenerate the `.bend`.
 2. Check the package: `python3 proofs/prove.py <package>` (or
    `bend proofs/containers/<package>/proof.bend`); success prints
-   `All terms check.`
+   `ALL PROOFS CHECK`
 3. Before committing, make sure every source still reproduces its committed
    `.bend` (the loop above leaves `git status` clean).

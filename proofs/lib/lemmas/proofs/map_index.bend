@@ -1,6 +1,6 @@
 import Base
 import ./map_routing.bend as Logic
-import ./native_map.bend as N
+import ./string_compare.bend as N
 
 # Existing Base.divmod quotient translation; no replacement division algorithm.
 def next_quotient(pair: Nat & Nat) -> Nat & Nat:

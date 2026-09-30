@@ -62,3 +62,12 @@ def shared(xs: List<&1, String>) -> List<&2, String>:
       Nil{}
     case Con{h, t}:
       Con{h, shared(t)}
+
+# IO.args() starts with the program as invoked (Bend 2.0.32, #935); the
+# program's own arguments follow it.
+def program_args(xs: List<&1, String>) -> List<&2, String>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{h, t}:
+      shared(t)

@@ -4,7 +4,6 @@ import ../../../spec/math/f64.bend as SF
 import ../../../spec/math/w64.bend as SW
 import ../../../src/math/f64.bend as F
 import ../../../src/math/w64.bend as X
-import ../../../src/math/u64.bend as WU
 import ../../../src/math/natural.bend as M
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
@@ -79,6 +78,11 @@ def bz0(+one: Nat, +h1: {one == 1n : Nat}, +s: Bool, +c: U32, +hc: {c == U32{WD.
 def bz(+s: Bool) -> {FR.bits(s, 0n) == SF.zero(s) : F.F64}:
   Equal.trans(F.F64, F.Bits{0, U32.from_nat(C.shift(31n, SF.b2n(s)))}, F.Bits{0, U32.from_nat(C.shift(31n, SF.pick(Nat, s, 1n, 0n)))}, SF.zero(s), Equal.cong(Nat, F.F64, z => F.Bits{0, U32.from_nat(C.shift(31n, z))}, SF.b2n(s), SF.pick(Nat, s, 1n, 0n), Equal.sym(Nat, SF.pick(Nat, s, 1n, 0n), SF.b2n(s), FR.pb(s, 1n, {==}))), bz0(1n, {==}, s, 2147483648, {==}))
 
+# round_u unfolded at an abstract ulp u: instantiated at a literal u, the
+# checker never evaluates pack's closed exponent arithmetic
+def ru(+s: Bool, +m: Nat, +x: Nat, +u: Nat) -> {SF.round_u(s, m, x, u) == SF.pack(s, SF.pick(Nat, Nat.is_le(x, u), SF.rne(m, Nat.sub(u, x)), C.shift(Nat.sub(x, u), m)), u) : F.F64}:
+  {==}
+
 def tiny_c(+s: Bool, +m: Nat, +x: Nat, +hm: {C.fits(53n, m) == True{} : Bool}, +hx: {Nat.is_lt(x, 63n) == True{} : Bool}, +z: Bool, +hz: {Nat.is_eq(m, 0n) == z : Bool}) -> {SF.round(s, m, x) == SF.zero(s) : F.F64}:
   match z:
     case True{}:
@@ -99,7 +103,9 @@ def tiny_c(+s: Bool, +m: Nat, +x: Nat, +hm: {C.fits(53n, m) == True{} : Bool}, +
       +P = SF.pick(Nat, Nat.is_le(x, 1926n), SF.rne(m, Nat.sub(1926n, x)), C.shift(Nat.sub(x, 1926n), m))
       +e1 = Equal.cong(Bool, F.F64, b => SF.pick(F.F64, b, SF.zero(s), SF.round_u(s, m, x, Nat.max(A, 1926n))), Nat.is_eq(m, 0n), False{}, hz)
       +e2 = Equal.cong(Nat, F.F64, u => SF.round_u(s, m, x, u), Nat.max(A, 1926n), 1926n, emax)
-      +e3 = Equal.cong(Bool, F.F64, b => SF.pack(s, SF.pick(Nat, b, SF.rne(m, Nat.sub(1926n, x)), C.shift(Nat.sub(x, 1926n), m)), 1926n), Nat.is_le(x, 1926n), True{}, hxa)
+      # the pick reduces under pack's argument, so the checker never unfolds pack
+      +e3p = Equal.cong(Bool, Nat, b => SF.pick(Nat, b, SF.rne(m, Nat.sub(1926n, x)), C.shift(Nat.sub(x, 1926n), m)), Nat.is_le(x, 1926n), True{}, hxa)
+      +e3 = Equal.cong(Nat, F.F64, t => SF.pack(s, t, 1926n), SF.pick(Nat, Nat.is_le(x, 1926n), SF.rne(m, Nat.sub(1926n, x)), C.shift(Nat.sub(x, 1926n), m)), SF.rne(m, Nat.sub(1926n, x)), e3p)
       +e4 = Equal.cong(Nat, F.F64, t => SF.pack(s, SF.rne(m, t), 1926n), Nat.sub(1926n, x), 1n+j, N.sub_succ_left(1925n, x, hxb))
       +e5 = Equal.cong(Nat, F.F64, t => SF.pack(s, t, 1926n), SF.rne(m, 1n+j), 0n, rne_zero(m, j, hm, hj))
       +e6 = FR.enc_bits(s, 0n, 0n)
@@ -109,7 +115,8 @@ def tiny_c(+s: Bool, +m: Nat, +x: Nat, +hm: {C.fits(53n, m) == True{} : Bool}, +
       +r4 = SF.pack(s, SF.rne(m, 1n+j), 1926n)
       +r5 = SF.pack(s, 0n, 1926n)
       +r6 = FR.bits(s, 0n)
-      Equal.trans(F.F64, SF.round(s, m, x), r1, SF.zero(s), e1, Equal.trans(F.F64, r1, r2, SF.zero(s), e2, Equal.trans(F.F64, r2, r3, SF.zero(s), e3, Equal.trans(F.F64, r3, r4, SF.zero(s), e4, Equal.trans(F.F64, r4, r5, SF.zero(s), e5, Equal.trans(F.F64, r5, r6, SF.zero(s), e6, bz(s)))))))
+      +r2p = SF.pack(s, SF.pick(Nat, Nat.is_le(x, 1926n), SF.rne(m, Nat.sub(1926n, x)), C.shift(Nat.sub(x, 1926n), m)), 1926n)
+      Equal.trans(F.F64, SF.round(s, m, x), r1, SF.zero(s), e1, Equal.trans(F.F64, r1, r2, SF.zero(s), e2, Equal.trans(F.F64, r2, r2p, SF.zero(s), ru(s, m, x, 1926n), Equal.trans(F.F64, r2p, r3, SF.zero(s), e3, Equal.trans(F.F64, r3, r4, SF.zero(s), e4, Equal.trans(F.F64, r4, r5, SF.zero(s), e5, Equal.trans(F.F64, r5, r6, SF.zero(s), e6, bz(s))))))))
 
 def tiny(+s: Bool, +m: Nat, +x: Nat, +hm: {C.fits(53n, m) == True{} : Bool}, +hx: {Nat.is_lt(x, 63n) == True{} : Bool}) -> {SF.round(s, m, x) == SF.zero(s) : F.F64}:
   tiny_c(s, m, x, hm, hx, Nat.is_eq(m, 0n), {==})

@@ -32,6 +32,14 @@ import ../natural/bits.bend as BT
 # is (s * 2^11 + field) * 2^52 + fraction, one integer N below 2^63 with
 # the sign on top: bits(s, N).
 
+# SF.pick on a known Bool, as lemmas: rewriting with these keeps a conversion
+# syntactic instead of unfolding (and normalizing) both branches
+def pk_t(-T: Data, +a: T, +b: T) -> {SF.pick(T, True{}, a, b) == a : T}:
+  {==}
+
+def pk_f(-T: Data, +a: T, +b: T) -> {SF.pick(T, False{}, a, b) == b : T}:
+  {==}
+
 def v(+x: U32) -> Nat:
   U32.to_nat(x)
 
@@ -206,13 +214,13 @@ def cvb(+l: U32, +h: U32, +b: Bool) -> {SW.value(X.clear0(WU.U64{l, h}, b)) == S
       +e1 = Equal.cong(Nat, Nat, z => Nat.add(z, S32), v(U32.sub(l, U32.and(l, 1))), Nat.sub(vl, m), es2)
       +eo = WW.odd_limb(31n, vl, v(h))
       +e2 = Equal.trans(Nat, Nat.sub(Nat.add(vl, S32), Nat.mod(Nat.add(vl, S32), 2n)), Nat.sub(Nat.add(vl, S32), m), Nat.add(Nat.sub(vl, m), S32), Equal.cong(Nat, Nat, z => Nat.sub(Nat.add(vl, S32), z), Nat.mod(Nat.add(vl, S32), 2n), m, eo), sub_add_r(vl, S32, m, hle))
-      Equal.trans(Nat, Nat.add(v(U32.sub(l, U32.and(l, 1))), S32), Nat.add(Nat.sub(vl, m), S32), Nat.sub(Nat.add(vl, S32), Nat.mod(Nat.add(vl, S32), 2n)), e1, Equal.sym(Nat, Nat.sub(Nat.add(vl, S32), Nat.mod(Nat.add(vl, S32), 2n)), Nat.add(Nat.sub(vl, m), S32), e2))
+      Equal.trans(Nat, SW.value(X.clear0(WU.U64{l, h}, True{})), Nat.sub(SW.value(WU.U64{l, h}), Nat.mod(SW.value(WU.U64{l, h}), 2n)), SF.pick(Nat, True{}, Nat.sub(SW.value(WU.U64{l, h}), Nat.mod(SW.value(WU.U64{l, h}), 2n)), SW.value(WU.U64{l, h})), Equal.trans(Nat, Nat.add(v(U32.sub(l, U32.and(l, 1))), S32), Nat.add(Nat.sub(vl, m), S32), Nat.sub(Nat.add(vl, S32), Nat.mod(Nat.add(vl, S32), 2n)), e1, Equal.sym(Nat, Nat.sub(Nat.add(vl, S32), Nat.mod(Nat.add(vl, S32), 2n)), Nat.add(Nat.sub(vl, m), S32), e2)), Equal.sym(Nat, SF.pick(Nat, True{}, Nat.sub(SW.value(WU.U64{l, h}), Nat.mod(SW.value(WU.U64{l, h}), 2n)), SW.value(WU.U64{l, h})), Nat.sub(SW.value(WU.U64{l, h}), Nat.mod(SW.value(WU.U64{l, h}), 2n)), pk_t(Nat, Nat.sub(SW.value(WU.U64{l, h}), Nat.mod(SW.value(WU.U64{l, h}), 2n)), SW.value(WU.U64{l, h}))))
     case False{}:
       +vl = v(l)
       +e0 = FB.andm(l, 0n, 0, {==})
       +hle = L.subst(Nat, z => {Nat.is_le(z, vl) == True{} : Bool}, 0n, v(U32.and(l, 0)), Equal.sym(Nat, v(U32.and(l, 0)), 0n, e0), N.zero_le(vl))
       +es2 = Equal.trans(Nat, v(U32.sub(l, U32.and(l, 0))), Nat.sub(vl, v(U32.and(l, 0))), vl, U.sub_nat(l, U32.and(l, 0), hle), Equal.trans(Nat, Nat.sub(vl, v(U32.and(l, 0))), Nat.sub(vl, 0n), vl, Equal.cong(Nat, Nat, z => Nat.sub(vl, z), v(U32.and(l, 0)), 0n, e0), N.sub_zero(vl)))
-      Equal.cong(Nat, Nat, z => Nat.add(z, C.shift(32n, v(h))), v(U32.sub(l, U32.and(l, 0))), vl, es2)
+      Equal.trans(Nat, SW.value(X.clear0(WU.U64{l, h}, False{})), SW.value(WU.U64{l, h}), SF.pick(Nat, False{}, Nat.sub(SW.value(WU.U64{l, h}), Nat.mod(SW.value(WU.U64{l, h}), 2n)), SW.value(WU.U64{l, h})), Equal.cong(Nat, Nat, z => Nat.add(z, C.shift(32n, v(h))), v(U32.sub(l, U32.and(l, 0))), vl, es2), Equal.sym(Nat, SF.pick(Nat, False{}, Nat.sub(SW.value(WU.U64{l, h}), Nat.mod(SW.value(WU.U64{l, h}), 2n)), SW.value(WU.U64{l, h})), SW.value(WU.U64{l, h}), pk_f(Nat, Nat.sub(SW.value(WU.U64{l, h}), Nat.mod(SW.value(WU.U64{l, h}), 2n)), SW.value(WU.U64{l, h}))))
 
 def cv(+r: WU.U64, +b: Bool) -> {SW.value(X.clear0(r, b)) == SF.pick(Nat, b, Nat.sub(SW.value(r), Nat.mod(SW.value(r), 2n)), SW.value(r)) : Nat}:
   match r:
@@ -301,16 +309,16 @@ def bits_of(+s: Bool, +n: Nat, +w: WU.U64, +hw: {SW.value(w) == Nat.add(n, C.shi
 def sgn_pick(+s: Bool) -> {F.sgn(s) == SF.pick(U32, s, 2147483648, 0) : U32}:
   match s:
     case True{}:
-      {==}
+      Equal.trans(U32, F.sgn(True{}), 2147483648, SF.pick(U32, True{}, 2147483648, 0), {==}, Equal.sym(U32, SF.pick(U32, True{}, 2147483648, 0), 2147483648, pk_t(U32, 2147483648, 0)))
     case False{}:
-      {==}
+      Equal.trans(U32, F.sgn(False{}), 0, SF.pick(U32, False{}, 2147483648, 0), {==}, Equal.sym(U32, SF.pick(U32, False{}, 2147483648, 0), 0, pk_f(U32, 2147483648, 0)))
 
 def pb(+s: Bool, +one: Nat, +h1: {one == 1n : Nat}) -> {SF.pick(Nat, s, one, 0n) == SF.b2n(s) : Nat}:
   match s:
     case True{}:
-      h1
+      Equal.trans(Nat, SF.pick(Nat, True{}, one, 0n), one, SF.b2n(True{}), pk_t(Nat, one, 0n), h1)
     case False{}:
-      {==}
+      Equal.trans(Nat, SF.pick(Nat, False{}, one, 0n), 0n, SF.b2n(False{}), pk_f(Nat, one, 0n), {==})
 
 def sgv0(+one: Nat, +h1: {one == 1n : Nat}, +s: Bool, +c: U32, +hc: {c == U32{WD.pw(32n, 31n)} : U32}) -> {v(SF.pick(U32, s, c, 0)) == C.shift(31n, SF.pick(Nat, s, one, 0n)) : Nat}:
   match s:
@@ -530,11 +538,11 @@ def pko_c(+s: Bool, +q: Nat, +u: Nat, +EF: Nat, +hEF: {Nat.add(EF, 1926n) == u :
       +e1 = efv(u, EF, hEF)
       +hle = Equal.trans(Bool, Nat.is_le(2047n, Nat.sub(Nat.add(u, 1075n), SF.zb())), Nat.is_le(2047n, 1n+EF), True{}, Equal.cong(Nat, Bool, z => Nat.is_le(2047n, z), Nat.sub(Nat.add(u, 1075n), SF.zb()), 1n+EF, e1), Equal.trans(Bool, Nat.is_le(2047n, 1n+EF), Bool.not(Nat.is_lt(1n+EF, 2047n)), True{}, FB.le_nlt(2047n, 1n+EF), Equal.cong(Bool, Bool, t => Bool.not(t), Nat.is_lt(1n+EF, 2047n), False{}, L.subst(Nat, z => {Nat.is_lt(z, 2047n) == False{} : Bool}, Nat.add(EF, 1n), 1n+EF, Equal.trans(Nat, Nat.add(EF, 1n), Nat.add(1n, EF), 1n+EF, NA.add_comm(EF, 1n), {==}), hov))))
       +p0 = Equal.cong(Bool, F.F64, t => SF.pick(F.F64, t, SF.encode(s, 0n, q), SF.pack_e(s, Nat.sub(Nat.add(u, 1075n), SF.zb()), C.low(52n, q))), C.fits(52n, q), False{}, h52)
-      Equal.trans(F.F64, SF.pick(F.F64, C.fits(52n, q), SF.encode(s, 0n, q), SF.pack_e(s, Nat.sub(Nat.add(u, 1075n), SF.zb()), C.low(52n, q))), SF.pack_e(s, Nat.sub(Nat.add(u, 1075n), SF.zb()), C.low(52n, q)), SF.inf(s), p0, Equal.cong(Bool, F.F64, t => SF.pick(F.F64, t, SF.inf(s), SF.encode(s, Nat.sub(Nat.add(u, 1075n), SF.zb()), C.low(52n, q))), Nat.is_le(2047n, Nat.sub(Nat.add(u, 1075n), SF.zb())), True{}, hle))
+      Equal.trans(F.F64, SF.pick(F.F64, True{}, SF.pick(F.F64, C.fits(52n, q), SF.encode(s, 0n, q), SF.pack_e(s, Nat.sub(Nat.add(u, 1075n), SF.zb()), C.low(52n, q))), SF.pack_e(s, Nat.sub(Nat.add(1n+u, 1075n), SF.zb()), 0n)), SF.pick(F.F64, C.fits(52n, q), SF.encode(s, 0n, q), SF.pack_e(s, Nat.sub(Nat.add(u, 1075n), SF.zb()), C.low(52n, q))), SF.inf(s), pk_t(F.F64, SF.pick(F.F64, C.fits(52n, q), SF.encode(s, 0n, q), SF.pack_e(s, Nat.sub(Nat.add(u, 1075n), SF.zb()), C.low(52n, q))), SF.pack_e(s, Nat.sub(Nat.add(1n+u, 1075n), SF.zb()), 0n)), Equal.trans(F.F64, SF.pick(F.F64, C.fits(52n, q), SF.encode(s, 0n, q), SF.pack_e(s, Nat.sub(Nat.add(u, 1075n), SF.zb()), C.low(52n, q))), SF.pack_e(s, Nat.sub(Nat.add(u, 1075n), SF.zb()), C.low(52n, q)), SF.inf(s), p0, Equal.cong(Bool, F.F64, t => SF.pick(F.F64, t, SF.inf(s), SF.encode(s, Nat.sub(Nat.add(u, 1075n), SF.zb()), C.low(52n, q))), Nat.is_le(2047n, Nat.sub(Nat.add(u, 1075n), SF.zb())), True{}, hle)))
     case False{}:
       +e1 = ef2v(u, EF, hEF)
       +hle = Equal.trans(Bool, Nat.is_le(2047n, Nat.sub(Nat.add(1n+u, 1075n), SF.zb())), Nat.is_le(2047n, 2n+EF), True{}, Equal.cong(Nat, Bool, z => Nat.is_le(2047n, z), Nat.sub(Nat.add(1n+u, 1075n), SF.zb()), 2n+EF, e1), Equal.trans(Bool, Nat.is_le(2047n, 2n+EF), Bool.not(Nat.is_lt(2n+EF, 2047n)), True{}, FB.le_nlt(2047n, 2n+EF), Equal.cong(Bool, Bool, t => Bool.not(t), Nat.is_lt(2n+EF, 2047n), False{}, L.subst(Nat, z => {Nat.is_lt(z, 2047n) == False{} : Bool}, Nat.add(EF, 2n), 2n+EF, Equal.trans(Nat, Nat.add(EF, 2n), Nat.add(2n, EF), 2n+EF, NA.add_comm(EF, 2n), {==}), hov))))
-      Equal.cong(Bool, F.F64, t => SF.pick(F.F64, t, SF.inf(s), SF.encode(s, Nat.sub(Nat.add(1n+u, 1075n), SF.zb()), 0n)), Nat.is_le(2047n, Nat.sub(Nat.add(1n+u, 1075n), SF.zb())), True{}, hle)
+      Equal.trans(F.F64, SF.pick(F.F64, False{}, SF.pick(F.F64, C.fits(52n, q), SF.encode(s, 0n, q), SF.pack_e(s, Nat.sub(Nat.add(u, 1075n), SF.zb()), C.low(52n, q))), SF.pack_e(s, Nat.sub(Nat.add(1n+u, 1075n), SF.zb()), 0n)), SF.pack_e(s, Nat.sub(Nat.add(1n+u, 1075n), SF.zb()), 0n), SF.inf(s), pk_f(F.F64, SF.pick(F.F64, C.fits(52n, q), SF.encode(s, 0n, q), SF.pack_e(s, Nat.sub(Nat.add(u, 1075n), SF.zb()), C.low(52n, q))), SF.pack_e(s, Nat.sub(Nat.add(1n+u, 1075n), SF.zb()), 0n)), Equal.cong(Bool, F.F64, t => SF.pick(F.F64, t, SF.inf(s), SF.encode(s, Nat.sub(Nat.add(1n+u, 1075n), SF.zb()), 0n)), Nat.is_le(2047n, Nat.sub(Nat.add(1n+u, 1075n), SF.zb())), True{}, hle))
 
 def pko(+s: Bool, +q: Nat, +u: Nat, +EF: Nat, +hEF: {Nat.add(EF, 1926n) == u : Nat}, +h52: {C.fits(52n, q) == False{} : Bool}, +hov: {Nat.is_lt(Nat.add(EF, SF.pick(Nat, C.fits(53n, q), 1n, 2n)), 2047n) == False{} : Bool}) -> {SF.pack(s, q, u) == SF.inf(s) : F.F64}:
   pko_c(s, q, u, EF, hEF, C.fits(53n, q), h52, hov)
@@ -746,11 +754,11 @@ def fit54(+one: Nat, +h1: {one == 1n : Nat}, +q: Nat, +hq: {Nat.is_le(q, C.shift
 def hpick_c(+one: Nat, +h1: {one == 1n : Nat}, +q: Nat, +hq: {Nat.is_le(q, C.shift(53n, one)) == True{} : Bool}, +h52: {C.fits(52n, q) == False{} : Bool}, +f: Bool, +hf: {C.fits(53n, q) == f : Bool}) -> {C.high(52n, q) == SF.pick(Nat, f, 1n, 2n) : Nat}:
   match f:
     case True{}:
-      hi_one(C.high(52n, q), Equal.trans(Bool, Nat.is_eq(C.half(C.high(52n, q)), 0n), C.fits(53n, q), True{}, Equal.sym(Bool, C.fits(53n, q), Nat.is_eq(C.half(C.high(52n, q)), 0n), f53h(q)), hf), h52)
+      Equal.trans(Nat, C.high(52n, q), 1n, SF.pick(Nat, True{}, 1n, 2n), hi_one(C.high(52n, q), Equal.trans(Bool, Nat.is_eq(C.half(C.high(52n, q)), 0n), C.fits(53n, q), True{}, Equal.sym(Bool, C.fits(53n, q), Nat.is_eq(C.half(C.high(52n, q)), 0n), f53h(q)), hf), h52), Equal.sym(Nat, SF.pick(Nat, True{}, 1n, 2n), 1n, pk_t(Nat, 1n, 2n)))
     case False{}:
       +eq = top_q(one, h1, q, hq, hf)
       +e1 = Equal.trans(Nat, C.high(52n, q), C.high(52n, C.shift(52n, Nat.double(one))), Nat.double(one), Equal.cong(Nat, Nat, z => C.high(52n, z), q, C.shift(52n, Nat.double(one)), eq), WW.high_u(52n, 0n, Nat.double(one), fz(52n)))
-      Equal.trans(Nat, C.high(52n, q), Nat.double(one), 2n, e1, Equal.cong(Nat, Nat, z => Nat.double(z), one, 1n, h1))
+      Equal.trans(Nat, C.high(52n, q), 2n, SF.pick(Nat, False{}, 1n, 2n), Equal.trans(Nat, C.high(52n, q), Nat.double(one), 2n, e1, Equal.cong(Nat, Nat, z => Nat.double(z), one, 1n, h1)), Equal.sym(Nat, SF.pick(Nat, False{}, 1n, 2n), 2n, pk_f(Nat, 1n, 2n)))
 
 def qsplit(+q: Nat, +EF: Nat) -> {Nat.add(C.low(52n, q), C.shift(52n, Nat.add(C.high(52n, q), EF))) == Nat.add(q, C.shift(52n, EF)) : Nat}:
   Equal.trans(Nat, Nat.add(C.low(52n, q), C.shift(52n, Nat.add(C.high(52n, q), EF))), Nat.add(C.low(52n, q), Nat.add(C.shift(52n, C.high(52n, q)), C.shift(52n, EF))), Nat.add(q, C.shift(52n, EF)), Equal.cong(Nat, Nat, z => Nat.add(C.low(52n, q), z), C.shift(52n, Nat.add(C.high(52n, q), EF)), Nat.add(C.shift(52n, C.high(52n, q)), C.shift(52n, EF)), WW.shift_add(52n, C.high(52n, q), EF)), Equal.trans(Nat, Nat.add(C.low(52n, q), Nat.add(C.shift(52n, C.high(52n, q)), C.shift(52n, EF))), Nat.add(Nat.add(C.low(52n, q), C.shift(52n, C.high(52n, q))), C.shift(52n, EF)), Nat.add(q, C.shift(52n, EF)), Equal.sym(Nat, Nat.add(Nat.add(C.low(52n, q), C.shift(52n, C.high(52n, q))), C.shift(52n, EF)), Nat.add(C.low(52n, q), Nat.add(C.shift(52n, C.high(52n, q)), C.shift(52n, EF))), NA.add_assoc(C.low(52n, q), C.shift(52n, C.high(52n, q)), C.shift(52n, EF))), Equal.cong(Nat, Nat, z => Nat.add(z, C.shift(52n, EF)), Nat.add(C.low(52n, q), C.shift(52n, C.high(52n, q))), q, Equal.sym(Nat, q, Nat.add(C.low(52n, q), C.shift(52n, C.high(52n, q))), WW.low_high(52n, q)))))

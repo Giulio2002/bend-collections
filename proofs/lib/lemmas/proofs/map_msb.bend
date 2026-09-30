@@ -1,5 +1,5 @@
 import Base
-import ./native_map.bend as Native
+import ./string_compare.bend as Native
 import ./map_bits.bend as B
 import ./numeric.bend as Numeric
 import ./map_routing.bend as Logic

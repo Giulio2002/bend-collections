@@ -1,6 +1,7 @@
 import Base
+import ./map_bridge.bend as MB
 import ./invariants.bend as Inv
-import ./native_map.bend as N
+import ./string_compare.bend as N
 import ./map_insert.bend as I
 import ./map_difference_order.bend as O
 import ./map_string_prefix.bend as Prefix
@@ -95,10 +96,12 @@ law branch:
 def branch(V, p, parent, lo, hi, key, bit, route, lower, left, right):
   match bit:
     case False{}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), route) : {Inv.below(V, Map.del.fin(&2, V, Map.pop.bit(&2, V, lo, hi, p, _)), parent) == True{} : Bool}
+      %Equal.sym(Map<&2, V> & Maybe<&2, V>, Map.pop(&2, V, MNode{p, lo, hi}, key), MB.pop_bit(&2, V, lo, hi, p, Map.bit(key, p)), MB.pop_node(&2, V, p, lo, hi, key)) : {Inv.below(V, Map.del.fin(&2, V, _), parent) == True{} : Bool}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), route) : {Inv.below(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), parent) == True{} : Bool}
       low(V, p, parent, hi, Map.pop(&2, V, lo, key), lower, right)
     case True{}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), route) : {Inv.below(V, Map.del.fin(&2, V, Map.pop.bit(&2, V, lo, hi, p, _)), parent) == True{} : Bool}
+      %Equal.sym(Map<&2, V> & Maybe<&2, V>, Map.pop(&2, V, MNode{p, lo, hi}, key), MB.pop_bit(&2, V, lo, hi, p, Map.bit(key, p)), MB.pop_node(&2, V, p, lo, hi, key)) : {Inv.below(V, Map.del.fin(&2, V, _), parent) == True{} : Bool}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), route) : {Inv.below(V, Map.del.fin(&2, V, MB.pop_bit(&2, V, lo, hi, p, _)), parent) == True{} : Bool}
       high(V, p, parent, lo, Map.pop(&2, V, hi, key), lower, left)
 
 law from_parts:

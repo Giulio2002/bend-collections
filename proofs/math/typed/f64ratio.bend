@@ -9,14 +9,12 @@ import ../../../src/math/num.bend as NE
 import ../../../src/math/natural.bend as M
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
-import ./width.bend as WW
 import ./w64add.bend as WA
 import ./w64sh.bend as SH
 import ./w64clz.bend as CZ
 import ./f64bits.bend as FB
+import ./f64light.bend as FL
 import ./f64rtools.bend as RT
-import ./f64adda.bend as AA
-import ./f64divf.bend as DF
 import ./f64nrp.bend as NR
 import ./f64bl.bend as BL
 import ./f64tools.bend as T
@@ -87,7 +85,7 @@ def ab_c(+s: Bool, +w: WU.U64, +k: Nat, +hz: {Nat.is_eq(SW.value(w), 0n) == Fals
       +hb1 = BL.bl_pos(V, hz, B, {==})
       +hkl = Equal.trans(Bool, Nat.is_lt(k, Nat.add(k, B)), Nat.is_lt(Nat.add(k, 0n), Nat.add(k, B)), True{}, Equal.cong(Nat, Bool, t => Nat.is_lt(t, Nat.add(k, B)), k, Nat.add(k, 0n), Equal.sym(Nat, Nat.add(k, 0n), k, N.add_zero(k))), N.lt_add_left(0n, B, k, N.succ_le_lt(0n, B, hb1)))
       +hk = N.lt_le_trans(k, Nat.add(k, B), 64n, hkl, hc)
-      +ev = AA.shl_v(w, k, B, hk, hc, RT.bl_fit(V))
+      +ev = FL.shl_v(w, k, B, hk, hc, RT.bl_fit(V))
       +hf = SH.fits_mono(Nat.add(k, B), 64n, S, hc, NR.tbf(k, V, Nat.add(k, B), {==}))
       +e1 = Equal.cong(Nat, Result<&2, &2, NE.NumError, SF.Rat>, n => Done{SF.Rat{s, n, 0n}}, SW.value(X.shl(w, k)), S, ev)
       +e2 = Equal.cong(Bool, Result<&2, &2, NE.NumError, SF.Rat>, b => SF.pick(Result<&2, &2, NE.NumError, SF.Rat>, b, Done{SF.Rat{s, S, 0n}}, Fail{NE.Overflow{}}), C.fits(64n, S), True{}, hf)
@@ -102,7 +100,7 @@ def ab_c(+s: Bool, +w: WU.U64, +k: Nat, +hz: {Nat.is_eq(SW.value(w), 0n) == Fals
       +hJ1 = N.le_trans(1n, 65n, J, {==}, N.lt_succ_le_succ(64n, J, hJ))
       +ek = Equal.sym(Nat, Nat.add(1n, K), J, N.sub_add(J, 1n, hJ1))
       +hK = N.lt_succ_le(64n, K, L.subst(Nat, t => {Nat.is_lt(64n, t) == True{} : Bool}, J, 1n+K, ek, hJ))
-      +nf = DF.nfit_mono(64n, K, S, hK, NR.tbn(k, V, K, hz, ek))
+      +nf = FL.nfit_mono(64n, K, S, hK, NR.tbn(k, V, K, hz, ek))
       Equal.sym(Result<&2, &2, NE.NumError, SF.Rat>, BIGR(s, S), Fail{NE.Overflow{}}, Equal.cong(Bool, Result<&2, &2, NE.NumError, SF.Rat>, b => SF.pick(Result<&2, &2, NE.NumError, SF.Rat>, b, Done{SF.Rat{s, S, 0n}}, Fail{NE.Overflow{}}), C.fits(64n, S), False{}, nf))
 
 def big_v(+x: F.F64, +hc: {Nat.is_le(3000n, F.dexp(x)) == True{} : Bool}) -> {SF.rtriple(F.ar_big(F.signbit(x), F.dmant(x), Nat.sub(F.dexp(x), 3000n), Nat.is_le(Nat.add(Nat.sub(F.dexp(x), 3000n), Nat.sub(64n, X.clz(F.dmant(x)))), 64n))) == BIGR(SF.sign(x), C.shift(Nat.sub(SF.xexp(x), SF.zb()), SF.mant(x))) : Result<&2, &2, NE.NumError, SF.Rat>}:

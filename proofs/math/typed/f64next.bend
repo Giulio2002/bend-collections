@@ -13,11 +13,10 @@ import ./w64add.bend as WA
 import ./w64sh.bend as SH
 import ./u32laws.bend as LW
 import ../../lib/word.bend as WD
-import ./u64laws.bend as UL
 import ./f64bits.bend as FB
+import ./f64light.bend as FL
 import ./f64round.bend as FR
 import ./f64rtools.bend as RT
-import ./f64addf.bend as AF
 import ./f64cmp.bend as FC
 import ./f64tools.bend as T
 
@@ -150,7 +149,7 @@ def iik_c(+w: WU.U64, +k: Nat, +b: Bool, +hb: {Nat.is_lt(k, 64n) == b : Bool}) -
       iik_t(w, k, hb)
     case False{}:
       +V = SW.value(w)
-      +el = WW.low_fit(k, V, SH.fits_mono(64n, k, V, N.not_lt_le(k, 64n, hb), UL.vb(w)))
+      +el = WW.low_fit(k, V, SH.fits_mono(64n, k, V, N.not_lt_le(k, 64n, hb), FL.vb64(w)))
       Equal.trans(Bool, X.is_zero(w), Nat.is_eq(V, 0n), Nat.is_eq(C.low(k, V), 0n), WA.is_zero_value(w), Equal.cong(Nat, Bool, t => Nat.is_eq(t, 0n), V, C.low(k, V), Equal.sym(Nat, C.low(k, V), V, el)))
 
 def LZ(+x: F.F64) -> Bool:
@@ -203,7 +202,7 @@ def patfit(+x: F.F64) -> {C.fits(63n, SF.pat(x)) == True{} : Bool}:
 def frac52(+x: F.F64) -> {C.fits(52n, SF.frac(x)) == True{} : Bool}:
   match x:
     case F.Bits{+xl, +xh}:
-      AF.hF(xl, xh)
+      FL.hF(xl, xh)
 
 def patz(+x: F.F64) -> {Nat.is_eq(SF.pat(x), 0n) == SF.is_zero(x) : Bool}:
   Equal.trans(Bool, Nat.is_eq(SF.pat(x), 0n), Bool.and(Nat.is_eq(SF.frac(x), 0n), Nat.is_eq(SF.efield(x), 0n)), SF.is_zero(x), FB.z2(SF.frac(x), 52n, SF.efield(x)), T.and_comm(Nat.is_eq(SF.frac(x), 0n), Nat.is_eq(SF.efield(x), 0n)))
@@ -250,7 +249,8 @@ def p1_c(+one: Nat, +h1: {one == 1n : Nat}, +x: F.F64, +hn: {SF.is_nan(x) == Fal
       L.subst(Nat, t => {C.fits(Nat.add(52n, 11n), t) == True{} : Bool}, Nat.add(Nat.add(Fr, 1n), S), Nat.add(SF.pat(x), 1n), Equal.sym(Nat, Nat.add(SF.pat(x), 1n), Nat.add(Nat.add(Fr, 1n), S), er), f4)
 
 # a word of value n < 2^63 with the sign bit added is bits(s, n)
-def ws(+s: Bool, +w: WU.U64, +h63: {C.fits(63n, SW.value(w)) == True{} : Bool}) -> {F.with_sign(s, w) == FR.bits(s, SW.value(w)) : F.F64}:
+# 2^32 stays `one` shifted: the checker never builds the closed 2^32
+def ws_o(+one: Nat, +h1: {one == 1n : Nat}, +s: Bool, +w: WU.U64, +h63: {C.fits(63n, SW.value(w)) == True{} : Bool}) -> {F.with_sign(s, w) == FR.bits(s, SW.value(w)) : F.F64}:
   +lo = X.lo(w)
   +hi = X.hi(w)
   +V = SW.value(w)
@@ -261,9 +261,9 @@ def ws(+s: Bool, +w: WU.U64, +h63: {C.fits(63n, SW.value(w)) == True{} : Bool}) 
   +f31 = L.subst(Nat, t => {C.fits(31n, t) == True{} : Bool}, C.high(32n, V), v(hi), eh, SH.fits_high(32n, 31n, V, h63))
   +esg = Equal.trans(Nat, v(F.sgn(s)), v(SF.pick(U32, s, 2147483648, 0)), T31, Equal.cong(U32, Nat, t => v(t), F.sgn(s), SF.pick(U32, s, 2147483648, 0), FR.sgn_pick(s)), FR.sgv(1n, {==}, s, 2147483648, {==}))
   +fs = WW.limbs_fit(31n, 1n, v(hi), b, f31, FR.b2n_le(s))
-  +hs0 = WW.lt_one(32n, 1n, {==}, Nat.add(v(hi), T31), fs)
-  +hs = L.subst(Nat, t => {Nat.is_lt(Nat.add(v(hi), t), C.shift(32n, 1n)) == True{} : Bool}, T31, v(F.sgn(s)), Equal.sym(Nat, v(F.sgn(s)), T31, esg), hs0)
-  +eadd = Equal.trans(Nat, v(U32.add(hi, F.sgn(s))), Nat.add(v(hi), v(F.sgn(s))), Nat.add(v(hi), T31), FB.addv(1n, {==}, hi, F.sgn(s), hs), Equal.cong(Nat, Nat, t => Nat.add(v(hi), t), v(F.sgn(s)), T31, esg))
+  +hs0 = WW.lt_one(32n, one, h1, Nat.add(v(hi), T31), fs)
+  +hs = L.subst(Nat, t => {Nat.is_lt(Nat.add(v(hi), t), C.shift(32n, one)) == True{} : Bool}, T31, v(F.sgn(s)), Equal.sym(Nat, v(F.sgn(s)), T31, esg), hs0)
+  +eadd = Equal.trans(Nat, v(U32.add(hi, F.sgn(s))), Nat.add(v(hi), v(F.sgn(s))), Nat.add(v(hi), T31), FB.addv(one, h1, hi, F.sgn(s), hs), Equal.cong(Nat, Nat, t => Nat.add(v(hi), t), v(F.sgn(s)), T31, esg))
   +q1 = Nat.add(v(lo), C.shift(32n, v(U32.add(hi, F.sgn(s)))))
   +q2 = Nat.add(v(lo), C.shift(32n, Nat.add(v(hi), T31)))
   +q3 = Nat.add(v(lo), Nat.add(C.shift(32n, v(hi)), C.shift(32n, T31)))
@@ -277,6 +277,9 @@ def ws(+s: Bool, +w: WU.U64, +h63: {C.fits(63n, SW.value(w)) == True{} : Bool}) 
   +g5 = Equal.cong(Nat, Nat, t => Nat.add(t, C.shift(63n, b)), Nat.add(v(lo), C.shift(32n, v(hi))), V, Equal.sym(Nat, V, Nat.add(v(lo), C.shift(32n, v(hi))), eta))
   +hw = Equal.trans(Nat, q1, q2, q6, g1, Equal.trans(Nat, q2, q3, q6, g2, Equal.trans(Nat, q3, q4, q6, g3, Equal.trans(Nat, q4, q5, q6, g4, g5))))
   FR.bits_of(s, V, WU.U64{lo, U32.add(hi, F.sgn(s))}, hw)
+
+def ws(+s: Bool, +w: WU.U64, +h63: {C.fits(63n, SW.value(w)) == True{} : Bool}) -> {F.with_sign(s, w) == FR.bits(s, SW.value(w)) : F.F64}:
+  ws_o(1n, {==}, s, w, h63)
 
 def opat(+s: Bool, +P: Nat) -> {SF.of_pat(s, P) == FR.bits(s, P) : F.F64}:
   Equal.trans(F.F64, SF.of_pat(s, P), FR.bits(s, Nat.add(C.low(52n, P), C.shift(52n, C.high(52n, P)))), FR.bits(s, P), FR.enc_bits(s, C.high(52n, P), C.low(52n, P)), Equal.cong(Nat, F.F64, t => FR.bits(s, t), Nat.add(C.low(52n, P), C.shift(52n, C.high(52n, P))), P, Equal.sym(Nat, P, Nat.add(C.low(52n, P), C.shift(52n, C.high(52n, P))), WW.low_high(52n, P))))
@@ -303,7 +306,7 @@ def st_c(+x: F.F64, +hn: {SF.is_nan(x) == False{} : Bool}, +hz: {SF.is_zero(x) =
       +P = SF.pat(x)
       +M = F.mag(x)
       +W = X.sub(M, WU.U64{1, 0})
-      +hP = AF.nz_le(P, Equal.trans(Bool, Nat.is_eq(P, 0n), SF.is_zero(x), False{}, patz(x), hz))
+      +hP = FL.nz_le(P, Equal.trans(Bool, Nat.is_eq(P, 0n), SF.is_zero(x), False{}, patz(x), hz))
       +hM = L.subst(Nat, t => {Nat.is_le(1n, t) == True{} : Bool}, P, SW.value(M), Equal.sym(Nat, SW.value(M), P, magval(x)), hP)
       +ev = Equal.trans(Nat, SW.value(W), Nat.sub(SW.value(M), 1n), Nat.sub(P, 1n), WA.sub_value(M, WU.U64{1, 0}, hM), Equal.cong(Nat, Nat, t => Nat.sub(t, 1n), SW.value(M), P, magval(x)))
       +h63 = SH.fits_lek(63n, Nat.sub(P, 1n), P, sub_le_self(P, 1n), patfit(x))

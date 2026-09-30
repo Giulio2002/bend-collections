@@ -1,9 +1,10 @@
 import Base
+import ./map_bridge.bend as MB
 import ./map_insert.bend as I
 import ./map_lookup.bend as L
 import ./map_routing.bend as R
 import ./invariants.bend as Inv
-import ./native_map.bend as N
+import ./string_compare.bend as N
 
 law different_sides:
   for side: Bool
@@ -144,10 +145,12 @@ law branch:
 def branch(V, lo, hi, p, key, bit, e, lr, hr, lp, hp):
   match bit:
     case False{}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {I.lookup(Maybe<&2, V>, None{}, Map.del.fin(&2, Maybe<&2, V>, Map.pop.bit(&2, Maybe<&2, V>, lo, hi, p, _)), key) == None{} : Maybe<&2, V>}
+      %Equal.sym(Map<&2, Maybe<&2, V>> & Maybe<&2, Maybe<&2, V>>, Map.pop(&2, Maybe<&2, V>, MNode{p, lo, hi}, key), MB.pop_bit(&2, Maybe<&2, V>, lo, hi, p, Map.bit(key, p)), MB.pop_node(&2, Maybe<&2, V>, p, lo, hi, key)) : {I.lookup(Maybe<&2, V>, None{}, Map.del.fin(&2, Maybe<&2, V>, _), key) == None{} : Maybe<&2, V>}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, False{}), e) : {I.lookup(Maybe<&2, V>, None{}, Map.del.fin(&2, Maybe<&2, V>, MB.pop_bit(&2, Maybe<&2, V>, lo, hi, p, _)), key) == None{} : Maybe<&2, V>}
       collapse_low(V, hi, p, key, e, hr, Map.pop(&2, Maybe<&2, V>, lo, key), lp)
     case True{}:
-      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {I.lookup(Maybe<&2, V>, None{}, Map.del.fin(&2, Maybe<&2, V>, Map.pop.bit(&2, Maybe<&2, V>, lo, hi, p, _)), key) == None{} : Maybe<&2, V>}
+      %Equal.sym(Map<&2, Maybe<&2, V>> & Maybe<&2, Maybe<&2, V>>, Map.pop(&2, Maybe<&2, V>, MNode{p, lo, hi}, key), MB.pop_bit(&2, Maybe<&2, V>, lo, hi, p, Map.bit(key, p)), MB.pop_node(&2, Maybe<&2, V>, p, lo, hi, key)) : {I.lookup(Maybe<&2, V>, None{}, Map.del.fin(&2, Maybe<&2, V>, _), key) == None{} : Maybe<&2, V>}
+      %Equal.sym(String & Bool, Map.bit(key, p), (key, True{}), e) : {I.lookup(Maybe<&2, V>, None{}, Map.del.fin(&2, Maybe<&2, V>, MB.pop_bit(&2, Maybe<&2, V>, lo, hi, p, _)), key) == None{} : Maybe<&2, V>}
       collapse_high(V, lo, p, key, e, lr, Map.pop(&2, Maybe<&2, V>, hi, key), hp)
 
 law delete_same:

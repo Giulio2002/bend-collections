@@ -1,4 +1,5 @@
 import Base
+import ./map_bridge.bend as MB
 import ./map_insert_prefix.bend as Prefix
 import ./map_prefix_algebra.bend as Algebra
 import ./invariants.bend as Inv
@@ -58,7 +59,7 @@ law deep_bit:
   for right: {rows(V, hi, position, side) == True{} : Bool}
   for changed_left: {rows(V, Map.ins(&2, V, lo, key, value, discriminator), position, side) == True{} : Bool}
   for changed_right: {rows(V, Map.ins(&2, V, hi, key, value, discriminator), position, side) == True{} : Bool}
-  {rows(V, Map.ins.deep(&2, V, value, lo, hi, discriminator, parent, (key, bit)), position, side) == True{} : Bool}
+  {rows(V, MB.ins_deep(&2, V, value, lo, hi, discriminator, parent, (key, bit)), position, side) == True{} : Bool}
 def deep_bit(V, key, value, lo, hi, discriminator, parent, bit, position, side, left, right, changed_left, changed_right):
   match bit:
     case False{}:
@@ -82,13 +83,13 @@ law branch:
   for right: {rows(V, hi, position, side) == True{} : Bool}
   for changed_left: {rows(V, Map.ins(&2, V, lo, key, value, discriminator), position, side) == True{} : Bool}
   for changed_right: {rows(V, Map.ins(&2, V, hi, key, value, discriminator), position, side) == True{} : Bool}
-  {rows(V, Map.ins.if(&2, V, key, value, lo, hi, parent, discriminator, descend), position, side) == True{} : Bool}
+  {rows(V, MB.ins_if(&2, V, key, value, lo, hi, parent, discriminator, descend), position, side) == True{} : Bool}
 def branch(V, key, value, lo, hi, discriminator, parent, descend, position, side, fresh, left, right, changed_left, changed_right):
   match descend:
     case False{}:
       splice(V, key, value, MNode{parent, lo, hi}, discriminator, position, side, fresh, P.conjunction(rows(V, lo, position, side), rows(V, hi, position, side), left, right))
     case True{}:
-      %Equal.sym(String & Bool, Map.bit(key, parent), (key, I.route_bit(Map.bit(key, parent))), I.route_shape(key, parent)) : {rows(V, Map.ins.deep(&2, V, value, lo, hi, discriminator, parent, _), position, side) == True{} : Bool}
+      %Equal.sym(String & Bool, Map.bit(key, parent), (key, I.route_bit(Map.bit(key, parent))), I.route_shape(key, parent)) : {rows(V, MB.ins_deep(&2, V, value, lo, hi, discriminator, parent, _), position, side) == True{} : Bool}
       deep_bit(V, key, value, lo, hi, discriminator, parent, I.route_bit(Map.bit(key, parent)), position, side, left, right, changed_left, changed_right)
 
 # Insertion preserves all existing rows and adds the new key row when that
@@ -112,6 +113,7 @@ def preserves_rows(V, tree, key, value, discriminator, position, side, fresh, ex
     case MNode{+parent, +lo, +hi}:
       +left = R.and_left(rows(V, lo, position, side), rows(V, hi, position, side), existing)
       +right = R.and_right(rows(V, lo, position, side), rows(V, hi, position, side), existing)
+      %Equal.sym(Map<&2, V>, Map.ins(&2, V, MNode{parent, lo, hi}, key, value, discriminator), MB.ins_if(&2, V, key, value, lo, hi, parent, discriminator, Nat.is_lt(parent, discriminator)), MB.ins_node(&2, V, parent, lo, hi, key, value, discriminator)) : {rows(V, _, position, side) == True{} : Bool}
       branch(V, key, value, lo, hi, discriminator, parent, Nat.is_lt(parent, discriminator), position, side, fresh, left, right,
         preserves_rows(V, lo, key, value, discriminator, position, side, fresh, left),
         preserves_rows(V, hi, key, value, discriminator, position, side, fresh, right))

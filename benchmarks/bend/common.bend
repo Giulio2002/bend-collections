@@ -46,6 +46,14 @@ def parse(xs: List<&1, String>) -> Args:
     case _:
       AG{99, 0, 0, 0, 0, 0}
 
+# IO.args() starts with the program as invoked (Bend 2.0.32, #935)
+def parse_args(xs: List<&1, String>) -> Args:
+  match xs:
+    case Con{prog, rest}:
+      parse(rest)
+    case Nil{}:
+      AG{99, 0, 0, 0, 0, 0}
+
 def a_op(+g: Args) -> U32:
   match g:
     case AG{+op, size, count, reps, seed, order}:

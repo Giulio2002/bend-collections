@@ -105,7 +105,7 @@ def step(+k: Nat, +q: Nat, +r: Nat, +d: Nat, +y: Nat, +q2: Nat, +r2: Nat, +x: Na
   %Equal.sym(Nat, Nat.mul(Nat.add(sc(k, q), q2), d), Nat.add(Nat.mul(sc(k, q), d), Nat.mul(q2, d)), NA.mul_add_right(sc(k, q), q2, d)) : {Nat.add(Nat.mul(sc(k, q), d), Nat.add(Nat.mul(q2, d), r2)) == Nat.add(_, r2) : Nat}
   Equal.sym(Nat, Nat.add(Nat.add(Nat.mul(sc(k, q), d), Nat.mul(q2, d)), r2), Nat.add(Nat.mul(sc(k, q), d), Nat.add(Nat.mul(q2, d), r2)), N.add_assoc(Nat.mul(sc(k, q), d), Nat.mul(q2, d), r2))
 
-def go_le(+n: Nat, +m: Nat, +d: Nat, +r: Nat) -> {Nat.is_le(Nat.div.fin(Nat.divmod.go(n, m, d, r)), Nat.add(d, n)) == True{} : Bool}:
+def go_le(+n: Nat, +m: Nat, +d: Nat, +r: Nat) -> {Nat.is_le(Pair.fst(Nat, Nat, Nat.divmod.go(n, m, d, r)), Nat.add(d, n)) == True{} : Bool}:
   match n:
     case 0n:
       %Equal.sym(Nat, Nat.add(d, 0n), d, N.add_zero(d)) : {Nat.is_le(d, _) == True{} : Bool}
@@ -113,10 +113,10 @@ def go_le(+n: Nat, +m: Nat, +d: Nat, +r: Nat) -> {Nat.is_le(Nat.div.fin(Nat.divm
     case 1n+np:
       match m:
         case 0n:
-          %Equal.sym(Nat, Nat.add(d, 1n+np), 1n+Nat.add(d, np), N.add_succ(d, np)) : {Nat.is_le(Nat.div.fin(Nat.divmod.go(np, r, 1n+d, 0n)), _) == True{} : Bool}
+          %Equal.sym(Nat, Nat.add(d, 1n+np), 1n+Nat.add(d, np), N.add_succ(d, np)) : {Nat.is_le(Pair.fst(Nat, Nat, Nat.divmod.go(np, r, 1n+d, 0n)), _) == True{} : Bool}
           go_le(np, r, 1n+d, 0n)
         case 1n+mp:
-          N.le_trans(Nat.div.fin(Nat.divmod.go(np, mp, d, 1n+r)), Nat.add(d, np), Nat.add(d, 1n+np), go_le(np, mp, d, 1n+r), L.subst(Nat, z => {Nat.is_le(Nat.add(d, np), z) == True{} : Bool}, 1n+Nat.add(d, np), Nat.add(d, 1n+np), Equal.sym(Nat, Nat.add(d, 1n+np), 1n+Nat.add(d, np), N.add_succ(d, np)), N.le_succ(Nat.add(d, np))))
+          N.le_trans(Pair.fst(Nat, Nat, Nat.divmod.go(np, mp, d, 1n+r)), Nat.add(d, np), Nat.add(d, 1n+np), go_le(np, mp, d, 1n+r), L.subst(Nat, z => {Nat.is_le(Nat.add(d, np), z) == True{} : Bool}, 1n+Nat.add(d, np), Nat.add(d, 1n+np), Equal.sym(Nat, Nat.add(d, 1n+np), 1n+Nat.add(d, np), N.add_succ(d, np)), N.le_succ(Nat.add(d, np))))
 
 # a quotient never exceeds its dividend
 def div_le(+a: Nat, +d: Nat) -> {Nat.is_le(Nat.div(a, d), a) == True{} : Bool}:
