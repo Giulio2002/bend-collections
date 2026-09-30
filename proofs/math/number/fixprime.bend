@@ -54,13 +54,24 @@ def zc(+one: Nat, +h1: {one == 1n : Nat}, +r: Nat, +x: Nat, +c: Bool, +e: {Nat.a
       {==}
 
 # the position of m + 1 is 1 + the value of m
-def succ_t(+one: Nat, +h1: {one == 1n : Nat}, +m: U32) -> {Nat.add(v(U32.add(m, 1)), C.shift(32n, SF.bn(U32.is_zero(U32.add(m, 1))))) == 1n+v(m) : Nat}:
+def bn_bo(+b: Bool, +c: Bool, +one: Nat, +h1: {one == 1n : Nat}, +e: {SF.bn(b) == WD.bo(c, one) : Nat}) -> {WD.bo(b, one) == WD.bo(c, one) : Nat}:
+  match b c:
+    case True{} True{}:
+      {==}
+    case False{} False{}:
+      {==}
+    case True{} False{}:
+      Empty.absurd({one == 0n : Nat}, N.succ_zero(0n, e))
+    case False{} True{}:
+      Empty.absurd({0n == one : Nat}, N.zero_succ(0n, Equal.trans(Nat, 0n, one, 1n, e, h1)))
+
+def succ_t(+one: Nat, +h1: {one == 1n : Nat}, +m: U32) -> {Nat.add(v(U32.add(m, 1)), C.shift(32n, WD.bo(U32.is_zero(U32.add(m, 1)), one))) == 1n+v(m) : Nat}:
   +m1 = U32.add(m, 1)
   +c = P64.carry32(m, 1)
   +e0 = WA.acons_o(one, h1, m, 1)
   +z = zc(one, h1, v(m1), v(m), c, e0, LW.vb(m))
-  +ez = Equal.trans(Nat, SF.bn(U32.is_zero(m1)), SF.bn(Nat.is_eq(v(m1), 0n)), WD.bo(c, one), Equal.cong(Bool, Nat, t => SF.bn(t), U32.is_zero(m1), Nat.is_eq(v(m1), 0n), LW.zero_nat(m1)), z)
-  Equal.trans(Nat, Nat.add(v(m1), C.shift(32n, SF.bn(U32.is_zero(m1)))), Nat.add(v(m1), C.shift(32n, WD.bo(c, one))), 1n+v(m), Equal.cong(Nat, Nat, t => Nat.add(v(m1), C.shift(32n, t)), SF.bn(U32.is_zero(m1)), WD.bo(c, one), ez), Equal.trans(Nat, Nat.add(v(m1), C.shift(32n, WD.bo(c, one))), Nat.add(v(m), 1n), 1n+v(m), e0, N.add_comm(v(m), 1n)))
+  +ez = bn_bo(U32.is_zero(m1), c, one, h1, Equal.trans(Nat, SF.bn(U32.is_zero(m1)), SF.bn(Nat.is_eq(v(m1), 0n)), WD.bo(c, one), Equal.cong(Bool, Nat, t => SF.bn(t), U32.is_zero(m1), Nat.is_eq(v(m1), 0n), LW.zero_nat(m1)), z))
+  Equal.trans(Nat, Nat.add(v(m1), C.shift(32n, WD.bo(U32.is_zero(m1), one))), Nat.add(v(m1), C.shift(32n, WD.bo(c, one))), 1n+v(m), Equal.cong(Nat, Nat, t => Nat.add(v(m1), C.shift(32n, t)), WD.bo(U32.is_zero(m1), one), WD.bo(c, one), ez), Equal.trans(Nat, Nat.add(v(m1), C.shift(32n, WD.bo(c, one))), Nat.add(v(m), 1n), 1n+v(m), e0, N.add_comm(v(m), 1n)))
 
 # an unwrapped candidate sits at its value
 def at_val(+m: U32, +t: Nat, +ht: {Nat.add(v(m), C.shift(32n, 0n)) == t : Nat}) -> {v(m) == t : Nat}:
@@ -88,7 +99,7 @@ def step_found(+t: Nat, +q: Nat, +pt: {SN.prime(t) == False{} : Bool}, +ih: {Boo
   %Equal.sym(Bool, SN.prime(t), False{}, pt) : {Bool.and(Bool.and(Nat.is_le(t, q), SN.prime(q)), Bool.and(Bool.not(_), SF.no_prime(Nat.sub(q, 1n+t), 1n+t))) == True{} : Bool}
   L.and_intro(Bool.and(Nat.is_le(t, q), SN.prime(q)), Bool.and(True{}, SF.no_prime(Nat.sub(q, 1n+t), 1n+t)), L.and_intro(Nat.is_le(t, q), SN.prime(q), le, a2), a3)
 
-def found_go(fuel: Nat, +one: Nat, +h1: {one == 1n : Nat}, +m: U32, +wr: Bool, +hwr: {U32.is_zero(m) == wr : Bool}, +pr: Bool, +hpr: {NB.is_prime(v(m)) == pr : Bool}, +t: Nat, +ht: {Nat.add(v(m), C.shift(32n, SF.bn(wr))) == t : Nat}, +p: U32, +h: {F.u32_np(fuel, m, wr, pr) == Some{p} : Maybe<&2, U32>}) -> {Bool.and(Bool.and(Nat.is_le(t, v(p)), SN.prime(v(p))), SF.no_prime(Nat.sub(v(p), t), t)) == True{} : Bool}:
+def found_go(fuel: Nat, +one: Nat, +h1: {one == 1n : Nat}, +m: U32, +wr: Bool, +hwr: {U32.is_zero(m) == wr : Bool}, +pr: Bool, +hpr: {NB.is_prime(v(m)) == pr : Bool}, +t: Nat, +ht: {Nat.add(v(m), C.shift(32n, WD.bo(wr, one))) == t : Nat}, +p: U32, +h: {F.u32_np(fuel, m, wr, pr) == Some{p} : Maybe<&2, U32>}) -> {Bool.and(Bool.and(Nat.is_le(t, v(p)), SN.prime(v(p))), SF.no_prime(Nat.sub(v(p), t), t)) == True{} : Bool}:
   match fuel wr pr:
     case 0n _ _:
       Empty.absurd({Bool.and(Bool.and(Nat.is_le(t, v(p)), SN.prime(v(p))), SF.no_prime(Nat.sub(v(p), t), t)) == True{} : Bool}, L.none_some(U32, p, h))
@@ -102,7 +113,7 @@ def found_go(fuel: Nat, +one: Nat, +h1: {one == 1n : Nat}, +m: U32, +wr: Bool, +
     case 1n+ +f False{} False{}:
       +m1 = U32.add(m, 1)
       +et = at_val(m, t, ht)
-      +ht1 = Equal.trans(Nat, Nat.add(v(m1), C.shift(32n, SF.bn(U32.is_zero(m1)))), 1n+v(m), 1n+t, succ_t(one, h1, m), Equal.cong(Nat, Nat, z => 1n+z, v(m), t, et))
+      +ht1 = Equal.trans(Nat, Nat.add(v(m1), C.shift(32n, WD.bo(U32.is_zero(m1), one))), 1n+v(m), 1n+t, succ_t(one, h1, m), Equal.cong(Nat, Nat, z => 1n+z, v(m), t, et))
       +ih = found_go(f, one, h1, m1, U32.is_zero(m1), {==}, NB.is_prime(v(m1)), {==}, 1n+t, ht1, p, h)
       +pt = Equal.trans(Bool, SN.prime(t), SN.prime(v(m)), False{}, Equal.cong(Nat, Bool, z => SN.prime(z), t, v(m), Equal.sym(Nat, v(m), t, et)), prime_of(m, False{}, hpr))
       step_found(t, v(p), pt, ih)
@@ -125,13 +136,20 @@ def lt_iff_c(+a: Nat, +b: Nat, +c: Bool, +hc: {Nat.is_lt(a, b) == c : Bool}) -> 
 def lt_iff(+a: Nat, +b: Nat) -> {Nat.is_lt(a, b) == Nat.is_le(1n+a, b) : Bool}:
   lt_iff_c(a, b, Nat.is_lt(a, b), {==})
 
-def found(+n: U32, +p: U32, +h: {F.u32_next_prime(n) == Some{p} : Maybe<&2, U32>}) -> SF.NextPrime.found(n, p, h):
+def found_one(+one: Nat, +h1: {one == 1n : Nat}, +n: U32, +p: U32, +h: {F.u32_next_prime(n) == Some{p} : Maybe<&2, U32>}) -> {Bool.and(Bool.and(Nat.is_le(1n+v(n), v(p)), SN.prime(v(p))), SF.no_prime(Nat.sub(v(p), 1n+v(n)), 1n+v(n))) == True{} : Bool}:
   +m1 = U32.add(n, 1)
-  +g = found_go(Nat.add(v(U32.not(n)), 1n), 1n, {==}, m1, U32.is_zero(m1), {==}, NB.is_prime(v(m1)), {==}, 1n+v(n), succ_t(1n, {==}, n), p, h)
+  found_go(Nat.add(v(U32.not(n)), 1n), one, h1, m1, U32.is_zero(m1), {==}, NB.is_prime(v(m1)), {==}, 1n+v(n), succ_t(one, h1, n), p, h)
+
+def found(+n: U32, +p: U32, +h: {F.u32_next_prime(n) == Some{p} : Maybe<&2, U32>}) -> SF.NextPrime.found(n, p, h):
+  +g = found_one(1n, {==}, n, p, h)
   %Equal.sym(Bool, Nat.is_lt(v(n), v(p)), Nat.is_le(1n+v(n), v(p)), lt_iff(v(n), v(p))) : {Bool.and(Bool.and(_, SN.prime(v(p))), SF.no_prime(Nat.sub(v(p), 1n+v(n)), 1n+v(n))) == True{} : Bool}
   g
 
 # ---- none: no prime left below 2^32 ----
+
+# UA.not_value with the unit kept open (n is 32 at the use)
+def not_value_one(+n: Nat, +one: Nat, +h1: {one == 1n : Nat}, +b: Word(n)) -> {Nat.add(1n, Nat.add(UA.uw(n, Word.not(n, b)), UA.uw(n, b))) == UA.sc(n, one) : Nat}:
+  Equal.trans(Nat, Nat.add(1n, Nat.add(UA.uw(n, Word.not(n, b)), UA.uw(n, b))), UA.sc(n, 1n), UA.sc(n, one), UA.not_value(n, b), Equal.cong(Nat, Nat, z => UA.sc(n, z), 1n, one, Equal.sym(Nat, one, 1n, h1)))
 
 def fuel_ok(+one: Nat, +h1: {one == 1n : Nat}, +n: U32) -> {Nat.is_le(C.shift(32n, one), Nat.add(1n+v(n), 1n+v(U32.not(n)))) == True{} : Bool}:
   match n:
@@ -140,7 +158,7 @@ def fuel_ok(+one: Nat, +h1: {one == 1n : Nat}, +n: U32) -> {Nat.is_le(C.shift(32
       +B = UA.uw(32n, w)
       +S = C.shift(32n, one)
       +e1 = Equal.trans(Nat, S, WD.sc(32n, one), UA.sc(32n, one), W64M.shift_sc(32n, one), {==})
-      +eS = Equal.trans(Nat, S, UA.sc(32n, one), Nat.add(1n, Nat.add(A, B)), e1, Equal.trans(Nat, UA.sc(32n, one), UA.sc(32n, 1n), Nat.add(1n, Nat.add(A, B)), Equal.cong(Nat, Nat, z => UA.sc(32n, z), one, 1n, h1), Equal.sym(Nat, Nat.add(1n, Nat.add(A, B)), UA.sc(32n, 1n), UA.not_value(32n, w))))
+      +eS = Equal.trans(Nat, S, UA.sc(32n, one), Nat.add(1n, Nat.add(A, B)), e1, Equal.sym(Nat, Nat.add(1n, Nat.add(A, B)), UA.sc(32n, one), not_value_one(32n, one, h1, w)))
       +eR = Equal.trans(Nat, Nat.add(1n+B, 1n+A), 1n+Nat.add(B, 1n+A), 2n+Nat.add(A, B), {==}, Equal.cong(Nat, Nat, z => 1n+z, Nat.add(B, 1n+A), 1n+Nat.add(A, B), Equal.trans(Nat, Nat.add(B, 1n+A), 1n+Nat.add(B, A), 1n+Nat.add(A, B), N.add_succ(B, A), Equal.cong(Nat, Nat, z => 1n+z, Nat.add(B, A), Nat.add(A, B), N.add_comm(B, A)))))
       %Equal.sym(Nat, U32.to_nat(U32{w}), B, U3.to_nat_word(w)) : {Nat.is_le(S, Nat.add(1n+_, 1n+U32.to_nat(U32{Word.not(32n, w)}))) == True{} : Bool}
       %Equal.sym(Nat, U32.to_nat(U32{Word.not(32n, w)}), A, U3.to_nat_word(Word.not(32n, w))) : {Nat.is_le(S, Nat.add(1n+B, 1n+_)) == True{} : Bool}
@@ -148,20 +166,22 @@ def fuel_ok(+one: Nat, +h1: {one == 1n : Nat}, +n: U32) -> {Nat.is_le(C.shift(32
       %Equal.sym(Nat, Nat.add(1n+B, 1n+A), 2n+Nat.add(A, B), eR) : {Nat.is_le(Nat.add(1n, Nat.add(A, B)), _) == True{} : Bool}
       N.le_succ(1n+Nat.add(A, B))
 
-def fuel_ok2(+n: U32) -> {Nat.is_le(C.shift(32n, 1n), Nat.add(1n+v(n), Nat.add(v(U32.not(n)), 1n))) == True{} : Bool}:
-  L.subst(Nat, z => {Nat.is_le(C.shift(32n, 1n), Nat.add(1n+v(n), z)) == True{} : Bool}, 1n+v(U32.not(n)), Nat.add(v(U32.not(n)), 1n), Equal.sym(Nat, Nat.add(v(U32.not(n)), 1n), 1n+v(U32.not(n)), WA.plus1(v(U32.not(n)))), fuel_ok(1n, {==}, n))
+# 2^32 stays C.shift(32, one) for a symbolic one: with one == 1n the checker
+# would expand the closed 2^32 in unary
+def fuel_ok2(+one: Nat, +h1: {one == 1n : Nat}, +n: U32) -> {Nat.is_le(C.shift(32n, one), Nat.add(1n+v(n), Nat.add(v(U32.not(n)), 1n))) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_le(C.shift(32n, one), Nat.add(1n+v(n), z)) == True{} : Bool}, 1n+v(U32.not(n)), Nat.add(v(U32.not(n)), 1n), Equal.sym(Nat, Nat.add(v(U32.not(n)), 1n), 1n+v(U32.not(n)), WA.plus1(v(U32.not(n)))), fuel_ok(one, h1, n))
 
 def beyond(+one: Nat, +h1: {one == 1n : Nat}, +t: Nat, +q: Nat, +hS: {Nat.is_le(C.shift(32n, one), t) == True{} : Bool}, +hq: {Nat.is_le(t, q) == True{} : Bool}, +hqf: {C.fits(32n, q) == True{} : Bool}) -> Empty:
   L.true_false(Equal.trans(Bool, True{}, Nat.is_le(C.shift(32n, one), q), False{}, Equal.sym(Bool, Nat.is_le(C.shift(32n, one), q), True{}, N.le_trans(C.shift(32n, one), t, q, hS, hq)), N.lt_not_le(q, C.shift(32n, one), WW.lt_one(32n, one, h1, q, hqf))))
 
-def none_go(fuel: Nat, +one: Nat, +h1: {one == 1n : Nat}, +m: U32, +wr: Bool, +hwr: {U32.is_zero(m) == wr : Bool}, +pr: Bool, +hpr: {NB.is_prime(v(m)) == pr : Bool}, +t: Nat, +ht: {Nat.add(v(m), C.shift(32n, SF.bn(wr))) == t : Nat}, +hf: {Nat.is_le(C.shift(32n, one), Nat.add(t, fuel)) == True{} : Bool}, +h: {F.u32_np(fuel, m, wr, pr) == None{} : Maybe<&2, U32>}, +q: Nat, +hq: {Nat.is_le(t, q) == True{} : Bool}, +hqf: {C.fits(32n, q) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(t, q) == c : Bool}) -> {SN.prime(q) == False{} : Bool}:
+def none_go(fuel: Nat, +one: Nat, +h1: {one == 1n : Nat}, +m: U32, +wr: Bool, +hwr: {U32.is_zero(m) == wr : Bool}, +pr: Bool, +hpr: {NB.is_prime(v(m)) == pr : Bool}, +t: Nat, +ht: {Nat.add(v(m), C.shift(32n, WD.bo(wr, one))) == t : Nat}, +hf: {Nat.is_le(C.shift(32n, one), Nat.add(t, fuel)) == True{} : Bool}, +h: {F.u32_np(fuel, m, wr, pr) == None{} : Maybe<&2, U32>}, +q: Nat, +hq: {Nat.is_le(t, q) == True{} : Bool}, +hqf: {C.fits(32n, q) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(t, q) == c : Bool}) -> {SN.prime(q) == False{} : Bool}:
   match fuel wr pr c:
     case 0n _ _ _:
       +hS = Equal.trans(Bool, Nat.is_le(C.shift(32n, one), t), Nat.is_le(C.shift(32n, one), Nat.add(t, 0n)), True{}, Equal.cong(Nat, Bool, z => Nat.is_le(C.shift(32n, one), z), t, Nat.add(t, 0n), Equal.sym(Nat, Nat.add(t, 0n), t, N.add_zero(t))), hf)
       Empty.absurd({SN.prime(q) == False{} : Bool}, beyond(one, h1, t, q, hS, hq, hqf))
     case 1n+f True{} _ _:
       +S = C.shift(32n, one)
-      +e1 = Equal.trans(Nat, Nat.add(v(m), S), Nat.add(v(m), C.shift(32n, 1n)), t, Equal.cong(Nat, Nat, z => Nat.add(v(m), C.shift(32n, z)), one, 1n, h1), ht)
+      +e1 = ht
       +hS = Equal.trans(Bool, Nat.is_le(S, t), Nat.is_le(S, Nat.add(S, v(m))), True{}, Equal.cong(Nat, Bool, z => Nat.is_le(S, z), t, Nat.add(S, v(m)), Equal.trans(Nat, t, Nat.add(v(m), S), Nat.add(S, v(m)), Equal.sym(Nat, Nat.add(v(m), S), t, e1), N.add_comm(v(m), S))), N.le_add_right(S, v(m)))
       Empty.absurd({SN.prime(q) == False{} : Bool}, beyond(one, h1, t, q, hS, hq, hqf))
     case 1n+f False{} True{} _:
@@ -173,11 +193,14 @@ def none_go(fuel: Nat, +one: Nat, +h1: {one == 1n : Nat}, +m: U32, +wr: Bool, +h
     case 1n+ +f False{} False{} False{}:
       +et = at_val(m, t, ht)
       +m1 = U32.add(m, 1)
-      +ht1 = Equal.trans(Nat, Nat.add(v(m1), C.shift(32n, SF.bn(U32.is_zero(m1)))), 1n+v(m), 1n+t, succ_t(one, h1, m), Equal.cong(Nat, Nat, z => 1n+z, v(m), t, et))
+      +ht1 = Equal.trans(Nat, Nat.add(v(m1), C.shift(32n, WD.bo(U32.is_zero(m1), one))), 1n+v(m), 1n+t, succ_t(one, h1, m), Equal.cong(Nat, Nat, z => 1n+z, v(m), t, et))
       +hf1 = Equal.trans(Bool, Nat.is_le(C.shift(32n, one), Nat.add(1n+t, f)), Nat.is_le(C.shift(32n, one), Nat.add(t, 1n+f)), True{}, Equal.cong(Nat, Bool, z => Nat.is_le(C.shift(32n, one), z), Nat.add(1n+t, f), Nat.add(t, 1n+f), Equal.sym(Nat, Nat.add(t, 1n+f), 1n+Nat.add(t, f), N.add_succ(t, f))), hf)
       +hq1 = N.lt_succ_le_succ(t, q, N.lt_or_eq(t, q, hq, hc))
       none_go(f, one, h1, m1, U32.is_zero(m1), {==}, NB.is_prime(v(m1)), {==}, 1n+t, ht1, hf1, h, q, hq1, hqf, Nat.is_eq(1n+t, q), {==})
 
-def none(+n: U32, +h: {F.u32_next_prime(n) == None{} : Maybe<&2, U32>}, +m: Nat, +hm: {Nat.is_lt(v(n), m) == True{} : Bool}, +hf: {C.fits(32n, m) == True{} : Bool}) -> SF.NextPrime.none(n, h, m, hm, hf):
+def none_one(+one: Nat, +h1: {one == 1n : Nat}, +n: U32, +h: {F.u32_next_prime(n) == None{} : Maybe<&2, U32>}, +m: Nat, +hm: {Nat.is_lt(v(n), m) == True{} : Bool}, +hf: {C.fits(32n, m) == True{} : Bool}) -> {SN.prime(m) == False{} : Bool}:
   +m1 = U32.add(n, 1)
-  none_go(Nat.add(v(U32.not(n)), 1n), 1n, {==}, m1, U32.is_zero(m1), {==}, NB.is_prime(v(m1)), {==}, 1n+v(n), succ_t(1n, {==}, n), fuel_ok2(n), h, m, N.lt_succ_le_succ(v(n), m, hm), hf, Nat.is_eq(1n+v(n), m), {==})
+  none_go(Nat.add(v(U32.not(n)), 1n), one, h1, m1, U32.is_zero(m1), {==}, NB.is_prime(v(m1)), {==}, 1n+v(n), succ_t(one, h1, n), fuel_ok2(one, h1, n), h, m, N.lt_succ_le_succ(v(n), m, hm), hf, Nat.is_eq(1n+v(n), m), {==})
+
+def none(+n: U32, +h: {F.u32_next_prime(n) == None{} : Maybe<&2, U32>}, +m: Nat, +hm: {Nat.is_lt(v(n), m) == True{} : Bool}, +hf: {C.fits(32n, m) == True{} : Bool}) -> SF.NextPrime.none(n, h, m, hm, hf):
+  none_one(1n, {==}, n, h, m, hm, hf)
