@@ -9,6 +9,7 @@ import ../../../spec/crypto/aes/gcm.bend as G
 import ../../lib/nat.bend as N
 import ./laws.bend as Laws
 import ./chacha20poly1305.bend as C
+import ./fused.bend as FU
 import ../aes/api.bend as AE
 import ./sound.bend as SD
 
@@ -267,7 +268,9 @@ law layout_cp:
 
 def layout_cp(key, nonce, aad, pt):
   +ct = CP.encrypt_ct(key, nonce, pt)
-  Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => sapp(ct, l), CP.tag(key, nonce, aad, ct), R.tag(key, nonce, aad, ct), C.tag_eq(key, nonce, aad, ct))
+  Equal.trans(Maybe<&2, List<&2, U32>>, A.seal(A.CHACHA20_POLY1305{}, key, nonce, aad, pt), sapp(ct, CP.tag(key, nonce, aad, ct)), sapp(ct, R.tag(key, nonce, aad, ct)),
+    Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => Some{l}, CP.seal(key, nonce, aad, pt), CP.seal_ref(key, nonce, aad, pt), FU.seal_fused(key, nonce, aad, pt)),
+    Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => sapp(ct, l), CP.tag(key, nonce, aad, ct), R.tag(key, nonce, aad, ct), C.tag_eq(key, nonce, aad, ct)))
 
 law layout_x:
   for +key: List<&2, U32>
@@ -280,11 +283,13 @@ def layout_x(key, nonce, aad, pt):
   +k = CP.xkey(key, nonce)
   +n = CP.xnonce(nonce)
   +ct = CP.encrypt_ct(k, n, pt)
+  Equal.trans(Maybe<&2, List<&2, U32>>, A.seal(A.XCHACHA20_POLY1305{}, key, nonce, aad, pt), sapp(ct, CP.tag(k, n, aad, ct)), sapp(ct, R.tag(RC.xsubkey(key, nonce), RC.xnonce(nonce), aad, ct)),
+    Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => Some{l}, CP.seal(k, n, aad, pt), CP.seal_ref(k, n, aad, pt), FU.seal_fused(k, n, aad, pt)),
   Equal.trans(Maybe<&2, List<&2, U32>>, sapp(ct, CP.tag(k, n, aad, ct)), sapp(ct, R.tag(k, n, aad, ct)), sapp(ct, R.tag(RC.xsubkey(key, nonce), RC.xnonce(nonce), aad, ct)),
     Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => sapp(ct, l), CP.tag(k, n, aad, ct), R.tag(k, n, aad, ct), C.tag_eq(k, n, aad, ct)),
     Equal.trans(Maybe<&2, List<&2, U32>>, sapp(ct, R.tag(k, n, aad, ct)), sapp(ct, R.tag(RC.xsubkey(key, nonce), n, aad, ct)), sapp(ct, R.tag(RC.xsubkey(key, nonce), RC.xnonce(nonce), aad, ct)),
       Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => sapp(ct, R.tag(l, n, aad, ct)), k, RC.xsubkey(key, nonce), C.xkey_eq(key, nonce)),
-      Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => sapp(ct, R.tag(RC.xsubkey(key, nonce), l, aad, ct)), n, RC.xnonce(nonce), C.xnonce_eq(nonce))))
+      Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => sapp(ct, R.tag(RC.xsubkey(key, nonce), l, aad, ct)), n, RC.xnonce(nonce), C.xnonce_eq(nonce)))))
 
 def gct(+key: List<&2, U32>, +nonce: List<&2, U32>, +pt: List<&2, U32>) -> List<&2, U32>:
   G.gctr(S.nk(key), S.nr(key), key, pt, G.inc32(G.j0(nonce)))

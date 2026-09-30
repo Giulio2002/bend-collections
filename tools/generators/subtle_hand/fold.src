@@ -1,0 +1,88 @@
+import Base
+import ../../../src/crypto/subtle.bend as Subtle
+import ../../../spec/crypto/subtle.bend as SS
+import ./word.bend as W
+
+# The value of subtle's passes (shared by proofs/crypto/subtle/proof.bend and
+# the proofs that use subtle.eq): after the common prefix, "both lists end
+# together and the accumulator is zero" is "the starting accumulator is zero
+# and the lists are equal" (the shape of HACL*'s lbytes_eq proof), for the
+# one-pair pass and the four-pair pass.
+
+law step:
+  for +acc: U32
+  for +x: U32
+  for +y: U32
+  for +e: Bool
+  {Bool.and(U32.is_eq(U32.or(acc, U32.xor(x, y)), 0), e) == Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), e)) : Bool}
+
+def step(acc, x, y, e):
+  %goal {Bool.and(U32.is_eq(U32.or(acc, U32.xor(x, y)), 0), e) == Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), e)) : Bool}
+  %rw W.u32_or_zero(acc, U32.xor(x, y))
+  %rw W.u32_xor_zero(x, y)
+  %rw W.and_assoc(U32.is_eq(acc, 0), U32.is_eq(x, y), e)
+  %close
+
+law fold:
+  for +a: List<&2, U32>
+  for +b: List<&2, U32>
+  for +acc: U32
+  {Subtle.go(a, b, acc) == Bool.and(U32.is_eq(acc, 0), SS.equal(a, b)) : Bool}
+
+def fold(a, b, acc):
+  match a b:
+    case Nil{} Nil{}: Equal.sym(Bool, Bool.and(U32.is_eq(acc, 0), True{}), U32.is_eq(acc, 0), W.and_true(U32.is_eq(acc, 0)))
+    case Nil{} y <> ys: Equal.sym(Bool, Bool.and(U32.is_eq(acc, 0), False{}), False{}, W.and_false(U32.is_eq(acc, 0)))
+    case x <> xs Nil{}: Equal.sym(Bool, Bool.and(U32.is_eq(acc, 0), False{}), False{}, W.and_false(U32.is_eq(acc, 0)))
+    case x <> xs y <> ys:
+      +acc2 = U32.or(acc, U32.xor(x, y))
+      Equal.trans(Bool, Subtle.go(xs, ys, acc2), Bool.and(U32.is_eq(acc2, 0), SS.equal(xs, ys)), Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), SS.equal(xs, ys))), fold(xs, ys, acc2), step(acc, x, y, SS.equal(xs, ys)))
+
+def step4(+acc: U32, +x0: U32, +x1: U32, +x2: U32, +x3: U32, +y0: U32, +y1: U32, +y2: U32, +y3: U32, +e: Bool) -> {Bool.and(U32.is_eq(U32.or(acc, U32.or(U32.or(U32.xor(x0, y0), U32.xor(x1, y1)), U32.or(U32.xor(x2, y2), U32.xor(x3, y3)))), 0), e) == Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x0, y0), Bool.and(U32.is_eq(x1, y1), Bool.and(U32.is_eq(x2, y2), Bool.and(U32.is_eq(x3, y3), e))))) : Bool}:
+  %goal {Bool.and(U32.is_eq(U32.or(acc, U32.or(U32.or(U32.xor(x0, y0), U32.xor(x1, y1)), U32.or(U32.xor(x2, y2), U32.xor(x3, y3)))), 0), e) == Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x0, y0), Bool.and(U32.is_eq(x1, y1), Bool.and(U32.is_eq(x2, y2), Bool.and(U32.is_eq(x3, y3), e))))) : Bool}
+  %rw W.u32_or_zero(acc, U32.or(U32.or(U32.xor(x0, y0), U32.xor(x1, y1)), U32.or(U32.xor(x2, y2), U32.xor(x3, y3))))
+  %rw W.u32_or_zero(U32.or(U32.xor(x0, y0), U32.xor(x1, y1)), U32.or(U32.xor(x2, y2), U32.xor(x3, y3)))
+  %rw W.u32_or_zero(U32.xor(x0, y0), U32.xor(x1, y1))
+  %rw W.u32_or_zero(U32.xor(x2, y2), U32.xor(x3, y3))
+  %rw W.u32_xor_zero(x0, y0)
+  %rw W.u32_xor_zero(x1, y1)
+  %rw W.u32_xor_zero(x2, y2)
+  %rw W.u32_xor_zero(x3, y3)
+  %rw W.and_assoc(U32.is_eq(acc, 0), Bool.and(Bool.and(U32.is_eq(x0, y0), U32.is_eq(x1, y1)), Bool.and(U32.is_eq(x2, y2), U32.is_eq(x3, y3))), e)
+  %rw W.and_assoc(Bool.and(U32.is_eq(x0, y0), U32.is_eq(x1, y1)), Bool.and(U32.is_eq(x2, y2), U32.is_eq(x3, y3)), e)
+  %rw W.and_assoc(U32.is_eq(x0, y0), U32.is_eq(x1, y1), Bool.and(Bool.and(U32.is_eq(x2, y2), U32.is_eq(x3, y3)), e))
+  %rw W.and_assoc(U32.is_eq(x2, y2), U32.is_eq(x3, y3), e)
+  %close
+
+law fold4:
+  for +a: List<&2, U32>
+  for +b: List<&2, U32>
+  for +acc: U32
+  {Subtle.go4(a, b, acc) == Bool.and(U32.is_eq(acc, 0), SS.equal(a, b)) : Bool}
+
+def fold4(a, b, acc):
+  match a:
+    case Nil{}: fold(Nil{}, b, acc)
+    case +x0 <> +a1:
+      match a1:
+        case Nil{}: fold(x0 <> Nil{}, b, acc)
+        case +x1 <> +a2:
+          match a2:
+            case Nil{}: fold(x0 <> x1 <> Nil{}, b, acc)
+            case +x2 <> +a3:
+              match a3:
+                case Nil{}: fold(x0 <> x1 <> x2 <> Nil{}, b, acc)
+                case +x3 <> +at:
+                  match b:
+                    case Nil{}: fold(x0 <> x1 <> x2 <> x3 <> at, Nil{}, acc)
+                    case +y0 <> +b1:
+                      match b1:
+                        case Nil{}: fold(x0 <> x1 <> x2 <> x3 <> at, y0 <> Nil{}, acc)
+                        case +y1 <> +b2:
+                          match b2:
+                            case Nil{}: fold(x0 <> x1 <> x2 <> x3 <> at, y0 <> y1 <> Nil{}, acc)
+                            case +y2 <> +b3:
+                              match b3:
+                                case Nil{}: fold(x0 <> x1 <> x2 <> x3 <> at, y0 <> y1 <> y2 <> Nil{}, acc)
+                                case +y3 <> +bt:
+                                  Equal.trans(Bool, Subtle.go4(at, bt, U32.or(acc, U32.or(U32.or(U32.xor(x0, y0), U32.xor(x1, y1)), U32.or(U32.xor(x2, y2), U32.xor(x3, y3))))), Bool.and(U32.is_eq(U32.or(acc, U32.or(U32.or(U32.xor(x0, y0), U32.xor(x1, y1)), U32.or(U32.xor(x2, y2), U32.xor(x3, y3)))), 0), SS.equal(at, bt)), Bool.and(U32.is_eq(acc, 0), SS.equal(x0 <> x1 <> x2 <> x3 <> at, y0 <> y1 <> y2 <> y3 <> bt)), fold4(at, bt, U32.or(acc, U32.or(U32.or(U32.xor(x0, y0), U32.xor(x1, y1)), U32.or(U32.xor(x2, y2), U32.xor(x3, y3))))), step4(acc, x0, x1, x2, x3, y0, y1, y2, y3, SS.equal(at, bt)))

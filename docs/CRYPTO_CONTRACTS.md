@@ -22,12 +22,15 @@ proofs/crypto/<pkg>/proof.bend`, one thread).
 
 ## Constant-time comparison: `src/crypto/subtle.bend`
 
-`eq(a, b)` compares two byte lists (`List<&2, U32>`). The lengths are public
-(lists of different lengths are unequal without reading the contents); for
-equal lengths every position is read, the XOR of the two bytes is ORed into
-an accumulator, and the result is whether the accumulator is zero: no early
-exit and no branch on the contents (Go's `crypto/subtle.ConstantTimeCompare`,
-HACL*'s `Lib.ByteBuffer.lbytes_eq`).
+`eq(a, b)` compares two byte lists (`List<&2, U32>`). The lengths are
+public (lists of different lengths are unequal); one pass walks both lists
+together, four pairs per step: the XOR of each pair is ORed into an
+accumulator, with no early exit and no branch on the contents, and the
+result is whether both lists end together with the accumulator zero (Go's
+`crypto/subtle.ConstantTimeCompare`, HACL*'s `Lib.ByteBuffer.lbytes_eq`).
+Any U32 values work, so the same function compares lists of 32-bit words
+(four bytes packed per word: a quarter of the steps; the benchmark's
+"words" rows).
 
 | Clause | Statement | Evidence |
 |---|---|---|
@@ -36,10 +39,12 @@ HACL*'s `Lib.ByteBuffer.lbytes_eq`).
 | `Eq.refl` | `eq(a, a) == True` | proved |
 
 Together the three say `eq(a, b)` is `True` exactly when `a == b`. The proof
-(`proofs/crypto/subtle/`, 0.2 s) is the accumulator invariant "lengths agree
-and the fold is zero" == "the starting accumulator is zero and the lists are
-equal", on width-generic `Word` lemmas (`zero(x | y) == zero(x) && zero(y)`,
-`zero(x ^ y) == (x == y)`, comparison soundness and reflexivity).
+(`proofs/crypto/subtle/`; the pass lemmas in `fold.bend`, shared with the
+proofs that use `eq`) is the accumulator invariant "both lists end together
+and the accumulator is zero" == "the starting accumulator is zero and the
+lists are equal", for the one-pair and the four-pair pass, on width-generic
+`Word` lemmas (`zero(x | y) == zero(x) && zero(y)`, `zero(x ^ y) == (x == y)`,
+comparison soundness and reflexivity).
 
 Constant time itself is **not** a provable clause: Bend has no timing model,
 so the property is the shape of the code (one pass, no data-dependent
@@ -627,7 +632,12 @@ refinement follows HACL*'s `Hacl.Impl.Chacha20` against `Spec.Chacha20`:
 one double round of the unrolled core is shown equal to `inner_block` on a
 destructured state (`proofs/crypto/chacha/core.bend`, both sides normalize
 to the same sixteen words), the round count by induction, then the
-byte-level functions (`stream.bend`, `xchacha.bend`). The involution
+byte-level functions (`stream.bend`, `xchacha.bend`). The implementation's
+stream is one pass (`xstream`: the keystream of each block XORed onto the
+message, the next block generated where it runs out, nothing appended or
+skipped over); `stream.bend` proves it equal to the block-by-block
+`stream` (append the XORed front, recurse on the rest), which is the
+specification's shape. The involution
 (`involution.bend`) shows the block-by-block encryption equal to one XOR
 with the concatenated keystream, which is long enough, and XOR twice
 cancels (U32 XOR is proved self-inverse on Base's words).
@@ -654,15 +664,43 @@ and a Python HChaCha20, see below).
 ## Poly1305
 
 `src/crypto/poly1305/poly1305.bend`: `mac(key, msg)` (any lengths),
-`poly1305(key, msg)` (`None` unless the key has 32 bytes) and
-`verify(key, msg, tag)` (`subtle.eq` against the computed tag). The
-accumulator is 17 radix-2^8 U32 limbs (`limbs.bend`, TweetNaCl's
-representation): per block the message limbs are added without carry, the
-product with r is a schoolbook multiplication of limb lists, the limbs at
-2^136 and above fold back multiplied by 320 (2^136 = 64 p + 320), and two
-carry passes bring the value below 2p; every intermediate stays below 2^31,
-so no U64 is needed. The final reduction adds 5 and selects by a mask
-derived from bit 130 (no branch), then s is added mod 2^128.
+`poly1305(key, msg)` (`None` unless the key has 32 bytes), `verify(key,
+msg, tag)` (`subtle.eq` against the computed tag) and `mac_aead(key, aad,
+ct)` (the RFC 8439 2.8 tag over aad and ciphertext, without building
+`mac_data`). The accumulator is five natural-number limbs in radix 2^26
+(`limbs.bend`, poly1305-donna-32 / HACL*'s `Field32xN` layout). Bend's
+native `Nat` is one machine word that aborts past 2^48, so r is split into
+13-bit halves, r = e + 2^13 o, and a block is (h + m) e + 2^13 (h + m) o:
+two schoolbook products with the w^5 = p + 5 fold (the multiplier limbs
+times 5 precomputed), the second product's columns carried into 26 bits
+and shifted onto the first, then one carry pass. Division by 2^26 is two
+divisions by the literal 2^13 (shifts after compilation). The message is
+read 16 bytes per step. The final reduction folds the top carry, adds 5
+and selects by the carry bit at 2^130 (arithmetically, no branch), adds s
+and serializes the low 16 bytes.
+
+Run-time bounds (every intermediate must stay below 2^48), proved: for
+every key and message, every Nat that `mac`, `poly1305` and `mac_aead`
+compute (every sum, product, quotient, remainder and difference of the
+limb code, per block and in the final reduction) is below 2^48
+(`safe_mac`, `safe_poly1305`, `safe_mac_aead` below). This is the
+bounded-limbs pattern of HACL*'s `Field32xN` and Fiat-Crypto: each limb
+function has a precondition and postcondition on limb widths, and
+`proofs/crypto/poly1305/sops.bend` states, per function, the conjunction
+`C.fits(48n, v)` over every value v its body computes (checked against the
+body by `{==}`) and proves it under the precondition; `safe.bend` mirrors
+the message loops and entry points and carries the invariant from block to
+block. The widths: accumulator between blocks 27 bits per limb, message
+block, r and s 26, h + m 28, multiplier halves 13 (their fivefold 16),
+products 44, product columns 46 (1 + 4 * 5 < 32 terms below 2^41, a sum
+lemma rather than bit counting; every partial sum at most 48), combined
+columns 47, carry chains 48, limbs out 27; the final reduction stays below
+2^32. Not counted: message lengths and byte counts (`List.length`, the
+AEAD's two lengths and their `le8` bytes), which count list cells.
+The files are generated by `tools/generators/poly1305_safe.py`
+(`sops.bend`, the loop lemmas in `safe_lib.bend`, the clauses in
+`safe.bend`, and the one-pass AEAD's in `proofs/crypto/aead/safe.bend` and
+`safe_open.bend`); the checker verifies every step.
 
 Specification: `spec/crypto/poly1305.bend`, RFC 8439 2.5 over Nat: r =
 le_num(clamp(key[0..16])), s = le_num(key[16..32]), a = modp(r * (a + n))
@@ -682,13 +720,38 @@ spec reduces with `modp` (folds using 2^130 = p + 5, through `C.low` /
 | `verify_rejects` | `tag != Spec.mac(key, msg)` implies `verify(key, msg, tag) == False` | proved |
 | `absorb_poly` | `Spec.absorb(blocks, r, 0) == poly(blocks, r) mod (2^130 - 5)`, poly(r) = n_1 r^q + ... + n_q r (the RFC's polynomial; Horner's rule and reduction commuting with + and *) | proved |
 | `mac_poly` | `Spec.poly1305_mac(key, msg)` is the 16 low bytes of `(poly(blocks, r) mod (2^130 - 5)) + s` | proved |
+| `mac_aead` | `mac_aead(key, aad, ct) == Spec.mac(key, mac_data(aad, ct))`, mac_data as in RFC 8439 2.8 (`spec/crypto/chacha20poly1305.bend`) | proved |
+| `safe_mac` | `ok_mac(key, msg) == True`: every Nat `mac(key, msg)` computes is below 2^48 (Bend's native Nat range), every key and message (`safe.bend`) | proved |
+| `safe_poly1305` | the same for `poly1305(key, msg)` (and so `verify`) | proved |
+| `safe_mac_aead` | the same for `mac_aead(key, aad, ct)`, every aad and ciphertext | proved |
 
 The proof is the limb-value argument of HACL*'s `Hacl.Spec.Poly1305.Field32xN`
-and Fiat-Crypto: `eval` of a limb list (Horner, base 2^8) is linear in the
-limbs, the schoolbook product evaluates to the product exactly, the fold
-changes the value by a multiple of p, a carry pass preserves the value and
-bounds the limbs, and the machine operations equal their Nat meaning under
-the proved bounds (`proofs/crypto/poly1305/{arith,value,step,modp,final,mac}.bend`).
+and Fiat-Crypto, restated for the five radix-2^26 limbs:
+`ev(l0..l4) = l0 + 2^26 (l1 + 2^26 (l2 + 2^26 (l3 + 2^26 l4)))`
+(`vals.bend`). The unrolled product is, definitionally, a0 r + a1 (r w) +
+a2 (r w^2) + ... with `r w` the folded rotation (5 r4, r0, r1, r2, r3),
+whose value is w r mod p; so the product's value is `ev(a) ev(r)` mod p.
+Combining the two halves, carrying (each split x = x mod 2^26 + 2^26 (x
+div 2^26), the carry out of the top limb folded as 2^130 = p + 5), loading
+16 bytes and the pad bit, and the tag bytes are each an equation of values
+(`vals.bend`, `fin.bend`); the limb bounds are `bnd.bend`; `mac.bend` walks
+the message block by block against the spec (the full blocks, and the last
+short block through `absorb_gen`, the RFC's loop, whose blocks equal the
+spec's for any fuel covering the message) and instantiates the radix
+facts once (2^13 = 8192 is the only radix literal); `tag2.bend` proves
+`mac_aead` the Poly1305 of `mac_data` (absorbing x | pad16(x) and then z
+is absorbing (x | pad16(x)) | z). The Nat identities are generated by
+`tools/generators/rw.py` from `tools/generators/poly1305_hand/*.src`
+(rewrite steps the checker verifies; nothing in the generator is trusted).
+Two things keep the roots small and shallow. The facts about the literal
+8192 are proved with 1 kept symbolic (`one == 1`, `8192 == C.shift(13,
+one)` from two divisions by 64), because the checker evaluates a closed
+`C.shift(13, 1)`, `C.pow2(13)` or `C.fits(14, 8192)` in unary by a
+recursion several megabytes deep; every Poly1305 and ChaCha20-Poly1305
+proof file checks with under 1 MB of stack. And the few word and
+arithmetic lemmas the proofs need are restated in `wlite.bend` (same
+statements and proofs as `proofs/lib` and `proofs/math/typed/w64mul.bend`),
+so these roots do not load the 64-bit word libraries.
 Not proved: constant time (the loops follow the public message length; the
 final selection is by mask).
 
@@ -714,10 +777,26 @@ tag)` returns `Some(pt)`, for `alg` one of
 
 Both return `None` for other key or nonce lengths; `decrypt` returns `None`
 for an input shorter than the 16-byte tag and whenever the tag is not the
-one computed over aad and ciphertext (compared with `subtle.eq` before any
-plaintext is produced). An algorithm is a constructor of `Alg` with its
+one computed over aad and ciphertext (compared with `subtle.eq`; no
+plaintext is returned then). An algorithm is a constructor of `Alg` with its
 `key_size`/`nonce_size` row and its cases in `seal` and `open`; the facade
 clauses below are proved by one case per constructor.
+
+The ChaCha20-Poly1305 implementation seals in one pass over the
+plaintext: each 64-byte keystream block is XORed onto 64 plaintext bytes
+and the four 16-byte ciphertext blocks are absorbed by Poly1305 at once
+(no ciphertext list is read back, nothing is appended; the last 0..63
+bytes, their padding and the lengths go through the list code). It opens
+ciphertext || tag without splitting it: the number of 64-byte steps is
+counted once (one per 64 ciphertext bytes while at least 65 remain, so a
+step never reaches the tag), then one pass absorbs the ciphertext and
+compares the tag and another decrypts. `proofs/crypto/aead/
+fused.bend` (generated by `tools/generators/aead_fused.py`) proves `seal`
+equal to `seal_ref` (ciphertext ++ `mac_aead` of the ciphertext) and
+`open` equal to `open_ref` (split off the tag, compare, decrypt), which are
+proved equal to the specification's list-building definitions. The
+run-time bound of their Poly1305 part is proved too (`safe_seal`,
+`safe_open` below).
 
 ChaCha20-Poly1305 specification: `spec/crypto/chacha20poly1305.bend`, RFC
 8439 2.6 and 2.8 over the ChaCha20 and Poly1305 specifications: the
@@ -741,6 +820,8 @@ HChaCha20 subkey and nonce 0^4 || nonce[16..24]. AES-GCM: W-aes's
 | `forgery` | `length(t) == 16` and `t != expected_tag(alg, k, n, aad, ct)` imply `decrypt(alg, k, n, aad, ct ++ t) == None`, every alg | proved |
 | `seal_layout` | `encrypt(alg, k, n, aad, pt) == Some(ct ++ expected_tag(alg, k, n, aad, ct))` for some ct | proved |
 | `decrypt_sound` | `decrypt(alg, k, n, aad, data) == Some(p)` implies `encrypt(alg, k, n, aad, p) == Some(data)`: every accepted input is the honest sealing of what it returns | proved |
+| `safe_seal` (`proofs/crypto/aead/safe.bend`) | every Nat the ChaCha20-Poly1305 `seal` computes is below 2^48 (Bend's native Nat range), every key, nonce, aad and plaintext (and so `encrypt`, `xseal`, `xencrypt`) | proved |
+| `safe_open` (`proofs/crypto/aead/safe_open.bend`) | the same for `open` (and `decrypt`, `xopen`, `xdecrypt`), every key, nonce, aad and data | proved |
 
 `expected_tag` is the specification's tag (RFC 8439's or SP 800-38D's).
 (`proofs/crypto/aead/chacha20poly1305.bend` also proves the

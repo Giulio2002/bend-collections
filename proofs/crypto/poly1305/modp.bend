@@ -1,14 +1,11 @@
 import Base
+import ./wlite.bend as WL
 import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/poly1305.bend as R
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
-import ../../lib/arith.bend as AR
-import ../../lib/u32alg.bend as UA
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/typed/width.bend as WW
-import ../../math/typed/w64mul.bend as WM
-import ../../math/typed/w64sh.bend as SH
 import ../../math/natural/arith.bend as NR
 import ./arith.bend as A
 
@@ -44,7 +41,7 @@ def fold_eq(one, h1, bp, h5, x):
   +hi = C.high(130n, x)
   A.tr(x, Nat.add(lo, C.shift(130n, hi)), Nat.add(Nat.mul(hi, 1n+bp), Nat.add(lo, Nat.mul(hi, 5n))), WW.low_high(130n, x),
     A.tr(Nat.add(lo, C.shift(130n, hi)), Nat.add(lo, Nat.add(Nat.mul(hi, 1n+bp), Nat.mul(hi, 5n))), Nat.add(Nat.mul(hi, 1n+bp), Nat.add(lo, Nat.mul(hi, 5n))),
-      WM.cong_r(lo, C.shift(130n, hi), Nat.add(Nat.mul(hi, 1n+bp), Nat.mul(hi, 5n)), bigp(one, h1, bp, h5, hi)),
+      WL.cong_r(lo, C.shift(130n, hi), Nat.add(Nat.mul(hi, 1n+bp), Nat.mul(hi, 5n)), bigp(one, h1, bp, h5, hi)),
       NA.add_swap(lo, Nat.mul(hi, 1n+bp), Nat.mul(hi, 5n))))
 
 law fold_mod:
@@ -84,7 +81,7 @@ def fold_lt_c(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 
       +hi = C.high(130n, x)
       +lo = C.low(130n, x)
       +h0 = N.eq_from_is_eq(hi, 0n, hc)
-      +ef = A.tr(R.fold(x), Nat.add(lo, Nat.mul(0n, 5n)), x, WM.cong_r(lo, Nat.mul(hi, 5n), Nat.mul(0n, 5n), Equal.cong(Nat, Nat, t => Nat.mul(t, 5n), hi, 0n, h0)),
+      +ef = A.tr(R.fold(x), Nat.add(lo, Nat.mul(0n, 5n)), x, WL.cong_r(lo, Nat.mul(hi, 5n), Nat.mul(0n, 5n), Equal.cong(Nat, Nat, t => Nat.mul(t, 5n), hi, 0n, h0)),
         A.tr(Nat.add(lo, 0n), lo, x, N.add_zero(lo), WW.low_fit(130n, x, hc)))
       A.lt_substl(x, R.fold(x), Nat.add(k, s), A.sy(R.fold(x), x, ef), N.lt_le_trans(x, s, Nat.add(k, s), WW.lt_one(130n, one, h1, x, hc), A.le_add_l(k, s)))
     case False{}:
@@ -94,7 +91,7 @@ def fold_lt_c(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 
       +f = R.fold(x)
       +hp = Nat.mul(hi, 1n+bp)
       +h1h = N.lt_succ_le_succ(0n, hi, N.lt_or_eq(0n, hi, N.zero_le(hi), N.is_eq_sym_false(hi, 0n, hc)))
-      +hp1b = A.le_substl(Nat.mul(1n, 1n+bp), 1n+bp, hp, AR.one_mul(1n+bp), AR.mul_le(1n, hi, 1n+bp, h1h))
+      +hp1b = A.le_substl(Nat.mul(1n, 1n+bp), 1n+bp, hp, WL.one_mul(1n+bp), WL.mul_le(1n, hi, 1n+bp, h1h))
       +lx = A.le_subst(1n+f, Nat.add(hp, f), x, A.sy(x, Nat.add(hp, f), fold_eq(one, h1, bp, h5, x)), WW.le_add_r(1n, hp, f, N.le_trans(1n, 1n+bp, hp, N.zero_le(bp), hp1b)))
       N.lt_le_trans(f, x, Nat.add(k, s), N.succ_le_lt(f, x, lx), N.lt_succ_le(x, Nat.add(k, s), h))
 
@@ -133,19 +130,19 @@ def canon_c(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 5n
       +ly = WW.lt_one(130n, one, h1, y, hy)
       +lx = A.lt_add2(y, 5n, s, s, ly, N.lt_le_trans(5n, 16n, s, {==}, h16))
       +f131 = WW.fits_one(131n, one, h1, x, A.lt_subst(x, Nat.add(s, s), Nat.double(s), A.sy(Nat.double(s), Nat.add(s, s), NA.double_self(s)), lx))
-      +h2 = WW.lt_of_fits(1n, hi, SH.fits_high(130n, 1n, x, f131))
+      +h2 = WW.lt_of_fits(1n, hi, A.fits_high(130n, 1n, x, f131))
       +hne = N.is_eq_sym_false(hi, 0n, hb)
       +h1h = N.lt_succ_le_succ(0n, hi, N.lt_or_eq(0n, hi, N.zero_le(hi), hne))
       +ehi = N.le_antisym(hi, 1n, N.lt_succ_le(hi, 1n, h2), h1h)
       # x == lo + 2^130 hi == lo + s
       +ex = A.tr(x, Nat.add(lo, C.shift(130n, hi)), Nat.add(lo, s), WW.low_high(130n, x),
-        WM.cong_r(lo, C.shift(130n, hi), s, A.tr(C.shift(130n, hi), Nat.mul(hi, s), s, WW.shift_mul_one(130n, one, h1, hi),
-          A.tr(Nat.mul(hi, s), Nat.mul(1n, s), s, Equal.cong(Nat, Nat, t => Nat.mul(t, s), hi, 1n, ehi), AR.one_mul(s)))))
+        WL.cong_r(lo, C.shift(130n, hi), s, A.tr(C.shift(130n, hi), Nat.mul(hi, s), s, WW.shift_mul_one(130n, one, h1, hi),
+          A.tr(Nat.mul(hi, s), Nat.mul(1n, s), s, Equal.cong(Nat, Nat, t => Nat.mul(t, s), hi, 1n, ehi), WL.one_mul(s)))))
       # y == lo + p
       +e2 = A.tr(Nat.add(y, 5n), Nat.add(lo, Nat.add(pp, 5n)), Nat.add(Nat.add(lo, pp), 5n),
-        A.tr(Nat.add(y, 5n), Nat.add(lo, s), Nat.add(lo, Nat.add(pp, 5n)), ex, WM.cong_r(lo, s, Nat.add(pp, 5n), A.sy(Nat.add(pp, 5n), s, h5))),
+        A.tr(Nat.add(y, 5n), Nat.add(lo, s), Nat.add(lo, Nat.add(pp, 5n)), ex, WL.cong_r(lo, s, Nat.add(pp, 5n), A.sy(Nat.add(pp, 5n), s, h5))),
         A.sy(Nat.add(Nat.add(lo, pp), 5n), Nat.add(lo, Nat.add(pp, 5n)), N.add_assoc(lo, pp, 5n)))
-      +ey = UA.add_cancel_r(y, Nat.add(lo, pp), 5n, e2)
+      +ey = WL.add_cancel_r(y, Nat.add(lo, pp), 5n, e2)
       # lo < 5 <= p
       +l5a = A.lt_subst(Nat.add(lo, s), Nat.add(s, 5n), Nat.add(5n, s), N.add_comm(s, 5n), A.lt_substl(Nat.add(y, 5n), Nat.add(lo, s), Nat.add(s, 5n), ex, N.lt_add_r2(y, s, 5n, ly)))
       +l5b = A.btrue(Nat.is_lt(lo, 5n), Nat.is_lt(Nat.add(lo, s), Nat.add(5n, s)), Equal.sym(Bool, Nat.is_lt(Nat.add(lo, s), Nat.add(5n, s)), Nat.is_lt(lo, 5n), WW.lt_cancel_r(lo, 5n, s)), l5a)
@@ -155,7 +152,7 @@ def canon_c(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 5n
       +hp5 = N.lt_succ_le_succ(4n, pp, h4)
       +llo = N.lt_le_trans(lo, 5n, pp, l5b, hp5)
       A.sy(Nat.mod(y, pp), lo, A.tr(Nat.mod(y, pp), Nat.mod(Nat.add(Nat.mul(1n, pp), lo), pp), lo,
-        Equal.cong(Nat, Nat, t => Nat.mod(t, pp), y, Nat.add(Nat.mul(1n, pp), lo), A.tr(y, Nat.add(lo, pp), Nat.add(Nat.mul(1n, pp), lo), ey, A.tr(Nat.add(lo, pp), Nat.add(pp, lo), Nat.add(Nat.mul(1n, pp), lo), N.add_comm(lo, pp), WM.cong_l(pp, Nat.mul(1n, pp), lo, A.sy(Nat.mul(1n, pp), pp, AR.one_mul(pp)))))),
+        Equal.cong(Nat, Nat, t => Nat.mod(t, pp), y, Nat.add(Nat.mul(1n, pp), lo), A.tr(y, Nat.add(lo, pp), Nat.add(Nat.mul(1n, pp), lo), ey, A.tr(Nat.add(lo, pp), Nat.add(pp, lo), Nat.add(Nat.mul(1n, pp), lo), N.add_comm(lo, pp), WL.cong_l(pp, Nat.mul(1n, pp), lo, A.sy(Nat.mul(1n, pp), pp, WL.one_mul(pp)))))),
         NR.mod_of(1n, bp, lo, llo)))
 
 law canon_mod:

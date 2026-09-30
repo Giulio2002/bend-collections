@@ -2,6 +2,7 @@ import Base
 import ../../../spec/lib/common.bend as C
 import ../../../src/crypto/poly1305/poly1305.bend as P
 import ../../../spec/crypto/poly1305.bend as R
+import ../../../spec/crypto/chacha20poly1305.bend as RA
 
 # The Poly1305 clauses (proved in proof.bend).
 
@@ -11,6 +12,15 @@ law mac_correct:
   for +key: List<&2, U32>
   for +msg: List<&2, U32>
   {P.mac(key, msg) == R.mac(key, msg) : List<&2, U32>}
+
+# The AEAD tag (RFC 8439 2.8), computed without building its message, is
+# the Poly1305 tag of mac_data = aad | pad16(aad) | ct | pad16(ct) |
+# le64(len aad) | le64(len ct).
+law mac_aead:
+  for +key: List<&2, U32>
+  for +aad: List<&2, U32>
+  for +ct: List<&2, U32>
+  {P.mac_aead(key, aad, ct) == R.mac(key, RA.mac_data(aad, ct)) : List<&2, U32>}
 
 # The tag has 16 bytes.
 law mac_length:

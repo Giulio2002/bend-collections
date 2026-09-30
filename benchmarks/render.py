@@ -78,7 +78,8 @@ SUITE = OrderedDict([
          '"one-shot" is `hash.sha256`/`sha512`/`sha3_256` of the whole message; "64 B chunks" is '
          '`new_*`, `update_all` over 64-byte pieces cut before the timed region, then `digest`', 'Hash, message, feed', 'us'),
         ('subtle_eq', '`subtle.eq`', 'constant-time loop (lengths, then OR of the XOR of every byte pair, no early exit); '
-         'equal inputs, so every byte is compared', 'Length', 'us'),
+         'equal inputs, so every byte is compared. The "words" rows give Bend the same bytes packed four to a 32-bit word '
+         '(built before the timed region); the C loop still compares the bytes', 'Length', 'us'),
         ('hmac_sha256', 'HMAC-SHA256', 'RFC 2104 over the portable FIPS 180-4 SHA-256 (`benchmarks/native/sha256_ctx.h`), 32-byte key', 'Message', 'us'),
         ('hkdf_sha256', 'HKDF-SHA256', 'RFC 5869 over the same C HMAC; 32-byte input keying material, 32-byte salt, 16-byte info', 'Output', 'us'),
     ])),

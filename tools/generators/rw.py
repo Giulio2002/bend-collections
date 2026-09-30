@@ -26,6 +26,9 @@ Directives (each on its own line, indented like the body it is in):
   %norm                  normalize both sides of a Nat equation as
                          commutative-semiring polynomials (distribute, hoist
                          C.shift, sort sums and products), then close it
+  %normp                 the same, first turning a product by a literal
+                         power of two 2^k (k >= 2) into C.shift(kn, x)
+                         (each step proved by WW.shift_mul)
   %close                 close the goal with {==}
   %show                  print the current goal (a comment)
 
@@ -487,8 +490,16 @@ ZERO = ('lit', '0n')
 ONE = ('lit', '1n')
 
 
+POW2 = [False]
+
+
 def step_rules(t):
     """One rewrite at the root of t: (new, proof of {t == new}) or None."""
+    if POW2[0] and isop(t, 'Nat.mul'):
+        a, b = t[2]
+        if is_lit(b) and not is_lit(a) and litv(b) >= 4 and litv(b) & (litv(b) - 1) == 0:
+            k = ('lit', '%dn' % (litv(b).bit_length() - 1))
+            return S(k, a), 'Equal.sym(Nat, C.shift(%s, %s), Nat.mul(%s, C.shift(%s, 1n)), WW.shift_mul(%s, %s))' % (show(k), show(a), show(a), show(k), show(k), show(a))
     if t[0] == 'succ':
         k = int(t[1][:-1])
         return A(t[2], ('lit', '%dn' % k)), 'SR.succ_add(%s, %s)' % (t[1], show(t[2]))
@@ -630,7 +641,7 @@ def expand(src_path, text, dst_path=None):
                 goal = None
         s = line.strip()
         indent = line[:len(line) - len(line.lstrip())]
-        if not re.match(r'%(rw|rwh|goal|norm|nf|close|show)(@|\b)', s):
+        if not re.match(r'%(rw|rwh|goal|normp|norm|nf|close|show)(@|\b)', s):
             out.append(line)
             continue
         m = re.match(r'%goal (.*)$', s)
@@ -668,6 +679,14 @@ def expand(src_path, text, dst_path=None):
             continue
         if s == '%norm':
             normalize(G)
+            goal = None
+            continue
+        if s == '%normp':
+            POW2[0] = True
+            try:
+                normalize(G)
+            finally:
+                POW2[0] = False
             goal = None
             continue
         if s == '%nf':

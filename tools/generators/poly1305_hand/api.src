@@ -1,0 +1,236 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../../spec/crypto/poly1305.bend as R
+import ../../../src/crypto/poly1305/poly1305.bend as P
+import ../../lib/logic.bend as LG
+import ./mac.bend as M
+
+# The checked API poly1305(key, msg): the tag for a 32-byte key (mac.bend's
+# tag_ok on the key's 32 bytes), None for any other length.
+
+# ---- the checked API ----
+
+def pv(+pone: Nat, +hp: {pone == 1n : Nat}, +one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 5n) == C.shift(130n, one) : Nat}, +key: List<&2, U32>, +msg: List<&2, U32>, +h: {Nat.is_eq(List.length(&2, U32, key), 32n) == True{} : Bool}) -> {P.poly1305_w(pone, key, msg) == Some{R.poly1305_mac(key, msg)} : Maybe<&2, List<&2, U32>>}:
+  match key:
+    case Nil{}: Empty.absurd({P.poly1305_w(pone, Nil{}, msg) == Some{R.poly1305_mac(Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+    case +k0 <> +t0:
+      match t0:
+        case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+        case +k1 <> +t1:
+          match t1:
+            case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+            case +k2 <> +t2:
+              match t2:
+                case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                case +k3 <> +t3:
+                  match t3:
+                    case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                    case +k4 <> +t4:
+                      match t4:
+                        case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                        case +k5 <> +t5:
+                          match t5:
+                            case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                            case +k6 <> +t6:
+                              match t6:
+                                case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                case +k7 <> +t7:
+                                  match t7:
+                                    case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                    case +k8 <> +t8:
+                                      match t8:
+                                        case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                        case +k9 <> +t9:
+                                          match t9:
+                                            case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                            case +k10 <> +t10:
+                                              match t10:
+                                                case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                case +k11 <> +t11:
+                                                  match t11:
+                                                    case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                    case +k12 <> +t12:
+                                                      match t12:
+                                                        case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                        case +k13 <> +t13:
+                                                          match t13:
+                                                            case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                            case +k14 <> +t14:
+                                                              match t14:
+                                                                case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                case +k15 <> +t15:
+                                                                  match t15:
+                                                                    case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                    case +k16 <> +t16:
+                                                                      match t16:
+                                                                        case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                        case +k17 <> +t17:
+                                                                          match t17:
+                                                                            case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                            case +k18 <> +t18:
+                                                                              match t18:
+                                                                                case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                                case +k19 <> +t19:
+                                                                                  match t19:
+                                                                                    case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                                    case +k20 <> +t20:
+                                                                                      match t20:
+                                                                                        case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                                        case +k21 <> +t21:
+                                                                                          match t21:
+                                                                                            case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                                            case +k22 <> +t22:
+                                                                                              match t22:
+                                                                                                case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                                                case +k23 <> +t23:
+                                                                                                  match t23:
+                                                                                                    case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                                                    case +k24 <> +t24:
+                                                                                                      match t24:
+                                                                                                        case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                                                        case +k25 <> +t25:
+                                                                                                          match t25:
+                                                                                                            case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                                                            case +k26 <> +t26:
+                                                                                                              match t26:
+                                                                                                                case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                                                                case +k27 <> +t27:
+                                                                                                                  match t27:
+                                                                                                                    case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                                                                    case +k28 <> +t28:
+                                                                                                                      match t28:
+                                                                                                                        case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                                                                        case +k29 <> +t29:
+                                                                                                                          match t29:
+                                                                                                                            case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> k29 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> k29 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                                                                            case +k30 <> +t30:
+                                                                                                                              match t30:
+                                                                                                                                case Nil{}: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> k29 <> k30 <> Nil{}, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> k29 <> k30 <> Nil{}, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+                                                                                                                                case +k31 <> +t31:
+                                                                                                                                  match t31:
+                                                                                                                                    case Nil{}:
+                                                                                                                                      Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, t => Some{t}, P.tag(pone, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, msg), R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> k29 <> k30 <> k31 <> Nil{}, msg), M.tag_ok(pone, hp, one, h1, bp, h5, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, msg, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> k29 <> k30 <> k31 <> Nil{}, {==}, {==}))
+                                                                                                                                    case +x <> +rest: Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> k29 <> k30 <> k31 <> x <> rest, msg) == Some{R.poly1305_mac(k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> k29 <> k30 <> k31 <> x <> rest, msg)} : Maybe<&2, List<&2, U32>>}, LG.false_true(h))
+
+def pinv(+pone: Nat, +key: List<&2, U32>, +msg: List<&2, U32>, +h: {Nat.is_eq(List.length(&2, U32, key), 32n) == False{} : Bool}) -> {P.poly1305_w(pone, key, msg) == None{} : Maybe<&2, List<&2, U32>>}:
+  match key:
+    case Nil{}: {==}
+    case +k0 <> +t0:
+      match t0:
+        case Nil{}: {==}
+        case +k1 <> +t1:
+          match t1:
+            case Nil{}: {==}
+            case +k2 <> +t2:
+              match t2:
+                case Nil{}: {==}
+                case +k3 <> +t3:
+                  match t3:
+                    case Nil{}: {==}
+                    case +k4 <> +t4:
+                      match t4:
+                        case Nil{}: {==}
+                        case +k5 <> +t5:
+                          match t5:
+                            case Nil{}: {==}
+                            case +k6 <> +t6:
+                              match t6:
+                                case Nil{}: {==}
+                                case +k7 <> +t7:
+                                  match t7:
+                                    case Nil{}: {==}
+                                    case +k8 <> +t8:
+                                      match t8:
+                                        case Nil{}: {==}
+                                        case +k9 <> +t9:
+                                          match t9:
+                                            case Nil{}: {==}
+                                            case +k10 <> +t10:
+                                              match t10:
+                                                case Nil{}: {==}
+                                                case +k11 <> +t11:
+                                                  match t11:
+                                                    case Nil{}: {==}
+                                                    case +k12 <> +t12:
+                                                      match t12:
+                                                        case Nil{}: {==}
+                                                        case +k13 <> +t13:
+                                                          match t13:
+                                                            case Nil{}: {==}
+                                                            case +k14 <> +t14:
+                                                              match t14:
+                                                                case Nil{}: {==}
+                                                                case +k15 <> +t15:
+                                                                  match t15:
+                                                                    case Nil{}: {==}
+                                                                    case +k16 <> +t16:
+                                                                      match t16:
+                                                                        case Nil{}: {==}
+                                                                        case +k17 <> +t17:
+                                                                          match t17:
+                                                                            case Nil{}: {==}
+                                                                            case +k18 <> +t18:
+                                                                              match t18:
+                                                                                case Nil{}: {==}
+                                                                                case +k19 <> +t19:
+                                                                                  match t19:
+                                                                                    case Nil{}: {==}
+                                                                                    case +k20 <> +t20:
+                                                                                      match t20:
+                                                                                        case Nil{}: {==}
+                                                                                        case +k21 <> +t21:
+                                                                                          match t21:
+                                                                                            case Nil{}: {==}
+                                                                                            case +k22 <> +t22:
+                                                                                              match t22:
+                                                                                                case Nil{}: {==}
+                                                                                                case +k23 <> +t23:
+                                                                                                  match t23:
+                                                                                                    case Nil{}: {==}
+                                                                                                    case +k24 <> +t24:
+                                                                                                      match t24:
+                                                                                                        case Nil{}: {==}
+                                                                                                        case +k25 <> +t25:
+                                                                                                          match t25:
+                                                                                                            case Nil{}: {==}
+                                                                                                            case +k26 <> +t26:
+                                                                                                              match t26:
+                                                                                                                case Nil{}: {==}
+                                                                                                                case +k27 <> +t27:
+                                                                                                                  match t27:
+                                                                                                                    case Nil{}: {==}
+                                                                                                                    case +k28 <> +t28:
+                                                                                                                      match t28:
+                                                                                                                        case Nil{}: {==}
+                                                                                                                        case +k29 <> +t29:
+                                                                                                                          match t29:
+                                                                                                                            case Nil{}: {==}
+                                                                                                                            case +k30 <> +t30:
+                                                                                                                              match t30:
+                                                                                                                                case Nil{}: {==}
+                                                                                                                                case +k31 <> +t31:
+                                                                                                                                  match t31:
+                                                                                                                                    case Nil{}:
+                                                                                                                                      Empty.absurd({P.poly1305_w(pone, k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> k29 <> k30 <> k31 <> Nil{}, msg) == None{} : Maybe<&2, List<&2, U32>>}, LG.false_true(Equal.sym(Bool, True{}, False{}, h)))
+                                                                                                                                    case +x <> +rest: {==}
+
+# The checked API: the tag for a 32-byte key, None for any other length.
+law poly1305_valid:
+  for +key: List<&2, U32>
+  for +msg: List<&2, U32>
+  for +h: {Nat.is_eq(List.length(&2, U32, key), 32n) == True{} : Bool}
+  {P.poly1305(key, msg) == Some{R.mac(key, msg)} : Maybe<&2, List<&2, U32>>}
+
+def poly1305_valid(key, msg, h):
+  match msg:
+    case Nil{}: pv(1n, {==}, 1n, {==}, M.bpv(1n), M.bp5(1n, {==}), key, [], h)
+    case x <> rest: pv(1n, {==}, 1n, {==}, M.bpv(1n), M.bp5(1n, {==}), key, x <> rest, h)
+
+law poly1305_invalid:
+  for +key: List<&2, U32>
+  for +msg: List<&2, U32>
+  for +h: {Nat.is_eq(List.length(&2, U32, key), 32n) == False{} : Bool}
+  {P.poly1305(key, msg) == None{} : Maybe<&2, List<&2, U32>>}
+
+def poly1305_invalid(key, msg, h):
+  pinv(1n, key, msg, h)
