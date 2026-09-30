@@ -40,6 +40,7 @@ import ../../../src/crypto/aes/types.bend as T
 import ../../../src/crypto/aes/aes.bend as A
 import ../../../src/crypto/aes/gcm.bend as GI
 import ../../../src/crypto/aesgcm.bend as GCM
+import ./fast/api.bend as FA
 import ../../../spec/crypto/aes/aes.bend as S
 import ../../../spec/crypto/aes/gcm.bend as G
 import ./laws.bend as Laws
@@ -161,17 +162,21 @@ def Laws.Api@N@.forgery(key, h, @NA@, aad, c, @TA@, ne):
   API.aes@N@_forgery(key, h, @NA@, aad, c, @TA@, ne)
 
 def Laws.Api@N@.bad_key(key, h, nonce, aad, pt):
+  %Equal.sym(@M@, GCM.seal_key(GI.schedule_of(@W@n, key), nonce, aad, pt), GI.seal_key(GI.schedule_of(@W@n, key), nonce, aad, pt), FA.seal_key_ok(GI.schedule_of(@W@n, key), nonce, aad, pt)) : {_ == None{} : @M@}
   %Equal.sym(Bool, Nat.is_eq(List.length(&2, U32, key), @W@n), False{}, h) : {GI.seal_key(GI.schedule_if(_, key), nonce, aad, pt) == None{} : @M@}
   {==}
 
 def Laws.Api@N@.bad_key_open(key, h, nonce, aad, ct):
+  %Equal.sym(@M@, GCM.open_key(GI.schedule_of(@W@n, key), nonce, aad, ct), GI.open_key(GI.schedule_of(@W@n, key), nonce, aad, ct), FA.open_key_ok(GI.schedule_of(@W@n, key), nonce, aad, ct)) : {_ == None{} : @M@}
   %Equal.sym(Bool, Nat.is_eq(List.length(&2, U32, key), @W@n), False{}, h) : {GI.open_key(GI.schedule_if(_, key), nonce, aad, ct) == None{} : @M@}
   {==}
 
 def Laws.Api@N@.bad_nonce(key, nonce, h, aad, pt):
+  %Equal.sym(@M@, GCM.seal_key(GI.schedule_of(@W@n, key), nonce, aad, pt), GI.seal_key(GI.schedule_of(@W@n, key), nonce, aad, pt), FA.seal_key_ok(GI.schedule_of(@W@n, key), nonce, aad, pt)) : {_ == None{} : @M@}
   seal_key_bad(GI.schedule_of(@W@n, key), nonce, h, aad, pt)
 
 def Laws.Api@N@.bad_nonce_open(key, nonce, h, aad, ct):
+  %Equal.sym(@M@, GCM.open_key(GI.schedule_of(@W@n, key), nonce, aad, ct), GI.open_key(GI.schedule_of(@W@n, key), nonce, aad, ct), FA.open_key_ok(GI.schedule_of(@W@n, key), nonce, aad, ct)) : {_ == None{} : @M@}
   open_key_bad(GI.schedule_of(@W@n, key), nonce, h, aad, ct)
 
 ''', N=name, W=str(w), NA=NA, NL=NL, NW=NW, NK=NK, SCH=SCH, M=M, TA=', '.join(ts), TL=L(ts))

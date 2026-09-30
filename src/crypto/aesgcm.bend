@@ -1,5 +1,7 @@
 import Base
 import ./aes/gcm.bend as G
+import ./aes/aes.bend as A
+import ./aes/fast.bend as F
 
 # AES-GCM authenticated encryption (NIST SP 800-38D, AES from FIPS 197):
 # 96-bit (12-byte) nonces, 128-bit (16-byte) tags appended to the
@@ -9,16 +11,40 @@ import ./aes/gcm.bend as G
 # specification spec/crypto/aes/gcm.bend (proofs/crypto/aes/).
 
 # AES-128-GCM: a 16-byte key. Returns ciphertext || tag.
+# The fast path (fast.bend: bitsliced AES, GHASH over precomputed powers of
+# H, one pass) for every well-formed key schedule; gcm.bend otherwise (which
+# no key of the right length produces).
+def seal_path(ok: Bool, +s: A.Schedule, +nonce: List<&2, U32>, +aad: List<&2, U32>, +pt: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  match ok:
+    case True{}: F.seal_nonce(s, nonce, aad, pt)
+    case False{}: G.seal_nonce(s, nonce, aad, pt)
+
+def open_path(ok: Bool, +s: A.Schedule, +nonce: List<&2, U32>, +aad: List<&2, U32>, +ct: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  match ok:
+    case True{}: F.open_nonce(s, nonce, aad, ct)
+    case False{}: G.open_nonce(s, nonce, aad, ct)
+
+def seal_key(m: Maybe<&2, A.Schedule>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +pt: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  match m:
+    case None{}: None{}
+    case Some{+s}: seal_path(F.well_formed(s), s, nonce, aad, pt)
+
+def open_key(m: Maybe<&2, A.Schedule>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +ct: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  match m:
+    case None{}: None{}
+    case Some{+s}: open_path(F.well_formed(s), s, nonce, aad, ct)
+
+# AES-128-GCM: a 16-byte key. Returns ciphertext || tag.
 def aes128_gcm_encrypt(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +pt: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  G.seal_key(G.schedule_of(16n, key), nonce, aad, pt)
+  seal_key(G.schedule_of(16n, key), nonce, aad, pt)
 
 # The plaintext of ciphertext || tag, or None.
 def aes128_gcm_decrypt(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +ct: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  G.open_key(G.schedule_of(16n, key), nonce, aad, ct)
+  open_key(G.schedule_of(16n, key), nonce, aad, ct)
 
 # AES-256-GCM: a 32-byte key.
 def aes256_gcm_encrypt(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +pt: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  G.seal_key(G.schedule_of(32n, key), nonce, aad, pt)
+  seal_key(G.schedule_of(32n, key), nonce, aad, pt)
 
 def aes256_gcm_decrypt(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +ct: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  G.open_key(G.schedule_of(32n, key), nonce, aad, ct)
+  open_key(G.schedule_of(32n, key), nonce, aad, ct)

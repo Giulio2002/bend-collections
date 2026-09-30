@@ -179,12 +179,13 @@ RANDOM = [
     case('uint_below', 'uint_below', 2, [dict(size=D, count=D, param=0, label='n = 1000000007'),
                                          dict(size=D // 2, count=D // 2, param=1, label='n = 2^63 + 1')], py_draws('below')),
     case('float64', 'float64', 3, [dict(size=D, count=D, label='%d draws' % D)], py_draws('f64')),
-    case('shuffle', 'shuffle', 4, [dict(size=1000, count=20, label='1000 items'),
-                                   dict(size=10000, count=1, label='10000 items'),
-                                   # O(n^2) on Bend lists: several minutes per run, so one sample, no warm-up
-                                   dict(size=100000, count=1, samples=1, warmup=False, label='100000 items')], py_shuffle),
+    case('shuffle', 'shuffle', 4, [dict(size=1000, count=2000, label='1000 items'),
+                                   dict(size=10000, count=200, label='10000 items'),
+                                   dict(size=100000, count=20, label='100000 items')], py_shuffle),
     case('crypto_random_bytes', 'crandom', 5, [dict(size=s, count=c) for s, c in
                                                [(64, 65536), (1024, 4096), (65536, 64), (1048576, 4)]], py_bytes),
+    case('crypto_random_read', 'cread', 5, [dict(size=s, count=c) for s, c in
+                                             [(64, 65536), (1024, 4096), (65536, 64), (1048576, 4)]], py_bytes),
 ]
 
 GROUPS = {'random': RANDOM}

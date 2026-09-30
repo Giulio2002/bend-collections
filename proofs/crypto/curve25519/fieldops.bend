@@ -5,7 +5,6 @@ import ../../../src/crypto/curve25519/field.bend as F
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/word.bend as WD
-import ../../lib/arith.bend as AR
 import ../../lib/u32.bend as U
 import ../../lib/u32alg.bend as A
 import ../../lib/u32div.bend as UD
@@ -14,7 +13,6 @@ import ../../math/natural/arith.bend as NR
 import ./num.bend as M
 import ./limbs.bend as LM
 import ./poly.bend as PL
-import ./fold.bend as FD
 import ./reduce.bend as RD
 import ./consts.bend as K
 

@@ -32,7 +32,8 @@ def step(-T: Data, +xs: List<&2, T>, op: E.Op<T>) -> List<&2, T> & E.Obs<T>:
 # 46ec319; model predicates in spec/lib/sequence.bend). The model is the
 # sequence with the top first, so push is Prepend, pop is Delete_First and
 # peek is First_Element. Each lemma is one Post clause of step; `impl`
-# (P.step_correct: D.step on the stack of a sequence is step lifted)
+# (P.step_refines: for every good shadow of the chunked stack, its step
+# viewed through the abstraction is the model's step)
 # carries every clause to the implementation.
 #
 #   SPARK subprogram (.ads line)   ours      clauses

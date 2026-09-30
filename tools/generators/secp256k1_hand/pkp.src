@@ -1,0 +1,50 @@
+import Base
+import ../../../src/crypto/secp256k1.bend as K
+import ../../../src/crypto/secp256k1/point.bend as P
+import ../../../src/crypto/secp256k1/schnorr.bend as SC
+import ../../../src/crypto/secp256k1/bytes.bend as B
+
+# BIP-340 key pairs (src/crypto/secp256k1/schnorr.bend keypair, kp_pub,
+# sign_kp): signing and the public key from the key pair of sk are
+# signing and the public key from sk (the key pair only computes
+# P = d' G once).
+
+# (sign_len with the secret as a value)
+def sign_md(+m: List<&2, U32>, +aux: List<&2, U32>, md: Maybe<&2, List<&2, Nat>>, ok: Bool) -> Maybe<&2, List<&2, U32>>:
+  match ok:
+    case True{}: SC.sign_d(m, aux, md)
+    case False{}: None{}
+
+def sign_kp_md(+m: List<&2, U32>, +aux: List<&2, U32>, md: Maybe<&2, List<&2, Nat>>, ok: Bool) -> {SC.sign_kp_len(m, aux, SC.keypair_d(md), ok) == sign_md(m, aux, md, ok) : Maybe<&2, List<&2, U32>>}:
+  match md ok:
+    case None{} True{}:
+      {==}
+    case Some{d0} True{}:
+      {==}
+    case None{} False{}:
+      {==}
+    case Some{d0} False{}:
+      {==}
+
+def sign_len_md(+sk: List<&2, U32>, +m: List<&2, U32>, +aux: List<&2, U32>, ok: Bool) -> {SC.sign_len(sk, m, aux, ok) == sign_md(m, aux, SC.secret(sk), ok) : Maybe<&2, List<&2, U32>>}:
+  match ok:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+def sign_kp_v(+sk: List<&2, U32>, +m: List<&2, U32>, +aux: List<&2, U32>) -> {K.schnorr_sign_keypair(K.schnorr_keypair(sk), m, aux) == K.schnorr_sign(sk, m, aux) : Maybe<&2, List<&2, U32>>}:
+  %goal {SC.sign_kp_len(m, aux, SC.keypair_d(SC.secret(sk)), B.has_len(32n, aux)) == SC.sign_len(sk, m, aux, B.has_len(32n, aux)) : Maybe<&2, List<&2, U32>>}
+  %rw sign_kp_md(m, aux, SC.secret(sk), B.has_len(32n, aux))
+  %rw sign_len_md(sk, m, aux, B.has_len(32n, aux))
+  %close
+
+def pub_md(md: Maybe<&2, List<&2, Nat>>) -> {SC.kp_pub(SC.keypair_d(md)) == SC.pubkey_d(md) : Maybe<&2, List<&2, U32>>}:
+  match md:
+    case None{}:
+      {==}
+    case Some{d0}:
+      {==}
+
+def pub_kp_v(+sk: List<&2, U32>) -> {K.schnorr_keypair_pubkey(K.schnorr_keypair(sk)) == K.schnorr_pubkey(sk) : Maybe<&2, List<&2, U32>>}:
+  pub_md(SC.secret(sk))

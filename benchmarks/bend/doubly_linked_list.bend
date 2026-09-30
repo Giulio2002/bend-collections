@@ -119,8 +119,12 @@ def do_rm(st: St, +m: U32) -> St:
   S{r, c, l} = st
   rm_with(B.lcg(r), c, l, m)
 
+def fin_get(r: U32, c: U32, p: DL.DList<U32> & Result<&2, &2, E.Error, U32>) -> St:
+  (l, x) = p
+  S{r, B.mix(c, val_code(x)), l}
+
 def get_with(+r: U32, c: U32, l: DL.DList<U32>, +m: U32) -> St:
-  fin_val(r, c, DL.get(~U32, l, handle_of(r, m)))
+  fin_get(r, c, DL.get(~U32, l, handle_of(r, m)))
 
 def do_get(st: St, +m: U32) -> St:
   S{r, c, l} = st
@@ -319,6 +323,19 @@ def settle(st: St) -> St:
   S{r, c, l} = st
   settle_fin(r, c, DL.to_list(~U32, l))
 
+# The drain's own copy of get (a def with two callers is not inlined into
+# either, which would charge the measured get loop a call per operation).
+def drain_val(r: U32, c: U32, p: DL.DList<U32> & Result<&2, &2, E.Error, U32>) -> St:
+  (l, x) = p
+  S{r, B.mix(c, val_code(x)), l}
+
+def drain_with(+r: U32, c: U32, l: DL.DList<U32>, +m: U32) -> St:
+  drain_val(r, c, DL.get(~U32, l, handle_of(r, m)))
+
+def drain_get(st: St, +m: U32) -> St:
+  S{r, c, l} = st
+  drain_with(B.lcg(r), c, l, m)
+
 # The drain is deliberately independent of how many elements the measured
 # operation added or removed, so region A and region B pay the same
 # observation cost and the difference is the measured operation alone. Every
@@ -329,7 +346,7 @@ def drain_loop(k: Nat, +m: U32, st: St) -> St:
     case 0n:
       st
     case 1n+p:
-      drain_loop(p, m, do_get(st, m))
+      drain_loop(p, m, drain_get(st, m))
 
 def drop_blocks(vals: Array<Maybe<&2, U32>>, prevs: Array<U32>, nexts: Array<U32>, +c: U32) -> U32:
   c

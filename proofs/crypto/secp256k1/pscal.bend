@@ -22,21 +22,12 @@ def scalar_ok_v(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>) -> {E.scal
   %Equal.sym(Bool, S.lt_n(x), Nat.is_lt(FS.value(one, x), FS.order(one)), FW.lt_n_s(one, h1, x)) : {Bool.and(Bool.not(Nat.is_eq(FS.value(one, x), 0n)), _) == Bool.and(Bool.not(Nat.is_eq(FS.value(one, x), 0n)), Nat.is_lt(FS.value(one, x), FS.order(one))) : Bool}
   {==}
 
-# a 16-limb value is below 2^512
-def ev512(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, x) == True{} : Bool}) -> {Nat.is_lt(LV.ev(x), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}:
-  +t = C.shift(256n, one)
-  SO.lt3(one, h1, LV.ev(x), N.lt_le_trans(LV.ev(x), t, Nat.add(t, Nat.add(t, t)), SO.tt_lt(one, h1, x, hx), N.le_add_right(t, Nat.add(t, t))))
-
 # x mod n for a 16-limb x
 def sred_v(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, x) == True{} : Bool}) -> {FS.value(one, S.reduce(x)) == Nat.mod(FS.value(one, x), FS.order(one)) : Nat}:
-  %Equal.sym(List<&2, Nat>, S.reduce(x), S.reduce_u(x), FR.s_reduce(x)) : {FS.value(one, _) == Nat.mod(FS.value(one, x), FS.order(one)) : Nat}
-  %Equal.sym(Nat, FS.value(one, S.reduce_u(x)), Nat.mod(LV.ev(x), FS.order(one)), SO.red_v(one, h1, x, ev512(one, h1, x, hx))) : {_ == Nat.mod(FS.value(one, x), FS.order(one)) : Nat}
-  %Equal.sym(Nat, FS.value(one, x), LV.ev(x), LV.ev_value(one, h1, x)) : {Nat.mod(LV.ev(x), FS.order(one)) == Nat.mod(_, FS.order(one)) : Nat}
-  {==}
+  SO.red_v(one, h1, x, hx)
 
 def sred_r(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, x) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), S.reduce(x)) == True{} : Bool}:
-  %Equal.sym(List<&2, Nat>, S.reduce(x), S.reduce_u(x), FR.s_reduce(x)) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
-  SO.red_r(one, h1, x, ev512(one, h1, x, hx))
+  SO.red_r(one, h1, x, hx)
 
 def hash_v(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +hl: {B.has_len(32n, h) == True{} : Bool}) -> {FS.value(one, E.hash_scalar(h)) == ES.hash_scalar(one, h) : Nat}:
   %Equal.sym(Nat, FS.value(one, S.reduce(B.of_be(h))), Nat.mod(FS.value(one, B.of_be(h)), FS.order(one)), sred_v(one, h1, B.of_be(h), BY.of_be_limbs(one, h1, h, hl))) : {_ == Nat.mod(CV.os2ip(h), FS.order(one)) : Nat}

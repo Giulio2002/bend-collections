@@ -17,6 +17,9 @@ import ./bitsv.bend as BV
 import ./modexp.bend as ME
 import ./scalarops.bend as SO
 import ./lits.bend as LT
+import ./sops.bend as SQ
+import ../../../src/crypto/secp256k1/fe.bend as R
+import ../../../src/crypto/secp256k1/se.bend as SE
 
 # Exponentiation modulo n (src/crypto/secp256k1/scalar.bend pow, inv):
 # square-and-multiply over the exponent's bits computes x^e mod n, and the
@@ -25,63 +28,69 @@ import ./lits.bend as LT
 def m(+one: Nat) -> Nat:
   1n+K.np(one)
 
-# one square-and-multiply step
-def step_e(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.order(one), x) == True{} : Bool}, +acc: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(acc) == Nat.mod(Nat.pow(LV.ev(x), e), 1n+K.np(one)) : Nat}, b: Nat, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}) -> {LV.ev(S.pow_step(b, x, S.mul(acc, acc))) == Nat.mod(Nat.pow(LV.ev(x), Nat.add(Nat.mul(b, one), Nat.double(e))), 1n+K.np(one)) : Nat}:
+# one square-and-multiply step (on records, src/crypto/secp256k1/se.bend)
+def step_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {SQ.sred(one, x) == True{} : Bool}, +acc: R.FE, +ha: {SQ.sred(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.np(one)) : Nat}, b: Nat, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(SE.pow_step(b, x, SE.sq(acc)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(Nat.mul(b, one), Nat.double(e))), 1n+K.np(one)) : Nat}:
   match b:
     case 0n:
-      %Equal.sym(Nat, LV.ev(S.mul(acc, acc)), Nat.mod(Nat.mul(LV.ev(acc), LV.ev(acc)), 1n+K.np(one)), SO.mul_e(one, h1, acc, acc, ha, ha)) : {_ == Nat.mod(Nat.pow(LV.ev(x), Nat.double(e)), 1n+K.np(one)) : Nat}
-      ME.sq_step(K.np(one), LV.ev(x), e, LV.ev(acc), he)
+      %Equal.sym(Nat, LV.ev(R.to_list(SE.sq(acc))), Nat.mod(Nat.mul(LV.ev(R.to_list(acc)), LV.ev(R.to_list(acc))), 1n+K.np(one)), SQ.sq_e(one, h1, acc, ha)) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.double(e)), 1n+K.np(one)) : Nat}
+      ME.sq_step(K.np(one), LV.ev(R.to_list(x)), e, LV.ev(R.to_list(acc)), he)
     case 1n:
-      +sq = S.mul(acc, acc)
-      +es = Equal.trans(Nat, LV.ev(sq), Nat.mod(Nat.mul(LV.ev(acc), LV.ev(acc)), 1n+K.np(one)), Nat.mod(Nat.pow(LV.ev(x), Nat.double(e)), 1n+K.np(one)), SO.mul_e(one, h1, acc, acc, ha, ha), ME.sq_step(K.np(one), LV.ev(x), e, LV.ev(acc), he))
-      %Equal.sym(Nat, Nat.mul(1n, one), one, SR.one_mul(one)) : {LV.ev(S.mul(S.mul(acc, acc), x)) == Nat.mod(Nat.pow(LV.ev(x), Nat.add(_, Nat.double(e))), 1n+K.np(one)) : Nat}
-      %Equal.sym(Nat, one, 1n, h1) : {LV.ev(S.mul(S.mul(acc, acc), x)) == Nat.mod(Nat.pow(LV.ev(x), Nat.add(_, Nat.double(e))), 1n+K.np(one)) : Nat}
-      %Equal.sym(Nat, Nat.add(1n, Nat.double(e)), Nat.add(Nat.double(e), 1n), NA.add_comm(1n, Nat.double(e))) : {LV.ev(S.mul(S.mul(acc, acc), x)) == Nat.mod(Nat.pow(LV.ev(x), _), 1n+K.np(one)) : Nat}
-      %Equal.sym(Nat, LV.ev(S.mul(S.mul(acc, acc), x)), Nat.mod(Nat.mul(LV.ev(S.mul(acc, acc)), LV.ev(x)), 1n+K.np(one)), SO.mul_e(one, h1, S.mul(acc, acc), x, SO.mul_r(one, h1, acc, acc, ha, ha), hx)) : {_ == Nat.mod(Nat.pow(LV.ev(x), Nat.add(Nat.double(e), 1n)), 1n+K.np(one)) : Nat}
-      ME.mul_step(K.np(one), LV.ev(x), Nat.double(e), LV.ev(S.mul(acc, acc)), es)
+      +es = Equal.trans(Nat, LV.ev(R.to_list(SE.sq(acc))), Nat.mod(Nat.mul(LV.ev(R.to_list(acc)), LV.ev(R.to_list(acc))), 1n+K.np(one)), Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.double(e)), 1n+K.np(one)), SQ.sq_e(one, h1, acc, ha), ME.sq_step(K.np(one), LV.ev(R.to_list(x)), e, LV.ev(R.to_list(acc)), he))
+      %Equal.sym(Nat, Nat.mul(1n, one), one, SR.one_mul(one)) : {LV.ev(R.to_list(SE.mul(SE.sq(acc), x))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, Nat.double(e))), 1n+K.np(one)) : Nat}
+      %Equal.sym(Nat, one, 1n, h1) : {LV.ev(R.to_list(SE.mul(SE.sq(acc), x))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, Nat.double(e))), 1n+K.np(one)) : Nat}
+      %Equal.sym(Nat, Nat.add(1n, Nat.double(e)), Nat.add(Nat.double(e), 1n), NA.add_comm(1n, Nat.double(e))) : {LV.ev(R.to_list(SE.mul(SE.sq(acc), x))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.np(one)) : Nat}
+      %Equal.sym(Nat, LV.ev(R.to_list(SE.mul(SE.sq(acc), x))), Nat.mod(Nat.mul(LV.ev(R.to_list(SE.sq(acc))), LV.ev(R.to_list(x))), 1n+K.np(one)), SQ.mul_e(one, h1, SE.sq(acc), x, SQ.sq_r(one, h1, acc, ha), hx)) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(Nat.double(e), 1n)), 1n+K.np(one)) : Nat}
+      ME.mul_step(K.np(one), LV.ev(R.to_list(x)), Nat.double(e), LV.ev(R.to_list(SE.sq(acc))), es)
     case 2n+ +k:
-      Empty.absurd({LV.ev(S.pow_step(2n+k, x, S.mul(acc, acc))) == Nat.mod(Nat.pow(LV.ev(x), Nat.add(Nat.mul(2n+k, one), Nat.double(e))), 1n+K.np(one)) : Nat}, N.lt_zero_absurd(k, hb))
+      Empty.absurd({LV.ev(R.to_list(SE.pow_step(2n+k, x, SE.sq(acc)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(Nat.mul(2n+k, one), Nat.double(e))), 1n+K.np(one)) : Nat}, N.lt_zero_absurd(k, hb))
 
-def step_r(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.order(one), x) == True{} : Bool}, +acc: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), acc) == True{} : Bool}, b: Nat, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), S.pow_step(b, x, S.mul(acc, acc))) == True{} : Bool}:
+def step_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {SQ.sred(one, x) == True{} : Bool}, +acc: R.FE, +ha: {SQ.sred(one, acc) == True{} : Bool}, b: Nat, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}) -> {SQ.sred(one, SE.pow_step(b, x, SE.sq(acc))) == True{} : Bool}:
   match b:
     case 0n:
-      SO.mul_r(one, h1, acc, acc, ha, ha)
+      SQ.sq_r(one, h1, acc, ha)
     case 1n:
-      SO.mul_r(one, h1, S.mul(acc, acc), x, SO.mul_r(one, h1, acc, acc, ha, ha), hx)
+      SQ.mul_r(one, h1, SE.sq(acc), x, SQ.sq_r(one, h1, acc, ha), hx)
     case 2n+ +k:
-      Empty.absurd({FS.reduced(one, FS.order(one), S.pow_step(2n+k, x, S.mul(acc, acc))) == True{} : Bool}, N.lt_zero_absurd(k, hb))
+      Empty.absurd({SQ.sred(one, SE.pow_step(2n+k, x, SE.sq(acc))) == True{} : Bool}, N.lt_zero_absurd(k, hb))
 
-def pow_r(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.order(one), x) == True{} : Bool}, bs: List<&2, Nat>, +acc: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), acc) == True{} : Bool}, +hb: {BV.all01(bs) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), S.pow_go(x, bs, acc)) == True{} : Bool}:
+def pow_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {SQ.sred(one, x) == True{} : Bool}, bs: List<&2, Nat>, +acc: R.FE, +ha: {SQ.sred(one, acc) == True{} : Bool}, +hb: {BV.all01(bs) == True{} : Bool}) -> {SQ.sred(one, SE.pow_go(x, bs, acc)) == True{} : Bool}:
   match bs:
     case Nil{}:
       ha
     case +b <> +t:
       +h0 = Lg.and_left(Nat.is_lt(b, 2n), BV.all01(t), hb)
-      pow_r(one, h1, x, hx, t, S.pow_step(b, x, S.mul(acc, acc)), step_r(one, h1, x, hx, acc, ha, b, h0), Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hb))
+      pow_r(one, h1, x, hx, t, SE.pow_step(b, x, SE.sq(acc)), step_r(one, h1, x, hx, acc, ha, b, h0), Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hb))
 
 # x^e for the exponent spelled by the bits, from acc = x^e0
-def pow_e(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.order(one), x) == True{} : Bool}, bs: List<&2, Nat>, +acc: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(acc) == Nat.mod(Nat.pow(LV.ev(x), e), 1n+K.np(one)) : Nat}, +hb: {BV.all01(bs) == True{} : Bool}) -> {LV.ev(S.pow_go(x, bs, acc)) == Nat.mod(Nat.pow(LV.ev(x), BV.hv(bs, one, e)), 1n+K.np(one)) : Nat}:
+def pow_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {SQ.sred(one, x) == True{} : Bool}, bs: List<&2, Nat>, +acc: R.FE, +ha: {SQ.sred(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.np(one)) : Nat}, +hb: {BV.all01(bs) == True{} : Bool}) -> {LV.ev(R.to_list(SE.pow_go(x, bs, acc))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv(bs, one, e)), 1n+K.np(one)) : Nat}:
   match bs:
     case Nil{}:
       he
     case +b <> +t:
       +h0 = Lg.and_left(Nat.is_lt(b, 2n), BV.all01(t), hb)
-      pow_e(one, h1, x, hx, t, S.pow_step(b, x, S.mul(acc, acc)), step_r(one, h1, x, hx, acc, ha, b, h0), Nat.add(Nat.mul(b, one), Nat.double(e)), step_e(one, h1, x, hx, acc, ha, e, he, b, h0), Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hb))
+      pow_e(one, h1, x, hx, t, SE.pow_step(b, x, SE.sq(acc)), step_r(one, h1, x, hx, acc, ha, b, h0), Nat.add(Nat.mul(b, one), Nat.double(e)), step_e(one, h1, x, hx, acc, ha, e, he, b, h0), Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hb))
 
-# S.pow looks at x first
-def pow_is(+one: Nat, x: List<&2, Nat>, +hx: {FS.reduced(one, FS.order(one), x) == True{} : Bool}, +bs: List<&2, Nat>, +acc: List<&2, Nat>) -> {S.pow(x, bs, acc) == S.pow_go(x, bs, acc) : List<&2, Nat>}:
-  match x:
+def powl_is(a: List<&2, Nat>, +bs: List<&2, Nat>) -> {S.powl(a, bs) == S.powl_u(a, bs) : List<&2, Nat>}:
+  match a:
     case Nil{}:
-      Empty.absurd({S.pow([], bs, acc) == S.pow_go([], bs, acc) : List<&2, Nat>}, Lg.false_true(Lg.and_left(FS.limbs16(one, 16n, []), Nat.is_lt(FS.value(one, []), FS.order(one)), hx)))
-    case y <> t:
+      {==}
+    case x <> t:
       {==}
 
-def pow_ev(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.order(one), x) == True{} : Bool}, +bs: List<&2, Nat>, +acc: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(acc) == Nat.mod(Nat.pow(LV.ev(x), e), 1n+K.np(one)) : Nat}, +hb: {BV.all01(bs) == True{} : Bool}) -> {LV.ev(S.pow(x, bs, acc)) == Nat.mod(Nat.pow(LV.ev(x), BV.hv(bs, one, e)), 1n+K.np(one)) : Nat}:
-  %Equal.sym(List<&2, Nat>, S.pow(x, bs, acc), S.pow_go(x, bs, acc), pow_is(one, x, hx, bs, acc)) : {LV.ev(_) == Nat.mod(Nat.pow(LV.ev(x), BV.hv(bs, one, e)), 1n+K.np(one)) : Nat}
+# SE.pow looks at x first
+def pow_is(x: R.FE, +bs: List<&2, Nat>, +acc: R.FE) -> {SE.pow(x, bs, acc) == SE.pow_go(x, bs, acc) : R.FE}:
+  match x:
+    case R.FE{a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15}:
+      {==}
+
+# the same through the wrapper that looks at x first (the bits kept
+# abstract, so that the checker never runs the loop on constant bits)
+def pow_ev(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {SQ.sred(one, x) == True{} : Bool}, +bs: List<&2, Nat>, +acc: R.FE, +ha: {SQ.sred(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.np(one)) : Nat}, +hb: {BV.all01(bs) == True{} : Bool}) -> {LV.ev(R.to_list(SE.pow(x, bs, acc))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv(bs, one, e)), 1n+K.np(one)) : Nat}:
+  %Equal.sym(R.FE, SE.pow(x, bs, acc), SE.pow_go(x, bs, acc), pow_is(x, bs, acc)) : {LV.ev(R.to_list(_)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv(bs, one, e)), 1n+K.np(one)) : Nat}
   pow_e(one, h1, x, hx, bs, acc, ha, e, he, hb)
 
-def pow_rv(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.order(one), x) == True{} : Bool}, +bs: List<&2, Nat>, +acc: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), acc) == True{} : Bool}, +hb: {BV.all01(bs) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), S.pow(x, bs, acc)) == True{} : Bool}:
-  %Equal.sym(List<&2, Nat>, S.pow(x, bs, acc), S.pow_go(x, bs, acc), pow_is(one, x, hx, bs, acc)) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
+def pow_rv(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {SQ.sred(one, x) == True{} : Bool}, +bs: List<&2, Nat>, +acc: R.FE, +ha: {SQ.sred(one, acc) == True{} : Bool}, +hb: {BV.all01(bs) == True{} : Bool}) -> {SQ.sred(one, SE.pow(x, bs, acc)) == True{} : Bool}:
+  %Equal.sym(R.FE, SE.pow(x, bs, acc), SE.pow_go(x, bs, acc), pow_is(x, bs, acc)) : {SQ.sred(one, _) == True{} : Bool}
   pow_r(one, h1, x, hx, bs, acc, ha, hb)
 
 # ---- one ----
@@ -89,14 +98,18 @@ def pow_rv(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.reduce
 def one_lt(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(1n, FS.order(one)) == True{} : Bool}:
   SO.small_lt_n(one, h1, 1n, {==})
 
-def one_r(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.reduced(one, FS.order(one), S.one()) == True{} : Bool}:
+def one_l() -> {R.to_list(SE.one()) == S.one() : List<&2, Nat>}:
+  {==}
+
+def one_r(+one: Nat, +h1: {one == 1n : Nat}) -> {SQ.sred(one, SE.one()) == True{} : Bool}:
+  %Equal.sym(List<&2, Nat>, R.to_list(SE.one()), S.one(), one_l()) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
   SO.small_r(one, h1, 1n, one_lt(one, h1))
 
-def one_e(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat) -> {LV.ev(S.one()) == Nat.mod(Nat.pow(x, 0n), 1n+K.np(one)) : Nat}:
+def one_e(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat) -> {LV.ev(R.to_list(SE.one())) == Nat.mod(Nat.pow(x, 0n), 1n+K.np(one)) : Nat}:
+  %Equal.sym(List<&2, Nat>, R.to_list(SE.one()), S.one(), one_l()) : {LV.ev(_) == Nat.mod(Nat.pow(x, 0n), 1n+K.np(one)) : Nat}
   +ev = Equal.trans(Nat, LV.ev(S.one()), FS.value(one, S.one()), 1n, Equal.sym(Nat, FS.value(one, S.one()), LV.ev(S.one()), LV.ev_value(one, h1, S.one())), SO.small_val(one, h1, 1n, one_lt(one, h1)))
   Equal.trans(Nat, LV.ev(S.one()), 1n, Nat.mod(Nat.pow(x, 0n), 1n+K.np(one)), ev, ME.pow0(K.np(one), x, I.lt_subst_r(1n, FS.order(one), 1n+K.np(one), K.order_eq(one, h1), one_lt(one, h1))))
 
-# ---- the exponent of inv: n - 2 ----
 
 def xn() -> List<&2, Nat>:
   [48832n, 12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]
@@ -206,8 +219,10 @@ def inv_bits01(+one: Nat) -> {BV.all01(S.inv_bits()) == True{} : Bool}:
   {==}
 
 def inv_v(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), a) == True{} : Bool}) -> {FS.value(one, S.inv(a)) == FS.minv(FS.order(one), FS.value(one, a)) : Nat}:
-  %Equal.sym(Nat, FS.value(one, S.pow(a, S.inv_bits(), S.one())), LV.ev(S.pow(a, S.inv_bits(), S.one())), LV.ev_value(one, h1, S.pow(a, S.inv_bits(), S.one()))) : {_ == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.order(one), 2n)), FS.order(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(S.pow(a, S.inv_bits(), S.one())), Nat.mod(Nat.pow(LV.ev(a), BV.hv(S.inv_bits(), one, 0n)), 1n+K.np(one)), pow_ev(one, h1, a, ha, S.inv_bits(), S.one(), one_r(one, h1), 0n, one_e(one, h1, LV.ev(a)), inv_bits01(one))) : {_ == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.order(one), 2n)), FS.order(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, S.powl(a, S.inv_bits()), S.powl_u(a, S.inv_bits()), powl_is(a, S.inv_bits())) : {FS.value(one, _) == FS.minv(FS.order(one), FS.value(one, a)) : Nat}
+  %Equal.sym(Nat, FS.value(one, R.to_list(SE.pow(R.of_list(a), S.inv_bits(), SE.one()))), LV.ev(R.to_list(SE.pow(R.of_list(a), S.inv_bits(), SE.one()))), LV.ev_value(one, h1, R.to_list(SE.pow(R.of_list(a), S.inv_bits(), SE.one())))) : {_ == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.order(one), 2n)), FS.order(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(SE.pow(R.of_list(a), S.inv_bits(), SE.one()))), Nat.mod(Nat.pow(LV.ev(R.to_list(R.of_list(a))), BV.hv(S.inv_bits(), one, 0n)), 1n+K.np(one)), pow_ev(one, h1, R.of_list(a), SQ.rec_r(one, a, ha), S.inv_bits(), SE.one(), one_r(one, h1), 0n, one_e(one, h1, LV.ev(R.to_list(R.of_list(a)))), inv_bits01(one))) : {_ == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.order(one), 2n)), FS.order(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, R.to_list(R.of_list(a)), a, SQ.rec_l(one, a, ha)) : {Nat.mod(Nat.pow(LV.ev(_), BV.hv(S.inv_bits(), one, 0n)), 1n+K.np(one)) == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.order(one), 2n)), FS.order(one)) : Nat}
   %Equal.sym(Nat, BV.hv(S.inv_bits(), one, 0n), Nat.sub(1n+K.np(one), 2n), exp_inv(one, h1)) : {Nat.mod(Nat.pow(LV.ev(a), _), 1n+K.np(one)) == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.order(one), 2n)), FS.order(one)) : Nat}
   %Equal.sym(Nat, FS.value(one, a), LV.ev(a), LV.ev_value(one, h1, a)) : {Nat.mod(Nat.pow(LV.ev(a), Nat.sub(1n+K.np(one), 2n)), 1n+K.np(one)) == Nat.mod(Nat.pow(_, Nat.sub(FS.order(one), 2n)), FS.order(one)) : Nat}
   %Equal.sym(Nat, FS.order(one), 1n+K.np(one), K.order_eq(one, h1)) : {Nat.mod(Nat.pow(LV.ev(a), Nat.sub(1n+K.np(one), 2n)), 1n+K.np(one)) == Nat.mod(Nat.pow(LV.ev(a), Nat.sub(_, 2n)), FS.order(one)) : Nat}
@@ -215,4 +230,5 @@ def inv_v(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +ha: {FS.reduced
   {==}
 
 def inv_r(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), a) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), S.inv(a)) == True{} : Bool}:
-  pow_rv(one, h1, a, ha, S.inv_bits(), S.one(), one_r(one, h1), inv_bits01(one))
+  %Equal.sym(List<&2, Nat>, S.powl(a, S.inv_bits()), S.powl_u(a, S.inv_bits()), powl_is(a, S.inv_bits())) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
+  pow_rv(one, h1, R.of_list(a), SQ.rec_r(one, a, ha), S.inv_bits(), SE.one(), one_r(one, h1), inv_bits01(one))

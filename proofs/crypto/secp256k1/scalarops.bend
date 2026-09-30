@@ -17,6 +17,9 @@ import ./reducek.bend as RK
 import ./consts.bend as K
 import ./negate.bend as NG
 import ./listops.bend as LO
+import ./sops.bend as SQ
+import ../../../src/crypto/secp256k1/fe.bend as R
+import ../../../src/crypto/secp256k1/se.bend as SE
 
 # Z/nZ of src/crypto/secp256k1/scalar.bend against spec/crypto/secp256k1/field.bend:
 # on reduced inputs (16 limbs below 2^16, value below n) every operation
@@ -50,24 +53,40 @@ def mul_lt(+a: Nat, +b: Nat, +t: Nat, +ha: {Nat.is_lt(a, t) == True{} : Bool}, +
       +s2 = I.lt_subst_r(mm, Nat.add(mm, 1n+tp), Nat.add(1n+tp, mm), NA.add_comm(mm, 1n+tp), I.lt_add_pos(mm, 1n+tp, {==}))
       N.le_lt_trans(Nat.mul(a, b), mm, Nat.add(1n+tp, mm), s1, s2)
 
-# ---- the reduction mod p ----
+# ---- each operation looks at its first argument first ----
 
-def red_e(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {LV.ev(S.reduce_u(xs)) == Nat.mod(LV.ev(xs), 1n+K.np(one)) : Nat}:
-  RK.reduce4_vv(one, h1, K.np(one), S.c(), K.hm_n(one, h1), K.cn_cc(one, h1), K.cn_hb1(one, h1), K.cn_hb2(one, h1), xs, hx)
+def add_is(a: List<&2, Nat>, +b: List<&2, Nat>) -> {S.add(a, b) == S.add_u(a, b) : List<&2, Nat>}:
+  match a:
+    case Nil{}:
+      {==}
+    case x <> t:
+      {==}
 
-def red_l(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {FS.limbs16(one, 16n, S.reduce_u(xs)) == True{} : Bool}:
-  RK.reduce4_lv(one, h1, S.c(), K.cn_cc(one, h1), K.cn_hb1(one, h1), K.cn_hb2(one, h1), xs, hx)
+def neg_is(+one: Nat, a: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), a) == True{} : Bool}) -> {S.neg(a) == S.neg_u(a) : List<&2, Nat>}:
+  match a:
+    case Nil{}:
+      Empty.absurd({S.neg([]) == S.neg_u([]) : List<&2, Nat>}, Lg.false_true(Lg.and_left(FS.limbs16(one, 16n, []), Nat.is_lt(FS.value(one, []), FS.order(one)), ha)))
+    case x <> t:
+      {==}
 
-# the reduced value below p, in the specification's terms
-def red_r(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), S.reduce_u(xs)) == True{} : Bool}:
-  +lt = I.lt_subst_l(Nat.mod(LV.ev(xs), 1n+K.np(one)), LV.ev(S.reduce_u(xs)), 1n+K.np(one), Equal.sym(Nat, LV.ev(S.reduce_u(xs)), Nat.mod(LV.ev(xs), 1n+K.np(one)), red_e(one, h1, xs, hx)), NR.dm_lt(K.np(one), LV.ev(xs)))
-  +lt2 = I.lt_subst_l(LV.ev(S.reduce_u(xs)), FS.value(one, S.reduce_u(xs)), 1n+K.np(one), Equal.sym(Nat, FS.value(one, S.reduce_u(xs)), LV.ev(S.reduce_u(xs)), LV.ev_value(one, h1, S.reduce_u(xs))), lt)
-  +lt3 = I.lt_subst_r(FS.value(one, S.reduce_u(xs)), 1n+K.np(one), FS.order(one), Equal.sym(Nat, FS.order(one), 1n+K.np(one), K.order_eq(one, h1)), lt2)
-  Lg.and_intro(FS.limbs16(one, 16n, S.reduce_u(xs)), Nat.is_lt(FS.value(one, S.reduce_u(xs)), FS.order(one)), red_l(one, h1, xs, hx), lt3)
+def red_is(+one: Nat, xs: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, xs) == True{} : Bool}) -> {S.reduce(xs) == S.reduce_u(xs) : List<&2, Nat>}:
+  match xs:
+    case Nil{}:
+      Empty.absurd({S.reduce([]) == S.reduce_u([]) : List<&2, Nat>}, Lg.false_true(hx))
+    case x <> t:
+      {==}
 
-def red_v(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {FS.value(one, S.reduce_u(xs)) == Nat.mod(LV.ev(xs), FS.order(one)) : Nat}:
-  %Equal.sym(Nat, FS.value(one, S.reduce_u(xs)), LV.ev(S.reduce_u(xs)), LV.ev_value(one, h1, S.reduce_u(xs))) : {_ == Nat.mod(LV.ev(xs), FS.order(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(S.reduce_u(xs)), Nat.mod(LV.ev(xs), 1n+K.np(one)), red_e(one, h1, xs, hx)) : {_ == Nat.mod(LV.ev(xs), FS.order(one)) : Nat}
+# ---- the reduction mod n of 16 limbs ----
+
+def red_r(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, xs) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), S.reduce(xs)) == True{} : Bool}:
+  %Equal.sym(List<&2, Nat>, S.reduce(xs), S.reduce_u(xs), red_is(one, xs, hx)) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
+  SQ.red16_r(one, h1, xs, hx)
+
+def red_v(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, xs) == True{} : Bool}) -> {FS.value(one, S.reduce(xs)) == Nat.mod(FS.value(one, xs), FS.order(one)) : Nat}:
+  %Equal.sym(List<&2, Nat>, S.reduce(xs), S.reduce_u(xs), red_is(one, xs, hx)) : {FS.value(one, _) == Nat.mod(FS.value(one, xs), FS.order(one)) : Nat}
+  %Equal.sym(Nat, FS.value(one, R.to_list(SE.red16(R.of_list(xs)))), LV.ev(R.to_list(SE.red16(R.of_list(xs)))), LV.ev_value(one, h1, R.to_list(SE.red16(R.of_list(xs))))) : {_ == Nat.mod(FS.value(one, xs), FS.order(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(SE.red16(R.of_list(xs)))), Nat.mod(LV.ev(xs), 1n+K.np(one)), SQ.red16_e(one, h1, xs, hx)) : {_ == Nat.mod(FS.value(one, xs), FS.order(one)) : Nat}
+  %Equal.sym(Nat, FS.value(one, xs), LV.ev(xs), LV.ev_value(one, h1, xs)) : {Nat.mod(LV.ev(xs), 1n+K.np(one)) == Nat.mod(_, FS.order(one)) : Nat}
   %Equal.sym(Nat, 1n+K.np(one), FS.order(one), Equal.sym(Nat, FS.order(one), 1n+K.np(one), K.order_eq(one, h1))) : {Nat.mod(LV.ev(xs), _) == Nat.mod(LV.ev(xs), FS.order(one)) : Nat}
   {==}
 
@@ -86,73 +105,58 @@ def rtt(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +h: {FS.reduced(on
 
 # ---- add, mul ----
 
-def add_hx(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +b: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), a) == True{} : Bool}, +hb: {FS.reduced(one, FS.order(one), b) == True{} : Bool}) -> {Nat.is_lt(LV.ev(L.add(a, b)), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}:
-  %Equal.sym(Nat, LV.ev(L.add(a, b)), Nat.add(LV.ev(a), LV.ev(b)), LV.add_v(a, b)) : {Nat.is_lt(_, Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}
-  sum_lt(one, h1, LV.ev(a), LV.ev(b), rtt(one, h1, a, ha), rtt(one, h1, b, hb))
-
 def add_v(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +b: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), a) == True{} : Bool}, +hb: {FS.reduced(one, FS.order(one), b) == True{} : Bool}) -> {FS.value(one, S.add(a, b)) == FS.madd(FS.order(one), FS.value(one, a), FS.value(one, b)) : Nat}:
-  %Equal.sym(List<&2, Nat>, S.add(a, b), S.add_u(a, b), FR.s_add(a, b)) : {FS.value(one, _) == FS.madd(FS.order(one), FS.value(one, a), FS.value(one, b)) : Nat}
-  %Equal.sym(Nat, FS.value(one, S.reduce_u(L.add(a, b))), Nat.mod(LV.ev(L.add(a, b)), FS.order(one)), red_v(one, h1, L.add(a, b), add_hx(one, h1, a, b, ha, hb))) : {_ == Nat.mod(Nat.add(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(L.add(a, b)), Nat.add(LV.ev(a), LV.ev(b)), LV.add_v(a, b)) : {Nat.mod(_, FS.order(one)) == Nat.mod(Nat.add(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(a), FS.value(one, a), Equal.sym(Nat, FS.value(one, a), LV.ev(a), LV.ev_value(one, h1, a))) : {Nat.mod(Nat.add(_, LV.ev(b)), FS.order(one)) == Nat.mod(Nat.add(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(b), FS.value(one, b), Equal.sym(Nat, FS.value(one, b), LV.ev(b), LV.ev_value(one, h1, b))) : {Nat.mod(Nat.add(FS.value(one, a), _), FS.order(one)) == Nat.mod(Nat.add(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, S.add(a, b), S.add_u(a, b), add_is(a, b)) : {FS.value(one, _) == FS.madd(FS.order(one), FS.value(one, a), FS.value(one, b)) : Nat}
+  %Equal.sym(Nat, SQ.sval(one, SE.add(R.of_list(a), R.of_list(b))), FS.madd(FS.order(one), SQ.sval(one, R.of_list(a)), SQ.sval(one, R.of_list(b))), SQ.add_v(one, h1, R.of_list(a), R.of_list(b), SQ.rec_r(one, a, ha), SQ.rec_r(one, b, hb))) : {_ == FS.madd(FS.order(one), FS.value(one, a), FS.value(one, b)) : Nat}
+  %Equal.sym(List<&2, Nat>, R.to_list(R.of_list(a)), a, SQ.rec_l(one, a, ha)) : {FS.madd(FS.order(one), FS.value(one, _), FS.value(one, R.to_list(R.of_list(b)))) == FS.madd(FS.order(one), FS.value(one, a), FS.value(one, b)) : Nat}
+  %Equal.sym(List<&2, Nat>, R.to_list(R.of_list(b)), b, SQ.rec_l(one, b, hb)) : {FS.madd(FS.order(one), FS.value(one, a), FS.value(one, _)) == FS.madd(FS.order(one), FS.value(one, a), FS.value(one, b)) : Nat}
   {==}
 
 def add_r(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +b: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), a) == True{} : Bool}, +hb: {FS.reduced(one, FS.order(one), b) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), S.add(a, b)) == True{} : Bool}:
-  %Equal.sym(List<&2, Nat>, S.add(a, b), S.add_u(a, b), FR.s_add(a, b)) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
-  red_r(one, h1, L.add(a, b), add_hx(one, h1, a, b, ha, hb))
+  %Equal.sym(List<&2, Nat>, S.add(a, b), S.add_u(a, b), add_is(a, b)) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
+  SQ.add_r(one, h1, R.of_list(a), R.of_list(b), SQ.rec_r(one, a, ha), SQ.rec_r(one, b, hb))
 
-def mul_hx(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +b: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), a) == True{} : Bool}, +hb: {FS.reduced(one, FS.order(one), b) == True{} : Bool}) -> {Nat.is_lt(LV.ev(L.conv(a, b)), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}:
-  %Equal.sym(Nat, LV.ev(L.conv(a, b)), Nat.mul(LV.ev(a), LV.ev(b)), LV.conv_v(a, b)) : {Nat.is_lt(_, Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}
-  mul_lt(LV.ev(a), LV.ev(b), C.shift(256n, one), rtt(one, h1, a, ha), rtt(one, h1, b, hb))
+def mul_is(a: List<&2, Nat>, +b: List<&2, Nat>) -> {S.mul(a, b) == S.mul_u(a, b) : List<&2, Nat>}:
+  match a:
+    case Nil{}:
+      {==}
+    case x <> t:
+      {==}
 
 def mul_v(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +b: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), a) == True{} : Bool}, +hb: {FS.reduced(one, FS.order(one), b) == True{} : Bool}) -> {FS.value(one, S.mul(a, b)) == FS.mmul(FS.order(one), FS.value(one, a), FS.value(one, b)) : Nat}:
-  %Equal.sym(List<&2, Nat>, S.mul(a, b), S.mul_u(a, b), FR.s_mul(a, b)) : {FS.value(one, _) == FS.mmul(FS.order(one), FS.value(one, a), FS.value(one, b)) : Nat}
-  %Equal.sym(Nat, FS.value(one, S.reduce_u(L.conv(a, b))), Nat.mod(LV.ev(L.conv(a, b)), FS.order(one)), red_v(one, h1, L.conv(a, b), mul_hx(one, h1, a, b, ha, hb))) : {_ == Nat.mod(Nat.mul(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(L.conv(a, b)), Nat.mul(LV.ev(a), LV.ev(b)), LV.conv_v(a, b)) : {Nat.mod(_, FS.order(one)) == Nat.mod(Nat.mul(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(a), FS.value(one, a), Equal.sym(Nat, FS.value(one, a), LV.ev(a), LV.ev_value(one, h1, a))) : {Nat.mod(Nat.mul(_, LV.ev(b)), FS.order(one)) == Nat.mod(Nat.mul(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(b), FS.value(one, b), Equal.sym(Nat, FS.value(one, b), LV.ev(b), LV.ev_value(one, h1, b))) : {Nat.mod(Nat.mul(FS.value(one, a), _), FS.order(one)) == Nat.mod(Nat.mul(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, S.mul(a, b), S.mul_u(a, b), mul_is(a, b)) : {FS.value(one, _) == FS.mmul(FS.order(one), FS.value(one, a), FS.value(one, b)) : Nat}
+  %Equal.sym(Nat, FS.value(one, R.to_list(SE.mul(R.of_list(a), R.of_list(b)))), LV.ev(R.to_list(SE.mul(R.of_list(a), R.of_list(b)))), LV.ev_value(one, h1, R.to_list(SE.mul(R.of_list(a), R.of_list(b))))) : {_ == Nat.mod(Nat.mul(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(SE.mul(R.of_list(a), R.of_list(b)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.of_list(a))), LV.ev(R.to_list(R.of_list(b)))), 1n+K.np(one)), SQ.mul_e(one, h1, R.of_list(a), R.of_list(b), SQ.rec_r(one, a, ha), SQ.rec_r(one, b, hb))) : {_ == Nat.mod(Nat.mul(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, R.to_list(R.of_list(a)), a, SQ.rec_l(one, a, ha)) : {Nat.mod(Nat.mul(LV.ev(_), LV.ev(R.to_list(R.of_list(b)))), 1n+K.np(one)) == Nat.mod(Nat.mul(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, R.to_list(R.of_list(b)), b, SQ.rec_l(one, b, hb)) : {Nat.mod(Nat.mul(LV.ev(a), LV.ev(_)), 1n+K.np(one)) == Nat.mod(Nat.mul(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(a), FS.value(one, a), Equal.sym(Nat, FS.value(one, a), LV.ev(a), LV.ev_value(one, h1, a))) : {Nat.mod(Nat.mul(_, LV.ev(b)), 1n+K.np(one)) == Nat.mod(Nat.mul(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(b), FS.value(one, b), Equal.sym(Nat, FS.value(one, b), LV.ev(b), LV.ev_value(one, h1, b))) : {Nat.mod(Nat.mul(FS.value(one, a), _), 1n+K.np(one)) == Nat.mod(Nat.mul(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
+  %Equal.sym(Nat, 1n+K.np(one), FS.order(one), Equal.sym(Nat, FS.order(one), 1n+K.np(one), K.order_eq(one, h1))) : {Nat.mod(Nat.mul(FS.value(one, a), FS.value(one, b)), _) == Nat.mod(Nat.mul(FS.value(one, a), FS.value(one, b)), FS.order(one)) : Nat}
   {==}
 
 def mul_r(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +b: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), a) == True{} : Bool}, +hb: {FS.reduced(one, FS.order(one), b) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), S.mul(a, b)) == True{} : Bool}:
-  %Equal.sym(List<&2, Nat>, S.mul(a, b), S.mul_u(a, b), FR.s_mul(a, b)) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
-  red_r(one, h1, L.conv(a, b), mul_hx(one, h1, a, b, ha, hb))
+  %Equal.sym(List<&2, Nat>, S.mul(a, b), S.mul_u(a, b), mul_is(a, b)) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
+  SQ.mul_r(one, h1, R.of_list(a), R.of_list(b), SQ.rec_r(one, a, ha), SQ.rec_r(one, b, hb))
 
 # ---- sub, neg ----
 
-def negr_e(+one: Nat, +h1: {one == 1n : Nat}, +b: List<&2, Nat>, +hb: {FS.reduced(one, FS.order(one), b) == True{} : Bool}) -> {Nat.add(LV.ev(L.neg_raw(S.c(), b)), LV.ev(b)) == 1n+K.np(one) : Nat}:
-  NG.neg_vv(one, h1, K.np(one), S.c(), K.hm_n(one, h1), b, rlt(one, h1, b, hb))
-
-def negr_le(+one: Nat, +h1: {one == 1n : Nat}, +b: List<&2, Nat>, +hb: {FS.reduced(one, FS.order(one), b) == True{} : Bool}) -> {Nat.is_le(LV.ev(L.neg_raw(S.c(), b)), C.shift(256n, one)) == True{} : Bool}:
-  +m = {1n+K.np(one) : Nat}
-  +nb = LV.ev(L.neg_raw(S.c(), b))
-  +mt = I.le_subst_r(m, Nat.add(m, FS.cn(one)), C.shift(256n, one), K.hm_n(one, h1), N.le_add_right(m, FS.cn(one)))
-  N.le_trans(nb, m, C.shift(256n, one), I.le_subst_r(nb, Nat.add(nb, LV.ev(b)), m, negr_e(one, h1, b, hb), N.le_add_right(nb, LV.ev(b))), mt)
-
-def neg_hx(+one: Nat, +h1: {one == 1n : Nat}, +b: List<&2, Nat>, +hb: {FS.reduced(one, FS.order(one), b) == True{} : Bool}) -> {Nat.is_lt(LV.ev(L.neg_raw(S.c(), b)), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}:
-  +t = C.shift(256n, one)
-  lt3(one, h1, LV.ev(L.neg_raw(S.c(), b)), N.le_lt_trans(LV.ev(L.neg_raw(S.c(), b)), t, Nat.add(t, Nat.add(t, t)), negr_le(one, h1, b, hb), I.lt_add_pos(t, Nat.add(t, t), N.lt_le_trans(0n, t, Nat.add(t, t), K.shift_pos(one, h1, 256n), N.le_add_right(t, t)))))
-
 def neg_v(+one: Nat, +h1: {one == 1n : Nat}, +b: List<&2, Nat>, +hb: {FS.reduced(one, FS.order(one), b) == True{} : Bool}) -> {FS.value(one, S.neg(b)) == FS.mneg(FS.order(one), FS.value(one, b)) : Nat}:
-  %Equal.sym(List<&2, Nat>, S.neg(b), S.neg_u(b), FR.s_neg(b)) : {FS.value(one, _) == FS.mneg(FS.order(one), FS.value(one, b)) : Nat}
-  %Equal.sym(Nat, FS.value(one, S.reduce_u(L.neg_raw(S.c(), b))), Nat.mod(LV.ev(L.neg_raw(S.c(), b)), FS.order(one)), red_v(one, h1, L.neg_raw(S.c(), b), neg_hx(one, h1, b, hb))) : {_ == Nat.mod(Nat.sub(Nat.add(0n, FS.order(one)), Nat.mod(FS.value(one, b), FS.order(one))), FS.order(one)) : Nat}
-  %Equal.sym(Nat, FS.value(one, b), LV.ev(b), LV.ev_value(one, h1, b)) : {Nat.mod(LV.ev(L.neg_raw(S.c(), b)), FS.order(one)) == Nat.mod(Nat.sub(Nat.add(0n, FS.order(one)), Nat.mod(_, FS.order(one))), FS.order(one)) : Nat}
-  %Equal.sym(Nat, FS.order(one), 1n+K.np(one), K.order_eq(one, h1)) : {Nat.mod(LV.ev(L.neg_raw(S.c(), b)), _) == Nat.mod(Nat.sub(Nat.add(0n, FS.order(one)), Nat.mod(LV.ev(b), FS.order(one))), FS.order(one)) : Nat}
-  %Equal.sym(Nat, FS.order(one), 1n+K.np(one), K.order_eq(one, h1)) : {Nat.mod(LV.ev(L.neg_raw(S.c(), b)), 1n+K.np(one)) == Nat.mod(Nat.sub(Nat.add(0n, _), Nat.mod(LV.ev(b), FS.order(one))), FS.order(one)) : Nat}
-  %Equal.sym(Nat, FS.order(one), 1n+K.np(one), K.order_eq(one, h1)) : {Nat.mod(LV.ev(L.neg_raw(S.c(), b)), 1n+K.np(one)) == Nat.mod(Nat.sub(Nat.add(0n, 1n+K.np(one)), Nat.mod(LV.ev(b), _)), FS.order(one)) : Nat}
-  %Equal.sym(Nat, FS.order(one), 1n+K.np(one), K.order_eq(one, h1)) : {Nat.mod(LV.ev(L.neg_raw(S.c(), b)), 1n+K.np(one)) == Nat.mod(Nat.sub(Nat.add(0n, 1n+K.np(one)), Nat.mod(LV.ev(b), 1n+K.np(one))), _) : Nat}
-  NG.sub_mod(K.np(one), 0n, LV.ev(b), LV.ev(L.neg_raw(S.c(), b)), rlt(one, h1, b, hb), negr_e(one, h1, b, hb))
+  %Equal.sym(List<&2, Nat>, S.neg(b), S.neg_u(b), neg_is(one, b, hb)) : {FS.value(one, _) == FS.mneg(FS.order(one), FS.value(one, b)) : Nat}
+  %Equal.sym(Nat, SQ.sval(one, SE.neg(R.of_list(b))), FS.mneg(FS.order(one), SQ.sval(one, R.of_list(b))), SQ.neg_v(one, h1, R.of_list(b), SQ.rec_r(one, b, hb))) : {_ == FS.mneg(FS.order(one), FS.value(one, b)) : Nat}
+  %Equal.sym(List<&2, Nat>, R.to_list(R.of_list(b)), b, SQ.rec_l(one, b, hb)) : {FS.mneg(FS.order(one), FS.value(one, _)) == FS.mneg(FS.order(one), FS.value(one, b)) : Nat}
+  {==}
 
 def neg_r(+one: Nat, +h1: {one == 1n : Nat}, +b: List<&2, Nat>, +hb: {FS.reduced(one, FS.order(one), b) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), S.neg(b)) == True{} : Bool}:
-  %Equal.sym(List<&2, Nat>, S.neg(b), S.neg_u(b), FR.s_neg(b)) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
-  red_r(one, h1, L.neg_raw(S.c(), b), neg_hx(one, h1, b, hb))
+  %Equal.sym(List<&2, Nat>, S.neg(b), S.neg_u(b), neg_is(one, b, hb)) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
+  SQ.neg_r(one, h1, R.of_list(b), SQ.rec_r(one, b, hb))
 
 # ---- in the limb value ev ----
 
 def mul_e(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +b: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), a) == True{} : Bool}, +hb: {FS.reduced(one, FS.order(one), b) == True{} : Bool}) -> {LV.ev(S.mul(a, b)) == Nat.mod(Nat.mul(LV.ev(a), LV.ev(b)), 1n+K.np(one)) : Nat}:
-  %Equal.sym(List<&2, Nat>, S.mul(a, b), S.mul_u(a, b), FR.s_mul(a, b)) : {LV.ev(_) == Nat.mod(Nat.mul(LV.ev(a), LV.ev(b)), 1n+K.np(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(S.reduce_u(L.conv(a, b))), Nat.mod(LV.ev(L.conv(a, b)), 1n+K.np(one)), red_e(one, h1, L.conv(a, b), mul_hx(one, h1, a, b, ha, hb))) : {_ == Nat.mod(Nat.mul(LV.ev(a), LV.ev(b)), 1n+K.np(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(L.conv(a, b)), Nat.mul(LV.ev(a), LV.ev(b)), LV.conv_v(a, b)) : {Nat.mod(_, 1n+K.np(one)) == Nat.mod(Nat.mul(LV.ev(a), LV.ev(b)), 1n+K.np(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, S.mul(a, b), S.mul_u(a, b), mul_is(a, b)) : {LV.ev(_) == Nat.mod(Nat.mul(LV.ev(a), LV.ev(b)), 1n+K.np(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(SE.mul(R.of_list(a), R.of_list(b)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.of_list(a))), LV.ev(R.to_list(R.of_list(b)))), 1n+K.np(one)), SQ.mul_e(one, h1, R.of_list(a), R.of_list(b), SQ.rec_r(one, a, ha), SQ.rec_r(one, b, hb))) : {_ == Nat.mod(Nat.mul(LV.ev(a), LV.ev(b)), 1n+K.np(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, R.to_list(R.of_list(a)), a, SQ.rec_l(one, a, ha)) : {Nat.mod(Nat.mul(LV.ev(_), LV.ev(R.to_list(R.of_list(b)))), 1n+K.np(one)) == Nat.mod(Nat.mul(LV.ev(a), LV.ev(b)), 1n+K.np(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, R.to_list(R.of_list(b)), b, SQ.rec_l(one, b, hb)) : {Nat.mod(Nat.mul(LV.ev(a), LV.ev(_)), 1n+K.np(one)) == Nat.mod(Nat.mul(LV.ev(a), LV.ev(b)), 1n+K.np(one)) : Nat}
   {==}
 
 # ---- small constants ----

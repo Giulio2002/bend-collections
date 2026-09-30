@@ -314,3 +314,97 @@ def del_contract(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool
 
 def keys_contract(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}) -> KeysContract(~V, sh, H.keys(&2, V, ST.real(~V, sh))):
   kc_from(~V, sh, hg, H.keys(&2, V, ST.real(~V, sh)), KW.keys_ok(~V, sh, hg))
+
+# ---- the one-character key API ----
+# set_char, get_char, has_char and pop_char at code c are the String-keyed
+# operations at the key SCon{Chr{c}, SNil{}}, on every map; so each inherits
+# that operation's theorem (the *_char_ok below).
+
+# ---- the one-character chains are the shared chains ----
+
+def ins_free_c_is(~V: Data, +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, tab: Array<U32>, ks: Array<String>, vs: Array<Maybe<&2, V>>, +s: U32, +at: U32, +w: U32, key: String, x: V, r: Array<U32> & U32) -> {H.ins_free_c(&2, V, n, mask, td, fresh, sz, sd, tab, ks, vs, s, at, w, key, x, r) == H.ins_free(&2, V, n, mask, td, fresh, sz, sd, tab, ks, vs, s, at, w, key, x, r) : H.HashMap<&2, V>}:
+  match r:
+    case Tuple{nx, nf}:
+      {==}
+
+def ins_new_c_is(~V: Data, +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, +free: U32, tab: Array<U32>, ks: Array<String>, vs: Array<Maybe<&2, V>>, nx: Array<U32>, +at: U32, +w: U32, key: String, x: V, none: Bool) -> {H.ins_new_c(&2, V, n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx, at, w, key, x, none) == H.ins_new(&2, V, n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx, at, w, key, x, none) : H.HashMap<&2, V>}:
+  match none:
+    case True{}:
+      {==}
+    case False{}:
+      ins_free_c_is(~V, n, mask, td, fresh, sz, sd, tab, ks, vs, H.slot(free), at, w, key, x, Array.get(U32, nx, H.slot(free)))
+
+def set_hit_c_is(~V: Data, +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, +free: U32, tab: Array<U32>, ks: Array<String>, vs: Array<Maybe<&2, V>>, nx: Array<U32>, +at: U32, +l: U32, +w: U32, key: String, x: V, absent: Bool) -> {H.set_hit_c(&2, V, n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx, at, l, w, key, x, absent) == H.set_hit(&2, V, n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx, at, l, w, key, x, absent) : H.HashMap<&2, V>}:
+  match absent:
+    case False{}:
+      {==}
+    case True{}:
+      ins_new_c_is(~V, n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx, at, w, key, x, U32.is_eq(free, 0))
+
+def set_f_fd_is(~V: Data, +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, +free: U32, vs: Array<Maybe<&2, V>>, nx: Array<U32>, x: V, fd: H.Found, +w: U32) -> {H.set_f_c(&2, V, n, mask, td, fresh, sz, sd, free, vs, nx, x, (fd, w)) == H.set_f(&2, V, n, mask, td, fresh, sz, sd, free, vs, nx, x, (fd, w)) : H.HashMap<&2, V>}:
+  match fd:
+    case H.FD{tab, ks, key, +at, +l}:
+      set_hit_c_is(~V, n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx, at, l, w, key, x, U32.is_eq(l, 0))
+
+def set_f_c_is(~V: Data, +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, +free: U32, vs: Array<Maybe<&2, V>>, nx: Array<U32>, x: V, r: H.Found & U32) -> {H.set_f_c(&2, V, n, mask, td, fresh, sz, sd, free, vs, nx, x, r) == H.set_f(&2, V, n, mask, td, fresh, sz, sd, free, vs, nx, x, r) : H.HashMap<&2, V>}:
+  match r:
+    case Tuple{fd, w}:
+      set_f_fd_is(~V, n, mask, td, fresh, sz, sd, free, vs, nx, x, fd, w)
+
+def pop_v_c_is(~V: Data, +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, +free: U32, tab: Array<U32>, ks: Array<String>, nx: Array<U32>, +at: U32, +s: U32, +w: U32, r: Array<Maybe<&2, V>> & Maybe<&2, V>) -> {H.pop_v_c(&2, V, n, mask, td, fresh, sz, sd, free, tab, ks, nx, at, s, w, r) == H.pop_v(&2, V, n, mask, td, fresh, sz, sd, free, tab, ks, nx, at, s, w, r) : H.HashMap<&2, V> & Maybe<&2, V>}:
+  match r:
+    case Tuple{vs, v}:
+      {==}
+
+def pop_hit_c_is(~V: Data, +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, +free: U32, tab: Array<U32>, ks: Array<String>, vs: Array<Maybe<&2, V>>, nx: Array<U32>, +at: U32, +l: U32, +w: U32, absent: Bool) -> {H.pop_hit_c(&2, V, n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx, at, l, w, absent) == H.pop_hit(&2, V, n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx, at, l, w, absent) : H.HashMap<&2, V> & Maybe<&2, V>}:
+  match absent:
+    case True{}:
+      {==}
+    case False{}:
+      pop_v_c_is(~V, n, mask, td, fresh, sz, sd, free, tab, ks, nx, at, H.slot(l), w, Array.swap(Maybe<&2, V>, vs, H.slot(l), None{}))
+
+def pop_f_fd_is(~V: Data, +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, +free: U32, vs: Array<Maybe<&2, V>>, nx: Array<U32>, fd: H.Found, +w: U32) -> {H.pop_f_c(&2, V, n, mask, td, fresh, sz, sd, free, vs, nx, (fd, w)) == H.pop_f(&2, V, n, mask, td, fresh, sz, sd, free, vs, nx, (fd, w)) : H.HashMap<&2, V> & Maybe<&2, V>}:
+  match fd:
+    case H.FD{tab, ks, key, +at, +l}:
+      pop_hit_c_is(~V, n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx, at, l, w, U32.is_eq(l, 0))
+
+def pop_f_c_is(~V: Data, +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, +free: U32, vs: Array<Maybe<&2, V>>, nx: Array<U32>, r: H.Found & U32) -> {H.pop_f_c(&2, V, n, mask, td, fresh, sz, sd, free, vs, nx, r) == H.pop_f(&2, V, n, mask, td, fresh, sz, sd, free, vs, nx, r) : H.HashMap<&2, V> & Maybe<&2, V>}:
+  match r:
+    case Tuple{fd, w}:
+      pop_f_fd_is(~V, n, mask, td, fresh, sz, sd, free, vs, nx, fd, w)
+
+def set_char_is_set(~V: Data, m: H.HashMap<&2, V>, +c: U32, x: V) -> {H.set_char(&2, V, m, c, x) == H.set(&2, V, m, SCon{Chr{c}, SNil{}}, x) : H.HashMap<&2, V>}:
+  match m:
+    case H.HM{+n, +mask, +td, +fresh, +sz, +sd, +free, tab, ks, vs, nx}:
+      set_f_c_is(~V, n, mask, td, fresh, sz, sd, free, vs, nx, x, H.probe_char(tab, ks, mask, c))
+
+def get_char_is_get(~V: Data, dflt: V, m: H.HashMap<&2, V>, +c: U32) -> {H.get_char(V, dflt, m, c) == H.get(V, dflt, m, SCon{Chr{c}, SNil{}}) : H.HashMap<&2, V> & V}:
+  match m:
+    case H.HM{n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx}:
+      {==}
+
+def has_char_is_has(~V: Data, m: H.HashMap<&2, V>, +c: U32) -> {H.has_char(&2, V, m, c) == H.has(&2, V, m, SCon{Chr{c}, SNil{}}) : H.HashMap<&2, V> & Bool}:
+  match m:
+    case H.HM{n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx}:
+      {==}
+
+def pop_char_is_pop(~V: Data, m: H.HashMap<&2, V>, +c: U32) -> {H.pop_char(&2, V, m, c) == H.pop(&2, V, m, SCon{Chr{c}, SNil{}}) : H.HashMap<&2, V> & Maybe<&2, V>}:
+  match m:
+    case H.HM{+n, +mask, +td, +fresh, +sz, +sd, +free, tab, ks, vs, nx}:
+      pop_f_c_is(~V, n, mask, td, fresh, sz, sd, free, vs, nx, H.probe_char(tab, ks, mask, c))
+
+def get_char_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +dflt: V, +c: U32) -> G.GetOK(~V, sh, dflt, SCon{Chr{c}, SNil{}}, H.get_char(V, dflt, ST.real(~V, sh), c)):
+  %Equal.sym(H.HashMap<&2, V> & V, H.get_char(V, dflt, ST.real(~V, sh), c), H.get(V, dflt, ST.real(~V, sh), SCon{Chr{c}, SNil{}}), get_char_is_get(~V, dflt, ST.real(~V, sh), c)) : G.GetOK(~V, sh, dflt, SCon{Chr{c}, SNil{}}, _)
+  G.get_ok(~V, sh, hg, dflt, SCon{Chr{c}, SNil{}})
+
+def has_char_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +c: U32) -> HA.HasOK(~V, sh, SCon{Chr{c}, SNil{}}, H.has_char(&2, V, ST.real(~V, sh), c)):
+  %Equal.sym(H.HashMap<&2, V> & Bool, H.has_char(&2, V, ST.real(~V, sh), c), H.has(&2, V, ST.real(~V, sh), SCon{Chr{c}, SNil{}}), has_char_is_has(~V, ST.real(~V, sh), c)) : HA.HasOK(~V, sh, SCon{Chr{c}, SNil{}}, _)
+  HA.has_ok(~V, sh, hg, SCon{Chr{c}, SNil{}})
+
+def set_char_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +cap: Nat, +hc30: {Nat.is_le(cap, 30n) == True{} : Bool}, +hcap: {Nat.is_le(Nat.double(1n+S.size(~V, ST.model(~V, sh))), SC.pow2(cap)) == True{} : Bool}, +c: U32, +x: V) -> ST2.SetOK(~V, sh, SCon{Chr{c}, SNil{}}, x, H.set_char(&2, V, ST.real(~V, sh), c, x)):
+  %Equal.sym(H.HashMap<&2, V>, H.set_char(&2, V, ST.real(~V, sh), c, x), H.set(&2, V, ST.real(~V, sh), SCon{Chr{c}, SNil{}}, x), set_char_is_set(~V, ST.real(~V, sh), c, x)) : ST2.SetOK(~V, sh, SCon{Chr{c}, SNil{}}, x, _)
+  set_ok(~V, sh, hg, cap, hc30, hcap, SCon{Chr{c}, SNil{}}, x)
+
+def pop_char_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +c: U32) -> PO.PopOK(~V, sh, SCon{Chr{c}, SNil{}}, H.pop_char(&2, V, ST.real(~V, sh), c)):
+  %Equal.sym(H.HashMap<&2, V> & Maybe<&2, V>, H.pop_char(&2, V, ST.real(~V, sh), c), H.pop(&2, V, ST.real(~V, sh), SCon{Chr{c}, SNil{}}), pop_char_is_pop(~V, ST.real(~V, sh), c)) : PO.PopOK(~V, sh, SCon{Chr{c}, SNil{}}, _)
+  pop_ok(~V, sh, hg, SCon{Chr{c}, SNil{}})

@@ -1,11 +1,9 @@
 import Base
-import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/curve25519/field.bend as FS
 import ../../../src/crypto/curve25519/field.bend as F
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/word.bend as WD
-import ../../lib/arith.bend as AR
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/natural/arith.bend as NR
 import ./num.bend as M
@@ -14,7 +12,6 @@ import ./poly.bend as PL
 import ./fold.bend as FD
 import ./reduce.bend as RD
 import ./consts.bend as K
-import ./fieldops.bend as FO
 
 # mul, sq and mul_small of src/crypto/curve25519/field.bend: the schoolbook
 # product of two tight elements has 63 limbs below 32 * 2^16 = 2^21; `wide`

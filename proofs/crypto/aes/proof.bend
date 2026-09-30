@@ -4,6 +4,7 @@ import ../../../src/crypto/aes/types.bend as T
 import ../../../src/crypto/aes/aes.bend as A
 import ../../../src/crypto/aes/gcm.bend as GI
 import ../../../src/crypto/aesgcm.bend as GCM
+import ./fast/api.bend as FA
 import ../../../spec/crypto/aes/aes.bend as S
 import ../../../spec/crypto/aes/gcm.bend as G
 import ./laws.bend as Laws
@@ -177,17 +178,21 @@ def Laws.Api128.forgery(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11
   API.aes128_forgery(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, c, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, ne)
 
 def Laws.Api128.bad_key(key, h, nonce, aad, pt):
+  %Equal.sym(Maybe<&2, List<&2, U32>>, GCM.seal_key(GI.schedule_of(16n, key), nonce, aad, pt), GI.seal_key(GI.schedule_of(16n, key), nonce, aad, pt), FA.seal_key_ok(GI.schedule_of(16n, key), nonce, aad, pt)) : {_ == None{} : Maybe<&2, List<&2, U32>>}
   %Equal.sym(Bool, Nat.is_eq(List.length(&2, U32, key), 16n), False{}, h) : {GI.seal_key(GI.schedule_if(_, key), nonce, aad, pt) == None{} : Maybe<&2, List<&2, U32>>}
   {==}
 
 def Laws.Api128.bad_key_open(key, h, nonce, aad, ct):
+  %Equal.sym(Maybe<&2, List<&2, U32>>, GCM.open_key(GI.schedule_of(16n, key), nonce, aad, ct), GI.open_key(GI.schedule_of(16n, key), nonce, aad, ct), FA.open_key_ok(GI.schedule_of(16n, key), nonce, aad, ct)) : {_ == None{} : Maybe<&2, List<&2, U32>>}
   %Equal.sym(Bool, Nat.is_eq(List.length(&2, U32, key), 16n), False{}, h) : {GI.open_key(GI.schedule_if(_, key), nonce, aad, ct) == None{} : Maybe<&2, List<&2, U32>>}
   {==}
 
 def Laws.Api128.bad_nonce(key, nonce, h, aad, pt):
+  %Equal.sym(Maybe<&2, List<&2, U32>>, GCM.seal_key(GI.schedule_of(16n, key), nonce, aad, pt), GI.seal_key(GI.schedule_of(16n, key), nonce, aad, pt), FA.seal_key_ok(GI.schedule_of(16n, key), nonce, aad, pt)) : {_ == None{} : Maybe<&2, List<&2, U32>>}
   seal_key_bad(GI.schedule_of(16n, key), nonce, h, aad, pt)
 
 def Laws.Api128.bad_nonce_open(key, nonce, h, aad, ct):
+  %Equal.sym(Maybe<&2, List<&2, U32>>, GCM.open_key(GI.schedule_of(16n, key), nonce, aad, ct), GI.open_key(GI.schedule_of(16n, key), nonce, aad, ct), FA.open_key_ok(GI.schedule_of(16n, key), nonce, aad, ct)) : {_ == None{} : Maybe<&2, List<&2, U32>>}
   open_key_bad(GI.schedule_of(16n, key), nonce, h, aad, ct)
 
 def Laws.Api256.encrypt(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, pt):
@@ -216,16 +221,20 @@ def Laws.Api256.forgery(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11
   API.aes256_forgery(key, h, n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, aad, c, t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, ne)
 
 def Laws.Api256.bad_key(key, h, nonce, aad, pt):
+  %Equal.sym(Maybe<&2, List<&2, U32>>, GCM.seal_key(GI.schedule_of(32n, key), nonce, aad, pt), GI.seal_key(GI.schedule_of(32n, key), nonce, aad, pt), FA.seal_key_ok(GI.schedule_of(32n, key), nonce, aad, pt)) : {_ == None{} : Maybe<&2, List<&2, U32>>}
   %Equal.sym(Bool, Nat.is_eq(List.length(&2, U32, key), 32n), False{}, h) : {GI.seal_key(GI.schedule_if(_, key), nonce, aad, pt) == None{} : Maybe<&2, List<&2, U32>>}
   {==}
 
 def Laws.Api256.bad_key_open(key, h, nonce, aad, ct):
+  %Equal.sym(Maybe<&2, List<&2, U32>>, GCM.open_key(GI.schedule_of(32n, key), nonce, aad, ct), GI.open_key(GI.schedule_of(32n, key), nonce, aad, ct), FA.open_key_ok(GI.schedule_of(32n, key), nonce, aad, ct)) : {_ == None{} : Maybe<&2, List<&2, U32>>}
   %Equal.sym(Bool, Nat.is_eq(List.length(&2, U32, key), 32n), False{}, h) : {GI.open_key(GI.schedule_if(_, key), nonce, aad, ct) == None{} : Maybe<&2, List<&2, U32>>}
   {==}
 
 def Laws.Api256.bad_nonce(key, nonce, h, aad, pt):
+  %Equal.sym(Maybe<&2, List<&2, U32>>, GCM.seal_key(GI.schedule_of(32n, key), nonce, aad, pt), GI.seal_key(GI.schedule_of(32n, key), nonce, aad, pt), FA.seal_key_ok(GI.schedule_of(32n, key), nonce, aad, pt)) : {_ == None{} : Maybe<&2, List<&2, U32>>}
   seal_key_bad(GI.schedule_of(32n, key), nonce, h, aad, pt)
 
 def Laws.Api256.bad_nonce_open(key, nonce, h, aad, ct):
+  %Equal.sym(Maybe<&2, List<&2, U32>>, GCM.open_key(GI.schedule_of(32n, key), nonce, aad, ct), GI.open_key(GI.schedule_of(32n, key), nonce, aad, ct), FA.open_key_ok(GI.schedule_of(32n, key), nonce, aad, ct)) : {_ == None{} : Maybe<&2, List<&2, U32>>}
   open_key_bad(GI.schedule_of(32n, key), nonce, h, aad, ct)
 

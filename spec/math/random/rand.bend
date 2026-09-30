@@ -114,3 +114,8 @@ def occurrences(~A: Data, ~V: Data, ~rel: A -> V -> Bool, +v: V, xs: List<&2, A>
       0n
     case Con{+x, rest}:
       Nat.add(b2n(rel(x, v)), occurrences(~A, ~V, ~rel, v, rest))
+
+# the array of an (array, source) pair
+def afst(-A: Data, -S: Data, p: Array<A> & S) -> Array<A>:
+  (a, s) = p
+  a
