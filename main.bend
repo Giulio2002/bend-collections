@@ -49,6 +49,9 @@ import ./src/crypto/mac.bend as MAC
 import ./src/crypto/kdf.bend as KDF
 import ./spec/crypto/hmac.bend as HMACSpec
 import ./spec/crypto/hkdf.bend as HKDFSpec
+import ./src/crypto/secp256k1.bend as Secp256k1
+import ./spec/crypto/secp256k1/ecdsa.bend as Secp256k1EcdsaSpec
+import ./spec/crypto/secp256k1/schnorr.bend as Secp256k1SchnorrSpec
 import ./src/crypto/keccak/keccak.bend as Keccak
 import ./src/crypto/keccak/hex.bend as KeccakHex
 import ./src/crypto/blake/blake2s/blake2s.bend as BLAKE2s

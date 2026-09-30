@@ -21,9 +21,9 @@ import ./sel.bend as SL
 import ./pmul.bend as PM
 import ./paff.bend as PA
 import ./penc.bend as PE
-import ./pdec.bend as PD
-import ./ppub.bend as PP
 import ./pver.bend as PV
+import ./blist.bend as BL
+import ./pscal.bend as SQ
 
 # ECDSA signing of src/crypto/secp256k1/ecdsa.bend (RFC 6979 nonces,
 # low-S, recovery id) against spec/crypto/secp256k1/ecdsa.bend. The
@@ -80,14 +80,14 @@ def sel_v(+one: Nat, +h1: {one == 1n : Nat}, hb: Bool, +s0: List<&2, Nat>, +hs: 
   match hb:
     case True{}:
       %goal {B.to_be(L.select(1n, S.neg(s0), s0)) == CV.i2osp(32n, FS.mneg(FS.order(one), FS.value(one, s0))) : List<&2, U32>}
-      %rw SL.sel1(one, 16n, S.neg(s0), s0, PV.sl16(one, S.neg(s0), SO.neg_r(one, h1, s0, hs)), PV.sl16(one, s0, hs))
-      %rw tbv(one, h1, S.neg(s0), PV.sl16(one, S.neg(s0), SO.neg_r(one, h1, s0, hs)))
+      %rw SL.sel1(one, 16n, S.neg(s0), s0, SL.sl16(one, S.neg(s0), SO.neg_r(one, h1, s0, hs)), SL.sl16(one, s0, hs))
+      %rw tbv(one, h1, S.neg(s0), SL.sl16(one, S.neg(s0), SO.neg_r(one, h1, s0, hs)))
       %rw SO.neg_v(one, h1, s0, hs)
       %close
     case False{}:
       %goal {B.to_be(L.select(0n, S.neg(s0), s0)) == CV.i2osp(32n, FS.value(one, s0)) : List<&2, U32>}
-      %rw SL.sel0(one, 16n, S.neg(s0), s0, PV.sl16(one, S.neg(s0), SO.neg_r(one, h1, s0, hs)), PV.sl16(one, s0, hs))
-      tbv(one, h1, s0, PV.sl16(one, s0, hs))
+      %rw SL.sel0(one, 16n, S.neg(s0), s0, SL.sl16(one, S.neg(s0), SO.neg_r(one, h1, s0, hs)), SL.sl16(one, s0, hs))
+      tbv(one, h1, s0, SL.sl16(one, s0, hs))
 
 def bad_v(bad: Bool, +sig: E.Signature) -> {matt(E.finish_if(bad, sig)) == ES.finish_if(bad, sigb(sig)) : ES.Attempt}:
   match bad:
@@ -97,17 +97,17 @@ def bad_v(bad: Bool, +sig: E.Signature) -> {matt(E.finish_if(bad, sig)) == ES.fi
       {==}
 
 def s0_r(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, +k: List<&2, Nat>, +hk: {FS.reduced(one, FS.order(one), k) == True{} : Bool}, +x: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, x) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), S.mul(S.inv(k), S.add(z, S.mul(S.reduce(x), d)))) == True{} : Bool}:
-  +hr = PP.sred_r(one, h1, x, hx)
+  +hr = SQ.sred_r(one, h1, x, hx)
   SO.mul_r(one, h1, S.inv(k), S.add(z, S.mul(S.reduce(x), d)), SP.inv_r(one, h1, k, hk), SO.add_r(one, h1, z, S.mul(S.reduce(x), d), hz, SO.mul_r(one, h1, S.reduce(x), d, hr, hd)))
 
 def s0_v(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, +k: List<&2, Nat>, +hk: {FS.reduced(one, FS.order(one), k) == True{} : Bool}, +x: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, x) == True{} : Bool}) -> {FS.value(one, S.mul(S.inv(k), S.add(z, S.mul(S.reduce(x), d)))) == FS.mmul(FS.order(one), FS.minv(FS.order(one), FS.value(one, k)), FS.madd(FS.order(one), FS.value(one, z), FS.mmul(FS.order(one), Nat.mod(FS.value(one, x), FS.order(one)), FS.value(one, d)))) : Nat}:
-  +hr = PP.sred_r(one, h1, x, hx)
+  +hr = SQ.sred_r(one, h1, x, hx)
   +hm = SO.mul_r(one, h1, S.reduce(x), d, hr, hd)
   %rw SO.mul_v(one, h1, S.inv(k), S.add(z, S.mul(S.reduce(x), d)), SP.inv_r(one, h1, k, hk), SO.add_r(one, h1, z, S.mul(S.reduce(x), d), hz, hm))
   %rw SP.inv_v(one, h1, k, hk)
   %rw SO.add_v(one, h1, z, S.mul(S.reduce(x), d), hz, hm)
   %rw SO.mul_v(one, h1, S.reduce(x), d, hr, hd)
-  %rw PP.sred_v(one, h1, x, hx)
+  %rw SQ.sred_v(one, h1, x, hx)
   %close
 
 # the end of signing on scalars r, s0 of values rv, sv
@@ -120,7 +120,7 @@ def fin_g(+one: Nat, +h1: {one == 1n : Nat}, +r: List<&2, Nat>, +hr: {FS.reduced
   %rwh <- hsv : {FS.value(one, s0) == sv : Nat}
   %rw FW.is_zero_s(one, h1, r)
   %rw FW.is_zero_s(one, h1, s0)
-  %rw tbv(one, h1, r, PV.sl16(one, r, hr))
+  %rw tbv(one, h1, r, SL.sl16(one, r, hr))
   %rw FW.is_high_s(one, h1, s0)
   %rw sel_v(one, h1, Nat.is_lt(FS.order(one), Nat.double(FS.value(one, s0))), s0, hs)
   %rw FW.is_high_s(one, h1, s0)
@@ -133,7 +133,7 @@ def fin_g(+one: Nat, +h1: {one == 1n : Nat}, +r: List<&2, Nat>, +hr: {FS.reduced
 
 def fin_v(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, +k: List<&2, Nat>, +hk: {FS.reduced(one, FS.order(one), k) == True{} : Bool}, +x: List<&2, Nat>, +hx: {PT.red(one, x) == True{} : Bool}, +y: List<&2, Nat>) -> {matt(E.finish(z, d, k, x, y)) == ES.finish(one, FS.value(one, z), FS.value(one, d), FS.value(one, k), CV.SAffine{FS.value(one, x), FS.value(one, y)}) : ES.Attempt}:
   +hlx = SL.l16(one, x, hx)
-  fin_g(one, h1, S.reduce(x), PP.sred_r(one, h1, x, hlx), S.mul(S.inv(k), S.add(z, S.mul(S.reduce(x), d))), s0_r(one, h1, z, hz, d, hd, k, hk, x, hlx), x, y, Nat.mod(FS.value(one, x), FS.order(one)), PP.sred_v(one, h1, x, hlx), FS.mmul(FS.order(one), FS.minv(FS.order(one), FS.value(one, k)), FS.madd(FS.order(one), FS.value(one, z), FS.mmul(FS.order(one), Nat.mod(FS.value(one, x), FS.order(one)), FS.value(one, d)))), s0_v(one, h1, z, hz, d, hd, k, hk, x, hlx))
+  fin_g(one, h1, S.reduce(x), SQ.sred_r(one, h1, x, hlx), S.mul(S.inv(k), S.add(z, S.mul(S.reduce(x), d))), s0_r(one, h1, z, hz, d, hd, k, hk, x, hlx), x, y, Nat.mod(FS.value(one, x), FS.order(one)), SQ.sred_v(one, h1, x, hlx), FS.mmul(FS.order(one), FS.minv(FS.order(one), FS.value(one, k)), FS.madd(FS.order(one), FS.value(one, z), FS.mmul(FS.order(one), Nat.mod(FS.value(one, x), FS.order(one)), FS.value(one, d)))), s0_v(one, h1, z, hz, d, hd, k, hk, x, hlx))
 
 # ---- one attempt: k from the candidate V ----
 
@@ -157,7 +157,7 @@ def aok(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(o
 
 def att_v(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, +v: List<&2, U32>, +hv: {B.has_len(32n, v) == True{} : Bool}) -> {matt(E.attempt(z, d, v)) == ES.attempt(one, FS.value(one, z), FS.value(one, d), v) : ES.Attempt}:
   %goal {matt(E.attempt_ok(z, d, B.of_be(v), E.scalar_ok(B.of_be(v)))) == ES.attempt_ok(one, FS.value(one, z), FS.value(one, d), CV.os2ip(v), ES.scalar_ok(one, CV.os2ip(v))) : ES.Attempt}
-  %rw PP.scalar_ok_v(one, h1, B.of_be(v))
+  %rw SQ.scalar_ok_v(one, h1, B.of_be(v))
   %rw <- BY.of_be_value(one, h1, v)
   %rw <- BY.of_be_value(one, h1, v)
   aok(one, h1, z, hz, d, hd, B.of_be(v), BY.of_be_limbs(one, h1, v, hv), ES.scalar_ok(one, FS.value(one, B.of_be(v))), {==})
@@ -236,12 +236,12 @@ def drbg_sign(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.red
 # ---- sign ----
 
 def sd(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +hh: {B.has_len(32n, h) == True{} : Bool}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}) -> {msig(E.sign_d(h, Some{d})) == ES.sign_d(one, h, FS.value(one, d), True{}) : Maybe<&2, List<&2, U32>>}:
-  +hz = PP.hash_r(one, h1, h, hh)
+  +hz = SQ.hash_r(one, h1, h, hh)
   %goal {msig(E.sign_drbg(E.hash_scalar(h), d, E.drbg_init(List.append(&2, U32, B.to_be(d), B.to_be(E.hash_scalar(h)))))) == ES.sign_drbg(one, ES.hash_scalar(one, h), FS.value(one, d), ES.drbg_init(List.append(&2, U32, CV.i2osp(32n, FS.value(one, d)), CV.i2osp(32n, ES.hash_scalar(one, h))))) : Maybe<&2, List<&2, U32>>}
-  %rw tbv(one, h1, d, PV.sl16(one, d, hd))
-  %rw tbv(one, h1, E.hash_scalar(h), PV.sl16(one, E.hash_scalar(h), hz))
-  %rw <- PP.hash_v(one, h1, h, hh)
-  %rw <- PP.hash_v(one, h1, h, hh)
+  %rw tbv(one, h1, d, SL.sl16(one, d, hd))
+  %rw tbv(one, h1, E.hash_scalar(h), SL.sl16(one, E.hash_scalar(h), hz))
+  %rw <- SQ.hash_v(one, h1, h, hh)
+  %rw <- SQ.hash_v(one, h1, h, hh)
   %rw <- init_v(List.append(&2, U32, CV.i2osp(32n, FS.value(one, d)), CV.i2osp(32n, FS.value(one, E.hash_scalar(h)))))
   drbg_sign(one, h1, E.hash_scalar(h), hz, d, hd, E.drbg_init(List.append(&2, U32, CV.i2osp(32n, FS.value(one, d)), CV.i2osp(32n, FS.value(one, E.hash_scalar(h))))))
 
@@ -255,7 +255,7 @@ def sk3(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +hh: {B.has_len(32
 def sk2(+one: Nat, +h1: {one == 1n : Nat}, +sk: List<&2, U32>, +h: List<&2, U32>, +hh: {B.has_len(32n, h) == True{} : Bool}, b: Bool, +hb: {B.has_len(32n, sk) == b : Bool}) -> {msig(E.sign_d(h, E.secret_if(B.of_be(sk), Bool.and(b, E.scalar_ok(B.of_be(sk)))))) == ES.sign_d(one, h, CV.os2ip(sk), Bool.and(b, ES.scalar_ok(one, CV.os2ip(sk)))) : Maybe<&2, List<&2, U32>>}:
   match b:
     case True{}:
-      %rw PP.scalar_ok_v(one, h1, B.of_be(sk))
+      %rw SQ.scalar_ok_v(one, h1, B.of_be(sk))
       %rw <- BY.of_be_value(one, h1, sk)
       %rw <- BY.of_be_value(one, h1, sk)
       sk3(one, h1, h, hh, B.of_be(sk), BY.of_be_limbs(one, h1, sk, hb), ES.scalar_ok(one, FS.value(one, B.of_be(sk))), {==})
@@ -266,13 +266,13 @@ def sh(+one: Nat, +h1: {one == 1n : Nat}, +sk: List<&2, U32>, +h: List<&2, U32>,
   match a:
     case True{}:
       %goal {msig(E.sign_d(h, E.secret_if(B.of_be(sk), Bool.and(B.has_len(32n, sk), E.scalar_ok(B.of_be(sk)))))) == ES.sign_d(one, h, CV.os2ip(sk), Bool.and(CV.length_is(32n, sk), ES.scalar_ok(one, CV.os2ip(sk)))) : Maybe<&2, List<&2, U32>>}
-      %rw PD.hl_is(32n, sk)
-      sk2(one, h1, sk, h, ha, CV.length_is(32n, sk), PD.hl_is(32n, sk))
+      %rw BL.hl_is(32n, sk)
+      sk2(one, h1, sk, h, ha, CV.length_is(32n, sk), BL.hl_is(32n, sk))
     case False{}:
       {==}
 
 # the signature of a 32-byte hash under a 32-byte secret key
 def sign_v(+one: Nat, +h1: {one == 1n : Nat}, +sk: List<&2, U32>, +h: List<&2, U32>) -> {msig(E.sign(sk, h)) == ES.sign(one, sk, h) : Maybe<&2, List<&2, U32>>}:
   %goal {msig(E.sign_h(sk, h, B.has_len(32n, h))) == ES.sign_d(one, h, CV.os2ip(sk), Bool.and(CV.length_is(32n, h), Bool.and(CV.length_is(32n, sk), ES.scalar_ok(one, CV.os2ip(sk))))) : Maybe<&2, List<&2, U32>>}
-  %rw PD.hl_is(32n, h)
-  sh(one, h1, sk, h, CV.length_is(32n, h), PD.hl_is(32n, h))
+  %rw BL.hl_is(32n, h)
+  sh(one, h1, sk, h, CV.length_is(32n, h), BL.hl_is(32n, h))

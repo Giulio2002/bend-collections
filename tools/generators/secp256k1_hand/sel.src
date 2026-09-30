@@ -122,3 +122,9 @@ def lt2(c: Nat) -> {Nat.is_lt(2n+c, 2n) == False{} : Bool}:
 
 def not01(+c: Nat, +h: {Nat.is_lt(2n+c, 2n) == True{} : Bool}) -> Empty:
   Lg.false_true(Equal.trans(Bool, False{}, Nat.is_lt(2n+c, 2n), True{}, Equal.sym(Bool, Nat.is_lt(2n+c, 2n), False{}, lt2(c)), h))
+
+def red_of(+one: Nat, +x: List<&2, Nat>, +hl: {FS.limbs16(one, 16n, x) == True{} : Bool}, +hb: {Nat.is_lt(FS.value(one, x), FS.prime(one)) == True{} : Bool}) -> {PT.red(one, x) == True{} : Bool}:
+  Lg.and_intro(FS.limbs16(one, 16n, x), Nat.is_lt(FS.value(one, x), FS.prime(one)), hl, hb)
+
+def sl16(+one: Nat, +x: List<&2, Nat>, +h: {FS.reduced(one, FS.order(one), x) == True{} : Bool}) -> {FS.limbs16(one, 16n, x) == True{} : Bool}:
+  Lg.and_left(FS.limbs16(one, 16n, x), Nat.is_lt(FS.value(one, x), FS.order(one)), h)

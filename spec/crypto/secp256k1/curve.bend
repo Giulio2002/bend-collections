@@ -16,10 +16,10 @@ import ./field.bend as FS
 # point_double. Scalar multiplication is the textbook left-to-right
 # double-and-add over the 256 bits of the scalar.
 #
-# The textbook affine group law (SEC 1 section 2.2.1; Mathlib's
-# WeierstrassCurve.Affine: slope, addX, addY) is in affine.bend, with the
-# statement that these projective formulas compute it; see
-# docs/CRYPTO_CONTRACTS.md for what of that is proved.
+# That these projective formulas compute the textbook affine group law
+# (SEC 1 section 2.2.1; Mathlib's WeierstrassCurve.Affine: slope, addX,
+# addY) is not proved here: docs/CRYPTO_CONTRACTS.md lists it with the other
+# group-law facts that are not proved.
 
 type SPoint is Data:
   SPoint{x: Nat, y: Nat, z: Nat}

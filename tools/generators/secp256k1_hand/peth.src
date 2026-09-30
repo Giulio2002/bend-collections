@@ -5,10 +5,9 @@ import ../../../src/crypto/secp256k1/bytes.bend as B
 import ../../../src/crypto/secp256k1/ecdsa.bend as E
 import ../keccak/laws.bend as KL
 import ../keccak/proof.bend as KPF
-import ./pdec.bend as PD
-import ./prec.bend as PR
+import ./blist.bend as BL
 
-# Ethereum addresses and the ECRECOVER precompile of
+# Ethereum addresses of
 # src/crypto/secp256k1/ecdsa.bend against spec/crypto/secp256k1/ecdsa.bend.
 # The hash is a parameter (kf) on both sides: the steps are proved for
 # any two equal hash functions, which keeps Keccak itself folded, and are
@@ -20,14 +19,14 @@ def words_v(n: Nat, +bs: List<&2, U32>) -> {E.words(n, bs) == ES.words(n, bs) : 
       {==}
     case 1n+ +k:
       %goal {E.word(B.head(bs), B.head(B.tail(bs)), B.head(B.suffix(2n, bs)), B.head(B.suffix(3n, bs))) <> E.words(k, B.suffix(4n, bs)) == ES.word(CV.head(bs), CV.head(CV.after(1n, bs)), CV.head(CV.after(2n, bs)), CV.head(CV.after(3n, bs))) <> ES.words(k, CV.after(4n, bs)) : List<&2, U32>}
-      %rw PD.tail_after(bs)
-      %rw PD.suffix_after(2n, bs)
-      %rw PD.suffix_after(3n, bs)
-      %rw PD.suffix_after(4n, bs)
-      %rw PD.head_eq(bs)
-      %rw PD.head_eq(CV.after(1n, bs))
-      %rw PD.head_eq(CV.after(2n, bs))
-      %rw PD.head_eq(CV.after(3n, bs))
+      %rw BL.tail_after(bs)
+      %rw BL.suffix_after(2n, bs)
+      %rw BL.suffix_after(3n, bs)
+      %rw BL.suffix_after(4n, bs)
+      %rw BL.head_eq(bs)
+      %rw BL.head_eq(CV.after(1n, bs))
+      %rw BL.head_eq(CV.after(2n, bs))
+      %rw BL.head_eq(CV.after(3n, bs))
       %rw words_v(k, CV.after(4n, bs))
       %close
 
@@ -62,7 +61,7 @@ def k64_v(+h1: E.Hash, +h2: ES.Hash, e: @a:Array<U32> -> @l:Nat -> {E.hash(h1, a
 def eth_if_v(b: Bool, +dg: List<&2, U32>) -> {E.eth_if(b, dg) == ES.eth_if(b, dg) : Maybe<&2, List<&2, U32>>}:
   match b:
     case True{}:
-      Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => Some{l}, B.suffix(12n, dg), CV.after(12n, dg), PD.suffix_after(12n, dg))
+      Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => Some{l}, B.suffix(12n, dg), CV.after(12n, dg), BL.suffix_after(12n, dg))
     case False{}:
       {==}
 
@@ -84,9 +83,9 @@ def eth_with_v(+h1: E.Hash, +h2: ES.Hash, e: @a:Array<U32> -> @l:Nat -> {E.hash(
   %rw ew_is(h1, pk)
   %rw sw_is(h2, pk)
   %goal {E.eth_if(Bool.and(B.has_len(65n, pk), U32.is_eq(B.head(pk), 4)), E.keccak64(h1, B.tail(pk))) == ES.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(h2, CV.after(1n, pk))) : Maybe<&2, List<&2, U32>>}
-  %rw PD.hl_is(65n, pk)
-  %rw PD.head_eq(pk)
-  %rw PD.tail_after(pk)
+  %rw BL.hl_is(65n, pk)
+  %rw BL.head_eq(pk)
+  %rw BL.tail_after(pk)
   %rwh k64_v(h1, h2, e, CV.after(1n, pk)) : {E.keccak64(h1, CV.after(1n, pk)) == ES.keccak64(h2, CV.after(1n, pk)) : List<&2, U32>}
   eth_if_v(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(h2, CV.after(1n, pk)))
 
@@ -97,64 +96,3 @@ def kk(a: Array<U32>, +l: Nat) -> {E.hash(E.Keccak256{}, a, l) == ES.hash(ES.Kec
 def eth_address_v(+pk: List<&2, U32>) -> {E.eth_address(pk) == ES.eth_address(pk) : Maybe<&2, List<&2, U32>>}:
   eth_with_v(E.Keccak256{}, ES.Keccak256{}, a => l => kk(a, l), pk)
 
-# ---- ECRECOVER ----
-
-def zeros_v(bs: List<&2, U32>) -> {E.zeros_ok(bs) == ES.all_zero(bs) : Bool}:
-  match bs:
-    case Nil{}:
-      {==}
-    case +b <> t:
-      Equal.cong(Bool, Bool, x => Bool.and(U32.is_eq(b, 0), x), E.zeros_ok(t), ES.all_zero(t), zeros_v(t))
-
-def ew_v(m: Maybe<&2, List<&2, U32>>) -> {E.eth_word(m) == ES.word_of(m) : Maybe<&2, List<&2, U32>>}:
-  match m:
-    case None{}:
-      {==}
-    case Some{a}:
-      {==}
-
-def aw_v(m: Maybe<&2, List<&2, U32>>) -> {E.addr_word(m) == ES.addr_word(m) : Maybe<&2, List<&2, U32>>}:
-  match m:
-    case None{}:
-      {==}
-    case Some{+pk}:
-      %goal {E.eth_word(E.eth_address(pk)) == ES.word_of(ES.eth_address(pk)) : Maybe<&2, List<&2, U32>>}
-      %rwh eth_address_v(pk) : {E.eth_address(pk) == ES.eth_address(pk) : Maybe<&2, List<&2, U32>>}
-      ew_v(ES.eth_address(pk))
-
-def ecv(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +rs: List<&2, U32>, +v: U32, ok: Bool) -> {E.ecrecover_v(h, rs, v, ok) == ES.ecrecover_v(one, h, rs, v, ok) : Maybe<&2, List<&2, U32>>}:
-  match ok:
-    case True{}:
-      %goal {E.addr_word(E.recover(h, List.append(&2, U32, rs, [U32.sub(v, 27)]))) == ES.addr_word(ES.recover(one, h, List.append(&2, U32, rs, [U32.sub(v, 27)]))) : Maybe<&2, List<&2, U32>>}
-      %rw PR.recover_v(one, h1, h, List.append(&2, U32, rs, [U32.sub(v, 27)]))
-      aw_v(ES.recover(one, h, List.append(&2, U32, rs, [U32.sub(v, 27)])))
-    case False{}:
-      {==}
-
-def ecin(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, U32>) -> {E.ecrecover_in(x) == ES.ecrecover_in(one, x) : Maybe<&2, List<&2, U32>>}:
-  %goal {E.ecrecover_v(B.prefix(32n, x), B.suffix(64n, x), B.head(B.suffix(31n, B.prefix(32n, B.suffix(32n, x)))), Bool.and(E.zeros_ok(B.prefix(31n, B.prefix(32n, B.suffix(32n, x)))), Bool.or(U32.is_eq(B.head(B.suffix(31n, B.prefix(32n, B.suffix(32n, x)))), 27), U32.is_eq(B.head(B.suffix(31n, B.prefix(32n, B.suffix(32n, x)))), 28)))) == ES.ecrecover_v(one, CV.first(32n, x), CV.after(64n, x), CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), Bool.and(ES.all_zero(CV.first(31n, CV.first(32n, CV.after(32n, x)))), Bool.or(U32.is_eq(CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), 27), U32.is_eq(CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), 28)))) : Maybe<&2, List<&2, U32>>}
-  %rw PD.suffix_after(32n, x)
-  %rw PD.suffix_after(32n, x)
-  %rw PD.suffix_after(32n, x)
-  %rw PD.suffix_after(32n, x)
-  %rw PD.prefix_first(32n, CV.after(32n, x))
-  %rw PD.prefix_first(32n, CV.after(32n, x))
-  %rw PD.prefix_first(32n, CV.after(32n, x))
-  %rw PD.prefix_first(32n, CV.after(32n, x))
-  %rw PD.suffix_after(31n, CV.first(32n, CV.after(32n, x)))
-  %rw PD.suffix_after(31n, CV.first(32n, CV.after(32n, x)))
-  %rw PD.suffix_after(31n, CV.first(32n, CV.after(32n, x)))
-  %rw PD.head_eq(CV.after(31n, CV.first(32n, CV.after(32n, x))))
-  %rw PD.head_eq(CV.after(31n, CV.first(32n, CV.after(32n, x))))
-  %rw PD.head_eq(CV.after(31n, CV.first(32n, CV.after(32n, x))))
-  %rw PD.prefix_first(31n, CV.first(32n, CV.after(32n, x)))
-  %rw zeros_v(CV.first(31n, CV.first(32n, CV.after(32n, x))))
-  %rw PD.prefix_first(32n, x)
-  %rw PD.suffix_after(64n, x)
-  ecv(one, h1, CV.first(32n, x), CV.after(64n, x), CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), Bool.and(ES.all_zero(CV.first(31n, CV.first(32n, CV.after(32n, x)))), Bool.or(U32.is_eq(CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), 27), U32.is_eq(CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), 28))))
-
-# the ECRECOVER precompile
-def ecrecover_v(+one: Nat, +h1: {one == 1n : Nat}, +input: List<&2, U32>) -> {E.ecrecover(input) == ES.ecrecover(one, input) : Maybe<&2, List<&2, U32>>}:
-  %goal {E.ecrecover_in(B.prefix(128n, List.append(&2, U32, input, List.replicate(U32, 128n, 0)))) == ES.ecrecover_in(one, CV.first(128n, List.append(&2, U32, input, List.replicate(U32, 128n, 0)))) : Maybe<&2, List<&2, U32>>}
-  %rw PD.prefix_first(128n, List.append(&2, U32, input, List.replicate(U32, 128n, 0)))
-  ecin(one, h1, CV.first(128n, List.append(&2, U32, input, List.replicate(U32, 128n, 0))))
