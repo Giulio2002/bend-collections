@@ -64,9 +64,17 @@ def call(c, pre="", args=A):
 
 
 def rest(i, pre="", args=A):
+    """The conjunction of the components from i on: a named def per suffix
+    (gr_<i>), so no statement repeats the whole chain."""
     if i == len(NAMES) - 1:
         return call(NAMES[i], pre, args)
-    return f"Bool.and({call(NAMES[i], pre, args)}, {rest(i + 1, pre, args)})"
+    return call(f"gr{i}", pre, args)
+
+
+def rest_body(i):
+    if i == len(NAMES) - 1:
+        return call(NAMES[i])
+    return f"Bool.and({call(NAMES[i])}, {rest(i + 1)})"
 
 
 def T(x):
@@ -84,17 +92,22 @@ def block():
     out = [MARK, "# (tools/generators/lru_state.py)", ""]
     for c, body in COMPS:
         out.append(f"def {c}(~V: Data, {P}) -> Bool:\n  {body}\n")
-    out.append(f"def goodF(~V: Data, {P}) -> Bool:\n  {rest(0)}\n")
+    # the suffixes of the conjunction, last first (no forward references)
+    for i in range(len(NAMES) - 2, 0, -1):
+        out.append(f"def gr{i}(~V: Data, {P}) -> Bool:\n  {rest_body(i)}\n")
+    out.append(f"def goodF(~V: Data, {P}) -> Bool:\n  {rest_body(0)}\n")
     out.append('''def good(~V: Data, sh: Sh<V>) -> Bool:
   match sh:
     case LS{+cap, +n, +head, +tail, +free, +mT, +k, +sd, +tabT, +ksT, +eT, +lkT, +sl, +fl}:
       goodF(~V, cap, n, head, tail, free, W32.nth0(AR.slots(U32, mT), 0n), W32.nth0(AR.slots(U32, mT), 1n), W32.nth0(AR.slots(U32, mT), 2n), W32.nth0(AR.slots(U32, mT), 6n), W32.nth0(AR.slots(U32, mT), 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), eT, lkT, sl, fl)
 ''')
-    prs = ["g"]
-    for i in range(len(NAMES) - 1):
-        prs.append(f"L.and_right({call(NAMES[i])}, {rest(i + 1)}, {prs[i]})")
+    # gp<i>: the invariant gives the suffix from i on, one step at a time
+    for i in range(1, len(NAMES)):
+        prev = "g" if i == 1 else f"gp{i - 1}(~V, {A}, g)"
+        out.append(f"def gp{i}(~V: Data, {P}, +g: {T(call('goodF'))}) -> {T(rest(i))}:\n  L.and_right({call(NAMES[i - 1])}, {rest(i)}, {prev})\n")
     for i, c in enumerate(NAMES):
-        body = f"L.and_left({call(c)}, {rest(i + 1)}, {prs[i]})" if i < len(NAMES) - 1 else prs[i]
+        pr = "g" if i == 0 else f"gp{i}(~V, {A}, g)"
+        body = f"L.and_left({call(c)}, {rest(i + 1)}, {pr})" if i < len(NAMES) - 1 else pr
         out.append(f"def g_{c}(~V: Data, {P}, +g: {T(call('goodF'))}) -> {T(call(c))}:\n  {body}\n")
     hs = ", ".join(f"+h_{c}: {T(call(c))}" for c in NAMES)
     out.append("# the invariant from its components\n"
