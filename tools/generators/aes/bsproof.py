@@ -280,9 +280,21 @@ def byte_lemmas():
     full = word(B32)
     SFO8 = 'byte8(sfo(%s))' % ', '.join('b%d' % k for k in range(8))
     SFOX = 'byte8(sfo(%s))' % ', '.join(bits8)
-    out += ['# The S-box circuit on one byte is the Boolean circuit sfo (all 256 bytes).',
-            'def sbox_byte(%s) -> {SB.sbox(%s) == %s : U32}:' % (', '.join('+b%d: Bool' % k for k in range(8)), canon, SFO8)]
-    out += enum_cases(['b%d' % k for k in range(8)])
+    A8 = ['a%d' % k for k in range(8)]
+    ored = lambda upto: [A8[0]] + [A8[k] if k < upto else 'Bool.or(%s, False{})' % A8[k] for k in range(1, 8)]
+    out += ['def or_false(+a: Bool) -> {a == Bool.or(a, False{}) : Bool}:', '  match a:', '    case True{}:', '      {==}', '    case False{}:', '      {==}', '',
+            '# The S-box word assembles its bits with U32.or: bit j is Bool.or(s, False) for j > 0.',
+            'def or_byte(%s) -> {D.byte_of(%s) == D.byte_of(%s) : U32}:' % (', '.join('+%s: Bool' % a for a in A8), ', '.join(ored(1)), ', '.join(A8))]
+    for k in range(1, 8):
+        motive = ored(k)
+        motive[k] = '_'
+        out += ['  %%or_false(%s) : {D.byte_of(%s) == D.byte_of(%s) : U32}' % (A8[k], ', '.join(motive), ', '.join(A8))]
+    out += ['  {==}', '']
+    B8 = ', '.join('b%d' % k for k in range(8))
+    out += ['# The S-box circuit on one byte is the Boolean circuit sfo: the U32 circuit',
+            '# on a byte of symbolic bits computes the same gates on bit 0.',
+            'def sbox_byte(%s) -> {SB.sbox(%s) == %s : U32}:' % (', '.join('+b%d: Bool' % k for k in range(8)), canon, SFO8),
+            '  or_byte(%s)' % ', '.join('sf%d(%s)' % (k, B8) for k in range(8))]
     out += ['', 'def sbox_word(%s) -> {SB.sbox(%s) == %s : U32}:' % (', '.join('+%s: Bool' % b for b in B32), full, SFO8),
             '  Equal.trans(U32, SB.sbox(%s), SB.sbox(%s), %s, {==}, sbox_byte(%s))' % (full, canon, SFO8, ', '.join('b%d' % k for k in range(8))), '',
             'def sbox_ok(+x: U32) -> {SB.sbox(x) == %s : U32}:' % SFOX,
