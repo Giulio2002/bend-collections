@@ -147,6 +147,30 @@ def bycl() -> B.Bn:
 def bxhl() -> B.Bn:
   PL.bxhl()
 
+def bywl() -> B.Bn:
+  PL.bywl()
+
+def bywm1l() -> B.Bn:
+  PL.bywm1l()
+
+def bym2l() -> B.Bn:
+  PL.bym2l()
+
+def by1cl() -> B.Bn:
+  PL.by1cl()
+
+def p10l() -> B.Bn:
+  PL.p10l()
+
+def l9() -> B.Bn:
+  PL.l9()
+
+def b9kl() -> B.Bn:
+  PL.b9kl()
+
+def l256cl() -> B.Bn:
+  PL.l256cl()
+
 def v2() -> {B.bval(l2()) == 2n : Nat}:
   {==}
 

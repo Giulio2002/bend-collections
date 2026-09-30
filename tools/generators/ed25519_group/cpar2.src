@@ -1,0 +1,175 @@
+import Base
+import ../../../../spec/lib/common.bend as C
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../../../spec/crypto/curve25519/x25519.bend as SX
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ../../../math/number/nt_prime.bend as PM
+import ../../../math/number/nt_flt.bend as FL
+import ../../secp256k1/group/bn.bend as B
+import ../../secp256k1/group/bnx.bend as X
+import ../../secp256k1/group/fld.bend as F
+import ../../curve25519/cong.bend as CG
+import ./pfacts.bend as PF
+import ./cpar.bend as CP
+import ./fq.bend as FQ
+
+# Literal facts about p = 1 + mp (mp = X.bvalo(one, PF.p1l())), L, d and the
+# base point, in the shapes the Ed25519 and X25519 proofs take them: the
+# exponents (p - 5) / 8 and (p - 1) / 2, the bounds p <= 2^255 and
+# L <= 2^256, d a24 + d + a24 == 0 (a24 = 121665) and the Montgomery u of
+# the base point, (1 + by) / (1 - by) == 9. Closed checks on the literals of
+# plits.bend; no certificate is imported (the primality of p is a
+# hypothesis where a division needs it).
+
+# (p - 5) / 8
+def h58(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.div(Nat.sub(1n+X.bvalo(one, PF.p1l()), 5n), 8n) == X.bvalo(one, PF.e58l()) : Nat}:
+  %rw <- PF.p_suc(one, h1)
+  PF.p_e58(one, h1)
+
+def hk_eq() -> {B.beq(PF.hl(), B.badd(B.binc(B.badd(PF.e58l(), PF.e58l())), B.binc(B.badd(PF.e58l(), PF.e58l())))) == True{} : Bool}:
+  {==}
+
+# (p - 1) / 2 == 2 (2 m + 1), m = (p - 5) / 8
+def hk(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.div(X.bvalo(one, PF.p1l()), 2n) == Nat.add(Nat.add(1n, Nat.add(X.bvalo(one, PF.e58l()), X.bvalo(one, PF.e58l()))), Nat.add(1n, Nat.add(X.bvalo(one, PF.e58l()), X.bvalo(one, PF.e58l())))) : Nat}:
+  %rw PF.p_half(one, h1)
+  %rw <- X.add_o(one, h1, PF.e58l(), PF.e58l())
+  %rw <- X.add_o(one, h1, PF.e58l(), PF.e58l())
+  %goal {X.bvalo(one, PF.hl()) == Nat.add(1n+X.bvalo(one, B.badd(PF.e58l(), PF.e58l())), 1n+X.bvalo(one, B.badd(PF.e58l(), PF.e58l()))) : Nat}
+  %rw <- X.inc_o(one, h1, B.badd(PF.e58l(), PF.e58l()))
+  %rw <- X.inc_o(one, h1, B.badd(PF.e58l(), PF.e58l()))
+  %rw <- X.add_o(one, h1, B.binc(B.badd(PF.e58l(), PF.e58l())), B.binc(B.badd(PF.e58l(), PF.e58l())))
+  X.eq_o(one, h1, PF.hl(), B.badd(B.binc(B.badd(PF.e58l(), PF.e58l())), B.binc(B.badd(PF.e58l(), PF.e58l()))), hk_eq())
+
+# p <= 2^255
+def p_le255(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_le(1n+X.bvalo(one, PF.p1l()), C.shift(255n, one)) == True{} : Bool}:
+  %rw <- PF.p_suc(one, h1)
+  %rw <- PF.p_is(one, h1)
+  %rw PF.p_sum(one, h1)
+  CG.le_add_l(19n, X.bvalo(one, PF.pl()))
+
+def l256_eq() -> {B.beq(PF.bshl(256n, B.B1{B.BZ{}}), B.badd(PF.ll(), PF.l256cl())) == True{} : Bool}:
+  {==}
+
+def l_sum(+one: Nat, +h1: {one == 1n : Nat}) -> {C.shift(256n, one) == Nat.add(X.bvalo(one, PF.ll()), X.bvalo(one, PF.l256cl())) : Nat}:
+  %rw <- X.add_o(one, h1, PF.ll(), PF.l256cl())
+  %rw <- X.eq_o(one, h1, PF.bshl(256n, B.B1{B.BZ{}}), B.badd(PF.ll(), PF.l256cl()), l256_eq())
+  %rw PF.shl_o(one, 256n, B.B1{B.BZ{}})
+  %rw PF.b1_o(one)
+  %close
+
+def l_s_eq() -> {B.beq(PF.ll(), B.binc(PF.l1l())) == True{} : Bool}:
+  {==}
+
+# L <= 2^256 (L == 1 + X.bvalo(one, PF.l1l()): lfacts.bend's l_suc)
+def l_le256(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_le(1n+X.bvalo(one, PF.l1l()), C.shift(256n, one)) == True{} : Bool}:
+  %rw <- X.suc_o(one, h1, PF.ll(), PF.l1l(), l_s_eq())
+  %rw l_sum(one, h1)
+  N.le_add_right(X.bvalo(one, PF.ll()), X.bvalo(one, PF.l256cl()))
+
+# ---- X25519: a24 = 121665 and d ----
+
+def da_eq() -> {B.beq(B.badd(B.bmul(PF.dl(), PF.c5l()), B.badd(PF.dl(), PF.c5l())), B.bmul(PF.dkl(), PF.pl())) == True{} : Bool}:
+  {==}
+
+# d a24 + (d + a24) == 0 (mod p): d == -a24 / (a24 + 1)
+def a24_d(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.mod(FS.fadd(1n+X.bvalo(one, PF.p1l()), FS.fmul(1n+X.bvalo(one, PF.p1l()), X.bvalo(one, PF.dl()), SX.a24(one)), FS.fadd(1n+X.bvalo(one, PF.p1l()), X.bvalo(one, PF.dl()), SX.a24(one))), 1n+X.bvalo(one, PF.p1l())) == 0n : Nat}:
+  %goal {Nat.mod(Nat.mod(Nat.add(Nat.mod(Nat.mul(X.bvalo(one, PF.dl()), FS.digits(one, [65n, 219n, 1n])), 1n+X.bvalo(one, PF.p1l())), Nat.mod(Nat.add(X.bvalo(one, PF.dl()), FS.digits(one, [65n, 219n, 1n])), 1n+X.bvalo(one, PF.p1l()))), 1n+X.bvalo(one, PF.p1l())), 1n+X.bvalo(one, PF.p1l())) == 0n : Nat}
+  %rw NR.mod_mod(X.bvalo(one, PF.p1l()), Nat.add(Nat.mod(Nat.mul(X.bvalo(one, PF.dl()), FS.digits(one, [65n, 219n, 1n])), 1n+X.bvalo(one, PF.p1l())), Nat.mod(Nat.add(X.bvalo(one, PF.dl()), FS.digits(one, [65n, 219n, 1n])), 1n+X.bvalo(one, PF.p1l()))))
+  %rw NR.mod_add_l(X.bvalo(one, PF.p1l()), Nat.mul(X.bvalo(one, PF.dl()), FS.digits(one, [65n, 219n, 1n])), Nat.mod(Nat.add(X.bvalo(one, PF.dl()), FS.digits(one, [65n, 219n, 1n])), 1n+X.bvalo(one, PF.p1l())))
+  %rw NR.mod_add_r(X.bvalo(one, PF.p1l()), Nat.mul(X.bvalo(one, PF.dl()), FS.digits(one, [65n, 219n, 1n])), Nat.add(X.bvalo(one, PF.dl()), FS.digits(one, [65n, 219n, 1n])))
+  %rw <- PF.c5_is(one, h1)
+  %rw <- PF.c5_is(one, h1)
+  %rw <- X.mul_o(one, h1, PF.dl(), PF.c5l())
+  %rw <- X.add_o(one, h1, PF.dl(), PF.c5l())
+  %rw <- X.add_o(one, h1, B.bmul(PF.dl(), PF.c5l()), B.badd(PF.dl(), PF.c5l()))
+  %rw <- PF.p_suc(one, h1)
+  PF.pmod0(one, h1, B.badd(B.bmul(PF.dl(), PF.c5l()), B.badd(PF.dl(), PF.c5l())), PF.dkl(), da_eq())
+
+# ---- X25519: the base point's u = (1 + by) / (1 - by) == 9 ----
+
+def h_by() -> {B.beq(PF.pl(), B.badd(B.binc(PF.byl()), PF.bycl())) == True{} : Bool}:
+  {==}
+
+def h_by1() -> {B.beq(PF.pl(), B.badd(B.binc(B.binc(PF.byl())), PF.by1cl())) == True{} : Bool}:
+  {==}
+
+def h_w() -> {B.beq(PF.pl(), B.badd(B.binc(PF.bywl()), PF.bym2l())) == True{} : Bool}:
+  {==}
+
+def h_w1() -> {B.beq(PF.bywl(), B.binc(PF.bywm1l())) == True{} : Bool}:
+  {==}
+
+def h_ws() -> {B.beq(B.binc(PF.pl()), B.badd(PF.byl(), PF.bywl())) == True{} : Bool}:
+  {==}
+
+def h_9() -> {B.beq(B.bmul(PF.l9(), PF.bywl()), B.badd(B.bmul(PF.b9kl(), PF.pl()), B.binc(PF.byl()))) == True{} : Bool}:
+  {==}
+
+def h_10() -> {B.beq(PF.pl(), B.badd(B.binc(PF.l9()), PF.p10l())) == True{} : Bool}:
+  {==}
+
+def h_bb() -> {B.beq(B.binc(PF.byl()), B.binc(PF.byl())) == True{} : Bool}:
+  {==}
+
+def v9() -> {B.bval(PF.l9()) == 9n : Nat}:
+  {==}
+
+# 1 + by
+def up_is(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.fadd(1n+X.bvalo(one, PF.p1l()), 1n, X.bvalo(one, PF.byl())) == X.bvalo(one, B.binc(PF.byl())) : Nat}:
+  %goal {Nat.mod(1n+X.bvalo(one, PF.byl()), 1n+X.bvalo(one, PF.p1l())) == X.bvalo(one, B.binc(PF.byl())) : Nat}
+  %rw <- X.inc_o(one, h1, PF.byl())
+  FL.small_nz(X.bvalo(one, PF.p1l()), X.bvalo(one, B.binc(PF.byl())), CP.lt_p(one, h1, B.binc(PF.byl()), PF.by1cl(), h_by1()))
+
+# 1 + p == by + (p + 1 - by)
+def w_sum(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.add(1n, 1n+X.bvalo(one, PF.p1l())) == Nat.add(X.bvalo(one, PF.byl()), X.bvalo(one, PF.bywl())) : Nat}:
+  %rw <- PF.p_suc(one, h1)
+  %rw <- PF.p_is(one, h1)
+  %goal {1n+X.bvalo(one, PF.pl()) == Nat.add(X.bvalo(one, PF.byl()), X.bvalo(one, PF.bywl())) : Nat}
+  %rw <- X.inc_o(one, h1, PF.pl())
+  %rw <- X.add_o(one, h1, PF.byl(), PF.bywl())
+  X.eq_o(one, h1, B.binc(PF.pl()), B.badd(PF.byl(), PF.bywl()), h_ws())
+
+# 1 - by
+def um_is(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.fsub(1n+X.bvalo(one, PF.p1l()), 1n, X.bvalo(one, PF.byl())) == X.bvalo(one, PF.bywl()) : Nat}:
+  %goal {Nat.mod(Nat.sub(Nat.add(1n, 1n+X.bvalo(one, PF.p1l())), Nat.mod(X.bvalo(one, PF.byl()), 1n+X.bvalo(one, PF.p1l()))), 1n+X.bvalo(one, PF.p1l())) == X.bvalo(one, PF.bywl()) : Nat}
+  %rw FL.small_nz(X.bvalo(one, PF.p1l()), X.bvalo(one, PF.byl()), CP.lt_p(one, h1, PF.byl(), PF.bycl(), h_by()))
+  %rw w_sum(one, h1)
+  %rw N.add_sub_cancel(X.bvalo(one, PF.byl()), X.bvalo(one, PF.bywl()))
+  FL.small_nz(X.bvalo(one, PF.p1l()), X.bvalo(one, PF.bywl()), CP.lt_p(one, h1, PF.bywl(), PF.bym2l(), h_w()))
+
+def um_nz_eq(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_eq(Nat.mod(FS.fsub(1n+X.bvalo(one, PF.p1l()), 1n, X.bvalo(one, PF.byl())), 1n+X.bvalo(one, PF.p1l())), 0n) == False{} : Bool}:
+  %rw um_is(one, h1)
+  CP.nz_eq(one, h1, PF.bywl(), PF.bywm1l(), PF.bym2l(), h_w1(), h_w())
+
+# 1 - by is not 0 modulo p
+def um_nz(+one: Nat, +h1: {one == 1n : Nat}) -> F.NZ(X.bvalo(one, PF.p1l()), FS.fsub(1n+X.bvalo(one, PF.p1l()), 1n, X.bvalo(one, PF.byl()))):
+  um_nz_eq(one, h1)
+
+def up_nz_eq(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_eq(Nat.mod(FS.fadd(1n+X.bvalo(one, PF.p1l()), 1n, X.bvalo(one, PF.byl())), 1n+X.bvalo(one, PF.p1l())), 0n) == False{} : Bool}:
+  %rw up_is(one, h1)
+  CP.nz_eq(one, h1, B.binc(PF.byl()), PF.byl(), PF.by1cl(), h_bb(), h_by1())
+
+# 1 + by is not 0 modulo p
+def up_nz(+one: Nat, +h1: {one == 1n : Nat}) -> F.NZ(X.bvalo(one, PF.p1l()), FS.fadd(1n+X.bvalo(one, PF.p1l()), 1n, X.bvalo(one, PF.byl()))):
+  up_nz_eq(one, h1)
+
+def lt9(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(9n, 1n+X.bvalo(one, PF.p1l())) == True{} : Bool}:
+  %rw <- X.lit_o(one, h1, PF.l9(), 9n, v9())
+  CP.lt_p(one, h1, PF.l9(), PF.p10l(), h_10())
+
+# 1 + by == 9 (1 - by) (mod p)
+def u_frac(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.mod(FS.fadd(1n+X.bvalo(one, PF.p1l()), 1n, X.bvalo(one, PF.byl())), 1n+X.bvalo(one, PF.p1l())) == Nat.mod(FS.fmul(1n+X.bvalo(one, PF.p1l()), 9n, FS.fsub(1n+X.bvalo(one, PF.p1l()), 1n, X.bvalo(one, PF.byl()))), 1n+X.bvalo(one, PF.p1l())) : Nat}:
+  %rw up_is(one, h1)
+  %rw um_is(one, h1)
+  %rw <- X.lit_o(one, h1, PF.l9(), 9n, v9())
+  %rw FQ.fmul_red(X.bvalo(one, PF.p1l()), X.bvalo(one, PF.l9()), X.bvalo(one, PF.bywl()))
+  %goal {Nat.mod(X.bvalo(one, B.binc(PF.byl())), 1n+X.bvalo(one, PF.p1l())) == Nat.mod(Nat.mul(X.bvalo(one, PF.l9()), X.bvalo(one, PF.bywl())), 1n+X.bvalo(one, PF.p1l())) : Nat}
+  %rw FL.small_nz(X.bvalo(one, PF.p1l()), X.bvalo(one, B.binc(PF.byl())), CP.lt_p(one, h1, B.binc(PF.byl()), PF.by1cl(), h_by1()))
+  %rw <- X.mul_o(one, h1, PF.l9(), PF.bywl())
+  %rw CP.mod_p(one, h1, B.bmul(PF.l9(), PF.bywl()), PF.b9kl(), B.binc(PF.byl()), PF.by1cl(), h_9(), h_by1())
+  %close
+
+# the Montgomery u of the base point is 9
+def nine_u(+one: Nat, +h1: {one == 1n : Nat}, +hp: PM.Prime(1n+X.bvalo(one, PF.p1l()))) -> {FS.fmul(1n+X.bvalo(one, PF.p1l()), FS.fadd(1n+X.bvalo(one, PF.p1l()), 1n, X.bvalo(one, PF.byl())), FS.finv(1n+X.bvalo(one, PF.p1l()), FS.fsub(1n+X.bvalo(one, PF.p1l()), 1n, X.bvalo(one, PF.byl())))) == 9n : Nat}:
+  FQ.frac_val(X.bvalo(one, PF.p1l()), hp, FS.fadd(1n+X.bvalo(one, PF.p1l()), 1n, X.bvalo(one, PF.byl())), FS.fsub(1n+X.bvalo(one, PF.p1l()), 1n, X.bvalo(one, PF.byl())), 9n, um_nz(one, h1), lt9(one, h1), u_frac(one, h1))

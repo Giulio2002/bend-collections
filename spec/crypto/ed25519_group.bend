@@ -27,6 +27,10 @@ import ../lib/common.bend as C
 #   Ed25519.mul_affine       affine(mul(k, a)) == [k mod 2^256] affine(a)
 #   Ed25519.mul_valid        mul(k, a) is valid
 #   Ed25519.affine_on        the affine point of a valid point is on the curve
+#   Ed25519.verify_sign      verify(public_key(seed), m, sign(seed, m)) == True,
+#                            for every seed and message (any lists), given
+#                            also that the base point has order dividing L
+#                            ([L] B == (0, 1): lbz.bend, by checked computation)
 
 # ---- extended coordinates ----
 
@@ -88,3 +92,12 @@ def Ed25519.mul_valid(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hm: {FS.prim
 
 def Ed25519.affine_on(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hm: {FS.prime(one) == 1n+mp : Nat}, +hc: G.Curve(mp, ED.dconst(one, FS.prime(one))), +a: ED.EPt, +ha: Valid(FS.prime(one), ED.dconst(one, FS.prime(one)), a)) -> Type:
   G.OnCurve(FS.prime(one), ED.dconst(one, FS.prime(one)), affine(FS.prime(one), a))
+
+# [L] B == (0, 1) for the base point B of the specification
+def BaseOrder(+one: Nat, +p: Nat) -> Data:
+  {G.nmul(p, ED.dconst(one, p), ED.ell(one), affine(p, ED.base(p, ED.dconst(one, p)))) == G.azero() : G.APt}
+
+# RFC 8032 correctness: a signature made with a seed verifies under the
+# public key of that seed (5.1.5, 5.1.6, 5.1.7)
+def Ed25519.verify_sign(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hm: {FS.prime(one) == 1n+mp : Nat}, +hc: G.Curve(mp, ED.dconst(one, FS.prime(one))), +hl: BaseOrder(one, FS.prime(one)), +seed: List<&2, U32>, +msg: List<&2, U32>) -> Type:
+  {ED.verify(one, ED.public_key(one, seed), msg, ED.sign(one, seed, msg)) == True{} : Bool}

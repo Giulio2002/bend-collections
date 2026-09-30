@@ -154,6 +154,14 @@ LITS = [
     ('bvl', BV, None),
     ('bvkl', D * BWU // P, None),
     ('bvcl', P - 1 - BV, None),
+    ('bywl', P + 1 - BY, 'for cpar2.bend: 1 - by mod p, then that minus 1, by - 2, p - 2 - by, p - 10, 9, (9 (1 - by) - (1 + by)) / p, 2^256 - L'),
+    ('bywm1l', P - BY, None),
+    ('bym2l', BY - 2, None),
+    ('by1cl', P - 2 - BY, None),
+    ('p10l', P - 10, None),
+    ('l9', 9, None),
+    ('b9kl', (9 * (P + 1 - BY) - BY - 1) // P, None),
+    ('l256cl', 2**256 - L, None),
 ]
 NAMES = {}           # value -> its (first) name
 for _nm, _v, _ in LITS:
