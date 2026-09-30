@@ -79,24 +79,28 @@ def verify_ok(+one: Nat, +r: Nat, +s: Nat, +e: Nat, +pp: CV.SPoint, ok: Bool) ->
     case True{}: verify_rs(one, r, s, e, pp)
     case False{}: False{}
 
-# fail if r >= p or s >= n
-def verify_p(+one: Nat, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>, mp: Maybe<&2, CV.SPoint>) -> Bool:
+# fail if r >= p or s >= n; hc = SHA256("BIP0340/challenge")
+def verify_p(+one: Nat, +hc: List<&2, U32>, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>, mp: Maybe<&2, CV.SPoint>) -> Bool:
   match mp:
     case None{}: False{}
     case Some{+pp}:
       +r = CV.os2ip(CV.first(32n, sig))
       +s = CV.os2ip(CV.after(32n, sig))
-      +e = Nat.mod(CV.os2ip(tagged(tag_challenge(), cat(CV.first(32n, sig), cat(pk, m)))), n(one))
+      +e = Nat.mod(CV.os2ip(tagged_h(hc, cat(CV.first(32n, sig), cat(pk, m)))), n(one))
       verify_ok(one, r, s, e, pp, Bool.and(Nat.is_lt(r, p(one)), Nat.is_lt(s, n(one))))
 
-def verify_len(+one: Nat, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>, ok: Bool) -> Bool:
+def verify_len(+one: Nat, +hc: List<&2, U32>, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>, ok: Bool) -> Bool:
   match ok:
-    case True{}: verify_p(one, pk, m, sig, lift_x(one, CV.os2ip(pk)))
+    case True{}: verify_p(one, hc, pk, m, sig, lift_x(one, CV.os2ip(pk)))
     case False{}: False{}
+
+# Verify with the challenge tag's hash hc (named once, in verify)
+def verify_h(+one: Nat, +hc: List<&2, U32>, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
+  verify_len(one, hc, pk, m, sig, Bool.and(CV.length_is(32n, pk), CV.length_is(64n, sig)))
 
 # Verify(pk, m, sig): pk 32 bytes, sig 64 bytes, m any length
 def verify(+one: Nat, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
-  verify_len(one, pk, m, sig, Bool.and(CV.length_is(32n, pk), CV.length_is(64n, sig)))
+  verify_h(one, FIPS.sha256_bytes(tag_challenge()), pk, m, sig)
 
 # ---- signing ----
 
@@ -124,37 +128,41 @@ def sign_if(+sig: List<&2, U32>, ok: Bool) -> Maybe<&2, List<&2, U32>>:
     case True{}: Some{sig}
     case False{}: None{}
 
-def sign_fin(+one: Nat, +pb: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  sign_if(sig, verify(one, pb, m, sig))
+def sign_fin(+one: Nat, +hc: List<&2, U32>, +pb: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  sign_if(sig, verify_h(one, hc, pb, m, sig))
 
 # R = k' G; k = k' if has_even_y(R), otherwise n - k';
 # e = int(hash_challenge(bytes(R) || bytes(P) || m)) mod n
-def sign_r(+one: Nat, +d: Nat, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: Nat, ra: CV.SAffine) -> Maybe<&2, List<&2, U32>>:
+def sign_r(+one: Nat, +hc: List<&2, U32>, +d: Nat, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: Nat, ra: CV.SAffine) -> Maybe<&2, List<&2, U32>>:
   match ra:
     case CV.SAffine{rx, +ry}:
       +k = even(n(one), ry, k0)
       +rb = bytes32(rx)
-      +e = Nat.mod(CV.os2ip(tagged(tag_challenge(), cat(rb, cat(pb, m)))), n(one))
-      sign_fin(one, pb, m, cat(rb, bytes32(FS.madd(n(one), k, FS.mmul(n(one), e, d)))))
+      +e = Nat.mod(CV.os2ip(tagged_h(hc, cat(rb, cat(pb, m)))), n(one))
+      sign_fin(one, hc, pb, m, cat(rb, bytes32(FS.madd(n(one), k, FS.mmul(n(one), e, d)))))
 
 # k' = int(rand) mod n; fail if k' = 0
-def sign_kz(+one: Nat, +d: Nat, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: Nat, zero: Bool) -> Maybe<&2, List<&2, U32>>:
+def sign_kz(+one: Nat, +hc: List<&2, U32>, +d: Nat, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: Nat, zero: Bool) -> Maybe<&2, List<&2, U32>>:
   match zero:
     case True{}: None{}
-    case False{}: sign_r(one, d, pb, m, k0, CV.to_affine(p(one), CV.pmul(p(one), k0, CV.g(one))))
+    case False{}: sign_r(one, hc, d, pb, m, k0, CV.to_affine(p(one), CV.pmul(p(one), k0, CV.g(one))))
 
-def sign_k(+one: Nat, +d: Nat, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: Nat) -> Maybe<&2, List<&2, U32>>:
-  sign_kz(one, d, pb, m, k0, Nat.is_eq(k0, 0n))
+def sign_k(+one: Nat, +hc: List<&2, U32>, +d: Nat, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: Nat) -> Maybe<&2, List<&2, U32>>:
+  sign_kz(one, hc, d, pb, m, k0, Nat.is_eq(k0, 0n))
 
 # P = d' G; d = d' if has_even_y(P), otherwise n - d';
-# t = bytes(d) xor hash_aux(a); rand = hash_nonce(t || bytes(P) || m)
-def sign_p(+one: Nat, +d0: Nat, +m: List<&2, U32>, +aux: List<&2, U32>, pa: CV.SAffine) -> Maybe<&2, List<&2, U32>>:
+# t = bytes(d) xor hash_aux(a); rand = hash_nonce(t || bytes(P) || m);
+# ha, hn, hc the hashes of the aux, nonce and challenge tags
+def sign_ph(+one: Nat, +ha: List<&2, U32>, +hn: List<&2, U32>, +hc: List<&2, U32>, +d0: Nat, +m: List<&2, U32>, +aux: List<&2, U32>, pa: CV.SAffine) -> Maybe<&2, List<&2, U32>>:
   match pa:
     case CV.SAffine{px, +py}:
       +d = even(n(one), py, d0)
       +pb = bytes32(px)
-      +t = xor_bytes(bytes32(d), tagged(tag_aux(), aux))
-      sign_k(one, d, pb, m, Nat.mod(CV.os2ip(tagged(tag_nonce(), cat(t, cat(pb, m)))), n(one)))
+      +t = xor_bytes(bytes32(d), tagged_h(ha, aux))
+      sign_k(one, hc, d, pb, m, Nat.mod(CV.os2ip(tagged_h(hn, cat(t, cat(pb, m)))), n(one)))
+
+def sign_p(+one: Nat, +d0: Nat, +m: List<&2, U32>, +aux: List<&2, U32>, pa: CV.SAffine) -> Maybe<&2, List<&2, U32>>:
+  sign_ph(one, FIPS.sha256_bytes(tag_aux()), FIPS.sha256_bytes(tag_nonce()), FIPS.sha256_bytes(tag_challenge()), d0, m, aux, pa)
 
 def sign_ok(+one: Nat, +sk: List<&2, U32>, +m: List<&2, U32>, +aux: List<&2, U32>, ok: Bool) -> Maybe<&2, List<&2, U32>>:
   match ok:

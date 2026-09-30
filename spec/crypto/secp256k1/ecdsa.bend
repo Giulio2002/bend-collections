@@ -44,11 +44,9 @@ def hash_scalar(+one: Nat, +h: List<&2, U32>) -> Nat:
 type Drbg is Data:
   Drbg{k: List<&2, U32>, v: List<&2, U32>}
 
-# HMAC-SHA256 (the key is looked at first; the value is HM.hmac's)
+# HMAC-SHA256
 def hmac(key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
-  match key:
-    case Nil{}: HM.hmac(Nil{}, msg)
-    case k <> t: HM.hmac(k <> t, msg)
+  HM.hmac(key, msg)
 
 def update_v(+k: List<&2, U32>, +v: List<&2, U32>) -> Drbg:
   Drbg{k, hmac(k, v)}

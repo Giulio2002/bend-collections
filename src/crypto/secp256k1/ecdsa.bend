@@ -35,12 +35,9 @@ def hash_scalar(+h: List<&2, U32>) -> List<&2, Nat>:
 type Drbg is Data:
   Drbg{k: List<&2, U32>, v: List<&2, U32>}
 
-# (the key is looked at first, so that the proof checker keeps an unknown
-# HMAC folded)
+# HMAC-SHA256 (src/crypto/mac.bend)
 def hmac(key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
-  match key:
-    case Nil{}: MAC.sign(Nil{}, msg)
-    case k <> t: MAC.sign(k <> t, msg)
+  MAC.sign(key, msg)
 
 def cat(xs: List<&2, U32>, ys: List<&2, U32>) -> List<&2, U32>:
   List.append(&2, U32, xs, ys)

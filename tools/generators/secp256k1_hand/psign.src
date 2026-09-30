@@ -164,25 +164,14 @@ def att_v(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced
 
 # ---- the candidate loop and the DRBG ----
 
-def hm(k: List<&2, U32>, +m: List<&2, U32>) -> {E.hmac(k, m) == ES.hmac(k, m) : List<&2, U32>}:
-  match k:
-    case Nil{}:
-      MH.sign_correct([], m)
-    case +b <> +t:
-      MH.sign_correct(b <> t, m)
+def hm(+k: List<&2, U32>, +m: List<&2, U32>) -> {E.hmac(k, m) == ES.hmac(k, m) : List<&2, U32>}:
+  MH.sign_correct(k, m)
 
-def hlen(k: List<&2, U32>, +m: List<&2, U32>) -> {B.has_len(32n, ES.hmac(k, m)) == True{} : Bool}:
-  match k:
-    case Nil{}:
-      %goal {B.has_len(32n, HMS.hmac([], m)) == True{} : Bool}
-      %rw BY.has_len_v(32n, HMS.hmac([], m))
-      %rwh MH.hmac_len([], m) : {List.length(&2, U32, HMS.hmac([], m)) == 32n : Nat}
-      %close
-    case +b <> +t:
-      %goal {B.has_len(32n, HMS.hmac(b <> t, m)) == True{} : Bool}
-      %rw BY.has_len_v(32n, HMS.hmac(b <> t, m))
-      %rwh MH.hmac_len(b <> t, m) : {List.length(&2, U32, HMS.hmac(b <> t, m)) == 32n : Nat}
-      %close
+def hlen(+k: List<&2, U32>, +m: List<&2, U32>) -> {B.has_len(32n, ES.hmac(k, m)) == True{} : Bool}:
+  %goal {B.has_len(32n, HMS.hmac(k, m)) == True{} : Bool}
+  %rw BY.has_len_v(32n, HMS.hmac(k, m))
+  %rwh MH.hmac_len(k, m) : {List.length(&2, U32, HMS.hmac(k, m)) == 32n : Nat}
+  %close
 
 def sl(fuel: Nat, +one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, +k: List<&2, U32>, +v: List<&2, U32>, att: E.Attempt) -> {msig(E.sign_loop(fuel, z, d, k, v, att)) == ES.sign_loop(fuel, one, FS.value(one, z), FS.value(one, d), k, v, matt(att)) : Maybe<&2, List<&2, U32>>}:
   match fuel att:

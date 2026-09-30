@@ -63,7 +63,7 @@ def mul(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
 
 # a^e for the exponent e given by its bits, on records (a looked at first)
 def powl_u(a: List<&2, Nat>, bits: List<&2, Nat>) -> List<&2, Nat>:
-  R.to_list(SE.pw(R.of_list(a), bits, SE.one()))
+  R.to_list(SE.pow(R.of_list(a), bits, SE.one()))
 
 def powl(a: List<&2, Nat>, +bits: List<&2, Nat>) -> List<&2, Nat>:
   match a:

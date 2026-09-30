@@ -50,26 +50,34 @@ def xor_v(xs: List<&2, U32>, ys: List<&2, U32>) -> {SC.xor_bytes(xs, ys) == SS.x
     case _ Nil{}:
       {==}
 
-def tagged_v(+tag: List<&2, U32>, +x: List<&2, U32>) -> {SC.tagged(tag, x) == SS.tagged(tag, x) : List<&2, U32>}:
-  %goal {SHA.sha256_bytes(List.append(&2, U32, SHA.sha256_bytes(tag), List.append(&2, U32, SHA.sha256_bytes(tag), x))) == FIPS.sha256_bytes(List.append(&2, U32, FIPS.sha256_bytes(tag), List.append(&2, U32, FIPS.sha256_bytes(tag), x))) : List<&2, U32>}
-  %rw SHL.sha256_bytes_correct(tag)
-  %rw SHL.sha256_bytes_correct(tag)
-  %rw SHL.sha256_bytes_correct(List.append(&2, U32, FIPS.sha256_bytes(tag), List.append(&2, U32, FIPS.sha256_bytes(tag), x)))
+def tagged_v(+h: List<&2, U32>, +x: List<&2, U32>) -> {SC.tagged_h(h, x) == SS.tagged_h(h, x) : List<&2, U32>}:
+  %goal {SHA.sha256_bytes(List.append(&2, U32, h, List.append(&2, U32, h, x))) == FIPS.sha256_bytes(List.append(&2, U32, h, List.append(&2, U32, h, x))) : List<&2, U32>}
+  %rw SHL.sha256_bytes_correct(List.append(&2, U32, h, List.append(&2, U32, h, x)))
   %close
 
-def tagged_len(+tag: List<&2, U32>, +x: List<&2, U32>) -> {B.has_len(32n, SS.tagged(tag, x)) == True{} : Bool}:
-  %rw BY.has_len_v(32n, SS.tagged(tag, x))
-  %rwh fips_len(List.append(&2, U32, FIPS.sha256_bytes(tag), List.append(&2, U32, FIPS.sha256_bytes(tag), x))) : {List.length(&2, U32, SS.tagged(tag, x)) == 32n : Nat}
+def tagged_len(+h: List<&2, U32>, +x: List<&2, U32>) -> {B.has_len(32n, SS.tagged_h(h, x)) == True{} : Bool}:
+  %rw BY.has_len_v(32n, SS.tagged_h(h, x))
+  %rwh fips_len(List.append(&2, U32, h, List.append(&2, U32, h, x))) : {List.length(&2, U32, SS.tagged_h(h, x)) == 32n : Nat}
   %close
 
 # int(hash) mod n
-def th_v(+one: Nat, +h1: {one == 1n : Nat}, +tag: List<&2, U32>, +x: List<&2, U32>) -> {FS.value(one, S.reduce(B.of_be(SC.tagged(tag, x)))) == Nat.mod(CV.os2ip(SS.tagged(tag, x)), FS.order(one)) : Nat}:
-  %rw tagged_v(tag, x)
-  SQ.hash_v(one, h1, SS.tagged(tag, x), tagged_len(tag, x))
+def th_v(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +x: List<&2, U32>) -> {FS.value(one, S.reduce(B.of_be(SC.tagged_h(h, x)))) == Nat.mod(CV.os2ip(SS.tagged_h(h, x)), FS.order(one)) : Nat}:
+  %rw tagged_v(h, x)
+  SQ.hash_v(one, h1, SS.tagged_h(h, x), tagged_len(h, x))
 
-def th_r(+one: Nat, +h1: {one == 1n : Nat}, +tag: List<&2, U32>, +x: List<&2, U32>) -> {FS.reduced(one, FS.order(one), S.reduce(B.of_be(SC.tagged(tag, x)))) == True{} : Bool}:
-  %rw tagged_v(tag, x)
-  SQ.hash_r(one, h1, SS.tagged(tag, x), tagged_len(tag, x))
+def th_r(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +x: List<&2, U32>) -> {FS.reduced(one, FS.order(one), S.reduce(B.of_be(SC.tagged_h(h, x)))) == True{} : Bool}:
+  %rw tagged_v(h, x)
+  SQ.hash_r(one, h1, SS.tagged_h(h, x), tagged_len(h, x))
+
+# the tag hashes: SHA-256 (FIPS 180-4) of the tags, evaluated once
+def tha() -> {SC.th_aux() == FIPS.sha256_bytes(SS.tag_aux()) : List<&2, U32>}:
+  {==}
+
+def thn() -> {SC.th_nonce() == FIPS.sha256_bytes(SS.tag_nonce()) : List<&2, U32>}:
+  {==}
+
+def thc() -> {SC.th_challenge() == FIPS.sha256_bytes(SS.tag_challenge()) : List<&2, U32>}:
+  {==}
 
 # ---- the even-y key or nonce: x or n - x ----
 
@@ -137,15 +145,6 @@ def vrs(+one: Nat, +h1: {one == 1n : Nat}, +r: List<&2, Nat>, +hr: {FS.limbs16(o
   %rw SO.neg_v(one, h1, e, he)
   %close
 
-def tc() -> {SC.tag_challenge() == SS.tag_challenge() : List<&2, U32>}:
-  {==}
-
-def ta() -> {SC.tag_aux() == SS.tag_aux() : List<&2, U32>}:
-  {==}
-
-def tn() -> {SC.tag_nonce() == SS.tag_nonce() : List<&2, U32>}:
-  {==}
-
 def red_n(+one: Nat, +x: List<&2, Nat>, +hl: {FS.limbs16(one, 16n, x) == True{} : Bool}, +h: {Nat.is_lt(FS.value(one, x), FS.order(one)) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), x) == True{} : Bool}:
   Lg.and_intro(FS.limbs16(one, 16n, x), Nat.is_lt(FS.value(one, x), FS.order(one)), hl, h)
 
@@ -158,28 +157,27 @@ def vok(+one: Nat, +h1: {one == 1n : Nat}, +r: List<&2, Nat>, +hlr: {FS.limbs16(
     case False{} _:
       {==}
 
-def vp(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>, +hsig: {B.has_len(64n, sig) == True{} : Bool}, mp: Maybe<&2, P.Point>, +hmp: {PE.mpred(one, mp) == True{} : Bool}) -> {SC.verify_p(pk, m, sig, mp) == SS.verify_p(one, pk, m, sig, PE.mpv(one, mp)) : Bool}:
+def vp(+one: Nat, +h1: {one == 1n : Nat}, +hc: List<&2, U32>, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>, +hsig: {B.has_len(64n, sig) == True{} : Bool}, mp: Maybe<&2, P.Point>, +hmp: {PE.mpred(one, mp) == True{} : Bool}) -> {SC.verify_p(hc, pk, m, sig, mp) == SS.verify_p(one, hc, pk, m, sig, PE.mpv(one, mp)) : Bool}:
   match mp:
     case None{}:
       {==}
     case Some{+pp}:
       +hlr = BY.of_be_limbs(one, h1, CV.first(32n, sig), BL.pre_len(32n, 32n, sig, hsig))
       +hls = BY.of_be_limbs(one, h1, CV.after(32n, sig), BL.suf_len(32n, 32n, sig, hsig))
-      %goal {SC.verify_ok(B.of_be(B.prefix(32n, sig)), B.of_be(B.suffix(32n, sig)), S.reduce(B.of_be(SC.tagged(SC.tag_challenge(), List.append(&2, U32, B.prefix(32n, sig), List.append(&2, U32, pk, m))))), pp, Bool.and(F.lt_p(B.of_be(B.prefix(32n, sig))), S.lt_n(B.of_be(B.suffix(32n, sig))))) == SS.verify_ok(one, CV.os2ip(CV.first(32n, sig)), CV.os2ip(CV.after(32n, sig)), Nat.mod(CV.os2ip(SS.tagged(SS.tag_challenge(), List.append(&2, U32, CV.first(32n, sig), List.append(&2, U32, pk, m)))), FS.order(one)), PT.pv(one, pp), Bool.and(Nat.is_lt(CV.os2ip(CV.first(32n, sig)), FS.prime(one)), Nat.is_lt(CV.os2ip(CV.after(32n, sig)), FS.order(one)))) : Bool}
+      %goal {SC.verify_ok(B.of_be(B.prefix(32n, sig)), B.of_be(B.suffix(32n, sig)), S.reduce(B.of_be(SC.tagged_h(hc, List.append(&2, U32, B.prefix(32n, sig), List.append(&2, U32, pk, m))))), pp, Bool.and(F.lt_p(B.of_be(B.prefix(32n, sig))), S.lt_n(B.of_be(B.suffix(32n, sig))))) == SS.verify_ok(one, CV.os2ip(CV.first(32n, sig)), CV.os2ip(CV.after(32n, sig)), Nat.mod(CV.os2ip(SS.tagged_h(hc, List.append(&2, U32, CV.first(32n, sig), List.append(&2, U32, pk, m)))), FS.order(one)), PT.pv(one, pp), Bool.and(Nat.is_lt(CV.os2ip(CV.first(32n, sig)), FS.prime(one)), Nat.is_lt(CV.os2ip(CV.after(32n, sig)), FS.order(one)))) : Bool}
       %rw BL.prefix_first(32n, sig)
       %rw BL.prefix_first(32n, sig)
       %rw BL.prefix_first(32n, sig)
       %rw BL.suffix_after(32n, sig)
       %rw BL.suffix_after(32n, sig)
-      %rw tc()
       %rw FW.lt_p_f(one, h1, B.of_be(CV.first(32n, sig)))
       %rw FW.lt_n_s(one, h1, B.of_be(CV.after(32n, sig)))
-      %rw <- th_v(one, h1, SS.tag_challenge(), List.append(&2, U32, CV.first(32n, sig), List.append(&2, U32, pk, m)))
+      %rw <- th_v(one, h1, hc, List.append(&2, U32, CV.first(32n, sig), List.append(&2, U32, pk, m)))
       %rw <- BY.of_be_value(one, h1, CV.first(32n, sig))
       %rw <- BY.of_be_value(one, h1, CV.first(32n, sig))
       %rw <- BY.of_be_value(one, h1, CV.after(32n, sig))
       %rw <- BY.of_be_value(one, h1, CV.after(32n, sig))
-      vok(one, h1, B.of_be(CV.first(32n, sig)), hlr, B.of_be(CV.after(32n, sig)), hls, S.reduce(B.of_be(SC.tagged(SS.tag_challenge(), List.append(&2, U32, CV.first(32n, sig), List.append(&2, U32, pk, m))))), th_r(one, h1, SS.tag_challenge(), List.append(&2, U32, CV.first(32n, sig), List.append(&2, U32, pk, m))), pp, hmp, Nat.is_lt(FS.value(one, B.of_be(CV.first(32n, sig))), FS.prime(one)), Nat.is_lt(FS.value(one, B.of_be(CV.after(32n, sig))), FS.order(one)), {==}, {==})
+      vok(one, h1, B.of_be(CV.first(32n, sig)), hlr, B.of_be(CV.after(32n, sig)), hls, S.reduce(B.of_be(SC.tagged_h(hc, List.append(&2, U32, CV.first(32n, sig), List.append(&2, U32, pk, m))))), th_r(one, h1, hc, List.append(&2, U32, CV.first(32n, sig), List.append(&2, U32, pk, m))), pp, hmp, Nat.is_lt(FS.value(one, B.of_be(CV.first(32n, sig))), FS.prime(one)), Nat.is_lt(FS.value(one, B.of_be(CV.after(32n, sig))), FS.order(one)), {==}, {==})
 
 def lxb(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hl: {FS.limbs16(one, 16n, x) == True{} : Bool}, b: Bool, +hb: {Nat.is_lt(FS.value(one, x), FS.prime(one)) == b : Bool}) -> {PE.mpv(one, SC.lift_if(x, b)) == SS.lift_if(one, FS.value(one, x), b) : Maybe<&2, CV.SPoint>}:
   match b:
@@ -205,25 +203,30 @@ def lx_r(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hl: {FS.limbs16(
   %rw FW.lt_p_f(one, h1, x)
   lxr(one, h1, x, hl, Nat.is_lt(FS.value(one, x), FS.prime(one)), {==})
 
-def vlen(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>, a: Bool, b: Bool, +ha: {B.has_len(32n, pk) == a : Bool}, +hb: {B.has_len(64n, sig) == b : Bool}) -> {SC.verify_len(pk, m, sig, Bool.and(a, b)) == SS.verify_len(one, pk, m, sig, Bool.and(a, b)) : Bool}:
+def vlen(+one: Nat, +h1: {one == 1n : Nat}, +hc: List<&2, U32>, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>, a: Bool, b: Bool, +ha: {B.has_len(32n, pk) == a : Bool}, +hb: {B.has_len(64n, sig) == b : Bool}) -> {SC.verify_len(hc, pk, m, sig, Bool.and(a, b)) == SS.verify_len(one, hc, pk, m, sig, Bool.and(a, b)) : Bool}:
   match a b:
     case True{} True{}:
       +hl = BY.of_be_limbs(one, h1, pk, ha)
-      %goal {SC.verify_p(pk, m, sig, SC.lift_x(B.of_be(pk))) == SS.verify_p(one, pk, m, sig, SS.lift_x(one, CV.os2ip(pk))) : Bool}
+      %goal {SC.verify_p(hc, pk, m, sig, SC.lift_x(B.of_be(pk))) == SS.verify_p(one, hc, pk, m, sig, SS.lift_x(one, CV.os2ip(pk))) : Bool}
       %rw <- BY.of_be_value(one, h1, pk)
       %rw <- lx(one, h1, B.of_be(pk), hl)
-      vp(one, h1, pk, m, sig, hb, SC.lift_x(B.of_be(pk)), lx_r(one, h1, B.of_be(pk), hl))
+      vp(one, h1, hc, pk, m, sig, hb, SC.lift_x(B.of_be(pk)), lx_r(one, h1, B.of_be(pk), hl))
     case True{} False{}:
       {==}
     case False{} _:
       {==}
 
-# BIP-340 verification
-def verify_v(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> {SC.verify(pk, m, sig) == SS.verify(one, pk, m, sig) : Bool}:
-  %goal {SC.verify_len(pk, m, sig, Bool.and(B.has_len(32n, pk), B.has_len(64n, sig))) == SS.verify_len(one, pk, m, sig, Bool.and(CV.length_is(32n, pk), CV.length_is(64n, sig))) : Bool}
+def verify_hv(+one: Nat, +h1: {one == 1n : Nat}, +hc: List<&2, U32>, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> {SC.verify_h(hc, pk, m, sig) == SS.verify_h(one, hc, pk, m, sig) : Bool}:
+  %goal {SC.verify_len(hc, pk, m, sig, Bool.and(B.has_len(32n, pk), B.has_len(64n, sig))) == SS.verify_len(one, hc, pk, m, sig, Bool.and(CV.length_is(32n, pk), CV.length_is(64n, sig))) : Bool}
   %rw BL.hl_is(32n, pk)
   %rw BL.hl_is(64n, sig)
-  vlen(one, h1, pk, m, sig, CV.length_is(32n, pk), CV.length_is(64n, sig), BL.hl_is(32n, pk), BL.hl_is(64n, sig))
+  vlen(one, h1, hc, pk, m, sig, CV.length_is(32n, pk), CV.length_is(64n, sig), BL.hl_is(32n, pk), BL.hl_is(64n, sig))
+
+# BIP-340 verification
+def verify_v(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> {SC.verify(pk, m, sig) == SS.verify(one, pk, m, sig) : Bool}:
+  %goal {SC.verify_h(SC.th_challenge(), pk, m, sig) == SS.verify_h(one, FIPS.sha256_bytes(SS.tag_challenge()), pk, m, sig) : Bool}
+  %rw thc()
+  verify_hv(one, h1, FIPS.sha256_bytes(SS.tag_challenge()), pk, m, sig)
 
 # ---- signing ----
 
@@ -234,75 +237,77 @@ def sok(+sig: List<&2, U32>, b: Bool) -> {SC.sign_ok(sig, b) == SS.sign_if(sig, 
     case False{}:
       {==}
 
-def sfin(+one: Nat, +h1: {one == 1n : Nat}, +pb: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> {SC.sign_fin(pb, m, sig) == SS.sign_fin(one, pb, m, sig) : Maybe<&2, List<&2, U32>>}:
-  %goal {SC.sign_ok(sig, SC.verify(pb, m, sig)) == SS.sign_if(sig, SS.verify(one, pb, m, sig)) : Maybe<&2, List<&2, U32>>}
-  %rw verify_v(one, h1, pb, m, sig)
-  sok(sig, SS.verify(one, pb, m, sig))
+def sfin(+one: Nat, +h1: {one == 1n : Nat}, +hc: List<&2, U32>, +pb: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> {SC.sign_fin(hc, pb, m, sig) == SS.sign_fin(one, hc, pb, m, sig) : Maybe<&2, List<&2, U32>>}:
+  %goal {SC.sign_ok(sig, SC.verify_h(hc, pb, m, sig)) == SS.sign_if(sig, SS.verify_h(one, hc, pb, m, sig)) : Maybe<&2, List<&2, U32>>}
+  %rw verify_hv(one, h1, hc, pb, m, sig)
+  sok(sig, SS.verify_h(one, hc, pb, m, sig))
 
 def ax_l(+one: Nat, +x: List<&2, Nat>, +y: List<&2, Nat>, +ha: {PA.ared(one, P.Affine{x, y}) == True{} : Bool}) -> {FS.limbs16(one, 16n, x) == True{} : Bool}:
   SL.l16(one, x, Lg.and_left(PT.red(one, x), PT.red(one, y), ha))
 
-def sk_v(+one: Nat, +h1: {one == 1n : Nat}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: List<&2, Nat>, +hk0: {FS.reduced(one, FS.order(one), k0) == True{} : Bool}, a: P.Affine, +ha: {PA.ared(one, a) == True{} : Bool}) -> {SC.sign_k(d, pb, m, k0, a) == SS.sign_r(one, FS.value(one, d), pb, m, FS.value(one, k0), PA.av(one, a)) : Maybe<&2, List<&2, U32>>}:
+def sk_v(+one: Nat, +h1: {one == 1n : Nat}, +hc: List<&2, U32>, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: List<&2, Nat>, +hk0: {FS.reduced(one, FS.order(one), k0) == True{} : Bool}, a: P.Affine, +ha: {PA.ared(one, a) == True{} : Bool}) -> {SC.sign_k(hc, d, pb, m, k0, a) == SS.sign_r(one, hc, FS.value(one, d), pb, m, FS.value(one, k0), PA.av(one, a)) : Maybe<&2, List<&2, U32>>}:
   match a:
     case P.Affine{+rx, +ry}:
       +hrx = ax_l(one, rx, ry, ha)
       +hk = even_r(one, h1, ry, k0, hk0)
-      +he = th_r(one, h1, SS.tag_challenge(), List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m)))
-      +hm = SO.mul_r(one, h1, S.reduce(B.of_be(SC.tagged(SS.tag_challenge(), List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m))))), d, he, hd)
-      +hs = SO.add_r(one, h1, S.select(SC.is_odd(ry), S.neg(k0), k0), S.mul(S.reduce(B.of_be(SC.tagged(SS.tag_challenge(), List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m))))), d), hk, hm)
-      %goal {SC.sign_fin(pb, m, List.append(&2, U32, B.to_be(rx), B.to_be(S.add(S.select(SC.is_odd(ry), S.neg(k0), k0), S.mul(S.reduce(B.of_be(SC.tagged(SC.tag_challenge(), List.append(&2, U32, B.to_be(rx), List.append(&2, U32, pb, m))))), d))))) == SS.sign_fin(one, pb, m, List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), CV.i2osp(32n, FS.madd(FS.order(one), SS.even(FS.order(one), FS.value(one, ry), FS.value(one, k0)), FS.mmul(FS.order(one), Nat.mod(CV.os2ip(SS.tagged(SS.tag_challenge(), List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m)))), FS.order(one)), FS.value(one, d)))))) : Maybe<&2, List<&2, U32>>}
+      +he = th_r(one, h1, hc, List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m)))
+      +hm = SO.mul_r(one, h1, S.reduce(B.of_be(SC.tagged_h(hc, List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m))))), d, he, hd)
+      +hs = SO.add_r(one, h1, S.select(SC.is_odd(ry), S.neg(k0), k0), S.mul(S.reduce(B.of_be(SC.tagged_h(hc, List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m))))), d), hk, hm)
+      %goal {SC.sign_fin(hc, pb, m, List.append(&2, U32, B.to_be(rx), B.to_be(S.add(S.select(SC.is_odd(ry), S.neg(k0), k0), S.mul(S.reduce(B.of_be(SC.tagged_h(hc, List.append(&2, U32, B.to_be(rx), List.append(&2, U32, pb, m))))), d))))) == SS.sign_fin(one, hc, pb, m, List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), CV.i2osp(32n, FS.madd(FS.order(one), SS.even(FS.order(one), FS.value(one, ry), FS.value(one, k0)), FS.mmul(FS.order(one), Nat.mod(CV.os2ip(SS.tagged_h(hc, List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m)))), FS.order(one)), FS.value(one, d)))))) : Maybe<&2, List<&2, U32>>}
       %rw tbv(one, h1, rx, hrx)
       %rw tbv(one, h1, rx, hrx)
-      %rw tc()
-      %rw sfin(one, h1, pb, m, List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), B.to_be(S.add(S.select(SC.is_odd(ry), S.neg(k0), k0), S.mul(S.reduce(B.of_be(SC.tagged(SS.tag_challenge(), List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m))))), d)))))
-      %rw tbv(one, h1, S.add(S.select(SC.is_odd(ry), S.neg(k0), k0), S.mul(S.reduce(B.of_be(SC.tagged(SS.tag_challenge(), List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m))))), d)), SL.sl16(one, S.add(S.select(SC.is_odd(ry), S.neg(k0), k0), S.mul(S.reduce(B.of_be(SC.tagged(SS.tag_challenge(), List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m))))), d)), hs))
-      %rw SO.add_v(one, h1, S.select(SC.is_odd(ry), S.neg(k0), k0), S.mul(S.reduce(B.of_be(SC.tagged(SS.tag_challenge(), List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m))))), d), hk, hm)
-      %rw SO.mul_v(one, h1, S.reduce(B.of_be(SC.tagged(SS.tag_challenge(), List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m))))), d, he, hd)
-      %rw th_v(one, h1, SS.tag_challenge(), List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m)))
+      %rw sfin(one, h1, hc, pb, m, List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), B.to_be(S.add(S.select(SC.is_odd(ry), S.neg(k0), k0), S.mul(S.reduce(B.of_be(SC.tagged_h(hc, List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m))))), d)))))
+      %rw tbv(one, h1, S.add(S.select(SC.is_odd(ry), S.neg(k0), k0), S.mul(S.reduce(B.of_be(SC.tagged_h(hc, List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m))))), d)), SL.sl16(one, S.add(S.select(SC.is_odd(ry), S.neg(k0), k0), S.mul(S.reduce(B.of_be(SC.tagged_h(hc, List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m))))), d)), hs))
+      %rw SO.add_v(one, h1, S.select(SC.is_odd(ry), S.neg(k0), k0), S.mul(S.reduce(B.of_be(SC.tagged_h(hc, List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m))))), d), hk, hm)
+      %rw SO.mul_v(one, h1, S.reduce(B.of_be(SC.tagged_h(hc, List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m))))), d, he, hd)
+      %rw th_v(one, h1, hc, List.append(&2, U32, CV.i2osp(32n, FS.value(one, rx)), List.append(&2, U32, pb, m)))
       %rw even_v(one, h1, ry, k0, hk0)
       %close
 
-def snz(+one: Nat, +h1: {one == 1n : Nat}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: List<&2, Nat>, +hk0: {FS.reduced(one, FS.order(one), k0) == True{} : Bool}, z: Bool) -> {SC.sign_nz(d, pb, m, k0, Bool.not(z)) == SS.sign_kz(one, FS.value(one, d), pb, m, FS.value(one, k0), z) : Maybe<&2, List<&2, U32>>}:
+def snz(+one: Nat, +h1: {one == 1n : Nat}, +hc: List<&2, U32>, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: List<&2, Nat>, +hk0: {FS.reduced(one, FS.order(one), k0) == True{} : Bool}, z: Bool) -> {SC.sign_nz(hc, d, pb, m, k0, Bool.not(z)) == SS.sign_kz(one, hc, FS.value(one, d), pb, m, FS.value(one, k0), z) : Maybe<&2, List<&2, U32>>}:
   match z:
     case True{}:
       {==}
     case False{}:
       +hg = PA.g_r(one, h1)
       +hm = PM.mul_r(one, h1, k0, P.g(), SL.sl16(one, k0, hk0), hg)
-      %goal {SC.sign_k(d, pb, m, k0, P.to_affine(P.mul(k0, P.g()))) == SS.sign_r(one, FS.value(one, d), pb, m, FS.value(one, k0), CV.to_affine(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, k0), CV.g(one)))) : Maybe<&2, List<&2, U32>>}
+      %goal {SC.sign_k(hc, d, pb, m, k0, P.to_affine(P.mul(k0, P.g()))) == SS.sign_r(one, hc, FS.value(one, d), pb, m, FS.value(one, k0), CV.to_affine(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, k0), CV.g(one)))) : Maybe<&2, List<&2, U32>>}
       %rw <- PA.g_v(one, h1)
       %rw <- PM.mul_v(one, h1, k0, P.g(), SL.sl16(one, k0, hk0), hg)
       %rw <- PA.aff_v(one, h1, P.mul(k0, P.g()), hm)
-      sk_v(one, h1, d, hd, pb, m, k0, hk0, P.to_affine(P.mul(k0, P.g())), PA.aff_r(one, h1, P.mul(k0, P.g()), hm))
+      sk_v(one, h1, hc, d, hd, pb, m, k0, hk0, P.to_affine(P.mul(k0, P.g())), PA.aff_r(one, h1, P.mul(k0, P.g()), hm))
 
-def sk2(+one: Nat, +h1: {one == 1n : Nat}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: List<&2, Nat>, +hk0: {FS.reduced(one, FS.order(one), k0) == True{} : Bool}) -> {SC.sign_nz(d, pb, m, k0, Bool.not(S.is_zero(k0))) == SS.sign_k(one, FS.value(one, d), pb, m, FS.value(one, k0)) : Maybe<&2, List<&2, U32>>}:
-  %goal {SC.sign_nz(d, pb, m, k0, Bool.not(S.is_zero(k0))) == SS.sign_kz(one, FS.value(one, d), pb, m, FS.value(one, k0), Nat.is_eq(FS.value(one, k0), 0n)) : Maybe<&2, List<&2, U32>>}
+def sk2(+one: Nat, +h1: {one == 1n : Nat}, +hc: List<&2, U32>, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: List<&2, Nat>, +hk0: {FS.reduced(one, FS.order(one), k0) == True{} : Bool}) -> {SC.sign_nz(hc, d, pb, m, k0, Bool.not(S.is_zero(k0))) == SS.sign_k(one, hc, FS.value(one, d), pb, m, FS.value(one, k0)) : Maybe<&2, List<&2, U32>>}:
+  %goal {SC.sign_nz(hc, d, pb, m, k0, Bool.not(S.is_zero(k0))) == SS.sign_kz(one, hc, FS.value(one, d), pb, m, FS.value(one, k0), Nat.is_eq(FS.value(one, k0), 0n)) : Maybe<&2, List<&2, U32>>}
   %rw FW.is_zero_s(one, h1, k0)
-  snz(one, h1, d, hd, pb, m, k0, hk0, Nat.is_eq(FS.value(one, k0), 0n))
+  snz(one, h1, hc, d, hd, pb, m, k0, hk0, Nat.is_eq(FS.value(one, k0), 0n))
 
-def spk(+one: Nat, +h1: {one == 1n : Nat}, +d0: List<&2, Nat>, +hd0: {FS.reduced(one, FS.order(one), d0) == True{} : Bool}, +m: List<&2, U32>, +aux: List<&2, U32>, a: P.Affine, +ha: {PA.ared(one, a) == True{} : Bool}) -> {SC.sign_p(d0, m, aux, a) == SS.sign_p(one, FS.value(one, d0), m, aux, PA.av(one, a)) : Maybe<&2, List<&2, U32>>}:
+def spk_h(+one: Nat, +h1: {one == 1n : Nat}, +xa: List<&2, U32>, +hn: List<&2, U32>, +hc: List<&2, U32>, +d0: List<&2, Nat>, +hd0: {FS.reduced(one, FS.order(one), d0) == True{} : Bool}, +m: List<&2, U32>, +aux: List<&2, U32>, a: P.Affine, +ha: {PA.ared(one, a) == True{} : Bool}) -> {SC.sign_ph(xa, hn, hc, d0, m, aux, a) == SS.sign_ph(one, xa, hn, hc, FS.value(one, d0), m, aux, PA.av(one, a)) : Maybe<&2, List<&2, U32>>}:
   match a:
     case P.Affine{+px, +py}:
       +hpx = ax_l(one, px, py, ha)
       +hd = even_r(one, h1, py, d0, hd0)
-      %goal {SC.sign_nz(S.select(SC.is_odd(py), S.neg(d0), d0), B.to_be(px), m, S.reduce(B.of_be(SC.tagged(SC.tag_nonce(), List.append(&2, U32, SC.xor_bytes(B.to_be(S.select(SC.is_odd(py), S.neg(d0), d0)), SC.tagged(SC.tag_aux(), aux)), List.append(&2, U32, B.to_be(px), m))))), Bool.not(S.is_zero(S.reduce(B.of_be(SC.tagged(SC.tag_nonce(), List.append(&2, U32, SC.xor_bytes(B.to_be(S.select(SC.is_odd(py), S.neg(d0), d0)), SC.tagged(SC.tag_aux(), aux)), List.append(&2, U32, B.to_be(px), m)))))))) == SS.sign_k(one, SS.even(FS.order(one), FS.value(one, py), FS.value(one, d0)), CV.i2osp(32n, FS.value(one, px)), m, Nat.mod(CV.os2ip(SS.tagged(SS.tag_nonce(), List.append(&2, U32, SS.xor_bytes(CV.i2osp(32n, SS.even(FS.order(one), FS.value(one, py), FS.value(one, d0))), SS.tagged(SS.tag_aux(), aux)), List.append(&2, U32, CV.i2osp(32n, FS.value(one, px)), m)))), FS.order(one))) : Maybe<&2, List<&2, U32>>}
+      %goal {SC.sign_nz(hc, S.select(SC.is_odd(py), S.neg(d0), d0), B.to_be(px), m, S.reduce(B.of_be(SC.tagged_h(hn, List.append(&2, U32, SC.xor_bytes(B.to_be(S.select(SC.is_odd(py), S.neg(d0), d0)), SC.tagged_h(xa, aux)), List.append(&2, U32, B.to_be(px), m))))), Bool.not(S.is_zero(S.reduce(B.of_be(SC.tagged_h(hn, List.append(&2, U32, SC.xor_bytes(B.to_be(S.select(SC.is_odd(py), S.neg(d0), d0)), SC.tagged_h(xa, aux)), List.append(&2, U32, B.to_be(px), m)))))))) == SS.sign_k(one, hc, SS.even(FS.order(one), FS.value(one, py), FS.value(one, d0)), CV.i2osp(32n, FS.value(one, px)), m, Nat.mod(CV.os2ip(SS.tagged_h(hn, List.append(&2, U32, SS.xor_bytes(CV.i2osp(32n, SS.even(FS.order(one), FS.value(one, py), FS.value(one, d0))), SS.tagged_h(xa, aux)), List.append(&2, U32, CV.i2osp(32n, FS.value(one, px)), m)))), FS.order(one))) : Maybe<&2, List<&2, U32>>}
       %rw tbv(one, h1, px, hpx)
       %rw tbv(one, h1, px, hpx)
       %rw tbv(one, h1, px, hpx)
       %rw tbv(one, h1, S.select(SC.is_odd(py), S.neg(d0), d0), SL.sl16(one, S.select(SC.is_odd(py), S.neg(d0), d0), hd))
       %rw tbv(one, h1, S.select(SC.is_odd(py), S.neg(d0), d0), SL.sl16(one, S.select(SC.is_odd(py), S.neg(d0), d0), hd))
-      %rw tn()
-      %rw tn()
-      %rw ta()
-      %rw ta()
-      %rw tagged_v(SS.tag_aux(), aux)
-      %rw tagged_v(SS.tag_aux(), aux)
-      %rw xor_v(CV.i2osp(32n, FS.value(one, S.select(SC.is_odd(py), S.neg(d0), d0))), SS.tagged(SS.tag_aux(), aux))
-      %rw xor_v(CV.i2osp(32n, FS.value(one, S.select(SC.is_odd(py), S.neg(d0), d0))), SS.tagged(SS.tag_aux(), aux))
+      %rw tagged_v(xa, aux)
+      %rw tagged_v(xa, aux)
+      %rw xor_v(CV.i2osp(32n, FS.value(one, S.select(SC.is_odd(py), S.neg(d0), d0))), SS.tagged_h(xa, aux))
+      %rw xor_v(CV.i2osp(32n, FS.value(one, S.select(SC.is_odd(py), S.neg(d0), d0))), SS.tagged_h(xa, aux))
       %rw <- even_v(one, h1, py, d0, hd0)
       %rw <- even_v(one, h1, py, d0, hd0)
-      %rw <- th_v(one, h1, SS.tag_nonce(), List.append(&2, U32, SS.xor_bytes(CV.i2osp(32n, FS.value(one, S.select(SC.is_odd(py), S.neg(d0), d0))), SS.tagged(SS.tag_aux(), aux)), List.append(&2, U32, CV.i2osp(32n, FS.value(one, px)), m)))
-      sk2(one, h1, S.select(SC.is_odd(py), S.neg(d0), d0), hd, CV.i2osp(32n, FS.value(one, px)), m, S.reduce(B.of_be(SC.tagged(SS.tag_nonce(), List.append(&2, U32, SS.xor_bytes(CV.i2osp(32n, FS.value(one, S.select(SC.is_odd(py), S.neg(d0), d0))), SS.tagged(SS.tag_aux(), aux)), List.append(&2, U32, CV.i2osp(32n, FS.value(one, px)), m))))), th_r(one, h1, SS.tag_nonce(), List.append(&2, U32, SS.xor_bytes(CV.i2osp(32n, FS.value(one, S.select(SC.is_odd(py), S.neg(d0), d0))), SS.tagged(SS.tag_aux(), aux)), List.append(&2, U32, CV.i2osp(32n, FS.value(one, px)), m))))
+      %rw <- th_v(one, h1, hn, List.append(&2, U32, SS.xor_bytes(CV.i2osp(32n, FS.value(one, S.select(SC.is_odd(py), S.neg(d0), d0))), SS.tagged_h(xa, aux)), List.append(&2, U32, CV.i2osp(32n, FS.value(one, px)), m)))
+      sk2(one, h1, hc, S.select(SC.is_odd(py), S.neg(d0), d0), hd, CV.i2osp(32n, FS.value(one, px)), m, S.reduce(B.of_be(SC.tagged_h(hn, List.append(&2, U32, SS.xor_bytes(CV.i2osp(32n, FS.value(one, S.select(SC.is_odd(py), S.neg(d0), d0))), SS.tagged_h(xa, aux)), List.append(&2, U32, CV.i2osp(32n, FS.value(one, px)), m))))), th_r(one, h1, hn, List.append(&2, U32, SS.xor_bytes(CV.i2osp(32n, FS.value(one, S.select(SC.is_odd(py), S.neg(d0), d0))), SS.tagged_h(xa, aux)), List.append(&2, U32, CV.i2osp(32n, FS.value(one, px)), m))))
+
+def spk(+one: Nat, +h1: {one == 1n : Nat}, +d0: List<&2, Nat>, +hd0: {FS.reduced(one, FS.order(one), d0) == True{} : Bool}, +m: List<&2, U32>, +aux: List<&2, U32>, +a: P.Affine, +ha: {PA.ared(one, a) == True{} : Bool}) -> {SC.sign_p(d0, m, aux, a) == SS.sign_p(one, FS.value(one, d0), m, aux, PA.av(one, a)) : Maybe<&2, List<&2, U32>>}:
+  %goal {SC.sign_ph(SC.th_aux(), SC.th_nonce(), SC.th_challenge(), d0, m, aux, a) == SS.sign_ph(one, FIPS.sha256_bytes(SS.tag_aux()), FIPS.sha256_bytes(SS.tag_nonce()), FIPS.sha256_bytes(SS.tag_challenge()), FS.value(one, d0), m, aux, PA.av(one, a)) : Maybe<&2, List<&2, U32>>}
+  %rw tha()
+  %rw thn()
+  %rw thc()
+  spk_h(one, h1, FIPS.sha256_bytes(SS.tag_aux()), FIPS.sha256_bytes(SS.tag_nonce()), FIPS.sha256_bytes(SS.tag_challenge()), d0, hd0, m, aux, a, ha)
 
 def s3(+one: Nat, +h1: {one == 1n : Nat}, +sk: List<&2, U32>, +hl: {B.has_len(32n, sk) == True{} : Bool}, +m: List<&2, U32>, +aux: List<&2, U32>, c: Bool, +hc: {Bool.and(Bool.not(Nat.is_eq(CV.os2ip(sk), 0n)), Nat.is_lt(CV.os2ip(sk), FS.order(one))) == c : Bool}) -> {SC.sign_d(m, aux, SC.secret_if(B.of_be(sk), c)) == SS.sign_ok(one, sk, m, aux, c) : Maybe<&2, List<&2, U32>>}:
   match c:

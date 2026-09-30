@@ -359,5 +359,4 @@ def splice(path, text):
 if __name__ == '__main__':
     H = ROOT / 'tools/generators/secp256k1_hand'
     splice(H / 'fieldpow.src', proofs(FIELD))
-    splice(H / 'scalarpow.src', proofs(SCALAR))
-    print('wrote the windowed regions of fieldpow.src, scalarpow.src')
+    print('wrote the windowed region of fieldpow.src')

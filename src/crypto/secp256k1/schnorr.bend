@@ -28,6 +28,17 @@ def tag_nonce() -> List<&2, U32>:
 def tag_challenge() -> List<&2, U32>:
   tag_prefix([99, 104, 97, 108, 108, 101, 110, 103, 101])
 
+# SHA256(tag) of the three tags, precomputed (proofs: pschn.bend, by
+# evaluating the FIPS 180-4 specification on the tag once)
+def th_aux() -> List<&2, U32>:
+  [241, 239, 78, 94, 192, 99, 202, 218, 109, 148, 202, 250, 157, 152, 126, 160, 105, 38, 88, 57, 236, 193, 31, 151, 45, 119, 165, 46, 216, 193, 204, 144]
+
+def th_nonce() -> List<&2, U32>:
+  [7, 73, 119, 52, 167, 155, 203, 53, 91, 155, 140, 125, 3, 79, 18, 28, 244, 52, 215, 62, 247, 45, 218, 25, 135, 0, 97, 251, 82, 191, 235, 47]
+
+def th_challenge() -> List<&2, U32>:
+  [123, 181, 45, 122, 159, 239, 88, 50, 62, 177, 191, 122, 64, 125, 179, 130, 210, 243, 242, 216, 27, 177, 34, 79, 73, 254, 81, 143, 109, 72, 211, 124]
+
 # hash_tag(x) = SHA256(SHA256(tag) || SHA256(tag) || x)
 def tagged_h(+th: List<&2, U32>, x: List<&2, U32>) -> List<&2, U32>:
   SHA.sha256_bytes(cat(th, cat(th, x)))
@@ -58,14 +69,14 @@ def verify_ok(+r: List<&2, Nat>, +s: List<&2, Nat>, +e: List<&2, Nat>, +pp: P.Po
     case True{}: verify_r(r, P.add(P.mul_pub(s, P.g()), P.mul_pub(S.neg(e), pp)))
     case False{}: False{}
 
-def verify_p(+pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>, mp: Maybe<&2, P.Point>) -> Bool:
+def verify_p(+hc: List<&2, U32>, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>, mp: Maybe<&2, P.Point>) -> Bool:
   match mp:
     case None{}: False{}
     case Some{+pp}:
       +rb = B.prefix(32n, sig)
       +r = B.of_be(rb)
       +s = B.of_be(B.suffix(32n, sig))
-      +e = S.reduce(B.of_be(tagged(tag_challenge(), cat(rb, cat(pk, m)))))
+      +e = S.reduce(B.of_be(tagged_h(hc, cat(rb, cat(pk, m)))))
       verify_ok(r, s, e, pp, Bool.and(F.lt_p(r), S.lt_n(s)))
 
 def lift_if(+x: List<&2, Nat>, ok: Bool) -> Maybe<&2, P.Point>:
@@ -77,14 +88,18 @@ def lift_if(+x: List<&2, Nat>, ok: Bool) -> Maybe<&2, P.Point>:
 def lift_x(+x: List<&2, Nat>) -> Maybe<&2, P.Point>:
   lift_if(x, F.lt_p(x))
 
-def verify_len(+pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>, ok: Bool) -> Bool:
+def verify_len(+hc: List<&2, U32>, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>, ok: Bool) -> Bool:
   match ok:
-    case True{}: verify_p(pk, m, sig, lift_x(B.of_be(pk)))
+    case True{}: verify_p(hc, pk, m, sig, lift_x(B.of_be(pk)))
     case False{}: False{}
+
+# Verify with hc = SHA256("BIP0340/challenge")
+def verify_h(+hc: List<&2, U32>, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
+  verify_len(hc, pk, m, sig, Bool.and(B.has_len(32n, pk), B.has_len(64n, sig)))
 
 # BIP-340 Verify(pk, m, sig) for a 32-byte x-only key and a 64-byte signature
 def verify(+pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
-  verify_len(pk, m, sig, Bool.and(B.has_len(32n, pk), B.has_len(64n, sig)))
+  verify_h(th_challenge(), pk, m, sig)
 
 # ---- signing ----
 
@@ -117,30 +132,35 @@ def sign_ok(+sig: List<&2, U32>, ok: Bool) -> Maybe<&2, List<&2, U32>>:
     case True{}: Some{sig}
     case False{}: None{}
 
-def sign_fin(+pb: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  sign_ok(sig, verify(pb, m, sig))
+def sign_fin(+hc: List<&2, U32>, +pb: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  sign_ok(sig, verify_h(hc, pb, m, sig))
 
-def sign_k(+d: List<&2, Nat>, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: List<&2, Nat>, ra: P.Affine) -> Maybe<&2, List<&2, U32>>:
+def sign_k(+hc: List<&2, U32>, +d: List<&2, Nat>, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: List<&2, Nat>, ra: P.Affine) -> Maybe<&2, List<&2, U32>>:
   match ra:
     case P.Affine{rx, +ry}:
       +k = S.select(is_odd(ry), S.neg(k0), k0)
       +rb = B.to_be(rx)
-      +e = S.reduce(B.of_be(tagged(tag_challenge(), cat(rb, cat(pb, m)))))
-      sign_fin(pb, m, cat(rb, B.to_be(S.add(k, S.mul(e, d)))))
+      +e = S.reduce(B.of_be(tagged_h(hc, cat(rb, cat(pb, m)))))
+      sign_fin(hc, pb, m, cat(rb, B.to_be(S.add(k, S.mul(e, d)))))
 
-def sign_nz(+d: List<&2, Nat>, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: List<&2, Nat>, ok: Bool) -> Maybe<&2, List<&2, U32>>:
+def sign_nz(+hc: List<&2, U32>, +d: List<&2, Nat>, +pb: List<&2, U32>, +m: List<&2, U32>, +k0: List<&2, Nat>, ok: Bool) -> Maybe<&2, List<&2, U32>>:
   match ok:
-    case True{}: sign_k(d, pb, m, k0, P.to_affine(P.mul(k0, P.g())))
+    case True{}: sign_k(hc, d, pb, m, k0, P.to_affine(P.mul(k0, P.g())))
     case False{}: None{}
 
-def sign_p(+d0: List<&2, Nat>, +m: List<&2, U32>, +aux: List<&2, U32>, pa: P.Affine) -> Maybe<&2, List<&2, U32>>:
+# the signature from d' and P = d' G, with the tag hashes ha, hn, hc of
+# "BIP0340/aux", "BIP0340/nonce", "BIP0340/challenge"
+def sign_ph(+ha: List<&2, U32>, +hn: List<&2, U32>, +hc: List<&2, U32>, +d0: List<&2, Nat>, +m: List<&2, U32>, +aux: List<&2, U32>, pa: P.Affine) -> Maybe<&2, List<&2, U32>>:
   match pa:
     case P.Affine{px, +py}:
       +d = S.select(is_odd(py), S.neg(d0), d0)
       +pb = B.to_be(px)
-      +t = xor_bytes(B.to_be(d), tagged(tag_aux(), aux))
-      +k0 = S.reduce(B.of_be(tagged(tag_nonce(), cat(t, cat(pb, m)))))
-      sign_nz(d, pb, m, k0, Bool.not(S.is_zero(k0)))
+      +t = xor_bytes(B.to_be(d), tagged_h(ha, aux))
+      +k0 = S.reduce(B.of_be(tagged_h(hn, cat(t, cat(pb, m)))))
+      sign_nz(hc, d, pb, m, k0, Bool.not(S.is_zero(k0)))
+
+def sign_p(+d0: List<&2, Nat>, +m: List<&2, U32>, +aux: List<&2, U32>, pa: P.Affine) -> Maybe<&2, List<&2, U32>>:
+  sign_ph(th_aux(), th_nonce(), th_challenge(), d0, m, aux, pa)
 
 def sign_d(+m: List<&2, U32>, +aux: List<&2, U32>, md: Maybe<&2, List<&2, Nat>>) -> Maybe<&2, List<&2, U32>>:
   match md:
