@@ -195,71 +195,6 @@ def nth_drop(+ws: List<&2, U32>, +base: Nat, +k: Nat) -> {nthv(SC.drop(U32, ws, 
     case Con{h, +t} 1n+ +b:
       nth_drop(t, b, k)
 
-def take_snoc(+ys: List<&2, U32>, +k: Nat, +h: {Nat.is_lt(k, SC.length(U32, ys)) == True{} : Bool}) -> {SC.take(U32, ys, 1n+k) == SC.append(U32, SC.take(U32, ys, k), Con{nthv(ys, k), Nil{}}) : List<&2, U32>}:
-  match ys k:
-    case Nil{} _:
-      Empty.absurd({SC.take(U32, Nil{}, 1n+k) == SC.append(U32, SC.take(U32, Nil{}, k), Con{nthv(Nil{}, k), Nil{}}) : List<&2, U32>}, N.lt_zero_absurd(k, h))
-    case Con{+x, +t} 0n:
-      Equal.cong(List<&2, U32>, List<&2, U32>, z => Con{x, z}, SC.take(U32, t, 0n), Nil{}, LL.sc_take_zero(U32, t))
-    case Con{+x, +t} 1n+ +p:
-      Equal.cong(List<&2, U32>, List<&2, U32>, z => Con{x, z}, SC.take(U32, t, 1n+p), SC.append(U32, SC.take(U32, t, p), Con{nthv(t, p), Nil{}}), take_snoc(t, p, h))
-
-def lt_sub(+base: Nat, +k: Nat, +n: Nat, +h: {Nat.is_lt(Nat.add(base, k), n) == True{} : Bool}) -> {Nat.is_lt(k, Nat.sub(n, base)) == True{} : Bool}:
-  match base n:
-    case 0n _:
-      L.subst(Nat, z => {Nat.is_lt(k, z) == True{} : Bool}, n, Nat.sub(n, 0n), Equal.sym(Nat, Nat.sub(n, 0n), n, N.sub_zero(n)), h)
-    case 1n+b 0n:
-      Empty.absurd({Nat.is_lt(k, Nat.sub(0n, 1n+b)) == True{} : Bool}, N.lt_zero_absurd(Nat.add(1n+b, k), h))
-    case 1n+ +b 1n+ +m:
-      lt_sub(b, k, m, h)
-
-# slice(ws, base, k + 1) is slice(ws, base, k) and word base + k.
-def slice_snoc(+ws: List<&2, U32>, +base: Nat, +k: Nat, +h: {Nat.is_lt(Nat.add(base, k), SC.length(U32, ws)) == True{} : Bool}) -> {slice(ws, base, 1n+k) == SC.append(U32, slice(ws, base, k), Con{nthv(ws, Nat.add(base, k)), Nil{}}) : List<&2, U32>}:
-  +ys = SC.drop(U32, ws, base)
-  +hk = L.subst(Nat, z => {Nat.is_lt(k, z) == True{} : Bool}, Nat.sub(SC.length(U32, ws), base), SC.length(U32, ys), Equal.sym(Nat, SC.length(U32, ys), Nat.sub(SC.length(U32, ws), base), length_drop(ws, base)), lt_sub(base, k, SC.length(U32, ws), h))
-  Equal.trans(List<&2, U32>, SC.take(U32, ys, 1n+k), SC.append(U32, SC.take(U32, ys, k), Con{nthv(ys, k), Nil{}}), SC.append(U32, SC.take(U32, ys, k), Con{nthv(ws, Nat.add(base, k)), Nil{}}),
-    take_snoc(ys, k, hk),
-    Equal.cong(U32, List<&2, U32>, z => SC.append(U32, SC.take(U32, ys, k), Con{z, Nil{}}), nthv(ys, k), nthv(ws, Nat.add(base, k)), nth_drop(ws, base, k)))
-
-def slice_one(+ws: List<&2, U32>, +base: Nat, +h: {Nat.is_lt(base, SC.length(U32, ws)) == True{} : Bool}) -> {slice(ws, base, 1n) == Con{nthv(ws, base), Nil{}} : List<&2, U32>}:
-  match ws base:
-    case Nil{} _:
-      Empty.absurd({slice(Nil{}, base, 1n) == Con{nthv(Nil{}, base), Nil{}} : List<&2, U32>}, N.lt_zero_absurd(base, h))
-    case Con{+x, +t} 0n:
-      Equal.cong(List<&2, U32>, List<&2, U32>, z => Con{x, z}, SC.take(U32, t, 0n), Nil{}, LL.sc_take_zero(U32, t))
-    case Con{x, +t} 1n+ +b:
-      slice_one(t, b, h)
-
-def append_cons(+xs: List<&2, U32>, +w: U32, +acc: List<&2, U32>) -> {SC.append(U32, SC.append(U32, xs, Con{w, Nil{}}), acc) == SC.append(U32, xs, Con{w, acc}) : List<&2, U32>}:
-  LL.append_assoc(U32, xs, Con{w, Nil{}}, acc)
-
-def lt_pred(+base: Nat, +p: Nat, +n: Nat, +h: {Nat.is_lt(Nat.add(base, 1n+p), n) == True{} : Bool}) -> {Nat.is_lt(Nat.add(base, p), n) == True{} : Bool}:
-  N.lt_trans(Nat.add(base, p), Nat.add(base, 1n+p), n, L.subst(Nat, z => {Nat.is_lt(Nat.add(base, p), z) == True{} : Bool}, 1n+Nat.add(base, p), Nat.add(base, 1n+p), Equal.sym(Nat, Nat.add(base, 1n+p), 1n+Nat.add(base, p), N.add_succ(base, p)), N.lt_succ(Nat.add(base, p))), h)
-
-def pred_add(+base: Nat, +p: Nat) -> {Nat.sub(Nat.add(base, 1n+p), 1n) == Nat.add(base, p) : Nat}:
-  %Equal.sym(Nat, Nat.add(base, 1n+p), 1n+Nat.add(base, p), N.add_succ(base, p)) : {Nat.sub(_, 1n) == Nat.add(base, p) : Nat}
-  N.sub_zero(Nat.add(base, p))
-
-# M.rd reads words base + n down to base (onto acc), leaving the memory unchanged.
-def rd_words(+d: Nat, +ws: List<&2, U32>, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hl: {SC.length(U32, ws) == SC.pow2(d) : Nat}, +n: Nat, +base: Nat, +acc: List<&2, U32>, +h: {Nat.is_lt(Nat.add(base, n), SC.pow2(d)) == True{} : Bool}) -> {M.rd(n, Nat.add(base, n), acc, (AR.thaw(U32, tree(d, ws)), nthv(ws, Nat.add(base, n)))) == (AR.thaw(U32, tree(d, ws)), SC.append(U32, slice(ws, base, 1n+n), acc)) : Array<U32> & List<&2, U32>}:
-  match n:
-    case 0n:
-      +hw = L.subst(Nat, z => {Nat.is_lt(Nat.add(base, 0n), z) == True{} : Bool}, SC.pow2(d), SC.length(U32, ws), Equal.sym(Nat, SC.length(U32, ws), SC.pow2(d), hl), h)
-      %Equal.sym(Nat, Nat.add(base, 0n), base, N.add_zero(base)) : {(AR.thaw(U32, tree(d, ws)), Con{nthv(ws, _), acc}) == (AR.thaw(U32, tree(d, ws)), SC.append(U32, slice(ws, base, 1n), acc)) : Array<U32> & List<&2, U32>}
-      %Equal.sym(List<&2, U32>, slice(ws, base, 1n), Con{nthv(ws, base), Nil{}}, slice_one(ws, base, L.subst(Nat, z => {Nat.is_lt(z, SC.length(U32, ws)) == True{} : Bool}, Nat.add(base, 0n), base, N.add_zero(base), hw))) : {(AR.thaw(U32, tree(d, ws)), Con{nthv(ws, base), acc}) == (AR.thaw(U32, tree(d, ws)), SC.append(U32, _, acc)) : Array<U32> & List<&2, U32>}
-      {==}
-    case 1n+ +p:
-      +hw = L.subst(Nat, z => {Nat.is_lt(Nat.add(base, 1n+p), z) == True{} : Bool}, SC.pow2(d), SC.length(U32, ws), Equal.sym(Nat, SC.length(U32, ws), SC.pow2(d), hl), h)
-      +w = nthv(ws, Nat.add(base, 1n+p))
-      +j = Nat.add(base, p)
-      +hj = lt_pred(base, p, SC.pow2(d), h)
-      %Equal.sym(Nat, Nat.sub(Nat.add(base, 1n+p), 1n), Nat.add(base, p), pred_add(base, p)) : {M.rd(p, _, Con{w, acc}, Array.get(U32, AR.thaw(U32, tree(d, ws)), U32.from_nat(_))) == (AR.thaw(U32, tree(d, ws)), SC.append(U32, slice(ws, base, 2n+p), acc)) : Array<U32> & List<&2, U32>}
-      %Equal.sym(Array<U32> & U32, Array.get(U32, AR.thaw(U32, tree(d, ws)), U32.from_nat(j)), (AR.thaw(U32, tree(d, ws)), nthv(ws, j)), get_word(d, ws, j, hd, hl, hj)) : {M.rd(p, j, Con{w, acc}, _) == (AR.thaw(U32, tree(d, ws)), SC.append(U32, slice(ws, base, 2n+p), acc)) : Array<U32> & List<&2, U32>}
-      %Equal.sym(Array<U32> & List<&2, U32>, M.rd(p, j, Con{w, acc}, (AR.thaw(U32, tree(d, ws)), nthv(ws, j))), (AR.thaw(U32, tree(d, ws)), SC.append(U32, slice(ws, base, 1n+p), Con{w, acc})), rd_words(d, ws, hd, hl, p, base, Con{w, acc}, hj)) : {_ == (AR.thaw(U32, tree(d, ws)), SC.append(U32, slice(ws, base, 2n+p), acc)) : Array<U32> & List<&2, U32>}
-      %Equal.sym(List<&2, U32>, slice(ws, base, 2n+p), SC.append(U32, slice(ws, base, 1n+p), Con{w, Nil{}}), slice_snoc(ws, base, 1n+p, hw)) : {(AR.thaw(U32, tree(d, ws)), SC.append(U32, slice(ws, base, 1n+p), Con{w, acc})) == (AR.thaw(U32, tree(d, ws)), SC.append(U32, _, acc)) : Array<U32> & List<&2, U32>}
-      %Equal.sym(List<&2, U32>, SC.append(U32, SC.append(U32, slice(ws, base, 1n+p), Con{w, Nil{}}), acc), SC.append(U32, slice(ws, base, 1n+p), Con{w, acc}), append_cons(slice(ws, base, 1n+p), w, acc)) : {(AR.thaw(U32, tree(d, ws)), SC.append(U32, slice(ws, base, 1n+p), Con{w, acc})) == (AR.thaw(U32, tree(d, ws)), _) : Array<U32> & List<&2, U32>}
-      {==}
-
 # ---------------------------------------------------------------- the memory of a list of blocks
 
 def flat(mem: List<&2, A.Block>) -> List<&2, U32>:
@@ -308,24 +243,6 @@ def words_len(+b: A.Block) -> {SC.length(U32, SB.words(b)) == 256n : Nat}:
       %Equal.sym(Nat, SC.length(U32, SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{})))), Nat.add(32n, SC.length(U32, SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{})))), len_row(r5, SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{})))) : {Nat.add(32n, Nat.add(32n, Nat.add(32n, Nat.add(32n, Nat.add(32n, _))))) == 256n : Nat}
       %Equal.sym(Nat, SC.length(U32, SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{}))), Nat.add(32n, SC.length(U32, SB.app(SB.row_words(r7), Nil{}))), len_row(r6, SB.app(SB.row_words(r7), Nil{}))) : {Nat.add(32n, Nat.add(32n, Nat.add(32n, Nat.add(32n, Nat.add(32n, Nat.add(32n, _)))))) == 256n : Nat}
       %Equal.sym(Nat, SC.length(U32, SB.app(SB.row_words(r7), Nil{})), Nat.add(32n, SC.length(U32, Nil{})), len_row(r7, Nil{})) : {Nat.add(32n, Nat.add(32n, Nat.add(32n, Nat.add(32n, Nat.add(32n, Nat.add(32n, Nat.add(32n, _))))))) == 256n : Nat}
-      {==}
-
-def row_rw(+v: T.State, +rest: List<&2, U32>) -> {SB.row(SB.app(SB.row_words(v), rest)) == (v, rest) : T.State & List<&2, U32>}:
-  match v:
-    case T.V{T.W{l0, h0}, T.W{l1, h1}, T.W{l2, h2}, T.W{l3, h3}, T.W{l4, h4}, T.W{l5, h5}, T.W{l6, h6}, T.W{l7, h7}, T.W{l8, h8}, T.W{l9, h9}, T.W{l10, h10}, T.W{l11, h11}, T.W{l12, h12}, T.W{l13, h13}, T.W{l14, h14}, T.W{l15, h15}}:
-      {==}
-
-def rows8_words(+b: A.Block) -> {SB.rows8(SB.words(b)) == b : A.Block}:
-  match b:
-    case A.B{+r0, +r1, +r2, +r3, +r4, +r5, +r6, +r7}:
-      %Equal.sym(T.State & List<&2, U32>, SB.row(SB.app(SB.row_words(r0), SB.app(SB.row_words(r1), SB.app(SB.row_words(r2), SB.app(SB.row_words(r3), SB.app(SB.row_words(r4), SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{}))))))))), (r0, SB.app(SB.row_words(r1), SB.app(SB.row_words(r2), SB.app(SB.row_words(r3), SB.app(SB.row_words(r4), SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{})))))))), row_rw(r0, SB.app(SB.row_words(r1), SB.app(SB.row_words(r2), SB.app(SB.row_words(r3), SB.app(SB.row_words(r4), SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{}))))))))) : {SB.rows8_0(_) == A.B{r0, r1, r2, r3, r4, r5, r6, r7} : A.Block}
-      %Equal.sym(T.State & List<&2, U32>, SB.row(SB.app(SB.row_words(r1), SB.app(SB.row_words(r2), SB.app(SB.row_words(r3), SB.app(SB.row_words(r4), SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{})))))))), (r1, SB.app(SB.row_words(r2), SB.app(SB.row_words(r3), SB.app(SB.row_words(r4), SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{}))))))), row_rw(r1, SB.app(SB.row_words(r2), SB.app(SB.row_words(r3), SB.app(SB.row_words(r4), SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{})))))))) : {SB.rows8_1(r0, _) == A.B{r0, r1, r2, r3, r4, r5, r6, r7} : A.Block}
-      %Equal.sym(T.State & List<&2, U32>, SB.row(SB.app(SB.row_words(r2), SB.app(SB.row_words(r3), SB.app(SB.row_words(r4), SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{}))))))), (r2, SB.app(SB.row_words(r3), SB.app(SB.row_words(r4), SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{})))))), row_rw(r2, SB.app(SB.row_words(r3), SB.app(SB.row_words(r4), SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{}))))))) : {SB.rows8_2(r0, r1, _) == A.B{r0, r1, r2, r3, r4, r5, r6, r7} : A.Block}
-      %Equal.sym(T.State & List<&2, U32>, SB.row(SB.app(SB.row_words(r3), SB.app(SB.row_words(r4), SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{})))))), (r3, SB.app(SB.row_words(r4), SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{}))))), row_rw(r3, SB.app(SB.row_words(r4), SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{})))))) : {SB.rows8_3(r0, r1, r2, _) == A.B{r0, r1, r2, r3, r4, r5, r6, r7} : A.Block}
-      %Equal.sym(T.State & List<&2, U32>, SB.row(SB.app(SB.row_words(r4), SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{}))))), (r4, SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{})))), row_rw(r4, SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{}))))) : {SB.rows8_4(r0, r1, r2, r3, _) == A.B{r0, r1, r2, r3, r4, r5, r6, r7} : A.Block}
-      %Equal.sym(T.State & List<&2, U32>, SB.row(SB.app(SB.row_words(r5), SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{})))), (r5, SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{}))), row_rw(r5, SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{})))) : {SB.rows8_5(r0, r1, r2, r3, r4, _) == A.B{r0, r1, r2, r3, r4, r5, r6, r7} : A.Block}
-      %Equal.sym(T.State & List<&2, U32>, SB.row(SB.app(SB.row_words(r6), SB.app(SB.row_words(r7), Nil{}))), (r6, SB.app(SB.row_words(r7), Nil{})), row_rw(r6, SB.app(SB.row_words(r7), Nil{}))) : {SB.rows8_6(r0, r1, r2, r3, r4, r5, _) == A.B{r0, r1, r2, r3, r4, r5, r6, r7} : A.Block}
-      %Equal.sym(T.State & List<&2, U32>, SB.row(SB.app(SB.row_words(r7), Nil{})), (r7, Nil{}), row_rw(r7, Nil{})) : {SB.rows8_7(r0, r1, r2, r3, r4, r5, r6, _) == A.B{r0, r1, r2, r3, r4, r5, r6, r7} : A.Block}
       {==}
 
 def flat_len(+mem: List<&2, A.Block>) -> {SC.length(U32, flat(mem)) == Nat.mul(SC.length(A.Block, mem), 256n) : Nat}:
@@ -424,25 +341,16 @@ def slice_W(+d: Nat, +mem: List<&2, A.Block>, +b: Nat, +hb: {Nat.is_lt(b, SC.len
       LL.sc_take_append_left(U32, SC.drop(U32, F, base), P, 256n, h256)),
     flat_slice(mem, b, hb))
 
-def lt_last(+base: Nat, +n: Nat, +h: {Nat.is_le(Nat.add(base, 256n), n) == True{} : Bool}) -> {Nat.is_lt(Nat.add(base, 255n), n) == True{} : Bool}:
-  N.lt_le_trans(Nat.add(base, 255n), Nat.add(base, 256n), n, N.lt_add_left(255n, 256n, base, {==}), h)
-
-# Reading block b of the memory of mem.
-def get_block(+d: Nat, +mem: List<&2, A.Block>, +b: Nat, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hc: {Nat.is_le(Nat.mul(SC.length(A.Block, mem), 256n), SC.pow2(d)) == True{} : Bool}, +hb: {Nat.is_lt(b, SC.length(A.Block, mem)) == True{} : Bool}) -> {M.get(b, AR.thaw(U32, mt(d, mem))) == (AR.thaw(U32, mt(d, mem)), SA.get(mem, b)) : Array<U32> & A.Block}:
-  +ws = W(d, mem)
-  +hl = W_len(d, mem, hc)
-  +base = Nat.mul(b, 256n)
-  +last = Nat.add(base, 255n)
-  -ar = AR.thaw(U32, mt(d, mem))
-  +hlast = lt_last(base, SC.pow2(d), N.le_trans(Nat.add(base, 256n), Nat.mul(SC.length(A.Block, mem), 256n), SC.pow2(d), mul_lt(b, SC.length(A.Block, mem), hb), hc))
-  +g = SA.get(mem, b)
-  %Equal.sym(Array<U32> & U32, Array.get(U32, ar, U32.from_nat(last)), (ar, nthv(ws, last)), get_word(d, ws, last, hd, hl, hlast)) : {M.read_fin(M.rd(255n, last, Nil{}, _)) == (ar, g) : Array<U32> & A.Block}
-  %Equal.sym(Array<U32> & List<&2, U32>, M.rd(255n, last, Nil{}, (ar, nthv(ws, last))), (ar, SC.append(U32, slice(ws, base, 256n), Nil{})), rd_words(d, ws, hd, hl, 255n, base, Nil{}, hlast)) : {M.read_fin(_) == (ar, g) : Array<U32> & A.Block}
-  %Equal.sym(List<&2, U32>, SC.append(U32, slice(ws, base, 256n), Nil{}), slice(ws, base, 256n), LL.append_nil(U32, slice(ws, base, 256n))) : {M.read_fin((ar, _)) == (ar, g) : Array<U32> & A.Block}
-  %Equal.sym(List<&2, U32>, slice(ws, base, 256n), SB.words(g), slice_W(d, mem, b, hb)) : {M.read_fin((ar, _)) == (ar, g) : Array<U32> & A.Block}
-  Equal.cong(A.Block, Array<U32> & A.Block, z => (ar, z), SB.rows8(SB.words(g)), g, rows8_words(g))
-
 # ---------------------------------------------------------------- writing block b
+
+# Words ws stored from word i on, one Array.set each (the reference for
+# access.bend's X.put).
+def wr(ws: List<&2, U32>, +i: Nat, a: Array<U32>) -> Array<U32>:
+  match ws:
+    case Nil{}:
+      a
+    case w <> rest:
+      wr(rest, Nat.add(i, 1n), Array.set(U32, a, U32.from_nat(i), w))
 
 # Words ws stored from index i on.
 def splice(ws: List<&2, U32>, +i: Nat, V: List<&2, U32>) -> List<&2, U32>:
@@ -460,7 +368,7 @@ def add_one_assoc(+i: Nat, +r: Nat) -> {Nat.add(Nat.add(i, 1n), r) == Nat.add(i,
   NA.add_assoc(i, 1n, r)
 
 # M.wr stores the words ws from word i on.
-def wr_words(+d: Nat, +ws: List<&2, U32>, +i: Nat, +V: List<&2, U32>, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hl: {SC.length(U32, V) == SC.pow2(d) : Nat}, +hi: {Nat.is_le(Nat.add(i, SC.length(U32, ws)), SC.pow2(d)) == True{} : Bool}) -> {M.wr(ws, i, AR.thaw(U32, tree(d, V))) == AR.thaw(U32, tree(d, splice(ws, i, V))) : Array<U32>}:
+def wr_words(+d: Nat, +ws: List<&2, U32>, +i: Nat, +V: List<&2, U32>, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hl: {SC.length(U32, V) == SC.pow2(d) : Nat}, +hi: {Nat.is_le(Nat.add(i, SC.length(U32, ws)), SC.pow2(d)) == True{} : Bool}) -> {wr(ws, i, AR.thaw(U32, tree(d, V))) == AR.thaw(U32, tree(d, splice(ws, i, V))) : Array<U32>}:
   match ws:
     case Nil{}:
       {==}
@@ -481,9 +389,9 @@ def wr_words(+d: Nat, +ws: List<&2, U32>, +i: Nat, +V: List<&2, U32>, +hd: {Nat.
       +e_ext = Equal.trans(AR.Tree<U32>, t2, tree(d, AR.slots(U32, t2)), tree(d, V2), tree_ext(d, t2, AR.upd_perfect(U32, d, t, i, w, tree_perfect(d, V))), Equal.cong(List<&2, U32>, AR.Tree<U32>, z => tree(d, z), AR.slots(U32, t2), V2, e_slots))
       +hl2 = Equal.trans(Nat, SC.length(U32, V2), SC.length(U32, V), SC.pow2(d), LL.length_update(U32, V, i, w), hl)
       +hi2 = L.subst(Nat, z => {Nat.is_le(z, SC.pow2(d)) == True{} : Bool}, Nat.add(i, 1n+SC.length(U32, rest)), Nat.add(Nat.add(i, 1n), SC.length(U32, rest)), Equal.sym(Nat, Nat.add(Nat.add(i, 1n), SC.length(U32, rest)), Nat.add(i, 1n+SC.length(U32, rest)), add_one_assoc(i, SC.length(U32, rest))), hi)
-      %Equal.sym(Array<U32>, Array.set(U32, AR.thaw(U32, t), U32.from_nat(i), w), AR.thaw(U32, AR.upd(U32, d, t, U32.to_nat(U32.from_nat(i)), w)), es) : {M.wr(rest, Nat.add(i, 1n), _) == AR.thaw(U32, tree(d, splice(rest, Nat.add(i, 1n), V2))) : Array<U32>}
-      %Equal.sym(Array<U32>, AR.thaw(U32, AR.upd(U32, d, t, U32.to_nat(U32.from_nat(i)), w)), AR.thaw(U32, t2), Equal.cong(Nat, Array<U32>, z => AR.thaw(U32, AR.upd(U32, d, t, z, w)), U32.to_nat(U32.from_nat(i)), i, ei)) : {M.wr(rest, Nat.add(i, 1n), _) == AR.thaw(U32, tree(d, splice(rest, Nat.add(i, 1n), V2))) : Array<U32>}
-      %Equal.sym(Array<U32>, AR.thaw(U32, t2), AR.thaw(U32, tree(d, V2)), Equal.cong(AR.Tree<U32>, Array<U32>, z => AR.thaw(U32, z), t2, tree(d, V2), e_ext)) : {M.wr(rest, Nat.add(i, 1n), _) == AR.thaw(U32, tree(d, splice(rest, Nat.add(i, 1n), V2))) : Array<U32>}
+      %Equal.sym(Array<U32>, Array.set(U32, AR.thaw(U32, t), U32.from_nat(i), w), AR.thaw(U32, AR.upd(U32, d, t, U32.to_nat(U32.from_nat(i)), w)), es) : {wr(rest, Nat.add(i, 1n), _) == AR.thaw(U32, tree(d, splice(rest, Nat.add(i, 1n), V2))) : Array<U32>}
+      %Equal.sym(Array<U32>, AR.thaw(U32, AR.upd(U32, d, t, U32.to_nat(U32.from_nat(i)), w)), AR.thaw(U32, t2), Equal.cong(Nat, Array<U32>, z => AR.thaw(U32, AR.upd(U32, d, t, z, w)), U32.to_nat(U32.from_nat(i)), i, ei)) : {wr(rest, Nat.add(i, 1n), _) == AR.thaw(U32, tree(d, splice(rest, Nat.add(i, 1n), V2))) : Array<U32>}
+      %Equal.sym(Array<U32>, AR.thaw(U32, t2), AR.thaw(U32, tree(d, V2)), Equal.cong(AR.Tree<U32>, Array<U32>, z => AR.thaw(U32, z), t2, tree(d, V2), e_ext)) : {wr(rest, Nat.add(i, 1n), _) == AR.thaw(U32, tree(d, splice(rest, Nat.add(i, 1n), V2))) : Array<U32>}
       wr_words(d, rest, Nat.add(i, 1n), V2, hd, hl2, hi2)
 
 def splice_app_left(+ws: List<&2, U32>, +i: Nat, +X: List<&2, U32>, +P: List<&2, U32>, +h: {Nat.is_le(Nat.add(i, SC.length(U32, ws)), SC.length(U32, X)) == True{} : Bool}) -> {splice(ws, i, SC.append(U32, X, P)) == SC.append(U32, splice(ws, i, X), P) : List<&2, U32>}:
@@ -566,12 +474,6 @@ def W_splice(+d: Nat, +mem: List<&2, A.Block>, +b: Nat, +v: A.Block, +hb: {Nat.i
       Equal.cong(Nat, List<&2, U32>, z => SC.append(U32, flat(SA.set(mem, b, v)), pad(d, z)), SC.length(A.Block, mem), SC.length(A.Block, SA.set(mem, b, v)), Equal.sym(Nat, SC.length(A.Block, SA.set(mem, b, v)), SC.length(A.Block, mem), LL.length_update(A.Block, mem, b, v)))))
 
 # Writing block b of the memory of mem.
-def set_block(+d: Nat, +mem: List<&2, A.Block>, +b: Nat, +v: A.Block, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hc: {Nat.is_le(Nat.mul(SC.length(A.Block, mem), 256n), SC.pow2(d)) == True{} : Bool}, +hb: {Nat.is_lt(b, SC.length(A.Block, mem)) == True{} : Bool}) -> {M.set(b, v, AR.thaw(U32, mt(d, mem))) == AR.thaw(U32, mt(d, SA.set(mem, b, v))) : Array<U32>}:
-  +hi = L.subst(Nat, z => {Nat.is_le(Nat.add(Nat.mul(b, 256n), z), SC.pow2(d)) == True{} : Bool}, 256n, SC.length(U32, SB.words(v)), Equal.sym(Nat, SC.length(U32, SB.words(v)), 256n, words_len(v)), N.le_trans(Nat.add(Nat.mul(b, 256n), 256n), Nat.mul(SC.length(A.Block, mem), 256n), SC.pow2(d), mul_lt(b, SC.length(A.Block, mem), hb), hc))
-  Equal.trans(Array<U32>, M.wr(SB.words(v), Nat.mul(b, 256n), AR.thaw(U32, tree(d, W(d, mem)))), AR.thaw(U32, tree(d, splice(SB.words(v), Nat.mul(b, 256n), W(d, mem)))), AR.thaw(U32, mt(d, SA.set(mem, b, v))),
-    wr_words(d, SB.words(v), Nat.mul(b, 256n), W(d, mem), hd, W_len(d, mem, hc), hi),
-    Equal.cong(List<&2, U32>, Array<U32>, z => AR.thaw(U32, tree(d, z)), splice(SB.words(v), Nat.mul(b, 256n), W(d, mem)), W(d, SA.set(mem, b, v)), W_splice(d, mem, b, v, hb)))
-
 # ---------------------------------------------------------------- the zero memory
 
 def zero_words() -> {SB.words(SG.zero()) == SC.replicate(U32, 256n, 0) : List<&2, U32>}:

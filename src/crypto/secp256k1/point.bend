@@ -2,6 +2,8 @@ import Base
 import ./limbs.bend as L
 import ./field.bend as F
 import ./bytes.bend as B
+import ./fe.bend as R
+import ./pt.bend as PX
 
 # The secp256k1 group y^2 = x^3 + 7 over GF(p) (SEC 2 section 2.4.1), in
 # homogeneous projective coordinates (X : Y : Z), x = X / Z, y = Y / Z, the
@@ -13,85 +15,38 @@ import ./bytes.bend as B
 # exceptional case and no branch (the same choice as HACL*'s
 # Hacl.Impl.K256.PointAdd / Spec.K256.PointOps).
 #
-# The formulas are straight-line programs over field registers, run by a
-# small interpreter: registers 0.. are the inputs, each instruction appends
-# one register. spec/crypto/secp256k1/curve.bend states the same programs,
-# transcribed from the paper, over the field specification.
+# The formulas are the register programs of spec/crypto/secp256k1/curve.bend
+# (transcribed from the paper) written out as straight-line code over field
+# records (pt.bend, fe.bend).
 #
 # Scalar multiplication is double-and-add over the 256 bits of the scalar,
-# most significant first, adding in every step and selecting the result
-# with an arithmetic mask (no branch and no table index on the scalar).
-
-type Op is Data:
-  OAdd{i: Nat, j: Nat}
-  OSub{i: Nat, j: Nat}
-  OMul{i: Nat, j: Nat}
+# most significant first (the specification's): for a secret scalar adding
+# in every step and selecting the result with an arithmetic mask (no branch
+# and no table index on the scalar), for a public one adding only when the
+# bit is set.
 
 type Point is Data:
   Point{x: List<&2, Nat>, y: List<&2, Nat>, z: List<&2, Nat>}
 
-def nth(i: Nat, regs: List<&2, List<&2, Nat>>) -> List<&2, Nat>:
-  match i regs:
-    case _ Nil{}: F.zero()
-    case 0n r <> t: r
-    case 1n+k r <> t: nth(k, t)
+# The arithmetic runs on records (pt.bend over fe.bend): a point's
+# coordinates are converted once, the formulas and the whole scalar
+# multiplication run on registers, and the result is converted back.
 
-def exec(op: Op, +regs: List<&2, List<&2, Nat>>) -> List<&2, Nat>:
-  match op:
-    case OAdd{i, j}: F.add(nth(i, regs), nth(j, regs))
-    case OSub{i, j}: F.sub(nth(i, regs), nth(j, regs))
-    case OMul{i, j}: F.mul(nth(i, regs), nth(j, regs))
-
-def run_go(prog: List<&2, Op>, +regs: List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match prog:
-    case Nil{}: regs
-    case op <> t: run_go(t, List.append(&2, List<&2, Nat>, regs, [exec(op, regs)]))
-
-# The first register is looked at before the program runs, so that the
-# proof checker stops at once on unknown inputs (the result is run_go's).
-def run(prog: List<&2, Op>, regs: List<&2, List<&2, Nat>>) -> List<&2, List<&2, Nat>>:
-  match regs:
-    case Nil{}: run_go(prog, Nil{})
-    case Nil{} <> t: run_go(prog, Nil{} <> t)
-    case (y <> u) <> t: run_go(prog, (y <> u) <> t)
-
-# RCB 2016 Algorithm 7 (a = 0): registers X1 Y1 Z1 X2 Y2 Z2 b3 = 0..6;
-# the result is X3 Y3 Z3 = registers 33, 36, 39.
-def add_prog() -> List<&2, Op>:
-  [OMul{0n, 3n}, OMul{1n, 4n}, OMul{2n, 5n}, OAdd{0n, 1n}, OAdd{3n, 4n},
-   OMul{10n, 11n}, OAdd{7n, 8n}, OSub{12n, 13n}, OAdd{1n, 2n}, OAdd{4n, 5n},
-   OMul{15n, 16n}, OAdd{8n, 9n}, OSub{17n, 18n}, OAdd{0n, 2n}, OAdd{3n, 5n},
-   OMul{20n, 21n}, OAdd{7n, 9n}, OSub{22n, 23n}, OAdd{7n, 7n}, OAdd{25n, 7n},
-   OMul{6n, 9n}, OAdd{8n, 27n}, OSub{8n, 27n}, OMul{6n, 24n}, OMul{19n, 30n},
-   OMul{14n, 29n}, OSub{32n, 31n}, OMul{30n, 26n}, OMul{29n, 28n}, OAdd{35n, 34n},
-   OMul{26n, 14n}, OMul{28n, 19n}, OAdd{38n, 37n}]
-
-# RCB 2016 Algorithm 9 (a = 0): registers X Y Z b3 = 0..3; the result is
-# X3 Y3 Z3 = registers 21, 18, 13.
-def dbl_prog() -> List<&2, Op>:
-  [OMul{1n, 1n}, OAdd{4n, 4n}, OAdd{5n, 5n}, OAdd{6n, 6n}, OMul{1n, 2n},
-   OMul{2n, 2n}, OMul{3n, 9n}, OMul{10n, 7n}, OAdd{4n, 10n}, OMul{8n, 7n},
-   OAdd{10n, 10n}, OAdd{14n, 10n}, OSub{4n, 15n}, OMul{16n, 12n}, OAdd{11n, 17n},
-   OMul{0n, 1n}, OMul{16n, 19n}, OAdd{20n, 20n}]
-
-def b3() -> List<&2, Nat>:
-  F.small(21n)
-
-def add_out(+r: List<&2, List<&2, Nat>>) -> Point:
-  Point{nth(33n, r), nth(36n, r), nth(39n, r)}
-
-def add(p: Point, q: Point) -> Point:
-  match p q:
-    case Point{x1, y1, z1} Point{x2, y2, z2}:
-      add_out(run(add_prog(), [x1, y1, z1, x2, y2, z2, b3()]))
-
-def dbl_out(+r: List<&2, List<&2, Nat>>) -> Point:
-  Point{nth(21n, r), nth(18n, r), nth(13n, r)}
-
-def dbl(p: Point) -> Point:
+def to_pt(p: Point) -> PX.PT:
   match p:
-    case Point{x, y, z}:
-      dbl_out(run(dbl_prog(), [x, y, z, b3()]))
+    case Point{x, y, z}: PX.PT{R.of_list(x), R.of_list(y), R.of_list(z)}
+
+def of_pt(q: PX.PT) -> Point:
+  match q:
+    case PX.PT{x, y, z}: Point{R.to_list(x), R.to_list(y), R.to_list(z)}
+
+# RCB 2016 Algorithm 7 (a = 0), complete: pt.bend add
+def add(p: Point, q: Point) -> Point:
+  of_pt(PX.add(to_pt(p), to_pt(q)))
+
+# RCB 2016 Algorithm 9 (a = 0): pt.bend dbl
+def dbl(p: Point) -> Point:
+  of_pt(PX.dbl(to_pt(p)))
 
 def infinity() -> Point:
   Point{F.zero(), F.one(), F.zero()}
@@ -106,17 +61,16 @@ def select(+b: Nat, p: Point, q: Point) -> Point:
     case Point{x1, y1, z1} Point{x2, y2, z2}:
       Point{F.select(b, x1, x2), F.select(b, y1, y2), F.select(b, z1, z2)}
 
-def step(+b: Nat, +p: Point, +d: Point) -> Point:
-  select(b, add(d, p), d)
-
-def mul_go(bits: List<&2, Nat>, +p: Point, +r: Point) -> Point:
-  match bits:
-    case Nil{}: r
-    case b <> t: mul_go(t, p, step(b, p, dbl(r)))
-
-# [k] p for a scalar k given by its 16 limbs (any value below 2^256)
+# [k] p for a scalar k given by its 16 limbs (any value below 2^256), for a
+# secret k: double-and-add over the 256 bits, adding in every step and
+# selecting with an arithmetic mask (no branch and no table index on k)
 def mul(k: List<&2, Nat>, +p: Point) -> Point:
-  mul_go(L.bits(k), p, infinity())
+  of_pt(PX.mul_go(L.bitsf(k), to_pt(p), PX.infinity()))
+
+# the same for a public k (verification, recovery): the addition only when
+# the bit is set
+def mul_pub(k: List<&2, Nat>, +p: Point) -> Point:
+  of_pt(PX.vmul_go(L.bitsf(k), to_pt(p), PX.infinity()))
 
 def gx() -> List<&2, Nat>:
   [6040n, 5880n, 33115n, 23026n, 10457n, 11726n, 64731n, 667n,

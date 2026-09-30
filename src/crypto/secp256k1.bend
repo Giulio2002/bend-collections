@@ -27,6 +27,11 @@ import ./secp256k1/schnorr.bend as Sch
 #   schnorr_pubkey(sk)            BIP-340 32-byte x-only public key
 #   schnorr_sign(sk, msg, aux32)  BIP-340 64-byte signature
 #   schnorr_verify(pk32, msg, sig64)
+#   schnorr_keypair(sk)           the key pair of sk (d' and P = d' G, once)
+#   schnorr_keypair_pubkey(kp)    its 32-byte x-only public key
+#   schnorr_sign_keypair(kp, msg, aux32)
+#                                 schnorr_sign(sk, msg, aux32) from the key
+#                                 pair (no multiplication for the public key)
 #
 # Every function is proved equal to its specification
 # (spec/crypto/secp256k1/, transcribed from SEC 1/SEC 2, RFC 6979 and
@@ -115,3 +120,12 @@ def schnorr_sign(+sk: List<&2, U32>, +msg: List<&2, U32>, +aux: List<&2, U32>) -
 
 def schnorr_verify(+pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
   Sch.verify(pk, msg, sig)
+
+def schnorr_keypair(+sk: List<&2, U32>) -> Maybe<&2, Sch.Keypair>:
+  Sch.keypair(sk)
+
+def schnorr_keypair_pubkey(mkp: Maybe<&2, Sch.Keypair>) -> Maybe<&2, List<&2, U32>>:
+  Sch.kp_pub(mkp)
+
+def schnorr_sign_keypair(mkp: Maybe<&2, Sch.Keypair>, +msg: List<&2, U32>, +aux: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  Sch.sign_kp(mkp, msg, aux)

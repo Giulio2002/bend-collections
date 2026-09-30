@@ -420,11 +420,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--report', required=True)
     ap.add_argument('--only', default=None)
+    ap.add_argument('--ops', default=None, help='comma-separated operations of --only to measure')
+    ap.add_argument('--sizes', default=None, help='comma-separated sizes (small, medium, large) to measure')
     args = ap.parse_args()
 
     rows = [dict(r, seed=r.get("seed", 1000 + i)) for i, r in enumerate(TABLE)]
     if args.only:
         rows = [r for r in rows if r['structure'] == args.only]
+    if args.ops:
+        rows = [r for r in rows if r['operation'].split('.')[-1] in args.ops.split(',')]
+    if args.sizes:
+        rows = [r for r in rows if any(r['workload'].endswith(z) for z in args.sizes.split(','))]
     structures = sorted({r['structure'] for r in rows})
     built = build_all(structures)
 

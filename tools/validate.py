@@ -453,7 +453,7 @@ def main():
                          ([sys.executable, 'tools/check_argon2.py'], 3600),
                          ([sys.executable, 'tools/check_curve25519.py'], 7200),
                          ([sys.executable, 'proofs/prove.py', '-j', '4', 'subtle', 'sha512', 'sha3', 'hash', 'argon2',
-                           'curve25519', 'ed25519'], 14400)]
+                           'curve25519', 'ed25519', 'fe'], 14400)]
         for command, limit in crypto_checks:
             result = run(command, timeout=limit)
             passed = result.returncode == 0

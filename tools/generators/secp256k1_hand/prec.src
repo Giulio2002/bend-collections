@@ -63,9 +63,9 @@ def rr(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(on
       +hn = SO.neg_r(one, h1, z, hz)
       +hu1 = SO.mul_r(one, h1, S.neg(z), S.inv(r), hn, hi)
       +hu2 = SO.mul_r(one, h1, s, S.inv(r), hs, hi)
-      +q = P.add(P.mul(S.mul(S.neg(z), S.inv(r)), P.g()), P.mul(S.mul(s, S.inv(r)), pr))
-      %goal {E.recover_q(P.add(P.mul(S.mul(S.neg(z), S.inv(r)), P.g()), P.mul(S.mul(s, S.inv(r)), pr)), P.is_inf(P.add(P.mul(S.mul(S.neg(z), S.inv(r)), P.g()), P.mul(S.mul(s, S.inv(r)), pr)))) == ES.recover_q(one, CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.mmul(FS.order(one), FS.mneg(FS.order(one), FS.value(one, z)), FS.minv(FS.order(one), FS.value(one, r))), CV.g(one)), CV.pmul(FS.prime(one), FS.mmul(FS.order(one), FS.value(one, s), FS.minv(FS.order(one), FS.value(one, r))), PT.pv(one, pr)))) : Maybe<&2, List<&2, U32>>}
-      %rw rq_v(one, h1, P.add(P.mul(S.mul(S.neg(z), S.inv(r)), P.g()), P.mul(S.mul(s, S.inv(r)), pr)), TW.two_r(one, h1, S.mul(S.neg(z), S.inv(r)), hu1, S.mul(s, S.inv(r)), hu2, pr, hm))
+      +q = P.add(P.mul_pub(S.mul(S.neg(z), S.inv(r)), P.g()), P.mul_pub(S.mul(s, S.inv(r)), pr))
+      %goal {E.recover_q(P.add(P.mul_pub(S.mul(S.neg(z), S.inv(r)), P.g()), P.mul_pub(S.mul(s, S.inv(r)), pr)), P.is_inf(P.add(P.mul_pub(S.mul(S.neg(z), S.inv(r)), P.g()), P.mul_pub(S.mul(s, S.inv(r)), pr)))) == ES.recover_q(one, CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.mmul(FS.order(one), FS.mneg(FS.order(one), FS.value(one, z)), FS.minv(FS.order(one), FS.value(one, r))), CV.g(one)), CV.pmul(FS.prime(one), FS.mmul(FS.order(one), FS.value(one, s), FS.minv(FS.order(one), FS.value(one, r))), PT.pv(one, pr)))) : Maybe<&2, List<&2, U32>>}
+      %rw rq_v(one, h1, P.add(P.mul_pub(S.mul(S.neg(z), S.inv(r)), P.g()), P.mul_pub(S.mul(s, S.inv(r)), pr)), TW.two_r(one, h1, S.mul(S.neg(z), S.inv(r)), hu1, S.mul(s, S.inv(r)), hu2, pr, hm))
       %rw TW.two_v(one, h1, S.mul(S.neg(z), S.inv(r)), hu1, S.mul(s, S.inv(r)), hu2, pr, hm)
       %rw SO.mul_v(one, h1, S.neg(z), S.inv(r), hn, hi)
       %rw SO.mul_v(one, h1, s, S.inv(r), hs, hi)

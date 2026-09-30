@@ -106,7 +106,8 @@ SUITE = OrderedDict([
         ('uint_below', '`uint_below` (ChaCha8)', "Go's `uint64n` (Lemire) transcribed", 'Bound', 'ns'),
         ('float64', '`float64` (ChaCha8)', "Go's `Float64` transcribed", 'Draws', 'ns'),
         ('shuffle', '`shuffle` (ChaCha8)', "Go's Fisher-Yates `Shuffle` on a C array; Bend's `shuffle_array` on an `Array<U32>`, in place", 'Items', 'us'),
-        ('crypto_random_bytes', '`crypto.random.bytes`', "Go's `ChaCha8.Read` transcribed", 'Request', 'us'),
+        ('crypto_random_bytes', '`crypto.random.bytes`', "Go's `ChaCha8.Read` transcribed; Bend returns a list of bytes", 'Request', 'us'),
+        ('crypto_random_read', '`crypto.random.read_words`', "Go's `ChaCha8.Read` transcribed; Bend writes the bytes packed into an `Array<U32>`, in place", 'Request', 'us'),
     ])),
 ])
 TODO_ROWS = {}   # case -> text, for a module that could not be measured
@@ -125,8 +126,8 @@ def suite_tables(worst):
         if group == 'hash':
             out += ['Same method as the hashes above (`benchmarks/crypto_suite.py --group hash`).', '']
         elif group == 'pk':
-            out += ['A curve operation takes Bend 0.1-1 s, so these rows time a few operations',
-                    'per sample (Argon2id: 64 hashes at 64 KiB, one at 19 MiB). The curve C',
+            out += ['A curve operation takes Bend 0.25-0.7 ms, so these rows time 64 to 256',
+                    'operations per sample (Argon2id: 64 hashes at 64 KiB, one at 19 MiB). The curve C',
                     'references repeat their timed pass until 50 ms have passed and report the',
                     'mean pass. Microseconds per operation.', '']
         elif group == 'random':
@@ -187,10 +188,18 @@ def references_section():
             '  column shows what a non-constant-time C costs.',
             '- AES-GCM and the AEADs set up the key for every message on both sides (the',
             '  Bend API takes the key bytes per call).',
-            '- Ed25519 sign: the Bend API takes the 32-byte seed and derives the public key',
-            '  inside every call; Monocypher\'s `crypto_ed25519_sign` takes the 64-byte',
-            '  expanded secret key (seed || public key), so it skips one fixed-base',
-            '  scalar multiplication per signature.',
+            '- Ed25519: the rows use the expanded-key and context APIs of',
+            '  `src/crypto/sign.bend`, made before the timed region: sign signs with',
+            '  `signing_key_ctx(context, seed)` (curve constants, base point, s mod L,',
+            '  prefix and public key), as Monocypher\'s `crypto_ed25519_sign` takes the',
+            '  64-byte secret key made once; key generation and verification take the',
+            '  context (`generate_keypair_ctx`, `verify_ctx`: the curve constants and',
+            '  base point, which C keeps in static tables); verification decodes the',
+            '  public key in every call, as C does. The Bend scalar multiplications are',
+            '  the specification\'s double-and-add over 256 bits (256 doublings and 256',
+            '  selected additions for a secret scalar); Monocypher\'s fixed-base and',
+            '  double-scalar multiplications use precomputed tables and windows, which',
+            '  the proofs would need the group law for.',
             '- secp256k1: libsecp256k1 is production code with precomputed multiplication',
             '  tables, not a plain reference; its verify parses the key and signature inside',
             '  the timed region (the Bend API takes bytes) and normalises s (Bend\'s verify',
@@ -200,7 +209,12 @@ def references_section():
             '- Shuffle: both sides shuffle the first n slots of an array in place (Bend:',
             '  `shuffle_array` on an `Array<U32>` of 2^d >= n slots, filled before the timed',
             '  region; the list `shuffle` writes the list into such an array and reads it',
-            '  back, two more linear passes).', '']
+            '  back, two more linear passes).',
+            '- `crypto.random.bytes` returns a list with one heap cell per byte (and',
+            '  reverses its accumulator), so it stays about 20x the C buffer write; the',
+            '  ChaCha8 stream alone is about 7x. `crypto.random.read_words` writes the same',
+            '  bytes packed four to a U32 into an `Array<U32>` allocated before the timed',
+            '  region, which is what the C side does with its byte buffer.', '']
 
 
 def main():

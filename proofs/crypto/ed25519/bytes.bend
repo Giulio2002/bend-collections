@@ -1,16 +1,16 @@
 import Base
-import ../../../spec/crypto/curve25519/field.bend as FS
 import ../../../spec/crypto/ed25519.bend as SE
 import ../../../spec/crypto/sha512.bend as SHA
-import ../../../src/crypto/hash.bend as H
+import ../../../src/crypto/sha512/stream.bend as HS
 import ../../../src/crypto/sha512/types.bend as T512
 import ../../../src/crypto/sha512/core.bend as C512
 import ../../../src/crypto/curve25519/field.bend as F
 import ../../../src/crypto/curve25519/x25519.bend as X
 import ../../../src/crypto/ed25519/ed25519.bend as E
 import ../../lib/logic.bend as L
-import ../../math/hash/hash.bend as HH
+import ../fe/w32.bend as HH
 import ../sha512/conformance.bend as S512
+import ../sha512/stream.bend as P512
 import ../curve25519/limbs.bend as LM
 
 # Byte-string facts for Ed25519: the implementation's take / drop / cat are
@@ -105,8 +105,9 @@ def bitlen_256(+xs: List<&2, U32>, +e: {LM.okb(32n, xs, 255n) == True{} : Bool})
 
 # ---- SHA-512 ----
 
-def sha_eq(+bytes: List<&2, U32>) -> {H.sha512(bytes) == SHA.sha512_bytes(bytes) : List<&2, U32>}:
-  S512.sha512_correct(bytes)
+def sha_eq(+bytes: List<&2, U32>) -> {HS.hash(bytes) == SHA.sha512_bytes(bytes) : List<&2, U32>}:
+  Equal.trans(List<&2, U32>, HS.hash(bytes), C512.sha512(bytes), SHA.sha512_bytes(bytes),
+    P512.hash_correct(bytes), S512.sha512_correct(bytes))
 
 def byte_and(+x: U32) -> {Nat.is_le(v(U32.and(x, 255)), 255n) == True{} : Bool}:
   HH.and_le32(x, 255)
@@ -142,8 +143,10 @@ def digest_okb(+s: T512.State) -> {LM.okb(64n, C512.digest_bytes(s), 255n) == Tr
       lane_okb(56n, a, tb, lane_okb(48n, b, tc, lane_okb(40n, c, td, lane_okb(32n, d, te, lane_okb(24n, e, tf, lane_okb(16n, f, tg, lane_okb(8n, g, th, lane_okb(0n, h, Nil{}, {==}))))))))
 
 # a digest: 64 bytes, each below 256
-def sha_okb(+bytes: List<&2, U32>) -> {LM.okb(64n, H.sha512(bytes), 255n) == True{} : Bool}:
+def sha_okb(+bytes: List<&2, U32>) -> {LM.okb(64n, HS.hash(bytes), 255n) == True{} : Bool}:
+  %Equal.sym(List<&2, U32>, HS.hash(bytes), C512.sha512(bytes), P512.hash_correct(bytes)) :
+    {LM.okb(64n, _, 255n) == True{} : Bool}
   digest_okb(C512.blocks(C512.lanes(List.append(&2, U32, bytes, C512.suffix(List.length(&2, U32, bytes)))), 64n, C512.round_constants(), C512.initial()))
 
-def sha_lea(+bytes: List<&2, U32>) -> {LM.lea(H.sha512(bytes), 255n) == True{} : Bool}:
-  LM.okb_lea(64n, H.sha512(bytes), 255n, sha_okb(bytes))
+def sha_lea(+bytes: List<&2, U32>) -> {LM.lea(HS.hash(bytes), 255n) == True{} : Bool}:
+  LM.okb_lea(64n, HS.hash(bytes), 255n, sha_okb(bytes))

@@ -45,7 +45,7 @@ benchmarked against optimized C implementations of the same algorithms.
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 | Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |
 | Random numbers | `src/math/random.bend` (`src/math/random/`) | Go's `math/rand/v2` bit for bit: a Source interface for any seeded generator, ChaCha8 (C2SP chacha8rand) and PCG-DXSM sources, unbiased bounded integers (Lemire), floats, Fisher-Yates shuffles; see below |
-| Secure random | `src/crypto/random.bend` | ChaCha8Rand generator: seeded or OS-seeded (`IO.random_u32`), `bytes`, `uint_below`, `shuffle`; [contract and caveats](docs/CRYPTO_CONTRACTS.md) |
+| Secure random | `src/crypto/random.bend` | ChaCha8Rand generator: seeded or OS-seeded (`IO.random_u32`), `bytes`, `read_words` (bytes into a packed `Array<U32>`), `uint_below`, `shuffle`; [contract and caveats](docs/CRYPTO_CONTRACTS.md) |
 
 The hash map and the LRU follow Base's conventions: signatures are
 quantity-polymorphic (`a, -V: Kind(a)`, as `Base.Map` uses), and reads that
@@ -329,11 +329,15 @@ Kex.shared_secret(sk, pk)                # X25519(sk, pk), None if all zero or m
 Sign.generate_keypair(seed)              # Ed25519 key pair from a 32-byte seed
 Sign.sign(sk, msg)                       # Some{64-byte signature}
 Sign.verify(pk, msg, sig)                # True iff valid (S >= L rejected)
+Sign.signing_key(seed)                   # Some{expanded key}: sign_with_key(k, msg) per message
+Sign.context(xs)                         # curve constants and base point, computed once;
+                                         # generate_keypair_ctx, signing_key_ctx, verify_ctx take it
 ```
 
 X25519 (RFC 7748) and Ed25519 (RFC 8032) run on one field implementation
-(`src/crypto/curve25519/field.bend`, 32 limbs of 8 bits, every operation
-proved to compute its value mod p with bounded limbs). Each facade is proved
+(`src/crypto/curve25519/fe.bend`, 15 limbs of 17 bits with products on the
+32-bit multiplier, every operation proved to compute its value mod p with
+bounded limbs). Each facade is proved
 equal to a transcription of its RFC (`spec/crypto/curve25519/x25519.bend`,
 `spec/crypto/ed25519.bend`) for every input, with SHA-512 proved equal to
 FIPS 180-4; `tools/check_curve25519.py` runs the RFC vectors and a

@@ -221,3 +221,18 @@ def bits(xs: List<&2, Nat>) -> List<&2, Nat>:
   match xs:
     case Nil{}: Nil{}
     case x <> t: List.append(&2, Nat, bits(t), bits_of(16n, x))
+
+# the same in linear time, as the scalar multiplications read them:
+# bits_of(k, x) ++ acc, and bits(xs) ++ acc (proofs: pmul.bend bitsf_is)
+def bits_acc(k: Nat, +x: Nat, acc: List<&2, Nat>) -> List<&2, Nat>:
+  match k:
+    case 0n: acc
+    case 1n+j: bits_acc(j, Nat.div(x, 2n), Nat.mod(x, 2n) <> acc)
+
+def bits_go(xs: List<&2, Nat>, acc: List<&2, Nat>) -> List<&2, Nat>:
+  match xs:
+    case Nil{}: acc
+    case x <> t: bits_go(t, bits_acc(16n, x, acc))
+
+def bitsf(xs: List<&2, Nat>) -> List<&2, Nat>:
+  bits_go(xs, Nil{})

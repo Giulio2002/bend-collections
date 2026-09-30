@@ -16,7 +16,6 @@ import ./poly.bend as PL
 import ./fold.bend as FD
 import ./reduce.bend as RD
 import ./consts.bend as K
-import ./fieldops.bend as FO
 import ./cong.bend as G
 import ./freeze.bend as FZ
 import ./mulw.bend as MW

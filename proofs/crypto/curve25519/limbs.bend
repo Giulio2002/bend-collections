@@ -9,7 +9,7 @@ import ../../lib/word.bend as WD
 import ../../lib/arith.bend as AR
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/natural/arith.bend as NR
-import ../../math/u64/u64div.bend as PD
+import ../fe/w32.bend as PD
 import ./num.bend as M
 
 # Limb lists: their value (FS.value, radix 2^8), shapes and bounds, the U32

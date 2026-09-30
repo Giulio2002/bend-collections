@@ -3,6 +3,9 @@ import ./gb.bend as GB
 import ./blamka.bend as BL
 import ./hash.bend as HS
 import ./memory.bend as MEM
+import ./access.bend as XP
+import ./blocks.bend as BK
+import ./hprime.bend as HP
 import ./index.bend as IX
 import ./fill.bend as FL
 import ./run.bend as RN

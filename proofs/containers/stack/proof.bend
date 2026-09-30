@@ -7,47 +7,71 @@ import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../../spec/lib/sequence.bend as V
 import ../../lib/sequence.bend as VL
+import ../../lib/array.bend as AR
+import ../dynamic_array/layout.bend as LY
+import ./chunks.bend as K
 
-# Universal one-step refinement, including cached count preservation and
-# empty errors. Concrete instances in STACK_COMPONENT_PROOF.bend.
-def real(~T: Data, +xs: List<&2, T>) -> D.Stack<T>:
-  D.ST{xs, C.length(T, xs)}
+# The implementation (src/containers/stack.bend, a stack of array chunks)
+# refines the list model: for every good shadow sh (proofs/containers/stack/
+# chunks.bend), one step of the actual stack is one step of the model, and
+# the stack it returns is again the realization of a good shadow. Concrete
+# instances in components.bend.
 
-def lift(~T: Data, r: List<&2, T> & E.Obs<T>) -> D.Stack<T> & E.Obs<T>:
-  (xs, obs) = r
-  (real(~T, xs), obs)
+# The model of an actual stack (proof-level: reads each chunk's array through
+# AR.freeze).
+def abs(~T: Data, s: D.Stack<T>) -> List<&2, T>:
+  match s:
+    case D.SE{}:
+      Nil{}
+    case D.ST{d, n, a, c, r}:
+      C.append(T, C.reverse(T, LY.somes(T, AR.slots(Maybe<&2, T>, AR.freeze(Maybe<&2, T>, a)))), abs(~T, r))
 
-def step_correct(~T: Data, +xs: List<&2, T>, +op: E.Op<T>) -> {D.step(~T, real(~T, xs), op) == lift(~T, S.step(T, xs, op)) : D.Stack<T> & E.Obs<T>}:
-  match xs op:
-    case Nil{} E.Push{v}:
+def abs_real(~T: Data, +sh: K.Sh<T>) -> {abs(~T, K.real(~T, sh)) == K.model(T, sh) : List<&2, T>}:
+  match sh:
+    case K.SSE{}:
       {==}
-    case Nil{} E.Length{}:
+    case K.SST{+d, +n, +t, +c, +r}:
+      %Equal.sym(AR.Tree<Maybe<&2, T>>, AR.freeze(Maybe<&2, T>, AR.thaw(Maybe<&2, T>, t)), t, AR.freeze_thaw(Maybe<&2, T>, t)) : {C.append(T, C.reverse(T, LY.somes(T, AR.slots(Maybe<&2, T>, _))), abs(~T, K.real(~T, r))) == K.model(T, K.SST{d, n, t, c, r}) : List<&2, T>}
+      %Equal.sym(List<&2, T>, abs(~T, K.real(~T, r)), K.model(T, r), abs_real(~T, r)) : {C.append(T, C.reverse(T, LY.somes(T, AR.slots(Maybe<&2, T>, t))), _) == K.model(T, K.SST{d, n, t, c, r}) : List<&2, T>}
       {==}
-    case Nil{} E.ToList{}:
-      {==}
-    case Nil{} E.Peek{}:
-      {==}
-    case Nil{} E.Pop{}:
-      {==}
-    case Con{+x, +tail} E.Push{v}:
-      {==}
-    case Con{+x, +tail} E.Length{}:
-      {==}
-    case Con{+x, +tail} E.ToList{}:
-      {==}
-    case Con{+x, +tail} E.Peek{}:
-      {==}
-    case Con{+x, +tail} E.Pop{}:
-      Equal.cong(Nat, D.Stack<T> & E.Obs<T>, n => (D.ST{tail, n}, E.OItem{Done{x}}), Nat.sub(C.length(T, tail), 0n), C.length(T, tail), N.sub_zero(C.length(T, tail)))
 
-def constructor(~T: Data) -> {D.new(~T) == real(~T, Nil{}) : D.Stack<T>}:
-  {==}
+def view1(~T: Data, r: D.Stack<T> & E.Obs<T>) -> List<&2, T> & E.Obs<T>:
+  (s, o) = r
+  (abs(~T, s), o)
+
+# An actual stack is the realization of a good shadow.
+def Inv(~T: Data, s: D.Stack<T>) -> Type:
+  Sigma<&1, &1, K.Sh<T>, sh => {s == K.real(~T, sh) : D.Stack<T>} & {K.good(T, sh) == True{} : Bool}>
+
+def refine_of(~T: Data, +sh: K.Sh<T>, +op: E.Op<T>, ok: K.StepOK(~T, sh, op)) -> {view1(~T, D.step(~T, K.real(~T, sh), op)) == S.step(T, K.model(T, sh), op) : List<&2, T> & E.Obs<T>}:
+  match ok:
+    case Tuple{+sh2, Tuple{+o, Tuple{e, Tuple{g2, em}}}}:
+      %Equal.sym(D.Stack<T> & E.Obs<T>, D.step(~T, K.real(~T, sh), op), (K.real(~T, sh2), o), e) : {view1(~T, _) == S.step(T, K.model(T, sh), op) : List<&2, T> & E.Obs<T>}
+      %Equal.sym(List<&2, T>, abs(~T, K.real(~T, sh2)), K.model(T, sh2), abs_real(~T, sh2)) : {(_, o) == S.step(T, K.model(T, sh), op) : List<&2, T> & E.Obs<T>}
+      em
+
+def inv_of(~T: Data, +sh: K.Sh<T>, +op: E.Op<T>, ok: K.StepOK(~T, sh, op)) -> Inv(~T, Pair.fst(D.Stack<T>, E.Obs<T>, D.step(~T, K.real(~T, sh), op))):
+  match ok:
+    case Tuple{+sh2, Tuple{+o, Tuple{e, Tuple{g2, em}}}}:
+      %Equal.sym(D.Stack<T> & E.Obs<T>, D.step(~T, K.real(~T, sh), op), (K.real(~T, sh2), o), e) : Inv(~T, Pair.fst(D.Stack<T>, E.Obs<T>, _))
+      (sh2, ({==}, g2))
+
+# every operation on a good stack is the model's step ...
+def step_refines(~T: Data, +sh: K.Sh<T>, +op: E.Op<T>, +g: {K.good(T, sh) == True{} : Bool}) -> {view1(~T, D.step(~T, K.real(~T, sh), op)) == S.step(T, K.model(T, sh), op) : List<&2, T> & E.Obs<T>}:
+  refine_of(~T, sh, op, K.step_ok(~T, sh, op, g))
+
+# ... and leaves a good stack
+def step_preserves(~T: Data, +sh: K.Sh<T>, +op: E.Op<T>, +g: {K.good(T, sh) == True{} : Bool}) -> Inv(~T, Pair.fst(D.Stack<T>, E.Obs<T>, D.step(~T, K.real(~T, sh), op))):
+  inv_of(~T, sh, op, K.step_ok(~T, sh, op, g))
+
+def constructor(~T: Data) -> {D.new(~T) == K.real(~T, K.SSE{}) : D.Stack<T>} & ({K.good(T, K.SSE{}) == True{} : Bool} & {K.model(T, K.SSE{}) == Nil{} : List<&2, T>}):
+  ({==}, ({==}, {==}))
 
 # ==== the contract of stack (stated in spec/containers/stack.bend) ====================
 
 # ---- the implementation ----
-def impl(~T: Data, +xs: List<&2, T>, +op: E.Op<T>, -Post: (D.Stack<T> & E.Obs<T>) -> Type, pf: Post(lift(~T, S.step(T, xs, op)))) -> Post(D.step(~T, real(~T, xs), op)):
-  L.subst(D.Stack<T> & E.Obs<T>, Post, lift(~T, S.step(T, xs, op)), D.step(~T, real(~T, xs), op), Equal.sym(D.Stack<T> & E.Obs<T>, D.step(~T, real(~T, xs), op), lift(~T, S.step(T, xs, op)), step_correct(~T, xs, op)), pf)
+def impl(~T: Data, +sh: K.Sh<T>, +op: E.Op<T>, +g: {K.good(T, sh) == True{} : Bool}, -Post: (List<&2, T> & E.Obs<T>) -> Type, pf: Post(S.step(T, K.model(T, sh), op))) -> Post(view1(~T, D.step(~T, K.real(~T, sh), op))):
+  L.subst(List<&2, T> & E.Obs<T>, Post, S.step(T, K.model(T, sh), op), view1(~T, D.step(~T, K.real(~T, sh), op)), Equal.sym(List<&2, T> & E.Obs<T>, view1(~T, D.step(~T, K.real(~T, sh), op)), S.step(T, K.model(T, sh), op), step_refines(~T, sh, op, g)), pf)
 
 # ---- Length, iteration ----
 def length_result(-T: Data, +xs: List<&2, T>) -> S.Length.length_result(T, xs):
@@ -82,7 +106,7 @@ def to_list_frame(-T: Data, +xs: List<&2, T>) -> S.Iteration.to_list_frame(T, xs
 def new_empty(-T: Data) -> S.Empty_Vector.new_empty(T):
   {==}
 
-def new_impl(~T: Data) -> {D.new(~T) == real(~T, Nil{}) : D.Stack<T>}:
+def new_impl(~T: Data) -> {D.new(~T) == K.real(~T, K.SSE{}) : D.Stack<T>} & ({K.good(T, K.SSE{}) == True{} : Bool} & {K.model(T, K.SSE{}) == Nil{} : List<&2, T>}):
   constructor(~T)
 
 # ---- Prepend: Length + 1, Element (First) = New_Item, Range_Shifted (Old, New, First, Last'Old, 1) ----
