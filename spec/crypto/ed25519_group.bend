@@ -3,6 +3,7 @@ import ./curve25519/field.bend as FS
 import ./curve25519/edwards.bend as G
 import ./ed25519.bend as ED
 import ../lib/common.bend as C
+import ../math/number.bend as SN
 
 # Ed25519's points in extended coordinates (spec/crypto/ed25519.bend,
 # RFC 8032 section 5.1.4) and the affine group of the curve
@@ -31,6 +32,10 @@ import ../lib/common.bend as C
 #                            for every seed and message (any lists), given
 #                            also that the base point has order dividing L
 #                            ([L] B == (0, 1): lbz.bend, by checked computation)
+#   Scalar.inverse           for L prime (certla.bend): a a^(L - 2) == 1 mod L
+#                            for a != 0 mod L
+#   Scalar.no_zero_div       and a b == 0 mod L only if a == 0 or b == 0:
+#                            the scalars modulo L are a field
 
 # ---- extended coordinates ----
 
@@ -101,3 +106,11 @@ def BaseOrder(+one: Nat, +p: Nat) -> Data:
 # public key of that seed (5.1.5, 5.1.6, 5.1.7)
 def Ed25519.verify_sign(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hm: {FS.prime(one) == 1n+mp : Nat}, +hc: G.Curve(mp, ED.dconst(one, FS.prime(one))), +hl: BaseOrder(one, FS.prime(one)), +seed: List<&2, U32>, +msg: List<&2, U32>) -> Type:
   {ED.verify(one, ED.public_key(one, seed), msg, ED.sign(one, seed, msg)) == True{} : Bool}
+
+# ---- the scalars modulo L ----
+
+def Scalar.inverse(+one: Nat, +h1: {one == 1n : Nat}, +hp: {SN.prime(ED.ell(one)) == True{} : Bool}, +a: Nat, +ha: {Nat.is_eq(Nat.mod(a, ED.ell(one)), 0n) == False{} : Bool}) -> Type:
+  {Nat.mod(Nat.mul(a, Nat.mod(Nat.pow(a, Nat.sub(ED.ell(one), 2n)), ED.ell(one))), ED.ell(one)) == 1n : Nat}
+
+def Scalar.no_zero_div(+one: Nat, +h1: {one == 1n : Nat}, +hp: {SN.prime(ED.ell(one)) == True{} : Bool}, +a: Nat, +b: Nat, +hab: {Nat.mod(Nat.mul(a, b), ED.ell(one)) == 0n : Nat}, +ha: {Nat.is_eq(Nat.mod(a, ED.ell(one)), 0n) == False{} : Bool}) -> Type:
+  {Nat.mod(b, ED.ell(one)) == 0n : Nat}
