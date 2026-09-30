@@ -1,17 +1,16 @@
 import Base
-import ../../../../spec/crypto/secp256k1/field.bend as FS
-import ../../../math/natural/arith.bend as NR
-import ../../../lib/nat.bend as N
-import ../../../lib/logic.bend as Lg
-import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../../math/typed/width.bend as WW
-import ../semiring.bend as SR
-import ./prime.bend as PM
-import ./ntflt.bend as FL
+import ../natural/arith.bend as NR
+import ../../lib/nat.bend as N
+import ../../lib/logic.bend as Lg
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../typed/width.bend as WW
+import ../../crypto/secp256k1/semiring.bend as SR
+import ./nt_prime.bend as PM
+import ./nt_flt.bend as FL
 
 # Z/pZ is a field for a prime p: cancellation (no zero divisors), and
 # a^(p-1) == 1, a a^(p-2) == 1 (mod p) for a not divisible by p (Fermat);
-# the last is the inverse of the specification: FS.minv(p, a) = a^(p-2) mod p.
+# the last is the Fermat inverse a^(p-2) mod p of the crypto specifications.
 # "p does not divide a" is {Nat.is_eq(Nat.mod(a, p), 0n) == False{}}.
 
 # (u + c) mod n == (v + c) mod n gives u mod n == v mod n
@@ -106,13 +105,13 @@ def inv_pow(p: Nat, +hp: PM.Prime(p), +a: Nat, +ha: {Nat.is_eq(Nat.mod(a, p), 0n
       %rw N.sub_zero(pp)
       flt1_s(pp, hp, a, ha)
 
-# the specification's inverse: a * minv(a) == 1 in GF(p)
-def minv_ok(p: Nat, +hp: PM.Prime(p), +a: Nat, +ha: {Nat.is_eq(Nat.mod(a, p), 0n) == False{} : Bool}) -> {FS.mmul(p, a, FS.minv(p, a)) == 1n : Nat}:
+# a * (a^(p-2) mod p) == 1 (mod p): the Fermat inverse, as crypto specifications write it
+def inv_mod(p: Nat, +hp: PM.Prime(p), +a: Nat, +ha: {Nat.is_eq(Nat.mod(a, p), 0n) == False{} : Bool}) -> {Nat.mod(Nat.mul(a, Nat.mod(Nat.pow(a, Nat.sub(p, 2n)), p)), p) == 1n : Nat}:
   match p:
     case 0n:
-      Empty.absurd({FS.mmul(0n, a, FS.minv(0n, a)) == 1n : Nat}, Lg.false_true(hp))
+      Empty.absurd({Nat.mod(Nat.mul(a, Nat.mod(Nat.pow(a, Nat.sub(0n, 2n)), 0n)), 0n) == 1n : Nat}, Lg.false_true(hp))
     case 1n:
-      Empty.absurd({FS.mmul(1n, a, FS.minv(1n, a)) == 1n : Nat}, Lg.false_true(hp))
+      Empty.absurd({Nat.mod(Nat.mul(a, Nat.mod(Nat.pow(a, Nat.sub(1n, 2n)), 1n)), 1n) == 1n : Nat}, Lg.false_true(hp))
     case 2n+ +pp:
       %goal {Nat.mod(Nat.mul(a, Nat.mod(Nat.pow(a, Nat.sub(pp, 0n)), 2n+pp)), 2n+pp) == 1n : Nat}
       %rw N.sub_zero(pp)
