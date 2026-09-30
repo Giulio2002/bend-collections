@@ -25,6 +25,8 @@ WORDS = {
     'ED': '+s4: Nat, +he: {Nat.add(1n+mp, 1n) == Nat.mul(s4, 4n) : Nat}, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}', 'EA': 's4, he, hodd, h256',
     'SS': 'FS.mmul(1n+nm, FS.minv(1n+nm, k), FS.madd(1n+nm, e, FS.mmul(1n+nm, r, d)))',
     'RV': 'Nat.mod(CS.aff_x(CS.to_affine(1n+mp, kp)), 1n+nm)',
+    'KH': '+k0: {Nat.is_eq(k, 0n) == False{} : Bool}, +kl: {Nat.is_lt(k, 1n+nm) == True{} : Bool}',
+    'DH': '+d0: {Nat.is_eq(d, 0n) == False{} : Bool}, +dl: {Nat.is_lt(d, 1n+nm) == True{} : Bool}',
     'INF': 'CS.infinity()', 'TT': 'True{}', 'FF': 'False{}',
 }
 FUNCS = {
