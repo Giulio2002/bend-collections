@@ -628,7 +628,7 @@ def bitset_trace(n, ops, h):
 
 # ======================== legacy balanced_search_tree ========================
 # The laws below apply to the retained recursive implementation only.
-# New indexed TreeMap component laws are in TREE_MAP_COMPONENT_PROOF.bend.
+# New indexed TreeMap component laws are in containers/balanced_search_tree/components.bend.
 # Red-black binary tree ordered map (reference/legacy_balanced_search_tree.bend). The
 # proofs are templates over a comparator with total-order laws; the laws are
 # stated at the two instances src/ exposes: (U32, U32.cmp) and

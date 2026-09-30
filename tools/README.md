@@ -97,7 +97,7 @@ what it generates from.
 | `check_hash_table.py` | the hash map against a Python dict on random histories (growth, backward-shift deletion, every key kind) |
 | `check_lru_spec.py` | the LRU against its executable specification, step by step with a moving clock |
 | `lru_diff.py` | the Bend LRU against the C reference and its ASan/UBSan build, bit for bit |
-| `check_tree_map.py`, `check_tree.py`, `check_tree_map_mutations.py` | the TreeMap against an ordered-map oracle with red-black invariant checks, and mutations that must be caught |
+| `check_tree_map.py`, `check_tree_map_mutations.py` | the TreeMap against an ordered-map oracle with red-black invariant checks, and semantic mutants (balance, put, cursors, the node store, the folds) that the refinement proof must reject and the differential histories must catch where they can see them; run by `validate.py` |
 | `check_iterators.py`, `check_queue_facades.py`, `check_two_list.py`, `check_two_list_mutations.py`, `check_owned_array.py`, `check_owned_array_guards.py` | the iterators, the queue facades, the two-list deque and queue, and owning arrays against independent oracles |
 | `check_math.py` | `src/math/natural.bend` against CPython's `math` on random and edge-case calls, errors included |
 | `check_generic.py` | every templated math function (`src/math/generic.bend`) at U32, U64, F32 and F64 against Python, naming the `spec/math/generic.bend` clause of each case |
