@@ -74,7 +74,7 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | Dynamic array | 3.24 |
 | Deque | 1.15 |
 | FIFO queue | 1.44 |
-| Stack | 19.67 |
+| Stack | 8.57 |
 | Simple queue | 1.40 |
 | Priority queue | 5.54 |
 | Binary heap | 5.56 |
@@ -712,28 +712,28 @@ Worst ratio 1.44.
 
 ### Stack
 
-Worst ratio 19.67.
+Worst ratio 8.57.
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| push | small | 8.27 | 15.7 | 0.53 |
-| push | medium | 8.24 | 13.8 | 0.60 |
-| push | large | 8.55 | 15.9 | 0.54 |
-| peek | small | 1.48 | 1.00 | 1.48 |
-| peek | medium | 1.48 | 1.01 | 1.47 |
-| peek | large | 1.49 | 1.02 | 1.47 |
-| length | small | 0.91 | 2.63 | 0.35 |
-| length | medium | 0.92 | 2.62 | 0.35 |
-| length | large | 0.92 | 2.63 | 0.35 |
-| to_list | small | 400 | 20.3 | 19.67 |
-| to_list | medium | 32833 | 2810 | 11.68 |
-| to_list | large | 2280000 | 254910 | 8.94 |
-| pop | small | 2.13 | 10.9 | 0.20 |
-| pop | medium | 2.11 | 10.7 | 0.20 |
-| pop | large | 2.13 | 10.9 | 0.20 |
-| new | small | 0.99 | 1.01 | 0.97 |
-| new | medium | 0.95 | 1.02 | 0.93 |
-| new | large | 0.96 | 1.01 | 0.95 |
+| push | small | 17.3 | 16.7 | 1.03 |
+| push | medium | 16.1 | 14.6 | 1.10 |
+| push | large | 19.5 | 17.2 | 1.13 |
+| peek | small | 1.98 | 1.00 | 1.98 |
+| peek | medium | 1.97 | 1.01 | 1.95 |
+| peek | large | 1.98 | 1.02 | 1.94 |
+| length | small | 1.00 | 2.85 | 0.35 |
+| length | medium | 1.00 | 2.82 | 0.35 |
+| length | large | 1.00 | 2.79 | 0.36 |
+| to_list | small | 178 | 20.8 | 8.57 |
+| to_list | medium | 9077 | 3007 | 3.02 |
+| to_list | large | 520000 | 250450 | 2.08 |
+| pop | small | 9.51 | 10.7 | 0.89 |
+| pop | medium | 11.0 | 10.7 | 1.03 |
+| pop | large | 13.5 | 10.8 | 1.25 |
+| new | small | 0.99 | 1.02 | 0.97 |
+| new | medium | 0.99 | 1.01 | 0.98 |
+| new | large | 1.00 | 1.03 | 0.97 |
 
 ### Simple queue
 
