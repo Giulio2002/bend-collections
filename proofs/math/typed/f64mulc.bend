@@ -29,9 +29,9 @@ def mspec(+s: Bool, +a1: Bool, +b1: Bool, +c1: Bool, +a2: Bool, +b2: Bool, +c2: 
 def ion(+s: Bool, +b: Bool) -> {F.inf_or_nan(s, b) == SF.pick(F.F64, b, F.nan(), F.inf(s)) : F.F64}:
   match b:
     case True{}:
-      {==}
+      Equal.trans(F.F64, F.inf_or_nan(s, True{}), F.nan(), SF.pick(F.F64, True{}, F.nan(), F.inf(s)), {==}, Equal.sym(F.F64, SF.pick(F.F64, True{}, F.nan(), F.inf(s)), F.nan(), FR.pk_t(F.F64, F.nan(), F.inf(s))))
     case False{}:
-      {==}
+      Equal.trans(F.F64, F.inf_or_nan(s, False{}), F.inf(s), SF.pick(F.F64, False{}, F.nan(), F.inf(s)), {==}, Equal.sym(F.F64, SF.pick(F.F64, False{}, F.nan(), F.inf(s)), F.inf(s), FR.pk_f(F.F64, F.nan(), F.inf(s))))
 
 def zero_v(+s: Bool) -> {F.zero(s) == SF.zero(s) : F.F64}:
   match s:
@@ -50,16 +50,16 @@ def ne2047(+E: Nat) -> {Bool.and(Nat.is_eq(E, 2047n), Nat.is_eq(E, 0n)) == False
 def sh3(+s: Bool, +ea: Nat, +fa: WU.U64, +eb: Nat, +fb: WU.U64, +z: Bool) -> {F.mul_z(s, ea, fa, eb, fb, z) == SF.pick(F.F64, z, F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb))) : F.F64}:
   match z:
     case True{}:
-      {==}
+      Equal.trans(F.F64, F.mul_z(s, ea, fa, eb, fb, True{}), F.zero(s), SF.pick(F.F64, True{}, F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb))), {==}, Equal.sym(F.F64, SF.pick(F.F64, True{}, F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb))), F.zero(s), FR.pk_t(F.F64, F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb)))))
     case False{}:
-      {==}
+      Equal.trans(F.F64, F.mul_z(s, ea, fa, eb, fb, False{}), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb)), SF.pick(F.F64, False{}, F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb))), {==}, Equal.sym(F.F64, SF.pick(F.F64, False{}, F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb))), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb)), FR.pk_f(F.F64, F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb)))))
 
 def sh2(+s: Bool, +ea: Nat, +fa: WU.U64, +eb: Nat, +fb: WU.U64, +t: Bool) -> {F.mul_b(s, ea, fa, eb, fb, t) == SF.pick(F.F64, t, SF.pick(F.F64, Bool.or(Bool.not(X.is_zero(fb)), Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa))), F.nan(), F.inf(s)), SF.pick(F.F64, Bool.or(Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa)), Bool.and(Nat.is_eq(eb, 0n), X.is_zero(fb))), F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb)))) : F.F64}:
   match t:
     case True{}:
-      ion(s, Bool.or(Bool.not(X.is_zero(fb)), Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa))))
+      Equal.trans(F.F64, F.mul_b(s, ea, fa, eb, fb, True{}), SF.pick(F.F64, Bool.or(Bool.not(X.is_zero(fb)), Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa))), F.nan(), F.inf(s)), SF.pick(F.F64, True{}, SF.pick(F.F64, Bool.or(Bool.not(X.is_zero(fb)), Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa))), F.nan(), F.inf(s)), SF.pick(F.F64, Bool.or(Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa)), Bool.and(Nat.is_eq(eb, 0n), X.is_zero(fb))), F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb)))), ion(s, Bool.or(Bool.not(X.is_zero(fb)), Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa)))), Equal.sym(F.F64, SF.pick(F.F64, True{}, SF.pick(F.F64, Bool.or(Bool.not(X.is_zero(fb)), Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa))), F.nan(), F.inf(s)), SF.pick(F.F64, Bool.or(Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa)), Bool.and(Nat.is_eq(eb, 0n), X.is_zero(fb))), F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb)))), SF.pick(F.F64, Bool.or(Bool.not(X.is_zero(fb)), Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa))), F.nan(), F.inf(s)), FR.pk_t(F.F64, SF.pick(F.F64, Bool.or(Bool.not(X.is_zero(fb)), Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa))), F.nan(), F.inf(s)), SF.pick(F.F64, Bool.or(Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa)), Bool.and(Nat.is_eq(eb, 0n), X.is_zero(fb))), F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb))))))
     case False{}:
-      sh3(s, ea, fa, eb, fb, Bool.or(Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa)), Bool.and(Nat.is_eq(eb, 0n), X.is_zero(fb))))
+      Equal.trans(F.F64, F.mul_b(s, ea, fa, eb, fb, False{}), SF.pick(F.F64, Bool.or(Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa)), Bool.and(Nat.is_eq(eb, 0n), X.is_zero(fb))), F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb))), SF.pick(F.F64, False{}, SF.pick(F.F64, Bool.or(Bool.not(X.is_zero(fb)), Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa))), F.nan(), F.inf(s)), SF.pick(F.F64, Bool.or(Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa)), Bool.and(Nat.is_eq(eb, 0n), X.is_zero(fb))), F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb)))), sh3(s, ea, fa, eb, fb, Bool.or(Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa)), Bool.and(Nat.is_eq(eb, 0n), X.is_zero(fb)))), Equal.sym(F.F64, SF.pick(F.F64, False{}, SF.pick(F.F64, Bool.or(Bool.not(X.is_zero(fb)), Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa))), F.nan(), F.inf(s)), SF.pick(F.F64, Bool.or(Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa)), Bool.and(Nat.is_eq(eb, 0n), X.is_zero(fb))), F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb)))), SF.pick(F.F64, Bool.or(Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa)), Bool.and(Nat.is_eq(eb, 0n), X.is_zero(fb))), F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb))), FR.pk_f(F.F64, SF.pick(F.F64, Bool.or(Bool.not(X.is_zero(fb)), Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa))), F.nan(), F.inf(s)), SF.pick(F.F64, Bool.or(Bool.and(Nat.is_eq(ea, 0n), X.is_zero(fa)), Bool.and(Nat.is_eq(eb, 0n), X.is_zero(fb))), F.zero(s), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb))))))
 
 def sh1(+s: Bool, +ea: Nat, +fa: WU.U64, +eb: Nat, +fb: WU.U64, +t: Bool) -> {F.mul_cls(s, ea, fa, eb, fb, t) == mimpl(s, t, X.is_zero(fa), Nat.is_eq(ea, 0n), Nat.is_eq(eb, 2047n), X.is_zero(fb), Nat.is_eq(eb, 0n), F.mul_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb))) : F.F64}:
   match t:

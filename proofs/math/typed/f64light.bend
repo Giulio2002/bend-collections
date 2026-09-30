@@ -1,4 +1,5 @@
 import Base
+import ./f64round.bend as FR
 import ../../../spec/lib/common.bend as C
 import ../../../spec/math/f64.bend as SF
 import ../../../spec/math/w64.bend as SW
@@ -31,9 +32,9 @@ def hfr(+xl: U32, +xh: U32) -> {SW.value(F.frac(F.Bits{xl, xh})) == SF.frac(F.Bi
 def non(+x: F.F64, +b: Bool) -> {F.nan_or(x, b) == SF.pick(F.F64, b, F.nan(), x) : F.F64}:
   match b:
     case True{}:
-      {==}
+      Equal.trans(F.F64, F.nan_or(x, True{}), F.nan(), SF.pick(F.F64, True{}, F.nan(), x), {==}, Equal.sym(F.F64, SF.pick(F.F64, True{}, F.nan(), x), F.nan(), FR.pk_t(F.F64, F.nan(), x)))
     case False{}:
-      {==}
+      Equal.trans(F.F64, F.nan_or(x, False{}), x, SF.pick(F.F64, False{}, F.nan(), x), {==}, Equal.sym(F.F64, SF.pick(F.F64, False{}, F.nan(), x), x, FR.pk_f(F.F64, F.nan(), x)))
 
 def nfit_mono_c(+a: Nat, +b: Nat, +x: Nat, +hab: {Nat.is_le(a, b) == True{} : Bool}, +h: {C.fits(b, x) == False{} : Bool}, +c: Bool, +hc: {C.fits(a, x) == c : Bool}) -> {c == False{} : Bool}:
   match c:

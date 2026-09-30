@@ -31,9 +31,9 @@ def v(+x: U32) -> Nat:
 def bz0(+one: Nat, +h1: {one == 1n : Nat}, +s: Bool, +c: U32, +hc: {c == U32{WD.pw(32n, 31n)} : U32}) -> {F.Bits{0, U32.from_nat(C.shift(31n, SF.pick(Nat, s, one, 0n)))} == SF.pick(F.F64, s, F.Bits{0, c}, F.Bits{0, 0}) : F.F64}:
   match s:
     case True{}:
-      Equal.cong(U32, F.F64, z => F.Bits{0, z}, U32.from_nat(C.shift(31n, one)), c, Equal.trans(U32, U32.from_nat(C.shift(31n, one)), U32.from_nat(v(c)), c, Equal.cong(Nat, U32, z => U32.from_nat(z), C.shift(31n, one), v(c), Equal.sym(Nat, v(c), C.shift(31n, one), FB.pwv(31n, {==}, one, h1, c, hc))), LW.rt(c)))
+      Equal.trans(F.F64, F.Bits{0, U32.from_nat(C.shift(31n, SF.pick(Nat, True{}, one, 0n)))}, F.Bits{0, c}, SF.pick(F.F64, True{}, F.Bits{0, c}, F.Bits{0, 0}), Equal.cong(U32, F.F64, z => F.Bits{0, z}, U32.from_nat(C.shift(31n, one)), c, Equal.trans(U32, U32.from_nat(C.shift(31n, one)), U32.from_nat(v(c)), c, Equal.cong(Nat, U32, z => U32.from_nat(z), C.shift(31n, one), v(c), Equal.sym(Nat, v(c), C.shift(31n, one), FB.pwv(31n, {==}, one, h1, c, hc))), LW.rt(c))), Equal.sym(F.F64, SF.pick(F.F64, True{}, F.Bits{0, c}, F.Bits{0, 0}), F.Bits{0, c}, FR.pk_t(F.F64, F.Bits{0, c}, F.Bits{0, 0})))
     case False{}:
-      {==}
+      Equal.trans(F.F64, F.Bits{0, U32.from_nat(C.shift(31n, SF.pick(Nat, False{}, one, 0n)))}, F.Bits{0, 0}, SF.pick(F.F64, False{}, F.Bits{0, c}, F.Bits{0, 0}), {==}, Equal.sym(F.F64, SF.pick(F.F64, False{}, F.Bits{0, c}, F.Bits{0, 0}), F.Bits{0, 0}, FR.pk_f(F.F64, F.Bits{0, c}, F.Bits{0, 0})))
 
 # a zero pattern with sign s
 def bz(+s: Bool) -> {FR.bits(s, 0n) == SF.zero(s) : F.F64}:

@@ -255,16 +255,16 @@ def sspec(+s: Bool, +a: Bool, +b: Bool, +c: Bool, +x: F.F64, +r: F.F64) -> F.F64
 def ssh3(+e: Nat, +f: WU.U64, +s: Bool) -> {F.sq_pos(e, f, s) == SF.pick(F.F64, s, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n))) : F.F64}:
   match s:
     case True{}:
-      {==}
+      Equal.trans(F.F64, F.sq_pos(e, f, True{}), F.nan(), SF.pick(F.F64, True{}, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n))), {==}, Equal.sym(F.F64, SF.pick(F.F64, True{}, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n))), F.nan(), FR.pk_t(F.F64, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n)))))
     case False{}:
-      {==}
+      Equal.trans(F.F64, F.sq_pos(e, f, False{}), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n)), SF.pick(F.F64, False{}, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n))), {==}, Equal.sym(F.F64, SF.pick(F.F64, False{}, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n))), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n)), FR.pk_f(F.F64, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n)))))
 
 def ssh2(+x: F.F64, +s: Bool, +e: Nat, +f: WU.U64, +z: Bool) -> {F.sq_sign(x, s, e, f, z) == SF.pick(F.F64, z, x, SF.pick(F.F64, s, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n)))) : F.F64}:
   match z:
     case True{}:
-      {==}
+      Equal.trans(F.F64, F.sq_sign(x, s, e, f, True{}), x, SF.pick(F.F64, True{}, x, SF.pick(F.F64, s, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n)))), {==}, Equal.sym(F.F64, SF.pick(F.F64, True{}, x, SF.pick(F.F64, s, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n)))), x, FR.pk_t(F.F64, x, SF.pick(F.F64, s, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n))))))
     case False{}:
-      ssh3(e, f, s)
+      Equal.trans(F.F64, F.sq_sign(x, s, e, f, False{}), SF.pick(F.F64, s, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n))), SF.pick(F.F64, False{}, x, SF.pick(F.F64, s, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n)))), ssh3(e, f, s), Equal.sym(F.F64, SF.pick(F.F64, False{}, x, SF.pick(F.F64, s, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n)))), SF.pick(F.F64, s, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n))), FR.pk_f(F.F64, x, SF.pick(F.F64, s, F.nan(), F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n))))))
 
 def ssh1(+x: F.F64, +s: Bool, +e: Nat, +f: WU.U64, +t: Bool) -> {F.sq_cls(x, s, e, f, t) == simpl(s, t, X.is_zero(f), Nat.is_eq(e, 0n), x, F.sq_n(F.norm_e(e, f), F.norm_f(e, f), Nat.is_eq(Nat.mod(F.norm_e(e, f), 2n), 1n))) : F.F64}:
   match t:
@@ -321,10 +321,10 @@ def scase(+xl: U32, +xh: U32, +r1: F.F64, +r2: F.F64, +aq: Bool, +ha: {Nat.is_eq
 def sR_c(+xl: U32, +xh: U32, +g: Bool, +hg: {Bool.or(Bool.or(Nat.is_eq(SF.efield(F.Bits{xl, xh}), 2047n), Bool.and(Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n), Nat.is_eq(SF.frac(F.Bits{xl, xh}), 0n))), SF.sign(F.Bits{xl, xh})) == g : Bool}) -> {SF.pick(F.F64, g, SF.sqrt_fin(F.Bits{xl, xh}), F.sq_n(F.norm_e(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), F.norm_f(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), Nat.is_eq(Nat.mod(F.norm_e(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), 2n), 1n))) == SF.sqrt_fin(F.Bits{xl, xh}) : F.F64}:
   match g:
     case True{}:
-      {==}
+      Equal.trans(F.F64, SF.pick(F.F64, True{}, SF.sqrt_fin(F.Bits{xl, xh}), F.sq_n(F.norm_e(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), F.norm_f(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), Nat.is_eq(Nat.mod(F.norm_e(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), 2n), 1n))), SF.sqrt_fin(F.Bits{xl, xh}), SF.sqrt_fin(F.Bits{xl, xh}), FR.pk_t(F.F64, SF.sqrt_fin(F.Bits{xl, xh}), F.sq_n(F.norm_e(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), F.norm_f(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), Nat.is_eq(Nat.mod(F.norm_e(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), 2n), 1n))), {==})
     case False{}:
       +h1 = FC.or_l(Bool.or(Nat.is_eq(SF.efield(F.Bits{xl, xh}), 2047n), Bool.and(Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n), Nat.is_eq(SF.frac(F.Bits{xl, xh}), 0n))), SF.sign(F.Bits{xl, xh}), hg)
-      sqfin(xl, xh, FC.or_r(Nat.is_eq(SF.efield(F.Bits{xl, xh}), 2047n), Bool.and(Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n), Nat.is_eq(SF.frac(F.Bits{xl, xh}), 0n)), h1))
+      Equal.trans(F.F64, SF.pick(F.F64, False{}, SF.sqrt_fin(F.Bits{xl, xh}), F.sq_n(F.norm_e(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), F.norm_f(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), Nat.is_eq(Nat.mod(F.norm_e(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), 2n), 1n))), F.sq_n(F.norm_e(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), F.norm_f(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), Nat.is_eq(Nat.mod(F.norm_e(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), 2n), 1n)), SF.sqrt_fin(F.Bits{xl, xh}), FR.pk_f(F.F64, SF.sqrt_fin(F.Bits{xl, xh}), F.sq_n(F.norm_e(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), F.norm_f(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), Nat.is_eq(Nat.mod(F.norm_e(F.exp_field(F.Bits{xl, xh}), F.frac(F.Bits{xl, xh})), 2n), 1n))), sqfin(xl, xh, FC.or_r(Nat.is_eq(SF.efield(F.Bits{xl, xh}), 2047n), Bool.and(Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n), Nat.is_eq(SF.frac(F.Bits{xl, xh}), 0n)), h1)))
 
 def sqrt_value(+x: F.F64) -> SF.Sqrt.value(x):
   match x:
