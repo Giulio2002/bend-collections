@@ -223,3 +223,50 @@ def gno(+mp: Nat, +h21: LT(21n, 1n+mp), +x: Nat, +y: Nat, +one: Nat, +h1: {one =
 
 def vrf2(FPD, +one: Nat, +h1: {one == 1n : Nat}, +nq: Nat, +hn256: {Nat.is_le(1n+nq, C.shift(256n, one)) == True{} : Bool}, +g: CS.SPoint, +vg: V(g), +hng: E(SM(1n+nq, g), INF), +d: Nat, +k: Nat, +e: Nat, +pp: CS.SPoint, +rx: Nat, +ey: Nat, +hk: LT(k, 1n+nq), +vp: V(pp), +hpp: E(pp, SM(d, g)), +ve: V(CS.SPoint{rx, ey, 1n}), +hre: E(CS.SPoint{rx, ey, 1n}, SM(k, g)), +hrx: LT(rx, 1n+mp), +hey: LT(ey, 1n+mp), +hev: {Nat.mod(ey, 2n) == 0n : Nat}) -> VR(1n+mp, 1n+nq, g, d, k, e, pp, rx):
   vrf(FPA, one, h1, nq, hn256, g, vg, hng, d, k, e, pp, rx, ey, hk, vp, hpp, ve, hre, hrx, hey, hev)
+
+# ---- projections ----
+
+def ev1(+p: Nat, +n: Nat, +g: CS.SPoint, +ax: Nat, +ay: Nat, +j: Nat, +b: Nat, r: EvR(p, n, g, ax, ay, j, b)) -> {CS.decompress(p, ax, 0n) == Some{CS.SPoint{ax, SS.even_b(p, b, ay), 1n}} : MSP}:
+  match r:
+    case S.Both{r1, t}:
+      r1
+
+def ev2(+p: Nat, +n: Nat, +g: CS.SPoint, +ax: Nat, +ay: Nat, +j: Nat, +b: Nat, r: EvR(p, n, g, ax, ay, j, b)) -> {GS.equiv(p, CS.SPoint{ax, SS.even_b(p, b, ay), 1n}, GS.smul(p, SS.even_b(n, b, j), g)) == True{} : Bool}:
+  match r:
+    case S.Both{r1, S.Both{r2, t}}:
+      r2
+
+def ev3(+p: Nat, +n: Nat, +g: CS.SPoint, +ax: Nat, +ay: Nat, +j: Nat, +b: Nat, r: EvR(p, n, g, ax, ay, j, b)) -> {GS.valid(p, CS.SPoint{ax, SS.even_b(p, b, ay), 1n}) == True{} : Bool}:
+  match r:
+    case S.Both{r1, S.Both{r2, S.Both{r3, t}}}:
+      r3
+
+def ev4(+p: Nat, +n: Nat, +g: CS.SPoint, +ax: Nat, +ay: Nat, +j: Nat, +b: Nat, r: EvR(p, n, g, ax, ay, j, b)) -> {Nat.mod(SS.even_b(p, b, ay), 2n) == 0n : Nat}:
+  match r:
+    case S.Both{r1, S.Both{r2, S.Both{r3, S.Both{r4, r5}}}}:
+      r4
+
+def ev5(+p: Nat, +n: Nat, +g: CS.SPoint, +ax: Nat, +ay: Nat, +j: Nat, +b: Nat, r: EvR(p, n, g, ax, ay, j, b)) -> {Nat.is_lt(SS.even_b(p, b, ay), p) == True{} : Bool}:
+  match r:
+    case S.Both{r1, S.Both{r2, S.Both{r3, S.Both{r4, r5}}}}:
+      r5
+
+def ax_lt(+p: Nat, +a: CS.SPoint, r: AxB(p, a)) -> {Nat.is_lt(CS.aff_x(CS.to_affine(p, a)), p) == True{} : Bool}:
+  match r:
+    case S.Both{l, f}:
+      l
+
+def ax_fit(+p: Nat, +a: CS.SPoint, r: AxB(p, a)) -> {C.fits(256n, CS.aff_x(CS.to_affine(p, a))) == True{} : Bool}:
+  match r:
+    case S.Both{l, f}:
+      f
+
+def sb_lt(+n: Nat, +v: Nat, r: SB(n, v)) -> {Nat.is_lt(Nat.mod(v, n), n) == True{} : Bool}:
+  match r:
+    case S.Both{l, f}:
+      l
+
+def sb_fit(+n: Nat, +v: Nat, r: SB(n, v)) -> {C.fits(256n, Nat.mod(v, n)) == True{} : Bool}:
+  match r:
+    case S.Both{l, f}:
+      f
