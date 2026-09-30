@@ -236,8 +236,17 @@ def hram(+one: Nat, rb: List<&2, U32>, +a: List<&2, U32>, +msg: List<&2, U32>) -
 def secret(+h: List<&2, U32>) -> Nat:
   FS.value(SX.clamp(first(32n, h)))
 
-def public_of(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>) -> List<&2, U32>:
+def public_body(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>) -> List<&2, U32>:
   encode(one, p, mul(one, p, d, secret(h), base(p, d)))
+
+# the same, a function of d first (d = dconst(one, p) is symbolic, so the
+# checker keeps it a call instead of expanding it on every comparison)
+def public_of(+one: Nat, +p: Nat, d: Nat, +h: List<&2, U32>) -> List<&2, U32>:
+  match d:
+    case 0n:
+      public_body(one, p, 0n, h)
+    case 1n+ +e:
+      public_body(one, p, 1n+e, h)
 
 # at p = prime(one); a function of p first, so the checker keeps it a call
 # (p is symbolic) instead of expanding it whenever it compares two of them
@@ -253,13 +262,20 @@ def public_key(+one: Nat, +seed: List<&2, U32>) -> List<&2, U32>:
 
 # ---- 5.1.6 signing ----
 
-def sign_with(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
+def sign_body(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
   +el = ell(one)
   +a = public_of(one, p, d, h)
   +r = Nat.mod(FS.value(SHA.sha512_bytes(cat(rest(32n, h), msg))), el)
   +rb = encode(one, p, mul(one, p, d, r, base(p, d)))
   +k = hram(one, rb, a, msg)
   cat(rb, SX.le_bytes(C.shift(5n, one), Nat.mod(Nat.add(r, Nat.mul(k, secret(h))), el)))
+
+def sign_with(+one: Nat, +p: Nat, d: Nat, +h: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
+  match d:
+    case 0n:
+      sign_body(one, p, 0n, h, msg)
+    case 1n+ +e:
+      sign_body(one, p, 1n+e, h, msg)
 
 def sign_at(+one: Nat, p: Nat, +seed: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
   match p:

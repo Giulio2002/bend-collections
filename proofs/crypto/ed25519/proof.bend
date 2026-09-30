@@ -18,6 +18,7 @@ import ../curve25519/prime.bend as PRM
 import ./scalar3.bend as S3
 import ./bytes.bend as BY
 import ./top.bend as TP
+import ./pcodec.bend as PC
 
 # Gate for Ed25519: `bend proofs/crypto/ed25519/proof.bend` checks every
 # clause of spec/crypto/ed25519.bend (scalars mod L, key generation, signing
@@ -59,7 +60,7 @@ def ed_public(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +hs: {FS.
   +D = SE.dconst(one, P)
   +h = H.sha512(seed)
   +sh = SHA.sha512_bytes(seed)
-  +e1 = TP.public_rel(one, h1, pp, PRM.hP(one, h1), seed, h, BY.sha_okb(seed))
+  +e1 = TP.public_rel(one, h1, pp, PRM.hP(one, h1), seed, D, PC.r_d(one, h1, pp, PRM.hP(one, h1), seed), PC.r_d2(one, h1, pp, PRM.hP(one, h1), seed), h, BY.sha_okb(seed))
   +e2 = Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.public_of(one, P, D, z), h, sh, BY.sha_eq(seed))
   +e12 = Equal.trans(List<&2, U32>, E.public_key(seed), SE.public_of(one, P, D, h), SE.public_key_at(one, P, seed), e1, e2)
   L.subst(Nat, z => {E.public_key(seed) == SE.public_key_at(one, z, seed) : List<&2, U32>}, P, FS.prime(one), Equal.sym(Nat, FS.prime(one), P, PRM.prime_eq(one, h1)), e12)
@@ -70,7 +71,7 @@ def ed_sign(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +msg: List<
   +D = SE.dconst(one, P)
   +h = H.sha512(seed)
   +sh = SHA.sha512_bytes(seed)
-  +e1 = TP.sign_rel(one, h1, pp, PRM.hP(one, h1), seed, h, BY.sha_okb(seed), msg)
+  +e1 = TP.sign_rel(one, h1, pp, PRM.hP(one, h1), seed, D, PC.r_d(one, h1, pp, PRM.hP(one, h1), seed), PC.r_d2(one, h1, pp, PRM.hP(one, h1), seed), h, BY.sha_okb(seed), msg)
   +e2 = Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.sign_with(one, P, D, z, msg), h, sh, BY.sha_eq(seed))
   +e12 = Equal.trans(List<&2, U32>, E.sign_raw(seed, msg), SE.sign_with(one, P, D, h, msg), SE.sign_at(one, P, seed, msg), e1, e2)
   L.subst(Nat, z => {E.sign_raw(seed, msg) == SE.sign_at(one, z, seed, msg) : List<&2, U32>}, P, FS.prime(one), Equal.sym(Nat, FS.prime(one), P, PRM.prime_eq(one, h1)), e12)

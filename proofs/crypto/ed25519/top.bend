@@ -134,22 +134,28 @@ def ma_eq(+one: Nat, +h1: {one == 1n : Nat}, +k: List<&2, U32>, +r: List<&2, U32
 
 # ---- key generation ----
 
-def public_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}) -> {E.public_of(PT.consts(xs), xs, h) == SE.public_of(one, 1n+pp, SE.dconst(one, 1n+pp), h) : List<&2, U32>}:
+def public_body_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +D: Nat, +rd: RL.R(pp, PT.cs_d(PT.consts(xs)), D), +rd2: RL.R(pp, PT.cs_d2(PT.consts(xs)), FS.fadd(1n+pp, D, D)), +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}) -> {E.public_of(PT.consts(xs), xs, h) == SE.public_body(one, 1n+pp, D, h) : List<&2, U32>}:
   +P = {1n+pp : Nat}
-  +D = SE.dconst(one, P)
   +cs = PT.consts(xs)
   +sk = X.clamp(F.take(32n, h))
   +hs = XB.clamp_okb(F.take(32n, h), BY.take_okb(32n, 32n, h, 255n, hh))
   +B = PT.base(cs, xs)
   +SB = SE.base(P, D)
-  +hB = PD.base_rel(one, h1, pp, hP, cs, D, PC.r_d(one, h1, pp, hP, xs), PC.r_sqm1(one, h1, pp, hP, xs), xs)
-  +rm = mul_rel(one, h1, pp, hP, cs, D, PC.r_d2(one, h1, pp, hP, xs), sk, hs, B, SB, hB)
+  +hB = PD.base_rel(one, h1, pp, hP, cs, D, rd, PC.r_sqm1(one, h1, pp, hP, xs), xs)
+  +rm = mul_rel(one, h1, pp, hP, cs, D, rd2, sk, hs, B, SB, hB)
   +e1 = enc_rel(one, h1, pp, hP, PT.mul(cs, sk, B), SE.mul(one, P, D, FS.value(sk), SB), rm)
   Equal.trans(List<&2, U32>, PT.encode(PT.mul(cs, sk, B)), SE.encode(one, P, SE.mul(one, P, D, FS.value(sk), SB)), SE.encode(one, P, SE.mul(one, P, D, SE.secret(h), SB)), e1, Equal.cong(Nat, List<&2, U32>, z => SE.encode(one, P, SE.mul(one, P, D, z, SB)), FS.value(sk), SE.secret(h), secret_eq(h)))
 
-# ---- signing ----
+def pub_guard(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>, +x: List<&2, U32>, +e: {x == SE.public_body(one, p, d, h) : List<&2, U32>}) -> {x == SE.public_of(one, p, d, h) : List<&2, U32>}:
+  match d:
+    case 0n:
+      e
+    case 1n+ +q:
+      e
 
-# R = encode([r] B) for a 32-byte r of value Rs
+def public_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +D: Nat, +rd: RL.R(pp, PT.cs_d(PT.consts(xs)), D), +rd2: RL.R(pp, PT.cs_d2(PT.consts(xs)), FS.fadd(1n+pp, D, D)), +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}) -> {E.public_of(PT.consts(xs), xs, h) == SE.public_of(one, 1n+pp, D, h) : List<&2, U32>}:
+  pub_guard(one, 1n+pp, D, h, E.public_of(PT.consts(xs), xs, h), public_body_rel(one, h1, pp, hP, xs, D, rd, rd2, h, hh))
+
 def rb_eq(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +D: Nat, +rd2: RL.R(pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +B: PT.Pt, +SB: SE.EPt, +hB: PR.Rp(pp, B, SB), +r: List<&2, U32>, +okr: {LM.okb(32n, r, 255n) == True{} : Bool}, +Rs: Nat, +eR: {FS.value(r) == Rs : Nat}) -> {PT.encode(PT.mul(cs, r, B)) == SE.encode(one, 1n+pp, SE.mul(one, 1n+pp, D, Rs, SB)) : List<&2, U32>}:
   +P = {1n+pp : Nat}
   Equal.trans(List<&2, U32>, PT.encode(PT.mul(cs, r, B)), SE.encode(one, P, SE.mul(one, P, D, FS.value(r), SB)), SE.encode(one, P, SE.mul(one, P, D, Rs, SB)), enc_rel(one, h1, pp, hP, PT.mul(cs, r, B), SE.mul(one, P, D, FS.value(r), SB), mul_rel(one, h1, pp, hP, cs, D, rd2, r, okr, B, SB, hB)), Equal.cong(Nat, List<&2, U32>, z => SE.encode(one, P, SE.mul(one, P, D, z, SB)), FS.value(r), Rs, eR))
@@ -164,15 +170,13 @@ def sig_eq(+one: Nat, +h1: {one == 1n : Nat}, +RB: List<&2, U32>, +SRB: List<&2,
 def prefix_eq(+h: List<&2, U32>, +msg: List<&2, U32>) -> {E.cat(F.drop(32n, h), msg) == SE.cat(SE.rest(32n, h), msg) : List<&2, U32>}:
   Equal.trans(List<&2, U32>, E.cat(F.drop(32n, h), msg), SE.cat(F.drop(32n, h), msg), SE.cat(SE.rest(32n, h), msg), BY.cat_eq(F.drop(32n, h), msg), Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.cat(z, msg), F.drop(32n, h), SE.rest(32n, h), BY.drop_eq(32n, h)))
 
-def sign_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}, +msg: List<&2, U32>) -> {E.sign_with(PT.consts(xs), xs, h, msg) == SE.sign_with(one, 1n+pp, SE.dconst(one, 1n+pp), h, msg) : List<&2, U32>}:
+def sign_body_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +D: Nat, +rd: RL.R(pp, PT.cs_d(PT.consts(xs)), D), +rd2: RL.R(pp, PT.cs_d2(PT.consts(xs)), FS.fadd(1n+pp, D, D)), +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}, +msg: List<&2, U32>) -> {E.sign_with(PT.consts(xs), xs, h, msg) == SE.sign_body(one, 1n+pp, D, h, msg) : List<&2, U32>}:
   +P = {1n+pp : Nat}
-  +D = SE.dconst(one, P)
   +el = SE.ell(one)
   +cs = PT.consts(xs)
   +B = PT.base(cs, xs)
   +SB = SE.base(P, D)
-  +hB = PD.base_rel(one, h1, pp, hP, cs, D, PC.r_d(one, h1, pp, hP, xs), PC.r_sqm1(one, h1, pp, hP, xs), xs)
-  +rd2 = PC.r_d2(one, h1, pp, hP, xs)
+  +hB = PD.base_rel(one, h1, pp, hP, cs, D, rd, PC.r_sqm1(one, h1, pp, hP, xs), xs)
   +A = E.public_of(cs, xs, h)
   +SA = SE.public_of(one, P, D, h)
   +RH = E.cat(F.drop(32n, h), msg)
@@ -186,10 +190,20 @@ def sign_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 1
   +eRB = rb_eq(one, h1, pp, hP, cs, D, rd2, B, SB, hB, r, okr, Rs, eR)
   +k = E.hram(RB, A, msg)
   +Ks = SE.hram(one, SRB, SA, msg)
-  +eK = hk_val(one, h1, RB, SRB, eRB, A, SA, public_rel(one, h1, pp, hP, xs, h, hh), msg)
+  +eK = hk_val(one, h1, RB, SRB, eRB, A, SA, public_rel(one, h1, pp, hP, xs, D, rd, rd2, h, hh), msg)
   +sk = X.clamp(F.take(32n, h))
   +hsk = XB.clamp_okb(F.take(32n, h), BY.take_okb(32n, 32n, h, 255n, hh))
   sig_eq(one, h1, RB, SRB, eRB, k, hk_okb(one, h1, RB, A, msg), Ks, eK, r, okr, red_lt(one, h1, H.sha512(RH), BY.sha_lea(RH)), Rs, eR, sk, hsk, SE.secret(h), secret_eq(h))
+
+def sign_guard(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>, +msg: List<&2, U32>, +x: List<&2, U32>, +e: {x == SE.sign_body(one, p, d, h, msg) : List<&2, U32>}) -> {x == SE.sign_with(one, p, d, h, msg) : List<&2, U32>}:
+  match d:
+    case 0n:
+      e
+    case 1n+ +q:
+      e
+
+def sign_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +D: Nat, +rd: RL.R(pp, PT.cs_d(PT.consts(xs)), D), +rd2: RL.R(pp, PT.cs_d2(PT.consts(xs)), FS.fadd(1n+pp, D, D)), +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}, +msg: List<&2, U32>) -> {E.sign_with(PT.consts(xs), xs, h, msg) == SE.sign_with(one, 1n+pp, D, h, msg) : List<&2, U32>}:
+  sign_guard(one, 1n+pp, D, h, msg, E.sign_with(PT.consts(xs), xs, h, msg), sign_body_rel(one, h1, pp, hP, xs, D, rd, rd2, h, hh, msg))
 
 # ---- verification ----
 
