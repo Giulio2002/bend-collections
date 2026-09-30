@@ -261,48 +261,61 @@ def owhen(ok: Bool, pt: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
     case True{}: Some{pt}
     case False{}: None{}
 
-# The number of 64-byte steps of open for a ciphertext l: one per 64 bytes
-# while at least 65 remain.
-def nblk(l: List<&2, U32>) -> Nat:
-  match l:
-    case _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> l64 <> r: 1n+nblk(l64 <> r)
-    case _: 0n
+# Whether the tag of the data xs (ciphertext || tag) matches, the
+# ciphertext absorbed onto h (cnt bytes so far) with its padding, then the
+# lengths.
+def otag(+xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, h: L.F, cnt: Nat) -> Bool:
+  +ld = CH.skip(16n, xs)
+  S.eq(tail(ld, xs), P.tag_len(pone, kk, sv, la, P.absorb_pad(pone, body(ld, xs), kk, h, cnt)))
 
 # Whether the tag matches. xs is the data (ciphertext || tag) from some
-# point on and nb = nblk of its ciphertext: 64 ciphertext bytes are
-# absorbed onto h per step, then the rest (the data but its last 16 bytes)
-# with its padding and the lengths, and the tag (the last 16 bytes)
-# compared. No list is built on the way.
-def opoly(fuel: Nat, nb: Nat, +xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, h: L.F, cnt: Nat) -> Bool:
-  match fuel nb xs:
-    case 1n+p 1n+q +x0 <> +x1 <> +x2 <> +x3 <> +x4 <> +x5 <> +x6 <> +x7 <> +x8 <> +x9 <> +x10 <> +x11 <> +x12 <> +x13 <> +x14 <> +x15 <> +x16 <> +x17 <> +x18 <> +x19 <> +x20 <> +x21 <> +x22 <> +x23 <> +x24 <> +x25 <> +x26 <> +x27 <> +x28 <> +x29 <> +x30 <> +x31 <> +x32 <> +x33 <> +x34 <> +x35 <> +x36 <> +x37 <> +x38 <> +x39 <> +x40 <> +x41 <> +x42 <> +x43 <> +x44 <> +x45 <> +x46 <> +x47 <> +x48 <> +x49 <> +x50 <> +x51 <> +x52 <> +x53 <> +x54 <> +x55 <> +x56 <> +x57 <> +x58 <> +x59 <> +x60 <> +x61 <> +x62 <> +x63 <> xrest:
-      +g1 = L.block(kk, h, L.load(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), pone))
-      +g2 = L.block(kk, g1, L.load(L.byte(x16), L.byte(x17), L.byte(x18), L.byte(x19), L.byte(x20), L.byte(x21), L.byte(x22), L.byte(x23), L.byte(x24), L.byte(x25), L.byte(x26), L.byte(x27), L.byte(x28), L.byte(x29), L.byte(x30), L.byte(x31), pone))
-      +g3 = L.block(kk, g2, L.load(L.byte(x32), L.byte(x33), L.byte(x34), L.byte(x35), L.byte(x36), L.byte(x37), L.byte(x38), L.byte(x39), L.byte(x40), L.byte(x41), L.byte(x42), L.byte(x43), L.byte(x44), L.byte(x45), L.byte(x46), L.byte(x47), pone))
-      +g4 = L.block(kk, g3, L.load(L.byte(x48), L.byte(x49), L.byte(x50), L.byte(x51), L.byte(x52), L.byte(x53), L.byte(x54), L.byte(x55), L.byte(x56), L.byte(x57), L.byte(x58), L.byte(x59), L.byte(x60), L.byte(x61), L.byte(x62), L.byte(x63), pone))
-      +cnt4 = Nat.add(Nat.add(Nat.add(Nat.add(cnt, 16n), 16n), 16n), 16n)
-      opoly(p, q, xrest, pone, kk, sv, la, g4, cnt4)
-    case _ _ _:
-      +ld = CH.skip(16n, xs)
-      S.eq(tail(ld, xs), P.tag_len(pone, kk, sv, la, P.absorb_pad(pone, body(ld, xs), kk, h, cnt)))
+# point on: while at least 65 ciphertext bytes remain (81 bytes of data),
+# 64 of them are absorbed onto h per step; then the rest (the data but its
+# last 16 bytes) with its padding and the lengths, and the tag (the last 16
+# bytes) compared. No list is built on the way.
+def opoly(fuel: Nat, +xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, h: L.F, cnt: Nat) -> Bool:
+  match fuel:
+    case 0n:
+      otag(xs, pone, kk, sv, la, h, cnt)
+    case 1n+p:
+      match xs:
+        case +x0 <> +x1 <> +x2 <> +x3 <> +x4 <> +x5 <> +x6 <> +x7 <> +x8 <> +x9 <> +x10 <> +x11 <> +x12 <> +x13 <> +x14 <> +x15 <> +x16 <> +x17 <> +x18 <> +x19 <> +x20 <> +x21 <> +x22 <> +x23 <> +x24 <> +x25 <> +x26 <> +x27 <> +x28 <> +x29 <> +x30 <> +x31 <> +x32 <> +x33 <> +x34 <> +x35 <> +x36 <> +x37 <> +x38 <> +x39 <> +x40 <> +x41 <> +x42 <> +x43 <> +x44 <> +x45 <> +x46 <> +x47 <> +x48 <> +x49 <> +x50 <> +x51 <> +x52 <> +x53 <> +x54 <> +x55 <> +x56 <> +x57 <> +x58 <> +x59 <> +x60 <> +x61 <> +x62 <> +x63 <> +xrest:
+          match xrest:
+            case _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _:
+              +g1 = L.block(kk, h, L.load(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), pone))
+              +g2 = L.block(kk, g1, L.load(L.byte(x16), L.byte(x17), L.byte(x18), L.byte(x19), L.byte(x20), L.byte(x21), L.byte(x22), L.byte(x23), L.byte(x24), L.byte(x25), L.byte(x26), L.byte(x27), L.byte(x28), L.byte(x29), L.byte(x30), L.byte(x31), pone))
+              +g3 = L.block(kk, g2, L.load(L.byte(x32), L.byte(x33), L.byte(x34), L.byte(x35), L.byte(x36), L.byte(x37), L.byte(x38), L.byte(x39), L.byte(x40), L.byte(x41), L.byte(x42), L.byte(x43), L.byte(x44), L.byte(x45), L.byte(x46), L.byte(x47), pone))
+              +g4 = L.block(kk, g3, L.load(L.byte(x48), L.byte(x49), L.byte(x50), L.byte(x51), L.byte(x52), L.byte(x53), L.byte(x54), L.byte(x55), L.byte(x56), L.byte(x57), L.byte(x58), L.byte(x59), L.byte(x60), L.byte(x61), L.byte(x62), L.byte(x63), pone))
+              +cnt4 = Nat.add(Nat.add(Nat.add(Nat.add(cnt, 16n), 16n), 16n), 16n)
+              opoly(p, xrest, pone, kk, sv, la, g4, cnt4)
+            case _:
+              otag(xs, pone, kk, sv, la, h, cnt)
+        case _:
+          otag(xs, pone, kk, sv, la, h, cnt)
 
-# The plaintext: 64 bytes per step (st: the keystream state of counter c),
-# then fct on the rest of the ciphertext.
-def odec(fuel: Nat, nb: Nat, +xs: List<&2, U32>, +st: C.State, +r: Nat, +k: CH.Key, +c: U32, +n: CH.Nonce) -> List<&2, U32>:
-  match fuel nb xs st:
-    case 1n+p 1n+q x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> x16 <> x17 <> x18 <> x19 <> x20 <> x21 <> x22 <> x23 <> x24 <> x25 <> x26 <> x27 <> x28 <> x29 <> x30 <> x31 <> x32 <> x33 <> x34 <> x35 <> x36 <> x37 <> x38 <> x39 <> x40 <> x41 <> x42 <> x43 <> x44 <> x45 <> x46 <> x47 <> x48 <> x49 <> x50 <> x51 <> x52 <> x53 <> x54 <> x55 <> x56 <> x57 <> x58 <> x59 <> x60 <> x61 <> x62 <> x63 <> xrest C.S{+w0, +w1, +w2, +w3, +w4, +w5, +w6, +w7, +w8, +w9, +w10, +w11, +w12, +w13, +w14, +w15}:
-      +c1 = U32.add(c, 1)
-      U32.xor(x0, U32.and(w0,255)) <> U32.xor(x1, U32.and(U32.shrn(w0,8n),255)) <> U32.xor(x2, U32.and(U32.shrn(w0,16n),255)) <> U32.xor(x3, U32.shrn(w0,24n)) <> U32.xor(x4, U32.and(w1,255)) <> U32.xor(x5, U32.and(U32.shrn(w1,8n),255)) <> U32.xor(x6, U32.and(U32.shrn(w1,16n),255)) <> U32.xor(x7, U32.shrn(w1,24n)) <> U32.xor(x8, U32.and(w2,255)) <> U32.xor(x9, U32.and(U32.shrn(w2,8n),255)) <> U32.xor(x10, U32.and(U32.shrn(w2,16n),255)) <> U32.xor(x11, U32.shrn(w2,24n)) <> U32.xor(x12, U32.and(w3,255)) <> U32.xor(x13, U32.and(U32.shrn(w3,8n),255)) <> U32.xor(x14, U32.and(U32.shrn(w3,16n),255)) <> U32.xor(x15, U32.shrn(w3,24n)) <> U32.xor(x16, U32.and(w4,255)) <> U32.xor(x17, U32.and(U32.shrn(w4,8n),255)) <> U32.xor(x18, U32.and(U32.shrn(w4,16n),255)) <> U32.xor(x19, U32.shrn(w4,24n)) <> U32.xor(x20, U32.and(w5,255)) <> U32.xor(x21, U32.and(U32.shrn(w5,8n),255)) <> U32.xor(x22, U32.and(U32.shrn(w5,16n),255)) <> U32.xor(x23, U32.shrn(w5,24n)) <> U32.xor(x24, U32.and(w6,255)) <> U32.xor(x25, U32.and(U32.shrn(w6,8n),255)) <> U32.xor(x26, U32.and(U32.shrn(w6,16n),255)) <> U32.xor(x27, U32.shrn(w6,24n)) <> U32.xor(x28, U32.and(w7,255)) <> U32.xor(x29, U32.and(U32.shrn(w7,8n),255)) <> U32.xor(x30, U32.and(U32.shrn(w7,16n),255)) <> U32.xor(x31, U32.shrn(w7,24n)) <> U32.xor(x32, U32.and(w8,255)) <> U32.xor(x33, U32.and(U32.shrn(w8,8n),255)) <> U32.xor(x34, U32.and(U32.shrn(w8,16n),255)) <> U32.xor(x35, U32.shrn(w8,24n)) <> U32.xor(x36, U32.and(w9,255)) <> U32.xor(x37, U32.and(U32.shrn(w9,8n),255)) <> U32.xor(x38, U32.and(U32.shrn(w9,16n),255)) <> U32.xor(x39, U32.shrn(w9,24n)) <> U32.xor(x40, U32.and(w10,255)) <> U32.xor(x41, U32.and(U32.shrn(w10,8n),255)) <> U32.xor(x42, U32.and(U32.shrn(w10,16n),255)) <> U32.xor(x43, U32.shrn(w10,24n)) <> U32.xor(x44, U32.and(w11,255)) <> U32.xor(x45, U32.and(U32.shrn(w11,8n),255)) <> U32.xor(x46, U32.and(U32.shrn(w11,16n),255)) <> U32.xor(x47, U32.shrn(w11,24n)) <> U32.xor(x48, U32.and(w12,255)) <> U32.xor(x49, U32.and(U32.shrn(w12,8n),255)) <> U32.xor(x50, U32.and(U32.shrn(w12,16n),255)) <> U32.xor(x51, U32.shrn(w12,24n)) <> U32.xor(x52, U32.and(w13,255)) <> U32.xor(x53, U32.and(U32.shrn(w13,8n),255)) <> U32.xor(x54, U32.and(U32.shrn(w13,16n),255)) <> U32.xor(x55, U32.shrn(w13,24n)) <> U32.xor(x56, U32.and(w14,255)) <> U32.xor(x57, U32.and(U32.shrn(w14,8n),255)) <> U32.xor(x58, U32.and(U32.shrn(w14,16n),255)) <> U32.xor(x59, U32.shrn(w14,24n)) <> U32.xor(x60, U32.and(w15,255)) <> U32.xor(x61, U32.and(U32.shrn(w15,8n),255)) <> U32.xor(x62, U32.and(U32.shrn(w15,16n),255)) <> U32.xor(x63, U32.shrn(w15,24n)) <> odec(p, q, xrest, C.block(r, CH.state(k, c1, n)), r, k, c1, n)
-    case _ _ _ _:
-      fct(fuel, body(CH.skip(16n, xs), xs), st, r, k, c, n)
-
-def onb(+f: Nat, +nb: Nat, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, +h: L.F, +xs: List<&2, U32>, +k: CH.Key, +n: CH.Nonce) -> Maybe<&2, List<&2, U32>>:
-  owhen(opoly(f, nb, xs, pone, kk, sv, la, h, 0n), odec(f, nb, xs, C.block(10n, CH.state(k, 1, n)), 10n, k, 1, n))
+# The plaintext: 64 bytes per step (st: the keystream state of counter c)
+# while at least 65 ciphertext bytes remain, then fct on the rest.
+def odec(fuel: Nat, +xs: List<&2, U32>, +st: C.State, +r: Nat, +k: CH.Key, +c: U32, +n: CH.Nonce) -> List<&2, U32>:
+  match fuel:
+    case 0n: fct(0n, body(CH.skip(16n, xs), xs), st, r, k, c, n)
+    case 1n+p:
+      match xs:
+        case +x0 <> +x1 <> +x2 <> +x3 <> +x4 <> +x5 <> +x6 <> +x7 <> +x8 <> +x9 <> +x10 <> +x11 <> +x12 <> +x13 <> +x14 <> +x15 <> +x16 <> +x17 <> +x18 <> +x19 <> +x20 <> +x21 <> +x22 <> +x23 <> +x24 <> +x25 <> +x26 <> +x27 <> +x28 <> +x29 <> +x30 <> +x31 <> +x32 <> +x33 <> +x34 <> +x35 <> +x36 <> +x37 <> +x38 <> +x39 <> +x40 <> +x41 <> +x42 <> +x43 <> +x44 <> +x45 <> +x46 <> +x47 <> +x48 <> +x49 <> +x50 <> +x51 <> +x52 <> +x53 <> +x54 <> +x55 <> +x56 <> +x57 <> +x58 <> +x59 <> +x60 <> +x61 <> +x62 <> +x63 <> +xrest:
+          match xrest:
+            case _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _:
+              match st:
+                case C.S{+w0, +w1, +w2, +w3, +w4, +w5, +w6, +w7, +w8, +w9, +w10, +w11, +w12, +w13, +w14, +w15}:
+                  +c1 = U32.add(c, 1)
+                  U32.xor(x0, U32.and(w0,255)) <> U32.xor(x1, U32.and(U32.shrn(w0,8n),255)) <> U32.xor(x2, U32.and(U32.shrn(w0,16n),255)) <> U32.xor(x3, U32.shrn(w0,24n)) <> U32.xor(x4, U32.and(w1,255)) <> U32.xor(x5, U32.and(U32.shrn(w1,8n),255)) <> U32.xor(x6, U32.and(U32.shrn(w1,16n),255)) <> U32.xor(x7, U32.shrn(w1,24n)) <> U32.xor(x8, U32.and(w2,255)) <> U32.xor(x9, U32.and(U32.shrn(w2,8n),255)) <> U32.xor(x10, U32.and(U32.shrn(w2,16n),255)) <> U32.xor(x11, U32.shrn(w2,24n)) <> U32.xor(x12, U32.and(w3,255)) <> U32.xor(x13, U32.and(U32.shrn(w3,8n),255)) <> U32.xor(x14, U32.and(U32.shrn(w3,16n),255)) <> U32.xor(x15, U32.shrn(w3,24n)) <> U32.xor(x16, U32.and(w4,255)) <> U32.xor(x17, U32.and(U32.shrn(w4,8n),255)) <> U32.xor(x18, U32.and(U32.shrn(w4,16n),255)) <> U32.xor(x19, U32.shrn(w4,24n)) <> U32.xor(x20, U32.and(w5,255)) <> U32.xor(x21, U32.and(U32.shrn(w5,8n),255)) <> U32.xor(x22, U32.and(U32.shrn(w5,16n),255)) <> U32.xor(x23, U32.shrn(w5,24n)) <> U32.xor(x24, U32.and(w6,255)) <> U32.xor(x25, U32.and(U32.shrn(w6,8n),255)) <> U32.xor(x26, U32.and(U32.shrn(w6,16n),255)) <> U32.xor(x27, U32.shrn(w6,24n)) <> U32.xor(x28, U32.and(w7,255)) <> U32.xor(x29, U32.and(U32.shrn(w7,8n),255)) <> U32.xor(x30, U32.and(U32.shrn(w7,16n),255)) <> U32.xor(x31, U32.shrn(w7,24n)) <> U32.xor(x32, U32.and(w8,255)) <> U32.xor(x33, U32.and(U32.shrn(w8,8n),255)) <> U32.xor(x34, U32.and(U32.shrn(w8,16n),255)) <> U32.xor(x35, U32.shrn(w8,24n)) <> U32.xor(x36, U32.and(w9,255)) <> U32.xor(x37, U32.and(U32.shrn(w9,8n),255)) <> U32.xor(x38, U32.and(U32.shrn(w9,16n),255)) <> U32.xor(x39, U32.shrn(w9,24n)) <> U32.xor(x40, U32.and(w10,255)) <> U32.xor(x41, U32.and(U32.shrn(w10,8n),255)) <> U32.xor(x42, U32.and(U32.shrn(w10,16n),255)) <> U32.xor(x43, U32.shrn(w10,24n)) <> U32.xor(x44, U32.and(w11,255)) <> U32.xor(x45, U32.and(U32.shrn(w11,8n),255)) <> U32.xor(x46, U32.and(U32.shrn(w11,16n),255)) <> U32.xor(x47, U32.shrn(w11,24n)) <> U32.xor(x48, U32.and(w12,255)) <> U32.xor(x49, U32.and(U32.shrn(w12,8n),255)) <> U32.xor(x50, U32.and(U32.shrn(w12,16n),255)) <> U32.xor(x51, U32.shrn(w12,24n)) <> U32.xor(x52, U32.and(w13,255)) <> U32.xor(x53, U32.and(U32.shrn(w13,8n),255)) <> U32.xor(x54, U32.and(U32.shrn(w13,16n),255)) <> U32.xor(x55, U32.shrn(w13,24n)) <> U32.xor(x56, U32.and(w14,255)) <> U32.xor(x57, U32.and(U32.shrn(w14,8n),255)) <> U32.xor(x58, U32.and(U32.shrn(w14,16n),255)) <> U32.xor(x59, U32.shrn(w14,24n)) <> U32.xor(x60, U32.and(w15,255)) <> U32.xor(x61, U32.and(U32.shrn(w15,8n),255)) <> U32.xor(x62, U32.and(U32.shrn(w15,16n),255)) <> U32.xor(x63, U32.shrn(w15,24n)) <> odec(p, xrest, C.block(r, CH.state(k, c1, n)), r, k, c1, n)
+            case _:
+              fct(1n+p, body(CH.skip(16n, xs), xs), st, r, k, c, n)
+        case _:
+          fct(1n+p, body(CH.skip(16n, xs), xs), st, r, k, c, n)
 
 def osela(+pone: Nat, +kk: L.K, +sv: L.F, a: P.A, lead: List<&2, U32>, +xs: List<&2, U32>, +k: CH.Key, +n: CH.Nonce) -> Maybe<&2, List<&2, U32>>:
   match a lead:
     case P.A{h, la} Nil{}: owhen(S.eq(xs, P.tag_len(pone, kk, sv, la, P.absorb_pad(pone, Nil{}, kk, h, 0n))), Nil{})
-    case P.A{h, la} +l <> +lt: onb(List.length(&2, U32, l <> lt), nblk(l <> lt), pone, kk, sv, la, h, xs, k, n)
+    case P.A{h, la} +l <> +lt: owhen(opoly(List.length(&2, U32, l <> lt), xs, pone, kk, sv, la, h, 0n), odec(List.length(&2, U32, l <> lt), xs, C.block(10n, CH.state(k, 1, n)), 10n, k, 1, n))
 
 def oselk(+k0: U32, +k1: U32, +k2: U32, +k3: U32, +k4: U32, +k5: U32, +k6: U32, +k7: U32, +k8: U32, +k9: U32, +k10: U32, +k11: U32, +k12: U32, +k13: U32, +k14: U32, +k15: U32, +k16: U32, +k17: U32, +k18: U32, +k19: U32, +k20: U32, +k21: U32, +k22: U32, +k23: U32, +k24: U32, +k25: U32, +k26: U32, +k27: U32, +k28: U32, +k29: U32, +k30: U32, +k31: U32, aad: List<&2, U32>, lead: List<&2, U32>, +xs: List<&2, U32>, +k: CH.Key, +n: CH.Nonce) -> Maybe<&2, List<&2, U32>>:
   +kk = L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15))
