@@ -90,3 +90,34 @@ def exec_red(+mp: Nat, op: CS.SOp, +r: List<&2, Nat>) -> {Nat.mod(CS.exec(1n+mp,
       NR.mod_mod(mp, Nat.sub(Nat.add(CS.nth(i, r), 1n+mp), Nat.mod(CS.nth(j, r), 1n+mp)))
     case CS.SMul{i, j}:
       NR.mod_mod(mp, Nat.mul(CS.nth(i, r), CS.nth(j, r)))
+
+# ---- values built from values ----
+
+def rel_padd(+mp: Nat, +x: Nat, +y: Nat, +a: List<&2, P.Tm>, +b: List<&2, P.Tm>, +env: List<&2, Nat>, +hx: Z.Rel(mp, x, E.eP(a, env), E.eN(a, env)), +hy: Z.Rel(mp, y, E.eP(b, env), E.eN(b, env))) -> Z.Rel(mp, FS.madd(1n+mp, x, y), E.eP(P.padd(a, b), env), E.eN(P.padd(a, b), env)):
+  Z.rel_same(mp, FS.madd(1n+mp, x, y), Nat.add(E.eP(a, env), E.eP(b, env)), Nat.add(E.eN(a, env), E.eN(b, env)), E.eP(P.padd(a, b), env), E.eN(P.padd(a, b), env),
+    Equal.sym(Nat, Nat.add(E.eP(P.padd(a, b), env), Nat.add(E.eN(a, env), E.eN(b, env))), Nat.add(Nat.add(E.eP(a, env), E.eP(b, env)), E.eN(P.padd(a, b), env)), E.padd_v(a, b, env)),
+    Z.rel_add(mp, x, E.eP(a, env), E.eN(a, env), y, E.eP(b, env), E.eN(b, env), hx, hy))
+
+def rel_psub(+mp: Nat, +x: Nat, +y: Nat, +a: List<&2, P.Tm>, +b: List<&2, P.Tm>, +env: List<&2, Nat>, +hx: Z.Rel(mp, x, E.eP(a, env), E.eN(a, env)), +hy: Z.Rel(mp, y, E.eP(b, env), E.eN(b, env))) -> Z.Rel(mp, FS.msub(1n+mp, x, y), E.eP(P.psub(a, b), env), E.eN(P.psub(a, b), env)):
+  Z.rel_same(mp, FS.msub(1n+mp, x, y), Nat.add(E.eP(a, env), E.eN(b, env)), Nat.add(E.eN(a, env), E.eP(b, env)), E.eP(P.psub(a, b), env), E.eN(P.psub(a, b), env),
+    Equal.sym(Nat, Nat.add(E.eP(P.psub(a, b), env), Nat.add(E.eN(a, env), E.eP(b, env))), Nat.add(Nat.add(E.eP(a, env), E.eN(b, env)), E.eN(P.psub(a, b), env)), E.psub_v(a, b, env)),
+    Z.rel_sub(mp, x, E.eP(a, env), E.eN(a, env), y, E.eP(b, env), E.eN(b, env), hx, hy))
+
+def rel_pmul(+mp: Nat, +x: Nat, +y: Nat, +a: List<&2, P.Tm>, +b: List<&2, P.Tm>, +env: List<&2, Nat>, +hx: Z.Rel(mp, x, E.eP(a, env), E.eN(a, env)), +hy: Z.Rel(mp, y, E.eP(b, env), E.eN(b, env))) -> Z.Rel(mp, FS.mmul(1n+mp, x, y), E.eP(P.pmul(a, b), env), E.eN(P.pmul(a, b), env)):
+  Z.rel_same(mp, FS.mmul(1n+mp, x, y), Nat.add(Nat.mul(E.eP(a, env), E.eP(b, env)), Nat.mul(E.eN(a, env), E.eN(b, env))), Nat.add(Nat.mul(E.eP(a, env), E.eN(b, env)), Nat.mul(E.eN(a, env), E.eP(b, env))), E.eP(P.pmul(a, b), env), E.eN(P.pmul(a, b), env),
+    Equal.sym(Nat, Nat.add(E.eP(P.pmul(a, b), env), Nat.add(Nat.mul(E.eP(a, env), E.eN(b, env)), Nat.mul(E.eN(a, env), E.eP(b, env)))), Nat.add(Nat.add(Nat.mul(E.eP(a, env), E.eP(b, env)), Nat.mul(E.eN(a, env), E.eN(b, env))), E.eN(P.pmul(a, b), env)), E.pmul_v(a, b, env)),
+    Z.rel_mul(mp, x, E.eP(a, env), E.eN(a, env), y, E.eP(b, env), E.eN(b, env), hx, hy))
+
+# x^3 == F (as residues) and F == P - N give x^3 == P - N, the hypothesis of sm_red
+def cur_rel(+mp: Nat, +x: Nat, +f: Nat, +p: Nat, +n: Nat, +hc: {FS.mmul(1n+mp, FS.mmul(1n+mp, x, x), x) == f : Nat}, +hr: Z.Rel(mp, f, p, n)) -> Z.Rel(mp, Nat.pow(x, 3n), p, n):
+  Equal.trans(Nat, Nat.mod(Nat.add(Nat.pow(x, 3n), n), 1n+mp), Nat.mod(Nat.add(f, n), 1n+mp), Nat.mod(p, 1n+mp),
+    Equal.trans(Nat, Nat.mod(Nat.add(Nat.pow(x, 3n), n), 1n+mp), Nat.mod(Nat.add(Nat.mod(Nat.pow(x, 3n), 1n+mp), n), 1n+mp), Nat.mod(Nat.add(f, n), 1n+mp),
+      Equal.sym(Nat, Nat.mod(Nat.add(Nat.mod(Nat.pow(x, 3n), 1n+mp), n), 1n+mp), Nat.mod(Nat.add(Nat.pow(x, 3n), n), 1n+mp), NR.mod_add_l(mp, Nat.pow(x, 3n), n)),
+      Equal.cong(Nat, Nat, z => Nat.mod(Nat.add(z, n), 1n+mp), Nat.mod(Nat.pow(x, 3n), 1n+mp), f, Equal.trans(Nat, Nat.mod(Nat.pow(x, 3n), 1n+mp), FS.mmul(1n+mp, FS.mmul(1n+mp, x, x), x), f, pw3(mp, x), hc))),
+    hr)
+
+# equal modulo m and both residues: equal
+def both_red(+mp: Nat, +u: Nat, +v: Nat, +h: {Nat.mod(Nat.mod(u, 1n+mp), 1n+mp) == Nat.mod(Nat.mod(v, 1n+mp), 1n+mp) : Nat}) -> {Nat.mod(u, 1n+mp) == Nat.mod(v, 1n+mp) : Nat}:
+  %Equal.sym(Nat, Nat.mod(u, 1n+mp), Nat.mod(Nat.mod(u, 1n+mp), 1n+mp), Equal.sym(Nat, Nat.mod(Nat.mod(u, 1n+mp), 1n+mp), Nat.mod(u, 1n+mp), NR.mod_mod(mp, u))) : {_ == Nat.mod(v, 1n+mp) : Nat}
+  %Equal.sym(Nat, Nat.mod(v, 1n+mp), Nat.mod(Nat.mod(v, 1n+mp), 1n+mp), Equal.sym(Nat, Nat.mod(Nat.mod(v, 1n+mp), 1n+mp), Nat.mod(v, 1n+mp), NR.mod_mod(mp, v))) : {Nat.mod(Nat.mod(u, 1n+mp), 1n+mp) == _ : Nat}
+  h
