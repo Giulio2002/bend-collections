@@ -61,12 +61,12 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | Ed25519 verify | 4449.20 |
 | Argon2id | 42.94 |
 | secp256k1 (ECDSA, recovery, BIP-340) | 47560.98 |
-| ChaCha8 `uint64` | 7.42 |
-| PCG `uint64` | 6.63 |
-| `uint_below` (ChaCha8) | 15.92 |
-| `float64` (ChaCha8) | 9.30 |
-| `shuffle` (ChaCha8) | 238135.47 |
-| `crypto.random.bytes` | 34.41 |
+| ChaCha8 `uint64` | 7.29 |
+| PCG `uint64` | 6.51 |
+| `uint_below` (ChaCha8) | 15.50 |
+| `float64` (ChaCha8) | 9.22 |
+| `shuffle` (ChaCha8) | 6.43 |
+| `crypto.random.bytes` | 22.88 |
 | Math (natural) | 5.35 |
 | Math per type | 7.68 |
 | Intrusive doubly linked list | 1.63 |
@@ -392,57 +392,57 @@ microseconds per shuffle / per request.
 
 ### ChaCha8 `uint64`
 
-C reference: a C transcription of Go 1.23 `internal/chacha8rand` (portable block function). Worst ratio 7.42.
+C reference: a C transcription of Go 1.23 `internal/chacha8rand` (portable block function). Worst ratio 7.29.
 
 | Draws | Bend (ns) | C (ns) | Ratio |
 |---:|---:|---:|---:|
-| 2097152 draws | 30.0 | 4.05 | 7.42 |
+| 2097152 draws | 30.0 | 4.12 | 7.29 |
 
 ### PCG `uint64`
 
-C reference: a C transcription of Go 1.23 `math/rand/v2` PCG-DXSM. Worst ratio 6.63.
+C reference: a C transcription of Go 1.23 `math/rand/v2` PCG-DXSM. Worst ratio 6.51.
 
 | Draws | Bend (ns) | C (ns) | Ratio |
 |---:|---:|---:|---:|
-| 4194304 draws | 10.3 | 1.55 | 6.63 |
+| 4194304 draws | 10.3 | 1.57 | 6.51 |
 
 ### `uint_below` (ChaCha8)
 
-C reference: Go's `uint64n` (Lemire) transcribed. Worst ratio 15.92.
+C reference: Go's `uint64n` (Lemire) transcribed. Worst ratio 15.50.
 
 | Bound | Bend (ns) | C (ns) | Ratio |
 |---:|---:|---:|---:|
-| n = 1000000007 | 33.9 | 5.29 | 6.40 |
-| n = 2^63 + 1 | 260 | 16.4 | 15.92 |
+| n = 1000000007 | 33.9 | 5.36 | 6.31 |
+| n = 2^63 + 1 | 242 | 15.6 | 15.50 |
 
 ### `float64` (ChaCha8)
 
-C reference: Go's `Float64` transcribed. Worst ratio 9.30.
+C reference: Go's `Float64` transcribed. Worst ratio 9.22.
 
 | Draws | Bend (ns) | C (ns) | Ratio |
 |---:|---:|---:|---:|
-| 2097152 draws | 38.6 | 4.15 | 9.30 |
+| 2097152 draws | 38.6 | 4.19 | 9.22 |
 
 ### `shuffle` (ChaCha8)
 
-C reference: Go's Fisher-Yates `Shuffle` on a C array; Bend shuffles a list. Worst ratio 238135.47.
+C reference: Go's Fisher-Yates `Shuffle` on a C array; Bend's `shuffle_array` on an `Array<U32>`, in place. Worst ratio 6.43.
 
 | Items | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 1000 items | 9050 | 4.20 | 2154.76 |
-| 10000 items | 957000 | 41.0 | 23341.46 |
-| 100000 items | 96683000 | 406 | 238135.47 |
+| 1000 items | 26.0 | 4.16 | 6.25 |
+| 10000 items | 260 | 40.4 | 6.43 |
+| 100000 items | 2600 | 406 | 6.41 |
 
 ### `crypto.random.bytes`
 
-C reference: Go's `ChaCha8.Read` transcribed. Worst ratio 34.41.
+C reference: Go's `ChaCha8.Read` transcribed. Worst ratio 22.88.
 
 | Request | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 1.05 | 0.03 | 31.58 |
-| 1 KiB | 16.4 | 0.53 | 30.69 |
-| 64 KiB | 1203 | 35.0 | 34.41 |
-| 1 MiB | 17750 | 547 | 32.46 |
+| 64 B | 0.76 | 0.03 | 22.88 |
+| 1 KiB | 11.5 | 0.53 | 21.48 |
+| 64 KiB | 750 | 34.0 | 22.07 |
+| 1 MiB | 12250 | 542 | 22.61 |
 
 ## C references
 
@@ -484,8 +484,10 @@ Fairness notes:
   accepts high s). Bend's BIP-340 sign derives the public key on every call.
   No Python check (Bend and C must agree; RFC 6979 and fixed BIP-340 aux make
   both deterministic).
-- Shuffle: the Bend API shuffles a list (each swap walks the list), C an array;
-  the 100000-item row is one sample without a warm-up.
+- Shuffle: both sides shuffle the first n slots of an array in place (Bend:
+  `shuffle_array` on an `Array<U32>` of 2^d >= n slots, filled before the timed
+  region; the list `shuffle` writes the list into such an array and reads it
+  back, two more linear passes).
 
 ## Math
 

@@ -42,6 +42,8 @@ import ../f64.bend as F
 #   int_range(s, lo, hi) uniform in [lo, hi), lo < hi     lo + IntN(hi - lo)
 #   float64(s)           uniform multiple of 2^-53 in [0, 1)  Go Float64
 #   shuffle(s, xs)       a Fisher-Yates permutation of xs  Go Shuffle
+#   shuffle_array(s, a, n)  the same, in place on the      Go Shuffle on a
+#                        first n slots of an Array          slice
 #   perm(s, n)           a random permutation of 0..n-1    Go Perm
 #
 # uint64n is Lemire's nearly divisionless method ("Fast Random Integer
@@ -303,10 +305,120 @@ def shuffle_go(~A: Data, ~S: Data, ~next: S -> W.U64 & S, k: Nat, +n: W.U64, st:
     case 1n+ +p:
       shuffle_go(~A, ~S, ~next, p, X.sub(n, W.U64{1, 0}), shuffle_step(~A, ~S, ~next, 1n+p, n, st))
 
-# Go's Shuffle (Fisher-Yates, from the last index down), for fewer than 2^48
-# elements
-def shuffle(~A: Data, ~S: Data, ~next: S -> W.U64 & S, s: S, +xs: List<&2, A>) -> List<&2, A> & S:
+# Go's Shuffle on a list, swapping in place in the list (quadratic: each swap
+# walks the list); shuffle uses it only for 2^31 elements or more
+def shuffle_list(~A: Data, ~S: Data, ~next: S -> W.U64 & S, s: S, +xs: List<&2, A>) -> List<&2, A> & S:
   shuffle_go(~A, ~S, ~next, Nat.sub(List.length(&2, A, xs), 1n), len64(A, xs), (xs, s))
+
+# ---- permutations on arrays ----
+
+def exch_set(~A: Data, +i: U32, r: Array<A> & A) -> Array<A>:
+  (a, y) = r
+  Array.set(A, a, i, y)
+
+def exch_put(~A: Data, +i: U32, +j: U32, r: Array<A> & A) -> Array<A>:
+  (a, x) = r
+  exch_set(~A, i, Array.swap(A, a, j, x))
+
+# exchange slots i and j (Go's p[i], p[j] = p[j], p[i]): read x = a[i],
+# write x at j (taking out y = a[j]), write y at i
+def exch(~A: Data, a: Array<A>, +i: U32, +j: U32) -> Array<A>:
+  exch_put(~A, i, j, Array.get(A, a, i))
+
+def exch_at(~A: Data, -S: Data, a: Array<A>, +i: U32, p: W.U64 & S) -> Array<A> & S:
+  (+j, s) = p
+  (exch(~A, a, i, X.lo(j)), s)
+
+# exchange slot i with a uniform j < i + 1
+def ashuffle_step(~A: Data, ~S: Data, ~next: S -> W.U64 & S, +i: Nat, st: Array<A> & S) -> Array<A> & S:
+  (a, s) = st
+  exch_at(~A, S, a, U32.from_nat(i), uint64n(~S, ~next, s, W.U64{U32.from_nat(1n+i), 0}))
+
+# i = k, k - 1, ..., 1
+def ashuffle_go(~A: Data, ~S: Data, ~next: S -> W.U64 & S, k: Nat, st: Array<A> & S) -> Array<A> & S:
+  match k:
+    case 0n:
+      st
+    case 1n+ +p:
+      ashuffle_go(~A, ~S, ~next, p, ashuffle_step(~A, ~S, ~next, 1n+p, st))
+
+# Go's Shuffle(n, swap) on the first n slots of an array (slots n and up are
+# kept), in place: for n up to the array's size 2^d, d < 32
+def shuffle_array(~A: Data, ~S: Data, ~next: S -> W.U64 & S, s: S, a: Array<A>, +n: Nat) -> Array<A> & S:
+  ashuffle_go(~A, ~S, ~next, Nat.sub(n, 1n), (a, s))
+
+# ---- the list shuffle through an array ----
+
+# 2^d
+def pow2n(d: Nat) -> Nat:
+  match d:
+    case 0n:
+      1n
+    case 1n+p:
+      Nat.double(pow2n(p))
+
+# the least e >= d with n <= 2^e (le says n <= p = 2^d), trying k more
+def depth_go(k: Nat, +n: Nat, +d: Nat, +p: Nat, le: Bool) -> Nat:
+  match k le:
+    case _ True{}:
+      d
+    case 0n False{}:
+      d
+    case 1n+q False{}:
+      depth_go(q, n, Nat.add(d, 1n), Nat.double(p), Nat.is_le(n, Nat.double(p)))
+
+# the least d <= 32 with n <= 2^d, or 32
+def depth(+n: Nat) -> Nat:
+  depth_go(32n, n, 0n, 1n, Nat.is_le(n, 1n))
+
+def cons_some(-A: Data, m: Maybe<&2, A>, acc: List<&2, A>) -> List<&2, A>:
+  match m:
+    case None{}:
+      acc
+    case Some{x}:
+      Con{x, acc}
+
+# write the list into slots k, k + 1, ... of the array in r; r's second
+# component, and every old slot taken out (None in a fresh array), is kept in
+# acc if it holds an element
+def fill(~A: Data, xs: List<&2, A>, +k: Nat, acc: List<&2, A>, r: Array<Maybe<&2, A>> & Maybe<&2, A>) -> Array<Maybe<&2, A>> & List<&2, A>:
+  match xs r:
+    case Nil{} Tuple{a, old}:
+      (a, cons_some(A, old, acc))
+    case Con{x, rest} Tuple{a, old}:
+      fill(~A, rest, 1n+k, cons_some(A, old, acc), Array.swap(Maybe<&2, A>, a, U32.from_nat(k), Some{x}))
+
+# the elements of slots k - 1, ..., 0 of the array in r, in slot order,
+# before r's second component and acc
+def collect(~A: Data, k: Nat, acc: List<&2, A>, r: Array<Maybe<&2, A>> & Maybe<&2, A>) -> List<&2, A>:
+  match k r:
+    case 0n Tuple{a, m}:
+      cons_some(A, m, acc)
+    case 1n+ +p Tuple{a, m}:
+      collect(~A, p, cons_some(A, m, acc), Array.get(Maybe<&2, A>, a, U32.from_nat(p)))
+
+def collect_fin(~A: Data, -S: Data, +d: Nat, acc: List<&2, A>, r: Array<Maybe<&2, A>> & S) -> List<&2, A> & S:
+  (a, s) = r
+  (collect(~A, pow2n(d), acc, (a, None{})), s)
+
+def shuffle_arr(~A: Data, ~S: Data, ~next: S -> W.U64 & S, s: S, +n: Nat, +d: Nat, r: Array<Maybe<&2, A>> & List<&2, A>) -> List<&2, A> & S:
+  (a, acc) = r
+  collect_fin(~A, S, d, acc, shuffle_array(~Maybe<&2, A>, ~S, ~next, s, a, n))
+
+def shuffle_pick(~A: Data, ~S: Data, ~next: S -> W.U64 & S, s: S, +xs: List<&2, A>, +n: Nat, +d: Nat, small: Bool) -> List<&2, A> & S:
+  match small:
+    case True{}:
+      shuffle_arr(~A, ~S, ~next, s, n, d, fill(~A, xs, 0n, [], (Array.new(Maybe<&2, A>, d, None{}), None{})))
+    case False{}:
+      shuffle_list(~A, ~S, ~next, s, xs)
+
+# Go's Shuffle (Fisher-Yates, from the last index down) of a list: the list
+# is written into an array of 2^d >= n slots, shuffled there in place and
+# read back (lists of 2^31 elements or more are shuffled as a list)
+def shuffle(~A: Data, ~S: Data, ~next: S -> W.U64 & S, s: S, +xs: List<&2, A>) -> List<&2, A> & S:
+  +n = List.length(&2, A, xs)
+  +d = depth(n)
+  shuffle_pick(~A, ~S, ~next, s, xs, n, d, Bool.and(Nat.is_lt(d, 32n), Nat.is_le(n, pow2n(d))))
 
 def range_go(n: Nat, acc: List<&2, Nat>) -> List<&2, Nat>:
   match n:

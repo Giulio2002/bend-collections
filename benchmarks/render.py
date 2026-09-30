@@ -105,7 +105,7 @@ SUITE = OrderedDict([
         ('pcg_uint64', 'PCG `uint64`', 'a C transcription of Go 1.23 `math/rand/v2` PCG-DXSM', 'Draws', 'ns'),
         ('uint_below', '`uint_below` (ChaCha8)', "Go's `uint64n` (Lemire) transcribed", 'Bound', 'ns'),
         ('float64', '`float64` (ChaCha8)', "Go's `Float64` transcribed", 'Draws', 'ns'),
-        ('shuffle', '`shuffle` (ChaCha8)', "Go's Fisher-Yates `Shuffle` on a C array; Bend shuffles a list", 'Items', 'us'),
+        ('shuffle', '`shuffle` (ChaCha8)', "Go's Fisher-Yates `Shuffle` on a C array; Bend's `shuffle_array` on an `Array<U32>`, in place", 'Items', 'us'),
         ('crypto_random_bytes', '`crypto.random.bytes`', "Go's `ChaCha8.Read` transcribed", 'Request', 'us'),
     ])),
 ])
@@ -197,8 +197,10 @@ def references_section():
             '  accepts high s). Bend\'s BIP-340 sign derives the public key on every call.',
             '  No Python check (Bend and C must agree; RFC 6979 and fixed BIP-340 aux make',
             '  both deterministic).',
-            '- Shuffle: the Bend API shuffles a list (each swap walks the list), C an array;',
-            '  the 100000-item row is one sample without a warm-up.', '']
+            '- Shuffle: both sides shuffle the first n slots of an array in place (Bend:',
+            '  `shuffle_array` on an `Array<U32>` of 2^d >= n slots, filled before the timed',
+            '  region; the list `shuffle` writes the list into such an array and reads it',
+            '  back, two more linear passes).', '']
 
 
 def main():

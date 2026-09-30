@@ -283,12 +283,16 @@ def roll(g: PCG.PCG) -> W.U64 & PCG.PCG:
 
 def deal(g: PCG.PCG, +cards: List<&2, U32>) -> List<&2, U32> & PCG.PCG:
   R.shuffle(~U32, ~PCG.PCG, ~R.pcg_next, g, cards)    # Go: r.Shuffle
+
+# shuffle the first n slots of an array in place    # Go: r.Shuffle on a slice
+def deal_array(g: PCG.PCG, a: Array<U32>, +n: Nat) -> Array<U32> & PCG.PCG:
+  R.shuffle_array(~U32, ~PCG.PCG, ~R.pcg_next, g, a, n)
 ```
 
 A source is any state type `S` with `~next: S -> U64 & S`, passed as
 templates like `src/math/num.bend`'s `~op`: every function of
 `src/math/random/rand.bend` (`uint64 uint32 int64 int32 uint64n/uint_below
-uint32n intn int_range float64 shuffle perm`) is written once for all
+uint32n intn int_range float64 shuffle shuffle_array perm`) is written once for all
 sources, and so will math/statistics be (a `normal(~S, ~next, s)` on top of
 `float64`). Sources: `R.chacha8(seed)` (Go's `ChaCha8`, C2SP chacha8rand,
 a 32-byte seed) and `R.pcg(seed1, seed2)` (Go's `PCG`, 128-bit LCG with the
@@ -304,7 +308,8 @@ naturals; `uint64n` computes the specification's draw and is below n for
 every source; Lemire's rejection is exactly unbiased (for every width, bound
 and k < n, exactly floor(2^w / n) source outputs draw k); `shuffle` and
 `perm` return permutations for every source (Mathlib's `List.Perm`, by
-counts); `float64` is m 2^-53 exactly and below 1; the word slices and the
+counts), and `shuffle_array` permutes the array's slots (`shuffle` itself
+goes through an array: linear time, not quadratic); `float64` is m 2^-53 exactly and below 1; the word slices and the
 bounded wrappers (`uint32n`, `intn`, `int_range`) are what they say. Tested: Go's vectors and a Python mirror of Go on random seeds
 and call sequences, plus a chi-square smoke test (`tools/check_random.py`).
 

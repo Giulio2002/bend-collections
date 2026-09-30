@@ -118,12 +118,34 @@ def take1(f: Fill) -> Fill:
         case Nil{}:
           split(acc, C8.next(c))
 
+# n bytes, one at a time (the definition bytes is proved against)
 def fill(n: Nat, f: Fill) -> Fill:
   match n:
     case 0n:
       f
     case 1n+k:
       fill(k, take1(f))
+
+# the eight bytes of a fresh word at once (what split and seven take1 give)
+def word(acc: List<&2, U32>, r: W.U64 & C8.ChaCha8) -> Fill:
+  (+x, c) = r
+  +l = X.lo(x)
+  +h = X.hi(x)
+  FS{Con{U32.and(U32.shrn(h, 24n), 255), Con{U32.and(U32.shrn(h, 16n), 255), Con{U32.and(U32.shrn(h, 8n), 255), Con{U32.and(h, 255), Con{U32.and(U32.shrn(l, 24n), 255), Con{U32.and(U32.shrn(l, 16n), 255), Con{U32.and(U32.shrn(l, 8n), 255), Con{U32.and(l, 255), acc}}}}}}}}, c, []}
+
+# fill, a whole word at a time while no bytes are pending (same bytes)
+def fill_fast(n: Nat, f: Fill) -> Fill:
+  match n f:
+    case 8n+k FS{acc, c, p}:
+      match p:
+        case Nil{}:
+          fill_fast(k, word(acc, C8.next(c)))
+        case Con{b, rest}:
+          fill_fast(7n+k, FS{Con{b, acc}, c, rest})
+    case 1n+k g:
+      fill_fast(k, take1(g))
+    case 0n g:
+      g
 
 def done(f: Fill) -> List<&2, U32> & Gen:
   match f:
@@ -133,7 +155,7 @@ def done(f: Fill) -> List<&2, U32> & Gen:
 def bytes(g: Gen, n: Nat) -> List<&2, U32> & Gen:
   match g:
     case G{c, p}:
-      done(fill(n, FS{[], c, p}))
+      done(fill_fast(n, FS{[], c, p}))
 
 def uint64(g: Gen) -> W.U64 & Gen:
   next(g)

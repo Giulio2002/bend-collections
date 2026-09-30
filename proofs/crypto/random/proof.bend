@@ -11,7 +11,7 @@ import ../../../spec/crypto/random.bend as SCR
 import ../../math/random/chacha8/stream.bend as CS
 import ../../math/random/chacha8/seed.bend as SEED
 import ../../math/random/bounded.bend as BD
-import ../../math/random/shuffle.bend as SH
+import ../../math/random/lshuffle.bend as SH
 import ./bytes.bend as BY
 
 # Entry point: `bend proofs/crypto/random/proof.bend` checks every clause of

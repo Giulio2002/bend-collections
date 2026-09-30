@@ -13,6 +13,7 @@ import ./random/source.bend as SRC
 import ./random/chacha8rand.bend as SC
 import ./random/pcg.bend as SP
 import ./random/rand.bend as SR
+import ../../proofs/lib/array.bend as AR
 
 # The contract of src/math/random.bend (Go's math/rand/v2): one
 # <Function>.<clause> proposition per guarantee, each proved for every
@@ -47,6 +48,12 @@ import ./random/rand.bend as SR
 #                           the same multiset)
 #     Perm.permutation      perm(n) holds every i < n exactly once and
 #                           nothing else
+#     Shuffle.array_permutation
+#                           shuffle_array(a, n), for n up to the array's
+#                           2^d slots (d < 32), keeps every count of the
+#                           array's slots (the array is thaw(t) of its mirror
+#                           tree t, proofs/lib/array.bend; its slots are t's
+#                           leaves in index order)
 #   Words and bounded wrappers
 #     Uint32.value, Int64.value, Int32.value   the top 32, low 63 and top
 #                           31 bits of the source output (Go's Uint32, Int64,
@@ -115,6 +122,9 @@ def Shuffle.permutation(~A: Data, ~V: Data, ~rel: A -> V -> Bool, ~S: Data, ~nex
 
 def Perm.permutation(~S: Data, ~next: S -> W.U64 & S, +s: S, +n: Nat, +i: Nat) -> Type:
   {SR.occurrences(~Nat, ~Nat, ~Nat.is_eq, i, R.fst(List<&2, Nat>, S, R.perm(~S, ~next, s, n))) == SR.b2n(Nat.is_lt(i, n)) : Nat}
+
+def Shuffle.array_permutation(~A: Data, ~V: Data, ~rel: A -> V -> Bool, ~S: Data, ~next: S -> W.U64 & S, +s: S, +d: Nat, +t: AR.Tree<A>, +n: Nat, +v: V, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hn: {Nat.is_le(n, C.pow2(d)) == True{} : Bool}, +pf: {AR.perfect(A, d, t) == True{} : Bool}) -> Type:
+  {SR.occurrences(~A, ~V, ~rel, v, AR.slots(A, AR.freeze(A, SR.afst(A, S, R.shuffle_array(~A, ~S, ~next, s, AR.thaw(A, t), n))))) == SR.occurrences(~A, ~V, ~rel, v, AR.slots(A, t)) : Nat}
 
 # the exact double m * 2^-53 for m = the low 53 bits of x (m and the
 # exponent zb - 53 given as variables n, xv with their equations, so the

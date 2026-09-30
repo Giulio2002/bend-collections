@@ -144,11 +144,45 @@ def done_bytes(+f: CR.Fill) -> {SCR.fst_bytes(CR.Gen, CR.done(f)) == rev(facc(f)
     case CR.FS{a, c, p}:
       {==}
 
+# a word at a time: the eight bytes split and seven take1 give
+def word_eq(+acc: List<&2, U32>, q: W.U64 & C8.ChaCha8) -> {CR.word(acc, q) == CR.fill(7n, CR.split(acc, q)) : CR.Fill}:
+  match q:
+    case Tuple{+x, +c}:
+      {==}
+
+# fill_fast is fill
+def fast_eq(+n: Nat, +f: CR.Fill) -> {CR.fill_fast(n, f) == CR.fill(n, f) : CR.Fill}:
+  match n f:
+    case 8n+k CR.FS{+acc, +c, Nil{}}:
+      Equal.trans(CR.Fill, CR.fill_fast(k, CR.word(acc, C8.next(c))), CR.fill(k, CR.word(acc, C8.next(c))), CR.fill(k, CR.fill(7n, CR.split(acc, C8.next(c)))),
+        fast_eq(k, CR.word(acc, C8.next(c))),
+        Equal.cong(CR.Fill, CR.Fill, z => CR.fill(k, z), CR.word(acc, C8.next(c)), CR.fill(7n, CR.split(acc, C8.next(c))), word_eq(acc, C8.next(c))))
+    case 8n+k CR.FS{+acc, +c, Con{+b, +rest}}:
+      fast_eq(7n+k, CR.FS{Con{b, acc}, c, rest})
+    case 7n +g:
+      fast_eq(6n, CR.take1(g))
+    case 6n +g:
+      fast_eq(5n, CR.take1(g))
+    case 5n +g:
+      fast_eq(4n, CR.take1(g))
+    case 4n +g:
+      fast_eq(3n, CR.take1(g))
+    case 3n +g:
+      fast_eq(2n, CR.take1(g))
+    case 2n +g:
+      fast_eq(1n, CR.take1(g))
+    case 1n +g:
+      fast_eq(0n, CR.take1(g))
+    case 0n +g:
+      {==}
+
 # THEOREM (Random.bytes)
 def bytes(+n: Nat, +c: C8.ChaCha8, +p: List<&2, U32>) -> SCR.Random.bytes(n, c, p):
-  Equal.trans(List<&2, U32>, SCR.fst_bytes(CR.Gen, CR.done(CR.fill(n, CR.FS{[], c, p}))), rev(facc(CR.fill(n, CR.FS{[], c, p}))), SCR.take(n, SCR.append(p, SCR.flat(outs(n, c)))),
-    done_bytes(CR.fill(n, CR.FS{[], c, p})),
-    fill_inv(n, CR.FS{[], c, p}))
+  Equal.trans(List<&2, U32>, SCR.fst_bytes(CR.Gen, CR.done(CR.fill_fast(n, CR.FS{[], c, p}))), SCR.fst_bytes(CR.Gen, CR.done(CR.fill(n, CR.FS{[], c, p}))), SCR.take(n, SCR.append(p, SCR.flat(outs(n, c)))),
+    Equal.cong(CR.Fill, List<&2, U32>, z => SCR.fst_bytes(CR.Gen, CR.done(z)), CR.fill_fast(n, CR.FS{[], c, p}), CR.fill(n, CR.FS{[], c, p}), fast_eq(n, CR.FS{[], c, p})),
+    Equal.trans(List<&2, U32>, SCR.fst_bytes(CR.Gen, CR.done(CR.fill(n, CR.FS{[], c, p}))), rev(facc(CR.fill(n, CR.FS{[], c, p}))), SCR.take(n, SCR.append(p, SCR.flat(outs(n, c)))),
+      done_bytes(CR.fill(n, CR.FS{[], c, p})),
+      fill_inv(n, CR.FS{[], c, p})))
 
 # ---- every byte is below 256 ----
 
