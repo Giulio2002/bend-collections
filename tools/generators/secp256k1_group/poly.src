@@ -1,0 +1,227 @@
+import Base
+import ./bn.bend as B
+
+# Sparse polynomials with integer coefficients, computed by the proof
+# checker (proof by reflection, as Coq's `ring`: Gregoire and Mahboubi,
+# "Proving equalities in a commutative ring done right in Coq", TPHOLs 2005,
+# here with sorted term lists instead of Horner forms).
+#
+# A term is Tm{c, e}: the coefficient c = Zc{p, n} stands for p - n (two
+# binary naturals, so no subtraction is ever computed) and e is the list of
+# exponents, one per variable (every term of one computation has the same
+# number of variables). A polynomial is a list of terms sorted by
+# decreasing exponents (lexicographic order); the sum merges two sorted
+# lists and drops a term whose coefficient became zero, so a polynomial
+# that is zero as a function computes to the empty list once it is in
+# normal form. Nothing here is trusted: pev.bend proves, for every input,
+# that each operation computes the sum, difference, product (and red the
+# reduction by x^3 = f) of the values, so a {==} check that a polynomial
+# computes to [] proves an identity.
+
+type Zc is Data:
+  Zc{p: B.Bn, n: B.Bn}
+
+def zadd(a: Zc, b: Zc) -> Zc:
+  match a b:
+    case Zc{p1, n1} Zc{p2, n2}:
+      Zc{B.badd(p1, p2), B.badd(n1, n2)}
+
+def zmul(a: Zc, b: Zc) -> Zc:
+  match a b:
+    case Zc{+p1, +n1} Zc{+p2, +n2}:
+      Zc{B.badd(B.bmul(p1, p2), B.bmul(n1, n2)), B.badd(B.bmul(p1, n2), B.bmul(n1, p2))}
+
+def zneg(a: Zc) -> Zc:
+  match a:
+    case Zc{p, n}:
+      Zc{n, p}
+
+def zzero(a: Zc) -> Bool:
+  match a:
+    case Zc{p, n}:
+      B.beq(p, n)
+
+# the constant k (a small unary number)
+def zc(k: Nat) -> Zc:
+  Zc{B.nbin(k), B.BZ{}}
+
+type Tm is Data:
+  Tm{c: Zc, e: List<&2, Nat>}
+
+# ---- exponent vectors ----
+
+def cmp_lo(c: Cmp, lo: Cmp) -> Cmp:
+  match c:
+    case EQ{}:
+      lo
+    case LT{}:
+      LT{}
+    case GT{}:
+      GT{}
+
+def ecmp(a: List<&2, Nat>, b: List<&2, Nat>) -> Cmp:
+  match a b:
+    case Nil{} Nil{}:
+      EQ{}
+    case Nil{} y <> ys:
+      LT{}
+    case x <> xs Nil{}:
+      GT{}
+    case x <> xs y <> ys:
+      cmp_lo(Nat.cmp(x, y), ecmp(xs, ys))
+
+def eadd(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
+  match a b:
+    case Nil{} ys:
+      ys
+    case x <> xs Nil{}:
+      x <> xs
+    case x <> xs y <> ys:
+      Nat.add(x, y) <> eadd(xs, ys)
+
+def esub(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
+  match a b:
+    case Nil{} ys:
+      Nil{}
+    case x <> xs Nil{}:
+      x <> xs
+    case x <> xs y <> ys:
+      Nat.sub(x, y) <> esub(xs, ys)
+
+# n exponents, k at position i, 0 elsewhere
+def unit(n: Nat, i: Nat, +k: Nat) -> List<&2, Nat>:
+  match n i:
+    case 0n _:
+      Nil{}
+    case 1n+m 0n:
+      k <> unit(m, 0n, 0n)
+    case 1n+m 1n+j:
+      0n <> unit(m, j, k)
+
+def nth(i: Nat, xs: List<&2, Nat>) -> Nat:
+  match i xs:
+    case _ Nil{}:
+      0n
+    case 0n x <> t:
+      x
+    case 1n+k x <> t:
+      nth(k, t)
+
+# ---- sums ----
+
+def hcmp(a: List<&2, Tm>, b: List<&2, Tm>) -> Cmp:
+  match a b:
+    case Tm{c, e} <> xs Tm{d, f} <> ys:
+      ecmp(e, f)
+    case _ _:
+      EQ{}
+
+def tsum(a: Tm, b: Tm) -> Zc:
+  match a b:
+    case Tm{c, e} Tm{d, f}:
+      zadd(c, d)
+
+def texp(a: Tm) -> List<&2, Nat>:
+  match a:
+    case Tm{c, e}:
+      e
+
+def cons_nz(z: Bool, +c: Zc, +e: List<&2, Nat>, r: List<&2, Tm>) -> List<&2, Tm>:
+  match z:
+    case True{}:
+      r
+    case False{}:
+      Tm{c, e} <> r
+
+# the merge of two sorted lists; o is hcmp(a, b)
+def merge(+a: List<&2, Tm>, +b: List<&2, Tm>, o: Cmp) -> List<&2, Tm>:
+  match a b o:
+    case Nil{} _ _:
+      b
+    case x <> xs Nil{} _:
+      a
+    case +x <> +xs +y <> +ys GT{}:
+      x <> merge(xs, b, hcmp(xs, b))
+    case +x <> +xs +y <> +ys LT{}:
+      y <> merge(a, ys, hcmp(a, ys))
+    case +x <> +xs +y <> +ys EQ{}:
+      cons_nz(zzero(tsum(x, y)), tsum(x, y), texp(x), merge(xs, ys, hcmp(xs, ys)))
+
+def padd(+a: List<&2, Tm>, +b: List<&2, Tm>) -> List<&2, Tm>:
+  merge(a, b, hcmp(a, b))
+
+def tneg(t: Tm) -> Tm:
+  match t:
+    case Tm{c, e}:
+      Tm{zneg(c), e}
+
+def pneg(a: List<&2, Tm>) -> List<&2, Tm>:
+  match a:
+    case Nil{}:
+      Nil{}
+    case x <> xs:
+      tneg(x) <> pneg(xs)
+
+def psub(+a: List<&2, Tm>, b: List<&2, Tm>) -> List<&2, Tm>:
+  padd(a, pneg(b))
+
+# ---- products ----
+
+def tmul1(+t: Tm, u: Tm) -> Tm:
+  match t u:
+    case Tm{c, e} Tm{d, f}:
+      Tm{zmul(c, d), eadd(e, f)}
+
+def tmul(+t: Tm, b: List<&2, Tm>) -> List<&2, Tm>:
+  match b:
+    case Nil{}:
+      Nil{}
+    case y <> ys:
+      tmul1(t, y) <> tmul(t, ys)
+
+def pmul(a: List<&2, Tm>, +b: List<&2, Tm>) -> List<&2, Tm>:
+  match a:
+    case Nil{}:
+      Nil{}
+    case x <> xs:
+      padd(tmul(x, b), pmul(xs, b))
+
+def ppow(+f: List<&2, Tm>, +n: Nat, k: Nat) -> List<&2, Tm>:
+  match k:
+    case 0n:
+      [Tm{zc(1n), unit(n, 0n, 0n)}]
+    case 1n+j:
+      pmul(f, ppow(f, n, j))
+
+# ---- constants and variables (n variables) ----
+
+def pconst(+n: Nat, k: Nat) -> List<&2, Tm>:
+  [Tm{zc(k), unit(n, 0n, 0n)}]
+
+def pvar(+n: Nat, +i: Nat) -> List<&2, Tm>:
+  [Tm{zc(1n), unit(n, i, 1n)}]
+
+# ---- the reduction x_i^3 -> f ----
+
+# a term c x^(3k + r) m becomes c x^r m f^k (k = e_i / 3)
+def red_k(+n: Nat, +i: Nat, +f: List<&2, Tm>, c: Zc, +e: List<&2, Nat>, +k: Nat) -> List<&2, Tm>:
+  tmul(Tm{c, esub(e, unit(n, i, Nat.mul(3n, k)))}, ppow(f, n, k))
+
+def red_t(+n: Nat, +i: Nat, +f: List<&2, Tm>, t: Tm) -> List<&2, Tm>:
+  match t:
+    case Tm{c, +e}:
+      red_k(n, i, f, c, e, Nat.div(nth(i, e), 3n))
+
+def red(+n: Nat, +i: Nat, +f: List<&2, Tm>, a: List<&2, Tm>) -> List<&2, Tm>:
+  match a:
+    case Nil{}:
+      Nil{}
+    case x <> xs:
+      padd(red_t(n, i, f, x), red(n, i, f, xs))
+
+def pnull(a: List<&2, Tm>) -> Bool:
+  match a:
+    case Nil{}:
+      True{}
+    case x <> xs:
+      False{}
