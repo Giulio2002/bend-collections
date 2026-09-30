@@ -130,10 +130,10 @@ def carry32c(x: FE.W31) -> W33:
       +h96 = L.hi16(s94)
       W33{l2, l5, l8, l11, l14, l17, l20, l23, l26, l29, l32, l35, l38, l41, l44, l47, l50, l53, l56, l59, l62, l65, l68, l71, l74, l77, l80, l83, l86, l89, l92, l95, h96}
 
-# lo + c hi for the first 16 limbs lo and the rest hi (smod.foldu)
-def foldu(c: W9, x: W33) -> W25:
-  match c x:
-    case W9{+c0, +c1, +c2, +c3, +c4, +c5, +c6, +c7, +c8} W33{+x0, +x1, +x2, +x3, +x4, +x5, +x6, +x7, +x8, +x9, +x10, +x11, +x12, +x13, +x14, +x15, +x16, +x17, +x18, +x19, +x20, +x21, +x22, +x23, +x24, +x25, +x26, +x27, +x28, +x29, +x30, +x31, +x32}:
+# lo + c hi for the first 16 limbs lo and the rest hi (smod.foldu; the data looked at first)
+def foldu(x: W33, c: W9) -> W25:
+  match x c:
+    case W33{+x0, +x1, +x2, +x3, +x4, +x5, +x6, +x7, +x8, +x9, +x10, +x11, +x12, +x13, +x14, +x15, +x16, +x17, +x18, +x19, +x20, +x21, +x22, +x23, +x24, +x25, +x26, +x27, +x28, +x29, +x30, +x31, +x32} W9{+c0, +c1, +c2, +c3, +c4, +c5, +c6, +c7, +c8}:
       W25{Nat.add(x0, Nat.add(FE.nmul(c0, x16), 0n)), Nat.add(x1, Nat.add(FE.nmul(c1, x16), Nat.add(FE.nmul(c0, x17), 0n))), Nat.add(x2, Nat.add(FE.nmul(c2, x16), Nat.add(FE.nmul(c1, x17), Nat.add(FE.nmul(c0, x18), 0n)))), Nat.add(x3, Nat.add(FE.nmul(c3, x16), Nat.add(FE.nmul(c2, x17), Nat.add(FE.nmul(c1, x18), Nat.add(FE.nmul(c0, x19), 0n))))), Nat.add(x4, Nat.add(FE.nmul(c4, x16), Nat.add(FE.nmul(c3, x17), Nat.add(FE.nmul(c2, x18), Nat.add(FE.nmul(c1, x19), Nat.add(FE.nmul(c0, x20), 0n)))))), Nat.add(x5, Nat.add(FE.nmul(c5, x16), Nat.add(FE.nmul(c4, x17), Nat.add(FE.nmul(c3, x18), Nat.add(FE.nmul(c2, x19), Nat.add(FE.nmul(c1, x20), Nat.add(FE.nmul(c0, x21), 0n))))))), Nat.add(x6, Nat.add(FE.nmul(c6, x16), Nat.add(FE.nmul(c5, x17), Nat.add(FE.nmul(c4, x18), Nat.add(FE.nmul(c3, x19), Nat.add(FE.nmul(c2, x20), Nat.add(FE.nmul(c1, x21), Nat.add(FE.nmul(c0, x22), 0n)))))))), Nat.add(x7, Nat.add(FE.nmul(c7, x16), Nat.add(FE.nmul(c6, x17), Nat.add(FE.nmul(c5, x18), Nat.add(FE.nmul(c4, x19), Nat.add(FE.nmul(c3, x20), Nat.add(FE.nmul(c2, x21), Nat.add(FE.nmul(c1, x22), Nat.add(FE.nmul(c0, x23), 0n))))))))), Nat.add(x8, Nat.add(FE.nmul(c8, x16), Nat.add(FE.nmul(c7, x17), Nat.add(FE.nmul(c6, x18), Nat.add(FE.nmul(c5, x19), Nat.add(FE.nmul(c4, x20), Nat.add(FE.nmul(c3, x21), Nat.add(FE.nmul(c2, x22), Nat.add(FE.nmul(c1, x23), Nat.add(FE.nmul(c0, x24), 0n)))))))))), Nat.add(x9, Nat.add(FE.nmul(c8, x17), Nat.add(FE.nmul(c7, x18), Nat.add(FE.nmul(c6, x19), Nat.add(FE.nmul(c5, x20), Nat.add(FE.nmul(c4, x21), Nat.add(FE.nmul(c3, x22), Nat.add(FE.nmul(c2, x23), Nat.add(FE.nmul(c1, x24), Nat.add(FE.nmul(c0, x25), 0n)))))))))), Nat.add(x10, Nat.add(FE.nmul(c8, x18), Nat.add(FE.nmul(c7, x19), Nat.add(FE.nmul(c6, x20), Nat.add(FE.nmul(c5, x21), Nat.add(FE.nmul(c4, x22), Nat.add(FE.nmul(c3, x23), Nat.add(FE.nmul(c2, x24), Nat.add(FE.nmul(c1, x25), Nat.add(FE.nmul(c0, x26), 0n)))))))))), Nat.add(x11, Nat.add(FE.nmul(c8, x19), Nat.add(FE.nmul(c7, x20), Nat.add(FE.nmul(c6, x21), Nat.add(FE.nmul(c5, x22), Nat.add(FE.nmul(c4, x23), Nat.add(FE.nmul(c3, x24), Nat.add(FE.nmul(c2, x25), Nat.add(FE.nmul(c1, x26), Nat.add(FE.nmul(c0, x27), 0n)))))))))), Nat.add(x12, Nat.add(FE.nmul(c8, x20), Nat.add(FE.nmul(c7, x21), Nat.add(FE.nmul(c6, x22), Nat.add(FE.nmul(c5, x23), Nat.add(FE.nmul(c4, x24), Nat.add(FE.nmul(c3, x25), Nat.add(FE.nmul(c2, x26), Nat.add(FE.nmul(c1, x27), Nat.add(FE.nmul(c0, x28), 0n)))))))))), Nat.add(x13, Nat.add(FE.nmul(c8, x21), Nat.add(FE.nmul(c7, x22), Nat.add(FE.nmul(c6, x23), Nat.add(FE.nmul(c5, x24), Nat.add(FE.nmul(c4, x25), Nat.add(FE.nmul(c3, x26), Nat.add(FE.nmul(c2, x27), Nat.add(FE.nmul(c1, x28), Nat.add(FE.nmul(c0, x29), 0n)))))))))), Nat.add(x14, Nat.add(FE.nmul(c8, x22), Nat.add(FE.nmul(c7, x23), Nat.add(FE.nmul(c6, x24), Nat.add(FE.nmul(c5, x25), Nat.add(FE.nmul(c4, x26), Nat.add(FE.nmul(c3, x27), Nat.add(FE.nmul(c2, x28), Nat.add(FE.nmul(c1, x29), Nat.add(FE.nmul(c0, x30), 0n)))))))))), Nat.add(x15, Nat.add(FE.nmul(c8, x23), Nat.add(FE.nmul(c7, x24), Nat.add(FE.nmul(c6, x25), Nat.add(FE.nmul(c5, x26), Nat.add(FE.nmul(c4, x27), Nat.add(FE.nmul(c3, x28), Nat.add(FE.nmul(c2, x29), Nat.add(FE.nmul(c1, x30), Nat.add(FE.nmul(c0, x31), 0n)))))))))), Nat.add(FE.nmul(c8, x24), Nat.add(FE.nmul(c7, x25), Nat.add(FE.nmul(c6, x26), Nat.add(FE.nmul(c5, x27), Nat.add(FE.nmul(c4, x28), Nat.add(FE.nmul(c3, x29), Nat.add(FE.nmul(c2, x30), Nat.add(FE.nmul(c1, x31), Nat.add(FE.nmul(c0, x32), 0n))))))))), Nat.add(FE.nmul(c8, x25), Nat.add(FE.nmul(c7, x26), Nat.add(FE.nmul(c6, x27), Nat.add(FE.nmul(c5, x28), Nat.add(FE.nmul(c4, x29), Nat.add(FE.nmul(c3, x30), Nat.add(FE.nmul(c2, x31), FE.nmul(c1, x32)))))))), Nat.add(FE.nmul(c8, x26), Nat.add(FE.nmul(c7, x27), Nat.add(FE.nmul(c6, x28), Nat.add(FE.nmul(c5, x29), Nat.add(FE.nmul(c4, x30), Nat.add(FE.nmul(c3, x31), FE.nmul(c2, x32))))))), Nat.add(FE.nmul(c8, x27), Nat.add(FE.nmul(c7, x28), Nat.add(FE.nmul(c6, x29), Nat.add(FE.nmul(c5, x30), Nat.add(FE.nmul(c4, x31), FE.nmul(c3, x32)))))), Nat.add(FE.nmul(c8, x28), Nat.add(FE.nmul(c7, x29), Nat.add(FE.nmul(c6, x30), Nat.add(FE.nmul(c5, x31), FE.nmul(c4, x32))))), Nat.add(FE.nmul(c8, x29), Nat.add(FE.nmul(c7, x30), Nat.add(FE.nmul(c6, x31), FE.nmul(c5, x32)))), Nat.add(FE.nmul(c8, x30), Nat.add(FE.nmul(c7, x31), FE.nmul(c6, x32))), Nat.add(FE.nmul(c8, x31), FE.nmul(c7, x32)), FE.nmul(c8, x32)}
 
 # L.carry(32n, xs, 0n) of a fold
@@ -245,9 +245,9 @@ def take16(x: W33) -> FE.FE:
       FE.FE{x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15}
 
 # t mod n for t below 2^256: t + c has bit 256 set exactly when t >= n (smod.canonu)
-def canonu(c: W9, t: FE.FE) -> FE.FE:
-  match c t:
-    case W9{+c0, +c1, +c2, +c3, +c4, +c5, +c6, +c7, +c8} FE.FE{+t0, +t1, +t2, +t3, +t4, +t5, +t6, +t7, +t8, +t9, +t10, +t11, +t12, +t13, +t14, +t15}:
+def canonu(t: FE.FE, c: W9) -> FE.FE:
+  match t c:
+    case FE.FE{+t0, +t1, +t2, +t3, +t4, +t5, +t6, +t7, +t8, +t9, +t10, +t11, +t12, +t13, +t14, +t15} W9{+c0, +c1, +c2, +c3, +c4, +c5, +c6, +c7, +c8}:
       +s1 = Nat.add(t0, c0)
       +l2 = L.lo16(s1)
       +h3 = L.hi16(s1)
@@ -348,18 +348,20 @@ def canonu(c: W9, t: FE.FE) -> FE.FE:
       FE.FE{Nat.add(FE.nmul(l2, f97), FE.nmul(t0, Nat.sub(1n, f97))), Nat.add(FE.nmul(l5, f97), FE.nmul(t1, Nat.sub(1n, f97))), Nat.add(FE.nmul(l8, f97), FE.nmul(t2, Nat.sub(1n, f97))), Nat.add(FE.nmul(l11, f97), FE.nmul(t3, Nat.sub(1n, f97))), Nat.add(FE.nmul(l14, f97), FE.nmul(t4, Nat.sub(1n, f97))), Nat.add(FE.nmul(l17, f97), FE.nmul(t5, Nat.sub(1n, f97))), Nat.add(FE.nmul(l20, f97), FE.nmul(t6, Nat.sub(1n, f97))), Nat.add(FE.nmul(l23, f97), FE.nmul(t7, Nat.sub(1n, f97))), Nat.add(FE.nmul(l26, f97), FE.nmul(t8, Nat.sub(1n, f97))), Nat.add(FE.nmul(l29, f97), FE.nmul(t9, Nat.sub(1n, f97))), Nat.add(FE.nmul(l32, f97), FE.nmul(t10, Nat.sub(1n, f97))), Nat.add(FE.nmul(l35, f97), FE.nmul(t11, Nat.sub(1n, f97))), Nat.add(FE.nmul(l38, f97), FE.nmul(t12, Nat.sub(1n, f97))), Nat.add(FE.nmul(l41, f97), FE.nmul(t13, Nat.sub(1n, f97))), Nat.add(FE.nmul(l44, f97), FE.nmul(t14, Nat.sub(1n, f97))), Nat.add(FE.nmul(l47, f97), FE.nmul(t15, Nat.sub(1n, f97)))}
 
 # one fold of the high half and its carry pass (L.rounds' step)
-def round(+c: W9, r: W33) -> W33:
-  carry32f(foldu(c, r))
+def round(r: W33, +c: W9) -> W33:
+  carry32f(foldu(r, c))
 
-# x mod n for the 31 columns x of a product (L.reduce(c, 4n, xs))
-def red(+c: W9, x: FE.W31) -> FE.FE:
-  canonu(c, take16(round(c, round(c, round(c, round(c, carry32c(x)))))))
+# x mod n for the 31 columns x of a product (L.reduce(c, 4n, xs)); the data
+# is looked at first, so that on unknown data the proof checker never
+# computes with the constant c
+def red(x: FE.W31, +c: W9) -> FE.FE:
+  canonu(take16(round(round(round(round(carry32c(x), c), c), c), c)), c)
 
 def mul(a: FE.FE, b: FE.FE) -> FE.FE:
-  red(cn(), FE.cols(a, b))
+  red(FE.cols(a, b), cn())
 
 def sq(a: FE.FE) -> FE.FE:
-  red(cn(), FE.sqcols(a))
+  red(FE.sqcols(a), cn())
 
 # x^e for the exponent e given by its bits, most significant first
 # (square-and-multiply; the branch is on the public exponent)
@@ -372,6 +374,12 @@ def pow_go(+x: FE.FE, bits: List<&2, Nat>, acc: FE.FE) -> FE.FE:
   match bits:
     case Nil{}: acc
     case b <> t: pow_go(x, t, pow_step(b, x, sq(acc)))
+
+# (x is looked at first, so that on an unknown x the proof checker keeps the
+# exponentiation folded)
+def pow(x: FE.FE, bits: List<&2, Nat>, acc: FE.FE) -> FE.FE:
+  match x:
+    case FE.FE{x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15}: pow_go(FE.FE{x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15}, bits, acc)
 
 def one() -> FE.FE:
   FE.one()

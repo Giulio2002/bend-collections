@@ -1,5 +1,7 @@
 import Base
 import ./limbs.bend as L
+import ./fe.bend as R
+import ./se.bend as SE
 
 # Integers modulo the group order
 # n = 2^256 - 432420386565659656852420866390673177327 (SEC 2 section 2.4.1),
@@ -46,34 +48,25 @@ def neg_u(a: List<&2, Nat>) -> List<&2, Nat>:
 def neg(a: List<&2, Nat>) -> List<&2, Nat>:
   neg_u(a)
 
-def mul_u(a: List<&2, Nat>, +b: List<&2, Nat>) -> List<&2, Nat>:
-  reduce_u(L.conv(a, b))
-
-def mul_b(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
-  match b:
-    case Nil{}: mul_u(a, Nil{})
-    case y <> u: mul_u(a, y <> u)
+# The product runs on records (se.bend, reduction as L.reduce(c, 4n, xs)),
+# whose fields the compiled code keeps in registers; a reduced list is the
+# list of its record. The first argument is looked at first.
+def mul_u(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
+  R.to_list(SE.mul(R.of_list(a), R.of_list(b)))
 
 def mul(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
   match a:
-    case Nil{}: mul_b(Nil{}, b)
-    case x <> t: mul_b(x <> t, b)
+    case Nil{}: mul_u(Nil{}, b)
+    case x <> t: mul_u(x <> t, b)
 
-def pow_step(b: Nat, +x: List<&2, Nat>, +s: List<&2, Nat>) -> List<&2, Nat>:
-  match b:
-    case 0n: s
-    case 1n+k: mul(s, x)
+# a^e for the exponent e given by its bits, on records (a looked at first)
+def powl_u(a: List<&2, Nat>, bits: List<&2, Nat>) -> List<&2, Nat>:
+  R.to_list(SE.pow(R.of_list(a), bits, SE.one()))
 
-def pow_go(+x: List<&2, Nat>, bits: List<&2, Nat>, +acc: List<&2, Nat>) -> List<&2, Nat>:
-  match bits:
-    case Nil{}: acc
-    case b <> t: pow_go(x, t, pow_step(b, x, mul(acc, acc)))
-
-# x is looked at first, so that on an unknown x nothing is unfolded
-def pow(x: List<&2, Nat>, bits: List<&2, Nat>, +acc: List<&2, Nat>) -> List<&2, Nat>:
-  match x:
-    case Nil{}: pow_go(Nil{}, bits, acc)
-    case +y <> +t: pow_go(y <> t, bits, acc)
+def powl(a: List<&2, Nat>, +bits: List<&2, Nat>) -> List<&2, Nat>:
+  match a:
+    case Nil{}: powl_u(Nil{}, bits)
+    case x <> t: powl_u(x <> t, bits)
 
 # the bits of n - 2, most significant first (the proofs show they are those
 # of 2^256 - 1 - (c + 1), c + 1 = 2^256 - n + 1)
@@ -88,8 +81,8 @@ def inv_bits() -> List<&2, Nat>:
    1n, 1n, 0n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 1n, 1n, 0n, 1n, 1n, 0n, 0n, 1n, 0n, 0n, 0n, 0n, 0n, 1n, 0n, 0n, 1n, 1n, 1n, 1n, 1n, 1n]
 
 # a^(n - 2): the inverse of a nonzero a, 0 for 0
-def inv(+a: List<&2, Nat>) -> List<&2, Nat>:
-  pow(a, inv_bits(), one())
+def inv(a: List<&2, Nat>) -> List<&2, Nat>:
+  powl(a, inv_bits())
 
 def is_zero(a: List<&2, Nat>) -> Bool:
   L.is_zero(a)

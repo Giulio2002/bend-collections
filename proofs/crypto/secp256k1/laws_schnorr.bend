@@ -39,3 +39,19 @@ law SchnorrVerify.correct:
   for +msg: List<&2, U32>
   for +sig: List<&2, U32>
   {K.schnorr_verify(pk, msg, sig) == SS.verify(one, pk, msg, sig) : Bool}
+
+# BIP-340 key pairs: the public key and signatures from the key pair of sk
+# are PubKey(sk) and Sign(sk, m, a)
+law SchnorrKeypairPubkey.correct:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +sk: List<&2, U32>
+  {K.schnorr_keypair_pubkey(K.schnorr_keypair(sk)) == SS.pubkey(one, sk) : Maybe<&2, List<&2, U32>>}
+
+law SchnorrSignKeypair.correct:
+  for +one: Nat
+  for +h1: {one == 1n : Nat}
+  for +sk: List<&2, U32>
+  for +msg: List<&2, U32>
+  for +aux: List<&2, U32>
+  {K.schnorr_sign_keypair(K.schnorr_keypair(sk), msg, aux) == SS.sign(one, sk, msg, aux) : Maybe<&2, List<&2, U32>>}

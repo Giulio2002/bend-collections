@@ -84,6 +84,16 @@ def pow_is(x: R.FE, +bs: List<&2, Nat>, +acc: R.FE) -> {R.pow(x, bs, acc) == R.p
     case R.FE{a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15}:
       {==}
 
+# the same through the wrapper that looks at x first (the bits kept
+# abstract, so that the checker never runs the loop on constant bits)
+def pow_ev(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +bs: List<&2, Nat>, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, +hb: {BV.all01(bs) == True{} : Bool}) -> {LV.ev(R.to_list(R.pow(x, bs, acc))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv(bs, one, e)), 1n+K.pp(one)) : Nat}:
+  %rw pow_is(x, bs, acc)
+  pow_e(one, h1, x, hx, bs, acc, ha, e, he, hb)
+
+def pow_rv(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +bs: List<&2, Nat>, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +hb: {BV.all01(bs) == True{} : Bool}) -> {OP.red(one, R.pow(x, bs, acc)) == True{} : Bool}:
+  %rw pow_is(x, bs, acc)
+  pow_r(one, h1, x, hx, bs, acc, ha, hb)
+
 # ---- one ----
 
 def one_lt(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(1n, FS.prime(one)) == True{} : Bool}:
@@ -152,10 +162,9 @@ def inv_v(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +ha: {FS.reduced
   %goal {FS.value(one, F.powl(a, F.inv_bits())) == FS.minv(FS.prime(one), FS.value(one, a)) : Nat}
   %rw powl_is(a, F.inv_bits())
   %goal {FS.value(one, R.to_list(R.pow(R.of_list(a), F.inv_bits(), R.one()))) == FS.minv(FS.prime(one), FS.value(one, a)) : Nat}
-  %rw pow_is(R.of_list(a), F.inv_bits(), R.one())
-  %goal {FS.value(one, R.to_list(R.pow_go(R.of_list(a), F.inv_bits(), R.one()))) == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.prime(one), 2n)), FS.prime(one)) : Nat}
-  %rw LV.ev_value(one, h1, R.to_list(R.pow_go(R.of_list(a), F.inv_bits(), R.one())))
-  %rw pow_e(one, h1, R.of_list(a), OP.rec_r(one, a, ha), F.inv_bits(), R.one(), one_r(one, h1), 0n, one_e(one, h1, LV.ev(R.to_list(R.of_list(a)))), inv_bits01(one))
+  %goal {FS.value(one, R.to_list(R.pow(R.of_list(a), F.inv_bits(), R.one()))) == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.prime(one), 2n)), FS.prime(one)) : Nat}
+  %rw LV.ev_value(one, h1, R.to_list(R.pow(R.of_list(a), F.inv_bits(), R.one())))
+  %rw pow_ev(one, h1, R.of_list(a), OP.rec_r(one, a, ha), F.inv_bits(), R.one(), one_r(one, h1), 0n, one_e(one, h1, LV.ev(R.to_list(R.of_list(a)))), inv_bits01(one))
   %rw OP.rec_l(one, a, ha)
   %rw exp_inv(one, h1)
   %rw LV.ev_value(one, h1, a)
@@ -167,9 +176,8 @@ def inv_r(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +ha: {FS.reduced
   %goal {FS.reduced(one, FS.prime(one), F.powl(a, F.inv_bits())) == True{} : Bool}
   %rw powl_is(a, F.inv_bits())
   %goal {FS.reduced(one, FS.prime(one), R.to_list(R.pow(R.of_list(a), F.inv_bits(), R.one()))) == True{} : Bool}
-  %rw pow_is(R.of_list(a), F.inv_bits(), R.one())
   %goal {FS.reduced(one, FS.prime(one), R.to_list(R.pow_go(R.of_list(a), F.inv_bits(), R.one()))) == True{} : Bool}
-  pow_r(one, h1, R.of_list(a), OP.rec_r(one, a, ha), F.inv_bits(), R.one(), one_r(one, h1), inv_bits01(one))
+  pow_rv(one, h1, R.of_list(a), OP.rec_r(one, a, ha), F.inv_bits(), R.one(), one_r(one, h1), inv_bits01(one))
 
 
 # ---- the exponent of sqrt: (p + 1) / 4 ----
@@ -253,10 +261,9 @@ def sqrt_v(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +ha: {FS.reduce
   %goal {FS.value(one, F.powl(a, F.sqrt_bits())) == FS.fsqrt(FS.prime(one), FS.value(one, a)) : Nat}
   %rw powl_is(a, F.sqrt_bits())
   %goal {FS.value(one, R.to_list(R.pow(R.of_list(a), F.sqrt_bits(), R.one()))) == FS.fsqrt(FS.prime(one), FS.value(one, a)) : Nat}
-  %rw pow_is(R.of_list(a), F.sqrt_bits(), R.one())
-  %goal {FS.value(one, R.to_list(R.pow_go(R.of_list(a), F.sqrt_bits(), R.one()))) == Nat.mod(Nat.pow(FS.value(one, a), Nat.div(Nat.add(FS.prime(one), 1n), 4n)), FS.prime(one)) : Nat}
-  %rw LV.ev_value(one, h1, R.to_list(R.pow_go(R.of_list(a), F.sqrt_bits(), R.one())))
-  %rw pow_e(one, h1, R.of_list(a), OP.rec_r(one, a, ha), F.sqrt_bits(), R.one(), one_r(one, h1), 0n, one_e(one, h1, LV.ev(R.to_list(R.of_list(a)))), sqrt_bits01(one))
+  %goal {FS.value(one, R.to_list(R.pow(R.of_list(a), F.sqrt_bits(), R.one()))) == Nat.mod(Nat.pow(FS.value(one, a), Nat.div(Nat.add(FS.prime(one), 1n), 4n)), FS.prime(one)) : Nat}
+  %rw LV.ev_value(one, h1, R.to_list(R.pow(R.of_list(a), F.sqrt_bits(), R.one())))
+  %rw pow_ev(one, h1, R.of_list(a), OP.rec_r(one, a, ha), F.sqrt_bits(), R.one(), one_r(one, h1), 0n, one_e(one, h1, LV.ev(R.to_list(R.of_list(a)))), sqrt_bits01(one))
   %rw OP.rec_l(one, a, ha)
   %rw exp_sqrt(one, h1)
   %rw LV.ev_value(one, h1, a)
@@ -268,6 +275,5 @@ def sqrt_r(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +ha: {FS.reduce
   %goal {FS.reduced(one, FS.prime(one), F.powl(a, F.sqrt_bits())) == True{} : Bool}
   %rw powl_is(a, F.sqrt_bits())
   %goal {FS.reduced(one, FS.prime(one), R.to_list(R.pow(R.of_list(a), F.sqrt_bits(), R.one()))) == True{} : Bool}
-  %rw pow_is(R.of_list(a), F.sqrt_bits(), R.one())
   %goal {FS.reduced(one, FS.prime(one), R.to_list(R.pow_go(R.of_list(a), F.sqrt_bits(), R.one()))) == True{} : Bool}
-  pow_r(one, h1, R.of_list(a), OP.rec_r(one, a, ha), F.sqrt_bits(), R.one(), one_r(one, h1), sqrt_bits01(one))
+  pow_rv(one, h1, R.of_list(a), OP.rec_r(one, a, ha), F.sqrt_bits(), R.one(), one_r(one, h1), sqrt_bits01(one))

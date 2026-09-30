@@ -7,7 +7,7 @@ published vectors, the `cryptography` package and pure-Python references.
 
 1. Vectors (tests/crypto/secp256k1/): every BIP-340 test vector
    (bip340_vectors.csv, from the BIP repository, all 19, valid and
-   invalid); the secp256k1 RFC 6979 vectors of bitcoinjs-lib; Wycheproof's
+   invalid; signing and public keys also through the key pair API); the secp256k1 RFC 6979 vectors of bitcoinjs-lib; Wycheproof's
    ecdsa_secp256k1_sha256 (verify) and ecdsa_secp256k1_sha256_bitcoin
    (verify_strict) tests whose signature is a strict DER encoding of two
    integers below 2^256 (the API takes r || s; the others test DER
@@ -294,6 +294,8 @@ def bip340_cases():
                     fail('BIP-340 reference disagrees with vector %s' % i)
                 cases.append(('bip340-sign:%s' % i, rec(6, sk, msg, aux), sig.hex()))
                 cases.append(('bip340-pubkey:%s' % i, rec(8, sk), pk.hex()))
+                cases.append(('bip340-sign-keypair:%s' % i, rec(10, sk, msg, aux), sig.hex()))
+                cases.append(('bip340-keypair-pubkey:%s' % i, rec(11, sk), pk.hex()))
             cases.append(('bip340-verify:%s' % i, rec(7, pk, msg, sig), tf(want)))
     return cases
 
@@ -468,6 +470,8 @@ def differential(n, rng):
         xpk = BIP.pubkey_gen(skb)
         cases.append(('diff-schnorr-sign:%d' % i, rec(6, skb, msg, aux), ssig.hex()))
         cases.append(('diff-schnorr-pubkey:%d' % i, rec(8, skb), xpk.hex()))
+        cases.append(('diff-schnorr-sign-keypair:%d' % i, rec(10, skb, msg, aux), ssig.hex()))
+        cases.append(('diff-schnorr-keypair-pubkey:%d' % i, rec(11, skb), xpk.hex()))
         cases.append(('diff-schnorr-verify:%d' % i, rec(7, xpk, msg, ssig), 'true'))
         bad = bytearray(ssig)
         bad[rng.randrange(64)] ^= 1 << rng.randrange(8)

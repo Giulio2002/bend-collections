@@ -30,9 +30,9 @@ def carry32c_b(r: FE.W31) -> {l33(S.carry32c(r)) == L.carry(32n, FB.l31(r), 0n) 
     case FE.W31{+r_0, +r_1, +r_2, +r_3, +r_4, +r_5, +r_6, +r_7, +r_8, +r_9, +r_10, +r_11, +r_12, +r_13, +r_14, +r_15, +r_16, +r_17, +r_18, +r_19, +r_20, +r_21, +r_22, +r_23, +r_24, +r_25, +r_26, +r_27, +r_28, +r_29, +r_30}:
       {==}
 
-def foldu_b(c: S.W9, r: S.W33) -> {l25(S.foldu(c, r)) == SM.foldu(l9(c), l33(r)) : List<&2, Nat>}:
-  match c r:
-    case S.W9{+c_0, +c_1, +c_2, +c_3, +c_4, +c_5, +c_6, +c_7, +c_8} S.W33{+r_0, +r_1, +r_2, +r_3, +r_4, +r_5, +r_6, +r_7, +r_8, +r_9, +r_10, +r_11, +r_12, +r_13, +r_14, +r_15, +r_16, +r_17, +r_18, +r_19, +r_20, +r_21, +r_22, +r_23, +r_24, +r_25, +r_26, +r_27, +r_28, +r_29, +r_30, +r_31, +r_32}:
+def foldu_b(r: S.W33, c: S.W9) -> {l25(S.foldu(r, c)) == SM.foldu(l9(c), l33(r)) : List<&2, Nat>}:
+  match r c:
+    case S.W33{+r_0, +r_1, +r_2, +r_3, +r_4, +r_5, +r_6, +r_7, +r_8, +r_9, +r_10, +r_11, +r_12, +r_13, +r_14, +r_15, +r_16, +r_17, +r_18, +r_19, +r_20, +r_21, +r_22, +r_23, +r_24, +r_25, +r_26, +r_27, +r_28, +r_29, +r_30, +r_31, +r_32} S.W9{+c_0, +c_1, +c_2, +c_3, +c_4, +c_5, +c_6, +c_7, +c_8}:
       {==}
 
 def carry32f_b(r: S.W25) -> {l33(S.carry32f(r)) == L.carry(32n, l25(r), 0n) : List<&2, Nat>}:
@@ -45,8 +45,11 @@ def take16_b(r: S.W33) -> {FE.to_list(S.take16(r)) == L.take(16n, l33(r)) : List
     case S.W33{+r_0, +r_1, +r_2, +r_3, +r_4, +r_5, +r_6, +r_7, +r_8, +r_9, +r_10, +r_11, +r_12, +r_13, +r_14, +r_15, +r_16, +r_17, +r_18, +r_19, +r_20, +r_21, +r_22, +r_23, +r_24, +r_25, +r_26, +r_27, +r_28, +r_29, +r_30, +r_31, +r_32}:
       {==}
 
-def canonu_b(c: S.W9, t: FE.FE) -> {FE.to_list(S.canonu(c, t)) == SM.canonu(l9(c), FE.to_list(t)) : List<&2, Nat>}:
-  match c t:
-    case S.W9{+c_0, +c_1, +c_2, +c_3, +c_4, +c_5, +c_6, +c_7, +c_8} FE.FE{+t_0, +t_1, +t_2, +t_3, +t_4, +t_5, +t_6, +t_7, +t_8, +t_9, +t_10, +t_11, +t_12, +t_13, +t_14, +t_15}:
+def canonu_b(t: FE.FE, c: S.W9) -> {FE.to_list(S.canonu(t, c)) == SM.canonu(l9(c), FE.to_list(t)) : List<&2, Nat>}:
+  match t c:
+    case FE.FE{+t_0, +t_1, +t_2, +t_3, +t_4, +t_5, +t_6, +t_7, +t_8, +t_9, +t_10, +t_11, +t_12, +t_13, +t_14, +t_15} S.W9{+c_0, +c_1, +c_2, +c_3, +c_4, +c_5, +c_6, +c_7, +c_8}:
       {==}
+
+def round_b(+r: S.W33, +c: S.W9) -> {l33(S.round(r, c)) == L.carry(32n, SM.foldu(l9(c), l33(r)), 0n) : List<&2, Nat>}:
+  Equal.trans(List<&2, Nat>, l33(S.carry32f(S.foldu(r, c))), L.carry(32n, l25(S.foldu(r, c)), 0n), L.carry(32n, SM.foldu(l9(c), l33(r)), 0n), carry32f_b(S.foldu(r, c)), Equal.cong(List<&2, Nat>, List<&2, Nat>, z => L.carry(32n, z, 0n), l25(S.foldu(r, c)), SM.foldu(l9(c), l33(r)), foldu_b(r, c)))
 

@@ -139,33 +139,35 @@ def stage(name, doc, args, ty_out, body):
 
 
 stage('carry32c', 'L.carry(32n, xs, 0n) of the 31 columns of a product: 32 limbs and the carry', [('x', 'FE.W31', 31)], 'W33', lambda e, xs: carry(e, xs, 32))
-stage('foldu', 'lo + c hi for the first 16 limbs lo and the rest hi (smod.foldu)', [('c', 'W9', 9), ('x', 'W33', 33)], 'W25',
-      lambda e, cs, xs: ladd(xs[:16], convu(xs[16:], cs)))
+stage('foldu', 'lo + c hi for the first 16 limbs lo and the rest hi (smod.foldu; the data looked at first)', [('x', 'W33', 33), ('c', 'W9', 9)], 'W25',
+      lambda e, xs, cs: ladd(xs[:16], convu(xs[16:], cs)))
 stage('carry32f', 'L.carry(32n, xs, 0n) of a fold', [('x', 'W25', 25)], 'W33', lambda e, xs: carry(e, xs, 32))
 stage('take16', 'the first 16 limbs (L.take(16n, xs))', [('x', 'W33', 33)], 'FE.FE', lambda e, xs: xs[:16])
 
 
-def canonu(e, cs, ts):
+def canonu(e, ts, cs):
     u = carry(e, ladd(ts, cs), 32)
     f = e.let('f', horner(u[16:]))
     return ['Nat.add(%s, %s)' % (nmul(u[i], f), nmul(ts[i], 'Nat.sub(1n, %s)' % f)) for i in range(16)]
 
 
-stage('canonu', 't mod n for t below 2^256: t + c has bit 256 set exactly when t >= n (smod.canonu)', [('c', 'W9', 9), ('t', 'FE.FE', 16)], 'FE.FE', canonu)
+stage('canonu', 't mod n for t below 2^256: t + c has bit 256 set exactly when t >= n (smod.canonu)', [('t', 'FE.FE', 16), ('c', 'W9', 9)], 'FE.FE', canonu)
 
 w('''# one fold of the high half and its carry pass (L.rounds' step)
-def round(+c: W9, r: W33) -> W33:
-  carry32f(foldu(c, r))
+def round(r: W33, +c: W9) -> W33:
+  carry32f(foldu(r, c))
 
-# x mod n for the 31 columns x of a product (L.reduce(c, 4n, xs))
-def red(+c: W9, x: FE.W31) -> FE.FE:
-  canonu(c, take16(round(c, round(c, round(c, round(c, carry32c(x)))))))
+# x mod n for the 31 columns x of a product (L.reduce(c, 4n, xs)); the data
+# is looked at first, so that on unknown data the proof checker never
+# computes with the constant c
+def red(x: FE.W31, +c: W9) -> FE.FE:
+  canonu(take16(round(round(round(round(carry32c(x), c), c), c), c)), c)
 
 def mul(a: FE.FE, b: FE.FE) -> FE.FE:
-  red(cn(), FE.cols(a, b))
+  red(FE.cols(a, b), cn())
 
 def sq(a: FE.FE) -> FE.FE:
-  red(cn(), FE.sqcols(a))
+  red(FE.sqcols(a), cn())
 
 # x^e for the exponent e given by its bits, most significant first
 # (square-and-multiply; the branch is on the public exponent)
@@ -178,6 +180,12 @@ def pow_go(+x: FE.FE, bits: List<&2, Nat>, acc: FE.FE) -> FE.FE:
   match bits:
     case Nil{}: acc
     case b <> t: pow_go(x, t, pow_step(b, x, sq(acc)))
+
+# (x is looked at first, so that on an unknown x the proof checker keeps the
+# exponentiation folded)
+def pow(x: FE.FE, bits: List<&2, Nat>, acc: FE.FE) -> FE.FE:
+  match x:
+    case FE.FE{x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15}: pow_go(FE.FE{x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15}, bits, acc)
 
 def one() -> FE.FE:
   FE.one()
@@ -216,9 +224,12 @@ def bridge(name, args, lhs, rhs):
 
 
 bridge('carry32c_b', [('r', 'FE.W31')], 'l33(S.carry32c(r))', 'L.carry(32n, FB.l31(r), 0n)')
-bridge('foldu_b', [('c', 'S.W9'), ('r', 'S.W33')], 'l25(S.foldu(c, r))', 'SM.foldu(l9(c), l33(r))')
+bridge('foldu_b', [('r', 'S.W33'), ('c', 'S.W9')], 'l25(S.foldu(r, c))', 'SM.foldu(l9(c), l33(r))')
 bridge('carry32f_b', [('r', 'S.W25')], 'l33(S.carry32f(r))', 'L.carry(32n, l25(r), 0n)')
 bridge('take16_b', [('r', 'S.W33')], 'FE.to_list(S.take16(r))', 'L.take(16n, l33(r))')
-bridge('canonu_b', [('c', 'S.W9'), ('t', 'FE.FE')], 'FE.to_list(S.canonu(c, t))', 'SM.canonu(l9(c), FE.to_list(t))')
+bridge('canonu_b', [('t', 'FE.FE'), ('c', 'S.W9')], 'FE.to_list(S.canonu(t, c))', 'SM.canonu(l9(c), FE.to_list(t))')
+b('def round_b(+r: S.W33, +c: S.W9) -> {l33(S.round(r, c)) == L.carry(32n, SM.foldu(l9(c), l33(r)), 0n) : List<&2, Nat>}:')
+b('  Equal.trans(List<&2, Nat>, l33(S.carry32f(S.foldu(r, c))), L.carry(32n, l25(S.foldu(r, c)), 0n), L.carry(32n, SM.foldu(l9(c), l33(r)), 0n), carry32f_b(S.foldu(r, c)), Equal.cong(List<&2, Nat>, List<&2, Nat>, z => L.carry(32n, z, 0n), l25(S.foldu(r, c)), SM.foldu(l9(c), l33(r)), foldu_b(r, c)))')
+b('')
 (ROOT / 'proofs/crypto/secp256k1/sebr.bend').write_text('\n'.join(BR) + '\n')
 print('wrote src/crypto/secp256k1/se.bend, proofs/crypto/secp256k1/sebr.bend')

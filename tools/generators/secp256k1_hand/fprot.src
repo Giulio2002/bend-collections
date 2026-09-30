@@ -41,23 +41,6 @@ def s_add_b(+a: List<&2, Nat>, b: List<&2, Nat>) -> {S.add_b(a, b) == S.add_u(a,
 def s_add(+a: List<&2, Nat>, +b: List<&2, Nat>) -> {S.add(a, b) == S.add_u(a, b) : List<&2, Nat>}:
   Equal.trans(List<&2, Nat>, S.add(a, b), S.add_b(a, b), S.add_u(a, b), s_add_a(a, b), s_add_b(a, b))
 
-def s_mul_a(a: List<&2, Nat>, +b: List<&2, Nat>) -> {S.mul(a, b) == S.mul_b(a, b) : List<&2, Nat>}:
-  match a:
-    case Nil{}:
-      {==}
-    case x <> t:
-      {==}
-
-def s_mul_b(+a: List<&2, Nat>, b: List<&2, Nat>) -> {S.mul_b(a, b) == S.mul_u(a, b) : List<&2, Nat>}:
-  match b:
-    case Nil{}:
-      {==}
-    case y <> u:
-      {==}
-
-def s_mul(+a: List<&2, Nat>, +b: List<&2, Nat>) -> {S.mul(a, b) == S.mul_u(a, b) : List<&2, Nat>}:
-  Equal.trans(List<&2, Nat>, S.mul(a, b), S.mul_b(a, b), S.mul_u(a, b), s_mul_a(a, b), s_mul_b(a, b))
-
 def s_eq_a(a: List<&2, Nat>, +b: List<&2, Nat>) -> {S.eq(a, b) == S.eq_b(a, b) : Bool}:
   match a:
     case Nil{}:

@@ -157,3 +157,47 @@ def sign_len(+sk: List<&2, U32>, +m: List<&2, U32>, +aux: List<&2, U32>, ok: Boo
 # zero nonce or a failed self-check)
 def sign(+sk: List<&2, U32>, +m: List<&2, U32>, +aux: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
   sign_len(sk, m, aux, B.has_len(32n, aux))
+
+# ---- key pairs ----
+
+# A BIP-340 key pair: the secret scalar d' and the affine public point P =
+# d' G, computed once (libsecp256k1's secp256k1_keypair), so that signing
+# does not multiply by G twice.
+type Keypair is Data:
+  Keypair{d: List<&2, Nat>, pa: P.Affine}
+
+def keypair_d(md: Maybe<&2, List<&2, Nat>>) -> Maybe<&2, Keypair>:
+  match md:
+    case None{}: None{}
+    case Some{+d0}: Some{Keypair{d0, P.to_affine(P.mul(d0, P.g()))}}
+
+# the key pair of a 32-byte secret key (None when 1 <= d' < n fails)
+def keypair(+sk: List<&2, U32>) -> Maybe<&2, Keypair>:
+  keypair_d(secret(sk))
+
+def kp_pub1(kp: Keypair) -> List<&2, U32>:
+  match kp:
+    case Keypair{d, pa}: pubkey_aff(pa)
+
+def kp_pub(mkp: Maybe<&2, Keypair>) -> Maybe<&2, List<&2, U32>>:
+  match mkp:
+    case None{}: None{}
+    case Some{kp}: Some{kp_pub1(kp)}
+
+def sign_kp1(+m: List<&2, U32>, +aux: List<&2, U32>, kp: Keypair) -> Maybe<&2, List<&2, U32>>:
+  match kp:
+    case Keypair{+d0, pa}: sign_p(d0, m, aux, pa)
+
+def sign_kp_m(+m: List<&2, U32>, +aux: List<&2, U32>, mkp: Maybe<&2, Keypair>) -> Maybe<&2, List<&2, U32>>:
+  match mkp:
+    case None{}: None{}
+    case Some{kp}: sign_kp1(m, aux, kp)
+
+def sign_kp_len(+m: List<&2, U32>, +aux: List<&2, U32>, mkp: Maybe<&2, Keypair>, ok: Bool) -> Maybe<&2, List<&2, U32>>:
+  match ok:
+    case True{}: sign_kp_m(m, aux, mkp)
+    case False{}: None{}
+
+# Sign(sk, m, a) from the key pair of sk (None for no key pair)
+def sign_kp(mkp: Maybe<&2, Keypair>, +m: List<&2, U32>, +aux: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  sign_kp_len(m, aux, mkp, B.has_len(32n, aux))

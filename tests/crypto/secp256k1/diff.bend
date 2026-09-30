@@ -69,6 +69,7 @@ def op1(op: Nat, +a: List<&2, U32>) -> String:
     case 5n: show(K.eth_address(a))
     case 8n: show(K.schnorr_pubkey(a))
     case 9n: show(K.ecrecover(a))
+    case 11n: show(K.schnorr_keypair_pubkey(K.schnorr_keypair(a)))
     case _: "bad op"
 
 def op2(op: Nat, +a: List<&2, U32>, +b: List<&2, U32>) -> String:
@@ -84,6 +85,7 @@ def op3(op: Nat, +a: List<&2, U32>, +b: List<&2, U32>, +c: List<&2, U32>) -> Str
     case 2n: B.show_bool(K.verify_strict(a, b, c))
     case 6n: show(K.schnorr_sign(a, b, c))
     case 7n: B.show_bool(K.schnorr_verify(a, b, c))
+    case 10n: show(K.schnorr_sign_keypair(K.schnorr_keypair(a), b, c))
     case _: "bad op"
 
 def arity(op: Nat) -> Nat:
@@ -91,6 +93,7 @@ def arity(op: Nat) -> Nat:
     case 5n: 1n
     case 8n: 1n
     case 9n: 1n
+    case 11n: 1n
     case 0n: 2n
     case 3n: 2n
     case 4n: 2n
