@@ -2,6 +2,8 @@ import Base
 import ../curve25519/field.bend as F
 import ../curve25519/fe.bend as FE
 import ../curve25519/x25519.bend as X
+import ../curve25519/limbs.bend as LS
+import ./pick.bend as PK
 
 # edwards25519 points (RFC 8032 section 5.1): -x^2 + y^2 = 1 + d x^2 y^2
 # over GF(2^255 - 19) (the fast field of ../curve25519/fe.bend), in
@@ -153,6 +155,111 @@ def mul(+c: Cs, +k: List<&2, U32>, +p: Pt) -> Pt:
 # [k] p for a public scalar k
 def mul_vt(+c: Cs, +k: List<&2, U32>, +p: Pt) -> Pt:
   smul_vt(p, X.bitlen(k), c, k, identity())
+
+# ---- multiplication of the base point by a table ----
+#
+# With the 64 rows [0 P, 1 P, ..., 15 P] for P = 16^j B (table, made once in
+# the context), [k] B is the sum over the 64 hexadecimal digits k_j of k of
+# row j's entry k_j: 64 additions and no doubling. Entries are kept ready
+# for additions (Cp), and a secret digit selects its entry by masks over
+# the whole row (look), not by an index.
+
+# a point prepared as the second operand of additions: Y + X, Y - X,
+# 2 d T, 2 Z
+type Cp is Data:
+  Cp{ypx: FE.Fe, ymx: FE.Fe, t2d: FE.Fe, z2: FE.Fe}
+
+def cached(+c: Cs, p: Pt) -> Cp:
+  match p:
+    case Pt{+x, +y, +z, t}:
+      +R = cs_r(c)
+      Cp{FE.add(R, y, x), FE.sub(R, y, x), FE.mul(R, t, cs_d2(c)), FE.add(R, z, z)}
+
+# p + q for a prepared q: the addition of RFC 8032 5.1.4 with the factors
+# of q already formed
+def add_c(+R: Nat, p: Pt, q: Cp) -> Pt:
+  match p q:
+    case Pt{+x1, +y1, +z1, +t1} Cp{ypx, ymx, t2d, z2}:
+      +a = FE.mul(R, FE.sub(R, y1, x1), ymx)
+      +b = FE.mul(R, FE.add(R, y1, x1), ypx)
+      +cc = FE.mul(R, t1, t2d)
+      +dd = FE.mul(R, z1, z2)
+      +e = FE.sub(R, b, a)
+      +f = FE.sub(R, dd, cc)
+      +g = FE.add(R, dd, cc)
+      +h = FE.add(R, b, a)
+      Pt{FE.mul(R, e, f), FE.mul(R, g, h), FE.mul(R, f, g), FE.mul(R, e, h)}
+
+def cp_zero() -> Cp:
+  Cp{FE.zero(), FE.zero(), FE.zero(), FE.zero()}
+
+# the entry of a 16-entry row whose mask is 1 (the other masks 0)
+def look16(ms: List<&2, Nat>, r: List<&2, Cp>) -> Cp:
+  match ms r:
+    case Con{+m0, Con{+m1, Con{+m2, Con{+m3, Con{+m4, Con{+m5, Con{+m6, Con{+m7, Con{+m8, Con{+m9, Con{+m10, Con{+m11, Con{+m12, Con{+m13, Con{+m14, Con{+m15, mt}}}}}}}}}}}}}}}} Con{Cp{a0, b0, c0, d0}, Con{Cp{a1, b1, c1, d1}, Con{Cp{a2, b2, c2, d2}, Con{Cp{a3, b3, c3, d3}, Con{Cp{a4, b4, c4, d4}, Con{Cp{a5, b5, c5, d5}, Con{Cp{a6, b6, c6, d6}, Con{Cp{a7, b7, c7, d7}, Con{Cp{a8, b8, c8, d8}, Con{Cp{a9, b9, c9, d9}, Con{Cp{a10, b10, c10, d10}, Con{Cp{a11, b11, c11, d11}, Con{Cp{a12, b12, c12, d12}, Con{Cp{a13, b13, c13, d13}, Con{Cp{a14, b14, c14, d14}, Con{Cp{a15, b15, c15, d15}, rt}}}}}}}}}}}}}}}}:
+      Cp{PK.sel16(PK.M16{m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15}, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15), PK.sel16(PK.M16{m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15}, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15), PK.sel16(PK.M16{m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15}, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15), PK.sel16(PK.M16{m0, m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15}, d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15)}
+    case _ _:
+      cp_zero()
+
+# entry d of a row (d < 16), every entry read
+def look(d: Nat, r: List<&2, Cp>) -> Cp:
+  look16(LS.ohl(16n, d), r)
+
+# [cached(m), cached(m + p), ...]: n entries
+def row_go(n: Nat, +c: Cs, +p: Pt, +m: Pt) -> List<&2, Cp>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n+k:
+      Con{cached(c, m), row_go(k, c, p, add(c, m, p))}
+
+# [0 p, 1 p, ..., 15 p], prepared
+def row(+c: Cs, +p: Pt) -> List<&2, Cp>:
+  Con{cached(c, identity()), row_go(15n, c, p, p)}
+
+# 16 p
+def dbl4(+R: Nat, p: Pt) -> Pt:
+  double(R, double(R, double(R, double(R, p))))
+
+# the rows of p, 16 p, 16^2 p, ...: n of them
+def table(n: Nat, +c: Cs, +p: Pt) -> List<&2, List<&2, Cp>>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n+k:
+      Con{row(c, p), table(k, c, dbl4(cs_r(c), p))}
+
+# the 64 rows of the base point. The count is the radix 2^17 over 2^11:
+# the proof checker sees the radix as a variable and never builds the
+# table when it compares terms containing it
+def base_table(+c: Cs, +b: Pt) -> List<&2, List<&2, Cp>>:
+  table(Nat.div(cs_r(c), 2048n), c, b)
+
+# the hexadecimal digits of a byte string, least significant first
+def nibs(bs: List<&2, U32>) -> List<&2, Nat>:
+  match bs:
+    case Nil{}:
+      Nil{}
+    case Con{b, bt}:
+      +n = U32.to_nat(b)
+      Con{Nat.mod(n, 16n), Con{Nat.div(n, 16n), nibs(bt)}}
+
+# acc plus, for every row and its digit, the row's entry at the digit
+def fb(+R: Nat, tab: List<&2, List<&2, Cp>>, ds: List<&2, Nat>, acc: Pt) -> Pt:
+  match tab:
+    case Nil{}:
+      acc
+    case Con{r, tt}:
+      match ds:
+        case Nil{}:
+          acc
+        case Con{d, dt}:
+          fb(R, tt, dt, add_c(R, acc, look(d, r)))
+
+# [k] B for a 32-byte scalar k and the table of B (secret k: every lookup
+# reads its whole row)
+def mul_base(+R: Nat, tab: List<&2, List<&2, Cp>>, +k: List<&2, U32>) -> Pt:
+  fb(R, tab, nibs(k), identity())
 
 # the last byte with bit 7 set to b (the canonical y has it clear)
 def set_top(xs: List<&2, U32>, +b: U32) -> List<&2, U32>:
