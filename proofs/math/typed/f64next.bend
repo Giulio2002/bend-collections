@@ -13,11 +13,10 @@ import ./w64add.bend as WA
 import ./w64sh.bend as SH
 import ./u32laws.bend as LW
 import ../../lib/word.bend as WD
-import ./u64laws.bend as UL
 import ./f64bits.bend as FB
+import ./f64light.bend as FL
 import ./f64round.bend as FR
 import ./f64rtools.bend as RT
-import ./f64addf.bend as AF
 import ./f64cmp.bend as FC
 import ./f64tools.bend as T
 
@@ -150,7 +149,7 @@ def iik_c(+w: WU.U64, +k: Nat, +b: Bool, +hb: {Nat.is_lt(k, 64n) == b : Bool}) -
       iik_t(w, k, hb)
     case False{}:
       +V = SW.value(w)
-      +el = WW.low_fit(k, V, SH.fits_mono(64n, k, V, N.not_lt_le(k, 64n, hb), UL.vb(w)))
+      +el = WW.low_fit(k, V, SH.fits_mono(64n, k, V, N.not_lt_le(k, 64n, hb), FL.vb64(w)))
       Equal.trans(Bool, X.is_zero(w), Nat.is_eq(V, 0n), Nat.is_eq(C.low(k, V), 0n), WA.is_zero_value(w), Equal.cong(Nat, Bool, t => Nat.is_eq(t, 0n), V, C.low(k, V), Equal.sym(Nat, C.low(k, V), V, el)))
 
 def LZ(+x: F.F64) -> Bool:
@@ -203,7 +202,7 @@ def patfit(+x: F.F64) -> {C.fits(63n, SF.pat(x)) == True{} : Bool}:
 def frac52(+x: F.F64) -> {C.fits(52n, SF.frac(x)) == True{} : Bool}:
   match x:
     case F.Bits{+xl, +xh}:
-      AF.hF(xl, xh)
+      FL.hF(xl, xh)
 
 def patz(+x: F.F64) -> {Nat.is_eq(SF.pat(x), 0n) == SF.is_zero(x) : Bool}:
   Equal.trans(Bool, Nat.is_eq(SF.pat(x), 0n), Bool.and(Nat.is_eq(SF.frac(x), 0n), Nat.is_eq(SF.efield(x), 0n)), SF.is_zero(x), FB.z2(SF.frac(x), 52n, SF.efield(x)), T.and_comm(Nat.is_eq(SF.frac(x), 0n), Nat.is_eq(SF.efield(x), 0n)))
@@ -307,7 +306,7 @@ def st_c(+x: F.F64, +hn: {SF.is_nan(x) == False{} : Bool}, +hz: {SF.is_zero(x) =
       +P = SF.pat(x)
       +M = F.mag(x)
       +W = X.sub(M, WU.U64{1, 0})
-      +hP = AF.nz_le(P, Equal.trans(Bool, Nat.is_eq(P, 0n), SF.is_zero(x), False{}, patz(x), hz))
+      +hP = FL.nz_le(P, Equal.trans(Bool, Nat.is_eq(P, 0n), SF.is_zero(x), False{}, patz(x), hz))
       +hM = L.subst(Nat, t => {Nat.is_le(1n, t) == True{} : Bool}, P, SW.value(M), Equal.sym(Nat, SW.value(M), P, magval(x)), hP)
       +ev = Equal.trans(Nat, SW.value(W), Nat.sub(SW.value(M), 1n), Nat.sub(P, 1n), WA.sub_value(M, WU.U64{1, 0}, hM), Equal.cong(Nat, Nat, t => Nat.sub(t, 1n), SW.value(M), P, magval(x)))
       +h63 = SH.fits_lek(63n, Nat.sub(P, 1n), P, sub_le_self(P, 1n), patfit(x))

@@ -19,31 +19,45 @@ def fabs_v(+z: F.F64, +z2: F.F64, +h: {z == z2 : F.F64}) -> {F.abs(z) == SF.fabs
 def D(+a: F.F64, +b: F.F64) -> F.F64:
   SF.fabs(SF.add(b, SF.neg(a)))
 
+# three-way disjunction congruence over abstract Booleans (book-less: the
+# checker never unfolds the comparisons it is applied to)
+def or3(+x1: Bool, +x2: Bool, +x3: Bool, +y1: Bool, +y2: Bool, +y3: Bool, +h1: {x1 == y1 : Bool}, +h2: {x2 == y2 : Bool}, +h3: {x3 == y3 : Bool}) -> {Bool.or(Bool.or(x1, x2), x3) == Bool.or(Bool.or(y1, y2), y3) : Bool}:
+  +c1 = Equal.cong(Bool, Bool, t => Bool.or(Bool.or(t, x2), x3), x1, y1, h1)
+  +c2 = Equal.cong(Bool, Bool, t => Bool.or(Bool.or(y1, t), x3), x2, y2, h2)
+  +c3 = Equal.cong(Bool, Bool, t => Bool.or(Bool.or(y1, y2), t), x3, y3, h3)
+  Equal.trans(Bool, Bool.or(Bool.or(x1, x2), x3), Bool.or(Bool.or(y1, x2), x3), Bool.or(Bool.or(y1, y2), y3), c1, Equal.trans(Bool, Bool.or(Bool.or(y1, x2), x3), Bool.or(Bool.or(y1, y2), x3), Bool.or(Bool.or(y1, y2), y3), c2, c3))
+
+# d <= |r * x| on the implementation is le_s against the spec's |r * x|
+def lek(+d: F.F64, +r: F.F64, +x: F.F64) -> {F.le(d, F.abs(F.mul(r, x))) == SF.le_s(d, SF.fabs(SF.mul(r, x))) : Bool}:
+  +R = SF.fabs(SF.mul(r, x))
+  Equal.trans(Bool, F.le(d, F.abs(F.mul(r, x))), F.le(d, R), SF.le_s(d, R), Equal.cong(F.F64, Bool, t => F.le(d, t), F.abs(F.mul(r, x)), R, fabs_v(F.mul(r, x), SF.mul(r, x), MV.mul_value(r, x))), FC.le_value(d, R))
+
+def icd_t(+a: F.F64, +b: F.F64, +rel: F.F64, +at: F.F64, +d: F.F64) -> {F.ic_d(a, b, rel, at, d) == SF.ic_near(a, b, rel, at, d) : Bool}:
+  or3(F.le(d, F.abs(F.mul(rel, b))), F.le(d, F.abs(F.mul(rel, a))), F.le(d, at), SF.le_s(d, SF.fabs(SF.mul(rel, b))), SF.le_s(d, SF.fabs(SF.mul(rel, a))), SF.le_s(d, at), lek(d, rel, b), lek(d, rel, a), FC.le_value(d, at))
+
 def icd(+a: F.F64, +b: F.F64, +rel: F.F64, +at: F.F64) -> {F.ic_d(a, b, rel, at, F.abs(F.sub(b, a))) == SF.ic_near(a, b, rel, at, D(a, b)) : Bool}:
   +d = D(a, b)
-  +RB = SF.fabs(SF.mul(rel, b))
-  +RA = SF.fabs(SF.mul(rel, a))
   +e0 = Equal.cong(F.F64, Bool, t => F.ic_d(a, b, rel, at, t), F.abs(F.sub(b, a)), d, fabs_v(F.sub(b, a), SF.add(b, SF.neg(a)), AV.sub_value(b, a)))
-  +e1 = Equal.cong(F.F64, Bool, t => Bool.or(Bool.or(F.le(d, t), F.le(d, F.abs(F.mul(rel, a)))), F.le(d, at)), F.abs(F.mul(rel, b)), RB, fabs_v(F.mul(rel, b), SF.mul(rel, b), MV.mul_value(rel, b)))
-  +e2 = Equal.cong(F.F64, Bool, t => Bool.or(Bool.or(F.le(d, RB), F.le(d, t)), F.le(d, at)), F.abs(F.mul(rel, a)), RA, fabs_v(F.mul(rel, a), SF.mul(rel, a), MV.mul_value(rel, a)))
-  +e3 = Equal.cong(Bool, Bool, t => Bool.or(Bool.or(t, F.le(d, RA)), F.le(d, at)), F.le(d, RB), SF.le_s(d, RB), FC.le_value(d, RB))
-  +e4 = Equal.cong(Bool, Bool, t => Bool.or(Bool.or(SF.le_s(d, RB), t), F.le(d, at)), F.le(d, RA), SF.le_s(d, RA), FC.le_value(d, RA))
-  +e5 = Equal.cong(Bool, Bool, t => Bool.or(Bool.or(SF.le_s(d, RB), SF.le_s(d, RA)), t), F.le(d, at), SF.le_s(d, at), FC.le_value(d, at))
-  +b0 = F.ic_d(a, b, rel, at, F.abs(F.sub(b, a)))
-  +b1 = Bool.or(Bool.or(F.le(d, F.abs(F.mul(rel, b))), F.le(d, F.abs(F.mul(rel, a)))), F.le(d, at))
-  +b2 = Bool.or(Bool.or(F.le(d, RB), F.le(d, F.abs(F.mul(rel, a)))), F.le(d, at))
-  +b3 = Bool.or(Bool.or(F.le(d, RB), F.le(d, RA)), F.le(d, at))
-  +b4 = Bool.or(Bool.or(SF.le_s(d, RB), F.le(d, RA)), F.le(d, at))
-  +b5 = Bool.or(Bool.or(SF.le_s(d, RB), SF.le_s(d, RA)), F.le(d, at))
-  +b6 = SF.ic_near(a, b, rel, at, d)
-  Equal.trans(Bool, b0, b1, b6, e0, Equal.trans(Bool, b1, b2, b6, e1, Equal.trans(Bool, b2, b3, b6, e2, Equal.trans(Bool, b3, b4, b6, e3, Equal.trans(Bool, b4, b5, b6, e4, e5)))))
+  Equal.trans(Bool, F.ic_d(a, b, rel, at, F.abs(F.sub(b, a))), F.ic_d(a, b, rel, at, d), SF.ic_near(a, b, rel, at, d), e0, icd_t(a, b, rel, at, d))
+
+# one unfolding step each, stated so the checker compares syntactically
+def ii_f(+a: F.F64, +b: F.F64, +rel: F.F64, +at: F.F64) -> {F.ic_inf(a, b, rel, at, False{}) == F.ic_d(a, b, rel, at, F.abs(F.sub(b, a))) : Bool}:
+  {==}
+
+def pk_f(+x: Bool, +y: Bool) -> {SF.pick(Bool, False{}, x, y) == y : Bool}:
+  {==}
 
 def iinf(+a: F.F64, +b: F.F64, +rel: F.F64, +at: F.F64, +big: Bool) -> {F.ic_inf(a, b, rel, at, big) == SF.pick(Bool, big, False{}, SF.ic_near(a, b, rel, at, D(a, b))) : Bool}:
   match big:
     case True{}:
       {==}
     case False{}:
-      icd(a, b, rel, at)
+      +u = F.ic_d(a, b, rel, at, F.abs(F.sub(b, a)))
+      +n = SF.ic_near(a, b, rel, at, D(a, b))
+      Equal.trans(Bool, F.ic_inf(a, b, rel, at, False{}), u, SF.pick(Bool, False{}, False{}, n), ii_f(a, b, rel, at), Equal.trans(Bool, u, n, SF.pick(Bool, False{}, False{}, n), icd(a, b, rel, at), Equal.sym(Bool, SF.pick(Bool, False{}, False{}, n), n, pk_f(False{}, n))))
+
+def ie_f(+a: F.F64, +b: F.F64, +rel: F.F64, +at: F.F64) -> {F.ic_eq(a, b, rel, at, False{}) == F.ic_inf(a, b, rel, at, Bool.or(F.is_inf(a), F.is_inf(b))) : Bool}:
+  {==}
 
 def ieq(+a: F.F64, +b: F.F64, +rel: F.F64, +at: F.F64, +e: Bool) -> {F.ic_eq(a, b, rel, at, e) == SF.pick(Bool, e, True{}, SF.pick(Bool, Bool.or(SF.is_inf(a), SF.is_inf(b)), False{}, SF.ic_near(a, b, rel, at, D(a, b)))) : Bool}:
   match e:
@@ -52,10 +66,12 @@ def ieq(+a: F.F64, +b: F.F64, +rel: F.F64, +at: F.F64, +e: Bool) -> {F.ic_eq(a, 
     case False{}:
       +e1 = Equal.cong(Bool, Bool, t => F.ic_inf(a, b, rel, at, Bool.or(t, F.is_inf(b))), F.is_inf(a), SF.is_inf(a), FB.is_inf_value(a))
       +e2 = Equal.cong(Bool, Bool, t => F.ic_inf(a, b, rel, at, Bool.or(SF.is_inf(a), t)), F.is_inf(b), SF.is_inf(b), FB.is_inf_value(b))
+      +b0 = F.ic_inf(a, b, rel, at, Bool.or(F.is_inf(a), F.is_inf(b)))
       +b1 = F.ic_inf(a, b, rel, at, Bool.or(SF.is_inf(a), F.is_inf(b)))
       +b2 = F.ic_inf(a, b, rel, at, Bool.or(SF.is_inf(a), SF.is_inf(b)))
       +b3 = SF.pick(Bool, Bool.or(SF.is_inf(a), SF.is_inf(b)), False{}, SF.ic_near(a, b, rel, at, D(a, b)))
-      Equal.trans(Bool, F.ic_inf(a, b, rel, at, Bool.or(F.is_inf(a), F.is_inf(b))), b1, b3, e1, Equal.trans(Bool, b1, b2, b3, e2, iinf(a, b, rel, at, Bool.or(SF.is_inf(a), SF.is_inf(b)))))
+      +g = SF.pick(Bool, False{}, True{}, b3)
+      Equal.trans(Bool, F.ic_eq(a, b, rel, at, False{}), b0, g, ie_f(a, b, rel, at), Equal.trans(Bool, b0, b1, g, e1, Equal.trans(Bool, b1, b2, g, e2, Equal.trans(Bool, b2, b3, g, iinf(a, b, rel, at, Bool.or(SF.is_inf(a), SF.is_inf(b))), Equal.sym(Bool, g, b3, pk_f(True{}, b3))))))
 
 def NEAR(+a: F.F64, +b: F.F64, +rel: F.F64, +at: F.F64) -> Bool:
   SF.pick(Bool, SF.eq_s(a, b), True{}, SF.pick(Bool, Bool.or(SF.is_inf(a), SF.is_inf(b)), False{}, SF.ic_near(a, b, rel, at, D(a, b))))

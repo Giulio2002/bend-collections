@@ -11,8 +11,8 @@ import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ./width.bend as WW
 import ./w64add.bend as WA
 import ./w64sh.bend as SH
-import ./u64laws.bend as UL
 import ./f64bits.bend as FB
+import ./f64light.bend as FL
 import ./f64round.bend as FR
 import ./f64tools.bend as T
 import ./f64rint.bend as RI
@@ -33,7 +33,7 @@ def rem_v(+w: WU.U64, +k: Nat, +hb: {Nat.is_lt(k, 64n) == True{} : Bool}) -> {SW
   +S = C.shift(k, Hq)
   +hSV0 = L.subst(Nat, t => {Nat.is_le(S, t) == True{} : Bool}, Nat.add(S, Lq), Nat.add(Lq, S), NA.add_comm(S, Lq), N.le_add_right(S, Lq))
   +hSV = L.subst(Nat, t => {Nat.is_le(S, t) == True{} : Bool}, Nat.add(Lq, S), V, Equal.sym(Nat, V, Nat.add(Lq, S), WW.low_high(k, V)), hSV0)
-  +hSf = SH.fits_lek(64n, S, V, hSV, UL.vb(w))
+  +hSf = SH.fits_lek(64n, S, V, hSV, FL.vb64(w))
   +esl = Equal.trans(Nat, SW.value(sq), C.low(64n, S), S, Equal.trans(Nat, SW.value(sq), C.low(64n, C.shift(k, SW.value(q))), C.low(64n, S), SH.shl_value(q, k, hb), Equal.cong(Nat, Nat, t => C.low(64n, C.shift(k, t)), SW.value(q), Hq, SH.shr_value(w, k))), WW.low_fit(64n, S, hSf))
   +hle = L.subst(Nat, t => {Nat.is_le(t, V) == True{} : Bool}, S, SW.value(sq), Equal.sym(Nat, SW.value(sq), S, esl), hSV)
   +er1 = Equal.cong(Nat, Nat, t => Nat.sub(V, t), SW.value(sq), S, esl)
@@ -47,7 +47,7 @@ def mfr_c(+s: Bool, +w: WU.U64, +u: Nat, +hu: {Nat.is_le(63n, u) == True{} : Boo
       Equal.trans(F.F64, F.round_w(s, u, r), SF.round(s, SW.value(r), u), SF.round(s, C.low(k, SW.value(w)), u), T.rw_value(s, u, r, hu), Equal.cong(Nat, F.F64, t => SF.round(s, t, u), SW.value(r), C.low(k, SW.value(w)), rem_v(w, k, hb)))
     case False{}:
       +V = SW.value(w)
-      +el = WW.low_fit(k, V, SH.fits_mono(64n, k, V, N.not_lt_le(k, 64n, hb), UL.vb(w)))
+      +el = WW.low_fit(k, V, SH.fits_mono(64n, k, V, N.not_lt_le(k, 64n, hb), FL.vb64(w)))
       Equal.trans(F.F64, F.round_w(s, u, w), SF.round(s, V, u), SF.round(s, C.low(k, V), u), T.rw_value(s, u, w, hu), Equal.cong(Nat, F.F64, t => SF.round(s, t, u), V, C.low(k, V), Equal.sym(Nat, C.low(k, V), V, el)))
 
 def FRAC(+x: F.F64) -> F.F64:
