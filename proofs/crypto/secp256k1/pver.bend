@@ -73,13 +73,10 @@ def vrs(+one: Nat, +h1: {one == 1n : Nat}, +q: P.Point, +hq: {PT.pred(one, q) ==
   {==}
 
 # a valid scalar (1 <= x < n) is reduced
-def ok_red(+one: Nat, +x: List<&2, Nat>, +hl: {FS.limbs16(one, 16n, x) == True{} : Bool}, +h: {ES.scalar_ok(one, FS.value(one, x)) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), x) == True{} : Bool}:
-  Lg.and_intro(FS.limbs16(one, 16n, x), Nat.is_lt(FS.value(one, x), FS.order(one)), hl, Lg.and_right(Bool.not(Nat.is_eq(FS.value(one, x), 0n)), Nat.is_lt(FS.value(one, x), FS.order(one)), h))
-
 def vok(+one: Nat, +h1: {one == 1n : Nat}, +q: P.Point, +hq: {PT.pred(one, q) == True{} : Bool}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hlr: {FS.limbs16(one, 16n, r) == True{} : Bool}, +s: List<&2, Nat>, +hls: {FS.limbs16(one, 16n, s) == True{} : Bool}, a: Bool, b: Bool, c: Bool, +ha: {ES.scalar_ok(one, FS.value(one, r)) == a : Bool}, +hb: {ES.scalar_ok(one, FS.value(one, s)) == b : Bool}) -> {E.verify_ok(q, z, r, s, Bool.and(Bool.and(a, b), c)) == ES.verify_ok(one, PT.pv(one, q), FS.value(one, z), FS.value(one, r), FS.value(one, s), Bool.and(Bool.and(a, b), c)) : Bool}:
   match a b c:
     case True{} True{} True{}:
-      vrs(one, h1, q, hq, z, hz, r, ok_red(one, r, hlr, ha), s, ok_red(one, s, hls, hb))
+      vrs(one, h1, q, hq, z, hz, r, SQ.ok_red(one, r, hlr, ha), s, SQ.ok_red(one, s, hls, hb))
     case True{} True{} False{}:
       {==}
     case True{} False{} _:

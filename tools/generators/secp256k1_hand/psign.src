@@ -21,8 +21,6 @@ import ./point.bend as PT
 import ./sel.bend as SL
 import ./pmul.bend as PM
 import ./paff.bend as PA
-import ./penc.bend as PE
-import ./pver.bend as PV
 import ./blist.bend as BL
 import ./pscal.bend as SQ
 
@@ -129,7 +127,7 @@ def fin_g(+one: Nat, +h1: {one == 1n : Nat}, +r: List<&2, Nat>, +hr: {FS.reduced
   %rw FW.lt_n_s(one, h1, x)
   %rw FW.parity_f(one, h1, y)
   %rw FW.parity_f(one, h1, y)
-  %rw id_v(Nat.is_lt(FS.value(one, x), FS.order(one)), Nat.is_lt(FS.order(one), Nat.double(FS.value(one, s0))), Nat.mod(FS.value(one, y), 2n), PE.mod2_lt(FS.value(one, y)))
+  %rw id_v(Nat.is_lt(FS.value(one, x), FS.order(one)), Nat.is_lt(FS.order(one), Nat.double(FS.value(one, s0))), Nat.mod(FS.value(one, y), 2n), SQ.mod2_lt(FS.value(one, y)))
   bad_v(Bool.or(Nat.is_eq(FS.value(one, r), 0n), Nat.is_eq(FS.value(one, s0), 0n)), E.Signature{CV.i2osp(32n, FS.value(one, r)), CV.i2osp(32n, ES.low(Nat.is_lt(FS.order(one), Nat.double(FS.value(one, s0))), FS.order(one), FS.value(one, s0))), U32.from_nat(Nat.add(ES.ge2(Nat.is_lt(FS.value(one, x), FS.order(one))), ES.flip(Nat.is_lt(FS.order(one), Nat.double(FS.value(one, s0))), Nat.mod(FS.value(one, y), 2n))))})
 
 def fin_v(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, +k: List<&2, Nat>, +hk: {FS.reduced(one, FS.order(one), k) == True{} : Bool}, +x: List<&2, Nat>, +hx: {PT.red(one, x) == True{} : Bool}, +y: List<&2, Nat>) -> {matt(E.finish(z, d, k, x, y)) == ES.finish(one, FS.value(one, z), FS.value(one, d), FS.value(one, k), CV.SAffine{FS.value(one, x), FS.value(one, y)}) : ES.Attempt}:
@@ -152,7 +150,7 @@ def aok(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(o
       %rw <- PA.g_v(one, h1)
       %rw <- PM.mul_v(one, h1, k, P.g(), hl, hg)
       %rw <- PA.aff_v(one, h1, P.mul(k, P.g()), hm)
-      aff_fin(one, h1, z, hz, d, hd, k, PV.ok_red(one, k, hl, hb), P.to_affine(P.mul(k, P.g())), PA.aff_r(one, h1, P.mul(k, P.g()), hm))
+      aff_fin(one, h1, z, hz, d, hd, k, SQ.ok_red(one, k, hl, hb), P.to_affine(P.mul(k, P.g())), PA.aff_r(one, h1, P.mul(k, P.g()), hm))
     case False{}:
       {==}
 
@@ -258,7 +256,7 @@ def sd(+one: Nat, +h1: {one == 1n : Nat}, +k0: List<&2, U32>, +v0: List<&2, U32>
 def sk3(+one: Nat, +h1: {one == 1n : Nat}, +k0: List<&2, U32>, +v0: List<&2, U32>, +h: List<&2, U32>, +hh: {B.has_len(32n, h) == True{} : Bool}, +d: List<&2, Nat>, +hl: {FS.limbs16(one, 16n, d) == True{} : Bool}, c: Bool, +hc: {ES.scalar_ok(one, FS.value(one, d)) == c : Bool}) -> {msig(E.sign_d(k0, v0, h, E.secret_if(d, c))) == ES.sign_d(one, k0, v0, h, FS.value(one, d), c) : Maybe<&2, List<&2, U32>>}:
   match c:
     case True{}:
-      sd(one, h1, k0, v0, h, hh, d, PV.ok_red(one, d, hl, hc))
+      sd(one, h1, k0, v0, h, hh, d, SQ.ok_red(one, d, hl, hc))
     case False{}:
       {==}
 

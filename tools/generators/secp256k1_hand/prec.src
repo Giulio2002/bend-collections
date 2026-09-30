@@ -21,7 +21,6 @@ import ./point.bend as PT
 import ./sel.bend as SL
 import ./paff.bend as PA
 import ./penc.bend as PE
-import ./pver.bend as PV
 import ./rconst.bend as RC
 import ./blist.bend as BL
 import ./pscal.bend as SQ
@@ -205,7 +204,7 @@ def rid(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(o
 def rok(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hlr: {FS.limbs16(one, 16n, r) == True{} : Bool}, +s: List<&2, Nat>, +hls: {FS.limbs16(one, 16n, s) == True{} : Bool}, +id: Nat, a: Bool, b: Bool, c: Bool, +ha: {ES.scalar_ok(one, FS.value(one, r)) == a : Bool}, +hb: {ES.scalar_ok(one, FS.value(one, s)) == b : Bool}, +hc: {Nat.is_lt(id, 4n) == c : Bool}) -> {E.recover_ok(z, r, s, id, Bool.and(Bool.and(a, b), c)) == ES.recover_ok(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), id, Bool.and(Bool.and(a, b), c)) : Maybe<&2, List<&2, U32>>}:
   match a b c:
     case True{} True{} True{}:
-      rid(one, h1, z, hz, r, PV.ok_red(one, r, hlr, ha), s, PV.ok_red(one, s, hls, hb), id, hc)
+      rid(one, h1, z, hz, r, SQ.ok_red(one, r, hlr, ha), s, SQ.ok_red(one, s, hls, hb), id, hc)
     case True{} True{} False{}:
       {==}
     case True{} False{} _:

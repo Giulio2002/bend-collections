@@ -8,6 +8,8 @@ import ../../../src/crypto/secp256k1/scalar.bend as S
 import ../../../src/crypto/secp256k1/bytes.bend as B
 import ../../../src/crypto/secp256k1/ecdsa.bend as E
 import ../../lib/nat.bend as N
+import ../../lib/logic.bend as Lg
+import ../../math/natural/arith.bend as NR
 import ./limbs.bend as LV
 import ./fprot.bend as FR
 import ./scalarops.bend as SO
@@ -38,3 +40,10 @@ def hash_r(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +hl: {B.has_len
   sred_r(one, h1, B.of_be(h), BY.of_be_limbs(one, h1, h, hl))
 
 # ---- public keys ----
+
+# a limb list of value 1 <= x < n is a reduced scalar
+def ok_red(+one: Nat, +x: List<&2, Nat>, +hl: {FS.limbs16(one, 16n, x) == True{} : Bool}, +h: {ES.scalar_ok(one, FS.value(one, x)) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), x) == True{} : Bool}:
+  Lg.and_intro(FS.limbs16(one, 16n, x), Nat.is_lt(FS.value(one, x), FS.order(one)), hl, Lg.and_right(Bool.not(Nat.is_eq(FS.value(one, x), 0n)), Nat.is_lt(FS.value(one, x), FS.order(one)), h))
+
+def mod2_lt(+v: Nat) -> {Nat.is_lt(Nat.mod(v, 2n), 2n) == True{} : Bool}:
+  NR.dm_lt(1n, v)
