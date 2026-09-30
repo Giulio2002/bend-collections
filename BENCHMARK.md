@@ -53,8 +53,8 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | Poly1305 | 1135.42 |
 | ChaCha20-Poly1305 | 366.20 |
 | XChaCha20-Poly1305 | 347.95 |
-| AES-128-GCM | 31.60 |
-| AES-256-GCM | 30.60 |
+| AES-128-GCM | 7.97 |
+| AES-256-GCM | 6.48 |
 | X25519 shared secret | 8.09 |
 | Ed25519 key generation | 24.13 |
 | Ed25519 sign | 32.89 |
@@ -297,31 +297,31 @@ C reference: Monocypher 4.0.2 `crypto_aead_lock`/`_unlock`. Worst ratio 347.95.
 
 ### AES-128-GCM
 
-C reference: BearSSL `br_gcm` with the constant-time bitsliced `br_aes_ct64` and `br_ghash_ctmul64` (the "C ct" column); the "C table" column swaps in the table-based `br_aes_big` (not constant-time). Worst ratio 31.60.
+C reference: BearSSL `br_gcm` with the constant-time bitsliced `br_aes_ct64` and `br_ghash_ctmul64` (the "C ct" column); the "C table" column swaps in the table-based `br_aes_big` (not constant-time). Worst ratio 7.97 (31.60 before the bitsliced AES and unrolled GHASH).
 
-| Message | Bend (us) | C ct (us) | Ratio | C table (us) | Ratio vs table |
-|---:|---:|---:|---:|---:|---:|
-| 64 B | 18.3 | 1.21 | 15.14 | 0.36 | 50.81 |
-| 1 KiB | 156 | 5.82 | 26.86 | 3.14 | 49.81 |
-| 16 KiB | 2312 | 79.5 | 29.09 | 47.6 | 48.56 |
-| 64 KiB | 9500 | 316 | 30.02 | 190 | 49.93 |
-| 1 MiB | 152000 | 5047 | 30.12 | 3014 | 50.43 |
-| 1 KiB open | 172 | 5.85 | 29.37 | 3.11 | 55.28 |
-| 64 KiB open | 10000 | 316 | 31.60 | 188 | 53.19 |
+| Message | Bend (us) | C ct (us) | Ratio | C table (us) | Ratio vs table | Before: Bend (us), ratio |
+|---:|---:|---:|---:|---:|---:|---:|
+| 64 B | 7.81 | 1.21 | 6.47 | 0.35 | 22.10 | 18.3, 15.14 |
+| 1 KiB | 39.1 | 5.82 | 6.71 | 3.15 | 12.41 | 156, 26.86 |
+| 16 KiB | 562 | 80.5 | 6.99 | 47.2 | 11.92 | 2312, 29.09 |
+| 64 KiB | 2500 | 350 | 7.15 | 194 | 12.89 | 9500, 30.02 |
+| 1 MiB | 37000 | 5038 | 7.34 | 3057 | 12.10 | 152000, 30.12 |
+| 1 KiB open | 39.1 | 5.86 | 6.67 | 3.18 | 12.29 | 172, 29.37 |
+| 64 KiB open | 2500 | 314 | 7.97 | 188 | 13.33 | 10000, 31.60 |
 
 ### AES-256-GCM
 
-C reference: as AES-128-GCM, with a 32-byte key. Worst ratio 30.60.
+C reference: as AES-128-GCM, with a 32-byte key. Worst ratio 6.48 (30.60 before).
 
-| Message | Bend (us) | C ct (us) | Ratio | C table (us) | Ratio vs table |
-|---:|---:|---:|---:|---:|---:|
-| 64 B | 23.9 | 1.58 | 15.10 | 0.45 | 52.72 |
-| 1 KiB | 191 | 7.57 | 25.28 | 4.03 | 47.48 |
-| 16 KiB | 2875 | 104 | 27.74 | 61.4 | 46.80 |
-| 64 KiB | 11250 | 411 | 27.39 | 245 | 45.92 |
-| 1 MiB | 184000 | 6527 | 28.19 | 3900 | 47.18 |
-| 1 KiB open | 203 | 7.55 | 26.89 | 4.04 | 50.29 |
-| 64 KiB open | 12500 | 408 | 30.60 | 242 | 51.65 |
+| Message | Bend (us) | C ct (us) | Ratio | C table (us) | Ratio vs table | Before: Bend (us), ratio |
+|---:|---:|---:|---:|---:|---:|---:|
+| 64 B | 10.3 | 1.58 | 6.48 | 0.46 | 22.53 | 23.9, 15.10 |
+| 1 KiB | 46.9 | 7.53 | 6.22 | 4.03 | 11.64 | 191, 25.28 |
+| 16 KiB | 625 | 104 | 6.01 | 61.4 | 10.17 | 2875, 27.74 |
+| 64 KiB | 2500 | 410 | 6.09 | 244 | 10.27 | 11250, 27.39 |
+| 1 MiB | 41000 | 6543 | 6.27 | 3891 | 10.54 | 184000, 28.19 |
+| 1 KiB open | 46.9 | 7.53 | 6.22 | 4.02 | 11.65 | 203, 26.89 |
+| 64 KiB open | 2500 | 407 | 6.14 | 242 | 10.35 | 12500, 30.60 |
 
 ## Public-key and password hashing
 
@@ -481,9 +481,13 @@ Fairness notes:
 - Bend runs single-threaded (`--threads 1`) on byte lists (one U32 per byte);
   C works on byte arrays in place. Input parsing and message cutting happen
   before the timed region on both sides; the checksum after it.
-- The Bend AES is constant-time (the Boyar-Peralta S-box circuit on one byte at
-  a time, GHASH bit by bit). The fair column is BearSSL `aes_ct64`; the table
-  column shows what a non-constant-time C costs.
+- The Bend AES-GCM is constant-time: AES bitsliced over eight 32-bit planes,
+  two counter blocks per pass (BearSSL `aes_ct`'s layout and Boyar-Peralta
+  S-box circuit), GHASH by Algorithm 1 of SP 800-38D unrolled over 32 bits of
+  X at a time (masks, no table), encryption and GHASH fused in one pass over
+  the message. The fair column is BearSSL `aes_ct64` + `ghash_ctmul64`
+  (64-bit words, four blocks per pass, GHASH with integer multiplications);
+  the table column shows what a non-constant-time C costs.
 - AES-GCM and the AEADs set up the key for every message on both sides (the
   Bend API takes the key bytes per call).
 - Ed25519: the rows use the expanded-key and context APIs of
