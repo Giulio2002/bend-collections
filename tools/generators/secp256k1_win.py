@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
-"""Write tools/generators/secp256k1_hand/pwin.src: the proofs of the 4-bit
-fixed-window scalar multiplication of src/crypto/secp256k1/pt.bend (tab,
-tsel, wgo, wmul) from the group law (proofs/crypto/secp256k1/group/).
+"""Write tools/generators/secp256k1_hand/pwr.src and pwin.src: the proofs of
+the 4-bit fixed-window scalar multiplication (tab, tsel, wgo, wmul) and of the
+Strauss joint multiplication (tpick, sgo, smul2) of
+src/crypto/secp256k1/pt.bend.
 
   python3 tools/generators/secp256k1_win.py
+  python3 tools/generators/rw.py tools/generators/secp256k1_hand/pwr.src proofs/crypto/secp256k1/pwr.bend
   python3 tools/generators/rw.py tools/generators/secp256k1_hand/pwin.src proofs/crypto/secp256k1/pwin.bend
 
-The statement: for a point a of the group and bits of a multiple of 4 bits,
-wmul(bits, a) is a point of the group, equivalent (the same projective
-point) to [v] a, v the number the bits spell. The facts hp (p is prime) and
-hc (-7 is no cube) of the group law are hypotheses, discharged by the
-closing roots.
+The statements: for points a, b of the group and bit lists (a multiple of 4
+bits; for smul2 two lists of the same length), wmul(bits, a) and
+smul2(bits1, bits2, a, b) are points of the group, equivalent (the same
+projective point) to [v] a and [v1] a + [v2] b, v, v1, v2 the numbers the bits
+spell. pwr.src gets the definitions that do not use the group law (the
+results are points of the representation), for the roots without it; pwin.src
+the rest. The facts hp (p is prime) and hc (-7 is no cube) of the group law
+are hypotheses, discharged by the closing roots.
 """
 from pathlib import Path
 

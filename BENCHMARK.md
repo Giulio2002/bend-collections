@@ -60,7 +60,7 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | Ed25519 sign | 22.80 |
 | Ed25519 verify | 11.49 |
 | Argon2id | 9.09 |
-| secp256k1 (ECDSA, recovery, BIP-340) | 201.83 |
+| secp256k1 (ECDSA, recovery, BIP-340) | 117.69 |
 | ChaCha8 `uint64` | 7.26 |
 | PCG `uint64` | 6.47 |
 | `uint_below` (ChaCha8) | 6.05 |
@@ -375,15 +375,15 @@ C reference: the official P-H-C reference (`ref.c`, portable, no SSE), one threa
 
 ### secp256k1 (ECDSA, recovery, BIP-340)
 
-C reference: libsecp256k1 v0.6.0 (precomputed tables, 5x52 field, no assembly; recovery, extrakeys and schnorrsig modules); the Bend side is `src/crypto/secp256k1.bend` (#26; field and scalar on records, perf-secp). 32 operations per sample (the key pair for BIP-340 sign made before the timed region, as `secp256k1_keypair_create`). Worst ratio 201.83.
+C reference: libsecp256k1 v0.6.0 (precomputed tables, 5x52 field, no assembly; recovery, extrakeys and schnorrsig modules); the Bend side is `src/crypto/secp256k1.bend` (#26; field and scalar on records, perf-secp; 4-bit fixed windows and Strauss joint multiplication proved from the group law, perf-secp2). 32 operations per sample (the key pair for BIP-340 sign made before the timed region, as `secp256k1_keypair_create`). Worst ratio 117.69.
 
 | Operation | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| ECDSA sign | 875.00 | 11.78 | 74.31 |
-| ECDSA verify | 937.50 | 14.50 | 64.66 |
-| ECDSA recover | 937.50 | 15.27 | 61.40 |
-| BIP-340 sign | 1656.25 | 8.21 | 201.83 |
-| BIP-340 verify | 875.00 | 14.59 | 59.98 |
+| ECDSA sign | 562.50 | 11.77 | 47.78 |
+| ECDSA verify | 593.75 | 14.46 | 41.07 |
+| ECDSA recover | 593.75 | 15.28 | 38.86 |
+| BIP-340 sign | 968.75 | 8.23 | 117.69 |
+| BIP-340 verify | 531.25 | 14.62 | 36.34 |
 
 ## Random
 
@@ -507,10 +507,17 @@ Fairness notes:
   the timed region (the Bend API takes bytes) and normalises s (Bend's verify
   accepts high s). Bend's BIP-340 sign row signs from a key pair
   (`schnorr_sign_keypair`) and, as the BIP-340 transcription requires, verifies
-  its signature (libsecp256k1 does not). Bend multiplies by double-and-add over
-  256 bits exactly as the specification (no tables, windows or joint
-  multiplication: their equality with the specification needs the group law),
-  with 16-bit limbs (the 32-bit `U32.mul` is the widest exact product).
+  its signature (libsecp256k1 does not). Bend multiplies a secret scalar by
+  4-bit fixed windows over a table of [0] P .. [15] P built per call (64
+  windows of 4 doublings and one addition, the entry selected with arithmetic
+  masks), and [u1] G + [u2] Q (verify, recover, BIP-340 verify) by Strauss's
+  joint 4-bit windows on one chain of 256 doublings; both are proved equal, as
+  points of the group, to the specification's double-and-add. There are no
+  precomputed tables of G: Bend has no cached top-level constants (a nullary
+  definition is recomputed at each use) and a literal table would have to be
+  checked point by point in the proof checker (one 32-bit chunk of such a
+  closed double-and-add check costs about 42 s and 1.2 GB). 16-bit limbs (the
+  32-bit `U32.mul` is the widest exact product).
   No Python check (Bend and C must agree; RFC 6979 and fixed BIP-340 aux make
   both deterministic).
 - Shuffle: both sides shuffle the first n slots of an array in place (Bend:

@@ -931,11 +931,22 @@ squarings and one product per digit), the scalar inverse square-and-multiply.
 The point formulas are straight-line code equal, by normalization
 (`ptbr`), to the specification's register programs run by an interpreter
 over the records (`pti`, `ptp`: register by register, products by b3 through
-`mul21`). Scalar multiplication is the specification's double-and-add over
-the 256 bits (linear-time bit lists): for a secret scalar both branches of
-every step are computed and selected with an arithmetic mask, with no branch
-or index on the scalar; for a public scalar (verification, recovery) only the
-set bits add. BIP-340 functions take the tag hashes as arguments (SHA-256 of
+`mul21`). Scalar multiplication by a secret scalar (key generation,
+signing) runs 4-bit fixed windows over the 256 bits (linear-time bit lists):
+a table [0] P .. [15] P of repeated additions, then per window four
+doublings and one addition of the entry, selected by a tree of arithmetic
+masks (no branch and no index on the scalar). Verification, recovery and
+BIP-340 verification compute [u1] G + [u2] Q at once (Strauss): one chain of
+256 doublings, and per 4 bits the entries of both scalars' tables, picked by
+branches on the public bits. Neither is the specification's double-and-add
+step by step: the proofs show, from the group law (below), that each result
+is a point of the group equivalent to the specification's (`pwr`, `pwin`:
+the loops' invariants r = [v] A and r = [v] A + [w] B; `pmulg`, `ptwog`), and
+that equivalent points of the group have the same affine coordinates, hence
+the same encodings, and are both the point at infinity or neither (`paq`).
+These lemmas take the group law's hypotheses (p prime, -7 not a cube mod p);
+each root discharges them with the certificates of `group/certpc.bend`, so
+every clause below stays unconditional. BIP-340 functions take the tag hashes as arguments (SHA-256 of
 the tag names, computed per call). RFC 6979 candidates, low-S (`s > n / 2` becomes `n - s`, the
 recovery id's parity flipped) and the recovery x = r + n (computed as
 (r - c_n + c_p) mod p, valid when not below n) are computed on limbs.
@@ -960,13 +971,17 @@ key), which changes nothing at run time.
 | `SchnorrSignKeypair.correct` | `schnorr_sign_keypair(schnorr_keypair(sk), msg, aux) == SS.sign(one, sk, msg, aux)` | proved (`proof_schnorr.bend`) |
 
 Each laws file has its own root, so that each checks alone (Bend 2.0.34,
-on the shared server with `rcheck`, one after another): `proof.bend` 27-44 s
-and 710 MB, `proof_sign.bend` 42-55 s and 933 MB, `proof_verify.bend` 32 s
-and 792 MB, `proof_recover.bend` 32 s and 800 MB, `proof_schnorr.bend` 41 s
-and 877 MB (the times move with the server's load). What keeps them there:
-the proofs import pruned copies of the proof libraries
-(`proofs/crypto/secp256k1/lite/`, written by `tools/generators/shake.py`: the
-251 definitions reached, unchanged, of 842); literal limbs are compared with
+on the shared server with `rcheck`, one after another, load 20-35):
+`proof.bend` 125 s and 2.1 GB, `proof_sign.bend` 143 s and 2.3 GB,
+`proof_verify.bend` 128 s and 1.9 GB, `proof_recover.bend` 114 s and 1.9 GB,
+`proof_schnorr.bend` 127 s and 1.9 GB. Every root now imports the group law
+and its certificates (the pruned `glawp.bend` alone checks in about 41 s and
+1.0 GB, `certpc.bend` in 32-40 s and 0.55 GB), which is what puts the roots
+above one minute and 1 GB; before the windowed multiplications they were
+32-55 s and 650-930 MB. What keeps the rest small:
+the proofs import pruned copies of the proof libraries and of the group-law
+tree (`proofs/crypto/secp256k1/lite/`, written by `tools/generators/shake.py`:
+the definitions reached, unchanged); literal limbs are compared with
 2^16 once (`lits`), and the generator is reduced by its top limb, with no
 arithmetic on its coordinates; HMAC stays folded on an unknown key, and the
 DRBG's initial K and V, like the BIP-340 tag hashes, are arguments named once
@@ -988,8 +1003,10 @@ directives only spell out the rewriting steps the checker verifies):
   (`fieldpow`, `scalarpow`: the exponent bits' value is p - 2, n - 2,
   (p + 1) / 4 by a complement argument on the literal bit list).
 - points: the register interpreter runs each program register by register
-  as the specification's (`point`: `padd`, `pdbl`), selection, and [k] P by
-  induction over the bit list (`pmul`), affine conversion, the generator
+  as the specification's (`point`: `padd`, `pdbl`), selection, the windowed
+  and joint multiplications (`pwr`, `pmul`: points of the representation;
+  `pwin`, `pmulg`, `ptwog`, `paq`: equivalence with the specification's
+  double-and-add from the group law), affine conversion, the generator
   (its limbs checked by literal comparisons, `lits`), encodings and
   decompression (`paff`, `penc`, `pdec`).
 - protocols: `ppub`, `pscal`, `pver`, `psign` (the DRBG loop by induction on
