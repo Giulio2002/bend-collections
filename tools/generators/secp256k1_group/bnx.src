@@ -1,0 +1,85 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ./bn.bend as B
+import ./zm.bend as Z
+
+# Modular exponentiation certificates on the binary numbers of bn.bend.
+#
+# A power a^e mod m is not computed by division: the certificate lists, for
+# every squaring and every multiplication by the base of the left-to-right
+# binary method, the quotient q and the remainder r (found outside, by
+# tools/generators/secp256k1_group/gen_cert.py), and chk verifies
+# x x == q m + r (or x a == q m + r) with the proved product, sum and
+# equality of bn.bend. chk_v: a checked list proves
+# fin == a^eb (mod m), for every input; the literal lists are then checked
+# by {==}, one closed computation each.
+
+type St is Data:
+  Sq{q: B.Bn, r: B.Bn}
+  Mu{q: B.Bn, r: B.Bn}
+
+def chk(steps: List<&2, St>, +a: B.Bn, +m: B.Bn, +x: B.Bn) -> Bool:
+  match steps:
+    case Nil{}:
+      True{}
+    case Sq{+q, +r} <> t:
+      Bool.and(B.beq(B.bmul(x, x), B.badd(B.bmul(q, m), r)), chk(t, a, m, r))
+    case Mu{+q, +r} <> t:
+      Bool.and(B.beq(B.bmul(x, a), B.badd(B.bmul(q, m), r)), chk(t, a, m, r))
+
+# the last remainder
+def fin(steps: List<&2, St>, x: B.Bn) -> B.Bn:
+  match steps:
+    case Nil{}:
+      x
+    case Sq{q, r} <> t:
+      fin(t, r)
+    case Mu{q, r} <> t:
+      fin(t, r)
+
+# the exponent reached from e
+def eb(steps: List<&2, St>, e: B.Bn) -> B.Bn:
+  match steps:
+    case Nil{}:
+      e
+    case Sq{q, r} <> t:
+      eb(t, B.B0{e})
+    case Mu{q, r} <> t:
+      eb(t, B.binc(e))
+
+def sq_cong(+mp: Nat, +x: Nat, +q: Nat, +r: Nat, +w: Nat, +hx: {Nat.mod(x, 1n+mp) == Nat.mod(w, 1n+mp) : Nat}, +hs: {Nat.mul(x, x) == Nat.add(Nat.mul(q, 1n+mp), r) : Nat}) -> {Nat.mod(r, 1n+mp) == Nat.mod(Nat.mul(w, w), 1n+mp) : Nat}:
+  %rw <- NR.absorb(mp, q, r)
+  %rwh Equal.sym(Nat, Nat.mul(x, x), Nat.add(Nat.mul(q, 1n+mp), r), hs) : {Nat.add(Nat.mul(q, 1n+mp), r) == Nat.mul(x, x) : Nat}
+  Equal.trans(Nat, Nat.mod(Nat.mul(x, x), 1n+mp), Nat.mod(Nat.mul(w, x), 1n+mp), Nat.mod(Nat.mul(w, w), 1n+mp), Z.cg_mul_l(mp, x, w, x, hx), Z.cg_mul_r(mp, w, x, w, hx))
+
+def mu_cong(+mp: Nat, +x: Nat, +a: Nat, +q: Nat, +r: Nat, +w: Nat, +hx: {Nat.mod(x, 1n+mp) == Nat.mod(w, 1n+mp) : Nat}, +hs: {Nat.mul(x, a) == Nat.add(Nat.mul(q, 1n+mp), r) : Nat}) -> {Nat.mod(r, 1n+mp) == Nat.mod(Nat.mul(a, w), 1n+mp) : Nat}:
+  %rw <- NR.absorb(mp, q, r)
+  %rwh Equal.sym(Nat, Nat.mul(x, a), Nat.add(Nat.mul(q, 1n+mp), r), hs) : {Nat.add(Nat.mul(q, 1n+mp), r) == Nat.mul(x, a) : Nat}
+  %rw NA.mul_comm(a, w)
+  Z.cg_mul_l(mp, x, w, a, hx)
+
+# beq(x y, q m + r) on values, with the modulus written 1 + mp
+def step_eq(+x: B.Bn, +y: B.Bn, +q: B.Bn, +m: B.Bn, +r: B.Bn, +mp: Nat, +hm: {B.bval(m) == 1n+mp : Nat}, +h: {B.beq(B.bmul(x, y), B.badd(B.bmul(q, m), r)) == True{} : Bool}) -> {Nat.mul(B.bval(x), B.bval(y)) == Nat.add(Nat.mul(B.bval(q), 1n+mp), B.bval(r)) : Nat}:
+  %rwh Equal.sym(Nat, B.bval(m), 1n+mp, hm) : {1n+mp == B.bval(m) : Nat}
+  %rw <- B.bmul_v(x, y)
+  %rw <- B.bmul_v(q, m)
+  %rw <- B.badd_v(B.bmul(q, m), r)
+  B.beq_v(B.bmul(x, y), B.badd(B.bmul(q, m), r), h)
+
+def chk_v(steps: List<&2, St>, +a: B.Bn, +m: B.Bn, +mp: Nat, +x: B.Bn, +e: B.Bn, +hm: {B.bval(m) == 1n+mp : Nat}, +hx: {Nat.mod(B.bval(x), 1n+mp) == Nat.mod(Nat.pow(B.bval(a), B.bval(e)), 1n+mp) : Nat}, +hc: {chk(steps, a, m, x) == True{} : Bool}) -> {Nat.mod(B.bval(fin(steps, x)), 1n+mp) == Nat.mod(Nat.pow(B.bval(a), B.bval(eb(steps, e))), 1n+mp) : Nat}:
+  match steps:
+    case Nil{}:
+      hx
+    case Sq{+q, +r} <> +t:
+      +hs = step_eq(x, x, q, m, r, mp, hm, Lg.and_left(B.beq(B.bmul(x, x), B.badd(B.bmul(q, m), r)), chk(t, a, m, r), hc))
+      +h2 = sq_cong(mp, B.bval(x), B.bval(q), B.bval(r), Nat.pow(B.bval(a), B.bval(e)), hx, hs)
+      chk_v(t, a, m, mp, r, B.B0{e}, hm, Equal.trans(Nat, Nat.mod(B.bval(r), 1n+mp), Nat.mod(Nat.mul(Nat.pow(B.bval(a), B.bval(e)), Nat.pow(B.bval(a), B.bval(e))), 1n+mp), Nat.mod(Nat.pow(B.bval(a), Nat.add(B.bval(e), B.bval(e))), 1n+mp), h2, Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.mul(Nat.pow(B.bval(a), B.bval(e)), Nat.pow(B.bval(a), B.bval(e))), Nat.pow(B.bval(a), Nat.add(B.bval(e), B.bval(e))), Equal.sym(Nat, Nat.pow(B.bval(a), Nat.add(B.bval(e), B.bval(e))), Nat.mul(Nat.pow(B.bval(a), B.bval(e)), Nat.pow(B.bval(a), B.bval(e))), NR.pow_add(B.bval(a), B.bval(e), B.bval(e))))), Lg.and_right(B.beq(B.bmul(x, x), B.badd(B.bmul(q, m), r)), chk(t, a, m, r), hc))
+    case Mu{+q, +r} <> +t:
+      +hs = step_eq(x, a, q, m, r, mp, hm, Lg.and_left(B.beq(B.bmul(x, a), B.badd(B.bmul(q, m), r)), chk(t, a, m, r), hc))
+      +h2 = mu_cong(mp, B.bval(x), B.bval(a), B.bval(q), B.bval(r), Nat.pow(B.bval(a), B.bval(e)), hx, hs)
+      chk_v(t, a, m, mp, r, B.binc(e), hm, Equal.trans(Nat, Nat.mod(B.bval(r), 1n+mp), Nat.mod(Nat.pow(B.bval(a), 1n+B.bval(e)), 1n+mp), Nat.mod(Nat.pow(B.bval(a), B.bval(B.binc(e))), 1n+mp), h2, Equal.cong(Nat, Nat, z => Nat.mod(Nat.pow(B.bval(a), z), 1n+mp), 1n+B.bval(e), B.bval(B.binc(e)), Equal.sym(Nat, B.bval(B.binc(e)), 1n+B.bval(e), B.binc_v(e)))), Lg.and_right(B.beq(B.bmul(x, a), B.badd(B.bmul(q, m), r)), chk(t, a, m, r), hc))
