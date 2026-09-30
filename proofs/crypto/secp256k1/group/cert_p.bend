@@ -447,3 +447,9 @@ def p256x671663_b0_0(+one: Nat, +h1: {one == 1n : Nat}) -> CL.Inv(one, B.B0{B.B1
 
 def p256x671663(+one: Nat, +h1: {one == 1n : Nat}) -> PM.Prime(X.bvalo(one, k0())):
   PK.pocklington(X.bvalo(one, k0()), X.bvalo(one, k92()), X.suc2_o(one, h1, k0(), k92(), {==}), PK.PE{X.bvalo(one, k1()), X.bvalo(one, B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}}}}}), X.bvalo(one, B.B0{B.B1{B.BZ{}}}), X.bvalo(one, k91()), X.bvalo(one, k94()), X.bvalo(one, k96())} <> Nil{}, PK.cert_cons(X.bvalo(one, k0()), X.bvalo(one, k1()), X.bvalo(one, B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}}}}}), X.bvalo(one, B.B0{B.B1{B.BZ{}}}), X.bvalo(one, k91()), X.bvalo(one, k94()), X.bvalo(one, k96()), Nil{}, p237x397371(one, h1), X.e2_o(one, h1, k0(), k1(), B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}}}}}, {==}), CL.fin3_o(one, h1, B.B0{B.B1{B.BZ{}}}, k0(), k82(), k82(), k1(), B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}}}}}, k92(), {==}, p256x671663_a_5(one, h1), {==}, {==}), CL.fin_o(one, h1, B.B0{B.B1{B.BZ{}}}, k0(), k82(), k91(), B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}}}}}, k93(), {==}, p256x671663_b0_0(one, h1), {==}), X.e5_o(one, h1, k94(), k91(), k95(), k96(), k0(), {==}, {==}), X.e6_1(one, h1, k1(), k74(), {==}), PK.cert_nil(X.bvalo(one, k0()))), X.hf_o(one, h1, k0(), B.bmul(k1(), B.B1{B.BZ{}}), Nat.mul(X.bvalo(one, k1()), 1n), X.fp_o(one, h1, k1(), B.B1{B.BZ{}}, 1n, X.one_o(one, h1)), k97(), {==}))
+
+def top() -> B.Bn:
+  k0()
+
+def top_prime(+one: Nat, +h1: {one == 1n : Nat}) -> PM.Prime(X.bvalo(one, top())):
+  p256x671663(one, h1)

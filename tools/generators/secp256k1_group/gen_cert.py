@@ -173,16 +173,35 @@ def write(fn, what, n):
     CONSTS.clear()
     del CDEFS[:]
     nm = level(n, defs, set())
+    defs.append('def top() -> B.Bn:\n  %s\n' % lit(n))
+    defs.append('def top_prime(+one: Nat, +h1: {one == 1n : Nat}) -> PM.Prime(X.bvalo(one, top())):\n  %s(one, h1)\n' % nm)
     open(os.path.join(OUT, fn), 'w').write(HEAD % what + '\n' + '\n'.join(CDEFS) + '\n' + '\n'.join(defs))
     return nm
 
 
+def write_pow(fn, what, a, e, n):
+    """a^e mod n as a chain of checked chunks: def pw proves CL.Inv(one, ca(), cn(), cc(), ce())"""
+    defs = []
+    CONSTS.clear()
+    del CDEFS[:]
+    last, x = chunks('c', a, e, n, defs)
+    for nm, v in (('ca', a), ('cn', n), ('cc', x), ('ce', e)):
+        defs.append('def %s() -> B.Bn:\n  %s\n' % (nm, lit(v)))
+    defs.append('def pw(+one: Nat, +h1: {one == 1n : Nat}) -> CL.Inv(one, ca(), cn(), cc(), ce()):\n  %s(one, h1)\n' % last)
+    open(os.path.join(OUT, fn), 'w').write(HEAD % what + '\n' + '\n'.join(CDEFS) + '\n' + '\n'.join(defs))
+    return x
+
+
 if __name__ == '__main__':
-    which = sys.argv[1:] or ['p']
+    which = sys.argv[1:] or ['p', 'c']
     if 'p' in which:
         print(write('cert_p.bend', 'p = 2^256 - 2^32 - 977 is prime', P))
     if 'n' in which:
         print(write('cert_n.bend', 'the group order n is prime', N))
+    if 'c' in which:
+        c = write_pow('cert_c.bend', '(p - 7)^((p - 1) / 3) mod p', P - 7, (P - 1) // 3, P)
+        assert c != 1
+        print('cube', c)
     for w in which:
         if w.isdigit():
             print(write('cert_t%s.bend' % w, 'test', int(w)))

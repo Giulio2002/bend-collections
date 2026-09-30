@@ -1,0 +1,15 @@
+import Base
+import ../../../../spec/math/number.bend as SN
+import ../../../../spec/crypto/secp256k1/field.bend as FS
+import ./bn.bend as B
+import ./bnx.bend as X
+import ./prime.bend as PM
+import ./certb.bend as CB
+import ./cert_p.bend as CP
+
+# secp256k1's field modulus p = 2^256 - 2^32 - 977 is prime: the Pocklington
+# certificate of cert_p.bend, for the specification's FS.prime(one).
+
+def prime_p(+one: Nat, +h1: {one == 1n : Nat}) -> PM.Prime(FS.prime(one)):
+  %CB.p_is(one, h1) : {SN.prime(_) == True{} : Bool}
+  CP.top_prime(one, h1)
