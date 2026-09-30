@@ -1,0 +1,244 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../spec/crypto/secp256k1/curve.bend as CV
+import ../../../src/crypto/secp256k1/field.bend as F
+import ../../../src/crypto/secp256k1/bytes.bend as B
+import ../../../src/crypto/secp256k1/point.bend as P
+import ../../lib/logic.bend as Lg
+import ../../math/typed/width.bend as WW
+import ../../math/typed/f64bits.bend as FB
+import ./fwrap.bend as FW
+import ./bytes.bend as BY
+import ./point.bend as PT
+import ./penc.bend as PE
+
+# SEC 1 decoding of src/crypto/secp256k1/point.bend (decode: compressed
+# and uncompressed public keys) against spec/crypto/secp256k1/curve.bend,
+# and the decoded points are reduced.
+
+# ---- byte lists ----
+
+def head_eq(bs: List<&2, U32>) -> {B.head(bs) == CV.head(bs) : U32}:
+  match bs:
+    case Nil{}:
+      {==}
+    case b <> t:
+      {==}
+
+def tail_after(bs: List<&2, U32>) -> {B.tail(bs) == CV.after(1n, bs) : List<&2, U32>}:
+  match bs:
+    case Nil{}:
+      {==}
+    case b <> t:
+      {==}
+
+def suffix_after(n: Nat, bs: List<&2, U32>) -> {B.suffix(n, bs) == CV.after(n, bs) : List<&2, U32>}:
+  match n bs:
+    case 0n _:
+      {==}
+    case 1n+k Nil{}:
+      {==}
+    case 1n+k b <> t:
+      suffix_after(k, t)
+
+def prefix_first(n: Nat, bs: List<&2, U32>) -> {B.prefix(n, bs) == CV.first(n, bs) : List<&2, U32>}:
+  match n bs:
+    case 0n _:
+      {==}
+    case 1n+k Nil{}:
+      {==}
+    case 1n+ +k +b <> t:
+      Equal.cong(List<&2, U32>, List<&2, U32>, l => b <> l, B.prefix(k, t), CV.first(k, t), prefix_first(k, t))
+
+def after33(bs: List<&2, U32>) -> {CV.after(33n, bs) == CV.after(32n, CV.after(1n, bs)) : List<&2, U32>}:
+  match bs:
+    case Nil{}:
+      {==}
+    case b <> t:
+      {==}
+
+def len_tail(+n: Nat, bs: List<&2, U32>, +h: {B.has_len(1n+n, bs) == True{} : Bool}) -> {B.has_len(n, CV.after(1n, bs)) == True{} : Bool}:
+  match bs:
+    case Nil{}:
+      Empty.absurd({B.has_len(n, CV.after(1n, [])) == True{} : Bool}, Lg.false_true(h))
+    case b <> t:
+      h
+
+def pre_len(a: Nat, +b: Nat, xs: List<&2, U32>, +h: {B.has_len(Nat.add(a, b), xs) == True{} : Bool}) -> {B.has_len(a, CV.first(a, xs)) == True{} : Bool}:
+  match a xs:
+    case 0n _:
+      {==}
+    case 1n+k Nil{}:
+      Empty.absurd({B.has_len(1n+k, CV.first(1n+k, [])) == True{} : Bool}, Lg.false_true(h))
+    case 1n+k x <> t:
+      pre_len(k, b, t, h)
+
+def suf_len(a: Nat, +b: Nat, xs: List<&2, U32>, +h: {B.has_len(Nat.add(a, b), xs) == True{} : Bool}) -> {B.has_len(b, CV.after(a, xs)) == True{} : Bool}:
+  match a xs:
+    case 0n _:
+      h
+    case 1n+k Nil{}:
+      Empty.absurd({B.has_len(b, CV.after(1n+k, [])) == True{} : Bool}, Lg.false_true(h))
+    case 1n+k x <> t:
+      suf_len(k, b, t, h)
+
+def hl_is(+n: Nat, +bs: List<&2, U32>) -> {B.has_len(n, bs) == CV.length_is(n, bs) : Bool}:
+  BY.has_len_v(n, bs)
+
+# the parity bit of the prefix byte
+def par01(+pre: U32) -> {Nat.is_lt(U32.to_nat(U32.and(pre, 1)), 2n) == True{} : Bool}:
+  %rwh FB.andm(pre, 1n, 1, {==}) : {U32.to_nat(U32.and(pre, 1)) == C.low(1n, U32.to_nat(pre)) : Nat}
+  WW.low_lt(1n, U32.to_nat(pre))
+
+def red_of(+one: Nat, +x: List<&2, Nat>, +hl: {FS.limbs16(one, 16n, x) == True{} : Bool}, +hb: {Nat.is_lt(FS.value(one, x), FS.prime(one)) == True{} : Bool}) -> {PT.red(one, x) == True{} : Bool}:
+  Lg.and_intro(FS.limbs16(one, 16n, x), Nat.is_lt(FS.value(one, x), FS.prime(one)), hl, hb)
+
+def pl32(+rest: List<&2, U32>, +hl: {B.has_len(64n, rest) == True{} : Bool}) -> {B.has_len(32n, B.prefix(32n, rest)) == True{} : Bool}:
+  %rw prefix_first(32n, rest)
+  pre_len(32n, 32n, rest, hl)
+
+def sl32(+rest: List<&2, U32>, +hl: {B.has_len(64n, rest) == True{} : Bool}) -> {B.has_len(32n, B.suffix(32n, rest)) == True{} : Bool}:
+  %rw suffix_after(32n, rest)
+  suf_len(32n, 32n, rest, hl)
+
+# ---- compressed ----
+
+def dc(+one: Nat, +h1: {one == 1n : Nat}, +pre: U32, +x: List<&2, Nat>, +hl: {FS.limbs16(one, 16n, x) == True{} : Bool}, a: Bool, b: Bool, +hb: {Nat.is_lt(FS.value(one, x), FS.prime(one)) == b : Bool}) -> {PE.mpv(one, P.decode_c(x, U32.to_nat(U32.and(pre, 1)), Bool.and(a, b))) == CV.decode_c_if(FS.prime(one), pre, FS.value(one, x), Bool.and(a, b)) : Maybe<&2, CV.SPoint>}:
+  match a b:
+    case True{} True{}:
+      PE.decompress_v(one, h1, x, U32.to_nat(U32.and(pre, 1)), red_of(one, x, hl, hb), par01(pre))
+    case True{} False{}:
+      {==}
+    case False{} _:
+      {==}
+
+def dcr(+one: Nat, +h1: {one == 1n : Nat}, +pre: U32, +x: List<&2, Nat>, +hl: {FS.limbs16(one, 16n, x) == True{} : Bool}, a: Bool, b: Bool, +hb: {Nat.is_lt(FS.value(one, x), FS.prime(one)) == b : Bool}) -> {PE.mpred(one, P.decode_c(x, U32.to_nat(U32.and(pre, 1)), Bool.and(a, b))) == True{} : Bool}:
+  match a b:
+    case True{} True{}:
+      PE.decompress_r(one, h1, x, U32.to_nat(U32.and(pre, 1)), red_of(one, x, hl, hb), par01(pre))
+    case True{} False{}:
+      {==}
+    case False{} _:
+      {==}
+
+def d33(+one: Nat, +h1: {one == 1n : Nat}, +pre: U32, +rest: List<&2, U32>, +hl: {B.has_len(32n, rest) == True{} : Bool}) -> {PE.mpv(one, P.decode_33(pre, rest)) == CV.decode_c(FS.prime(one), pre, CV.os2ip(rest)) : Maybe<&2, CV.SPoint>}:
+  %goal {PE.mpv(one, P.decode_c(B.of_be(rest), U32.to_nat(U32.and(pre, 1)), Bool.and(Bool.or(U32.is_eq(pre, 2), U32.is_eq(pre, 3)), F.lt_p(B.of_be(rest))))) == CV.decode_c_if(FS.prime(one), pre, CV.os2ip(rest), Bool.and(Bool.or(U32.is_eq(pre, 2), U32.is_eq(pre, 3)), Nat.is_lt(CV.os2ip(rest), FS.prime(one)))) : Maybe<&2, CV.SPoint>}
+  %rw FW.lt_p_f(one, h1, B.of_be(rest))
+  %rw <- BY.of_be_value(one, h1, rest)
+  %rw <- BY.of_be_value(one, h1, rest)
+  dc(one, h1, pre, B.of_be(rest), BY.of_be_limbs(one, h1, rest, hl), Bool.or(U32.is_eq(pre, 2), U32.is_eq(pre, 3)), Nat.is_lt(FS.value(one, B.of_be(rest)), FS.prime(one)), {==})
+
+def d33r(+one: Nat, +h1: {one == 1n : Nat}, +pre: U32, +rest: List<&2, U32>, +hl: {B.has_len(32n, rest) == True{} : Bool}) -> {PE.mpred(one, P.decode_33(pre, rest)) == True{} : Bool}:
+  %goal {PE.mpred(one, P.decode_c(B.of_be(rest), U32.to_nat(U32.and(pre, 1)), Bool.and(Bool.or(U32.is_eq(pre, 2), U32.is_eq(pre, 3)), F.lt_p(B.of_be(rest))))) == True{} : Bool}
+  %rw FW.lt_p_f(one, h1, B.of_be(rest))
+  dcr(one, h1, pre, B.of_be(rest), BY.of_be_limbs(one, h1, rest, hl), Bool.or(U32.is_eq(pre, 2), U32.is_eq(pre, 3)), Nat.is_lt(FS.value(one, B.of_be(rest)), FS.prime(one)), {==})
+
+# ---- uncompressed ----
+
+def duv(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +y: List<&2, Nat>, ok: Bool) -> {PE.mpv(one, P.decode_u(x, y, ok)) == CV.decompress_if(FS.value(one, x), FS.value(one, y), ok) : Maybe<&2, CV.SPoint>}:
+  match ok:
+    case True{}:
+      %goal {Some{CV.SPoint{FS.value(one, x), FS.value(one, y), FS.value(one, F.one())}} == Some{CV.SPoint{FS.value(one, x), FS.value(one, y), 1n}} : Maybe<&2, CV.SPoint>}
+      %rw PE.one_v(one, h1)
+      %close
+    case False{}:
+      {==}
+
+def du(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +y: List<&2, Nat>, +hlx: {FS.limbs16(one, 16n, x) == True{} : Bool}, +hly: {FS.limbs16(one, 16n, y) == True{} : Bool}, a: Bool, bx: Bool, by: Bool, +hbx: {Nat.is_lt(FS.value(one, x), FS.prime(one)) == bx : Bool}, +hby: {Nat.is_lt(FS.value(one, y), FS.prime(one)) == by : Bool}) -> {PE.mpv(one, P.decode_u(x, y, Bool.and(Bool.and(a, Bool.and(bx, by)), P.on_curve(x, y)))) == CV.decompress_if(FS.value(one, x), FS.value(one, y), Bool.and(Bool.and(a, Bool.and(bx, by)), CV.on_curve(FS.prime(one), FS.value(one, x), FS.value(one, y)))) : Maybe<&2, CV.SPoint>}:
+  match a bx by:
+    case True{} True{} True{}:
+      %rw PE.on_curve_v(one, h1, x, y, red_of(one, x, hlx, hbx), red_of(one, y, hly, hby))
+      duv(one, h1, x, y, CV.on_curve(FS.prime(one), FS.value(one, x), FS.value(one, y)))
+    case True{} True{} False{}:
+      {==}
+    case True{} False{} _:
+      {==}
+    case False{} _ _:
+      {==}
+
+def dur_ok(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +y: List<&2, Nat>, +hx: {PT.red(one, x) == True{} : Bool}, +hy: {PT.red(one, y) == True{} : Bool}, ok: Bool) -> {PE.mpred(one, P.decode_u(x, y, ok)) == True{} : Bool}:
+  match ok:
+    case True{}:
+      PT.pr3(one, x, y, F.one(), hx, hy, PE.one_r(one, h1))
+    case False{}:
+      {==}
+
+def dur(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +y: List<&2, Nat>, +hlx: {FS.limbs16(one, 16n, x) == True{} : Bool}, +hly: {FS.limbs16(one, 16n, y) == True{} : Bool}, a: Bool, bx: Bool, by: Bool, +hbx: {Nat.is_lt(FS.value(one, x), FS.prime(one)) == bx : Bool}, +hby: {Nat.is_lt(FS.value(one, y), FS.prime(one)) == by : Bool}) -> {PE.mpred(one, P.decode_u(x, y, Bool.and(Bool.and(a, Bool.and(bx, by)), P.on_curve(x, y)))) == True{} : Bool}:
+  match a bx by:
+    case True{} True{} True{}:
+      dur_ok(one, h1, x, y, red_of(one, x, hlx, hbx), red_of(one, y, hly, hby), P.on_curve(x, y))
+    case True{} True{} False{}:
+      {==}
+    case True{} False{} _:
+      {==}
+    case False{} _ _:
+      {==}
+
+def d65(+one: Nat, +h1: {one == 1n : Nat}, +pre: U32, +rest: List<&2, U32>, +hl: {B.has_len(64n, rest) == True{} : Bool}) -> {PE.mpv(one, P.decode_65(pre, rest)) == CV.decode_u(FS.prime(one), pre, CV.os2ip(CV.first(32n, rest)), CV.os2ip(CV.after(32n, rest))) : Maybe<&2, CV.SPoint>}:
+  +hlx = BY.of_be_limbs(one, h1, B.prefix(32n, rest), pl32(rest, hl))
+  +hly = BY.of_be_limbs(one, h1, B.suffix(32n, rest), sl32(rest, hl))
+  %goal {PE.mpv(one, P.decode_u(B.of_be(B.prefix(32n, rest)), B.of_be(B.suffix(32n, rest)), Bool.and(Bool.and(U32.is_eq(pre, 4), Bool.and(F.lt_p(B.of_be(B.prefix(32n, rest))), F.lt_p(B.of_be(B.suffix(32n, rest))))), P.on_curve(B.of_be(B.prefix(32n, rest)), B.of_be(B.suffix(32n, rest)))))) == CV.decompress_if(CV.os2ip(CV.first(32n, rest)), CV.os2ip(CV.after(32n, rest)), Bool.and(Bool.and(U32.is_eq(pre, 4), Bool.and(Nat.is_lt(CV.os2ip(CV.first(32n, rest)), FS.prime(one)), Nat.is_lt(CV.os2ip(CV.after(32n, rest)), FS.prime(one)))), CV.on_curve(FS.prime(one), CV.os2ip(CV.first(32n, rest)), CV.os2ip(CV.after(32n, rest))))) : Maybe<&2, CV.SPoint>}
+  %rw FW.lt_p_f(one, h1, B.of_be(B.prefix(32n, rest)))
+  %rw FW.lt_p_f(one, h1, B.of_be(B.suffix(32n, rest)))
+  %rw <- prefix_first(32n, rest)
+  %rw <- prefix_first(32n, rest)
+  %rw <- prefix_first(32n, rest)
+  %rw <- suffix_after(32n, rest)
+  %rw <- suffix_after(32n, rest)
+  %rw <- suffix_after(32n, rest)
+  %rw <- BY.of_be_value(one, h1, B.prefix(32n, rest))
+  %rw <- BY.of_be_value(one, h1, B.prefix(32n, rest))
+  %rw <- BY.of_be_value(one, h1, B.prefix(32n, rest))
+  %rw <- BY.of_be_value(one, h1, B.suffix(32n, rest))
+  %rw <- BY.of_be_value(one, h1, B.suffix(32n, rest))
+  %rw <- BY.of_be_value(one, h1, B.suffix(32n, rest))
+  du(one, h1, B.of_be(B.prefix(32n, rest)), B.of_be(B.suffix(32n, rest)), hlx, hly, U32.is_eq(pre, 4), Nat.is_lt(FS.value(one, B.of_be(B.prefix(32n, rest))), FS.prime(one)), Nat.is_lt(FS.value(one, B.of_be(B.suffix(32n, rest))), FS.prime(one)), {==}, {==})
+
+def d65r(+one: Nat, +h1: {one == 1n : Nat}, +pre: U32, +rest: List<&2, U32>, +hl: {B.has_len(64n, rest) == True{} : Bool}) -> {PE.mpred(one, P.decode_65(pre, rest)) == True{} : Bool}:
+  +hlx = BY.of_be_limbs(one, h1, B.prefix(32n, rest), pl32(rest, hl))
+  +hly = BY.of_be_limbs(one, h1, B.suffix(32n, rest), sl32(rest, hl))
+  %goal {PE.mpred(one, P.decode_u(B.of_be(B.prefix(32n, rest)), B.of_be(B.suffix(32n, rest)), Bool.and(Bool.and(U32.is_eq(pre, 4), Bool.and(F.lt_p(B.of_be(B.prefix(32n, rest))), F.lt_p(B.of_be(B.suffix(32n, rest))))), P.on_curve(B.of_be(B.prefix(32n, rest)), B.of_be(B.suffix(32n, rest)))))) == True{} : Bool}
+  %rw FW.lt_p_f(one, h1, B.of_be(B.prefix(32n, rest)))
+  %rw FW.lt_p_f(one, h1, B.of_be(B.suffix(32n, rest)))
+  dur(one, h1, B.of_be(B.prefix(32n, rest)), B.of_be(B.suffix(32n, rest)), hlx, hly, U32.is_eq(pre, 4), Nat.is_lt(FS.value(one, B.of_be(B.prefix(32n, rest))), FS.prime(one)), Nat.is_lt(FS.value(one, B.of_be(B.suffix(32n, rest))), FS.prime(one)), {==}, {==})
+
+# ---- decode ----
+
+def dl(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>, c33: Bool, c65: Bool, +h33: {B.has_len(33n, bs) == c33 : Bool}, +h65: {B.has_len(65n, bs) == c65 : Bool}) -> {PE.mpv(one, P.decode_len(bs, c33, c65)) == CV.decode_len(FS.prime(one), bs, c33, c65) : Maybe<&2, CV.SPoint>}:
+  match c33 c65:
+    case True{} _:
+      %goal {PE.mpv(one, P.decode_33(B.head(bs), B.tail(bs))) == CV.decode_c(FS.prime(one), CV.head(bs), CV.os2ip(CV.after(1n, bs))) : Maybe<&2, CV.SPoint>}
+      %rw head_eq(bs)
+      %rw tail_after(bs)
+      d33(one, h1, CV.head(bs), CV.after(1n, bs), len_tail(32n, bs, h33))
+    case False{} True{}:
+      %goal {PE.mpv(one, P.decode_65(B.head(bs), B.tail(bs))) == CV.decode_u(FS.prime(one), CV.head(bs), CV.os2ip(CV.first(32n, CV.after(1n, bs))), CV.os2ip(CV.after(33n, bs))) : Maybe<&2, CV.SPoint>}
+      %rw head_eq(bs)
+      %rw tail_after(bs)
+      %rw after33(bs)
+      d65(one, h1, CV.head(bs), CV.after(1n, bs), len_tail(64n, bs, h65))
+    case False{} False{}:
+      {==}
+
+def dlr(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>, c33: Bool, c65: Bool, +h33: {B.has_len(33n, bs) == c33 : Bool}, +h65: {B.has_len(65n, bs) == c65 : Bool}) -> {PE.mpred(one, P.decode_len(bs, c33, c65)) == True{} : Bool}:
+  match c33 c65:
+    case True{} _:
+      %goal {PE.mpred(one, P.decode_33(B.head(bs), B.tail(bs))) == True{} : Bool}
+      %rw tail_after(bs)
+      d33r(one, h1, B.head(bs), CV.after(1n, bs), len_tail(32n, bs, h33))
+    case False{} True{}:
+      %goal {PE.mpred(one, P.decode_65(B.head(bs), B.tail(bs))) == True{} : Bool}
+      %rw tail_after(bs)
+      d65r(one, h1, B.head(bs), CV.after(1n, bs), len_tail(64n, bs, h65))
+    case False{} False{}:
+      {==}
+
+def decode_v(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>) -> {PE.mpv(one, P.decode(bs)) == CV.decode(FS.prime(one), bs) : Maybe<&2, CV.SPoint>}:
+  %goal {PE.mpv(one, P.decode_len(bs, B.has_len(33n, bs), B.has_len(65n, bs))) == CV.decode_len(FS.prime(one), bs, CV.length_is(33n, bs), CV.length_is(65n, bs)) : Maybe<&2, CV.SPoint>}
+  %rw hl_is(33n, bs)
+  %rw hl_is(65n, bs)
+  dl(one, h1, bs, CV.length_is(33n, bs), CV.length_is(65n, bs), hl_is(33n, bs), hl_is(65n, bs))
+
+def decode_r(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>) -> {PE.mpred(one, P.decode(bs)) == True{} : Bool}:
+  dlr(one, h1, bs, B.has_len(33n, bs), B.has_len(65n, bs), {==}, {==})
