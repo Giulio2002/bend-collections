@@ -164,6 +164,9 @@ def walk_value(~cmp: U32 -> U32 -> Cmp, fuel: Nat, out: String, st: M.Cursor<U32
     case 1n+f Tuple{cursor, Some{v}}:
       walk_value(~cmp, f, out ++ ";" ++ U32.show(v), M.iterator_next_value(~U32, ~U32, ~cmp, cursor))
 
+def fold_kv(a: String, k: U32, v: U32) -> String:
+  a ++ ";" ++ U32.show(k) ++ "=" ++ U32.show(v)
+
 def step(~cmp: U32 -> U32 -> Cmp, op: Nat, m: M.TreeMap<U32, U32, cmp>, k: U32, +v: U32) -> M.TreeMap<U32, U32, cmp> & String:
   match op:
     case 0n:
@@ -266,6 +269,16 @@ def step(~cmp: U32 -> U32 -> Cmp, op: Nat, m: M.TreeMap<U32, U32, cmp>, k: U32, 
       walk_start(~cmp, 0n, M.entry_set(~U32, ~U32, ~cmp, m))
     case 50n:
       walk_start(~cmp, 0n, M.view_iterator(~U32, ~U32, ~cmp, M.descending_map(~U32, ~U32, ~cmp, m)))
+    case 51n:
+      M.fold(~U32, ~U32, ~cmp, ~String, ~fold_kv, m, "entries")
+    case 52n:
+      M.fold_range(~U32, ~U32, ~cmp, ~String, ~fold_kv, m, M.Inclusive{k}, M.Exclusive{v}, "entries")
+    case 53n:
+      M.fold_range(~U32, ~U32, ~cmp, ~String, ~fold_kv, m, M.Exclusive{k}, M.Inclusive{v}, "entries")
+    case 54n:
+      M.fold_range(~U32, ~U32, ~cmp, ~String, ~fold_kv, m, M.Unbounded{}, M.Inclusive{k}, "entries")
+    case 55n:
+      M.fold_range(~U32, ~U32, ~cmp, ~String, ~fold_kv, m, M.Exclusive{k}, M.Unbounded{}, "entries")
     case 32n:
       (M.with_limit(~U32, ~U32, ~cmp, U32.to_nat(k)), "ok")
     case _:

@@ -121,23 +121,26 @@ def fold_start(r: U32, c: U32, p: BT.TreeMap<U32, U32, U32.cmp> & Nat) -> St:
   (m, n) = p
   fold_loop(1n+n, r, c, BT.iterator_next(~U32, ~U32, ~U32.cmp, BT.iterator(~U32, ~U32, ~U32.cmp, m)))
 
-def range_ready(r: U32, c: U32, n: Nat, p: Result<&1, &1, BT.InvalidView<U32, U32, U32.cmp>, BT.View<U32, U32, U32.cmp>>) -> St:
-  match p:
-    case Fail{BT.InvalidView{m, e}}:
-      S{r, c, m}
-    case Done{view}:
-      fold_loop(1n+n, r, c, BT.iterator_next(~U32, ~U32, ~U32.cmp, BT.view_iterator(~U32, ~U32, ~U32.cmp, view)))
+def range_fin(r: U32, p: BT.TreeMap<U32, U32, U32.cmp> & U32) -> St:
+  (m, c) = p
+  S{r, c, m}
 
 def range_with(+r: U32, c: U32, m: BT.TreeMap<U32, U32, U32.cmp>, +n: Nat) -> St:
-  range_ready(r, c, 1n+n, BT.sub_map(~U32, ~U32, ~U32.cmp, m, BT.Inclusive{B.below(r, U32.from_nat(1n+n))}, BT.Exclusive{B.below(hi(r), U32.from_nat(1n+n))}))
+  range_fin(r, BT.fold_range(~U32, ~U32, ~U32.cmp, ~U32, ~(a => k => v => B.mix(B.mix(a, k), v)), m, BT.Inclusive{B.below(r, U32.from_nat(1n+n))}, BT.Exclusive{B.below(hi(r), U32.from_nat(1n+n))}, c))
 
 def do_range(st: St, +n: Nat) -> St:
   S{r, c, m} = st
   range_with(B.lcg(r), c, m, n)
 
+def fold_fin(r: U32, p: BT.TreeMap<U32, U32, U32.cmp> & U32) -> St:
+  (m, c) = p
+  S{r, c, m}
+
+# to_list and range fold the entries in key order through the map's in-order
+# walk (BT.fold, BT.fold_range), as C folds its nodes.
 def do_to_list(st: St) -> St:
   S{r, c, m} = st
-  fold_start(B.lcg(r), c, BT.size(~U32, ~U32, ~U32.cmp, m))
+  fold_fin(B.lcg(r), BT.fold(~U32, ~U32, ~U32.cmp, ~U32, ~(a => k => v => B.mix(B.mix(a, k), v)), m, c))
 
 def fin_len(r: U32, c: U32, p: BT.TreeMap<U32, U32, U32.cmp> & Nat) -> St:
   (m, n) = p
