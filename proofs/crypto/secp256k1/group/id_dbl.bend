@@ -7,6 +7,7 @@ import ./pev.bend as E
 import ./zm.bend as Z
 import ./sym.bend as S
 import ./ident.bend as I
+import ./fld.bend as F
 
 # Doubling is adding a point to itself; (0, 1, 0) is the identity and
 # (x, -y, z) the inverse, up to scaling.

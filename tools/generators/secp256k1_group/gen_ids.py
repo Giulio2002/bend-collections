@@ -25,6 +25,7 @@ import ./pev.bend as E
 import ./zm.bend as Z
 import ./sym.bend as S
 import ./ident.bend as I
+import ./fld.bend as F
 '''
 
 M = '1n+mp'
@@ -115,6 +116,41 @@ class Ctx:
             hz = 'I.sm_red(mp, %dn, %dn, %dn, %s, %s, %s, {==}, %s, %s)' % (self.n, ix, dp, fp, polys[j], self.env, rel, hz)
         self.defs.append('%sdef %s(%s%s) -> {Nat.mod(%s, %s) == Nat.mod(%s, %s) : Nat}:\n  I.ident(mp, %s, %s, %s, %s, %s, %s, %s, %s)\n'
                          % (('# ' + comment + '\n') if comment else '', name, self.params, hyp_params, a.spec, M, b.spec, M,
+                            a.spec, b.spec, a.poly, b.poly, self.env, a.rel, b.rel, hz))
+
+    def specdef(self, name, v):
+        """a def for the specification value (so that hand proofs can name it)"""
+        self.defs.append('def %s(%s) -> Nat:\n  %s\n' % (name, self.params, v.spec))
+        return V('%s(%s)' % (name, self.args), v.poly, v.rel)
+
+    def conseq(self, name, a, combos, rules=(), comment=''):
+        """a == sum (L_i - R_i) c_i as polynomials; with hypotheses L_i == R_i: a == 0 (mod m)"""
+        b = None
+        for L, R, cof in combos:
+            t = self.mul(self.sub(L, R), cof)
+            b = t if b is None else self.add(b, t)
+        hyp_params = ''.join(', ' + r[4] for r in rules) + ''.join(', +e%d: {%s == %s : Nat}' % (i + 1, L.spec, R.spec) for i, (L, R, cof) in enumerate(combos))
+        d = 'P.psub(%s, %s)' % (a.poly, b.poly)
+        polys = [d]
+        for ix, dp, fp, rel, hd in rules:
+            polys.append('P.red(%dn, %dn, %dn, %s, %s)' % (self.n, ix, dp, fp, polys[-1]))
+        hz = 'I.sm_nil(mp, %s, %s, {==})' % (polys[-1], self.env)
+        for j in range(len(rules) - 1, -1, -1):
+            ix, dp, fp, rel, hd = rules[j]
+            hz = 'I.sm_red(mp, %dn, %dn, %dn, %s, %s, %s, {==}, %s, %s)' % (self.n, ix, dp, fp, polys[j], self.env, rel, hz)
+        # the right side with the first i differences written out and 0 for the others
+        def side(i, hole):
+            out = None
+            for j, (L, R, cof) in enumerate(combos):
+                h = '_' if j == hole else ('FS.msub(%s, %s, %s)' % (M, L.spec, R.spec) if j < i else '0n')
+                t = 'FS.mmul(%s, %s, %s)' % (M, h, cof.spec)
+                out = t if out is None else 'FS.madd(%s, %s, %s)' % (M, out, t)
+            return out
+        steps = ''
+        for i, (L, R, cof) in enumerate(combos):
+            steps += '  %%F.msub_eq0(mp, %s, %s, e%d) : {Nat.mod(%s, %s) == Nat.mod(%s, %s) : Nat}\n' % (L.spec, R.spec, i + 1, a.spec, M, side(i, i), M)
+        self.defs.append('%sdef %s(%s%s) -> {Nat.mod(%s, %s) == 0n : Nat}:\n%s  I.ident(mp, %s, %s, %s, %s, %s, %s, %s, %s)\n'
+                         % (('# ' + comment + '\n') if comment else '', name, self.params, hyp_params, a.spec, M, steps,
                             a.spec, b.spec, a.poly, b.poly, self.env, a.rel, b.rel, hz))
 
     def write(self, fname, header):
@@ -209,6 +245,29 @@ def gen_hom():
     c.write('id_hom.bend', '# The complete addition is homogeneous of degree 2 in its first argument.\n')
 
 
+def gen_alg():
+    c = Ctx(['a1', 'b1', 'a2', 'b2', 'a3', 'b3'])
+    a1, b1, a2, b2, a3, b3 = [c.var(i) for i in range(6)]
+    c.conseq('ratio_trans', c.mul(c.sub(c.mul(a1, b3), c.mul(a3, b1)), b2),
+             [(c.mul(a1, b2), c.mul(a2, b1), b3), (c.mul(a2, b3), c.mul(a3, b2), b1)], (),
+             'a1 b2 == a2 b1 and a2 b3 == a3 b2 give (a1 b3 - a3 b1) b2 == 0')
+    c.write('id_alg1.bend', '# Transitivity of equal ratios.\n')
+    c = Ctx(['a', 'b', 'sx', 'sy', 'tx', 'ty'])
+    a, b, sx, sy, tx, ty = [c.var(i) for i in range(6)]
+    c.conseq('scale_eqv', c.mul(c.sub(c.mul(sx, ty), c.mul(tx, sy)), c.mul(a, b)),
+             [(c.mul(a, sx), c.mul(b, tx), c.mul(b, ty)), (c.mul(b, ty), c.mul(a, sy), c.mul(b, tx))], (),
+             'a S == b T (coordinates x and y) gives (sx ty - tx sy) a b == 0')
+    c.write('id_alg2.bend', '# Proportional triples have equal cross products.\n')
+    c = Ctx(['u', 'v', 'w'])
+    u, v, w = [c.var(i) for i in range(3)]
+    g = c.mul(v, w)
+    c.conseq('cube_t', c.add(cube(c, c.mul(u, w)), c.const(7)),
+             [(c.add(cube(c, u), c.mul(c.const(7), cube(c, v))), c.zero(), cube(c, w)),
+              (c.const(1), g, c.mul(c.const(7), c.add(c.add(c.const(1), g), c.mul(g, g))))], (),
+             'u^3 + 7 v^3 == 0 and v w == 1 give (u w)^3 + 7 == 0')
+    c.write('id_alg3.bend', '# A projective cube root of -7 gives an affine one.\n')
+
+
 def gen_assoc(i, j):
     nm = 'xyz'[i] + 'xyz'[j]
     c = Ctx(['x1', 'y1', 'z1', 'x2', 'y2', 'z2', 'x3', 'y3', 'z3'], ['7n'])
@@ -228,5 +287,6 @@ if __name__ == '__main__':
     gen_curve()
     gen_dbl()
     gen_hom()
+    gen_alg()
     for i, j in ((0, 1), (1, 2)):
         gen_assoc(i, j)

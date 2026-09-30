@@ -7,6 +7,7 @@ import ./pev.bend as E
 import ./zm.bend as Z
 import ./sym.bend as S
 import ./ident.bend as I
+import ./fld.bend as F
 
 # Associativity of the complete addition, up to projective scaling:
 # one of the three cross products.

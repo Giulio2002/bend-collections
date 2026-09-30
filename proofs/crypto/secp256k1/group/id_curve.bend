@@ -7,6 +7,7 @@ import ./pev.bend as E
 import ./zm.bend as Z
 import ./sym.bend as S
 import ./ident.bend as I
+import ./fld.bend as F
 
 # The sum of two points of the curve is on the curve, and it is not
 # (0, 0, 0): the identities behind completeness.

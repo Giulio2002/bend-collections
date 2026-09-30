@@ -7,6 +7,7 @@ import ./pev.bend as E
 import ./zm.bend as Z
 import ./sym.bend as S
 import ./ident.bend as I
+import ./fld.bend as F
 
 # The complete addition is homogeneous of degree 2 in its first argument.
 
