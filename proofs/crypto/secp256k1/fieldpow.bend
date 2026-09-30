@@ -17,71 +17,80 @@ import ./consts.bend as K
 import ./bitsv.bend as BV
 import ./modexp.bend as ME
 import ./fieldops.bend as FO
+import ./fops.bend as OP
+import ../../../src/crypto/secp256k1/fe.bend as R
 
-# Exponentiation in GF(p) (src/crypto/secp256k1/field.bend pow, inv, sqrt):
+# Exponentiation in GF(p) (src/crypto/secp256k1/field.bend inv, sqrt, on the
+# records of fe.bend, pow_go):
 # square-and-multiply over the exponent's bits computes x^e mod p, and the
 # bits of inv and sqrt spell p - 2 and (p + 1) / 4.
 
 def m(+one: Nat) -> Nat:
   1n+K.pp(one)
 
-# one square-and-multiply step
-def step_e(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.prime(one), x) == True{} : Bool}, +acc: List<&2, Nat>, +ha: {FS.reduced(one, FS.prime(one), acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(acc) == Nat.mod(Nat.pow(LV.ev(x), e), 1n+K.pp(one)) : Nat}, b: Nat, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}) -> {LV.ev(F.pow_step(b, x, F.sq(acc))) == Nat.mod(Nat.pow(LV.ev(x), Nat.add(Nat.mul(b, one), Nat.double(e))), 1n+K.pp(one)) : Nat}:
+# one square-and-multiply step (on records, src/crypto/secp256k1/fe.bend)
+def step_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b: Nat, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.pow_step(b, x, R.sq(acc)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(Nat.mul(b, one), Nat.double(e))), 1n+K.pp(one)) : Nat}:
   match b:
     case 0n:
-      %Equal.sym(Nat, LV.ev(F.mul(acc, acc)), Nat.mod(Nat.mul(LV.ev(acc), LV.ev(acc)), 1n+K.pp(one)), FO.mul_e(one, h1, acc, acc, ha, ha)) : {_ == Nat.mod(Nat.pow(LV.ev(x), Nat.double(e)), 1n+K.pp(one)) : Nat}
-      ME.sq_step(K.pp(one), LV.ev(x), e, LV.ev(acc), he)
+      %Equal.sym(Nat, LV.ev(R.to_list(R.sq(acc))), Nat.mod(Nat.mul(LV.ev(R.to_list(acc)), LV.ev(R.to_list(acc))), 1n+K.pp(one)), OP.sq_e(one, h1, acc, ha)) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.double(e)), 1n+K.pp(one)) : Nat}
+      ME.sq_step(K.pp(one), LV.ev(R.to_list(x)), e, LV.ev(R.to_list(acc)), he)
     case 1n:
-      +sq = F.mul(acc, acc)
-      +es = Equal.trans(Nat, LV.ev(sq), Nat.mod(Nat.mul(LV.ev(acc), LV.ev(acc)), 1n+K.pp(one)), Nat.mod(Nat.pow(LV.ev(x), Nat.double(e)), 1n+K.pp(one)), FO.mul_e(one, h1, acc, acc, ha, ha), ME.sq_step(K.pp(one), LV.ev(x), e, LV.ev(acc), he))
-      %Equal.sym(Nat, Nat.mul(1n, one), one, SR.one_mul(one)) : {LV.ev(F.mul(F.mul(acc, acc), x)) == Nat.mod(Nat.pow(LV.ev(x), Nat.add(_, Nat.double(e))), 1n+K.pp(one)) : Nat}
-      %Equal.sym(Nat, one, 1n, h1) : {LV.ev(F.mul(F.mul(acc, acc), x)) == Nat.mod(Nat.pow(LV.ev(x), Nat.add(_, Nat.double(e))), 1n+K.pp(one)) : Nat}
-      %Equal.sym(Nat, Nat.add(1n, Nat.double(e)), Nat.add(Nat.double(e), 1n), NA.add_comm(1n, Nat.double(e))) : {LV.ev(F.mul(F.mul(acc, acc), x)) == Nat.mod(Nat.pow(LV.ev(x), _), 1n+K.pp(one)) : Nat}
-      %Equal.sym(Nat, LV.ev(F.mul(F.mul(acc, acc), x)), Nat.mod(Nat.mul(LV.ev(F.mul(acc, acc)), LV.ev(x)), 1n+K.pp(one)), FO.mul_e(one, h1, F.mul(acc, acc), x, FO.mul_r(one, h1, acc, acc, ha, ha), hx)) : {_ == Nat.mod(Nat.pow(LV.ev(x), Nat.add(Nat.double(e), 1n)), 1n+K.pp(one)) : Nat}
-      ME.mul_step(K.pp(one), LV.ev(x), Nat.double(e), LV.ev(F.mul(acc, acc)), es)
+      +es = Equal.trans(Nat, LV.ev(R.to_list(R.sq(acc))), Nat.mod(Nat.mul(LV.ev(R.to_list(acc)), LV.ev(R.to_list(acc))), 1n+K.pp(one)), Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.double(e)), 1n+K.pp(one)), OP.sq_e(one, h1, acc, ha), ME.sq_step(K.pp(one), LV.ev(R.to_list(x)), e, LV.ev(R.to_list(acc)), he))
+      %Equal.sym(Nat, Nat.mul(1n, one), one, SR.one_mul(one)) : {LV.ev(R.to_list(R.mul(R.sq(acc), x))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, Nat.double(e))), 1n+K.pp(one)) : Nat}
+      %Equal.sym(Nat, one, 1n, h1) : {LV.ev(R.to_list(R.mul(R.sq(acc), x))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, Nat.double(e))), 1n+K.pp(one)) : Nat}
+      %Equal.sym(Nat, Nat.add(1n, Nat.double(e)), Nat.add(Nat.double(e), 1n), NA.add_comm(1n, Nat.double(e))) : {LV.ev(R.to_list(R.mul(R.sq(acc), x))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+      %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(acc), x))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(acc))), LV.ev(R.to_list(x))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(acc), x, OP.sq_r(one, h1, acc, ha), hx)) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(Nat.double(e), 1n)), 1n+K.pp(one)) : Nat}
+      ME.mul_step(K.pp(one), LV.ev(R.to_list(x)), Nat.double(e), LV.ev(R.to_list(R.sq(acc))), es)
     case 2n+ +k:
-      Empty.absurd({LV.ev(F.pow_step(2n+k, x, F.sq(acc))) == Nat.mod(Nat.pow(LV.ev(x), Nat.add(Nat.mul(2n+k, one), Nat.double(e))), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb))
+      Empty.absurd({LV.ev(R.to_list(R.pow_step(2n+k, x, R.sq(acc)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(Nat.mul(2n+k, one), Nat.double(e))), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb))
 
-def step_r(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.prime(one), x) == True{} : Bool}, +acc: List<&2, Nat>, +ha: {FS.reduced(one, FS.prime(one), acc) == True{} : Bool}, b: Nat, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}) -> {FS.reduced(one, FS.prime(one), F.pow_step(b, x, F.sq(acc))) == True{} : Bool}:
+def step_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b: Nat, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}) -> {OP.red(one, R.pow_step(b, x, R.sq(acc))) == True{} : Bool}:
   match b:
     case 0n:
-      FO.mul_r(one, h1, acc, acc, ha, ha)
+      OP.sq_r(one, h1, acc, ha)
     case 1n:
-      FO.mul_r(one, h1, F.mul(acc, acc), x, FO.mul_r(one, h1, acc, acc, ha, ha), hx)
+      OP.mul_r(one, h1, R.sq(acc), x, OP.sq_r(one, h1, acc, ha), hx)
     case 2n+ +k:
-      Empty.absurd({FS.reduced(one, FS.prime(one), F.pow_step(2n+k, x, F.sq(acc))) == True{} : Bool}, N.lt_zero_absurd(k, hb))
+      Empty.absurd({OP.red(one, R.pow_step(2n+k, x, R.sq(acc))) == True{} : Bool}, N.lt_zero_absurd(k, hb))
 
-def pow_r(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.prime(one), x) == True{} : Bool}, bs: List<&2, Nat>, +acc: List<&2, Nat>, +ha: {FS.reduced(one, FS.prime(one), acc) == True{} : Bool}, +hb: {BV.all01(bs) == True{} : Bool}) -> {FS.reduced(one, FS.prime(one), F.pow_go(x, bs, acc)) == True{} : Bool}:
+def pow_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, bs: List<&2, Nat>, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +hb: {BV.all01(bs) == True{} : Bool}) -> {OP.red(one, R.pow_go(x, bs, acc)) == True{} : Bool}:
   match bs:
     case Nil{}:
       ha
     case +b <> +t:
       +h0 = Lg.and_left(Nat.is_lt(b, 2n), BV.all01(t), hb)
-      pow_r(one, h1, x, hx, t, F.pow_step(b, x, F.sq(acc)), step_r(one, h1, x, hx, acc, ha, b, h0), Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hb))
+      pow_r(one, h1, x, hx, t, R.pow_step(b, x, R.sq(acc)), step_r(one, h1, x, hx, acc, ha, b, h0), Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hb))
 
 # x^e for the exponent spelled by the bits, from acc = x^e0
-def pow_e(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.prime(one), x) == True{} : Bool}, bs: List<&2, Nat>, +acc: List<&2, Nat>, +ha: {FS.reduced(one, FS.prime(one), acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(acc) == Nat.mod(Nat.pow(LV.ev(x), e), 1n+K.pp(one)) : Nat}, +hb: {BV.all01(bs) == True{} : Bool}) -> {LV.ev(F.pow_go(x, bs, acc)) == Nat.mod(Nat.pow(LV.ev(x), BV.hv(bs, one, e)), 1n+K.pp(one)) : Nat}:
+def pow_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, bs: List<&2, Nat>, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, +hb: {BV.all01(bs) == True{} : Bool}) -> {LV.ev(R.to_list(R.pow_go(x, bs, acc))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv(bs, one, e)), 1n+K.pp(one)) : Nat}:
   match bs:
     case Nil{}:
       he
     case +b <> +t:
       +h0 = Lg.and_left(Nat.is_lt(b, 2n), BV.all01(t), hb)
-      pow_e(one, h1, x, hx, t, F.pow_step(b, x, F.sq(acc)), step_r(one, h1, x, hx, acc, ha, b, h0), Nat.add(Nat.mul(b, one), Nat.double(e)), step_e(one, h1, x, hx, acc, ha, e, he, b, h0), Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hb))
+      pow_e(one, h1, x, hx, t, R.pow_step(b, x, R.sq(acc)), step_r(one, h1, x, hx, acc, ha, b, h0), Nat.add(Nat.mul(b, one), Nat.double(e)), step_e(one, h1, x, hx, acc, ha, e, he, b, h0), Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hb))
 
-# F.pow looks at x first
-def pow_is(+one: Nat, x: List<&2, Nat>, +hx: {FS.reduced(one, FS.prime(one), x) == True{} : Bool}, +bs: List<&2, Nat>, +acc: List<&2, Nat>) -> {F.pow(x, bs, acc) == F.pow_go(x, bs, acc) : List<&2, Nat>}:
-  match x:
+def powl_is(a: List<&2, Nat>, +bs: List<&2, Nat>) -> {F.powl(a, bs) == F.powl_u(a, bs) : List<&2, Nat>}:
+  match a:
     case Nil{}:
-      Empty.absurd({F.pow([], bs, acc) == F.pow_go([], bs, acc) : List<&2, Nat>}, Lg.false_true(Lg.and_left(FS.limbs16(one, 16n, []), Nat.is_lt(FS.value(one, []), FS.prime(one)), hx)))
-    case y <> t:
+      {==}
+    case x <> t:
       {==}
 
-def pow_ev(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.prime(one), x) == True{} : Bool}, +bs: List<&2, Nat>, +acc: List<&2, Nat>, +ha: {FS.reduced(one, FS.prime(one), acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(acc) == Nat.mod(Nat.pow(LV.ev(x), e), 1n+K.pp(one)) : Nat}, +hb: {BV.all01(bs) == True{} : Bool}) -> {LV.ev(F.pow(x, bs, acc)) == Nat.mod(Nat.pow(LV.ev(x), BV.hv(bs, one, e)), 1n+K.pp(one)) : Nat}:
-  %Equal.sym(List<&2, Nat>, F.pow(x, bs, acc), F.pow_go(x, bs, acc), pow_is(one, x, hx, bs, acc)) : {LV.ev(_) == Nat.mod(Nat.pow(LV.ev(x), BV.hv(bs, one, e)), 1n+K.pp(one)) : Nat}
+# R.pow looks at x first
+def pow_is(x: R.FE, +bs: List<&2, Nat>, +acc: R.FE) -> {R.pow(x, bs, acc) == R.pow_go(x, bs, acc) : R.FE}:
+  match x:
+    case R.FE{a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15}:
+      {==}
+
+# the same through the wrapper that looks at x first (the bits kept
+# abstract, so that the checker never runs the loop on constant bits)
+def pow_ev(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +bs: List<&2, Nat>, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, +hb: {BV.all01(bs) == True{} : Bool}) -> {LV.ev(R.to_list(R.pow(x, bs, acc))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv(bs, one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(R.FE, R.pow(x, bs, acc), R.pow_go(x, bs, acc), pow_is(x, bs, acc)) : {LV.ev(R.to_list(_)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv(bs, one, e)), 1n+K.pp(one)) : Nat}
   pow_e(one, h1, x, hx, bs, acc, ha, e, he, hb)
 
-def pow_rv(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.prime(one), x) == True{} : Bool}, +bs: List<&2, Nat>, +acc: List<&2, Nat>, +ha: {FS.reduced(one, FS.prime(one), acc) == True{} : Bool}, +hb: {BV.all01(bs) == True{} : Bool}) -> {FS.reduced(one, FS.prime(one), F.pow(x, bs, acc)) == True{} : Bool}:
-  %Equal.sym(List<&2, Nat>, F.pow(x, bs, acc), F.pow_go(x, bs, acc), pow_is(one, x, hx, bs, acc)) : {FS.reduced(one, FS.prime(one), _) == True{} : Bool}
+def pow_rv(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +bs: List<&2, Nat>, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +hb: {BV.all01(bs) == True{} : Bool}) -> {OP.red(one, R.pow(x, bs, acc)) == True{} : Bool}:
+  %Equal.sym(R.FE, R.pow(x, bs, acc), R.pow_go(x, bs, acc), pow_is(x, bs, acc)) : {OP.red(one, _) == True{} : Bool}
   pow_r(one, h1, x, hx, bs, acc, ha, hb)
 
 # ---- one ----
@@ -89,12 +98,657 @@ def pow_rv(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.reduce
 def one_lt(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(1n, FS.prime(one)) == True{} : Bool}:
   FO.small_lt_p(one, h1, 1n, {==})
 
-def one_r(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.reduced(one, FS.prime(one), F.one()) == True{} : Bool}:
+def one_l() -> {R.to_list(R.one()) == F.one() : List<&2, Nat>}:
+  {==}
+
+def one_r(+one: Nat, +h1: {one == 1n : Nat}) -> {OP.red(one, R.one()) == True{} : Bool}:
+  %Equal.sym(List<&2, Nat>, R.to_list(R.one()), F.one(), one_l()) : {FS.reduced(one, FS.prime(one), _) == True{} : Bool}
   FO.small_r(one, h1, 1n, one_lt(one, h1))
 
-def one_e(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat) -> {LV.ev(F.one()) == Nat.mod(Nat.pow(x, 0n), 1n+K.pp(one)) : Nat}:
+def one_e(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat) -> {LV.ev(R.to_list(R.one())) == Nat.mod(Nat.pow(x, 0n), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(List<&2, Nat>, R.to_list(R.one()), F.one(), one_l()) : {LV.ev(_) == Nat.mod(Nat.pow(x, 0n), 1n+K.pp(one)) : Nat}
   +ev = Equal.trans(Nat, LV.ev(F.one()), FS.value(one, F.one()), 1n, Equal.sym(Nat, FS.value(one, F.one()), LV.ev(F.one()), LV.ev_value(one, h1, F.one())), FO.small_val(one, h1, 1n, one_lt(one, h1)))
   Equal.trans(Nat, LV.ev(F.one()), 1n, Nat.mod(Nat.pow(x, 0n), 1n+K.pp(one)), ev, ME.pow0(K.pp(one), x, I.lt_subst_r(1n, FS.prime(one), 1n+K.pp(one), K.prime_eq(one, h1), one_lt(one, h1))))
+
+# ---- BEGIN windowed (secp256k1_pw.py) ----
+# ---- fixed-window exponentiation (GENERATED by tools/generators/secp256k1_pw.py) ----
+
+# x^f x^g = x^(f + g) on residues
+def wmul2(+mp: Nat, +x: Nat, +f: Nat, +g: Nat, +a: Nat, +b: Nat, +ha: {a == Nat.mod(Nat.pow(x, f), 1n+mp) : Nat}, +hb: {b == Nat.mod(Nat.pow(x, g), 1n+mp) : Nat}) -> {Nat.mod(Nat.mul(a, b), 1n+mp) == Nat.mod(Nat.pow(x, Nat.add(f, g)), 1n+mp) : Nat}:
+  %Equal.sym(Nat, a, Nat.mod(Nat.pow(x, f), 1n+mp), ha) : {Nat.mod(Nat.mul(_, b), 1n+mp) == Nat.mod(Nat.pow(x, Nat.add(f, g)), 1n+mp) : Nat}
+  %Equal.sym(Nat, b, Nat.mod(Nat.pow(x, g), 1n+mp), hb) : {Nat.mod(Nat.mul(Nat.mod(Nat.pow(x, f), 1n+mp), _), 1n+mp) == Nat.mod(Nat.pow(x, Nat.add(f, g)), 1n+mp) : Nat}
+  %Equal.sym(Nat, Nat.mod(Nat.mul(Nat.mod(Nat.pow(x, f), 1n+mp), Nat.mod(Nat.pow(x, g), 1n+mp)), 1n+mp), Nat.mod(Nat.mul(Nat.pow(x, f), Nat.mod(Nat.pow(x, g), 1n+mp)), 1n+mp), NR.mod_mul_l(mp, Nat.pow(x, f), Nat.mod(Nat.pow(x, g), 1n+mp))) : {_ == Nat.mod(Nat.pow(x, Nat.add(f, g)), 1n+mp) : Nat}
+  %Equal.sym(Nat, Nat.mod(Nat.mul(Nat.pow(x, f), Nat.mod(Nat.pow(x, g), 1n+mp)), 1n+mp), Nat.mod(Nat.mul(Nat.pow(x, f), Nat.pow(x, g)), 1n+mp), NR.mod_mul_r(mp, Nat.pow(x, f), Nat.pow(x, g))) : {_ == Nat.mod(Nat.pow(x, Nat.add(f, g)), 1n+mp) : Nat}
+  %Equal.sym(Nat, Nat.pow(x, Nat.add(f, g)), Nat.mul(Nat.pow(x, f), Nat.pow(x, g)), NR.pow_add(x, f, g)) : {Nat.mod(Nat.mul(Nat.pow(x, f), Nat.pow(x, g)), 1n+mp) == Nat.mod(_, 1n+mp) : Nat}
+  {==}
+
+# e doubled once per bit
+def wsh(bs: List<&2, Nat>, +e: Nat) -> Nat:
+  match bs:
+    case Nil{}: e
+    case b <> t: wsh(t, Nat.double(e))
+
+# square-and-multiply from f + e: the part from f, plus e doubled per bit
+def whv_add(+one: Nat, bs: List<&2, Nat>, +f: Nat, +e: Nat) -> {BV.hv(bs, one, Nat.add(f, e)) == Nat.add(BV.hv(bs, one, f), wsh(bs, e)) : Nat}:
+  match bs:
+    case Nil{}:
+      {==}
+    case +b <> +t:
+      %Equal.sym(Nat, Nat.double(Nat.add(f, e)), Nat.add(Nat.double(f), Nat.double(e)), Equal.sym(Nat, Nat.add(Nat.double(f), Nat.double(e)), Nat.double(Nat.add(f, e)), N.add_double(f, e))) : {BV.hv(t, one, Nat.add(Nat.mul(b, one), _)) == Nat.add(BV.hv(t, one, Nat.add(Nat.mul(b, one), Nat.double(f))), wsh(t, Nat.double(e))) : Nat}
+      %Equal.sym(Nat, Nat.add(Nat.mul(b, one), Nat.add(Nat.double(f), Nat.double(e))), Nat.add(Nat.add(Nat.mul(b, one), Nat.double(f)), Nat.double(e)), Equal.sym(Nat, Nat.add(Nat.add(Nat.mul(b, one), Nat.double(f)), Nat.double(e)), Nat.add(Nat.mul(b, one), Nat.add(Nat.double(f), Nat.double(e))), NA.add_assoc(Nat.mul(b, one), Nat.double(f), Nat.double(e)))) : {BV.hv(t, one, _) == Nat.add(BV.hv(t, one, Nat.add(Nat.mul(b, one), Nat.double(f))), wsh(t, Nat.double(e))) : Nat}
+      %Equal.sym(Nat, BV.hv(t, one, Nat.add(Nat.add(Nat.mul(b, one), Nat.double(f)), Nat.double(e))), Nat.add(BV.hv(t, one, Nat.add(Nat.mul(b, one), Nat.double(f))), wsh(t, Nat.double(e))), whv_add(one, t, Nat.add(Nat.mul(b, one), Nat.double(f)), Nat.double(e))) : {_ == Nat.add(BV.hv(t, one, Nat.add(Nat.mul(b, one), Nat.double(f))), wsh(t, Nat.double(e))) : Nat}
+      {==}
+
+# x = x^1
+def wx1(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}) -> {LV.ev(R.to_list(x)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), 1n), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, Nat.mul(LV.ev(R.to_list(x)), 1n), LV.ev(R.to_list(x)), NA.mul_one(LV.ev(R.to_list(x)))) : {LV.ev(R.to_list(x)) == Nat.mod(_, 1n+K.pp(one)) : Nat}
+  Equal.sym(Nat, Nat.mod(LV.ev(R.to_list(x)), 1n+K.pp(one)), LV.ev(R.to_list(x)), NR.mod_of(0n, K.pp(one), LV.ev(R.to_list(x)), FO.rlt(one, h1, R.to_list(x), hx)))
+
+def wtp_r(+one: Nat, +h1: {one == 1n : Nat}, k: Nat, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}) -> {OP.red(one, R.tpow(k, x)) == True{} : Bool}:
+  match k:
+    case 0n:
+      one_r(one, h1)
+    case 1n:
+      hx
+    case 2n+ +j:
+      OP.mul_r(one, h1, R.tpow(1n+j, x), x, wtp_r(one, h1, 1n+j, x, hx), hx)
+
+def wtp_e(+one: Nat, +h1: {one == 1n : Nat}, k: Nat, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}) -> {LV.ev(R.to_list(R.tpow(k, x))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), k), 1n+K.pp(one)) : Nat}:
+  match k:
+    case 0n:
+      one_e(one, h1, LV.ev(R.to_list(x)))
+    case 1n:
+      wx1(one, h1, x, hx)
+    case 2n+ +j:
+      %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.tpow(1n+j, x), x))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.tpow(1n+j, x))), LV.ev(R.to_list(x))), 1n+K.pp(one)), OP.mul_e(one, h1, R.tpow(1n+j, x), x, wtp_r(one, h1, 1n+j, x, hx), hx)) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(1n, 1n+j)), 1n+K.pp(one)) : Nat}
+      %Equal.sym(Nat, Nat.add(1n, 1n+j), Nat.add(1n+j, 1n), Equal.sym(Nat, Nat.add(1n+j, 1n), Nat.add(1n, 1n+j), NA.add_comm(1n+j, 1n))) : {Nat.mod(Nat.mul(LV.ev(R.to_list(R.tpow(1n+j, x))), LV.ev(R.to_list(x))), 1n+K.pp(one)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+      ME.mul_step(K.pp(one), LV.ev(R.to_list(x)), 1n+j, LV.ev(R.to_list(R.tpow(1n+j, x))), wtp_e(one, h1, 1n+j, x, hx))
+
+def wsq_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +y: R.FE, +hy: {OP.red(one, y) == True{} : Bool}, +f: Nat, +hf: {LV.ev(R.to_list(y)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), f), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.sq(y))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.double(f)), 1n+K.pp(one)) : Nat}:
+  Equal.trans(Nat, LV.ev(R.to_list(R.sq(y))), Nat.mod(Nat.mul(LV.ev(R.to_list(y)), LV.ev(R.to_list(y))), 1n+K.pp(one)), Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.double(f)), 1n+K.pp(one)), OP.sq_e(one, h1, y, hy), ME.sq_step(K.pp(one), LV.ev(R.to_list(x)), f, LV.ev(R.to_list(y)), hf))
+
+def wsq4_r(+one: Nat, +h1: {one == 1n : Nat}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.sq(R.sq(R.sq(R.sq(acc))))) == True{} : Bool}:
+  OP.sq_r(one, h1, R.sq(R.sq(R.sq(acc))), OP.sq_r(one, h1, R.sq(R.sq(acc)), OP.sq_r(one, h1, R.sq(acc), OP.sq_r(one, h1, acc, ha))))
+
+def wsq4_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.double(Nat.double(Nat.double(Nat.double(e))))), 1n+K.pp(one)) : Nat}:
+  +s1 = R.sq(acc)
+  +s2 = R.sq(s1)
+  +s3 = R.sq(s2)
+  +r1 = OP.sq_r(one, h1, acc, ha)
+  +r2 = OP.sq_r(one, h1, s1, r1)
+  +r3 = OP.sq_r(one, h1, s2, r2)
+  +e1 = wsq_e(one, h1, x, hx, acc, ha, e, he)
+  +e2 = wsq_e(one, h1, x, hx, s1, r1, Nat.double(e), e1)
+  +e3 = wsq_e(one, h1, x, hx, s2, r2, Nat.double(Nat.double(e)), e2)
+  wsq_e(one, h1, x, hx, s3, r3, Nat.double(Nat.double(Nat.double(e))), e3)
+
+def wlf0_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(0n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 0n, 0n, 0n], one, e)), 1n+K.pp(one)) : Nat}:
+  wsq4_e(one, h1, x, hx, acc, ha, e, he)
+
+def wlf0_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(0n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  wsq4_r(one, h1, acc, ha)
+
+def whk1(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([0n, 0n, 0n, 1n], one, 0n) == 1n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([0n, 0n, 0n, 1n], _, 0n) == 1n : Nat}
+  {==}
+
+def wlf1_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(1n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 0n, 0n, 1n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([0n, 0n, 0n, 1n], one, Nat.add(0n, e)), Nat.add(BV.hv([0n, 0n, 0n, 1n], one, 0n), wsh([0n, 0n, 0n, 1n], e)), whv_add(one, [0n, 0n, 0n, 1n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(1n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([0n, 0n, 0n, 1n], one, 0n), 1n, whk1(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(1n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([0n, 0n, 0n, 1n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(1n, wsh([0n, 0n, 0n, 1n], e)), Nat.add(wsh([0n, 0n, 0n, 1n], e), 1n), NA.add_comm(1n, wsh([0n, 0n, 0n, 1n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(1n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(1n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(1n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(1n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 1n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([0n, 0n, 0n, 1n], e), 1n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([0n, 0n, 0n, 1n], e), 1n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(1n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 1n, x, hx))
+
+def wlf1_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(1n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(1n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 1n, x, hx))
+
+def whk2(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([0n, 0n, 1n, 0n], one, 0n) == 2n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([0n, 0n, 1n, 0n], _, 0n) == 2n : Nat}
+  {==}
+
+def wlf2_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(2n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 0n, 1n, 0n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([0n, 0n, 1n, 0n], one, Nat.add(0n, e)), Nat.add(BV.hv([0n, 0n, 1n, 0n], one, 0n), wsh([0n, 0n, 1n, 0n], e)), whv_add(one, [0n, 0n, 1n, 0n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(2n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([0n, 0n, 1n, 0n], one, 0n), 2n, whk2(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(2n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([0n, 0n, 1n, 0n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(2n, wsh([0n, 0n, 1n, 0n], e)), Nat.add(wsh([0n, 0n, 1n, 0n], e), 2n), NA.add_comm(2n, wsh([0n, 0n, 1n, 0n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(2n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(2n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(2n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(2n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 2n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([0n, 0n, 1n, 0n], e), 2n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([0n, 0n, 1n, 0n], e), 2n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(2n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 2n, x, hx))
+
+def wlf2_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(2n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(2n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 2n, x, hx))
+
+def whk3(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([0n, 0n, 1n, 1n], one, 0n) == 3n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([0n, 0n, 1n, 1n], _, 0n) == 3n : Nat}
+  {==}
+
+def wlf3_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(3n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 0n, 1n, 1n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([0n, 0n, 1n, 1n], one, Nat.add(0n, e)), Nat.add(BV.hv([0n, 0n, 1n, 1n], one, 0n), wsh([0n, 0n, 1n, 1n], e)), whv_add(one, [0n, 0n, 1n, 1n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(3n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([0n, 0n, 1n, 1n], one, 0n), 3n, whk3(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(3n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([0n, 0n, 1n, 1n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(3n, wsh([0n, 0n, 1n, 1n], e)), Nat.add(wsh([0n, 0n, 1n, 1n], e), 3n), NA.add_comm(3n, wsh([0n, 0n, 1n, 1n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(3n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(3n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(3n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(3n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 3n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([0n, 0n, 1n, 1n], e), 3n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([0n, 0n, 1n, 1n], e), 3n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(3n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 3n, x, hx))
+
+def wlf3_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(3n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(3n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 3n, x, hx))
+
+def whk4(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([0n, 1n, 0n, 0n], one, 0n) == 4n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([0n, 1n, 0n, 0n], _, 0n) == 4n : Nat}
+  {==}
+
+def wlf4_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(4n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 1n, 0n, 0n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([0n, 1n, 0n, 0n], one, Nat.add(0n, e)), Nat.add(BV.hv([0n, 1n, 0n, 0n], one, 0n), wsh([0n, 1n, 0n, 0n], e)), whv_add(one, [0n, 1n, 0n, 0n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(4n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([0n, 1n, 0n, 0n], one, 0n), 4n, whk4(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(4n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([0n, 1n, 0n, 0n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(4n, wsh([0n, 1n, 0n, 0n], e)), Nat.add(wsh([0n, 1n, 0n, 0n], e), 4n), NA.add_comm(4n, wsh([0n, 1n, 0n, 0n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(4n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(4n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(4n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(4n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 4n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([0n, 1n, 0n, 0n], e), 4n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([0n, 1n, 0n, 0n], e), 4n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(4n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 4n, x, hx))
+
+def wlf4_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(4n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(4n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 4n, x, hx))
+
+def whk5(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([0n, 1n, 0n, 1n], one, 0n) == 5n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([0n, 1n, 0n, 1n], _, 0n) == 5n : Nat}
+  {==}
+
+def wlf5_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(5n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 1n, 0n, 1n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([0n, 1n, 0n, 1n], one, Nat.add(0n, e)), Nat.add(BV.hv([0n, 1n, 0n, 1n], one, 0n), wsh([0n, 1n, 0n, 1n], e)), whv_add(one, [0n, 1n, 0n, 1n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(5n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([0n, 1n, 0n, 1n], one, 0n), 5n, whk5(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(5n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([0n, 1n, 0n, 1n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(5n, wsh([0n, 1n, 0n, 1n], e)), Nat.add(wsh([0n, 1n, 0n, 1n], e), 5n), NA.add_comm(5n, wsh([0n, 1n, 0n, 1n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(5n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(5n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(5n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(5n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 5n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([0n, 1n, 0n, 1n], e), 5n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([0n, 1n, 0n, 1n], e), 5n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(5n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 5n, x, hx))
+
+def wlf5_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(5n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(5n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 5n, x, hx))
+
+def whk6(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([0n, 1n, 1n, 0n], one, 0n) == 6n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([0n, 1n, 1n, 0n], _, 0n) == 6n : Nat}
+  {==}
+
+def wlf6_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(6n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 1n, 1n, 0n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([0n, 1n, 1n, 0n], one, Nat.add(0n, e)), Nat.add(BV.hv([0n, 1n, 1n, 0n], one, 0n), wsh([0n, 1n, 1n, 0n], e)), whv_add(one, [0n, 1n, 1n, 0n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(6n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([0n, 1n, 1n, 0n], one, 0n), 6n, whk6(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(6n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([0n, 1n, 1n, 0n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(6n, wsh([0n, 1n, 1n, 0n], e)), Nat.add(wsh([0n, 1n, 1n, 0n], e), 6n), NA.add_comm(6n, wsh([0n, 1n, 1n, 0n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(6n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(6n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(6n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(6n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 6n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([0n, 1n, 1n, 0n], e), 6n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([0n, 1n, 1n, 0n], e), 6n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(6n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 6n, x, hx))
+
+def wlf6_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(6n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(6n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 6n, x, hx))
+
+def whk7(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([0n, 1n, 1n, 1n], one, 0n) == 7n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([0n, 1n, 1n, 1n], _, 0n) == 7n : Nat}
+  {==}
+
+def wlf7_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(7n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 1n, 1n, 1n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([0n, 1n, 1n, 1n], one, Nat.add(0n, e)), Nat.add(BV.hv([0n, 1n, 1n, 1n], one, 0n), wsh([0n, 1n, 1n, 1n], e)), whv_add(one, [0n, 1n, 1n, 1n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(7n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([0n, 1n, 1n, 1n], one, 0n), 7n, whk7(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(7n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([0n, 1n, 1n, 1n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(7n, wsh([0n, 1n, 1n, 1n], e)), Nat.add(wsh([0n, 1n, 1n, 1n], e), 7n), NA.add_comm(7n, wsh([0n, 1n, 1n, 1n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(7n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(7n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(7n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(7n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 7n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([0n, 1n, 1n, 1n], e), 7n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([0n, 1n, 1n, 1n], e), 7n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(7n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 7n, x, hx))
+
+def wlf7_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(7n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(7n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 7n, x, hx))
+
+def whk8(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([1n, 0n, 0n, 0n], one, 0n) == 8n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([1n, 0n, 0n, 0n], _, 0n) == 8n : Nat}
+  {==}
+
+def wlf8_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(8n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 0n, 0n, 0n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([1n, 0n, 0n, 0n], one, Nat.add(0n, e)), Nat.add(BV.hv([1n, 0n, 0n, 0n], one, 0n), wsh([1n, 0n, 0n, 0n], e)), whv_add(one, [1n, 0n, 0n, 0n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(8n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([1n, 0n, 0n, 0n], one, 0n), 8n, whk8(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(8n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([1n, 0n, 0n, 0n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(8n, wsh([1n, 0n, 0n, 0n], e)), Nat.add(wsh([1n, 0n, 0n, 0n], e), 8n), NA.add_comm(8n, wsh([1n, 0n, 0n, 0n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(8n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(8n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(8n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(8n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 8n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([1n, 0n, 0n, 0n], e), 8n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([1n, 0n, 0n, 0n], e), 8n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(8n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 8n, x, hx))
+
+def wlf8_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(8n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(8n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 8n, x, hx))
+
+def whk9(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([1n, 0n, 0n, 1n], one, 0n) == 9n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([1n, 0n, 0n, 1n], _, 0n) == 9n : Nat}
+  {==}
+
+def wlf9_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(9n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 0n, 0n, 1n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([1n, 0n, 0n, 1n], one, Nat.add(0n, e)), Nat.add(BV.hv([1n, 0n, 0n, 1n], one, 0n), wsh([1n, 0n, 0n, 1n], e)), whv_add(one, [1n, 0n, 0n, 1n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(9n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([1n, 0n, 0n, 1n], one, 0n), 9n, whk9(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(9n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([1n, 0n, 0n, 1n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(9n, wsh([1n, 0n, 0n, 1n], e)), Nat.add(wsh([1n, 0n, 0n, 1n], e), 9n), NA.add_comm(9n, wsh([1n, 0n, 0n, 1n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(9n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(9n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(9n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(9n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 9n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([1n, 0n, 0n, 1n], e), 9n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([1n, 0n, 0n, 1n], e), 9n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(9n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 9n, x, hx))
+
+def wlf9_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(9n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(9n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 9n, x, hx))
+
+def whk10(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([1n, 0n, 1n, 0n], one, 0n) == 10n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([1n, 0n, 1n, 0n], _, 0n) == 10n : Nat}
+  {==}
+
+def wlf10_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(10n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 0n, 1n, 0n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([1n, 0n, 1n, 0n], one, Nat.add(0n, e)), Nat.add(BV.hv([1n, 0n, 1n, 0n], one, 0n), wsh([1n, 0n, 1n, 0n], e)), whv_add(one, [1n, 0n, 1n, 0n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(10n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([1n, 0n, 1n, 0n], one, 0n), 10n, whk10(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(10n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([1n, 0n, 1n, 0n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(10n, wsh([1n, 0n, 1n, 0n], e)), Nat.add(wsh([1n, 0n, 1n, 0n], e), 10n), NA.add_comm(10n, wsh([1n, 0n, 1n, 0n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(10n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(10n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(10n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(10n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 10n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([1n, 0n, 1n, 0n], e), 10n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([1n, 0n, 1n, 0n], e), 10n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(10n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 10n, x, hx))
+
+def wlf10_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(10n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(10n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 10n, x, hx))
+
+def whk11(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([1n, 0n, 1n, 1n], one, 0n) == 11n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([1n, 0n, 1n, 1n], _, 0n) == 11n : Nat}
+  {==}
+
+def wlf11_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(11n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 0n, 1n, 1n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([1n, 0n, 1n, 1n], one, Nat.add(0n, e)), Nat.add(BV.hv([1n, 0n, 1n, 1n], one, 0n), wsh([1n, 0n, 1n, 1n], e)), whv_add(one, [1n, 0n, 1n, 1n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(11n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([1n, 0n, 1n, 1n], one, 0n), 11n, whk11(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(11n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([1n, 0n, 1n, 1n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(11n, wsh([1n, 0n, 1n, 1n], e)), Nat.add(wsh([1n, 0n, 1n, 1n], e), 11n), NA.add_comm(11n, wsh([1n, 0n, 1n, 1n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(11n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(11n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(11n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(11n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 11n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([1n, 0n, 1n, 1n], e), 11n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([1n, 0n, 1n, 1n], e), 11n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(11n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 11n, x, hx))
+
+def wlf11_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(11n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(11n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 11n, x, hx))
+
+def whk12(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([1n, 1n, 0n, 0n], one, 0n) == 12n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([1n, 1n, 0n, 0n], _, 0n) == 12n : Nat}
+  {==}
+
+def wlf12_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(12n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 1n, 0n, 0n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([1n, 1n, 0n, 0n], one, Nat.add(0n, e)), Nat.add(BV.hv([1n, 1n, 0n, 0n], one, 0n), wsh([1n, 1n, 0n, 0n], e)), whv_add(one, [1n, 1n, 0n, 0n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(12n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([1n, 1n, 0n, 0n], one, 0n), 12n, whk12(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(12n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([1n, 1n, 0n, 0n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(12n, wsh([1n, 1n, 0n, 0n], e)), Nat.add(wsh([1n, 1n, 0n, 0n], e), 12n), NA.add_comm(12n, wsh([1n, 1n, 0n, 0n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(12n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(12n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(12n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(12n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 12n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([1n, 1n, 0n, 0n], e), 12n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([1n, 1n, 0n, 0n], e), 12n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(12n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 12n, x, hx))
+
+def wlf12_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(12n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(12n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 12n, x, hx))
+
+def whk13(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([1n, 1n, 0n, 1n], one, 0n) == 13n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([1n, 1n, 0n, 1n], _, 0n) == 13n : Nat}
+  {==}
+
+def wlf13_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(13n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 1n, 0n, 1n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([1n, 1n, 0n, 1n], one, Nat.add(0n, e)), Nat.add(BV.hv([1n, 1n, 0n, 1n], one, 0n), wsh([1n, 1n, 0n, 1n], e)), whv_add(one, [1n, 1n, 0n, 1n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(13n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([1n, 1n, 0n, 1n], one, 0n), 13n, whk13(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(13n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([1n, 1n, 0n, 1n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(13n, wsh([1n, 1n, 0n, 1n], e)), Nat.add(wsh([1n, 1n, 0n, 1n], e), 13n), NA.add_comm(13n, wsh([1n, 1n, 0n, 1n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(13n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(13n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(13n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(13n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 13n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([1n, 1n, 0n, 1n], e), 13n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([1n, 1n, 0n, 1n], e), 13n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(13n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 13n, x, hx))
+
+def wlf13_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(13n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(13n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 13n, x, hx))
+
+def whk14(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([1n, 1n, 1n, 0n], one, 0n) == 14n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([1n, 1n, 1n, 0n], _, 0n) == 14n : Nat}
+  {==}
+
+def wlf14_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(14n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 1n, 1n, 0n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([1n, 1n, 1n, 0n], one, Nat.add(0n, e)), Nat.add(BV.hv([1n, 1n, 1n, 0n], one, 0n), wsh([1n, 1n, 1n, 0n], e)), whv_add(one, [1n, 1n, 1n, 0n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(14n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([1n, 1n, 1n, 0n], one, 0n), 14n, whk14(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(14n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([1n, 1n, 1n, 0n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(14n, wsh([1n, 1n, 1n, 0n], e)), Nat.add(wsh([1n, 1n, 1n, 0n], e), 14n), NA.add_comm(14n, wsh([1n, 1n, 1n, 0n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(14n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(14n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(14n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(14n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 14n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([1n, 1n, 1n, 0n], e), 14n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([1n, 1n, 1n, 0n], e), 14n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(14n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 14n, x, hx))
+
+def wlf14_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(14n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(14n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 14n, x, hx))
+
+def whk15(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv([1n, 1n, 1n, 1n], one, 0n) == 15n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {BV.hv([1n, 1n, 1n, 1n], _, 0n) == 15n : Nat}
+  {==}
+
+def wlf15_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}) -> {LV.ev(R.to_list(R.wstep(15n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 1n, 1n, 1n], one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, BV.hv([1n, 1n, 1n, 1n], one, Nat.add(0n, e)), Nat.add(BV.hv([1n, 1n, 1n, 1n], one, 0n), wsh([1n, 1n, 1n, 1n], e)), whv_add(one, [1n, 1n, 1n, 1n], 0n, e)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(15n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, BV.hv([1n, 1n, 1n, 1n], one, 0n), 15n, whk15(one, h1)) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(15n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(_, wsh([1n, 1n, 1n, 1n], e))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(15n, wsh([1n, 1n, 1n, 1n], e)), Nat.add(wsh([1n, 1n, 1n, 1n], e), 15n), NA.add_comm(15n, wsh([1n, 1n, 1n, 1n], e))) : {LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(15n, x)))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), _), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.mul(R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(15n, x)))), Nat.mod(Nat.mul(LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(15n, x)))), 1n+K.pp(one)), OP.mul_e(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(15n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 15n, x, hx))) : {_ == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), Nat.add(wsh([1n, 1n, 1n, 1n], e), 15n)), 1n+K.pp(one)) : Nat}
+  wmul2(K.pp(one), LV.ev(R.to_list(x)), wsh([1n, 1n, 1n, 1n], e), 15n, LV.ev(R.to_list(R.sq(R.sq(R.sq(R.sq(acc)))))), LV.ev(R.to_list(R.tpow(15n, x))), wsq4_e(one, h1, x, hx, acc, ha, e, he), wtp_e(one, h1, 15n, x, hx))
+
+def wlf15_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}) -> {OP.red(one, R.wstep(15n, R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  OP.mul_r(one, h1, R.sq(R.sq(R.sq(R.sq(acc)))), R.tpow(15n, x), wsq4_r(one, h1, acc, ha), wtp_r(one, h1, 15n, x, hx))
+
+def wv000_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(0n, 0n, 0n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 0n, 0n, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b4:
+    case 0n:
+      wlf0_e(one, h1, x, hx, acc, ha, e, he)
+    case 1n:
+      wlf1_e(one, h1, x, hx, acc, ha, e, he)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(0n, 0n, 0n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 0n, 0n, 2n+k], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb4))
+
+def wv000_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(0n, 0n, 0n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b4:
+    case 0n:
+      wlf0_r(one, h1, x, hx, acc, ha)
+    case 1n:
+      wlf1_r(one, h1, x, hx, acc, ha)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(0n, 0n, 0n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb4))
+
+def wv001_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(0n, 0n, 1n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 0n, 1n, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b4:
+    case 0n:
+      wlf2_e(one, h1, x, hx, acc, ha, e, he)
+    case 1n:
+      wlf3_e(one, h1, x, hx, acc, ha, e, he)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(0n, 0n, 1n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 0n, 1n, 2n+k], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb4))
+
+def wv001_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(0n, 0n, 1n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b4:
+    case 0n:
+      wlf2_r(one, h1, x, hx, acc, ha)
+    case 1n:
+      wlf3_r(one, h1, x, hx, acc, ha)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(0n, 0n, 1n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb4))
+
+def wv010_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(0n, 1n, 0n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 1n, 0n, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b4:
+    case 0n:
+      wlf4_e(one, h1, x, hx, acc, ha, e, he)
+    case 1n:
+      wlf5_e(one, h1, x, hx, acc, ha, e, he)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(0n, 1n, 0n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 1n, 0n, 2n+k], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb4))
+
+def wv010_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(0n, 1n, 0n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b4:
+    case 0n:
+      wlf4_r(one, h1, x, hx, acc, ha)
+    case 1n:
+      wlf5_r(one, h1, x, hx, acc, ha)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(0n, 1n, 0n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb4))
+
+def wv011_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(0n, 1n, 1n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 1n, 1n, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b4:
+    case 0n:
+      wlf6_e(one, h1, x, hx, acc, ha, e, he)
+    case 1n:
+      wlf7_e(one, h1, x, hx, acc, ha, e, he)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(0n, 1n, 1n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 1n, 1n, 2n+k], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb4))
+
+def wv011_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(0n, 1n, 1n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b4:
+    case 0n:
+      wlf6_r(one, h1, x, hx, acc, ha)
+    case 1n:
+      wlf7_r(one, h1, x, hx, acc, ha)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(0n, 1n, 1n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb4))
+
+def wv100_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(1n, 0n, 0n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 0n, 0n, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b4:
+    case 0n:
+      wlf8_e(one, h1, x, hx, acc, ha, e, he)
+    case 1n:
+      wlf9_e(one, h1, x, hx, acc, ha, e, he)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(1n, 0n, 0n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 0n, 0n, 2n+k], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb4))
+
+def wv100_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(1n, 0n, 0n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b4:
+    case 0n:
+      wlf8_r(one, h1, x, hx, acc, ha)
+    case 1n:
+      wlf9_r(one, h1, x, hx, acc, ha)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(1n, 0n, 0n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb4))
+
+def wv101_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(1n, 0n, 1n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 0n, 1n, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b4:
+    case 0n:
+      wlf10_e(one, h1, x, hx, acc, ha, e, he)
+    case 1n:
+      wlf11_e(one, h1, x, hx, acc, ha, e, he)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(1n, 0n, 1n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 0n, 1n, 2n+k], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb4))
+
+def wv101_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(1n, 0n, 1n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b4:
+    case 0n:
+      wlf10_r(one, h1, x, hx, acc, ha)
+    case 1n:
+      wlf11_r(one, h1, x, hx, acc, ha)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(1n, 0n, 1n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb4))
+
+def wv110_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(1n, 1n, 0n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 1n, 0n, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b4:
+    case 0n:
+      wlf12_e(one, h1, x, hx, acc, ha, e, he)
+    case 1n:
+      wlf13_e(one, h1, x, hx, acc, ha, e, he)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(1n, 1n, 0n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 1n, 0n, 2n+k], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb4))
+
+def wv110_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(1n, 1n, 0n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b4:
+    case 0n:
+      wlf12_r(one, h1, x, hx, acc, ha)
+    case 1n:
+      wlf13_r(one, h1, x, hx, acc, ha)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(1n, 1n, 0n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb4))
+
+def wv111_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(1n, 1n, 1n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 1n, 1n, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b4:
+    case 0n:
+      wlf14_e(one, h1, x, hx, acc, ha, e, he)
+    case 1n:
+      wlf15_e(one, h1, x, hx, acc, ha, e, he)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(1n, 1n, 1n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 1n, 1n, 2n+k], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb4))
+
+def wv111_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(1n, 1n, 1n, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b4:
+    case 0n:
+      wlf14_r(one, h1, x, hx, acc, ha)
+    case 1n:
+      wlf15_r(one, h1, x, hx, acc, ha)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(1n, 1n, 1n, 2n+k), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb4))
+
+def wv00_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b3: Nat, +hb3: {Nat.is_lt(b3, 2n) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(0n, 0n, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 0n, b3, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b3:
+    case 0n:
+      wv000_e(one, h1, x, hx, acc, ha, e, he, b4, hb4)
+    case 1n:
+      wv001_e(one, h1, x, hx, acc, ha, e, he, b4, hb4)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(0n, 0n, 2n+k, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 0n, 2n+k, b4], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb3))
+
+def wv00_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b3: Nat, +hb3: {Nat.is_lt(b3, 2n) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(0n, 0n, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b3:
+    case 0n:
+      wv000_r(one, h1, x, hx, acc, ha, b4, hb4)
+    case 1n:
+      wv001_r(one, h1, x, hx, acc, ha, b4, hb4)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(0n, 0n, 2n+k, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb3))
+
+def wv01_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b3: Nat, +hb3: {Nat.is_lt(b3, 2n) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(0n, 1n, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 1n, b3, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b3:
+    case 0n:
+      wv010_e(one, h1, x, hx, acc, ha, e, he, b4, hb4)
+    case 1n:
+      wv011_e(one, h1, x, hx, acc, ha, e, he, b4, hb4)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(0n, 1n, 2n+k, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 1n, 2n+k, b4], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb3))
+
+def wv01_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b3: Nat, +hb3: {Nat.is_lt(b3, 2n) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(0n, 1n, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b3:
+    case 0n:
+      wv010_r(one, h1, x, hx, acc, ha, b4, hb4)
+    case 1n:
+      wv011_r(one, h1, x, hx, acc, ha, b4, hb4)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(0n, 1n, 2n+k, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb3))
+
+def wv10_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b3: Nat, +hb3: {Nat.is_lt(b3, 2n) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(1n, 0n, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 0n, b3, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b3:
+    case 0n:
+      wv100_e(one, h1, x, hx, acc, ha, e, he, b4, hb4)
+    case 1n:
+      wv101_e(one, h1, x, hx, acc, ha, e, he, b4, hb4)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(1n, 0n, 2n+k, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 0n, 2n+k, b4], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb3))
+
+def wv10_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b3: Nat, +hb3: {Nat.is_lt(b3, 2n) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(1n, 0n, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b3:
+    case 0n:
+      wv100_r(one, h1, x, hx, acc, ha, b4, hb4)
+    case 1n:
+      wv101_r(one, h1, x, hx, acc, ha, b4, hb4)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(1n, 0n, 2n+k, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb3))
+
+def wv11_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b3: Nat, +hb3: {Nat.is_lt(b3, 2n) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(1n, 1n, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 1n, b3, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b3:
+    case 0n:
+      wv110_e(one, h1, x, hx, acc, ha, e, he, b4, hb4)
+    case 1n:
+      wv111_e(one, h1, x, hx, acc, ha, e, he, b4, hb4)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(1n, 1n, 2n+k, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 1n, 2n+k, b4], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb3))
+
+def wv11_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b3: Nat, +hb3: {Nat.is_lt(b3, 2n) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(1n, 1n, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b3:
+    case 0n:
+      wv110_r(one, h1, x, hx, acc, ha, b4, hb4)
+    case 1n:
+      wv111_r(one, h1, x, hx, acc, ha, b4, hb4)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(1n, 1n, 2n+k, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb3))
+
+def wv0_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b2: Nat, +hb2: {Nat.is_lt(b2, 2n) == True{} : Bool}, b3: Nat, +hb3: {Nat.is_lt(b3, 2n) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(0n, b2, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, b2, b3, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b2:
+    case 0n:
+      wv00_e(one, h1, x, hx, acc, ha, e, he, b3, hb3, b4, hb4)
+    case 1n:
+      wv01_e(one, h1, x, hx, acc, ha, e, he, b3, hb3, b4, hb4)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(0n, 2n+k, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([0n, 2n+k, b3, b4], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb2))
+
+def wv0_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b2: Nat, +hb2: {Nat.is_lt(b2, 2n) == True{} : Bool}, b3: Nat, +hb3: {Nat.is_lt(b3, 2n) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(0n, b2, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b2:
+    case 0n:
+      wv00_r(one, h1, x, hx, acc, ha, b3, hb3, b4, hb4)
+    case 1n:
+      wv01_r(one, h1, x, hx, acc, ha, b3, hb3, b4, hb4)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(0n, 2n+k, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb2))
+
+def wv1_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b2: Nat, +hb2: {Nat.is_lt(b2, 2n) == True{} : Bool}, b3: Nat, +hb3: {Nat.is_lt(b3, 2n) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(1n, b2, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, b2, b3, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b2:
+    case 0n:
+      wv10_e(one, h1, x, hx, acc, ha, e, he, b3, hb3, b4, hb4)
+    case 1n:
+      wv11_e(one, h1, x, hx, acc, ha, e, he, b3, hb3, b4, hb4)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(1n, 2n+k, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([1n, 2n+k, b3, b4], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb2))
+
+def wv1_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b2: Nat, +hb2: {Nat.is_lt(b2, 2n) == True{} : Bool}, b3: Nat, +hb3: {Nat.is_lt(b3, 2n) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(1n, b2, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b2:
+    case 0n:
+      wv10_r(one, h1, x, hx, acc, ha, b3, hb3, b4, hb4)
+    case 1n:
+      wv11_r(one, h1, x, hx, acc, ha, b3, hb3, b4, hb4)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(1n, 2n+k, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb2))
+
+def wv_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, b1: Nat, +hb1: {Nat.is_lt(b1, 2n) == True{} : Bool}, b2: Nat, +hb2: {Nat.is_lt(b2, 2n) == True{} : Bool}, b3: Nat, +hb3: {Nat.is_lt(b3, 2n) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {LV.ev(R.to_list(R.wstep(R.wdig(b1, b2, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([b1, b2, b3, b4], one, e)), 1n+K.pp(one)) : Nat}:
+  match b1:
+    case 0n:
+      wv0_e(one, h1, x, hx, acc, ha, e, he, b2, hb2, b3, hb3, b4, hb4)
+    case 1n:
+      wv1_e(one, h1, x, hx, acc, ha, e, he, b2, hb2, b3, hb3, b4, hb4)
+    case 2n+ +k:
+      Empty.absurd({LV.ev(R.to_list(R.wstep(R.wdig(2n+k, b2, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv([2n+k, b2, b3, b4], one, e)), 1n+K.pp(one)) : Nat}, N.lt_zero_absurd(k, hb1))
+
+def wv_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, b1: Nat, +hb1: {Nat.is_lt(b1, 2n) == True{} : Bool}, b2: Nat, +hb2: {Nat.is_lt(b2, 2n) == True{} : Bool}, b3: Nat, +hb3: {Nat.is_lt(b3, 2n) == True{} : Bool}, b4: Nat, +hb4: {Nat.is_lt(b4, 2n) == True{} : Bool}) -> {OP.red(one, R.wstep(R.wdig(b1, b2, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}:
+  match b1:
+    case 0n:
+      wv0_r(one, h1, x, hx, acc, ha, b2, hb2, b3, hb3, b4, hb4)
+    case 1n:
+      wv1_r(one, h1, x, hx, acc, ha, b2, hb2, b3, hb3, b4, hb4)
+    case 2n+ +k:
+      Empty.absurd({OP.red(one, R.wstep(R.wdig(2n+k, b2, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))) == True{} : Bool}, N.lt_zero_absurd(k, hb1))
+
+def wpw_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, bs: List<&2, Nat>, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +hb: {BV.all01(bs) == True{} : Bool}) -> {OP.red(one, R.pw_go(x, R.table(x), bs, acc)) == True{} : Bool}:
+  match bs:
+    case Nil{}:
+      ha
+    case +b1 <> Nil{}:
+      pow_r(one, h1, x, hx, [b1], acc, ha, hb)
+    case +b1 <> +b2 <> Nil{}:
+      pow_r(one, h1, x, hx, [b1, b2], acc, ha, hb)
+    case +b1 <> +b2 <> +b3 <> Nil{}:
+      pow_r(one, h1, x, hx, [b1, b2, b3], acc, ha, hb)
+    case +b1 <> +b2 <> +b3 <> +b4 <> +r:
+      +c1 = Lg.and_right(Nat.is_lt(b1, 2n), BV.all01(b2 <> b3 <> b4 <> r), hb)
+      +c2 = Lg.and_right(Nat.is_lt(b2, 2n), BV.all01(b3 <> b4 <> r), c1)
+      +c3 = Lg.and_right(Nat.is_lt(b3, 2n), BV.all01(b4 <> r), c2)
+      +hb1 = Lg.and_left(Nat.is_lt(b1, 2n), BV.all01(b2 <> b3 <> b4 <> r), hb)
+      +hb2 = Lg.and_left(Nat.is_lt(b2, 2n), BV.all01(b3 <> b4 <> r), c1)
+      +hb3 = Lg.and_left(Nat.is_lt(b3, 2n), BV.all01(b4 <> r), c2)
+      +hb4 = Lg.and_left(Nat.is_lt(b4, 2n), BV.all01(r), c3)
+      +hr = Lg.and_right(Nat.is_lt(b4, 2n), BV.all01(r), c3)
+      +ha2 = wv_r(one, h1, x, hx, acc, ha, b1, hb1, b2, hb2, b3, hb3, b4, hb4)
+      wpw_r(one, h1, x, hx, r, R.wstep(R.wdig(b1, b2, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc))))), ha2, hr)
+
+def wpw_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, bs: List<&2, Nat>, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, +hb: {BV.all01(bs) == True{} : Bool}) -> {LV.ev(R.to_list(R.pw_go(x, R.table(x), bs, acc))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv(bs, one, e)), 1n+K.pp(one)) : Nat}:
+  match bs:
+    case Nil{}:
+      he
+    case +b1 <> Nil{}:
+      pow_e(one, h1, x, hx, [b1], acc, ha, e, he, hb)
+    case +b1 <> +b2 <> Nil{}:
+      pow_e(one, h1, x, hx, [b1, b2], acc, ha, e, he, hb)
+    case +b1 <> +b2 <> +b3 <> Nil{}:
+      pow_e(one, h1, x, hx, [b1, b2, b3], acc, ha, e, he, hb)
+    case +b1 <> +b2 <> +b3 <> +b4 <> +r:
+      +c1 = Lg.and_right(Nat.is_lt(b1, 2n), BV.all01(b2 <> b3 <> b4 <> r), hb)
+      +c2 = Lg.and_right(Nat.is_lt(b2, 2n), BV.all01(b3 <> b4 <> r), c1)
+      +c3 = Lg.and_right(Nat.is_lt(b3, 2n), BV.all01(b4 <> r), c2)
+      +hb1 = Lg.and_left(Nat.is_lt(b1, 2n), BV.all01(b2 <> b3 <> b4 <> r), hb)
+      +hb2 = Lg.and_left(Nat.is_lt(b2, 2n), BV.all01(b3 <> b4 <> r), c1)
+      +hb3 = Lg.and_left(Nat.is_lt(b3, 2n), BV.all01(b4 <> r), c2)
+      +hb4 = Lg.and_left(Nat.is_lt(b4, 2n), BV.all01(r), c3)
+      +hr = Lg.and_right(Nat.is_lt(b4, 2n), BV.all01(r), c3)
+      +st = R.wstep(R.wdig(b1, b2, b3, b4), R.table(x), R.sq(R.sq(R.sq(R.sq(acc)))))
+      +rs = wv_r(one, h1, x, hx, acc, ha, b1, hb1, b2, hb2, b3, hb3, b4, hb4)
+      +es = wv_e(one, h1, x, hx, acc, ha, e, he, b1, hb1, b2, hb2, b3, hb3, b4, hb4)
+      wpw_e(one, h1, x, hx, r, st, rs, BV.hv([b1, b2, b3, b4], one, e), es, hr)
+
+# pw looks at the bits, then at x (the table is never formed on unknown bits)
+def pwx_is(x: R.FE, +bs: List<&2, Nat>, +acc: R.FE) -> {R.pwx(x, bs, acc) == R.pw_go2(x, bs, acc) : R.FE}:
+  match x:
+    case R.FE{a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15}:
+      {==}
+
+def pw_is(+x: R.FE, bs: List<&2, Nat>, +acc: R.FE) -> {R.pw(x, bs, acc) == R.pw_go2(x, bs, acc) : R.FE}:
+  match bs:
+    case Nil{}:
+      {==}
+    case +b <> +t:
+      pwx_is(x, b <> t, acc)
+
+def wpw2_e(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, bs: List<&2, Nat>, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, +hb: {BV.all01(bs) == True{} : Bool}) -> {LV.ev(R.to_list(R.pw_go2(x, bs, acc))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv(bs, one, e)), 1n+K.pp(one)) : Nat}:
+  match bs:
+    case Nil{}:
+      he
+    case +b <> +t:
+      wpw_e(one, h1, x, hx, b <> t, acc, ha, e, he, hb)
+
+def wpw2_r(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, bs: List<&2, Nat>, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +hb: {BV.all01(bs) == True{} : Bool}) -> {OP.red(one, R.pw_go2(x, bs, acc)) == True{} : Bool}:
+  match bs:
+    case Nil{}:
+      ha
+    case +b <> +t:
+      wpw_r(one, h1, x, hx, b <> t, acc, ha, hb)
+
+def pw_ev(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +bs: List<&2, Nat>, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +e: Nat, +he: {LV.ev(R.to_list(acc)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), e), 1n+K.pp(one)) : Nat}, +hb: {BV.all01(bs) == True{} : Bool}) -> {LV.ev(R.to_list(R.pw(x, bs, acc))) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv(bs, one, e)), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(R.FE, R.pw(x, bs, acc), R.pw_go2(x, bs, acc), pw_is(x, bs, acc)) : {LV.ev(R.to_list(_)) == Nat.mod(Nat.pow(LV.ev(R.to_list(x)), BV.hv(bs, one, e)), 1n+K.pp(one)) : Nat}
+  wpw2_e(one, h1, x, hx, bs, acc, ha, e, he, hb)
+
+def pw_rv(+one: Nat, +h1: {one == 1n : Nat}, +x: R.FE, +hx: {OP.red(one, x) == True{} : Bool}, +bs: List<&2, Nat>, +acc: R.FE, +ha: {OP.red(one, acc) == True{} : Bool}, +hb: {BV.all01(bs) == True{} : Bool}) -> {OP.red(one, R.pw(x, bs, acc)) == True{} : Bool}:
+  %Equal.sym(R.FE, R.pw(x, bs, acc), R.pw_go2(x, bs, acc), pw_is(x, bs, acc)) : {OP.red(one, _) == True{} : Bool}
+  wpw2_r(one, h1, x, hx, bs, acc, ha, hb)
+# ---- END windowed ----
 
 # ---- the exponent of inv: p - 2 ----
 
@@ -202,8 +856,10 @@ def inv_bits01(+one: Nat) -> {BV.all01(F.inv_bits()) == True{} : Bool}:
   BV.cbits01(L.bits(L.norm16([978n, 0n, 1n])))
 
 def inv_v(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +ha: {FS.reduced(one, FS.prime(one), a) == True{} : Bool}) -> {FS.value(one, F.inv(a)) == FS.minv(FS.prime(one), FS.value(one, a)) : Nat}:
-  %Equal.sym(Nat, FS.value(one, F.pow(a, F.inv_bits(), F.one())), LV.ev(F.pow(a, F.inv_bits(), F.one())), LV.ev_value(one, h1, F.pow(a, F.inv_bits(), F.one()))) : {_ == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.prime(one), 2n)), FS.prime(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(F.pow(a, F.inv_bits(), F.one())), Nat.mod(Nat.pow(LV.ev(a), BV.hv(F.inv_bits(), one, 0n)), 1n+K.pp(one)), pow_ev(one, h1, a, ha, F.inv_bits(), F.one(), one_r(one, h1), 0n, one_e(one, h1, LV.ev(a)), inv_bits01(one))) : {_ == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.prime(one), 2n)), FS.prime(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, F.powl(a, F.inv_bits()), F.powl_u(a, F.inv_bits()), powl_is(a, F.inv_bits())) : {FS.value(one, _) == FS.minv(FS.prime(one), FS.value(one, a)) : Nat}
+  %Equal.sym(Nat, FS.value(one, R.to_list(R.pw(R.of_list(a), F.inv_bits(), R.one()))), LV.ev(R.to_list(R.pw(R.of_list(a), F.inv_bits(), R.one()))), LV.ev_value(one, h1, R.to_list(R.pw(R.of_list(a), F.inv_bits(), R.one())))) : {_ == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.prime(one), 2n)), FS.prime(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.pw(R.of_list(a), F.inv_bits(), R.one()))), Nat.mod(Nat.pow(LV.ev(R.to_list(R.of_list(a))), BV.hv(F.inv_bits(), one, 0n)), 1n+K.pp(one)), pw_ev(one, h1, R.of_list(a), OP.rec_r(one, a, ha), F.inv_bits(), R.one(), one_r(one, h1), 0n, one_e(one, h1, LV.ev(R.to_list(R.of_list(a)))), inv_bits01(one))) : {_ == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.prime(one), 2n)), FS.prime(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, R.to_list(R.of_list(a)), a, OP.rec_l(one, a, ha)) : {Nat.mod(Nat.pow(LV.ev(_), BV.hv(F.inv_bits(), one, 0n)), 1n+K.pp(one)) == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.prime(one), 2n)), FS.prime(one)) : Nat}
   %Equal.sym(Nat, BV.hv(F.inv_bits(), one, 0n), Nat.sub(1n+K.pp(one), 2n), exp_inv(one, h1)) : {Nat.mod(Nat.pow(LV.ev(a), _), 1n+K.pp(one)) == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.prime(one), 2n)), FS.prime(one)) : Nat}
   %Equal.sym(Nat, FS.value(one, a), LV.ev(a), LV.ev_value(one, h1, a)) : {Nat.mod(Nat.pow(LV.ev(a), Nat.sub(1n+K.pp(one), 2n)), 1n+K.pp(one)) == Nat.mod(Nat.pow(_, Nat.sub(FS.prime(one), 2n)), FS.prime(one)) : Nat}
   %Equal.sym(Nat, FS.prime(one), 1n+K.pp(one), K.prime_eq(one, h1)) : {Nat.mod(Nat.pow(LV.ev(a), Nat.sub(1n+K.pp(one), 2n)), 1n+K.pp(one)) == Nat.mod(Nat.pow(LV.ev(a), Nat.sub(_, 2n)), FS.prime(one)) : Nat}
@@ -211,7 +867,9 @@ def inv_v(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +ha: {FS.reduced
   {==}
 
 def inv_r(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +ha: {FS.reduced(one, FS.prime(one), a) == True{} : Bool}) -> {FS.reduced(one, FS.prime(one), F.inv(a)) == True{} : Bool}:
-  pow_rv(one, h1, a, ha, F.inv_bits(), F.one(), one_r(one, h1), inv_bits01(one))
+  %Equal.sym(List<&2, Nat>, F.powl(a, F.inv_bits()), F.powl_u(a, F.inv_bits()), powl_is(a, F.inv_bits())) : {FS.reduced(one, FS.prime(one), _) == True{} : Bool}
+  pw_rv(one, h1, R.of_list(a), OP.rec_r(one, a, ha), F.inv_bits(), R.one(), one_r(one, h1), inv_bits01(one))
+
 
 # ---- the exponent of sqrt: (p + 1) / 4 ----
 
@@ -334,8 +992,10 @@ def sqrt_bits01(+one: Nat) -> {BV.all01(F.sqrt_bits()) == True{} : Bool}:
   sq01(F.sqrt_bits(), [0n, 0n], Lg.subst(List<&2, Nat>, z => {BV.all01(z) == True{} : Bool}, bs, List.append(&2, Nat, F.sqrt_bits(), [0n, 0n]), sq_split(), BV.cbits01(L.bits(L.norm16([975n, 0n, 1n])))))
 
 def sqrt_v(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +ha: {FS.reduced(one, FS.prime(one), a) == True{} : Bool}) -> {FS.value(one, F.sqrt(a)) == FS.fsqrt(FS.prime(one), FS.value(one, a)) : Nat}:
-  %Equal.sym(Nat, FS.value(one, F.pow(a, F.sqrt_bits(), F.one())), LV.ev(F.pow(a, F.sqrt_bits(), F.one())), LV.ev_value(one, h1, F.pow(a, F.sqrt_bits(), F.one()))) : {_ == Nat.mod(Nat.pow(FS.value(one, a), Nat.div(Nat.add(FS.prime(one), 1n), 4n)), FS.prime(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(F.pow(a, F.sqrt_bits(), F.one())), Nat.mod(Nat.pow(LV.ev(a), BV.hv(F.sqrt_bits(), one, 0n)), 1n+K.pp(one)), pow_ev(one, h1, a, ha, F.sqrt_bits(), F.one(), one_r(one, h1), 0n, one_e(one, h1, LV.ev(a)), sqrt_bits01(one))) : {_ == Nat.mod(Nat.pow(FS.value(one, a), Nat.div(Nat.add(FS.prime(one), 1n), 4n)), FS.prime(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, F.powl(a, F.sqrt_bits()), F.powl_u(a, F.sqrt_bits()), powl_is(a, F.sqrt_bits())) : {FS.value(one, _) == FS.fsqrt(FS.prime(one), FS.value(one, a)) : Nat}
+  %Equal.sym(Nat, FS.value(one, R.to_list(R.pw(R.of_list(a), F.sqrt_bits(), R.one()))), LV.ev(R.to_list(R.pw(R.of_list(a), F.sqrt_bits(), R.one()))), LV.ev_value(one, h1, R.to_list(R.pw(R.of_list(a), F.sqrt_bits(), R.one())))) : {_ == Nat.mod(Nat.pow(FS.value(one, a), Nat.div(Nat.add(FS.prime(one), 1n), 4n)), FS.prime(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(R.to_list(R.pw(R.of_list(a), F.sqrt_bits(), R.one()))), Nat.mod(Nat.pow(LV.ev(R.to_list(R.of_list(a))), BV.hv(F.sqrt_bits(), one, 0n)), 1n+K.pp(one)), pw_ev(one, h1, R.of_list(a), OP.rec_r(one, a, ha), F.sqrt_bits(), R.one(), one_r(one, h1), 0n, one_e(one, h1, LV.ev(R.to_list(R.of_list(a)))), sqrt_bits01(one))) : {_ == Nat.mod(Nat.pow(FS.value(one, a), Nat.div(Nat.add(FS.prime(one), 1n), 4n)), FS.prime(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, R.to_list(R.of_list(a)), a, OP.rec_l(one, a, ha)) : {Nat.mod(Nat.pow(LV.ev(_), BV.hv(F.sqrt_bits(), one, 0n)), 1n+K.pp(one)) == Nat.mod(Nat.pow(FS.value(one, a), Nat.div(Nat.add(FS.prime(one), 1n), 4n)), FS.prime(one)) : Nat}
   %Equal.sym(Nat, BV.hv(F.sqrt_bits(), one, 0n), Nat.div(Nat.add(1n+K.pp(one), 1n), 4n), exp_sqrt(one, h1)) : {Nat.mod(Nat.pow(LV.ev(a), _), 1n+K.pp(one)) == Nat.mod(Nat.pow(FS.value(one, a), Nat.div(Nat.add(FS.prime(one), 1n), 4n)), FS.prime(one)) : Nat}
   %Equal.sym(Nat, FS.value(one, a), LV.ev(a), LV.ev_value(one, h1, a)) : {Nat.mod(Nat.pow(LV.ev(a), Nat.div(Nat.add(1n+K.pp(one), 1n), 4n)), 1n+K.pp(one)) == Nat.mod(Nat.pow(_, Nat.div(Nat.add(FS.prime(one), 1n), 4n)), FS.prime(one)) : Nat}
   %Equal.sym(Nat, FS.prime(one), 1n+K.pp(one), K.prime_eq(one, h1)) : {Nat.mod(Nat.pow(LV.ev(a), Nat.div(Nat.add(1n+K.pp(one), 1n), 4n)), 1n+K.pp(one)) == Nat.mod(Nat.pow(LV.ev(a), Nat.div(Nat.add(_, 1n), 4n)), FS.prime(one)) : Nat}
@@ -343,4 +1003,5 @@ def sqrt_v(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +ha: {FS.reduce
   {==}
 
 def sqrt_r(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +ha: {FS.reduced(one, FS.prime(one), a) == True{} : Bool}) -> {FS.reduced(one, FS.prime(one), F.sqrt(a)) == True{} : Bool}:
-  pow_rv(one, h1, a, ha, F.sqrt_bits(), F.one(), one_r(one, h1), sqrt_bits01(one))
+  %Equal.sym(List<&2, Nat>, F.powl(a, F.sqrt_bits()), F.powl_u(a, F.sqrt_bits()), powl_is(a, F.sqrt_bits())) : {FS.reduced(one, FS.prime(one), _) == True{} : Bool}
+  pw_rv(one, h1, R.of_list(a), OP.rec_r(one, a, ha), F.sqrt_bits(), R.one(), one_r(one, h1), sqrt_bits01(one))

@@ -8,40 +8,6 @@ import ../../../src/crypto/secp256k1/scalar.bend as S
 # the proof checker keeps them folded on unknown arguments); on any
 # arguments they are their unfolded *_u forms.
 
-def f_add_a(a: List<&2, Nat>, +b: List<&2, Nat>) -> {F.add(a, b) == F.add_b(a, b) : List<&2, Nat>}:
-  match a:
-    case Nil{}:
-      {==}
-    case x <> t:
-      {==}
-
-def f_add_b(+a: List<&2, Nat>, b: List<&2, Nat>) -> {F.add_b(a, b) == F.add_u(a, b) : List<&2, Nat>}:
-  match b:
-    case Nil{}:
-      {==}
-    case y <> u:
-      {==}
-
-def f_add(+a: List<&2, Nat>, +b: List<&2, Nat>) -> {F.add(a, b) == F.add_u(a, b) : List<&2, Nat>}:
-  Equal.trans(List<&2, Nat>, F.add(a, b), F.add_b(a, b), F.add_u(a, b), f_add_a(a, b), f_add_b(a, b))
-
-def f_mul_a(a: List<&2, Nat>, +b: List<&2, Nat>) -> {F.mul(a, b) == F.mul_b(a, b) : List<&2, Nat>}:
-  match a:
-    case Nil{}:
-      {==}
-    case x <> t:
-      {==}
-
-def f_mul_b(+a: List<&2, Nat>, b: List<&2, Nat>) -> {F.mul_b(a, b) == F.mul_u(a, b) : List<&2, Nat>}:
-  match b:
-    case Nil{}:
-      {==}
-    case y <> u:
-      {==}
-
-def f_mul(+a: List<&2, Nat>, +b: List<&2, Nat>) -> {F.mul(a, b) == F.mul_u(a, b) : List<&2, Nat>}:
-  Equal.trans(List<&2, Nat>, F.mul(a, b), F.mul_b(a, b), F.mul_u(a, b), f_mul_a(a, b), f_mul_b(a, b))
-
 def f_eq_a(a: List<&2, Nat>, +b: List<&2, Nat>) -> {F.eq(a, b) == F.eq_b(a, b) : Bool}:
   match a:
     case Nil{}:
@@ -59,40 +25,6 @@ def f_eq_b(+a: List<&2, Nat>, b: List<&2, Nat>) -> {F.eq_b(a, b) == L.eq(a, b) :
 def f_eq(+a: List<&2, Nat>, +b: List<&2, Nat>) -> {F.eq(a, b) == L.eq(a, b) : Bool}:
   Equal.trans(Bool, F.eq(a, b), F.eq_b(a, b), L.eq(a, b), f_eq_a(a, b), f_eq_b(a, b))
 
-def s_add_a(a: List<&2, Nat>, +b: List<&2, Nat>) -> {S.add(a, b) == S.add_b(a, b) : List<&2, Nat>}:
-  match a:
-    case Nil{}:
-      {==}
-    case x <> t:
-      {==}
-
-def s_add_b(+a: List<&2, Nat>, b: List<&2, Nat>) -> {S.add_b(a, b) == S.add_u(a, b) : List<&2, Nat>}:
-  match b:
-    case Nil{}:
-      {==}
-    case y <> u:
-      {==}
-
-def s_add(+a: List<&2, Nat>, +b: List<&2, Nat>) -> {S.add(a, b) == S.add_u(a, b) : List<&2, Nat>}:
-  Equal.trans(List<&2, Nat>, S.add(a, b), S.add_b(a, b), S.add_u(a, b), s_add_a(a, b), s_add_b(a, b))
-
-def s_mul_a(a: List<&2, Nat>, +b: List<&2, Nat>) -> {S.mul(a, b) == S.mul_b(a, b) : List<&2, Nat>}:
-  match a:
-    case Nil{}:
-      {==}
-    case x <> t:
-      {==}
-
-def s_mul_b(+a: List<&2, Nat>, b: List<&2, Nat>) -> {S.mul_b(a, b) == S.mul_u(a, b) : List<&2, Nat>}:
-  match b:
-    case Nil{}:
-      {==}
-    case y <> u:
-      {==}
-
-def s_mul(+a: List<&2, Nat>, +b: List<&2, Nat>) -> {S.mul(a, b) == S.mul_u(a, b) : List<&2, Nat>}:
-  Equal.trans(List<&2, Nat>, S.mul(a, b), S.mul_b(a, b), S.mul_u(a, b), s_mul_a(a, b), s_mul_b(a, b))
-
 def s_eq_a(a: List<&2, Nat>, +b: List<&2, Nat>) -> {S.eq(a, b) == S.eq_b(a, b) : Bool}:
   match a:
     case Nil{}:
@@ -109,15 +41,6 @@ def s_eq_b(+a: List<&2, Nat>, b: List<&2, Nat>) -> {S.eq_b(a, b) == L.eq(a, b) :
 
 def s_eq(+a: List<&2, Nat>, +b: List<&2, Nat>) -> {S.eq(a, b) == L.eq(a, b) : Bool}:
   Equal.trans(Bool, S.eq(a, b), S.eq_b(a, b), L.eq(a, b), s_eq_a(a, b), s_eq_b(a, b))
-
-def f_neg(a: List<&2, Nat>) -> {F.neg(a) == F.neg_u(a) : List<&2, Nat>}:
-  {==}
-
-def s_neg(a: List<&2, Nat>) -> {S.neg(a) == S.neg_u(a) : List<&2, Nat>}:
-  {==}
-
-def s_reduce(xs: List<&2, Nat>) -> {S.reduce(xs) == S.reduce_u(xs) : List<&2, Nat>}:
-  {==}
 
 def lred(+c: List<&2, Nat>, +k: Nat, xs: List<&2, Nat>) -> {L.reduce(c, k, xs) == L.reduce_go(c, k, xs) : List<&2, Nat>}:
   match xs:

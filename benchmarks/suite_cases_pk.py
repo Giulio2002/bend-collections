@@ -67,6 +67,6 @@ if (ROOT / 'src/crypto/secp256k1.bend').exists():
                    c_build={'secp256k1': ([N + 'suite_secp256k1.c', SECP + 'src/secp256k1.c', SECP + 'src/precomputed_ecmult.c',
                                            SECP + 'src/precomputed_ecmult_gen.c'], [SECP + 'include', SECP + 'src'],
                                           ['-DENABLE_MODULE_RECOVERY=1', '-DENABLE_MODULE_EXTRAKEYS=1', '-DENABLE_MODULE_SCHNORRSIG=1'])},
-                   rows=[dict(size=32, param=i, count=2, label=op) for i, op in enumerate(SECP_OPS)], py=None))
+                   rows=[dict(size=32, param=i, count=32, label=op) for i, op in enumerate(SECP_OPS)], py=None))
 
 GROUPS = {'pk': PK}

@@ -1,0 +1,157 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../src/crypto/secp256k1/limbs.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/logic.bend as Lg
+import ../../lib/arith.bend as AR
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../math/typed/width.bend as WW
+import ./limbs.bend as LV
+import ./ineq.bend as I
+import ./bounds.bend as B
+import ./consts.bend as K
+import ./reduce.bend as R
+import ./reducek.bend as RK
+import ./fmod.bend as M
+import ./fval.bend as V
+import ./smod.bend as SM
+import ./u32and.bend as UA
+
+# The scalar reduction models of smod.bend are the reduction of
+# src/crypto/secp256k1/limbs.bend (L.reduce(c, 4n, xs), proved in
+# reduce.bend / reducek.bend) on inputs below 2^512 and a constant c of 9
+# limbs: every product in them is of 16-bit limbs, so the 32-bit products
+# are the products, and every selection is by a bit.
+
+# ---- selection by a bit ----
+
+def sel_eq(+one: Nat, +h1: {one == 1n : Nat}, b: Nat, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}, +n: Nat, +xs: List<&2, Nat>, +ys: List<&2, Nat>, +hx: {FS.limbs16(one, n, xs) == True{} : Bool}, +hy: {FS.limbs16(one, n, ys) == True{} : Bool}) -> {M.selu(b, xs, ys) == L.select(b, xs, ys) : List<&2, Nat>}:
+  match b:
+    case 0n:
+      Equal.trans(List<&2, Nat>, M.selu(0n, xs, ys), ys, L.select(0n, xs, ys), V.selu_zero(one, h1, n, xs, ys, hx, hy), Equal.sym(List<&2, Nat>, L.select(0n, xs, ys), ys, R.sel_zero(one, n, xs, ys, hx, hy)))
+    case 1n:
+      Equal.trans(List<&2, Nat>, M.selu(1n, xs, ys), xs, L.select(1n, xs, ys), V.selu_one(one, h1, n, xs, ys, hx, hy), Equal.sym(List<&2, Nat>, L.select(1n, xs, ys), xs, R.sel_one(one, n, xs, ys, hx, hy)))
+    case 2n+ +k:
+      Empty.absurd({M.selu(2n+k, xs, ys) == L.select(2n+k, xs, ys) : List<&2, Nat>}, N.lt_zero_absurd(k, hb))
+
+# the conditional subtraction
+def canonu_eq(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +t: List<&2, Nat>, +ht16: {FS.limbs16(one, 16n, t) == True{} : Bool}, +hv: {Nat.is_lt(LV.ev(t), C.shift(256n, one)) == True{} : Bool}, +hcc: {Nat.is_lt(Nat.add(LV.ev(c), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}) -> {SM.canonu(c, t) == L.canon(c, t) : List<&2, Nat>}:
+  +u = L.carry(32n, L.add(t, c), 0n)
+  +hb = I.lt_subst_l(LV.ev(L.drop(16n, u)), L.horner(L.drop(16n, u)), 2n, Equal.sym(Nat, L.horner(L.drop(16n, u)), LV.ev(L.drop(16n, u)), LV.horner_v(L.drop(16n, u))), R.u_hi(one, h1, c, t, hv, hcc))
+  sel_eq(one, h1, L.horner(L.drop(16n, u)), hb, 16n, L.take(16n, u), t, B.carry_limbs(one, h1, 32n, 16n, L.add(t, c), 0n, {==}), ht16)
+
+# ---- a carry pass and its last limb ----
+
+# every limb of a carry pass is below 2^16 when the carry out is
+def carry_all(+one: Nat, +h1: {one == 1n : Nat}, n: Nat, xs: List<&2, Nat>, +u: Nat, +ht: {Nat.is_lt(L.hd0(L.drop(n, L.carry(n, xs, u))), C.shift(16n, one)) == True{} : Bool}) -> {FS.limbs16(one, 1n+n, L.carry(n, xs, u)) == True{} : Bool}:
+  match n xs:
+    case 0n Nil{}:
+      Lg.and_intro(Nat.is_lt(u, C.shift(16n, one)), True{}, ht, {==})
+    case 0n +x <> +t:
+      Lg.and_intro(Nat.is_lt(Nat.add(u, L.horner(x <> t)), C.shift(16n, one)), True{}, ht, {==})
+    case 1n+ +k Nil{}:
+      +s = Nat.add(u, 0n)
+      Lg.and_intro(Nat.is_lt(L.lo16(s), C.shift(16n, one)), FS.limbs16(one, 1n+k, L.carry(k, [], L.hi16(s))), B.lo16_lt(one, h1, s), carry_all(one, h1, k, [], L.hi16(s), ht))
+    case 1n+ +k +x <> +t:
+      +s = Nat.add(u, x)
+      Lg.and_intro(Nat.is_lt(L.lo16(s), C.shift(16n, one)), FS.limbs16(one, 1n+k, L.carry(k, t, L.hi16(s))), B.lo16_lt(one, h1, s), carry_all(one, h1, k, t, L.hi16(s), ht))
+
+# j limbs dropped from j + n limbs leave n limbs
+def drop_lim(+one: Nat, j: Nat, +n: Nat, ys: List<&2, Nat>, +h: {FS.limbs16(one, Nat.add(j, n), ys) == True{} : Bool}) -> {FS.limbs16(one, n, L.drop(j, ys)) == True{} : Bool}:
+  match j ys:
+    case 0n _:
+      h
+    case 1n+i Nil{}:
+      Empty.absurd({FS.limbs16(one, n, L.drop(1n+i, [])) == True{} : Bool}, Lg.false_true(h))
+    case 1n+ +i +y <> +t:
+      drop_lim(one, i, n, t, Lg.and_right(Nat.is_lt(y, C.shift(16n, one)), FS.limbs16(one, Nat.add(i, n), t), h))
+
+# the last limb of a 32-limb carry pass of x < 2^512 is 0
+def top0(+one: Nat, +h1: {one == 1n : Nat}, +t: Nat, +a: Nat, +w: Nat, +e: {w == Nat.add(a, C.shift(512n, t)) : Nat}, +hw: {Nat.is_lt(w, C.shift(512n, one)) == True{} : Bool}) -> {Nat.is_lt(t, 1n) == True{} : Bool}:
+  +le = I.le_subst_r(C.shift(512n, t), Nat.add(a, C.shift(512n, t)), w, Equal.sym(Nat, w, Nat.add(a, C.shift(512n, t)), e), I.le_add_l(a, C.shift(512n, t)))
+  +h2 = N.le_lt_trans(C.shift(512n, t), w, C.shift(512n, one), le, hw)
+  +h3 = Lg.subst(Nat, z => {Nat.is_lt(z, C.shift(512n, one)) == True{} : Bool}, C.shift(512n, t), AR.sc(512n, t), Equal.sym(Nat, AR.sc(512n, t), C.shift(512n, t), UA.sb(512n, t)), h2)
+  +h4 = Lg.subst(Nat, z => {Nat.is_lt(AR.sc(512n, t), z) == True{} : Bool}, C.shift(512n, one), AR.sc(512n, one), Equal.sym(Nat, AR.sc(512n, one), C.shift(512n, one), UA.sb(512n, one)), h3)
+  Lg.subst(Nat, z => {Nat.is_lt(t, z) == True{} : Bool}, one, 1n, h1, AR.sc_lt_cancel(512n, t, one, h4))
+
+def tt512(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.mul(C.shift(256n, one), C.shift(256n, one)) == C.shift(512n, one) : Nat}:
+  K.shift_mul2(one, h1, 256n, 256n)
+
+def pos32(+y: Nat) -> {LV.pos(32n, y) == C.shift(512n, y) : Nat}:
+  B.pos_shift(32n, y)
+
+def top_small(+one: Nat, +h1: {one == 1n : Nat}, +zs: List<&2, Nat>, +hz: {Nat.is_lt(LV.ev(zs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {Nat.is_lt(L.hd0(L.drop(32n, L.carry(32n, zs, 0n))), C.shift(16n, one)) == True{} : Bool}:
+  +y = L.carry(32n, zs, 0n)
+  +t = L.hd0(L.drop(32n, y))
+  +ey = Equal.trans(Nat, LV.ev(y), Nat.add(LV.ev(L.take(32n, y)), LV.pos(32n, LV.ev(L.drop(32n, y)))), Nat.add(LV.ev(L.take(32n, y)), C.shift(512n, Nat.add(t, C.shift(16n, 0n)))), LV.take_drop_v(32n, y), Equal.trans(Nat, Nat.add(LV.ev(L.take(32n, y)), LV.pos(32n, LV.ev(L.drop(32n, y)))), Nat.add(LV.ev(L.take(32n, y)), C.shift(512n, LV.ev(L.drop(32n, y)))), Nat.add(LV.ev(L.take(32n, y)), C.shift(512n, Nat.add(t, C.shift(16n, 0n)))), Equal.cong(Nat, Nat, z => Nat.add(LV.ev(L.take(32n, y)), z), LV.pos(32n, LV.ev(L.drop(32n, y))), C.shift(512n, LV.ev(L.drop(32n, y))), pos32(LV.ev(L.drop(32n, y)))), Equal.cong(List<&2, Nat>, Nat, z => Nat.add(LV.ev(L.take(32n, y)), C.shift(512n, LV.ev(z))), L.drop(32n, y), [t], V.carry_top(32n, zs, 0n))))
+  +e2 = Equal.trans(Nat, Nat.add(t, C.shift(16n, 0n)), Nat.add(t, 0n), t, Equal.cong(Nat, Nat, z => Nat.add(t, z), C.shift(16n, 0n), 0n, WW.shift_zero(16n)), NA.add_zero(t))
+  +ey2 = Equal.trans(Nat, LV.ev(y), Nat.add(LV.ev(L.take(32n, y)), C.shift(512n, Nat.add(t, C.shift(16n, 0n)))), Nat.add(LV.ev(L.take(32n, y)), C.shift(512n, t)), ey, Equal.cong(Nat, Nat, z => Nat.add(LV.ev(L.take(32n, y)), C.shift(512n, z)), Nat.add(t, C.shift(16n, 0n)), t, e2))
+  +hy = I.lt_subst_l(LV.ev(zs), LV.ev(y), Nat.mul(C.shift(256n, one), C.shift(256n, one)), Equal.sym(Nat, LV.ev(y), LV.ev(zs), V.carry0_v(32n, zs)), hz)
+  +hy2 = I.lt_subst_r(LV.ev(y), Nat.mul(C.shift(256n, one), C.shift(256n, one)), C.shift(512n, one), tt512(one, h1), hy)
+  N.lt_le_trans(t, 1n, C.shift(16n, one), top0(one, h1, t, LV.ev(L.take(32n, y)), LV.ev(y), ey2, hy2), N.lt_le(1n, C.shift(16n, one), V.one_lt16(one, h1)))
+
+# the 17 high limbs of a 32-limb carry pass of x < 2^512
+def lim17(+one: Nat, +h1: {one == 1n : Nat}, +zs: List<&2, Nat>, +hz: {Nat.is_lt(LV.ev(zs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {FS.limbs16(one, 17n, L.drop(16n, L.carry(32n, zs, 0n))) == True{} : Bool}:
+  drop_lim(one, 16n, 17n, L.carry(32n, zs, 0n), carry_all(one, h1, 32n, zs, 0n, top_small(one, h1, zs, hz)))
+
+# ---- the folds ----
+
+def foldu_eq(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +hc9: {FS.limbs16(one, 9n, c) == True{} : Bool}, +zs: List<&2, Nat>, +hz: {Nat.is_lt(LV.ev(zs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {SM.foldu(c, L.carry(32n, zs, 0n)) == L.fold(c, L.carry(32n, zs, 0n)) : List<&2, Nat>}:
+  +y = L.carry(32n, zs, 0n)
+  %goal {L.add(L.take(16n, L.carry(32n, zs, 0n)), M.convu(L.drop(16n, L.carry(32n, zs, 0n)), c)) == L.add(L.take(16n, L.carry(32n, zs, 0n)), L.conv(L.drop(16n, L.carry(32n, zs, 0n)), c)) : List<&2, Nat>}
+  %rw V.convu_eq(one, h1, 17n, L.drop(16n, L.carry(32n, zs, 0n)), lim17(one, h1, zs, hz), 9n, c, hc9)
+  %close
+
+# a fold of x < 2^512 is below 2^512 (for 1 + c <= 2^256)
+def fold_tt(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +hc1: {Nat.is_le(Nat.add(LV.ev(c), 1n), C.shift(256n, one)) == True{} : Bool}, +zs: List<&2, Nat>, +hz: {Nat.is_lt(LV.ev(zs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {Nat.is_lt(LV.ev(L.fold(c, L.carry(32n, zs, 0n))), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}:
+  +tt = C.shift(256n, one)
+  +y = L.carry(32n, zs, 0n)
+  +hy = I.lt_subst_l(LV.ev(zs), LV.ev(y), Nat.mul(tt, tt), Equal.sym(Nat, LV.ev(y), LV.ev(zs), V.carry0_v(32n, zs)), hz)
+  +f1 = R.fold_lt1(one, h1, c, y, tt, B.carry_limbs(one, h1, 32n, 16n, zs, 0n, {==}), hy)
+  # T + T c = T (1 + c) <= T T
+  +e = Equal.trans(Nat, Nat.add(tt, Nat.mul(tt, LV.ev(c))), Nat.add(Nat.mul(tt, LV.ev(c)), tt), Nat.mul(tt, Nat.add(LV.ev(c), 1n)), NA.add_comm(tt, Nat.mul(tt, LV.ev(c))), Equal.sym(Nat, Nat.mul(tt, Nat.add(LV.ev(c), 1n)), Nat.add(Nat.mul(tt, LV.ev(c)), tt), Equal.trans(Nat, Nat.mul(tt, Nat.add(LV.ev(c), 1n)), Nat.add(Nat.mul(tt, LV.ev(c)), Nat.mul(tt, 1n)), Nat.add(Nat.mul(tt, LV.ev(c)), tt), NA.mul_add_left(tt, LV.ev(c), 1n), Equal.cong(Nat, Nat, z => Nat.add(Nat.mul(tt, LV.ev(c)), z), Nat.mul(tt, 1n), tt, NA.mul_one(tt)))))
+  +le = I.le_mul_r(tt, Nat.add(LV.ev(c), 1n), tt, hc1)
+  N.lt_le_trans(LV.ev(L.fold(c, y)), Nat.add(tt, Nat.mul(tt, LV.ev(c))), Nat.mul(tt, tt), f1, I.le_subst_l(Nat.mul(tt, Nat.add(LV.ev(c), 1n)), Nat.add(tt, Nat.mul(tt, LV.ev(c))), Nat.mul(tt, tt), Equal.sym(Nat, Nat.add(tt, Nat.mul(tt, LV.ev(c))), Nat.mul(tt, Nat.add(LV.ev(c), 1n)), e), le))
+
+def rounds_eq(+one: Nat, +h1: {one == 1n : Nat}, k: Nat, +c: List<&2, Nat>, +hc9: {FS.limbs16(one, 9n, c) == True{} : Bool}, +hc1: {Nat.is_le(Nat.add(LV.ev(c), 1n), C.shift(256n, one)) == True{} : Bool}, +zs: List<&2, Nat>, +hz: {Nat.is_lt(LV.ev(zs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {SM.roundsu(k, c, L.carry(32n, zs, 0n)) == L.rounds(k, c, L.carry(32n, zs, 0n)) : List<&2, Nat>}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+ +j:
+      %goal {SM.roundsu(j, c, L.carry(32n, SM.foldu(c, L.carry(32n, zs, 0n)), 0n)) == L.rounds(j, c, L.carry(32n, L.fold(c, L.carry(32n, zs, 0n)), 0n)) : List<&2, Nat>}
+      %rw foldu_eq(one, h1, c, hc9, zs, hz)
+      rounds_eq(one, h1, j, c, hc9, hc1, L.fold(c, L.carry(32n, zs, 0n)), fold_tt(one, h1, c, hc1, zs, hz))
+
+# ---- the reduction ----
+
+def reduce_is(+c: List<&2, Nat>, k: Nat, xs: List<&2, Nat>) -> {L.reduce(c, k, xs) == L.reduce_go(c, k, xs) : List<&2, Nat>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case x <> t:
+      {==}
+
+# the scalar model is limbs.bend's reduction by four folds
+def redu_eq(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +hc9: {FS.limbs16(one, 9n, c) == True{} : Bool}, +hc1: {Nat.is_le(Nat.add(LV.ev(c), 1n), C.shift(256n, one)) == True{} : Bool}, +hcc: {Nat.is_lt(Nat.add(LV.ev(c), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}, +hb1: {Nat.is_le(Nat.mul(1n+LV.ev(c), LV.ev(c)), Nat.mul(4n, C.shift(256n, one))) == True{} : Bool}, +hb2: {Nat.is_le(Nat.add(Nat.mul(5n, LV.ev(c)), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {SM.redu(c, 4n, xs) == L.reduce(c, 4n, xs) : List<&2, Nat>}:
+  +r = L.rounds(4n, c, L.carry(32n, xs, 0n))
+  +hlo = RK.r4_lo(one, h1, c, xs)
+  +hr = RK.red4_x4(one, h1, c, xs, hb1, hb2, hx)
+  +hv = I.lt_subst_l(LV.ev(r), LV.ev(L.take(16n, r)), C.shift(256n, one), Equal.sym(Nat, LV.ev(L.take(16n, r)), LV.ev(r), R.take_small(one, h1, r, hr)), hr)
+  %rw reduce_is(c, 4n, xs)
+  %goal {SM.canonu(c, L.take(16n, SM.roundsu(4n, c, L.carry(32n, xs, 0n)))) == L.canon(c, L.take(16n, L.rounds(4n, c, L.carry(32n, xs, 0n)))) : List<&2, Nat>}
+  %rw rounds_eq(one, h1, 4n, c, hc9, hc1, xs, hx)
+  canonu_eq(one, h1, c, L.take(16n, L.rounds(4n, c, L.carry(32n, xs, 0n))), hlo, hv, hcc)
+
+# the same with the hypotheses on c in the specification's terms (so that
+# a constant c can be substituted without its value being computed)
+def hv(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>) -> {FS.value(one, c) == LV.ev(c) : Nat}:
+  RK.hv_ev(one, h1, c)
+
+def redu_eqv(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +hc9: {FS.limbs16(one, 9n, c) == True{} : Bool}, +hc1: {Nat.is_le(Nat.add(FS.value(one, c), 1n), C.shift(256n, one)) == True{} : Bool}, +hcc: {Nat.is_lt(Nat.add(FS.value(one, c), FS.value(one, c)), C.shift(256n, one)) == True{} : Bool}, +hb1: {Nat.is_le(Nat.mul(1n+FS.value(one, c), FS.value(one, c)), Nat.mul(4n, C.shift(256n, one))) == True{} : Bool}, +hb2: {Nat.is_le(Nat.add(Nat.mul(5n, FS.value(one, c)), FS.value(one, c)), C.shift(256n, one)) == True{} : Bool}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {SM.redu(c, 4n, xs) == L.reduce(c, 4n, xs) : List<&2, Nat>}:
+  +e = hv(one, h1, c)
+  +h1c = Lg.subst(Nat, z => {Nat.is_le(Nat.add(z, 1n), C.shift(256n, one)) == True{} : Bool}, FS.value(one, c), LV.ev(c), e, hc1)
+  +hccc = Lg.subst(Nat, z => {Nat.is_lt(Nat.add(z, z), C.shift(256n, one)) == True{} : Bool}, FS.value(one, c), LV.ev(c), e, hcc)
+  +hb1c = Lg.subst(Nat, z => {Nat.is_le(Nat.mul(1n+z, z), Nat.mul(4n, C.shift(256n, one))) == True{} : Bool}, FS.value(one, c), LV.ev(c), e, hb1)
+  +hb2c = Lg.subst(Nat, z => {Nat.is_le(Nat.add(Nat.mul(5n, z), z), C.shift(256n, one)) == True{} : Bool}, FS.value(one, c), LV.ev(c), e, hb2)
+  redu_eq(one, h1, c, hc9, h1c, hccc, hb1c, hb2c, xs, hx)

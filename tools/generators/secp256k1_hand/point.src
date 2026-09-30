@@ -2,165 +2,23 @@ import Base
 import ../../../spec/crypto/secp256k1/field.bend as FS
 import ../../../spec/crypto/secp256k1/curve.bend as CV
 import ../../../src/crypto/secp256k1/field.bend as F
+import ../../../src/crypto/secp256k1/fe.bend as R
+import ../../../src/crypto/secp256k1/pt.bend as PX
 import ../../../src/crypto/secp256k1/point.bend as P
 import ../../lib/logic.bend as Lg
 import ./fieldops.bend as FO
+import ./fops.bend as OP
+import ./ptp.bend as PP
 
 # The group operations of src/crypto/secp256k1/point.bend against
-# spec/crypto/secp256k1/curve.bend: the register programs (RCB 2016
-# Algorithms 7 and 9) run on field elements compute, register by register,
-# the values the specification's programs compute on the natural numbers.
+# spec/crypto/secp256k1/curve.bend: a point of reduced coordinates is the
+# point of its records (pt.bend), where the formulas are proved (ptp.bend).
 
 def pr(+one: Nat) -> Nat:
   FS.prime(one)
 
 def red(+one: Nat, +x: List<&2, Nat>) -> Bool:
   FS.reduced(one, FS.prime(one), x)
-
-def vals(+one: Nat, rs: List<&2, List<&2, Nat>>) -> List<&2, Nat>:
-  match rs:
-    case Nil{}: Nil{}
-    case r <> t: FS.value(one, r) <> vals(one, t)
-
-def allred(+one: Nat, rs: List<&2, List<&2, Nat>>) -> Bool:
-  match rs:
-    case Nil{}: True{}
-    case r <> t: Bool.and(red(one, r), allred(one, t))
-
-def cop(op: P.Op) -> CV.SOp:
-  match op:
-    case P.OAdd{i, j}: CV.SAdd{i, j}
-    case P.OSub{i, j}: CV.SSub{i, j}
-    case P.OMul{i, j}: CV.SMul{i, j}
-
-def cprog(ops: List<&2, P.Op>) -> List<&2, CV.SOp>:
-  match ops:
-    case Nil{}: Nil{}
-    case o <> t: cop(o) <> cprog(t)
-
-# ---- registers ----
-
-def zero_r(+one: Nat, +h1: {one == 1n : Nat}) -> {red(one, F.zero()) == True{} : Bool}:
-  FO.small_r(one, h1, 0n, FO.small_lt_p(one, h1, 0n, {==}))
-
-def zero_v(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.value(one, F.zero()) == 0n : Nat}:
-  FO.small_val(one, h1, 0n, FO.small_lt_p(one, h1, 0n, {==}))
-
-def nth_r(+one: Nat, +h1: {one == 1n : Nat}, i: Nat, rs: List<&2, List<&2, Nat>>, +h: {allred(one, rs) == True{} : Bool}) -> {red(one, P.nth(i, rs)) == True{} : Bool}:
-  match i rs:
-    case 0n Nil{}:
-      zero_r(one, h1)
-    case 1n+k Nil{}:
-      zero_r(one, h1)
-    case 0n +r <> +t:
-      Lg.and_left(red(one, r), allred(one, t), h)
-    case 1n+ +k +r <> +t:
-      nth_r(one, h1, k, t, Lg.and_right(red(one, r), allred(one, t), h))
-
-def nth_v(+one: Nat, +h1: {one == 1n : Nat}, i: Nat, rs: List<&2, List<&2, Nat>>) -> {FS.value(one, P.nth(i, rs)) == CV.nth(i, vals(one, rs)) : Nat}:
-  match i rs:
-    case 0n Nil{}:
-      zero_v(one, h1)
-    case 1n+k Nil{}:
-      zero_v(one, h1)
-    case 0n r <> t:
-      {==}
-    case 1n+ +k r <> +t:
-      nth_v(one, h1, k, t)
-
-def exec_r(+one: Nat, +h1: {one == 1n : Nat}, op: P.Op, +rs: List<&2, List<&2, Nat>>, +h: {allred(one, rs) == True{} : Bool}) -> {red(one, P.exec(op, rs)) == True{} : Bool}:
-  match op:
-    case P.OAdd{+i, +j}:
-      FO.add_r(one, h1, P.nth(i, rs), P.nth(j, rs), nth_r(one, h1, i, rs, h), nth_r(one, h1, j, rs, h))
-    case P.OSub{+i, +j}:
-      FO.sub_r(one, h1, P.nth(i, rs), P.nth(j, rs), nth_r(one, h1, i, rs, h), nth_r(one, h1, j, rs, h))
-    case P.OMul{+i, +j}:
-      FO.mul_r(one, h1, P.nth(i, rs), P.nth(j, rs), nth_r(one, h1, i, rs, h), nth_r(one, h1, j, rs, h))
-
-def exec_v(+one: Nat, +h1: {one == 1n : Nat}, op: P.Op, +rs: List<&2, List<&2, Nat>>, +h: {allred(one, rs) == True{} : Bool}) -> {FS.value(one, P.exec(op, rs)) == CV.exec(FS.prime(one), cop(op), vals(one, rs)) : Nat}:
-  match op:
-    case P.OAdd{+i, +j}:
-      %goal {FS.value(one, F.add(P.nth(i, rs), P.nth(j, rs))) == FS.madd(FS.prime(one), CV.nth(i, vals(one, rs)), CV.nth(j, vals(one, rs))) : Nat}
-      %rw FO.add_v(one, h1, P.nth(i, rs), P.nth(j, rs), nth_r(one, h1, i, rs, h), nth_r(one, h1, j, rs, h))
-      %rw nth_v(one, h1, i, rs)
-      %rw nth_v(one, h1, j, rs)
-      %close
-    case P.OSub{+i, +j}:
-      %goal {FS.value(one, F.sub(P.nth(i, rs), P.nth(j, rs))) == FS.msub(FS.prime(one), CV.nth(i, vals(one, rs)), CV.nth(j, vals(one, rs))) : Nat}
-      %rw FO.sub_v(one, h1, P.nth(i, rs), P.nth(j, rs), nth_r(one, h1, i, rs, h), nth_r(one, h1, j, rs, h))
-      %rw nth_v(one, h1, i, rs)
-      %rw nth_v(one, h1, j, rs)
-      %close
-    case P.OMul{+i, +j}:
-      %goal {FS.value(one, F.mul(P.nth(i, rs), P.nth(j, rs))) == FS.mmul(FS.prime(one), CV.nth(i, vals(one, rs)), CV.nth(j, vals(one, rs))) : Nat}
-      %rw FO.mul_v(one, h1, P.nth(i, rs), P.nth(j, rs), nth_r(one, h1, i, rs, h), nth_r(one, h1, j, rs, h))
-      %rw nth_v(one, h1, i, rs)
-      %rw nth_v(one, h1, j, rs)
-      %close
-
-def vals_app(+one: Nat, rs: List<&2, List<&2, Nat>>, +x: List<&2, Nat>) -> {vals(one, List.append(&2, List<&2, Nat>, rs, [x])) == List.append(&2, Nat, vals(one, rs), [FS.value(one, x)]) : List<&2, Nat>}:
-  match rs:
-    case Nil{}:
-      {==}
-    case +r <> +t:
-      Equal.cong(List<&2, Nat>, List<&2, Nat>, l => FS.value(one, r) <> l, vals(one, List.append(&2, List<&2, Nat>, t, [x])), List.append(&2, Nat, vals(one, t), [FS.value(one, x)]), vals_app(one, t, x))
-
-def allred_app(+one: Nat, rs: List<&2, List<&2, Nat>>, +x: List<&2, Nat>, +h: {allred(one, rs) == True{} : Bool}, +hx: {red(one, x) == True{} : Bool}) -> {allred(one, List.append(&2, List<&2, Nat>, rs, [x])) == True{} : Bool}:
-  match rs:
-    case Nil{}:
-      Lg.and_intro(red(one, x), True{}, hx, {==})
-    case +r <> +t:
-      Lg.and_intro(red(one, r), allred(one, List.append(&2, List<&2, Nat>, t, [x])), Lg.and_left(red(one, r), allred(one, t), h), allred_app(one, t, x, Lg.and_right(red(one, r), allred(one, t), h), hx))
-
-def run_go_r(+one: Nat, +h1: {one == 1n : Nat}, prog: List<&2, P.Op>, +rs: List<&2, List<&2, Nat>>, +h: {allred(one, rs) == True{} : Bool}) -> {allred(one, P.run_go(prog, rs)) == True{} : Bool}:
-  match prog:
-    case Nil{}:
-      h
-    case +op <> +t:
-      run_go_r(one, h1, t, List.append(&2, List<&2, Nat>, rs, [P.exec(op, rs)]), allred_app(one, rs, P.exec(op, rs), h, exec_r(one, h1, op, rs, h)))
-
-def run_go_v(+one: Nat, +h1: {one == 1n : Nat}, prog: List<&2, P.Op>, +rs: List<&2, List<&2, Nat>>, +h: {allred(one, rs) == True{} : Bool}) -> {vals(one, P.run_go(prog, rs)) == CV.run_go(FS.prime(one), cprog(prog), vals(one, rs)) : List<&2, Nat>}:
-  match prog:
-    case Nil{}:
-      {==}
-    case +op <> +t:
-      +rs2 = List.append(&2, List<&2, Nat>, rs, [P.exec(op, rs)])
-      +h2 = allred_app(one, rs, P.exec(op, rs), h, exec_r(one, h1, op, rs, h))
-      %goal {vals(one, P.run_go(t, List.append(&2, List<&2, Nat>, rs, [P.exec(op, rs)]))) == CV.run_go(FS.prime(one), cprog(t), List.append(&2, Nat, vals(one, rs), [CV.exec(FS.prime(one), cop(op), vals(one, rs))])) : List<&2, Nat>}
-      %rw run_go_v(one, h1, t, List.append(&2, List<&2, Nat>, rs, [P.exec(op, rs)]), h2)
-      %rw vals_app(one, rs, P.exec(op, rs))
-      %rw exec_v(one, h1, op, rs, h)
-      %close
-
-# run looks at its first register first
-def run_is(prog: List<&2, P.Op>, rs: List<&2, List<&2, Nat>>) -> {P.run(prog, rs) == P.run_go(prog, rs) : List<&2, List<&2, Nat>>}:
-  match rs:
-    case Nil{}:
-      {==}
-    case Nil{} <> t:
-      {==}
-    case (y <> u) <> t:
-      {==}
-
-def srun_is(+p: Nat, prog: List<&2, CV.SOp>, rs: List<&2, Nat>) -> {CV.run(p, prog, rs) == CV.run_go(p, prog, rs) : List<&2, Nat>}:
-  match rs:
-    case Nil{}:
-      {==}
-    case 0n <> t:
-      {==}
-    case (1n+k) <> t:
-      {==}
-
-def run_r(+one: Nat, +h1: {one == 1n : Nat}, +prog: List<&2, P.Op>, +rs: List<&2, List<&2, Nat>>, +h: {allred(one, rs) == True{} : Bool}) -> {allred(one, P.run(prog, rs)) == True{} : Bool}:
-  %rw run_is(prog, rs)
-  run_go_r(one, h1, prog, rs, h)
-
-def run_v(+one: Nat, +h1: {one == 1n : Nat}, +prog: List<&2, P.Op>, +rs: List<&2, List<&2, Nat>>, +h: {allred(one, rs) == True{} : Bool}) -> {vals(one, P.run(prog, rs)) == CV.run(FS.prime(one), cprog(prog), vals(one, rs)) : List<&2, Nat>}:
-  %rw run_is(prog, rs)
-  %rw srun_is(FS.prime(one), cprog(prog), vals(one, rs))
-  run_go_v(one, h1, prog, rs, h)
-
-# ---- points ----
 
 def pv(+one: Nat, p: P.Point) -> CV.SPoint:
   match p:
@@ -170,99 +28,67 @@ def pred(+one: Nat, p: P.Point) -> Bool:
   match p:
     case P.Point{x, y, z}: Bool.and(red(one, x), Bool.and(red(one, y), red(one, z)))
 
-def b3_r(+one: Nat, +h1: {one == 1n : Nat}) -> {red(one, P.b3()) == True{} : Bool}:
-  FO.small_r(one, h1, 21n, FO.small_lt_p(one, h1, 21n, {==}))
+def zero_r(+one: Nat, +h1: {one == 1n : Nat}) -> {red(one, F.zero()) == True{} : Bool}:
+  FO.small_r(one, h1, 0n, FO.small_lt_p(one, h1, 0n, {==}))
 
-def b3_v(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.value(one, P.b3()) == 21n : Nat}:
-  FO.small_val(one, h1, 21n, FO.small_lt_p(one, h1, 21n, {==}))
-
-def add_prog_eq() -> {cprog(P.add_prog()) == CV.add_prog() : List<&2, CV.SOp>}:
-  {==}
-
-def dbl_prog_eq() -> {cprog(P.dbl_prog()) == CV.dbl_prog() : List<&2, CV.SOp>}:
-  {==}
-
-def regs7(+one: Nat, +h1: {one == 1n : Nat}, +x1: List<&2, Nat>, +y1: List<&2, Nat>, +z1: List<&2, Nat>, +x2: List<&2, Nat>, +y2: List<&2, Nat>, +z2: List<&2, Nat>, +h: {Bool.and(red(one, x1), Bool.and(red(one, y1), red(one, z1))) == True{} : Bool}, +g: {Bool.and(red(one, x2), Bool.and(red(one, y2), red(one, z2))) == True{} : Bool}) -> {allred(one, [x1, y1, z1, x2, y2, z2, P.b3()]) == True{} : Bool}:
-  +hx = Lg.and_left(red(one, x1), Bool.and(red(one, y1), red(one, z1)), h)
-  +hy = Lg.and_left(red(one, y1), red(one, z1), Lg.and_right(red(one, x1), Bool.and(red(one, y1), red(one, z1)), h))
-  +hz = Lg.and_right(red(one, y1), red(one, z1), Lg.and_right(red(one, x1), Bool.and(red(one, y1), red(one, z1)), h))
-  +gx = Lg.and_left(red(one, x2), Bool.and(red(one, y2), red(one, z2)), g)
-  +gy = Lg.and_left(red(one, y2), red(one, z2), Lg.and_right(red(one, x2), Bool.and(red(one, y2), red(one, z2)), g))
-  +gz = Lg.and_right(red(one, y2), red(one, z2), Lg.and_right(red(one, x2), Bool.and(red(one, y2), red(one, z2)), g))
-  +hb = b3_r(one, h1)
-  Lg.and_intro(red(one, x1), allred(one, [y1, z1, x2, y2, z2, P.b3()]), hx, Lg.and_intro(red(one, y1), allred(one, [z1, x2, y2, z2, P.b3()]), hy, Lg.and_intro(red(one, z1), allred(one, [x2, y2, z2, P.b3()]), hz, Lg.and_intro(red(one, x2), allred(one, [y2, z2, P.b3()]), gx, Lg.and_intro(red(one, y2), allred(one, [z2, P.b3()]), gy, Lg.and_intro(red(one, z2), allred(one, [P.b3()]), gz, Lg.and_intro(red(one, P.b3()), True{}, hb, {==})))))))
-
-def vals7(+one: Nat, +a: List<&2, Nat>, +b: List<&2, Nat>, +c: List<&2, Nat>, +d: List<&2, Nat>, +e: List<&2, Nat>, +f: List<&2, Nat>, +g: List<&2, Nat>) -> {vals(one, [a, b, c, d, e, f, g]) == [FS.value(one, a), FS.value(one, b), FS.value(one, c), FS.value(one, d), FS.value(one, e), FS.value(one, f), FS.value(one, g)] : List<&2, Nat>}:
-  {==}
-
-def padd_v(+one: Nat, +h1: {one == 1n : Nat}, a: P.Point, b: P.Point, +ha: {pred(one, a) == True{} : Bool}, +hb: {pred(one, b) == True{} : Bool}) -> {pv(one, P.add(a, b)) == CV.padd(FS.prime(one), pv(one, a), pv(one, b)) : CV.SPoint}:
-  match a b:
-    case P.Point{+x1, +y1, +z1} P.Point{+x2, +y2, +z2}:
-      +hr = regs7(one, h1, x1, y1, z1, x2, y2, z2, ha, hb)
-      %goal {CV.SPoint{FS.value(one, P.nth(33n, P.run(P.add_prog(), [x1, y1, z1, x2, y2, z2, P.b3()]))), FS.value(one, P.nth(36n, P.run(P.add_prog(), [x1, y1, z1, x2, y2, z2, P.b3()]))), FS.value(one, P.nth(39n, P.run(P.add_prog(), [x1, y1, z1, x2, y2, z2, P.b3()])))} == CV.add_out(CV.run(FS.prime(one), CV.add_prog(), [FS.value(one, x1), FS.value(one, y1), FS.value(one, z1), FS.value(one, x2), FS.value(one, y2), FS.value(one, z2), CV.b3()])) : CV.SPoint}
-      %rw nth_v(one, h1, 33n, P.run(P.add_prog(), [x1, y1, z1, x2, y2, z2, P.b3()]))
-      %rw nth_v(one, h1, 36n, P.run(P.add_prog(), [x1, y1, z1, x2, y2, z2, P.b3()]))
-      %rw nth_v(one, h1, 39n, P.run(P.add_prog(), [x1, y1, z1, x2, y2, z2, P.b3()]))
-      %rw run_v(one, h1, P.add_prog(), [x1, y1, z1, x2, y2, z2, P.b3()], hr)
-      %rw run_v(one, h1, P.add_prog(), [x1, y1, z1, x2, y2, z2, P.b3()], hr)
-      %rw run_v(one, h1, P.add_prog(), [x1, y1, z1, x2, y2, z2, P.b3()], hr)
-      %rw add_prog_eq()
-      %rw add_prog_eq()
-      %rw add_prog_eq()
-      %rw vals7(one, x1, y1, z1, x2, y2, z2, P.b3())
-      %rw vals7(one, x1, y1, z1, x2, y2, z2, P.b3())
-      %rw vals7(one, x1, y1, z1, x2, y2, z2, P.b3())
-      %rw b3_v(one, h1)
-      %rw b3_v(one, h1)
-      %rw b3_v(one, h1)
-      %close
-
-def regs4(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +y: List<&2, Nat>, +z: List<&2, Nat>, +h: {Bool.and(red(one, x), Bool.and(red(one, y), red(one, z))) == True{} : Bool}) -> {allred(one, [x, y, z, P.b3()]) == True{} : Bool}:
-  +hx = Lg.and_left(red(one, x), Bool.and(red(one, y), red(one, z)), h)
-  +hy = Lg.and_left(red(one, y), red(one, z), Lg.and_right(red(one, x), Bool.and(red(one, y), red(one, z)), h))
-  +hz = Lg.and_right(red(one, y), red(one, z), Lg.and_right(red(one, x), Bool.and(red(one, y), red(one, z)), h))
-  +hb = b3_r(one, h1)
-  Lg.and_intro(red(one, x), allred(one, [y, z, P.b3()]), hx, Lg.and_intro(red(one, y), allred(one, [z, P.b3()]), hy, Lg.and_intro(red(one, z), allred(one, [P.b3()]), hz, Lg.and_intro(red(one, P.b3()), True{}, hb, {==}))))
-
-def vals4(+one: Nat, +a: List<&2, Nat>, +b: List<&2, Nat>, +c: List<&2, Nat>, +d: List<&2, Nat>) -> {vals(one, [a, b, c, d]) == [FS.value(one, a), FS.value(one, b), FS.value(one, c), FS.value(one, d)] : List<&2, Nat>}:
-  {==}
-
-def pdbl_v(+one: Nat, +h1: {one == 1n : Nat}, a: P.Point, +ha: {pred(one, a) == True{} : Bool}) -> {pv(one, P.dbl(a)) == CV.pdbl(FS.prime(one), pv(one, a)) : CV.SPoint}:
-  match a:
-    case P.Point{+x, +y, +z}:
-      +hr = regs4(one, h1, x, y, z, ha)
-      %goal {CV.SPoint{FS.value(one, P.nth(21n, P.run(P.dbl_prog(), [x, y, z, P.b3()]))), FS.value(one, P.nth(18n, P.run(P.dbl_prog(), [x, y, z, P.b3()]))), FS.value(one, P.nth(13n, P.run(P.dbl_prog(), [x, y, z, P.b3()])))} == CV.dbl_out(CV.run(FS.prime(one), CV.dbl_prog(), [FS.value(one, x), FS.value(one, y), FS.value(one, z), CV.b3()])) : CV.SPoint}
-      %rw nth_v(one, h1, 21n, P.run(P.dbl_prog(), [x, y, z, P.b3()]))
-      %rw nth_v(one, h1, 18n, P.run(P.dbl_prog(), [x, y, z, P.b3()]))
-      %rw nth_v(one, h1, 13n, P.run(P.dbl_prog(), [x, y, z, P.b3()]))
-      %rw run_v(one, h1, P.dbl_prog(), [x, y, z, P.b3()], hr)
-      %rw run_v(one, h1, P.dbl_prog(), [x, y, z, P.b3()], hr)
-      %rw run_v(one, h1, P.dbl_prog(), [x, y, z, P.b3()], hr)
-      %rw dbl_prog_eq()
-      %rw dbl_prog_eq()
-      %rw dbl_prog_eq()
-      %rw vals4(one, x, y, z, P.b3())
-      %rw vals4(one, x, y, z, P.b3())
-      %rw vals4(one, x, y, z, P.b3())
-      %rw b3_v(one, h1)
-      %rw b3_v(one, h1)
-      %rw b3_v(one, h1)
-      %close
+def zero_v(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.value(one, F.zero()) == 0n : Nat}:
+  FO.small_val(one, h1, 0n, FO.small_lt_p(one, h1, 0n, {==}))
 
 # the results are reduced
 def pr3(+one: Nat, +a: List<&2, Nat>, +b: List<&2, Nat>, +c: List<&2, Nat>, +ha: {red(one, a) == True{} : Bool}, +hb: {red(one, b) == True{} : Bool}, +hc: {red(one, c) == True{} : Bool}) -> {pred(one, P.Point{a, b, c}) == True{} : Bool}:
   Lg.and_intro(red(one, a), Bool.and(red(one, b), red(one, c)), ha, Lg.and_intro(red(one, b), red(one, c), hb, hc))
 
-def padd_r(+one: Nat, +h1: {one == 1n : Nat}, a: P.Point, b: P.Point, +ha: {pred(one, a) == True{} : Bool}, +hb: {pred(one, b) == True{} : Bool}) -> {pred(one, P.add(a, b)) == True{} : Bool}:
-  match a b:
-    case P.Point{+x1, +y1, +z1} P.Point{+x2, +y2, +z2}:
-      +hr = run_r(one, h1, P.add_prog(), [x1, y1, z1, x2, y2, z2, P.b3()], regs7(one, h1, x1, y1, z1, x2, y2, z2, ha, hb))
-      +rs = P.run(P.add_prog(), [x1, y1, z1, x2, y2, z2, P.b3()])
-      pr3(one, P.nth(33n, rs), P.nth(36n, rs), P.nth(39n, rs), nth_r(one, h1, 33n, rs, hr), nth_r(one, h1, 36n, rs, hr), nth_r(one, h1, 39n, rs, hr))
+# ---- points and their records ----
 
-def pdbl_r(+one: Nat, +h1: {one == 1n : Nat}, a: P.Point, +ha: {pred(one, a) == True{} : Bool}) -> {pred(one, P.dbl(a)) == True{} : Bool}:
+def tp_r(+one: Nat, a: P.Point, +ha: {pred(one, a) == True{} : Bool}) -> {PP.pred(one, P.to_pt(a)) == True{} : Bool}:
   match a:
     case P.Point{+x, +y, +z}:
-      +hr = run_r(one, h1, P.dbl_prog(), [x, y, z, P.b3()], regs4(one, h1, x, y, z, ha))
-      +rs = P.run(P.dbl_prog(), [x, y, z, P.b3()])
-      pr3(one, P.nth(21n, rs), P.nth(18n, rs), P.nth(13n, rs), nth_r(one, h1, 21n, rs, hr), nth_r(one, h1, 18n, rs, hr), nth_r(one, h1, 13n, rs, hr))
+      +hx = Lg.and_left(red(one, x), Bool.and(red(one, y), red(one, z)), ha)
+      +hy = Lg.and_left(red(one, y), red(one, z), Lg.and_right(red(one, x), Bool.and(red(one, y), red(one, z)), ha))
+      +hz = Lg.and_right(red(one, y), red(one, z), Lg.and_right(red(one, x), Bool.and(red(one, y), red(one, z)), ha))
+      PP.pr3(one, R.of_list(x), R.of_list(y), R.of_list(z), OP.rec_r(one, x, hx), OP.rec_r(one, y, hy), OP.rec_r(one, z, hz))
+
+def tp_v(+one: Nat, a: P.Point, +ha: {pred(one, a) == True{} : Bool}) -> {PP.pv(one, P.to_pt(a)) == pv(one, a) : CV.SPoint}:
+  match a:
+    case P.Point{+x, +y, +z}:
+      +hx = Lg.and_left(red(one, x), Bool.and(red(one, y), red(one, z)), ha)
+      +hy = Lg.and_left(red(one, y), red(one, z), Lg.and_right(red(one, x), Bool.and(red(one, y), red(one, z)), ha))
+      +hz = Lg.and_right(red(one, y), red(one, z), Lg.and_right(red(one, x), Bool.and(red(one, y), red(one, z)), ha))
+      %goal {CV.SPoint{OP.val(one, R.of_list(x)), OP.val(one, R.of_list(y)), OP.val(one, R.of_list(z))} == CV.SPoint{FS.value(one, x), FS.value(one, y), FS.value(one, z)} : CV.SPoint}
+      %rw OP.rec_v(one, x, hx)
+      %rw OP.rec_v(one, y, hy)
+      %rw OP.rec_v(one, z, hz)
+      %close
+
+def op_r(+one: Nat, q: PX.PT, +hq: {PP.pred(one, q) == True{} : Bool}) -> {pred(one, P.of_pt(q)) == True{} : Bool}:
+  match q:
+    case PX.PT{x, y, z}:
+      hq
+
+def op_v(+one: Nat, q: PX.PT) -> {pv(one, P.of_pt(q)) == PP.pv(one, q) : CV.SPoint}:
+  match q:
+    case PX.PT{x, y, z}:
+      {==}
+
+# ---- addition and doubling ----
+
+def padd_v(+one: Nat, +h1: {one == 1n : Nat}, +a: P.Point, +b: P.Point, +ha: {pred(one, a) == True{} : Bool}, +hb: {pred(one, b) == True{} : Bool}) -> {pv(one, P.add(a, b)) == CV.padd(FS.prime(one), pv(one, a), pv(one, b)) : CV.SPoint}:
+  %goal {pv(one, P.of_pt(PX.add(P.to_pt(a), P.to_pt(b)))) == CV.padd(FS.prime(one), pv(one, a), pv(one, b)) : CV.SPoint}
+  %rw op_v(one, PX.add(P.to_pt(a), P.to_pt(b)))
+  %rw PP.padd_v(one, h1, P.to_pt(a), P.to_pt(b), tp_r(one, a, ha), tp_r(one, b, hb))
+  %rw tp_v(one, a, ha)
+  %rw tp_v(one, b, hb)
+  %close
+
+def pdbl_v(+one: Nat, +h1: {one == 1n : Nat}, +a: P.Point, +ha: {pred(one, a) == True{} : Bool}) -> {pv(one, P.dbl(a)) == CV.pdbl(FS.prime(one), pv(one, a)) : CV.SPoint}:
+  %goal {pv(one, P.of_pt(PX.dbl(P.to_pt(a)))) == CV.pdbl(FS.prime(one), pv(one, a)) : CV.SPoint}
+  %rw op_v(one, PX.dbl(P.to_pt(a)))
+  %rw PP.pdbl_v(one, h1, P.to_pt(a), tp_r(one, a, ha))
+  %rw tp_v(one, a, ha)
+  %close
+
+def padd_r(+one: Nat, +h1: {one == 1n : Nat}, +a: P.Point, +b: P.Point, +ha: {pred(one, a) == True{} : Bool}, +hb: {pred(one, b) == True{} : Bool}) -> {pred(one, P.add(a, b)) == True{} : Bool}:
+  op_r(one, PX.add(P.to_pt(a), P.to_pt(b)), PP.padd_r(one, h1, P.to_pt(a), P.to_pt(b), tp_r(one, a, ha), tp_r(one, b, hb)))
+
+def pdbl_r(+one: Nat, +h1: {one == 1n : Nat}, +a: P.Point, +ha: {pred(one, a) == True{} : Bool}) -> {pred(one, P.dbl(a)) == True{} : Bool}:
+  op_r(one, PX.dbl(P.to_pt(a)), PP.pdbl_r(one, h1, P.to_pt(a), tp_r(one, a, ha)))
