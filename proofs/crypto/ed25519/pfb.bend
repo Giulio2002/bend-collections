@@ -19,6 +19,7 @@ import ./pdec.bend as PD
 import ./ptab.bend as PT2
 import ./pickr.bend as PKR
 import ./fbspec.bend as FB
+import ./pwinf.bend as WF
 
 # The table multiplication of the base point
 # (src/crypto/ed25519/point.bend fb, mul_base) against its mirror over the
@@ -150,4 +151,7 @@ def win_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19
       PT2.add_c_rel(one, h1, pp, hP, R, hR, D, PT.dbl4(R, w), PT.nthc(d, PT.row(cs, a)), FB.sdbl4(1n+pp, sw), FB.snth(d, FB.srow(1n+pp, D, sa)), dbl4_rel(one, h1, pp, hP, R, hR, w, sw, hw), hq)
 
 def mul_win_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +k: List<&2, U32>, +hk: {FS.bytes_ok(32n, k) == True{} : Bool}, +a: PT.Pt, +sa: SE.EPt, +ha: PR.Rp(one, pp, a, sa)) -> PR.Rp(one, pp, PT.mul_win(cs, k, a), FB.smulw(1n+pp, D, k, sa)):
-  win_rel(one, h1, pp, hP, cs, hR, D, rd2, a, sa, ha, PT.nibs(k), nibs_ok(k, CV.nat_below(32n, k, hk)))
+  +R = PT.cs_r(cs)
+  +rw = PT.row(cs, a)
+  +ds = PT.nibs(k)
+  L.subst(PT.Pt, z => PR.Rp(one, pp, z, FB.smulw(1n+pp, D, k, sa)), PT.win(R, rw, ds), PT.winf(R, rw, ds), Equal.sym(PT.Pt, PT.winf(R, rw, ds), PT.win(R, rw, ds), WF.winf_eq(R, rw, ds)), win_rel(one, h1, pp, hP, cs, hR, D, rd2, a, sa, ha, ds, nibs_ok(k, CV.nat_below(32n, k, hk))))
