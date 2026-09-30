@@ -226,12 +226,34 @@ def pass_fin(+R: Nat, r: Cr) -> List<&2, Nat>:
 def pass(+R: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
   pass_fin(R, carry0(R, xs))
 
+# every carry moved one limb up at once, with no chain (for sums below
+# 2^21, whose carries are below 2^4): limb i keeps x_i mod R and takes
+# x_(i-1) div R; the top limb's carry re-enters limb 0 times 19
+def pcs(+R: Nat, xs: List<&2, Nat>, +c: Nat) -> Cr:
+  match xs:
+    case Nil{}:
+      Cr{Nil{}, c}
+    case Con{+x, xt}:
+      cr_con(Nat.add(Nat.mod(x, R), c), pcs(R, xt, Nat.div(x, R)))
+
+def pc_fin(+m: Nat, r: Cr) -> List<&2, Nat>:
+  match r:
+    case Cr{ls, q}:
+      Con{Nat.add(m, Nat.mul(q, 19n)), ls}
+
+def pc(+R: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, xt}:
+      pc_fin(Nat.mod(x, R), pcs(R, xt, Nat.div(x, R)))
+
 # the operations of fe.bend on limb lists
 def add_l(+R: Nat, xs: List<&2, Nat>, ys: List<&2, Nat>) -> List<&2, Nat>:
-  pass(R, addl(xs, ys))
+  pc(R, addl(xs, ys))
 
 def sub_l(+R: Nat, xs: List<&2, Nat>, ys: List<&2, Nat>) -> List<&2, Nat>:
-  pass(R, subl(xs, ys, kp8(R)))
+  pc(R, subl(xs, ys, kp8(R)))
 
 def mul_l(+R: Nat, xs: List<&2, Nat>, ys: List<&2, Nat>) -> List<&2, Nat>:
   pass(R, fold(convp(xs, ys)))

@@ -78,51 +78,49 @@ def small(k: Nat) -> Fe:
 
 # ---- straight-line operations (tools/gen_fe.py) ----
 
-# a + b: LS.add_l
+# a + b: LS.add_l (carries moved at once)
 def add(+R: Nat, a: Fe, b: Fe) -> Fe:
   match a b:
     case Fe{+a0, +a1, +a2, +a3, +a4, +a5, +a6, +a7, +a8, +a9, +a10, +a11, +a12, +a13, +a14} Fe{+b0, +b1, +b2, +b3, +b4, +b5, +b6, +b7, +b8, +b9, +b10, +b11, +b12, +b13, +b14}:
       +w0 = Nat.add(a0, b0)
-      +w1 = Nat.add(Nat.add(a1, b1), Nat.div(w0, R))
-      +w2 = Nat.add(Nat.add(a2, b2), Nat.div(w1, R))
-      +w3 = Nat.add(Nat.add(a3, b3), Nat.div(w2, R))
-      +w4 = Nat.add(Nat.add(a4, b4), Nat.div(w3, R))
-      +w5 = Nat.add(Nat.add(a5, b5), Nat.div(w4, R))
-      +w6 = Nat.add(Nat.add(a6, b6), Nat.div(w5, R))
-      +w7 = Nat.add(Nat.add(a7, b7), Nat.div(w6, R))
-      +w8 = Nat.add(Nat.add(a8, b8), Nat.div(w7, R))
-      +w9 = Nat.add(Nat.add(a9, b9), Nat.div(w8, R))
-      +w10 = Nat.add(Nat.add(a10, b10), Nat.div(w9, R))
-      +w11 = Nat.add(Nat.add(a11, b11), Nat.div(w10, R))
-      +w12 = Nat.add(Nat.add(a12, b12), Nat.div(w11, R))
-      +w13 = Nat.add(Nat.add(a13, b13), Nat.div(w12, R))
-      +w14 = Nat.add(Nat.add(a14, b14), Nat.div(w13, R))
-      +w15 = Nat.add(Nat.mod(w0, R), Nat.mul(Nat.div(w14, R), 19n))
-      Fe{Nat.mod(w15, R), Nat.add(Nat.mod(w1, R), Nat.div(w15, R)), Nat.mod(w2, R), Nat.mod(w3, R), Nat.mod(w4, R), Nat.mod(w5, R), Nat.mod(w6, R), Nat.mod(w7, R), Nat.mod(w8, R), Nat.mod(w9, R), Nat.mod(w10, R), Nat.mod(w11, R), Nat.mod(w12, R), Nat.mod(w13, R), Nat.mod(w14, R)}
+      +w1 = Nat.add(a14, b14)
+      +w2 = Nat.add(a1, b1)
+      +w3 = Nat.add(a2, b2)
+      +w4 = Nat.add(a3, b3)
+      +w5 = Nat.add(a4, b4)
+      +w6 = Nat.add(a5, b5)
+      +w7 = Nat.add(a6, b6)
+      +w8 = Nat.add(a7, b7)
+      +w9 = Nat.add(a8, b8)
+      +w10 = Nat.add(a9, b9)
+      +w11 = Nat.add(a10, b10)
+      +w12 = Nat.add(a11, b11)
+      +w13 = Nat.add(a12, b12)
+      +w14 = Nat.add(a13, b13)
+      Fe{Nat.add(Nat.mod(w0, R), Nat.mul(Nat.div(w1, R), 19n)), Nat.add(Nat.mod(w2, R), Nat.div(w0, R)), Nat.add(Nat.mod(w3, R), Nat.div(w2, R)), Nat.add(Nat.mod(w4, R), Nat.div(w3, R)), Nat.add(Nat.mod(w5, R), Nat.div(w4, R)), Nat.add(Nat.mod(w6, R), Nat.div(w5, R)), Nat.add(Nat.mod(w7, R), Nat.div(w6, R)), Nat.add(Nat.mod(w8, R), Nat.div(w7, R)), Nat.add(Nat.mod(w9, R), Nat.div(w8, R)), Nat.add(Nat.mod(w10, R), Nat.div(w9, R)), Nat.add(Nat.mod(w11, R), Nat.div(w10, R)), Nat.add(Nat.mod(w12, R), Nat.div(w11, R)), Nat.add(Nat.mod(w13, R), Nat.div(w12, R)), Nat.add(Nat.mod(w14, R), Nat.div(w13, R)), Nat.add(Nat.mod(w1, R), Nat.div(w14, R))}
 
-# a + 8 p - b: LS.sub_l
+# a + 8 p - b: LS.sub_l (carries moved at once)
 def sub(+R: Nat, a: Fe, b: Fe) -> Fe:
   match a b:
     case Fe{+a0, +a1, +a2, +a3, +a4, +a5, +a6, +a7, +a8, +a9, +a10, +a11, +a12, +a13, +a14} Fe{+b0, +b1, +b2, +b3, +b4, +b5, +b6, +b7, +b8, +b9, +b10, +b11, +b12, +b13, +b14}:
       +w0 = Nat.mul(R, 8n)
       +w1 = Nat.sub(Nat.add(a0, Nat.sub(w0, 152n)), b0)
       +w2 = Nat.sub(w0, 8n)
-      +w3 = Nat.add(Nat.sub(Nat.add(a1, w2), b1), Nat.div(w1, R))
-      +w4 = Nat.add(Nat.sub(Nat.add(a2, w2), b2), Nat.div(w3, R))
-      +w5 = Nat.add(Nat.sub(Nat.add(a3, w2), b3), Nat.div(w4, R))
-      +w6 = Nat.add(Nat.sub(Nat.add(a4, w2), b4), Nat.div(w5, R))
-      +w7 = Nat.add(Nat.sub(Nat.add(a5, w2), b5), Nat.div(w6, R))
-      +w8 = Nat.add(Nat.sub(Nat.add(a6, w2), b6), Nat.div(w7, R))
-      +w9 = Nat.add(Nat.sub(Nat.add(a7, w2), b7), Nat.div(w8, R))
-      +w10 = Nat.add(Nat.sub(Nat.add(a8, w2), b8), Nat.div(w9, R))
-      +w11 = Nat.add(Nat.sub(Nat.add(a9, w2), b9), Nat.div(w10, R))
-      +w12 = Nat.add(Nat.sub(Nat.add(a10, w2), b10), Nat.div(w11, R))
-      +w13 = Nat.add(Nat.sub(Nat.add(a11, w2), b11), Nat.div(w12, R))
-      +w14 = Nat.add(Nat.sub(Nat.add(a12, w2), b12), Nat.div(w13, R))
-      +w15 = Nat.add(Nat.sub(Nat.add(a13, w2), b13), Nat.div(w14, R))
-      +w16 = Nat.add(Nat.sub(Nat.add(a14, w2), b14), Nat.div(w15, R))
-      +w17 = Nat.add(Nat.mod(w1, R), Nat.mul(Nat.div(w16, R), 19n))
-      Fe{Nat.mod(w17, R), Nat.add(Nat.mod(w3, R), Nat.div(w17, R)), Nat.mod(w4, R), Nat.mod(w5, R), Nat.mod(w6, R), Nat.mod(w7, R), Nat.mod(w8, R), Nat.mod(w9, R), Nat.mod(w10, R), Nat.mod(w11, R), Nat.mod(w12, R), Nat.mod(w13, R), Nat.mod(w14, R), Nat.mod(w15, R), Nat.mod(w16, R)}
+      +w3 = Nat.sub(Nat.add(a14, w2), b14)
+      +w4 = Nat.sub(Nat.add(a1, w2), b1)
+      +w5 = Nat.sub(Nat.add(a2, w2), b2)
+      +w6 = Nat.sub(Nat.add(a3, w2), b3)
+      +w7 = Nat.sub(Nat.add(a4, w2), b4)
+      +w8 = Nat.sub(Nat.add(a5, w2), b5)
+      +w9 = Nat.sub(Nat.add(a6, w2), b6)
+      +w10 = Nat.sub(Nat.add(a7, w2), b7)
+      +w11 = Nat.sub(Nat.add(a8, w2), b8)
+      +w12 = Nat.sub(Nat.add(a9, w2), b9)
+      +w13 = Nat.sub(Nat.add(a10, w2), b10)
+      +w14 = Nat.sub(Nat.add(a11, w2), b11)
+      +w15 = Nat.sub(Nat.add(a12, w2), b12)
+      +w16 = Nat.sub(Nat.add(a13, w2), b13)
+      Fe{Nat.add(Nat.mod(w1, R), Nat.mul(Nat.div(w3, R), 19n)), Nat.add(Nat.mod(w4, R), Nat.div(w1, R)), Nat.add(Nat.mod(w5, R), Nat.div(w4, R)), Nat.add(Nat.mod(w6, R), Nat.div(w5, R)), Nat.add(Nat.mod(w7, R), Nat.div(w6, R)), Nat.add(Nat.mod(w8, R), Nat.div(w7, R)), Nat.add(Nat.mod(w9, R), Nat.div(w8, R)), Nat.add(Nat.mod(w10, R), Nat.div(w9, R)), Nat.add(Nat.mod(w11, R), Nat.div(w10, R)), Nat.add(Nat.mod(w12, R), Nat.div(w11, R)), Nat.add(Nat.mod(w13, R), Nat.div(w12, R)), Nat.add(Nat.mod(w14, R), Nat.div(w13, R)), Nat.add(Nat.mod(w15, R), Nat.div(w14, R)), Nat.add(Nat.mod(w16, R), Nat.div(w15, R)), Nat.add(Nat.mod(w3, R), Nat.div(w16, R))}
 
 # a b: LS.mul_l
 def mul(+R: Nat, a: Fe, b: Fe) -> Fe:

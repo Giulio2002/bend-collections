@@ -18,9 +18,6 @@ import ./prod.bend as PD
 # xs y + R conv(xs, ys)) and, for limbs below 2^19, pm(a, b) == a b with
 # b below 2^20.
 
-def LN() -> Data:
-  List<&2, Nat>
-
 def tr(+a: Nat, +b: Nat, +c: Nat, +e1: {a == b : Nat}, +e2: {b == c : Nat}) -> {a == c : Nat}:
   Equal.trans(Nat, a, b, c, e1, e2)
 

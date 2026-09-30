@@ -126,6 +126,18 @@ def pass_(R, xs):
     return [op('Nat.mod', t, R), op('Nat.add', ls[1], op('Nat.div', t, R))] + ls[2:]
 
 
+def pcs(R, xs, c):
+    if not xs:
+        return [], c
+    rest, out = pcs(R, xs[1:], op('Nat.div', xs[0], R))
+    return [op('Nat.add', op('Nat.mod', xs[0], R), c)] + rest, out
+
+
+def pc(R, xs):
+    rest, q = pcs(R, xs[1:], op('Nat.div', xs[0], R))
+    return [op('Nat.add', op('Nat.mod', xs[0], R), op('Nat.mul', q, lit('19n')))] + rest
+
+
 # ---- emission ----
 
 def show(t, names):
@@ -366,9 +378,9 @@ def parity(+R: Nat, x: Fe) -> U32:
 def generate():
     parts = [HEADER]
     parts.append(flat('add', 'add(+R: Nat, a: Fe, b: Fe)', [('a', pat(A)), ('b', pat(B))],
-                      pass_(R, addl(A, B)), ['a + b: LS.add_l']))
+                      pc(R, addl(A, B)), ['a + b: LS.add_l (carries moved at once)']))
     parts.append(flat('sub', 'sub(+R: Nat, a: Fe, b: Fe)', [('a', pat(A)), ('b', pat(B))],
-                      pass_(R, subl(A, B, kp8(R))), ['a + 8 p - b: LS.sub_l']))
+                      pc(R, subl(A, B, kp8(R))), ['a + 8 p - b: LS.sub_l (carries moved at once)']))
     parts.append(flat('mul', 'mul(+R: Nat, a: Fe, b: Fe)', [('a', pat(A)), ('b', pat(B))],
                       pass_(R, fold(convp(A, B))), ['a b: LS.mul_l']))
     parts.append(flat('sq', 'sq(+R: Nat, a: Fe)', [('a', pat(A))],

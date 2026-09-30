@@ -15,6 +15,7 @@ import ./nl.bend as NL
 import ./pw.bend as PW
 import ./carry.bend as CA
 import ./pass.bend as PS
+import ./pcar.bend as PC
 import ./bridge.bend as BR
 
 # sub of src/crypto/curve25519/fe.bend: a + 8 p - b limbwise (kp8, every
@@ -211,7 +212,7 @@ def sub_c(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n)
   +r = Nat.mod(Y, P)
   +W = Nat.sub(Nat.add(X, P), r)
   +e0 = Equal.cong(List<&2, Nat>, Nat, z => FV.lv(z), FE.to_list(FE.sub(R, a, b)), LS.sub_l(R, A, B), BR.sub_b(R, a, b))
-  +c0 = G.c_trans(pp, FV.value(FE.sub(R, a, b)), FV.lv(LS.pass(R, S)), D, G.c_eq(pp, FV.value(FE.sub(R, a, b)), FV.lv(LS.pass(R, S)), e0), PS.pass_c(one, h1, pp, hP, R, hR, S, subl_len(R, a, b)))
+  +c0 = G.c_trans(pp, FV.value(FE.sub(R, a, b)), FV.lv(LS.pc(R, S)), D, G.c_eq(pp, FV.value(FE.sub(R, a, b)), FV.lv(LS.pc(R, S)), e0), PC.pc_c(one, h1, pp, hP, R, hR, S, subl_len(R, a, b)))
   +kb = kp8_bounds(one, h1, R, hR)
   +ev = subl_val(A, B, K, WD.sc(19n, one), hb, L.and_left(atleast(K, WD.sc(19n, one)), atmost(K, WD.sc(20n, one)), kb), Equal.trans(Nat, PS.ln(A), 15n, PS.ln(B), ln15(a), Equal.sym(Nat, PS.ln(B), 15n, ln15(b))), Equal.trans(Nat, PS.ln(B), 15n, PS.ln(K), ln15(b), Equal.sym(Nat, PS.ln(K), 15n, kp8_len(R))))
   +c1 = G.c_add(pp, D, D, r, Y, G.c_refl(pp, D), G.c_mod(pp, Y))
@@ -235,6 +236,6 @@ def sub_ok(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one
   +s20 = WD.sc(20n, one)
   +kb = kp8_bounds(one, h1, R, hR)
   +h0 = subl_below(A, B, K, s19, s20, ha, L.and_right(atleast(K, s19), atmost(K, s20), kb))
-  +l1 = N.le_trans(Nat.add(s19, s20), Nat.add(s20, s20), WD.sc(47n, one), M.le_add_r(s19, s20, s20, PW.le_sc(1n, 19n, one)), L.subst(Nat, z => {Nat.is_le(z, WD.sc(47n, one)) == True{} : Bool}, WD.sc(21n, one), Nat.add(s20, s20), sy(Nat.add(s20, s20), WD.sc(21n, one), PW.dbl(20n, one)), PW.le_sc(26n, 21n, one)))
-  +h47 = NL.below_mono(S, Nat.add(s19, s20), WD.sc(47n, one), l1, h0)
-  L.subst(List<&2, Nat>, z => {FV.below(z, s19) == True{} : Bool}, LS.pass(R, S), FE.to_list(FE.sub(R, a, b)), Equal.sym(List<&2, Nat>, FE.to_list(FE.sub(R, a, b)), LS.pass(R, S), BR.sub_b(R, a, b)), PS.pass_ok(one, h1, R, hR, S, subl_len(R, a, b), h47))
+  +l1 = N.le_trans(Nat.add(s19, s20), Nat.add(s20, s20), WD.sc(21n, one), M.le_add_r(s19, s20, s20, PW.le_sc(1n, 19n, one)), L.subst(Nat, z => {Nat.is_le(Nat.add(s20, s20), z) == True{} : Bool}, Nat.add(s20, s20), WD.sc(21n, one), PW.dbl(20n, one), N.le_refl(Nat.add(s20, s20))))
+  +h21 = NL.below_mono(S, Nat.add(s19, s20), WD.sc(21n, one), l1, h0)
+  L.subst(List<&2, Nat>, z => {FV.below(z, s19) == True{} : Bool}, LS.pc(R, S), FE.to_list(FE.sub(R, a, b)), Equal.sym(List<&2, Nat>, FE.to_list(FE.sub(R, a, b)), LS.pc(R, S), BR.sub_b(R, a, b)), PC.pc_ok21(one, h1, R, hR, S, subl_len(R, a, b), h21))

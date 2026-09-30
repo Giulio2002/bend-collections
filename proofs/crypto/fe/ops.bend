@@ -14,6 +14,7 @@ import ./pw.bend as PW
 import ./pass.bend as PS
 import ./bridge.bend as BR
 import ./prod.bend as PD
+import ./pcar.bend as PC
 import ./sqr.bend as SQ
 
 # add, sub, mul, mul_small and select of src/crypto/curve25519/fe.bend: the
@@ -52,8 +53,8 @@ def add_c(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n)
   +A = FE.to_list(a)
   +B = FE.to_list(b)
   +e0 = lv_eq(FE.to_list(FE.add(R, a, b)), LS.add_l(R, A, B), BR.add_b(R, a, b))
-  G.c_trans(pp, FV.value(FE.add(R, a, b)), FV.lv(LS.pass(R, LS.addl(A, B))), Nat.add(FV.lv(A), FV.lv(B)), G.c_eq(pp, FV.value(FE.add(R, a, b)), FV.lv(LS.pass(R, LS.addl(A, B))), e0),
-    G.c_trans(pp, FV.lv(LS.pass(R, LS.addl(A, B))), FV.lv(LS.addl(A, B)), Nat.add(FV.lv(A), FV.lv(B)), PS.pass_c(one, h1, pp, hP, R, hR, LS.addl(A, B), addl_len(a, b)), G.c_eq(pp, FV.lv(LS.addl(A, B)), Nat.add(FV.lv(A), FV.lv(B)), NL.lv_addl(A, B))))
+  G.c_trans(pp, FV.value(FE.add(R, a, b)), FV.lv(LS.pc(R, LS.addl(A, B))), Nat.add(FV.lv(A), FV.lv(B)), G.c_eq(pp, FV.value(FE.add(R, a, b)), FV.lv(LS.pc(R, LS.addl(A, B))), e0),
+    G.c_trans(pp, FV.lv(LS.pc(R, LS.addl(A, B))), FV.lv(LS.addl(A, B)), Nat.add(FV.lv(A), FV.lv(B)), PC.pc_c(one, h1, pp, hP, R, hR, LS.addl(A, B), addl_len(a, b)), G.c_eq(pp, FV.lv(LS.addl(A, B)), Nat.add(FV.lv(A), FV.lv(B)), NL.lv_addl(A, B))))
 
 def add_ok(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}, +hb: {FV.ok(one, b) == True{} : Bool}) -> {FV.ok(one, FE.add(R, a, b)) == True{} : Bool}:
   +A = FE.to_list(a)
@@ -61,8 +62,8 @@ def add_ok(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one
   +s19 = WD.sc(19n, one)
   +h20 = NL.addl_below(A, B, s19, s19, ha, hb)
   +h20b = L.subst(Nat, z => {FV.below(LS.addl(A, B), z) == True{} : Bool}, Nat.add(s19, s19), WD.sc(20n, one), PW.dbl(19n, one), h20)
-  +h47 = NL.below_mono(LS.addl(A, B), WD.sc(20n, one), WD.sc(47n, one), le_47(20n, one, 27n, {==}), h20b)
-  below_eq(FE.to_list(FE.add(R, a, b)), LS.pass(R, LS.addl(A, B)), s19, BR.add_b(R, a, b), PS.pass_ok(one, h1, R, hR, LS.addl(A, B), addl_len(a, b), h47))
+  +h21 = NL.below_mono(LS.addl(A, B), WD.sc(20n, one), WD.sc(21n, one), PW.le_sc(1n, 20n, one), h20b)
+  below_eq(FE.to_list(FE.add(R, a, b)), LS.pc(R, LS.addl(A, B)), s19, BR.add_b(R, a, b), PC.pc_ok21(one, h1, R, hR, LS.addl(A, B), addl_len(a, b), h21))
 
 # ---- mul_small ----
 
