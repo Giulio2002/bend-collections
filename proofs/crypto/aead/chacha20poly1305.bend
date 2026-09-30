@@ -139,7 +139,7 @@ def rlen(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +d: Li
 def rsplit(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +d: List<&2, U32>, +m: Nat) -> Maybe<&2, List<&2, U32>>:
   R.open_split(key, nonce, aad, RC.prefix(m, d), RC.suffix(m, d))
 
-def ofull(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +x0: U32, +x1: U32, +x2: U32, +x3: U32, +x4: U32, +x5: U32, +x6: U32, +x7: U32, +x8: U32, +x9: U32, +x10: U32, +x11: U32, +x12: U32, +x13: U32, +x14: U32, +x15: U32, +rest: List<&2, U32>) -> {I.open(key, nonce, aad, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest) == R.open(key, nonce, aad, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest) : Maybe<&2, List<&2, U32>>}:
+def ofull(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +x0: U32, +x1: U32, +x2: U32, +x3: U32, +x4: U32, +x5: U32, +x6: U32, +x7: U32, +x8: U32, +x9: U32, +x10: U32, +x11: U32, +x12: U32, +x13: U32, +x14: U32, +x15: U32, +rest: List<&2, U32>) -> {I.open_ref(key, nonce, aad, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest) == R.open(key, nonce, aad, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest) : Maybe<&2, List<&2, U32>>}:
   +d = {x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest : List<&2, U32>}
   +n = List.length(&2, U32, rest)
   +e1 = Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => ospl(key, nonce, aad, l, I.tail(rest, d)), I.body(rest, d), RC.prefix(n, d), body_prefix(rest, d))
@@ -153,14 +153,14 @@ def ofull(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +x0: 
     Equal.trans(Maybe<&2, List<&2, U32>>, ospl(key, nonce, aad, RC.prefix(n, d), RC.suffix(n, d)), rsplit(key, nonce, aad, d, n), rlen(key, nonce, aad, d, Nat.is_lt(16n+n, 16n)), e3,
       Equal.sym(Maybe<&2, List<&2, U32>>, rlen(key, nonce, aad, d, Nat.is_lt(16n+n, 16n)), rsplit(key, nonce, aad, d, n), f2)))
 
-law open_eq:
+law open_ref_eq:
   for +key: List<&2, U32>
   for +nonce: List<&2, U32>
   for +aad: List<&2, U32>
   for +data: List<&2, U32>
-  {I.open(key, nonce, aad, data) == R.open(key, nonce, aad, data) : Maybe<&2, List<&2, U32>>}
+  {I.open_ref(key, nonce, aad, data) == R.open(key, nonce, aad, data) : Maybe<&2, List<&2, U32>>}
 
-def open_eq(key, nonce, aad, data):
+def open_ref_eq(key, nonce, aad, data):
   match data:
     case Nil{}: {==}
     case +x0 <> +t0:
@@ -210,6 +210,16 @@ def open_eq(key, nonce, aad, data):
                                                                 case Nil{}: {==}
                                                                 case +x15 <> +rest:
                                                                   ofull(key, nonce, aad, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, rest)
+
+law open_eq:
+  for +key: List<&2, U32>
+  for +nonce: List<&2, U32>
+  for +aad: List<&2, U32>
+  for +data: List<&2, U32>
+  {I.open(key, nonce, aad, data) == R.open(key, nonce, aad, data) : Maybe<&2, List<&2, U32>>}
+
+def open_eq(key, nonce, aad, data):
+  Equal.trans(Maybe<&2, List<&2, U32>>, I.open(key, nonce, aad, data), I.open_ref(key, nonce, aad, data), R.open(key, nonce, aad, data), FU.open_fused(key, nonce, aad, data), open_ref_eq(key, nonce, aad, data))
 
 law xkey_eq:
   for +key: List<&2, U32>

@@ -858,3 +858,1417 @@ law seal_fused:
 
 def seal_fused(key, nonce, aad, pt):
   sealq(I.poly_key(key, nonce), aad, pt, CH.key(key), CH.nonce(nonce))
+
+# ---------------------------------------------------------------- open
+
+law opoly_eq:
+  for fuel: Nat
+  for +xs: List<&2, U32>
+  for +pone: Nat
+  for +kk: L.K
+  for +sv: L.F
+  for +la: Nat
+  for +h: L.F
+  for +cnt: Nat
+  {I.opoly(fuel, I.nblk(CH.skip(16n, xs)), xs, pone, kk, sv, la, h, cnt) == S.eq(I.tail(CH.skip(16n, xs), xs), P.tag_len(pone, kk, sv, la, P.absorb_pad(pone, I.body(CH.skip(16n, xs), xs), kk, h, cnt))) : Bool}
+
+def opoly_eq(fuel, xs, pone, kk, sv, la, h, cnt):
+  match fuel:
+    case 0n: {==}
+    case 1n++p:
+      match xs:
+        case Nil{}: {==}
+        case +x0 <> +u0:
+          match u0:
+            case Nil{}: {==}
+            case +x1 <> +u1:
+              match u1:
+                case Nil{}: {==}
+                case +x2 <> +u2:
+                  match u2:
+                    case Nil{}: {==}
+                    case +x3 <> +u3:
+                      match u3:
+                        case Nil{}: {==}
+                        case +x4 <> +u4:
+                          match u4:
+                            case Nil{}: {==}
+                            case +x5 <> +u5:
+                              match u5:
+                                case Nil{}: {==}
+                                case +x6 <> +u6:
+                                  match u6:
+                                    case Nil{}: {==}
+                                    case +x7 <> +u7:
+                                      match u7:
+                                        case Nil{}: {==}
+                                        case +x8 <> +u8:
+                                          match u8:
+                                            case Nil{}: {==}
+                                            case +x9 <> +u9:
+                                              match u9:
+                                                case Nil{}: {==}
+                                                case +x10 <> +u10:
+                                                  match u10:
+                                                    case Nil{}: {==}
+                                                    case +x11 <> +u11:
+                                                      match u11:
+                                                        case Nil{}: {==}
+                                                        case +x12 <> +u12:
+                                                          match u12:
+                                                            case Nil{}: {==}
+                                                            case +x13 <> +u13:
+                                                              match u13:
+                                                                case Nil{}: {==}
+                                                                case +x14 <> +u14:
+                                                                  match u14:
+                                                                    case Nil{}: {==}
+                                                                    case +x15 <> +u15:
+                                                                      match u15:
+                                                                        case Nil{}: {==}
+                                                                        case +x16 <> +u16:
+                                                                          match u16:
+                                                                            case Nil{}: {==}
+                                                                            case +x17 <> +u17:
+                                                                              match u17:
+                                                                                case Nil{}: {==}
+                                                                                case +x18 <> +u18:
+                                                                                  match u18:
+                                                                                    case Nil{}: {==}
+                                                                                    case +x19 <> +u19:
+                                                                                      match u19:
+                                                                                        case Nil{}: {==}
+                                                                                        case +x20 <> +u20:
+                                                                                          match u20:
+                                                                                            case Nil{}: {==}
+                                                                                            case +x21 <> +u21:
+                                                                                              match u21:
+                                                                                                case Nil{}: {==}
+                                                                                                case +x22 <> +u22:
+                                                                                                  match u22:
+                                                                                                    case Nil{}: {==}
+                                                                                                    case +x23 <> +u23:
+                                                                                                      match u23:
+                                                                                                        case Nil{}: {==}
+                                                                                                        case +x24 <> +u24:
+                                                                                                          match u24:
+                                                                                                            case Nil{}: {==}
+                                                                                                            case +x25 <> +u25:
+                                                                                                              match u25:
+                                                                                                                case Nil{}: {==}
+                                                                                                                case +x26 <> +u26:
+                                                                                                                  match u26:
+                                                                                                                    case Nil{}: {==}
+                                                                                                                    case +x27 <> +u27:
+                                                                                                                      match u27:
+                                                                                                                        case Nil{}: {==}
+                                                                                                                        case +x28 <> +u28:
+                                                                                                                          match u28:
+                                                                                                                            case Nil{}: {==}
+                                                                                                                            case +x29 <> +u29:
+                                                                                                                              match u29:
+                                                                                                                                case Nil{}: {==}
+                                                                                                                                case +x30 <> +u30:
+                                                                                                                                  match u30:
+                                                                                                                                    case Nil{}: {==}
+                                                                                                                                    case +x31 <> +u31:
+                                                                                                                                      match u31:
+                                                                                                                                        case Nil{}: {==}
+                                                                                                                                        case +x32 <> +u32:
+                                                                                                                                          match u32:
+                                                                                                                                            case Nil{}: {==}
+                                                                                                                                            case +x33 <> +u33:
+                                                                                                                                              match u33:
+                                                                                                                                                case Nil{}: {==}
+                                                                                                                                                case +x34 <> +u34:
+                                                                                                                                                  match u34:
+                                                                                                                                                    case Nil{}: {==}
+                                                                                                                                                    case +x35 <> +u35:
+                                                                                                                                                      match u35:
+                                                                                                                                                        case Nil{}: {==}
+                                                                                                                                                        case +x36 <> +u36:
+                                                                                                                                                          match u36:
+                                                                                                                                                            case Nil{}: {==}
+                                                                                                                                                            case +x37 <> +u37:
+                                                                                                                                                              match u37:
+                                                                                                                                                                case Nil{}: {==}
+                                                                                                                                                                case +x38 <> +u38:
+                                                                                                                                                                  match u38:
+                                                                                                                                                                    case Nil{}: {==}
+                                                                                                                                                                    case +x39 <> +u39:
+                                                                                                                                                                      match u39:
+                                                                                                                                                                        case Nil{}: {==}
+                                                                                                                                                                        case +x40 <> +u40:
+                                                                                                                                                                          match u40:
+                                                                                                                                                                            case Nil{}: {==}
+                                                                                                                                                                            case +x41 <> +u41:
+                                                                                                                                                                              match u41:
+                                                                                                                                                                                case Nil{}: {==}
+                                                                                                                                                                                case +x42 <> +u42:
+                                                                                                                                                                                  match u42:
+                                                                                                                                                                                    case Nil{}: {==}
+                                                                                                                                                                                    case +x43 <> +u43:
+                                                                                                                                                                                      match u43:
+                                                                                                                                                                                        case Nil{}: {==}
+                                                                                                                                                                                        case +x44 <> +u44:
+                                                                                                                                                                                          match u44:
+                                                                                                                                                                                            case Nil{}: {==}
+                                                                                                                                                                                            case +x45 <> +u45:
+                                                                                                                                                                                              match u45:
+                                                                                                                                                                                                case Nil{}: {==}
+                                                                                                                                                                                                case +x46 <> +u46:
+                                                                                                                                                                                                  match u46:
+                                                                                                                                                                                                    case Nil{}: {==}
+                                                                                                                                                                                                    case +x47 <> +u47:
+                                                                                                                                                                                                      match u47:
+                                                                                                                                                                                                        case Nil{}: {==}
+                                                                                                                                                                                                        case +x48 <> +u48:
+                                                                                                                                                                                                          match u48:
+                                                                                                                                                                                                            case Nil{}: {==}
+                                                                                                                                                                                                            case +x49 <> +u49:
+                                                                                                                                                                                                              match u49:
+                                                                                                                                                                                                                case Nil{}: {==}
+                                                                                                                                                                                                                case +x50 <> +u50:
+                                                                                                                                                                                                                  match u50:
+                                                                                                                                                                                                                    case Nil{}: {==}
+                                                                                                                                                                                                                    case +x51 <> +u51:
+                                                                                                                                                                                                                      match u51:
+                                                                                                                                                                                                                        case Nil{}: {==}
+                                                                                                                                                                                                                        case +x52 <> +u52:
+                                                                                                                                                                                                                          match u52:
+                                                                                                                                                                                                                            case Nil{}: {==}
+                                                                                                                                                                                                                            case +x53 <> +u53:
+                                                                                                                                                                                                                              match u53:
+                                                                                                                                                                                                                                case Nil{}: {==}
+                                                                                                                                                                                                                                case +x54 <> +u54:
+                                                                                                                                                                                                                                  match u54:
+                                                                                                                                                                                                                                    case Nil{}: {==}
+                                                                                                                                                                                                                                    case +x55 <> +u55:
+                                                                                                                                                                                                                                      match u55:
+                                                                                                                                                                                                                                        case Nil{}: {==}
+                                                                                                                                                                                                                                        case +x56 <> +u56:
+                                                                                                                                                                                                                                          match u56:
+                                                                                                                                                                                                                                            case Nil{}: {==}
+                                                                                                                                                                                                                                            case +x57 <> +u57:
+                                                                                                                                                                                                                                              match u57:
+                                                                                                                                                                                                                                                case Nil{}: {==}
+                                                                                                                                                                                                                                                case +x58 <> +u58:
+                                                                                                                                                                                                                                                  match u58:
+                                                                                                                                                                                                                                                    case Nil{}: {==}
+                                                                                                                                                                                                                                                    case +x59 <> +u59:
+                                                                                                                                                                                                                                                      match u59:
+                                                                                                                                                                                                                                                        case Nil{}: {==}
+                                                                                                                                                                                                                                                        case +x60 <> +u60:
+                                                                                                                                                                                                                                                          match u60:
+                                                                                                                                                                                                                                                            case Nil{}: {==}
+                                                                                                                                                                                                                                                            case +x61 <> +u61:
+                                                                                                                                                                                                                                                              match u61:
+                                                                                                                                                                                                                                                                case Nil{}: {==}
+                                                                                                                                                                                                                                                                case +x62 <> +u62:
+                                                                                                                                                                                                                                                                  match u62:
+                                                                                                                                                                                                                                                                    case Nil{}: {==}
+                                                                                                                                                                                                                                                                    case +x63 <> +xrest:
+                                                                                                                                                                                                                                                                      match xrest:
+                                                                                                                                                                                                                                                                        case Nil{}: {==}
+                                                                                                                                                                                                                                                                        case +x64 <> +v0:
+                                                                                                                                                                                                                                                                          match v0:
+                                                                                                                                                                                                                                                                            case Nil{}: {==}
+                                                                                                                                                                                                                                                                            case +x65 <> +v1:
+                                                                                                                                                                                                                                                                              match v1:
+                                                                                                                                                                                                                                                                                case Nil{}: {==}
+                                                                                                                                                                                                                                                                                case +x66 <> +v2:
+                                                                                                                                                                                                                                                                                  match v2:
+                                                                                                                                                                                                                                                                                    case Nil{}: {==}
+                                                                                                                                                                                                                                                                                    case +x67 <> +v3:
+                                                                                                                                                                                                                                                                                      match v3:
+                                                                                                                                                                                                                                                                                        case Nil{}: {==}
+                                                                                                                                                                                                                                                                                        case +x68 <> +v4:
+                                                                                                                                                                                                                                                                                          match v4:
+                                                                                                                                                                                                                                                                                            case Nil{}: {==}
+                                                                                                                                                                                                                                                                                            case +x69 <> +v5:
+                                                                                                                                                                                                                                                                                              match v5:
+                                                                                                                                                                                                                                                                                                case Nil{}: {==}
+                                                                                                                                                                                                                                                                                                case +x70 <> +v6:
+                                                                                                                                                                                                                                                                                                  match v6:
+                                                                                                                                                                                                                                                                                                    case Nil{}: {==}
+                                                                                                                                                                                                                                                                                                    case +x71 <> +v7:
+                                                                                                                                                                                                                                                                                                      match v7:
+                                                                                                                                                                                                                                                                                                        case Nil{}: {==}
+                                                                                                                                                                                                                                                                                                        case +x72 <> +v8:
+                                                                                                                                                                                                                                                                                                          match v8:
+                                                                                                                                                                                                                                                                                                            case Nil{}: {==}
+                                                                                                                                                                                                                                                                                                            case +x73 <> +v9:
+                                                                                                                                                                                                                                                                                                              match v9:
+                                                                                                                                                                                                                                                                                                                case Nil{}: {==}
+                                                                                                                                                                                                                                                                                                                case +x74 <> +v10:
+                                                                                                                                                                                                                                                                                                                  match v10:
+                                                                                                                                                                                                                                                                                                                    case Nil{}: {==}
+                                                                                                                                                                                                                                                                                                                    case +x75 <> +v11:
+                                                                                                                                                                                                                                                                                                                      match v11:
+                                                                                                                                                                                                                                                                                                                        case Nil{}: {==}
+                                                                                                                                                                                                                                                                                                                        case +x76 <> +v12:
+                                                                                                                                                                                                                                                                                                                          match v12:
+                                                                                                                                                                                                                                                                                                                            case Nil{}: {==}
+                                                                                                                                                                                                                                                                                                                            case +x77 <> +v13:
+                                                                                                                                                                                                                                                                                                                              match v13:
+                                                                                                                                                                                                                                                                                                                                case Nil{}: {==}
+                                                                                                                                                                                                                                                                                                                                case +x78 <> +v14:
+                                                                                                                                                                                                                                                                                                                                  match v14:
+                                                                                                                                                                                                                                                                                                                                    case Nil{}: {==}
+                                                                                                                                                                                                                                                                                                                                    case +x79 <> +v15:
+                                                                                                                                                                                                                                                                                                                                      match v15:
+                                                                                                                                                                                                                                                                                                                                        case Nil{}: {==}
+                                                                                                                                                                                                                                                                                                                                        case +x80 <> +rr:
+                                                                                                                                                                                                                                                                                                                                          opoly_eq(p, x64 <> x65 <> x66 <> x67 <> x68 <> x69 <> x70 <> x71 <> x72 <> x73 <> x74 <> x75 <> x76 <> x77 <> x78 <> x79 <> x80 <> rr, pone, kk, sv, la, L.block(kk, L.block(kk, L.block(kk, L.block(kk, h, L.load(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), pone)), L.load(L.byte(x16), L.byte(x17), L.byte(x18), L.byte(x19), L.byte(x20), L.byte(x21), L.byte(x22), L.byte(x23), L.byte(x24), L.byte(x25), L.byte(x26), L.byte(x27), L.byte(x28), L.byte(x29), L.byte(x30), L.byte(x31), pone)), L.load(L.byte(x32), L.byte(x33), L.byte(x34), L.byte(x35), L.byte(x36), L.byte(x37), L.byte(x38), L.byte(x39), L.byte(x40), L.byte(x41), L.byte(x42), L.byte(x43), L.byte(x44), L.byte(x45), L.byte(x46), L.byte(x47), pone)), L.load(L.byte(x48), L.byte(x49), L.byte(x50), L.byte(x51), L.byte(x52), L.byte(x53), L.byte(x54), L.byte(x55), L.byte(x56), L.byte(x57), L.byte(x58), L.byte(x59), L.byte(x60), L.byte(x61), L.byte(x62), L.byte(x63), pone)), Nat.add(Nat.add(Nat.add(Nat.add(cnt, 16n), 16n), 16n), 16n))
+
+# a full block with at least 65 more ciphertext bytes (x64..x80 and rr)
+law dstep:
+  for +q: Nat
+  for +x0: U32
+  for +x1: U32
+  for +x2: U32
+  for +x3: U32
+  for +x4: U32
+  for +x5: U32
+  for +x6: U32
+  for +x7: U32
+  for +x8: U32
+  for +x9: U32
+  for +x10: U32
+  for +x11: U32
+  for +x12: U32
+  for +x13: U32
+  for +x14: U32
+  for +x15: U32
+  for +x16: U32
+  for +x17: U32
+  for +x18: U32
+  for +x19: U32
+  for +x20: U32
+  for +x21: U32
+  for +x22: U32
+  for +x23: U32
+  for +x24: U32
+  for +x25: U32
+  for +x26: U32
+  for +x27: U32
+  for +x28: U32
+  for +x29: U32
+  for +x30: U32
+  for +x31: U32
+  for +x32: U32
+  for +x33: U32
+  for +x34: U32
+  for +x35: U32
+  for +x36: U32
+  for +x37: U32
+  for +x38: U32
+  for +x39: U32
+  for +x40: U32
+  for +x41: U32
+  for +x42: U32
+  for +x43: U32
+  for +x44: U32
+  for +x45: U32
+  for +x46: U32
+  for +x47: U32
+  for +x48: U32
+  for +x49: U32
+  for +x50: U32
+  for +x51: U32
+  for +x52: U32
+  for +x53: U32
+  for +x54: U32
+  for +x55: U32
+  for +x56: U32
+  for +x57: U32
+  for +x58: U32
+  for +x59: U32
+  for +x60: U32
+  for +x61: U32
+  for +x62: U32
+  for +x63: U32
+  for +x64: U32
+  for +x65: U32
+  for +x66: U32
+  for +x67: U32
+  for +x68: U32
+  for +x69: U32
+  for +x70: U32
+  for +x71: U32
+  for +x72: U32
+  for +x73: U32
+  for +x74: U32
+  for +x75: U32
+  for +x76: U32
+  for +x77: U32
+  for +x78: U32
+  for +x79: U32
+  for +x80: U32
+  for +rr: List<&2, U32>
+  for +w0: U32
+  for +w1: U32
+  for +w2: U32
+  for +w3: U32
+  for +w4: U32
+  for +w5: U32
+  for +w6: U32
+  for +w7: U32
+  for +w8: U32
+  for +w9: U32
+  for +w10: U32
+  for +w11: U32
+  for +w12: U32
+  for +w13: U32
+  for +w14: U32
+  for +w15: U32
+  for +r: Nat
+  for +k: CH.Key
+  for +c: U32
+  for +n: CH.Nonce
+  for +ih: {I.odec(1n+q, I.nblk(CH.skip(16n, x64 <> x65 <> x66 <> x67 <> x68 <> x69 <> x70 <> x71 <> x72 <> x73 <> x74 <> x75 <> x76 <> x77 <> x78 <> x79 <> x80 <> rr)), x64 <> x65 <> x66 <> x67 <> x68 <> x69 <> x70 <> x71 <> x72 <> x73 <> x74 <> x75 <> x76 <> x77 <> x78 <> x79 <> x80 <> rr, C.block(r, CH.state(k, U32.add(c, 1), n)), r, k, U32.add(c, 1), n) == I.fct(1n+q, I.body(CH.skip(16n, x64 <> x65 <> x66 <> x67 <> x68 <> x69 <> x70 <> x71 <> x72 <> x73 <> x74 <> x75 <> x76 <> x77 <> x78 <> x79 <> x80 <> rr), x64 <> x65 <> x66 <> x67 <> x68 <> x69 <> x70 <> x71 <> x72 <> x73 <> x74 <> x75 <> x76 <> x77 <> x78 <> x79 <> x80 <> rr), C.block(r, CH.state(k, U32.add(c, 1), n)), r, k, U32.add(c, 1), n) : List<&2, U32>}
+  {I.odec(1n+1n+q, I.nblk(CH.skip(16n, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> x16 <> x17 <> x18 <> x19 <> x20 <> x21 <> x22 <> x23 <> x24 <> x25 <> x26 <> x27 <> x28 <> x29 <> x30 <> x31 <> x32 <> x33 <> x34 <> x35 <> x36 <> x37 <> x38 <> x39 <> x40 <> x41 <> x42 <> x43 <> x44 <> x45 <> x46 <> x47 <> x48 <> x49 <> x50 <> x51 <> x52 <> x53 <> x54 <> x55 <> x56 <> x57 <> x58 <> x59 <> x60 <> x61 <> x62 <> x63 <> x64 <> x65 <> x66 <> x67 <> x68 <> x69 <> x70 <> x71 <> x72 <> x73 <> x74 <> x75 <> x76 <> x77 <> x78 <> x79 <> x80 <> rr)), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> x16 <> x17 <> x18 <> x19 <> x20 <> x21 <> x22 <> x23 <> x24 <> x25 <> x26 <> x27 <> x28 <> x29 <> x30 <> x31 <> x32 <> x33 <> x34 <> x35 <> x36 <> x37 <> x38 <> x39 <> x40 <> x41 <> x42 <> x43 <> x44 <> x45 <> x46 <> x47 <> x48 <> x49 <> x50 <> x51 <> x52 <> x53 <> x54 <> x55 <> x56 <> x57 <> x58 <> x59 <> x60 <> x61 <> x62 <> x63 <> x64 <> x65 <> x66 <> x67 <> x68 <> x69 <> x70 <> x71 <> x72 <> x73 <> x74 <> x75 <> x76 <> x77 <> x78 <> x79 <> x80 <> rr, C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}, r, k, c, n) == I.fct(1n+1n+q, I.body(CH.skip(16n, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> x16 <> x17 <> x18 <> x19 <> x20 <> x21 <> x22 <> x23 <> x24 <> x25 <> x26 <> x27 <> x28 <> x29 <> x30 <> x31 <> x32 <> x33 <> x34 <> x35 <> x36 <> x37 <> x38 <> x39 <> x40 <> x41 <> x42 <> x43 <> x44 <> x45 <> x46 <> x47 <> x48 <> x49 <> x50 <> x51 <> x52 <> x53 <> x54 <> x55 <> x56 <> x57 <> x58 <> x59 <> x60 <> x61 <> x62 <> x63 <> x64 <> x65 <> x66 <> x67 <> x68 <> x69 <> x70 <> x71 <> x72 <> x73 <> x74 <> x75 <> x76 <> x77 <> x78 <> x79 <> x80 <> rr), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> x16 <> x17 <> x18 <> x19 <> x20 <> x21 <> x22 <> x23 <> x24 <> x25 <> x26 <> x27 <> x28 <> x29 <> x30 <> x31 <> x32 <> x33 <> x34 <> x35 <> x36 <> x37 <> x38 <> x39 <> x40 <> x41 <> x42 <> x43 <> x44 <> x45 <> x46 <> x47 <> x48 <> x49 <> x50 <> x51 <> x52 <> x53 <> x54 <> x55 <> x56 <> x57 <> x58 <> x59 <> x60 <> x61 <> x62 <> x63 <> x64 <> x65 <> x66 <> x67 <> x68 <> x69 <> x70 <> x71 <> x72 <> x73 <> x74 <> x75 <> x76 <> x77 <> x78 <> x79 <> x80 <> rr), C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}, r, k, c, n) : List<&2, U32>}
+
+def dstep(q, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52, x53, x54, x55, x56, x57, x58, x59, x60, x61, x62, x63, x64, x65, x66, x67, x68, x69, x70, x71, x72, x73, x74, x75, x76, x77, x78, x79, x80, rr, w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15, r, k, c, n, ih):
+  Equal.cong(List<&2, U32>, List<&2, U32>, z => U32.xor(x0, U32.and(w0,255)) <> U32.xor(x1, U32.and(U32.shrn(w0,8n),255)) <> U32.xor(x2, U32.and(U32.shrn(w0,16n),255)) <> U32.xor(x3, U32.shrn(w0,24n)) <> U32.xor(x4, U32.and(w1,255)) <> U32.xor(x5, U32.and(U32.shrn(w1,8n),255)) <> U32.xor(x6, U32.and(U32.shrn(w1,16n),255)) <> U32.xor(x7, U32.shrn(w1,24n)) <> U32.xor(x8, U32.and(w2,255)) <> U32.xor(x9, U32.and(U32.shrn(w2,8n),255)) <> U32.xor(x10, U32.and(U32.shrn(w2,16n),255)) <> U32.xor(x11, U32.shrn(w2,24n)) <> U32.xor(x12, U32.and(w3,255)) <> U32.xor(x13, U32.and(U32.shrn(w3,8n),255)) <> U32.xor(x14, U32.and(U32.shrn(w3,16n),255)) <> U32.xor(x15, U32.shrn(w3,24n)) <> U32.xor(x16, U32.and(w4,255)) <> U32.xor(x17, U32.and(U32.shrn(w4,8n),255)) <> U32.xor(x18, U32.and(U32.shrn(w4,16n),255)) <> U32.xor(x19, U32.shrn(w4,24n)) <> U32.xor(x20, U32.and(w5,255)) <> U32.xor(x21, U32.and(U32.shrn(w5,8n),255)) <> U32.xor(x22, U32.and(U32.shrn(w5,16n),255)) <> U32.xor(x23, U32.shrn(w5,24n)) <> U32.xor(x24, U32.and(w6,255)) <> U32.xor(x25, U32.and(U32.shrn(w6,8n),255)) <> U32.xor(x26, U32.and(U32.shrn(w6,16n),255)) <> U32.xor(x27, U32.shrn(w6,24n)) <> U32.xor(x28, U32.and(w7,255)) <> U32.xor(x29, U32.and(U32.shrn(w7,8n),255)) <> U32.xor(x30, U32.and(U32.shrn(w7,16n),255)) <> U32.xor(x31, U32.shrn(w7,24n)) <> U32.xor(x32, U32.and(w8,255)) <> U32.xor(x33, U32.and(U32.shrn(w8,8n),255)) <> U32.xor(x34, U32.and(U32.shrn(w8,16n),255)) <> U32.xor(x35, U32.shrn(w8,24n)) <> U32.xor(x36, U32.and(w9,255)) <> U32.xor(x37, U32.and(U32.shrn(w9,8n),255)) <> U32.xor(x38, U32.and(U32.shrn(w9,16n),255)) <> U32.xor(x39, U32.shrn(w9,24n)) <> U32.xor(x40, U32.and(w10,255)) <> U32.xor(x41, U32.and(U32.shrn(w10,8n),255)) <> U32.xor(x42, U32.and(U32.shrn(w10,16n),255)) <> U32.xor(x43, U32.shrn(w10,24n)) <> U32.xor(x44, U32.and(w11,255)) <> U32.xor(x45, U32.and(U32.shrn(w11,8n),255)) <> U32.xor(x46, U32.and(U32.shrn(w11,16n),255)) <> U32.xor(x47, U32.shrn(w11,24n)) <> U32.xor(x48, U32.and(w12,255)) <> U32.xor(x49, U32.and(U32.shrn(w12,8n),255)) <> U32.xor(x50, U32.and(U32.shrn(w12,16n),255)) <> U32.xor(x51, U32.shrn(w12,24n)) <> U32.xor(x52, U32.and(w13,255)) <> U32.xor(x53, U32.and(U32.shrn(w13,8n),255)) <> U32.xor(x54, U32.and(U32.shrn(w13,16n),255)) <> U32.xor(x55, U32.shrn(w13,24n)) <> U32.xor(x56, U32.and(w14,255)) <> U32.xor(x57, U32.and(U32.shrn(w14,8n),255)) <> U32.xor(x58, U32.and(U32.shrn(w14,16n),255)) <> U32.xor(x59, U32.shrn(w14,24n)) <> U32.xor(x60, U32.and(w15,255)) <> U32.xor(x61, U32.and(U32.shrn(w15,8n),255)) <> U32.xor(x62, U32.and(U32.shrn(w15,16n),255)) <> U32.xor(x63, U32.shrn(w15,24n)) <> z, I.odec(1n+q, I.nblk(CH.skip(16n, x64 <> x65 <> x66 <> x67 <> x68 <> x69 <> x70 <> x71 <> x72 <> x73 <> x74 <> x75 <> x76 <> x77 <> x78 <> x79 <> x80 <> rr)), x64 <> x65 <> x66 <> x67 <> x68 <> x69 <> x70 <> x71 <> x72 <> x73 <> x74 <> x75 <> x76 <> x77 <> x78 <> x79 <> x80 <> rr, C.block(r, CH.state(k, U32.add(c, 1), n)), r, k, U32.add(c, 1), n), I.fct(1n+q, I.body(CH.skip(16n, x64 <> x65 <> x66 <> x67 <> x68 <> x69 <> x70 <> x71 <> x72 <> x73 <> x74 <> x75 <> x76 <> x77 <> x78 <> x79 <> x80 <> rr), x64 <> x65 <> x66 <> x67 <> x68 <> x69 <> x70 <> x71 <> x72 <> x73 <> x74 <> x75 <> x76 <> x77 <> x78 <> x79 <> x80 <> rr), C.block(r, CH.state(k, U32.add(c, 1), n)), r, k, U32.add(c, 1), n), ih)
+
+law odec_eq1:
+  for p: Nat
+  for +xs: List<&2, U32>
+  for +st: C.State
+  for +r: Nat
+  for +k: CH.Key
+  for +c: U32
+  for +n: CH.Nonce
+  {I.odec(1n+p, I.nblk(CH.skip(16n, xs)), xs, st, r, k, c, n) == I.fct(1n+p, I.body(CH.skip(16n, xs), xs), st, r, k, c, n) : List<&2, U32>}
+
+def odec_eq1(p, xs, st, r, k, c, n):
+  match p:
+    case 0n:
+      match xs:
+        case Nil{}:
+          match st:
+            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+        case +x0 <> +u0:
+          match u0:
+            case Nil{}:
+              match st:
+                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+            case +x1 <> +u1:
+              match u1:
+                case Nil{}:
+                  match st:
+                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                case +x2 <> +u2:
+                  match u2:
+                    case Nil{}:
+                      match st:
+                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                    case +x3 <> +u3:
+                      match u3:
+                        case Nil{}:
+                          match st:
+                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                        case +x4 <> +u4:
+                          match u4:
+                            case Nil{}:
+                              match st:
+                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                            case +x5 <> +u5:
+                              match u5:
+                                case Nil{}:
+                                  match st:
+                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                case +x6 <> +u6:
+                                  match u6:
+                                    case Nil{}:
+                                      match st:
+                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                    case +x7 <> +u7:
+                                      match u7:
+                                        case Nil{}:
+                                          match st:
+                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                        case +x8 <> +u8:
+                                          match u8:
+                                            case Nil{}:
+                                              match st:
+                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                            case +x9 <> +u9:
+                                              match u9:
+                                                case Nil{}:
+                                                  match st:
+                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                case +x10 <> +u10:
+                                                  match u10:
+                                                    case Nil{}:
+                                                      match st:
+                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                    case +x11 <> +u11:
+                                                      match u11:
+                                                        case Nil{}:
+                                                          match st:
+                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                        case +x12 <> +u12:
+                                                          match u12:
+                                                            case Nil{}:
+                                                              match st:
+                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                            case +x13 <> +u13:
+                                                              match u13:
+                                                                case Nil{}:
+                                                                  match st:
+                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                case +x14 <> +u14:
+                                                                  match u14:
+                                                                    case Nil{}:
+                                                                      match st:
+                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                    case +x15 <> +u15:
+                                                                      match u15:
+                                                                        case Nil{}:
+                                                                          match st:
+                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                        case +x16 <> +u16:
+                                                                          match u16:
+                                                                            case Nil{}:
+                                                                              match st:
+                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                            case +x17 <> +u17:
+                                                                              match u17:
+                                                                                case Nil{}:
+                                                                                  match st:
+                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                case +x18 <> +u18:
+                                                                                  match u18:
+                                                                                    case Nil{}:
+                                                                                      match st:
+                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                    case +x19 <> +u19:
+                                                                                      match u19:
+                                                                                        case Nil{}:
+                                                                                          match st:
+                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                        case +x20 <> +u20:
+                                                                                          match u20:
+                                                                                            case Nil{}:
+                                                                                              match st:
+                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                            case +x21 <> +u21:
+                                                                                              match u21:
+                                                                                                case Nil{}:
+                                                                                                  match st:
+                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                case +x22 <> +u22:
+                                                                                                  match u22:
+                                                                                                    case Nil{}:
+                                                                                                      match st:
+                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                    case +x23 <> +u23:
+                                                                                                      match u23:
+                                                                                                        case Nil{}:
+                                                                                                          match st:
+                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                        case +x24 <> +u24:
+                                                                                                          match u24:
+                                                                                                            case Nil{}:
+                                                                                                              match st:
+                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                            case +x25 <> +u25:
+                                                                                                              match u25:
+                                                                                                                case Nil{}:
+                                                                                                                  match st:
+                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                case +x26 <> +u26:
+                                                                                                                  match u26:
+                                                                                                                    case Nil{}:
+                                                                                                                      match st:
+                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                    case +x27 <> +u27:
+                                                                                                                      match u27:
+                                                                                                                        case Nil{}:
+                                                                                                                          match st:
+                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                        case +x28 <> +u28:
+                                                                                                                          match u28:
+                                                                                                                            case Nil{}:
+                                                                                                                              match st:
+                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                            case +x29 <> +u29:
+                                                                                                                              match u29:
+                                                                                                                                case Nil{}:
+                                                                                                                                  match st:
+                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                case +x30 <> +u30:
+                                                                                                                                  match u30:
+                                                                                                                                    case Nil{}:
+                                                                                                                                      match st:
+                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                    case +x31 <> +u31:
+                                                                                                                                      match u31:
+                                                                                                                                        case Nil{}:
+                                                                                                                                          match st:
+                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                        case +x32 <> +u32:
+                                                                                                                                          match u32:
+                                                                                                                                            case Nil{}:
+                                                                                                                                              match st:
+                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                            case +x33 <> +u33:
+                                                                                                                                              match u33:
+                                                                                                                                                case Nil{}:
+                                                                                                                                                  match st:
+                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                case +x34 <> +u34:
+                                                                                                                                                  match u34:
+                                                                                                                                                    case Nil{}:
+                                                                                                                                                      match st:
+                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                    case +x35 <> +u35:
+                                                                                                                                                      match u35:
+                                                                                                                                                        case Nil{}:
+                                                                                                                                                          match st:
+                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                        case +x36 <> +u36:
+                                                                                                                                                          match u36:
+                                                                                                                                                            case Nil{}:
+                                                                                                                                                              match st:
+                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                            case +x37 <> +u37:
+                                                                                                                                                              match u37:
+                                                                                                                                                                case Nil{}:
+                                                                                                                                                                  match st:
+                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                case +x38 <> +u38:
+                                                                                                                                                                  match u38:
+                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                      match st:
+                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                    case +x39 <> +u39:
+                                                                                                                                                                      match u39:
+                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                          match st:
+                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                        case +x40 <> +u40:
+                                                                                                                                                                          match u40:
+                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                              match st:
+                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                            case +x41 <> +u41:
+                                                                                                                                                                              match u41:
+                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                  match st:
+                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                case +x42 <> +u42:
+                                                                                                                                                                                  match u42:
+                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                      match st:
+                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                    case +x43 <> +u43:
+                                                                                                                                                                                      match u43:
+                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                          match st:
+                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                        case +x44 <> +u44:
+                                                                                                                                                                                          match u44:
+                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                              match st:
+                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                            case +x45 <> +u45:
+                                                                                                                                                                                              match u45:
+                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                case +x46 <> +u46:
+                                                                                                                                                                                                  match u46:
+                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                    case +x47 <> +u47:
+                                                                                                                                                                                                      match u47:
+                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                        case +x48 <> +u48:
+                                                                                                                                                                                                          match u48:
+                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                            case +x49 <> +u49:
+                                                                                                                                                                                                              match u49:
+                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                case +x50 <> +u50:
+                                                                                                                                                                                                                  match u50:
+                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                    case +x51 <> +u51:
+                                                                                                                                                                                                                      match u51:
+                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                        case +x52 <> +u52:
+                                                                                                                                                                                                                          match u52:
+                                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                            case +x53 <> +u53:
+                                                                                                                                                                                                                              match u53:
+                                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                case +x54 <> +u54:
+                                                                                                                                                                                                                                  match u54:
+                                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                    case +x55 <> +u55:
+                                                                                                                                                                                                                                      match u55:
+                                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                        case +x56 <> +u56:
+                                                                                                                                                                                                                                          match u56:
+                                                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                            case +x57 <> +u57:
+                                                                                                                                                                                                                                              match u57:
+                                                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                case +x58 <> +u58:
+                                                                                                                                                                                                                                                  match u58:
+                                                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                    case +x59 <> +u59:
+                                                                                                                                                                                                                                                      match u59:
+                                                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                        case +x60 <> +u60:
+                                                                                                                                                                                                                                                          match u60:
+                                                                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                            case +x61 <> +u61:
+                                                                                                                                                                                                                                                              match u61:
+                                                                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                case +x62 <> +u62:
+                                                                                                                                                                                                                                                                  match u62:
+                                                                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                    case +x63 <> +xrest:
+                                                                                                                                                                                                                                                                      match xrest:
+                                                                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                        case +x64 <> +v0:
+                                                                                                                                                                                                                                                                          match v0:
+                                                                                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                            case +x65 <> +v1:
+                                                                                                                                                                                                                                                                              match v1:
+                                                                                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                case +x66 <> +v2:
+                                                                                                                                                                                                                                                                                  match v2:
+                                                                                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                    case +x67 <> +v3:
+                                                                                                                                                                                                                                                                                      match v3:
+                                                                                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                        case +x68 <> +v4:
+                                                                                                                                                                                                                                                                                          match v4:
+                                                                                                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                            case +x69 <> +v5:
+                                                                                                                                                                                                                                                                                              match v5:
+                                                                                                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                case +x70 <> +v6:
+                                                                                                                                                                                                                                                                                                  match v6:
+                                                                                                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                    case +x71 <> +v7:
+                                                                                                                                                                                                                                                                                                      match v7:
+                                                                                                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                        case +x72 <> +v8:
+                                                                                                                                                                                                                                                                                                          match v8:
+                                                                                                                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                            case +x73 <> +v9:
+                                                                                                                                                                                                                                                                                                              match v9:
+                                                                                                                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                                case +x74 <> +v10:
+                                                                                                                                                                                                                                                                                                                  match v10:
+                                                                                                                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                                    case +x75 <> +v11:
+                                                                                                                                                                                                                                                                                                                      match v11:
+                                                                                                                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                                        case +x76 <> +v12:
+                                                                                                                                                                                                                                                                                                                          match v12:
+                                                                                                                                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                                            case +x77 <> +v13:
+                                                                                                                                                                                                                                                                                                                              match v13:
+                                                                                                                                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                                                case +x78 <> +v14:
+                                                                                                                                                                                                                                                                                                                                  match v14:
+                                                                                                                                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                                                    case +x79 <> +v15:
+                                                                                                                                                                                                                                                                                                                                      match v15:
+                                                                                                                                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                                                        case +x80 <> +rr:
+                                                                                                                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+    case 1n++q:
+      match xs:
+        case Nil{}:
+          match st:
+            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+        case +x0 <> +u0:
+          match u0:
+            case Nil{}:
+              match st:
+                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+            case +x1 <> +u1:
+              match u1:
+                case Nil{}:
+                  match st:
+                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                case +x2 <> +u2:
+                  match u2:
+                    case Nil{}:
+                      match st:
+                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                    case +x3 <> +u3:
+                      match u3:
+                        case Nil{}:
+                          match st:
+                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                        case +x4 <> +u4:
+                          match u4:
+                            case Nil{}:
+                              match st:
+                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                            case +x5 <> +u5:
+                              match u5:
+                                case Nil{}:
+                                  match st:
+                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                case +x6 <> +u6:
+                                  match u6:
+                                    case Nil{}:
+                                      match st:
+                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                    case +x7 <> +u7:
+                                      match u7:
+                                        case Nil{}:
+                                          match st:
+                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                        case +x8 <> +u8:
+                                          match u8:
+                                            case Nil{}:
+                                              match st:
+                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                            case +x9 <> +u9:
+                                              match u9:
+                                                case Nil{}:
+                                                  match st:
+                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                case +x10 <> +u10:
+                                                  match u10:
+                                                    case Nil{}:
+                                                      match st:
+                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                    case +x11 <> +u11:
+                                                      match u11:
+                                                        case Nil{}:
+                                                          match st:
+                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                        case +x12 <> +u12:
+                                                          match u12:
+                                                            case Nil{}:
+                                                              match st:
+                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                            case +x13 <> +u13:
+                                                              match u13:
+                                                                case Nil{}:
+                                                                  match st:
+                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                case +x14 <> +u14:
+                                                                  match u14:
+                                                                    case Nil{}:
+                                                                      match st:
+                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                    case +x15 <> +u15:
+                                                                      match u15:
+                                                                        case Nil{}:
+                                                                          match st:
+                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                        case +x16 <> +u16:
+                                                                          match u16:
+                                                                            case Nil{}:
+                                                                              match st:
+                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                            case +x17 <> +u17:
+                                                                              match u17:
+                                                                                case Nil{}:
+                                                                                  match st:
+                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                case +x18 <> +u18:
+                                                                                  match u18:
+                                                                                    case Nil{}:
+                                                                                      match st:
+                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                    case +x19 <> +u19:
+                                                                                      match u19:
+                                                                                        case Nil{}:
+                                                                                          match st:
+                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                        case +x20 <> +u20:
+                                                                                          match u20:
+                                                                                            case Nil{}:
+                                                                                              match st:
+                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                            case +x21 <> +u21:
+                                                                                              match u21:
+                                                                                                case Nil{}:
+                                                                                                  match st:
+                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                case +x22 <> +u22:
+                                                                                                  match u22:
+                                                                                                    case Nil{}:
+                                                                                                      match st:
+                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                    case +x23 <> +u23:
+                                                                                                      match u23:
+                                                                                                        case Nil{}:
+                                                                                                          match st:
+                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                        case +x24 <> +u24:
+                                                                                                          match u24:
+                                                                                                            case Nil{}:
+                                                                                                              match st:
+                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                            case +x25 <> +u25:
+                                                                                                              match u25:
+                                                                                                                case Nil{}:
+                                                                                                                  match st:
+                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                case +x26 <> +u26:
+                                                                                                                  match u26:
+                                                                                                                    case Nil{}:
+                                                                                                                      match st:
+                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                    case +x27 <> +u27:
+                                                                                                                      match u27:
+                                                                                                                        case Nil{}:
+                                                                                                                          match st:
+                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                        case +x28 <> +u28:
+                                                                                                                          match u28:
+                                                                                                                            case Nil{}:
+                                                                                                                              match st:
+                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                            case +x29 <> +u29:
+                                                                                                                              match u29:
+                                                                                                                                case Nil{}:
+                                                                                                                                  match st:
+                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                case +x30 <> +u30:
+                                                                                                                                  match u30:
+                                                                                                                                    case Nil{}:
+                                                                                                                                      match st:
+                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                    case +x31 <> +u31:
+                                                                                                                                      match u31:
+                                                                                                                                        case Nil{}:
+                                                                                                                                          match st:
+                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                        case +x32 <> +u32:
+                                                                                                                                          match u32:
+                                                                                                                                            case Nil{}:
+                                                                                                                                              match st:
+                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                            case +x33 <> +u33:
+                                                                                                                                              match u33:
+                                                                                                                                                case Nil{}:
+                                                                                                                                                  match st:
+                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                case +x34 <> +u34:
+                                                                                                                                                  match u34:
+                                                                                                                                                    case Nil{}:
+                                                                                                                                                      match st:
+                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                    case +x35 <> +u35:
+                                                                                                                                                      match u35:
+                                                                                                                                                        case Nil{}:
+                                                                                                                                                          match st:
+                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                        case +x36 <> +u36:
+                                                                                                                                                          match u36:
+                                                                                                                                                            case Nil{}:
+                                                                                                                                                              match st:
+                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                            case +x37 <> +u37:
+                                                                                                                                                              match u37:
+                                                                                                                                                                case Nil{}:
+                                                                                                                                                                  match st:
+                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                case +x38 <> +u38:
+                                                                                                                                                                  match u38:
+                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                      match st:
+                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                    case +x39 <> +u39:
+                                                                                                                                                                      match u39:
+                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                          match st:
+                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                        case +x40 <> +u40:
+                                                                                                                                                                          match u40:
+                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                              match st:
+                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                            case +x41 <> +u41:
+                                                                                                                                                                              match u41:
+                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                  match st:
+                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                case +x42 <> +u42:
+                                                                                                                                                                                  match u42:
+                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                      match st:
+                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                    case +x43 <> +u43:
+                                                                                                                                                                                      match u43:
+                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                          match st:
+                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                        case +x44 <> +u44:
+                                                                                                                                                                                          match u44:
+                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                              match st:
+                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                            case +x45 <> +u45:
+                                                                                                                                                                                              match u45:
+                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                case +x46 <> +u46:
+                                                                                                                                                                                                  match u46:
+                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                    case +x47 <> +u47:
+                                                                                                                                                                                                      match u47:
+                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                        case +x48 <> +u48:
+                                                                                                                                                                                                          match u48:
+                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                            case +x49 <> +u49:
+                                                                                                                                                                                                              match u49:
+                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                case +x50 <> +u50:
+                                                                                                                                                                                                                  match u50:
+                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                    case +x51 <> +u51:
+                                                                                                                                                                                                                      match u51:
+                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                        case +x52 <> +u52:
+                                                                                                                                                                                                                          match u52:
+                                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                            case +x53 <> +u53:
+                                                                                                                                                                                                                              match u53:
+                                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                case +x54 <> +u54:
+                                                                                                                                                                                                                                  match u54:
+                                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                    case +x55 <> +u55:
+                                                                                                                                                                                                                                      match u55:
+                                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                        case +x56 <> +u56:
+                                                                                                                                                                                                                                          match u56:
+                                                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                            case +x57 <> +u57:
+                                                                                                                                                                                                                                              match u57:
+                                                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                case +x58 <> +u58:
+                                                                                                                                                                                                                                                  match u58:
+                                                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                    case +x59 <> +u59:
+                                                                                                                                                                                                                                                      match u59:
+                                                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                        case +x60 <> +u60:
+                                                                                                                                                                                                                                                          match u60:
+                                                                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                            case +x61 <> +u61:
+                                                                                                                                                                                                                                                              match u61:
+                                                                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                case +x62 <> +u62:
+                                                                                                                                                                                                                                                                  match u62:
+                                                                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                    case +x63 <> +xrest:
+                                                                                                                                                                                                                                                                      match xrest:
+                                                                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                        case +x64 <> +v0:
+                                                                                                                                                                                                                                                                          match v0:
+                                                                                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                            case +x65 <> +v1:
+                                                                                                                                                                                                                                                                              match v1:
+                                                                                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                case +x66 <> +v2:
+                                                                                                                                                                                                                                                                                  match v2:
+                                                                                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                    case +x67 <> +v3:
+                                                                                                                                                                                                                                                                                      match v3:
+                                                                                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                        case +x68 <> +v4:
+                                                                                                                                                                                                                                                                                          match v4:
+                                                                                                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                            case +x69 <> +v5:
+                                                                                                                                                                                                                                                                                              match v5:
+                                                                                                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                case +x70 <> +v6:
+                                                                                                                                                                                                                                                                                                  match v6:
+                                                                                                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                    case +x71 <> +v7:
+                                                                                                                                                                                                                                                                                                      match v7:
+                                                                                                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                        case +x72 <> +v8:
+                                                                                                                                                                                                                                                                                                          match v8:
+                                                                                                                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                            case +x73 <> +v9:
+                                                                                                                                                                                                                                                                                                              match v9:
+                                                                                                                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                                case +x74 <> +v10:
+                                                                                                                                                                                                                                                                                                                  match v10:
+                                                                                                                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                                    case +x75 <> +v11:
+                                                                                                                                                                                                                                                                                                                      match v11:
+                                                                                                                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                                        case +x76 <> +v12:
+                                                                                                                                                                                                                                                                                                                          match v12:
+                                                                                                                                                                                                                                                                                                                            case Nil{}:
+                                                                                                                                                                                                                                                                                                                              match st:
+                                                                                                                                                                                                                                                                                                                                case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                                            case +x77 <> +v13:
+                                                                                                                                                                                                                                                                                                                              match v13:
+                                                                                                                                                                                                                                                                                                                                case Nil{}:
+                                                                                                                                                                                                                                                                                                                                  match st:
+                                                                                                                                                                                                                                                                                                                                    case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                                                case +x78 <> +v14:
+                                                                                                                                                                                                                                                                                                                                  match v14:
+                                                                                                                                                                                                                                                                                                                                    case Nil{}:
+                                                                                                                                                                                                                                                                                                                                      match st:
+                                                                                                                                                                                                                                                                                                                                        case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                                                    case +x79 <> +v15:
+                                                                                                                                                                                                                                                                                                                                      match v15:
+                                                                                                                                                                                                                                                                                                                                        case Nil{}:
+                                                                                                                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                                                                                                                            case C.S{w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15}: {==}
+                                                                                                                                                                                                                                                                                                                                        case +x80 <> +rr:
+                                                                                                                                                                                                                                                                                                                                          match st:
+                                                                                                                                                                                                                                                                                                                                            case C.S{+w0, +w1, +w2, +w3, +w4, +w5, +w6, +w7, +w8, +w9, +w10, +w11, +w12, +w13, +w14, +w15}: dstep(q, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31, x32, x33, x34, x35, x36, x37, x38, x39, x40, x41, x42, x43, x44, x45, x46, x47, x48, x49, x50, x51, x52, x53, x54, x55, x56, x57, x58, x59, x60, x61, x62, x63, x64, x65, x66, x67, x68, x69, x70, x71, x72, x73, x74, x75, x76, x77, x78, x79, x80, rr, w0, w1, w2, w3, w4, w5, w6, w7, w8, w9, w10, w11, w12, w13, w14, w15, r, k, c, n, odec_eq1(q, x64 <> x65 <> x66 <> x67 <> x68 <> x69 <> x70 <> x71 <> x72 <> x73 <> x74 <> x75 <> x76 <> x77 <> x78 <> x79 <> x80 <> rr, C.block(r, CH.state(k, U32.add(c, 1), n)), r, k, U32.add(c, 1), n))
+
+law odec_eq:
+  for fuel: Nat
+  for +xs: List<&2, U32>
+  for +st: C.State
+  for +r: Nat
+  for +k: CH.Key
+  for +c: U32
+  for +n: CH.Nonce
+  {I.odec(fuel, I.nblk(CH.skip(16n, xs)), xs, st, r, k, c, n) == I.fct(fuel, I.body(CH.skip(16n, xs), xs), st, r, k, c, n) : List<&2, U32>}
+
+def odec_eq(fuel, xs, st, r, k, c, n):
+  match fuel:
+    case 0n: {==}
+    case 1n+p: odec_eq1(p, xs, st, r, k, c, n)
+
+
+# the length of body(lead, xs) is lead's when xs is at least as long
+law blen:
+  for +l: List<&2, U32>
+  for +xs: List<&2, U32>
+  for +h: {Nat.is_le(List.length(&2, U32, l), List.length(&2, U32, xs)) == True{} : Bool}
+  {List.length(&2, U32, I.body(l, xs)) == List.length(&2, U32, l) : Nat}
+
+def blen(l, xs, h):
+  match l xs:
+    case Nil{} _: {==}
+    case y <> yt Nil{}: Empty.absurd({List.length(&2, U32, I.body(y <> yt, [])) == List.length(&2, U32, y <> yt) : Nat}, LG.false_true(h))
+    case y <> yt x <> xt: Equal.cong(Nat, Nat, m => 1n+m, List.length(&2, U32, I.body(yt, xt)), List.length(&2, U32, yt), blen(yt, xt, h))
+
+law le16:
+  for +m: Nat
+  {Nat.is_le(m, 16n+m) == True{} : Bool}
+
+def le16(m):
+  match m:
+    case 0n: {==}
+    case 1n+j: le16(j)
+
+law otag_eq:
+  for +ok: Bool
+  for +key: List<&2, U32>
+  for +nonce: List<&2, U32>
+  for +ct: List<&2, U32>
+  {I.open_tag(ok, key, nonce, ct) == I.owhen(ok, CH.encrypt_rounds(10n, key, 1, nonce, ct)) : Maybe<&2, List<&2, U32>>}
+
+def otag_eq(ok, key, nonce, ct):
+  match ok:
+    case True{}: {==}
+    case False{}: {==}
+
+# the fuel of the ciphertext's stream: the ciphertext's length
+law ofuel:
+  for +l: U32
+  for +lt: List<&2, U32>
+  for +xs: List<&2, U32>
+  for +hl: {List.length(&2, U32, I.body(l <> lt, xs)) == List.length(&2, U32, l <> lt) : Nat}
+  for +k: CH.Key
+  for +n: CH.Nonce
+  {I.fct(List.length(&2, U32, l <> lt), I.body(l <> lt, xs), C.block(10n, CH.state(k, 1, n)), 10n, k, 1, n) == CH.xstream(List.length(&2, U32, I.body(l <> lt, xs)), [], I.body(l <> lt, xs), 10n, k, 1, n) : List<&2, U32>}
+
+def ofuel(l, lt, xs, hl, k, n):
+  match xs:
+    case Nil{}: Empty.absurd({I.fct(List.length(&2, U32, l <> lt), I.body(l <> lt, []), C.block(10n, CH.state(k, 1, n)), 10n, k, 1, n) == CH.xstream(List.length(&2, U32, I.body(l <> lt, [])), [], I.body(l <> lt, []), 10n, k, 1, n) : List<&2, U32>}, NL.succ_zero(List.length(&2, U32, lt), Equal.sym(Nat, 0n, 1n+List.length(&2, U32, lt), hl)))
+    case +x <> +xt:
+      +b = I.body(lt, xt)
+      +e = NL.succ_inj(List.length(&2, U32, b), List.length(&2, U32, lt), hl)
+      Equal.cong(Nat, List<&2, U32>, m => CH.xstream(m, C.bytes(C.block(10n, CH.state(k, 1, n))), x <> b, 10n, k, U32.add(1, 1), n), List.length(&2, U32, lt), List.length(&2, U32, b), Equal.sym(Nat, List.length(&2, U32, b), List.length(&2, U32, lt), e))
+
+# osela is owhen(tag matches, plaintext) of the ciphertext body(lead, xs),
+# for the data xs = x0..x15 <> lead
+law osq:
+  for +pone: Nat
+  for +kk: L.K
+  for +sv: L.F
+  for +a: P.A
+  for +x0: U32
+  for +x1: U32
+  for +x2: U32
+  for +x3: U32
+  for +x4: U32
+  for +x5: U32
+  for +x6: U32
+  for +x7: U32
+  for +x8: U32
+  for +x9: U32
+  for +x10: U32
+  for +x11: U32
+  for +x12: U32
+  for +x13: U32
+  for +x14: U32
+  for +x15: U32
+  for +lead: List<&2, U32>
+  for +k: CH.Key
+  for +n: CH.Nonce
+  for +hl: {List.length(&2, U32, I.body(lead, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> lead)) == List.length(&2, U32, lead) : Nat}
+  {I.osela(pone, kk, sv, a, lead, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> lead, k, n) == I.owhen(S.eq(I.tail(lead, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> lead), P.tag_ct(pone, kk, sv, a, I.body(lead, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> lead))), CH.xstream(List.length(&2, U32, I.body(lead, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> lead)), [], I.body(lead, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> lead), 10n, k, 1, n)) : Maybe<&2, List<&2, U32>>}
+
+def osq(pone, kk, sv, a, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, lead, k, n, hl):
+  match a lead:
+    case P.A{+h, +la} Nil{}: {==}
+    case P.A{+h, +la} +l <> +lt:
+      +xs = {x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> l <> lt : List<&2, U32>}
+      +f = List.length(&2, U32, l <> lt)
+      +nb = I.nblk(l <> lt)
+      +b0 = C.block(10n, CH.state(k, 1, n))
+      +bd = I.body(l <> lt, xs)
+      +e1 = S.eq(I.tail(l <> lt, xs), P.tag_len(pone, kk, sv, la, P.absorb_pad(pone, bd, kk, h, 0n)))
+      +d1 = I.odec(f, nb, xs, b0, 10n, k, 1, n)
+      +d2 = CH.xstream(List.length(&2, U32, bd), [], bd, 10n, k, 1, n)
+      Equal.trans(Maybe<&2, List<&2, U32>>, I.owhen(I.opoly(f, nb, xs, pone, kk, sv, la, h, 0n), d1), I.owhen(e1, d1), I.owhen(e1, d2),
+        Equal.cong(Bool, Maybe<&2, List<&2, U32>>, z => I.owhen(z, d1), I.opoly(f, nb, xs, pone, kk, sv, la, h, 0n), e1, opoly_eq(f, xs, pone, kk, sv, la, h, 0n)),
+        Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, z => I.owhen(e1, z), d1, d2, Equal.trans(List<&2, U32>, d1, I.fct(f, bd, b0, 10n, k, 1, n), d2, odec_eq(f, xs, b0, 10n, k, 1, n), ofuel(l, lt, xs, hl, k, n))))
+
+# with the one-time key pk, the keystream key k and nonce n kept abstract
+law oq:
+  for +pk: List<&2, U32>
+  for +aad: List<&2, U32>
+  for +x0: U32
+  for +x1: U32
+  for +x2: U32
+  for +x3: U32
+  for +x4: U32
+  for +x5: U32
+  for +x6: U32
+  for +x7: U32
+  for +x8: U32
+  for +x9: U32
+  for +x10: U32
+  for +x11: U32
+  for +x12: U32
+  for +x13: U32
+  for +x14: U32
+  for +x15: U32
+  for +lead: List<&2, U32>
+  for +k: CH.Key
+  for +n: CH.Nonce
+  for +hl: {List.length(&2, U32, I.body(lead, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> lead)) == List.length(&2, U32, lead) : Nat}
+  {I.osel(P.pad(32n, pk), aad, lead, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> lead, k, n) == I.owhen(S.eq(I.tail(lead, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> lead), P.mac_aead(pk, aad, I.body(lead, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> lead))), CH.xstream(List.length(&2, U32, I.body(lead, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> lead)), [], I.body(lead, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> lead), 10n, k, 1, n)) : Maybe<&2, List<&2, U32>>}
+
+def oq(pk, aad, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, lead, k, n, hl):
+  match aad:
+    case Nil{}: osq(1n, L.key(P.r_of(P.kh(pk), P.kh(P.tl(pk)), P.kh(P.tl(P.tl(pk))), P.kh(P.tl(P.tl(P.tl(pk)))), P.kh(P.tl(P.tl(P.tl(P.tl(pk))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))), P.s_of(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))))))))))))))))), P.absorb_pad(1n, [], L.key(P.r_of(P.kh(pk), P.kh(P.tl(pk)), P.kh(P.tl(P.tl(pk))), P.kh(P.tl(P.tl(P.tl(pk)))), P.kh(P.tl(P.tl(P.tl(P.tl(pk))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))), L.zero(), 0n), x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, lead, k, n, hl)
+    case +x <> +rest: osq(1n, L.key(P.r_of(P.kh(pk), P.kh(P.tl(pk)), P.kh(P.tl(P.tl(pk))), P.kh(P.tl(P.tl(P.tl(pk)))), P.kh(P.tl(P.tl(P.tl(P.tl(pk))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))), P.s_of(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))))))))))))))))))))), P.absorb_pad(1n, x <> rest, L.key(P.r_of(P.kh(pk), P.kh(P.tl(pk)), P.kh(P.tl(P.tl(pk))), P.kh(P.tl(P.tl(P.tl(pk)))), P.kh(P.tl(P.tl(P.tl(P.tl(pk))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(pk)))))))))))))))))), L.zero(), 0n), x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, lead, k, n, hl)
+
+# the one-pass open is open_ref
+law open_fused:
+  for +key: List<&2, U32>
+  for +nonce: List<&2, U32>
+  for +aad: List<&2, U32>
+  for +data: List<&2, U32>
+  {I.open(key, nonce, aad, data) == I.open_ref(key, nonce, aad, data) : Maybe<&2, List<&2, U32>>}
+
+def ofull(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +x0: U32, +x1: U32, +x2: U32, +x3: U32, +x4: U32, +x5: U32, +x6: U32, +x7: U32, +x8: U32, +x9: U32, +x10: U32, +x11: U32, +x12: U32, +x13: U32, +x14: U32, +x15: U32, +rest: List<&2, U32>) -> {I.open(key, nonce, aad, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest) == I.open_ref(key, nonce, aad, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest) : Maybe<&2, List<&2, U32>>}:
+  +d = {x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest : List<&2, U32>}
+  +ct = I.body(rest, d)
+  +t = I.tail(rest, d)
+  +hl = blen(rest, d, le16(List.length(&2, U32, rest)))
+  Equal.trans(Maybe<&2, List<&2, U32>>, I.open(key, nonce, aad, d), I.owhen(S.eq(t, P.mac_aead(I.poly_key(key, nonce), aad, ct)), CH.xstream(List.length(&2, U32, ct), [], ct, 10n, CH.key(key), 1, CH.nonce(nonce))), I.open_ref(key, nonce, aad, d),
+    oq(I.poly_key(key, nonce), aad, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, rest, CH.key(key), CH.nonce(nonce), hl),
+    Equal.sym(Maybe<&2, List<&2, U32>>, I.open_ref(key, nonce, aad, d), I.owhen(S.eq(t, P.mac_aead(I.poly_key(key, nonce), aad, ct)), CH.xstream(List.length(&2, U32, ct), [], ct, 10n, CH.key(key), 1, CH.nonce(nonce))), otag_eq(S.eq(t, I.tag(key, nonce, aad, ct)), key, nonce, ct)))
+
+def open_fused(key, nonce, aad, data):
+  match data:
+    case Nil{}: {==}
+    case +x0 <> +t0:
+      match t0:
+        case Nil{}: {==}
+        case +x1 <> +t1:
+          match t1:
+            case Nil{}: {==}
+            case +x2 <> +t2:
+              match t2:
+                case Nil{}: {==}
+                case +x3 <> +t3:
+                  match t3:
+                    case Nil{}: {==}
+                    case +x4 <> +t4:
+                      match t4:
+                        case Nil{}: {==}
+                        case +x5 <> +t5:
+                          match t5:
+                            case Nil{}: {==}
+                            case +x6 <> +t6:
+                              match t6:
+                                case Nil{}: {==}
+                                case +x7 <> +t7:
+                                  match t7:
+                                    case Nil{}: {==}
+                                    case +x8 <> +t8:
+                                      match t8:
+                                        case Nil{}: {==}
+                                        case +x9 <> +t9:
+                                          match t9:
+                                            case Nil{}: {==}
+                                            case +x10 <> +t10:
+                                              match t10:
+                                                case Nil{}: {==}
+                                                case +x11 <> +t11:
+                                                  match t11:
+                                                    case Nil{}: {==}
+                                                    case +x12 <> +t12:
+                                                      match t12:
+                                                        case Nil{}: {==}
+                                                        case +x13 <> +t13:
+                                                          match t13:
+                                                            case Nil{}: {==}
+                                                            case +x14 <> +t14:
+                                                              match t14:
+                                                                case Nil{}: {==}
+                                                                case +x15 <> +rest:
+                                                                  ofull(key, nonce, aad, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, rest)
