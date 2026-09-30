@@ -29,7 +29,9 @@ import ./mirror.bend as MI
 # ---- reads ----
 
 def read_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)) == True{} : Bool}:
-  g_m
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +t, +fl}:
+      g_m
 
 def read_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id) == MI.rp(~K, ~V, ~cmp, M.Node<K>, MI.read(~K, ~V, ~cmp, m, id)) : M.TreeMap<K, V, cmp> & M.Node<K>}:
   match m:
@@ -37,7 +39,9 @@ def read_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +
       PR.read_c(~K, ~V, ~cmp, n, root, lo, hi, free, l, d, nl, pl, t, fl, L.and_left(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_m), L.and_left(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), L.and_right(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_m)), L.and_left(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)), L.and_right(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), L.and_right(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_m))), L.and_right(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)), L.and_right(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl))), L.and_right(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))), g_m))), id)
 
 def get_id_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, Maybe<&2, V>, MI.get_id(~K, ~V, ~cmp, m, id)) == True{} : Bool}:
-  g_m
+  match m:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +t, +fl}:
+      g_m
 
 def get_id_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.get_id(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id) == MI.rp(~K, ~V, ~cmp, Maybe<&2, V>, MI.get_id(~K, ~V, ~cmp, m, id)) : M.TreeMap<K, V, cmp> & Maybe<&2, V>}:
   match m:

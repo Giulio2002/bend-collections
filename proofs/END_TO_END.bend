@@ -1,8 +1,4 @@
 import Base
-import ./lib/lemmas/src/public.bend as LRUPub
-import ./lib/lemmas/spec/clock.bend as LRUClock
-import ./lib/lemmas/spec/cache.bend as LRUSpec
-import ./lib/lemmas/proofs/public_trace.bend as LRUTrace
 import ./lib/array.bend as AR
 import ./lib/logic.bend as L
 import ../spec/lib/common.bend as SC
