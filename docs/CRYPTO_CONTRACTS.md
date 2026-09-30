@@ -890,9 +890,8 @@ over the records (`pti`, `ptp`: register by register, products by b3 through
 the 256 bits (linear-time bit lists): for a secret scalar both branches of
 every step are computed and selected with an arithmetic mask, with no branch
 or index on the scalar; for a public scalar (verification, recovery) only the
-set bits add. BIP-340 functions take the tag hashes as arguments, the code's
-precomputed and the specification's SHA-256 of the tag names, equal by
-evaluation once. RFC 6979 candidates, low-S (`s > n / 2` becomes `n - s`, the
+set bits add. BIP-340 functions take the tag hashes as arguments (SHA-256 of
+the tag names, computed per call). RFC 6979 candidates, low-S (`s > n / 2` becomes `n - s`, the
 recovery id's parity flipped) and the recovery x = r + n (computed as
 (r - c_n + c_p) mod p, valid when not below n) are computed on limbs.
 Operations look at their arguments first where that keeps unknown values
@@ -915,14 +914,19 @@ key), which changes nothing at run time.
 | `SchnorrKeypairPubkey.correct` | `schnorr_keypair_pubkey(schnorr_keypair(sk)) == SS.pubkey(one, sk)` | proved (`proof_schnorr.bend`) |
 | `SchnorrSignKeypair.correct` | `schnorr_sign_keypair(schnorr_keypair(sk), msg, aux) == SS.sign(one, sk, msg, aux)` | proved (`proof_schnorr.bend`) |
 
-Each laws file has its own root, so that each checks alone (Bend 2.0.34):
-on the development machine (`bend-local`) `proof.bend` 18 s and 797 MB,
-`proof_sign.bend` 44-50 s and 1027-1146 MB, `proof_schnorr.bend` 34 s and
-1026 MB; on the shared server (`rcheck`, one after another) `proof.bend`
-33 s and 1085 MB, `proof_sign.bend` 76 s and 1770 MB, `proof_verify.bend`
-36 s and 1079 MB, `proof_recover.bend` 39 s and 1198 MB,
-`proof_schnorr.bend` 66 s and 1751 MB. The sign and Schnorr roots include
-the SHA-256 conformance proof (about 11 s and 500 MB alone).
+Each laws file has its own root, so that each checks alone (Bend 2.0.34,
+on the shared server with `rcheck`, one after another): `proof.bend` 27-44 s
+and 710 MB, `proof_sign.bend` 42-55 s and 933 MB, `proof_verify.bend` 32 s
+and 792 MB, `proof_recover.bend` 32 s and 800 MB, `proof_schnorr.bend` 41 s
+and 877 MB (the times move with the server's load). What keeps them there:
+the proofs import pruned copies of the proof libraries
+(`proofs/crypto/secp256k1/lite/`, written by `tools/generators/shake.py`: the
+251 definitions reached, unchanged, of 842); literal limbs are compared with
+2^16 once (`lits`), and the generator is reduced by its top limb, with no
+arithmetic on its coordinates; HMAC stays folded on an unknown key, and the
+DRBG's initial K and V, like the BIP-340 tag hashes, are arguments named once
+at the top, behind a test the proofs keep unknown, so that the checker never
+expands a hash of constants.
 
 The lemmas underneath (`proofs/crypto/secp256k1/`, generated from
 `tools/generators/secp256k1_hand/*.src` by `tools/generators/rw.py`, whose
