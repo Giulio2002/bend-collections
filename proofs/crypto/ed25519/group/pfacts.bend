@@ -2,15 +2,15 @@
 import Base
 import ../../../../spec/lib/common.bend as C
 import ../../../../spec/crypto/curve25519/field.bend as FS
-import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../../math/typed/width.bend as WW
+import ./lite/lib/lemmas/proofs/nat_algebra.bend as NA
+import ./lite/math/typed/width.bend as WW
 import ../../secp256k1/semiring.bend as SR
-import ../../../lib/nat.bend as N
-import ../../../math/natural/arith.bend as NR
+import ./lite/lib/nat.bend as N
+import ./lite/math/natural/arith.bend as NR
 import ../../secp256k1/group/bn.bend as B
 import ../../secp256k1/group/bnx.bend as X
-import ../../secp256k1/group/fld.bend as F
-import ../../../math/number/nt_prime.bend as PM
+import ./lite/crypto/secp256k1/group/fld.bend as F
+import ./lite/math/number/nt_prime.bend as PM
 import ../../../lib/logic.bend as Lg
 import ./plits.bend as PL
 

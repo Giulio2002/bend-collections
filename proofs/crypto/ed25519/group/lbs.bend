@@ -4,10 +4,10 @@ import ../../../../spec/crypto/curve25519/field.bend as FS
 import ../../../../spec/crypto/curve25519/edwards.bend as G
 import ../../../../spec/crypto/ed25519.bend as ED
 import ../../../../spec/crypto/ed25519_group.bend as GE
-import ../../../lib/nat.bend as N
-import ../../../math/number/nt_prime.bend as PM
+import ./lite/lib/nat.bend as N
+import ./lite/math/number/nt_prime.bend as PM
 import ../../secp256k1/group/bnx.bend as X
-import ../../secp256k1/group/fld.bend as F
+import ./lite/crypto/secp256k1/group/fld.bend as F
 import ./pfacts.bend as PF
 import ./lfacts.bend as LF
 import ./cpar.bend as CP

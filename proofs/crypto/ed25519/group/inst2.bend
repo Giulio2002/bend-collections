@@ -5,7 +5,7 @@ import ../../../../spec/crypto/curve25519/edwards.bend as G
 import ../../../../spec/crypto/ed25519.bend as ED
 import ../../../../spec/crypto/ed25519_group.bend as GE
 import ../../../../spec/crypto/sha512.bend as SHA
-import ../../../lib/nat.bend as N
+import ./lite/lib/nat.bend as N
 import ../../secp256k1/group/bnx.bend as X
 import ./pfacts.bend as PF
 import ./lfacts.bend as LF

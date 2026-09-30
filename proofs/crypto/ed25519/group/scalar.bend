@@ -2,7 +2,7 @@ import Base
 import ../../../../spec/math/number.bend as SN
 import ../../../../spec/crypto/ed25519.bend as ED
 import ../../../../spec/crypto/ed25519_group.bend as GE
-import ../../../math/number/nt_fld.bend as FD
+import ./lite/math/number/nt_fld.bend as FD
 
 # The scalars modulo the group order L are a field, for L prime (the
 # Pocklington certificate: certla.bend, cert_l.bend, cert_l1.bend).

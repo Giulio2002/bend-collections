@@ -30,7 +30,7 @@ import ../../secp256k1/group/poly.bend as P
 import ../../secp256k1/group/pev.bend as E
 import ../../secp256k1/group/zm.bend as Z
 import ../../secp256k1/group/ident.bend as I
-import ../../secp256k1/group/fld.bend as F
+import ./lite/crypto/secp256k1/group/fld.bend as F
 import ./ex.bend as X
 import ./redm.bend as RM
 import ./idm.bend as IM

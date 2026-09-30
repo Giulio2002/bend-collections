@@ -1,11 +1,11 @@
 import Base
-import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../../math/typed/width.bend as WW
+import ./lite/lib/lemmas/proofs/nat_algebra.bend as NA
+import ./lite/math/typed/width.bend as WW
 import ../../secp256k1/semiring.bend as SR
 import ../../secp256k1/group/poly.bend as P
 import ../../secp256k1/group/pev.bend as E
 import ../../secp256k1/group/zm.bend as Z
-import ../../secp256k1/group/fld.bend as F
+import ./lite/crypto/secp256k1/group/fld.bend as F
 import ../../../../spec/crypto/curve25519/field.bend as FS
 import ./redm.bend as RM
 
