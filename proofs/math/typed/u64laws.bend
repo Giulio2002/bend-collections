@@ -2,7 +2,6 @@ import Base
 import ../../../spec/lib/common.bend as C
 import ../../../spec/math/instances.bend as SI
 import ../../../spec/math/generic.bend as SG
-import ../../../spec/math/w64.bend as SW
 import ../../../src/math/instances.bend as I
 import ../../../src/math/num.bend as NM
 import ../../../src/math/w64.bend as X
@@ -11,7 +10,6 @@ import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ./width.bend as WW
 import ./u32laws.bend as LW
-import ./w64mul.bend as W64M
 import ./w64add.bend as WA
 import ./w64dmtop.bend as DT
 import ./w64dmrem.bend as DR

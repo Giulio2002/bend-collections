@@ -133,20 +133,20 @@ def lex(c: Cmp, r: Cmp) -> Cmp:
       GT{}
 
 def order_tag(+a: String, +b: String) -> {String.order(a, b) == NM.comparison_tag(String, String.cmp(a, b)) : Cmp}:
-  %Equal.sym((String & String) & Cmp, String.cmp(a, b), ((a, b), NM.comparison_tag(String, String.cmp(a, b))), NM.string_comparison_shape(a, b)) : {String.order.fin(_) == NM.comparison_tag(String, _) : Cmp}
+  %Equal.sym((String & String) & Cmp, String.cmp(a, b), ((a, b), NM.comparison_tag(String, String.cmp(a, b))), NM.string_comparison_shape(a, b)) : {Pair.snd(String & String, Cmp, _) == NM.comparison_tag(String, _) : Cmp}
   {==}
 
 def so_cons_c(+x: U32, +t1: String, +y: U32, +t2: String, +c: Cmp, +ec: {U32.cmp(x, y) == c : Cmp}) -> {String.order(SCon{Chr{x}, t1}, SCon{Chr{y}, t2}) == lex(c, String.order(t1, t2)) : Cmp}:
   match c:
     case LT{}:
-      %Equal.sym(Cmp, U32.cmp(x, y), LT{}, ec) : {String.order.fin(String.cmp.fin(t1, t2, ((Chr{x}, Chr{y}), _))) == LT{} : Cmp}
+      %Equal.sym(Cmp, U32.cmp(x, y), LT{}, ec) : {Pair.snd(String & String, Cmp, String.cmp.fin(t1, t2, ((Chr{x}, Chr{y}), _))) == LT{} : Cmp}
       {==}
     case GT{}:
-      %Equal.sym(Cmp, U32.cmp(x, y), GT{}, ec) : {String.order.fin(String.cmp.fin(t1, t2, ((Chr{x}, Chr{y}), _))) == GT{} : Cmp}
+      %Equal.sym(Cmp, U32.cmp(x, y), GT{}, ec) : {Pair.snd(String & String, Cmp, String.cmp.fin(t1, t2, ((Chr{x}, Chr{y}), _))) == GT{} : Cmp}
       {==}
     case EQ{}:
-      %Equal.sym(Cmp, U32.cmp(x, y), EQ{}, ec) : {String.order.fin(String.cmp.fin(t1, t2, ((Chr{x}, Chr{y}), _))) == String.order(t1, t2) : Cmp}
-      %Equal.sym((String & String) & Cmp, String.cmp(t1, t2), ((t1, t2), NM.comparison_tag(String, String.cmp(t1, t2))), NM.string_comparison_shape(t1, t2)) : {String.order.fin(String.cmp.rec(Chr{x}, Chr{y}, _)) == String.order.fin(_) : Cmp}
+      %Equal.sym(Cmp, U32.cmp(x, y), EQ{}, ec) : {Pair.snd(String & String, Cmp, String.cmp.fin(t1, t2, ((Chr{x}, Chr{y}), _))) == String.order(t1, t2) : Cmp}
+      %Equal.sym((String & String) & Cmp, String.cmp(t1, t2), ((t1, t2), NM.comparison_tag(String, String.cmp(t1, t2))), NM.string_comparison_shape(t1, t2)) : {Pair.snd(String & String, Cmp, String.cmp.rec(Chr{x}, Chr{y}, _)) == Pair.snd(String & String, Cmp, _) : Cmp}
       {==}
 
 def so_cons(+x: U32, +t1: String, +y: U32, +t2: String) -> {String.order(SCon{Chr{x}, t1}, SCon{Chr{y}, t2}) == lex(U32.cmp(x, y), String.order(t1, t2)) : Cmp}:

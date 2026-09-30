@@ -3,11 +3,9 @@ import ../../../spec/lib/common.bend as C
 import ../../../spec/math/generic.bend as SG
 import ../../../spec/math/fixed.bend as SF
 import ../../../spec/math/number.bend as SN
-import ../../../src/math/w64.bend as X
 import ../../../src/math/u64.bend as WU
 import ../../../src/math/fixed.bend as F
 import ../../lib/nat.bend as N
-import ../../lib/logic.bend as L
 import ../../lib/u32div.bend as UD
 import ../natural/arith.bend as R
 import ./width.bend as WW

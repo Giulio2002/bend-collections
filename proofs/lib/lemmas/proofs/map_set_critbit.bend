@@ -27,7 +27,7 @@ law comparison_boolean:
   for compared: {N.comparison_tag(String, String.cmp(key, stored)) == c : Cmp}
   {String.eq(key, stored) == Cmp.is_eq(c) : Bool}
 def comparison_boolean(key, stored, c, compared):
-  %Equal.sym((String & String) & Cmp, String.cmp(key, stored), ((key, stored), N.comparison_tag(String, String.cmp(key, stored))), N.string_comparison_shape(key, stored)) : {String.eq.fin(_) == Cmp.is_eq(c) : Bool}
+  %Equal.sym((String & String) & Cmp, String.cmp(key, stored), ((key, stored), N.comparison_tag(String, String.cmp(key, stored))), N.string_comparison_shape(key, stored)) : {Cmp.is_eq(Pair.snd(String & String, Cmp, _)) == Cmp.is_eq(c) : Bool}
   Equal.cong(Cmp, Bool, Cmp.is_eq, N.comparison_tag(String, String.cmp(key, stored)), c, compared)
 
 law comparison_case:

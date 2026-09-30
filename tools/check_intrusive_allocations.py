@@ -59,7 +59,7 @@ def main():
     # Positive control: the counter must detect a forced allocation inside
     # the same interval. Never ship a permanently-zero measurement.
     control = measured.read_text().replace('il_active = 1;',
-        'il_active = 1; Loc probe = heap_alloc(e, 0); heap_free(e, 0, probe);')
+        'il_active = 1; heap_free(e, 0, heap_alloc(e, 0));')
     measured.write_text(control)
     run([args.cc, '-O3', '-std=gnu11', '-pthread', str(measured), '-lm', '-o', str(exe)])
     positive = run([str(exe), '--threads', '1'])

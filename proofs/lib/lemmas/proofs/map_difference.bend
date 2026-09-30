@@ -142,4 +142,4 @@ law native_difference_on_unequal_comparison:
   for unequal: {String.eq(a, b) == False{} : Bool}
   {distinguishes(a, b) == True{} : Bool}
 def native_difference_on_unequal_comparison(a, b, unequal):
-  native_difference(a, b, e => Logic.false_true(Equal.trans(Bool, False{}, String.eq(a, b), True{}, Equal.sym(Bool, String.eq(a, b), False{}, unequal), Equal.cong((String & String) & Cmp, Bool, String.eq.fin, String.cmp(a, b), ((a, b), EQ{}), N.string_equal_comparison(a, b, e)))))
+  native_difference(a, b, e => Logic.false_true(Equal.trans(Bool, False{}, String.eq(a, b), True{}, Equal.sym(Bool, String.eq(a, b), False{}, unequal), Equal.cong((String & String) & Cmp, Bool, (p => Cmp.is_eq(Pair.snd(String & String, Cmp, p))), String.cmp(a, b), ((a, b), EQ{}), N.string_equal_comparison(a, b, e)))))

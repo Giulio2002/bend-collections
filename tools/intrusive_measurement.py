@@ -6,6 +6,25 @@ not OS malloc calls or peak bytes. Timing-only builds contain no counter.
 import re
 
 
+# The runtime's allocator entry points: Bend 2.0.32 spells them with its
+# Loc/Cls typedefs, Bend 2.0.34 with u64/u32. Exactly one must be present.
+ALLOC_MARKERS = ('INLINE Loc heap_alloc(Env e, Cls cls) {', 'INLINE u64 heap_alloc(Env e, u32 cls) {')
+FREE_MARKERS = ('INLINE void heap_free(Env e, Cls cls, Loc loc) {', 'INLINE void heap_free(Env e, u32 cls, u64 loc) {')
+
+
+def _one(source, markers):
+    found = [m for m in markers if source.count(m) == 1]
+    return found[0] if len(found) == 1 and sum(source.count(m) for m in markers) == 1 else None
+
+
+def alloc_marker(source):
+    return _one(source, ALLOC_MARKERS)
+
+
+def free_marker(source):
+    return _one(source, FREE_MARKERS)
+
+
 def instrument(source, allocations=True, memory=False):
     markers = list(re.finditer(
         r'INLINE Term spin_\d+\([^\n]+\) \{\n(?:(?!\n\}).)*?Term _churn_iterations_0 = r0;',
@@ -30,8 +49,8 @@ def instrument(source, allocations=True, memory=False):
               if allocations else '  fprintf(stderr, "IL_NS %llu\\n", il_ns);\n')
     source = source[:start] + before + body.replace('return 1;', after + '  return 1;') + source[end:]
     if allocations:
-        marker = 'INLINE Loc heap_alloc(Env e, Cls cls) {'
-        if source.count(marker) != 1:
+        marker = alloc_marker(source)
+        if marker is None:
             raise RuntimeError('allocator instrumentation point changed')
         source = source.replace(marker,
             'static unsigned long long il_allocations = 0;\nstatic int il_active = 0;\n' +
@@ -41,11 +60,9 @@ def instrument(source, allocations=True, memory=False):
         # Account from process start so prewarmed arenas remain in the total;
         # reset only the high-water mark at the hot-loop boundary. Single CPU
         # worker only. This excludes stacks, allocator free lists and RSS.
-        alloc = 'INLINE Loc heap_alloc(Env e, Cls cls) {'
-        free = 'INLINE void heap_free(Env e, Cls cls, Loc loc) {'
-        for marker in (alloc, free):
-            if source.count(marker) != 1:
-                raise RuntimeError('live-block instrumentation point changed')
+        alloc, free = alloc_marker(source), free_marker(source)
+        if alloc is None or free is None:
+            raise RuntimeError('live-block instrumentation point changed')
         if 'ALC_LEN(e, cls) += 1ull << cls;' not in source:
             raise RuntimeError('allocator size-class representation changed')
         source = source.replace(alloc,

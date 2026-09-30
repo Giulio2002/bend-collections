@@ -1,6 +1,9 @@
 /* Same application work as intrusive_{transfer,pulses}.bend. Plain indexed
  * C establishes a reference for the preconditioned intrusive representation;
  * it is not a replacement for the checked generational DList comparator. */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L  /* clock_gettime under -std=c11 on glibc */
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

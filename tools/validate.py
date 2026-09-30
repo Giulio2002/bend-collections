@@ -251,7 +251,8 @@ def main():
 
     if not PINNED:
         print('unpinned toolchain (BEND=%s): the report records it as such' % BEND, file=sys.stderr)
-    elif sha(BEND) != LOCK['binary_sha256'] or sha(BASE) != LOCK['base_sha256']:
+    elif (sha(BEND) not in set(LOCK.get('binary_sha256_by_platform', {}).values()) | {LOCK['binary_sha256']}
+          or sha(BASE) != LOCK['base_sha256']):
         print('pinned toolchain changed', file=sys.stderr)
         return 1
 
@@ -434,6 +435,166 @@ def main():
         (LOGDIR / 'math.log').write_text('\n'.join(x['output'] for x in checks))
         print('%-22s differential=%s proof=%s' % ('math', math_row['differential'], math_row['proof']), flush=True)
 
+    # src/crypto (subtle, SHA-512, SHA3-256, the hash facade, X25519 / kex,
+    # Ed25519 / sign): the FIPS vectors and differential tests against
+    # Python's hashlib (tools/check_crypto_hash.py), the RFC 7748 / 8032
+    # vectors and differential tests against `cryptography`
+    # (tools/check_curve25519.py), then every crypto proof root with
+    # proofs/prove.py (the proofs of each package against its spec).
+    crypto_row = None
+    if not args.only or args.only == 'crypto':
+        checks = []
+        crypto_checks = [([sys.executable, 'tools/check_crypto_hash.py'], 3600),
+                         # Argon2id / password: RFC 9106 5.3 vector, argon2-cffi differential, PHC strings
+                         ([sys.executable, 'tools/check_argon2.py'], 3600),
+                         ([sys.executable, 'tools/check_curve25519.py'], 7200),
+                         ([sys.executable, 'proofs/prove.py', '-j', '4', 'subtle', 'sha512', 'sha3', 'hash', 'argon2',
+                           'curve25519', 'ed25519'], 14400)]
+        for command, limit in crypto_checks:
+            result = run(command, timeout=limit)
+            passed = result.returncode == 0
+            checks.append({'command': command, 'passed': passed, 'output': result.stdout + result.stderr})
+            if not passed:
+                fail('crypto', 'crypto check failed: ' + repr(command))
+        good = all(x['passed'] for x in checks)
+        crypto_row = {'id': 'crypto', 'implementation': 'src/crypto/subtle.bend, sha512/, sha3/, hash.bend, argon2/, password.bend, curve25519/, ed25519/, kex.bend, sign.bend',
+                      'differential': 'passed' if all(x['passed'] for x in checks[:-1]) else 'failed',
+                      'proof': 'passed' if checks[-1]['passed'] else 'failed', 'checks': checks}
+        (LOGDIR / 'crypto.log').write_text('\n'.join(x['output'] for x in checks))
+        print('%-22s differential=%s proof=%s' % ('crypto', crypto_row['differential'], crypto_row['proof']), flush=True)
+    # src/crypto/mac.bend and src/crypto/kdf.bend (HMAC-SHA256, HKDF-SHA256):
+    # the RFC 4231 / RFC 5869 vectors run by the Bend runtime and the
+    # differential test against hmac/hashlib/cryptography
+    # (tools/check_mac.py), and their proof packages.
+    mac_row = None
+    if not args.only or args.only == 'mac':
+        checks = []
+        mac_checks = [([sys.executable, 'tools/check_mac.py'], 3600),
+                      ([BEND, 'proofs/crypto/mac/proof.bend'], 3600),
+                      ([BEND, 'proofs/crypto/kdf/proof.bend'], 3600)]
+        for command, limit in mac_checks:
+            result = run(command, timeout=limit)
+            passed = result.returncode == 0 and (command[0] != BEND or proved(result.stdout))
+            checks.append({'command': command, 'passed': passed, 'output': result.stdout + result.stderr})
+            if not passed:
+                fail('mac', 'mac/kdf check failed: ' + repr(command))
+        good = all(x['passed'] for x in checks)
+        mac_row = {'id': 'mac', 'implementation': 'src/crypto/mac.bend, src/crypto/kdf.bend',
+                   'differential': 'passed' if checks[0]['passed'] else 'failed',
+                   'proof': 'passed' if good else 'failed', 'checks': checks}
+        (LOGDIR / 'mac.log').write_text('\n'.join(x['output'] for x in checks))
+        print('%-22s differential=%s proof=%s' % ('mac', mac_row['differential'], mac_row['proof']), flush=True)
+    # src/crypto/chacha, src/crypto/poly1305, src/crypto/aead (ChaCha20,
+    # HChaCha20, XChaCha20, Poly1305, ChaCha20-Poly1305, XChaCha20-Poly1305):
+    # the RFC 8439 / XChaCha draft vectors run by the Bend runtime, the
+    # differential tests against `cryptography` (tools/check_chacha.py,
+    # tools/check_poly1305.py), and the three proof packages.
+    chacha_row = None
+    if not args.only or args.only == 'chacha':
+        checks = []
+        vector_tests = [('chacha', 'tests/crypto/chacha/main.bend'),
+                        ('poly1305', 'tests/crypto/poly1305/main.bend'),
+                        ('aead', 'tests/crypto/aead/main.bend')]
+        for label, source in vector_tests:
+            binary = BUILD / 'crypto' / label
+            binary.parent.mkdir(parents=True, exist_ok=True)
+            built = run([BEND, source, '-o', str(binary.relative_to(ROOT))], timeout=1800)
+            out = built.stdout + built.stderr
+            passed = binary.exists()
+            if passed:
+                ran = subprocess.run([str(binary)], env=ENV, text=True, capture_output=True, timeout=1800)
+                out += ran.stdout + ran.stderr
+                last = [ln for ln in ran.stdout.splitlines() if ln.startswith(label + ':')]
+                import re
+                m = re.search(r'(\d+)\s*/\s*(\d+)', last[-1]) if last else None
+                counts = [m.group(1), m.group(2)] if m else ['0', '1']
+                passed = ran.returncode == 0 and 'FAIL' not in ran.stdout and counts[0] == counts[1]
+            checks.append({'command': [BEND, source], 'passed': passed, 'output': out})
+            if not passed:
+                fail('chacha', 'vector test failed: ' + source)
+        chacha_checks = [([sys.executable, 'tools/check_chacha.py'], 3600),
+                         ([sys.executable, 'tools/check_poly1305.py'], 3600),
+                         ([BEND, 'proofs/crypto/chacha/proof.bend'], 3600),
+                         ([BEND, 'proofs/crypto/poly1305/proof.bend'], 3600),
+                         ([BEND, 'proofs/crypto/aead/proof.bend'], 3600)]
+        for command, limit in chacha_checks:
+            result = run(command, timeout=limit)
+            passed = result.returncode == 0 and (command[0] != BEND or proved(result.stdout))
+            checks.append({'command': command, 'passed': passed, 'output': result.stdout + result.stderr})
+            if not passed:
+                fail('chacha', 'chacha/poly1305/aead check failed: ' + repr(command))
+        good = all(x['passed'] for x in checks)
+        chacha_row = {'id': 'chacha', 'implementation': 'src/crypto/chacha, src/crypto/poly1305, src/crypto/aead.bend',
+                      'differential': 'passed' if all(x['passed'] for x in checks[:5]) else 'failed',
+                      'proof': 'passed' if good else 'failed', 'checks': checks}
+        (LOGDIR / 'chacha.log').write_text('\n'.join(x['output'] for x in checks))
+        print('%-22s differential=%s proof=%s' % ('chacha', chacha_row['differential'], chacha_row['proof']), flush=True)
+    # src/crypto/aes and src/crypto/aesgcm.bend (AES, AES-GCM): the FIPS 197
+    # and GCM example vectors run by tests/crypto/aes/main.bend, the NIST CAVP
+    # GCM vectors and the differential test against `cryptography`
+    # (tools/check_aes.py), and the proof package.
+    aes_row = None
+    if not args.only or args.only == 'aes':
+        (ROOT / 'build/aes').mkdir(parents=True, exist_ok=True)
+        expected = ['69c4e0d86a7b0430d8cdb78070b4c55a', 'dda97ca4864cdfe06eaf70a0ec0d7191',
+                    '8ea2b7ca516745bfeafc49904b496089',
+                    '0388dace60b6a392f328c2b971b2fe78ab6e47d42cec13bdf53a67b21257bddf',
+                    'cea7403d4d606b6e074ec5d3baf39d18d0d1c8a799996bf0265b98b5d48ab919',
+                    '00000000000000000000000000000000']
+        checks = []
+        aes_checks = [([BEND, 'tests/crypto/aes/main.bend', '-o', 'build/aes/main'], 1800),
+                      (['build/aes/main'], 300),
+                      ([sys.executable, 'tools/check_aes.py'], 3600),
+                      ([BEND, 'proofs/crypto/aes/proof.bend'], 7200)]
+        for command, limit in aes_checks:
+            result = run(command, timeout=limit)
+            if command[0] == 'build/aes/main':
+                passed = result.returncode == 0 and result.stdout.split() == expected
+            else:
+                passed = result.returncode == 0 and (command[0] != BEND or '-o' in command or proved(result.stdout))
+            checks.append({'command': command, 'passed': passed, 'output': result.stdout + result.stderr})
+            if not passed:
+                fail('aes', 'aes check failed: ' + repr(command))
+                break
+        good = len(checks) == len(aes_checks) and all(x['passed'] for x in checks)
+        aes_row = {'id': 'aes', 'implementation': 'src/crypto/aes/, src/crypto/aesgcm.bend',
+                   'differential': 'passed' if len(checks) >= 3 and all(x['passed'] for x in checks[:3]) else 'failed',
+                   'proof': 'passed' if good else 'failed', 'checks': checks}
+        (LOGDIR / 'aes.log').write_text('\n'.join(x['output'] for x in checks))
+        print('%-22s differential=%s proof=%s' % ('aes', aes_row['differential'], aes_row['proof']), flush=True)
+
+    # src/math/random.bend and src/crypto/random.bend (Go's math/rand/v2 and
+    # C2SP chacha8rand): Go's published vectors, a Python mirror of Go on
+    # random keys and call sequences, a chi-square smoke test of uint64n
+    # (tools/check_random.py), the five proof roots and the specs.
+    random_row = None
+    if not args.only or args.only == 'random':
+        (ROOT / 'build/math').mkdir(parents=True, exist_ok=True)
+        checks = []
+        random_checks = [([BEND, 'tests/math/random.bend', '-o', 'build/math/random'], 1800),
+                         ([sys.executable, 'tools/check_random.py', '2026'], 1800),
+                         ([sys.executable, 'tools/check_random.py', '7'], 1800),
+                         ([BEND, 'proofs/math/random/proof.bend'], 1800),
+                         ([BEND, 'proofs/math/random/proof_draws.bend'], 1800),
+                         ([BEND, 'proofs/math/random/proof_pcg.bend'], 1800),
+                         ([BEND, 'proofs/math/random/proof_float.bend'], 1800),
+                         ([BEND, 'proofs/crypto/random/proof.bend'], 1800)] + \
+                        [([BEND, str(f.relative_to(ROOT))], 1800) for f in sorted((ROOT / 'spec/math/random').glob('*.bend'))] + \
+                        [([BEND, 'spec/math/random.bend'], 1800), ([BEND, 'spec/crypto/random.bend'], 1800)]
+        for command, limit in random_checks:
+            result = run(command, timeout=limit)
+            passed = result.returncode == 0 and (not command[1].endswith('.bend') or '-o' in command or proved(result.stdout))
+            checks.append({'command': command, 'passed': passed, 'output': result.stdout + result.stderr})
+            if not passed:
+                fail('random', 'random check failed: ' + repr(command))
+                break
+        good = len(checks) == len(random_checks) and all(x['passed'] for x in checks)
+        random_row = {'id': 'random', 'implementation': 'src/math/random/, src/crypto/random.bend',
+                      'differential': 'passed' if good else 'failed',
+                      'proof': 'passed' if good else 'failed', 'checks': checks}
+        (LOGDIR / 'random.log').write_text('\n'.join(x['output'] for x in checks))
+        print('%-22s differential=%s proof=%s' % ('random', random_row['differential'], random_row['proof']), flush=True)
+
     lru_log = []
     lru_ok, lru_detail = check_lru(lru_log)
     (LOGDIR / 'lru.log').write_text('\n'.join(lru_log))
@@ -450,6 +611,11 @@ def main():
     report = {
         'structures': rows,
         'math': math_row,
+        'crypto': crypto_row,
+        'mac': mac_row,
+        'chacha': chacha_row,
+        'aes': aes_row,
+        'random': random_row,
         'lru_reuse': 'passed' if lru_ok else 'failed',
         'lru_detail': lru_detail,
         'complete': bool(complete),

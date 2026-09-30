@@ -1,4 +1,5 @@
 import Base
+import ./f64round.bend as FR
 import ../../../spec/lib/common.bend as C
 import ../../../spec/math/f64.bend as SF
 import ../../../src/math/f64.bend as F
@@ -24,9 +25,9 @@ def spec_g(+a1: Bool, +z1: Bool, +a2: Bool, +z2: Bool, +sx: Bool, +sy: Bool, +x:
 def pick_same(+b: Bool, +r: F.F64) -> {SF.pick(F.F64, b, r, r) == r : F.F64}:
   match b:
     case True{}:
-      {==}
+      Equal.trans(F.F64, SF.pick(F.F64, True{}, r, r), r, r, FR.pk_t(F.F64, r, r), {==})
     case False{}:
-      {==}
+      Equal.trans(F.F64, SF.pick(F.F64, False{}, r, r), r, r, FR.pk_f(F.F64, r, r), {==})
 
 def ff(+z1: Bool, +z2: Bool, +sx: Bool, +sy: Bool, +x: F.F64, +y: F.F64, +fin: F.F64) -> {spec_g(False{}, z1, False{}, z2, sx, sy, x, y, fin) == fin : F.F64}:
   {==}

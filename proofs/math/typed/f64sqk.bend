@@ -1,6 +1,5 @@
 import Base
 import ../../../spec/lib/common.bend as C
-import ../../../src/math/natural.bend as M
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA

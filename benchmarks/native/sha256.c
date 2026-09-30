@@ -3,6 +3,9 @@
    the file is cut into messages of that size before timing, every message is
    hashed inside the timed region, then BENCH_MS and every digest (hex) are
    printed. Straight-line rounds, no intrinsics or assembly. */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L  /* clock_gettime under -std=c11 on glibc */
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

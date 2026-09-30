@@ -5,6 +5,9 @@
 // comb and factorial in a wider type with an overflow test, binary
 // exponentiation (a 128-bit product for u64 mod m), and float/double powers
 // by the same square-and-multiply order. Prints BENCH_MS=<ms> and the sum.
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L  /* clock_gettime under -std=c11 on glibc */
+#endif
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>

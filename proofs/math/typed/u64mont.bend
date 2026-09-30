@@ -16,14 +16,13 @@ import ./w64mul.bend as W64M
 import ./w64sqrt.bend as W64S
 import ./w64m128.bend as M128
 import ./w64dm.bend as DM
-import ./f64sqa.bend as AQ
+import ./natlight.bend as AQ
 import ./montnat.bend as MN
 import ./w64dmrem.bend as DR
 import ../../lib/u32.bend as U
 import ../u64/u64div.bend as PD
 import ./w64mm.bend as MM
 import ../../../src/math/natural.bend as M
-import ./f64sqn.bend as QN
 import ../natural/sqrtn.bend as SQ2
 
 # src/math/w64.bend's Montgomery multiplication: redc(t) for t < m^2 is
@@ -85,7 +84,7 @@ def sif_c(+bp: Nat, +m: WU.U64, +r: WU.U64, +hM: {SW.value(m) == 1n+bp : Nat}, +
       +es = Equal.trans(Nat, SW.value(X.sub(r, m)), Nat.sub(SW.value(r), SW.value(m)), Nat.sub(SW.value(r), 1n+bp), WA.sub_value(r, m, hle0), Equal.cong(Nat, Nat, z => Nat.sub(SW.value(r), z), SW.value(m), 1n+bp, hM))
       +x = Nat.sub(SW.value(r), 1n+bp)
       +hx = N.sub_lt(SW.value(r), 1n+bp, 1n+bp, hle, hr)
-      +er = Equal.trans(Nat, Nat.add(Nat.mul(1n, 1n+bp), x), Nat.add(1n+bp, x), SW.value(r), Equal.cong(Nat, Nat, z => Nat.add(z, x), Nat.mul(1n, 1n+bp), 1n+bp, QN.mul1(1n+bp)), N.sub_add(SW.value(r), 1n+bp, hle))
+      +er = Equal.trans(Nat, Nat.add(Nat.mul(1n, 1n+bp), x), Nat.add(1n+bp, x), SW.value(r), Equal.cong(Nat, Nat, z => Nat.add(z, x), Nat.mul(1n, 1n+bp), 1n+bp, AQ.mul1(1n+bp)), N.sub_add(SW.value(r), 1n+bp, hle))
       +em = Equal.trans(Nat, Nat.mod(SW.value(r), 1n+bp), Nat.mod(Nat.add(Nat.mul(1n, 1n+bp), x), 1n+bp), x, Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+bp), SW.value(r), Nat.add(Nat.mul(1n, 1n+bp), x), Equal.sym(Nat, Nat.add(Nat.mul(1n, 1n+bp), x), SW.value(r), er)), NR.mod_of(1n, bp, x, hx))
       Equal.trans(Nat, SW.value(X.sub(r, m)), x, Nat.mod(SW.value(r), 1n+bp), es, Equal.sym(Nat, Nat.mod(SW.value(r), 1n+bp), x, em))
     case False{}:
@@ -350,28 +349,37 @@ def mok_odd(+bp: Nat, +ml: U32, +mh: U32, +hM: {SW.value(WU.U64{ml, mh}) == 1n+b
   +h = Equal.trans(Bool, Nat.is_eq(Nat.mod(SW.value(WU.U64{ml, mh}), 2n), 1n), X.odd(WU.U64{ml, mh}), True{}, Equal.sym(Bool, X.odd(WU.U64{ml, mh}), Nat.is_eq(Nat.mod(SW.value(WU.U64{ml, mh}), 2n), 1n), WA.odd_value(WU.U64{ml, mh})), W64S.and_l(X.odd(WU.U64{ml, mh}), X.eq(X.mul(WU.U64{ml, mh}, X.minv(WU.U64{ml, mh})), WU.U64{4294967295, 4294967295}), mok_ab(ml, mh, hok)))
   Equal.trans(Nat, Nat.mod(1n+bp, 2n), Nat.mod(SW.value(WU.U64{ml, mh}), 2n), 1n, Equal.cong(Nat, Nat, z => Nat.mod(z, 2n), 1n+bp, SW.value(WU.U64{ml, mh}), Equal.sym(Nat, SW.value(WU.U64{ml, mh}), 1n+bp, hM)), N.eq_from_is_eq(Nat.mod(SW.value(WU.U64{ml, mh}), 2n), 1n, h))
 
-def mok_inv(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +ml: U32, +mh: U32, +hM: {SW.value(WU.U64{ml, mh}) == 1n+bp : Nat}, +hok: {X.mont_ok(WU.U64{ml, mh}) == True{} : Bool}) -> {1n+C.low(64n, Nat.mul(1n+bp, SW.value(X.minv(WU.U64{ml, mh})))) == C.shift(64n, one) : Nat}:
+# over an open all-ones word o: a literal 2^64 - 1 under SW.value would be
+# expanded in unary by any conversion that unfolds it
+def mok_inv_o(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +ml: U32, +mh: U32, +hM: {SW.value(WU.U64{ml, mh}) == 1n+bp : Nat}, +o: U32, +po: {o == U32{WD.mask(32n, 32n)} : U32}, +heq: {X.eq(X.mul(WU.U64{ml, mh}, X.minv(WU.U64{ml, mh})), WU.U64{o, o}) == True{} : Bool}) -> {1n+C.low(64n, Nat.mul(1n+bp, SW.value(X.minv(WU.U64{ml, mh})))) == C.shift(64n, one) : Nat}:
   +mp = X.minv(WU.U64{ml, mh})
   +w = X.mul(WU.U64{ml, mh}, mp)
-  +h = Equal.trans(Bool, Nat.is_eq(SW.value(w), SW.value(WU.U64{4294967295, 4294967295})), X.eq(X.mul(WU.U64{ml, mh}, X.minv(WU.U64{ml, mh})), WU.U64{4294967295, 4294967295}), True{}, Equal.sym(Bool, X.eq(X.mul(WU.U64{ml, mh}, X.minv(WU.U64{ml, mh})), WU.U64{4294967295, 4294967295}), Nat.is_eq(SW.value(w), SW.value(WU.U64{4294967295, 4294967295})), WA.eq_value(w, WU.U64{4294967295, 4294967295})), W64S.and_r(X.odd(WU.U64{ml, mh}), X.eq(X.mul(WU.U64{ml, mh}, X.minv(WU.U64{ml, mh})), WU.U64{4294967295, 4294967295}), mok_ab(ml, mh, hok)))
-  +e1 = N.eq_from_is_eq(SW.value(w), SW.value(WU.U64{4294967295, 4294967295}), h)
+  +h = Equal.trans(Bool, Nat.is_eq(SW.value(w), SW.value(WU.U64{o, o})), X.eq(w, WU.U64{o, o}), True{}, Equal.sym(Bool, X.eq(w, WU.U64{o, o}), Nat.is_eq(SW.value(w), SW.value(WU.U64{o, o})), WA.eq_value(w, WU.U64{o, o})), heq)
+  +e1 = N.eq_from_is_eq(SW.value(w), SW.value(WU.U64{o, o}), h)
   +e2 = Equal.trans(Nat, C.low(64n, Nat.mul(1n+bp, SW.value(mp))), C.low(64n, Nat.mul(SW.value(WU.U64{ml, mh}), SW.value(mp))), SW.value(w), Equal.cong(Nat, Nat, z => C.low(64n, Nat.mul(z, SW.value(mp))), 1n+bp, SW.value(WU.U64{ml, mh}), Equal.sym(Nat, SW.value(WU.U64{ml, mh}), 1n+bp, hM)), Equal.sym(Nat, SW.value(w), C.low(64n, Nat.mul(SW.value(WU.U64{ml, mh}), SW.value(mp))), WA.mul_value(WU.U64{ml, mh}, mp)))
-  Equal.trans(Nat, 1n+C.low(64n, Nat.mul(1n+bp, SW.value(mp))), 1n+SW.value(WU.U64{4294967295, 4294967295}), C.shift(64n, one), Equal.cong(Nat, Nat, z => 1n+z, C.low(64n, Nat.mul(1n+bp, SW.value(mp))), SW.value(WU.U64{4294967295, 4294967295}), Equal.trans(Nat, C.low(64n, Nat.mul(1n+bp, SW.value(mp))), SW.value(w), SW.value(WU.U64{4294967295, 4294967295}), e2, e1)), ones_v(one, h1, 4294967295, {==}))
+  Equal.trans(Nat, 1n+C.low(64n, Nat.mul(1n+bp, SW.value(mp))), 1n+SW.value(WU.U64{o, o}), C.shift(64n, one), Equal.cong(Nat, Nat, z => 1n+z, C.low(64n, Nat.mul(1n+bp, SW.value(mp))), SW.value(WU.U64{o, o}), Equal.trans(Nat, C.low(64n, Nat.mul(1n+bp, SW.value(mp))), SW.value(w), SW.value(WU.U64{o, o}), e2, e1)), ones_v(one, h1, o, po))
+
+def mok_inv(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +ml: U32, +mh: U32, +hM: {SW.value(WU.U64{ml, mh}) == 1n+bp : Nat}, +hok: {X.mont_ok(WU.U64{ml, mh}) == True{} : Bool}) -> {1n+C.low(64n, Nat.mul(1n+bp, SW.value(X.minv(WU.U64{ml, mh})))) == C.shift(64n, one) : Nat}:
+  mok_inv_o(one, h1, bp, ml, mh, hM, 4294967295, {==}, W64S.and_r(X.odd(WU.U64{ml, mh}), X.eq(X.mul(WU.U64{ml, mh}, X.minv(WU.U64{ml, mh})), WU.U64{4294967295, 4294967295}), mok_ab(ml, mh, hok)))
 
 def mok_hz(+ml: U32, +mh: U32, +hok: {X.mont_ok(WU.U64{ml, mh}) == True{} : Bool}) -> {U32.is_zero(mh) == False{} : Bool}:
   not_t(U32.is_zero(mh), W64S.and_l(Bool.not(U32.is_zero(mh)), U32.is_lt(mh, 2147483648), mok_cd(ml, mh, hok)))
 
-def mok_63(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +ml: U32, +mh: U32, +hM: {SW.value(WU.U64{ml, mh}) == 1n+bp : Nat}, +hok: {X.mont_ok(WU.U64{ml, mh}) == True{} : Bool}) -> {Nat.is_lt(1n+bp, C.shift(63n, one)) == True{} : Bool}:
+# over an open 2^31 word c: comparisons never meet the literal
+def mok_63_c(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +ml: U32, +mh: U32, +hM: {SW.value(WU.U64{ml, mh}) == 1n+bp : Nat}, +c: U32, +hc: {c == U32{WD.pw(32n, 31n)} : U32}, +hlt: {U32.is_lt(mh, c) == True{} : Bool}) -> {Nat.is_lt(1n+bp, C.shift(63n, one)) == True{} : Bool}:
   +s31 = C.shift(31n, one)
-  +e31 = Equal.trans(Nat, v(2147483648), WD.sc(31n, one), s31, PD.pow32(31n, {==}, one, h1, 2147483648, {==}), Equal.sym(Nat, s31, WD.sc(31n, one), W64M.shift_sc(31n, one)))
-  +hd = Equal.trans(Bool, Nat.is_lt(v(mh), v(2147483648)), U32.is_lt(mh, 2147483648), True{}, Equal.sym(Bool, U32.is_lt(mh, 2147483648), Nat.is_lt(v(mh), v(2147483648)), U.is_lt_nat(mh, 2147483648)), W64S.and_r(Bool.not(U32.is_zero(mh)), U32.is_lt(mh, 2147483648), mok_cd(ml, mh, hok)))
-  +hd2 = L.subst(Nat, z => {Nat.is_lt(v(mh), z) == True{} : Bool}, v(2147483648), s31, e31, hd)
+  +e31 = Equal.trans(Nat, v(c), WD.sc(31n, one), s31, PD.pow32(31n, {==}, one, h1, c, hc), Equal.sym(Nat, s31, WD.sc(31n, one), W64M.shift_sc(31n, one)))
+  +hd = Equal.trans(Bool, Nat.is_lt(v(mh), v(c)), U32.is_lt(mh, c), True{}, Equal.sym(Bool, U32.is_lt(mh, c), Nat.is_lt(v(mh), v(c)), U.is_lt_nat(mh, c)), hlt)
+  +hd2 = L.subst(Nat, z => {Nat.is_lt(v(mh), z) == True{} : Bool}, v(c), s31, e31, hd)
   +a1 = N.lt_add_r2(v(ml), C.shift(32n, one), C.shift(32n, v(mh)), WW.lt_one(32n, one, h1, v(ml), LW.vb(ml)))
   +a2 = L.subst(Nat, z => {Nat.is_lt(SW.value(WU.U64{ml, mh}), z) == True{} : Bool}, Nat.add(C.shift(32n, one), C.shift(32n, v(mh))), C.shift(32n, Nat.add(one, v(mh))), Equal.sym(Nat, C.shift(32n, Nat.add(one, v(mh))), Nat.add(C.shift(32n, one), C.shift(32n, v(mh))), WW.shift_add(32n, one, v(mh))), a1)
   +a3 = WW.shift_mono(32n, Nat.add(one, v(mh)), s31, L.subst(Nat, z => {Nat.is_le(Nat.add(z, v(mh)), s31) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), N.lt_succ_le_succ(v(mh), s31, hd2)))
   +a4 = L.subst(Nat, z => {Nat.is_le(C.shift(32n, Nat.add(one, v(mh))), z) == True{} : Bool}, C.shift(32n, s31), C.shift(63n, one), Equal.sym(Nat, C.shift(63n, one), C.shift(32n, s31), WW.shift_comp(32n, 31n, one)), a3)
   L.subst(Nat, z => {Nat.is_lt(z, C.shift(63n, one)) == True{} : Bool}, SW.value(WU.U64{ml, mh}), 1n+bp, hM, N.lt_le_trans(SW.value(WU.U64{ml, mh}), C.shift(32n, Nat.add(one, v(mh))), C.shift(63n, one), a2, a4))
 
+
+def mok_63(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +ml: U32, +mh: U32, +hM: {SW.value(WU.U64{ml, mh}) == 1n+bp : Nat}, +hok: {X.mont_ok(WU.U64{ml, mh}) == True{} : Bool}) -> {Nat.is_lt(1n+bp, C.shift(63n, one)) == True{} : Bool}:
+  mok_63_c(one, h1, bp, ml, mh, hM, 2147483648, {==}, W64S.and_r(Bool.not(U32.is_zero(mh)), U32.is_lt(mh, 2147483648), mok_cd(ml, mh, hok)))
 
 # pow_mod through Montgomery multiplication when mont_ok(m)
 def mpow_top(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +m: WU.U64, +hM: {SW.value(m) == 1n+bp : Nat}, +hok: {X.mont_ok(m) == True{} : Bool}, +b: WU.U64, +e: WU.U64) -> {SW.value(X.mpow(X.rem(b, m), e, m)) == M.pow_mod_go(140n, 1n+bp, SW.value(e), Nat.mod(SW.value(b), 1n+bp), Nat.mod(1n, 1n+bp)) : Nat}:
