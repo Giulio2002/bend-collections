@@ -202,17 +202,20 @@ def gen_curve():
     # completeness: c2 Y3 == N^3 + 7 D^3 with N / D the x-coordinate a 2-torsion point P - Q would have
     x1, y1, z1 = p
     x2, y2, z2 = q
-    sh = c.add(c.mul(x1, z2), c.mul(x2, z1))
-    pi, zz = c.mul(x1, x2), c.mul(z1, z2)
-    n = c.sub(c.mul(sh, pi), c.mul(c.cmul(4, 6, 28), c.mul(zz, zz)))
-    d = c.add(c.mul(sh, sh), c.mul(c.const(2), c.mul(pi, zz)))
+    ay = c.specdef('aY', s[1])
+    zz = c.specdef('cZ', c.mul(z1, z2))
+    sh = c.specdef('cS', c.add(c.mul(x1, z2), c.mul(x2, z1)))
+    pi = c.mul(x1, x2)
+    n = c.specdef('cN', c.sub(c.mul(sh, pi), c.mul(c.cmul(4, 6, 28), c.mul(zz, zz))))
+    d = c.specdef('cD', c.add(c.mul(sh, sh), c.mul(c.const(2), c.mul(pi, zz))))
     k = c.add(c.add(c.mul(c.const(3), c.mul(c.mul(x1, x1), c.mul(x2, z2))), c.mul(c.const(3), c.mul(c.mul(x1, z1), c.mul(x2, x2)))),
               c.add(c.add(c.mul(c.mul(y1, y1), c.mul(z2, z2)), c.mul(c.mul(z1, z1), c.mul(y2, y2))), c.mul(c.cmul(6, 6, 42), c.mul(zz, zz))))
-    c.ident('compl_y', c.mul(c.mul(c.mul(zz, zz), k), s[1]), c.add(cube(c, n), c.mul(b7, cube(c, d))), cv,
-            '(z1 z2)^2 K Y3 == N^3 + 7 D^3: the Y of P + Q vanishes only with a cube root N / D of -7')
+    w = c.specdef('cW', c.mul(c.mul(zz, zz), k))
+    c.ident('compl_y', c.mul(w, ay), c.add(cube(c, n), c.mul(b7, cube(c, d))), cv,
+            'W Y3 == N^3 + 7 D^3: the Y of P + Q vanishes only with a cube root N / D of -7')
     c.ident('compl_s', c.add(cube(c, sh), c.mul(b7, cube(c, c.mul(c.const(2), zz)))), c.sub(c.mul(sh, d), c.mul(c.mul(c.const(2), zz), n)), (),
             's^3 + 7 (2 z1 z2)^3 == s D - 2 z1 z2 N')
-    c.ident('inf_y', s[1], c.mul(c.mul(y1, y1), c.mul(y2, y2)), [c.rule_zero(0, 'hx'), c.rule_zero(2, 'hz')],
+    c.ident('inf_y', ay, c.mul(c.mul(y1, y1), c.mul(y2, y2)), [c.rule_zero(0, 'hx'), c.rule_zero(2, 'hz')],
             'P at infinity (x1 == z1 == 0): the Y of P + Q is y1^2 y2^2')
     c.ident('inf_x', cube(c, x1), c.zero(), [cv[0], c.rule_zero(2, 'hz')], 'a point of the curve with z == 0 has x^3 == 0')
     c.write('id_curve.bend', '# The sum of two points of the curve is on the curve, and it is not\n# (0, 0, 0): the identities behind completeness.\n')

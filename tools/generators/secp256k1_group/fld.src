@@ -82,3 +82,22 @@ def eq_of_factor(+mp: Nat, +hp: PM.Prime(1n+mp), +l: Nat, +r: Nat, +f: Nat, +hf:
 
 def mmul_comm(+mp: Nat, +a: Nat, +b: Nat) -> {FS.mmul(1n+mp, a, b) == FS.mmul(1n+mp, b, a) : Nat}:
   Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.mul(a, b), Nat.mul(b, a), NA.mul_comm(a, b))
+
+def z_mod(+mp: Nat, +u: Nat, +h: {Nat.mod(u, 1n+mp) == 0n : Nat}) -> {Nat.mod(Nat.mod(u, 1n+mp), 1n+mp) == 0n : Nat}:
+  Equal.trans(Nat, Nat.mod(Nat.mod(u, 1n+mp), 1n+mp), Nat.mod(u, 1n+mp), 0n, NR.mod_mod(mp, u), h)
+
+def z_mmul_l(+mp: Nat, +a: Nat, +b: Nat, +ha: {Nat.mod(a, 1n+mp) == 0n : Nat}) -> {Nat.mod(FS.mmul(1n+mp, a, b), 1n+mp) == 0n : Nat}:
+  z_mod(mp, Nat.mul(a, b), z_mul_l(mp, a, b, ha))
+
+def z_mmul_r(+mp: Nat, +a: Nat, +b: Nat, +hb: {Nat.mod(b, 1n+mp) == 0n : Nat}) -> {Nat.mod(FS.mmul(1n+mp, a, b), 1n+mp) == 0n : Nat}:
+  z_mod(mp, Nat.mul(a, b), z_mul_r(mp, a, b, hb))
+
+def z_cube(+mp: Nat, +d: Nat, +h: {Nat.mod(d, 1n+mp) == 0n : Nat}) -> {Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, d, d), d), 1n+mp) == 0n : Nat}:
+  z_mmul_r(mp, FS.mmul(1n+mp, d, d), d, h)
+
+def z_msub(+mp: Nat, +a: Nat, +b: Nat, +ha: {Nat.mod(a, 1n+mp) == 0n : Nat}, +hb: {Nat.mod(b, 1n+mp) == 0n : Nat}) -> {Nat.mod(FS.msub(1n+mp, a, b), 1n+mp) == 0n : Nat}:
+  z_mod(mp, Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), z_red(mp, Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), z_add_l(mp, FS.msub(1n+mp, a, b), b, Equal.trans(Nat, Nat.mod(Nat.add(FS.msub(1n+mp, a, b), b), 1n+mp), Nat.mod(a, 1n+mp), 0n, Z.msub_add(mp, a, b), ha), hb)))
+
+# the point (x : y : z) is on the curve X^3 == Y^2 Z - 7 Z^3 (residues mod m)
+def OnC(+mp: Nat, +x: Nat, +y: Nat, +z: Nat) -> Data:
+  {FS.mmul(1n+mp, FS.mmul(1n+mp, x, x), x) == FS.msub(1n+mp, FS.mmul(1n+mp, FS.mmul(1n+mp, y, y), z), FS.mmul(1n+mp, 7n, FS.mmul(1n+mp, FS.mmul(1n+mp, z, z), z))) : Nat}
