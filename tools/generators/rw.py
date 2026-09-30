@@ -197,6 +197,8 @@ def canon(t):
         inner = canon(t[2])
         if inner[0] == 'lit' and inner[1].endswith('n'):
             return ('lit', '%dn' % (int(t[1][:-1]) + int(inner[1][:-1])))
+        if inner[0] == 'succ':
+            return ('succ', '%dn' % (int(t[1][:-1]) + int(inner[1][:-1])), inner[2])
         return ('succ', t[1], inner)
     return t
 

@@ -951,16 +951,70 @@ directives only spell out the rewriting steps the checker verifies):
   the fuel), `rconst`/`prec` (c_p < c_n, n < p, (r - c_n + c_p) mod p =
   (r + n) mod p and the wrap test), `peth`/`pecr`, `pschn`.
 
+### The group law (`proofs/crypto/secp256k1/laws_group.bend`)
+
+The points of the specification are projective triples; the group is
+stated on them (`spec/crypto/secp256k1/group.bend`): `valid(p, A)` (on the
+curve Y^2 Z = X^3 + 7 Z^3 and Y != 0: on this curve a triple with Y = 0 is
+(0, 0, 0)), `equiv(p, A, B)` (the same projective point: X1 Y2 = X2 Y1 and
+Z1 Y2 = Z2 Y1), `neg`, and `smul(p, k, A)` ([k] A as k additions). Every
+clause is for every input, with p = `FS.prime(one)`:
+
+| Clause | Statement |
+|---|---|
+| `Group.closed`, `Group.infinity`, `Group.neg_closed` | `valid(A + B)` for valid A, B; `valid(O)`; `valid(-A)` |
+| `Group.commutative` | `padd(A, B) == padd(B, A)` (as triples, any A, B) |
+| `Group.associative` | `equiv((A + B) + C, A + (B + C))` for valid A, B, C |
+| `Group.identity`, `Group.inverse` | `equiv(A + O, A)`, `equiv(A + (-A), O)` |
+| `Group.double` | `pdbl(A) == padd(A, A)` (as triples) for valid A |
+| `Equiv.refl`, `Equiv.sym`, `Equiv.trans`, `Equiv.add_left`, `Equiv.add_right` | `equiv` is an equivalence on the points of the group and the addition respects it |
+| `Scalar.closed`, `Scalar.add`, `Scalar.mul`, `Scalar.equiv` | `valid([k] A)`; `equiv([j + k] A, [j] A + [k] A)`; `equiv([j k] A, [j] ([k] A))`; `equiv([k] A, [k] A')` for `equiv(A, A')` |
+| `Scalar.pmul`, `Scalar.pmul_low`, `Scalar.pmul_closed` | the specification's double-and-add: `equiv(pmul(k, A), [k] A)` for k < 2^256, `equiv(pmul(k, A), [k mod 2^256] A)` for any k, and it is valid |
+
+How they are proved (`proofs/crypto/secp256k1/group/`,
+`docs/SECP256K1_GROUP_LAW.md`):
+
+- p is prime (`certa.bend`) and n is prime (`certn.bend`): Pocklington
+  chains (p - 1 = 2 3 7 13441 q1, ...), each step a closed computation on
+  binary numbers (`bn.bend`, `bnx.bend`) checked by the proof checker, the
+  criterion itself proved from Fermat's little theorem
+  (`proofs/math/number/nt_*.bend`: primes, Euclid's lemma, Fermat, field
+  facts, Pocklington; nothing there is specific to secp256k1). -7 is not
+  a cube modulo p (`certd.bend`, `nc.bend`: (-7)^((p-1)/3) != 1 and
+  Fermat), so the curve has no point of order 2.
+- Polynomial identities by reflection: a normalizer for sparse
+  polynomials written in Bend (`poly.bend`), proved to compute the sum,
+  difference, product and the reduction by x^d = f of the values for every
+  input (`pev.bend`, `zm.bend`, `red.bend`); the specification's register
+  programs run on polynomials and agree with the specification's runs
+  (`sym.bend`); an identity is then a `{==}` check that a polynomial
+  computes to `[]` (`ident.bend`, instances `id_*.bend` written by
+  `tools/generators/secp256k1_group/gen_ids.py`). This gives, for any
+  modulus: commutativity, the sum of curve points is on the curve, the two
+  cross products of (A + B) + C and A + (B + C) modulo the three curve
+  equations (one uniform identity: the formulas are complete, so there is
+  no case analysis), doubling is A + A, homogeneity.
+- Completeness (`comp.bend`): W Y3 = N^3 + 7 D^3 for explicit W, N, D, so
+  a sum with Y3 = 0 gives a cube root of -7.
+- The group on points (`glaw1.bend` .. `glaw5.bend`), the scalar laws by
+  induction, the specification's ladder by induction over its bits.
+
+Checked with `bend-local` (Bend 2.0.34): `proof_group.bend` (the closing
+root: the clauses with the certificates applied) 68 s and 1225 MB; without
+the certificates the clauses (`group/glawp.bend`, which takes "p is
+prime" and "(-7)^((p-1)/3) != 1" as hypotheses) check in 12 s and 929 MB;
+`certa.bend` 30 s / 882 MB, `certd.bend` 29 s / 770 MB, `certn.bend` 30 s /
+876 MB, `proofs/math/number/proof_nt.bend` 1 s / 316 MB.
+
 Not proved:
 
-- The group law: that the complete formulas compute the textbook affine
-  addition (SEC 1 section 2.2.1), that points of the curve form a group of
-  order n, and so that `verify(pk(sk), h, sign(sk, h)) == True`, that
-  `recover` returns the signer's key, or that decompression inverts
-  compression. These need the primality of p and n (a certificate) and the
-  field law in the projective model; the clauses above are equalities with
-  the standards' algorithms, not statements about the group. The test
-  vectors and the differential test exercise these properties.
+- (in progress) that G is a point of the group and [n] G = O, the affine
+  law of SEC 1 section 2.2.1 and its agreement with the projective
+  formulas, `verify(pk(sk), h, sign(sk, h)) == True`, that `recover`
+  returns the signer's key, that decompression inverts compression.
+- That the group has exactly n points (every curve point is a multiple of
+  G): this needs the number of points of the curve (Hasse's bound or
+  Schoof's algorithm) and is out of reach; nothing above uses it.
 - Constant time: Bend has no timing model. Secret-dependent arithmetic is
   branch-free by construction (masked selection, complete formulas, fixed
   exponent ladders); RFC 6979's retry loop and the checks on public inputs

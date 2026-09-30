@@ -1,0 +1,15 @@
+import Base
+import ../../../../spec/math/number.bend as SN
+import ../../../../spec/crypto/secp256k1/field.bend as FS
+import ./bn.bend as B
+import ./bnx.bend as X
+import ../../../math/number/nt_prime.bend as PM
+import ./certb.bend as CB
+import ./cert_n.bend as CN
+
+# secp256k1's group order n is prime: the Pocklington certificate of
+# cert_n.bend, for the specification's FS.order(one).
+
+def prime_n(+one: Nat, +h1: {one == 1n : Nat}) -> PM.Prime(FS.order(one)):
+  %CB.n_is(one, h1) : {SN.prime(_) == True{} : Bool}
+  CN.top_prime(one, h1)
