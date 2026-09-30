@@ -132,3 +132,120 @@ def pc_ok21(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, on
       +lE = N.le_trans(Nat.add(R, E), Nat.add(R, S9), B, N.le_add_left(E, S9, R, PW.le_sc(5n, 4n, one)), r9(one, R, hR))
       +out = NL.below_con(Nat.add(m0, Nat.mul(q, 19n)), CA.cl(r), B, hhead, NL.below_mono(CA.cl(r), Nat.add(R, E), B, lE, hlb))
       L.subst(List<&2, Nat>, z => {FV.below(z, B) == True{} : Bool}, Con{Nat.add(m0, Nat.mul(q, 19n)), CA.cl(r)}, LS.pc_fin(m0, r), Equal.sym(List<&2, Nat>, LS.pc_fin(m0, r), Con{Nat.add(m0, Nat.mul(q, 19n)), CA.cl(r)}, pcfin_eq(m0, r)), out)
+
+# ---- two rounds, for the products (columns below 2^47) ----
+
+def pcs_len(+R: Nat, +xs: List<&2, Nat>, +c: Nat) -> {PS.ln(CA.cl(LS.pcs(R, xs, c))) == PS.ln(xs) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+h, +t}:
+      +l = Nat.add(Nat.mod(h, R), c)
+      +r = LS.pcs(R, t, Nat.div(h, R))
+      tr(PS.ln(CA.cl(LS.cr_con(l, r))), 1n+PS.ln(CA.cl(r)), 1n+PS.ln(t), Equal.cong(List<&2, Nat>, Nat, z => PS.ln(z), CA.cl(LS.cr_con(l, r)), Con{l, CA.cl(r)}, CA.cl_con(l, r)), Equal.cong(Nat, Nat, z => 1n+z, PS.ln(CA.cl(r)), PS.ln(t), pcs_len(R, t, Nat.div(h, R))))
+
+def pc_len(+R: Nat, +xs: List<&2, Nat>) -> {PS.ln(LS.pc(R, xs)) == PS.ln(xs) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x0, +xt}:
+      +r = LS.pcs(R, xt, Nat.div(x0, R))
+      tr(PS.ln(LS.pc_fin(Nat.mod(x0, R), r)), 1n+PS.ln(CA.cl(r)), 1n+PS.ln(xt), Equal.cong(List<&2, Nat>, Nat, z => PS.ln(z), LS.pc_fin(Nat.mod(x0, R), r), Con{Nat.add(Nat.mod(x0, R), Nat.mul(CA.cc(r), 19n)), CA.cl(r)}, pcfin_eq(Nat.mod(x0, R), r)), Equal.cong(Nat, Nat, z => 1n+z, PS.ln(CA.cl(r)), PS.ln(xt), pcs_len(R, xt, Nat.div(x0, R))))
+
+def pc2_c(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +xs: List<&2, Nat>, +hl: {PS.ln(xs) == 15n : Nat}) -> G.ceq(pp, FV.lv(LS.pc(R, LS.pc(R, xs))), FV.lv(xs)):
+  G.c_trans(pp, FV.lv(LS.pc(R, LS.pc(R, xs))), FV.lv(LS.pc(R, xs)), FV.lv(xs), pc_c(one, h1, pp, hP, R, hR, LS.pc(R, xs), tr(PS.ln(LS.pc(R, xs)), PS.ln(xs), 15n, pc_len(R, xs), hl)), pc_c(one, h1, pp, hP, R, hR, xs, hl))
+
+# the carry out of a nonempty list whose limbs are below A <= R E is below E
+def pcs_out(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +t: List<&2, Nat>, +h: Nat, +c: Nat, +A: Nat, +E: Nat, +hx: {FV.below(Con{h, t}, A) == True{} : Bool}, +hAE: {Nat.is_le(A, Nat.mul(R, E)) == True{} : Bool}) -> {Nat.is_lt(CA.cc(LS.pcs(R, Con{h, t}, c)), E) == True{} : Bool}:
+  match t:
+    case Nil{}:
+      +l = Nat.add(Nat.mod(h, R), c)
+      +d = Nat.div(h, R)
+      +hd = CA.div_lt(one, h1, R, hR, h, E, N.lt_le_trans(h, A, Nat.mul(R, E), NL.below_head(h, Nil{}, A, hx), hAE))
+      L.subst(Nat, z => {Nat.is_lt(z, E) == True{} : Bool}, CA.cc(LS.pcs(R, Nil{}, d)), CA.cc(LS.cr_con(l, LS.pcs(R, Nil{}, d))), sy(CA.cc(LS.cr_con(l, LS.pcs(R, Nil{}, d))), CA.cc(LS.pcs(R, Nil{}, d)), CA.cc_con(l, LS.pcs(R, Nil{}, d))), hd)
+    case Con{+h2, +t2}:
+      +l = Nat.add(Nat.mod(h, R), c)
+      +d = Nat.div(h, R)
+      L.subst(Nat, z => {Nat.is_lt(z, E) == True{} : Bool}, CA.cc(LS.pcs(R, Con{h2, t2}, d)), CA.cc(LS.cr_con(l, LS.pcs(R, Con{h2, t2}, d))), sy(CA.cc(LS.cr_con(l, LS.pcs(R, Con{h2, t2}, d))), CA.cc(LS.pcs(R, Con{h2, t2}, d)), CA.cc_con(l, LS.pcs(R, Con{h2, t2}, d))), pcs_out(one, h1, R, hR, t2, h2, d, A, E, NL.below_tail(h, Con{h2, t2}, A, hx), hAE))
+
+# the same through the length (14 limbs)
+def pcs_nonempty(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +xs: List<&2, Nat>, +c: Nat, +A: Nat, +E: Nat, +hl: {PS.ln(xs) == 14n : Nat}, +hx: {FV.below(xs, A) == True{} : Bool}, +hAE: {Nat.is_le(A, Nat.mul(R, E)) == True{} : Bool}) -> {Nat.is_lt(CA.cc(LS.pcs(R, xs, c)), E) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      Empty.absurd({Nat.is_lt(c, E) == True{} : Bool}, N.zero_succ(13n, hl))
+    case Con{+h, +t}:
+      pcs_out(one, h1, R, hR, t, h, c, A, E, hx, hAE)
+
+# R 2^k == 2^(17 + k)
+def r_sc(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +k: Nat) -> {Nat.mul(R, WD.sc(k, one)) == WD.sc(Nat.add(17n, k), one) : Nat}:
+  PS.at_r(one, R, hR, z => {Nat.mul(z, WD.sc(k, one)) == WD.sc(Nat.add(17n, k), one) : Nat}, PW.scsc(17n, k, one, h1))
+
+def le_by(+a: Nat, +b: Nat, +e: {a == b : Nat}) -> {Nat.is_le(a, b) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_le(a, z) == True{} : Bool}, a, b, e, N.le_refl(a))
+
+# R + 19 2^30 <= R 2^18
+def b1(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}) -> {Nat.is_le(Nat.add(R, Nat.mul(WD.sc(30n, one), 19n)), Nat.mul(R, WD.sc(18n, one))) == True{} : Bool}:
+  +a = WD.sc(30n, one)
+  +l1 = M.le_add_r(R, a, Nat.mul(a, 19n), PS.at_r(one, R, hR, z => {Nat.is_le(z, a) == True{} : Bool}, PW.le_sc(13n, 17n, one)))
+  +l2 = L.subst(Nat, z => {Nat.is_le(Nat.add(R, Nat.mul(a, 19n)), z) == True{} : Bool}, Nat.add(a, Nat.mul(a, 19n)), Nat.mul(a, 20n), sy(Nat.mul(a, 20n), Nat.add(a, Nat.mul(a, 19n)), NA.mul_succ(a, 19n)), l1)
+  +l3 = N.le_trans(Nat.add(R, Nat.mul(a, 19n)), Nat.mul(a, 20n), Nat.mul(a, 32n), l2, PW.mul_le_r(a, 20n, 32n, {==}))
+  +e32 = tr(Nat.mul(a, 32n), WD.sc(5n, a), WD.sc(35n, one), PS.mulp(5n, a), M.sc_sc(5n, 30n, one))
+  L.subst(Nat, z => {Nat.is_le(Nat.add(R, Nat.mul(a, 19n)), z) == True{} : Bool}, Nat.mul(a, 32n), Nat.mul(R, WD.sc(18n, one)), tr(Nat.mul(a, 32n), WD.sc(35n, one), Nat.mul(R, WD.sc(18n, one)), e32, sy(Nat.mul(R, WD.sc(18n, one)), WD.sc(35n, one), r_sc(one, h1, R, hR, 18n))), l3)
+
+# R + 2^30 <= R 2^14
+def b2(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}) -> {Nat.is_le(Nat.add(R, WD.sc(30n, one)), Nat.mul(R, WD.sc(14n, one))) == True{} : Bool}:
+  +a = PW.add_le_dbl(R, WD.sc(30n, one), 30n, one, PS.at_r(one, R, hR, z => {Nat.is_le(z, WD.sc(30n, one)) == True{} : Bool}, PW.le_sc(13n, 17n, one)), N.le_refl(WD.sc(30n, one)))
+  L.subst(Nat, z => {Nat.is_le(Nat.add(R, WD.sc(30n, one)), z) == True{} : Bool}, WD.sc(31n, one), Nat.mul(R, WD.sc(14n, one)), sy(Nat.mul(R, WD.sc(14n, one)), WD.sc(31n, one), r_sc(one, h1, R, hR, 14n)), a)
+
+# R + 19 2^14 <= 2^19 and R + 2^18 <= 2^19
+def b3(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}) -> {Nat.is_le(Nat.add(R, Nat.mul(WD.sc(14n, one), 19n)), WD.sc(19n, one)) == True{} : Bool}:
+  +a = WD.sc(14n, one)
+  +r = WD.sc(17n, one)
+  +l1 = N.le_add_left(Nat.mul(a, 19n), Nat.mul(a, 24n), r, PW.mul_le_r(a, 19n, 24n, {==}))
+  +e24 = tr(Nat.mul(a, 24n), Nat.add(Nat.mul(a, 16n), Nat.mul(a, 8n)), Nat.add(WD.sc(18n, one), r), NA.mul_add_left(a, 16n, 8n), M.cong_add(Nat.mul(a, 16n), WD.sc(18n, one), Nat.mul(a, 8n), r, tr(Nat.mul(a, 16n), WD.sc(4n, a), WD.sc(18n, one), PS.mulp(4n, a), M.sc_sc(4n, 14n, one)), tr(Nat.mul(a, 8n), WD.sc(3n, a), r, PS.mulp(3n, a), M.sc_sc(3n, 14n, one))))
+  +e19 = tr(Nat.add(r, Nat.add(WD.sc(18n, one), r)), Nat.add(WD.sc(18n, one), Nat.add(r, r)), WD.sc(19n, one), NA.add_swap(r, WD.sc(18n, one), r), tr(Nat.add(WD.sc(18n, one), Nat.add(r, r)), Nat.add(WD.sc(18n, one), WD.sc(18n, one)), WD.sc(19n, one), M.cong_r(WD.sc(18n, one), Nat.add(r, r), WD.sc(18n, one), PW.dbl(17n, one)), PW.dbl(18n, one)))
+  +l2 = L.subst(Nat, z => {Nat.is_le(Nat.add(r, Nat.mul(a, 19n)), z) == True{} : Bool}, Nat.add(r, Nat.mul(a, 24n)), WD.sc(19n, one), tr(Nat.add(r, Nat.mul(a, 24n)), Nat.add(r, Nat.add(WD.sc(18n, one), r)), WD.sc(19n, one), M.cong_r(r, Nat.mul(a, 24n), Nat.add(WD.sc(18n, one), r), e24), e19), l1)
+  PS.at_r(one, R, hR, z => {Nat.is_le(Nat.add(z, Nat.mul(a, 19n)), WD.sc(19n, one)) == True{} : Bool}, l2)
+
+def b4(+one: Nat, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}) -> {Nat.is_le(Nat.add(R, WD.sc(18n, one)), WD.sc(19n, one)) == True{} : Bool}:
+  PS.at_r(one, R, hR, z => {Nat.is_le(Nat.add(z, WD.sc(18n, one)), WD.sc(19n, one)) == True{} : Bool}, PW.add_le_dbl(WD.sc(17n, one), WD.sc(18n, one), 18n, one, PW.le_sc(1n, 17n, one), N.le_refl(WD.sc(18n, one))))
+
+# columns below 2^47 -> limbs below 2^19 after two rounds (15 limbs)
+def pc2_ok47(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +xs: List<&2, Nat>, +hl: {PS.ln(xs) == 15n : Nat}, +hx: {FV.below(xs, WD.sc(47n, one)) == True{} : Bool}) -> {FV.below(LS.pc(R, LS.pc(R, xs)), WD.sc(19n, one)) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      Empty.absurd({True{} == True{} : Bool}, N.zero_succ(14n, hl))
+    case Con{+x0, +xt}:
+      +A = WD.sc(47n, one)
+      +E1 = WD.sc(30n, one)
+      +B = WD.sc(19n, one)
+      +d0 = Nat.div(x0, R)
+      +m0 = Nat.mod(x0, R)
+      +r = LS.pcs(R, xt, d0)
+      +q = CA.cc(r)
+      +y0 = Nat.add(m0, Nat.mul(q, 19n))
+      +yt = CA.cl(r)
+      +hAE = le_by(A, Nat.mul(R, E1), sy(Nat.mul(R, E1), A, r_sc(one, h1, R, hR, 30n)))
+      +hd0 = CA.div_lt(one, h1, R, hR, x0, E1, N.lt_le_trans(x0, A, Nat.mul(R, E1), NL.below_head(x0, xt, A, hx), hAE))
+      +hb = pcs_below(one, h1, R, hR, xt, d0, A, E1, NL.below_tail(x0, xt, A, hx), hd0, hAE)
+      +hyt = L.and_left(FV.below(yt, Nat.add(R, E1)), Nat.is_lt(q, E1), hb)
+      +hq = L.and_right(FV.below(yt, Nat.add(R, E1)), Nat.is_lt(q, E1), hb)
+      +hy0 = NL.lt_add2(m0, Nat.mul(q, 19n), R, Nat.mul(E1, 19n), CA.mod_lt(one, h1, R, hR, x0), PS.mul_lt_r(q, E1, 19n, {==}, hq))
+      +ey = pcfin_eq(m0, r)
+      +E2 = WD.sc(18n, one)
+      +E3 = WD.sc(14n, one)
+      +d1 = Nat.div(y0, R)
+      +m1 = Nat.mod(y0, R)
+      +r2 = LS.pcs(R, yt, d1)
+      +q2 = CA.cc(r2)
+      +hd1 = CA.div_lt(one, h1, R, hR, y0, E2, N.lt_le_trans(y0, Nat.add(R, Nat.mul(E1, 19n)), Nat.mul(R, E2), hy0, b1(one, h1, R, hR)))
+      +hRE2 = N.le_trans(Nat.add(R, E1), Nat.mul(R, E3), Nat.mul(R, E2), b2(one, h1, R, hR), PW.mul_le_r(R, E3, E2, PW.le_sc(4n, 14n, one)))
+      +hb2 = pcs_below(one, h1, R, hR, yt, d1, Nat.add(R, E1), E2, hyt, hd1, hRE2)
+      +hyt2 = L.and_left(FV.below(CA.cl(r2), Nat.add(R, E2)), Nat.is_lt(q2, E2), hb2)
+      +hlt = tr(PS.ln(yt), PS.ln(xt), 14n, pcs_len(R, xt, d0), N.succ_inj(PS.ln(xt), 14n, hl))
+      +hq2 = pcs_nonempty(one, h1, R, hR, yt, d1, Nat.add(R, E1), E3, hlt, hyt, b2(one, h1, R, hR))
+      +hz0 = N.lt_le_trans(Nat.add(m1, Nat.mul(q2, 19n)), Nat.add(R, Nat.mul(E3, 19n)), B, NL.lt_add2(m1, Nat.mul(q2, 19n), R, Nat.mul(E3, 19n), CA.mod_lt(one, h1, R, hR, y0), PS.mul_lt_r(q2, E3, 19n, {==}, hq2)), b3(one, h1, R, hR))
+      +out = NL.below_con(Nat.add(m1, Nat.mul(q2, 19n)), CA.cl(r2), B, hz0, NL.below_mono(CA.cl(r2), Nat.add(R, E2), B, b4(one, R, hR), hyt2))
+      +e2 = pcfin_eq(m1, r2)
+      +o2 = L.subst(List<&2, Nat>, z => {FV.below(z, B) == True{} : Bool}, Con{Nat.add(m1, Nat.mul(q2, 19n)), CA.cl(r2)}, LS.pc(R, Con{y0, yt}), Equal.sym(List<&2, Nat>, LS.pc(R, Con{y0, yt}), Con{Nat.add(m1, Nat.mul(q2, 19n)), CA.cl(r2)}, e2), out)
+      L.subst(List<&2, Nat>, z => {FV.below(LS.pc(R, z), B) == True{} : Bool}, Con{y0, yt}, LS.pc(R, Con{x0, xt}), Equal.sym(List<&2, Nat>, LS.pc(R, Con{x0, xt}), Con{y0, yt}, ey), o2)

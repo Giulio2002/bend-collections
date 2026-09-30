@@ -382,12 +382,12 @@ def generate():
     parts.append(flat('sub', 'sub(+R: Nat, a: Fe, b: Fe)', [('a', pat(A)), ('b', pat(B))],
                       pc(R, subl(A, B, kp8(R))), ['a + 8 p - b: LS.sub_l (carries moved at once)']))
     parts.append(flat('mul', 'mul(+R: Nat, a: Fe, b: Fe)', [('a', pat(A)), ('b', pat(B))],
-                      pass_(R, fold(convp(A, B))), ['a b: LS.mul_l']))
+                      pc(R, pc(R, fold(convp(A, B)))), ['a b: LS.mul_l']))
     parts.append(flat('sq', 'sq(+R: Nat, a: Fe)', [('a', pat(A))],
-                      pass_(R, fold(sqp(A))), ['a^2, each cross product once: LS.sq_l']))
+                      pc(R, pc(R, fold(sqp(A)))), ['a^2, each cross product once: LS.sq_l']))
     K = V('k')
     parts.append(flat('mul_small', 'mul_small(+R: Nat, a: Fe, +k: Nat)', [('a', pat(A))],
-                      pass_(R, scal_r(A, K)), ['a k for k < 2^17: LS.mul_small_l']))
+                      pc(R, pc(R, scal_r(A, K))), ['a k for k < 2^17: LS.mul_small_l']))
     S = V('sn')
     parts.append(flat('select', 'select(+s: U32, a: Fe, b: Fe)', [('a', pat(A)), ('b', pat(B))],
                       sel(S, A, B), ['s == 0: a; s == 1: b (LS.sel on U32.to_nat(s))'], pre=['+sn = U32.to_nat(s)']))
