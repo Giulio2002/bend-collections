@@ -101,8 +101,8 @@ def check_some_t(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+p
   +B = PT.base(cs)
   +hB = PD.base_rel(one, h1, pp, hP, cs, hR, D, PC.rd(one, h1, pp, hP, xs), PC.rs(one, h1, pp, hP, xs))
   +hs = LM.okb_bytes(32n, sb, hsb)
-  +m1 = PFB.mul_base_rel(one, h1, pp, hP, cs, hR, PC.rd2(one, h1, pp, hP, xs), B, hB, sb, hs)
-  check_core(one, h1, pp, hP, xs, pk, msg, rb, sb, r, sr, hr, a, sa, ha, PT.mul_base(PT.cs_r(cs), PT.base_table(cs, B), sb), FB.smulb(one, P, D, sb), m1, lq(sb, hs))
+  +m1 = PFB.mul_base_vt_rel(one, h1, pp, hP, cs, hR, PC.rd2(one, h1, pp, hP, xs), B, hB, sb, hs)
+  check_core(one, h1, pp, hP, xs, pk, msg, rb, sb, r, sr, hr, a, sa, ha, PT.mul_base_vt(PT.cs_r(cs), PT.base_table(cs, B), sb), FB.smulb(one, P, D, sb), m1, lq(sb, hs))
 
 def check_a_t(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +rb: List<&2, U32>, +sb: List<&2, U32>, +hsb: {LM.okb(32n, sb, 255n) == True{} : Bool}, +r: PT.Pt, +sr: SE.EPt, +hr: PR.Rp(one, pp, r, sr), +aa: Maybe<&2, PT.Pt>, +saa: Maybe<&2, SE.EPt>, +haa: PC.MR(one, pp, aa, saa), lq: FB.LawQ(one, pp)) -> {E.check_t(PT.consts(xs), PT.base_table(PT.consts(xs), PT.base(PT.consts(xs))), sb, rb, pk, msg, Some{r}, aa) == SE.check(one, 1n+pp, SE.dconst(one, 1n+pp), FS.value(sb), rb, pk, msg, Some{sr}, saa) : Bool}:
   match aa saa:

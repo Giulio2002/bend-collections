@@ -256,10 +256,37 @@ def fb(+R: Nat, tab: List<&2, List<&2, Cp>>, ds: List<&2, Nat>, acc: Pt) -> Pt:
         case Con{d, dt}:
           fb(R, tt, dt, add_c(R, acc, look(d, r)))
 
+# entry d of a row by its index (for public digits; the zero point when
+# there is none)
+def nthc(d: Nat, r: List<&2, Cp>) -> Cp:
+  match d r:
+    case _ Nil{}:
+      cp_zero()
+    case 0n Con{q, rt}:
+      q
+    case 1n+e Con{q, rt}:
+      nthc(e, rt)
+
+# the same sum with indexed entries (public digits)
+def fbv(+R: Nat, tab: List<&2, List<&2, Cp>>, ds: List<&2, Nat>, acc: Pt) -> Pt:
+  match tab:
+    case Nil{}:
+      acc
+    case Con{r, tt}:
+      match ds:
+        case Nil{}:
+          acc
+        case Con{d, dt}:
+          fbv(R, tt, dt, add_c(R, acc, nthc(d, r)))
+
 # [k] B for a 32-byte scalar k and the table of B (secret k: every lookup
 # reads its whole row)
 def mul_base(+R: Nat, tab: List<&2, List<&2, Cp>>, +k: List<&2, U32>) -> Pt:
   fb(R, tab, nibs(k), identity())
+
+# [k] B for a public scalar k: the entries are indexed
+def mul_base_vt(+R: Nat, tab: List<&2, List<&2, Cp>>, +k: List<&2, U32>) -> Pt:
+  fbv(R, tab, nibs(k), identity())
 
 # the last byte with bit 7 set to b (the canonical y has it clear)
 def set_top(xs: List<&2, U32>, +b: U32) -> List<&2, U32>:
