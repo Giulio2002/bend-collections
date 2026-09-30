@@ -76,6 +76,16 @@ def defs():
     for i in range(8):
         q8.append('  %%e%d : {X.Q8{%s} == X.Q8{%s} : X.Q8}' % (i, ', '.join(A8), ', '.join(A8[:i] + ['_'] + B8[i + 1:])))
     q8.append('  {==}')
+    LX = ['x%d' % i for i in N32]
+    LY = ['y%d' % i for i in N32]
+    lst = lambda v: '[%s]' % ', '.join(v)
+    lext = ['def list_ext32(%s, %s, %s) -> {%s == %s : List<&2, U32>}:' % (
+        ', '.join('+%s: U32' % v for v in LX), ', '.join('+%s: U32' % v for v in LY),
+        ', '.join('e%d: {%s == %s : U32}' % (i, LX[i], LY[i]) for i in N32), lst(LX), lst(LY))]
+    for i in N32:
+        lext.append('  %%e%d : {%s == %s : List<&2, U32>}' % (i, lst(LX), lst(LX[:i] + ['_'] + LY[i + 1:])))
+    lext.append('  {==}')
+    ext = ext + [''] + lext
     text = '''import Base
 import ../../../../src/crypto/aes/types.bend as T
 import ../../../../src/crypto/aes/bitslice.bend as X

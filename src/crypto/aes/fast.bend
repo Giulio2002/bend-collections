@@ -27,7 +27,7 @@ def be32(+b0: U32, +b1: U32, +b2: U32, +b3: U32) -> U32:
 
 # The bytes of a counter c as a little-endian word: be32's byte order reversed.
 def bswap(+c: U32) -> U32:
-  le32(U32.shrn(c, 24n), U32.shrn(c, 16n), U32.shrn(c, 8n), c)
+  le32(U32.and(255, U32.shrn(c, 24n)), U32.and(255, U32.shrn(c, 16n)), U32.and(255, U32.shrn(c, 8n)), U32.and(255, c))
 
 def quad_word(q: T.Quad) -> U32:
   match q:
@@ -283,184 +283,184 @@ def pows0(s: PowStep) -> Pows:
 def pows(h: G.Block) -> Pows:
   pows0(powers32(h))
 
-# Algorithm 1 of SP 800-38D over the 32 bits of one word w of X, the most
-# significant first: Z ^= V_i & (0 - x_i), V_i = H * x^(32j+i) read from the
-# precomputed powers.
-def word_mul(+w: U32, z: G.Block, pw: PW) -> G.Block:
+# Algorithm 1 of SP 800-38D over the 32 bits of four bytes b0..b3 of X, the
+# most significant first: Z ^= V_i & (0 - x_i), V_i = H * x^(32j+i) read
+# from the precomputed powers (the steps of gcm.bend, unrolled).
+def word_mul(+b0: U32, +b1: U32, +b2: U32, +b3: U32, z: G.Block, pw: PW) -> G.Block:
   match z pw:
     case G.B{z0, z1, z2, z3} PW{p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, p64, p65, p66, p67, p68, p69, p70, p71, p72, p73, p74, p75, p76, p77, p78, p79, p80, p81, p82, p83, p84, p85, p86, p87, p88, p89, p90, p91, p92, p93, p94, p95, p96, p97, p98, p99, p100, p101, p102, p103, p104, p105, p106, p107, p108, p109, p110, p111, p112, p113, p114, p115, p116, p117, p118, p119, p120, p121, p122, p123, p124, p125, p126, p127}:
-      +m0 = U32.sub(0, U32.and(1, U32.shrn(w, 31n)))
+      +m0 = U32.sub(0, U32.and(1, U32.shrn(b0, 7n)))
       +z0_0 = U32.xor(z0, U32.and(m0, p0))
       +z1_0 = U32.xor(z1, U32.and(m0, p1))
       +z2_0 = U32.xor(z2, U32.and(m0, p2))
       +z3_0 = U32.xor(z3, U32.and(m0, p3))
-      +m1 = U32.sub(0, U32.and(1, U32.shrn(w, 30n)))
+      +m1 = U32.sub(0, U32.and(1, U32.shrn(b0, 6n)))
       +z0_1 = U32.xor(z0_0, U32.and(m1, p4))
       +z1_1 = U32.xor(z1_0, U32.and(m1, p5))
       +z2_1 = U32.xor(z2_0, U32.and(m1, p6))
       +z3_1 = U32.xor(z3_0, U32.and(m1, p7))
-      +m2 = U32.sub(0, U32.and(1, U32.shrn(w, 29n)))
+      +m2 = U32.sub(0, U32.and(1, U32.shrn(b0, 5n)))
       +z0_2 = U32.xor(z0_1, U32.and(m2, p8))
       +z1_2 = U32.xor(z1_1, U32.and(m2, p9))
       +z2_2 = U32.xor(z2_1, U32.and(m2, p10))
       +z3_2 = U32.xor(z3_1, U32.and(m2, p11))
-      +m3 = U32.sub(0, U32.and(1, U32.shrn(w, 28n)))
+      +m3 = U32.sub(0, U32.and(1, U32.shrn(b0, 4n)))
       +z0_3 = U32.xor(z0_2, U32.and(m3, p12))
       +z1_3 = U32.xor(z1_2, U32.and(m3, p13))
       +z2_3 = U32.xor(z2_2, U32.and(m3, p14))
       +z3_3 = U32.xor(z3_2, U32.and(m3, p15))
-      +m4 = U32.sub(0, U32.and(1, U32.shrn(w, 27n)))
+      +m4 = U32.sub(0, U32.and(1, U32.shrn(b0, 3n)))
       +z0_4 = U32.xor(z0_3, U32.and(m4, p16))
       +z1_4 = U32.xor(z1_3, U32.and(m4, p17))
       +z2_4 = U32.xor(z2_3, U32.and(m4, p18))
       +z3_4 = U32.xor(z3_3, U32.and(m4, p19))
-      +m5 = U32.sub(0, U32.and(1, U32.shrn(w, 26n)))
+      +m5 = U32.sub(0, U32.and(1, U32.shrn(b0, 2n)))
       +z0_5 = U32.xor(z0_4, U32.and(m5, p20))
       +z1_5 = U32.xor(z1_4, U32.and(m5, p21))
       +z2_5 = U32.xor(z2_4, U32.and(m5, p22))
       +z3_5 = U32.xor(z3_4, U32.and(m5, p23))
-      +m6 = U32.sub(0, U32.and(1, U32.shrn(w, 25n)))
+      +m6 = U32.sub(0, U32.and(1, U32.shrn(b0, 1n)))
       +z0_6 = U32.xor(z0_5, U32.and(m6, p24))
       +z1_6 = U32.xor(z1_5, U32.and(m6, p25))
       +z2_6 = U32.xor(z2_5, U32.and(m6, p26))
       +z3_6 = U32.xor(z3_5, U32.and(m6, p27))
-      +m7 = U32.sub(0, U32.and(1, U32.shrn(w, 24n)))
+      +m7 = U32.sub(0, U32.and(1, b0))
       +z0_7 = U32.xor(z0_6, U32.and(m7, p28))
       +z1_7 = U32.xor(z1_6, U32.and(m7, p29))
       +z2_7 = U32.xor(z2_6, U32.and(m7, p30))
       +z3_7 = U32.xor(z3_6, U32.and(m7, p31))
-      +m8 = U32.sub(0, U32.and(1, U32.shrn(w, 23n)))
+      +m8 = U32.sub(0, U32.and(1, U32.shrn(b1, 7n)))
       +z0_8 = U32.xor(z0_7, U32.and(m8, p32))
       +z1_8 = U32.xor(z1_7, U32.and(m8, p33))
       +z2_8 = U32.xor(z2_7, U32.and(m8, p34))
       +z3_8 = U32.xor(z3_7, U32.and(m8, p35))
-      +m9 = U32.sub(0, U32.and(1, U32.shrn(w, 22n)))
+      +m9 = U32.sub(0, U32.and(1, U32.shrn(b1, 6n)))
       +z0_9 = U32.xor(z0_8, U32.and(m9, p36))
       +z1_9 = U32.xor(z1_8, U32.and(m9, p37))
       +z2_9 = U32.xor(z2_8, U32.and(m9, p38))
       +z3_9 = U32.xor(z3_8, U32.and(m9, p39))
-      +m10 = U32.sub(0, U32.and(1, U32.shrn(w, 21n)))
+      +m10 = U32.sub(0, U32.and(1, U32.shrn(b1, 5n)))
       +z0_10 = U32.xor(z0_9, U32.and(m10, p40))
       +z1_10 = U32.xor(z1_9, U32.and(m10, p41))
       +z2_10 = U32.xor(z2_9, U32.and(m10, p42))
       +z3_10 = U32.xor(z3_9, U32.and(m10, p43))
-      +m11 = U32.sub(0, U32.and(1, U32.shrn(w, 20n)))
+      +m11 = U32.sub(0, U32.and(1, U32.shrn(b1, 4n)))
       +z0_11 = U32.xor(z0_10, U32.and(m11, p44))
       +z1_11 = U32.xor(z1_10, U32.and(m11, p45))
       +z2_11 = U32.xor(z2_10, U32.and(m11, p46))
       +z3_11 = U32.xor(z3_10, U32.and(m11, p47))
-      +m12 = U32.sub(0, U32.and(1, U32.shrn(w, 19n)))
+      +m12 = U32.sub(0, U32.and(1, U32.shrn(b1, 3n)))
       +z0_12 = U32.xor(z0_11, U32.and(m12, p48))
       +z1_12 = U32.xor(z1_11, U32.and(m12, p49))
       +z2_12 = U32.xor(z2_11, U32.and(m12, p50))
       +z3_12 = U32.xor(z3_11, U32.and(m12, p51))
-      +m13 = U32.sub(0, U32.and(1, U32.shrn(w, 18n)))
+      +m13 = U32.sub(0, U32.and(1, U32.shrn(b1, 2n)))
       +z0_13 = U32.xor(z0_12, U32.and(m13, p52))
       +z1_13 = U32.xor(z1_12, U32.and(m13, p53))
       +z2_13 = U32.xor(z2_12, U32.and(m13, p54))
       +z3_13 = U32.xor(z3_12, U32.and(m13, p55))
-      +m14 = U32.sub(0, U32.and(1, U32.shrn(w, 17n)))
+      +m14 = U32.sub(0, U32.and(1, U32.shrn(b1, 1n)))
       +z0_14 = U32.xor(z0_13, U32.and(m14, p56))
       +z1_14 = U32.xor(z1_13, U32.and(m14, p57))
       +z2_14 = U32.xor(z2_13, U32.and(m14, p58))
       +z3_14 = U32.xor(z3_13, U32.and(m14, p59))
-      +m15 = U32.sub(0, U32.and(1, U32.shrn(w, 16n)))
+      +m15 = U32.sub(0, U32.and(1, b1))
       +z0_15 = U32.xor(z0_14, U32.and(m15, p60))
       +z1_15 = U32.xor(z1_14, U32.and(m15, p61))
       +z2_15 = U32.xor(z2_14, U32.and(m15, p62))
       +z3_15 = U32.xor(z3_14, U32.and(m15, p63))
-      +m16 = U32.sub(0, U32.and(1, U32.shrn(w, 15n)))
+      +m16 = U32.sub(0, U32.and(1, U32.shrn(b2, 7n)))
       +z0_16 = U32.xor(z0_15, U32.and(m16, p64))
       +z1_16 = U32.xor(z1_15, U32.and(m16, p65))
       +z2_16 = U32.xor(z2_15, U32.and(m16, p66))
       +z3_16 = U32.xor(z3_15, U32.and(m16, p67))
-      +m17 = U32.sub(0, U32.and(1, U32.shrn(w, 14n)))
+      +m17 = U32.sub(0, U32.and(1, U32.shrn(b2, 6n)))
       +z0_17 = U32.xor(z0_16, U32.and(m17, p68))
       +z1_17 = U32.xor(z1_16, U32.and(m17, p69))
       +z2_17 = U32.xor(z2_16, U32.and(m17, p70))
       +z3_17 = U32.xor(z3_16, U32.and(m17, p71))
-      +m18 = U32.sub(0, U32.and(1, U32.shrn(w, 13n)))
+      +m18 = U32.sub(0, U32.and(1, U32.shrn(b2, 5n)))
       +z0_18 = U32.xor(z0_17, U32.and(m18, p72))
       +z1_18 = U32.xor(z1_17, U32.and(m18, p73))
       +z2_18 = U32.xor(z2_17, U32.and(m18, p74))
       +z3_18 = U32.xor(z3_17, U32.and(m18, p75))
-      +m19 = U32.sub(0, U32.and(1, U32.shrn(w, 12n)))
+      +m19 = U32.sub(0, U32.and(1, U32.shrn(b2, 4n)))
       +z0_19 = U32.xor(z0_18, U32.and(m19, p76))
       +z1_19 = U32.xor(z1_18, U32.and(m19, p77))
       +z2_19 = U32.xor(z2_18, U32.and(m19, p78))
       +z3_19 = U32.xor(z3_18, U32.and(m19, p79))
-      +m20 = U32.sub(0, U32.and(1, U32.shrn(w, 11n)))
+      +m20 = U32.sub(0, U32.and(1, U32.shrn(b2, 3n)))
       +z0_20 = U32.xor(z0_19, U32.and(m20, p80))
       +z1_20 = U32.xor(z1_19, U32.and(m20, p81))
       +z2_20 = U32.xor(z2_19, U32.and(m20, p82))
       +z3_20 = U32.xor(z3_19, U32.and(m20, p83))
-      +m21 = U32.sub(0, U32.and(1, U32.shrn(w, 10n)))
+      +m21 = U32.sub(0, U32.and(1, U32.shrn(b2, 2n)))
       +z0_21 = U32.xor(z0_20, U32.and(m21, p84))
       +z1_21 = U32.xor(z1_20, U32.and(m21, p85))
       +z2_21 = U32.xor(z2_20, U32.and(m21, p86))
       +z3_21 = U32.xor(z3_20, U32.and(m21, p87))
-      +m22 = U32.sub(0, U32.and(1, U32.shrn(w, 9n)))
+      +m22 = U32.sub(0, U32.and(1, U32.shrn(b2, 1n)))
       +z0_22 = U32.xor(z0_21, U32.and(m22, p88))
       +z1_22 = U32.xor(z1_21, U32.and(m22, p89))
       +z2_22 = U32.xor(z2_21, U32.and(m22, p90))
       +z3_22 = U32.xor(z3_21, U32.and(m22, p91))
-      +m23 = U32.sub(0, U32.and(1, U32.shrn(w, 8n)))
+      +m23 = U32.sub(0, U32.and(1, b2))
       +z0_23 = U32.xor(z0_22, U32.and(m23, p92))
       +z1_23 = U32.xor(z1_22, U32.and(m23, p93))
       +z2_23 = U32.xor(z2_22, U32.and(m23, p94))
       +z3_23 = U32.xor(z3_22, U32.and(m23, p95))
-      +m24 = U32.sub(0, U32.and(1, U32.shrn(w, 7n)))
+      +m24 = U32.sub(0, U32.and(1, U32.shrn(b3, 7n)))
       +z0_24 = U32.xor(z0_23, U32.and(m24, p96))
       +z1_24 = U32.xor(z1_23, U32.and(m24, p97))
       +z2_24 = U32.xor(z2_23, U32.and(m24, p98))
       +z3_24 = U32.xor(z3_23, U32.and(m24, p99))
-      +m25 = U32.sub(0, U32.and(1, U32.shrn(w, 6n)))
+      +m25 = U32.sub(0, U32.and(1, U32.shrn(b3, 6n)))
       +z0_25 = U32.xor(z0_24, U32.and(m25, p100))
       +z1_25 = U32.xor(z1_24, U32.and(m25, p101))
       +z2_25 = U32.xor(z2_24, U32.and(m25, p102))
       +z3_25 = U32.xor(z3_24, U32.and(m25, p103))
-      +m26 = U32.sub(0, U32.and(1, U32.shrn(w, 5n)))
+      +m26 = U32.sub(0, U32.and(1, U32.shrn(b3, 5n)))
       +z0_26 = U32.xor(z0_25, U32.and(m26, p104))
       +z1_26 = U32.xor(z1_25, U32.and(m26, p105))
       +z2_26 = U32.xor(z2_25, U32.and(m26, p106))
       +z3_26 = U32.xor(z3_25, U32.and(m26, p107))
-      +m27 = U32.sub(0, U32.and(1, U32.shrn(w, 4n)))
+      +m27 = U32.sub(0, U32.and(1, U32.shrn(b3, 4n)))
       +z0_27 = U32.xor(z0_26, U32.and(m27, p108))
       +z1_27 = U32.xor(z1_26, U32.and(m27, p109))
       +z2_27 = U32.xor(z2_26, U32.and(m27, p110))
       +z3_27 = U32.xor(z3_26, U32.and(m27, p111))
-      +m28 = U32.sub(0, U32.and(1, U32.shrn(w, 3n)))
+      +m28 = U32.sub(0, U32.and(1, U32.shrn(b3, 3n)))
       +z0_28 = U32.xor(z0_27, U32.and(m28, p112))
       +z1_28 = U32.xor(z1_27, U32.and(m28, p113))
       +z2_28 = U32.xor(z2_27, U32.and(m28, p114))
       +z3_28 = U32.xor(z3_27, U32.and(m28, p115))
-      +m29 = U32.sub(0, U32.and(1, U32.shrn(w, 2n)))
+      +m29 = U32.sub(0, U32.and(1, U32.shrn(b3, 2n)))
       +z0_29 = U32.xor(z0_28, U32.and(m29, p116))
       +z1_29 = U32.xor(z1_28, U32.and(m29, p117))
       +z2_29 = U32.xor(z2_28, U32.and(m29, p118))
       +z3_29 = U32.xor(z3_28, U32.and(m29, p119))
-      +m30 = U32.sub(0, U32.and(1, U32.shrn(w, 1n)))
+      +m30 = U32.sub(0, U32.and(1, U32.shrn(b3, 1n)))
       +z0_30 = U32.xor(z0_29, U32.and(m30, p120))
       +z1_30 = U32.xor(z1_29, U32.and(m30, p121))
       +z2_30 = U32.xor(z2_29, U32.and(m30, p122))
       +z3_30 = U32.xor(z3_29, U32.and(m30, p123))
-      +m31 = U32.sub(0, U32.and(1, U32.shrn(w, 0n)))
+      +m31 = U32.sub(0, U32.and(1, b3))
       z0_31 = U32.xor(z0_30, U32.and(m31, p124))
       z1_31 = U32.xor(z1_30, U32.and(m31, p125))
       z2_31 = U32.xor(z2_30, U32.and(m31, p126))
       z3_31 = U32.xor(z3_30, U32.and(m31, p127))
       G.B{z0_31, z1_31, z2_31, z3_31}
 
-# (Y xor X) * H, X the block of big-endian words x0..x3.
-def absorb(pw: Pows, y: G.Block, +x0: U32, +x1: U32, +x2: U32, +x3: U32) -> G.Block:
+# (Y xor X) * H for the 16 bytes x0..x15 of X.
+def absorb(pw: Pows, y: G.Block, +x0: U32, +x1: U32, +x2: U32, +x3: U32, +x4: U32, +x5: U32, +x6: U32, +x7: U32, +x8: U32, +x9: U32, +x10: U32, +x11: U32, +x12: U32, +x13: U32, +x14: U32, +x15: U32) -> G.Block:
   match pw y:
-    case Pows{p0, p1, p2, p3} G.B{y0, y1, y2, y3}:
-      word_mul(U32.xor(y3, x3), word_mul(U32.xor(y2, x2), word_mul(U32.xor(y1, x1), word_mul(U32.xor(y0, x0), G.zero(), p0), p1), p2), p3)
+    case Pows{p0, p1, p2, p3} G.B{+y0, +y1, +y2, +y3}:
+      word_mul(U32.xor(U32.and(255, U32.shrn(y3, 24n)), x12), U32.xor(U32.and(255, U32.shrn(y3, 16n)), x13), U32.xor(U32.and(255, U32.shrn(y3, 8n)), x14), U32.xor(U32.and(255, y3), x15), word_mul(U32.xor(U32.and(255, U32.shrn(y2, 24n)), x8), U32.xor(U32.and(255, U32.shrn(y2, 16n)), x9), U32.xor(U32.and(255, U32.shrn(y2, 8n)), x10), U32.xor(U32.and(255, y2), x11), word_mul(U32.xor(U32.and(255, U32.shrn(y1, 24n)), x4), U32.xor(U32.and(255, U32.shrn(y1, 16n)), x5), U32.xor(U32.and(255, U32.shrn(y1, 8n)), x6), U32.xor(U32.and(255, y1), x7), word_mul(U32.xor(U32.and(255, U32.shrn(y0, 24n)), x0), U32.xor(U32.and(255, U32.shrn(y0, 16n)), x1), U32.xor(U32.and(255, U32.shrn(y0, 8n)), x2), U32.xor(U32.and(255, y0), x3), G.zero(), p0), p1), p2), p3)
 
 def absorb16(+pw: Pows, y: G.Block, xs: List<&2, U32>) -> G.Block:
   match xs:
     case x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest:
-      absorb(pw, y, be32(x0, x1, x2, x3), be32(x4, x5, x6, x7), be32(x8, x9, x10, x11), be32(x12, x13, x14, x15))
+      absorb(pw, y, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15)
     case _:
       y
 
@@ -468,7 +468,7 @@ def absorb16(+pw: Pows, y: G.Block, xs: List<&2, U32>) -> G.Block:
 def ghash(+pw: Pows, +xs: List<&2, U32>, y: G.Block) -> G.Block:
   match xs:
     case x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest:
-      ghash(pw, rest, absorb(pw, y, be32(x0, x1, x2, x3), be32(x4, x5, x6, x7), be32(x8, x9, x10, x11), be32(x12, x13, x14, x15)))
+      ghash(pw, rest, absorb(pw, y, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15))
     case Nil{}:
       y
     case _:
@@ -476,11 +476,13 @@ def ghash(+pw: Pows, +xs: List<&2, U32>, y: G.Block) -> G.Block:
 
 # ---- GCM ----
 
-# H = E(K, 0^128), as big-endian words.
-def hash_key(o: Out) -> G.Block:
-  match o:
-    case Out{X.Q8{+a0, +b0, +a1, +b1, +a2, +b2, +a3, +b3}, T.S{T.W{+k0, +k1, +k2, +k3}, T.W{+k4, +k5, +k6, +k7}, T.W{+k8, +k9, +k10, +k11}, T.W{+k12, +k13, +k14, +k15}}}:
-      G.B{be32(U32.xor(U32.and(255, a0), k0), U32.xor(U32.and(255, U32.shrn(a0, 8n)), k1), U32.xor(U32.and(255, U32.shrn(a0, 16n)), k2), U32.xor(U32.and(255, U32.shrn(a0, 24n)), k3)), be32(U32.xor(U32.and(255, a1), k4), U32.xor(U32.and(255, U32.shrn(a1, 8n)), k5), U32.xor(U32.and(255, U32.shrn(a1, 16n)), k6), U32.xor(U32.and(255, U32.shrn(a1, 24n)), k7)), be32(U32.xor(U32.and(255, a2), k8), U32.xor(U32.and(255, U32.shrn(a2, 8n)), k9), U32.xor(U32.and(255, U32.shrn(a2, 16n)), k10), U32.xor(U32.and(255, U32.shrn(a2, 24n)), k11)), be32(U32.xor(U32.and(255, a3), k12), U32.xor(U32.and(255, U32.shrn(a3, 8n)), k13), U32.xor(U32.and(255, U32.shrn(a3, 16n)), k14), U32.xor(U32.and(255, U32.shrn(a3, 24n)), k15))}
+# H = E(K, 0^128) (the first 16 bytes), as big-endian words.
+def hash_key(bs: List<&2, U32>) -> G.Block:
+  match bs:
+    case x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest:
+      G.B{be32(x0, x1, x2, x3), be32(x4, x5, x6, x7), be32(x8, x9, x10, x11), be32(x12, x13, x14, x15)}
+    case _:
+      G.zero()
 
 # Everything the message loop needs: the keys, the nonce, the powers of H,
 # the last GHASH input (the lengths) and the tag mask E(K, J0).
@@ -509,7 +511,7 @@ def lengths(+aad: List<&2, U32>, +m: Nat) -> List<&2, U32>:
   List.append(&2, U32, G.octets(8n, Nat.mul(8n, List.length(&2, U32, aad))), G.octets(8n, Nat.mul(8n, m)))
 
 def context(+k: Keys, +n: Nonce, +aad: List<&2, U32>, +m: Nat) -> Ctx:
-  Ctx{k, n, pows(hash_key(encrypt2(k, 0, 0, 0, 0, 0, 0, 0, 0))), lengths(aad, m), List.take(&2, U32, stream(ctr2(k, n, 1)), 16n)}
+  Ctx{k, n, pows(hash_key(stream(encrypt2(k, 0, 0, 0, 0, 0, 0, 0, 0)))), lengths(aad, m), List.take(&2, U32, stream(ctr2(k, n, 1)), 16n)}
 
 # The last ciphertext bytes (fewer than 32) and the tag.
 def seal_tail(+x: Ctx, +ct: List<&2, U32>, y: G.Block) -> List<&2, U32>:
@@ -552,7 +554,7 @@ def seal_body(+x: Ctx, +xs: List<&2, U32>, +c: U32, y: G.Block, o: Out) -> List<
       +e29 = U32.xor(x29, U32.xor(U32.and(255, U32.shrn(b3, 8n)), k13))
       +e30 = U32.xor(x30, U32.xor(U32.and(255, U32.shrn(b3, 16n)), k14))
       +e31 = U32.xor(x31, U32.xor(U32.and(255, U32.shrn(b3, 24n)), k15))
-      +y2 = absorb(ctx_pw(x), absorb(ctx_pw(x), y, be32(e0, e1, e2, e3), be32(e4, e5, e6, e7), be32(e8, e9, e10, e11), be32(e12, e13, e14, e15)), be32(e16, e17, e18, e19), be32(e20, e21, e22, e23), be32(e24, e25, e26, e27), be32(e28, e29, e30, e31))
+      +y2 = absorb(ctx_pw(x), absorb(ctx_pw(x), y, e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11, e12, e13, e14, e15), e16, e17, e18, e19, e20, e21, e22, e23, e24, e25, e26, e27, e28, e29, e30, e31)
       e0 <> e1 <> e2 <> e3 <> e4 <> e5 <> e6 <> e7 <> e8 <> e9 <> e10 <> e11 <> e12 <> e13 <> e14 <> e15 <> e16 <> e17 <> e18 <> e19 <> e20 <> e21 <> e22 <> e23 <> e24 <> e25 <> e26 <> e27 <> e28 <> e29 <> e30 <> e31 <> seal_body(x, rest, U32.add(c, 2), y2, ctr2(ctx_keys(x), ctx_nonce(x), U32.add(c, 2)))
     case Nil{} _:
       finish(x, y)
@@ -571,11 +573,11 @@ def prepend32(f0: U32, f1: U32, f2: U32, f3: U32, f4: U32, f5: U32, f6: U32, f7:
 def open_tail(+x: Ctx, +ct: List<&2, U32>, t: List<&2, U32>, y: G.Block, o: Out) -> Opened:
   Opened{xor_into(ct, stream(o), Nil{}), Subtle.eq(t, finish(x, ghash(ctx_pw(x), ct, y)))}
 
-# The plaintext of the n 32-byte chunks of ciphertext left, then of the
-# last r < 32 bytes, and whether the 16 bytes after them are the tag.
-def open_body(+x: Ctx, n: Nat, +r: Nat, +xs: List<&2, U32>, +c: U32, y: G.Block, o: Out) -> Opened:
-  match n xs o:
-    case 1n+p +x0 <> +x1 <> +x2 <> +x3 <> +x4 <> +x5 <> +x6 <> +x7 <> +x8 <> +x9 <> +x10 <> +x11 <> +x12 <> +x13 <> +x14 <> +x15 <> +x16 <> +x17 <> +x18 <> +x19 <> +x20 <> +x21 <> +x22 <> +x23 <> +x24 <> +x25 <> +x26 <> +x27 <> +x28 <> +x29 <> +x30 <> +x31 <> rest Out{X.Q8{+a0, +b0, +a1, +b1, +a2, +b2, +a3, +b3}, T.S{T.W{+k0, +k1, +k2, +k3}, T.W{+k4, +k5, +k6, +k7}, T.W{+k8, +k9, +k10, +k11}, T.W{+k12, +k13, +k14, +k15}}}:
+# The plaintext of the first m bytes of xs (the ciphertext left), and
+# whether the bytes after them are the tag.
+def open_body(+x: Ctx, +m: Nat, +xs: List<&2, U32>, +c: U32, y: G.Block, o: Out) -> Opened:
+  match m xs o:
+    case 32n+p +x0 <> +x1 <> +x2 <> +x3 <> +x4 <> +x5 <> +x6 <> +x7 <> +x8 <> +x9 <> +x10 <> +x11 <> +x12 <> +x13 <> +x14 <> +x15 <> +x16 <> +x17 <> +x18 <> +x19 <> +x20 <> +x21 <> +x22 <> +x23 <> +x24 <> +x25 <> +x26 <> +x27 <> +x28 <> +x29 <> +x30 <> +x31 <> rest Out{X.Q8{+a0, +b0, +a1, +b1, +a2, +b2, +a3, +b3}, T.S{T.W{+k0, +k1, +k2, +k3}, T.W{+k4, +k5, +k6, +k7}, T.W{+k8, +k9, +k10, +k11}, T.W{+k12, +k13, +k14, +k15}}}:
       +f0 = U32.xor(x0, U32.xor(U32.and(255, a0), k0))
       +f1 = U32.xor(x1, U32.xor(U32.and(255, U32.shrn(a0, 8n)), k1))
       +f2 = U32.xor(x2, U32.xor(U32.and(255, U32.shrn(a0, 16n)), k2))
@@ -608,12 +610,10 @@ def open_body(+x: Ctx, n: Nat, +r: Nat, +xs: List<&2, U32>, +c: U32, y: G.Block,
       +f29 = U32.xor(x29, U32.xor(U32.and(255, U32.shrn(b3, 8n)), k13))
       +f30 = U32.xor(x30, U32.xor(U32.and(255, U32.shrn(b3, 16n)), k14))
       +f31 = U32.xor(x31, U32.xor(U32.and(255, U32.shrn(b3, 24n)), k15))
-      +y2 = absorb(ctx_pw(x), absorb(ctx_pw(x), y, be32(x0, x1, x2, x3), be32(x4, x5, x6, x7), be32(x8, x9, x10, x11), be32(x12, x13, x14, x15)), be32(x16, x17, x18, x19), be32(x20, x21, x22, x23), be32(x24, x25, x26, x27), be32(x28, x29, x30, x31))
-      prepend32(f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19, f20, f21, f22, f23, f24, f25, f26, f27, f28, f29, f30, f31, open_body(x, p, r, rest, U32.add(c, 2), y2, ctr2(ctx_keys(x), ctx_nonce(x), U32.add(c, 2))))
-    case 0n _ _:
-      open_tail(x, List.take(&2, U32, xs, r), List.drop(&2, U32, xs, r), y, o)
-    case 1n+p _ _:
-      Opened{Nil{}, False{}}
+      +y2 = absorb(ctx_pw(x), absorb(ctx_pw(x), y, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15), x16, x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30, x31)
+      prepend32(f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15, f16, f17, f18, f19, f20, f21, f22, f23, f24, f25, f26, f27, f28, f29, f30, f31, open_body(x, p, rest, U32.add(c, 2), y2, ctr2(ctx_keys(x), ctx_nonce(x), U32.add(c, 2))))
+    case _ _ _:
+      open_tail(x, List.take(&2, U32, xs, m), List.drop(&2, U32, xs, m), y, o)
 
 def accept(o: Opened) -> Maybe<&2, List<&2, U32>>:
   match o:
@@ -630,9 +630,31 @@ def open_split(+k: Keys, +n: Nonce, +aad: List<&2, U32>, +input: List<&2, U32>, 
       None{}
     case False{}:
       +x = context(k, n, aad, m)
-      accept(open_body(x, Nat.div(m, 32n), Nat.mod(m, 32n), input, 2, ghash(ctx_pw(x), aad, G.zero()), ctr2(k, n, 2)))
+      accept(open_body(x, m, input, 2, ghash(ctx_pw(x), aad, G.zero()), ctr2(k, n, 2)))
 
 # GCM-AD on C || T: the plaintext, or None when T is not the tag of C.
 def open(+k: Keys, +n: Nonce, +aad: List<&2, U32>, +input: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
   +len = List.length(&2, U32, input)
   open_split(k, n, aad, input, Nat.sub(len, 16n), Nat.is_lt(len, 16n))
+
+# ---- the byte API (see aesgcm.bend) ----
+
+# The key schedule has the 2 + (Nr - 1) round keys the cipher reads.
+def well_formed(s: A.Schedule) -> Bool:
+  match s:
+    case A.Schedule{nr, ks}: Nat.is_eq(List.length(&2, T.State, ks), 2n+Nat.sub(nr, 1n))
+
+def seal_nonce(+s: A.Schedule, nonce: List<&2, U32>, +aad: List<&2, U32>, +pt: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  match nonce:
+    case n0 <> n1 <> n2 <> n3 <> n4 <> n5 <> n6 <> n7 <> n8 <> n9 <> n10 <> n11 <> Nil{}:
+      Some{seal(keys_of(s), N{le32(n0, n1, n2, n3), le32(n4, n5, n6, n7), le32(n8, n9, n10, n11)}, aad, pt)}
+    case _:
+      None{}
+
+def open_nonce(+s: A.Schedule, nonce: List<&2, U32>, +aad: List<&2, U32>, +input: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  match nonce:
+    case n0 <> n1 <> n2 <> n3 <> n4 <> n5 <> n6 <> n7 <> n8 <> n9 <> n10 <> n11 <> Nil{}:
+      open(keys_of(s), N{le32(n0, n1, n2, n3), le32(n4, n5, n6, n7), le32(n8, n9, n10, n11)}, aad, input)
+    case _:
+      None{}
+

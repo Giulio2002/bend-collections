@@ -180,4 +180,23 @@ def layer_lemmas():
             '      %%Equal.sym(X.Q8, X.ortho(D.planes(%s)), X.Q8{%s}, W.ortho_bits(%s)) : {F.stream(F.Out{_, %s}) == %s : List<&2, U32>}' % (
                 ', '.join(qvars('a') + qvars('b')), out_words, ortho_args, SK, RHS),
             '      {==}', '']
+    # ---- the stored bytes of the last round are the byte-level output
+    sh = [[None] * 4 for _ in range(4)]   # shifted state: column c, row r -> source byte index
+    for c in range(4):
+        for r in range(4):
+            sh[c][r] = 4 * ((c + r) % 4) + r
+    L, R, P = [], [], []
+    for pre in 'ab':
+        for c in range(4):
+            for r in range(4):
+                x = 'SB.sbox(%s%d)' % (pre, sh[c][r])
+                kk = 'k%d' % (4 * c + r)
+                bo = 'D.byte_of(%s)' % ', '.join('D.bit(%s, %dn)' % (x, k) for k in range(8))
+                L.append('U32.xor(%s, %s)' % (bo, kk))
+                R.append('U32.xor(%s, %s)' % (x, kk))
+                P.append('Equal.cong(U32, U32, v => U32.xor(v, %s), %s, %s, Y.sbox_canon(%s%d))' % (kk, bo, x, pre, sh[c][r]))
+    out += ['# After SubBytes the bytes are bytes: storing them is the last AddRoundKey.',
+            'def store_last(+sa: T.State, +sb: T.State, +k: T.State) -> {D.store(A.shift_rows(A.sub_bytes(sa)), A.shift_rows(A.sub_bytes(sb)), k) == List.append(&2, U32, A.bytes_of(A.add_round_key(A.shift_rows(A.sub_bytes(sa)), k)), A.bytes_of(A.add_round_key(A.shift_rows(A.sub_bytes(sb)), k))) : List<&2, U32>}:',
+            '  match sa sb k:', '    case %s %s:' % (ST, SK.replace('k', '+k').replace('T.S{T.W{+k', 'T.S{T.W{+k')),
+            '      D.list_ext32(%s, %s, %s)' % (', '.join(L), ', '.join(R), ', '.join(P)), '']
     (OUT / 'layers.bend').write_text('\n'.join(out))
