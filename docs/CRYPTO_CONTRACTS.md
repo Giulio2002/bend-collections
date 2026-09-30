@@ -911,10 +911,10 @@ roots).
 |---|---|---|
 | `Random.stream` | the 64-bit outputs of the generator keyed by eight words are C2SP's ChaCha8Rand stream keyed by them, for every key and length (pending bytes never change the word stream) | P |
 | `Random.seeded` | `new(seed)` is None unless the seed is 32 bytes below 256, and otherwise outputs the stream of the seed's little-endian words | P |
-| `Random.bytes` | `bytes(g, n)` are the first n of the pending bytes followed by the little-endian bytes (Go's `binary.LittleEndian.PutUint64`) of the next outputs, for every generator and n | P (`bytes.bend`) |
+| `Random.bytes` | `bytes(g, n)` are the first n of the pending bytes followed by the little-endian bytes (Go's `binary.LittleEndian.PutUint64`) of the next outputs, for every generator and n (the implementation takes a whole output's eight bytes at once while none are pending; `fast_eq` proves it equal to the byte-at-a-time fill for every n and state) | P (`bytes.bend`) |
 | `Random.bytes_lt` | every byte is below 256 (when the pending ones are, as `new` and `from_os` leave them) | P |
 | `Random.uint_below` | `uint_below(g, n) < n` for n > 0 | P (the math `Uint64n.lt` at this source) |
-| `Random.shuffle` | `shuffle(g, items)` is a permutation of `items` (every count kept) | P (the math `Shuffle.permutation`) |
+| `Random.shuffle` | `shuffle(g, items)` is a permutation of `items` (every count kept; linear time, through a Base `Array`) | P (the math `Shuffle.permutation`) |
 
 The math contract (`docs/MATH_CONTRACTS.md`, Random numbers) adds that
 `uint_below` is Go's `uint64n` decision exactly and that Lemire's rejection
