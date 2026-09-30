@@ -14,6 +14,14 @@ import ./redm.bend as RM
 # hypothesis of a rule "monomial -> polynomial" of redm.bend from an equation
 # between two residues.
 
+# the curve equation at (x, y) as the rule x^2 y^2 -> e (y^2 - x^2 - 1), e the inverse of d
+def Rule(+mp: Nat, +e: Nat, +x: Nat, +y: Nat) -> Data:
+  {Nat.mod(FS.fmul(1n+mp, FS.fmul(1n+mp, x, x), FS.fmul(1n+mp, y, y)), 1n+mp) == Nat.mod(FS.fmul(1n+mp, e, FS.fsub(1n+mp, FS.fsub(1n+mp, FS.fmul(1n+mp, y, y), FS.fmul(1n+mp, x, x)), 1n)), 1n+mp) : Nat}
+
+# a b == 1 (mod m)
+def Inv(+mp: Nat, +a: Nat, +b: Nat) -> Data:
+  {Nat.mod(FS.fmul(1n+mp, a, b), 1n+mp) == Nat.mod(1n, 1n+mp) : Nat}
+
 def s1(+m: Nat) -> {Nat.add(Nat.mul(1n, m), 0n) == m : Nat}:
   %Equal.sym(Nat, Nat.add(Nat.mul(1n, m), 0n), Nat.mul(1n, m), NA.add_zero(Nat.mul(1n, m))) : {_ == m : Nat}
   %Equal.sym(Nat, Nat.mul(1n, m), m, SR.one_mul(m)) : {_ == m : Nat}

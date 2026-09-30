@@ -1,0 +1,100 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../../secp256k1/semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../secp256k1/group/bn.bend as B
+import ../../secp256k1/group/poly.bend as P
+import ../../secp256k1/group/pev.bend as E
+import ../../secp256k1/group/zm.bend as Z
+import ../../secp256k1/group/red.bend as R
+import ../../secp256k1/group/ident.bend as I
+
+# Ring expressions over Z/mZ as data (a deep embedding): ev is the value of
+# an expression (with the field operations FS.fadd, FS.fsub, FS.fmul of the
+# specification, so ev of a literal expression unfolds to the specification's
+# own term), pl its polynomial (proofs/crypto/secp256k1/group/poly.bend), and
+# sound says, once and for all, that the value is the polynomial's. An
+# identity instance then carries two expression literals instead of a proof
+# tree per operation (the checker normalizes the type of every node of such a
+# tree, which costs memory).
+
+type Ex is Data:
+  Z{}
+  K{k: Nat}
+  V{i: Nat}
+  A{a: Ex, b: Ex}
+  S{a: Ex, b: Ex}
+  M{a: Ex, b: Ex}
+
+def ev(+mp: Nat, +env: List<&2, Nat>, e: Ex) -> Nat:
+  match e:
+    case Z{}:
+      0n
+    case K{k}:
+      k
+    case V{i}:
+      E.venv(i, env)
+    case A{a, b}:
+      FS.fadd(1n+mp, ev(mp, env, a), ev(mp, env, b))
+    case S{a, b}:
+      FS.fsub(1n+mp, ev(mp, env, a), ev(mp, env, b))
+    case M{a, b}:
+      FS.fmul(1n+mp, ev(mp, env, a), ev(mp, env, b))
+
+def pl(+n: Nat, e: Ex) -> List<&2, P.Tm>:
+  match e:
+    case Z{}:
+      Nil{}
+    case K{k}:
+      P.pconst(n, k)
+    case V{i}:
+      P.pvar(n, i)
+    case A{a, b}:
+      P.padd(pl(n, a), pl(n, b))
+    case S{a, b}:
+      P.psub(pl(n, a), pl(n, b))
+    case M{a, b}:
+      P.pmul(pl(n, a), pl(n, b))
+
+# every variable is below n
+def wf(+n: Nat, e: Ex) -> Bool:
+  match e:
+    case Z{}:
+      True{}
+    case K{k}:
+      True{}
+    case V{i}:
+      Nat.is_lt(i, n)
+    case A{a, b}:
+      Bool.and(wf(n, a), wf(n, b))
+    case S{a, b}:
+      Bool.and(wf(n, a), wf(n, b))
+    case M{a, b}:
+      Bool.and(wf(n, a), wf(n, b))
+
+def const_rel(+mp: Nat, +n: Nat, +k: Nat, +env: List<&2, Nat>) -> Z.Rel(mp, k, E.eP(P.pconst(n, k), env), E.eN(P.pconst(n, k), env)):
+  %goal {Nat.mod(Nat.add(k, Nat.add(Nat.mul(0n, E.mon(P.unit(n, 0n, 0n), env)), 0n)), 1n+mp) == Nat.mod(Nat.add(Nat.mul(B.bval(B.nbin(k)), E.mon(P.unit(n, 0n, 0n), env)), 0n), 1n+mp) : Nat}
+  %rw R.mon_zero(n, env)
+  %rw R.mon_zero(n, env)
+  %rw B.nbin_v(k)
+  %goal {Nat.mod(Nat.add(k, 0n), 1n+mp) == Nat.mod(Nat.add(Nat.mul(k, 1n), 0n), 1n+mp) : Nat}
+  %rw NA.mul_one(k)
+  %close
+
+# the value of an expression is its polynomial's
+def sound(+mp: Nat, +n: Nat, +env: List<&2, Nat>, e: Ex, +h: {wf(n, e) == True{} : Bool}) -> Z.Rel(mp, ev(mp, env, e), E.eP(pl(n, e), env), E.eN(pl(n, e), env)):
+  match e:
+    case Z{}:
+      {==}
+    case K{+k}:
+      const_rel(mp, n, k, env)
+    case V{+i}:
+      I.var_rel(mp, n, i, env, h)
+    case A{+a, +b}:
+      I.rel_padd(mp, ev(mp, env, a), ev(mp, env, b), pl(n, a), pl(n, b), env, sound(mp, n, env, a, Lg.and_left(wf(n, a), wf(n, b), h)), sound(mp, n, env, b, Lg.and_right(wf(n, a), wf(n, b), h)))
+    case S{+a, +b}:
+      I.rel_psub(mp, ev(mp, env, a), ev(mp, env, b), pl(n, a), pl(n, b), env, sound(mp, n, env, a, Lg.and_left(wf(n, a), wf(n, b), h)), sound(mp, n, env, b, Lg.and_right(wf(n, a), wf(n, b), h)))
+    case M{+a, +b}:
+      I.rel_pmul(mp, ev(mp, env, a), ev(mp, env, b), pl(n, a), pl(n, b), env, sound(mp, n, env, a, Lg.and_left(wf(n, a), wf(n, b), h)), sound(mp, n, env, b, Lg.and_right(wf(n, a), wf(n, b), h)))

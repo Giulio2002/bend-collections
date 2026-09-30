@@ -18,31 +18,36 @@ from idlib import Ctx
 
 
 def tt(c, p, q, d):
-    return c.mul(d, c.mul(c.mul(p[0], q[0]), c.mul(p[1], q[1])))
+    return c.call('G.ct(1n+mp, %s, %s, %s, %s, %s)' % (d.spec, p[0].spec, p[1].spec, q[0].spec, q[1].spec),
+                  c.mul(d, c.mul(c.mul(p[0], q[0]), c.mul(p[1], q[1]))))
 
 
 def parts(c, p, q, d):
     """nx, dx, ny, dy of p + q"""
     t = tt(c, p, q, d)
-    return (c.add(c.mul(p[0], q[1]), c.mul(p[1], q[0])), c.add(c.const(1), t),
-            c.add(c.mul(p[1], q[1]), c.mul(p[0], q[0])), c.sub(c.const(1), t))
+    a4 = '%s, %s, %s, %s' % (p[0].spec, p[1].spec, q[0].spec, q[1].spec)
+    return (c.call('G.nx(1n+mp, %s)' % a4, c.add(c.mul(p[0], q[1]), c.mul(p[1], q[0]))),
+            c.call('G.dx(1n+mp, %s, %s)' % (d.spec, a4), c.add(c.const(1), t)),
+            c.call('G.ny(1n+mp, %s)' % a4, c.add(c.mul(p[1], q[1]), c.mul(p[0], q[0]))),
+            c.call('G.dy(1n+mp, %s, %s)' % (d.spec, a4), c.sub(c.const(1), t)))
 
 
 def lhs(c, p):
-    return c.sub(c.sq(p[1]), c.sq(p[0]))
+    return c.call('G.lhs(1n+mp, %s, %s)' % (p[0].spec, p[1].spec), c.sub(c.sq(p[1]), c.sq(p[0])))
 
 
 def rhs(c, p, d):
-    return c.add(c.const(1), c.mul(d, c.mul(c.sq(p[0]), c.sq(p[1]))))
+    return c.call('G.rhs(1n+mp, %s, %s, %s)' % (d.spec, p[0].spec, p[1].spec), c.add(c.const(1), c.mul(d, c.mul(c.sq(p[0]), c.sq(p[1])))))
 
 
 def curve_rule(c, p, e, h):
     """x^2 y^2 -> e (y^2 - x^2 - 1), from the hypothesis h"""
-    return c.rule(c.mul(c.sq(p[0]), c.sq(p[1])), c.mul(e, c.sub(c.sub(c.sq(p[1]), c.sq(p[0])), c.const(1))), h)
+    return c.rule(c.mul(c.sq(p[0]), c.sq(p[1])), c.mul(e, c.sub(c.sub(c.sq(p[1]), c.sq(p[0])), c.const(1))), h,
+                  'IM.Rule(mp, %s, %s, %s)' % (e.spec, p[0].spec, p[1].spec))
 
 
 def de_rule(c, d, e, h):
-    return c.rule(c.mul(d, e), c.const(1), h)
+    return c.rule(c.mul(d, e), c.const(1), h, 'IM.Inv(mp, %s, %s)' % (d.spec, e.spec))
 
 
 def neg(c, v):
@@ -116,14 +121,21 @@ def gen_compl():
     i2 = c.add(c.sq(i), c.const(1))
     k1 = c.sub(c.sq(x1), c.mul(d, c.mul(c.mul(c.sq(x1), c.sq(y1)), c.sq(x2))))
     ixy = c.mul(c.const(2), c.mul(i, c.mul(x1, y1)))
+    up = c.specdef('up', c.mul(c.mul(x1, y1), c.add(c.mul(i, x2), y2)))
+    um = c.specdef('um', c.mul(c.mul(x1, y1), c.sub(c.mul(i, x2), y2)))
+    vp = c.specdef('vp', c.add(c.mul(i, x1), y1))
+    vm = c.specdef('vm', c.sub(c.mul(i, x1), y1))
     for nm, den, other, sg, tg in (('cy_p', dy, dx, 1, 1), ('cy_m', dy, dx, -1, -1), ('cx_p', dx, dy, 1, -1), ('cx_m', dx, dy, -1, 1)):
-        ix1 = c.mul(i, x1)
-        v = c.add(ix1, y1) if sg > 0 else c.sub(ix1, y1)
-        ix2 = c.mul(i, x2)
-        u = c.mul(c.mul(x1, y1), c.add(ix2, y2) if tg > 0 else c.sub(ix2, y2))
+        v = vp if sg > 0 else vm
+        u = up if tg > 0 else um
         cof = c.add(other, ixy) if sg > 0 else c.sub(other, ixy)
         c.conseq(nm, c.sub(c.sq(v), c.mul(d, c.sq(u))), [(i2, c.zero(), k1), (den, c.zero(), cof)], cv,
                  '%s == 0 and i^2 + 1 == 0: (i x1 %s y1)^2 == d (x1 y1 (i x2 %s y2))^2' % ('1 - t' if den is dy else '1 + t', '+' if sg > 0 else '-', '+' if tg > 0 else '-'))
+    dx2 = c.mul(d, x2)
+    c.conseq('two_y', c.const(2), [(dy, c.zero(), c.const(2)), (up, c.zero(), dx2), (um, c.zero(), neg(c, dx2))], (),
+             '1 - t == 0 and x1 y1 (i x2 + y2) == 0 and x1 y1 (i x2 - y2) == 0: 2 == 0')
+    c.conseq('two_x', c.const(2), [(dx, c.zero(), c.const(2)), (up, c.zero(), neg(c, dx2)), (um, c.zero(), dx2)], (),
+             '1 + t == 0 and x1 y1 (i x2 + y2) == 0 and x1 y1 (i x2 - y2) == 0: 2 == 0')
     c.write('id_compl.bend', '# Completeness: a vanishing denominator makes d a square (Bernstein and Lange).\n')
 
 
@@ -132,28 +144,29 @@ def gen_assoc(which):
     x1, y1, x2, y2, x3, y3, d, e, Xa, Ya, Xb, Yb = c.vars('x1', 'y1', 'x2', 'y2', 'x3', 'y3', 'd', 'e', 'xa', 'ya', 'xb', 'yb')
     p, q, r = (x1, y1), (x2, y2), (x3, y3)
     cv = [curve_rule(c, p, e, 'h1'), curve_rule(c, q, e, 'h2'), curve_rule(c, r, e, 'h3'), de_rule(c, d, e, 'hde')]
-    nxa, dxa, nya, dya = parts(c, p, q, d)       # a = p + q
-    nxb, dxb, nyb, dyb = parts(c, q, r, d)       # b = q + r
-    Lx, Ldx, Ly, Ldy = parts(c, (Xa, Ya), r, d)  # a + r
-    Rx, Rdx, Ry, Rdy = parts(c, p, (Xb, Yb), d)  # p + b
-    u = [(c.mul(Xa, dxa), nxa), (c.mul(Ya, dya), nya), (c.mul(Xb, dxb), nxb), (c.mul(Yb, dyb), nyb)]
-    Wa, Wb = c.mul(dxa, dya), c.mul(dxb, dyb)
-    dxy3, dxy1 = c.mul(d, c.mul(x3, y3)), c.mul(d, c.mul(x1, y1))
+    sh = c.share
+    nxa, dxa, nya, dya = [sh(v) for v in parts(c, p, q, d)]       # a = p + q
+    nxb, dxb, nyb, dyb = [sh(v) for v in parts(c, q, r, d)]       # b = q + r
+    Lx, Ldx, Ly, Ldy = [sh(v) for v in parts(c, (Xa, Ya), r, d)]  # a + r
+    Rx, Rdx, Ry, Rdy = [sh(v) for v in parts(c, p, (Xb, Yb), d)]  # p + b
+    u = [(sh(c.mul(Xa, dxa)), nxa), (sh(c.mul(Ya, dya)), nya), (sh(c.mul(Xb, dxb)), nxb), (sh(c.mul(Yb, dyb)), nyb)]
+    Wa, Wb = sh(c.mul(dxa, dya)), sh(c.mul(dxb, dyb))
+    dxy3, dxy1 = sh(c.mul(d, c.mul(x3, y3))), sh(c.mul(d, c.mul(x1, y1)))
     z = c.zero()
     if which == 'x':
         NL, DL, NR, DR = Lx, Ldx, Rx, Rdx
         # A = NL Wa, A' = nxa dya y3 + nya dxa x3; A - A' = u1 dya y3 + u2 dxa x3
-        A1 = c.add(c.mul(c.mul(nxa, dya), y3), c.mul(c.mul(nya, dxa), x3))
+        A1 = sh(c.add(c.mul(c.mul(nxa, dya), y3), c.mul(c.mul(nya, dxa), x3)))
         da = [c.mul(dya, y3), c.mul(dxa, x3), z, z]
         # C = NR Wb, C' = x1 nyb dxb + y1 nxb dyb; C - C' = u4 x1 dxb + u3 y1 dyb
-        C1 = c.add(c.mul(x1, c.mul(nyb, dxb)), c.mul(y1, c.mul(nxb, dyb)))
+        C1 = sh(c.add(c.mul(x1, c.mul(nyb, dxb)), c.mul(y1, c.mul(nxb, dyb))))
         dc = [z, z, c.mul(y1, dyb), c.mul(x1, dxb)]
         sg = 1
     else:
         NL, DL, NR, DR = Ly, Ldy, Ry, Rdy
-        A1 = c.add(c.mul(c.mul(nya, dxa), y3), c.mul(c.mul(nxa, dya), x3))
+        A1 = sh(c.add(c.mul(c.mul(nya, dxa), y3), c.mul(c.mul(nxa, dya), x3)))
         da = [c.mul(dya, x3), c.mul(dxa, y3), z, z]
-        C1 = c.add(c.mul(y1, c.mul(nyb, dxb)), c.mul(x1, c.mul(nxb, dyb)))
+        C1 = sh(c.add(c.mul(y1, c.mul(nyb, dxb)), c.mul(x1, c.mul(nxb, dyb))))
         dc = [z, z, c.mul(x1, dyb), c.mul(y1, dxb)]
         sg = -1
     # G = DL Wa = Wa +- d x3 y3 (Xa dxa)(Ya dya); G - G' = +- d x3 y3 (u1 Ya dya + nxa u2)
@@ -163,7 +176,7 @@ def gen_assoc(which):
     if sg < 0:
         dg = [neg(c, v) if v is not z else z for v in dg]
         db = [neg(c, v) if v is not z else z for v in db]
-    G, B = c.mul(DL, Wa), c.mul(DR, Wb)
+    G, B = sh(c.mul(DL, Wa)), sh(c.mul(DR, Wb))
     # E W - (A' B' - C' G') = (A - A') B + A' (B - B') - (C - C') G - C' (G - G')
     combos = []
     for k in range(4):
@@ -176,7 +189,7 @@ def gen_assoc(which):
                 cof = t if s > 0 else neg(c, t)
             else:
                 cof = c.add(cof, t) if s > 0 else c.sub(cof, t)
-        combos.append((u[k][0], u[k][1], cof))
+        combos.append((u[k][0], u[k][1], sh(cof)))
     a = c.mul(c.sub(c.mul(NL, DR), c.mul(NR, DL)), c.mul(Wa, Wb))
     np = c.conseq('assoc_' + which, a, combos, cv,
                   '(xa, ya) = P1 + P2 and (xb, yb) = P2 + P3 (as xa dxa == nxa, ...), the three points on the curve: (N_L D_R - N_R D_L) (dxa dya dxb dyb) == 0 for the %s coordinates N_L / D_L of (P1 + P2) + P3 and N_R / D_R of P1 + (P2 + P3)' % which)
@@ -184,7 +197,30 @@ def gen_assoc(which):
     return np
 
 
-GENS = {'rule': gen_rule, 'comm': gen_comm, 'unit': gen_unit, 'closure': gen_closure, 'compl': gen_compl,
+def gen_fracs():
+    c = Ctx(['n', 'dn', 'iv', 'x'])
+    n, dn, iv, x = c.vars('n', 'dn', 'iv', 'x')
+    one = c.const(1)
+    c.conseq('frac_mul', c.sub(c.mul(c.mul(n, iv), dn), n), [(c.mul(dn, iv), one, n)], (), 'dn iv == 1: (n iv) dn == n')
+    c.conseq('frac_val', c.sub(c.mul(n, iv), x), [(n, c.mul(x, dn), iv), (c.mul(dn, iv), one, x)], (), 'n == x dn and dn iv == 1: n iv == x')
+    c.write('id_frac.bend', '# Fractions n / dn = n iv with dn iv == 1.\n')
+    c = Ctx(['n1', 'd1', 'i1', 'n2', 'd2', 'i2'])
+    n1, d1, i1, n2, d2, i2 = c.vars('n1', 'd1', 'i1', 'n2', 'd2', 'i2')
+    one = c.const(1)
+    c.conseq('frac_eq', c.sub(c.mul(n1, i1), c.mul(n2, i2)),
+             [(c.mul(n1, d2), c.mul(n2, d1), c.mul(i1, i2)), (c.mul(d2, i2), one, neg(c, c.mul(n1, i1))), (c.mul(d1, i1), one, c.mul(n2, i2))], (),
+             'n1 d2 == n2 d1, d1 i1 == 1 and d2 i2 == 1: n1 i1 == n2 i2')
+    c.write('id_frac2.bend', '# Equal fractions.\n')
+    c = Ctx(['a', 'b', 'k'])
+    a, b, k = c.vars('a', 'b', 'k')
+    one = c.const(1)
+    aa, bb = c.mul(a, a), c.mul(b, b)
+    c.conseq('ns_alg', c.sub(k, one), [(aa, one, one), (aa, c.mul(k, bb), neg(c, one)), (bb, one, neg(c, k))], (),
+             'a a == 1, a a == k (b b) and b b == 1: k == 1')
+    c.write('id_ns.bend', '# Euler\'s criterion, the algebra: a = v^h, b = u^h, k = d^h.\n')
+
+
+GENS = {'frac': gen_fracs, 'rule': gen_rule, 'comm': gen_comm, 'unit': gen_unit, 'closure': gen_closure, 'compl': gen_compl,
         'assoc_x': lambda: gen_assoc('x'), 'assoc_y': lambda: gen_assoc('y')}
 
 if __name__ == '__main__':
