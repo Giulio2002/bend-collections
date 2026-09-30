@@ -73,5 +73,7 @@ computation on `Bn`, each root kept under 60 s and 1000 MB.
 
 ## Status
 
-See the table in `docs/CRYPTO_CONTRACTS.md` (secp256k1 section) once the
-first theorems land; this file records the plan and the measurements.
+Done: all of the plan, including n prime, [n] G = O, the affine law, the
+SEC 1 round trip, ECDSA sign/verify/recover, BIP-340 and GLV on multiples of
+G. The clauses and check times are in the secp256k1 section of
+`docs/CRYPTO_CONTRACTS.md`.

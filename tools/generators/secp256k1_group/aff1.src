@@ -1,0 +1,89 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ../../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../../spec/crypto/secp256k1/curve.bend as CS
+import ../../../../spec/crypto/secp256k1/group.bend as GS
+import ../../../../spec/crypto/secp256k1/affine.bend as GA
+import ../../../math/number/nt_prime.bend as PM
+import ../../../math/number/nt_fld.bend as FD
+import ./zm.bend as Z
+import ./ident.bend as I
+import ./fld.bend as F
+import ./nc.bend as NC
+import ./glaw1.bend as G1
+import ./glaw2.bend as G2
+import ./glaw3.bend as G3
+import ./glaw4.bend as G4
+import ./id_curve.bend as C
+import ./afff.bend as AF
+import ./aff_id6.bend as A6
+import ./aff_id8.bend as A8
+
+# The affine point of a projective point (GA.of_proj), part 1: points at
+# infinity, the normal form (x / z : y / z : 1), and of_proj respects equiv.
+# Modulus m = 1 + mp with the field facts of glaw1.bend.
+
+# a point of the curve with z == 0 is equiv to O
+def inf_eqv(+mp: Nat, +hp: PM.Prime(1n+mp), +x: Nat, +y: Nat, +z: Nat, +c: F.OnC(mp, x, y, z), +hz: {Nat.mod(z, 1n+mp) == 0n : Nat}) -> {GS.equiv(1n+mp, CS.SPoint{x, y, z}, CS.infinity()) == True{} : Bool}:
+  G1.e_pack(mp, x, y, z, 0n, 1n, 0n, F.z_mul_l(mp, x, 1n, NC.cube_z(mp, hp, x, F.z_red(mp, Nat.mul(FS.mmul(1n+mp, x, x), x), C.inf_x(mp, x, y, z, 0n, 0n, 0n, c, hz)))), F.z_mul_l(mp, z, 1n, hz))
+
+# a point equiv to O has z == 0
+def eqv_inf_z(+mp: Nat, +x: Nat, +y: Nat, +z: Nat, +h: {GS.equiv(1n+mp, CS.SPoint{x, y, z}, CS.infinity()) == True{} : Bool}) -> {Nat.mod(z, 1n+mp) == 0n : Nat}:
+  Equal.trans(Nat, Nat.mod(z, 1n+mp), Nat.mod(Nat.mul(z, 1n), 1n+mp), 0n, Equal.cong(Nat, Nat, k => Nat.mod(k, 1n+mp), z, Nat.mul(z, 1n), Equal.sym(Nat, Nat.mul(z, 1n), z, NA.mul_one(z))), G1.e_z(mp, x, y, z, 0n, 1n, 0n, h))
+
+# (x / z : y / z : 1) is a point of the group
+def nrm_v(+mp: Nat, +hp: PM.Prime(1n+mp), +x: Nat, +y: Nat, +z: Nat, +c: F.OnC(mp, x, y, z), +n: F.NZ(mp, y), +nz: F.NZ(mp, z)) -> {GS.valid(1n+mp, CS.SPoint{FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n}) == True{} : Bool}:
+  G1.v_pack(mp, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n,
+    I.both_red(mp, Nat.mul(FS.mmul(1n+mp, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, x, FS.minv(1n+mp, z))), FS.mmul(1n+mp, x, FS.minv(1n+mp, z))), Nat.sub(Nat.add(FS.mmul(1n+mp, FS.mmul(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), 1n), 1n+mp), Nat.mod(FS.mmul(1n+mp, 7n, FS.mmul(1n+mp, FS.mmul(1n+mp, 1n, 1n), 1n)), 1n+mp)),
+      F.msub_z(mp, FS.mmul(1n+mp, FS.mmul(1n+mp, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, x, FS.minv(1n+mp, z))), FS.mmul(1n+mp, x, FS.minv(1n+mp, z))), FS.msub(1n+mp, FS.mmul(1n+mp, FS.mmul(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), 1n), FS.mmul(1n+mp, 7n, FS.mmul(1n+mp, FS.mmul(1n+mp, 1n, 1n), 1n))), A6.nrm_c(mp, x, y, z, FS.minv(1n+mp, z), c, AF.inv_ok(mp, hp, z, nz)))),
+    F.nz_mmul(mp, hp, y, FS.minv(1n+mp, z), n, AF.inv_nz(mp, hp, z, nz)))
+
+# and it is the same projective point
+def nrm_e(+mp: Nat, +hp: PM.Prime(1n+mp), +x: Nat, +y: Nat, +z: Nat, +nz: F.NZ(mp, z)) -> {GS.equiv(1n+mp, CS.SPoint{x, y, z}, CS.SPoint{FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n}) == True{} : Bool}:
+  G1.e_pack(mp, x, y, z, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n,
+    I.both_red(mp, Nat.mul(x, FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), Nat.mul(FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), y), A6.nrm_x(mp, x, y, z, FS.minv(1n+mp, z))),
+    I.both_red(mp, Nat.mul(z, FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), Nat.mul(1n, y), F.msub_z(mp, FS.mmul(1n+mp, z, FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), FS.mmul(1n+mp, 1n, y), A6.nrm_z(mp, x, y, z, FS.minv(1n+mp, z), AF.inv_ok(mp, hp, z, nz)))))
+
+# A + B equiv O gives A equiv -B
+def sum_inf(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +a: CS.SPoint, +b: CS.SPoint, +va: {GS.valid(1n+mp, a) == True{} : Bool}, +vb: {GS.valid(1n+mp, b) == True{} : Bool}, +hz: {GS.equiv(1n+mp, CS.padd(1n+mp, a, b), CS.infinity()) == True{} : Bool}) -> {GS.equiv(1n+mp, a, GS.neg(1n+mp, b)) == True{} : Bool}:
+  +nb = GS.neg(1n+mp, b)
+  +vnb = G2.v_neg(mp, b, vb)
+  +vi = G2.v_inf(mp, h21)
+  +vs = G1.v_add(mp, hp, h3, hnc, h21, a, b, va, vb)
+  +vbn = G1.v_add(mp, hp, h3, hnc, h21, b, nb, vb, vnb)
+  G2.e_trans(mp, hp, a, CS.padd(1n+mp, a, CS.infinity()), nb, G1.v_add(mp, hp, h3, hnc, h21, a, CS.infinity(), va, vi), G2.e_sym(mp, CS.padd(1n+mp, a, CS.infinity()), a, G2.unit(mp, a)),
+    G2.e_trans(mp, hp, CS.padd(1n+mp, a, CS.infinity()), CS.padd(1n+mp, a, CS.padd(1n+mp, b, nb)), nb, G1.v_add(mp, hp, h3, hnc, h21, a, CS.padd(1n+mp, b, nb), va, vbn), G2.e_add_r(mp, hp, a, CS.infinity(), CS.padd(1n+mp, b, nb), vi, vbn, G2.e_sym(mp, CS.padd(1n+mp, b, nb), CS.infinity(), G2.inv(mp, b))),
+      G2.e_trans(mp, hp, CS.padd(1n+mp, a, CS.padd(1n+mp, b, nb)), CS.padd(1n+mp, CS.padd(1n+mp, a, b), nb), nb, G1.v_add(mp, hp, h3, hnc, h21, CS.padd(1n+mp, a, b), nb, vs, vnb), G2.e_sym(mp, CS.padd(1n+mp, CS.padd(1n+mp, a, b), nb), CS.padd(1n+mp, a, CS.padd(1n+mp, b, nb)), G3.assoc(mp, a, b, nb, va, vb, vnb)),
+        G2.e_trans(mp, hp, CS.padd(1n+mp, CS.padd(1n+mp, a, b), nb), CS.padd(1n+mp, CS.infinity(), nb), nb, G1.v_add(mp, hp, h3, hnc, h21, CS.infinity(), nb, vi, vnb), G2.e_add_l(mp, hp, CS.padd(1n+mp, a, b), CS.infinity(), nb, vs, vi, hz), G4.unit_l(mp, nb)))))
+
+# x1 z2 == x2 z1 for equiv points of the group
+def xz(+mp: Nat, +hp: PM.Prime(1n+mp), +x1: Nat, +y1: Nat, +z1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +n1: F.NZ(mp, y1), +n2: F.NZ(mp, y2), +h: {GS.equiv(1n+mp, CS.SPoint{x1, y1, z1}, CS.SPoint{x2, y2, z2}) == True{} : Bool}) -> {FS.mmul(1n+mp, x1, z2) == FS.mmul(1n+mp, x2, z1) : Nat}:
+  I.both_red(mp, Nat.mul(x1, z2), Nat.mul(x2, z1), F.eq_of_factor(mp, hp, FS.mmul(1n+mp, x1, z2), FS.mmul(1n+mp, x2, z1), FS.mmul(1n+mp, y1, y2), F.nz_mmul(mp, hp, y1, y2, n1, n2), F.z_red(mp, Nat.mul(FS.msub(1n+mp, FS.mmul(1n+mp, x1, z2), FS.mmul(1n+mp, x2, z1)), FS.mmul(1n+mp, y1, y2)), A8.xz_eq(mp, x1, y1, z1, x2, y2, z2, G1.e_x(mp, x1, y1, z1, x2, y2, z2, h), Equal.sym(Nat, FS.mmul(1n+mp, z1, y2), FS.mmul(1n+mp, z2, y1), G1.e_z(mp, x1, y1, z1, x2, y2, z2, h))))))
+
+# y1 z2 == y2 z1
+def yz(+mp: Nat, +x1: Nat, +y1: Nat, +z1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +h: {GS.equiv(1n+mp, CS.SPoint{x1, y1, z1}, CS.SPoint{x2, y2, z2}) == True{} : Bool}) -> {FS.mmul(1n+mp, y1, z2) == FS.mmul(1n+mp, y2, z1) : Nat}:
+  Equal.trans(Nat, FS.mmul(1n+mp, y1, z2), FS.mmul(1n+mp, z2, y1), FS.mmul(1n+mp, y2, z1), F.mmul_comm(mp, y1, z2), Equal.trans(Nat, FS.mmul(1n+mp, z2, y1), FS.mmul(1n+mp, z1, y2), FS.mmul(1n+mp, y2, z1), Equal.sym(Nat, FS.mmul(1n+mp, z1, y2), FS.mmul(1n+mp, z2, y1), G1.e_z(mp, x1, y1, z1, x2, y2, z2, h)), F.mmul_comm(mp, z1, y2)))
+
+def aff_eqv_c(+mp: Nat, +hp: PM.Prime(1n+mp), +x1: Nat, +y1: Nat, +z1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +n1: F.NZ(mp, y1), +n2: F.NZ(mp, y2), +h: {GS.equiv(1n+mp, CS.SPoint{x1, y1, z1}, CS.SPoint{x2, y2, z2}) == True{} : Bool}, i1: Bool, i2: Bool, +h1: {Nat.is_eq(Nat.mod(z1, 1n+mp), 0n) == i1 : Bool}, +h2: {Nat.is_eq(Nat.mod(z2, 1n+mp), 0n) == i2 : Bool}) -> {GA.of_sel(i1, 1n+mp, x1, y1, FS.minv(1n+mp, z1)) == GA.of_sel(i2, 1n+mp, x2, y2, FS.minv(1n+mp, z2)) : GA.APoint}:
+  match i1 i2:
+    case True{} True{}:
+      {==}
+    case True{} False{}:
+      Empty.absurd({GA.AInf{} == GA.APt{FS.mmul(1n+mp, x2, FS.minv(1n+mp, z2)), FS.mmul(1n+mp, y2, FS.minv(1n+mp, z2))} : GA.APoint}, F.nz_absurd(mp, z2, h2, F.zprod(mp, hp, y1, z2, Equal.trans(Nat, Nat.mod(Nat.mul(y1, z2), 1n+mp), Nat.mod(Nat.mul(z2, y1), 1n+mp), 0n, Equal.cong(Nat, Nat, k => Nat.mod(k, 1n+mp), Nat.mul(y1, z2), Nat.mul(z2, y1), NA.mul_comm(y1, z2)), Equal.trans(Nat, FS.mmul(1n+mp, z2, y1), FS.mmul(1n+mp, z1, y2), 0n, Equal.sym(Nat, FS.mmul(1n+mp, z1, y2), FS.mmul(1n+mp, z2, y1), G1.e_z(mp, x1, y1, z1, x2, y2, z2, h)), F.z_mul_l(mp, z1, y2, N.eq_from_is_eq(Nat.mod(z1, 1n+mp), 0n, h1)))), n1)))
+    case False{} True{}:
+      Empty.absurd({GA.APt{FS.mmul(1n+mp, x1, FS.minv(1n+mp, z1)), FS.mmul(1n+mp, y1, FS.minv(1n+mp, z1))} == GA.AInf{} : GA.APoint}, F.nz_absurd(mp, z1, h1, F.zprod(mp, hp, y2, z1, Equal.trans(Nat, Nat.mod(Nat.mul(y2, z1), 1n+mp), Nat.mod(Nat.mul(z1, y2), 1n+mp), 0n, Equal.cong(Nat, Nat, k => Nat.mod(k, 1n+mp), Nat.mul(y2, z1), Nat.mul(z1, y2), NA.mul_comm(y2, z1)), Equal.trans(Nat, FS.mmul(1n+mp, z1, y2), FS.mmul(1n+mp, z2, y1), 0n, G1.e_z(mp, x1, y1, z1, x2, y2, z2, h), F.z_mul_l(mp, z2, y1, N.eq_from_is_eq(Nat.mod(z2, 1n+mp), 0n, h2)))), n2)))
+    case False{} False{}:
+      AF.apt_eq(FS.mmul(1n+mp, x1, FS.minv(1n+mp, z1)), FS.mmul(1n+mp, y1, FS.minv(1n+mp, z1)), FS.mmul(1n+mp, x2, FS.minv(1n+mp, z2)), FS.mmul(1n+mp, y2, FS.minv(1n+mp, z2)),
+        AF.div_eq(mp, hp, x1, z1, x2, z2, h1, h2, xz(mp, hp, x1, y1, z1, x2, y2, z2, n1, n2, h)),
+        AF.div_eq(mp, hp, y1, z1, y2, z2, h1, h2, yz(mp, x1, y1, z1, x2, y2, z2, h)))
+
+# equiv points of the group have the same affine point
+def aff_eqv(+mp: Nat, +hp: PM.Prime(1n+mp), a: CS.SPoint, b: CS.SPoint, +va: {GS.valid(1n+mp, a) == True{} : Bool}, +vb: {GS.valid(1n+mp, b) == True{} : Bool}, +h: {GS.equiv(1n+mp, a, b) == True{} : Bool}) -> {GA.of_proj(1n+mp, a) == GA.of_proj(1n+mp, b) : GA.APoint}:
+  match a b:
+    case CS.SPoint{+x1, +y1, +z1} CS.SPoint{+x2, +y2, +z2}:
+      aff_eqv_c(mp, hp, x1, y1, z1, x2, y2, z2, G1.v_nz(mp, x1, y1, z1, va), G1.v_nz(mp, x2, y2, z2, vb), h, Nat.is_eq(Nat.mod(z1, 1n+mp), 0n), Nat.is_eq(Nat.mod(z2, 1n+mp), 0n), {==}, {==})

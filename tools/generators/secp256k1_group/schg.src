@@ -1,0 +1,272 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ../../../../spec/lib/common.bend as C
+import ../../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../../spec/crypto/secp256k1/curve.bend as CS
+import ../../../../spec/crypto/secp256k1/group.bend as GS
+import ../../../../spec/crypto/secp256k1/schnorr.bend as SS
+import ../../../math/number/nt_prime.bend as PM
+import ./zm.bend as Z
+import ./fld.bend as F
+import ./glaw1.bend as G1
+import ./glaw2.bend as G2
+import ./glaw4.bend as G4
+import ./glaw5.bend as G5
+import ./pto.bend as PO
+import ./afff.bend as AF
+import ./aff1.bend as A1
+import ./affx.bend as AX
+import ./sqrt.bend as SQ
+import ./enc.bend as EC
+import ./sch_id.bend as SI
+import ./sym.bend as S
+import ./ident.bend as I
+import ./id_enc.bend as IE
+
+# BIP-340 on the group: the generic part, for a prime modulus 1 + mp (with
+# the field facts of glaw1.bend), a prime group order 1 + nq and a
+# generator g (a point of the group with [1 + nq] g equiv O and g not O).
+
+# ---- the order of g ----
+
+def nz_j(+nq: Nat, +j: Nat, +hj0: {Nat.is_eq(j, 0n) == False{} : Bool}, +hjn: {Nat.is_lt(j, 1n+nq) == True{} : Bool}) -> F.NZ(nq, j):
+  %Equal.sym(Nat, Nat.mod(j, 1n+nq), j, SQ.mred(nq, j, hjn)) : {Nat.is_eq(_, 0n) == False{} : Bool}
+  hj0
+
+def one_g(+mp: Nat, +nq: Nat, +g: CS.SPoint, +i: Nat, +j: Nat, +h: {FS.mmul(1n+nq, j, i) == 1n : Nat}) -> {GS.smul(1n+mp, Nat.mod(Nat.mul(i, j), 1n+nq), g) == CS.padd(1n+mp, CS.infinity(), g) : CS.SPoint}:
+  %NA.mul_comm(j, i) : {GS.smul(1n+mp, Nat.mod(_, 1n+nq), g) == CS.padd(1n+mp, CS.infinity(), g) : CS.SPoint}
+  %Equal.sym(Nat, FS.mmul(1n+nq, j, i), 1n, h) : {GS.smul(1n+mp, _, g) == CS.padd(1n+mp, CS.infinity(), g) : CS.SPoint}
+  {==}
+
+# [j] g equiv O with 0 < j < n: impossible
+def ord_nz(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +nq: Nat, +hq: PM.Prime(1n+nq), +g: CS.SPoint, +vg: {GS.valid(1n+mp, g) == True{} : Bool}, +hng: {GS.equiv(1n+mp, GS.smul(1n+mp, 1n+nq, g), CS.infinity()) == True{} : Bool}, +hgo: {GS.equiv(1n+mp, g, CS.infinity()) == False{} : Bool}, +j: Nat, +hj0: {Nat.is_eq(j, 0n) == False{} : Bool}, +hjn: {Nat.is_lt(j, 1n+nq) == True{} : Bool}, +hz: {GS.equiv(1n+mp, GS.smul(1n+mp, j, g), CS.infinity()) == True{} : Bool}) -> Empty:
+  +i = FS.minv(1n+nq, j)
+  +sj = GS.smul(1n+mp, j, g)
+  +vsj = G4.v_smul(mp, hp, h3, hnc, h21, j, g, vg)
+  +vo = G2.v_inf(mp, h21)
+  +e1 = Lg.subst(CS.SPoint, t => {GS.equiv(1n+mp, GS.smul(1n+mp, i, sj), t) == True{} : Bool}, GS.smul(1n+mp, Nat.mod(Nat.mul(i, j), 1n+nq), g), CS.padd(1n+mp, CS.infinity(), g), one_g(mp, nq, g, i, j, AF.inv_ok(nq, hq, j, nz_j(nq, j, hj0, hjn))), PO.mul_mod(mp, hp, h3, hnc, h21, i, j, nq, g, vg, hng))
+  +e2 = G2.e_trans(mp, hp, GS.smul(1n+mp, i, sj), GS.smul(1n+mp, i, CS.infinity()), CS.infinity(), G4.v_smul(mp, hp, h3, hnc, h21, i, CS.infinity(), vo), G4.smul_eqv(mp, hp, h3, hnc, h21, i, sj, CS.infinity(), vsj, vo, hz), PO.smul_inf(mp, hp, h3, hnc, h21, i))
+  +e3 = G2.e_trans(mp, hp, g, CS.padd(1n+mp, CS.infinity(), g), GS.smul(1n+mp, i, sj), G1.v_add(mp, hp, h3, hnc, h21, CS.infinity(), g, vo, vg), G2.e_sym(mp, CS.padd(1n+mp, CS.infinity(), g), g, G4.unit_l(mp, g)), G2.e_sym(mp, GS.smul(1n+mp, i, sj), CS.padd(1n+mp, CS.infinity(), g), e1))
+  Lg.true_false(Equal.trans(Bool, True{}, GS.equiv(1n+mp, g, CS.infinity()), False{}, Equal.sym(Bool, GS.equiv(1n+mp, g, CS.infinity()), True{}, G2.e_trans(mp, hp, g, GS.smul(1n+mp, i, sj), CS.infinity(), G4.v_smul(mp, hp, h3, hnc, h21, i, sj, vsj), e3, e2)), hgo))
+
+# ---- parity of y and p - y ----
+
+def par0_c(+mp: Nat, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, +rp: Nat, +hr: {Nat.is_lt(1n+rp, 1n+mp) == True{} : Bool}, +hb: {Nat.mod(1n+rp, 2n) == 1n : Nat}, c: Nat, +hc: {Nat.mod(Nat.sub(mp, rp), 2n) == c : Nat}) -> {Nat.mod(Nat.sub(mp, rp), 2n) == 0n : Nat}:
+  match c:
+    case 0n:
+      hc
+    case 1n:
+      Empty.absurd({Nat.mod(Nat.sub(mp, rp), 2n) == 0n : Nat}, SQ.par_ne(Nat.sub(mp, rp), 1n+rp, Equal.trans(Nat, Nat.mod(Nat.sub(mp, rp), 2n), 1n, Nat.mod(1n+rp, 2n), hc, Equal.sym(Nat, Nat.mod(1n+rp, 2n), 1n, hb)), Lg.subst(Nat, t => {Nat.mod(t, 2n) == 1n : Nat}, 1n+mp, Nat.add(Nat.sub(mp, rp), 1n+rp), Equal.sym(Nat, Nat.add(Nat.sub(mp, rp), 1n+rp), 1n+mp, SQ.neg_sum(mp, rp, hr)), hodd)))
+    case 2n+ +q:
+      Empty.absurd({Nat.mod(Nat.sub(mp, rp), 2n) == 0n : Nat}, EC.q_absurd(Nat.sub(mp, rp), q, hc))
+
+# y odd, 0 < y < p, p odd: p - y is even
+def par0(+mp: Nat, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, y: Nat, +hy: {Nat.is_lt(y, 1n+mp) == True{} : Bool}, +hb: {Nat.mod(y, 2n) == 1n : Nat}) -> {Nat.mod(FS.mneg(1n+mp, y), 2n) == 0n : Nat}:
+  match y:
+    case 0n:
+      Empty.absurd({Nat.mod(FS.mneg(1n+mp, 0n), 2n) == 0n : Nat}, N.zero_succ(0n, hb))
+    case 1n+ +rp:
+      %Equal.sym(Nat, FS.mneg(1n+mp, 1n+rp), Nat.sub(mp, rp), SQ.neg_pos(mp, rp, hy)) : {Nat.mod(_, 2n) == 0n : Nat}
+      par0_c(mp, hodd, rp, hy, hb, Nat.mod(Nat.sub(mp, rp), 2n), {==})
+
+# ---- the even-y representative of [j] g ----
+
+# for a = (x : y : z) equiv [j] g with affine (ax, ay) and b = ay mod 2:
+# the point (ax, ey, 1) with ey = ay or p - ay even is what lift_x(ax)
+# decompresses to, and it is [j] g or [n - j] g
+def EvR(+p: Nat, +n: Nat, +g: CS.SPoint, +ax: Nat, +ay: Nat, +j: Nat, +b: Nat) -> Data:
+  S.Both<{CS.decompress(p, ax, 0n) == Some{CS.SPoint{ax, SS.even_b(p, b, ay), 1n}} : Maybe<&2, CS.SPoint>}, S.Both<{GS.equiv(p, CS.SPoint{ax, SS.even_b(p, b, ay), 1n}, GS.smul(p, SS.even_b(n, b, j), g)) == True{} : Bool}, S.Both<{GS.valid(p, CS.SPoint{ax, SS.even_b(p, b, ay), 1n}) == True{} : Bool}, S.Both<{Nat.mod(SS.even_b(p, b, ay), 2n) == 0n : Nat}, {Nat.is_lt(SS.even_b(p, b, ay), p) == True{} : Bool}>>>>
+
+def zsum(+nq: Nat, +j: Nat) -> {Nat.mod(Nat.add(j, FS.msub(1n+nq, 0n, j)), 1n+nq) == 0n : Nat}:
+  %NA.add_comm(FS.msub(1n+nq, 0n, j), j) : {Nat.mod(_, 1n+nq) == 0n : Nat}
+  Z.msub_add(nq, 0n, j)
+
+def evp_c(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +s: Nat, +he: {Nat.add(1n+mp, 1n) == Nat.mul(s, 4n) : Nat}, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}, +nq: Nat, +hq: PM.Prime(1n+nq), +g: CS.SPoint, +vg: {GS.valid(1n+mp, g) == True{} : Bool}, +hng: {GS.equiv(1n+mp, GS.smul(1n+mp, 1n+nq, g), CS.infinity()) == True{} : Bool}, +hgo: {GS.equiv(1n+mp, g, CS.infinity()) == False{} : Bool}, +x: Nat, +y: Nat, +z: Nat, +j: Nat, +va: {GS.valid(1n+mp, CS.SPoint{x, y, z}) == True{} : Bool}, +ha: {GS.equiv(1n+mp, CS.SPoint{x, y, z}, GS.smul(1n+mp, j, g)) == True{} : Bool}, +nzz: F.NZ(mp, z), b: Nat, +hb: {Nat.mod(FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 2n) == b : Nat}) -> EvR(1n+mp, 1n+nq, g, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), j, b):
+  match b:
+    case 0n:
+      +vna = A1.nrm_v(mp, hp, x, y, z, G1.v_onc(mp, x, y, z, va), G1.v_nz(mp, x, y, z, va), nzz)
+      +hay = NR.dm_lt(mp, Nat.mul(y, FS.minv(1n+mp, z)))
+      S.Both{Lg.subst(Nat, t => {CS.decompress(1n+mp, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), t) == Some{CS.SPoint{FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n}} : Maybe<&2, CS.SPoint>}, Nat.mod(FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 2n), 0n, hb, EC.decomp(one, h1, mp, hp, s, he, hodd, h256, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), hay, EC.aff_on(mp, hp, x, y, z, va, nzz))), S.Both{G2.e_trans(mp, hp, CS.SPoint{FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n}, CS.SPoint{x, y, z}, GS.smul(1n+mp, j, g), va, G2.e_sym(mp, CS.SPoint{x, y, z}, CS.SPoint{FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n}, A1.nrm_e(mp, hp, x, y, z, nzz)), ha), S.Both{vna, S.Both{hb, hay}}}}
+    case 1n:
+      +vna = A1.nrm_v(mp, hp, x, y, z, G1.v_onc(mp, x, y, z, va), G1.v_nz(mp, x, y, z, va), nzz)
+      +hay = NR.dm_lt(mp, Nat.mul(y, FS.minv(1n+mp, z)))
+      +hey = NR.dm_lt(mp, Nat.sub(Nat.add(0n, 1n+mp), Nat.mod(FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n+mp)))
+      +hp0 = par0(mp, hodd, FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), hay, hb)
+      +hon2 = Lg.subst(Nat, t => {Nat.is_eq(t, CS.rhs(1n+mp, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)))) == True{} : Bool}, FS.mmul(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), FS.mmul(1n+mp, FS.mneg(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), FS.mneg(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z)))), Equal.sym(Nat, FS.mmul(1n+mp, FS.mneg(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), FS.mneg(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z)))), FS.mmul(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), I.both_red(mp, Nat.mul(FS.mneg(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), FS.mneg(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z)))), Nat.mul(FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), IE.neg_sq(mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 0n))), EC.aff_on(mp, hp, x, y, z, va, nzz))
+      +a1 = GS.smul(1n+mp, j, g)
+      +b1 = GS.smul(1n+mp, FS.mneg(1n+nq, j), g)
+      +va1 = G4.v_smul(mp, hp, h3, hnc, h21, j, g, vg)
+      +vb1 = G4.v_smul(mp, hp, h3, hnc, h21, FS.mneg(1n+nq, j), g, vg)
+      +hsum = Lg.subst(Nat, t => {GS.equiv(1n+mp, CS.padd(1n+mp, a1, b1), GS.smul(1n+mp, t, g)) == True{} : Bool}, Nat.mod(Nat.add(j, FS.mneg(1n+nq, j)), 1n+nq), 0n, zsum(nq, j), PO.add_mod(mp, hp, h3, hnc, h21, j, FS.mneg(1n+nq, j), nq, g, vg, hng))
+      +hun = G5.inv_unique(mp, hp, h3, hnc, h21, a1, b1, va1, vb1, hsum)
+      +hne = G5.e_neg(mp, CS.SPoint{FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n}, a1, G2.e_trans(mp, hp, CS.SPoint{FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n}, CS.SPoint{x, y, z}, a1, va, G2.e_sym(mp, CS.SPoint{x, y, z}, CS.SPoint{FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n}, A1.nrm_e(mp, hp, x, y, z, nzz)), ha))
+      S.Both{Lg.subst(Nat, t => {CS.decompress(1n+mp, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), t) == Some{CS.SPoint{FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mneg(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), 1n}} : Maybe<&2, CS.SPoint>}, Nat.mod(FS.mneg(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), 2n), 0n, hp0, EC.decomp(one, h1, mp, hp, s, he, hodd, h256, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mneg(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), hey, hon2)), S.Both{G2.e_trans(mp, hp, GS.neg(1n+mp, CS.SPoint{FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n}), GS.neg(1n+mp, a1), b1, G2.v_neg(mp, a1, va1), hne, G2.e_sym(mp, b1, GS.neg(1n+mp, a1), hun)), S.Both{G2.v_neg(mp, CS.SPoint{FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n}, vna), S.Both{hp0, hey}}}}
+    case 2n+ +q:
+      Empty.absurd(EvR(1n+mp, 1n+nq, g, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), j, 2n+q), EC.q_absurd(FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), q, hb))
+
+def nzz_c(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +nq: Nat, +hq: PM.Prime(1n+nq), +g: CS.SPoint, +vg: {GS.valid(1n+mp, g) == True{} : Bool}, +hng: {GS.equiv(1n+mp, GS.smul(1n+mp, 1n+nq, g), CS.infinity()) == True{} : Bool}, +hgo: {GS.equiv(1n+mp, g, CS.infinity()) == False{} : Bool}, +x: Nat, +y: Nat, +z: Nat, +j: Nat, +hj0: {Nat.is_eq(j, 0n) == False{} : Bool}, +hjn: {Nat.is_lt(j, 1n+nq) == True{} : Bool}, +va: {GS.valid(1n+mp, CS.SPoint{x, y, z}) == True{} : Bool}, +ha: {GS.equiv(1n+mp, CS.SPoint{x, y, z}, GS.smul(1n+mp, j, g)) == True{} : Bool}, c: Bool, +hc: {Nat.is_eq(Nat.mod(z, 1n+mp), 0n) == c : Bool}) -> F.NZ(mp, z):
+  match c:
+    case False{}:
+      hc
+    case True{}:
+      Empty.absurd(F.NZ(mp, z), ord_nz(mp, hp, h3, hnc, h21, nq, hq, g, vg, hng, hgo, j, hj0, hjn, G2.e_trans(mp, hp, GS.smul(1n+mp, j, g), CS.SPoint{x, y, z}, CS.infinity(), va, G2.e_sym(mp, CS.SPoint{x, y, z}, GS.smul(1n+mp, j, g), ha), AX.z0_eqv(mp, hp, x, y, z, va, N.eq_from_is_eq(Nat.mod(z, 1n+mp), 0n, hc)))))
+
+# a equiv [j] g with 0 < j < n: its z is nonzero
+def nzz(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +nq: Nat, +hq: PM.Prime(1n+nq), +g: CS.SPoint, +vg: {GS.valid(1n+mp, g) == True{} : Bool}, +hng: {GS.equiv(1n+mp, GS.smul(1n+mp, 1n+nq, g), CS.infinity()) == True{} : Bool}, +hgo: {GS.equiv(1n+mp, g, CS.infinity()) == False{} : Bool}, +x: Nat, +y: Nat, +z: Nat, +j: Nat, +hj0: {Nat.is_eq(j, 0n) == False{} : Bool}, +hjn: {Nat.is_lt(j, 1n+nq) == True{} : Bool}, +va: {GS.valid(1n+mp, CS.SPoint{x, y, z}) == True{} : Bool}, +ha: {GS.equiv(1n+mp, CS.SPoint{x, y, z}, GS.smul(1n+mp, j, g)) == True{} : Bool}) -> F.NZ(mp, z):
+  nzz_c(mp, hp, h3, hnc, h21, nq, hq, g, vg, hng, hgo, x, y, z, j, hj0, hjn, va, ha, Nat.is_eq(Nat.mod(z, 1n+mp), 0n), {==})
+
+def evp(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +s: Nat, +he: {Nat.add(1n+mp, 1n) == Nat.mul(s, 4n) : Nat}, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}, +nq: Nat, +hq: PM.Prime(1n+nq), +g: CS.SPoint, +vg: {GS.valid(1n+mp, g) == True{} : Bool}, +hng: {GS.equiv(1n+mp, GS.smul(1n+mp, 1n+nq, g), CS.infinity()) == True{} : Bool}, +hgo: {GS.equiv(1n+mp, g, CS.infinity()) == False{} : Bool}, a: CS.SPoint, +j: Nat, +hj0: {Nat.is_eq(j, 0n) == False{} : Bool}, +hjn: {Nat.is_lt(j, 1n+nq) == True{} : Bool}, +va: {GS.valid(1n+mp, a) == True{} : Bool}, +ha: {GS.equiv(1n+mp, a, GS.smul(1n+mp, j, g)) == True{} : Bool}) -> EvR(1n+mp, 1n+nq, g, CS.aff_x(CS.to_affine(1n+mp, a)), CS.aff_y(CS.to_affine(1n+mp, a)), j, Nat.mod(CS.aff_y(CS.to_affine(1n+mp, a)), 2n)):
+  match a:
+    case CS.SPoint{+x, +y, +z}:
+      evp_c(mp, hp, h3, hnc, h21, one, h1, s, he, hodd, h256, nq, hq, g, vg, hng, hgo, x, y, z, j, va, ha, nzz(mp, hp, h3, hnc, h21, nq, hq, g, vg, hng, hgo, x, y, z, j, hj0, hjn, va, ha), Nat.mod(FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 2n), {==})
+
+# ---- the verification equation ----
+
+def inf_c(+mp: Nat, +z: Nat, +nz: F.NZ(mp, z), c: Bool, +hc: {Nat.is_eq(z, 0n) == c : Bool}) -> {Nat.is_eq(z, 0n) == False{} : Bool}:
+  match c:
+    case False{}:
+      hc
+    case True{}:
+      Empty.absurd({Nat.is_eq(z, 0n) == False{} : Bool}, F.nz_absurd(mp, z, nz, Equal.cong(Nat, Nat, t => Nat.mod(t, 1n+mp), z, 0n, N.eq_from_is_eq(z, 0n, hc))))
+
+def chk(+rx: Nat, +ey: Nat, +hev: {Nat.mod(ey, 2n) == 0n : Nat}) -> {SS.check_r(rx, False{}, CS.SAffine{rx, ey}) == True{} : Bool}:
+  %Equal.sym(Nat, Nat.mod(ey, 2n), 0n, hev) : {Bool.and(True{}, Bool.and(Nat.is_eq(_, 0n), Nat.is_eq(rx, rx))) == True{} : Bool}
+  %Equal.sym(Bool, Nat.is_eq(rx, rx), True{}, N.is_eq_refl(rx)) : {Bool.and(True{}, Bool.and(True{}, _)) == True{} : Bool}
+  {==}
+
+# a point equiv (rx : ey : 1) with ey even passes BIP-340's check of R
+def fin(+mp: Nat, +hp: PM.Prime(1n+mp), +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, rr: CS.SPoint, +rx: Nat, +ey: Nat, +vr: {GS.valid(1n+mp, rr) == True{} : Bool}, +ve: {GS.valid(1n+mp, CS.SPoint{rx, ey, 1n}) == True{} : Bool}, +h: {GS.equiv(1n+mp, rr, CS.SPoint{rx, ey, 1n}) == True{} : Bool}, +hrx: {Nat.is_lt(rx, 1n+mp) == True{} : Bool}, +hey: {Nat.is_lt(ey, 1n+mp) == True{} : Bool}, +hev: {Nat.mod(ey, 2n) == 0n : Nat}) -> {SS.check_r(rx, CS.is_inf(rr), CS.to_affine(1n+mp, rr)) == True{} : Bool}:
+  match rr:
+    case CS.SPoint{+x, +y, +z}:
+      +nzr = AX.nz_eqv(mp, hp, rx, ey, 1n, x, y, z, vr, AF.one_nz(mp, h21), G2.e_sym(mp, CS.SPoint{x, y, z}, CS.SPoint{rx, ey, 1n}, h))
+      %Equal.sym(Bool, Nat.is_eq(z, 0n), False{}, inf_c(mp, z, nzr, Nat.is_eq(z, 0n), {==})) : {SS.check_r(rx, _, CS.to_affine(1n+mp, CS.SPoint{x, y, z})) == True{} : Bool}
+      %Equal.sym(CS.SAffine, CS.to_affine(1n+mp, CS.SPoint{x, y, z}), CS.SAffine{rx, ey}, Equal.trans(CS.SAffine, CS.to_affine(1n+mp, CS.SPoint{x, y, z}), CS.to_affine(1n+mp, CS.SPoint{rx, ey, 1n}), CS.SAffine{rx, ey}, AX.ta_eqv(mp, hp, x, y, z, rx, ey, 1n, vr, ve, nzr, AF.one_nz(mp, h21), h), EC.aff_one(mp, hp, rx, ey, hrx, hey))) : {SS.check_r(rx, False{}, _) == True{} : Bool}
+      chk(rx, ey, hev)
+
+def sk_eq(+nq: Nat, +k: Nat, +e: Nat, +d: Nat, +hk: {Nat.is_lt(k, 1n+nq) == True{} : Bool}) -> {FS.madd(1n+nq, FS.madd(1n+nq, k, FS.mmul(1n+nq, e, d)), FS.mmul(1n+nq, FS.mneg(1n+nq, e), d)) == k : Nat}:
+  Equal.trans(Nat, FS.madd(1n+nq, FS.madd(1n+nq, k, FS.mmul(1n+nq, e, d)), FS.mmul(1n+nq, FS.mneg(1n+nq, e), d)), Nat.mod(k, 1n+nq), k, I.both_red(nq, Nat.add(FS.madd(1n+nq, k, FS.mmul(1n+nq, e, d)), FS.mmul(1n+nq, FS.mneg(1n+nq, e), d)), k, Equal.trans(Nat, Nat.mod(FS.madd(1n+nq, FS.madd(1n+nq, k, FS.mmul(1n+nq, e, d)), FS.mmul(1n+nq, FS.mneg(1n+nq, e), d)), 1n+nq), Nat.mod(k, 1n+nq), Nat.mod(Nat.mod(k, 1n+nq), 1n+nq), SI.sc_k(nq, k, e, d), Equal.sym(Nat, Nat.mod(Nat.mod(k, 1n+nq), 1n+nq), Nat.mod(k, 1n+nq), NR.mod_mod(nq, k)))), SQ.mred(nq, k, hk))
+
+# R' = [s] g + [n - e] P' with s = k + e d (mod n), P' equiv [d] g, and
+# (rx : ey : 1) equiv [k] g with ey even: BIP-340's check of R' passes
+def vrf(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +nq: Nat, +hn256: {Nat.is_le(1n+nq, C.shift(256n, one)) == True{} : Bool}, +g: CS.SPoint, +vg: {GS.valid(1n+mp, g) == True{} : Bool}, +hng: {GS.equiv(1n+mp, GS.smul(1n+mp, 1n+nq, g), CS.infinity()) == True{} : Bool}, +d: Nat, +k: Nat, +e: Nat, +pp: CS.SPoint, +rx: Nat, +ey: Nat, +hk: {Nat.is_lt(k, 1n+nq) == True{} : Bool}, +vp: {GS.valid(1n+mp, pp) == True{} : Bool}, +hpp: {GS.equiv(1n+mp, pp, GS.smul(1n+mp, d, g)) == True{} : Bool}, +ve: {GS.valid(1n+mp, CS.SPoint{rx, ey, 1n}) == True{} : Bool}, +hre: {GS.equiv(1n+mp, CS.SPoint{rx, ey, 1n}, GS.smul(1n+mp, k, g)) == True{} : Bool}, +hrx: {Nat.is_lt(rx, 1n+mp) == True{} : Bool}, +hey: {Nat.is_lt(ey, 1n+mp) == True{} : Bool}, +hev: {Nat.mod(ey, 2n) == 0n : Nat}) -> {SS.check_r(rx, CS.is_inf(CS.padd(1n+mp, CS.pmul(1n+mp, FS.madd(1n+nq, k, FS.mmul(1n+nq, e, d)), g), CS.pmul(1n+mp, FS.mneg(1n+nq, e), pp))), CS.to_affine(1n+mp, CS.padd(1n+mp, CS.pmul(1n+mp, FS.madd(1n+nq, k, FS.mmul(1n+nq, e, d)), g), CS.pmul(1n+mp, FS.mneg(1n+nq, e), pp)))) == True{} : Bool}:
+  +sv = FS.madd(1n+nq, k, FS.mmul(1n+nq, e, d))
+  +ne = FS.mneg(1n+nq, e)
+  +u1 = CS.pmul(1n+mp, sv, g)
+  +u2 = CS.pmul(1n+mp, ne, pp)
+  +vu1 = G4.pmul_valid(mp, hp, h3, hnc, h21, sv, g, vg)
+  +vu2 = G4.pmul_valid(mp, hp, h3, hnc, h21, ne, pp, vp)
+  +vs1 = G4.v_smul(mp, hp, h3, hnc, h21, sv, g, vg)
+  +w2 = GS.smul(1n+mp, FS.mmul(1n+nq, ne, d), g)
+  +vw2 = G4.v_smul(mp, hp, h3, hnc, h21, FS.mmul(1n+nq, ne, d), g, vg)
+  +vdg = G4.v_smul(mp, hp, h3, hnc, h21, d, g, vg)
+  +t1 = G4.pmul_smul(mp, hp, h3, hnc, h21, sv, g, vg, EC.fit(one, h1, nq, hn256, sv, NR.dm_lt(nq, Nat.add(k, FS.mmul(1n+nq, e, d)))))
+  +t2a = G4.pmul_smul(mp, hp, h3, hnc, h21, ne, pp, vp, EC.fit(one, h1, nq, hn256, ne, NR.dm_lt(nq, Nat.sub(Nat.add(0n, 1n+nq), Nat.mod(e, 1n+nq)))))
+  +t2b = G4.smul_eqv(mp, hp, h3, hnc, h21, ne, pp, GS.smul(1n+mp, d, g), vp, vdg, hpp)
+  +t2c = PO.mul_mod(mp, hp, h3, hnc, h21, ne, d, nq, g, vg, hng)
+  +t2 = G2.e_trans(mp, hp, u2, GS.smul(1n+mp, ne, pp), w2, G4.v_smul(mp, hp, h3, hnc, h21, ne, pp, vp), t2a, G2.e_trans(mp, hp, GS.smul(1n+mp, ne, pp), GS.smul(1n+mp, ne, GS.smul(1n+mp, d, g)), w2, G4.v_smul(mp, hp, h3, hnc, h21, ne, GS.smul(1n+mp, d, g), vdg), t2b, t2c))
+  +t3 = G2.e_trans(mp, hp, CS.padd(1n+mp, u1, u2), CS.padd(1n+mp, GS.smul(1n+mp, sv, g), u2), CS.padd(1n+mp, GS.smul(1n+mp, sv, g), w2), G1.v_add(mp, hp, h3, hnc, h21, GS.smul(1n+mp, sv, g), u2, vs1, vu2), G2.e_add_l(mp, hp, u1, GS.smul(1n+mp, sv, g), u2, vu1, vs1, t1), G2.e_add_r(mp, hp, GS.smul(1n+mp, sv, g), u2, w2, vu2, vw2, t2))
+  +t4 = Lg.subst(Nat, t => {GS.equiv(1n+mp, CS.padd(1n+mp, GS.smul(1n+mp, sv, g), w2), GS.smul(1n+mp, t, g)) == True{} : Bool}, FS.madd(1n+nq, sv, FS.mmul(1n+nq, ne, d)), k, sk_eq(nq, k, e, d, hk), PO.add_mod(mp, hp, h3, hnc, h21, sv, FS.mmul(1n+nq, ne, d), nq, g, vg, hng))
+  +vkg = G4.v_smul(mp, hp, h3, hnc, h21, k, g, vg)
+  +t5 = G2.e_trans(mp, hp, CS.padd(1n+mp, u1, u2), CS.padd(1n+mp, GS.smul(1n+mp, sv, g), w2), GS.smul(1n+mp, k, g), G1.v_add(mp, hp, h3, hnc, h21, GS.smul(1n+mp, sv, g), w2, vs1, vw2), t3, t4)
+  fin(mp, hp, h21, CS.padd(1n+mp, u1, u2), rx, ey, G1.v_add(mp, hp, h3, hnc, h21, u1, u2, vu1, vu2), ve, G2.e_trans(mp, hp, CS.padd(1n+mp, u1, u2), GS.smul(1n+mp, k, g), CS.SPoint{rx, ey, 1n}, vkg, t5, G2.e_sym(mp, CS.SPoint{rx, ey, 1n}, GS.smul(1n+mp, k, g), hre)), hrx, hey, hev)
+
+# ---- the forms the protocol proof takes (functions of p and n) ----
+
+# the even-y representative of the specification's [j] g
+def evp2(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +s: Nat, +he: {Nat.add(1n+mp, 1n) == Nat.mul(s, 4n) : Nat}, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}, +nq: Nat, +hq: PM.Prime(1n+nq), +g: CS.SPoint, +vg: {GS.valid(1n+mp, g) == True{} : Bool}, +hng: {GS.equiv(1n+mp, GS.smul(1n+mp, 1n+nq, g), CS.infinity()) == True{} : Bool}, +hgo: {GS.equiv(1n+mp, g, CS.infinity()) == False{} : Bool}, +hn256: {Nat.is_le(1n+nq, C.shift(256n, one)) == True{} : Bool}, +j: Nat, +hj0: {Nat.is_eq(j, 0n) == False{} : Bool}, +hjn: {Nat.is_lt(j, 1n+nq) == True{} : Bool}) -> EvR(1n+mp, 1n+nq, g, CS.aff_x(CS.to_affine(1n+mp, CS.pmul(1n+mp, j, g))), CS.aff_y(CS.to_affine(1n+mp, CS.pmul(1n+mp, j, g))), j, Nat.mod(CS.aff_y(CS.to_affine(1n+mp, CS.pmul(1n+mp, j, g))), 2n)):
+  evp(mp, hp, h3, hnc, h21, one, h1, s, he, hodd, h256, nq, hq, g, vg, hng, hgo, CS.pmul(1n+mp, j, g), j, hj0, hjn, G4.pmul_valid(mp, hp, h3, hnc, h21, j, g, vg), G4.pmul_smul(mp, hp, h3, hnc, h21, j, g, vg, EC.fit(one, h1, nq, hn256, j, hjn)))
+
+def VR(+p: Nat, +n: Nat, +g: CS.SPoint, +d: Nat, +k: Nat, +e: Nat, +pp: CS.SPoint, +rx: Nat) -> Data:
+  {SS.check_r(rx, CS.is_inf(CS.padd(p, CS.pmul(p, FS.madd(n, k, FS.mmul(n, e, d)), g), CS.pmul(p, FS.mneg(n, e), pp))), CS.to_affine(p, CS.padd(p, CS.pmul(p, FS.madd(n, k, FS.mmul(n, e, d)), g), CS.pmul(p, FS.mneg(n, e), pp)))) == True{} : Bool}
+
+# x(a) is below p and fits 256 bits
+def AxB(+p: Nat, +a: CS.SPoint) -> Data:
+  S.Both<{Nat.is_lt(CS.aff_x(CS.to_affine(p, a)), p) == True{} : Bool}, {C.fits(256n, CS.aff_x(CS.to_affine(p, a))) == True{} : Bool}>
+
+def axb(+mp: Nat, +one: Nat, +h1: {one == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}, a: CS.SPoint) -> AxB(1n+mp, a):
+  match a:
+    case CS.SPoint{+x, +y, +z}:
+      S.Both{NR.dm_lt(mp, Nat.mul(x, FS.minv(1n+mp, z))), EC.fit(one, h1, mp, h256, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), NR.dm_lt(mp, Nat.mul(x, FS.minv(1n+mp, z))))}
+
+# a residue mod n is below n and fits 256 bits
+def SB(+n: Nat, +v: Nat) -> Data:
+  S.Both<{Nat.is_lt(Nat.mod(v, n), n) == True{} : Bool}, {C.fits(256n, Nat.mod(v, n)) == True{} : Bool}>
+
+def sb(+nq: Nat, +one: Nat, +h1: {one == 1n : Nat}, +hn256: {Nat.is_le(1n+nq, C.shift(256n, one)) == True{} : Bool}, +v: Nat) -> SB(1n+nq, v):
+  S.Both{NR.dm_lt(nq, v), EC.fit(one, h1, nq, hn256, Nat.mod(v, 1n+nq), NR.dm_lt(nq, v))}
+
+def EL(+n: Nat, +b: Nat, +j: Nat) -> Data:
+  {Nat.is_lt(SS.even_b(n, b, j), n) == True{} : Bool}
+
+def el(+nq: Nat, b: Nat, +j: Nat, +hjn: {Nat.is_lt(j, 1n+nq) == True{} : Bool}) -> EL(1n+nq, b, j):
+  match b:
+    case 0n:
+      hjn
+    case 1n+c:
+      NR.dm_lt(nq, Nat.sub(Nat.add(0n, 1n+nq), Nat.mod(j, 1n+nq)))
+
+def gno_c(+mp: Nat, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +x: Nat, +y: Nat, +one: Nat, +h1: {one == 1n : Nat}, c: Bool, +hc: {GS.equiv(1n+mp, CS.SPoint{x, y, one}, CS.infinity()) == c : Bool}) -> {GS.equiv(1n+mp, CS.SPoint{x, y, one}, CS.infinity()) == False{} : Bool}:
+  match c:
+    case False{}:
+      hc
+    case True{}:
+      Empty.absurd({GS.equiv(1n+mp, CS.SPoint{x, y, one}, CS.infinity()) == False{} : Bool}, F.nz_absurd(mp, 1n, AF.one_nz(mp, h21), Lg.subst(Nat, t => {Nat.mod(t, 1n+mp) == 0n : Nat}, one, 1n, h1, AX.eqv_z0(mp, x, y, one, hc))))
+
+# a point with z = 1 is not O
+def gno(+mp: Nat, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +x: Nat, +y: Nat, +one: Nat, +h1: {one == 1n : Nat}) -> {GS.equiv(1n+mp, CS.SPoint{x, y, one}, CS.infinity()) == False{} : Bool}:
+  gno_c(mp, h21, x, y, one, h1, GS.equiv(1n+mp, CS.SPoint{x, y, one}, CS.infinity()), {==})
+
+def vrf2(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +one: Nat, +h1: {one == 1n : Nat}, +nq: Nat, +hn256: {Nat.is_le(1n+nq, C.shift(256n, one)) == True{} : Bool}, +g: CS.SPoint, +vg: {GS.valid(1n+mp, g) == True{} : Bool}, +hng: {GS.equiv(1n+mp, GS.smul(1n+mp, 1n+nq, g), CS.infinity()) == True{} : Bool}, +d: Nat, +k: Nat, +e: Nat, +pp: CS.SPoint, +rx: Nat, +ey: Nat, +hk: {Nat.is_lt(k, 1n+nq) == True{} : Bool}, +vp: {GS.valid(1n+mp, pp) == True{} : Bool}, +hpp: {GS.equiv(1n+mp, pp, GS.smul(1n+mp, d, g)) == True{} : Bool}, +ve: {GS.valid(1n+mp, CS.SPoint{rx, ey, 1n}) == True{} : Bool}, +hre: {GS.equiv(1n+mp, CS.SPoint{rx, ey, 1n}, GS.smul(1n+mp, k, g)) == True{} : Bool}, +hrx: {Nat.is_lt(rx, 1n+mp) == True{} : Bool}, +hey: {Nat.is_lt(ey, 1n+mp) == True{} : Bool}, +hev: {Nat.mod(ey, 2n) == 0n : Nat}) -> VR(1n+mp, 1n+nq, g, d, k, e, pp, rx):
+  vrf(mp, hp, h3, hnc, h21, one, h1, nq, hn256, g, vg, hng, d, k, e, pp, rx, ey, hk, vp, hpp, ve, hre, hrx, hey, hev)
+
+# ---- projections ----
+
+def ev1(+p: Nat, +n: Nat, +g: CS.SPoint, +ax: Nat, +ay: Nat, +j: Nat, +b: Nat, r: EvR(p, n, g, ax, ay, j, b)) -> {CS.decompress(p, ax, 0n) == Some{CS.SPoint{ax, SS.even_b(p, b, ay), 1n}} : Maybe<&2, CS.SPoint>}:
+  match r:
+    case S.Both{r1, t}:
+      r1
+
+def ev2(+p: Nat, +n: Nat, +g: CS.SPoint, +ax: Nat, +ay: Nat, +j: Nat, +b: Nat, r: EvR(p, n, g, ax, ay, j, b)) -> {GS.equiv(p, CS.SPoint{ax, SS.even_b(p, b, ay), 1n}, GS.smul(p, SS.even_b(n, b, j), g)) == True{} : Bool}:
+  match r:
+    case S.Both{r1, S.Both{r2, t}}:
+      r2
+
+def ev3(+p: Nat, +n: Nat, +g: CS.SPoint, +ax: Nat, +ay: Nat, +j: Nat, +b: Nat, r: EvR(p, n, g, ax, ay, j, b)) -> {GS.valid(p, CS.SPoint{ax, SS.even_b(p, b, ay), 1n}) == True{} : Bool}:
+  match r:
+    case S.Both{r1, S.Both{r2, S.Both{r3, t}}}:
+      r3
+
+def ev4(+p: Nat, +n: Nat, +g: CS.SPoint, +ax: Nat, +ay: Nat, +j: Nat, +b: Nat, r: EvR(p, n, g, ax, ay, j, b)) -> {Nat.mod(SS.even_b(p, b, ay), 2n) == 0n : Nat}:
+  match r:
+    case S.Both{r1, S.Both{r2, S.Both{r3, S.Both{r4, r5}}}}:
+      r4
+
+def ev5(+p: Nat, +n: Nat, +g: CS.SPoint, +ax: Nat, +ay: Nat, +j: Nat, +b: Nat, r: EvR(p, n, g, ax, ay, j, b)) -> {Nat.is_lt(SS.even_b(p, b, ay), p) == True{} : Bool}:
+  match r:
+    case S.Both{r1, S.Both{r2, S.Both{r3, S.Both{r4, r5}}}}:
+      r5
+
+def ax_lt(+p: Nat, +a: CS.SPoint, r: AxB(p, a)) -> {Nat.is_lt(CS.aff_x(CS.to_affine(p, a)), p) == True{} : Bool}:
+  match r:
+    case S.Both{l, f}:
+      l
+
+def ax_fit(+p: Nat, +a: CS.SPoint, r: AxB(p, a)) -> {C.fits(256n, CS.aff_x(CS.to_affine(p, a))) == True{} : Bool}:
+  match r:
+    case S.Both{l, f}:
+      f
+
+def sb_lt(+n: Nat, +v: Nat, r: SB(n, v)) -> {Nat.is_lt(Nat.mod(v, n), n) == True{} : Bool}:
+  match r:
+    case S.Both{l, f}:
+      l
+
+def sb_fit(+n: Nat, +v: Nat, r: SB(n, v)) -> {C.fits(256n, Nat.mod(v, n)) == True{} : Bool}:
+  match r:
+    case S.Both{l, f}:
+      f

@@ -109,11 +109,11 @@ class Ctx:
         d = 'P.psub(%s, %s)' % (a.poly, b.poly)
         polys = [d]
         for ix, dp, fp, rel, hd in rules:
-            polys.append('P.red(%dn, %dn, %dn, %s, %s)' % (self.n, ix, dp, fp, polys[-1]))
+            polys.append('P.redf(%dn, %dn, %dn, %s, %s)' % (self.n, ix, dp, fp, polys[-1]))
         hz = 'I.sm_nil(mp, %s, %s, {==})' % (polys[-1], self.env)
         for j in range(len(rules) - 1, -1, -1):
             ix, dp, fp, rel, hd = rules[j]
-            hz = 'I.sm_red(mp, %dn, %dn, %dn, %s, %s, %s, {==}, %s, %s)' % (self.n, ix, dp, fp, polys[j], self.env, rel, hz)
+            hz = 'I.sm_redf(mp, %dn, %dn, %dn, %s, %s, %s, {==}, %s, %s)' % (self.n, ix, dp, fp, polys[j], self.env, rel, hz)
         self.defs.append('%sdef %s(%s%s) -> {Nat.mod(%s, %s) == Nat.mod(%s, %s) : Nat}:\n  I.ident(mp, %s, %s, %s, %s, %s, %s, %s, %s)\n'
                          % (('# ' + comment + '\n') if comment else '', name, self.params, hyp_params, a.spec, M, b.spec, M,
                             a.spec, b.spec, a.poly, b.poly, self.env, a.rel, b.rel, hz))
@@ -133,11 +133,11 @@ class Ctx:
         d = 'P.psub(%s, %s)' % (a.poly, b.poly)
         polys = [d]
         for ix, dp, fp, rel, hd in rules:
-            polys.append('P.red(%dn, %dn, %dn, %s, %s)' % (self.n, ix, dp, fp, polys[-1]))
+            polys.append('P.redf(%dn, %dn, %dn, %s, %s)' % (self.n, ix, dp, fp, polys[-1]))
         hz = 'I.sm_nil(mp, %s, %s, {==})' % (polys[-1], self.env)
         for j in range(len(rules) - 1, -1, -1):
             ix, dp, fp, rel, hd = rules[j]
-            hz = 'I.sm_red(mp, %dn, %dn, %dn, %s, %s, %s, {==}, %s, %s)' % (self.n, ix, dp, fp, polys[j], self.env, rel, hz)
+            hz = 'I.sm_redf(mp, %dn, %dn, %dn, %s, %s, %s, {==}, %s, %s)' % (self.n, ix, dp, fp, polys[j], self.env, rel, hz)
         # the right side with the first i differences written out and 0 for the others
         def side(i, hole):
             out = None
@@ -281,6 +281,15 @@ def gen_alg():
     c.write('id_alg3.bend', '# A projective cube root of -7 gives an affine one.\n')
 
 
+def gen_alg4():
+    c = Ctx(['a1', 'b1', 'a2', 'b2'])
+    a1, b1, a2, b2 = [c.var(i) for i in range(4)]
+    n1, n2 = c.sub(c.zero(), b1), c.sub(c.zero(), b2)
+    c.conseq('neg_ratio', c.sub(c.mul(a1, n2), c.mul(a2, n1)), [(c.mul(a2, b1), c.mul(a1, b2), c.const(1))], (),
+             'a2 b1 == a1 b2 gives a1 (-b2) - a2 (-b1) == 0')
+    c.write('id_alg4.bend', '# Ratios and negation.\n')
+
+
 def gen_assoc(i, j):
     nm = 'xyz'[i] + 'xyz'[j]
     c = Ctx(['x1', 'y1', 'z1', 'x2', 'y2', 'z2', 'x3', 'y3', 'z3'], ['7n'])
@@ -301,5 +310,6 @@ if __name__ == '__main__':
     gen_dbl()
     gen_hom()
     gen_alg()
+    gen_alg4()
     for i, j in ((0, 1), (1, 2)):
         gen_assoc(i, j)

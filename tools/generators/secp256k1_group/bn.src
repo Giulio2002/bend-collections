@@ -53,14 +53,33 @@ def badd(a: Bn, b: Bn) -> Bn:
     case B1{x} B1{y}:
       B0{binc(badd(x, y))}
 
-def bmul(a: Bn, +b: Bn) -> Bn:
+def bmul_go(a: Bn, +b: Bn) -> Bn:
   match a:
     case BZ{}:
       BZ{}
     case B0{t}:
-      B0{bmul(t, b)}
+      B0{bmul_go(t, b)}
     case B1{t}:
-      badd(b, B0{bmul(t, b)})
+      badd(b, B0{bmul_go(t, b)})
+
+# the product; a zero factor is answered at once (so that no string of
+# zero bits is built)
+def bmul(+a: Bn, +b: Bn) -> Bn:
+  match a b:
+    case BZ{} _:
+      BZ{}
+    case B0{t} BZ{}:
+      BZ{}
+    case B1{t} BZ{}:
+      BZ{}
+    case B0{t} B0{u}:
+      bmul_go(a, b)
+    case B0{t} B1{u}:
+      bmul_go(a, b)
+    case B1{t} B0{u}:
+      bmul_go(a, b)
+    case B1{t} B1{u}:
+      bmul_go(a, b)
 
 # equal values (leading zeros ignored)
 def beq(a: Bn, b: Bn) -> Bool:
@@ -137,22 +156,39 @@ def badd_v(a: Bn, b: Bn) -> {bval(badd(a, b)) == Nat.add(bval(a), bval(b)) : Nat
       %rw badd_v(x, y)
       %norm
 
-def bmul_v(a: Bn, +b: Bn) -> {bval(bmul(a, b)) == Nat.mul(bval(a), bval(b)) : Nat}:
+def bmul_go_v(a: Bn, +b: Bn) -> {bval(bmul_go(a, b)) == Nat.mul(bval(a), bval(b)) : Nat}:
   match a:
     case BZ{}:
       {==}
     case B0{+t}:
-      %goal {Nat.add(bval(bmul(t, b)), bval(bmul(t, b))) == Nat.mul(Nat.add(bval(t), bval(t)), bval(b)) : Nat}
-      %rw bmul_v(t, b)
-      %rw bmul_v(t, b)
+      %goal {Nat.add(bval(bmul_go(t, b)), bval(bmul_go(t, b))) == Nat.mul(Nat.add(bval(t), bval(t)), bval(b)) : Nat}
+      %rw bmul_go_v(t, b)
+      %rw bmul_go_v(t, b)
       %norm
     case B1{+t}:
-      %goal {bval(badd(b, B0{bmul(t, b)})) == Nat.mul(1n+Nat.add(bval(t), bval(t)), bval(b)) : Nat}
-      %rw badd_v(b, B0{bmul(t, b)})
-      %goal {Nat.add(bval(b), Nat.add(bval(bmul(t, b)), bval(bmul(t, b)))) == Nat.mul(1n+Nat.add(bval(t), bval(t)), bval(b)) : Nat}
-      %rw bmul_v(t, b)
-      %rw bmul_v(t, b)
+      %goal {bval(badd(b, B0{bmul_go(t, b)})) == Nat.mul(1n+Nat.add(bval(t), bval(t)), bval(b)) : Nat}
+      %rw badd_v(b, B0{bmul_go(t, b)})
+      %goal {Nat.add(bval(b), Nat.add(bval(bmul_go(t, b)), bval(bmul_go(t, b)))) == Nat.mul(1n+Nat.add(bval(t), bval(t)), bval(b)) : Nat}
+      %rw bmul_go_v(t, b)
+      %rw bmul_go_v(t, b)
       %norm
+
+def bmul_v(+a: Bn, +b: Bn) -> {bval(bmul(a, b)) == Nat.mul(bval(a), bval(b)) : Nat}:
+  match a b:
+    case BZ{} _:
+      {==}
+    case B0{+t} BZ{}:
+      Equal.sym(Nat, Nat.mul(Nat.add(bval(t), bval(t)), 0n), 0n, NA.mul_zero(Nat.add(bval(t), bval(t))))
+    case B1{+t} BZ{}:
+      Equal.sym(Nat, Nat.mul(1n+Nat.add(bval(t), bval(t)), 0n), 0n, NA.mul_zero(1n+Nat.add(bval(t), bval(t))))
+    case B0{+t} B0{+u}:
+      bmul_go_v(B0{t}, B0{u})
+    case B0{+t} B1{+u}:
+      bmul_go_v(B0{t}, B1{u})
+    case B1{+t} B0{+u}:
+      bmul_go_v(B1{t}, B0{u})
+    case B1{+t} B1{+u}:
+      bmul_go_v(B1{t}, B1{u})
 
 def beq_v(a: Bn, b: Bn, +h: {beq(a, b) == True{} : Bool}) -> {bval(a) == bval(b) : Nat}:
   match a b:
