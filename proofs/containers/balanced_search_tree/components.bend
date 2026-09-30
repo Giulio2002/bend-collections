@@ -3,7 +3,9 @@ import ../../../src/containers/balanced_search_tree.bend as M
 import ../../../src/containers/dynamic_array.bend as D
 import ../../../src/containers/types/dynamic_array.bend as E
 
-# Node stores are written field by field (tag 0 free, 1 black, 2 red).
+# Node stores are written slot by slot: the links array's low half holds
+# (left, right) per node, its high half (tag, parent) (tag 0 free, 1 black,
+# 2 red).
 # These are checked component laws of the NEW indexed TreeMap, not a claim
 # that the old recursive-tree proof establishes indexed rotations/refinement.
 # Every theorem is explicitly instantiated, so no unchecked template body.
@@ -18,7 +20,7 @@ def empty_remove(k: U32) -> {M.remove(~U32, ~U32, ~U32.cmp, M.new(~U32, ~U32, ~U
   {==}
 
 def singleton(+k: U32, v: U32) -> M.TreeMap<U32, U32, U32.cmp>:
-  M.TM{1n, 1n, 1n, 1n, 0n, M.NS{31n, 0n, 1n, 1n, ALeaf{1n}, ALeaf{0n}, ALeaf{0n}, ALeaf{0n}, ALeaf{Some{k}}}, D.DA{31n, 0n, 1n, 1n, ALeaf{Some{Some{v}}}}}
+  M.TM{1n, 1n, 1n, 1n, 0n, M.NS{29n, 0n, 1n, 1n, ANode{ANode{ALeaf{0n}, ALeaf{0n}}, ANode{ALeaf{1n}, ALeaf{0n}}}, ALeaf{Some{k}}}, D.DA{29n, 0n, 1n, 1n, ALeaf{Some{Some{v}}}}}
 
 def put_empty(+k: U32, +v: U32) -> {M.put(~U32, ~U32, ~U32.cmp, M.new(~U32, ~U32, ~U32.cmp), k, v) == (singleton(k, v), Done{None{}}) : M.TreeMap<U32, U32, U32.cmp> & Result<&2, &2, M.Rejected<U32, U32>, Maybe<&2, U32>>}:
   {==}
@@ -29,10 +31,10 @@ def zero_get(+v: U32) -> {M.get(~U32, ~U32, ~U32.cmp, singleton(0, v), 0) == (si
 def zero_replace(+old: U32, +v: U32) -> {M.put(~U32, ~U32, ~U32.cmp, singleton(0, old), 0, v) == (singleton(0, v), Done{Some{old}}) : M.TreeMap<U32, U32, U32.cmp> & Result<&2, &2, M.Rejected<U32, U32>, Maybe<&2, U32>>}:
   {==}
 
-def zero_remove(+v: U32) -> {M.remove(~U32, ~U32, ~U32.cmp, singleton(0, v), 0) == (M.TM{0n, 0n, 0n, 0n, 1n, M.NS{31n, 0n, 1n, 1n, ALeaf{0n}, ALeaf{0n}, ALeaf{0n}, ALeaf{0n}, ALeaf{None{}}}, D.DA{31n, 0n, 1n, 1n, ALeaf{Some{None{}}}}}, Some{v}) : M.TreeMap<U32, U32, U32.cmp> & Maybe<&2, U32>}:
+def zero_remove(+v: U32) -> {M.remove(~U32, ~U32, ~U32.cmp, singleton(0, v), 0) == (M.TM{0n, 0n, 0n, 0n, 1n, M.NS{29n, 0n, 1n, 1n, ANode{ANode{ALeaf{0n}, ALeaf{0n}}, ANode{ALeaf{0n}, ALeaf{0n}}}, ALeaf{None{}}}, D.DA{29n, 0n, 1n, 1n, ALeaf{Some{None{}}}}}, Some{v}) : M.TreeMap<U32, U32, U32.cmp> & Maybe<&2, U32>}:
   {==}
 
-def reuse_first(+k: U32, +v: U32) -> {M.put(~U32, ~U32, ~U32.cmp, M.TM{0n, 0n, 0n, 0n, 1n, M.NS{31n, 0n, 1n, 1n, ALeaf{0n}, ALeaf{0n}, ALeaf{0n}, ALeaf{0n}, ALeaf{None{}}}, D.DA{31n, 0n, 1n, 1n, ALeaf{Some{None{}}}}}, k, v) == (singleton(k, v), Done{None{}}) : M.TreeMap<U32, U32, U32.cmp> & Result<&2, &2, M.Rejected<U32, U32>, Maybe<&2, U32>>}:
+def reuse_first(+k: U32, +v: U32) -> {M.put(~U32, ~U32, ~U32.cmp, M.TM{0n, 0n, 0n, 0n, 1n, M.NS{29n, 0n, 1n, 1n, ANode{ANode{ALeaf{0n}, ALeaf{0n}}, ANode{ALeaf{0n}, ALeaf{0n}}}, ALeaf{None{}}}, D.DA{29n, 0n, 1n, 1n, ALeaf{Some{None{}}}}}, k, v) == (singleton(k, v), Done{None{}}) : M.TreeMap<U32, U32, U32.cmp> & Result<&2, &2, M.Rejected<U32, U32>, Maybe<&2, U32>>}:
   {==}
 
 def cursor_owns(m: M.TreeMap<U32, U32, U32.cmp>, next: Nat, current: Nat, lo: M.Bound<U32>, hi: M.Bound<U32>, forward: Bool) -> {M.iterator_finish(~U32, ~U32, ~U32.cmp, M.Cursor{m, next, current, lo, hi, forward}) == m : M.TreeMap<U32, U32, U32.cmp>}:
@@ -60,19 +62,29 @@ def same_class(a: U32, b: U32) -> Cmp:
   EQ{}
 
 def equivalent_singleton(+k: U32, v: U32) -> M.TreeMap<U32, U32, same_class>:
-  M.TM{1n, 1n, 1n, 1n, 0n, M.NS{31n, 0n, 1n, 1n, ALeaf{1n}, ALeaf{0n}, ALeaf{0n}, ALeaf{0n}, ALeaf{Some{k}}}, D.DA{31n, 0n, 1n, 1n, ALeaf{Some{Some{v}}}}}
+  M.TM{1n, 1n, 1n, 1n, 0n, M.NS{29n, 0n, 1n, 1n, ANode{ANode{ALeaf{0n}, ALeaf{0n}}, ANode{ALeaf{1n}, ALeaf{0n}}}, ALeaf{Some{k}}}, D.DA{29n, 0n, 1n, 1n, ALeaf{Some{Some{v}}}}}
 
 def equivalent_put_retains_key(+stored: U32, incoming: U32, +old: U32, +v: U32) -> {M.put(~U32, ~U32, ~same_class, equivalent_singleton(stored, old), incoming, v) == (equivalent_singleton(stored, v), Done{Some{old}}) : M.TreeMap<U32, U32, same_class> & Result<&2, &2, M.Rejected<U32, U32>, Maybe<&2, U32>>}:
   {==}
 
 def two_entries(v0: U32, v1: U32) -> M.TreeMap<U32, U32, U32.cmp>:
   M.TM{2n, 1n, 1n, 2n, 0n,
-    M.NS{31n, 1n, 2n, 2n, ANode{ALeaf{1n}, ALeaf{2n}}, ANode{ALeaf{0n}, ALeaf{0n}}, ANode{ALeaf{2n}, ALeaf{0n}}, ANode{ALeaf{0n}, ALeaf{1n}}, ANode{ALeaf{Some{0}}, ALeaf{Some{1}}}},
-    D.DA{31n, 1n, 2n, 2n, ANode{ALeaf{Some{Some{v0}}}, ALeaf{Some{Some{v1}}}}}}
+    M.NS{29n, 1n, 2n, 2n, ANode{ANode{ANode{ALeaf{0n}, ALeaf{2n}}, ANode{ALeaf{0n}, ALeaf{0n}}}, ANode{ANode{ALeaf{1n}, ALeaf{0n}}, ANode{ALeaf{2n}, ALeaf{1n}}}}, ANode{ALeaf{Some{0}}, ALeaf{Some{1}}}},
+    D.DA{29n, 1n, 2n, 2n, ANode{ALeaf{Some{Some{v0}}}, ALeaf{Some{Some{v1}}}}}}
 
 def next_after_remove(r: M.Cursor<U32, U32, U32.cmp> & Maybe<&2, U32>) -> Maybe<&2, M.Entry<U32, U32>>:
   (cursor, old) = r
   Pair.snd(M.Cursor<U32, U32, U32.cmp>, Maybe<&2, M.Entry<U32, U32>>, M.iterator_next(~U32, ~U32, ~U32.cmp, cursor))
 
 def cursor_remove_preserves_next(v0: U32, +v1: U32) -> {next_after_remove(M.iterator_remove(~U32, ~U32, ~U32.cmp, M.Cursor{two_entries(v0, v1), 2n, 1n, M.Unbounded{}, M.Unbounded{}, True{}})) == Some{M.Entry{1, v1}} : Maybe<&2, M.Entry<U32, U32>>}:
+  {==}
+
+def fold_sum(a: U32, k: U32, v: U32) -> U32:
+  U32.add(a, U32.add(k, v))
+
+# the in-order walk over two entries, whole and by range
+def fold_two(+v0: U32, +v1: U32) -> {M.fold(~U32, ~U32, ~U32.cmp, ~U32, ~fold_sum, two_entries(v0, v1), 0) == (two_entries(v0, v1), U32.add(U32.add(0, U32.add(0, v0)), U32.add(1, v1))) : M.TreeMap<U32, U32, U32.cmp> & U32}:
+  {==}
+
+def fold_range_two(+v0: U32, +v1: U32) -> {M.fold_range(~U32, ~U32, ~U32.cmp, ~U32, ~fold_sum, two_entries(v0, v1), M.Exclusive{0}, M.Inclusive{1}, 0) == (two_entries(v0, v1), U32.add(0, U32.add(1, v1))) : M.TreeMap<U32, U32, U32.cmp> & U32}:
   {==}

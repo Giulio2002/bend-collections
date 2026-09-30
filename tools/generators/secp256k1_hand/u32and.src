@@ -1,10 +1,10 @@
 import Base
 import ../../../spec/lib/common.bend as C
 import ../../lib/logic.bend as L
-import ../../lib/lemmas/spec/numeric.bend as S
-import ../../lib/u32.bend as U
-import ../../lib/word.bend as WD
-import ../../math/typed/width.bend as WW
+import ./lite/lib/lemmas/spec/numeric.bend as S
+import ./lite/lib/u32.bend as U
+import ./lite/lib/word.bend as WD
+import ./lite/math/typed/width.bend as WW
 
 # The low k bits of a U32 word by a mask: the lemma andm of
 # proofs/math/typed/f64bits.bend, without the rest of that file (whose

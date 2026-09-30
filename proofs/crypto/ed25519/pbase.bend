@@ -65,10 +65,32 @@ def verify_eq(+ctx: E.Ctx, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&
 
 def kp_go(+ctx: E.Ctx, +seed: List<&2, U32>) -> {E.key_public(E.expand_go(ctx, seed)) == E.public_go(ctx, seed) : List<&2, U32>}:
   match ctx:
-    case E.Ctx{c, b}:
+    case E.Ctx{c, b, tab}:
       {==}
 
 # the expanded key carries the public key
 def kp_eq(+ctx: E.Ctx, +seed: List<&2, U32>) -> {E.key_public(E.expand_ctx(ctx, seed)) == E.public_key_ctx(ctx, seed) : List<&2, U32>}:
   +e1 = Equal.cong(E.Key, List<&2, U32>, k => E.key_public(k), E.expand_ctx(ctx, seed), E.expand_go(ctx, seed), expand_eq(ctx, seed))
   Equal.trans(List<&2, U32>, E.key_public(E.expand_ctx(ctx, seed)), E.key_public(E.expand_go(ctx, seed)), E.public_key_ctx(ctx, seed), e1, Equal.trans(List<&2, U32>, E.key_public(E.expand_go(ctx, seed)), E.public_go(ctx, seed), E.public_key_ctx(ctx, seed), kp_go(ctx, seed), Equal.sym(List<&2, U32>, E.public_key_ctx(ctx, seed), E.public_go(ctx, seed), public_eq(ctx, seed))))
+
+# the entry points without a context
+def public1_eq(+lc: E.Lc, +seed: List<&2, U32>) -> {E.public_lite(lc, seed) == E.public_lgo(lc, seed) : List<&2, U32>}:
+  match seed:
+    case Nil{}:
+      {==}
+    case Con{h, t}:
+      {==}
+
+def sign1_eq(+lc: E.Lc, +seed: List<&2, U32>, +msg: List<&2, U32>) -> {E.sign_lite(lc, seed, msg) == E.sign_lgo(lc, seed, msg) : List<&2, U32>}:
+  match msg:
+    case Nil{}:
+      {==}
+    case Con{h, t}:
+      {==}
+
+def verify1_eq(+lc: E.Lc, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>) -> {E.verify_lite(lc, pk, msg, sig) == E.verify_lgo(lc, pk, msg, sig) : Bool}:
+  match msg:
+    case Nil{}:
+      {==}
+    case Con{h, t}:
+      {==}

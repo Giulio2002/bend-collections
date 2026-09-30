@@ -14,7 +14,7 @@ import ./bytes.bend as BY
 import ./point.bend as PT
 import ./sel.bend as PM
 import ./paff.bend as PA
-import ../../math/natural/arith.bend as NR
+import ./lite/math/natural/arith.bend as NR
 
 # SEC 1 encodings of src/crypto/secp256k1/point.bend (compressed and
 # uncompressed encode, decode with decompression) against

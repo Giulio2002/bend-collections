@@ -11,6 +11,7 @@ import ../../../src/crypto/secp256k1/ecdsa.bend as E
 import ../../lib/logic.bend as Lg
 import ../../../spec/crypto/hmac.bend as HMS
 import ../mac/hmac.bend as MH
+import ../../../src/crypto/mac.bend as MAC
 import ./limbs.bend as LV
 import ./scalarops.bend as SO
 import ./scalarpow.bend as SP
@@ -20,8 +21,6 @@ import ./point.bend as PT
 import ./sel.bend as SL
 import ./pmul.bend as PM
 import ./paff.bend as PA
-import ./penc.bend as PE
-import ./pver.bend as PV
 import ./blist.bend as BL
 import ./pscal.bend as SQ
 
@@ -128,7 +127,7 @@ def fin_g(+one: Nat, +h1: {one == 1n : Nat}, +r: List<&2, Nat>, +hr: {FS.reduced
   %rw FW.lt_n_s(one, h1, x)
   %rw FW.parity_f(one, h1, y)
   %rw FW.parity_f(one, h1, y)
-  %rw id_v(Nat.is_lt(FS.value(one, x), FS.order(one)), Nat.is_lt(FS.order(one), Nat.double(FS.value(one, s0))), Nat.mod(FS.value(one, y), 2n), PE.mod2_lt(FS.value(one, y)))
+  %rw id_v(Nat.is_lt(FS.value(one, x), FS.order(one)), Nat.is_lt(FS.order(one), Nat.double(FS.value(one, s0))), Nat.mod(FS.value(one, y), 2n), SQ.mod2_lt(FS.value(one, y)))
   bad_v(Bool.or(Nat.is_eq(FS.value(one, r), 0n), Nat.is_eq(FS.value(one, s0), 0n)), E.Signature{CV.i2osp(32n, FS.value(one, r)), CV.i2osp(32n, ES.low(Nat.is_lt(FS.order(one), Nat.double(FS.value(one, s0))), FS.order(one), FS.value(one, s0))), U32.from_nat(Nat.add(ES.ge2(Nat.is_lt(FS.value(one, x), FS.order(one))), ES.flip(Nat.is_lt(FS.order(one), Nat.double(FS.value(one, s0))), Nat.mod(FS.value(one, y), 2n))))})
 
 def fin_v(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, +k: List<&2, Nat>, +hk: {FS.reduced(one, FS.order(one), k) == True{} : Bool}, +x: List<&2, Nat>, +hx: {PT.red(one, x) == True{} : Bool}, +y: List<&2, Nat>) -> {matt(E.finish(z, d, k, x, y)) == ES.finish(one, FS.value(one, z), FS.value(one, d), FS.value(one, k), CV.SAffine{FS.value(one, x), FS.value(one, y)}) : ES.Attempt}:
@@ -151,7 +150,7 @@ def aok(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(o
       %rw <- PA.g_v(one, h1)
       %rw <- PM.mul_v(one, h1, k, P.g(), hl, hg)
       %rw <- PA.aff_v(one, h1, P.mul(k, P.g()), hm)
-      aff_fin(one, h1, z, hz, d, hd, k, PV.ok_red(one, k, hl, hb), P.to_affine(P.mul(k, P.g())), PA.aff_r(one, h1, P.mul(k, P.g()), hm))
+      aff_fin(one, h1, z, hz, d, hd, k, SQ.ok_red(one, k, hl, hb), P.to_affine(P.mul(k, P.g())), PA.aff_r(one, h1, P.mul(k, P.g()), hm))
     case False{}:
       {==}
 
@@ -164,11 +163,31 @@ def att_v(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced
 
 # ---- the candidate loop and the DRBG ----
 
+def go_i(p: List<&2, U32>, +k: List<&2, U32>, +m: List<&2, U32>) -> {E.hmac_go(p, k, m) == MAC.sign(k, m) : List<&2, U32>}:
+  match p:
+    case Nil{}:
+      {==}
+    case b <> t:
+      {==}
+
+def go_s(p: List<&2, U32>, +k: List<&2, U32>, +m: List<&2, U32>) -> {ES.hmac_go(p, k, m) == HMS.hmac(k, m) : List<&2, U32>}:
+  match p:
+    case Nil{}:
+      {==}
+    case b <> t:
+      {==}
+
+def hms(+k: List<&2, U32>, +m: List<&2, U32>) -> {ES.hmac(k, m) == HMS.hmac(k, m) : List<&2, U32>}:
+  go_s(k, k, m)
+
 def hm(+k: List<&2, U32>, +m: List<&2, U32>) -> {E.hmac(k, m) == ES.hmac(k, m) : List<&2, U32>}:
+  %goal {E.hmac_go(k, k, m) == ES.hmac(k, m) : List<&2, U32>}
+  %rw go_i(k, k, m)
+  %rw hms(k, m)
   MH.sign_correct(k, m)
 
 def hlen(+k: List<&2, U32>, +m: List<&2, U32>) -> {B.has_len(32n, ES.hmac(k, m)) == True{} : Bool}:
-  %goal {B.has_len(32n, HMS.hmac(k, m)) == True{} : Bool}
+  %rw hms(k, m)
   %rw BY.has_len_v(32n, HMS.hmac(k, m))
   %rwh MH.hmac_len(k, m) : {List.length(&2, U32, HMS.hmac(k, m)) == 32n : Nat}
   %close
@@ -207,10 +226,10 @@ def second_v(d: E.Drbg, +seed: List<&2, U32>) -> {dr(E.drbg_second(d, seed)) == 
     case E.Drbg{+k, +v}:
       step_v(k, v, 1, seed)
 
-def init_v(+seed: List<&2, U32>) -> {dr(E.drbg_init(seed)) == ES.drbg_init(seed) : ES.Drbg}:
-  %goal {dr(E.drbg_second(E.drbg_step(List.replicate(U32, 32n, 0), List.replicate(U32, 32n, 1), 0, seed), seed)) == ES.update2(ES.update(List.replicate(U32, 32n, 0), List.replicate(U32, 32n, 1), 0, seed), seed) : ES.Drbg}
-  %rw second_v(E.drbg_step(List.replicate(U32, 32n, 0), List.replicate(U32, 32n, 1), 0, seed), seed)
-  %rw step_v(List.replicate(U32, 32n, 0), List.replicate(U32, 32n, 1), 0, seed)
+def init_v(+k0: List<&2, U32>, +v0: List<&2, U32>, +seed: List<&2, U32>) -> {dr(E.drbg_init(k0, v0, seed)) == ES.drbg_init(k0, v0, seed) : ES.Drbg}:
+  %goal {dr(E.drbg_second(E.drbg_step(k0, v0, 0, seed), seed)) == ES.update2(ES.update(k0, v0, 0, seed), seed) : ES.Drbg}
+  %rw second_v(E.drbg_step(k0, v0, 0, seed), seed)
+  %rw step_v(k0, v0, 0, seed)
   %close
 
 def drbg_sign(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, g: E.Drbg) -> {msig(E.sign_drbg(z, d, g)) == ES.sign_drbg(one, FS.value(one, z), FS.value(one, d), dr(g)) : Maybe<&2, List<&2, U32>>}:
@@ -224,44 +243,44 @@ def drbg_sign(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.red
 
 # ---- sign ----
 
-def sd(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +hh: {B.has_len(32n, h) == True{} : Bool}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}) -> {msig(E.sign_d(h, Some{d})) == ES.sign_d(one, h, FS.value(one, d), True{}) : Maybe<&2, List<&2, U32>>}:
+def sd(+one: Nat, +h1: {one == 1n : Nat}, +k0: List<&2, U32>, +v0: List<&2, U32>, +h: List<&2, U32>, +hh: {B.has_len(32n, h) == True{} : Bool}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}) -> {msig(E.sign_d(k0, v0, h, Some{d})) == ES.sign_d(one, k0, v0, h, FS.value(one, d), True{}) : Maybe<&2, List<&2, U32>>}:
   +hz = SQ.hash_r(one, h1, h, hh)
-  %goal {msig(E.sign_drbg(E.hash_scalar(h), d, E.drbg_init(List.append(&2, U32, B.to_be(d), B.to_be(E.hash_scalar(h)))))) == ES.sign_drbg(one, ES.hash_scalar(one, h), FS.value(one, d), ES.drbg_init(List.append(&2, U32, CV.i2osp(32n, FS.value(one, d)), CV.i2osp(32n, ES.hash_scalar(one, h))))) : Maybe<&2, List<&2, U32>>}
+  %goal {msig(E.sign_drbg(E.hash_scalar(h), d, E.drbg_init(k0, v0, List.append(&2, U32, B.to_be(d), B.to_be(E.hash_scalar(h)))))) == ES.sign_drbg(one, ES.hash_scalar(one, h), FS.value(one, d), ES.drbg_init(k0, v0, List.append(&2, U32, CV.i2osp(32n, FS.value(one, d)), CV.i2osp(32n, ES.hash_scalar(one, h))))) : Maybe<&2, List<&2, U32>>}
   %rw tbv(one, h1, d, SL.sl16(one, d, hd))
   %rw tbv(one, h1, E.hash_scalar(h), SL.sl16(one, E.hash_scalar(h), hz))
   %rw <- SQ.hash_v(one, h1, h, hh)
   %rw <- SQ.hash_v(one, h1, h, hh)
-  %rw <- init_v(List.append(&2, U32, CV.i2osp(32n, FS.value(one, d)), CV.i2osp(32n, FS.value(one, E.hash_scalar(h)))))
-  drbg_sign(one, h1, E.hash_scalar(h), hz, d, hd, E.drbg_init(List.append(&2, U32, CV.i2osp(32n, FS.value(one, d)), CV.i2osp(32n, FS.value(one, E.hash_scalar(h))))))
+  %rw <- init_v(k0, v0, List.append(&2, U32, CV.i2osp(32n, FS.value(one, d)), CV.i2osp(32n, FS.value(one, E.hash_scalar(h)))))
+  drbg_sign(one, h1, E.hash_scalar(h), hz, d, hd, E.drbg_init(k0, v0, List.append(&2, U32, CV.i2osp(32n, FS.value(one, d)), CV.i2osp(32n, FS.value(one, E.hash_scalar(h))))))
 
-def sk3(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +hh: {B.has_len(32n, h) == True{} : Bool}, +d: List<&2, Nat>, +hl: {FS.limbs16(one, 16n, d) == True{} : Bool}, c: Bool, +hc: {ES.scalar_ok(one, FS.value(one, d)) == c : Bool}) -> {msig(E.sign_d(h, E.secret_if(d, c))) == ES.sign_d(one, h, FS.value(one, d), c) : Maybe<&2, List<&2, U32>>}:
+def sk3(+one: Nat, +h1: {one == 1n : Nat}, +k0: List<&2, U32>, +v0: List<&2, U32>, +h: List<&2, U32>, +hh: {B.has_len(32n, h) == True{} : Bool}, +d: List<&2, Nat>, +hl: {FS.limbs16(one, 16n, d) == True{} : Bool}, c: Bool, +hc: {ES.scalar_ok(one, FS.value(one, d)) == c : Bool}) -> {msig(E.sign_d(k0, v0, h, E.secret_if(d, c))) == ES.sign_d(one, k0, v0, h, FS.value(one, d), c) : Maybe<&2, List<&2, U32>>}:
   match c:
     case True{}:
-      sd(one, h1, h, hh, d, PV.ok_red(one, d, hl, hc))
+      sd(one, h1, k0, v0, h, hh, d, SQ.ok_red(one, d, hl, hc))
     case False{}:
       {==}
 
-def sk2(+one: Nat, +h1: {one == 1n : Nat}, +sk: List<&2, U32>, +h: List<&2, U32>, +hh: {B.has_len(32n, h) == True{} : Bool}, b: Bool, +hb: {B.has_len(32n, sk) == b : Bool}) -> {msig(E.sign_d(h, E.secret_if(B.of_be(sk), Bool.and(b, E.scalar_ok(B.of_be(sk)))))) == ES.sign_d(one, h, CV.os2ip(sk), Bool.and(b, ES.scalar_ok(one, CV.os2ip(sk)))) : Maybe<&2, List<&2, U32>>}:
+def sk2(+one: Nat, +h1: {one == 1n : Nat}, +k0: List<&2, U32>, +v0: List<&2, U32>, +sk: List<&2, U32>, +h: List<&2, U32>, +hh: {B.has_len(32n, h) == True{} : Bool}, b: Bool, +hb: {B.has_len(32n, sk) == b : Bool}) -> {msig(E.sign_d(k0, v0, h, E.secret_if(B.of_be(sk), Bool.and(b, E.scalar_ok(B.of_be(sk)))))) == ES.sign_d(one, k0, v0, h, CV.os2ip(sk), Bool.and(b, ES.scalar_ok(one, CV.os2ip(sk)))) : Maybe<&2, List<&2, U32>>}:
   match b:
     case True{}:
       %rw SQ.scalar_ok_v(one, h1, B.of_be(sk))
       %rw <- BY.of_be_value(one, h1, sk)
       %rw <- BY.of_be_value(one, h1, sk)
-      sk3(one, h1, h, hh, B.of_be(sk), BY.of_be_limbs(one, h1, sk, hb), ES.scalar_ok(one, FS.value(one, B.of_be(sk))), {==})
+      sk3(one, h1, k0, v0, h, hh, B.of_be(sk), BY.of_be_limbs(one, h1, sk, hb), ES.scalar_ok(one, FS.value(one, B.of_be(sk))), {==})
     case False{}:
       {==}
 
-def sh(+one: Nat, +h1: {one == 1n : Nat}, +sk: List<&2, U32>, +h: List<&2, U32>, a: Bool, +ha: {B.has_len(32n, h) == a : Bool}) -> {msig(E.sign_h(sk, h, a)) == ES.sign_d(one, h, CV.os2ip(sk), Bool.and(a, Bool.and(CV.length_is(32n, sk), ES.scalar_ok(one, CV.os2ip(sk))))) : Maybe<&2, List<&2, U32>>}:
+def sh(+one: Nat, +h1: {one == 1n : Nat}, +sk: List<&2, U32>, +h: List<&2, U32>, a: Bool, +ha: {B.has_len(32n, h) == a : Bool}) -> {msig(E.sign_h(sk, h, a)) == ES.sign_d(one, ES.fill(32n, 0), ES.fill(32n, 1), h, CV.os2ip(sk), Bool.and(a, Bool.and(CV.length_is(32n, sk), ES.scalar_ok(one, CV.os2ip(sk))))) : Maybe<&2, List<&2, U32>>}:
   match a:
     case True{}:
-      %goal {msig(E.sign_d(h, E.secret_if(B.of_be(sk), Bool.and(B.has_len(32n, sk), E.scalar_ok(B.of_be(sk)))))) == ES.sign_d(one, h, CV.os2ip(sk), Bool.and(CV.length_is(32n, sk), ES.scalar_ok(one, CV.os2ip(sk)))) : Maybe<&2, List<&2, U32>>}
+      %goal {msig(E.sign_d(E.fill(32n, 0), E.fill(32n, 1), h, E.secret_if(B.of_be(sk), Bool.and(B.has_len(32n, sk), E.scalar_ok(B.of_be(sk)))))) == ES.sign_d(one, ES.fill(32n, 0), ES.fill(32n, 1), h, CV.os2ip(sk), Bool.and(CV.length_is(32n, sk), ES.scalar_ok(one, CV.os2ip(sk)))) : Maybe<&2, List<&2, U32>>}
       %rw BL.hl_is(32n, sk)
-      sk2(one, h1, sk, h, ha, CV.length_is(32n, sk), BL.hl_is(32n, sk))
+      sk2(one, h1, E.fill(32n, 0), E.fill(32n, 1), sk, h, ha, CV.length_is(32n, sk), BL.hl_is(32n, sk))
     case False{}:
       {==}
 
 # the signature of a 32-byte hash under a 32-byte secret key
 def sign_v(+one: Nat, +h1: {one == 1n : Nat}, +sk: List<&2, U32>, +h: List<&2, U32>) -> {msig(E.sign(sk, h)) == ES.sign(one, sk, h) : Maybe<&2, List<&2, U32>>}:
-  %goal {msig(E.sign_h(sk, h, B.has_len(32n, h))) == ES.sign_d(one, h, CV.os2ip(sk), Bool.and(CV.length_is(32n, h), Bool.and(CV.length_is(32n, sk), ES.scalar_ok(one, CV.os2ip(sk))))) : Maybe<&2, List<&2, U32>>}
+  %goal {msig(E.sign_h(sk, h, B.has_len(32n, h))) == ES.sign_d(one, ES.fill(32n, 0), ES.fill(32n, 1), h, CV.os2ip(sk), Bool.and(CV.length_is(32n, h), Bool.and(CV.length_is(32n, sk), ES.scalar_ok(one, CV.os2ip(sk))))) : Maybe<&2, List<&2, U32>>}
   %rw BL.hl_is(32n, h)
   sh(one, h1, sk, h, CV.length_is(32n, h), BL.hl_is(32n, h))

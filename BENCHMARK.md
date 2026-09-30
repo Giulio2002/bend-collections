@@ -55,10 +55,10 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | XChaCha20-Poly1305 | 347.95 |
 | AES-128-GCM | 7.97 |
 | AES-256-GCM | 6.48 |
-| X25519 shared secret | 8.09 |
-| Ed25519 key generation | 24.13 |
-| Ed25519 sign | 32.89 |
-| Ed25519 verify | 12.89 |
+| X25519 shared secret | 7.77 |
+| Ed25519 key generation | 6.97 |
+| Ed25519 sign | 7.93 |
+| Ed25519 verify | 7.49 |
 | Argon2id | 9.09 |
 | secp256k1 (ECDSA, recovery, BIP-340) | 201.83 |
 | ChaCha8 `uint64` | 7.26 |
@@ -80,7 +80,7 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | Binary heap | 5.56 |
 | Doubly linked list | 5.95 |
 | List iterator | 3.86 |
-| Tree map | 26.52 |
+| Tree map | 8.79 |
 | Bitset | 3.32 |
 | Bit list | 5.66 |
 | Hash map | 9.64 |
@@ -325,44 +325,44 @@ C reference: as AES-128-GCM, with a 32-byte key. Worst ratio 6.48 (30.60 before)
 
 ## Public-key and password hashing
 
-A curve operation takes Bend 0.25-0.7 ms, so these rows time 64 to 256
+A curve operation takes Bend 0.1-0.4 ms, so these rows time 64 to 256
 operations per sample (Argon2id: 64 hashes at 64 KiB, one at 19 MiB). The curve C
 references repeat their timed pass until 50 ms have passed and report the
 mean pass. Microseconds per operation.
 
 ### X25519 shared secret
 
-C reference: Monocypher 4.0.2 `crypto_x25519`. Worst ratio 8.09 (1677.75 before the fast field).
+C reference: Monocypher 4.0.2 `crypto_x25519`. Worst ratio 7.77 (1677.75 before the fast field).
 
 | Operation | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| shared secret | 262 | 32.3 | 8.09 |
+| shared secret | 250 | 32.2 | 7.77 |
 
 ### Ed25519 key generation
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_key_pair` (SHA-512). Worst ratio 24.13 (7064.08 before).
+C reference: Monocypher 4.0.2 `crypto_ed25519_key_pair` (SHA-512). Worst ratio 6.97 (7064.08 before the fast field, 22.72 before the base-point table).
 
 | Operation | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| keygen | 422 | 17.5 | 24.13 |
+| keygen | 117 | 16.8 | 6.97 |
 
 ### Ed25519 sign
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_sign`. Worst ratio 32.89 (13116.15 before).
+C reference: Monocypher 4.0.2 `crypto_ed25519_sign`. Worst ratio 7.93 (13116.15 before the fast field, 22.80 before the base-point table).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| sign 64 B | 609 | 18.5 | 32.89 |
-| sign 1 KiB | 641 | 21.6 | 29.70 |
+| sign 64 B | 141 | 17.7 | 7.93 |
+| sign 1 KiB | 156 | 20.1 | 7.78 |
 
 ### Ed25519 verify
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_check`. Worst ratio 12.89 (4449.20 before).
+C reference: Monocypher 4.0.2 `crypto_ed25519_check`. Worst ratio 7.49 (4449.20 before the fast field, 11.49 before the base-point table).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| verify 64 B | 641 | 50.2 | 12.75 |
-| verify 1 KiB | 672 | 52.1 | 12.89 |
+| verify 64 B | 359 | 48.0 | 7.49 |
+| verify 1 KiB | 359 | 49.1 | 7.32 |
 
 ### Argon2id
 
@@ -497,11 +497,12 @@ Fairness notes:
   64-byte secret key made once; key generation and verification take the
   context (`generate_keypair_ctx`, `verify_ctx`: the curve constants and
   base point, which C keeps in static tables); verification decodes the
-  public key in every call, as C does. The Bend scalar multiplications are
-  the specification's double-and-add over 256 bits (256 doublings and 256
-  selected additions for a secret scalar); Monocypher's fixed-base and
-  double-scalar multiplications use precomputed tables and windows, which
-  the proofs would need the group law for.
+  public key in every call, as C does. The Bend context holds a table of
+  the base point (64 rows of 16 points, built in about 1 ms before the
+  timed region): [k]B is 64 additions, with every entry of a row read for a
+  secret digit. [k]A in verification is still double-and-add over 256 bits
+  (adding on one bits); Monocypher uses signed windows and a joint
+  double-scalar multiplication there.
 - secp256k1: libsecp256k1 is production code with precomputed multiplication
   tables, not a plain reference; its verify parses the key and signature inside
   the timed region (the Bend API takes bytes) and normalises s (Bend's verify
@@ -918,43 +919,43 @@ Worst ratio 3.86.
 
 ### Tree map
 
-Worst ratio 26.52.
+Worst ratio 8.79.
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| insert | small | 72.9 | 24.6 | 2.97 |
-| insert | medium | 144 | 62.4 | 2.30 |
-| insert | large | 257 | 147 | 1.75 |
-| remove | small | 357 | 54.4 | 6.56 |
-| remove | medium | 548 | 118 | 4.63 |
-| remove | large | 784 | 221 | 3.55 |
-| lookup | small | 67.1 | 16.0 | 4.18 |
-| lookup | medium | 136 | 37.8 | 3.60 |
-| lookup | large | 258 | 83.0 | 3.11 |
-| contains | small | 56.5 | 18.1 | 3.12 |
-| contains | medium | 122 | 38.2 | 3.19 |
-| contains | large | 229 | 84.6 | 2.70 |
-| min | small | 14.3 | 1.48 | 9.62 |
-| min | medium | 14.2 | 3.59 | 3.95 |
-| min | large | 14.4 | 5.88 | 2.45 |
-| max | small | 14.2 | 1.49 | 9.57 |
-| max | medium | 14.3 | 2.23 | 6.39 |
-| max | large | 14.4 | 4.89 | 2.94 |
-| lower_bound | small | 72.0 | 17.2 | 4.19 |
-| lower_bound | medium | 143 | 37.6 | 3.80 |
-| lower_bound | large | 263 | 83.4 | 3.15 |
-| range | small | 221 | 30.0 | 7.36 |
-| range | medium | 13974 | 814 | 17.16 |
-| range | large | 144940 | 7059 | 20.53 |
-| to_list | small | 995 | 44.4 | 22.43 |
-| to_list | medium | 81333 | 3067 | 26.52 |
-| to_list | large | 3525000 | 195888 | 18.00 |
-| length | small | 0.95 | 2.66 | 0.36 |
-| length | medium | 0.95 | 2.65 | 0.36 |
-| length | large | 0.94 | 2.64 | 0.36 |
-| new | small | 30.3 | 2.33 | 13.00 |
-| new | medium | 30.3 | 2.36 | 12.86 |
-| new | large | 29.5 | 2.38 | 12.38 |
+| insert | small | 80.8 | 29.0 | 2.78 |
+| insert | medium | 158 | 74.9 | 2.10 |
+| insert | large | 299 | 182 | 1.64 |
+| remove | small | 485 | 69.5 | 6.98 |
+| remove | medium | 583 | 120 | 4.86 |
+| remove | large | 831 | 220 | 3.77 |
+| lookup | small | 62.4 | 16.1 | 3.86 |
+| lookup | medium | 128 | 38.1 | 3.35 |
+| lookup | large | 230 | 87.7 | 2.62 |
+| contains | small | 51.9 | 18.2 | 2.85 |
+| contains | medium | 112 | 38.6 | 2.90 |
+| contains | large | 201 | 86.5 | 2.32 |
+| min | small | 13.1 | 1.49 | 8.77 |
+| min | medium | 13.1 | 3.61 | 3.64 |
+| min | large | 13.0 | 5.84 | 2.23 |
+| max | small | 13.2 | 1.50 | 8.79 |
+| max | medium | 13.1 | 2.26 | 5.81 |
+| max | large | 13.1 | 5.16 | 2.54 |
+| lower_bound | small | 48.8 | 17.0 | 2.87 |
+| lower_bound | medium | 90.4 | 37.5 | 2.41 |
+| lower_bound | large | 178 | 93.7 | 1.90 |
+| range | small | 91.8 | 30.4 | 3.02 |
+| range | medium | 3255 | 797 | 4.08 |
+| range | large | 48438 | 7189 | 6.74 |
+| to_list | small | 223 | 44.1 | 5.04 |
+| to_list | medium | 18047 | 3095 | 5.83 |
+| to_list | large | 1180000 | 200157 | 5.90 |
+| length | small | 1.00 | 2.85 | 0.35 |
+| length | medium | 1.00 | 2.85 | 0.35 |
+| length | large | 0.99 | 2.76 | 0.36 |
+| new | small | 19.9 | 2.58 | 7.71 |
+| new | medium | 19.7 | 2.48 | 7.95 |
+| new | large | 19.0 | 2.49 | 7.61 |
 
 ### Bitset
 

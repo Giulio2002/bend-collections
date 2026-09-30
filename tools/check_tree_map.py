@@ -53,7 +53,11 @@ for kind,key in [('ascending',lambda k:k),('reverse',lambda k:-k),('groups',lamb
         ops += [(12,0,0),(13,0,0)]*80
     if seed==2:
         ops += [(0,10,7),(21,10,9),(34,10,7),(35,0,8),(33,10,7),(33,10,8),(22,10,99),(23,10,55),(0,20,5),(29,20,6),(31,20,0),(30,20,0),(44,0,0)]
-    ops += [(rng.choices(list(range(32))+list(range(33,51)),weights=[30,8,25,2,0.2,3,1,1,3,3,3,3,2,2,1,1,2,2,2,2,1,5,5,2,2,2,3,0.5,1,3,3,3,2,2,2]+[1]*15)[0],rng.randrange(150),rng.randrange(10000)) for _ in range(a.steps)]
+    if seed==3:
+        ops += [(0,k,k+100) for k in (70,30,110,10,50,90,130,20,40,60,80,100,120,140)]
+        ops += [(51,0,0),(52,30,110),(52,31,109),(52,110,30),(53,30,110),(53,0,149),(54,0,0),(54,75,0),(54,149,0),(55,0,0),(55,75,0),(55,140,0),(52,60,60),(53,60,60)]
+    ops += [(rng.choices(list(range(32))+list(range(33,56)),weights=[30,8,25,2,0.2,3,1,1,3,3,3,3,2,2,1,1,2,2,2,2,1,5,5,2,2,2,3,0.5,1,3,3,3,2,2,2]+[1]*15+[2]*5)[0],rng.randrange(150),rng.randrange(10000)) for _ in range(a.steps)]
+    ops = [(op,k,v%150) if op in (52,53) else (op,k,v) for op,k,v in ops]
     args=[]
     for op,k,v in ops:args += [f'{op}:{k}:{v}','99']
     r=subprocess.run([str(ROOT/'build/tree-map/test'),kind]+args,capture_output=True,text=True,timeout=60)
@@ -72,7 +76,10 @@ for kind,key in [('ascending',lambda k:k),('reverse',lambda k:-k),('groups',lamb
       elif op==5:expected=str(int(kk in m))
       elif op==20:expected=str(int(not m))
       elif op>=21:
-        if op>=36:
+        if op>=51:
+          inr={51:lambda x:True,52:lambda x:kk<=x<key(v),53:lambda x:kk<x<=key(v),54:lambda x:x<=kk,55:lambda x:x>kk}[op]
+          expected='entries'+''.join(f';{m[x][0]}={m[x][1]}' for x in sorted(m) if inr(x))
+        elif op>=36:
           keys=sorted(x for x in m if x<key(50));hit=None
           if op in (36,37,38,39,40):
             mode={36:'le',37:'ge',38:'lt',39:'gt',40:'ge'}[op]

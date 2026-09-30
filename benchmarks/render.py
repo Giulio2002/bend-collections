@@ -126,7 +126,7 @@ def suite_tables(worst):
         if group == 'hash':
             out += ['Same method as the hashes above (`benchmarks/crypto_suite.py --group hash`).', '']
         elif group == 'pk':
-            out += ['A curve operation takes Bend 0.25-0.7 ms, so these rows time 64 to 256',
+            out += ['A curve operation takes Bend 0.1-0.4 ms, so these rows time 64 to 256',
                     'operations per sample (Argon2id: 64 hashes at 64 KiB, one at 19 MiB). The curve C',
                     'references repeat their timed pass until 50 ms have passed and report the',
                     'mean pass. Microseconds per operation.', '']
@@ -195,11 +195,12 @@ def references_section():
             '  64-byte secret key made once; key generation and verification take the',
             '  context (`generate_keypair_ctx`, `verify_ctx`: the curve constants and',
             '  base point, which C keeps in static tables); verification decodes the',
-            '  public key in every call, as C does. The Bend scalar multiplications are',
-            '  the specification\'s double-and-add over 256 bits (256 doublings and 256',
-            '  selected additions for a secret scalar); Monocypher\'s fixed-base and',
-            '  double-scalar multiplications use precomputed tables and windows, which',
-            '  the proofs would need the group law for.',
+            '  public key in every call, as C does. The Bend context holds a table of',
+            '  the base point (64 rows of 16 points, built in about 1 ms before the',
+            '  timed region): [k]B is 64 additions, with every entry of a row read for a',
+            '  secret digit. [k]A in verification is still double-and-add over 256 bits',
+            '  (adding on one bits); Monocypher uses signed windows and a joint',
+            '  double-scalar multiplication there.',
             '- secp256k1: libsecp256k1 is production code with precomputed multiplication',
             '  tables, not a plain reference; its verify parses the key and signature inside',
             '  the timed region (the Bend API takes bytes) and normalises s (Bend\'s verify',
