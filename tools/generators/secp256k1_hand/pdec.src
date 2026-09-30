@@ -7,7 +7,7 @@ import ../../../src/crypto/secp256k1/bytes.bend as B
 import ../../../src/crypto/secp256k1/point.bend as P
 import ../../lib/logic.bend as Lg
 import ../../math/typed/width.bend as WW
-import ../../math/typed/f64bits.bend as FB
+import ./u32and.bend as FB
 import ./fwrap.bend as FW
 import ./bytes.bend as BY
 import ./point.bend as PT

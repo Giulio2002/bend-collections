@@ -1,9 +1,6 @@
 import Base
-import ../../lib/nat.bend as N
-import ../../lib/logic.bend as Lg
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/natural/arith.bend as NR
-import ./semiring.bend as SR
 
 # Square-and-multiply steps on residues: with a = x^E mod m,
 # a a mod m = x^(2 E) mod m and a x mod m = x^(E + 1) mod m.

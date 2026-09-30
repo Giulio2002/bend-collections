@@ -6,7 +6,6 @@ import ../../../src/crypto/secp256k1/limbs.bend as L
 import ../../../src/crypto/secp256k1/field.bend as F
 import ../../../src/crypto/secp256k1/scalar.bend as S
 import ../../lib/nat.bend as N
-import ../../lib/logic.bend as Lg
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/typed/width.bend as WW
 import ./semiring.bend as SR

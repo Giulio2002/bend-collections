@@ -12,9 +12,7 @@ import ../../math/typed/width.bend as WW
 import ./semiring.bend as SR
 import ./limbs.bend as LV
 import ./ineq.bend as I
-import ./bounds.bend as B
 import ./consts.bend as K
-import ./listops.bend as LO
 import ./bitsv.bend as BV
 import ./modexp.bend as ME
 import ./scalarops.bend as SO

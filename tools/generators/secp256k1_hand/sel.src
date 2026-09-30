@@ -3,17 +3,13 @@ import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/secp256k1/field.bend as FS
 import ../../../spec/crypto/secp256k1/curve.bend as CV
 import ../../../src/crypto/secp256k1/limbs.bend as L
-import ../../../src/crypto/secp256k1/field.bend as F
 import ../../../src/crypto/secp256k1/point.bend as P
-import ../../lib/nat.bend as N
 import ../../lib/logic.bend as Lg
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ./limbs.bend as LV
 import ./fieldops.bend as FO
 import ./bitsv.bend as BV
 import ./bitsrel.bend as BR
 import ./point.bend as PT
-import ./lits.bend as LT
 
 # Selection (b ? p : q, b in {0, 1}) and small facts for the point proofs.
 def bit01(n: Nat) -> {Nat.is_lt(C.bit(n), 2n) == True{} : Bool}:

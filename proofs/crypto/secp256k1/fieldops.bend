@@ -9,13 +9,10 @@ import ../../lib/logic.bend as Lg
 import ../../lib/arith.bend as AR
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/natural/arith.bend as NR
-import ../../math/typed/width.bend as WW
-import ./semiring.bend as SR
 import ./limbs.bend as LV
 import ./fprot.bend as FR
 import ./ineq.bend as I
 import ./bounds.bend as B
-import ./reduce.bend as R
 import ./reducek.bend as RK
 import ./consts.bend as K
 import ./negate.bend as NG
