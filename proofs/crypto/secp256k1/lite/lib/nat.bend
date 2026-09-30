@@ -201,6 +201,18 @@ def lt_not_le(+a: Nat, +b: Nat, e: {Nat.is_lt(a, b) == True{} : Bool}) -> {Nat.i
       lt_not_le(p, q, e)
 
 
+def not_le_lt(+a: Nat, +b: Nat, e: {Nat.is_le(a, b) == False{} : Bool}) -> {Nat.is_lt(b, a) == True{} : Bool}:
+  match a b:
+    case 0n 0n:
+      Empty.absurd({Nat.is_lt(0n, 0n) == True{} : Bool}, L.true_false(e))
+    case 0n 1n+q:
+      Empty.absurd({Nat.is_lt(1n+q, 0n) == True{} : Bool}, L.true_false(e))
+    case 1n+p 0n:
+      {==}
+    case 1n+p 1n+q:
+      not_le_lt(p, q, e)
+
+
 def le_antisym(+a: Nat, +b: Nat, ab: {Nat.is_le(a, b) == True{} : Bool}, ba: {Nat.is_le(b, a) == True{} : Bool}) -> {a == b : Nat}:
   match a b:
     case 0n 0n:
@@ -240,6 +252,18 @@ def is_eq_refl(+a: Nat) -> {Nat.is_eq(a, a) == True{} : Bool}:
       {==}
     case 1n+p:
       is_eq_refl(p)
+
+
+def lt_or_eq(+a: Nat, +b: Nat, e: {Nat.is_le(a, b) == True{} : Bool}, ne: {Nat.is_eq(a, b) == False{} : Bool}) -> {Nat.is_lt(a, b) == True{} : Bool}:
+  match a b:
+    case 0n 0n:
+      Empty.absurd({Nat.is_lt(0n, 0n) == True{} : Bool}, L.true_false(ne))
+    case 0n 1n+q:
+      {==}
+    case 1n+p 0n:
+      Empty.absurd({Nat.is_lt(1n+p, 0n) == True{} : Bool}, L.false_true(e))
+    case 1n+p 1n+q:
+      lt_or_eq(p, q, e, ne)
 
 
 # ---- addition and subtraction ----
@@ -349,6 +373,14 @@ def double_self_le(+n: Nat) -> {Nat.is_le(n, Nat.double(n)) == True{} : Bool}:
       {==}
     case 1n+p:
       le_trans(p, Nat.double(p), 1n+Nat.double(p), double_self_le(p), le_succ(Nat.double(p)))
+
+
+def double_succ_le(+n: Nat, e: {Nat.is_le(1n, n) == True{} : Bool}) -> {Nat.is_le(1n+n, Nat.double(n)) == True{} : Bool}:
+  match n:
+    case 0n:
+      Empty.absurd({Nat.is_le(1n, 0n) == True{} : Bool}, L.false_true(e))
+    case 1n+p:
+      double_self_le(p)
 
 
 def pow2_pos(+k: Nat) -> {Nat.is_le(1n, SC.pow2(k)) == True{} : Bool}:

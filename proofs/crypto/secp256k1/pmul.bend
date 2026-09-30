@@ -14,6 +14,14 @@ import ./point.bend as PT
 import ./sel.bend as SL
 import ./ptm.bend as PM
 import ./ptp.bend as PP
+import ./ineq.bend as I
+import ./bytes.bend as BY
+import ./pwin.bend as PW
+import ./group/glaw4.bend as G4
+import ./group/glawp.bend as GP
+import ../../math/number/nt_prime.bend as NP
+import ../../../spec/crypto/secp256k1/group.bend as GS
+import ../../../spec/lib/common.bend as C
 import ../../../src/crypto/secp256k1/pt.bend as PX
 
 # Scalar multiplication (src/crypto/secp256k1/point.bend mul: masked
@@ -94,16 +102,63 @@ def lbits01(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +hk: {FS.limb
   %Equal.sym(List<&2, Nat>, L.bits(ks), BR.sb(256n, 0n, LV.ev(ks)), BR.bits_sb(one, h1, 16n, ks, hk)) : {BV.all01(_) == True{} : Bool}
   SL.sb01(256n, 0n, LV.ev(ks))
 
-def mul_r(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}) -> {PT.pred(one, P.mul(ks, pp)) == True{} : Bool}:
-  PT.op_r(one, PX.mul_go(L.bitsf(ks), P.to_pt(pp), PX.infinity()), PM.mul_go_r(one, h1, L.bitsf(ks), P.to_pt(pp), PX.infinity(), lbits01(one, h1, ks, hk), PT.tp_r(one, pp, hp), PM.pinf_r(one, h1)))
+# ---- the window multiplication (pt.bend wmul, proofs pwin.bend) ----
 
-def mul_v(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}) -> {PT.pv(one, P.mul(ks, pp)) == CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp)) : CV.SPoint}:
-  %Equal.sym(CV.SPoint, PT.pv(one, P.of_pt(PX.mul_go(L.bitsf(ks), P.to_pt(pp), PX.infinity()))), PP.pv(one, PX.mul_go(L.bitsf(ks), P.to_pt(pp), PX.infinity())), PT.op_v(one, PX.mul_go(L.bitsf(ks), P.to_pt(pp), PX.infinity()))) : {_ == CV.lmul(FS.prime(one), CV.bits(256n, FS.value(one, ks)), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
-  %Equal.sym(CV.SPoint, PP.pv(one, PX.mul_go(L.bitsf(ks), P.to_pt(pp), PX.infinity())), CV.lmul(FS.prime(one), L.bitsf(ks), PP.pv(one, P.to_pt(pp)), PP.pv(one, PX.infinity())), PM.mul_go_v(one, h1, L.bitsf(ks), P.to_pt(pp), PX.infinity(), lbits01(one, h1, ks, hk), PT.tp_r(one, pp, hp), PM.pinf_r(one, h1))) : {_ == CV.lmul(FS.prime(one), CV.bits(256n, FS.value(one, ks)), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
-  %Equal.sym(CV.SPoint, PP.pv(one, PX.infinity()), CV.infinity(), PM.pinf_v(one, h1)) : {CV.lmul(FS.prime(one), L.bitsf(ks), PP.pv(one, P.to_pt(pp)), _) == CV.lmul(FS.prime(one), CV.bits(256n, FS.value(one, ks)), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
-  %Equal.sym(CV.SPoint, PP.pv(one, P.to_pt(pp)), PT.pv(one, pp), PT.tp_v(one, pp, hp)) : {CV.lmul(FS.prime(one), L.bitsf(ks), _, CV.infinity()) == CV.lmul(FS.prime(one), CV.bits(256n, FS.value(one, ks)), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
-  %Equal.sym(List<&2, Nat>, L.bitsf(ks), CV.bits(256n, FS.value(one, ks)), lbits(one, h1, ks, hk)) : {CV.lmul(FS.prime(one), _, PT.pv(one, pp), CV.infinity()) == CV.lmul(FS.prime(one), CV.bits(256n, FS.value(one, ks)), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
-  {==}
+# 16 more bits keep a multiple of 4
+def ok4_app(u: List<&2, Nat>, +c1: Nat, +c2: Nat, +c3: Nat, +c4: Nat, +c5: Nat, +c6: Nat, +c7: Nat, +c8: Nat, +c9: Nat, +c10: Nat, +c11: Nat, +c12: Nat, +c13: Nat, +c14: Nat, +c15: Nat, +c16: Nat) -> {PW.ok4(List.append(&2, Nat, u, [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16])) == PW.ok4(u) : Bool}:
+  match u:
+    case Nil{}:
+      {==}
+    case +x1 <> Nil{}:
+      {==}
+    case +x1 <> +x2 <> Nil{}:
+      {==}
+    case +x1 <> +x2 <> +x3 <> Nil{}:
+      {==}
+    case +x1 <> +x2 <> +x3 <> +x4 <> +t:
+      ok4_app(t, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16)
+
+def ok4_bits(xs: List<&2, Nat>) -> {PW.ok4(L.bits(xs)) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case +x <> +t:
+      %Equal.sym(Bool, PW.ok4(List.append(&2, Nat, L.bits(t), [Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(x, 2n), 2n), 2n), Nat.mod(Nat.div(x, 2n), 2n), Nat.mod(x, 2n)])), PW.ok4(L.bits(t)), ok4_app(L.bits(t), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(x, 2n), 2n), 2n), Nat.mod(Nat.div(x, 2n), 2n), Nat.mod(x, 2n))) : {_ == True{} : Bool}
+      ok4_bits(t)
+
+def ok4_f(+ks: List<&2, Nat>) -> {PW.ok4(L.bitsf(ks)) == True{} : Bool}:
+  %Equal.sym(List<&2, Nat>, L.bitsf(ks), L.bits(ks), bitsf_is(ks)) : {PW.ok4(_) == True{} : Bool}
+  ok4_bits(ks)
+
+# the number the bits of a scalar spell is its value
+def bvl_v(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}) -> {G4.bvl(L.bitsf(ks), 0n) == FS.value(one, ks) : Nat}:
+  +hf = BY.fits_one(256n, one, h1, FS.value(one, ks), I.lt_subst_l(LV.ev(ks), FS.value(one, ks), C.shift(256n, one), Equal.sym(Nat, FS.value(one, ks), LV.ev(ks), LV.ev_value(one, h1, ks)), FO.tt_lt(one, h1, ks, hk)))
+  %Equal.sym(List<&2, Nat>, L.bitsf(ks), CV.bits(256n, FS.value(one, ks)), lbits(one, h1, ks, hk)) : {G4.bvl(_, 0n) == FS.value(one, ks) : Nat}
+  %Equal.sym(Nat, G4.bvl(CV.bits(256n, FS.value(one, ks)), 0n), C.low(256n, FS.value(one, ks)), G4.bits_v(256n, FS.value(one, ks))) : {_ == FS.value(one, ks) : Nat}
+  G4.low_fit(256n, FS.value(one, ks), hf)
+
+def fits_v(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}) -> {C.fits(256n, FS.value(one, ks)) == True{} : Bool}:
+  BY.fits_one(256n, one, h1, FS.value(one, ks), I.lt_subst_l(LV.ev(ks), FS.value(one, ks), C.shift(256n, one), Equal.sym(Nat, FS.value(one, ks), LV.ev(ks), LV.ev_value(one, h1, ks)), FO.tt_lt(one, h1, ks, hk)))
+
+def mul_r(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}) -> {PT.pred(one, P.mul(ks, pp)) == True{} : Bool}:
+  PT.op_r(one, PX.wmul(L.bitsf(ks), P.to_pt(pp)), PW.wmul_r(one, h1, L.bitsf(ks), P.to_pt(pp), PT.tp_r(one, pp, hp), lbits01(one, h1, ks, hk), ok4_f(ks)))
+
+# [k] P is a point of the group
+def mul_vd(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hq: {PT.pred(one, pp) == True{} : Bool}, +vq: {GS.valid(FS.prime(one), PT.pv(one, pp)) == True{} : Bool}) -> {GS.valid(FS.prime(one), PT.pv(one, P.mul(ks, pp))) == True{} : Bool}:
+  +va = Lg.subst(CV.SPoint, z => {GS.valid(FS.prime(one), z) == True{} : Bool}, PT.pv(one, pp), PP.pv(one, P.to_pt(pp)), Equal.sym(CV.SPoint, PP.pv(one, P.to_pt(pp)), PT.pv(one, pp), PT.tp_v(one, pp, hq)), vq)
+  %Equal.sym(CV.SPoint, PT.pv(one, P.of_pt(PX.wmul(L.bitsf(ks), P.to_pt(pp)))), PP.pv(one, PX.wmul(L.bitsf(ks), P.to_pt(pp))), PT.op_v(one, PX.wmul(L.bitsf(ks), P.to_pt(pp)))) : {GS.valid(FS.prime(one), _) == True{} : Bool}
+  PW.wmul_vd(one, h1, hp, hc, L.bitsf(ks), P.to_pt(pp), PT.tp_r(one, pp, hq), va, lbits01(one, h1, ks, hk), ok4_f(ks))
+
+# and the same projective point as the specification's double-and-add
+def mul_q(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hq: {PT.pred(one, pp) == True{} : Bool}, +vq: {GS.valid(FS.prime(one), PT.pv(one, pp)) == True{} : Bool}) -> {GS.equiv(FS.prime(one), PT.pv(one, P.mul(ks, pp)), CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp))) == True{} : Bool}:
+  +va = Lg.subst(CV.SPoint, z => {GS.valid(FS.prime(one), z) == True{} : Bool}, PT.pv(one, pp), PP.pv(one, P.to_pt(pp)), Equal.sym(CV.SPoint, PP.pv(one, P.to_pt(pp)), PT.pv(one, pp), PT.tp_v(one, pp, hq)), vq)
+  +e1 = PW.wmul_e(one, h1, hp, hc, L.bitsf(ks), P.to_pt(pp), PT.tp_r(one, pp, hq), va, lbits01(one, h1, ks, hk), ok4_f(ks))
+  +k = FS.value(one, ks)
+  +a = PT.pv(one, pp)
+  +e2 = Lg.subst(Nat, z => {GS.equiv(FS.prime(one), PP.pv(one, PX.wmul(L.bitsf(ks), P.to_pt(pp))), GS.smul(FS.prime(one), z, PP.pv(one, P.to_pt(pp)))) == True{} : Bool}, G4.bvl(L.bitsf(ks), 0n), k, bvl_v(one, h1, ks, hk), e1)
+  +e3 = Lg.subst(CV.SPoint, z => {GS.equiv(FS.prime(one), PP.pv(one, PX.wmul(L.bitsf(ks), P.to_pt(pp))), GS.smul(FS.prime(one), k, z)) == True{} : Bool}, PP.pv(one, P.to_pt(pp)), a, PT.tp_v(one, pp, hq), e2)
+  %Equal.sym(CV.SPoint, PT.pv(one, P.of_pt(PX.wmul(L.bitsf(ks), P.to_pt(pp)))), PP.pv(one, PX.wmul(L.bitsf(ks), P.to_pt(pp))), PT.op_v(one, PX.wmul(L.bitsf(ks), P.to_pt(pp)))) : {GS.equiv(FS.prime(one), _, CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp))) == True{} : Bool}
+  GP.equiv_trans(one, h1, hp, hc, PP.pv(one, PX.wmul(L.bitsf(ks), P.to_pt(pp))), GS.smul(FS.prime(one), k, a), CV.pmul(FS.prime(one), k, a), GP.scalar_closed(one, h1, hp, hc, k, a, vq), e3, GP.equiv_sym(one, h1, hp, hc, CV.pmul(FS.prime(one), k, a), GS.smul(FS.prime(one), k, a), GP.scalar_pmul(one, h1, hp, hc, k, a, vq, fits_v(one, h1, ks, hk))))
 
 def mul_pub_r(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}) -> {PT.pred(one, P.mul_pub(ks, pp)) == True{} : Bool}:
   PT.op_r(one, PX.vmul_go(L.bitsf(ks), P.to_pt(pp), PX.infinity()), PM.vmul_go_r(one, h1, L.bitsf(ks), P.to_pt(pp), PX.infinity(), lbits01(one, h1, ks, hk), PT.tp_r(one, pp, hp), PM.pinf_r(one, h1)))

@@ -65,7 +65,7 @@ def select(+b: Nat, p: Point, q: Point) -> Point:
 # secret k: double-and-add over the 256 bits, adding in every step and
 # selecting with an arithmetic mask (no branch and no table index on k)
 def mul(k: List<&2, Nat>, +p: Point) -> Point:
-  of_pt(PX.mul_go(L.bitsf(k), to_pt(p), PX.infinity()))
+  of_pt(PX.wmul(L.bitsf(k), to_pt(p)))
 
 # the same for a public k (verification, recovery): the addition only when
 # the bit is set

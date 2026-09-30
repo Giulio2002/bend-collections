@@ -336,7 +336,11 @@ def rename(t, f):
     if k == 'succ':
         return ('succ', t[1], rename(t[2], f))
     if k == 'eq':
-        return ('eq', rename(t[1], f), rename(t[2], f), t[3])
+        ty = t[3]
+        if isinstance(ty, str):
+            # the type of the equation: its qualified names, renamed like the sides
+            ty = re.sub(r'[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+', lambda m: f(m.group(0)), ty)
+        return ('eq', rename(t[1], f), rename(t[2], f), ty)
     return t
 
 

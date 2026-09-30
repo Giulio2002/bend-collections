@@ -120,6 +120,69 @@ def vmul_go(bits: List<&2, Nat>, +p: PT, r: PT) -> PT:
   match bits:
     case Nil{}: r
     case b <> t: vmul_go(t, p, vstep(b, p, dbl(r)))
+
+# ---- fixed windows of 4 bits ----
+
+# [0] a, ..., [15] a, each the one before plus a
+type T16 is Data:
+  T16{t0: PT, t1: PT, t2: PT, t3: PT, t4: PT, t5: PT, t6: PT, t7: PT, t8: PT, t9: PT, t10: PT, t11: PT, t12: PT, t13: PT, t14: PT, t15: PT}
+
+def tab(+a: PT) -> T16:
+  +t0 = infinity()
+  +t1 = add(t0, a)
+  +t2 = add(t1, a)
+  +t3 = add(t2, a)
+  +t4 = add(t3, a)
+  +t5 = add(t4, a)
+  +t6 = add(t5, a)
+  +t7 = add(t6, a)
+  +t8 = add(t7, a)
+  +t9 = add(t8, a)
+  +t10 = add(t9, a)
+  +t11 = add(t10, a)
+  +t12 = add(t11, a)
+  +t13 = add(t12, a)
+  +t14 = add(t13, a)
+  +t15 = add(t14, a)
+  T16{t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15}
+
+# the entry of the digit b1 b2 b3 b4 (most significant first), by a tree of
+# masked selections: every entry is read, no branch or index on the bits
+def tsel(+b1: Nat, +b2: Nat, +b3: Nat, +b4: Nat, t: T16) -> PT:
+  match t:
+    case T16{+t0, +t1, +t2, +t3, +t4, +t5, +t6, +t7, +t8, +t9, +t10, +t11, +t12, +t13, +t14, +t15}:
+      +s0_0 = select(b4, t1, t0)
+      +s0_1 = select(b4, t3, t2)
+      +s0_2 = select(b4, t5, t4)
+      +s0_3 = select(b4, t7, t6)
+      +s0_4 = select(b4, t9, t8)
+      +s0_5 = select(b4, t11, t10)
+      +s0_6 = select(b4, t13, t12)
+      +s0_7 = select(b4, t15, t14)
+      +s1_0 = select(b3, s0_1, s0_0)
+      +s1_1 = select(b3, s0_3, s0_2)
+      +s1_2 = select(b3, s0_5, s0_4)
+      +s1_3 = select(b3, s0_7, s0_6)
+      +s2_0 = select(b2, s1_1, s1_0)
+      +s2_1 = select(b2, s1_3, s1_2)
+      +s3_0 = select(b1, s2_1, s2_0)
+      s3_0
+
+# 16 r + [digit] a for every 4 bits (bit lists of a multiple of 4 bits)
+def wgo(bits: List<&2, Nat>, +t: T16, r: PT) -> PT:
+  match bits:
+    case Nil{}: r
+    case b1 <> Nil{}: r
+    case b1 <> b2 <> Nil{}: r
+    case b1 <> b2 <> b3 <> Nil{}: r
+    case b1 <> b2 <> b3 <> b4 <> rest: wgo(rest, t, add(dbl(dbl(dbl(dbl(r)))), tsel(b1, b2, b3, b4, t)))
+
+# [k] a for the bits of a secret k (the table only for some bits, so that on
+# unknown bits the proof checker never forms it)
+def wmul(bits: List<&2, Nat>, +a: PT) -> PT:
+  match bits:
+    case Nil{}: infinity()
+    case b <> t: wgo(b <> t, tab(a), infinity())
 ''' % (', '.join(['0n'] * 15), straight(ADD, ['x1', 'y1', 'z1', 'x2', 'y2', 'z2', 'b3()'], ADD_OUT), straight(DBL, ['x', 'y', 'z', 'b3()'], DBL_OUT))
 (ROOT / 'src/crypto/secp256k1/pt.bend').write_text(src)
 
