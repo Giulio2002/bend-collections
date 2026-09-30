@@ -181,6 +181,16 @@ def outside(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +lo: M.Bound<K>, +hi: M.Bou
     case Con{+e, +t}:
       pick(List<&2, M.Entry<K, V>>, in_range(~K, ~cmp, key(K, V, e), lo, hi), outside(~K, ~V, ~cmp, lo, hi, t), Con{e, outside(~K, ~V, ~cmp, lo, hi, t)})
 
+# ---- folds ----
+
+# f folded over the entries, first to last
+def fold_entries(~K: Data, ~V: Data, ~A: Data, ~f: A -> K -> V -> A, es: List<&2, M.Entry<K, V>>, a: A) -> A:
+  match es:
+    case Nil{}:
+      a
+    case Con{M.Entry{k, v}, t}:
+      fold_entries(~K, ~V, ~A, ~f, t, f(a, k, v))
+
 # ---- order queries ----
 
 # the first entry e with keep(cmp(k, e.key))
@@ -398,6 +408,18 @@ def poll_last_entry(-K: Data, -V: Data, m: Model<K, V>) -> Model<K, V> & Maybe<&
   match m:
     case TM{+l, +es}:
       (TM{l, C.init(M.Entry<K, V>, es)}, last(M.Entry<K, V>, es))
+
+# f folded over the entries in key order
+def fold(~K: Data, ~V: Data, ~A: Data, ~f: A -> K -> V -> A, m: Model<K, V>, a: A) -> Model<K, V> & A:
+  match m:
+    case TM{l, +es}:
+      (TM{l, es}, fold_entries(~K, ~V, ~A, ~f, es, a))
+
+# f folded over the entries within the bounds, in key order
+def fold_range(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~A: Data, ~f: A -> K -> V -> A, m: Model<K, V>, +lo: M.Bound<K>, +hi: M.Bound<K>, a: A) -> Model<K, V> & A:
+  match m:
+    case TM{l, +es}:
+      (TM{l, es}, fold_entries(~K, ~V, ~A, ~f, within(~K, ~V, ~cmp, lo, hi, es), a))
 
 # ---- cursors ----
 

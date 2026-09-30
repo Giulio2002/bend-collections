@@ -135,7 +135,6 @@ def mk_node(~K: Data, +t: Nat, +l: Nat, +r: Nat, +p: Nat, k: Maybe<&2, K>) -> No
     case 1n+ +c None{}:
       Free{l}
 
-# the largest limit (4 * 2^29 packed slots is Base's largest block)
 # the largest limit (4 * 2^29 link slots is Base's largest block)
 def ns_max() -> Nat:
   29n
@@ -492,7 +491,8 @@ def walk_out(~K: Data, ~V: Data, ~A: Data, a: A, st: List<&2, Nat>, lq: Array<Na
 
 # One loop: every array read's result is the next iteration's argument
 # (lq: the links and the id read, kq: the keys and the key read, pq: the
-# payloads and the value read); the stack holds the slots whose left
+# payloads and the value taken out of its slot, which the next step puts
+# back: an owned value needs no reference count); the stack holds the slots whose left
 # subtrees are being visited; ok turns False at the first key past the
 # upper bound, which ends the walk. Every key after an emitted one is above
 # the lower bound, so the walk goes on without it.
@@ -503,7 +503,7 @@ def walk_fin(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~A: Data, +n: Nat, +root: 
 # Fold f over the entries whose keys lie within the bounds, in key order:
 # an in-order walk with an explicit stack of the ids whose left subtrees are
 # being visited, skipping the left subtrees below the lower bound and
-# stopping at the first key past the upper one (at most 5n + 1 steps).
+# stopping at the first key past the upper one (at most 4n + 1 steps).
 def ns_clamp(+k: Nat, +small: Bool) -> Nat:
   match small:
     case True{}:
@@ -803,36 +803,36 @@ def replace_if_apply(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: TreeMap<K, V, c
     case True{}:
       changed_value(~K, ~V, ~cmp, exchange(~K, ~V, ~cmp, m, id, Some{replacement}))
 
-def walk(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~A: Data, ~f: A -> K -> V -> A, fuel: Nat, +lob: Bound<K>, +upb: Bound<K>, +step: Step, +i: Nat, +ok: Bool, st: List<&2, Nat>, a: A, lq: Array<Nat> & Nat, kq: Array<Maybe<&2, K>> & Maybe<&2, K>, pq: Array<Maybe<&2, Maybe<&2, V>>> & Maybe<&2, Maybe<&2, V>>) -> Walk<K, V, A>:
-  match fuel lob step ok st lq kq pq:
-    case 0n b0 s0 o0 st0 lq0 kq0 pq0:
+def walk(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~A: Data, ~f: A -> K -> V -> A, fuel: Nat, +lob: Bound<K>, +upb: Bound<K>, +step: Step, +i: Nat, +ok: Bool, lq: Array<Nat> & Nat, st: List<&2, Nat>, a: A, kq: Array<Maybe<&2, K>> & Maybe<&2, K>, pq: Array<Maybe<&2, Maybe<&2, V>>> & Maybe<&2, Maybe<&2, V>>) -> Walk<K, V, A>:
+  match fuel lob step ok lq st kq pq:
+    case 0n b0 s0 o0 lq0 st0 kq0 pq0:
       walk_out(~K, ~V, ~A, a, st0, lq0, kq0, pq0)
-    case 1n+g b0 WDown{} False{} st0 lq0 kq0 pq0:
+    case 1n+g b0 WDown{} False{} lq0 st0 kq0 pq0:
       walk_out(~K, ~V, ~A, a, st0, lq0, kq0, pq0)
-    case 1n+g Unbounded{} WDown{} True{} st0 Tuple{lk, 1n+ +j} Tuple{ks, y} pq0:
-      walk(~K, ~V, ~cmp, ~A, ~f, g, Unbounded{}, upb, WDown{}, 0n, True{}, Con{j, st0}, a, Array.get(Nat, lk, U32.from_nat(Nat.double(j))), (ks, y), pq0)
-    case 1n+g Inclusive{+lo} WDown{} True{} st0 Tuple{lk, 1n+ +j} Tuple{ks, y} pq0:
-      walk(~K, ~V, ~cmp, ~A, ~f, g, Inclusive{lo}, upb, WSeek{}, j, True{}, st0, a, (lk, 0n), Array.get(Maybe<&2, K>, ks, U32.from_nat(j)), pq0)
-    case 1n+g Exclusive{+lo} WDown{} True{} st0 Tuple{lk, 1n+ +j} Tuple{ks, y} pq0:
-      walk(~K, ~V, ~cmp, ~A, ~f, g, Exclusive{lo}, upb, WSeek{}, j, True{}, st0, a, (lk, 0n), Array.get(Maybe<&2, K>, ks, U32.from_nat(j)), pq0)
-    case 1n+g +b0 WDown{} True{} Nil{} Tuple{lk, 0n} kq0 pq0:
+    case 1n+g Unbounded{} WDown{} True{} Tuple{lk, 1n+ +j} st0 Tuple{ks, y} pq0:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, Unbounded{}, upb, WDown{}, 0n, True{}, Array.get(Nat, lk, U32.from_nat(Nat.double(j))), Con{j, st0}, a, (ks, y), pq0)
+    case 1n+g Inclusive{+lo} WDown{} True{} Tuple{lk, 1n+ +j} st0 Tuple{ks, y} pq0:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, Inclusive{lo}, upb, WSeek{}, j, True{}, (lk, 0n), st0, a, Array.get(Maybe<&2, K>, ks, U32.from_nat(j)), pq0)
+    case 1n+g Exclusive{+lo} WDown{} True{} Tuple{lk, 1n+ +j} st0 Tuple{ks, y} pq0:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, Exclusive{lo}, upb, WSeek{}, j, True{}, (lk, 0n), st0, a, Array.get(Maybe<&2, K>, ks, U32.from_nat(j)), pq0)
+    case 1n+g +b0 WDown{} True{} Tuple{lk, 0n} Nil{} kq0 pq0:
       walk_out(~K, ~V, ~A, a, Nil{}, (lk, 0n), kq0, pq0)
-    case 1n+g +b0 WDown{} True{} Con{+j, s} Tuple{lk, 0n} Tuple{ks, y} Tuple{ps, z}:
-      walk(~K, ~V, ~cmp, ~A, ~f, g, b0, upb, WEmit{}, j, True{}, s, a, (lk, 0n), Array.get(Maybe<&2, K>, ks, U32.from_nat(j)), Array.swap(Maybe<&2, Maybe<&2, V>>, ps, U32.from_nat(j), None{}))
-    case 1n+g +b0 WSeek{} o0 st0 Tuple{lk, x} Tuple{ks, Some{+k}} pq0:
+    case 1n+g +b0 WDown{} True{} Tuple{lk, 0n} Con{+j, s} Tuple{ks, y} Tuple{ps, z}:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, b0, upb, WEmit{}, j, True{}, (lk, 0n), s, a, Array.get(Maybe<&2, K>, ks, U32.from_nat(j)), Array.swap(Maybe<&2, Maybe<&2, V>>, ps, U32.from_nat(j), None{}))
+    case 1n+g +b0 WSeek{} o0 Tuple{lk, x} st0 Tuple{ks, Some{+k}} pq0:
       +inside = above_lower(~K, ~V, ~cmp, k, b0)
-      walk(~K, ~V, ~cmp, ~A, ~f, g, b0, upb, WDown{}, 0n, True{}, walk_push(inside, i, st0), a, Array.get(Nat, lk, U32.from_nat(Nat.add(Nat.double(i), walk_side(inside)))), (ks, Some{k}), pq0)
-    case 1n+g +b0 WSeek{} o0 st0 Tuple{lk, x} Tuple{ks, None{}} pq0:
-      walk(~K, ~V, ~cmp, ~A, ~f, g, b0, upb, WDown{}, 0n, True{}, Con{i, st0}, a, Array.get(Nat, lk, U32.from_nat(Nat.double(i))), (ks, None{}), pq0)
-    case 1n+g +b0 WEmit{} o0 st0 Tuple{lk, x} Tuple{ks, Some{+k}} Tuple{ps, Some{Some{+v}}}:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, b0, upb, WDown{}, 0n, True{}, Array.get(Nat, lk, U32.from_nat(Nat.add(walk_side(inside), Nat.double(i)))), walk_push(inside, i, st0), a, (ks, Some{k}), pq0)
+    case 1n+g +b0 WSeek{} o0 Tuple{lk, x} st0 Tuple{ks, None{}} pq0:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, b0, upb, WDown{}, 0n, True{}, Array.get(Nat, lk, U32.from_nat(Nat.double(i))), Con{i, st0}, a, (ks, None{}), pq0)
+    case 1n+g +b0 WEmit{} o0 Tuple{lk, x} st0 Tuple{ks, Some{+k}} Tuple{ps, Some{Some{+v}}}:
       +inside = below_upper(~K, ~V, ~cmp, k, upb)
-      walk(~K, ~V, ~cmp, ~A, ~f, g, Unbounded{}, upb, WDown{}, 0n, inside, st0, walk_apply(~K, ~V, ~A, ~f, inside, a, k, v), Array.get(Nat, lk, U32.from_nat(1n+Nat.double(i))), (ks, Some{k}), (Array.set(Maybe<&2, Maybe<&2, V>>, ps, U32.from_nat(i), Some{Some{v}}), None{}))
-    case 1n+g +b0 WEmit{} o0 st0 Tuple{lk, x} Tuple{ks, Some{+k}} Tuple{ps, Some{None{}}}:
-      walk(~K, ~V, ~cmp, ~A, ~f, g, Unbounded{}, upb, WDown{}, 0n, below_upper(~K, ~V, ~cmp, k, upb), st0, a, Array.get(Nat, lk, U32.from_nat(1n+Nat.double(i))), (ks, Some{k}), (Array.set(Maybe<&2, Maybe<&2, V>>, ps, U32.from_nat(i), Some{None{}}), None{}))
-    case 1n+g +b0 WEmit{} o0 st0 Tuple{lk, x} Tuple{ks, Some{+k}} Tuple{ps, None{}}:
-      walk(~K, ~V, ~cmp, ~A, ~f, g, Unbounded{}, upb, WDown{}, 0n, below_upper(~K, ~V, ~cmp, k, upb), st0, a, Array.get(Nat, lk, U32.from_nat(1n+Nat.double(i))), (ks, Some{k}), (ps, None{}))
-    case 1n+g +b0 WEmit{} o0 st0 Tuple{lk, x} Tuple{ks, None{}} Tuple{ps, mv}:
-      walk(~K, ~V, ~cmp, ~A, ~f, g, b0, upb, WDown{}, 0n, True{}, st0, a, Array.get(Nat, lk, U32.from_nat(1n+Nat.double(i))), (ks, None{}), (Array.set(Maybe<&2, Maybe<&2, V>>, ps, U32.from_nat(i), mv), None{}))
+      walk(~K, ~V, ~cmp, ~A, ~f, g, Unbounded{}, upb, WDown{}, 0n, inside, Array.get(Nat, lk, U32.from_nat(1n+Nat.double(i))), st0, walk_apply(~K, ~V, ~A, ~f, inside, a, k, v), (ks, Some{k}), (Array.set(Maybe<&2, Maybe<&2, V>>, ps, U32.from_nat(i), Some{Some{v}}), None{}))
+    case 1n+g +b0 WEmit{} o0 Tuple{lk, x} st0 Tuple{ks, Some{+k}} Tuple{ps, Some{None{}}}:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, Unbounded{}, upb, WDown{}, 0n, below_upper(~K, ~V, ~cmp, k, upb), Array.get(Nat, lk, U32.from_nat(1n+Nat.double(i))), st0, a, (ks, Some{k}), (Array.set(Maybe<&2, Maybe<&2, V>>, ps, U32.from_nat(i), Some{None{}}), None{}))
+    case 1n+g +b0 WEmit{} o0 Tuple{lk, x} st0 Tuple{ks, Some{+k}} Tuple{ps, None{}}:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, Unbounded{}, upb, WDown{}, 0n, below_upper(~K, ~V, ~cmp, k, upb), Array.get(Nat, lk, U32.from_nat(1n+Nat.double(i))), st0, a, (ks, Some{k}), (ps, None{}))
+    case 1n+g +b0 WEmit{} o0 Tuple{lk, x} st0 Tuple{ks, None{}} Tuple{ps, mv}:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, b0, upb, WDown{}, 0n, True{}, Array.get(Nat, lk, U32.from_nat(1n+Nat.double(i))), st0, a, (ks, None{}), (Array.set(Maybe<&2, Maybe<&2, V>>, ps, U32.from_nat(i), mv), None{}))
 
 def ns_rr(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, keys: Array<Maybe<&2, K>>, +i: Nat, +t: Nat, +l: Nat, q: Array<Nat> & Nat) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
   (links, +r) = q
@@ -942,7 +942,7 @@ def view_entry_result(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +lower: Bound<K>,
 
 def fold_range(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~A: Data, ~f: A -> K -> V -> A, m: TreeMap<K, V, cmp>, +lower: Bound<K>, +upper: Bound<K>, a: A) -> TreeMap<K, V, cmp> & A:
   TM{+n, +root, +lo, +hi, +free, NS{+limit, +depth, +cap, +used, lk, ks}, D.DA{+pl, +pd, +pc, +plen, ps}} = m
-  walk_fin(~K, ~V, ~cmp, ~A, n, root, lo, hi, free, limit, depth, cap, used, pl, pd, pc, plen, walk(~K, ~V, ~cmp, ~A, ~f, Nat.add(Nat.double(Nat.double(n)), Nat.add(n, 2n)), lower, upper, WDown{}, 0n, True{}, Nil{}, a, (lk, root), (ks, None{}), (ps, None{})))
+  walk_fin(~K, ~V, ~cmp, ~A, n, root, lo, hi, free, limit, depth, cap, used, pl, pd, pc, plen, walk(~K, ~V, ~cmp, ~A, ~f, 1n+Nat.double(Nat.double(n)), lower, upper, WDown{}, 0n, True{}, (lk, root), Nil{}, a, (ks, None{}), (ps, None{})))
 
 # Fold f over every entry, in key order.
 def ns_rl(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, keys: Array<Maybe<&2, K>>, +i: Nat, +t: Nat, q: Array<Nat> & Nat) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:

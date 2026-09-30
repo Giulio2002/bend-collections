@@ -4,11 +4,16 @@ import ../../../spec/lib/common.bend as SC
 import ../../../spec/lib/order.bend as SO
 import ../../../src/containers/balanced_search_tree.bend as M
 import ../../../src/containers/dynamic_array.bend as D
+import ../../lib/array.bend as AR
+import ../../lib/array_ext.bend as AX
 import ../../lib/list.bend as LL
 import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/order.bend as O
+import ../../lib/u32.bend as U
+import ../dynamic_array/state.bend as DAS
 import ./api.bend as API
+import ./bk.bend as BK
 import ./capi.bend as CA
 import ./ccv.bend as CV
 import ./cnx.bend as CX
@@ -16,9 +21,15 @@ import ./crm.bend as CR
 import ./csv.bend as CS
 import ./cur.bend as CU
 import ./ends.bend as EN
+import ./find.bend as FI
+import ./fold.bend as FO
 import ./life.bend as LF
 import ./mirror.bend as MI
+import ./mk.bend as MK
 import ./navm.bend as NM
+import ./nsf.bend as NF
+import ./nsl.bend as NSL
+import ./nsr.bend as NR
 import ./ok.bend as OK
 import ./ord.bend as OR
 import ./prim.bend as PR
@@ -69,6 +80,9 @@ import ./vw.bend as VW
 #   reads                  size, is_empty, get, get_or_default, contains_key,
 #                          contains_value, first/last entry and key, the
 #                          lower/floor/ceiling/higher entries and keys
+#   folds                  fold, fold_range: the map unchanged, the answer
+#                          the specification's fold of f over the entries
+#                          (within the bounds) in key order
 #   updates                put, put_if_absent, replace, replace_if_equal,
 #                          remove, remove_if_equal, poll_first/last_entry,
 #                          clear
@@ -166,6 +180,12 @@ def poll_last_entry_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, 
 
 def clear_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}) -> Sigma<&1, &1, ST.Sh<K, V>, s2_ => {M.clear(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh)) == ST.real(~K, ~V, ~cmp, s2_) : M.TreeMap<K, V, cmp>} & ({S.clear(K, V, ST.model(~K, ~V, ~cmp, sh)) == ST.model(~K, ~V, ~cmp, s2_) : S.Model<K, V>} & {ST.good(~K, ~V, ~cmp, s2_) == True{} : Bool})>:
   API.clear_ok(~K, ~V, ~cmp, sh, hg)
+
+def fold_range_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), ~A: Data, ~f: A -> K -> V -> A, +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}, +lower: M.Bound<K>, +upper: M.Bound<K>, +a: A) -> OK.POK(~K, ~V, ~cmp, A, S.fold_range(~K, ~V, ~cmp, ~A, ~f, ST.model(~K, ~V, ~cmp, sh), lower, upper, a), M.fold_range(~K, ~V, ~cmp, ~A, ~f, ST.real(~K, ~V, ~cmp, sh), lower, upper, a)):
+  FO.fold_range_ok(~K, ~V, ~cmp, ~o, ~A, ~f, sh, hg, lower, upper, a)
+
+def fold_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), ~A: Data, ~f: A -> K -> V -> A, +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}, +a: A) -> OK.POK(~K, ~V, ~cmp, A, S.fold(~K, ~V, ~A, ~f, ST.model(~K, ~V, ~cmp, sh), a), M.fold(~K, ~V, ~cmp, ~A, ~f, ST.real(~K, ~V, ~cmp, sh), a)):
+  FO.fold_ok(~K, ~V, ~cmp, ~o, ~A, ~f, sh, hg, a)
 
 def iterator_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}) -> Sigma<&1, &1, MI.MCursor<K, V>, c2 => {M.iterator(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh)) == MI.rc(~K, ~V, ~cmp, c2) : M.Cursor<K, V, cmp>} & ({S.iterator(K, V, ST.model(~K, ~V, ~cmp, sh)) == CU.cmod(~K, ~V, ~cmp, c2) : S.Cursor<K, V>} & {CU.cgood(~K, ~V, ~cmp, c2) == True{} : Bool})>:
   CA.iterator_ok(~K, ~V, ~cmp, sh, hg)
