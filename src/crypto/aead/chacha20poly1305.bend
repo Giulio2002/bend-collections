@@ -22,21 +22,10 @@ import ../subtle.bend as S
 def poly_key(key: List<&2, U32>, nonce: List<&2, U32>) -> List<&2, U32>:
   CH.take(32n, CH.block_rounds(10n, key, 0, nonce))
 
-def pad16(+xs: List<&2, U32>) -> List<&2, U32>:
-  List.replicate(U32, Nat.mod(Nat.sub(16n, Nat.mod(List.length(&2, U32, xs), 16n)), 16n), 0)
-
-# The eight little-endian bytes of a length.
-def le8(n: Nat, +x: Nat) -> List<&2, U32>:
-  match n:
-    case 0n: Nil{}
-    case 1n+k: U32.from_nat(Nat.mod(x, 256n)) <> le8(k, Nat.div(x, 256n))
-
-def mac_data(+aad: List<&2, U32>, +ct: List<&2, U32>) -> List<&2, U32>:
-  List.append(&2, U32, aad, List.append(&2, U32, pad16(aad), List.append(&2, U32, ct,
-    List.append(&2, U32, pad16(ct), List.append(&2, U32, le8(8n, List.length(&2, U32, aad)), le8(8n, List.length(&2, U32, ct)))))))
-
-def tag(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +ct: List<&2, U32>) -> List<&2, U32>:
-  P.mac(poly_key(key, nonce), mac_data(aad, ct))
+# The tag over aad | pad16(aad) | ct | pad16(ct) | le64(len aad) |
+# le64(len ct), computed by src/crypto/poly1305 without building that list.
+def tag(+key: List<&2, U32>, +nonce: List<&2, U32>, aad: List<&2, U32>, ct: List<&2, U32>) -> List<&2, U32>:
+  P.mac_aead(poly_key(key, nonce), aad, ct)
 
 # chacha20_encrypt(key, 1, nonce, plaintext).
 def encrypt_ct(key: List<&2, U32>, nonce: List<&2, U32>, +pt: List<&2, U32>) -> List<&2, U32>:
@@ -55,16 +44,25 @@ def open_tag(ok: Bool, +key: List<&2, U32>, +nonce: List<&2, U32>, +ct: List<&2,
 def open_split(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +ct: List<&2, U32>, +t: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
   open_tag(S.eq(t, tag(key, nonce, aad, ct)), key, nonce, ct)
 
-def open_len(short: Bool, +key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +data: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  match short:
-    case True{}: None{}
-    case False{}:
-      +n = Nat.sub(List.length(&2, U32, data), 16n)
-      open_split(key, nonce, aad, CH.take(n, data), CH.skip(n, data))
+# xs without its last len(lead) bytes, and those bytes, for lead = xs past
+# its first 16 bytes (one pass each, no length computed).
+def body(lead: List<&2, U32>, xs: List<&2, U32>) -> List<&2, U32>:
+  match lead xs:
+    case l <> lt x <> dt: x <> body(lt, dt)
+    case _ _: Nil{}
 
-# The plaintext of ciphertext || tag, without key/nonce length checks.
+def tail(lead: List<&2, U32>, xs: List<&2, U32>) -> List<&2, U32>:
+  match lead xs:
+    case l <> lt x <> dt: tail(lt, dt)
+    case _ _: xs
+
+# The plaintext of ciphertext || tag, without key/nonce length checks
+# (None for an input shorter than a tag).
 def open(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +data: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  open_len(Nat.is_lt(List.length(&2, U32, data), 16n), key, nonce, aad, data)
+  match data:
+    case x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest:
+      open_split(key, nonce, aad, body(rest, data), tail(rest, data))
+    case _: None{}
 
 # XChaCha20-Poly1305: the HChaCha20 subkey of nonce[0..16] and the nonce
 # 0x00000000 || nonce[16..24].

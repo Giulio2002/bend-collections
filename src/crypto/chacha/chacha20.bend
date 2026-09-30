@@ -85,8 +85,18 @@ def stream(fuel: Nat, +xs: List<&2, U32>, +r: Nat, +k: Key, +counter: U32, +n: N
       List.append(&2, U32, xor_front(keystream(r, k, counter, n), x <> xt),
         stream(p, skip(64n, x <> xt), r, k, U32.add(counter, 1), n))
 
+# The same stream in one pass: ks is what is left of the current block's
+# keystream (the next block, under counter, is generated when it runs out),
+# so no output block is appended or skipped over.
+# proofs/crypto/chacha/stream.bend proves it equal to stream.
+def xstream(fuel: Nat, ks: List<&2, U32>, xs: List<&2, U32>, +r: Nat, +k: Key, +counter: U32, +n: Nonce) -> List<&2, U32>:
+  match fuel ks xs:
+    case _ c <> kt x <> xt: U32.xor(x, c) <> xstream(fuel, kt, xt, r, k, counter, n)
+    case 1n+p Nil{} x <> xt: xstream(p, keystream(r, k, counter, n), x <> xt, r, k, U32.add(counter, 1), n)
+    case _ _ _: Nil{}
+
 def encrypt_rounds(+r: Nat, key_bytes: List<&2, U32>, counter: U32, nonce_bytes: List<&2, U32>, +plaintext: List<&2, U32>) -> List<&2, U32>:
-  stream(List.length(&2, U32, plaintext), plaintext, r, key(key_bytes), counter, nonce(nonce_bytes))
+  xstream(List.length(&2, U32, plaintext), Nil{}, plaintext, r, key(key_bytes), counter, nonce(nonce_bytes))
 
 def block_body(+r: Nat, key_bytes: List<&2, U32>, counter: U32, nonce_bytes: List<&2, U32>) -> List<&2, U32>:
   keystream(r, key(key_bytes), counter, nonce(nonce_bytes))

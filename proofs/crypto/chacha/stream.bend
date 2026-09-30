@@ -251,6 +251,49 @@ def stream_correct(fuel, xs, r, kb, c, nb):
         {List.append(&2, U32, _, R.encrypt_blocks(R.blocks(p, R.suffix(64n, x <> xt)), r, kb, c1, nb)) == R.encrypt_blocks(R.blocks(1n+p, x <> xt), r, kb, c, nb) : List<&2, U32>}
       {==}
 
+# The one-pass stream of the implementation is the append/skip stream.
+law stream_nil:
+  for +fuel: Nat
+  for +r: Nat
+  for +k: I.Key
+  for +c: U32
+  for +n: I.Nonce
+  {I.stream(fuel, [], r, k, c, n) == [] : List<&2, U32>}
+
+def stream_nil(fuel, r, k, c, n):
+  match fuel:
+    case 0n: {==}
+    case 1n+p: {==}
+
+law xstream_eq:
+  for fuel: Nat
+  for ks: List<&2, U32>
+  for +xs: List<&2, U32>
+  for +r: Nat
+  for +k: I.Key
+  for +c: U32
+  for +n: I.Nonce
+  {I.xstream(fuel, ks, xs, r, k, c, n) == List.append(&2, U32, I.xor_front(ks, xs), I.stream(fuel, I.skip(List.length(&2, U32, ks), xs), r, k, c, n)) : List<&2, U32>}
+
+def xstream_eq(fuel, ks, xs, r, k, c, n):
+  match fuel ks xs:
+    case _ y <> kt x <> xt:
+      %Equal.sym(List<&2, U32>, I.xstream(fuel, kt, xt, r, k, c, n), List.append(&2, U32, I.xor_front(kt, xt), I.stream(fuel, I.skip(List.length(&2, U32, kt), xt), r, k, c, n)), xstream_eq(fuel, kt, xt, r, k, c, n)) :
+        {U32.xor(x, y) <> _ == U32.xor(x, y) <> List.append(&2, U32, I.xor_front(kt, xt), I.stream(fuel, I.skip(List.length(&2, U32, kt), xt), r, k, c, n)) : List<&2, U32>}
+      {==}
+    case 1n+p Nil{} x <> xt:
+      +ks2 = I.keystream(r, k, c, n)
+      +c1 = U32.add(c, 1)
+      %Equal.sym(List<&2, U32>, I.xstream(p, ks2, x <> xt, r, k, c1, n), List.append(&2, U32, I.xor_front(ks2, x <> xt), I.stream(p, I.skip(List.length(&2, U32, ks2), x <> xt), r, k, c1, n)), xstream_eq(p, ks2, x <> xt, r, k, c1, n)) :
+        {_ == List.append(&2, U32, I.xor_front(ks2, x <> xt), I.stream(p, I.skip(64n, x <> xt), r, k, c1, n)) : List<&2, U32>}
+      %Equal.sym(Nat, List.length(&2, U32, ks2), 64n, bytes_length(C.block(r, I.state(k, c, n)))) :
+        {List.append(&2, U32, I.xor_front(ks2, x <> xt), I.stream(p, I.skip(_, x <> xt), r, k, c1, n)) == List.append(&2, U32, I.xor_front(ks2, x <> xt), I.stream(p, I.skip(64n, x <> xt), r, k, c1, n)) : List<&2, U32>}
+      {==}
+    case 1n+p Nil{} Nil{}: {==}
+    case 0n Nil{} _: {==}
+    case _ y <> kt Nil{}:
+      Equal.sym(List<&2, U32>, I.stream(fuel, [], r, k, c, n), [], stream_nil(fuel, r, k, c, n))
+
 law encrypt_correct:
   for +r: Nat
   for +kb: List<&2, U32>
@@ -260,5 +303,8 @@ law encrypt_correct:
   {I.encrypt_rounds(r, kb, c, nb, pt) == R.encrypt_rounds(r, kb, c, nb, pt) : List<&2, U32>}
 
 def encrypt_correct(r, kb, c, nb, pt):
-  stream_correct(List.length(&2, U32, pt), pt, r, kb, c, nb)
+  +f = List.length(&2, U32, pt)
+  Equal.trans(List<&2, U32>, I.xstream(f, [], pt, r, I.key(kb), c, I.nonce(nb)), I.stream(f, pt, r, I.key(kb), c, I.nonce(nb)), R.encrypt_rounds(r, kb, c, nb, pt),
+    xstream_eq(f, [], pt, r, I.key(kb), c, I.nonce(nb)),
+    stream_correct(f, pt, r, kb, c, nb))
 

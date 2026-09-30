@@ -1,128 +1,184 @@
 import Base
 
-# Arithmetic modulo p = 2^130 - 5 on little-endian lists of U32 limbs of
-# radix 2^8 (TweetNaCl's representation): a list [l0, l1, ...] stands for
-# l0 + 2^8 l1 + 2^16 l2 + ... . Limbs may exceed 8 bits between carry
-# passes; every operation below keeps them under 2^31 on the Poly1305 path
-# (proofs/crypto/poly1305/ bounds each step), so no U32 operation wraps.
+# Arithmetic modulo p = 2^130 - 5 on five natural-number limbs in radix
+# w = 2^26 (the representation of poly1305-donna-32 and of HACL*'s
+# Hacl.Spec.Poly1305.Field32xN): F{l0, l1, l2, l3, l4} stands for
+# l0 + w l1 + w^2 l2 + w^3 l3 + w^4 l4, and w^5 = 2^130 = p + 5, so a limb
+# product that lands at w^(5+i) is folded back onto w^i times 5.
 #
-# Constant time: every loop runs over public lengths; the only data-dependent
-# choice (the final conditional subtraction of p) is a mask select, with no
-# branch and no secret-dependent memory access. Bend has no timing model, so
-# this is a property of the code's shape, not a proved fact.
+# Bend's native runtime keeps a Nat in one machine word and aborts (never
+# wraps) past 2^48, so the product of two 26-bit limbs (2^52) is out of
+# reach. The multiplier r is therefore split into 13-bit halves,
+# r = e + b o with b = 2^13 (e and o are five limbs each, below 2^13): the
+# block product (h + m) r is (h + m) e + b (h + m) o, two schoolbook
+# products whose terms are below 2^27 * 5 * 2^13 < 2^43 and whose five-term
+# sums stay below 2^46 (docs/CRYPTO_CONTRACTS.md has the bound table).
+#
+# The radix constants w = 2^26 and b = 2^13 are parameters (+w, +b), passed
+# down from src/crypto/poly1305/poly1305.bend, so that the proofs keep them
+# symbolic (2^26 is C.shift(26n, one) there, never a unary literal). The
+# small constants 4, 16, 64, 256 and 5 appear as literals.
+#
+# What is proved (proofs/crypto/poly1305/): every function below computes
+# its value exactly as a natural number (no bounds are needed for that);
+# the limb bounds (every limb at most w between blocks) are proved too,
+# since the final reduction relies on them. Staying below the runtime's
+# 2^48 is the bound table's arithmetic on those limb bounds.
+#
+# Constant time: every loop runs over public lengths and no branch depends
+# on a limb; the final conditional subtraction of p is arithmetic (a limb
+# times c plus a limb times 1 - c, for the carry bit c). Bend has no timing
+# model, so this is a property of the code's shape, not a proved fact.
 
-# The first limb (0 for the empty list) and the rest.
-def hd0(xs: List<&2, U32>) -> U32:
-  match xs:
-    case Nil{}: 0
-    case x <> t: x
+type F is Data:
+  F{l0: Nat, l1: Nat, l2: Nat, l3: Nat, l4: Nat}
 
-def tl(xs: List<&2, U32>) -> List<&2, U32>:
-  match xs:
-    case Nil{}: Nil{}
-    case x <> t: t
+# The multiplier r = e + b o in 13-bit halves: e0..e4 and o0..o4, and
+# f_i = 5 e_i, g_i = 5 o_i for the folded products.
+type K is Data:
+  K{e0: Nat, e1: Nat, e2: Nat, e3: Nat, e4: Nat, f1: Nat, f2: Nat, f3: Nat, f4: Nat,
+    o0: Nat, o1: Nat, o2: Nat, o3: Nat, o4: Nat, g1: Nat, g2: Nat, g3: Nat, g4: Nat}
 
-# Limb-wise sum (the shorter list is padded with zeros), no carries.
-def add(a: List<&2, U32>, b: List<&2, U32>) -> List<&2, U32>:
-  match a b:
-    case Nil{} _: b
-    case x <> at Nil{}: x <> at
-    case x <> at y <> bt: U32.add(x, y) <> add(at, bt)
+def zero() -> F:
+  F{0n, 0n, 0n, 0n, 0n}
 
-# Every limb times c, no carries.
-def scale(+c: U32, a: List<&2, U32>) -> List<&2, U32>:
-  match a:
-    case Nil{}: Nil{}
-    case x <> t: U32.mul(x, c) <> scale(c, t)
+# A byte of the byte convention (the low 8 bits of a U32).
+def byte(+x: U32) -> Nat:
+  U32.to_nat(U32.and(x, 255))
 
-# Schoolbook product, no carries: x r0 + 2^8 (x r1 + 2^8 (...)).
-def mul(+x: List<&2, U32>, r: List<&2, U32>) -> List<&2, U32>:
+# 16 bytes x0..x15 (little-endian) plus pb at 2^128, as five radix-2^26
+# limbs: bytes 3, 6 and 9 straddle a limb boundary and are split by
+# mod/div 4, 16 and 64.
+def load(x0: Nat, x1: Nat, x2: Nat, +x3: Nat, x4: Nat, x5: Nat, +x6: Nat, x7: Nat, x8: Nat, +x9: Nat, x10: Nat, x11: Nat, x12: Nat, x13: Nat, x14: Nat, x15: Nat, pb: Nat) -> F:
+  F{Nat.add(x0, Nat.mul(Nat.add(x1, Nat.mul(Nat.add(x2, Nat.mul(Nat.mod(x3, 4n), 256n)), 256n)), 256n)),
+    Nat.add(Nat.div(x3, 4n), Nat.mul(Nat.add(x4, Nat.mul(Nat.add(x5, Nat.mul(Nat.mod(x6, 16n), 256n)), 256n)), 64n)),
+    Nat.add(Nat.div(x6, 16n), Nat.mul(Nat.add(x7, Nat.mul(Nat.add(x8, Nat.mul(Nat.mod(x9, 64n), 256n)), 256n)), 16n)),
+    Nat.add(Nat.div(x9, 64n), Nat.mul(Nat.add(x10, Nat.mul(Nat.add(x11, Nat.mul(x12, 256n)), 256n)), 4n)),
+    Nat.add(x13, Nat.mul(Nat.add(x14, Nat.mul(Nat.add(x15, Nat.mul(pb, 256n)), 256n)), 256n))}
+
+# The schoolbook product of a0..a4 and r0..r4 with the limbs from w^5 on
+# folded back (s_i = 5 r_i): column k is a0 r_k + a1 r_(k-1) + ... with
+# r_(-j) read as s_(5-j).
+def mul(+a0: Nat, +a1: Nat, +a2: Nat, +a3: Nat, +a4: Nat, +r0: Nat, +r1: Nat, +r2: Nat, +r3: Nat, +r4: Nat, +s1: Nat, +s2: Nat, +s3: Nat, +s4: Nat) -> F:
+  F{Nat.add(Nat.mul(a0, r0), Nat.add(Nat.mul(a1, s4), Nat.add(Nat.mul(a2, s3), Nat.add(Nat.mul(a3, s2), Nat.mul(a4, s1))))),
+    Nat.add(Nat.mul(a0, r1), Nat.add(Nat.mul(a1, r0), Nat.add(Nat.mul(a2, s4), Nat.add(Nat.mul(a3, s3), Nat.mul(a4, s2))))),
+    Nat.add(Nat.mul(a0, r2), Nat.add(Nat.mul(a1, r1), Nat.add(Nat.mul(a2, r0), Nat.add(Nat.mul(a3, s4), Nat.mul(a4, s3))))),
+    Nat.add(Nat.mul(a0, r3), Nat.add(Nat.mul(a1, r2), Nat.add(Nat.mul(a2, r1), Nat.add(Nat.mul(a3, r0), Nat.mul(a4, s4))))),
+    Nat.add(Nat.mul(a0, r4), Nat.add(Nat.mul(a1, r3), Nat.add(Nat.mul(a2, r2), Nat.add(Nat.mul(a3, r1), Nat.mul(a4, r0)))))}
+
+# d + b e (mod p) with small limbs: e_i = lo_i + w hi_i, b lo_i stays at
+# limb i, b hi_i moves to limb i + 1 (limb 0 for i = 4, times 5).
+def comb(+w: Nat, +b: Nat, d: F, e: F) -> F:
+  match d e:
+    case F{d0, d1, d2, d3, d4} F{+e0, +e1, +e2, +e3, +e4}:
+      F{Nat.add(d0, Nat.add(Nat.mul(Nat.mod(e0, w), b), Nat.mul(Nat.mul(Nat.div(e4, w), b), 5n))),
+        Nat.add(d1, Nat.add(Nat.mul(Nat.mod(e1, w), b), Nat.mul(Nat.div(e0, w), b))),
+        Nat.add(d2, Nat.add(Nat.mul(Nat.mod(e2, w), b), Nat.mul(Nat.div(e1, w), b))),
+        Nat.add(d3, Nat.add(Nat.mul(Nat.mod(e3, w), b), Nat.mul(Nat.div(e2, w), b))),
+        Nat.add(d4, Nat.add(Nat.mul(Nat.mod(e4, w), b), Nat.mul(Nat.div(e3, w), b)))}
+
+# The carries of limbs 0..3 into the next limb, the carry out of limb 4
+# folded onto limb 0 times 5 (w^5 = p + 5): congruent mod p, limbs 1..4
+# below w and limb 0 below w + 5 (carry out of limb 4).
+def top(+w: Nat, z: F) -> F:
+  match z:
+    case F{+z0, z1, z2, z3, z4}:
+      +y1 = Nat.add(z1, Nat.div(z0, w))
+      +y2 = Nat.add(z2, Nat.div(y1, w))
+      +y3 = Nat.add(z3, Nat.div(y2, w))
+      +y4 = Nat.add(z4, Nat.div(y3, w))
+      F{Nat.add(Nat.mod(z0, w), Nat.mul(Nat.div(y4, w), 5n)), Nat.mod(y1, w), Nat.mod(y2, w), Nat.mod(y3, w), Nat.mod(y4, w)}
+
+# Limb 0's carry into limb 1.
+def fix(+w: Nat, t: F) -> F:
+  match t:
+    case F{+u0, t1, t2, t3, t4}:
+      F{Nat.mod(u0, w), Nat.add(t1, Nat.div(u0, w)), t2, t3, t4}
+
+# One carry pass: top, then fix.
+def carry(+w: Nat, z: F) -> F:
+  fix(w, top(w, z))
+
+# One Poly1305 block: (h + m) r, partially reduced mod p.
+def block(+w: Nat, +b: Nat, +k: K, h: F, m: F) -> F:
+  match k h m:
+    case K{+e0, +e1, +e2, +e3, +e4, +f1, +f2, +f3, +f4, +o0, +o1, +o2, +o3, +o4, +g1, +g2, +g3, +g4} F{h0, h1, h2, h3, h4} F{m0, m1, m2, m3, m4}:
+      +a0 = Nat.add(h0, m0)
+      +a1 = Nat.add(h1, m1)
+      +a2 = Nat.add(h2, m2)
+      +a3 = Nat.add(h3, m3)
+      +a4 = Nat.add(h4, m4)
+      carry(w, comb(w, b, mul(a0, a1, a2, a3, a4, e0, e1, e2, e3, e4, f1, f2, f3, f4), mul(a0, a1, a2, a3, a4, o0, o1, o2, o3, o4, g1, g2, g3, g4)))
+
+# The multiplier of the limbs of r.
+def key(+b: Nat, r: F) -> K:
   match r:
-    case Nil{}: Nil{}
-    case r0 <> rs: add(scale(r0, x), 0 <> mul(x, rs))
+    case F{+r0, +r1, +r2, +r3, +r4}:
+      +e1 = Nat.mod(r1, b)
+      +e2 = Nat.mod(r2, b)
+      +e3 = Nat.mod(r3, b)
+      +e4 = Nat.mod(r4, b)
+      +o1 = Nat.div(r1, b)
+      +o2 = Nat.div(r2, b)
+      +o3 = Nat.div(r3, b)
+      +o4 = Nat.div(r4, b)
+      K{Nat.mod(r0, b), e1, e2, e3, e4, Nat.mul(e1, 5n), Nat.mul(e2, 5n), Nat.mul(e3, 5n), Nat.mul(e4, 5n),
+        Nat.div(r0, b), o1, o2, o3, o4, Nat.mul(o1, 5n), Nat.mul(o2, 5n), Nat.mul(o3, 5n), Nat.mul(o4, 5n)}
 
-def take(n: Nat, xs: List<&2, U32>) -> List<&2, U32>:
-  match n xs:
-    case 0n _: Nil{}
-    case 1n+k Nil{}: Nil{}
-    case 1n+k x <> rest: x <> take(k, rest)
+# ---- the tag ----
 
-def skip(n: Nat, xs: List<&2, U32>) -> List<&2, U32>:
-  match n xs:
-    case 0n _: xs
-    case 1n+k Nil{}: Nil{}
-    case 1n+k x <> rest: skip(k, rest)
+# x when c is 0, y when c is 1.
+def pick(+c: Nat, x: Nat, y: Nat) -> Nat:
+  Nat.add(Nat.mul(x, Nat.sub(1n, c)), Nat.mul(y, c))
 
-# The first n limbs, padded with zeros to exactly n.
-def fit(n: Nat, +xs: List<&2, U32>) -> List<&2, U32>:
-  match n:
-    case 0n: Nil{}
-    case 1n+k: hd0(xs) <> fit(k, tl(xs))
+# The low byte of x.
+def by(+x: Nat) -> U32:
+  U32.from_nat(Nat.mod(x, 256n))
 
-# 2^136 = 64 p + 320: limbs 17.. are folded onto limbs 0.. times 320.
-def fold(+z: List<&2, U32>) -> List<&2, U32>:
-  add(take(17n, z), scale(320, skip(17n, z)))
+def d8(x: Nat) -> Nat:
+  Nat.div(x, 256n)
 
-# A carry pass over n limbs, each kept to 8 bits; the carry u and all limbs
-# from n on (one, on the Poly1305 path) are summed into the top limb.
-def carry(n: Nat, +ds: List<&2, U32>, u: U32) -> List<&2, U32>:
-  match n:
-    case 0n: [U32.add(u, hd0(ds))]
-    case 1n+k:
-      +s = U32.add(u, hd0(ds))
-      U32.and(s, 255) <> carry(k, tl(ds), U32.shrn(s, 8n))
+# The 16 low bytes of l0 + w l1 + w^2 l2 + w^3 l3 + w^4 l4, streamed: three
+# bytes of l0, the 2 bits left plus 4 l1 give three more, the 4 bits left
+# plus 16 l2 three more, the 6 bits left plus 64 l3 four, the rest plus l4
+# the last three.
+def bytes(+l0: Nat, l1: Nat, l2: Nat, l3: Nat, l4: Nat) -> List<&2, U32>:
+  +a1 = d8(l0)
+  +a2 = d8(a1)
+  +c0 = Nat.add(d8(a2), Nat.mul(l1, 4n))
+  +c1 = d8(c0)
+  +c2 = d8(c1)
+  +q0 = Nat.add(d8(c2), Nat.mul(l2, 16n))
+  +q1 = d8(q0)
+  +q2 = d8(q1)
+  +t0 = Nat.add(d8(q2), Nat.mul(l3, 64n))
+  +t1 = d8(t0)
+  +t2 = d8(t1)
+  +t3 = d8(t2)
+  +u0 = Nat.add(d8(t3), l4)
+  +u1 = d8(u0)
+  [by(l0), by(a1), by(a2), by(c0), by(c1), by(c2), by(q0), by(q1), by(q2), by(t0), by(t1), by(t2), by(t3), by(u0), by(u1), by(d8(u1))]
 
-# Limb n (the top one) reduced to its low 2 bits, i.e. the value below 2^130
-# when n = 16; quot is the rest of limb n, the multiple of 2^130.
-def split(n: Nat, +xs: List<&2, U32>) -> List<&2, U32>:
-  match n:
-    case 0n: [U32.and(hd0(xs), 3)]
-    case 1n+k: hd0(xs) <> split(k, tl(xs))
+# (h mod p + s) mod 2^128 as 16 bytes, for h below 2^130 + 2^5 (top brings
+# any accumulator there): g = h + 5 with its carries
+# has c = 1 at 2^130 exactly when h >= p, and then its low 130 bits are
+# h - p; the selected limbs plus s are carried and serialized.
+def frz(+w: Nat, h: F, s: F) -> List<&2, U32>:
+  match h s:
+    case F{+h0, +h1, +h2, +h3, +h4} F{s0, s1, s2, s3, s4}:
+      +g0 = Nat.add(h0, 5n)
+      +g1 = Nat.add(h1, Nat.div(g0, w))
+      +g2 = Nat.add(h2, Nat.div(g1, w))
+      +g3 = Nat.add(h3, Nat.div(g2, w))
+      +g4 = Nat.add(h4, Nat.div(g3, w))
+      +c = Nat.div(g4, w)
+      +t0 = Nat.add(pick(c, h0, Nat.mod(g0, w)), s0)
+      +t1 = Nat.add(Nat.add(pick(c, h1, Nat.mod(g1, w)), s1), Nat.div(t0, w))
+      +t2 = Nat.add(Nat.add(pick(c, h2, Nat.mod(g2, w)), s2), Nat.div(t1, w))
+      +t3 = Nat.add(Nat.add(pick(c, h3, Nat.mod(g3, w)), s3), Nat.div(t2, w))
+      +t4 = Nat.add(Nat.add(pick(c, h4, Nat.mod(g4, w)), s4), Nat.div(t3, w))
+      bytes(Nat.mod(t0, w), Nat.mod(t1, w), Nat.mod(t2, w), Nat.mod(t3, w), t4)
 
-def quot(n: Nat, +xs: List<&2, U32>) -> U32:
-  match n:
-    case 0n: U32.shrn(hd0(xs), 2n)
-    case 1n+k: quot(k, tl(xs))
-
-# Partial reduction of 17 limbs: carry, then 2^130 q = p q + 5 q, so q is
-# folded back as 5 q on limb 0 and carried again. The result has limbs 0..15
-# below 2^8 and a value below 5 * 2^128 < 2p.
-def reduce(+d: List<&2, U32>) -> List<&2, U32>:
-  +t = carry(16n, d, 0)
-  carry(16n, add([U32.mul(quot(16n, t), 5)], split(16n, t)), 0)
-
-# One Poly1305 block: h = (h + c) r, partially reduced mod p.
-def block(+r: List<&2, U32>, h: List<&2, U32>, c: List<&2, U32>) -> List<&2, U32>:
-  reduce(fold(mul(add(h, c), r)))
-
-# a when m is all zeros, b when m is all ones.
-def pick(+m: U32, +a: U32, b: U32) -> U32:
-  U32.xor(a, U32.and(m, U32.xor(a, b)))
-
-def select(+m: U32, a: List<&2, U32>, b: List<&2, U32>) -> List<&2, U32>:
-  match a b:
-    case x <> at y <> bt: pick(m, x, y) <> select(m, at, bt)
-    case _ _: Nil{}
-
-# The low 16 limbs of h mod p, for h below 2p: g = h + 5 has bit 130 set
-# exactly when h >= p, and then its low 128 bits are those of h - p.
-def freeze(+h: List<&2, U32>) -> List<&2, U32>:
-  +g = carry(16n, add(h, [5]), 0)
-  +b = U32.shrn(hd0(skip(16n, g)), 2n)
-  select(U32.sub(0, b), take(16n, h), take(16n, g))
-
-# n bytes of the value of ds + u (mod 2^(8n)).
-def bytes(n: Nat, +ds: List<&2, U32>, u: U32) -> List<&2, U32>:
-  match n:
-    case 0n: Nil{}
-    case 1n+k:
-      +s = U32.add(u, hd0(ds))
-      U32.and(s, 255) <> bytes(k, tl(ds), U32.shrn(s, 8n))
-
-# The tag bytes: the low 128 bits of (h mod p) + s. (Entered through a match
-# on s, both arms the same: while s is unknown a proof's goal stays one call
-# instead of sixteen unfolded byte steps.)
-def fin(+h: List<&2, U32>, s: List<&2, U32>) -> List<&2, U32>:
-  match s:
-    case Nil{}: bytes(16n, add(freeze(h), Nil{}), 0)
-    case y <> ys: bytes(16n, add(freeze(h), y <> ys), 0)
+# The tag bytes of an accumulator (limbs below 2^27) and s.
+def fin(+w: Nat, h: F, s: F) -> List<&2, U32>:
+  frz(w, top(w, h), s)
