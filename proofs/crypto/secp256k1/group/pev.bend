@@ -19,14 +19,34 @@ import ./poly.bend as P
 # The normalizations are done on abstract numbers (the *_s lemmas), so the
 # checker never expands a polynomial value.
 
+def hd(env: List<&2, Nat>) -> Nat:
+  match env:
+    case Nil{}:
+      0n
+    case x <> xs:
+      x
+
+def tl(env: List<&2, Nat>) -> List<&2, Nat>:
+  match env:
+    case Nil{}:
+      Nil{}
+    case x <> xs:
+      xs
+
+# the value of variable i (0 past the end of env)
+def venv(i: Nat, +env: List<&2, Nat>) -> Nat:
+  match i:
+    case 0n:
+      hd(env)
+    case 1n+j:
+      venv(j, tl(env))
+
 def mon(e: List<&2, Nat>, +env: List<&2, Nat>) -> Nat:
-  match e env:
-    case Nil{} _:
+  match e:
+    case Nil{}:
       1n
-    case k <> ks Nil{}:
-      Nat.mul(Nat.pow(0n, k), mon(ks, Nil{}))
-    case k <> ks +x <> +xs:
-      Nat.mul(Nat.pow(x, k), mon(ks, xs))
+    case k <> ks:
+      Nat.mul(Nat.pow(hd(env), k), mon(ks, tl(env)))
 
 def cp(c: P.Zc) -> Nat:
   match c:
@@ -216,19 +236,15 @@ def mon4_s(+a: Nat, +b: Nat, +c: Nat, +d: Nat) -> {Nat.mul(Nat.mul(a, b), Nat.mu
   {==}
 
 def mon_add(e: List<&2, Nat>, f: List<&2, Nat>, +env: List<&2, Nat>) -> {mon(P.eadd(e, f), env) == Nat.mul(mon(e, env), mon(f, env)) : Nat}:
-  match e f env:
-    case Nil{} ys _:
+  match e f:
+    case Nil{} ys:
       Equal.sym(Nat, Nat.add(mon(ys, env), 0n), mon(ys, env), NA.add_zero(mon(ys, env)))
-    case +x <> +xs Nil{} _:
+    case +x <> +xs Nil{}:
       Equal.sym(Nat, Nat.mul(mon(x <> xs, env), 1n), mon(x <> xs, env), NA.mul_one(mon(x <> xs, env)))
-    case +x <> +xs +y <> +ys Nil{}:
-      %Equal.sym(Nat, mon(P.eadd(xs, ys), Nil{}), Nat.mul(mon(xs, Nil{}), mon(ys, Nil{})), mon_add(xs, ys, Nil{})) : {Nat.mul(Nat.pow(0n, Nat.add(x, y)), _) == Nat.mul(Nat.mul(Nat.pow(0n, x), mon(xs, Nil{})), Nat.mul(Nat.pow(0n, y), mon(ys, Nil{}))) : Nat}
-      %Equal.sym(Nat, Nat.pow(0n, Nat.add(x, y)), Nat.mul(Nat.pow(0n, x), Nat.pow(0n, y)), pow_add(0n, x, y)) : {Nat.mul(_, Nat.mul(mon(xs, Nil{}), mon(ys, Nil{}))) == Nat.mul(Nat.mul(Nat.pow(0n, x), mon(xs, Nil{})), Nat.mul(Nat.pow(0n, y), mon(ys, Nil{}))) : Nat}
-      mon4_s(Nat.pow(0n, x), Nat.pow(0n, y), mon(xs, Nil{}), mon(ys, Nil{}))
-    case +x <> +xs +y <> +ys +v <> +vs:
-      %Equal.sym(Nat, mon(P.eadd(xs, ys), vs), Nat.mul(mon(xs, vs), mon(ys, vs)), mon_add(xs, ys, vs)) : {Nat.mul(Nat.pow(v, Nat.add(x, y)), _) == Nat.mul(Nat.mul(Nat.pow(v, x), mon(xs, vs)), Nat.mul(Nat.pow(v, y), mon(ys, vs))) : Nat}
-      %Equal.sym(Nat, Nat.pow(v, Nat.add(x, y)), Nat.mul(Nat.pow(v, x), Nat.pow(v, y)), pow_add(v, x, y)) : {Nat.mul(_, Nat.mul(mon(xs, vs), mon(ys, vs))) == Nat.mul(Nat.mul(Nat.pow(v, x), mon(xs, vs)), Nat.mul(Nat.pow(v, y), mon(ys, vs))) : Nat}
-      mon4_s(Nat.pow(v, x), Nat.pow(v, y), mon(xs, vs), mon(ys, vs))
+    case +x <> +xs +y <> +ys:
+      %Equal.sym(Nat, mon(P.eadd(xs, ys), tl(env)), Nat.mul(mon(xs, tl(env)), mon(ys, tl(env))), mon_add(xs, ys, tl(env))) : {Nat.mul(Nat.pow(hd(env), Nat.add(x, y)), _) == Nat.mul(Nat.mul(Nat.pow(hd(env), x), mon(xs, tl(env))), Nat.mul(Nat.pow(hd(env), y), mon(ys, tl(env)))) : Nat}
+      %Equal.sym(Nat, Nat.pow(hd(env), Nat.add(x, y)), Nat.mul(Nat.pow(hd(env), x), Nat.pow(hd(env), y)), pow_add(hd(env), x, y)) : {Nat.mul(_, Nat.mul(mon(xs, tl(env)), mon(ys, tl(env)))) == Nat.mul(Nat.mul(Nat.pow(hd(env), x), mon(xs, tl(env))), Nat.mul(Nat.pow(hd(env), y), mon(ys, tl(env)))) : Nat}
+      mon4_s(Nat.pow(hd(env), x), Nat.pow(hd(env), y), mon(xs, tl(env)), mon(ys, tl(env)))
 
 # ---- negation ----
 

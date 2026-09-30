@@ -1,0 +1,138 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ./bn.bend as B
+import ./poly.bend as P
+import ./pev.bend as E
+import ./zm.bend as Z
+
+# The reduction of poly.bend (P.red: x_i^3 is replaced by the polynomial f)
+# keeps the value modulo m whenever the point env satisfies
+# x_i^3 == f (mod m), stated as Z.Rel(mp, x^3, eP(f), eN(f)).
+
+def mon_zero(n: Nat, +env: List<&2, Nat>) -> {E.mon(P.unit(n, 0n, 0n), env) == 1n : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +k:
+      %goal {Nat.mul(Nat.pow(E.hd(env), 0n), E.mon(P.unit(k, 0n, 0n), E.tl(env))) == 1n : Nat}
+      %rw mon_zero(k, E.tl(env))
+      %close
+
+def esub_zero(n: Nat, e: List<&2, Nat>) -> {P.esub(e, P.unit(n, 0n, 0n)) == e : List<&2, Nat>}:
+  match n e:
+    case 0n Nil{}:
+      {==}
+    case 0n x <> xs:
+      {==}
+    case 1n+k Nil{}:
+      {==}
+    case 1n+ +k +x <> +xs:
+      %goal {Nat.sub(x, 0n) <> P.esub(xs, P.unit(k, 0n, 0n)) == x <> xs : List<&2, Nat>}
+      %rw N.sub_zero(x)
+      %rw esub_zero(k, xs)
+      %close
+
+def le0(d: Nat, +h: {Nat.is_le(d, 0n) == True{} : Bool}) -> {d == 0n : Nat}:
+  match d:
+    case 0n:
+      {==}
+    case 1n+x:
+      Empty.absurd({1n+x == 0n : Nat}, Lg.false_true(h))
+
+def pow_split(+v: Nat, +k: Nat, +d: Nat, +h: {Nat.is_le(d, k) == True{} : Bool}) -> {Nat.pow(v, k) == Nat.mul(Nat.pow(v, Nat.sub(k, d)), Nat.pow(v, d)) : Nat}:
+  Equal.trans(Nat, Nat.pow(v, k), Nat.pow(v, Nat.add(d, Nat.sub(k, d))), Nat.mul(Nat.pow(v, Nat.sub(k, d)), Nat.pow(v, d)),
+    Equal.cong(Nat, Nat, z => Nat.pow(v, z), k, Nat.add(d, Nat.sub(k, d)), Equal.sym(Nat, Nat.add(d, Nat.sub(k, d)), k, N.sub_add(k, d, h))),
+    Equal.trans(Nat, Nat.pow(v, Nat.add(d, Nat.sub(k, d))), Nat.mul(Nat.pow(v, d), Nat.pow(v, Nat.sub(k, d))), Nat.mul(Nat.pow(v, Nat.sub(k, d)), Nat.pow(v, d)),
+      NR.pow_add(v, d, Nat.sub(k, d)),
+      NA.mul_comm(Nat.pow(v, d), Nat.pow(v, Nat.sub(k, d)))))
+
+def sp_s(+a: Nat, +b: Nat, +c: Nat) -> {Nat.mul(Nat.mul(a, b), c) == Nat.mul(Nat.mul(a, c), b) : Nat}:
+  %norm
+
+def as_s(+a: Nat, +b: Nat, +c: Nat) -> {Nat.mul(a, Nat.mul(b, c)) == Nat.mul(Nat.mul(a, b), c) : Nat}:
+  %norm
+
+# e with d taken from exponent i (d <= e_i, i < n): mon(e) == mon(e - d u_i) x_i^d
+def mon_split(n: Nat, i: Nat, e: List<&2, Nat>, +env: List<&2, Nat>, +d: Nat, +hd: {Nat.is_le(d, P.nth(i, e)) == True{} : Bool}, +hi: {Nat.is_lt(i, n) == True{} : Bool}) -> {E.mon(e, env) == Nat.mul(E.mon(P.esub(e, P.unit(n, i, d)), env), Nat.pow(E.venv(i, env), d)) : Nat}:
+  match n i e:
+    case 0n +i2 e2:
+      Empty.absurd({E.mon(e2, env) == Nat.mul(E.mon(P.esub(e2, P.unit(0n, i2, d)), env), Nat.pow(E.venv(i2, env), d)) : Nat}, N.lt_zero_absurd(i2, hi))
+    case 1n+k 0n Nil{}:
+      %goal {1n == Nat.mul(1n, Nat.pow(E.hd(env), d)) : Nat}
+      %rwh le0(d, hd) : {d == 0n : Nat}
+      %close
+    case 1n+ +k 0n +x <> +xs:
+      %goal {Nat.mul(Nat.pow(E.hd(env), x), E.mon(xs, E.tl(env))) == Nat.mul(Nat.mul(Nat.pow(E.hd(env), Nat.sub(x, d)), E.mon(P.esub(xs, P.unit(k, 0n, 0n)), E.tl(env))), Nat.pow(E.hd(env), d)) : Nat}
+      %rw esub_zero(k, xs)
+      %rw pow_split(E.hd(env), x, d, hd)
+      sp_s(Nat.pow(E.hd(env), Nat.sub(x, d)), Nat.pow(E.hd(env), d), E.mon(xs, E.tl(env)))
+    case 1n+k 1n+ +j Nil{}:
+      %goal {1n == Nat.mul(1n, Nat.pow(E.venv(j, E.tl(env)), d)) : Nat}
+      %rwh le0(d, hd) : {d == 0n : Nat}
+      %close
+    case 1n+ +k 1n+ +j +x <> +xs:
+      %goal {Nat.mul(Nat.pow(E.hd(env), x), E.mon(xs, E.tl(env))) == Nat.mul(Nat.mul(Nat.pow(E.hd(env), Nat.sub(x, 0n)), E.mon(P.esub(xs, P.unit(k, j, d)), E.tl(env))), Nat.pow(E.venv(j, E.tl(env)), d)) : Nat}
+      %rw N.sub_zero(x)
+      %rw mon_split(k, j, xs, E.tl(env), d, hd, hi)
+      as_s(Nat.pow(E.hd(env), x), E.mon(P.esub(xs, P.unit(k, j, d)), E.tl(env)), Nat.pow(E.venv(j, E.tl(env)), d))
+
+def one_p(+f: List<&2, P.Tm>, +n: Nat, +env: List<&2, Nat>) -> {E.eP(P.ppow(f, n, 0n), env) == 1n : Nat}:
+  %goal {Nat.add(Nat.mul(1n, E.mon(P.unit(n, 0n, 0n), env)), 0n) == 1n : Nat}
+  %rw mon_zero(n, env)
+  %close
+
+def one_n(+f: List<&2, P.Tm>, +n: Nat, +env: List<&2, Nat>) -> {E.eN(P.ppow(f, n, 0n), env) == 0n : Nat}:
+  {==}
+
+
+# x^3 == f gives x^(3k) == f^k
+def pow_rel(+mp: Nat, +n: Nat, +f: List<&2, P.Tm>, +env: List<&2, Nat>, +x: Nat, +h: Z.Rel(mp, Nat.pow(x, 3n), E.eP(f, env), E.eN(f, env)), k: Nat) -> Z.Rel(mp, Nat.pow(x, Nat.mul(k, 3n)), E.eP(P.ppow(f, n, k), env), E.eN(P.ppow(f, n, k), env)):
+  match k:
+    case 0n:
+      %goal {Nat.mod(Nat.add(1n, E.eN(P.ppow(f, n, 0n), env)), 1n+mp) == Nat.mod(E.eP(P.ppow(f, n, 0n), env), 1n+mp) : Nat}
+      %rw one_n(f, n, env)
+      %rw one_p(f, n, env)
+      %close
+    case 1n+ +j:
+      %goal {Nat.mod(Nat.add(Nat.pow(x, Nat.add(3n, Nat.mul(j, 3n))), E.eN(P.pmul(f, P.ppow(f, n, j)), env)), 1n+mp) == Nat.mod(E.eP(P.pmul(f, P.ppow(f, n, j)), env), 1n+mp) : Nat}
+      %rw NR.pow_add(x, 3n, Nat.mul(j, 3n))
+      Z.rel_same(mp, Nat.mul(Nat.pow(x, 3n), Nat.pow(x, Nat.mul(j, 3n))), Nat.add(Nat.mul(E.eP(f, env), E.eP(P.ppow(f, n, j), env)), Nat.mul(E.eN(f, env), E.eN(P.ppow(f, n, j), env))), Nat.add(Nat.mul(E.eP(f, env), E.eN(P.ppow(f, n, j), env)), Nat.mul(E.eN(f, env), E.eP(P.ppow(f, n, j), env))), E.eP(P.pmul(f, P.ppow(f, n, j)), env), E.eN(P.pmul(f, P.ppow(f, n, j)), env), Equal.sym(Nat, Nat.add(E.eP(P.pmul(f, P.ppow(f, n, j)), env), Nat.add(Nat.mul(E.eP(f, env), E.eN(P.ppow(f, n, j), env)), Nat.mul(E.eN(f, env), E.eP(P.ppow(f, n, j), env)))), Nat.add(Nat.add(Nat.mul(E.eP(f, env), E.eP(P.ppow(f, n, j), env)), Nat.mul(E.eN(f, env), E.eN(P.ppow(f, n, j), env))), E.eN(P.pmul(f, P.ppow(f, n, j)), env)), E.pmul_v(f, P.ppow(f, n, j), env)), Z.rel_mul_raw(mp, Nat.pow(x, 3n), E.eP(f, env), E.eN(f, env), Nat.pow(x, Nat.mul(j, 3n)), E.eP(P.ppow(f, n, j), env), E.eN(P.ppow(f, n, j), env), h, pow_rel(mp, n, f, env, x, h, j)))
+
+def div_le(+v: Nat) -> {Nat.is_le(Nat.mul(Nat.div(v, 3n), 3n), v) == True{} : Bool}:
+  %Equal.sym(Nat, v, Nat.add(Nat.mul(Nat.div(v, 3n), 3n), Nat.mod(v, 3n)), NR.dm_eq(2n, v)) : {Nat.is_le(Nat.mul(Nat.div(v, 3n), 3n), _) == True{} : Bool}
+  N.le_add_right(Nat.mul(Nat.div(v, 3n), 3n), Nat.mod(v, 3n))
+
+
+def rt_a(+a: Nat, +c: Nat, +m2: Nat, +xd: Nat, +pf: Nat, +nf: Nat) -> {Nat.add(Nat.add(Nat.mul(Nat.mul(a, m2), pf), Nat.mul(Nat.mul(c, m2), nf)), Nat.mul(c, Nat.mul(m2, xd))) == Nat.add(Nat.mul(Nat.mul(a, m2), pf), Nat.mul(Nat.mul(c, m2), Nat.add(xd, nf))) : Nat}:
+  %norm
+
+def rt_b(+a: Nat, +c: Nat, +m2: Nat, +xd: Nat, +pf: Nat, +nf: Nat) -> {Nat.add(Nat.mul(a, Nat.mul(m2, xd)), Nat.add(Nat.mul(Nat.mul(a, m2), nf), Nat.mul(Nat.mul(c, m2), pf))) == Nat.add(Nat.mul(Nat.mul(a, m2), Nat.add(xd, nf)), Nat.mul(Nat.mul(c, m2), pf)) : Nat}:
+  %norm
+
+# one term: c x^(3k + r) mu becomes c x^r mu f^k
+def red_t_v(+mp: Nat, +n: Nat, +i: Nat, +f: List<&2, P.Tm>, t: P.Tm, +env: List<&2, Nat>, +hi: {Nat.is_lt(i, n) == True{} : Bool}, +h: Z.Rel(mp, Nat.pow(E.venv(i, env), 3n), E.eP(f, env), E.eN(f, env))) -> Z.SameM(mp, E.eP(P.red_t(n, i, f, t), env), E.eN(P.red_t(n, i, f, t), env), E.tP(t, env), E.tN(t, env)):
+  match t:
+    case P.Tm{P.Zc{+c1, +c2}, +e}:
+      %goal {Nat.mod(Nat.add(E.eP(P.tmul(P.Tm{P.Zc{c1, c2}, P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)))}, P.ppow(f, n, Nat.div(P.nth(i, e), 3n))), env), Nat.mul(B.bval(c2), E.mon(e, env))), 1n+mp) == Nat.mod(Nat.add(Nat.mul(B.bval(c1), E.mon(e, env)), E.eN(P.tmul(P.Tm{P.Zc{c1, c2}, P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)))}, P.ppow(f, n, Nat.div(P.nth(i, e), 3n))), env)), 1n+mp) : Nat}
+      %rw E.tmul_p(P.Tm{P.Zc{c1, c2}, P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)))}, P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)
+      %rw E.tmul_n(P.Tm{P.Zc{c1, c2}, P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)))}, P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)
+      %rw mon_split(n, i, e, env, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n), div_le(P.nth(i, e)), hi)
+      %rw mon_split(n, i, e, env, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n), div_le(P.nth(i, e)), hi)
+      %goal {Nat.mod(Nat.add(Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), Nat.mul(B.bval(c2), Nat.mul(E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env), Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))))), 1n+mp) == Nat.mod(Nat.add(Nat.mul(B.bval(c1), Nat.mul(E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env), Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)))), Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)))), 1n+mp) : Nat}
+      Equal.trans(Nat, Nat.mod(Nat.add(Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), Nat.mul(B.bval(c2), Nat.mul(E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env), Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))))), 1n+mp), Nat.mod(Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), Nat.add(Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)))), 1n+mp), Nat.mod(Nat.add(Nat.mul(B.bval(c1), Nat.mul(E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env), Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)))), Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)))), 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), Nat.mul(B.bval(c2), Nat.mul(E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env), Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))))), Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), Nat.add(Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)))), rt_a(B.bval(c1), B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env), Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), Equal.trans(Nat, Nat.mod(Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), Nat.add(Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)))), 1n+mp), Nat.mod(Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), 1n+mp), Nat.mod(Nat.add(Nat.mul(B.bval(c1), Nat.mul(E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env), Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)))), Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)))), 1n+mp), Z.cg_add_r(mp, Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), Nat.add(Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Z.cg_mul_r(mp, Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), Nat.add(Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env), pow_rel(mp, n, f, env, E.venv(i, env), h, Nat.div(P.nth(i, e), 3n)))), Equal.trans(Nat, Nat.mod(Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), 1n+mp), Nat.mod(Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), Nat.add(Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), 1n+mp), Nat.mod(Nat.add(Nat.mul(B.bval(c1), Nat.mul(E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env), Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)))), Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)))), 1n+mp), Equal.sym(Nat, Nat.mod(Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), Nat.add(Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), 1n+mp), Nat.mod(Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), 1n+mp), Z.cg_add_l(mp, Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), Nat.add(Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Z.cg_mul_r(mp, Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), Nat.add(Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env), pow_rel(mp, n, f, env, E.venv(i, env), h, Nat.div(P.nth(i, e), 3n))))), Equal.sym(Nat, Nat.mod(Nat.add(Nat.mul(B.bval(c1), Nat.mul(E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env), Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)))), Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)))), 1n+mp), Nat.mod(Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), Nat.add(Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(Nat.mul(B.bval(c1), Nat.mul(E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env), Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)))), Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)))), Nat.add(Nat.mul(Nat.mul(B.bval(c1), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), Nat.add(Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), Nat.mul(Nat.mul(B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env))), rt_b(B.bval(c1), B.bval(c2), E.mon(P.esub(e, P.unit(n, i, Nat.mul(Nat.div(P.nth(i, e), 3n), 3n))), env), Nat.pow(E.venv(i, env), Nat.mul(Nat.div(P.nth(i, e), 3n), 3n)), E.eP(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env), E.eN(P.ppow(f, n, Nat.div(P.nth(i, e), 3n)), env)))))))
+
+def red_v(+mp: Nat, +n: Nat, +i: Nat, +f: List<&2, P.Tm>, a: List<&2, P.Tm>, +env: List<&2, Nat>, +hi: {Nat.is_lt(i, n) == True{} : Bool}, +h: Z.Rel(mp, Nat.pow(E.venv(i, env), 3n), E.eP(f, env), E.eN(f, env))) -> Z.SameM(mp, E.eP(P.red(n, i, f, a), env), E.eN(P.red(n, i, f, a), env), E.eP(a, env), E.eN(a, env)):
+  match a:
+    case Nil{}:
+      {==}
+    case +x <> +xs:
+      +t = P.red_t(n, i, f, x)
+      +r = P.red(n, i, f, xs)
+      Z.sameM_trans(mp, E.eP(P.padd(t, r), env), E.eN(P.padd(t, r), env), Nat.add(E.eP(t, env), E.eP(r, env)), Nat.add(E.eN(t, env), E.eN(r, env)), Nat.add(E.tP(x, env), E.eP(xs, env)), Nat.add(E.tN(x, env), E.eN(xs, env)),
+        Z.sameM_of(mp, E.eP(P.padd(t, r), env), E.eN(P.padd(t, r), env), Nat.add(E.eP(t, env), E.eP(r, env)), Nat.add(E.eN(t, env), E.eN(r, env)), E.padd_v(t, r, env)),
+        Z.sameM_add(mp, E.eP(t, env), E.eN(t, env), E.tP(x, env), E.tN(x, env), E.eP(r, env), E.eN(r, env), E.eP(xs, env), E.eN(xs, env), red_t_v(mp, n, i, f, x, env, hi, h), red_v(mp, n, i, f, xs, env, hi, h)))

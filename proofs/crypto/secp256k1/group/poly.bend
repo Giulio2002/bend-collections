@@ -206,7 +206,7 @@ def pvar(+n: Nat, +i: Nat) -> List<&2, Tm>:
 
 # a term c x^(3k + r) m becomes c x^r m f^k (k = e_i / 3)
 def red_k(+n: Nat, +i: Nat, +f: List<&2, Tm>, c: Zc, +e: List<&2, Nat>, +k: Nat) -> List<&2, Tm>:
-  tmul(Tm{c, esub(e, unit(n, i, Nat.mul(3n, k)))}, ppow(f, n, k))
+  tmul(Tm{c, esub(e, unit(n, i, Nat.mul(k, 3n)))}, ppow(f, n, k))
 
 def red_t(+n: Nat, +i: Nat, +f: List<&2, Tm>, t: Tm) -> List<&2, Tm>:
   match t:
