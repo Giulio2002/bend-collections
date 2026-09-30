@@ -1,0 +1,163 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ../../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../../spec/crypto/secp256k1/curve.bend as CS
+import ../../../../spec/crypto/secp256k1/group.bend as GS
+import ./bn.bend as B
+import ./bnx.bend as X
+import ./certb.bend as CB
+import ./ptm.bend as M
+
+# Closed point computations, stated on X.bvalo (values stuck on `one`, never
+# expanded): one chunk of the specification's double-and-add loop from a
+# literal point to a literal point is one {==} check of the machine of
+# ptm.bend (chunk), and the generator G is a point of the group (g_valid).
+# The modulus is 1 + X.bvalo(one, p1) for the literals p == p1 + 1 (hn).
+
+def spo(+one: Nat, a: M.BP) -> CS.SPoint:
+  match a:
+    case M.BP{x, y, z}:
+      CS.SPoint{X.bvalo(one, x), X.bvalo(one, y), X.bvalo(one, z)}
+
+def spo_v(+one: Nat, +h1: {one == 1n : Nat}, +x: B.Bn, +y: B.Bn, +z: B.Bn) -> {spo(one, M.BP{x, y, z}) == CS.SPoint{B.bval(x), B.bval(y), B.bval(z)} : CS.SPoint}:
+  %X.bo(one, h1, x) : {CS.SPoint{X.bvalo(one, x), X.bvalo(one, y), X.bvalo(one, z)} == CS.SPoint{_, B.bval(y), B.bval(z)} : CS.SPoint}
+  %X.bo(one, h1, y) : {CS.SPoint{X.bvalo(one, x), X.bvalo(one, y), X.bvalo(one, z)} == CS.SPoint{X.bvalo(one, x), _, B.bval(z)} : CS.SPoint}
+  %X.bo(one, h1, z) : {CS.SPoint{X.bvalo(one, x), X.bvalo(one, y), X.bvalo(one, z)} == CS.SPoint{X.bvalo(one, x), X.bvalo(one, y), _} : CS.SPoint}
+  {==}
+
+def beq3(a: M.BP, b: M.BP) -> Bool:
+  match a b:
+    case M.BP{x1, y1, z1} M.BP{x2, y2, z2}:
+      Bool.and(B.beq(x1, x2), Bool.and(B.beq(y1, y2), B.beq(z1, z2)))
+
+def beq3_v(a: M.BP, b: M.BP, +h: {beq3(a, b) == True{} : Bool}) -> {M.spv(a) == M.spv(b) : CS.SPoint}:
+  match a b:
+    case M.BP{+x1, +y1, +z1} M.BP{+x2, +y2, +z2}:
+      %Equal.sym(Nat, B.bval(x1), B.bval(x2), B.beq_v(x1, x2, Lg.and_left(B.beq(x1, x2), Bool.and(B.beq(y1, y2), B.beq(z1, z2)), h))) : {CS.SPoint{_, B.bval(y1), B.bval(z1)} == CS.SPoint{B.bval(x2), B.bval(y2), B.bval(z2)} : CS.SPoint}
+      %Equal.sym(Nat, B.bval(y1), B.bval(y2), B.beq_v(y1, y2, Lg.and_left(B.beq(y1, y2), B.beq(z1, z2), Lg.and_right(B.beq(x1, x2), Bool.and(B.beq(y1, y2), B.beq(z1, z2)), h)))) : {CS.SPoint{B.bval(x2), _, B.bval(z1)} == CS.SPoint{B.bval(x2), B.bval(y2), B.bval(z2)} : CS.SPoint}
+      %Equal.sym(Nat, B.bval(z1), B.bval(z2), B.beq_v(z1, z2, Lg.and_right(B.beq(y1, y2), B.beq(z1, z2), Lg.and_right(B.beq(x1, x2), Bool.and(B.beq(y1, y2), B.beq(z1, z2)), h)))) : {CS.SPoint{B.bval(x2), B.bval(y2), _} == CS.SPoint{B.bval(x2), B.bval(y2), B.bval(z2)} : CS.SPoint}
+      {==}
+
+# the result of a loop: every check passed and the point is e
+def fck(r: M.RP, +e: M.BP) -> Bool:
+  match r:
+    case M.RP{pt, ok}:
+      Bool.and(ok, beq3(pt, e))
+
+def fck_ok(r: M.RP, +e: M.BP, +h: {fck(r, e) == True{} : Bool}) -> {M.rpk(r) == True{} : Bool}:
+  match r:
+    case M.RP{+pt, +ok}:
+      Lg.and_left(ok, beq3(pt, e), h)
+
+def fck_eq(r: M.RP, +e: M.BP, +h: {fck(r, e) == True{} : Bool}) -> {beq3(M.rpp(r), e) == True{} : Bool}:
+  match r:
+    case M.RP{+pt, +ok}:
+      Lg.and_right(ok, beq3(pt, e), h)
+
+# one chunk of CS.lmul on literals: from R, the bits bs give R2
+def chunk(+one: Nat, +h1: {one == 1n : Nat}, +p: B.Bn, +p1: B.Bn, +c: B.Bn, +bs: List<&2, Nat>, +gx: B.Bn, +gy: B.Bn, +gz: B.Bn, +x: B.Bn, +y: B.Bn, +z: B.Bn, +x2: B.Bn, +y2: B.Bn, +z2: B.Bn, +hn: {B.beq(p, B.binc(p1)) == True{} : Bool}, +hwk: {B.beq(CB.bshl(256n, B.B1{B.BZ{}}), B.badd(p, c)) == True{} : Bool}, +h21: {M.ltk(M.b3l(), p) == True{} : Bool}, +hz: {M.ltk(B.BZ{}, p) == True{} : Bool}, +hg: {M.ok3(p, M.BP{gx, gy, gz}) == True{} : Bool}, +hr: {M.ok3(p, M.BP{x, y, z}) == True{} : Bool}, +hc: {fck(M.blmul(bs, c, p, M.BP{gx, gy, gz}, M.RP{M.BP{x, y, z}, True{}}), M.BP{x2, y2, z2}) == True{} : Bool}) -> {CS.lmul(1n+X.bvalo(one, p1), bs, spo(one, M.BP{gx, gy, gz}), spo(one, M.BP{x, y, z})) == spo(one, M.BP{x2, y2, z2}) : CS.SPoint}:
+  %Equal.sym(Nat, X.bvalo(one, p1), B.bval(p1), X.bo(one, h1, p1)) : {CS.lmul(1n+_, bs, spo(one, M.BP{gx, gy, gz}), spo(one, M.BP{x, y, z})) == spo(one, M.BP{x2, y2, z2}) : CS.SPoint}
+  %Equal.sym(CS.SPoint, spo(one, M.BP{gx, gy, gz}), CS.SPoint{B.bval(gx), B.bval(gy), B.bval(gz)}, spo_v(one, h1, gx, gy, gz)) : {CS.lmul(1n+B.bval(p1), bs, _, spo(one, M.BP{x, y, z})) == spo(one, M.BP{x2, y2, z2}) : CS.SPoint}
+  %Equal.sym(CS.SPoint, spo(one, M.BP{x, y, z}), CS.SPoint{B.bval(x), B.bval(y), B.bval(z)}, spo_v(one, h1, x, y, z)) : {CS.lmul(1n+B.bval(p1), bs, CS.SPoint{B.bval(gx), B.bval(gy), B.bval(gz)}, _) == spo(one, M.BP{x2, y2, z2}) : CS.SPoint}
+  %Equal.sym(CS.SPoint, spo(one, M.BP{x2, y2, z2}), CS.SPoint{B.bval(x2), B.bval(y2), B.bval(z2)}, spo_v(one, h1, x2, y2, z2)) : {CS.lmul(1n+B.bval(p1), bs, CS.SPoint{B.bval(gx), B.bval(gy), B.bval(gz)}, CS.SPoint{B.bval(x), B.bval(y), B.bval(z)}) == _ : CS.SPoint}
+  Equal.trans(CS.SPoint, CS.lmul(1n+B.bval(p1), bs, CS.SPoint{B.bval(gx), B.bval(gy), B.bval(gz)}, CS.SPoint{B.bval(x), B.bval(y), B.bval(z)}), M.spv(M.rpp(M.blmul(bs, c, p, M.BP{gx, gy, gz}, M.RP{M.BP{x, y, z}, True{}}))), CS.SPoint{B.bval(x2), B.bval(y2), B.bval(z2)},
+    M.blmul_v(bs, c, p, gx, gy, gz, x, y, z, True{}, B.bval(p1), Equal.trans(Nat, B.bval(p), B.bval(B.binc(p1)), 1n+B.bval(p1), B.beq_v(p, B.binc(p1), hn), B.binc_v(p1)), Equal.trans(Nat, B.bval(CB.bshl(256n, B.B1{B.BZ{}})), B.bval(B.badd(p, c)), Nat.add(B.bval(p), B.bval(c)), B.beq_v(CB.bshl(256n, B.B1{B.BZ{}}), B.badd(p, c), hwk), B.badd_v(p, c)), h21, hz, hg, hr, fck_ok(M.blmul(bs, c, p, M.BP{gx, gy, gz}, M.RP{M.BP{x, y, z}, True{}}), M.BP{x2, y2, z2}, hc)),
+    beq3_v(M.rpp(M.blmul(bs, c, p, M.BP{gx, gy, gz}, M.RP{M.BP{x, y, z}, True{}})), M.BP{x2, y2, z2}, fck_eq(M.blmul(bs, c, p, M.BP{gx, gy, gz}, M.RP{M.BP{x, y, z}, True{}}), M.BP{x2, y2, z2}, hc)))
+
+# ---- the literals of secp256k1 ----
+
+# 2^256 - p = 2^32 + 977
+def cl() -> B.Bn:
+  B.badd(B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}, CB.bshl(32n, B.B1{B.BZ{}}))
+
+def gxl() -> B.Bn:
+  CB.bdig([B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}, B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}, B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}, B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}, B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}, B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}, B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}])
+
+def gyl() -> B.Bn:
+  CB.bdig([B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}, B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}, B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}, B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}])
+
+def gbp() -> M.BP:
+  M.BP{gxl(), gyl(), B.B1{B.BZ{}}}
+
+def hn_p() -> {B.beq(CB.pl(), B.binc(CB.p1l())) == True{} : Bool}:
+  {==}
+
+def hw_p() -> {B.beq(CB.bshl(256n, B.B1{B.BZ{}}), B.badd(CB.pl(), cl())) == True{} : Bool}:
+  {==}
+
+def h21_p() -> {M.ltk(M.b3l(), CB.pl()) == True{} : Bool}:
+  {==}
+
+def hz_p() -> {M.ltk(B.BZ{}, CB.pl()) == True{} : Bool}:
+  {==}
+
+def hg_p() -> {M.ok3(CB.pl(), gbp()) == True{} : Bool}:
+  {==}
+
+# the literal is the specification's G
+def g_is(+one: Nat, +h1: {one == 1n : Nat}) -> {spo(one, gbp()) == CS.g(one) : CS.SPoint}:
+  %Equal.sym(Nat, X.bvalo(one, gxl()), FS.digits(one, [6040n, 5880n, 33115n, 23026n, 10457n, 11726n, 64731n, 667n, 2823n, 52871n, 25237n, 21920n, 48044n, 63964n, 26238n, 31166n]), CB.dig_o(one, h1, [B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}, B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}, B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}, B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}, B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}, B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}, B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}], [6040n, 5880n, 33115n, 23026n, 10457n, 11726n, 64731n, 667n, 2823n, 52871n, 25237n, 21920n, 48044n, 63964n, 26238n, 31166n], {==})) : {CS.SPoint{_, X.bvalo(one, gyl()), X.bvalo(one, B.B1{B.BZ{}})} == CS.SPoint{FS.digits(one, [6040n, 5880n, 33115n, 23026n, 10457n, 11726n, 64731n, 667n, 2823n, 52871n, 25237n, 21920n, 48044n, 63964n, 26238n, 31166n]), FS.digits(one, [54456n, 64272n, 53391n, 40007n, 21529n, 42629n, 46152n, 64791n, 2216n, 3601n, 64508n, 23972n, 50277n, 9891n, 55927n, 18490n]), one} : CS.SPoint}
+  %Equal.sym(Nat, X.bvalo(one, gyl()), FS.digits(one, [54456n, 64272n, 53391n, 40007n, 21529n, 42629n, 46152n, 64791n, 2216n, 3601n, 64508n, 23972n, 50277n, 9891n, 55927n, 18490n]), CB.dig_o(one, h1, [B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}, B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}, B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}, B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}], [54456n, 64272n, 53391n, 40007n, 21529n, 42629n, 46152n, 64791n, 2216n, 3601n, 64508n, 23972n, 50277n, 9891n, 55927n, 18490n], {==})) : {CS.SPoint{FS.digits(one, [6040n, 5880n, 33115n, 23026n, 10457n, 11726n, 64731n, 667n, 2823n, 52871n, 25237n, 21920n, 48044n, 63964n, 26238n, 31166n]), _, X.bvalo(one, B.B1{B.BZ{}})} == CS.SPoint{FS.digits(one, [6040n, 5880n, 33115n, 23026n, 10457n, 11726n, 64731n, 667n, 2823n, 52871n, 25237n, 21920n, 48044n, 63964n, 26238n, 31166n]), FS.digits(one, [54456n, 64272n, 53391n, 40007n, 21529n, 42629n, 46152n, 64791n, 2216n, 3601n, 64508n, 23972n, 50277n, 9891n, 55927n, 18490n]), one} : CS.SPoint}
+  %Equal.sym(Nat, X.bvalo(one, B.B1{B.BZ{}}), one, CB.b1_o(one)) : {CS.SPoint{FS.digits(one, [6040n, 5880n, 33115n, 23026n, 10457n, 11726n, 64731n, 667n, 2823n, 52871n, 25237n, 21920n, 48044n, 63964n, 26238n, 31166n]), FS.digits(one, [54456n, 64272n, 53391n, 40007n, 21529n, 42629n, 46152n, 64791n, 2216n, 3601n, 64508n, 23972n, 50277n, 9891n, 55927n, 18490n]), _} == CS.SPoint{FS.digits(one, [6040n, 5880n, 33115n, 23026n, 10457n, 11726n, 64731n, 667n, 2823n, 52871n, 25237n, 21920n, 48044n, 63964n, 26238n, 31166n]), FS.digits(one, [54456n, 64272n, 53391n, 40007n, 21529n, 42629n, 46152n, 64791n, 2216n, 3601n, 64508n, 23972n, 50277n, 9891n, 55927n, 18490n]), one} : CS.SPoint}
+  {==}
+
+# ---- a literal point is a point of the group ----
+
+# Y^2, Y^2 Z, X^2, X^3, Z^2, Z^3, 7 Z^3, X^3 + 7 Z^3 on the registers X, Y, Z, 7
+def oc_prog() -> List<&2, CS.SOp>:
+  [CS.SMul{1n, 1n}, CS.SMul{4n, 2n}, CS.SMul{0n, 0n}, CS.SMul{6n, 0n}, CS.SMul{2n, 2n}, CS.SMul{8n, 2n}, CS.SMul{3n, 9n}, CS.SAdd{7n, 10n}]
+
+def b7l() -> B.Bn:
+  B.B1{B.B1{B.B1{B.BZ{}}}}
+
+def vfin(r: M.RR, +y: B.Bn, +y1: B.Bn) -> Bool:
+  match r:
+    case M.RR{+regs, ok}:
+      Bool.and(ok, Bool.and(B.beq(M.bnth(5n, regs), M.bnth(11n, regs)), B.beq(y, B.binc(y1))))
+
+# the closed check: Y^2 Z == X^3 + 7 Z^3 (mod p) and y == y1 + 1
+def vck(+c: B.Bn, +p: B.Bn, +x: B.Bn, +y: B.Bn, +z: B.Bn, +y1: B.Bn) -> Bool:
+  vfin(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}}), y, y1)
+
+def oc_b(+p: B.Bn, +p1: B.Bn, +c: B.Bn, +x: B.Bn, +y: B.Bn, +z: B.Bn, +y1: B.Bn, +hn: {B.beq(p, B.binc(p1)) == True{} : Bool}, +hwk: {B.beq(CB.bshl(256n, B.B1{B.BZ{}}), B.badd(p, c)) == True{} : Bool}, +hr: {M.ok3(p, M.BP{x, y, z}) == True{} : Bool}, +h7: {M.ltk(b7l(), p) == True{} : Bool}, +hc: {vck(c, p, x, y, z, y1) == True{} : Bool}) -> {GS.on_curve(1n+B.bval(p1), CS.SPoint{B.bval(x), B.bval(y), B.bval(z)}) == True{} : Bool}:
+  +ev = M.brun_v(oc_prog(), c, p, B.bval(p1), [x, y, z, b7l()], True{}, Equal.trans(Nat, B.bval(p), B.bval(B.binc(p1)), 1n+B.bval(p1), B.beq_v(p, B.binc(p1), hn), B.binc_v(p1)), Equal.trans(Nat, B.bval(CB.bshl(256n, B.B1{B.BZ{}})), B.bval(B.badd(p, c)), Nat.add(B.bval(p), B.bval(c)), B.beq_v(CB.bshl(256n, B.B1{B.BZ{}}), B.badd(p, c), hwk), B.badd_v(p, c)), Lg.and_intro(M.ltk(x, p), M.allok(p, [y, z, b7l()]), Lg.and_left(M.ltk(x, p), Bool.and(M.ltk(y, p), M.ltk(z, p)), hr), Lg.and_intro(M.ltk(y, p), M.allok(p, [z, b7l()]), Lg.and_left(M.ltk(y, p), M.ltk(z, p), Lg.and_right(M.ltk(x, p), Bool.and(M.ltk(y, p), M.ltk(z, p)), hr)), Lg.and_intro(M.ltk(z, p), M.allok(p, [b7l()]), Lg.and_right(M.ltk(y, p), M.ltk(z, p), Lg.and_right(M.ltk(x, p), Bool.and(M.ltk(y, p), M.ltk(z, p)), hr)), Lg.and_intro(M.ltk(b7l(), p), True{}, h7, {==})))), Lg.and_left(M.rrk(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})), Bool.and(B.beq(M.bnth(5n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}}))), M.bnth(11n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))), B.beq(y, B.binc(y1))), hc))
+  %Equal.sym(List<&2, Nat>, CS.run_go(1n+B.bval(p1), oc_prog(), M.vals([x, y, z, b7l()])), M.vals(M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}}))), ev) : {Nat.is_eq(CS.nth(5n, _), CS.nth(11n, CS.run_go(1n+B.bval(p1), oc_prog(), M.vals([x, y, z, b7l()])))) == True{} : Bool}
+  %Equal.sym(List<&2, Nat>, CS.run_go(1n+B.bval(p1), oc_prog(), M.vals([x, y, z, b7l()])), M.vals(M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}}))), ev) : {Nat.is_eq(CS.nth(5n, M.vals(M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))), CS.nth(11n, _)) == True{} : Bool}
+  %Equal.sym(Nat, CS.nth(5n, M.vals(M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))), B.bval(M.bnth(5n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))), M.nth_vals(5n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))) : {Nat.is_eq(_, CS.nth(11n, M.vals(M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}}))))) == True{} : Bool}
+  %Equal.sym(Nat, CS.nth(11n, M.vals(M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))), B.bval(M.bnth(11n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))), M.nth_vals(11n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))) : {Nat.is_eq(B.bval(M.bnth(5n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))), _) == True{} : Bool}
+  %B.beq_v(M.bnth(5n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}}))), M.bnth(11n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}}))), Lg.and_left(B.beq(M.bnth(5n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}}))), M.bnth(11n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))), B.beq(y, B.binc(y1)), Lg.and_right(M.rrk(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})), Bool.and(B.beq(M.bnth(5n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}}))), M.bnth(11n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))), B.beq(y, B.binc(y1))), hc))) : {Nat.is_eq(B.bval(M.bnth(5n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))), _) == True{} : Bool}
+  N.is_eq_refl(B.bval(M.bnth(5n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))))
+
+def yn_b(+p: B.Bn, +p1: B.Bn, +c: B.Bn, +x: B.Bn, +y: B.Bn, +z: B.Bn, +y1: B.Bn, +hn: {B.beq(p, B.binc(p1)) == True{} : Bool}, +hwk: {B.beq(CB.bshl(256n, B.B1{B.BZ{}}), B.badd(p, c)) == True{} : Bool}, +hr: {M.ok3(p, M.BP{x, y, z}) == True{} : Bool}, +hc: {vck(c, p, x, y, z, y1) == True{} : Bool}) -> {GS.y_nonzero(1n+B.bval(p1), CS.SPoint{B.bval(x), B.bval(y), B.bval(z)}) == True{} : Bool}:
+  %Equal.sym(Nat, Nat.mod(B.bval(y), 1n+B.bval(p1)), B.bval(y), NR.mod_of(0n, B.bval(p1), B.bval(y), M.ltk_v(y, p, B.bval(p1), Equal.trans(Nat, B.bval(p), B.bval(B.binc(p1)), 1n+B.bval(p1), B.beq_v(p, B.binc(p1), hn), B.binc_v(p1)), Lg.and_left(M.ltk(y, p), M.ltk(z, p), Lg.and_right(M.ltk(x, p), Bool.and(M.ltk(y, p), M.ltk(z, p)), hr))))) : {Bool.not(Nat.is_eq(_, 0n)) == True{} : Bool}
+  %Equal.sym(Nat, B.bval(y), 1n+B.bval(y1), Equal.trans(Nat, B.bval(y), B.bval(B.binc(y1)), 1n+B.bval(y1), B.beq_v(y, B.binc(y1), Lg.and_right(B.beq(M.bnth(5n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}}))), M.bnth(11n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))), B.beq(y, B.binc(y1)), Lg.and_right(M.rrk(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})), Bool.and(B.beq(M.bnth(5n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}}))), M.bnth(11n, M.rrr(M.brun(oc_prog(), c, p, M.RR{[x, y, z, b7l()], True{}})))), B.beq(y, B.binc(y1))), hc))), B.binc_v(y1))) : {Bool.not(Nat.is_eq(_, 0n)) == True{} : Bool}
+  {==}
+
+# a literal point with the check vck is a point of the group
+def gv(+one: Nat, +h1: {one == 1n : Nat}, +p: B.Bn, +p1: B.Bn, +c: B.Bn, +x: B.Bn, +y: B.Bn, +z: B.Bn, +y1: B.Bn, +hn: {B.beq(p, B.binc(p1)) == True{} : Bool}, +hwk: {B.beq(CB.bshl(256n, B.B1{B.BZ{}}), B.badd(p, c)) == True{} : Bool}, +hr: {M.ok3(p, M.BP{x, y, z}) == True{} : Bool}, +h7: {M.ltk(b7l(), p) == True{} : Bool}, +hc: {vck(c, p, x, y, z, y1) == True{} : Bool}) -> {GS.valid(1n+X.bvalo(one, p1), spo(one, M.BP{x, y, z})) == True{} : Bool}:
+  %Equal.sym(Nat, X.bvalo(one, p1), B.bval(p1), X.bo(one, h1, p1)) : {GS.valid(1n+_, spo(one, M.BP{x, y, z})) == True{} : Bool}
+  %Equal.sym(CS.SPoint, spo(one, M.BP{x, y, z}), CS.SPoint{B.bval(x), B.bval(y), B.bval(z)}, spo_v(one, h1, x, y, z)) : {GS.valid(1n+B.bval(p1), _) == True{} : Bool}
+  Lg.and_intro(GS.on_curve(1n+B.bval(p1), CS.SPoint{B.bval(x), B.bval(y), B.bval(z)}), GS.y_nonzero(1n+B.bval(p1), CS.SPoint{B.bval(x), B.bval(y), B.bval(z)}), oc_b(p, p1, c, x, y, z, y1, hn, hwk, hr, h7, hc), yn_b(p, p1, c, x, y, z, y1, hn, hwk, hr, hc))
+
+def gy1l() -> B.Bn:
+  B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+
+def h7_p() -> {M.ltk(b7l(), CB.pl()) == True{} : Bool}:
+  {==}
+
+def gck() -> {vck(cl(), CB.pl(), gxl(), gyl(), B.B1{B.BZ{}}, gy1l()) == True{} : Bool}:
+  {==}
+
+# G is a point of the group (modulus 1 + pm)
+def g_valid_m(+one: Nat, +h1: {one == 1n : Nat}) -> {GS.valid(1n+X.bvalo(one, CB.p1l()), CS.g(one)) == True{} : Bool}:
+  %g_is(one, h1) : {GS.valid(1n+X.bvalo(one, CB.p1l()), _) == True{} : Bool}
+  gv(one, h1, CB.pl(), CB.p1l(), cl(), gxl(), gyl(), B.B1{B.BZ{}}, gy1l(), hn_p(), hw_p(), hg_p(), h7_p(), gck())
+
+# G is a point of the group
+def g_valid(+one: Nat, +h1: {one == 1n : Nat}) -> {GS.valid(FS.prime(one), CS.g(one)) == True{} : Bool}:
+  Lg.subst(Nat, q => {GS.valid(q, CS.g(one)) == True{} : Bool}, 1n+X.bvalo(one, CB.p1l()), FS.prime(one), Equal.sym(Nat, FS.prime(one), 1n+X.bvalo(one, CB.p1l()), CB.p_suc(one, h1)), g_valid_m(one, h1))
