@@ -4,7 +4,7 @@ import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/secp256k1/field.bend as FS
 import ../../lib/logic.bend as Lg
 import ../../lib/nat.bend as N
-import ./consts.bend as K
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ./ineq.bend as I
 
 # Literal limbs: 2^10 = shift(10, one), and a literal below 2^16 is a limb
@@ -12,7 +12,7 @@ import ./ineq.bend as I
 # written as six doublings of w = 2^10).
 
 def shk(+k: Nat, +one: Nat, +v: Nat, +hv: {C.shift(k, one) == v : Nat}) -> {C.shift(1n+k, one) == Nat.add(v, v) : Nat}:
-  %Equal.sym(Nat, C.shift(1n+k, one), Nat.add(C.shift(k, one), C.shift(k, one)), Equal.sym(Nat, Nat.add(C.shift(k, one), C.shift(k, one)), C.shift(1n+k, one), K.shift_twice(k, one))) : {_ == Nat.add(v, v) : Nat}
+  %Equal.sym(Nat, Nat.double(C.shift(k, one)), Nat.add(C.shift(k, one), C.shift(k, one)), NA.double_self(C.shift(k, one))) : {_ == Nat.add(v, v) : Nat}
   %Equal.sym(Nat, C.shift(k, one), v, hv) : {Nat.add(_, C.shift(k, one)) == Nat.add(v, v) : Nat}
   %Equal.sym(Nat, C.shift(k, one), v, hv) : {Nat.add(v, _) == Nat.add(v, v) : Nat}
   {==}
