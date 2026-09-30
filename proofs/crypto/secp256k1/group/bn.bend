@@ -54,14 +54,33 @@ def badd(a: Bn, b: Bn) -> Bn:
     case B1{x} B1{y}:
       B0{binc(badd(x, y))}
 
-def bmul(a: Bn, +b: Bn) -> Bn:
+def bmul_go(a: Bn, +b: Bn) -> Bn:
   match a:
     case BZ{}:
       BZ{}
     case B0{t}:
-      B0{bmul(t, b)}
+      B0{bmul_go(t, b)}
     case B1{t}:
-      badd(b, B0{bmul(t, b)})
+      badd(b, B0{bmul_go(t, b)})
+
+# the product; a zero factor is answered at once (so that no string of
+# zero bits is built)
+def bmul(+a: Bn, +b: Bn) -> Bn:
+  match a b:
+    case BZ{} _:
+      BZ{}
+    case B0{t} BZ{}:
+      BZ{}
+    case B1{t} BZ{}:
+      BZ{}
+    case B0{t} B0{u}:
+      bmul_go(a, b)
+    case B0{t} B1{u}:
+      bmul_go(a, b)
+    case B1{t} B0{u}:
+      bmul_go(a, b)
+    case B1{t} B1{u}:
+      bmul_go(a, b)
 
 # equal values (leading zeros ignored)
 def beq(a: Bn, b: Bn) -> Bool:
@@ -102,19 +121,15 @@ def binc_v(a: Bn) -> {bval(binc(a)) == 1n+bval(a) : Nat}:
     case B0{t}:
       {==}
     case B1{+t}:
-      %Equal.sym(Nat, bval(binc(t)), 1n+bval(t), binc_v(t)) : {Nat.add(_, bval(binc(t))) == 1n+1n+Nat.add(bval(t), bval(t)) : Nat}
-      %Equal.sym(Nat, bval(binc(t)), 1n+bval(t), binc_v(t)) : {Nat.add(1n+bval(t), _) == 1n+1n+Nat.add(bval(t), bval(t)) : Nat}
-      %Equal.sym(Nat, 1n+bval(t), Nat.add(bval(t), 1n), SR.succ_add(1n, bval(t))) : {Nat.add(_, 1n+bval(t)) == 1n+1n+Nat.add(bval(t), bval(t)) : Nat}
-      %Equal.sym(Nat, 1n+bval(t), Nat.add(bval(t), 1n), SR.succ_add(1n, bval(t))) : {Nat.add(Nat.add(bval(t), 1n), _) == 1n+1n+Nat.add(bval(t), bval(t)) : Nat}
-      %Equal.sym(Nat, Nat.add(Nat.add(bval(t), 1n), Nat.add(bval(t), 1n)), Nat.add(bval(t), Nat.add(1n, Nat.add(bval(t), 1n))), NA.add_assoc(bval(t), 1n, Nat.add(bval(t), 1n))) : {_ == 1n+1n+Nat.add(bval(t), bval(t)) : Nat}
-      %Equal.sym(Nat, Nat.add(1n, Nat.add(bval(t), 1n)), Nat.add(bval(t), Nat.add(1n, 1n)), NA.add_swap(1n, bval(t), 1n)) : {Nat.add(bval(t), _) == 1n+1n+Nat.add(bval(t), bval(t)) : Nat}
-      %Equal.sym(Nat, Nat.add(1n, 1n), 2n, {==}) : {Nat.add(bval(t), Nat.add(bval(t), _)) == 1n+1n+Nat.add(bval(t), bval(t)) : Nat}
-      %Equal.sym(Nat, 1n+Nat.add(bval(t), bval(t)), Nat.add(Nat.add(bval(t), bval(t)), 1n), SR.succ_add(1n, Nat.add(bval(t), bval(t)))) : {Nat.add(bval(t), Nat.add(bval(t), 2n)) == 1n+_ : Nat}
-      %Equal.sym(Nat, Nat.add(Nat.add(bval(t), bval(t)), 1n), Nat.add(bval(t), Nat.add(bval(t), 1n)), NA.add_assoc(bval(t), bval(t), 1n)) : {Nat.add(bval(t), Nat.add(bval(t), 2n)) == 1n+_ : Nat}
-      %Equal.sym(Nat, 1n+Nat.add(bval(t), Nat.add(bval(t), 1n)), Nat.add(Nat.add(bval(t), Nat.add(bval(t), 1n)), 1n), SR.succ_add(1n, Nat.add(bval(t), Nat.add(bval(t), 1n)))) : {Nat.add(bval(t), Nat.add(bval(t), 2n)) == _ : Nat}
-      %Equal.sym(Nat, Nat.add(Nat.add(bval(t), Nat.add(bval(t), 1n)), 1n), Nat.add(bval(t), Nat.add(Nat.add(bval(t), 1n), 1n)), NA.add_assoc(bval(t), Nat.add(bval(t), 1n), 1n)) : {Nat.add(bval(t), Nat.add(bval(t), 2n)) == _ : Nat}
-      %Equal.sym(Nat, Nat.add(Nat.add(bval(t), 1n), 1n), Nat.add(bval(t), Nat.add(1n, 1n)), NA.add_assoc(bval(t), 1n, 1n)) : {Nat.add(bval(t), Nat.add(bval(t), 2n)) == Nat.add(bval(t), _) : Nat}
-      %Equal.sym(Nat, Nat.add(1n, 1n), 2n, {==}) : {Nat.add(bval(t), Nat.add(bval(t), 2n)) == Nat.add(bval(t), Nat.add(bval(t), _)) : Nat}
+      %Equal.sym(Nat, bval(binc(t)), 1n+bval(t), binc_v(t)) : {Nat.add(_, bval(binc(t))) == 2n+Nat.add(bval(t), bval(t)) : Nat}
+      %Equal.sym(Nat, bval(binc(t)), 1n+bval(t), binc_v(t)) : {Nat.add(1n+bval(t), _) == 2n+Nat.add(bval(t), bval(t)) : Nat}
+      %Equal.sym(Nat, 1n+bval(t), Nat.add(bval(t), 1n), SR.succ_add(1n, bval(t))) : {Nat.add(_, 1n+bval(t)) == 2n+Nat.add(bval(t), bval(t)) : Nat}
+      %Equal.sym(Nat, 1n+bval(t), Nat.add(bval(t), 1n), SR.succ_add(1n, bval(t))) : {Nat.add(Nat.add(bval(t), 1n), _) == 2n+Nat.add(bval(t), bval(t)) : Nat}
+      %Equal.sym(Nat, Nat.add(Nat.add(bval(t), 1n), Nat.add(bval(t), 1n)), Nat.add(bval(t), Nat.add(1n, Nat.add(bval(t), 1n))), NA.add_assoc(bval(t), 1n, Nat.add(bval(t), 1n))) : {_ == 2n+Nat.add(bval(t), bval(t)) : Nat}
+      %Equal.sym(Nat, Nat.add(1n, Nat.add(bval(t), 1n)), Nat.add(bval(t), Nat.add(1n, 1n)), NA.add_swap(1n, bval(t), 1n)) : {Nat.add(bval(t), _) == 2n+Nat.add(bval(t), bval(t)) : Nat}
+      %Equal.sym(Nat, Nat.add(1n, 1n), 2n, {==}) : {Nat.add(bval(t), Nat.add(bval(t), _)) == 2n+Nat.add(bval(t), bval(t)) : Nat}
+      %Equal.sym(Nat, 2n+Nat.add(bval(t), bval(t)), Nat.add(Nat.add(bval(t), bval(t)), 2n), SR.succ_add(2n, Nat.add(bval(t), bval(t)))) : {Nat.add(bval(t), Nat.add(bval(t), 2n)) == _ : Nat}
+      %Equal.sym(Nat, Nat.add(Nat.add(bval(t), bval(t)), 2n), Nat.add(bval(t), Nat.add(bval(t), 2n)), NA.add_assoc(bval(t), bval(t), 2n)) : {Nat.add(bval(t), Nat.add(bval(t), 2n)) == _ : Nat}
       {==}
 
 def badd_v(a: Bn, b: Bn) -> {bval(badd(a, b)) == Nat.add(bval(a), bval(b)) : Nat}:
@@ -187,13 +202,13 @@ def badd_v(a: Bn, b: Bn) -> {bval(badd(a, b)) == Nat.add(bval(a), bval(b)) : Nat
       %Equal.sym(Nat, Nat.add(1n, 1n), 2n, {==}) : {Nat.add(bval(x), Nat.add(bval(x), Nat.add(bval(y), Nat.add(bval(y), 2n)))) == Nat.add(bval(x), Nat.add(bval(x), Nat.add(bval(y), Nat.add(bval(y), _)))) : Nat}
       {==}
 
-def bmul_v(a: Bn, +b: Bn) -> {bval(bmul(a, b)) == Nat.mul(bval(a), bval(b)) : Nat}:
+def bmul_go_v(a: Bn, +b: Bn) -> {bval(bmul_go(a, b)) == Nat.mul(bval(a), bval(b)) : Nat}:
   match a:
     case BZ{}:
       {==}
     case B0{+t}:
-      %Equal.sym(Nat, bval(bmul(t, b)), Nat.mul(bval(t), bval(b)), bmul_v(t, b)) : {Nat.add(_, bval(bmul(t, b))) == Nat.mul(Nat.add(bval(t), bval(t)), bval(b)) : Nat}
-      %Equal.sym(Nat, bval(bmul(t, b)), Nat.mul(bval(t), bval(b)), bmul_v(t, b)) : {Nat.add(Nat.mul(bval(t), bval(b)), _) == Nat.mul(Nat.add(bval(t), bval(t)), bval(b)) : Nat}
+      %Equal.sym(Nat, bval(bmul_go(t, b)), Nat.mul(bval(t), bval(b)), bmul_go_v(t, b)) : {Nat.add(_, bval(bmul_go(t, b))) == Nat.mul(Nat.add(bval(t), bval(t)), bval(b)) : Nat}
+      %Equal.sym(Nat, bval(bmul_go(t, b)), Nat.mul(bval(t), bval(b)), bmul_go_v(t, b)) : {Nat.add(Nat.mul(bval(t), bval(b)), _) == Nat.mul(Nat.add(bval(t), bval(t)), bval(b)) : Nat}
       %Equal.sym(Nat, Nat.mul(bval(t), bval(b)), Nat.mul(bval(b), bval(t)), NA.mul_comm(bval(t), bval(b))) : {Nat.add(_, Nat.mul(bval(t), bval(b))) == Nat.mul(Nat.add(bval(t), bval(t)), bval(b)) : Nat}
       %Equal.sym(Nat, Nat.mul(bval(t), bval(b)), Nat.mul(bval(b), bval(t)), NA.mul_comm(bval(t), bval(b))) : {Nat.add(Nat.mul(bval(b), bval(t)), _) == Nat.mul(Nat.add(bval(t), bval(t)), bval(b)) : Nat}
       %Equal.sym(Nat, Nat.mul(Nat.add(bval(t), bval(t)), bval(b)), Nat.add(Nat.mul(bval(t), bval(b)), Nat.mul(bval(t), bval(b))), NA.mul_add_right(bval(t), bval(t), bval(b))) : {Nat.add(Nat.mul(bval(b), bval(t)), Nat.mul(bval(b), bval(t))) == _ : Nat}
@@ -201,9 +216,9 @@ def bmul_v(a: Bn, +b: Bn) -> {bval(bmul(a, b)) == Nat.mul(bval(a), bval(b)) : Na
       %Equal.sym(Nat, Nat.mul(bval(t), bval(b)), Nat.mul(bval(b), bval(t)), NA.mul_comm(bval(t), bval(b))) : {Nat.add(Nat.mul(bval(b), bval(t)), Nat.mul(bval(b), bval(t))) == Nat.add(Nat.mul(bval(b), bval(t)), _) : Nat}
       {==}
     case B1{+t}:
-      %Equal.sym(Nat, bval(badd(b, B0{bmul(t, b)})), Nat.add(bval(b), bval(B0{bmul(t, b)})), badd_v(b, B0{bmul(t, b)})) : {_ == Nat.mul(1n+Nat.add(bval(t), bval(t)), bval(b)) : Nat}
-      %Equal.sym(Nat, bval(bmul(t, b)), Nat.mul(bval(t), bval(b)), bmul_v(t, b)) : {Nat.add(bval(b), Nat.add(_, bval(bmul(t, b)))) == Nat.mul(1n+Nat.add(bval(t), bval(t)), bval(b)) : Nat}
-      %Equal.sym(Nat, bval(bmul(t, b)), Nat.mul(bval(t), bval(b)), bmul_v(t, b)) : {Nat.add(bval(b), Nat.add(Nat.mul(bval(t), bval(b)), _)) == Nat.mul(1n+Nat.add(bval(t), bval(t)), bval(b)) : Nat}
+      %Equal.sym(Nat, bval(badd(b, B0{bmul_go(t, b)})), Nat.add(bval(b), bval(B0{bmul_go(t, b)})), badd_v(b, B0{bmul_go(t, b)})) : {_ == Nat.mul(1n+Nat.add(bval(t), bval(t)), bval(b)) : Nat}
+      %Equal.sym(Nat, bval(bmul_go(t, b)), Nat.mul(bval(t), bval(b)), bmul_go_v(t, b)) : {Nat.add(bval(b), Nat.add(_, bval(bmul_go(t, b)))) == Nat.mul(1n+Nat.add(bval(t), bval(t)), bval(b)) : Nat}
+      %Equal.sym(Nat, bval(bmul_go(t, b)), Nat.mul(bval(t), bval(b)), bmul_go_v(t, b)) : {Nat.add(bval(b), Nat.add(Nat.mul(bval(t), bval(b)), _)) == Nat.mul(1n+Nat.add(bval(t), bval(t)), bval(b)) : Nat}
       %Equal.sym(Nat, Nat.mul(bval(t), bval(b)), Nat.mul(bval(b), bval(t)), NA.mul_comm(bval(t), bval(b))) : {Nat.add(bval(b), Nat.add(_, Nat.mul(bval(t), bval(b)))) == Nat.mul(1n+Nat.add(bval(t), bval(t)), bval(b)) : Nat}
       %Equal.sym(Nat, Nat.mul(bval(t), bval(b)), Nat.mul(bval(b), bval(t)), NA.mul_comm(bval(t), bval(b))) : {Nat.add(bval(b), Nat.add(Nat.mul(bval(b), bval(t)), _)) == Nat.mul(1n+Nat.add(bval(t), bval(t)), bval(b)) : Nat}
       %Equal.sym(Nat, 1n+Nat.add(bval(t), bval(t)), Nat.add(Nat.add(bval(t), bval(t)), 1n), SR.succ_add(1n, Nat.add(bval(t), bval(t)))) : {Nat.add(bval(b), Nat.add(Nat.mul(bval(b), bval(t)), Nat.mul(bval(b), bval(t)))) == Nat.mul(_, bval(b)) : Nat}
@@ -216,6 +231,23 @@ def bmul_v(a: Bn, +b: Bn) -> {bval(bmul(a, b)) == Nat.mul(bval(a), bval(b)) : Na
       %Equal.sym(Nat, Nat.add(Nat.mul(bval(b), bval(t)), bval(b)), Nat.add(bval(b), Nat.mul(bval(b), bval(t))), NA.add_comm(Nat.mul(bval(b), bval(t)), bval(b))) : {Nat.add(bval(b), Nat.add(Nat.mul(bval(b), bval(t)), Nat.mul(bval(b), bval(t)))) == Nat.add(Nat.mul(bval(b), bval(t)), _) : Nat}
       %Equal.sym(Nat, Nat.add(Nat.mul(bval(b), bval(t)), Nat.add(bval(b), Nat.mul(bval(b), bval(t)))), Nat.add(bval(b), Nat.add(Nat.mul(bval(b), bval(t)), Nat.mul(bval(b), bval(t)))), NA.add_swap(Nat.mul(bval(b), bval(t)), bval(b), Nat.mul(bval(b), bval(t)))) : {Nat.add(bval(b), Nat.add(Nat.mul(bval(b), bval(t)), Nat.mul(bval(b), bval(t)))) == _ : Nat}
       {==}
+
+def bmul_v(+a: Bn, +b: Bn) -> {bval(bmul(a, b)) == Nat.mul(bval(a), bval(b)) : Nat}:
+  match a b:
+    case BZ{} _:
+      {==}
+    case B0{+t} BZ{}:
+      Equal.sym(Nat, Nat.mul(Nat.add(bval(t), bval(t)), 0n), 0n, NA.mul_zero(Nat.add(bval(t), bval(t))))
+    case B1{+t} BZ{}:
+      Equal.sym(Nat, Nat.mul(1n+Nat.add(bval(t), bval(t)), 0n), 0n, NA.mul_zero(1n+Nat.add(bval(t), bval(t))))
+    case B0{+t} B0{+u}:
+      bmul_go_v(B0{t}, B0{u})
+    case B0{+t} B1{+u}:
+      bmul_go_v(B0{t}, B1{u})
+    case B1{+t} B0{+u}:
+      bmul_go_v(B1{t}, B0{u})
+    case B1{+t} B1{+u}:
+      bmul_go_v(B1{t}, B1{u})
 
 def beq_v(a: Bn, b: Bn, +h: {beq(a, b) == True{} : Bool}) -> {bval(a) == bval(b) : Nat}:
   match a b:

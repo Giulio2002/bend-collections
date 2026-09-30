@@ -205,8 +205,12 @@ def pvar(+n: Nat, +i: Nat) -> List<&2, Tm>:
 # ---- the reduction x_i^d -> f (d = 1 + dp) ----
 
 # a term c x^(d k + r) m becomes c x^r m f^k (k = e_i / d)
-def red_k(+n: Nat, +i: Nat, +dp: Nat, +f: List<&2, Tm>, c: Zc, +e: List<&2, Nat>, +k: Nat) -> List<&2, Tm>:
-  tmul(Tm{c, esub(e, unit(n, i, Nat.mul(k, 1n+dp)))}, ppow(f, n, k))
+def red_k(+n: Nat, +i: Nat, +dp: Nat, +f: List<&2, Tm>, c: Zc, +e: List<&2, Nat>, k: Nat) -> List<&2, Tm>:
+  match k:
+    case 0n:
+      [Tm{c, e}]
+    case 1n+ +j:
+      tmul(Tm{c, esub(e, unit(n, i, Nat.mul(1n+j, 1n+dp)))}, ppow(f, n, 1n+j))
 
 def red_t(+n: Nat, +i: Nat, +dp: Nat, +f: List<&2, Tm>, t: Tm) -> List<&2, Tm>:
   match t:
@@ -219,6 +223,45 @@ def red(+n: Nat, +i: Nat, +dp: Nat, +f: List<&2, Tm>, a: List<&2, Tm>) -> List<&
       Nil{}
     case x <> xs:
       padd(red_t(n, i, dp, f, x), red(n, i, dp, f, xs))
+
+# ---- the same reduction, class by class ----
+#
+# red merges the reduced terms one at a time, which is quadratic when the
+# reduced variable is an early one. redf takes the terms of each class
+# k = e_i / d out at once (sel: an ordered sublist with x_i^(d k) removed)
+# and multiplies the whole sublist by f^k: a few linear merges. Classes
+# 0, 1, 2 are handled this way and whatever is left by red.
+
+def sel_c(b: Bool, c: Zc, e: List<&2, Nat>, r: List<&2, Tm>) -> List<&2, Tm>:
+  match b:
+    case True{}:
+      Tm{c, e} <> r
+    case False{}:
+      r
+
+def sel(+n: Nat, +i: Nat, +dp: Nat, +k: Nat, a: List<&2, Tm>) -> List<&2, Tm>:
+  match a:
+    case Nil{}:
+      Nil{}
+    case Tm{c, +e} <> xs:
+      sel_c(Nat.is_eq(Nat.div(nth(i, e), 1n+dp), k), c, esub(e, unit(n, i, Nat.mul(k, 1n+dp))), sel(n, i, dp, k, xs))
+
+def rst(+i: Nat, +dp: Nat, +k: Nat, a: List<&2, Tm>) -> List<&2, Tm>:
+  match a:
+    case Nil{}:
+      Nil{}
+    case Tm{c, +e} <> xs:
+      sel_c(Bool.not(Nat.is_eq(Nat.div(nth(i, e), 1n+dp), k)), c, e, rst(i, dp, k, xs))
+
+def redc(k: Nat, +n: Nat, +i: Nat, +dp: Nat, +f: List<&2, Tm>, +a: List<&2, Tm>) -> List<&2, Tm>:
+  match k:
+    case 0n:
+      padd(sel(n, i, dp, 0n, a), red(n, i, dp, f, rst(i, dp, 0n, a)))
+    case 1n+ +j:
+      padd(pmul(ppow(f, n, 1n+j), sel(n, i, dp, 1n+j, a)), redc(j, n, i, dp, f, rst(i, dp, 1n+j, a)))
+
+def redf(+n: Nat, +i: Nat, +dp: Nat, +f: List<&2, Tm>, +a: List<&2, Tm>) -> List<&2, Tm>:
+  redc(2n, n, i, dp, f, a)
 
 def pnull(a: List<&2, Tm>) -> Bool:
   match a:

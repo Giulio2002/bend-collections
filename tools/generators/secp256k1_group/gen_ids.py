@@ -109,11 +109,11 @@ class Ctx:
         d = 'P.psub(%s, %s)' % (a.poly, b.poly)
         polys = [d]
         for ix, dp, fp, rel, hd in rules:
-            polys.append('P.red(%dn, %dn, %dn, %s, %s)' % (self.n, ix, dp, fp, polys[-1]))
+            polys.append('P.redf(%dn, %dn, %dn, %s, %s)' % (self.n, ix, dp, fp, polys[-1]))
         hz = 'I.sm_nil(mp, %s, %s, {==})' % (polys[-1], self.env)
         for j in range(len(rules) - 1, -1, -1):
             ix, dp, fp, rel, hd = rules[j]
-            hz = 'I.sm_red(mp, %dn, %dn, %dn, %s, %s, %s, {==}, %s, %s)' % (self.n, ix, dp, fp, polys[j], self.env, rel, hz)
+            hz = 'I.sm_redf(mp, %dn, %dn, %dn, %s, %s, %s, {==}, %s, %s)' % (self.n, ix, dp, fp, polys[j], self.env, rel, hz)
         self.defs.append('%sdef %s(%s%s) -> {Nat.mod(%s, %s) == Nat.mod(%s, %s) : Nat}:\n  I.ident(mp, %s, %s, %s, %s, %s, %s, %s, %s)\n'
                          % (('# ' + comment + '\n') if comment else '', name, self.params, hyp_params, a.spec, M, b.spec, M,
                             a.spec, b.spec, a.poly, b.poly, self.env, a.rel, b.rel, hz))
@@ -133,11 +133,11 @@ class Ctx:
         d = 'P.psub(%s, %s)' % (a.poly, b.poly)
         polys = [d]
         for ix, dp, fp, rel, hd in rules:
-            polys.append('P.red(%dn, %dn, %dn, %s, %s)' % (self.n, ix, dp, fp, polys[-1]))
+            polys.append('P.redf(%dn, %dn, %dn, %s, %s)' % (self.n, ix, dp, fp, polys[-1]))
         hz = 'I.sm_nil(mp, %s, %s, {==})' % (polys[-1], self.env)
         for j in range(len(rules) - 1, -1, -1):
             ix, dp, fp, rel, hd = rules[j]
-            hz = 'I.sm_red(mp, %dn, %dn, %dn, %s, %s, %s, {==}, %s, %s)' % (self.n, ix, dp, fp, polys[j], self.env, rel, hz)
+            hz = 'I.sm_redf(mp, %dn, %dn, %dn, %s, %s, %s, {==}, %s, %s)' % (self.n, ix, dp, fp, polys[j], self.env, rel, hz)
         # the right side with the first i differences written out and 0 for the others
         def side(i, hole):
             out = None
