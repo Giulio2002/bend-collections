@@ -1,0 +1,161 @@
+import Base
+
+# The AES S-box and the GF(2^8) doublings MixColumns needs, computed with
+# U32 bit operations only: no table and no branch reads a secret byte.
+#
+# The S-box is the depth-16, 113-gate (+ 4 NOT) circuit of Boyar and Peralta
+# ("A depth-16 circuit for the AES S-box", 2011; the gate list BearSSL's
+# aes_ct uses), evaluated on one byte with one bit per U32 (values 0 or 1).
+# Its input x0..x7 is the byte's bit 7..0 and its output s0..s7 the result's
+# bit 7..0. proofs/crypto/aes/sbox.bend proves it equal, on every input, to
+# FIPS 197's S-box (the inverse in GF(2^8) followed by the affine map).
+# Every mask is the first operand of U32.and, so the bits above the low
+# eight of an input never reach the result.
+def sbox_word(+x: U32) -> U32:
+  +x0 = U32.and(1, U32.shrn(x, 7n))
+  +x1 = U32.and(1, U32.shrn(x, 6n))
+  +x2 = U32.and(1, U32.shrn(x, 5n))
+  +x3 = U32.and(1, U32.shrn(x, 4n))
+  +x4 = U32.and(1, U32.shrn(x, 3n))
+  +x5 = U32.and(1, U32.shrn(x, 2n))
+  +x6 = U32.and(1, U32.shrn(x, 1n))
+  +x7 = U32.and(1, U32.shrn(x, 0n))
+  +y14 = U32.xor(x3, x5)
+  +y13 = U32.xor(x0, x6)
+  +y9 = U32.xor(x0, x3)
+  +y8 = U32.xor(x0, x5)
+  +t0 = U32.xor(x1, x2)
+  +y1 = U32.xor(t0, x7)
+  +y4 = U32.xor(y1, x3)
+  +y12 = U32.xor(y13, y14)
+  +y2 = U32.xor(y1, x0)
+  +y5 = U32.xor(y1, x6)
+  +y3 = U32.xor(y5, y8)
+  +t1 = U32.xor(x4, y12)
+  +y15 = U32.xor(t1, x5)
+  +y20 = U32.xor(t1, x1)
+  +y6 = U32.xor(y15, x7)
+  +y10 = U32.xor(y15, t0)
+  +y11 = U32.xor(y20, y9)
+  +y7 = U32.xor(x7, y11)
+  +y17 = U32.xor(y10, y11)
+  +y19 = U32.xor(y10, y8)
+  +y16 = U32.xor(t0, y11)
+  +y21 = U32.xor(y13, y16)
+  +y18 = U32.xor(x0, y16)
+  +t2 = U32.and(y12, y15)
+  +t3 = U32.and(y3, y6)
+  +t4 = U32.xor(t3, t2)
+  +t5 = U32.and(y4, x7)
+  +t6 = U32.xor(t5, t2)
+  +t7 = U32.and(y13, y16)
+  +t8 = U32.and(y5, y1)
+  +t9 = U32.xor(t8, t7)
+  +t10 = U32.and(y2, y7)
+  +t11 = U32.xor(t10, t7)
+  +t12 = U32.and(y9, y11)
+  +t13 = U32.and(y14, y17)
+  +t14 = U32.xor(t13, t12)
+  +t15 = U32.and(y8, y10)
+  +t16 = U32.xor(t15, t12)
+  +t17 = U32.xor(t4, t14)
+  +t18 = U32.xor(t6, t16)
+  +t19 = U32.xor(t9, t14)
+  +t20 = U32.xor(t11, t16)
+  +t21 = U32.xor(t17, y20)
+  +t22 = U32.xor(t18, y19)
+  +t23 = U32.xor(t19, y21)
+  +t24 = U32.xor(t20, y18)
+  +t25 = U32.xor(t21, t22)
+  +t26 = U32.and(t21, t23)
+  +t27 = U32.xor(t24, t26)
+  +t28 = U32.and(t25, t27)
+  +t29 = U32.xor(t28, t22)
+  +t30 = U32.xor(t23, t24)
+  +t31 = U32.xor(t22, t26)
+  +t32 = U32.and(t31, t30)
+  +t33 = U32.xor(t32, t24)
+  +t34 = U32.xor(t23, t33)
+  +t35 = U32.xor(t27, t33)
+  +t36 = U32.and(t24, t35)
+  +t37 = U32.xor(t36, t34)
+  +t38 = U32.xor(t27, t36)
+  +t39 = U32.and(t29, t38)
+  +t40 = U32.xor(t25, t39)
+  +t41 = U32.xor(t40, t37)
+  +t42 = U32.xor(t29, t33)
+  +t43 = U32.xor(t29, t40)
+  +t44 = U32.xor(t33, t37)
+  +t45 = U32.xor(t42, t41)
+  +z0 = U32.and(t44, y15)
+  +z1 = U32.and(t37, y6)
+  +z2 = U32.and(t33, x7)
+  +z3 = U32.and(t43, y16)
+  +z4 = U32.and(t40, y1)
+  +z5 = U32.and(t29, y7)
+  +z6 = U32.and(t42, y11)
+  +z7 = U32.and(t45, y17)
+  +z8 = U32.and(t41, y10)
+  +z9 = U32.and(t44, y12)
+  +z10 = U32.and(t37, y3)
+  +z11 = U32.and(t33, y4)
+  +z12 = U32.and(t43, y13)
+  +z13 = U32.and(t40, y5)
+  +z14 = U32.and(t29, y2)
+  +z15 = U32.and(t42, y9)
+  +z16 = U32.and(t45, y14)
+  +z17 = U32.and(t41, y8)
+  +t46 = U32.xor(z15, z16)
+  +t47 = U32.xor(z10, z11)
+  +t48 = U32.xor(z5, z13)
+  +t49 = U32.xor(z9, z10)
+  +t50 = U32.xor(z2, z12)
+  +t51 = U32.xor(z2, z5)
+  +t52 = U32.xor(z7, z8)
+  +t53 = U32.xor(z0, z3)
+  +t54 = U32.xor(z6, z7)
+  +t55 = U32.xor(z16, z17)
+  +t56 = U32.xor(z12, t48)
+  +t57 = U32.xor(t50, t53)
+  +t58 = U32.xor(z4, t46)
+  +t59 = U32.xor(z3, t54)
+  +t60 = U32.xor(t46, t57)
+  +t61 = U32.xor(z14, t57)
+  +t62 = U32.xor(t52, t58)
+  +t63 = U32.xor(t49, t58)
+  +t64 = U32.xor(z4, t59)
+  +t65 = U32.xor(t61, t62)
+  +t66 = U32.xor(z1, t63)
+  +s0 = U32.xor(t59, t63)
+  +s6 = U32.xor(t56, U32.xor(1, t62))
+  +s7 = U32.xor(t48, U32.xor(1, t60))
+  +t67 = U32.xor(t64, t65)
+  +s3 = U32.xor(t53, t66)
+  +s4 = U32.xor(t51, t66)
+  +s5 = U32.xor(t47, t65)
+  +s1 = U32.xor(t64, U32.xor(1, s3))
+  +s2 = U32.xor(t55, U32.xor(1, t67))
+  U32.or(U32.shln(s0, 7n), U32.or(U32.shln(s1, 6n), U32.or(U32.shln(s2, 5n), U32.or(U32.shln(s3, 4n), U32.or(U32.shln(s4, 3n), U32.or(U32.shln(s5, 2n), U32.or(U32.shln(s6, 1n), s7)))))))
+
+# The S-box. (The one-constructor match only opens the U32, no branch: it
+# keeps a proof about an unknown word from expanding the 117 gates.)
+def sbox(x: U32) -> U32:
+  match x:
+    case U32{w}: sbox_word(U32{w})
+
+# {02} * x in GF(2^8) (FIPS 197 section 4.2.1, xtime): shift left and, when
+# bit 7 was set, add x^8 = {1b}; the reduction mask is 0 - bit7, not a branch.
+def xtime_word(+x: U32) -> U32:
+  U32.xor(U32.and(254, U32.shln(x, 1n)), U32.and(27, U32.sub(0, U32.and(1, U32.shrn(x, 7n)))))
+
+def xtime(x: U32) -> U32:
+  match x:
+    case U32{w}: xtime_word(U32{w})
+
+# {03} * x = {02} * x + x.
+def mul3_word(+x: U32) -> U32:
+  U32.xor(xtime(x), U32.and(255, x))
+
+def mul3(x: U32) -> U32:
+  match x:
+    case U32{w}: mul3_word(U32{w})

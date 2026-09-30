@@ -1,4 +1,5 @@
 import Base
+import ./f64light.bend as FL
 import ../../../spec/lib/common.bend as C
 import ../../../spec/math/f64.bend as SF
 import ../../../spec/math/w64.bend as SW
@@ -44,25 +45,13 @@ def dq96r(+one: Nat, +h1: {one == 1n : Nat}, +r: WU.U64, +b: WU.U64, +t: Nat, +h
       DD.dig_r(one, h1, rl, rh, ml, mh, e0(rl, rh, ml, mh, t), hx, hz, W64E.est_t(one, h1, WU.U64{0, rl}, rh, ml, mh, hz, MM.red_hx(one, h1, 0, rl, rh, ml, mh, hx), t, ht))
 
 def dm2(+l: Bool, +r: Bool) -> {Bool.or(Bool.not(r), Bool.not(l)) == Bool.not(Bool.and(l, r)) : Bool}:
-  match l r:
-    case True{} True{}:
-      {==}
-    case True{} False{}:
-      {==}
-    case False{} True{}:
-      {==}
-    case False{} False{}:
-      {==}
+  FL.dm2(l, r)
 
 def nfit_mono_c(+a: Nat, +b: Nat, +x: Nat, +hab: {Nat.is_le(a, b) == True{} : Bool}, +h: {C.fits(b, x) == False{} : Bool}, +c: Bool, +hc: {C.fits(a, x) == c : Bool}) -> {c == False{} : Bool}:
-  match c:
-    case True{}:
-      Equal.trans(Bool, True{}, C.fits(b, x), False{}, Equal.sym(Bool, C.fits(b, x), True{}, SH.fits_mono(a, b, x, hab, hc)), h)
-    case False{}:
-      {==}
+  FL.nfit_mono_c(a, b, x, hab, h, c, hc)
 
 def nfit_mono(+a: Nat, +b: Nat, +x: Nat, +hab: {Nat.is_le(a, b) == True{} : Bool}, +h: {C.fits(b, x) == False{} : Bool}) -> {C.fits(a, x) == False{} : Bool}:
-  nfit_mono_c(a, b, x, hab, h, C.fits(a, x), {==})
+  FL.nfit_mono(a, b, x, hab, h)
 
 # the quotient step, for a in [b, 2b), a = MX * 2^u, b = MY * 2^w, 62 + u = w + P, P + dp = 200
 def dgen(+one: Nat, +h1: {one == 1n : Nat}, +s: Bool, +e: Nat, +x: Nat, +hx: {Nat.add(x, 2180n) == e : Nat}, +aw: WU.U64, +bw: WU.U64, +bp: Nat, +hBp: {SW.value(bw) == 1n+bp : Nat}, +MX: Nat, +yp: Nat, +u: Nat, +w: Nat, +P: Nat, +dp: Nat, +ha: {SW.value(aw) == C.shift(u, MX) : Nat}, +hb: {SW.value(bw) == C.shift(w, 1n+yp) : Nat}, +hP: {Nat.add(62n, u) == Nat.add(w, P) : Nat}, +hdp: {Nat.add(dp, P) == 200n : Nat}, +hle: {Nat.is_le(SW.value(bw), SW.value(aw)) == True{} : Bool}, +hRlt: {Nat.is_lt(Nat.sub(SW.value(aw), SW.value(bw)), SW.value(bw)) == True{} : Bool}, +hhi: {U32.is_zero(X.hi(bw)) == False{} : Bool}, +E: Nat, +hEx: {Nat.add(E, 1n+dp) == x : Nat}) -> {F.div_q(s, e, aw, bw) == SF.round(s, Nat.add(Nat.mul(2n, Nat.div(C.shift(200n, MX), 1n+yp)), Nat.min(Nat.mod(C.shift(200n, MX), 1n+yp), 1n)), E) : F.F64}:

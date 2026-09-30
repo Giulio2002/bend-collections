@@ -45,7 +45,9 @@ import ./mirror.bend as MI
 # ---- reads ----
 
 def read_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +id: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, $ND, MI.read(~K, ~V, ~cmp, m, id)) == True{} : Bool}:
-  g_m
+  match m:
+    case ST.SH{$FP}:
+      g_m
 
 def read_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +id: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.read(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id) == MI.rp(~K, ~V, ~cmp, $ND, MI.read(~K, ~V, ~cmp, m, id)) : $TMT & $ND}:
   match m:
@@ -53,7 +55,9 @@ def read_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +id: Nat, +g_m: {M
       PR.read_c(~K, ~V, ~cmp, $F, $DGS(g_m), id)
 
 def get_id_g(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +id: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {MI.dgp(K, V, $MV, MI.get_id(~K, ~V, ~cmp, m, id)) == True{} : Bool}:
-  g_m
+  match m:
+    case ST.SH{$FP}:
+      g_m
 
 def get_id_s(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $SHV, +id: Nat, +g_m: {MI.dg(K, V, m) == True{} : Bool}) -> {M.get_id(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, m), id) == MI.rp(~K, ~V, ~cmp, $MV, MI.get_id(~K, ~V, ~cmp, m, id)) : $TMT & $MV}:
   match m:

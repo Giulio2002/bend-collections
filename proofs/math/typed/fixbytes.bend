@@ -15,7 +15,6 @@ import ./w64add.bend as WA
 import ./w64sh.bend as SH
 import ./shrn.bend as SHN
 import ./u32laws.bend as LW
-import ./u64laws.bend as LV
 import ./fixgen.bend as G
 import ./fix32.bend as P32
 

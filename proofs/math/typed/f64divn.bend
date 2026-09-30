@@ -1,4 +1,5 @@
 import Base
+import ./f64light.bend as FL
 import ../../../spec/lib/common.bend as C
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
@@ -7,8 +8,6 @@ import ../natural/arith.bend as NR
 import ./width.bend as WW
 import ./natcmp.bend as NC
 import ./f64rtools.bend as RT
-import ./w64dm.bend as DM
-import ./f64divd.bend as DD
 import ./natfuel.bend as NF
 
 # The quotient and sticky bit of a division, at two scales: the spec's
@@ -18,11 +17,7 @@ import ./natfuel.bend as NF
 # sticky bit.
 
 def add_eq0(+a: Nat, +b: Nat) -> {Nat.is_eq(Nat.add(a, b), 0n) == Bool.and(Nat.is_eq(a, 0n), Nat.is_eq(b, 0n)) : Bool}:
-  match a:
-    case 0n:
-      {==}
-    case 1n+ +ap:
-      {==}
+  FL.add_eq0(a, b)
 
 def mul_eq0(+a: Nat, +yp: Nat) -> {Nat.is_eq(Nat.mul(a, 1n+yp), 0n) == Nat.is_eq(a, 0n) : Bool}:
   match a:

@@ -618,7 +618,7 @@ law mod_quotient:
   for +d: Nat
   for +e: Nat
   for +r: Nat
-  {Nat.mod.fin(Nat.divmod.go(x, m, d, r)) == Nat.mod.fin(Nat.divmod.go(x, m, e, r)) : Nat}
+  {Pair.snd(Nat, Nat, Nat.divmod.go(x, m, d, r)) == Pair.snd(Nat, Nat, Nat.divmod.go(x, m, e, r)) : Nat}
 
 def mod_quotient(x, m, d, e, r):
   match x m:

@@ -3,6 +3,7 @@ import ./containers/intrusive_doubly_linked_list/proof.bend as IntrusiveList
 import ./containers/dlist_iterator/proof.bend as IteratorComponents
 import ./containers/balanced_search_tree/components.bend as TreeMapComponents
 import ./END_TO_END.bend as End
+import ./lib/lemmas/proofs/public_trace.bend as LruTrace
 import ./math/proof.bend as Math
 import ./containers/hash_table/proof.bend as HashTable
 import ./containers/lru/proof.bend as Lru
@@ -11,6 +12,7 @@ import ./containers/balanced_search_tree/proof.bend as TreeMap
 import ./containers/bitlist/proof.bend as Bitlist
 
 # Root gate. Checks END_TO_END.bend (and through it every proofs/<id>.bend
-# entry), the math library, the refinements of the hash map, the LRU cache,
-# the doubly linked list, the indexed TreeMap and the bit list, and the
-# TreeMap's component laws.
+# entry), the retained LRU's trace refinement (lib/lemmas/proofs/public_trace),
+# the math library, the refinements of the hash map, the LRU cache, the doubly
+# linked list, the indexed TreeMap and the bit list, and the TreeMap's
+# component laws.

@@ -70,17 +70,25 @@ def from_nat_value_k(+n: Nat, +k: Nat, +v: Nat, +hk: {Nat.is_le(k, n) == True{} 
 def shl_exact_k(+n: Nat, +k: Nat, +w: Word(n), +hk: {Nat.is_le(k, n) == True{} : Bool}, +h: {Nat.is_lt(Nat.double(S.unsigned(n, w)), SC.pow2(k)) == True{} : Bool}) -> {S.unsigned(n, Word.shl(n, w)) == Nat.double(S.unsigned(n, w)) : Nat}:
   WS.exact(n, w, N.lt_le_trans(Nat.double(S.unsigned(n, w)), SC.pow2(k), S.scale_binary(n, 1n), h, pow2_le_scale(n, k, hk)))
 
+# one increment over an abstract width (the checker never expands a
+# literal-width word here)
+def inc_from(+n: Nat, +p: Nat, +hv: {S.unsigned(n, S.from_nat(n, p)) == p : Nat}) -> {Word.inc(n, S.from_nat(n, p)) == S.from_nat(n, 1n+p) : Word(n)}:
+  Equal.trans(Word(n), Word.inc(n, S.from_nat(n, p)), S.from_nat(n, 1n+S.unsigned(n, S.from_nat(n, p))), S.from_nat(n, 1n+p),
+    MA.increment_refines(n, S.from_nat(n, p)),
+    Equal.cong(Nat, Word(n), v => S.from_nat(n, 1n+v), S.unsigned(n, S.from_nat(n, p)), p, hv))
+
+# the U32 step over abstract words a (for p) and b (for p + 1)
+def from_nat_step(+p: Nat, +a: Word(32n), +b: Word(32n), +rec: {U32.from_nat(p) == U32{a} : U32}, +hinc: {Word.inc(32n, a) == b : Word(32n)}) -> {U32.from_nat(1n+p) == U32{b} : U32}:
+  %Equal.sym(U32, U32.from_nat(p), U32{a}, rec) : {U32.inc(_) == U32{b} : U32}
+  Equal.cong(Word(32n), U32, w => U32{w}, Word.inc(32n, a), b, hinc)
+
 def from_nat_word(+i: Nat, +k: Nat, +hk: {Nat.is_le(k, 32n) == True{} : Bool}, +h: {Nat.is_lt(i, SC.pow2(k)) == True{} : Bool}) -> {U32.from_nat(i) == U32{S.from_nat(32n, i)} : U32}:
   match i:
     case 0n:
       {==}
     case 1n+p:
-      %Equal.sym(U32, U32.from_nat(p), U32{S.from_nat(32n, p)}, from_nat_word(p, k, hk, N.lt_trans(p, 1n+p, SC.pow2(k), N.lt_succ(p), h))) : {U32.inc(_) == U32{S.from_nat(32n, 1n+p)} : U32}
-      Equal.cong(Word(32n), U32, w => U32{w}, Word.inc(32n, S.from_nat(32n, p)), S.from_nat(32n, 1n+p),
-        Equal.trans(Word(32n), Word.inc(32n, S.from_nat(32n, p)), S.from_nat(32n, 1n+S.unsigned(32n, S.from_nat(32n, p))), S.from_nat(32n, 1n+p),
-          MA.increment_refines(32n, S.from_nat(32n, p)),
-          Equal.cong(Nat, Word(32n), v => S.from_nat(32n, 1n+v), S.unsigned(32n, S.from_nat(32n, p)), p,
-            from_nat_value_k(32n, k, p, hk, N.lt_trans(p, 1n+p, SC.pow2(k), N.lt_succ(p), h)))))
+      +hp = N.lt_trans(p, 1n+p, SC.pow2(k), N.lt_succ(p), h)
+      from_nat_step(p, S.from_nat(32n, p), S.from_nat(32n, 1n+p), from_nat_word(p, k, hk, hp), inc_from(32n, p, from_nat_value_k(32n, k, p, hk, hp)))
 
 def to_nat_from_nat(+i: Nat, +k: Nat, +hk: {Nat.is_le(k, 32n) == True{} : Bool}, +h: {Nat.is_lt(i, SC.pow2(k)) == True{} : Bool}) -> {U32.to_nat(U32.from_nat(i)) == i : Nat}:
   %Equal.sym(U32, U32.from_nat(i), U32{S.from_nat(32n, i)}, from_nat_word(i, k, hk, h)) : {U32.to_nat(_) == i : Nat}

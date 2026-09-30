@@ -7,9 +7,6 @@ import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../natural/arith.bend as NR
-import ./w64mul.bend as W64M
-import ./w64div.bend as W64D
-import ./w64add.bend as WA
 import ./w64dm.bend as DM
 import ./w64est.bend as W64E
 import ./w64m128.bend as M128
