@@ -201,7 +201,12 @@ def references_section():
             '- Shuffle: both sides shuffle the first n slots of an array in place (Bend:',
             '  `shuffle_array` on an `Array<U32>` of 2^d >= n slots, filled before the timed',
             '  region; the list `shuffle` writes the list into such an array and reads it',
-            '  back, two more linear passes).', '']
+            '  back, two more linear passes).',
+            '- `crypto.random.bytes` returns a list with one heap cell per byte (and',
+            '  reverses its accumulator), so it stays about 20x the C buffer write; the',
+            '  ChaCha8 stream alone is about 7x. `crypto.random.read_words` writes the same',
+            '  bytes packed four to a U32 into an `Array<U32>` allocated before the timed',
+            '  region, which is what the C side does with its byte buffer.', '']
 
 
 def main():

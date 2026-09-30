@@ -61,12 +61,13 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | Ed25519 verify | 4449.20 |
 | Argon2id | 42.94 |
 | secp256k1 (ECDSA, recovery, BIP-340) | 47560.98 |
-| ChaCha8 `uint64` | 7.29 |
-| PCG `uint64` | 6.51 |
-| `uint_below` (ChaCha8) | 15.50 |
-| `float64` (ChaCha8) | 9.22 |
-| `shuffle` (ChaCha8) | 6.43 |
-| `crypto.random.bytes` | 22.88 |
+| ChaCha8 `uint64` | 7.26 |
+| PCG `uint64` | 6.47 |
+| `uint_below` (ChaCha8) | 6.05 |
+| `float64` (ChaCha8) | 9.28 |
+| `shuffle` (ChaCha8) | 6.38 |
+| `crypto.random.bytes` | 23.17 |
+| `crypto.random.read_words` | 4.34 |
 | Math (natural) | 5.35 |
 | Math per type | 7.68 |
 | Intrusive doubly linked list | 1.63 |
@@ -392,57 +393,68 @@ microseconds per shuffle / per request.
 
 ### ChaCha8 `uint64`
 
-C reference: a C transcription of Go 1.23 `internal/chacha8rand` (portable block function). Worst ratio 7.29.
+C reference: a C transcription of Go 1.23 `internal/chacha8rand` (portable block function). Worst ratio 7.26.
 
 | Draws | Bend (ns) | C (ns) | Ratio |
 |---:|---:|---:|---:|
-| 2097152 draws | 30.0 | 4.12 | 7.29 |
+| 2097152 draws | 32.9 | 4.53 | 7.26 |
 
 ### PCG `uint64`
 
-C reference: a C transcription of Go 1.23 `math/rand/v2` PCG-DXSM. Worst ratio 6.51.
+C reference: a C transcription of Go 1.23 `math/rand/v2` PCG-DXSM. Worst ratio 6.47.
 
 | Draws | Bend (ns) | C (ns) | Ratio |
 |---:|---:|---:|---:|
-| 4194304 draws | 10.3 | 1.57 | 6.51 |
+| 4194304 draws | 11.2 | 1.73 | 6.47 |
 
 ### `uint_below` (ChaCha8)
 
-C reference: Go's `uint64n` (Lemire) transcribed. Worst ratio 15.50.
+C reference: Go's `uint64n` (Lemire) transcribed. Worst ratio 6.05.
 
 | Bound | Bend (ns) | C (ns) | Ratio |
 |---:|---:|---:|---:|
-| n = 1000000007 | 33.9 | 5.36 | 6.31 |
-| n = 2^63 + 1 | 242 | 15.6 | 15.50 |
+| n = 1000000007 | 35.8 | 5.91 | 6.05 |
+| n = 2^63 + 1 | 98.2 | 17.2 | 5.71 |
 
 ### `float64` (ChaCha8)
 
-C reference: Go's `Float64` transcribed. Worst ratio 9.22.
+C reference: Go's `Float64` transcribed. Worst ratio 9.28.
 
 | Draws | Bend (ns) | C (ns) | Ratio |
 |---:|---:|---:|---:|
-| 2097152 draws | 38.6 | 4.19 | 9.22 |
+| 2097152 draws | 41.5 | 4.47 | 9.28 |
 
 ### `shuffle` (ChaCha8)
 
-C reference: Go's Fisher-Yates `Shuffle` on a C array; Bend's `shuffle_array` on an `Array<U32>`, in place. Worst ratio 6.43.
+C reference: Go's Fisher-Yates `Shuffle` on a C array; Bend's `shuffle_array` on an `Array<U32>`, in place. Worst ratio 6.38.
 
 | Items | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 1000 items | 26.0 | 4.16 | 6.25 |
-| 10000 items | 260 | 40.4 | 6.43 |
-| 100000 items | 2600 | 406 | 6.41 |
+| 1000 items | 27.5 | 4.44 | 6.19 |
+| 10000 items | 270 | 43.3 | 6.23 |
+| 100000 items | 3150 | 494 | 6.38 |
 
 ### `crypto.random.bytes`
 
-C reference: Go's `ChaCha8.Read` transcribed. Worst ratio 22.88.
+C reference: Go's `ChaCha8.Read` transcribed; Bend returns a list of bytes. Worst ratio 23.17.
 
 | Request | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 0.76 | 0.03 | 22.88 |
-| 1 KiB | 11.5 | 0.53 | 21.48 |
-| 64 KiB | 750 | 34.0 | 22.07 |
-| 1 MiB | 12250 | 542 | 22.61 |
+| 64 B | 0.79 | 0.04 | 22.37 |
+| 1 KiB | 12.2 | 0.57 | 21.52 |
+| 64 KiB | 797 | 35.6 | 22.36 |
+| 1 MiB | 13250 | 572 | 23.17 |
+
+### `crypto.random.read_words`
+
+C reference: Go's `ChaCha8.Read` transcribed; Bend writes the bytes packed into an `Array<U32>`, in place. Worst ratio 4.34.
+
+| Request | Bend (us) | C (us) | Ratio |
+|---:|---:|---:|---:|
+| 64 B | 0.15 | 0.04 | 4.29 |
+| 1 KiB | 2.44 | 0.59 | 4.17 |
+| 64 KiB | 156 | 36.0 | 4.34 |
+| 1 MiB | 2500 | 578 | 4.33 |
 
 ## C references
 
@@ -488,6 +500,11 @@ Fairness notes:
   `shuffle_array` on an `Array<U32>` of 2^d >= n slots, filled before the timed
   region; the list `shuffle` writes the list into such an array and reads it
   back, two more linear passes).
+- `crypto.random.bytes` returns a list with one heap cell per byte (and
+  reverses its accumulator), so it stays about 20x the C buffer write; the
+  ChaCha8 stream alone is about 7x. `crypto.random.read_words` writes the same
+  bytes packed four to a U32 into an `Array<U32>` allocated before the timed
+  region, which is what the C side does with its byte buffer.
 
 ## Math
 
