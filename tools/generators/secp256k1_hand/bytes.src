@@ -284,7 +284,15 @@ def bytes_le_v(+one: Nat, +h1: {one == 1n : Nat}, k: Nat, xs: List<&2, Nat>, +h:
       %rw bytes_le_v(one, h1, j, t, ht)
       %close
 
+def i2_is(+n: Nat, x: Nat) -> {CV.i2osp(n, x) == CV.i2osp_go(n, x) : List<&2, U32>}:
+  match x:
+    case 0n:
+      {==}
+    case 1n+k:
+      {==}
+
 def to_be_v(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, Nat>, +h: {FS.limbs16(one, 16n, xs) == True{} : Bool}) -> {B.to_be(xs) == CV.i2osp(32n, LV.ev(xs)) : List<&2, U32>}:
+  %rw i2_is(32n, LV.ev(xs))
   %goal {List.reverse(&2, U32, B.bytes_le(xs)) == List.reverse(&2, U32, CV.i2osp_le(32n, LV.ev(xs))) : List<&2, U32>}
   %rw bytes_le_v(one, h1, 16n, xs, h)
   %close

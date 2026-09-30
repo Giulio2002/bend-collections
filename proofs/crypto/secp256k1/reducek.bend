@@ -7,6 +7,7 @@ import ../../lib/nat.bend as N
 import ../../lib/logic.bend as Lg
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ./limbs.bend as LV
+import ./fprot.bend as FR
 import ./ineq.bend as I
 import ./reduce.bend as R
 
@@ -100,20 +101,24 @@ def r4_lo(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +xs: List<&2, Na
 
 # x mod m for x < 2^512, m = 2^256 - c, (1 + c) c + c <= 2^256, 2 c < 2^256
 def reduce3_v(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +c: List<&2, Nat>, +hm: {Nat.add(1n+mp, LV.ev(c)) == C.shift(256n, one) : Nat}, +hcc: {Nat.is_lt(Nat.add(LV.ev(c), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}, +hb: {Nat.is_le(Nat.add(Nat.mul(1n+LV.ev(c), LV.ev(c)), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {LV.ev(L.reduce(c, 3n, xs)) == Nat.mod(LV.ev(xs), 1n+mp) : Nat}:
+  %Equal.sym(List<&2, Nat>, L.reduce(c, 3n, xs), L.reduce_go(c, 3n, xs), FR.lred(c, 3n, xs)) : {LV.ev(_) == Nat.mod(LV.ev(xs), 1n+mp) : Nat}
   +r = L.rounds(3n, c, L.carry(32n, xs, 0n))
   %Equal.sym(Nat, LV.ev(L.canon(c, L.take(16n, L.rounds(3n, c, L.carry(32n, xs, 0n))))), Nat.mod(LV.ev(L.rounds(3n, c, L.carry(32n, xs, 0n))), 1n+mp), red_fin_v(one, h1, mp, c, hm, hcc, L.rounds(3n, c, L.carry(32n, xs, 0n)), r3_lo(one, h1, c, xs), red3_x3(one, h1, c, xs, hb, hx))) : {_ == Nat.mod(LV.ev(xs), 1n+mp) : Nat}
   %Equal.sym(Nat, Nat.mod(LV.ev(L.rounds(3n, c, L.carry(32n, xs, 0n))), 1n+mp), Nat.mod(LV.ev(xs), 1n+mp), red3_mod(one, h1, mp, c, hm, xs)) : {_ == Nat.mod(LV.ev(xs), 1n+mp) : Nat}
   {==}
 
 def reduce3_l(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +hcc: {Nat.is_lt(Nat.add(LV.ev(c), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}, +hb: {Nat.is_le(Nat.add(Nat.mul(1n+LV.ev(c), LV.ev(c)), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {FS.limbs16(one, 16n, L.reduce(c, 3n, xs)) == True{} : Bool}:
+  %Equal.sym(List<&2, Nat>, L.reduce(c, 3n, xs), L.reduce_go(c, 3n, xs), FR.lred(c, 3n, xs)) : {FS.limbs16(one, 16n, _) == True{} : Bool}
   red_fin_l(one, h1, c, hcc, L.rounds(3n, c, L.carry(32n, xs, 0n)), r3_lo(one, h1, c, xs), red3_x3(one, h1, c, xs, hb, hx))
 
 def reduce4_v(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +c: List<&2, Nat>, +hm: {Nat.add(1n+mp, LV.ev(c)) == C.shift(256n, one) : Nat}, +hcc: {Nat.is_lt(Nat.add(LV.ev(c), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}, +hb1: {Nat.is_le(Nat.mul(1n+LV.ev(c), LV.ev(c)), Nat.mul(4n, C.shift(256n, one))) == True{} : Bool}, +hb2: {Nat.is_le(Nat.add(Nat.mul(5n, LV.ev(c)), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {LV.ev(L.reduce(c, 4n, xs)) == Nat.mod(LV.ev(xs), 1n+mp) : Nat}:
+  %Equal.sym(List<&2, Nat>, L.reduce(c, 4n, xs), L.reduce_go(c, 4n, xs), FR.lred(c, 4n, xs)) : {LV.ev(_) == Nat.mod(LV.ev(xs), 1n+mp) : Nat}
   %Equal.sym(Nat, LV.ev(L.canon(c, L.take(16n, L.rounds(4n, c, L.carry(32n, xs, 0n))))), Nat.mod(LV.ev(L.rounds(4n, c, L.carry(32n, xs, 0n))), 1n+mp), red_fin_v(one, h1, mp, c, hm, hcc, L.rounds(4n, c, L.carry(32n, xs, 0n)), r4_lo(one, h1, c, xs), red4_x4(one, h1, c, xs, hb1, hb2, hx))) : {_ == Nat.mod(LV.ev(xs), 1n+mp) : Nat}
   %Equal.sym(Nat, Nat.mod(LV.ev(L.rounds(4n, c, L.carry(32n, xs, 0n))), 1n+mp), Nat.mod(LV.ev(xs), 1n+mp), red4_mod(one, h1, mp, c, hm, xs)) : {_ == Nat.mod(LV.ev(xs), 1n+mp) : Nat}
   {==}
 
 def reduce4_l(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +hcc: {Nat.is_lt(Nat.add(LV.ev(c), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}, +hb1: {Nat.is_le(Nat.mul(1n+LV.ev(c), LV.ev(c)), Nat.mul(4n, C.shift(256n, one))) == True{} : Bool}, +hb2: {Nat.is_le(Nat.add(Nat.mul(5n, LV.ev(c)), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {FS.limbs16(one, 16n, L.reduce(c, 4n, xs)) == True{} : Bool}:
+  %Equal.sym(List<&2, Nat>, L.reduce(c, 4n, xs), L.reduce_go(c, 4n, xs), FR.lred(c, 4n, xs)) : {FS.limbs16(one, 16n, _) == True{} : Bool}
   red_fin_l(one, h1, c, hcc, L.rounds(4n, c, L.carry(32n, xs, 0n)), r4_lo(one, h1, c, xs), red4_x4(one, h1, c, xs, hb1, hb2, hx))
 
 # ---- with the hypotheses on c in the specification's terms ----

@@ -149,9 +149,15 @@ def canon(+c: List<&2, Nat>, +t: List<&2, Nat>) -> List<&2, Nat>:
   +u = carry(32n, add(t, c), 0n)
   select(top(u), take(16n, u), t)
 
-# x mod m for x below 2^512, in k folds
-def reduce(+c: List<&2, Nat>, k: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
+def reduce_go(+c: List<&2, Nat>, k: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
   canon(c, take(16n, rounds(k, c, carry(32n, xs, 0n))))
+
+# x mod m for x below 2^512, in k folds (x is looked at first, so that the
+# proof checker keeps an unknown reduction folded)
+def reduce(+c: List<&2, Nat>, k: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
+  match xs:
+    case Nil{}: reduce_go(c, k, Nil{})
+    case x <> t: reduce_go(c, k, x <> t)
 
 # ---- negation and comparison modulo m, from c ----
 

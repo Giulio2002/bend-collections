@@ -239,16 +239,18 @@ def cn_fe() -> List<&2, Nat>:
 def cp_fe() -> List<&2, Nat>:
   [977n, 0n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]
 
-# r + n as a field element: r + n = r - c_n + 2^256 = r - c_n + c_p (mod p)
+# (r + n) mod p = (r - c_n + 2^256) mod p = (r - c_n + c_p) mod p
 def rn_fe(+r: List<&2, Nat>) -> List<&2, Nat>:
   F.add(F.sub(r, cn_fe()), cp_fe())
 
-# x = r + j n with j = id / 2; for j = 1 it must stay below p: r + c_p < c_n
+# x = r + j n with j = id / 2. For j = 1, r + n must be below p: then
+# (r + n) mod p = r + n >= n, while a wrapped r + n - p is below r < n
 def recover_ok(+z: List<&2, Nat>, +r: List<&2, Nat>, +s: List<&2, Nat>, +id: Nat, ok: Bool) -> Maybe<&2, List<&2, U32>>:
   match ok:
     case True{}:
       +j = Nat.div(id, 2n)
-      recover_x(z, r, s, id, F.select(j, rn_fe(r), r), Bool.or(Nat.is_eq(j, 0n), L.lt(L.norm16(L.add(r, cp_fe())), cn_fe())))
+      +x1 = rn_fe(r)
+      recover_x(z, r, s, id, F.select(j, x1, r), Bool.or(Nat.is_eq(j, 0n), Bool.not(S.lt_n(x1))))
     case False{}: None{}
 
 def recover_sig(+h: List<&2, U32>, +sig: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:

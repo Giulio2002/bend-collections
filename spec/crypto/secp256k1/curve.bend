@@ -206,8 +206,14 @@ def i2osp_le(n: Nat, +x: Nat) -> List<&2, U32>:
     case 0n: Nil{}
     case 1n+k: U32.from_nat(C.low(8n, x)) <> i2osp_le(k, C.high(8n, x))
 
-def i2osp(n: Nat, +x: Nat) -> List<&2, U32>:
+def i2osp_go(n: Nat, +x: Nat) -> List<&2, U32>:
   List.reverse(&2, U32, i2osp_le(n, x))
+
+# (x is looked at first, so that on an unknown x nothing is unfolded)
+def i2osp(+n: Nat, x: Nat) -> List<&2, U32>:
+  match x:
+    case 0n: i2osp_go(n, 0n)
+    case 1n+k: i2osp_go(n, 1n+k)
 
 def length_is(n: Nat, bs: List<&2, U32>) -> Bool:
   Nat.is_eq(List.length(&2, U32, bs), n)

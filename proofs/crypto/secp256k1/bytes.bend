@@ -288,6 +288,14 @@ def bytes_le_v(+one: Nat, +h1: {one == 1n : Nat}, k: Nat, xs: List<&2, Nat>, +h:
       %Equal.sym(List<&2, U32>, B.bytes_le(t), CV.i2osp_le(Nat.double(j), LV.ev(t)), bytes_le_v(one, h1, j, t, ht)) : {U32.from_nat(Nat.mod(x, 256n)) <> U32.from_nat(Nat.div(x, 256n)) <> _ == U32.from_nat(Nat.mod(x, 256n)) <> U32.from_nat(Nat.div(x, 256n)) <> CV.i2osp_le(Nat.double(j), LV.ev(t)) : List<&2, U32>}
       {==}
 
+def i2_is(+n: Nat, x: Nat) -> {CV.i2osp(n, x) == CV.i2osp_go(n, x) : List<&2, U32>}:
+  match x:
+    case 0n:
+      {==}
+    case 1n+k:
+      {==}
+
 def to_be_v(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, Nat>, +h: {FS.limbs16(one, 16n, xs) == True{} : Bool}) -> {B.to_be(xs) == CV.i2osp(32n, LV.ev(xs)) : List<&2, U32>}:
+  %Equal.sym(List<&2, U32>, CV.i2osp(32n, LV.ev(xs)), CV.i2osp_go(32n, LV.ev(xs)), i2_is(32n, LV.ev(xs))) : {B.to_be(xs) == _ : List<&2, U32>}
   %Equal.sym(List<&2, U32>, B.bytes_le(xs), CV.i2osp_le(Nat.double(16n), LV.ev(xs)), bytes_le_v(one, h1, 16n, xs, h)) : {List.reverse(&2, U32, _) == List.reverse(&2, U32, CV.i2osp_le(32n, LV.ev(xs))) : List<&2, U32>}
   {==}

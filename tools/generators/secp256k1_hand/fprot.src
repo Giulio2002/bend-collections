@@ -117,3 +117,10 @@ def s_neg(a: List<&2, Nat>) -> {S.neg(a) == S.neg_u(a) : List<&2, Nat>}:
 
 def s_reduce(xs: List<&2, Nat>) -> {S.reduce(xs) == S.reduce_u(xs) : List<&2, Nat>}:
   {==}
+
+def lred(+c: List<&2, Nat>, +k: Nat, xs: List<&2, Nat>) -> {L.reduce(c, k, xs) == L.reduce_go(c, k, xs) : List<&2, Nat>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case x <> t:
+      {==}
