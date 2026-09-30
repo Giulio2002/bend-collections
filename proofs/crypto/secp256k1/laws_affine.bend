@@ -29,8 +29,6 @@ law Affine.identity_left:
 law Affine.sum:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
   for +a: CS.SPoint
   for +b: CS.SPoint
   for +va: {GS.valid(FS.prime(one), a) == True{} : Bool}
@@ -41,8 +39,6 @@ law Affine.sum:
 law Affine.of_equiv:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
   for +a: CS.SPoint
   for +b: CS.SPoint
   for +va: {GS.valid(FS.prime(one), a) == True{} : Bool}
@@ -54,8 +50,6 @@ law Affine.of_equiv:
 law Affine.equiv_of:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
   for +a: CS.SPoint
   for +b: CS.SPoint
   for +va: {GS.valid(FS.prime(one), a) == True{} : Bool}
@@ -67,8 +61,6 @@ law Affine.equiv_of:
 law Affine.of_valid:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
   for +a: CS.SPoint
   for +va: {GS.valid(FS.prime(one), a) == True{} : Bool}
   {GA.valid(FS.prime(one), GA.of_proj(FS.prime(one), a)) == True{} : Bool}
@@ -77,8 +69,6 @@ law Affine.of_valid:
 law Affine.to_valid:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
   for +a: GA.APoint
   for +va: {GA.valid(FS.prime(one), a) == True{} : Bool}
   {GS.valid(FS.prime(one), GA.to_proj(a)) == True{} : Bool}
@@ -87,8 +77,6 @@ law Affine.to_valid:
 law Affine.of_to:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
   for +a: GA.APoint
   for +va: {GA.valid(FS.prime(one), a) == True{} : Bool}
   {GA.of_proj(FS.prime(one), GA.to_proj(a)) == a : GA.APoint}
@@ -97,8 +85,6 @@ law Affine.of_to:
 law Affine.closed:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
   for +a: GA.APoint
   for +b: GA.APoint
   for +va: {GA.valid(FS.prime(one), a) == True{} : Bool}
@@ -109,8 +95,6 @@ law Affine.closed:
 law Affine.commutative:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
   for +a: GA.APoint
   for +b: GA.APoint
   for +va: {GA.valid(FS.prime(one), a) == True{} : Bool}
@@ -121,8 +105,6 @@ law Affine.commutative:
 law Affine.associative:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
   for +a: GA.APoint
   for +b: GA.APoint
   for +c: GA.APoint
@@ -135,8 +117,6 @@ law Affine.associative:
 law Affine.inverse:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
   for +a: GA.APoint
   for +va: {GA.valid(FS.prime(one), a) == True{} : Bool}
   {GA.add(FS.prime(one), a, GA.neg(FS.prime(one), a)) == GA.AInf{} : GA.APoint}
@@ -145,8 +125,6 @@ law Affine.inverse:
 law Affine.neg_closed:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
   for +a: GA.APoint
   for +va: {GA.valid(FS.prime(one), a) == True{} : Bool}
   {GA.valid(FS.prime(one), GA.neg(FS.prime(one), a)) == True{} : Bool}

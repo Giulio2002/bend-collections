@@ -19,7 +19,6 @@ import ../../math/number/nt_prime.bend as PM
 law Sqrt.square:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
   for +a: Nat
   for +y0: Nat
   for +ha: {Nat.mod(a, FS.prime(one)) == FS.mmul(FS.prime(one), y0, y0) : Nat}
@@ -29,7 +28,6 @@ law Sqrt.square:
 law Sqrt.parity:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
   for +r: Nat
   for +y: Nat
   for +hr: {Nat.is_lt(r, FS.prime(one)) == True{} : Bool}
@@ -41,7 +39,6 @@ law Sqrt.parity:
 law Encoding.uncompressed_affine:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
   for +x: Nat
   for +y: Nat
   for +hx: {Nat.is_lt(x, FS.prime(one)) == True{} : Bool}
@@ -53,7 +50,6 @@ law Encoding.uncompressed_affine:
 law Encoding.compressed_affine:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
   for +x: Nat
   for +y: Nat
   for +hx: {Nat.is_lt(x, FS.prime(one)) == True{} : Bool}
@@ -65,7 +61,6 @@ law Encoding.compressed_affine:
 law Encoding.uncompressed:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
   for +x: Nat
   for +y: Nat
   for +z: Nat
@@ -77,7 +72,6 @@ law Encoding.uncompressed:
 law Encoding.compressed:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
   for +x: Nat
   for +y: Nat
   for +z: Nat
@@ -89,7 +83,5 @@ law Encoding.compressed:
 law Encoding.decode_valid:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
   for +bs: List<&2, U32>
   {EN.decoded_ok(FS.prime(one), CS.decode(FS.prime(one), bs)) == True{} : Bool}
