@@ -10,6 +10,7 @@ import ../../../math/natural/arith.bend as NR
 import ./bn.bend as B
 import ./bnx.bend as X
 import ./prime.bend as PM
+import ../../../lib/logic.bend as Lg
 
 # secp256k1's p as a binary literal: X.bvalo(one, pl()) is the
 # specification's FS.prime(one) = 2^256 - (2^32 + 977) (for one == 1), and
@@ -129,3 +130,76 @@ def p_gt21(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(21n, FS.prime(one)) 
   %Equal.sym(Nat, FS.prime(one), X.bvalo(one, pl()), Equal.sym(Nat, X.bvalo(one, pl()), FS.prime(one), p_is(one, h1))) : {Nat.is_lt(21n, _) == True{} : Bool}
   %Equal.sym(Nat, 21n, X.bvalo(one, B.B1{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}), Equal.sym(Nat, X.bvalo(one, B.B1{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}), 21n, X.lit_o(one, h1, B.B1{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}, 21n, v21()))) : {Nat.is_lt(_, X.bvalo(one, pl())) == True{} : Bool}
   X.lt_o(one, h1, B.B1{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}, pl(), B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}, {==})
+
+# ---- the group order n = 2^256 - c_n ----
+
+def nl() -> B.Bn:
+  B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+
+# n - 1
+def n1l() -> B.Bn:
+  B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+
+# little-endian radix-2^16 digits
+def bdig(ds: List<&2, B.Bn>) -> B.Bn:
+  match ds:
+    case Nil{}:
+      B.BZ{}
+    case d <> t:
+      B.badd(d, bshl(16n, bdig(t)))
+
+def dmatch(ds: List<&2, B.Bn>, ns: List<&2, Nat>) -> Bool:
+  match ds ns:
+    case Nil{} Nil{}:
+      True{}
+    case Nil{} n <> u:
+      False{}
+    case d <> t Nil{}:
+      False{}
+    case d <> t n <> u:
+      Bool.and(Nat.is_eq(B.bval(d), n), dmatch(t, u))
+
+def dmul(+one: Nat, +h1: {one == 1n : Nat}, +n: Nat) -> {Nat.mul(one, n) == n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {Nat.mul(_, n) == n : Nat}
+  SR.one_mul(n)
+
+def dig_o(+one: Nat, +h1: {one == 1n : Nat}, ds: List<&2, B.Bn>, ns: List<&2, Nat>, +h: {dmatch(ds, ns) == True{} : Bool}) -> {X.bvalo(one, bdig(ds)) == FS.digits(one, ns) : Nat}:
+  match ds ns:
+    case Nil{} Nil{}:
+      {==}
+    case Nil{} n <> u:
+      Empty.absurd({X.bvalo(one, bdig(Nil{})) == FS.digits(one, n <> u) : Nat}, Lg.false_true(h))
+    case d <> t Nil{}:
+      Empty.absurd({X.bvalo(one, bdig(d <> t)) == FS.digits(one, Nil{}) : Nat}, Lg.false_true(h))
+    case +d <> +t +n <> +u:
+      %Equal.sym(Nat, X.bvalo(one, B.badd(d, bshl(16n, bdig(t)))), Nat.add(X.bvalo(one, d), X.bvalo(one, bshl(16n, bdig(t)))), X.add_o(one, h1, d, bshl(16n, bdig(t)))) : {_ == Nat.add(Nat.mul(one, n), C.shift(16n, FS.digits(one, u))) : Nat}
+      %Equal.sym(Nat, X.bvalo(one, bshl(16n, bdig(t))), C.shift(16n, X.bvalo(one, bdig(t))), shl_o(one, 16n, bdig(t))) : {Nat.add(X.bvalo(one, d), _) == Nat.add(Nat.mul(one, n), C.shift(16n, FS.digits(one, u))) : Nat}
+      %Equal.sym(Nat, X.bvalo(one, bdig(t)), FS.digits(one, u), dig_o(one, h1, t, u, Lg.and_right(Nat.is_eq(B.bval(d), n), dmatch(t, u), h))) : {Nat.add(X.bvalo(one, d), C.shift(16n, _)) == Nat.add(Nat.mul(one, n), C.shift(16n, FS.digits(one, u))) : Nat}
+      %Equal.sym(Nat, X.bvalo(one, d), n, X.lit_o(one, h1, d, n, N.eq_from_is_eq(B.bval(d), n, Lg.and_left(Nat.is_eq(B.bval(d), n), dmatch(t, u), h)))) : {Nat.add(_, C.shift(16n, FS.digits(one, u))) == Nat.add(Nat.mul(one, n), C.shift(16n, FS.digits(one, u))) : Nat}
+      %Equal.sym(Nat, Nat.mul(one, n), n, dmul(one, h1, n)) : {Nat.add(n, C.shift(16n, FS.digits(one, u))) == Nat.add(_, C.shift(16n, FS.digits(one, u))) : Nat}
+      {==}
+
+def cnl() -> List<&2, B.Bn>:
+  [B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}, B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}, B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}, B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}, B.B1{B.BZ{}}]
+
+def cn_ok() -> {dmatch(cnl(), [48831n, 12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n]) == True{} : Bool}:
+  {==}
+
+def n_sum(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.add(X.bvalo(one, nl()), X.bvalo(one, bdig(cnl()))) == C.shift(256n, one) : Nat}:
+  Equal.trans(Nat, Nat.add(X.bvalo(one, nl()), X.bvalo(one, bdig(cnl()))), X.bvalo(one, B.badd(nl(), bdig(cnl()))), C.shift(256n, one),
+    Equal.sym(Nat, X.bvalo(one, B.badd(nl(), bdig(cnl()))), Nat.add(X.bvalo(one, nl()), X.bvalo(one, bdig(cnl()))), X.add_o(one, h1, nl(), bdig(cnl()))),
+    Equal.trans(Nat, X.bvalo(one, B.badd(nl(), bdig(cnl()))), X.bvalo(one, bshl(256n, B.B1{B.BZ{}})), C.shift(256n, one),
+      X.eq_o(one, h1, B.badd(nl(), bdig(cnl())), bshl(256n, B.B1{B.BZ{}}), {==}),
+      Equal.trans(Nat, X.bvalo(one, bshl(256n, B.B1{B.BZ{}})), C.shift(256n, X.bvalo(one, B.B1{B.BZ{}})), C.shift(256n, one), shl_o(one, 256n, B.B1{B.BZ{}}), Equal.cong(Nat, Nat, z => C.shift(256n, z), X.bvalo(one, B.B1{B.BZ{}}), one, b1_o(one)))))
+
+# the literal is the specification's n
+def n_is(+one: Nat, +h1: {one == 1n : Nat}) -> {X.bvalo(one, nl()) == FS.order(one) : Nat}:
+  %Equal.sym(Nat, FS.digits(one, [48831n, 12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n]), X.bvalo(one, bdig(cnl())), Equal.sym(Nat, X.bvalo(one, bdig(cnl())), FS.digits(one, [48831n, 12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n]), dig_o(one, h1, cnl(), [48831n, 12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n], cn_ok()))) : {X.bvalo(one, nl()) == Nat.sub(C.shift(256n, one), _) : Nat}
+  %Equal.sym(Nat, C.shift(256n, one), Nat.add(X.bvalo(one, nl()), X.bvalo(one, bdig(cnl()))), Equal.sym(Nat, Nat.add(X.bvalo(one, nl()), X.bvalo(one, bdig(cnl()))), C.shift(256n, one), n_sum(one, h1))) : {X.bvalo(one, nl()) == Nat.sub(_, X.bvalo(one, bdig(cnl()))) : Nat}
+  %Equal.sym(Nat, Nat.add(X.bvalo(one, nl()), X.bvalo(one, bdig(cnl()))), Nat.add(X.bvalo(one, bdig(cnl())), X.bvalo(one, nl())), NA.add_comm(X.bvalo(one, nl()), X.bvalo(one, bdig(cnl())))) : {X.bvalo(one, nl()) == Nat.sub(_, X.bvalo(one, bdig(cnl()))) : Nat}
+  Equal.sym(Nat, Nat.sub(Nat.add(X.bvalo(one, bdig(cnl())), X.bvalo(one, nl())), X.bvalo(one, bdig(cnl()))), X.bvalo(one, nl()), N.add_sub_cancel(X.bvalo(one, bdig(cnl())), X.bvalo(one, nl())))
+
+# n == 1 + (n - 1)
+def n_suc(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.order(one) == 1n+X.bvalo(one, n1l()) : Nat}:
+  %Equal.sym(Nat, FS.order(one), X.bvalo(one, nl()), Equal.sym(Nat, X.bvalo(one, nl()), FS.order(one), n_is(one, h1))) : {_ == 1n+X.bvalo(one, n1l()) : Nat}
+  X.suc_o(one, h1, nl(), n1l(), {==})
