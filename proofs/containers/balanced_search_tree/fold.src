@@ -1,0 +1,669 @@
+import Base
+import ../../lib/logic.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/u32.bend as U
+import ../../lib/list.bend as LL
+import ../../lib/array.bend as AR
+import ../../lib/array_ext.bend as AX
+import ../../lib/order.bend as O
+import ../../../spec/lib/common.bend as SC
+import ../../../spec/containers/balanced_search_tree/main.bend as S
+import ../../../src/containers/balanced_search_tree.bend as M
+import ../../../src/containers/dynamic_array.bend as D
+import ../dynamic_array/state.bend as DAS
+import ./bk.bend as BK
+import ./mk.bend as MK
+import ./nsr.bend as NR
+import ./nsf.bend as NF
+import ./nsl.bend as NSL
+import ./state.bend as ST
+import ./ord.bend as OR
+import ./find.bend as FI
+import ./cur.bend as CU
+import ./ok.bend as OK
+
+# The in-order walk (M.walk, M.fold_range, M.fold): on the realization of a
+# good shadow it leaves the map as it was and answers the specification's
+# fold of f over the entries within the bounds, in key order. The proof
+# follows the walk with a ghost stack of frames (a slot and the subtree to
+# its right): the ids of the current subtree followed by those of the frames
+# are the ids still to visit, in order.
+
+%def ND M.Node<K>
+%def E M.Entry<K, V>
+%def ES List<&2, M.Entry<K, V>>
+%def MV Maybe<&2, V>
+%def MK Maybe<&2, K>
+%def BD M.Bound<K>
+%def KY(e) S.key(K, V, e)
+%def TO ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp)
+%def AO ~K, ~V, ~cmp, ~o
+%def AK ~K, ~V, ~cmp
+%def LTB(a, b) {Cmp.is_lt(cmp(a, b)) == True{} : Bool}
+%def GTA(k, es) {OR.gtall($AK, k, es) == True{} : Bool}
+%def LTA(k, es) {OR.ltall($AK, k, es) == True{} : Bool}
+%def APP(a, b) SC.append($E, a, b)
+%def AL(k, b) S.above_lower(~K, ~cmp, k, b)
+%def BU(k, b) S.below_upper(~K, ~cmp, k, b)
+%def W(lb, ub, es) S.within(~K, ~V, ~cmp, lb, ub, es)
+%def UB M.Unbounded{}
+
+# ---- bounds along the order ----
+
+def ok_le(+c: Cmp) -> {S.ordering_ok(c, True{}) == Cmp.is_le(c) : Bool}:
+  match c:
+    case LT{}:
+      {==}
+    case EQ{}:
+      {==}
+    case GT{}:
+      {==}
+
+def ok_lt(+c: Cmp) -> {S.ordering_ok(c, False{}) == Cmp.is_lt(c) : Bool}:
+  match c:
+    case LT{}:
+      {==}
+    case EQ{}:
+      {==}
+    case GT{}:
+      {==}
+
+def tr_to(+a: Bool, +b: Bool, +e: {a == b : Bool}, +h: {a == True{} : Bool}) -> {b == True{} : Bool}:
+  L.subst(Bool, z => {z == True{} : Bool}, a, b, e, h)
+
+def tr_of(+a: Bool, +b: Bool, +e: {a == b : Bool}, +h: {b == True{} : Bool}) -> {a == True{} : Bool}:
+  L.subst(Bool, z => {z == True{} : Bool}, b, a, Equal.sym(Bool, a, b, e), h)
+
+# a key above the lower bound: so is every greater key
+def al_mono($TO, +k: K, +k2: K, +lb: $BD, +h: {$AL(k, lb) == True{} : Bool}, +hlt: $LTB(k, k2)) -> {$AL(k2, lb) == True{} : Bool}:
+  match lb:
+    case M.Unbounded{}:
+      {==}
+    case M.Inclusive{+lo}:
+      tr_of(S.ordering_ok(cmp(lo, k2), True{}), Cmp.is_le(cmp(lo, k2)), ok_le(cmp(lo, k2)), O.trans(~K, ~cmp, o, lo, k, k2, tr_to(S.ordering_ok(cmp(lo, k), True{}), Cmp.is_le(cmp(lo, k)), ok_le(cmp(lo, k)), h), OR.lt_le(cmp(k, k2), hlt)))
+    case M.Exclusive{+lo}:
+      tr_of(S.ordering_ok(cmp(lo, k2), False{}), Cmp.is_lt(cmp(lo, k2)), ok_lt(cmp(lo, k2)), OR.slt_trans(~K, ~cmp, ~o, lo, k, k2, tr_to(S.ordering_ok(cmp(lo, k), False{}), Cmp.is_lt(cmp(lo, k)), ok_lt(cmp(lo, k)), h), hlt))
+
+# a key below the upper bound: so is every smaller key
+def bu_mono($TO, +k: K, +k2: K, +ub: $BD, +h: {$BU(k2, ub) == True{} : Bool}, +hlt: $LTB(k, k2)) -> {$BU(k, ub) == True{} : Bool}:
+  match ub:
+    case M.Unbounded{}:
+      {==}
+    case M.Inclusive{+hi}:
+      tr_of(S.ordering_ok(cmp(k, hi), True{}), Cmp.is_le(cmp(k, hi)), ok_le(cmp(k, hi)), O.trans(~K, ~cmp, o, k, k2, hi, OR.lt_le(cmp(k, k2), hlt), tr_to(S.ordering_ok(cmp(k2, hi), True{}), Cmp.is_le(cmp(k2, hi)), ok_le(cmp(k2, hi)), h)))
+    case M.Exclusive{+hi}:
+      tr_of(S.ordering_ok(cmp(k, hi), False{}), Cmp.is_lt(cmp(k, hi)), ok_lt(cmp(k, hi)), OR.slt_trans(~K, ~cmp, ~o, k, k2, hi, hlt, tr_to(S.ordering_ok(cmp(k2, hi), False{}), Cmp.is_lt(cmp(k2, hi)), ok_lt(cmp(k2, hi)), h)))
+
+def al_not($TO, +k: K, +k2: K, +lb: $BD, +hn: {$AL(k2, lb) == False{} : Bool}, +hlt: $LTB(k, k2), +b: Bool, +hb: {$AL(k, lb) == b : Bool}) -> {b == False{} : Bool}:
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      Empty.absurd({True{} == False{} : Bool}, L.true_not_false($AL(k2, lb), al_mono($AO, k, k2, lb, hb, hlt), hn))
+
+def bu_not($TO, +k: K, +k2: K, +ub: $BD, +hn: {$BU(k, ub) == False{} : Bool}, +hlt: $LTB(k, k2), +b: Bool, +hb: {$BU(k2, ub) == b : Bool}) -> {b == False{} : Bool}:
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      Empty.absurd({True{} == False{} : Bool}, L.true_not_false($BU(k, ub), bu_mono($AO, k, k2, ub, hb, hlt), hn))
+
+def andf(+x: Bool) -> {Bool.and(x, False{}) == False{} : Bool}:
+  match x:
+    case True{}:
+      {==}
+    case False{}:
+      {==}
+
+# ---- the entries within the bounds of an ordered list ----
+
+# past a key that is not below the upper bound: none
+def past($TO, +k: K, +es: $ES, +lb: $BD, +ub: $BD, +hg: $GTA(k, es), +hb: {$BU(k, ub) == False{} : Bool}) -> {$W(lb, ub, es) == Nil{} : $ES}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      +hlt = L.and_left(Cmp.is_lt(cmp(k, $KY(e))), OR.gtall($AK, k, t), hg)
+      +hg2 = L.and_right(Cmp.is_lt(cmp(k, $KY(e))), OR.gtall($AK, k, t), hg)
+      %Equal.sym(Bool, $BU($KY(e), ub), False{}, bu_not($AO, k, $KY(e), ub, hb, hlt, $BU($KY(e), ub), {==})) : {S.pick($ES, Bool.and($AL($KY(e), lb), _), Con{e, $W(lb, ub, t)}, $W(lb, ub, t)) == Nil{} : $ES}
+      %Equal.sym(Bool, Bool.and($AL($KY(e), lb), False{}), False{}, andf($AL($KY(e), lb))) : {S.pick($ES, _, Con{e, $W(lb, ub, t)}, $W(lb, ub, t)) == Nil{} : $ES}
+      past($AO, k, t, lb, ub, hg2, hb)
+
+# past a key above the lower bound: the lower bound no longer matters
+def tail($TO, +k: K, +es: $ES, +lb: $BD, +ub: $BD, +hg: $GTA(k, es), +ha: {$AL(k, lb) == True{} : Bool}) -> {$W(lb, ub, es) == $W($UB, ub, es) : $ES}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      +hlt = L.and_left(Cmp.is_lt(cmp(k, $KY(e))), OR.gtall($AK, k, t), hg)
+      +hg2 = L.and_right(Cmp.is_lt(cmp(k, $KY(e))), OR.gtall($AK, k, t), hg)
+      %Equal.sym(Bool, $AL($KY(e), lb), True{}, al_mono($AO, k, $KY(e), lb, ha, hlt)) : {S.pick($ES, Bool.and(_, $BU($KY(e), ub)), Con{e, $W(lb, ub, t)}, $W(lb, ub, t)) == $W($UB, ub, Con{e, t}) : $ES}
+      %Equal.sym($ES, $W(lb, ub, t), $W($UB, ub, t), tail($AO, k, t, lb, ub, hg2, ha)) : {S.pick($ES, $BU($KY(e), ub), Con{e, _}, _) == $W($UB, ub, Con{e, t}) : $ES}
+      {==}
+
+# before a key that is not above the lower bound: none
+def skip($TO, +k: K, +pre: $ES, +rest: $ES, +lb: $BD, +ub: $BD, +hl: $LTA(k, pre), +hna: {$AL(k, lb) == False{} : Bool}) -> {$W(lb, ub, $APP(pre, rest)) == $W(lb, ub, rest) : $ES}:
+  match pre:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      +hlt = L.and_left(Cmp.is_lt(cmp($KY(e), k)), OR.ltall($AK, k, t), hl)
+      +hl2 = L.and_right(Cmp.is_lt(cmp($KY(e), k)), OR.ltall($AK, k, t), hl)
+      %Equal.sym(Bool, $AL($KY(e), lb), False{}, al_not($AO, $KY(e), k, lb, hna, hlt, $AL($KY(e), lb), {==})) : {S.pick($ES, Bool.and(_, $BU($KY(e), ub)), Con{e, $W(lb, ub, $APP(t, rest))}, $W(lb, ub, $APP(t, rest))) == $W(lb, ub, rest) : $ES}
+      skip($AO, k, t, rest, lb, ub, hl2, hna)
+
+# without bounds: every entry
+def win_all(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +es: $ES) -> {$W($UB, $UB, es) == es : $ES}:
+  match es:
+    case Nil{}:
+      {==}
+    case Con{+e, +t}:
+      LL.cons_cong($E, e, $W($UB, $UB, t), t, win_all($AK, t))
+
+# ---- taking a slot's item out of an array and putting it back ----
+
+%def LT List<&2, T>
+%def TH +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +pf: {AR.perfect(T, d, t) == True{} : Bool}, +hj: {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool}, +hx: {SC.nth(T, AR.slots(T, t), j) == Some{x} : Maybe<&2, T>}
+%def UN(j) U32.from_nat(j)
+%def UT(j) U32.to_nat(U32.from_nat(j))
+
+def upd_upd(-T: Data, +xs: $LT, +j: Nat, +a: T, +x: T, +h: {SC.nth(T, xs, j) == Some{x} : Maybe<&2, T>}) -> {SC.update(T, SC.update(T, xs, j, a), j, x) == xs : $LT}:
+  match xs j:
+    case Nil{} _:
+      {==}
+    case Con{+y, +r} 0n:
+      Equal.cong(T, $LT, z => Con{z, r}, x, y, Equal.sym(T, y, x, L.some_inj(T, y, x, h)))
+    case Con{+y, +r} 1n+q:
+      LL.cons_cong(T, y, SC.update(T, SC.update(T, r, q, a), q, x), r, upd_upd(T, r, q, a, x, h))
+
+def sw_out(-T: Data, +d: Nat, +t: AR.Tree<T>, +j: Nat, +a: T, +x: T, $TH) -> {Array.swap(T, AR.thaw(T, t), $UN(j), a) == (AR.thaw(T, AR.upd(T, d, t, j, a)), x) : Array<T> & T}:
+  +eu = U.to_nat_from_nat(j, d, N.lt_le(d, 32n, hd), hj)
+  +hxu = L.subst(Nat, z => {SC.nth(T, AR.slots(T, t), z) == Some{x} : Maybe<&2, T>}, j, $UT(j), Equal.sym(Nat, $UT(j), j, eu), hx)
+  +hju = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(d)) == True{} : Bool}, j, $UT(j), Equal.sym(Nat, $UT(j), j, eu), hj)
+  L.subst(Nat, z => {Array.swap(T, AR.thaw(T, t), $UN(j), a) == (AR.thaw(T, AR.upd(T, d, t, z, a)), x) : Array<T> & T}, $UT(j), j, eu, AR.swap(T, d, t, $UN(j), a, x, hd, hju, hxu, pf))
+
+def sw_back(-T: Data, +d: Nat, +t: AR.Tree<T>, +j: Nat, +a: T, +x: T, $TH) -> {Array.set(T, AR.thaw(T, AR.upd(T, d, t, j, a)), $UN(j), x) == AR.thaw(T, t) : Array<T>}:
+  +t1 = AR.upd(T, d, t, j, a)
+  +pf1 = AR.upd_perfect(T, d, t, j, a, pf)
+  +eu = U.to_nat_from_nat(j, d, N.lt_le(d, 32n, hd), hj)
+  +hs1 = L.subst($LT, z => {SC.nth(T, z, j) == Some{a} : Maybe<&2, T>}, SC.update(T, AR.slots(T, t), j, a), AR.slots(T, t1), Equal.sym($LT, AR.slots(T, t1), SC.update(T, AR.slots(T, t), j, a), AR.upd_slots(T, d, t, j, a, hj, pf)), LL.nth_update_same(T, AR.slots(T, t), j, a, AR.len_lt(T, d, t, j, pf, hj)))
+  +hxu = L.subst(Nat, z => {SC.nth(T, AR.slots(T, t1), z) == Some{a} : Maybe<&2, T>}, j, $UT(j), Equal.sym(Nat, $UT(j), j, eu), hs1)
+  +hju = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(d)) == True{} : Bool}, j, $UT(j), Equal.sym(Nat, $UT(j), j, eu), hj)
+  +e1 = L.subst(Nat, z => {Array.set(T, AR.thaw(T, t1), $UN(j), x) == AR.thaw(T, AR.upd(T, d, t1, z, x)) : Array<T>}, $UT(j), j, eu, AR.set(T, d, t1, $UN(j), x, a, hd, hju, hxu, pf1))
+  +es = Equal.trans($LT, AR.slots(T, AR.upd(T, d, t1, j, x)), SC.update(T, AR.slots(T, t1), j, x), AR.slots(T, t), AR.upd_slots(T, d, t1, j, x, hj, pf1), Equal.trans($LT, SC.update(T, AR.slots(T, t1), j, x), SC.update(T, SC.update(T, AR.slots(T, t), j, a), j, x), AR.slots(T, t), Equal.cong($LT, $LT, z => SC.update(T, z, j, x), AR.slots(T, t1), SC.update(T, AR.slots(T, t), j, a), AR.upd_slots(T, d, t, j, a, hj, pf)), upd_upd(T, AR.slots(T, t), j, a, x, hx)))
+  Equal.trans(Array<T>, Array.set(T, AR.thaw(T, t1), $UN(j), x), AR.thaw(T, AR.upd(T, d, t1, j, x)), AR.thaw(T, t), e1, Equal.cong(AR.Tree<T>, Array<T>, z => AR.thaw(T, z), AR.upd(T, d, t1, j, x), t, AX.tree_ext(T, d, AR.upd(T, d, t1, j, x), t, AR.upd_perfect(T, d, t1, j, x, pf1), pf, es)))
+
+# the slot of an item of a payload block
+def fill_some(-T: Data, +k: Nat, +xs: $LT, +j: Nat, +x: T, +h: {SC.nth(T, xs, j) == Some{x} : Maybe<&2, T>}, +hk: {Nat.is_le(SC.length(T, xs), k) == True{} : Bool}) -> {SC.nth(Maybe<&2, T>, MK.fill(T, k, xs), j) == Some{Some{x}} : Maybe<&2, Maybe<&2, T>>}:
+  match k xs j:
+    case 0n Nil{} _:
+      Empty.absurd({SC.nth(Maybe<&2, T>, Nil{}, j) == Some{Some{x}} : Maybe<&2, Maybe<&2, T>>}, L.none_some(T, x, h))
+    case 0n Con{y, r} _:
+      Empty.absurd({SC.nth(Maybe<&2, T>, Nil{}, j) == Some{Some{x}} : Maybe<&2, Maybe<&2, T>>}, L.false_true(hk))
+    case 1n+k2 Nil{} _:
+      Empty.absurd({SC.nth(Maybe<&2, T>, MK.fill(T, 1n+k2, Nil{}), j) == Some{Some{x}} : Maybe<&2, Maybe<&2, T>>}, L.none_some(T, x, h))
+    case 1n+k2 Con{+y, r} 0n:
+      Equal.cong(Maybe<&2, T>, Maybe<&2, Maybe<&2, T>>, z => Some{z}, Some{y}, Some{x}, h)
+    case 1n+k2 Con{y, +r} 1n+q:
+      fill_some(T, k2, r, q, x, h, hk)
+
+# ---- the node and the value of an id ----
+
+%def NDJ(j) ST.nd(K, nl, 1n+j)
+%def PVJ(j) ST.pv(V, pl, 1n+j)
+%def ISN(x, a, b, p) {ST.is_node(K, x, a, b, p) == True{} : Bool}
+
+# a node whose right child is b
+def isr(~K: Data, x: $ND, +b: Nat) -> Bool:
+  match x:
+    case M.Free{f}:
+      False{}
+    case M.N{c, lf, +rt, pa, k}:
+      Nat.is_eq(rt, b)
+
+# a node's key is above the lower bound
+def nab(~K: Data, ~cmp: K -> K -> Cmp, x: $ND, +lb: $BD) -> Bool:
+  match x:
+    case M.Free{f}:
+      True{}
+    case M.N{c, lf, rt, pa, +k}:
+      $AL(k, lb)
+
+def nab_unb(~K: Data, ~cmp: K -> K -> Cmp, +x: $ND) -> {nab(~K, ~cmp, x, $UB) == True{} : Bool}:
+  match x:
+    case M.Free{f}:
+      {==}
+    case M.N{c, lf, rt, pa, k}:
+      {==}
+
+def node_l(~K: Data, +x: $ND, +a: Nat, +b: Nat, +p: Nat, +h: $ISN(x, a, b, p)) -> {M.nleft(~K, x) == a : Nat}:
+  match x:
+    case M.Free{f}:
+      Empty.absurd({M.nleft(~K, M.Free{f}) == a : Nat}, L.false_true(h))
+    case M.N{c, +lf, +rt, +pa, k}:
+      N.eq_from_is_eq(lf, a, L.and_left(Nat.is_eq(lf, a), Bool.and(Nat.is_eq(rt, b), Nat.is_eq(pa, p)), h))
+
+def node_r(~K: Data, +x: $ND, +a: Nat, +b: Nat, +p: Nat, +h: $ISN(x, a, b, p)) -> {M.nright(~K, x) == b : Nat}:
+  match x:
+    case M.Free{f}:
+      Empty.absurd({M.nright(~K, M.Free{f}) == b : Nat}, L.false_true(h))
+    case M.N{c, +lf, +rt, +pa, k}:
+      N.eq_from_is_eq(rt, b, L.and_left(Nat.is_eq(rt, b), Nat.is_eq(pa, p), L.and_right(Nat.is_eq(lf, a), Bool.and(Nat.is_eq(rt, b), Nat.is_eq(pa, p)), h)))
+
+def node_isr(~K: Data, +x: $ND, +a: Nat, +b: Nat, +p: Nat, +h: $ISN(x, a, b, p)) -> {isr(~K, x, b) == True{} : Bool}:
+  match x:
+    case M.Free{f}:
+      Empty.absurd({False{} == True{} : Bool}, L.false_true(h))
+    case M.N{c, +lf, +rt, +pa, k}:
+      L.and_left(Nat.is_eq(rt, b), Nat.is_eq(pa, p), L.and_right(Nat.is_eq(lf, a), Bool.and(Nat.is_eq(rt, b), Nat.is_eq(pa, p)), h))
+
+def node_isn(~K: Data, +x: $ND, +a: Nat, +b: Nat, +p: Nat, +h: $ISN(x, a, b, p)) -> {NSL.isn(~K, x) == True{} : Bool}:
+  match x:
+    case M.Free{f}:
+      Empty.absurd({False{} == True{} : Bool}, L.false_true(h))
+    case M.N{c, lf, rt, pa, k}:
+      {==}
+
+def isr_r(~K: Data, +x: $ND, +b: Nat, +h: {isr(~K, x, b) == True{} : Bool}) -> {M.nright(~K, x) == b : Nat}:
+  match x:
+    case M.Free{f}:
+      Empty.absurd({M.nright(~K, M.Free{f}) == b : Nat}, L.false_true(h))
+    case M.N{c, lf, +rt, pa, k}:
+      N.eq_from_is_eq(rt, b, h)
+
+def isr_isn(~K: Data, +x: $ND, +b: Nat, +h: {isr(~K, x, b) == True{} : Bool}) -> {NSL.isn(~K, x) == True{} : Bool}:
+  match x:
+    case M.Free{f}:
+      Empty.absurd({False{} == True{} : Bool}, L.false_true(h))
+    case M.N{c, lf, rt, pa, k}:
+      {==}
+
+# a live node is its slot's
+def node_nth(~K: Data, +nl: List<&2, $ND>, +j: Nat, +h: {NSL.isn(~K, $NDJ(j)) == True{} : Bool}) -> {SC.nth($ND, nl, j) == Some{$NDJ(j)} : Maybe<&2, $ND>}:
+  NSL.nth_of_or($ND, nl, j, M.Free{0n}, NSL.nth_or_lt(~K, nl, j, $NDJ(j), h, {==}))
+
+# a value is its slot's
+def pay_nth(-V: Data, +pl: List<&2, $MV>, +j: Nat, +h: {ST.some2(V, ST.nth_or($MV, pl, j, None{})) == True{} : Bool}) -> {SC.nth($MV, pl, j) == Some{ST.nth_or($MV, pl, j, None{})} : Maybe<&2, $MV>}:
+  match pl j:
+    case Nil{} _:
+      Empty.absurd({SC.nth($MV, Nil{}, j) == Some{None{}} : Maybe<&2, $MV>}, L.false_true(h))
+    case Con{x, r} 0n:
+      {==}
+    case Con{x, +r} 1n+q:
+      pay_nth(V, r, q, h)
+
+# ---- the ghost stack ----
+
+type Fr is Data:
+  F{i: Nat, rt: ST.Tr}
+
+%def FS List<&2, Fr>
+
+# the walk's stack: the frames' slots
+def slots(fr: $FS) -> List<&2, Nat>:
+  match fr:
+    case Nil{}:
+      Nil{}
+    case Con{F{i, b}, r}:
+      Con{i, slots(r)}
+
+# the ids still to visit after the current subtree, in order
+def fids(fr: $FS) -> List<&2, Nat>:
+  match fr:
+    case Nil{}:
+      Nil{}
+    case Con{F{i, b}, r}:
+      Con{1n+i, SC.append(Nat, ST.ids(b), fids(r))}
+
+# every frame's node is live with a value, its right child the frame's subtree
+def frs_wf(~K: Data, ~V: Data, fr: $FS, +nl: List<&2, $ND>, +pl: List<&2, $MV>) -> Bool:
+  match fr:
+    case Nil{}:
+      True{}
+    case Con{F{+i, +b}, r}:
+      Bool.and(isr(~K, $NDJ(i), ST.rid(b)), Bool.and(ST.some2(V, $PVJ(i)), Bool.and(ST.rep(~K, b, 1n+i, nl), Bool.and(ST.pay(~V, b, pl), frs_wf(~K, ~V, r, nl, pl)))))
+
+# every frame's key is above the lower bound
+def frs_lb(~K: Data, ~cmp: K -> K -> Cmp, fr: $FS, +nl: List<&2, $ND>, +lb: $BD) -> Bool:
+  match fr:
+    case Nil{}:
+      True{}
+    case Con{F{+i, b}, r}:
+      Bool.and(nab(~K, ~cmp, $NDJ(i), lb), frs_lb(~K, ~cmp, r, nl, lb))
+
+def frs_unb(~K: Data, ~cmp: K -> K -> Cmp, +fr: $FS, +nl: List<&2, $ND>) -> {frs_lb(~K, ~cmp, fr, nl, $UB) == True{} : Bool}:
+  match fr:
+    case Nil{}:
+      {==}
+    case Con{F{+i, b}, +r}:
+      L.and_intro(nab(~K, ~cmp, $NDJ(i), $UB), frs_lb(~K, ~cmp, r, nl, $UB), nab_unb(~K, ~cmp, $NDJ(i)), frs_unb(~K, ~cmp, r, nl))
+
+# ---- the walk's steps: four per node of the current subtree, two per frame ----
+
+def wt(t: ST.Tr) -> Nat:
+  match t:
+    case ST.TE{}:
+      0n
+    case ST.TN{i, l, r}:
+      4n+Nat.add(wt(l), wt(r))
+
+def cf(fr: $FS) -> Nat:
+  match fr:
+    case Nil{}:
+      0n
+    case Con{F{i, b}, r}:
+      2n+Nat.add(wt(b), cf(r))
+
+def mu(tc: ST.Tr, fr: $FS) -> Nat:
+  1n+Nat.add(wt(tc), cf(fr))
+
+%def X3 3n+Nat.add(Nat.add(a, b), c)
+%def HX +a: Nat, +b: Nat, +c: Nat, +g: Nat, +h: {Nat.is_le($X3, g) == True{} : Bool}
+
+def mu_eq(+a: Nat, +b: Nat, +c: Nat) -> {Nat.add(a, 2n+Nat.add(b, c)) == 2n+Nat.add(Nat.add(a, b), c) : Nat}:
+  Equal.trans(Nat, Nat.add(a, 2n+Nat.add(b, c)), 1n+Nat.add(a, 1n+Nat.add(b, c)), 2n+Nat.add(Nat.add(a, b), c), N.add_succ(a, 1n+Nat.add(b, c)), N.succ_cong(Nat.add(a, 1n+Nat.add(b, c)), 1n+Nat.add(Nat.add(a, b), c), Equal.trans(Nat, Nat.add(a, 1n+Nat.add(b, c)), 1n+Nat.add(a, Nat.add(b, c)), 1n+Nat.add(Nat.add(a, b), c), N.add_succ(a, Nat.add(b, c)), N.succ_cong(Nat.add(a, Nat.add(b, c)), Nat.add(Nat.add(a, b), c), Equal.sym(Nat, Nat.add(Nat.add(a, b), c), Nat.add(a, Nat.add(b, c)), N.add_assoc(a, b, c))))))
+
+def le_r(+a: Nat, +b: Nat, +c: Nat) -> {Nat.is_le(Nat.add(b, c), Nat.add(Nat.add(a, b), c)) == True{} : Bool}:
+  %Equal.sym(Nat, Nat.add(Nat.add(a, b), c), Nat.add(a, Nat.add(b, c)), N.add_assoc(a, b, c)) : {Nat.is_le(Nat.add(b, c), _) == True{} : Bool}
+  %N.add_comm(Nat.add(b, c), a) : {Nat.is_le(Nat.add(b, c), _) == True{} : Bool}
+  N.le_add_right(Nat.add(b, c), a)
+
+# the fuel left after a step
+def fu_push($HX) -> {Nat.is_le(1n+Nat.add(a, 2n+Nat.add(b, c)), 1n+g) == True{} : Bool}:
+  %Equal.sym(Nat, Nat.add(a, 2n+Nat.add(b, c)), 2n+Nat.add(Nat.add(a, b), c), mu_eq(a, b, c)) : {Nat.is_le(_, g) == True{} : Bool}
+  N.le_trans(2n+Nat.add(Nat.add(a, b), c), $X3, g, N.le_succ(2n+Nat.add(Nat.add(a, b), c)), h)
+
+def fu_left($HX) -> {Nat.is_le(1n+Nat.add(a, 2n+Nat.add(b, c)), g) == True{} : Bool}:
+  %Equal.sym(Nat, Nat.add(a, 2n+Nat.add(b, c)), 2n+Nat.add(Nat.add(a, b), c), mu_eq(a, b, c)) : {Nat.is_le(1n+_, g) == True{} : Bool}
+  h
+
+def fu_right($HX) -> {Nat.is_le(1n+Nat.add(b, c), g) == True{} : Bool}:
+  N.le_trans(1n+Nat.add(b, c), $X3, g, N.le_trans(Nat.add(b, c), Nat.add(Nat.add(a, b), c), 2n+Nat.add(Nat.add(a, b), c), le_r(a, b, c), N.le_trans(Nat.add(Nat.add(a, b), c), 1n+Nat.add(Nat.add(a, b), c), 2n+Nat.add(Nat.add(a, b), c), N.le_succ(Nat.add(Nat.add(a, b), c)), N.le_succ(1n+Nat.add(Nat.add(a, b), c)))), h)
+
+%def DD(x) Nat.double(Nat.double(x))
+%def LI(t) SC.length(Nat, ST.ids(t))
+
+# four steps per node
+def w_size(+t: ST.Tr) -> {wt(t) == $DD($LI(t)) : Nat}:
+  match t:
+    case ST.TE{}:
+      {==}
+    case ST.TN{+i, +l, +r}:
+      +e_len = Equal.trans(Nat, SC.length(Nat, SC.append(Nat, ST.ids(l), Con{i, ST.ids(r)})), Nat.add($LI(l), 1n+$LI(r)), 1n+Nat.add($LI(l), $LI(r)), LL.length_append(Nat, ST.ids(l), Con{i, ST.ids(r)}), N.add_succ($LI(l), $LI(r)))
+      +e_dd = Equal.trans(Nat, Nat.add($DD($LI(l)), $DD($LI(r))), Nat.double(Nat.add(Nat.double($LI(l)), Nat.double($LI(r)))), $DD(Nat.add($LI(l), $LI(r))), N.add_double(Nat.double($LI(l)), Nat.double($LI(r))), Equal.cong(Nat, Nat, z => Nat.double(z), Nat.add(Nat.double($LI(l)), Nat.double($LI(r))), Nat.double(Nat.add($LI(l), $LI(r))), N.add_double($LI(l), $LI(r))))
+      %Equal.sym(Nat, SC.length(Nat, SC.append(Nat, ST.ids(l), Con{i, ST.ids(r)})), 1n+Nat.add($LI(l), $LI(r)), e_len) : {4n+Nat.add(wt(l), wt(r)) == $DD(_) : Nat}
+      %e_dd : {4n+Nat.add(wt(l), wt(r)) == 4n+_ : Nat}
+      %w_size(l) : {4n+Nat.add(wt(l), wt(r)) == 4n+Nat.add(_, $DD($LI(r))) : Nat}
+      %w_size(r) : {4n+Nat.add(wt(l), wt(r)) == 4n+Nat.add(wt(l), _) : Nat}
+      {==}
+
+# ---- the walk on the realization ----
+
+%def TF ~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), ~A: Data, ~f: A -> K -> V -> A
+%def AF ~K, ~V, ~cmp, ~o, ~A, ~f
+%def CX +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, $ND>, +pl: List<&2, $MV>, +ub: $BD
+%def CA n, root, lo, hi, free, l, d, nl, pl, ub
+%def DG +hl: {Nat.is_le(l, 29n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length($ND, nl), SC.pow2(d)) == True{} : Bool}, +hpc: {Nat.is_le(SC.length($MV, pl), SC.pow2(d)) == True{} : Bool}
+%def DH hl, hd, hc, hpc
+%def LKA AR.thaw(Nat, AR.TNode{BK.bk(Nat, 1n+d, NR.lrs(~K, nl), 0n), BK.bk(Nat, 1n+d, NR.tps(~K, nl), 0n)})
+%def KSA AR.thaw($MK, BK.bk($MK, d, NR.keys(~K, nl), None{}))
+%def PM Maybe<&2, Maybe<&2, V>>
+%def PT MK.mk($MV, d, pl)
+%def PSA AR.thaw($PM, $PT)
+%def FIN(w) M.walk_fin(~K, ~V, ~cmp, ~A, n, root, lo, hi, free, l, d, SC.pow2(d), SC.length($ND, nl), l, d, SC.pow2(d), SC.length($MV, pl), w)
+%def WLK(g, lb, step, i, ok, st, a, lq, kq, pq) M.walk(~K, ~V, ~cmp, ~A, ~f, g, lb, ub, step, i, ok, lq, st, a, kq, pq)
+%def RT M.TreeMap<K, V, cmp> & A
+%def TMR M.TM{n, root, lo, hi, free, NR.real(~K, l, d, nl), DAS.real($MV, DAS.Sh{l, d, SC.length($MV, pl), $PT})}
+%def FE(es, a) S.fold_entries(~K, ~V, ~A, ~f, es, a)
+%def ENT(ix) ST.ents(~K, ~V, ix, nl, pl)
+%def REM(tc, fr) SC.append(Nat, ST.ids(tc), fids(fr))
+%def RST(b, r) SC.append(Nat, ST.ids(b), fids(r))
+%def DWN(g, lb, st, a, x, y, z) $FIN($WLK(g, lb, M.WDown{}, 0n, True{}, st, a, ($LKA, x), ($KSA, y), ($PSA, z)))
+%def GD(g, lb, tc, fr, a, y, z) {$DWN(g, lb, slots(fr), a, ST.rid(tc), y, z) == ($TMR, $FE($W(lb, ub, $ENT($REM(tc, fr))), a)) : $RT}
+%def ORD(x) {ST.ordered($AK, x) == True{} : Bool}
+%def NJ(c, lf, rt, pa, k) M.N{c, lf, rt, pa, k}
+%def ME Maybe<&2, $E>
+
+# f applied to an entry
+def ape(~K: Data, ~V: Data, ~A: Data, ~f: A -> K -> V -> A, a: A, me: $ME) -> A:
+  match me:
+    case None{}:
+      a
+    case Some{M.Entry{k, v}}:
+      f(a, k, v)
+
+def ord_consm(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: $ME, +es: $ES, +h: $ORD(ST.cons_m($E, m, es))) -> $ORD(es):
+  match m:
+    case None{}:
+      h
+    case Some{+e}:
+      OR.ord_tail($AK, e, es, h)
+
+def d32(+l: Nat, +d: Nat, +hl: {Nat.is_le(l, 29n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}) -> {Nat.is_lt(d, 32n) == True{} : Bool}:
+  DAS.lt32(d, l, hd, N.le_trans(l, 29n, 31n, hl, {==}))
+
+# the node of a slot and its value, from the node and the value of its id
+def nth_nd(~K: Data, +nl: List<&2, $ND>, +j: Nat, +c: Bool, +lf: Nat, +rt: Nat, +pa: Nat, +k: K, +hx: {$NDJ(j) == $NJ(c, lf, rt, pa, k) : $ND}) -> {SC.nth($ND, nl, j) == Some{$NJ(c, lf, rt, pa, k)} : Maybe<&2, $ND>}:
+  Equal.trans(Maybe<&2, $ND>, SC.nth($ND, nl, j), Some{$NDJ(j)}, Some{$NJ(c, lf, rt, pa, k)}, NSL.nth_of_or($ND, nl, j, M.Free{0n}, NSL.nth_or_lt(~K, nl, j, $NJ(c, lf, rt, pa, k), {==}, hx)), Equal.cong($ND, Maybe<&2, $ND>, z => Some{z}, $NDJ(j), $NJ(c, lf, rt, pa, k), hx))
+
+def nth_pv(-V: Data, +pl: List<&2, $MV>, +j: Nat, +v: V, +hmv: {$PVJ(j) == Some{v} : $MV}) -> {SC.nth($MV, pl, j) == Some{Some{v}} : Maybe<&2, $MV>}:
+  Equal.trans(Maybe<&2, $MV>, SC.nth($MV, pl, j), Some{$PVJ(j)}, Some{Some{v}}, pay_nth(V, pl, j, L.subst($MV, z => {ST.some2(V, z) == True{} : Bool}, Some{v}, $PVJ(j), Equal.sym($MV, $PVJ(j), Some{v}, hmv), {==})), Equal.cong($MV, Maybe<&2, $MV>, z => Some{z}, $PVJ(j), Some{v}, hmv))
+
+# the payload slot of a value
+def pslot(-V: Data, +d: Nat, +pl: List<&2, $MV>, +j: Nat, +v: V, +hv: {SC.nth($MV, pl, j) == Some{Some{v}} : Maybe<&2, $MV>}, +hpc: {Nat.is_le(SC.length($MV, pl), SC.pow2(d)) == True{} : Bool}) -> {SC.nth($PM, AR.slots($PM, $PT), j) == Some{Some{Some{v}}} : Maybe<&2, $PM>}:
+  %Equal.sym(List<&2, $PM>, AR.slots($PM, $PT), MK.fill($MV, SC.pow2(d), pl), MK.mk_slots($MV, d, pl)) : {SC.nth($PM, _, j) == Some{Some{Some{v}}} : Maybe<&2, $PM>}
+  fill_some($MV, SC.pow2(d), pl, j, Some{v}, hv, hpc)
+
+def plt(-V: Data, +d: Nat, +pl: List<&2, $MV>, +j: Nat, +v: V, +hv: {SC.nth($MV, pl, j) == Some{Some{v}} : Maybe<&2, $MV>}, +hpc: {Nat.is_le(SC.length($MV, pl), SC.pow2(d)) == True{} : Bool}) -> {Nat.is_lt(j, SC.pow2(d)) == True{} : Bool}:
+  N.lt_le_trans(j, SC.length($MV, pl), SC.pow2(d), LL.nth_lt_length($MV, pl, j, Some{v}, hv), hpc)
+
+# ---- a popped node: its entry is folded in while its key is below the upper bound ----
+
+# QS: the lower bound's name; QB: the bound; QD: its key's declaration; QA: its key
+%tmpl EMIT(QS, QB, QD, QA)
+def e3_##QS($TF, $CX, $DG QD, +j: Nat, +b: ST.Tr, +r: $FS, +a: A, +k: K, +v: V, +ins: Bool, +g2: Nat, +hins: {$BU(k, ub) == ins : Bool}, +hab: {$AL(k, QB) == True{} : Bool}, +hg: $GTA(k, $ENT($RST(b, r))), +ih: $GD(g2, $UB, b, r, f(a, k, v), Some{k}, None{})) -> {$FIN($WLK(g2, $UB, M.WDown{}, 0n, ins, slots(r), M.walk_apply(~K, ~V, ~A, ~f, ins, a, k, v), ($LKA, ST.rid(b)), ($KSA, Some{k}), ($PSA, None{}))) == ($TMR, $FE($W(QB, ub, Con{M.Entry{k, v}, $ENT($RST(b, r))}), a)) : $RT}:
+  match ins g2:
+    case True{} g3:
+      %Equal.sym(Bool, $AL(k, QB), True{}, hab) : {$DWN(g3, $UB, slots(r), f(a, k, v), ST.rid(b), Some{k}, None{}) == ($TMR, $FE(S.pick($ES, Bool.and(_, $BU(k, ub)), Con{M.Entry{k, v}, $W(QB, ub, $ENT($RST(b, r)))}, $W(QB, ub, $ENT($RST(b, r)))), a)) : $RT}
+      %Equal.sym(Bool, $BU(k, ub), True{}, hins) : {$DWN(g3, $UB, slots(r), f(a, k, v), ST.rid(b), Some{k}, None{}) == ($TMR, $FE(S.pick($ES, _, Con{M.Entry{k, v}, $W(QB, ub, $ENT($RST(b, r)))}, $W(QB, ub, $ENT($RST(b, r)))), a)) : $RT}
+      %Equal.sym($ES, $W(QB, ub, $ENT($RST(b, r))), $W($UB, ub, $ENT($RST(b, r))), tail($AO, k, $ENT($RST(b, r)), QB, ub, hg, hab)) : {$DWN(g3, $UB, slots(r), f(a, k, v), ST.rid(b), Some{k}, None{}) == ($TMR, $FE(_, f(a, k, v))) : $RT}
+      ih
+    case False{} 0n:
+      %Equal.sym(Bool, $BU(k, ub), False{}, hins) : {($TMR, a) == ($TMR, $FE(S.pick($ES, Bool.and($AL(k, QB), _), Con{M.Entry{k, v}, $W(QB, ub, $ENT($RST(b, r)))}, $W(QB, ub, $ENT($RST(b, r)))), a)) : $RT}
+      %Equal.sym(Bool, Bool.and($AL(k, QB), False{}), False{}, andf($AL(k, QB))) : {($TMR, a) == ($TMR, $FE(S.pick($ES, _, Con{M.Entry{k, v}, $W(QB, ub, $ENT($RST(b, r)))}, $W(QB, ub, $ENT($RST(b, r)))), a)) : $RT}
+      %Equal.sym($ES, $W(QB, ub, $ENT($RST(b, r))), Nil{}, past($AO, k, $ENT($RST(b, r)), QB, ub, hg, hins)) : {($TMR, a) == ($TMR, $FE(_, a)) : $RT}
+      {==}
+    case False{} 1n+g3:
+      %Equal.sym(Bool, $BU(k, ub), False{}, hins) : {($TMR, a) == ($TMR, $FE(S.pick($ES, Bool.and($AL(k, QB), _), Con{M.Entry{k, v}, $W(QB, ub, $ENT($RST(b, r)))}, $W(QB, ub, $ENT($RST(b, r)))), a)) : $RT}
+      %Equal.sym(Bool, Bool.and($AL(k, QB), False{}), False{}, andf($AL(k, QB))) : {($TMR, a) == ($TMR, $FE(S.pick($ES, _, Con{M.Entry{k, v}, $W(QB, ub, $ENT($RST(b, r)))}, $W(QB, ub, $ENT($RST(b, r)))), a)) : $RT}
+      %Equal.sym($ES, $W(QB, ub, $ENT($RST(b, r))), Nil{}, past($AO, k, $ENT($RST(b, r)), QB, ub, hg, hins)) : {($TMR, a) == ($TMR, $FE(_, a)) : $RT}
+      {==}
+
+def e2_##QS($TF, $CX, $DG QD, +j: Nat, +b: ST.Tr, +r: $FS, +a: A, +g2: Nat, +x: $ND, +mv: $MV, +hx: {$NDJ(j) == x : $ND}, +hmv: {$PVJ(j) == mv : $MV}, +hisr: {isr(~K, x, ST.rid(b)) == True{} : Bool}, +hsm: {ST.some2(V, mv) == True{} : Bool}, +hab: {nab(~K, ~cmp, x, QB) == True{} : Bool}, +hord: $ORD(ST.cons_m($E, ST.ent(K, V, x, mv), $ENT($RST(b, r)))), +ih: $GD(g2, $UB, b, r, ape(~K, ~V, ~A, ~f, a, ST.ent(K, V, x, mv)), M.nkey(~K, x), None{})) -> {$FIN($WLK(1n+g2, QB, M.WEmit{}, j, True{}, slots(r), a, ($LKA, 0n), Array.get($MK, $KSA, $UN(j)), Array.swap($PM, $PSA, $UN(j), None{}))) == ($TMR, $FE($W(QB, ub, ST.cons_m($E, ST.ent(K, V, x, mv), $ENT($RST(b, r)))), a)) : $RT}:
+  match x mv:
+    case M.Free{fx} m0:
+      Empty.absurd({$FIN($WLK(1n+g2, QB, M.WEmit{}, j, True{}, slots(r), a, ($LKA, 0n), Array.get($MK, $KSA, $UN(j)), Array.swap($PM, $PSA, $UN(j), None{}))) == ($TMR, $FE($W(QB, ub, ST.cons_m($E, ST.ent(K, V, M.Free{fx}, m0), $ENT($RST(b, r)))), a)) : $RT}, L.false_true(hisr))
+    case M.N{c, lf, rt, pa, k} None{}:
+      Empty.absurd({$FIN($WLK(1n+g2, QB, M.WEmit{}, j, True{}, slots(r), a, ($LKA, 0n), Array.get($MK, $KSA, $UN(j)), Array.swap($PM, $PSA, $UN(j), None{}))) == ($TMR, $FE($W(QB, ub, ST.cons_m($E, ST.ent(K, V, M.N{c, lf, rt, pa, k}, None{}), $ENT($RST(b, r)))), a)) : $RT}, L.false_true(hsm))
+    case M.N{+c, +lf, +rt, +pa, +k} Some{+v}:
+      +hy = nth_nd(~K, nl, j, c, lf, rt, pa, k, hx)
+      +hv = nth_pv(V, pl, j, v, hmv)
+      +h32 = d32(l, d, hl, hd)
+      +hjp = plt(V, d, pl, j, v, hv, hpc)
+      +hsl = pslot(V, d, pl, j, v, hv, hpc)
+      %Equal.sym(Array<$MK> & $MK, Array.get($MK, $KSA, $UN(j)), ($KSA, Some{k}), NF.key_get(~K, l, d, nl, hl, hd, hc, j, $NJ(c, lf, rt, pa, k), hy)) : {$FIN($WLK(1n+g2, QB, M.WEmit{}, j, True{}, slots(r), a, ($LKA, 0n), _, Array.swap($PM, $PSA, $UN(j), None{}))) == ($TMR, $FE($W(QB, ub, Con{M.Entry{k, v}, $ENT($RST(b, r))}), a)) : $RT}
+      %Equal.sym(Array<$PM> & $PM, Array.swap($PM, $PSA, $UN(j), None{}), (AR.thaw($PM, AR.upd($PM, d, $PT, j, None{})), Some{Some{v}}), sw_out($PM, d, $PT, j, None{}, Some{Some{v}}, h32, MK.mk_perfect($MV, d, pl), hjp, hsl)) : {$FIN($WLK(1n+g2, QB, M.WEmit{}, j, True{}, slots(r), a, ($LKA, 0n), ($KSA, Some{k}), _)) == ($TMR, $FE($W(QB, ub, Con{M.Entry{k, v}, $ENT($RST(b, r))}), a)) : $RT}
+      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $LKA, $UN(1n+Nat.double(j))), ($LKA, rt), NSL.right_get(~K, l, d, nl, hl, hd, hc, j, $NJ(c, lf, rt, pa, k), hy)) : {$FIN($WLK(g2, $UB, M.WDown{}, 0n, M.below_upper($AK, k, ub), slots(r), M.walk_apply(~K, ~V, ~A, ~f, M.below_upper($AK, k, ub), a, k, v), _, ($KSA, Some{k}), (Array.set($PM, AR.thaw($PM, AR.upd($PM, d, $PT, j, None{})), $UN(j), Some{Some{v}}), None{}))) == ($TMR, $FE($W(QB, ub, Con{M.Entry{k, v}, $ENT($RST(b, r))}), a)) : $RT}
+      %Equal.sym(Nat, rt, ST.rid(b), N.eq_from_is_eq(rt, ST.rid(b), hisr)) : {$FIN($WLK(g2, $UB, M.WDown{}, 0n, M.below_upper($AK, k, ub), slots(r), M.walk_apply(~K, ~V, ~A, ~f, M.below_upper($AK, k, ub), a, k, v), ($LKA, _), ($KSA, Some{k}), (Array.set($PM, AR.thaw($PM, AR.upd($PM, d, $PT, j, None{})), $UN(j), Some{Some{v}}), None{}))) == ($TMR, $FE($W(QB, ub, Con{M.Entry{k, v}, $ENT($RST(b, r))}), a)) : $RT}
+      %Equal.sym(Array<$PM>, Array.set($PM, AR.thaw($PM, AR.upd($PM, d, $PT, j, None{})), $UN(j), Some{Some{v}}), $PSA, sw_back($PM, d, $PT, j, None{}, Some{Some{v}}, h32, MK.mk_perfect($MV, d, pl), hjp, hsl)) : {$FIN($WLK(g2, $UB, M.WDown{}, 0n, M.below_upper($AK, k, ub), slots(r), M.walk_apply(~K, ~V, ~A, ~f, M.below_upper($AK, k, ub), a, k, v), ($LKA, ST.rid(b)), ($KSA, Some{k}), (_, None{}))) == ($TMR, $FE($W(QB, ub, Con{M.Entry{k, v}, $ENT($RST(b, r))}), a)) : $RT}
+      %Equal.sym(Bool, M.below_upper($AK, k, ub), $BU(k, ub), CU.bu_eq($AK, k, ub)) : {$FIN($WLK(g2, $UB, M.WDown{}, 0n, _, slots(r), M.walk_apply(~K, ~V, ~A, ~f, _, a, k, v), ($LKA, ST.rid(b)), ($KSA, Some{k}), ($PSA, None{}))) == ($TMR, $FE($W(QB, ub, Con{M.Entry{k, v}, $ENT($RST(b, r))}), a)) : $RT}
+      e3_##QS($AF, $CA, $DH QA, j, b, r, a, k, v, $BU(k, ub), g2, {==}, hab, OR.ord_gt($AO, $ENT($RST(b, r)), M.Entry{k, v}, hord), ih)
+
+%end
+%use EMIT(unb, $UB, , )
+%use EMIT(inc, <|M.Inclusive{blo}|>, <|, +blo: K|>, <|, blo|>)
+%use EMIT(exc, <|M.Exclusive{blo}|>, <|, +blo: K|>, <|, blo|>)
+
+# ---- a node against the lower bound: its left subtree is visited or skipped ----
+
+%def PRE $ENT(ST.ids(tl))
+%def RS $ENT($RST(tr, fr))
+%def SR(lb, m) ($TMR, $FE($W(lb, ub, $APP($PRE, m)), a))
+%def EKV M.Entry{k, v}
+
+%tmpl SEEK(QS, QB)
+def s3_##QS($TF, $CX, $DG, +blo: K, +j: Nat, +tl: ST.Tr, +tr: ST.Tr, +fr: $FS, +a: A, +z: $PM, +g2: Nat, +c: Bool, +lf: Nat, +rt: Nat, +pa: Nat, +k: K, +v: V, +ins: Bool, +hy: {SC.nth($ND, nl, j) == Some{$NJ(c, lf, rt, pa, k)} : Maybe<&2, $ND>}, +hlf: {lf == ST.rid(tl) : Nat}, +hrt: {rt == ST.rid(tr) : Nat}, +hins: {$AL(k, QB) == ins : Bool}, +hord: $ORD($APP($PRE, Con{$EKV, $RS})), ihl: @+hh: {$AL(k, QB) == True{} : Bool} -> {$DWN(g2, QB, Con{j, slots(fr)}, a, ST.rid(tl), Some{k}, z) == $SR(QB, Con{$EKV, $RS}) : $RT}, +ihr: {$DWN(g2, QB, slots(fr), a, ST.rid(tr), Some{k}, z) == ($TMR, $FE($W(QB, ub, $RS), a)) : $RT}) -> {$FIN($WLK(g2, QB, M.WDown{}, 0n, True{}, M.walk_push(ins, j, slots(fr)), a, Array.get(Nat, $LKA, $UN(Nat.add(M.walk_side(ins), Nat.double(j)))), ($KSA, Some{k}), ($PSA, z))) == $SR(QB, Con{$EKV, $RS}) : $RT}:
+  match ins:
+    case True{}:
+      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $LKA, $UN(Nat.double(j))), ($LKA, lf), NSL.left_get(~K, l, d, nl, hl, hd, hc, j, $NJ(c, lf, rt, pa, k), hy)) : {$FIN($WLK(g2, QB, M.WDown{}, 0n, True{}, Con{j, slots(fr)}, a, _, ($KSA, Some{k}), ($PSA, z))) == $SR(QB, Con{$EKV, $RS}) : $RT}
+      %Equal.sym(Nat, lf, ST.rid(tl), hlf) : {$DWN(g2, QB, Con{j, slots(fr)}, a, _, Some{k}, z) == $SR(QB, Con{$EKV, $RS}) : $RT}
+      ihl(hins)
+    case False{}:
+      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $LKA, $UN(1n+Nat.double(j))), ($LKA, rt), NSL.right_get(~K, l, d, nl, hl, hd, hc, j, $NJ(c, lf, rt, pa, k), hy)) : {$FIN($WLK(g2, QB, M.WDown{}, 0n, True{}, slots(fr), a, _, ($KSA, Some{k}), ($PSA, z))) == $SR(QB, Con{$EKV, $RS}) : $RT}
+      %Equal.sym(Nat, rt, ST.rid(tr), hrt) : {$DWN(g2, QB, slots(fr), a, _, Some{k}, z) == $SR(QB, Con{$EKV, $RS}) : $RT}
+      %Equal.sym($ES, $W(QB, ub, $APP($PRE, Con{$EKV, $RS})), $W(QB, ub, Con{$EKV, $RS}), skip($AO, k, $PRE, Con{$EKV, $RS}, QB, ub, OR.ord_mid_l($AO, $PRE, $EKV, $RS, hord), hins)) : {$DWN(g2, QB, slots(fr), a, ST.rid(tr), Some{k}, z) == ($TMR, $FE(_, a)) : $RT}
+      %Equal.sym(Bool, $AL(k, QB), False{}, hins) : {$DWN(g2, QB, slots(fr), a, ST.rid(tr), Some{k}, z) == ($TMR, $FE(S.pick($ES, Bool.and(_, $BU(k, ub)), Con{$EKV, $W(QB, ub, $RS)}, $W(QB, ub, $RS)), a)) : $RT}
+      ihr
+
+def s2_##QS($TF, $CX, $DG, +blo: K, +j: Nat, +tl: ST.Tr, +tr: ST.Tr, +fr: $FS, +p: Nat, +a: A, +z: $PM, +g2: Nat, +x: $ND, +mv: $MV, +hx: {$NDJ(j) == x : $ND}, +hmv: {$PVJ(j) == mv : $MV}, +hn: $ISN(x, ST.rid(tl), ST.rid(tr), p), +hsm: {ST.some2(V, mv) == True{} : Bool}, +hord: $ORD($APP($PRE, ST.cons_m($E, ST.ent(K, V, x, mv), $RS))), ihl: @+hh: {nab(~K, ~cmp, x, QB) == True{} : Bool} -> {$DWN(g2, QB, Con{j, slots(fr)}, a, ST.rid(tl), M.nkey(~K, x), z) == $SR(QB, ST.cons_m($E, ST.ent(K, V, x, mv), $RS)) : $RT}, +ihr: {$DWN(g2, QB, slots(fr), a, ST.rid(tr), M.nkey(~K, x), z) == ($TMR, $FE($W(QB, ub, $RS), a)) : $RT}) -> {$FIN($WLK(1n+g2, QB, M.WSeek{}, j, True{}, slots(fr), a, ($LKA, 0n), Array.get($MK, $KSA, $UN(j)), ($PSA, z))) == $SR(QB, ST.cons_m($E, ST.ent(K, V, x, mv), $RS)) : $RT}:
+  match x mv:
+    case M.Free{fx} m0:
+      Empty.absurd({$FIN($WLK(1n+g2, QB, M.WSeek{}, j, True{}, slots(fr), a, ($LKA, 0n), Array.get($MK, $KSA, $UN(j)), ($PSA, z))) == $SR(QB, ST.cons_m($E, ST.ent(K, V, M.Free{fx}, m0), $RS)) : $RT}, L.false_true(hn))
+    case M.N{c, lf, rt, pa, k} None{}:
+      Empty.absurd({$FIN($WLK(1n+g2, QB, M.WSeek{}, j, True{}, slots(fr), a, ($LKA, 0n), Array.get($MK, $KSA, $UN(j)), ($PSA, z))) == $SR(QB, ST.cons_m($E, ST.ent(K, V, M.N{c, lf, rt, pa, k}, None{}), $RS)) : $RT}, L.false_true(hsm))
+    case M.N{+c, +lf, +rt, +pa, +k} Some{+v}:
+      +hy = nth_nd(~K, nl, j, c, lf, rt, pa, k, hx)
+      +hlf = N.eq_from_is_eq(lf, ST.rid(tl), L.and_left(Nat.is_eq(lf, ST.rid(tl)), Bool.and(Nat.is_eq(rt, ST.rid(tr)), Nat.is_eq(pa, p)), hn))
+      +hrt = N.eq_from_is_eq(rt, ST.rid(tr), L.and_left(Nat.is_eq(rt, ST.rid(tr)), Nat.is_eq(pa, p), L.and_right(Nat.is_eq(lf, ST.rid(tl)), Bool.and(Nat.is_eq(rt, ST.rid(tr)), Nat.is_eq(pa, p)), hn)))
+      %Equal.sym(Array<$MK> & $MK, Array.get($MK, $KSA, $UN(j)), ($KSA, Some{k}), NF.key_get(~K, l, d, nl, hl, hd, hc, j, $NJ(c, lf, rt, pa, k), hy)) : {$FIN($WLK(1n+g2, QB, M.WSeek{}, j, True{}, slots(fr), a, ($LKA, 0n), _, ($PSA, z))) == $SR(QB, Con{$EKV, $RS}) : $RT}
+      %Equal.sym(Bool, M.above_lower($AK, k, QB), $AL(k, QB), CU.al_eq($AK, k, QB)) : {$FIN($WLK(g2, QB, M.WDown{}, 0n, True{}, M.walk_push(_, j, slots(fr)), a, Array.get(Nat, $LKA, $UN(Nat.add(M.walk_side(_), Nat.double(j)))), ($KSA, Some{k}), ($PSA, z))) == $SR(QB, Con{$EKV, $RS}) : $RT}
+      s3_##QS($AF, $CA, $DH, blo, j, tl, tr, fr, a, z, g2, c, lf, rt, pa, k, v, $AL(k, QB), hy, hlf, hrt, {==}, hord, ihl, ihr)
+
+%end
+%use SEEK(inc, <|M.Inclusive{blo}|>)
+%use SEEK(exc, <|M.Exclusive{blo}|>)
+
+# ---- the walk from a subtree and a stack of frames ----
+
+%def DW(g, lb, tc, fr, a, y, z, p, h1, h2, h3, h4, h5, h6) d_walk($AF, $CA, $DH, g, lb, tc, fr, a, y, z, p, h1, h2, h3, h4, h5, h6)
+%def MEJ ST.ent(K, V, $NDJ(j), $PVJ(j))
+%def FK4 Bool.and(ST.pay(~V, b, pl), frs_wf(~K, ~V, r, nl, pl))
+%def FK3 Bool.and(ST.rep(~K, b, 1n+j, nl), $FK4)
+%def FK2 Bool.and(ST.some2(V, $PVJ(j)), $FK3)
+%def FK1 isr(~K, $NDJ(j), ST.rid(b))
+%def E_ISR L.and_left($FK1, $FK2, hfr)
+%def E_2 L.and_right($FK1, $FK2, hfr)
+%def E_SM L.and_left(ST.some2(V, $PVJ(j)), $FK3, $E_2)
+%def E_3 L.and_right(ST.some2(V, $PVJ(j)), $FK3, $E_2)
+%def E_RB L.and_left(ST.rep(~K, b, 1n+j, nl), $FK4, $E_3)
+%def E_4 L.and_right(ST.rep(~K, b, 1n+j, nl), $FK4, $E_3)
+%def E_PB L.and_left(ST.pay(~V, b, pl), frs_wf(~K, ~V, r, nl, pl), $E_4)
+%def E_FR L.and_right(ST.pay(~V, b, pl), frs_wf(~K, ~V, r, nl, pl), $E_4)
+%def ROWE(fn, qb) fn($AF, $CA, $DH, j, b, r, a, g2, $NDJ(j), $PVJ(j), {==}, {==}, $E_ISR, $E_SM, L.and_left(nab(~K, ~cmp, $NDJ(j), qb), frs_lb(~K, ~cmp, r, nl, qb), hlb), hord, $DW(g2, $UB, b, r, ape(~K, ~V, ~A, ~f, a, $MEJ), M.nkey(~K, $NDJ(j)), None{}, 1n+j, $E_RB, $E_PB, $E_FR, frs_unb(~K, ~cmp, r, nl), ord_consm($AK, $MEJ, $ENT($RST(b, r)), hord), hfu))
+%def ROWB(fn, qb) fn($AF, $CA, $DH, blo, j, b, r, a, g2, $NDJ(j), $PVJ(j), {==}, {==}, $E_ISR, $E_SM, L.and_left(nab(~K, ~cmp, $NDJ(j), qb), frs_lb(~K, ~cmp, r, nl, qb), hlb), hord, $DW(g2, $UB, b, r, ape(~K, ~V, ~A, ~f, a, $MEJ), M.nkey(~K, $NDJ(j)), None{}, 1n+j, $E_RB, $E_PB, $E_FR, frs_unb(~K, ~cmp, r, nl), ord_consm($AK, $MEJ, $ENT($RST(b, r)), hord), hfu))
+%def RN1 ST.is_node(K, $NDJ(j), ST.rid(tl), ST.rid(tr), p)
+%def RN2 Bool.and(ST.rep(~K, tl, 1n+j, nl), ST.rep(~K, tr, 1n+j, nl))
+%def T_N L.and_left($RN1, $RN2, hrep)
+%def T_RL L.and_left(ST.rep(~K, tl, 1n+j, nl), ST.rep(~K, tr, 1n+j, nl), L.and_right($RN1, $RN2, hrep))
+%def T_RR L.and_right(ST.rep(~K, tl, 1n+j, nl), ST.rep(~K, tr, 1n+j, nl), L.and_right($RN1, $RN2, hrep))
+%def PN2 Bool.and(ST.pay(~V, tl, pl), ST.pay(~V, tr, pl))
+%def T_S L.and_left(ST.some2(V, $PVJ(j)), $PN2, hpay)
+%def T_PL L.and_left(ST.pay(~V, tl, pl), ST.pay(~V, tr, pl), L.and_right(ST.some2(V, $PVJ(j)), $PN2, hpay))
+%def T_PR L.and_right(ST.pay(~V, tl, pl), ST.pay(~V, tr, pl), L.and_right(ST.some2(V, $PVJ(j)), $PN2, hpay))
+%def F1 Con{F{j, tr}, fr}
+%def T_FR L.and_intro(isr(~K, $NDJ(j), ST.rid(tr)), Bool.and(ST.some2(V, $PVJ(j)), Bool.and(ST.rep(~K, tr, 1n+j, nl), Bool.and(ST.pay(~V, tr, pl), frs_wf(~K, ~V, fr, nl, pl)))), node_isr(~K, $NDJ(j), ST.rid(tl), ST.rid(tr), p, $T_N), L.and_intro(ST.some2(V, $PVJ(j)), Bool.and(ST.rep(~K, tr, 1n+j, nl), Bool.and(ST.pay(~V, tr, pl), frs_wf(~K, ~V, fr, nl, pl))), $T_S, L.and_intro(ST.rep(~K, tr, 1n+j, nl), Bool.and(ST.pay(~V, tr, pl), frs_wf(~K, ~V, fr, nl, pl)), $T_RR, L.and_intro(ST.pay(~V, tr, pl), frs_wf(~K, ~V, fr, nl, pl), $T_PR, hfr))))
+%def OLD SC.append(Nat, SC.append(Nat, ST.ids(tl), Con{1n+j, ST.ids(tr)}), fids(fr))
+%def NEW SC.append(Nat, ST.ids(tl), Con{1n+j, $RST(tr, fr)})
+%def RP LL.append_assoc(Nat, ST.ids(tl), Con{1n+j, ST.ids(tr)}, fids(fr))
+%def T_ORD L.subst(List<&2, Nat>, zz => $ORD($ENT(zz)), $OLD, $NEW, $RP, hord)
+%def EA FI.ents_app(~K, ~V, ST.ids(tl), Con{1n+j, $RST(tr, fr)}, nl, pl)
+%def PRE0 $ENT(ST.ids(tl))
+%def MID ST.cons_m($E, $MEJ, $ENT($RST(tr, fr)))
+%def T_ORD2 L.subst($ES, zz => $ORD(zz), $ENT($NEW), $APP($PRE0, $MID), $EA, $T_ORD)
+%def NKJ M.nkey(~K, $NDJ(j))
+%def ROWS(fn, qb) fn($AF, $CA, $DH, blo, j, tl, tr, fr, p, a, z, g2, $NDJ(j), $PVJ(j), {==}, {==}, $T_N, $T_S, $T_ORD2, hh => L.subst($ES, zz => {$DWN(g2, qb, Con{j, slots(fr)}, a, ST.rid(tl), $NKJ, z) == ($TMR, $FE($W(qb, ub, zz), a)) : $RT}, $ENT($NEW), $APP($PRE0, $MID), $EA, $DW(g2, qb, tl, $F1, a, $NKJ, z, 1n+j, $T_RL, $T_PL, $T_FR, L.and_intro(nab(~K, ~cmp, $NDJ(j), qb), frs_lb(~K, ~cmp, fr, nl, qb), hh, hlb), $T_ORD, fu_left(wt(tl), wt(tr), cf(fr), g2, hfu))), $DW(g2, qb, tr, fr, a, $NKJ, z, 1n+j, $T_RR, $T_PR, hfr, hlb, ord_consm($AK, $MEJ, $ENT($RST(tr, fr)), OR.ord_app_r($AK, $PRE0, $MID, $T_ORD2)), fu_right(wt(tl), wt(tr), cf(fr), g2, hfu)))
+%def TNJ ST.TN{1n+j, tl, tr}
+%def QI M.Inclusive{blo}
+%def QE M.Exclusive{blo}
+
+# The walk from the root of a subtree tc with the frames fr stacked, the
+# remaining ids in order and enough fuel: the map is left as it was and the
+# answer is f folded over the remaining entries within the bounds.
+def d_walk($TF, $CX, $DG, +fuel: Nat, +lb: $BD, +tc: ST.Tr, +fr: $FS, +a: A, +y: $MK, +z: $PM, +p: Nat, +hrep: {ST.rep(~K, tc, p, nl) == True{} : Bool}, +hpay: {ST.pay(~V, tc, pl) == True{} : Bool}, +hfr: {frs_wf(~K, ~V, fr, nl, pl) == True{} : Bool}, +hlb: {frs_lb(~K, ~cmp, fr, nl, lb) == True{} : Bool}, +hord: $ORD($ENT($REM(tc, fr))), +hfu: {Nat.is_le(mu(tc, fr), fuel) == True{} : Bool}) -> $GD(fuel, lb, tc, fr, a, y, z):
+  match fuel lb tc fr:
+    case 0n lb tc fr:
+      Empty.absurd($GD(0n, lb, tc, fr, a, y, z), L.false_true(hfu))
+    case 1n M.Unbounded{} ST.TE{} Nil{}:
+      {==}
+    case 1n M.Inclusive{blo} ST.TE{} Nil{}:
+      {==}
+    case 1n M.Exclusive{blo} ST.TE{} Nil{}:
+      {==}
+    case 1n lb ST.TE{} Con{F{j, b}, r}:
+      Empty.absurd($GD(1n, lb, ST.TE{}, Con{F{j, b}, r}, a, y, z), L.false_true(hfu))
+    case 1n lb ST.TN{i, tl, tr} fr:
+      Empty.absurd($GD(1n, lb, ST.TN{i, tl, tr}, fr, a, y, z), L.false_true(hfu))
+    case 2n+g2 M.Unbounded{} ST.TE{} Nil{}:
+      {==}
+    case 2n+g2 M.Inclusive{blo} ST.TE{} Nil{}:
+      {==}
+    case 2n+g2 M.Exclusive{blo} ST.TE{} Nil{}:
+      {==}
+    case 2n+g2 M.Unbounded{} ST.TE{} Con{F{+j, +b}, +r}:
+      $ROWE(e2_unb, $UB)
+    case 2n+g2 M.Inclusive{+blo} ST.TE{} Con{F{+j, +b}, +r}:
+      $ROWB(e2_inc, $QI)
+    case 2n+g2 M.Exclusive{+blo} ST.TE{} Con{F{+j, +b}, +r}:
+      $ROWB(e2_exc, $QE)
+    case 2n+g2 lb ST.TN{0n, tl, tr} fr:
+      Empty.absurd($GD(2n+g2, lb, ST.TN{0n, tl, tr}, fr, a, y, z), L.false_true(hrep))
+    case 2n+g2 M.Unbounded{} ST.TN{1n+ +j, +tl, +tr} fr:
+      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $LKA, $UN(Nat.double(j))), ($LKA, M.nleft(~K, $NDJ(j))), NSL.left_get(~K, l, d, nl, hl, hd, hc, j, $NDJ(j), node_nth(~K, nl, j, node_isn(~K, $NDJ(j), ST.rid(tl), ST.rid(tr), p, $T_N)))) : {$FIN($WLK(1n+g2, $UB, M.WDown{}, 0n, True{}, Con{j, slots(fr)}, a, _, ($KSA, y), ($PSA, z))) == ($TMR, $FE($W($UB, ub, $ENT($OLD)), a)) : $RT}
+      %Equal.sym(Nat, M.nleft(~K, $NDJ(j)), ST.rid(tl), node_l(~K, $NDJ(j), ST.rid(tl), ST.rid(tr), p, $T_N)) : {$DWN(1n+g2, $UB, Con{j, slots(fr)}, a, _, y, z) == ($TMR, $FE($W($UB, ub, $ENT($OLD)), a)) : $RT}
+      %Equal.sym(List<&2, Nat>, $OLD, $NEW, $RP) : {$DWN(1n+g2, $UB, Con{j, slots(fr)}, a, ST.rid(tl), y, z) == ($TMR, $FE($W($UB, ub, $ENT(_)), a)) : $RT}
+      $DW(1n+g2, $UB, tl, $F1, a, y, z, 1n+j, $T_RL, $T_PL, $T_FR, frs_unb(~K, ~cmp, $F1, nl), $T_ORD, fu_push(wt(tl), wt(tr), cf(fr), g2, hfu))
+    case 2n+g2 M.Inclusive{+blo} ST.TN{1n+ +j, +tl, +tr} fr:
+      %Equal.sym(List<&2, Nat>, $OLD, $NEW, $RP) : {$DWN(2n+g2, $QI, slots(fr), a, 1n+j, y, z) == ($TMR, $FE($W($QI, ub, $ENT(_)), a)) : $RT}
+      %Equal.sym($ES, $ENT($NEW), $APP($PRE0, $MID), $EA) : {$DWN(2n+g2, $QI, slots(fr), a, 1n+j, y, z) == ($TMR, $FE($W($QI, ub, _), a)) : $RT}
+      $ROWS(s2_inc, $QI)
+    case 2n+g2 M.Exclusive{+blo} ST.TN{1n+ +j, +tl, +tr} fr:
+      %Equal.sym(List<&2, Nat>, $OLD, $NEW, $RP) : {$DWN(2n+g2, $QE, slots(fr), a, 1n+j, y, z) == ($TMR, $FE($W($QE, ub, $ENT(_)), a)) : $RT}
+      %Equal.sym($ES, $ENT($NEW), $APP($PRE0, $MID), $EA) : {$DWN(2n+g2, $QE, slots(fr), a, 1n+j, y, z) == ($TMR, $FE($W($QE, ub, _), a)) : $RT}
+      $ROWS(s2_exc, $QE)
+
+# ---- the folds ----
+
+%def SHP +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, $ND>, +pl: List<&2, $MV>, +t: ST.Tr, +fl: List<&2, Nat>
+%def SHA n, root, lo, hi, free, l, d, nl, pl, t, fl
+%def SHV ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl}
+%def HGF +hg: {ST.good($AK, $SHV) == True{} : Bool}
+%def G(c) ST.g_##c($AK, $SHA, hg)
+%def ET $ENT(ST.ids(t))
+%def FU0 1n+$DD(n)
+
+def plc(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $SHP, $HGF) -> {Nat.is_le(SC.length($MV, pl), SC.pow2(d)) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_le(z, SC.pow2(d)) == True{} : Bool}, SC.length($ND, nl), SC.length($MV, pl), Equal.sym(Nat, SC.length($MV, pl), SC.length($ND, nl), N.eq_from_is_eq(SC.length($MV, pl), SC.length($ND, nl), ST.g_cpl($AK, $SHA, hg))), ST.g_ccap($AK, $SHA, hg))
+
+# four steps per entry and one are enough
+def fuel0(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, $SHP, $HGF) -> {Nat.is_le(mu(t, Nil{}), $FU0) == True{} : Bool}:
+  %Equal.sym(Nat, n, $LI(t), N.eq_from_is_eq(n, $LI(t), ST.g_csz($AK, $SHA, hg))) : {Nat.is_le(Nat.add(wt(t), 0n), $DD(_)) == True{} : Bool}
+  %Equal.sym(Nat, Nat.add(wt(t), 0n), wt(t), N.add_zero(wt(t))) : {Nat.is_le(_, $DD($LI(t))) == True{} : Bool}
+  %Equal.sym(Nat, wt(t), $DD($LI(t)), w_size(t)) : {Nat.is_le(_, $DD($LI(t))) == True{} : Bool}
+  N.le_refl($DD($LI(t)))
+
+def fr_c($TF, $SHP, $HGF, +lower: $BD, +ub: $BD, +a: A) -> {M.fold_range(~K, ~V, ~cmp, ~A, ~f, ST.real($AK, $SHV), lower, ub, a) == (ST.real($AK, $SHV), $FE($W(lower, ub, $ET), a)) : $RT}:
+  %Equal.sym(Nat, root, ST.rid(t), N.eq_from_is_eq(root, ST.rid(t), ST.g_croot($AK, $SHA, hg))) : {$DWN($FU0, lower, Nil{}, a, _, None{}, None{}) == ($TMR, $FE($W(lower, ub, $ET), a)) : $RT}
+  %LL.append_nil(Nat, ST.ids(t)) : {$DWN($FU0, lower, Nil{}, a, ST.rid(t), None{}, None{}) == ($TMR, $FE($W(lower, ub, $ENT(_)), a)) : $RT}
+  d_walk($AF, n, root, lo, hi, free, l, d, nl, pl, ub, ST.g_cl($AK, $SHA, hg), ST.g_cd($AK, $SHA, hg), ST.g_ccap($AK, $SHA, hg), plc($AK, $SHA, hg), $FU0, lower, t, Nil{}, a, None{}, None{}, 0n, ST.g_crep($AK, $SHA, hg), ST.g_cpay($AK, $SHA, hg), {==}, {==}, L.subst(List<&2, Nat>, zz => $ORD($ENT(zz)), ST.ids(t), SC.append(Nat, ST.ids(t), Nil{}), Equal.sym(List<&2, Nat>, SC.append(Nat, ST.ids(t), Nil{}), ST.ids(t), LL.append_nil(Nat, ST.ids(t))), ST.g_cord($AK, $SHA, hg)), fuel0($AK, $SHA, hg))
+
+# fold_range: f folded over the entries within the bounds; the map unchanged
+def fold_range_ok($TF, +sh: ST.Sh<K, V>, +hg: {ST.good($AK, sh) == True{} : Bool}, +lower: $BD, +upper: $BD, +a: A) -> OK.POK($AK, A, S.fold_range(~K, ~V, ~cmp, ~A, ~f, ST.model($AK, sh), lower, upper, a), M.fold_range(~K, ~V, ~cmp, ~A, ~f, ST.real($AK, sh), lower, upper, a)):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +t, +fl}:
+      OK.pok_read($AK, A, $SHV, hg, $FE($W(lower, upper, $ET), a), S.fold_range(~K, ~V, ~cmp, ~A, ~f, ST.model($AK, $SHV), lower, upper, a), M.fold_range(~K, ~V, ~cmp, ~A, ~f, ST.real($AK, $SHV), lower, upper, a), {==}, fr_c($AF, $SHA, hg, lower, upper, a))
+
+# fold: f folded over every entry; the map unchanged
+def fold_ok($TF, +sh: ST.Sh<K, V>, +hg: {ST.good($AK, sh) == True{} : Bool}, +a: A) -> OK.POK($AK, A, S.fold(~K, ~V, ~A, ~f, ST.model($AK, sh), a), M.fold(~K, ~V, ~cmp, ~A, ~f, ST.real($AK, sh), a)):
+  match sh:
+    case ST.SH{+n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +t, +fl}:
+      OK.pok_read($AK, A, $SHV, hg, $FE($ET, a), S.fold(~K, ~V, ~A, ~f, ST.model($AK, $SHV), a), M.fold(~K, ~V, ~cmp, ~A, ~f, ST.real($AK, $SHV), a), {==}, L.subst($ES, zz => {M.fold_range(~K, ~V, ~cmp, ~A, ~f, ST.real($AK, $SHV), $UB, $UB, a) == (ST.real($AK, $SHV), $FE(zz, a)) : $RT}, $W($UB, $UB, $ET), $ET, win_all($AK, $ET), fr_c($AF, $SHA, hg, $UB, $UB, a)))

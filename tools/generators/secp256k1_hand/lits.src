@@ -2,7 +2,8 @@ import Base
 import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/secp256k1/field.bend as FS
 import ../../lib/logic.bend as Lg
-import ./consts.bend as K
+import ./lite/lib/nat.bend as N
+import ./lite/lib/lemmas/proofs/nat_algebra.bend as NA
 import ./ineq.bend as I
 
 # Literal limbs: 2^10 = shift(10, one), and a literal below 2^16 is a limb
@@ -10,7 +11,8 @@ import ./ineq.bend as I
 # written as six doublings of w = 2^10).
 
 def shk(+k: Nat, +one: Nat, +v: Nat, +hv: {C.shift(k, one) == v : Nat}) -> {C.shift(1n+k, one) == Nat.add(v, v) : Nat}:
-  %rw <- K.shift_twice(k, one)
+  %goal {Nat.double(C.shift(k, one)) == Nat.add(v, v) : Nat}
+  %rw NA.double_self(C.shift(k, one))
   %rwh hv : {C.shift(k, one) == v : Nat}
   %rwh hv : {C.shift(k, one) == v : Nat}
   %close
@@ -24,14 +26,24 @@ def lt16(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +w: Nat, +hw: {C.shift(10n,
   +e = shk(15n, one, Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))))), shk(14n, one, Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), shk(13n, one, Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), shk(12n, one, Nat.add(Nat.add(w, w), Nat.add(w, w)), shk(11n, one, Nat.add(w, w), shk(10n, one, w, hw))))))
   I.lt_subst_r(x, Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))))), Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))))), C.shift(16n, one), Equal.sym(Nat, C.shift(16n, one), Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))))), Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))))), e), hx)
 
-def ok16(+w: Nat, n: Nat, xs: List<&2, Nat>) -> Bool:
+# 2^16 as a literal, once: 65536 <= 64 w for w = 2^10 (the only comparison
+# of a literal with a computed number)
+def le16_w(+one: Nat, +h1: {one == 1n : Nat}, +w: Nat, +hw: {C.shift(10n, one) == w : Nat}, +h: {Nat.is_le(65536n, Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))))), Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))))))) == True{} : Bool}) -> {Nat.is_le(65536n, C.shift(16n, one)) == True{} : Bool}:
+  +e = shk(15n, one, Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))))), shk(14n, one, Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), shk(13n, one, Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), shk(12n, one, Nat.add(Nat.add(w, w), Nat.add(w, w)), shk(11n, one, Nat.add(w, w), shk(10n, one, w, hw))))))
+  I.le_subst_r(65536n, Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))))), Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))))), C.shift(16n, one), Equal.sym(Nat, C.shift(16n, one), Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))))), Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))))), e), h)
+
+def le16(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_le(65536n, C.shift(16n, one)) == True{} : Bool}:
+  le16_w(one, h1, 1024n, sh10(one, h1), {==})
+
+# every element of a literal list is below 65536 (literals compare as literals)
+def ok16(n: Nat, xs: List<&2, Nat>) -> Bool:
   match n xs:
     case 0n Nil{}: True{}
     case 0n x <> t: False{}
     case 1n+k Nil{}: False{}
-    case 1n+k x <> t: Bool.and(Nat.is_lt(x, Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))))), Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))))))), ok16(w, k, t))
+    case 1n+k x <> t: Bool.and(Nat.is_lt(x, 65536n), ok16(k, t))
 
-def lits16_w(+one: Nat, +h1: {one == 1n : Nat}, +w: Nat, +hw: {C.shift(10n, one) == w : Nat}, n: Nat, xs: List<&2, Nat>, +h: {ok16(w, n, xs) == True{} : Bool}) -> {FS.limbs16(one, n, xs) == True{} : Bool}:
+def lits16_e(+one: Nat, +e: {Nat.is_le(65536n, C.shift(16n, one)) == True{} : Bool}, n: Nat, xs: List<&2, Nat>, +h: {ok16(n, xs) == True{} : Bool}) -> {FS.limbs16(one, n, xs) == True{} : Bool}:
   match n xs:
     case 0n Nil{}:
       {==}
@@ -40,10 +52,10 @@ def lits16_w(+one: Nat, +h1: {one == 1n : Nat}, +w: Nat, +hw: {C.shift(10n, one)
     case 1n+k Nil{}:
       Empty.absurd({FS.limbs16(one, 1n+k, []) == True{} : Bool}, Lg.false_true(h))
     case 1n+ +k +x <> +t:
-      +q = Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))))), Nat.add(Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w)))), Nat.add(Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))), Nat.add(Nat.add(Nat.add(w, w), Nat.add(w, w)), Nat.add(Nat.add(w, w), Nat.add(w, w))))))
-      +hx = Lg.and_left(Nat.is_lt(x, q), ok16(w, k, t), h)
-      +ht = Lg.and_right(Nat.is_lt(x, q), ok16(w, k, t), h)
-      Lg.and_intro(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, k, t), lt16(one, h1, x, w, hw, hx), lits16_w(one, h1, w, hw, k, t, ht))
+      +hx = Lg.and_left(Nat.is_lt(x, 65536n), ok16(k, t), h)
+      +ht = Lg.and_right(Nat.is_lt(x, 65536n), ok16(k, t), h)
+      Lg.and_intro(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, k, t), N.lt_le_trans(x, 65536n, C.shift(16n, one), hx, e), lits16_e(one, e, k, t, ht))
 
-def lits16(+one: Nat, +h1: {one == 1n : Nat}, n: Nat, xs: List<&2, Nat>, +h: {ok16(1024n, n, xs) == True{} : Bool}) -> {FS.limbs16(one, n, xs) == True{} : Bool}:
-  lits16_w(one, h1, 1024n, sh10(one, h1), n, xs, h)
+# a list of literals below 2^16 is a list of limbs
+def lits16(+one: Nat, +h1: {one == 1n : Nat}, n: Nat, xs: List<&2, Nat>, +h: {ok16(n, xs) == True{} : Bool}) -> {FS.limbs16(one, n, xs) == True{} : Bool}:
+  lits16_e(one, le16(one, h1), n, xs, h)

@@ -9,11 +9,12 @@ import ../../../src/containers/types/dynamic_array.bend as DE
 import ./bk.bend as BK
 import ./nsr.bend as NR
 import ./nsf.bend as NF
+import ./lk.bend as LKB
 import ./da.bend as DA
 import ./state.bend as ST
 
 # The TreeMap's node store (the ns_* functions of the implementation) on the
-# realization of a node list xs of length at most 2^d, d <= l <= 31: a read
+# realization of a node list xs of length at most 2^d, d <= l <= 29: a read
 # returns the list's node, a write in range updates the list, an append
 # snocs it (doubling the capacity when full and below the limit), clear
 # empties it. These are the statements the dynamic-array lemmas of arr.bend
@@ -23,17 +24,32 @@ import ./state.bend as ST
 %def NSK M.NodeStore<K>
 %def RES Result<&2, &2, DE.Error, $ND>
 %def RU Result<&2, &2, DE.Error, Unit>
+%def NL List<&2, Nat>
+%def AN Array<Nat>
 %def NRL(d, xs) NR.real(~K, l, d, xs)
-%def TB(d, xs) AR.thaw(Nat, BK.bk(Nat, d, NR.tags(~K, xs), 0n))
-%def LB(d, xs) AR.thaw(Nat, BK.bk(Nat, d, NR.lefts(~K, xs), 0n))
-%def RB(d, xs) AR.thaw(Nat, BK.bk(Nat, d, NR.rights(~K, xs), 0n))
-%def PB(d, xs) AR.thaw(Nat, BK.bk(Nat, d, NR.parents(~K, xs), 0n))
+%def LRL(xs) NR.lrs(~K, xs)
+%def TPL(xs) NR.tps(~K, xs)
+%def LKL(d, fl, gl) AR.thaw(Nat, AR.TNode{BK.bk(Nat, 1n+d, fl, 0n), BK.bk(Nat, 1n+d, gl, 0n)})
+%def LK(d, xs) $LKL(d, $LRL(xs), $TPL(xs))
 %def KB(d, xs) AR.thaw(Maybe<&2, K>, BK.bk(Maybe<&2, K>, d, NR.keys(~K, xs), None{}))
-%def ARRS(d, xs) $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)
-%def GP +l: Nat, +d: Nat, +xs: List<&2, $ND>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length($ND, xs), SC.pow2(d)) == True{} : Bool}
+%def ARRS(d, xs) $LK(d, xs), $KB(d, xs)
+%def GP +l: Nat, +d: Nat, +xs: List<&2, $ND>, +hl: {Nat.is_le(l, 29n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length($ND, xs), SC.pow2(d)) == True{} : Bool}
 %def GA l, d, xs, hl, hd, hc
 %def N0 SC.length($ND, xs)
 %def P0 SC.pow2(d)
+%def HE he2(l, d, hl, hd)
+%def LRC NF.lrs_cap(~K, d, xs, hc)
+%def TPC NF.tps_cap(~K, d, xs, hc)
+%def IL(i) Nat.double(i)
+%def IR(i) 1n+Nat.double(i)
+%def IT(i) Nat.double(Nat.add($P0, i))
+%def IP(i) 1n+Nat.double(Nat.add($P0, i))
+%def HL(i) Nat.add(Nat.double($P0), Nat.double(i))
+%def HR(i) Nat.add(Nat.double($P0), 1n+Nat.double(i))
+%def UN(j) U32.from_nat(j)
+%def LA(fl, gl, cf, cg) Nat, 1n+d, fl, gl, 0n, $HE, cf, cg
+%def SET4(a, ia, va, ib, vb, ic, vc, id, vd) Array.set(Nat, Array.set(Nat, Array.set(Nat, Array.set(Nat, a, $UN(ia), va), $UN(ib), vb), $UN(ic), vc), $UN(id), vd)
+%def SET2(a, ic, vc, id, vd) Array.set(Nat, Array.set(Nat, a, $UN(ic), vc), $UN(id), vd)
 
 def isj(-A: Data, m: Maybe<&2, A>) -> Bool:
   match m:
@@ -80,14 +96,90 @@ def mk_enc(~K: Data, +y: $ND) -> {M.mk_node(~K, M.ntag(~K, y), M.nleft(~K, y), M
 def ns_length_ok(~K: Data, $GP) -> {M.ns_length(~K, $NRL(d, xs)) == ($NRL(d, xs), $N0) : $NSK & Nat}:
   {==}
 
+# ---- the links array: indices and bounds ----
+
+# the depth of the links array's halves is below 31
+def he2(+l: Nat, +d: Nat, +hl: {Nat.is_le(l, 29n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}) -> {Nat.is_lt(1n+(1n+d), 32n) == True{} : Bool}:
+  N.le_lt_succ(d, 29n, N.le_trans(d, l, 29n, hd, hl))
+
+# slot 2(p+i) of the array is slot 2i of its high half, 2(p+i)+1 slot 2i+1
+def ixt(+p: Nat, +i: Nat) -> {Nat.add(Nat.double(p), Nat.double(i)) == Nat.double(Nat.add(p, i)) : Nat}:
+  N.add_double(p, i)
+
+def ixp(+p: Nat, +i: Nat) -> {Nat.add(Nat.double(p), 1n+Nat.double(i)) == 1n+Nat.double(Nat.add(p, i)) : Nat}:
+  Equal.trans(Nat, Nat.add(Nat.double(p), 1n+Nat.double(i)), 1n+Nat.add(Nat.double(p), Nat.double(i)), 1n+Nat.double(Nat.add(p, i)), N.add_succ(Nat.double(p), Nat.double(i)), N.succ_cong(Nat.add(Nat.double(p), Nat.double(i)), Nat.double(Nat.add(p, i)), N.add_double(p, i)))
+
+# both slots of node i are below the length of a pair list of n nodes
+def dl0(+n: Nat, +i: Nat, +pl: $NL, +hlen: {SC.length(Nat, pl) == Nat.double(n) : Nat}, +hi: {Nat.is_lt(i, n) == True{} : Bool}) -> {Nat.is_lt(Nat.double(i), SC.length(Nat, pl)) == True{} : Bool}:
+  %Equal.sym(Nat, SC.length(Nat, pl), Nat.double(n), hlen) : {Nat.is_lt(Nat.double(i), _) == True{} : Bool}
+  N.double_lt(i, n, hi)
+
+def dl1(+n: Nat, +i: Nat, +pl: $NL, +hlen: {SC.length(Nat, pl) == Nat.double(n) : Nat}, +hi: {Nat.is_lt(i, n) == True{} : Bool}) -> {Nat.is_lt(1n+Nat.double(i), SC.length(Nat, pl)) == True{} : Bool}:
+  %Equal.sym(Nat, SC.length(Nat, pl), Nat.double(n), hlen) : {Nat.is_lt(1n+Nat.double(i), _) == True{} : Bool}
+  N.succ_le_lt(1n+Nat.double(i), Nat.double(n), N.double_le(1n+i, n, N.lt_succ_le_succ(i, n, hi)))
+
+# ---- the links array: reading a field of a node ----
+
+%def HY +i: Nat, +y: $ND, +hy: {SC.nth($ND, xs, i) == Some{y} : Maybe<&2, $ND>}
+
+def left_get(~K: Data, $GP, $HY) -> {Array.get(Nat, $LK(d, xs), $UN($IL(i))) == ($LK(d, xs), M.nleft(~K, y)) : $AN & Nat}:
+  LKB.get_lo($LA($LRL(xs), $TPL(xs), $LRC, $TPC), $IL(i), M.nleft(~K, y), NF.lrs_nth0(~K, xs, i, y, hy))
+
+def right_get(~K: Data, $GP, $HY) -> {Array.get(Nat, $LK(d, xs), $UN($IR(i))) == ($LK(d, xs), M.nright(~K, y)) : $AN & Nat}:
+  LKB.get_lo($LA($LRL(xs), $TPL(xs), $LRC, $TPC), $IR(i), M.nright(~K, y), NF.lrs_nth1(~K, xs, i, y, hy))
+
+def tag_get(~K: Data, $GP, $HY) -> {Array.get(Nat, $LK(d, xs), $UN($IT(i))) == ($LK(d, xs), M.ntag(~K, y)) : $AN & Nat}:
+  %ixt($P0, i) : {Array.get(Nat, $LK(d, xs), $UN(_)) == ($LK(d, xs), M.ntag(~K, y)) : $AN & Nat}
+  LKB.get_hi($LA($LRL(xs), $TPL(xs), $LRC, $TPC), $IL(i), M.ntag(~K, y), NF.tps_nth0(~K, xs, i, y, hy))
+
+def parent_get(~K: Data, $GP, $HY) -> {Array.get(Nat, $LK(d, xs), $UN($IP(i))) == ($LK(d, xs), M.nparent(~K, y)) : $AN & Nat}:
+  %ixp($P0, i) : {Array.get(Nat, $LK(d, xs), $UN(_)) == ($LK(d, xs), M.nparent(~K, y)) : $AN & Nat}
+  LKB.get_hi($LA($LRL(xs), $TPL(xs), $LRC, $TPC), $IR(i), M.nparent(~K, y), NF.tps_nth1(~K, xs, i, y, hy))
+
+# ---- the links array: writing one field of a node (the others kept) ----
+
+%def UY SC.update($ND, xs, i, y)
+%def HY0 +i: Nat, +y0: $ND, +y: $ND, +hy0: {SC.nth($ND, xs, i) == Some{y0} : Maybe<&2, $ND>}
+%def EL +el: {M.nleft(~K, y0) == M.nleft(~K, y) : Nat}
+%def ER +er: {M.nright(~K, y0) == M.nright(~K, y) : Nat}
+%def ET +et: {M.ntag(~K, y0) == M.ntag(~K, y) : Nat}
+%def EP +ep: {M.nparent(~K, y0) == M.nparent(~K, y) : Nat}
+%def HI0 LL.nth_lt_length($ND, xs, i, y0, hy0)
+
+def left_aset(~K: Data, $GP, $HY0, $ER, $ET, $EP) -> {Array.set(Nat, $LK(d, xs), $UN($IL(i)), M.nleft(~K, y)) == $LK(d, $UY) : $AN}:
+  %Equal.sym($AN, Array.set(Nat, $LK(d, xs), $UN($IL(i)), M.nleft(~K, y)), $LKL(d, SC.update(Nat, $LRL(xs), $IL(i), M.nleft(~K, y)), $TPL(xs)), LKB.set_lo($LA($LRL(xs), $TPL(xs), $LRC, $TPC), $IL(i), M.nleft(~K, y), dl0($N0, i, $LRL(xs), NF.lrs_len(~K, xs), $HI0))) : {_ == $LK(d, $UY) : $AN}
+  %Equal.sym($NL, SC.update(Nat, $LRL(xs), $IL(i), M.nleft(~K, y)), $LRL($UY), NF.lrs_upd0(~K, xs, i, y0, y, hy0, er)) : {$LKL(d, _, $TPL(xs)) == $LK(d, $UY) : $AN}
+  %Equal.sym($NL, $TPL($UY), $TPL(xs), NF.tps_keep(~K, xs, i, y0, y, hy0, et, ep)) : {$LKL(d, $LRL($UY), $TPL(xs)) == $LKL(d, $LRL($UY), _) : $AN}
+  {==}
+
+def right_aset(~K: Data, $GP, $HY0, $EL, $ET, $EP) -> {Array.set(Nat, $LK(d, xs), $UN($IR(i)), M.nright(~K, y)) == $LK(d, $UY) : $AN}:
+  %Equal.sym($AN, Array.set(Nat, $LK(d, xs), $UN($IR(i)), M.nright(~K, y)), $LKL(d, SC.update(Nat, $LRL(xs), $IR(i), M.nright(~K, y)), $TPL(xs)), LKB.set_lo($LA($LRL(xs), $TPL(xs), $LRC, $TPC), $IR(i), M.nright(~K, y), dl1($N0, i, $LRL(xs), NF.lrs_len(~K, xs), $HI0))) : {_ == $LK(d, $UY) : $AN}
+  %Equal.sym($NL, SC.update(Nat, $LRL(xs), $IR(i), M.nright(~K, y)), $LRL($UY), NF.lrs_upd1(~K, xs, i, y0, y, hy0, el)) : {$LKL(d, _, $TPL(xs)) == $LK(d, $UY) : $AN}
+  %Equal.sym($NL, $TPL($UY), $TPL(xs), NF.tps_keep(~K, xs, i, y0, y, hy0, et, ep)) : {$LKL(d, $LRL($UY), $TPL(xs)) == $LKL(d, $LRL($UY), _) : $AN}
+  {==}
+
+def tag_aset(~K: Data, $GP, $HY0, $EL, $ER, $EP) -> {Array.set(Nat, $LK(d, xs), $UN($IT(i)), M.ntag(~K, y)) == $LK(d, $UY) : $AN}:
+  %ixt($P0, i) : {Array.set(Nat, $LK(d, xs), $UN(_), M.ntag(~K, y)) == $LK(d, $UY) : $AN}
+  %Equal.sym($AN, Array.set(Nat, $LK(d, xs), $UN($HL(i)), M.ntag(~K, y)), $LKL(d, $LRL(xs), SC.update(Nat, $TPL(xs), $IL(i), M.ntag(~K, y))), LKB.set_hi($LA($LRL(xs), $TPL(xs), $LRC, $TPC), $IL(i), M.ntag(~K, y), dl0($N0, i, $TPL(xs), NF.tps_len(~K, xs), $HI0))) : {_ == $LK(d, $UY) : $AN}
+  %Equal.sym($NL, SC.update(Nat, $TPL(xs), $IL(i), M.ntag(~K, y)), $TPL($UY), NF.tps_upd0(~K, xs, i, y0, y, hy0, ep)) : {$LKL(d, $LRL(xs), _) == $LK(d, $UY) : $AN}
+  %Equal.sym($NL, $LRL($UY), $LRL(xs), NF.lrs_keep(~K, xs, i, y0, y, hy0, el, er)) : {$LKL(d, $LRL(xs), $TPL($UY)) == $LKL(d, _, $TPL($UY)) : $AN}
+  {==}
+
+def parent_aset(~K: Data, $GP, $HY0, $EL, $ER, $ET) -> {Array.set(Nat, $LK(d, xs), $UN($IP(i)), M.nparent(~K, y)) == $LK(d, $UY) : $AN}:
+  %ixp($P0, i) : {Array.set(Nat, $LK(d, xs), $UN(_), M.nparent(~K, y)) == $LK(d, $UY) : $AN}
+  %Equal.sym($AN, Array.set(Nat, $LK(d, xs), $UN($HR(i)), M.nparent(~K, y)), $LKL(d, $LRL(xs), SC.update(Nat, $TPL(xs), $IR(i), M.nparent(~K, y))), LKB.set_hi($LA($LRL(xs), $TPL(xs), $LRC, $TPC), $IR(i), M.nparent(~K, y), dl1($N0, i, $TPL(xs), NF.tps_len(~K, xs), $HI0))) : {_ == $LK(d, $UY) : $AN}
+  %Equal.sym($NL, SC.update(Nat, $TPL(xs), $IR(i), M.nparent(~K, y)), $TPL($UY), NF.tps_upd1(~K, xs, i, y0, y, hy0, et)) : {$LKL(d, $LRL(xs), _) == $LK(d, $UY) : $AN}
+  %Equal.sym($NL, $LRL($UY), $LRL(xs), NF.lrs_keep(~K, xs, i, y0, y, hy0, el, er)) : {$LKL(d, $LRL(xs), $TPL($UY)) == $LKL(d, _, $TPL($UY)) : $AN}
+  {==}
+
 # ---- read ----
 
 def get_some(~K: Data, $GP, +i: Nat, +y: $ND, +hy: {SC.nth($ND, xs, i) == Some{y} : Maybe<&2, $ND>}) -> {M.ns_get_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, True{}) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}:
-  %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $TB(d, xs), U32.from_nat(i)), ($TB(d, xs), M.ntag(~K, y)), NF.tag_get(~K, $GA, i, y, hy)) : {M.ns_rt(~K, l, d, $P0, $N0, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), U32.from_nat(i), _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
-  %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $LB(d, xs), U32.from_nat(i)), ($LB(d, xs), M.nleft(~K, y)), NF.left_get(~K, $GA, i, y, hy)) : {M.ns_rl(~K, l, d, $P0, $N0, $TB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), U32.from_nat(i), M.ntag(~K, y), _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
-  %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $RB(d, xs), U32.from_nat(i)), ($RB(d, xs), M.nright(~K, y)), NF.right_get(~K, $GA, i, y, hy)) : {M.ns_rr(~K, l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $PB(d, xs), $KB(d, xs), U32.from_nat(i), M.ntag(~K, y), M.nleft(~K, y), _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
-  %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $PB(d, xs), U32.from_nat(i)), ($PB(d, xs), M.nparent(~K, y)), NF.parent_get(~K, $GA, i, y, hy)) : {M.ns_rp(~K, l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $KB(d, xs), U32.from_nat(i), M.ntag(~K, y), M.nleft(~K, y), M.nright(~K, y), _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
-  %Equal.sym(Array<Maybe<&2, K>> & Maybe<&2, K>, Array.get(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i)), ($KB(d, xs), M.nkey(~K, y)), NF.key_get(~K, $GA, i, y, hy)) : {M.ns_rk(~K, l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, xs), M.ntag(~K, y), M.nleft(~K, y), M.nright(~K, y), M.nparent(~K, y), _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
+  %Equal.sym($AN & Nat, Array.get(Nat, $LK(d, xs), $UN($IT(i))), ($LK(d, xs), M.ntag(~K, y)), tag_get(~K, $GA, i, y, hy)) : {M.ns_rt(~K, l, d, $P0, $N0, $KB(d, xs), i, _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
+  %Equal.sym($AN & Nat, Array.get(Nat, $LK(d, xs), $UN($IL(i))), ($LK(d, xs), M.nleft(~K, y)), left_get(~K, $GA, i, y, hy)) : {M.ns_rl(~K, l, d, $P0, $N0, $KB(d, xs), i, M.ntag(~K, y), _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
+  %Equal.sym($AN & Nat, Array.get(Nat, $LK(d, xs), $UN($IR(i))), ($LK(d, xs), M.nright(~K, y)), right_get(~K, $GA, i, y, hy)) : {M.ns_rr(~K, l, d, $P0, $N0, $KB(d, xs), i, M.ntag(~K, y), M.nleft(~K, y), _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
+  %Equal.sym($AN & Nat, Array.get(Nat, $LK(d, xs), $UN($IP(i))), ($LK(d, xs), M.nparent(~K, y)), parent_get(~K, $GA, i, y, hy)) : {M.ns_rp(~K, l, d, $P0, $N0, $KB(d, xs), i, M.ntag(~K, y), M.nleft(~K, y), M.nright(~K, y), _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
+  %Equal.sym(Array<Maybe<&2, K>> & Maybe<&2, K>, Array.get(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i)), ($KB(d, xs), M.nkey(~K, y)), NF.key_get(~K, $GA, i, y, hy)) : {M.ns_rk(~K, l, d, $P0, $N0, $LK(d, xs), M.ntag(~K, y), M.nleft(~K, y), M.nright(~K, y), M.nparent(~K, y), _) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
   %Equal.sym($ND, M.mk_node(~K, M.ntag(~K, y), M.nleft(~K, y), M.nright(~K, y), M.nparent(~K, y), M.nkey(~K, y)), y, mk_enc(~K, y)) : {(M.NS{l, d, $P0, $N0, $ARRS(d, xs)}, Done{_}) == ($NRL(d, xs), DA.item($ND, Some{y})) : $NSK & $RES}
   {==}
 
@@ -113,13 +205,25 @@ def ns_get_ok(~K: Data, $GP, +i: Nat) -> {M.ns_get(~K, $NRL(d, xs), i) == ($NRL(
 # ---- write ----
 
 %def UPD SC.update($ND, xs, i, x)
+%def VL M.nleft(~K, x)
+%def VR M.nright(~K, x)
+%def VT M.ntag(~K, x)
+%def VP M.nparent(~K, x)
+
+# the four link slots of a node below the length written: the node replaced
+def links_put(~K: Data, $GP, +i: Nat, +x: $ND, +hi: {Nat.is_lt(i, $N0) == True{} : Bool}) -> {$SET4($LK(d, xs), $IL(i), $VL, $IR(i), $VR, $IT(i), $VT, $IP(i), $VP) == $LK(d, $UPD) : $AN}:
+  +cu = NF.lrs_cap(~K, d, $UPD, LKB.cap_upd($ND, $P0, xs, i, x, hc))
+  %Equal.sym($AN, $SET2($LK(d, xs), $IL(i), $VL, $IR(i), $VR), $LKL(d, SC.update(Nat, SC.update(Nat, $LRL(xs), $IL(i), $VL), $IR(i), $VR), $TPL(xs)), LKB.set2_lo($LA($LRL(xs), $TPL(xs), $LRC, $TPC), $IL(i), $VL, $IR(i), $VR, dl0($N0, i, $LRL(xs), NF.lrs_len(~K, xs), hi), dl1($N0, i, $LRL(xs), NF.lrs_len(~K, xs), hi))) : {$SET2(_, $IT(i), $VT, $IP(i), $VP) == $LK(d, $UPD) : $AN}
+  %Equal.sym($NL, SC.update(Nat, SC.update(Nat, $LRL(xs), $IL(i), $VL), $IR(i), $VR), $LRL($UPD), NF.lrs_put(~K, xs, i, x)) : {$SET2($LKL(d, _, $TPL(xs)), $IT(i), $VT, $IP(i), $VP) == $LK(d, $UPD) : $AN}
+  %ixt($P0, i) : {$SET2($LKL(d, $LRL($UPD), $TPL(xs)), _, $VT, $IP(i), $VP) == $LK(d, $UPD) : $AN}
+  %ixp($P0, i) : {$SET2($LKL(d, $LRL($UPD), $TPL(xs)), $HL(i), $VT, _, $VP) == $LK(d, $UPD) : $AN}
+  %Equal.sym($AN, $SET2($LKL(d, $LRL($UPD), $TPL(xs)), $HL(i), $VT, $HR(i), $VP), $LKL(d, $LRL($UPD), SC.update(Nat, SC.update(Nat, $TPL(xs), $IL(i), $VT), $IR(i), $VP)), LKB.set2_hi($LA($LRL($UPD), $TPL(xs), cu, $TPC), $IL(i), $VT, $IR(i), $VP, dl0($N0, i, $TPL(xs), NF.tps_len(~K, xs), hi), dl1($N0, i, $TPL(xs), NF.tps_len(~K, xs), hi))) : {_ == $LK(d, $UPD) : $AN}
+  %Equal.sym($NL, SC.update(Nat, SC.update(Nat, $TPL(xs), $IL(i), $VT), $IR(i), $VP), $TPL($UPD), NF.tps_put(~K, xs, i, x)) : {$LKL(d, $LRL($UPD), _) == $LK(d, $UPD) : $AN}
+  {==}
 
 def set_some(~K: Data, $GP, +i: Nat, +x: $ND, +y0: $ND, +hy0: {SC.nth($ND, xs, i) == Some{y0} : Maybe<&2, $ND>}) -> {M.ns_set_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, x, True{}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}:
-  %Equal.sym(Array<Nat>, Array.set(Nat, $TB(d, xs), U32.from_nat(i), M.ntag(~K, x)), $TB(d, $UPD), NF.tag_set(~K, $GA, i, y0, hy0, x)) : {(M.NS{l, d, $P0, $N0, _, Array.set(Nat, $LB(d, xs), U32.from_nat(i), M.nleft(~K, x)), Array.set(Nat, $RB(d, xs), U32.from_nat(i), M.nright(~K, x)), Array.set(Nat, $PB(d, xs), U32.from_nat(i), M.nparent(~K, x)), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i), M.nkey(~K, x))}, Done{Unit{}}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}
-  %Equal.sym(Array<Nat>, Array.set(Nat, $LB(d, xs), U32.from_nat(i), M.nleft(~K, x)), $LB(d, $UPD), NF.left_set(~K, $GA, i, y0, hy0, x)) : {(M.NS{l, d, $P0, $N0, $TB(d, $UPD), _, Array.set(Nat, $RB(d, xs), U32.from_nat(i), M.nright(~K, x)), Array.set(Nat, $PB(d, xs), U32.from_nat(i), M.nparent(~K, x)), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i), M.nkey(~K, x))}, Done{Unit{}}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}
-  %Equal.sym(Array<Nat>, Array.set(Nat, $RB(d, xs), U32.from_nat(i), M.nright(~K, x)), $RB(d, $UPD), NF.right_set(~K, $GA, i, y0, hy0, x)) : {(M.NS{l, d, $P0, $N0, $TB(d, $UPD), $LB(d, $UPD), _, Array.set(Nat, $PB(d, xs), U32.from_nat(i), M.nparent(~K, x)), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i), M.nkey(~K, x))}, Done{Unit{}}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}
-  %Equal.sym(Array<Nat>, Array.set(Nat, $PB(d, xs), U32.from_nat(i), M.nparent(~K, x)), $PB(d, $UPD), NF.parent_set(~K, $GA, i, y0, hy0, x)) : {(M.NS{l, d, $P0, $N0, $TB(d, $UPD), $LB(d, $UPD), $RB(d, $UPD), _, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i), M.nkey(~K, x))}, Done{Unit{}}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}
-  %Equal.sym(Array<Maybe<&2, K>>, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i), M.nkey(~K, x)), $KB(d, $UPD), NF.key_set(~K, $GA, i, y0, hy0, x)) : {(M.NS{l, d, $P0, $N0, $TB(d, $UPD), $LB(d, $UPD), $RB(d, $UPD), $PB(d, $UPD), _}, Done{Unit{}}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}
+  %Equal.sym($AN, $SET4($LK(d, xs), $IL(i), $VL, $IR(i), $VR, $IT(i), $VT, $IP(i), $VP), $LK(d, $UPD), links_put(~K, $GA, i, x, LL.nth_lt_length($ND, xs, i, y0, hy0))) : {(M.NS{l, d, $P0, $N0, _, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i), M.nkey(~K, x))}, Done{Unit{}}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}
+  %Equal.sym(Array<Maybe<&2, K>>, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i), M.nkey(~K, x)), $KB(d, $UPD), NF.key_set(~K, $GA, i, y0, hy0, x)) : {(M.NS{l, d, $P0, $N0, $LK(d, $UPD), _}, Done{Unit{}}) == ($NRL(d, $UPD), Done{Unit{}}) : $NSK & $RU}
   %Equal.sym(Nat, SC.length($ND, $UPD), $N0, LL.length_update($ND, xs, i, x)) : {(M.NS{l, d, $P0, $N0, $ARRS(d, $UPD)}, Done{Unit{}}) == (M.NS{l, d, $P0, _, $ARRS(d, $UPD)}, Done{Unit{}}) : $NSK & $RU}
   {==}
 
@@ -140,24 +244,45 @@ def ns_set_out(~K: Data, $GP, +i: Nat, +x: $ND, +h: {Nat.is_lt(i, $N0) == False{
   %Equal.sym(Bool, Nat.is_lt(i, $N0), False{}, h) : {M.ns_set_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, x, _) == ($NRL(d, xs), Fail{DE.IndexOutOfRange{}}) : $NSK & $RU}
   {==}
 
+
 # ---- append ----
 
 %def SN SC.snoc($ND, xs, x)
-%def PUT(dd, arr) M.ns_put(~K, l, dd, arr, U32.from_nat($N0), x)
+%def HN +hn: {Nat.is_lt($N0, $P0) == True{} : Bool}
+%def DN Nat.double($N0)
 
-def push_at(~K: Data, $GP, +x: $ND, +hn: {Nat.is_lt($N0, $P0) == True{} : Bool}) -> {M.ns_put(~K, l, d, $P0, 1n+$N0, $ARRS(d, xs), U32.from_nat($N0), x) == $NRL(d, $SN) : $NSK}:
-  %Equal.sym(Array<Nat>, Array.set(Nat, $TB(d, xs), U32.from_nat($N0), M.ntag(~K, x)), $TB(d, $SN), NF.tag_push(~K, $GA, x, hn)) : {M.NS{l, d, $P0, 1n+$N0, _, Array.set(Nat, $LB(d, xs), U32.from_nat($N0), M.nleft(~K, x)), Array.set(Nat, $RB(d, xs), U32.from_nat($N0), M.nright(~K, x)), Array.set(Nat, $PB(d, xs), U32.from_nat($N0), M.nparent(~K, x)), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat($N0), M.nkey(~K, x))} == $NRL(d, $SN) : $NSK}
-  %Equal.sym(Array<Nat>, Array.set(Nat, $LB(d, xs), U32.from_nat($N0), M.nleft(~K, x)), $LB(d, $SN), NF.left_push(~K, $GA, x, hn)) : {M.NS{l, d, $P0, 1n+$N0, $TB(d, $SN), _, Array.set(Nat, $RB(d, xs), U32.from_nat($N0), M.nright(~K, x)), Array.set(Nat, $PB(d, xs), U32.from_nat($N0), M.nparent(~K, x)), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat($N0), M.nkey(~K, x))} == $NRL(d, $SN) : $NSK}
-  %Equal.sym(Array<Nat>, Array.set(Nat, $RB(d, xs), U32.from_nat($N0), M.nright(~K, x)), $RB(d, $SN), NF.right_push(~K, $GA, x, hn)) : {M.NS{l, d, $P0, 1n+$N0, $TB(d, $SN), $LB(d, $SN), _, Array.set(Nat, $PB(d, xs), U32.from_nat($N0), M.nparent(~K, x)), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat($N0), M.nkey(~K, x))} == $NRL(d, $SN) : $NSK}
-  %Equal.sym(Array<Nat>, Array.set(Nat, $PB(d, xs), U32.from_nat($N0), M.nparent(~K, x)), $PB(d, $SN), NF.parent_push(~K, $GA, x, hn)) : {M.NS{l, d, $P0, 1n+$N0, $TB(d, $SN), $LB(d, $SN), $RB(d, $SN), _, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat($N0), M.nkey(~K, x))} == $NRL(d, $SN) : $NSK}
-  %Equal.sym(Array<Maybe<&2, K>>, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat($N0), M.nkey(~K, x)), $KB(d, $SN), NF.key_push(~K, $GA, x, hn)) : {M.NS{l, d, $P0, 1n+$N0, $TB(d, $SN), $LB(d, $SN), $RB(d, $SN), $PB(d, $SN), _} == $NRL(d, $SN) : $NSK}
+# room for both slots of a node past the length of a pair list
+def dn1(+n: Nat, +p: Nat, +pl: $NL, +hlen: {SC.length(Nat, pl) == Nat.double(n) : Nat}, +h: {Nat.is_lt(n, p) == True{} : Bool}) -> {Nat.is_lt(1n+SC.length(Nat, pl), Nat.double(p)) == True{} : Bool}:
+  %Equal.sym(Nat, SC.length(Nat, pl), Nat.double(n), hlen) : {Nat.is_lt(1n+_, Nat.double(p)) == True{} : Bool}
+  N.succ_le_lt(1n+Nat.double(n), Nat.double(p), N.double_le(1n+n, p, N.lt_succ_le_succ(n, p, h)))
+
+def cap_sn(~K: Data, +d: Nat, +xs: List<&2, $ND>, +x: $ND, $HN) -> {Nat.is_le(SC.length($ND, $SN), $P0) == True{} : Bool}:
+  %Equal.sym(Nat, SC.length($ND, $SN), 1n+$N0, LL.length_snoc($ND, xs, x)) : {Nat.is_le(_, $P0) == True{} : Bool}
+  N.lt_succ_le_succ($N0, $P0, hn)
+
+# the four link slots at the length written: the node appended
+def links_push(~K: Data, $GP, +x: $ND, $HN) -> {$SET4($LK(d, xs), $IL($N0), $VL, $IR($N0), $VR, $IT($N0), $VT, $IP($N0), $VP) == $LK(d, $SN) : $AN}:
+  +cs = NF.lrs_cap(~K, d, $SN, cap_sn(~K, d, xs, x, hn))
+  %NF.lrs_len(~K, xs) : {$SET4($LK(d, xs), _, $VL, 1n+_, $VR, $IT($N0), $VT, $IP($N0), $VP) == $LK(d, $SN) : $AN}
+  %Equal.sym($AN, $SET2($LK(d, xs), SC.length(Nat, $LRL(xs)), $VL, 1n+SC.length(Nat, $LRL(xs)), $VR), $LKL(d, SC.snoc(Nat, SC.snoc(Nat, $LRL(xs), $VL), $VR), $TPL(xs)), LKB.push2_lo($LA($LRL(xs), $TPL(xs), $LRC, $TPC), $VL, $VR, dn1($N0, $P0, $LRL(xs), NF.lrs_len(~K, xs), hn))) : {$SET2(_, $IT($N0), $VT, $IP($N0), $VP) == $LK(d, $SN) : $AN}
+  %Equal.sym($NL, SC.snoc(Nat, SC.snoc(Nat, $LRL(xs), $VL), $VR), $LRL($SN), NF.lrs_snoc(~K, xs, x)) : {$SET2($LKL(d, _, $TPL(xs)), $IT($N0), $VT, $IP($N0), $VP) == $LK(d, $SN) : $AN}
+  %ixt($P0, $N0) : {$SET2($LKL(d, $LRL($SN), $TPL(xs)), _, $VT, $IP($N0), $VP) == $LK(d, $SN) : $AN}
+  %ixp($P0, $N0) : {$SET2($LKL(d, $LRL($SN), $TPL(xs)), $HL($N0), $VT, _, $VP) == $LK(d, $SN) : $AN}
+  %NF.tps_len(~K, xs) : {$SET2($LKL(d, $LRL($SN), $TPL(xs)), Nat.add(Nat.double($P0), _), $VT, Nat.add(Nat.double($P0), 1n+_), $VP) == $LK(d, $SN) : $AN}
+  %Equal.sym($AN, $SET2($LKL(d, $LRL($SN), $TPL(xs)), Nat.add(Nat.double($P0), SC.length(Nat, $TPL(xs))), $VT, Nat.add(Nat.double($P0), 1n+SC.length(Nat, $TPL(xs))), $VP), $LKL(d, $LRL($SN), SC.snoc(Nat, SC.snoc(Nat, $TPL(xs), $VT), $VP)), LKB.push2_hi($LA($LRL($SN), $TPL(xs), cs, $TPC), $VT, $VP, dn1($N0, $P0, $TPL(xs), NF.tps_len(~K, xs), hn))) : {_ == $LK(d, $SN) : $AN}
+  %Equal.sym($NL, SC.snoc(Nat, SC.snoc(Nat, $TPL(xs), $VT), $VP), $TPL($SN), NF.tps_snoc(~K, xs, x)) : {$LKL(d, $LRL($SN), _) == $LK(d, $SN) : $AN}
+  {==}
+
+def push_at(~K: Data, $GP, +x: $ND, $HN) -> {M.ns_put(~K, l, d, $P0, 1n+$N0, $ARRS(d, xs), $N0, x) == $NRL(d, $SN) : $NSK}:
+  %Equal.sym($AN, $SET4($LK(d, xs), $IL($N0), $VL, $IR($N0), $VR, $IT($N0), $VT, $IP($N0), $VP), $LK(d, $SN), links_push(~K, $GA, x, hn)) : {M.NS{l, d, $P0, 1n+$N0, _, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat($N0), M.nkey(~K, x))} == $NRL(d, $SN) : $NSK}
+  %Equal.sym(Array<Maybe<&2, K>>, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat($N0), M.nkey(~K, x)), $KB(d, $SN), NF.key_push(~K, $GA, x, hn)) : {M.NS{l, d, $P0, 1n+$N0, $LK(d, $SN), _} == $NRL(d, $SN) : $NSK}
   %Equal.sym(Nat, SC.length($ND, $SN), 1n+$N0, LL.length_snoc($ND, xs, x)) : {M.NS{l, d, $P0, 1n+$N0, $ARRS(d, $SN)} == M.NS{l, d, $P0, _, $ARRS(d, $SN)} : $NSK}
   {==}
 
 # with room: the node appended
-def ns_push_room(~K: Data, $GP, +x: $ND, +hn: {Nat.is_lt($N0, $P0) == True{} : Bool}) -> {M.ns_push(~K, $NRL(d, xs), x) == ($NRL(d, $SN), Done{Unit{}}) : $NSK & $RU}:
+def ns_push_room(~K: Data, $GP, +x: $ND, $HN) -> {M.ns_push(~K, $NRL(d, xs), x) == ($NRL(d, $SN), Done{Unit{}}) : $NSK & $RU}:
   %Equal.sym(Bool, Nat.is_lt($N0, $P0), True{}, hn) : {M.ns_push_room(~K, l, d, $P0, $N0, $ARRS(d, xs), x, _, Nat.is_lt(d, l)) == ($NRL(d, $SN), Done{Unit{}}) : $NSK & $RU}
-  Equal.cong($NSK, $NSK & $RU, z => (z, Done{Unit{}}), M.ns_put(~K, l, d, $P0, 1n+$N0, $ARRS(d, xs), U32.from_nat($N0), x), $NRL(d, $SN), push_at(~K, $GA, x, hn))
+  Equal.cong($NSK, $NSK & $RU, z => (z, Done{Unit{}}), M.ns_put(~K, l, d, $P0, 1n+$N0, $ARRS(d, xs), $N0, x), $NRL(d, $SN), push_at(~K, $GA, x, hn))
 
 # full and below the limit: the blocks doubled, then the node appended
 def ns_push_grow(~K: Data, $GP, +x: $ND, +hn: {Nat.is_lt($N0, $P0) == False{} : Bool}, +hdl: {Nat.is_lt(d, l) == True{} : Bool}) -> {M.ns_push(~K, $NRL(d, xs), x) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}:
@@ -166,12 +291,9 @@ def ns_push_grow(~K: Data, $GP, +x: $ND, +hn: {Nat.is_lt($N0, $P0) == False{} : 
   +hn1 = N.le_lt_trans($N0, $P0, SC.pow2(1n+d), hc, N.pow2_lt_succ(d))
   %Equal.sym(Bool, Nat.is_lt($N0, $P0), False{}, hn) : {M.ns_push_room(~K, l, d, $P0, $N0, $ARRS(d, xs), x, _, Nat.is_lt(d, l)) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
   %Equal.sym(Bool, Nat.is_lt(d, l), True{}, hdl) : {M.ns_push_room(~K, l, d, $P0, $N0, $ARRS(d, xs), x, False{}, _) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
-  %Equal.sym(Array<Nat>, ANode{$TB(d, xs), Array.new(Nat, d, 0n)}, $TB(1n+d, xs), NF.tag_grow(~K, $GA)) : {(M.ns_put(~K, l, 1n+d, Nat.double($P0), 1n+$N0, _, M.ns_grow_nats(d, $LB(d, xs)), M.ns_grow_nats(d, $RB(d, xs)), M.ns_grow_nats(d, $PB(d, xs)), M.ns_grow_keys(~K, d, $KB(d, xs)), U32.from_nat($N0), x), Done{Unit{}}) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
-  %Equal.sym(Array<Nat>, ANode{$LB(d, xs), Array.new(Nat, d, 0n)}, $LB(1n+d, xs), NF.left_grow(~K, $GA)) : {(M.ns_put(~K, l, 1n+d, Nat.double($P0), 1n+$N0, $TB(1n+d, xs), _, M.ns_grow_nats(d, $RB(d, xs)), M.ns_grow_nats(d, $PB(d, xs)), M.ns_grow_keys(~K, d, $KB(d, xs)), U32.from_nat($N0), x), Done{Unit{}}) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
-  %Equal.sym(Array<Nat>, ANode{$RB(d, xs), Array.new(Nat, d, 0n)}, $RB(1n+d, xs), NF.right_grow(~K, $GA)) : {(M.ns_put(~K, l, 1n+d, Nat.double($P0), 1n+$N0, $TB(1n+d, xs), $LB(1n+d, xs), _, M.ns_grow_nats(d, $PB(d, xs)), M.ns_grow_keys(~K, d, $KB(d, xs)), U32.from_nat($N0), x), Done{Unit{}}) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
-  %Equal.sym(Array<Nat>, ANode{$PB(d, xs), Array.new(Nat, d, 0n)}, $PB(1n+d, xs), NF.parent_grow(~K, $GA)) : {(M.ns_put(~K, l, 1n+d, Nat.double($P0), 1n+$N0, $TB(1n+d, xs), $LB(1n+d, xs), $RB(1n+d, xs), _, M.ns_grow_keys(~K, d, $KB(d, xs)), U32.from_nat($N0), x), Done{Unit{}}) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
-  %Equal.sym(Array<Maybe<&2, K>>, ANode{$KB(d, xs), Array.new(Maybe<&2, K>, d, None{})}, $KB(1n+d, xs), NF.key_grow(~K, $GA)) : {(M.ns_put(~K, l, 1n+d, Nat.double($P0), 1n+$N0, $TB(1n+d, xs), $LB(1n+d, xs), $RB(1n+d, xs), $PB(1n+d, xs), _, U32.from_nat($N0), x), Done{Unit{}}) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
-  Equal.cong($NSK, $NSK & $RU, z => (z, Done{Unit{}}), M.ns_put(~K, l, 1n+d, SC.pow2(1n+d), 1n+$N0, $ARRS(1n+d, xs), U32.from_nat($N0), x), $NRL(1n+d, $SN), push_at(~K, l, 1n+d, xs, hl, hd1, hc1, x, hn1))
+  %Equal.sym($AN, ANode{ANode{AR.thaw(Nat, BK.bk(Nat, 1n+d, $LRL(xs), 0n)), Array.new(Nat, 1n+d, 0n)}, ANode{AR.thaw(Nat, BK.bk(Nat, 1n+d, $TPL(xs), 0n)), Array.new(Nat, 1n+d, 0n)}}, $LK(1n+d, xs), LKB.grow($LA($LRL(xs), $TPL(xs), $LRC, $TPC))) : {(M.ns_put(~K, l, 1n+d, Nat.double($P0), 1n+$N0, _, M.ns_grow_keys(~K, d, $KB(d, xs)), $N0, x), Done{Unit{}}) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
+  %Equal.sym(Array<Maybe<&2, K>>, ANode{$KB(d, xs), Array.new(Maybe<&2, K>, d, None{})}, $KB(1n+d, xs), NF.key_grow(~K, $GA)) : {(M.ns_put(~K, l, 1n+d, Nat.double($P0), 1n+$N0, $LK(1n+d, xs), _, $N0, x), Done{Unit{}}) == ($NRL(1n+d, $SN), Done{Unit{}}) : $NSK & $RU}
+  Equal.cong($NSK, $NSK & $RU, z => (z, Done{Unit{}}), M.ns_put(~K, l, 1n+d, SC.pow2(1n+d), 1n+$N0, $ARRS(1n+d, xs), $N0, x), $NRL(1n+d, $SN), push_at(~K, l, 1n+d, xs, hl, hd1, hc1, x, hn1))
 
 # full at the limit: nothing changes
 def ns_push_full(~K: Data, $GP, +x: $ND, +hn: {Nat.is_lt($N0, $P0) == False{} : Bool}, +hdl: {Nat.is_lt(d, l) == False{} : Bool}) -> {M.ns_push(~K, $NRL(d, xs), x) == ($NRL(d, xs), Fail{DE.CapacityExceeded{}}) : $NSK & $RU}:
@@ -179,16 +301,29 @@ def ns_push_full(~K: Data, $GP, +x: $ND, +hn: {Nat.is_lt($N0, $P0) == False{} : 
   %Equal.sym(Bool, Nat.is_lt(d, l), False{}, hdl) : {M.ns_push_room(~K, l, d, $P0, $N0, $ARRS(d, xs), x, False{}, _) == ($NRL(d, xs), Fail{DE.CapacityExceeded{}}) : $NSK & $RU}
   {==}
 
+
 # ---- clear ----
 
 %def IN SC.init($ND, xs)
+%def HM +m: Nat, +hm: {$N0 == 1n+m : Nat}
 
-def drop_some(~K: Data, $GP, +m: Nat, +hm: {$N0 == 1n+m : Nat}, +y0: $ND, +hy0: {SC.nth($ND, xs, m) == Some{y0} : Maybe<&2, $ND>}) -> {M.ns_drop(~K, $NRL(d, xs), m) == $NRL(d, $IN) : $NSK}:
-  %Equal.sym(Array<Nat>, Array.set(Nat, $TB(d, xs), U32.from_nat(m), M.ntag(~K, M.Free{0n})), $TB(d, $IN), NF.tag_drop(~K, $GA, m, hm, y0, hy0)) : {M.NS{l, d, $P0, m, _, Array.set(Nat, $LB(d, xs), U32.from_nat(m), M.nleft(~K, M.Free{0n})), Array.set(Nat, $RB(d, xs), U32.from_nat(m), M.nright(~K, M.Free{0n})), Array.set(Nat, $PB(d, xs), U32.from_nat(m), M.nparent(~K, M.Free{0n})), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(m), M.nkey(~K, M.Free{0n}))} == $NRL(d, $IN) : $NSK}
-  %Equal.sym(Array<Nat>, Array.set(Nat, $LB(d, xs), U32.from_nat(m), M.nleft(~K, M.Free{0n})), $LB(d, $IN), NF.left_drop(~K, $GA, m, hm, y0, hy0)) : {M.NS{l, d, $P0, m, $TB(d, $IN), _, Array.set(Nat, $RB(d, xs), U32.from_nat(m), M.nright(~K, M.Free{0n})), Array.set(Nat, $PB(d, xs), U32.from_nat(m), M.nparent(~K, M.Free{0n})), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(m), M.nkey(~K, M.Free{0n}))} == $NRL(d, $IN) : $NSK}
-  %Equal.sym(Array<Nat>, Array.set(Nat, $RB(d, xs), U32.from_nat(m), M.nright(~K, M.Free{0n})), $RB(d, $IN), NF.right_drop(~K, $GA, m, hm, y0, hy0)) : {M.NS{l, d, $P0, m, $TB(d, $IN), $LB(d, $IN), _, Array.set(Nat, $PB(d, xs), U32.from_nat(m), M.nparent(~K, M.Free{0n})), Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(m), M.nkey(~K, M.Free{0n}))} == $NRL(d, $IN) : $NSK}
-  %Equal.sym(Array<Nat>, Array.set(Nat, $PB(d, xs), U32.from_nat(m), M.nparent(~K, M.Free{0n})), $PB(d, $IN), NF.parent_drop(~K, $GA, m, hm, y0, hy0)) : {M.NS{l, d, $P0, m, $TB(d, $IN), $LB(d, $IN), $RB(d, $IN), _, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(m), M.nkey(~K, M.Free{0n}))} == $NRL(d, $IN) : $NSK}
-  %Equal.sym(Array<Maybe<&2, K>>, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(m), M.nkey(~K, M.Free{0n})), $KB(d, $IN), NF.key_drop(~K, $GA, m, hm, y0, hy0)) : {M.NS{l, d, $P0, m, $TB(d, $IN), $LB(d, $IN), $RB(d, $IN), $PB(d, $IN), _} == $NRL(d, $IN) : $NSK}
+def len2(+n: Nat, +m: Nat, +pl: $NL, +hlen: {SC.length(Nat, pl) == Nat.double(n) : Nat}, +hm: {n == 1n+m : Nat}) -> {SC.length(Nat, pl) == 1n+(1n+Nat.double(m)) : Nat}:
+  L.subst(Nat, z => {SC.length(Nat, pl) == Nat.double(z) : Nat}, n, 1n+m, hm, hlen)
+
+# the four link slots of the last node zeroed: the node dropped
+def links_wipe(~K: Data, $GP, $HM) -> {$SET4($LK(d, xs), $IR(m), 0n, $IL(m), 0n, $IP(m), 0n, $IT(m), 0n) == $LK(d, $IN) : $AN}:
+  +ci = NF.lrs_cap(~K, d, $IN, LKB.cap_init($ND, $P0, xs, m, hm, hc))
+  %Equal.sym($AN, $SET2($LK(d, xs), $IR(m), 0n, $IL(m), 0n), $LKL(d, SC.init(Nat, SC.init(Nat, $LRL(xs))), $TPL(xs)), LKB.pop2_lo($LA($LRL(xs), $TPL(xs), $LRC, $TPC), $IL(m), len2($N0, m, $LRL(xs), NF.lrs_len(~K, xs), hm))) : {$SET2(_, $IP(m), 0n, $IT(m), 0n) == $LK(d, $IN) : $AN}
+  %Equal.sym($NL, SC.init(Nat, SC.init(Nat, $LRL(xs))), $LRL($IN), NF.lrs_init(~K, xs)) : {$SET2($LKL(d, _, $TPL(xs)), $IP(m), 0n, $IT(m), 0n) == $LK(d, $IN) : $AN}
+  %ixp($P0, m) : {$SET2($LKL(d, $LRL($IN), $TPL(xs)), _, 0n, $IT(m), 0n) == $LK(d, $IN) : $AN}
+  %ixt($P0, m) : {$SET2($LKL(d, $LRL($IN), $TPL(xs)), $HR(m), 0n, _, 0n) == $LK(d, $IN) : $AN}
+  %Equal.sym($AN, $SET2($LKL(d, $LRL($IN), $TPL(xs)), $HR(m), 0n, $HL(m), 0n), $LKL(d, $LRL($IN), SC.init(Nat, SC.init(Nat, $TPL(xs)))), LKB.pop2_hi($LA($LRL($IN), $TPL(xs), ci, $TPC), $IL(m), len2($N0, m, $TPL(xs), NF.tps_len(~K, xs), hm))) : {_ == $LK(d, $IN) : $AN}
+  %Equal.sym($NL, SC.init(Nat, SC.init(Nat, $TPL(xs))), $TPL($IN), NF.tps_init(~K, xs)) : {$LKL(d, $LRL($IN), _) == $LK(d, $IN) : $AN}
+  {==}
+
+def drop_some(~K: Data, $GP, $HM, +y0: $ND, +hy0: {SC.nth($ND, xs, m) == Some{y0} : Maybe<&2, $ND>}) -> {M.ns_drop(~K, $NRL(d, xs), m) == $NRL(d, $IN) : $NSK}:
+  %Equal.sym($AN, $SET4($LK(d, xs), $IR(m), 0n, $IL(m), 0n, $IP(m), 0n, $IT(m), 0n), $LK(d, $IN), links_wipe(~K, $GA, m, hm)) : {M.NS{l, d, $P0, m, _, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(m), None{})} == $NRL(d, $IN) : $NSK}
+  %Equal.sym(Array<Maybe<&2, K>>, Array.set(Maybe<&2, K>, $KB(d, xs), U32.from_nat(m), M.nkey(~K, M.Free{0n})), $KB(d, $IN), NF.key_drop(~K, $GA, m, hm, y0, hy0)) : {M.NS{l, d, $P0, m, $LK(d, $IN), _} == $NRL(d, $IN) : $NSK}
   %Equal.sym(Nat, SC.length($ND, $IN), m, len_init($ND, xs, m, hm)) : {M.NS{l, d, $P0, m, $ARRS(d, $IN)} == M.NS{l, d, $P0, _, $ARRS(d, $IN)} : $NSK}
   {==}
 
@@ -246,14 +381,14 @@ def nth_or_hi(-X: Data, +xs: List<&2, X>, +i: Nat, +dv: X, +h: {Nat.is_lt(i, SC.
     case Con{x, +t} 1n+q:
       nth_or_hi(X, t, q, dv, h)
 
-%tmpl FAT(QN, QF, QA, QR)
+%tmpl FAT(QN, QF, QIX)
 def QN##_ats(~K: Data, $GP, +i: Nat, +mv: Maybe<&2, $ND>, +hmv: {SC.nth($ND, xs, i) == mv : Maybe<&2, $ND>}, +hi: {Nat.is_lt(i, $N0) == True{} : Bool}) -> {M.ns_##QN##_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, True{}) == ($NRL(d, xs), QF(~K, $NI)) : $NSK & Nat}:
   match mv:
     case None{}:
       Empty.absurd({M.ns_##QN##_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, True{}) == ($NRL(d, xs), QF(~K, $NI)) : $NSK & Nat}, L.false_true(L.subst(Maybe<&2, $ND>, z => {isj($ND, z) == True{} : Bool}, SC.nth($ND, xs, i), None{}, hmv, nth_isj($ND, xs, i, hi))))
     case Some{+y}:
       %Equal.sym($ND, $NI, y, nth_or_some($ND, xs, i, y, M.Free{0n}, hmv)) : {M.ns_##QN##_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, True{}) == ($NRL(d, xs), QF(~K, _)) : $NSK & Nat}
-      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, QA, U32.from_nat(i)), (QA, QF(~K, y)), NF.QN##_get(~K, $GA, i, y, hmv)) : {M.ns_##QN##_fin(~K, l, d, $P0, $N0, QR, $KB(d, xs), _) == ($NRL(d, xs), QF(~K, y)) : $NSK & Nat}
+      %Equal.sym($AN & Nat, Array.get(Nat, $LK(d, xs), $UN(QIX)), ($LK(d, xs), QF(~K, y)), QN##_get(~K, $GA, i, y, hmv)) : {M.ns_field_fin(~K, l, d, $P0, $N0, $KB(d, xs), _) == ($NRL(d, xs), QF(~K, y)) : $NSK & Nat}
       {==}
 
 def QN##_atc(~K: Data, $GP, +i: Nat, +b: Bool, +hb: {Nat.is_lt(i, $N0) == b : Bool}) -> {M.ns_##QN##_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, b) == ($NRL(d, xs), QF(~K, $NI)) : $NSK & Nat}:
@@ -269,10 +404,10 @@ def QN##_at_ok(~K: Data, $GP, +i: Nat) -> {M.ns_##QN##_at(~K, $NRL(d, xs), i) ==
   QN##_atc(~K, $GA, i, Nat.is_lt(i, $N0), {==})
 
 %end
-%use FAT(tag, M.ntag, $TB(d, xs), <|$LB(d, xs), $RB(d, xs), $PB(d, xs)|>)
-%use FAT(left, M.nleft, $LB(d, xs), <|$TB(d, xs), $RB(d, xs), $PB(d, xs)|>)
-%use FAT(right, M.nright, $RB(d, xs), <|$TB(d, xs), $LB(d, xs), $PB(d, xs)|>)
-%use FAT(parent, M.nparent, $PB(d, xs), <|$TB(d, xs), $LB(d, xs), $RB(d, xs)|>)
+%use FAT(tag, M.ntag, $IT(i))
+%use FAT(left, M.nleft, $IL(i))
+%use FAT(right, M.nright, $IR(i))
+%use FAT(parent, M.nparent, $IP(i))
 
 # ---- writing one field of a slot ----
 
@@ -309,171 +444,60 @@ def red_tag_eq(~K: Data, +v: Bool, +lf: Nat, +rt: Nat, +q: Nat, +k: K) -> {M.ns_
     case False{}:
       {==}
 
-def left_set_c(~K: Data, $GP, +i: Nat, +v: Nat, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +k: K, +hy2: {SC.nth($ND, xs, i) == Some{M.N{c, lf, rt, q, k}} : Maybe<&2, $ND>}) -> {M.ns_set_left_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, True{}) == $NRL(d, SC.update($ND, xs, i, M.N{c, v, rt, q, k})) : $NSK}:
+
+%def HK +hk: {M.nkey(~K, y) == M.nkey(~K, y0) : Maybe<&2, K>}
+%def HT0 +t: Nat, +ht0: {M.ntag(~K, y0) == 1n+t : Nat}
+
+# QN: the field; QT: the written value's type; QV: the value written; QF: the
+# field of a node; QIX: its slot; QAS: the links lemma; QHD, QHU: the fields
+# kept; QNEW(c): the node written over N{c, lf, rt, q, k}; QHV: its field is
+# the value written
+%tmpl SETF(QN, QT, QV, QF, QIX, QAS, QHD, QHU, QNEW, QHV)
+def QN##_set_k(~K: Data, $GP, $HY0, +v: QT, $HT0, +hv: {QF(~K, y) == QV : Nat}, $HK, QHD) -> {M.ns_set_##QN##_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, True{}) == $NRL(d, $UY) : $NSK}:
+  %Equal.sym($AN & Nat, Array.get(Nat, $LK(d, xs), $UN($IT(i))), ($LK(d, xs), M.ntag(~K, y0)), tag_get(~K, $GA, i, y0, hy0)) : {M.ns_set_##QN##_tag(~K, l, d, $P0, $N0, $KB(d, xs), i, v, _) == $NRL(d, $UY) : $NSK}
+  %Equal.sym(Nat, M.ntag(~K, y0), 1n+t, ht0) : {M.ns_set_##QN##_tag(~K, l, d, $P0, $N0, $KB(d, xs), i, v, ($LK(d, xs), _)) == $NRL(d, $UY) : $NSK}
+  %hv : {M.NS{l, d, $P0, $N0, Array.set(Nat, $LK(d, xs), $UN(QIX), _), $KB(d, xs)} == $NRL(d, $UY) : $NSK}
+  %Equal.sym($AN, Array.set(Nat, $LK(d, xs), $UN(QIX), QF(~K, y)), $LK(d, $UY), QAS(~K, $GA, i, y0, y, hy0, QHU)) : {M.NS{l, d, $P0, $N0, _, $KB(d, xs)} == $NRL(d, $UY) : $NSK}
+  %Equal.sym(List<&2, Maybe<&2, K>>, NR.keys(~K, $UY), NR.keys(~K, xs), NF.keys_keep(~K, xs, i, y0, y, hy0, hk)) : {M.NS{l, d, $P0, $N0, $LK(d, $UY), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, $UY), $LK(d, $UY), AR.thaw(Maybe<&2, K>, BK.bk(Maybe<&2, K>, d, _, None{}))} : $NSK}
+  %Equal.sym(Nat, SC.length($ND, $UY), $N0, LL.length_update($ND, xs, i, y)) : {M.NS{l, d, $P0, $N0, $LK(d, $UY), $KB(d, xs)} == M.NS{l, d, $P0, _, $LK(d, $UY), $KB(d, xs)} : $NSK}
+  {==}
+
+def QN##_set_c(~K: Data, $GP, +i: Nat, +v: QT, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +k: K, +hy2: {SC.nth($ND, xs, i) == Some{M.N{c, lf, rt, q, k}} : Maybe<&2, $ND>}) -> {M.ns_set_##QN##_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, True{}) == $NRL(d, SC.update($ND, xs, i, QNEW(c))) : $NSK}:
   match c:
     case True{}:
-      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $TB(d, xs), U32.from_nat(i)), ($TB(d, xs), M.ntag(~K, M.N{True{}, lf, rt, q, k})), NF.tag_get(~K, $GA, i, M.N{True{}, lf, rt, q, k}, hy2)) : {M.ns_set_left_tag(~K, l, d, $P0, $N0, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), i, v, _) == $NRL(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})) : $NSK}
-      %Equal.sym(Array<Nat>, Array.set(Nat, $LB(d, xs), U32.from_nat(i), v), $LB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), NF.left_set(~K, $GA, i, M.N{True{}, lf, rt, q, k}, hy2, M.N{True{}, v, rt, q, k})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), _, $RB(d, xs), $PB(d, xs), $KB(d, xs)} == $NRL(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})) : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.tags(~K, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), NR.tags(~K, xs), NF.tags_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{True{}, v, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $LB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $RB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $PB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $KB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.rights(~K, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), NR.rights(~K, xs), NF.rights_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{True{}, v, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $PB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $KB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.parents(~K, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), NR.parents(~K, xs), NF.parents_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{True{}, v, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $RB(d, xs), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $KB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Maybe<&2, K>>, NR.keys(~K, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), NR.keys(~K, xs), NF.keys_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{True{}, v, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $RB(d, xs), $PB(d, xs), AR.thaw(Maybe<&2, K>, BK.bk(Maybe<&2, K>, d, _, None{}))} : $NSK}
-      %Equal.sym(Nat, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $N0, LL.length_update($ND, xs, i, M.N{True{}, v, rt, q, k})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, _, $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{True{}, v, rt, q, k})), $RB(d, xs), $PB(d, xs), $KB(d, xs)} : $NSK}
-      {==}
+      QN##_set_k(~K, $GA, i, M.N{True{}, lf, rt, q, k}, QNEW(True{}), hy2, v, 1n, {==}, QHV, {==}, {==}, {==}, {==})
     case False{}:
-      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $TB(d, xs), U32.from_nat(i)), ($TB(d, xs), M.ntag(~K, M.N{False{}, lf, rt, q, k})), NF.tag_get(~K, $GA, i, M.N{False{}, lf, rt, q, k}, hy2)) : {M.ns_set_left_tag(~K, l, d, $P0, $N0, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), i, v, _) == $NRL(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})) : $NSK}
-      %Equal.sym(Array<Nat>, Array.set(Nat, $LB(d, xs), U32.from_nat(i), v), $LB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), NF.left_set(~K, $GA, i, M.N{False{}, lf, rt, q, k}, hy2, M.N{False{}, v, rt, q, k})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), _, $RB(d, xs), $PB(d, xs), $KB(d, xs)} == $NRL(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})) : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.tags(~K, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), NR.tags(~K, xs), NF.tags_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{False{}, v, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $LB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $RB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $PB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $KB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.rights(~K, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), NR.rights(~K, xs), NF.rights_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{False{}, v, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $PB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $KB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.parents(~K, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), NR.parents(~K, xs), NF.parents_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{False{}, v, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $RB(d, xs), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $KB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Maybe<&2, K>>, NR.keys(~K, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), NR.keys(~K, xs), NF.keys_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{False{}, v, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $RB(d, xs), $PB(d, xs), AR.thaw(Maybe<&2, K>, BK.bk(Maybe<&2, K>, d, _, None{}))} : $NSK}
-      %Equal.sym(Nat, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $N0, LL.length_update($ND, xs, i, M.N{False{}, v, rt, q, k})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, _, $TB(d, xs), $LB(d, SC.update($ND, xs, i, M.N{False{}, v, rt, q, k})), $RB(d, xs), $PB(d, xs), $KB(d, xs)} : $NSK}
-      {==}
+      QN##_set_k(~K, $GA, i, M.N{False{}, lf, rt, q, k}, QNEW(False{}), hy2, v, 0n, {==}, QHV, {==}, {==}, {==}, {==})
 
 # writing the field of a live node: the list with that field replaced
-def left_set_node(~K: Data, $GP, +i: Nat, +v: Nat, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +k: K, +hy: {$NI == M.N{c, lf, rt, q, k} : $ND}) -> {M.ns_set_left(~K, $NRL(d, xs), i, v) == $NRL(d, SC.update($ND, xs, i, M.N{c, v, rt, q, k})) : $NSK}:
+def QN##_set_node(~K: Data, $GP, +i: Nat, +v: QT, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +k: K, +hy: {$NI == M.N{c, lf, rt, q, k} : $ND}) -> {M.ns_set_##QN(~K, $NRL(d, xs), i, v) == $NRL(d, SC.update($ND, xs, i, QNEW(c))) : $NSK}:
   +hlt = nth_or_lt(~K, xs, i, M.N{c, lf, rt, q, k}, {==}, hy)
   +hy2 = Equal.trans(Maybe<&2, $ND>, SC.nth($ND, xs, i), Some{$NI}, Some{M.N{c, lf, rt, q, k}}, nth_of_or($ND, xs, i, M.Free{0n}, hlt), Equal.cong($ND, Maybe<&2, $ND>, z => Some{z}, $NI, M.N{c, lf, rt, q, k}, hy))
-  %Equal.sym(Bool, Nat.is_lt(i, $N0), True{}, hlt) : {M.ns_set_left_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, _) == $NRL(d, SC.update($ND, xs, i, M.N{c, v, rt, q, k})) : $NSK}
-  left_set_c(~K, $GA, i, v, c, lf, rt, q, k, hy2)
+  %Equal.sym(Bool, Nat.is_lt(i, $N0), True{}, hlt) : {M.ns_set_##QN##_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, _) == $NRL(d, SC.update($ND, xs, i, QNEW(c))) : $NSK}
+  QN##_set_c(~K, $GA, i, v, c, lf, rt, q, k, hy2)
 
-def left_set_fc(~K: Data, $GP, +i: Nat, +v: Nat, +z: Nat, +hy: {$NI == M.Free{z} : $ND}, +b: Bool, +hb: {Nat.is_lt(i, $N0) == b : Bool}) -> {M.ns_set_left_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, b) == $NRL(d, xs) : $NSK}:
+def QN##_set_fc(~K: Data, $GP, +i: Nat, +v: QT, +z: Nat, +hy: {$NI == M.Free{z} : $ND}, +b: Bool, +hb: {Nat.is_lt(i, $N0) == b : Bool}) -> {M.ns_set_##QN##_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, b) == $NRL(d, xs) : $NSK}:
   match b:
     case False{}:
       {==}
     case True{}:
       +hy2 = Equal.trans(Maybe<&2, $ND>, SC.nth($ND, xs, i), Some{$NI}, Some{M.Free{z}}, nth_of_or($ND, xs, i, M.Free{0n}, hb), Equal.cong($ND, Maybe<&2, $ND>, w => Some{w}, $NI, M.Free{z}, hy))
-      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $TB(d, xs), U32.from_nat(i)), ($TB(d, xs), M.ntag(~K, M.Free{z})), NF.tag_get(~K, $GA, i, M.Free{z}, hy2)) : {M.ns_set_left_tag(~K, l, d, $P0, $N0, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), i, v, _) == $NRL(d, xs) : $NSK}
+      %Equal.sym($AN & Nat, Array.get(Nat, $LK(d, xs), $UN($IT(i))), ($LK(d, xs), M.ntag(~K, M.Free{z})), tag_get(~K, $GA, i, M.Free{z}, hy2)) : {M.ns_set_##QN##_tag(~K, l, d, $P0, $N0, $KB(d, xs), i, v, _) == $NRL(d, xs) : $NSK}
       {==}
 
 # writing the field of a free slot (or past the length) changes nothing
-def left_set_free(~K: Data, $GP, +i: Nat, +v: Nat, +z: Nat, +hy: {$NI == M.Free{z} : $ND}) -> {M.ns_set_left(~K, $NRL(d, xs), i, v) == $NRL(d, xs) : $NSK}:
-  left_set_fc(~K, $GA, i, v, z, hy, Nat.is_lt(i, $N0), {==})
+def QN##_set_free(~K: Data, $GP, +i: Nat, +v: QT, +z: Nat, +hy: {$NI == M.Free{z} : $ND}) -> {M.ns_set_##QN(~K, $NRL(d, xs), i, v) == $NRL(d, xs) : $NSK}:
+  QN##_set_fc(~K, $GA, i, v, z, hy, Nat.is_lt(i, $N0), {==})
 
-def right_set_c(~K: Data, $GP, +i: Nat, +v: Nat, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +k: K, +hy2: {SC.nth($ND, xs, i) == Some{M.N{c, lf, rt, q, k}} : Maybe<&2, $ND>}) -> {M.ns_set_right_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, True{}) == $NRL(d, SC.update($ND, xs, i, M.N{c, lf, v, q, k})) : $NSK}:
-  match c:
-    case True{}:
-      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $TB(d, xs), U32.from_nat(i)), ($TB(d, xs), M.ntag(~K, M.N{True{}, lf, rt, q, k})), NF.tag_get(~K, $GA, i, M.N{True{}, lf, rt, q, k}, hy2)) : {M.ns_set_right_tag(~K, l, d, $P0, $N0, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), i, v, _) == $NRL(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})) : $NSK}
-      %Equal.sym(Array<Nat>, Array.set(Nat, $RB(d, xs), U32.from_nat(i), v), $RB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), NF.right_set(~K, $GA, i, M.N{True{}, lf, rt, q, k}, hy2, M.N{True{}, lf, v, q, k})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), _, $PB(d, xs), $KB(d, xs)} == $NRL(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})) : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.tags(~K, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), NR.tags(~K, xs), NF.tags_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{True{}, lf, v, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $LB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $RB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $PB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $KB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.lefts(~K, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), NR.lefts(~K, xs), NF.lefts_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{True{}, lf, v, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $TB(d, xs), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $RB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $PB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $KB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.parents(~K, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), NR.parents(~K, xs), NF.parents_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{True{}, lf, v, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $KB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Maybe<&2, K>>, NR.keys(~K, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), NR.keys(~K, xs), NF.keys_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{True{}, lf, v, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $PB(d, xs), AR.thaw(Maybe<&2, K>, BK.bk(Maybe<&2, K>, d, _, None{}))} : $NSK}
-      %Equal.sym(Nat, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $N0, LL.length_update($ND, xs, i, M.N{True{}, lf, v, q, k})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, _, $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{True{}, lf, v, q, k})), $PB(d, xs), $KB(d, xs)} : $NSK}
-      {==}
-    case False{}:
-      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $TB(d, xs), U32.from_nat(i)), ($TB(d, xs), M.ntag(~K, M.N{False{}, lf, rt, q, k})), NF.tag_get(~K, $GA, i, M.N{False{}, lf, rt, q, k}, hy2)) : {M.ns_set_right_tag(~K, l, d, $P0, $N0, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), i, v, _) == $NRL(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})) : $NSK}
-      %Equal.sym(Array<Nat>, Array.set(Nat, $RB(d, xs), U32.from_nat(i), v), $RB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), NF.right_set(~K, $GA, i, M.N{False{}, lf, rt, q, k}, hy2, M.N{False{}, lf, v, q, k})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), _, $PB(d, xs), $KB(d, xs)} == $NRL(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})) : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.tags(~K, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), NR.tags(~K, xs), NF.tags_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{False{}, lf, v, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $LB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $RB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $PB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $KB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.lefts(~K, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), NR.lefts(~K, xs), NF.lefts_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{False{}, lf, v, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $TB(d, xs), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $RB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $PB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $KB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.parents(~K, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), NR.parents(~K, xs), NF.parents_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{False{}, lf, v, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $KB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Maybe<&2, K>>, NR.keys(~K, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), NR.keys(~K, xs), NF.keys_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{False{}, lf, v, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $PB(d, xs), AR.thaw(Maybe<&2, K>, BK.bk(Maybe<&2, K>, d, _, None{}))} : $NSK}
-      %Equal.sym(Nat, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $N0, LL.length_update($ND, xs, i, M.N{False{}, lf, v, q, k})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, _, $TB(d, xs), $LB(d, xs), $RB(d, SC.update($ND, xs, i, M.N{False{}, lf, v, q, k})), $PB(d, xs), $KB(d, xs)} : $NSK}
-      {==}
-
-# writing the field of a live node: the list with that field replaced
-def right_set_node(~K: Data, $GP, +i: Nat, +v: Nat, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +k: K, +hy: {$NI == M.N{c, lf, rt, q, k} : $ND}) -> {M.ns_set_right(~K, $NRL(d, xs), i, v) == $NRL(d, SC.update($ND, xs, i, M.N{c, lf, v, q, k})) : $NSK}:
-  +hlt = nth_or_lt(~K, xs, i, M.N{c, lf, rt, q, k}, {==}, hy)
-  +hy2 = Equal.trans(Maybe<&2, $ND>, SC.nth($ND, xs, i), Some{$NI}, Some{M.N{c, lf, rt, q, k}}, nth_of_or($ND, xs, i, M.Free{0n}, hlt), Equal.cong($ND, Maybe<&2, $ND>, z => Some{z}, $NI, M.N{c, lf, rt, q, k}, hy))
-  %Equal.sym(Bool, Nat.is_lt(i, $N0), True{}, hlt) : {M.ns_set_right_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, _) == $NRL(d, SC.update($ND, xs, i, M.N{c, lf, v, q, k})) : $NSK}
-  right_set_c(~K, $GA, i, v, c, lf, rt, q, k, hy2)
-
-def right_set_fc(~K: Data, $GP, +i: Nat, +v: Nat, +z: Nat, +hy: {$NI == M.Free{z} : $ND}, +b: Bool, +hb: {Nat.is_lt(i, $N0) == b : Bool}) -> {M.ns_set_right_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, b) == $NRL(d, xs) : $NSK}:
-  match b:
-    case False{}:
-      {==}
-    case True{}:
-      +hy2 = Equal.trans(Maybe<&2, $ND>, SC.nth($ND, xs, i), Some{$NI}, Some{M.Free{z}}, nth_of_or($ND, xs, i, M.Free{0n}, hb), Equal.cong($ND, Maybe<&2, $ND>, w => Some{w}, $NI, M.Free{z}, hy))
-      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $TB(d, xs), U32.from_nat(i)), ($TB(d, xs), M.ntag(~K, M.Free{z})), NF.tag_get(~K, $GA, i, M.Free{z}, hy2)) : {M.ns_set_right_tag(~K, l, d, $P0, $N0, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), i, v, _) == $NRL(d, xs) : $NSK}
-      {==}
-
-# writing the field of a free slot (or past the length) changes nothing
-def right_set_free(~K: Data, $GP, +i: Nat, +v: Nat, +z: Nat, +hy: {$NI == M.Free{z} : $ND}) -> {M.ns_set_right(~K, $NRL(d, xs), i, v) == $NRL(d, xs) : $NSK}:
-  right_set_fc(~K, $GA, i, v, z, hy, Nat.is_lt(i, $N0), {==})
-
-def parent_set_c(~K: Data, $GP, +i: Nat, +v: Nat, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +k: K, +hy2: {SC.nth($ND, xs, i) == Some{M.N{c, lf, rt, q, k}} : Maybe<&2, $ND>}) -> {M.ns_set_parent_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, True{}) == $NRL(d, SC.update($ND, xs, i, M.N{c, lf, rt, v, k})) : $NSK}:
-  match c:
-    case True{}:
-      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $TB(d, xs), U32.from_nat(i)), ($TB(d, xs), M.ntag(~K, M.N{True{}, lf, rt, q, k})), NF.tag_get(~K, $GA, i, M.N{True{}, lf, rt, q, k}, hy2)) : {M.ns_set_parent_tag(~K, l, d, $P0, $N0, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), i, v, _) == $NRL(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})) : $NSK}
-      %Equal.sym(Array<Nat>, Array.set(Nat, $PB(d, xs), U32.from_nat(i), v), $PB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), NF.parent_set(~K, $GA, i, M.N{True{}, lf, rt, q, k}, hy2, M.N{True{}, lf, rt, v, k})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), _, $KB(d, xs)} == $NRL(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})) : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.tags(~K, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), NR.tags(~K, xs), NF.tags_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{True{}, lf, rt, v, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $LB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $RB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $PB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $KB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.lefts(~K, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), NR.lefts(~K, xs), NF.lefts_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{True{}, lf, rt, v, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $TB(d, xs), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $RB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $PB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $KB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.rights(~K, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), NR.rights(~K, xs), NF.rights_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{True{}, lf, rt, v, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $TB(d, xs), $LB(d, xs), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $PB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $KB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k}))} : $NSK}
-      %Equal.sym(List<&2, Maybe<&2, K>>, NR.keys(~K, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), NR.keys(~K, xs), NF.keys_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{True{}, lf, rt, v, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), AR.thaw(Maybe<&2, K>, BK.bk(Maybe<&2, K>, d, _, None{}))} : $NSK}
-      %Equal.sym(Nat, SC.length($ND, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $N0, LL.length_update($ND, xs, i, M.N{True{}, lf, rt, v, k})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $KB(d, xs)} == M.NS{l, d, $P0, _, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, SC.update($ND, xs, i, M.N{True{}, lf, rt, v, k})), $KB(d, xs)} : $NSK}
-      {==}
-    case False{}:
-      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $TB(d, xs), U32.from_nat(i)), ($TB(d, xs), M.ntag(~K, M.N{False{}, lf, rt, q, k})), NF.tag_get(~K, $GA, i, M.N{False{}, lf, rt, q, k}, hy2)) : {M.ns_set_parent_tag(~K, l, d, $P0, $N0, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), i, v, _) == $NRL(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})) : $NSK}
-      %Equal.sym(Array<Nat>, Array.set(Nat, $PB(d, xs), U32.from_nat(i), v), $PB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), NF.parent_set(~K, $GA, i, M.N{False{}, lf, rt, q, k}, hy2, M.N{False{}, lf, rt, v, k})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), _, $KB(d, xs)} == $NRL(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})) : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.tags(~K, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), NR.tags(~K, xs), NF.tags_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{False{}, lf, rt, v, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $LB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $RB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $PB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $KB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.lefts(~K, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), NR.lefts(~K, xs), NF.lefts_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{False{}, lf, rt, v, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $TB(d, xs), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $RB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $PB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $KB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.rights(~K, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), NR.rights(~K, xs), NF.rights_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{False{}, lf, rt, v, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $TB(d, xs), $LB(d, xs), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $PB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $KB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k}))} : $NSK}
-      %Equal.sym(List<&2, Maybe<&2, K>>, NR.keys(~K, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), NR.keys(~K, xs), NF.keys_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{False{}, lf, rt, v, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), AR.thaw(Maybe<&2, K>, BK.bk(Maybe<&2, K>, d, _, None{}))} : $NSK}
-      %Equal.sym(Nat, SC.length($ND, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $N0, LL.length_update($ND, xs, i, M.N{False{}, lf, rt, v, k})) : {M.NS{l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $KB(d, xs)} == M.NS{l, d, $P0, _, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, SC.update($ND, xs, i, M.N{False{}, lf, rt, v, k})), $KB(d, xs)} : $NSK}
-      {==}
-
-# writing the field of a live node: the list with that field replaced
-def parent_set_node(~K: Data, $GP, +i: Nat, +v: Nat, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +k: K, +hy: {$NI == M.N{c, lf, rt, q, k} : $ND}) -> {M.ns_set_parent(~K, $NRL(d, xs), i, v) == $NRL(d, SC.update($ND, xs, i, M.N{c, lf, rt, v, k})) : $NSK}:
-  +hlt = nth_or_lt(~K, xs, i, M.N{c, lf, rt, q, k}, {==}, hy)
-  +hy2 = Equal.trans(Maybe<&2, $ND>, SC.nth($ND, xs, i), Some{$NI}, Some{M.N{c, lf, rt, q, k}}, nth_of_or($ND, xs, i, M.Free{0n}, hlt), Equal.cong($ND, Maybe<&2, $ND>, z => Some{z}, $NI, M.N{c, lf, rt, q, k}, hy))
-  %Equal.sym(Bool, Nat.is_lt(i, $N0), True{}, hlt) : {M.ns_set_parent_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, _) == $NRL(d, SC.update($ND, xs, i, M.N{c, lf, rt, v, k})) : $NSK}
-  parent_set_c(~K, $GA, i, v, c, lf, rt, q, k, hy2)
-
-def parent_set_fc(~K: Data, $GP, +i: Nat, +v: Nat, +z: Nat, +hy: {$NI == M.Free{z} : $ND}, +b: Bool, +hb: {Nat.is_lt(i, $N0) == b : Bool}) -> {M.ns_set_parent_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, b) == $NRL(d, xs) : $NSK}:
-  match b:
-    case False{}:
-      {==}
-    case True{}:
-      +hy2 = Equal.trans(Maybe<&2, $ND>, SC.nth($ND, xs, i), Some{$NI}, Some{M.Free{z}}, nth_of_or($ND, xs, i, M.Free{0n}, hb), Equal.cong($ND, Maybe<&2, $ND>, w => Some{w}, $NI, M.Free{z}, hy))
-      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $TB(d, xs), U32.from_nat(i)), ($TB(d, xs), M.ntag(~K, M.Free{z})), NF.tag_get(~K, $GA, i, M.Free{z}, hy2)) : {M.ns_set_parent_tag(~K, l, d, $P0, $N0, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), i, v, _) == $NRL(d, xs) : $NSK}
-      {==}
-
-# writing the field of a free slot (or past the length) changes nothing
-def parent_set_free(~K: Data, $GP, +i: Nat, +v: Nat, +z: Nat, +hy: {$NI == M.Free{z} : $ND}) -> {M.ns_set_parent(~K, $NRL(d, xs), i, v) == $NRL(d, xs) : $NSK}:
-  parent_set_fc(~K, $GA, i, v, z, hy, Nat.is_lt(i, $N0), {==})
-
-def red_set_c(~K: Data, $GP, +i: Nat, +v: Bool, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +k: K, +hy2: {SC.nth($ND, xs, i) == Some{M.N{c, lf, rt, q, k}} : Maybe<&2, $ND>}) -> {M.ns_set_red_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, True{}) == $NRL(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})) : $NSK}:
-  match c:
-    case True{}:
-      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $TB(d, xs), U32.from_nat(i)), ($TB(d, xs), M.ntag(~K, M.N{True{}, lf, rt, q, k})), NF.tag_get(~K, $GA, i, M.N{True{}, lf, rt, q, k}, hy2)) : {M.ns_set_red_tag(~K, l, d, $P0, $N0, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), i, v, _) == $NRL(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})) : $NSK}
-      %Equal.sym(Nat, M.ns_red_tag(v), M.ntag(~K, M.N{v, lf, rt, q, k}), red_tag_eq(~K, v, lf, rt, q, k)) : {M.NS{l, d, $P0, $N0, Array.set(Nat, $TB(d, xs), U32.from_nat(i), _), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == $NRL(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})) : $NSK}
-      %Equal.sym(Array<Nat>, Array.set(Nat, $TB(d, xs), U32.from_nat(i), M.ntag(~K, M.N{v, lf, rt, q, k})), $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), NF.tag_set(~K, $GA, i, M.N{True{}, lf, rt, q, k}, hy2, M.N{v, lf, rt, q, k})) : {M.NS{l, d, $P0, $N0, _, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == $NRL(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})) : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.lefts(~K, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), NR.lefts(~K, xs), NF.lefts_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{v, lf, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $RB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $PB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $KB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.rights(~K, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), NR.rights(~K, xs), NF.rights_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{v, lf, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $PB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $KB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.parents(~K, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), NR.parents(~K, xs), NF.parents_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{v, lf, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $KB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Maybe<&2, K>>, NR.keys(~K, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), NR.keys(~K, xs), NF.keys_keep(~K, xs, i, M.N{True{}, lf, rt, q, k}, M.N{v, lf, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), $PB(d, xs), AR.thaw(Maybe<&2, K>, BK.bk(Maybe<&2, K>, d, _, None{}))} : $NSK}
-      %Equal.sym(Nat, SC.length($ND, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $N0, LL.length_update($ND, xs, i, M.N{v, lf, rt, q, k})) : {M.NS{l, d, $P0, $N0, $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, _, $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} : $NSK}
-      {==}
-    case False{}:
-      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $TB(d, xs), U32.from_nat(i)), ($TB(d, xs), M.ntag(~K, M.N{False{}, lf, rt, q, k})), NF.tag_get(~K, $GA, i, M.N{False{}, lf, rt, q, k}, hy2)) : {M.ns_set_red_tag(~K, l, d, $P0, $N0, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), i, v, _) == $NRL(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})) : $NSK}
-      %Equal.sym(Nat, M.ns_red_tag(v), M.ntag(~K, M.N{v, lf, rt, q, k}), red_tag_eq(~K, v, lf, rt, q, k)) : {M.NS{l, d, $P0, $N0, Array.set(Nat, $TB(d, xs), U32.from_nat(i), _), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == $NRL(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})) : $NSK}
-      %Equal.sym(Array<Nat>, Array.set(Nat, $TB(d, xs), U32.from_nat(i), M.ntag(~K, M.N{v, lf, rt, q, k})), $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), NF.tag_set(~K, $GA, i, M.N{False{}, lf, rt, q, k}, hy2, M.N{v, lf, rt, q, k})) : {M.NS{l, d, $P0, $N0, _, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == $NRL(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})) : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.lefts(~K, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), NR.lefts(~K, xs), NF.lefts_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{v, lf, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $RB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $PB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $KB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.rights(~K, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), NR.rights(~K, xs), NF.rights_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{v, lf, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $PB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $KB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Nat>, NR.parents(~K, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), NR.parents(~K, xs), NF.parents_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{v, lf, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), AR.thaw(Nat, BK.bk(Nat, d, _, 0n)), $KB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k}))} : $NSK}
-      %Equal.sym(List<&2, Maybe<&2, K>>, NR.keys(~K, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), NR.keys(~K, xs), NF.keys_keep(~K, xs, i, M.N{False{}, lf, rt, q, k}, M.N{v, lf, rt, q, k}, hy2, {==})) : {M.NS{l, d, $P0, $N0, $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, SC.length($ND, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), $PB(d, xs), AR.thaw(Maybe<&2, K>, BK.bk(Maybe<&2, K>, d, _, None{}))} : $NSK}
-      %Equal.sym(Nat, SC.length($ND, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $N0, LL.length_update($ND, xs, i, M.N{v, lf, rt, q, k})) : {M.NS{l, d, $P0, $N0, $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} == M.NS{l, d, $P0, _, $TB(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})), $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs)} : $NSK}
-      {==}
-
-# writing the field of a live node: the list with that field replaced
-def red_set_node(~K: Data, $GP, +i: Nat, +v: Bool, +c: Bool, +lf: Nat, +rt: Nat, +q: Nat, +k: K, +hy: {$NI == M.N{c, lf, rt, q, k} : $ND}) -> {M.ns_set_red(~K, $NRL(d, xs), i, v) == $NRL(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})) : $NSK}:
-  +hlt = nth_or_lt(~K, xs, i, M.N{c, lf, rt, q, k}, {==}, hy)
-  +hy2 = Equal.trans(Maybe<&2, $ND>, SC.nth($ND, xs, i), Some{$NI}, Some{M.N{c, lf, rt, q, k}}, nth_of_or($ND, xs, i, M.Free{0n}, hlt), Equal.cong($ND, Maybe<&2, $ND>, z => Some{z}, $NI, M.N{c, lf, rt, q, k}, hy))
-  %Equal.sym(Bool, Nat.is_lt(i, $N0), True{}, hlt) : {M.ns_set_red_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, _) == $NRL(d, SC.update($ND, xs, i, M.N{v, lf, rt, q, k})) : $NSK}
-  red_set_c(~K, $GA, i, v, c, lf, rt, q, k, hy2)
-
-def red_set_fc(~K: Data, $GP, +i: Nat, +v: Bool, +z: Nat, +hy: {$NI == M.Free{z} : $ND}, +b: Bool, +hb: {Nat.is_lt(i, $N0) == b : Bool}) -> {M.ns_set_red_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, v, b) == $NRL(d, xs) : $NSK}:
-  match b:
-    case False{}:
-      {==}
-    case True{}:
-      +hy2 = Equal.trans(Maybe<&2, $ND>, SC.nth($ND, xs, i), Some{$NI}, Some{M.Free{z}}, nth_of_or($ND, xs, i, M.Free{0n}, hb), Equal.cong($ND, Maybe<&2, $ND>, w => Some{w}, $NI, M.Free{z}, hy))
-      %Equal.sym(Array<Nat> & Nat, Array.get(Nat, $TB(d, xs), U32.from_nat(i)), ($TB(d, xs), M.ntag(~K, M.Free{z})), NF.tag_get(~K, $GA, i, M.Free{z}, hy2)) : {M.ns_set_red_tag(~K, l, d, $P0, $N0, $LB(d, xs), $RB(d, xs), $PB(d, xs), $KB(d, xs), i, v, _) == $NRL(d, xs) : $NSK}
-      {==}
-
-# writing the field of a free slot (or past the length) changes nothing
-def red_set_free(~K: Data, $GP, +i: Nat, +v: Bool, +z: Nat, +hy: {$NI == M.Free{z} : $ND}) -> {M.ns_set_red(~K, $NRL(d, xs), i, v) == $NRL(d, xs) : $NSK}:
-  red_set_fc(~K, $GA, i, v, z, hy, Nat.is_lt(i, $N0), {==})
+%end
+%def NWL(c) M.N{c, v, rt, q, k}
+%def NWR(c) M.N{c, lf, v, q, k}
+%def NWP(c) M.N{c, lf, rt, v, k}
+%def NWC(c) M.N{v, lf, rt, q, k}
+%use SETF(left, Nat, v, M.nleft, $IL(i), left_aset, <|$ER, $ET, $EP|>, <|er, et, ep|>, $NWL, {==})
+%use SETF(right, Nat, v, M.nright, $IR(i), right_aset, <|$EL, $ET, $EP|>, <|el, et, ep|>, $NWR, {==})
+%use SETF(parent, Nat, v, M.nparent, $IP(i), parent_aset, <|$EL, $ER, $ET|>, <|el, er, et|>, $NWP, {==})
+%use SETF(red, Bool, M.ns_red_tag(v), M.ntag, $IT(i), tag_aset, <|$EL, $ER, $EP|>, <|el, er, ep|>, $NWC, <|Equal.sym(Nat, M.ns_red_tag(v), M.ntag(~K, M.N{v, lf, rt, q, k}), red_tag_eq(~K, v, lf, rt, q, k))|>)
 
 # ---- reading a slot's key ----
 
@@ -483,7 +507,7 @@ def key_ats(~K: Data, $GP, +i: Nat, +mv: Maybe<&2, $ND>, +hmv: {SC.nth($ND, xs, 
       Empty.absurd({M.ns_key_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, True{}) == ($NRL(d, xs), M.nkey(~K, $NI)) : $NSK & Maybe<&2, K>}, L.false_true(L.subst(Maybe<&2, $ND>, z => {isj($ND, z) == True{} : Bool}, SC.nth($ND, xs, i), None{}, hmv, nth_isj($ND, xs, i, hi))))
     case Some{+y}:
       %Equal.sym($ND, $NI, y, nth_or_some($ND, xs, i, y, M.Free{0n}, hmv)) : {M.ns_key_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, True{}) == ($NRL(d, xs), M.nkey(~K, _)) : $NSK & Maybe<&2, K>}
-      %Equal.sym(Array<Maybe<&2, K>> & Maybe<&2, K>, Array.get(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i)), ($KB(d, xs), M.nkey(~K, y)), NF.key_get(~K, $GA, i, y, hmv)) : {M.ns_key_fin(~K, l, d, $P0, $N0, $TB(d, xs), $LB(d, xs), $RB(d, xs), $PB(d, xs), _) == ($NRL(d, xs), M.nkey(~K, y)) : $NSK & Maybe<&2, K>}
+      %Equal.sym(Array<Maybe<&2, K>> & Maybe<&2, K>, Array.get(Maybe<&2, K>, $KB(d, xs), U32.from_nat(i)), ($KB(d, xs), M.nkey(~K, y)), NF.key_get(~K, $GA, i, y, hmv)) : {M.ns_key_fin(~K, l, d, $P0, $N0, $LK(d, xs), _) == ($NRL(d, xs), M.nkey(~K, y)) : $NSK & Maybe<&2, K>}
       {==}
 
 def key_atc(~K: Data, $GP, +i: Nat, +b: Bool, +hb: {Nat.is_lt(i, $N0) == b : Bool}) -> {M.ns_key_ok(~K, l, d, $P0, $N0, $ARRS(d, xs), i, b) == ($NRL(d, xs), M.nkey(~K, $NI)) : $NSK & Maybe<&2, K>}:

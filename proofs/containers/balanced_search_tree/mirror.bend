@@ -64,7 +64,7 @@ def rvp(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, -X: Type, p: MView<K, V> & X) -
 def dg(-K: Data, -V: Data, s: ST.Sh<K, V>) -> Bool:
   match s:
     case ST.SH{n, root, lo, hi, free, +l, +d, +nl, +pl, t, fl}:
-      Bool.and(Nat.is_le(l, 31n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))))
+      Bool.and(Nat.is_le(l, 29n), Bool.and(Nat.is_le(d, l), Bool.and(Nat.is_le(SC.length(M.Node<K>, nl), SC.pow2(d)), Nat.is_eq(SC.length(Maybe<&2, V>, pl), SC.length(M.Node<K>, nl)))))
 
 def dgc(-K: Data, -V: Data, c: MCursor<K, V>) -> Bool:
   match c:
@@ -118,7 +118,7 @@ def pl_of(-K: Data, -V: Data, s: ST.Sh<K, V>) -> List<&2, Maybe<&2, V>>:
 # ---- the array-level primitives ----
 
 def new(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp) -> ST.Sh<K, V>:
-  ST.SH{0n, 0n, 0n, 0n, 0n, 31n, 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}
+  ST.SH{0n, 0n, 0n, 0n, 0n, 29n, 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}
 
 def read(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat) -> ST.Sh<K, V> & M.Node<K>:
   match m:

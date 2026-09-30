@@ -4,11 +4,11 @@ import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/secp256k1/field.bend as FS
 import ../../../src/crypto/secp256k1/limbs.bend as L
 import ../../../src/crypto/secp256k1/scalar.bend as S
-import ../../lib/nat.bend as N
+import ./lite/lib/nat.bend as N
 import ../../lib/logic.bend as Lg
-import ../../lib/arith.bend as AR
-import ../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../math/natural/arith.bend as NR
+import ./lite/lib/arith.bend as AR
+import ./lite/lib/lemmas/proofs/nat_algebra.bend as NA
+import ./lite/math/natural/arith.bend as NR
 import ./limbs.bend as LV
 import ./fprot.bend as FR
 import ./ineq.bend as I

@@ -44,9 +44,14 @@ def hash_scalar(+one: Nat, +h: List<&2, U32>) -> Nat:
 type Drbg is Data:
   Drbg{k: List<&2, U32>, v: List<&2, U32>}
 
-# HMAC-SHA256
-def hmac(key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
-  HM.hmac(key, msg)
+# HMAC-SHA256 (the key is looked at first; both cases are HM.hmac(key, msg))
+def hmac_go(probe: List<&2, U32>, key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
+  match probe:
+    case Nil{}: HM.hmac(key, msg)
+    case b <> t: HM.hmac(key, msg)
+
+def hmac(+key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
+  hmac_go(key, key, msg)
 
 def update_v(+k: List<&2, U32>, +v: List<&2, U32>) -> Drbg:
   Drbg{k, hmac(k, v)}
@@ -60,8 +65,9 @@ def update2(d: Drbg, +seed: List<&2, U32>) -> Drbg:
     case Drbg{k, v}: update(k, v, 1, seed)
 
 # steps b-g, with seed = int2octets(x) || bits2octets(h1)
-def drbg_init(+seed: List<&2, U32>) -> Drbg:
-  update2(update(fill(32n, 0), fill(32n, 1), 0, seed), seed)
+# (k0 = 0x00...00, v0 = 0x01...01: named once, in sign)
+def drbg_init(+k0: List<&2, U32>, +v0: List<&2, U32>, +seed: List<&2, U32>) -> Drbg:
+  update2(update(k0, v0, 0, seed), seed)
 
 # ---- signing (SEC 1 4.1.3) ----
 
@@ -131,16 +137,16 @@ def sign_drbg(+one: Nat, +e: Nat, +d: Nat, g: Drbg) -> Maybe<&2, List<&2, U32>>:
       +v1 = hmac(k, v)
       sign_loop(16n, one, e, d, k, v1, attempt(one, e, d, v1))
 
-def sign_d(+one: Nat, +h: List<&2, U32>, +d: Nat, ok: Bool) -> Maybe<&2, List<&2, U32>>:
+def sign_d(+one: Nat, +k0: List<&2, U32>, +v0: List<&2, U32>, +h: List<&2, U32>, +d: Nat, ok: Bool) -> Maybe<&2, List<&2, U32>>:
   match ok:
     case True{}:
       +e = hash_scalar(one, h)
-      sign_drbg(one, e, d, drbg_init(cat(i2osp32(d), i2osp32(e))))
+      sign_drbg(one, e, d, drbg_init(k0, v0, cat(i2osp32(d), i2osp32(e))))
     case False{}: None{}
 
 # sign(sk, H): d = OS2IP(sk) must be a 32-byte key with 1 <= d < n, H 32 bytes
 def sign(+one: Nat, +sk: List<&2, U32>, +h: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  sign_d(one, h, CV.os2ip(sk), Bool.and(CV.length_is(32n, h), Bool.and(CV.length_is(32n, sk), scalar_ok(one, CV.os2ip(sk)))))
+  sign_d(one, fill(32n, 0), fill(32n, 1), h, CV.os2ip(sk), Bool.and(CV.length_is(32n, h), Bool.and(CV.length_is(32n, sk), scalar_ok(one, CV.os2ip(sk)))))
 
 # ---- public keys ----
 

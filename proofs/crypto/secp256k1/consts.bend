@@ -3,14 +3,15 @@ import Base
 import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/secp256k1/field.bend as FS
 import ../../../src/crypto/secp256k1/limbs.bend as L
-import ../../lib/nat.bend as N
-import ../../lib/arith.bend as AR
-import ../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../math/typed/width.bend as WW
+import ./lite/lib/nat.bend as N
+import ./lite/lib/arith.bend as AR
+import ./lite/lib/lemmas/proofs/nat_algebra.bend as NA
+import ./lite/math/typed/width.bend as WW
 import ./semiring.bend as SR
 import ./limbs.bend as LV
 import ./ineq.bend as I
 import ./bounds.bend as B
+import ./lits.bend as LT
 
 # The constants of spec/crypto/secp256k1/field.bend, kept symbolic in one:
 # 2^256 - p = 2^32 + 977 < 2^33, 2^256 - n < 2^129, and the bounds the
@@ -158,8 +159,7 @@ def cn8() -> List<&2, Nat>:
   [48831n, 12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n]
 
 def cn8_limbs(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.limbs16(one, 8n, cn8()) == True{} : Bool}:
-  %Equal.sym(Nat, one, 1n, h1) : {FS.limbs16(_, 8n, cn8()) == True{} : Bool}
-  {==}
+  LT.lits16(one, h1, 8n, cn8(), {==})
 
 def cn_split(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.cn(one) == Nat.add(FS.digits(one, cn8()), LV.pos(8n, one)) : Nat}:
   %Equal.sym(Nat, FS.cn(one), Nat.add(FS.digits(one, cn8()), LV.pos(8n, Nat.add(Nat.mul(one, 1n), C.shift(16n, 0n)))), digits_split(one, 8n, [48831n, 12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n])) : {_ == Nat.add(FS.digits(one, cn8()), LV.pos(8n, one)) : Nat}

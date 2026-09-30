@@ -4,8 +4,8 @@ import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/secp256k1/field.bend as FS
 import ../../../src/crypto/secp256k1/limbs.bend as L
 import ../../lib/logic.bend as Lg
-import ../../math/natural/arith.bend as NR
-import ../../math/typed/width.bend as WW
+import ./lite/math/natural/arith.bend as NR
+import ./lite/math/typed/width.bend as WW
 import ./semiring.bend as SR
 import ./limbs.bend as LV
 import ./ineq.bend as I

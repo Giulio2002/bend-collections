@@ -5,7 +5,7 @@ import ../../../spec/crypto/secp256k1/curve.bend as CV
 import ../../../src/crypto/secp256k1/fe.bend as F
 import ../../../src/crypto/secp256k1/pt.bend as PX
 import ../../lib/logic.bend as Lg
-import ../../lib/nat.bend as N
+import ./lite/lib/nat.bend as N
 import ./fops.bend as OP
 import ./bitsv.bend as BV
 import ./ptp.bend as PP
