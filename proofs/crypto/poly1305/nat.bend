@@ -7,13 +7,15 @@ import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/typed/width.bend as WW
 import ../../math/typed/w64sh.bend as SH
 import ../../math/natural/arith.bend as NR
+import ../../../src/crypto/poly1305/limbs.bend as LI
 import ../secp256k1/semiring.bend as SR
 import ./arith.bend as A
 
-# Natural-number facts for the radix-2^26 Poly1305 proofs. The radices are
-# variables: b == 2^13 == C.shift(13n, one) (one == 1n symbolic) and
-# w == b * b, so no closed power of two beyond 2^13 is ever formed; p is
-# 1n+bp with (1n+bp) + 5 == 2^130 == C.shift(130n, one) (h5).
+# Natural-number facts for the radix-2^26 Poly1305 proofs. The only radix
+# literal is 2^13 = 8192n (the implementation divides by 2^26 in two steps
+# of 2^13, src/crypto/poly1305/limbs.bend dw/mw), which the checker keeps
+# as a number; 2^13 is C.shift(13n, 1n) when a shift is needed. p is 1n+bp
+# with (1n+bp) + 5 == 2^130 == C.shift(130n, one) (h5), one == 1n symbolic.
 
 # ---- small constants as shifts ----
 
@@ -54,82 +56,52 @@ def d256(+x: Nat) -> {x == Nat.add(Nat.mod(x, 256n), C.shift(8n, Nat.div(x, 256n
   %Equal.sym(Nat, Nat.add(Nat.mod(x, 256n), C.shift(8n, Nat.div(x, 256n))), Nat.add(C.shift(8n, Nat.div(x, 256n)), Nat.mod(x, 256n)), NA.add_comm(Nat.mod(x, 256n), C.shift(8n, Nat.div(x, 256n)))) : {Nat.add(C.shift(8n, Nat.div(x, 256n)), Nat.mod(x, 256n)) == _ : Nat}
   {==}
 
-# ---- the radices b = 2^13 and w = b b = 2^26 ----
+# ---- the radix 2^13 (a literal the checker holds as a number) ----
 
-def mb(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +x: Nat) -> {Nat.mul(x, b) == C.shift(13n, x) : Nat}:
-  %Equal.sym(Nat, b, C.shift(13n, one), hb) : {Nat.mul(x, _) == C.shift(13n, x) : Nat}
-  Equal.sym(Nat, C.shift(13n, x), Nat.mul(x, C.shift(13n, one)), WW.shift_mul_one(13n, one, h1, x))
+def mb(+x: Nat) -> {Nat.mul(x, 8192n) == C.shift(13n, x) : Nat}:
+  Equal.sym(Nat, C.shift(13n, x), Nat.mul(x, C.shift(13n, 1n)), WW.shift_mul(13n, x))
 
-def mw(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +w: Nat, +hw: {w == Nat.mul(b, b) : Nat}, +x: Nat) -> {Nat.mul(x, w) == C.shift(26n, x) : Nat}:
-  %Equal.sym(Nat, w, Nat.mul(b, b), hw) : {Nat.mul(x, _) == C.shift(26n, x) : Nat}
-  %NA.mul_assoc(x, b, b) : {_ == C.shift(26n, x) : Nat}
-  %Equal.sym(Nat, Nat.mul(x, b), C.shift(13n, x), mb(one, h1, b, hb, x)) : {Nat.mul(_, b) == C.shift(26n, x) : Nat}
-  %Equal.sym(Nat, Nat.mul(C.shift(13n, x), b), C.shift(13n, C.shift(13n, x)), mb(one, h1, b, hb, C.shift(13n, x))) : {_ == C.shift(26n, x) : Nat}
-  SR.shift_shift(13n, 13n, x)
-
-def wv(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +w: Nat, +hw: {w == Nat.mul(b, b) : Nat}) -> {w == C.shift(26n, one) : Nat}:
-  %Equal.sym(Nat, w, Nat.mul(b, b), hw) : {_ == C.shift(26n, one) : Nat}
-  %Equal.sym(Nat, b, C.shift(13n, one), hb) : {Nat.mul(_, b) == C.shift(26n, one) : Nat}
-  %Equal.sym(Nat, b, C.shift(13n, one), hb) : {Nat.mul(C.shift(13n, one), _) == C.shift(26n, one) : Nat}
-  A.shmul(13n, 13n, one, h1)
-
-def wpos(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +w: Nat, +hw: {w == Nat.mul(b, b) : Nat}) -> {Nat.is_lt(0n, w) == True{} : Bool}:
-  %Equal.sym(Nat, w, C.shift(26n, one), wv(one, h1, b, hb, w, hw)) : {Nat.is_lt(0n, _) == True{} : Bool}
-  N.lt_le_trans(0n, 1n, C.shift(26n, one), {==}, A.one_le_shift(26n, one, h1))
-
-def bpos(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}) -> {Nat.is_lt(0n, b) == True{} : Bool}:
-  %Equal.sym(Nat, b, C.shift(13n, one), hb) : {Nat.is_lt(0n, _) == True{} : Bool}
-  N.lt_le_trans(0n, 1n, C.shift(13n, one), {==}, A.one_le_shift(13n, one, h1))
-
-# division by a positive d
-def dm_pos(+d: Nat, +hd: {Nat.is_lt(0n, d) == True{} : Bool}, +x: Nat) -> {x == Nat.add(Nat.mul(Nat.div(x, d), d), Nat.mod(x, d)) : Nat}:
-  match d:
-    case 0n: Empty.absurd({x == Nat.add(Nat.mul(Nat.div(x, 0n), 0n), Nat.mod(x, 0n)) : Nat}, L.false_true(hd))
-    case 1n+dp: NR.dm_eq(dp, x)
-
-def mod_pos(+d: Nat, +hd: {Nat.is_lt(0n, d) == True{} : Bool}, +x: Nat) -> {Nat.is_lt(Nat.mod(x, d), d) == True{} : Bool}:
-  match d:
-    case 0n: Empty.absurd({Nat.is_lt(Nat.mod(x, 0n), 0n) == True{} : Bool}, L.false_true(hd))
-    case 1n+dp: NR.dm_lt(dp, x)
-
-# x == x mod w + 2^26 (x div w), and x == x mod b + 2^13 (x div b)
-def sw(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +w: Nat, +hw: {w == Nat.mul(b, b) : Nat}, +x: Nat) -> {x == Nat.add(Nat.mod(x, w), C.shift(26n, Nat.div(x, w))) : Nat}:
-  %Equal.sym(Nat, x, Nat.add(Nat.mul(Nat.div(x, w), w), Nat.mod(x, w)), dm_pos(w, wpos(one, h1, b, hb, w, hw), x)) : {_ == Nat.add(Nat.mod(x, w), C.shift(26n, Nat.div(x, w))) : Nat}
-  %Equal.sym(Nat, Nat.mul(Nat.div(x, w), w), C.shift(26n, Nat.div(x, w)), mw(one, h1, b, hb, w, hw, Nat.div(x, w))) : {Nat.add(_, Nat.mod(x, w)) == Nat.add(Nat.mod(x, w), C.shift(26n, Nat.div(x, w))) : Nat}
-  %Equal.sym(Nat, Nat.add(Nat.mod(x, w), C.shift(26n, Nat.div(x, w))), Nat.add(C.shift(26n, Nat.div(x, w)), Nat.mod(x, w)), NA.add_comm(Nat.mod(x, w), C.shift(26n, Nat.div(x, w)))) : {Nat.add(C.shift(26n, Nat.div(x, w)), Nat.mod(x, w)) == _ : Nat}
+# x == x mod 2^13 + 2^13 (x div 2^13)
+def sb(+x: Nat) -> {x == Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.div(x, 8192n))) : Nat}:
+  %Equal.sym(Nat, x, Nat.add(Nat.mul(Nat.div(x, 8192n), 8192n), Nat.mod(x, 8192n)), NR.dm_eq(8191n, x)) : {_ == Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.div(x, 8192n))) : Nat}
+  %Equal.sym(Nat, Nat.mul(Nat.div(x, 8192n), 8192n), C.shift(13n, Nat.div(x, 8192n)), mb(Nat.div(x, 8192n))) : {Nat.add(_, Nat.mod(x, 8192n)) == Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.div(x, 8192n))) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.div(x, 8192n))), Nat.add(C.shift(13n, Nat.div(x, 8192n)), Nat.mod(x, 8192n)), NA.add_comm(Nat.mod(x, 8192n), C.shift(13n, Nat.div(x, 8192n)))) : {Nat.add(C.shift(13n, Nat.div(x, 8192n)), Nat.mod(x, 8192n)) == _ : Nat}
   {==}
 
-def sb(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +x: Nat) -> {x == Nat.add(Nat.mod(x, b), C.shift(13n, Nat.div(x, b))) : Nat}:
-  %Equal.sym(Nat, x, Nat.add(Nat.mul(Nat.div(x, b), b), Nat.mod(x, b)), dm_pos(b, bpos(one, h1, b, hb), x)) : {_ == Nat.add(Nat.mod(x, b), C.shift(13n, Nat.div(x, b))) : Nat}
-  %Equal.sym(Nat, Nat.mul(Nat.div(x, b), b), C.shift(13n, Nat.div(x, b)), mb(one, h1, b, hb, Nat.div(x, b))) : {Nat.add(_, Nat.mod(x, b)) == Nat.add(Nat.mod(x, b), C.shift(13n, Nat.div(x, b))) : Nat}
-  %Equal.sym(Nat, Nat.add(Nat.mod(x, b), C.shift(13n, Nat.div(x, b))), Nat.add(C.shift(13n, Nat.div(x, b)), Nat.mod(x, b)), NA.add_comm(Nat.mod(x, b), C.shift(13n, Nat.div(x, b)))) : {Nat.add(C.shift(13n, Nat.div(x, b)), Nat.mod(x, b)) == _ : Nat}
+# x == mw(x) + 2^26 dw(x): mod and div by 2^26 in two steps of 2^13
+def sw(+x: Nat) -> {x == Nat.add(LI.mw(x), C.shift(26n, LI.dw(x))) : Nat}:
+  %Equal.sym(Nat, x, Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.div(x, 8192n))), sb(x)) : {_ == Nat.add(Nat.add(Nat.mod(x, 8192n), Nat.mul(Nat.mod(Nat.div(x, 8192n), 8192n), 8192n)), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n))) : Nat}
+  %Equal.sym(Nat, Nat.div(x, 8192n), Nat.add(Nat.mod(Nat.div(x, 8192n), 8192n), C.shift(13n, Nat.div(Nat.div(x, 8192n), 8192n))), sb(Nat.div(x, 8192n))) : {Nat.add(Nat.mod(x, 8192n), C.shift(13n, _)) == Nat.add(Nat.add(Nat.mod(x, 8192n), Nat.mul(Nat.mod(Nat.div(x, 8192n), 8192n), 8192n)), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n))) : Nat}
+  %Equal.sym(Nat, Nat.mul(Nat.mod(Nat.div(x, 8192n), 8192n), 8192n), C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), mb(Nat.mod(Nat.div(x, 8192n), 8192n))) : {Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.add(Nat.mod(Nat.div(x, 8192n), 8192n), C.shift(13n, Nat.div(Nat.div(x, 8192n), 8192n))))) == Nat.add(Nat.add(Nat.mod(x, 8192n), _), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n))) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.mod(Nat.div(x, 8192n), 8192n), C.shift(13n, Nat.div(Nat.div(x, 8192n), 8192n))), Nat.add(C.shift(13n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.mod(Nat.div(x, 8192n), 8192n)), NA.add_comm(Nat.mod(Nat.div(x, 8192n), 8192n), C.shift(13n, Nat.div(Nat.div(x, 8192n), 8192n)))) : {Nat.add(Nat.mod(x, 8192n), C.shift(13n, _)) == Nat.add(Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n))), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n))) : Nat}
+  %Equal.sym(Nat, C.shift(13n, Nat.add(C.shift(13n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.mod(Nat.div(x, 8192n), 8192n))), Nat.add(C.shift(13n, C.shift(13n, Nat.div(Nat.div(x, 8192n), 8192n))), C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n))), WW.shift_add(13n, C.shift(13n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.mod(Nat.div(x, 8192n), 8192n))) : {Nat.add(Nat.mod(x, 8192n), _) == Nat.add(Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n))), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n))) : Nat}
+  %Equal.sym(Nat, C.shift(13n, C.shift(13n, Nat.div(Nat.div(x, 8192n), 8192n))), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), SR.shift_shift(13n, 13n, Nat.div(Nat.div(x, 8192n), 8192n))) : {Nat.add(Nat.mod(x, 8192n), Nat.add(_, C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)))) == Nat.add(Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n))), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n))) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.mod(x, 8192n), Nat.add(C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)))), Nat.add(C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)))), NA.add_swap(Nat.mod(x, 8192n), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)))) : {_ == Nat.add(Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n))), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n))) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n))), Nat.add(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n)), NA.add_comm(Nat.mod(x, 8192n), C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)))) : {Nat.add(C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), _) == Nat.add(Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n))), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n))) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n))), Nat.add(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n)), NA.add_comm(Nat.mod(x, 8192n), C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)))) : {Nat.add(C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.add(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n))) == Nat.add(_, C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n))) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.add(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n)), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n))), Nat.add(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), Nat.add(Nat.mod(x, 8192n), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)))), NA.add_assoc(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)))) : {Nat.add(C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.add(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n))) == _ : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.mod(x, 8192n), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n))), Nat.add(C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n)), NA.add_comm(Nat.mod(x, 8192n), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)))) : {Nat.add(C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.add(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n))) == Nat.add(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), _) : Nat}
+  %Equal.sym(Nat, Nat.add(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), Nat.add(C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n))), Nat.add(C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.add(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n))), NA.add_swap(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n))) : {Nat.add(C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.add(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n))) == _ : Nat}
   {==}
 
-# ---- fits for mod and div ----
+def fmb(+x: Nat) -> {C.fits(13n, Nat.mod(x, 8192n)) == True{} : Bool}:
+  WW.fits_of_lt(13n, Nat.mod(x, 8192n), NR.dm_lt(8191n, x))
 
-def fmw(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +w: Nat, +hw: {w == Nat.mul(b, b) : Nat}, +x: Nat) -> {C.fits(26n, Nat.mod(x, w)) == True{} : Bool}:
-  WW.fits_one(26n, one, h1, Nat.mod(x, w), A.lt_subst(Nat.mod(x, w), w, C.shift(26n, one), wv(one, h1, b, hb, w, hw), mod_pos(w, wpos(one, h1, b, hb, w, hw), x)))
+# fits(13 + k, x) gives fits(k, x div 2^13)
+def fdb(+k: Nat, +x: Nat, +hx: {C.fits(Nat.add(13n, k), x) == True{} : Bool}) -> {C.fits(k, Nat.div(x, 8192n)) == True{} : Bool}:
+  %WW.high_u(13n, Nat.mod(x, 8192n), Nat.div(x, 8192n), fmb(x)) : {C.fits(k, _) == True{} : Bool}
+  %sb(x) : {C.fits(k, C.high(13n, _)) == True{} : Bool}
+  SH.fits_high(13n, k, x, hx)
 
-def fmb(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +x: Nat) -> {C.fits(13n, Nat.mod(x, b)) == True{} : Bool}:
-  WW.fits_one(13n, one, h1, Nat.mod(x, b), A.lt_subst(Nat.mod(x, b), b, C.shift(13n, one), hb, mod_pos(b, bpos(one, h1, b, hb), x)))
+def fmw(+x: Nat) -> {C.fits(26n, LI.mw(x)) == True{} : Bool}:
+  +m = Nat.mod(x, 8192n)
+  +c = Nat.mod(Nat.div(x, 8192n), 8192n)
+  %Equal.sym(Nat, Nat.mul(c, 8192n), C.shift(13n, c), mb(c)) : {C.fits(26n, Nat.add(m, _)) == True{} : Bool}
+  WW.limbs_fit(13n, 13n, m, c, fmb(x), fmb(Nat.div(x, 8192n)))
 
-# fits(26 + k, x) gives fits(k, x div w)
-def fdw(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +w: Nat, +hw: {w == Nat.mul(b, b) : Nat}, +k: Nat, +x: Nat, +hx: {C.fits(Nat.add(26n, k), x) == True{} : Bool}) -> {C.fits(k, Nat.div(x, w)) == True{} : Bool}:
-  +e = sw(one, h1, b, hb, w, hw, x)
-  +hi = WW.high_u(26n, Nat.mod(x, w), Nat.div(x, w), fmw(one, h1, b, hb, w, hw, x))
-  +f = SH.fits_high(26n, k, x, hx)
-  %hi : {C.fits(k, _) == True{} : Bool}
-  %e : {C.fits(k, C.high(26n, _)) == True{} : Bool}
-  f
-
-# fits(13 + k, x) gives fits(k, x div b)
-def fdb(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +k: Nat, +x: Nat, +hx: {C.fits(Nat.add(13n, k), x) == True{} : Bool}) -> {C.fits(k, Nat.div(x, b)) == True{} : Bool}:
-  +e = sb(one, h1, b, hb, x)
-  +hi = WW.high_u(13n, Nat.mod(x, b), Nat.div(x, b), fmb(one, h1, b, hb, x))
-  +f = SH.fits_high(13n, k, x, hx)
-  %hi : {C.fits(k, _) == True{} : Bool}
-  %e : {C.fits(k, C.high(13n, _)) == True{} : Bool}
-  f
+# fits(26 + k, x) gives fits(k, dw(x))
+def fdw(+k: Nat, +x: Nat, +hx: {C.fits(Nat.add(26n, k), x) == True{} : Bool}) -> {C.fits(k, LI.dw(x)) == True{} : Bool}:
+  fdb(k, Nat.div(x, 8192n), fdb(Nat.add(13n, k), x, hx))
 
 # ---- congruence mod p = 1n+bp ----
 

@@ -10,16 +10,6 @@ import ../subtle.bend as Subtle
 # equal to spec/crypto/poly1305.bend for every key and message, and
 # mac_aead equal to the RFC 8439 2.8 tag over aad and ciphertext.
 #
-# The radix constants 2^13 and 2^26 = 2^13 * 2^13 are passed to the limb
-# functions as parameters (see limbs.bend); 2^13 is written here, once, as
-# a literal (2^26 is its square, so no proof ever meets it as a literal).
-
-def b13() -> Nat:
-  8192n
-
-def w26() -> Nat:
-  Nat.mul(b13(), b13())
-
 # ---- message blocks ----
 
 def hd(xs: List<&2, U32>) -> Nat:
@@ -85,31 +75,31 @@ def skip(n: Nat, xs: List<&2, U32>) -> List<&2, U32>:
 # The accumulator block by block with take and skip (fuel bounds the
 # number of blocks): the RFC's loop as written. absorb below runs it only
 # on a last block shorter than 16 bytes.
-def absorb_gen(+w: Nat, +b: Nat, fuel: Nat, +msg: List<&2, U32>, +k: L.K, h: L.F) -> L.F:
+def absorb_gen(fuel: Nat, +msg: List<&2, U32>, +k: L.K, h: L.F) -> L.F:
   match fuel msg:
     case 0n _: h
     case 1n+f Nil{}: h
     case 1n+f x <> rest:
-      absorb_gen(w, b, f, skip(16n, x <> rest), k, L.block(w, b, k, h, load17(List.append(&2, U32, take(16n, x <> rest), [1]))))
+      absorb_gen(f, skip(16n, x <> rest), k, L.block(k, h, load17(List.append(&2, U32, take(16n, x <> rest), [1]))))
 
 # The same with the last block zero-padded to 16 bytes and loaded as a
 # full block (RFC 8439 2.8's msg | pad16(msg)).
-def absorb_gen_pad(+w: Nat, +b: Nat, fuel: Nat, +msg: List<&2, U32>, +k: L.K, h: L.F) -> L.F:
+def absorb_gen_pad(fuel: Nat, +msg: List<&2, U32>, +k: L.K, h: L.F) -> L.F:
   match fuel msg:
     case 0n _: h
     case 1n+f Nil{}: h
     case 1n+f x <> rest:
-      absorb_gen_pad(w, b, f, skip(16n, x <> rest), k, L.block(w, b, k, h, load16(take(16n, x <> rest), 1n)))
+      absorb_gen_pad(f, skip(16n, x <> rest), k, L.block(k, h, load16(take(16n, x <> rest), 1n)))
 
 # The accumulator over the message's 16-byte blocks, each with its 0x01
 # byte (at 2^128 for a full block); a last block of 1..15 bytes gets the
 # 0x01 byte right after its bytes.
-def absorb(+w: Nat, +b: Nat, msg: List<&2, U32>, +k: L.K, h: L.F) -> L.F:
+def absorb(msg: List<&2, U32>, +k: L.K, h: L.F) -> L.F:
   match msg:
     case Nil{}: h
     case x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest:
-      absorb(w, b, rest, k, L.block(w, b, k, h, L.load(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), 1n)))
-    case +x <> +rest: absorb_gen(w, b, List.length(&2, U32, x <> rest), x <> rest, k, h)
+      absorb(rest, k, L.block(k, h, L.load(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), 1n)))
+    case +x <> +rest: absorb_gen(List.length(&2, U32, x <> rest), x <> rest, k, h)
 
 # The accumulator and the byte count.
 type A is Data:
@@ -118,12 +108,12 @@ type A is Data:
 # The same over msg zero-padded to a multiple of 16 bytes (RFC 8439 2.8's
 # msg | pad16(msg)): the last block, zero-padded, is a full block. Also
 # counts the bytes onto n.
-def absorb_pad(+w: Nat, +b: Nat, msg: List<&2, U32>, +k: L.K, h: L.F, n: Nat) -> A:
+def absorb_pad(msg: List<&2, U32>, +k: L.K, h: L.F, n: Nat) -> A:
   match msg:
     case Nil{}: A{h, n}
     case x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest:
-      absorb_pad(w, b, rest, k, L.block(w, b, k, h, L.load(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), 1n)), Nat.add(n, 16n))
-    case +x <> +rest: A{absorb_gen_pad(w, b, List.length(&2, U32, x <> rest), x <> rest, k, h), Nat.add(n, List.length(&2, U32, x <> rest))}
+      absorb_pad(rest, k, L.block(k, h, L.load(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), 1n)), Nat.add(n, 16n))
+    case +x <> +rest: A{absorb_gen_pad(List.length(&2, U32, x <> rest), x <> rest, k, h), Nat.add(n, List.length(&2, U32, x <> rest))}
 
 # ---- keys ----
 
@@ -150,24 +140,24 @@ def pad(n: Nat, +xs: List<&2, U32>) -> List<&2, U32>:
 
 # ---- the tag ----
 
-def tag(+w: Nat, +b: Nat, +k0: U32, +k1: U32, +k2: U32, +k3: U32, +k4: U32, +k5: U32, +k6: U32, +k7: U32, +k8: U32, +k9: U32, +k10: U32, +k11: U32, +k12: U32, +k13: U32, +k14: U32, +k15: U32, +k16: U32, +k17: U32, +k18: U32, +k19: U32, +k20: U32, +k21: U32, +k22: U32, +k23: U32, +k24: U32, +k25: U32, +k26: U32, +k27: U32, +k28: U32, +k29: U32, +k30: U32, +k31: U32, msg: List<&2, U32>) -> List<&2, U32>:
-  +k = L.key(b, r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15))
-  L.fin(w, absorb(w, b, msg, k, L.zero()), s_of(k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31))
+def tag(+k0: U32, +k1: U32, +k2: U32, +k3: U32, +k4: U32, +k5: U32, +k6: U32, +k7: U32, +k8: U32, +k9: U32, +k10: U32, +k11: U32, +k12: U32, +k13: U32, +k14: U32, +k15: U32, +k16: U32, +k17: U32, +k18: U32, +k19: U32, +k20: U32, +k21: U32, +k22: U32, +k23: U32, +k24: U32, +k25: U32, +k26: U32, +k27: U32, +k28: U32, +k29: U32, +k30: U32, +k31: U32, msg: List<&2, U32>) -> List<&2, U32>:
+  +k = L.key(r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15))
+  L.fin(absorb(msg, k, L.zero()), s_of(k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31))
 
 # The tag under a 32-byte list (pad gives one).
-def tag_list(+w: Nat, +b: Nat, key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
+def tag_list(key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
   match key:
     case k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> k29 <> k30 <> k31 <> rest:
-      tag(w, b, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, msg)
+      tag(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, msg)
     case _:
       Nil{}
 
-def mac_w(+w: Nat, +b: Nat, +key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
-  tag_list(w, b, pad(32n, key), msg)
+def mac_w(+key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
+  tag_list(pad(32n, key), msg)
 
 # The 16-byte tag of msg under key = r || s.
 def mac(+key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
-  mac_w(w26(), b13(), key, msg)
+  mac_w(key, msg)
 
 def has_key(+key: List<&2, U32>) -> Bool:
   Nat.is_eq(List.length(&2, U32, key), 32n)
@@ -177,16 +167,16 @@ def when(ok: Bool, x: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
     case True{}: Some{x}
     case False{}: None{}
 
-def poly1305_w(+w: Nat, +b: Nat, key: List<&2, U32>, msg: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+def poly1305_w(key: List<&2, U32>, msg: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
   match key:
     case k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> k29 <> k30 <> k31 <> Nil{}:
-      Some{tag(w, b, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, msg)}
+      Some{tag(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, msg)}
     case _:
       None{}
 
 # The tag, or None unless the key has 32 bytes.
 def poly1305(key: List<&2, U32>, msg: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  poly1305_w(w26(), b13(), key, msg)
+  poly1305_w(key, msg)
 
 # True exactly when the key has 32 bytes and tag is the tag of msg; the tags
 # are compared in constant time (src/crypto/subtle.bend).
@@ -201,30 +191,30 @@ def le8(n: Nat, +x: Nat) -> List<&2, U32>:
     case 0n: Nil{}
     case 1n+k: U32.from_nat(Nat.mod(x, 256n)) <> le8(k, Nat.div(x, 256n))
 
-def tag_len(+w: Nat, +b: Nat, +k: L.K, s: L.F, la: Nat, a: A) -> List<&2, U32>:
+def tag_len(+k: L.K, s: L.F, la: Nat, a: A) -> List<&2, U32>:
   match a:
-    case A{h, lc}: L.fin(w, absorb(w, b, List.append(&2, U32, le8(8n, la), le8(8n, lc)), k, h), s)
+    case A{h, lc}: L.fin(absorb(List.append(&2, U32, le8(8n, la), le8(8n, lc)), k, h), s)
 
-def tag_ct(+w: Nat, +b: Nat, +k: L.K, s: L.F, a: A, ct: List<&2, U32>) -> List<&2, U32>:
+def tag_ct(+k: L.K, s: L.F, a: A, ct: List<&2, U32>) -> List<&2, U32>:
   match a:
-    case A{h, la}: tag_len(w, b, k, s, la, absorb_pad(w, b, ct, k, h, 0n))
+    case A{h, la}: tag_len(k, s, la, absorb_pad(ct, k, h, 0n))
 
-def tag2(+w: Nat, +b: Nat, +k0: U32, +k1: U32, +k2: U32, +k3: U32, +k4: U32, +k5: U32, +k6: U32, +k7: U32, +k8: U32, +k9: U32, +k10: U32, +k11: U32, +k12: U32, +k13: U32, +k14: U32, +k15: U32, +k16: U32, +k17: U32, +k18: U32, +k19: U32, +k20: U32, +k21: U32, +k22: U32, +k23: U32, +k24: U32, +k25: U32, +k26: U32, +k27: U32, +k28: U32, +k29: U32, +k30: U32, +k31: U32, aad: List<&2, U32>, ct: List<&2, U32>) -> List<&2, U32>:
-  +k = L.key(b, r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15))
-  tag_ct(w, b, k, s_of(k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31), absorb_pad(w, b, aad, k, L.zero(), 0n), ct)
+def tag2(+k0: U32, +k1: U32, +k2: U32, +k3: U32, +k4: U32, +k5: U32, +k6: U32, +k7: U32, +k8: U32, +k9: U32, +k10: U32, +k11: U32, +k12: U32, +k13: U32, +k14: U32, +k15: U32, +k16: U32, +k17: U32, +k18: U32, +k19: U32, +k20: U32, +k21: U32, +k22: U32, +k23: U32, +k24: U32, +k25: U32, +k26: U32, +k27: U32, +k28: U32, +k29: U32, +k30: U32, +k31: U32, aad: List<&2, U32>, ct: List<&2, U32>) -> List<&2, U32>:
+  +k = L.key(r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15))
+  tag_ct(k, s_of(k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31), absorb_pad(aad, k, L.zero(), 0n), ct)
 
-def tag2_list(+w: Nat, +b: Nat, key: List<&2, U32>, aad: List<&2, U32>, ct: List<&2, U32>) -> List<&2, U32>:
+def tag2_list(key: List<&2, U32>, aad: List<&2, U32>, ct: List<&2, U32>) -> List<&2, U32>:
   match key:
     case k0 <> k1 <> k2 <> k3 <> k4 <> k5 <> k6 <> k7 <> k8 <> k9 <> k10 <> k11 <> k12 <> k13 <> k14 <> k15 <> k16 <> k17 <> k18 <> k19 <> k20 <> k21 <> k22 <> k23 <> k24 <> k25 <> k26 <> k27 <> k28 <> k29 <> k30 <> k31 <> rest:
-      tag2(w, b, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, aad, ct)
+      tag2(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, aad, ct)
     case _:
       Nil{}
 
-def mac_aead_w(+w: Nat, +b: Nat, +key: List<&2, U32>, aad: List<&2, U32>, ct: List<&2, U32>) -> List<&2, U32>:
-  tag2_list(w, b, pad(32n, key), aad, ct)
+def mac_aead_w(+key: List<&2, U32>, aad: List<&2, U32>, ct: List<&2, U32>) -> List<&2, U32>:
+  tag2_list(pad(32n, key), aad, ct)
 
 # The RFC 8439 2.8 tag: Poly1305 under key over
 # aad | pad16(aad) | ct | pad16(ct) | le64(len aad) | le64(len ct),
 # without building that list.
 def mac_aead(+key: List<&2, U32>, aad: List<&2, U32>, ct: List<&2, U32>) -> List<&2, U32>:
-  mac_aead_w(w26(), b13(), key, aad, ct)
+  mac_aead_w(key, aad, ct)

@@ -53,12 +53,12 @@ def bp5(one, h1):
 
 # ---- one block against the spec's step ----
 
-def step_val(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +w: Nat, +hw: {w == Nat.mul(b, b) : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 5n) == C.shift(130n, one) : Nat}, +r0: Nat, +r1: Nat, +r2: Nat, +r3: Nat, +r4: Nat, +h: L.F, +m: L.F, +a: Nat, +n: Nat, +ha: {Nat.mod(V.val(h), 1n+bp) == a : Nat}, +hn: {V.val(m) == n : Nat}) -> {Nat.mod(V.val(L.block(w, b, L.key(b, L.F{r0, r1, r2, r3, r4}), h, m)), 1n+bp) == R.modp(Nat.mul(V.ev(r0, r1, r2, r3, r4), Nat.add(a, n))) : Nat}:
+def step_val(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 5n) == C.shift(130n, one) : Nat}, +r0: Nat, +r1: Nat, +r2: Nat, +r3: Nat, +r4: Nat, +h: L.F, +m: L.F, +a: Nat, +n: Nat, +ha: {Nat.mod(V.val(h), 1n+bp) == a : Nat}, +hn: {V.val(m) == n : Nat}) -> {Nat.mod(V.val(L.block(L.key(L.F{r0, r1, r2, r3, r4}), h, m)), 1n+bp) == R.modp(Nat.mul(V.ev(r0, r1, r2, r3, r4), Nat.add(a, n))) : Nat}:
   +pp = {1n+bp : Nat}
   +vr = V.ev(r0, r1, r2, r3, r4)
   +vh = V.val(h)
   +vm = V.val(m)
-  +e1 = V.block_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, h, m)
+  +e1 = V.block_val(one, h1, bp, h5, r0, r1, r2, r3, r4, h, m)
   +e2 = Equal.cong(Nat, Nat, z => Nat.mod(z, pp), Nat.mul(Nat.add(vh, vm), vr), Nat.mul(vr, Nat.add(vh, n)),
     Equal.trans(Nat, Nat.mul(Nat.add(vh, vm), vr), Nat.mul(Nat.add(vh, n), vr), Nat.mul(vr, Nat.add(vh, n)), Equal.cong(Nat, Nat, z => Nat.mul(Nat.add(vh, z), vr), vm, n, hn), NA.mul_comm(Nat.add(vh, n), vr)))
   +e3 = Equal.trans(Nat, Nat.mod(Nat.mul(vr, Nat.add(vh, n)), pp), Nat.mod(Nat.mul(vr, Nat.mod(Nat.add(vh, n), pp)), pp), Nat.mod(Nat.mul(vr, Nat.add(a, n)), pp),
@@ -69,7 +69,7 @@ def step_val(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n,
           Equal.sym(Nat, Nat.mod(Nat.add(Nat.mod(vh, pp), n), pp), Nat.mod(Nat.add(vh, n), pp), NR.mod_add_l(bp, vh, n)),
           Equal.cong(Nat, Nat, z => Nat.mod(Nat.add(z, n), pp), Nat.mod(vh, pp), a, ha))),
       NR.mod_mul_r(bp, vr, Nat.add(a, n))))
-  Equal.trans(Nat, Nat.mod(V.val(L.block(w, b, L.key(b, L.F{r0, r1, r2, r3, r4}), h, m)), pp), Nat.mod(Nat.mul(Nat.add(vh, vm), vr), pp), R.modp(Nat.mul(vr, Nat.add(a, n))), e1,
+  Equal.trans(Nat, Nat.mod(V.val(L.block(L.key(L.F{r0, r1, r2, r3, r4}), h, m)), pp), Nat.mod(Nat.mul(Nat.add(vh, vm), vr), pp), R.modp(Nat.mul(vr, Nat.add(a, n))), e1,
     Equal.trans(Nat, Nat.mod(Nat.mul(Nat.add(vh, vm), vr), pp), Nat.mod(Nat.mul(vr, Nat.add(vh, n)), pp), R.modp(Nat.mul(vr, Nat.add(a, n))), e2,
       Equal.trans(Nat, Nat.mod(Nat.mul(vr, Nat.add(vh, n)), pp), Nat.mod(Nat.mul(vr, Nat.add(a, n)), pp), R.modp(Nat.mul(vr, Nat.add(a, n))), e3,
         Equal.sym(Nat, R.modp(Nat.mul(vr, Nat.add(a, n))), Nat.mod(Nat.mul(vr, Nat.add(a, n)), pp), MP.modp_mod(one, h1, bp, h5, Nat.mul(vr, Nat.add(a, n)))))))
@@ -279,10 +279,6 @@ def pb_fit(+xs: List<&2, U32>) -> {C.fits(1n, P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl
 law gen_val:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +b: Nat
-  for +hb: {b == C.shift(13n, one) : Nat}
-  for +w: Nat
-  for +hw: {w == Nat.mul(b, b) : Nat}
   for +bp: Nat
   for +h5: {Nat.add(1n+bp, 5n) == C.shift(130n, one) : Nat}
   for +r0: Nat
@@ -295,9 +291,9 @@ law gen_val:
   for +h: L.F
   for +a: Nat
   for +ha: {Nat.mod(V.val(h), 1n+bp) == a : Nat}
-  {Nat.mod(V.val(P.absorb_gen(w, b, fuel, msg, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp) == R.absorb(R.blocks(fuel, msg), V.ev(r0, r1, r2, r3, r4), a) : Nat}
+  {Nat.mod(V.val(P.absorb_gen(fuel, msg, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp) == R.absorb(R.blocks(fuel, msg), V.ev(r0, r1, r2, r3, r4), a) : Nat}
 
-def gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, fuel, msg, h, a, ha):
+def gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, fuel, msg, h, a, ha):
   match fuel msg:
     case 0n _: ha
     case 1n+f Nil{}: ha
@@ -305,17 +301,13 @@ def gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, fuel, msg, h, a, 
       +m = P.load17(List.append(&2, U32, P.take(16n, x <> rest), [1]))
       +n = R.le_num(List.append(&2, U32, R.prefix(16n, x <> rest), [1]))
       +a2 = R.modp(Nat.mul(V.ev(r0, r1, r2, r3, r4), Nat.add(a, n)))
-      +ih = gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, f, P.skip(16n, x <> rest), L.block(w, b, L.key(b, L.F{r0, r1, r2, r3, r4}), h, m), a2, step_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, h, m, a, n, ha, blk_val(x <> rest)))
-      Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, f, P.skip(16n, x <> rest), L.key(b, L.F{r0, r1, r2, r3, r4}), L.block(w, b, L.key(b, L.F{r0, r1, r2, r3, r4}), h, m))), 1n+bp), R.absorb(R.blocks(f, P.skip(16n, x <> rest)), V.ev(r0, r1, r2, r3, r4), a2), R.absorb(R.blocks(f, R.suffix(16n, x <> rest)), V.ev(r0, r1, r2, r3, r4), a2), ih,
+      +ih = gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, f, P.skip(16n, x <> rest), L.block(L.key(L.F{r0, r1, r2, r3, r4}), h, m), a2, step_val(one, h1, bp, h5, r0, r1, r2, r3, r4, h, m, a, n, ha, blk_val(x <> rest)))
+      Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(f, P.skip(16n, x <> rest), L.key(L.F{r0, r1, r2, r3, r4}), L.block(L.key(L.F{r0, r1, r2, r3, r4}), h, m))), 1n+bp), R.absorb(R.blocks(f, P.skip(16n, x <> rest)), V.ev(r0, r1, r2, r3, r4), a2), R.absorb(R.blocks(f, R.suffix(16n, x <> rest)), V.ev(r0, r1, r2, r3, r4), a2), ih,
         Equal.cong(List<&2, U32>, Nat, l => R.absorb(R.blocks(f, l), V.ev(r0, r1, r2, r3, r4), a2), P.skip(16n, x <> rest), R.suffix(16n, x <> rest), skip_suffix(16n, x <> rest)))
 
 law gen_inv:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +b: Nat
-  for +hb: {b == C.shift(13n, one) : Nat}
-  for +w: Nat
-  for +hw: {w == Nat.mul(b, b) : Nat}
   for +r0: Nat
   for +r1: Nat
   for +r2: Nat
@@ -330,24 +322,20 @@ law gen_inv:
   for +msg: List<&2, U32>
   for +h: L.F
   for +hh: {B.lim(27n, h) == True{} : Bool}
-  {B.lim(27n, P.absorb_gen(w, b, fuel, msg, L.key(b, L.F{r0, r1, r2, r3, r4}), h)) == True{} : Bool}
+  {B.lim(27n, P.absorb_gen(fuel, msg, L.key(L.F{r0, r1, r2, r3, r4}), h)) == True{} : Bool}
 
-def gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, fuel, msg, h, hh):
+def gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, fuel, msg, h, hh):
   match fuel msg:
     case 0n _: hh
     case 1n+f Nil{}: hh
     case 1n+f +x <> +rest:
       +ys = List.append(&2, U32, P.take(16n, x <> rest), [1])
       +m = P.load17(ys)
-      gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, f, P.skip(16n, x <> rest), L.block(w, b, L.key(b, L.F{r0, r1, r2, r3, r4}), h, m), B.block_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, h, m, hh, B.load_fit(P.hd(ys), P.hd(P.tl(ys)), P.hd(P.tl(P.tl(ys))), P.hd(P.tl(P.tl(P.tl(ys)))), P.hd(P.tl(P.tl(P.tl(P.tl(ys))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))))))))))), hd_fit(ys), hd_fit(P.tl(ys)), hd_fit(P.tl(P.tl(ys))), hd_fit(P.tl(P.tl(P.tl(ys)))), hd_fit(P.tl(P.tl(P.tl(P.tl(ys))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))))))))), pb_fit(x <> rest))))
+      gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, f, P.skip(16n, x <> rest), L.block(L.key(L.F{r0, r1, r2, r3, r4}), h, m), B.block_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, h, m, hh, B.load_fit(P.hd(ys), P.hd(P.tl(ys)), P.hd(P.tl(P.tl(ys))), P.hd(P.tl(P.tl(P.tl(ys)))), P.hd(P.tl(P.tl(P.tl(P.tl(ys))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))))))))), P.hd(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))))))))))), hd_fit(ys), hd_fit(P.tl(ys)), hd_fit(P.tl(P.tl(ys))), hd_fit(P.tl(P.tl(P.tl(ys)))), hd_fit(P.tl(P.tl(P.tl(P.tl(ys))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys))))))))))))))), hd_fit(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(ys)))))))))))))))), pb_fit(x <> rest))))
 
 law abs_val:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +b: Nat
-  for +hb: {b == C.shift(13n, one) : Nat}
-  for +w: Nat
-  for +hw: {w == Nat.mul(b, b) : Nat}
   for +bp: Nat
   for +h5: {Nat.add(1n+bp, 5n) == C.shift(130n, one) : Nat}
   for +r0: Nat
@@ -361,133 +349,129 @@ law abs_val:
   for +a: Nat
   for +hf: {Nat.is_le(List.length(&2, U32, msg), fuel) == True{} : Bool}
   for +ha: {Nat.mod(V.val(h), 1n+bp) == a : Nat}
-  {Nat.mod(V.val(P.absorb(w, b, msg, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp) == R.absorb(R.blocks(fuel, msg), V.ev(r0, r1, r2, r3, r4), a) : Nat}
+  {Nat.mod(V.val(P.absorb(msg, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp) == R.absorb(R.blocks(fuel, msg), V.ev(r0, r1, r2, r3, r4), a) : Nat}
 
-def abs_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, fuel, msg, h, a, hf, ha):
+def abs_val(one, h1, bp, h5, r0, r1, r2, r3, r4, fuel, msg, h, a, hf, ha):
   match fuel msg:
     case _ Nil{}:
       Equal.trans(Nat, Nat.mod(V.val(h), 1n+bp), a, R.absorb(R.blocks(fuel, []), V.ev(r0, r1, r2, r3, r4), a), ha,
         Equal.sym(Nat, R.absorb(R.blocks(fuel, []), V.ev(r0, r1, r2, r3, r4), a), a, Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(fuel, []), [], bnil(fuel))))
     case 0n x <> rest:
-      Empty.absurd({Nat.mod(V.val(P.absorb(w, b, x <> rest, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp) == R.absorb(R.blocks(0n, x <> rest), V.ev(r0, r1, r2, r3, r4), a) : Nat}, LG.false_true(hf))
+      Empty.absurd({Nat.mod(V.val(P.absorb(x <> rest, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp) == R.absorb(R.blocks(0n, x <> rest), V.ev(r0, r1, r2, r3, r4), a) : Nat}, LG.false_true(hf))
     case 1n+k +x0 <> +t0:
       match t0:
         case Nil{}:
           +lx = List.length(&2, U32, x0 <> Nil{})
-          Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-            gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> Nil{}, h, a, ha),
+          Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+            gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> Nil{}, h, a, ha),
             Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> Nil{}), R.blocks(1n+k, x0 <> Nil{}), bf(lx, 1n+k, x0 <> Nil{}, N.le_refl(lx), hf)))
         case +x1 <> +t1:
           match t1:
             case Nil{}:
               +lx = List.length(&2, U32, x0 <> x1 <> Nil{})
-              Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> x1 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-                gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> Nil{}, h, a, ha),
+              Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> x1 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+                gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> Nil{}, h, a, ha),
                 Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> x1 <> Nil{}), R.blocks(1n+k, x0 <> x1 <> Nil{}), bf(lx, 1n+k, x0 <> x1 <> Nil{}, N.le_refl(lx), hf)))
             case +x2 <> +t2:
               match t2:
                 case Nil{}:
                   +lx = List.length(&2, U32, x0 <> x1 <> x2 <> Nil{})
-                  Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> x1 <> x2 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-                    gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> Nil{}, h, a, ha),
+                  Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> x1 <> x2 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+                    gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> Nil{}, h, a, ha),
                     Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> x1 <> x2 <> Nil{}), R.blocks(1n+k, x0 <> x1 <> x2 <> Nil{}), bf(lx, 1n+k, x0 <> x1 <> x2 <> Nil{}, N.le_refl(lx), hf)))
                 case +x3 <> +t3:
                   match t3:
                     case Nil{}:
                       +lx = List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> Nil{})
-                      Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> x1 <> x2 <> x3 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-                        gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> Nil{}, h, a, ha),
+                      Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> x1 <> x2 <> x3 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+                        gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> Nil{}, h, a, ha),
                         Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> x1 <> x2 <> x3 <> Nil{}), R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> Nil{}), bf(lx, 1n+k, x0 <> x1 <> x2 <> x3 <> Nil{}, N.le_refl(lx), hf)))
                     case +x4 <> +t4:
                       match t4:
                         case Nil{}:
                           +lx = List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> Nil{})
-                          Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-                            gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}, h, a, ha),
+                          Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+                            gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}, h, a, ha),
                             Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}), R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}), bf(lx, 1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}, N.le_refl(lx), hf)))
                         case +x5 <> +t5:
                           match t5:
                             case Nil{}:
                               +lx = List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{})
-                              Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-                                gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}, h, a, ha),
+                              Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+                                gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}, h, a, ha),
                                 Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}), R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}), bf(lx, 1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}, N.le_refl(lx), hf)))
                             case +x6 <> +t6:
                               match t6:
                                 case Nil{}:
                                   +lx = List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{})
-                                  Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-                                    gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}, h, a, ha),
+                                  Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+                                    gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}, h, a, ha),
                                     Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}), R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}), bf(lx, 1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}, N.le_refl(lx), hf)))
                                 case +x7 <> +t7:
                                   match t7:
                                     case Nil{}:
                                       +lx = List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{})
-                                      Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-                                        gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}, h, a, ha),
+                                      Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+                                        gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}, h, a, ha),
                                         Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}), R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}), bf(lx, 1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}, N.le_refl(lx), hf)))
                                     case +x8 <> +t8:
                                       match t8:
                                         case Nil{}:
                                           +lx = List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{})
-                                          Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-                                            gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}, h, a, ha),
+                                          Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+                                            gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}, h, a, ha),
                                             Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}), R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}), bf(lx, 1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}, N.le_refl(lx), hf)))
                                         case +x9 <> +t9:
                                           match t9:
                                             case Nil{}:
                                               +lx = List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{})
-                                              Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-                                                gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}, h, a, ha),
+                                              Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+                                                gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}, h, a, ha),
                                                 Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}), R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}), bf(lx, 1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}, N.le_refl(lx), hf)))
                                             case +x10 <> +t10:
                                               match t10:
                                                 case Nil{}:
                                                   +lx = List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{})
-                                                  Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-                                                    gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}, h, a, ha),
+                                                  Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+                                                    gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}, h, a, ha),
                                                     Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}), R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}), bf(lx, 1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}, N.le_refl(lx), hf)))
                                                 case +x11 <> +t11:
                                                   match t11:
                                                     case Nil{}:
                                                       +lx = List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{})
-                                                      Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-                                                        gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}, h, a, ha),
+                                                      Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+                                                        gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}, h, a, ha),
                                                         Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}), R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}), bf(lx, 1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}, N.le_refl(lx), hf)))
                                                     case +x12 <> +t12:
                                                       match t12:
                                                         case Nil{}:
                                                           +lx = List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{})
-                                                          Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-                                                            gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}, h, a, ha),
+                                                          Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+                                                            gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}, h, a, ha),
                                                             Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}), R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}), bf(lx, 1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}, N.le_refl(lx), hf)))
                                                         case +x13 <> +t13:
                                                           match t13:
                                                             case Nil{}:
                                                               +lx = List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{})
-                                                              Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-                                                                gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}, h, a, ha),
+                                                              Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+                                                                gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}, h, a, ha),
                                                                 Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}), R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}), bf(lx, 1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}, N.le_refl(lx), hf)))
                                                             case +x14 <> +t14:
                                                               match t14:
                                                                 case Nil{}:
                                                                   +lx = List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{})
-                                                                  Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(w, b, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}, L.key(b, L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
-                                                                    gen_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}, h, a, ha),
+                                                                  Equal.trans(Nat, Nat.mod(V.val(P.absorb_gen(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}, L.key(L.F{r0, r1, r2, r3, r4}), h)), 1n+bp), R.absorb(R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a), R.absorb(R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}), V.ev(r0, r1, r2, r3, r4), a),
+                                                                    gen_val(one, h1, bp, h5, r0, r1, r2, r3, r4, lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}, h, a, ha),
                                                                     Equal.cong(List<&2, List<&2, U32>>, Nat, l => R.absorb(l, V.ev(r0, r1, r2, r3, r4), a), R.blocks(lx, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}), R.blocks(1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}), bf(lx, 1n+k, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}, N.le_refl(lx), hf)))
                                                                 case +x15 <> +rest:
                                                                   +m = L.load(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), 1n)
                                                                   +n = R.le_num(List.append(&2, U32, R.prefix(16n, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest), [1]))
                                                                   +hn = Equal.trans(Nat, V.val(m), V.hv(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), 1n), n, V.load_val(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), 1n), {==})
-                                                                  abs_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, k, rest, L.block(w, b, L.key(b, L.F{r0, r1, r2, r3, r4}), h, m), R.modp(Nat.mul(V.ev(r0, r1, r2, r3, r4), Nat.add(a, n))), leS(15n, List.length(&2, U32, rest), k, hf), step_val(one, h1, b, hb, w, hw, bp, h5, r0, r1, r2, r3, r4, h, m, a, n, ha, hn))
+                                                                  abs_val(one, h1, bp, h5, r0, r1, r2, r3, r4, k, rest, L.block(L.key(L.F{r0, r1, r2, r3, r4}), h, m), R.modp(Nat.mul(V.ev(r0, r1, r2, r3, r4), Nat.add(a, n))), leS(15n, List.length(&2, U32, rest), k, hf), step_val(one, h1, bp, h5, r0, r1, r2, r3, r4, h, m, a, n, ha, hn))
 
 law abs_inv:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +b: Nat
-  for +hb: {b == C.shift(13n, one) : Nat}
-  for +w: Nat
-  for +hw: {w == Nat.mul(b, b) : Nat}
   for +r0: Nat
   for +r1: Nat
   for +r2: Nat
@@ -501,72 +485,264 @@ law abs_inv:
   for +msg: List<&2, U32>
   for +h: L.F
   for +hh: {B.lim(27n, h) == True{} : Bool}
-  {B.lim(27n, P.absorb(w, b, msg, L.key(b, L.F{r0, r1, r2, r3, r4}), h)) == True{} : Bool}
+  {B.lim(27n, P.absorb(msg, L.key(L.F{r0, r1, r2, r3, r4}), h)) == True{} : Bool}
 
-def abs_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, msg, h, hh):
+def abs_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, msg, h, hh):
   match msg:
     case Nil{}: hh
     case +x0 <> +t0:
       match t0:
         case Nil{}:
-          gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> Nil{}), x0 <> Nil{}, h, hh)
+          gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> Nil{}), x0 <> Nil{}, h, hh)
         case +x1 <> +t1:
           match t1:
             case Nil{}:
-              gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> Nil{}), x0 <> x1 <> Nil{}, h, hh)
+              gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> Nil{}), x0 <> x1 <> Nil{}, h, hh)
             case +x2 <> +t2:
               match t2:
                 case Nil{}:
-                  gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> Nil{}), x0 <> x1 <> x2 <> Nil{}, h, hh)
+                  gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> Nil{}), x0 <> x1 <> x2 <> Nil{}, h, hh)
                 case +x3 <> +t3:
                   match t3:
                     case Nil{}:
-                      gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> Nil{}), x0 <> x1 <> x2 <> x3 <> Nil{}, h, hh)
+                      gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> Nil{}), x0 <> x1 <> x2 <> x3 <> Nil{}, h, hh)
                     case +x4 <> +t4:
                       match t4:
                         case Nil{}:
-                          gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}, h, hh)
+                          gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> Nil{}, h, hh)
                         case +x5 <> +t5:
                           match t5:
                             case Nil{}:
-                              gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}, h, hh)
+                              gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> Nil{}, h, hh)
                             case +x6 <> +t6:
                               match t6:
                                 case Nil{}:
-                                  gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}, h, hh)
+                                  gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> Nil{}, h, hh)
                                 case +x7 <> +t7:
                                   match t7:
                                     case Nil{}:
-                                      gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}, h, hh)
+                                      gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> Nil{}, h, hh)
                                     case +x8 <> +t8:
                                       match t8:
                                         case Nil{}:
-                                          gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}, h, hh)
+                                          gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> Nil{}, h, hh)
                                         case +x9 <> +t9:
                                           match t9:
                                             case Nil{}:
-                                              gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}, h, hh)
+                                              gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> Nil{}, h, hh)
                                             case +x10 <> +t10:
                                               match t10:
                                                 case Nil{}:
-                                                  gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}, h, hh)
+                                                  gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> Nil{}, h, hh)
                                                 case +x11 <> +t11:
                                                   match t11:
                                                     case Nil{}:
-                                                      gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}, h, hh)
+                                                      gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> Nil{}, h, hh)
                                                     case +x12 <> +t12:
                                                       match t12:
                                                         case Nil{}:
-                                                          gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}, h, hh)
+                                                          gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> Nil{}, h, hh)
                                                         case +x13 <> +t13:
                                                           match t13:
                                                             case Nil{}:
-                                                              gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}, h, hh)
+                                                              gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> Nil{}, h, hh)
                                                             case +x14 <> +t14:
                                                               match t14:
                                                                 case Nil{}:
-                                                                  gen_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}, h, hh)
+                                                                  gen_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, List.length(&2, U32, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}), x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> Nil{}, h, hh)
                                                                 case +x15 <> +rest:
                                                                   +m = L.load(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), 1n)
-                                                                  abs_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, rest, L.block(w, b, L.key(b, L.F{r0, r1, r2, r3, r4}), h, m), B.block_inv(one, h1, b, hb, w, hw, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, h, m, hh, B.load_fit(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), 1n, B.byte_fit(x0), B.byte_fit(x1), B.byte_fit(x2), B.byte_fit(x3), B.byte_fit(x4), B.byte_fit(x5), B.byte_fit(x6), B.byte_fit(x7), B.byte_fit(x8), B.byte_fit(x9), B.byte_fit(x10), B.byte_fit(x11), B.byte_fit(x12), B.byte_fit(x13), B.byte_fit(x14), B.byte_fit(x15), {==})))
+                                                                  abs_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, rest, L.block(L.key(L.F{r0, r1, r2, r3, r4}), h, m), B.block_inv(one, h1, r0, r1, r2, r3, r4, hr0, hr1, hr2, hr3, hr4, h, m, hh, B.load_fit(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), 1n, B.byte_fit(x0), B.byte_fit(x1), B.byte_fit(x2), B.byte_fit(x3), B.byte_fit(x4), B.byte_fit(x5), B.byte_fit(x6), B.byte_fit(x7), B.byte_fit(x8), B.byte_fit(x9), B.byte_fit(x10), B.byte_fit(x11), B.byte_fit(x12), B.byte_fit(x13), B.byte_fit(x14), B.byte_fit(x15), {==})))
 
+
+# ---- the tag ----
+
+def tag_ok(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 5n) == C.shift(130n, one) : Nat}, +k0: U32, +k1: U32, +k2: U32, +k3: U32, +k4: U32, +k5: U32, +k6: U32, +k7: U32, +k8: U32, +k9: U32, +k10: U32, +k11: U32, +k12: U32, +k13: U32, +k14: U32, +k15: U32, +k16: U32, +k17: U32, +k18: U32, +k19: U32, +k20: U32, +k21: U32, +k22: U32, +k23: U32, +k24: U32, +k25: U32, +k26: U32, +k27: U32, +k28: U32, +k29: U32, +k30: U32, +k31: U32, +msg: List<&2, U32>, +key: List<&2, U32>, +er: {V.hv(L.byte(U32.and(k0, 255)), L.byte(U32.and(k1, 255)), L.byte(U32.and(k2, 255)), L.byte(U32.and(k3, 15)), L.byte(U32.and(k4, 252)), L.byte(U32.and(k5, 255)), L.byte(U32.and(k6, 255)), L.byte(U32.and(k7, 15)), L.byte(U32.and(k8, 252)), L.byte(U32.and(k9, 255)), L.byte(U32.and(k10, 255)), L.byte(U32.and(k11, 15)), L.byte(U32.and(k12, 252)), L.byte(U32.and(k13, 255)), L.byte(U32.and(k14, 255)), L.byte(U32.and(k15, 15)), 0n) == R.le_num(R.clamp(R.prefix(16n, key))) : Nat}, +es: {V.hv(L.byte(k16), L.byte(k17), L.byte(k18), L.byte(k19), L.byte(k20), L.byte(k21), L.byte(k22), L.byte(k23), L.byte(k24), L.byte(k25), L.byte(k26), L.byte(k27), L.byte(k28), L.byte(k29), L.byte(k30), L.byte(k31), 0n) == R.le_num(R.prefix(16n, R.suffix(16n, key))) : Nat}) -> {P.tag(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, msg) == R.poly1305_mac(key, msg) : List<&2, U32>}:
+  +sf = P.s_of(k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31)
+  +hl = B.load_fit(L.byte(U32.and(k0, 255)), L.byte(U32.and(k1, 255)), L.byte(U32.and(k2, 255)), L.byte(U32.and(k3, 15)), L.byte(U32.and(k4, 252)), L.byte(U32.and(k5, 255)), L.byte(U32.and(k6, 255)), L.byte(U32.and(k7, 15)), L.byte(U32.and(k8, 252)), L.byte(U32.and(k9, 255)), L.byte(U32.and(k10, 255)), L.byte(U32.and(k11, 15)), L.byte(U32.and(k12, 252)), L.byte(U32.and(k13, 255)), L.byte(U32.and(k14, 255)), L.byte(U32.and(k15, 15)), 0n, B.byte_fit(U32.and(k0, 255)), B.byte_fit(U32.and(k1, 255)), B.byte_fit(U32.and(k2, 255)), B.byte_fit(U32.and(k3, 15)), B.byte_fit(U32.and(k4, 252)), B.byte_fit(U32.and(k5, 255)), B.byte_fit(U32.and(k6, 255)), B.byte_fit(U32.and(k7, 15)), B.byte_fit(U32.and(k8, 252)), B.byte_fit(U32.and(k9, 255)), B.byte_fit(U32.and(k10, 255)), B.byte_fit(U32.and(k11, 15)), B.byte_fit(U32.and(k12, 252)), B.byte_fit(U32.and(k13, 255)), B.byte_fit(U32.and(k14, 255)), B.byte_fit(U32.and(k15, 15)), {==})
+  +ab = P.absorb(msg, L.key(L.F{Nat.add(L.byte(U32.and(k0, 255)), Nat.mul(Nat.add(L.byte(U32.and(k1, 255)), Nat.mul(Nat.add(L.byte(U32.and(k2, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k3, 15)), 4n), 256n)), 256n)), 256n)), Nat.add(Nat.div(L.byte(U32.and(k3, 15)), 4n), Nat.mul(Nat.add(L.byte(U32.and(k4, 252)), Nat.mul(Nat.add(L.byte(U32.and(k5, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k6, 255)), 16n), 256n)), 256n)), 64n)), Nat.add(Nat.div(L.byte(U32.and(k6, 255)), 16n), Nat.mul(Nat.add(L.byte(U32.and(k7, 15)), Nat.mul(Nat.add(L.byte(U32.and(k8, 252)), Nat.mul(Nat.mod(L.byte(U32.and(k9, 255)), 64n), 256n)), 256n)), 16n)), Nat.add(Nat.div(L.byte(U32.and(k9, 255)), 64n), Nat.mul(Nat.add(L.byte(U32.and(k10, 255)), Nat.mul(Nat.add(L.byte(U32.and(k11, 15)), Nat.mul(L.byte(U32.and(k12, 252)), 256n)), 256n)), 4n)), Nat.add(L.byte(U32.and(k13, 255)), Nat.mul(Nat.add(L.byte(U32.and(k14, 255)), Nat.mul(Nat.add(L.byte(U32.and(k15, 15)), Nat.mul(0n, 256n)), 256n)), 256n))}), L.zero())
+  +fu = List.length(&2, U32, msg)
+  +bs = R.blocks(fu, msg)
+  +hA = abs_inv(one, h1, Nat.add(L.byte(U32.and(k0, 255)), Nat.mul(Nat.add(L.byte(U32.and(k1, 255)), Nat.mul(Nat.add(L.byte(U32.and(k2, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k3, 15)), 4n), 256n)), 256n)), 256n)), Nat.add(Nat.div(L.byte(U32.and(k3, 15)), 4n), Nat.mul(Nat.add(L.byte(U32.and(k4, 252)), Nat.mul(Nat.add(L.byte(U32.and(k5, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k6, 255)), 16n), 256n)), 256n)), 64n)), Nat.add(Nat.div(L.byte(U32.and(k6, 255)), 16n), Nat.mul(Nat.add(L.byte(U32.and(k7, 15)), Nat.mul(Nat.add(L.byte(U32.and(k8, 252)), Nat.mul(Nat.mod(L.byte(U32.and(k9, 255)), 64n), 256n)), 256n)), 16n)), Nat.add(Nat.div(L.byte(U32.and(k9, 255)), 64n), Nat.mul(Nat.add(L.byte(U32.and(k10, 255)), Nat.mul(Nat.add(L.byte(U32.and(k11, 15)), Nat.mul(L.byte(U32.and(k12, 252)), 256n)), 256n)), 4n)), Nat.add(L.byte(U32.and(k13, 255)), Nat.mul(Nat.add(L.byte(U32.and(k14, 255)), Nat.mul(Nat.add(L.byte(U32.and(k15, 15)), Nat.mul(0n, 256n)), 256n)), 256n)), B.g0(26n, Nat.add(L.byte(U32.and(k0, 255)), Nat.mul(Nat.add(L.byte(U32.and(k1, 255)), Nat.mul(Nat.add(L.byte(U32.and(k2, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k3, 15)), 4n), 256n)), 256n)), 256n)), Nat.add(Nat.div(L.byte(U32.and(k3, 15)), 4n), Nat.mul(Nat.add(L.byte(U32.and(k4, 252)), Nat.mul(Nat.add(L.byte(U32.and(k5, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k6, 255)), 16n), 256n)), 256n)), 64n)), Nat.add(Nat.div(L.byte(U32.and(k6, 255)), 16n), Nat.mul(Nat.add(L.byte(U32.and(k7, 15)), Nat.mul(Nat.add(L.byte(U32.and(k8, 252)), Nat.mul(Nat.mod(L.byte(U32.and(k9, 255)), 64n), 256n)), 256n)), 16n)), Nat.add(Nat.div(L.byte(U32.and(k9, 255)), 64n), Nat.mul(Nat.add(L.byte(U32.and(k10, 255)), Nat.mul(Nat.add(L.byte(U32.and(k11, 15)), Nat.mul(L.byte(U32.and(k12, 252)), 256n)), 256n)), 4n)), Nat.add(L.byte(U32.and(k13, 255)), Nat.mul(Nat.add(L.byte(U32.and(k14, 255)), Nat.mul(Nat.add(L.byte(U32.and(k15, 15)), Nat.mul(0n, 256n)), 256n)), 256n)), hl), B.g1(26n, Nat.add(L.byte(U32.and(k0, 255)), Nat.mul(Nat.add(L.byte(U32.and(k1, 255)), Nat.mul(Nat.add(L.byte(U32.and(k2, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k3, 15)), 4n), 256n)), 256n)), 256n)), Nat.add(Nat.div(L.byte(U32.and(k3, 15)), 4n), Nat.mul(Nat.add(L.byte(U32.and(k4, 252)), Nat.mul(Nat.add(L.byte(U32.and(k5, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k6, 255)), 16n), 256n)), 256n)), 64n)), Nat.add(Nat.div(L.byte(U32.and(k6, 255)), 16n), Nat.mul(Nat.add(L.byte(U32.and(k7, 15)), Nat.mul(Nat.add(L.byte(U32.and(k8, 252)), Nat.mul(Nat.mod(L.byte(U32.and(k9, 255)), 64n), 256n)), 256n)), 16n)), Nat.add(Nat.div(L.byte(U32.and(k9, 255)), 64n), Nat.mul(Nat.add(L.byte(U32.and(k10, 255)), Nat.mul(Nat.add(L.byte(U32.and(k11, 15)), Nat.mul(L.byte(U32.and(k12, 252)), 256n)), 256n)), 4n)), Nat.add(L.byte(U32.and(k13, 255)), Nat.mul(Nat.add(L.byte(U32.and(k14, 255)), Nat.mul(Nat.add(L.byte(U32.and(k15, 15)), Nat.mul(0n, 256n)), 256n)), 256n)), hl), B.g2(26n, Nat.add(L.byte(U32.and(k0, 255)), Nat.mul(Nat.add(L.byte(U32.and(k1, 255)), Nat.mul(Nat.add(L.byte(U32.and(k2, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k3, 15)), 4n), 256n)), 256n)), 256n)), Nat.add(Nat.div(L.byte(U32.and(k3, 15)), 4n), Nat.mul(Nat.add(L.byte(U32.and(k4, 252)), Nat.mul(Nat.add(L.byte(U32.and(k5, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k6, 255)), 16n), 256n)), 256n)), 64n)), Nat.add(Nat.div(L.byte(U32.and(k6, 255)), 16n), Nat.mul(Nat.add(L.byte(U32.and(k7, 15)), Nat.mul(Nat.add(L.byte(U32.and(k8, 252)), Nat.mul(Nat.mod(L.byte(U32.and(k9, 255)), 64n), 256n)), 256n)), 16n)), Nat.add(Nat.div(L.byte(U32.and(k9, 255)), 64n), Nat.mul(Nat.add(L.byte(U32.and(k10, 255)), Nat.mul(Nat.add(L.byte(U32.and(k11, 15)), Nat.mul(L.byte(U32.and(k12, 252)), 256n)), 256n)), 4n)), Nat.add(L.byte(U32.and(k13, 255)), Nat.mul(Nat.add(L.byte(U32.and(k14, 255)), Nat.mul(Nat.add(L.byte(U32.and(k15, 15)), Nat.mul(0n, 256n)), 256n)), 256n)), hl), B.g3(26n, Nat.add(L.byte(U32.and(k0, 255)), Nat.mul(Nat.add(L.byte(U32.and(k1, 255)), Nat.mul(Nat.add(L.byte(U32.and(k2, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k3, 15)), 4n), 256n)), 256n)), 256n)), Nat.add(Nat.div(L.byte(U32.and(k3, 15)), 4n), Nat.mul(Nat.add(L.byte(U32.and(k4, 252)), Nat.mul(Nat.add(L.byte(U32.and(k5, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k6, 255)), 16n), 256n)), 256n)), 64n)), Nat.add(Nat.div(L.byte(U32.and(k6, 255)), 16n), Nat.mul(Nat.add(L.byte(U32.and(k7, 15)), Nat.mul(Nat.add(L.byte(U32.and(k8, 252)), Nat.mul(Nat.mod(L.byte(U32.and(k9, 255)), 64n), 256n)), 256n)), 16n)), Nat.add(Nat.div(L.byte(U32.and(k9, 255)), 64n), Nat.mul(Nat.add(L.byte(U32.and(k10, 255)), Nat.mul(Nat.add(L.byte(U32.and(k11, 15)), Nat.mul(L.byte(U32.and(k12, 252)), 256n)), 256n)), 4n)), Nat.add(L.byte(U32.and(k13, 255)), Nat.mul(Nat.add(L.byte(U32.and(k14, 255)), Nat.mul(Nat.add(L.byte(U32.and(k15, 15)), Nat.mul(0n, 256n)), 256n)), 256n)), hl), B.g4(26n, Nat.add(L.byte(U32.and(k0, 255)), Nat.mul(Nat.add(L.byte(U32.and(k1, 255)), Nat.mul(Nat.add(L.byte(U32.and(k2, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k3, 15)), 4n), 256n)), 256n)), 256n)), Nat.add(Nat.div(L.byte(U32.and(k3, 15)), 4n), Nat.mul(Nat.add(L.byte(U32.and(k4, 252)), Nat.mul(Nat.add(L.byte(U32.and(k5, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k6, 255)), 16n), 256n)), 256n)), 64n)), Nat.add(Nat.div(L.byte(U32.and(k6, 255)), 16n), Nat.mul(Nat.add(L.byte(U32.and(k7, 15)), Nat.mul(Nat.add(L.byte(U32.and(k8, 252)), Nat.mul(Nat.mod(L.byte(U32.and(k9, 255)), 64n), 256n)), 256n)), 16n)), Nat.add(Nat.div(L.byte(U32.and(k9, 255)), 64n), Nat.mul(Nat.add(L.byte(U32.and(k10, 255)), Nat.mul(Nat.add(L.byte(U32.and(k11, 15)), Nat.mul(L.byte(U32.and(k12, 252)), 256n)), 256n)), 4n)), Nat.add(L.byte(U32.and(k13, 255)), Nat.mul(Nat.add(L.byte(U32.and(k14, 255)), Nat.mul(Nat.add(L.byte(U32.and(k15, 15)), Nat.mul(0n, 256n)), 256n)), 256n)), hl), msg, L.zero(), {==})
+  +hV = abs_val(one, h1, bp, h5, Nat.add(L.byte(U32.and(k0, 255)), Nat.mul(Nat.add(L.byte(U32.and(k1, 255)), Nat.mul(Nat.add(L.byte(U32.and(k2, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k3, 15)), 4n), 256n)), 256n)), 256n)), Nat.add(Nat.div(L.byte(U32.and(k3, 15)), 4n), Nat.mul(Nat.add(L.byte(U32.and(k4, 252)), Nat.mul(Nat.add(L.byte(U32.and(k5, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k6, 255)), 16n), 256n)), 256n)), 64n)), Nat.add(Nat.div(L.byte(U32.and(k6, 255)), 16n), Nat.mul(Nat.add(L.byte(U32.and(k7, 15)), Nat.mul(Nat.add(L.byte(U32.and(k8, 252)), Nat.mul(Nat.mod(L.byte(U32.and(k9, 255)), 64n), 256n)), 256n)), 16n)), Nat.add(Nat.div(L.byte(U32.and(k9, 255)), 64n), Nat.mul(Nat.add(L.byte(U32.and(k10, 255)), Nat.mul(Nat.add(L.byte(U32.and(k11, 15)), Nat.mul(L.byte(U32.and(k12, 252)), 256n)), 256n)), 4n)), Nat.add(L.byte(U32.and(k13, 255)), Nat.mul(Nat.add(L.byte(U32.and(k14, 255)), Nat.mul(Nat.add(L.byte(U32.and(k15, 15)), Nat.mul(0n, 256n)), 256n)), 256n)), fu, msg, L.zero(), 0n, N.le_refl(fu), {==})
+  +er2 = Equal.trans(Nat, V.ev(Nat.add(L.byte(U32.and(k0, 255)), Nat.mul(Nat.add(L.byte(U32.and(k1, 255)), Nat.mul(Nat.add(L.byte(U32.and(k2, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k3, 15)), 4n), 256n)), 256n)), 256n)), Nat.add(Nat.div(L.byte(U32.and(k3, 15)), 4n), Nat.mul(Nat.add(L.byte(U32.and(k4, 252)), Nat.mul(Nat.add(L.byte(U32.and(k5, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k6, 255)), 16n), 256n)), 256n)), 64n)), Nat.add(Nat.div(L.byte(U32.and(k6, 255)), 16n), Nat.mul(Nat.add(L.byte(U32.and(k7, 15)), Nat.mul(Nat.add(L.byte(U32.and(k8, 252)), Nat.mul(Nat.mod(L.byte(U32.and(k9, 255)), 64n), 256n)), 256n)), 16n)), Nat.add(Nat.div(L.byte(U32.and(k9, 255)), 64n), Nat.mul(Nat.add(L.byte(U32.and(k10, 255)), Nat.mul(Nat.add(L.byte(U32.and(k11, 15)), Nat.mul(L.byte(U32.and(k12, 252)), 256n)), 256n)), 4n)), Nat.add(L.byte(U32.and(k13, 255)), Nat.mul(Nat.add(L.byte(U32.and(k14, 255)), Nat.mul(Nat.add(L.byte(U32.and(k15, 15)), Nat.mul(0n, 256n)), 256n)), 256n))), V.hv(L.byte(U32.and(k0, 255)), L.byte(U32.and(k1, 255)), L.byte(U32.and(k2, 255)), L.byte(U32.and(k3, 15)), L.byte(U32.and(k4, 252)), L.byte(U32.and(k5, 255)), L.byte(U32.and(k6, 255)), L.byte(U32.and(k7, 15)), L.byte(U32.and(k8, 252)), L.byte(U32.and(k9, 255)), L.byte(U32.and(k10, 255)), L.byte(U32.and(k11, 15)), L.byte(U32.and(k12, 252)), L.byte(U32.and(k13, 255)), L.byte(U32.and(k14, 255)), L.byte(U32.and(k15, 15)), 0n), R.le_num(R.clamp(R.prefix(16n, key))), V.load_val(L.byte(U32.and(k0, 255)), L.byte(U32.and(k1, 255)), L.byte(U32.and(k2, 255)), L.byte(U32.and(k3, 15)), L.byte(U32.and(k4, 252)), L.byte(U32.and(k5, 255)), L.byte(U32.and(k6, 255)), L.byte(U32.and(k7, 15)), L.byte(U32.and(k8, 252)), L.byte(U32.and(k9, 255)), L.byte(U32.and(k10, 255)), L.byte(U32.and(k11, 15)), L.byte(U32.and(k12, 252)), L.byte(U32.and(k13, 255)), L.byte(U32.and(k14, 255)), L.byte(U32.and(k15, 15)), 0n), er)
+  +es2 = Equal.trans(Nat, V.val(sf), V.hv(L.byte(k16), L.byte(k17), L.byte(k18), L.byte(k19), L.byte(k20), L.byte(k21), L.byte(k22), L.byte(k23), L.byte(k24), L.byte(k25), L.byte(k26), L.byte(k27), L.byte(k28), L.byte(k29), L.byte(k30), L.byte(k31), 0n), R.le_num(R.prefix(16n, R.suffix(16n, key))), V.load_val(L.byte(k16), L.byte(k17), L.byte(k18), L.byte(k19), L.byte(k20), L.byte(k21), L.byte(k22), L.byte(k23), L.byte(k24), L.byte(k25), L.byte(k26), L.byte(k27), L.byte(k28), L.byte(k29), L.byte(k30), L.byte(k31), 0n), es)
+  +e1 = Equal.trans(Nat, Nat.mod(V.val(ab), 1n+bp), R.absorb(bs, V.ev(Nat.add(L.byte(U32.and(k0, 255)), Nat.mul(Nat.add(L.byte(U32.and(k1, 255)), Nat.mul(Nat.add(L.byte(U32.and(k2, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k3, 15)), 4n), 256n)), 256n)), 256n)), Nat.add(Nat.div(L.byte(U32.and(k3, 15)), 4n), Nat.mul(Nat.add(L.byte(U32.and(k4, 252)), Nat.mul(Nat.add(L.byte(U32.and(k5, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k6, 255)), 16n), 256n)), 256n)), 64n)), Nat.add(Nat.div(L.byte(U32.and(k6, 255)), 16n), Nat.mul(Nat.add(L.byte(U32.and(k7, 15)), Nat.mul(Nat.add(L.byte(U32.and(k8, 252)), Nat.mul(Nat.mod(L.byte(U32.and(k9, 255)), 64n), 256n)), 256n)), 16n)), Nat.add(Nat.div(L.byte(U32.and(k9, 255)), 64n), Nat.mul(Nat.add(L.byte(U32.and(k10, 255)), Nat.mul(Nat.add(L.byte(U32.and(k11, 15)), Nat.mul(L.byte(U32.and(k12, 252)), 256n)), 256n)), 4n)), Nat.add(L.byte(U32.and(k13, 255)), Nat.mul(Nat.add(L.byte(U32.and(k14, 255)), Nat.mul(Nat.add(L.byte(U32.and(k15, 15)), Nat.mul(0n, 256n)), 256n)), 256n))), 0n), R.absorb(bs, R.le_num(R.clamp(R.prefix(16n, key))), 0n), hV,
+    Equal.cong(Nat, Nat, z => R.absorb(bs, z, 0n), V.ev(Nat.add(L.byte(U32.and(k0, 255)), Nat.mul(Nat.add(L.byte(U32.and(k1, 255)), Nat.mul(Nat.add(L.byte(U32.and(k2, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k3, 15)), 4n), 256n)), 256n)), 256n)), Nat.add(Nat.div(L.byte(U32.and(k3, 15)), 4n), Nat.mul(Nat.add(L.byte(U32.and(k4, 252)), Nat.mul(Nat.add(L.byte(U32.and(k5, 255)), Nat.mul(Nat.mod(L.byte(U32.and(k6, 255)), 16n), 256n)), 256n)), 64n)), Nat.add(Nat.div(L.byte(U32.and(k6, 255)), 16n), Nat.mul(Nat.add(L.byte(U32.and(k7, 15)), Nat.mul(Nat.add(L.byte(U32.and(k8, 252)), Nat.mul(Nat.mod(L.byte(U32.and(k9, 255)), 64n), 256n)), 256n)), 16n)), Nat.add(Nat.div(L.byte(U32.and(k9, 255)), 64n), Nat.mul(Nat.add(L.byte(U32.and(k10, 255)), Nat.mul(Nat.add(L.byte(U32.and(k11, 15)), Nat.mul(L.byte(U32.and(k12, 252)), 256n)), 256n)), 4n)), Nat.add(L.byte(U32.and(k13, 255)), Nat.mul(Nat.add(L.byte(U32.and(k14, 255)), Nat.mul(Nat.add(L.byte(U32.and(k15, 15)), Nat.mul(0n, 256n)), 256n)), 256n))), R.le_num(R.clamp(R.prefix(16n, key))), er2))
+  +e2 = Equal.trans(Nat, Nat.add(Nat.mod(V.val(ab), 1n+bp), V.val(sf)), Nat.add(R.absorb(bs, R.le_num(R.clamp(R.prefix(16n, key))), 0n), V.val(sf)), Nat.add(R.absorb(bs, R.le_num(R.clamp(R.prefix(16n, key))), 0n), R.le_num(R.prefix(16n, R.suffix(16n, key)))),
+    Equal.cong(Nat, Nat, z => Nat.add(z, V.val(sf)), Nat.mod(V.val(ab), 1n+bp), R.absorb(bs, R.le_num(R.clamp(R.prefix(16n, key))), 0n), e1),
+    Equal.cong(Nat, Nat, z => Nat.add(R.absorb(bs, R.le_num(R.clamp(R.prefix(16n, key))), 0n), z), V.val(sf), R.le_num(R.prefix(16n, R.suffix(16n, key))), es2))
+  Equal.trans(List<&2, U32>, L.fin(ab, sf), R.le_bytes(16n, Nat.add(Nat.mod(V.val(ab), 1n+bp), V.val(sf))), R.poly1305_mac(key, msg),
+    F.fin_val(one, h1, bp, h5, ab, sf, hA),
+    Equal.cong(Nat, List<&2, U32>, z => R.le_bytes(16n, z), Nat.add(Nat.mod(V.val(ab), 1n+bp), V.val(sf)), Nat.add(R.absorb(bs, R.le_num(R.clamp(R.prefix(16n, key))), 0n), R.le_num(R.prefix(16n, R.suffix(16n, key)))), e2))
+
+# the key bytes read through pad are the spec's r and s
+def rkey(+key: List<&2, U32>) -> {V.hv(L.byte(U32.and(P.kh(key), 255)), L.byte(U32.and(P.kh(P.tl(key)), 255)), L.byte(U32.and(P.kh(P.tl(P.tl(key))), 255)), L.byte(U32.and(P.kh(P.tl(P.tl(P.tl(key)))), 15)), L.byte(U32.and(P.kh(P.tl(P.tl(P.tl(P.tl(key))))), 252)), L.byte(U32.and(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))), 255)), L.byte(U32.and(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))), 255)), L.byte(U32.and(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))), 15)), L.byte(U32.and(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))), 252)), L.byte(U32.and(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))), 255)), L.byte(U32.and(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))), 255)), L.byte(U32.and(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))), 15)), L.byte(U32.and(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))), 252)), L.byte(U32.and(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))), 255)), L.byte(U32.and(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))), 255)), L.byte(U32.and(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))), 15)), 0n) == R.le_num(R.clamp(R.prefix(16n, key))) : Nat}:
+  match key:
+    case Nil{}: {==}
+    case +q0 <> +u0:
+      match u0:
+        case Nil{}: {==}
+        case +q1 <> +u1:
+          match u1:
+            case Nil{}: {==}
+            case +q2 <> +u2:
+              match u2:
+                case Nil{}: {==}
+                case +q3 <> +u3:
+                  match u3:
+                    case Nil{}: {==}
+                    case +q4 <> +u4:
+                      match u4:
+                        case Nil{}: {==}
+                        case +q5 <> +u5:
+                          match u5:
+                            case Nil{}: {==}
+                            case +q6 <> +u6:
+                              match u6:
+                                case Nil{}: {==}
+                                case +q7 <> +u7:
+                                  match u7:
+                                    case Nil{}: {==}
+                                    case +q8 <> +u8:
+                                      match u8:
+                                        case Nil{}: {==}
+                                        case +q9 <> +u9:
+                                          match u9:
+                                            case Nil{}: {==}
+                                            case +q10 <> +u10:
+                                              match u10:
+                                                case Nil{}: {==}
+                                                case +q11 <> +u11:
+                                                  match u11:
+                                                    case Nil{}: {==}
+                                                    case +q12 <> +u12:
+                                                      match u12:
+                                                        case Nil{}: {==}
+                                                        case +q13 <> +u13:
+                                                          match u13:
+                                                            case Nil{}: {==}
+                                                            case +q14 <> +u14:
+                                                              match u14:
+                                                                case Nil{}: {==}
+                                                                case +q15 <> +u15:
+                                                                  {==}
+
+def skey16(+kk: List<&2, U32>) -> {V.hv(L.byte(P.kh(kk)), L.byte(P.kh(P.tl(kk))), L.byte(P.kh(P.tl(P.tl(kk)))), L.byte(P.kh(P.tl(P.tl(P.tl(kk))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(kk)))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(kk))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(kk)))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(kk))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(kk)))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(kk))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(kk)))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(kk))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(kk)))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(kk))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(kk)))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(kk))))))))))))))))), 0n) == R.le_num(R.prefix(16n, kk)) : Nat}:
+  match kk:
+    case Nil{}: {==}
+    case +q0 <> +u0:
+      match u0:
+        case Nil{}: {==}
+        case +q1 <> +u1:
+          match u1:
+            case Nil{}: {==}
+            case +q2 <> +u2:
+              match u2:
+                case Nil{}: {==}
+                case +q3 <> +u3:
+                  match u3:
+                    case Nil{}: {==}
+                    case +q4 <> +u4:
+                      match u4:
+                        case Nil{}: {==}
+                        case +q5 <> +u5:
+                          match u5:
+                            case Nil{}: {==}
+                            case +q6 <> +u6:
+                              match u6:
+                                case Nil{}: {==}
+                                case +q7 <> +u7:
+                                  match u7:
+                                    case Nil{}: {==}
+                                    case +q8 <> +u8:
+                                      match u8:
+                                        case Nil{}: {==}
+                                        case +q9 <> +u9:
+                                          match u9:
+                                            case Nil{}: {==}
+                                            case +q10 <> +u10:
+                                              match u10:
+                                                case Nil{}: {==}
+                                                case +q11 <> +u11:
+                                                  match u11:
+                                                    case Nil{}: {==}
+                                                    case +q12 <> +u12:
+                                                      match u12:
+                                                        case Nil{}: {==}
+                                                        case +q13 <> +u13:
+                                                          match u13:
+                                                            case Nil{}: {==}
+                                                            case +q14 <> +u14:
+                                                              match u14:
+                                                                case Nil{}: {==}
+                                                                case +q15 <> +u15:
+                                                                  {==}
+
+def tln(n: Nat, +xs: List<&2, U32>) -> List<&2, U32>:
+  match n:
+    case 0n: xs
+    case 1n+m: tln(m, P.tl(xs))
+
+law tln_nil:
+  for +n: Nat
+  {tln(n, []) == [] : List<&2, U32>}
+
+def tln_nil(n):
+  match n:
+    case 0n: {==}
+    case 1n+m: tln_nil(m)
+
+law suffix_tln:
+  for +n: Nat
+  for +xs: List<&2, U32>
+  {R.suffix(n, xs) == tln(n, xs) : List<&2, U32>}
+
+def suffix_tln(n, xs):
+  match n xs:
+    case 0n _: {==}
+    case 1n+m Nil{}: Equal.sym(List<&2, U32>, tln(m, []), [], tln_nil(m))
+    case 1n+m x <> t: suffix_tln(m, t)
+
+def skey(+key: List<&2, U32>) -> {V.hv(L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))))))))))), 0n) == R.le_num(R.prefix(16n, R.suffix(16n, key))) : Nat}:
+  Equal.trans(Nat, V.hv(L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))))))))), L.byte(P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))))))))))), 0n), R.le_num(R.prefix(16n, tln(16n, key))), R.le_num(R.prefix(16n, R.suffix(16n, key))),
+    skey16(tln(16n, key)),
+    Equal.cong(List<&2, U32>, Nat, l => R.le_num(R.prefix(16n, l)), tln(16n, key), R.suffix(16n, key), Equal.sym(List<&2, U32>, R.suffix(16n, key), tln(16n, key), suffix_tln(16n, key))))
+
+def mac_w_ok(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 5n) == C.shift(130n, one) : Nat}, +key: List<&2, U32>, +msg: List<&2, U32>) -> {P.mac_w(key, msg) == R.poly1305_mac(key, msg) : List<&2, U32>}:
+  tag_ok(one, h1, bp, h5, P.kh(key), P.kh(P.tl(key)), P.kh(P.tl(P.tl(key))), P.kh(P.tl(P.tl(P.tl(key)))), P.kh(P.tl(P.tl(P.tl(P.tl(key))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))))))))), msg, key, rkey(key), skey(key))
+
+def mac_ok(+key: List<&2, U32>, +msg: List<&2, U32>) -> {P.mac(key, msg) == R.poly1305_mac(key, msg) : List<&2, U32>}:
+  mac_w_ok(1n, {==}, bpv(1n), bp5(1n, {==}), key, msg)
+
+# The implementation's tag is the RFC 8439 tag, for every key and message.
+law mac_correct:
+  for +key: List<&2, U32>
+  for +msg: List<&2, U32>
+  {P.mac(key, msg) == R.mac(key, msg) : List<&2, U32>}
+
+def mac_correct(key, msg):
+  match msg:
+    case Nil{}: mac_ok(key, [])
+    case x <> rest: mac_ok(key, x <> rest)
+
+law le_bytes_len:
+  for +n: Nat
+  for +x: Nat
+  {List.length(&2, U32, R.le_bytes(n, x)) == n : Nat}
+
+def le_bytes_len(n, x):
+  match n:
+    case 0n: {==}
+    case 1n+k: Equal.cong(Nat, Nat, t => 1n+t, List.length(&2, U32, R.le_bytes(k, C.high(8n, x))), k, le_bytes_len(k, C.high(8n, x)))
+
+# The tag has 16 bytes.
+law mac_length:
+  for +key: List<&2, U32>
+  for +msg: List<&2, U32>
+  {List.length(&2, U32, R.mac(key, msg)) == 16n : Nat}
+
+def mac_length(key, msg):
+  match msg:
+    case Nil{}: le_bytes_len(16n, Nat.add(R.absorb(R.blocks(0n, []), R.le_num(R.clamp(R.prefix(16n, key))), 0n), R.le_num(R.prefix(16n, R.suffix(16n, key)))))
+    case b <> rest: le_bytes_len(16n, Nat.add(R.absorb(R.blocks(List.length(&2, U32, b <> rest), b <> rest), R.le_num(R.clamp(R.prefix(16n, key))), 0n), R.le_num(R.prefix(16n, R.suffix(16n, key)))))

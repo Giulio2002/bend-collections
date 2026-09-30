@@ -39,6 +39,15 @@ type K is Data:
   K{e0: Nat, e1: Nat, e2: Nat, e3: Nat, e4: Nat, f1: Nat, f2: Nat, f3: Nat, f4: Nat,
     o0: Nat, o1: Nat, o2: Nat, o3: Nat, o4: Nat, g1: Nat, g2: Nat, g3: Nat, g4: Nat}
 
+# x div 2^26 and x mod 2^26, as two steps of 2^13 (a division by a literal
+# power of two compiles to a shift; 2^13 is the only radix the proofs meet
+# as a literal).
+def dw(x: Nat) -> Nat:
+  Nat.div(Nat.div(x, 8192n), 8192n)
+
+def mw(+x: Nat) -> Nat:
+  Nat.add(Nat.mod(x, 8192n), Nat.mul(Nat.mod(Nat.div(x, 8192n), 8192n), 8192n))
+
 def zero() -> F:
   F{0n, 0n, 0n, 0n, 0n}
 
@@ -68,39 +77,39 @@ def mul(+a0: Nat, +a1: Nat, +a2: Nat, +a3: Nat, +a4: Nat, +r0: Nat, +r1: Nat, +r
 
 # d + b e (mod p) with small limbs: e_i = lo_i + w hi_i, b lo_i stays at
 # limb i, b hi_i moves to limb i + 1 (limb 0 for i = 4, times 5).
-def comb(+w: Nat, +b: Nat, d: F, e: F) -> F:
+def comb(d: F, e: F) -> F:
   match d e:
     case F{d0, d1, d2, d3, d4} F{+e0, +e1, +e2, +e3, +e4}:
-      F{Nat.add(d0, Nat.add(Nat.mul(Nat.mod(e0, w), b), Nat.mul(Nat.mul(Nat.div(e4, w), b), 5n))),
-        Nat.add(d1, Nat.add(Nat.mul(Nat.mod(e1, w), b), Nat.mul(Nat.div(e0, w), b))),
-        Nat.add(d2, Nat.add(Nat.mul(Nat.mod(e2, w), b), Nat.mul(Nat.div(e1, w), b))),
-        Nat.add(d3, Nat.add(Nat.mul(Nat.mod(e3, w), b), Nat.mul(Nat.div(e2, w), b))),
-        Nat.add(d4, Nat.add(Nat.mul(Nat.mod(e4, w), b), Nat.mul(Nat.div(e3, w), b)))}
+      F{Nat.add(d0, Nat.add(Nat.mul(mw(e0), 8192n), Nat.mul(Nat.mul(dw(e4), 8192n), 5n))),
+        Nat.add(d1, Nat.add(Nat.mul(mw(e1), 8192n), Nat.mul(dw(e0), 8192n))),
+        Nat.add(d2, Nat.add(Nat.mul(mw(e2), 8192n), Nat.mul(dw(e1), 8192n))),
+        Nat.add(d3, Nat.add(Nat.mul(mw(e3), 8192n), Nat.mul(dw(e2), 8192n))),
+        Nat.add(d4, Nat.add(Nat.mul(mw(e4), 8192n), Nat.mul(dw(e3), 8192n)))}
 
 # The carries of limbs 0..3 into the next limb, the carry out of limb 4
 # folded onto limb 0 times 5 (w^5 = p + 5): congruent mod p, limbs 1..4
 # below w and limb 0 below w + 5 (carry out of limb 4).
-def top(+w: Nat, z: F) -> F:
+def top(z: F) -> F:
   match z:
     case F{+z0, z1, z2, z3, z4}:
-      +y1 = Nat.add(z1, Nat.div(z0, w))
-      +y2 = Nat.add(z2, Nat.div(y1, w))
-      +y3 = Nat.add(z3, Nat.div(y2, w))
-      +y4 = Nat.add(z4, Nat.div(y3, w))
-      F{Nat.add(Nat.mod(z0, w), Nat.mul(Nat.div(y4, w), 5n)), Nat.mod(y1, w), Nat.mod(y2, w), Nat.mod(y3, w), Nat.mod(y4, w)}
+      +y1 = Nat.add(z1, dw(z0))
+      +y2 = Nat.add(z2, dw(y1))
+      +y3 = Nat.add(z3, dw(y2))
+      +y4 = Nat.add(z4, dw(y3))
+      F{Nat.add(mw(z0), Nat.mul(dw(y4), 5n)), mw(y1), mw(y2), mw(y3), mw(y4)}
 
 # Limb 0's carry into limb 1.
-def fix(+w: Nat, t: F) -> F:
+def fix(t: F) -> F:
   match t:
     case F{+u0, t1, t2, t3, t4}:
-      F{Nat.mod(u0, w), Nat.add(t1, Nat.div(u0, w)), t2, t3, t4}
+      F{mw(u0), Nat.add(t1, dw(u0)), t2, t3, t4}
 
 # One carry pass: top, then fix.
-def carry(+w: Nat, z: F) -> F:
-  fix(w, top(w, z))
+def carry(z: F) -> F:
+  fix(top(z))
 
 # One Poly1305 block: (h + m) r, partially reduced mod p.
-def block(+w: Nat, +b: Nat, +k: K, h: F, m: F) -> F:
+def block(+k: K, h: F, m: F) -> F:
   match k h m:
     case K{+e0, +e1, +e2, +e3, +e4, +f1, +f2, +f3, +f4, +o0, +o1, +o2, +o3, +o4, +g1, +g2, +g3, +g4} F{h0, h1, h2, h3, h4} F{m0, m1, m2, m3, m4}:
       +a0 = Nat.add(h0, m0)
@@ -108,22 +117,22 @@ def block(+w: Nat, +b: Nat, +k: K, h: F, m: F) -> F:
       +a2 = Nat.add(h2, m2)
       +a3 = Nat.add(h3, m3)
       +a4 = Nat.add(h4, m4)
-      carry(w, comb(w, b, mul(a0, a1, a2, a3, a4, e0, e1, e2, e3, e4, f1, f2, f3, f4), mul(a0, a1, a2, a3, a4, o0, o1, o2, o3, o4, g1, g2, g3, g4)))
+      carry(comb(mul(a0, a1, a2, a3, a4, e0, e1, e2, e3, e4, f1, f2, f3, f4), mul(a0, a1, a2, a3, a4, o0, o1, o2, o3, o4, g1, g2, g3, g4)))
 
 # The multiplier of the limbs of r.
-def key(+b: Nat, r: F) -> K:
+def key(r: F) -> K:
   match r:
     case F{+r0, +r1, +r2, +r3, +r4}:
-      +e1 = Nat.mod(r1, b)
-      +e2 = Nat.mod(r2, b)
-      +e3 = Nat.mod(r3, b)
-      +e4 = Nat.mod(r4, b)
-      +o1 = Nat.div(r1, b)
-      +o2 = Nat.div(r2, b)
-      +o3 = Nat.div(r3, b)
-      +o4 = Nat.div(r4, b)
-      K{Nat.mod(r0, b), e1, e2, e3, e4, Nat.mul(e1, 5n), Nat.mul(e2, 5n), Nat.mul(e3, 5n), Nat.mul(e4, 5n),
-        Nat.div(r0, b), o1, o2, o3, o4, Nat.mul(o1, 5n), Nat.mul(o2, 5n), Nat.mul(o3, 5n), Nat.mul(o4, 5n)}
+      +e1 = Nat.mod(r1, 8192n)
+      +e2 = Nat.mod(r2, 8192n)
+      +e3 = Nat.mod(r3, 8192n)
+      +e4 = Nat.mod(r4, 8192n)
+      +o1 = Nat.div(r1, 8192n)
+      +o2 = Nat.div(r2, 8192n)
+      +o3 = Nat.div(r3, 8192n)
+      +o4 = Nat.div(r4, 8192n)
+      K{Nat.mod(r0, 8192n), e1, e2, e3, e4, Nat.mul(e1, 5n), Nat.mul(e2, 5n), Nat.mul(e3, 5n), Nat.mul(e4, 5n),
+        Nat.div(r0, 8192n), o1, o2, o3, o4, Nat.mul(o1, 5n), Nat.mul(o2, 5n), Nat.mul(o3, 5n), Nat.mul(o4, 5n)}
 
 # ---- the tag ----
 
@@ -163,22 +172,22 @@ def bytes(+l0: Nat, l1: Nat, l2: Nat, l3: Nat, l4: Nat) -> List<&2, U32>:
 # any accumulator there): g = h + 5 with its carries
 # has c = 1 at 2^130 exactly when h >= p, and then its low 130 bits are
 # h - p; the selected limbs plus s are carried and serialized.
-def frz(+w: Nat, h: F, s: F) -> List<&2, U32>:
+def frz(h: F, s: F) -> List<&2, U32>:
   match h s:
     case F{+h0, +h1, +h2, +h3, +h4} F{s0, s1, s2, s3, s4}:
       +g0 = Nat.add(h0, 5n)
-      +g1 = Nat.add(h1, Nat.div(g0, w))
-      +g2 = Nat.add(h2, Nat.div(g1, w))
-      +g3 = Nat.add(h3, Nat.div(g2, w))
-      +g4 = Nat.add(h4, Nat.div(g3, w))
-      +c = Nat.div(g4, w)
-      +t0 = Nat.add(pick(c, h0, Nat.mod(g0, w)), s0)
-      +t1 = Nat.add(Nat.add(pick(c, h1, Nat.mod(g1, w)), s1), Nat.div(t0, w))
-      +t2 = Nat.add(Nat.add(pick(c, h2, Nat.mod(g2, w)), s2), Nat.div(t1, w))
-      +t3 = Nat.add(Nat.add(pick(c, h3, Nat.mod(g3, w)), s3), Nat.div(t2, w))
-      +t4 = Nat.add(Nat.add(pick(c, h4, Nat.mod(g4, w)), s4), Nat.div(t3, w))
-      bytes(Nat.mod(t0, w), Nat.mod(t1, w), Nat.mod(t2, w), Nat.mod(t3, w), t4)
+      +g1 = Nat.add(h1, dw(g0))
+      +g2 = Nat.add(h2, dw(g1))
+      +g3 = Nat.add(h3, dw(g2))
+      +g4 = Nat.add(h4, dw(g3))
+      +c = dw(g4)
+      +t0 = Nat.add(pick(c, h0, mw(g0)), s0)
+      +t1 = Nat.add(Nat.add(pick(c, h1, mw(g1)), s1), dw(t0))
+      +t2 = Nat.add(Nat.add(pick(c, h2, mw(g2)), s2), dw(t1))
+      +t3 = Nat.add(Nat.add(pick(c, h3, mw(g3)), s3), dw(t2))
+      +t4 = Nat.add(Nat.add(pick(c, h4, mw(g4)), s4), dw(t3))
+      bytes(mw(t0), mw(t1), mw(t2), mw(t3), t4)
 
 # The tag bytes of an accumulator (limbs below 2^27) and s.
-def fin(+w: Nat, h: F, s: F) -> List<&2, U32>:
-  frz(w, top(w, h), s)
+def fin(h: F, s: F) -> List<&2, U32>:
+  frz(top(h), s)
