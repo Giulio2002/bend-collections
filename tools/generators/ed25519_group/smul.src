@@ -1,0 +1,149 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../../secp256k1/semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../../spec/lib/common.bend as C
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../../../spec/crypto/curve25519/x25519.bend as SX
+import ../../../../spec/crypto/curve25519/edwards.bend as G
+import ../../../../spec/crypto/ed25519.bend as ED
+import ../../../../spec/crypto/ed25519_group.bend as GE
+import ./fq.bend as FQ
+import ./gpt.bend as GP
+import ./ext.bend as EX
+
+# The specification's scalar multiplication (spec/crypto/ed25519.bend:
+# ED.smul, double-and-add over the bits of the scalar, most significant
+# first; ED.mul over 2^8 one bits) is the scalar multiple of the group:
+# the affine point of ED.mul(k, a) is [k mod 2^256] (affine point of a).
+
+# ---- bits ----
+
+def bit_le(n: Nat) -> {Nat.is_le(C.bit(n), 1n) == True{} : Bool}:
+  match n:
+    case 0n:
+      {==}
+    case 1n:
+      {==}
+    case 2n+q:
+      bit_le(q)
+
+# the low 1 + t bits: the low t bits and bit t
+def low_top(t: Nat, +k: Nat) -> {C.low(1n+t, k) == Nat.add(C.low(t, k), C.shift(t, C.bit(C.high(t, k)))) : Nat}:
+  match t:
+    case 0n:
+      NA.add_zero(C.bit(k))
+    case 1n+ +s:
+      %goal {Nat.add(C.bit(k), Nat.double(C.low(1n+s, C.half(k)))) == Nat.add(Nat.add(C.bit(k), Nat.double(C.low(s, C.half(k)))), Nat.double(C.shift(s, C.bit(C.high(s, C.half(k)))))) : Nat}
+      %rw low_top(s, C.half(k))
+      %rw <- N.add_double(C.low(s, C.half(k)), C.shift(s, C.bit(C.high(s, C.half(k)))))
+      %rw N.add_assoc(C.bit(k), Nat.double(C.low(s, C.half(k))), Nat.double(C.shift(s, C.bit(C.high(s, C.half(k))))))
+      %close
+
+# ---- multiples ----
+
+# [2 m] r == [m] (r + r)
+def nmul_double(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), m: Nat, +r: G.APt, +hr: G.OnCurve(1n+mp, d, r)) -> {G.nmul(1n+mp, d, Nat.double(m), r) == G.nmul(1n+mp, d, m, G.aadd(1n+mp, d, r, r)) : G.APt}:
+  match m:
+    case 0n:
+      {==}
+    case 1n+ +j:
+      %goal {G.aadd(1n+mp, d, r, G.aadd(1n+mp, d, r, G.nmul(1n+mp, d, Nat.double(j), r))) == G.aadd(1n+mp, d, G.aadd(1n+mp, d, r, r), G.nmul(1n+mp, d, j, G.aadd(1n+mp, d, r, r))) : G.APt}
+      %rw nmul_double(mp, d, hc, j, r, hr)
+      %rw GP.add_assoc(mp, d, hc, r, r, G.nmul(1n+mp, d, j, G.aadd(1n+mp, d, r, r)), hr, hr, GP.nmul_on(mp, d, hc, j, G.aadd(1n+mp, d, r, r), GP.add_on(mp, d, hc, r, r, hr, hr)))
+      %close
+
+# [2^t] ([b] r) == [2^t b] r
+def nmul_shift(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), t: Nat, +b: Nat, +r: G.APt, +hr: G.OnCurve(1n+mp, d, r)) -> {G.nmul(1n+mp, d, C.shift(t, 1n), G.nmul(1n+mp, d, b, r)) == G.nmul(1n+mp, d, C.shift(t, b), r) : G.APt}:
+  match t:
+    case 0n:
+      GP.add_zero_r(mp, d, hc, G.nmul(1n+mp, d, b, r), GP.nmul_on(mp, d, hc, b, r, hr))
+    case 1n+ +s:
+      %goal {G.nmul(1n+mp, d, Nat.double(C.shift(s, 1n)), G.nmul(1n+mp, d, b, r)) == G.nmul(1n+mp, d, Nat.double(C.shift(s, b)), r) : G.APt}
+      %rw nmul_double(mp, d, hc, C.shift(s, 1n), G.nmul(1n+mp, d, b, r), GP.nmul_on(mp, d, hc, b, r, hr))
+      %rw nmul_double(mp, d, hc, C.shift(s, b), r, hr)
+      %rw <- nmul_shift(mp, d, hc, s, b, G.aadd(1n+mp, d, r, r), GP.add_on(mp, d, hc, r, r, hr, hr))
+      %rw GP.nmul_dist(mp, d, hc, b, r, r, hr, hr)
+      %close
+
+# ---- one step: q = 2 q, plus a on a one bit ----
+
+def pick_valid(+mp: Nat, +d: Nat, b: Nat, +q: ED.EPt, +r: ED.EPt, +hq: GE.Valid(1n+mp, d, q), +hr: GE.Valid(1n+mp, d, r)) -> GE.Valid(1n+mp, d, ED.pick(b, q, r)):
+  match b:
+    case 0n:
+      hq
+    case 1n+c:
+      hr
+
+def pick_aff(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), b: Nat, +q: ED.EPt, +a: ED.EPt, +hb: {Nat.is_le(b, 1n) == True{} : Bool}, +hq: GE.Valid(1n+mp, d, q), +ha: GE.Valid(1n+mp, d, a)) -> {GE.affine(1n+mp, ED.pick(b, q, ED.add(1n+mp, d, q, a))) == G.aadd(1n+mp, d, GE.affine(1n+mp, q), G.nmul(1n+mp, d, b, GE.affine(1n+mp, a))) : G.APt}:
+  match b:
+    case 0n:
+      Equal.sym(G.APt, G.aadd(1n+mp, d, GE.affine(1n+mp, q), G.azero()), GE.affine(1n+mp, q), GP.add_zero_r(mp, d, hc, GE.affine(1n+mp, q), EX.aff_on(mp, d, q, hq)))
+    case 1n+c:
+      match c:
+        case 0n:
+          %goal {GE.affine(1n+mp, ED.add(1n+mp, d, q, a)) == G.aadd(1n+mp, d, GE.affine(1n+mp, q), G.aadd(1n+mp, d, GE.affine(1n+mp, a), G.azero())) : G.APt}
+          %rw GP.add_zero_r(mp, d, hc, GE.affine(1n+mp, a), EX.aff_on(mp, d, a, ha))
+          EX.add_aff(mp, d, hc, q, a, hq, ha)
+        case 1n+e:
+          Empty.absurd({GE.affine(1n+mp, ED.add(1n+mp, d, q, a)) == G.aadd(1n+mp, d, GE.affine(1n+mp, q), G.nmul(1n+mp, d, 2n+e, GE.affine(1n+mp, a))) : G.APt}, Lg.false_true(hb))
+
+# ---- double-and-add ----
+
+def smul_valid(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), n: Nat, +k: Nat, +a: ED.EPt, +q: ED.EPt, +ha: GE.Valid(1n+mp, d, a), +hq: GE.Valid(1n+mp, d, q)) -> GE.Valid(1n+mp, d, ED.smul(1n+mp, d, n, k, a, q)):
+  match n:
+    case 0n:
+      hq
+    case 1n+ +t:
+      +q2 = ED.double(1n+mp, q)
+      +h2 = EX.dbl_valid(mp, d, hc, q, hq)
+      smul_valid(mp, d, hc, t, k, a, ED.pick(SX.kbit(k, t), q2, ED.add(1n+mp, d, q2, a)), ha, pick_valid(mp, d, SX.kbit(k, t), q2, ED.add(1n+mp, d, q2, a), h2, EX.add_valid(mp, d, hc, q2, a, h2, ha)))
+
+# n steps from q: [2^n] q + [k mod 2^n] a
+def smul_aff(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), n: Nat, +k: Nat, +a: ED.EPt, +q: ED.EPt, +ha: GE.Valid(1n+mp, d, a), +hq: GE.Valid(1n+mp, d, q)) -> {GE.affine(1n+mp, ED.smul(1n+mp, d, n, k, a, q)) == G.aadd(1n+mp, d, G.nmul(1n+mp, d, C.shift(n, 1n), GE.affine(1n+mp, q)), G.nmul(1n+mp, d, C.low(n, k), GE.affine(1n+mp, a))) : G.APt}:
+  match n:
+    case 0n:
+      %goal {GE.affine(1n+mp, q) == G.aadd(1n+mp, d, G.aadd(1n+mp, d, GE.affine(1n+mp, q), G.azero()), G.azero()) : G.APt}
+      %rw GP.add_zero_r(mp, d, hc, GE.affine(1n+mp, q), EX.aff_on(mp, d, q, hq))
+      %rw GP.add_zero_r(mp, d, hc, GE.affine(1n+mp, q), EX.aff_on(mp, d, q, hq))
+      %close
+    case 1n+ +t:
+      +rq = GE.affine(1n+mp, q)
+      +ra = GE.affine(1n+mp, a)
+      +hrq = EX.aff_on(mp, d, q, hq)
+      +hra = EX.aff_on(mp, d, a, ha)
+      +h2 = EX.dbl_valid(mp, d, hc, q, hq)
+      +hrr = GP.add_on(mp, d, hc, GE.affine(1n+mp, q), GE.affine(1n+mp, q), hrq, hrq)
+      +hb = bit_le(C.high(t, k))
+      %goal {GE.affine(1n+mp, ED.smul(1n+mp, d, t, k, a, ED.pick(C.bit(C.high(t, k)), ED.double(1n+mp, q), ED.add(1n+mp, d, ED.double(1n+mp, q), a)))) == G.aadd(1n+mp, d, G.nmul(1n+mp, d, Nat.double(C.shift(t, 1n)), GE.affine(1n+mp, q)), G.nmul(1n+mp, d, C.low(1n+t, k), GE.affine(1n+mp, a))) : G.APt}
+      %rw smul_aff(mp, d, hc, t, k, a, ED.pick(C.bit(C.high(t, k)), ED.double(1n+mp, q), ED.add(1n+mp, d, ED.double(1n+mp, q), a)), ha, pick_valid(mp, d, C.bit(C.high(t, k)), ED.double(1n+mp, q), ED.add(1n+mp, d, ED.double(1n+mp, q), a), h2, EX.add_valid(mp, d, hc, ED.double(1n+mp, q), a, h2, ha)))
+      %rw pick_aff(mp, d, hc, C.bit(C.high(t, k)), ED.double(1n+mp, q), a, hb, h2, ha)
+      %rw EX.dbl_aff(mp, d, hc, q, hq)
+      %rw low_top(t, k)
+      %rw GP.nmul_add(mp, d, hc, C.low(t, k), C.shift(t, C.bit(C.high(t, k))), GE.affine(1n+mp, a), hra)
+      %rw nmul_double(mp, d, hc, C.shift(t, 1n), GE.affine(1n+mp, q), hrq)
+      %rw GP.nmul_dist(mp, d, hc, C.shift(t, 1n), G.aadd(1n+mp, d, GE.affine(1n+mp, q), GE.affine(1n+mp, q)), G.nmul(1n+mp, d, C.bit(C.high(t, k)), GE.affine(1n+mp, a)), hrr, GP.nmul_on(mp, d, hc, C.bit(C.high(t, k)), GE.affine(1n+mp, a), hra))
+      %rw nmul_shift(mp, d, hc, t, C.bit(C.high(t, k)), GE.affine(1n+mp, a), hra)
+      %rw GP.add_assoc(mp, d, hc, G.nmul(1n+mp, d, C.shift(t, 1n), G.aadd(1n+mp, d, GE.affine(1n+mp, q), GE.affine(1n+mp, q))), G.nmul(1n+mp, d, C.shift(t, C.bit(C.high(t, k))), GE.affine(1n+mp, a)), G.nmul(1n+mp, d, C.low(t, k), GE.affine(1n+mp, a)), GP.nmul_on(mp, d, hc, C.shift(t, 1n), G.aadd(1n+mp, d, GE.affine(1n+mp, q), GE.affine(1n+mp, q)), hrr), GP.nmul_on(mp, d, hc, C.shift(t, C.bit(C.high(t, k))), GE.affine(1n+mp, a), hra), GP.nmul_on(mp, d, hc, C.low(t, k), GE.affine(1n+mp, a), hra))
+      %rw GP.add_comm(mp, d, G.nmul(1n+mp, d, C.shift(t, C.bit(C.high(t, k))), GE.affine(1n+mp, a)), G.nmul(1n+mp, d, C.low(t, k), GE.affine(1n+mp, a)))
+      %close
+
+# ---- ED.mul ----
+
+def mul_valid(+one: Nat, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +k: Nat, +a: ED.EPt, +ha: GE.Valid(1n+mp, d, a)) -> GE.Valid(1n+mp, d, ED.mul(one, 1n+mp, d, k, a)):
+  smul_valid(mp, d, hc, C.shift(8n, one), k, a, ED.identity(), ha, EX.id_valid(mp, d, hc))
+
+# the affine point of [k] a is [k mod 2^(2^8 one)] (the affine point of a)
+def mul_aff(+one: Nat, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +k: Nat, +a: ED.EPt, +ha: GE.Valid(1n+mp, d, a)) -> {GE.affine(1n+mp, ED.mul(one, 1n+mp, d, k, a)) == G.nmul(1n+mp, d, C.low(C.shift(8n, one), k), GE.affine(1n+mp, a)) : G.APt}:
+  %goal {GE.affine(1n+mp, ED.smul(1n+mp, d, C.shift(8n, one), k, a, ED.identity())) == G.nmul(1n+mp, d, C.low(C.shift(8n, one), k), GE.affine(1n+mp, a)) : G.APt}
+  %rw smul_aff(mp, d, hc, C.shift(8n, one), k, a, ED.identity(), ha, EX.id_valid(mp, d, hc))
+  %rw EX.id_aff(mp, d, hc)
+  %rw GP.nmul_zero(mp, d, hc, C.shift(C.shift(8n, one), 1n))
+  GP.add_zero_l(mp, d, hc, G.nmul(1n+mp, d, C.low(C.shift(8n, one), k), GE.affine(1n+mp, a)), GP.nmul_on(mp, d, hc, C.low(C.shift(8n, one), k), GE.affine(1n+mp, a), EX.aff_on(mp, d, a, ha)))
+
+# for a scalar below 2^(2^8 one): [k] (the affine point of a)
+def mul_aff_fit(+one: Nat, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +k: Nat, +a: ED.EPt, +ha: GE.Valid(1n+mp, d, a), +hk: {C.fits(C.shift(8n, one), k) == True{} : Bool}) -> {GE.affine(1n+mp, ED.mul(one, 1n+mp, d, k, a)) == G.nmul(1n+mp, d, k, GE.affine(1n+mp, a)) : G.APt}:
+  Equal.trans(G.APt, GE.affine(1n+mp, ED.mul(one, 1n+mp, d, k, a)), G.nmul(1n+mp, d, C.low(C.shift(8n, one), k), GE.affine(1n+mp, a)), G.nmul(1n+mp, d, k, GE.affine(1n+mp, a)), mul_aff(one, mp, d, hc, k, a, ha),
+    Equal.cong(Nat, G.APt, z => G.nmul(1n+mp, d, z, GE.affine(1n+mp, a)), C.low(C.shift(8n, one), k), k, WW.low_fit(C.shift(8n, one), k, hk)))
