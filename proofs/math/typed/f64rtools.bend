@@ -157,6 +157,11 @@ def rs_c(+s: Bool, +k: Nat, +m: Nat, +x: Nat, +z: Bool, +hz: {Nat.is_eq(m, 0n) =
 def round_shift(+s: Bool, +k: Nat, +m: Nat, +x: Nat) -> {SF.round(s, C.shift(k, m), x) == SF.round(s, m, Nat.add(x, k)) : F.F64}:
   rs_c(s, k, m, x, Nat.is_eq(m, 0n), {==})
 
+# round_shift with the new exponent y == x + k given (a literal at the use), so
+# the result needs no conversion of Nat.add(x, k) inside SF.round
+def round_shift_to(+s: Bool, +k: Nat, +m: Nat, +x: Nat, +y: Nat, +hy: {Nat.add(x, k) == y : Nat}) -> {SF.round(s, C.shift(k, m), x) == SF.round(s, m, y) : F.F64}:
+  Equal.trans(F.F64, SF.round(s, C.shift(k, m), x), SF.round(s, m, Nat.add(x, k)), SF.round(s, m, y), round_shift(s, k, m, x), Equal.cong(Nat, F.F64, z => SF.round(s, m, z), Nat.add(x, k), y, hy))
+
 # ---- the sticky bit under the spec's round ----
 
 def max_ge_l(+a: Nat, +b: Nat) -> {Nat.is_le(a, Nat.max(a, b)) == True{} : Bool}:
