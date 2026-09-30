@@ -15,7 +15,7 @@ import ./da.bend as DA
 
 %def MT Maybe<&2, T>
 %def BL(d, xs) DAS.real(T, DAS.Sh{l, d, SC.length(T, xs), MK.mk(T, d, xs)})
-%def GP +l: Nat, +d: Nat, +xs: List<&2, T>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(T, xs), SC.pow2(d)) == True{} : Bool}
+%def GP +l: Nat, +d: Nat, +xs: List<&2, T>, +hl: {Nat.is_le(l, 29n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length(T, xs), SC.pow2(d)) == True{} : Bool}
 %def GA l, d, xs, hl, hd, hc
 %def DR(X) D.DynArray<&2, T> & Result<&2, &2, DE.Error, X>
 
@@ -25,7 +25,7 @@ def somes_mk(-T: Data, +d: Nat, +xs: List<&2, T>, +hc: {Nat.is_le(SC.length(T, x
 
 def good_mk(-T: Data, $GP) -> {DAS.good(T, DAS.Sh{l, d, SC.length(T, xs), MK.mk(T, d, xs)}) == True{} : Bool}:
   +hlay = L.subst(List<&2, $MT>, z => {LY.lay(T, z, SC.length(T, xs)) == True{} : Bool}, MK.fill(T, SC.pow2(d), xs), AR.slots($MT, MK.mk(T, d, xs)), Equal.sym(List<&2, $MT>, AR.slots($MT, MK.mk(T, d, xs)), MK.fill(T, SC.pow2(d), xs), MK.mk_slots(T, d, xs)), MK.fill_lay(T, SC.pow2(d), xs, hc))
-  DAS.good_intro(T, l, d, SC.length(T, xs), MK.mk(T, d, xs), hl, hd, MK.mk_perfect(T, d, xs), hlay)
+  DAS.good_intro(T, l, d, SC.length(T, xs), MK.mk(T, d, xs), N.le_trans(l, 29n, 31n, hl, {==}), hd, MK.mk_perfect(T, d, xs), hlay)
 
 %def GG good_mk(T, $GA)
 

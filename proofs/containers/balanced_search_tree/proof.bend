@@ -83,10 +83,10 @@ import ./vw.bend as VW
 #                          view_lower/floor/ceiling/higher_entry,
 #                          view_iterator
 
-def new_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp) -> {ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, 31n, 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == M.new(~K, ~V, ~cmp) : M.TreeMap<K, V, cmp>} & ({ST.model(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, 31n, 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == S.new(K, V) : S.Model<K, V>} & {ST.good(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, 31n, 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == True{} : Bool}):
+def new_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp) -> {ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, 29n, 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == M.new(~K, ~V, ~cmp) : M.TreeMap<K, V, cmp>} & ({ST.model(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, 29n, 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == S.new(K, V) : S.Model<K, V>} & {ST.good(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, 29n, 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == True{} : Bool}):
   LF.new_ok(~K, ~V, ~cmp)
 
-def with_limit_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: Nat) -> {ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, D.clamp_limit(k, Nat.is_lt(k, 31n)), 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == M.with_limit(~K, ~V, ~cmp, k) : M.TreeMap<K, V, cmp>} & ({ST.model(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, D.clamp_limit(k, Nat.is_lt(k, 31n)), 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == S.with_limit(K, V, k) : S.Model<K, V>} & {ST.good(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, D.clamp_limit(k, Nat.is_lt(k, 31n)), 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == True{} : Bool}):
+def with_limit_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: Nat) -> {ST.real(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, M.ns_clamp(k, Nat.is_lt(k, 29n)), 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == M.with_limit(~K, ~V, ~cmp, k) : M.TreeMap<K, V, cmp>} & ({ST.model(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, M.ns_clamp(k, Nat.is_lt(k, 29n)), 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == S.with_limit(K, V, k) : S.Model<K, V>} & {ST.good(~K, ~V, ~cmp, ST.SH{0n, 0n, 0n, 0n, 0n, M.ns_clamp(k, Nat.is_lt(k, 29n)), 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}) == True{} : Bool}):
   LF.with_limit_ok(~K, ~V, ~cmp, k)
 
 def get_ok(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~o: O.Order(~K, ~cmp), +sh: ST.Sh<K, V>, +hg: {ST.good(~K, ~V, ~cmp, sh) == True{} : Bool}, +k: K) -> OK.POK(~K, ~V, ~cmp, Maybe<&2, V>, S.get(~K, ~V, ~cmp, ST.model(~K, ~V, ~cmp, sh), k), M.get(~K, ~V, ~cmp, ST.real(~K, ~V, ~cmp, sh), k)):

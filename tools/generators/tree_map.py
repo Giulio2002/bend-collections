@@ -52,17 +52,22 @@ type Node<-K: Data> is Data:
   Free{next: Nat}
   N{red: Bool, left: Nat, right: Nat, parent: Nat, key: K}
 
-# Node storage: one array per node field instead of one array of Node
-# records. Reading a record out of an array hands back a shared copy that the
-# runtime reference-counts and takes apart field by field; a field read out of
-# its own array is a plain word. The store has the shape of a dynamic array
-# of nodes: slots [0, used) are live, the capacity is 2^depth <= 2^limit, and
-# it grows by doubling. A slot holds the encoding of its node by ntag (0 free,
-# 1 black, 2 red), nleft (the free-list link of a free slot), nright, nparent
-# and nkey (None when free); every other slot holds the encoding of Free{0},
-# so each array is exactly its field of the node list, padded.
+# Node storage: the four numeric fields of every node in one array of two
+# halves (the low half holds nleft at slot 2i and nright at 2i+1 of node i,
+# the high half ntag at 2i and nparent at 2i+1) and the keys in a second
+# one. Reading a record out of an array hands back a shared copy that the
+# runtime reference-counts and takes apart field by field; a field read out
+# of the links array is a plain word, a node's two children share a cache
+# line, and a walk over the children never touches the high half. The store
+# has the shape of a dynamic array of nodes: slots [0, used) are live, the
+# capacity is 2^depth <= 2^limit (the links array has 4 * 2^depth slots, so
+# limit <= 29 keeps it within Base's largest block), and it grows by
+# doubling each half. A slot holds the encoding of its node by ntag (0 free,
+# 1 black, 2 red), nleft (the free-list link of a free slot), nright,
+# nparent and nkey (None when free); every other slot holds the encoding of
+# Free{0}, so each half is exactly its two fields of the node list, padded.
 type NodeStore<-K: Data> is Type:
-  NS{limit: Nat, depth: Nat, cap: Nat, used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>}
+  NS{limit: Nat, depth: Nat, cap: Nat, used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>}
 
 def ntag(~K: Data, n: Node<K>) -> Nat:
   match n:
@@ -112,6 +117,18 @@ def mk_node(~K: Data, +t: Nat, +l: Nat, +r: Nat, +p: Nat, k: Maybe<&2, K>) -> No
     case 1n+ +c None{}:
       Free{l}
 
+# the largest limit (4 * 2^29 packed slots is Base's largest block)
+# the largest limit (4 * 2^29 link slots is Base's largest block)
+def ns_max() -> Nat:
+  29n
+
+def ns_clamp(+k: Nat, +small: Bool) -> Nat:
+  match small:
+    case True{}:
+      k
+    case False{}:
+      ns_max()
+
 def ns_nats(+d: Nat) -> Array<Nat>:
   Array.new(Nat, d, 0n)
 
@@ -119,127 +136,115 @@ def ns_nokeys(~K: Data, +d: Nat) -> Array<Maybe<&2, K>>:
   Array.new(Maybe<&2, K>, d, None{})
 
 def ns_empty(~K: Data, +limit: Nat) -> NodeStore<K>:
-  NS{limit, 0n, 1n, 0n, ns_nats(0n), ns_nats(0n), ns_nats(0n), ns_nats(0n), ns_nokeys(~K, 0n)}
+  NS{limit, 0n, 1n, 0n, ns_nats(2n), ns_nokeys(~K, 0n)}
 
 def ns_new(~K: Data) -> NodeStore<K>:
-  ns_empty(~K, D.max_depth())
+  ns_empty(~K, ns_max())
 
 def ns_with_limit(~K: Data, +k: Nat) -> NodeStore<K>:
-  ns_empty(~K, D.clamp_limit(k, Nat.is_lt(k, D.max_depth())))
+  ns_empty(~K, ns_clamp(k, Nat.is_lt(k, ns_max())))
 
 def ns_length(~K: Data, s: NodeStore<K>) -> NodeStore<K> & Nat:
-  NS{limit, depth, cap, +used, tags, lefts, rights, parents, keys} = s
-  (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, used)
+  NS{limit, depth, cap, +used, links, keys} = s
+  (NS{limit, depth, cap, used, links, keys}, used)
 
 # ---- reading a slot ----
 
-def ns_rk(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, +t: Nat, +l: Nat, +r: Nat, +p: Nat, q: Array<Maybe<&2, K>> & Maybe<&2, K>) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
+def ns_rk(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, +t: Nat, +l: Nat, +r: Nat, +p: Nat, q: Array<Maybe<&2, K>> & Maybe<&2, K>) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
   (keys, k) = q
-  (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, Done{mk_node(~K, t, l, r, p, k)})
+  (NS{limit, depth, cap, used, links, keys}, Done{mk_node(~K, t, l, r, p, k)})
 
-def ns_rp(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: U32, +t: Nat, +l: Nat, +r: Nat, q: Array<Nat> & Nat) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
-  (parents, +p) = q
-  ns_rk(~K, limit, depth, cap, used, tags, lefts, rights, parents, t, l, r, p, Array.get(Maybe<&2, K>, keys, i))
+def ns_rp(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, keys: Array<Maybe<&2, K>>, +i: Nat, +t: Nat, +l: Nat, +r: Nat, q: Array<Nat> & Nat) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
+  (links, +p) = q
+  ns_rk(~K, limit, depth, cap, used, links, t, l, r, p, Array.get(Maybe<&2, K>, keys, U32.from_nat(i)))
 
-def ns_rr(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: U32, +t: Nat, +l: Nat, q: Array<Nat> & Nat) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
-  (rights, +r) = q
-  ns_rp(~K, limit, depth, cap, used, tags, lefts, rights, keys, i, t, l, r, Array.get(Nat, parents, i))
+def ns_rr(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, keys: Array<Maybe<&2, K>>, +i: Nat, +t: Nat, +l: Nat, q: Array<Nat> & Nat) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
+  (links, +r) = q
+  ns_rp(~K, limit, depth, cap, used, keys, i, t, l, r, Array.get(Nat, links, U32.from_nat(1n+Nat.double(Nat.add(cap, i)))))
 
-def ns_rl(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: U32, +t: Nat, q: Array<Nat> & Nat) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
-  (lefts, +l) = q
-  ns_rr(~K, limit, depth, cap, used, tags, lefts, parents, keys, i, t, l, Array.get(Nat, rights, i))
+def ns_rl(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, keys: Array<Maybe<&2, K>>, +i: Nat, +t: Nat, q: Array<Nat> & Nat) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
+  (links, +l) = q
+  ns_rr(~K, limit, depth, cap, used, keys, i, t, l, Array.get(Nat, links, U32.from_nat(1n+Nat.double(i))))
 
-def ns_rt(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: U32, q: Array<Nat> & Nat) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
-  (tags, +t) = q
-  ns_rl(~K, limit, depth, cap, used, tags, rights, parents, keys, i, t, Array.get(Nat, lefts, i))
+def ns_rt(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, keys: Array<Maybe<&2, K>>, +i: Nat, q: Array<Nat> & Nat) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
+  (links, +t) = q
+  ns_rl(~K, limit, depth, cap, used, keys, i, t, Array.get(Nat, links, U32.from_nat(Nat.double(i))))
 
-def ns_get_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, ok: Bool) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
+def ns_get_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, ok: Bool) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
   match ok:
     case True{}:
-      ns_rt(~K, limit, depth, cap, used, lefts, rights, parents, keys, U32.from_nat(i), Array.get(Nat, tags, U32.from_nat(i)))
+      ns_rt(~K, limit, depth, cap, used, keys, i, Array.get(Nat, links, U32.from_nat(Nat.double(Nat.add(cap, i)))))
     case False{}:
-      (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, Fail{DE.IndexOutOfRange{}})
+      (NS{limit, depth, cap, used, links, keys}, Fail{DE.IndexOutOfRange{}})
 
 def ns_get(~K: Data, s: NodeStore<K>, +i: Nat) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
-  NS{limit, depth, cap, +used, tags, lefts, rights, parents, keys} = s
-  ns_get_ok(~K, limit, depth, cap, used, tags, lefts, rights, parents, keys, i, Nat.is_lt(i, used))
+  NS{+limit, +depth, +cap, +used, links, keys} = s
+  ns_get_ok(~K, limit, depth, cap, used, links, keys, i, Nat.is_lt(i, used))
 
 # ---- reading one field of a slot (0, the encoding of Free{0}, past the length) ----
 
-def ns_tag_fin(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, q: Array<Nat> & Nat) -> NodeStore<K> & Nat:
-  (tags, +x) = q
-  (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, x)
+def ns_field_fin(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, keys: Array<Maybe<&2, K>>, q: Array<Nat> & Nat) -> NodeStore<K> & Nat:
+  (links, +x) = q
+  (NS{limit, depth, cap, used, links, keys}, x)
 
-def ns_tag_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, ok: Bool) -> NodeStore<K> & Nat:
+def ns_tag_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, ok: Bool) -> NodeStore<K> & Nat:
   match ok:
     case True{}:
-      ns_tag_fin(~K, limit, depth, cap, used, lefts, rights, parents, keys, Array.get(Nat, tags, U32.from_nat(i)))
+      ns_field_fin(~K, limit, depth, cap, used, keys, Array.get(Nat, links, U32.from_nat(Nat.double(Nat.add(cap, i)))))
     case False{}:
-      (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, 0n)
+      (NS{limit, depth, cap, used, links, keys}, 0n)
 
 def ns_tag_at(~K: Data, s: NodeStore<K>, +i: Nat) -> NodeStore<K> & Nat:
-  NS{limit, depth, cap, +used, tags, lefts, rights, parents, keys} = s
-  ns_tag_ok(~K, limit, depth, cap, used, tags, lefts, rights, parents, keys, i, Nat.is_lt(i, used))
+  NS{+limit, +depth, +cap, +used, links, keys} = s
+  ns_tag_ok(~K, limit, depth, cap, used, links, keys, i, Nat.is_lt(i, used))
 
-def ns_left_fin(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, q: Array<Nat> & Nat) -> NodeStore<K> & Nat:
-  (lefts, +x) = q
-  (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, x)
-
-def ns_left_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, ok: Bool) -> NodeStore<K> & Nat:
+def ns_left_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, ok: Bool) -> NodeStore<K> & Nat:
   match ok:
     case True{}:
-      ns_left_fin(~K, limit, depth, cap, used, tags, rights, parents, keys, Array.get(Nat, lefts, U32.from_nat(i)))
+      ns_field_fin(~K, limit, depth, cap, used, keys, Array.get(Nat, links, U32.from_nat(Nat.double(i))))
     case False{}:
-      (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, 0n)
+      (NS{limit, depth, cap, used, links, keys}, 0n)
 
 def ns_left_at(~K: Data, s: NodeStore<K>, +i: Nat) -> NodeStore<K> & Nat:
-  NS{limit, depth, cap, +used, tags, lefts, rights, parents, keys} = s
-  ns_left_ok(~K, limit, depth, cap, used, tags, lefts, rights, parents, keys, i, Nat.is_lt(i, used))
+  NS{+limit, +depth, +cap, +used, links, keys} = s
+  ns_left_ok(~K, limit, depth, cap, used, links, keys, i, Nat.is_lt(i, used))
 
-def ns_right_fin(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, q: Array<Nat> & Nat) -> NodeStore<K> & Nat:
-  (rights, +x) = q
-  (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, x)
-
-def ns_right_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, ok: Bool) -> NodeStore<K> & Nat:
+def ns_right_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, ok: Bool) -> NodeStore<K> & Nat:
   match ok:
     case True{}:
-      ns_right_fin(~K, limit, depth, cap, used, tags, lefts, parents, keys, Array.get(Nat, rights, U32.from_nat(i)))
+      ns_field_fin(~K, limit, depth, cap, used, keys, Array.get(Nat, links, U32.from_nat(1n+Nat.double(i))))
     case False{}:
-      (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, 0n)
+      (NS{limit, depth, cap, used, links, keys}, 0n)
 
 def ns_right_at(~K: Data, s: NodeStore<K>, +i: Nat) -> NodeStore<K> & Nat:
-  NS{limit, depth, cap, +used, tags, lefts, rights, parents, keys} = s
-  ns_right_ok(~K, limit, depth, cap, used, tags, lefts, rights, parents, keys, i, Nat.is_lt(i, used))
+  NS{+limit, +depth, +cap, +used, links, keys} = s
+  ns_right_ok(~K, limit, depth, cap, used, links, keys, i, Nat.is_lt(i, used))
 
-def ns_parent_fin(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, keys: Array<Maybe<&2, K>>, q: Array<Nat> & Nat) -> NodeStore<K> & Nat:
-  (parents, +x) = q
-  (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, x)
-
-def ns_parent_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, ok: Bool) -> NodeStore<K> & Nat:
+def ns_parent_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, ok: Bool) -> NodeStore<K> & Nat:
   match ok:
     case True{}:
-      ns_parent_fin(~K, limit, depth, cap, used, tags, lefts, rights, keys, Array.get(Nat, parents, U32.from_nat(i)))
+      ns_field_fin(~K, limit, depth, cap, used, keys, Array.get(Nat, links, U32.from_nat(1n+Nat.double(Nat.add(cap, i)))))
     case False{}:
-      (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, 0n)
+      (NS{limit, depth, cap, used, links, keys}, 0n)
 
 def ns_parent_at(~K: Data, s: NodeStore<K>, +i: Nat) -> NodeStore<K> & Nat:
-  NS{limit, depth, cap, +used, tags, lefts, rights, parents, keys} = s
-  ns_parent_ok(~K, limit, depth, cap, used, tags, lefts, rights, parents, keys, i, Nat.is_lt(i, used))
+  NS{+limit, +depth, +cap, +used, links, keys} = s
+  ns_parent_ok(~K, limit, depth, cap, used, links, keys, i, Nat.is_lt(i, used))
 
-def ns_key_fin(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, q: Array<Maybe<&2, K>> & Maybe<&2, K>) -> NodeStore<K> & Maybe<&2, K>:
+def ns_key_fin(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, q: Array<Maybe<&2, K>> & Maybe<&2, K>) -> NodeStore<K> & Maybe<&2, K>:
   (keys, x) = q
-  (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, x)
+  (NS{limit, depth, cap, used, links, keys}, x)
 
-def ns_key_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, ok: Bool) -> NodeStore<K> & Maybe<&2, K>:
+def ns_key_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, ok: Bool) -> NodeStore<K> & Maybe<&2, K>:
   match ok:
     case True{}:
-      ns_key_fin(~K, limit, depth, cap, used, tags, lefts, rights, parents, Array.get(Maybe<&2, K>, keys, U32.from_nat(i)))
+      ns_key_fin(~K, limit, depth, cap, used, links, Array.get(Maybe<&2, K>, keys, U32.from_nat(i)))
     case False{}:
-      (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, None{})
+      (NS{limit, depth, cap, used, links, keys}, None{})
 
 def ns_key_at(~K: Data, s: NodeStore<K>, +i: Nat) -> NodeStore<K> & Maybe<&2, K>:
-  NS{limit, depth, cap, +used, tags, lefts, rights, parents, keys} = s
-  ns_key_ok(~K, limit, depth, cap, used, tags, lefts, rights, parents, keys, i, Nat.is_lt(i, used))
+  NS{+limit, +depth, +cap, +used, links, keys} = s
+  ns_key_ok(~K, limit, depth, cap, used, links, keys, i, Nat.is_lt(i, used))
 
 # ---- writing one field of a live slot (free slots and ids past the length unchanged) ----
 
@@ -250,135 +255,144 @@ def ns_red_tag(red: Bool) -> Nat:
     case False{}:
       1n
 
-def ns_set_left_tag(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Nat, q: Array<Nat> & Nat) -> NodeStore<K>:
+def ns_set_left_tag(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Nat, q: Array<Nat> & Nat) -> NodeStore<K>:
   match q:
-    case Tuple{tags, 0n}:
-      NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}
-    case Tuple{tags, 1n+c}:
-      NS{limit, depth, cap, used, tags, Array.set(Nat, lefts, U32.from_nat(i), v), rights, parents, keys}
+    case Tuple{links, 0n}:
+      NS{limit, depth, cap, used, links, keys}
+    case Tuple{links, 1n+t}:
+      NS{limit, depth, cap, used, Array.set(Nat, links, U32.from_nat(Nat.double(i)), v), keys}
 
-def ns_set_left_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Nat, ok: Bool) -> NodeStore<K>:
+def ns_set_left_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Nat, ok: Bool) -> NodeStore<K>:
   match ok:
     case True{}:
-      ns_set_left_tag(~K, limit, depth, cap, used, lefts, rights, parents, keys, i, v, Array.get(Nat, tags, U32.from_nat(i)))
+      ns_set_left_tag(~K, limit, depth, cap, used, keys, i, v, Array.get(Nat, links, U32.from_nat(Nat.double(Nat.add(cap, i)))))
     case False{}:
-      NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}
+      NS{limit, depth, cap, used, links, keys}
 
 def ns_set_left(~K: Data, s: NodeStore<K>, +i: Nat, +v: Nat) -> NodeStore<K>:
-  NS{limit, depth, cap, +used, tags, lefts, rights, parents, keys} = s
-  ns_set_left_ok(~K, limit, depth, cap, used, tags, lefts, rights, parents, keys, i, v, Nat.is_lt(i, used))
+  NS{+limit, +depth, +cap, +used, links, keys} = s
+  ns_set_left_ok(~K, limit, depth, cap, used, links, keys, i, v, Nat.is_lt(i, used))
 
-def ns_set_right_tag(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Nat, q: Array<Nat> & Nat) -> NodeStore<K>:
+def ns_set_right_tag(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Nat, q: Array<Nat> & Nat) -> NodeStore<K>:
   match q:
-    case Tuple{tags, 0n}:
-      NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}
-    case Tuple{tags, 1n+c}:
-      NS{limit, depth, cap, used, tags, lefts, Array.set(Nat, rights, U32.from_nat(i), v), parents, keys}
+    case Tuple{links, 0n}:
+      NS{limit, depth, cap, used, links, keys}
+    case Tuple{links, 1n+t}:
+      NS{limit, depth, cap, used, Array.set(Nat, links, U32.from_nat(1n+Nat.double(i)), v), keys}
 
-def ns_set_right_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Nat, ok: Bool) -> NodeStore<K>:
+def ns_set_right_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Nat, ok: Bool) -> NodeStore<K>:
   match ok:
     case True{}:
-      ns_set_right_tag(~K, limit, depth, cap, used, lefts, rights, parents, keys, i, v, Array.get(Nat, tags, U32.from_nat(i)))
+      ns_set_right_tag(~K, limit, depth, cap, used, keys, i, v, Array.get(Nat, links, U32.from_nat(Nat.double(Nat.add(cap, i)))))
     case False{}:
-      NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}
+      NS{limit, depth, cap, used, links, keys}
 
 def ns_set_right(~K: Data, s: NodeStore<K>, +i: Nat, +v: Nat) -> NodeStore<K>:
-  NS{limit, depth, cap, +used, tags, lefts, rights, parents, keys} = s
-  ns_set_right_ok(~K, limit, depth, cap, used, tags, lefts, rights, parents, keys, i, v, Nat.is_lt(i, used))
+  NS{+limit, +depth, +cap, +used, links, keys} = s
+  ns_set_right_ok(~K, limit, depth, cap, used, links, keys, i, v, Nat.is_lt(i, used))
 
-def ns_set_parent_tag(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Nat, q: Array<Nat> & Nat) -> NodeStore<K>:
+def ns_set_parent_tag(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Nat, q: Array<Nat> & Nat) -> NodeStore<K>:
   match q:
-    case Tuple{tags, 0n}:
-      NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}
-    case Tuple{tags, 1n+c}:
-      NS{limit, depth, cap, used, tags, lefts, rights, Array.set(Nat, parents, U32.from_nat(i), v), keys}
+    case Tuple{links, 0n}:
+      NS{limit, depth, cap, used, links, keys}
+    case Tuple{links, 1n+t}:
+      NS{limit, depth, cap, used, Array.set(Nat, links, U32.from_nat(1n+Nat.double(Nat.add(cap, i))), v), keys}
 
-def ns_set_parent_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Nat, ok: Bool) -> NodeStore<K>:
+def ns_set_parent_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Nat, ok: Bool) -> NodeStore<K>:
   match ok:
     case True{}:
-      ns_set_parent_tag(~K, limit, depth, cap, used, lefts, rights, parents, keys, i, v, Array.get(Nat, tags, U32.from_nat(i)))
+      ns_set_parent_tag(~K, limit, depth, cap, used, keys, i, v, Array.get(Nat, links, U32.from_nat(Nat.double(Nat.add(cap, i)))))
     case False{}:
-      NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}
+      NS{limit, depth, cap, used, links, keys}
 
 def ns_set_parent(~K: Data, s: NodeStore<K>, +i: Nat, +v: Nat) -> NodeStore<K>:
-  NS{limit, depth, cap, +used, tags, lefts, rights, parents, keys} = s
-  ns_set_parent_ok(~K, limit, depth, cap, used, tags, lefts, rights, parents, keys, i, v, Nat.is_lt(i, used))
+  NS{+limit, +depth, +cap, +used, links, keys} = s
+  ns_set_parent_ok(~K, limit, depth, cap, used, links, keys, i, v, Nat.is_lt(i, used))
 
-def ns_set_red_tag(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Bool, q: Array<Nat> & Nat) -> NodeStore<K>:
+def ns_set_red_tag(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Bool, q: Array<Nat> & Nat) -> NodeStore<K>:
   match q:
-    case Tuple{tags, 0n}:
-      NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}
-    case Tuple{tags, 1n+c}:
-      NS{limit, depth, cap, used, Array.set(Nat, tags, U32.from_nat(i), ns_red_tag(v)), lefts, rights, parents, keys}
+    case Tuple{links, 0n}:
+      NS{limit, depth, cap, used, links, keys}
+    case Tuple{links, 1n+t}:
+      NS{limit, depth, cap, used, Array.set(Nat, links, U32.from_nat(Nat.double(Nat.add(cap, i))), ns_red_tag(v)), keys}
 
-def ns_set_red_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Bool, ok: Bool) -> NodeStore<K>:
+def ns_set_red_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +v: Bool, ok: Bool) -> NodeStore<K>:
   match ok:
     case True{}:
-      ns_set_red_tag(~K, limit, depth, cap, used, lefts, rights, parents, keys, i, v, Array.get(Nat, tags, U32.from_nat(i)))
+      ns_set_red_tag(~K, limit, depth, cap, used, keys, i, v, Array.get(Nat, links, U32.from_nat(Nat.double(Nat.add(cap, i)))))
     case False{}:
-      NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}
+      NS{limit, depth, cap, used, links, keys}
 
 def ns_set_red(~K: Data, s: NodeStore<K>, +i: Nat, +v: Bool) -> NodeStore<K>:
-  NS{limit, depth, cap, +used, tags, lefts, rights, parents, keys} = s
-  ns_set_red_ok(~K, limit, depth, cap, used, tags, lefts, rights, parents, keys, i, v, Nat.is_lt(i, used))
+  NS{+limit, +depth, +cap, +used, links, keys} = s
+  ns_set_red_ok(~K, limit, depth, cap, used, links, keys, i, v, Nat.is_lt(i, used))
 
-# ---- writing a slot: the encoding of the node in all five arrays ----
+# ---- writing a slot: the encoding of the node in its four link slots and its key ----
 
-def ns_put(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: U32, +node: Node<K>) -> NodeStore<K>:
-  NS{limit, depth, cap, used, Array.set(Nat, tags, i, ntag(~K, node)), Array.set(Nat, lefts, i, nleft(~K, node)), Array.set(Nat, rights, i, nright(~K, node)), Array.set(Nat, parents, i, nparent(~K, node)), Array.set(Maybe<&2, K>, keys, i, nkey(~K, node))}
+def ns_put(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +node: Node<K>) -> NodeStore<K>:
+  NS{limit, depth, cap, used, Array.set(Nat, Array.set(Nat, Array.set(Nat, Array.set(Nat, links, U32.from_nat(Nat.double(i)), nleft(~K, node)), U32.from_nat(1n+Nat.double(i)), nright(~K, node)), U32.from_nat(Nat.double(Nat.add(cap, i))), ntag(~K, node)), U32.from_nat(1n+Nat.double(Nat.add(cap, i))), nparent(~K, node)), Array.set(Maybe<&2, K>, keys, U32.from_nat(i), nkey(~K, node))}
 
-def ns_set_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +node: Node<K>, ok: Bool) -> NodeStore<K> & Result<&2, &2, DE.Error, Unit>:
+def ns_set_ok(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>, +i: Nat, +node: Node<K>, ok: Bool) -> NodeStore<K> & Result<&2, &2, DE.Error, Unit>:
   match ok:
     case True{}:
-      (ns_put(~K, limit, depth, cap, used, tags, lefts, rights, parents, keys, U32.from_nat(i), node), Done{Unit{}})
+      (ns_put(~K, limit, depth, cap, used, links, keys, i, node), Done{Unit{}})
     case False{}:
-      (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, Fail{DE.IndexOutOfRange{}})
+      (NS{limit, depth, cap, used, links, keys}, Fail{DE.IndexOutOfRange{}})
 
 def ns_set(~K: Data, s: NodeStore<K>, +i: Nat, +node: Node<K>) -> NodeStore<K> & Result<&2, &2, DE.Error, Unit>:
-  NS{limit, depth, cap, +used, tags, lefts, rights, parents, keys} = s
-  ns_set_ok(~K, limit, depth, cap, used, tags, lefts, rights, parents, keys, i, node, Nat.is_lt(i, used))
+  NS{+limit, +depth, +cap, +used, links, keys} = s
+  ns_set_ok(~K, limit, depth, cap, used, links, keys, i, node, Nat.is_lt(i, used))
 
 # ---- appending a slot ----
 
-def ns_grow_nats(+depth: Nat, a: Array<Nat>) -> Array<Nat>:
-  ANode{a, ns_nats(depth)}
+# each half doubled (a leaf cannot occur: the links array has two halves)
+def ns_grow_links(+depth: Nat, a: Array<Nat>) -> Array<Nat>:
+  match a:
+    case ALeaf{x}:
+      ALeaf{x}
+    case ANode{lo, hi}:
+      ANode{ANode{lo, ns_nats(1n+depth)}, ANode{hi, ns_nats(1n+depth)}}
 
 def ns_grow_keys(~K: Data, +depth: Nat, a: Array<Maybe<&2, K>>) -> Array<Maybe<&2, K>>:
   ANode{a, ns_nokeys(~K, depth)}
 
-def ns_push_room(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>, +node: Node<K>, room: Bool, grow: Bool) -> NodeStore<K> & Result<&2, &2, DE.Error, Unit>:
+def ns_push_room(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>, +node: Node<K>, room: Bool, grow: Bool) -> NodeStore<K> & Result<&2, &2, DE.Error, Unit>:
   match room grow:
     case True{} _:
-      (ns_put(~K, limit, depth, cap, 1n+used, tags, lefts, rights, parents, keys, U32.from_nat(used), node), Done{Unit{}})
+      (ns_put(~K, limit, depth, cap, 1n+used, links, keys, used, node), Done{Unit{}})
     case False{} True{}:
-      (ns_put(~K, limit, 1n+depth, Nat.double(cap), 1n+used, ns_grow_nats(depth, tags), ns_grow_nats(depth, lefts), ns_grow_nats(depth, rights), ns_grow_nats(depth, parents), ns_grow_keys(~K, depth, keys), U32.from_nat(used), node), Done{Unit{}})
+      (ns_put(~K, limit, 1n+depth, Nat.double(cap), 1n+used, ns_grow_links(depth, links), ns_grow_keys(~K, depth, keys), used, node), Done{Unit{}})
     case False{} False{}:
-      (NS{limit, depth, cap, used, tags, lefts, rights, parents, keys}, Fail{DE.CapacityExceeded{}})
+      (NS{limit, depth, cap, used, links, keys}, Fail{DE.CapacityExceeded{}})
 
 def ns_push(~K: Data, s: NodeStore<K>, +node: Node<K>) -> NodeStore<K> & Result<&2, &2, DE.Error, Unit>:
-  NS{+limit, +depth, +cap, +used, tags, lefts, rights, parents, keys} = s
-  ns_push_room(~K, limit, depth, cap, used, tags, lefts, rights, parents, keys, node, Nat.is_lt(used, cap), Nat.is_lt(depth, limit))
+  NS{+limit, +depth, +cap, +used, links, keys} = s
+  ns_push_room(~K, limit, depth, cap, used, links, keys, node, Nat.is_lt(used, cap), Nat.is_lt(depth, limit))
 
 # ---- dropping slots: the dropped slots get the encoding of Free{0} back ----
 
+# the last slot's four link slots zeroed from the top of each half down
+def ns_wipe(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, +i: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>) -> NodeStore<K>:
+  NS{limit, depth, cap, i, Array.set(Nat, Array.set(Nat, Array.set(Nat, Array.set(Nat, links, U32.from_nat(1n+Nat.double(i)), nright(~K, Free{0n})), U32.from_nat(Nat.double(i)), nleft(~K, Free{0n})), U32.from_nat(1n+Nat.double(Nat.add(cap, i))), nparent(~K, Free{0n})), U32.from_nat(Nat.double(Nat.add(cap, i))), ntag(~K, Free{0n})), Array.set(Maybe<&2, K>, keys, U32.from_nat(i), None{})}
+
 def ns_drop(~K: Data, s: NodeStore<K>, +m: Nat) -> NodeStore<K>:
-  NS{limit, depth, cap, used, tags, lefts, rights, parents, keys} = s
-  ns_put(~K, limit, depth, cap, m, tags, lefts, rights, parents, keys, U32.from_nat(m), Free{0n})
+  NS{+limit, +depth, +cap, used, links, keys} = s
+  ns_wipe(~K, limit, depth, cap, m, links, keys)
 
 def ns_pop_fin(~K: Data, +m: Nat, r: NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
   (s, x) = r
   (ns_drop(~K, s, m), x)
 
-def ns_pop_n(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, used: Nat, tags: Array<Nat>, lefts: Array<Nat>, rights: Array<Nat>, parents: Array<Nat>, keys: Array<Maybe<&2, K>>) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
+def ns_pop_n(~K: Data, +limit: Nat, +depth: Nat, +cap: Nat, used: Nat, links: Array<Nat>, keys: Array<Maybe<&2, K>>) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
   match used:
     case 0n:
-      (NS{limit, depth, cap, 0n, tags, lefts, rights, parents, keys}, Fail{DE.EmptyArray{}})
+      (NS{limit, depth, cap, 0n, links, keys}, Fail{DE.EmptyArray{}})
     case 1n+ +m:
-      ns_pop_fin(~K, m, ns_get(~K, NS{limit, depth, cap, 1n+m, tags, lefts, rights, parents, keys}, m))
+      ns_pop_fin(~K, m, ns_get(~K, NS{limit, depth, cap, 1n+m, links, keys}, m))
 
 def ns_pop(~K: Data, s: NodeStore<K>) -> NodeStore<K> & Result<&2, &2, DE.Error, Node<K>>:
-  NS{+limit, +depth, +cap, used, tags, lefts, rights, parents, keys} = s
-  ns_pop_n(~K, limit, depth, cap, used, tags, lefts, rights, parents, keys)
+  NS{+limit, +depth, +cap, used, links, keys} = s
+  ns_pop_n(~K, limit, depth, cap, used, links, keys)
 
 def ns_clear_go(~K: Data, k: Nat, s: NodeStore<K>) -> NodeStore<K>:
   match k:
@@ -389,8 +403,8 @@ def ns_clear_go(~K: Data, k: Nat, s: NodeStore<K>) -> NodeStore<K>:
 
 # O(used): resets the live slots top down and keeps the capacity.
 def ns_clear(~K: Data, s: NodeStore<K>) -> NodeStore<K>:
-  NS{limit, depth, cap, +used, tags, lefts, rights, parents, keys} = s
-  ns_clear_go(~K, used, NS{limit, depth, cap, used, tags, lefts, rights, parents, keys})
+  NS{limit, depth, cap, +used, links, keys} = s
+  ns_clear_go(~K, used, NS{limit, depth, cap, used, links, keys})
 
 type TreeMap<-K: Data, -V: Data, -cmp: K -> K -> Cmp> is Type:
   TM{size: Nat, root: Nat, first: Nat, last: Nat, free: Nat,
@@ -458,7 +472,7 @@ def child(-K: Data, +n: Node<K>, forward: Bool) -> Nat:
 
 # All links reference live slots. Free slots contain no key and no value.
 ''')
-fun('new','',T,'  TM{0n, 0n, 0n, 0n, 0n, ns_new(~K), D.new_at(~Maybe<&2, V>)}')
+fun('new','',T,'  TM{0n, 0n, 0n, 0n, 0n, ns_new(~K), D.DA{ns_max(), 0n, 1n, 0n, D.empty_slots_at(~Maybe<&2, V>, 0n)}}')
 fun('size',f'm: {T}',T+' & Nat','  TM{+n, root, lo, hi, free, nodes, values} = m\n  (TM{n, root, lo, hi, free, nodes, values}, n)')
 fun('root_id',f'm: {T}',T+' & Nat','  TM{n, +root, lo, hi, free, nodes, values} = m\n  (TM{n, root, lo, hi, free, nodes, values}, root)')
 fun('first_id',f'm: {T}',T+' & Nat','  TM{n, root, +lo, hi, free, nodes, values} = m\n  (TM{n, root, lo, hi, free, nodes, values}, lo)')
@@ -950,7 +964,7 @@ for name in ['first','last']:
     raw(f'''def {name}_entry(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: {T}) -> {T} & Maybe<&2, Entry<K, V>>:
   entry_snapshot({A}, {name}_id({A}, m))''')
 
-fun('with_limit',f'limit: Nat',T,'  TM{0n, 0n, 0n, 0n, 0n, ns_with_limit(~K, limit), D.with_limit_at(~Maybe<&2, V>, limit)}')
+fun('with_limit',f'limit: Nat',T,'  TM{0n, 0n, 0n, 0n, 0n, ns_with_limit(~K, limit), D.DA{ns_clamp(limit, Nat.is_lt(limit, ns_max())), 0n, 1n, 0n, D.empty_slots_at(~Maybe<&2, V>, 0n)}}')
 
 # Additional map updates do one search and retain the comparator-equivalent key.
 fun('put_absent_found',f'k: K, v: V, r: {T} & Search',T+' & Result<&2, &2, Rejected<K, V>, Maybe<&2, V>>',f'''  match r:
@@ -1233,6 +1247,94 @@ fun('view_clear_loop',f'fuel: Nat, st: {C} & Maybe<&2, Entry<K, V>>',W,f'''  mat
       view_clear_loop({A}, f, view_clear_next({A}, iterator_remove({A}, cursor)))''')
 fun('view_clear',f'view: {W}',W,f'''  View{{TM{{+n, root, lo, hi, free, nodes, values}}, lower, upper, descending}} = view
   view_clear_loop({A}, 1n+n, iterator_next({A}, view_iterator({A}, View{{TM{{n, root, lo, hi, free, nodes, values}}, lower, upper, descending}})))''')
+
+
+# ---- folds: an in-order walk over the link arrays, no cursor ----
+# The walk keeps an explicit stack of ids whose left subtree is being walked
+# (fuel 2n + 2 covers a push and a pop per node). fold_range skips a node and
+# its left subtree when its key is below the lower bound and stops at the first
+# key above the upper bound; the keys are sorted in order, so what it skips and
+# what it leaves are outside the range.
+raw('''type Walk<-K: Data, -V: Data, -A: Data> is Type:
+  WK{lk: Array<Nat>, ks: Array<Maybe<&2, K>>, ps: Array<Maybe<&2, Maybe<&2, V>>>, acc: A, cur: Nat, st: List<&2, Nat>}''')
+raw('''# The in-order walk's step: at the current id (Down), its key against the
+# lower bound (Seek), a popped id's key against the upper bound and its
+# value folded in (Emit).
+type Step is Data:
+  WDown{}
+  WSeek{}
+  WEmit{}''')
+raw('''def walk_apply(~K: Data, ~V: Data, ~A: Data, ~f: A -> K -> V -> A, inside: Bool, a: A, k: K, v: V) -> A:
+  match inside:
+    case True{}:
+      f(a, k, v)
+    case False{}:
+      a''')
+raw('''def walk_side(+inside: Bool) -> Nat:
+  match inside:
+    case True{}:
+      0n
+    case False{}:
+      1n''')
+raw('''def walk_push(+inside: Bool, +i: Nat, st: List<&2, Nat>) -> List<&2, Nat>:
+  match inside:
+    case True{}:
+      Con{i, st}
+    case False{}:
+      st''')
+raw('''def walk_out(~K: Data, ~V: Data, ~A: Data, a: A, st: List<&2, Nat>, lq: Array<Nat> & Nat, kq: Array<Maybe<&2, K>> & Maybe<&2, K>, pq: Array<Maybe<&2, Maybe<&2, V>>> & Maybe<&2, Maybe<&2, V>>) -> Walk<K, V, A>:
+  match lq kq pq:
+    case Tuple{lk, +x} Tuple{ks, y} Tuple{ps, z}:
+      WK{lk, ks, ps, a, x, st}''')
+raw('''# One loop: every array read's result is the next iteration's argument
+# (lq: the links and the id read, kq: the keys and the key read, pq: the
+# payloads and the value read); the stack holds the slots whose left
+# subtrees are being visited; ok turns False at the first key past the
+# upper bound, which ends the walk. Every key after an emitted one is above
+# the lower bound, so the walk goes on without it.
+def walk(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~A: Data, ~f: A -> K -> V -> A, fuel: Nat, +lob: Bound<K>, +upb: Bound<K>, +step: Step, +i: Nat, +ok: Bool, st: List<&2, Nat>, a: A, lq: Array<Nat> & Nat, kq: Array<Maybe<&2, K>> & Maybe<&2, K>, pq: Array<Maybe<&2, Maybe<&2, V>>> & Maybe<&2, Maybe<&2, V>>) -> Walk<K, V, A>:
+  match fuel lob step ok st lq kq pq:
+    case 0n b0 s0 o0 st0 lq0 kq0 pq0:
+      walk_out(~K, ~V, ~A, a, st0, lq0, kq0, pq0)
+    case 1n+g b0 WDown{} False{} st0 lq0 kq0 pq0:
+      walk_out(~K, ~V, ~A, a, st0, lq0, kq0, pq0)
+    case 1n+g Unbounded{} WDown{} True{} st0 Tuple{lk, 1n+ +j} Tuple{ks, y} pq0:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, Unbounded{}, upb, WDown{}, 0n, True{}, Con{j, st0}, a, Array.get(Nat, lk, U32.from_nat(Nat.double(j))), (ks, y), pq0)
+    case 1n+g Inclusive{+lo} WDown{} True{} st0 Tuple{lk, 1n+ +j} Tuple{ks, y} pq0:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, Inclusive{lo}, upb, WSeek{}, j, True{}, st0, a, (lk, 0n), Array.get(Maybe<&2, K>, ks, U32.from_nat(j)), pq0)
+    case 1n+g Exclusive{+lo} WDown{} True{} st0 Tuple{lk, 1n+ +j} Tuple{ks, y} pq0:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, Exclusive{lo}, upb, WSeek{}, j, True{}, st0, a, (lk, 0n), Array.get(Maybe<&2, K>, ks, U32.from_nat(j)), pq0)
+    case 1n+g +b0 WDown{} True{} Nil{} Tuple{lk, 0n} kq0 pq0:
+      walk_out(~K, ~V, ~A, a, Nil{}, (lk, 0n), kq0, pq0)
+    case 1n+g +b0 WDown{} True{} Con{+j, s} Tuple{lk, 0n} Tuple{ks, y} Tuple{ps, z}:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, b0, upb, WEmit{}, j, True{}, s, a, (lk, 0n), Array.get(Maybe<&2, K>, ks, U32.from_nat(j)), Array.swap(Maybe<&2, Maybe<&2, V>>, ps, U32.from_nat(j), None{}))
+    case 1n+g +b0 WSeek{} o0 st0 Tuple{lk, x} Tuple{ks, Some{+k}} pq0:
+      +inside = above_lower(~K, ~V, ~cmp, k, b0)
+      walk(~K, ~V, ~cmp, ~A, ~f, g, b0, upb, WDown{}, 0n, True{}, walk_push(inside, i, st0), a, Array.get(Nat, lk, U32.from_nat(Nat.add(Nat.double(i), walk_side(inside)))), (ks, Some{k}), pq0)
+    case 1n+g +b0 WSeek{} o0 st0 Tuple{lk, x} Tuple{ks, None{}} pq0:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, b0, upb, WDown{}, 0n, True{}, Con{i, st0}, a, Array.get(Nat, lk, U32.from_nat(Nat.double(i))), (ks, None{}), pq0)
+    case 1n+g +b0 WEmit{} o0 st0 Tuple{lk, x} Tuple{ks, Some{+k}} Tuple{ps, Some{Some{+v}}}:
+      +inside = below_upper(~K, ~V, ~cmp, k, upb)
+      walk(~K, ~V, ~cmp, ~A, ~f, g, Unbounded{}, upb, WDown{}, 0n, inside, st0, walk_apply(~K, ~V, ~A, ~f, inside, a, k, v), Array.get(Nat, lk, U32.from_nat(1n+Nat.double(i))), (ks, Some{k}), (Array.set(Maybe<&2, Maybe<&2, V>>, ps, U32.from_nat(i), Some{Some{v}}), None{}))
+    case 1n+g +b0 WEmit{} o0 st0 Tuple{lk, x} Tuple{ks, Some{+k}} Tuple{ps, Some{None{}}}:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, Unbounded{}, upb, WDown{}, 0n, below_upper(~K, ~V, ~cmp, k, upb), st0, a, Array.get(Nat, lk, U32.from_nat(1n+Nat.double(i))), (ks, Some{k}), (Array.set(Maybe<&2, Maybe<&2, V>>, ps, U32.from_nat(i), Some{None{}}), None{}))
+    case 1n+g +b0 WEmit{} o0 st0 Tuple{lk, x} Tuple{ks, Some{+k}} Tuple{ps, None{}}:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, Unbounded{}, upb, WDown{}, 0n, below_upper(~K, ~V, ~cmp, k, upb), st0, a, Array.get(Nat, lk, U32.from_nat(1n+Nat.double(i))), (ks, Some{k}), (ps, None{}))
+    case 1n+g +b0 WEmit{} o0 st0 Tuple{lk, x} Tuple{ks, None{}} Tuple{ps, mv}:
+      walk(~K, ~V, ~cmp, ~A, ~f, g, b0, upb, WDown{}, 0n, True{}, st0, a, Array.get(Nat, lk, U32.from_nat(1n+Nat.double(i))), (ks, None{}), (Array.set(Maybe<&2, Maybe<&2, V>>, ps, U32.from_nat(i), mv), None{}))''')
+raw('''def walk_fin(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~A: Data, +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +limit: Nat, +depth: Nat, +cap: Nat, +used: Nat, +pl: Nat, +pd: Nat, +pc: Nat, +plen: Nat, w: Walk<K, V, A>) -> TreeMap<K, V, cmp> & A:
+  WK{lk, ks, ps, a, x, st} = w
+  (TM{n, root, lo, hi, free, NS{limit, depth, cap, used, lk, ks}, D.DA{pl, pd, pc, plen, ps}}, a)''')
+raw('''# Fold f over the entries whose keys lie within the bounds, in key order:
+# an in-order walk with an explicit stack of the ids whose left subtrees are
+# being visited, skipping the left subtrees below the lower bound and
+# stopping at the first key past the upper one (at most 5n + 1 steps).
+def fold_range(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~A: Data, ~f: A -> K -> V -> A, m: TreeMap<K, V, cmp>, +lower: Bound<K>, +upper: Bound<K>, a: A) -> TreeMap<K, V, cmp> & A:
+  TM{+n, +root, +lo, +hi, +free, NS{+limit, +depth, +cap, +used, lk, ks}, D.DA{+pl, +pd, +pc, +plen, ps}} = m
+  walk_fin(~K, ~V, ~cmp, ~A, n, root, lo, hi, free, limit, depth, cap, used, pl, pd, pc, plen, walk(~K, ~V, ~cmp, ~A, ~f, Nat.add(Nat.double(Nat.double(n)), Nat.add(n, 2n)), lower, upper, WDown{}, 0n, True{}, Nil{}, a, (lk, root), (ks, None{}), (ps, None{})))''')
+raw('''# Fold f over every entry, in key order.
+def fold(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, ~A: Data, ~f: A -> K -> V -> A, m: TreeMap<K, V, cmp>, a: A) -> TreeMap<K, V, cmp> & A:
+  fold_range(~K, ~V, ~cmp, ~A, ~f, m, Unbounded{}, Unbounded{}, a)''')
 
 # Sort definitions by dependency; self-recursion stays in one def.
 def emit():

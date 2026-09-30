@@ -30,10 +30,10 @@ def pick(-T: Type, +b: Bool, x: T, y: T) -> T:
       y
 
 def new(-K: Data, -V: Data) -> Model<K, V>:
-  TM{31n, Nil{}}
+  TM{29n, Nil{}}
 
 def with_limit(-K: Data, -V: Data, +k: Nat) -> Model<K, V>:
-  TM{pick(Nat, Nat.is_lt(k, 31n), k, 31n), Nil{}}
+  TM{pick(Nat, Nat.is_lt(k, 29n), k, 29n), Nil{}}
 
 def key(-K: Data, -V: Data, e: M.Entry<K, V>) -> K:
   match e:
@@ -682,7 +682,7 @@ def Exclude.del_length(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +k: K, +e0: M.En
 
 # Empty_Map (101)
 def Empty_Map.new_empty(-K: Data, -V: Data) -> Type:
-  {new(K, V) == TM{31n, Nil{}} : Model<K, V>}
+  {new(K, V) == TM{29n, Nil{}} : Model<K, V>}
 
 # Length (114), Is_Empty (425)
 def Length.size_value(-K: Data, -V: Data, +l: Nat, +es: List<&2, M.Entry<K, V>>) -> Type:
