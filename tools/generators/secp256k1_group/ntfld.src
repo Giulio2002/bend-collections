@@ -1,0 +1,119 @@
+import Base
+import ../../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../math/natural/arith.bend as NR
+import ../../../lib/nat.bend as N
+import ../../../lib/logic.bend as Lg
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../semiring.bend as SR
+import ./prime.bend as PM
+import ./ntflt.bend as FL
+
+# Z/pZ is a field for a prime p: cancellation (no zero divisors), and
+# a^(p-1) == 1, a a^(p-2) == 1 (mod p) for a not divisible by p (Fermat);
+# the last is the inverse of the specification: FS.minv(p, a) = a^(p-2) mod p.
+# "p does not divide a" is {Nat.is_eq(Nat.mod(a, p), 0n) == False{}}.
+
+# (u + c) mod n == (v + c) mod n gives u mod n == v mod n
+def acm_s(+u: Nat, +c: Nat, +k: Nat) -> {Nat.add(Nat.add(u, c), k) == Nat.add(u, Nat.add(c, k)) : Nat}:
+  %norm
+
+def acm1(+bp: Nat, +u: Nat, +c: Nat) -> {Nat.mod(Nat.add(Nat.add(u, Nat.mod(c, 1n+bp)), Nat.sub(1n+bp, Nat.mod(c, 1n+bp))), 1n+bp) == Nat.mod(u, 1n+bp) : Nat}:
+  %rw acm_s(u, Nat.mod(c, 1n+bp), Nat.sub(1n+bp, Nat.mod(c, 1n+bp)))
+  %rw N.sub_add(1n+bp, Nat.mod(c, 1n+bp), N.lt_le(Nat.mod(c, 1n+bp), 1n+bp, NR.dm_lt(bp, c)))
+  %rw <- SR.one_mul(1n+bp)
+  %rw PM.mod_add_mul(bp, u, 1n)
+  %close
+
+def add_cancel_mod(+bp: Nat, +u: Nat, +v: Nat, +c: Nat, +h: {Nat.mod(Nat.add(u, c), 1n+bp) == Nat.mod(Nat.add(v, c), 1n+bp) : Nat}) -> {Nat.mod(u, 1n+bp) == Nat.mod(v, 1n+bp) : Nat}:
+  +k = Nat.sub(1n+bp, Nat.mod(c, 1n+bp))
+  +h2 = Equal.trans(Nat, Nat.mod(Nat.add(u, Nat.mod(c, 1n+bp)), 1n+bp), Nat.mod(Nat.add(u, c), 1n+bp), Nat.mod(Nat.add(v, Nat.mod(c, 1n+bp)), 1n+bp), NR.mod_add_r(bp, u, c), Equal.trans(Nat, Nat.mod(Nat.add(u, c), 1n+bp), Nat.mod(Nat.add(v, c), 1n+bp), Nat.mod(Nat.add(v, Nat.mod(c, 1n+bp)), 1n+bp), h, Equal.sym(Nat, Nat.mod(Nat.add(v, Nat.mod(c, 1n+bp)), 1n+bp), Nat.mod(Nat.add(v, c), 1n+bp), NR.mod_add_r(bp, v, c))))
+  +h3 = Equal.trans(Nat, Nat.mod(Nat.add(Nat.add(u, Nat.mod(c, 1n+bp)), k), 1n+bp), Nat.mod(Nat.add(Nat.mod(Nat.add(u, Nat.mod(c, 1n+bp)), 1n+bp), k), 1n+bp), Nat.mod(Nat.add(Nat.add(v, Nat.mod(c, 1n+bp)), k), 1n+bp),
+    Equal.sym(Nat, Nat.mod(Nat.add(Nat.mod(Nat.add(u, Nat.mod(c, 1n+bp)), 1n+bp), k), 1n+bp), Nat.mod(Nat.add(Nat.add(u, Nat.mod(c, 1n+bp)), k), 1n+bp), NR.mod_add_l(bp, Nat.add(u, Nat.mod(c, 1n+bp)), k)),
+    Equal.trans(Nat, Nat.mod(Nat.add(Nat.mod(Nat.add(u, Nat.mod(c, 1n+bp)), 1n+bp), k), 1n+bp), Nat.mod(Nat.add(Nat.mod(Nat.add(v, Nat.mod(c, 1n+bp)), 1n+bp), k), 1n+bp), Nat.mod(Nat.add(Nat.add(v, Nat.mod(c, 1n+bp)), k), 1n+bp),
+      Equal.cong(Nat, Nat, z => Nat.mod(Nat.add(z, k), 1n+bp), Nat.mod(Nat.add(u, Nat.mod(c, 1n+bp)), 1n+bp), Nat.mod(Nat.add(v, Nat.mod(c, 1n+bp)), 1n+bp), h2),
+      NR.mod_add_l(bp, Nat.add(v, Nat.mod(c, 1n+bp)), k)))
+  Equal.trans(Nat, Nat.mod(u, 1n+bp), Nat.mod(Nat.add(Nat.add(u, Nat.mod(c, 1n+bp)), k), 1n+bp), Nat.mod(v, 1n+bp), Equal.sym(Nat, Nat.mod(Nat.add(Nat.add(u, Nat.mod(c, 1n+bp)), k), 1n+bp), Nat.mod(u, 1n+bp), acm1(bp, u, c)), Equal.trans(Nat, Nat.mod(Nat.add(Nat.add(u, Nat.mod(c, 1n+bp)), k), 1n+bp), Nat.mod(Nat.add(Nat.add(v, Nat.mod(c, 1n+bp)), k), 1n+bp), Nat.mod(v, 1n+bp), h3, acm1(bp, v, c)))
+
+# a d + a y == a x when y + d == x
+def dist_s(+a: Nat, +d: Nat, +y: Nat) -> {Nat.add(Nat.mul(a, d), Nat.mul(a, y)) == Nat.mul(a, Nat.add(y, d)) : Nat}:
+  %norm
+
+# reduced x >= y with a x == a y (mod p): x == y
+def cancel_le(+pp: Nat, +hp: PM.Prime(2n+pp), +a: Nat, +ha: {Nat.is_eq(Nat.mod(a, 2n+pp), 0n) == False{} : Bool}, +x: Nat, +y: Nat, +hx: {Nat.is_lt(x, 2n+pp) == True{} : Bool}, +hle: {Nat.is_le(y, x) == True{} : Bool}, +h: {Nat.mod(Nat.mul(a, x), 2n+pp) == Nat.mod(Nat.mul(a, y), 2n+pp) : Nat}) -> {x == y : Nat}:
+  +d = Nat.sub(x, y)
+  +e1 = N.sub_add(x, y, hle)
+  +e2 = Equal.trans(Nat, Nat.add(Nat.mul(a, d), Nat.mul(a, y)), Nat.mul(a, Nat.add(y, d)), Nat.mul(a, x), dist_s(a, d, y), Equal.cong(Nat, Nat, z => Nat.mul(a, z), Nat.add(y, d), x, e1))
+  +e3 = Equal.trans(Nat, Nat.mod(Nat.add(Nat.mul(a, d), Nat.mul(a, y)), 2n+pp), Nat.mod(Nat.mul(a, x), 2n+pp), Nat.mod(Nat.mul(a, y), 2n+pp), Equal.cong(Nat, Nat, z => Nat.mod(z, 2n+pp), Nat.add(Nat.mul(a, d), Nat.mul(a, y)), Nat.mul(a, x), e2), h)
+  +e4 = add_cancel_mod(1n+pp, Nat.mul(a, d), 0n, Nat.mul(a, y), e3)
+  +e5 = PM.euclid(2n+pp, hp, a, d, e4, ha)
+  +hl = N.sub_lt(x, y, 2n+pp, hle, N.lt_le_trans(x, 2n+pp, Nat.add(y, 2n+pp), hx, Equal.trans(Bool, Nat.is_le(2n+pp, Nat.add(y, 2n+pp)), Nat.is_le(2n+pp, Nat.add(2n+pp, y)), True{}, Equal.cong(Nat, Bool, z => Nat.is_le(2n+pp, z), Nat.add(y, 2n+pp), Nat.add(2n+pp, y), NA.add_comm(y, 2n+pp)), N.le_add_right(2n+pp, y))))
+  +e6 = Equal.trans(Nat, d, Nat.mod(d, 2n+pp), 0n, Equal.sym(Nat, Nat.mod(d, 2n+pp), d, NR.mod_of(0n, 1n+pp, d, hl)), e5)
+  Equal.trans(Nat, x, Nat.add(y, d), y, Equal.sym(Nat, Nat.add(y, d), x, e1), Equal.trans(Nat, Nat.add(y, d), Nat.add(y, 0n), y, Equal.cong(Nat, Nat, z => Nat.add(y, z), d, 0n, e6), NA.add_zero(y)))
+
+def cancel_c(+pp: Nat, +hp: PM.Prime(2n+pp), +a: Nat, +ha: {Nat.is_eq(Nat.mod(a, 2n+pp), 0n) == False{} : Bool}, +x: Nat, +y: Nat, +hx: {Nat.is_lt(x, 2n+pp) == True{} : Bool}, +hy: {Nat.is_lt(y, 2n+pp) == True{} : Bool}, +h: {Nat.mod(Nat.mul(a, x), 2n+pp) == Nat.mod(Nat.mul(a, y), 2n+pp) : Nat}, c: Bool, +hc: {Nat.is_le(y, x) == c : Bool}) -> {x == y : Nat}:
+  match c:
+    case True{}:
+      cancel_le(pp, hp, a, ha, x, y, hx, hc, h)
+    case False{}:
+      Equal.sym(Nat, y, x, cancel_le(pp, hp, a, ha, y, x, hy, N.lt_le(x, y, N.not_le_lt(y, x, hc)), Equal.sym(Nat, Nat.mod(Nat.mul(a, x), 2n+pp), Nat.mod(Nat.mul(a, y), 2n+pp), h)))
+
+def cancel2(+pp: Nat, +hp: PM.Prime(2n+pp), +a: Nat, +ha: {Nat.is_eq(Nat.mod(a, 2n+pp), 0n) == False{} : Bool}, +x: Nat, +y: Nat, +h: {Nat.mod(Nat.mul(a, x), 2n+pp) == Nat.mod(Nat.mul(a, y), 2n+pp) : Nat}) -> {Nat.mod(x, 2n+pp) == Nat.mod(y, 2n+pp) : Nat}:
+  +h2 = Equal.trans(Nat, Nat.mod(Nat.mul(a, Nat.mod(x, 2n+pp)), 2n+pp), Nat.mod(Nat.mul(a, x), 2n+pp), Nat.mod(Nat.mul(a, Nat.mod(y, 2n+pp)), 2n+pp), NR.mod_mul_r(1n+pp, a, x), Equal.trans(Nat, Nat.mod(Nat.mul(a, x), 2n+pp), Nat.mod(Nat.mul(a, y), 2n+pp), Nat.mod(Nat.mul(a, Nat.mod(y, 2n+pp)), 2n+pp), h, Equal.sym(Nat, Nat.mod(Nat.mul(a, Nat.mod(y, 2n+pp)), 2n+pp), Nat.mod(Nat.mul(a, y), 2n+pp), NR.mod_mul_r(1n+pp, a, y))))
+  cancel_c(pp, hp, a, ha, Nat.mod(x, 2n+pp), Nat.mod(y, 2n+pp), NR.dm_lt(1n+pp, x), NR.dm_lt(1n+pp, y), h2, Nat.is_le(Nat.mod(y, 2n+pp), Nat.mod(x, 2n+pp)), {==})
+
+# cancellation: a x == a y (mod p), p not dividing a, gives x == y (mod p)
+def mul_cancel(p: Nat, +hp: PM.Prime(p), +a: Nat, +ha: {Nat.is_eq(Nat.mod(a, p), 0n) == False{} : Bool}, +x: Nat, +y: Nat, +h: {Nat.mod(Nat.mul(a, x), p) == Nat.mod(Nat.mul(a, y), p) : Nat}) -> {Nat.mod(x, p) == Nat.mod(y, p) : Nat}:
+  match p:
+    case 0n:
+      Empty.absurd({Nat.mod(x, 0n) == Nat.mod(y, 0n) : Nat}, Lg.false_true(hp))
+    case 1n:
+      Empty.absurd({Nat.mod(x, 1n) == Nat.mod(y, 1n) : Nat}, Lg.false_true(hp))
+    case 2n+ +pp:
+      cancel2(pp, hp, a, ha, x, y, h)
+
+# no zero divisors   (Euclid's lemma)
+def no_zero_div(p: Nat, +hp: PM.Prime(p), +a: Nat, +b: Nat, +hab: {Nat.mod(Nat.mul(a, b), p) == 0n : Nat}, +ha: {Nat.is_eq(Nat.mod(a, p), 0n) == False{} : Bool}) -> {Nat.mod(b, p) == 0n : Nat}:
+  PM.euclid(p, hp, a, b, hab, ha)
+
+def one_mod2(+pp: Nat) -> {Nat.mod(1n, 2n+pp) == 1n : Nat}:
+  NR.mod_of(0n, 1n+pp, 1n, {==})
+
+# a^(p-1) == 1 (mod p), p = 2 + pp
+def flt1_s(+pp: Nat, +hp: PM.Prime(2n+pp), +a: Nat, +ha: {Nat.is_eq(Nat.mod(a, 2n+pp), 0n) == False{} : Bool}) -> {Nat.mod(Nat.pow(a, 1n+pp), 2n+pp) == 1n : Nat}:
+  +h = Equal.trans(Nat, Nat.mod(Nat.mul(a, Nat.pow(a, 1n+pp)), 2n+pp), Nat.mod(a, 2n+pp), Nat.mod(Nat.mul(a, 1n), 2n+pp), FL.flt(2n+pp, hp, a), Equal.cong(Nat, Nat, z => Nat.mod(z, 2n+pp), a, Nat.mul(a, 1n), Equal.sym(Nat, Nat.mul(a, 1n), a, NA.mul_one(a))))
+  Equal.trans(Nat, Nat.mod(Nat.pow(a, 1n+pp), 2n+pp), Nat.mod(1n, 2n+pp), 1n, cancel2(pp, hp, a, ha, Nat.pow(a, 1n+pp), 1n, h), one_mod2(pp))
+
+# Fermat: a^(p-1) == 1 (mod p) when p does not divide a
+def flt1(p: Nat, +hp: PM.Prime(p), +a: Nat, +ha: {Nat.is_eq(Nat.mod(a, p), 0n) == False{} : Bool}) -> {Nat.mod(Nat.pow(a, Nat.sub(p, 1n)), p) == 1n : Nat}:
+  match p:
+    case 0n:
+      Empty.absurd({Nat.mod(Nat.pow(a, Nat.sub(0n, 1n)), 0n) == 1n : Nat}, Lg.false_true(hp))
+    case 1n:
+      Empty.absurd({Nat.mod(Nat.pow(a, Nat.sub(1n, 1n)), 1n) == 1n : Nat}, Lg.false_true(hp))
+    case 2n+ +pp:
+      flt1_s(pp, hp, a, ha)
+
+# a a^(p-2) == 1 (mod p)
+def inv_pow(p: Nat, +hp: PM.Prime(p), +a: Nat, +ha: {Nat.is_eq(Nat.mod(a, p), 0n) == False{} : Bool}) -> {Nat.mod(Nat.mul(a, Nat.pow(a, Nat.sub(p, 2n))), p) == 1n : Nat}:
+  match p:
+    case 0n:
+      Empty.absurd({Nat.mod(Nat.mul(a, Nat.pow(a, Nat.sub(0n, 2n))), 0n) == 1n : Nat}, Lg.false_true(hp))
+    case 1n:
+      Empty.absurd({Nat.mod(Nat.mul(a, Nat.pow(a, Nat.sub(1n, 2n))), 1n) == 1n : Nat}, Lg.false_true(hp))
+    case 2n+ +pp:
+      %goal {Nat.mod(Nat.mul(a, Nat.pow(a, Nat.sub(pp, 0n))), 2n+pp) == 1n : Nat}
+      %rw N.sub_zero(pp)
+      flt1_s(pp, hp, a, ha)
+
+# the specification's inverse: a * minv(a) == 1 in GF(p)
+def minv_ok(p: Nat, +hp: PM.Prime(p), +a: Nat, +ha: {Nat.is_eq(Nat.mod(a, p), 0n) == False{} : Bool}) -> {FS.mmul(p, a, FS.minv(p, a)) == 1n : Nat}:
+  match p:
+    case 0n:
+      Empty.absurd({FS.mmul(0n, a, FS.minv(0n, a)) == 1n : Nat}, Lg.false_true(hp))
+    case 1n:
+      Empty.absurd({FS.mmul(1n, a, FS.minv(1n, a)) == 1n : Nat}, Lg.false_true(hp))
+    case 2n+ +pp:
+      %goal {Nat.mod(Nat.mul(a, Nat.mod(Nat.pow(a, Nat.sub(pp, 0n)), 2n+pp)), 2n+pp) == 1n : Nat}
+      %rw N.sub_zero(pp)
+      Equal.trans(Nat, Nat.mod(Nat.mul(a, Nat.mod(Nat.pow(a, pp), 2n+pp)), 2n+pp), Nat.mod(Nat.mul(a, Nat.pow(a, pp)), 2n+pp), 1n, NR.mod_mul_r(1n+pp, a, Nat.pow(a, pp)), flt1_s(pp, hp, a, ha))
