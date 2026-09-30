@@ -153,3 +153,14 @@ def sv_true(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +d: Nat, +hc: G.Curve(m
   %Equal.sym(List<&2, U32>, ED.encode(one, 1n+mp, pr), VS2.enc(one, GE.affine(1n+mp, pr)), VS2.encode_aff(one, 1n+mp, pr)) : {vf(one, mp, d, 1n+lp, SHA.sha512_bytes(seed), msg, _, ED.public_of(one, 1n+mp, d, SHA.sha512_bytes(seed))) == True{} : Bool}
   %Equal.sym(List<&2, U32>, ED.public_of(one, 1n+mp, d, h), VS2.enc(one, GE.affine(1n+mp, pa)), Equal.trans(List<&2, U32>, ED.public_of(one, 1n+mp, d, h), ED.encode(one, 1n+mp, pa), VS2.enc(one, GE.affine(1n+mp, pa)), VS2.public_of_eq(one, 1n+mp, d, h), VS2.encode_aff(one, 1n+mp, pa))) : {vf(one, mp, d, 1n+lp, SHA.sha512_bytes(seed), msg, VS2.enc(one, GE.affine(1n+mp, pr)), _) == True{} : Bool}
   vf_true(one, h1, mp, d, hc, m, h58, hk, hp255, lp, hle, hl256, hlb, seed, msg, GE.affine(1n+mp, pr), GE.affine(1n+mp, pa), EX.aff_on(mp, d, pr, hrv), EX.aff_on(mp, d, pa, hav), {==}, {==})
+
+# ---- the encoding round trip ----
+
+# decode(encode(a)) is (x : y : 1 : x y) for the affine point (x, y) of a valid a
+def dec_enc(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +m: Nat, +h58: {Nat.div(Nat.sub(1n+mp, 5n), 8n) == m : Nat}, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +hp255: {Nat.is_le(1n+mp, C.shift(255n, one)) == True{} : Bool}, +a: ED.EPt, +ha: GE.Valid(1n+mp, d, a)) -> {ED.decode(1n+mp, d, ED.encode(one, 1n+mp, a)) == Some{ED.EPt{G.ax(GE.affine(1n+mp, a)), G.ay(GE.affine(1n+mp, a)), 1n, FS.fmul(1n+mp, G.ax(GE.affine(1n+mp, a)), G.ay(GE.affine(1n+mp, a)))}} : Maybe<&2, ED.EPt>}:
+  %rw VS2.encode_aff(one, 1n+mp, a)
+  drt_a(one, h1, mp, d, hc, m, h58, hk, hp255, GE.affine(1n+mp, a), EX.aff_on(mp, d, a, ha))
+
+# and that point has the same affine point as a (it is the same point)
+def dec_enc_aff(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +a: ED.EPt, +ha: GE.Valid(1n+mp, d, a)) -> {GE.affine(1n+mp, ED.EPt{G.ax(GE.affine(1n+mp, a)), G.ay(GE.affine(1n+mp, a)), 1n, FS.fmul(1n+mp, G.ax(GE.affine(1n+mp, a)), G.ay(GE.affine(1n+mp, a)))}) == GE.affine(1n+mp, a) : G.APt}:
+  aff_a(mp, d, hc, GE.affine(1n+mp, a), EX.aff_on(mp, d, a, ha))
