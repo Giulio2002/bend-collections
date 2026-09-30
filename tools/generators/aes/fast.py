@@ -1,0 +1,356 @@
+#!/usr/bin/env python3
+"""Generate src/crypto/aes/fast.bend: the fast AES-GCM path.
+
+  python3 tools/generators/aes/fast.py
+"""
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]
+X32 = ['x%d' % i for i in range(32)]
+PW = ['p%d' % i for i in range(128)]   # V_(32j+i).w_k is p(4i+k)
+KS = ['a0', 'a1', 'a2', 'a3', 'b0', 'b1', 'b2', 'b3']
+KB = ['k%d' % i for i in range(16)]   # last round key bytes, column-major
+
+
+def ks_byte(t):
+    """keystream byte t (0..31) from the planes-ortho words a0..a3, b0..b3 and
+    the last round key bytes k0..k15"""
+    w = KS[t // 4]
+    r = t % 4
+    e = 'U32.and(255, %s)' % w if r == 0 else 'U32.and(255, U32.shrn(%s, %dn))' % (w, 8 * r)
+    return 'U32.xor(%s, %s)' % (e, KB[t % 16])
+
+
+OUT_PAT = 'Out{X.Q8{+a0, +b0, +a1, +b1, +a2, +b2, +a3, +b3}, T.S{T.W{+k0, +k1, +k2, +k3}, T.W{+k4, +k5, +k6, +k7}, T.W{+k8, +k9, +k10, +k11}, T.W{+k12, +k13, +k14, +k15}}}'
+
+
+def word_mul():
+    out = ['# Algorithm 1 of SP 800-38D over the 32 bits of one word w of X, the most',
+           '# significant first: Z ^= V_i & (0 - x_i), V_i = H * x^(32j+i) read from the',
+           '# precomputed powers.',
+           'def word_mul(+w: U32, z: G.Block, pw: PW) -> G.Block:',
+           '  match z pw:',
+           '    case G.B{z0, z1, z2, z3} PW{%s}:' % ', '.join(PW)]
+    z = ['z0', 'z1', 'z2', 'z3']
+    for i in range(32):
+        out.append('      +m%d = U32.sub(0, U32.and(1, U32.shrn(w, %dn)))' % (i, 31 - i))
+        nz = ['z%d_%d' % (k, i) for k in range(4)]
+        for k in range(4):
+            out.append('      %s%s = U32.xor(%s, U32.and(m%d, p%d))' % ('' if i == 31 else '+', nz[k], z[k], i, 4 * i + k))
+        z = nz
+    out.append('      G.B{%s}' % ', '.join(z))
+    return out
+
+
+def powers():
+    out = ['# The 32 powers V, V*x, ..., V*x^31, and V*x^32 (G.mulx, inlined).',
+           'def powers32(v: G.Block) -> PowStep:',
+           '  match v:',
+           '    case G.B{+a0, +b0, +c0, +d0}:']
+    cur = ['a0', 'b0', 'c0', 'd0']
+    fields = []
+    for i in range(32):
+        fields += cur
+        n = ['a%d' % (i + 1), 'b%d' % (i + 1), 'c%d' % (i + 1), 'd%d' % (i + 1)]
+        a, b, c, d = cur
+        out.append('      +%s = U32.xor(U32.and(3774873600, U32.sub(0, U32.and(1, %s))), U32.shrn(%s, 1n))' % (n[0], d, a))
+        out.append('      +%s = U32.or(U32.shln(%s, 31n), U32.shrn(%s, 1n))' % (n[1], a, b))
+        out.append('      +%s = U32.or(U32.shln(%s, 31n), U32.shrn(%s, 1n))' % (n[2], b, c))
+        out.append('      +%s = U32.or(U32.shln(%s, 31n), U32.shrn(%s, 1n))' % (n[3], c, d))
+        cur = n
+    out.append('      PowStep{PW{%s}, G.B{%s}}' % (', '.join(fields), ', '.join(cur)))
+    return out
+
+
+def seal_body():
+    L = ['# The ciphertext of the rest of the message, then the tag: o is the',
+         '# encryption of counters c and c + 1, y the GHASH state so far.',
+         'def seal_body(+x: Ctx, +xs: List<&2, U32>, +c: U32, y: G.Block, o: Out) -> List<&2, U32>:',
+         '  match xs o:',
+         '    case %s <> rest %s:' % (' <> '.join(X32), OUT_PAT)]
+    for t in range(32):
+        L.append('      +e%d = U32.xor(x%d, %s)' % (t, t, ks_byte(t)))
+    be = ['be32(e%d, e%d, e%d, e%d)' % (4 * i, 4 * i + 1, 4 * i + 2, 4 * i + 3) for i in range(8)]
+    L.append('      +y2 = absorb(ctx_pw(x), absorb(ctx_pw(x), y, %s), %s)' % (', '.join(be[:4]), ', '.join(be[4:])))
+    L.append('      %s <> seal_body(x, rest, U32.add(c, 2), y2, ctr2(ctx_keys(x), ctx_nonce(x), U32.add(c, 2)))' % ' <> '.join('e%d' % t for t in range(32)))
+    L += ['    case Nil{} _:', '      finish(x, y)',
+          '    case _ _:', '      seal_tail(x, xor_into(xs, stream(o), Nil{}), y)']
+    return L
+
+
+def open_body():
+    F32 = ['f%d' % i for i in range(32)]
+    L = ['type Opened is Data:', '  Opened{pt: List<&2, U32>, ok: Bool}', '',
+         'def prepend32(%s, o: Opened) -> Opened:' % ', '.join('%s: U32' % f for f in F32),
+         '  match o:', '    case Opened{ps, ok}:', '      Opened{%s <> ps, ok}' % ' <> '.join(F32), '',
+         '# The last ciphertext bytes (fewer than 32), then the received tag t.',
+         'def open_tail(+x: Ctx, +ct: List<&2, U32>, t: List<&2, U32>, y: G.Block, o: Out) -> Opened:',
+         '  Opened{xor_into(ct, stream(o), Nil{}), Subtle.eq(t, finish(x, ghash(ctx_pw(x), ct, y)))}', '',
+         '# The plaintext of the n 32-byte chunks of ciphertext left, then of the',
+         '# last r < 32 bytes, and whether the 16 bytes after them are the tag.',
+         'def open_body(+x: Ctx, n: Nat, +r: Nat, +xs: List<&2, U32>, +c: U32, y: G.Block, o: Out) -> Opened:',
+         '  match n xs o:',
+         '    case 1n+p %s <> rest %s:' % (' <> '.join('+' + v for v in X32), OUT_PAT)]
+    for t in range(32):
+        L.append('      +f%d = U32.xor(x%d, %s)' % (t, t, ks_byte(t)))
+    be = ['be32(x%d, x%d, x%d, x%d)' % (4 * i, 4 * i + 1, 4 * i + 2, 4 * i + 3) for i in range(8)]
+    L.append('      +y2 = absorb(ctx_pw(x), absorb(ctx_pw(x), y, %s), %s)' % (', '.join(be[:4]), ', '.join(be[4:])))
+    L.append('      prepend32(%s, open_body(x, p, r, rest, U32.add(c, 2), y2, ctr2(ctx_keys(x), ctx_nonce(x), U32.add(c, 2))))' % ', '.join(F32))
+    L += ['    case 0n _ _:', '      open_tail(x, List.take(&2, U32, xs, r), List.drop(&2, U32, xs, r), y, o)',
+          '    case 1n+p _ _:', '      Opened{Nil{}, False{}}']
+    return L
+
+
+HEAD = '''import Base
+import ./types.bend as T
+import ./aes.bend as A
+import ./gcm.bend as G
+import ./bitslice.bend as X
+import ../subtle.bend as Subtle
+
+# Generated by tools/generators/aes/fast.py.
+#
+# AES-GCM, the fast path of aesgcm.bend: the counter blocks are encrypted two
+# at a time with the bitsliced AES of bitslice.bend; GHASH multiplies by H
+# with Algorithm 1 of SP 800-38D over the precomputed powers H * x^i
+# (i < 128, once per message), unrolled over each 32-bit word; encryption
+# and GHASH run in one pass over the message. No table is indexed by data,
+# no branch depends on data. Proved equal to gcm.bend (and so to SP 800-38D)
+# for every input (proofs/crypto/aes/fast*.bend).
+
+# ---- bytes and words ----
+
+def le32(+b0: U32, +b1: U32, +b2: U32, +b3: U32) -> U32:
+  U32.or(U32.and(255, b0), U32.or(U32.shln(U32.and(255, b1), 8n), U32.or(U32.shln(U32.and(255, b2), 16n), U32.shln(U32.and(255, b3), 24n))))
+
+# The big-endian word of four bytes (the formula of gcm.bend's word).
+def be32(+b0: U32, +b1: U32, +b2: U32, +b3: U32) -> U32:
+  U32.or(U32.shln(U32.and(255, b0), 24n), U32.or(U32.shln(U32.and(255, b1), 16n),
+    U32.or(U32.shln(U32.and(255, b2), 8n), U32.and(255, b3))))
+
+# The bytes of a counter c as a little-endian word: be32's byte order reversed.
+def bswap(+c: U32) -> U32:
+  le32(U32.shrn(c, 24n), U32.shrn(c, 16n), U32.shrn(c, 8n), c)
+
+def quad_word(q: T.Quad) -> U32:
+  match q:
+    case T.W{a, b, c, d}: le32(a, b, c, d)
+
+# A round key in bit planes (both blocks get the same key).
+def plane_key(k: T.State) -> X.Q8:
+  match k:
+    case T.S{c0, c1, c2, c3}:
+      +w0 = quad_word(c0)
+      +w1 = quad_word(c1)
+      +w2 = quad_word(c2)
+      +w3 = quad_word(c3)
+      X.ortho(X.Q8{w0, w0, w1, w1, w2, w2, w3, w3})
+
+# A round key in bit planes and as bytes (the last one is added to the
+# output bytes).
+type KP is Data:
+  KP{plane: X.Q8, bytes: T.State}
+
+def key_planes(ks: List<&2, T.State>) -> List<&2, KP>:
+  match ks:
+    case Nil{}: Nil{}
+    case +k <> rest: KP{plane_key(k), k} <> key_planes(rest)
+
+type Keys is Data:
+  Keys{rounds: Nat, kps: List<&2, KP>}
+
+def keys_of(s: A.Schedule) -> Keys:
+  match s:
+    case A.Schedule{nr, ks}: Keys{nr, key_planes(ks)}
+
+# The planes after the last ShiftRows and the last round key.
+type Out is Data:
+  Out{q: X.Q8, k: T.State}
+
+def zero_state() -> T.State:
+  T.S{T.W{0, 0, 0, 0}, T.W{0, 0, 0, 0}, T.W{0, 0, 0, 0}, T.W{0, 0, 0, 0}}
+
+# n full rounds, then the last one (its AddRoundKey left to the bytes).
+def rounds(n: Nat, q: X.Q8, ks: List<&2, KP>) -> Out:
+  match n ks:
+    case 0n KP{p, kb} <> rest:
+      Out{X.shift_rows(X.sub_bytes(q)), kb}
+    case 1n+m KP{p, kb} <> rest:
+      rounds(m, X.round(q, p), rest)
+    case _ _:
+      Out{q, zero_state()}
+
+def cipher(+nr: Nat, q: X.Q8, ks: List<&2, KP>) -> Out:
+  match ks:
+    case KP{p, kb} <> rest:
+      rounds(Nat.sub(nr, 1n), X.add_round_key(q, p), rest)
+    case Nil{}:
+      Out{q, zero_state()}
+
+def unplane(o: Out) -> Out:
+  match o:
+    case Out{q, k}: Out{X.ortho(q), k}
+
+# Two blocks, as little-endian words a0..a3 and b0..b3.
+def encrypt2(k: Keys, +a0: U32, +a1: U32, +a2: U32, +a3: U32, +b0: U32, +b1: U32, +b2: U32, +b3: U32) -> Out:
+  match k:
+    case Keys{nr, ks}:
+      unplane(cipher(nr, X.ortho(X.Q8{a0, b0, a1, b1, a2, b2, a3, b3}), ks))
+
+# The 32 output bytes (the first block, then the second).
+def stream(o: Out) -> List<&2, U32>:
+  match o:
+    case %s:
+      [%s]
+
+type Nonce is Data:
+  N{n0: U32, n1: U32, n2: U32}
+
+# The counter blocks nonce || c and nonce || c + 1.
+def ctr2(+k: Keys, n: Nonce, +c: U32) -> Out:
+  match n:
+    case N{+n0, +n1, +n2}:
+      encrypt2(k, n0, n1, n2, bswap(c), n0, n1, n2, bswap(U32.inc(c)))
+
+def xor_into(xs: List<&2, U32>, ks: List<&2, U32>, rest: List<&2, U32>) -> List<&2, U32>:
+  match xs ks:
+    case x <> xt k <> kt:
+      U32.xor(x, k) <> xor_into(xt, kt, rest)
+    case _ _:
+      rest
+
+# ---- GHASH ----
+
+# 32 powers of H, four words each: V_i.w_k is field 4i + k.
+type PW is Data:
+  PW{%s}
+
+type PowStep is Data:
+  PowStep{pw: PW, next: G.Block}
+
+type Pows is Data:
+  Pows{p0: PW, p1: PW, p2: PW, p3: PW}
+
+''' % (OUT_PAT, ', '.join(ks_byte(t) for t in range(32)), ', '.join('%s: U32' % p for p in PW))
+
+MID = '''
+def step_pw(s: PowStep) -> PW:
+  match s:
+    case PowStep{p, v}: p
+
+def pows2(s: PowStep, +p0: PW, +p1: PW) -> Pows:
+  match s:
+    case PowStep{p2, v}: Pows{p0, p1, p2, step_pw(powers32(v))}
+
+def pows1(s: PowStep, +p0: PW) -> Pows:
+  match s:
+    case PowStep{p1, v}: pows2(powers32(v), p0, p1)
+
+def pows0(s: PowStep) -> Pows:
+  match s:
+    case PowStep{p0, v}: pows1(powers32(v), p0)
+
+# H * x^i for i < 128.
+def pows(h: G.Block) -> Pows:
+  pows0(powers32(h))
+'''
+
+GH = '''
+# (Y xor X) * H, X the block of big-endian words x0..x3.
+def absorb(pw: Pows, y: G.Block, +x0: U32, +x1: U32, +x2: U32, +x3: U32) -> G.Block:
+  match pw y:
+    case Pows{p0, p1, p2, p3} G.B{y0, y1, y2, y3}:
+      word_mul(U32.xor(y3, x3), word_mul(U32.xor(y2, x2), word_mul(U32.xor(y1, x1), word_mul(U32.xor(y0, x0), G.zero(), p0), p1), p2), p3)
+
+def absorb16(+pw: Pows, y: G.Block, xs: List<&2, U32>) -> G.Block:
+  match xs:
+    case x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest:
+      absorb(pw, y, be32(x0, x1, x2, x3), be32(x4, x5, x6, x7), be32(x8, x9, x10, x11), be32(x12, x13, x14, x15))
+    case _:
+      y
+
+# GHASH over the bytes, a last partial block padded with zero bytes.
+def ghash(+pw: Pows, +xs: List<&2, U32>, y: G.Block) -> G.Block:
+  match xs:
+    case x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest:
+      ghash(pw, rest, absorb(pw, y, be32(x0, x1, x2, x3), be32(x4, x5, x6, x7), be32(x8, x9, x10, x11), be32(x12, x13, x14, x15)))
+    case Nil{}:
+      y
+    case _:
+      absorb16(pw, y, List.append(&2, U32, xs, G.zeros(Nat.sub(16n, List.length(&2, U32, xs)))))
+
+# ---- GCM ----
+
+# H = E(K, 0^128), as big-endian words.
+def hash_key(o: Out) -> G.Block:
+  match o:
+    case %s:
+      G.B{be32(%s), be32(%s), be32(%s), be32(%s)}
+
+# Everything the message loop needs: the keys, the nonce, the powers of H,
+# the last GHASH input (the lengths) and the tag mask E(K, J0).
+type Ctx is Data:
+  Ctx{keys: Keys, nonce: Nonce, pw: Pows, lens: List<&2, U32>, j0: List<&2, U32>}
+
+def ctx_keys(x: Ctx) -> Keys:
+  match x:
+    case Ctx{k, n, pw, l, j}: k
+
+def ctx_nonce(x: Ctx) -> Nonce:
+  match x:
+    case Ctx{k, n, pw, l, j}: n
+
+def ctx_pw(x: Ctx) -> Pows:
+  match x:
+    case Ctx{k, n, pw, l, j}: pw
+
+# The tag from the GHASH state after A || 0^v || C || 0^u.
+def finish(+x: Ctx, y: G.Block) -> List<&2, U32>:
+  match x:
+    case Ctx{k, n, pw, lens, j0}: xor_into(G.unpack(ghash(pw, lens, y)), j0, Nil{})
+
+# [len(A)]_64 || [len(C)]_64, in bits, C having m bytes.
+def lengths(+aad: List<&2, U32>, +m: Nat) -> List<&2, U32>:
+  List.append(&2, U32, G.octets(8n, Nat.mul(8n, List.length(&2, U32, aad))), G.octets(8n, Nat.mul(8n, m)))
+
+def context(+k: Keys, +n: Nonce, +aad: List<&2, U32>, +m: Nat) -> Ctx:
+  Ctx{k, n, pows(hash_key(encrypt2(k, 0, 0, 0, 0, 0, 0, 0, 0))), lengths(aad, m), List.take(&2, U32, stream(ctr2(k, n, 1)), 16n)}
+
+# The last ciphertext bytes (fewer than 32) and the tag.
+def seal_tail(+x: Ctx, +ct: List<&2, U32>, y: G.Block) -> List<&2, U32>:
+  List.append(&2, U32, ct, finish(x, ghash(ctx_pw(x), ct, y)))
+''' % (OUT_PAT, ', '.join(ks_byte(t) for t in range(4)), ', '.join(ks_byte(t) for t in range(4, 8)),
+       ', '.join(ks_byte(t) for t in range(8, 12)), ', '.join(ks_byte(t) for t in range(12, 16)))
+
+TAIL = '''
+def accept(o: Opened) -> Maybe<&2, List<&2, U32>>:
+  match o:
+    case Opened{ps, ok}: G.accept(ok, ps)
+
+# GCM-AE: C || T.
+def seal(+k: Keys, +n: Nonce, +aad: List<&2, U32>, +pt: List<&2, U32>) -> List<&2, U32>:
+  +x = context(k, n, aad, List.length(&2, U32, pt))
+  seal_body(x, pt, 2, ghash(ctx_pw(x), aad, G.zero()), ctr2(k, n, 2))
+
+def open_split(+k: Keys, +n: Nonce, +aad: List<&2, U32>, +input: List<&2, U32>, +m: Nat, short: Bool) -> Maybe<&2, List<&2, U32>>:
+  match short:
+    case True{}:
+      None{}
+    case False{}:
+      +x = context(k, n, aad, m)
+      accept(open_body(x, Nat.div(m, 32n), Nat.mod(m, 32n), input, 2, ghash(ctx_pw(x), aad, G.zero()), ctr2(k, n, 2)))
+
+# GCM-AD on C || T: the plaintext, or None when T is not the tag of C.
+def open(+k: Keys, +n: Nonce, +aad: List<&2, U32>, +input: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  +len = List.length(&2, U32, input)
+  open_split(k, n, aad, input, Nat.sub(len, 16n), Nat.is_lt(len, 16n))
+'''
+
+
+def main():
+    s = HEAD.split('\n') + powers() + MID.split('\n') + word_mul() + GH.split('\n') + seal_body() + [''] + open_body() + TAIL.split('\n')
+    (ROOT / 'src/crypto/aes/fast.bend').write_text('\n'.join(s))
+
+
+if __name__ == '__main__':
+    main()
