@@ -79,14 +79,14 @@ def par0(+mp: Nat, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, y: Nat, +hy: LT(y, 1
 # for a = (x : y : z) equiv [j] g with affine (ax, ay) and b = ay mod 2:
 # the point (ax, ey, 1) with ey = ay or p - ay even is what lift_x(ax)
 # decompresses to, and it is [j] g or [n - j] g
-def EvR(+mp: Nat, +nq: Nat, +g: CS.SPoint, +ax: Nat, +ay: Nat, +j: Nat, +b: Nat) -> Data:
-  S.Both<{CS.decompress(1n+mp, ax, 0n) == Some{CS.SPoint{ax, SS.even_b(1n+mp, b, ay), 1n}} : MSP}, S.Both<E(CS.SPoint{ax, SS.even_b(1n+mp, b, ay), 1n}, SM(SS.even_b(1n+nq, b, j), g)), S.Both<V(CS.SPoint{ax, SS.even_b(1n+mp, b, ay), 1n}), S.Both<{Nat.mod(SS.even_b(1n+mp, b, ay), 2n) == 0n : Nat}, LT(SS.even_b(1n+mp, b, ay), 1n+mp)>>>>
+def EvR(+p: Nat, +n: Nat, +g: CS.SPoint, +ax: Nat, +ay: Nat, +j: Nat, +b: Nat) -> Data:
+  S.Both<{CS.decompress(p, ax, 0n) == Some{CS.SPoint{ax, SS.even_b(p, b, ay), 1n}} : MSP}, S.Both<{GS.equiv(p, CS.SPoint{ax, SS.even_b(p, b, ay), 1n}, GS.smul(p, SS.even_b(n, b, j), g)) == True{} : Bool}, S.Both<{GS.valid(p, CS.SPoint{ax, SS.even_b(p, b, ay), 1n}) == True{} : Bool}, S.Both<{Nat.mod(SS.even_b(p, b, ay), 2n) == 0n : Nat}, {Nat.is_lt(SS.even_b(p, b, ay), p) == True{} : Bool}>>>>
 
 def zsum(+nq: Nat, +j: Nat) -> {Nat.mod(Nat.add(j, FS.msub(1n+nq, 0n, j)), 1n+nq) == 0n : Nat}:
   %NA.add_comm(FS.msub(1n+nq, 0n, j), j) : {Nat.mod(_, 1n+nq) == 0n : Nat}
   Z.msub_add(nq, 0n, j)
 
-def evp_c(FPD, SQD, GD, +x: Nat, +y: Nat, +z: Nat, +j: Nat, +va: V(PXYZ), +ha: E(PXYZ, SM(j, g)), +nzz: F.NZ(mp, z), b: Nat, +hb: {Nat.mod(AYV, 2n) == b : Nat}) -> EvR(mp, nq, g, AXV, AYV, j, b):
+def evp_c(FPD, SQD, GD, +x: Nat, +y: Nat, +z: Nat, +j: Nat, +va: V(PXYZ), +ha: E(PXYZ, SM(j, g)), +nzz: F.NZ(mp, z), b: Nat, +hb: {Nat.mod(AYV, 2n) == b : Nat}) -> EvR(1n+mp, 1n+nq, g, AXV, AYV, j, b):
   match b:
     case 0n:
       +vna = A1.nrm_v(mp, hp, x, y, z, G1.v_onc(mp, x, y, z, va), G1.v_nz(mp, x, y, z, va), nzz)
@@ -107,7 +107,7 @@ def evp_c(FPD, SQD, GD, +x: Nat, +y: Nat, +z: Nat, +j: Nat, +va: V(PXYZ), +ha: E
       +hne = G5.e_neg(mp, NAP, a1, TR(NAP, PXYZ, a1, va, SY(PXYZ, NAP, A1.nrm_e(mp, hp, x, y, z, nzz)), ha))
       S.Both{Lg.subst(Nat, t => {CS.decompress(1n+mp, AXV, t) == Some{NEP} : MSP}, Nat.mod(EYV, 2n), 0n, hp0, EC.decomp(DEC, AXV, EYV, hey, hon2)), S.Both{TR(NEG(NAP), NEG(a1), b1, G2.v_neg(mp, a1, va1), hne, SY(b1, NEG(a1), hun)), S.Both{G2.v_neg(mp, NAP, vna), S.Both{hp0, hey}}}}
     case 2n+ +q:
-      Empty.absurd(EvR(mp, nq, g, AXV, AYV, j, 2n+q), EC.q_absurd(AYV, q, hb))
+      Empty.absurd(EvR(1n+mp, 1n+nq, g, AXV, AYV, j, 2n+q), EC.q_absurd(AYV, q, hb))
 
 def nzz_c(FPD, GD, +x: Nat, +y: Nat, +z: Nat, +j: Nat, +hj0: {Nat.is_eq(j, 0n) == False{} : Bool}, +hjn: LT(j, 1n+nq), +va: V(PXYZ), +ha: E(PXYZ, SM(j, g)), c: Bool, +hc: {Nat.is_eq(Nat.mod(z, 1n+mp), 0n) == c : Bool}) -> F.NZ(mp, z):
   match c:
@@ -120,7 +120,7 @@ def nzz_c(FPD, GD, +x: Nat, +y: Nat, +z: Nat, +j: Nat, +hj0: {Nat.is_eq(j, 0n) =
 def nzz(FPD, GD, +x: Nat, +y: Nat, +z: Nat, +j: Nat, +hj0: {Nat.is_eq(j, 0n) == False{} : Bool}, +hjn: LT(j, 1n+nq), +va: V(PXYZ), +ha: E(PXYZ, SM(j, g))) -> F.NZ(mp, z):
   nzz_c(FPA, GA, x, y, z, j, hj0, hjn, va, ha, Nat.is_eq(Nat.mod(z, 1n+mp), 0n), {==})
 
-def evp(FPD, SQD, GD, a: CS.SPoint, +j: Nat, +hj0: {Nat.is_eq(j, 0n) == False{} : Bool}, +hjn: LT(j, 1n+nq), +va: V(a), +ha: E(a, SM(j, g))) -> EvR(mp, nq, g, CS.aff_x(CS.to_affine(1n+mp, a)), CS.aff_y(CS.to_affine(1n+mp, a)), j, Nat.mod(CS.aff_y(CS.to_affine(1n+mp, a)), 2n)):
+def evp(FPD, SQD, GD, a: CS.SPoint, +j: Nat, +hj0: {Nat.is_eq(j, 0n) == False{} : Bool}, +hjn: LT(j, 1n+nq), +va: V(a), +ha: E(a, SM(j, g))) -> EvR(1n+mp, 1n+nq, g, CS.aff_x(CS.to_affine(1n+mp, a)), CS.aff_y(CS.to_affine(1n+mp, a)), j, Nat.mod(CS.aff_y(CS.to_affine(1n+mp, a)), 2n)):
   match a:
     case CS.SPoint{+x, +y, +z}:
       evp_c(FPA, SQA, GA, x, y, z, j, va, ha, nzz(FPA, GA, x, y, z, j, hj0, hjn, va, ha), Nat.mod(AYV, 2n), {==})
@@ -174,3 +174,52 @@ def vrf(FPD, +one: Nat, +h1: {one == 1n : Nat}, +nq: Nat, +hn256: {Nat.is_le(1n+
   +vkg = G4.v_smul(FPA, k, g, vg)
   +t5 = TR(PA(u1, u2), PA(SM(sv, g), w2), SM(k, g), G1.v_add(FPA, SM(sv, g), w2, vs1, vw2), t3, t4)
   fin(mp, hp, h21, PA(u1, u2), rx, ey, G1.v_add(FPA, u1, u2, vu1, vu2), ve, TR(PA(u1, u2), SM(k, g), CS.SPoint{rx, ey, 1n}, vkg, t5, SY(CS.SPoint{rx, ey, 1n}, SM(k, g), hre)), hrx, hey, hev)
+
+# ---- the forms the protocol proof takes (functions of p and n) ----
+
+# the even-y representative of the specification's [j] g
+def evp2(FPD, SQD, GD, +hn256: {Nat.is_le(1n+nq, C.shift(256n, one)) == True{} : Bool}, +j: Nat, +hj0: {Nat.is_eq(j, 0n) == False{} : Bool}, +hjn: LT(j, 1n+nq)) -> EvR(1n+mp, 1n+nq, g, CS.aff_x(CS.to_affine(1n+mp, PMU(j, g))), CS.aff_y(CS.to_affine(1n+mp, PMU(j, g))), j, Nat.mod(CS.aff_y(CS.to_affine(1n+mp, PMU(j, g))), 2n)):
+  evp(FPA, SQA, GA, PMU(j, g), j, hj0, hjn, G4.pmul_valid(FPA, j, g, vg), G4.pmul_smul(FPA, j, g, vg, EC.fit(one, h1, nq, hn256, j, hjn)))
+
+def VR(+p: Nat, +n: Nat, +g: CS.SPoint, +d: Nat, +k: Nat, +e: Nat, +pp: CS.SPoint, +rx: Nat) -> Data:
+  {SS.check_r(rx, CS.is_inf(CS.padd(p, CS.pmul(p, FS.madd(n, k, FS.mmul(n, e, d)), g), CS.pmul(p, FS.mneg(n, e), pp))), CS.to_affine(p, CS.padd(p, CS.pmul(p, FS.madd(n, k, FS.mmul(n, e, d)), g), CS.pmul(p, FS.mneg(n, e), pp)))) == True{} : Bool}
+
+# x(a) is below p and fits 256 bits
+def AxB(+p: Nat, +a: CS.SPoint) -> Data:
+  S.Both<{Nat.is_lt(CS.aff_x(CS.to_affine(p, a)), p) == True{} : Bool}, {C.fits(256n, CS.aff_x(CS.to_affine(p, a))) == True{} : Bool}>
+
+def axb(+mp: Nat, +one: Nat, +h1: {one == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}, a: CS.SPoint) -> AxB(1n+mp, a):
+  match a:
+    case CS.SPoint{+x, +y, +z}:
+      S.Both{NR.dm_lt(mp, Nat.mul(x, FS.minv(1n+mp, z))), EC.fit(one, h1, mp, h256, AXV, NR.dm_lt(mp, Nat.mul(x, FS.minv(1n+mp, z))))}
+
+# a residue mod n is below n and fits 256 bits
+def SB(+n: Nat, +v: Nat) -> Data:
+  S.Both<{Nat.is_lt(Nat.mod(v, n), n) == True{} : Bool}, {C.fits(256n, Nat.mod(v, n)) == True{} : Bool}>
+
+def sb(+nq: Nat, +one: Nat, +h1: {one == 1n : Nat}, +hn256: {Nat.is_le(1n+nq, C.shift(256n, one)) == True{} : Bool}, +v: Nat) -> SB(1n+nq, v):
+  S.Both{NR.dm_lt(nq, v), EC.fit(one, h1, nq, hn256, Nat.mod(v, 1n+nq), NR.dm_lt(nq, v))}
+
+def EL(+n: Nat, +b: Nat, +j: Nat) -> Data:
+  {Nat.is_lt(SS.even_b(n, b, j), n) == True{} : Bool}
+
+def el(+nq: Nat, b: Nat, +j: Nat, +hjn: LT(j, 1n+nq)) -> EL(1n+nq, b, j):
+  match b:
+    case 0n:
+      hjn
+    case 1n+c:
+      NR.dm_lt(nq, Nat.sub(Nat.add(0n, 1n+nq), Nat.mod(j, 1n+nq)))
+
+def gno_c(+mp: Nat, +h21: LT(21n, 1n+mp), +x: Nat, +y: Nat, +one: Nat, +h1: {one == 1n : Nat}, c: Bool, +hc: {GS.equiv(1n+mp, CS.SPoint{x, y, one}, INF) == c : Bool}) -> {GS.equiv(1n+mp, CS.SPoint{x, y, one}, INF) == False{} : Bool}:
+  match c:
+    case False{}:
+      hc
+    case True{}:
+      Empty.absurd({GS.equiv(1n+mp, CS.SPoint{x, y, one}, INF) == False{} : Bool}, F.nz_absurd(mp, 1n, AF.one_nz(mp, h21), Lg.subst(Nat, t => {Nat.mod(t, 1n+mp) == 0n : Nat}, one, 1n, h1, AX.eqv_z0(mp, x, y, one, hc))))
+
+# a point with z = 1 is not O
+def gno(+mp: Nat, +h21: LT(21n, 1n+mp), +x: Nat, +y: Nat, +one: Nat, +h1: {one == 1n : Nat}) -> {GS.equiv(1n+mp, CS.SPoint{x, y, one}, INF) == False{} : Bool}:
+  gno_c(mp, h21, x, y, one, h1, GS.equiv(1n+mp, CS.SPoint{x, y, one}, INF), {==})
+
+def vrf2(FPD, +one: Nat, +h1: {one == 1n : Nat}, +nq: Nat, +hn256: {Nat.is_le(1n+nq, C.shift(256n, one)) == True{} : Bool}, +g: CS.SPoint, +vg: V(g), +hng: E(SM(1n+nq, g), INF), +d: Nat, +k: Nat, +e: Nat, +pp: CS.SPoint, +rx: Nat, +ey: Nat, +hk: LT(k, 1n+nq), +vp: V(pp), +hpp: E(pp, SM(d, g)), +ve: V(CS.SPoint{rx, ey, 1n}), +hre: E(CS.SPoint{rx, ey, 1n}, SM(k, g)), +hrx: LT(rx, 1n+mp), +hey: LT(ey, 1n+mp), +hev: {Nat.mod(ey, 2n) == 0n : Nat}) -> VR(1n+mp, 1n+nq, g, d, k, e, pp, rx):
+  vrf(FPA, one, h1, nq, hn256, g, vg, hng, d, k, e, pp, rx, ey, hk, vp, hpp, ve, hre, hrx, hey, hev)
