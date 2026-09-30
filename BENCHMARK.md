@@ -51,8 +51,8 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | HKDF-SHA256 | 8.97 |
 | ChaCha20 | 18.28 |
 | Poly1305 | 22.44 |
-| ChaCha20-Poly1305 | 32.35 |
-| XChaCha20-Poly1305 | 31.04 |
+| ChaCha20-Poly1305 | 26.50 |
+| XChaCha20-Poly1305 | 26.16 |
 | AES-128-GCM | 31.60 |
 | AES-256-GCM | 30.60 |
 | X25519 shared secret | 1677.75 |
@@ -271,31 +271,31 @@ C reference: Monocypher 4.0.2 `crypto_poly1305` (portable C). Worst ratio 22.44 
 
 ### ChaCha20-Poly1305
 
-C reference: Monocypher 4.0.2 `crypto_aead_init_ietf` + `crypto_aead_write`/`_read`. Worst ratio 32.35 (main: 366.20).
+C reference: Monocypher 4.0.2 `crypto_aead_init_ietf` + `crypto_aead_write`/`_read`. Worst ratio 26.50 (main: 366.20).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 5.86 | 0.24 | 24.16 |
-| 1 KiB | 38.1 | 1.59 | 24.00 |
-| 16 KiB | 578 | 23.3 | 24.77 |
-| 64 KiB | 2312 | 92.4 | 25.03 |
-| 1 MiB | 39000 | 1500 | 26.00 |
-| 1 KiB open | 50.8 | 1.62 | 31.44 |
-| 64 KiB open | 3000 | 92.8 | 32.35 |
+| 64 B | 5.31 | 0.26 | 20.69 |
+| 1 KiB | 26.4 | 1.69 | 15.58 |
+| 16 KiB | 359 | 24.7 | 14.53 |
+| 64 KiB | 1438 | 102 | 14.09 |
+| 1 MiB | 23000 | 1571 | 14.64 |
+| 1 KiB open | 44.9 | 1.70 | 26.50 |
+| 64 KiB open | 2500 | 98.1 | 25.48 |
 
 ### XChaCha20-Poly1305
 
-C reference: Monocypher 4.0.2 `crypto_aead_lock`/`_unlock`. Worst ratio 31.04 (main: 347.95).
+C reference: Monocypher 4.0.2 `crypto_aead_lock`/`_unlock`. Worst ratio 26.16 (main: 347.95).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 6.77 | 0.31 | 21.54 |
-| 1 KiB | 40.0 | 1.70 | 23.58 |
-| 16 KiB | 578 | 23.3 | 24.82 |
-| 64 KiB | 2312 | 94.1 | 24.58 |
-| 1 MiB | 39000 | 1482 | 26.32 |
-| 1 KiB open | 46.9 | 1.67 | 28.04 |
-| 64 KiB open | 2875 | 92.6 | 31.04 |
+| 64 B | 6.10 | 0.32 | 18.83 |
+| 1 KiB | 28.3 | 1.92 | 14.71 |
+| 16 KiB | 375 | 25.8 | 14.51 |
+| 64 KiB | 1562 | 103 | 15.23 |
+| 1 MiB | 25000 | 1703 | 14.68 |
+| 1 KiB open | 52.7 | 2.02 | 26.16 |
+| 64 KiB open | 2875 | 112 | 25.70 |
 
 ### AES-128-GCM
 

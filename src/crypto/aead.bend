@@ -12,7 +12,7 @@ import ./aesgcm.bend as GCM
 # algorithm's lengths (key_size, nonce_size); decrypt also returns None for
 # an input shorter than the tag and whenever the tag is not the one computed
 # over aad and ciphertext (a forgery, a wrong key/nonce/aad, a modified
-# ciphertext), before any plaintext is produced.
+# ciphertext); no plaintext is returned then.
 #
 #   algorithm            key  nonce  tag   standard
 #   CHACHA20_POLY1305    32   12     16    RFC 8439 2.8
