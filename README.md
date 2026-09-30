@@ -35,6 +35,11 @@ benchmarked against optimized C implementations of the same algorithms.
 | AES-GCM | `src/crypto/aesgcm.bend` | SP 800-38D AES-128-GCM and AES-256-GCM, 12-byte nonces, 16-byte tags appended, tag checked with `subtle.eq`; proved equal to the SP 800-38D specification, `decrypt(encrypt(x)) == Some(x)`, a wrong tag gives `None` |
 | Argon2id | `src/crypto/argon2/argon2.bend` | RFC 9106 (v0x13), with secret and associated data; proved equal to `spec/crypto/argon2/` for every input that fits (m' <= 2^23 blocks) |
 | Password hashing | `src/crypto/password.bend` | Argon2id PHC strings: `hash_password`, `hash_password_os`, `verify_password`, `needs_rehash`; see below |
+| ChaCha20 | `src/crypto/chacha/chacha20.bend` | RFC 8439: `chacha20_block`, `chacha20(key, counter, nonce, bytes)`, HChaCha20 and XChaCha20 (draft-irtf-cfrg-xchacha-03); the core `src/crypto/chacha/core.bend` takes the number of double rounds (ChaCha8/12 reuse it); proved equal to the RFC spec `spec/crypto/chacha.bend` for every input and round count, decryption is encryption; RFC 8439 / XChaCha vectors; [contracts](docs/CRYPTO_CONTRACTS.md) |
+| Poly1305 | `src/crypto/poly1305/poly1305.bend` | RFC 8439: `poly1305(key, msg)`, `verify` (constant-time `subtle.eq`); arithmetic mod 2^130-5 on 17 radix-2^8 U32 limbs, proved equal to the Nat spec `spec/crypto/poly1305.bend` for every input; RFC 8439 vectors |
+| AEAD | `src/crypto/aead.bend` | `encrypt(alg, key, nonce, aad, pt)`, `decrypt(alg, key, nonce, aad, ct)` for `CHACHA20_POLY1305` (RFC 8439), `XCHACHA20_POLY1305`, `AES_128_GCM` and `AES_256_GCM` (SP 800-38D); proved: each algorithm equals its spec, `decrypt(encrypt(x)) == Some(x)`, every tag other than the expected one is rejected; RFC 8439 / XChaCha / GCM vectors, Wycheproof, differential test against `cryptography` |
+| AES | `src/crypto/aes/aes.bend` | FIPS 197 block cipher, 128/192/256-bit keys; S-box as a constant-time Boyar-Peralta circuit (no table); proved equal to the FIPS 197 specification for every key and block, see [docs/CRYPTO_CONTRACTS.md](docs/CRYPTO_CONTRACTS.md) |
+| AES-GCM | `src/crypto/aesgcm.bend` | SP 800-38D AES-128-GCM and AES-256-GCM, 12-byte nonces, 16-byte tags appended, tag checked with `subtle.eq`; proved equal to the SP 800-38D specification, `decrypt(encrypt(x)) == Some(x)`, a wrong tag gives `None` |
 | Integer math | `src/math/natural.bend` | Python-style `math` integer functions, see below |
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 | Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |
@@ -274,6 +279,9 @@ src/crypto/       SHA-256 (sha/), Keccak-256 (keccak/), BLAKE2s, BLAKE2b and BLA
                   BLAKE2s, BLAKE2b and BLAKE3 (blake/), the hashing facade (hash.bend),
                   constant-time comparison (subtle.bend), Argon2id (argon2/) and
                   password hashing (password.bend)
+                  BLAKE2s, BLAKE2b and BLAKE3 (blake/), the hashing facade (hash.bend),
+                  constant-time comparison (subtle.bend), AES and GCM (aes/, aesgcm.bend),
+                  ChaCha20 (chacha/), Poly1305 (poly1305/) and the AEAD facade (aead.bend, aead/)
 spec/             the specifications, mirroring src/: what each module does,
                   independent of how
   containers/<pkg>.bend  the abstract model and its contract: every SPARK
@@ -287,6 +295,9 @@ spec/             the specifications, mirroring src/: what each module does,
                       polynomials, the cipher, GHASH/GCTR/GCM)
                       SHA3-256, RFC 7693 BLAKE2, BLAKE3, list equality (subtle),
                       RFC 9106 Argon2id (argon2/)
+                      SHA3-256, RFC 7693 BLAKE2, BLAKE3, list equality (subtle),
+                      FIPS 197 AES and SP 800-38D GCM (aes/), RFC 8439 ChaCha20,
+                      Poly1305 and ChaCha20-Poly1305, XChaCha20(-Poly1305)
   math/<module>.bend  each src/math module's contract as `<Function>.<clause>`
                       propositions (docs/MATH_CONTRACTS.md): proved for
                       natural, u64, hash and pow2; stated and tested for the
@@ -314,6 +325,7 @@ proofs/           only proofs: one package per src package, mirroring src/,
                       the AEAD laws (docs/CRYPTO_CONTRACTS.md)
                       incremental hasher, subtle/ eq, argon2/ Argon2id and the
                       password facade; docs/CRYPTO_CONTRACTS.md
+                      chacha/, poly1305/, aead/ equal to RFC 8439 and the AEAD laws
   lib/                proof library shared by the packages (logic, Nat, lists,
                       U32 words, arrays, order laws)
   PROOF.bend          the whole library; END_TO_END.bend the public laws
@@ -337,6 +349,8 @@ bend tests/math/natural.bend -o build/math/natural && python3 tools/check_math.p
 python3 tools/check_crypto_hash.py      # subtle, SHA-512, SHA3-256, the hash facade vs hashlib
 python3 tools/check_aes.py           # AES / AES-GCM: FIPS 197, NIST CAVP GCM vectors, `cryptography`
 python3 tools/check_argon2.py           # Argon2id (RFC 9106 vector) and PHC strings vs argon2-cffi
+python3 tools/check_chacha.py        # ChaCha20/XChaCha20/AEADs vs `cryptography`, Wycheproof
+python3 tools/check_poly1305.py      # Poly1305 and its spec mirror vs `cryptography`
 ```
 
 ## Benchmark

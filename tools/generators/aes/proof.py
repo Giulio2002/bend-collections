@@ -48,6 +48,7 @@ import ./inverse.bend as INV
 import ./cipher.bend as C
 import ./gcm.bend as GP
 import ./aead.bend as AD
+import ./api.bend as API
 
 # Gate for AES and AES-GCM: `bend proofs/crypto/aes/proof.bend` checks every
 # clause of laws.bend, for every input:
@@ -135,24 +136,29 @@ def Laws.Aead.forgery(nk, nr, key, iv, aad, c, @TA@, ne):
 
 for (w, name) in [(16, '128'), (32, '256')]:
     out += fill('''def Laws.Api@N@.encrypt(key, h, @NA@, aad, pt):
-  %Equal.sym(Nat, List.length(&2, U32, key), @W@n, h) : {GI.seal_key(GI.schedule_if(Nat.is_eq(_, @W@n), key), @NL@, aad, pt) == Some{G.aes_seal(key, @NL@, aad, pt)} : @M@}
-  %Equal.sym(Bool, A.valid_length(List.length(&2, U32, key)), True{}, valid_of(key, @W@n, h, {==})) : {GI.seal_key(A.schedule_if(_, @NK@, key), @NL@, aad, pt) == Some{G.aes_seal(key, @NL@, aad, pt)} : @M@}
-  %GP.seal_ok(S.nk(key), S.nr(key), key, @NW@, aad, pt) : {Some{GI.seal_core(@SCH@, @NW@, aad, pt)} == Some{_} : @M@}
-  {==}
+  API.aes@N@_encrypt(key, h, @NA@, aad, pt)
 
 def Laws.Api@N@.decrypt(key, h, @NA@, aad, ct):
-  %Equal.sym(Nat, List.length(&2, U32, key), @W@n, h) : {GI.open_key(GI.schedule_if(Nat.is_eq(_, @W@n), key), @NL@, aad, ct) == G.aes_open(key, @NL@, aad, ct) : @M@}
-  %Equal.sym(Bool, A.valid_length(List.length(&2, U32, key)), True{}, valid_of(key, @W@n, h, {==})) : {GI.open_key(A.schedule_if(_, @NK@, key), @NL@, aad, ct) == G.aes_open(key, @NL@, aad, ct) : @M@}
-  GP.open_ok(S.nk(key), S.nr(key), key, @NW@, aad, ct)
+  API.aes@N@_decrypt(key, h, @NA@, aad, ct)
+
+law open@N@_same:
+  for +key: List<&2, U32>
+  for +nonce: List<&2, U32>
+  for +aad: List<&2, U32>
+  for +m: Maybe<&2, List<&2, U32>>
+  {Laws.open@N@(key, nonce, aad, m) == API.open@N@(key, nonce, aad, m) : @M@}
+
+def open@N@_same(key, nonce, aad, m):
+  match m:
+    case None{}: {==}
+    case Some{c}: {==}
 
 def Laws.Api@N@.roundtrip(key, h, @NA@, aad, pt):
-  %Equal.sym(@M@, GCM.aes@N@_gcm_encrypt(key, @NL@, aad, pt), Some{G.aes_seal(key, @NL@, aad, pt)}, Laws.Api@N@.encrypt(key, h, @NA@, aad, pt)) : {Laws.open@N@(key, @NL@, aad, _) == Some{pt} : @M@}
-  %Equal.sym(@M@, GCM.aes@N@_gcm_decrypt(key, @NL@, aad, G.aes_seal(key, @NL@, aad, pt)), G.aes_open(key, @NL@, aad, G.aes_seal(key, @NL@, aad, pt)), Laws.Api@N@.decrypt(key, h, @NA@, aad, G.aes_seal(key, @NL@, aad, pt))) : {_ == Some{pt} : @M@}
-  AD.roundtrip(S.nk(key), S.nr(key), key, @NL@, aad, pt)
+  +m = GCM.aes@N@_gcm_encrypt(key, @NL@, aad, pt)
+  Equal.trans(@M@, Laws.open@N@(key, @NL@, aad, m), API.open@N@(key, @NL@, aad, m), Some{pt}, open@N@_same(key, @NL@, aad, m), API.aes@N@_roundtrip(key, h, @NA@, aad, pt))
 
 def Laws.Api@N@.forgery(key, h, @NA@, aad, c, @TA@, ne):
-  %Equal.sym(@M@, GCM.aes@N@_gcm_decrypt(key, @NL@, aad, List.append(&2, U32, c, @TL@)), G.aes_open(key, @NL@, aad, List.append(&2, U32, c, @TL@)), Laws.Api@N@.decrypt(key, h, @NA@, aad, List.append(&2, U32, c, @TL@))) : {_ == None{} : @M@}
-  AD.forgery(S.nk(key), S.nr(key), key, @NL@, aad, c, @TA@, ne)
+  API.aes@N@_forgery(key, h, @NA@, aad, c, @TA@, ne)
 
 def Laws.Api@N@.bad_key(key, h, nonce, aad, pt):
   %Equal.sym(Bool, Nat.is_eq(List.length(&2, U32, key), @W@n), False{}, h) : {GI.seal_key(GI.schedule_if(_, key), nonce, aad, pt) == None{} : @M@}

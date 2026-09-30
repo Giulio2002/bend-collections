@@ -49,6 +49,14 @@ import ./src/crypto/mac.bend as MAC
 import ./src/crypto/kdf.bend as KDF
 import ./spec/crypto/hmac.bend as HMACSpec
 import ./spec/crypto/hkdf.bend as HKDFSpec
+import ./src/crypto/chacha/core.bend as ChaChaCore
+import ./src/crypto/chacha/chacha20.bend as ChaCha20
+import ./src/crypto/poly1305/poly1305.bend as Poly1305
+import ./src/crypto/aead.bend as AEAD
+import ./src/crypto/aead/chacha20poly1305.bend as ChaCha20Poly1305
+import ./spec/crypto/chacha.bend as ChaChaSpec
+import ./spec/crypto/poly1305.bend as Poly1305Spec
+import ./spec/crypto/chacha20poly1305.bend as ChaCha20Poly1305Spec
 import ./src/crypto/keccak/keccak.bend as Keccak
 import ./src/crypto/keccak/hex.bend as KeccakHex
 import ./src/crypto/blake/blake2s/blake2s.bend as BLAKE2s

@@ -479,6 +479,51 @@ def main():
                    'proof': 'passed' if good else 'failed', 'checks': checks}
         (LOGDIR / 'mac.log').write_text('\n'.join(x['output'] for x in checks))
         print('%-22s differential=%s proof=%s' % ('mac', mac_row['differential'], mac_row['proof']), flush=True)
+    # src/crypto/chacha, src/crypto/poly1305, src/crypto/aead (ChaCha20,
+    # HChaCha20, XChaCha20, Poly1305, ChaCha20-Poly1305, XChaCha20-Poly1305):
+    # the RFC 8439 / XChaCha draft vectors run by the Bend runtime, the
+    # differential tests against `cryptography` (tools/check_chacha.py,
+    # tools/check_poly1305.py), and the three proof packages.
+    chacha_row = None
+    if not args.only or args.only == 'chacha':
+        checks = []
+        vector_tests = [('chacha', 'tests/crypto/chacha/main.bend'),
+                        ('poly1305', 'tests/crypto/poly1305/main.bend'),
+                        ('aead', 'tests/crypto/aead/main.bend')]
+        for label, source in vector_tests:
+            binary = BUILD / 'crypto' / label
+            binary.parent.mkdir(parents=True, exist_ok=True)
+            built = run([BEND, source, '-o', str(binary.relative_to(ROOT))], timeout=1800)
+            out = built.stdout + built.stderr
+            passed = binary.exists()
+            if passed:
+                ran = subprocess.run([str(binary)], env=ENV, text=True, capture_output=True, timeout=1800)
+                out += ran.stdout + ran.stderr
+                last = [ln for ln in ran.stdout.splitlines() if ln.startswith(label + ':')]
+                import re
+                m = re.search(r'(\d+)\s*/\s*(\d+)', last[-1]) if last else None
+                counts = [m.group(1), m.group(2)] if m else ['0', '1']
+                passed = ran.returncode == 0 and 'FAIL' not in ran.stdout and counts[0] == counts[1]
+            checks.append({'command': [BEND, source], 'passed': passed, 'output': out})
+            if not passed:
+                fail('chacha', 'vector test failed: ' + source)
+        chacha_checks = [([sys.executable, 'tools/check_chacha.py'], 3600),
+                         ([sys.executable, 'tools/check_poly1305.py'], 3600),
+                         ([BEND, 'proofs/crypto/chacha/proof.bend'], 3600),
+                         ([BEND, 'proofs/crypto/poly1305/proof.bend'], 3600),
+                         ([BEND, 'proofs/crypto/aead/proof.bend'], 3600)]
+        for command, limit in chacha_checks:
+            result = run(command, timeout=limit)
+            passed = result.returncode == 0 and (command[0] != BEND or proved(result.stdout))
+            checks.append({'command': command, 'passed': passed, 'output': result.stdout + result.stderr})
+            if not passed:
+                fail('chacha', 'chacha/poly1305/aead check failed: ' + repr(command))
+        good = all(x['passed'] for x in checks)
+        chacha_row = {'id': 'chacha', 'implementation': 'src/crypto/chacha, src/crypto/poly1305, src/crypto/aead.bend',
+                      'differential': 'passed' if all(x['passed'] for x in checks[:5]) else 'failed',
+                      'proof': 'passed' if good else 'failed', 'checks': checks}
+        (LOGDIR / 'chacha.log').write_text('\n'.join(x['output'] for x in checks))
+        print('%-22s differential=%s proof=%s' % ('chacha', chacha_row['differential'], chacha_row['proof']), flush=True)
     # src/crypto/aes and src/crypto/aesgcm.bend (AES, AES-GCM): the FIPS 197
     # and GCM example vectors run by tests/crypto/aes/main.bend, the NIST CAVP
     # GCM vectors and the differential test against `cryptography`
@@ -531,6 +576,7 @@ def main():
         'math': math_row,
         'crypto': crypto_row,
         'mac': mac_row,
+        'chacha': chacha_row,
         'aes': aes_row,
         'lru_reuse': 'passed' if lru_ok else 'failed',
         'lru_detail': lru_detail,
