@@ -1,21 +1,7 @@
 import Base
-import ../../../spec/lib/common.bend as C
 import ../../../spec/math/f64.bend as SF
-import ../../../spec/math/w64.bend as SW
-import ../../../src/math/f64.bend as F
-import ../../../src/math/w64.bend as X
-import ../../../src/math/u64.bend as WU
-import ../../../src/math/natural.bend as M
-import ../../lib/nat.bend as N
-import ../../lib/logic.bend as L
-import ../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ./width.bend as WW
 import ./natcmp.bend as NC
-import ./w64add.bend as WA
-import ./w64dm.bend as DM
 import ./f64cmp.bend as FC
-import ./f64mul.bend as MU
-import ./f64sqa.bend as AQ
 
 # Small Bool and Nat facts for the F64 square root proofs.
 

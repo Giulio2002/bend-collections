@@ -3,7 +3,6 @@ import ../../../spec/lib/common.bend as C
 import ../../../spec/math/f64.bend as SF
 import ../../../spec/math/w64.bend as SW
 import ../../../src/math/f64.bend as F
-import ../../../src/math/w64.bend as X
 import ../../../src/math/u64.bend as WU
 import ../../../src/math/natural.bend as M
 import ../../lib/nat.bend as N

@@ -1,7 +1,5 @@
 import Base
-import ../../../spec/lib/common.bend as C
 import ../../../spec/math/w64.bend as SW
-import ../../../spec/math/natural.bend as NS
 import ../../../src/math/w64.bend as X
 import ../../../src/math/natural.bend as M
 import ../../lib/nat.bend as N
@@ -11,7 +9,6 @@ import ../../lib/u32div.bend as UD
 import ../../lib/word.bend as WD
 import ../../lib/arith.bend as AR
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../lib/lemmas/spec/numeric.bend as S
 import ../u64/u64div.bend as PD
 import ../natural/proof.bend as NP
 import ./w64mul.bend as WM

@@ -36,22 +36,22 @@ def peel(+i: Nat) -> {Nat.divmod(Nat.add(32n, i), 32n) == bump(Nat.divmod(i, 32n
   Equal.trans(Nat & Nat, Nat.divmod.go(Nat.add(32n, i), 31n, 0n, 0n), Nat.divmod.go(i, 31n, 1n, 0n), bump(Nat.divmod.go(i, 31n, 0n, 0n)),
     peel_go(i, 0n), acc(i, 31n, 0n, 0n))
 
-def fst_bump(p: Nat & Nat) -> {Nat.div.fin(bump(p)) == 1n+Nat.div.fin(p) : Nat}:
+def fst_bump(p: Nat & Nat) -> {Pair.fst(Nat, Nat, bump(p)) == 1n+Pair.fst(Nat, Nat, p) : Nat}:
   (q, r) = p
   {==}
 
-def snd_bump(p: Nat & Nat) -> {Nat.mod.fin(bump(p)) == Nat.mod.fin(p) : Nat}:
+def snd_bump(p: Nat & Nat) -> {Pair.snd(Nat, Nat, bump(p)) == Pair.snd(Nat, Nat, p) : Nat}:
   (q, r) = p
   {==}
 
 def wordix_peel(+i: Nat) -> {B.wordix(Nat.add(32n, i)) == 1n+B.wordix(i) : Nat}:
-  Equal.trans(Nat, Nat.div.fin(Nat.divmod(Nat.add(32n, i), 32n)), Nat.div.fin(bump(Nat.divmod(i, 32n))), 1n+Nat.div.fin(Nat.divmod(i, 32n)),
-    Equal.cong(Nat & Nat, Nat, Nat.div.fin, Nat.divmod(Nat.add(32n, i), 32n), bump(Nat.divmod(i, 32n)), peel(i)),
+  Equal.trans(Nat, Pair.fst(Nat, Nat, Nat.divmod(Nat.add(32n, i), 32n)), Pair.fst(Nat, Nat, bump(Nat.divmod(i, 32n))), 1n+Pair.fst(Nat, Nat, Nat.divmod(i, 32n)),
+    Equal.cong(Nat & Nat, Nat, pq => Pair.fst(Nat, Nat, pq), Nat.divmod(Nat.add(32n, i), 32n), bump(Nat.divmod(i, 32n)), peel(i)),
     fst_bump(Nat.divmod(i, 32n)))
 
 def bitix_peel(+i: Nat) -> {B.bitix(Nat.add(32n, i)) == B.bitix(i) : Nat}:
-  Equal.trans(Nat, Nat.mod.fin(Nat.divmod(Nat.add(32n, i), 32n)), Nat.mod.fin(bump(Nat.divmod(i, 32n))), Nat.mod.fin(Nat.divmod(i, 32n)),
-    Equal.cong(Nat & Nat, Nat, Nat.mod.fin, Nat.divmod(Nat.add(32n, i), 32n), bump(Nat.divmod(i, 32n)), peel(i)),
+  Equal.trans(Nat, Pair.snd(Nat, Nat, Nat.divmod(Nat.add(32n, i), 32n)), Pair.snd(Nat, Nat, bump(Nat.divmod(i, 32n))), Pair.snd(Nat, Nat, Nat.divmod(i, 32n)),
+    Equal.cong(Nat & Nat, Nat, pq => Pair.snd(Nat, Nat, pq), Nat.divmod(Nat.add(32n, i), 32n), bump(Nat.divmod(i, 32n)), peel(i)),
     snd_bump(Nat.divmod(i, 32n)))
 
 # A dividend that never reaches the divisor never advances the quotient.
@@ -70,10 +70,10 @@ def small(+i: Nat, +h: {Nat.is_lt(i, 32n) == True{} : Bool}) -> {Nat.divmod(i, 3
   small_go(i, 31n, 0n, N.lt_succ_le(i, 31n, h))
 
 def wordix_small(+i: Nat, +h: {Nat.is_lt(i, 32n) == True{} : Bool}) -> {B.wordix(i) == 0n : Nat}:
-  Equal.cong(Nat & Nat, Nat, Nat.div.fin, Nat.divmod(i, 32n), (0n, i), small(i, h))
+  Equal.cong(Nat & Nat, Nat, pq => Pair.fst(Nat, Nat, pq), Nat.divmod(i, 32n), (0n, i), small(i, h))
 
 def bitix_small(+i: Nat, +h: {Nat.is_lt(i, 32n) == True{} : Bool}) -> {B.bitix(i) == i : Nat}:
-  Equal.cong(Nat & Nat, Nat, Nat.mod.fin, Nat.divmod(i, 32n), (0n, i), small(i, h))
+  Equal.cong(Nat & Nat, Nat, pq => Pair.snd(Nat, Nat, pq), Nat.divmod(i, 32n), (0n, i), small(i, h))
 
 # The form the word walk needs: for i >= 32, i = 32 + (i - 32).
 def add_sub32(+i: Nat, +h: {Nat.is_lt(i, 32n) == False{} : Bool}) -> {Nat.add(32n, Nat.sub(i, 32n)) == i : Nat}:

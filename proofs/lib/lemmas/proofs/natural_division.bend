@@ -28,7 +28,7 @@ def decomposition(q: Nat, +d: Nat, +r: Nat, bound: {Nat.is_le(r, d) == True{} : 
 
 # Quotient and remainder projections used by the independent duration model.
 def quotient(+q: Nat, +d: Nat, +r: Nat, bound: {Nat.is_le(r, d) == True{} : Bool}) -> {Nat.div(Nat.add(Nat.mul(q, 1n+d), r), 1n+d) == q : Nat}:
-  Equal.cong(Nat & Nat, Nat, Nat.div.fin, Nat.divmod(Nat.add(Nat.mul(q, 1n+d), r), 1n+d), (q, r), decomposition(q, d, r, bound))
+  Equal.cong(Nat & Nat, Nat, pq => Pair.fst(Nat, Nat, pq), Nat.divmod(Nat.add(Nat.mul(q, 1n+d), r), 1n+d), (q, r), decomposition(q, d, r, bound))
 
 def remainder(+q: Nat, +d: Nat, +r: Nat, bound: {Nat.is_le(r, d) == True{} : Bool}) -> {Nat.mod(Nat.add(Nat.mul(q, 1n+d), r), 1n+d) == r : Nat}:
-  Equal.cong(Nat & Nat, Nat, Nat.mod.fin, Nat.divmod(Nat.add(Nat.mul(q, 1n+d), r), 1n+d), (q, r), decomposition(q, d, r, bound))
+  Equal.cong(Nat & Nat, Nat, pq => Pair.snd(Nat, Nat, pq), Nat.divmod(Nat.add(Nat.mul(q, 1n+d), r), 1n+d), (q, r), decomposition(q, d, r, bound))

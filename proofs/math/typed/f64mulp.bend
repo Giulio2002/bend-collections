@@ -1,4 +1,5 @@
 import Base
+import ./f64light.bend as FL
 import ../../../spec/lib/common.bend as C
 import ../../../spec/math/f64.bend as SF
 import ../../../spec/math/w64.bend as SW
@@ -26,36 +27,17 @@ def v(+x: U32) -> Nat:
 
 # or_bit(a, b) is jam(a, b)
 def orv_c(+l: U32, +h: U32, +b: Bool) -> {SW.value(X.or_bit(WU.U64{l, h}, b)) == SW.jam(SW.value(WU.U64{l, h}), SF.b2n(b)) : Nat}:
-  match b:
-    case True{}:
-      +s31 = C.shift(31n, v(h))
-      +e1 = Equal.cong(Nat, Nat, z => Nat.add(z, C.shift(32n, v(h))), v(U32.or(l, 1)), 1n+Nat.double(C.half(v(l))), SH.or1(l))
-      +eh = WW.half_dbl(v(l), s31)
-      +e2 = Equal.trans(Nat, Nat.add(1n+Nat.double(C.half(v(l))), C.shift(32n, v(h))), 1n+Nat.add(Nat.double(C.half(v(l))), Nat.double(s31)), 1n+Nat.double(C.half(SW.value(WU.U64{l, h}))), NA.add_assoc(1n, Nat.double(C.half(v(l))), Nat.double(s31)), Equal.trans(Nat, 1n+Nat.add(Nat.double(C.half(v(l))), Nat.double(s31)), 1n+Nat.double(Nat.add(C.half(v(l)), s31)), 1n+Nat.double(C.half(SW.value(WU.U64{l, h}))), Equal.cong(Nat, Nat, z => 1n+z, Nat.add(Nat.double(C.half(v(l))), Nat.double(s31)), Nat.double(Nat.add(C.half(v(l)), s31)), Equal.sym(Nat, Nat.double(Nat.add(C.half(v(l)), s31)), Nat.add(Nat.double(C.half(v(l))), Nat.double(s31)), NA.double_add(C.half(v(l)), s31))), Equal.cong(Nat, Nat, z => 1n+Nat.double(z), Nat.add(C.half(v(l)), s31), C.half(SW.value(WU.U64{l, h})), Equal.sym(Nat, C.half(SW.value(WU.U64{l, h})), Nat.add(C.half(v(l)), s31), eh))))
-      +e3 = Equal.sym(Nat, SW.jam(SW.value(WU.U64{l, h}), 1n), 1n+Nat.double(C.half(SW.value(WU.U64{l, h}))), SH.jam1_k(SW.value(WU.U64{l, h}), Nat.mod(SW.value(WU.U64{l, h}), 2n), {==}, NR.dm_lt(1n, SW.value(WU.U64{l, h}))))
-      Equal.trans(Nat, Nat.add(v(U32.or(l, 1)), C.shift(32n, v(h))), Nat.add(1n+Nat.double(C.half(v(l))), C.shift(32n, v(h))), SW.jam(SW.value(WU.U64{l, h}), 1n), e1, Equal.trans(Nat, Nat.add(1n+Nat.double(C.half(v(l))), C.shift(32n, v(h))), 1n+Nat.double(C.half(SW.value(WU.U64{l, h}))), SW.jam(SW.value(WU.U64{l, h}), 1n), e2, e3))
-    case False{}:
-      Equal.trans(Nat, Nat.add(v(U32.or(l, 0)), C.shift(32n, v(h))), SW.value(WU.U64{l, h}), SW.jam(SW.value(WU.U64{l, h}), 0n), Equal.cong(U32, Nat, z => Nat.add(v(z), C.shift(32n, v(h))), U32.or(l, 0), l, SH.or0(l)), Equal.sym(Nat, SW.jam(SW.value(WU.U64{l, h}), 0n), SW.value(WU.U64{l, h}), SH.jam0_m(SW.value(WU.U64{l, h}), Nat.mod(SW.value(WU.U64{l, h}), 2n), {==}, NR.dm_lt(1n, SW.value(WU.U64{l, h})))))
+  FL.orv_c(l, h, b)
 
 def orv(+a: WU.U64, +b: Bool) -> {SW.value(X.or_bit(a, b)) == SW.jam(SW.value(a), SF.b2n(b)) : Nat}:
-  match a:
-    case WU.U64{+l, +h}:
-      orv_c(l, h, b)
+  FL.orv(a, b)
 
 def minz(+r: Nat) -> {Nat.min(r, 0n) == 0n : Nat}:
-  match r:
-    case 0n:
-      {==}
-    case 1n+ +rp:
-      {==}
+  FL.minz(r)
 
 # jam reads only whether r is zero
 def jmin(+q: Nat, +r: Nat) -> {SW.jam(q, SF.b2n(Bool.not(Nat.is_eq(r, 0n)))) == SW.jam(q, r) : Nat}:
-  match r:
-    case 0n:
-      {==}
-    case 1n+ +rp:
-      Equal.cong(Nat, Nat, z => Nat.add(Nat.mul(2n, Nat.div(q, 2n)), Nat.max(Nat.mod(q, 2n), z)), 1n, Nat.min(1n+rp, 1n), Equal.sym(Nat, 1n+Nat.min(rp, 0n), 1n, Equal.cong(Nat, Nat, z => 1n+z, Nat.min(rp, 0n), 0n, minz(rp))))
+  FL.jmin(q, r)
 
 # ---- rp62: a significand in [2^61, 2^63) renormalized to bit 62 ----
 
