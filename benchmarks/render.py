@@ -97,7 +97,9 @@ SUITE = OrderedDict([
         ('ed25519_sign', 'Ed25519 sign', 'Monocypher 4.0.2 `crypto_ed25519_sign`', 'Message', 'us'),
         ('ed25519_verify', 'Ed25519 verify', 'Monocypher 4.0.2 `crypto_ed25519_check`', 'Message', 'us'),
         ('argon2id', 'Argon2id', 'the official P-H-C reference (`ref.c`, portable, no SSE), one thread', 'Parameters', 'us'),
-        ('secp256k1', 'secp256k1', 'libsecp256k1 v0.6.0', 'Operation', 'us'),
+        ('secp256k1', 'secp256k1 (ECDSA, recovery, BIP-340)', 'libsecp256k1 v0.6.0 (precomputed tables, 5x52 field, no assembly; '
+         'recovery, extrakeys and schnorrsig modules). The Bend side is `src/crypto/secp256k1.bend` from branch '
+         '`crypto-secp256k1` at 5c8590b, not yet merged; the case runs only when that file exists', 'Operation', 'us'),
     ])),
     ('random', ('Random', 'build/bench/suite-random.json', [
         ('chacha8_uint64', 'ChaCha8 `uint64`', 'a C transcription of Go 1.23 `internal/chacha8rand` (portable block function)', 'Draws', 'ns'),
@@ -123,6 +125,11 @@ def suite_tables(worst):
         out += ['## %s' % heading, '']
         if group == 'hash':
             out += ['Same method as the hashes above (`benchmarks/crypto_suite.py --group hash`).', '']
+        elif group == 'pk':
+            out += ['A curve operation takes Bend 0.1-1 s, so these rows time a few operations',
+                    'per sample (Argon2id: 64 hashes at 64 KiB, one at 19 MiB). The curve C',
+                    'references repeat their timed pass until 50 ms have passed and report the',
+                    'mean pass. Microseconds per operation.', '']
         elif group == 'random':
             out += ['Fixed seeds (ChaCha8: bytes `7i + 1`; PCG: `NewPCG(1, 2)`); every draw is stored',
                     'and folded into the checksum after the timed region. Nanoseconds per draw, or',
@@ -185,6 +192,12 @@ def references_section():
             '  inside every call; Monocypher\'s `crypto_ed25519_sign` takes the 64-byte',
             '  expanded secret key (seed || public key), so it skips one fixed-base',
             '  scalar multiplication per signature.',
+            '- secp256k1: libsecp256k1 is production code with precomputed multiplication',
+            '  tables, not a plain reference; its verify parses the key and signature inside',
+            '  the timed region (the Bend API takes bytes) and normalises s (Bend\'s verify',
+            '  accepts high s). Bend\'s BIP-340 sign derives the public key on every call.',
+            '  No Python check (Bend and C must agree; RFC 6979 and fixed BIP-340 aux make',
+            '  both deterministic).',
             '- Shuffle: the Bend API shuffles a list (each swap walks the list), C an array;',
             '  the 100000-item row is one sample without a warm-up.', '']
 
