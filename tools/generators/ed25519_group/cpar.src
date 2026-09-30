@@ -1,0 +1,161 @@
+import Base
+import ../../../../spec/math/number.bend as SN
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../../../spec/crypto/curve25519/edwards.bend as G
+import ../../../../spec/crypto/ed25519.bend as ED
+import ../../secp256k1/semiring.bend as SR
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ../../../math/number/nt_prime.bend as PM
+import ../../../math/number/nt_flt.bend as FL
+import ../../secp256k1/group/bn.bend as B
+import ../../secp256k1/group/bnx.bend as X
+import ../../secp256k1/group/fld.bend as F
+import ./pfacts.bend as PF
+import ./fq.bend as FQ
+
+# The parameters of edwards25519 are those of a complete twisted Edwards
+# group (G.Curve): p = 2^255 - 19 = 1 + mp with mp = X.bvalo(one, PF.p1l()),
+# and d = ED.dconst(one, p) = -121665 / 121666, which is the literal PF.dl().
+# The three heavy facts are hypotheses, each the conclusion of a certificate
+# root: p is prime (certa.bend's prime_p), d^((p - 1) / 2) == p - 1
+# (certda.bend's d_euler) and 2^((p - 1) / 4) == I (certia.bend's
+# i_pow_div); the rest is closed checks on the literals (pfacts.bend).
+
+# ---- residues given by literals ----
+
+# r + 1 + c == p: r < p
+def lt_p(+one: Nat, +h1: {one == 1n : Nat}, +r: B.Bn, +c: B.Bn, +h: {B.beq(PF.pl(), B.badd(B.binc(r), c)) == True{} : Bool}) -> {Nat.is_lt(X.bvalo(one, r), 1n+X.bvalo(one, PF.p1l())) == True{} : Bool}:
+  %rw <- PF.p_suc(one, h1)
+  %rw <- PF.p_is(one, h1)
+  X.lt_o(one, h1, r, PF.pl(), c, h)
+
+# x == k p + r, r < p: x mod p == r
+def mod_p(+one: Nat, +h1: {one == 1n : Nat}, +x: B.Bn, +k: B.Bn, +r: B.Bn, +c: B.Bn, +h: {B.beq(x, B.badd(B.bmul(k, PF.pl()), r)) == True{} : Bool}, +hl: {B.beq(PF.pl(), B.badd(B.binc(r), c)) == True{} : Bool}) -> {Nat.mod(X.bvalo(one, x), 1n+X.bvalo(one, PF.p1l())) == X.bvalo(one, r) : Nat}:
+  %rw X.eq_o(one, h1, x, B.badd(B.bmul(k, PF.pl()), r), h)
+  %rw X.add_o(one, h1, B.bmul(k, PF.pl()), r)
+  %rw X.mul_o(one, h1, k, PF.pl())
+  %rw PF.p_is(one, h1)
+  %rw PF.p_suc(one, h1)
+  NR.mod_of(X.bvalo(one, k), X.bvalo(one, PF.p1l()), X.bvalo(one, r), lt_p(one, h1, r, c, hl))
+
+def nz_eq(+one: Nat, +h1: {one == 1n : Nat}, +r: B.Bn, +r1: B.Bn, +c: B.Bn, +hs: {B.beq(r, B.binc(r1)) == True{} : Bool}, +hl: {B.beq(PF.pl(), B.badd(B.binc(r), c)) == True{} : Bool}) -> {Nat.is_eq(Nat.mod(X.bvalo(one, r), 1n+X.bvalo(one, PF.p1l())), 0n) == False{} : Bool}:
+  %rw FL.small_nz(X.bvalo(one, PF.p1l()), X.bvalo(one, r), lt_p(one, h1, r, c, hl))
+  %rw X.suc_o(one, h1, r, r1, hs)
+  %close
+
+# 0 < r < p: r is not 0 modulo p
+def nz_lit(+one: Nat, +h1: {one == 1n : Nat}, +r: B.Bn, +r1: B.Bn, +c: B.Bn, +hs: {B.beq(r, B.binc(r1)) == True{} : Bool}, +hl: {B.beq(PF.pl(), B.badd(B.binc(r), c)) == True{} : Bool}) -> F.NZ(X.bvalo(one, PF.p1l()), X.bvalo(one, r)):
+  nz_eq(one, h1, r, r1, c, hs, hl)
+
+# p is prime, as 1 + mp
+def prime_s(+one: Nat, +h1: {one == 1n : Nat}, +hp: PM.Prime(FS.prime(one))) -> PM.Prime(1n+X.bvalo(one, PF.p1l())):
+  %PF.p_suc(one, h1) : {SN.prime(_) == True{} : Bool}
+  hp
+
+# ---- d ----
+
+def h_c5() -> {B.beq(PF.pl(), B.badd(B.binc(PF.c5l()), PF.c5cl())) == True{} : Bool}:
+  {==}
+
+def h_c6() -> {B.beq(PF.pl(), B.badd(B.binc(PF.c6l()), PF.c6cl())) == True{} : Bool}:
+  {==}
+
+def h_c65() -> {B.beq(PF.c6l(), B.binc(PF.c5l())) == True{} : Bool}:
+  {==}
+
+def h_dn() -> {B.beq(PF.pl(), B.badd(B.binc(PF.dnl()), PF.c4l())) == True{} : Bool}:
+  {==}
+
+def h_d() -> {B.beq(PF.pl(), B.badd(B.binc(PF.dl()), PF.dcl())) == True{} : Bool}:
+  {==}
+
+def h_d1() -> {B.beq(PF.dl(), B.binc(PF.dm1l())) == True{} : Bool}:
+  {==}
+
+def h_split() -> {B.beq(PF.pl(), B.badd(PF.c5l(), PF.dnl())) == True{} : Bool}:
+  {==}
+
+def h_prod() -> {B.beq(B.bmul(PF.dl(), PF.c6l()), B.badd(B.bmul(PF.dk1l(), PF.pl()), PF.dnl())) == True{} : Bool}:
+  {==}
+
+# p == 121665 + (p - 121665)
+def p_split(+one: Nat, +h1: {one == 1n : Nat}) -> {1n+X.bvalo(one, PF.p1l()) == Nat.add(X.bvalo(one, PF.c5l()), X.bvalo(one, PF.dnl())) : Nat}:
+  %rw <- PF.p_suc(one, h1)
+  %rw <- PF.p_is(one, h1)
+  %rw <- X.add_o(one, h1, PF.c5l(), PF.dnl())
+  X.eq_o(one, h1, PF.pl(), B.badd(PF.c5l(), PF.dnl()), h_split())
+
+# 121666 is not 0 modulo p
+def nz6(+one: Nat, +h1: {one == 1n : Nat}) -> F.NZ(X.bvalo(one, PF.p1l()), FS.digits(one, [66n, 219n, 1n])):
+  %PF.c6_is(one, h1) : {Nat.is_eq(Nat.mod(_, 1n+X.bvalo(one, PF.p1l())), 0n) == False{} : Bool}
+  nz_eq(one, h1, PF.c6l(), PF.c5l(), PF.c6cl(), h_c65(), h_c6())
+
+# d is not 0 modulo p
+def d_nz(+one: Nat, +h1: {one == 1n : Nat}) -> F.NZ(X.bvalo(one, PF.p1l()), X.bvalo(one, PF.dl())):
+  nz_lit(one, h1, PF.dl(), PF.dm1l(), PF.dcl(), h_d1(), h_d())
+
+# -121665 == d 121666 (mod p): both are p - 121665
+def d_frac(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.mod(FS.fsub(1n+X.bvalo(one, PF.p1l()), 0n, FS.digits(one, [65n, 219n, 1n])), 1n+X.bvalo(one, PF.p1l())) == Nat.mod(FS.fmul(1n+X.bvalo(one, PF.p1l()), X.bvalo(one, PF.dl()), FS.digits(one, [66n, 219n, 1n])), 1n+X.bvalo(one, PF.p1l())) : Nat}:
+  %rw <- PF.c5_is(one, h1)
+  %rw <- PF.c6_is(one, h1)
+  %rw FQ.fsub_red(X.bvalo(one, PF.p1l()), 0n, X.bvalo(one, PF.c5l()))
+  %rw FQ.fmul_red(X.bvalo(one, PF.p1l()), X.bvalo(one, PF.dl()), X.bvalo(one, PF.c6l()))
+  %goal {Nat.mod(Nat.sub(Nat.add(0n, 1n+X.bvalo(one, PF.p1l())), Nat.mod(X.bvalo(one, PF.c5l()), 1n+X.bvalo(one, PF.p1l()))), 1n+X.bvalo(one, PF.p1l())) == Nat.mod(Nat.mul(X.bvalo(one, PF.dl()), X.bvalo(one, PF.c6l())), 1n+X.bvalo(one, PF.p1l())) : Nat}
+  %rw SR.zero_add(1n+X.bvalo(one, PF.p1l()))
+  %rw FL.small_nz(X.bvalo(one, PF.p1l()), X.bvalo(one, PF.c5l()), lt_p(one, h1, PF.c5l(), PF.c5cl(), h_c5()))
+  %rw p_split(one, h1)
+  %rw N.add_sub_cancel(X.bvalo(one, PF.c5l()), X.bvalo(one, PF.dnl()))
+  %rw FL.small_nz(X.bvalo(one, PF.p1l()), X.bvalo(one, PF.dnl()), lt_p(one, h1, PF.dnl(), PF.c4l(), h_dn()))
+  %rw <- X.mul_o(one, h1, PF.dl(), PF.c6l())
+  %rw mod_p(one, h1, B.bmul(PF.dl(), PF.c6l()), PF.dk1l(), PF.dnl(), PF.c4l(), h_prod(), h_dn())
+  %close
+
+# the specification's d, modulo 1 + mp
+def d_is_s(+one: Nat, +h1: {one == 1n : Nat}, +hp: PM.Prime(1n+X.bvalo(one, PF.p1l()))) -> {FS.fmul(1n+X.bvalo(one, PF.p1l()), FS.fsub(1n+X.bvalo(one, PF.p1l()), 0n, FS.digits(one, [65n, 219n, 1n])), FS.finv(1n+X.bvalo(one, PF.p1l()), FS.digits(one, [66n, 219n, 1n]))) == X.bvalo(one, PF.dl()) : Nat}:
+  FQ.frac_val(X.bvalo(one, PF.p1l()), hp, FS.fsub(1n+X.bvalo(one, PF.p1l()), 0n, FS.digits(one, [65n, 219n, 1n])), FS.digits(one, [66n, 219n, 1n]), X.bvalo(one, PF.dl()), nz6(one, h1), lt_p(one, h1, PF.dl(), PF.dcl(), h_d()), d_frac(one, h1))
+
+# the specification's d is the literal
+def d_is(+one: Nat, +h1: {one == 1n : Nat}, +hp: PM.Prime(FS.prime(one))) -> {ED.dconst(one, FS.prime(one)) == X.bvalo(one, PF.dl()) : Nat}:
+  %goal {FS.fmul(FS.prime(one), FS.fsub(FS.prime(one), 0n, FS.digits(one, [65n, 219n, 1n])), FS.finv(FS.prime(one), FS.digits(one, [66n, 219n, 1n]))) == X.bvalo(one, PF.dl()) : Nat}
+  %rw PF.p_suc(one, h1)
+  %rw PF.p_suc(one, h1)
+  %rw PF.p_suc(one, h1)
+  d_is_s(one, h1, prime_s(one, h1, hp))
+
+# ---- the six facts ----
+
+def h_p13() -> {B.beq(PF.p1l(), B.binc(B.binc(PF.p3l()))) == True{} : Bool}:
+  {==}
+
+# d is not a square (Euler): d^((p - 1) / 2) is p - 1, not 1
+def d_ns(+one: Nat, +h1: {one == 1n : Nat}, +hd: {Nat.mod(Nat.pow(X.bvalo(one, PF.dl()), X.bvalo(one, PF.hl())), FS.prime(one)) == X.bvalo(one, PF.p1l()) : Nat}) -> {Nat.is_eq(Nat.mod(Nat.pow(X.bvalo(one, PF.dl()), Nat.div(X.bvalo(one, PF.p1l()), 2n)), 1n+X.bvalo(one, PF.p1l())), 1n) == False{} : Bool}:
+  %rw PF.p_half(one, h1)
+  %rw <- PF.p_suc(one, h1)
+  %rwh hd : {Nat.mod(Nat.pow(X.bvalo(one, PF.dl()), X.bvalo(one, PF.hl())), FS.prime(one)) == X.bvalo(one, PF.p1l()) : Nat}
+  %rw X.suc2_o(one, h1, PF.p1l(), PF.p3l(), h_p13())
+  %close
+
+# G.sqm1(p) is the literal I
+def sqm1_is(+one: Nat, +h1: {one == 1n : Nat}, +hi: {FS.fpow(FS.prime(one), 2n, Nat.div(Nat.sub(FS.prime(one), 1n), 4n)) == X.bvalo(one, PF.il()) : Nat}) -> {G.sqm1(1n+X.bvalo(one, PF.p1l())) == X.bvalo(one, PF.il()) : Nat}:
+  %rw <- PF.p_suc(one, h1)
+  hi
+
+# sqm1^2 + 1 == 0
+def i_neg(+one: Nat, +h1: {one == 1n : Nat}, +hi: {FS.fpow(FS.prime(one), 2n, Nat.div(Nat.sub(FS.prime(one), 1n), 4n)) == X.bvalo(one, PF.il()) : Nat}) -> {FS.fadd(1n+X.bvalo(one, PF.p1l()), FS.fmul(1n+X.bvalo(one, PF.p1l()), G.sqm1(1n+X.bvalo(one, PF.p1l())), G.sqm1(1n+X.bvalo(one, PF.p1l()))), 1n) == 0n : Nat}:
+  %rw sqm1_is(one, h1, hi)
+  %rw sqm1_is(one, h1, hi)
+  %goal {Nat.mod(Nat.add(Nat.mod(Nat.mul(X.bvalo(one, PF.il()), X.bvalo(one, PF.il())), 1n+X.bvalo(one, PF.p1l())), 1n), 1n+X.bvalo(one, PF.p1l())) == 0n : Nat}
+  %rw NR.mod_add_l(X.bvalo(one, PF.p1l()), Nat.mul(X.bvalo(one, PF.il()), X.bvalo(one, PF.il())), 1n)
+  %rw <- PF.p_suc(one, h1)
+  PF.i_sq(one, h1)
+
+# the parameters, with d the literal
+def curve_lit(+one: Nat, +h1: {one == 1n : Nat}, +hp: PM.Prime(FS.prime(one)), +hd: {Nat.mod(Nat.pow(X.bvalo(one, PF.dl()), X.bvalo(one, PF.hl())), FS.prime(one)) == X.bvalo(one, PF.p1l()) : Nat}, +hi: {FS.fpow(FS.prime(one), 2n, Nat.div(Nat.sub(FS.prime(one), 1n), 4n)) == X.bvalo(one, PF.il()) : Nat}) -> G.Curve(X.bvalo(one, PF.p1l()), X.bvalo(one, PF.dl())):
+  FQ.curve_intro(X.bvalo(one, PF.p1l()), X.bvalo(one, PF.dl()), prime_s(one, h1, hp), PF.p_nz2(one, h1), PF.p_even(one, h1), d_nz(one, h1), d_ns(one, h1, hd), i_neg(one, h1, hi))
+
+# edwards25519: p = 2^255 - 19 and d = -121665 / 121666 are the parameters
+# of a complete twisted Edwards group
+def curve25519(+one: Nat, +h1: {one == 1n : Nat}, +hp: PM.Prime(FS.prime(one)), +hd: {Nat.mod(Nat.pow(X.bvalo(one, PF.dl()), X.bvalo(one, PF.hl())), FS.prime(one)) == X.bvalo(one, PF.p1l()) : Nat}, +hi: {FS.fpow(FS.prime(one), 2n, Nat.div(Nat.sub(FS.prime(one), 1n), 4n)) == X.bvalo(one, PF.il()) : Nat}) -> G.Curve(X.bvalo(one, PF.p1l()), ED.dconst(one, FS.prime(one))):
+  %Equal.sym(Nat, ED.dconst(one, FS.prime(one)), X.bvalo(one, PF.dl()), d_is(one, h1, hp)) : {G.curve_ok(X.bvalo(one, PF.p1l()), _) == True{} : Bool}
+  curve_lit(one, h1, hp, hd, hi)

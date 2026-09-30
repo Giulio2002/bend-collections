@@ -24,6 +24,19 @@ import ./field.bend as FS
 # (Hales, "The group law for Edwards curves", 2016, is the model: polynomial
 # identities plus the completeness argument).
 #
+#   clause (hc : Curve(mp, d), p = 1 + mp; a, b, c on the curve)
+#   Group.closure     a + b is on the curve
+#   Group.zero_on     (0, 1) is on the curve
+#   Group.neg_on      -a is on the curve
+#   Group.comm        a + b == b + a                       (every a, b)
+#   Group.zero        a + (0, 1) == a
+#   Group.neg         a + (-a) == (0, 1)
+#   Group.assoc       (a + b) + c == a + (b + c)
+#   Group.nmul_on     [k] a is on the curve
+#   Group.nmul_add    [j + k] a == [j] a + [k] a
+#   Group.nmul_mul    [j k] a == [j] ([k] a)
+#   Group.nmul_dist   [k] (a + b) == [k] a + [k] b
+#
 # Every coordinate is a residue below p, so two points are equal exactly
 # when they are equal as values (no projective equivalence is needed at
 # this level): the laws are equations between points.
@@ -122,3 +135,38 @@ def Curve(+mp: Nat, +d: Nat) -> Data:
 
 def OnCurve(+p: Nat, +d: Nat, +a: APt) -> Data:
   {on_curve(p, d, a) == True{} : Bool}
+
+# ---- clauses ----
+
+def Group.closure(+mp: Nat, +d: Nat, +hc: Curve(mp, d), +a: APt, +b: APt, +ha: OnCurve(1n+mp, d, a), +hb: OnCurve(1n+mp, d, b)) -> Type:
+  OnCurve(1n+mp, d, aadd(1n+mp, d, a, b))
+
+def Group.zero_on(+mp: Nat, +d: Nat, +hc: Curve(mp, d)) -> Type:
+  OnCurve(1n+mp, d, azero())
+
+def Group.neg_on(+mp: Nat, +d: Nat, +hc: Curve(mp, d), +a: APt, +ha: OnCurve(1n+mp, d, a)) -> Type:
+  OnCurve(1n+mp, d, aneg(1n+mp, a))
+
+def Group.comm(+mp: Nat, +d: Nat, +a: APt, +b: APt) -> Type:
+  {aadd(1n+mp, d, a, b) == aadd(1n+mp, d, b, a) : APt}
+
+def Group.zero(+mp: Nat, +d: Nat, +hc: Curve(mp, d), +a: APt, +ha: OnCurve(1n+mp, d, a)) -> Type:
+  {aadd(1n+mp, d, a, azero()) == a : APt}
+
+def Group.neg(+mp: Nat, +d: Nat, +hc: Curve(mp, d), +a: APt, +ha: OnCurve(1n+mp, d, a)) -> Type:
+  {aadd(1n+mp, d, a, aneg(1n+mp, a)) == azero() : APt}
+
+def Group.assoc(+mp: Nat, +d: Nat, +hc: Curve(mp, d), +a: APt, +b: APt, +c: APt, +ha: OnCurve(1n+mp, d, a), +hb: OnCurve(1n+mp, d, b), +hcc: OnCurve(1n+mp, d, c)) -> Type:
+  {aadd(1n+mp, d, aadd(1n+mp, d, a, b), c) == aadd(1n+mp, d, a, aadd(1n+mp, d, b, c)) : APt}
+
+def Group.nmul_on(+mp: Nat, +d: Nat, +hc: Curve(mp, d), +k: Nat, +a: APt, +ha: OnCurve(1n+mp, d, a)) -> Type:
+  OnCurve(1n+mp, d, nmul(1n+mp, d, k, a))
+
+def Group.nmul_add(+mp: Nat, +d: Nat, +hc: Curve(mp, d), +j: Nat, +k: Nat, +a: APt, +ha: OnCurve(1n+mp, d, a)) -> Type:
+  {nmul(1n+mp, d, Nat.add(j, k), a) == aadd(1n+mp, d, nmul(1n+mp, d, j, a), nmul(1n+mp, d, k, a)) : APt}
+
+def Group.nmul_mul(+mp: Nat, +d: Nat, +hc: Curve(mp, d), +j: Nat, +k: Nat, +a: APt, +ha: OnCurve(1n+mp, d, a)) -> Type:
+  {nmul(1n+mp, d, Nat.mul(j, k), a) == nmul(1n+mp, d, j, nmul(1n+mp, d, k, a)) : APt}
+
+def Group.nmul_dist(+mp: Nat, +d: Nat, +hc: Curve(mp, d), +k: Nat, +a: APt, +b: APt, +ha: OnCurve(1n+mp, d, a), +hb: OnCurve(1n+mp, d, b)) -> Type:
+  {nmul(1n+mp, d, k, aadd(1n+mp, d, a, b)) == aadd(1n+mp, d, nmul(1n+mp, d, k, a), nmul(1n+mp, d, k, b)) : APt}
