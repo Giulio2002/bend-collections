@@ -18,7 +18,7 @@ import ./nsl.bend as NSL
 %def TMT M.TreeMap<K, V, cmp>
 %def F n, root, lo, hi, free, l, d, nl, pl, t, fl
 %def FP +n: Nat, +root: Nat, +lo: Nat, +hi: Nat, +free: Nat, +l: Nat, +d: Nat, +nl: List<&2, $ND>, +pl: List<&2, $MV>, +t: ST.Tr, +fl: List<&2, Nat>
-%def DG +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length($ND, nl), SC.pow2(d)) == True{} : Bool}, +hp: {Nat.is_eq(SC.length($MV, pl), SC.length($ND, nl)) == True{} : Bool}
+%def DG +hl: {Nat.is_le(l, 29n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length($ND, nl), SC.pow2(d)) == True{} : Bool}, +hp: {Nat.is_eq(SC.length($MV, pl), SC.length($ND, nl)) == True{} : Bool}
 %def DGA hl, hd, hc, hp
 %def RS(n, root, lo, hi, free, l, d, nl, pl, t, fl) ST.real(~K, ~V, ~cmp, ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl})
 %def R0 $RS($F)

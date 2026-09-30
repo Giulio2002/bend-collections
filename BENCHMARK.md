@@ -53,12 +53,12 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | Poly1305 | 1135.42 |
 | ChaCha20-Poly1305 | 366.20 |
 | XChaCha20-Poly1305 | 347.95 |
-| AES-128-GCM | 31.60 |
-| AES-256-GCM | 30.60 |
-| X25519 shared secret | 8.09 |
-| Ed25519 key generation | 24.13 |
-| Ed25519 sign | 32.89 |
-| Ed25519 verify | 12.89 |
+| AES-128-GCM | 7.97 |
+| AES-256-GCM | 6.48 |
+| X25519 shared secret | 7.77 |
+| Ed25519 key generation | 22.72 |
+| Ed25519 sign | 22.80 |
+| Ed25519 verify | 11.49 |
 | Argon2id | 9.09 |
 | secp256k1 (ECDSA, recovery, BIP-340) | 201.83 |
 | ChaCha8 `uint64` | 7.26 |
@@ -80,7 +80,7 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | Binary heap | 5.56 |
 | Doubly linked list | 5.95 |
 | List iterator | 3.86 |
-| Tree map | 26.52 |
+| Tree map | 8.79 |
 | Bitset | 3.32 |
 | Bit list | 5.66 |
 | Hash map | 9.64 |
@@ -297,31 +297,31 @@ C reference: Monocypher 4.0.2 `crypto_aead_lock`/`_unlock`. Worst ratio 347.95.
 
 ### AES-128-GCM
 
-C reference: BearSSL `br_gcm` with the constant-time bitsliced `br_aes_ct64` and `br_ghash_ctmul64` (the "C ct" column); the "C table" column swaps in the table-based `br_aes_big` (not constant-time). Worst ratio 31.60.
+C reference: BearSSL `br_gcm` with the constant-time bitsliced `br_aes_ct64` and `br_ghash_ctmul64` (the "C ct" column); the "C table" column swaps in the table-based `br_aes_big` (not constant-time). Worst ratio 7.97 (31.60 before the bitsliced AES and unrolled GHASH).
 
-| Message | Bend (us) | C ct (us) | Ratio | C table (us) | Ratio vs table |
-|---:|---:|---:|---:|---:|---:|
-| 64 B | 18.3 | 1.21 | 15.14 | 0.36 | 50.81 |
-| 1 KiB | 156 | 5.82 | 26.86 | 3.14 | 49.81 |
-| 16 KiB | 2312 | 79.5 | 29.09 | 47.6 | 48.56 |
-| 64 KiB | 9500 | 316 | 30.02 | 190 | 49.93 |
-| 1 MiB | 152000 | 5047 | 30.12 | 3014 | 50.43 |
-| 1 KiB open | 172 | 5.85 | 29.37 | 3.11 | 55.28 |
-| 64 KiB open | 10000 | 316 | 31.60 | 188 | 53.19 |
+| Message | Bend (us) | C ct (us) | Ratio | C table (us) | Ratio vs table | Before: Bend (us), ratio |
+|---:|---:|---:|---:|---:|---:|---:|
+| 64 B | 7.81 | 1.21 | 6.47 | 0.35 | 22.10 | 18.3, 15.14 |
+| 1 KiB | 39.1 | 5.82 | 6.71 | 3.15 | 12.41 | 156, 26.86 |
+| 16 KiB | 562 | 80.5 | 6.99 | 47.2 | 11.92 | 2312, 29.09 |
+| 64 KiB | 2500 | 350 | 7.15 | 194 | 12.89 | 9500, 30.02 |
+| 1 MiB | 37000 | 5038 | 7.34 | 3057 | 12.10 | 152000, 30.12 |
+| 1 KiB open | 39.1 | 5.86 | 6.67 | 3.18 | 12.29 | 172, 29.37 |
+| 64 KiB open | 2500 | 314 | 7.97 | 188 | 13.33 | 10000, 31.60 |
 
 ### AES-256-GCM
 
-C reference: as AES-128-GCM, with a 32-byte key. Worst ratio 30.60.
+C reference: as AES-128-GCM, with a 32-byte key. Worst ratio 6.48 (30.60 before).
 
-| Message | Bend (us) | C ct (us) | Ratio | C table (us) | Ratio vs table |
-|---:|---:|---:|---:|---:|---:|
-| 64 B | 23.9 | 1.58 | 15.10 | 0.45 | 52.72 |
-| 1 KiB | 191 | 7.57 | 25.28 | 4.03 | 47.48 |
-| 16 KiB | 2875 | 104 | 27.74 | 61.4 | 46.80 |
-| 64 KiB | 11250 | 411 | 27.39 | 245 | 45.92 |
-| 1 MiB | 184000 | 6527 | 28.19 | 3900 | 47.18 |
-| 1 KiB open | 203 | 7.55 | 26.89 | 4.04 | 50.29 |
-| 64 KiB open | 12500 | 408 | 30.60 | 242 | 51.65 |
+| Message | Bend (us) | C ct (us) | Ratio | C table (us) | Ratio vs table | Before: Bend (us), ratio |
+|---:|---:|---:|---:|---:|---:|---:|
+| 64 B | 10.3 | 1.58 | 6.48 | 0.46 | 22.53 | 23.9, 15.10 |
+| 1 KiB | 46.9 | 7.53 | 6.22 | 4.03 | 11.64 | 191, 25.28 |
+| 16 KiB | 625 | 104 | 6.01 | 61.4 | 10.17 | 2875, 27.74 |
+| 64 KiB | 2500 | 410 | 6.09 | 244 | 10.27 | 11250, 27.39 |
+| 1 MiB | 41000 | 6543 | 6.27 | 3891 | 10.54 | 184000, 28.19 |
+| 1 KiB open | 46.9 | 7.53 | 6.22 | 4.02 | 11.65 | 203, 26.89 |
+| 64 KiB open | 2500 | 407 | 6.14 | 242 | 10.35 | 12500, 30.60 |
 
 ## Public-key and password hashing
 
@@ -332,37 +332,37 @@ mean pass. Microseconds per operation.
 
 ### X25519 shared secret
 
-C reference: Monocypher 4.0.2 `crypto_x25519`. Worst ratio 8.09 (1677.75 before the fast field).
+C reference: Monocypher 4.0.2 `crypto_x25519`. Worst ratio 7.77 (1677.75 before the fast field).
 
 | Operation | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| shared secret | 262 | 32.3 | 8.09 |
+| shared secret | 250 | 32.2 | 7.77 |
 
 ### Ed25519 key generation
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_key_pair` (SHA-512). Worst ratio 24.13 (7064.08 before).
+C reference: Monocypher 4.0.2 `crypto_ed25519_key_pair` (SHA-512). Worst ratio 22.72 (7064.08 before).
 
 | Operation | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| keygen | 422 | 17.5 | 24.13 |
+| keygen | 383 | 16.9 | 22.72 |
 
 ### Ed25519 sign
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_sign`. Worst ratio 32.89 (13116.15 before).
+C reference: Monocypher 4.0.2 `crypto_ed25519_sign`. Worst ratio 22.80 (13116.15 before).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| sign 64 B | 609 | 18.5 | 32.89 |
-| sign 1 KiB | 641 | 21.6 | 29.70 |
+| sign 64 B | 406 | 17.8 | 22.80 |
+| sign 1 KiB | 430 | 20.1 | 21.34 |
 
 ### Ed25519 verify
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_check`. Worst ratio 12.89 (4449.20 before).
+C reference: Monocypher 4.0.2 `crypto_ed25519_check`. Worst ratio 11.49 (4449.20 before).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| verify 64 B | 641 | 50.2 | 12.75 |
-| verify 1 KiB | 672 | 52.1 | 12.89 |
+| verify 64 B | 563 | 48.9 | 11.49 |
+| verify 1 KiB | 563 | 49.1 | 11.45 |
 
 ### Argon2id
 
@@ -481,9 +481,13 @@ Fairness notes:
 - Bend runs single-threaded (`--threads 1`) on byte lists (one U32 per byte);
   C works on byte arrays in place. Input parsing and message cutting happen
   before the timed region on both sides; the checksum after it.
-- The Bend AES is constant-time (the Boyar-Peralta S-box circuit on one byte at
-  a time, GHASH bit by bit). The fair column is BearSSL `aes_ct64`; the table
-  column shows what a non-constant-time C costs.
+- The Bend AES-GCM is constant-time: AES bitsliced over eight 32-bit planes,
+  two counter blocks per pass (BearSSL `aes_ct`'s layout and Boyar-Peralta
+  S-box circuit), GHASH by Algorithm 1 of SP 800-38D unrolled over 32 bits of
+  X at a time (masks, no table), encryption and GHASH fused in one pass over
+  the message. The fair column is BearSSL `aes_ct64` + `ghash_ctmul64`
+  (64-bit words, four blocks per pass, GHASH with integer multiplications);
+  the table column shows what a non-constant-time C costs.
 - AES-GCM and the AEADs set up the key for every message on both sides (the
   Bend API takes the key bytes per call).
 - Ed25519: the rows use the expanded-key and context APIs of
@@ -914,43 +918,43 @@ Worst ratio 3.86.
 
 ### Tree map
 
-Worst ratio 26.52.
+Worst ratio 8.79.
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| insert | small | 72.9 | 24.6 | 2.97 |
-| insert | medium | 144 | 62.4 | 2.30 |
-| insert | large | 257 | 147 | 1.75 |
-| remove | small | 357 | 54.4 | 6.56 |
-| remove | medium | 548 | 118 | 4.63 |
-| remove | large | 784 | 221 | 3.55 |
-| lookup | small | 67.1 | 16.0 | 4.18 |
-| lookup | medium | 136 | 37.8 | 3.60 |
-| lookup | large | 258 | 83.0 | 3.11 |
-| contains | small | 56.5 | 18.1 | 3.12 |
-| contains | medium | 122 | 38.2 | 3.19 |
-| contains | large | 229 | 84.6 | 2.70 |
-| min | small | 14.3 | 1.48 | 9.62 |
-| min | medium | 14.2 | 3.59 | 3.95 |
-| min | large | 14.4 | 5.88 | 2.45 |
-| max | small | 14.2 | 1.49 | 9.57 |
-| max | medium | 14.3 | 2.23 | 6.39 |
-| max | large | 14.4 | 4.89 | 2.94 |
-| lower_bound | small | 72.0 | 17.2 | 4.19 |
-| lower_bound | medium | 143 | 37.6 | 3.80 |
-| lower_bound | large | 263 | 83.4 | 3.15 |
-| range | small | 221 | 30.0 | 7.36 |
-| range | medium | 13974 | 814 | 17.16 |
-| range | large | 144940 | 7059 | 20.53 |
-| to_list | small | 995 | 44.4 | 22.43 |
-| to_list | medium | 81333 | 3067 | 26.52 |
-| to_list | large | 3525000 | 195888 | 18.00 |
-| length | small | 0.95 | 2.66 | 0.36 |
-| length | medium | 0.95 | 2.65 | 0.36 |
-| length | large | 0.94 | 2.64 | 0.36 |
-| new | small | 30.3 | 2.33 | 13.00 |
-| new | medium | 30.3 | 2.36 | 12.86 |
-| new | large | 29.5 | 2.38 | 12.38 |
+| insert | small | 80.8 | 29.0 | 2.78 |
+| insert | medium | 158 | 74.9 | 2.10 |
+| insert | large | 299 | 182 | 1.64 |
+| remove | small | 485 | 69.5 | 6.98 |
+| remove | medium | 583 | 120 | 4.86 |
+| remove | large | 831 | 220 | 3.77 |
+| lookup | small | 62.4 | 16.1 | 3.86 |
+| lookup | medium | 128 | 38.1 | 3.35 |
+| lookup | large | 230 | 87.7 | 2.62 |
+| contains | small | 51.9 | 18.2 | 2.85 |
+| contains | medium | 112 | 38.6 | 2.90 |
+| contains | large | 201 | 86.5 | 2.32 |
+| min | small | 13.1 | 1.49 | 8.77 |
+| min | medium | 13.1 | 3.61 | 3.64 |
+| min | large | 13.0 | 5.84 | 2.23 |
+| max | small | 13.2 | 1.50 | 8.79 |
+| max | medium | 13.1 | 2.26 | 5.81 |
+| max | large | 13.1 | 5.16 | 2.54 |
+| lower_bound | small | 48.8 | 17.0 | 2.87 |
+| lower_bound | medium | 90.4 | 37.5 | 2.41 |
+| lower_bound | large | 178 | 93.7 | 1.90 |
+| range | small | 91.8 | 30.4 | 3.02 |
+| range | medium | 3255 | 797 | 4.08 |
+| range | large | 48438 | 7189 | 6.74 |
+| to_list | small | 223 | 44.1 | 5.04 |
+| to_list | medium | 18047 | 3095 | 5.83 |
+| to_list | large | 1180000 | 200157 | 5.90 |
+| length | small | 1.00 | 2.85 | 0.35 |
+| length | medium | 1.00 | 2.85 | 0.35 |
+| length | large | 0.99 | 2.76 | 0.36 |
+| new | small | 19.9 | 2.58 | 7.71 |
+| new | medium | 19.7 | 2.48 | 7.95 |
+| new | large | 19.0 | 2.49 | 7.61 |
 
 ### Bitset
 
