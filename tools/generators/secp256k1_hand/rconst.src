@@ -1,0 +1,148 @@
+import Base
+import ./limbs.bend as LV
+import ../../../spec/lib/common.bend as C
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../src/crypto/secp256k1/ecdsa.bend as E
+import ../../lib/nat.bend as N
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../math/natural/arith.bend as NR
+import ../../math/typed/width.bend as WW
+import ./semiring.bend as SR
+import ./ineq.bend as I
+import ./bounds.bend as B2
+import ./consts.bend as K
+import ./lits.bend as LT
+import ./fieldops.bend as FO
+import ./fieldpow.bend as FP
+import ./scalarpow.bend as SP
+
+# The constants of public key recovery (src/crypto/secp256k1/ecdsa.bend
+# cn_fe, cp_fe) and the arithmetic of x = r + n: c_p < c_n, n < p, and
+# (r - c_n + c_p) mod p = (r + n) mod p.
+
+# ---- the constants ----
+
+def cn_fe_v(+one: Nat) -> {FS.value(one, E.cn_fe()) == FS.cn(one) : Nat}:
+  %goal {Nat.add(Nat.mul(one, 48831n), C.shift(16n, FS.digits(one, [12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]))) == Nat.add(Nat.mul(one, 48831n), C.shift(16n, FS.digits(one, [12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n]))) : Nat}
+  %rw SP.zeros_tail(one)
+  %close
+
+def cp_fe_v(+one: Nat) -> {FS.value(one, E.cp_fe()) == FS.cp(one) : Nat}:
+  %goal {Nat.add(Nat.mul(one, 977n), C.shift(16n, Nat.add(Nat.mul(one, 0n), C.shift(16n, Nat.add(Nat.mul(one, 1n), C.shift(16n, FS.digits(one, [0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]))))))) == Nat.add(Nat.mul(one, 977n), C.shift(16n, Nat.add(Nat.mul(one, 0n), C.shift(16n, Nat.add(Nat.mul(one, 1n), C.shift(16n, 0n)))))) : Nat}
+  %rw FP.zeros13(one)
+  %close
+
+def cn_fe_l(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.limbs16(one, 16n, E.cn_fe()) == True{} : Bool}:
+  LT.lits16(one, h1, 16n, E.cn_fe(), {==})
+
+def cp_fe_l(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.limbs16(one, 16n, E.cp_fe()) == True{} : Bool}:
+  LT.lits16(one, h1, 16n, E.cp_fe(), {==})
+
+# ---- sizes: c_p <= 2^33 < 2^128 <= c_n < 2^129 <= 2^255 <= p ----
+
+def cn_ge(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_le(C.shift(128n, one), FS.cn(one)) == True{} : Bool}:
+  %rw K.cn_split(one, h1)
+  %rw B2.pos_shift(8n, one)
+  %rw NA.add_comm(FS.digits(one, K.cn8()), C.shift(128n, one))
+  N.le_add_right(C.shift(128n, one), FS.digits(one, K.cn8()))
+
+def cp_lt_cn(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(FS.cp(one), FS.cn(one)) == True{} : Bool}:
+  N.le_lt_trans(FS.cp(one), C.shift(33n, one), FS.cn(one), K.cp_le(one, h1), N.lt_le_trans(C.shift(33n, one), C.shift(128n, one), FS.cn(one), K.shift_lt_k(one, h1, 33n, 128n, 94n, {==}), cn_ge(one, h1)))
+
+# 2^255 <= p
+def p_ge(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_le(C.shift(255n, one), 1n+K.pp(one)) == True{} : Bool}:
+  +pp = K.pp(one)
+  +c = FS.cp(one)
+  +e1 = Equal.trans(Nat, Nat.add(1n+pp, c), C.shift(256n, one), Nat.add(C.shift(255n, one), C.shift(255n, one)), K.hm_p(one, h1), Equal.sym(Nat, Nat.add(C.shift(255n, one), C.shift(255n, one)), C.shift(256n, one), K.shift_twice(255n, one)))
+  +ch = N.le_trans(c, C.shift(33n, one), C.shift(255n, one), K.cp_le(one, h1), K.shift_le_k(33n, 255n, one, 222n, {==}))
+  FO.lt_p_half(C.shift(255n, one), 1n+pp, c, e1, ch)
+
+def cn_lt_p(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(FS.cn(one), 1n+K.pp(one)) == True{} : Bool}:
+  N.lt_le_trans(FS.cn(one), C.shift(255n, one), 1n+K.pp(one), N.lt_le_trans(FS.cn(one), C.shift(129n, one), C.shift(255n, one), K.cn_lt(one, h1), K.shift_le_k(129n, 255n, one, 126n, {==})), p_ge(one, h1))
+
+def cp_lt_p(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(FS.cp(one), 1n+K.pp(one)) == True{} : Bool}:
+  N.lt_trans(FS.cp(one), FS.cn(one), 1n+K.pp(one), cp_lt_cn(one, h1), cn_lt_p(one, h1))
+
+# p + c_p = n + c_n (= 2^256)
+def pn_sum(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.add(1n+K.pp(one), FS.cp(one)) == Nat.add(1n+K.np(one), FS.cn(one)) : Nat}:
+  Equal.trans(Nat, Nat.add(1n+K.pp(one), FS.cp(one)), C.shift(256n, one), Nat.add(1n+K.np(one), FS.cn(one)), K.hm_p(one, h1), Equal.sym(Nat, Nat.add(1n+K.np(one), FS.cn(one)), C.shift(256n, one), K.hm_n(one, h1)))
+
+# ---- generic arithmetic (P = 1 + pp) ----
+
+def le_cancel_l(+c: Nat, +x: Nat, +y: Nat, +h: {Nat.is_le(Nat.add(c, x), Nat.add(c, y)) == True{} : Bool}) -> {Nat.is_le(x, y) == True{} : Bool}:
+  Equal.trans(Bool, Nat.is_le(x, y), Nat.is_le(Nat.add(c, x), Nat.add(c, y)), True{}, Equal.sym(Bool, Nat.is_le(Nat.add(c, x), Nat.add(c, y)), Nat.is_le(x, y), NR.le_add_cancel(c, x, y)), h)
+
+def sc(+b: Nat, +c: Nat) -> {1n+Nat.add(b, c) == Nat.add(c, 1n+b) : Nat}:
+  %norm
+
+# a + c = b + d and c < d give b < a
+def lt_of_sum(+a: Nat, +b: Nat, +c: Nat, +d: Nat, +e: {Nat.add(a, c) == Nat.add(b, d) : Nat}, +h: {Nat.is_lt(c, d) == True{} : Bool}) -> {Nat.is_lt(b, a) == True{} : Bool}:
+  +h2 = N.lt_succ_le_succ(c, d, h)
+  +h3 = N.le_add_left(1n+c, d, b, h2)
+  +h4 = I.le_subst_r(Nat.add(b, 1n+c), Nat.add(b, d), Nat.add(a, c), Equal.sym(Nat, Nat.add(a, c), Nat.add(b, d), e), h3)
+  +e2 = Equal.trans(Nat, Nat.add(b, 1n+c), 1n+Nat.add(b, c), Nat.add(c, 1n+b), NA.add_succ(b, c), sc(b, c))
+  +h5 = I.le_subst_l(Nat.add(b, 1n+c), Nat.add(c, 1n+b), Nat.add(a, c), e2, h4)
+  +h6 = I.le_subst_r(Nat.add(c, 1n+b), Nat.add(a, c), Nat.add(c, a), NA.add_comm(a, c), h5)
+  N.succ_le_lt(b, a, le_cancel_l(c, 1n+b, a, h6))
+
+def m1(+x: Nat) -> {Nat.mul(1n, x) == x : Nat}:
+  SR.one_mul(x)
+
+# x mod P = x for x < P
+def mod_small(+pp: Nat, +x: Nat, +h: {Nat.is_lt(x, 1n+pp) == True{} : Bool}) -> {Nat.mod(x, 1n+pp) == x : Nat}:
+  NR.mod_of(0n, pp, x, h)
+
+# (P + e) mod P = e for e < P
+def mod_p1(+pp: Nat, +e: Nat, +h: {Nat.is_lt(e, 1n+pp) == True{} : Bool}) -> {Nat.mod(Nat.add(1n+pp, e), 1n+pp) == e : Nat}:
+  %rw <- m1(1n+pp)
+  NR.mod_of(1n, pp, e, h)
+
+def rn_sum_c(+r: Nat, +nn: Nat, +pp: Nat, +cn: Nat, +cp: Nat, +hs: {Nat.add(1n+pp, cp) == Nat.add(nn, cn) : Nat}, +sa: {Nat.add(cn, Nat.sub(Nat.add(r, 1n+pp), cn)) == Nat.add(r, 1n+pp) : Nat}) -> {Nat.add(cn, Nat.add(Nat.sub(Nat.add(r, 1n+pp), cn), cp)) == Nat.add(cn, Nat.add(r, nn)) : Nat}:
+  %rw <- NA.add_assoc(cn, Nat.sub(Nat.add(r, 1n+pp), cn), cp)
+  %rwh sa : {Nat.add(cn, Nat.sub(Nat.add(r, 1n+pp), cn)) == Nat.add(r, 1n+pp) : Nat}
+  %rw NA.add_assoc(r, 1n+pp, cp)
+  %rwh hs : {Nat.add(1n+pp, cp) == Nat.add(nn, cn) : Nat}
+  %norm
+
+# with P + c_p = N + c_n and c_n <= r + P: (r + P - c_n) + c_p = r + N
+def rn_sum(+r: Nat, +nn: Nat, +pp: Nat, +cn: Nat, +cp: Nat, +hs: {Nat.add(1n+pp, cp) == Nat.add(nn, cn) : Nat}, +hl: {Nat.is_le(cn, Nat.add(r, 1n+pp)) == True{} : Bool}) -> {Nat.add(Nat.sub(Nat.add(r, 1n+pp), cn), cp) == Nat.add(r, nn) : Nat}:
+  +d = Nat.sub(Nat.add(r, 1n+pp), cn)
+  +sa = N.sub_add(Nat.add(r, 1n+pp), cn, hl)
+  NR.add_cancel(cn, Nat.add(d, cp), Nat.add(r, nn), rn_sum_c(r, nn, pp, cn, cp, hs, sa))
+
+# ((r + P - (c_n mod P)) mod P + c_p) mod P = (r + N) mod P
+def rn_val(+r: Nat, +nn: Nat, +pp: Nat, +cn: Nat, +cp: Nat, +hs: {Nat.add(1n+pp, cp) == Nat.add(nn, cn) : Nat}, +hcn: {Nat.is_lt(cn, 1n+pp) == True{} : Bool}) -> {Nat.mod(Nat.add(Nat.mod(Nat.sub(Nat.add(r, 1n+pp), Nat.mod(cn, 1n+pp)), 1n+pp), cp), 1n+pp) == Nat.mod(Nat.add(r, nn), 1n+pp) : Nat}:
+  +hl = N.le_trans(cn, 1n+pp, Nat.add(r, 1n+pp), N.lt_le(cn, 1n+pp, hcn), I.le_add_l(r, 1n+pp))
+  %rw mod_small(pp, cn, hcn)
+  %rw NR.mod_add_l(pp, Nat.sub(Nat.add(r, 1n+pp), cn), cp)
+  %rw rn_sum(r, nn, pp, cn, cp, hs, hl)
+  %close
+
+def rc_true(+r: Nat, +nn: Nat, +pp: Nat, +h: {Nat.is_lt(Nat.add(r, nn), 1n+pp) == True{} : Bool}) -> {Bool.not(Nat.is_lt(Nat.mod(Nat.add(r, nn), 1n+pp), nn)) == True{} : Bool}:
+  %rw mod_small(pp, Nat.add(r, nn), h)
+  %rw N.le_not_lt(Nat.add(r, nn), nn, I.le_add_l(r, nn))
+  %close
+
+def rc_false(+r: Nat, +nn: Nat, +pp: Nat, +hr: {Nat.is_lt(r, nn) == True{} : Bool}, +hn: {Nat.is_lt(nn, 1n+pp) == True{} : Bool}, +h: {Nat.is_lt(Nat.add(r, nn), 1n+pp) == False{} : Bool}) -> {Bool.not(Nat.is_lt(Nat.mod(Nat.add(r, nn), 1n+pp), nn)) == False{} : Bool}:
+  +x = Nat.add(r, nn)
+  +le1 = N.not_lt_le(x, 1n+pp, h)
+  +sa = N.sub_add(x, 1n+pp, le1)
+  +rp = N.lt_trans(r, nn, 1n+pp, hr, hn)
+  +he = N.sub_lt(x, 1n+pp, 1n+pp, le1, I.lt_le_add(r, nn, 1n+pp, 1n+pp, rp, N.lt_le(nn, 1n+pp, hn)))
+  +hen = N.sub_lt(x, 1n+pp, nn, le1, N.lt_add_r2(r, 1n+pp, nn, rp))
+  %rwh <- sa : {Nat.add(1n+pp, Nat.sub(Nat.add(r, nn), 1n+pp)) == Nat.add(r, nn) : Nat}
+  %rw mod_p1(pp, Nat.sub(Nat.add(r, nn), 1n+pp), he)
+  %rwh hen : {Nat.is_lt(Nat.sub(Nat.add(r, nn), 1n+pp), nn) == True{} : Bool}
+  %close
+
+# for r < N < P: (r + N) mod P >= N exactly when r + N < P
+def rn_cond(+r: Nat, +nn: Nat, +pp: Nat, +hr: {Nat.is_lt(r, nn) == True{} : Bool}, +hn: {Nat.is_lt(nn, 1n+pp) == True{} : Bool}, c: Bool, +hc: {Nat.is_lt(Nat.add(r, nn), 1n+pp) == c : Bool}) -> {Bool.not(Nat.is_lt(Nat.mod(Nat.add(r, nn), 1n+pp), nn)) == c : Bool}:
+  match c:
+    case True{}:
+      rc_true(r, nn, pp, hc)
+    case False{}:
+      rc_false(r, nn, pp, hr, hn, hc)
+
+# n < p
+def n_lt_p(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(1n+K.np(one), 1n+K.pp(one)) == True{} : Bool}:
+  lt_of_sum(1n+K.pp(one), 1n+K.np(one), FS.cp(one), FS.cn(one), pn_sum(one, h1), cp_lt_cn(one, h1))
