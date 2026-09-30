@@ -380,22 +380,6 @@ X25519, key-exchange and Ed25519 keys and messages against Python's
 `cryptography`; tampered signatures, non-canonical S + L, and malformed
 input (wrong lengths, bytes ≥ 256).
 
-## Sources
-
-- RFC 7748, *Elliptic Curves for Security* (X25519); RFC 8032, *EdDSA*
-  (Ed25519, section 5.1 and the test vectors of section 7.1).
-- HACL*: `Spec.Curve25519`, `Spec.Ed25519` (specification shape), the
-  field's `feval` relation; Fiat-Crypto (limb arithmetic proved against
-  `Z/pZ`); Mathlib's `ZMod` (congruence as the relation to the spec);
-  s2n-bignum (carry-chain invariants).
-- FIPS 180-4, *Secure Hash Standard* (SHA-256, SHA-512); FIPS 202, *SHA-3
-  Standard* (Keccak-p, the sponge, SHA3-256).
-- HACL*: `Spec.SHA2`, `Spec.SHA3`, `Spec.Hash.Definitions` (specification
-  shape), `Hacl.Streaming.Functor` (the incremental API's invariant),
-  `Lib.ByteBuffer.lbytes_eq` (constant-time comparison).
-- A. W. Appel, *Verification of a Cryptographic Primitive: SHA-256*, TOPLAS
-  2015 (functional spec vs. implementation, the padding and schedule lemmas).
-
 ## HMAC-SHA256 and HKDF-SHA256
 
 `src/crypto/mac.bend` (HMAC, RFC 2104 / FIPS 198-1) and `src/crypto/kdf.bend`
@@ -466,14 +450,7 @@ sign, verify with right and tampered tags, hkdf, expand, extract, with
 lengths around the 64-byte block and the 8160-byte limit) against Python's
 `hmac`/`hashlib` and the `cryptography` package's `HMAC`, `HKDF` and
 `HKDFExpand`. It runs in `tools/validate.py` (row `mac`).
-Each `src/crypto` module has an executable specification in `spec/crypto/`
-transcribed from its standard (HACL*'s `Spec.*` modules are the model) and a
-proof package in `proofs/crypto/<module>/` whose `laws.bend` states the
-public clauses and whose `proof.bend` proves them, for every input, with no
-holes, axioms or `@unsafe` code (`python3 proofs/prove.py <package>` on the
-pinned stock Bend). Constant time cannot be proved in Bend (there is no
-timing model); where a module claims it, the claim is about the shape of
-the code and is documented as such.
+
 ## ChaCha20, HChaCha20, XChaCha20
 
 `src/crypto/chacha/core.bend` is the ChaCha core (RFC 8439 sections
@@ -792,26 +769,6 @@ about a thousand random AES-128/256-GCM encryptions, decryptions, tampered
 ciphertexts, tags and AADs, and wrong key and nonce lengths against
 `cryptography`'s `AESGCM`. `tests/crypto/aes/main.bend` prints the FIPS 197
 vectors.
-- RFC 9106, *Argon2 Memory-Hard Function for Password Hashing and
-  Proof-of-Work Applications*, and its reference implementation (the
-  segment schedule and `index_alpha`); RFC 7693 (BLAKE2); the PHC string
-  format (P-H-C/phc-string-format) as argon2-cffi writes it.
-- HACL*'s `Spec.Blake2` / `Hacl.Blake2b` proofs (the lane representation and
-  the round-by-round equivalence), and Almeida et al.'s Jasmin/EasyCrypt
-  work on high-assurance, constant-time cryptography (implementation ==
-  executable specification as the correctness statement).
-# Crypto contracts
-
-Each `src/crypto` module has an executable specification in `spec/crypto/`,
-transcribed from its standard and sharing nothing with the implementation
-but neutral record types (the model is HACL*'s `Spec.*` modules), and a
-proof package in `proofs/crypto/<pkg>/` whose `proof.bend` proves every
-clause under its name. `python3 proofs/prove.py <pkg>` checks a package; the
-evidence is one of
-
-- **proved**: the clause holds for every input, checked by stock Bend
-  (2.0.32, bendlang/bend main b2111cf4). No holes, no axioms, no `@unsafe`.
-- **tested**: the clause is exercised, not proved (the table says why).
 
 ## Random numbers: `src/crypto/random.bend`
 
@@ -879,3 +836,27 @@ keys and call mixes with a Python mirror of Go.
   system; its ChaCha8Rand use is the runtime's `rand` (and `math/rand/v2`'s
   top-level functions). This module is that generator made explicit: keyed
   once from the OS by `from_os`, then deterministic.
+
+## Sources
+
+- RFC 7748, *Elliptic Curves for Security* (X25519); RFC 8032, *EdDSA*
+  (Ed25519, section 5.1 and the test vectors of section 7.1).
+- HACL*: `Spec.Curve25519`, `Spec.Ed25519` (specification shape), the
+  field's `feval` relation; Fiat-Crypto (limb arithmetic proved against
+  `Z/pZ`); Mathlib's `ZMod` (congruence as the relation to the spec);
+  s2n-bignum (carry-chain invariants).
+- FIPS 180-4, *Secure Hash Standard* (SHA-256, SHA-512); FIPS 202, *SHA-3
+  Standard* (Keccak-p, the sponge, SHA3-256).
+- HACL*: `Spec.SHA2`, `Spec.SHA3`, `Spec.Hash.Definitions` (specification
+  shape), `Hacl.Streaming.Functor` (the incremental API's invariant),
+  `Lib.ByteBuffer.lbytes_eq` (constant-time comparison).
+- A. W. Appel, *Verification of a Cryptographic Primitive: SHA-256*, TOPLAS
+  2015 (functional spec vs. implementation, the padding and schedule lemmas).
+- RFC 9106, *Argon2 Memory-Hard Function for Password Hashing and
+  Proof-of-Work Applications*, and its reference implementation (the
+  segment schedule and `index_alpha`); RFC 7693 (BLAKE2); the PHC string
+  format (P-H-C/phc-string-format) as argon2-cffi writes it.
+- HACL*'s `Spec.Blake2` / `Hacl.Blake2b` proofs (the lane representation and
+  the round-by-round equivalence), and Almeida et al.'s Jasmin/EasyCrypt
+  work on high-assurance, constant-time cryptography (implementation ==
+  executable specification as the correctness statement).
