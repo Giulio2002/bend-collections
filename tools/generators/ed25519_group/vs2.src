@@ -1,0 +1,86 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../../secp256k1/semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ../../../math/number/nt_prime.bend as PM
+import ../../../math/number/nt_flt.bend as FL
+import ../../../../spec/lib/common.bend as C
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../../../spec/crypto/curve25519/x25519.bend as SX
+import ../../../../spec/crypto/curve25519/edwards.bend as G
+import ../../../../spec/crypto/ed25519.bend as ED
+import ../../../../spec/crypto/ed25519_group.bend as GE
+import ../../../../spec/crypto/sha512.bend as SHA
+import ./fq.bend as FQ
+import ./gpt.bend as GP
+import ./ext.bend as EX
+import ./smul.bend as SM
+import ./vs.bend as VS
+
+# Ed25519 verification of a signature, in the group: the check of
+# spec/crypto/ed25519.bend's verify succeeds for S = (r + k s) mod l,
+# R' with the affine point of [r] B and A' with the affine point of [s] B.
+
+# ---- the specification's guards unfold ----
+
+def public_of_eq(+one: Nat, +p: Nat, d: Nat, +h: List<&2, U32>) -> {ED.public_of(one, p, d, h) == ED.public_body(one, p, d, h) : List<&2, U32>}:
+  match d:
+    case 0n:
+      {==}
+    case 1n+e:
+      {==}
+
+def sign_with_eq(+one: Nat, +p: Nat, d: Nat, +h: List<&2, U32>, +msg: List<&2, U32>) -> {ED.sign_with(one, p, d, h, msg) == ED.sign_body(one, p, d, h, msg) : List<&2, U32>}:
+  match d:
+    case 0n:
+      {==}
+    case 1n+e:
+      {==}
+
+# the encoding reads only the affine point
+def enc(+one: Nat, a: G.APt) -> List<&2, U32>:
+  match a:
+    case G.APt{x, y}:
+      ED.set_msb(SX.le_bytes(C.shift(5n, one), y), U32.from_nat(Nat.mod(x, 2n)))
+
+def encode_aff(+one: Nat, +p: Nat, a: ED.EPt) -> {ED.encode(one, p, a) == enc(one, GE.affine(p, a)) : List<&2, U32>}:
+  match a:
+    case ED.EPt{x, y, z, t}:
+      {==}
+
+# ---- a point (x : y : 1 : t) ----
+
+def q1_s(+mp: Nat, +x: Nat) -> {Nat.mod(x, 1n+mp) == Nat.mod(FS.fmul(1n+mp, x, 1n), 1n+mp) : Nat}:
+  %rw FQ.fmul_red(mp, x, 1n)
+  %goal {Nat.mod(x, 1n+mp) == Nat.mod(Nat.mul(x, 1n), 1n+mp) : Nat}
+  %rw NA.mul_one(x)
+  %close
+
+def q1(+mp: Nat, +hp: PM.Prime(1n+mp), +x: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}) -> {EX.qd(mp, x, 1n) == x : Nat}:
+  FQ.frac_val(mp, hp, x, 1n, x, EX.nz_one(mp, hp), hx, q1_s(mp, x))
+
+def aff1(+mp: Nat, +hp: PM.Prime(1n+mp), +x: Nat, +y: Nat, +t: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}, +hy: {Nat.is_lt(y, 1n+mp) == True{} : Bool}) -> {GE.affine(1n+mp, ED.EPt{x, y, 1n, t}) == G.APt{x, y} : G.APt}:
+  GP.apt_eq(EX.qd(mp, x, 1n), EX.qd(mp, y, 1n), x, y, q1(mp, hp, x, hx), q1(mp, hp, y, hy))
+
+# ---- the check ----
+
+def check_aff(+one: Nat, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +bp: ED.EPt, +hbv: GE.Valid(1n+mp, d, bp), +lp: Nat, +hl: {G.nmul(1n+mp, d, 1n+lp, GE.affine(1n+mp, bp)) == G.azero() : G.APt}, +r: Nat, +k: Nat, +s: Nat, +hr: {C.fits(C.shift(8n, one), r) == True{} : Bool}, +hk: {C.fits(C.shift(8n, one), k) == True{} : Bool}, +hs: {C.fits(C.shift(8n, one), s) == True{} : Bool}, +hss: {C.fits(C.shift(8n, one), Nat.mod(Nat.add(r, Nat.mul(k, s)), 1n+lp)) == True{} : Bool}, +rr: ED.EPt, +aa: ED.EPt, +hrv: GE.Valid(1n+mp, d, rr), +hav: GE.Valid(1n+mp, d, aa), +hra: {GE.affine(1n+mp, rr) == GE.affine(1n+mp, ED.mul(one, 1n+mp, d, r, bp)) : G.APt}, +haa: {GE.affine(1n+mp, aa) == GE.affine(1n+mp, ED.mul(one, 1n+mp, d, s, bp)) : G.APt}) -> {GE.affine(1n+mp, ED.mul(one, 1n+mp, d, Nat.mod(Nat.add(r, Nat.mul(k, s)), 1n+lp), bp)) == GE.affine(1n+mp, ED.add(1n+mp, d, rr, ED.mul(one, 1n+mp, d, k, aa))) : G.APt}:
+  %rw SM.mul_aff_fit(one, mp, d, hc, Nat.mod(Nat.add(r, Nat.mul(k, s)), 1n+lp), bp, hbv, hss)
+  %rw EX.add_aff(mp, d, hc, rr, ED.mul(one, 1n+mp, d, k, aa), hrv, SM.mul_valid(one, mp, d, hc, k, aa, hav))
+  %rw SM.mul_aff_fit(one, mp, d, hc, k, aa, hav, hk)
+  %rwh hra : {GE.affine(1n+mp, rr) == GE.affine(1n+mp, ED.mul(one, 1n+mp, d, r, bp)) : G.APt}
+  %rwh haa : {GE.affine(1n+mp, aa) == GE.affine(1n+mp, ED.mul(one, 1n+mp, d, s, bp)) : G.APt}
+  %rw SM.mul_aff_fit(one, mp, d, hc, r, bp, hbv, hr)
+  %rw SM.mul_aff_fit(one, mp, d, hc, s, bp, hbv, hs)
+  VS.veq(mp, d, hc, GE.affine(1n+mp, bp), EX.aff_on(mp, d, bp, hbv), lp, hl, r, k, s)
+
+# [S] B == R' + [k] A' as ED.equal, for S = (r + k s) mod l
+def check_eq(+one: Nat, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +bp: ED.EPt, +hbv: GE.Valid(1n+mp, d, bp), +lp: Nat, +hl: {G.nmul(1n+mp, d, 1n+lp, GE.affine(1n+mp, bp)) == G.azero() : G.APt}, +r: Nat, +k: Nat, +s: Nat, +hr: {C.fits(C.shift(8n, one), r) == True{} : Bool}, +hk: {C.fits(C.shift(8n, one), k) == True{} : Bool}, +hs: {C.fits(C.shift(8n, one), s) == True{} : Bool}, +hss: {C.fits(C.shift(8n, one), Nat.mod(Nat.add(r, Nat.mul(k, s)), 1n+lp)) == True{} : Bool}, +rr: ED.EPt, +aa: ED.EPt, +hrv: GE.Valid(1n+mp, d, rr), +hav: GE.Valid(1n+mp, d, aa), +hra: {GE.affine(1n+mp, rr) == GE.affine(1n+mp, ED.mul(one, 1n+mp, d, r, bp)) : G.APt}, +haa: {GE.affine(1n+mp, aa) == GE.affine(1n+mp, ED.mul(one, 1n+mp, d, s, bp)) : G.APt}) -> {ED.equal(1n+mp, ED.mul(one, 1n+mp, d, Nat.mod(Nat.add(r, Nat.mul(k, s)), 1n+lp), bp), ED.add(1n+mp, d, rr, ED.mul(one, 1n+mp, d, k, aa))) == True{} : Bool}:
+  +sv = Nat.mod(Nat.add(r, Nat.mul(k, s)), 1n+lp)
+  +hka = SM.mul_valid(one, mp, d, hc, k, aa, hav)
+  VS.equal_aff(mp, d, hc, ED.mul(one, 1n+mp, d, sv, bp), ED.add(1n+mp, d, rr, ED.mul(one, 1n+mp, d, k, aa)), SM.mul_valid(one, mp, d, hc, sv, bp, hbv), EX.add_valid(mp, d, hc, rr, ED.mul(one, 1n+mp, d, k, aa), hrv, hka),
+    check_aff(one, mp, d, hc, bp, hbv, lp, hl, r, k, s, hr, hk, hs, hss, rr, aa, hrv, hav, hra, haa))
+
