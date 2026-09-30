@@ -18,6 +18,7 @@ import ../u64/u64div.bend as PD
 import ./w64mul.bend as W64M
 import ./f64sqr.bend as SR
 import ./w64m128.bend as M128
+import ./w64add.bend as WA
 import ./w64sqrt.bend as W64S
 import ./f64sqn.bend as QN
 import ../../lib/word.bend as WD
@@ -150,31 +151,78 @@ def n48v(+one: Nat, +h1: {one == 1n : Nat}, +a: WU.U64) -> {X.n48(a) == v(a) : N
     case WU.U64{+l, +h}:
       Equal.cong(Nat, Nat, z => Nat.add(U32.to_nat(l), z), Nat.mul(Nat.mul(U32.to_nat(h), 65536n), 65536n), C.shift(32n, U32.to_nat(h)), s32(one, h1, U32.to_nat(h)))
 
-def b2v(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.mul(65536n, 65536n) == C.shift(32n, one) : Nat}:
-  Equal.trans(Nat, Nat.mul(65536n, 65536n), Nat.mul(Nat.mul(one, 65536n), 65536n), C.shift(32n, one), Equal.cong(Nat, Nat, z => Nat.mul(z, 65536n), 65536n, Nat.mul(one, 65536n), L.subst(Nat, o => {65536n == Nat.mul(o, 65536n) : Nat}, 1n, one, Equal.sym(Nat, one, 1n, h1), Equal.sym(Nat, Nat.mul(1n, 65536n), 65536n, QN.mul1(65536n)))), s32(one, h1, one))
+# ---- of48: the words of g < 2^64 (2^16 and 2^32 kept over an open unit) ----
+
+def o48_shl_inv_c(+k: Nat, +a: Nat, +b: Nat, +h: {Nat.is_lt(C.shift(k, a), C.shift(k, b)) == True{} : Bool}, +c: Bool, +hc: {Nat.is_lt(a, b) == c : Bool}) -> {c == True{} : Bool}:
+  match c:
+    case True{}:
+      {==}
+    case False{}:
+      +h2 = WW.shift_mono(k, b, a, N.not_lt_le(a, b, hc))
+      Empty.absurd({False{} == True{} : Bool}, LW.true_ne_false(Equal.trans(Bool, True{}, Nat.is_lt(C.shift(k, a), C.shift(k, b)), False{}, Equal.sym(Bool, Nat.is_lt(C.shift(k, a), C.shift(k, b)), True{}, h), N.le_not_lt(C.shift(k, a), C.shift(k, b), h2))))
+
+def o48_shl_inv(+k: Nat, +a: Nat, +b: Nat, +h: {Nat.is_lt(C.shift(k, a), C.shift(k, b)) == True{} : Bool}) -> {Nat.is_lt(a, b) == True{} : Bool}:
+  o48_shl_inv_c(k, a, b, h, Nat.is_lt(a, b), {==})
+
+# a value below 2^32 survives from_nat / to_nat
+def tnfn(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +hx: {Nat.is_lt(x, C.shift(32n, one)) == True{} : Bool}) -> {U32.to_nat(U32.from_nat(x)) == x : Nat}:
+  +e = Equal.trans(Nat, C.shift(32n, one), C.shift(32n, 1n), C.pow2(32n), Equal.cong(Nat, Nat, z => C.shift(32n, z), one, 1n, h1), WW.shift_one(32n))
+  U.to_nat_from_nat(x, 32n, {==}, L.subst(Nat, z => {Nat.is_lt(x, z) == True{} : Bool}, C.shift(32n, one), C.pow2(32n), e, hx))
+
+def k16s(+one: Nat, +h1: {one == 1n : Nat}) -> {65536n == C.shift(16n, one) : Nat}:
+  Equal.trans(Nat, 65536n, WD.sc(16n, one), C.shift(16n, one), W64D.k65536(one, h1), Equal.sym(Nat, C.shift(16n, one), WD.sc(16n, one), W64M.shift_sc(16n, one)))
+
+# g = (2^16 r2 + r1) + 2^32 h: r1, r2 the low 16-bit digits, h = g div 2^32
+def o48_split(+one: Nat, +h1: {one == 1n : Nat}, +g: Nat) -> {Nat.add(Nat.add(C.shift(16n, Nat.mod(Nat.div(g, 65536n), 65536n)), Nat.mod(g, 65536n)), C.shift(32n, Nat.div(Nat.div(g, 65536n), 65536n))) == g : Nat}:
+  +q1 = Nat.div(g, 65536n)
+  +r1 = Nat.mod(g, 65536n)
+  +h = Nat.div(q1, 65536n)
+  +r2 = Nat.mod(q1, 65536n)
+  +X1 = Nat.add(Nat.mul(Nat.add(Nat.mul(h, 65536n), r2), 65536n), r1)
+  +e1 = Equal.trans(Nat, X1, Nat.add(Nat.mul(q1, 65536n), r1), g, Equal.cong(Nat, Nat, z => Nat.add(Nat.mul(z, 65536n), r1), Nat.add(Nat.mul(h, 65536n), r2), q1, SR.dmq(q1, 65536n, {==})), SR.dmq(g, 65536n, {==}))
+  +e2 = Equal.trans(Nat, Nat.add(Nat.add(WD.sc(16n, r2), r1), WD.sc(32n, h)), X1, g, Equal.sym(Nat, X1, Nat.add(Nat.add(WD.sc(16n, r2), r1), WD.sc(32n, h)), W64D.x2_eq(one, h1, h, r2, r1)), e1)
+  +e3 = Equal.trans(Nat, Nat.add(Nat.add(C.shift(16n, r2), r1), C.shift(32n, h)), Nat.add(Nat.add(WD.sc(16n, r2), r1), C.shift(32n, h)), Nat.add(Nat.add(WD.sc(16n, r2), r1), WD.sc(32n, h)), Equal.cong(Nat, Nat, z => Nat.add(Nat.add(z, r1), C.shift(32n, h)), C.shift(16n, r2), WD.sc(16n, r2), W64M.shift_sc(16n, r2)), Equal.cong(Nat, Nat, z => Nat.add(Nat.add(WD.sc(16n, r2), r1), z), C.shift(32n, h), WD.sc(32n, h), W64M.shift_sc(32n, h)))
+  Equal.trans(Nat, Nat.add(Nat.add(C.shift(16n, r2), r1), C.shift(32n, h)), Nat.add(Nat.add(WD.sc(16n, r2), r1), WD.sc(32n, h)), g, e3, e2)
+
+# two 16-bit digits make a value below 2^32
+def o48_lo_lt(+one: Nat, +h1: {one == 1n : Nat}, +r1: Nat, +r2: Nat, +hr1: {Nat.is_lt(r1, 65536n) == True{} : Bool}, +hr2: {Nat.is_lt(r2, 65536n) == True{} : Bool}) -> {Nat.is_lt(Nat.add(C.shift(16n, r2), r1), C.shift(32n, one)) == True{} : Bool}:
+  +S = C.shift(16n, one)
+  +k = k16s(one, h1)
+  +a1 = L.subst(Nat, z => {Nat.is_lt(r1, z) == True{} : Bool}, 65536n, S, k, hr1)
+  +a2 = L.subst(Nat, z => {Nat.is_lt(r2, z) == True{} : Bool}, 65536n, S, k, hr2)
+  +b1 = N.lt_add_left(r1, S, C.shift(16n, r2), a1)
+  +l1 = N.lt_succ_le_succ(r2, S, a2)
+  +l2 = L.subst(Nat, z => {Nat.is_le(z, S) == True{} : Bool}, 1n+r2, Nat.add(r2, one), Equal.trans(Nat, 1n+r2, Nat.add(r2, 1n), Nat.add(r2, one), Equal.sym(Nat, Nat.add(r2, 1n), 1n+r2, WA.plus1(r2)), Equal.cong(Nat, Nat, z => Nat.add(r2, z), 1n, one, Equal.sym(Nat, one, 1n, h1))), l1)
+  +c1 = WW.shift_mono(16n, Nat.add(r2, one), S, l2)
+  +c2 = L.subst(Nat, z => {Nat.is_le(z, C.shift(16n, S)) == True{} : Bool}, C.shift(16n, Nat.add(r2, one)), Nat.add(C.shift(16n, r2), S), WW.shift_add(16n, r2, one), c1)
+  +c3 = L.subst(Nat, z => {Nat.is_le(Nat.add(C.shift(16n, r2), S), z) == True{} : Bool}, C.shift(16n, S), C.shift(32n, one), Equal.sym(Nat, C.shift(32n, one), C.shift(16n, S), WW.shift_comp(16n, 16n, one)), c2)
+  N.lt_le_trans(Nat.add(C.shift(16n, r2), r1), Nat.add(C.shift(16n, r2), S), C.shift(32n, one), b1, c3)
+
+# the high word of g < 2^64 is below 2^32
+def o48_hi_lt(+one: Nat, +h1: {one == 1n : Nat}, +g: Nat, +hg: {C.fits(64n, g) == True{} : Bool}, +L0: Nat, +h: Nat, +es: {Nat.add(L0, C.shift(32n, h)) == g : Nat}) -> {Nat.is_lt(h, C.shift(32n, one)) == True{} : Bool}:
+  +hg64 = WW.lt_one(64n, one, h1, g, hg)
+  +s1 = L.subst(Nat, z => {Nat.is_le(C.shift(32n, h), z) == True{} : Bool}, Nat.add(C.shift(32n, h), L0), g, Equal.trans(Nat, Nat.add(C.shift(32n, h), L0), Nat.add(L0, C.shift(32n, h)), g, NA.add_comm(C.shift(32n, h), L0), es), N.le_add_right(C.shift(32n, h), L0))
+  +s2 = N.le_lt_trans(C.shift(32n, h), g, C.shift(64n, one), s1, hg64)
+  +s3 = L.subst(Nat, z => {Nat.is_lt(C.shift(32n, h), z) == True{} : Bool}, C.shift(64n, one), C.shift(32n, C.shift(32n, one)), WW.shift_comp(32n, 32n, one), s2)
+  o48_shl_inv(32n, h, C.shift(32n, one), s3)
 
 # the two words of g < 2^64
 def of48v(+one: Nat, +h1: {one == 1n : Nat}, +g: Nat, +hg: {C.fits(64n, g) == True{} : Bool}) -> {v(X.of48(g)) == g : Nat}:
-  +P = C.shift(32n, one)
-  +eB = b2v(one, h1)
-  +eP = Equal.trans(Nat, P, C.shift(32n, 1n), C.pow2(32n), L.subst(Nat, o => {C.shift(32n, o) == C.shift(32n, 1n) : Nat}, 1n, one, Equal.sym(Nat, one, 1n, h1), {==}), WW.shift_one(32n))
-  +hP = N.lt_le_trans(0n, 1n, P, {==}, L.subst(Nat, z => {Nat.is_le(1n, z) == True{} : Bool}, C.pow2(32n), P, Equal.sym(Nat, P, C.pow2(32n), eP), N.pow2_pos(32n)))
-  +dq = Nat.div(g, Nat.mul(65536n, 65536n))
-  +md = Nat.mod(g, Nat.mul(65536n, 65536n))
-  +hD = L.subst(Nat, z => {Nat.is_lt(0n, z) == True{} : Bool}, P, Nat.mul(65536n, 65536n), Equal.sym(Nat, Nat.mul(65536n, 65536n), P, eB), hP)
-  +edm = SR.dmq(g, Nat.mul(65536n, 65536n), hD)
-  +hm0 = SR.dml(g, Nat.mul(65536n, 65536n), hD)
-  +hm = L.subst(Nat, z => {Nat.is_lt(md, z) == True{} : Bool}, Nat.mul(65536n, 65536n), C.pow2(32n), Equal.trans(Nat, Nat.mul(65536n, 65536n), P, C.pow2(32n), eB, eP), hm0)
-  +hg64 = WW.lt_of_fits(64n, g, hg)
-  +esq = Equal.trans(Nat, Nat.mul(Nat.mul(65536n, 65536n), Nat.mul(65536n, 65536n)), Nat.mul(C.pow2(32n), C.pow2(32n)), C.pow2(64n), Equal.trans(Nat, Nat.mul(Nat.mul(65536n, 65536n), Nat.mul(65536n, 65536n)), Nat.mul(C.pow2(32n), Nat.mul(65536n, 65536n)), Nat.mul(C.pow2(32n), C.pow2(32n)), Equal.cong(Nat, Nat, z => Nat.mul(z, Nat.mul(65536n, 65536n)), Nat.mul(65536n, 65536n), C.pow2(32n), Equal.trans(Nat, Nat.mul(65536n, 65536n), P, C.pow2(32n), eB, eP)), Equal.cong(Nat, Nat, z => Nat.mul(C.pow2(32n), z), Nat.mul(65536n, 65536n), C.pow2(32n), Equal.trans(Nat, Nat.mul(65536n, 65536n), P, C.pow2(32n), eB, eP))), WW.pow2_sq(32n))
-  +h1d = N.le_lt_trans(Nat.mul(dq, Nat.mul(65536n, 65536n)), g, Nat.mul(Nat.mul(65536n, 65536n), Nat.mul(65536n, 65536n)), L.subst(Nat, z => {Nat.is_le(Nat.mul(dq, Nat.mul(65536n, 65536n)), z) == True{} : Bool}, Nat.add(Nat.mul(dq, Nat.mul(65536n, 65536n)), md), g, edm, N.le_add_right(Nat.mul(dq, Nat.mul(65536n, 65536n)), md)), L.subst(Nat, z => {Nat.is_lt(g, z) == True{} : Bool}, C.pow2(64n), Nat.mul(Nat.mul(65536n, 65536n), Nat.mul(65536n, 65536n)), Equal.sym(Nat, Nat.mul(Nat.mul(65536n, 65536n), Nat.mul(65536n, 65536n)), C.pow2(64n), esq), hg64))
-  +hdq0 = W64D.lt_cancel_mul(dq, Nat.mul(65536n, 65536n), Nat.mul(65536n, 65536n), h1d)
-  +hdq = L.subst(Nat, z => {Nat.is_lt(dq, z) == True{} : Bool}, Nat.mul(65536n, 65536n), C.pow2(32n), Equal.trans(Nat, Nat.mul(65536n, 65536n), P, C.pow2(32n), eB, eP), hdq0)
-  +e1 = U.to_nat_from_nat(md, 32n, {==}, hm)
-  +e2 = U.to_nat_from_nat(dq, 32n, {==}, hdq)
-  +e3 = Equal.trans(Nat, C.shift(32n, dq), Nat.mul(dq, P), Nat.mul(dq, Nat.mul(65536n, 65536n)), WW.shift_mul_one(32n, one, h1, dq), Equal.cong(Nat, Nat, z => Nat.mul(dq, z), P, Nat.mul(65536n, 65536n), Equal.sym(Nat, Nat.mul(65536n, 65536n), P, eB)))
-  +e4 = Equal.trans(Nat, Nat.add(md, C.shift(32n, dq)), Nat.add(md, Nat.mul(dq, Nat.mul(65536n, 65536n))), g, Equal.cong(Nat, Nat, z => Nat.add(md, z), C.shift(32n, dq), Nat.mul(dq, Nat.mul(65536n, 65536n)), e3), Equal.trans(Nat, Nat.add(md, Nat.mul(dq, Nat.mul(65536n, 65536n))), Nat.add(Nat.mul(dq, Nat.mul(65536n, 65536n)), md), g, NA.add_comm(md, Nat.mul(dq, Nat.mul(65536n, 65536n))), edm))
-  Equal.trans(Nat, v(X.of48(g)), Nat.add(md, C.shift(32n, U32.to_nat(U32.from_nat(dq)))), g, Equal.cong(Nat, Nat, z => Nat.add(z, C.shift(32n, U32.to_nat(U32.from_nat(dq)))), U32.to_nat(U32.from_nat(md)), md, e1), Equal.trans(Nat, Nat.add(md, C.shift(32n, U32.to_nat(U32.from_nat(dq)))), Nat.add(md, C.shift(32n, dq)), g, Equal.cong(Nat, Nat, z => Nat.add(md, C.shift(32n, z)), U32.to_nat(U32.from_nat(dq)), dq, e2), e4))
+  +r1 = Nat.mod(g, 65536n)
+  +r2 = Nat.mod(Nat.div(g, 65536n), 65536n)
+  +h = Nat.div(Nat.div(g, 65536n), 65536n)
+  +L0 = Nat.add(C.shift(16n, r2), r1)
+  +M = Nat.mul(Nat.mul(h, 65536n), 65536n)
+  +es = o48_split(one, h1, g)
+  +eg = Equal.sym(Nat, Nat.add(C.shift(32n, h), L0), g, Equal.trans(Nat, Nat.add(C.shift(32n, h), L0), Nat.add(L0, C.shift(32n, h)), g, NA.add_comm(C.shift(32n, h), L0), es))
+  +eE = Equal.trans(Nat, Nat.sub(g, M), Nat.sub(g, C.shift(32n, h)), Nat.sub(Nat.add(C.shift(32n, h), L0), C.shift(32n, h)), Equal.cong(Nat, Nat, z => Nat.sub(g, z), M, C.shift(32n, h), s32(one, h1, h)), Equal.cong(Nat, Nat, z => Nat.sub(z, C.shift(32n, h)), g, Nat.add(C.shift(32n, h), L0), eg))
+  +eL = Equal.trans(Nat, Nat.sub(g, M), Nat.sub(Nat.add(C.shift(32n, h), L0), C.shift(32n, h)), L0, eE, N.add_sub_cancel(C.shift(32n, h), L0))
+  +bL = o48_lo_lt(one, h1, r1, r2, SR.dml(g, 65536n, {==}), SR.dml(Nat.div(g, 65536n), 65536n, {==}))
+  +bLo = L.subst(Nat, z => {Nat.is_lt(z, C.shift(32n, one)) == True{} : Bool}, L0, Nat.sub(g, M), Equal.sym(Nat, Nat.sub(g, M), L0, eL), bL)
+  +bh = o48_hi_lt(one, h1, g, hg, L0, h, es)
+  +eLo = Equal.trans(Nat, U32.to_nat(U32.from_nat(Nat.sub(g, M))), Nat.sub(g, M), L0, tnfn(one, h1, Nat.sub(g, M), bLo), eL)
+  +f1 = Equal.trans(Nat, Nat.add(U32.to_nat(U32.from_nat(Nat.sub(g, M))), C.shift(32n, U32.to_nat(U32.from_nat(h)))), Nat.add(L0, C.shift(32n, U32.to_nat(U32.from_nat(h)))), Nat.add(L0, C.shift(32n, h)), Equal.cong(Nat, Nat, z => Nat.add(z, C.shift(32n, U32.to_nat(U32.from_nat(h)))), U32.to_nat(U32.from_nat(Nat.sub(g, M))), L0, eLo), Equal.cong(Nat, Nat, z => Nat.add(L0, C.shift(32n, z)), U32.to_nat(U32.from_nat(h)), h, tnfn(one, h1, h, bh)))
+  Equal.trans(Nat, v(X.of48(g)), Nat.add(L0, C.shift(32n, h)), g, f1, es)
 
 # GcdSmall is the gcd
 def gsv(+a: WU.U64, +d: WU.U64) -> {v(I.u64_op(NM.GcdSmall{a, d})) == M.gcd(v(a), v(d)) : Nat}:
