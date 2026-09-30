@@ -1,0 +1,161 @@
+import Base
+import ../../../../spec/lib/common.bend as C
+import ../../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../../spec/crypto/secp256k1/curve.bend as CS
+import ../../../../spec/crypto/secp256k1/group.bend as GS
+import ../../../../spec/crypto/secp256k1/encoding.bend as EN
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ../../../math/number/nt_prime.bend as PM
+import ../../../math/number/nt_fld.bend as FD
+import ../bytes.bend as BY
+import ./zm.bend as Z
+import ./ident.bend as I
+import ./fld.bend as F
+import ./nc.bend as NC
+import ./sqrt.bend as SQ
+import ./enco.bend as EO
+import ./id_enc.bend as IE
+
+# The SEC 1 point encodings of the specification round trip
+# (curve.bend: enc_u / enc_c after to_affine, decode), for a modulus
+# m = 1 + mp with: hp (m prime), he (m + 1 == 4 s), hodd (m odd), h256
+# (m <= 2^256); and every decoded point is a point of the group in normal
+# form (with the group-law facts h3, hnc, h21 of glaw1.bend).
+
+def fit(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}, +x: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}) -> {C.fits(256n, x) == True{} : Bool}:
+  BY.fits_one(256n, one, h1, x, N.lt_le_trans(x, 1n+mp, C.shift(256n, one), hx, h256))
+
+def is_eq_of(+a: Nat, +b: Nat, +h: {a == b : Nat}) -> {Nat.is_eq(a, b) == True{} : Bool}:
+  %h : {Nat.is_eq(a, _) == True{} : Bool}
+  N.is_eq_refl(a)
+
+# ---- uncompressed ----
+
+def dec_u(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hp: PM.Prime(1n+mp), +s: Nat, +he: {Nat.add(1n+mp, 1n) == Nat.mul(s, 4n) : Nat}, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}, +x: Nat, +y: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}, +hy: {Nat.is_lt(y, 1n+mp) == True{} : Bool}, +hc: {CS.on_curve(1n+mp, x, y) == True{} : Bool}) -> {CS.decode(1n+mp, CS.enc_u(CS.SAffine{x, y})) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}:
+  %goal {CS.decode_len(1n+mp, 4 <> List.append(&2, U32, CS.i2osp(32n, x), CS.i2osp(32n, y)), Nat.is_eq(1n+List.length(&2, U32, List.append(&2, U32, CS.i2osp(32n, x), CS.i2osp(32n, y))), 33n), Nat.is_eq(1n+List.length(&2, U32, List.append(&2, U32, CS.i2osp(32n, x), CS.i2osp(32n, y))), 65n)) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}
+  %rw BY.len_app(CS.i2osp(32n, x), CS.i2osp(32n, y))
+  %rw BY.len_app(CS.i2osp(32n, x), CS.i2osp(32n, y))
+  %rw EO.len_i2(32n, x)
+  %rw EO.len_i2(32n, x)
+  %rw EO.len_i2(32n, y)
+  %rw EO.len_i2(32n, y)
+  %goal {CS.decode_u(1n+mp, 4, CS.os2ip(CS.first(32n, List.append(&2, U32, CS.i2osp(32n, x), CS.i2osp(32n, y)))), CS.os2ip(CS.after(32n, List.append(&2, U32, CS.i2osp(32n, x), CS.i2osp(32n, y))))) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}
+  %rw EO.first_app(CS.i2osp(32n, x), 32n, CS.i2osp(32n, y), EO.len_i2(32n, x))
+  %rw EO.after_app(CS.i2osp(32n, x), 32n, CS.i2osp(32n, y), EO.len_i2(32n, x))
+  %rw EO.os_i2_32(x, fit(one, h1, mp, h256, x, hx))
+  %rw EO.os_i2_32(y, fit(one, h1, mp, h256, y, hy))
+  %goal {CS.decompress_if(x, y, Bool.and(Bool.and(Nat.is_lt(x, 1n+mp), Nat.is_lt(y, 1n+mp)), CS.on_curve(1n+mp, x, y))) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}
+  %rwh hx : {Nat.is_lt(x, 1n+mp) == True{} : Bool}
+  %rwh hy : {Nat.is_lt(y, 1n+mp) == True{} : Bool}
+  %rwh hc : {CS.on_curve(1n+mp, x, y) == True{} : Bool}
+  %close
+
+# ---- compressed ----
+
+def rhs_sq(+mp: Nat, +x: Nat, +y: Nat, +hc: {CS.on_curve(1n+mp, x, y) == True{} : Bool}) -> {Nat.mod(CS.rhs(1n+mp, x), 1n+mp) == FS.mmul(1n+mp, y, y) : Nat}:
+  Equal.trans(Nat, Nat.mod(CS.rhs(1n+mp, x), 1n+mp), CS.rhs(1n+mp, x), FS.mmul(1n+mp, y, y), NR.mod_mod(mp, Nat.add(FS.mmul(1n+mp, FS.mmul(1n+mp, x, x), x), 7n)), Equal.sym(Nat, FS.mmul(1n+mp, y, y), CS.rhs(1n+mp, x), N.eq_from_is_eq(FS.mmul(1n+mp, y, y), CS.rhs(1n+mp, x), hc)))
+
+# the root squares to x^3 + 7
+def root_sq(+mp: Nat, +hp: PM.Prime(1n+mp), +s: Nat, +he: {Nat.add(1n+mp, 1n) == Nat.mul(s, 4n) : Nat}, +x: Nat, +y: Nat, +hc: {CS.on_curve(1n+mp, x, y) == True{} : Bool}) -> {FS.mmul(1n+mp, FS.fsqrt(1n+mp, CS.rhs(1n+mp, x)), FS.fsqrt(1n+mp, CS.rhs(1n+mp, x))) == CS.rhs(1n+mp, x) : Nat}:
+  Equal.trans(Nat, FS.mmul(1n+mp, FS.fsqrt(1n+mp, CS.rhs(1n+mp, x)), FS.fsqrt(1n+mp, CS.rhs(1n+mp, x))), Nat.mod(CS.rhs(1n+mp, x), 1n+mp), CS.rhs(1n+mp, x), SQ.sq_ok(mp, hp, s, he, CS.rhs(1n+mp, x), y, rhs_sq(mp, x, y, hc)), NR.mod_mod(mp, Nat.add(FS.mmul(1n+mp, FS.mmul(1n+mp, x, x), x), 7n)))
+
+# decompression finds y from x and the parity of y
+def decomp(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hp: PM.Prime(1n+mp), +s: Nat, +he: {Nat.add(1n+mp, 1n) == Nat.mul(s, 4n) : Nat}, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}, +x: Nat, +y: Nat, +hy: {Nat.is_lt(y, 1n+mp) == True{} : Bool}, +hc: {CS.on_curve(1n+mp, x, y) == True{} : Bool}) -> {CS.decompress(1n+mp, x, Nat.mod(y, 2n)) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}:
+  %goal {CS.decompress_if(x, CS.pick_parity(1n+mp, FS.fsqrt(1n+mp, CS.rhs(1n+mp, x)), Nat.mod(y, 2n)), Nat.is_eq(FS.mmul(1n+mp, FS.fsqrt(1n+mp, CS.rhs(1n+mp, x)), FS.fsqrt(1n+mp, CS.rhs(1n+mp, x))), CS.rhs(1n+mp, x))) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}
+  %rw SQ.pick(mp, hp, hodd, FS.fsqrt(1n+mp, CS.rhs(1n+mp, x)), y, NR.dm_lt(mp, Nat.pow(CS.rhs(1n+mp, x), Nat.div(Nat.add(1n+mp, 1n), 4n))), hy, Equal.trans(Nat, FS.mmul(1n+mp, FS.fsqrt(1n+mp, CS.rhs(1n+mp, x)), FS.fsqrt(1n+mp, CS.rhs(1n+mp, x))), CS.rhs(1n+mp, x), FS.mmul(1n+mp, y, y), root_sq(mp, hp, s, he, x, y, hc), Equal.sym(Nat, FS.mmul(1n+mp, y, y), CS.rhs(1n+mp, x), N.eq_from_is_eq(FS.mmul(1n+mp, y, y), CS.rhs(1n+mp, x), hc))))
+  %rw root_sq(mp, hp, s, he, x, y, hc)
+  %rw N.is_eq_refl(CS.rhs(1n+mp, x))
+  %close
+
+def q_absurd(+y: Nat, +k: Nat, +hq: {Nat.mod(y, 2n) == 2n+k : Nat}) -> Empty:
+  N.lt_zero_absurd(k, Lg.subst(Nat, z => {Nat.is_lt(z, 2n) == True{} : Bool}, Nat.mod(y, 2n), 2n+k, hq, NR.dm_lt(1n, y)))
+
+def dec_c_q(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hp: PM.Prime(1n+mp), +s: Nat, +he: {Nat.add(1n+mp, 1n) == Nat.mul(s, 4n) : Nat}, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}, +x: Nat, +y: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}, +hy: {Nat.is_lt(y, 1n+mp) == True{} : Bool}, +hc: {CS.on_curve(1n+mp, x, y) == True{} : Bool}, q: Nat, +hq: {Nat.mod(y, 2n) == q : Nat}) -> {CS.decode(1n+mp, U32.from_nat(Nat.add(q, 2n)) <> CS.i2osp(32n, x)) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}:
+  match q:
+    case 0n:
+      %goal {CS.decode_len(1n+mp, 2 <> CS.i2osp(32n, x), Nat.is_eq(1n+List.length(&2, U32, CS.i2osp(32n, x)), 33n), Nat.is_eq(1n+List.length(&2, U32, CS.i2osp(32n, x)), 65n)) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}
+      %rw EO.len_i2(32n, x)
+      %rw EO.len_i2(32n, x)
+      %goal {CS.decode_c(1n+mp, 2, CS.os2ip(CS.i2osp(32n, x))) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}
+      %rw EO.os_i2_32(x, fit(one, h1, mp, h256, x, hx))
+      %goal {CS.decode_c_if(1n+mp, 2, x, Nat.is_lt(x, 1n+mp)) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}
+      %rwh hx : {Nat.is_lt(x, 1n+mp) == True{} : Bool}
+      %hq : {CS.decompress(1n+mp, x, _) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}
+      decomp(one, h1, mp, hp, s, he, hodd, h256, x, y, hy, hc)
+    case 1n:
+      %goal {CS.decode_len(1n+mp, 3 <> CS.i2osp(32n, x), Nat.is_eq(1n+List.length(&2, U32, CS.i2osp(32n, x)), 33n), Nat.is_eq(1n+List.length(&2, U32, CS.i2osp(32n, x)), 65n)) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}
+      %rw EO.len_i2(32n, x)
+      %rw EO.len_i2(32n, x)
+      %goal {CS.decode_c(1n+mp, 3, CS.os2ip(CS.i2osp(32n, x))) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}
+      %rw EO.os_i2_32(x, fit(one, h1, mp, h256, x, hx))
+      %goal {CS.decode_c_if(1n+mp, 3, x, Nat.is_lt(x, 1n+mp)) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}
+      %rwh hx : {Nat.is_lt(x, 1n+mp) == True{} : Bool}
+      %hq : {CS.decompress(1n+mp, x, _) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}
+      decomp(one, h1, mp, hp, s, he, hodd, h256, x, y, hy, hc)
+    case 2n+ +k:
+      Empty.absurd({CS.decode(1n+mp, U32.from_nat(Nat.add(2n+k, 2n)) <> CS.i2osp(32n, x)) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}, q_absurd(y, k, hq))
+
+def dec_c(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hp: PM.Prime(1n+mp), +s: Nat, +he: {Nat.add(1n+mp, 1n) == Nat.mul(s, 4n) : Nat}, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}, +x: Nat, +y: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}, +hy: {Nat.is_lt(y, 1n+mp) == True{} : Bool}, +hc: {CS.on_curve(1n+mp, x, y) == True{} : Bool}) -> {CS.decode(1n+mp, CS.enc_c(CS.SAffine{x, y})) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}:
+  dec_c_q(one, h1, mp, hp, s, he, hodd, h256, x, y, hx, hy, hc, Nat.mod(y, 2n), {==})
+
+# ---- the affine form of a projective point ----
+
+def pow_one(e: Nat) -> {Nat.pow(1n, e) == 1n : Nat}:
+  match e:
+    case 0n:
+      {==}
+    case 1n+ +k:
+      %goal {Nat.mul(1n, Nat.pow(1n, k)) == 1n : Nat}
+      %rw pow_one(k)
+      %close
+
+def lt1(+mp: Nat, +hp: PM.Prime(1n+mp)) -> {Nat.is_lt(1n, 1n+mp) == True{} : Bool}:
+  PM.prime_ge2(1n+mp, hp)
+
+def minv_one(+mp: Nat, +hp: PM.Prime(1n+mp)) -> {FS.minv(1n+mp, 1n) == 1n : Nat}:
+  %goal {Nat.mod(Nat.pow(1n, Nat.sub(1n+mp, 2n)), 1n+mp) == 1n : Nat}
+  %rw pow_one(Nat.sub(1n+mp, 2n))
+  SQ.mred(mp, 1n, lt1(mp, hp))
+
+def mul1(+mp: Nat, +x: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}) -> {FS.mmul(1n+mp, x, 1n) == x : Nat}:
+  %goal {Nat.mod(Nat.mul(x, 1n), 1n+mp) == x : Nat}
+  %rw NA.mul_one(x)
+  SQ.mred(mp, x, hx)
+
+# (x : y : 1) with reduced coordinates is its own affine form
+def aff_one(+mp: Nat, +hp: PM.Prime(1n+mp), +x: Nat, +y: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}, +hy: {Nat.is_lt(y, 1n+mp) == True{} : Bool}) -> {CS.to_affine(1n+mp, CS.SPoint{x, y, 1n}) == CS.SAffine{x, y} : CS.SAffine}:
+  %goal {CS.SAffine{FS.mmul(1n+mp, x, FS.minv(1n+mp, 1n)), FS.mmul(1n+mp, y, FS.minv(1n+mp, 1n))} == CS.SAffine{x, y} : CS.SAffine}
+  %rw minv_one(mp, hp)
+  %rw minv_one(mp, hp)
+  %rw mul1(mp, x, hx)
+  %rw mul1(mp, y, hy)
+  %close
+
+# the affine form of a point of the curve with z != 0 is on the affine curve
+def aff_on(+mp: Nat, +hp: PM.Prime(1n+mp), +x: Nat, +y: Nat, +z: Nat, +hv: {GS.valid(1n+mp, CS.SPoint{x, y, z}) == True{} : Bool}, +hz: F.NZ(mp, z)) -> {CS.on_curve(1n+mp, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z))) == True{} : Bool}:
+  is_eq_of(FS.mmul(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), CS.rhs(1n+mp, FS.mmul(1n+mp, x, FS.minv(1n+mp, z))), I.both_red(mp, Nat.mul(FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), Nat.add(FS.mmul(1n+mp, FS.mmul(1n+mp, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, x, FS.minv(1n+mp, z))), FS.mmul(1n+mp, x, FS.minv(1n+mp, z))), 7n), F.msub_z(mp, FS.mmul(1n+mp, FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z))), FS.madd(1n+mp, FS.mmul(1n+mp, FS.mmul(1n+mp, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, x, FS.minv(1n+mp, z))), FS.mmul(1n+mp, x, FS.minv(1n+mp, z))), 7n),
+    IE.aff_curve(mp, x, y, z, FS.minv(1n+mp, z), N.eq_from_is_eq(FS.mmul(1n+mp, FS.mmul(1n+mp, y, y), z), FS.madd(1n+mp, FS.mmul(1n+mp, FS.mmul(1n+mp, x, x), x), FS.mmul(1n+mp, 7n, FS.mmul(1n+mp, FS.mmul(1n+mp, z, z), z))), Lg.and_left(GS.on_curve(1n+mp, CS.SPoint{x, y, z}), GS.y_nonzero(1n+mp, CS.SPoint{x, y, z}), hv)), Equal.sym(Nat, FS.mmul(1n+mp, z, FS.minv(1n+mp, z)), 1n, FD.inv_mod(1n+mp, hp, z, hz))))))
+
+# ---- the round trips on the specification's encoders ----
+
+def rt_u1(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hp: PM.Prime(1n+mp), +s: Nat, +he: {Nat.add(1n+mp, 1n) == Nat.mul(s, 4n) : Nat}, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}, +x: Nat, +y: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}, +hy: {Nat.is_lt(y, 1n+mp) == True{} : Bool}, +hc: {CS.on_curve(1n+mp, x, y) == True{} : Bool}) -> {CS.decode(1n+mp, CS.encode_uncompressed(1n+mp, CS.SPoint{x, y, 1n})) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}:
+  %goal {CS.decode(1n+mp, CS.enc_u(CS.to_affine(1n+mp, CS.SPoint{x, y, 1n}))) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}
+  %rw aff_one(mp, hp, x, y, hx, hy)
+  dec_u(one, h1, mp, hp, s, he, hodd, h256, x, y, hx, hy, hc)
+
+def rt_c1(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hp: PM.Prime(1n+mp), +s: Nat, +he: {Nat.add(1n+mp, 1n) == Nat.mul(s, 4n) : Nat}, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}, +x: Nat, +y: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}, +hy: {Nat.is_lt(y, 1n+mp) == True{} : Bool}, +hc: {CS.on_curve(1n+mp, x, y) == True{} : Bool}) -> {CS.decode(1n+mp, CS.encode_compressed(1n+mp, CS.SPoint{x, y, 1n})) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}:
+  %goal {CS.decode(1n+mp, CS.enc_c(CS.to_affine(1n+mp, CS.SPoint{x, y, 1n}))) == Some{CS.SPoint{x, y, 1n}} : Maybe<&2, CS.SPoint>}
+  %rw aff_one(mp, hp, x, y, hx, hy)
+  dec_c(one, h1, mp, hp, s, he, hodd, h256, x, y, hx, hy, hc)
+
+# a point of the group with z != 0: decode(encode(a)) is its affine form
+def rt_u(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hp: PM.Prime(1n+mp), +s: Nat, +he: {Nat.add(1n+mp, 1n) == Nat.mul(s, 4n) : Nat}, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}, +x: Nat, +y: Nat, +z: Nat, +hv: {GS.valid(1n+mp, CS.SPoint{x, y, z}) == True{} : Bool}, +hz: F.NZ(mp, z)) -> {CS.decode(1n+mp, CS.encode_uncompressed(1n+mp, CS.SPoint{x, y, z})) == Some{CS.SPoint{FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n}} : Maybe<&2, CS.SPoint>}:
+  dec_u(one, h1, mp, hp, s, he, hodd, h256, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), NR.dm_lt(mp, Nat.mul(x, FS.minv(1n+mp, z))), NR.dm_lt(mp, Nat.mul(y, FS.minv(1n+mp, z))), aff_on(mp, hp, x, y, z, hv, hz))
+
+def rt_c(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hp: PM.Prime(1n+mp), +s: Nat, +he: {Nat.add(1n+mp, 1n) == Nat.mul(s, 4n) : Nat}, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}, +x: Nat, +y: Nat, +z: Nat, +hv: {GS.valid(1n+mp, CS.SPoint{x, y, z}) == True{} : Bool}, +hz: F.NZ(mp, z)) -> {CS.decode(1n+mp, CS.encode_compressed(1n+mp, CS.SPoint{x, y, z})) == Some{CS.SPoint{FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), 1n}} : Maybe<&2, CS.SPoint>}:
+  dec_c(one, h1, mp, hp, s, he, hodd, h256, FS.mmul(1n+mp, x, FS.minv(1n+mp, z)), FS.mmul(1n+mp, y, FS.minv(1n+mp, z)), NR.dm_lt(mp, Nat.mul(x, FS.minv(1n+mp, z))), NR.dm_lt(mp, Nat.mul(y, FS.minv(1n+mp, z))), aff_on(mp, hp, x, y, z, hv, hz))
