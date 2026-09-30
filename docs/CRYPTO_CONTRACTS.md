@@ -388,8 +388,9 @@ compares two terms that contain them.
 | `Sign.reject_seed`, `Sign.reject_key`, `Sign.reject`, `Sign.reject_signing_key`, `Sign.reject_*_ctx` | malformed seed, key or signature: `None` / `False` | proved |
 
 Proof (`proofs/crypto/ed25519/`, roots `proof.bend` (scalars and
-rejections), `proof_keys.bend`, `proof_sign.bend`, `proof_verify.bend`,
-split so that each root stays small): the point relation `Rp` (each
+rejections), `proof_keys.bend`, `proof_sign.bend`, `proof_sign_facade.bend`,
+`proof_verify.bend`, split so that each root stays small; `tsigncore.bend`
+holds the signing theorem both signing roots use): the point relation `Rp` (each
 coordinate related by `Rel`) is preserved by addition, doubling, selection
 and both double-and-add loops (`prel.bend`); constants, encoding and
 equality (`pcodec.bend`) and decoding (`pdec.bend`: each branch, both

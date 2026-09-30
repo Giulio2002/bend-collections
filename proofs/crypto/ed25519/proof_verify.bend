@@ -1,4 +1,5 @@
 import Base
+import ../../../src/crypto/sign.bend as SG
 import ../../../spec/crypto/curve25519/field.bend as FS
 import ../../../spec/crypto/ed25519.bend as SE
 import ../../../src/crypto/curve25519/field.bend as F
@@ -17,6 +18,20 @@ import ./tscal.bend as TH
 
 # Gate: Ed25519.verify and Sign.verify, for every key, message and
 # signature.
+
+def verify_if_eq(+pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +ok: Bool, +V: Bool, +hok: {ok == True{} : Bool}, +e: {E.verify_raw(pk, msg, sig) == V : Bool}) -> {SG.verify_if(pk, msg, sig, ok) == V : Bool}:
+  match ok:
+    case True{}:
+      e
+    case False{}:
+      Empty.absurd({SG.verify_if(pk, msg, sig, False{}) == V : Bool}, L.true_false(Equal.sym(Bool, False{}, True{}, hok)))
+
+def verify_ctx_if_eq(+ctx: E.Ctx, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +ok: Bool, +V: Bool, +hok: {ok == True{} : Bool}, +e: {E.verify_ctx(ctx, pk, msg, sig) == V : Bool}) -> {SG.verify_ctx_if(ctx, pk, msg, sig, ok) == V : Bool}:
+  match ok:
+    case True{}:
+      e
+    case False{}:
+      Empty.absurd({SG.verify_ctx_if(ctx, pk, msg, sig, False{}) == V : Bool}, L.true_false(Equal.sym(Bool, False{}, True{}, hok)))
 
 def ed_verify_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}) -> SE.Ed25519.verify_ctx(one, h1, xs, pk, msg, sig, hp, hg):
   +pp = PB.pp1(one)
@@ -52,7 +67,7 @@ def ed_verify(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +msg: List<
   ed_verify_ctx(one, h1, pk, pk, msg, sig, hp, hg)
 
 def sign_verify(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}) -> SS.Sign.verify(one, h1, pk, msg, sig, hp, hg):
-  PB.verify_if_eq(pk, msg, sig, Bool.and(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig)), SE.verify(one, pk, msg, sig), L.and_intro(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig), PB.valid_ok(32n, pk, hp), PB.valid_ok(64n, sig, hg)), ed_verify(one, h1, pk, msg, sig, hp, hg))
+  verify_if_eq(pk, msg, sig, Bool.and(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig)), SE.verify(one, pk, msg, sig), L.and_intro(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig), PB.valid_ok(32n, pk, hp), PB.valid_ok(64n, sig, hg)), ed_verify(one, h1, pk, msg, sig, hp, hg))
 
 def sign_verify_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}) -> SS.Sign.verify_ctx(one, h1, xs, pk, msg, sig, hp, hg):
-  PB.verify_ctx_if_eq(E.context(xs), pk, msg, sig, Bool.and(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig)), SE.verify(one, pk, msg, sig), L.and_intro(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig), PB.valid_ok(32n, pk, hp), PB.valid_ok(64n, sig, hg)), ed_verify_ctx(one, h1, xs, pk, msg, sig, hp, hg))
+  verify_ctx_if_eq(E.context(xs), pk, msg, sig, Bool.and(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig)), SE.verify(one, pk, msg, sig), L.and_intro(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig), PB.valid_ok(32n, pk, hp), PB.valid_ok(64n, sig, hg)), ed_verify_ctx(one, h1, xs, pk, msg, sig, hp, hg))
