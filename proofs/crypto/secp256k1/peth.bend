@@ -65,7 +65,23 @@ def eth_if_v(b: Bool, +dg: List<&2, U32>) -> {E.eth_if(b, dg) == ES.eth_if(b, dg
     case False{}:
       {==}
 
+def ew_is(+h: E.Hash, pk: List<&2, U32>) -> {E.eth_with(h, pk) == E.eth_go(h, pk) : Maybe<&2, List<&2, U32>>}:
+  match pk:
+    case Nil{}:
+      {==}
+    case b <> t:
+      {==}
+
+def sw_is(+h: ES.Hash, pk: List<&2, U32>) -> {ES.eth_with(h, pk) == ES.eth_go(h, pk) : Maybe<&2, List<&2, U32>>}:
+  match pk:
+    case Nil{}:
+      {==}
+    case b <> t:
+      {==}
+
 def eth_with_v(+h1: E.Hash, +h2: ES.Hash, e: @a:Array<U32> -> @l:Nat -> {E.hash(h1, a, l) == ES.hash(h2, a, l) : Maybe<&1, Array<U32>>}, +pk: List<&2, U32>) -> {E.eth_with(h1, pk) == ES.eth_with(h2, pk) : Maybe<&2, List<&2, U32>>}:
+  %Equal.sym(Maybe<&2, List<&2, U32>>, E.eth_with(h1, pk), E.eth_go(h1, pk), ew_is(h1, pk)) : {_ == ES.eth_with(h2, pk) : Maybe<&2, List<&2, U32>>}
+  %Equal.sym(Maybe<&2, List<&2, U32>>, ES.eth_with(h2, pk), ES.eth_go(h2, pk), sw_is(h2, pk)) : {E.eth_go(h1, pk) == _ : Maybe<&2, List<&2, U32>>}
   %Equal.sym(Bool, B.has_len(65n, pk), CV.length_is(65n, pk), PD.hl_is(65n, pk)) : {E.eth_if(Bool.and(_, U32.is_eq(B.head(pk), 4)), E.keccak64(h1, B.tail(pk))) == ES.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(h2, CV.after(1n, pk))) : Maybe<&2, List<&2, U32>>}
   %Equal.sym(U32, B.head(pk), CV.head(pk), PD.head_eq(pk)) : {E.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(_, 4)), E.keccak64(h1, B.tail(pk))) == ES.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(h2, CV.after(1n, pk))) : Maybe<&2, List<&2, U32>>}
   %Equal.sym(List<&2, U32>, B.tail(pk), CV.after(1n, pk), PD.tail_after(pk)) : {E.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), E.keccak64(h1, _)) == ES.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(h2, CV.after(1n, pk))) : Maybe<&2, List<&2, U32>>}

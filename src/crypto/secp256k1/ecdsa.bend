@@ -320,8 +320,15 @@ def eth_if(ok: Bool, +dg: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
     case True{}: Some{B.suffix(12n, dg)}
     case False{}: None{}
 
-def eth_with(+h: Hash, +pk: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+def eth_go(+h: Hash, +pk: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
   eth_if(Bool.and(B.has_len(65n, pk), U32.is_eq(B.head(pk), 4)), keccak64(h, B.tail(pk)))
+
+# (the key is looked at first, so that the proof checker keeps an unknown
+# address folded)
+def eth_with(+h: Hash, pk: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  match pk:
+    case Nil{}: eth_go(h, Nil{})
+    case b <> t: eth_go(h, b <> t)
 
 # the 20-byte Ethereum address of a 65-byte uncompressed public key:
 # the last 20 bytes of Keccak-256 of its 64 coordinate bytes
