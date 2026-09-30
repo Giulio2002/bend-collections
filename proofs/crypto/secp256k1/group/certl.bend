@@ -7,7 +7,7 @@ import ../../../math/typed/width.bend as WW
 import ../semiring.bend as SR
 import ./bn.bend as B
 import ./bnx.bend as X
-import ./prime.bend as PM
+import ../../../math/number/nt_prime.bend as PM
 import ../../../lib/nat.bend as N
 import ../../../math/natural/arith.bend as NR
 

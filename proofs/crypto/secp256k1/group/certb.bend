@@ -9,7 +9,7 @@ import ../../../lib/nat.bend as N
 import ../../../math/natural/arith.bend as NR
 import ./bn.bend as B
 import ./bnx.bend as X
-import ./prime.bend as PM
+import ../../../math/number/nt_prime.bend as PM
 import ../../../lib/logic.bend as Lg
 
 # secp256k1's p as a binary literal: X.bvalo(one, pl()) is the

@@ -3,7 +3,7 @@ import ../../../../spec/math/number.bend as SN
 import ../../../../spec/crypto/secp256k1/field.bend as FS
 import ./bn.bend as B
 import ./bnx.bend as X
-import ./prime.bend as PM
+import ../../../math/number/nt_prime.bend as PM
 import ./certb.bend as CB
 import ./cert_n.bend as CN
 
