@@ -12,10 +12,10 @@ import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/natural/arith.bend as NR
 import ./group/gpt.bend as GP
 import ./prel.bend as PR
-import ./gext.bend as GX
+import ./group/ext.bend as GX
+import ./group/smul.bend as SM
 import ./pfb.bend as PFB
 import ./fbspec.bend as FB
-import ../../../spec/crypto/curve25519/x25519.bend as SX
 import ../../math/typed/width.bend as WI
 import ../curve25519/limbs.bend as LM
 import ../fe/conv.bend as CV
@@ -40,7 +40,7 @@ def vO(+mp: Nat, +d: Nat, +a: SE.EPt, +q: G.APt, +h: VA(mp, d, a, q)) -> G.OnCur
 
 # from validity and the affine point
 def va_mk(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +a: SE.EPt, +q: G.APt, +hv: EG.Valid(1n+mp, d, a), +he: {EG.affine(1n+mp, a) == q : G.APt}) -> VA(mp, d, a, q):
-  (hv, (he, L.subst(G.APt, z => G.OnCurve(1n+mp, d, z), EG.affine(1n+mp, a), q, he, GX.valid_on(mp, d, hc, a, hv))))
+  (hv, (he, L.subst(G.APt, z => G.OnCurve(1n+mp, d, z), EG.affine(1n+mp, a), q, he, GX.aff_on(mp, d, a, hv))))
 
 # the same point written another way
 def va_cast(+mp: Nat, +d: Nat, +a: SE.EPt, +q: G.APt, +q2: G.APt, +e: {q == q2 : G.APt}, +h: VA(mp, d, a, q)) -> VA(mp, d, a, q2):
@@ -190,91 +190,12 @@ def va_smulb(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +d: Nat, +hc: G.Curve(
   +hX = GP.nmul_on(mp, d, hc, FS.value(bs), q, vO(mp, d, b, q, hb))
   va_cast(mp, d, FB.sfb(P, d, FB.stab(n0, P, d, b), ds, SE.identity()), G.aadd(P, d, G.azero(), G.nmul(P, d, dval(n0, ds), q)), X, Equal.trans(G.APt, G.aadd(P, d, G.azero(), G.nmul(P, d, dval(n0, ds), q)), G.aadd(P, d, G.azero(), X), X, Equal.cong(Nat, G.APt, z => G.aadd(P, d, G.azero(), G.nmul(P, d, z, q)), dval(n0, ds), FS.value(bs), ev), GP.add_zero_l(mp, d, hc, X, hX)), g)
 
-# ---- the specification's double-and-add ----
-
-# the top bit of the low 1 + t bits
-def low_top(+t: Nat, +k: Nat) -> {C.low(1n+t, k) == Nat.add(C.low(t, k), C.shift(t, C.bit(C.high(t, k)))) : Nat}:
-  match t:
-    case 0n:
-      Equal.trans(Nat, Nat.add(C.bit(k), 0n), C.bit(k), Nat.add(0n, C.bit(k)), N.add_zero(C.bit(k)), {==})
-    case 1n+ +s:
-      +hk = C.half(k)
-      +A = C.low(s, hk)
-      +B = C.shift(s, C.bit(C.high(s, hk)))
-      +e1 = Equal.cong(Nat, Nat, z => Nat.add(C.bit(k), Nat.double(z)), C.low(1n+s, hk), Nat.add(A, B), low_top(s, hk))
-      +e2 = Equal.cong(Nat, Nat, z => Nat.add(C.bit(k), z), Nat.double(Nat.add(A, B)), Nat.add(Nat.double(A), Nat.double(B)), Equal.sym(Nat, Nat.add(Nat.double(A), Nat.double(B)), Nat.double(Nat.add(A, B)), N.add_double(A, B)))
-      +e3 = Equal.sym(Nat, Nat.add(Nat.add(C.bit(k), Nat.double(A)), Nat.double(B)), Nat.add(C.bit(k), Nat.add(Nat.double(A), Nat.double(B))), N.add_assoc(C.bit(k), Nat.double(A), Nat.double(B)))
-      Equal.trans(Nat, Nat.add(C.bit(k), Nat.double(C.low(1n+s, hk))), Nat.add(C.bit(k), Nat.double(Nat.add(A, B))), Nat.add(Nat.add(C.bit(k), Nat.double(A)), Nat.double(B)), e1, Equal.trans(Nat, Nat.add(C.bit(k), Nat.double(Nat.add(A, B))), Nat.add(C.bit(k), Nat.add(Nat.double(A), Nat.double(B))), Nat.add(Nat.add(C.bit(k), Nat.double(A)), Nat.double(B)), e2, e3))
-
-# x 2 == 2 x
-def mul_two(+x: Nat) -> {Nat.mul(x, 2n) == Nat.double(x) : Nat}:
-  Equal.trans(Nat, Nat.mul(x, 2n), Nat.double(Nat.mul(x, 1n)), Nat.double(x), Equal.sym(Nat, Nat.double(Nat.mul(x, 1n)), Nat.mul(x, 2n), WI.dbl_mul(x, 1n)), Equal.cong(Nat, Nat, z => Nat.double(z), Nat.mul(x, 1n), x, NA.mul_one(x)))
-
-# 2^t b + low(t, k) == low(1 + t, k) for the bit b at t
-def low_step(+t: Nat, +k: Nat) -> {Nat.add(Nat.mul(C.pow2(t), SX.kbit(k, t)), C.low(t, k)) == C.low(1n+t, k) : Nat}:
-  +b = SX.kbit(k, t)
-  +e1 = Equal.trans(Nat, Nat.mul(C.pow2(t), b), Nat.mul(b, C.pow2(t)), C.shift(t, b), NA.mul_comm(C.pow2(t), b), Equal.sym(Nat, C.shift(t, b), Nat.mul(b, C.pow2(t)), Equal.trans(Nat, C.shift(t, b), Nat.mul(b, C.shift(t, 1n)), Nat.mul(b, C.pow2(t)), WI.shift_mul(t, b), Equal.cong(Nat, Nat, z => Nat.mul(b, z), C.shift(t, 1n), C.pow2(t), WI.shift_one(t)))))
-  Equal.trans(Nat, Nat.add(Nat.mul(C.pow2(t), b), C.low(t, k)), Nat.add(C.shift(t, b), C.low(t, k)), C.low(1n+t, k), Equal.cong(Nat, Nat, z => Nat.add(z, C.low(t, k)), Nat.mul(C.pow2(t), b), C.shift(t, b), e1), Equal.trans(Nat, Nat.add(C.shift(t, b), C.low(t, k)), Nat.add(C.low(t, k), C.shift(t, b)), C.low(1n+t, k), NA.add_comm(C.shift(t, b), C.low(t, k)), Equal.sym(Nat, C.low(1n+t, k), Nat.add(C.low(t, k), C.shift(t, b)), low_top(t, k))))
-
-# one step of the loop: q2 on a zero bit, q2 + a on a one bit
-def va_pick(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +b: Nat, +hb: {Nat.is_le(b, 1n) == True{} : Bool}, +q2: SE.EPt, +a: SE.EPt, +Q2: G.APt, +q: G.APt, +h2: VA(mp, d, q2, Q2), +ha: VA(mp, d, a, q)) -> VA(mp, d, SE.pick(b, q2, SE.add(1n+mp, d, q2, a)), G.aadd(1n+mp, d, Q2, G.nmul(1n+mp, d, b, q))):
-  match b:
-    case 0n:
-      va_cast(mp, d, q2, Q2, G.aadd(1n+mp, d, Q2, G.azero()), Equal.sym(G.APt, G.aadd(1n+mp, d, Q2, G.azero()), Q2, GP.add_zero_r(mp, d, hc, Q2, vO(mp, d, q2, Q2, h2))), h2)
-    case 1n+ +c:
-      match c:
-        case 0n:
-          va_cast(mp, d, SE.add(1n+mp, d, q2, a), G.aadd(1n+mp, d, Q2, q), G.aadd(1n+mp, d, Q2, G.aadd(1n+mp, d, q, G.azero())), Equal.cong(G.APt, G.APt, z => G.aadd(1n+mp, d, Q2, z), q, G.aadd(1n+mp, d, q, G.azero()), Equal.sym(G.APt, G.aadd(1n+mp, d, q, G.azero()), q, GP.add_zero_r(mp, d, hc, q, vO(mp, d, a, q, ha)))), va_add(mp, d, hc, q2, a, Q2, q, h2, ha))
-        case 1n+e:
-          Empty.absurd(VA(mp, d, SE.pick(2n+e, q2, SE.add(1n+mp, d, q2, a)), G.aadd(1n+mp, d, Q2, G.nmul(1n+mp, d, 2n+e, q))), L.false_true(hb))
-
-# the loop over the low n bits of k, from acc: [2^n] acc + [low n bits of k] a
-def va_smul(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +n: Nat, +k: Nat, +a: SE.EPt, +q: G.APt, +ha: VA(mp, d, a, q), +acc: SE.EPt, +qacc: G.APt, +hacc: VA(mp, d, acc, qacc)) -> VA(mp, d, SE.smul(1n+mp, d, n, k, a, acc), G.aadd(1n+mp, d, G.nmul(1n+mp, d, C.pow2(n), qacc), G.nmul(1n+mp, d, C.low(n, k), q))):
-  match n:
-    case 0n:
-      +P = {1n+mp : Nat}
-      +ho = vO(mp, d, acc, qacc, hacc)
-      +e1 = GP.add_zero_r(mp, d, hc, qacc, ho)
-      va_cast(mp, d, acc, qacc, G.aadd(P, d, G.aadd(P, d, qacc, G.azero()), G.azero()), Equal.sym(G.APt, G.aadd(P, d, G.aadd(P, d, qacc, G.azero()), G.azero()), qacc, Equal.trans(G.APt, G.aadd(P, d, G.aadd(P, d, qacc, G.azero()), G.azero()), G.aadd(P, d, qacc, G.azero()), qacc, Equal.cong(G.APt, G.APt, z => G.aadd(P, d, z, G.azero()), G.aadd(P, d, qacc, G.azero()), qacc, e1), e1)), hacc)
-    case 1n+ +t:
-      +P = {1n+mp : Nat}
-      +hq = vO(mp, d, a, q, ha)
-      +ho = vO(mp, d, acc, qacc, hacc)
-      +b = SX.kbit(k, t)
-      +q2 = SE.double(P, acc)
-      +Q2 = G.nmul(P, d, 2n, qacc)
-      +h2 = va_dbl(mp, d, hc, acc, qacc, hacc)
-      +nx = SE.pick(b, q2, SE.add(P, d, q2, a))
-      +Bq = G.nmul(P, d, b, q)
-      +QN = G.aadd(P, d, Q2, Bq)
-      +hn = va_pick(mp, d, hc, b, WI.bit_le1(C.high(t, k)), q2, a, Q2, q, h2, ha)
-      +ih = va_smul(mp, d, hc, t, k, a, q, ha, nx, QN, hn)
-      +pt = C.pow2(t)
-      +Lq = G.nmul(P, d, C.low(t, k), q)
-      +hQ2 = GP.nmul_on(mp, d, hc, 2n, qacc, ho)
-      +hBq = GP.nmul_on(mp, d, hc, b, q, hq)
-      +X1 = G.nmul(P, d, Nat.double(pt), qacc)
-      +X2 = G.nmul(P, d, Nat.mul(pt, b), q)
-      +e1 = GP.nmul_dist(mp, d, hc, pt, Q2, Bq, hQ2, hBq)
-      +e2 = Equal.trans(G.APt, G.nmul(P, d, pt, Q2), G.nmul(P, d, Nat.mul(pt, 2n), qacc), X1, Equal.sym(G.APt, G.nmul(P, d, Nat.mul(pt, 2n), qacc), G.nmul(P, d, pt, Q2), GP.nmul_mul(mp, d, hc, pt, 2n, qacc, ho)), Equal.cong(Nat, G.APt, z => G.nmul(P, d, z, qacc), Nat.mul(pt, 2n), Nat.double(pt), mul_two(pt)))
-      +e3 = Equal.sym(G.APt, X2, G.nmul(P, d, pt, Bq), GP.nmul_mul(mp, d, hc, pt, b, q, hq))
-      +e4 = Equal.trans(G.APt, G.nmul(P, d, pt, QN), G.aadd(P, d, G.nmul(P, d, pt, Q2), G.nmul(P, d, pt, Bq)), G.aadd(P, d, X1, X2), e1, aadd2(mp, d, G.nmul(P, d, pt, Q2), X1, G.nmul(P, d, pt, Bq), X2, e2, e3))
-      +e5 = GP.add_assoc(mp, d, hc, X1, X2, Lq, GP.nmul_on(mp, d, hc, Nat.double(pt), qacc, ho), GP.nmul_on(mp, d, hc, Nat.mul(pt, b), q, hq), GP.nmul_on(mp, d, hc, C.low(t, k), q, hq))
-      +e6 = Equal.trans(G.APt, G.aadd(P, d, X2, Lq), G.nmul(P, d, Nat.add(Nat.mul(pt, b), C.low(t, k)), q), G.nmul(P, d, C.low(1n+t, k), q), Equal.sym(G.APt, G.nmul(P, d, Nat.add(Nat.mul(pt, b), C.low(t, k)), q), G.aadd(P, d, X2, Lq), GP.nmul_add(mp, d, hc, Nat.mul(pt, b), C.low(t, k), q, hq)), Equal.cong(Nat, G.APt, z => G.nmul(P, d, z, q), Nat.add(Nat.mul(pt, b), C.low(t, k)), C.low(1n+t, k), low_step(t, k)))
-      +G0 = G.aadd(P, d, G.nmul(P, d, pt, QN), Lq)
-      +G1 = G.aadd(P, d, G.aadd(P, d, X1, X2), Lq)
-      +G2 = G.aadd(P, d, X1, G.aadd(P, d, X2, Lq))
-      +G3 = G.aadd(P, d, X1, G.nmul(P, d, C.low(1n+t, k), q))
-      va_cast(mp, d, SE.smul(P, d, t, k, a, nx), G0, G3, Equal.trans(G.APt, G0, G1, G3, Equal.cong(G.APt, G.APt, z => G.aadd(P, d, z, Lq), G.nmul(P, d, pt, QN), G.aadd(P, d, X1, X2), e4), Equal.trans(G.APt, G1, G2, G3, e5, Equal.cong(G.APt, G.APt, z => G.aadd(P, d, X1, z), G.aadd(P, d, X2, Lq), G.nmul(P, d, C.low(1n+t, k), q), e6))), ih)
+# ---- the specification's double-and-add (group/smul.bend) ----
 
 # the specification's [value(bs)] a for 32 bytes: [value] a in the group
 def va_mul(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +a: SE.EPt, +q: G.APt, +ha: VA(mp, d, a, q), +bs: List<&2, U32>, +hs: {FS.bytes_ok(32n, bs) == True{} : Bool}) -> VA(mp, d, SE.mul(one, 1n+mp, d, FS.value(bs), a), G.nmul(1n+mp, d, FS.value(bs), q)):
   +P = {1n+mp : Nat}
   +k = FS.value(bs)
-  +n0 = C.shift(8n, one)
-  +g = va_smul(mp, d, hc, n0, k, a, q, ha, SE.identity(), G.azero(), va_id(mp, d, hc))
+  +va = vV(mp, d, a, q, ha)
   +hfit = L.subst(Nat, z => {C.fits(C.shift(8n, z), k) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), WI.fits_one(256n, one, h1, k, BF.val_lt(one, h1, 32n, bs, LM.bytes_okb(32n, bs, hs))))
-  +X = G.nmul(P, d, k, q)
-  +hX = GP.nmul_on(mp, d, hc, k, q, vO(mp, d, a, q, ha))
-  +e1 = aadd2(mp, d, G.nmul(P, d, C.pow2(n0), G.azero()), G.azero(), G.nmul(P, d, C.low(n0, k), q), X, GP.nmul_zero(mp, d, hc, C.pow2(n0)), Equal.cong(Nat, G.APt, z => G.nmul(P, d, z, q), C.low(n0, k), k, WI.low_fit(n0, k, hfit)))
-  va_cast(mp, d, SE.smul(P, d, n0, k, a, SE.identity()), G.aadd(P, d, G.nmul(P, d, C.pow2(n0), G.azero()), G.nmul(P, d, C.low(n0, k), q)), X, Equal.trans(G.APt, G.aadd(P, d, G.nmul(P, d, C.pow2(n0), G.azero()), G.nmul(P, d, C.low(n0, k), q)), G.aadd(P, d, G.azero(), X), X, e1, GP.add_zero_l(mp, d, hc, X, hX)), g)
+  va_mk(mp, d, hc, SE.mul(one, P, d, k, a), G.nmul(P, d, k, q), SM.mul_valid(one, mp, d, hc, k, a, va), Equal.trans(G.APt, EG.affine(P, SE.mul(one, P, d, k, a)), G.nmul(P, d, k, EG.affine(P, a)), G.nmul(P, d, k, q), SM.mul_aff_fit(one, mp, d, hc, k, a, va, hfit), Equal.cong(G.APt, G.APt, z => G.nmul(P, d, k, z), EG.affine(P, a), q, vE(mp, d, a, q, ha))))

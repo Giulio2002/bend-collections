@@ -143,3 +143,17 @@ def law_q(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +d: Nat, +hc: G.Curve(mp,
   +B = SE.base(P, d)
   +X = G.nmul(P, d, FS.value(bs), q)
   equal_aff(mp, d, FQ.cv_prime(mp, d, hc), FB.smulb(one, P, d, bs), FB.smul(one, P, d, bs), r, FG.vV(mp, d, FB.smulb(one, P, d, bs), X, FG.va_smulb(one, h1, mp, d, hc, B, q, hb, bs, hs)), FG.vV(mp, d, FB.smul(one, P, d, bs), X, FG.va_mul(one, h1, mp, d, hc, B, q, hb, bs, hs)), same_aff(one, h1, mp, d, hc, q, hb, bs, hs))
+
+# ---- LawE and LawQ of fbspec.bend ----
+#
+# For a modulus 1 + mp with the curve parameters of edwards25519
+# (G.Curve(mp, d), d the specification's constant) and a valid base point.
+
+def va_base(+one: Nat, +mp: Nat, +hc: G.Curve(mp, SE.dconst(one, 1n+mp)), +hb: EG.Valid(1n+mp, SE.dconst(one, 1n+mp), SE.base(1n+mp, SE.dconst(one, 1n+mp)))) -> FG.VA(mp, SE.dconst(one, 1n+mp), SE.base(1n+mp, SE.dconst(one, 1n+mp)), EG.affine(1n+mp, SE.base(1n+mp, SE.dconst(one, 1n+mp)))):
+  FG.va_mk(mp, SE.dconst(one, 1n+mp), hc, SE.base(1n+mp, SE.dconst(one, 1n+mp)), EG.affine(1n+mp, SE.base(1n+mp, SE.dconst(one, 1n+mp))), hb, {==})
+
+def lawE(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hc: G.Curve(mp, SE.dconst(one, 1n+mp)), +hb: EG.Valid(1n+mp, SE.dconst(one, 1n+mp), SE.base(1n+mp, SE.dconst(one, 1n+mp)))) -> FB.LawE(one, mp):
+  bs => hs => law_e(one, h1, mp, SE.dconst(one, 1n+mp), hc, EG.affine(1n+mp, SE.base(1n+mp, SE.dconst(one, 1n+mp))), va_base(one, mp, hc, hb), bs, hs)
+
+def lawQ(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hc: G.Curve(mp, SE.dconst(one, 1n+mp)), +hb: EG.Valid(1n+mp, SE.dconst(one, 1n+mp), SE.base(1n+mp, SE.dconst(one, 1n+mp)))) -> FB.LawQ(one, mp):
+  bs => hs => r => law_q(one, h1, mp, SE.dconst(one, 1n+mp), hc, EG.affine(1n+mp, SE.base(1n+mp, SE.dconst(one, 1n+mp))), va_base(one, mp, hc, hb), bs, hs, r)
