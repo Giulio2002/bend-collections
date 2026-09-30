@@ -281,6 +281,15 @@ def gen_alg():
     c.write('id_alg3.bend', '# A projective cube root of -7 gives an affine one.\n')
 
 
+def gen_alg4():
+    c = Ctx(['a1', 'b1', 'a2', 'b2'])
+    a1, b1, a2, b2 = [c.var(i) for i in range(4)]
+    n1, n2 = c.sub(c.zero(), b1), c.sub(c.zero(), b2)
+    c.conseq('neg_ratio', c.sub(c.mul(a1, n2), c.mul(a2, n1)), [(c.mul(a2, b1), c.mul(a1, b2), c.const(1))], (),
+             'a2 b1 == a1 b2 gives a1 (-b2) - a2 (-b1) == 0')
+    c.write('id_alg4.bend', '# Ratios and negation.\n')
+
+
 def gen_assoc(i, j):
     nm = 'xyz'[i] + 'xyz'[j]
     c = Ctx(['x1', 'y1', 'z1', 'x2', 'y2', 'z2', 'x3', 'y3', 'z3'], ['7n'])
@@ -301,5 +310,6 @@ if __name__ == '__main__':
     gen_dbl()
     gen_hom()
     gen_alg()
+    gen_alg4()
     for i, j in ((0, 1), (1, 2)):
         gen_assoc(i, j)
