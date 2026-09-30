@@ -175,7 +175,9 @@ convolution's value (`limbs.bend`, `poly.bend`, `fold.bend`, `reduce.bend`,
 spec's value through `R(x, a) := tight(x) ∧ value(x) ≡ a (mod p)`, the shape
 of Fiat-Crypto's and HACL*'s `feval`); exponentiation chains by the binary
 expansion of the exponent (`pow.bend`); the canonical form (`freeze.bend`,
-`canon.bend`).
+`canon.bend`). The root `proofs/crypto/curve25519/proof.bend` (field, X25519
+and key-exchange clauses) checks in 11 s at 436 MB peak (`bend-local`, the
+repository's Bend 2.0.32).
 
 ## X25519 and key exchange: `src/crypto/curve25519/x25519.bend`, `src/crypto/kex.bend`
 
@@ -255,7 +257,18 @@ complement 2^256 − L (`adc.bend`, `scalar.bend`, `scalar2.bend`,
 (`bytes.bend`, reusing `proofs/crypto/sha512/`); `top.bend` composes key
 generation, signing and verification. The curve constants are passed to the
 point functions as data computed from an input list, so the checker never
-evaluates field arithmetic on them.
+evaluates field arithmetic on them. The root checks in 45 s at 593 MB peak (`bend-local`).
+
+The proof checker compares two terms by pointer or by reducing both and
+walking them, so the proofs keep every compared term either a variable or a
+call stuck on a symbolic argument: loop and byte counts are written with
+`one` (2^8·one bits, 2^5·one bytes); the curve constants and the base point
+are guarded by an input list (the seed or the public key), not by a digest
+whose length is known; and a few specification functions (`public_of`,
+`sign_with`, `public_key`, `sign`, `hram`) match first on an argument that
+is symbolic in the clauses (d, p, R). Each such match returns the same
+expression in every case, so the specification is unchanged; the proofs
+unfold it once, in lemmas over variables.
 
 What is not claimed: that the specification's points lie on the curve or
 form a group (the clauses are implementation == RFC transcription, the
