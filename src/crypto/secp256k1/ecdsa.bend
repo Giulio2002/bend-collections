@@ -35,8 +35,12 @@ def hash_scalar(+h: List<&2, U32>) -> List<&2, Nat>:
 type Drbg is Data:
   Drbg{k: List<&2, U32>, v: List<&2, U32>}
 
-def hmac(+key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
-  MAC.sign(key, msg)
+# (the key is looked at first, so that the proof checker keeps an unknown
+# HMAC folded)
+def hmac(key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
+  match key:
+    case Nil{}: MAC.sign(Nil{}, msg)
+    case k <> t: MAC.sign(k <> t, msg)
 
 def cat(xs: List<&2, U32>, ys: List<&2, U32>) -> List<&2, U32>:
   List.append(&2, U32, xs, ys)
@@ -298,19 +302,23 @@ def digest_bytes(m: Maybe<&1, Array<U32>>) -> List<&2, U32>:
     case None{}: Nil{}
     case Some{a}: unpack(Array.to_list(~U32, a))
 
-# Keccak-256 of 64 bytes
-def keccak64(+bs: List<&2, U32>) -> List<&2, U32>:
-  digest_bytes(K.keccak256(pack(words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n))
+# Keccak-256 of 64 bytes, by the hash function kf (Keccak-256 below; the
+# proofs take it as a parameter)
+def keccak64(kf: Array<U32> -> Nat -> Maybe<&1, Array<U32>>, +bs: List<&2, U32>) -> List<&2, U32>:
+  digest_bytes(kf(pack(words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n))
 
-def eth_if(+pk: List<&2, U32>, ok: Bool) -> Maybe<&2, List<&2, U32>>:
+def eth_if(ok: Bool, +dg: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
   match ok:
-    case True{}: Some{B.suffix(12n, keccak64(B.tail(pk)))}
+    case True{}: Some{B.suffix(12n, dg)}
     case False{}: None{}
+
+def eth_with(kf: Array<U32> -> Nat -> Maybe<&1, Array<U32>>, +pk: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  eth_if(Bool.and(B.has_len(65n, pk), U32.is_eq(B.head(pk), 4)), keccak64(kf, B.tail(pk)))
 
 # the 20-byte Ethereum address of a 65-byte uncompressed public key:
 # the last 20 bytes of Keccak-256 of its 64 coordinate bytes
 def eth_address(+pk: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  eth_if(pk, Bool.and(B.has_len(65n, pk), U32.is_eq(B.head(pk), 4)))
+  eth_with(K.keccak256, pk)
 
 # ---- Ethereum's ECRECOVER precompile (address 0x01) ----
 

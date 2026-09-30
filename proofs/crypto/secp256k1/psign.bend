@@ -10,6 +10,7 @@ import ../../../src/crypto/secp256k1/bytes.bend as B
 import ../../../src/crypto/secp256k1/point.bend as P
 import ../../../src/crypto/secp256k1/ecdsa.bend as E
 import ../../lib/logic.bend as Lg
+import ../../../spec/crypto/hmac.bend as HMS
 import ../mac/hmac.bend as MH
 import ./limbs.bend as LV
 import ./scalarops.bend as SO
@@ -160,13 +161,23 @@ def att_v(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced
 
 # ---- the candidate loop and the DRBG ----
 
-def hm(+k: List<&2, U32>, +m: List<&2, U32>) -> {E.hmac(k, m) == ES.hmac(k, m) : List<&2, U32>}:
-  MH.sign_correct(k, m)
+def hm(k: List<&2, U32>, +m: List<&2, U32>) -> {E.hmac(k, m) == ES.hmac(k, m) : List<&2, U32>}:
+  match k:
+    case Nil{}:
+      MH.sign_correct([], m)
+    case +b <> +t:
+      MH.sign_correct(b <> t, m)
 
-def hlen(+k: List<&2, U32>, +m: List<&2, U32>) -> {B.has_len(32n, ES.hmac(k, m)) == True{} : Bool}:
-  %Equal.sym(Bool, B.has_len(32n, ES.hmac(k, m)), Nat.is_eq(List.length(&2, U32, ES.hmac(k, m)), 32n), BY.has_len_v(32n, ES.hmac(k, m))) : {_ == True{} : Bool}
-  %Equal.sym(Nat, List.length(&2, U32, ES.hmac(k, m)), 32n, MH.hmac_len(k, m)) : {Nat.is_eq(_, 32n) == True{} : Bool}
-  {==}
+def hlen(k: List<&2, U32>, +m: List<&2, U32>) -> {B.has_len(32n, ES.hmac(k, m)) == True{} : Bool}:
+  match k:
+    case Nil{}:
+      %Equal.sym(Bool, B.has_len(32n, HMS.hmac([], m)), Nat.is_eq(List.length(&2, U32, HMS.hmac([], m)), 32n), BY.has_len_v(32n, HMS.hmac([], m))) : {_ == True{} : Bool}
+      %Equal.sym(Nat, List.length(&2, U32, HMS.hmac([], m)), 32n, MH.hmac_len([], m)) : {Nat.is_eq(_, 32n) == True{} : Bool}
+      {==}
+    case +b <> +t:
+      %Equal.sym(Bool, B.has_len(32n, HMS.hmac(b <> t, m)), Nat.is_eq(List.length(&2, U32, HMS.hmac(b <> t, m)), 32n), BY.has_len_v(32n, HMS.hmac(b <> t, m))) : {_ == True{} : Bool}
+      %Equal.sym(Nat, List.length(&2, U32, HMS.hmac(b <> t, m)), 32n, MH.hmac_len(b <> t, m)) : {Nat.is_eq(_, 32n) == True{} : Bool}
+      {==}
 
 def sl(fuel: Nat, +one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +d: List<&2, Nat>, +hd: {FS.reduced(one, FS.order(one), d) == True{} : Bool}, +k: List<&2, U32>, +v: List<&2, U32>, att: E.Attempt) -> {msig(E.sign_loop(fuel, z, d, k, v, att)) == ES.sign_loop(fuel, one, FS.value(one, z), FS.value(one, d), k, v, matt(att)) : Maybe<&2, List<&2, U32>>}:
   match fuel att:
