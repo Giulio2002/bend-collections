@@ -14,6 +14,7 @@ import ./u32laws.bend as LW
 import ./w64add.bend as WA
 import ./natcmp.bend as NC
 import ./f64bits.bend as FB
+import ./f64light.bend as FL
 import ./f64round.bend as FR
 import ./f64addc.bend as AC
 import ./f64adde.bend as AE
@@ -38,7 +39,7 @@ def hfr(+xl: U32, +xh: U32) -> {SW.value(F.frac(F.Bits{xl, xh})) == SF.frac(F.Bi
   fval_g(xl, xh, 1048575, {==})
 
 def hF(+xl: U32, +xh: U32) -> {C.fits(52n, SF.frac(F.Bits{xl, xh})) == True{} : Bool}:
-  WW.limbs_fit(32n, 20n, v(xl), C.low(20n, v(xh)), LW.vb(xl), WW.low_fits(20n, v(xh)))
+  FL.hF(xl, xh)
 
 def ap(+x: F.F64, +y: F.F64, +same: Bool) -> {F.add_pick(x, y, same) == SF.pick(F.F64, same, F.add_mags(x, y, F.signbit(x)), F.sub_mags(x, y, F.signbit(x))) : F.F64}:
   match same:
@@ -52,11 +53,7 @@ def le_rw(+a: Nat, +a2: Nat, +ha: {a == a2 : Nat}, +b: Nat, +b2: Nat, +hb: {b ==
   L.subst(Nat, z => {Nat.is_le(a, z) == True{} : Bool}, b2, b, Equal.sym(Nat, b, b2, hb), h2)
 
 def nz_le(+n: Nat, +hz: {Nat.is_eq(n, 0n) == False{} : Bool}) -> {Nat.is_le(1n, n) == True{} : Bool}:
-  match n:
-    case 0n:
-      NC.absurd_tf({Nat.is_le(1n, 0n) == True{} : Bool}, Equal.sym(Bool, True{}, False{}, hz))
-    case 1n+ +np:
-      N.zero_le(np)
+  FL.nz_le(n, hz)
 
 def xe_le_c(+a: Nat, +b: Nat, +h: {Nat.is_lt(a, b) == True{} : Bool}, +z: Bool, +hz: {Nat.is_eq(a, 0n) == z : Bool}) -> {Nat.is_le(AG.xe(a), AG.xe(b)) == True{} : Bool}:
   match z:

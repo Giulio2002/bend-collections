@@ -17,6 +17,7 @@ import ./width.bend as WW
 import ./w64sh.bend as SH
 import ./f64bits.bend as FB
 import ./f64rtools.bend as RT
+import ./u32laws.bend as LW
 
 # Small F64 lemmas shared by the division and the square-root proofs. They
 # live here so that the square-root root does not import (and re-check) the
@@ -120,3 +121,23 @@ def nlb(+s: Bool, +k: Nat, +m: Nat, +x: Nat, +hk: {C.fits(k, m) == False{} : Boo
 
 def nfit_bl(+k: Nat, +m: Nat, +hk: {C.fits(k, m) == False{} : Bool}) -> {Nat.is_le(1n+k, M.bit_length(m)) == True{} : Bool}:
   nlb(False{}, k, m, 0n, hk, Nat.is_le(1n+k, M.bit_length(m)), {==})
+
+# the fraction field has 52 bits (from f64addf, so light roots need not import it)
+def hF(+xl: U32, +xh: U32) -> {C.fits(52n, SF.frac(F.Bits{xl, xh})) == True{} : Bool}:
+  WW.limbs_fit(32n, 20n, v(xl), C.low(20n, v(xh)), LW.vb(xl), WW.low_fits(20n, v(xh)))
+
+def nz_le(+n: Nat, +hz: {Nat.is_eq(n, 0n) == False{} : Bool}) -> {Nat.is_le(1n, n) == True{} : Bool}:
+  match n:
+    case 0n:
+      NC.absurd_tf({Nat.is_le(1n, 0n) == True{} : Bool}, Equal.sym(Bool, True{}, False{}, hz))
+    case 1n+ +np:
+      N.zero_le(np)
+
+# every U64 value fits 64 bits (u64laws.vb, without u64laws' imports)
+def vb64(+x: WU.U64) -> {C.fits(64n, SW.value(x)) == True{} : Bool}:
+  match x:
+    case WU.U64{+l, +h}:
+      WW.limbs_fit(32n, 32n, LW.v(l), LW.v(h), LW.vb(l), LW.vb(h))
+
+def true_ne_false(+h: {True{} == False{} : Bool}) -> Empty:
+  LW.true_ne_false(h)

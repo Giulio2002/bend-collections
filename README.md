@@ -141,7 +141,14 @@ and a 128-bit product for `mulmod`.
 significands, exact long division by 32-bit quotient digits and an integer
 square root with one Newton step, each rounded once to nearest-even, with
 subnormals, signed zeros, infinities and NaN as IEEE 754; `lt le eq`,
-`neg abs copysign`, the classification predicates and `of_nat`.
+`neg abs copysign`, the classification predicates and `of_nat`; and the
+rest of the design reference's float foundation, each result an exact
+integer at a scale rounded once: `trunc floor ceil round` (ties to even),
+`to_u64 to_u32 floor_u64 ceil_u64 round_u64 of_u64 of_u32` (errors as
+values), `frexp ldexp ulp`, `nextafter fmin fmax`, `is_normal is_subnormal
+is_integer to_bits of_bits64`, `modf`, exact `fmod` and IEEE `remainder`,
+`isclose` and `as_integer_ratio`. Every clause of `spec/math/f64.bend` is
+proved (`proofs/math/typed/f64*.bend`).
 
 These instances are stated and tested, and mostly not proved (the Nat
 functions above are the proved reference; at U32, `abs`, `min`, `max`,
@@ -158,7 +165,10 @@ result of each operation, rounded once to nearest-even). The evidence:
 Python floats), naming the clause of each case; `tools/check_f64.py`
 compares the software binary64 with the machine's doubles on random bit
 patterns of every class (zeros, subnormals, normals, infinities, NaN,
-cancellations, ties); `tools/check_f64_spec.py` tests `spec/math/f64.bend`
+cancellations, ties), and `tools/check_f64x.py` the rounding, conversion,
+exponent, neighbour, remainder and ratio functions with CPython's `math`
+(the design reference's appendix A special cases included);
+`tools/check_f64_spec.py` tests `spec/math/f64.bend`
 itself against the machine's doubles through a line-by-line mirror; and
 `proofs/math/typed/examples.bend` has the proof checker evaluate the integer
 clauses and instance laws at concrete U32 inputs. All run in
