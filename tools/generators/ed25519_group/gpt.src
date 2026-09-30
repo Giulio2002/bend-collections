@@ -1,0 +1,143 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../../secp256k1/semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../math/number/nt_pock.bend as PK
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../../../spec/crypto/curve25519/edwards.bend as G
+import ./fq.bend as FQ
+import ./glaw.bend as GL
+
+# The group of the twisted Edwards curve on points (G.APt): the laws of
+# glaw.bend for points of the curve (G.OnCurve), and the scalar multiples
+# G.nmul(k, a) = a + ... + a: [j + k] a = [j] a + [k] a,
+# [k] (a + b) = [k] a + [k] b, [j k] a = [j] ([k] a).
+
+# ---- a point of the curve ----
+
+def oc_x(+mp: Nat, +d: Nat, +x: Nat, +y: Nat, +h: G.OnCurve(1n+mp, d, G.APt{x, y})) -> {Nat.is_lt(x, 1n+mp) == True{} : Bool}:
+  Lg.and_left(Nat.is_lt(x, 1n+mp), Bool.and(Nat.is_lt(y, 1n+mp), Nat.is_eq(G.lhs(1n+mp, x, y), G.rhs(1n+mp, d, x, y))), h)
+
+def oc_y(+mp: Nat, +d: Nat, +x: Nat, +y: Nat, +h: G.OnCurve(1n+mp, d, G.APt{x, y})) -> {Nat.is_lt(y, 1n+mp) == True{} : Bool}:
+  Lg.and_left(Nat.is_lt(y, 1n+mp), Nat.is_eq(G.lhs(1n+mp, x, y), G.rhs(1n+mp, d, x, y)), Lg.and_right(Nat.is_lt(x, 1n+mp), Bool.and(Nat.is_lt(y, 1n+mp), Nat.is_eq(G.lhs(1n+mp, x, y), G.rhs(1n+mp, d, x, y))), h))
+
+def oc_e(+mp: Nat, +d: Nat, +x: Nat, +y: Nat, +h: G.OnCurve(1n+mp, d, G.APt{x, y})) -> GL.Eq(mp, d, x, y):
+  N.eq_from_is_eq(G.lhs(1n+mp, x, y), G.rhs(1n+mp, d, x, y), Lg.and_right(Nat.is_lt(y, 1n+mp), Nat.is_eq(G.lhs(1n+mp, x, y), G.rhs(1n+mp, d, x, y)), Lg.and_right(Nat.is_lt(x, 1n+mp), Bool.and(Nat.is_lt(y, 1n+mp), Nat.is_eq(G.lhs(1n+mp, x, y), G.rhs(1n+mp, d, x, y))), h)))
+
+def oc_in(+mp: Nat, +d: Nat, +x: Nat, +y: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}, +hy: {Nat.is_lt(y, 1n+mp) == True{} : Bool}, +he: GL.Eq(mp, d, x, y)) -> G.OnCurve(1n+mp, d, G.APt{x, y}):
+  Lg.and_intro(Nat.is_lt(x, 1n+mp), Bool.and(Nat.is_lt(y, 1n+mp), Nat.is_eq(G.lhs(1n+mp, x, y), G.rhs(1n+mp, d, x, y))), hx,
+    Lg.and_intro(Nat.is_lt(y, 1n+mp), Nat.is_eq(G.lhs(1n+mp, x, y), G.rhs(1n+mp, d, x, y)), hy, PK.iseq(G.lhs(1n+mp, x, y), G.rhs(1n+mp, d, x, y), he)))
+
+def apt_eq(+x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat, +hx: {x1 == x2 : Nat}, +hy: {y1 == y2 : Nat}) -> {G.APt{x1, y1} == G.APt{x2, y2} : G.APt}:
+  %rwh hx : {x1 == x2 : Nat}
+  %rwh hy : {y1 == y2 : Nat}
+  %close
+
+# ---- the group laws ----
+
+# closure
+def add_on(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), a: G.APt, b: G.APt, +ha: G.OnCurve(1n+mp, d, a), +hb: G.OnCurve(1n+mp, d, b)) -> G.OnCurve(1n+mp, d, G.aadd(1n+mp, d, a, b)):
+  match a b:
+    case G.APt{+x1, +y1} G.APt{+x2, +y2}:
+      oc_in(mp, d, G.add_x(1n+mp, d, x1, y1, x2, y2), G.add_y(1n+mp, d, x1, y1, x2, y2), GL.add_x_lt(mp, d, x1, y1, x2, y2), GL.add_y_lt(mp, d, x1, y1, x2, y2),
+        GL.add_on(mp, d, hc, x1, y1, x2, y2, oc_e(mp, d, x1, y1, ha), oc_e(mp, d, x2, y2, hb)))
+
+def zero_on(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d)) -> G.OnCurve(1n+mp, d, G.azero()):
+  oc_in(mp, d, 0n, 1n, {==}, FQ.one_lt(mp, FQ.cv_prime(mp, d, hc)), GL.zero_eq(mp, d))
+
+def neg_on(+mp: Nat, +d: Nat, a: G.APt, +ha: G.OnCurve(1n+mp, d, a)) -> G.OnCurve(1n+mp, d, G.aneg(1n+mp, a)):
+  match a:
+    case G.APt{+x, +y}:
+      oc_in(mp, d, FS.fsub(1n+mp, 0n, x), y, FQ.fsub_lt(mp, 0n, x), oc_y(mp, d, x, y, ha), GL.neg_eq(mp, d, x, y, oc_e(mp, d, x, y, ha)))
+
+# commutativity (for all points)
+def add_comm(+mp: Nat, +d: Nat, a: G.APt, b: G.APt) -> {G.aadd(1n+mp, d, a, b) == G.aadd(1n+mp, d, b, a) : G.APt}:
+  match a b:
+    case G.APt{+x1, +y1} G.APt{+x2, +y2}:
+      apt_eq(G.add_x(1n+mp, d, x1, y1, x2, y2), G.add_y(1n+mp, d, x1, y1, x2, y2), G.add_x(1n+mp, d, x2, y2, x1, y1), G.add_y(1n+mp, d, x2, y2, x1, y1), GL.add_x_comm(mp, d, x1, y1, x2, y2), GL.add_y_comm(mp, d, x1, y1, x2, y2))
+
+# the identity
+def add_zero_r(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), a: G.APt, +ha: G.OnCurve(1n+mp, d, a)) -> {G.aadd(1n+mp, d, a, G.azero()) == a : G.APt}:
+  match a:
+    case G.APt{+x, +y}:
+      apt_eq(G.add_x(1n+mp, d, x, y, 0n, 1n), G.add_y(1n+mp, d, x, y, 0n, 1n), x, y, GL.add_x_zero(mp, d, hc, x, y, oc_e(mp, d, x, y, ha), oc_x(mp, d, x, y, ha)), GL.add_y_zero(mp, d, hc, x, y, oc_e(mp, d, x, y, ha), oc_y(mp, d, x, y, ha)))
+
+def add_zero_l(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +a: G.APt, +ha: G.OnCurve(1n+mp, d, a)) -> {G.aadd(1n+mp, d, G.azero(), a) == a : G.APt}:
+  Equal.trans(G.APt, G.aadd(1n+mp, d, G.azero(), a), G.aadd(1n+mp, d, a, G.azero()), a, add_comm(mp, d, G.azero(), a), add_zero_r(mp, d, hc, a, ha))
+
+# the inverse
+def add_neg(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), a: G.APt, +ha: G.OnCurve(1n+mp, d, a)) -> {G.aadd(1n+mp, d, a, G.aneg(1n+mp, a)) == G.azero() : G.APt}:
+  match a:
+    case G.APt{+x, +y}:
+      apt_eq(G.add_x(1n+mp, d, x, y, FS.fsub(1n+mp, 0n, x), y), G.add_y(1n+mp, d, x, y, FS.fsub(1n+mp, 0n, x), y), 0n, 1n, GL.add_x_neg(mp, d, hc, x, y, oc_e(mp, d, x, y, ha)), GL.add_y_neg(mp, d, hc, x, y, oc_e(mp, d, x, y, ha)))
+
+# associativity
+def add_assoc(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), a: G.APt, b: G.APt, c: G.APt, +ha: G.OnCurve(1n+mp, d, a), +hb: G.OnCurve(1n+mp, d, b), +hcc: G.OnCurve(1n+mp, d, c)) -> {G.aadd(1n+mp, d, G.aadd(1n+mp, d, a, b), c) == G.aadd(1n+mp, d, a, G.aadd(1n+mp, d, b, c)) : G.APt}:
+  match a b c:
+    case G.APt{+x1, +y1} G.APt{+x2, +y2} G.APt{+x3, +y3}:
+      apt_eq(G.add_x(1n+mp, d, G.add_x(1n+mp, d, x1, y1, x2, y2), G.add_y(1n+mp, d, x1, y1, x2, y2), x3, y3), G.add_y(1n+mp, d, G.add_x(1n+mp, d, x1, y1, x2, y2), G.add_y(1n+mp, d, x1, y1, x2, y2), x3, y3),
+        G.add_x(1n+mp, d, x1, y1, G.add_x(1n+mp, d, x2, y2, x3, y3), G.add_y(1n+mp, d, x2, y2, x3, y3)), G.add_y(1n+mp, d, x1, y1, G.add_x(1n+mp, d, x2, y2, x3, y3), G.add_y(1n+mp, d, x2, y2, x3, y3)),
+        GL.assoc_x(mp, d, hc, x1, y1, x2, y2, x3, y3, oc_e(mp, d, x1, y1, ha), oc_e(mp, d, x2, y2, hb), oc_e(mp, d, x3, y3, hcc)),
+        GL.assoc_y(mp, d, hc, x1, y1, x2, y2, x3, y3, oc_e(mp, d, x1, y1, ha), oc_e(mp, d, x2, y2, hb), oc_e(mp, d, x3, y3, hcc)))
+
+# (a + b) + (c + e) == (a + c) + (b + e)
+def add4(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +a: G.APt, +b: G.APt, +c: G.APt, +e: G.APt, +ha: G.OnCurve(1n+mp, d, a), +hb: G.OnCurve(1n+mp, d, b), +hcc: G.OnCurve(1n+mp, d, c), +he: G.OnCurve(1n+mp, d, e)) -> {G.aadd(1n+mp, d, G.aadd(1n+mp, d, a, b), G.aadd(1n+mp, d, c, e)) == G.aadd(1n+mp, d, G.aadd(1n+mp, d, a, c), G.aadd(1n+mp, d, b, e)) : G.APt}:
+  %rw add_assoc(mp, d, hc, a, b, G.aadd(1n+mp, d, c, e), ha, hb, add_on(mp, d, hc, c, e, hcc, he))
+  %rw add_assoc(mp, d, hc, a, c, G.aadd(1n+mp, d, b, e), ha, hcc, add_on(mp, d, hc, b, e, hb, he))
+  %rw <- add_assoc(mp, d, hc, b, c, e, hb, hcc, he)
+  %rw add_comm(mp, d, b, c)
+  %rw add_assoc(mp, d, hc, c, b, e, hcc, hb, he)
+  %close
+
+# ---- scalar multiples ----
+
+def nmul_on(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), k: Nat, +a: G.APt, +ha: G.OnCurve(1n+mp, d, a)) -> G.OnCurve(1n+mp, d, G.nmul(1n+mp, d, k, a)):
+  match k:
+    case 0n:
+      zero_on(mp, d, hc)
+    case 1n+ +j:
+      add_on(mp, d, hc, a, G.nmul(1n+mp, d, j, a), ha, nmul_on(mp, d, hc, j, a, ha))
+
+# [j + k] a == [j] a + [k] a
+def nmul_add(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), j: Nat, +k: Nat, +a: G.APt, +ha: G.OnCurve(1n+mp, d, a)) -> {G.nmul(1n+mp, d, Nat.add(j, k), a) == G.aadd(1n+mp, d, G.nmul(1n+mp, d, j, a), G.nmul(1n+mp, d, k, a)) : G.APt}:
+  match j:
+    case 0n:
+      Equal.sym(G.APt, G.aadd(1n+mp, d, G.azero(), G.nmul(1n+mp, d, k, a)), G.nmul(1n+mp, d, k, a), add_zero_l(mp, d, hc, G.nmul(1n+mp, d, k, a), nmul_on(mp, d, hc, k, a, ha)))
+    case 1n+ +i:
+      %goal {G.aadd(1n+mp, d, a, G.nmul(1n+mp, d, Nat.add(i, k), a)) == G.aadd(1n+mp, d, G.aadd(1n+mp, d, a, G.nmul(1n+mp, d, i, a)), G.nmul(1n+mp, d, k, a)) : G.APt}
+      %rw nmul_add(mp, d, hc, i, k, a, ha)
+      %rw add_assoc(mp, d, hc, a, G.nmul(1n+mp, d, i, a), G.nmul(1n+mp, d, k, a), ha, nmul_on(mp, d, hc, i, a, ha), nmul_on(mp, d, hc, k, a, ha))
+      %close
+
+# [k] (a + b) == [k] a + [k] b
+def nmul_dist(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), k: Nat, +a: G.APt, +b: G.APt, +ha: G.OnCurve(1n+mp, d, a), +hb: G.OnCurve(1n+mp, d, b)) -> {G.nmul(1n+mp, d, k, G.aadd(1n+mp, d, a, b)) == G.aadd(1n+mp, d, G.nmul(1n+mp, d, k, a), G.nmul(1n+mp, d, k, b)) : G.APt}:
+  match k:
+    case 0n:
+      Equal.sym(G.APt, G.aadd(1n+mp, d, G.azero(), G.azero()), G.azero(), add_zero_r(mp, d, hc, G.azero(), zero_on(mp, d, hc)))
+    case 1n+ +j:
+      %goal {G.aadd(1n+mp, d, G.aadd(1n+mp, d, a, b), G.nmul(1n+mp, d, j, G.aadd(1n+mp, d, a, b))) == G.aadd(1n+mp, d, G.aadd(1n+mp, d, a, G.nmul(1n+mp, d, j, a)), G.aadd(1n+mp, d, b, G.nmul(1n+mp, d, j, b))) : G.APt}
+      %rw nmul_dist(mp, d, hc, j, a, b, ha, hb)
+      add4(mp, d, hc, a, b, G.nmul(1n+mp, d, j, a), G.nmul(1n+mp, d, j, b), ha, hb, nmul_on(mp, d, hc, j, a, ha), nmul_on(mp, d, hc, j, b, hb))
+
+# [j k] a == [j] ([k] a)
+def nmul_mul(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), j: Nat, +k: Nat, +a: G.APt, +ha: G.OnCurve(1n+mp, d, a)) -> {G.nmul(1n+mp, d, Nat.mul(j, k), a) == G.nmul(1n+mp, d, j, G.nmul(1n+mp, d, k, a)) : G.APt}:
+  match j:
+    case 0n:
+      {==}
+    case 1n+ +i:
+      %goal {G.nmul(1n+mp, d, Nat.add(k, Nat.mul(i, k)), a) == G.aadd(1n+mp, d, G.nmul(1n+mp, d, k, a), G.nmul(1n+mp, d, i, G.nmul(1n+mp, d, k, a))) : G.APt}
+      %rw nmul_add(mp, d, hc, k, Nat.mul(i, k), a, ha)
+      %rw nmul_mul(mp, d, hc, i, k, a, ha)
+      %close
+
+# [k] (0, 1) == (0, 1)
+def nmul_zero(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), k: Nat) -> {G.nmul(1n+mp, d, k, G.azero()) == G.azero() : G.APt}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+ +j:
+      %goal {G.aadd(1n+mp, d, G.azero(), G.nmul(1n+mp, d, j, G.azero())) == G.azero() : G.APt}
+      %rw nmul_zero(mp, d, hc, j)
+      add_zero_r(mp, d, hc, G.azero(), zero_on(mp, d, hc))
