@@ -1,0 +1,340 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../../secp256k1/semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ../../../math/number/nt_prime.bend as PM
+import ../../../math/number/nt_flt.bend as FL
+import ../../../math/number/nt_pock.bend as PK
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../../../spec/crypto/curve25519/x25519.bend as SX
+import ../../../../spec/crypto/curve25519/edwards.bend as G
+import ../../../../spec/crypto/ed25519.bend as ED
+import ../../secp256k1/group/zm.bend as Z
+import ../../secp256k1/group/fld.bend as F
+import ../../curve25519/cong.bend as CG
+import ./fq.bend as FQ
+import ./glaw.bend as GL
+import ./ext.bend as EX
+import ./dec.bend as DC
+import ./id_dec.bend as IDD
+import ./id_dec2.bend as IDE
+import ./id_dec3.bend as IDF
+
+# Point decoding recovers x (RFC 8032 section 5.1.3): for a point (x, y) of
+# the curve, the decoder run on y and the parity of x returns
+# (x : y : 1 : x y). p = 8 m + 5: with u = y^2 - 1, v = d y^2 + 1 the
+# candidate xc = (u v^3) (u v^7)^m has v xc^2 = u (u v^7)^(2 m + 1), and
+# u v^7 = (x v^4)^2, so v xc^2 = u W with W = (x v^4)^((p - 1) / 2) = +-1
+# (Fermat): xc or xc sqrt(-1) is a root of v r^2 = u = v x^2, hence +-x, and
+# the parity picks x.
+
+# ---- small facts ----
+
+def sq_zero_c(+mp: Nat, +hp: PM.Prime(1n+mp), +r: Nat, +h: {Nat.mod(Nat.mul(r, r), 1n+mp) == 0n : Nat}, c: Bool, +hc: {Nat.is_eq(Nat.mod(r, 1n+mp), 0n) == c : Bool}) -> {Nat.mod(r, 1n+mp) == 0n : Nat}:
+  match c:
+    case True{}:
+      N.eq_from_is_eq(Nat.mod(r, 1n+mp), 0n, hc)
+    case False{}:
+      F.zprod(mp, hp, r, r, h, hc)
+
+def sq_zero(+mp: Nat, +hp: PM.Prime(1n+mp), +r: Nat, +h: {Nat.mod(Nat.mul(r, r), 1n+mp) == 0n : Nat}) -> {Nat.mod(r, 1n+mp) == 0n : Nat}:
+  sq_zero_c(mp, hp, r, h, Nat.is_eq(Nat.mod(r, 1n+mp), 0n), {==})
+
+def mod2_le(+a: Nat) -> {Nat.is_le(Nat.mod(a, 2n), 1n) == True{} : Bool}:
+  N.lt_succ_le(Nat.mod(a, 2n), 1n, NR.dm_lt(1n, a))
+
+def bxor_self(b: Nat, +hb: {Nat.is_le(b, 1n) == True{} : Bool}) -> {SX.bxor(b, b) == 0n : Nat}:
+  match b:
+    case 0n:
+      {==}
+    case 1n:
+      {==}
+    case 2n+c:
+      Empty.absurd({SX.bxor(2n+c, 2n+c) == 0n : Nat}, Lg.false_true(hb))
+
+# a + b odd, a, b <= 1: b xor a == 1
+def bxor_odd(a: Nat, b: Nat, +ha: {Nat.is_le(a, 1n) == True{} : Bool}, +hb: {Nat.is_le(b, 1n) == True{} : Bool}, +h: {Nat.mod(Nat.add(a, b), 2n) == 1n : Nat}) -> {SX.bxor(b, a) == 1n : Nat}:
+  match a b:
+    case 0n 0n:
+      Empty.absurd({SX.bxor(0n, 0n) == 1n : Nat}, N.zero_succ(0n, h))
+    case 0n 1n:
+      {==}
+    case 0n 2n+c:
+      Empty.absurd({SX.bxor(2n+c, 0n) == 1n : Nat}, Lg.false_true(hb))
+    case 1n 0n:
+      {==}
+    case 1n 1n:
+      Empty.absurd({SX.bxor(1n, 1n) == 1n : Nat}, N.zero_succ(0n, h))
+    case 1n 2n+c:
+      Empty.absurd({SX.bxor(2n+c, 1n) == 1n : Nat}, Lg.false_true(hb))
+    case 2n+e 0n:
+      Empty.absurd({SX.bxor(0n, 2n+e) == 1n : Nat}, Lg.false_true(ha))
+    case 2n+e 1n+c:
+      Empty.absurd({SX.bxor(1n+c, 2n+e) == 1n : Nat}, Lg.false_true(ha))
+
+def half_eq(+mp: Nat, +he: {Nat.mod(mp, 2n) == 0n : Nat}) -> {mp == Nat.add(Nat.mul(Nat.div(mp, 2n), 2n), 0n) : Nat}:
+  Equal.trans(Nat, mp, Nat.add(Nat.mul(Nat.div(mp, 2n), 2n), Nat.mod(mp, 2n)), Nat.add(Nat.mul(Nat.div(mp, 2n), 2n), 0n), NR.dm_eq(1n, mp), Equal.cong(Nat, Nat, z => Nat.add(Nat.mul(Nat.div(mp, 2n), 2n), z), Nat.mod(mp, 2n), 0n, he))
+
+# p is odd
+def odd_s(+q: Nat) -> {Nat.mod(1n+Nat.add(Nat.mul(q, 2n), 0n), 2n) == 1n : Nat}:
+  %rw <- N.add_succ(Nat.mul(q, 2n), 0n)
+  NR.mod_of(q, 1n, 1n, {==})
+
+def odd(+mp: Nat, +he: {Nat.mod(mp, 2n) == 0n : Nat}) -> {Nat.mod(1n+mp, 2n) == 1n : Nat}:
+  %rwh half_eq(mp, he) : {mp == Nat.add(Nat.mul(Nat.div(mp, 2n), 2n), 0n) : Nat}
+  odd_s(Nat.div(mp, 2n))
+
+def par_s(+mp: Nat, +he: {Nat.mod(mp, 2n) == 0n : Nat}, +x: Nat, +r: Nat, +h: {Nat.add(x, r) == 1n+mp : Nat}) -> {Nat.mod(Nat.add(Nat.mod(x, 2n), Nat.mod(r, 2n)), 2n) == 1n : Nat}:
+  %rw NR.mod_add_l(1n, x, Nat.mod(r, 2n))
+  %rw NR.mod_add_r(1n, x, r)
+  %rwh h : {Nat.add(x, r) == 1n+mp : Nat}
+  odd(mp, he)
+
+# x + r == p: the parities of r and x differ
+def par(+mp: Nat, +he: {Nat.mod(mp, 2n) == 0n : Nat}, +x: Nat, +r: Nat, +h: {Nat.add(x, r) == 1n+mp : Nat}) -> {SX.bxor(Nat.mod(r, 2n), Nat.mod(x, 2n)) == 1n : Nat}:
+  bxor_odd(Nat.mod(x, 2n), Nat.mod(r, 2n), mod2_le(x), mod2_le(r), par_s(mp, he, x, r, h))
+
+def le_r(+a: Nat, +b: Nat) -> {Nat.is_le(b, Nat.add(a, b)) == True{} : Bool}:
+  %rw NA.add_comm(a, b)
+  N.le_add_right(b, a)
+
+def lt_r(+a: Nat, +b: Nat) -> {Nat.is_lt(b, Nat.add(a, 1n+b)) == True{} : Bool}:
+  %rw N.add_succ(a, b)
+  N.le_lt_succ(b, Nat.add(a, b), le_r(a, b))
+
+# -x == p - x for 0 < x < p
+def neg_val(+mp: Nat, +xp: Nat, +hx: {Nat.is_lt(1n+xp, 1n+mp) == True{} : Bool}) -> {FS.fsub(1n+mp, 0n, 1n+xp) == Nat.sub(mp, xp) : Nat}:
+  %goal {Nat.mod(Nat.sub(1n+mp, Nat.mod(1n+xp, 1n+mp)), 1n+mp) == Nat.sub(mp, xp) : Nat}
+  %rw FL.small_nz(mp, 1n+xp, hx)
+  %goal {Nat.mod(Nat.sub(mp, xp), 1n+mp) == Nat.sub(mp, xp) : Nat}
+  FL.small_nz(mp, Nat.sub(mp, xp), N.sub_lt(mp, xp, 1n+mp, N.lt_le(xp, mp, hx), lt_r(xp, mp)))
+
+# x + (-x) == p as numbers
+def neg_sum(+mp: Nat, +xp: Nat, +hx: {Nat.is_lt(1n+xp, 1n+mp) == True{} : Bool}) -> {Nat.add(1n+xp, FS.fsub(1n+mp, 0n, 1n+xp)) == 1n+mp : Nat}:
+  %rw neg_val(mp, xp, hx)
+  %goal {1n+Nat.add(xp, Nat.sub(mp, xp)) == 1n+mp : Nat}
+  %rw N.sub_add(mp, xp, N.lt_le(xp, mp, hx))
+  %close
+
+# ---- v != 0 ----
+
+def vnz_c(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +y: Nat, c: Bool, +hcc: {Nat.is_eq(Nat.mod(DC.dv(mp, d, y), 1n+mp), 0n) == c : Bool}) -> F.NZ(mp, DC.dv(mp, d, y)):
+  match c:
+    case False{}:
+      hcc
+    case True{}:
+      +hz = N.eq_from_is_eq(Nat.mod(DC.dv(mp, d, y), 1n+mp), 0n, hcc)
+      +i = G.sqm1(1n+mp)
+      +hy = FQ.nonsq(mp, d, hc, y, i, F.msub_z(mp, FS.fmul(1n+mp, i, i), FS.fmul(1n+mp, d, FS.fmul(1n+mp, y, y)), IDF.dec_vi(mp, y, d, i, GL.isq(mp, d, hc), hz)))
+      Empty.absurd(F.NZ(mp, DC.dv(mp, d, y)), F.nz_absurd(mp, 1n, EX.nz_one(mp, FQ.cv_prime(mp, d, hc)), IDF.dec_v1(mp, y, d, i, hz, hy)))
+
+# d y^2 + 1 != 0 (d is not a square, -1 is)
+def vnz(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +y: Nat) -> F.NZ(mp, DC.dv(mp, d, y)):
+  vnz_c(mp, d, hc, y, Nat.is_eq(Nat.mod(DC.dv(mp, d, y), 1n+mp), 0n), {==})
+
+# ---- the power ----
+
+def pw5(+mp: Nat, +m: Nat, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +a: Nat) -> {Nat.mul(Nat.pow(a, Nat.add(1n, Nat.add(m, m))), Nat.pow(a, Nat.add(1n, Nat.add(m, m)))) == Nat.pow(a, Nat.div(mp, 2n)) : Nat}:
+  %rwh hk : {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}
+  %rw NR.pow_add(a, Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m)))
+  %close
+
+# b == a a: b (b^m)^2 == a^((p - 1) / 2), for (p - 1) / 2 == 2 (2 m + 1)
+def pw(+mp: Nat, +m: Nat, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +b: Nat, +a: Nat, +hb: {Nat.mod(b, 1n+mp) == Nat.mod(FS.fmul(1n+mp, a, a), 1n+mp) : Nat}) -> {Nat.mod(FS.fmul(1n+mp, b, FS.fmul(1n+mp, FS.fpow(1n+mp, b, m), FS.fpow(1n+mp, b, m))), 1n+mp) == Nat.mod(Nat.pow(a, Nat.div(mp, 2n)), 1n+mp) : Nat}:
+  +k = Nat.add(1n, Nat.add(m, m))
+  +g = FS.fpow(1n+mp, b, m)
+  +pb = Nat.pow(b, m)
+  +c1 = CG.c_trans(mp, FS.fmul(1n+mp, g, g), Nat.mul(g, g), Nat.mul(pb, pb), CG.c_mod(mp, Nat.mul(g, g)), CG.c_mul(mp, g, pb, g, pb, CG.c_mod(mp, pb), CG.c_mod(mp, pb)))
+  +c2 = CG.c_trans(mp, FS.fmul(1n+mp, b, FS.fmul(1n+mp, g, g)), Nat.mul(b, FS.fmul(1n+mp, g, g)), Nat.mul(b, Nat.mul(pb, pb)), CG.c_mod(mp, Nat.mul(b, FS.fmul(1n+mp, g, g))), CG.c_mul(mp, b, b, FS.fmul(1n+mp, g, g), Nat.mul(pb, pb), CG.c_refl(mp, b), c1))
+  +c3 = CG.c_eq(mp, Nat.mul(b, Nat.mul(pb, pb)), Nat.pow(b, k), Equal.cong(Nat, Nat, z => Nat.mul(b, z), Nat.mul(pb, pb), Nat.pow(b, Nat.add(m, m)), Equal.sym(Nat, Nat.pow(b, Nat.add(m, m)), Nat.mul(pb, pb), NR.pow_add(b, m, m))))
+  +c4 = CG.c_pow(mp, b, FS.fmul(1n+mp, a, a), k, hb)
+  +c5 = CG.c_trans(mp, Nat.pow(FS.fmul(1n+mp, a, a), k), Nat.mul(Nat.pow(a, k), Nat.pow(a, k)), Nat.pow(a, Nat.div(mp, 2n)), FQ.sq_pow(mp, a, k), CG.c_eq(mp, Nat.mul(Nat.pow(a, k), Nat.pow(a, k)), Nat.pow(a, Nat.div(mp, 2n)), pw5(mp, m, hk, a)))
+  CG.c_trans(mp, FS.fmul(1n+mp, b, FS.fmul(1n+mp, g, g)), Nat.mul(b, Nat.mul(pb, pb)), Nat.pow(a, Nat.div(mp, 2n)), c2,
+    CG.c_trans(mp, Nat.mul(b, Nat.mul(pb, pb)), Nat.pow(b, k), Nat.pow(a, Nat.div(mp, 2n)), c3,
+      CG.c_trans(mp, Nat.pow(b, k), Nat.pow(FS.fmul(1n+mp, a, a), k), Nat.pow(a, Nat.div(mp, 2n)), c4, c5)))
+
+# ---- the candidate, with the exponent m ----
+
+def dg(+mp: Nat, +d: Nat, +y: Nat, +m: Nat) -> Nat:
+  FS.fpow(1n+mp, IDE.db(mp, DC.du(mp, y), DC.dv(mp, d, y), 0n, 0n, 0n, 0n, 0n), m)
+
+def dxm(+mp: Nat, +d: Nat, +y: Nat, +m: Nat) -> Nat:
+  IDE.dc(mp, DC.du(mp, y), DC.dv(mp, d, y), dg(mp, d, y, m), 0n, 0n, 0n, 0n)
+
+def dvxx(+mp: Nat, +d: Nat, +y: Nat, +m: Nat) -> Nat:
+  FS.fmul(1n+mp, DC.dv(mp, d, y), FS.fmul(1n+mp, dxm(mp, d, y, m), dxm(mp, d, y, m)))
+
+# u == v x^2
+def uvx(+mp: Nat, +d: Nat, +x: Nat, +y: Nat, +he: GL.Eq(mp, d, x, y)) -> {Nat.mod(DC.du(mp, y), 1n+mp) == Nat.mod(FS.fmul(1n+mp, DC.dv(mp, d, y), FS.fmul(1n+mp, x, x)), 1n+mp) : Nat}:
+  F.msub_z(mp, DC.du(mp, y), FS.fmul(1n+mp, DC.dv(mp, d, y), FS.fmul(1n+mp, x, x)), IDD.dec_uv(mp, x, y, d, 0n, 0n, Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), G.lhs(1n+mp, x, y), G.rhs(1n+mp, d, x, y), he)))
+
+def du_red(+mp: Nat, +y: Nat) -> {Nat.mod(DC.du(mp, y), 1n+mp) == DC.du(mp, y) : Nat}:
+  FQ.fsub_red(mp, FS.fmul(1n+mp, y, y), 1n)
+
+def vxx_red(+mp: Nat, +d: Nat, +y: Nat, +m: Nat) -> {Nat.mod(dvxx(mp, d, y, m), 1n+mp) == dvxx(mp, d, y, m) : Nat}:
+  FQ.fmul_red(mp, DC.dv(mp, d, y), FS.fmul(1n+mp, dxm(mp, d, y, m), dxm(mp, d, y, m)))
+
+# from a congruence to the decoder's test
+def test_true(+mp: Nat, +a: Nat, +b: Nat, +ha: {Nat.mod(a, 1n+mp) == a : Nat}, +hb: {Nat.mod(b, 1n+mp) == b : Nat}, +h: {Nat.mod(a, 1n+mp) == Nat.mod(b, 1n+mp) : Nat}, +hf: {Nat.is_eq(a, b) == False{} : Bool}) -> Empty:
+  Lg.true_false(Equal.trans(Bool, True{}, Nat.is_eq(a, b), False{}, Equal.sym(Bool, Nat.is_eq(a, b), True{}, PK.iseq(a, b, FQ.red_eq(mp, a, b, ha, hb, h))), hf))
+
+# x == 0: the first test succeeds
+def t_zero(+mp: Nat, +d: Nat, +x: Nat, +y: Nat, +m: Nat, +he: GL.Eq(mp, d, x, y), +hx0: {Nat.mod(x, 1n+mp) == 0n : Nat}) -> {Nat.mod(dvxx(mp, d, y, m), 1n+mp) == Nat.mod(DC.du(mp, y), 1n+mp) : Nat}:
+  +u = DC.du(mp, y)
+  +v = DC.dv(mp, d, y)
+  +g = dg(mp, d, y, m)
+  +hu0 = IDE.dec_u0(mp, u, v, g, x, 0n, 0n, 0n, uvx(mp, d, x, y, he), hx0)
+  +hc0 = IDE.dec_c0(mp, u, v, g, x, 0n, 0n, 0n, hu0)
+  Equal.trans(Nat, Nat.mod(dvxx(mp, d, y, m), 1n+mp), 0n, Nat.mod(u, 1n+mp), F.z_mmul_r(mp, v, FS.fmul(1n+mp, dxm(mp, d, y, m), dxm(mp, d, y, m)), F.z_mmul_l(mp, dxm(mp, d, y, m), dxm(mp, d, y, m), hc0)), Equal.sym(Nat, Nat.mod(u, 1n+mp), 0n, hu0))
+
+# v xc^2 == u W, W = (x v^4)^((p - 1) / 2)
+def t_w(+mp: Nat, +d: Nat, +x: Nat, +y: Nat, +m: Nat, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +he: GL.Eq(mp, d, x, y)) -> {Nat.mod(dvxx(mp, d, y, m), 1n+mp) == Nat.mod(FS.fmul(1n+mp, DC.du(mp, y), Nat.pow(IDE.da(mp, DC.du(mp, y), DC.dv(mp, d, y), 0n, x, 0n, 0n, 0n), Nat.div(mp, 2n))), 1n+mp) : Nat}:
+  +u = DC.du(mp, y)
+  +v = DC.dv(mp, d, y)
+  +g = dg(mp, d, y, m)
+  +b = IDE.db(mp, u, v, 0n, 0n, 0n, 0n, 0n)
+  +a = IDE.da(mp, u, v, 0n, x, 0n, 0n, 0n)
+  +ww = Nat.pow(a, Nat.div(mp, 2n))
+  +hb = F.msub_z(mp, b, FS.fmul(1n+mp, a, a), IDE.dec_b(mp, u, v, 0n, x, 0n, 0n, 0n, uvx(mp, d, x, y, he)))
+  F.msub_z(mp, dvxx(mp, d, y, m), FS.fmul(1n+mp, u, ww), IDE.dec_vxx(mp, u, v, g, x, 0n, ww, 0n, pw(mp, m, hk, b, a, hb)))
+
+def t_nz_c(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x: Nat, +y: Nat, +m: Nat, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +he: GL.Eq(mp, d, x, y), +hx: F.NZ(mp, x), +hu: {Nat.is_eq(dvxx(mp, d, y, m), DC.du(mp, y)) == False{} : Bool}, +hn: {Nat.is_eq(dvxx(mp, d, y, m), FS.fsub(1n+mp, 0n, DC.du(mp, y))) == False{} : Bool}, c: Bool, +hcw: {Nat.is_eq(Nat.mod(FS.fsub(1n+mp, Nat.pow(IDE.da(mp, DC.du(mp, y), DC.dv(mp, d, y), 0n, x, 0n, 0n, 0n), Nat.div(mp, 2n)), 1n), 1n+mp), 0n) == c : Bool}) -> Empty:
+  match c:
+    case True{}:
+      +hp = FQ.cv_prime(mp, d, hc)
+      +u = DC.du(mp, y)
+      +v = DC.dv(mp, d, y)
+      +a = IDE.da(mp, u, v, 0n, x, 0n, 0n, 0n)
+      +ww = Nat.pow(a, Nat.div(mp, 2n))
+      +hvx = t_w(mp, d, x, y, m, hk, he)
+      +e = F.msub_z(mp, FS.fmul(1n+mp, u, ww), u, IDE.dec_wp(mp, u, v, 0n, x, 0n, ww, 0n, N.eq_from_is_eq(Nat.mod(FS.fsub(1n+mp, ww, 1n), 1n+mp), 0n, hcw)))
+      test_true(mp, dvxx(mp, d, y, m), u, vxx_red(mp, d, y, m), du_red(mp, y), Equal.trans(Nat, Nat.mod(dvxx(mp, d, y, m), 1n+mp), Nat.mod(FS.fmul(1n+mp, u, ww), 1n+mp), Nat.mod(u, 1n+mp), hvx, e), hu)
+    case False{}:
+      +hp = FQ.cv_prime(mp, d, hc)
+      +u = DC.du(mp, y)
+      +v = DC.dv(mp, d, y)
+      +a = IDE.da(mp, u, v, 0n, x, 0n, 0n, 0n)
+      +ww = Nat.pow(a, Nat.div(mp, 2n))
+      +hvx = t_w(mp, d, x, y, m, hk, he)
+      +hv = vnz(mp, d, hc, y)
+      +hvv = F.nz_mmul(mp, hp, v, v, hv, hv)
+      +hna = F.nz_mmul(mp, hp, x, FS.fmul(1n+mp, FS.fmul(1n+mp, v, v), FS.fmul(1n+mp, v, v)), hx, F.nz_mmul(mp, hp, FS.fmul(1n+mp, v, v), FS.fmul(1n+mp, v, v), hvv, hvv))
+      +hw2 = IDE.dec_w2(mp, u, v, 0n, x, 0n, ww, 0n, FQ.half_one(mp, hp, FQ.cv_even(mp, d, hc), a, hna))
+      +hw1 = F.zprod(mp, hp, FS.fsub(1n+mp, ww, 1n), FS.fadd(1n+mp, ww, 1n), F.z_red(mp, Nat.mul(FS.fsub(1n+mp, ww, 1n), FS.fadd(1n+mp, ww, 1n)), hw2), hcw)
+      +e = F.msub_z(mp, FS.fmul(1n+mp, u, ww), FS.fsub(1n+mp, 0n, u), IDE.dec_wm(mp, u, v, 0n, x, 0n, ww, 0n, hw1))
+      test_true(mp, dvxx(mp, d, y, m), FS.fsub(1n+mp, 0n, u), vxx_red(mp, d, y, m), FQ.fsub_red(mp, 0n, u), Equal.trans(Nat, Nat.mod(dvxx(mp, d, y, m), 1n+mp), Nat.mod(FS.fmul(1n+mp, u, ww), 1n+mp), Nat.mod(FS.fsub(1n+mp, 0n, u), 1n+mp), hvx, e), hn)
+
+# both tests failing is impossible
+def t_ff_c(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x: Nat, +y: Nat, +m: Nat, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +he: GL.Eq(mp, d, x, y), +hu: {Nat.is_eq(dvxx(mp, d, y, m), DC.du(mp, y)) == False{} : Bool}, +hn: {Nat.is_eq(dvxx(mp, d, y, m), FS.fsub(1n+mp, 0n, DC.du(mp, y))) == False{} : Bool}, c: Bool, +hcx: {Nat.is_eq(Nat.mod(x, 1n+mp), 0n) == c : Bool}) -> Empty:
+  match c:
+    case True{}:
+      test_true(mp, dvxx(mp, d, y, m), DC.du(mp, y), vxx_red(mp, d, y, m), du_red(mp, y), t_zero(mp, d, x, y, m, he, N.eq_from_is_eq(Nat.mod(x, 1n+mp), 0n, hcx)), hu)
+    case False{}:
+      t_nz_c(mp, d, hc, x, y, m, hk, he, hcx, hu, hn, Nat.is_eq(Nat.mod(FS.fsub(1n+mp, Nat.pow(IDE.da(mp, DC.du(mp, y), DC.dv(mp, d, y), 0n, x, 0n, 0n, 0n), Nat.div(mp, 2n)), 1n), 1n+mp), 0n), {==})
+
+# ---- a root r of v r^2 == u is x or -x, and the parity picks x ----
+
+def fail_s(x: Nat) -> {Bool.and(Nat.is_eq(x, 0n), Nat.is_eq(Nat.mod(x, 2n), 1n)) == False{} : Bool}:
+  match x:
+    case 0n:
+      {==}
+    case 1n+xp:
+      {==}
+
+# r == x
+def fin_same(+mp: Nat, +x: Nat, +y: Nat) -> {ED.dec_fin(1n+mp, x, y, Nat.mod(x, 2n), Bool.and(Nat.is_eq(x, 0n), Nat.is_eq(Nat.mod(x, 2n), 1n))) == Some{ED.EPt{x, y, 1n, FS.fmul(1n+mp, x, y)}} : Maybe<&2, ED.EPt>}:
+  %rw fail_s(x)
+  %goal {Some{ED.EPt{SX.cs_fst(SX.bxor(Nat.mod(x, 2n), Nat.mod(x, 2n)), x, FS.fsub(1n+mp, 0n, x)), y, 1n, FS.fmul(1n+mp, SX.cs_fst(SX.bxor(Nat.mod(x, 2n), Nat.mod(x, 2n)), x, FS.fsub(1n+mp, 0n, x)), y)}} == Some{ED.EPt{x, y, 1n, FS.fmul(1n+mp, x, y)}} : Maybe<&2, ED.EPt>}
+  %rw bxor_self(Nat.mod(x, 2n), mod2_le(x))
+  %rw bxor_self(Nat.mod(x, 2n), mod2_le(x))
+  %close
+
+def neg_neg(+mp: Nat, +x: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}) -> {FS.fsub(1n+mp, 0n, FS.fsub(1n+mp, 0n, x)) == x : Nat}:
+  FQ.red_eq(mp, FS.fsub(1n+mp, 0n, FS.fsub(1n+mp, 0n, x)), x, FQ.fsub_red(mp, 0n, FS.fsub(1n+mp, 0n, x)), FL.small_nz(mp, x, hx), IDD.dec_nn(mp, x, 0n, 0n, 0n, 0n))
+
+# r == -x, x != 0
+def fin_neg(+mp: Nat, +he2: {Nat.mod(mp, 2n) == 0n : Nat}, +xp: Nat, +y: Nat, +hx: {Nat.is_lt(1n+xp, 1n+mp) == True{} : Bool}, +hr0: {Nat.is_eq(FS.fsub(1n+mp, 0n, 1n+xp), 0n) == False{} : Bool}) -> {ED.dec_fin(1n+mp, FS.fsub(1n+mp, 0n, 1n+xp), y, Nat.mod(1n+xp, 2n), Bool.and(Nat.is_eq(FS.fsub(1n+mp, 0n, 1n+xp), 0n), Nat.is_eq(Nat.mod(1n+xp, 2n), 1n))) == Some{ED.EPt{1n+xp, y, 1n, FS.fmul(1n+mp, 1n+xp, y)}} : Maybe<&2, ED.EPt>}:
+  %rwh hr0 : {Nat.is_eq(FS.fsub(1n+mp, 0n, 1n+xp), 0n) == False{} : Bool}
+  %goal {Some{ED.EPt{SX.cs_fst(SX.bxor(Nat.mod(FS.fsub(1n+mp, 0n, 1n+xp), 2n), Nat.mod(1n+xp, 2n)), FS.fsub(1n+mp, 0n, 1n+xp), FS.fsub(1n+mp, 0n, FS.fsub(1n+mp, 0n, 1n+xp))), y, 1n, FS.fmul(1n+mp, SX.cs_fst(SX.bxor(Nat.mod(FS.fsub(1n+mp, 0n, 1n+xp), 2n), Nat.mod(1n+xp, 2n)), FS.fsub(1n+mp, 0n, 1n+xp), FS.fsub(1n+mp, 0n, FS.fsub(1n+mp, 0n, 1n+xp))), y)}} == Some{ED.EPt{1n+xp, y, 1n, FS.fmul(1n+mp, 1n+xp, y)}} : Maybe<&2, ED.EPt>}
+  %rw par(mp, he2, 1n+xp, FS.fsub(1n+mp, 0n, 1n+xp), neg_sum(mp, xp, hx))
+  %rw par(mp, he2, 1n+xp, FS.fsub(1n+mp, 0n, 1n+xp), neg_sum(mp, xp, hx))
+  %goal {Some{ED.EPt{FS.fsub(1n+mp, 0n, FS.fsub(1n+mp, 0n, 1n+xp)), y, 1n, FS.fmul(1n+mp, FS.fsub(1n+mp, 0n, FS.fsub(1n+mp, 0n, 1n+xp)), y)}} == Some{ED.EPt{1n+xp, y, 1n, FS.fmul(1n+mp, 1n+xp, y)}} : Maybe<&2, ED.EPt>}
+  %rw neg_neg(mp, 1n+xp, hx)
+  %rw neg_neg(mp, 1n+xp, hx)
+  %close
+
+
+# the decoder's last step, on a root r, returns (x : y : 1 : x y)
+def Fin(+mp: Nat, +x: Nat, +y: Nat, +r: Nat) -> Type:
+  {ED.dec_fin(1n+mp, r, y, Nat.mod(x, 2n), Bool.and(Nat.is_eq(r, 0n), Nat.is_eq(Nat.mod(x, 2n), 1n))) == Some{ED.EPt{x, y, 1n, FS.fmul(1n+mp, x, y)}} : Maybe<&2, ED.EPt>}
+
+def neg_nz_s(+mp: Nat, +xp: Nat, +hx: {Nat.is_lt(1n+xp, 1n+mp) == True{} : Bool}, +h0: {FS.fsub(1n+mp, 0n, 1n+xp) == 0n : Nat}) -> {1n+xp == 1n+mp : Nat}:
+  %rw <- NA.add_zero(1n+xp)
+  %rwh Equal.sym(Nat, FS.fsub(1n+mp, 0n, 1n+xp), 0n, h0) : {0n == FS.fsub(1n+mp, 0n, 1n+xp) : Nat}
+  neg_sum(mp, xp, hx)
+
+def neg_nz_c(+mp: Nat, +xp: Nat, +hx: {Nat.is_lt(1n+xp, 1n+mp) == True{} : Bool}, c: Bool, +hc: {Nat.is_eq(FS.fsub(1n+mp, 0n, 1n+xp), 0n) == c : Bool}) -> {Nat.is_eq(FS.fsub(1n+mp, 0n, 1n+xp), 0n) == False{} : Bool}:
+  match c:
+    case False{}:
+      hc
+    case True{}:
+      Empty.absurd({Nat.is_eq(FS.fsub(1n+mp, 0n, 1n+xp), 0n) == False{} : Bool}, N.lt_ne(1n+xp, 1n+mp, hx, neg_nz_s(mp, xp, hx, N.eq_from_is_eq(FS.fsub(1n+mp, 0n, 1n+xp), 0n, hc))))
+
+# (r - x) (r + x) == 0 for two roots
+def two_roots(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x: Nat, +y: Nat, +r: Nat, +he: GL.Eq(mp, d, x, y), +hr: DC.Root(mp, d, y, r)) -> {Nat.mod(Nat.mul(FS.fsub(1n+mp, r, x), FS.fadd(1n+mp, r, x)), 1n+mp) == 0n : Nat}:
+  +hp = FQ.cv_prime(mp, d, hc)
+  +v = DC.dv(mp, d, y)
+  F.z_red(mp, Nat.mul(FS.fsub(1n+mp, r, x), FS.fadd(1n+mp, r, x)), F.zprod(mp, hp, v, FS.fmul(1n+mp, FS.fsub(1n+mp, r, x), FS.fadd(1n+mp, r, x)),
+    F.z_red(mp, Nat.mul(v, FS.fmul(1n+mp, FS.fsub(1n+mp, r, x), FS.fadd(1n+mp, r, x))), IDD.dec_pm(mp, x, y, d, 0n, r, hr, uvx(mp, d, x, y, he))), vnz(mp, d, hc, y)))
+
+def fin_pm(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +xp: Nat, +y: Nat, +r: Nat, +hx: {Nat.is_lt(1n+xp, 1n+mp) == True{} : Bool}, +he: GL.Eq(mp, d, 1n+xp, y), +hr: DC.Root(mp, d, y, r), +hrr: {Nat.mod(r, 1n+mp) == r : Nat}, c: Bool, +hcc: {Nat.is_eq(Nat.mod(FS.fsub(1n+mp, r, 1n+xp), 1n+mp), 0n) == c : Bool}) -> Fin(mp, 1n+xp, y, r):
+  match c:
+    case True{}:
+      +heq = FQ.red_eq(mp, r, 1n+xp, hrr, FL.small_nz(mp, 1n+xp, hx), F.msub_z(mp, r, 1n+xp, N.eq_from_is_eq(Nat.mod(FS.fsub(1n+mp, r, 1n+xp), 1n+mp), 0n, hcc)))
+      %Equal.sym(Nat, r, 1n+xp, heq) : Fin(mp, 1n+xp, y, _)
+      fin_same(mp, 1n+xp, y)
+    case False{}:
+      +hp = FQ.cv_prime(mp, d, hc)
+      +hs = F.zprod(mp, hp, FS.fsub(1n+mp, r, 1n+xp), FS.fadd(1n+mp, r, 1n+xp), two_roots(mp, d, hc, 1n+xp, y, r, he, hr), hcc)
+      +heq = FQ.red_eq(mp, r, FS.fsub(1n+mp, 0n, 1n+xp), hrr, FQ.fsub_red(mp, 0n, 1n+xp), F.msub_z(mp, r, FS.fsub(1n+mp, 0n, 1n+xp), IDD.dec_rneg(mp, 1n+xp, y, d, 0n, r, hs)))
+      %Equal.sym(Nat, r, FS.fsub(1n+mp, 0n, 1n+xp), heq) : Fin(mp, 1n+xp, y, _)
+      fin_neg(mp, FQ.cv_even(mp, d, hc), xp, y, hx, neg_nz_c(mp, xp, hx, Nat.is_eq(FS.fsub(1n+mp, 0n, 1n+xp), 0n), {==}))
+
+def fin_rt(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), x: Nat, +y: Nat, +r: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}, +he: GL.Eq(mp, d, x, y), +hr: DC.Root(mp, d, y, r), +hrr: {Nat.mod(r, 1n+mp) == r : Nat}) -> Fin(mp, x, y, r):
+  match x:
+    case 0n:
+      +hp = FQ.cv_prime(mp, d, hc)
+      +v = DC.dv(mp, d, y)
+      +h0 = sq_zero(mp, hp, r, F.z_red(mp, Nat.mul(r, r), F.zprod(mp, hp, v, FS.fmul(1n+mp, r, r), F.z_red(mp, Nat.mul(v, FS.fmul(1n+mp, r, r)), IDD.dec_sq0(mp, 0n, y, d, 0n, r, hr, uvx(mp, d, 0n, y, he), {==})), vnz(mp, d, hc, y))))
+      +heq = Equal.trans(Nat, r, Nat.mod(r, 1n+mp), 0n, Equal.sym(Nat, Nat.mod(r, 1n+mp), r, hrr), h0)
+      %Equal.sym(Nat, r, 0n, heq) : Fin(mp, 0n, y, _)
+      fin_same(mp, 0n, y)
+    case 1n+ +xp:
+      fin_pm(mp, d, hc, xp, y, r, hx, he, hr, hrr, Nat.is_eq(Nat.mod(FS.fsub(1n+mp, r, 1n+xp), 1n+mp), 0n), {==})
+
+def dxm_red(+mp: Nat, +d: Nat, +y: Nat, +m: Nat) -> {Nat.mod(dxm(mp, d, y, m), 1n+mp) == dxm(mp, d, y, m) : Nat}:
+  FQ.fmul_red(mp, FS.fmul(1n+mp, DC.du(mp, y), FS.fmul(1n+mp, FS.fmul(1n+mp, DC.dv(mp, d, y), DC.dv(mp, d, y)), DC.dv(mp, d, y))), dg(mp, d, y, m))
+
+# the decoder's root selection, with the exponent m
+def Rt(+mp: Nat, +d: Nat, +x: Nat, +y: Nat, +m: Nat) -> Type:
+  {ED.dec_root(1n+mp, dxm(mp, d, y, m), y, Nat.mod(x, 2n), Nat.is_eq(dvxx(mp, d, y, m), DC.du(mp, y)), Nat.is_eq(dvxx(mp, d, y, m), FS.fsub(1n+mp, 0n, DC.du(mp, y)))) == Some{ED.EPt{x, y, 1n, FS.fmul(1n+mp, x, y)}} : Maybe<&2, ED.EPt>}
+
+def root_rt(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +m: Nat, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +x: Nat, +y: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}, +he: GL.Eq(mp, d, x, y), is_u: Bool, is_nu: Bool, +hu: {Nat.is_eq(dvxx(mp, d, y, m), DC.du(mp, y)) == is_u : Bool}, +hn: {Nat.is_eq(dvxx(mp, d, y, m), FS.fsub(1n+mp, 0n, DC.du(mp, y))) == is_nu : Bool}) -> {ED.dec_root(1n+mp, dxm(mp, d, y, m), y, Nat.mod(x, 2n), is_u, is_nu) == Some{ED.EPt{x, y, 1n, FS.fmul(1n+mp, x, y)}} : Maybe<&2, ED.EPt>}:
+  match is_u:
+    case True{}:
+      fin_rt(mp, d, hc, x, y, dxm(mp, d, y, m), hx, he, Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), dvxx(mp, d, y, m), DC.du(mp, y), N.eq_from_is_eq(dvxx(mp, d, y, m), DC.du(mp, y), hu)), dxm_red(mp, d, y, m))
+    case False{}:
+      match is_nu:
+        case True{}:
+          fin_rt(mp, d, hc, x, y, FS.fmul(1n+mp, dxm(mp, d, y, m), G.sqm1(1n+mp)), hx, he, DC.root_i(mp, d, hc, y, dxm(mp, d, y, m), N.eq_from_is_eq(dvxx(mp, d, y, m), FS.fsub(1n+mp, 0n, DC.du(mp, y)), hn)), FQ.fmul_red(mp, dxm(mp, d, y, m), G.sqm1(1n+mp)))
+        case False{}:
+          Empty.absurd({None{} == Some{ED.EPt{x, y, 1n, FS.fmul(1n+mp, x, y)}} : Maybe<&2, ED.EPt>}, t_ff_c(mp, d, hc, x, y, m, hk, he, hu, hn, Nat.is_eq(Nat.mod(x, 1n+mp), 0n), {==}))
+
+# x recovery: the decoder on y and the parity of x returns (x : y : 1 : x y),
+# for a point (x, y) of the curve, p = 8 m + 5
+def dec_rt(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +m: Nat, +h58: {Nat.div(Nat.sub(1n+mp, 5n), 8n) == m : Nat}, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +x: Nat, +y: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}, +he: GL.Eq(mp, d, x, y)) -> {ED.dec_y(1n+mp, d, y, Nat.mod(x, 2n), False{}) == Some{ED.EPt{x, y, 1n, FS.fmul(1n+mp, x, y)}} : Maybe<&2, ED.EPt>}:
+  %Equal.sym(Nat, Nat.div(Nat.sub(1n+mp, 5n), 8n), m, h58) : Rt(mp, d, x, y, _)
+  root_rt(mp, d, hc, m, hk, x, y, hx, he, Nat.is_eq(dvxx(mp, d, y, m), DC.du(mp, y)), Nat.is_eq(dvxx(mp, d, y, m), FS.fsub(1n+mp, 0n, DC.du(mp, y))), {==}, {==})

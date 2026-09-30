@@ -460,11 +460,26 @@ in the clauses (d, p, R). Each such match returns the same expression in
 every case, so the specification is unchanged; the proofs unfold it once,
 in lemmas over variables.
 
-What is not claimed: the mathematical security of Ed25519 (the clauses
-are implementation == RFC transcription, the HACL* notion of functional
-correctness), and constant time (below). The multiplication [k] A of
-verification is still the specification's double-and-add chain (no
-windows, no joint (Strauss) multiplication with [S] B).
+### The group law
+
+The specification's points form a group: `spec/crypto/curve25519/edwards.bend`
+defines the affine twisted Edwards addition and states the abelian group
+laws (`Group.*`: closure, identity, inverse, commutativity, associativity,
+scalar multiples), and `spec/crypto/ed25519_group.bend` states that RFC
+8032's addition, doubling and double-and-add in extended coordinates
+compute them (`Ed25519.add_affine`, `Ed25519.double_affine`,
+`Ed25519.mul_affine`: `affine(mul(k, a)) == [k mod 2^256] affine(a)`, and
+validity is preserved), for every input: the law is complete. The proofs
+are in `proofs/crypto/ed25519/group/`; `docs/ED25519_GROUP_LAW.md` has the
+method (identities by reflection, completeness from Euler's criterion for
+d, Pocklington certificates for p and L) and the list of roots. The
+base-point table of the context is proved equal to the specification's
+[k] B through them (`fbgrp.bend`, `fblaw.bend` above).
+
+What is not claimed: the mathematical security of Ed25519 beyond these
+laws, and constant time (below). The multiplication [k] A of verification
+is still the specification's double-and-add chain (no windows, no joint
+(Strauss) multiplication with [S] B).
 
 ### Constant time
 
