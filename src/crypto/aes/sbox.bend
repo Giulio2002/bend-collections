@@ -11,7 +11,7 @@ import Base
 # FIPS 197's S-box (the inverse in GF(2^8) followed by the affine map).
 # Every mask is the first operand of U32.and, so the bits above the low
 # eight of an input never reach the result.
-def sbox(+x: U32) -> U32:
+def sbox_word(+x: U32) -> U32:
   +x0 = U32.and(1, U32.shrn(x, 7n))
   +x1 = U32.and(1, U32.shrn(x, 6n))
   +x2 = U32.and(1, U32.shrn(x, 5n))
@@ -137,11 +137,25 @@ def sbox(+x: U32) -> U32:
   +s2 = U32.xor(t55, U32.xor(1, t67))
   U32.or(U32.shln(s0, 7n), U32.or(U32.shln(s1, 6n), U32.or(U32.shln(s2, 5n), U32.or(U32.shln(s3, 4n), U32.or(U32.shln(s4, 3n), U32.or(U32.shln(s5, 2n), U32.or(U32.shln(s6, 1n), s7)))))))
 
+# The S-box. (The one-constructor match only opens the U32, no branch: it
+# keeps a proof about an unknown word from expanding the 117 gates.)
+def sbox(x: U32) -> U32:
+  match x:
+    case U32{w}: sbox_word(U32{w})
+
 # {02} * x in GF(2^8) (FIPS 197 section 4.2.1, xtime): shift left and, when
 # bit 7 was set, add x^8 = {1b}; the reduction mask is 0 - bit7, not a branch.
-def xtime(+x: U32) -> U32:
+def xtime_word(+x: U32) -> U32:
   U32.xor(U32.and(254, U32.shln(x, 1n)), U32.and(27, U32.sub(0, U32.and(1, U32.shrn(x, 7n)))))
 
+def xtime(x: U32) -> U32:
+  match x:
+    case U32{w}: xtime_word(U32{w})
+
 # {03} * x = {02} * x + x.
-def mul3(+x: U32) -> U32:
+def mul3_word(+x: U32) -> U32:
   U32.xor(xtime(x), U32.and(255, x))
+
+def mul3(x: U32) -> U32:
+  match x:
+    case U32{w}: mul3_word(U32{w})

@@ -67,8 +67,25 @@ def affine(+x: U32) -> U32:
     WCon{affine_bit(b, c, 6n), WCon{affine_bit(b, c, 7n), WNil{}}}}}}}}})
 
 # Section 5.1.1: the S-box is the inverse followed by the affine transformation.
-def sbox(+x: U32) -> U32:
+def sbox_byte(+x: U32) -> U32:
   affine(inverse(x))
+
+# The byte c7..c0 (the S-box reads only the low eight bits of a U32).
+def byte8(c0: Bool, c1: Bool, c2: Bool, c3: Bool, c4: Bool, c5: Bool, c6: Bool, c7: Bool) -> U32:
+  U32{WCon{c0, WCon{c1, WCon{c2, WCon{c3, WCon{c4, WCon{c5, WCon{c6, WCon{c7, Word.zero(24n)}}}}}}}}}
+
+# Both arms are the S-box of the byte: the match on bit 7 only keeps a
+# proof about a byte whose bits are unknown from expanding the field
+# arithmetic (the specification is not run in constant time).
+def sbox_at(+c0: Bool, +c1: Bool, +c2: Bool, +c3: Bool, +c4: Bool, +c5: Bool, +c6: Bool, c7: Bool) -> U32:
+  match c7:
+    case False{}: sbox_byte(byte8(c0, c1, c2, c3, c4, c5, c6, False{}))
+    case True{}: sbox_byte(byte8(c0, c1, c2, c3, c4, c5, c6, True{}))
+
+def sbox(x: U32) -> U32:
+  match x:
+    case U32{WCon{c0, WCon{c1, WCon{c2, WCon{c3, WCon{c4, WCon{c5, WCon{c6, WCon{c7, rest}}}}}}}}}:
+      sbox_at(c0, c1, c2, c3, c4, c5, c6, c7)
 
 # s[r,c]: byte r of column c.
 def byte_at(w: T.Quad, r: Nat) -> U32:
