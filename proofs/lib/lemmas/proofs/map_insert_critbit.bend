@@ -97,7 +97,7 @@ law unequal_distinct:
   for unequal: {String.eq(key, stored) == False{} : Bool}
   D.different(key, stored)
 def unequal_distinct(key, stored, unequal):
-  e => R.false_true(Equal.trans(Bool, False{}, String.eq(key, stored), True{}, Equal.sym(Bool, String.eq(key, stored), False{}, unequal), Equal.cong((String & String) & Cmp, Bool, String.eq.fin, String.cmp(key, stored), ((key, stored), EQ{}), N.string_equal_comparison(key, stored, e))))
+  e => R.false_true(Equal.trans(Bool, False{}, String.eq(key, stored), True{}, Equal.sym(Bool, String.eq(key, stored), False{}, unequal), Equal.cong((String & String) & Cmp, Bool, (p => Cmp.is_eq(Pair.snd(String & String, Cmp, p))), String.cmp(key, stored), ((key, stored), EQ{}), N.string_equal_comparison(key, stored, e))))
 
 # Full insertion critbit preservation at the leaf selected by actual seek.
 # The public Map.set bridge must additionally handle replacement and empty seek.

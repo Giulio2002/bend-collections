@@ -84,8 +84,8 @@ def peel32(+q: Nat) -> {Nat.divmod.go(Nat.add(32n+q, 31n), 31n, 0n, 0n) == Nat.d
   {==}
 
 def div_step(+q: Nat) -> {Nat.div(Nat.add(32n+q, 31n), 32n) == 1n+Nat.div(Nat.add(q, 31n), 32n) : Nat}:
-  Equal.trans(Nat, Nat.div.fin(Nat.divmod.go(Nat.add(32n+q, 31n), 31n, 0n, 0n)), Nat.div.fin(N.bump2(Nat.divmod.go(Nat.add(q, 31n), 31n, 0n, 0n))), 1n+Nat.div.fin(Nat.divmod.go(Nat.add(q, 31n), 31n, 0n, 0n)),
-    Equal.cong(Nat & Nat, Nat, Nat.div.fin, Nat.divmod.go(Nat.add(32n+q, 31n), 31n, 0n, 0n), N.bump2(Nat.divmod.go(Nat.add(q, 31n), 31n, 0n, 0n)),
+  Equal.trans(Nat, Pair.fst(Nat, Nat, Nat.divmod.go(Nat.add(32n+q, 31n), 31n, 0n, 0n)), Pair.fst(Nat, Nat, N.bump2(Nat.divmod.go(Nat.add(q, 31n), 31n, 0n, 0n))), 1n+Pair.fst(Nat, Nat, Nat.divmod.go(Nat.add(q, 31n), 31n, 0n, 0n)),
+    Equal.cong(Nat & Nat, Nat, (p => Pair.fst(Nat, Nat, p)), Nat.divmod.go(Nat.add(32n+q, 31n), 31n, 0n, 0n), N.bump2(Nat.divmod.go(Nat.add(q, 31n), 31n, 0n, 0n)),
       Equal.trans(Nat & Nat, Nat.divmod.go(Nat.add(32n+q, 31n), 31n, 0n, 0n), Nat.divmod.go(Nat.add(q, 31n), 31n, 1n, 0n), N.bump2(Nat.divmod.go(Nat.add(q, 31n), 31n, 0n, 0n)),
         peel32(q), N.acc2(Nat.add(q, 31n), 31n, 0n, 0n))),
     N.fst_bump2(Nat.divmod.go(Nat.add(q, 31n), 31n, 0n, 0n)))
