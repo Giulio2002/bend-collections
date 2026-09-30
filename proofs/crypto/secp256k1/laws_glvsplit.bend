@@ -9,7 +9,7 @@ import ../../../spec/crypto/secp256k1/glv.bend as GV
 # secp256k1: for k == k1 + k2 lambda (mod n), [k] G is [k1] G + [k2] phi(G)
 # (what a GLV implementation computes, with k1 and k2 of half length).
 # Proved by `bend proofs/crypto/secp256k1/proof_glvsplit.bend`, which needs
-# both double-and-add computations (over n and over lambda).
+# both chains (for n - 1 and for lambda).
 
 # for k == k1 + k2 lambda (mod n): [k] G is [k1] G + [k2] phi(G)
 law Glv.split:

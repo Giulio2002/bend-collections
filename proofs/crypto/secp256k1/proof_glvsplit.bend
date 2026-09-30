@@ -9,40 +9,24 @@ import ./group/glvsplitp.bend as GQ
 import ./group/certpc.bend as PC
 import ./group/ptv.bend as PV
 import ./group/pte.bend as PE
-import ./group/ptn_1.bend as N1
-import ./group/ptn_2.bend as N2
-import ./group/ptn_3.bend as N3
-import ./group/ptn_4.bend as N4
-import ./group/ptn_5.bend as N5
-import ./group/ptn_6.bend as N6
-import ./group/ptn_7.bend as N7
-import ./group/ptn_8.bend as N8
 import ./group/bnx.bend as X
 import ./group/glvc.bend as GC
 import ./group/glvf.bend as GLF
 import ../../lib/logic.bend as Lg
-import ./group/ptg_1.bend as L1
-import ./group/ptg_2.bend as L2
-import ./group/ptg_3.bend as L3
-import ./group/ptg_4.bend as L4
-import ./group/ptg_5.bend as L5
-import ./group/ptg_6.bend as L6
-import ./group/ptg_7.bend as L7
-import ./group/ptg_8.bend as L8
 
 # The GLV decomposition (laws_glvsplit.bend):
 # `bend proofs/crypto/secp256k1/proof_glvsplit.bend`: the lemma of
 # group/glvsplitp.bend applied to the certificates, to [n] G equiv O
-# (group/pte.bend, chunks group/ptn_<i>.bend) and to phi(G) equiv [lambda] G
-# (group/glvf.bend, chunks group/ptg_<i>.bend).
+# (group/pte.bend, chain group/ptan.bend) and to phi(G) equiv [lambda] G
+# (group/glvf.bend, chain group/ptag.bend).
 
 # [n] G is O
 def ng(+one: Nat, +h1: {one == 1n : Nat}) -> {GS.equiv(FS.prime(one), GS.smul(FS.prime(one), FS.order(one), CS.g(one)), CS.infinity()) == True{} : Bool}:
-  PE.ng(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1), N1.fact(one, h1), N2.fact(one, h1), N3.fact(one, h1), N4.fact(one, h1), N5.fact(one, h1), N6.fact(one, h1), N7.fact(one, h1), N8.fact(one, h1))
+  PE.ng(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1))
 
 # phi(G) is [lambda] G
 def phig(+one: Nat, +h1: {one == 1n : Nat}) -> {GS.equiv(FS.prime(one), GV.phi(FS.prime(one), GV.beta(one), CS.g(one)), GS.smul(FS.prime(one), GV.lambda(one), CS.g(one))) == True{} : Bool}:
-  Lg.subst(Nat, b => {GS.equiv(FS.prime(one), GV.phi(FS.prime(one), b, CS.g(one)), GS.smul(FS.prime(one), GV.lambda(one), CS.g(one))) == True{} : Bool}, X.bvalo(one, GC.betal()), GV.beta(one), GC.beta_is(one, h1), Lg.subst(Nat, l => {GS.equiv(FS.prime(one), GV.phi(FS.prime(one), X.bvalo(one, GC.betal()), CS.g(one)), GS.smul(FS.prime(one), l, CS.g(one))) == True{} : Bool}, X.bvalo(one, GC.laml()), GV.lambda(one), GC.lam_is(one, h1), GLF.phi_g(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1), L1.fact(one, h1), L2.fact(one, h1), L3.fact(one, h1), L4.fact(one, h1), L5.fact(one, h1), L6.fact(one, h1), L7.fact(one, h1), L8.fact(one, h1))))
+  Lg.subst(Nat, b => {GS.equiv(FS.prime(one), GV.phi(FS.prime(one), b, CS.g(one)), GS.smul(FS.prime(one), GV.lambda(one), CS.g(one))) == True{} : Bool}, X.bvalo(one, GC.betal()), GV.beta(one), GC.beta_is(one, h1), Lg.subst(Nat, l => {GS.equiv(FS.prime(one), GV.phi(FS.prime(one), X.bvalo(one, GC.betal()), CS.g(one)), GS.smul(FS.prime(one), l, CS.g(one))) == True{} : Bool}, X.bvalo(one, GC.laml()), GV.lambda(one), GC.lam_is(one, h1), GLF.phi_g(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1))))
 
 def Laws.Glv.split(one, h1, k, k1, k2, hk):
   GQ.glv_split(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1), PV.g_valid(one, h1), ng(one, h1), phig(one, h1), k, k1, k2, hk)

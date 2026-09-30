@@ -81,3 +81,10 @@ def g_valid_m(+one: Nat, +h1: {one == 1n : Nat}) -> {GS.valid(1n+X.bvalo(one, CB
 # G is a point of the group
 def g_valid(+one: Nat, +h1: {one == 1n : Nat}) -> {GS.valid(FS.prime(one), CS.g(one)) == True{} : Bool}:
   Lg.subst(Nat, q => {GS.valid(q, CS.g(one)) == True{} : Bool}, 1n+X.bvalo(one, CB.p1l()), FS.prime(one), Equal.sym(Nat, FS.prime(one), 1n+X.bvalo(one, CB.p1l()), CB.p_suc(one, h1)), g_valid_m(one, h1))
+
+# the generator with Z written 1
+def g1_is(+one: Nat, +h1: {one == 1n : Nat}) -> {CS.SPoint{X.bvalo(one, PC.gxl()), X.bvalo(one, PC.gyl()), 1n} == CS.g(one) : CS.SPoint}:
+  Lg.subst(Nat, z => {CS.SPoint{X.bvalo(one, PC.gxl()), X.bvalo(one, PC.gyl()), z} == CS.g(one) : CS.SPoint}, X.bvalo(one, B.B1{B.BZ{}}), 1n, X.one_o(one, h1), g_is(one, h1))
+
+def g1_valid(+one: Nat, +h1: {one == 1n : Nat}) -> {GS.valid(1n+X.bvalo(one, CB.p1l()), CS.SPoint{X.bvalo(one, PC.gxl()), X.bvalo(one, PC.gyl()), 1n}) == True{} : Bool}:
+  Lg.subst(CS.SPoint, z => {GS.valid(1n+X.bvalo(one, CB.p1l()), z) == True{} : Bool}, CS.g(one), CS.SPoint{X.bvalo(one, PC.gxl()), X.bvalo(one, PC.gyl()), 1n}, Equal.sym(CS.SPoint, CS.SPoint{X.bvalo(one, PC.gxl()), X.bvalo(one, PC.gyl()), 1n}, CS.g(one), g1_is(one, h1)), g_valid_m(one, h1))

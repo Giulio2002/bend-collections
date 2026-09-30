@@ -8,14 +8,6 @@ import ./laws_order.bend as Laws
 import ./group/orderp.bend as OP
 import ./group/certpc.bend as PC
 import ./group/pte.bend as PE
-import ./group/ptn_1.bend as N1
-import ./group/ptn_2.bend as N2
-import ./group/ptn_3.bend as N3
-import ./group/ptn_4.bend as N4
-import ./group/ptn_5.bend as N5
-import ./group/ptn_6.bend as N6
-import ./group/ptn_7.bend as N7
-import ./group/ptn_8.bend as N8
 import ./group/ptv.bend as PV
 import ./group/certn.bend as CN
 
@@ -23,12 +15,12 @@ import ./group/certn.bend as CN
 # `bend proofs/crypto/secp256k1/proof_order.bend`. Each clause is its lemma
 # of group/orderp.bend applied to the certificates (group/certpc.bend: p is
 # prime and -7 is not a cube; group/certn.bend: n is prime), to G's
-# validity (group/ptv.bend) and to [n] G equiv O (group/pte.bend from the
-# eight chunk facts group/ptn_<i>.bend).
+# validity (group/ptv.bend) and to [n] G equiv O (group/pte.bend, from the
+# chain of group/ptan.bend).
 
 # [n] G is O
 def ng(+one: Nat, +h1: {one == 1n : Nat}) -> {GS.equiv(FS.prime(one), GS.smul(FS.prime(one), FS.order(one), CS.g(one)), CS.infinity()) == True{} : Bool}:
-  PE.ng(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1), N1.fact(one, h1), N2.fact(one, h1), N3.fact(one, h1), N4.fact(one, h1), N5.fact(one, h1), N6.fact(one, h1), N7.fact(one, h1), N8.fact(one, h1))
+  PE.ng(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1))
 
 def Laws.Generator.valid(one, h1):
   OP.generator_valid(one, h1)

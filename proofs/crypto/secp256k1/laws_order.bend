@@ -12,8 +12,8 @@ import ../../../spec/crypto/secp256k1/glv.bend as GV
 # O for 0 < k < n. Every clause is for every input; `one` is the number 1
 # kept symbolic (h1). Proved by `bend proofs/crypto/secp256k1/proof_order.bend`
 # from the certificates that p and n are prime and that -7 is not a cube
-# modulo p, and a double-and-add computation over the bits of n in eight
-# closed chunks (group/ptn_1.bend .. ptn_8.bend).
+# modulo p, and an addition chain for n - 1 on G in affine coordinates with
+# slope witnesses (group/ptan.bend, one closed check).
 
 # G is a point of the group
 law Generator.valid:

@@ -11,25 +11,17 @@ import ./group/bnx.bend as X
 import ./group/glvc.bend as GC
 import ./group/glvf.bend as GLF
 import ../../lib/logic.bend as Lg
-import ./group/ptg_1.bend as L1
-import ./group/ptg_2.bend as L2
-import ./group/ptg_3.bend as L3
-import ./group/ptg_4.bend as L4
-import ./group/ptg_5.bend as L5
-import ./group/ptg_6.bend as L6
-import ./group/ptg_7.bend as L7
-import ./group/ptg_8.bend as L8
 import ./group/ptv.bend as PV
 
 # The GLV endomorphism (laws_glv.bend):
 # `bend proofs/crypto/secp256k1/proof_glv.bend`. Each clause is its lemma
 # of group/glvp.bend applied to the certificates (group/certpc.bend), to
 # G's validity (group/ptv.bend) and to phi(G) equiv [lambda] G
-# (group/glvf.bend from the eight chunk facts group/ptg_<i>.bend).
+# (group/glvf.bend, from the chain of group/ptag.bend).
 
 # phi(G) is [lambda] G
 def phig(+one: Nat, +h1: {one == 1n : Nat}) -> {GS.equiv(FS.prime(one), GV.phi(FS.prime(one), GV.beta(one), CS.g(one)), GS.smul(FS.prime(one), GV.lambda(one), CS.g(one))) == True{} : Bool}:
-  Lg.subst(Nat, b => {GS.equiv(FS.prime(one), GV.phi(FS.prime(one), b, CS.g(one)), GS.smul(FS.prime(one), GV.lambda(one), CS.g(one))) == True{} : Bool}, X.bvalo(one, GC.betal()), GV.beta(one), GC.beta_is(one, h1), Lg.subst(Nat, l => {GS.equiv(FS.prime(one), GV.phi(FS.prime(one), X.bvalo(one, GC.betal()), CS.g(one)), GS.smul(FS.prime(one), l, CS.g(one))) == True{} : Bool}, X.bvalo(one, GC.laml()), GV.lambda(one), GC.lam_is(one, h1), GLF.phi_g(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1), L1.fact(one, h1), L2.fact(one, h1), L3.fact(one, h1), L4.fact(one, h1), L5.fact(one, h1), L6.fact(one, h1), L7.fact(one, h1), L8.fact(one, h1))))
+  Lg.subst(Nat, b => {GS.equiv(FS.prime(one), GV.phi(FS.prime(one), b, CS.g(one)), GS.smul(FS.prime(one), GV.lambda(one), CS.g(one))) == True{} : Bool}, X.bvalo(one, GC.betal()), GV.beta(one), GC.beta_is(one, h1), Lg.subst(Nat, l => {GS.equiv(FS.prime(one), GV.phi(FS.prime(one), X.bvalo(one, GC.betal()), CS.g(one)), GS.smul(FS.prime(one), l, CS.g(one))) == True{} : Bool}, X.bvalo(one, GC.laml()), GV.lambda(one), GC.lam_is(one, h1), GLF.phi_g(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1))))
 
 def Laws.Glv.beta_cube(one, h1):
   GP.glv_beta_cube(one, h1)

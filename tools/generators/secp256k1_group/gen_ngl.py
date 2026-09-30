@@ -9,7 +9,7 @@ endomorphism of secp256k1:
       the unconditional clauses
   proofs/crypto/secp256k1/proof_{order,glv,glvsplit}.bend
       the closing roots: the lemmas applied to the certificates and to the
-      chunk facts of the double-and-add computations
+      addition chains on G (group/ptan.bend, group/ptag.bend)
 
   python3 tools/generators/secp256k1_group/gen_ngl.py
 """
@@ -170,15 +170,15 @@ FAM = {
 # O for 0 < k < n. Every clause is for every input; `one` is the number 1
 # kept symbolic (h1). Proved by `bend proofs/crypto/secp256k1/proof_order.bend`
 # from the certificates that p and n are prime and that -7 is not a cube
-# modulo p, and a double-and-add computation over the bits of n in eight
-# closed chunks (group/ptn_1.bend .. ptn_8.bend).
+# modulo p, and an addition chain for n - 1 on G in affine coordinates with
+# slope witnesses (group/ptan.bend, one closed check).
 ''',
         phead='''# The order of G (laws_order.bend):
 # `bend proofs/crypto/secp256k1/proof_order.bend`. Each clause is its lemma
 # of group/orderp.bend applied to the certificates (group/certpc.bend: p is
 # prime and -7 is not a cube; group/certn.bend: n is prime), to G's
-# validity (group/ptv.bend) and to [n] G equiv O (group/pte.bend from the
-# eight chunk facts group/ptn_<i>.bend).
+# validity (group/ptv.bend) and to [n] G equiv O (group/pte.bend, from the
+# chain of group/ptan.bend).
 '''),
     'glv': dict(
         lem='glvp', ns='GP', limp='import ./glv.bend as GLV\nimport ./glvc.bend as GC\n',
@@ -202,7 +202,7 @@ FAM = {
 # `bend proofs/crypto/secp256k1/proof_glv.bend`. Each clause is its lemma
 # of group/glvp.bend applied to the certificates (group/certpc.bend), to
 # G's validity (group/ptv.bend) and to phi(G) equiv [lambda] G
-# (group/glvf.bend from the eight chunk facts group/ptg_<i>.bend).
+# (group/glvf.bend, from the chain of group/ptag.bend).
 '''),
     'glvsplit': dict(
         lem='glvsplitp', ns='GQ', limp='import ./glvc.bend as GC\nimport ./glvs.bend as GLS\n',
@@ -214,23 +214,23 @@ FAM = {
 # secp256k1: for k == k1 + k2 lambda (mod n), [k] G is [k1] G + [k2] phi(G)
 # (what a GLV implementation computes, with k1 and k2 of half length).
 # Proved by `bend proofs/crypto/secp256k1/proof_glvsplit.bend`, which needs
-# both double-and-add computations (over n and over lambda).
+# both chains (for n - 1 and for lambda).
 '''),
 }
 FAM['glvsplit']['phead'] = '''# The GLV decomposition (laws_glvsplit.bend):
 # `bend proofs/crypto/secp256k1/proof_glvsplit.bend`: the lemma of
 # group/glvsplitp.bend applied to the certificates, to [n] G equiv O
-# (group/pte.bend, chunks group/ptn_<i>.bend) and to phi(G) equiv [lambda] G
-# (group/glvf.bend, chunks group/ptg_<i>.bend).
+# (group/pte.bend, chain group/ptan.bend) and to phi(G) equiv [lambda] G
+# (group/glvf.bend, chain group/ptag.bend).
 '''
-NGC = 'PE.ng(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1), %s)' % ', '.join('N%d.fact(one, h1)' % i for i in range(1, 9))
+NGC = 'PE.ng(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1))'
 HF_T = lambda q, b, l: E(q, 'GV.phi(%s, %s, %s)' % (q, b, G), S(q, l, G))
-PHC = ('Lg.subst(Nat, b => %s, X.bvalo(one, GC.betal()), GV.beta(one), GC.beta_is(one, h1), Lg.subst(Nat, l => %s, X.bvalo(one, GC.laml()), GV.lambda(one), GC.lam_is(one, h1), GLF.phi_g(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1), %s)))'
-       % (HF_T(P, 'b', LA), HF_T(P, 'X.bvalo(one, GC.betal())', 'l'), ', '.join('L%d.fact(one, h1)' % i for i in range(1, 9))))
+PHC = ('Lg.subst(Nat, b => %s, X.bvalo(one, GC.betal()), GV.beta(one), GC.beta_is(one, h1), Lg.subst(Nat, l => %s, X.bvalo(one, GC.laml()), GV.lambda(one), GC.lam_is(one, h1), GLF.phi_g(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1))))'
+       % (HF_T(P, 'b', LA), HF_T(P, 'X.bvalo(one, GC.betal())', 'l')))
 CLOSE = {'hp': 'PC.prime_p(one, h1)', 'hc': 'PC.cube_spec(one, h1)', 'hq': 'CN.prime_n(one, h1)', 'hg': 'PV.g_valid(one, h1)', 'hn': 'ng(one, h1)', 'hf': 'phig(one, h1)'}
 CIMP = {'hp': ['import ./group/certpc.bend as PC'], 'hc': ['import ./group/certpc.bend as PC'], 'hq': ['import ./group/certn.bend as CN'], 'hg': ['import ./group/ptv.bend as PV'],
-        'hn': ['import ./group/certpc.bend as PC', 'import ./group/pte.bend as PE'] + ['import ./group/ptn_%d.bend as N%d' % (i, i) for i in range(1, 9)],
-        'hf': ['import ./group/certpc.bend as PC', 'import ./group/bnx.bend as X', 'import ./group/glvc.bend as GC', 'import ./group/glvf.bend as GLF', '../../lib/logic.bend as Lg'] + ['import ./group/ptg_%d.bend as L%d' % (i, i) for i in range(1, 9)]}
+        'hn': ['import ./group/certpc.bend as PC', 'import ./group/pte.bend as PE'],
+        'hf': ['import ./group/certpc.bend as PC', 'import ./group/bnx.bend as X', 'import ./group/glvc.bend as GC', 'import ./group/glvf.bend as GLF', '../../lib/logic.bend as Lg']}
 HELP = {'hn': '# [n] G is O\ndef ng(+one: Nat, +h1: {one == 1n : Nat}) -> %s:\n  %s\n' % (HYP['hn'], NGC),
         'hf': '# phi(G) is [lambda] G\ndef phig(+one: Nat, +h1: {one == 1n : Nat}) -> %s:\n  %s\n' % (HYP['hf'], PHC)}
 
