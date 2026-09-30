@@ -340,28 +340,30 @@ def hl_of(+x: WU.U64, +vm: Nat, +hv: {SW.value(mm(x)) == vm : Nat}) -> {C.low(53
 def round0(+xv: Nat) -> {SF.round(False{}, 0n, xv) == SF.zero(False{}) : F.F64}:
   {==}
 
-def value_z(+x: WU.U64, +xv: Nat, +hv: {SW.value(mm(x)) == 0n : Nat}) -> {R.to_float(x) == SF.round(False{}, C.low(53n, SW.value(x)), xv) : F.F64}:
-  %Equal.sym(Nat, C.low(53n, SW.value(x)), 0n, hl_of(x, 0n, hv)) : {R.to_float(x) == SF.round(False{}, _, xv) : F.F64}
+def value_z(+x: WU.U64, +n: Nat, +hn: {C.low(53n, SW.value(x)) == n : Nat}, +xv: Nat, +hv: {SW.value(mm(x)) == 0n : Nat}) -> {R.to_float(x) == SF.round(False{}, n, xv) : F.F64}:
+  +h0 = Equal.trans(Nat, n, C.low(53n, SW.value(x)), 0n, Equal.sym(Nat, C.low(53n, SW.value(x)), n, hn), hl_of(x, 0n, hv))
+  %Equal.sym(Nat, n, 0n, h0) : {R.to_float(x) == SF.round(False{}, _, xv) : F.F64}
   %Equal.sym(Bool, X.is_zero(mm(x)), Nat.is_eq(0n, 0n), iz(mm(x), 0n, hv)) : {R.f53_z(mm(x), _) == SF.round(False{}, 0n, xv) : F.F64}
   Equal.trans(F.F64, R.f53_z(mm(x), Nat.is_eq(0n, 0n)), SF.zero(False{}), SF.round(False{}, 0n, xv), {==}, Equal.sym(F.F64, SF.round(False{}, 0n, xv), SF.zero(False{}), round0(xv)))
 
-def value_s(+x: WU.U64, +np: Nat, +xv: Nat, +hx: {Nat.sub(SF.zb(), 53n) == xv : Nat}, +hv: {SW.value(mm(x)) == 1n+np : Nat}) -> {R.to_float(x) == SF.round(False{}, C.low(53n, SW.value(x)), xv) : F.F64}:
+def value_s(+x: WU.U64, +n: Nat, +hn: {C.low(53n, SW.value(x)) == n : Nat}, +np: Nat, +xv: Nat, +hx: {Nat.sub(SF.zb(), 53n) == xv : Nat}, +hv: {SW.value(mm(x)) == 1n+np : Nat}) -> {R.to_float(x) == SF.round(False{}, n, xv) : F.F64}:
   +hl = hl_of(x, 1n+np, hv)
+  +h1 = Equal.trans(Nat, n, C.low(53n, SW.value(x)), 1n+np, Equal.sym(Nat, C.low(53n, SW.value(x)), n, hn), hl)
   +hf = Equal.trans(Bool, C.fits(53n, 1n+np), C.fits(53n, C.low(53n, SW.value(x))), True{}, Equal.cong(Nat, Bool, z => C.fits(53n, z), 1n+np, C.low(53n, SW.value(x)), Equal.sym(Nat, C.low(53n, SW.value(x)), 1n+np, hl)), WW.low_fits(53n, SW.value(x)))
-  %Equal.sym(Nat, C.low(53n, SW.value(x)), 1n+np, hl) : {R.to_float(x) == SF.round(False{}, _, xv) : F.F64}
+  %Equal.sym(Nat, n, 1n+np, h1) : {R.to_float(x) == SF.round(False{}, _, xv) : F.F64}
   %Equal.sym(Bool, X.is_zero(mm(x)), Nat.is_eq(1n+np, 0n), iz(mm(x), 1n+np, hv)) : {R.f53_z(mm(x), _) == SF.round(False{}, 1n+np, xv) : F.F64}
   Equal.trans(F.F64, R.f53_z(mm(x), Nat.is_eq(1n+np, 0n)), R.f53(mm(x), X.clz(mm(x))), SF.round(False{}, 1n+np, xv), {==}, main_v(1n, {==}, xv, hx, mm(x), np, hv, hf))
 
-def value_c(+vm: Nat, +x: WU.U64, +xv: Nat, +hx: {Nat.sub(SF.zb(), 53n) == xv : Nat}, +hv: {SW.value(mm(x)) == vm : Nat}) -> {R.to_float(x) == SF.round(False{}, C.low(53n, SW.value(x)), xv) : F.F64}:
+def value_c(+vm: Nat, +x: WU.U64, +n: Nat, +hn: {C.low(53n, SW.value(x)) == n : Nat}, +xv: Nat, +hx: {Nat.sub(SF.zb(), 53n) == xv : Nat}, +hv: {SW.value(mm(x)) == vm : Nat}) -> {R.to_float(x) == SF.round(False{}, n, xv) : F.F64}:
   match vm:
     case 0n:
-      value_z(x, xv, hv)
+      value_z(x, n, hn, xv, hv)
     case 1n+np:
-      value_s(x, np, xv, hx, hv)
+      value_s(x, n, hn, np, xv, hx, hv)
 
 # THEOREM (Float64.value)
-def value(+x: WU.U64, +xv: Nat, +hx: {Nat.sub(SF.zb(), 53n) == xv : Nat}) -> SR.Float64.value(x, xv, hx):
-  value_c(SW.value(mm(x)), x, xv, hx, {==})
+def value(+x: WU.U64, +n: Nat, +hn: {C.low(53n, SW.value(x)) == n : Nat}, +xv: Nat, +hx: {Nat.sub(SF.zb(), 53n) == xv : Nat}) -> SR.Float64.value(x, n, hn, xv, hx):
+  value_c(SW.value(mm(x)), x, n, hn, xv, hx, {==})
 
 # ---- Float64.lt_one ----
 # The comparison is F.lt itself (Go's <): the checker evaluates what it can

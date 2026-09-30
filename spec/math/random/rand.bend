@@ -89,29 +89,25 @@ def count(+w: Nat, +n: Nat, +k: Nat, N: Nat) -> Nat:
     case 1n+ +x:
       Nat.add(count(w, n, k, x), hit(draw(w, x, n), k))
 
-def choose(-S: Data, m: Maybe<&2, Nat>, +s: S, alt: Nat & S) -> Nat & S:
-  match m:
-    case Some{k}:
+# the bounded draw once a draw of x (with verdict m) has left state s: m if
+# accepted, else (while fuel lasts) the next draw; with no fuel left, the
+# last candidate floor(x n / 2^64). The verdict is matched before the
+# recursion, so a draw that is not yet decided keeps the rest unexpanded.
+def below_go(~S: Data, ~next: S -> W.U64 & S, fuel: Nat, +n: Nat, m: Maybe<&2, Nat>, +x: Nat, +s: S) -> Nat & S:
+  match fuel m:
+    case 0n Some{k}:
       (k, s)
-    case None{}:
-      alt
-
-def last(-S: Data, m: Maybe<&2, Nat>, +x: Nat, +n: Nat, +s: S) -> Nat & S:
-  match m:
-    case Some{k}:
-      (k, s)
-    case None{}:
+    case 0n None{}:
       (C.high(64n, Nat.mul(x, n)), s)
+    case 1n+f Some{k}:
+      (k, s)
+    case 1n+f None{}:
+      below_go(~S, ~next, f, n, draw(64n, SW.value(SRC.fst64(S, next(s))), n), SW.value(SRC.fst64(S, next(s))), SRC.snd64(S, next(s)))
 
 # the first accepted draw of 64-bit outputs among fuel + 1 draws
 def below(~S: Data, ~next: S -> W.U64 & S, fuel: Nat, +n: Nat, +s: S) -> Nat & S:
-  match fuel:
-    case 0n:
-      last(S, draw(64n, SW.value(SRC.fst64(S, next(s))), n), SW.value(SRC.fst64(S, next(s))), n, SRC.snd64(S, next(s)))
-    case 1n+ +f:
-      choose(S, draw(64n, SW.value(SRC.fst64(S, next(s))), n), SRC.snd64(S, next(s)), below(~S, ~next, f, n, SRC.snd64(S, next(s))))
+  below_go(~S, ~next, fuel, n, draw(64n, SW.value(SRC.fst64(S, next(s))), n), SW.value(SRC.fst64(S, next(s))), SRC.snd64(S, next(s)))
 
-# #{i : rel(xs[i], v)}; with an equality rel, the number of copies of v
 def occurrences(~A: Data, ~V: Data, ~rel: A -> V -> Bool, +v: V, xs: List<&2, A>) -> Nat:
   match xs:
     case Nil{}:

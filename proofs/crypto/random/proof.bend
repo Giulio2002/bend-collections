@@ -8,11 +8,16 @@ import ../../../spec/math/random/source.bend as SRC
 import ../../../spec/math/random/chacha8rand.bend as SC
 import ../../../spec/math/random.bend as SRM
 import ../../../spec/crypto/random.bend as SCR
-import ../../math/random/proof.bend as MR
+import ../../math/random/chacha8/stream.bend as CS
+import ../../math/random/chacha8/seed.bend as SEED
+import ../../math/random/bounded.bend as BD
+import ../../math/random/shuffle.bend as SH
 import ./bytes.bend as BY
 
 # Entry point: `bend proofs/crypto/random/proof.bend` checks every clause of
-# spec/crypto/random.bend under its name, for every input.
+# spec/crypto/random.bend under its name, for every input. It imports the
+# math/random lemma files it needs (not the math/random root), so the float,
+# PCG and Lemire proofs are not re-checked here.
 
 def kp_fst(+p: List<&2, U32>, q: W.U64 & C8.ChaCha8) -> {SRC.fst64(CR.Gen, CR.keep_pending(p, q)) == SRC.fst64(C8.ChaCha8, q) : W.U64}:
   match q:
@@ -38,7 +43,7 @@ def Random.stream(+n: Nat, +k0: U32, +k1: U32, +k2: U32, +k3: U32, +k4: U32, +k5
   +k = {B.K{k0, k1, k2, k3, k4, k5, k6, k7} : B.Key}
   Equal.trans(List<&2, W.U64>, SRC.outputs(~CR.Gen, ~CR.next, n, CR.G{C8.of_key(k), []}), SRC.outputs(~C8.ChaCha8, ~C8.next, n, C8.of_key(k)), SC.stream(n, SC.key_list(k)),
     gen_outputs(n, C8.of_key(k), []),
-    MR.ChaCha8.stream(n, k))
+    CS.stream(n, k))
 
 def wrap_map(+n: Nat, m: Maybe<&2, C8.ChaCha8>) -> {SCR.map_outputs(n, CR.wrap(m)) == SRM.map_outputs(n, m) : Maybe<&2, List<&2, W.U64>>}:
   match m:
@@ -50,7 +55,7 @@ def wrap_map(+n: Nat, m: Maybe<&2, C8.ChaCha8>) -> {SCR.map_outputs(n, CR.wrap(m
 def Random.seeded(+n: Nat, +seed: List<&2, U32>) -> SCR.Random.seeded(n, seed):
   Equal.trans(Maybe<&2, List<&2, W.U64>>, SCR.map_outputs(n, CR.wrap(C8.new(seed))), SRM.map_outputs(n, C8.new(seed)), SRM.map_stream(n, SC.key_of_seed(seed)),
     wrap_map(n, C8.new(seed)),
-    MR.ChaCha8.seeded(n, seed))
+    SEED.seeded(n, seed))
 
 def Random.bytes(+n: Nat, +c: C8.ChaCha8, +p: List<&2, U32>) -> SCR.Random.bytes(n, c, p):
   BY.bytes(n, c, p)
@@ -59,7 +64,7 @@ def Random.bytes_lt(+n: Nat, +c: C8.ChaCha8, +p: List<&2, U32>, +hp: {SCR.below2
   BY.bytes_lt(n, c, p, hp)
 
 def Random.uint_below(+g: CR.Gen, +n: W.U64, +hn: {X.is_zero(n) == False{} : Bool}) -> SCR.Random.uint_below(g, n, hn):
-  MR.Uint64n.lt(~CR.Gen, ~CR.next, g, n, hn)
+  BD.uint64n_lt(~CR.Gen, ~CR.next, g, n, hn)
 
 def Random.shuffle(~A: Data, ~V: Data, ~rel: A -> V -> Bool, +g: CR.Gen, +items: List<&2, A>, +v: V) -> SCR.Random.shuffle(~A, ~V, ~rel, g, items, v):
-  MR.Shuffle.permutation(~A, ~V, ~rel, ~CR.Gen, ~CR.next, g, items, v)
+  SH.shuffle_perm(~A, ~V, ~rel, ~CR.Gen, ~CR.next, g, items, v)

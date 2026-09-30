@@ -134,20 +134,11 @@ def m128_hi(+x: WU.U64, +n: WU.U64) -> {SW.value(X.psnd(X.mul128(x, n))) == C.hi
 
 # the specification's bounded draw after a draw of x with state s
 def cont(~S: Data, ~next: S -> WU.U64 & S, f: Nat, +n: Nat, +x: Nat, +s: S) -> Nat & S:
-  match f:
-    case 0n:
-      SR.last(S, SR.draw(64n, x, n), x, n, s)
-    case 1n+g:
-      SR.choose(S, SR.draw(64n, x, n), s, SR.below(~S, ~next, g, n, s))
+  SR.below_go(~S, ~next, f, n, SR.draw(64n, x, n), x, s)
 
 def below_cont(~S: Data, ~next: S -> WU.U64 & S, +f: Nat, +n: Nat, +s: S) -> {SR.below(~S, ~next, f, n, s) == cont(~S, ~next, f, n, SW.value(SRC.fst64(S, next(s))), SRC.snd64(S, next(s))) : Nat & S}:
-  match f:
-    case 0n:
-      {==}
-    case 1n+g:
-      {==}
+  {==}
 
-# an accepted draw is kept by every retry
 def fixpoint(~S: Data, ~next: S -> WU.U64 & S, +f: Nat, +n: WU.U64, +t: WU.U64, +hi: WU.U64, +lo: WU.U64, +s: S, +h: {X.lt(lo, t) == False{} : Bool}) -> {R.retry(~S, ~next, f, n, t, R.D{hi, lo, s}) == R.D{hi, lo, s} : R.Draw<S>}:
   match f:
     case 0n:
@@ -162,7 +153,7 @@ def dec(+x: Nat, +m: Nat, +hp: {Nat.is_eq(SR.and_bits(64n, 1n+m, m), 0n) == Fals
   %Equal.sym(Bool, Bool.and(Nat.is_lt(C.low(64n, Nat.mul(x, 1n+m)), 1n+m), Nat.is_lt(C.low(64n, Nat.mul(x, 1n+m)), SR.pow2mod(64n, 1n+m))), c, LE.and_lt(C.low(64n, Nat.mul(x, 1n+m)), 1n+m, SR.pow2mod(64n, 1n+m), htn, c, hc)) : {SR.accept(C.high(64n, Nat.mul(x, 1n+m)), Bool.not(_)) == SR.accept(C.high(64n, Nat.mul(x, 1n+m)), Bool.not(c)) : Maybe<&2, Nat>}
   {==}
 
-def last_acc(-S: Data, +h: Nat, +ok: Bool, +x: Nat, +n: Nat, +s: S, +hh: {h == C.high(64n, Nat.mul(x, n)) : Nat}) -> {SR.last(S, SR.accept(h, ok), x, n, s) == (h, s) : Nat & S}:
+def last_acc(~S: Data, ~next: S -> WU.U64 & S, +h: Nat, +ok: Bool, +x: Nat, +n: Nat, +s: S, +hh: {h == C.high(64n, Nat.mul(x, n)) : Nat}) -> {SR.below_go(~S, ~next, 0n, n, SR.accept(h, ok), x, s) == (h, s) : Nat & S}:
   match ok:
     case True{}:
       {==}
@@ -197,16 +188,14 @@ def step_false(~S: Data, ~next: S -> WU.U64 & S, +g: Nat, +n: WU.U64, +m: Nat, +
   +lo = X.pfst(X.mul128(x, n))
   +H = C.high(64n, Nat.mul(SW.value(x), 1n+m))
   %Equal.sym(R.Draw<S>, R.retry(~S, ~next, g, n, t, R.D{hi, lo, s1}), R.D{hi, lo, s1}, fixpoint(~S, ~next, g, n, t, hi, lo, s1, hc)) : {SRM.val_pair(S, R.result(S, _)) == cont(~S, ~next, 1n+g, 1n+m, SW.value(x), s1) : Nat & S}
-  %Equal.sym(Maybe<&2, Nat>, SR.draw(64n, SW.value(x), 1n+m), SR.accept(H, True{}), hd_of(x, n, m, t, hv, hp, htn, ht, False{}, hc)) : {(SW.value(hi), s1) == SR.choose(S, _, s1, SR.below(~S, ~next, g, 1n+m, s1)) : Nat & S}
+  %Equal.sym(Maybe<&2, Nat>, SR.draw(64n, SW.value(x), 1n+m), SR.accept(H, True{}), hd_of(x, n, m, t, hv, hp, htn, ht, False{}, hc)) : {(SW.value(hi), s1) == SR.below_go(~S, ~next, 1n+g, 1n+m, _, SW.value(x), s1) : Nat & S}
   Equal.cong(Nat, Nat & S, z => (z, s1), SW.value(hi), H, hi_value(x, n, m, hv))
 
 # one retry step, rejected: the next draw
 def step_true(~S: Data, ~next: S -> WU.U64 & S, +g: Nat, +n: WU.U64, +m: Nat, +t: WU.U64, +x: WU.U64, +s1: S, +hv: {SW.value(n) == 1n+m : Nat}, +hp: {Nat.is_eq(SR.and_bits(64n, 1n+m, m), 0n) == False{} : Bool}, +htn: {Nat.is_lt(SR.pow2mod(64n, 1n+m), 1n+m) == True{} : Bool}, +ht: {SW.value(t) == SR.pow2mod(64n, 1n+m) : Nat}, +hc: {X.lt(X.pfst(X.mul128(x, n)), t) == True{} : Bool}, +rec: {SRM.val_pair(S, R.result(S, R.retry(~S, ~next, g, n, t, R.draw(S, n, next(s1))))) == cont(~S, ~next, g, 1n+m, SW.value(SRC.fst64(S, next(s1))), SRC.snd64(S, next(s1))) : Nat & S}) -> {SRM.val_pair(S, R.result(S, R.retry(~S, ~next, g, n, t, R.again(~S, ~next, n, X.psnd(X.mul128(x, n)), X.pfst(X.mul128(x, n)), s1, True{})))) == cont(~S, ~next, 1n+g, 1n+m, SW.value(x), s1) : Nat & S}:
   +H = C.high(64n, Nat.mul(SW.value(x), 1n+m))
-  %Equal.sym(Maybe<&2, Nat>, SR.draw(64n, SW.value(x), 1n+m), SR.accept(H, False{}), hd_of(x, n, m, t, hv, hp, htn, ht, True{}, hc)) : {SRM.val_pair(S, R.result(S, R.retry(~S, ~next, g, n, t, R.draw(S, n, next(s1))))) == SR.choose(S, _, s1, SR.below(~S, ~next, g, 1n+m, s1)) : Nat & S}
-  Equal.trans(Nat & S, SRM.val_pair(S, R.result(S, R.retry(~S, ~next, g, n, t, R.draw(S, n, next(s1))))), cont(~S, ~next, g, 1n+m, SW.value(SRC.fst64(S, next(s1))), SRC.snd64(S, next(s1))), SR.below(~S, ~next, g, 1n+m, s1),
-    rec,
-    Equal.sym(Nat & S, SR.below(~S, ~next, g, 1n+m, s1), cont(~S, ~next, g, 1n+m, SW.value(SRC.fst64(S, next(s1))), SRC.snd64(S, next(s1))), below_cont(~S, ~next, g, 1n+m, s1)))
+  %Equal.sym(Maybe<&2, Nat>, SR.draw(64n, SW.value(x), 1n+m), SR.accept(H, False{}), hd_of(x, n, m, t, hv, hp, htn, ht, True{}, hc)) : {SRM.val_pair(S, R.result(S, R.retry(~S, ~next, g, n, t, R.draw(S, n, next(s1))))) == SR.below_go(~S, ~next, 1n+g, 1n+m, _, SW.value(x), s1) : Nat & S}
+  rec
 
 def step_case(~S: Data, ~next: S -> WU.U64 & S, +g: Nat, +n: WU.U64, +m: Nat, +t: WU.U64, +x: WU.U64, +s1: S, +hv: {SW.value(n) == 1n+m : Nat}, +hp: {Nat.is_eq(SR.and_bits(64n, 1n+m, m), 0n) == False{} : Bool}, +htn: {Nat.is_lt(SR.pow2mod(64n, 1n+m), 1n+m) == True{} : Bool}, +ht: {SW.value(t) == SR.pow2mod(64n, 1n+m) : Nat}, +c: Bool, +hc: {X.lt(X.pfst(X.mul128(x, n)), t) == c : Bool}, +rec: {SRM.val_pair(S, R.result(S, R.retry(~S, ~next, g, n, t, R.draw(S, n, next(s1))))) == cont(~S, ~next, g, 1n+m, SW.value(SRC.fst64(S, next(s1))), SRC.snd64(S, next(s1))) : Nat & S}) -> {SRM.val_pair(S, R.result(S, R.retry(~S, ~next, g, n, t, R.again(~S, ~next, n, X.psnd(X.mul128(x, n)), X.pfst(X.mul128(x, n)), s1, c)))) == cont(~S, ~next, 1n+g, 1n+m, SW.value(x), s1) : Nat & S}:
   match c:
@@ -222,8 +211,8 @@ def loop(~S: Data, ~next: S -> WU.U64 & S, +f: Nat, +n: WU.U64, +m: Nat, +t: WU.
     case 0n Tuple{+x, +s1}:
       +H = C.high(64n, Nat.mul(SW.value(x), 1n+m))
       +c0 = X.lt(X.pfst(X.mul128(x, n)), t)
-      %Equal.sym(Maybe<&2, Nat>, SR.draw(64n, SW.value(x), 1n+m), SR.accept(H, Bool.not(c0)), hd_of(x, n, m, t, hv, hp, htn, ht, c0, {==})) : {(SW.value(X.psnd(X.mul128(x, n))), s1) == SR.last(S, _, SW.value(x), 1n+m, s1) : Nat & S}
-      %Equal.sym(Nat & S, SR.last(S, SR.accept(H, Bool.not(c0)), SW.value(x), 1n+m, s1), (H, s1), last_acc(S, H, Bool.not(c0), SW.value(x), 1n+m, s1, {==})) : {(SW.value(X.psnd(X.mul128(x, n))), s1) == _ : Nat & S}
+      %Equal.sym(Maybe<&2, Nat>, SR.draw(64n, SW.value(x), 1n+m), SR.accept(H, Bool.not(c0)), hd_of(x, n, m, t, hv, hp, htn, ht, c0, {==})) : {(SW.value(X.psnd(X.mul128(x, n))), s1) == SR.below_go(~S, ~next, 0n, 1n+m, _, SW.value(x), s1) : Nat & S}
+      %Equal.sym(Nat & S, SR.below_go(~S, ~next, 0n, 1n+m, SR.accept(H, Bool.not(c0)), SW.value(x), s1), (H, s1), last_acc(~S, ~next, H, Bool.not(c0), SW.value(x), 1n+m, s1, {==})) : {(SW.value(X.psnd(X.mul128(x, n))), s1) == _ : Nat & S}
       Equal.cong(Nat, Nat & S, z => (z, s1), SW.value(X.psnd(X.mul128(x, n))), H, hi_value(x, n, m, hv))
     case 1n+g Tuple{+x, +s1}:
       step_case(~S, ~next, g, n, m, t, x, s1, hv, hp, htn, ht, X.lt(X.pfst(X.mul128(x, n)), t), {==}, loop(~S, ~next, g, n, m, t, next(s1), hv, hp, htn, ht))
@@ -244,7 +233,7 @@ def first_false(~S: Data, ~next: S -> WU.U64 & S, +n: WU.U64, +m: Nat, +x: WU.U6
     Equal.sym(Bool, X.lt(X.pfst(X.mul128(x, n)), n), Nat.is_lt(L, 1n+m), lt_low_n(x, n, m, hv)),
     hc)
   +hl = N.le_not_lt(L, pm, N.le_trans(pm, 1n+m, L, N.lt_le(pm, 1n+m, htn), N.not_lt_le(L, 1n+m, hn)))
-  %Equal.sym(Maybe<&2, Nat>, SR.draw(64n, SW.value(x), 1n+m), SR.accept(H, True{}), dec(SW.value(x), m, hp, htn, False{}, hl)) : {(SW.value(X.psnd(X.mul128(x, n))), s1) == SR.choose(S, _, s1, SR.below(~S, ~next, 126n, 1n+m, s1)) : Nat & S}
+  %Equal.sym(Maybe<&2, Nat>, SR.draw(64n, SW.value(x), 1n+m), SR.accept(H, True{}), dec(SW.value(x), m, hp, htn, False{}, hl)) : {(SW.value(X.psnd(X.mul128(x, n))), s1) == SR.below_go(~S, ~next, 127n, 1n+m, _, SW.value(x), s1) : Nat & S}
   Equal.cong(Nat, Nat & S, z => (z, s1), SW.value(X.psnd(X.mul128(x, n))), H, hi_value(x, n, m, hv))
 
 # the first draw: accepted at once when lo >= n, else the loop
@@ -313,7 +302,7 @@ def value_nz(~S: Data, ~next: S -> WU.U64 & S, +one: Nat, +h1: {one == 1n : Nat}
       +x = SW.value(SRC.fst64(S, next(s)))
       Equal.trans(Nat & S, SRM.val_pair(S, R.mask(S, n, next(s))), (SR.and_bits(64n, x, m), SRC.snd64(S, next(s))), SR.below(~S, ~next, 127n, 1n+m, s),
         mask_pair(S, n, m, next(s), hv),
-        %Equal.sym(Maybe<&2, Nat>, SR.draw(64n, x, 1n+m), Some{SR.and_bits(64n, x, m)}, LE.draw_mask(64n, m, x, hc)) : {(SR.and_bits(64n, x, m), SRC.snd64(S, next(s))) == SR.choose(S, _, SRC.snd64(S, next(s)), SR.below(~S, ~next, 126n, 1n+m, SRC.snd64(S, next(s)))) : Nat & S}
+        %Equal.sym(Maybe<&2, Nat>, SR.draw(64n, x, 1n+m), Some{SR.and_bits(64n, x, m)}, LE.draw_mask(64n, m, x, hc)) : {(SR.and_bits(64n, x, m), SRC.snd64(S, next(s))) == SR.below_go(~S, ~next, 127n, 1n+m, _, x, SRC.snd64(S, next(s))) : Nat & S}
         {==})
     case False{}:
       Equal.trans(Nat & S, SRM.val_pair(S, R.lemire_first(~S, ~next, n, R.draw(S, n, next(s)))), cont(~S, ~next, 127n, 1n+m, SW.value(SRC.fst64(S, next(s))), SRC.snd64(S, next(s))), SR.below(~S, ~next, 127n, 1n+m, s),

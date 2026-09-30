@@ -110,24 +110,18 @@ def draw_lt(+x: Nat, +n: Nat, +k: Nat, +hx: {C.fits(64n, x) == True{} : Bool}, +
     case 1n+m:
       draw_pos_lt(x, m, k, hx, Nat.is_eq(SR.and_bits(64n, 1n+m, m), 0n), e)
 
-def last_lt(-S: Data, m: Maybe<&2, Nat>, +x: Nat, +n: Nat, +s: S, +hx: {C.fits(64n, x) == True{} : Bool}, +hn: {Nat.is_lt(0n, n) == True{} : Bool}, +hm: {SR.draw(64n, x, n) == m : Maybe<&2, Nat>}) -> {Nat.is_lt(pfst(S, SR.last(S, m, x, n, s)), n) == True{} : Bool}:
-  match m:
-    case Some{k}:
+# the bounded draw after a draw of x is below n > 0
+def go_lt(~S: Data, ~next: S -> WU.U64 & S, +f: Nat, +n: Nat, m: Maybe<&2, Nat>, +x: Nat, +s1: S, +hx: {C.fits(64n, x) == True{} : Bool}, +hn: {Nat.is_lt(0n, n) == True{} : Bool}, +hm: {SR.draw(64n, x, n) == m : Maybe<&2, Nat>}) -> {Nat.is_lt(pfst(S, SR.below_go(~S, ~next, f, n, m, x, s1)), n) == True{} : Bool}:
+  match f m:
+    case 0n Some{k}:
       draw_lt(x, n, k, hx, hn, hm)
-    case None{}:
+    case 0n None{}:
       high_lt(x, n, hx, hn)
-
-def choose_lt(-S: Data, m: Maybe<&2, Nat>, +s: S, alt: Nat & S, +x: Nat, +n: Nat, +hx: {C.fits(64n, x) == True{} : Bool}, +hn: {Nat.is_lt(0n, n) == True{} : Bool}, +hm: {SR.draw(64n, x, n) == m : Maybe<&2, Nat>}, +halt: {Nat.is_lt(pfst(S, alt), n) == True{} : Bool}) -> {Nat.is_lt(pfst(S, SR.choose(S, m, s, alt)), n) == True{} : Bool}:
-  match m:
-    case Some{k}:
+    case 1n+g Some{k}:
       draw_lt(x, n, k, hx, hn, hm)
-    case None{}:
-      halt
+    case 1n+g None{}:
+      go_lt(~S, ~next, g, n, SR.draw(64n, SW.value(SRC.fst64(S, next(s1))), n), SW.value(SRC.fst64(S, next(s1))), SRC.snd64(S, next(s1)), M128.fit64(SRC.fst64(S, next(s1))), hn, {==})
 
 # THEOREM: the bounded draw from any source is below n > 0
 def below_lt(~S: Data, ~next: S -> WU.U64 & S, +f: Nat, +n: Nat, +s: S, +hn: {Nat.is_lt(0n, n) == True{} : Bool}) -> {Nat.is_lt(pfst(S, SR.below(~S, ~next, f, n, s)), n) == True{} : Bool}:
-  match f:
-    case 0n:
-      last_lt(S, SR.draw(64n, SW.value(SRC.fst64(S, next(s))), n), SW.value(SRC.fst64(S, next(s))), n, SRC.snd64(S, next(s)), M128.fit64(SRC.fst64(S, next(s))), hn, {==})
-    case 1n+g:
-      choose_lt(S, SR.draw(64n, SW.value(SRC.fst64(S, next(s))), n), SRC.snd64(S, next(s)), SR.below(~S, ~next, g, n, SRC.snd64(S, next(s))), SW.value(SRC.fst64(S, next(s))), n, M128.fit64(SRC.fst64(S, next(s))), hn, {==}, below_lt(~S, ~next, g, n, SRC.snd64(S, next(s)), hn))
+  go_lt(~S, ~next, f, n, SR.draw(64n, SW.value(SRC.fst64(S, next(s))), n), SW.value(SRC.fst64(S, next(s))), SRC.snd64(S, next(s)), M128.fit64(SRC.fst64(S, next(s))), hn, {==})

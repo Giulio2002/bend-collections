@@ -76,8 +76,8 @@ def Intn.lt(~S: Data, ~next: S -> W.U64 & S, +s: S, +n: Nat, +hn: {Nat.is_lt(0n,
 def IntRange.bounds(~S: Data, ~next: S -> W.U64 & S, +s: S, +lo: Nat, +hi: Nat, +h: {Nat.is_lt(lo, hi) == True{} : Bool}, +hw: {C.fits(64n, Nat.sub(hi, lo)) == True{} : Bool}) -> SRM.IntRange.bounds(~S, ~next, s, lo, hi, h, hw):
   WR.int_range_bounds(~S, ~next, s, lo, hi, h, hw)
 
-def Float64.value(+x: W.U64, +xv: Nat, +hx: {Nat.sub(SF.zb(), 53n) == xv : Nat}) -> SRM.Float64.value(x, xv, hx):
-  FL.value(x, xv, hx)
+def Float64.value(+x: W.U64, +n: Nat, +hn: {C.low(53n, SW.value(x)) == n : Nat}, +xv: Nat, +hx: {Nat.sub(SF.zb(), 53n) == xv : Nat}) -> SRM.Float64.value(x, n, hn, xv, hx):
+  FL.value(x, n, hn, xv, hx)
 
 def Float64.lt_one(+x: W.U64) -> SRM.Float64.lt_one(x):
   FL.lt_one(x)
