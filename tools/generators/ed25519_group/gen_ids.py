@@ -232,6 +232,10 @@ def gen_ext():
     c.conseq('t_rule', c.mul(c.sub(T, c.mul(c.mul(x, y), Z)), Z),
              [(c.mul(T, Z), c.mul(X, Y), c.const(1)), (X, c.mul(x, Z), Y), (Y, c.mul(y, Z), c.mul(x, Z))], (),
              'T Z == X Y, X == x Z and Y == y Z: (T - (x y) Z) Z == 0')
+    c2 = Ctx(['x1', 'z1', 'x2', 'z2', 'u'])
+    x1, z1, x2, z2, u = c2.vars('x1', 'z1', 'x2', 'z2', 'u')
+    c2.conseq('cross', c2.sub(c2.mul(x1, z2), c2.mul(x2, z1)), [(x1, c2.mul(u, z1), z2), (x2, c2.mul(u, z2), neg(c2, z1))], (), 'x1 == u z1 and x2 == u z2: x1 z2 == x2 z1')
+    c2.write('id_cross.bend', '# Equal affine coordinates have equal cross products.\n')
     c.write('id_ext_t.bend', '# The T coordinate of a valid extended point.\n')
     # RFC 8032 addition
     c = Ctx(['x1', 'y1', 'z1', 't1', 'x2', 'y2', 'z2', 't2', 'd', 'u1', 'v1', 'u2', 'v2'])
