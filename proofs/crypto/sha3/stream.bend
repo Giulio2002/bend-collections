@@ -353,10 +353,160 @@ law suffix_fast_correct:
 def suffix_fast_correct(n):
   tail_fast_correct(Nat.sub(136n, Nat.mod(n, 136n)))
 
+law lz0_correct:
+  for +k: Nat
+  for +sfx: List<&2, U32>
+  {N.lz0(k, sfx) == C.lanes(N.zeros_onto(k, sfx)) : List<&2, T.Lane>}
+
+def lz0_correct(k, sfx):
+  match k:
+    case 0n:
+      {==}
+    case 1n:
+      {==}
+    case 2n:
+      {==}
+    case 3n:
+      {==}
+    case 4n:
+      {==}
+    case 5n:
+      {==}
+    case 6n:
+      {==}
+    case 7n:
+      {==}
+    case 8n+j:
+      %lz0_correct(j, sfx) : {N.lz0(8n+j, sfx) == T.W{0, 0} <> _ : List<&2, T.Lane>}
+      {==}
+
+law lzp_correct:
+  for +prefix: List<&2, U32>
+  for +k: Nat
+  for +sfx: List<&2, U32>
+  {N.lzp(prefix, k, sfx) == C.lanes(List.append(&2, U32, prefix, N.zeros_onto(k, sfx))) : List<&2, T.Lane>}
+
+def lzp_correct(prefix, k, sfx):
+  match prefix k:
+    case Nil{} k2:
+      lz0_correct(k2, sfx)
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> b6 <> b7 <> Nil{} k2:
+      %lz0_correct(k2, sfx) : {N.lzp(b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> b6 <> b7 <> Nil{}, k2, sfx) == T.W{C.pack(b0, b1, b2, b3), C.pack(b4, b5, b6, b7)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> Nil{} 0n:
+      {==}
+    case b0 <> Nil{} 1n:
+      {==}
+    case b0 <> Nil{} 2n:
+      {==}
+    case b0 <> Nil{} 3n:
+      {==}
+    case b0 <> Nil{} 4n:
+      {==}
+    case b0 <> Nil{} 5n:
+      {==}
+    case b0 <> Nil{} 6n:
+      {==}
+    case b0 <> Nil{} 7n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> Nil{}, 7n+j, sfx) == T.W{C.pack(b0, 0, 0, 0), C.pack(0, 0, 0, 0)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> b1 <> Nil{} 0n:
+      {==}
+    case b0 <> b1 <> Nil{} 1n:
+      {==}
+    case b0 <> b1 <> Nil{} 2n:
+      {==}
+    case b0 <> b1 <> Nil{} 3n:
+      {==}
+    case b0 <> b1 <> Nil{} 4n:
+      {==}
+    case b0 <> b1 <> Nil{} 5n:
+      {==}
+    case b0 <> b1 <> Nil{} 6n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> b1 <> Nil{}, 6n+j, sfx) == T.W{C.pack(b0, b1, 0, 0), C.pack(0, 0, 0, 0)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> b1 <> b2 <> Nil{} 0n:
+      {==}
+    case b0 <> b1 <> b2 <> Nil{} 1n:
+      {==}
+    case b0 <> b1 <> b2 <> Nil{} 2n:
+      {==}
+    case b0 <> b1 <> b2 <> Nil{} 3n:
+      {==}
+    case b0 <> b1 <> b2 <> Nil{} 4n:
+      {==}
+    case b0 <> b1 <> b2 <> Nil{} 5n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> b1 <> b2 <> Nil{}, 5n+j, sfx) == T.W{C.pack(b0, b1, b2, 0), C.pack(0, 0, 0, 0)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> Nil{} 0n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> Nil{} 1n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> Nil{} 2n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> Nil{} 3n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> Nil{} 4n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> b1 <> b2 <> b3 <> Nil{}, 4n+j, sfx) == T.W{C.pack(b0, b1, b2, b3), C.pack(0, 0, 0, 0)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> Nil{} 0n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> Nil{} 1n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> Nil{} 2n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> Nil{} 3n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> b1 <> b2 <> b3 <> b4 <> Nil{}, 3n+j, sfx) == T.W{C.pack(b0, b1, b2, b3), C.pack(b4, 0, 0, 0)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> Nil{} 0n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> Nil{} 1n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> Nil{} 2n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> Nil{}, 2n+j, sfx) == T.W{C.pack(b0, b1, b2, b3), C.pack(b4, b5, 0, 0)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> b6 <> Nil{} 0n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> b6 <> Nil{} 1n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> b6 <> Nil{}, 1n+j, sfx) == T.W{C.pack(b0, b1, b2, b3), C.pack(b4, b5, b6, 0)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> b6 <> b7 <> bx <> rest k2:
+      {==}
+
+law tl_correct:
+  for +q: Nat
+  for +rem: List<&2, U32>
+  {N.tl(q, rem) == C.lanes(List.append(&2, U32, rem, N.tail_fast(q))) : List<&2, T.Lane>}
+
+def tl_correct(q, rem):
+  match q:
+    case 0n:
+      %Equal.sym(List<&2, U32>, List.append(&2, U32, rem, Nil{}), rem, L.append_nil(rem)) : {N.tl(0n, rem) == C.lanes(_) : List<&2, T.Lane>}
+      {==}
+    case 1n:
+      {==}
+    case 2n+k:
+      Equal.trans(List<&2, T.Lane>, N.lzp(List.append(&2, U32, rem, [6]), k, [128]),
+        C.lanes(List.append(&2, U32, List.append(&2, U32, rem, [6]), N.zeros_onto(k, [128]))),
+        C.lanes(List.append(&2, U32, rem, 6 <> N.zeros_onto(k, [128]))),
+        lzp_correct(List.append(&2, U32, rem, [6]), k, [128]),
+        Equal.cong(List<&2, U32>, List<&2, T.Lane>, t => C.lanes(t),
+          List.append(&2, U32, List.append(&2, U32, rem, [6]), N.zeros_onto(k, [128])),
+          List.append(&2, U32, rem, 6 <> N.zeros_onto(k, [128])),
+          L.append_assoc(rem, [6], N.zeros_onto(k, [128]))))
+
+law tail_lanes_correct:
+  for +rem: List<&2, U32>
+  for +n: Nat
+  {N.tail_lanes(rem, n) == C.lanes(List.append(&2, U32, rem, N.suffix_fast(n))) : List<&2, T.Lane>}
+
+def tail_lanes_correct(rem, n):
+  tl_correct(Nat.sub(136n, Nat.mod(n, 136n)), rem)
+
 law finish_eta:
   for +st: N.St
   for +q: Nat
-  {N.finish(st, q) == C.digest_bytes(C.absorb(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), N.suffix_fast(lenof(st))))), q, sv(st))) : List<&2, U32>}
+  {N.finish(st, q) == C.digest_bytes(C.absorb(List.append(&2, T.Lane, ppend(st), N.tail_lanes(prem(st), lenof(st))), q, sv(st))) : List<&2, U32>}
 
 def finish_eta(st, q):
   match st:
@@ -374,13 +524,15 @@ def stream_correct(cs):
   +m = List.concat(&2, U32, cs)
   +st = fold_st(cs, 24n, N.new())
   +z = C.suffix(List.length(&2, U32, m))
-  Equal.trans(List<&2, U32>, N.finish(st, 24n), C.digest_bytes(C.absorb(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), N.suffix_fast(lenof(st))))), 24n, sv(st))), C.keccak(m, 24n),
+  Equal.trans(List<&2, U32>, N.finish(st, 24n), C.digest_bytes(C.absorb(List.append(&2, T.Lane, ppend(st), N.tail_lanes(prem(st), lenof(st))), 24n, sv(st))), C.keccak(m, 24n),
     finish_eta(st, 24n),
+    Equal.trans(List<&2, U32>, C.digest_bytes(C.absorb(List.append(&2, T.Lane, ppend(st), N.tail_lanes(prem(st), lenof(st))), 24n, sv(st))), C.digest_bytes(C.absorb(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), N.suffix_fast(lenof(st))))), 24n, sv(st))), C.keccak(m, 24n),
+    Equal.cong(List<&2, T.Lane>, List<&2, U32>, t => C.digest_bytes(C.absorb(List.append(&2, T.Lane, ppend(st), t), 24n, sv(st))), N.tail_lanes(prem(st), lenof(st)), C.lanes(List.append(&2, U32, prem(st), N.suffix_fast(lenof(st)))), tail_lanes_correct(prem(st), lenof(st))),
     Equal.trans(List<&2, U32>, C.digest_bytes(C.absorb(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), N.suffix_fast(lenof(st))))), 24n, sv(st))), C.digest_bytes(C.absorb(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix(lenof(st))))), 24n, sv(st))), C.keccak(m, 24n),
     Equal.cong(List<&2, U32>, List<&2, U32>, t => C.digest_bytes(C.absorb(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), t))), 24n, sv(st))), N.suffix_fast(lenof(st)), C.suffix(lenof(st)), suffix_fast_correct(lenof(st))),
     Equal.trans(List<&2, U32>, C.digest_bytes(C.absorb(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix(lenof(st))))), 24n, sv(st))), C.digest_bytes(C.absorb(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), z))), 24n, sv(st))), C.keccak(m, 24n),
     Equal.cong(Nat, List<&2, U32>, t => C.digest_bytes(C.absorb(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix(t)))), 24n, sv(st))), lenof(st), List.length(&2, U32, m), Equal.sym(Nat, Nat.add(lenof(N.new()), List.length(&2, U32, m)), lenof(st), fold_len(cs, 24n, N.new()))),
-    Equal.cong(T.State, List<&2, U32>, t => C.digest_bytes(t), C.absorb(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), z))), 24n, sv(st)), C.absorb(C.lanes(List.append(&2, U32, m, z)), 24n, C.zero()), Equal.sym(T.State, C.absorb(List.append(&2, T.Lane, ppend(N.new()), C.lanes(List.append(&2, U32, prem(N.new()), List.append(&2, U32, m, z)))), 24n, sv(N.new())), C.absorb(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), z))), 24n, sv(st)), fold_inv(cs, 24n, N.new(), z))))))
+    Equal.cong(T.State, List<&2, U32>, t => C.digest_bytes(t), C.absorb(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), z))), 24n, sv(st)), C.absorb(C.lanes(List.append(&2, U32, m, z)), 24n, C.zero()), Equal.sym(T.State, C.absorb(List.append(&2, T.Lane, ppend(N.new()), C.lanes(List.append(&2, U32, prem(N.new()), List.append(&2, U32, m, z)))), 24n, sv(N.new())), C.absorb(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), z))), 24n, sv(st)), fold_inv(cs, 24n, N.new(), z)))))))
 
 law hash_correct:
   for +bytes: List<&2, U32>

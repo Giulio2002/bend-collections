@@ -84,6 +84,41 @@ def blocks(ws: List<&2, U32>, +q: Nat, s: T.State) -> T.State:
     case _:
       s
 
+# lanes(k zero bytes ++ sfx), a whole zero word at a time.
+def lz0(k: Nat, sfx: List<&2, U32>) -> List<&2, U32>:
+  match k:
+    case 0n:
+      lanes(zeros_onto(0n, sfx))
+    case 1n:
+      lanes(zeros_onto(1n, sfx))
+    case 2n:
+      lanes(zeros_onto(2n, sfx))
+    case 3n:
+      lanes(zeros_onto(3n, sfx))
+    case 4n+j:
+      0 <> lz0(j, sfx)
+
+# lanes(prefix ++ k zeros ++ sfx), the words of a padding, without building
+# the zero bytes: the prefix's word completed with zeros, then lz0.
+def lzp(prefix: List<&2, U32>, k: Nat, sfx: List<&2, U32>) -> List<&2, U32>:
+  match prefix k:
+    case Nil{} k2:
+      lz0(k2, sfx)
+    case b0 <> b1 <> b2 <> b3 <> Nil{} k2:
+      C.pack(b0, b1, b2, b3) <> lz0(k2, sfx)
+    case b0 <> Nil{} 3n+j:
+      C.pack(b0, 0, 0, 0) <> lz0(j, sfx)
+    case b0 <> b1 <> Nil{} 2n+j:
+      C.pack(b0, b1, 0, 0) <> lz0(j, sfx)
+    case b0 <> b1 <> b2 <> Nil{} 1n+j:
+      C.pack(b0, b1, b2, 0) <> lz0(j, sfx)
+    case p k2:
+      lanes(List.append(&2, U32, p, zeros_onto(k2, sfx)))
+
+# The words of rem followed by the padding for a message of len bytes.
+def tail_lanes(rem: List<&2, U32>, +len: Nat) -> List<&2, U32>:
+  lzp(List.append(&2, U32, rem, [128]), Nat.mod(Nat.sub(119n, Nat.mod(len, 64n)), 64n), C.bit_length(len))
+
 def new() -> St:
   St{C.initial(), Nil{}, Nil{}, 0n}
 
@@ -104,7 +139,7 @@ def finish(st: St, +q: Nat) -> List<&2, U32>:
   match st:
     case St{s, +pend, +rem, done}:
       +len = Nat.add(done, Nat.add(word_bytes(pend), List.length(&2, U32, rem)))
-      SHA.digest_bytes(C.digest(blocks(List.append(&2, U32, pend, lanes(List.append(&2, U32, rem, suffix_fast(len)))), q, s)))
+      SHA.digest_bytes(C.digest(blocks(List.append(&2, U32, pend, tail_lanes(rem, len)), q, s)))
 
 def hash(bytes: List<&2, U32>) -> List<&2, U32>:
   finish(update(new(), bytes, 48n), 48n)

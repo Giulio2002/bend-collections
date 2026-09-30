@@ -321,10 +321,82 @@ def suffix_fast_correct(n):
     {N.suffix_fast(n) == 128 <> _ : List<&2, U32>}
   {==}
 
+law lz0_correct:
+  for +k: Nat
+  for +sfx: List<&2, U32>
+  {N.lz0(k, sfx) == N.lanes(N.zeros_onto(k, sfx)) : List<&2, U32>}
+
+def lz0_correct(k, sfx):
+  match k:
+    case 0n:
+      {==}
+    case 1n:
+      {==}
+    case 2n:
+      {==}
+    case 3n:
+      {==}
+    case 4n+j:
+      %lz0_correct(j, sfx) : {N.lz0(4n+j, sfx) == 0 <> _ : List<&2, U32>}
+      {==}
+
+law lzp_correct:
+  for +prefix: List<&2, U32>
+  for +k: Nat
+  for +sfx: List<&2, U32>
+  {N.lzp(prefix, k, sfx) == N.lanes(List.append(&2, U32, prefix, N.zeros_onto(k, sfx))) : List<&2, U32>}
+
+def lzp_correct(prefix, k, sfx):
+  match prefix k:
+    case Nil{} k2:
+      lz0_correct(k2, sfx)
+    case b0 <> b1 <> b2 <> b3 <> Nil{} k2:
+      %lz0_correct(k2, sfx) : {N.lzp(b0 <> b1 <> b2 <> b3 <> Nil{}, k2, sfx) == C.pack(b0, b1, b2, b3) <> _ : List<&2, U32>}
+      {==}
+    case b0 <> Nil{} 0n:
+      {==}
+    case b0 <> Nil{} 1n:
+      {==}
+    case b0 <> Nil{} 2n:
+      {==}
+    case b0 <> Nil{} 3n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> Nil{}, 3n+j, sfx) == C.pack(b0, 0, 0, 0) <> _ : List<&2, U32>}
+      {==}
+    case b0 <> b1 <> Nil{} 0n:
+      {==}
+    case b0 <> b1 <> Nil{} 1n:
+      {==}
+    case b0 <> b1 <> Nil{} 2n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> b1 <> Nil{}, 2n+j, sfx) == C.pack(b0, b1, 0, 0) <> _ : List<&2, U32>}
+      {==}
+    case b0 <> b1 <> b2 <> Nil{} 0n:
+      {==}
+    case b0 <> b1 <> b2 <> Nil{} 1n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> b1 <> b2 <> Nil{}, 1n+j, sfx) == C.pack(b0, b1, b2, 0) <> _ : List<&2, U32>}
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> bx <> rest k2:
+      {==}
+
+law tail_lanes_correct:
+  for +rem: List<&2, U32>
+  for +n: Nat
+  {N.tail_lanes(rem, n) == N.lanes(List.append(&2, U32, rem, N.suffix_fast(n))) : List<&2, U32>}
+
+def tail_lanes_correct(rem, n):
+  +zc = Nat.mod(Nat.sub(119n, Nat.mod(n, 64n)), 64n)
+  +sf = {C.bit_length(n) : List<&2, U32>}
+  Equal.trans(List<&2, U32>, N.lzp(List.append(&2, U32, rem, [128]), zc, sf),
+    N.lanes(List.append(&2, U32, List.append(&2, U32, rem, [128]), N.zeros_onto(zc, sf))), N.lanes(List.append(&2, U32, rem, N.suffix_fast(n))),
+    lzp_correct(List.append(&2, U32, rem, [128]), zc, sf),
+    Equal.cong(List<&2, U32>, List<&2, U32>, t => N.lanes(t),
+      List.append(&2, U32, List.append(&2, U32, rem, [128]), N.zeros_onto(zc, sf)),
+      List.append(&2, U32, rem, 128 <> N.zeros_onto(zc, sf)),
+      L.append_assoc(rem, [128], N.zeros_onto(zc, sf))))
+
 law finish_eta:
   for +st: N.St
   for +q: Nat
-  {N.finish(st, q) == SHA.digest_bytes(C.digest(N.blocks(List.append(&2, U32, ppend(st), N.lanes(List.append(&2, U32, prem(st), N.suffix_fast(lenof(st))))), q, sv(st)))) : List<&2, U32>}
+  {N.finish(st, q) == SHA.digest_bytes(C.digest(N.blocks(List.append(&2, U32, ppend(st), N.tail_lanes(prem(st), lenof(st))), q, sv(st)))) : List<&2, U32>}
 
 def finish_eta(st, q):
   match st:
@@ -342,13 +414,15 @@ def stream_correct(cs):
   +m = List.concat(&2, U32, cs)
   +st = fold_st(cs, 48n, N.new())
   +z = C.suffix(List.length(&2, U32, m))
-  Equal.trans(List<&2, U32>, N.finish(st, 48n), SHA.digest_bytes(C.digest(N.blocks(List.append(&2, U32, ppend(st), N.lanes(List.append(&2, U32, prem(st), N.suffix_fast(lenof(st))))), 48n, sv(st)))), SHA.digest_bytes(C.digest(N.blocks(N.lanes(List.append(&2, U32, m, C.suffix(List.length(&2, U32, m)))), 48n, C.initial()))),
+  Equal.trans(List<&2, U32>, N.finish(st, 48n), SHA.digest_bytes(C.digest(N.blocks(List.append(&2, U32, ppend(st), N.tail_lanes(prem(st), lenof(st))), 48n, sv(st)))), SHA.digest_bytes(C.digest(N.blocks(N.lanes(List.append(&2, U32, m, C.suffix(List.length(&2, U32, m)))), 48n, C.initial()))),
     finish_eta(st, 48n),
+    Equal.trans(List<&2, U32>, SHA.digest_bytes(C.digest(N.blocks(List.append(&2, U32, ppend(st), N.tail_lanes(prem(st), lenof(st))), 48n, sv(st)))), SHA.digest_bytes(C.digest(N.blocks(List.append(&2, U32, ppend(st), N.lanes(List.append(&2, U32, prem(st), N.suffix_fast(lenof(st))))), 48n, sv(st)))), SHA.digest_bytes(C.digest(N.blocks(N.lanes(List.append(&2, U32, m, C.suffix(List.length(&2, U32, m)))), 48n, C.initial()))),
+    Equal.cong(List<&2, U32>, List<&2, U32>, t => SHA.digest_bytes(C.digest(N.blocks(List.append(&2, U32, ppend(st), t), 48n, sv(st)))), N.tail_lanes(prem(st), lenof(st)), N.lanes(List.append(&2, U32, prem(st), N.suffix_fast(lenof(st)))), tail_lanes_correct(prem(st), lenof(st))),
     Equal.trans(List<&2, U32>, SHA.digest_bytes(C.digest(N.blocks(List.append(&2, U32, ppend(st), N.lanes(List.append(&2, U32, prem(st), N.suffix_fast(lenof(st))))), 48n, sv(st)))), SHA.digest_bytes(C.digest(N.blocks(List.append(&2, U32, ppend(st), N.lanes(List.append(&2, U32, prem(st), C.suffix(lenof(st))))), 48n, sv(st)))), SHA.digest_bytes(C.digest(N.blocks(N.lanes(List.append(&2, U32, m, C.suffix(List.length(&2, U32, m)))), 48n, C.initial()))),
     Equal.cong(List<&2, U32>, List<&2, U32>, t => SHA.digest_bytes(C.digest(N.blocks(List.append(&2, U32, ppend(st), N.lanes(List.append(&2, U32, prem(st), t))), 48n, sv(st)))), N.suffix_fast(lenof(st)), C.suffix(lenof(st)), suffix_fast_correct(lenof(st))),
     Equal.trans(List<&2, U32>, SHA.digest_bytes(C.digest(N.blocks(List.append(&2, U32, ppend(st), N.lanes(List.append(&2, U32, prem(st), C.suffix(lenof(st))))), 48n, sv(st)))), SHA.digest_bytes(C.digest(N.blocks(List.append(&2, U32, ppend(st), N.lanes(List.append(&2, U32, prem(st), z))), 48n, sv(st)))), SHA.digest_bytes(C.digest(N.blocks(N.lanes(List.append(&2, U32, m, C.suffix(List.length(&2, U32, m)))), 48n, C.initial()))),
     Equal.cong(Nat, List<&2, U32>, t => SHA.digest_bytes(C.digest(N.blocks(List.append(&2, U32, ppend(st), N.lanes(List.append(&2, U32, prem(st), C.suffix(t)))), 48n, sv(st)))), lenof(st), List.length(&2, U32, m), Equal.sym(Nat, Nat.add(lenof(N.new()), List.length(&2, U32, m)), lenof(st), fold_len(cs, 48n, N.new()))),
-    Equal.cong(T.State, List<&2, U32>, t => SHA.digest_bytes(C.digest(t)), N.blocks(List.append(&2, U32, ppend(st), N.lanes(List.append(&2, U32, prem(st), z))), 48n, sv(st)), N.blocks(N.lanes(List.append(&2, U32, m, z)), 48n, C.initial()), Equal.sym(T.State, N.blocks(List.append(&2, U32, ppend(N.new()), N.lanes(List.append(&2, U32, prem(N.new()), List.append(&2, U32, m, z)))), 48n, sv(N.new())), N.blocks(List.append(&2, U32, ppend(st), N.lanes(List.append(&2, U32, prem(st), z))), 48n, sv(st)), fold_inv(cs, 48n, N.new(), z))))))
+    Equal.cong(T.State, List<&2, U32>, t => SHA.digest_bytes(C.digest(t)), N.blocks(List.append(&2, U32, ppend(st), N.lanes(List.append(&2, U32, prem(st), z))), 48n, sv(st)), N.blocks(N.lanes(List.append(&2, U32, m, z)), 48n, C.initial()), Equal.sym(T.State, N.blocks(List.append(&2, U32, ppend(N.new()), N.lanes(List.append(&2, U32, prem(N.new()), List.append(&2, U32, m, z)))), 48n, sv(N.new())), N.blocks(List.append(&2, U32, ppend(st), N.lanes(List.append(&2, U32, prem(st), z))), 48n, sv(st)), fold_inv(cs, 48n, N.new(), z)))))))
 
 law hash_correct:
   for +bytes: List<&2, U32>

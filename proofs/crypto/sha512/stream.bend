@@ -362,10 +362,146 @@ def sblocks(ws, q, s):
     case w0 <> w1 <> w2 <> w3 <> w4 <> w5 <> w6 <> w7 <> w8 <> w9 <> w10 <> w11 <> w12 <> w13 <> w14 <> Nil{}:
       {==}
 
+law lz0_correct:
+  for +k: Nat
+  for +sfx: List<&2, U32>
+  {N.lz0(k, sfx) == C.lanes(C.zeros_onto(k, sfx)) : List<&2, T.Lane>}
+
+def lz0_correct(k, sfx):
+  match k:
+    case 0n:
+      {==}
+    case 1n:
+      {==}
+    case 2n:
+      {==}
+    case 3n:
+      {==}
+    case 4n:
+      {==}
+    case 5n:
+      {==}
+    case 6n:
+      {==}
+    case 7n:
+      {==}
+    case 8n+j:
+      %lz0_correct(j, sfx) : {N.lz0(8n+j, sfx) == T.W{0, 0} <> _ : List<&2, T.Lane>}
+      {==}
+
+law lzp_correct:
+  for +prefix: List<&2, U32>
+  for +k: Nat
+  for +sfx: List<&2, U32>
+  {N.lzp(prefix, k, sfx) == C.lanes(List.append(&2, U32, prefix, C.zeros_onto(k, sfx))) : List<&2, T.Lane>}
+
+def lzp_correct(prefix, k, sfx):
+  match prefix k:
+    case Nil{} k2:
+      lz0_correct(k2, sfx)
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> b6 <> b7 <> Nil{} k2:
+      %lz0_correct(k2, sfx) : {N.lzp(b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> b6 <> b7 <> Nil{}, k2, sfx) == T.W{C.pack(b0, b1, b2, b3), C.pack(b4, b5, b6, b7)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> Nil{} 0n:
+      {==}
+    case b0 <> Nil{} 1n:
+      {==}
+    case b0 <> Nil{} 2n:
+      {==}
+    case b0 <> Nil{} 3n:
+      {==}
+    case b0 <> Nil{} 4n:
+      {==}
+    case b0 <> Nil{} 5n:
+      {==}
+    case b0 <> Nil{} 6n:
+      {==}
+    case b0 <> Nil{} 7n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> Nil{}, 7n+j, sfx) == T.W{C.pack(b0, 0, 0, 0), C.pack(0, 0, 0, 0)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> b1 <> Nil{} 0n:
+      {==}
+    case b0 <> b1 <> Nil{} 1n:
+      {==}
+    case b0 <> b1 <> Nil{} 2n:
+      {==}
+    case b0 <> b1 <> Nil{} 3n:
+      {==}
+    case b0 <> b1 <> Nil{} 4n:
+      {==}
+    case b0 <> b1 <> Nil{} 5n:
+      {==}
+    case b0 <> b1 <> Nil{} 6n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> b1 <> Nil{}, 6n+j, sfx) == T.W{C.pack(b0, b1, 0, 0), C.pack(0, 0, 0, 0)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> b1 <> b2 <> Nil{} 0n:
+      {==}
+    case b0 <> b1 <> b2 <> Nil{} 1n:
+      {==}
+    case b0 <> b1 <> b2 <> Nil{} 2n:
+      {==}
+    case b0 <> b1 <> b2 <> Nil{} 3n:
+      {==}
+    case b0 <> b1 <> b2 <> Nil{} 4n:
+      {==}
+    case b0 <> b1 <> b2 <> Nil{} 5n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> b1 <> b2 <> Nil{}, 5n+j, sfx) == T.W{C.pack(b0, b1, b2, 0), C.pack(0, 0, 0, 0)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> Nil{} 0n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> Nil{} 1n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> Nil{} 2n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> Nil{} 3n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> Nil{} 4n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> b1 <> b2 <> b3 <> Nil{}, 4n+j, sfx) == T.W{C.pack(b0, b1, b2, b3), C.pack(0, 0, 0, 0)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> Nil{} 0n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> Nil{} 1n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> Nil{} 2n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> Nil{} 3n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> b1 <> b2 <> b3 <> b4 <> Nil{}, 3n+j, sfx) == T.W{C.pack(b0, b1, b2, b3), C.pack(b4, 0, 0, 0)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> Nil{} 0n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> Nil{} 1n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> Nil{} 2n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> Nil{}, 2n+j, sfx) == T.W{C.pack(b0, b1, b2, b3), C.pack(b4, b5, 0, 0)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> b6 <> Nil{} 0n:
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> b6 <> Nil{} 1n+j:
+      %lz0_correct(j, sfx) : {N.lzp(b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> b6 <> Nil{}, 1n+j, sfx) == T.W{C.pack(b0, b1, b2, b3), C.pack(b4, b5, b6, 0)} <> _ : List<&2, T.Lane>}
+      {==}
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> b6 <> b7 <> bx <> rest k2:
+      {==}
+
+law tail_lanes_correct:
+  for +rem: List<&2, U32>
+  for +n: Nat
+  {N.tail_lanes(rem, n) == C.lanes(List.append(&2, U32, rem, C.suffix_fast(n))) : List<&2, T.Lane>}
+
+def tail_lanes_correct(rem, n):
+  +zc = C.zeros(Nat.mod(n, 128n))
+  +sf = {C.base256_onto(15n, Nat.div(n, 32n), [U32.shln(U32.from_nat(Nat.mod(n, 32n)), 3n)]) : List<&2, U32>}
+  Equal.trans(List<&2, T.Lane>, N.lzp(List.append(&2, U32, rem, [128]), zc, sf),
+    C.lanes(List.append(&2, U32, List.append(&2, U32, rem, [128]), C.zeros_onto(zc, sf))), C.lanes(List.append(&2, U32, rem, C.suffix_fast(n))),
+    lzp_correct(List.append(&2, U32, rem, [128]), zc, sf),
+    Equal.cong(List<&2, U32>, List<&2, T.Lane>, t => C.lanes(t),
+      List.append(&2, U32, List.append(&2, U32, rem, [128]), C.zeros_onto(zc, sf)),
+      List.append(&2, U32, rem, 128 <> C.zeros_onto(zc, sf)),
+      L.append_assoc(rem, [128], C.zeros_onto(zc, sf))))
+
 law finish_eta:
   for +st: N.St
   for +q: Nat
-  {N.finish(st, q) == C.digest_bytes(N.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix_fast(lenof(st))))), q, sv(st))) : List<&2, U32>}
+  {N.finish(st, q) == C.digest_bytes(N.blocks(List.append(&2, T.Lane, ppend(st), N.tail_lanes(prem(st), lenof(st))), q, sv(st))) : List<&2, U32>}
 
 def finish_eta(st, q):
   match st:
@@ -383,15 +519,17 @@ def stream_correct(cs):
   +m = List.concat(&2, U32, cs)
   +st = fold_st(cs, 64n, N.new())
   +z = C.suffix(List.length(&2, U32, m))
-  Equal.trans(List<&2, U32>, N.finish(st, 64n), C.digest_bytes(N.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix_fast(lenof(st))))), 64n, sv(st))), C.sha512(m),
+  Equal.trans(List<&2, U32>, N.finish(st, 64n), C.digest_bytes(N.blocks(List.append(&2, T.Lane, ppend(st), N.tail_lanes(prem(st), lenof(st))), 64n, sv(st))), C.sha512(m),
     finish_eta(st, 64n),
+    Equal.trans(List<&2, U32>, C.digest_bytes(N.blocks(List.append(&2, T.Lane, ppend(st), N.tail_lanes(prem(st), lenof(st))), 64n, sv(st))), C.digest_bytes(N.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix_fast(lenof(st))))), 64n, sv(st))), C.sha512(m),
+    Equal.cong(List<&2, T.Lane>, List<&2, U32>, t => C.digest_bytes(N.blocks(List.append(&2, T.Lane, ppend(st), t), 64n, sv(st))), N.tail_lanes(prem(st), lenof(st)), C.lanes(List.append(&2, U32, prem(st), C.suffix_fast(lenof(st)))), tail_lanes_correct(prem(st), lenof(st))),
     Equal.trans(List<&2, U32>, C.digest_bytes(N.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix_fast(lenof(st))))), 64n, sv(st))), C.digest_bytes(C.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix_fast(lenof(st))))), 64n, C.round_constants(), sv(st))), C.sha512(m),
     Equal.cong(T.State, List<&2, U32>, t => C.digest_bytes(t), N.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix_fast(lenof(st))))), 64n, sv(st)), C.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix_fast(lenof(st))))), 64n, C.round_constants(), sv(st)), sblocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix_fast(lenof(st))))), 64n, sv(st))),
     Equal.trans(List<&2, U32>, C.digest_bytes(C.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix_fast(lenof(st))))), 64n, C.round_constants(), sv(st))), C.digest_bytes(C.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix(lenof(st))))), 64n, C.round_constants(), sv(st))), C.sha512(m),
     Equal.cong(List<&2, U32>, List<&2, U32>, t => C.digest_bytes(C.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), t))), 64n, C.round_constants(), sv(st))), C.suffix_fast(lenof(st)), C.suffix(lenof(st)), FP.suffix_fast_correct(lenof(st))),
     Equal.trans(List<&2, U32>, C.digest_bytes(C.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix(lenof(st))))), 64n, C.round_constants(), sv(st))), C.digest_bytes(C.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), z))), 64n, C.round_constants(), sv(st))), C.sha512(m),
     Equal.cong(Nat, List<&2, U32>, t => C.digest_bytes(C.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), C.suffix(t)))), 64n, C.round_constants(), sv(st))), lenof(st), List.length(&2, U32, m), Equal.sym(Nat, Nat.add(lenof(N.new()), List.length(&2, U32, m)), lenof(st), fold_len(cs, 64n, N.new()))),
-    Equal.cong(T.State, List<&2, U32>, t => C.digest_bytes(t), C.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), z))), 64n, C.round_constants(), sv(st)), C.blocks(C.lanes(List.append(&2, U32, m, z)), 64n, C.round_constants(), C.initial()), Equal.sym(T.State, C.blocks(List.append(&2, T.Lane, ppend(N.new()), C.lanes(List.append(&2, U32, prem(N.new()), List.append(&2, U32, m, z)))), 64n, C.round_constants(), sv(N.new())), C.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), z))), 64n, C.round_constants(), sv(st)), fold_inv(cs, 64n, N.new(), z)))))))
+    Equal.cong(T.State, List<&2, U32>, t => C.digest_bytes(t), C.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), z))), 64n, C.round_constants(), sv(st)), C.blocks(C.lanes(List.append(&2, U32, m, z)), 64n, C.round_constants(), C.initial()), Equal.sym(T.State, C.blocks(List.append(&2, T.Lane, ppend(N.new()), C.lanes(List.append(&2, U32, prem(N.new()), List.append(&2, U32, m, z)))), 64n, C.round_constants(), sv(N.new())), C.blocks(List.append(&2, T.Lane, ppend(st), C.lanes(List.append(&2, U32, prem(st), z))), 64n, C.round_constants(), sv(st)), fold_inv(cs, 64n, N.new(), z))))))))
 
 law hash_correct:
   for +bytes: List<&2, U32>

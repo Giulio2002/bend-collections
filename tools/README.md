@@ -79,9 +79,9 @@ what it generates from.
 | `generators/blake2s_gen.py`, `blake2s_tests.py` | BLAKE2s's unrolled compression, block reads, proof lemmas and test vectors |
 | `generators/blake2b_gen.py` | BLAKE2b's lanes, unrolled compression, block reads, proof lemmas and tests |
 | `generators/blake3/gen.py`, `proofs.py`, `tests.py` | BLAKE3's compression and block reads, their proof modules, and test vectors from the official C |
-| `generators/sha512_gen.py` | SHA-512's implementation (fused rotations, constants computed from the primes) and its conformance proof's enumerations |
+| `generators/sha512_gen.py` | SHA-512's implementation (fused rotations, constants computed from the primes, the FIPS-specialized rounds `kr16`..`kr80`/`fips16`, the append-free padding), its conformance proof's enumerations and `fast.bend` (specialized == generic) |
 | `generators/sha3_gen.py` | SHA3-256's implementation (17-lane block XOR, padding) and its conformance proof |
-| `generators/hash_gen.py` | the hashing facade `src/crypto/hash.bend` (block readers per algorithm) and the incremental hasher's proofs |
+| `generators/stream_gen.py` | the streaming cores `src/crypto/{sha,sha512,sha3}/stream.bend` behind `hash.bend`'s one-shot and incremental hashing, their proofs (`proofs/crypto/{sha512,sha3}/stream.bend`, `proofs/crypto/hash/stream256.bend`) and the Hasher glue `proofs/crypto/hash/incremental.bend` |
 | `generators/chacha8rand_gen.py` | ChaCha8Rand's unrolled double round, block and four-block group (`src/math/random/chacha8/block.bend`) and their proof against the list-based C2SP specification (`proofs/math/random/chacha8/rounds.bend`) |
 | `toposort.py` | reorders the definitions of a Bend file so every callee precedes its callers (Bend has no forward references) |
 

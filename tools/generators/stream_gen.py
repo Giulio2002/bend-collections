@@ -18,6 +18,170 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 
+# ---------------------------------------------------------------- padding lanes
+
+LZ = {
+    'sha256': dict(LWf='lanes', ZERO='0', ZO='N.zeros_onto', ZOc='zeros_onto', LWp='N.lanes(%s)',
+                   tail='lzp(List.append(&2, U32, rem, [128]), Nat.mod(Nat.sub(119n, Nat.mod(len, 64n)), 64n), C.bit_length(len))'),
+    'sha512': dict(LWf='C.lanes', ZERO='T.W{0, 0}', ZO='C.zeros_onto', ZOc='C.zeros_onto', LWp='C.lanes(%s)',
+                   tail='lzp(List.append(&2, U32, rem, [128]), C.zeros(Nat.mod(len, 128n)), C.base256_onto(15n, Nat.div(len, 32n), [U32.shln(U32.from_nat(Nat.mod(len, 32n)), 3n)]))'),
+    'sha3': dict(LWf='C.lanes', ZERO='T.W{0, 0}', ZO='N.zeros_onto', ZOc='zeros_onto', LWp='C.lanes(%s)',
+                 tail='tl(Nat.sub(136n, Nat.mod(len, 136n)), rem)'),
+}
+
+
+def lzp_code(name, a):
+    z = LZ[name]
+    u = a['u']
+    b = ['b%d' % i for i in range(u)]
+    ks = ''.join('    case %dn:\n      %s(%s(%dn, sfx))\n' % (c, z['LWf'], z['ZOc'], c) for c in range(u))
+    rows = ''
+    for m in range(1, u):
+        rows += '    case %s <> Nil{} %dn+j:\n      %s <> lz0(j, sfx)\n' % (' <> '.join(b[:m]), u - m, a['pack'](b[:m] + ['0'] * (u - m)))
+    out = '''
+# lanes(k zero bytes ++ sfx), a whole zero word at a time.
+def lz0(k: Nat, sfx: List<&2, U32>) -> List<&2, %(W)s>:
+  match k:
+%(ks)s    case %(u)dn+j:
+      %(ZERO)s <> lz0(j, sfx)
+
+# lanes(prefix ++ k zeros ++ sfx), the words of a padding, without building
+# the zero bytes: the prefix's word completed with zeros, then lz0.
+def lzp(prefix: List<&2, U32>, k: Nat, sfx: List<&2, U32>) -> List<&2, %(W)s>:
+  match prefix k:
+    case Nil{} k2:
+      lz0(k2, sfx)
+    case %(bpat)s <> Nil{} k2:
+      %(pack)s <> lz0(k2, sfx)
+%(rows)s    case p k2:
+      %(LWf)s(List.append(&2, U32, p, %(ZOc)s(k2, sfx)))
+''' % dict(W=a['W'], ks=ks, u=u, ZERO=z['ZERO'], bpat=' <> '.join(b), pack=a['pack'](b), rows=rows,
+           LWf=z['LWf'], ZOc=z['ZOc'])
+    if name == 'sha3':
+        out += '''
+# lanes(rem ++ tail_fast(q)).
+def tl(q: Nat, rem: List<&2, U32>) -> List<&2, T.Lane>:
+  match q:
+    case 0n:
+      C.lanes(rem)
+    case 1n:
+      C.lanes(List.append(&2, U32, rem, [134]))
+    case 2n+k:
+      lzp(List.append(&2, U32, rem, [6]), k, [128])
+'''
+    out += '''
+# The words of rem followed by the padding for a message of len bytes.
+def tail_lanes(rem: List<&2, U32>, +len: Nat) -> List<&2, %(W)s>:
+  %(tail)s
+''' % dict(W=a['W'], tail=z['tail'])
+    return out
+
+
+def lzp_proofs(name, a):
+    z = LZ[name]
+    u = a['u']
+    W = a['W']
+    b = ['b%d' % i for i in range(u)]
+    LW = lambda x: z['LWp'] % x
+    ZO = z['ZO']
+    zk = ''.join('    case %dn:\n      {==}\n' % c for c in range(u))
+    rows = ''
+    for m in range(1, u):
+        P = ' <> '.join(b[:m] + ['Nil{}'])
+        for c in range(u - m):
+            rows += '    case %s %dn:\n      {==}\n' % (P, c)
+        rows += '''    case %(P)s %(r)dn+j:
+      %%lz0_correct(j, sfx) : {N.lzp(%(P)s, %(r)dn+j, sfx) == %(pk)s <> _ : List<&2, %(W)s>}
+      {==}
+''' % dict(P=P, r=u - m, pk=a['pack'](b[:m] + ['0'] * (u - m)), W=W)
+    out = '''
+law lz0_correct:
+  for +k: Nat
+  for +sfx: List<&2, U32>
+  {N.lz0(k, sfx) == %(LZ)s : List<&2, %(W)s>}
+
+def lz0_correct(k, sfx):
+  match k:
+%(zk)s    case %(u)dn+j:
+      %%lz0_correct(j, sfx) : {N.lz0(%(u)dn+j, sfx) == %(ZERO)s <> _ : List<&2, %(W)s>}
+      {==}
+
+law lzp_correct:
+  for +prefix: List<&2, U32>
+  for +k: Nat
+  for +sfx: List<&2, U32>
+  {N.lzp(prefix, k, sfx) == %(LG)s : List<&2, %(W)s>}
+
+def lzp_correct(prefix, k, sfx):
+  match prefix k:
+    case Nil{} k2:
+      lz0_correct(k2, sfx)
+    case %(bpat)s <> Nil{} k2:
+      %%lz0_correct(k2, sfx) : {N.lzp(%(bpat)s <> Nil{}, k2, sfx) == %(pack)s <> _ : List<&2, %(W)s>}
+      {==}
+%(rows)s    case %(bpat)s <> bx <> rest k2:
+      {==}
+''' % dict(LZ=LW('%s(k, sfx)' % ZO), W=W, zk=zk, u=u, ZERO=z['ZERO'],
+           LG=LW('List.append(&2, U32, prefix, %s(k, sfx))' % ZO), bpat=' <> '.join(b),
+           pack=a['pack'](b), rows=rows)
+    if name == 'sha3':
+        out += '''
+law tl_correct:
+  for +q: Nat
+  for +rem: List<&2, U32>
+  {N.tl(q, rem) == C.lanes(List.append(&2, U32, rem, N.tail_fast(q))) : List<&2, T.Lane>}
+
+def tl_correct(q, rem):
+  match q:
+    case 0n:
+      %Equal.sym(List<&2, U32>, List.append(&2, U32, rem, Nil{}), rem, L.append_nil(rem)) : {N.tl(0n, rem) == C.lanes(_) : List<&2, T.Lane>}
+      {==}
+    case 1n:
+      {==}
+    case 2n+k:
+      Equal.trans(List<&2, T.Lane>, N.lzp(List.append(&2, U32, rem, [6]), k, [128]),
+        C.lanes(List.append(&2, U32, List.append(&2, U32, rem, [6]), N.zeros_onto(k, [128]))),
+        C.lanes(List.append(&2, U32, rem, 6 <> N.zeros_onto(k, [128]))),
+        lzp_correct(List.append(&2, U32, rem, [6]), k, [128]),
+        Equal.cong(List<&2, U32>, List<&2, T.Lane>, t => C.lanes(t),
+          List.append(&2, U32, List.append(&2, U32, rem, [6]), N.zeros_onto(k, [128])),
+          List.append(&2, U32, rem, 6 <> N.zeros_onto(k, [128])),
+          L.append_assoc(rem, [6], N.zeros_onto(k, [128]))))
+
+law tail_lanes_correct:
+  for +rem: List<&2, U32>
+  for +n: Nat
+  {N.tail_lanes(rem, n) == C.lanes(List.append(&2, U32, rem, N.suffix_fast(n))) : List<&2, T.Lane>}
+
+def tail_lanes_correct(rem, n):
+  tl_correct(Nat.sub(136n, Nat.mod(n, 136n)), rem)
+'''
+    else:
+        if name == 'sha512':
+            zc, sfx, SUFF = 'C.zeros(Nat.mod(n, 128n))', 'C.base256_onto(15n, Nat.div(n, 32n), [U32.shln(U32.from_nat(Nat.mod(n, 32n)), 3n)])', 'C.suffix_fast(n)'
+        else:
+            zc, sfx, SUFF = 'Nat.mod(Nat.sub(119n, Nat.mod(n, 64n)), 64n)', 'C.bit_length(n)', 'N.suffix_fast(n)'
+        out += '''
+law tail_lanes_correct:
+  for +rem: List<&2, U32>
+  for +n: Nat
+  {N.tail_lanes(rem, n) == %(R)s : List<&2, %(W)s>}
+
+def tail_lanes_correct(rem, n):
+  +zc = %(zc)s
+  +sf = {%(sfx)s : List<&2, U32>}
+  Equal.trans(List<&2, %(W)s>, N.lzp(List.append(&2, U32, rem, [128]), zc, sf),
+    %(M)s, %(R)s,
+    lzp_correct(List.append(&2, U32, rem, [128]), zc, sf),
+    Equal.cong(List<&2, U32>, List<&2, %(W)s>, t => %(Lt)s,
+      List.append(&2, U32, List.append(&2, U32, rem, [128]), %(ZO)s(zc, sf)),
+      List.append(&2, U32, rem, 128 <> %(ZO)s(zc, sf)),
+      L.append_assoc(rem, [128], %(ZO)s(zc, sf))))
+''' % dict(W=W, zc=zc, sfx=sfx, ZO=ZO, R=LW('List.append(&2, U32, rem, %s)' % SUFF),
+           M=LW('List.append(&2, U32, List.append(&2, U32, rem, [128]), %s(zc, sf))' % ZO), Lt=LW('t'))
+    return out
+
+
 ZEROS = '''
 # k zero bytes onto acc.
 def zeros_onto(k: Nat, acc: List<&2, U32>) -> List<&2, U32>:
@@ -35,7 +199,7 @@ ALGS = {
         pack=lambda b: 'C.pack(%s)' % ', '.join(b),
         compress=lambda ws: 'C.fips_compress16(%s, q, s)' % ', '.join(ws),
         init='C.initial()',
-        finish='SHA.digest_bytes(C.digest(blocks(List.append(&2, U32, pend, lanes(List.append(&2, U32, rem, suffix_fast(len)))), q, s)))',
+        finish='SHA.digest_bytes(C.digest(blocks(List.append(&2, U32, pend, tail_lanes(rem, len)), q, s)))',
         extra=ZEROS + '''
 # C.suffix(n) (0x80, zeros, the 64-bit bit length), with no list appended.
 def suffix_fast(+n: Nat) -> List<&2, U32>:
@@ -64,7 +228,7 @@ def blocks(ws: List<&2, U32>, +q: Nat, s: T.State) -> T.State:
         pack=lambda b: 'T.W{C.pack(%s), C.pack(%s)}' % (', '.join(b[:4]), ', '.join(b[4:])),
         compress=lambda ws: 'C.fips16(%s, q, s)' % ', '.join(ws),
         init='C.initial()',
-        finish='C.digest_bytes(blocks(List.append(&2, T.Lane, pend, C.lanes(List.append(&2, U32, rem, C.suffix_fast(len)))), q, s))',
+        finish='C.digest_bytes(blocks(List.append(&2, T.Lane, pend, tail_lanes(rem, len)), q, s))',
         extra='''
 # The block loop with the FIPS-specialized compression: the finishing path.
 def blocks(ws: List<&2, T.Lane>, +q: Nat, s: T.State) -> T.State:
@@ -81,7 +245,7 @@ def blocks(ws: List<&2, T.Lane>, +q: Nat, s: T.State) -> T.State:
         pack=lambda b: 'T.W{C.pack(%s), C.pack(%s)}' % (', '.join(b[:4]), ', '.join(b[4:])),
         compress=lambda ws: 'P.rounds(q, 0n, C.inject(s, %s))' % ', '.join(ws),
         init='C.zero()',
-        finish='C.digest_bytes(C.absorb(List.append(&2, T.Lane, pend, C.lanes(List.append(&2, U32, rem, suffix_fast(len)))), q, s))',
+        finish='C.digest_bytes(C.absorb(List.append(&2, T.Lane, pend, tail_lanes(rem, len)), q, s))',
         extra=ZEROS + '''
 # C.suffix(n) (0x06, zeros, 0x80 to the end of the block), with no list appended.
 def tail_fast(q: Nat) -> List<&2, U32>:
@@ -100,7 +264,7 @@ def suffix_fast(+n: Nat) -> List<&2, U32>:
 }
 
 
-def stream(a):
+def stream(name, a):
     u, n, W = a['u'], a['n'], a['W']
     b = ['b%d' % i for i in range(u)]
     ws = ['w%d' % i for i in range(n)]
@@ -162,7 +326,7 @@ def run(wl: Words, +q: Nat, s: %(S)s, +done: Nat) -> St:
     case _:
       stop(wl, s, done)
 
-%(extra)s
+%(extra)s%(lzp)s
 def new() -> St:
   St{%(init)s, Nil{}, Nil{}, 0n}
 
@@ -187,7 +351,7 @@ def finish(st: St, +q: Nat) -> List<&2, U32>:
 
 def hash(bytes: List<&2, U32>) -> List<&2, U32>:
   finish(update(new(), bytes, %(Q)s), %(Q)s)
-''' % dict(a, extra=a.get('extra', ''), bpat=' <> '.join(b), pack=a['pack'](b), nest=nest, compress=a['compress'](ws))
+''' % dict(a, extra=a.get('extra', ''), lzp=lzp_code(name, a), bpat=' <> '.join(b), pack=a['pack'](b), nest=nest, compress=a['compress'](ws))
 
 
 # ---------------------------------------------------------------- proofs
@@ -257,7 +421,7 @@ def stream_proofs(name, a, p):
     fast = a['compress'](ws)
     Rp = 'N.run(rest, q, %s, Nat.add(%dn, done))' % (fast, B)
     NBf = (lambda x, q, sv: p['NB'] % (x, q, sv)) if p['NB'] else Gw
-    fin_expr = DIG(NBf(wapp(W, 'ppend(st)', LW(app('prem(st)', p['SUFF'] % 'lenof(st)'))), 'q', 'sv(st)'))
+    fin_expr = DIG(NBf(wapp(W, 'ppend(st)', 'N.tail_lanes(prem(st), lenof(st))'), 'q', 'sv(st)'))
     view = lambda st, z: Gw(wapp(W, 'ppend(%s)' % st, LW(app('prem(%s)' % st, z))), 'q', 'sv(%s)' % st)
     out = ['''# Generated by tools/generators/stream_gen.py; do not edit by hand.
 import Base
@@ -506,7 +670,7 @@ def finish_eta(st, q):
         l0=app('rem', app(app('c', 'm'), 'z')), l1=app('rem', app('c', 'mz')), l2=app('rc', 'mz'),
         Gt2=Gw(wapp(W, 'pend', 't'), 'q', 's'), LWrcmz=LW(app('rc', 'mz')),
         Gt3=Gw('t', 'q', 's'),
-        extra=extra_text(name, a, p, W),
+        extra=extra_text(name, a, p, W) + lzp_proofs(name, a),
         fin=fin_expr)]
     out.append(tail(name, a, p, W, Q, LW, Gw, DIG))
     return ''.join(out)
@@ -530,9 +694,13 @@ def tail(name, a, p, W, Q, LW, Gw, DIG):
     Xi = LW(app('m', 'z'))
     Fm = fone(name, 'm', LW, Gw, DIG, p, Q)
     terms, proofs = [], []
-    a1 = DIG(NB(Xf, Q, 'sv(st)'))
-    terms.append(a1)
+    Xt = wapp(W, 'ppend(st)', 'N.tail_lanes(prem(st), lenof(st))')
+    terms.append(DIG(NB(Xt, Q, 'sv(st)')))
     proofs.append('finish_eta(st, %s)' % Q)
+    terms.append(DIG(NB(Xf, Q, 'sv(st)')))
+    proofs.append('Equal.cong(List<&2, %s>, List<&2, U32>, t => %s, %s, %s, tail_lanes_correct(prem(st), lenof(st)))' % (
+        W, DIG(NB(wapp(W, 'ppend(st)', 't'), Q, 'sv(st)')), 'N.tail_lanes(prem(st), lenof(st))',
+        LW(app('prem(st)', SUFF('lenof(st)')))))
     if p['NB']:
         terms.append(DIG(Gw(Xf, Q, 'sv(st)')))
         proofs.append('Equal.cong(%s, List<&2, U32>, t => %s, %s, %s, sblocks(%s, %s, sv(st)))' % (
@@ -703,7 +871,7 @@ def main():
     out = Path(sys.argv[1]) if len(sys.argv) > 1 else None
     for name, a in ALGS.items():
         dst = (out / ('stream_%s.bend' % name)) if out else (ROOT / 'src/crypto' / a['dir'] / 'stream.bend')
-        dst.write_text(stream(a))
+        dst.write_text(stream(name, a))
         if not out:
             (ROOT / PROOF[name]['out']).write_text(stream_proofs(name, a, PROOF[name]))
     if not out:

@@ -77,6 +77,67 @@ def tail_fast(q: Nat) -> List<&2, U32>:
 def suffix_fast(+n: Nat) -> List<&2, U32>:
   tail_fast(Nat.sub(136n, Nat.mod(n, 136n)))
 
+# lanes(k zero bytes ++ sfx), a whole zero word at a time.
+def lz0(k: Nat, sfx: List<&2, U32>) -> List<&2, T.Lane>:
+  match k:
+    case 0n:
+      C.lanes(zeros_onto(0n, sfx))
+    case 1n:
+      C.lanes(zeros_onto(1n, sfx))
+    case 2n:
+      C.lanes(zeros_onto(2n, sfx))
+    case 3n:
+      C.lanes(zeros_onto(3n, sfx))
+    case 4n:
+      C.lanes(zeros_onto(4n, sfx))
+    case 5n:
+      C.lanes(zeros_onto(5n, sfx))
+    case 6n:
+      C.lanes(zeros_onto(6n, sfx))
+    case 7n:
+      C.lanes(zeros_onto(7n, sfx))
+    case 8n+j:
+      T.W{0, 0} <> lz0(j, sfx)
+
+# lanes(prefix ++ k zeros ++ sfx), the words of a padding, without building
+# the zero bytes: the prefix's word completed with zeros, then lz0.
+def lzp(prefix: List<&2, U32>, k: Nat, sfx: List<&2, U32>) -> List<&2, T.Lane>:
+  match prefix k:
+    case Nil{} k2:
+      lz0(k2, sfx)
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> b6 <> b7 <> Nil{} k2:
+      T.W{C.pack(b0, b1, b2, b3), C.pack(b4, b5, b6, b7)} <> lz0(k2, sfx)
+    case b0 <> Nil{} 7n+j:
+      T.W{C.pack(b0, 0, 0, 0), C.pack(0, 0, 0, 0)} <> lz0(j, sfx)
+    case b0 <> b1 <> Nil{} 6n+j:
+      T.W{C.pack(b0, b1, 0, 0), C.pack(0, 0, 0, 0)} <> lz0(j, sfx)
+    case b0 <> b1 <> b2 <> Nil{} 5n+j:
+      T.W{C.pack(b0, b1, b2, 0), C.pack(0, 0, 0, 0)} <> lz0(j, sfx)
+    case b0 <> b1 <> b2 <> b3 <> Nil{} 4n+j:
+      T.W{C.pack(b0, b1, b2, b3), C.pack(0, 0, 0, 0)} <> lz0(j, sfx)
+    case b0 <> b1 <> b2 <> b3 <> b4 <> Nil{} 3n+j:
+      T.W{C.pack(b0, b1, b2, b3), C.pack(b4, 0, 0, 0)} <> lz0(j, sfx)
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> Nil{} 2n+j:
+      T.W{C.pack(b0, b1, b2, b3), C.pack(b4, b5, 0, 0)} <> lz0(j, sfx)
+    case b0 <> b1 <> b2 <> b3 <> b4 <> b5 <> b6 <> Nil{} 1n+j:
+      T.W{C.pack(b0, b1, b2, b3), C.pack(b4, b5, b6, 0)} <> lz0(j, sfx)
+    case p k2:
+      C.lanes(List.append(&2, U32, p, zeros_onto(k2, sfx)))
+
+# lanes(rem ++ tail_fast(q)).
+def tl(q: Nat, rem: List<&2, U32>) -> List<&2, T.Lane>:
+  match q:
+    case 0n:
+      C.lanes(rem)
+    case 1n:
+      C.lanes(List.append(&2, U32, rem, [134]))
+    case 2n+k:
+      lzp(List.append(&2, U32, rem, [6]), k, [128])
+
+# The words of rem followed by the padding for a message of len bytes.
+def tail_lanes(rem: List<&2, U32>, +len: Nat) -> List<&2, T.Lane>:
+  tl(Nat.sub(136n, Nat.mod(len, 136n)), rem)
+
 def new() -> St:
   St{C.zero(), Nil{}, Nil{}, 0n}
 
@@ -97,7 +158,7 @@ def finish(st: St, +q: Nat) -> List<&2, U32>:
   match st:
     case St{s, +pend, +rem, done}:
       +len = Nat.add(done, Nat.add(word_bytes(pend), List.length(&2, U32, rem)))
-      C.digest_bytes(C.absorb(List.append(&2, T.Lane, pend, C.lanes(List.append(&2, U32, rem, suffix_fast(len)))), q, s))
+      C.digest_bytes(C.absorb(List.append(&2, T.Lane, pend, tail_lanes(rem, len)), q, s))
 
 def hash(bytes: List<&2, U32>) -> List<&2, U32>:
   finish(update(new(), bytes, 24n), 24n)
