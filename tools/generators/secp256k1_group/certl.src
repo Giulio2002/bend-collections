@@ -1,0 +1,70 @@
+import Base
+import ../../../../src/math/number.bend as NB
+import ../../../../spec/math/number.bend as SN
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../semiring.bend as SR
+import ./bn.bend as B
+import ./bnx.bend as X
+import ./prime.bend as PM
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+
+# Glue for the generated certificates (certp.bend, by gen_cert.py).
+
+# a small prime, by the library's trial division on its unary value
+def sp_o(+one: Nat, +h1: {one == 1n : Nat}, +q: B.Bn, +h: {NB.is_prime(B.bval(q)) == True{} : Bool}) -> PM.Prime(X.bvalo(one, q)):
+  %Equal.sym(Nat, X.bvalo(one, q), B.bval(q), X.bo(one, h1, q)) : {SN.prime(_) == True{} : Bool}
+  PM.small_prime(B.bval(q), h)
+
+# ---- step lists in chunks (each chunk its own closed check) ----
+
+# x == a^e (mod m)
+def Inv(+one: Nat, +a: B.Bn, +m: B.Bn, +x: B.Bn, +e: B.Bn) -> Data:
+  {Nat.mod(X.bvalo(one, x), X.bvalo(one, m)) == Nat.mod(Nat.pow(X.bvalo(one, a), X.bvalo(one, e)), X.bvalo(one, m)) : Nat}
+
+def inv0(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +m: B.Bn) -> Inv(one, a, m, a, B.B1{B.BZ{}}):
+  %goal {Nat.mod(X.bvalo(one, a), X.bvalo(one, m)) == Nat.mod(Nat.pow(X.bvalo(one, a), X.bvalo(one, B.B1{B.BZ{}})), X.bvalo(one, m)) : Nat}
+  %rw X.one_o(one, h1)
+  %goal {Nat.mod(X.bvalo(one, a), X.bvalo(one, m)) == Nat.mod(Nat.mul(X.bvalo(one, a), 1n), X.bvalo(one, m)) : Nat}
+  %rw NA.mul_one(X.bvalo(one, a))
+  %close
+
+def hxb(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +m: B.Bn, +m1: B.Bn, +x: B.Bn, +e: B.Bn, +hm: {B.bval(m) == 1n+B.bval(m1) : Nat}, +hx: Inv(one, a, m, x, e)) -> {Nat.mod(B.bval(x), 1n+B.bval(m1)) == Nat.mod(Nat.pow(B.bval(a), B.bval(e)), 1n+B.bval(m1)) : Nat}:
+  %rwh Equal.sym(Nat, B.bval(m), 1n+B.bval(m1), hm) : {1n+B.bval(m1) == B.bval(m) : Nat}
+  %rwh Equal.sym(Nat, B.bval(m), 1n+B.bval(m1), hm) : {1n+B.bval(m1) == B.bval(m) : Nat}
+  %rw <- X.bo(one, h1, x)
+  %rw <- X.bo(one, h1, m)
+  %rw <- X.bo(one, h1, a)
+  %rw <- X.bo(one, h1, e)
+  %rw <- X.bo(one, h1, m)
+  hx
+
+def ck_o(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +m: B.Bn, +m1: B.Bn, +x: B.Bn, +e: B.Bn, +steps: List<&2, X.St>, +x2: B.Bn, +e2: B.Bn, +hn: {B.beq(m, B.binc(m1)) == True{} : Bool}, +hx: Inv(one, a, m, x, e), +hc: {X.okv(X.run(steps, a, m, x, True{}), x2) == True{} : Bool}, +he: {B.beq(X.eb(steps, e), e2) == True{} : Bool}) -> Inv(one, a, m, x2, e2):
+  +hm = Equal.trans(Nat, B.bval(m), B.bval(B.binc(m1)), 1n+B.bval(m1), B.beq_v(m, B.binc(m1), hn), B.binc_v(m1))
+  +hx2 = hxb(one, h1, a, m, m1, x, e, hm, hx)
+  +h0 = X.run_v(steps, a, m, B.bval(m1), x, e, True{}, hm, hx2, X.okv_ok(X.run(steps, a, m, x, True{}), x2, hc))
+  %goal {Nat.mod(X.bvalo(one, x2), X.bvalo(one, m)) == Nat.mod(Nat.pow(X.bvalo(one, a), X.bvalo(one, e2)), X.bvalo(one, m)) : Nat}
+  %rw X.bo(one, h1, x2)
+  %rw X.bo(one, h1, m)
+  %rw X.bo(one, h1, a)
+  %rw X.bo(one, h1, e2)
+  %rw X.bo(one, h1, m)
+  %rwh hm : {B.bval(m) == 1n+B.bval(m1) : Nat}
+  %rwh hm : {B.bval(m) == 1n+B.bval(m1) : Nat}
+  %rw <- B.beq_v(X.val(X.run(steps, a, m, x, True{})), x2, X.okv_eq(X.run(steps, a, m, x, True{}), x2, hc))
+  %rw <- B.beq_v(X.eb(steps, e), e2, he)
+  h0
+
+# a^e mod m == r from x == a^e with x == r < m
+def fin_o(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +m: B.Bn, +m1: B.Bn, +r: B.Bn, +e: B.Bn, +d: B.Bn, +hn: {B.beq(m, B.binc(m1)) == True{} : Bool}, +hx: Inv(one, a, m, r, e), +hlt: {B.beq(m, B.badd(B.binc(r), d)) == True{} : Bool}) -> {Nat.mod(Nat.pow(X.bvalo(one, a), X.bvalo(one, e)), X.bvalo(one, m)) == X.bvalo(one, r) : Nat}:
+  %rwh Equal.sym(Nat, Nat.mod(X.bvalo(one, r), X.bvalo(one, m)), Nat.mod(Nat.pow(X.bvalo(one, a), X.bvalo(one, e)), X.bvalo(one, m)), hx) : {Nat.mod(Nat.pow(X.bvalo(one, a), X.bvalo(one, e)), X.bvalo(one, m)) == Nat.mod(X.bvalo(one, r), X.bvalo(one, m)) : Nat}
+  %rw X.suc_o(one, h1, m, m1, hn)
+  NR.mod_of(0n, X.bvalo(one, m1), X.bvalo(one, r), Equal.trans(Bool, Nat.is_lt(X.bvalo(one, r), 1n+X.bvalo(one, m1)), Nat.is_lt(X.bvalo(one, r), X.bvalo(one, m)), True{}, Equal.cong(Nat, Bool, z => Nat.is_lt(X.bvalo(one, r), z), 1n+X.bvalo(one, m1), X.bvalo(one, m), Equal.sym(Nat, X.bvalo(one, m), 1n+X.bvalo(one, m1), X.suc_o(one, h1, m, m1, hn))), X.lt_o(one, h1, r, m, d, hlt)))
+
+# a^(q m') mod n == 1
+def fin3_o(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +n: B.Bn, +n1: B.Bn, +e: B.Bn, +q: B.Bn, +m: B.Bn, +d: B.Bn, +hn: {B.beq(n, B.binc(n1)) == True{} : Bool}, +hx: Inv(one, a, n, B.B1{B.BZ{}}, e), +he: {B.beq(e, B.bmul(q, m)) == True{} : Bool}, +hlt: {B.beq(n, B.badd(B.binc(B.B1{B.BZ{}}), d)) == True{} : Bool}) -> {Nat.mod(Nat.pow(X.bvalo(one, a), Nat.mul(X.bvalo(one, q), X.bvalo(one, m))), X.bvalo(one, n)) == 1n : Nat}:
+  %rw <- X.mul_o(one, h1, q, m)
+  %rw <- X.eq_o(one, h1, e, B.bmul(q, m), he)
+  %rw <- X.one_o(one, h1)
+  fin_o(one, h1, a, n, n1, B.B1{B.BZ{}}, e, d, hn, hx, hlt)
