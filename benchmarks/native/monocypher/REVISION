@@ -1,0 +1,2 @@
+Monocypher 4.0.2 (https://github.com/LoupVaillant/Monocypher, tag 4.0.2, commit 0d85f98c9d9b0227e42cf795cb527dff372b40a4)
+src/monocypher.{c,h}, src/optional/monocypher-ed25519.{c,h}, unmodified. Dual licence: BSD-2-Clause or CC0-1.0 (LICENCE.md).

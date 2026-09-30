@@ -1,0 +1,3 @@
+Official Argon2 reference (https://github.com/P-H-C/phc-winner-argon2, commit f57e61e19229e23c4445b85494dbf7c07de721cb, 2021-06-25; release 20190702 + later fixes)
+src/{argon2,core,ref,encoding,thread}.c, core.h, encoding.h, thread.h, include/argon2.h, src/blake2/{blake2b.c,blake2.h,blake2-impl.h,blamka-round-ref.h}, unmodified (argon2.h flattened next to the sources).
+The portable ref.c build (no SSE opt.c), -DARGON2_NO_THREADS. Dual licence: CC0-1.0 or Apache-2.0 (LICENSE).
