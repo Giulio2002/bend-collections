@@ -14,6 +14,8 @@ import ./point.bend as PT
 import ./sel.bend as SL
 import ./ptm.bend as PM
 import ./ptp.bend as PP
+import ./paq.bend as AQ
+import ./paff.bend as PA
 import ./ineq.bend as I
 import ./bytes.bend as BY
 import ./pwin.bend as PW
@@ -159,6 +161,15 @@ def mul_q(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +hc: 
   +e3 = Lg.subst(CV.SPoint, z => {GS.equiv(FS.prime(one), PP.pv(one, PX.wmul(L.bitsf(ks), P.to_pt(pp))), GS.smul(FS.prime(one), k, z)) == True{} : Bool}, PP.pv(one, P.to_pt(pp)), a, PT.tp_v(one, pp, hq), e2)
   %Equal.sym(CV.SPoint, PT.pv(one, P.of_pt(PX.wmul(L.bitsf(ks), P.to_pt(pp)))), PP.pv(one, PX.wmul(L.bitsf(ks), P.to_pt(pp))), PT.op_v(one, PX.wmul(L.bitsf(ks), P.to_pt(pp)))) : {GS.equiv(FS.prime(one), _, CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp))) == True{} : Bool}
   GP.equiv_trans(one, h1, hp, hc, PP.pv(one, PX.wmul(L.bitsf(ks), P.to_pt(pp))), GS.smul(FS.prime(one), k, a), CV.pmul(FS.prime(one), k, a), GP.scalar_closed(one, h1, hp, hc, k, a, vq), e3, GP.equiv_sym(one, h1, hp, hc, CV.pmul(FS.prime(one), k, a), GS.smul(FS.prime(one), k, a), GP.scalar_pmul(one, h1, hp, hc, k, a, vq, fits_v(one, h1, ks, hk))))
+
+# G is a point of the group
+def g_vd(+one: Nat, +h1: {one == 1n : Nat}) -> {GS.valid(FS.prime(one), PT.pv(one, P.g())) == True{} : Bool}:
+  %Equal.sym(CV.SPoint, PT.pv(one, P.g()), CV.g(one), PA.g_v(one, h1)) : {GS.valid(FS.prime(one), _) == True{} : Bool}
+  AQ.g_valid(one, h1)
+
+# the affine coordinates of [k] P are the specification's
+def mul_aff(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hq: {PT.pred(one, pp) == True{} : Bool}, +vq: {GS.valid(FS.prime(one), PT.pv(one, pp)) == True{} : Bool}) -> {CV.to_affine(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp))) == CV.to_affine(FS.prime(one), PT.pv(one, P.mul(ks, pp))) : CV.SAffine}:
+  AQ.ta_q(one, h1, hp, CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp)), PT.pv(one, P.mul(ks, pp)), GP.scalar_pmul_closed(one, h1, hp, hc, FS.value(one, ks), PT.pv(one, pp), vq), mul_vd(one, h1, hp, hc, ks, pp, hk, hq, vq), GP.equiv_sym(one, h1, hp, hc, PT.pv(one, P.mul(ks, pp)), CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp)), mul_q(one, h1, hp, hc, ks, pp, hk, hq, vq)))
 
 def mul_pub_r(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}) -> {PT.pred(one, P.mul_pub(ks, pp)) == True{} : Bool}:
   PT.op_r(one, PX.vmul_go(L.bitsf(ks), P.to_pt(pp), PX.infinity()), PM.vmul_go_r(one, h1, L.bitsf(ks), P.to_pt(pp), PX.infinity(), lbits01(one, h1, ks, hk), PT.tp_r(one, pp, hp), PM.pinf_r(one, h1)))

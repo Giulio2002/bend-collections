@@ -1,0 +1,64 @@
+import Base
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../spec/crypto/secp256k1/curve.bend as CS
+import ../../../spec/crypto/secp256k1/group.bend as GS
+import ../../lib/logic.bend as Lg
+import ./lite/lib/nat.bend as N
+import ./lite/lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../math/number/nt_prime.bend as NP
+import ./group/fld.bend as F
+import ./group/glaw2.bend as G2
+import ./group/affx.bend as AX
+import ./group/gfp.bend as GF
+import ./group/certb.bend as CB
+import ./group/ptv.bend as PV
+
+# The affine coordinates of the specification (CS.to_affine, (0, 0) for the
+# point at infinity) depend only on the projective point: equivalent points
+# of the group have the same ones. hp: p is prime (the group law's
+# hypothesis, discharged by the closing roots).
+
+# 1 / z = 0 for z = 0 (mod m)
+def inv0(mp: Nat, +z: Nat, +hz: {Nat.mod(z, 1n+mp) == 0n : Nat}, +hm: {Nat.is_lt(1n, mp) == True{} : Bool}) -> {FS.minv(1n+mp, z) == 0n : Nat}:
+  match mp:
+    case 0n:
+      Empty.absurd({FS.minv(1n, z) == 0n : Nat}, Lg.false_true(hm))
+    case 1n:
+      Empty.absurd({FS.minv(2n, z) == 0n : Nat}, Lg.false_true(hm))
+    case 2n+ +k:
+      %goal {Nat.mod(Nat.mul(z, Nat.pow(z, k)), 3n+k) == 0n : Nat}
+      F.z_mul_l(2n+k, z, Nat.pow(z, k), hz)
+
+def ta0(+mp: Nat, +x: Nat, +y: Nat, +z: Nat, +hz: {Nat.mod(z, 1n+mp) == 0n : Nat}, +hm: {Nat.is_lt(1n, mp) == True{} : Bool}) -> {CS.to_affine(1n+mp, CS.SPoint{x, y, z}) == CS.SAffine{0n, 0n} : CS.SAffine}:
+  %goal {CS.SAffine{Nat.mod(Nat.mul(x, FS.minv(1n+mp, z)), 1n+mp), Nat.mod(Nat.mul(y, FS.minv(1n+mp, z)), 1n+mp)} == CS.SAffine{0n, 0n} : CS.SAffine}
+  %rw inv0(mp, z, hz, hm)
+  %rw inv0(mp, z, hz, hm)
+  %rw NA.mul_zero(x)
+  %rw NA.mul_zero(y)
+  %close
+
+def ta_c(+mp: Nat, +hp: NP.Prime(1n+mp), +hm: {Nat.is_lt(1n, mp) == True{} : Bool}, +x1: Nat, +y1: Nat, +z1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +va: {GS.valid(1n+mp, CS.SPoint{x1, y1, z1}) == True{} : Bool}, +vb: {GS.valid(1n+mp, CS.SPoint{x2, y2, z2}) == True{} : Bool}, +h: {GS.equiv(1n+mp, CS.SPoint{x1, y1, z1}, CS.SPoint{x2, y2, z2}) == True{} : Bool}, c: Bool, +hc: {Nat.is_eq(Nat.mod(z1, 1n+mp), 0n) == c : Bool}) -> {CS.to_affine(1n+mp, CS.SPoint{x1, y1, z1}) == CS.to_affine(1n+mp, CS.SPoint{x2, y2, z2}) : CS.SAffine}:
+  match c:
+    case False{}:
+      AX.ta_eqv(mp, hp, x1, y1, z1, x2, y2, z2, va, vb, hc, AX.nz_eqv(mp, hp, x1, y1, z1, x2, y2, z2, vb, hc, h), h)
+    case True{}:
+      +hz1 = N.eq_from_is_eq(Nat.mod(z1, 1n+mp), 0n, hc)
+      +ea = AX.z0_eqv(mp, hp, x1, y1, z1, va, hz1)
+      +eb = G2.e_trans(mp, hp, CS.SPoint{x2, y2, z2}, CS.SPoint{x1, y1, z1}, CS.infinity(), va, G2.e_sym(mp, CS.SPoint{x1, y1, z1}, CS.SPoint{x2, y2, z2}, h), ea)
+      +hz2 = AX.eqv_z0(mp, x2, y2, z2, eb)
+      Equal.trans(CS.SAffine, CS.to_affine(1n+mp, CS.SPoint{x1, y1, z1}), CS.SAffine{0n, 0n}, CS.to_affine(1n+mp, CS.SPoint{x2, y2, z2}), ta0(mp, x1, y1, z1, hz1, hm), Equal.sym(CS.SAffine, CS.to_affine(1n+mp, CS.SPoint{x2, y2, z2}), CS.SAffine{0n, 0n}, ta0(mp, x2, y2, z2, hz2, hm)))
+
+def ta_p(+mp: Nat, +hp: NP.Prime(1n+mp), +hm: {Nat.is_lt(1n, mp) == True{} : Bool}, a: CS.SPoint, b: CS.SPoint, +va: {GS.valid(1n+mp, a) == True{} : Bool}, +vb: {GS.valid(1n+mp, b) == True{} : Bool}, +h: {GS.equiv(1n+mp, a, b) == True{} : Bool}) -> {CS.to_affine(1n+mp, a) == CS.to_affine(1n+mp, b) : CS.SAffine}:
+  match a b:
+    case CS.SPoint{+x1, +y1, +z1} CS.SPoint{+x2, +y2, +z2}:
+      ta_c(mp, hp, hm, x1, y1, z1, x2, y2, z2, va, vb, h, Nat.is_eq(Nat.mod(z1, 1n+mp), 0n), {==})
+
+# equivalent points of the group have the same affine coordinates
+def ta_q(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +a: CS.SPoint, +b: CS.SPoint, +va: {GS.valid(FS.prime(one), a) == True{} : Bool}, +vb: {GS.valid(FS.prime(one), b) == True{} : Bool}, +h: {GS.equiv(FS.prime(one), a, b) == True{} : Bool}) -> {CS.to_affine(FS.prime(one), a) == CS.to_affine(FS.prime(one), b) : CS.SAffine}:
+  +e = CB.p_suc(one, h1)
+  +hm = N.lt_trans(1n, 20n, GF.pm(one), {==}, GF.h21_m(one, h1))
+  Lg.subst(Nat, p => {CS.to_affine(p, a) == CS.to_affine(p, b) : CS.SAffine}, 1n+GF.pm(one), FS.prime(one), Equal.sym(Nat, FS.prime(one), 1n+GF.pm(one), e), ta_p(GF.pm(one), GF.hp_m(one, h1, hp), hm, a, b, Lg.subst(Nat, p => {GS.valid(p, a) == True{} : Bool}, FS.prime(one), 1n+GF.pm(one), e, va), Lg.subst(Nat, p => {GS.valid(p, b) == True{} : Bool}, FS.prime(one), 1n+GF.pm(one), e, vb), Lg.subst(Nat, p => {GS.equiv(p, a, b) == True{} : Bool}, FS.prime(one), 1n+GF.pm(one), e, h)))
+
+# G is a point of the group
+def g_valid(+one: Nat, +h1: {one == 1n : Nat}) -> {GS.valid(FS.prime(one), CS.g(one)) == True{} : Bool}:
+  PV.g_valid(one, h1)

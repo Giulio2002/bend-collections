@@ -79,12 +79,9 @@ def dig1(+one: Nat, +h1: {one == 1n : Nat}, +d: Nat, +r: Nat) -> {Nat.add(Nat.mu
 # n + 1 + (2^256 - n - 1) = 2^256
 def hm_n1(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.add(1n+(1n+K.np(one)), FS.value(one, S.cm1())) == C.shift(256n, one) : Nat}:
   +r = C.shift(16n, FS.digits(one, [12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n]))
-  %Equal.sym(Nat, C.shift(256n, one), Nat.add(1n+K.np(one), FS.cn(one)), Equal.sym(Nat, Nat.add(1n+K.np(one), FS.cn(one)), C.shift(256n, one), K.hm_n(one, h1))) : {Nat.add(1n+1n+K.np(one), Nat.add(Nat.mul(one, 48830n), r)) == _ : Nat}
-  %Equal.sym(Nat, Nat.add(Nat.mul(one, 48831n), r), 1n+Nat.add(Nat.mul(one, 48830n), r), dig1(one, h1, 48830n, r)) : {Nat.add(1n+1n+K.np(one), Nat.add(Nat.mul(one, 48830n), r)) == Nat.add(1n+K.np(one), _) : Nat}
-  %Equal.sym(Nat, 1n+K.np(one), Nat.add(K.np(one), 1n), SR.succ_add(1n, K.np(one))) : {Nat.add(1n+_, Nat.add(Nat.mul(one, 48830n), r)) == Nat.add(1n+K.np(one), 1n+Nat.add(Nat.mul(one, 48830n), r)) : Nat}
-  %Equal.sym(Nat, 1n+Nat.add(K.np(one), 1n), Nat.add(Nat.add(K.np(one), 1n), 1n), SR.succ_add(1n, Nat.add(K.np(one), 1n))) : {Nat.add(_, Nat.add(Nat.mul(one, 48830n), r)) == Nat.add(1n+K.np(one), 1n+Nat.add(Nat.mul(one, 48830n), r)) : Nat}
-  %Equal.sym(Nat, Nat.add(Nat.add(K.np(one), 1n), 1n), Nat.add(K.np(one), Nat.add(1n, 1n)), NA.add_assoc(K.np(one), 1n, 1n)) : {Nat.add(_, Nat.add(Nat.mul(one, 48830n), r)) == Nat.add(1n+K.np(one), 1n+Nat.add(Nat.mul(one, 48830n), r)) : Nat}
-  %Equal.sym(Nat, Nat.add(1n, 1n), 2n, {==}) : {Nat.add(Nat.add(K.np(one), _), Nat.add(Nat.mul(one, 48830n), r)) == Nat.add(1n+K.np(one), 1n+Nat.add(Nat.mul(one, 48830n), r)) : Nat}
+  %Equal.sym(Nat, C.shift(256n, one), Nat.add(1n+K.np(one), FS.cn(one)), Equal.sym(Nat, Nat.add(1n+K.np(one), FS.cn(one)), C.shift(256n, one), K.hm_n(one, h1))) : {Nat.add(2n+K.np(one), Nat.add(Nat.mul(one, 48830n), r)) == _ : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.mul(one, 48831n), r), 1n+Nat.add(Nat.mul(one, 48830n), r), dig1(one, h1, 48830n, r)) : {Nat.add(2n+K.np(one), Nat.add(Nat.mul(one, 48830n), r)) == Nat.add(1n+K.np(one), _) : Nat}
+  %Equal.sym(Nat, 2n+K.np(one), Nat.add(K.np(one), 2n), SR.succ_add(2n, K.np(one))) : {Nat.add(_, Nat.add(Nat.mul(one, 48830n), r)) == Nat.add(1n+K.np(one), 1n+Nat.add(Nat.mul(one, 48830n), r)) : Nat}
   %Equal.sym(Nat, Nat.add(Nat.add(K.np(one), 2n), Nat.add(Nat.mul(one, 48830n), r)), Nat.add(K.np(one), Nat.add(2n, Nat.add(Nat.mul(one, 48830n), r))), NA.add_assoc(K.np(one), 2n, Nat.add(Nat.mul(one, 48830n), r))) : {_ == Nat.add(1n+K.np(one), 1n+Nat.add(Nat.mul(one, 48830n), r)) : Nat}
   %Equal.sym(Nat, Nat.add(2n, Nat.add(Nat.mul(one, 48830n), r)), Nat.add(Nat.mul(one, 48830n), Nat.add(2n, r)), NA.add_swap(2n, Nat.mul(one, 48830n), r)) : {Nat.add(K.np(one), _) == Nat.add(1n+K.np(one), 1n+Nat.add(Nat.mul(one, 48830n), r)) : Nat}
   %Equal.sym(Nat, Nat.add(2n, r), Nat.add(r, 2n), NA.add_comm(2n, r)) : {Nat.add(K.np(one), Nat.add(Nat.mul(one, 48830n), _)) == Nat.add(1n+K.np(one), 1n+Nat.add(Nat.mul(one, 48830n), r)) : Nat}
@@ -109,10 +106,10 @@ def nlt(x: Nat, m: Nat) -> {Bool.not(Nat.is_lt(x, 1n+m)) == Nat.is_lt(m, x) : Bo
       nlt(y, k)
 
 def is_high_s(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>) -> {S.is_high(a) == Nat.is_lt(FS.order(one), Nat.double(FS.value(one, a))) : Bool}:
-  %Equal.sym(Bool, L.ltm(S.cm1(), L.scal(2n, a)), Nat.is_lt(LV.ev(L.scal(2n, a)), 1n+1n+K.np(one)), LO.ltm_vv(one, h1, 1n+K.np(one), S.cm1(), hm_n1(one, h1), L.scal(2n, a))) : {Bool.not(_) == Nat.is_lt(FS.order(one), Nat.double(FS.value(one, a))) : Bool}
-  %Equal.sym(Nat, LV.ev(L.scal(2n, a)), Nat.mul(LV.ev(a), 2n), LV.scal_v(2n, a)) : {Bool.not(Nat.is_lt(_, 1n+1n+K.np(one))) == Nat.is_lt(FS.order(one), Nat.double(FS.value(one, a))) : Bool}
-  %Equal.sym(Nat, FS.value(one, a), LV.ev(a), LV.ev_value(one, h1, a)) : {Bool.not(Nat.is_lt(Nat.mul(LV.ev(a), 2n), 1n+1n+K.np(one))) == Nat.is_lt(FS.order(one), Nat.double(_)) : Bool}
-  %Equal.sym(Bool, Bool.not(Nat.is_lt(Nat.mul(LV.ev(a), 2n), 1n+1n+K.np(one))), Nat.is_lt(1n+K.np(one), Nat.mul(LV.ev(a), 2n)), nlt(Nat.mul(LV.ev(a), 2n), 1n+K.np(one))) : {_ == Nat.is_lt(FS.order(one), Nat.double(LV.ev(a))) : Bool}
+  %Equal.sym(Bool, L.ltm(S.cm1(), L.scal(2n, a)), Nat.is_lt(LV.ev(L.scal(2n, a)), 2n+K.np(one)), LO.ltm_vv(one, h1, 1n+K.np(one), S.cm1(), hm_n1(one, h1), L.scal(2n, a))) : {Bool.not(_) == Nat.is_lt(FS.order(one), Nat.double(FS.value(one, a))) : Bool}
+  %Equal.sym(Nat, LV.ev(L.scal(2n, a)), Nat.mul(LV.ev(a), 2n), LV.scal_v(2n, a)) : {Bool.not(Nat.is_lt(_, 2n+K.np(one))) == Nat.is_lt(FS.order(one), Nat.double(FS.value(one, a))) : Bool}
+  %Equal.sym(Nat, FS.value(one, a), LV.ev(a), LV.ev_value(one, h1, a)) : {Bool.not(Nat.is_lt(Nat.mul(LV.ev(a), 2n), 2n+K.np(one))) == Nat.is_lt(FS.order(one), Nat.double(_)) : Bool}
+  %Equal.sym(Bool, Bool.not(Nat.is_lt(Nat.mul(LV.ev(a), 2n), 2n+K.np(one))), Nat.is_lt(1n+K.np(one), Nat.mul(LV.ev(a), 2n)), nlt(Nat.mul(LV.ev(a), 2n), 1n+K.np(one))) : {_ == Nat.is_lt(FS.order(one), Nat.double(LV.ev(a))) : Bool}
   %Equal.sym(Nat, FS.order(one), 1n+K.np(one), K.order_eq(one, h1)) : {Nat.is_lt(1n+K.np(one), Nat.mul(LV.ev(a), 2n)) == Nat.is_lt(_, Nat.double(LV.ev(a))) : Bool}
   %Equal.sym(Nat, Nat.double(LV.ev(a)), Nat.mul(2n, LV.ev(a)), NA.double_mul(LV.ev(a))) : {Nat.is_lt(1n+K.np(one), Nat.mul(LV.ev(a), 2n)) == Nat.is_lt(1n+K.np(one), _) : Bool}
   %Equal.sym(Nat, Nat.mul(2n, LV.ev(a)), Nat.mul(LV.ev(a), 2n), NA.mul_comm(2n, LV.ev(a))) : {Nat.is_lt(1n+K.np(one), Nat.mul(LV.ev(a), 2n)) == Nat.is_lt(1n+K.np(one), _) : Bool}

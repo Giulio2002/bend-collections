@@ -12,6 +12,10 @@ import ./pmul.bend as PM
 import ./paff.bend as PA
 import ./penc.bend as PE
 import ./blist.bend as BL
+import ./paq.bend as AQ
+import ./group/glawp.bend as GP
+import ../../math/number/nt_prime.bend as NP
+import ../../../spec/crypto/secp256k1/group.bend as GS
 import ./pok.bend as SQ
 
 # Scalars from bytes and public keys of src/crypto/secp256k1/ecdsa.bend
@@ -26,36 +30,47 @@ def pk_v(+one: Nat, +h1: {one == 1n : Nat}, c: Bool, +q: P.Point, +hq: {PT.pred(
     case False{}:
       PE.encode_uncompressed_v(one, h1, q, hq)
 
-# [d] G
-def pubpt_v(+one: Nat, +h1: {one == 1n : Nat}, +d: List<&2, Nat>, +hd: {FS.limbs16(one, 16n, d) == True{} : Bool}) -> {PT.pv(one, E.public_point(d)) == CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one)) : CV.SPoint}:
-  %Equal.sym(CV.SPoint, PT.pv(one, P.mul(d, P.g())), CV.pmul(FS.prime(one), FS.value(one, d), PT.pv(one, P.g())), PM.mul_v(one, h1, d, P.g(), hd, PA.g_r(one, h1))) : {_ == CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one)) : CV.SPoint}
-  %Equal.sym(CV.SPoint, PT.pv(one, P.g()), CV.g(one), PA.g_v(one, h1)) : {CV.pmul(FS.prime(one), FS.value(one, d), _) == CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one)) : CV.SPoint}
-  {==}
+# [d] G: a point of the group, the specification's as a projective point
+def pubpt_q(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +d: List<&2, Nat>, +hd: {FS.limbs16(one, 16n, d) == True{} : Bool}) -> {GS.equiv(FS.prime(one), PT.pv(one, E.public_point(d)), CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one))) == True{} : Bool}:
+  %Equal.sym(CV.SPoint, CV.g(one), PT.pv(one, P.g()), Equal.sym(CV.SPoint, PT.pv(one, P.g()), CV.g(one), PA.g_v(one, h1))) : {GS.equiv(FS.prime(one), PT.pv(one, P.mul(d, P.g())), CV.pmul(FS.prime(one), FS.value(one, d), _)) == True{} : Bool}
+  PM.mul_q(one, h1, gp, gc, d, P.g(), hd, PA.g_r(one, h1), PM.g_vd(one, h1))
+
+def pubpt_vd(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +d: List<&2, Nat>, +hd: {FS.limbs16(one, 16n, d) == True{} : Bool}) -> {GS.valid(FS.prime(one), PT.pv(one, E.public_point(d))) == True{} : Bool}:
+  PM.mul_vd(one, h1, gp, gc, d, P.g(), hd, PA.g_r(one, h1), PM.g_vd(one, h1))
+
+# the encoding depends only on the projective point
+def pk_q(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), c: Bool, +q: P.Point, +hq: {PT.pred(one, q) == True{} : Bool}, +y: CV.SPoint, +vx: {GS.valid(FS.prime(one), PT.pv(one, q)) == True{} : Bool}, +vy: {GS.valid(FS.prime(one), y) == True{} : Bool}, +h: {GS.equiv(FS.prime(one), PT.pv(one, q), y) == True{} : Bool}) -> {E.pk_of(c, q) == ES.pk_of(one, c, y) : List<&2, U32>}:
+  match c:
+    case True{}:
+      %Equal.sym(CV.SAffine, CV.to_affine(FS.prime(one), y), CV.to_affine(FS.prime(one), PT.pv(one, q)), Equal.sym(CV.SAffine, CV.to_affine(FS.prime(one), PT.pv(one, q)), CV.to_affine(FS.prime(one), y), AQ.ta_q(one, h1, gp, PT.pv(one, q), y, vx, vy, h))) : {P.encode_compressed(q) == CV.enc_c(_) : List<&2, U32>}
+      PE.encode_compressed_v(one, h1, q, hq)
+    case False{}:
+      %Equal.sym(CV.SAffine, CV.to_affine(FS.prime(one), y), CV.to_affine(FS.prime(one), PT.pv(one, q)), Equal.sym(CV.SAffine, CV.to_affine(FS.prime(one), PT.pv(one, q)), CV.to_affine(FS.prime(one), y), AQ.ta_q(one, h1, gp, PT.pv(one, q), y, vx, vy, h))) : {P.encode_uncompressed(q) == CV.enc_u(_) : List<&2, U32>}
+      PE.encode_uncompressed_v(one, h1, q, hq)
 
 def pubpt_r(+one: Nat, +h1: {one == 1n : Nat}, +d: List<&2, Nat>, +hd: {FS.limbs16(one, 16n, d) == True{} : Bool}) -> {PT.pred(one, E.public_point(d)) == True{} : Bool}:
   PM.mul_r(one, h1, d, P.g(), hd, PA.g_r(one, h1))
 
-def pub_ok(+one: Nat, +h1: {one == 1n : Nat}, c: Bool, +d: List<&2, Nat>, +hd: {FS.limbs16(one, 16n, d) == True{} : Bool}, b: Bool) -> {E.public_key_d(c, E.secret_if(d, b)) == ES.public_d(one, c, FS.value(one, d), b) : Maybe<&2, List<&2, U32>>}:
+def pub_ok(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, c: Bool, +d: List<&2, Nat>, +hd: {FS.limbs16(one, 16n, d) == True{} : Bool}, b: Bool) -> {E.public_key_d(c, E.secret_if(d, b)) == ES.public_d(one, c, FS.value(one, d), b) : Maybe<&2, List<&2, U32>>}:
   match b:
     case True{}:
-      %Equal.sym(List<&2, U32>, E.pk_of(c, E.public_point(d)), ES.pk_of(one, c, PT.pv(one, E.public_point(d))), pk_v(one, h1, c, E.public_point(d), pubpt_r(one, h1, d, hd))) : {Some{_} == Some{ES.pk_of(one, c, CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one)))} : Maybe<&2, List<&2, U32>>}
-      %Equal.sym(CV.SPoint, PT.pv(one, E.public_point(d)), CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one)), pubpt_v(one, h1, d, hd)) : {Some{ES.pk_of(one, c, _)} == Some{ES.pk_of(one, c, CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one)))} : Maybe<&2, List<&2, U32>>}
+      %Equal.sym(List<&2, U32>, E.pk_of(c, E.public_point(d)), ES.pk_of(one, c, CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one))), pk_q(one, h1, gp, c, E.public_point(d), pubpt_r(one, h1, d, hd), CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one)), pubpt_vd(one, h1, gp, gc, d, hd), GP.scalar_pmul_closed(one, h1, gp, gc, FS.value(one, d), CV.g(one), AQ.g_valid(one, h1)), pubpt_q(one, h1, gp, gc, d, hd))) : {Some{_} == Some{ES.pk_of(one, c, CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one)))} : Maybe<&2, List<&2, U32>>}
       {==}
     case False{}:
       {==}
 
-def pub_len(+one: Nat, +h1: {one == 1n : Nat}, c: Bool, +sk: List<&2, U32>, a: Bool, +ha: {B.has_len(32n, sk) == a : Bool}) -> {E.public_key_d(c, E.secret_if(B.of_be(sk), Bool.and(a, E.scalar_ok(B.of_be(sk))))) == ES.public_d(one, c, CV.os2ip(sk), Bool.and(a, ES.scalar_ok(one, CV.os2ip(sk)))) : Maybe<&2, List<&2, U32>>}:
+def pub_len(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, c: Bool, +sk: List<&2, U32>, a: Bool, +ha: {B.has_len(32n, sk) == a : Bool}) -> {E.public_key_d(c, E.secret_if(B.of_be(sk), Bool.and(a, E.scalar_ok(B.of_be(sk))))) == ES.public_d(one, c, CV.os2ip(sk), Bool.and(a, ES.scalar_ok(one, CV.os2ip(sk)))) : Maybe<&2, List<&2, U32>>}:
   match a:
     case True{}:
       +hd = BY.of_be_limbs(one, h1, sk, ha)
       %Equal.sym(Bool, E.scalar_ok(B.of_be(sk)), ES.scalar_ok(one, FS.value(one, B.of_be(sk))), SQ.scalar_ok_v(one, h1, B.of_be(sk))) : {E.public_key_d(c, E.secret_if(B.of_be(sk), Bool.and(a, _))) == ES.public_d(one, c, CV.os2ip(sk), Bool.and(a, ES.scalar_ok(one, CV.os2ip(sk)))) : Maybe<&2, List<&2, U32>>}
       %Equal.sym(Nat, CV.os2ip(sk), FS.value(one, B.of_be(sk)), Equal.sym(Nat, FS.value(one, B.of_be(sk)), CV.os2ip(sk), BY.of_be_value(one, h1, sk))) : {E.public_key_d(c, E.secret_if(B.of_be(sk), Bool.and(a, ES.scalar_ok(one, FS.value(one, B.of_be(sk)))))) == ES.public_d(one, c, _, Bool.and(a, ES.scalar_ok(one, CV.os2ip(sk)))) : Maybe<&2, List<&2, U32>>}
       %Equal.sym(Nat, CV.os2ip(sk), FS.value(one, B.of_be(sk)), Equal.sym(Nat, FS.value(one, B.of_be(sk)), CV.os2ip(sk), BY.of_be_value(one, h1, sk))) : {E.public_key_d(c, E.secret_if(B.of_be(sk), Bool.and(a, ES.scalar_ok(one, FS.value(one, B.of_be(sk)))))) == ES.public_d(one, c, FS.value(one, B.of_be(sk)), Bool.and(a, ES.scalar_ok(one, _))) : Maybe<&2, List<&2, U32>>}
-      pub_ok(one, h1, c, B.of_be(sk), hd, ES.scalar_ok(one, FS.value(one, B.of_be(sk))))
+      pub_ok(one, h1, gp, gc, c, B.of_be(sk), hd, ES.scalar_ok(one, FS.value(one, B.of_be(sk))))
     case False{}:
       {==}
 
 # the SEC 1 public key of a secret key
-def public_key_v(+one: Nat, +h1: {one == 1n : Nat}, +sk: List<&2, U32>, c: Bool) -> {E.public_key(sk, c) == ES.public_key(one, sk, c) : Maybe<&2, List<&2, U32>>}:
+def public_key_v(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +sk: List<&2, U32>, c: Bool) -> {E.public_key(sk, c) == ES.public_key(one, sk, c) : Maybe<&2, List<&2, U32>>}:
   %Equal.sym(Bool, B.has_len(32n, sk), CV.length_is(32n, sk), BL.hl_is(32n, sk)) : {E.public_key_d(c, E.secret_if(B.of_be(sk), Bool.and(_, E.scalar_ok(B.of_be(sk))))) == ES.public_d(one, c, CV.os2ip(sk), Bool.and(CV.length_is(32n, sk), ES.scalar_ok(one, CV.os2ip(sk)))) : Maybe<&2, List<&2, U32>>}
-  pub_len(one, h1, c, sk, CV.length_is(32n, sk), BL.hl_is(32n, sk))
+  pub_len(one, h1, gp, gc, c, sk, CV.length_is(32n, sk), BL.hl_is(32n, sk))
