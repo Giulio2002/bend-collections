@@ -1,4 +1,7 @@
 /* XKCP-based C Keccak-256 (vendored XKCP plain-64bits opt64 permutation, benchmarks/native/xkcp/), the reference for benchmarks/bend/keccak256.bend. From bend-keccak. */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L  /* clock_gettime under -std=c11 on glibc */
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

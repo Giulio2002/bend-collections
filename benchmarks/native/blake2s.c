@@ -3,6 +3,9 @@
    env BLAKE_SIZE, BLAKE_DEPTH, BLAKE_COUNT; the input is 2^DEPTH words w[i] = i*2654435761+42
    (little-endian bytes); each hash runs on a fresh copy; prints BENCH_MS=<ms>, the U32 sum of
    the first little-endian digest word over all hashes, and the last digest in hex. */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L  /* clock_gettime under -std=c11 on glibc */
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
