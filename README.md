@@ -40,6 +40,8 @@ benchmarked against optimized C implementations of the same algorithms.
 | AEAD | `src/crypto/aead.bend` | `encrypt(alg, key, nonce, aad, pt)`, `decrypt(alg, key, nonce, aad, ct)` for `CHACHA20_POLY1305` (RFC 8439), `XCHACHA20_POLY1305`, `AES_128_GCM` and `AES_256_GCM` (SP 800-38D); proved: each algorithm equals its spec, `decrypt(encrypt(x)) == Some(x)`, every tag other than the expected one is rejected; RFC 8439 / XChaCha / GCM vectors, Wycheproof, differential test against `cryptography` |
 | AES | `src/crypto/aes/aes.bend` | FIPS 197 block cipher, 128/192/256-bit keys; S-box as a constant-time Boyar-Peralta circuit (no table); proved equal to the FIPS 197 specification for every key and block, see [docs/CRYPTO_CONTRACTS.md](docs/CRYPTO_CONTRACTS.md) |
 | AES-GCM | `src/crypto/aesgcm.bend` | SP 800-38D AES-128-GCM and AES-256-GCM, 12-byte nonces, 16-byte tags appended, tag checked with `subtle.eq`; proved equal to the SP 800-38D specification, `decrypt(encrypt(x)) == Some(x)`, a wrong tag gives `None` |
+| X25519 key exchange | `src/crypto/kex.bend` | RFC 7748: `generate_keypair(seed)`, `generate_keypair_os()`, `shared_secret(sk, pk)` (all-zero result rejected); field arithmetic mod 2^255 - 19 in `src/crypto/curve25519/`; proved equal to `spec/crypto/curve25519/x25519.bend` |
+| Ed25519 signatures | `src/crypto/sign.bend` | RFC 8032 section 5.1: `generate_keypair`, `sign`, `verify` (cofactorless, S < L enforced); proved equal to `spec/crypto/ed25519.bend` |
 | Integer math | `src/math/natural.bend` | Python-style `math` integer functions, see below |
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 | Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |
@@ -301,6 +303,29 @@ and call sequences, plus a chi-square smoke test (`tools/check_random.py`).
 the OS (`from_os()`, eight `IO.random_u32`) or from a secret seed (`new`),
 with `bytes` (Go's `ChaCha8.Read`), `uint_below` and `shuffle`; proofs and
 security caveats in [docs/CRYPTO_CONTRACTS.md](docs/CRYPTO_CONTRACTS.md).
+
+## Key exchange and signatures
+
+```python
+import ./src/crypto/kex.bend as Kex
+import ./src/crypto/sign.bend as Sign
+
+Kex.generate_keypair(seed)               # Some{Keypair{secret, public}} for 32 bytes
+Kex.shared_secret(sk, pk)                # X25519(sk, pk), None if all zero or malformed
+Sign.generate_keypair(seed)              # Ed25519 key pair from a 32-byte seed
+Sign.sign(sk, msg)                       # Some{64-byte signature}
+Sign.verify(pk, msg, sig)                # True iff valid (S >= L rejected)
+```
+
+X25519 (RFC 7748) and Ed25519 (RFC 8032) run on one field implementation
+(`src/crypto/curve25519/field.bend`, 32 limbs of 8 bits, every operation
+proved to compute its value mod p with bounded limbs). Each facade is proved
+equal to a transcription of its RFC (`spec/crypto/curve25519/x25519.bend`,
+`spec/crypto/ed25519.bend`) for every input, with SHA-512 proved equal to
+FIPS 180-4; `tools/check_curve25519.py` runs the RFC vectors and a
+differential test against Python's `cryptography`. Secret-dependent steps are
+branch-free (selection by arithmetic, fixed bit counts); Bend has no timing
+model, so constant time is a property of the code's shape, not a theorem.
 
 ## Install
 

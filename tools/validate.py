@@ -434,9 +434,11 @@ def main():
         (LOGDIR / 'math.log').write_text('\n'.join(x['output'] for x in checks))
         print('%-22s differential=%s proof=%s' % ('math', math_row['differential'], math_row['proof']), flush=True)
 
-    # src/crypto (subtle, SHA-512, SHA3-256, the hash facade): the FIPS
-    # vectors and differential tests against Python's hashlib
-    # (tools/check_crypto_hash.py), then every crypto proof root with
+    # src/crypto (subtle, SHA-512, SHA3-256, the hash facade, X25519 / kex,
+    # Ed25519 / sign): the FIPS vectors and differential tests against
+    # Python's hashlib (tools/check_crypto_hash.py), the RFC 7748 / 8032
+    # vectors and differential tests against `cryptography`
+    # (tools/check_curve25519.py), then every crypto proof root with
     # proofs/prove.py (the proofs of each package against its spec).
     crypto_row = None
     if not args.only or args.only == 'crypto':
@@ -444,7 +446,9 @@ def main():
         crypto_checks = [([sys.executable, 'tools/check_crypto_hash.py'], 3600),
                          # Argon2id / password: RFC 9106 5.3 vector, argon2-cffi differential, PHC strings
                          ([sys.executable, 'tools/check_argon2.py'], 3600),
-                         ([sys.executable, 'proofs/prove.py', '-j', '4', 'subtle', 'sha512', 'sha3', 'hash', 'argon2'], 7200)]
+                         ([sys.executable, 'tools/check_curve25519.py'], 7200),
+                         ([sys.executable, 'proofs/prove.py', '-j', '4', 'subtle', 'sha512', 'sha3', 'hash', 'argon2',
+                           'curve25519', 'ed25519'], 14400)]
         for command, limit in crypto_checks:
             result = run(command, timeout=limit)
             passed = result.returncode == 0
@@ -452,8 +456,8 @@ def main():
             if not passed:
                 fail('crypto', 'crypto check failed: ' + repr(command))
         good = all(x['passed'] for x in checks)
-        crypto_row = {'id': 'crypto', 'implementation': 'src/crypto/subtle.bend, sha512/, sha3/, hash.bend, argon2/, password.bend',
-                      'differential': 'passed' if checks[0]['passed'] else 'failed',
+        crypto_row = {'id': 'crypto', 'implementation': 'src/crypto/subtle.bend, sha512/, sha3/, hash.bend, argon2/, password.bend, curve25519/, ed25519/, kex.bend, sign.bend',
+                      'differential': 'passed' if all(x['passed'] for x in checks[:-1]) else 'failed',
                       'proof': 'passed' if checks[-1]['passed'] else 'failed', 'checks': checks}
         (LOGDIR / 'crypto.log').write_text('\n'.join(x['output'] for x in checks))
         print('%-22s differential=%s proof=%s' % ('crypto', crypto_row['differential'], crypto_row['proof']), flush=True)

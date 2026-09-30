@@ -78,3 +78,5 @@ import ./src/crypto/aesgcm.bend as AESGCM
 import ./src/crypto/argon2/argon2.bend as Argon2
 import ./src/crypto/password.bend as Password
 import ./src/crypto/random.bend as CryptoRandom
+import ./src/crypto/kex.bend as Kex
+import ./src/crypto/sign.bend as Sign
