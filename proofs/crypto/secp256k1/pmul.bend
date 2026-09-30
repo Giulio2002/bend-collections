@@ -22,19 +22,27 @@ import ./sel.bend as SL
 # the values of the coordinates.
 # ---- the specification's loop over a list of bits ----
 
-def lgo(+p: Nat, bs: List<&2, Nat>, +a: CV.SPoint, r: CV.SPoint) -> CV.SPoint:
-  match bs:
-    case Nil{}: r
-    case b <> t: lgo(p, t, a, CV.step(b, p, a, CV.pdbl(p, r)))
-
-def sgo(i: Nat, +p: Nat, +k: Nat, +a: CV.SPoint, r: CV.SPoint) -> {CV.mul_go(i, p, k, a, r) == lgo(p, BR.sb(i, 0n, k), a, r) : CV.SPoint}:
+def go_sb(i: Nat, +k: Nat) -> {CV.bits_go(i, k) == BR.sb(i, 0n, k) : List<&2, Nat>}:
   match i:
     case 0n:
       {==}
     case 1n+ +j:
-      sgo(j, p, k, a, CV.step(CV.bit(j, k), p, a, CV.pdbl(p, r)))
+      Equal.cong(List<&2, Nat>, List<&2, Nat>, l => CV.bit(j, k) <> l, CV.bits_go(j, k), BR.sb(j, 0n, k), go_sb(j, k))
 
-# ---- selection ----
+def bits_is(+i: Nat, k: Nat) -> {CV.bits(i, k) == CV.bits_go(i, k) : List<&2, Nat>}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+j:
+      {==}
+
+# the bits of a scalar's limbs are the specification's bits of its value
+def lbits(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}) -> {L.bits(ks) == CV.bits(256n, FS.value(one, ks)) : List<&2, Nat>}:
+  %Equal.sym(List<&2, Nat>, L.bits(ks), BR.sb(256n, 0n, LV.ev(ks)), BR.bits_sb(one, h1, 16n, ks, hk)) : {_ == CV.bits(256n, FS.value(one, ks)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, CV.bits(256n, FS.value(one, ks)), CV.bits_go(256n, FS.value(one, ks)), bits_is(256n, FS.value(one, ks))) : {BR.sb(256n, 0n, LV.ev(ks)) == _ : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, CV.bits_go(256n, FS.value(one, ks)), BR.sb(256n, 0n, FS.value(one, ks)), go_sb(256n, FS.value(one, ks))) : {BR.sb(256n, 0n, LV.ev(ks)) == _ : List<&2, Nat>}
+  %Equal.sym(Nat, FS.value(one, ks), LV.ev(ks), LV.ev_value(one, h1, ks)) : {BR.sb(256n, 0n, LV.ev(ks)) == BR.sb(256n, 0n, _) : List<&2, Nat>}
+  {==}
 
 # ---- the point at infinity ----
 
@@ -80,7 +88,7 @@ def mul_go_r(+one: Nat, +h1: {one == 1n : Nat}, bs: List<&2, Nat>, +pp: P.Point,
       +ht = Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hbs)
       mul_go_r(one, h1, t, pp, P.step(b, pp, P.dbl(r)), ht, hp, step_r(one, h1, b, pp, P.dbl(r), hb, hp, PT.pdbl_r(one, h1, r, hr)))
 
-def mul_go_v(+one: Nat, +h1: {one == 1n : Nat}, bs: List<&2, Nat>, +pp: P.Point, +r: P.Point, +hbs: {BV.all01(bs) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}, +hr: {PT.pred(one, r) == True{} : Bool}) -> {PT.pv(one, P.mul_go(bs, pp, r)) == lgo(FS.prime(one), bs, PT.pv(one, pp), PT.pv(one, r)) : CV.SPoint}:
+def mul_go_v(+one: Nat, +h1: {one == 1n : Nat}, bs: List<&2, Nat>, +pp: P.Point, +r: P.Point, +hbs: {BV.all01(bs) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}, +hr: {PT.pred(one, r) == True{} : Bool}) -> {PT.pv(one, P.mul_go(bs, pp, r)) == CV.lmul(FS.prime(one), bs, PT.pv(one, pp), PT.pv(one, r)) : CV.SPoint}:
   match bs:
     case Nil{}:
       {==}
@@ -89,9 +97,9 @@ def mul_go_v(+one: Nat, +h1: {one == 1n : Nat}, bs: List<&2, Nat>, +pp: P.Point,
       +ht = Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hbs)
       +hd = PT.pdbl_r(one, h1, r, hr)
       +hs = step_r(one, h1, b, pp, P.dbl(r), hb, hp, hd)
-      %Equal.sym(CV.SPoint, PT.pv(one, P.mul_go(t, pp, P.step(b, pp, P.dbl(r)))), lgo(FS.prime(one), t, PT.pv(one, pp), PT.pv(one, P.step(b, pp, P.dbl(r)))), mul_go_v(one, h1, t, pp, P.step(b, pp, P.dbl(r)), ht, hp, hs)) : {_ == lgo(FS.prime(one), t, PT.pv(one, pp), CV.step(b, FS.prime(one), PT.pv(one, pp), CV.pdbl(FS.prime(one), PT.pv(one, r)))) : CV.SPoint}
-      %Equal.sym(CV.SPoint, PT.pv(one, P.step(b, pp, P.dbl(r))), CV.step(b, FS.prime(one), PT.pv(one, pp), PT.pv(one, P.dbl(r))), step_v(one, h1, b, pp, P.dbl(r), hb, hp, hd)) : {lgo(FS.prime(one), t, PT.pv(one, pp), _) == lgo(FS.prime(one), t, PT.pv(one, pp), CV.step(b, FS.prime(one), PT.pv(one, pp), CV.pdbl(FS.prime(one), PT.pv(one, r)))) : CV.SPoint}
-      %Equal.sym(CV.SPoint, PT.pv(one, P.dbl(r)), CV.pdbl(FS.prime(one), PT.pv(one, r)), PT.pdbl_v(one, h1, r, hr)) : {lgo(FS.prime(one), t, PT.pv(one, pp), CV.step(b, FS.prime(one), PT.pv(one, pp), _)) == lgo(FS.prime(one), t, PT.pv(one, pp), CV.step(b, FS.prime(one), PT.pv(one, pp), CV.pdbl(FS.prime(one), PT.pv(one, r)))) : CV.SPoint}
+      %Equal.sym(CV.SPoint, PT.pv(one, P.mul_go(t, pp, P.step(b, pp, P.dbl(r)))), CV.lmul(FS.prime(one), t, PT.pv(one, pp), PT.pv(one, P.step(b, pp, P.dbl(r)))), mul_go_v(one, h1, t, pp, P.step(b, pp, P.dbl(r)), ht, hp, hs)) : {_ == CV.lmul(FS.prime(one), t, PT.pv(one, pp), CV.step(b, FS.prime(one), PT.pv(one, pp), CV.pdbl(FS.prime(one), PT.pv(one, r)))) : CV.SPoint}
+      %Equal.sym(CV.SPoint, PT.pv(one, P.step(b, pp, P.dbl(r))), CV.step(b, FS.prime(one), PT.pv(one, pp), PT.pv(one, P.dbl(r))), step_v(one, h1, b, pp, P.dbl(r), hb, hp, hd)) : {CV.lmul(FS.prime(one), t, PT.pv(one, pp), _) == CV.lmul(FS.prime(one), t, PT.pv(one, pp), CV.step(b, FS.prime(one), PT.pv(one, pp), CV.pdbl(FS.prime(one), PT.pv(one, r)))) : CV.SPoint}
+      %Equal.sym(CV.SPoint, PT.pv(one, P.dbl(r)), CV.pdbl(FS.prime(one), PT.pv(one, r)), PT.pdbl_v(one, h1, r, hr)) : {CV.lmul(FS.prime(one), t, PT.pv(one, pp), CV.step(b, FS.prime(one), PT.pv(one, pp), _)) == CV.lmul(FS.prime(one), t, PT.pv(one, pp), CV.step(b, FS.prime(one), PT.pv(one, pp), CV.pdbl(FS.prime(one), PT.pv(one, r)))) : CV.SPoint}
       {==}
 
 # ---- [k] P ----
@@ -105,9 +113,7 @@ def mul_r(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +pp: P.Point, +
   mul_go_r(one, h1, L.bits(ks), pp, P.infinity(), lbits01(one, h1, ks, hk), hp, pinf_r(one, h1))
 
 def mul_v(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}) -> {PT.pv(one, P.mul(ks, pp)) == CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp)) : CV.SPoint}:
-  %Equal.sym(CV.SPoint, PT.pv(one, P.mul_go(L.bits(ks), pp, P.infinity())), lgo(FS.prime(one), L.bits(ks), PT.pv(one, pp), PT.pv(one, P.infinity())), mul_go_v(one, h1, L.bits(ks), pp, P.infinity(), lbits01(one, h1, ks, hk), hp, pinf_r(one, h1))) : {_ == CV.mul_go(256n, FS.prime(one), FS.value(one, ks), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
-  %Equal.sym(CV.SPoint, PT.pv(one, P.infinity()), CV.infinity(), pinf_v(one, h1)) : {lgo(FS.prime(one), L.bits(ks), PT.pv(one, pp), _) == CV.mul_go(256n, FS.prime(one), FS.value(one, ks), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
-  %Equal.sym(List<&2, Nat>, L.bits(ks), BR.sb(256n, 0n, LV.ev(ks)), BR.bits_sb(one, h1, 16n, ks, hk)) : {lgo(FS.prime(one), _, PT.pv(one, pp), CV.infinity()) == CV.mul_go(256n, FS.prime(one), FS.value(one, ks), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
-  %Equal.sym(CV.SPoint, CV.mul_go(256n, FS.prime(one), FS.value(one, ks), PT.pv(one, pp), CV.infinity()), lgo(FS.prime(one), BR.sb(256n, 0n, FS.value(one, ks)), PT.pv(one, pp), CV.infinity()), sgo(256n, FS.prime(one), FS.value(one, ks), PT.pv(one, pp), CV.infinity())) : {lgo(FS.prime(one), BR.sb(256n, 0n, LV.ev(ks)), PT.pv(one, pp), CV.infinity()) == _ : CV.SPoint}
-  %Equal.sym(Nat, FS.value(one, ks), LV.ev(ks), LV.ev_value(one, h1, ks)) : {lgo(FS.prime(one), BR.sb(256n, 0n, LV.ev(ks)), PT.pv(one, pp), CV.infinity()) == lgo(FS.prime(one), BR.sb(256n, 0n, _), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
+  %Equal.sym(CV.SPoint, PT.pv(one, P.mul_go(L.bits(ks), pp, P.infinity())), CV.lmul(FS.prime(one), L.bits(ks), PT.pv(one, pp), PT.pv(one, P.infinity())), mul_go_v(one, h1, L.bits(ks), pp, P.infinity(), lbits01(one, h1, ks, hk), hp, pinf_r(one, h1))) : {_ == CV.lmul(FS.prime(one), CV.bits(256n, FS.value(one, ks)), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
+  %Equal.sym(CV.SPoint, PT.pv(one, P.infinity()), CV.infinity(), pinf_v(one, h1)) : {CV.lmul(FS.prime(one), L.bits(ks), PT.pv(one, pp), _) == CV.lmul(FS.prime(one), CV.bits(256n, FS.value(one, ks)), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
+  %Equal.sym(List<&2, Nat>, L.bits(ks), CV.bits(256n, FS.value(one, ks)), lbits(one, h1, ks, hk)) : {CV.lmul(FS.prime(one), _, PT.pv(one, pp), CV.infinity()) == CV.lmul(FS.prime(one), CV.bits(256n, FS.value(one, ks)), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
   {==}

@@ -75,9 +75,17 @@ def pow(x: List<&2, Nat>, bits: List<&2, Nat>, +acc: List<&2, Nat>) -> List<&2, 
     case Nil{}: pow_go(Nil{}, bits, acc)
     case +y <> +t: pow_go(y <> t, bits, acc)
 
-# the bits of n - 2 = 2^256 - 1 - (c + 1): those of c + 1, flipped
+# the bits of n - 2, most significant first (the proofs show they are those
+# of 2^256 - 1 - (c + 1), c + 1 = 2^256 - n + 1)
 def inv_bits() -> List<&2, Nat>:
-  L.cbits(L.bits([48832n, 12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]))
+  [1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n,
+   1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n,
+   1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n,
+   1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n,
+   1n, 0n, 1n, 1n, 1n, 0n, 1n, 0n, 1n, 0n, 1n, 0n, 1n, 1n, 1n, 0n, 1n, 1n, 0n, 1n, 1n, 1n, 0n, 0n, 1n, 1n, 1n, 0n, 0n, 1n, 1n, 0n,
+   1n, 0n, 1n, 0n, 1n, 1n, 1n, 1n, 0n, 1n, 0n, 0n, 1n, 0n, 0n, 0n, 1n, 0n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 1n, 1n, 1n, 0n, 1n, 1n,
+   1n, 0n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 1n, 0n, 0n, 1n, 0n, 0n, 1n, 0n, 1n, 1n, 1n, 1n, 0n, 1n, 0n, 0n, 0n, 1n, 1n, 0n, 0n,
+   1n, 1n, 0n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 1n, 1n, 0n, 1n, 1n, 0n, 0n, 1n, 0n, 0n, 0n, 0n, 0n, 1n, 0n, 0n, 1n, 1n, 1n, 1n, 1n, 1n]
 
 # a^(n - 2): the inverse of a nonzero a, 0 for 0
 def inv(+a: List<&2, Nat>) -> List<&2, Nat>:

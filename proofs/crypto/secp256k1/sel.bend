@@ -14,8 +14,7 @@ import ./fieldops.bend as FO
 import ./bitsv.bend as BV
 import ./bitsrel.bend as BR
 import ./point.bend as PT
-import ./consts.bend as K
-import ./ineq.bend as I
+import ./lits.bend as LT
 
 # Selection (b ? p : q, b in {0, 1}) and small facts for the point proofs.
 def bit01(n: Nat) -> {Nat.is_lt(C.bit(n), 2n) == True{} : Bool}:
@@ -124,27 +123,3 @@ def lt2(c: Nat) -> {Nat.is_lt(2n+c, 2n) == False{} : Bool}:
 
 def not01(+c: Nat, +h: {Nat.is_lt(2n+c, 2n) == True{} : Bool}) -> Empty:
   Lg.false_true(Equal.trans(Bool, False{}, Nat.is_lt(2n+c, 2n), True{}, Equal.sym(Bool, Nat.is_lt(2n+c, 2n), False{}, lt2(c)), h))
-
-
-# ---- 2^16 as a literal (literal additions evaluate natively, products do not) ----
-
-def shk(+k: Nat, +one: Nat, +v: Nat, +hv: {C.shift(k, one) == v : Nat}) -> {C.shift(1n+k, one) == Nat.add(v, v) : Nat}:
-  %Equal.sym(Nat, C.shift(1n+k, one), Nat.add(C.shift(k, one), C.shift(k, one)), Equal.sym(Nat, Nat.add(C.shift(k, one), C.shift(k, one)), C.shift(1n+k, one), K.shift_twice(k, one))) : {_ == Nat.add(v, v) : Nat}
-  %Equal.sym(Nat, C.shift(k, one), v, hv) : {Nat.add(_, C.shift(k, one)) == Nat.add(v, v) : Nat}
-  %Equal.sym(Nat, C.shift(k, one), v, hv) : {Nat.add(v, _) == Nat.add(v, v) : Nat}
-  {==}
-
-def sh14(+one: Nat, +h1: {one == 1n : Nat}) -> {C.shift(14n, one) == 16384n : Nat}:
-  shk(13n, one, 8192n, shk(12n, one, 4096n, shk(11n, one, 2048n, shk(10n, one, 1024n, shk(9n, one, 512n, shk(8n, one, 256n, shk(7n, one, 128n, shk(6n, one, 64n, shk(5n, one, 32n, shk(4n, one, 16n, shk(3n, one, 8n, shk(2n, one, 4n, shk(1n, one, 2n, shk(0n, one, 1n, h1))))))))))))))
-
-# a literal below 2^16 is a limb (2^16 is written 4 w with w = 2^14: literals
-# past 2^14 cannot be compared with unary terms)
-def lt16(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +w: Nat, +hw: {C.shift(14n, one) == w : Nat}, +hx: {Nat.is_lt(x, Nat.add(Nat.add(w, w), Nat.add(w, w))) == True{} : Bool}) -> {Nat.is_lt(x, C.shift(16n, one)) == True{} : Bool}:
-  %Equal.sym(Nat, C.shift(16n, one), Nat.add(C.shift(15n, one), C.shift(15n, one)), Equal.sym(Nat, Nat.add(C.shift(15n, one), C.shift(15n, one)), C.shift(16n, one), K.shift_twice(15n, one))) : {Nat.is_lt(x, _) == True{} : Bool}
-  %Equal.sym(Nat, C.shift(15n, one), Nat.add(C.shift(14n, one), C.shift(14n, one)), Equal.sym(Nat, Nat.add(C.shift(14n, one), C.shift(14n, one)), C.shift(15n, one), K.shift_twice(14n, one))) : {Nat.is_lt(x, Nat.add(_, C.shift(15n, one))) == True{} : Bool}
-  %Equal.sym(Nat, C.shift(15n, one), Nat.add(C.shift(14n, one), C.shift(14n, one)), Equal.sym(Nat, Nat.add(C.shift(14n, one), C.shift(14n, one)), C.shift(15n, one), K.shift_twice(14n, one))) : {Nat.is_lt(x, Nat.add(Nat.add(C.shift(14n, one), C.shift(14n, one)), _)) == True{} : Bool}
-  %Equal.sym(Nat, C.shift(14n, one), w, hw) : {Nat.is_lt(x, Nat.add(Nat.add(_, C.shift(14n, one)), Nat.add(C.shift(14n, one), C.shift(14n, one)))) == True{} : Bool}
-  %Equal.sym(Nat, C.shift(14n, one), w, hw) : {Nat.is_lt(x, Nat.add(Nat.add(w, _), Nat.add(C.shift(14n, one), C.shift(14n, one)))) == True{} : Bool}
-  %Equal.sym(Nat, C.shift(14n, one), w, hw) : {Nat.is_lt(x, Nat.add(Nat.add(w, w), Nat.add(_, C.shift(14n, one)))) == True{} : Bool}
-  %Equal.sym(Nat, C.shift(14n, one), w, hw) : {Nat.is_lt(x, Nat.add(Nat.add(w, w), Nat.add(w, _))) == True{} : Bool}
-  hx

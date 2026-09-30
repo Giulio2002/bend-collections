@@ -18,6 +18,7 @@ import ./listops.bend as LO
 import ./bitsv.bend as BV
 import ./modexp.bend as ME
 import ./scalarops.bend as SO
+import ./lits.bend as LT
 
 # Exponentiation modulo n (src/crypto/secp256k1/scalar.bend pow, inv):
 # square-and-multiply over the exponent's bits computes x^e mod n, and the
@@ -146,25 +147,53 @@ def xn_digits(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.digits(one, xn()) == Nat
   {==}
 
 def xn_limbs(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.limbs16(one, 16n, xn()) == True{} : Bool}:
-  %Equal.sym(Nat, one, 1n, h1) : {FS.limbs16(_, 16n, xn()) == True{} : Bool}
+  LT.lits16(one, h1, 16n, xn(), {==})
+
+# the bits of c_n + 1, most significant first
+def xb() -> List<&2, Nat>:
+  [0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n,
+   0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n,
+   0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n,
+   0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 1n,
+   0n, 1n, 0n, 0n, 0n, 1n, 0n, 1n, 0n, 1n, 0n, 1n, 0n, 0n, 0n, 1n, 0n, 0n, 1n, 0n, 0n, 0n, 1n, 1n, 0n, 0n, 0n, 1n, 1n, 0n, 0n, 1n,
+   0n, 1n, 0n, 1n, 0n, 0n, 0n, 0n, 1n, 0n, 1n, 1n, 0n, 1n, 1n, 1n, 0n, 1n, 0n, 1n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 0n, 0n, 1n, 0n, 0n,
+   0n, 1n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 1n, 0n, 1n, 1n, 0n, 1n, 1n, 0n, 1n, 0n, 0n, 0n, 0n, 1n, 0n, 1n, 1n, 1n, 0n, 0n, 1n, 1n,
+   0n, 0n, 1n, 0n, 1n, 1n, 1n, 1n, 1n, 1n, 0n, 0n, 1n, 0n, 0n, 1n, 1n, 0n, 1n, 1n, 1n, 1n, 1n, 0n, 1n, 1n, 0n, 0n, 0n, 0n, 0n, 0n]
+
+def bits_xb() -> {L.bits(xn()) == xb() : List<&2, Nat>}:
+  {==}
+
+def ib_lit() -> {S.inv_bits() == L.cbits(xb()) : List<&2, Nat>}:
+  {==}
+
+def xb01() -> {BV.all01(xb()) == True{} : Bool}:
+  {==}
+
+def xb_len() -> {List.length(&2, Nat, xb()) == 256n : Nat}:
+  {==}
+
+# hv(xb) = c_n + 1
+def xb_v(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv(xb(), one, 0n) == Nat.add(FS.cn(one), one) : Nat}:
+  %Equal.sym(List<&2, Nat>, xb(), L.bits(xn()), Equal.sym(List<&2, Nat>, L.bits(xn()), xb(), bits_xb())) : {BV.hv(_, one, 0n) == Nat.add(FS.cn(one), one) : Nat}
+  %Equal.sym(Nat, BV.hv(L.bits(xn()), one, 0n), Nat.add(LV.pos(16n, 0n), FS.digits(one, xn())), BV.bits_v(one, h1, 16n, xn(), 0n, xn_limbs(one, h1))) : {_ == Nat.add(FS.cn(one), one) : Nat}
+  %Equal.sym(Nat, LV.pos(16n, 0n), 0n, LV.pos_zero(16n)) : {Nat.add(_, FS.digits(one, xn())) == Nat.add(FS.cn(one), one) : Nat}
+  %Equal.sym(Nat, FS.digits(one, xn()), Nat.add(FS.cn(one), one), xn_digits(one, h1)) : {Nat.add(0n, _) == Nat.add(FS.cn(one), one) : Nat}
+  %Equal.sym(Nat, Nat.add(0n, Nat.add(FS.cn(one), one)), Nat.add(FS.cn(one), one), SR.zero_add(Nat.add(FS.cn(one), one))) : {_ == Nat.add(FS.cn(one), one) : Nat}
   {==}
 
 def inv_h2(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.add(FS.cn(one), Nat.add(BV.hv(S.inv_bits(), one, 0n), 2n)) == Nat.add(FS.cn(one), 1n+K.np(one)) : Nat}:
-  +bs = L.bits(xn())
-  +hcb = BV.cb(one, bs, 0n, 0n, BV.bits01(xn()))
-  %Equal.sym(Nat, Nat.add(FS.cn(one), 1n+K.np(one)), Nat.add(1n+K.np(one), FS.cn(one)), NA.add_comm(FS.cn(one), 1n+K.np(one))) : {Nat.add(FS.cn(one), Nat.add(BV.hv(S.inv_bits(), one, 0n), 2n)) == _ : Nat}
-  %Equal.sym(Nat, Nat.add(1n+K.np(one), FS.cn(one)), C.shift(256n, one), K.hm_n(one, h1)) : {Nat.add(FS.cn(one), Nat.add(BV.hv(S.inv_bits(), one, 0n), 2n)) == _ : Nat}
-  %Equal.sym(Nat, C.shift(256n, one), Nat.add(Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), BV.hv(L.bits(xn()), one, 0n)), one), Equal.sym(Nat, Nat.add(Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), BV.hv(L.bits(xn()), one, 0n)), one), C.shift(256n, one), hcb)) : {Nat.add(FS.cn(one), Nat.add(BV.hv(S.inv_bits(), one, 0n), 2n)) == _ : Nat}
-  %Equal.sym(Nat, BV.hv(L.bits(xn()), one, 0n), Nat.add(LV.pos(16n, 0n), FS.digits(one, xn())), BV.bits_v(one, h1, 16n, xn(), 0n, xn_limbs(one, h1))) : {Nat.add(FS.cn(one), Nat.add(BV.hv(S.inv_bits(), one, 0n), 2n)) == Nat.add(Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), _), one) : Nat}
-  %Equal.sym(Nat, LV.pos(16n, 0n), 0n, LV.pos_zero(16n)) : {Nat.add(FS.cn(one), Nat.add(BV.hv(S.inv_bits(), one, 0n), 2n)) == Nat.add(Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), Nat.add(_, FS.digits(one, xn()))), one) : Nat}
-  %Equal.sym(Nat, FS.digits(one, xn()), Nat.add(FS.cn(one), one), xn_digits(one, h1)) : {Nat.add(FS.cn(one), Nat.add(BV.hv(S.inv_bits(), one, 0n), 2n)) == Nat.add(Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), Nat.add(0n, _)), one) : Nat}
-  %Equal.sym(Nat, one, 1n, h1) : {Nat.add(FS.cn(one), Nat.add(BV.hv(S.inv_bits(), one, 0n), 2n)) == Nat.add(Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), Nat.add(0n, Nat.add(FS.cn(one), _))), one) : Nat}
-  %Equal.sym(Nat, one, 1n, h1) : {Nat.add(FS.cn(one), Nat.add(BV.hv(S.inv_bits(), one, 0n), 2n)) == Nat.add(Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), Nat.add(0n, Nat.add(FS.cn(one), 1n))), _) : Nat}
-  %Equal.sym(Nat, Nat.add(FS.cn(one), Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), 2n)), Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), Nat.add(FS.cn(one), 2n)), NA.add_swap(FS.cn(one), BV.hv(L.cbits(L.bits(xn())), one, 0n), 2n)) : {_ == Nat.add(Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), Nat.add(0n, Nat.add(FS.cn(one), 1n))), 1n) : Nat}
-  %Equal.sym(Nat, Nat.add(0n, Nat.add(FS.cn(one), 1n)), Nat.add(FS.cn(one), 1n), SR.zero_add(Nat.add(FS.cn(one), 1n))) : {Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), Nat.add(FS.cn(one), 2n)) == Nat.add(Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), _), 1n) : Nat}
-  %Equal.sym(Nat, Nat.add(Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), Nat.add(FS.cn(one), 1n)), 1n), Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), Nat.add(Nat.add(FS.cn(one), 1n), 1n)), NA.add_assoc(BV.hv(L.cbits(L.bits(xn())), one, 0n), Nat.add(FS.cn(one), 1n), 1n)) : {Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), Nat.add(FS.cn(one), 2n)) == _ : Nat}
-  %Equal.sym(Nat, Nat.add(Nat.add(FS.cn(one), 1n), 1n), Nat.add(FS.cn(one), Nat.add(1n, 1n)), NA.add_assoc(FS.cn(one), 1n, 1n)) : {Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), Nat.add(FS.cn(one), 2n)) == Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), _) : Nat}
-  %Equal.sym(Nat, Nat.add(1n, 1n), 2n, {==}) : {Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), Nat.add(FS.cn(one), 2n)) == Nat.add(BV.hv(L.cbits(L.bits(xn())), one, 0n), Nat.add(FS.cn(one), _)) : Nat}
+  +hcb = BV.cb(one, xb(), 0n, 0n, xb01())
+  %Equal.sym(List<&2, Nat>, S.inv_bits(), L.cbits(xb()), ib_lit()) : {Nat.add(FS.cn(one), Nat.add(BV.hv(_, one, 0n), 2n)) == Nat.add(FS.cn(one), 1n+K.np(one)) : Nat}
+  %Equal.sym(Nat, Nat.add(FS.cn(one), 1n+K.np(one)), Nat.add(1n+K.np(one), FS.cn(one)), NA.add_comm(FS.cn(one), 1n+K.np(one))) : {Nat.add(FS.cn(one), Nat.add(BV.hv(L.cbits(xb()), one, 0n), 2n)) == _ : Nat}
+  %Equal.sym(Nat, Nat.add(1n+K.np(one), FS.cn(one)), C.shift(256n, one), K.hm_n(one, h1)) : {Nat.add(FS.cn(one), Nat.add(BV.hv(L.cbits(xb()), one, 0n), 2n)) == _ : Nat}
+  %Equal.sym(Nat, C.shift(256n, one), Nat.add(Nat.add(BV.hv(L.cbits(xb()), one, 0n), BV.hv(xb(), one, 0n)), one), Equal.sym(Nat, Nat.add(Nat.add(BV.hv(L.cbits(xb()), one, 0n), BV.hv(xb(), one, 0n)), one), C.shift(256n, one), hcb)) : {Nat.add(FS.cn(one), Nat.add(BV.hv(L.cbits(xb()), one, 0n), 2n)) == _ : Nat}
+  %Equal.sym(Nat, BV.hv(xb(), one, 0n), Nat.add(FS.cn(one), one), xb_v(one, h1)) : {Nat.add(FS.cn(one), Nat.add(BV.hv(L.cbits(xb()), one, 0n), 2n)) == Nat.add(Nat.add(BV.hv(L.cbits(xb()), one, 0n), _), one) : Nat}
+  %Equal.sym(Nat, one, 1n, h1) : {Nat.add(FS.cn(one), Nat.add(BV.hv(L.cbits(xb()), one, 0n), 2n)) == Nat.add(Nat.add(BV.hv(L.cbits(xb()), one, 0n), Nat.add(FS.cn(one), _)), one) : Nat}
+  %Equal.sym(Nat, one, 1n, h1) : {Nat.add(FS.cn(one), Nat.add(BV.hv(L.cbits(xb()), one, 0n), 2n)) == Nat.add(Nat.add(BV.hv(L.cbits(xb()), one, 0n), Nat.add(FS.cn(one), 1n)), _) : Nat}
+  %Equal.sym(Nat, Nat.add(FS.cn(one), Nat.add(BV.hv(L.cbits(xb()), one, 0n), 2n)), Nat.add(BV.hv(L.cbits(xb()), one, 0n), Nat.add(FS.cn(one), 2n)), NA.add_swap(FS.cn(one), BV.hv(L.cbits(xb()), one, 0n), 2n)) : {_ == Nat.add(Nat.add(BV.hv(L.cbits(xb()), one, 0n), Nat.add(FS.cn(one), 1n)), 1n) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.add(BV.hv(L.cbits(xb()), one, 0n), Nat.add(FS.cn(one), 1n)), 1n), Nat.add(BV.hv(L.cbits(xb()), one, 0n), Nat.add(Nat.add(FS.cn(one), 1n), 1n)), NA.add_assoc(BV.hv(L.cbits(xb()), one, 0n), Nat.add(FS.cn(one), 1n), 1n)) : {Nat.add(BV.hv(L.cbits(xb()), one, 0n), Nat.add(FS.cn(one), 2n)) == _ : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.add(FS.cn(one), 1n), 1n), Nat.add(FS.cn(one), Nat.add(1n, 1n)), NA.add_assoc(FS.cn(one), 1n, 1n)) : {Nat.add(BV.hv(L.cbits(xb()), one, 0n), Nat.add(FS.cn(one), 2n)) == Nat.add(BV.hv(L.cbits(xb()), one, 0n), _) : Nat}
+  %Equal.sym(Nat, Nat.add(1n, 1n), 2n, {==}) : {Nat.add(BV.hv(L.cbits(xb()), one, 0n), Nat.add(FS.cn(one), 2n)) == Nat.add(BV.hv(L.cbits(xb()), one, 0n), Nat.add(FS.cn(one), _)) : Nat}
   {==}
 
 def exp_inv(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv(S.inv_bits(), one, 0n) == Nat.sub(1n+K.np(one), 2n) : Nat}:
@@ -176,7 +205,7 @@ def exp_inv(+one: Nat, +h1: {one == 1n : Nat}) -> {BV.hv(S.inv_bits(), one, 0n) 
   {==}
 
 def inv_bits01(+one: Nat) -> {BV.all01(S.inv_bits()) == True{} : Bool}:
-  BV.cbits01(L.bits(xn()))
+  {==}
 
 def inv_v(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +ha: {FS.reduced(one, FS.order(one), a) == True{} : Bool}) -> {FS.value(one, S.inv(a)) == FS.minv(FS.order(one), FS.value(one, a)) : Nat}:
   %Equal.sym(Nat, FS.value(one, S.pow(a, S.inv_bits(), S.one())), LV.ev(S.pow(a, S.inv_bits(), S.one())), LV.ev_value(one, h1, S.pow(a, S.inv_bits(), S.one()))) : {_ == Nat.mod(Nat.pow(FS.value(one, a), Nat.sub(FS.order(one), 2n)), FS.order(one)) : Nat}

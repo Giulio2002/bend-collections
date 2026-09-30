@@ -127,15 +127,28 @@ def step(b: Nat, +p: Nat, +a: SPoint, +d: SPoint) -> SPoint:
     case 0n: d
     case 1n+c: padd(p, d, a)
 
-# R = 2 R, then R = R + A when bit i - 1 of k is set, for i = 256 .. 1
-def mul_go(i: Nat, +p: Nat, +k: Nat, +a: SPoint, r: SPoint) -> SPoint:
+# bits i - 1, ..., 0 of k, most significant first (k is looked at first,
+# so that on an unknown k nothing is unfolded)
+def bits_go(i: Nat, +k: Nat) -> List<&2, Nat>:
   match i:
-    case 0n: r
-    case 1n+ +j: mul_go(j, p, k, a, step(bit(j, k), p, a, pdbl(p, r)))
+    case 0n: Nil{}
+    case 1n+ +j: bit(j, k) <> bits_go(j, k)
+
+def bits(+i: Nat, k: Nat) -> List<&2, Nat>:
+  match k:
+    case 0n: bits_go(i, 0n)
+    case 1n+j: bits_go(i, 1n+j)
+
+# left-to-right double-and-add: for each bit b, R = 2 R, then R = R + A
+# when b is set
+def lmul(+p: Nat, bs: List<&2, Nat>, +a: SPoint, r: SPoint) -> SPoint:
+  match bs:
+    case Nil{}: r
+    case b <> t: lmul(p, t, a, step(b, p, a, pdbl(p, r)))
 
 # [k] A for 0 <= k < 2^256
 def pmul(+p: Nat, +k: Nat, +a: SPoint) -> SPoint:
-  mul_go(256n, p, k, a, infinity())
+  lmul(p, bits(256n, k), a, infinity())
 
 # G (SEC 2), with z = 1
 def g(+one: Nat) -> SPoint:
