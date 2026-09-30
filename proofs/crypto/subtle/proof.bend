@@ -3,54 +3,18 @@ import ../../../src/crypto/subtle.bend as Subtle
 import ../../../spec/crypto/subtle.bend as Spec
 import ../../lib/logic.bend as L
 import ./word.bend as W
+import ./fold.bend as SF
 import ./laws.bend as Laws
 
 # Gate for src/crypto/subtle.bend: `bend proofs/crypto/subtle/proof.bend`.
 #
-# The accumulator invariant (the shape of HACL*'s lbytes_eq proof): after
-# the common prefix, "lengths agree and the accumulator is zero" is "the
-# starting accumulator is zero and the lists are equal".
-law step:
-  for +acc: U32
-  for +x: U32
-  for +y: U32
-  for +e: Bool
-  {Bool.and(U32.is_eq(U32.or(acc, U32.xor(x, y)), 0), e) == Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), e)) : Bool}
-
-def step(acc, x, y, e):
-  %Equal.sym(Bool, U32.is_eq(U32.or(acc, U32.xor(x, y)), 0),
-    Bool.and(U32.is_eq(acc, 0), U32.is_eq(U32.xor(x, y), 0)), W.u32_or_zero(acc, U32.xor(x, y))) :
-    {Bool.and(_, e) == Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), e)) : Bool}
-  %Equal.sym(Bool, U32.is_eq(U32.xor(x, y), 0), U32.is_eq(x, y), W.u32_xor_zero(x, y)) :
-    {Bool.and(Bool.and(U32.is_eq(acc, 0), _), e) == Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), e)) : Bool}
-  W.and_assoc(U32.is_eq(acc, 0), U32.is_eq(x, y), e)
-
-law fold:
-  for +a: List<&2, U32>
-  for +b: List<&2, U32>
-  for +acc: U32
-  {Bool.and(Nat.is_eq(List.length(&2, U32, a), List.length(&2, U32, b)), U32.is_eq(Subtle.diff(a, b, acc), 0)) ==
-    Bool.and(U32.is_eq(acc, 0), Spec.equal(a, b)) : Bool}
-
-def fold(a, b, acc):
-  match a b:
-    case Nil{} Nil{}:
-      Equal.sym(Bool, Bool.and(U32.is_eq(acc, 0), True{}), U32.is_eq(acc, 0), W.and_true(U32.is_eq(acc, 0)))
-    case Nil{} y <> ys:
-      Equal.sym(Bool, Bool.and(U32.is_eq(acc, 0), False{}), False{}, W.and_false(U32.is_eq(acc, 0)))
-    case x <> xs Nil{}:
-      Equal.sym(Bool, Bool.and(U32.is_eq(acc, 0), False{}), False{}, W.and_false(U32.is_eq(acc, 0)))
-    case x <> xs y <> ys:
-      +acc2 = U32.or(acc, U32.xor(x, y))
-      Equal.trans(Bool,
-        Bool.and(Nat.is_eq(List.length(&2, U32, xs), List.length(&2, U32, ys)), U32.is_eq(Subtle.diff(xs, ys, acc2), 0)),
-        Bool.and(U32.is_eq(acc2, 0), Spec.equal(xs, ys)),
-        Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), Spec.equal(xs, ys))),
-        fold(xs, ys, acc2),
-        step(acc, x, y, Spec.equal(xs, ys)))
-
+# The accumulator invariant (the shape of HACL*'s lbytes_eq proof) is in
+# fold.bend: after the common prefix, "both lists end together and the
+# accumulator is zero" is "the starting accumulator is zero and the lists
+# are equal", for the four-pair pass eq runs and the one-pair pass it ends
+# with.
 def Laws.Eq.value(a, b):
-  fold(a, b, 0)
+  SF.fold4(a, b, 0)
 
 law equal_sound:
   for +a: List<&2, U32>

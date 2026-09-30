@@ -6,6 +6,7 @@ import ../../../src/crypto/subtle.bend as Subtle
 import ../../../src/crypto/poly1305/poly1305.bend as P
 import ../../lib/logic.bend as L
 import ../subtle/word.bend as SW
+import ../subtle/fold.bend as SF
 import ./modp.bend as MP
 import ./mac.bend as M
 import ./laws.bend as Laws
@@ -31,46 +32,7 @@ def Laws.poly1305_valid(key, msg, h): M.poly1305_valid(key, msg, h)
 
 def Laws.poly1305_invalid(key, msg, h): M.poly1305_invalid(key, msg, h)
 
-# ---- constant-time equality (after proofs/crypto/subtle/proof.bend) ----
-
-law step:
-  for +acc: U32
-  for +x: U32
-  for +y: U32
-  for +e: Bool
-  {Bool.and(U32.is_eq(U32.or(acc, U32.xor(x, y)), 0), e) == Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), e)) : Bool}
-
-def step(acc, x, y, e):
-  %Equal.sym(Bool, U32.is_eq(U32.or(acc, U32.xor(x, y)), 0),
-    Bool.and(U32.is_eq(acc, 0), U32.is_eq(U32.xor(x, y), 0)), SW.u32_or_zero(acc, U32.xor(x, y))) :
-    {Bool.and(_, e) == Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), e)) : Bool}
-  %Equal.sym(Bool, U32.is_eq(U32.xor(x, y), 0), U32.is_eq(x, y), SW.u32_xor_zero(x, y)) :
-    {Bool.and(Bool.and(U32.is_eq(acc, 0), _), e) == Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), e)) : Bool}
-  SW.and_assoc(U32.is_eq(acc, 0), U32.is_eq(x, y), e)
-
-law fold:
-  for +a: List<&2, U32>
-  for +b: List<&2, U32>
-  for +acc: U32
-  {Bool.and(Nat.is_eq(List.length(&2, U32, a), List.length(&2, U32, b)), U32.is_eq(Subtle.diff(a, b, acc), 0)) ==
-    Bool.and(U32.is_eq(acc, 0), SS.equal(a, b)) : Bool}
-
-def fold(a, b, acc):
-  match a b:
-    case Nil{} Nil{}:
-      Equal.sym(Bool, Bool.and(U32.is_eq(acc, 0), True{}), U32.is_eq(acc, 0), SW.and_true(U32.is_eq(acc, 0)))
-    case Nil{} y <> ys:
-      Equal.sym(Bool, Bool.and(U32.is_eq(acc, 0), False{}), False{}, SW.and_false(U32.is_eq(acc, 0)))
-    case x <> xs Nil{}:
-      Equal.sym(Bool, Bool.and(U32.is_eq(acc, 0), False{}), False{}, SW.and_false(U32.is_eq(acc, 0)))
-    case x <> xs y <> ys:
-      +acc2 = U32.or(acc, U32.xor(x, y))
-      Equal.trans(Bool,
-        Bool.and(Nat.is_eq(List.length(&2, U32, xs), List.length(&2, U32, ys)), U32.is_eq(Subtle.diff(xs, ys, acc2), 0)),
-        Bool.and(U32.is_eq(acc2, 0), SS.equal(xs, ys)),
-        Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), SS.equal(xs, ys))),
-        fold(xs, ys, acc2),
-        step(acc, x, y, SS.equal(xs, ys)))
+# ---- constant-time equality (the value lemma is proofs/crypto/subtle/fold.bend's) ----
 
 law equal_sound:
   for +a: List<&2, U32>
@@ -109,7 +71,7 @@ def Laws.verify_accepts(key, msg, h):
   Equal.trans(Bool, P.verify(key, msg, t), SS.equal(pm, t), True{},
     Equal.trans(Bool, P.verify(key, msg, t), Subtle.eq(pm, t), SS.equal(pm, t),
       Equal.cong(Bool, Bool, b => Bool.and(b, Subtle.eq(pm, t)), P.has_key(key), True{}, h),
-      fold(pm, t, 0)),
+      SF.fold4(pm, t, 0)),
     Equal.trans(Bool, SS.equal(pm, t), SS.equal(t, t), True{}, Equal.cong(List<&2, U32>, Bool, l => SS.equal(l, t), pm, t, M.mac_correct(key, msg)), equal_refl(t)))
 
 def rej_c(+key: List<&2, U32>, +msg: List<&2, U32>, +tag: List<&2, U32>, h: {tag != R.mac(key, msg) : List<&2, U32>}, +c: Bool, +hc: {SS.equal(P.mac(key, msg), tag) == c : Bool}) -> {Bool.and(P.has_key(key), SS.equal(P.mac(key, msg), tag)) == False{} : Bool}:
@@ -123,7 +85,7 @@ def rej_c(+key: List<&2, U32>, +msg: List<&2, U32>, +tag: List<&2, U32>, h: {tag
 
 def Laws.verify_rejects(key, msg, tag, h):
   Equal.trans(Bool, P.verify(key, msg, tag), Bool.and(P.has_key(key), SS.equal(P.mac(key, msg), tag)), False{},
-    Equal.cong(Bool, Bool, b => Bool.and(P.has_key(key), b), Subtle.eq(P.mac(key, msg), tag), SS.equal(P.mac(key, msg), tag), fold(P.mac(key, msg), tag, 0)),
+    Equal.cong(Bool, Bool, b => Bool.and(P.has_key(key), b), Subtle.eq(P.mac(key, msg), tag), SS.equal(P.mac(key, msg), tag), SF.fold4(P.mac(key, msg), tag, 0)),
     rej_c(key, msg, tag, h, SS.equal(P.mac(key, msg), tag), {==}))
 
 # ---- the polynomial

@@ -3,48 +3,10 @@ import ../../../src/crypto/subtle.bend as Subtle
 import ../../../spec/crypto/subtle.bend as SS
 import ../../lib/logic.bend as L
 import ../subtle/word.bend as SW
+import ../subtle/fold.bend as SF
 
 # subtle.eq is list equality (the lemmas of proofs/crypto/subtle/proof.bend,
 # restated here so that file stays the subtle package's root).
-
-law step:
-  for +acc: U32
-  for +x: U32
-  for +y: U32
-  for +e: Bool
-  {Bool.and(U32.is_eq(U32.or(acc, U32.xor(x, y)), 0), e) == Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), e)) : Bool}
-
-def step(acc, x, y, e):
-  %Equal.sym(Bool, U32.is_eq(U32.or(acc, U32.xor(x, y)), 0),
-    Bool.and(U32.is_eq(acc, 0), U32.is_eq(U32.xor(x, y), 0)), SW.u32_or_zero(acc, U32.xor(x, y))) :
-    {Bool.and(_, e) == Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), e)) : Bool}
-  %Equal.sym(Bool, U32.is_eq(U32.xor(x, y), 0), U32.is_eq(x, y), SW.u32_xor_zero(x, y)) :
-    {Bool.and(Bool.and(U32.is_eq(acc, 0), _), e) == Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), e)) : Bool}
-  SW.and_assoc(U32.is_eq(acc, 0), U32.is_eq(x, y), e)
-
-law fold:
-  for +a: List<&2, U32>
-  for +b: List<&2, U32>
-  for +acc: U32
-  {Bool.and(Nat.is_eq(List.length(&2, U32, a), List.length(&2, U32, b)), U32.is_eq(Subtle.diff(a, b, acc), 0)) ==
-    Bool.and(U32.is_eq(acc, 0), SS.equal(a, b)) : Bool}
-
-def fold(a, b, acc):
-  match a b:
-    case Nil{} Nil{}:
-      Equal.sym(Bool, Bool.and(U32.is_eq(acc, 0), True{}), U32.is_eq(acc, 0), SW.and_true(U32.is_eq(acc, 0)))
-    case Nil{} y <> ys:
-      Equal.sym(Bool, Bool.and(U32.is_eq(acc, 0), False{}), False{}, SW.and_false(U32.is_eq(acc, 0)))
-    case x <> xs Nil{}:
-      Equal.sym(Bool, Bool.and(U32.is_eq(acc, 0), False{}), False{}, SW.and_false(U32.is_eq(acc, 0)))
-    case x <> xs y <> ys:
-      +acc2 = U32.or(acc, U32.xor(x, y))
-      Equal.trans(Bool,
-        Bool.and(Nat.is_eq(List.length(&2, U32, xs), List.length(&2, U32, ys)), U32.is_eq(Subtle.diff(xs, ys, acc2), 0)),
-        Bool.and(U32.is_eq(acc2, 0), SS.equal(xs, ys)),
-        Bool.and(U32.is_eq(acc, 0), Bool.and(U32.is_eq(x, y), SS.equal(xs, ys))),
-        fold(xs, ys, acc2),
-        step(acc, x, y, SS.equal(xs, ys)))
 
 law equal_sound:
   for +a: List<&2, U32>
@@ -81,4 +43,4 @@ law eq_value:
   {Subtle.eq(a, b) == SS.equal(a, b) : Bool}
 
 def eq_value(a, b):
-  fold(a, b, 0)
+  SF.fold4(a, b, 0)

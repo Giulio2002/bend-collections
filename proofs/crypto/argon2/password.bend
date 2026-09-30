@@ -17,6 +17,8 @@ import ../../../src/crypto/argon2/memory.bend as M
 import ../../../src/crypto/argon2/phc.bend as PH
 import ../../../src/crypto/password.bend as PW
 import ../../../src/crypto/subtle.bend as Subtle
+import ../../../spec/crypto/subtle.bend as SS
+import ../subtle/fold.bend as SF
 import ./phc.bend as PP
 
 # The password facade: a hash that hash_password returns verifies with the
@@ -234,19 +236,16 @@ def tag_len(+pw: List<&2, U32>, +salt: List<&2, U32>, +t: Nat, +m: Nat, +p: Nat,
 
 # ---------------------------------------------------------------- subtle.eq(a, a)
 
-def diff_self(+a: List<&2, U32>, +acc: U32, +h: {U32.is_eq(acc, 0) == True{} : Bool}) -> {U32.is_eq(Subtle.diff(a, a, acc), 0) == True{} : Bool}:
+def srefl(+a: List<&2, U32>) -> {SS.equal(a, a) == True{} : Bool}:
   match a:
-    case Nil{}:
-      h
+    case Nil{}: {==}
     case +x <> +xs:
-      +acc2 = U32.or(acc, U32.xor(x, x))
-      +e = Equal.trans(Bool, U32.is_eq(acc2, 0), Bool.and(U32.is_eq(acc, 0), U32.is_eq(U32.xor(x, x), 0)), True{}, SW.u32_or_zero(acc, U32.xor(x, x)),
-        L.and_intro(U32.is_eq(acc, 0), U32.is_eq(U32.xor(x, x), 0), h, Equal.trans(Bool, U32.is_eq(U32.xor(x, x), 0), U32.is_eq(x, x), True{}, SW.u32_xor_zero(x, x), SW.u32_refl(x))))
-      diff_self(xs, acc2, e)
+      %Equal.sym(Bool, U32.is_eq(x, x), True{}, SW.u32_refl(x)) : {Bool.and(_, SS.equal(xs, xs)) == True{} : Bool}
+      srefl(xs)
 
 # subtle.eq(a, a) == True (proofs/crypto/subtle proves it too, as Eq.refl).
 def eq_refl(+a: List<&2, U32>) -> {Subtle.eq(a, a) == True{} : Bool}:
-  L.and_intro(Nat.is_eq(List.length(&2, U32, a), List.length(&2, U32, a)), U32.is_eq(Subtle.diff(a, a, 0), 0), N.is_eq_refl(List.length(&2, U32, a)), diff_self(a, 0, {==}))
+  Equal.trans(Bool, Subtle.eq(a, a), SS.equal(a, a), True{}, SF.fold4(a, a, 0), srefl(a))
 
 # ---------------------------------------------------------------- the facade
 
