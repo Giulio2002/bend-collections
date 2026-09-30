@@ -2,6 +2,7 @@ import Base
 # (imported first: Bend 2.0.34 overflows its stack checking this module after
 # proofs/crypto/chacha/core.bend, but not before it)
 import ../poly1305/mac.bend as PM
+import ../poly1305/tag2.bend as PT
 import ../../../src/crypto/chacha/chacha20.bend as CH
 import ../../../src/crypto/aead/chacha20poly1305.bend as I
 import ../../../src/crypto/subtle.bend as S
@@ -38,14 +39,6 @@ def poly_key_eq(key, nonce):
     T.take_eq(32n, CH.block_rounds(10n, key, 0, nonce)),
     Equal.cong(List<&2, U32>, List<&2, U32>, l => RC.prefix(32n, l), CH.block_rounds(10n, key, 0, nonce), RC.block(key, 0, nonce), T.block_rounds_correct(10n, key, 0, nonce)))
 
-law mac_data_eq:
-  for +aad: List<&2, U32>
-  for +ct: List<&2, U32>
-  {I.mac_data(aad, ct) == R.mac_data(aad, ct) : List<&2, U32>}
-
-def mac_data_eq(aad, ct):
-  {==}
-
 law tag_eq:
   for +key: List<&2, U32>
   for +nonce: List<&2, U32>
@@ -54,11 +47,9 @@ law tag_eq:
   {I.tag(key, nonce, aad, ct) == R.tag(key, nonce, aad, ct) : List<&2, U32>}
 
 def tag_eq(key, nonce, aad, ct):
-  Equal.trans(List<&2, U32>, I.tag(key, nonce, aad, ct), RP.mac(I.poly_key(key, nonce), I.mac_data(aad, ct)), R.tag(key, nonce, aad, ct),
-    PM.mac_correct(I.poly_key(key, nonce), I.mac_data(aad, ct)),
-    Equal.trans(List<&2, U32>, RP.mac(I.poly_key(key, nonce), I.mac_data(aad, ct)), RP.mac(R.poly_key(key, nonce), I.mac_data(aad, ct)), R.tag(key, nonce, aad, ct),
-      Equal.cong(List<&2, U32>, List<&2, U32>, l => RP.mac(l, I.mac_data(aad, ct)), I.poly_key(key, nonce), R.poly_key(key, nonce), poly_key_eq(key, nonce)),
-      Equal.cong(List<&2, U32>, List<&2, U32>, l => RP.mac(R.poly_key(key, nonce), l), I.mac_data(aad, ct), R.mac_data(aad, ct), mac_data_eq(aad, ct))))
+  Equal.trans(List<&2, U32>, I.tag(key, nonce, aad, ct), RP.mac(I.poly_key(key, nonce), R.mac_data(aad, ct)), R.tag(key, nonce, aad, ct),
+    PT.mac_aead_correct(I.poly_key(key, nonce), aad, ct),
+    Equal.cong(List<&2, U32>, List<&2, U32>, l => RP.mac(l, R.mac_data(aad, ct)), I.poly_key(key, nonce), R.poly_key(key, nonce), poly_key_eq(key, nonce)))
 
 def iseal(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +ct: List<&2, U32>) -> List<&2, U32>:
   List.append(&2, U32, ct, I.tag(key, nonce, aad, ct))
@@ -105,27 +96,60 @@ def open_split_eq(key, nonce, aad, ct, t):
       Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => I.open_tag(RS.equal(t, l), key, nonce, ct), I.tag(key, nonce, aad, ct), R.tag(key, nonce, aad, ct), tag_eq(key, nonce, aad, ct))),
     open_tag_eq(RS.equal(t, R.tag(key, nonce, aad, ct)), key, nonce, ct))
 
-law open_len_eq:
-  for +short: Bool
-  for +key: List<&2, U32>
-  for +nonce: List<&2, U32>
-  for +aad: List<&2, U32>
-  for +data: List<&2, U32>
-  {I.open_len(short, key, nonce, aad, data) == R.open_len(short, key, nonce, aad, data) : Maybe<&2, List<&2, U32>>}
+# body and tail split a list at the length of the lead
+law body_prefix:
+  for +l: List<&2, U32>
+  for +xs: List<&2, U32>
+  {I.body(l, xs) == RC.prefix(List.length(&2, U32, l), xs) : List<&2, U32>}
+
+def body_prefix(l, xs):
+  match l xs:
+    case Nil{} _: {==}
+    case y <> lt Nil{}: {==}
+    case y <> lt x <> dt: Equal.cong(List<&2, U32>, List<&2, U32>, z => x <> z, I.body(lt, dt), RC.prefix(List.length(&2, U32, lt), dt), body_prefix(lt, dt))
+
+law tail_suffix:
+  for +l: List<&2, U32>
+  for +xs: List<&2, U32>
+  {I.tail(l, xs) == RC.suffix(List.length(&2, U32, l), xs) : List<&2, U32>}
+
+def tail_suffix(l, xs):
+  match l xs:
+    case Nil{} _: {==}
+    case y <> lt Nil{}: {==}
+    case y <> lt x <> dt: tail_suffix(lt, dt)
+
+law nlt16:
+  for +l: Nat
+  {Nat.is_lt(16n+l, 16n) == False{} : Bool}
+
+def nlt16(l):
+  match l:
+    case 0n: {==}
+    case 1n+m: {==}
 
 def ospl(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +ct: List<&2, U32>, +t: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
   I.open_split(key, nonce, aad, ct, t)
 
-def open_len_eq(short, key, nonce, aad, data):
-  match short:
-    case True{}: {==}
-    case False{}:
-      +n = Nat.sub(List.length(&2, U32, data), 16n)
-      Equal.trans(Maybe<&2, List<&2, U32>>, ospl(key, nonce, aad, CH.take(n, data), CH.skip(n, data)), ospl(key, nonce, aad, RC.prefix(n, data), RC.suffix(n, data)), R.open_split(key, nonce, aad, RC.prefix(n, data), RC.suffix(n, data)),
-        Equal.trans(Maybe<&2, List<&2, U32>>, ospl(key, nonce, aad, CH.take(n, data), CH.skip(n, data)), ospl(key, nonce, aad, RC.prefix(n, data), CH.skip(n, data)), ospl(key, nonce, aad, RC.prefix(n, data), RC.suffix(n, data)),
-          Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => ospl(key, nonce, aad, l, CH.skip(n, data)), CH.take(n, data), RC.prefix(n, data), T.take_eq(n, data)),
-          Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => ospl(key, nonce, aad, RC.prefix(n, data), l), CH.skip(n, data), RC.suffix(n, data), T.skip_eq(n, data))),
-        open_split_eq(key, nonce, aad, RC.prefix(n, data), RC.suffix(n, data)))
+def rlen(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +d: List<&2, U32>, c: Bool) -> Maybe<&2, List<&2, U32>>:
+  R.open_len(c, key, nonce, aad, d)
+
+def rsplit(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +d: List<&2, U32>, +m: Nat) -> Maybe<&2, List<&2, U32>>:
+  R.open_split(key, nonce, aad, RC.prefix(m, d), RC.suffix(m, d))
+
+def ofull(+key: List<&2, U32>, +nonce: List<&2, U32>, +aad: List<&2, U32>, +x0: U32, +x1: U32, +x2: U32, +x3: U32, +x4: U32, +x5: U32, +x6: U32, +x7: U32, +x8: U32, +x9: U32, +x10: U32, +x11: U32, +x12: U32, +x13: U32, +x14: U32, +x15: U32, +rest: List<&2, U32>) -> {I.open(key, nonce, aad, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest) == R.open(key, nonce, aad, x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest) : Maybe<&2, List<&2, U32>>}:
+  +d = {x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest : List<&2, U32>}
+  +n = List.length(&2, U32, rest)
+  +e1 = Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => ospl(key, nonce, aad, l, I.tail(rest, d)), I.body(rest, d), RC.prefix(n, d), body_prefix(rest, d))
+  +e2 = Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, l => ospl(key, nonce, aad, RC.prefix(n, d), l), I.tail(rest, d), RC.suffix(n, d), tail_suffix(rest, d))
+  +e3 = open_split_eq(key, nonce, aad, RC.prefix(n, d), RC.suffix(n, d))
+  +e4 = Equal.cong(Bool, Maybe<&2, List<&2, U32>>, c => rlen(key, nonce, aad, d, c), Nat.is_lt(16n+n, 16n), False{}, nlt16(n))
+  +e5 = Equal.cong(Nat, Maybe<&2, List<&2, U32>>, m => rsplit(key, nonce, aad, d, m), Nat.sub(n, 0n), n, N.sub_zero(n))
+  +f1 = Equal.trans(Maybe<&2, List<&2, U32>>, ospl(key, nonce, aad, I.body(rest, d), I.tail(rest, d)), ospl(key, nonce, aad, RC.prefix(n, d), I.tail(rest, d)), ospl(key, nonce, aad, RC.prefix(n, d), RC.suffix(n, d)), e1, e2)
+  +f2 = Equal.trans(Maybe<&2, List<&2, U32>>, rlen(key, nonce, aad, d, Nat.is_lt(16n+n, 16n)), rlen(key, nonce, aad, d, False{}), rsplit(key, nonce, aad, d, n), e4, e5)
+  Equal.trans(Maybe<&2, List<&2, U32>>, ospl(key, nonce, aad, I.body(rest, d), I.tail(rest, d)), ospl(key, nonce, aad, RC.prefix(n, d), RC.suffix(n, d)), rlen(key, nonce, aad, d, Nat.is_lt(16n+n, 16n)), f1,
+    Equal.trans(Maybe<&2, List<&2, U32>>, ospl(key, nonce, aad, RC.prefix(n, d), RC.suffix(n, d)), rsplit(key, nonce, aad, d, n), rlen(key, nonce, aad, d, Nat.is_lt(16n+n, 16n)), e3,
+      Equal.sym(Maybe<&2, List<&2, U32>>, rlen(key, nonce, aad, d, Nat.is_lt(16n+n, 16n)), rsplit(key, nonce, aad, d, n), f2)))
 
 law open_eq:
   for +key: List<&2, U32>
@@ -135,7 +159,55 @@ law open_eq:
   {I.open(key, nonce, aad, data) == R.open(key, nonce, aad, data) : Maybe<&2, List<&2, U32>>}
 
 def open_eq(key, nonce, aad, data):
-  open_len_eq(Nat.is_lt(List.length(&2, U32, data), 16n), key, nonce, aad, data)
+  match data:
+    case Nil{}: {==}
+    case +x0 <> +t0:
+      match t0:
+        case Nil{}: {==}
+        case +x1 <> +t1:
+          match t1:
+            case Nil{}: {==}
+            case +x2 <> +t2:
+              match t2:
+                case Nil{}: {==}
+                case +x3 <> +t3:
+                  match t3:
+                    case Nil{}: {==}
+                    case +x4 <> +t4:
+                      match t4:
+                        case Nil{}: {==}
+                        case +x5 <> +t5:
+                          match t5:
+                            case Nil{}: {==}
+                            case +x6 <> +t6:
+                              match t6:
+                                case Nil{}: {==}
+                                case +x7 <> +t7:
+                                  match t7:
+                                    case Nil{}: {==}
+                                    case +x8 <> +t8:
+                                      match t8:
+                                        case Nil{}: {==}
+                                        case +x9 <> +t9:
+                                          match t9:
+                                            case Nil{}: {==}
+                                            case +x10 <> +t10:
+                                              match t10:
+                                                case Nil{}: {==}
+                                                case +x11 <> +t11:
+                                                  match t11:
+                                                    case Nil{}: {==}
+                                                    case +x12 <> +t12:
+                                                      match t12:
+                                                        case Nil{}: {==}
+                                                        case +x13 <> +t13:
+                                                          match t13:
+                                                            case Nil{}: {==}
+                                                            case +x14 <> +t14:
+                                                              match t14:
+                                                                case Nil{}: {==}
+                                                                case +x15 <> +rest:
+                                                                  ofull(key, nonce, aad, x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, rest)
 
 law xkey_eq:
   for +key: List<&2, U32>

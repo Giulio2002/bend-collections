@@ -151,8 +151,12 @@ def mac_w(+pone: Nat, +key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
   tag_list(pone, pad(32n, key), msg)
 
 # The 16-byte tag of msg under key = r || s.
+# (The match on msg only keeps a proof's goal small while msg is unknown;
+# both arms are the same.)
 def mac(+key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
-  mac_w(1n, key, msg)
+  match msg:
+    case Nil{}: mac_w(1n, key, [])
+    case x <> rest: mac_w(1n, key, x <> rest)
 
 def has_key(+key: List<&2, U32>) -> Bool:
   Nat.is_eq(List.length(&2, U32, key), 32n)
@@ -212,4 +216,6 @@ def mac_aead_w(+pone: Nat, +key: List<&2, U32>, aad: List<&2, U32>, ct: List<&2,
 # aad | pad16(aad) | ct | pad16(ct) | le64(len aad) | le64(len ct),
 # without building that list.
 def mac_aead(+key: List<&2, U32>, aad: List<&2, U32>, ct: List<&2, U32>) -> List<&2, U32>:
-  mac_aead_w(1n, key, aad, ct)
+  match aad:
+    case Nil{}: mac_aead_w(1n, key, [], ct)
+    case x <> rest: mac_aead_w(1n, key, x <> rest, ct)
