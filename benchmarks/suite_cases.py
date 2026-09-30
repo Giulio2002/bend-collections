@@ -71,3 +71,11 @@ HASH = [
 ]
 
 GROUPS = {'hash': HASH}
+# the other groups live in their own modules
+import importlib
+for _m in ('suite_cases_cipher', 'suite_cases_pk', 'suite_cases_random'):
+    try:
+        GROUPS.update(importlib.import_module(_m).GROUPS)
+    except ModuleNotFoundError as e:
+        if e.name != _m:
+            raise
