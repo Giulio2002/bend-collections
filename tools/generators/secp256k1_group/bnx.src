@@ -11,78 +11,221 @@ import ./zm.bend as Z
 # Modular exponentiation certificates on the binary numbers of bn.bend.
 #
 # A power a^e mod m is not computed by division: the certificate lists, for
-# every squaring and every multiplication by the base of the left-to-right
-# binary method, the quotient q and the remainder r (found outside, by
-# tools/generators/secp256k1_group/gen_cert.py), and chk verifies
-# x x == q m + r (or x a == q m + r) with the proved product, sum and
-# equality of bn.bend. chk_v: a checked list proves
-# fin == a^eb (mod m), for every input; the literal lists are then checked
-# by {==}, one closed computation each.
+# every step of the left-to-right binary method (a squaring, or a squaring
+# followed by a multiplication by the base), the quotient q (found outside,
+# by tools/generators/secp256k1_group/gen_cert.py). run computes the
+# remainder r as x x - q m with a subtraction that nothing is proved about,
+# and verifies x x == q m + r (or a (x x) == q m + r) with the proved
+# product, sum and equality of bn.bend; it answers Some{the last remainder}
+# when every step verifies. run_v: then that remainder is a^eb (mod m), for
+# every input. The literal lists are checked by {==}, one closed
+# computation each.
 
 type St is Data:
-  Sq{q: B.Bn, r: B.Bn}
-  Mu{q: B.Bn, r: B.Bn}
+  Sq{q: B.Bn}
+  SM{q: B.Bn}
 
-def chk(steps: List<&2, St>, +a: B.Bn, +m: B.Bn, +x: B.Bn) -> Bool:
+def bdec(a: B.Bn) -> B.Bn:
+  match a:
+    case B.BZ{}:
+      B.BZ{}
+    case B.B0{t}:
+      B.B1{bdec(t)}
+    case B.B1{t}:
+      B.B0{t}
+
+# a - b for a >= b (used only to propose a remainder; not trusted)
+def bsubu(a: B.Bn, b: B.Bn) -> B.Bn:
+  match a b:
+    case B.BZ{} y:
+      B.BZ{}
+    case B.B0{x} B.BZ{}:
+      B.B0{x}
+    case B.B1{x} B.BZ{}:
+      B.B1{x}
+    case B.B0{x} B.B0{y}:
+      B.B0{bsubu(x, y)}
+    case B.B1{x} B.B1{y}:
+      B.B0{bsubu(x, y)}
+    case B.B1{x} B.B0{y}:
+      B.B1{bsubu(x, y)}
+    case B.B0{x} B.B1{y}:
+      B.B1{bdec(bsubu(x, y))}
+
+# leading zeros removed
+def bnz(t: B.Bn) -> B.Bn:
+  match t:
+    case B.BZ{}:
+      B.BZ{}
+    case B.B0{x}:
+      B.B0{B.B0{x}}
+    case B.B1{x}:
+      B.B0{B.B1{x}}
+
+def bnorm(a: B.Bn) -> B.Bn:
+  match a:
+    case B.BZ{}:
+      B.BZ{}
+    case B.B0{t}:
+      bnz(bnorm(t))
+    case B.B1{t}:
+      B.B1{bnorm(t)}
+
+# a remainder and whether it verifies
+type PR is Data:
+  PR{r: B.Bn, ok: Bool}
+
+def prr(p: PR) -> B.Bn:
+  match p:
+    case PR{r, ok}:
+      r
+
+def prk(p: PR) -> Bool:
+  match p:
+    case PR{r, ok}:
+      ok
+
+# y == q m + r with r = y - q m
+def pr3(+y: B.Bn, +qm: B.Bn, +r: B.Bn) -> PR:
+  PR{r, B.beq(y, B.badd(qm, r))}
+
+def pr2(+y: B.Bn, +qm: B.Bn) -> PR:
+  pr3(y, qm, bnorm(bsubu(y, qm)))
+
+def stp(s: St, +a: B.Bn, +m: B.Bn, +x: B.Bn) -> PR:
+  match s:
+    case Sq{q}:
+      pr2(B.bmul(x, x), B.bmul(q, m))
+    case SM{q}:
+      pr2(B.bmul(a, B.bmul(x, x)), B.bmul(q, m))
+
+def fin(ok: Bool, x: B.Bn) -> Maybe<&2, B.Bn>:
+  match ok:
+    case True{}:
+      Some{x}
+    case False{}:
+      None{}
+
+def run(steps: List<&2, St>, +a: B.Bn, +m: B.Bn, +x: B.Bn, ok: Bool) -> Maybe<&2, B.Bn>:
   match steps:
     case Nil{}:
+      fin(ok, x)
+    case s <> t:
+      +p = stp(s, a, m, x)
+      run(t, a, m, prr(p), Bool.and(ok, prk(p)))
+
+def isok(r: Maybe<&2, B.Bn>) -> Bool:
+  match r:
+    case None{}:
+      False{}
+    case Some{x}:
       True{}
-    case Sq{+q, +r} <> t:
-      Bool.and(B.beq(B.bmul(x, x), B.badd(B.bmul(q, m), r)), chk(t, a, m, r))
-    case Mu{+q, +r} <> t:
-      Bool.and(B.beq(B.bmul(x, a), B.badd(B.bmul(q, m), r)), chk(t, a, m, r))
 
-# the last remainder
-def fin(steps: List<&2, St>, x: B.Bn) -> B.Bn:
-  match steps:
-    case Nil{}:
+def val(r: Maybe<&2, B.Bn>) -> B.Bn:
+  match r:
+    case None{}:
+      B.BZ{}
+    case Some{x}:
       x
-    case Sq{q, r} <> t:
-      fin(t, r)
-    case Mu{q, r} <> t:
-      fin(t, r)
+
+# every step verified and the last remainder is x2
+def okv(r: Maybe<&2, B.Bn>, x2: B.Bn) -> Bool:
+  match r:
+    case None{}:
+      False{}
+    case Some{x}:
+      B.beq(x, x2)
+
+def eb1(s: St, e: B.Bn) -> B.Bn:
+  match s:
+    case Sq{q}:
+      B.B0{e}
+    case SM{q}:
+      B.B1{e}
 
 # the exponent reached from e
 def eb(steps: List<&2, St>, e: B.Bn) -> B.Bn:
   match steps:
     case Nil{}:
       e
-    case Sq{q, r} <> t:
-      eb(t, B.B0{e})
-    case Mu{q, r} <> t:
-      eb(t, B.binc(e))
+    case s <> t:
+      eb(t, eb1(s, e))
 
 def sq_cong(+mp: Nat, +x: Nat, +q: Nat, +r: Nat, +w: Nat, +hx: {Nat.mod(x, 1n+mp) == Nat.mod(w, 1n+mp) : Nat}, +hs: {Nat.mul(x, x) == Nat.add(Nat.mul(q, 1n+mp), r) : Nat}) -> {Nat.mod(r, 1n+mp) == Nat.mod(Nat.mul(w, w), 1n+mp) : Nat}:
   %rw <- NR.absorb(mp, q, r)
   %rwh Equal.sym(Nat, Nat.mul(x, x), Nat.add(Nat.mul(q, 1n+mp), r), hs) : {Nat.add(Nat.mul(q, 1n+mp), r) == Nat.mul(x, x) : Nat}
   Equal.trans(Nat, Nat.mod(Nat.mul(x, x), 1n+mp), Nat.mod(Nat.mul(w, x), 1n+mp), Nat.mod(Nat.mul(w, w), 1n+mp), Z.cg_mul_l(mp, x, w, x, hx), Z.cg_mul_r(mp, w, x, w, hx))
 
-def mu_cong(+mp: Nat, +x: Nat, +a: Nat, +q: Nat, +r: Nat, +w: Nat, +hx: {Nat.mod(x, 1n+mp) == Nat.mod(w, 1n+mp) : Nat}, +hs: {Nat.mul(x, a) == Nat.add(Nat.mul(q, 1n+mp), r) : Nat}) -> {Nat.mod(r, 1n+mp) == Nat.mod(Nat.mul(a, w), 1n+mp) : Nat}:
+def sm_cong(+mp: Nat, +x: Nat, +a: Nat, +q: Nat, +r: Nat, +w: Nat, +hx: {Nat.mod(x, 1n+mp) == Nat.mod(w, 1n+mp) : Nat}, +hs: {Nat.mul(a, Nat.mul(x, x)) == Nat.add(Nat.mul(q, 1n+mp), r) : Nat}) -> {Nat.mod(r, 1n+mp) == Nat.mod(Nat.mul(a, Nat.mul(w, w)), 1n+mp) : Nat}:
   %rw <- NR.absorb(mp, q, r)
-  %rwh Equal.sym(Nat, Nat.mul(x, a), Nat.add(Nat.mul(q, 1n+mp), r), hs) : {Nat.add(Nat.mul(q, 1n+mp), r) == Nat.mul(x, a) : Nat}
-  %rw NA.mul_comm(a, w)
-  Z.cg_mul_l(mp, x, w, a, hx)
+  %rwh Equal.sym(Nat, Nat.mul(a, Nat.mul(x, x)), Nat.add(Nat.mul(q, 1n+mp), r), hs) : {Nat.add(Nat.mul(q, 1n+mp), r) == Nat.mul(a, Nat.mul(x, x)) : Nat}
+  Z.cg_mul_r(mp, a, Nat.mul(x, x), Nat.mul(w, w), Equal.trans(Nat, Nat.mod(Nat.mul(x, x), 1n+mp), Nat.mod(Nat.mul(w, x), 1n+mp), Nat.mod(Nat.mul(w, w), 1n+mp), Z.cg_mul_l(mp, x, w, x, hx), Z.cg_mul_r(mp, w, x, w, hx)))
 
-# beq(x y, q m + r) on values, with the modulus written 1 + mp
-def step_eq(+x: B.Bn, +y: B.Bn, +q: B.Bn, +m: B.Bn, +r: B.Bn, +mp: Nat, +hm: {B.bval(m) == 1n+mp : Nat}, +h: {B.beq(B.bmul(x, y), B.badd(B.bmul(q, m), r)) == True{} : Bool}) -> {Nat.mul(B.bval(x), B.bval(y)) == Nat.add(Nat.mul(B.bval(q), 1n+mp), B.bval(r)) : Nat}:
+# a verified remainder: y == q m + r on values, the modulus written 1 + mp
+def st_eq(+y: B.Bn, +q: B.Bn, +m: B.Bn, +mp: Nat, +hm: {B.bval(m) == 1n+mp : Nat}, +h: {prk(pr2(y, B.bmul(q, m))) == True{} : Bool}) -> {B.bval(y) == Nat.add(Nat.mul(B.bval(q), 1n+mp), B.bval(prr(pr2(y, B.bmul(q, m))))) : Nat}:
   %rwh Equal.sym(Nat, B.bval(m), 1n+mp, hm) : {1n+mp == B.bval(m) : Nat}
-  %rw <- B.bmul_v(x, y)
   %rw <- B.bmul_v(q, m)
-  %rw <- B.badd_v(B.bmul(q, m), r)
-  B.beq_v(B.bmul(x, y), B.badd(B.bmul(q, m), r), h)
+  %goal {B.bval(y) == Nat.add(B.bval(B.bmul(q, m)), B.bval(bnorm(bsubu(y, B.bmul(q, m))))) : Nat}
+  %rw <- B.badd_v(B.bmul(q, m), bnorm(bsubu(y, B.bmul(q, m))))
+  B.beq_v(y, B.badd(B.bmul(q, m), bnorm(bsubu(y, B.bmul(q, m)))), h)
 
-def chk_v(steps: List<&2, St>, +a: B.Bn, +m: B.Bn, +mp: Nat, +x: B.Bn, +e: B.Bn, +hm: {B.bval(m) == 1n+mp : Nat}, +hx: {Nat.mod(B.bval(x), 1n+mp) == Nat.mod(Nat.pow(B.bval(a), B.bval(e)), 1n+mp) : Nat}, +hc: {chk(steps, a, m, x) == True{} : Bool}) -> {Nat.mod(B.bval(fin(steps, x)), 1n+mp) == Nat.mod(Nat.pow(B.bval(a), B.bval(eb(steps, e))), 1n+mp) : Nat}:
+# one verified step keeps x == a^e (mod m)
+def stp_inv(s: St, +a: B.Bn, +m: B.Bn, +mp: Nat, +x: B.Bn, +e: B.Bn, +hm: {B.bval(m) == 1n+mp : Nat}, +hx: {Nat.mod(B.bval(x), 1n+mp) == Nat.mod(Nat.pow(B.bval(a), B.bval(e)), 1n+mp) : Nat}, +hp: {prk(stp(s, a, m, x)) == True{} : Bool}) -> {Nat.mod(B.bval(prr(stp(s, a, m, x))), 1n+mp) == Nat.mod(Nat.pow(B.bval(a), B.bval(eb1(s, e))), 1n+mp) : Nat}:
+  match s:
+    case Sq{+q}:
+      +hs = Equal.trans(Nat, Nat.mul(B.bval(x), B.bval(x)), B.bval(B.bmul(x, x)), Nat.add(Nat.mul(B.bval(q), 1n+mp), B.bval(prr(pr2(B.bmul(x, x), B.bmul(q, m))))), Equal.sym(Nat, B.bval(B.bmul(x, x)), Nat.mul(B.bval(x), B.bval(x)), B.bmul_v(x, x)), st_eq(B.bmul(x, x), q, m, mp, hm, hp))
+      %goal {Nat.mod(B.bval(prr(pr2(B.bmul(x, x), B.bmul(q, m)))), 1n+mp) == Nat.mod(Nat.pow(B.bval(a), Nat.add(B.bval(e), B.bval(e))), 1n+mp) : Nat}
+      %rw NR.pow_add(B.bval(a), B.bval(e), B.bval(e))
+      sq_cong(mp, B.bval(x), B.bval(q), B.bval(prr(pr2(B.bmul(x, x), B.bmul(q, m)))), Nat.pow(B.bval(a), B.bval(e)), hx, hs)
+    case SM{+q}:
+      +hs = Equal.trans(Nat, Nat.mul(B.bval(a), Nat.mul(B.bval(x), B.bval(x))), B.bval(B.bmul(a, B.bmul(x, x))), Nat.add(Nat.mul(B.bval(q), 1n+mp), B.bval(prr(pr2(B.bmul(a, B.bmul(x, x)), B.bmul(q, m))))), Equal.sym(Nat, B.bval(B.bmul(a, B.bmul(x, x))), Nat.mul(B.bval(a), Nat.mul(B.bval(x), B.bval(x))), Equal.trans(Nat, B.bval(B.bmul(a, B.bmul(x, x))), Nat.mul(B.bval(a), B.bval(B.bmul(x, x))), Nat.mul(B.bval(a), Nat.mul(B.bval(x), B.bval(x))), B.bmul_v(a, B.bmul(x, x)), Equal.cong(Nat, Nat, z => Nat.mul(B.bval(a), z), B.bval(B.bmul(x, x)), Nat.mul(B.bval(x), B.bval(x)), B.bmul_v(x, x)))), st_eq(B.bmul(a, B.bmul(x, x)), q, m, mp, hm, hp))
+      %goal {Nat.mod(B.bval(prr(pr2(B.bmul(a, B.bmul(x, x)), B.bmul(q, m)))), 1n+mp) == Nat.mod(Nat.mul(B.bval(a), Nat.pow(B.bval(a), Nat.add(B.bval(e), B.bval(e)))), 1n+mp) : Nat}
+      %rw NR.pow_add(B.bval(a), B.bval(e), B.bval(e))
+      sm_cong(mp, B.bval(x), B.bval(a), B.bval(q), B.bval(prr(pr2(B.bmul(a, B.bmul(x, x)), B.bmul(q, m)))), Nat.pow(B.bval(a), B.bval(e)), hx, hs)
+
+def fin_ok(ok: Bool, +x: B.Bn, +h: {isok(fin(ok, x)) == True{} : Bool}) -> {ok == True{} : Bool}:
+  match ok:
+    case True{}:
+      {==}
+    case False{}:
+      Empty.absurd({False{} == True{} : Bool}, Lg.false_true(h))
+
+# a run that answers Some started from ok == True
+def run_ok(steps: List<&2, St>, +a: B.Bn, +m: B.Bn, +x: B.Bn, +ok: Bool, +h: {isok(run(steps, a, m, x, ok)) == True{} : Bool}) -> {ok == True{} : Bool}:
   match steps:
     case Nil{}:
+      fin_ok(ok, x, h)
+    case +s <> +t:
+      Lg.and_left(ok, prk(stp(s, a, m, x)), run_ok(t, a, m, prr(stp(s, a, m, x)), Bool.and(ok, prk(stp(s, a, m, x))), h))
+
+def fin_v(ok: Bool, +x: B.Bn, +w: Nat, +mp: Nat, +hx: {Nat.mod(B.bval(x), 1n+mp) == w : Nat}, +h: {isok(fin(ok, x)) == True{} : Bool}) -> {Nat.mod(B.bval(val(fin(ok, x))), 1n+mp) == w : Nat}:
+  match ok:
+    case True{}:
       hx
-    case Sq{+q, +r} <> +t:
-      +hs = step_eq(x, x, q, m, r, mp, hm, Lg.and_left(B.beq(B.bmul(x, x), B.badd(B.bmul(q, m), r)), chk(t, a, m, r), hc))
-      +h2 = sq_cong(mp, B.bval(x), B.bval(q), B.bval(r), Nat.pow(B.bval(a), B.bval(e)), hx, hs)
-      chk_v(t, a, m, mp, r, B.B0{e}, hm, Equal.trans(Nat, Nat.mod(B.bval(r), 1n+mp), Nat.mod(Nat.mul(Nat.pow(B.bval(a), B.bval(e)), Nat.pow(B.bval(a), B.bval(e))), 1n+mp), Nat.mod(Nat.pow(B.bval(a), Nat.add(B.bval(e), B.bval(e))), 1n+mp), h2, Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.mul(Nat.pow(B.bval(a), B.bval(e)), Nat.pow(B.bval(a), B.bval(e))), Nat.pow(B.bval(a), Nat.add(B.bval(e), B.bval(e))), Equal.sym(Nat, Nat.pow(B.bval(a), Nat.add(B.bval(e), B.bval(e))), Nat.mul(Nat.pow(B.bval(a), B.bval(e)), Nat.pow(B.bval(a), B.bval(e))), NR.pow_add(B.bval(a), B.bval(e), B.bval(e))))), Lg.and_right(B.beq(B.bmul(x, x), B.badd(B.bmul(q, m), r)), chk(t, a, m, r), hc))
-    case Mu{+q, +r} <> +t:
-      +hs = step_eq(x, a, q, m, r, mp, hm, Lg.and_left(B.beq(B.bmul(x, a), B.badd(B.bmul(q, m), r)), chk(t, a, m, r), hc))
-      +h2 = mu_cong(mp, B.bval(x), B.bval(a), B.bval(q), B.bval(r), Nat.pow(B.bval(a), B.bval(e)), hx, hs)
-      chk_v(t, a, m, mp, r, B.binc(e), hm, Equal.trans(Nat, Nat.mod(B.bval(r), 1n+mp), Nat.mod(Nat.pow(B.bval(a), 1n+B.bval(e)), 1n+mp), Nat.mod(Nat.pow(B.bval(a), B.bval(B.binc(e))), 1n+mp), h2, Equal.cong(Nat, Nat, z => Nat.mod(Nat.pow(B.bval(a), z), 1n+mp), 1n+B.bval(e), B.bval(B.binc(e)), Equal.sym(Nat, B.bval(B.binc(e)), 1n+B.bval(e), B.binc_v(e)))), Lg.and_right(B.beq(B.bmul(x, a), B.badd(B.bmul(q, m), r)), chk(t, a, m, r), hc))
+    case False{}:
+      Empty.absurd({Nat.mod(B.bval(val(fin(False{}, x))), 1n+mp) == w : Nat}, Lg.false_true(h))
+
+def run_v(steps: List<&2, St>, +a: B.Bn, +m: B.Bn, +mp: Nat, +x: B.Bn, +e: B.Bn, +ok: Bool, +hm: {B.bval(m) == 1n+mp : Nat}, +hx: {Nat.mod(B.bval(x), 1n+mp) == Nat.mod(Nat.pow(B.bval(a), B.bval(e)), 1n+mp) : Nat}, +hc: {isok(run(steps, a, m, x, ok)) == True{} : Bool}) -> {Nat.mod(B.bval(val(run(steps, a, m, x, ok))), 1n+mp) == Nat.mod(Nat.pow(B.bval(a), B.bval(eb(steps, e))), 1n+mp) : Nat}:
+  match steps:
+    case Nil{}:
+      fin_v(ok, x, Nat.mod(Nat.pow(B.bval(a), B.bval(e)), 1n+mp), mp, hx, hc)
+    case +s <> +t:
+      +hk = run_ok(t, a, m, prr(stp(s, a, m, x)), Bool.and(ok, prk(stp(s, a, m, x))), hc)
+      run_v(t, a, m, mp, prr(stp(s, a, m, x)), eb1(s, e), Bool.and(ok, prk(stp(s, a, m, x))), hm, stp_inv(s, a, m, mp, x, e, hm, hx, Lg.and_right(ok, prk(stp(s, a, m, x)), hk)), hc)
+
+def okv_ok(r: Maybe<&2, B.Bn>, +x2: B.Bn, +h: {okv(r, x2) == True{} : Bool}) -> {isok(r) == True{} : Bool}:
+  match r:
+    case None{}:
+      h
+    case Some{x}:
+      {==}
+
+def okv_eq(r: Maybe<&2, B.Bn>, +x2: B.Bn, +h: {okv(r, x2) == True{} : Bool}) -> {B.beq(val(r), x2) == True{} : Bool}:
+  match r:
+    case None{}:
+      Empty.absurd({B.beq(B.BZ{}, x2) == True{} : Bool}, Lg.false_true(h))
+    case Some{x}:
+      h
 
 # ---- values that the checker never expands ----
 
@@ -161,25 +304,6 @@ def e2_o(+one: Nat, +h1: {one == 1n : Nat}, +n: B.Bn, +q: B.Bn, +m: B.Bn, +h: {B
   %rw <- mul_o(one, h1, q, m)
   %rw NA.add_comm(bvalo(one, B.bmul(q, m)), 1n)
   suc_o(one, h1, n, B.bmul(q, m), h)
-
-def pw1_s(+x: Nat) -> {x == Nat.mul(x, 1n) : Nat}:
-  Equal.sym(Nat, Nat.mul(x, 1n), x, NA.mul_one(x))
-
-# a checked step list: a^e mod n == r
-def pw_o(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +n: B.Bn, +n1: B.Bn, +steps: List<&2, St>, +e: B.Bn, +r: B.Bn, +d: B.Bn, +hn: {B.beq(n, B.binc(n1)) == True{} : Bool}, +hc: {chk(steps, a, n, a) == True{} : Bool}, +he: {B.beq(eb(steps, B.B1{B.BZ{}}), e) == True{} : Bool}, +hr: {B.beq(fin(steps, a), r) == True{} : Bool}, +hlt: {B.beq(n, B.badd(B.binc(r), d)) == True{} : Bool}) -> {Nat.mod(Nat.pow(bvalo(one, a), bvalo(one, e)), bvalo(one, n)) == bvalo(one, r) : Nat}:
-  +hm = Equal.trans(Nat, B.bval(n), B.bval(B.binc(n1)), 1n+B.bval(n1), B.beq_v(n, B.binc(n1), hn), B.binc_v(n1))
-  +h0 = chk_v(steps, a, n, B.bval(n1), a, B.B1{B.BZ{}}, hm, Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+B.bval(n1)), B.bval(a), Nat.mul(B.bval(a), 1n), pw1_s(B.bval(a))), hc)
-  +hl = lt_o(one, h1, r, n, d, hlt)
-  %rw bo(one, h1, a)
-  %rw bo(one, h1, e)
-  %rw <- B.beq_v(eb(steps, B.B1{B.BZ{}}), e, he)
-  %rw suc_o(one, h1, n, n1, hn)
-  %rw bo(one, h1, n1)
-  %rwh Equal.sym(Nat, Nat.mod(B.bval(fin(steps, a)), 1n+B.bval(n1)), Nat.mod(Nat.pow(B.bval(a), B.bval(eb(steps, B.B1{B.BZ{}}))), 1n+B.bval(n1)), h0) : {Nat.mod(Nat.pow(B.bval(a), B.bval(eb(steps, B.B1{B.BZ{}}))), 1n+B.bval(n1)) == Nat.mod(B.bval(fin(steps, a)), 1n+B.bval(n1)) : Nat}
-  %rw B.beq_v(fin(steps, a), r, hr)
-  %rw <- bo(one, h1, r)
-  %rw <- bo(one, h1, n1)
-  NR.mod_of(0n, bvalo(one, n1), bvalo(one, r), Equal.trans(Bool, Nat.is_lt(bvalo(one, r), 1n+bvalo(one, n1)), Nat.is_lt(bvalo(one, r), bvalo(one, n)), True{}, Equal.cong(Nat, Bool, z => Nat.is_lt(bvalo(one, r), z), 1n+bvalo(one, n1), bvalo(one, n), Equal.sym(Nat, bvalo(one, n), 1n+bvalo(one, n1), suc_o(one, h1, n, n1, hn))), hl))
 
 def e5_o(+one: Nat, +h1: {one == 1n : Nat}, +u: B.Bn, +b: B.Bn, +b1: B.Bn, +v: B.Bn, +n: B.Bn, +hb: {B.beq(b, B.binc(b1)) == True{} : Bool}, +h: {B.beq(B.bmul(u, b1), B.binc(B.bmul(v, n))) == True{} : Bool}) -> {Nat.mul(bvalo(one, u), Nat.sub(bvalo(one, b), 1n)) == Nat.add(Nat.mul(bvalo(one, v), bvalo(one, n)), 1n) : Nat}:
   %rw suc_o(one, h1, b, b1, hb)
