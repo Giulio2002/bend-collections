@@ -6,7 +6,7 @@
                                              what other proofs import)
   proofs/crypto/secp256k1/laws_group.bend    the public clauses, unconditional
   proofs/crypto/secp256k1/proof_group.bend   their root: glawp applied to the
-                                             certificates group/certa.bend, group/certd.bend
+                                             certificates group/certpc.bend
 
   python3 tools/generators/secp256k1_group/gen_laws.py
 """
@@ -112,13 +112,12 @@ import ../../../spec/crypto/secp256k1/group.bend as GS
 import Base
 import ./laws_group.bend as Laws
 import ./group/glawp.bend as GP
-import ./group/certa.bend as CA
-import ./group/certd.bend as CD
+import ./group/certpc.bend as PC
 
 # The group law of secp256k1 (laws_group.bend):
 # `bend proofs/crypto/secp256k1/proof_group.bend`. Each clause is its lemma
 # of group/glawp.bend applied to the two certificates: p is prime
-# (group/certa.bend) and (-7)^((p - 1) / 3) != 1 (group/certd.bend).
+# (group/certpc.bend).
 '''
     for name, com, vs, hyps, concl, pr in LAWS:
         for k in sorted(MACROS, key=len, reverse=True):
@@ -135,7 +134,7 @@ import ./group/certd.bend as CD
             laws += '  for +%s: %s\n' % (h, t(P))
         laws += '  %s\n' % concl(P)
         args = [v for v, _ in vs] + [h for h, _ in hyps]
-        proof += '\ndef Laws.%s(%s):\n  GP.%s(%s)\n' % (name, ', '.join(['one', 'h1'] + args), lname(name), ', '.join(['one', 'h1', 'CA.prime_p(one, h1)', 'CD.cube_spec(one, h1)'] + args))
+        proof += '\ndef Laws.%s(%s):\n  GP.%s(%s)\n' % (name, ', '.join(['one', 'h1'] + args), lname(name), ', '.join(['one', 'h1', 'PC.prime_p(one, h1)', 'PC.cube_spec(one, h1)'] + args))
     open(os.path.join(OUT, 'group', 'glawp.bend'), 'w').write(gp)
     open(os.path.join(OUT, 'laws_group.bend'), 'w').write(laws)
     open(os.path.join(OUT, 'proof_group.bend'), 'w').write(proof)
