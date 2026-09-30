@@ -343,9 +343,17 @@ model, so constant time is a property of the code's shape, not a theorem.
 
 ## Install
 
-The library is published on the Bend hub as `bend-collections`, and every
-proved law as `bend-collections-laws` (MIT). Import any module by its path in
-the package:
+The library and its laws are published on BendHub (MIT):
+
+| Package | Hash | Contents |
+|---|---|---|
+| `bend-collections@1.0.0.0` | `0xd9a2fae439ac7ff9e21e0853948f94fe` | the library (`main.bend`: every public module) |
+| `bend-collections-laws@1.0.0.0` | `0x993b989cb899a5e5c6facb3d6fbccf8f` | every law: imports the three parts below by name |
+| `bend-collections-laws-containers@1.0.0.0` | `0x5c489f5d9646d7cc9aa3dd8137e9dc07` | containers, the shared proof library, END_TO_END, PROOF |
+| `bend-collections-laws-math@1.0.0.0` | `0xf86f5f1d9a594d5a5cff999100e01d03` | math |
+| `bend-collections-laws-crypto@1.0.0.0` | `0xa7e654f9780078ca65bf9e187da99d3e` | crypto and random |
+
+Import any module by its path in the package:
 
 ```python
 import bend-collections@1.0.0.0/src/containers/hash_table.bend as HashMap
@@ -353,19 +361,21 @@ import bend-collections@1.0.0.0/src/crypto/aead.bend as AEAD
 import bend-collections@1.0.0.0/src/math/random.bend as Rand
 ```
 
-and the laws the same way, all at once (`laws.bend` imports every proof root,
-so importing it checks every clause) or one package's root at a time:
+and the laws the same way, one package's proof root at a time or all at once:
 
 ```python
-import bend-collections-laws@1.0.0.0/proofs/crypto/aead/proof.bend as AeadLaws
+import bend-collections-laws-crypto@1.0.0.0/proofs/crypto/aead/proof.bend as AeadLaws
+import bend-collections-laws@1.0.0.0/laws.bend as Laws
 ```
 
-A name resolves to a content hash (each release lists it), and every fetched
-file is checked against that hash, so an import never changes under you.
-`main.bend` (every public module) is published as `bend-collections`
-(`bend main.bend --publish bend-collections@<version>`), and `laws.bend` as
-`bend-collections-laws`. Checking all the laws together takes about 12 GB of
-memory; check a single package's root when you need only its laws.
+BendHub caps a package at 16 MiB, so the laws are published in three parts
+(`laws_containers.bend`, `laws_math.bend`, `laws_crypto.bend`, one proof root
+each, 62 in total) and `laws.bend` imports the three by name. A name resolves to
+a content hash, and every fetched file is checked against it, so an import never
+changes under you. Checking all the laws at once takes about 12 GB of memory
+and a large stack (`ulimit -s unlimited` plus
+`BUN_JSC_maxPerThreadStackUsage=1073741824`); checking one part or one root does
+not. Version 1.0.0.0 was published from commit 8e660ee.
 
 ## Layout
 
