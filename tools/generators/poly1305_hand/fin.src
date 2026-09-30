@@ -6,7 +6,6 @@ import ../../lib/logic.bend as LG
 import ../../lib/nat.bend as N
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/typed/width.bend as WW
-import ../../math/typed/w64sh.bend as SH
 import ../../math/natural/arith.bend as NR
 import ../secp256k1/semiring.bend as SR
 import ./arith.bend as A
@@ -150,7 +149,7 @@ def sel_val(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 5n
   +lx2 = N.lt_le_trans(x5, Nat.add(s, pp), Nat.add(s, s), hb, N.le_add_left(pp, s, s, le1))
   +lx3 = A.lt_subst(x5, Nat.add(s, s), Nat.double(s), Equal.sym(Nat, Nat.double(s), Nat.add(s, s), NA.double_self(s)), lx2)
   +f131 = A.fits_subst(131n, x5, Nat.add(vg, C.shift(130n, c)), hE, WW.fits_one(131n, one, h1, x5, lx3))
-  +hc1 = A.fits_subst(1n, C.high(130n, Nat.add(vg, C.shift(130n, c))), c, WW.high_u(130n, vg, c, hG), SH.fits_high(130n, 1n, Nat.add(vg, C.shift(130n, c)), f131))
+  +hc1 = A.fits_subst(1n, C.high(130n, Nat.add(vg, C.shift(130n, c))), c, WW.high_u(130n, vg, c, hG), A.fits_high(130n, 1n, Nat.add(vg, C.shift(130n, c)), f131))
   sel_case(one, h1, bp, h5, x0, x1, x2, x3, x4, g0, g1, g2, g3, g4, c, hE, hb, hG, c01(c, hc1))
 
 # ---- the tag ----

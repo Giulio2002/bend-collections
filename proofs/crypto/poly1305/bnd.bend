@@ -6,8 +6,6 @@ import ../../lib/logic.bend as LG
 import ../../lib/nat.bend as N
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/typed/width.bend as WW
-import ../../math/typed/w64sh.bend as SH
-import ../../math/typed/f64bits.bend as FB
 import ../../math/natural/arith.bend as NR
 import ../secp256k1/semiring.bend as SR
 import ./arith.bend as A
@@ -50,19 +48,17 @@ def g4(+k: Nat, +l0: Nat, +l1: Nat, +l2: Nat, +l3: Nat, +l4: Nat, +h: {lim(k, L.
 
 # a (k bits) + c (j <= k bits) has k + 1 bits, and the mirror
 def fa(+k: Nat, +j: Nat, +a: Nat, +c: Nat, +hj: {Nat.is_le(j, k) == True{} : Bool}, +ha: {C.fits(k, a) == True{} : Bool}, +hc: {C.fits(j, c) == True{} : Bool}) -> {C.fits(1n+k, Nat.add(a, c)) == True{} : Bool}:
-  A.fits_add(k, a, c, ha, SH.fits_mono(j, k, c, hj, hc))
+  A.fits_add(k, a, c, ha, A.fits_mono(j, k, c, hj, hc))
 
 def fb(+k: Nat, +j: Nat, +a: Nat, +c: Nat, +hj: {Nat.is_le(j, k) == True{} : Bool}, +ha: {C.fits(j, a) == True{} : Bool}, +hc: {C.fits(k, c) == True{} : Bool}) -> {C.fits(1n+k, Nat.add(a, c)) == True{} : Bool}:
-  A.fits_add(k, a, c, SH.fits_mono(j, k, a, hj, ha), hc)
+  A.fits_add(k, a, c, A.fits_mono(j, k, a, hj, ha), hc)
 
 def fm(+j: Nat, +k: Nat, +x: Nat, +hj: {Nat.is_le(j, k) == True{} : Bool}, +h: {C.fits(j, x) == True{} : Bool}) -> {C.fits(k, x) == True{} : Bool}:
-  SH.fits_mono(j, k, x, hj, h)
+  A.fits_mono(j, k, x, hj, h)
 
 def f5(+j: Nat, +x: Nat, +h: {C.fits(j, x) == True{} : Bool}) -> {C.fits(Nat.add(j, 3n), Nat.mul(x, 5n)) == True{} : Bool}:
   A.fits_mul(j, 3n, x, 5n, h, {==})
 
-def fbit() -> {C.fits(14n, 8192n) == True{} : Bool}:
-  {==}
 
 # ---- one block ----
 
@@ -172,43 +168,43 @@ def comb_fit(+one: Nat, +h1: {one == 1n : Nat}, +d0: Nat, +d1: Nat, +d2: Nat, +d
   +t1 = L.mw(e0)
   +p2 = K.fmw(e0)
   +t3 = Nat.mul(t1, 8192n)
-  +p4 = A.fits_mul(26n, 14n, t1, 8192n, p2, fbit())
+  +p4 = fm(39n, 40n, Nat.mul(t1, 8192n), {==}, K.fsh(26n, t1, p2))
   +t5 = L.mw(e1)
   +p6 = K.fmw(e1)
   +t7 = Nat.mul(t5, 8192n)
-  +p8 = A.fits_mul(26n, 14n, t5, 8192n, p6, fbit())
+  +p8 = fm(39n, 40n, Nat.mul(t5, 8192n), {==}, K.fsh(26n, t5, p6))
   +t9 = L.mw(e2)
   +p10 = K.fmw(e2)
   +t11 = Nat.mul(t9, 8192n)
-  +p12 = A.fits_mul(26n, 14n, t9, 8192n, p10, fbit())
+  +p12 = fm(39n, 40n, Nat.mul(t9, 8192n), {==}, K.fsh(26n, t9, p10))
   +t13 = L.mw(e3)
   +p14 = K.fmw(e3)
   +t15 = Nat.mul(t13, 8192n)
-  +p16 = A.fits_mul(26n, 14n, t13, 8192n, p14, fbit())
+  +p16 = fm(39n, 40n, Nat.mul(t13, 8192n), {==}, K.fsh(26n, t13, p14))
   +t17 = L.mw(e4)
   +p18 = K.fmw(e4)
   +t19 = Nat.mul(t17, 8192n)
-  +p20 = A.fits_mul(26n, 14n, t17, 8192n, p18, fbit())
+  +p20 = fm(39n, 40n, Nat.mul(t17, 8192n), {==}, K.fsh(26n, t17, p18))
   +t21 = L.dw(e0)
   +p22 = K.fdw(22n, e0, he0)
   +t23 = Nat.mul(t21, 8192n)
-  +p24 = A.fits_mul(22n, 14n, t21, 8192n, p22, fbit())
+  +p24 = fm(35n, 36n, Nat.mul(t21, 8192n), {==}, K.fsh(22n, t21, p22))
   +t25 = L.dw(e1)
   +p26 = K.fdw(22n, e1, he1)
   +t27 = Nat.mul(t25, 8192n)
-  +p28 = A.fits_mul(22n, 14n, t25, 8192n, p26, fbit())
+  +p28 = fm(35n, 36n, Nat.mul(t25, 8192n), {==}, K.fsh(22n, t25, p26))
   +t29 = L.dw(e2)
   +p30 = K.fdw(22n, e2, he2)
   +t31 = Nat.mul(t29, 8192n)
-  +p32 = A.fits_mul(22n, 14n, t29, 8192n, p30, fbit())
+  +p32 = fm(35n, 36n, Nat.mul(t29, 8192n), {==}, K.fsh(22n, t29, p30))
   +t33 = L.dw(e3)
   +p34 = K.fdw(22n, e3, he3)
   +t35 = Nat.mul(t33, 8192n)
-  +p36 = A.fits_mul(22n, 14n, t33, 8192n, p34, fbit())
+  +p36 = fm(35n, 36n, Nat.mul(t33, 8192n), {==}, K.fsh(22n, t33, p34))
   +t37 = L.dw(e4)
   +p38 = K.fdw(22n, e4, he4)
   +t39 = Nat.mul(t37, 8192n)
-  +p40 = A.fits_mul(22n, 14n, t37, 8192n, p38, fbit())
+  +p40 = fm(35n, 36n, Nat.mul(t37, 8192n), {==}, K.fsh(22n, t37, p38))
   +t41 = Nat.mul(t39, 5n)
   +p42 = f5(36n, t39, p40)
   +t43 = Nat.add(t3, t41)
@@ -374,4 +370,4 @@ def load_fit(+x0: Nat, +x1: Nat, +x2: Nat, +x3: Nat, +x4: Nat, +x5: Nat, +x6: Na
 
 # a byte has 8 bits
 def byte_fit(+x: U32) -> {C.fits(8n, L.byte(x)) == True{} : Bool}:
-  A.fits_subst(8n, C.low(8n, U32.to_nat(x)), L.byte(x), Equal.sym(Nat, L.byte(x), C.low(8n, U32.to_nat(x)), FB.andm(x, 8n, 255, {==})), WW.low_fits(8n, U32.to_nat(x)))
+  A.fits_subst(8n, C.low(8n, U32.to_nat(x)), L.byte(x), Equal.sym(Nat, L.byte(x), C.low(8n, U32.to_nat(x)), A.andm(x, 8n, 255, {==})), WW.low_fits(8n, U32.to_nat(x)))

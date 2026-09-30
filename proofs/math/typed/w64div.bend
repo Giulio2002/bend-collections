@@ -50,8 +50,9 @@ def k256(+one: Nat, +h1: {one == 1n : Nat}) -> {256n == WD.sc(8n, one) : Nat}:
 # 2^16 is the literal 65536n. The checker computes every closed Nat in a type
 # to its unary normal form, so a closed 256n * 256n (or any closed term worth
 # 2^16) overflows its stack; only literals and open terms are safe. So 2^16 is
-# reached from 8192n in seven closed steps of Nat.add(8192n, _), each cheap,
-# joined by oct over variables, which keeps every intermediate term open.
+# reached from 128n == 2^7 through 1024n (oct, over variables) and one
+# division by 64 (dsc), which keeps every intermediate term open and every
+# recursion of the checker under about 130 steps.
 
 # c == (a + a) + x when a + x == b and a + b == c
 def add_twice(+a: Nat, +x: Nat, +b: Nat, +c: Nat, +hb: {Nat.add(a, x) == b : Nat}, +hc: {Nat.add(a, b) == c : Nat}) -> {c == Nat.add(Nat.add(a, a), x) : Nat}:
@@ -74,12 +75,34 @@ def oct(+one: Nat, +e: Nat, +l1: Nat, +l2: Nat, +l3: Nat, +l4: Nat, +l5: Nat, +l
   +r2 = L.subst(Nat, z => {l8 == Nat.double(Nat.double(z)) : Nat}, l2, Nat.double(l1), d2, r1)
   L.subst(Nat, z => {l8 == Nat.double(Nat.double(Nat.double(z))) : Nat}, l1, WD.sc(e, one), h1, r2)
 
+def k64(+one: Nat, +h1: {one == 1n : Nat}) -> {64n == WD.sc(6n, one) : Nat}:
+  L.subst(Nat, o => {64n == WD.sc(6n, o) : Nat}, 1n, one, Equal.sym(Nat, one, 1n, h1), {==})
+
+# n == 2^6 q when n div 64 == q and n mod 64 == 0: for a literal n the two
+# hypotheses are computed (the checker's division does not recurse) and no
+# closed sum or product worth n is formed (Nat.add(8192n, _) would recurse
+# 8192 deep).
+def dsc(+one: Nat, +h1: {one == 1n : Nat}, +n: Nat, +q: Nat, +eq: {Nat.div(n, 64n) == q : Nat}, +er: {Nat.mod(n, 64n) == 0n : Nat}) -> {n == WD.sc(6n, q) : Nat}:
+  +e0 = L.subst(Nat, z => {n == Nat.add(Nat.mul(z, 64n), 0n) : Nat}, Nat.div(n, 64n), q, eq,
+    L.subst(Nat, z => {n == Nat.add(Nat.mul(Nat.div(n, 64n), 64n), z) : Nat}, Nat.mod(n, 64n), 0n, er, NR.dm_eq(63n, n)))
+  Equal.trans(Nat, n, Nat.mul(q, 64n), WD.sc(6n, q), Equal.trans(Nat, n, Nat.add(Nat.mul(q, 64n), 0n), Nat.mul(q, 64n), e0, N.add_zero(Nat.mul(q, 64n))), PD.mul_pow(one, h1, 6n, q, 64n, k64(one, h1)))
+
+# 128 == 2^7 is the only closed doubling chain (64 steps deep); 1024 is eight
+# times it (oct: seven closed sums Nat.add(128n, _), each 128 deep), and 8192
+# and 65536 are 64 times 128 and 1024 (dsc). A closed WD.sc(13n, 1n) would
+# recurse 4096 deep in the checker and need several megabytes of stack.
+def k128(+one: Nat, +h1: {one == 1n : Nat}) -> {128n == WD.sc(7n, one) : Nat}:
+  L.subst(Nat, o => {128n == WD.sc(7n, o) : Nat}, 1n, one, Equal.sym(Nat, one, 1n, h1), {==})
+
+def k1024(+one: Nat, +h1: {one == 1n : Nat}) -> {1024n == WD.sc(10n, one) : Nat}:
+  +o = oct(one, 7n, 128n, 256n, 384n, 512n, 640n, 768n, 896n, 1024n, k128(one, h1), {==}, {==}, {==}, {==}, {==}, {==}, {==})
+  Equal.trans(Nat, 1024n, WD.sc(3n, WD.sc(7n, one)), WD.sc(10n, one), o, WM.sc_sc(3n, 7n, one))
+
 def k8192(+one: Nat, +h1: {one == 1n : Nat}) -> {8192n == WD.sc(13n, one) : Nat}:
-  L.subst(Nat, o => {8192n == WD.sc(13n, o) : Nat}, 1n, one, Equal.sym(Nat, one, 1n, h1), {==})
+  Equal.trans(Nat, 8192n, WD.sc(6n, WD.sc(7n, one)), WD.sc(13n, one), dsc(one, h1, 8192n, WD.sc(7n, one), k128(one, h1), {==}), WM.sc_sc(6n, 7n, one))
 
 def k65536(+one: Nat, +h1: {one == 1n : Nat}) -> {65536n == WD.sc(16n, one) : Nat}:
-  +o = oct(one, 13n, 8192n, 16384n, 24576n, 32768n, 40960n, 49152n, 57344n, 65536n, k8192(one, h1), {==}, {==}, {==}, {==}, {==}, {==}, {==})
-  Equal.trans(Nat, 65536n, WD.sc(3n, WD.sc(13n, one)), WD.sc(16n, one), o, WM.sc_sc(3n, 13n, one))
+  Equal.trans(Nat, 65536n, WD.sc(6n, WD.sc(10n, one)), WD.sc(16n, one), dsc(one, h1, 65536n, WD.sc(10n, one), k1024(one, h1), {==}), WM.sc_sc(6n, 10n, one))
 
 # ---- one short-division step keeps the remainder of the prefix ----
 

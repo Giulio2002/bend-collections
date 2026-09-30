@@ -86,6 +86,9 @@ class U:
         return s.val('Nat.add(%s, %s)' % (a.e, b.e), 'Nat.add(%s, %s)' % (a.full, b.full), 1 + max(a.bits, b.bits), pr)
 
     def mul(s, a, b):
+        if b.e == '8192n':
+            # x * 2^13: K.fsh (a closed C.fits(14n, 8192n) would recurse 4096 deep in the checker)
+            return s.val('Nat.mul(%s, 8192n)' % a.e, 'Nat.mul(%s, 8192n)' % a.full, a.bits + 13, 'K.fsh(%dn, %s, %s)' % (a.bits, a.e, a.p))
         pr = 'A.fits_mul(%dn, %dn, %s, %s, %s, %s)' % (a.bits, b.bits, a.e, b.e, a.p, b.p)
         return s.val('Nat.mul(%s, %s)' % (a.e, b.e), 'Nat.mul(%s, %s)' % (a.full, b.full), a.bits + b.bits, pr)
 

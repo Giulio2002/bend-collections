@@ -5,7 +5,6 @@ import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/typed/width.bend as WW
-import ../../math/typed/w64sh.bend as SH
 import ../../math/natural/arith.bend as NR
 import ../../../src/crypto/poly1305/limbs.bend as LI
 import ../secp256k1/semiring.bend as SR
@@ -58,8 +57,29 @@ def d256(+x: Nat) -> {x == Nat.add(Nat.mod(x, 256n), C.shift(8n, Nat.div(x, 256n
 
 # ---- the radix 2^13 (a literal the checker holds as a number) ----
 
+# n == r + 2^6 q for q = n div 64, r = n mod 64 (q and r named, so that an
+# instance at a literal n never forms a closed 2^6 q)
+def dsh(+n: Nat, +q: Nat, +r: Nat, +eq: {Nat.div(n, 64n) == q : Nat}, +er: {Nat.mod(n, 64n) == r : Nat}) -> {n == Nat.add(r, C.shift(6n, q)) : Nat}:
+  L.subst(Nat, z => {n == Nat.add(r, C.shift(6n, z)) : Nat}, Nat.div(n, 64n), q, eq,
+    L.subst(Nat, z => {n == Nat.add(z, C.shift(6n, Nat.div(n, 64n))) : Nat}, Nat.mod(n, 64n), r, er, d64(n)))
+
+# 2^7 (the only closed doubling chain here: 64 steps deep)
+def k128(+one: Nat, +h1: {one == 1n : Nat}) -> {128n == C.shift(7n, one) : Nat}:
+  L.subst(Nat, o => {128n == C.shift(7n, o) : Nat}, 1n, one, Equal.sym(Nat, one, 1n, h1), {==})
+
+# 8192 == 2^13, with 2^13 written C.shift(13n, one): 8192 div 64 == 128 and
+# 8192 mod 64 == 0 are computed (the checker's division does not recurse),
+# so no term 2^13 deep is ever evaluated. (A closed C.shift(13n, 1n),
+# C.pow2(13n) or C.fits(k, 8192n) would recurse 4096 deep in the checker.)
+def k8192(+one: Nat, +h1: {one == 1n : Nat}) -> {8192n == C.shift(13n, one) : Nat}:
+  dsh(8192n, C.shift(7n, one), 0n, k128(one, h1), {==})
+
+def mb1(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat) -> {Nat.mul(x, 8192n) == C.shift(13n, x) : Nat}:
+  Equal.sym(Nat, C.shift(13n, x), Nat.mul(x, 8192n),
+    L.subst(Nat, z => {C.shift(13n, x) == Nat.mul(x, z) : Nat}, C.shift(13n, one), 8192n, Equal.sym(Nat, 8192n, C.shift(13n, one), k8192(one, h1)), WW.shift_mul_one(13n, one, h1, x)))
+
 def mb(+x: Nat) -> {Nat.mul(x, 8192n) == C.shift(13n, x) : Nat}:
-  Equal.sym(Nat, C.shift(13n, x), Nat.mul(x, C.shift(13n, 1n)), WW.shift_mul(13n, x))
+  mb1(1n, {==}, x)
 
 # x == x mod 2^13 + 2^13 (x div 2^13)
 def sb(+x: Nat) -> {x == Nat.add(Nat.mod(x, 8192n), C.shift(13n, Nat.div(x, 8192n))) : Nat}:
@@ -84,14 +104,18 @@ def sw(+x: Nat) -> {x == Nat.add(LI.mw(x), C.shift(26n, LI.dw(x))) : Nat}:
   %Equal.sym(Nat, Nat.add(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), Nat.add(C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n))), Nat.add(C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.add(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n))), NA.add_swap(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n))) : {Nat.add(C.shift(26n, Nat.div(Nat.div(x, 8192n), 8192n)), Nat.add(C.shift(13n, Nat.mod(Nat.div(x, 8192n), 8192n)), Nat.mod(x, 8192n))) == _ : Nat}
   {==}
 
+def fmb1(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat) -> {C.fits(13n, Nat.mod(x, 8192n)) == True{} : Bool}:
+  WW.fits_one(13n, one, h1, Nat.mod(x, 8192n),
+    L.subst(Nat, z => {Nat.is_lt(Nat.mod(x, 8192n), z) == True{} : Bool}, 8192n, C.shift(13n, one), k8192(one, h1), NR.dm_lt(8191n, x)))
+
 def fmb(+x: Nat) -> {C.fits(13n, Nat.mod(x, 8192n)) == True{} : Bool}:
-  WW.fits_of_lt(13n, Nat.mod(x, 8192n), NR.dm_lt(8191n, x))
+  fmb1(1n, {==}, x)
 
 # fits(13 + k, x) gives fits(k, x div 2^13)
 def fdb(+k: Nat, +x: Nat, +hx: {C.fits(Nat.add(13n, k), x) == True{} : Bool}) -> {C.fits(k, Nat.div(x, 8192n)) == True{} : Bool}:
   %WW.high_u(13n, Nat.mod(x, 8192n), Nat.div(x, 8192n), fmb(x)) : {C.fits(k, _) == True{} : Bool}
   %sb(x) : {C.fits(k, C.high(13n, _)) == True{} : Bool}
-  SH.fits_high(13n, k, x, hx)
+  A.fits_high(13n, k, x, hx)
 
 def fmw(+x: Nat) -> {C.fits(26n, LI.mw(x)) == True{} : Bool}:
   +m = Nat.mod(x, 8192n)
@@ -198,19 +222,23 @@ def fm256(+x: Nat) -> {C.fits(8n, Nat.mod(x, 256n)) == True{} : Bool}:
 def fd4(+j: Nat, +x: Nat, +hx: {C.fits(Nat.add(2n, j), x) == True{} : Bool}) -> {C.fits(j, Nat.div(x, 4n)) == True{} : Bool}:
   %WW.high_u(2n, Nat.mod(x, 4n), Nat.div(x, 4n), fm4(x)) : {C.fits(j, _) == True{} : Bool}
   %d4(x) : {C.fits(j, C.high(2n, _)) == True{} : Bool}
-  SH.fits_high(2n, j, x, hx)
+  A.fits_high(2n, j, x, hx)
 
 def fd16(+j: Nat, +x: Nat, +hx: {C.fits(Nat.add(4n, j), x) == True{} : Bool}) -> {C.fits(j, Nat.div(x, 16n)) == True{} : Bool}:
   %WW.high_u(4n, Nat.mod(x, 16n), Nat.div(x, 16n), fm16(x)) : {C.fits(j, _) == True{} : Bool}
   %d16(x) : {C.fits(j, C.high(4n, _)) == True{} : Bool}
-  SH.fits_high(4n, j, x, hx)
+  A.fits_high(4n, j, x, hx)
 
 def fd64(+j: Nat, +x: Nat, +hx: {C.fits(Nat.add(6n, j), x) == True{} : Bool}) -> {C.fits(j, Nat.div(x, 64n)) == True{} : Bool}:
   %WW.high_u(6n, Nat.mod(x, 64n), Nat.div(x, 64n), fm64(x)) : {C.fits(j, _) == True{} : Bool}
   %d64(x) : {C.fits(j, C.high(6n, _)) == True{} : Bool}
-  SH.fits_high(6n, j, x, hx)
+  A.fits_high(6n, j, x, hx)
 
 def fd256(+j: Nat, +x: Nat, +hx: {C.fits(Nat.add(8n, j), x) == True{} : Bool}) -> {C.fits(j, Nat.div(x, 256n)) == True{} : Bool}:
   %WW.high_u(8n, Nat.mod(x, 256n), Nat.div(x, 256n), fm256(x)) : {C.fits(j, _) == True{} : Bool}
   %d256(x) : {C.fits(j, C.high(8n, _)) == True{} : Bool}
-  SH.fits_high(8n, j, x, hx)
+  A.fits_high(8n, j, x, hx)
+
+# x (k bits) times 2^13 has 13 + k bits
+def fsh(+k: Nat, +x: Nat, +hx: {C.fits(k, x) == True{} : Bool}) -> {C.fits(Nat.add(13n, k), Nat.mul(x, 8192n)) == True{} : Bool}:
+  L.subst(Nat, z => {C.fits(Nat.add(13n, k), z) == True{} : Bool}, C.shift(13n, x), Nat.mul(x, 8192n), Equal.sym(Nat, Nat.mul(x, 8192n), C.shift(13n, x), mb(x)), WW.limbs_fit(13n, k, 0n, x, fz(13n), hx))
