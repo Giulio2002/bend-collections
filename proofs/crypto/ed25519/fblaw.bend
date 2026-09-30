@@ -14,6 +14,7 @@ import ../secp256k1/group/fld.bend as F
 import ./group/fq.bend as FQ
 import ./fbgrp.bend as FG
 import ./fbspec.bend as FB
+import ./group/ext.bend as GX
 
 # The group-law statements of fbspec.bend (LawE, LawQ): the table form of
 # [k] B and the specification's double-and-add [k] B are valid points with
@@ -157,3 +158,47 @@ def lawE(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hc: G.Curve(mp, SE.dconst
 
 def lawQ(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hc: G.Curve(mp, SE.dconst(one, 1n+mp)), +hb: EG.Valid(1n+mp, SE.dconst(one, 1n+mp), SE.base(1n+mp, SE.dconst(one, 1n+mp)))) -> FB.LawQ(one, mp):
   bs => hs => r => law_q(one, h1, mp, SE.dconst(one, 1n+mp), hc, EG.affine(1n+mp, SE.base(1n+mp, SE.dconst(one, 1n+mp))), va_base(one, mp, hc, hb), bs, hs, r)
+
+# ---- the window form of [k] a in verification ----
+
+def is_eq_sym(+a: Nat, +b: Nat) -> {Nat.is_eq(a, b) == Nat.is_eq(b, a) : Bool}:
+  beq_of(Nat.is_eq(a, b), Nat.is_eq(b, a), h => is_eq_of(b, a, Equal.sym(Nat, a, b, N.eq_from_is_eq(a, b, h))), h => is_eq_of(a, b, Equal.sym(Nat, b, a, N.eq_from_is_eq(b, a, h))))
+
+# the comparison of an extended point with an affine one
+def eqr(+p: Nat, a: SE.EPt, q: G.APt) -> Bool:
+  match a q:
+    case SE.EPt{x1, y1, +z1, t1} G.APt{u, v}:
+      Bool.and(Nat.is_eq(FS.fmul(p, u, z1), Nat.mod(x1, p)), Nat.is_eq(FS.fmul(p, v, z1), Nat.mod(y1, p)))
+
+# the specification's comparison of any point with a valid point, through
+# the affine point of the second
+def equal_b(+mp: Nat, +d: Nat, +hp: PM.Prime(1n+mp), +a: SE.EPt, +b: SE.EPt, +hb: EG.Valid(1n+mp, d, b)) -> {SE.equal(1n+mp, a, b) == eqr(1n+mp, a, EG.affine(1n+mp, b)) : Bool}:
+  match a b:
+    case SE.EPt{+x1, +y1, +z1, +t1} SE.EPt{+x2, +y2, +z2, +t2}:
+      +P = {1n+mp : Nat}
+      +hz = valid_nz(mp, d, x2, y2, z2, t2, hb)
+      +ex = Equal.trans(Bool, Nat.is_eq(FS.fmul(P, x1, z2), FS.fmul(P, x2, z1)), Nat.is_eq(FS.fmul(P, x2, z1), FS.fmul(P, x1, z2)), Nat.is_eq(FS.fmul(P, FS.fmul(P, x2, FS.finv(P, z2)), z1), Nat.mod(x1, P)), is_eq_sym(FS.fmul(P, x1, z2), FS.fmul(P, x2, z1)), cmp_aff(mp, hp, x2, z2, x1, z1, hz))
+      +ey = Equal.trans(Bool, Nat.is_eq(FS.fmul(P, y1, z2), FS.fmul(P, y2, z1)), Nat.is_eq(FS.fmul(P, y2, z1), FS.fmul(P, y1, z2)), Nat.is_eq(FS.fmul(P, FS.fmul(P, y2, FS.finv(P, z2)), z1), Nat.mod(y1, P)), is_eq_sym(FS.fmul(P, y1, z2), FS.fmul(P, y2, z1)), cmp_aff(mp, hp, y2, z2, y1, z1, hz))
+      band2(Nat.is_eq(FS.fmul(P, x1, z2), FS.fmul(P, x2, z1)), Nat.is_eq(FS.fmul(P, FS.fmul(P, x2, FS.finv(P, z2)), z1), Nat.mod(x1, P)), Nat.is_eq(FS.fmul(P, y1, z2), FS.fmul(P, y2, z1)), Nat.is_eq(FS.fmul(P, FS.fmul(P, y2, FS.finv(P, z2)), z1), Nat.mod(y1, P)), ex, ey)
+
+def equal_aff_b(+mp: Nat, +d: Nat, +hp: PM.Prime(1n+mp), +a: SE.EPt, +b: SE.EPt, +b2: SE.EPt, +hb: EG.Valid(1n+mp, d, b), +hb2: EG.Valid(1n+mp, d, b2), +e: {EG.affine(1n+mp, b) == EG.affine(1n+mp, b2) : G.APt}) -> {SE.equal(1n+mp, a, b) == SE.equal(1n+mp, a, b2) : Bool}:
+  +P = {1n+mp : Nat}
+  Equal.trans(Bool, SE.equal(P, a, b), eqr(P, a, EG.affine(P, b)), SE.equal(P, a, b2), equal_b(mp, d, hp, a, b, hb), Equal.trans(Bool, eqr(P, a, EG.affine(P, b)), eqr(P, a, EG.affine(P, b2)), SE.equal(P, a, b2), Equal.cong(G.APt, Bool, w => eqr(P, a, w), EG.affine(P, b), EG.affine(P, b2), e), Equal.sym(Bool, SE.equal(P, a, b2), eqr(P, a, EG.affine(P, b2)), equal_b(mp, d, hp, a, b2, hb2))))
+
+def law_w(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +bs: List<&2, U32>, +hs: {FS.bytes_ok(32n, bs) == True{} : Bool}, +x: SE.EPt, +r: SE.EPt, +a: SE.EPt, +hr: EG.Valid(1n+mp, d, r), +ha: EG.Valid(1n+mp, d, a)) -> {SE.equal(1n+mp, x, SE.add(1n+mp, d, r, FB.smulw(1n+mp, d, bs, a))) == SE.equal(1n+mp, x, SE.add(1n+mp, d, r, SE.mul(one, 1n+mp, d, FS.value(bs), a))) : Bool}:
+  +P = {1n+mp : Nat}
+  +q = EG.affine(P, a)
+  +hq = FG.va_mk(mp, d, hc, a, q, ha, {==})
+  +W = FB.smulw(P, d, bs, a)
+  +M = SE.mul(one, P, d, FS.value(bs), a)
+  +X = G.nmul(P, d, FS.value(bs), q)
+  +gw = FG.va_mulw(mp, d, hc, a, q, hq, bs, hs)
+  +gm = FG.va_mul(one, h1, mp, d, hc, a, q, hq, bs, hs)
+  +vw = FG.vV(mp, d, W, X, gw)
+  +vm = FG.vV(mp, d, M, X, gm)
+  +ew = Equal.trans(G.APt, EG.affine(P, SE.add(P, d, r, W)), G.aadd(P, d, EG.affine(P, r), EG.affine(P, W)), G.aadd(P, d, EG.affine(P, r), X), GX.add_aff(mp, d, hc, r, W, hr, vw), Equal.cong(G.APt, G.APt, z => G.aadd(P, d, EG.affine(P, r), z), EG.affine(P, W), X, FG.vE(mp, d, W, X, gw)))
+  +em = Equal.trans(G.APt, EG.affine(P, SE.add(P, d, r, M)), G.aadd(P, d, EG.affine(P, r), EG.affine(P, M)), G.aadd(P, d, EG.affine(P, r), X), GX.add_aff(mp, d, hc, r, M, hr, vm), Equal.cong(G.APt, G.APt, z => G.aadd(P, d, EG.affine(P, r), z), EG.affine(P, M), X, FG.vE(mp, d, M, X, gm)))
+  equal_aff_b(mp, d, FQ.cv_prime(mp, d, hc), x, SE.add(P, d, r, W), SE.add(P, d, r, M), GX.add_valid(mp, d, hc, r, W, hr, vw), GX.add_valid(mp, d, hc, r, M, hr, vm), Equal.trans(G.APt, EG.affine(P, SE.add(P, d, r, W)), G.aadd(P, d, EG.affine(P, r), X), EG.affine(P, SE.add(P, d, r, M)), ew, Equal.sym(G.APt, EG.affine(P, SE.add(P, d, r, M)), G.aadd(P, d, EG.affine(P, r), X), em)))
+
+def lawW(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hc: G.Curve(mp, SE.dconst(one, 1n+mp))) -> FB.LawW(one, mp):
+  bs => hs => x => r => a => hr => ha => law_w(one, h1, mp, SE.dconst(one, 1n+mp), hc, bs, hs, x, r, a, hr, ha)

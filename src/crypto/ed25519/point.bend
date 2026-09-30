@@ -288,6 +288,22 @@ def mul_base(+R: Nat, tab: List<&2, List<&2, Cp>>, +k: List<&2, U32>) -> Pt:
 def mul_base_vt(+R: Nat, tab: List<&2, List<&2, Cp>>, +k: List<&2, U32>) -> Pt:
   fbv(R, tab, nibs(k), identity())
 
+# ---- multiplication of a public point by 4-bit windows ----
+
+# the digits ds (least significant first) against the row rw = [0 a, ...,
+# 15 a]: 16 ([rest] a) + [d] a, most significant digit first (256
+# doublings and 64 additions for a 32-byte scalar)
+def win(+R: Nat, +rw: List<&2, Cp>, ds: List<&2, Nat>) -> Pt:
+  match ds:
+    case Nil{}:
+      identity()
+    case Con{d, dt}:
+      add_c(R, dbl4(R, win(R, rw, dt)), nthc(d, rw))
+
+# [k] a for a public scalar k
+def mul_win(+c: Cs, +k: List<&2, U32>, +a: Pt) -> Pt:
+  win(cs_r(c), row(c, a), nibs(k))
+
 # the last byte with bit 7 set to b (the canonical y has it clear)
 def set_top(xs: List<&2, U32>, +b: U32) -> List<&2, U32>:
   match xs:

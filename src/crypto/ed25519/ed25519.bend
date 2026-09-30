@@ -183,13 +183,14 @@ def sign_raw(+seed: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
   sign_lite(lite(seed), seed, msg)
 
 # verification: the scalars S and k are public. [k]A' adds only on one
-# bits (PT.mul_vt, the same results as PT.mul); [S]B is by the table with a
-# context (PT.mul_base_vt: entries by index), by PT.mul_vt without.
+# bits (PT.mul_vt, the same results as PT.mul) without a context, by 4-bit
+# windows (PT.mul_win) with one; [S]B is by the table with a context
+# (PT.mul_base_vt: entries by index), by PT.mul_vt without.
 def check_t(+c: PT.Cs, tab: List<&2, List<&2, PT.Cp>>, +sb: List<&2, U32>, +rb: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, ra: Maybe<&2, PT.Pt>, aa: Maybe<&2, PT.Pt>) -> Bool:
   match ra aa:
     case Some{r} Some{+a}:
       +k = hram(rb, pk, msg)
-      PT.equal(PT.cs_r(c), PT.mul_base_vt(PT.cs_r(c), tab, sb), PT.add(c, r, PT.mul_vt(c, k, a)))
+      PT.equal(PT.cs_r(c), PT.mul_base_vt(PT.cs_r(c), tab, sb), PT.add(c, r, PT.mul_win(c, k, a)))
     case _ _:
       False{}
 

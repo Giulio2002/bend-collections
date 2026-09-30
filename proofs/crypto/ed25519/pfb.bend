@@ -134,3 +134,20 @@ def mul_base_vt_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1
   +n = Nat.div(R, 2048n)
   +g = fbv_rel(one, h1, pp, hP, cs, hR, D, rd2, n, B, SE.base(P, D), hB, PT.nibs(k), nibs_ok(k, CV.nat_below(32n, k, hk)), PT.identity(), SE.identity(), PD.identity_rel(one, h1, pp))
   L.subst(Nat, z => PR.Rp(one, pp, PT.fbv(R, PT.table(n, cs, B), PT.nibs(k), PT.identity()), FB.sfb(P, D, FB.stab(z, P, D, SE.base(P, D)), PT.nibs(k), SE.identity())), n, C.shift(6n, one), cnt_eq(one, R, hR), g)
+
+# ---- 4-bit windows ----
+
+def win_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +a: PT.Pt, +sa: SE.EPt, +ha: PR.Rp(one, pp, a, sa), +ds: List<&2, Nat>, +hd: {dok(ds) == True{} : Bool}) -> PR.Rp(one, pp, PT.win(PT.cs_r(cs), PT.row(cs, a), ds), FB.swin(1n+pp, D, FB.srow(1n+pp, D, sa), ds)):
+  match ds:
+    case Nil{}:
+      PD.identity_rel(one, h1, pp)
+    case Con{+d, +dt}:
+      +R = PT.cs_r(cs)
+      +w = PT.win(R, PT.row(cs, a), dt)
+      +sw = FB.swin(1n+pp, D, FB.srow(1n+pp, D, sa), dt)
+      +hw = win_rel(one, h1, pp, hP, cs, hR, D, rd2, a, sa, ha, dt, L.and_right(Nat.is_lt(d, 16n), dok(dt), hd))
+      +hq = nth_rel(one, h1, pp, hP, cs, hR, D, rd2, a, sa, ha, d, L.and_left(Nat.is_lt(d, 16n), dok(dt), hd))
+      PT2.add_c_rel(one, h1, pp, hP, R, hR, D, PT.dbl4(R, w), PT.nthc(d, PT.row(cs, a)), FB.sdbl4(1n+pp, sw), FB.snth(d, FB.srow(1n+pp, D, sa)), dbl4_rel(one, h1, pp, hP, R, hR, w, sw, hw), hq)
+
+def mul_win_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +k: List<&2, U32>, +hk: {FS.bytes_ok(32n, k) == True{} : Bool}, +a: PT.Pt, +sa: SE.EPt, +ha: PR.Rp(one, pp, a, sa)) -> PR.Rp(one, pp, PT.mul_win(cs, k, a), FB.smulw(1n+pp, D, k, sa)):
+  win_rel(one, h1, pp, hP, cs, hR, D, rd2, a, sa, ha, PT.nibs(k), nibs_ok(k, CV.nat_below(32n, k, hk)))

@@ -34,7 +34,7 @@ def verify_ctx_if_eq(+ctx: E.Ctx, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig:
     case False{}:
       Empty.absurd({SG.verify_ctx_if(ctx, pk, msg, sig, False{}) == V : Bool}, L.true_false(Equal.sym(Bool, False{}, True{}, hok)))
 
-def ed_verify_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}, lq: FB.LawQ(one, PB.pp1(one))) -> SE.Ed25519.verify_ctx(one, h1, xs, pk, msg, sig, hp, hg):
+def ed_verify_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}, lq: FB.LawQ(one, PB.pp1(one)), lw: FB.LawW(one, PB.pp1(one)), lv1: FB.LawV(one, PB.pp1(one)), lv2: FB.LawV(one, PB.pp1(one))) -> SE.Ed25519.verify_ctx(one, h1, xs, pk, msg, sig, hp, hg):
   +pp = PB.pp1(one)
   +P = {1n+pp : Nat}
   +D = SE.dconst(one, P)
@@ -52,7 +52,7 @@ def ed_verify_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +pk: Li
   +slt = Nat.is_lt(FS.value(ssb), el)
   +e0 = Equal.trans(Bool, ESC.lt_l(sb), Nat.is_lt(FS.value(sb), 1n+S3.mmL(one)), lt, S3.lt_l_m(one, h1, sb, hsb), Equal.cong(Nat, Bool, z => Nat.is_lt(FS.value(sb), z), 1n+S3.mmL(one), el, TH.ell_m(one, h1)))
   +e1 = Equal.cong(Bool, Bool, z => E.verify_with_t(cs, PT.base_table(cs, B), pk, msg, rb, sb, z), ESC.lt_l(sb), lt, e0)
-  +e2 = TV.verify_with_rel_t(one, h1, pp, PRM.hP(one, h1), xs, pk, PB.ok(32n, pk, hp), msg, rb, hrb, sb, hsb, lt, lq)
+  +e2 = TV.verify_with_rel_t(one, h1, pp, PRM.hP(one, h1), xs, pk, PB.ok(32n, pk, hp), msg, rb, hrb, sb, hsb, lt, lq, lw, lv1, lv2)
   +e3 = Equal.cong(List<&2, U32>, Bool, z => SE.verify_with(one, P, D, pk, msg, z, FS.value(sb), lt), rb, srb, BY.take_eq(32n, sig))
   +e4 = Equal.cong(List<&2, U32>, Bool, z => SE.verify_with(one, P, D, pk, msg, srb, FS.value(z), Nat.is_lt(FS.value(z), el)), sb, ssb, BY.drop_eq(32n, sig))
   +e5 = Equal.cong(Nat, Bool, z => SE.verify_with(one, z, SE.dconst(one, z), pk, msg, srb, FS.value(ssb), slt), P, FS.prime(one), Equal.sym(Nat, FS.prime(one), P, PRM.prime_eq(one, h1)))
@@ -97,5 +97,5 @@ def ed_verify(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +msg: List<
 def sign_verify(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}) -> SS.Sign.verify(one, h1, pk, msg, sig, hp, hg):
   verify_if_eq(pk, msg, sig, Bool.and(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig)), SE.verify(one, pk, msg, sig), L.and_intro(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig), PB.valid_ok(32n, pk, hp), PB.valid_ok(64n, sig, hg)), ed_verify(one, h1, pk, msg, sig, hp, hg))
 
-def sign_verify_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}, lq: FB.LawQ(one, PB.pp1(one))) -> SS.Sign.verify_ctx(one, h1, xs, pk, msg, sig, hp, hg):
-  verify_ctx_if_eq(E.context(xs), pk, msg, sig, Bool.and(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig)), SE.verify(one, pk, msg, sig), L.and_intro(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig), PB.valid_ok(32n, pk, hp), PB.valid_ok(64n, sig, hg)), ed_verify_ctx(one, h1, xs, pk, msg, sig, hp, hg, lq))
+def sign_verify_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}, lq: FB.LawQ(one, PB.pp1(one)), lw: FB.LawW(one, PB.pp1(one)), lv1: FB.LawV(one, PB.pp1(one)), lv2: FB.LawV(one, PB.pp1(one))) -> SS.Sign.verify_ctx(one, h1, xs, pk, msg, sig, hp, hg):
+  verify_ctx_if_eq(E.context(xs), pk, msg, sig, Bool.and(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig)), SE.verify(one, pk, msg, sig), L.and_intro(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig), PB.valid_ok(32n, pk, hp), PB.valid_ok(64n, sig, hg)), ed_verify_ctx(one, h1, xs, pk, msg, sig, hp, hg, lq, lw, lv1, lv2))
