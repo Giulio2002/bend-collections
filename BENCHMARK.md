@@ -55,10 +55,10 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | XChaCha20-Poly1305 | 347.95 |
 | AES-128-GCM | 7.97 |
 | AES-256-GCM | 6.48 |
-| X25519 shared secret | 7.77 |
-| Ed25519 key generation | 6.97 |
-| Ed25519 sign | 7.93 |
-| Ed25519 verify | 7.49 |
+| X25519 shared secret | 6.72 |
+| Ed25519 key generation | 6.52 |
+| Ed25519 sign | 7.52 |
+| Ed25519 verify | 5.21 |
 | Argon2id | 9.09 |
 | secp256k1 (ECDSA, recovery, BIP-340) | 201.83 |
 | ChaCha8 `uint64` | 7.26 |
@@ -332,37 +332,37 @@ mean pass. Microseconds per operation.
 
 ### X25519 shared secret
 
-C reference: Monocypher 4.0.2 `crypto_x25519`. Worst ratio 7.77 (1677.75 before the fast field).
+C reference: Monocypher 4.0.2 `crypto_x25519`. Worst ratio 6.72 (1677.75 before the fast field).
 
 | Operation | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| shared secret | 250 | 32.2 | 7.77 |
+| shared secret | 215 | 32.0 | 6.72 |
 
 ### Ed25519 key generation
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_key_pair` (SHA-512). Worst ratio 6.97 (7064.08 before the fast field, 22.72 before the base-point table).
+C reference: Monocypher 4.0.2 `crypto_ed25519_key_pair` (SHA-512). Worst ratio 6.52 (7064.08 before the fast field, 22.72 before the base-point table).
 
 | Operation | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| keygen | 117 | 16.8 | 6.97 |
+| keygen | 109 | 16.8 | 6.52 |
 
 ### Ed25519 sign
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_sign`. Worst ratio 7.93 (13116.15 before the fast field, 22.80 before the base-point table).
+C reference: Monocypher 4.0.2 `crypto_ed25519_sign`. Worst ratio 7.52 (13116.15 before the fast field, 22.80 before the base-point table).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| sign 64 B | 141 | 17.7 | 7.93 |
-| sign 1 KiB | 156 | 20.1 | 7.78 |
+| sign 64 B | 133 | 17.7 | 7.52 |
+| sign 1 KiB | 148 | 20.1 | 7.39 |
 
 ### Ed25519 verify
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_check`. Worst ratio 7.49 (4449.20 before the fast field, 11.49 before the base-point table).
+C reference: Monocypher 4.0.2 `crypto_ed25519_check`. Worst ratio 5.21 (4449.20 before the fast field, 7.49 before the 4-bit windows).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| verify 64 B | 359 | 48.0 | 7.49 |
-| verify 1 KiB | 359 | 49.1 | 7.32 |
+| verify 64 B | 250 | 48.0 | 5.21 |
+| verify 1 KiB | 250 | 49.0 | 5.11 |
 
 ### Argon2id
 
@@ -500,9 +500,9 @@ Fairness notes:
   public key in every call, as C does. The Bend context holds a table of
   the base point (64 rows of 16 points, built in about 1 ms before the
   timed region): [k]B is 64 additions, with every entry of a row read for a
-  secret digit. [k]A in verification is still double-and-add over 256 bits
-  (adding on one bits); Monocypher uses signed windows and a joint
-  double-scalar multiplication there.
+  secret digit. [k]A in verification is by 4-bit windows (a row of 16
+  multiples of A, then 256 doublings and 64 additions); Monocypher uses
+  signed sliding windows and a joint double-scalar multiplication there.
 - secp256k1: libsecp256k1 is production code with precomputed multiplication
   tables, not a plain reference; its verify parses the key and signature inside
   the timed region (the Bend API takes bytes) and normalises s (Bend's verify

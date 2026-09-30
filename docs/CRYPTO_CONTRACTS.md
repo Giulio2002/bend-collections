@@ -250,7 +250,7 @@ generated body against its list form by one evaluation, then reasons about
 the list form):
 
 - products: the 15 × 15 schoolbook columns with every limb product on the
-  native 32-bit multiplier (`pm`: one factor split at bit 9, both half
+  native 32-bit multiplier (`pm`: one factor split at bit 9 by a mask and a shift of its 32-bit word, both half
   products below 2^29, so the U32 product is exact; a `Nat` product checks
   its 48-bit bound with a division), the upper columns folded by 19
   (2^255 = 19 mod p), then one carry pass;
@@ -354,7 +354,11 @@ P = 16^j B, each entry prepared for additions (`Cp`: Y + X, Y - X, 2 d T,
 entry per row (`mul_base`: 64 additions, no doubling). A secret digit
 selects its entry by masks over the whole row (`look`, `pick.bend`
 `sel16`, written by `tools/gen_pick.py`: every entry is read and no branch
-depends on the digit); a public digit indexes it (`mul_base_vt`). Scalars mod L (`scalar.bend`) are
+depends on the digit); a public digit indexes it (`mul_base_vt`). In
+verification [k]A is by 4-bit windows (`mul_win`: the row [0 A, ..., 15 A],
+then per digit, most significant first, four doublings and one addition of
+the indexed entry; the doublings and additions whose result is doubled
+next skip T, `winf`, proved the same point by `pwinf.bend`). Scalars mod L (`scalar.bend`) are
 17-bit limbs reduced by Horner's rule: each step estimates the quotient
 from the top limbs (the true quotient or one more), subtracts that
 multiple of L and then L by selection (`step.bend`: the step on 15 limbs
@@ -367,7 +371,7 @@ key (`expand`, `expand_ctx`: constants, the table, s mod L, prefix and
 public key, computed once), signing with it (`sign_key`: one base-point
 multiplication by the table per signature), and cofactorless verification
 [S]B == R + [k]A, with S ≥ L rejected and both points decoded strictly
-(`verify_ctx`: [S]B by the table). `public_key(seed)`, `sign_raw(seed,
+(`verify_ctx`: [S]B by the table, [k]A by windows). `public_key(seed)`, `sign_raw(seed,
 msg)` and `verify_raw(pk, msg, sig)` take no context and build no table
 (the table costs about 1 ms): they use double-and-add.
 `sign.bend` is the facade: `generate_keypair(seed)`,
@@ -394,11 +398,12 @@ compares two terms that contain them.
 | `Ed25519.sign` | `sign_raw(seed, msg)` equals the RFC's signature (5.1.6), for every message | proved |
 | `Ed25519.verify` | for a 32-byte key and a 64-byte signature, the verdict equals the RFC's (5.1.7, cofactorless, S < L required) | proved |
 | `Ed25519.key_public`, `Ed25519.sign_key` | the expanded key of a seed carries `public_key(seed)`; signing with it is `sign(seed, msg)` | proved from `LawE` (below) |
-| `Ed25519.public_ctx`, `Ed25519.sign_ctx`, `Ed25519.verify_ctx` | the same with the constants of `context(xs)`, for every list xs | proved from `LawE` / `LawQ` |
+| `Ed25519.public_ctx`, `Ed25519.sign_ctx`, `Ed25519.verify_ctx` | the same with the constants of `context(xs)`, for every list xs | proved from `LawE` / `LawQ` / `LawW` / `LawV` |
 | `Sign.keypair`, `Sign.sign`, `Sign.verify` | the facade on well-formed input is the specification | proved |
 | `Sign.key_public`, `Sign.key_sign` | `signing_key(seed)` is a key whose public key and signatures are the seed's | proved from `LawE` |
-| `Sign.keypair_ctx`, `Sign.key_public_ctx`, `Sign.key_sign_ctx`, `Sign.verify_ctx` | the same with `context(xs)`, for every xs | proved from `LawE` / `LawQ` |
+| `Sign.keypair_ctx`, `Sign.key_public_ctx`, `Sign.key_sign_ctx`, `Sign.verify_ctx` | the same with `context(xs)`, for every xs | proved from `LawE` / `LawQ` / `LawW` / `LawV` |
 | `LawE`, `LawQ` (`proofs/crypto/ed25519/fbspec.bend`) | the table form of [k] B over the specification's points encodes as, and compares with any point as, the specification's double-and-add [k] B, for 32 bytes k | proved from `G.Curve` (`proof_law.bend`) |
+| `LawW`, `LawV` (`fbspec.bend`) | for valid R and A, R + (the window form of [k] A) compares with any point as R + [k] A; every decoding (or the identity) is valid | proved from `G.Curve` (`proof_law.bend`) |
 | `Sign.reject_seed`, `Sign.reject_key`, `Sign.reject`, `Sign.reject_signing_key`, `Sign.reject_*_ctx` | malformed seed, key or signature: `None` / `False` | proved |
 
 Proof (`proofs/crypto/ed25519/`, roots `proof.bend` (scalars and
@@ -442,7 +447,11 @@ a valid point (`pbvalid.bend`: the decoder's test v x^2 == ±u is the
 curve equation), and the encoding of a valid point and its comparison
 with any point depend only on its affine point (`fblaw.bend`). The clause
 proofs with a context take these two statements (`LawE`, `LawQ`) as
-hypotheses, so their roots stay under 600 MB; `proof_law.bend` proves both
+hypotheses, so their roots stay under 600 MB. The windows are proved the
+same way (`pfb.bend` `win_rel` against the mirror `swin`, `fbgrp.bend`
+`va_win`: the mirror is [value] A), and `fblaw.bend` `law_w` turns that
+into `LawW` (a comparison with a valid point depends only on its affine
+point); `pbvalid.bend` gives `LawV`; `proof_law.bend` proves both
 from the curve parameters `G.Curve` (p prime, d not a square, a square
 root of -1), which `group/cpar.bend` derives from the certificate roots.
 `proof_law.bend` imports the group law and checks in about 30 s and
@@ -477,9 +486,7 @@ base-point table of the context is proved equal to the specification's
 [k] B through them (`fbgrp.bend`, `fblaw.bend` above).
 
 What is not claimed: the mathematical security of Ed25519 beyond these
-laws, and constant time (below). The multiplication [k] A of verification
-is still the specification's double-and-add chain (no windows, no joint
-(Strauss) multiplication with [S] B).
+laws, and constant time (below).
 
 ### Constant time
 
