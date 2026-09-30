@@ -25,8 +25,7 @@ import ./w64sh.bend as SH
 import ./w64m128.bend as M128
 import ./w64div.bend as W64D
 import ./w64dm.bend as DM
-import ./f64sqa.bend as AQ
-import ./f64sqn.bend as QN
+import ./natlight.bend as AQ
 import ./montnat.bend as MN
 import ./u64mont.bend as UM
 
@@ -87,7 +86,7 @@ def sif_c(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +m: U32, +r: WU.U64, +hM:
       +x = Nat.sub(SW.value(r), 1n+bp)
       +hx = N.sub_lt(SW.value(r), 1n+bp, 1n+bp, hle, hr)
       +f = WW.fits_one(32n, one, h1, SW.value(w), L.subst(Nat, z => {Nat.is_lt(z, C.shift(32n, one)) == True{} : Bool}, x, SW.value(w), Equal.sym(Nat, SW.value(w), x, es), N.lt_trans(x, 1n+bp, C.shift(32n, one), hx, hm32)))
-      +er = Equal.trans(Nat, Nat.add(Nat.mul(1n, 1n+bp), x), Nat.add(1n+bp, x), SW.value(r), Equal.cong(Nat, Nat, z => Nat.add(z, x), Nat.mul(1n, 1n+bp), 1n+bp, QN.mul1(1n+bp)), N.sub_add(SW.value(r), 1n+bp, hle))
+      +er = Equal.trans(Nat, Nat.add(Nat.mul(1n, 1n+bp), x), Nat.add(1n+bp, x), SW.value(r), Equal.cong(Nat, Nat, z => Nat.add(z, x), Nat.mul(1n, 1n+bp), 1n+bp, AQ.mul1(1n+bp)), N.sub_add(SW.value(r), 1n+bp, hle))
       +em = Equal.trans(Nat, Nat.mod(SW.value(r), 1n+bp), Nat.mod(Nat.add(Nat.mul(1n, 1n+bp), x), 1n+bp), x, Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+bp), SW.value(r), Nat.add(Nat.mul(1n, 1n+bp), x), Equal.sym(Nat, Nat.add(Nat.mul(1n, 1n+bp), x), SW.value(r), er)), NR.mod_of(1n, bp, x, hx))
       Equal.trans(Nat, v(X.lo(w)), x, Nat.mod(SW.value(r), 1n+bp), Equal.trans(Nat, v(X.lo(w)), SW.value(w), x, lo32(w, f), es), Equal.sym(Nat, Nat.mod(SW.value(r), 1n+bp), x, em))
     case False{}:

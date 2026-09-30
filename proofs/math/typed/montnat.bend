@@ -5,7 +5,7 @@ import ../../lib/logic.bend as L
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../natural/arith.bend as NR
 import ./width.bend as WW
-import ./f64sqn.bend as QN
+import ./natlight.bend as QN
 
 # Montgomery reduction on naturals (Montgomery, "Modular multiplication
 # without trial division", 1985): with R = 2^64 and m mp = -1 mod R,

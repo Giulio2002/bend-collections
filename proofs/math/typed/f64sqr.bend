@@ -1,4 +1,5 @@
 import Base
+import ./natlight.bend as NL
 import ../../../spec/lib/common.bend as C
 import ../../../spec/math/f64.bend as SF
 import ../../../spec/math/w64.bend as SW
@@ -334,18 +335,10 @@ def shl_le_inv(+k: Nat, +a: Nat, +b: Nat, +h: {Nat.is_le(C.shift(k, a), C.shift(
 
 # x / D * D + x mod D == x and x mod D < D
 def dmq(+x: Nat, +D: Nat, +hD: {Nat.is_lt(0n, D) == True{} : Bool}) -> {Nat.add(Nat.mul(Nat.div(x, D), D), Nat.mod(x, D)) == x : Nat}:
-  match D:
-    case 0n:
-      Empty.absurd({Nat.add(Nat.mul(Nat.div(x, 0n), 0n), Nat.mod(x, 0n)) == x : Nat}, N.lt_zero_absurd(0n, hD))
-    case 1n+ +dp:
-      Equal.sym(Nat, x, Nat.add(Nat.mul(Nat.div(x, 1n+dp), 1n+dp), Nat.mod(x, 1n+dp)), NR.dm_eq(dp, x))
+  NL.dmq(x, D, hD)
 
 def dml(+x: Nat, +D: Nat, +hD: {Nat.is_lt(0n, D) == True{} : Bool}) -> {Nat.is_lt(Nat.mod(x, D), D) == True{} : Bool}:
-  match D:
-    case 0n:
-      Empty.absurd({Nat.is_lt(Nat.mod(x, 0n), 0n) == True{} : Bool}, N.lt_zero_absurd(0n, hD))
-    case 1n+ +dp:
-      NR.dm_lt(dp, x)
+  NL.dml(x, D, hD)
 
 # q < 2^32: the digit as it is
 def cl_t(+one: Nat, +h1: {one == 1n : Nat}, +nh: WU.U64, +h62: {C.fits(62n, SW.value(nh)) == True{} : Bool}, +h60: {C.fits(60n, SW.value(nh)) == False{} : Bool}, +e: Nat, +x: Nat, +hx: {Nat.add(x, 2180n) == e : Nat}, +qq: WU.U64, +uu: U32, +hq: {SW.value(qq) == Nat.div(C.shift(32n, Nat.sub(SW.value(nh), Nat.mul(M.isqrt(SW.value(nh)), M.isqrt(SW.value(nh))))), Nat.add(M.isqrt(SW.value(nh)), M.isqrt(SW.value(nh)))) : Nat}, +hu: {v(uu) == Nat.mod(C.shift(32n, Nat.sub(SW.value(nh), Nat.mul(M.isqrt(SW.value(nh)), M.isqrt(SW.value(nh))))), Nat.add(M.isqrt(SW.value(nh)), M.isqrt(SW.value(nh)))) : Nat}, +hz: {U32.is_zero(X.hi(qq)) == True{} : Bool}) -> {F.sq_clamp(e, X.lo(X.isqrt(nh)), qq, uu, True{}) == SF.round(False{}, SW.jam(M.isqrt(C.shift(64n, SW.value(nh))), SF.b2n(Bool.not(Nat.is_eq(Nat.mul(M.isqrt(C.shift(64n, SW.value(nh))), M.isqrt(C.shift(64n, SW.value(nh)))), C.shift(64n, SW.value(nh)))))), x) : F.F64}:

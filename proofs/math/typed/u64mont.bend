@@ -16,14 +16,13 @@ import ./w64mul.bend as W64M
 import ./w64sqrt.bend as W64S
 import ./w64m128.bend as M128
 import ./w64dm.bend as DM
-import ./f64sqa.bend as AQ
+import ./natlight.bend as AQ
 import ./montnat.bend as MN
 import ./w64dmrem.bend as DR
 import ../../lib/u32.bend as U
 import ../u64/u64div.bend as PD
 import ./w64mm.bend as MM
 import ../../../src/math/natural.bend as M
-import ./f64sqn.bend as QN
 import ../natural/sqrtn.bend as SQ2
 
 # src/math/w64.bend's Montgomery multiplication: redc(t) for t < m^2 is
@@ -85,7 +84,7 @@ def sif_c(+bp: Nat, +m: WU.U64, +r: WU.U64, +hM: {SW.value(m) == 1n+bp : Nat}, +
       +es = Equal.trans(Nat, SW.value(X.sub(r, m)), Nat.sub(SW.value(r), SW.value(m)), Nat.sub(SW.value(r), 1n+bp), WA.sub_value(r, m, hle0), Equal.cong(Nat, Nat, z => Nat.sub(SW.value(r), z), SW.value(m), 1n+bp, hM))
       +x = Nat.sub(SW.value(r), 1n+bp)
       +hx = N.sub_lt(SW.value(r), 1n+bp, 1n+bp, hle, hr)
-      +er = Equal.trans(Nat, Nat.add(Nat.mul(1n, 1n+bp), x), Nat.add(1n+bp, x), SW.value(r), Equal.cong(Nat, Nat, z => Nat.add(z, x), Nat.mul(1n, 1n+bp), 1n+bp, QN.mul1(1n+bp)), N.sub_add(SW.value(r), 1n+bp, hle))
+      +er = Equal.trans(Nat, Nat.add(Nat.mul(1n, 1n+bp), x), Nat.add(1n+bp, x), SW.value(r), Equal.cong(Nat, Nat, z => Nat.add(z, x), Nat.mul(1n, 1n+bp), 1n+bp, AQ.mul1(1n+bp)), N.sub_add(SW.value(r), 1n+bp, hle))
       +em = Equal.trans(Nat, Nat.mod(SW.value(r), 1n+bp), Nat.mod(Nat.add(Nat.mul(1n, 1n+bp), x), 1n+bp), x, Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+bp), SW.value(r), Nat.add(Nat.mul(1n, 1n+bp), x), Equal.sym(Nat, Nat.add(Nat.mul(1n, 1n+bp), x), SW.value(r), er)), NR.mod_of(1n, bp, x, hx))
       Equal.trans(Nat, SW.value(X.sub(r, m)), x, Nat.mod(SW.value(r), 1n+bp), es, Equal.sym(Nat, Nat.mod(SW.value(r), 1n+bp), x, em))
     case False{}:

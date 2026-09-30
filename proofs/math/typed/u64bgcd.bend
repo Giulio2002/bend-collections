@@ -16,11 +16,10 @@ import ./bgcdnat.bend as BN
 import ./w64div.bend as W64D
 import ../u64/u64div.bend as PD
 import ./w64mul.bend as W64M
-import ./f64sqr.bend as SR
+import ./natlight.bend as SR
 import ./w64m128.bend as M128
 import ./w64add.bend as WA
 import ./w64sqrt.bend as W64S
-import ./f64sqn.bend as QN
 import ../../lib/word.bend as WD
 import ../../lib/logic.bend as L
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA

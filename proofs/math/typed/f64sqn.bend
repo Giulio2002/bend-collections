@@ -1,4 +1,5 @@
 import Base
+import ./natlight.bend as NL
 import ../../../src/math/natural.bend as M
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
@@ -13,10 +14,10 @@ import ./f64sqa.bend as AQ
 # (r0 + floor(N / r0)) / 2 lands in [S, S + 6].
 
 def mul1(+y: Nat) -> {Nat.mul(1n, y) == y : Nat}:
-  Equal.trans(Nat, Nat.mul(1n, y), Nat.mul(y, 1n), y, NA.mul_comm(1n, y), NA.mul_one(y))
+  NL.mul1(y)
 
 def two_mul(+S: Nat) -> {Nat.mul(S, 2n) == Nat.add(S, S) : Nat}:
-  Equal.trans(Nat, Nat.mul(S, 2n), Nat.mul(2n, S), Nat.add(S, S), NA.mul_comm(S, 2n), Equal.cong(Nat, Nat, z => Nat.add(S, z), Nat.mul(1n, S), S, mul1(S)))
+  NL.two_mul(S)
 
 def c14(+S: Nat) -> {Nat.mul(S, 14n) == Nat.add(Nat.add(S, S), Nat.mul(S, 12n)) : Nat}:
   Equal.trans(Nat, Nat.mul(S, 14n), Nat.mul(14n, S), Nat.add(Nat.add(S, S), Nat.mul(S, 12n)), NA.mul_comm(S, 14n), Equal.trans(Nat, Nat.mul(14n, S), Nat.add(S, Nat.add(S, Nat.mul(12n, S))), Nat.add(Nat.add(S, S), Nat.mul(S, 12n)), {==}, Equal.trans(Nat, Nat.add(S, Nat.add(S, Nat.mul(12n, S))), Nat.add(Nat.add(S, S), Nat.mul(12n, S)), Nat.add(Nat.add(S, S), Nat.mul(S, 12n)), Equal.sym(Nat, Nat.add(Nat.add(S, S), Nat.mul(12n, S)), Nat.add(S, Nat.add(S, Nat.mul(12n, S))), NA.add_assoc(S, S, Nat.mul(12n, S))), Equal.cong(Nat, Nat, z => Nat.add(Nat.add(S, S), z), Nat.mul(12n, S), Nat.mul(S, 12n), NA.mul_comm(12n, S)))))
