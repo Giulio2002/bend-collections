@@ -1,0 +1,197 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../lib/nat.bend as N
+import ../../lib/logic.bend as L
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../math/typed/width.bend as WW
+import ../../math/typed/w64sh.bend as SH
+import ../../math/natural/arith.bend as NR
+import ../secp256k1/semiring.bend as SR
+import ./arith.bend as A
+
+# Natural-number facts for the radix-2^26 Poly1305 proofs. The radices are
+# variables: b == 2^13 == C.shift(13n, one) (one == 1n symbolic) and
+# w == b * b, so no closed power of two beyond 2^13 is ever formed; p is
+# 1n+bp with (1n+bp) + 5 == 2^130 == C.shift(130n, one) (h5).
+
+# ---- small constants as shifts ----
+
+def m4(+x: Nat) -> {Nat.mul(x, 4n) == C.shift(2n, x) : Nat}:
+  Equal.sym(Nat, C.shift(2n, x), Nat.mul(x, C.shift(2n, 1n)), WW.shift_mul(2n, x))
+
+def m16(+x: Nat) -> {Nat.mul(x, 16n) == C.shift(4n, x) : Nat}:
+  Equal.sym(Nat, C.shift(4n, x), Nat.mul(x, C.shift(4n, 1n)), WW.shift_mul(4n, x))
+
+def m64(+x: Nat) -> {Nat.mul(x, 64n) == C.shift(6n, x) : Nat}:
+  Equal.sym(Nat, C.shift(6n, x), Nat.mul(x, C.shift(6n, 1n)), WW.shift_mul(6n, x))
+
+def m256(+x: Nat) -> {Nat.mul(x, 256n) == C.shift(8n, x) : Nat}:
+  Equal.sym(Nat, C.shift(8n, x), Nat.mul(x, C.shift(8n, 1n)), WW.shift_mul(8n, x))
+
+# x == 4 (x div 4) + x mod 4, as shifts
+def d4(+x: Nat) -> {x == Nat.add(Nat.mod(x, 4n), C.shift(2n, Nat.div(x, 4n))) : Nat}:
+  %goal {x == Nat.add(Nat.mod(x, 4n), C.shift(2n, Nat.div(x, 4n))) : Nat}
+  %rw NR.dm_eq(3n, x)
+  %rw m4(Nat.div(x, 4n))
+  %norm
+
+def d16(+x: Nat) -> {x == Nat.add(Nat.mod(x, 16n), C.shift(4n, Nat.div(x, 16n))) : Nat}:
+  %goal {x == Nat.add(Nat.mod(x, 16n), C.shift(4n, Nat.div(x, 16n))) : Nat}
+  %rw NR.dm_eq(15n, x)
+  %rw m16(Nat.div(x, 16n))
+  %norm
+
+def d64(+x: Nat) -> {x == Nat.add(Nat.mod(x, 64n), C.shift(6n, Nat.div(x, 64n))) : Nat}:
+  %goal {x == Nat.add(Nat.mod(x, 64n), C.shift(6n, Nat.div(x, 64n))) : Nat}
+  %rw NR.dm_eq(63n, x)
+  %rw m64(Nat.div(x, 64n))
+  %norm
+
+def d256(+x: Nat) -> {x == Nat.add(Nat.mod(x, 256n), C.shift(8n, Nat.div(x, 256n))) : Nat}:
+  %goal {x == Nat.add(Nat.mod(x, 256n), C.shift(8n, Nat.div(x, 256n))) : Nat}
+  %rw NR.dm_eq(255n, x)
+  %rw m256(Nat.div(x, 256n))
+  %norm
+
+# ---- the radices b = 2^13 and w = b b = 2^26 ----
+
+def mb(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +x: Nat) -> {Nat.mul(x, b) == C.shift(13n, x) : Nat}:
+  %Equal.sym(Nat, b, C.shift(13n, one), hb) : {Nat.mul(x, _) == C.shift(13n, x) : Nat}
+  Equal.sym(Nat, C.shift(13n, x), Nat.mul(x, C.shift(13n, one)), WW.shift_mul_one(13n, one, h1, x))
+
+def mw(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +w: Nat, +hw: {w == Nat.mul(b, b) : Nat}, +x: Nat) -> {Nat.mul(x, w) == C.shift(26n, x) : Nat}:
+  %Equal.sym(Nat, w, Nat.mul(b, b), hw) : {Nat.mul(x, _) == C.shift(26n, x) : Nat}
+  %NA.mul_assoc(x, b, b) : {_ == C.shift(26n, x) : Nat}
+  %Equal.sym(Nat, Nat.mul(x, b), C.shift(13n, x), mb(one, h1, b, hb, x)) : {Nat.mul(_, b) == C.shift(26n, x) : Nat}
+  %Equal.sym(Nat, Nat.mul(C.shift(13n, x), b), C.shift(13n, C.shift(13n, x)), mb(one, h1, b, hb, C.shift(13n, x))) : {_ == C.shift(26n, x) : Nat}
+  SR.shift_shift(13n, 13n, x)
+
+def wv(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +w: Nat, +hw: {w == Nat.mul(b, b) : Nat}) -> {w == C.shift(26n, one) : Nat}:
+  %Equal.sym(Nat, w, Nat.mul(b, b), hw) : {_ == C.shift(26n, one) : Nat}
+  %Equal.sym(Nat, b, C.shift(13n, one), hb) : {Nat.mul(_, b) == C.shift(26n, one) : Nat}
+  %Equal.sym(Nat, b, C.shift(13n, one), hb) : {Nat.mul(C.shift(13n, one), _) == C.shift(26n, one) : Nat}
+  A.shmul(13n, 13n, one, h1)
+
+def wpos(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +w: Nat, +hw: {w == Nat.mul(b, b) : Nat}) -> {Nat.is_lt(0n, w) == True{} : Bool}:
+  %Equal.sym(Nat, w, C.shift(26n, one), wv(one, h1, b, hb, w, hw)) : {Nat.is_lt(0n, _) == True{} : Bool}
+  N.lt_le_trans(0n, 1n, C.shift(26n, one), {==}, A.one_le_shift(26n, one, h1))
+
+def bpos(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}) -> {Nat.is_lt(0n, b) == True{} : Bool}:
+  %Equal.sym(Nat, b, C.shift(13n, one), hb) : {Nat.is_lt(0n, _) == True{} : Bool}
+  N.lt_le_trans(0n, 1n, C.shift(13n, one), {==}, A.one_le_shift(13n, one, h1))
+
+# division by a positive d
+def dm_pos(+d: Nat, +hd: {Nat.is_lt(0n, d) == True{} : Bool}, +x: Nat) -> {x == Nat.add(Nat.mul(Nat.div(x, d), d), Nat.mod(x, d)) : Nat}:
+  match d:
+    case 0n: Empty.absurd({x == Nat.add(Nat.mul(Nat.div(x, 0n), 0n), Nat.mod(x, 0n)) : Nat}, L.false_true(hd))
+    case 1n+dp: NR.dm_eq(dp, x)
+
+def mod_pos(+d: Nat, +hd: {Nat.is_lt(0n, d) == True{} : Bool}, +x: Nat) -> {Nat.is_lt(Nat.mod(x, d), d) == True{} : Bool}:
+  match d:
+    case 0n: Empty.absurd({Nat.is_lt(Nat.mod(x, 0n), 0n) == True{} : Bool}, L.false_true(hd))
+    case 1n+dp: NR.dm_lt(dp, x)
+
+# x == x mod w + 2^26 (x div w), and x == x mod b + 2^13 (x div b)
+def sw(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +w: Nat, +hw: {w == Nat.mul(b, b) : Nat}, +x: Nat) -> {x == Nat.add(Nat.mod(x, w), C.shift(26n, Nat.div(x, w))) : Nat}:
+  %goal {x == Nat.add(Nat.mod(x, w), C.shift(26n, Nat.div(x, w))) : Nat}
+  %rw dm_pos(w, wpos(one, h1, b, hb, w, hw), x)
+  %rw mw(one, h1, b, hb, w, hw, Nat.div(x, w))
+  %norm
+
+def sb(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +x: Nat) -> {x == Nat.add(Nat.mod(x, b), C.shift(13n, Nat.div(x, b))) : Nat}:
+  %goal {x == Nat.add(Nat.mod(x, b), C.shift(13n, Nat.div(x, b))) : Nat}
+  %rw dm_pos(b, bpos(one, h1, b, hb), x)
+  %rw mb(one, h1, b, hb, Nat.div(x, b))
+  %norm
+
+# ---- fits for mod and div ----
+
+def fmw(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +w: Nat, +hw: {w == Nat.mul(b, b) : Nat}, +x: Nat) -> {C.fits(26n, Nat.mod(x, w)) == True{} : Bool}:
+  WW.fits_one(26n, one, h1, Nat.mod(x, w), A.lt_subst(Nat.mod(x, w), w, C.shift(26n, one), wv(one, h1, b, hb, w, hw), mod_pos(w, wpos(one, h1, b, hb, w, hw), x)))
+
+def fmb(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +x: Nat) -> {C.fits(13n, Nat.mod(x, b)) == True{} : Bool}:
+  WW.fits_one(13n, one, h1, Nat.mod(x, b), A.lt_subst(Nat.mod(x, b), b, C.shift(13n, one), hb, mod_pos(b, bpos(one, h1, b, hb), x)))
+
+# fits(26 + k, x) gives fits(k, x div w)
+def fdw(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +w: Nat, +hw: {w == Nat.mul(b, b) : Nat}, +k: Nat, +x: Nat, +hx: {C.fits(Nat.add(26n, k), x) == True{} : Bool}) -> {C.fits(k, Nat.div(x, w)) == True{} : Bool}:
+  +e = sw(one, h1, b, hb, w, hw, x)
+  +hi = WW.high_u(26n, Nat.mod(x, w), Nat.div(x, w), fmw(one, h1, b, hb, w, hw, x))
+  +f = SH.fits_high(26n, k, x, hx)
+  %hi : {C.fits(k, _) == True{} : Bool}
+  %e : {C.fits(k, C.high(26n, _)) == True{} : Bool}
+  f
+
+# fits(13 + k, x) gives fits(k, x div b)
+def fdb(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {b == C.shift(13n, one) : Nat}, +k: Nat, +x: Nat, +hx: {C.fits(Nat.add(13n, k), x) == True{} : Bool}) -> {C.fits(k, Nat.div(x, b)) == True{} : Bool}:
+  +e = sb(one, h1, b, hb, x)
+  +hi = WW.high_u(13n, Nat.mod(x, b), Nat.div(x, b), fmb(one, h1, b, hb, x))
+  +f = SH.fits_high(13n, k, x, hx)
+  %hi : {C.fits(k, _) == True{} : Bool}
+  %e : {C.fits(k, C.high(13n, _)) == True{} : Bool}
+  f
+
+# ---- congruence mod p = 1n+bp ----
+
+def s130(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 5n) == C.shift(130n, one) : Nat}, +x: Nat) -> {C.shift(130n, x) == Nat.add(Nat.mul(x, 1n+bp), Nat.mul(x, 5n)) : Nat}:
+  %Equal.sym(Nat, C.shift(130n, x), Nat.mul(x, C.shift(130n, one)), WW.shift_mul_one(130n, one, h1, x)) : {_ == Nat.add(Nat.mul(x, 1n+bp), Nat.mul(x, 5n)) : Nat}
+  %h5 : {Nat.mul(x, _) == Nat.add(Nat.mul(x, 1n+bp), Nat.mul(x, 5n)) : Nat}
+  NA.mul_add_left(x, 1n+bp, 5n)
+
+def rot3(+x: Nat, +y: Nat, +z: Nat) -> {Nat.add(x, Nat.add(y, z)) == Nat.add(z, Nat.add(y, x)) : Nat}:
+  %goal {Nat.add(x, Nat.add(y, z)) == Nat.add(z, Nat.add(y, x)) : Nat}
+  %norm
+
+# a + 2^130 q == c + 5 q gives a == c (mod p)
+def cg130(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 5n) == C.shift(130n, one) : Nat}, +a: Nat, +c: Nat, +q: Nat, +e: {Nat.add(a, C.shift(130n, q)) == Nat.add(c, Nat.mul(q, 5n)) : Nat}) -> {Nat.mod(a, 1n+bp) == Nat.mod(c, 1n+bp) : Nat}:
+  +qp = Nat.mul(q, 1n+bp)
+  +q5 = Nat.mul(q, 5n)
+  +e1 = Equal.trans(Nat, Nat.add(q5, Nat.add(qp, a)), Nat.add(a, C.shift(130n, q)), Nat.add(q5, c),
+    Equal.trans(Nat, Nat.add(q5, Nat.add(qp, a)), Nat.add(a, Nat.add(qp, q5)), Nat.add(a, C.shift(130n, q)),
+      rot3(q5, qp, a),
+      Equal.cong(Nat, Nat, t => Nat.add(a, t), Nat.add(qp, q5), C.shift(130n, q), Equal.sym(Nat, C.shift(130n, q), Nat.add(qp, q5), s130(one, h1, bp, h5, q)))),
+    Equal.trans(Nat, Nat.add(a, C.shift(130n, q)), Nat.add(c, q5), Nat.add(q5, c), e, NA.add_comm(c, q5)))
+  +e2 = NR.add_cancel(q5, Nat.add(qp, a), c, e1)
+  Equal.trans(Nat, Nat.mod(a, 1n+bp), Nat.mod(Nat.add(qp, a), 1n+bp), Nat.mod(c, 1n+bp),
+    Equal.sym(Nat, Nat.mod(Nat.add(qp, a), 1n+bp), Nat.mod(a, 1n+bp), NR.absorb(bp, q, a)),
+    Equal.cong(Nat, Nat, t => Nat.mod(t, 1n+bp), Nat.add(qp, a), c, e2))
+
+def cg_eq(+bp: Nat, +a: Nat, +c: Nat, +e: {a == c : Nat}) -> {Nat.mod(a, 1n+bp) == Nat.mod(c, 1n+bp) : Nat}:
+  Equal.cong(Nat, Nat, t => Nat.mod(t, 1n+bp), a, c, e)
+
+def cg_tr(+bp: Nat, +a: Nat, +c: Nat, +d: Nat, +e1: {Nat.mod(a, 1n+bp) == Nat.mod(c, 1n+bp) : Nat}, +e2: {Nat.mod(c, 1n+bp) == Nat.mod(d, 1n+bp) : Nat}) -> {Nat.mod(a, 1n+bp) == Nat.mod(d, 1n+bp) : Nat}:
+  Equal.trans(Nat, Nat.mod(a, 1n+bp), Nat.mod(c, 1n+bp), Nat.mod(d, 1n+bp), e1, e2)
+
+def cg_sy(+bp: Nat, +a: Nat, +c: Nat, +e: {Nat.mod(a, 1n+bp) == Nat.mod(c, 1n+bp) : Nat}) -> {Nat.mod(c, 1n+bp) == Nat.mod(a, 1n+bp) : Nat}:
+  Equal.sym(Nat, Nat.mod(a, 1n+bp), Nat.mod(c, 1n+bp), e)
+
+def cg_add(+bp: Nat, +a1: Nat, +c1: Nat, +a2: Nat, +c2: Nat, +e1: {Nat.mod(a1, 1n+bp) == Nat.mod(c1, 1n+bp) : Nat}, +e2: {Nat.mod(a2, 1n+bp) == Nat.mod(c2, 1n+bp) : Nat}) -> {Nat.mod(Nat.add(a1, a2), 1n+bp) == Nat.mod(Nat.add(c1, c2), 1n+bp) : Nat}:
+  +pp = {1n+bp : Nat}
+  +s1 = Equal.trans(Nat, Nat.mod(Nat.add(a1, a2), pp), Nat.mod(Nat.add(Nat.mod(a1, pp), a2), pp), Nat.mod(Nat.add(Nat.mod(c1, pp), a2), pp),
+    Equal.sym(Nat, Nat.mod(Nat.add(Nat.mod(a1, pp), a2), pp), Nat.mod(Nat.add(a1, a2), pp), NR.mod_add_l(bp, a1, a2)),
+    Equal.cong(Nat, Nat, t => Nat.mod(Nat.add(t, a2), pp), Nat.mod(a1, pp), Nat.mod(c1, pp), e1))
+  +s2 = Equal.trans(Nat, Nat.mod(Nat.add(Nat.mod(c1, pp), a2), pp), Nat.mod(Nat.add(c1, a2), pp), Nat.mod(Nat.add(c1, Nat.mod(a2, pp)), pp),
+    NR.mod_add_l(bp, c1, a2),
+    Equal.sym(Nat, Nat.mod(Nat.add(c1, Nat.mod(a2, pp)), pp), Nat.mod(Nat.add(c1, a2), pp), NR.mod_add_r(bp, c1, a2)))
+  +s3 = Equal.trans(Nat, Nat.mod(Nat.add(c1, Nat.mod(a2, pp)), pp), Nat.mod(Nat.add(c1, Nat.mod(c2, pp)), pp), Nat.mod(Nat.add(c1, c2), pp),
+    Equal.cong(Nat, Nat, t => Nat.mod(Nat.add(c1, t), pp), Nat.mod(a2, pp), Nat.mod(c2, pp), e2),
+    NR.mod_add_r(bp, c1, c2))
+  Equal.trans(Nat, Nat.mod(Nat.add(a1, a2), pp), Nat.mod(Nat.add(Nat.mod(c1, pp), a2), pp), Nat.mod(Nat.add(c1, c2), pp), s1,
+    Equal.trans(Nat, Nat.mod(Nat.add(Nat.mod(c1, pp), a2), pp), Nat.mod(Nat.add(c1, Nat.mod(a2, pp)), pp), Nat.mod(Nat.add(c1, c2), pp), s2, s3))
+
+# x a == x c (mod p) from a == c (mod p)
+def cg_mul(+bp: Nat, +x: Nat, +a: Nat, +c: Nat, +e: {Nat.mod(a, 1n+bp) == Nat.mod(c, 1n+bp) : Nat}) -> {Nat.mod(Nat.mul(x, a), 1n+bp) == Nat.mod(Nat.mul(x, c), 1n+bp) : Nat}:
+  +pp = {1n+bp : Nat}
+  Equal.trans(Nat, Nat.mod(Nat.mul(x, a), pp), Nat.mod(Nat.mul(x, Nat.mod(a, pp)), pp), Nat.mod(Nat.mul(x, c), pp),
+    Equal.sym(Nat, Nat.mod(Nat.mul(x, Nat.mod(a, pp)), pp), Nat.mod(Nat.mul(x, a), pp), NR.mod_mul_r(bp, x, a)),
+    Equal.trans(Nat, Nat.mod(Nat.mul(x, Nat.mod(a, pp)), pp), Nat.mod(Nat.mul(x, Nat.mod(c, pp)), pp), Nat.mod(Nat.mul(x, c), pp),
+      Equal.cong(Nat, Nat, t => Nat.mod(Nat.mul(x, t), pp), Nat.mod(a, pp), Nat.mod(c, pp), e),
+      NR.mod_mul_r(bp, x, c)))
+
+# 2^k a == 2^k c (mod p) from a == c (mod p)
+def cg_sh(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +k: Nat, +a: Nat, +c: Nat, +e: {Nat.mod(a, 1n+bp) == Nat.mod(c, 1n+bp) : Nat}) -> {Nat.mod(C.shift(k, a), 1n+bp) == Nat.mod(C.shift(k, c), 1n+bp) : Nat}:
+  +s = C.shift(k, one)
+  %Equal.sym(Nat, C.shift(k, a), Nat.mul(a, s), WW.shift_mul_one(k, one, h1, a)) : {Nat.mod(_, 1n+bp) == Nat.mod(C.shift(k, c), 1n+bp) : Nat}
+  %Equal.sym(Nat, C.shift(k, c), Nat.mul(c, s), WW.shift_mul_one(k, one, h1, c)) : {Nat.mod(Nat.mul(a, s), 1n+bp) == Nat.mod(_, 1n+bp) : Nat}
+  %NA.mul_comm(s, a) : {Nat.mod(_, 1n+bp) == Nat.mod(Nat.mul(c, s), 1n+bp) : Nat}
+  %NA.mul_comm(s, c) : {Nat.mod(Nat.mul(s, a), 1n+bp) == Nat.mod(_, 1n+bp) : Nat}
+  cg_mul(bp, s, a, c, e)
