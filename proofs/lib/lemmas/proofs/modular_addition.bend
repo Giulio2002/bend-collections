@@ -28,10 +28,10 @@ def binary_division(value: Nat, +bit: Bool) -> {Nat.divmod(Nat.add(S.bit_value(b
           Equal.trans(Nat & Nat, Nat.divmod(3n+Nat.double(p), 2n), Index.next_quotient(Nat.divmod(1n+Nat.double(p), 2n)), (1n+p, 1n), stride(1n+Nat.double(p)), Equal.cong(Nat & Nat, Nat & Nat, Index.next_quotient, Nat.divmod(1n+Nat.double(p), 2n), (p, 1n), binary_division(p, True{})))
 
 def binary_quotient(+value: Nat, +bit: Bool) -> {Nat.div(Nat.add(S.bit_value(bit), Nat.double(value)), 2n) == value : Nat}:
-  Equal.cong(Nat & Nat, Nat, Nat.div.fin, Nat.divmod(Nat.add(S.bit_value(bit), Nat.double(value)), 2n), (value, S.bit_value(bit)), binary_division(value, bit))
+  Equal.cong(Nat & Nat, Nat, pq => Pair.fst(Nat, Nat, pq), Nat.divmod(Nat.add(S.bit_value(bit), Nat.double(value)), 2n), (value, S.bit_value(bit)), binary_division(value, bit))
 
 def binary_remainder(+value: Nat, +bit: Bool) -> {Nat.mod(Nat.add(S.bit_value(bit), Nat.double(value)), 2n) == S.bit_value(bit) : Nat}:
-  Equal.cong(Nat & Nat, Nat, Nat.mod.fin, Nat.divmod(Nat.add(S.bit_value(bit), Nat.double(value)), 2n), (value, S.bit_value(bit)), binary_division(value, bit))
+  Equal.cong(Nat & Nat, Nat, pq => Pair.snd(Nat, Nat, pq), Nat.divmod(Nat.add(S.bit_value(bit), Nat.double(value)), 2n), (value, S.bit_value(bit)), binary_division(value, bit))
 
 def bit_roundtrip(bit: Bool) -> {Nat.is_eq(S.bit_value(bit), 1n) == bit : Bool}:
   match bit:

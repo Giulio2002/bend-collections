@@ -8,15 +8,12 @@ import ../../../src/math/u64.bend as WU
 import ../../../src/math/natural.bend as M
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
-import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ./width.bend as WW
 import ../../lib/word.bend as WD
 import ./w64sh.bend as SH
-import ./u32laws.bend as LW
 import ./natcmp.bend as NC
 import ./f64bits.bend as FB
 import ./f64cmp.bend as FC
-import ./f64round.bend as FR
 import ./f64rtools.bend as RT
 import ./f64norm.bend as NM
 import ./f64mexp.bend as EX

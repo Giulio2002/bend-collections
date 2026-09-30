@@ -1,4 +1,5 @@
 import Base
+import ./natlight.bend as NL
 import ../../../spec/lib/common.bend as C
 import ../../../src/math/natural.bend as M
 import ../../lib/nat.bend as N
@@ -22,9 +23,7 @@ def ilt(+n: Nat) -> {Nat.is_lt(n, Nat.mul(1n+M.isqrt(n), 1n+M.isqrt(n))) == True
   L.subst(Nat, z => {Nat.is_lt(n, z) == True{} : Bool}, Nat.pow(1n+M.isqrt(n), 2n), Nat.mul(1n+M.isqrt(n), 1n+M.isqrt(n)), sqm(1n+M.isqrt(n)), SQ.lt_succ_isqrt(n))
 
 def mle2(+a: Nat, +b: Nat, +c: Nat, +d: Nat, +hab: {Nat.is_le(a, b) == True{} : Bool}, +hcd: {Nat.is_le(c, d) == True{} : Bool}) -> {Nat.is_le(Nat.mul(a, c), Nat.mul(b, d)) == True{} : Bool}:
-  +l1 = NF.mul_le_r(a, c, d, hcd)
-  +l2 = L.subst(Nat, z => {Nat.is_le(z, Nat.mul(d, b)) == True{} : Bool}, Nat.mul(d, a), Nat.mul(a, d), NA.mul_comm(d, a), NF.mul_le_r(d, a, b, hab))
-  N.le_trans(Nat.mul(a, c), Nat.mul(a, d), Nat.mul(b, d), l1, L.subst(Nat, z => {Nat.is_le(Nat.mul(a, d), z) == True{} : Bool}, Nat.mul(d, b), Nat.mul(b, d), NA.mul_comm(d, b), l2))
+  NL.mle2(a, b, c, d, hab, hcd)
 
 def sqmono(+a: Nat, +b: Nat, +h: {Nat.is_le(a, b) == True{} : Bool}) -> {Nat.is_le(Nat.mul(a, a), Nat.mul(b, b)) == True{} : Bool}:
   mle2(a, b, a, b, h, h)

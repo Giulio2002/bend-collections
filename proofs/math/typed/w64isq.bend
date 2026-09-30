@@ -6,7 +6,6 @@ import ../../../src/math/u64.bend as WU
 import ../../../src/math/natural.bend as M
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
-import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../lib/word.bend as WD
 import ../../lib/u32.bend as U
 import ./w64mul.bend as W64M

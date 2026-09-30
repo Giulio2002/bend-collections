@@ -3,6 +3,7 @@ import ../../../spec/lib/common.bend as C
 import ../../../spec/math/natural.bend as S
 import ../../../src/math/natural.bend as M
 import ../../lib/nat.bend as N
+import ../../lib/logic.bend as L
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../natural/proof.bend as NP
 import ../natural/lcm.bend as LC
@@ -196,9 +197,11 @@ def nbd(+a: Nat, +s: Nat, less: Bool) -> Nat:
       Nat.sub(s, a)
 
 # the U64 loop's Small test on the values (both below 2^48, a at least
-# 2^16): the loop then returns gcd(a, d) at once
+# 2^16): the loop then returns gcd(a, d) at once. The bounds are Nat
+# literals: U32.to_nat(65536) would unfold into 2^16 successors whenever a
+# conversion compares it.
 def nsm(+a: Nat, +d: Nat) -> Bool:
-  Bool.and(Bool.and(Nat.is_lt(C.high(32n, a), U32.to_nat(65536)), Nat.is_lt(C.high(32n, d), U32.to_nat(65536))), Bool.or(Bool.not(Nat.is_eq(C.high(32n, a), 0n)), Nat.is_lt(U32.to_nat(65535), C.low(32n, a))))
+  Bool.and(Bool.and(Nat.is_lt(C.high(32n, a), 65536n), Nat.is_lt(C.high(32n, d), 65536n)), Bool.or(Bool.not(Nat.is_eq(C.high(32n, a), 0n)), Nat.is_lt(65535n, C.low(32n, a))))
 
 def nbloop(fuel: Nat, +a: Nat, +d: Nat, dz: Bool, sm: Bool) -> Nat:
   match fuel dz sm:
@@ -408,7 +411,7 @@ def bl_case(+g: Nat, +a: Nat, +ha: {Nat.mod(a, 2n) == 1n : Nat}, +kp: Nat, +hbg:
 def bl_step(+g: Nat, +a: Nat, +ha: {Nat.mod(a, 2n) == 1n : Nat}, +kp: Nat, +hbg: {Nat.is_lt(Nat.mul(a, 1n+kp), C.pow2(g)) == True{} : Bool}, +hf1: {Nat.is_le(1n+g, 140n) == True{} : Bool}, ih: @+a2: Nat -> @+ha2: {Nat.mod(a2, 2n) == 1n : Nat} -> @+k2: Nat -> @+hb2: {Nat.is_lt(Nat.mul(a2, Nat.double(k2)), C.pow2(g)) == True{} : Bool} -> {nbloop(g, a2, Nat.double(k2), iz(Nat.double(k2)), nsm(a2, Nat.double(k2))) == M.gcd(a2, Nat.double(k2)) : Nat}, +lb: Bool, +hl: {Nat.is_lt(nstrip(Nat.double(1n+kp)), a) == lb : Bool}) -> {nbloop(g, nba(a, nstrip(Nat.double(1n+kp)), lb), nbd(a, nstrip(Nat.double(1n+kp)), lb), iz(nbd(a, nstrip(Nat.double(1n+kp)), lb)), nsm(nba(a, nstrip(Nat.double(1n+kp)), lb), nbd(a, nstrip(Nat.double(1n+kp)), lb))) == M.gcd(a, Nat.double(1n+kp)) : Nat}:
   +apos = odd_pos(a, ha)
   +k1 = N.le_trans(1n+kp, Nat.mul(1n+kp, a), Nat.mul(a, 1n+kp), RT.le_mul_pos(1n+kp, a, apos), N.eq_le(Nat.mul(1n+kp, a), Nat.mul(a, 1n+kp), NA.mul_comm(1n+kp, a)))
-  +k2 = N.lt_le_trans(Nat.double(1n+kp), Nat.double(C.pow2(g)), C.pow2(140n), N.double_lt(1n+kp, C.pow2(g), N.le_lt_trans(1n+kp, Nat.mul(a, 1n+kp), C.pow2(g), k1, hbg)), N.pow2_mono(1n+g, 140n, hf1))
+  +k2 = N.lt_le_trans(Nat.double(1n+kp), Nat.double(C.pow2(g)), C.pow2(140n), N.double_lt(1n+kp, C.pow2(g), N.le_lt_trans(1n+kp, Nat.mul(a, 1n+kp), C.pow2(g), k1, hbg)), L.subst(Nat, z => {Nat.is_le(z, C.pow2(140n)) == True{} : Bool}, C.pow2(1n+g), Nat.double(C.pow2(g)), {==}, N.pow2_mono(1n+g, 140n, hf1)))
   +hs = odd_eq(nstrip(Nat.double(1n+kp)), strip_odd(140n, Nat.double(1n+kp), {==}, k2, odd(Nat.double(1n+kp)), {==}))
   +hsle = strip_even(kp)
   +hga = Equal.sym(Nat, M.gcd(a, nstrip(Nat.double(1n+kp))), M.gcd(a, Nat.double(1n+kp)), strip_gcd(a, ha, 140n, Nat.double(1n+kp), odd(Nat.double(1n+kp)), {==}))

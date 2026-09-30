@@ -706,5 +706,10 @@ def small2(+a: W.U64, +b: W.U64) -> Bool:
 def n48(+a: W.U64) -> Nat:
   Nat.add(U32.to_nat(lo(a)), Nat.mul(Nat.mul(U32.to_nat(hi(a)), 65536n), 65536n))
 
+# the words of g < 2^64 from h = g div 2^32 (two divisions by 2^16, so no
+# closed 2^32 appears: the proof checker would expand it in unary)
+def of48_h(+g: Nat, +h: Nat) -> W.U64:
+  W.U64{U32.from_nat(Nat.sub(g, Nat.mul(Nat.mul(h, 65536n), 65536n))), U32.from_nat(h)}
+
 def of48(+g: Nat) -> W.U64:
-  W.U64{U32.from_nat(Nat.mod(g, Nat.mul(65536n, 65536n))), U32.from_nat(Nat.div(g, Nat.mul(65536n, 65536n)))}
+  of48_h(g, Nat.div(Nat.div(g, 65536n), 65536n))
