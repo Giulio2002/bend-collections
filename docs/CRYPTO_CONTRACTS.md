@@ -919,22 +919,58 @@ How they are proved (`proofs/crypto/secp256k1/group/`,
 - The group on points (`glaw1.bend` .. `glaw5.bend`), the scalar laws by
   induction, the specification's ladder by induction over its bits.
 
-Checked with `bend-local` (Bend 2.0.34): `proof_group.bend` (the closing
-root: the clauses with the certificates applied) 68 s and 1225 MB; without
-the certificates the clauses (`group/glawp.bend`, which takes "p is
-prime" and "(-7)^((p-1)/3) != 1" as hypotheses) check in 12 s and 929 MB;
-`certa.bend` 30 s / 882 MB, `certd.bend` 29 s / 770 MB, `certn.bend` 30 s /
-876 MB, `proofs/math/number/proof_nt.bend` 1 s / 316 MB.
+### Protocol correctness and the other group facts
+
+All unconditional, for every input (each family has its laws file and a
+closing root that applies the certificates; the same clauses with the
+certificate facts as hypotheses are in `group/<family>p.bend`, for proofs
+that build on them):
+
+| Clauses (file) | Statement |
+|---|---|
+| `Field.prime`, `Field.not_cube` (`laws_field.bend`), `Field.order_prime` (`laws_field_n.bend`) | p and n are prime (`SN.prime`); (-7)^((p-1)/3) != 1 in GF(p) |
+| `Generator.valid`, `.order`, `.mod`, `.add_mod`, `.mul_mod`, `.not_infinity` (`laws_order.bend`) | G is a point of the group, [n] G = O, [k] G depends on k mod n, [j] G + [k] G = [(j+k) mod n] G, [j]([k] G) = [jk mod n] G, [k] G != O for 0 < k < n |
+| `Affine.*` (`laws_affine.bend`) | the chord-and-tangent law of SEC 1 2.2.1 (`spec/crypto/secp256k1/affine.bend`): the projective addition computes it in every case, equiv points have the same affine point and conversely, closure, identity, inverse, commutativity, associativity |
+| `Sqrt.square`, `Sqrt.parity`, `Encoding.*` (`laws_encoding.bend`) | fsqrt of a square squares to it (p = 3 mod 4); decode(encode(A)) is (X/Z : Y/Z : 1), compressed and uncompressed; decode returns None or a point of the group in normal form |
+| `Ecdsa.sign_verify`, `Ecdsa.sign_recover` (`laws_ecdsa.bend`) | a signature returned by `sign` verifies under the signer's key (compressed or not, strict or not); `recover` of it returns the signer's uncompressed key |
+| `Schnorr.pubkey`, `.sign`, `.verify`, `.sign_verify`, `.sign_none`, `.tagged` (`laws_schnorr_group.bend`) | BIP-340 signing succeeds whenever the nonce k' is nonzero (the final self-check never fails) and its signature verifies under the signer's key; it fails only when k' = 0 |
+| `Glv.beta_cube`, `.beta_nontrivial`, `.lambda`, `.phi_valid`, `.phi_add`, `.generator`, `.multiples` (`laws_glv.bend`), `Glv.split` (`laws_glvsplit.bend`) | beta^3 = 1 != beta, lambda^2 + lambda + 1 = 0 mod n, phi(X : Y : Z) = (beta X : Y : Z) is a homomorphism of the group, phi(G) = [lambda] G, phi([k] G) = [lambda]([k] G), and [k] G = [k1] G + [k2] phi(G) for k = k1 + k2 lambda mod n |
+
+[n] G = O and phi(G) = [lambda] G are closed computations: addition chains
+on G in affine coordinates with slope witnesses (`group/pta*.bend`), each
+step checked by the proof checker.
+
+Check times of the roots (`bend-local`, Bend 2.0.34, on a loaded machine):
+
+| Root | Time | Peak RSS |
+|---|---|---|
+| `proof_group.bend` | 26 s | 896 MB |
+| `proof_affine.bend` | 27 s | 993 MB |
+| `proof_encoding.bend` | 18 s | 745 MB |
+| `proof_field.bend` | 17 s | 562 MB |
+| `proof_field_n.bend` | 24 s | 954 MB |
+| `proof_order.bend` | 76 s | 1480 MB |
+| `proof_glv.bend` | 60 s | 1366 MB |
+| `proof_glvsplit.bend` | 83 s | 1330 MB |
+| `proof_ecdsa.bend` | 87 s | 1685 MB |
+| `proof_schnorr_group.bend` | 99 s | 1630 MB |
+| `proofs/math/number/proof_nt.bend` | 1 s | 316 MB |
+
+The last five closing roots exceed the 60 s / 1000 MB target: each has to
+re-check the certificates and the [n] G chain next to the protocol proof
+(the checker has no way to reuse a checked root). Their lemma files with
+the facts as hypotheses (`group/ecdsap.bend`, ...) are within about
+20-35 s and 1 GB.
 
 Not proved:
 
-- (in progress) that G is a point of the group and [n] G = O, the affine
-  law of SEC 1 section 2.2.1 and its agreement with the projective
-  formulas, `verify(pk(sk), h, sign(sk, h)) == True`, that `recover`
-  returns the signer's key, that decompression inverts compression.
-- That the group has exactly n points (every curve point is a multiple of
-  G): this needs the number of points of the curve (Hasse's bound or
-  Schoof's algorithm) and is out of reach; nothing above uses it.
+- That the group has exactly n points (every point of the curve is a
+  multiple of G): this needs the number of points of the curve (point
+  counting) and is out of reach. Consequently phi(A) = [lambda] A is proved
+  only for multiples of G, not for an arbitrary point.
+- ECRECOVER on signatures from `sign`: `sign` may emit a recovery id 2 or 3
+  (x(R) >= n), which ECRECOVER does not accept; the clause would need that
+  case excluded.
 - Constant time: Bend has no timing model. Secret-dependent arithmetic is
   branch-free by construction (masked selection, complete formulas, fixed
   exponent ladders); RFC 6979's retry loop and the checks on public inputs

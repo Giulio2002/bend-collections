@@ -14,14 +14,10 @@ import ./group/schd.bend as D
 # (the key d with even y, the public key bytes pkb, the nonce k', the
 # challenge, the signature sigv).
 #
-# The clauses that use the group take five facts about the curve as
-# hypotheses, each proved in a root of its own (closed computations too
-# heavy to import here):
-#   hp:  p is prime                       (group/certa.bend)
-#   hc:  (-7)^((p - 1) / 3) != 1 in GF(p) (group/certd.bend)
-#   hq:  n is prime                       (group/certn.bend)
-#   hg:  G is a point of the group        (group/ptv.bend)
-#   hng: [n] G is the point at infinity   (group/pte.bend and its chunk roots)
+# Unconditional: the closing root applies the certificates (p and n prime,
+# (-7)^((p - 1) / 3) != 1) and the closed checks that G is a point of the
+# group and [n] G = O (the lemmas with these facts as hypotheses are in
+# group/schnorr_groupp.bend).
 # Proved by `bend proofs/crypto/secp256k1/proof_schnorr_group.bend`.
 
 # the folded tagged hash of group/schd.bend is the specification's

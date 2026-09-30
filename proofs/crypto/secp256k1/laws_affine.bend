@@ -10,8 +10,8 @@ import ../../math/number/nt_prime.bend as PM
 # point at infinity, the chord-and-tangent addition GA.add) and its
 # correspondence with the specification's complete projective addition
 # (GA.of_proj: (X : Y : Z) to (X / Z, Y / Z), infinity when Z = 0).
-# Every clause is for every input; hp and hc are the two facts about p of
-# laws_group.bend (p prime; (-7)^((p-1)/3) != 1), proved in their own roots.
+# Every clause is for every input and unconditional: the closing root
+# applies the certificates (p prime, (-7)^((p-1)/3) != 1).
 # Proved by `bend proofs/crypto/secp256k1/proof_affine.bend`.
 
 # the point at infinity is the identity (by definition of GA.add)

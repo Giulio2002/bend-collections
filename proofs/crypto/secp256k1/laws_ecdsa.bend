@@ -11,14 +11,10 @@ import ../../math/number/nt_prime.bend as PM
 # `one` is the number 1 kept symbolic (h1), as in the other secp256k1
 # clauses.
 #
-# Each clause takes these facts about the curve as hypotheses; each is a
-# closed statement proved in a root of its own (closed computations that
-# fill a root each):
-#   hp:  p = FS.prime(one) is prime                  (group/certa.bend)
-#   hc:  (-7)^((p - 1) / 3) != 1 in GF(p)            (group/certd.bend)
-#   hq:  n = FS.order(one) is prime                  (group/certn.bend)
-#   hg:  G is a point of the group                   (group/ptv.bend)
-#   hng: [n] G is the point at infinity              (group/pte.bend)
+# Unconditional: the closing root applies the certificates (p and n prime,
+# (-7)^((p - 1) / 3) != 1) and the closed checks that G is a point of the
+# group and [n] G = O (the lemmas with these facts as hypotheses are in
+# group/ecdsap.bend, for proofs that build on them).
 # Proved by `bend proofs/crypto/secp256k1/proof_ecdsa.bend`.
 
 # every signature that sign returns verifies under the signer's public key

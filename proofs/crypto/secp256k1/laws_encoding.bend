@@ -10,9 +10,8 @@ import ../../math/number/nt_prime.bend as PM
 # decode, with decompression by the square root a^((p + 1) / 4)) round trip,
 # for every input; `one` is the number 1 kept symbolic (h1).
 #
-# The hypotheses are the facts about p proved in roots of their own
-# (group/certa.bend, group/certd.bend), as in laws_group.bend: hp (p is
-# prime) and, for the last clause only, hc ((-7)^((p - 1) / 3) != 1).
+# Unconditional: the closing root applies the certificates that p is prime
+# and that -7 is not a cube modulo p.
 # Proved by `bend proofs/crypto/secp256k1/proof_encoding.bend`.
 
 # the square root of a square squares to it: fsqrt(a)^2 == a for a == y0^2 (p == 3 mod 4)
