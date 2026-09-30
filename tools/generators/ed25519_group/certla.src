@@ -1,0 +1,20 @@
+import Base
+import ../../../../spec/math/number.bend as SN
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../secp256k1/group/bn.bend as B
+import ../../secp256k1/group/bnx.bend as X
+import ../../secp256k1/group/certl.bend as CL
+import ../../../math/number/nt_prime.bend as PM
+import ./pfacts.bend as PF
+import ../../../../spec/crypto/ed25519.bend as ED
+import ./lfacts.bend as LF
+import ./cert_l.bend as CN
+
+# edwards25519's group order L = 2^252 + 27742317777372353535851937790883648493
+# is prime: the Pocklington chain of cert_l.bend, for the specification's
+# ED.ell(one), given the two conclusions of cert_l1.bend (a separate root):
+# its prime_88 and its pw, 2^(L - 1) == 1 (mod L).
+
+def prime_l(+one: Nat, +h1: {one == 1n : Nat}, +h88: PM.Prime(X.bvalo(one, PF.l88l())), +hpw: CL.Inv(one, PF.l2(), PF.ll(), B.B1{B.BZ{}}, PF.l1l())) -> PM.Prime(ED.ell(one)):
+  %LF.l_is(one, h1) : {SN.prime(_) == True{} : Bool}
+  CN.top_prime(one, h1, h88, hpw)

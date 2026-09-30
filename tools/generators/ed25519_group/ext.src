@@ -1,0 +1,253 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../../secp256k1/semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ../../../math/number/nt_prime.bend as PM
+import ../../../math/number/nt_pock.bend as PK
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../../../spec/crypto/curve25519/edwards.bend as G
+import ../../../../spec/crypto/ed25519.bend as ED
+import ../../../../spec/crypto/ed25519_group.bend as GE
+import ../../secp256k1/group/fld.bend as F
+import ./idm.bend as IM
+import ./fq.bend as FQ
+import ./glaw.bend as GL
+import ./gpt.bend as GP
+import ./id_ext_t.bend as IT
+import ./id_ext_add.bend as IEA
+import ./id_ext_dbl.bend as IED
+
+# RFC 8032's point addition and doubling in extended coordinates
+# (spec/crypto/ed25519.bend: ED.add, ED.double) are the affine addition of
+# the curve: for valid points (Z != 0, (X / Z, Y / Z) on the curve,
+# T Z == X Y) the result is valid and its affine point is the sum of the
+# affine points. No exceptional case: the law is complete.
+
+# a / z
+def qd(+mp: Nat, +a: Nat, +z: Nat) -> Nat:
+  FS.fmul(1n+mp, a, FS.finv(1n+mp, z))
+
+def vb2(+mp: Nat, +d: Nat, +x: Nat, +y: Nat, +z: Nat) -> Bool:
+  Nat.is_eq(G.lhs(1n+mp, qd(mp, x, z), qd(mp, y, z)), G.rhs(1n+mp, d, qd(mp, x, z), qd(mp, y, z)))
+
+def vb3(+mp: Nat, +x: Nat, +y: Nat, +z: Nat, +t: Nat) -> Bool:
+  Nat.is_eq(FS.fmul(1n+mp, t, z), FS.fmul(1n+mp, x, y))
+
+# ---- a valid point ----
+
+def v_z(+mp: Nat, +d: Nat, +x: Nat, +y: Nat, +z: Nat, +t: Nat, +h: GE.Valid(1n+mp, d, ED.EPt{x, y, z, t})) -> F.NZ(mp, z):
+  Lg.not_true(Nat.is_eq(Nat.mod(z, 1n+mp), 0n), Lg.and_left(Bool.not(Nat.is_eq(Nat.mod(z, 1n+mp), 0n)), Bool.and(vb2(mp, d, x, y, z), vb3(mp, x, y, z, t)), h))
+
+def v_e(+mp: Nat, +d: Nat, +x: Nat, +y: Nat, +z: Nat, +t: Nat, +h: GE.Valid(1n+mp, d, ED.EPt{x, y, z, t})) -> GL.Eq(mp, d, qd(mp, x, z), qd(mp, y, z)):
+  N.eq_from_is_eq(G.lhs(1n+mp, qd(mp, x, z), qd(mp, y, z)), G.rhs(1n+mp, d, qd(mp, x, z), qd(mp, y, z)), Lg.and_left(vb2(mp, d, x, y, z), vb3(mp, x, y, z, t), Lg.and_right(Bool.not(Nat.is_eq(Nat.mod(z, 1n+mp), 0n)), Bool.and(vb2(mp, d, x, y, z), vb3(mp, x, y, z, t)), h)))
+
+def v_t(+mp: Nat, +d: Nat, +x: Nat, +y: Nat, +z: Nat, +t: Nat, +h: GE.Valid(1n+mp, d, ED.EPt{x, y, z, t})) -> {FS.fmul(1n+mp, t, z) == FS.fmul(1n+mp, x, y) : Nat}:
+  N.eq_from_is_eq(FS.fmul(1n+mp, t, z), FS.fmul(1n+mp, x, y), Lg.and_right(vb2(mp, d, x, y, z), vb3(mp, x, y, z, t), Lg.and_right(Bool.not(Nat.is_eq(Nat.mod(z, 1n+mp), 0n)), Bool.and(vb2(mp, d, x, y, z), vb3(mp, x, y, z, t)), h)))
+
+def v_in(+mp: Nat, +d: Nat, +x: Nat, +y: Nat, +z: Nat, +t: Nat, +hz: F.NZ(mp, z), +he: GL.Eq(mp, d, qd(mp, x, z), qd(mp, y, z)), +ht: {FS.fmul(1n+mp, t, z) == FS.fmul(1n+mp, x, y) : Nat}) -> GE.Valid(1n+mp, d, ED.EPt{x, y, z, t}):
+  Lg.and_intro(Bool.not(Nat.is_eq(Nat.mod(z, 1n+mp), 0n)), Bool.and(vb2(mp, d, x, y, z), vb3(mp, x, y, z, t)), Lg.not_false(Nat.is_eq(Nat.mod(z, 1n+mp), 0n), hz),
+    Lg.and_intro(vb2(mp, d, x, y, z), vb3(mp, x, y, z, t), PK.iseq(G.lhs(1n+mp, qd(mp, x, z), qd(mp, y, z)), G.rhs(1n+mp, d, qd(mp, x, z), qd(mp, y, z)), he), PK.iseq(FS.fmul(1n+mp, t, z), FS.fmul(1n+mp, x, y), ht)))
+
+# the affine point of a valid point is on the curve
+def aff_on(+mp: Nat, +d: Nat, a: ED.EPt, +h: GE.Valid(1n+mp, d, a)) -> G.OnCurve(1n+mp, d, GE.affine(1n+mp, a)):
+  match a:
+    case ED.EPt{+x, +y, +z, +t}:
+      GP.oc_in(mp, d, qd(mp, x, z), qd(mp, y, z), FQ.fmul_lt(mp, x, FS.finv(1n+mp, z)), FQ.fmul_lt(mp, y, FS.finv(1n+mp, z)), v_e(mp, d, x, y, z, t, h))
+
+# ---- nonzero residues ----
+
+def nz_cong(+mp: Nat, +a: Nat, +b: Nat, +h: {Nat.mod(a, 1n+mp) == Nat.mod(b, 1n+mp) : Nat}, +hb: F.NZ(mp, b)) -> F.NZ(mp, a):
+  %goal {Nat.is_eq(Nat.mod(a, 1n+mp), 0n) == False{} : Bool}
+  %rwh h : {Nat.mod(a, 1n+mp) == Nat.mod(b, 1n+mp) : Nat}
+  hb
+
+def nz_neg_c(+mp: Nat, +a: Nat, +h: F.NZ(mp, FS.fsub(1n+mp, 0n, a)), c: Bool, +hc: {Nat.is_eq(Nat.mod(a, 1n+mp), 0n) == c : Bool}) -> F.NZ(mp, a):
+  match c:
+    case False{}:
+      hc
+    case True{}:
+      Empty.absurd(F.NZ(mp, a), F.nz_absurd(mp, FS.fsub(1n+mp, 0n, a), h, F.z_msub(mp, 0n, a, {==}, N.eq_from_is_eq(Nat.mod(a, 1n+mp), 0n, hc))))
+
+# -a != 0 gives a != 0
+def nz_neg(+mp: Nat, +a: Nat, +h: F.NZ(mp, FS.fsub(1n+mp, 0n, a))) -> F.NZ(mp, a):
+  nz_neg_c(mp, a, h, Nat.is_eq(Nat.mod(a, 1n+mp), 0n), {==})
+
+def nz_one(+mp: Nat, +hp: PM.Prime(1n+mp)) -> F.NZ(mp, 1n):
+  %goal {Nat.is_eq(Nat.mod(1n, 1n+mp), 0n) == False{} : Bool}
+  %rw FQ.one_mod(mp, hp)
+  %close
+
+# ---- the rules X -> x Z, Y -> y Z, T -> (x y) Z ----
+
+def rx(+mp: Nat, +hp: PM.Prime(1n+mp), +x: Nat, +z: Nat, +hz: F.NZ(mp, z)) -> {Nat.mod(x, 1n+mp) == Nat.mod(FS.fmul(1n+mp, qd(mp, x, z), z), 1n+mp) : Nat}:
+  Equal.sym(Nat, Nat.mod(FS.fmul(1n+mp, qd(mp, x, z), z), 1n+mp), Nat.mod(x, 1n+mp), FQ.frac_mul(mp, hp, x, z, hz))
+
+def rt(+mp: Nat, +hp: PM.Prime(1n+mp), +x: Nat, +y: Nat, +z: Nat, +t: Nat, +hz: F.NZ(mp, z), +ht: {FS.fmul(1n+mp, t, z) == FS.fmul(1n+mp, x, y) : Nat}) -> {Nat.mod(t, 1n+mp) == Nat.mod(FS.fmul(1n+mp, FS.fmul(1n+mp, qd(mp, x, z), qd(mp, y, z)), z), 1n+mp) : Nat}:
+  FQ.factor_eqm(mp, hp, t, FS.fmul(1n+mp, FS.fmul(1n+mp, qd(mp, x, z), qd(mp, y, z)), z), z, hz,
+    IT.t_rule(mp, x, y, z, t, qd(mp, x, z), qd(mp, y, z), Equal.cong(Nat, Nat, w => Nat.mod(w, 1n+mp), FS.fmul(1n+mp, t, z), FS.fmul(1n+mp, x, y), ht), rx(mp, hp, x, z, hz), rx(mp, hp, y, z, hz)))
+
+# ---- addition, on coordinates ----
+
+def ac_nz(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +z1: Nat, +t1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +t2: Nat, +h1: GE.Valid(1n+mp, d, ED.EPt{x1, y1, z1, t1}), +h2: GE.Valid(1n+mp, d, ED.EPt{x2, y2, z2, t2})) -> F.NZ(mp, IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2))):
+  +hp = FQ.cv_prime(mp, d, hc)
+  +u1 = qd(mp, x1, z1)
+  +v1 = qd(mp, y1, z1)
+  +u2 = qd(mp, x2, z2)
+  +v2 = qd(mp, y2, z2)
+  +hz1 = v_z(mp, d, x1, y1, z1, t1, h1)
+  +hz2 = v_z(mp, d, x2, y2, z2, t2, h2)
+  +he1 = v_e(mp, d, x1, y1, z1, t1, h1)
+  +he2 = v_e(mp, d, x2, y2, z2, t2, h2)
+  +zz = FS.fmul(1n+mp, z1, z2)
+  +hzz = F.nz_mmul(mp, hp, z1, z2, hz1, hz2)
+  +h4 = F.nz_mmul(mp, hp, 2n, 2n, FQ.cv_nz2(mp, d, hc), FQ.cv_nz2(mp, d, hc))
+  +hr = F.nz_mmul(mp, hp, FS.fmul(1n+mp, FS.fmul(1n+mp, 2n, 2n), FS.fmul(1n+mp, zz, zz)), FS.fmul(1n+mp, G.dx(1n+mp, d, u1, v1, u2, v2), G.dy(1n+mp, d, u1, v1, u2, v2)),
+    F.nz_mmul(mp, hp, FS.fmul(1n+mp, 2n, 2n), FS.fmul(1n+mp, zz, zz), h4, F.nz_mmul(mp, hp, zz, zz, hzz, hzz)), GL.nz_xy(mp, d, hc, u1, v1, u2, v2, he1, he2))
+  nz_cong(mp, IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2), FS.fmul(1n+mp, FS.fmul(1n+mp, FS.fmul(1n+mp, 2n, 2n), FS.fmul(1n+mp, zz, zz)), FS.fmul(1n+mp, G.dx(1n+mp, d, u1, v1, u2, v2), G.dy(1n+mp, d, u1, v1, u2, v2))),
+    IEA.add_z(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2, rx(mp, hp, x1, z1, hz1), rx(mp, hp, y1, z1, hz1), rt(mp, hp, x1, y1, z1, t1, hz1, v_t(mp, d, x1, y1, z1, t1, h1)), rx(mp, hp, x2, z2, hz2), rx(mp, hp, y2, z2, hz2), rt(mp, hp, x2, y2, z2, t2, hz2, v_t(mp, d, x2, y2, z2, t2, h2))), hr)
+
+def ac_x(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +z1: Nat, +t1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +t2: Nat, +h1: GE.Valid(1n+mp, d, ED.EPt{x1, y1, z1, t1}), +h2: GE.Valid(1n+mp, d, ED.EPt{x2, y2, z2, t2})) -> {qd(mp, IEA.ax(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2))) == G.add_x(1n+mp, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)) : Nat}:
+  +hp = FQ.cv_prime(mp, d, hc)
+  +u1 = qd(mp, x1, z1)
+  +v1 = qd(mp, y1, z1)
+  +u2 = qd(mp, x2, z2)
+  +v2 = qd(mp, y2, z2)
+  +hz1 = v_z(mp, d, x1, y1, z1, t1, h1)
+  +hz2 = v_z(mp, d, x2, y2, z2, t2, h2)
+  FQ.frac_eq(mp, hp, IEA.ax(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2), G.nx(1n+mp, u1, v1, u2, v2), G.dx(1n+mp, d, u1, v1, u2, v2),
+    ac_nz(mp, d, hc, x1, y1, z1, t1, x2, y2, z2, t2, h1, h2), GL.compl_x(mp, d, hc, u1, v1, u2, v2, v_e(mp, d, x1, y1, z1, t1, h1), v_e(mp, d, x2, y2, z2, t2, h2)),
+    IEA.add_x(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2, rx(mp, hp, x1, z1, hz1), rx(mp, hp, y1, z1, hz1), rt(mp, hp, x1, y1, z1, t1, hz1, v_t(mp, d, x1, y1, z1, t1, h1)), rx(mp, hp, x2, z2, hz2), rx(mp, hp, y2, z2, hz2), rt(mp, hp, x2, y2, z2, t2, hz2, v_t(mp, d, x2, y2, z2, t2, h2))))
+
+def ac_y(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +z1: Nat, +t1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +t2: Nat, +h1: GE.Valid(1n+mp, d, ED.EPt{x1, y1, z1, t1}), +h2: GE.Valid(1n+mp, d, ED.EPt{x2, y2, z2, t2})) -> {qd(mp, IEA.ay(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2))) == G.add_y(1n+mp, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)) : Nat}:
+  +hp = FQ.cv_prime(mp, d, hc)
+  +u1 = qd(mp, x1, z1)
+  +v1 = qd(mp, y1, z1)
+  +u2 = qd(mp, x2, z2)
+  +v2 = qd(mp, y2, z2)
+  +hz1 = v_z(mp, d, x1, y1, z1, t1, h1)
+  +hz2 = v_z(mp, d, x2, y2, z2, t2, h2)
+  FQ.frac_eq(mp, hp, IEA.ay(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2), G.ny(1n+mp, u1, v1, u2, v2), G.dy(1n+mp, d, u1, v1, u2, v2),
+    ac_nz(mp, d, hc, x1, y1, z1, t1, x2, y2, z2, t2, h1, h2), GL.compl_y(mp, d, hc, u1, v1, u2, v2, v_e(mp, d, x1, y1, z1, t1, h1), v_e(mp, d, x2, y2, z2, t2, h2)),
+    IEA.add_y(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2, rx(mp, hp, x1, z1, hz1), rx(mp, hp, y1, z1, hz1), rt(mp, hp, x1, y1, z1, t1, hz1, v_t(mp, d, x1, y1, z1, t1, h1)), rx(mp, hp, x2, z2, hz2), rx(mp, hp, y2, z2, hz2), rt(mp, hp, x2, y2, z2, t2, hz2, v_t(mp, d, x2, y2, z2, t2, h2))))
+
+def ac_t(+mp: Nat, +x1: Nat, +y1: Nat, +z1: Nat, +t1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +t2: Nat, +d: Nat, +u1: Nat, +v1: Nat, +u2: Nat, +v2: Nat) -> {FS.fmul(1n+mp, IEA.at(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2)) == FS.fmul(1n+mp, IEA.ax(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2), IEA.ay(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2)) : Nat}:
+  FQ.red_eq(mp, FS.fmul(1n+mp, IEA.at(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2)), FS.fmul(1n+mp, IEA.ax(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2), IEA.ay(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2)),
+    FQ.fmul_red(mp, IEA.at(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2)), FQ.fmul_red(mp, IEA.ax(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2), IEA.ay(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2)),
+    IEA.add_t(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2))
+
+# the curve equation at the affine point of the sum
+def ac_e(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +z1: Nat, +t1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +t2: Nat, +h1: GE.Valid(1n+mp, d, ED.EPt{x1, y1, z1, t1}), +h2: GE.Valid(1n+mp, d, ED.EPt{x2, y2, z2, t2})) -> GL.Eq(mp, d, qd(mp, IEA.ax(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2))), qd(mp, IEA.ay(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)))):
+  %goal {G.lhs(1n+mp, qd(mp, IEA.ax(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2))), qd(mp, IEA.ay(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)))) == G.rhs(1n+mp, d, qd(mp, IEA.ax(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2))), qd(mp, IEA.ay(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)))) : Nat}
+  %rw ac_x(mp, d, hc, x1, y1, z1, t1, x2, y2, z2, t2, h1, h2)
+  %rw ac_x(mp, d, hc, x1, y1, z1, t1, x2, y2, z2, t2, h1, h2)
+  %rw ac_y(mp, d, hc, x1, y1, z1, t1, x2, y2, z2, t2, h1, h2)
+  %rw ac_y(mp, d, hc, x1, y1, z1, t1, x2, y2, z2, t2, h1, h2)
+  GL.add_on(mp, d, hc, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2), v_e(mp, d, x1, y1, z1, t1, h1), v_e(mp, d, x2, y2, z2, t2, h2))
+
+# ---- addition, on points ----
+
+# the affine point of the sum is the sum of the affine points
+def add_aff(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), a: ED.EPt, b: ED.EPt, +ha: GE.Valid(1n+mp, d, a), +hb: GE.Valid(1n+mp, d, b)) -> {GE.affine(1n+mp, ED.add(1n+mp, d, a, b)) == G.aadd(1n+mp, d, GE.affine(1n+mp, a), GE.affine(1n+mp, b)) : G.APt}:
+  match a b:
+    case ED.EPt{+x1, +y1, +z1, +t1} ED.EPt{+x2, +y2, +z2, +t2}:
+      GP.apt_eq(qd(mp, IEA.ax(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2))),
+        qd(mp, IEA.ay(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2))),
+        G.add_x(1n+mp, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)), G.add_y(1n+mp, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x2, z2), qd(mp, y2, z2)),
+        ac_x(mp, d, hc, x1, y1, z1, t1, x2, y2, z2, t2, ha, hb), ac_y(mp, d, hc, x1, y1, z1, t1, x2, y2, z2, t2, ha, hb))
+
+# the sum of two valid points is valid
+def add_valid(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), a: ED.EPt, b: ED.EPt, +ha: GE.Valid(1n+mp, d, a), +hb: GE.Valid(1n+mp, d, b)) -> GE.Valid(1n+mp, d, ED.add(1n+mp, d, a, b)):
+  match a b:
+    case ED.EPt{+x1, +y1, +z1, +t1} ED.EPt{+x2, +y2, +z2, +t2}:
+      +u1 = qd(mp, x1, z1)
+      +v1 = qd(mp, y1, z1)
+      +u2 = qd(mp, x2, z2)
+      +v2 = qd(mp, y2, z2)
+      v_in(mp, d, IEA.ax(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2), IEA.ay(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2), IEA.az(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2), IEA.at(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2),
+        ac_nz(mp, d, hc, x1, y1, z1, t1, x2, y2, z2, t2, ha, hb), ac_e(mp, d, hc, x1, y1, z1, t1, x2, y2, z2, t2, ha, hb), ac_t(mp, x1, y1, z1, t1, x2, y2, z2, t2, d, u1, v1, u2, v2))
+
+# ---- doubling, on coordinates (T is not read) ----
+
+def dc_nz(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +z1: Nat, +hz: F.NZ(mp, z1), +he: GL.Eq(mp, d, qd(mp, x1, z1), qd(mp, y1, z1))) -> F.NZ(mp, IED.dbz(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1))):
+  +hp = FQ.cv_prime(mp, d, hc)
+  +e = FS.finv(1n+mp, d)
+  +u = qd(mp, x1, z1)
+  +v = qd(mp, y1, z1)
+  +z2 = FS.fmul(1n+mp, z1, z1)
+  +hz2 = F.nz_mmul(mp, hp, z1, z1, hz, hz)
+  +hr = F.nz_mmul(mp, hp, FS.fmul(1n+mp, z2, z2), FS.fmul(1n+mp, G.dx(1n+mp, d, u, v, u, v), G.dy(1n+mp, d, u, v, u, v)), F.nz_mmul(mp, hp, z2, z2, hz2, hz2), GL.nz_xy(mp, d, hc, u, v, u, v, he, he))
+  nz_neg(mp, IED.dbz(mp, x1, y1, z1, d, e, u, v), nz_cong(mp, FS.fsub(1n+mp, 0n, IED.dbz(mp, x1, y1, z1, d, e, u, v)), FS.fmul(1n+mp, FS.fmul(1n+mp, z2, z2), FS.fmul(1n+mp, G.dx(1n+mp, d, u, v, u, v), G.dy(1n+mp, d, u, v, u, v))),
+    IED.dbl_z(mp, x1, y1, z1, d, e, u, v, rx(mp, hp, x1, z1, hz), rx(mp, hp, y1, z1, hz), GL.crule(mp, d, hc, u, v, he), GL.dinv(mp, d, hc)), hr))
+
+def dc_x(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +z1: Nat, +hz: F.NZ(mp, z1), +he: GL.Eq(mp, d, qd(mp, x1, z1), qd(mp, y1, z1))) -> {qd(mp, IED.dbx(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1)), IED.dbz(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1))) == G.add_x(1n+mp, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x1, z1), qd(mp, y1, z1)) : Nat}:
+  +hp = FQ.cv_prime(mp, d, hc)
+  +e = FS.finv(1n+mp, d)
+  +u = qd(mp, x1, z1)
+  +v = qd(mp, y1, z1)
+  FQ.frac_eq(mp, hp, IED.dbx(mp, x1, y1, z1, d, e, u, v), IED.dbz(mp, x1, y1, z1, d, e, u, v), G.nx(1n+mp, u, v, u, v), G.dx(1n+mp, d, u, v, u, v), dc_nz(mp, d, hc, x1, y1, z1, hz, he), GL.compl_x(mp, d, hc, u, v, u, v, he, he),
+    IED.dbl_x(mp, x1, y1, z1, d, e, u, v, rx(mp, hp, x1, z1, hz), rx(mp, hp, y1, z1, hz), GL.crule(mp, d, hc, u, v, he), GL.dinv(mp, d, hc)))
+
+def dc_y(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +z1: Nat, +hz: F.NZ(mp, z1), +he: GL.Eq(mp, d, qd(mp, x1, z1), qd(mp, y1, z1))) -> {qd(mp, IED.dby(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1)), IED.dbz(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1))) == G.add_y(1n+mp, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x1, z1), qd(mp, y1, z1)) : Nat}:
+  +hp = FQ.cv_prime(mp, d, hc)
+  +e = FS.finv(1n+mp, d)
+  +u = qd(mp, x1, z1)
+  +v = qd(mp, y1, z1)
+  FQ.frac_eq(mp, hp, IED.dby(mp, x1, y1, z1, d, e, u, v), IED.dbz(mp, x1, y1, z1, d, e, u, v), G.ny(1n+mp, u, v, u, v), G.dy(1n+mp, d, u, v, u, v), dc_nz(mp, d, hc, x1, y1, z1, hz, he), GL.compl_y(mp, d, hc, u, v, u, v, he, he),
+    IED.dbl_y(mp, x1, y1, z1, d, e, u, v, rx(mp, hp, x1, z1, hz), rx(mp, hp, y1, z1, hz), GL.crule(mp, d, hc, u, v, he), GL.dinv(mp, d, hc)))
+
+def dc_t(+mp: Nat, +x1: Nat, +y1: Nat, +z1: Nat, +d: Nat, +e: Nat, +u: Nat, +v: Nat) -> {FS.fmul(1n+mp, IED.dbt(mp, x1, y1, z1, d, e, u, v), IED.dbz(mp, x1, y1, z1, d, e, u, v)) == FS.fmul(1n+mp, IED.dbx(mp, x1, y1, z1, d, e, u, v), IED.dby(mp, x1, y1, z1, d, e, u, v)) : Nat}:
+  FQ.red_eq(mp, FS.fmul(1n+mp, IED.dbt(mp, x1, y1, z1, d, e, u, v), IED.dbz(mp, x1, y1, z1, d, e, u, v)), FS.fmul(1n+mp, IED.dbx(mp, x1, y1, z1, d, e, u, v), IED.dby(mp, x1, y1, z1, d, e, u, v)),
+    FQ.fmul_red(mp, IED.dbt(mp, x1, y1, z1, d, e, u, v), IED.dbz(mp, x1, y1, z1, d, e, u, v)), FQ.fmul_red(mp, IED.dbx(mp, x1, y1, z1, d, e, u, v), IED.dby(mp, x1, y1, z1, d, e, u, v)), IED.dbl_t(mp, x1, y1, z1, d, e, u, v))
+
+def dc_e(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +z1: Nat, +hz: F.NZ(mp, z1), +he: GL.Eq(mp, d, qd(mp, x1, z1), qd(mp, y1, z1))) -> GL.Eq(mp, d, qd(mp, IED.dbx(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1)), IED.dbz(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1))), qd(mp, IED.dby(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1)), IED.dbz(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1)))):
+  %goal {G.lhs(1n+mp, qd(mp, IED.dbx(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1)), IED.dbz(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1))), qd(mp, IED.dby(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1)), IED.dbz(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1)))) == G.rhs(1n+mp, d, qd(mp, IED.dbx(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1)), IED.dbz(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1))), qd(mp, IED.dby(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1)), IED.dbz(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1)))) : Nat}
+  %rw dc_x(mp, d, hc, x1, y1, z1, hz, he)
+  %rw dc_x(mp, d, hc, x1, y1, z1, hz, he)
+  %rw dc_y(mp, d, hc, x1, y1, z1, hz, he)
+  %rw dc_y(mp, d, hc, x1, y1, z1, hz, he)
+  GL.add_on(mp, d, hc, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x1, z1), qd(mp, y1, z1), he, he)
+
+# ---- doubling, on points ----
+
+# the affine point of the double is the affine point added to itself
+def dbl_aff(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), a: ED.EPt, +ha: GE.Valid(1n+mp, d, a)) -> {GE.affine(1n+mp, ED.double(1n+mp, a)) == G.aadd(1n+mp, d, GE.affine(1n+mp, a), GE.affine(1n+mp, a)) : G.APt}:
+  match a:
+    case ED.EPt{+x1, +y1, +z1, +t1}:
+      +hz = v_z(mp, d, x1, y1, z1, t1, ha)
+      +he = v_e(mp, d, x1, y1, z1, t1, ha)
+      GP.apt_eq(qd(mp, IED.dbx(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1)), IED.dbz(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1))),
+        qd(mp, IED.dby(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1)), IED.dbz(mp, x1, y1, z1, d, FS.finv(1n+mp, d), qd(mp, x1, z1), qd(mp, y1, z1))),
+        G.add_x(1n+mp, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x1, z1), qd(mp, y1, z1)), G.add_y(1n+mp, d, qd(mp, x1, z1), qd(mp, y1, z1), qd(mp, x1, z1), qd(mp, y1, z1)),
+        dc_x(mp, d, hc, x1, y1, z1, hz, he), dc_y(mp, d, hc, x1, y1, z1, hz, he))
+
+# the double of a valid point is valid
+def dbl_valid(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), a: ED.EPt, +ha: GE.Valid(1n+mp, d, a)) -> GE.Valid(1n+mp, d, ED.double(1n+mp, a)):
+  match a:
+    case ED.EPt{+x1, +y1, +z1, +t1}:
+      +hz = v_z(mp, d, x1, y1, z1, t1, ha)
+      +he = v_e(mp, d, x1, y1, z1, t1, ha)
+      +e = FS.finv(1n+mp, d)
+      +u = qd(mp, x1, z1)
+      +v = qd(mp, y1, z1)
+      v_in(mp, d, IED.dbx(mp, x1, y1, z1, d, e, u, v), IED.dby(mp, x1, y1, z1, d, e, u, v), IED.dbz(mp, x1, y1, z1, d, e, u, v), IED.dbt(mp, x1, y1, z1, d, e, u, v),
+        dc_nz(mp, d, hc, x1, y1, z1, hz, he), dc_e(mp, d, hc, x1, y1, z1, hz, he), dc_t(mp, x1, y1, z1, d, e, u, v))
+
+# ---- the identity (0 : 1 : 1 : 0) ----
+
+def one_inv(+mp: Nat, +hp: PM.Prime(1n+mp)) -> {qd(mp, 1n, 1n) == 1n : Nat}:
+  FQ.frac_val(mp, hp, 1n, 1n, 1n, nz_one(mp, hp), FQ.one_lt(mp, hp), Equal.sym(Nat, Nat.mod(Nat.mod(1n, 1n+mp), 1n+mp), Nat.mod(1n, 1n+mp), NR.mod_mod(mp, 1n)))
+
+def id_aff(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d)) -> {GE.affine(1n+mp, ED.identity()) == G.azero() : G.APt}:
+  GP.apt_eq(qd(mp, 0n, 1n), qd(mp, 1n, 1n), 0n, 1n, {==}, one_inv(mp, FQ.cv_prime(mp, d, hc)))
+
+def id_e(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d)) -> GL.Eq(mp, d, qd(mp, 0n, 1n), qd(mp, 1n, 1n)):
+  %goal {G.lhs(1n+mp, 0n, qd(mp, 1n, 1n)) == G.rhs(1n+mp, d, 0n, qd(mp, 1n, 1n)) : Nat}
+  %rw one_inv(mp, FQ.cv_prime(mp, d, hc))
+  %rw one_inv(mp, FQ.cv_prime(mp, d, hc))
+  GL.zero_eq(mp, d)
+
+def id_valid(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d)) -> GE.Valid(1n+mp, d, ED.identity()):
+  v_in(mp, d, 0n, 1n, 1n, 0n, nz_one(mp, FQ.cv_prime(mp, d, hc)), id_e(mp, d, hc), {==})

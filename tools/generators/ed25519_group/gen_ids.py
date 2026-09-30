@@ -220,7 +220,59 @@ def gen_fracs():
     c.write('id_ns.bend', '# Euler\'s criterion, the algebra: a = v^h, b = u^h, k = d^h.\n')
 
 
-GENS = {'frac': gen_fracs, 'rule': gen_rule, 'comm': gen_comm, 'unit': gen_unit, 'closure': gen_closure, 'compl': gen_compl,
+def lin_rule(c, v, F, h):
+    """v -> F (a variable that is a product of others), from h : v == F (mod m)"""
+    return c.rule(v, F, h)
+
+
+def gen_ext():
+    # T == (x y) Z from T Z == X Y, X == x Z, Y == y Z (then cancel Z)
+    c = Ctx(['xx', 'yy', 'zz', 'tt', 'x', 'y'])
+    X, Y, Z, T, x, y = c.vars('xx', 'yy', 'zz', 'tt', 'x', 'y')
+    c.conseq('t_rule', c.mul(c.sub(T, c.mul(c.mul(x, y), Z)), Z),
+             [(c.mul(T, Z), c.mul(X, Y), c.const(1)), (X, c.mul(x, Z), Y), (Y, c.mul(y, Z), c.mul(x, Z))], (),
+             'T Z == X Y, X == x Z and Y == y Z: (T - (x y) Z) Z == 0')
+    c.write('id_ext_t.bend', '# The T coordinate of a valid extended point.\n')
+    # RFC 8032 addition
+    c = Ctx(['x1', 'y1', 'z1', 't1', 'x2', 'y2', 'z2', 't2', 'd', 'u1', 'v1', 'u2', 'v2'])
+    X1, Y1, Z1, T1, X2, Y2, Z2, T2, d, x1, y1, x2, y2 = c.vars('x1', 'y1', 'z1', 't1', 'x2', 'y2', 'z2', 't2', 'd', 'u1', 'v1', 'u2', 'v2')
+    rules = [lin_rule(c, X1, c.mul(x1, Z1), 'hx1'), lin_rule(c, Y1, c.mul(y1, Z1), 'hy1'), lin_rule(c, T1, c.mul(c.mul(x1, y1), Z1), 'ht1'),
+             lin_rule(c, X2, c.mul(x2, Z2), 'hx2'), lin_rule(c, Y2, c.mul(y2, Z2), 'hy2'), lin_rule(c, T2, c.mul(c.mul(x2, y2), Z2), 'ht2')]
+    ea = c.mul(c.sub(Y1, X1), c.sub(Y2, X2))
+    eb = c.mul(c.add(Y1, X1), c.add(Y2, X2))
+    ec = c.mul(c.mul(T1, c.add(d, d)), T2)
+    ed = c.mul(c.add(Z1, Z1), Z2)
+    ee, ef, eg, eh = c.sub(eb, ea), c.sub(ed, ec), c.add(ed, ec), c.add(eb, ea)
+    aX, aY, aZ, aT = c.specdef('ax', c.mul(ee, ef)), c.specdef('ay', c.mul(eg, eh)), c.specdef('az', c.mul(ef, eg)), c.specdef('at', c.mul(ee, eh))
+    nx, dx, ny, dy = parts(c, (x1, y1), (x2, y2), d)
+    c.ident('add_x', c.mul(aX, dx), c.mul(nx, aZ), rules, 'X3 dx == nx Z3 (X3 / Z3 is the x of the affine sum)')
+    c.ident('add_y', c.mul(aY, dy), c.mul(ny, aZ), rules, 'Y3 dy == ny Z3')
+    zz = c.mul(Z1, Z2)
+    c.ident('add_z', aZ, c.mul(c.mul(c.mul(c.const(2), c.const(2)), c.mul(zz, zz)), c.mul(dx, dy)), rules, 'Z3 == 4 (Z1 Z2)^2 (dx dy)')
+    c.ident('add_t', c.mul(aT, aZ), c.mul(aX, aY), (), 'T3 Z3 == X3 Y3')
+    c.write('id_ext_add.bend', '# RFC 8032 point addition in extended coordinates is the affine addition.\n')
+    # RFC 8032 doubling
+    c = Ctx(['x1', 'y1', 'z1', 'd', 'e', 'u', 'v'])
+    X1, Y1, Z1, d, e, x, y = c.vars('x1', 'y1', 'z1', 'd', 'e', 'u', 'v')
+    rules = [lin_rule(c, X1, c.mul(x, Z1), 'hx1'), lin_rule(c, Y1, c.mul(y, Z1), 'hy1'), curve_rule(c, (x, y), e, 'h'), de_rule(c, d, e, 'hde')]
+    ea, eb = c.mul(X1, X1), c.mul(Y1, Y1)
+    z2 = c.mul(Z1, Z1)
+    ec = c.add(z2, z2)
+    eh = c.add(ea, eb)
+    xy = c.add(X1, Y1)
+    ee = c.sub(eh, c.mul(xy, xy))
+    eg = c.sub(ea, eb)
+    ef = c.add(ec, eg)
+    dX, dY, dZ, dT = c.specdef('dbx', c.mul(ee, ef)), c.specdef('dby', c.mul(eg, eh)), c.specdef('dbz', c.mul(ef, eg)), c.specdef('dbt', c.mul(ee, eh))
+    nx, dx, ny, dy = parts(c, (x, y), (x, y), d)
+    c.ident('dbl_x', c.mul(dX, dx), c.mul(nx, dZ), rules, 'X3 dx == nx Z3 for the doubling (P on the curve)')
+    c.ident('dbl_y', c.mul(dY, dy), c.mul(ny, dZ), rules, 'Y3 dy == ny Z3')
+    c.ident('dbl_z', c.sub(c.zero(), dZ), c.mul(c.mul(z2, z2), c.mul(dx, dy)), rules, '-Z3 == Z1^4 (dx dy)')
+    c.ident('dbl_t', c.mul(dT, dZ), c.mul(dX, dY), (), 'T3 Z3 == X3 Y3')
+    c.write('id_ext_dbl.bend', '# RFC 8032 point doubling in extended coordinates is the affine doubling.\n')
+
+
+GENS = {'ext': gen_ext, 'frac': gen_fracs, 'rule': gen_rule, 'comm': gen_comm, 'unit': gen_unit, 'closure': gen_closure, 'compl': gen_compl,
         'assoc_x': lambda: gen_assoc('x'), 'assoc_y': lambda: gen_assoc('y')}
 
 if __name__ == '__main__':
