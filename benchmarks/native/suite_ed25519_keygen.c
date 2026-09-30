@@ -6,13 +6,18 @@
 int main(void) {
   messages m = load_messages();
   uint8_t *out = malloc(m.count * 32 + 1);
-  double t0 = now_ms();
-  for (size_t i = 0; i < m.count; i++) {
-    uint8_t seed[32], sk[64];
-    memcpy(seed, msg(&m, i), 32);
-    crypto_ed25519_key_pair(sk, out + 32 * i, seed);
-  }
-  double t1 = now_ms();
-  report(t1 - t0, fold_outputs(out, m.count, 32));
+  /* one pass over the messages takes well under a millisecond, so the pass is repeated
+     until 50 ms have passed and BENCH_MS is the mean time of one pass */
+  double t0 = now_ms(), t1;
+  size_t passes = 0;
+  do {
+    for (size_t i = 0; i < m.count; i++) {
+      uint8_t seed[32], sk[64];
+      memcpy(seed, msg(&m, i), 32);
+      crypto_ed25519_key_pair(sk, out + 32 * i, seed);
+    }
+    passes++;
+  } while ((t1 = now_ms()) - t0 < 50);
+  report((t1 - t0) / passes, fold_outputs(out, m.count, 32));
   return 0;
 }
