@@ -19,9 +19,9 @@ import ./paff.bend as PA
 import ./ineq.bend as I
 import ./bytes.bend as BY
 import ./pwin.bend as PW
-import ./group/glaw4.bend as G4
-import ./group/glawp.bend as GP
-import ../../math/number/nt_prime.bend as NP
+import ./lite/crypto/secp256k1/group/glaw4.bend as G4
+import ./lite/crypto/secp256k1/group/glawp.bend as GP
+import ./lite/math/number/nt_prime.bend as NP
 import ../../../spec/crypto/secp256k1/group.bend as GS
 import ../../../spec/lib/common.bend as C
 import ../../../src/crypto/secp256k1/pt.bend as PX

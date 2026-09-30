@@ -1,5 +1,5 @@
 import Base
-import ../../math/number/nt_prime.bend as NP
+import ./lite/math/number/nt_prime.bend as NP
 import ../../../spec/crypto/secp256k1/field.bend as FS
 import ../../../spec/crypto/secp256k1/curve.bend as CV
 import ../../../spec/crypto/secp256k1/ecdsa.bend as ES

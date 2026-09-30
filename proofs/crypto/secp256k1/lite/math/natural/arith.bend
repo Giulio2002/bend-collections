@@ -52,6 +52,19 @@ def add_cancel(+c: Nat, +a: Nat, +b: Nat, +e: {Nat.add(c, a) == Nat.add(c, b) : 
       add_cancel(cp, a, b, N.succ_inj(Nat.add(cp, a), Nat.add(cp, b), e))
 
 
+# x c == y c with c > 0 gives x == y   (Mathlib Nat.eq_of_mul_eq_mul_right)
+def mul_cancel(+x: Nat, +y: Nat, +bp: Nat, +e: {Nat.mul(x, 1n+bp) == Nat.mul(y, 1n+bp) : Nat}) -> {x == y : Nat}:
+  match x y:
+    case 0n 0n:
+      {==}
+    case 0n 1n+yp:
+      Empty.absurd({0n == 1n+yp : Nat}, N.zero_succ(Nat.add(bp, Nat.mul(yp, 1n+bp)), e))
+    case 1n+xp 0n:
+      Empty.absurd({1n+xp == 0n : Nat}, N.succ_zero(Nat.add(bp, Nat.mul(xp, 1n+bp)), e))
+    case 1n+ +xp 1n+ +yp:
+      N.succ_cong(xp, yp, mul_cancel(xp, yp, bp, add_cancel(1n+bp, Nat.mul(xp, 1n+bp), Nat.mul(yp, 1n+bp), e)))
+
+
 # ---- order and division ----
 
 # d + x <= d + y is x <= y
@@ -86,6 +99,11 @@ def absorb(+bp: Nat, +q: Nat, +r: Nat) -> {Nat.mod(Nat.add(Nat.mul(q, 1n+bp), r)
       Equal.sym(Nat, Nat.add(Nat.add(Nat.mul(q, n), Nat.mul(qr, n)), m), Nat.add(Nat.mul(q, n), Nat.add(Nat.mul(qr, n), m)), A.add_assoc(Nat.mul(q, n), Nat.mul(qr, n), m)),
       Equal.cong(Nat, Nat, z => Nat.add(z, m), Nat.add(Nat.mul(q, n), Nat.mul(qr, n)), Nat.mul(Nat.add(q, qr), n), Equal.sym(Nat, Nat.mul(Nat.add(q, qr), n), Nat.add(Nat.mul(q, n), Nat.mul(qr, n)), A.mul_add_right(q, qr, n)))))
   Equal.trans(Nat, Nat.mod(Nat.add(Nat.mul(q, n), r), n), Nat.mod(Nat.add(Nat.mul(Nat.add(q, qr), n), m), n), m, Equal.cong(Nat, Nat, z => Nat.mod(z, n), Nat.add(Nat.mul(q, n), r), Nat.add(Nat.mul(Nat.add(q, qr), n), m), e), mod_of(Nat.add(q, qr), bp, m, dm_lt(bp, r)))
+
+
+# (x mod n) mod n == x mod n   (Mathlib Nat.mod_mod)
+def mod_mod(+bp: Nat, +x: Nat) -> {Nat.mod(Nat.mod(x, 1n+bp), 1n+bp) == Nat.mod(x, 1n+bp) : Nat}:
+  mod_of(0n, bp, Nat.mod(x, 1n+bp), dm_lt(bp, x))
 
 
 # (x + y mod n) mod n == (x + y) mod n   (Mathlib Nat.add_mod)

@@ -24,6 +24,23 @@ def succ_cong(+a: Nat, +b: Nat, e: {a == b : Nat}) -> {1n+a == 1n+b : Nat}:
   Equal.cong(Nat, Nat, x => 1n+x, a, b, e)
 
 
+def is_zero(n: Nat) -> Bool:
+  match n:
+    case 0n:
+      True{}
+    case 1n+p:
+      False{}
+
+
+def zero_succ(+n: Nat, e: {0n == 1n+n : Nat}) -> Empty:
+  %e : L.truth(is_zero(_))
+  Unit{}
+
+
+def succ_zero(+n: Nat, e: {1n+n == 0n : Nat}) -> Empty:
+  zero_succ(n, Equal.sym(Nat, 1n+n, 0n, e))
+
+
 def add_zero(+n: Nat) -> {Nat.add(n, 0n) == n : Nat}:
   NA.add_zero(n)
 

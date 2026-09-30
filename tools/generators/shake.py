@@ -13,7 +13,9 @@ text of every kept definition is the library's, unchanged; nothing is
 trusted: the copies are checked like any other proof file.
 
 The secp256k1 proof sources import the copies (`./lite/lib/nat.bend` for
-`../../lib/nat.bend`). proofs/lib/logic.bend is small and shared with the
+`../../lib/nat.bend`, `./lite/crypto/secp256k1/group/glawp.bend` for
+`./group/glawp.bend`: the group law and the certificates of p are pruned the
+same way). proofs/lib/logic.bend is small and shared with the
 SHA-256 and HMAC proofs, so it is imported as it is.
 
 Run it again after changing which library lemmas the proofs use (a missing
@@ -36,7 +38,8 @@ def rel(p):
 
 
 def is_lib(r):
-    return (r.startswith('proofs/lib/') or r.startswith('proofs/math/')) and r not in KEEP
+    return (r.startswith('proofs/lib/') or r.startswith('proofs/math/')
+            or r.startswith('proofs/crypto/secp256k1/group/')) and r not in KEEP
 
 
 def lite_path(r):
@@ -121,10 +124,14 @@ def main():
                 want(own, tok)
 
     # the consumers: every proof file of the tree (not the copies)
-    for p in sorted(CONS.glob('*.bend')):
+    # (and their .src sources, so that a new reference is found before the
+    # .bend is generated)
+    for p in sorted(CONS.glob('*.bend')) + sorted((ROOT / 'tools/generators/secp256k1_hand').glob('*.src')):
         text = p.read_text()
         imports = {}
-        for mi in re.finditer(r'^import\s+(\S+\.bend)\s+as\s+(\w+)', text, re.M):
+        for mi in re.finditer(r'^import\s+(\./lite/\S+\.bend)\s+as\s+(\w+)', text, re.M):
+            # only the imports of copies: a root of the group law itself
+            # imports proofs/crypto/secp256k1/group as it is
             t = mi.group(1).replace('./lite/', '../../')
             imports[mi.group(2)] = rel(os.path.normpath(os.path.join(CONS, t)))
         scan(text, imports, None)

@@ -3,11 +3,15 @@
 import Base
 import ../../../../../../spec/math/number.bend as SN
 import ../../../../../../src/math/number.bend as NB
+import ../../../../../../src/math/natural.bend as M
 import ./prime.bend as PR
+import ./egcd.bend as EG
+import ../natural/gcd.bend as G
 import ../natural/arith.bend as NR
 import ../../lib/nat.bend as N
 import ../../../../../lib/logic.bend as Lg
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../semiring.bend as SR
 
 # Primes and Euclid's lemma, for the elliptic-curve group laws (any modulus).
 #
@@ -35,10 +39,25 @@ def mod_mul0(+bp: Nat, +k: Nat) -> {Nat.mod(Nat.mul(k, 1n+bp), 1n+bp) == 0n : Na
   {==}
 
 
+# x mod n == 0 gives x == (x / n) n
+def mod0_eq(+bp: Nat, +x: Nat, +h: {Nat.mod(x, 1n+bp) == 0n : Nat}) -> {x == Nat.mul(Nat.div(x, 1n+bp), 1n+bp) : Nat}:
+  %Equal.sym(Nat, x, Nat.add(Nat.mul(Nat.div(x, 1n+bp), 1n+bp), Nat.mod(x, 1n+bp)), NR.dm_eq(bp, x)) : {_ == Nat.mul(Nat.div(x, 1n+bp), 1n+bp) : Nat}
+  %Equal.sym(Nat, Nat.mod(x, 1n+bp), 0n, h) : {Nat.add(Nat.mul(Nat.div(x, 1n+bp), 1n+bp), _) == Nat.mul(Nat.div(x, 1n+bp), 1n+bp) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.mul(Nat.div(x, 1n+bp), 1n+bp), 0n), Nat.mul(Nat.div(x, 1n+bp), 1n+bp), NA.add_zero(Nat.mul(Nat.div(x, 1n+bp), 1n+bp))) : {_ == Nat.mul(Nat.div(x, 1n+bp), 1n+bp) : Nat}
+  {==}
+
+
 # x == k n gives x mod n == 0
 def eq_mod0(+bp: Nat, +x: Nat, +k: Nat, +h: {x == Nat.mul(k, 1n+bp) : Nat}) -> {Nat.mod(x, 1n+bp) == 0n : Nat}:
   %Equal.sym(Nat, x, Nat.mul(k, 1n+bp), h) : {Nat.mod(_, 1n+bp) == 0n : Nat}
   %Equal.sym(Nat, Nat.mod(Nat.mul(k, 1n+bp), 1n+bp), 0n, mod_mul0(bp, k)) : {_ == 0n : Nat}
+  {==}
+
+
+# (x + k n) mod n == x mod n
+def mod_add_mul(+bp: Nat, +x: Nat, +k: Nat) -> {Nat.mod(Nat.add(x, Nat.mul(k, 1n+bp)), 1n+bp) == Nat.mod(x, 1n+bp) : Nat}:
+  %Equal.sym(Nat, Nat.add(x, Nat.mul(k, 1n+bp)), Nat.add(Nat.mul(k, 1n+bp), x), NA.add_comm(x, Nat.mul(k, 1n+bp))) : {Nat.mod(_, 1n+bp) == Nat.mod(x, 1n+bp) : Nat}
+  %Equal.sym(Nat, Nat.mod(Nat.add(Nat.mul(k, 1n+bp), x), 1n+bp), Nat.mod(x, 1n+bp), NR.absorb(bp, k, x)) : {_ == Nat.mod(x, 1n+bp) : Nat}
   {==}
 
 
@@ -50,6 +69,18 @@ def dvd_le(+n: Nat, k: Nat, +d: Nat, +e: {n == Nat.mul(k, d) : Nat}, +h: {Nat.is
     case 1n+ +kp:
       %Equal.sym(Nat, n, Nat.mul(1n+kp, d), e) : {Nat.is_le(d, _) == True{} : Bool}
       N.le_add_right(d, Nat.mul(kp, d))
+
+
+# ---- primes ----
+
+def prime_ge2(n: Nat, +hp: Prime(n)) -> {Nat.is_lt(1n, n) == True{} : Bool}:
+  match n:
+    case 0n:
+      Empty.absurd({Nat.is_lt(1n, 0n) == True{} : Bool}, Lg.false_true(hp))
+    case 1n:
+      Empty.absurd({Nat.is_lt(1n, 1n) == True{} : Bool}, Lg.false_true(hp))
+    case 2n+pp:
+      {==}
 
 
 def pd_lt(+pp: Nat, +hp: Prime(2n+pp), +d: Nat, +dp: Nat, +hd: {d == 2n+dp : Nat}, +k: Nat, +e: {2n+pp == Nat.mul(k, d) : Nat}, +hlt: {Nat.is_lt(d, 2n+pp) == True{} : Bool}) -> Empty:
@@ -90,3 +121,96 @@ def prime_div(n: Nat, +hp: Prime(n), +d: Nat, +k: Nat, +e: {n == Nat.mul(k, d) :
 # a small literal prime, by the checker's trial division up to sqrt(n)
 def small_prime(+n: Nat, +h: {NB.is_prime(n) == True{} : Bool}) -> Prime(n):
   Equal.trans(Bool, SN.prime(n), NB.is_prime(n), True{}, Equal.sym(Bool, NB.is_prime(n), SN.prime(n), PR.is_prime_value(n)), h)
+
+
+# ---- Euclid's lemma ----
+
+# a prime n does not divide a: gcd(a, n) == 1
+def g1(+pp: Nat, +hp: Prime(2n+pp), +a: Nat, +ha: {Nat.is_eq(Nat.mod(a, 2n+pp), 0n) == False{} : Bool}, g: Nat, +hg: {M.gcd(a, 2n+pp) == g : Nat}) -> {M.gcd(a, 2n+pp) == 1n : Nat}:
+  match g:
+    case 0n:
+      +w = G.ws(2n+pp, a, 2n+pp)
+      +er = Equal.trans(Nat, 2n+pp, Nat.mul(G.wr(w), M.gcd(a, 2n+pp)), Nat.mul(G.wr(w), 0n), G.gcd_dvd_right(a, 2n+pp), Equal.cong(Nat, Nat, z => Nat.mul(G.wr(w), z), M.gcd(a, 2n+pp), 0n, hg))
+      Empty.absurd({M.gcd(a, 2n+pp) == 1n : Nat}, N.succ_zero(1n+pp, Equal.trans(Nat, 2n+pp, Nat.mul(G.wr(w), 0n), 0n, er, NA.mul_zero(G.wr(w)))))
+    case 1n:
+      hg
+    case 2n+ +gp:
+      +w = G.ws(2n+pp, a, 2n+pp)
+      +er = Equal.trans(Nat, 2n+pp, Nat.mul(G.wr(w), M.gcd(a, 2n+pp)), Nat.mul(G.wr(w), 2n+gp), G.gcd_dvd_right(a, 2n+pp), Equal.cong(Nat, Nat, z => Nat.mul(G.wr(w), z), M.gcd(a, 2n+pp), 2n+gp, hg))
+      +el = Equal.trans(Nat, a, Nat.mul(G.wl(w), M.gcd(a, 2n+pp)), Nat.mul(G.wl(w), 2n+gp), G.gcd_dvd_left(a, 2n+pp), Equal.cong(Nat, Nat, z => Nat.mul(G.wl(w), z), M.gcd(a, 2n+pp), 2n+gp, hg))
+      +en = prime_div(2n+pp, hp, 2n+gp, G.wr(w), er, {==})
+      +ea = Equal.trans(Nat, a, Nat.mul(G.wl(w), 2n+gp), Nat.mul(G.wl(w), 2n+pp), el, Equal.cong(Nat, Nat, z => Nat.mul(G.wl(w), z), 2n+gp, 2n+pp, en))
+      +m0 = eq_mod0(1n+pp, a, G.wl(w), ea)
+      Empty.absurd({M.gcd(a, 2n+pp) == 1n : Nat}, Lg.true_false(Equal.trans(Bool, True{}, Nat.is_eq(Nat.mod(a, 2n+pp), 0n), False{}, Equal.cong(Nat, Bool, z => Nat.is_eq(z, 0n), 0n, Nat.mod(a, 2n+pp), Equal.sym(Nat, Nat.mod(a, 2n+pp), 0n, m0)), ha)))
+
+
+# a x == g + n y, g == 1, a b == K n: b + (y b) n == (x K) n
+def eu_pos(+a: Nat, +b: Nat, +x: Nat, +y: Nat, +g: Nat, +n: Nat, +k: Nat, +hpos: {Nat.mul(a, x) == Nat.add(g, Nat.mul(n, y)) : Nat}, +hg: {g == 1n : Nat}, +hk: {Nat.mul(a, b) == Nat.mul(k, n) : Nat}) -> {Nat.add(b, Nat.mul(Nat.mul(y, b), n)) == Nat.mul(Nat.mul(x, k), n) : Nat}:
+  %Equal.sym(Nat, Nat.mul(Nat.mul(x, k), n), Nat.mul(x, Nat.mul(k, n)), NA.mul_assoc(x, k, n)) : {Nat.add(b, Nat.mul(Nat.mul(y, b), n)) == _ : Nat}
+  %Equal.sym(Nat, Nat.mul(k, n), Nat.mul(a, b), Equal.sym(Nat, Nat.mul(a, b), Nat.mul(k, n), hk)) : {Nat.add(b, Nat.mul(Nat.mul(y, b), n)) == Nat.mul(x, _) : Nat}
+  %Equal.sym(Nat, Nat.mul(x, Nat.mul(a, b)), Nat.mul(Nat.mul(x, a), b), Equal.sym(Nat, Nat.mul(Nat.mul(x, a), b), Nat.mul(x, Nat.mul(a, b)), NA.mul_assoc(x, a, b))) : {Nat.add(b, Nat.mul(Nat.mul(y, b), n)) == _ : Nat}
+  %Equal.sym(Nat, Nat.mul(x, a), Nat.mul(a, x), NA.mul_comm(x, a)) : {Nat.add(b, Nat.mul(Nat.mul(y, b), n)) == Nat.mul(_, b) : Nat}
+  %Equal.sym(Nat, Nat.mul(a, x), Nat.add(g, Nat.mul(n, y)), hpos) : {Nat.add(b, Nat.mul(Nat.mul(y, b), n)) == Nat.mul(_, b) : Nat}
+  %Equal.sym(Nat, g, 1n, hg) : {Nat.add(b, Nat.mul(Nat.mul(y, b), n)) == Nat.mul(Nat.add(_, Nat.mul(n, y)), b) : Nat}
+  %Equal.sym(Nat, Nat.mul(y, b), Nat.mul(b, y), NA.mul_comm(y, b)) : {Nat.add(b, Nat.mul(_, n)) == Nat.mul(Nat.add(1n, Nat.mul(n, y)), b) : Nat}
+  %Equal.sym(Nat, Nat.mul(Nat.mul(b, y), n), Nat.mul(b, Nat.mul(y, n)), NA.mul_assoc(b, y, n)) : {Nat.add(b, _) == Nat.mul(Nat.add(1n, Nat.mul(n, y)), b) : Nat}
+  %Equal.sym(Nat, Nat.mul(y, n), Nat.mul(n, y), NA.mul_comm(y, n)) : {Nat.add(b, Nat.mul(b, _)) == Nat.mul(Nat.add(1n, Nat.mul(n, y)), b) : Nat}
+  %Equal.sym(Nat, Nat.add(1n, Nat.mul(n, y)), Nat.add(Nat.mul(n, y), 1n), NA.add_comm(1n, Nat.mul(n, y))) : {Nat.add(b, Nat.mul(b, Nat.mul(n, y))) == Nat.mul(_, b) : Nat}
+  %Equal.sym(Nat, Nat.mul(Nat.add(Nat.mul(n, y), 1n), b), Nat.add(Nat.mul(Nat.mul(n, y), b), Nat.mul(1n, b)), NA.mul_add_right(Nat.mul(n, y), 1n, b)) : {Nat.add(b, Nat.mul(b, Nat.mul(n, y))) == _ : Nat}
+  %Equal.sym(Nat, Nat.mul(Nat.mul(n, y), b), Nat.mul(n, Nat.mul(y, b)), NA.mul_assoc(n, y, b)) : {Nat.add(b, Nat.mul(b, Nat.mul(n, y))) == Nat.add(_, Nat.mul(1n, b)) : Nat}
+  %Equal.sym(Nat, Nat.mul(y, b), Nat.mul(b, y), NA.mul_comm(y, b)) : {Nat.add(b, Nat.mul(b, Nat.mul(n, y))) == Nat.add(Nat.mul(n, _), Nat.mul(1n, b)) : Nat}
+  %Equal.sym(Nat, Nat.mul(n, Nat.mul(b, y)), Nat.mul(b, Nat.mul(n, y)), SR.mul_swap(n, b, y)) : {Nat.add(b, Nat.mul(b, Nat.mul(n, y))) == Nat.add(_, Nat.mul(1n, b)) : Nat}
+  %Equal.sym(Nat, Nat.mul(1n, b), b, SR.one_mul(b)) : {Nat.add(b, Nat.mul(b, Nat.mul(n, y))) == Nat.add(Nat.mul(b, Nat.mul(n, y)), _) : Nat}
+  %Equal.sym(Nat, Nat.add(Nat.mul(b, Nat.mul(n, y)), b), Nat.add(b, Nat.mul(b, Nat.mul(n, y))), NA.add_comm(Nat.mul(b, Nat.mul(n, y)), b)) : {Nat.add(b, Nat.mul(b, Nat.mul(n, y))) == _ : Nat}
+  {==}
+
+
+# n y == g + a x, g == 1, a b == K n: b + (x K) n == (y b) n
+def eu_neg(+a: Nat, +b: Nat, +x: Nat, +y: Nat, +g: Nat, +n: Nat, +k: Nat, +hneg: {Nat.mul(n, y) == Nat.add(g, Nat.mul(a, x)) : Nat}, +hg: {g == 1n : Nat}, +hk: {Nat.mul(a, b) == Nat.mul(k, n) : Nat}) -> {Nat.add(b, Nat.mul(Nat.mul(x, k), n)) == Nat.mul(Nat.mul(y, b), n) : Nat}:
+  %Equal.sym(Nat, Nat.mul(Nat.mul(x, k), n), Nat.mul(x, Nat.mul(k, n)), NA.mul_assoc(x, k, n)) : {Nat.add(b, _) == Nat.mul(Nat.mul(y, b), n) : Nat}
+  %Equal.sym(Nat, Nat.mul(k, n), Nat.mul(a, b), Equal.sym(Nat, Nat.mul(a, b), Nat.mul(k, n), hk)) : {Nat.add(b, Nat.mul(x, _)) == Nat.mul(Nat.mul(y, b), n) : Nat}
+  %Equal.sym(Nat, Nat.mul(Nat.mul(y, b), n), Nat.mul(n, Nat.mul(y, b)), NA.mul_comm(Nat.mul(y, b), n)) : {Nat.add(b, Nat.mul(x, Nat.mul(a, b))) == _ : Nat}
+  %Equal.sym(Nat, Nat.mul(n, Nat.mul(y, b)), Nat.mul(Nat.mul(n, y), b), Equal.sym(Nat, Nat.mul(Nat.mul(n, y), b), Nat.mul(n, Nat.mul(y, b)), NA.mul_assoc(n, y, b))) : {Nat.add(b, Nat.mul(x, Nat.mul(a, b))) == _ : Nat}
+  %Equal.sym(Nat, Nat.mul(n, y), Nat.add(g, Nat.mul(a, x)), hneg) : {Nat.add(b, Nat.mul(x, Nat.mul(a, b))) == Nat.mul(_, b) : Nat}
+  %Equal.sym(Nat, g, 1n, hg) : {Nat.add(b, Nat.mul(x, Nat.mul(a, b))) == Nat.mul(Nat.add(_, Nat.mul(a, x)), b) : Nat}
+  %Equal.sym(Nat, Nat.mul(x, Nat.mul(a, b)), Nat.mul(a, Nat.mul(x, b)), SR.mul_swap(x, a, b)) : {Nat.add(b, _) == Nat.mul(Nat.add(1n, Nat.mul(a, x)), b) : Nat}
+  %Equal.sym(Nat, Nat.mul(x, b), Nat.mul(b, x), NA.mul_comm(x, b)) : {Nat.add(b, Nat.mul(a, _)) == Nat.mul(Nat.add(1n, Nat.mul(a, x)), b) : Nat}
+  %Equal.sym(Nat, Nat.add(b, Nat.mul(a, Nat.mul(b, x))), Nat.add(Nat.mul(a, Nat.mul(b, x)), b), NA.add_comm(b, Nat.mul(a, Nat.mul(b, x)))) : {_ == Nat.mul(Nat.add(1n, Nat.mul(a, x)), b) : Nat}
+  %Equal.sym(Nat, Nat.add(1n, Nat.mul(a, x)), Nat.add(Nat.mul(a, x), 1n), NA.add_comm(1n, Nat.mul(a, x))) : {Nat.add(Nat.mul(a, Nat.mul(b, x)), b) == Nat.mul(_, b) : Nat}
+  %Equal.sym(Nat, Nat.mul(Nat.add(Nat.mul(a, x), 1n), b), Nat.add(Nat.mul(Nat.mul(a, x), b), Nat.mul(1n, b)), NA.mul_add_right(Nat.mul(a, x), 1n, b)) : {Nat.add(Nat.mul(a, Nat.mul(b, x)), b) == _ : Nat}
+  %Equal.sym(Nat, Nat.mul(Nat.mul(a, x), b), Nat.mul(a, Nat.mul(x, b)), NA.mul_assoc(a, x, b)) : {Nat.add(Nat.mul(a, Nat.mul(b, x)), b) == Nat.add(_, Nat.mul(1n, b)) : Nat}
+  %Equal.sym(Nat, Nat.mul(x, b), Nat.mul(b, x), NA.mul_comm(x, b)) : {Nat.add(Nat.mul(a, Nat.mul(b, x)), b) == Nat.add(Nat.mul(a, _), Nat.mul(1n, b)) : Nat}
+  %Equal.sym(Nat, Nat.mul(1n, b), b, SR.one_mul(b)) : {Nat.add(Nat.mul(a, Nat.mul(b, x)), b) == Nat.add(Nat.mul(a, Nat.mul(b, x)), _) : Nat}
+  {==}
+
+
+def eu_bz(+pp: Nat, +a: Nat, +b: Nat, r: NB.EGcd, +hb: {SN.eg_pos(a, 2n+pp, r) == SN.eg_neg(a, 2n+pp, r) : Nat}, +hg: {SN.eg_gcd(r) == 1n : Nat}, +hab: {Nat.mod(Nat.mul(a, b), 2n+pp) == 0n : Nat}) -> {Nat.mod(b, 2n+pp) == 0n : Nat}:
+  match r:
+    case NB.EG{+g, +x, +y, neg}:
+      match neg:
+        case False{}:
+          +k = Nat.div(Nat.mul(a, b), 2n+pp)
+          +hk = mod0_eq(1n+pp, Nat.mul(a, b), hab)
+          +e = eu_pos(a, b, x, y, g, 2n+pp, k, hb, hg, hk)
+          %Equal.sym(Nat, Nat.mod(b, 2n+pp), Nat.mod(Nat.add(b, Nat.mul(Nat.mul(y, b), 2n+pp)), 2n+pp), Equal.sym(Nat, Nat.mod(Nat.add(b, Nat.mul(Nat.mul(y, b), 2n+pp)), 2n+pp), Nat.mod(b, 2n+pp), mod_add_mul(1n+pp, b, Nat.mul(y, b)))) : {_ == 0n : Nat}
+          %Equal.sym(Nat, Nat.add(b, Nat.mul(Nat.mul(y, b), 2n+pp)), Nat.mul(Nat.mul(x, k), 2n+pp), e) : {Nat.mod(_, 2n+pp) == 0n : Nat}
+          mod_mul0(1n+pp, Nat.mul(x, k))
+        case True{}:
+          +k = Nat.div(Nat.mul(a, b), 2n+pp)
+          +hk = mod0_eq(1n+pp, Nat.mul(a, b), hab)
+          +e = eu_neg(a, b, x, y, g, 2n+pp, k, hb, hg, hk)
+          %Equal.sym(Nat, Nat.mod(b, 2n+pp), Nat.mod(Nat.add(b, Nat.mul(Nat.mul(x, k), 2n+pp)), 2n+pp), Equal.sym(Nat, Nat.mod(Nat.add(b, Nat.mul(Nat.mul(x, k), 2n+pp)), 2n+pp), Nat.mod(b, 2n+pp), mod_add_mul(1n+pp, b, Nat.mul(x, k)))) : {_ == 0n : Nat}
+          %Equal.sym(Nat, Nat.add(b, Nat.mul(Nat.mul(x, k), 2n+pp)), Nat.mul(Nat.mul(y, b), 2n+pp), e) : {Nat.mod(_, 2n+pp) == 0n : Nat}
+          mod_mul0(1n+pp, Nat.mul(y, b))
+
+
+# Euclid's lemma: a prime dividing a b and not a divides b   (Mathlib Nat.Prime.dvd_mul)
+def euclid(n: Nat, +hp: Prime(n), +a: Nat, +b: Nat, +hab: {Nat.mod(Nat.mul(a, b), n) == 0n : Nat}, +ha: {Nat.is_eq(Nat.mod(a, n), 0n) == False{} : Bool}) -> {Nat.mod(b, n) == 0n : Nat}:
+  match n:
+    case 0n:
+      Empty.absurd({Nat.mod(b, 0n) == 0n : Nat}, Lg.false_true(hp))
+    case 1n:
+      Empty.absurd({Nat.mod(b, 1n) == 0n : Nat}, Lg.false_true(hp))
+    case 2n+ +pp:
+      +hg = Equal.trans(Nat, SN.eg_gcd(NB.egcd(a, 2n+pp)), M.gcd(a, 2n+pp), 1n, EG.egcd_gcd(a, 2n+pp), g1(pp, hp, a, ha, M.gcd(a, 2n+pp), {==}))
+      eu_bz(pp, a, b, NB.egcd(a, 2n+pp), EG.egcd_bezout(a, 2n+pp), hg, hab)

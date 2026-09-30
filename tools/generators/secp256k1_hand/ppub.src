@@ -12,8 +12,8 @@ import ./paff.bend as PA
 import ./penc.bend as PE
 import ./blist.bend as BL
 import ./paq.bend as AQ
-import ./group/glawp.bend as GP
-import ../../math/number/nt_prime.bend as NP
+import ./lite/crypto/secp256k1/group/glawp.bend as GP
+import ./lite/math/number/nt_prime.bend as NP
 import ../../../spec/crypto/secp256k1/group.bend as GS
 import ./pok.bend as SQ
 

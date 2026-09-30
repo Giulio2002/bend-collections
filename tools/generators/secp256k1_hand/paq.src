@@ -5,13 +5,13 @@ import ../../../spec/crypto/secp256k1/group.bend as GS
 import ../../lib/logic.bend as Lg
 import ./lite/lib/nat.bend as N
 import ./lite/lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../math/number/nt_prime.bend as NP
-import ./group/fld.bend as F
-import ./group/glaw2.bend as G2
-import ./group/affx.bend as AX
-import ./group/gfp.bend as GF
-import ./group/certb.bend as CB
-import ./group/ptv.bend as PV
+import ./lite/math/number/nt_prime.bend as NP
+import ./lite/crypto/secp256k1/group/fld.bend as F
+import ./lite/crypto/secp256k1/group/glaw2.bend as G2
+import ./lite/crypto/secp256k1/group/affx.bend as AX
+import ./lite/crypto/secp256k1/group/gfp.bend as GF
+import ./lite/crypto/secp256k1/group/certb.bend as CB
+import ./lite/crypto/secp256k1/group/ptv.bend as PV
 
 # The affine coordinates of the specification (CS.to_affine, (0, 0) for the
 # point at infinity) depend only on the projective point: equivalent points

@@ -1,5 +1,5 @@
 import Base
-import ./group/certpc.bend as PC
+import ./lite/crypto/secp256k1/group/certpc.bend as PC
 import ./laws_schnorr.bend as Laws
 import ./pschn.bend as PSC
 import ./pkp.bend as PK

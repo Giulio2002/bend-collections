@@ -8,9 +8,9 @@ import ../../../src/crypto/secp256k1/pt.bend as PX
 import ../../lib/logic.bend as Lg
 import ./lite/lib/nat.bend as N
 import ./lite/lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../math/number/nt_prime.bend as NP
-import ./group/glawp.bend as GP
-import ./group/glaw4.bend as G4
+import ./lite/math/number/nt_prime.bend as NP
+import ./lite/crypto/secp256k1/group/glawp.bend as GP
+import ./lite/crypto/secp256k1/group/glaw4.bend as G4
 import ./bitsv.bend as BV
 import ./ptp.bend as PP
 import ./ptm.bend as PM

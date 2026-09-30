@@ -1,5 +1,5 @@
 import Base
-import ./group/certpc.bend as PC
+import ./lite/crypto/secp256k1/group/certpc.bend as PC
 import ../../../src/crypto/secp256k1.bend as K
 import ../../../src/crypto/secp256k1/ecdsa.bend as E
 import ../../../spec/crypto/secp256k1/ecdsa.bend as ES
