@@ -623,6 +623,41 @@ def main():
         (LOGDIR / 'secp256k1.log').write_text('\n'.join(x['output'] for x in checks))
         print('%-22s differential=%s proof=%s' % ('secp256k1', secp_row['differential'], secp_row['proof']), flush=True)
 
+    # Bend against itself (tools/backend_diff.py): every public module on
+    # identical seeded random and edge-case inputs through the three execution
+    # paths of the toolchain (`bend file.bend args`, the native C backend,
+    # the JavaScript backend under node); any differing output line fails.
+    # The proofs are about the source; this is the test of the unverified
+    # compiler underneath them (see docs/BACKEND_BUGS.md).
+    backend_row = None
+    if not args.only or args.only == 'backend_diff':
+        # BACKEND_DIFF_ARGS adds options (say --quick while developing the gate)
+        result = run([sys.executable, 'tools/backend_diff.py', '-j', '4',
+                      '--report', 'build/backend_diff/report.json']
+                     + os.environ.get('BACKEND_DIFF_ARGS', '').split(), timeout=21600)
+        detail = {}
+        try:
+            detail = json.loads((ROOT / 'build/backend_diff/report.json').read_text())
+        except (OSError, ValueError):
+            pass
+        good = result.returncode == 0 and detail.get('passed') is True
+        if not good:
+            fail('backend_diff', 'execution paths disagree or a driver failed: %s'
+                 % (result.stdout + result.stderr)[-600:])
+        backend_row = {'id': 'backend_diff', 'implementation': 'every public module of main.bend',
+                       'differential': 'passed' if good else 'failed',
+                       'paths': detail.get('paths'), 'seed': detail.get('seed'),
+                       'cases': detail.get('cases'), 'lines': detail.get('lines'),
+                       'disagreements': detail.get('disagreements'),
+                       'resource_limit': detail.get('resource_limit'), 'all_fail': detail.get('all_fail'),
+                       'known': detail.get('known'), 'quick': detail.get('quick'),
+                       'modules': [{k: m.get(k) for k in ('module', 'cases', 'lines', 'agree', 'seconds')}
+                                   for m in detail.get('modules', [])],
+                       'seconds': detail.get('seconds')}
+        (LOGDIR / 'backend_diff.log').write_text(result.stdout + result.stderr)
+        print('%-22s differential=%s cases=%s lines=%s' % ('backend_diff', backend_row['differential'],
+                                                           backend_row['cases'], backend_row['lines']), flush=True)
+
     lru_log = []
     lru_ok, lru_detail = check_lru(lru_log)
     (LOGDIR / 'lru.log').write_text('\n'.join(lru_log))
@@ -645,6 +680,7 @@ def main():
         'chacha': chacha_row,
         'aes': aes_row,
         'random': random_row,
+        'backend_diff': backend_row,
         'lru_reuse': 'passed' if lru_ok else 'failed',
         'lru_detail': lru_detail,
         'complete': bool(complete),
