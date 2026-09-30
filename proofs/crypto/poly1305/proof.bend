@@ -9,6 +9,8 @@ import ../subtle/word.bend as SW
 import ../subtle/fold.bend as SF
 import ./modp.bend as MP
 import ./mac.bend as M
+import ./api.bend as API
+import ./tag2.bend as PT
 import ./laws.bend as Laws
 import ./poly.bend as PY
 
@@ -24,13 +26,15 @@ def Laws.mac_correct(key, msg): M.mac_correct(key, msg)
 
 def Laws.mac_length(key, msg): M.mac_length(key, msg)
 
+def Laws.mac_aead(key, aad, ct): PT.mac_aead_correct(key, aad, ct)
+
 def Laws.modp_mod(one, h1, x):
   Equal.trans(Nat, R.modp(x), Nat.mod(x, 1n+M.bpv(one)), Nat.mod(x, Nat.sub(C.shift(130n, one), 5n)), MP.modp_mod(one, h1, M.bpv(one), M.bp5(one, h1), x),
     Equal.cong(Nat, Nat, z => Nat.mod(x, z), 1n+M.bpv(one), Nat.sub(C.shift(130n, one), 5n), Equal.sym(Nat, Nat.sub(C.shift(130n, one), 5n), 1n+M.bpv(one), M.pp_eq(one, h1, M.bpv(one), M.bp5(one, h1)))))
 
-def Laws.poly1305_valid(key, msg, h): M.poly1305_valid(key, msg, h)
+def Laws.poly1305_valid(key, msg, h): API.poly1305_valid(key, msg, h)
 
-def Laws.poly1305_invalid(key, msg, h): M.poly1305_invalid(key, msg, h)
+def Laws.poly1305_invalid(key, msg, h): API.poly1305_invalid(key, msg, h)
 
 # ---- constant-time equality (the value lemma is proofs/crypto/subtle/fold.bend's) ----
 

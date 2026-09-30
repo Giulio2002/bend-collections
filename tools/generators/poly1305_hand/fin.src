@@ -40,14 +40,18 @@ def chain4(+one: Nat, +h1: {one == 1n : Nat}, +z0: Nat, +z1: Nat, +z2: Nat, +z3:
   +f2 = Equal.trans(Nat, Nat.add(y1, C.shift(26n, Nat.add(z2, C.shift(26n, Nat.add(z3, C.shift(26n, z4)))))), Nat.add(m1, C.shift(26n, Nat.add(y2, C.shift(26n, Nat.add(z3, C.shift(26n, z4)))))), Nat.add(m1, C.shift(26n, Nat.add(m2, C.shift(26n, Nat.add(m3, C.shift(26n, y4)))))), e2, Equal.cong(Nat, Nat, t => Nat.add(m1, C.shift(26n, t)), Nat.add(y2, C.shift(26n, Nat.add(z3, C.shift(26n, z4)))), Nat.add(m2, C.shift(26n, Nat.add(m3, C.shift(26n, y4)))), f3))
   Equal.trans(Nat, V.ev(z0, z1, z2, z3, z4), Nat.add(m0, C.shift(26n, Nat.add(y1, C.shift(26n, Nat.add(z2, C.shift(26n, Nat.add(z3, C.shift(26n, z4)))))))), V.ev(m0, m1, m2, m3, y4), e1, Equal.cong(Nat, Nat, t => Nat.add(m0, C.shift(26n, t)), Nat.add(y1, C.shift(26n, Nat.add(z2, C.shift(26n, Nat.add(z3, C.shift(26n, z4)))))), Nat.add(m1, C.shift(26n, Nat.add(m2, C.shift(26n, Nat.add(m3, C.shift(26n, y4)))))), f2))
 
+def q_add0(+a: Nat, +c: Nat, +t: Nat) -> {Nat.add(Nat.add(a, c), C.shift(26n, t)) == Nat.add(Nat.add(a, C.shift(26n, t)), c) : Nat}:
+  %goal {Nat.add(Nat.add(a, c), C.shift(26n, t)) == Nat.add(Nat.add(a, C.shift(26n, t)), c) : Nat}
+  %norm
+
+def q_et(+e: Nat, +m: Nat, +q: Nat) -> {Nat.add(e, C.shift(104n, Nat.add(m, C.shift(26n, q)))) == Nat.add(Nat.add(e, C.shift(104n, m)), C.shift(130n, q)) : Nat}:
+  %goal {Nat.add(e, C.shift(104n, Nat.add(m, C.shift(26n, q)))) == Nat.add(Nat.add(e, C.shift(104n, m)), C.shift(130n, q)) : Nat}
+  %norm
+
 def ev_top(+l0: Nat, +l1: Nat, +l2: Nat, +l3: Nat, +m: Nat, +q: Nat) -> {V.ev(l0, l1, l2, l3, Nat.add(m, C.shift(26n, q))) == Nat.add(V.ev(l0, l1, l2, l3, m), C.shift(130n, q)) : Nat}:
-  %goal {Nat.add(l0, C.shift(26n, Nat.add(l1, C.shift(26n, Nat.add(l2, C.shift(26n, Nat.add(l3, C.shift(26n, Nat.add(m, C.shift(26n, q)))))))))) == Nat.add(Nat.add(l0, C.shift(26n, Nat.add(l1, C.shift(26n, Nat.add(l2, C.shift(26n, Nat.add(l3, C.shift(26n, m)))))))), C.shift(130n, q)) : Nat}
-  %norm
-
+  Equal.trans(Nat, V.ev(l0, l1, l2, l3, Nat.add(m, C.shift(26n, q))), Nat.add(Nat.add(l0, C.shift(26n, Nat.add(l1, C.shift(26n, Nat.add(l2, C.shift(26n, l3)))))), C.shift(104n, Nat.add(m, C.shift(26n, q)))), Nat.add(V.ev(l0, l1, l2, l3, m), C.shift(130n, q)), V.t4(l0, l1, l2, l3, Nat.add(m, C.shift(26n, q))), Equal.trans(Nat, Nat.add(Nat.add(l0, C.shift(26n, Nat.add(l1, C.shift(26n, Nat.add(l2, C.shift(26n, l3)))))), C.shift(104n, Nat.add(m, C.shift(26n, q)))), Nat.add(Nat.add(Nat.add(l0, C.shift(26n, Nat.add(l1, C.shift(26n, Nat.add(l2, C.shift(26n, l3)))))), C.shift(104n, m)), C.shift(130n, q)), Nat.add(V.ev(l0, l1, l2, l3, m), C.shift(130n, q)), q_et(Nat.add(l0, C.shift(26n, Nat.add(l1, C.shift(26n, Nat.add(l2, C.shift(26n, l3)))))), m, q), Equal.cong(Nat, Nat, t => Nat.add(t, C.shift(130n, q)), Nat.add(Nat.add(l0, C.shift(26n, Nat.add(l1, C.shift(26n, Nat.add(l2, C.shift(26n, l3)))))), C.shift(104n, m)), V.ev(l0, l1, l2, l3, m), Equal.sym(Nat, V.ev(l0, l1, l2, l3, m), Nat.add(Nat.add(l0, C.shift(26n, Nat.add(l1, C.shift(26n, Nat.add(l2, C.shift(26n, l3)))))), C.shift(104n, m)), V.t4(l0, l1, l2, l3, m)))))
 def ev_add0(+a: Nat, +c: Nat, +l1: Nat, +l2: Nat, +l3: Nat, +l4: Nat) -> {V.ev(Nat.add(a, c), l1, l2, l3, l4) == Nat.add(V.ev(a, l1, l2, l3, l4), c) : Nat}:
-  %goal {Nat.add(Nat.add(a, c), C.shift(26n, Nat.add(l1, C.shift(26n, Nat.add(l2, C.shift(26n, Nat.add(l3, C.shift(26n, l4)))))))) == Nat.add(Nat.add(a, C.shift(26n, Nat.add(l1, C.shift(26n, Nat.add(l2, C.shift(26n, Nat.add(l3, C.shift(26n, l4)))))))), c) : Nat}
-  %norm
-
+  q_add0(a, c, Nat.add(l1, C.shift(26n, Nat.add(l2, C.shift(26n, Nat.add(l3, C.shift(26n, l4)))))))
 # five 26-bit limbs: 130 bits
 def ev_fit(+l0: Nat, +l1: Nat, +l2: Nat, +l3: Nat, +l4: Nat, +h0: {C.fits(26n, l0) == True{} : Bool}, +h1: {C.fits(26n, l1) == True{} : Bool}, +h2: {C.fits(26n, l2) == True{} : Bool}, +h3: {C.fits(26n, l3) == True{} : Bool}, +h4: {C.fits(26n, l4) == True{} : Bool}) -> {C.fits(130n, V.ev(l0, l1, l2, l3, l4)) == True{} : Bool}:
   +a = WW.limbs_fit(26n, 26n, l3, l4, h3, h4)
