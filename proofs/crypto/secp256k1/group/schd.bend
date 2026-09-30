@@ -18,15 +18,27 @@ def key(+one: Nat, +sk: List<&2, U32>) -> Nat:
 def pkb(+one: Nat, +sk: List<&2, U32>) -> List<&2, U32>:
   SS.bytes32(CS.aff_x(pub_a(one, sk)))
 
-# k' = int(hash_nonce(t || bytes(P) || m)) mod n
+# A tagged hash that looks at its message before anything else (its value
+# is SS.tagged(tag, x) in both cases: schp.bend tg_eq), so that the proof
+# checker keeps the hash of an unknown message folded instead of running
+# SHA-256 on the tag at every comparison.
+def tg(+tag: List<&2, U32>, x: List<&2, U32>) -> List<&2, U32>:
+  match x:
+    case Nil{}:
+      SS.tagged(tag, Nil{})
+    case h <> r:
+      SS.tagged(tag, h <> r)
+
+# k' = int(hash_nonce(t || bytes(P) || m)) mod n, t = bytes(d) xor hash_aux(a)
 def nonce(+one: Nat, +sk: List<&2, U32>, +m: List<&2, U32>, +aux: List<&2, U32>) -> Nat:
-  Nat.mod(CS.os2ip(SS.tagged(SS.tag_nonce(), SS.cat(SS.xor_bytes(SS.bytes32(key(one, sk)), SS.tagged(SS.tag_aux(), aux)), SS.cat(pkb(one, sk), m)))), SS.n(one))
+  Nat.mod(CS.os2ip(tg(SS.tag_nonce(), SS.cat(SS.xor_bytes(SS.bytes32(key(one, sk)), tg(SS.tag_aux(), aux)), SS.cat(pkb(one, sk), m)))), SS.n(one))
 
 def r_a(+one: Nat, +sk: List<&2, U32>, +m: List<&2, U32>, +aux: List<&2, U32>) -> CS.SAffine:
   CS.to_affine(SS.p(one), CS.pmul(SS.p(one), nonce(one, sk, m, aux), CS.g(one)))
 
+# e = int(hash_challenge(bytes(R) || bytes(P) || m)) mod n
 def chal(+one: Nat, +sk: List<&2, U32>, +m: List<&2, U32>, +aux: List<&2, U32>) -> Nat:
-  Nat.mod(CS.os2ip(SS.tagged(SS.tag_challenge(), SS.cat(SS.bytes32(CS.aff_x(r_a(one, sk, m, aux))), SS.cat(pkb(one, sk), m)))), SS.n(one))
+  Nat.mod(CS.os2ip(tg(SS.tag_challenge(), SS.cat(SS.bytes32(CS.aff_x(r_a(one, sk, m, aux))), SS.cat(pkb(one, sk), m)))), SS.n(one))
 
 def sval(+one: Nat, +sk: List<&2, U32>, +m: List<&2, U32>, +aux: List<&2, U32>) -> Nat:
   FS.madd(SS.n(one), SS.even(SS.n(one), CS.aff_y(r_a(one, sk, m, aux)), nonce(one, sk, m, aux)), FS.mmul(SS.n(one), chal(one, sk, m, aux), key(one, sk)))
