@@ -102,31 +102,31 @@ def fold_c(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n
   G.c_trans(pp, FV.lv(LS.fold(zs)), Nat.add(T, Nat.mul(D, 19n)), FV.lv(zs), G.c_eq(pp, FV.lv(LS.fold(zs)), Nat.add(T, Nat.mul(D, 19n)), e1), G.c_trans(pp, Nat.add(T, Nat.mul(D, 19n)), Nat.add(T, WD.sc(255n, D)), FV.lv(zs), e3, G.c_eq(pp, Nat.add(T, WD.sc(255n, D)), FV.lv(zs), sy(FV.lv(zs), Nat.add(T, WD.sc(255n, D)), e2))))
 
 # the flat product is pass(fold(conv)) (convp is conv on ok limbs)
-def mul_list(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +a: FE.Fe, +b: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}, +hb: {FV.ok(one, b) == True{} : Bool}) -> {FE.to_list(FE.mul(R, a, b)) == LS.pc(R, LS.pc(R, LS.fold(LS.conv(FE.to_list(a), FE.to_list(b))))) : List<&2, Nat>}:
+def mul_list(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +a: FE.Fe, +b: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}, +hb: {FV.ok(one, b) == True{} : Bool}) -> {FE.to_list(FE.mul(R, a, b)) == LS.pass(R, LS.fold(LS.conv(FE.to_list(a), FE.to_list(b)))) : List<&2, Nat>}:
   +A = FE.to_list(a)
   +B = FE.to_list(b)
-  Equal.trans(List<&2, Nat>, FE.to_list(FE.mul(R, a, b)), LS.mul_l(R, A, B), LS.pc(R, LS.pc(R, LS.fold(LS.conv(A, B)))), BR.mul_b(R, a, b), Equal.cong(List<&2, Nat>, List<&2, Nat>, z => LS.pc(R, LS.pc(R, LS.fold(z))), LS.convp(A, B), LS.conv(A, B), PD.convp_eq(one, h1, A, B, ha, hb)))
+  Equal.trans(List<&2, Nat>, FE.to_list(FE.mul(R, a, b)), LS.mul_l(R, A, B), LS.pass(R, LS.fold(LS.conv(A, B))), BR.mul_b(R, a, b), Equal.cong(List<&2, Nat>, List<&2, Nat>, z => LS.pass(R, LS.fold(z)), LS.convp(A, B), LS.conv(A, B), PD.convp_eq(one, h1, A, B, ha, hb)))
 
 def mul_c(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}, +hb: {FV.ok(one, b) == True{} : Bool}) -> G.ceq(pp, FV.value(FE.mul(R, a, b)), Nat.mul(FV.value(a), FV.value(b))):
   +A = FE.to_list(a)
   +B = FE.to_list(b)
   +Z = LS.fold(LS.conv(A, B))
-  +e0 = lv_eq(FE.to_list(FE.mul(R, a, b)), LS.pc(R, LS.pc(R, Z)), mul_list(one, h1, R, a, b, ha, hb))
-  G.c_trans(pp, FV.value(FE.mul(R, a, b)), FV.lv(LS.pc(R, LS.pc(R, Z))), Nat.mul(FV.lv(A), FV.lv(B)), G.c_eq(pp, FV.value(FE.mul(R, a, b)), FV.lv(LS.pc(R, LS.pc(R, Z))), e0),
-    G.c_trans(pp, FV.lv(LS.pc(R, LS.pc(R, Z))), FV.lv(Z), Nat.mul(FV.lv(A), FV.lv(B)), PC.pc2_c(one, h1, pp, hP, R, hR, Z, fold_len(a, b)),
+  +e0 = lv_eq(FE.to_list(FE.mul(R, a, b)), LS.pass(R, Z), mul_list(one, h1, R, a, b, ha, hb))
+  G.c_trans(pp, FV.value(FE.mul(R, a, b)), FV.lv(LS.pass(R, Z)), Nat.mul(FV.lv(A), FV.lv(B)), G.c_eq(pp, FV.value(FE.mul(R, a, b)), FV.lv(LS.pass(R, Z)), e0),
+    G.c_trans(pp, FV.lv(LS.pass(R, Z)), FV.lv(Z), Nat.mul(FV.lv(A), FV.lv(B)), PS.pass_c(one, h1, pp, hP, R, hR, Z, fold_len(a, b)),
       G.c_trans(pp, FV.lv(Z), FV.lv(LS.conv(A, B)), Nat.mul(FV.lv(A), FV.lv(B)), fold_c(one, h1, pp, hP, LS.conv(A, B)), G.c_eq(pp, FV.lv(LS.conv(A, B)), Nat.mul(FV.lv(A), FV.lv(B)), NL.lv_conv(A, B)))))
 
 # the flat square is pass(fold(conv(a, a)))
-def sq_list(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +a: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}) -> {FE.to_list(FE.sq(R, a)) == LS.pc(R, LS.pc(R, LS.fold(LS.conv(FE.to_list(a), FE.to_list(a))))) : List<&2, Nat>}:
+def sq_list(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +a: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}) -> {FE.to_list(FE.sq(R, a)) == LS.pass(R, LS.fold(LS.conv(FE.to_list(a), FE.to_list(a)))) : List<&2, Nat>}:
   +A = FE.to_list(a)
-  Equal.trans(List<&2, Nat>, FE.to_list(FE.sq(R, a)), LS.sq_l(R, A), LS.pc(R, LS.pc(R, LS.fold(LS.conv(A, A)))), BR.sq_b(R, a), Equal.cong(List<&2, Nat>, List<&2, Nat>, z => LS.pc(R, LS.pc(R, LS.fold(z))), LS.sqp(A), LS.conv(A, A), SQ.sqp_conv(one, h1, A, ha)))
+  Equal.trans(List<&2, Nat>, FE.to_list(FE.sq(R, a)), LS.sq_l(R, A), LS.pass(R, LS.fold(LS.conv(A, A))), BR.sq_b(R, a), Equal.cong(List<&2, Nat>, List<&2, Nat>, z => LS.pass(R, LS.fold(z)), LS.sqp(A), LS.conv(A, A), SQ.sqp_conv(one, h1, A, ha)))
 
 def sq_c(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +a: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}) -> G.ceq(pp, FV.value(FE.sq(R, a)), Nat.mul(FV.value(a), FV.value(a))):
   +A = FE.to_list(a)
   +Z = LS.fold(LS.conv(A, A))
-  +e0 = lv_eq(FE.to_list(FE.sq(R, a)), LS.pc(R, LS.pc(R, Z)), sq_list(one, h1, R, a, ha))
-  G.c_trans(pp, FV.value(FE.sq(R, a)), FV.lv(LS.pc(R, LS.pc(R, Z))), Nat.mul(FV.lv(A), FV.lv(A)), G.c_eq(pp, FV.value(FE.sq(R, a)), FV.lv(LS.pc(R, LS.pc(R, Z))), e0),
-    G.c_trans(pp, FV.lv(LS.pc(R, LS.pc(R, Z))), FV.lv(Z), Nat.mul(FV.lv(A), FV.lv(A)), PC.pc2_c(one, h1, pp, hP, R, hR, Z, fold_len(a, a)),
+  +e0 = lv_eq(FE.to_list(FE.sq(R, a)), LS.pass(R, Z), sq_list(one, h1, R, a, ha))
+  G.c_trans(pp, FV.value(FE.sq(R, a)), FV.lv(LS.pass(R, Z)), Nat.mul(FV.lv(A), FV.lv(A)), G.c_eq(pp, FV.value(FE.sq(R, a)), FV.lv(LS.pass(R, Z)), e0),
+    G.c_trans(pp, FV.lv(LS.pass(R, Z)), FV.lv(Z), Nat.mul(FV.lv(A), FV.lv(A)), PS.pass_c(one, h1, pp, hP, R, hR, Z, fold_len(a, a)),
       G.c_trans(pp, FV.lv(Z), FV.lv(LS.conv(A, A)), Nat.mul(FV.lv(A), FV.lv(A)), fold_c(one, h1, pp, hP, LS.conv(A, A)), G.c_eq(pp, FV.lv(LS.conv(A, A)), Nat.mul(FV.lv(A), FV.lv(A)), NL.lv_conv(A, A)))))
 
 def cb15(+a: FE.Fe, +P: Nat) -> {NL.cb(FE.to_list(a), P) == Nat.mul(15n, P) : Nat}:
@@ -159,7 +159,7 @@ def cols_below(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {FV
 
 def mul_ok(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}, +hb: {FV.ok(one, b) == True{} : Bool}) -> {FV.ok(one, FE.mul(R, a, b)) == True{} : Bool}:
   +Z = LS.fold(LS.conv(FE.to_list(a), FE.to_list(b)))
-  below_eq(FE.to_list(FE.mul(R, a, b)), LS.pc(R, LS.pc(R, Z)), WD.sc(19n, one), mul_list(one, h1, R, a, b, ha, hb), PC.pc2_ok47(one, h1, R, hR, Z, fold_len(a, b), cols_below(one, h1, a, b, ha, hb)))
+  below_eq(FE.to_list(FE.mul(R, a, b)), LS.pass(R, Z), WD.sc(19n, one), mul_list(one, h1, R, a, b, ha, hb), PS.pass_ok(one, h1, R, hR, Z, fold_len(a, b), cols_below(one, h1, a, b, ha, hb)))
 
 # ---- select ----
 
@@ -212,4 +212,4 @@ def select1(+a: FE.Fe, +b: FE.Fe) -> {FE.select(1, a, b) == b : FE.Fe}:
 
 def sq_ok(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +a: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}) -> {FV.ok(one, FE.sq(R, a)) == True{} : Bool}:
   +Z = LS.fold(LS.conv(FE.to_list(a), FE.to_list(a)))
-  below_eq(FE.to_list(FE.sq(R, a)), LS.pc(R, LS.pc(R, Z)), WD.sc(19n, one), sq_list(one, h1, R, a, ha), PC.pc2_ok47(one, h1, R, hR, Z, fold_len(a, a), cols_below(one, h1, a, a, ha, ha)))
+  below_eq(FE.to_list(FE.sq(R, a)), LS.pass(R, Z), WD.sc(19n, one), sq_list(one, h1, R, a, ha), PS.pass_ok(one, h1, R, hR, Z, fold_len(a, a), cols_below(one, h1, a, a, ha, ha)))

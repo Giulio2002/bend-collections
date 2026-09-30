@@ -255,14 +255,14 @@ def add_l(+R: Nat, xs: List<&2, Nat>, ys: List<&2, Nat>) -> List<&2, Nat>:
 def sub_l(+R: Nat, xs: List<&2, Nat>, ys: List<&2, Nat>) -> List<&2, Nat>:
   pc(R, subl(xs, ys, kp8(R)))
 
-# products: two rounds of pc (columns below 2^47: the first round leaves
-# limbs below 2^31, limb 0 below 2^35; the second, below 2^19)
 def mul_l(+R: Nat, xs: List<&2, Nat>, ys: List<&2, Nat>) -> List<&2, Nat>:
-  pc(R, pc(R, fold(convp(xs, ys))))
+  pass(R, fold(convp(xs, ys)))
 
 def sq_l(+R: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
-  pc(R, pc(R, fold(sqp(xs))))
+  pass(R, fold(sqp(xs)))
 
+# two rounds of pc (limbs below 2^36: the first round leaves limbs below
+# 2^20, the second below 2^19)
 def mul_small_l(+R: Nat, xs: List<&2, Nat>, +k: Nat) -> List<&2, Nat>:
   pc(R, pc(R, scal_r(xs, k)))
 
