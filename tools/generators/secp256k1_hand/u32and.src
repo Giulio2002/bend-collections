@@ -1,0 +1,44 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../lib/logic.bend as L
+import ../../lib/lemmas/spec/numeric.bend as S
+import ../../lib/u32.bend as U
+import ../../lib/word.bend as WD
+import ../../math/typed/width.bend as WW
+
+# The low k bits of a U32 word by a mask: the lemma andm of
+# proofs/math/typed/f64bits.bend, without the rest of that file (whose
+# imports are not needed here).
+
+def v(+x: U32) -> Nat:
+  U32.to_nat(x)
+
+# ---- generic: words, masks and the top bit ----
+
+def sb(+k: Nat, +x: Nat) -> {S.scale_binary(k, x) == C.shift(k, x) : Nat}:
+  match k:
+    case 0n:
+      {==}
+    case 1n+ +p:
+      Equal.cong(Nat, Nat, t => Nat.double(t), S.scale_binary(p, x), C.shift(p, x), sb(p, x))
+
+# the low k bits of a word
+def andw(+n: Nat, +k: Nat, +w: Word(n)) -> {S.unsigned(n, Word.and(n, w, WD.mask(n, k))) == C.low(k, S.unsigned(n, w)) : Nat}:
+  +a = S.unsigned(n, Word.and(n, w, WD.mask(n, k)))
+  +hp = WD.hi_part(n, k, w)
+  +e1 = WD.mask_split(n, k, w)
+  +e2 = Equal.trans(Nat, S.unsigned(n, w), Nat.add(a, S.scale_binary(k, hp)), Nat.add(a, C.shift(k, hp)), e1, Equal.cong(Nat, Nat, z => Nat.add(a, z), S.scale_binary(k, hp), C.shift(k, hp), sb(k, hp)))
+  +hl = WD.mask_lt(n, k, 1n, {==}, w)
+  +hl2 = L.subst(Nat, z => {Nat.is_lt(a, z) == True{} : Bool}, S.scale_binary(k, 1n), C.pow2(k), Equal.sym(Nat, C.pow2(k), S.scale_binary(k, 1n), U.pow2_scale(k)), hl)
+  Equal.sym(Nat, C.low(k, S.unsigned(n, w)), a, Equal.trans(Nat, C.low(k, S.unsigned(n, w)), C.low(k, Nat.add(a, C.shift(k, hp))), a, Equal.cong(Nat, Nat, z => C.low(k, z), S.unsigned(n, w), Nat.add(a, C.shift(k, hp)), e2), WW.low_uniq(k, a, hp, hl2)))
+
+def andm0(+x: U32, +k: Nat) -> {v(U32.and(x, U32{WD.mask(32n, k)})) == C.low(k, v(x)) : Nat}:
+  match x:
+    case U32{+w}:
+      +m = Word.and(32n, w, WD.mask(32n, k))
+      Equal.trans(Nat, U32.to_nat(U32{m}), S.unsigned(32n, m), C.low(k, v(U32{w})), U.to_nat_word(m), Equal.trans(Nat, S.unsigned(32n, m), C.low(k, S.unsigned(32n, w)), C.low(k, v(U32{w})), andw(32n, k, w), Equal.cong(Nat, Nat, z => C.low(k, z), S.unsigned(32n, w), v(U32{w}), Equal.sym(Nat, v(U32{w}), S.unsigned(32n, w), U.to_nat_word(w)))))
+
+# x and c for a mask constant c = 2^k - 1
+def andm(+x: U32, +k: Nat, +c: U32, +hc: {c == U32{WD.mask(32n, k)} : U32}) -> {v(U32.and(x, c)) == C.low(k, v(x)) : Nat}:
+  L.subst(U32, z => {v(U32.and(x, z)) == C.low(k, v(x)) : Nat}, U32{WD.mask(32n, k)}, c, Equal.sym(U32, c, U32{WD.mask(32n, k)}, hc), andm0(x, k))
+

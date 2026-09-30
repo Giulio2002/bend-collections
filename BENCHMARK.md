@@ -121,7 +121,11 @@ U32 words) and F32, and the software binary64 of `src/math/f64.bend`, against
 C with `uint32_t`, `uint64_t` (a 128-bit product for `mod m`), `float` and
 `double` (`benchmarks/native/typed.c`), with the same checked semantics (a
 result that does not fit counts as 0) and the same square-and-multiply order
-for powers. The F64 rows compare software arithmetic with the hardware FPU.
+for powers. The F64 rows compare software arithmetic with the hardware FPU;
+the rounding, conversion, exponent, neighbour and remainder rows (`f64_floor`
+to `f64_nextafter`) compare with libm's `floor`, `nearbyint`, `fmod`,
+`remainder`, `frexp`, `ldexp` and `nextafter` and a `(uint64_t)` cast, and were
+measured in a separate run (its `loop` row: 10.5 ns Bend, 10.6 ns C).
 Same method as above; nanoseconds per call.
 
 | Operation | Bend (ns) | C (ns) | Ratio |
@@ -144,6 +148,14 @@ Same method as above; nanoseconds per call.
 | f64_div | 39.3 | 5.94 | 6.63 |
 | f64_sqrt | 44.0 | 6.05 | 7.33 |
 | f64_pow | 56.0 | 8.61 | 6.52 |
+| f64_floor | 23.1 | 10.4 | 2.22 |
+| f64_round | 22.1 | 10.3 | 2.15 |
+| f64_to_u64 | 10.3 | 10.2 | 1.02 |
+| f64_fmod | 297 | 105 | 2.81 |
+| f64_remainder | 320 | 353 | 0.91 |
+| f64_frexp | 12.2 | 10.5 | 1.17 |
+| f64_ldexp | 17.9 | 10.3 | 1.73 |
+| f64_nextafter | 9.42 | 10.3 | 0.92 |
 | u32_checked_mul | 13.5 | 12.9 | 1.05 |
 | u64_checked_mul | 19 | 12.6 | 1.50 |
 | u32_bit_count | 39.8 | 13.2 | 3.02 |

@@ -40,6 +40,7 @@ benchmarked against optimized C implementations of the same algorithms.
 | AEAD | `src/crypto/aead.bend` | `encrypt(alg, key, nonce, aad, pt)`, `decrypt(alg, key, nonce, aad, ct)` for `CHACHA20_POLY1305` (RFC 8439), `XCHACHA20_POLY1305`, `AES_128_GCM` and `AES_256_GCM` (SP 800-38D); proved: each algorithm equals its spec, `decrypt(encrypt(x)) == Some(x)`, every tag other than the expected one is rejected; RFC 8439 / XChaCha / GCM vectors, Wycheproof, differential test against `cryptography` |
 | X25519 key exchange | `src/crypto/kex.bend` | RFC 7748: `generate_keypair(seed)`, `generate_keypair_os()`, `shared_secret(sk, pk)` (all-zero result rejected); field arithmetic mod 2^255 - 19 in `src/crypto/curve25519/`; proved equal to `spec/crypto/curve25519/x25519.bend` |
 | Ed25519 signatures | `src/crypto/sign.bend` | RFC 8032 section 5.1: `generate_keypair`, `sign`, `verify` (cofactorless, S < L enforced); proved equal to `spec/crypto/ed25519.bend` |
+| secp256k1 | `src/crypto/secp256k1.bend` | SEC 1/SEC 2 ECDSA with RFC 6979 deterministic nonces and low-S output (`sign`, `sign_compact`, `verify`, `verify_strict`), public key recovery (`recover`), Ethereum `eth_address` and the ECRECOVER precompile (`ecrecover`), BIP-340 Schnorr (`schnorr_pubkey`, `schnorr_sign`, `schnorr_verify`), SEC 1 key encodings, `generate_keypair(seed)` / `generate_keypair_os()`; complete (Renes-Costello-Batina) point formulas and masked double-and-add; every function proved equal to its specification `spec/crypto/secp256k1/` (over the natural numbers) for every input; RFC 6979, BIP-340 (19), Wycheproof and ecrecover vectors plus a differential test against `cryptography` and the BIP-340 reference code; [contracts](docs/CRYPTO_CONTRACTS.md) |
 | Integer math | `src/math/natural.bend` | Python-style `math` integer functions, see below |
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 | Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |
@@ -140,7 +141,14 @@ and a 128-bit product for `mulmod`.
 significands, exact long division by 32-bit quotient digits and an integer
 square root with one Newton step, each rounded once to nearest-even, with
 subnormals, signed zeros, infinities and NaN as IEEE 754; `lt le eq`,
-`neg abs copysign`, the classification predicates and `of_nat`.
+`neg abs copysign`, the classification predicates and `of_nat`; and the
+rest of the design reference's float foundation, each result an exact
+integer at a scale rounded once: `trunc floor ceil round` (ties to even),
+`to_u64 to_u32 floor_u64 ceil_u64 round_u64 of_u64 of_u32` (errors as
+values), `frexp ldexp ulp`, `nextafter fmin fmax`, `is_normal is_subnormal
+is_integer to_bits of_bits64`, `modf`, exact `fmod` and IEEE `remainder`,
+`isclose` and `as_integer_ratio`. Every clause of `spec/math/f64.bend` is
+proved (`proofs/math/typed/f64*.bend`).
 
 These instances are stated and tested, and mostly not proved (the Nat
 functions above are the proved reference; at U32, `abs`, `min`, `max`,
@@ -157,7 +165,10 @@ result of each operation, rounded once to nearest-even). The evidence:
 Python floats), naming the clause of each case; `tools/check_f64.py`
 compares the software binary64 with the machine's doubles on random bit
 patterns of every class (zeros, subnormals, normals, infinities, NaN,
-cancellations, ties); `tools/check_f64_spec.py` tests `spec/math/f64.bend`
+cancellations, ties), and `tools/check_f64x.py` the rounding, conversion,
+exponent, neighbour, remainder and ratio functions with CPython's `math`
+(the design reference's appendix A special cases included);
+`tools/check_f64_spec.py` tests `spec/math/f64.bend`
 itself against the machine's doubles through a line-by-line mirror; and
 `proofs/math/typed/examples.bend` has the proof checker evaluate the integer
 clauses and instance laws at concrete U32 inputs. All run in

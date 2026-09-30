@@ -403,7 +403,9 @@ def main():
     # binary64 specification itself against them (tools/check_f64_spec.py),
     # the fixed-width U32/U64 families, bit counts, primality and bytes
     # against Python integers with Rust's semantics (tools/check_fixed.py),
-    # the typed clauses' checker-evaluated examples and the math specs.
+    # the software binary64's rounding / conversion / remainder functions
+    # against CPython (tools/check_f64x.py), the typed clauses'
+    # checker-evaluated examples and the math specs.
     math_row = None
     if not args.only or args.only == 'math':
         (ROOT / 'build/math').mkdir(parents=True, exist_ok=True)
@@ -418,6 +420,8 @@ def main():
                        ([BEND, 'tests/math/fixed.bend', '-o', 'build/math/fixed'], 1800),
                        ([sys.executable, 'tools/check_fixed.py', '2026'], 1800),
                        ([sys.executable, 'tools/check_fixed.py', '7'], 1800),
+                       ([BEND, 'tests/math/f64x.bend', '-o', 'build/math/f64x'], 1800),
+                       ([sys.executable, 'tools/check_f64x.py'], 1800),
                        ([BEND, 'proofs/math/proof.bend'], 3600),
                        ([BEND, 'proofs/math/typed/examples.bend'], 1800)] + \
                       [([BEND, str(f.relative_to(ROOT))], 1800) for f in sorted((ROOT / 'spec/math').glob('*.bend'))]
@@ -595,6 +599,30 @@ def main():
         (LOGDIR / 'random.log').write_text('\n'.join(x['output'] for x in checks))
         print('%-22s differential=%s proof=%s' % ('random', random_row['differential'], random_row['proof']), flush=True)
 
+    # src/crypto/secp256k1.bend (ECDSA with RFC 6979, recovery, Ethereum
+    # addresses and ECRECOVER, BIP-340 Schnorr): the RFC 6979, BIP-340,
+    # Wycheproof and ecrecover vectors and the differential test against
+    # `cryptography` and the BIP-340 reference code (tools/check_secp256k1.py),
+    # and the five proof roots of proofs/crypto/secp256k1 (laws*.bend).
+    secp_row = None
+    if not args.only or args.only == 'secp256k1':
+        checks = []
+        secp_checks = [([sys.executable, 'tools/check_secp256k1.py'], 7200)] + \
+            [([BEND, 'proofs/crypto/secp256k1/%s.bend' % root], 3600)
+             for root in ('proof', 'proof_sign', 'proof_verify', 'proof_recover', 'proof_schnorr')]
+        for command, limit in secp_checks:
+            result = run(command, timeout=limit)
+            passed = result.returncode == 0 and (command[0] != BEND or proved(result.stdout))
+            checks.append({'command': command, 'passed': passed, 'output': result.stdout + result.stderr})
+            if not passed:
+                fail('secp256k1', 'secp256k1 check failed: ' + repr(command))
+        good = all(x['passed'] for x in checks)
+        secp_row = {'id': 'secp256k1', 'implementation': 'src/crypto/secp256k1.bend, src/crypto/secp256k1/',
+                    'differential': 'passed' if checks[0]['passed'] else 'failed',
+                    'proof': 'passed' if good else 'failed', 'checks': checks}
+        (LOGDIR / 'secp256k1.log').write_text('\n'.join(x['output'] for x in checks))
+        print('%-22s differential=%s proof=%s' % ('secp256k1', secp_row['differential'], secp_row['proof']), flush=True)
+
     lru_log = []
     lru_ok, lru_detail = check_lru(lru_log)
     (LOGDIR / 'lru.log').write_text('\n'.join(lru_log))
@@ -613,6 +641,7 @@ def main():
         'math': math_row,
         'crypto': crypto_row,
         'mac': mac_row,
+        'secp256k1': secp_row,
         'chacha': chacha_row,
         'aes': aes_row,
         'random': random_row,

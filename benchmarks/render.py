@@ -283,7 +283,10 @@ def main():
             'C with `uint32_t`, `uint64_t` (a 128-bit product for `mod m`), `float` and',
             '`double` (`benchmarks/native/typed.c`), with the same checked semantics (a',
             'result that does not fit counts as 0) and the same square-and-multiply order',
-            'for powers. The F64 rows compare software arithmetic with the hardware FPU.',
+            'for powers. The F64 rows compare software arithmetic with the hardware FPU;',
+            'the rounding, conversion, exponent, neighbour and remainder rows (`f64_floor`',
+            'to `f64_nextafter`) compare with libm\'s `floor`, `nearbyint`, `fmod`,',
+            '`remainder`, `frexp`, `ldexp` and `nextafter` and a `(uint64_t)` cast.',
             'Same method as above; nanoseconds per call.', '']
     if typed:
         worst['Math per type'] = max(r['ratio'] for r in typed['rows'])

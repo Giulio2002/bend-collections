@@ -1,0 +1,153 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../src/crypto/secp256k1/limbs.bend as L
+import ../../lib/nat.bend as N
+import ../../lib/logic.bend as Lg
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../math/natural/arith.bend as NR
+import ../../math/typed/width.bend as WW
+import ./semiring.bend as SR
+import ./limbs.bend as LV
+import ./ineq.bend as I
+import ./bounds.bend as B
+import ./reduce.bend as R
+
+# Complements and the borrow-free negation of src/crypto/secp256k1/limbs.bend:
+# comp(x) + x + 1 = 2^(16 n) for n limbs below 2^16, and
+# negraw(c, b) + b = 2 m for m = 2^256 - c (so a + negraw(c, b) is congruent
+# to a - b), with 256 written as the symbolic 2^8 = C.shift(8n, one).
+
+def e255(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.sub(C.shift(8n, one), 1n) == 255n : Nat}:
+  %rwh h1 : {one == 1n : Nat}
+  %close
+
+def bb_sq(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.mul(C.shift(8n, one), C.shift(8n, one)) == C.shift(16n, one) : Nat}:
+  %rw WW.shift_mul_l(8n, one, C.shift(8n, one))
+  %rw LV.mul_one_l(one, h1, C.shift(8n, one))
+  %rw SR.shift_shift(8n, 8n, one)
+  %close
+
+def bb_pos(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_le(1n, C.shift(8n, one)) == True{} : Bool}:
+  %rwh h1 : {one == 1n : Nat}
+  %close
+
+# (B - 1) + 1 = B
+def pred_succ(+b: Nat, +h: {Nat.is_le(1n, b) == True{} : Bool}) -> {Nat.add(Nat.sub(b, 1n), 1n) == b : Nat}:
+  %rw NA.add_comm(Nat.sub(b, 1n), 1n)
+  N.sub_add(b, 1n, h)
+
+# (B - 1) + (B - 1) B + 1 = B B
+def digit_max(+b: Nat, +h: {Nat.is_le(1n, b) == True{} : Bool}) -> {Nat.add(Nat.add(Nat.sub(b, 1n), Nat.mul(Nat.sub(b, 1n), b)), 1n) == Nat.mul(b, b) : Nat}:
+  %rw NA.add_assoc(Nat.sub(b, 1n), Nat.mul(Nat.sub(b, 1n), b), 1n)
+  %rw NA.add_comm(Nat.mul(Nat.sub(b, 1n), b), 1n)
+  %rw <- NA.add_assoc(Nat.sub(b, 1n), 1n, Nat.mul(Nat.sub(b, 1n), b))
+  %rw pred_succ(b, h)
+  %rw@l <- NA.mul_one(b)
+  %rw NA.mul_comm(b, 1n)
+  %rw <- NA.mul_add_right(1n, Nat.sub(b, 1n), b)
+  %rw NA.add_comm(1n, Nat.sub(b, 1n))
+  %rw pred_succ(b, h)
+  %close
+
+# x < 2^16: x div 256 < 256
+def hi_byte_lt(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +hx: {Nat.is_lt(x, C.shift(16n, one)) == True{} : Bool}) -> {Nat.is_lt(Nat.div(x, 256n), 256n) == True{} : Bool}:
+  +bq = C.shift(8n, one)
+  +hi = Nat.div(x, 256n)
+  +le = I.le_subst_r(Nat.mul(hi, 256n), Nat.add(Nat.mul(hi, 256n), Nat.mod(x, 256n)), x, Equal.sym(Nat, x, Nat.add(Nat.mul(hi, 256n), Nat.mod(x, 256n)), NR.dm_eq(255n, x)), N.le_add_right(Nat.mul(hi, 256n), Nat.mod(x, 256n)))
+  +le2 = I.le_subst_l(Nat.mul(hi, 256n), Nat.mul(hi, bq), x, Equal.cong(Nat, Nat, z => Nat.mul(hi, z), 256n, bq, Equal.sym(Nat, bq, 256n, LV.b8(one, h1))), le)
+  +s1 = N.le_lt_trans(Nat.mul(hi, bq), x, C.shift(16n, one), le2, hx)
+  +s2 = I.lt_subst_r(Nat.mul(hi, bq), C.shift(16n, one), Nat.mul(bq, bq), Equal.sym(Nat, Nat.mul(bq, bq), C.shift(16n, one), bb_sq(one, h1)), s1)
+  +s3 = R.mul_lt_cancel(bq, hi, bq, s2, Nat.is_lt(hi, bq), {==})
+  I.lt_subst_r(hi, bq, 256n, LV.b8(one, h1), s3)
+
+# (l + h B) + (h' B + l') = (l' + l) + (h' + h) B
+def combine(+l: Nat, +h: Nat, +h2: Nat, +l2: Nat, +b: Nat) -> {Nat.add(Nat.add(l, Nat.mul(h, b)), Nat.add(Nat.mul(h2, b), l2)) == Nat.add(Nat.add(l2, l), Nat.mul(Nat.add(h2, h), b)) : Nat}:
+  %norm
+
+# comp1(x) + x + 1 = 2^16 for x < 2^16
+def comp1_v(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +hx: {Nat.is_lt(x, C.shift(16n, one)) == True{} : Bool}) -> {Nat.add(Nat.add(L.comp1(x), x), 1n) == C.shift(16n, one) : Nat}:
+  +lo = Nat.mod(x, 256n)
+  +hi = Nat.div(x, 256n)
+  +hl = N.lt_succ_le(lo, 255n, NR.dm_lt(255n, x))
+  +hh = N.lt_succ_le(hi, 255n, hi_byte_lt(one, h1, x, hx))
+  %goal {Nat.add(Nat.add(Nat.add(Nat.sub(255n, Nat.mod(x, 256n)), Nat.mul(Nat.sub(255n, Nat.div(x, 256n)), 256n)), x), 1n) == C.shift(16n, one) : Nat}
+  %rw@3@l NR.dm_eq(255n, x)
+  %goal {Nat.add(Nat.add(Nat.add(Nat.sub(255n, Nat.mod(x, 256n)), Nat.mul(Nat.sub(255n, Nat.div(x, 256n)), 256n)), Nat.add(Nat.mul(Nat.div(x, 256n), 256n), Nat.mod(x, 256n))), 1n) == C.shift(16n, one) : Nat}
+  %rw combine(Nat.sub(255n, Nat.mod(x, 256n)), Nat.sub(255n, Nat.div(x, 256n)), Nat.div(x, 256n), Nat.mod(x, 256n), 256n)
+  %rw@5 <- LV.b8(one, h1)
+  %rw N.sub_add(255n, Nat.mod(x, 256n), hl)
+  %rw N.sub_add(255n, Nat.div(x, 256n), hh)
+  %rw <- e255(one, h1)
+  %rw <- e255(one, h1)
+  %rw digit_max(C.shift(8n, one), bb_pos(one, h1))
+  bb_sq(one, h1)
+
+def comp1_o(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +hx: {Nat.is_lt(x, C.shift(16n, one)) == True{} : Bool}) -> {Nat.add(Nat.add(L.comp1(x), x), one) == C.shift(16n, one) : Nat}:
+  %rwh@l h1 : {one == 1n : Nat}
+  comp1_v(one, h1, x, hx)
+
+# comp(x) + x + 1 = 2^(16 n) for n limbs below 2^16
+def comp_v(+one: Nat, +h1: {one == 1n : Nat}, n: Nat, xs: List<&2, Nat>, +h: {FS.limbs16(one, n, xs) == True{} : Bool}) -> {Nat.add(Nat.add(LV.ev(L.comp(xs)), LV.ev(xs)), one) == LV.pos(n, one) : Nat}:
+  match n xs:
+    case 0n Nil{}:
+      {==}
+    case 0n x <> t:
+      Empty.absurd({Nat.add(Nat.add(LV.ev(L.comp(x <> t)), LV.ev(x <> t)), one) == LV.pos(0n, one) : Nat}, Lg.false_true(h))
+    case 1n+k Nil{}:
+      Empty.absurd({Nat.add(Nat.add(LV.ev(L.comp([])), LV.ev([])), one) == LV.pos(1n+k, one) : Nat}, Lg.false_true(h))
+    case 1n+ +k +x <> +t:
+      +hx = Lg.and_left(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, k, t), h)
+      +ht = Lg.and_right(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, k, t), h)
+      %goal {Nat.add(Nat.add(Nat.add(L.comp1(x), C.shift(16n, LV.ev(L.comp(t)))), Nat.add(x, C.shift(16n, LV.ev(t)))), one) == C.shift(16n, LV.pos(k, one)) : Nat}
+      %rw <- comp_v(one, h1, k, t, ht)
+      %nf
+      %rw <- comp1_o(one, h1, x, hx)
+      %norm
+
+# ---- neg_raw(c, b) + b = m ----
+
+# b + c as 16 limbs, when b + c < 2^256
+def bc_limbs(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +b: List<&2, Nat>) -> {FS.limbs16(one, 16n, L.norm16(L.add(b, c))) == True{} : Bool}:
+  B.carry_limbs(one, h1, 32n, 16n, L.add(b, c), 0n, {==})
+
+def bc_v(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +b: List<&2, Nat>, +hbc: {Nat.is_lt(Nat.add(LV.ev(b), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}) -> {LV.ev(L.norm16(L.add(b, c))) == Nat.add(LV.ev(b), LV.ev(c)) : Nat}:
+  +x = L.carry(32n, L.add(b, c), 0n)
+  +ex = Equal.trans(Nat, LV.ev(x), LV.ev(L.add(b, c)), Nat.add(LV.ev(b), LV.ev(c)), LV.carry_v(32n, L.add(b, c), 0n), LV.add_v(b, c))
+  +hx = I.lt_subst_l(Nat.add(LV.ev(b), LV.ev(c)), LV.ev(x), C.shift(256n, one), Equal.sym(Nat, LV.ev(x), Nat.add(LV.ev(b), LV.ev(c)), ex), hbc)
+  %goal {LV.ev(L.take(16n, L.carry(32n, L.add(b, c), 0n))) == Nat.add(LV.ev(b), LV.ev(c)) : Nat}
+  %rw R.take_small(one, h1, L.carry(32n, L.add(b, c), 0n), hx)
+  %rwh ex : {LV.ev(L.carry(32n, L.add(b, c), 0n)) == Nat.add(LV.ev(b), LV.ev(c)) : Nat}
+  %close
+
+# neg_raw(c, b) + b + c = 2^256
+def neg_t(+one: Nat, +h1: {one == 1n : Nat}, +c: List<&2, Nat>, +b: List<&2, Nat>, +hbc: {Nat.is_lt(Nat.add(LV.ev(b), LV.ev(c)), C.shift(256n, one)) == True{} : Bool}) -> {Nat.add(LV.ev(L.neg_raw(c, b)), Nat.add(LV.ev(b), LV.ev(c))) == C.shift(256n, one) : Nat}:
+  %goal {Nat.add(LV.ev(L.add(L.comp(L.norm16(L.add(b, c))), [1n])), Nat.add(LV.ev(b), LV.ev(c))) == C.shift(256n, one) : Nat}
+  %rw LV.add_v(L.comp(L.norm16(L.add(b, c))), [1n])
+  %rw <- bc_v(one, h1, c, b, hbc)
+  %rw <- B.pos16(one)
+  %rw <- comp_v(one, h1, 16n, L.norm16(L.add(b, c)), bc_limbs(one, h1, c, b))
+  %rwh h1 : {one == 1n : Nat}
+  %goal {Nat.add(Nat.add(LV.ev(L.comp(L.norm16(L.add(b, c)))), Nat.add(1n, C.shift(16n, 0n))), LV.ev(L.norm16(L.add(b, c)))) == Nat.add(Nat.add(LV.ev(L.comp(L.norm16(L.add(b, c)))), LV.ev(L.norm16(L.add(b, c)))), 1n) : Nat}
+  %norm
+
+# neg_raw(c, b) + b = m, for b < m = 2^256 - c
+def neg_v(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +c: List<&2, Nat>, +hm: {Nat.add(1n+mp, LV.ev(c)) == C.shift(256n, one) : Nat}, +b: List<&2, Nat>, +hb: {Nat.is_lt(LV.ev(b), 1n+mp) == True{} : Bool}) -> {Nat.add(LV.ev(L.neg_raw(c, b)), LV.ev(b)) == 1n+mp : Nat}:
+  +nb = LV.ev(L.neg_raw(c, b))
+  +bv = LV.ev(b)
+  +cv = LV.ev(c)
+  +hbc = I.lt_subst_r(Nat.add(bv, cv), Nat.add(1n+mp, cv), C.shift(256n, one), hm, N.lt_add_r2(bv, 1n+mp, cv, hb))
+  +e1 = Equal.trans(Nat, Nat.add(Nat.add(nb, bv), cv), Nat.add(nb, Nat.add(bv, cv)), Nat.add(1n+mp, cv), NA.add_assoc(nb, bv, cv), Equal.trans(Nat, Nat.add(nb, Nat.add(bv, cv)), C.shift(256n, one), Nat.add(1n+mp, cv), neg_t(one, h1, c, b, hbc), Equal.sym(Nat, Nat.add(1n+mp, cv), C.shift(256n, one), hm)))
+  NR.add_cancel(cv, Nat.add(nb, bv), 1n+mp, Equal.trans(Nat, Nat.add(cv, Nat.add(nb, bv)), Nat.add(Nat.add(nb, bv), cv), Nat.add(cv, 1n+mp), NA.add_comm(cv, Nat.add(nb, bv)), Equal.trans(Nat, Nat.add(Nat.add(nb, bv), cv), Nat.add(1n+mp, cv), Nat.add(cv, 1n+mp), e1, NA.add_comm(1n+mp, cv))))
+
+def neg_vv(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +c: List<&2, Nat>, +hm: {Nat.add(1n+mp, FS.value(one, c)) == C.shift(256n, one) : Nat}, +b: List<&2, Nat>, +hb: {Nat.is_lt(LV.ev(b), 1n+mp) == True{} : Bool}) -> {Nat.add(LV.ev(L.neg_raw(c, b)), LV.ev(b)) == 1n+mp : Nat}:
+  neg_v(one, h1, mp, c, Lg.subst(Nat, z => {Nat.add(1n+mp, z) == C.shift(256n, one) : Nat}, FS.value(one, c), LV.ev(c), LV.ev_value(one, h1, c), hm), b, hb)
+
+# a + (m - b) = (a + m) - b, for b < m
+def sub_mod(+mp: Nat, +a: Nat, +b: Nat, +nb: Nat, +hlt: {Nat.is_lt(b, 1n+mp) == True{} : Bool}, +hn: {Nat.add(nb, b) == 1n+mp : Nat}) -> {Nat.mod(Nat.add(a, nb), 1n+mp) == Nat.mod(Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), 1n+mp) : Nat}:
+  %rwh NR.mod_of(0n, mp, b, hlt) : {Nat.mod(b, 1n+mp) == b : Nat}
+  %rwh@2 <- hn : {Nat.add(nb, b) == 1n+mp : Nat}
+  %rw <- NA.add_assoc(a, nb, b)
+  %rw NA.add_comm(Nat.add(a, nb), b)
+  %rw N.add_sub_cancel(b, Nat.add(a, nb))
+  %close

@@ -1,0 +1,94 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../../spec/crypto/secp256k1/curve.bend as CV
+import ../../../src/crypto/secp256k1/bytes.bend as B
+import ../../lib/logic.bend as Lg
+import ../../math/typed/width.bend as WW
+import ./u32and.bend as FB
+import ./bytes.bend as BY
+
+# Byte lists: src/crypto/secp256k1/bytes.bend's head, tail, prefix, suffix
+# and has_len are spec/crypto/secp256k1/curve.bend's head, after, first and
+# length_is.
+
+def head_eq(bs: List<&2, U32>) -> {B.head(bs) == CV.head(bs) : U32}:
+  match bs:
+    case Nil{}:
+      {==}
+    case b <> t:
+      {==}
+
+def tail_after(bs: List<&2, U32>) -> {B.tail(bs) == CV.after(1n, bs) : List<&2, U32>}:
+  match bs:
+    case Nil{}:
+      {==}
+    case b <> t:
+      {==}
+
+def suffix_after(n: Nat, bs: List<&2, U32>) -> {B.suffix(n, bs) == CV.after(n, bs) : List<&2, U32>}:
+  match n bs:
+    case 0n _:
+      {==}
+    case 1n+k Nil{}:
+      {==}
+    case 1n+k b <> t:
+      suffix_after(k, t)
+
+def prefix_first(n: Nat, bs: List<&2, U32>) -> {B.prefix(n, bs) == CV.first(n, bs) : List<&2, U32>}:
+  match n bs:
+    case 0n _:
+      {==}
+    case 1n+k Nil{}:
+      {==}
+    case 1n+ +k +b <> t:
+      Equal.cong(List<&2, U32>, List<&2, U32>, l => b <> l, B.prefix(k, t), CV.first(k, t), prefix_first(k, t))
+
+def after33(bs: List<&2, U32>) -> {CV.after(33n, bs) == CV.after(32n, CV.after(1n, bs)) : List<&2, U32>}:
+  match bs:
+    case Nil{}:
+      {==}
+    case b <> t:
+      {==}
+
+def len_tail(+n: Nat, bs: List<&2, U32>, +h: {B.has_len(1n+n, bs) == True{} : Bool}) -> {B.has_len(n, CV.after(1n, bs)) == True{} : Bool}:
+  match bs:
+    case Nil{}:
+      Empty.absurd({B.has_len(n, CV.after(1n, [])) == True{} : Bool}, Lg.false_true(h))
+    case b <> t:
+      h
+
+def pre_len(a: Nat, +b: Nat, xs: List<&2, U32>, +h: {B.has_len(Nat.add(a, b), xs) == True{} : Bool}) -> {B.has_len(a, CV.first(a, xs)) == True{} : Bool}:
+  match a xs:
+    case 0n _:
+      {==}
+    case 1n+k Nil{}:
+      Empty.absurd({B.has_len(1n+k, CV.first(1n+k, [])) == True{} : Bool}, Lg.false_true(h))
+    case 1n+k x <> t:
+      pre_len(k, b, t, h)
+
+def suf_len(a: Nat, +b: Nat, xs: List<&2, U32>, +h: {B.has_len(Nat.add(a, b), xs) == True{} : Bool}) -> {B.has_len(b, CV.after(a, xs)) == True{} : Bool}:
+  match a xs:
+    case 0n _:
+      h
+    case 1n+k Nil{}:
+      Empty.absurd({B.has_len(b, CV.after(1n+k, [])) == True{} : Bool}, Lg.false_true(h))
+    case 1n+k x <> t:
+      suf_len(k, b, t, h)
+
+def hl_is(+n: Nat, +bs: List<&2, U32>) -> {B.has_len(n, bs) == CV.length_is(n, bs) : Bool}:
+  BY.has_len_v(n, bs)
+
+# the parity bit of the prefix byte
+def par01(+pre: U32) -> {Nat.is_lt(U32.to_nat(U32.and(pre, 1)), 2n) == True{} : Bool}:
+  %rwh FB.andm(pre, 1n, 1, {==}) : {U32.to_nat(U32.and(pre, 1)) == C.low(1n, U32.to_nat(pre)) : Nat}
+  WW.low_lt(1n, U32.to_nat(pre))
+
+def pl32(+rest: List<&2, U32>, +hl: {B.has_len(64n, rest) == True{} : Bool}) -> {B.has_len(32n, B.prefix(32n, rest)) == True{} : Bool}:
+  %rw prefix_first(32n, rest)
+  pre_len(32n, 32n, rest, hl)
+
+def sl32(+rest: List<&2, U32>, +hl: {B.has_len(64n, rest) == True{} : Bool}) -> {B.has_len(32n, B.suffix(32n, rest)) == True{} : Bool}:
+  %rw suffix_after(32n, rest)
+  suf_len(32n, 32n, rest, hl)
+
+# ---- compressed ----

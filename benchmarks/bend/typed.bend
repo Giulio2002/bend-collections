@@ -179,10 +179,52 @@ def eg_sum(r: NB.EGcd) -> Nat:
 def egcd(+x: Nat, +y: Nat) -> Nat:
   eg_sum(NB.egcd(x, y))
 
+# rounding and remainders: c in +-[2^15, 2^16) with 37 fraction bits, p its
+# positive half, big in [2^52, 2^53) (fmod/remainder by b in [2, 4) take the
+# ten-bits-a-step loop through 52 bits)
+def dc(+x: Nat, +y: Nat) -> F.F64:
+  F.of_bits(U32.from_nat(Nat.add(Nat.add(1088421888n, Nat.mod(x, 1048576n)), Nat.mul(Nat.mod(y, 2n), 2147483648n))), U32.from_nat(y))
+
+def dp(+x: Nat, +y: Nat) -> F.F64:
+  F.of_bits(U32.from_nat(Nat.add(1088421888n, Nat.mod(x, 1048576n))), U32.from_nat(y))
+
+def dbig(+x: Nat, +y: Nat) -> F.F64:
+  F.of_bits(U32.from_nat(Nat.add(1127219200n, Nat.mod(x, 1048576n))), U32.from_nat(y))
+
+def f64_floor(+x: Nat, +y: Nat) -> Nat:
+  vd(F.floor(dc(x, y)))
+
+def f64_round(+x: Nat, +y: Nat) -> Nat:
+  vd(F.round(dc(x, y)))
+
+def f64_to_u64(+x: Nat, +y: Nat) -> Nat:
+  v64(ok(W.U64, W.U64{0, 0}, F.to_u64(dp(x, y))))
+
+def f64_fmod(+x: Nat, +y: Nat) -> Nat:
+  vd(F.fmod(dbig(x, y), db(x, y)))
+
+def f64_remainder(+x: Nat, +y: Nat) -> Nat:
+  vd(F.remainder(dbig(x, y), db(x, y)))
+
+def fx_sum(p: F.F64 & F.Exp) -> Nat:
+  (m, e) = p
+  match e:
+    case F.Exp{neg, mag}:
+      Nat.add(vd(m), mag)
+
+def f64_frexp(+x: Nat, +y: Nat) -> Nat:
+  fx_sum(F.frexp(dc(x, y)))
+
+def f64_ldexp(+x: Nat, +y: Nat) -> Nat:
+  vd(F.ldexp(da(x, y), F.Exp{Nat.is_eq(Nat.mod(x, 2n), 1n), Nat.mod(y, 64n)}))
+
+def f64_nextafter(+x: Nat, +y: Nat) -> Nat:
+  vd(F.nextafter(da(x, y), db(x, y)))
+
 # ---- dispatch ----
 
 def names() -> List<&2, String>:
-  Con{"u32_gcd", Con{"u32_isqrt", Con{"u32_comb", Con{"u32_factorial", Con{"u32_pow_mod", Con{"u64_gcd", Con{"u64_isqrt", Con{"u64_comb", Con{"u64_factorial", Con{"u64_pow_mod", Con{"f32_pow", Con{"f32_clamp", Con{"f64_add", Con{"f64_mul", Con{"f64_div", Con{"f64_sqrt", Con{"f64_pow", Con{"loop", Con{"u32_checked_mul", Con{"u64_checked_mul", Con{"u32_bit_count", Con{"u64_bit_count", Con{"u32_is_prime", Con{"u32_next_prime", Con{"egcd", Nil{}}}}}}}}}}}}}}}}}}}}}}}}}}
+  Con{"u32_gcd", Con{"u32_isqrt", Con{"u32_comb", Con{"u32_factorial", Con{"u32_pow_mod", Con{"u64_gcd", Con{"u64_isqrt", Con{"u64_comb", Con{"u64_factorial", Con{"u64_pow_mod", Con{"f32_pow", Con{"f32_clamp", Con{"f64_add", Con{"f64_mul", Con{"f64_div", Con{"f64_sqrt", Con{"f64_pow", Con{"loop", Con{"u32_checked_mul", Con{"u64_checked_mul", Con{"u32_bit_count", Con{"u64_bit_count", Con{"u32_is_prime", Con{"u32_next_prime", Con{"egcd", Con{"f64_floor", Con{"f64_round", Con{"f64_to_u64", Con{"f64_fmod", Con{"f64_remainder", Con{"f64_frexp", Con{"f64_ldexp", Con{"f64_nextafter", Nil{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
 
 def pick_i(+hit: Bool, +i: Nat, +acc: Nat) -> Nat:
   match hit:
@@ -250,6 +292,22 @@ def run(code: Nat, +k: Nat) -> Nat:
       loop(~(x => y => u32_next_prime(x, y)), k, 12345n, 0n)
     case 24n:
       loop(~(x => y => egcd(x, y)), k, 12345n, 0n)
+    case 25n:
+      loop(~(x => y => f64_floor(x, y)), k, 12345n, 0n)
+    case 26n:
+      loop(~(x => y => f64_round(x, y)), k, 12345n, 0n)
+    case 27n:
+      loop(~(x => y => f64_to_u64(x, y)), k, 12345n, 0n)
+    case 28n:
+      loop(~(x => y => f64_fmod(x, y)), k, 12345n, 0n)
+    case 29n:
+      loop(~(x => y => f64_remainder(x, y)), k, 12345n, 0n)
+    case 30n:
+      loop(~(x => y => f64_frexp(x, y)), k, 12345n, 0n)
+    case 31n:
+      loop(~(x => y => f64_ldexp(x, y)), k, 12345n, 0n)
+    case 32n:
+      loop(~(x => y => f64_nextafter(x, y)), k, 12345n, 0n)
     case _:
       0n
 
