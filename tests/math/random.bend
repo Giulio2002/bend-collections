@@ -187,12 +187,13 @@ def words_out(+j: Nat, +w: Nat, r: Array<U32> & CR.Gen) -> List<&2, U32> & CR.Ge
     case 1n+ +q Tuple{a, g}:
       (slot_bytes(q, j, [], Array.get(U32, a, U32.from_nat(Nat.add(j, q)))), g)
 
-def words_op(+parts: List<&2, String>, st: Acc<CR.Gen>) -> Acc<CR.Gen>:
-  +k = X.nat_field(parts, 1n)
-  +j = X.nat_field(parts, 2n)
+def words_at(+k: Nat, +j: Nat, st: Acc<CR.Gen>) -> Acc<CR.Gen>:
   match st:
     case A{acc, g}:
       emit(~List<&2, U32>, ~CR.Gen, ~X.join_u32, acc, words_out(j, Nat.double(k), CR.read_words(g, Array.new(U32, RR.depth(Nat.add(j, Nat.double(k))), 0), j, k)))
+
+def words_op(+parts: List<&2, String>, st: Acc<CR.Gen>) -> Acc<CR.Gen>:
+  words_at(X.nat_field(parts, 1n), X.nat_field(parts, 2n), st)
 
 def apply_cr_w(+parts: List<&2, String>, tok: String, st: Acc<CR.Gen>, w: Bool) -> Acc<CR.Gen>:
   match w:
