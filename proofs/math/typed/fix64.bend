@@ -1,6 +1,5 @@
 import Base
 import ../../../spec/lib/common.bend as C
-import ../../../spec/math/w64.bend as SW
 import ../../../spec/math/generic.bend as SG
 import ../../../spec/math/fixed.bend as SF
 import ../../../src/math/w64.bend as X

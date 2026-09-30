@@ -4,12 +4,9 @@ import ../../../spec/math/w64.bend as SW
 import ../../../src/math/w64.bend as X
 import ../../../src/math/u64.bend as WU
 import ../../../src/math/natural.bend as M
-import ../../../src/math/instances.bend as I
-import ../../../src/math/num.bend as NM
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/word.bend as WD
-import ../../lib/u32.bend as U
 import ../../lib/u32div.bend as UD
 import ../../lib/lemmas/spec/numeric.bend as S
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA

@@ -11,7 +11,6 @@ import ../../lib/logic.bend as L
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../lib/u32half.bend as UH
 import ../../lib/u32alg.bend as A
-import ../natural/bits.bend as BT
 import ./width.bend as WW
 import ./w64add.bend as WA
 import ./w64sh.bend as SH

@@ -9,7 +9,6 @@ import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/word.bend as WD
 import ./width.bend as WW
-import ./u32laws.bend as LW
 import ./natcmp.bend as NC
 import ./f64bits.bend as FB
 import ./f64cmp.bend as FC

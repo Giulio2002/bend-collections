@@ -7,8 +7,6 @@ import ../natural/arith.bend as NR
 import ./width.bend as WW
 import ./natcmp.bend as NC
 import ./f64rtools.bend as RT
-import ./w64dm.bend as DM
-import ./f64divd.bend as DD
 import ./natfuel.bend as NF
 
 # The quotient and sticky bit of a division, at two scales: the spec's

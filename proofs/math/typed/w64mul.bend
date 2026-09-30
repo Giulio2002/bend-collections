@@ -14,7 +14,6 @@ import ../../lib/lemmas/proofs/word_multiplication.bend as WM
 import ../../lib/lemmas/spec/numeric.bend as S
 import ../u64/u64div.bend as PD
 import ../u64/u64.bend as P64
-import ./width.bend as WW
 import ./shrn.bend as SR
 
 # Mul32.value of spec/math/w64.bend: the full 64-bit product of two U32 by

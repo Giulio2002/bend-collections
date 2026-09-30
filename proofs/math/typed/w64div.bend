@@ -9,7 +9,6 @@ import ../../lib/u32.bend as U
 import ../../lib/u32div.bend as UD
 import ../../lib/word.bend as WD
 import ../../lib/arith.bend as AR
-import ../../lib/u32alg.bend as A
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../natural/arith.bend as NR
 import ../u64/u64div.bend as PD

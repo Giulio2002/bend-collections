@@ -8,7 +8,6 @@ import ../../../src/math/u64.bend as WU
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../lib/u32half.bend as UH
 import ../../lib/word.bend as WD
 import ./width.bend as WW
 import ./w64add.bend as WA

@@ -20,7 +20,6 @@ import ./combnat.bend as CN
 import ../../lib/arith.bend as AR2
 import ../natural/fact.bend as FA
 import ../natural/roots.bend as RT
-import ../natural/bits.bend as BT
 import ../../../src/math/pow2.bend as P2
 import ../pow2/pow2.bend as PP
 import ../../../spec/math/natural.bend as S

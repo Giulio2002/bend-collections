@@ -10,7 +10,6 @@ import ../../../src/math/u64.bend as WU
 import ../../lib/nat.bend as N
 import ./width.bend as WW
 import ./u64laws.bend as UL
-import ./natfuel.bend as NF
 import ../natural/proof.bend as NP
 import ./bgcdnat.bend as BN
 import ./w64div.bend as W64D
