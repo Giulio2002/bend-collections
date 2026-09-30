@@ -37,6 +37,10 @@ def mul_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19
   %Equal.sym(Nat, X.bitlen(k), C.shift(8n, one), bits_eq(one, h1, k, hk)) : PR.Rp(pp, PT.smul(_, cs, k, p, PT.identity()), SE.mul(one, 1n+pp, D, FS.value(k), sp))
   PR.smul_rel(one, h1, pp, hP, C.shift(8n, one), cs, D, rd2, k, LM.okb_lea(32n, k, 255n, hk), p, sp, hp, PT.identity(), SE.identity(), PD.identity_rel(pp))
 
+# encode, the spec's byte count 2^5 one
+def enc_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +p: PT.Pt, +sp: SE.EPt, +hp: PR.Rp(pp, p, sp)) -> {PT.encode(p) == SE.encode(one, 1n+pp, sp) : List<&2, U32>}:
+  L.subst(Nat, z => {PT.encode(p) == SE.encode_n(z, 1n+pp, sp) : List<&2, U32>}, 32n, C.shift(5n, one), Equal.cong(Nat, Nat, z => C.shift(5n, z), 1n, one, Equal.sym(Nat, one, 1n, h1)), PC.encode_rel(one, h1, pp, hP, p, sp, hp))
+
 # ---- scalars from digests ----
 
 def rh_val(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>) -> {FS.value(ESC.reduce(H.sha512(bs))) == Nat.mod(FS.value(SHA.sha512_bytes(bs)), SE.ell(one)) : Nat}:
@@ -50,6 +54,20 @@ def rh_val(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>) -> {FS.value(E
 
 def rh_eq(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>, +sbs: List<&2, U32>, +e: {bs == sbs : List<&2, U32>}) -> {FS.value(ESC.reduce(H.sha512(bs))) == Nat.mod(FS.value(SHA.sha512_bytes(sbs)), SE.ell(one)) : Nat}:
   Equal.trans(Nat, FS.value(ESC.reduce(H.sha512(bs))), Nat.mod(FS.value(SHA.sha512_bytes(bs)), SE.ell(one)), Nat.mod(FS.value(SHA.sha512_bytes(sbs)), SE.ell(one)), rh_val(one, h1, bs), Equal.cong(List<&2, U32>, Nat, z => Nat.mod(FS.value(SHA.sha512_bytes(z)), SE.ell(one)), bs, sbs, e))
+
+def hram_s(+one: Nat, +rb: List<&2, U32>, +a: List<&2, U32>, +msg: List<&2, U32>) -> {SE.hram(one, rb, a, msg) == Nat.mod(FS.value(SHA.sha512_bytes(SE.cat(rb, SE.cat(a, msg)))), SE.ell(one)) : Nat}:
+  match rb:
+    case Nil{}:
+      {==}
+    case Con{x, xt}:
+      {==}
+
+def hram_i(+rb: List<&2, U32>, +a: List<&2, U32>, +msg: List<&2, U32>) -> {E.hram(rb, a, msg) == ESC.reduce(H.sha512(E.cat(rb, E.cat(a, msg)))) : List<&2, U32>}:
+  match rb:
+    case Nil{}:
+      {==}
+    case Con{x, xt}:
+      {==}
 
 def red_lt(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>, +hb: {LM.lea(bs, 255n) == True{} : Bool}) -> {Nat.is_lt(FS.value(ESC.reduce(bs)), 1n+S3.mmL(one)) == True{} : Bool}:
   +M = {1n+S3.mmL(one) : Nat}
@@ -67,9 +85,21 @@ def cat2_eq(+x: List<&2, U32>, +sx: List<&2, U32>, +y: List<&2, U32>, +sy: List<
   +e4 = Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.cat(sx, SE.cat(z, m)), y, sy, ey)
   Equal.trans(List<&2, U32>, E.cat(x, E.cat(y, m)), SE.cat(x, E.cat(y, m)), SE.cat(sx, SE.cat(sy, m)), e1, Equal.trans(List<&2, U32>, SE.cat(x, E.cat(y, m)), SE.cat(x, SE.cat(y, m)), SE.cat(sx, SE.cat(sy, m)), e2, Equal.trans(List<&2, U32>, SE.cat(x, SE.cat(y, m)), SE.cat(sx, SE.cat(y, m)), SE.cat(sx, SE.cat(sy, m)), e3, e4)))
 
+def hk_okb(+one: Nat, +h1: {one == 1n : Nat}, +rb: List<&2, U32>, +a: List<&2, U32>, +msg: List<&2, U32>) -> {LM.okb(32n, E.hram(rb, a, msg), 255n) == True{} : Bool}:
+  +kh = H.sha512(E.cat(rb, E.cat(a, msg)))
+  L.subst(List<&2, U32>, z => {LM.okb(32n, z, 255n) == True{} : Bool}, ESC.reduce(kh), E.hram(rb, a, msg), Equal.sym(List<&2, U32>, E.hram(rb, a, msg), ESC.reduce(kh), hram_i(rb, a, msg)), S3.reduce_okb(one, h1, kh, BY.sha_lea(E.cat(rb, E.cat(a, msg)))))
+
+def hk_val(+one: Nat, +h1: {one == 1n : Nat}, +rb: List<&2, U32>, +srb: List<&2, U32>, +erb: {rb == srb : List<&2, U32>}, +a: List<&2, U32>, +sa: List<&2, U32>, +ea: {a == sa : List<&2, U32>}, +msg: List<&2, U32>) -> {FS.value(E.hram(rb, a, msg)) == SE.hram(one, srb, sa, msg) : Nat}:
+  +KH = E.cat(rb, E.cat(a, msg))
+  +SKH = SE.cat(srb, SE.cat(sa, msg))
+  +M = Nat.mod(FS.value(SHA.sha512_bytes(SKH)), SE.ell(one))
+  +e1 = Equal.cong(List<&2, U32>, Nat, z => FS.value(z), E.hram(rb, a, msg), ESC.reduce(H.sha512(KH)), hram_i(rb, a, msg))
+  +e2 = rh_eq(one, h1, KH, SKH, cat2_eq(rb, srb, a, sa, msg, erb, ea))
+  Equal.trans(Nat, FS.value(E.hram(rb, a, msg)), FS.value(ESC.reduce(H.sha512(KH))), SE.hram(one, srb, sa, msg), e1, Equal.trans(Nat, FS.value(ESC.reduce(H.sha512(KH))), M, SE.hram(one, srb, sa, msg), e2, Equal.sym(Nat, SE.hram(one, srb, sa, msg), M, hram_s(one, srb, sa, msg))))
+
 # S = (r + k s) mod L, as 32 bytes: s reduced first (the implementation's
 # reduce(secret)), the same residue
-def ma_eq(+one: Nat, +h1: {one == 1n : Nat}, +k: List<&2, U32>, +r: List<&2, U32>, +sk: List<&2, U32>, +hk: {LM.okb(32n, k, 255n) == True{} : Bool}, +hr: {LM.okb(32n, r, 255n) == True{} : Bool}, +lr: {Nat.is_lt(FS.value(r), 1n+S3.mmL(one)) == True{} : Bool}, +hsk: {LM.okb(32n, sk, 255n) == True{} : Bool}, +Rs: Nat, +Ks: Nat, +Ss: Nat, +eR: {FS.value(r) == Rs : Nat}, +eK: {FS.value(k) == Ks : Nat}, +eS: {FS.value(sk) == Ss : Nat}) -> {ESC.mul_add(k, ESC.reduce(sk), r) == SX.le_bytes(32n, Nat.mod(Nat.add(Rs, Nat.mul(Ks, Ss)), SE.ell(one))) : List<&2, U32>}:
+def ma_eq(+one: Nat, +h1: {one == 1n : Nat}, +k: List<&2, U32>, +r: List<&2, U32>, +sk: List<&2, U32>, +hk: {LM.okb(32n, k, 255n) == True{} : Bool}, +hr: {LM.okb(32n, r, 255n) == True{} : Bool}, +lr: {Nat.is_lt(FS.value(r), 1n+S3.mmL(one)) == True{} : Bool}, +hsk: {LM.okb(32n, sk, 255n) == True{} : Bool}, +Rs: Nat, +Ks: Nat, +Ss: Nat, +eR: {FS.value(r) == Rs : Nat}, +eK: {FS.value(k) == Ks : Nat}, +eS: {FS.value(sk) == Ss : Nat}) -> {ESC.mul_add(k, ESC.reduce(sk), r) == SX.le_bytes(C.shift(5n, one), Nat.mod(Nat.add(Rs, Nat.mul(Ks, Ss)), SE.ell(one))) : List<&2, U32>}:
   +mm = S3.mmL(one)
   +M = {1n+S3.mmL(one) : Nat}
   +el = SE.ell(one)
@@ -99,50 +129,51 @@ def ma_eq(+one: Nat, +h1: {one == 1n : Nat}, +k: List<&2, U32>, +r: List<&2, U32
   +e6 = Equal.cong(Nat, Nat, z => Nat.mod(Nat.add(Rs, Nat.mul(Ks, Ss)), z), M, el, S3.ell_eq(one, h1))
   +ev = Equal.trans(Nat, T0, T1, T7, e0, Equal.trans(Nat, T1, T2, T7, e1, Equal.trans(Nat, T2, T3, T7, e2, Equal.trans(Nat, T3, T4, T7, e3, Equal.trans(Nat, T4, T5, T7, e4, Equal.trans(Nat, T5, T6, T7, e5, e6))))))
   +eb = Equal.sym(List<&2, U32>, SX.le_bytes(32n, T0), MA, XB.bytes_le(32n, MA, S3.mul_add_lt(one, h1, k, s, r, lk, os, hr, ls, lr)))
-  Equal.trans(List<&2, U32>, MA, SX.le_bytes(32n, T0), SX.le_bytes(32n, T7), eb, Equal.cong(Nat, List<&2, U32>, z => SX.le_bytes(32n, z), T0, T7, ev))
+  +e8 = Equal.trans(List<&2, U32>, MA, SX.le_bytes(32n, T0), SX.le_bytes(32n, T7), eb, Equal.cong(Nat, List<&2, U32>, z => SX.le_bytes(32n, z), T0, T7, ev))
+  L.subst(Nat, z => {MA == SX.le_bytes(z, T7) : List<&2, U32>}, 32n, C.shift(5n, one), Equal.cong(Nat, Nat, z => C.shift(5n, z), 1n, one, Equal.sym(Nat, one, 1n, h1)), e8)
 
 # ---- key generation ----
 
-def public_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}) -> {E.public_of(PT.consts(h), h) == SE.public_of(one, 1n+pp, SE.dconst(one, 1n+pp), h) : List<&2, U32>}:
+def public_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}) -> {E.public_of(PT.consts(xs), xs, h) == SE.public_of(one, 1n+pp, SE.dconst(one, 1n+pp), h) : List<&2, U32>}:
   +P = {1n+pp : Nat}
   +D = SE.dconst(one, P)
-  +cs = PT.consts(h)
+  +cs = PT.consts(xs)
   +sk = X.clamp(F.take(32n, h))
   +hs = XB.clamp_okb(F.take(32n, h), BY.take_okb(32n, 32n, h, 255n, hh))
-  +B = PT.base(cs, h)
+  +B = PT.base(cs, xs)
   +SB = SE.base(P, D)
-  +hB = PD.base_rel(one, h1, pp, hP, cs, D, PC.r_d(one, h1, pp, hP, h), PC.r_sqm1(one, h1, pp, hP, h), h)
-  +rm = mul_rel(one, h1, pp, hP, cs, D, PC.r_d2(one, h1, pp, hP, h), sk, hs, B, SB, hB)
-  +e1 = PC.encode_rel(one, h1, pp, hP, PT.mul(cs, sk, B), SE.mul(one, P, D, FS.value(sk), SB), rm)
-  Equal.trans(List<&2, U32>, PT.encode(PT.mul(cs, sk, B)), SE.encode(P, SE.mul(one, P, D, FS.value(sk), SB)), SE.encode(P, SE.mul(one, P, D, SE.secret(h), SB)), e1, Equal.cong(Nat, List<&2, U32>, z => SE.encode(P, SE.mul(one, P, D, z, SB)), FS.value(sk), SE.secret(h), secret_eq(h)))
+  +hB = PD.base_rel(one, h1, pp, hP, cs, D, PC.r_d(one, h1, pp, hP, xs), PC.r_sqm1(one, h1, pp, hP, xs), xs)
+  +rm = mul_rel(one, h1, pp, hP, cs, D, PC.r_d2(one, h1, pp, hP, xs), sk, hs, B, SB, hB)
+  +e1 = enc_rel(one, h1, pp, hP, PT.mul(cs, sk, B), SE.mul(one, P, D, FS.value(sk), SB), rm)
+  Equal.trans(List<&2, U32>, PT.encode(PT.mul(cs, sk, B)), SE.encode(one, P, SE.mul(one, P, D, FS.value(sk), SB)), SE.encode(one, P, SE.mul(one, P, D, SE.secret(h), SB)), e1, Equal.cong(Nat, List<&2, U32>, z => SE.encode(one, P, SE.mul(one, P, D, z, SB)), FS.value(sk), SE.secret(h), secret_eq(h)))
 
 # ---- signing ----
 
 # R = encode([r] B) for a 32-byte r of value Rs
-def rb_eq(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +D: Nat, +rd2: RL.R(pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +B: PT.Pt, +SB: SE.EPt, +hB: PR.Rp(pp, B, SB), +r: List<&2, U32>, +okr: {LM.okb(32n, r, 255n) == True{} : Bool}, +Rs: Nat, +eR: {FS.value(r) == Rs : Nat}) -> {PT.encode(PT.mul(cs, r, B)) == SE.encode(1n+pp, SE.mul(one, 1n+pp, D, Rs, SB)) : List<&2, U32>}:
+def rb_eq(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +D: Nat, +rd2: RL.R(pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +B: PT.Pt, +SB: SE.EPt, +hB: PR.Rp(pp, B, SB), +r: List<&2, U32>, +okr: {LM.okb(32n, r, 255n) == True{} : Bool}, +Rs: Nat, +eR: {FS.value(r) == Rs : Nat}) -> {PT.encode(PT.mul(cs, r, B)) == SE.encode(one, 1n+pp, SE.mul(one, 1n+pp, D, Rs, SB)) : List<&2, U32>}:
   +P = {1n+pp : Nat}
-  Equal.trans(List<&2, U32>, PT.encode(PT.mul(cs, r, B)), SE.encode(P, SE.mul(one, P, D, FS.value(r), SB)), SE.encode(P, SE.mul(one, P, D, Rs, SB)), PC.encode_rel(one, h1, pp, hP, PT.mul(cs, r, B), SE.mul(one, P, D, FS.value(r), SB), mul_rel(one, h1, pp, hP, cs, D, rd2, r, okr, B, SB, hB)), Equal.cong(Nat, List<&2, U32>, z => SE.encode(P, SE.mul(one, P, D, z, SB)), FS.value(r), Rs, eR))
+  Equal.trans(List<&2, U32>, PT.encode(PT.mul(cs, r, B)), SE.encode(one, P, SE.mul(one, P, D, FS.value(r), SB)), SE.encode(one, P, SE.mul(one, P, D, Rs, SB)), enc_rel(one, h1, pp, hP, PT.mul(cs, r, B), SE.mul(one, P, D, FS.value(r), SB), mul_rel(one, h1, pp, hP, cs, D, rd2, r, okr, B, SB, hB)), Equal.cong(Nat, List<&2, U32>, z => SE.encode(one, P, SE.mul(one, P, D, z, SB)), FS.value(r), Rs, eR))
 
 # R || S
-def sig_eq(+one: Nat, +h1: {one == 1n : Nat}, +RB: List<&2, U32>, +SRB: List<&2, U32>, +eRB: {RB == SRB : List<&2, U32>}, +k: List<&2, U32>, +okk: {LM.okb(32n, k, 255n) == True{} : Bool}, +Ks: Nat, +eK: {FS.value(k) == Ks : Nat}, +r: List<&2, U32>, +okr: {LM.okb(32n, r, 255n) == True{} : Bool}, +lr: {Nat.is_lt(FS.value(r), 1n+S3.mmL(one)) == True{} : Bool}, +Rs: Nat, +eR: {FS.value(r) == Rs : Nat}, +sk: List<&2, U32>, +hsk: {LM.okb(32n, sk, 255n) == True{} : Bool}, +Ss: Nat, +eS: {FS.value(sk) == Ss : Nat}) -> {E.cat(RB, ESC.mul_add(k, ESC.reduce(sk), r)) == SE.cat(SRB, SX.le_bytes(32n, Nat.mod(Nat.add(Rs, Nat.mul(Ks, Ss)), SE.ell(one)))) : List<&2, U32>}:
+def sig_eq(+one: Nat, +h1: {one == 1n : Nat}, +RB: List<&2, U32>, +SRB: List<&2, U32>, +eRB: {RB == SRB : List<&2, U32>}, +k: List<&2, U32>, +okk: {LM.okb(32n, k, 255n) == True{} : Bool}, +Ks: Nat, +eK: {FS.value(k) == Ks : Nat}, +r: List<&2, U32>, +okr: {LM.okb(32n, r, 255n) == True{} : Bool}, +lr: {Nat.is_lt(FS.value(r), 1n+S3.mmL(one)) == True{} : Bool}, +Rs: Nat, +eR: {FS.value(r) == Rs : Nat}, +sk: List<&2, U32>, +hsk: {LM.okb(32n, sk, 255n) == True{} : Bool}, +Ss: Nat, +eS: {FS.value(sk) == Ss : Nat}) -> {E.cat(RB, ESC.mul_add(k, ESC.reduce(sk), r)) == SE.cat(SRB, SX.le_bytes(C.shift(5n, one), Nat.mod(Nat.add(Rs, Nat.mul(Ks, Ss)), SE.ell(one)))) : List<&2, U32>}:
   +MA = ESC.mul_add(k, ESC.reduce(sk), r)
-  +SMB = SX.le_bytes(32n, Nat.mod(Nat.add(Rs, Nat.mul(Ks, Ss)), SE.ell(one)))
+  +SMB = SX.le_bytes(C.shift(5n, one), Nat.mod(Nat.add(Rs, Nat.mul(Ks, Ss)), SE.ell(one)))
   +eMA = ma_eq(one, h1, k, r, sk, okk, okr, lr, hsk, Rs, Ks, Ss, eR, eK, eS)
   Equal.trans(List<&2, U32>, E.cat(RB, MA), SE.cat(RB, MA), SE.cat(SRB, SMB), BY.cat_eq(RB, MA), Equal.trans(List<&2, U32>, SE.cat(RB, MA), SE.cat(SRB, MA), SE.cat(SRB, SMB), Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.cat(z, MA), RB, SRB, eRB), Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.cat(SRB, z), MA, SMB, eMA)))
 
 def prefix_eq(+h: List<&2, U32>, +msg: List<&2, U32>) -> {E.cat(F.drop(32n, h), msg) == SE.cat(SE.rest(32n, h), msg) : List<&2, U32>}:
   Equal.trans(List<&2, U32>, E.cat(F.drop(32n, h), msg), SE.cat(F.drop(32n, h), msg), SE.cat(SE.rest(32n, h), msg), BY.cat_eq(F.drop(32n, h), msg), Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.cat(z, msg), F.drop(32n, h), SE.rest(32n, h), BY.drop_eq(32n, h)))
 
-def sign_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}, +msg: List<&2, U32>) -> {E.sign_with(PT.consts(h), h, msg) == SE.sign_with(one, 1n+pp, SE.dconst(one, 1n+pp), h, msg) : List<&2, U32>}:
+def sign_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}, +msg: List<&2, U32>) -> {E.sign_with(PT.consts(xs), xs, h, msg) == SE.sign_with(one, 1n+pp, SE.dconst(one, 1n+pp), h, msg) : List<&2, U32>}:
   +P = {1n+pp : Nat}
   +D = SE.dconst(one, P)
   +el = SE.ell(one)
-  +cs = PT.consts(h)
-  +B = PT.base(cs, h)
+  +cs = PT.consts(xs)
+  +B = PT.base(cs, xs)
   +SB = SE.base(P, D)
-  +hB = PD.base_rel(one, h1, pp, hP, cs, D, PC.r_d(one, h1, pp, hP, h), PC.r_sqm1(one, h1, pp, hP, h), h)
-  +rd2 = PC.r_d2(one, h1, pp, hP, h)
-  +A = E.public_of(cs, h)
+  +hB = PD.base_rel(one, h1, pp, hP, cs, D, PC.r_d(one, h1, pp, hP, xs), PC.r_sqm1(one, h1, pp, hP, xs), xs)
+  +rd2 = PC.r_d2(one, h1, pp, hP, xs)
+  +A = E.public_of(cs, xs, h)
   +SA = SE.public_of(one, P, D, h)
   +RH = E.cat(F.drop(32n, h), msg)
   +SRH = SE.cat(SE.rest(32n, h), msg)
@@ -151,15 +182,14 @@ def sign_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 1
   +eR = rh_eq(one, h1, RH, SRH, prefix_eq(h, msg))
   +okr = S3.reduce_okb(one, h1, H.sha512(RH), BY.sha_lea(RH))
   +RB = PT.encode(PT.mul(cs, r, B))
-  +SRB = SE.encode(P, SE.mul(one, P, D, Rs, SB))
+  +SRB = SE.encode(one, P, SE.mul(one, P, D, Rs, SB))
   +eRB = rb_eq(one, h1, pp, hP, cs, D, rd2, B, SB, hB, r, okr, Rs, eR)
-  +KH = E.cat(RB, E.cat(A, msg))
-  +k = ESC.reduce(H.sha512(KH))
-  +Ks = Nat.mod(FS.value(SHA.sha512_bytes(SE.cat(SRB, SE.cat(SA, msg)))), el)
-  +eK = rh_eq(one, h1, KH, SE.cat(SRB, SE.cat(SA, msg)), cat2_eq(RB, SRB, A, SA, msg, eRB, public_rel(one, h1, pp, hP, h, hh)))
+  +k = E.hram(RB, A, msg)
+  +Ks = SE.hram(one, SRB, SA, msg)
+  +eK = hk_val(one, h1, RB, SRB, eRB, A, SA, public_rel(one, h1, pp, hP, xs, h, hh), msg)
   +sk = X.clamp(F.take(32n, h))
   +hsk = XB.clamp_okb(F.take(32n, h), BY.take_okb(32n, 32n, h, 255n, hh))
-  sig_eq(one, h1, RB, SRB, eRB, k, S3.reduce_okb(one, h1, H.sha512(KH), BY.sha_lea(KH)), Ks, eK, r, okr, red_lt(one, h1, H.sha512(RH), BY.sha_lea(RH)), Rs, eR, sk, hsk, SE.secret(h), secret_eq(h))
+  sig_eq(one, h1, RB, SRB, eRB, k, hk_okb(one, h1, RB, A, msg), Ks, eK, r, okr, red_lt(one, h1, H.sha512(RH), BY.sha_lea(RH)), Rs, eR, sk, hsk, SE.secret(h), secret_eq(h))
 
 # ---- verification ----
 
@@ -171,12 +201,10 @@ def check_some(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp,
   +SB = SE.base(P, D)
   +hB = PD.base_rel(one, h1, pp, hP, cs, D, PC.r_d(one, h1, pp, hP, pk), PC.r_sqm1(one, h1, pp, hP, pk), pk)
   +rd2 = PC.r_d2(one, h1, pp, hP, pk)
-  +KH = E.cat(rb, E.cat(pk, msg))
-  +SKH = SE.cat(rb, SE.cat(pk, msg))
-  +k = ESC.reduce(H.sha512(KH))
-  +Ks = Nat.mod(FS.value(SHA.sha512_bytes(SKH)), SE.ell(one))
-  +eK = rh_eq(one, h1, KH, SKH, cat2_eq(rb, rb, pk, pk, msg, {==}, {==}))
-  +okk = S3.reduce_okb(one, h1, H.sha512(KH), BY.sha_lea(KH))
+  +k = E.hram(rb, pk, msg)
+  +Ks = SE.hram(one, rb, pk, msg)
+  +eK = hk_val(one, h1, rb, rb, {==}, pk, pk, {==}, msg)
+  +okk = hk_okb(one, h1, rb, pk, msg)
   +ka = PT.mul(cs, k, a)
   +ska = SE.mul(one, P, D, FS.value(k), sa)
   +m1 = mul_rel(one, h1, pp, hP, cs, D, rd2, sb, hsb, B, SB, hB)

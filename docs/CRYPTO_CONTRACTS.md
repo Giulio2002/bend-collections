@@ -228,8 +228,11 @@ The specification (`spec/crypto/ed25519.bend`) transcribes sections 5.1.2
 to 5.1.7 over natural numbers: every field operation mod p, every scalar mod
 L, SHA-512 as FIPS 180-4 (`spec/crypto/sha512.bend`). Scalar multiplication
 is double-and-add over 256 bits, most significant first (HACL*'s
-`Spec.Ed25519` fixes an algorithm the same way); the count is written
-2^8·one.
+`Spec.Ed25519` fixes an algorithm the same way). The bit count is written
+2^8·one and the 32-byte counts of the encodings 2^5·one (`one == 1` is a
+hypothesis of every clause, as for p): with a concrete count the checker
+would expand the loop, or an encoding and the SHA-512 over it, every time it
+compares two terms that contain them.
 
 | Clause | Statement | Evidence |
 |---|---|---|

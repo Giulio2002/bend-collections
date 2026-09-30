@@ -117,11 +117,17 @@ def set_msb(xs: List<&2, U32>, +b: U32) -> List<&2, U32>:
         case Con{y, yt}:
           Con{x, set_msb(Con{y, yt}, b)}
 
-def encode(+p: Nat, a: EPt) -> List<&2, U32>:
+# n = 32 bytes
+def encode_n(n: Nat, +p: Nat, a: EPt) -> List<&2, U32>:
   match a:
     case EPt{+x, +y, +z, t}:
       +zi = FS.finv(p, z)
-      set_msb(SX.le_bytes(32n, FS.fmul(p, y, zi)), U32.from_nat(Nat.mod(FS.fmul(p, x, zi), 2n)))
+      set_msb(SX.le_bytes(n, FS.fmul(p, y, zi)), U32.from_nat(Nat.mod(FS.fmul(p, x, zi), 2n)))
+
+# 32 bytes, written 2^5 one (one == 1): the byte count stays symbolic, so the
+# checker never expands an encoding (and the SHA-512 over it) into bytes
+def encode(+one: Nat, +p: Nat, a: EPt) -> List<&2, U32>:
+  encode_n(C.shift(5n, one), p, a)
 
 # ---- decoding, 5.1.3 ----
 
@@ -216,13 +222,22 @@ def cat(xs: List<&2, U32>, ys: List<&2, U32>) -> List<&2, U32>:
     case Con{x, xt}:
       Con{x, cat(xt, ys)}
 
+# k = SHA-512(R || A || M) mod L; a function of R first, so a comparison of
+# two such terms compares R, A and M once instead of walking the digest
+def hram(+one: Nat, rb: List<&2, U32>, +a: List<&2, U32>, +msg: List<&2, U32>) -> Nat:
+  match rb:
+    case Nil{}:
+      Nat.mod(FS.value(SHA.sha512_bytes(cat(Nil{}, cat(a, msg)))), ell(one))
+    case Con{x, xt}:
+      Nat.mod(FS.value(SHA.sha512_bytes(cat(Con{x, xt}, cat(a, msg)))), ell(one))
+
 # ---- 5.1.5 key generation ----
 
 def secret(+h: List<&2, U32>) -> Nat:
   FS.value(SX.clamp(first(32n, h)))
 
 def public_of(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>) -> List<&2, U32>:
-  encode(p, mul(one, p, d, secret(h), base(p, d)))
+  encode(one, p, mul(one, p, d, secret(h), base(p, d)))
 
 def public_key(+one: Nat, +seed: List<&2, U32>) -> List<&2, U32>:
   +p = FS.prime(one)
@@ -234,9 +249,9 @@ def sign_with(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>, +msg: List<&2, U32
   +el = ell(one)
   +a = public_of(one, p, d, h)
   +r = Nat.mod(FS.value(SHA.sha512_bytes(cat(rest(32n, h), msg))), el)
-  +rb = encode(p, mul(one, p, d, r, base(p, d)))
-  +k = Nat.mod(FS.value(SHA.sha512_bytes(cat(rb, cat(a, msg)))), el)
-  cat(rb, SX.le_bytes(32n, Nat.mod(Nat.add(r, Nat.mul(k, secret(h))), el)))
+  +rb = encode(one, p, mul(one, p, d, r, base(p, d)))
+  +k = hram(one, rb, a, msg)
+  cat(rb, SX.le_bytes(C.shift(5n, one), Nat.mod(Nat.add(r, Nat.mul(k, secret(h))), el)))
 
 def sign(+one: Nat, +seed: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
   +p = FS.prime(one)
@@ -247,7 +262,7 @@ def sign(+one: Nat, +seed: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
 def check(+one: Nat, +p: Nat, +d: Nat, +s: Nat, +rb: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, ra: Maybe<&2, EPt>, aa: Maybe<&2, EPt>) -> Bool:
   match ra aa:
     case Some{r} Some{+a}:
-      +k = Nat.mod(FS.value(SHA.sha512_bytes(cat(rb, cat(pk, msg)))), ell(one))
+      +k = hram(one, rb, pk, msg)
       equal(p, mul(one, p, d, s, base(p, d)), add(p, d, r, mul(one, p, d, k, a)))
     case _ _:
       False{}

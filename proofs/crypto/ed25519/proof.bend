@@ -58,20 +58,20 @@ def ed_public(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +hs: {FS.
   +P = {1n+pp : Nat}
   +h = H.sha512(seed)
   +sh = SHA.sha512_bytes(seed)
-  +e1 = TP.public_rel(one, h1, pp, PRM.hP(one, h1), h, BY.sha_okb(seed))
+  +e1 = TP.public_rel(one, h1, pp, PRM.hP(one, h1), seed, h, BY.sha_okb(seed))
   +e2 = Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.public_of(one, P, SE.dconst(one, P), z), h, sh, BY.sha_eq(seed))
   +e3 = Equal.cong(Nat, List<&2, U32>, z => SE.public_of(one, z, SE.dconst(one, z), sh), P, FS.prime(one), Equal.sym(Nat, FS.prime(one), P, PRM.prime_eq(one, h1)))
-  Equal.trans(List<&2, U32>, E.public_of(PT.consts(h), h), SE.public_of(one, P, SE.dconst(one, P), h), SE.public_of(one, FS.prime(one), SE.dconst(one, FS.prime(one)), sh), e1, Equal.trans(List<&2, U32>, SE.public_of(one, P, SE.dconst(one, P), h), SE.public_of(one, P, SE.dconst(one, P), sh), SE.public_of(one, FS.prime(one), SE.dconst(one, FS.prime(one)), sh), e2, e3))
+  Equal.trans(List<&2, U32>, E.public_of(PT.consts(seed), seed, h), SE.public_of(one, P, SE.dconst(one, P), h), SE.public_of(one, FS.prime(one), SE.dconst(one, FS.prime(one)), sh), e1, Equal.trans(List<&2, U32>, SE.public_of(one, P, SE.dconst(one, P), h), SE.public_of(one, P, SE.dconst(one, P), sh), SE.public_of(one, FS.prime(one), SE.dconst(one, FS.prime(one)), sh), e2, e3))
 
 def ed_sign(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +msg: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> SE.Ed25519.sign(one, h1, seed, msg, hs):
   +pp = pp1(one)
   +P = {1n+pp : Nat}
   +h = H.sha512(seed)
   +sh = SHA.sha512_bytes(seed)
-  +e1 = TP.sign_rel(one, h1, pp, PRM.hP(one, h1), h, BY.sha_okb(seed), msg)
+  +e1 = TP.sign_rel(one, h1, pp, PRM.hP(one, h1), seed, h, BY.sha_okb(seed), msg)
   +e2 = Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.sign_with(one, P, SE.dconst(one, P), z, msg), h, sh, BY.sha_eq(seed))
   +e3 = Equal.cong(Nat, List<&2, U32>, z => SE.sign_with(one, z, SE.dconst(one, z), sh, msg), P, FS.prime(one), Equal.sym(Nat, FS.prime(one), P, PRM.prime_eq(one, h1)))
-  Equal.trans(List<&2, U32>, E.sign_with(PT.consts(h), h, msg), SE.sign_with(one, P, SE.dconst(one, P), h, msg), SE.sign_with(one, FS.prime(one), SE.dconst(one, FS.prime(one)), sh, msg), e1, Equal.trans(List<&2, U32>, SE.sign_with(one, P, SE.dconst(one, P), h, msg), SE.sign_with(one, P, SE.dconst(one, P), sh, msg), SE.sign_with(one, FS.prime(one), SE.dconst(one, FS.prime(one)), sh, msg), e2, e3))
+  Equal.trans(List<&2, U32>, E.sign_with(PT.consts(seed), seed, h, msg), SE.sign_with(one, P, SE.dconst(one, P), h, msg), SE.sign_with(one, FS.prime(one), SE.dconst(one, FS.prime(one)), sh, msg), e1, Equal.trans(List<&2, U32>, SE.sign_with(one, P, SE.dconst(one, P), h, msg), SE.sign_with(one, P, SE.dconst(one, P), sh, msg), SE.sign_with(one, FS.prime(one), SE.dconst(one, FS.prime(one)), sh, msg), e2, e3))
 
 def ed_verify(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}) -> SE.Ed25519.verify(one, h1, pk, msg, sig, hp, hg):
   +pp = pp1(one)

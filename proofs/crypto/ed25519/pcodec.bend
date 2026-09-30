@@ -220,7 +220,7 @@ def par_u32(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19
   +lt = NR.dm_lt(1n, a)
   U.injective(F.parity(x), U32.from_nat(Nat.mod(a, 2n)), Equal.trans(Nat, v(F.parity(x)), Nat.mod(a, 2n), v(U32.from_nat(Nat.mod(a, 2n))), e, Equal.sym(Nat, v(U32.from_nat(Nat.mod(a, 2n))), Nat.mod(a, 2n), U.to_nat_from_nat(Nat.mod(a, 2n), 1n, {==}, lt))))
 
-def encode_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +p: PT.Pt, +sp: SE.EPt, +hp: PR.Rp(pp, p, sp)) -> {PT.encode(p) == SE.encode(1n+pp, sp) : List<&2, U32>}:
+def encode_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +p: PT.Pt, +sp: SE.EPt, +hp: PR.Rp(pp, p, sp)) -> {PT.encode(p) == SE.encode_n(32n, 1n+pp, sp) : List<&2, U32>}:
   match p sp:
     case PT.Pt{+x, +y, +z, +t} SE.EPt{+a, +b, +c, +d}:
       +P = {1n+pp : Nat}
