@@ -16,6 +16,7 @@ import ../../../spec/crypto/argon2/blamka.bend as SG
 import ../../../spec/crypto/argon2/argon2.bend as SA
 import ./blamka.bend as BL
 import ./memory.bend as MEM
+import ./blocks.bend as BK
 import ./hash.bend as HS
 import ./fill.bend as F
 import ./run.bend as R
@@ -146,7 +147,7 @@ def tail_eq(+d: Nat, +tl: Nat, +p: Nat, +q: Nat, +mem: List<&2, A.Block>, +hd: {
   +c = SA.final_go(Nat.sub(p, 1n), 0n, q, SG.zero(), b, mem)
   +hb = F.lt_len(Nat.sub(q, 1n), mem, p, q, hlen, N.lt_le_trans(Nat.sub(q, 1n), q, Nat.mul(p, q), F.sub1_lt(q, hq1), F.le_mul_left(p, q, hp)))
   -ar = AR.thaw(U32, MEM.mt(d, mem))
-  %Equal.sym(Array<U32> & A.Block, M.get(Nat.sub(q, 1n), ar), (ar, b), MEM.get_block(d, mem, Nat.sub(q, 1n), hd, hc, hb)) : {I.hprime(tl, I.block_bytes(I.final_go(Nat.sub(p, 1n), 0n, q, G.zero(), _))) == tail_s(tl, p, q, mem) : List<&2, U32>}
+  %Equal.sym(Array<U32> & A.Block, M.get(Nat.sub(q, 1n), ar), (ar, b), BK.get_block(d, mem, Nat.sub(q, 1n), hd, hc, hb)) : {I.hprime(tl, I.block_bytes(I.final_go(Nat.sub(p, 1n), 0n, q, G.zero(), _))) == tail_s(tl, p, q, mem) : List<&2, U32>}
   %Equal.sym(A.Block, G.zero(), SG.zero(), BL.zero_correct()) : {I.hprime(tl, I.block_bytes(I.final_go(Nat.sub(p, 1n), 0n, q, _, (ar, b)))) == tail_s(tl, p, q, mem) : List<&2, U32>}
   %Equal.sym(A.Block, I.final_go(Nat.sub(p, 1n), 0n, q, SG.zero(), (ar, b)), c, R.final_eq(d, Nat.sub(p, 1n), 0n, p, q, SG.zero(), b, mem, hd, hc, hlen, hq1, F.sub1_lt(p, hp))) : {I.hprime(tl, I.block_bytes(_)) == tail_s(tl, p, q, mem) : List<&2, U32>}
   Equal.trans(List<&2, U32>, I.hprime(tl, I.block_bytes(c)), I.hprime(tl, SA.block_bytes(c)), SA.hprime(tl, SA.block_bytes(c)),

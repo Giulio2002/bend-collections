@@ -59,7 +59,7 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | Ed25519 key generation | 7064.08 |
 | Ed25519 sign | 13116.15 |
 | Ed25519 verify | 4449.20 |
-| Argon2id | 42.94 |
+| Argon2id | 9.09 |
 | secp256k1 (ECDSA, recovery, BIP-340) | 47560.98 |
 | ChaCha8 `uint64` | 7.26 |
 | PCG `uint64` | 6.47 |
@@ -366,12 +366,12 @@ C reference: Monocypher 4.0.2 `crypto_ed25519_check`. Worst ratio 4449.20.
 
 ### Argon2id
 
-C reference: the official P-H-C reference (`ref.c`, portable, no SSE), one thread. Worst ratio 42.94.
+C reference: the official P-H-C reference (`ref.c`, portable, no SSE), one thread. Worst ratio 9.09.
 
 | Parameters | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| m=64 KiB t=3 p=1 | 2547 | 59.3 | 42.94 |
-| m=19 MiB t=2 p=1 | 462000 | 12954 | 35.66 |
+| m=64 KiB t=3 p=1 | 562 | 61.9 | 9.09 |
+| m=19 MiB t=2 p=1 | 99000 | 13340 | 7.42 |
 
 ### secp256k1 (ECDSA, recovery, BIP-340)
 
