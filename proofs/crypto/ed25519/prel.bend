@@ -190,29 +190,33 @@ def bit_rel(+one: Nat, +pp: Nat, +cs: PT.Cs, +s: U32, +b: Nat, +hs: {v(s) == b :
 
 # ---- double-and-add ----
 
-def smul_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +n: Nat, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +bs: List<&2, U32>, +hbs: {LM.lea(bs, 255n) == True{} : Bool}, +p: PT.Pt, +sp: SE.EPt, +hp: Rp(one, pp, p, sp), +q: PT.Pt, +sq: SE.EPt, +hq: Rp(one, pp, q, sq)) -> Rp(one, pp, PT.smul(n, cs, bs, p, q), SE.smul(1n+pp, D, n, FS.value(bs), sp, sq)):
-  match n:
-    case 0n:
-      hq
-    case 1n+ +t:
-      +q2 = PT.double(PT.cs_r(cs), q)
-      +sq2 = SE.double(1n+pp, sq)
-      +hq2 = double_rel(one, h1, pp, hP, PT.cs_r(cs), hR, q, sq, hq)
-      +r = PT.add(cs, q2, p)
-      +sr = SE.add(1n+pp, D, sq2, sp)
-      +hr = add_rel(one, h1, pp, hP, cs, hR, D, rd2, q2, p, sq2, sp, hq2, hp)
-      +hs = sel_rel(one, pp, X.kbit(bs, t), SX.kbit(FS.value(bs), t), XB.kbit_val(bs, t, hbs), XB.kbit_le(bs, t, hbs), q2, r, sq2, sr, hq2, hr)
-      smul_rel(one, h1, pp, hP, t, cs, hR, D, rd2, bs, hbs, p, sp, hp, PT.select(X.kbit(bs, t), q2, r), SE.pick(SX.kbit(FS.value(bs), t), sq2, sr), hs)
+def smul_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +p: PT.Pt, +n: Nat, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +bs: List<&2, U32>, +hbs: {LM.lea(bs, 255n) == True{} : Bool}, +sp: SE.EPt, +hp: Rp(one, pp, p, sp), +q: PT.Pt, +sq: SE.EPt, +hq: Rp(one, pp, q, sq)) -> Rp(one, pp, PT.smul(p, n, cs, bs, q), SE.smul(1n+pp, D, n, FS.value(bs), sp, sq)):
+  match p:
+    case PT.Pt{px, py, pz, pt}:
+      match n:
+        case 0n:
+          hq
+        case 1n+ +t:
+          +q2 = PT.double(PT.cs_r(cs), q)
+          +sq2 = SE.double(1n+pp, sq)
+          +hq2 = double_rel(one, h1, pp, hP, PT.cs_r(cs), hR, q, sq, hq)
+          +r = PT.add(cs, q2, p)
+          +sr = SE.add(1n+pp, D, sq2, sp)
+          +hr = add_rel(one, h1, pp, hP, cs, hR, D, rd2, q2, p, sq2, sp, hq2, hp)
+          +hs = sel_rel(one, pp, X.kbit(bs, t), SX.kbit(FS.value(bs), t), XB.kbit_val(bs, t, hbs), XB.kbit_le(bs, t, hbs), q2, r, sq2, sr, hq2, hr)
+          smul_rel(one, h1, pp, hP, p, t, cs, hR, D, rd2, bs, hbs, sp, hp, PT.select(X.kbit(bs, t), q2, r), SE.pick(SX.kbit(FS.value(bs), t), sq2, sr), hs)
 
-def smul_vt_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +n: Nat, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +bs: List<&2, U32>, +hbs: {LM.lea(bs, 255n) == True{} : Bool}, +p: PT.Pt, +sp: SE.EPt, +hp: Rp(one, pp, p, sp), +q: PT.Pt, +sq: SE.EPt, +hq: Rp(one, pp, q, sq)) -> Rp(one, pp, PT.smul_vt(n, cs, bs, p, q), SE.smul(1n+pp, D, n, FS.value(bs), sp, sq)):
-  match n:
-    case 0n:
-      hq
-    case 1n+ +t:
-      +q2 = PT.double(PT.cs_r(cs), q)
-      +sq2 = SE.double(1n+pp, sq)
-      +hq2 = double_rel(one, h1, pp, hP, PT.cs_r(cs), hR, q, sq, hq)
-      +sr = SE.add(1n+pp, D, sq2, sp)
-      +hr = add_rel(one, h1, pp, hP, cs, hR, D, rd2, q2, p, sq2, sp, hq2, hp)
-      +hs = bit_rel(one, pp, cs, X.kbit(bs, t), SX.kbit(FS.value(bs), t), XB.kbit_val(bs, t, hbs), XB.kbit_le(bs, t, hbs), p, q2, sq2, sr, hq2, hr)
-      smul_vt_rel(one, h1, pp, hP, t, cs, hR, D, rd2, bs, hbs, p, sp, hp, PT.smul_bit(U32.is_eq(X.kbit(bs, t), 0), cs, p, q2), SE.pick(SX.kbit(FS.value(bs), t), sq2, sr), hs)
+def smul_vt_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +p: PT.Pt, +n: Nat, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +bs: List<&2, U32>, +hbs: {LM.lea(bs, 255n) == True{} : Bool}, +sp: SE.EPt, +hp: Rp(one, pp, p, sp), +q: PT.Pt, +sq: SE.EPt, +hq: Rp(one, pp, q, sq)) -> Rp(one, pp, PT.smul_vt(p, n, cs, bs, q), SE.smul(1n+pp, D, n, FS.value(bs), sp, sq)):
+  match p:
+    case PT.Pt{px, py, pz, pt}:
+      match n:
+        case 0n:
+          hq
+        case 1n+ +t:
+          +q2 = PT.double(PT.cs_r(cs), q)
+          +sq2 = SE.double(1n+pp, sq)
+          +hq2 = double_rel(one, h1, pp, hP, PT.cs_r(cs), hR, q, sq, hq)
+          +sr = SE.add(1n+pp, D, sq2, sp)
+          +hr = add_rel(one, h1, pp, hP, cs, hR, D, rd2, q2, p, sq2, sp, hq2, hp)
+          +hs = bit_rel(one, pp, cs, X.kbit(bs, t), SX.kbit(FS.value(bs), t), XB.kbit_val(bs, t, hbs), XB.kbit_le(bs, t, hbs), p, q2, sq2, sr, hq2, hr)
+          smul_vt_rel(one, h1, pp, hP, p, t, cs, hR, D, rd2, bs, hbs, sp, hp, PT.smul_bit(U32.is_eq(X.kbit(bs, t), 0), cs, p, q2), SE.pick(SX.kbit(FS.value(bs), t), sq2, sr), hs)

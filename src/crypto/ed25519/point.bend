@@ -117,13 +117,17 @@ def select(+s: U32, p: Pt, q: Pt) -> Pt:
 
 # [bits t = n - 1 .. 0 of bs] p added to 2^n q: double, add, select (the
 # same work for every bit: for secret scalars)
-def smul(n: Nat, +c: Cs, +bs: List<&2, U32>, +p: Pt, q: Pt) -> Pt:
-  match n:
-    case 0n:
-      q
-    case 1n+ +t:
-      +q2 = double(cs_r(c), q)
-      smul(t, c, bs, p, select(X.kbit(bs, t), q2, add(c, q2, p)))
+# (p is inspected first: on an unknown point the proof checker keeps the
+# call instead of unrolling the loop)
+def smul(+p: Pt, n: Nat, +c: Cs, +bs: List<&2, U32>, q: Pt) -> Pt:
+  match p:
+    case Pt{x0, y0, z0, t0}:
+      match n:
+        case 0n:
+          q
+        case 1n+ +t:
+          +q2 = double(cs_r(c), q)
+          smul(p, t, c, bs, select(X.kbit(bs, t), q2, add(c, q2, p)))
 
 # the same result, adding only on a one bit (for public scalars)
 def smul_bit(z: Bool, +c: Cs, +p: Pt, q2: Pt) -> Pt:
@@ -133,20 +137,22 @@ def smul_bit(z: Bool, +c: Cs, +p: Pt, q2: Pt) -> Pt:
     case False{}:
       add(c, q2, p)
 
-def smul_vt(n: Nat, +c: Cs, +bs: List<&2, U32>, +p: Pt, q: Pt) -> Pt:
-  match n:
-    case 0n:
-      q
-    case 1n+ +t:
-      smul_vt(t, c, bs, p, smul_bit(U32.is_eq(X.kbit(bs, t), 0), c, p, double(cs_r(c), q)))
+def smul_vt(+p: Pt, n: Nat, +c: Cs, +bs: List<&2, U32>, q: Pt) -> Pt:
+  match p:
+    case Pt{x0, y0, z0, t0}:
+      match n:
+        case 0n:
+          q
+        case 1n+ +t:
+          smul_vt(p, t, c, bs, smul_bit(U32.is_eq(X.kbit(bs, t), 0), c, p, double(cs_r(c), q)))
 
 # [k] p for a byte-string scalar k (secret)
 def mul(+c: Cs, +k: List<&2, U32>, +p: Pt) -> Pt:
-  smul(X.bitlen(k), c, k, p, identity())
+  smul(p, X.bitlen(k), c, k, identity())
 
 # [k] p for a public scalar k
 def mul_vt(+c: Cs, +k: List<&2, U32>, +p: Pt) -> Pt:
-  smul_vt(X.bitlen(k), c, k, p, identity())
+  smul_vt(p, X.bitlen(k), c, k, identity())
 
 # the last byte with bit 7 set to b (the canonical y has it clear)
 def set_top(xs: List<&2, U32>, +b: U32) -> List<&2, U32>:
@@ -225,6 +231,18 @@ def base_of(m: Maybe<&2, Pt>) -> Pt:
     case Some{p}:
       p
 
-def base(+c: Cs) -> Pt:
+def base_go(+c: Cs) -> Pt:
   +R = cs_r(c)
   base_of(decode(c, FE.to_bytes(R, FE.mul(R, cs_small(c, 4n), FE.inv(R, cs_small(c, 5n))))))
+
+# inspecting the radix first keeps the proof checker from running the
+# decoding whenever it compares terms containing the base point
+def base_r(r: Nat, +c: Cs) -> Pt:
+  match r:
+    case 0n:
+      base_go(c)
+    case 1n+q:
+      base_go(c)
+
+def base(+c: Cs) -> Pt:
+  base_r(cs_r(c), c)

@@ -3,7 +3,7 @@ import ../../../src/crypto/sign.bend as SG
 import ../../../spec/crypto/curve25519/field.bend as FS
 import ../../../spec/crypto/ed25519.bend as SE
 import ../../../spec/crypto/sha512.bend as SHA
-import ../../../src/crypto/hash.bend as H
+import ../../../src/crypto/sha512/stream.bend as HS
 import ../../../src/crypto/curve25519/x25519.bend as X
 import ../../../src/crypto/ed25519/point.bend as PT
 import ../../../src/crypto/ed25519/ed25519.bend as E
@@ -50,19 +50,19 @@ def ed_public_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +seed: 
   +pp = PB.pp1(one)
   +P = {1n+pp : Nat}
   +D = SE.dconst(one, P)
-  +h = H.sha512(seed)
+  +h = HS.hash(seed)
   +sh = SHA.sha512_bytes(seed)
   +cs = PT.consts(xs)
   +e1 = TC.public_rel(one, h1, pp, PRM.hP(one, h1), cs, PC.cr(one, h1, xs), D, PC.rd2(one, h1, pp, PRM.hP(one, h1), xs), PT.base(cs), TC.base_of(one, h1, xs), h, BY.sha_okb(seed))
   +e2 = Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.public_of(one, P, D, z), h, sh, BY.sha_eq(seed))
-  +e12 = Equal.trans(List<&2, U32>, E.public_key_ctx(E.context(xs), seed), SE.public_of(one, P, D, h), SE.public_key_at(one, P, seed), e1, e2)
+  +e12 = Equal.trans(List<&2, U32>, E.public_key_ctx(E.context(xs), seed), E.public_go(E.context(xs), seed), SE.public_key_at(one, P, seed), PB.public_eq(E.context(xs), seed), Equal.trans(List<&2, U32>, E.public_go(E.context(xs), seed), SE.public_of(one, P, D, h), SE.public_key_at(one, P, seed), e1, e2))
   L.subst(Nat, z => {E.public_key_ctx(E.context(xs), seed) == SE.public_key_at(one, z, seed) : List<&2, U32>}, P, FS.prime(one), Equal.sym(Nat, FS.prime(one), P, PRM.prime_eq(one, h1)), e12)
 
 def ed_public(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> SE.Ed25519.public(one, h1, seed, hs):
   ed_public_ctx(one, h1, seed, seed, hs)
 
 def ed_key_public(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> SE.Ed25519.key_public(one, h1, seed, hs):
-  ed_public(one, h1, seed, hs)
+  Equal.trans(List<&2, U32>, E.key_public(E.expand(seed)), E.public_key(seed), SE.public_key(one, seed), PB.kp_eq(E.context(seed), seed), ed_public(one, h1, seed, hs))
 
 def sign_keypair(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> SS.Sign.keypair(one, h1, seed, hs):
   keypair_if_eq(seed, X.valid_bytes(32n, seed), SE.public_key(one, seed), PB.valid_ok(32n, seed, hs), ed_public(one, h1, seed, hs))
@@ -74,4 +74,4 @@ def sign_keypair_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +see
   keypair_ctx_if_eq(E.context(xs), seed, X.valid_bytes(32n, seed), SE.public_key(one, seed), PB.valid_ok(32n, seed, hs), ed_public_ctx(one, h1, xs, seed, hs))
 
 def sign_key_public_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +seed: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> SS.Sign.key_public_ctx(one, h1, xs, seed, hs):
-  key_pub_ctx_eq(E.context(xs), seed, X.valid_bytes(32n, seed), SE.public_key(one, seed), PB.valid_ok(32n, seed, hs), ed_public_ctx(one, h1, xs, seed, hs))
+  key_pub_ctx_eq(E.context(xs), seed, X.valid_bytes(32n, seed), SE.public_key(one, seed), PB.valid_ok(32n, seed, hs), Equal.trans(List<&2, U32>, E.key_public(E.expand_ctx(E.context(xs), seed)), E.public_key_ctx(E.context(xs), seed), SE.public_key(one, seed), PB.kp_eq(E.context(xs), seed), ed_public_ctx(one, h1, xs, seed, hs)))

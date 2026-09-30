@@ -1,5 +1,5 @@
 import Base
-import ../hash.bend as H
+import ../sha512/stream.bend as HS
 import ../curve25519/field.bend as F
 import ../curve25519/x25519.bend as X
 import ./scalar.bend as SC
@@ -31,9 +31,9 @@ def cat(xs: List<&2, U32>, ys: List<&2, U32>) -> List<&2, U32>:
 def hram(rb: List<&2, U32>, +a: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
   match rb:
     case Nil{}:
-      SC.reduce(H.sha512(cat(Nil{}, cat(a, msg))))
+      SC.reduce(HS.hash(cat(Nil{}, cat(a, msg))))
     case Con{x, xt}:
-      SC.reduce(H.sha512(cat(Con{x, xt}, cat(a, msg))))
+      SC.reduce(HS.hash(cat(Con{x, xt}, cat(a, msg))))
 
 # the secret scalar s (pruned lower half of SHA-512(seed)) and the prefix
 def secret(+h: List<&2, U32>) -> List<&2, U32>:
@@ -61,10 +61,20 @@ def context(+xs: List<&2, U32>) -> Ctx:
   +c = PT.consts(xs)
   Ctx{c, PT.base(c)}
 
-def expand_ctx(ctx: Ctx, +seed: List<&2, U32>) -> Key:
+def expand_go(ctx: Ctx, +seed: List<&2, U32>) -> Key:
   match ctx:
     case Ctx{+c, +b}:
-      key_of(c, b, H.sha512(seed))
+      key_of(c, b, HS.hash(seed))
+
+# The entry points inspect a byte-string argument (seed, message) first:
+# on an unknown one the proof checker keeps the call as it is instead of
+# running the computation whenever it compares two terms containing it.
+def expand_ctx(ctx: Ctx, +seed: List<&2, U32>) -> Key:
+  match seed:
+    case Nil{}:
+      expand_go(ctx, Nil{})
+    case Con{+h, +t}:
+      expand_go(ctx, Con{h, t})
 
 def expand(+seed: List<&2, U32>) -> Key:
   expand_ctx(context(seed), seed)
@@ -75,10 +85,17 @@ def key_public(k: Key) -> List<&2, U32>:
       a
 
 # A = [s]B, encoded
-def public_key_ctx(ctx: Ctx, +seed: List<&2, U32>) -> List<&2, U32>:
+def public_go(ctx: Ctx, +seed: List<&2, U32>) -> List<&2, U32>:
   match ctx:
     case Ctx{+c, +b}:
-      public_of(c, b, H.sha512(seed))
+      public_of(c, b, HS.hash(seed))
+
+def public_key_ctx(ctx: Ctx, +seed: List<&2, U32>) -> List<&2, U32>:
+  match seed:
+    case Nil{}:
+      public_go(ctx, Nil{})
+    case Con{+h, +t}:
+      public_go(ctx, Con{h, t})
 
 def public_key(+seed: List<&2, U32>) -> List<&2, U32>:
   public_key_ctx(context(seed), seed)
@@ -86,15 +103,22 @@ def public_key(+seed: List<&2, U32>) -> List<&2, U32>:
 # RFC 8032 5.1.6 with the expanded key: r = SHA-512(prefix || M) mod L,
 # R = [r]B, k = SHA-512(R || A || M) mod L, S = (r + k s) mod L
 def sign_parts(+c: PT.Cs, +b: PT.Pt, +sr: List<&2, U32>, +pre: List<&2, U32>, +a: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
-  +r = SC.reduce(H.sha512(cat(pre, msg)))
+  +r = SC.reduce(HS.hash(cat(pre, msg)))
   +rb = PT.encode(PT.cs_r(c), PT.mul(c, r, b))
   +k = hram(rb, a, msg)
   cat(rb, SC.mul_add(k, sr, r))
 
-def sign_key(k: Key, +msg: List<&2, U32>) -> List<&2, U32>:
+def sign_go(k: Key, +msg: List<&2, U32>) -> List<&2, U32>:
   match k:
     case EdKey{+c, +b, +sr, +pre, +a}:
       sign_parts(c, b, sr, pre, a, msg)
+
+def sign_key(k: Key, +msg: List<&2, U32>) -> List<&2, U32>:
+  match msg:
+    case Nil{}:
+      sign_go(k, Nil{})
+    case Con{+h, +t}:
+      sign_go(k, Con{h, t})
 
 def sign_raw(+seed: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
   sign_key(expand(seed), msg)
@@ -116,11 +140,18 @@ def verify_with(+c: PT.Cs, +b: PT.Pt, +pk: List<&2, U32>, +msg: List<&2, U32>, +
     case False{}:
       False{}
 
-def verify_ctx(ctx: Ctx, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
+def verify_go(ctx: Ctx, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
   match ctx:
     case Ctx{+c, +b}:
       +sb = F.drop(32n, sig)
       verify_with(c, b, pk, msg, F.take(32n, sig), sb, SC.lt_l(sb))
+
+def verify_ctx(ctx: Ctx, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
+  match msg:
+    case Nil{}:
+      verify_go(ctx, pk, Nil{}, sig)
+    case Con{+h, +t}:
+      verify_go(ctx, pk, Con{h, t}, sig)
 
 def verify_raw(+pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
   verify_ctx(context(pk), pk, msg, sig)

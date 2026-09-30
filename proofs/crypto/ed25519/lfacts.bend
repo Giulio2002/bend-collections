@@ -13,14 +13,13 @@ import ../../lib/arith.bend as AR
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../curve25519/num.bend as M
 import ../curve25519/limbs.bend as LM
-import ../curve25519/consts.bend as K
+import ./bytefield.bend as LO
 import ../curve25519/xlem.bend as LD
 import ../fe/nl.bend as NL
 import ../fe/pw.bend as PW
 import ../fe/pass.bend as PS
 import ../fe/bytes.bend as BY
 import ../fe/conv.bend as CV
-import ./adc.bend as AD
 import ./scalar3.bend as S3
 
 # The group order L = SE.ell(one) of spec/crypto/ed25519.bend: its shape
@@ -47,15 +46,15 @@ def dd32() -> List<&2, U32>:
    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 def b252() -> List<&2, U32>:
-  K.rep(31n, 0, [16])
+  LO.rep(31n, 0, [16])
 
 def b125() -> List<&2, U32>:
-  K.rep(15n, 0, Con{32, K.rep(16n, 0, Nil{})})
+  LO.rep(15n, 0, Con{32, LO.rep(16n, 0, Nil{})})
 
-def adc_l() -> {AD.adc_ok(cl32(), b252(), ESC.ell(), 0n, 0n) == True{} : Bool}:
+def adc_l() -> {LO.adc_ok(cl32(), b252(), ESC.ell(), 0n, 0n) == True{} : Bool}:
   {==}
 
-def adc_c() -> {AD.adc_ok(cl32(), dd32(), b125(), 0n, 0n) == True{} : Bool}:
+def adc_c() -> {LO.adc_ok(cl32(), dd32(), b125(), 0n, 0n) == True{} : Bool}:
   {==}
 
 # 2^(8 n) x
@@ -77,43 +76,43 @@ def sh32_zero(+one: Nat, +xs: List<&2, U32>, +h: {LM.okb(32n, xs, 255n) == True{
   tr(LM.sh(xs, Nat.mul(one, 0n)), LM.shn(32n, Nat.mul(one, 0n)), 0n, LM.sh_okb(32n, xs, 255n, Nat.mul(one, 0n), h), tr(LM.shn(32n, Nat.mul(one, 0n)), LM.shn(32n, 0n), 0n, Equal.cong(Nat, Nat, t => LM.shn(32n, t), Nat.mul(one, 0n), 0n, NA.mul_zero(one)), {==}))
 
 # the certified sum without carries: valo(x) + valo(y) == valo(z)
-def adc_sum(+one: Nat, +xs: List<&2, U32>, +ys: List<&2, U32>, +zs: List<&2, U32>, +h: {AD.adc_ok(xs, ys, zs, 0n, 0n) == True{} : Bool}, +hx: {LM.okb(32n, xs, 255n) == True{} : Bool}) -> {Nat.add(K.valo(one, xs), K.valo(one, ys)) == K.valo(one, zs) : Nat}:
-  +X = K.valo(one, xs)
-  +Y = K.valo(one, ys)
-  +Z = K.valo(one, zs)
-  +e = AD.adc_val(one, xs, ys, zs, 0n, 0n, h)
+def adc_sum(+one: Nat, +xs: List<&2, U32>, +ys: List<&2, U32>, +zs: List<&2, U32>, +h: {LO.adc_ok(xs, ys, zs, 0n, 0n) == True{} : Bool}, +hx: {LM.okb(32n, xs, 255n) == True{} : Bool}) -> {Nat.add(LO.valo(one, xs), LO.valo(one, ys)) == LO.valo(one, zs) : Nat}:
+  +X = LO.valo(one, xs)
+  +Y = LO.valo(one, ys)
+  +Z = LO.valo(one, zs)
+  +e = LO.adc_val(one, xs, ys, zs, 0n, 0n, h)
   tr(Nat.add(X, Y), Nat.add(Nat.add(X, Y), Nat.mul(one, 0n)), Z, tr(Nat.add(X, Y), Nat.add(Nat.add(X, Y), 0n), Nat.add(Nat.add(X, Y), Nat.mul(one, 0n)), sy(Nat.add(Nat.add(X, Y), 0n), Nat.add(X, Y), N.add_zero(Nat.add(X, Y))), M.cong_r(Nat.add(X, Y), 0n, Nat.mul(one, 0n), sy(Nat.mul(one, 0n), 0n, NA.mul_zero(one)))), tr(Nat.add(Nat.add(X, Y), Nat.mul(one, 0n)), Nat.add(Z, LM.sh(xs, Nat.mul(one, 0n))), Z, e, tr(Nat.add(Z, LM.sh(xs, Nat.mul(one, 0n))), Nat.add(Z, 0n), Z, M.cong_r(Z, LM.sh(xs, Nat.mul(one, 0n)), 0n, sh32_zero(one, xs, hx)), N.add_zero(Z))))
 
 # valo(one, [k]) == one k
-def valo1(+one: Nat, +k: U32) -> {K.valo(one, [k]) == Nat.mul(one, U32.to_nat(k)) : Nat}:
+def valo1(+one: Nat, +k: U32) -> {LO.valo(one, [k]) == Nat.mul(one, U32.to_nat(k)) : Nat}:
   N.add_zero(Nat.mul(one, U32.to_nat(k)))
 
-def valo_b252(+one: Nat) -> {K.valo(one, b252()) == WD.sc(252n, one) : Nat}:
-  +e1 = K.run0(one, 31n, [16])
-  +e2 = Equal.cong(Nat, Nat, t => LM.shn(31n, t), K.valo(one, [16]), WD.sc(4n, one), tr(K.valo(one, [16]), Nat.mul(one, 16n), WD.sc(4n, one), valo1(one, 16), AR.mul_sc(4n, one)))
-  tr(K.valo(one, b252()), LM.shn(31n, K.valo(one, [16])), WD.sc(252n, one), e1, tr(LM.shn(31n, K.valo(one, [16])), LM.shn(31n, WD.sc(4n, one)), WD.sc(252n, one), e2, tr(LM.shn(31n, WD.sc(4n, one)), WD.sc(248n, WD.sc(4n, one)), WD.sc(252n, one), shn_sc(31n, WD.sc(4n, one)), M.sc_sc(248n, 4n, one))))
+def valo_b252(+one: Nat) -> {LO.valo(one, b252()) == WD.sc(252n, one) : Nat}:
+  +e1 = LO.run0(one, 31n, [16])
+  +e2 = Equal.cong(Nat, Nat, t => LM.shn(31n, t), LO.valo(one, [16]), WD.sc(4n, one), tr(LO.valo(one, [16]), Nat.mul(one, 16n), WD.sc(4n, one), valo1(one, 16), AR.mul_sc(4n, one)))
+  tr(LO.valo(one, b252()), LM.shn(31n, LO.valo(one, [16])), WD.sc(252n, one), e1, tr(LM.shn(31n, LO.valo(one, [16])), LM.shn(31n, WD.sc(4n, one)), WD.sc(252n, one), e2, tr(LM.shn(31n, WD.sc(4n, one)), WD.sc(248n, WD.sc(4n, one)), WD.sc(252n, one), shn_sc(31n, WD.sc(4n, one)), M.sc_sc(248n, 4n, one))))
 
-def valo_b125(+one: Nat) -> {K.valo(one, b125()) == WD.sc(125n, one) : Nat}:
-  +t = {Con{32, K.rep(16n, 0, Nil{})} : List<&2, U32>}
-  +e0 = tr(K.valo(one, K.rep(16n, 0, Nil{})), LM.shn(16n, 0n), 0n, K.run0(one, 16n, Nil{}), {==})
-  +et = tr(K.valo(one, t), Nat.add(Nat.mul(one, 32n), C.shift(8n, 0n)), WD.sc(5n, one), M.cong_r(Nat.mul(one, 32n), C.shift(8n, K.valo(one, K.rep(16n, 0, Nil{}))), C.shift(8n, 0n), M.cong_sc(8n, K.valo(one, K.rep(16n, 0, Nil{})), 0n, e0)), tr(Nat.add(Nat.mul(one, 32n), C.shift(8n, 0n)), Nat.mul(one, 32n), WD.sc(5n, one), N.add_zero(Nat.mul(one, 32n)), AR.mul_sc(5n, one)))
-  tr(K.valo(one, b125()), LM.shn(15n, K.valo(one, t)), WD.sc(125n, one), K.run0(one, 15n, t), tr(LM.shn(15n, K.valo(one, t)), LM.shn(15n, WD.sc(5n, one)), WD.sc(125n, one), Equal.cong(Nat, Nat, z => LM.shn(15n, z), K.valo(one, t), WD.sc(5n, one), et), tr(LM.shn(15n, WD.sc(5n, one)), WD.sc(120n, WD.sc(5n, one)), WD.sc(125n, one), shn_sc(15n, WD.sc(5n, one)), M.sc_sc(120n, 5n, one))))
+def valo_b125(+one: Nat) -> {LO.valo(one, b125()) == WD.sc(125n, one) : Nat}:
+  +t = {Con{32, LO.rep(16n, 0, Nil{})} : List<&2, U32>}
+  +e0 = tr(LO.valo(one, LO.rep(16n, 0, Nil{})), LM.shn(16n, 0n), 0n, LO.run0(one, 16n, Nil{}), {==})
+  +et = tr(LO.valo(one, t), Nat.add(Nat.mul(one, 32n), C.shift(8n, 0n)), WD.sc(5n, one), M.cong_r(Nat.mul(one, 32n), C.shift(8n, LO.valo(one, LO.rep(16n, 0, Nil{}))), C.shift(8n, 0n), M.cong_sc(8n, LO.valo(one, LO.rep(16n, 0, Nil{})), 0n, e0)), tr(Nat.add(Nat.mul(one, 32n), C.shift(8n, 0n)), Nat.mul(one, 32n), WD.sc(5n, one), N.add_zero(Nat.mul(one, 32n)), AR.mul_sc(5n, one)))
+  tr(LO.valo(one, b125()), LM.shn(15n, LO.valo(one, t)), WD.sc(125n, one), LO.run0(one, 15n, t), tr(LM.shn(15n, LO.valo(one, t)), LM.shn(15n, WD.sc(5n, one)), WD.sc(125n, one), Equal.cong(Nat, Nat, z => LM.shn(15n, z), LO.valo(one, t), WD.sc(5n, one), et), tr(LM.shn(15n, WD.sc(5n, one)), WD.sc(120n, WD.sc(5n, one)), WD.sc(125n, one), shn_sc(15n, WD.sc(5n, one)), M.sc_sc(120n, 5n, one))))
 
 # L == c + 2^252 with c <= 2^125
-def ell_split(+one: Nat) -> {Nat.add(K.valo(one, cl32()), WD.sc(252n, one)) == SE.ell(one) : Nat}:
-  tr(Nat.add(K.valo(one, cl32()), WD.sc(252n, one)), Nat.add(K.valo(one, cl32()), K.valo(one, b252())), SE.ell(one), M.cong_r(K.valo(one, cl32()), WD.sc(252n, one), K.valo(one, b252()), sy(K.valo(one, b252()), WD.sc(252n, one), valo_b252(one))), tr(Nat.add(K.valo(one, cl32()), K.valo(one, b252())), K.valo(one, ESC.ell()), SE.ell(one), adc_sum(one, cl32(), b252(), ESC.ell(), adc_l(), {==}), S3.ell_valo(one)))
+def ell_split(+one: Nat) -> {Nat.add(LO.valo(one, cl32()), WD.sc(252n, one)) == SE.ell(one) : Nat}:
+  tr(Nat.add(LO.valo(one, cl32()), WD.sc(252n, one)), Nat.add(LO.valo(one, cl32()), LO.valo(one, b252())), SE.ell(one), M.cong_r(LO.valo(one, cl32()), WD.sc(252n, one), LO.valo(one, b252()), sy(LO.valo(one, b252()), WD.sc(252n, one), valo_b252(one))), tr(Nat.add(LO.valo(one, cl32()), LO.valo(one, b252())), LO.valo(one, ESC.ell()), SE.ell(one), adc_sum(one, cl32(), b252(), ESC.ell(), adc_l(), {==}), S3.ell_valo(one)))
 
-def c_le(+one: Nat) -> {Nat.is_le(K.valo(one, cl32()), WD.sc(125n, one)) == True{} : Bool}:
-  L.subst(Nat, z => {Nat.is_le(K.valo(one, cl32()), z) == True{} : Bool}, Nat.add(K.valo(one, cl32()), K.valo(one, dd32())), WD.sc(125n, one), tr(Nat.add(K.valo(one, cl32()), K.valo(one, dd32())), K.valo(one, b125()), WD.sc(125n, one), adc_sum(one, cl32(), dd32(), b125(), adc_c(), {==}), valo_b125(one)), N.le_add_right(K.valo(one, cl32()), K.valo(one, dd32())))
+def c_le(+one: Nat) -> {Nat.is_le(LO.valo(one, cl32()), WD.sc(125n, one)) == True{} : Bool}:
+  L.subst(Nat, z => {Nat.is_le(LO.valo(one, cl32()), z) == True{} : Bool}, Nat.add(LO.valo(one, cl32()), LO.valo(one, dd32())), WD.sc(125n, one), tr(Nat.add(LO.valo(one, cl32()), LO.valo(one, dd32())), LO.valo(one, b125()), WD.sc(125n, one), adc_sum(one, cl32(), dd32(), b125(), adc_c(), {==}), valo_b125(one)), N.le_add_right(LO.valo(one, cl32()), LO.valo(one, dd32())))
 
 # 2^252 <= L
 def ell_lo(+one: Nat) -> {Nat.is_le(WD.sc(252n, one), SE.ell(one)) == True{} : Bool}:
-  L.subst(Nat, z => {Nat.is_le(WD.sc(252n, one), z) == True{} : Bool}, Nat.add(K.valo(one, cl32()), WD.sc(252n, one)), SE.ell(one), ell_split(one), NL.le_add_l(K.valo(one, cl32()), WD.sc(252n, one)))
+  L.subst(Nat, z => {Nat.is_le(WD.sc(252n, one), z) == True{} : Bool}, Nat.add(LO.valo(one, cl32()), WD.sc(252n, one)), SE.ell(one), ell_split(one), NL.le_add_l(LO.valo(one, cl32()), WD.sc(252n, one)))
 
 # L <= 2^252 + 2^125
 def ell_hi(+one: Nat) -> {Nat.is_le(SE.ell(one), Nat.add(WD.sc(252n, one), WD.sc(125n, one))) == True{} : Bool}:
-  +a = M.le_add_r(K.valo(one, cl32()), WD.sc(125n, one), WD.sc(252n, one), c_le(one))
-  +b = L.subst(Nat, z => {Nat.is_le(z, Nat.add(WD.sc(125n, one), WD.sc(252n, one))) == True{} : Bool}, Nat.add(K.valo(one, cl32()), WD.sc(252n, one)), SE.ell(one), ell_split(one), a)
+  +a = M.le_add_r(LO.valo(one, cl32()), WD.sc(125n, one), WD.sc(252n, one), c_le(one))
+  +b = L.subst(Nat, z => {Nat.is_le(z, Nat.add(WD.sc(125n, one), WD.sc(252n, one))) == True{} : Bool}, Nat.add(LO.valo(one, cl32()), WD.sc(252n, one)), SE.ell(one), ell_split(one), a)
   L.subst(Nat, z => {Nat.is_le(SE.ell(one), z) == True{} : Bool}, Nat.add(WD.sc(125n, one), WD.sc(252n, one)), Nat.add(WD.sc(252n, one), WD.sc(125n, one)), NA.add_comm(WD.sc(125n, one), WD.sc(252n, one)), b)
 
 # L < 2^253
@@ -147,7 +146,7 @@ def bits_ell(+one: Nat, +h1: {one == 1n : Nat}) -> {BY.bv(LS.take(255n, LS.bits_
   +e2 = tr(BY.bv(LS.bits_all(8n, LS.nat_of(ESC.ell()))), BY.lvw(8n, LS.nat_of(ESC.ell())), V, BY.bits_all_val(one, h1, 8n, LS.nat_of(ESC.ell()), hn), BY.lvw8(ESC.ell()))
   +em = tr(FS.value(SX.mask_last(ESC.ell())), Nat.mod(V, WD.sc(LD.m7(31n), one)), Nat.mod(V, WD.sc(255n, one)), LD.mask_mod(one, h1, 31n, ESC.ell(), ell_tight()), Equal.cong(Nat, Nat, z => Nat.mod(V, WD.sc(z, one)), LD.m7(31n), 255n, {==}))
   +e3 = tr(Nat.mod(V, WD.sc(255n, one)), FS.value(SX.mask_last(ESC.ell())), V, sy(FS.value(SX.mask_last(ESC.ell())), Nat.mod(V, WD.sc(255n, one)), em), Equal.cong(List<&2, U32>, Nat, z => FS.value(z), SX.mask_last(ESC.ell()), ESC.ell(), mask_ell()))
-  +e4 = tr(V, K.valo(one, ESC.ell()), SE.ell(one), sy(K.valo(one, ESC.ell()), V, K.valo_value(one, h1, ESC.ell())), S3.ell_valo(one))
+  +e4 = tr(V, LO.valo(one, ESC.ell()), SE.ell(one), sy(LO.valo(one, ESC.ell()), V, LO.valo_value(one, h1, ESC.ell())), S3.ell_valo(one))
   tr(BY.bv(LS.take(255n, LS.bits_all(8n, LS.nat_of(ESC.ell())))), Nat.mod(BY.bv(LS.bits_all(8n, LS.nat_of(ESC.ell()))), WD.sc(255n, one)), SE.ell(one), e1, tr(Nat.mod(BY.bv(LS.bits_all(8n, LS.nat_of(ESC.ell()))), WD.sc(255n, one)), Nat.mod(V, WD.sc(255n, one)), SE.ell(one), Equal.cong(Nat, Nat, z => Nat.mod(z, WD.sc(255n, one)), BY.bv(LS.bits_all(8n, LS.nat_of(ESC.ell()))), V, e2), tr(Nat.mod(V, WD.sc(255n, one)), V, SE.ell(one), e3, e4)))
 
 def l15_val(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>) -> {FV.lv(ESC.l15(xs)) == SE.ell(one) : Nat}:

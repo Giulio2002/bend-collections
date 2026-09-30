@@ -11,7 +11,7 @@ import ../../lib/word.bend as WD
 import ../../lib/arith.bend as AR
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/natural/arith.bend as NR
-import ../../math/u64/u64div.bend as PD
+import ../fe/w32.bend as PD
 import ./num.bend as M
 import ../fe/pw.bend as PW
 import ../fe/rel.bend as RE

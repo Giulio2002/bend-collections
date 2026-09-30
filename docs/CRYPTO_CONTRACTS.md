@@ -400,7 +400,14 @@ subtraction with borrows; `horner.bend`: one step keeps the value mod L
 and the bound below L; `sclause.bend`: `reduce`, `mul_add`); SHA-512
 digests are 64 bytes below 256 and equal FIPS 180-4 (`bytes.bend`, reusing
 `proofs/crypto/sha512/`); `tcommon.bend`, `tscal.bend`, `tsign.bend`,
-`tverify.bend` compose key generation, signing and verification.
+`tverify.bend` compose key generation, signing and verification. The
+byte-level facts these proofs still need (the comparisons `x < p` and
+`x < L` by a carry out of a byte addition, the value of L) are in
+`bytefield.bend`, which holds just those lemmas instead of importing the
+byte-field library of `proofs/crypto/curve25519/`; with the entry points
+(`expand_ctx`, `public_key_ctx`, `sign_key`, `verify_ctx`), `smul` and
+`base` each matching first on an argument the proofs keep symbolic, every
+Ed25519 root checks in under 600 MB.
 
 The proof checker compares two terms by pointer or by reducing both and
 walking them, so the proofs keep every compared term either a variable or a
