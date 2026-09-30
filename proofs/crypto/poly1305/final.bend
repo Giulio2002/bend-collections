@@ -383,6 +383,25 @@ law fin_k:
 def fin_k(k, a, b, c, m, e1, e2, e3):
   A.tr(a, b, C.low(k, m), e1, A.tr(b, C.low(k, c), C.low(k, m), e2, Equal.cong(Nat, Nat, z => C.low(k, z), c, m, A.sy(m, c, e3))))
 
+law fe_k:
+  for +k: Nat
+  for +x: Nat
+  for +lgv: Nat
+  for +tgv: Nat
+  for +d: Nat
+  for +s2: Nat
+  for +a: Nat
+  for +m: Nat
+  for +hs: {x == Nat.add(lgv, C.shift(k, tgv)) : Nat}
+  for +hf: {C.fits(k, lgv) == True{} : Bool}
+  for +hx: {x == Nat.add(d, C.shift(k, s2)) : Nat}
+  for +e1: {a == lgv : Nat}
+  for +e3: {m == d : Nat}
+  {a == C.low(k, m) : Nat}
+
+def fe_k(k, x, lgv, tgv, d, s2, a, m, hs, hf, hx, e1, e3):
+  fin_k(k, a, lgv, d, m, e1, elg_k(k, x, lgv, tgv, d, s2, hs, hf, hx), e3)
+
 def frz_c(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 5n) == C.shift(130n, one) : Nat}, +h: List<&2, U32>, +hh: {ST.inv(h) == True{} : Bool}, +c: Bool, +hc: {Nat.is_eq(qq(h), 0n) == c : Bool}) -> {V.ev(Li.freeze(h)) == C.low(128n, Nat.mod(V.ev(h), 1n+bp)) : Nat}:
   match c:
     case True{}:
@@ -424,8 +443,7 @@ def frz_c(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +h5: {Nat.add(1n+bp, 5n) 
       +em = A.tr(Nat.mod(V.ev(h), pp), Nat.mod(Nat.add(Nat.mul(1n, pp), d), pp), d,
         Equal.cong(Nat, Nat, z => Nat.mod(z, pp), V.ev(h), Nat.add(Nat.mul(1n, pp), d), A.tr(V.ev(h), Nat.add(d, pp), Nat.add(Nat.mul(1n, pp), d), eh, A.tr(Nat.add(d, pp), Nat.add(pp, d), Nat.add(Nat.mul(1n, pp), d), N.add_comm(d, pp), WM.cong_l(pp, Nat.mul(1n, pp), d, A.sy(Nat.mul(1n, pp), pp, AR.one_mul(pp)))))),
         NR.mod_of(1n, bp, d, ldp))
-      +elg = elg_k(128n, x, lg(h), tg(h), d, C.shift(2n, one), gsplit(one, h1, h, hh), flg(one, h1, h), ex)
-      fin_k(128n, V.ev(Li.freeze(h)), lg(h), d, Nat.mod(V.ev(h), pp), ef, elg, em)
+      fe_k(128n, x, lg(h), tg(h), d, C.shift(2n, one), V.ev(Li.freeze(h)), Nat.mod(V.ev(h), pp), gsplit(one, h1, h, hh), flg(one, h1, h), ex, ef, em)
 
 law freeze_ev:
   for +one: Nat
