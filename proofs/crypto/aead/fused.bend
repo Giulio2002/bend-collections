@@ -870,7 +870,7 @@ law opoly_eq:
   for +la: Nat
   for +h: L.F
   for +cnt: Nat
-  {I.opoly(fuel, I.nblk(CH.skip(16n, xs)), xs, pone, kk, sv, la, h, cnt) == S.eq(I.tail(CH.skip(16n, xs), xs), P.tag_len(pone, kk, sv, la, P.absorb_pad(pone, I.body(CH.skip(16n, xs), xs), kk, h, cnt))) : Bool}
+  {I.opoly(fuel, I.nblk(CH.skip(16n, xs)), xs, pone, kk, sv, la, h, cnt) == I.otag(xs, pone, kk, sv, la, h, cnt) : Bool}
 
 def opoly_eq(fuel, xs, pone, kk, sv, la, h, cnt):
   match fuel:

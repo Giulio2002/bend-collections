@@ -268,6 +268,13 @@ def nblk(l: List<&2, U32>) -> Nat:
     case _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> _ <> l64 <> r: 1n+nblk(l64 <> r)
     case _: 0n
 
+# Whether the tag of the data xs (ciphertext || tag) matches, the
+# ciphertext absorbed onto h (cnt bytes so far) with its padding, then the
+# lengths.
+def otag(+xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, h: L.F, cnt: Nat) -> Bool:
+  +ld = CH.skip(16n, xs)
+  S.eq(tail(ld, xs), P.tag_len(pone, kk, sv, la, P.absorb_pad(pone, body(ld, xs), kk, h, cnt)))
+
 # Whether the tag matches. xs is the data (ciphertext || tag) from some
 # point on and nb = nblk of its ciphertext: 64 ciphertext bytes are
 # absorbed onto h per step, then the rest (the data but its last 16 bytes)
@@ -283,8 +290,7 @@ def opoly(fuel: Nat, nb: Nat, +xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F
       +cnt4 = Nat.add(Nat.add(Nat.add(Nat.add(cnt, 16n), 16n), 16n), 16n)
       opoly(p, q, xrest, pone, kk, sv, la, g4, cnt4)
     case _ _ _:
-      +ld = CH.skip(16n, xs)
-      S.eq(tail(ld, xs), P.tag_len(pone, kk, sv, la, P.absorb_pad(pone, body(ld, xs), kk, h, cnt)))
+      otag(xs, pone, kk, sv, la, h, cnt)
 
 # The plaintext: 64 bytes per step (st: the keystream state of counter c),
 # then fct on the rest of the ciphertext.

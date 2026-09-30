@@ -1432,6 +1432,13 @@ def fused_open_safe():
     out.append("""
 # ---- the tag pass of the one-pass ChaCha20-Poly1305 open (I.opoly)
 
+# I.otag: the tag's end over the data xs (ciphertext || tag)
+def ok_otag(+xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, +h: L.F, +cnt: Nat) -> Bool:
+  ok_ftail(I.body(CH.skip(16n, xs), xs), pone, kk, sv, la, h, cnt)
+
+def otag_safe(+xs: List<&2, U32>, %s) -> {ok_otag(xs, %s) == True{} : Bool}:
+  ftail_safe(I.body(CH.skip(16n, xs), xs), pone, hp, %s, sv, hs, la, h, hh, cnt)
+
 # I.opoly: each full 64-byte ciphertext block's four 16-byte pieces loaded
 # and absorbed, then the recursion or the tag's end
 def ok_opoly(fuel: Nat, nb: Nat, +xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, +h: L.F, +cnt: Nat) -> Bool:
@@ -1439,8 +1446,8 @@ def ok_opoly(fuel: Nat, nb: Nat, +xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: 
     case 1n+p 1n+q %s <> xrest:
       %s
     case _ _ _:
-      ok_ftail(I.body(CH.skip(16n, xs), xs), pone, kk, sv, la, h, cnt)
-""" % (' <> '.join('+' + x for x in FX), conj_expr(at + [rec])))
+      ok_otag(xs, pone, kk, sv, la, h, cnt)
+""" % (SIG, OA, KP, ' <> '.join('+' + x for x in FX), conj_expr(at + [rec])))
     # invariant helper and step
     Lp = []
     prev_inv = 'hh'
@@ -1468,7 +1475,7 @@ def opstep(+p: Nat, +q: Nat, %s, +xrest: List<&2, U32>, %s, +ih: {%s == True{} :
        '\n'.join('  ' + l for l in Lp), '\n'.join('  ' + l for l in conj_lines(list(zip(at, pf)) + [(rec, 'ih')], 'o'))))
     # the recursion
     def fb(cl):
-        return 'ftail_safe(I.body(CH.skip(16n, %s), %s), pone, hp, %s, sv, hs, la, h, hh, cnt)' % (cl, cl, KP)
+        return 'otag_safe(%s, %s)' % (cl, ARGS)
     body = []
     ind = '          '
     body.append(ind + 'match xs:')
@@ -1486,13 +1493,13 @@ def opstep(+p: Nat, +q: Nat, %s, +xrest: List<&2, U32>, %s, +ih: {%s == True{} :
                 ', '.join(FX), ARGS, KP, oH(4), ', '.join(FX), ARGS, FC4))
     out.append("""def opoly_safe(fuel: Nat, nb: Nat, +xs: List<&2, U32>, %s) -> {ok_opoly(fuel, nb, xs, %s) == True{} : Bool}:
   match fuel:
-    case 0n: ftail_safe(I.body(CH.skip(16n, xs), xs), pone, hp, %s, sv, hs, la, h, hh, cnt)
+    case 0n: otag_safe(xs, %s)
     case 1n++p:
       match nb:
-        case 0n: ftail_safe(I.body(CH.skip(16n, xs), xs), pone, hp, %s, sv, hs, la, h, hh, cnt)
+        case 0n: otag_safe(xs, %s)
         case 1n++q:
 %s
-""" % (SIG, OA, KP, KP, '\n'.join(body)))
+""" % (SIG, OA, ARGS, ARGS, '\n'.join(body)))
     # entry points
     K = ['k%d' % i for i in range(32)]
     rb = rbytes(K[:16])
