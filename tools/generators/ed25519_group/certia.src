@@ -1,0 +1,30 @@
+import Base
+import ../../../../spec/math/number.bend as SN
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../secp256k1/group/bn.bend as B
+import ../../secp256k1/group/bnx.bend as X
+import ../../secp256k1/group/certl.bend as CL
+import ../../../math/number/nt_prime.bend as PM
+import ./pfacts.bend as PF
+import ./cert_i.bend as CI
+
+# 2^((p - 1) / 4) mod p is the literal PF.il() (I, with I^2 + 1 == 0 mod p:
+# PF.i_sq), from the closed computation of cert_i.bend; so the
+# specification's ED.sqm1(p) = FS.fpow(p, 2n, (p - 1) / 4) is I.
+
+def h_n() -> {B.beq(PF.pl(), B.binc(PF.p1l())) == True{} : Bool}:
+  {==}
+
+def h_lt() -> {B.beq(PF.pl(), B.badd(B.binc(PF.il()), PF.icl())) == True{} : Bool}:
+  {==}
+
+def i_pow(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.mod(Nat.pow(2n, X.bvalo(one, PF.q4l())), FS.prime(one)) == X.bvalo(one, PF.il()) : Nat}:
+  %rw <- PF.p_is(one, h1)
+  %rw <- X.lit_o(one, h1, PF.l2(), 2n, PF.v2())
+  CL.fin_o(one, h1, PF.l2(), PF.pl(), PF.p1l(), PF.il(), PF.q4l(), PF.icl(), h_n(), CI.pw(one, h1), h_lt())
+
+# the same with the exponent as ED.sqm1 writes it: FS.fpow(p, 2n, (p - 1) / 4) == I
+def i_pow_div(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.fpow(FS.prime(one), 2n, Nat.div(Nat.sub(FS.prime(one), 1n), 4n)) == X.bvalo(one, PF.il()) : Nat}:
+  %goal {Nat.mod(Nat.pow(2n, Nat.div(Nat.sub(FS.prime(one), 1n), 4n)), FS.prime(one)) == X.bvalo(one, PF.il()) : Nat}
+  %rw PF.p_q4(one, h1)
+  i_pow(one, h1)

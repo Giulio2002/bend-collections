@@ -18,6 +18,8 @@ import ./pdec.bend as PD
 import ./bytes.bend as BY
 import ../curve25519/prime.bend as PRM
 import ./pbase.bend as PB
+import ./pfb.bend as PFB
+import ./fbspec.bend as FB
 
 # Shared steps of the Ed25519 proofs: scalar multiplications and encoding
 # related to the spec's, the scalars from digests, the public key.
@@ -69,6 +71,22 @@ def pub_guard(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>, +x: List<&2, U32>,
 
 def public_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +B: PT.Pt, +hB: PR.Rp(one, pp, B, SE.base(1n+pp, D)), +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}) -> {E.public_of(cs, B, h) == SE.public_of(one, 1n+pp, D, h) : List<&2, U32>}:
   pub_guard(one, 1n+pp, D, h, E.public_of(cs, B, h), public_body_rel(one, h1, pp, hP, cs, hR, D, rd2, B, hB, h, hh))
+
+# the same with the table of the base point: the table form of [s]B
+# (pfb.bend), then the group law (FB.LawE)
+def public_t_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, SE.dconst(one, 1n+pp), SE.dconst(one, 1n+pp))), +B: PT.Pt, +hB: PR.Rp(one, pp, B, SE.base(1n+pp, SE.dconst(one, 1n+pp))), +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}, lw: FB.LawE(one, pp)) -> {E.public_of_t(cs, PT.base_table(cs, B), h) == SE.public_of(one, 1n+pp, SE.dconst(one, 1n+pp), h) : List<&2, U32>}:
+  +P = {1n+pp : Nat}
+  +D = SE.dconst(one, P)
+  +R = PT.cs_r(cs)
+  +sk = X.clamp(F.take(32n, h))
+  +hs = LM.okb_bytes(32n, sk, XB.clamp_okb(F.take(32n, h), BY.take_okb(32n, 32n, h, 255n, hh)))
+  +SB = SE.base(P, D)
+  +X0 = PT.mul_base(R, PT.base_table(cs, B), sk)
+  +rm = PFB.mul_base_rel(one, h1, pp, hP, cs, hR, rd2, B, hB, sk, hs)
+  +e1 = enc_rel(one, h1, pp, hP, R, hR, X0, FB.smulb(one, P, D, sk), rm)
+  +e2 = lw(sk, hs)
+  +e3 = Equal.cong(Nat, List<&2, U32>, z => SE.encode(one, P, SE.mul(one, P, D, z, SB)), FS.value(sk), SE.secret(h), secret_eq(h))
+  pub_guard(one, P, D, h, E.public_of_t(cs, PT.base_table(cs, B), h), Equal.trans(List<&2, U32>, PT.encode(R, X0), SE.encode(one, P, FB.smulb(one, P, D, sk)), SE.public_body(one, P, D, h), e1, Equal.trans(List<&2, U32>, SE.encode(one, P, FB.smulb(one, P, D, sk)), SE.encode(one, P, SE.mul(one, P, D, FS.value(sk), SB)), SE.public_body(one, P, D, h), e2, e3)))
 
 def base_of(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>) -> PR.Rp(one, PB.pp1(one), PT.base(PT.consts(xs)), SE.base(1n+PB.pp1(one), SE.dconst(one, 1n+PB.pp1(one)))):
   +pp = PB.pp1(one)

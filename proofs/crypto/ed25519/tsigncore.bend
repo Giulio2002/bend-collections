@@ -12,21 +12,36 @@ import ../curve25519/prime.bend as PRM
 import ./tcommon.bend as TC
 import ./tsign.bend as TS
 import ./pbase.bend as PB
+import ./fbspec.bend as FB
 
 # Signing with the constants of context(xs) equals RFC 8032 (shared by the
 # two signing roots).
 
-def ed_sign_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +seed: List<&2, U32>, +msg: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> SE.Ed25519.sign_ctx(one, h1, xs, seed, msg, hs):
+def ed_sign_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +seed: List<&2, U32>, +msg: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}, lw1: FB.LawE(one, PB.pp1(one)), lw2: FB.LawE(one, PB.pp1(one))) -> SE.Ed25519.sign_ctx(one, h1, xs, seed, msg, hs):
   +pp = PB.pp1(one)
   +P = {1n+pp : Nat}
   +D = SE.dconst(one, P)
   +h = HS.hash(seed)
   +sh = SHA.sha512_bytes(seed)
   +cs = PT.consts(xs)
-  +e1 = TS.sign_rel(one, h1, pp, PRM.hP(one, h1), cs, PC.cr(one, h1, xs), D, PC.rd2(one, h1, pp, PRM.hP(one, h1), xs), PT.base(cs), TC.base_of(one, h1, xs), h, BY.sha_okb(seed), msg)
+  +e1 = TS.sign_t_rel(one, h1, pp, PRM.hP(one, h1), cs, PC.cr(one, h1, xs), PC.rd2(one, h1, pp, PRM.hP(one, h1), xs), PT.base(cs), TC.base_of(one, h1, xs), h, BY.sha_okb(seed), msg, lw1, lw2)
   +e2 = Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.sign_with(one, P, D, z, msg), h, sh, BY.sha_eq(seed))
   +C0 = E.context(xs)
   +K0 = E.expand_ctx(C0, seed)
   +eg = Equal.trans(List<&2, U32>, E.sign_key(K0, msg), E.sign_go(K0, msg), E.sign_go(E.expand_go(C0, seed), msg), PB.sign_eq(K0, msg), Equal.cong(E.Key, List<&2, U32>, k => E.sign_go(k, msg), K0, E.expand_go(C0, seed), PB.expand_eq(C0, seed)))
   +e12 = Equal.trans(List<&2, U32>, E.sign_key(K0, msg), E.sign_go(E.expand_go(C0, seed), msg), SE.sign_at(one, P, seed, msg), eg, Equal.trans(List<&2, U32>, E.sign_go(E.expand_go(C0, seed), msg), SE.sign_with(one, P, D, h, msg), SE.sign_at(one, P, seed, msg), e1, e2))
   L.subst(Nat, z => {E.sign_key(E.expand_ctx(E.context(xs), seed), msg) == SE.sign_at(one, z, seed, msg) : List<&2, U32>}, P, FS.prime(one), Equal.sym(Nat, FS.prime(one), P, PRM.prime_eq(one, h1)), e12)
+
+# Signing without a context (double-and-add) equals RFC 8032.
+
+def ed_sign_one(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +msg: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> SE.Ed25519.sign(one, h1, seed, msg, hs):
+  +pp = PB.pp1(one)
+  +P = {1n+pp : Nat}
+  +D = SE.dconst(one, P)
+  +h = HS.hash(seed)
+  +sh = SHA.sha512_bytes(seed)
+  +cs = PT.consts(seed)
+  +e1 = TS.sign_rel(one, h1, pp, PRM.hP(one, h1), cs, PC.cr(one, h1, seed), D, PC.rd2(one, h1, pp, PRM.hP(one, h1), seed), PT.base(cs), TC.base_of(one, h1, seed), h, BY.sha_okb(seed), msg)
+  +e2 = Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.sign_with(one, P, D, z, msg), h, sh, BY.sha_eq(seed))
+  +e12 = Equal.trans(List<&2, U32>, E.sign_raw(seed, msg), E.sign_lgo(E.lite(seed), seed, msg), SE.sign_at(one, P, seed, msg), PB.sign1_eq(E.lite(seed), seed, msg), Equal.trans(List<&2, U32>, E.sign_lgo(E.lite(seed), seed, msg), SE.sign_with(one, P, D, h, msg), SE.sign_at(one, P, seed, msg), e1, e2))
+  L.subst(Nat, z => {E.sign_raw(seed, msg) == SE.sign_at(one, z, seed, msg) : List<&2, U32>}, P, FS.prime(one), Equal.sym(Nat, FS.prime(one), P, PRM.prime_eq(one, h1)), e12)

@@ -64,6 +64,47 @@ def pu(+a: Nat, +b: Nat) -> Nat:
 def pm(+a: Nat, +b: Nat) -> Nat:
   Nat.add(pu(a, Nat.mod(b, 512n)), Nat.mul(pu(a, Nat.div(b, 512n)), 512n))
 
+# every limb times m through the 32-bit multiplier
+def scalu(ys: List<&2, Nat>, +m: Nat) -> List<&2, Nat>:
+  match ys:
+    case Nil{}:
+      Nil{}
+    case Con{y, yt}:
+      Con{pu(y, m), scalu(yt, m)}
+
+def zeros(n: Nat) -> List<&2, Nat>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n+k:
+      Con{0n, zeros(k)}
+
+# m0 f0 + m1 f1 + ... limbwise, for lists f of w limbs: with one m equal
+# to 1 and the others 0, the f at that place (a selection without a
+# branch)
+def pick(+w: Nat, ms: List<&2, Nat>, fs: List<&2, List<&2, Nat>>) -> List<&2, Nat>:
+  match ms:
+    case Nil{}:
+      zeros(w)
+    case Con{+m, mt}:
+      match fs:
+        case Nil{}:
+          zeros(w)
+        case Con{f, ft}:
+          addl(scalu(f, m), pick(w, mt, ft))
+
+# n masks: 1 at place d, 0 elsewhere (all 0 for d >= n)
+def ohl(n: Nat, d: Nat) -> List<&2, Nat>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n+k:
+      match d:
+        case 0n:
+          Con{1n, zeros(k)}
+        case 1n+e:
+          Con{0n, ohl(k, e)}
+
 # scal and conv with pm
 def scalp(+a: Nat, ys: List<&2, Nat>) -> List<&2, Nat>:
   match ys:

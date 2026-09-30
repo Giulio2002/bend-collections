@@ -1,0 +1,20 @@
+import Base
+import ../../../../spec/math/number.bend as SN
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../secp256k1/group/bn.bend as B
+import ../../secp256k1/group/bnx.bend as X
+import ../../secp256k1/group/certl.bend as CL
+import ../../../math/number/nt_prime.bend as PM
+import ./pfacts.bend as PF
+import ./cert_p.bend as CP
+
+# edwards25519's field modulus p = 2^255 - 19 is prime, given that q1 (the
+# big prime factor of p - 1 = 2^2 * 3 * 65147 * q1, the literal PF.q1l()) is:
+# the Pocklington step of cert_p.bend, for the specification's
+# FS.prime(one). The hypothesis is cert_q.bend's top_prime, a separate root
+# (the certificates together are too heavy for one), from the conclusions
+# of cert_q1.bend and cert_q2.bend.
+
+def prime_p(+one: Nat, +h1: {one == 1n : Nat}, +hq: PM.Prime(X.bvalo(one, PF.q1l()))) -> PM.Prime(FS.prime(one)):
+  %PF.p_is(one, h1) : {SN.prime(_) == True{} : Bool}
+  CP.top_prime(one, h1, hq)

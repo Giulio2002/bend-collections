@@ -1,0 +1,236 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../../secp256k1/semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ../../../math/number/nt_prime.bend as PM
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../../../spec/crypto/curve25519/edwards.bend as G
+import ../../secp256k1/group/fld.bend as F
+import ./idm.bend as IM
+import ./fq.bend as FQ
+import ./id_rule.bend as IR
+import ./id_comm.bend as ICM
+import ./id_unit.bend as IU
+import ./id_neg.bend as IN
+import ./id_closure.bend as ICL
+import ./id_compl.bend as IC
+import ./id_assoc_x.bend as IAX
+import ./id_assoc_y.bend as IAY
+
+# The group law of the twisted Edwards curve -x^2 + y^2 = 1 + d x^2 y^2
+# modulo a prime p = 1 + mp, on coordinates: completeness (the denominators
+# of the sum of two points of the curve are not zero), closure, the
+# identity (0, 1), the inverse (-x, y), commutativity and associativity.
+# The algebra is in the generated id_*.bend (identities by reflection); here
+# the field facts (fq.bend) turn them into equations between coordinates.
+
+# the curve equation at (x, y)
+def Eq(+mp: Nat, +d: Nat, +x: Nat, +y: Nat) -> Data:
+  {G.lhs(1n+mp, x, y) == G.rhs(1n+mp, d, x, y) : Nat}
+
+def lhs_red(+mp: Nat, +x: Nat, +y: Nat) -> {Nat.mod(G.lhs(1n+mp, x, y), 1n+mp) == G.lhs(1n+mp, x, y) : Nat}:
+  FQ.fsub_red(mp, FS.fmul(1n+mp, y, y), FS.fmul(1n+mp, x, x))
+
+def rhs_red(+mp: Nat, +d: Nat, +x: Nat, +y: Nat) -> {Nat.mod(G.rhs(1n+mp, d, x, y), 1n+mp) == G.rhs(1n+mp, d, x, y) : Nat}:
+  FQ.fadd_red(mp, 1n, FS.fmul(1n+mp, d, FS.fmul(1n+mp, FS.fmul(1n+mp, x, x), FS.fmul(1n+mp, y, y))))
+
+def nx_red(+mp: Nat, +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat) -> {Nat.mod(G.nx(1n+mp, x1, y1, x2, y2), 1n+mp) == G.nx(1n+mp, x1, y1, x2, y2) : Nat}:
+  FQ.fadd_red(mp, FS.fmul(1n+mp, x1, y2), FS.fmul(1n+mp, y1, x2))
+
+def ny_red(+mp: Nat, +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat) -> {Nat.mod(G.ny(1n+mp, x1, y1, x2, y2), 1n+mp) == G.ny(1n+mp, x1, y1, x2, y2) : Nat}:
+  FQ.fadd_red(mp, FS.fmul(1n+mp, y1, y2), FS.fmul(1n+mp, x1, x2))
+
+def ct_red(+mp: Nat, +d: Nat, +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat) -> {Nat.mod(G.ct(1n+mp, d, x1, y1, x2, y2), 1n+mp) == G.ct(1n+mp, d, x1, y1, x2, y2) : Nat}:
+  FQ.fmul_red(mp, d, FS.fmul(1n+mp, FS.fmul(1n+mp, x1, x2), FS.fmul(1n+mp, y1, y2)))
+
+# the sum's coordinates are residues
+def add_x_lt(+mp: Nat, +d: Nat, +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat) -> {Nat.is_lt(G.add_x(1n+mp, d, x1, y1, x2, y2), 1n+mp) == True{} : Bool}:
+  FQ.fmul_lt(mp, G.nx(1n+mp, x1, y1, x2, y2), FS.finv(1n+mp, G.dx(1n+mp, d, x1, y1, x2, y2)))
+
+def add_y_lt(+mp: Nat, +d: Nat, +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat) -> {Nat.is_lt(G.add_y(1n+mp, d, x1, y1, x2, y2), 1n+mp) == True{} : Bool}:
+  FQ.fmul_lt(mp, G.ny(1n+mp, x1, y1, x2, y2), FS.finv(1n+mp, G.dy(1n+mp, d, x1, y1, x2, y2)))
+
+# ---- the rules of the reflection from the hypotheses ----
+
+def dinv(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d)) -> IM.Inv(mp, d, FS.finv(1n+mp, d)):
+  FQ.inv(mp, FQ.cv_prime(mp, d, hc), d, FQ.cv_dnz(mp, d, hc))
+
+def crule(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x: Nat, +y: Nat, +he: Eq(mp, d, x, y)) -> IM.Rule(mp, FS.finv(1n+mp, d), x, y):
+  F.msub_z(mp, FS.fmul(1n+mp, FS.fmul(1n+mp, x, x), FS.fmul(1n+mp, y, y)), FS.fmul(1n+mp, FS.finv(1n+mp, d), FS.fsub(1n+mp, FS.fsub(1n+mp, FS.fmul(1n+mp, y, y), FS.fmul(1n+mp, x, x)), 1n)),
+    IR.curve_rule(mp, x, y, d, FS.finv(1n+mp, d), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), G.lhs(1n+mp, x, y), G.rhs(1n+mp, d, x, y), he), dinv(mp, d, hc)))
+
+def isq(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d)) -> {Nat.mod(FS.fadd(1n+mp, FS.fmul(1n+mp, G.sqm1(1n+mp), G.sqm1(1n+mp)), 1n), 1n+mp) == Nat.mod(0n, 1n+mp) : Nat}:
+  Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), FS.fadd(1n+mp, FS.fmul(1n+mp, G.sqm1(1n+mp), G.sqm1(1n+mp)), 1n), 0n, FQ.cv_i(mp, d, hc))
+
+# ---- completeness (Bernstein and Lange): the denominators are not zero ----
+
+def compl_y_c(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat, +he1: Eq(mp, d, x1, y1), +he2: Eq(mp, d, x2, y2), c: Bool, +hcc: {Nat.is_eq(Nat.mod(G.dy(1n+mp, d, x1, y1, x2, y2), 1n+mp), 0n) == c : Bool}) -> F.NZ(mp, G.dy(1n+mp, d, x1, y1, x2, y2)):
+  match c:
+    case False{}:
+      hcc
+    case True{}:
+      +e = FS.finv(1n+mp, d)
+      +i = G.sqm1(1n+mp)
+      +r1 = crule(mp, d, hc, x1, y1, he1)
+      +r2 = crule(mp, d, hc, x2, y2, he2)
+      +hz = N.eq_from_is_eq(Nat.mod(G.dy(1n+mp, d, x1, y1, x2, y2), 1n+mp), 0n, hcc)
+      +up = IC.up(mp, x1, y1, x2, y2, d, e, i)
+      +um = IC.um(mp, x1, y1, x2, y2, d, e, i)
+      +vp = IC.vp(mp, x1, y1, x2, y2, d, e, i)
+      +vm = IC.vm(mp, x1, y1, x2, y2, d, e, i)
+      +hup = FQ.nonsq(mp, d, hc, up, vp, F.msub_z(mp, FS.fmul(1n+mp, vp, vp), FS.fmul(1n+mp, d, FS.fmul(1n+mp, up, up)), IC.cy_p(mp, x1, y1, x2, y2, d, e, i, r1, r2, dinv(mp, d, hc), isq(mp, d, hc), hz)))
+      +hum = FQ.nonsq(mp, d, hc, um, vm, F.msub_z(mp, FS.fmul(1n+mp, vm, vm), FS.fmul(1n+mp, d, FS.fmul(1n+mp, um, um)), IC.cy_m(mp, x1, y1, x2, y2, d, e, i, r1, r2, dinv(mp, d, hc), isq(mp, d, hc), hz)))
+      Empty.absurd(F.NZ(mp, G.dy(1n+mp, d, x1, y1, x2, y2)), F.nz_absurd(mp, 2n, FQ.cv_nz2(mp, d, hc), IC.two_y(mp, x1, y1, x2, y2, d, e, i, hz, hup, hum)))
+
+# 1 - d x1 x2 y1 y2 != 0 for two points of the curve
+def compl_y(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat, +he1: Eq(mp, d, x1, y1), +he2: Eq(mp, d, x2, y2)) -> F.NZ(mp, G.dy(1n+mp, d, x1, y1, x2, y2)):
+  compl_y_c(mp, d, hc, x1, y1, x2, y2, he1, he2, Nat.is_eq(Nat.mod(G.dy(1n+mp, d, x1, y1, x2, y2), 1n+mp), 0n), {==})
+
+def compl_x_c(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat, +he1: Eq(mp, d, x1, y1), +he2: Eq(mp, d, x2, y2), c: Bool, +hcc: {Nat.is_eq(Nat.mod(G.dx(1n+mp, d, x1, y1, x2, y2), 1n+mp), 0n) == c : Bool}) -> F.NZ(mp, G.dx(1n+mp, d, x1, y1, x2, y2)):
+  match c:
+    case False{}:
+      hcc
+    case True{}:
+      +e = FS.finv(1n+mp, d)
+      +i = G.sqm1(1n+mp)
+      +r1 = crule(mp, d, hc, x1, y1, he1)
+      +r2 = crule(mp, d, hc, x2, y2, he2)
+      +hz = N.eq_from_is_eq(Nat.mod(G.dx(1n+mp, d, x1, y1, x2, y2), 1n+mp), 0n, hcc)
+      +up = IC.up(mp, x1, y1, x2, y2, d, e, i)
+      +um = IC.um(mp, x1, y1, x2, y2, d, e, i)
+      +vp = IC.vp(mp, x1, y1, x2, y2, d, e, i)
+      +vm = IC.vm(mp, x1, y1, x2, y2, d, e, i)
+      +hum = FQ.nonsq(mp, d, hc, um, vp, F.msub_z(mp, FS.fmul(1n+mp, vp, vp), FS.fmul(1n+mp, d, FS.fmul(1n+mp, um, um)), IC.cx_p(mp, x1, y1, x2, y2, d, e, i, r1, r2, dinv(mp, d, hc), isq(mp, d, hc), hz)))
+      +hup = FQ.nonsq(mp, d, hc, up, vm, F.msub_z(mp, FS.fmul(1n+mp, vm, vm), FS.fmul(1n+mp, d, FS.fmul(1n+mp, up, up)), IC.cx_m(mp, x1, y1, x2, y2, d, e, i, r1, r2, dinv(mp, d, hc), isq(mp, d, hc), hz)))
+      Empty.absurd(F.NZ(mp, G.dx(1n+mp, d, x1, y1, x2, y2)), F.nz_absurd(mp, 2n, FQ.cv_nz2(mp, d, hc), IC.two_x(mp, x1, y1, x2, y2, d, e, i, hz, hup, hum)))
+
+# 1 + d x1 x2 y1 y2 != 0 for two points of the curve
+def compl_x(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat, +he1: Eq(mp, d, x1, y1), +he2: Eq(mp, d, x2, y2)) -> F.NZ(mp, G.dx(1n+mp, d, x1, y1, x2, y2)):
+  compl_x_c(mp, d, hc, x1, y1, x2, y2, he1, he2, Nat.is_eq(Nat.mod(G.dx(1n+mp, d, x1, y1, x2, y2), 1n+mp), 0n), {==})
+
+# (sum) dx == nx and (sum) dy == ny
+def sum_x(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat, +he1: Eq(mp, d, x1, y1), +he2: Eq(mp, d, x2, y2)) -> {Nat.mod(FS.fmul(1n+mp, G.add_x(1n+mp, d, x1, y1, x2, y2), G.dx(1n+mp, d, x1, y1, x2, y2)), 1n+mp) == Nat.mod(G.nx(1n+mp, x1, y1, x2, y2), 1n+mp) : Nat}:
+  FQ.frac_mul(mp, FQ.cv_prime(mp, d, hc), G.nx(1n+mp, x1, y1, x2, y2), G.dx(1n+mp, d, x1, y1, x2, y2), compl_x(mp, d, hc, x1, y1, x2, y2, he1, he2))
+
+def sum_y(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat, +he1: Eq(mp, d, x1, y1), +he2: Eq(mp, d, x2, y2)) -> {Nat.mod(FS.fmul(1n+mp, G.add_y(1n+mp, d, x1, y1, x2, y2), G.dy(1n+mp, d, x1, y1, x2, y2)), 1n+mp) == Nat.mod(G.ny(1n+mp, x1, y1, x2, y2), 1n+mp) : Nat}:
+  FQ.frac_mul(mp, FQ.cv_prime(mp, d, hc), G.ny(1n+mp, x1, y1, x2, y2), G.dy(1n+mp, d, x1, y1, x2, y2), compl_y(mp, d, hc, x1, y1, x2, y2, he1, he2))
+
+# dx dx * dy dy != 0
+def nz_w(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat, +he1: Eq(mp, d, x1, y1), +he2: Eq(mp, d, x2, y2)) -> F.NZ(mp, FS.fmul(1n+mp, FS.fmul(1n+mp, G.dx(1n+mp, d, x1, y1, x2, y2), G.dx(1n+mp, d, x1, y1, x2, y2)), FS.fmul(1n+mp, G.dy(1n+mp, d, x1, y1, x2, y2), G.dy(1n+mp, d, x1, y1, x2, y2)))):
+  +hp = FQ.cv_prime(mp, d, hc)
+  +dx = G.dx(1n+mp, d, x1, y1, x2, y2)
+  +dy = G.dy(1n+mp, d, x1, y1, x2, y2)
+  +hx = compl_x(mp, d, hc, x1, y1, x2, y2, he1, he2)
+  +hy = compl_y(mp, d, hc, x1, y1, x2, y2, he1, he2)
+  F.nz_mmul(mp, hp, FS.fmul(1n+mp, dx, dx), FS.fmul(1n+mp, dy, dy), F.nz_mmul(mp, hp, dx, dx, hx, hx), F.nz_mmul(mp, hp, dy, dy, hy, hy))
+
+# dx * dy != 0
+def nz_xy(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat, +he1: Eq(mp, d, x1, y1), +he2: Eq(mp, d, x2, y2)) -> F.NZ(mp, FS.fmul(1n+mp, G.dx(1n+mp, d, x1, y1, x2, y2), G.dy(1n+mp, d, x1, y1, x2, y2))):
+  F.nz_mmul(mp, FQ.cv_prime(mp, d, hc), G.dx(1n+mp, d, x1, y1, x2, y2), G.dy(1n+mp, d, x1, y1, x2, y2), compl_x(mp, d, hc, x1, y1, x2, y2, he1, he2), compl_y(mp, d, hc, x1, y1, x2, y2, he1, he2))
+
+# ---- closure: the sum of two points of the curve is on the curve ----
+
+def add_on(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat, +he1: Eq(mp, d, x1, y1), +he2: Eq(mp, d, x2, y2)) -> Eq(mp, d, G.add_x(1n+mp, d, x1, y1, x2, y2), G.add_y(1n+mp, d, x1, y1, x2, y2)):
+  +xs = G.add_x(1n+mp, d, x1, y1, x2, y2)
+  +ys = G.add_y(1n+mp, d, x1, y1, x2, y2)
+  +dx = G.dx(1n+mp, d, x1, y1, x2, y2)
+  +dy = G.dy(1n+mp, d, x1, y1, x2, y2)
+  FQ.factor_eq(mp, FQ.cv_prime(mp, d, hc), G.lhs(1n+mp, xs, ys), G.rhs(1n+mp, d, xs, ys), FS.fmul(1n+mp, FS.fmul(1n+mp, dx, dx), FS.fmul(1n+mp, dy, dy)),
+    nz_w(mp, d, hc, x1, y1, x2, y2, he1, he2), lhs_red(mp, xs, ys), rhs_red(mp, d, xs, ys),
+    ICL.add_curve(mp, x1, y1, x2, y2, d, FS.finv(1n+mp, d), xs, ys, crule(mp, d, hc, x1, y1, he1), crule(mp, d, hc, x2, y2, he2), dinv(mp, d, hc),
+      sum_y(mp, d, hc, x1, y1, x2, y2, he1, he2), sum_x(mp, d, hc, x1, y1, x2, y2, he1, he2)))
+
+# ---- commutativity ----
+
+def nx_comm(+mp: Nat, +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat) -> {G.nx(1n+mp, x1, y1, x2, y2) == G.nx(1n+mp, x2, y2, x1, y1) : Nat}:
+  FQ.red_eq(mp, G.nx(1n+mp, x1, y1, x2, y2), G.nx(1n+mp, x2, y2, x1, y1), nx_red(mp, x1, y1, x2, y2), nx_red(mp, x2, y2, x1, y1), ICM.comm_nx(mp, x1, y1, x2, y2, 0n))
+
+def ny_comm(+mp: Nat, +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat) -> {G.ny(1n+mp, x1, y1, x2, y2) == G.ny(1n+mp, x2, y2, x1, y1) : Nat}:
+  FQ.red_eq(mp, G.ny(1n+mp, x1, y1, x2, y2), G.ny(1n+mp, x2, y2, x1, y1), ny_red(mp, x1, y1, x2, y2), ny_red(mp, x2, y2, x1, y1), ICM.comm_ny(mp, x1, y1, x2, y2, 0n))
+
+def ct_comm(+mp: Nat, +d: Nat, +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat) -> {G.ct(1n+mp, d, x1, y1, x2, y2) == G.ct(1n+mp, d, x2, y2, x1, y1) : Nat}:
+  FQ.red_eq(mp, G.ct(1n+mp, d, x1, y1, x2, y2), G.ct(1n+mp, d, x2, y2, x1, y1), ct_red(mp, d, x1, y1, x2, y2), ct_red(mp, d, x2, y2, x1, y1), ICM.comm_t(mp, x1, y1, x2, y2, d))
+
+def add_x_comm(+mp: Nat, +d: Nat, +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat) -> {G.add_x(1n+mp, d, x1, y1, x2, y2) == G.add_x(1n+mp, d, x2, y2, x1, y1) : Nat}:
+  %goal {FS.fmul(1n+mp, G.nx(1n+mp, x1, y1, x2, y2), FS.finv(1n+mp, FS.fadd(1n+mp, 1n, G.ct(1n+mp, d, x1, y1, x2, y2)))) == FS.fmul(1n+mp, G.nx(1n+mp, x2, y2, x1, y1), FS.finv(1n+mp, FS.fadd(1n+mp, 1n, G.ct(1n+mp, d, x2, y2, x1, y1)))) : Nat}
+  %rw nx_comm(mp, x1, y1, x2, y2)
+  %rw ct_comm(mp, d, x1, y1, x2, y2)
+  %close
+
+def add_y_comm(+mp: Nat, +d: Nat, +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat) -> {G.add_y(1n+mp, d, x1, y1, x2, y2) == G.add_y(1n+mp, d, x2, y2, x1, y1) : Nat}:
+  %goal {FS.fmul(1n+mp, G.ny(1n+mp, x1, y1, x2, y2), FS.finv(1n+mp, FS.fsub(1n+mp, 1n, G.ct(1n+mp, d, x1, y1, x2, y2)))) == FS.fmul(1n+mp, G.ny(1n+mp, x2, y2, x1, y1), FS.finv(1n+mp, FS.fsub(1n+mp, 1n, G.ct(1n+mp, d, x2, y2, x1, y1)))) : Nat}
+  %rw ny_comm(mp, x1, y1, x2, y2)
+  %rw ct_comm(mp, d, x1, y1, x2, y2)
+  %close
+
+# ---- the identity (0, 1) ----
+
+def zero_eq(+mp: Nat, +d: Nat) -> Eq(mp, d, 0n, 1n):
+  FQ.red_eq(mp, G.lhs(1n+mp, 0n, 1n), G.rhs(1n+mp, d, 0n, 1n), lhs_red(mp, 0n, 1n), rhs_red(mp, d, 0n, 1n), IU.zero_curve(mp, 0n, 0n, d))
+
+def add_x_zero(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x: Nat, +y: Nat, +he: Eq(mp, d, x, y), +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}) -> {G.add_x(1n+mp, d, x, y, 0n, 1n) == x : Nat}:
+  FQ.frac_val(mp, FQ.cv_prime(mp, d, hc), G.nx(1n+mp, x, y, 0n, 1n), G.dx(1n+mp, d, x, y, 0n, 1n), x, compl_x(mp, d, hc, x, y, 0n, 1n, he, zero_eq(mp, d)), hx, IU.unit_x(mp, x, y, d))
+
+def add_y_zero(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x: Nat, +y: Nat, +he: Eq(mp, d, x, y), +hy: {Nat.is_lt(y, 1n+mp) == True{} : Bool}) -> {G.add_y(1n+mp, d, x, y, 0n, 1n) == y : Nat}:
+  FQ.frac_val(mp, FQ.cv_prime(mp, d, hc), G.ny(1n+mp, x, y, 0n, 1n), G.dy(1n+mp, d, x, y, 0n, 1n), y, compl_y(mp, d, hc, x, y, 0n, 1n, he, zero_eq(mp, d)), hy, IU.unit_y(mp, x, y, d))
+
+# ---- the inverse (-x, y) ----
+
+def neg_eq(+mp: Nat, +d: Nat, +x: Nat, +y: Nat, +he: Eq(mp, d, x, y)) -> Eq(mp, d, FS.fsub(1n+mp, 0n, x), y):
+  +m = FS.fsub(1n+mp, 0n, x)
+  Equal.trans(Nat, G.lhs(1n+mp, m, y), G.lhs(1n+mp, x, y), G.rhs(1n+mp, d, m, y),
+    FQ.red_eq(mp, G.lhs(1n+mp, m, y), G.lhs(1n+mp, x, y), lhs_red(mp, m, y), lhs_red(mp, x, y), IN.neg_l(mp, x, y, d, 0n)),
+    Equal.trans(Nat, G.lhs(1n+mp, x, y), G.rhs(1n+mp, d, x, y), G.rhs(1n+mp, d, m, y), he,
+      Equal.sym(Nat, G.rhs(1n+mp, d, m, y), G.rhs(1n+mp, d, x, y), FQ.red_eq(mp, G.rhs(1n+mp, d, m, y), G.rhs(1n+mp, d, x, y), rhs_red(mp, d, m, y), rhs_red(mp, d, x, y), IN.neg_r(mp, x, y, d, 0n)))))
+
+def add_x_neg(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x: Nat, +y: Nat, +he: Eq(mp, d, x, y)) -> {G.add_x(1n+mp, d, x, y, FS.fsub(1n+mp, 0n, x), y) == 0n : Nat}:
+  +m = FS.fsub(1n+mp, 0n, x)
+  FQ.frac_val(mp, FQ.cv_prime(mp, d, hc), G.nx(1n+mp, x, y, m, y), G.dx(1n+mp, d, x, y, m, y), 0n, compl_x(mp, d, hc, x, y, m, y, he, neg_eq(mp, d, x, y, he)), {==}, IN.neg_x(mp, x, y, d, 0n))
+
+def add_y_neg(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x: Nat, +y: Nat, +he: Eq(mp, d, x, y)) -> {G.add_y(1n+mp, d, x, y, FS.fsub(1n+mp, 0n, x), y) == 1n : Nat}:
+  +m = FS.fsub(1n+mp, 0n, x)
+  FQ.frac_val(mp, FQ.cv_prime(mp, d, hc), G.ny(1n+mp, x, y, m, y), G.dy(1n+mp, d, x, y, m, y), 1n, compl_y(mp, d, hc, x, y, m, y, he, neg_eq(mp, d, x, y, he)), FQ.one_lt(mp, FQ.cv_prime(mp, d, hc)),
+    IN.neg_y(mp, x, y, d, FS.finv(1n+mp, d), crule(mp, d, hc, x, y, he), dinv(mp, d, hc)))
+
+# ---- associativity ----
+
+def assoc_x(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat, +x3: Nat, +y3: Nat, +he1: Eq(mp, d, x1, y1), +he2: Eq(mp, d, x2, y2), +he3: Eq(mp, d, x3, y3)) -> {G.add_x(1n+mp, d, G.add_x(1n+mp, d, x1, y1, x2, y2), G.add_y(1n+mp, d, x1, y1, x2, y2), x3, y3) == G.add_x(1n+mp, d, x1, y1, G.add_x(1n+mp, d, x2, y2, x3, y3), G.add_y(1n+mp, d, x2, y2, x3, y3)) : Nat}:
+  +hp = FQ.cv_prime(mp, d, hc)
+  +xa = G.add_x(1n+mp, d, x1, y1, x2, y2)
+  +ya = G.add_y(1n+mp, d, x1, y1, x2, y2)
+  +xb = G.add_x(1n+mp, d, x2, y2, x3, y3)
+  +yb = G.add_y(1n+mp, d, x2, y2, x3, y3)
+  +hea = add_on(mp, d, hc, x1, y1, x2, y2, he1, he2)
+  +heb = add_on(mp, d, hc, x2, y2, x3, y3, he2, he3)
+  +nl = G.nx(1n+mp, xa, ya, x3, y3)
+  +dl = G.dx(1n+mp, d, xa, ya, x3, y3)
+  +nr = G.nx(1n+mp, x1, y1, xb, yb)
+  +dr = G.dx(1n+mp, d, x1, y1, xb, yb)
+  +w = FS.fmul(1n+mp, FS.fmul(1n+mp, G.dx(1n+mp, d, x1, y1, x2, y2), G.dy(1n+mp, d, x1, y1, x2, y2)), FS.fmul(1n+mp, G.dx(1n+mp, d, x2, y2, x3, y3), G.dy(1n+mp, d, x2, y2, x3, y3)))
+  +hw = F.nz_mmul(mp, hp, FS.fmul(1n+mp, G.dx(1n+mp, d, x1, y1, x2, y2), G.dy(1n+mp, d, x1, y1, x2, y2)), FS.fmul(1n+mp, G.dx(1n+mp, d, x2, y2, x3, y3), G.dy(1n+mp, d, x2, y2, x3, y3)), nz_xy(mp, d, hc, x1, y1, x2, y2, he1, he2), nz_xy(mp, d, hc, x2, y2, x3, y3, he2, he3))
+  +id = IAX.assoc_x(mp, x1, y1, x2, y2, x3, y3, d, FS.finv(1n+mp, d), xa, ya, xb, yb, crule(mp, d, hc, x1, y1, he1), crule(mp, d, hc, x2, y2, he2), crule(mp, d, hc, x3, y3, he3), dinv(mp, d, hc),
+    sum_x(mp, d, hc, x1, y1, x2, y2, he1, he2), sum_y(mp, d, hc, x1, y1, x2, y2, he1, he2), sum_x(mp, d, hc, x2, y2, x3, y3, he2, he3), sum_y(mp, d, hc, x2, y2, x3, y3, he2, he3))
+  FQ.frac_eq(mp, hp, nl, dl, nr, dr, compl_x(mp, d, hc, xa, ya, x3, y3, hea, he3), compl_x(mp, d, hc, x1, y1, xb, yb, he1, heb),
+    FQ.factor_eqm(mp, hp, FS.fmul(1n+mp, nl, dr), FS.fmul(1n+mp, nr, dl), w, hw, id))
+
+def assoc_y(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +x1: Nat, +y1: Nat, +x2: Nat, +y2: Nat, +x3: Nat, +y3: Nat, +he1: Eq(mp, d, x1, y1), +he2: Eq(mp, d, x2, y2), +he3: Eq(mp, d, x3, y3)) -> {G.add_y(1n+mp, d, G.add_x(1n+mp, d, x1, y1, x2, y2), G.add_y(1n+mp, d, x1, y1, x2, y2), x3, y3) == G.add_y(1n+mp, d, x1, y1, G.add_x(1n+mp, d, x2, y2, x3, y3), G.add_y(1n+mp, d, x2, y2, x3, y3)) : Nat}:
+  +hp = FQ.cv_prime(mp, d, hc)
+  +xa = G.add_x(1n+mp, d, x1, y1, x2, y2)
+  +ya = G.add_y(1n+mp, d, x1, y1, x2, y2)
+  +xb = G.add_x(1n+mp, d, x2, y2, x3, y3)
+  +yb = G.add_y(1n+mp, d, x2, y2, x3, y3)
+  +hea = add_on(mp, d, hc, x1, y1, x2, y2, he1, he2)
+  +heb = add_on(mp, d, hc, x2, y2, x3, y3, he2, he3)
+  +nl = G.ny(1n+mp, xa, ya, x3, y3)
+  +dl = G.dy(1n+mp, d, xa, ya, x3, y3)
+  +nr = G.ny(1n+mp, x1, y1, xb, yb)
+  +dr = G.dy(1n+mp, d, x1, y1, xb, yb)
+  +w = FS.fmul(1n+mp, FS.fmul(1n+mp, G.dx(1n+mp, d, x1, y1, x2, y2), G.dy(1n+mp, d, x1, y1, x2, y2)), FS.fmul(1n+mp, G.dx(1n+mp, d, x2, y2, x3, y3), G.dy(1n+mp, d, x2, y2, x3, y3)))
+  +hw = F.nz_mmul(mp, hp, FS.fmul(1n+mp, G.dx(1n+mp, d, x1, y1, x2, y2), G.dy(1n+mp, d, x1, y1, x2, y2)), FS.fmul(1n+mp, G.dx(1n+mp, d, x2, y2, x3, y3), G.dy(1n+mp, d, x2, y2, x3, y3)), nz_xy(mp, d, hc, x1, y1, x2, y2, he1, he2), nz_xy(mp, d, hc, x2, y2, x3, y3, he2, he3))
+  +id = IAY.assoc_y(mp, x1, y1, x2, y2, x3, y3, d, FS.finv(1n+mp, d), xa, ya, xb, yb, crule(mp, d, hc, x1, y1, he1), crule(mp, d, hc, x2, y2, he2), crule(mp, d, hc, x3, y3, he3), dinv(mp, d, hc),
+    sum_x(mp, d, hc, x1, y1, x2, y2, he1, he2), sum_y(mp, d, hc, x1, y1, x2, y2, he1, he2), sum_x(mp, d, hc, x2, y2, x3, y3, he2, he3), sum_y(mp, d, hc, x2, y2, x3, y3, he2, he3))
+  FQ.frac_eq(mp, hp, nl, dl, nr, dr, compl_y(mp, d, hc, xa, ya, x3, y3, hea, he3), compl_y(mp, d, hc, x1, y1, xb, yb, he1, heb),
+    FQ.factor_eqm(mp, hp, FS.fmul(1n+mp, nl, dr), FS.fmul(1n+mp, nr, dl), w, hw, id))
