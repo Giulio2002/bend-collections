@@ -27,11 +27,6 @@ import ../../math/number/nt_prime.bend as PM
 law Ecdsa.sign_verify:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
-  for +hq: PM.Prime(FS.order(one))
-  for +hg: {GS.valid(FS.prime(one), CS.g(one)) == True{} : Bool}
-  for +hng: {GS.equiv(FS.prime(one), GS.smul(FS.prime(one), FS.order(one), CS.g(one)), CS.infinity()) == True{} : Bool}
   for +sk: List<&2, U32>
   for +h: List<&2, U32>
   for +c: Bool
@@ -47,11 +42,6 @@ law Ecdsa.sign_verify:
 law Ecdsa.sign_recover:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
-  for +hq: PM.Prime(FS.order(one))
-  for +hg: {GS.valid(FS.prime(one), CS.g(one)) == True{} : Bool}
-  for +hng: {GS.equiv(FS.prime(one), GS.smul(FS.prime(one), FS.order(one), CS.g(one)), CS.infinity()) == True{} : Bool}
   for +sk: List<&2, U32>
   for +h: List<&2, U32>
   for +sig: List<&2, U32>

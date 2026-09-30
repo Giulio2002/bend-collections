@@ -41,11 +41,6 @@ law Schnorr.pubkey:
 law Schnorr.sign:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
-  for +hq: PM.Prime(FS.order(one))
-  for +hg: {GS.valid(FS.prime(one), CS.g(one)) == True{} : Bool}
-  for +hng: {GS.equiv(FS.prime(one), GS.smul(FS.prime(one), FS.order(one), CS.g(one)), CS.infinity()) == True{} : Bool}
   for +sk: List<&2, U32>
   for +m: List<&2, U32>
   for +aux: List<&2, U32>
@@ -58,11 +53,6 @@ law Schnorr.sign:
 law Schnorr.verify:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
-  for +hq: PM.Prime(FS.order(one))
-  for +hg: {GS.valid(FS.prime(one), CS.g(one)) == True{} : Bool}
-  for +hng: {GS.equiv(FS.prime(one), GS.smul(FS.prime(one), FS.order(one), CS.g(one)), CS.infinity()) == True{} : Bool}
   for +sk: List<&2, U32>
   for +m: List<&2, U32>
   for +aux: List<&2, U32>
@@ -86,11 +76,6 @@ law Schnorr.sign_verify:
 law Schnorr.sign_none:
   for +one: Nat
   for +h1: {one == 1n : Nat}
-  for +hp: PM.Prime(FS.prime(one))
-  for +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}
-  for +hq: PM.Prime(FS.order(one))
-  for +hg: {GS.valid(FS.prime(one), CS.g(one)) == True{} : Bool}
-  for +hng: {GS.equiv(FS.prime(one), GS.smul(FS.prime(one), FS.order(one), CS.g(one)), CS.infinity()) == True{} : Bool}
   for +sk: List<&2, U32>
   for +m: List<&2, U32>
   for +aux: List<&2, U32>
