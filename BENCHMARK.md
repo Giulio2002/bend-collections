@@ -56,9 +56,9 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | AES-128-GCM | 31.60 |
 | AES-256-GCM | 30.60 |
 | X25519 shared secret | 8.09 |
-| Ed25519 key generation | 25.84 |
-| Ed25519 sign | 33.41 |
-| Ed25519 verify | 13.02 |
+| Ed25519 key generation | 24.13 |
+| Ed25519 sign | 32.89 |
+| Ed25519 verify | 12.89 |
 | Argon2id | 9.09 |
 | secp256k1 (ECDSA, recovery, BIP-340) | 47560.98 |
 | ChaCha8 `uint64` | 7.26 |
@@ -340,29 +340,29 @@ C reference: Monocypher 4.0.2 `crypto_x25519`. Worst ratio 8.09 (1677.75 before 
 
 ### Ed25519 key generation
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_key_pair` (SHA-512). Worst ratio 25.84 (7064.08 before).
+C reference: Monocypher 4.0.2 `crypto_ed25519_key_pair` (SHA-512). Worst ratio 24.13 (7064.08 before).
 
 | Operation | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| keygen | 438 | 16.9 | 25.84 |
+| keygen | 422 | 17.5 | 24.13 |
 
 ### Ed25519 sign
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_sign`. Worst ratio 33.41 (13116.15 before).
+C reference: Monocypher 4.0.2 `crypto_ed25519_sign`. Worst ratio 32.89 (13116.15 before).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| sign 64 B | 594 | 17.8 | 33.41 |
-| sign 1 KiB | 641 | 20.2 | 31.77 |
+| sign 64 B | 609 | 18.5 | 32.89 |
+| sign 1 KiB | 641 | 21.6 | 29.70 |
 
 ### Ed25519 verify
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_check`. Worst ratio 13.02 (4449.20 before).
+C reference: Monocypher 4.0.2 `crypto_ed25519_check`. Worst ratio 12.89 (4449.20 before).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| verify 64 B | 625 | 48.0 | 13.02 |
-| verify 1 KiB | 641 | 49.2 | 13.02 |
+| verify 64 B | 641 | 50.2 | 12.75 |
+| verify 1 KiB | 672 | 52.1 | 12.89 |
 
 ### Argon2id
 
