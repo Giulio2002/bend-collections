@@ -18,7 +18,6 @@ import ../curve25519/xlem.bend as LD
 import ../fe/nl.bend as NL
 import ../fe/pw.bend as PW
 import ../fe/pass.bend as PS
-import ../fe/bytes.bend as BY
 import ../fe/conv.bend as CV
 import ./scalar3.bend as S3
 
@@ -122,47 +121,39 @@ def ell_lt253(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(SE.ell(one), WD.s
 
 # ---- the limbs of L ----
 
-def lbits_eq(+xs: List<&2, U32>) -> {ESC.lbits(xs) == LS.take(255n, LS.bits_all(8n, LS.nat_of(ESC.ell()))) : List<&2, Nat>}:
+def ell_of_eq(+xs: List<&2, U32>) -> {ESC.ell_of(xs) == ESC.ell() : List<&2, U32>}:
   match xs:
     case Nil{}:
       {==}
     case Con{h, t}:
       {==}
 
-def tb_len() -> {PS.ln(LS.take(255n, LS.bits_all(8n, LS.nat_of(ESC.ell())))) == 255n : Nat}:
-  {==}
-
 def ell_tight() -> {FS.bytes_ok(32n, ESC.ell()) == True{} : Bool}:
   {==}
+
+def ell_of_tight(+xs: List<&2, U32>) -> {FS.bytes_ok(32n, ESC.ell_of(xs)) == True{} : Bool}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{h, t}:
+      {==}
 
 def mask_ell() -> {SX.mask_last(ESC.ell()) == ESC.ell() : List<&2, U32>}:
   {==}
 
-# value(take(255, B8)) == L
-def bits_ell(+one: Nat, +h1: {one == 1n : Nat}) -> {BY.bv(LS.take(255n, LS.bits_all(8n, LS.nat_of(ESC.ell())))) == SE.ell(one) : Nat}:
-  +V = FS.value(ESC.ell())
-  +e1 = CV.take_mod(one, h1, 255n, LS.bits_all(8n, LS.nat_of(ESC.ell())), BY.bits_all_lt(8n, LS.nat_of(ESC.ell())))
-  +hn = L.subst(Nat, o => {FV.below(LS.nat_of(ESC.ell()), WD.sc(8n, o)) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), CV.nat_below(32n, ESC.ell(), ell_tight()))
-  +e2 = tr(BY.bv(LS.bits_all(8n, LS.nat_of(ESC.ell()))), BY.lvw(8n, LS.nat_of(ESC.ell())), V, BY.bits_all_val(one, h1, 8n, LS.nat_of(ESC.ell()), hn), BY.lvw8(ESC.ell()))
-  +em = tr(FS.value(SX.mask_last(ESC.ell())), Nat.mod(V, WD.sc(LD.m7(31n), one)), Nat.mod(V, WD.sc(255n, one)), LD.mask_mod(one, h1, 31n, ESC.ell(), ell_tight()), Equal.cong(Nat, Nat, z => Nat.mod(V, WD.sc(z, one)), LD.m7(31n), 255n, {==}))
-  +e3 = tr(Nat.mod(V, WD.sc(255n, one)), FS.value(SX.mask_last(ESC.ell())), V, sy(FS.value(SX.mask_last(ESC.ell())), Nat.mod(V, WD.sc(255n, one)), em), Equal.cong(List<&2, U32>, Nat, z => FS.value(z), SX.mask_last(ESC.ell()), ESC.ell(), mask_ell()))
-  +e4 = tr(V, LO.valo(one, ESC.ell()), SE.ell(one), sy(LO.valo(one, ESC.ell()), V, LO.valo_value(one, h1, ESC.ell())), S3.ell_valo(one))
-  tr(BY.bv(LS.take(255n, LS.bits_all(8n, LS.nat_of(ESC.ell())))), Nat.mod(BY.bv(LS.bits_all(8n, LS.nat_of(ESC.ell()))), WD.sc(255n, one)), SE.ell(one), e1, tr(Nat.mod(BY.bv(LS.bits_all(8n, LS.nat_of(ESC.ell()))), WD.sc(255n, one)), Nat.mod(V, WD.sc(255n, one)), SE.ell(one), Equal.cong(Nat, Nat, z => Nat.mod(z, WD.sc(255n, one)), BY.bv(LS.bits_all(8n, LS.nat_of(ESC.ell()))), V, e2), tr(Nat.mod(V, WD.sc(255n, one)), V, SE.ell(one), e3, e4)))
-
+# l15 is L: its bytes have the value L, which is below 2^255
 def l15_val(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>) -> {FV.lv(ESC.l15(xs)) == SE.ell(one) : Nat}:
-  +T = LS.take(255n, LS.bits_all(8n, LS.nat_of(ESC.ell())))
-  +bl = ESC.lbits(xs)
-  +hfit = BY.fits_len(17n, 15n, bl, L.subst(List<&2, Nat>, z => {Nat.is_le(PS.ln(z), 255n) == True{} : Bool}, T, bl, Equal.sym(List<&2, Nat>, bl, T, lbits_eq(xs)), L.subst(Nat, z => {Nat.is_le(z, 255n) == True{} : Bool}, 255n, PS.ln(T), sy(PS.ln(T), 255n, tb_len()), {==})))
-  +e1 = sy(BY.lvw(17n, ESC.l15(xs)), FV.lv(ESC.l15(xs)), BY.lvw17(ESC.l15(xs)))
-  +e2 = BY.group_val(17n, 15n, bl, hfit)
-  +e3 = Equal.cong(List<&2, Nat>, Nat, z => BY.bv(z), bl, T, lbits_eq(xs))
-  tr(FV.lv(ESC.l15(xs)), BY.lvw(17n, ESC.l15(xs)), SE.ell(one), e1, tr(BY.lvw(17n, ESC.l15(xs)), BY.bv(bl), SE.ell(one), e2, tr(BY.bv(bl), BY.bv(T), SE.ell(one), e3, bits_ell(one, h1))))
+  +V = FS.value(ESC.ell())
+  +S = WD.sc(255n, one)
+  +e1 = CV.ob_value(one, h1, ESC.ell_of(xs), ell_of_tight(xs))
+  +e2 = Equal.cong(List<&2, U32>, Nat, z => Nat.mod(FS.value(z), S), ESC.ell_of(xs), ESC.ell(), ell_of_eq(xs))
+  +em = tr(FS.value(SX.mask_last(ESC.ell())), Nat.mod(V, WD.sc(LD.m7(31n), one)), Nat.mod(V, S), LD.mask_mod(one, h1, 31n, ESC.ell(), ell_tight()), Equal.cong(Nat, Nat, z => Nat.mod(V, WD.sc(z, one)), LD.m7(31n), 255n, {==}))
+  +e3 = tr(Nat.mod(V, S), FS.value(SX.mask_last(ESC.ell())), V, sy(FS.value(SX.mask_last(ESC.ell())), Nat.mod(V, S), em), Equal.cong(List<&2, U32>, Nat, z => FS.value(z), SX.mask_last(ESC.ell()), ESC.ell(), mask_ell()))
+  +e4 = tr(V, LO.valo(one, ESC.ell()), SE.ell(one), sy(LO.valo(one, ESC.ell()), V, LO.valo_value(one, h1, ESC.ell())), S3.ell_valo(one))
+  tr(FV.lv(ESC.l15(xs)), Nat.mod(FS.value(ESC.ell_of(xs)), S), SE.ell(one), e1, tr(Nat.mod(FS.value(ESC.ell_of(xs)), S), Nat.mod(V, S), SE.ell(one), e2, tr(Nat.mod(V, S), V, SE.ell(one), e3, e4)))
 
 def l15_below(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +xs: List<&2, U32>) -> {FV.below(ESC.l15(xs), R) == True{} : Bool}:
-  +T = LS.take(255n, LS.bits_all(8n, LS.nat_of(ESC.ell())))
-  +bl = ESC.lbits(xs)
-  +h2 = L.subst(List<&2, Nat>, z => {FV.below(z, 2n) == True{} : Bool}, T, bl, Equal.sym(List<&2, Nat>, bl, T, lbits_eq(xs)), NL.take_below(255n, LS.bits_all(8n, LS.nat_of(ESC.ell())), 2n, BY.bits_all_lt(8n, LS.nat_of(ESC.ell()))))
-  L.subst(Nat, z => {FV.below(ESC.l15(xs), z) == True{} : Bool}, WD.sc(17n, one), R, sy(R, WD.sc(17n, one), hR), CV.group_below(one, h1, 17n, 15n, bl, h2))
+  L.subst(Nat, z => {FV.below(ESC.l15(xs), z) == True{} : Bool}, WD.sc(17n, one), R, sy(R, WD.sc(17n, one), hR), CV.ob_below(one, h1, ESC.ell_of(xs)))
 
 def l15_len(+xs: List<&2, U32>) -> {PS.ln(ESC.l15(xs)) == 15n : Nat}:
-  CV.group_len(17n, 15n, ESC.lbits(xs))
+  CV.ob_len(ESC.ell_of(xs))

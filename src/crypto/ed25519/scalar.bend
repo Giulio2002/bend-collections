@@ -3,6 +3,7 @@ import ../curve25519/field.bend as F
 import ../curve25519/fe.bend as FE
 import ../curve25519/limbs.bend as LS
 import ../curve25519/x25519.bend as X
+import ./step.bend as ST
 
 # Scalars mod L = 2^252 + 27742317777372353535851937790883648493 (RFC 8032
 # section 5.1). Byte strings in and out (32 bytes, every value below L);
@@ -78,18 +79,17 @@ def nth(n: Nat, xs: List<&2, Nat>) -> Nat:
 
 # ---- Horner's rule mod L ----
 
-# the 255 low bits of L; taking an input list xs keeps the proof checker
-# from evaluating the limbs below while xs is unknown
-def lbits(xs: List<&2, U32>) -> List<&2, Nat>:
+# L in 15 limbs of 17 bits; taking an input list xs keeps the proof checker
+# from evaluating the limbs while xs is unknown
+def ell_of(xs: List<&2, U32>) -> List<&2, U32>:
   match xs:
     case Nil{}:
-      LS.take(255n, LS.bits_all(8n, LS.nat_of(ell())))
+      ell()
     case Con{h, t}:
-      LS.take(255n, LS.bits_all(8n, LS.nat_of(ell())))
+      ell()
 
-# L in 15 limbs of 17 bits
 def l15(+xs: List<&2, U32>) -> List<&2, Nat>:
-  LS.group(17n, 15n, lbits(xs))
+  LS.of_bytes_l(ell_of(xs))
 
 def zeros() -> List<&2, Nat>:
   [0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]
@@ -113,18 +113,25 @@ def hr(+R: Nat, +l: List<&2, Nat>, xs: List<&2, Nat>) -> List<&2, Nat>:
     case Con{x, xt}:
       step(R, l, hr(R, l, xt), x)
 
-# the 17-bit limbs of a byte string: ceil(8 n / 17) of them
-def limbs17(+bs: List<&2, U32>) -> List<&2, Nat>:
-  LS.group(17n, Nat.div(Nat.add(X.bitlen(bs), 16n), 17n), LS.bits_all(8n, LS.nat_of(bs)))
+# the same on 15-limb tuples (ST.step15 is step as straight-line code)
+def hr15(+R: Nat, +l: FE.Fe, xs: List<&2, Nat>) -> FE.Fe:
+  match xs:
+    case Nil{}:
+      FE.zero()
+    case Con{x, xt}:
+      ST.step15(R, l, hr15(R, l, xt), x)
+
+def hrf(+R: Nat, +l: List<&2, Nat>, xs: List<&2, Nat>) -> List<&2, Nat>:
+  FE.to_list(hr15(R, FE.of_list(l), xs))
 
 # value(bs) mod L, 32 bytes
 def reduce(+bs: List<&2, U32>) -> List<&2, U32>:
-  LS.to_bytes_l(hr(FE.radix(X.one_of(bs)), l15(bs), limbs17(bs)))
+  LS.to_bytes_l(hrf(FE.radix(X.one_of(bs)), l15(bs), LS.limbs17(bs)))
 
 # (r + k s) mod L for s, r < L: the product in 17-bit limbs, carried
 def mul_add_l(+R: Nat, +k: List<&2, U32>, +s: List<&2, U32>, +r: List<&2, U32>) -> List<&2, Nat>:
-  +pr = LS.carry(R, LS.addl(LS.conv(limbs17(k), LS.of_bytes_l(s)), LS.of_bytes_l(r)), 0n)
-  hr(R, l15(k), LS.app(LS.cr_limbs(pr), [LS.cr_out(pr)]))
+  +pr = LS.carry(R, LS.addl(LS.conv(LS.limbs17(k), LS.of_bytes_l(s)), LS.of_bytes_l(r)), 0n)
+  hrf(R, l15(k), LS.app(LS.cr_limbs(pr), [LS.cr_out(pr)]))
 
 def mul_add(+k: List<&2, U32>, +s: List<&2, U32>, +r: List<&2, U32>) -> List<&2, U32>:
   LS.to_bytes_l(mul_add_l(FE.radix(X.one_of(k)), k, s, r))
