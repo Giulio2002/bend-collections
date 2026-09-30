@@ -298,3 +298,19 @@ def mulc(+mp: Nat, +a: Nat, +e: Nat, +f: Nat, +x: Nat, +y: Nat, +q: Nat, +z: Nat
   %Equal.sym(Nat, Nat.mod(z, 1n+mp), Nat.mod(Nat.add(Nat.mul(q, 1n+mp), z), 1n+mp), Equal.sym(Nat, Nat.mod(Nat.add(Nat.mul(q, 1n+mp), z), 1n+mp), Nat.mod(z, 1n+mp), NR.absorb(mp, q, z))) : {_ == Nat.mod(Nat.mul(Nat.pow(a, e), Nat.pow(a, f)), 1n+mp) : Nat}
   %Equal.sym(Nat, Nat.add(Nat.mul(q, 1n+mp), z), Nat.mul(x, y), Equal.sym(Nat, Nat.mul(x, y), Nat.add(Nat.mul(q, 1n+mp), z), hs)) : {Nat.mod(_, 1n+mp) == Nat.mod(Nat.mul(Nat.pow(a, e), Nat.pow(a, f)), 1n+mp) : Nat}
   Equal.trans(Nat, Nat.mod(Nat.mul(x, y), 1n+mp), Nat.mod(Nat.mul(Nat.pow(a, e), y), 1n+mp), Nat.mod(Nat.mul(Nat.pow(a, e), Nat.pow(a, f)), 1n+mp), Z.cg_mul_l(mp, x, Nat.pow(a, e), y, hx), Z.cg_mul_r(mp, Nat.pow(a, e), y, Nat.pow(a, f), hy))
+
+# ---- products modulo m = 2^k - c without quotients ----
+
+def fmul(+k: Nat, +c: B.Bn, +x: B.Bn, +y: B.Bn) -> B.Bn:
+  fred(k, c, B.bmul(x, y))
+
+def fsqr(+k: Nat, +c: B.Bn, +x: B.Bn) -> B.Bn:
+  fred(k, c, bsq(x))
+
+def fmul_v(+mp: Nat, +k: Nat, +c: B.Bn, +x: B.Bn, +y: B.Bn, +hm: {B.bval(fshl(k, B.B1{B.BZ{}})) == Nat.add(1n+mp, B.bval(c)) : Nat}) -> {Nat.mod(B.bval(fmul(k, c, x, y)), 1n+mp) == Nat.mod(Nat.mul(B.bval(x), B.bval(y)), 1n+mp) : Nat}:
+  %Equal.sym(Nat, Nat.mul(B.bval(x), B.bval(y)), B.bval(B.bmul(x, y)), Equal.sym(Nat, B.bval(B.bmul(x, y)), Nat.mul(B.bval(x), B.bval(y)), B.bmul_v(x, y))) : {Nat.mod(B.bval(fmul(k, c, x, y)), 1n+mp) == Nat.mod(_, 1n+mp) : Nat}
+  fred_v(mp, k, c, B.bmul(x, y), hm)
+
+def fsqr_v(+mp: Nat, +k: Nat, +c: B.Bn, +x: B.Bn, +hm: {B.bval(fshl(k, B.B1{B.BZ{}})) == Nat.add(1n+mp, B.bval(c)) : Nat}) -> {Nat.mod(B.bval(fsqr(k, c, x)), 1n+mp) == Nat.mod(Nat.mul(B.bval(x), B.bval(x)), 1n+mp) : Nat}:
+  %Equal.sym(Nat, Nat.mul(B.bval(x), B.bval(x)), B.bval(bsq(x)), Equal.sym(Nat, B.bval(bsq(x)), Nat.mul(B.bval(x), B.bval(x)), bsq_v(x))) : {Nat.mod(B.bval(fsqr(k, c, x)), 1n+mp) == Nat.mod(_, 1n+mp) : Nat}
+  fred_v(mp, k, c, bsq(x), hm)
