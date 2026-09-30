@@ -1,0 +1,63 @@
+import Base
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../spec/crypto/secp256k1/curve.bend as CV
+import ../../../spec/crypto/secp256k1/ecdsa.bend as ES
+import ../../../src/crypto/secp256k1/bytes.bend as B
+import ../../../src/crypto/secp256k1/point.bend as P
+import ../../../src/crypto/secp256k1/ecdsa.bend as E
+import ./bytes.bend as BY
+import ./point.bend as PT
+import ./pmul.bend as PM
+import ./paff.bend as PA
+import ./penc.bend as PE
+import ./blist.bend as BL
+import ./pscal.bend as SQ
+
+# Scalars from bytes and public keys of src/crypto/secp256k1/ecdsa.bend
+# against spec/crypto/secp256k1/ecdsa.bend.
+
+# ---- scalars ----
+
+def pk_v(+one: Nat, +h1: {one == 1n : Nat}, c: Bool, +q: P.Point, +hq: {PT.pred(one, q) == True{} : Bool}) -> {E.pk_of(c, q) == ES.pk_of(one, c, PT.pv(one, q)) : List<&2, U32>}:
+  match c:
+    case True{}:
+      PE.encode_compressed_v(one, h1, q, hq)
+    case False{}:
+      PE.encode_uncompressed_v(one, h1, q, hq)
+
+# [d] G
+def pubpt_v(+one: Nat, +h1: {one == 1n : Nat}, +d: List<&2, Nat>, +hd: {FS.limbs16(one, 16n, d) == True{} : Bool}) -> {PT.pv(one, E.public_point(d)) == CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one)) : CV.SPoint}:
+  %goal {PT.pv(one, P.mul(d, P.g())) == CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one)) : CV.SPoint}
+  %rw PM.mul_v(one, h1, d, P.g(), hd, PA.g_r(one, h1))
+  %rw PA.g_v(one, h1)
+  %close
+
+def pubpt_r(+one: Nat, +h1: {one == 1n : Nat}, +d: List<&2, Nat>, +hd: {FS.limbs16(one, 16n, d) == True{} : Bool}) -> {PT.pred(one, E.public_point(d)) == True{} : Bool}:
+  PM.mul_r(one, h1, d, P.g(), hd, PA.g_r(one, h1))
+
+def pub_ok(+one: Nat, +h1: {one == 1n : Nat}, c: Bool, +d: List<&2, Nat>, +hd: {FS.limbs16(one, 16n, d) == True{} : Bool}, b: Bool) -> {E.public_key_d(c, E.secret_if(d, b)) == ES.public_d(one, c, FS.value(one, d), b) : Maybe<&2, List<&2, U32>>}:
+  match b:
+    case True{}:
+      %goal {Some{E.pk_of(c, E.public_point(d))} == Some{ES.pk_of(one, c, CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one)))} : Maybe<&2, List<&2, U32>>}
+      %rw pk_v(one, h1, c, E.public_point(d), pubpt_r(one, h1, d, hd))
+      %rw pubpt_v(one, h1, d, hd)
+      %close
+    case False{}:
+      {==}
+
+def pub_len(+one: Nat, +h1: {one == 1n : Nat}, c: Bool, +sk: List<&2, U32>, a: Bool, +ha: {B.has_len(32n, sk) == a : Bool}) -> {E.public_key_d(c, E.secret_if(B.of_be(sk), Bool.and(a, E.scalar_ok(B.of_be(sk))))) == ES.public_d(one, c, CV.os2ip(sk), Bool.and(a, ES.scalar_ok(one, CV.os2ip(sk)))) : Maybe<&2, List<&2, U32>>}:
+  match a:
+    case True{}:
+      +hd = BY.of_be_limbs(one, h1, sk, ha)
+      %rw SQ.scalar_ok_v(one, h1, B.of_be(sk))
+      %rw <- BY.of_be_value(one, h1, sk)
+      %rw <- BY.of_be_value(one, h1, sk)
+      pub_ok(one, h1, c, B.of_be(sk), hd, ES.scalar_ok(one, FS.value(one, B.of_be(sk))))
+    case False{}:
+      {==}
+
+# the SEC 1 public key of a secret key
+def public_key_v(+one: Nat, +h1: {one == 1n : Nat}, +sk: List<&2, U32>, c: Bool) -> {E.public_key(sk, c) == ES.public_key(one, sk, c) : Maybe<&2, List<&2, U32>>}:
+  %goal {E.public_key_d(c, E.secret_if(B.of_be(sk), Bool.and(B.has_len(32n, sk), E.scalar_ok(B.of_be(sk))))) == ES.public_d(one, c, CV.os2ip(sk), Bool.and(CV.length_is(32n, sk), ES.scalar_ok(one, CV.os2ip(sk)))) : Maybe<&2, List<&2, U32>>}
+  %rw BL.hl_is(32n, sk)
+  pub_len(one, h1, c, sk, CV.length_is(32n, sk), BL.hl_is(32n, sk))

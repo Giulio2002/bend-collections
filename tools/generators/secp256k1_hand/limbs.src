@@ -1,0 +1,186 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../src/crypto/secp256k1/limbs.bend as L
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../math/natural/arith.bend as NR
+import ../../math/typed/width.bend as WW
+import ./semiring.bend as SR
+
+# The limb lists of src/crypto/secp256k1/limbs.bend and their values: every
+# operation is exact on natural numbers (Fiat-Crypto's unsaturated limbs,
+# Erbsen et al. 2019: the value of the limb list is the number; with Nat
+# limbs there is no overflow to rule out in the value, and the run-time
+# bound 2^48 is a separate statement). ev is the value without `one`;
+# ev_value relates it to spec/crypto/secp256k1/field.bend's value.
+
+def ev(xs: List<&2, Nat>) -> Nat:
+  match xs:
+    case Nil{}: 0n
+    case x <> t: Nat.add(x, C.shift(16n, ev(t)))
+
+# y at limb position n: y 2^(16 n)
+def pos(n: Nat, +y: Nat) -> Nat:
+  match n:
+    case 0n: y
+    case 1n+k: C.shift(16n, pos(k, y))
+
+# 256 as a shift of one (the checker expands 2^8 in 256 steps, well
+# within its depth)
+def b8(+one: Nat, +h1: {one == 1n : Nat}) -> {C.shift(8n, one) == 256n : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {C.shift(8n, _) == 256n : Nat}
+  {==}
+
+def m256(+y: Nat) -> {Nat.mul(y, 256n) == C.shift(8n, y) : Nat}:
+  %Equal.sym(Nat, C.shift(8n, y), Nat.mul(y, C.shift(8n, 1n)), WW.shift_mul(8n, y)) : {Nat.mul(y, 256n) == _ : Nat}
+  {==}
+
+def mul_one_l(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat) -> {Nat.mul(one, x) == x : Nat}:
+  %Equal.sym(Nat, one, 1n, h1) : {Nat.mul(_, x) == x : Nat}
+  SR.one_mul(x)
+
+def ev_value(+one: Nat, +h1: {one == 1n : Nat}, xs: List<&2, Nat>) -> {FS.value(one, xs) == ev(xs) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case +x <> +t:
+      %goal {Nat.add(Nat.mul(one, x), C.shift(16n, FS.digits(one, t))) == Nat.add(x, C.shift(16n, ev(t))) : Nat}
+      %rw mul_one_l(one, h1, x)
+      %rwh ev_value(one, h1, t) : {FS.digits(one, t) == ev(t) : Nat}
+      %close
+
+# ---- sums, scalings, products ----
+
+def add_v(xs: List<&2, Nat>, ys: List<&2, Nat>) -> {ev(L.add(xs, ys)) == Nat.add(ev(xs), ev(ys)) : Nat}:
+  match xs ys:
+    case Nil{} Nil{}:
+      {==}
+    case Nil{} y <> yt:
+      {==}
+    case +x <> +xt Nil{}:
+      Equal.sym(Nat, Nat.add(ev(x <> xt), 0n), ev(x <> xt), NA.add_zero(ev(x <> xt)))
+    case +x <> +xt +y <> +yt:
+      %goal {Nat.add(Nat.add(x, y), C.shift(16n, ev(L.add(xt, yt)))) == Nat.add(Nat.add(x, C.shift(16n, ev(xt))), Nat.add(y, C.shift(16n, ev(yt)))) : Nat}
+      %rw add_v(xt, yt)
+      %norm
+
+def scal_v(+a: Nat, ys: List<&2, Nat>) -> {ev(L.scal(a, ys)) == Nat.mul(ev(ys), a) : Nat}:
+  match ys:
+    case Nil{}:
+      {==}
+    case +y <> +yt:
+      %goal {Nat.add(Nat.mul(y, a), C.shift(16n, ev(L.scal(a, yt)))) == Nat.mul(Nat.add(y, C.shift(16n, ev(yt))), a) : Nat}
+      %rw scal_v(a, yt)
+      %norm
+
+def conv_v(xs: List<&2, Nat>, +ys: List<&2, Nat>) -> {ev(L.conv(xs, ys)) == Nat.mul(ev(xs), ev(ys)) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case +x <> +xt:
+      %goal {ev(L.add(L.scal(x, ys), 0n <> L.conv(xt, ys))) == Nat.mul(Nat.add(x, C.shift(16n, ev(xt))), ev(ys)) : Nat}
+      %rw add_v(L.scal(x, ys), 0n <> L.conv(xt, ys))
+      %rw scal_v(x, ys)
+      %goal {Nat.add(Nat.mul(ev(ys), x), Nat.add(0n, C.shift(16n, ev(L.conv(xt, ys))))) == Nat.mul(Nat.add(x, C.shift(16n, ev(xt))), ev(ys)) : Nat}
+      %rw conv_v(xt, ys)
+      %norm
+
+# ---- positions ----
+
+def pos_add(n: Nat, +x: Nat, +y: Nat) -> {pos(n, Nat.add(x, y)) == Nat.add(pos(n, x), pos(n, y)) : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +k:
+      %goal {C.shift(16n, pos(k, Nat.add(x, y))) == Nat.add(C.shift(16n, pos(k, x)), C.shift(16n, pos(k, y))) : Nat}
+      %rw pos_add(k, x, y)
+      %norm
+
+def pos_zero(n: Nat) -> {pos(n, 0n) == 0n : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +k:
+      %goal {C.shift(16n, pos(k, 0n)) == 0n : Nat}
+      %rw pos_zero(k)
+      %norm
+
+def pos_mul(n: Nat, +x: Nat, +y: Nat) -> {pos(n, Nat.mul(x, y)) == Nat.mul(pos(n, x), y) : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +k:
+      %goal {C.shift(16n, pos(k, Nat.mul(x, y))) == Nat.mul(C.shift(16n, pos(k, x)), y) : Nat}
+      %rw pos_mul(k, x, y)
+      %norm
+
+# ev(xs) = ev(take n xs) + 2^(16 n) ev(drop n xs)
+def take_drop_v(n: Nat, xs: List<&2, Nat>) -> {ev(xs) == Nat.add(ev(L.take(n, xs)), pos(n, ev(L.drop(n, xs)))) : Nat}:
+  match n xs:
+    case 0n Nil{}:
+      {==}
+    case 0n x <> t:
+      {==}
+    case 1n+ +k Nil{}:
+      %goal {0n == Nat.add(0n, C.shift(16n, pos(k, 0n))) : Nat}
+      %rw pos_zero(k)
+      %norm
+    case 1n+ +k +x <> +t:
+      %goal {Nat.add(x, C.shift(16n, ev(t))) == Nat.add(Nat.add(x, C.shift(16n, ev(L.take(k, t)))), C.shift(16n, pos(k, ev(L.drop(k, t))))) : Nat}
+      %rw@l take_drop_v(k, t)
+      %norm
+
+def hd_tl_v(xs: List<&2, Nat>) -> {ev(xs) == Nat.add(L.hd0(xs), C.shift(16n, ev(L.tl(xs)))) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case x <> t:
+      {==}
+
+# ---- 16-bit limbs from bytes ----
+
+def lohi(+s: Nat) -> {Nat.add(L.lo16(s), C.shift(16n, L.hi16(s))) == s : Nat}:
+  %goal {Nat.add(Nat.add(Nat.mod(s, 256n), Nat.mul(Nat.mod(Nat.div(s, 256n), 256n), 256n)), C.shift(16n, Nat.div(Nat.div(s, 256n), 256n))) == s : Nat}
+  %rw@r NR.dm_eq(255n, s)
+  %rw@r NR.dm_eq(255n, Nat.div(s, 256n))
+  %rw m256(Nat.mod(Nat.div(s, 256n), 256n))
+  %rw m256(Nat.add(Nat.mul(Nat.div(Nat.div(s, 256n), 256n), 256n), Nat.mod(Nat.div(s, 256n), 256n)))
+  %rw m256(Nat.div(Nat.div(s, 256n), 256n))
+  %norm
+
+def horner_v(xs: List<&2, Nat>) -> {L.horner(xs) == ev(xs) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case +x <> +t:
+      %goal {Nat.add(Nat.mul(Nat.mul(L.horner(t), 256n), 256n), x) == Nat.add(x, C.shift(16n, ev(t))) : Nat}
+      %rw horner_v(t)
+      %rw m256(ev(t))
+      %rw m256(C.shift(8n, ev(t)))
+      %norm
+
+# a carry pass keeps the value: the carry in plus the limbs
+def carry_v(n: Nat, xs: List<&2, Nat>, +u: Nat) -> {ev(L.carry(n, xs, u)) == Nat.add(u, ev(xs)) : Nat}:
+  match n xs:
+    case 0n Nil{}:
+      %goal {Nat.add(u, C.shift(16n, 0n)) == Nat.add(u, 0n) : Nat}
+      %norm
+    case 0n +x <> +t:
+      %goal {Nat.add(Nat.add(u, L.horner(x <> t)), C.shift(16n, 0n)) == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %rw horner_v(x <> t)
+      %goal {Nat.add(Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))), C.shift(16n, 0n)) == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %norm
+    case 1n+ +k Nil{}:
+      %goal {Nat.add(L.lo16(Nat.add(u, 0n)), C.shift(16n, ev(L.carry(k, [], L.hi16(Nat.add(u, 0n)))))) == Nat.add(u, 0n) : Nat}
+      %rw carry_v(k, [], L.hi16(Nat.add(u, 0n)))
+      %goal {Nat.add(L.lo16(Nat.add(u, 0n)), C.shift(16n, Nat.add(L.hi16(Nat.add(u, 0n)), 0n))) == Nat.add(u, 0n) : Nat}
+      %rw NA.add_zero(L.hi16(Nat.add(u, 0n)))
+      %rw@l lohi(Nat.add(u, 0n))
+      %close
+    case 1n+ +k +x <> +t:
+      %goal {Nat.add(L.lo16(Nat.add(u, x)), C.shift(16n, ev(L.carry(k, t, L.hi16(Nat.add(u, x)))))) == Nat.add(u, Nat.add(x, C.shift(16n, ev(t)))) : Nat}
+      %rw carry_v(k, t, L.hi16(Nat.add(u, x)))
+      %rw WW.shift_add(16n, L.hi16(Nat.add(u, x)), ev(t))
+      %rw <- NA.add_assoc(L.lo16(Nat.add(u, x)), C.shift(16n, L.hi16(Nat.add(u, x))), C.shift(16n, ev(t)))
+      %rw lohi(Nat.add(u, x))
+      %norm
