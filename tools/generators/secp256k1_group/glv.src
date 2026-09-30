@@ -16,7 +16,7 @@ import ./glaw2.bend as G2
 import ./glaw4.bend as G4
 import ./id_glv.bend as GI
 import ./id_glv2.bend as GJ
-import ./glvp.bend as GP
+import ../../../../spec/crypto/secp256k1/glv.bend as GP
 
 # The GLV endomorphism of secp256k1 on the specification's points:
 # GP.phi(X : Y : Z) = (beta X : Y : Z) with beta^3 == 1 (hb) maps the group to

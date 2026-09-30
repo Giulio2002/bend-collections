@@ -10,6 +10,7 @@ import ../../../../spec/crypto/secp256k1/field.bend as FS
 import ../../../../spec/crypto/secp256k1/curve.bend as CS
 import ../../../../spec/crypto/secp256k1/group.bend as GS
 import ../../../math/number/nt_prime.bend as PM
+import ../../../math/number/nt_fld.bend as FD
 import ./glaw1.bend as G1
 import ./glaw2.bend as G2
 import ./glaw4.bend as G4
@@ -105,3 +106,51 @@ def lval_e(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +
 
 def lval_v(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +bs: List<&2, Nat>, +g: CS.SPoint, +f: CS.SPoint, +vg: {GS.valid(1n+mp, g) == True{} : Bool}, +hl: {CS.lmul(1n+mp, bs, g, CS.infinity()) == f : CS.SPoint}) -> {GS.valid(1n+mp, f) == True{} : Bool}:
   Lg.subst(CS.SPoint, z => {GS.valid(1n+mp, z) == True{} : Bool}, CS.lmul(1n+mp, bs, g, CS.infinity()), f, hl, G4.lmul_valid(mp, hp, h3, hnc, h21, bs, g, CS.infinity(), vg, G2.v_inf(mp, h21)))
+
+# ---- a point of prime order: [k] A is O only for k a multiple of n ----
+
+def zc(a: CS.SPoint) -> Nat:
+  match a:
+    case CS.SPoint{x, y, z}:
+      z
+
+# a point with Z == 1 is not O
+def inf_absurd(+mp: Nat, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, a: CS.SPoint, +hz: {zc(a) == 1n : Nat}, +h: {GS.equiv(1n+mp, a, CS.infinity()) == True{} : Bool}) -> Empty:
+  match a:
+    case CS.SPoint{+x, +y, +z}:
+      +e1 = Lg.subst(Nat, v => {Nat.mod(Nat.mul(v, 1n), 1n+mp) == 0n : Nat}, z, 1n, hz, G1.e_z(mp, x, y, z, 0n, 1n, 0n, h))
+      +e2 = NR.mod_of(0n, mp, 1n, G2.lt1(mp, h21))
+      Lg.false_true(Equal.cong(Nat, Bool, v => Nat.is_eq(v, 0n), 1n, 0n, Equal.trans(Nat, 1n, Nat.mod(1n, 1n+mp), 0n, Equal.sym(Nat, Nat.mod(1n, 1n+mp), 1n, e2), e1)))
+
+# [k] A equiv O with n prime and k not a multiple of n: A equiv [j k] A equiv [j] O equiv O
+def ni_contra(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +nq: Nat, +hq: PM.Prime(1n+nq), +a: CS.SPoint, +va: {GS.valid(1n+mp, a) == True{} : Bool}, +hz: {zc(a) == 1n : Nat}, +hn: {GS.equiv(1n+mp, GS.smul(1n+mp, 1n+nq, a), CS.infinity()) == True{} : Bool}, +k: Nat, +hk: {Nat.is_eq(Nat.mod(k, 1n+nq), 0n) == False{} : Bool}, +h: {GS.equiv(1n+mp, GS.smul(1n+mp, k, a), CS.infinity()) == True{} : Bool}) -> Empty:
+  +j = Nat.mod(Nat.pow(k, Nat.sub(1n+nq, 2n)), 1n+nq)
+  +vi = G2.v_inf(mp, h21)
+  +vk = G4.v_smul(mp, hp, h3, hnc, h21, k, a, va)
+  +e1 = Equal.trans(Nat, Nat.mod(Nat.mul(j, k), 1n+nq), Nat.mod(Nat.mul(k, j), 1n+nq), 1n, Equal.cong(Nat, Nat, v => Nat.mod(v, 1n+nq), Nat.mul(j, k), Nat.mul(k, j), NA.mul_comm(j, k)), FD.inv_mod(1n+nq, hq, k, hk))
+  +s1 = Lg.subst(Nat, v => {GS.equiv(1n+mp, GS.smul(1n+mp, j, GS.smul(1n+mp, k, a)), GS.smul(1n+mp, v, a)) == True{} : Bool}, Nat.mod(Nat.mul(j, k), 1n+nq), 1n, e1, mul_mod(mp, hp, h3, hnc, h21, j, k, nq, a, va, hn))
+  +s2 = G2.e_trans(mp, hp, GS.smul(1n+mp, j, GS.smul(1n+mp, k, a)), CS.padd(1n+mp, CS.infinity(), a), a, G1.v_add(mp, hp, h3, hnc, h21, CS.infinity(), a, vi, va), s1, G4.unit_l(mp, a))
+  +s3 = G2.e_trans(mp, hp, GS.smul(1n+mp, j, GS.smul(1n+mp, k, a)), GS.smul(1n+mp, j, CS.infinity()), CS.infinity(), G4.v_smul(mp, hp, h3, hnc, h21, j, CS.infinity(), vi), G4.smul_eqv(mp, hp, h3, hnc, h21, j, GS.smul(1n+mp, k, a), CS.infinity(), vk, vi, h), smul_inf(mp, hp, h3, hnc, h21, j))
+  inf_absurd(mp, h21, a, hz, G2.e_trans(mp, hp, a, GS.smul(1n+mp, j, GS.smul(1n+mp, k, a)), CS.infinity(), G4.v_smul(mp, hp, h3, hnc, h21, j, GS.smul(1n+mp, k, a), vk), G2.e_sym(mp, GS.smul(1n+mp, j, GS.smul(1n+mp, k, a)), a, s2), s3))
+
+def ni_c(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +nq: Nat, +hq: PM.Prime(1n+nq), +a: CS.SPoint, +va: {GS.valid(1n+mp, a) == True{} : Bool}, +hz: {zc(a) == 1n : Nat}, +hn: {GS.equiv(1n+mp, GS.smul(1n+mp, 1n+nq, a), CS.infinity()) == True{} : Bool}, +k: Nat, +hk: {Nat.is_eq(Nat.mod(k, 1n+nq), 0n) == False{} : Bool}, c: Bool, +hc: {GS.equiv(1n+mp, GS.smul(1n+mp, k, a), CS.infinity()) == c : Bool}) -> {GS.equiv(1n+mp, GS.smul(1n+mp, k, a), CS.infinity()) == False{} : Bool}:
+  match c:
+    case False{}:
+      hc
+    case True{}:
+      Empty.absurd({GS.equiv(1n+mp, GS.smul(1n+mp, k, a), CS.infinity()) == False{} : Bool}, ni_contra(mp, hp, h3, hnc, h21, nq, hq, a, va, hz, hn, k, hk, hc))
+
+# for n = 1 + nq prime, [n] A equiv O, Z(A) == 1 and k not a multiple of n: [k] A is not O
+def not_inf(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +nq: Nat, +hq: PM.Prime(1n+nq), +a: CS.SPoint, +va: {GS.valid(1n+mp, a) == True{} : Bool}, +hz: {zc(a) == 1n : Nat}, +hn: {GS.equiv(1n+mp, GS.smul(1n+mp, 1n+nq, a), CS.infinity()) == True{} : Bool}, +k: Nat, +hk: {Nat.is_eq(Nat.mod(k, 1n+nq), 0n) == False{} : Bool}) -> {GS.equiv(1n+mp, GS.smul(1n+mp, k, a), CS.infinity()) == False{} : Bool}:
+  ni_c(mp, hp, h3, hnc, h21, nq, hq, a, va, hz, hn, k, hk, GS.equiv(1n+mp, GS.smul(1n+mp, k, a), CS.infinity()), {==})
+
+def pos_ne(k: Nat, +h: {Nat.is_lt(0n, k) == True{} : Bool}) -> {Nat.is_eq(k, 0n) == False{} : Bool}:
+  match k:
+    case 0n:
+      Empty.absurd({Nat.is_eq(0n, 0n) == False{} : Bool}, Lg.false_true(h))
+    case 1n+j:
+      {==}
+
+# 0 < k < n: k is not a multiple of n
+def nz_k(+nq: Nat, +k: Nat, +h0: {Nat.is_lt(0n, k) == True{} : Bool}, +hl: {Nat.is_lt(k, 1n+nq) == True{} : Bool}) -> {Nat.is_eq(Nat.mod(k, 1n+nq), 0n) == False{} : Bool}:
+  Lg.subst(Nat, v => {Nat.is_eq(v, 0n) == False{} : Bool}, k, Nat.mod(k, 1n+nq), Equal.sym(Nat, Nat.mod(k, 1n+nq), k, NR.mod_of(0n, nq, k, hl)), pos_ne(k, h0))
