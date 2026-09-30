@@ -195,3 +195,47 @@ def cg_sh(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +k: Nat, +a: Nat, +c: Nat
   %NA.mul_comm(s, a) : {Nat.mod(_, 1n+bp) == Nat.mod(Nat.mul(c, s), 1n+bp) : Nat}
   %NA.mul_comm(s, c) : {Nat.mod(Nat.mul(s, a), 1n+bp) == Nat.mod(_, 1n+bp) : Nat}
   cg_mul(bp, s, a, c, e)
+
+# ---- small fits ----
+
+law fz:
+  for +k: Nat
+  {C.fits(k, 0n) == True{} : Bool}
+
+def fz(k):
+  match k:
+    case 0n: {==}
+    case 1n+p: fz(p)
+
+def fm4(+x: Nat) -> {C.fits(2n, Nat.mod(x, 4n)) == True{} : Bool}:
+  WW.fits_of_lt(2n, Nat.mod(x, 4n), NR.dm_lt(3n, x))
+
+def fm16(+x: Nat) -> {C.fits(4n, Nat.mod(x, 16n)) == True{} : Bool}:
+  WW.fits_of_lt(4n, Nat.mod(x, 16n), NR.dm_lt(15n, x))
+
+def fm64(+x: Nat) -> {C.fits(6n, Nat.mod(x, 64n)) == True{} : Bool}:
+  WW.fits_of_lt(6n, Nat.mod(x, 64n), NR.dm_lt(63n, x))
+
+def fm256(+x: Nat) -> {C.fits(8n, Nat.mod(x, 256n)) == True{} : Bool}:
+  WW.fits_of_lt(8n, Nat.mod(x, 256n), NR.dm_lt(255n, x))
+
+# x with 2 + j bits: x div 4 has j bits (and 4, 6, 8 likewise)
+def fd4(+j: Nat, +x: Nat, +hx: {C.fits(Nat.add(2n, j), x) == True{} : Bool}) -> {C.fits(j, Nat.div(x, 4n)) == True{} : Bool}:
+  %WW.high_u(2n, Nat.mod(x, 4n), Nat.div(x, 4n), fm4(x)) : {C.fits(j, _) == True{} : Bool}
+  %d4(x) : {C.fits(j, C.high(2n, _)) == True{} : Bool}
+  SH.fits_high(2n, j, x, hx)
+
+def fd16(+j: Nat, +x: Nat, +hx: {C.fits(Nat.add(4n, j), x) == True{} : Bool}) -> {C.fits(j, Nat.div(x, 16n)) == True{} : Bool}:
+  %WW.high_u(4n, Nat.mod(x, 16n), Nat.div(x, 16n), fm16(x)) : {C.fits(j, _) == True{} : Bool}
+  %d16(x) : {C.fits(j, C.high(4n, _)) == True{} : Bool}
+  SH.fits_high(4n, j, x, hx)
+
+def fd64(+j: Nat, +x: Nat, +hx: {C.fits(Nat.add(6n, j), x) == True{} : Bool}) -> {C.fits(j, Nat.div(x, 64n)) == True{} : Bool}:
+  %WW.high_u(6n, Nat.mod(x, 64n), Nat.div(x, 64n), fm64(x)) : {C.fits(j, _) == True{} : Bool}
+  %d64(x) : {C.fits(j, C.high(6n, _)) == True{} : Bool}
+  SH.fits_high(6n, j, x, hx)
+
+def fd256(+j: Nat, +x: Nat, +hx: {C.fits(Nat.add(8n, j), x) == True{} : Bool}) -> {C.fits(j, Nat.div(x, 256n)) == True{} : Bool}:
+  %WW.high_u(8n, Nat.mod(x, 256n), Nat.div(x, 256n), fm256(x)) : {C.fits(j, _) == True{} : Bool}
+  %d256(x) : {C.fits(j, C.high(8n, _)) == True{} : Bool}
+  SH.fits_high(8n, j, x, hx)
