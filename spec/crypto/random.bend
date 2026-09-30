@@ -10,6 +10,8 @@ import ../math/random/source.bend as SRC
 import ../math/random/chacha8rand.bend as SC
 import ../math/random/rand.bend as SR
 import ../math/random.bend as SRM
+import ../lib/common.bend as CM
+import ../../proofs/lib/array.bend as AR
 
 # The contract of src/crypto/random.bend: the ChaCha8Rand generator of
 # math/random (C2SP chacha8rand) with Go's ChaCha8.Read byte order, each
@@ -25,6 +27,16 @@ import ../math/random.bend as SRM
 #   Random.bytes_lt     every byte is below 256 (when the pending ones are)
 #   Random.uint_below   uint_below(g, n) < n for n > 0
 #   Random.shuffle      shuffle(g, items) is a permutation of items
+#   Random.read_words   read_words(g, a, j, k) writes the next k outputs'
+#                       words (low word first) into slots j .. j + 2k - 1
+#                       and keeps slots 0 .. j - 1 (an array of 2^d slots,
+#                       d < 32, j + 2k <= 2^d: thaw(t) of its mirror tree t,
+#                       proofs/lib/array.bend, whose leaves are its slots)
+#   Random.read_gen     ... and advances the generator by k outputs (pending
+#                       bytes kept)
+#   Random.read_bytes   those words, four little-endian bytes each, are the
+#                       outputs' bytes in Read's order (the stream of
+#                       Random.bytes)
 #
 # Security properties (indistinguishability from uniform, forward secrecy)
 # are properties of ChaCha8 and of the C2SP key erasure, not of this code;
@@ -99,3 +111,44 @@ def Random.uint_below(+g: CR.Gen, +n: W.U64, +hn: {X.is_zero(n) == False{} : Boo
 
 def Random.shuffle(~A: Data, ~V: Data, ~rel: A -> V -> Bool, +g: CR.Gen, +items: List<&2, A>, +v: V) -> Type:
   {SR.occurrences(~A, ~V, ~rel, v, R.fst(List<&2, A>, CR.Gen, CR.shuffle(~A, g, items))) == SR.occurrences(~A, ~V, ~rel, v, items) : Nat}
+
+# the generator after n outputs
+def after(n: Nat, +c: C8.ChaCha8) -> C8.ChaCha8:
+  match n:
+    case 0n:
+      c
+    case 1n+p:
+      after(p, SRC.snd64(C8.ChaCha8, C8.next(c)))
+
+# each output as its low and high 32-bit words
+def words(xs: List<&2, W.U64>) -> List<&2, U32>:
+  match xs:
+    case Nil{}:
+      []
+    case Con{+x, rest}:
+      Con{X.lo(x), Con{X.hi(x), words(rest)}}
+
+# each word as four little-endian bytes
+def unpack(ws: List<&2, U32>) -> List<&2, U32>:
+  match ws:
+    case Nil{}:
+      []
+    case Con{+w, rest}:
+      Con{byte_of(w, 0n), Con{byte_of(w, 8n), Con{byte_of(w, 16n), Con{byte_of(w, 24n), unpack(rest)}}}}
+
+def rarr(p: Array<U32> & CR.Gen) -> Array<U32>:
+  (a, g) = p
+  a
+
+def rgen(p: Array<U32> & CR.Gen) -> CR.Gen:
+  (a, g) = p
+  g
+
+def Random.read_words(+d: Nat, +t: AR.Tree<U32>, +j: Nat, +k: Nat, +c: C8.ChaCha8, +p: List<&2, U32>, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hk: {Nat.is_le(Nat.add(j, Nat.double(k)), CM.pow2(d)) == True{} : Bool}, +pf: {AR.perfect(U32, d, t) == True{} : Bool}) -> Type:
+  {CM.take(U32, AR.slots(U32, AR.freeze(U32, rarr(CR.read_words(CR.G{c, p}, AR.thaw(U32, t), j, k)))), Nat.add(j, Nat.double(k))) == CM.append(U32, CM.take(U32, AR.slots(U32, t), j), words(SRC.outputs(~C8.ChaCha8, ~C8.next, k, c))) : List<&2, U32>}
+
+def Random.read_gen(+t: AR.Tree<U32>, +j: Nat, +k: Nat, +c: C8.ChaCha8, +p: List<&2, U32>) -> Type:
+  {rgen(CR.read_words(CR.G{c, p}, AR.thaw(U32, t), j, k)) == CR.G{after(k, c), p} : CR.Gen}
+
+def Random.read_bytes(+xs: List<&2, W.U64>) -> Type:
+  {unpack(words(xs)) == flat(xs) : List<&2, U32>}

@@ -897,6 +897,7 @@ generator behind Go's runtime, `math/rand/v2` top-level functions and its
 | `new(seed)` | `Some{g}` for a 32-byte seed (a list of 32 bytes below 256), `None` otherwise; deterministic, for tests and reproducible runs |
 | `from_os()` | IO: a generator keyed with 32 bytes of operating-system entropy (eight `IO.random_u32`: getrandom / arc4random / crypto.getRandomValues) |
 | `bytes(g, n)` | n random bytes and the new generator (Go's `ChaCha8.Read`: the little-endian bytes of successive 64-bit outputs; a partly used output's remaining bytes are served first by the next call) |
+| `read_words(g, a, j, k)` | the 8k bytes of the next k outputs (Go's `ChaCha8.Read` when no bytes are pending) packed little-endian into slots j .. j + 2k - 1 of an `Array<U32>`, in place: no list cell per byte; pending bytes are kept for `bytes` |
 | `uint64(g)`, `uint_below(g, n)` | a uniform 64-bit word; a uniform value below n > 0 (Lemire, unbiased) |
 | `shuffle(g, items)` | a uniform permutation (Fisher-Yates) |
 | `next(g)` | the Source step: every function of `src/math/random/rand.bend` runs on it (`R.float64(~CR.Gen, ~CR.next, g)`) |
@@ -913,6 +914,9 @@ roots).
 | `Random.seeded` | `new(seed)` is None unless the seed is 32 bytes below 256, and otherwise outputs the stream of the seed's little-endian words | P |
 | `Random.bytes` | `bytes(g, n)` are the first n of the pending bytes followed by the little-endian bytes (Go's `binary.LittleEndian.PutUint64`) of the next outputs, for every generator and n (the implementation takes a whole output's eight bytes at once while none are pending; `fast_eq` proves it equal to the byte-at-a-time fill for every n and state) | P (`bytes.bend`) |
 | `Random.bytes_lt` | every byte is below 256 (when the pending ones are, as `new` and `from_os` leave them) | P |
+| `Random.read_words` | on an array of 2^d slots (d < 32; `thaw(t)` of its mirror tree, `proofs/lib/array.bend`) with j + 2k <= 2^d, `read_words(g, a, j, k)` keeps slots 0 .. j - 1 and writes the low and high words of the next k outputs into slots j .. j + 2k - 1 | P (`read.bend`) |
+| `Random.read_gen` | ... and the generator is advanced by k outputs, its pending bytes kept | P |
+| `Random.read_bytes` | those words, four little-endian bytes each, are the outputs' bytes in `Random.bytes`' order (`binary.LittleEndian.PutUint64`) | P |
 | `Random.uint_below` | `uint_below(g, n) < n` for n > 0 | P (the math `Uint64n.lt` at this source) |
 | `Random.shuffle` | `shuffle(g, items)` is a permutation of `items` (every count kept; linear time, through a Base `Array`) | P (the math `Shuffle.permutation`) |
 

@@ -13,6 +13,9 @@ import ../../math/random/chacha8/seed.bend as SEED
 import ../../math/random/bounded.bend as BD
 import ../../math/random/lshuffle.bend as SH
 import ./bytes.bend as BY
+import ./read.bend as RD
+import ../../lib/array.bend as AR
+import ../../../spec/lib/common.bend as CM
 
 # Entry point: `bend proofs/crypto/random/proof.bend` checks every clause of
 # spec/crypto/random.bend under its name, for every input. It imports the
@@ -68,3 +71,12 @@ def Random.uint_below(+g: CR.Gen, +n: W.U64, +hn: {X.is_zero(n) == False{} : Boo
 
 def Random.shuffle(~A: Data, ~V: Data, ~rel: A -> V -> Bool, +g: CR.Gen, +items: List<&2, A>, +v: V) -> SCR.Random.shuffle(~A, ~V, ~rel, g, items, v):
   SH.shuffle_perm(~A, ~V, ~rel, ~CR.Gen, ~CR.next, g, items, v)
+
+def Random.read_words(+d: Nat, +t: AR.Tree<U32>, +j: Nat, +k: Nat, +c: C8.ChaCha8, +p: List<&2, U32>, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hk: {Nat.is_le(Nat.add(j, Nat.double(k)), CM.pow2(d)) == True{} : Bool}, +pf: {AR.perfect(U32, d, t) == True{} : Bool}) -> SCR.Random.read_words(d, t, j, k, c, p, hd, hk, pf):
+  RD.read_words(d, t, j, k, c, p, hd, hk, pf)
+
+def Random.read_gen(+t: AR.Tree<U32>, +j: Nat, +k: Nat, +c: C8.ChaCha8, +p: List<&2, U32>) -> SCR.Random.read_gen(t, j, k, c, p):
+  RD.read_gen(t, j, k, c, p)
+
+def Random.read_bytes(+xs: List<&2, W.U64>) -> SCR.Random.read_bytes(xs):
+  RD.read_bytes(xs)

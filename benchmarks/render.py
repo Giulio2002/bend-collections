@@ -106,7 +106,8 @@ SUITE = OrderedDict([
         ('uint_below', '`uint_below` (ChaCha8)', "Go's `uint64n` (Lemire) transcribed", 'Bound', 'ns'),
         ('float64', '`float64` (ChaCha8)', "Go's `Float64` transcribed", 'Draws', 'ns'),
         ('shuffle', '`shuffle` (ChaCha8)', "Go's Fisher-Yates `Shuffle` on a C array; Bend's `shuffle_array` on an `Array<U32>`, in place", 'Items', 'us'),
-        ('crypto_random_bytes', '`crypto.random.bytes`', "Go's `ChaCha8.Read` transcribed", 'Request', 'us'),
+        ('crypto_random_bytes', '`crypto.random.bytes`', "Go's `ChaCha8.Read` transcribed; Bend returns a list of bytes", 'Request', 'us'),
+        ('crypto_random_read', '`crypto.random.read_words`', "Go's `ChaCha8.Read` transcribed; Bend writes the bytes packed into an `Array<U32>`, in place", 'Request', 'us'),
     ])),
 ])
 TODO_ROWS = {}   # case -> text, for a module that could not be measured
@@ -200,7 +201,12 @@ def references_section():
             '- Shuffle: both sides shuffle the first n slots of an array in place (Bend:',
             '  `shuffle_array` on an `Array<U32>` of 2^d >= n slots, filled before the timed',
             '  region; the list `shuffle` writes the list into such an array and reads it',
-            '  back, two more linear passes).', '']
+            '  back, two more linear passes).',
+            '- `crypto.random.bytes` returns a list with one heap cell per byte (and',
+            '  reverses its accumulator), so it stays about 20x the C buffer write; the',
+            '  ChaCha8 stream alone is about 7x. `crypto.random.read_words` writes the same',
+            '  bytes packed four to a U32 into an `Array<U32>` allocated before the timed',
+            '  region, which is what the C side does with its byte buffer.', '']
 
 
 def main():

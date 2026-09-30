@@ -126,6 +126,12 @@ def again(~S: Data, ~next: S -> W.U64 & S, +n: W.U64, +hi: W.U64, +lo: W.U64, s:
     case True{}:
       draw(S, n, next(s))
 
+# the next draw after d
+def redraw(~S: Data, ~next: S -> W.U64 & S, +n: W.U64, d: Draw<S>) -> Draw<S>:
+  match d:
+    case D{hi, lo, s}:
+      draw(S, n, next(s))
+
 def step(~S: Data, ~next: S -> W.U64 & S, +n: W.U64, +t: W.U64, d: Draw<S>) -> Draw<S>:
   match d:
     case D{+hi, +lo, s}:
@@ -139,6 +145,24 @@ def retry(~S: Data, ~next: S -> W.U64 & S, fuel: Nat, +n: W.U64, +t: W.U64, d: D
     case 1n+f:
       retry(~S, ~next, f, n, t, step(~S, ~next, n, t, d))
 
+# the rejection test of a draw
+def rejects(-S: Data, +t: W.U64, d: Draw<S>) -> Bool:
+  match d:
+    case D{hi, +lo, s}:
+      X.lt(lo, t)
+
+# retry with an early exit (Go's loop): reject is rejects(t, d); once a draw
+# is accepted no more steps are taken (retry's accepted draw is a fixed point)
+def retry_fast(~S: Data, ~next: S -> W.U64 & S, fuel: Nat, +n: W.U64, +t: W.U64, +d: Draw<S>, reject: Bool) -> Draw<S>:
+  match fuel reject:
+    case _ False{}:
+      d
+    case 0n True{}:
+      d
+    case 1n+f True{}:
+      +nd = redraw(~S, ~next, n, d)
+      retry_fast(~S, ~next, f, n, t, nd, rejects(S, t, nd))
+
 def result(-S: Data, d: Draw<S>) -> W.U64 & S:
   match d:
     case D{hi, lo, s}:
@@ -151,7 +175,8 @@ def lemire_small(~S: Data, ~next: S -> W.U64 & S, +n: W.U64, +hi: W.U64, +lo: W.
     case False{}:
       (hi, s)
     case True{}:
-      result(S, retry(~S, ~next, 127n, n, thresh(n), D{hi, lo, s}))
+      +t = thresh(n)
+      result(S, retry_fast(~S, ~next, 127n, n, t, D{hi, lo, s}, X.lt(lo, t)))
 
 def lemire_first(~S: Data, ~next: S -> W.U64 & S, +n: W.U64, d: Draw<S>) -> W.U64 & S:
   match d:
