@@ -366,17 +366,21 @@ def mok_inv(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +ml: U32, +mh: U32, +hM
 def mok_hz(+ml: U32, +mh: U32, +hok: {X.mont_ok(WU.U64{ml, mh}) == True{} : Bool}) -> {U32.is_zero(mh) == False{} : Bool}:
   not_t(U32.is_zero(mh), W64S.and_l(Bool.not(U32.is_zero(mh)), U32.is_lt(mh, 2147483648), mok_cd(ml, mh, hok)))
 
-def mok_63(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +ml: U32, +mh: U32, +hM: {SW.value(WU.U64{ml, mh}) == 1n+bp : Nat}, +hok: {X.mont_ok(WU.U64{ml, mh}) == True{} : Bool}) -> {Nat.is_lt(1n+bp, C.shift(63n, one)) == True{} : Bool}:
+# over an open 2^31 word c: comparisons never meet the literal
+def mok_63_c(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +ml: U32, +mh: U32, +hM: {SW.value(WU.U64{ml, mh}) == 1n+bp : Nat}, +c: U32, +hc: {c == U32{WD.pw(32n, 31n)} : U32}, +hlt: {U32.is_lt(mh, c) == True{} : Bool}) -> {Nat.is_lt(1n+bp, C.shift(63n, one)) == True{} : Bool}:
   +s31 = C.shift(31n, one)
-  +e31 = Equal.trans(Nat, v(2147483648), WD.sc(31n, one), s31, PD.pow32(31n, {==}, one, h1, 2147483648, {==}), Equal.sym(Nat, s31, WD.sc(31n, one), W64M.shift_sc(31n, one)))
-  +hd = Equal.trans(Bool, Nat.is_lt(v(mh), v(2147483648)), U32.is_lt(mh, 2147483648), True{}, Equal.sym(Bool, U32.is_lt(mh, 2147483648), Nat.is_lt(v(mh), v(2147483648)), U.is_lt_nat(mh, 2147483648)), W64S.and_r(Bool.not(U32.is_zero(mh)), U32.is_lt(mh, 2147483648), mok_cd(ml, mh, hok)))
-  +hd2 = L.subst(Nat, z => {Nat.is_lt(v(mh), z) == True{} : Bool}, v(2147483648), s31, e31, hd)
+  +e31 = Equal.trans(Nat, v(c), WD.sc(31n, one), s31, PD.pow32(31n, {==}, one, h1, c, hc), Equal.sym(Nat, s31, WD.sc(31n, one), W64M.shift_sc(31n, one)))
+  +hd = Equal.trans(Bool, Nat.is_lt(v(mh), v(c)), U32.is_lt(mh, c), True{}, Equal.sym(Bool, U32.is_lt(mh, c), Nat.is_lt(v(mh), v(c)), U.is_lt_nat(mh, c)), hlt)
+  +hd2 = L.subst(Nat, z => {Nat.is_lt(v(mh), z) == True{} : Bool}, v(c), s31, e31, hd)
   +a1 = N.lt_add_r2(v(ml), C.shift(32n, one), C.shift(32n, v(mh)), WW.lt_one(32n, one, h1, v(ml), LW.vb(ml)))
   +a2 = L.subst(Nat, z => {Nat.is_lt(SW.value(WU.U64{ml, mh}), z) == True{} : Bool}, Nat.add(C.shift(32n, one), C.shift(32n, v(mh))), C.shift(32n, Nat.add(one, v(mh))), Equal.sym(Nat, C.shift(32n, Nat.add(one, v(mh))), Nat.add(C.shift(32n, one), C.shift(32n, v(mh))), WW.shift_add(32n, one, v(mh))), a1)
   +a3 = WW.shift_mono(32n, Nat.add(one, v(mh)), s31, L.subst(Nat, z => {Nat.is_le(Nat.add(z, v(mh)), s31) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), N.lt_succ_le_succ(v(mh), s31, hd2)))
   +a4 = L.subst(Nat, z => {Nat.is_le(C.shift(32n, Nat.add(one, v(mh))), z) == True{} : Bool}, C.shift(32n, s31), C.shift(63n, one), Equal.sym(Nat, C.shift(63n, one), C.shift(32n, s31), WW.shift_comp(32n, 31n, one)), a3)
   L.subst(Nat, z => {Nat.is_lt(z, C.shift(63n, one)) == True{} : Bool}, SW.value(WU.U64{ml, mh}), 1n+bp, hM, N.lt_le_trans(SW.value(WU.U64{ml, mh}), C.shift(32n, Nat.add(one, v(mh))), C.shift(63n, one), a2, a4))
 
+
+def mok_63(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +ml: U32, +mh: U32, +hM: {SW.value(WU.U64{ml, mh}) == 1n+bp : Nat}, +hok: {X.mont_ok(WU.U64{ml, mh}) == True{} : Bool}) -> {Nat.is_lt(1n+bp, C.shift(63n, one)) == True{} : Bool}:
+  mok_63_c(one, h1, bp, ml, mh, hM, 2147483648, {==}, W64S.and_r(Bool.not(U32.is_zero(mh)), U32.is_lt(mh, 2147483648), mok_cd(ml, mh, hok)))
 
 # pow_mod through Montgomery multiplication when mont_ok(m)
 def mpow_top(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +m: WU.U64, +hM: {SW.value(m) == 1n+bp : Nat}, +hok: {X.mont_ok(m) == True{} : Bool}, +b: WU.U64, +e: WU.U64) -> {SW.value(X.mpow(X.rem(b, m), e, m)) == M.pow_mod_go(140n, 1n+bp, SW.value(e), Nat.mod(SW.value(b), 1n+bp), Nat.mod(1n, 1n+bp)) : Nat}:
