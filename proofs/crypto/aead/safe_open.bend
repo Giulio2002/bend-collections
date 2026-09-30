@@ -21,11 +21,14 @@ import ../poly1305/safe_lib.bend as SL
 # ---- the tag pass of the one-pass ChaCha20-Poly1305 open (I.opoly)
 
 # I.otag: the tag's end over the data xs (ciphertext || tag)
+# (the match on sv is I.otag's: it keeps a proof's goal small while sv is unknown)
 def ok_otag(+xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, +h: L.F, +cnt: Nat) -> Bool:
-  SL.ok_ftail(I.body(CH.skip(16n, xs), xs), pone, kk, sv, la, h, cnt)
+  match sv:
+    case L.F{s0, s1, s2, s3, s4}: SL.ok_ftail(I.body(CH.skip(16n, xs), xs), pone, kk, L.F{s0, s1, s2, s3, s4}, la, h, cnt)
 
 def otag_safe(+xs: List<&2, U32>, +pone: Nat, +hp: {pone == 1n : Nat}, +one: Nat, +h1: {one == 1n : Nat}, +r0: Nat, +r1: Nat, +r2: Nat, +r3: Nat, +r4: Nat, +kk: L.K, +hk: {kk == L.key(L.F{r0, r1, r2, r3, r4}) : L.K}, +hr0: {C.fits(26n, r0) == True{} : Bool}, +hr1: {C.fits(26n, r1) == True{} : Bool}, +hr2: {C.fits(26n, r2) == True{} : Bool}, +hr3: {C.fits(26n, r3) == True{} : Bool}, +hr4: {C.fits(26n, r4) == True{} : Bool}, +sv: L.F, +hs: {B.lim(26n, sv) == True{} : Bool}, +la: Nat, +h: L.F, +hh: {B.lim(27n, h) == True{} : Bool}, +cnt: Nat) -> {ok_otag(xs, pone, kk, sv, la, h, cnt) == True{} : Bool}:
-  SL.ftail_safe(I.body(CH.skip(16n, xs), xs), pone, hp, one, h1, r0, r1, r2, r3, r4, kk, hk, hr0, hr1, hr2, hr3, hr4, sv, hs, la, h, hh, cnt)
+  match sv:
+    case L.F{+s0, +s1, +s2, +s3, +s4}: SL.ftail_safe(I.body(CH.skip(16n, xs), xs), pone, hp, one, h1, r0, r1, r2, r3, r4, kk, hk, hr0, hr1, hr2, hr3, hr4, L.F{s0, s1, s2, s3, s4}, hs, la, h, hh, cnt)
 
 # I.opoly: each full 64-byte ciphertext block's four 16-byte pieces loaded
 # and absorbed, then the recursion or the tag's end

@@ -53,21 +53,28 @@ def fct(fuel: Nat, xs: List<&2, U32>, +st: C.State, +r: Nat, +k: CH.Key, +c: U32
     case 0n: Nil{}
     case 1n+p: CH.xstream(p, C.bytes(st), xs, r, k, U32.add(c, 1), n)
 
+# The last 0..63 bytes xs: their ciphertext, then the tag's end. (The match
+# on sv only keeps a proof's goal small while sv is unknown.)
+def ffb(fuel: Nat, xs: List<&2, U32>, +st: C.State, +r: Nat, +k: CH.Key, +c: U32, +n: CH.Nonce, +pone: Nat, +kk: L.K, sv: L.F, +la: Nat, h: L.F, cnt: Nat) -> List<&2, U32>:
+  match sv:
+    case L.F{s0, s1, s2, s3, s4}: ftail(fct(fuel, xs, st, r, k, c, n), pone, kk, L.F{s0, s1, s2, s3, s4}, la, h, cnt)
+
 # ciphertext || tag in one pass: st is the keystream state of the block
 # under counter c; each full 64-byte block of xs is XORed with it and its
-# four 16-byte ciphertext blocks absorbed onto h at once. The next state is
-# computed only when bytes follow the block.
+# four 16-byte ciphertext blocks absorbed onto h at once (the fuel, a bound
+# on the blocks left, is at least 2 there: it is the byte count). The next
+# state is computed only when bytes follow the block.
 def fseal(fuel: Nat, xs: List<&2, U32>, +st: C.State, +r: Nat, +k: CH.Key, +c: U32, +n: CH.Nonce, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, h: L.F, cnt: Nat) -> List<&2, U32>:
   match fuel xs st:''')
-    L.append('    case 1n+p %s <> x64 <> rest C.S{%s}:' % (' <> '.join(X), ', '.join('+' + w for w in W)))
+    L.append('    case 1n+1n+f %s <> x64 <> rest C.S{%s}:' % (' <> '.join(X), ', '.join('+' + w for w in W)))
     L.extend(lets('      '))
     L.append('      +c1 = U32.add(c, 1)')
-    L.append('      %s <> fseal(p, x64 <> rest, C.block(r, CH.state(k, c1, n)), r, k, c1, n, pone, kk, sv, la, h4, cnt4)' % ' <> '.join(Y))
-    L.append('    case 1n+p %s <> Nil{} C.S{%s}:' % (' <> '.join(X), ', '.join('+' + w for w in W)))
+    L.append('      %s <> fseal(1n+f, x64 <> rest, C.block(r, CH.state(k, c1, n)), r, k, c1, n, pone, kk, sv, la, h4, cnt4)' % ' <> '.join(Y))
+    L.append('    case 1n+1n+f %s <> Nil{} C.S{%s}:' % (' <> '.join(X), ', '.join('+' + w for w in W)))
     L.extend(lets('      '))
     L.append('      %s <> ftail(Nil{}, pone, kk, sv, la, h4, cnt4)' % ' <> '.join(Y))
     L.append('    case _ _ _:')
-    L.append('      ftail(fct(fuel, xs, st, r, k, c, n), pone, kk, sv, la, h, cnt)')
+    L.append('      ffb(fuel, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt)')
     L.append('''
 # seal after the aad: ciphertext || tag of pt, from the accumulator a over aad.
 def sela(+pone: Nat, +kk: L.K, +sv: L.F, a: P.A, pt: List<&2, U32>, +k: CH.Key, +n: CH.Nonce) -> List<&2, U32>:
@@ -109,7 +116,7 @@ def nested(ind, depth, nil_fn, leaf_fn, var='x', tl='t', head='xs', last_rest='r
     return L
 
 
-FUEL_TEXT = 'law fseal_eq:\n  for fuel: Nat\n  for +xs: List<&2, U32>\n  for +st: C.State\n  for +r: Nat\n  for +k: CH.Key\n  for +c: U32\n  for +n: CH.Nonce\n  for +pone: Nat\n  for +kk: L.K\n  for +sv: L.F\n  for +la: Nat\n  for +h: L.F\n  for +cnt: Nat\n  {I.fseal(fuel, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt) == I.ftail(I.fct(fuel, xs, st, r, k, c, n), pone, kk, sv, la, h, cnt) : List<&2, U32>}\n\ndef fseal_eq(fuel, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt):\n  match fuel:\n    case 0n: {==}\n    case 1n+p: fseal_eq1(p, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt)\n'
+FUEL_TEXT = 'law fseal_eq:\n  for fuel: Nat\n  for +xs: List<&2, U32>\n  for +st: C.State\n  for +r: Nat\n  for +k: CH.Key\n  for +c: U32\n  for +n: CH.Nonce\n  for +pone: Nat\n  for +kk: L.K\n  for +sv: L.F\n  for +la: Nat\n  for +h: L.F\n  for +cnt: Nat\n  {I.fseal(fuel, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt) == I.ffb(fuel, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt) : List<&2, U32>}\n\ndef fseal_eq(fuel, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt):\n  match fuel:\n    case 0n: {==}\n    case 1n+p: fseal_eq1(p, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt)\n'
 
 
 B1 = 'C.block(r, CH.state(k, U32.add(c, 1), n))'
@@ -130,6 +137,11 @@ def H4():
 
 def fstep():
     Ws = ', '.join(W)
+
+    def cong():
+        sv = 'L.F{s0, s1, s2, s3, s4}'
+        return 'Equal.cong(List<&2, U32>, List<&2, U32>, z => %s <> z, I.fseal(1n+q, x64 <> rest, %s, r, k, %s, n, pone, kk, %s, la, %s, %s), I.ffb(1n+q, x64 <> rest, %s, r, k, %s, n, pone, kk, %s, la, %s, %s), ih)' % (
+            ' <> '.join(ycell(i) for i in range(64)), B1, C1, sv, H4(), C4, B1, C1, sv, H4(), C4)
     return '''# one full block, given the rest (ih): both sides are the block's 64
 # ciphertext bytes in front of the rest
 law fstep:
@@ -148,14 +160,15 @@ law fstep:
   for +la: Nat
   for +h: L.F
   for +cnt: Nat
-  for +ih: {I.fseal(1n+q, x64 <> rest, %s, r, k, %s, n, pone, kk, sv, la, %s, %s) == I.ftail(I.fct(1n+q, x64 <> rest, %s, r, k, %s, n), pone, kk, sv, la, %s, %s) : List<&2, U32>}
-  {I.fseal(1n+1n+q, %s <> x64 <> rest, C.S{%s}, r, k, c, n, pone, kk, sv, la, h, cnt) == I.ftail(I.fct(1n+1n+q, %s <> x64 <> rest, C.S{%s}, r, k, c, n), pone, kk, sv, la, h, cnt) : List<&2, U32>}
+  for +ih: {I.fseal(1n+q, x64 <> rest, %s, r, k, %s, n, pone, kk, sv, la, %s, %s) == I.ffb(1n+q, x64 <> rest, %s, r, k, %s, n, pone, kk, sv, la, %s, %s) : List<&2, U32>}
+  {I.fseal(1n+1n+q, %s <> x64 <> rest, C.S{%s}, r, k, c, n, pone, kk, sv, la, h, cnt) == I.ffb(1n+1n+q, %s <> x64 <> rest, C.S{%s}, r, k, c, n, pone, kk, sv, la, h, cnt) : List<&2, U32>}
 
 def fstep(q, %s, x64, rest, %s, r, k, c, n, pone, kk, sv, la, h, cnt, ih):
-  Equal.cong(List<&2, U32>, List<&2, U32>, z => %s <> z, I.fseal(1n+q, x64 <> rest, %s, r, k, %s, n, pone, kk, sv, la, %s, %s), I.ftail(I.fct(1n+q, x64 <> rest, %s, r, k, %s, n), pone, kk, sv, la, %s, %s), ih)
+  match sv:
+    case L.F{+s0, +s1, +s2, +s3, +s4}: %s
 ''' % ('\n'.join('  for +x%d: U32' % i for i in range(64)), '\n'.join('  for +w%d: U32' % i for i in range(16)),
        B1, C1, H4(), C4, B1, C1, H4(), C4, ' <> '.join(X), Ws, ' <> '.join(X), Ws,
-       ', '.join(X), Ws, ' <> '.join(ycell(i) for i in range(64)), B1, C1, H4(), C4, B1, C1, H4(), C4)
+       ', '.join(X), Ws, cong())
 
 
 def proof():
@@ -179,8 +192,8 @@ import ../../lib/logic.bend as LG
 # ciphertext of encrypt_rounds (xstream); and seal unfolds mac_aead's steps (its padded key, the aad's
 # accumulator) the way seal_ref's tag does.
 
-law fseal_eq1:
-  for p: Nat
+law fseal_eq:
+  for fuel: Nat
   for +xs: List<&2, U32>
   for +st: C.State
   for +r: Nat
@@ -193,73 +206,34 @@ law fseal_eq1:
   for +la: Nat
   for +h: L.F
   for +cnt: Nat
-  {I.fseal(1n+p, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt) == I.ftail(I.fct(1n+p, xs, st, r, k, c, n), pone, kk, sv, la, h, cnt) : List<&2, U32>}
+  {I.fseal(fuel, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt) == I.ffb(fuel, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt) : List<&2, U32>}
 ''')
     A = 'r, k, c, n, pone, kk, sv, la, h, cnt'
 
-    def make(zero):
-        def leaf(ind):
-            L = [ind + 'match st:']
-            L.append(ind + '  case C.S{%s}:' % ', '.join('+' + w for w in W))
-            if zero:
-                L.append(ind + '    {==}')
-                return L
-            L.append(ind + '    fstep(q, %s, x64, rest, %s, r, k, c, n, pone, kk, sv, la, h, cnt, fseal_eq1(q, x64 <> rest, %s, r, k, %s, n, pone, kk, sv, la, %s, %s))' % (', '.join(X), ', '.join(W), B1, C1, H4(), C4))
-            return L
+    def leaf(ind):
+        return [ind + 'match st:',
+                ind + '  case C.S{%s}:' % ', '.join('+' + w for w in W),
+                ind + '    fstep(q, %s, x64, rest, %s, r, k, c, n, pone, kk, sv, la, h, cnt, fseal_eq(1n+q, x64 <> rest, %s, r, k, %s, n, pone, kk, sv, la, %s, %s))' % (', '.join(X), ', '.join(W), B1, C1, H4(), C4)]
 
-        def leaf64(ind):
-            L = [ind + 'match rest:']
-            L.append(ind + '  case Nil{}:')
-            L.append(ind + '    match st:')
-            L.append(ind + '      case C.S{%s}: {==}' % ', '.join(W))
-            L.append(ind + '  case +x64 <> +rest:')
-            L.extend(leaf(ind + '    '))
-            return L
-        pv = '0n' if zero else '1n+q'
-        return nested('      ', 64, lambda j: '\n'.join(['', 'MATCHST']), leaf64, last_rest='rest')
+    def leaf64(ind):
+        L = [ind + 'match rest:']
+        L.append(ind + '  case Nil{}:')
+        L.append(ind + '    match st sv:')
+        L.append(ind + '      case C.S{%s} L.F{s0, s1, s2, s3, s4}: {==}' % ', '.join(W))
+        L.append(ind + '  case +x64 <> +rest:')
+        L.extend(leaf(ind + '    '))
+        return L
 
-    def fix(lines):
-        out = []
-        for l in lines:
-            if l.endswith('case Nil{}: ') or l.endswith('case Nil{}: \nMATCHST'):
-                pass
-            out.append(l)
-        return out
-    P_.append('def fseal_eq1(p, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt):')
-    P_.append('  match p:')
-    P_.append('    case 0n:')
-    P_.extend(make(True))
-    P_.append('    case 1n++q:')
-    P_.extend(make(False))
+    P_.append('def fseal_eq(fuel, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt):')
+    P_.append('  match fuel:')
+    P_.append('    case 0n: {==}')
+    P_.append('    case 1n+p:')
+    P_.append('      match p:')
+    P_.append('        case 0n: {==}')
+    P_.append('        case 1n++q:')
+    P_.extend(nested('          ', 64, lambda j: '\n'.join(['', 'MATCHST']), leaf64, last_rest='rest'))
     P_.append('')
-    P_.append(FUEL_TEXT)
     return '\n'.join(P_)
-
-
-def fpart():
-    """the fallback of fseal (1..63 bytes): fseal == ftail(fct) after the
-    match on st (fseal's third scrutinee) and p (xstream's fuel)"""
-    W_ = ', '.join(W)
-    return '''law fpart:
-  for +p: Nat
-  for +xs: List<&2, U32>
-  for +st: C.State
-  for +r: Nat
-  for +k: CH.Key
-  for +c: U32
-  for +n: CH.Nonce
-  for +pone: Nat
-  for +kk: L.K
-  for +sv: L.F
-  for +la: Nat
-  for +h: L.F
-  for +cnt: Nat
-  {I.fseal(1n+p, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt) == I.ftail(I.fct(1n+p, xs, st, r, k, c, n), pone, kk, sv, la, h, cnt) : List<&2, U32>}
-
-def fpart(p, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt):
-  match st:
-    case C.S{%s}: {==}
-''' % W_
 
 
 def top():
@@ -286,10 +260,10 @@ law selaq:
   {I.sela(pone, kk, sv, a, pt, k, n) == List.append(&2, U32, CH.xstream(List.length(&2, U32, pt), [], pt, 10n, k, 1, n), P.tag_ct(pone, kk, sv, a, CH.xstream(List.length(&2, U32, pt), [], pt, 10n, k, 1, n))) : List<&2, U32>}
 
 def selaq(pone, kk, sv, a, pt, k, n):
-  match a pt:
-    case P.A{+h, +la} Nil{}: {==}
-    case P.A{+h, +la} +x <> +rest:
-      fseal_eq(List.length(&2, U32, x <> rest), x <> rest, C.block(10n, CH.state(k, 1, n)), 10n, k, 1, n, pone, kk, sv, la, h, 0n)
+  match sv a pt:
+    case L.F{s0, s1, s2, s3, s4} P.A{+h, +la} Nil{}: {==}
+    case L.F{+s0, +s1, +s2, +s3, +s4} P.A{+h, +la} +x <> +rest:
+      fseal_eq(List.length(&2, U32, x <> rest), x <> rest, C.block(10n, CH.state(k, 1, n)), 10n, k, 1, n, pone, kk, L.F{s0, s1, s2, s3, s4}, la, h, 0n)
 
 # with the one-time key pk, the keystream key k and nonce n kept abstract
 law sealq:
@@ -357,7 +331,7 @@ def main():
         else:
             out.append(l)
     pr = '\n'.join(out)
-    k = pr.index('law fseal_eq1:')
+    k = pr.index('law fseal_eq:')
     pr = pr[:k] + fstep() + '\n' + pr[k:]
     op = fix_nil_leaves(open_proof())
     open(PRF, 'w').write(pr + '\n' + top() + '\n' + op + '\n' + open_top())
@@ -400,9 +374,14 @@ def nblk(l: List<&2, U32>) -> Nat:
 # Whether the tag of the data xs (ciphertext || tag) matches, the
 # ciphertext absorbed onto h (cnt bytes so far) with its padding, then the
 # lengths.
-def otag(+xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, h: L.F, cnt: Nat) -> Bool:
+def otagc(+xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, h: L.F, cnt: Nat) -> Bool:
   +ld = CH.skip(16n, xs)
   S.eq(tail(ld, xs), P.tag_len(pone, kk, sv, la, P.absorb_pad(pone, body(ld, xs), kk, h, cnt)))
+
+# (The match on sv only keeps a proof's goal small while sv is unknown.)
+def otag(+xs: List<&2, U32>, +pone: Nat, +kk: L.K, sv: L.F, +la: Nat, h: L.F, cnt: Nat) -> Bool:
+  match sv:
+    case L.F{s0, s1, s2, s3, s4}: otagc(xs, pone, kk, L.F{s0, s1, s2, s3, s4}, la, h, cnt)
 
 # Whether the tag matches. xs is the data (ciphertext || tag) from some
 # point on and nb = nblk of its ciphertext: 64 ciphertext bytes are
@@ -417,15 +396,22 @@ def opoly(fuel: Nat, nb: Nat, +xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F
     L.append('    case _ _ _:')
     L.append('      otag(xs, pone, kk, sv, la, h, cnt)')
     L.append("""
+# The plaintext of the data's last ciphertext bytes (the data xs but its
+# last 16 bytes), from the keystream state st on.
+# (The match on k only keeps a proof's goal small while k is unknown.)
+def dtail(fuel: Nat, +xs: List<&2, U32>, +st: C.State, +r: Nat, k: CH.Key, +c: U32, +n: CH.Nonce) -> List<&2, U32>:
+  match k:
+    case CH.K{k0, k1, k2, k3, k4, k5, k6, k7}: fct(fuel, body(CH.skip(16n, xs), xs), st, r, CH.K{k0, k1, k2, k3, k4, k5, k6, k7}, c, n)
+
 # The plaintext: 64 bytes per step (st: the keystream state of counter c),
 # then fct on the rest of the ciphertext.
 def odec(fuel: Nat, nb: Nat, +xs: List<&2, U32>, +st: C.State, +r: Nat, +k: CH.Key, +c: U32, +n: CH.Nonce) -> List<&2, U32>:
   match fuel nb xs st:""")
-    L.append('    case 1n+p 1n+q %s <> xrest C.S{%s}:' % (' <> '.join(X), ', '.join('+' + w for w in W)))
+    L.append('    case 1n+1n+f 1n+q %s <> xrest C.S{%s}:' % (' <> '.join(X), ', '.join('+' + w for w in W)))
     L.append('      +c1 = U32.add(c, 1)')
-    L.append('      %s <> odec(p, q, xrest, C.block(r, CH.state(k, c1, n)), r, k, c1, n)' % ys)
+    L.append('      %s <> odec(1n+f, q, xrest, C.block(r, CH.state(k, c1, n)), r, k, c1, n)' % ys)
     L.append('    case _ _ _ _:')
-    L.append('      fct(fuel, body(CH.skip(16n, xs), xs), st, r, k, c, n)')
+    L.append('      dtail(fuel, xs, st, r, k, c, n)')
     L.append("""
 def onb(+f: Nat, +nb: Nat, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, +h: L.F, +xs: List<&2, U32>, +k: CH.Key, +n: CH.Nonce) -> Maybe<&2, List<&2, U32>>:
   owhen(opoly(f, nb, xs, pone, kk, sv, la, h, 0n), odec(f, nb, xs, C.block(10n, CH.state(k, 1, n)), 10n, k, 1, n))
@@ -475,19 +461,24 @@ def open_proof():
     xsn = ' <> '.join(X)
     xrn = ' <> '.join(XR) + ' <> rr'
     Ws = ', '.join(W)
+    Xp = ', '.join('+%s: U32' % x for x in X)
+    Wp = ', '.join('+%s: U32' % w for w in W)
+    LT = 'List<&2, U32>'
     fors = lambda names, ty: '\n'.join('  for +%s: %s' % (v, ty) for v in names)
     TP = lambda xs_, hh, cn: 'I.otag(%s, pone, kk, sv, la, %s, %s)' % (xs_, hh, cn)
     P_ = ['# ---------------------------------------------------------------- open\n']
 
-    def xr_nest(ind, leaf, nil=''):
+    def xr_nest(ind, leaf, nil='{==}'):
+        """xrest as 17 cells x64..x80 then rr"""
         return nested(ind, 17, lambda j: nil, leaf, var='x', tl='v', head='xrest', last_rest='rr', start=64)
-
-    def pleaf(ind):
-        return [ind + 'opoly_eq(p, %s, pone, kk, sv, la, %s, %s)' % (xrn, G4(), C4)]
-
-    def pxs(ind):
-        return xr_nest(ind, pleaf, '{==}')
-    P_.append("""law opoly_eq:
+    full = xsn + ' <> xrest'
+    # ---- opoly
+    P_.append("""# the tag pass on a full block: by whether 17 more bytes follow
+def pleaf17(+p: Nat, %s, +xrest: %s, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, +h: L.F, +cnt: Nat, ih: @ys: %s -> {I.opoly(p, %s, ys, pone, kk, sv, la, %s, %s) == %s : Bool}) -> {I.opoly(1n+p, %s, %s, pone, kk, sv, la, h, cnt) == %s : Bool}:""" % (
+        Xp, LT, LT, NB('ys'), G4(), C4, TP('ys', G4(), C4), NB(full), full, TP(full, 'h', 'cnt')))
+    P_.extend(xr_nest('  ', lambda ind: [ind + 'match sv:', ind + '  case L.F{s0, s1, s2, s3, s4}: ih(%s)' % xrn]))
+    P_.append("""
+law opoly_eq:
   for fuel: Nat
   for +xs: List<&2, U32>
   for +pone: Nat
@@ -502,12 +493,19 @@ def opoly_eq(fuel, xs, pone, kk, sv, la, h, cnt):
   match fuel:
     case 0n: {==}
     case 1n++p:""" % (NB('xs'), TP('xs', 'h', 'cnt')))
-    P_.extend(nested('      ', 64, lambda j: '{==}', pxs, var='x', tl='u', head='xs', last_rest='xrest'))
+    P_.extend(nested('      ', 64, lambda j: '{==}', lambda ind: [ind + 'pleaf17(p, %s, xrest, pone, kk, sv, la, h, cnt, ys => opoly_eq(p, ys, pone, kk, sv, la, %s, %s))' % (', '.join(X), G4(), C4)],
+                     var='x', tl='u', head='xs', last_rest='xrest'))
     P_.append('')
     common = """  for +r: Nat
   for +k: CH.Key
   for +c: U32
   for +n: CH.Nonce"""
+    def dcong():
+        kv = 'CH.K{k0, k1, k2, k3, k4, k5, k6, k7}'
+        b1 = B1.replace('CH.state(k,', 'CH.state(%s,' % kv)
+        ad1 = AD1.replace('r, k,', 'r, %s,' % kv, 1)
+        return 'Equal.cong(List<&2, U32>, List<&2, U32>, z => %s <> z, I.odec(1n+q, %s, %s, %s, %s), I.dtail(1n+q, %s, %s, %s), ih)' % (ysl, NB(xrn), xrn, b1, ad1, xrn, b1, ad1)
+
     P_.append("""# a full block with at least 65 more ciphertext bytes (x64..x80 and rr)
 law dstep:
   for +q: Nat
@@ -516,53 +514,42 @@ law dstep:
   for +rr: List<&2, U32>
 %s
 %s
-  for +ih: {I.odec(1n+q, %s, %s, %s, %s) == I.fct(1n+q, I.body(CH.skip(16n, %s), %s), %s, %s) : List<&2, U32>}
-  {I.odec(1n+1n+q, %s, %s <> %s, C.S{%s}, %s) == I.fct(1n+1n+q, I.body(CH.skip(16n, %s <> %s), %s <> %s), C.S{%s}, %s) : List<&2, U32>}
+  for +ih: {I.odec(1n+q, %s, %s, %s, %s) == I.dtail(1n+q, %s, %s, %s) : List<&2, U32>}
+  {I.odec(1n+1n+q, %s, %s <> %s, C.S{%s}, %s) == I.dtail(1n+1n+q, %s <> %s, C.S{%s}, %s) : List<&2, U32>}
 
 def dstep(q, %s, %s, rr, %s, r, k, c, n, ih):
-  Equal.cong(List<&2, U32>, List<&2, U32>, z => %s <> z, I.odec(1n+q, %s, %s, %s, %s), I.fct(1n+q, I.body(CH.skip(16n, %s), %s), %s, %s), ih)
+  match k:
+    case CH.K{+k0, +k1, +k2, +k3, +k4, +k5, +k6, +k7}: %s
 """ % (fors(X, 'U32'), fors(XR, 'U32'), fors(W, 'U32'), common,
-       NB(xrn), xrn, B1, AD1, xrn, xrn, B1, AD1,
-       NB(xsn + ' <> ' + xrn), xsn, xrn, Ws, AD, xsn, xrn, xsn, xrn, Ws, AD,
-       ', '.join(X), ', '.join(XR), Ws, ysl, NB(xrn), xrn, B1, AD1, xrn, xrn, B1, AD1))
+       NB(xrn), xrn, B1, AD1, xrn, B1, AD1,
+       NB(xsn + ' <> ' + xrn), xsn, xrn, Ws, AD, xsn, xrn, Ws, AD,
+       ', '.join(X), ', '.join(XR), Ws, dcong()))
+    P_.append("""# the plaintext pass on a full block (fuel 1n+1n+q): by whether 17 more bytes follow
+def dleaf17(+q: Nat, %s, +xrest: %s, %s, +r: Nat, +k: CH.Key, +c: U32, +n: CH.Nonce, ih: @ys: %s -> {I.odec(1n+q, %s, ys, %s, %s) == I.dtail(1n+q, ys, %s, %s) : %s}) -> {I.odec(1n+1n+q, %s, %s, C.S{%s}, %s) == I.dtail(1n+1n+q, %s, C.S{%s}, %s) : %s}:""" % (
+        Xp, LT, Wp, LT, NB('ys'), B1, AD1, B1, AD1, LT, NB(full), full, Ws, AD, full, Ws, AD, LT))
+    P_.extend(xr_nest('  ', lambda ind: [ind + 'dstep(q, %s, %s, rr, %s, %s, ih(%s))' % (', '.join(X), ', '.join(XR), Ws, AD, xrn)]))
+    P_.append('')
 
-    def make(zero):
-        def dleaf(ind):
-            if zero:
-                return [ind + 'match st:', ind + '  case C.S{%s}: {==}' % Ws]
-            return [ind + 'match st:', ind + '  case C.S{%s}: dstep(q, %s, %s, rr, %s, %s, odec_eq1(q, %s, %s, %s))' % (
-                ', '.join('+' + w for w in W), ', '.join(X), ', '.join(XR), Ws, AD, xrn, B1, AD1)]
+    def dleaf(ind):
+        return [ind + 'match st:', ind + '  case C.S{%s}: dleaf17(q, %s, xrest, %s, %s, ys => odec_eq(1n+q, ys, %s, %s))' % (
+            ', '.join('+' + w for w in W), ', '.join(X), Ws, AD, B1, AD1)]
 
-        def dxs(ind):
-            return xr_nest(ind, dleaf)
-        return nested('      ', 64, lambda j: '', dxs, var='x', tl='u', head='xs', last_rest='xrest')
-
-    P_.append("""law odec_eq1:
-  for p: Nat
-  for +xs: List<&2, U32>
-  for +st: C.State
-%s
-  {I.odec(1n+p, %s, xs, st, %s) == I.fct(1n+p, I.body(CH.skip(16n, xs), xs), st, %s) : List<&2, U32>}
-""" % (common, NB('xs'), AD, AD))
-    P_.append('def odec_eq1(p, xs, st, %s):' % AD)
-    P_.append('  match p:')
-    P_.append('    case 0n:')
-    P_.extend(make(True))
-    P_.append('    case 1n++q:')
-    P_.extend(make(False))
-    P_.append("""
-law odec_eq:
+    P_.append("""law odec_eq:
   for fuel: Nat
   for +xs: List<&2, U32>
   for +st: C.State
 %s
-  {I.odec(fuel, %s, xs, st, %s) == I.fct(fuel, I.body(CH.skip(16n, xs), xs), st, %s) : List<&2, U32>}
+  {I.odec(fuel, %s, xs, st, %s) == I.dtail(fuel, xs, st, %s) : List<&2, U32>}
 
 def odec_eq(fuel, xs, st, %s):
   match fuel:
     case 0n: {==}
-    case 1n+p: odec_eq1(p, xs, st, %s)
-""" % (common, NB('xs'), AD, AD, AD, AD))
+    case 1n+p:
+      match p:
+        case 0n: {==}
+        case 1n++q:""" % (common, NB('xs'), AD, AD, AD))
+    P_.extend(nested('          ', 64, lambda j: '', dleaf, var='x', tl='u', head='xs', last_rest='xrest'))
+    P_.append('')
     return '\n'.join(P_)
 
 
@@ -677,20 +664,24 @@ X16P
   {I.osela(pone, kk, sv, a, lead, X16 <> lead, k, n) == I.owhen(S.eq(I.tail(lead, X16 <> lead), P.tag_ct(pone, kk, sv, a, I.body(lead, X16 <> lead))), CH.xstream(List.length(&2, U32, I.body(lead, X16 <> lead)), [], I.body(lead, X16 <> lead), 10n, k, 1, n)) : Maybe<&2, List<&2, U32>>}
 
 def osq(pone, kk, sv, a, X16C, lead, k, n, hl):
-  match a lead:
-    case P.A{+h, +la} Nil{}: {==}
-    case P.A{+h, +la} +l <> +lt:
-      +xs = {X16 <> l <> lt : List<&2, U32>}
-      +f = List.length(&2, U32, l <> lt)
-      +nb = I.nblk(l <> lt)
-      +b0 = C.block(10n, CH.state(k, 1, n))
-      +bd = I.body(l <> lt, xs)
-      +e1 = S.eq(I.tail(l <> lt, xs), P.tag_len(pone, kk, sv, la, P.absorb_pad(pone, bd, kk, h, 0n)))
-      +d1 = I.odec(f, nb, xs, b0, 10n, k, 1, n)
-      +d2 = CH.xstream(List.length(&2, U32, bd), [], bd, 10n, k, 1, n)
-      Equal.trans(Maybe<&2, List<&2, U32>>, I.owhen(I.opoly(f, nb, xs, pone, kk, sv, la, h, 0n), d1), I.owhen(e1, d1), I.owhen(e1, d2),
-        Equal.cong(Bool, Maybe<&2, List<&2, U32>>, z => I.owhen(z, d1), I.opoly(f, nb, xs, pone, kk, sv, la, h, 0n), e1, opoly_eq(f, xs, pone, kk, sv, la, h, 0n)),
-        Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, z => I.owhen(e1, z), d1, d2, Equal.trans(List<&2, U32>, d1, I.fct(f, bd, b0, 10n, k, 1, n), d2, odec_eq(f, xs, b0, 10n, k, 1, n), ofuel(l, lt, xs, hl, k, n))))
+  match sv a lead:
+    case L.F{s0, s1, s2, s3, s4} P.A{+h, +la} Nil{}: {==}
+    case L.F{+s0, +s1, +s2, +s3, +s4} P.A{+h, +la} +l <> +lt:
+      match k:
+        case CH.K{+k0, +k1, +k2, +k3, +k4, +k5, +k6, +k7}:
+          +sv2 = {L.F{s0, s1, s2, s3, s4} : L.F}
+          +kv = {CH.K{k0, k1, k2, k3, k4, k5, k6, k7} : CH.Key}
+          +xs = {X16 <> l <> lt : List<&2, U32>}
+          +f = List.length(&2, U32, l <> lt)
+          +nb = I.nblk(l <> lt)
+          +b0 = C.block(10n, CH.state(kv, 1, n))
+          +bd = I.body(l <> lt, xs)
+          +e1 = S.eq(I.tail(l <> lt, xs), P.tag_len(pone, kk, sv2, la, P.absorb_pad(pone, bd, kk, h, 0n)))
+          +d1 = I.odec(f, nb, xs, b0, 10n, kv, 1, n)
+          +d2 = CH.xstream(List.length(&2, U32, bd), [], bd, 10n, kv, 1, n)
+          Equal.trans(Maybe<&2, List<&2, U32>>, I.owhen(I.opoly(f, nb, xs, pone, kk, sv2, la, h, 0n), d1), I.owhen(e1, d1), I.owhen(e1, d2),
+            Equal.cong(Bool, Maybe<&2, List<&2, U32>>, z => I.owhen(z, d1), I.opoly(f, nb, xs, pone, kk, sv2, la, h, 0n), e1, opoly_eq(f, xs, pone, kk, sv2, la, h, 0n)),
+            Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, z => I.owhen(e1, z), d1, d2, Equal.trans(List<&2, U32>, d1, I.fct(f, bd, b0, 10n, kv, 1, n), d2, odec_eq(f, xs, b0, 10n, kv, 1, n), ofuel(l, lt, xs, hl, kv, n))))
 
 # with the one-time key pk, the keystream key k and nonce n kept abstract
 law oq:

@@ -1132,7 +1132,7 @@ def split_safe(text):
     # the imports (up to the first comment block after them)
     imp_end = text.index('\n#')
     imports = text[:imp_end]
-    e = text.index('# I.fseal: each full 64-byte block')
+    e = text.index('# I.ffb: the last 0..63 bytes')
     f = text.index('# ---- the tag pass of the one-pass ChaCha20-Poly1305 open')
     lib = text[:a] + text[b:c] + text[d:e]
     top = text[a:b] + text[c:d]
@@ -1234,18 +1234,29 @@ def ftail_safe(+ct: List<&2, U32>, +pone: Nat, +hp: {pone == 1n : Nat}, %s, +sv:
 """ % (KSIG, KP, KP, KP))
     # ok_fseal predicate, mirroring I.fseal
     at = fatoms()
-    rec = 'ok_fseal(p, x64 <> rest, CC.block(r, CH.state(k, U32.add(c, 1), n)), r, k, U32.add(c, 1), n, pone, kk, sv, la, %s, %s)' % (fH(4), FC4)
+    rec = 'ok_fseal(1n+f, x64 <> rest, CC.block(r, CH.state(k, U32.add(c, 1), n)), r, k, U32.add(c, 1), n, pone, kk, sv, la, %s, %s)' % (fH(4), FC4)
     fin = 'ok_ftail(Nil{}, pone, kk, sv, la, %s, %s)' % (fH(4), FC4)
+    out.append("""# I.ffb: the last 0..63 bytes' ciphertext, then the tag's end
+# (the match on sv is I.ffb's: it keeps a proof's goal small while sv is unknown)
+def ok_ffb(fuel: Nat, xs: List<&2, U32>, +st: CC.State, +r: Nat, +k: CH.Key, +c: U32, +n: CH.Nonce, +pone: Nat, +kk: L.K, sv: L.F, +la: Nat, +h: L.F, +cnt: Nat) -> Bool:
+  match sv:
+    case L.F{s0, s1, s2, s3, s4}: ok_ftail(I.fct(fuel, xs, st, r, k, c, n), pone, kk, L.F{s0, s1, s2, s3, s4}, la, h, cnt)
+
+def ffb_safe(fuel: Nat, xs: List<&2, U32>, +st: CC.State, %s) -> {ok_ffb(fuel, xs, st, %s) == True{} : Bool}:
+  match sv:
+    case L.F{+s0, +s1, +s2, +s3, +s4}: ftail_safe(I.fct(fuel, xs, st, r, k, c, n), pone, hp, %s, L.F{s0, s1, s2, s3, s4}, hs, la, h, hh, cnt)
+
+""" % (SIG, OA, KP))
     out.append("""# I.fseal: each full 64-byte block's four 16-byte ciphertext pieces loaded
 # and absorbed, then the recursion or the tag's end
 def ok_fseal(fuel: Nat, xs: List<&2, U32>, +st: CC.State, +r: Nat, +k: CH.Key, +c: U32, +n: CH.Nonce, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, +h: L.F, +cnt: Nat) -> Bool:
   match fuel xs st:
-    case 1n+p %s <> x64 <> rest CC.S{%s}:
+    case 1n+1n+f %s <> x64 <> rest CC.S{%s}:
       %s
-    case 1n+p %s <> Nil{} CC.S{%s}:
+    case 1n+1n+f %s <> Nil{} CC.S{%s}:
       %s
     case _ _ _:
-      ok_ftail(I.fct(fuel, xs, st, r, k, c, n), pone, kk, sv, la, h, cnt)
+      ok_ffb(fuel, xs, st, r, k, c, n, pone, kk, sv, la, h, cnt)
 """ % (' <> '.join('+' + x for x in FX), W1, conj_expr(at + [rec]), ' <> '.join('+' + x for x in FX), W1, conj_expr(at + [fin])))
     # invariant after the four pieces
     Lp, pf = fproofs()
@@ -1259,12 +1270,12 @@ def finv4(%s, %s, %s) -> {B.lim(27n, %s) == True{} : Bool}:
     FWs = ', '.join('+%s: U32' % w for w in FW)
     atoms_p = list(zip(at, pf))
     out.append("""# a full block followed by more bytes, given the rest (ih)
-def fsstep(+p: Nat, %s, +x64: U32, +rest: List<&2, U32>, %s, %s, +ih: {%s == True{} : Bool}) -> {ok_fseal(1n+p, %s <> x64 <> rest, CC.S{%s}, %s) == True{} : Bool}:
+def fsstep(+f: Nat, %s, +x64: U32, +rest: List<&2, U32>, %s, %s, +ih: {%s == True{} : Bool}) -> {ok_fseal(1n+1n+f, %s <> x64 <> rest, CC.S{%s}, %s) == True{} : Bool}:
 %s
 %s
 
 # a full block that ends the plaintext
-def fsstep0(+p: Nat, %s, %s, %s) -> {ok_fseal(1n+p, %s <> Nil{}, CC.S{%s}, %s) == True{} : Bool}:
+def fsstep0(+f: Nat, %s, %s, %s) -> {ok_fseal(1n+1n+f, %s <> Nil{}, CC.S{%s}, %s) == True{} : Bool}:
 %s
   +qf = ftail_safe(Nil{}, pone, hp, %s, sv, hs, la, %s, finv4(%s, %s, %s), %s)
 %s
@@ -1275,16 +1286,16 @@ def fsstep0(+p: Nat, %s, %s, %s) -> {ok_fseal(1n+p, %s <> Nil{}, CC.S{%s}, %s) =
        '\n'.join('  ' + l for l in conj_lines(atoms_p + [(fin, 'qf')], 'b'))))
     # the recursion: 64-level nesting on xs
     def nil_leaf(j, cl):
-        return ['match st:', '  case CC.S{%s}: ftail_safe(I.fct(1n+p, %s, CC.S{%s}, r, k, c, n), pone, hp, %s, sv, hs, la, h, hh, cnt)' % (Ws, lst(cl), Ws, KP)]
+        return ['match st:', '  case CC.S{%s}: ffb_safe(1n+1n+q, %s, CC.S{%s}, %s)' % (Ws, lst(cl), Ws, ARGS)]
 
     def leaf(cl, rest):
         return ['match rest:',
                 '  case Nil{}:',
                 '    match st:',
-                '      case CC.S{%s}: fsstep0(p, %s, %s, %s)' % (Ws, ', '.join(FX), Ws, ARGS),
+                '      case CC.S{%s}: fsstep0(q, %s, %s, %s)' % (Ws, ', '.join(FX), Ws, ARGS),
                 '  case +x64 <> +rest2:',
                 '    match st:',
-                '      case CC.S{%s}: fsstep(p, %s, x64, rest2, %s, %s, fseal_safe(p, x64 <> rest2, %s, r, k, U32.add(c, 1), n, pone, hp, %s, sv, hs, la, %s, finv4(%s, %s, %s), %s))' % (
+                '      case CC.S{%s}: fsstep(q, %s, x64, rest2, %s, %s, fseal_safe(1n+q, x64 <> rest2, %s, r, k, U32.add(c, 1), n, pone, hp, %s, sv, hs, la, %s, finv4(%s, %s, %s), %s))' % (
                     W1, ', '.join(FX), Ws, ARGS, FB1, KP, fH(4), ', '.join(FX), Ws, ARGS, FC4)]
     body = []
     ind = '      '
@@ -1304,10 +1315,13 @@ def fsstep0(+p: Nat, %s, %s, %s) -> {ok_fseal(1n+p, %s <> Nil{}, CC.S{%s}, %s) =
             body.extend(cur + '  ' + l for l in leaf(FX, 'rest'))
     out.append("""def fseal_safe(fuel: Nat, +xs: List<&2, U32>, +st: CC.State, %s) -> {ok_fseal(fuel, xs, st, %s) == True{} : Bool}:
   match fuel:
-    case 0n: ftail_safe(I.fct(0n, xs, st, r, k, c, n), pone, hp, %s, sv, hs, la, h, hh, cnt)
-    case 1n++p:
+    case 0n: ffb_safe(0n, xs, st, %s)
+    case 1n+p:
+      match p:
+        case 0n: ffb_safe(1n, xs, st, %s)
+        case 1n++q:
 %s
-""" % (SIG, OA, KP, '\n'.join(body)))
+""" % (SIG, OA, ARGS, ARGS, '\n'.join('    ' + l for l in body)))
     # the entry points
     K = ['k%d' % i for i in range(32)]
     rb = rbytes(K[:16])
@@ -1433,11 +1447,14 @@ def fused_open_safe():
 # ---- the tag pass of the one-pass ChaCha20-Poly1305 open (I.opoly)
 
 # I.otag: the tag's end over the data xs (ciphertext || tag)
-def ok_otag(+xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, +h: L.F, +cnt: Nat) -> Bool:
-  ok_ftail(I.body(CH.skip(16n, xs), xs), pone, kk, sv, la, h, cnt)
+# (the match on sv is I.otag's: it keeps a proof's goal small while sv is unknown)
+def ok_otag(+xs: List<&2, U32>, +pone: Nat, +kk: L.K, sv: L.F, +la: Nat, +h: L.F, +cnt: Nat) -> Bool:
+  match sv:
+    case L.F{s0, s1, s2, s3, s4}: ok_ftail(I.body(CH.skip(16n, xs), xs), pone, kk, L.F{s0, s1, s2, s3, s4}, la, h, cnt)
 
 def otag_safe(+xs: List<&2, U32>, %s) -> {ok_otag(xs, %s) == True{} : Bool}:
-  ftail_safe(I.body(CH.skip(16n, xs), xs), pone, hp, %s, sv, hs, la, h, hh, cnt)
+  match sv:
+    case L.F{+s0, +s1, +s2, +s3, +s4}: ftail_safe(I.body(CH.skip(16n, xs), xs), pone, hp, %s, L.F{s0, s1, s2, s3, s4}, hs, la, h, hh, cnt)
 
 # I.opoly: each full 64-byte ciphertext block's four 16-byte pieces loaded
 # and absorbed, then the recursion or the tag's end
