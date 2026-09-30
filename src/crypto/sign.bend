@@ -9,6 +9,12 @@ import ./ed25519/ed25519.bend as E
 #   generate_keypair(seed)   secret = the 32-byte seed, public = [s]B
 #   generate_keypair_os()    the same from 32 bytes of IO.random_u32
 #   sign(sk, msg)            the 64-byte signature, None for a bad key
+#   signing_key(seed)        the expanded key (curve constants, base point,
+#                            secret scalar, prefix, public key), computed
+#                            once; None for a bad seed
+#   sign_with_key(k, msg)    the signature under an expanded key: one
+#                            base-point multiplication per message
+#   key_public(k)            the public key of an expanded key
 #   verify(pk, msg, sig)     True iff sig is valid (cofactorless check,
 #                            non-canonical S >= L rejected)
 #
@@ -57,6 +63,22 @@ def sign_if(+sk: List<&2, U32>, +msg: List<&2, U32>, ok: Bool) -> Maybe<&2, List
 
 def sign(+sk: List<&2, U32>, +msg: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
   sign_if(sk, msg, X.valid_bytes(32n, sk))
+
+def key_if(+seed: List<&2, U32>, ok: Bool) -> Maybe<&2, E.Key>:
+  match ok:
+    case True{}:
+      Some{E.expand(seed)}
+    case False{}:
+      None{}
+
+def signing_key(+seed: List<&2, U32>) -> Maybe<&2, E.Key>:
+  key_if(seed, X.valid_bytes(32n, seed))
+
+def sign_with_key(k: E.Key, +msg: List<&2, U32>) -> List<&2, U32>:
+  E.sign_key(k, msg)
+
+def key_public(k: E.Key) -> List<&2, U32>:
+  E.key_public(k)
 
 def verify_if(+pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, ok: Bool) -> Bool:
   match ok:

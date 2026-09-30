@@ -47,3 +47,11 @@ def add_le_dbl(+a: Nat, +b: Nat, +k: Nat, +one: Nat, +ha: {Nat.is_le(a, WD.sc(k,
 # x k <= x m for k <= m
 def mul_le_r(+x: Nat, +k: Nat, +m: Nat, +h: {Nat.is_le(k, m) == True{} : Bool}) -> {Nat.is_le(Nat.mul(x, k), Nat.mul(x, m)) == True{} : Bool}:
   M.le_mul2(x, k, x, m, N.le_refl(x), h)
+
+# 2^k == 1 + (2^k - 1)
+def pos_succ(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat) -> {1n+Nat.sub(WD.sc(k, one), 1n) == WD.sc(k, one) : Nat}:
+  N.sub_add(WD.sc(k, one), 1n, N.lt_succ_le_succ(0n, WD.sc(k, one), sc_pos(k, one, h1)))
+
+# x < S -> x + one <= S
+def succ_le(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +S: Nat, +h: {Nat.is_lt(x, S) == True{} : Bool}) -> {Nat.is_le(Nat.add(x, one), S) == True{} : Bool}:
+  L.subst(Nat, o => {Nat.is_le(Nat.add(x, o), S) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), L.subst(Nat, t => {Nat.is_le(t, S) == True{} : Bool}, 1n+x, Nat.add(x, 1n), Equal.trans(Nat, 1n+x, 1n+Nat.add(x, 0n), Nat.add(x, 1n), Equal.cong(Nat, Nat, t => 1n+t, x, Nat.add(x, 0n), Equal.sym(Nat, Nat.add(x, 0n), x, N.add_zero(x))), Equal.sym(Nat, Nat.add(x, 1n), 1n+Nat.add(x, 0n), N.add_succ(x, 0n))), N.lt_succ_le_succ(x, S, h)))

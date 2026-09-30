@@ -18,11 +18,10 @@ import ../curve25519/consts.bend as K
 import ../curve25519/cong.bend as G
 import ./adc.bend as AD
 import ./scalar.bend as SC
-import ./scalar2.bend as S2
 
-# The group order L of spec/crypto/ed25519.bend and the scalar clauses:
-# L + (2^256 - L) == 2^256 and 2 L <= 2^256 by certified digit additions,
-# then reduce, mul_add and lt_l of src/crypto/ed25519/scalar.bend.
+# The group order L of spec/crypto/ed25519.bend: L + (2^256 - L) == 2^256
+# and 2 L <= 2^256 by certified digit additions, and lt_l of
+# src/crypto/ed25519/scalar.bend (reduce and mul_add: horner.bend).
 
 def v(+x: U32) -> Nat:
   U32.to_nat(x)
@@ -89,48 +88,7 @@ def h2L(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_le(Nat.add(1n+mmL(one), 1n
   +e2 = Equal.trans(Nat, Nat.add(Nat.add(m, m), d), Nat.add(m, Nat.add(l, d)), SC.T(one), Equal.trans(Nat, Nat.add(Nat.add(m, m), d), Nat.add(m, Nat.add(m, d)), Nat.add(m, Nat.add(l, d)), NA.add_assoc(m, m, d), M.cong_r(m, Nat.add(m, d), Nat.add(l, d), M.cong_l(m, l, d, Equal.sym(Nat, l, m, lm)))), Equal.trans(Nat, Nat.add(m, Nat.add(l, d)), Nat.add(m, c), SC.T(one), M.cong_r(m, Nat.add(l, d), c, e1), Equal.trans(Nat, Nat.add(m, c), Nat.add(c, m), SC.T(one), NA.add_comm(m, c), hvL(one, h1))))
   L.subst(Nat, z => {Nat.is_le(Nat.add(m, m), z) == True{} : Bool}, Nat.add(Nat.add(m, m), d), SC.T(one), e2, N.le_add_right(Nat.add(m, m), d))
 
-# ---- the clauses, for M = 1 + mmL ----
-
-def reduce_m(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>, +hb: {LM.lea(bs, 255n) == True{} : Bool}) -> {FS.value(ESC.reduce(bs)) == Nat.mod(FS.value(bs), 1n+mmL(one)) : Nat}:
-  +mm = mmL(one)
-  +n = X.bitlen(bs)
-  +V = FS.value(bs)
-  %Equal.sym(List<&2, U32>, ESC.mac(n, bs, F.one(), F.zero()), S2.macg(n, bs, F.one(), F.zero(), ESC.comp_l()), S2.mac_eq(n, bs, F.one(), F.zero())) : {FS.value(_) == Nat.mod(V, 1n+mm) : Nat}
-  +e = S2.mac_val(one, h1, mm, h2L(one, h1), ESC.comp_l(), cp_okb(), hvL(one, h1), n, bs, F.one(), F.zero(), hb, {==}, one_lt(one, h1), {==}, {==})
-  +e2 = Equal.trans(Nat, Nat.add(WD.sc(n, 0n), Nat.mul(C.low(n, V), 1n)), Nat.add(0n, Nat.mul(C.low(n, V), 1n)), V, M.cong_l(WD.sc(n, 0n), 0n, Nat.mul(C.low(n, V), 1n), A.sc_zero(n)), Equal.trans(Nat, Nat.mul(C.low(n, V), 1n), C.low(n, V), V, NA.mul_one(C.low(n, V)), S2.low_all(bs, hb)))
-  Equal.trans(Nat, FS.value(S2.macg(n, bs, F.one(), F.zero(), ESC.comp_l())), Nat.mod(Nat.add(WD.sc(n, 0n), Nat.mul(C.low(n, V), 1n)), 1n+mm), Nat.mod(V, 1n+mm), e, M.cong_mod(1n+mm, Nat.add(WD.sc(n, 0n), Nat.mul(C.low(n, V), 1n)), V, e2))
-
-def mul_add_m(+one: Nat, +h1: {one == 1n : Nat}, +k: List<&2, U32>, +s: List<&2, U32>, +r: List<&2, U32>, +hk: {LM.lea(k, 255n) == True{} : Bool}, +hs: {LM.okb(32n, s, 255n) == True{} : Bool}, +hr: {LM.okb(32n, r, 255n) == True{} : Bool}, +ls: {Nat.is_lt(FS.value(s), 1n+mmL(one)) == True{} : Bool}, +lr: {Nat.is_lt(FS.value(r), 1n+mmL(one)) == True{} : Bool}) -> {FS.value(ESC.mul_add(k, s, r)) == Nat.mod(Nat.add(FS.value(r), Nat.mul(FS.value(k), FS.value(s))), 1n+mmL(one)) : Nat}:
-  +mm = mmL(one)
-  +P = {1n+mm : Nat}
-  +n = X.bitlen(k)
-  +K2 = FS.value(k)
-  +S = FS.value(s)
-  +R = FS.value(r)
-  +cp = ESC.comp_l()
-  +hv = hvL(one, h1)
-  +h2 = h2L(one, h1)
-  +mg = S2.macg(n, k, s, F.zero(), cp)
-  +om = S2.mac_okb(one, h1, mm, cp, cp_okb(), hv, n, k, s, F.zero(), hk, hs, {==})
-  +lm = S2.mac_below(one, h1, mm, h2, cp, cp_okb(), hv, n, k, s, F.zero(), hk, hs, ls, {==}, {==})
-  +em = S2.mac_val(one, h1, mm, h2, cp, cp_okb(), hv, n, k, s, F.zero(), hk, hs, ls, {==}, {==})
-  +em2 = Equal.trans(Nat, FS.value(mg), Nat.mod(Nat.add(WD.sc(n, 0n), Nat.mul(C.low(n, K2), S)), P), Nat.mod(Nat.mul(K2, S), P), em, M.cong_mod(P, Nat.add(WD.sc(n, 0n), Nat.mul(C.low(n, K2), S)), Nat.mul(K2, S), Equal.trans(Nat, Nat.add(WD.sc(n, 0n), Nat.mul(C.low(n, K2), S)), Nat.add(0n, Nat.mul(C.low(n, K2), S)), Nat.mul(K2, S), M.cong_l(WD.sc(n, 0n), 0n, Nat.mul(C.low(n, K2), S), A.sc_zero(n)), Equal.cong(Nat, Nat, z => Nat.mul(z, S), C.low(n, K2), K2, S2.low_all(k, hk)))))
-  %Equal.sym(List<&2, U32>, ESC.mac(n, k, s, F.zero()), mg, S2.mac_eq(n, k, s, F.zero())) : {FS.value(ESC.addm(_, r)) == Nat.mod(Nat.add(R, Nat.mul(K2, S)), P) : Nat}
-  +ea = SC.addg_val(one, h1, mm, h2, cp, cp_okb(), hv, mg, r, om, hr, lm, lr)
-  +eb = Equal.trans(Nat, Nat.mod(Nat.add(FS.value(mg), R), P), Nat.mod(Nat.add(Nat.mod(Nat.mul(K2, S), P), R), P), Nat.mod(Nat.add(R, Nat.mul(K2, S)), P), M.cong_mod(P, Nat.add(FS.value(mg), R), Nat.add(Nat.mod(Nat.mul(K2, S), P), R), M.cong_l(FS.value(mg), Nat.mod(Nat.mul(K2, S), P), R, em2)), Equal.trans(Nat, Nat.mod(Nat.add(Nat.mod(Nat.mul(K2, S), P), R), P), Nat.mod(Nat.add(Nat.mul(K2, S), R), P), Nat.mod(Nat.add(R, Nat.mul(K2, S)), P), NR.mod_add_l(mm, Nat.mul(K2, S), R), M.cong_mod(P, Nat.add(Nat.mul(K2, S), R), Nat.add(R, Nat.mul(K2, S)), NA.add_comm(Nat.mul(K2, S), R))))
-  Equal.trans(Nat, FS.value(SC.addg(mg, r, cp)), Nat.mod(Nat.add(FS.value(mg), R), P), Nat.mod(Nat.add(R, Nat.mul(K2, S)), P), ea, eb)
-
-def mul_add_lt(+one: Nat, +h1: {one == 1n : Nat}, +k: List<&2, U32>, +s: List<&2, U32>, +r: List<&2, U32>, +hk: {LM.lea(k, 255n) == True{} : Bool}, +hs: {LM.okb(32n, s, 255n) == True{} : Bool}, +hr: {LM.okb(32n, r, 255n) == True{} : Bool}, +ls: {Nat.is_lt(FS.value(s), 1n+mmL(one)) == True{} : Bool}, +lr: {Nat.is_lt(FS.value(r), 1n+mmL(one)) == True{} : Bool}) -> {LM.okb(32n, ESC.mul_add(k, s, r), 255n) == True{} : Bool}:
-  +mm = mmL(one)
-  +cp = ESC.comp_l()
-  +n = X.bitlen(k)
-  +mg = S2.macg(n, k, s, F.zero(), cp)
-  %Equal.sym(List<&2, U32>, ESC.mac(n, k, s, F.zero()), mg, S2.mac_eq(n, k, s, F.zero())) : {LM.okb(32n, ESC.addm(_, r), 255n) == True{} : Bool}
-  SC.addg_okb(one, h1, mm, cp, cp_okb(), hvL(one, h1), mg, r, S2.mac_okb(one, h1, mm, cp, cp_okb(), hvL(one, h1), n, k, s, F.zero(), hk, hs, {==}), hr)
-
-def reduce_okb(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>, +hb: {LM.lea(bs, 255n) == True{} : Bool}) -> {LM.okb(32n, ESC.reduce(bs), 255n) == True{} : Bool}:
-  %Equal.sym(List<&2, U32>, ESC.mac(X.bitlen(bs), bs, F.one(), F.zero()), S2.macg(X.bitlen(bs), bs, F.one(), F.zero(), ESC.comp_l()), S2.mac_eq(X.bitlen(bs), bs, F.one(), F.zero())) : {LM.okb(32n, _, 255n) == True{} : Bool}
-  S2.mac_okb(one, h1, mmL(one), ESC.comp_l(), cp_okb(), hvL(one, h1), X.bitlen(bs), bs, F.one(), F.zero(), hb, {==}, {==})
+# ---- x < L, for M = 1 + mmL ----
 
 def lt_l_m(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, U32>, +hx: {LM.okb(32n, x, 255n) == True{} : Bool}) -> {ESC.lt_l(x) == Nat.is_lt(FS.value(x), 1n+mmL(one)) : Bool}:
   SC.lt_by(one, h1, mmL(one), x, ESC.comp_l(), hx, cp_okb(), hvL(one, h1), Nat.is_lt(v(LM.cc(F.carry(F.addl(x, ESC.comp_l()), 0))), one), {==})

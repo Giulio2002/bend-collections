@@ -9,6 +9,13 @@ import ./point.bend as PT
 # and cofactorless verification (5.1.7: [S]B == R + [k]A', S < L checked)
 # on byte strings (U32 values below 256); SHA-512 is ../hash.bend's (proved
 # equal to FIPS 180-4).
+#
+# expand(seed) computes once what every signature under the seed needs:
+# the curve constants and the base point, the secret scalar s (and s mod
+# L), the prefix and the public key A = [s]B; sign_key(key, msg) then does
+# one base-point multiplication per signature, as a C signer given the
+# expanded secret key does. sign_raw(seed, msg) is sign_key(expand(seed),
+# msg).
 
 def cat(xs: List<&2, U32>, ys: List<&2, U32>) -> List<&2, U32>:
   match xs:
@@ -32,32 +39,54 @@ def secret(+h: List<&2, U32>) -> List<&2, U32>:
 def prefix(+h: List<&2, U32>) -> List<&2, U32>:
   F.drop(32n, h)
 
-# xs: an input (the seed or the public key), which keeps the proof checker
-# from computing the curve constants (see PT.lit)
-def public_of(+c: PT.Cs, +xs: List<&2, U32>, +h: List<&2, U32>) -> List<&2, U32>:
-  PT.encode(PT.mul(c, secret(h), PT.base(c, xs)))
+# A = [s]B, encoded, for the constants c and the base point b
+def public_of(+c: PT.Cs, +b: PT.Pt, +h: List<&2, U32>) -> List<&2, U32>:
+  PT.encode(PT.cs_r(c), PT.mul(c, secret(h), b))
+
+# the expanded secret key
+type Key is Data:
+  EdKey{c: PT.Cs, b: PT.Pt, sr: List<&2, U32>, pre: List<&2, U32>, a: List<&2, U32>}
+
+def key_of(+c: PT.Cs, +b: PT.Pt, +h: List<&2, U32>) -> Key:
+  EdKey{c, b, SC.reduce(secret(h)), prefix(h), public_of(c, b, h)}
+
+def expand(+seed: List<&2, U32>) -> Key:
+  +c = PT.consts(seed)
+  key_of(c, PT.base(c), H.sha512(seed))
+
+def key_public(k: Key) -> List<&2, U32>:
+  match k:
+    case EdKey{c, b, sr, pre, a}:
+      a
 
 # A = [s]B, encoded
 def public_key(+seed: List<&2, U32>) -> List<&2, U32>:
-  public_of(PT.consts(seed), seed, H.sha512(seed))
+  +c = PT.consts(seed)
+  public_of(c, PT.base(c), H.sha512(seed))
 
-def sign_with(+c: PT.Cs, +xs: List<&2, U32>, +h: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
-  +b = PT.base(c, xs)
-  +a = public_of(c, xs, h)
-  +r = SC.reduce(H.sha512(cat(prefix(h), msg)))
-  +rb = PT.encode(PT.mul(c, r, b))
+# RFC 8032 5.1.6 with the expanded key: r = SHA-512(prefix || M) mod L,
+# R = [r]B, k = SHA-512(R || A || M) mod L, S = (r + k s) mod L
+def sign_parts(+c: PT.Cs, +b: PT.Pt, +sr: List<&2, U32>, +pre: List<&2, U32>, +a: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
+  +r = SC.reduce(H.sha512(cat(pre, msg)))
+  +rb = PT.encode(PT.cs_r(c), PT.mul(c, r, b))
   +k = hram(rb, a, msg)
-  cat(rb, SC.mul_add(k, SC.reduce(secret(h)), r))
+  cat(rb, SC.mul_add(k, sr, r))
+
+def sign_key(k: Key, +msg: List<&2, U32>) -> List<&2, U32>:
+  match k:
+    case EdKey{+c, +b, +sr, +pre, +a}:
+      sign_parts(c, b, sr, pre, a, msg)
 
 def sign_raw(+seed: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
-  sign_with(PT.consts(seed), seed, H.sha512(seed), msg)
+  sign_key(expand(seed), msg)
 
+# verification: the scalars S and k are public, so the multiplications
+# add only on one bits (PT.mul_vt, the same results as PT.mul)
 def check(+c: PT.Cs, +sb: List<&2, U32>, +rb: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, ra: Maybe<&2, PT.Pt>, aa: Maybe<&2, PT.Pt>) -> Bool:
   match ra aa:
     case Some{r} Some{+a}:
       +k = hram(rb, pk, msg)
-      +b = PT.base(c, pk)
-      PT.equal(PT.mul(c, sb, b), PT.add(c, r, PT.mul(c, k, a)))
+      PT.equal(PT.cs_r(c), PT.mul_vt(c, sb, PT.base(c)), PT.add(c, r, PT.mul_vt(c, k, a)))
     case _ _:
       False{}
 
