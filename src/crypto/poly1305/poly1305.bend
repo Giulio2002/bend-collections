@@ -10,6 +10,12 @@ import ../subtle.bend as Subtle
 # equal to spec/crypto/poly1305.bend for every key and message, and
 # mac_aead equal to the RFC 8439 2.8 tag over aad and ciphertext.
 #
+# The message is read 16 bytes per step (one match of 16 cells); a last
+# block shorter than 16 bytes goes through absorb_gen, the RFC's loop with
+# take and skip. The pad bit pone (1 at 2^128 of every full block) is a
+# parameter set to 1 by the entry points, so that a proof about padded
+# blocks never evaluates a closed 2^24.
+#
 # ---- message blocks ----
 
 def hd(xs: List<&2, U32>) -> Nat:

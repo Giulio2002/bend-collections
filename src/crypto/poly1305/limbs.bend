@@ -9,21 +9,21 @@ import Base
 # Bend's native runtime keeps a Nat in one machine word and aborts (never
 # wraps) past 2^48, so the product of two 26-bit limbs (2^52) is out of
 # reach. The multiplier r is therefore split into 13-bit halves,
-# r = e + b o with b = 2^13 (e and o are five limbs each, below 2^13): the
-# block product (h + m) r is (h + m) e + b (h + m) o, two schoolbook
-# products whose terms are below 2^27 * 5 * 2^13 < 2^43 and whose five-term
-# sums stay below 2^46 (docs/CRYPTO_CONTRACTS.md has the bound table).
+# r = e + 2^13 o (e and o are five limbs each, below 2^13): the block
+# product (h + m) r is (h + m) e + 2^13 (h + m) o, two schoolbook products
+# whose terms stay below 2^43 and whose five-term sums stay below 2^46
+# (docs/CRYPTO_CONTRACTS.md has the bound table).
 #
-# The radix constants w = 2^26 and b = 2^13 are parameters (+w, +b), passed
-# down from src/crypto/poly1305/poly1305.bend, so that the proofs keep them
-# symbolic (2^26 is C.shift(26n, one) there, never a unary literal). The
-# small constants 4, 16, 64, 256 and 5 appear as literals.
+# The only radix literal is 2^13 = 8192: x div 2^26 and x mod 2^26 are two
+# steps of 2^13 (dw and mw below). A division by a literal power of two
+# compiles to a shift and a mask, and the proof checker holds 8192 as a
+# number (2^26 as a literal would be a unary numeral to it).
 #
 # What is proved (proofs/crypto/poly1305/): every function below computes
-# its value exactly as a natural number (no bounds are needed for that);
-# the limb bounds (every limb at most w between blocks) are proved too,
-# since the final reduction relies on them. Staying below the runtime's
-# 2^48 is the bound table's arithmetic on those limb bounds.
+# its value exactly as a natural number, or congruent mod p where limbs at
+# 2^130 fold back; between blocks every limb has at most 27 bits (bnd.bend),
+# which the final reduction relies on. Staying below the runtime's 2^48 is
+# the bound table's arithmetic on those limb bounds (tested, not a clause).
 #
 # Constant time: every loop runs over public lengths and no branch depends
 # on a limb; the final conditional subtraction of p is arithmetic (a limb
@@ -33,7 +33,7 @@ import Base
 type F is Data:
   F{l0: Nat, l1: Nat, l2: Nat, l3: Nat, l4: Nat}
 
-# The multiplier r = e + b o in 13-bit halves: e0..e4 and o0..o4, and
+# The multiplier r = e + 2^13 o in 13-bit halves: e0..e4 and o0..o4, and
 # f_i = 5 e_i, g_i = 5 o_i for the folded products.
 type K is Data:
   K{e0: Nat, e1: Nat, e2: Nat, e3: Nat, e4: Nat, f1: Nat, f2: Nat, f3: Nat, f4: Nat,
@@ -75,8 +75,8 @@ def mul(+a0: Nat, +a1: Nat, +a2: Nat, +a3: Nat, +a4: Nat, +r0: Nat, +r1: Nat, +r
     Nat.add(Nat.mul(a0, r3), Nat.add(Nat.mul(a1, r2), Nat.add(Nat.mul(a2, r1), Nat.add(Nat.mul(a3, r0), Nat.mul(a4, s4))))),
     Nat.add(Nat.mul(a0, r4), Nat.add(Nat.mul(a1, r3), Nat.add(Nat.mul(a2, r2), Nat.add(Nat.mul(a3, r1), Nat.mul(a4, r0)))))}
 
-# d + b e (mod p) with small limbs: e_i = lo_i + w hi_i, b lo_i stays at
-# limb i, b hi_i moves to limb i + 1 (limb 0 for i = 4, times 5).
+# d + 2^13 e (mod p) with small limbs: e_i = lo_i + w hi_i, 2^13 lo_i stays
+# at limb i, 2^13 hi_i moves to limb i + 1 (limb 0 for i = 4, times 5).
 def comb(d: F, e: F) -> F:
   match d e:
     case F{d0, d1, d2, d3, d4} F{+e0, +e1, +e2, +e3, +e4}:
@@ -168,8 +168,8 @@ def bytes(+l0: Nat, l1: Nat, l2: Nat, l3: Nat, l4: Nat) -> List<&2, U32>:
   +u1 = d8(u0)
   [by(l0), by(a1), by(a2), by(c0), by(c1), by(c2), by(q0), by(q1), by(q2), by(t0), by(t1), by(t2), by(t3), by(u0), by(u1), by(d8(u1))]
 
-# (h mod p + s) mod 2^128 as 16 bytes, for h below 2^130 + 2^5 (top brings
-# any accumulator there): g = h + 5 with its carries
+# (h mod p + s) mod 2^128 as 16 bytes, for h below 2^130 + 64 (top brings
+# an accumulator of 27-bit limbs there): g = h + 5 with its carries
 # has c = 1 at 2^130 exactly when h >= p, and then its low 130 bits are
 # h - p; the selected limbs plus s are carried and serialized.
 def frz(h: F, s: F) -> List<&2, U32>:

@@ -46,13 +46,13 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | SHA-512 | 9.44 |
 | SHA3-256 | 11.68 |
 | Incremental hashing (`Hasher`) | 37.89 |
-| `subtle.eq` | 213.33 |
+| `subtle.eq` | 92.11 |
 | HMAC-SHA256 | 5.84 |
 | HKDF-SHA256 | 8.97 |
-| ChaCha20 | 26.28 |
-| Poly1305 | 1135.42 |
-| ChaCha20-Poly1305 | 366.20 |
-| XChaCha20-Poly1305 | 347.95 |
+| ChaCha20 | 18.28 |
+| Poly1305 | 22.44 |
+| ChaCha20-Poly1305 | 32.35 |
+| XChaCha20-Poly1305 | 31.04 |
 | AES-128-GCM | 31.60 |
 | AES-256-GCM | 30.60 |
 | X25519 shared secret | 1677.75 |
@@ -209,13 +209,16 @@ C reference: the same C as the one-shot rows through init/update/final (`sha256_
 
 ### `subtle.eq`
 
-C reference: constant-time loop (lengths, then OR of the XOR of every byte pair, no early exit); equal inputs, so every byte is compared. Worst ratio 213.33.
+C reference: constant-time loop (lengths, then OR of the XOR of every byte pair, no early exit); equal inputs, so every byte is compared. The "words" rows give Bend the same bytes packed four to a 32-bit word (built before the timed region); the C loop still compares the bytes. Worst ratio 92.11 (main: 213.33).
 
 | Length | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 32 B | 0.14 | 0.00 | 128.38 |
-| 1 KiB | 3.91 | 0.02 | 213.33 |
-| 64 KiB | 219 | 1.16 | 189.19 |
+| 32 B | 0.06 | 0.00 | 54.42 |
+| 1 KiB | 1.46 | 0.02 | 78.95 |
+| 64 KiB | 109 | 1.19 | 92.11 |
+| 32 B words | 0.07 | 0.00 | 60.81 |
+| 1 KiB words | 0.73 | 0.02 | 38.96 |
+| 64 KiB words | 15.6 | 1.19 | 13.16 |
 
 ### HMAC-SHA256
 
@@ -244,55 +247,55 @@ C reference: RFC 5869 over the same C HMAC; 32-byte input keying material, 32-by
 
 ### ChaCha20
 
-C reference: Monocypher 4.0.2 `crypto_chacha20_ietf` (portable C). Worst ratio 26.28.
+C reference: Monocypher 4.0.2 `crypto_chacha20_ietf` (portable C). Worst ratio 18.28 (main: 26.28).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 2.32 | 0.09 | 26.28 |
-| 1 KiB | 24.9 | 1.08 | 23.01 |
-| 16 KiB | 414 | 17.0 | 24.31 |
-| 64 KiB | 1688 | 67.9 | 24.85 |
-| 1 MiB | 27500 | 1090 | 25.23 |
+| 64 B | 1.62 | 0.09 | 18.28 |
+| 1 KiB | 14.6 | 1.09 | 13.45 |
+| 16 KiB | 234 | 17.2 | 13.59 |
+| 64 KiB | 1000 | 68.6 | 14.57 |
+| 1 MiB | 17500 | 1101 | 15.89 |
 
 ### Poly1305
 
-C reference: Monocypher 4.0.2 `crypto_poly1305` (portable C). Worst ratio 1135.42.
+C reference: Monocypher 4.0.2 `crypto_poly1305` (portable C). Worst ratio 22.44 (main: 1135.42).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 28.4 | 0.04 | 701.81 |
-| 1 KiB | 416 | 0.39 | 1054.46 |
-| 16 KiB | 6688 | 6.02 | 1111.69 |
-| 64 KiB | 27250 | 24.0 | 1135.42 |
-| 1 MiB | 426000 | 381 | 1118.11 |
+| 64 B | 0.85 | 0.04 | 20.35 |
+| 1 KiB | 8.79 | 0.39 | 22.44 |
+| 16 KiB | 125 | 6.05 | 20.67 |
+| 64 KiB | 500 | 24.2 | 20.62 |
+| 1 MiB | 8000 | 378 | 21.16 |
 
 ### ChaCha20-Poly1305
 
-C reference: Monocypher 4.0.2 `crypto_aead_init_ietf` + `crypto_aead_write`/`_read`. Worst ratio 366.20.
+C reference: Monocypher 4.0.2 `crypto_aead_init_ietf` + `crypto_aead_write`/`_read`. Worst ratio 32.35 (main: 366.20).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 41.4 | 0.24 | 170.69 |
-| 1 KiB | 584 | 1.59 | 366.20 |
-| 16 KiB | 8094 | 23.8 | 340.57 |
-| 64 KiB | 30562 | 93.3 | 327.53 |
-| 1 MiB | 490000 | 1502 | 326.23 |
-| 1 KiB open | 510 | 1.60 | 319.07 |
-| 64 KiB open | 32125 | 92.9 | 345.90 |
+| 64 B | 5.86 | 0.24 | 24.16 |
+| 1 KiB | 38.1 | 1.59 | 24.00 |
+| 16 KiB | 578 | 23.3 | 24.77 |
+| 64 KiB | 2312 | 92.4 | 25.03 |
+| 1 MiB | 39000 | 1500 | 26.00 |
+| 1 KiB open | 50.8 | 1.62 | 31.44 |
+| 64 KiB open | 3000 | 92.8 | 32.35 |
 
 ### XChaCha20-Poly1305
 
-C reference: Monocypher 4.0.2 `crypto_aead_lock`/`_unlock`. Worst ratio 347.95.
+C reference: Monocypher 4.0.2 `crypto_aead_lock`/`_unlock`. Worst ratio 31.04 (main: 347.95).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 42.1 | 0.32 | 132.76 |
-| 1 KiB | 589 | 1.69 | 347.95 |
-| 16 KiB | 7750 | 23.6 | 328.26 |
-| 64 KiB | 30688 | 93.4 | 328.43 |
-| 1 MiB | 491000 | 1493 | 328.87 |
-| 1 KiB open | 512 | 1.65 | 309.33 |
-| 64 KiB open | 32125 | 95.8 | 335.51 |
+| 64 B | 6.77 | 0.31 | 21.54 |
+| 1 KiB | 40.0 | 1.70 | 23.58 |
+| 16 KiB | 578 | 23.3 | 24.82 |
+| 64 KiB | 2312 | 94.1 | 24.58 |
+| 1 MiB | 39000 | 1482 | 26.32 |
+| 1 KiB open | 46.9 | 1.67 | 28.04 |
+| 64 KiB open | 2875 | 92.6 | 31.04 |
 
 ### AES-128-GCM
 
