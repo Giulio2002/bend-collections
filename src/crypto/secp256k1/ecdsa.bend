@@ -180,7 +180,7 @@ def public_key(+sk: List<&2, U32>, compressed: Bool) -> Maybe<&2, List<&2, U32>>
 # point at infinity and x(R) mod n must be r
 def verify_rs(+q: P.Point, +z: List<&2, Nat>, +r: List<&2, Nat>, +s: List<&2, Nat>) -> Bool:
   +w = S.inv(s)
-  +rr = P.add(P.mul(S.mul(z, w), P.g()), P.mul(S.mul(r, w), q))
+  +rr = P.add(P.mul_pub(S.mul(z, w), P.g()), P.mul_pub(S.mul(r, w), q))
   Bool.and(Bool.not(P.is_inf(rr)), S.eq(S.reduce(P.aff_x(P.to_affine(rr))), r))
 
 def verify_ok(+q: P.Point, +z: List<&2, Nat>, +r: List<&2, Nat>, +s: List<&2, Nat>, ok: Bool) -> Bool:
@@ -228,7 +228,7 @@ def recover_r(+z: List<&2, Nat>, +r: List<&2, Nat>, +s: List<&2, Nat>, m: Maybe<
     case None{}: None{}
     case Some{+pr}:
       +ri = S.inv(r)
-      +q = P.add(P.mul(S.mul(S.neg(z), ri), P.g()), P.mul(S.mul(s, ri), pr))
+      +q = P.add(P.mul_pub(S.mul(S.neg(z), ri), P.g()), P.mul_pub(S.mul(s, ri), pr))
       recover_q(q, P.is_inf(q))
 
 def recover_x(+z: List<&2, Nat>, +r: List<&2, Nat>, +s: List<&2, Nat>, +id: Nat, +x: List<&2, Nat>, ok: Bool) -> Maybe<&2, List<&2, U32>>:

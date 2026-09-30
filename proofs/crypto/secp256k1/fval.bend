@@ -18,7 +18,7 @@ import ./ineq.bend as I
 import ./bounds.bend as B
 import ./consts.bend as K
 import ./u32and.bend as UA
-import ./fieldops.bend as FO
+import ./fbase.bend as FO
 import ./fmod.bend as M
 import ./reduce.bend as R
 import ../../lib/arith.bend as AR

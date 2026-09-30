@@ -367,6 +367,33 @@ def sq(a: FE) -> FE:
 def mul21(a: FE) -> FE:
   fin(carry16(foldt(carry16(mul21r(a)))))
 
+# b x + (1 - b) y, limb-wise and branch-free, for b in {0, 1}
+def sel1(+b: Nat, +x: Nat, +y: Nat) -> Nat:
+  Nat.add(nmul(x, b), nmul(y, Nat.sub(1n, b)))
+
+def select(+b: Nat, x: FE, y: FE) -> FE:
+  match x y:
+    case FE{+x0, +x1, +x2, +x3, +x4, +x5, +x6, +x7, +x8, +x9, +x10, +x11, +x12, +x13, +x14, +x15} FE{+y0, +y1, +y2, +y3, +y4, +y5, +y6, +y7, +y8, +y9, +y10, +y11, +y12, +y13, +y14, +y15}:
+      FE{sel1(b, x0, y0), sel1(b, x1, y1), sel1(b, x2, y2), sel1(b, x3, y3), sel1(b, x4, y4), sel1(b, x5, y5), sel1(b, x6, y6), sel1(b, x7, y7), sel1(b, x8, y8), sel1(b, x9, y9), sel1(b, x10, y10), sel1(b, x11, y11), sel1(b, x12, y12), sel1(b, x13, y13), sel1(b, x14, y14), sel1(b, x15, y15)}
+
+# x^e for the exponent e given by its bits, most significant first
+# (square-and-multiply; the branch is on the public exponent)
+def pow_step(b: Nat, +x: FE, s: FE) -> FE:
+  match b:
+    case 0n: s
+    case 1n+k: mul(s, x)
+
+def pow_go(+x: FE, bits: List<&2, Nat>, acc: FE) -> FE:
+  match bits:
+    case Nil{}: acc
+    case b <> t: pow_go(x, t, pow_step(b, x, sq(acc)))
+
+# (x is looked at first, so that on an unknown x the proof checker keeps the
+# exponentiation folded)
+def pow(x: FE, bits: List<&2, Nat>, acc: FE) -> FE:
+  match x:
+    case FE{x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15}: pow_go(FE{x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15}, bits, acc)
+
 def zero() -> FE:
   FE{0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n}
 

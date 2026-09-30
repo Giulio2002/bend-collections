@@ -55,7 +55,7 @@ def verify_r(+r: List<&2, Nat>, +rr: P.Point) -> Bool:
 
 def verify_ok(+r: List<&2, Nat>, +s: List<&2, Nat>, +e: List<&2, Nat>, +pp: P.Point, ok: Bool) -> Bool:
   match ok:
-    case True{}: verify_r(r, P.add(P.mul(s, P.g()), P.mul(S.neg(e), pp)))
+    case True{}: verify_r(r, P.add(P.mul_pub(s, P.g()), P.mul_pub(S.neg(e), pp)))
     case False{}: False{}
 
 def verify_p(+pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>, mp: Maybe<&2, P.Point>) -> Bool:

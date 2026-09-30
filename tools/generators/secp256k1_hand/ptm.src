@@ -1,0 +1,155 @@
+import Base
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../spec/crypto/secp256k1/curve.bend as CV
+import ../../../src/crypto/secp256k1/fe.bend as F
+import ../../../src/crypto/secp256k1/pt.bend as PX
+import ../../lib/logic.bend as Lg
+import ../../lib/nat.bend as N
+import ./fops.bend as OP
+import ./bitsv.bend as BV
+import ./ptp.bend as PP
+
+# Scalar multiplication on records (src/crypto/secp256k1/pt.bend mul_go:
+# double, then add and select with the bit; vmul_go: double, then add when
+# the bit is set) is the specification's lmul (spec/crypto/secp256k1/
+# curve.bend) on the values of the coordinates, for any list of bits 0 / 1.
+
+def not01(+c: Nat, +h: {Nat.is_lt(2n+c, 2n) == True{} : Bool}) -> Empty:
+  N.lt_zero_absurd(c, h)
+
+def cx(+one: Nat, +x: F.FE, +y: F.FE, +z: F.FE, +h: {PP.pred(one, PX.PT{x, y, z}) == True{} : Bool}) -> {PP.red(one, x) == True{} : Bool}:
+  Lg.and_left(PP.red(one, x), Bool.and(PP.red(one, y), PP.red(one, z)), h)
+
+def cy(+one: Nat, +x: F.FE, +y: F.FE, +z: F.FE, +h: {PP.pred(one, PX.PT{x, y, z}) == True{} : Bool}) -> {PP.red(one, y) == True{} : Bool}:
+  Lg.and_left(PP.red(one, y), PP.red(one, z), Lg.and_right(PP.red(one, x), Bool.and(PP.red(one, y), PP.red(one, z)), h))
+
+def cz(+one: Nat, +x: F.FE, +y: F.FE, +z: F.FE, +h: {PP.pred(one, PX.PT{x, y, z}) == True{} : Bool}) -> {PP.red(one, z) == True{} : Bool}:
+  Lg.and_right(PP.red(one, y), PP.red(one, z), Lg.and_right(PP.red(one, x), Bool.and(PP.red(one, y), PP.red(one, z)), h))
+
+# ---- selection ----
+
+def psel0(+one: Nat, +h1: {one == 1n : Nat}, a: PX.PT, b: PX.PT, +ha: {PP.pred(one, a) == True{} : Bool}, +hb: {PP.pred(one, b) == True{} : Bool}) -> {PX.select(0n, a, b) == b : PX.PT}:
+  match a b:
+    case PX.PT{+x1, +y1, +z1} PX.PT{+x2, +y2, +z2}:
+      %goal {PX.PT{F.select(0n, x1, x2), F.select(0n, y1, y2), F.select(0n, z1, z2)} == PX.PT{x2, y2, z2} : PX.PT}
+      %rw OP.sel0_l(one, h1, x1, x2, cx(one, x1, y1, z1, ha), cx(one, x2, y2, z2, hb))
+      %rw OP.sel0_l(one, h1, y1, y2, cy(one, x1, y1, z1, ha), cy(one, x2, y2, z2, hb))
+      %rw OP.sel0_l(one, h1, z1, z2, cz(one, x1, y1, z1, ha), cz(one, x2, y2, z2, hb))
+      %close
+
+def psel1(+one: Nat, +h1: {one == 1n : Nat}, a: PX.PT, b: PX.PT, +ha: {PP.pred(one, a) == True{} : Bool}, +hb: {PP.pred(one, b) == True{} : Bool}) -> {PX.select(1n, a, b) == a : PX.PT}:
+  match a b:
+    case PX.PT{+x1, +y1, +z1} PX.PT{+x2, +y2, +z2}:
+      %goal {PX.PT{F.select(1n, x1, x2), F.select(1n, y1, y2), F.select(1n, z1, z2)} == PX.PT{x1, y1, z1} : PX.PT}
+      %rw OP.sel1_l(one, h1, x1, x2, cx(one, x1, y1, z1, ha), cx(one, x2, y2, z2, hb))
+      %rw OP.sel1_l(one, h1, y1, y2, cy(one, x1, y1, z1, ha), cy(one, x2, y2, z2, hb))
+      %rw OP.sel1_l(one, h1, z1, z2, cz(one, x1, y1, z1, ha), cz(one, x2, y2, z2, hb))
+      %close
+
+# ---- the point at infinity ----
+
+def pinf_r(+one: Nat, +h1: {one == 1n : Nat}) -> {PP.pred(one, PX.infinity()) == True{} : Bool}:
+  PP.pr3(one, F.zero(), F.one(), F.zero(), PP.zero_r(one, h1), PP.one_r(one, h1), PP.zero_r(one, h1))
+
+def pinf_v(+one: Nat, +h1: {one == 1n : Nat}) -> {PP.pv(one, PX.infinity()) == CV.infinity() : CV.SPoint}:
+  %goal {CV.SPoint{OP.val(one, F.zero()), OP.val(one, F.one()), OP.val(one, F.zero())} == CV.SPoint{0n, 1n, 0n} : CV.SPoint}
+  %rw PP.zero_v(one, h1)
+  %rw PP.zero_v(one, h1)
+  %rw PP.one_v(one, h1)
+  %close
+
+# ---- one step, with the addition selected ----
+
+def step_r(+one: Nat, +h1: {one == 1n : Nat}, b: Nat, +pp: PX.PT, +d: PX.PT, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}, +hp: {PP.pred(one, pp) == True{} : Bool}, +hd: {PP.pred(one, d) == True{} : Bool}) -> {PP.pred(one, PX.step(b, pp, d)) == True{} : Bool}:
+  match b:
+    case 0n:
+      %goal {PP.pred(one, PX.select(0n, PX.add(d, pp), d)) == True{} : Bool}
+      %rw psel0(one, h1, PX.add(d, pp), d, PP.padd_r(one, h1, d, pp, hd, hp), hd)
+      hd
+    case 1n:
+      %goal {PP.pred(one, PX.select(1n, PX.add(d, pp), d)) == True{} : Bool}
+      %rw psel1(one, h1, PX.add(d, pp), d, PP.padd_r(one, h1, d, pp, hd, hp), hd)
+      PP.padd_r(one, h1, d, pp, hd, hp)
+    case 2n+ +c:
+      Empty.absurd({PP.pred(one, PX.step(2n+c, pp, d)) == True{} : Bool}, not01(c, hb))
+
+def step_v(+one: Nat, +h1: {one == 1n : Nat}, b: Nat, +pp: PX.PT, +d: PX.PT, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}, +hp: {PP.pred(one, pp) == True{} : Bool}, +hd: {PP.pred(one, d) == True{} : Bool}) -> {PP.pv(one, PX.step(b, pp, d)) == CV.step(b, FS.prime(one), PP.pv(one, pp), PP.pv(one, d)) : CV.SPoint}:
+  match b:
+    case 0n:
+      %goal {PP.pv(one, PX.select(0n, PX.add(d, pp), d)) == PP.pv(one, d) : CV.SPoint}
+      %rw psel0(one, h1, PX.add(d, pp), d, PP.padd_r(one, h1, d, pp, hd, hp), hd)
+      %close
+    case 1n:
+      %goal {PP.pv(one, PX.select(1n, PX.add(d, pp), d)) == CV.padd(FS.prime(one), PP.pv(one, d), PP.pv(one, pp)) : CV.SPoint}
+      %rw psel1(one, h1, PX.add(d, pp), d, PP.padd_r(one, h1, d, pp, hd, hp), hd)
+      PP.padd_v(one, h1, d, pp, hd, hp)
+    case 2n+ +c:
+      Empty.absurd({PP.pv(one, PX.step(2n+c, pp, d)) == CV.step(2n+c, FS.prime(one), PP.pv(one, pp), PP.pv(one, d)) : CV.SPoint}, not01(c, hb))
+
+def mul_go_r(+one: Nat, +h1: {one == 1n : Nat}, bs: List<&2, Nat>, +pp: PX.PT, +r: PX.PT, +hbs: {BV.all01(bs) == True{} : Bool}, +hp: {PP.pred(one, pp) == True{} : Bool}, +hr: {PP.pred(one, r) == True{} : Bool}) -> {PP.pred(one, PX.mul_go(bs, pp, r)) == True{} : Bool}:
+  match bs:
+    case Nil{}:
+      hr
+    case +b <> +t:
+      +hb = Lg.and_left(Nat.is_lt(b, 2n), BV.all01(t), hbs)
+      +ht = Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hbs)
+      mul_go_r(one, h1, t, pp, PX.step(b, pp, PX.dbl(r)), ht, hp, step_r(one, h1, b, pp, PX.dbl(r), hb, hp, PP.pdbl_r(one, h1, r, hr)))
+
+def mul_go_v(+one: Nat, +h1: {one == 1n : Nat}, bs: List<&2, Nat>, +pp: PX.PT, +r: PX.PT, +hbs: {BV.all01(bs) == True{} : Bool}, +hp: {PP.pred(one, pp) == True{} : Bool}, +hr: {PP.pred(one, r) == True{} : Bool}) -> {PP.pv(one, PX.mul_go(bs, pp, r)) == CV.lmul(FS.prime(one), bs, PP.pv(one, pp), PP.pv(one, r)) : CV.SPoint}:
+  match bs:
+    case Nil{}:
+      {==}
+    case +b <> +t:
+      +hb = Lg.and_left(Nat.is_lt(b, 2n), BV.all01(t), hbs)
+      +ht = Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hbs)
+      +hd = PP.pdbl_r(one, h1, r, hr)
+      +hs = step_r(one, h1, b, pp, PX.dbl(r), hb, hp, hd)
+      %goal {PP.pv(one, PX.mul_go(t, pp, PX.step(b, pp, PX.dbl(r)))) == CV.lmul(FS.prime(one), t, PP.pv(one, pp), CV.step(b, FS.prime(one), PP.pv(one, pp), CV.pdbl(FS.prime(one), PP.pv(one, r)))) : CV.SPoint}
+      %rw mul_go_v(one, h1, t, pp, PX.step(b, pp, PX.dbl(r)), ht, hp, hs)
+      %rw step_v(one, h1, b, pp, PX.dbl(r), hb, hp, hd)
+      %rw PP.pdbl_v(one, h1, r, hr)
+      %close
+
+# ---- one step, with the addition only for a set bit ----
+
+def vstep_r(+one: Nat, +h1: {one == 1n : Nat}, b: Nat, +pp: PX.PT, +d: PX.PT, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}, +hp: {PP.pred(one, pp) == True{} : Bool}, +hd: {PP.pred(one, d) == True{} : Bool}) -> {PP.pred(one, PX.vstep(b, pp, d)) == True{} : Bool}:
+  match b:
+    case 0n:
+      hd
+    case 1n:
+      PP.padd_r(one, h1, d, pp, hd, hp)
+    case 2n+ +c:
+      Empty.absurd({PP.pred(one, PX.vstep(2n+c, pp, d)) == True{} : Bool}, not01(c, hb))
+
+def vstep_v(+one: Nat, +h1: {one == 1n : Nat}, b: Nat, +pp: PX.PT, +d: PX.PT, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}, +hp: {PP.pred(one, pp) == True{} : Bool}, +hd: {PP.pred(one, d) == True{} : Bool}) -> {PP.pv(one, PX.vstep(b, pp, d)) == CV.step(b, FS.prime(one), PP.pv(one, pp), PP.pv(one, d)) : CV.SPoint}:
+  match b:
+    case 0n:
+      {==}
+    case 1n:
+      PP.padd_v(one, h1, d, pp, hd, hp)
+    case 2n+ +c:
+      Empty.absurd({PP.pv(one, PX.vstep(2n+c, pp, d)) == CV.step(2n+c, FS.prime(one), PP.pv(one, pp), PP.pv(one, d)) : CV.SPoint}, not01(c, hb))
+
+def vmul_go_r(+one: Nat, +h1: {one == 1n : Nat}, bs: List<&2, Nat>, +pp: PX.PT, +r: PX.PT, +hbs: {BV.all01(bs) == True{} : Bool}, +hp: {PP.pred(one, pp) == True{} : Bool}, +hr: {PP.pred(one, r) == True{} : Bool}) -> {PP.pred(one, PX.vmul_go(bs, pp, r)) == True{} : Bool}:
+  match bs:
+    case Nil{}:
+      hr
+    case +b <> +t:
+      +hb = Lg.and_left(Nat.is_lt(b, 2n), BV.all01(t), hbs)
+      +ht = Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hbs)
+      vmul_go_r(one, h1, t, pp, PX.vstep(b, pp, PX.dbl(r)), ht, hp, vstep_r(one, h1, b, pp, PX.dbl(r), hb, hp, PP.pdbl_r(one, h1, r, hr)))
+
+def vmul_go_v(+one: Nat, +h1: {one == 1n : Nat}, bs: List<&2, Nat>, +pp: PX.PT, +r: PX.PT, +hbs: {BV.all01(bs) == True{} : Bool}, +hp: {PP.pred(one, pp) == True{} : Bool}, +hr: {PP.pred(one, r) == True{} : Bool}) -> {PP.pv(one, PX.vmul_go(bs, pp, r)) == CV.lmul(FS.prime(one), bs, PP.pv(one, pp), PP.pv(one, r)) : CV.SPoint}:
+  match bs:
+    case Nil{}:
+      {==}
+    case +b <> +t:
+      +hb = Lg.and_left(Nat.is_lt(b, 2n), BV.all01(t), hbs)
+      +ht = Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hbs)
+      +hd = PP.pdbl_r(one, h1, r, hr)
+      +hs = vstep_r(one, h1, b, pp, PX.dbl(r), hb, hp, hd)
+      %goal {PP.pv(one, PX.vmul_go(t, pp, PX.vstep(b, pp, PX.dbl(r)))) == CV.lmul(FS.prime(one), t, PP.pv(one, pp), CV.step(b, FS.prime(one), PP.pv(one, pp), CV.pdbl(FS.prime(one), PP.pv(one, r)))) : CV.SPoint}
+      %rw vmul_go_v(one, h1, t, pp, PX.vstep(b, pp, PX.dbl(r)), ht, hp, hs)
+      %rw vstep_v(one, h1, b, pp, PX.dbl(r), hb, hp, hd)
+      %rw PP.pdbl_v(one, h1, r, hr)
+      %close

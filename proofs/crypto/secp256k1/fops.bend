@@ -17,7 +17,7 @@ import ./bounds.bend as B
 import ./consts.bend as K
 import ./negate.bend as NG
 import ./reduce.bend as R
-import ./fieldops.bend as FO
+import ./fbase.bend as FO
 import ./fmod.bend as M
 import ./febr.bend as BR
 import ./fval.bend as V
@@ -294,3 +294,46 @@ def sq_v(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +ha: {red(one, a) == True{
 def sq_r(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +ha: {red(one, a) == True{} : Bool}) -> {red(one, F.sq(a)) == True{} : Bool}:
   %Equal.sym(List<&2, Nat>, F.to_list(F.sq(a)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n)), sq_l(a)) : {FS.reduced(one, FS.prime(one), _) == True{} : Bool}
   mch_r(one, h1, M.sqru(F.to_list(a)), sq_hx(one, h1, a, ha))
+
+# ---- in the limb value ----
+
+def mul_e(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +b: F.FE, +ha: {red(one, a) == True{} : Bool}, +hb: {red(one, b) == True{} : Bool}) -> {LV.ev(F.to_list(F.mul(a, b))) == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(b))), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(List<&2, Nat>, F.to_list(F.mul(a, b)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n)), mul_l(a, b)) : {LV.ev(_) == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(b))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n))), Nat.mod(LV.ev(M.convu(F.to_list(a), F.to_list(b))), 1n+K.pp(one)), mch_v(one, h1, M.convu(F.to_list(a), F.to_list(b)), mul_hx(one, h1, a, b, ha, hb))) : {_ == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(b))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(M.convu(F.to_list(a), F.to_list(b))), Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(b))), V.convu_v(one, h1, 16n, F.to_list(a), FO.r16(one, F.to_list(a), ha), 16n, F.to_list(b), FO.r16(one, F.to_list(b), hb))) : {Nat.mod(_, 1n+K.pp(one)) == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(b))), 1n+K.pp(one)) : Nat}
+  {==}
+
+def sq_e(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +ha: {red(one, a) == True{} : Bool}) -> {LV.ev(F.to_list(F.sq(a))) == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(a))), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(List<&2, Nat>, F.to_list(F.sq(a)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n)), sq_l(a)) : {LV.ev(_) == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(a))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n))), Nat.mod(LV.ev(M.sqru(F.to_list(a))), 1n+K.pp(one)), mch_v(one, h1, M.sqru(F.to_list(a)), sq_hx(one, h1, a, ha))) : {_ == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(a))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(M.sqru(F.to_list(a))), Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(a))), V.sqru_v(one, h1, 16n, F.to_list(a), FO.r16(one, F.to_list(a), ha))) : {Nat.mod(_, 1n+K.pp(one)) == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(a))), 1n+K.pp(one)) : Nat}
+  {==}
+
+# ---- records and lists ----
+
+def rt(r: F.FE) -> {F.of_list(F.to_list(r)) == r : F.FE}:
+  match r:
+    case F.FE{x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15}:
+      {==}
+
+# a reduced list is the list of its record
+def rec_l(+one: Nat, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.prime(one), x) == True{} : Bool}) -> {F.to_list(F.of_list(x)) == x : List<&2, Nat>}:
+  BR.shape(one, x, FO.r16(one, x, hx))
+
+def rec_r(+one: Nat, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.prime(one), x) == True{} : Bool}) -> {red(one, F.of_list(x)) == True{} : Bool}:
+  %Equal.sym(List<&2, Nat>, F.to_list(F.of_list(x)), x, rec_l(one, x, hx)) : {FS.reduced(one, FS.prime(one), _) == True{} : Bool}
+  hx
+
+def rec_v(+one: Nat, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.prime(one), x) == True{} : Bool}) -> {val(one, F.of_list(x)) == FS.value(one, x) : Nat}:
+  %Equal.sym(List<&2, Nat>, F.to_list(F.of_list(x)), x, rec_l(one, x, hx)) : {FS.value(one, _) == FS.value(one, x) : Nat}
+  {==}
+
+# ---- selection ----
+
+def sel1_l(+one: Nat, +h1: {one == 1n : Nat}, +x: F.FE, +y: F.FE, +hx: {red(one, x) == True{} : Bool}, +hy: {red(one, y) == True{} : Bool}) -> {F.select(1n, x, y) == x : F.FE}:
+  +e = Equal.trans(List<&2, Nat>, F.to_list(F.select(1n, x, y)), M.selu(1n, F.to_list(x), F.to_list(y)), F.to_list(x), BR.select_b(1n, x, y), V.selu_one(one, h1, 16n, F.to_list(x), F.to_list(y), FO.r16(one, F.to_list(x), hx), FO.r16(one, F.to_list(y), hy)))
+  Equal.trans(F.FE, F.select(1n, x, y), F.of_list(F.to_list(F.select(1n, x, y))), x, Equal.sym(F.FE, F.of_list(F.to_list(F.select(1n, x, y))), F.select(1n, x, y), rt(F.select(1n, x, y))), Equal.trans(F.FE, F.of_list(F.to_list(F.select(1n, x, y))), F.of_list(F.to_list(x)), x, Equal.cong(List<&2, Nat>, F.FE, l => F.of_list(l), F.to_list(F.select(1n, x, y)), F.to_list(x), e), rt(x)))
+
+def sel0_l(+one: Nat, +h1: {one == 1n : Nat}, +x: F.FE, +y: F.FE, +hx: {red(one, x) == True{} : Bool}, +hy: {red(one, y) == True{} : Bool}) -> {F.select(0n, x, y) == y : F.FE}:
+  +e = Equal.trans(List<&2, Nat>, F.to_list(F.select(0n, x, y)), M.selu(0n, F.to_list(x), F.to_list(y)), F.to_list(y), BR.select_b(0n, x, y), V.selu_zero(one, h1, 16n, F.to_list(x), F.to_list(y), FO.r16(one, F.to_list(x), hx), FO.r16(one, F.to_list(y), hy)))
+  Equal.trans(F.FE, F.select(0n, x, y), F.of_list(F.to_list(F.select(0n, x, y))), y, Equal.sym(F.FE, F.of_list(F.to_list(F.select(0n, x, y))), F.select(0n, x, y), rt(F.select(0n, x, y))), Equal.trans(F.FE, F.of_list(F.to_list(F.select(0n, x, y))), F.of_list(F.to_list(y)), y, Equal.cong(List<&2, Nat>, F.FE, l => F.of_list(l), F.to_list(F.select(0n, x, y)), F.to_list(y), e), rt(y)))

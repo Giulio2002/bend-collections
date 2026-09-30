@@ -11,11 +11,15 @@ import ./bitsv.bend as BV
 import ./bitsrel.bend as BR
 import ./point.bend as PT
 import ./sel.bend as SL
+import ./ptm.bend as PM
+import ./ptp.bend as PP
+import ../../../src/crypto/secp256k1/pt.bend as PX
 
 # Scalar multiplication (src/crypto/secp256k1/point.bend mul: masked
-# double-and-add over the 256 bits of the scalar, most significant first)
-# computes the specification's pmul (spec/crypto/secp256k1/curve.bend) on
-# the values of the coordinates.
+# double-and-add over the 256 bits of the scalar, most significant first;
+# mul_pub: the addition only for a set bit) computes the specification's
+# pmul (spec/crypto/secp256k1/curve.bend) on the values of the coordinates
+# (the loops on records: ptm.bend).
 # ---- the specification's loop over a list of bits ----
 
 def go_sb(i: Nat, +k: Nat) -> {CV.bits_go(i, k) == BR.sb(i, 0n, k) : List<&2, Nat>}:
@@ -40,70 +44,6 @@ def lbits(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +hk: {FS.limbs1
   %rw LV.ev_value(one, h1, ks)
   %close
 
-# ---- the point at infinity ----
-
-def pinf_r(+one: Nat, +h1: {one == 1n : Nat}) -> {PT.pred(one, P.infinity()) == True{} : Bool}:
-  PT.pr3(one, F.zero(), F.one(), F.zero(), PT.zero_r(one, h1), FO.small_r(one, h1, 1n, SL.one_lt(one, h1)), PT.zero_r(one, h1))
-
-def pinf_v(+one: Nat, +h1: {one == 1n : Nat}) -> {PT.pv(one, P.infinity()) == CV.infinity() : CV.SPoint}:
-  %goal {CV.SPoint{FS.value(one, F.zero()), FS.value(one, F.small(1n)), FS.value(one, F.zero())} == CV.SPoint{0n, 1n, 0n} : CV.SPoint}
-  %rw PT.zero_v(one, h1)
-  %rw PT.zero_v(one, h1)
-  %rw FO.small_val(one, h1, 1n, SL.one_lt(one, h1))
-  %close
-
-# ---- one step: double, then add when the bit is set ----
-
-def step_r(+one: Nat, +h1: {one == 1n : Nat}, b: Nat, +pp: P.Point, +d: P.Point, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}, +hd: {PT.pred(one, d) == True{} : Bool}) -> {PT.pred(one, P.step(b, pp, d)) == True{} : Bool}:
-  match b:
-    case 0n:
-      %goal {PT.pred(one, P.select(0n, P.add(d, pp), d)) == True{} : Bool}
-      %rw SL.psel0(one, P.add(d, pp), d, PT.padd_r(one, h1, d, pp, hd, hp), hd)
-      hd
-    case 1n:
-      %goal {PT.pred(one, P.select(1n, P.add(d, pp), d)) == True{} : Bool}
-      %rw SL.psel1(one, P.add(d, pp), d, PT.padd_r(one, h1, d, pp, hd, hp), hd)
-      PT.padd_r(one, h1, d, pp, hd, hp)
-    case 2n+ +c:
-      Empty.absurd({PT.pred(one, P.step(2n+c, pp, d)) == True{} : Bool}, SL.not01(c, hb))
-
-def step_v(+one: Nat, +h1: {one == 1n : Nat}, b: Nat, +pp: P.Point, +d: P.Point, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}, +hd: {PT.pred(one, d) == True{} : Bool}) -> {PT.pv(one, P.step(b, pp, d)) == CV.step(b, FS.prime(one), PT.pv(one, pp), PT.pv(one, d)) : CV.SPoint}:
-  match b:
-    case 0n:
-      %goal {PT.pv(one, P.select(0n, P.add(d, pp), d)) == PT.pv(one, d) : CV.SPoint}
-      %rw SL.psel0(one, P.add(d, pp), d, PT.padd_r(one, h1, d, pp, hd, hp), hd)
-      %close
-    case 1n:
-      %goal {PT.pv(one, P.select(1n, P.add(d, pp), d)) == CV.padd(FS.prime(one), PT.pv(one, d), PT.pv(one, pp)) : CV.SPoint}
-      %rw SL.psel1(one, P.add(d, pp), d, PT.padd_r(one, h1, d, pp, hd, hp), hd)
-      PT.padd_v(one, h1, d, pp, hd, hp)
-    case 2n+ +c:
-      Empty.absurd({PT.pv(one, P.step(2n+c, pp, d)) == CV.step(2n+c, FS.prime(one), PT.pv(one, pp), PT.pv(one, d)) : CV.SPoint}, SL.not01(c, hb))
-
-def mul_go_r(+one: Nat, +h1: {one == 1n : Nat}, bs: List<&2, Nat>, +pp: P.Point, +r: P.Point, +hbs: {BV.all01(bs) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}, +hr: {PT.pred(one, r) == True{} : Bool}) -> {PT.pred(one, P.mul_go(bs, pp, r)) == True{} : Bool}:
-  match bs:
-    case Nil{}:
-      hr
-    case +b <> +t:
-      +hb = Lg.and_left(Nat.is_lt(b, 2n), BV.all01(t), hbs)
-      +ht = Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hbs)
-      mul_go_r(one, h1, t, pp, P.step(b, pp, P.dbl(r)), ht, hp, step_r(one, h1, b, pp, P.dbl(r), hb, hp, PT.pdbl_r(one, h1, r, hr)))
-
-def mul_go_v(+one: Nat, +h1: {one == 1n : Nat}, bs: List<&2, Nat>, +pp: P.Point, +r: P.Point, +hbs: {BV.all01(bs) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}, +hr: {PT.pred(one, r) == True{} : Bool}) -> {PT.pv(one, P.mul_go(bs, pp, r)) == CV.lmul(FS.prime(one), bs, PT.pv(one, pp), PT.pv(one, r)) : CV.SPoint}:
-  match bs:
-    case Nil{}:
-      {==}
-    case +b <> +t:
-      +hb = Lg.and_left(Nat.is_lt(b, 2n), BV.all01(t), hbs)
-      +ht = Lg.and_right(Nat.is_lt(b, 2n), BV.all01(t), hbs)
-      +hd = PT.pdbl_r(one, h1, r, hr)
-      +hs = step_r(one, h1, b, pp, P.dbl(r), hb, hp, hd)
-      %goal {PT.pv(one, P.mul_go(t, pp, P.step(b, pp, P.dbl(r)))) == CV.lmul(FS.prime(one), t, PT.pv(one, pp), CV.step(b, FS.prime(one), PT.pv(one, pp), CV.pdbl(FS.prime(one), PT.pv(one, r)))) : CV.SPoint}
-      %rw mul_go_v(one, h1, t, pp, P.step(b, pp, P.dbl(r)), ht, hp, hs)
-      %rw step_v(one, h1, b, pp, P.dbl(r), hb, hp, hd)
-      %rw PT.pdbl_v(one, h1, r, hr)
-      %close
-
 # ---- [k] P ----
 
 # the bits of a scalar are bits
@@ -112,11 +52,25 @@ def lbits01(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +hk: {FS.limb
   SL.sb01(256n, 0n, LV.ev(ks))
 
 def mul_r(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}) -> {PT.pred(one, P.mul(ks, pp)) == True{} : Bool}:
-  mul_go_r(one, h1, L.bits(ks), pp, P.infinity(), lbits01(one, h1, ks, hk), hp, pinf_r(one, h1))
+  PT.op_r(one, PX.mul_go(L.bits(ks), P.to_pt(pp), PX.infinity()), PM.mul_go_r(one, h1, L.bits(ks), P.to_pt(pp), PX.infinity(), lbits01(one, h1, ks, hk), PT.tp_r(one, pp, hp), PM.pinf_r(one, h1)))
 
 def mul_v(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}) -> {PT.pv(one, P.mul(ks, pp)) == CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp)) : CV.SPoint}:
-  %goal {PT.pv(one, P.mul_go(L.bits(ks), pp, P.infinity())) == CV.lmul(FS.prime(one), CV.bits(256n, FS.value(one, ks)), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
-  %rw mul_go_v(one, h1, L.bits(ks), pp, P.infinity(), lbits01(one, h1, ks, hk), hp, pinf_r(one, h1))
-  %rw pinf_v(one, h1)
+  %goal {PT.pv(one, P.of_pt(PX.mul_go(L.bits(ks), P.to_pt(pp), PX.infinity()))) == CV.lmul(FS.prime(one), CV.bits(256n, FS.value(one, ks)), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
+  %rw PT.op_v(one, PX.mul_go(L.bits(ks), P.to_pt(pp), PX.infinity()))
+  %rw PM.mul_go_v(one, h1, L.bits(ks), P.to_pt(pp), PX.infinity(), lbits01(one, h1, ks, hk), PT.tp_r(one, pp, hp), PM.pinf_r(one, h1))
+  %rw PM.pinf_v(one, h1)
+  %rw PT.tp_v(one, pp, hp)
+  %rw lbits(one, h1, ks, hk)
+  %close
+
+def mul_pub_r(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}) -> {PT.pred(one, P.mul_pub(ks, pp)) == True{} : Bool}:
+  PT.op_r(one, PX.vmul_go(L.bits(ks), P.to_pt(pp), PX.infinity()), PM.vmul_go_r(one, h1, L.bits(ks), P.to_pt(pp), PX.infinity(), lbits01(one, h1, ks, hk), PT.tp_r(one, pp, hp), PM.pinf_r(one, h1)))
+
+def mul_pub_v(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hp: {PT.pred(one, pp) == True{} : Bool}) -> {PT.pv(one, P.mul_pub(ks, pp)) == CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp)) : CV.SPoint}:
+  %goal {PT.pv(one, P.of_pt(PX.vmul_go(L.bits(ks), P.to_pt(pp), PX.infinity()))) == CV.lmul(FS.prime(one), CV.bits(256n, FS.value(one, ks)), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
+  %rw PT.op_v(one, PX.vmul_go(L.bits(ks), P.to_pt(pp), PX.infinity()))
+  %rw PM.vmul_go_v(one, h1, L.bits(ks), P.to_pt(pp), PX.infinity(), lbits01(one, h1, ks, hk), PT.tp_r(one, pp, hp), PM.pinf_r(one, h1))
+  %rw PM.pinf_v(one, h1)
+  %rw PT.tp_v(one, pp, hp)
   %rw lbits(one, h1, ks, hk)
   %close
