@@ -8,6 +8,11 @@ import ../../../src/math/w64.bend as X
 import ../../../src/math/u64.bend as WU
 import ../../lib/nat.bend as N
 import ../../lib/word.bend as WD
+import ../../../src/math/natural.bend as M
+import ../../lib/logic.bend as L
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../natural/arith.bend as NR
+import ./natcmp.bend as NC
 import ./width.bend as WW
 import ./w64sh.bend as SH
 import ./f64bits.bend as FB
@@ -73,3 +78,45 @@ def shl_v(+a: WU.U64, +k: Nat, +j: Nat, +hk: {Nat.is_lt(k, 64n) == True{} : Bool
   sv = SH.shl_value(a, k, hk)
   +f = SH.fits_mono(Nat.add(k, j), 64n, C.shift(k, SW.value(a)), hj, Equal.trans(Bool, C.fits(Nat.add(k, j), C.shift(k, SW.value(a))), C.fits(j, SW.value(a)), True{}, RT.fits_sh(k, j, SW.value(a)), ha))
   Equal.trans(Nat, SW.value(X.shl(a, k)), C.low(64n, C.shift(k, SW.value(a))), C.shift(k, SW.value(a)), sv, WW.low_fit(64n, C.shift(k, SW.value(a)), f))
+
+def orv_c(+l: U32, +h: U32, +b: Bool) -> {SW.value(X.or_bit(WU.U64{l, h}, b)) == SW.jam(SW.value(WU.U64{l, h}), SF.b2n(b)) : Nat}:
+  match b:
+    case True{}:
+      +s31 = C.shift(31n, v(h))
+      +e1 = Equal.cong(Nat, Nat, z => Nat.add(z, C.shift(32n, v(h))), v(U32.or(l, 1)), 1n+Nat.double(C.half(v(l))), SH.or1(l))
+      +eh = WW.half_dbl(v(l), s31)
+      +e2 = Equal.trans(Nat, Nat.add(1n+Nat.double(C.half(v(l))), C.shift(32n, v(h))), 1n+Nat.add(Nat.double(C.half(v(l))), Nat.double(s31)), 1n+Nat.double(C.half(SW.value(WU.U64{l, h}))), NA.add_assoc(1n, Nat.double(C.half(v(l))), Nat.double(s31)), Equal.trans(Nat, 1n+Nat.add(Nat.double(C.half(v(l))), Nat.double(s31)), 1n+Nat.double(Nat.add(C.half(v(l)), s31)), 1n+Nat.double(C.half(SW.value(WU.U64{l, h}))), Equal.cong(Nat, Nat, z => 1n+z, Nat.add(Nat.double(C.half(v(l))), Nat.double(s31)), Nat.double(Nat.add(C.half(v(l)), s31)), Equal.sym(Nat, Nat.double(Nat.add(C.half(v(l)), s31)), Nat.add(Nat.double(C.half(v(l))), Nat.double(s31)), NA.double_add(C.half(v(l)), s31))), Equal.cong(Nat, Nat, z => 1n+Nat.double(z), Nat.add(C.half(v(l)), s31), C.half(SW.value(WU.U64{l, h})), Equal.sym(Nat, C.half(SW.value(WU.U64{l, h})), Nat.add(C.half(v(l)), s31), eh))))
+      +e3 = Equal.sym(Nat, SW.jam(SW.value(WU.U64{l, h}), 1n), 1n+Nat.double(C.half(SW.value(WU.U64{l, h}))), SH.jam1_k(SW.value(WU.U64{l, h}), Nat.mod(SW.value(WU.U64{l, h}), 2n), {==}, NR.dm_lt(1n, SW.value(WU.U64{l, h}))))
+      Equal.trans(Nat, Nat.add(v(U32.or(l, 1)), C.shift(32n, v(h))), Nat.add(1n+Nat.double(C.half(v(l))), C.shift(32n, v(h))), SW.jam(SW.value(WU.U64{l, h}), 1n), e1, Equal.trans(Nat, Nat.add(1n+Nat.double(C.half(v(l))), C.shift(32n, v(h))), 1n+Nat.double(C.half(SW.value(WU.U64{l, h}))), SW.jam(SW.value(WU.U64{l, h}), 1n), e2, e3))
+    case False{}:
+      Equal.trans(Nat, Nat.add(v(U32.or(l, 0)), C.shift(32n, v(h))), SW.value(WU.U64{l, h}), SW.jam(SW.value(WU.U64{l, h}), 0n), Equal.cong(U32, Nat, z => Nat.add(v(z), C.shift(32n, v(h))), U32.or(l, 0), l, SH.or0(l)), Equal.sym(Nat, SW.jam(SW.value(WU.U64{l, h}), 0n), SW.value(WU.U64{l, h}), SH.jam0_m(SW.value(WU.U64{l, h}), Nat.mod(SW.value(WU.U64{l, h}), 2n), {==}, NR.dm_lt(1n, SW.value(WU.U64{l, h})))))
+
+def orv(+a: WU.U64, +b: Bool) -> {SW.value(X.or_bit(a, b)) == SW.jam(SW.value(a), SF.b2n(b)) : Nat}:
+  match a:
+    case WU.U64{+l, +h}:
+      orv_c(l, h, b)
+
+def minz(+r: Nat) -> {Nat.min(r, 0n) == 0n : Nat}:
+  match r:
+    case 0n:
+      {==}
+    case 1n+ +rp:
+      {==}
+
+def jmin(+q: Nat, +r: Nat) -> {SW.jam(q, SF.b2n(Bool.not(Nat.is_eq(r, 0n)))) == SW.jam(q, r) : Nat}:
+  match r:
+    case 0n:
+      {==}
+    case 1n+ +rp:
+      Equal.cong(Nat, Nat, z => Nat.add(Nat.mul(2n, Nat.div(q, 2n)), Nat.max(Nat.mod(q, 2n), z)), 1n, Nat.min(1n+rp, 1n), Equal.sym(Nat, 1n+Nat.min(rp, 0n), 1n, Equal.cong(Nat, Nat, z => 1n+z, Nat.min(rp, 0n), 0n, minz(rp))))
+
+def nlb(+s: Bool, +k: Nat, +m: Nat, +x: Nat, +hk: {C.fits(k, m) == False{} : Bool}, +c: Bool, +hc: {Nat.is_le(1n+k, M.bit_length(m)) == c : Bool}) -> {c == True{} : Bool}:
+  match c:
+    case True{}:
+      {==}
+    case False{}:
+      +h1 = N.lt_succ_le(M.bit_length(m), k, N.not_le_lt(1n+k, M.bit_length(m), hc))
+      NC.absurd_tf({False{} == True{} : Bool}, Equal.trans(Bool, False{}, C.fits(k, m), True{}, Equal.sym(Bool, C.fits(k, m), False{}, hk), SH.fits_mono(M.bit_length(m), k, m, h1, RT.bl_fit(m))))
+
+def nfit_bl(+k: Nat, +m: Nat, +hk: {C.fits(k, m) == False{} : Bool}) -> {Nat.is_le(1n+k, M.bit_length(m)) == True{} : Bool}:
+  nlb(False{}, k, m, 0n, hk, Nat.is_le(1n+k, M.bit_length(m)), {==})

@@ -1,4 +1,5 @@
 import Base
+import ./f64light.bend as FL
 import ../../../spec/lib/common.bend as C
 import ../../../spec/math/f64.bend as SF
 import ../../../spec/math/w64.bend as SW
@@ -45,15 +46,10 @@ def top9(+one: Nat, +h1: {one == 1n : Nat}, +f: WU.U64, +Fr: Nat, +hf: {SW.value
   Equal.trans(Nat, SW.value(X.add(WU.U64{0, c}, X.shl(f, 9n))), C.low(64n, Nat.add(SW.value(WU.U64{0, c}), SW.value(X.shl(f, 9n)))), C.shift(9n, Nat.add(Fr, C.shift(52n, one))), a1, Equal.trans(Nat, C.low(64n, Nat.add(SW.value(WU.U64{0, c}), SW.value(X.shl(f, 9n)))), C.low(64n, C.shift(9n, Nat.add(Fr, C.shift(52n, one)))), C.shift(9n, Nat.add(Fr, C.shift(52n, one))), Equal.cong(Nat, Nat, z => C.low(64n, z), Nat.add(SW.value(WU.U64{0, c}), SW.value(X.shl(f, 9n))), C.shift(9n, Nat.add(Fr, C.shift(52n, one))), es), WW.low_fit(64n, C.shift(9n, Nat.add(Fr, C.shift(52n, one))), f64)))
 
 def nlb(+s: Bool, +k: Nat, +m: Nat, +x: Nat, +hk: {C.fits(k, m) == False{} : Bool}, +c: Bool, +hc: {Nat.is_le(1n+k, M.bit_length(m)) == c : Bool}) -> {c == True{} : Bool}:
-  match c:
-    case True{}:
-      {==}
-    case False{}:
-      +h1 = N.lt_succ_le(M.bit_length(m), k, N.not_le_lt(1n+k, M.bit_length(m), hc))
-      NC.absurd_tf({False{} == True{} : Bool}, Equal.trans(Bool, False{}, C.fits(k, m), True{}, Equal.sym(Bool, C.fits(k, m), False{}, hk), SH.fits_mono(M.bit_length(m), k, m, h1, RT.bl_fit(m))))
+  FL.nlb(s, k, m, x, hk, c, hc)
 
 def nfit_bl(+k: Nat, +m: Nat, +hk: {C.fits(k, m) == False{} : Bool}) -> {Nat.is_le(1n+k, M.bit_length(m)) == True{} : Bool}:
-  nlb(False{}, k, m, 0n, hk, Nat.is_le(1n+k, M.bit_length(m)), {==})
+  FL.nfit_bl(k, m, hk)
 
 # ---- the sum of the aligned significands, jammed, is rounded exactly ----
 
