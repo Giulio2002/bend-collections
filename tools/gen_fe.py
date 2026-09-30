@@ -62,7 +62,10 @@ def pu(a, b):
 
 
 def pm(a, b):
-    return op('Nat.add', pu(a, op('Nat.mod', b, lit('512n'))), op('Nat.mul', pu(a, op('Nat.div', b, lit('512n'))), lit('512n')))
+    ua, ub = op('U32.from_nat', a), op('U32.from_nat', b)
+    lo = op('U32.to_nat', op('U32.mul', ua, op('U32.and', ub, lit('511'))))
+    hi = op('U32.to_nat', op('U32.mul', ua, op('U32.shrn', ub, lit('9n'))))
+    return op('Nat.add', lo, op('Nat.mul', hi, lit('512n')))
 
 
 def scalp(a, ys):
@@ -216,8 +219,9 @@ import ./limbs.bend as LS
 # Field51, with 17-bit limbs so that products and sums fit the 48-bit Nat.
 #
 # Limb products run on the native 32-bit multiplier (LS.pm: one factor
-# split at bit 9, both half products below 2^29): a Nat product checks its
-# 48-bit bound with a division. The square computes each cross product once
+# split at bit 9 by a mask and a shift of its 32-bit word, both half
+# products below 2^29): a Nat product checks its 48-bit bound with a
+# division. The square computes each cross product once
 # (LS.sqp). add and sub move every carry one limb up at once, with no carry
 # chain (LS.pc); mul and sq end with one chained carry pass, mul_small with
 # two rounds of LS.pc.

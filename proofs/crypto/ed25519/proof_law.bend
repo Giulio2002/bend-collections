@@ -33,3 +33,9 @@ def law_e(+one: Nat, +h1: {one == 1n : Nat}, +hc: G.Curve(PB.pp1(one), SE.dconst
 
 def law_q(+one: Nat, +h1: {one == 1n : Nat}, +hc: G.Curve(PB.pp1(one), SE.dconst(one, 1n+PB.pp1(one)))) -> FB.LawQ(one, PB.pp1(one)):
   FL.lawQ(one, h1, PB.pp1(one), hc, PV.base_valid(PB.pp1(one), SE.dconst(one, 1n+PB.pp1(one)), hc))
+
+def law_w(+one: Nat, +h1: {one == 1n : Nat}, +hc: G.Curve(PB.pp1(one), SE.dconst(one, 1n+PB.pp1(one)))) -> FB.LawW(one, PB.pp1(one)):
+  FL.lawW(one, h1, PB.pp1(one), hc)
+
+def law_v(+one: Nat, +h1: {one == 1n : Nat}, +hc: G.Curve(PB.pp1(one), SE.dconst(one, 1n+PB.pp1(one)))) -> FB.LawV(one, PB.pp1(one)):
+  bs => PV.decode_valid(PB.pp1(one), SE.dconst(one, 1n+PB.pp1(one)), hc, bs)

@@ -60,8 +60,13 @@ def conv(xs: List<&2, Nat>, +ys: List<&2, Nat>) -> List<&2, Nat>:
 def pu(+a: Nat, +b: Nat) -> Nat:
   U32.to_nat(U32.mul(U32.from_nat(a), U32.from_nat(b)))
 
-# a b for a, b < 2^19: b split at bit 9, both half products below 2^29
+# a b for a, b < 2^19: b split at bit 9 (on the 32-bit word: a mask and a
+# shift), both half products below 2^29
 def pm(+a: Nat, +b: Nat) -> Nat:
+  Nat.add(U32.to_nat(U32.mul(U32.from_nat(a), U32.and(U32.from_nat(b), 511))), Nat.mul(U32.to_nat(U32.mul(U32.from_nat(a), U32.shrn(U32.from_nat(b), 9n))), 512n))
+
+# the same split on the natural number
+def pmr(+a: Nat, +b: Nat) -> Nat:
   Nat.add(pu(a, Nat.mod(b, 512n)), Nat.mul(pu(a, Nat.div(b, 512n)), 512n))
 
 # every limb times m through the 32-bit multiplier

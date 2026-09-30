@@ -166,7 +166,7 @@ def hi_lt20(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {Nat.is_lt(b, WD.sc
   +nle = N.lt_not_le(b, Nat.mul(E, 512n), L.subst(Nat, z => {Nat.is_lt(b, z) == True{} : Bool}, WD.sc(20n, one), Nat.mul(E, 512n), sy(Nat.mul(E, 512n), WD.sc(20n, one), e20), hb))
   N.not_le_lt(E, Nat.div(b, 512n), Equal.trans(Bool, Nat.is_le(E, Nat.div(b, 512n)), Nat.is_le(Nat.mul(E, 512n), b), False{}, e0, nle))
 
-def pm_eq20(+one: Nat, +h1: {one == 1n : Nat}, +a: Nat, +b: Nat, +ha: {Nat.is_lt(a, WD.sc(19n, one)) == True{} : Bool}, +hb: {Nat.is_lt(b, WD.sc(20n, one)) == True{} : Bool}) -> {LS.pm(a, b) == Nat.mul(a, b) : Nat}:
+def pm_eq20r(+one: Nat, +h1: {one == 1n : Nat}, +a: Nat, +b: Nat, +ha: {Nat.is_lt(a, WD.sc(19n, one)) == True{} : Bool}, +hb: {Nat.is_lt(b, WD.sc(20n, one)) == True{} : Bool}) -> {LS.pmr(a, b) == Nat.mul(a, b) : Nat}:
   +lo = Nat.mod(b, 512n)
   +hi = Nat.div(b, 512n)
   +hlo = L.subst(Nat, z => {Nat.is_lt(lo, z) == True{} : Bool}, 512n, WD.sc(9n, one), sy(WD.sc(9n, one), 512n, PD.k512(one, h1)), NR.dm_lt(511n, b))
@@ -178,9 +178,12 @@ def pm_eq20(+one: Nat, +h1: {one == 1n : Nat}, +a: Nat, +b: Nat, +ha: {Nat.is_lt
   +eb = NR.dm_eq(511n, b)
   +e4 = tr(Nat.mul(a, b), Nat.mul(a, Nat.add(Nat.mul(hi, 512n), lo)), Nat.add(Nat.mul(a, Nat.mul(hi, 512n)), Nat.mul(a, lo)), PD.mr(a, b, Nat.add(Nat.mul(hi, 512n), lo), eb), NA.mul_add_left(a, Nat.mul(hi, 512n), lo))
   +e5 = tr(Nat.add(Nat.mul(a, Nat.mul(hi, 512n)), Nat.mul(a, lo)), Nat.add(Nat.mul(a, lo), Nat.mul(a, Nat.mul(hi, 512n))), Nat.add(Nat.mul(a, lo), Nat.mul(Nat.mul(a, hi), 512n)), NA.add_comm(Nat.mul(a, Nat.mul(hi, 512n)), Nat.mul(a, lo)), M.cong_r(Nat.mul(a, lo), Nat.mul(a, Nat.mul(hi, 512n)), Nat.mul(Nat.mul(a, hi), 512n), sy(Nat.mul(Nat.mul(a, hi), 512n), Nat.mul(a, Nat.mul(hi, 512n)), NA.mul_assoc(a, hi, 512n))))
-  tr(LS.pm(a, b), Nat.add(Nat.mul(a, lo), Nat.mul(Nat.mul(a, hi), 512n)), Nat.mul(a, b), e3, sy(Nat.mul(a, b), Nat.add(Nat.mul(a, lo), Nat.mul(Nat.mul(a, hi), 512n)), tr(Nat.mul(a, b), Nat.add(Nat.mul(a, Nat.mul(hi, 512n)), Nat.mul(a, lo)), Nat.add(Nat.mul(a, lo), Nat.mul(Nat.mul(a, hi), 512n)), e4, e5)))
+  tr(LS.pmr(a, b), Nat.add(Nat.mul(a, lo), Nat.mul(Nat.mul(a, hi), 512n)), Nat.mul(a, b), e3, sy(Nat.mul(a, b), Nat.add(Nat.mul(a, lo), Nat.mul(Nat.mul(a, hi), 512n)), tr(Nat.mul(a, b), Nat.add(Nat.mul(a, Nat.mul(hi, 512n)), Nat.mul(a, lo)), Nat.add(Nat.mul(a, lo), Nat.mul(Nat.mul(a, hi), 512n)), e4, e5)))
 
 # t + t < 2^20 for t < 2^19
+def pm_eq20(+one: Nat, +h1: {one == 1n : Nat}, +a: Nat, +b: Nat, +ha: {Nat.is_lt(a, WD.sc(19n, one)) == True{} : Bool}, +hb: {Nat.is_lt(b, WD.sc(20n, one)) == True{} : Bool}) -> {LS.pm(a, b) == Nat.mul(a, b) : Nat}:
+  Equal.trans(Nat, LS.pm(a, b), LS.pmr(a, b), Nat.mul(a, b), PD.pm_split(one, h1, a, b, PD.lt32(one, h1, b, 20n, 11n, {==}, hb), PD.lt32(one, h1, Nat.div(b, 512n), 11n, 20n, {==}, hi_lt20(one, h1, b, hb))), pm_eq20r(one, h1, a, b, ha, hb))
+
 def dbl_lt(+one: Nat, +t: Nat, +ht: {Nat.is_lt(t, WD.sc(19n, one)) == True{} : Bool}) -> {Nat.is_lt(Nat.add(t, t), WD.sc(20n, one)) == True{} : Bool}:
   L.subst(Nat, z => {Nat.is_lt(Nat.add(t, t), z) == True{} : Bool}, Nat.add(WD.sc(19n, one), WD.sc(19n, one)), WD.sc(20n, one), PW.dbl(19n, one), NL.lt_add2(t, t, WD.sc(19n, one), WD.sc(19n, one), ht, ht))
 

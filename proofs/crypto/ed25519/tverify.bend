@@ -1,6 +1,7 @@
 import Base
 import ../../../spec/crypto/curve25519/field.bend as FS
 import ../../../spec/crypto/ed25519.bend as SE
+import ../../../spec/crypto/ed25519_group.bend as EG
 import ../../../src/crypto/ed25519/point.bend as PT
 import ../../../src/crypto/ed25519/ed25519.bend as E
 import ../../lib/logic.bend as L
@@ -93,7 +94,30 @@ def verify_with_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1
 # [S]B by the table form (pfb.bend), which compares with any point as the
 # specification's [S]B does by the group law (FB.LawQ).
 
-def check_some_t(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +rb: List<&2, U32>, +sb: List<&2, U32>, +hsb: {LM.okb(32n, sb, 255n) == True{} : Bool}, +r: PT.Pt, +sr: SE.EPt, +hr: PR.Rp(one, pp, r, sr), +a: PT.Pt, +sa: SE.EPt, +ha: PR.Rp(one, pp, a, sa), lq: FB.LawQ(one, pp)) -> {E.check_t(PT.consts(xs), PT.base_table(PT.consts(xs), PT.base(PT.consts(xs))), sb, rb, pk, msg, Some{r}, Some{a}) == SE.check(one, 1n+pp, SE.dconst(one, 1n+pp), FS.value(sb), rb, pk, msg, Some{sr}, Some{sa}) : Bool}:
+def check_core_w(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +rb: List<&2, U32>, +sb: List<&2, U32>, +r: PT.Pt, +sr: SE.EPt, +hr: PR.Rp(one, pp, r, sr), +a: PT.Pt, +sa: SE.EPt, +ha: PR.Rp(one, pp, a, sa), +X: PT.Pt, +sX: SE.EPt, +hX: PR.Rp(one, pp, X, sX), eQ: @+q: SE.EPt -> {SE.equal(1n+pp, sX, q) == SE.equal(1n+pp, SE.mul(one, 1n+pp, SE.dconst(one, 1n+pp), FS.value(sb), SE.base(1n+pp, SE.dconst(one, 1n+pp))), q) : Bool}, +hvr: EG.Valid(1n+pp, SE.dconst(one, 1n+pp), sr), +hva: EG.Valid(1n+pp, SE.dconst(one, 1n+pp), sa), lw: FB.LawW(one, pp)) -> {PT.equal(PT.cs_r(PT.consts(xs)), X, PT.add(PT.consts(xs), r, PT.mul_win(PT.consts(xs), E.hram(rb, pk, msg), a))) == SE.check(one, 1n+pp, SE.dconst(one, 1n+pp), FS.value(sb), rb, pk, msg, Some{sr}, Some{sa}) : Bool}:
+  +P = {1n+pp : Nat}
+  +D = SE.dconst(one, P)
+  +cs = PT.consts(xs)
+  +R = PT.cs_r(cs)
+  +hR = PC.cr(one, h1, xs)
+  +SB = SE.base(P, D)
+  +rd2 = PC.rd2(one, h1, pp, hP, xs)
+  +k = E.hram(rb, pk, msg)
+  +Ks = SE.hram(one, rb, pk, msg)
+  +eK = TH.hk_val(one, h1, rb, rb, {==}, pk, pk, {==}, msg)
+  +okk = TH.hk_okb(one, h1, rb, pk, msg)
+  +ka = PT.mul_win(cs, k, a)
+  +hk = LM.okb_bytes(32n, k, okk)
+  +ska = FB.smulw(P, D, k, sa)
+  +smk = SE.mul(one, P, D, FS.value(k), sa)
+  +m2 = PFB.mul_win_rel(one, h1, pp, hP, cs, hR, D, rd2, k, hk, a, sa, ha)
+  +ad = PR.add_rel(one, h1, pp, hP, cs, hR, D, rd2, r, ka, sr, ska, hr, m2)
+  +lhs = SE.mul(one, P, D, FS.value(sb), SB)
+  +eq = PC.equal_rel(one, h1, pp, hP, R, hR, X, PT.add(cs, r, ka), sX, SE.add(P, D, sr, ska), hX, ad)
+  +ew = lw(k, hk, sX, sr, sa, hvr, hva)
+  Equal.trans(Bool, PT.equal(R, X, PT.add(cs, r, ka)), SE.equal(P, sX, SE.add(P, D, sr, ska)), SE.equal(P, lhs, SE.add(P, D, sr, SE.mul(one, P, D, Ks, sa))), eq, Equal.trans(Bool, SE.equal(P, sX, SE.add(P, D, sr, ska)), SE.equal(P, sX, SE.add(P, D, sr, smk)), SE.equal(P, lhs, SE.add(P, D, sr, SE.mul(one, P, D, Ks, sa))), ew, Equal.trans(Bool, SE.equal(P, sX, SE.add(P, D, sr, smk)), SE.equal(P, lhs, SE.add(P, D, sr, smk)), SE.equal(P, lhs, SE.add(P, D, sr, SE.mul(one, P, D, Ks, sa))), eQ(SE.add(P, D, sr, smk)), Equal.cong(Nat, Bool, z => SE.equal(P, lhs, SE.add(P, D, sr, SE.mul(one, P, D, z, sa))), FS.value(k), Ks, eK))))
+
+def check_some_t(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +rb: List<&2, U32>, +sb: List<&2, U32>, +hsb: {LM.okb(32n, sb, 255n) == True{} : Bool}, +r: PT.Pt, +sr: SE.EPt, +hr: PR.Rp(one, pp, r, sr), +a: PT.Pt, +sa: SE.EPt, +ha: PR.Rp(one, pp, a, sa), lq: FB.LawQ(one, pp), +hvr: EG.Valid(1n+pp, SE.dconst(one, 1n+pp), sr), +hva: EG.Valid(1n+pp, SE.dconst(one, 1n+pp), sa), lw: FB.LawW(one, pp)) -> {E.check_t(PT.consts(xs), PT.base_table(PT.consts(xs), PT.base(PT.consts(xs))), sb, rb, pk, msg, Some{r}, Some{a}) == SE.check(one, 1n+pp, SE.dconst(one, 1n+pp), FS.value(sb), rb, pk, msg, Some{sr}, Some{sa}) : Bool}:
   +P = {1n+pp : Nat}
   +D = SE.dconst(one, P)
   +cs = PT.consts(xs)
@@ -102,31 +126,31 @@ def check_some_t(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+p
   +hB = PD.base_rel(one, h1, pp, hP, cs, hR, D, PC.rd(one, h1, pp, hP, xs), PC.rs(one, h1, pp, hP, xs))
   +hs = LM.okb_bytes(32n, sb, hsb)
   +m1 = PFB.mul_base_vt_rel(one, h1, pp, hP, cs, hR, PC.rd2(one, h1, pp, hP, xs), B, hB, sb, hs)
-  check_core(one, h1, pp, hP, xs, pk, msg, rb, sb, r, sr, hr, a, sa, ha, PT.mul_base_vt(PT.cs_r(cs), PT.base_table(cs, B), sb), FB.smulb(one, P, D, sb), m1, lq(sb, hs))
+  check_core_w(one, h1, pp, hP, xs, pk, msg, rb, sb, r, sr, hr, a, sa, ha, PT.mul_base_vt(PT.cs_r(cs), PT.base_table(cs, B), sb), FB.smulb(one, P, D, sb), m1, lq(sb, hs), hvr, hva, lw)
 
-def check_a_t(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +rb: List<&2, U32>, +sb: List<&2, U32>, +hsb: {LM.okb(32n, sb, 255n) == True{} : Bool}, +r: PT.Pt, +sr: SE.EPt, +hr: PR.Rp(one, pp, r, sr), +aa: Maybe<&2, PT.Pt>, +saa: Maybe<&2, SE.EPt>, +haa: PC.MR(one, pp, aa, saa), lq: FB.LawQ(one, pp)) -> {E.check_t(PT.consts(xs), PT.base_table(PT.consts(xs), PT.base(PT.consts(xs))), sb, rb, pk, msg, Some{r}, aa) == SE.check(one, 1n+pp, SE.dconst(one, 1n+pp), FS.value(sb), rb, pk, msg, Some{sr}, saa) : Bool}:
+def check_a_t(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +rb: List<&2, U32>, +sb: List<&2, U32>, +hsb: {LM.okb(32n, sb, 255n) == True{} : Bool}, +r: PT.Pt, +sr: SE.EPt, +hr: PR.Rp(one, pp, r, sr), +aa: Maybe<&2, PT.Pt>, +saa: Maybe<&2, SE.EPt>, +haa: PC.MR(one, pp, aa, saa), lq: FB.LawQ(one, pp), +hvr: EG.Valid(1n+pp, SE.dconst(one, 1n+pp), sr), +hva: EG.Valid(1n+pp, SE.dconst(one, 1n+pp), SE.base_of(saa)), lw: FB.LawW(one, pp)) -> {E.check_t(PT.consts(xs), PT.base_table(PT.consts(xs), PT.base(PT.consts(xs))), sb, rb, pk, msg, Some{r}, aa) == SE.check(one, 1n+pp, SE.dconst(one, 1n+pp), FS.value(sb), rb, pk, msg, Some{sr}, saa) : Bool}:
   match aa saa:
     case None{} None{}:
       {==}
     case Some{+a} Some{+sa}:
-      check_some_t(one, h1, pp, hP, xs, pk, msg, rb, sb, hsb, r, sr, hr, a, sa, haa, lq)
+      check_some_t(one, h1, pp, hP, xs, pk, msg, rb, sb, hsb, r, sr, hr, a, sa, haa, lq, hvr, hva, lw)
     case None{} Some{+sa}:
       Empty.absurd({E.check_t(PT.consts(xs), PT.base_table(PT.consts(xs), PT.base(PT.consts(xs))), sb, rb, pk, msg, Some{r}, None{}) == SE.check(one, 1n+pp, SE.dconst(one, 1n+pp), FS.value(sb), rb, pk, msg, Some{sr}, Some{sa}) : Bool}, L.true_false(haa))
     case Some{+a} None{}:
       Empty.absurd({E.check_t(PT.consts(xs), PT.base_table(PT.consts(xs), PT.base(PT.consts(xs))), sb, rb, pk, msg, Some{r}, Some{a}) == SE.check(one, 1n+pp, SE.dconst(one, 1n+pp), FS.value(sb), rb, pk, msg, Some{sr}, None{}) : Bool}, L.true_false(haa))
 
-def check_rel_t(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +rb: List<&2, U32>, +sb: List<&2, U32>, +hsb: {LM.okb(32n, sb, 255n) == True{} : Bool}, +ra: Maybe<&2, PT.Pt>, +sra: Maybe<&2, SE.EPt>, +hra: PC.MR(one, pp, ra, sra), +aa: Maybe<&2, PT.Pt>, +saa: Maybe<&2, SE.EPt>, +haa: PC.MR(one, pp, aa, saa), lq: FB.LawQ(one, pp)) -> {E.check_t(PT.consts(xs), PT.base_table(PT.consts(xs), PT.base(PT.consts(xs))), sb, rb, pk, msg, ra, aa) == SE.check(one, 1n+pp, SE.dconst(one, 1n+pp), FS.value(sb), rb, pk, msg, sra, saa) : Bool}:
+def check_rel_t(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +rb: List<&2, U32>, +sb: List<&2, U32>, +hsb: {LM.okb(32n, sb, 255n) == True{} : Bool}, +ra: Maybe<&2, PT.Pt>, +sra: Maybe<&2, SE.EPt>, +hra: PC.MR(one, pp, ra, sra), +aa: Maybe<&2, PT.Pt>, +saa: Maybe<&2, SE.EPt>, +haa: PC.MR(one, pp, aa, saa), lq: FB.LawQ(one, pp), +hvr: EG.Valid(1n+pp, SE.dconst(one, 1n+pp), SE.base_of(sra)), +hva: EG.Valid(1n+pp, SE.dconst(one, 1n+pp), SE.base_of(saa)), lw: FB.LawW(one, pp)) -> {E.check_t(PT.consts(xs), PT.base_table(PT.consts(xs), PT.base(PT.consts(xs))), sb, rb, pk, msg, ra, aa) == SE.check(one, 1n+pp, SE.dconst(one, 1n+pp), FS.value(sb), rb, pk, msg, sra, saa) : Bool}:
   match ra sra:
     case None{} None{}:
       {==}
     case Some{+r} Some{+sr}:
-      check_a_t(one, h1, pp, hP, xs, pk, msg, rb, sb, hsb, r, sr, hra, aa, saa, haa, lq)
+      check_a_t(one, h1, pp, hP, xs, pk, msg, rb, sb, hsb, r, sr, hra, aa, saa, haa, lq, hvr, hva, lw)
     case None{} Some{+sr}:
       Empty.absurd({E.check_t(PT.consts(xs), PT.base_table(PT.consts(xs), PT.base(PT.consts(xs))), sb, rb, pk, msg, None{}, aa) == SE.check(one, 1n+pp, SE.dconst(one, 1n+pp), FS.value(sb), rb, pk, msg, Some{sr}, saa) : Bool}, L.true_false(hra))
     case Some{+r} None{}:
       Empty.absurd({E.check_t(PT.consts(xs), PT.base_table(PT.consts(xs), PT.base(PT.consts(xs))), sb, rb, pk, msg, Some{r}, aa) == SE.check(one, 1n+pp, SE.dconst(one, 1n+pp), FS.value(sb), rb, pk, msg, None{}, saa) : Bool}, L.true_false(hra))
 
-def verify_with_rel_t(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +hpk: {LM.okb(32n, pk, 255n) == True{} : Bool}, +msg: List<&2, U32>, +rb: List<&2, U32>, +hrb: {LM.okb(32n, rb, 255n) == True{} : Bool}, +sb: List<&2, U32>, +hsb: {LM.okb(32n, sb, 255n) == True{} : Bool}, +s_ok: Bool, lq: FB.LawQ(one, pp)) -> {E.verify_with_t(PT.consts(xs), PT.base_table(PT.consts(xs), PT.base(PT.consts(xs))), pk, msg, rb, sb, s_ok) == SE.verify_with(one, 1n+pp, SE.dconst(one, 1n+pp), pk, msg, rb, FS.value(sb), s_ok) : Bool}:
+def verify_with_rel_t(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +hpk: {LM.okb(32n, pk, 255n) == True{} : Bool}, +msg: List<&2, U32>, +rb: List<&2, U32>, +hrb: {LM.okb(32n, rb, 255n) == True{} : Bool}, +sb: List<&2, U32>, +hsb: {LM.okb(32n, sb, 255n) == True{} : Bool}, +s_ok: Bool, lq: FB.LawQ(one, pp), lw: FB.LawW(one, pp), lv1: FB.LawV(one, pp), lv2: FB.LawV(one, pp)) -> {E.verify_with_t(PT.consts(xs), PT.base_table(PT.consts(xs), PT.base(PT.consts(xs))), pk, msg, rb, sb, s_ok) == SE.verify_with(one, 1n+pp, SE.dconst(one, 1n+pp), pk, msg, rb, FS.value(sb), s_ok) : Bool}:
   match s_ok:
     case True{}:
       +P = {1n+pp : Nat}
@@ -135,6 +159,6 @@ def verify_with_rel_t(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add
       +hR = PC.cr(one, h1, xs)
       +rd = PC.rd(one, h1, pp, hP, xs)
       +rs = PC.rs(one, h1, pp, hP, xs)
-      check_rel_t(one, h1, pp, hP, xs, pk, msg, rb, sb, hsb, PT.decode(cs, rb), SE.decode(P, D, rb), PD.decode_rel(one, h1, pp, hP, cs, hR, D, rd, rs, rb, hrb), PT.decode(cs, pk), SE.decode(P, D, pk), PD.decode_rel(one, h1, pp, hP, cs, hR, D, rd, rs, pk, hpk), lq)
+      check_rel_t(one, h1, pp, hP, xs, pk, msg, rb, sb, hsb, PT.decode(cs, rb), SE.decode(P, D, rb), PD.decode_rel(one, h1, pp, hP, cs, hR, D, rd, rs, rb, hrb), PT.decode(cs, pk), SE.decode(P, D, pk), PD.decode_rel(one, h1, pp, hP, cs, hR, D, rd, rs, pk, hpk), lq, lv1(rb), lv2(pk), lw)
     case False{}:
       {==}

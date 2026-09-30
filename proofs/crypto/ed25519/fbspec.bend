@@ -2,6 +2,7 @@ import Base
 import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/curve25519/field.bend as FS
 import ../../../spec/crypto/ed25519.bend as SE
+import ../../../spec/crypto/ed25519_group.bend as EG
 import ../../../src/crypto/ed25519/point.bend as PT
 
 # The table form of [k] B over the specification's points
@@ -96,3 +97,26 @@ def LawE(+one: Nat, +pp: Nat) -> Type:
 # the table form compares with any point as the specification's point
 def LawQ(+one: Nat, +pp: Nat) -> Type:
   @+bs: List<&2, U32> -> @+hb: {FS.bytes_ok(32n, bs) == True{} : Bool} -> @+q: SE.EPt -> {SE.equal(1n+pp, smulb(one, 1n+pp, SE.dconst(one, 1n+pp), bs), q) == SE.equal(1n+pp, smul(one, 1n+pp, SE.dconst(one, 1n+pp), bs), q) : Bool}
+
+# ---- 4-bit windows (point.bend win, mul_win) ----
+
+# 16 ([rest] a) + [d] a over the row srw, most significant digit first
+def swin(+p: Nat, +d: Nat, +srw: List<&2, SE.EPt>, ds: List<&2, Nat>) -> SE.EPt:
+  match ds:
+    case Nil{}:
+      SE.identity()
+    case Con{dg, dt}:
+      SE.add(p, d, sdbl4(p, swin(p, d, srw, dt)), snth(dg, srw))
+
+def smulw(+p: Nat, +d: Nat, +bs: List<&2, U32>, +a: SE.EPt) -> SE.EPt:
+  swin(p, d, srow(p, d, a), PT.nibs(bs))
+
+# R + (the window form of [k] a) compares with any point as R + [k] a,
+# for valid R and a
+def LawW(+one: Nat, +pp: Nat) -> Type:
+  @+bs: List<&2, U32> -> @+hb: {FS.bytes_ok(32n, bs) == True{} : Bool} -> @+x: SE.EPt -> @+r: SE.EPt -> @+a: SE.EPt -> @+hr: EG.Valid(1n+pp, SE.dconst(one, 1n+pp), r) -> @+ha: EG.Valid(1n+pp, SE.dconst(one, 1n+pp), a) -> {SE.equal(1n+pp, x, SE.add(1n+pp, SE.dconst(one, 1n+pp), r, smulw(1n+pp, SE.dconst(one, 1n+pp), bs, a))) == SE.equal(1n+pp, x, SE.add(1n+pp, SE.dconst(one, 1n+pp), r, SE.mul(one, 1n+pp, SE.dconst(one, 1n+pp), FS.value(bs), a))) : Bool}
+
+# whatever the bytes, the decoding (or the identity, when there is none)
+# is a valid point
+def LawV(+one: Nat, +pp: Nat) -> Type:
+  @+bs: List<&2, U32> -> EG.Valid(1n+pp, SE.dconst(one, 1n+pp), SE.base_of(SE.decode(1n+pp, SE.dconst(one, 1n+pp), bs)))

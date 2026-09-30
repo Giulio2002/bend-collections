@@ -199,3 +199,54 @@ def va_mul(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +d: Nat, +hc: G.Curve(mp
   +va = vV(mp, d, a, q, ha)
   +hfit = L.subst(Nat, z => {C.fits(C.shift(8n, z), k) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), WI.fits_one(256n, one, h1, k, BF.val_lt(one, h1, 32n, bs, LM.bytes_okb(32n, bs, hs))))
   va_mk(mp, d, hc, SE.mul(one, P, d, k, a), G.nmul(P, d, k, q), SM.mul_valid(one, mp, d, hc, k, a, va), Equal.trans(G.APt, EG.affine(P, SE.mul(one, P, d, k, a)), G.nmul(P, d, k, EG.affine(P, a)), G.nmul(P, d, k, q), SM.mul_aff_fit(one, mp, d, hc, k, a, va, hfit), Equal.cong(G.APt, G.APt, z => G.nmul(P, d, k, z), EG.affine(P, a), q, vE(mp, d, a, q, ha))))
+
+# ---- 4-bit windows ----
+
+# the number the digits write, least significant first
+def wval(ds: List<&2, Nat>) -> Nat:
+  match ds:
+    case Nil{}:
+      0n
+    case Con{dg, dt}:
+      Nat.add(dg, Nat.mul(16n, wval(dt)))
+
+def va_win(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +a: SE.EPt, +q: G.APt, +ha: VA(mp, d, a, q), +ds: List<&2, Nat>, +hd: {PFB.dok(ds) == True{} : Bool}) -> VA(mp, d, FB.swin(1n+mp, d, FB.srow(1n+mp, d, a), ds), G.nmul(1n+mp, d, wval(ds), q)):
+  match ds:
+    case Nil{}:
+      va_id(mp, d, hc)
+    case Con{+dg, +dt}:
+      +P = {1n+mp : Nat}
+      +hq = vO(mp, d, a, q, ha)
+      +w = wval(dt)
+      +sw = FB.swin(P, d, FB.srow(P, d, a), dt)
+      +ih = va_win(mp, d, hc, a, q, ha, dt, L.and_right(Nat.is_lt(dg, 16n), PFB.dok(dt), hd))
+      +h4 = va_cast(mp, d, FB.sdbl4(P, sw), G.nmul(P, d, 16n, G.nmul(P, d, w, q)), G.nmul(P, d, Nat.mul(16n, w), q), Equal.sym(G.APt, G.nmul(P, d, Nat.mul(16n, w), q), G.nmul(P, d, 16n, G.nmul(P, d, w, q)), GP.nmul_mul(mp, d, hc, 16n, w, q, hq)), va_dbl4(mp, d, hc, sw, G.nmul(P, d, w, q), ih))
+      +hr = va_row(mp, d, hc, a, q, ha, dg, L.and_left(Nat.is_lt(dg, 16n), PFB.dok(dt), hd))
+      +hs = va_add(mp, d, hc, FB.sdbl4(P, sw), FB.snth(dg, FB.srow(P, d, a)), G.nmul(P, d, Nat.mul(16n, w), q), G.nmul(P, d, dg, q), h4, hr)
+      +e1 = Equal.sym(G.APt, G.nmul(P, d, Nat.add(Nat.mul(16n, w), dg), q), G.aadd(P, d, G.nmul(P, d, Nat.mul(16n, w), q), G.nmul(P, d, dg, q)), GP.nmul_add(mp, d, hc, Nat.mul(16n, w), dg, q, hq))
+      +e2 = Equal.cong(Nat, G.APt, z => G.nmul(P, d, z, q), Nat.add(Nat.mul(16n, w), dg), Nat.add(dg, Nat.mul(16n, w)), NA.add_comm(Nat.mul(16n, w), dg))
+      va_cast(mp, d, SE.add(P, d, FB.sdbl4(P, sw), FB.snth(dg, FB.srow(P, d, a))), G.aadd(P, d, G.nmul(P, d, Nat.mul(16n, w), q), G.nmul(P, d, dg, q)), G.nmul(P, d, Nat.add(dg, Nat.mul(16n, w)), q), Equal.trans(G.APt, G.aadd(P, d, G.nmul(P, d, Nat.mul(16n, w), q), G.nmul(P, d, dg, q)), G.nmul(P, d, Nat.add(Nat.mul(16n, w), dg), q), G.nmul(P, d, Nat.add(dg, Nat.mul(16n, w)), q), e1, e2), hs)
+
+# the digits of a byte string write its value
+def wval_nibs(+bs: List<&2, U32>) -> {wval(PT.nibs(bs)) == FS.value(bs) : Nat}:
+  match bs:
+    case Nil{}:
+      {==}
+    case Con{+b, +bt}:
+      +n = U32.to_nat(b)
+      +V = FS.value(bt)
+      +W = wval(PT.nibs(bt))
+      +r = Nat.mod(n, 16n)
+      +q = Nat.div(n, 16n)
+      +ih = wval_nibs(bt)
+      +T = Nat.mul(16n, Nat.mul(16n, W))
+      +s1 = Equal.cong(Nat, Nat, z => Nat.add(r, z), Nat.mul(16n, Nat.add(q, Nat.mul(16n, W))), Nat.add(Nat.mul(16n, q), T), NA.mul_add_left(16n, q, Nat.mul(16n, W)))
+      +s2 = Equal.sym(Nat, Nat.add(Nat.add(r, Nat.mul(16n, q)), T), Nat.add(r, Nat.add(Nat.mul(16n, q), T)), N.add_assoc(r, Nat.mul(16n, q), T))
+      +en = Equal.trans(Nat, Nat.add(r, Nat.mul(16n, q)), Nat.add(Nat.mul(q, 16n), r), n, Equal.trans(Nat, Nat.add(r, Nat.mul(16n, q)), Nat.add(Nat.mul(16n, q), r), Nat.add(Nat.mul(q, 16n), r), NA.add_comm(r, Nat.mul(16n, q)), Equal.cong(Nat, Nat, z => Nat.add(z, r), Nat.mul(16n, q), Nat.mul(q, 16n), NA.mul_comm(16n, q))), Equal.sym(Nat, n, Nat.add(Nat.mul(q, 16n), r), NR.dm_eq(15n, n)))
+      +eW = Equal.trans(Nat, Nat.mul(16n, W), Nat.mul(W, 16n), C.shift(4n, W), NA.mul_comm(16n, W), AR.mul_sc(4n, W))
+      +eT = Equal.trans(Nat, T, Nat.mul(16n, C.shift(4n, W)), C.shift(8n, V), Equal.cong(Nat, Nat, z => Nat.mul(16n, z), Nat.mul(16n, W), C.shift(4n, W), eW), Equal.trans(Nat, Nat.mul(16n, C.shift(4n, W)), C.shift(8n, W), C.shift(8n, V), Equal.trans(Nat, Nat.mul(16n, C.shift(4n, W)), Nat.mul(C.shift(4n, W), 16n), C.shift(8n, W), NA.mul_comm(16n, C.shift(4n, W)), AR.mul_sc(4n, C.shift(4n, W))), Equal.cong(Nat, Nat, z => C.shift(8n, z), W, V, ih)))
+      Equal.trans(Nat, Nat.add(r, Nat.mul(16n, Nat.add(q, Nat.mul(16n, W)))), Nat.add(r, Nat.add(Nat.mul(16n, q), T)), Nat.add(n, C.shift(8n, V)), s1, Equal.trans(Nat, Nat.add(r, Nat.add(Nat.mul(16n, q), T)), Nat.add(Nat.add(r, Nat.mul(16n, q)), T), Nat.add(n, C.shift(8n, V)), s2, Equal.trans(Nat, Nat.add(Nat.add(r, Nat.mul(16n, q)), T), Nat.add(n, T), Nat.add(n, C.shift(8n, V)), Equal.cong(Nat, Nat, z => Nat.add(z, T), Nat.add(r, Nat.mul(16n, q)), n, en), Equal.cong(Nat, Nat, z => Nat.add(n, z), T, C.shift(8n, V), eT))))
+
+# the window form of [value(bs)] a: [value] a
+def va_mulw(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +a: SE.EPt, +q: G.APt, +ha: VA(mp, d, a, q), +bs: List<&2, U32>, +hs: {FS.bytes_ok(32n, bs) == True{} : Bool}) -> VA(mp, d, FB.smulw(1n+mp, d, bs, a), G.nmul(1n+mp, d, FS.value(bs), q)):
+  va_cast(mp, d, FB.smulw(1n+mp, d, bs, a), G.nmul(1n+mp, d, wval(PT.nibs(bs)), q), G.nmul(1n+mp, d, FS.value(bs), q), Equal.cong(Nat, G.APt, z => G.nmul(1n+mp, d, z, q), wval(PT.nibs(bs)), FS.value(bs), wval_nibs(bs)), va_win(mp, d, hc, a, q, ha, PT.nibs(bs), PFB.nibs_ok(bs, CV.nat_below(32n, bs, hs))))

@@ -111,6 +111,21 @@ def double(+R: Nat, p: Pt) -> Pt:
       +f = FE.add(R, cc, g)
       Pt{FE.mul(R, e, f), FE.mul(R, g, h), FE.mul(R, f, g), FE.mul(R, e, h)}
 
+# the same without T (for a point that is doubled next: doubling does
+# not read T)
+def double_nt(+R: Nat, p: Pt) -> Pt:
+  match p:
+    case Pt{+x1, +y1, +z1, t1}:
+      +a = FE.sq(R, x1)
+      +b = FE.sq(R, y1)
+      +zz = FE.sq(R, z1)
+      +cc = FE.add(R, zz, zz)
+      +h = FE.add(R, a, b)
+      +e = FE.sub(R, h, FE.sq(R, FE.add(R, x1, y1)))
+      +g = FE.sub(R, a, b)
+      +f = FE.add(R, cc, g)
+      Pt{FE.mul(R, e, f), FE.mul(R, g, h), FE.mul(R, f, g), FE.zero()}
+
 # s == 0: p; s == 1: q
 def select(+s: U32, p: Pt, q: Pt) -> Pt:
   match p q:
@@ -189,6 +204,20 @@ def add_c(+R: Nat, p: Pt, q: Cp) -> Pt:
       +g = FE.add(R, dd, cc)
       +h = FE.add(R, b, a)
       Pt{FE.mul(R, e, f), FE.mul(R, g, h), FE.mul(R, f, g), FE.mul(R, e, h)}
+
+# the same without T
+def add_c_nt(+R: Nat, p: Pt, q: Cp) -> Pt:
+  match p q:
+    case Pt{+x1, +y1, +z1, +t1} Cp{ypx, ymx, t2d, z2}:
+      +a = FE.mul(R, FE.sub(R, y1, x1), ymx)
+      +b = FE.mul(R, FE.add(R, y1, x1), ypx)
+      +cc = FE.mul(R, t1, t2d)
+      +dd = FE.mul(R, z1, z2)
+      +e = FE.sub(R, b, a)
+      +f = FE.sub(R, dd, cc)
+      +g = FE.add(R, dd, cc)
+      +h = FE.add(R, b, a)
+      Pt{FE.mul(R, e, f), FE.mul(R, g, h), FE.mul(R, f, g), FE.zero()}
 
 def cp_zero() -> Cp:
   Cp{FE.zero(), FE.zero(), FE.zero(), FE.zero()}
@@ -287,6 +316,42 @@ def mul_base(+R: Nat, tab: List<&2, List<&2, Cp>>, +k: List<&2, U32>) -> Pt:
 # [k] B for a public scalar k: the entries are indexed
 def mul_base_vt(+R: Nat, tab: List<&2, List<&2, Cp>>, +k: List<&2, U32>) -> Pt:
   fbv(R, tab, nibs(k), identity())
+
+# ---- multiplication of a public point by 4-bit windows ----
+
+# the digits ds (least significant first) against the row rw = [0 a, ...,
+# 15 a]: 16 ([rest] a) + [d] a, most significant digit first (256
+# doublings and 64 additions for a 32-byte scalar)
+def win(+R: Nat, +rw: List<&2, Cp>, ds: List<&2, Nat>) -> Pt:
+  match ds:
+    case Nil{}:
+      identity()
+    case Con{d, dt}:
+      add_c(R, dbl4(R, win(R, rw, dt)), nthc(d, rw))
+
+# 16 p, T computed only by the last doubling
+def dbl4n(+R: Nat, p: Pt) -> Pt:
+  double(R, double_nt(R, double_nt(R, double_nt(R, p))))
+
+# win without T in the intermediate points (each is doubled next)
+def winn(+R: Nat, +rw: List<&2, Cp>, ds: List<&2, Nat>) -> Pt:
+  match ds:
+    case Nil{}:
+      identity()
+    case Con{d, dt}:
+      add_c_nt(R, dbl4n(R, winn(R, rw, dt)), nthc(d, rw))
+
+# win with those savings (the same point: proofs/crypto/ed25519/pwinf.bend)
+def winf(+R: Nat, +rw: List<&2, Cp>, ds: List<&2, Nat>) -> Pt:
+  match ds:
+    case Nil{}:
+      identity()
+    case Con{d, dt}:
+      add_c(R, dbl4n(R, winn(R, rw, dt)), nthc(d, rw))
+
+# [k] a for a public scalar k
+def mul_win(+c: Cs, +k: List<&2, U32>, +a: Pt) -> Pt:
+  winf(cs_r(c), row(c, a), nibs(k))
 
 # the last byte with bit 7 set to b (the canonical y has it clear)
 def set_top(xs: List<&2, U32>, +b: U32) -> List<&2, U32>:
