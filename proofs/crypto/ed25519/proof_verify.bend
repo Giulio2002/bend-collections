@@ -61,7 +61,7 @@ def ed_verify_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +pk: Li
   +V3 = SE.verify_with(one, P, D, pk, msg, srb, FS.value(sb), lt)
   +V4 = SE.verify_with(one, P, D, pk, msg, srb, FS.value(ssb), slt)
   +V5 = SE.verify_with(one, FS.prime(one), SE.dconst(one, FS.prime(one)), pk, msg, srb, FS.value(ssb), slt)
-  Equal.trans(Bool, V0, V1, V5, e1, Equal.trans(Bool, V1, V2, V5, e2, Equal.trans(Bool, V2, V3, V5, e3, Equal.trans(Bool, V3, V4, V5, e4, e5))))
+  Equal.trans(Bool, E.verify_ctx(E.context(xs), pk, msg, sig), V0, V5, PB.verify_eq(E.context(xs), pk, msg, sig), Equal.trans(Bool, V0, V1, V5, e1, Equal.trans(Bool, V1, V2, V5, e2, Equal.trans(Bool, V2, V3, V5, e3, Equal.trans(Bool, V3, V4, V5, e4, e5)))))
 
 def ed_verify(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}) -> SE.Ed25519.verify(one, h1, pk, msg, sig, hp, hg):
   ed_verify_ctx(one, h1, pk, pk, msg, sig, hp, hg)

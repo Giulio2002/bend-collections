@@ -1,4 +1,5 @@
 import Base
+import ../../../src/crypto/ed25519/ed25519.bend as E
 import ../../../spec/crypto/curve25519/field.bend as FS
 import ../../../src/crypto/curve25519/x25519.bend as X
 import ../curve25519/limbs.bend as LM
@@ -32,3 +33,42 @@ def valid_eq(+n: Nat, +xs: List<&2, U32>) -> {X.valid_bytes(n, xs) == FS.bytes_o
 
 def valid_ok(+n: Nat, +xs: List<&2, U32>, +h: {FS.bytes_ok(n, xs) == True{} : Bool}) -> {X.valid_bytes(n, xs) == True{} : Bool}:
   Equal.trans(Bool, X.valid_bytes(n, xs), FS.bytes_ok(n, xs), True{}, valid_eq(n, xs), h)
+
+# the guarded entry points unfold to their bodies
+def expand_eq(+ctx: E.Ctx, +seed: List<&2, U32>) -> {E.expand_ctx(ctx, seed) == E.expand_go(ctx, seed) : E.Key}:
+  match seed:
+    case Nil{}:
+      {==}
+    case Con{h, t}:
+      {==}
+
+def public_eq(+ctx: E.Ctx, +seed: List<&2, U32>) -> {E.public_key_ctx(ctx, seed) == E.public_go(ctx, seed) : List<&2, U32>}:
+  match seed:
+    case Nil{}:
+      {==}
+    case Con{h, t}:
+      {==}
+
+def sign_eq(+k: E.Key, +msg: List<&2, U32>) -> {E.sign_key(k, msg) == E.sign_go(k, msg) : List<&2, U32>}:
+  match msg:
+    case Nil{}:
+      {==}
+    case Con{h, t}:
+      {==}
+
+def verify_eq(+ctx: E.Ctx, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>) -> {E.verify_ctx(ctx, pk, msg, sig) == E.verify_go(ctx, pk, msg, sig) : Bool}:
+  match msg:
+    case Nil{}:
+      {==}
+    case Con{h, t}:
+      {==}
+
+def kp_go(+ctx: E.Ctx, +seed: List<&2, U32>) -> {E.key_public(E.expand_go(ctx, seed)) == E.public_go(ctx, seed) : List<&2, U32>}:
+  match ctx:
+    case E.Ctx{c, b}:
+      {==}
+
+# the expanded key carries the public key
+def kp_eq(+ctx: E.Ctx, +seed: List<&2, U32>) -> {E.key_public(E.expand_ctx(ctx, seed)) == E.public_key_ctx(ctx, seed) : List<&2, U32>}:
+  +e1 = Equal.cong(E.Key, List<&2, U32>, k => E.key_public(k), E.expand_ctx(ctx, seed), E.expand_go(ctx, seed), expand_eq(ctx, seed))
+  Equal.trans(List<&2, U32>, E.key_public(E.expand_ctx(ctx, seed)), E.key_public(E.expand_go(ctx, seed)), E.public_key_ctx(ctx, seed), e1, Equal.trans(List<&2, U32>, E.key_public(E.expand_go(ctx, seed)), E.public_go(ctx, seed), E.public_key_ctx(ctx, seed), kp_go(ctx, seed), Equal.sym(List<&2, U32>, E.public_key_ctx(ctx, seed), E.public_go(ctx, seed), public_eq(ctx, seed))))

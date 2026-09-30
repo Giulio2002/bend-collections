@@ -14,15 +14,13 @@ import ../../lib/u32.bend as U
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/natural/arith.bend as NR
 import ../curve25519/limbs.bend as LM
-import ../curve25519/consts.bend as K
-import ../curve25519/freeze.bend as FZ
+import ./bytefield.bend as LO
 import ../curve25519/cong.bend as G
 import ../curve25519/xbits.bend as XB
 import ../curve25519/xlem.bend as LD
 import ../curve25519/num.bend as M3
 import ../fe/rel.bend as RE
 import ../fe/conv.bend as CV
-import ./scalar.bend as SC
 import ./prel.bend as PR
 import ./pcodec.bend as PC
 
@@ -33,14 +31,14 @@ import ./pcodec.bend as PC
 def v(+x: U32) -> Nat:
   U32.to_nat(x)
 
-def hv_p(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}) -> {Nat.add(K.valo(one, F.comp_p()), 1n+pp) == SC.T(one) : Nat}:
+def hv_p(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}) -> {Nat.add(LO.valo(one, F.comp_p()), 1n+pp) == LO.T(one) : Nat}:
   +P = {1n+pp : Nat}
-  +e1 = M3.cong_l(K.valo(one, F.comp_p()), Nat.add(P, 38n), P, FZ.comp_p_val(one, h1, pp, hP))
+  +e1 = M3.cong_l(LO.valo(one, F.comp_p()), Nat.add(P, 38n), P, LO.comp_p_val(one, h1, pp, hP))
   +e2 = Equal.trans(Nat, Nat.add(Nat.add(P, 38n), P), Nat.add(P, Nat.add(38n, P)), Nat.add(Nat.add(P, P), 38n), NA.add_assoc(P, 38n, P), Equal.trans(Nat, Nat.add(P, Nat.add(38n, P)), Nat.add(P, Nat.add(P, 38n)), Nat.add(Nat.add(P, P), 38n), M3.cong_r(P, Nat.add(38n, P), Nat.add(P, 38n), NA.add_comm(38n, P)), Equal.sym(Nat, Nat.add(Nat.add(P, P), 38n), Nat.add(P, Nat.add(P, 38n)), NA.add_assoc(P, P, 38n))))
-  Equal.trans(Nat, Nat.add(K.valo(one, F.comp_p()), P), Nat.add(Nat.add(P, 38n), P), SC.T(one), e1, Equal.trans(Nat, Nat.add(Nat.add(P, 38n), P), Nat.add(Nat.add(P, P), 38n), SC.T(one), e2, Equal.sym(Nat, SC.T(one), Nat.add(Nat.add(P, P), 38n), FZ.t_val(one, h1, pp, hP))))
+  Equal.trans(Nat, Nat.add(LO.valo(one, F.comp_p()), P), Nat.add(Nat.add(P, 38n), P), LO.T(one), e1, Equal.trans(Nat, Nat.add(Nat.add(P, 38n), P), Nat.add(Nat.add(P, P), 38n), LO.T(one), e2, Equal.sym(Nat, LO.T(one), Nat.add(Nat.add(P, P), 38n), LO.t_val(one, h1, pp, hP))))
 
 def ge_p_eq(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +y: List<&2, U32>, +hy: {LM.okb(32n, y, 255n) == True{} : Bool}) -> {PT.ge_p(y) == Bool.not(Nat.is_lt(FS.value(y), 1n+pp)) : Bool}:
-  Equal.cong(Bool, Bool, z => Bool.not(z), U32.is_eq(LM.cc(F.carry(F.addl(y, F.comp_p()), 0)), 0), Nat.is_lt(FS.value(y), 1n+pp), SC.lt_by(one, h1, pp, y, F.comp_p(), hy, {==}, hv_p(one, h1, pp, hP), Nat.is_lt(v(LM.cc(F.carry(F.addl(y, F.comp_p()), 0))), one), {==}))
+  Equal.cong(Bool, Bool, z => Bool.not(z), U32.is_eq(LM.cc(F.carry(F.addl(y, F.comp_p()), 0)), 0), Nat.is_lt(FS.value(y), 1n+pp), LO.lt_by(one, h1, pp, y, F.comp_p(), hy, {==}, hv_p(one, h1, pp, hP), Nat.is_lt(v(LM.cc(F.carry(F.addl(y, F.comp_p()), 0))), one), {==}))
 
 # ---- the end of decoding: the sign of x ----
 
@@ -185,7 +183,7 @@ def cs_small_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +cs: PT.Cs, +k: Na
     case PT.Cs{+r, d, d2, s}:
       small_r_rel(one, h1, pp, r, k, hk)
 
-def base_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd: RE.Rel(one, pp, PT.cs_d(cs), D), +rs: RE.Rel(one, pp, PT.cs_s(cs), SE.sqm1(1n+pp))) -> PR.Rp(one, pp, PT.base(cs), SE.base(1n+pp, D)):
+def base_go_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd: RE.Rel(one, pp, PT.cs_d(cs), D), +rs: RE.Rel(one, pp, PT.cs_s(cs), SE.sqm1(1n+pp))) -> PR.Rp(one, pp, PT.base_go(cs), SE.base(1n+pp, D)):
   +P = {1n+pp : Nat}
   +R = PT.cs_r(cs)
   +c4 = PT.cs_small(cs, 4n)
@@ -196,3 +194,13 @@ def base_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 1
   +eb = PC.bytes_rel(one, h1, pp, hP, R, hR, m, FM, rm, PC.red(pp, Nat.mul(4n, FS.finv(P, 5n))))
   %Equal.sym(List<&2, U32>, FE.to_bytes(R, m), SX.le_bytes(32n, FM), eb) : PR.Rp(one, pp, PT.base_of(PT.decode(cs, _)), SE.base(P, D))
   base_of_rel(one, h1, pp, PT.decode(cs, SX.le_bytes(32n, FM)), SE.decode(P, D, SX.le_bytes(32n, FM)), decode_rel(one, h1, pp, hP, cs, hR, D, rd, rs, SX.le_bytes(32n, FM), le_bytes_ok(32n, FM)))
+
+def base_r_eq(+r: Nat, +c: PT.Cs) -> {PT.base_r(r, c) == PT.base_go(c) : PT.Pt}:
+  match r:
+    case 0n:
+      {==}
+    case 1n+q:
+      {==}
+
+def base_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd: RE.Rel(one, pp, PT.cs_d(cs), D), +rs: RE.Rel(one, pp, PT.cs_s(cs), SE.sqm1(1n+pp))) -> PR.Rp(one, pp, PT.base(cs), SE.base(1n+pp, D)):
+  L.subst(PT.Pt, z => PR.Rp(one, pp, z, SE.base(1n+pp, D)), PT.base_go(cs), PT.base(cs), Equal.sym(PT.Pt, PT.base(cs), PT.base_go(cs), base_r_eq(PT.cs_r(cs), cs)), base_go_rel(one, h1, pp, hP, cs, hR, D, rd, rs))

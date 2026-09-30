@@ -14,11 +14,9 @@ import ../../lib/lemmas/spec/numeric.bend as SN
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/natural/arith.bend as NR
 import ../../math/typed/width.bend as WI
-import ../../math/typed/shrn.bend as SR
-import ../../math/hash/hash.bend as HH
+import ../fe/w32.bend as SR
 import ./num.bend as M
 import ./limbs.bend as LM
-import ./canon.bend as CN
 
 # The byte-level pieces of X25519 (src/crypto/curve25519/x25519.bend against
 # spec/crypto/curve25519/x25519.bend): scalar bits, clamping, the bit
@@ -38,7 +36,7 @@ def high_zero(+t: Nat) -> {C.high(t, 0n) == 0n : Nat}:
 
 # bit t (t < 8) of b + 2^8 V is bit t of b
 def low_bit(+t: Nat, +b: U32, +w: Nat) -> {v(U32.and(U32.shrn(b, t), 1)) == C.bit(C.high(t, Nat.add(v(b), C.shift(t, Nat.double(w))))) : Nat}:
-  +e1 = CN.and1(1n, {==}, U32.shrn(b, t))
+  +e1 = SR.and1(1n, {==}, U32.shrn(b, t))
   +e2 = Equal.cong(Nat, Nat, z => Nat.mod(z, 2n), v(U32.shrn(b, t)), C.high(t, v(b)), SR.shrn_high(b, t))
   +e3 = Equal.sym(Nat, C.bit(C.high(t, v(b))), Nat.mod(C.high(t, v(b)), 2n), WI.bit_mod(C.high(t, v(b))))
   +e4 = Equal.cong(Nat, Nat, z => C.bit(z), C.high(t, Nat.add(v(b), C.shift(t, Nat.double(w)))), Nat.add(C.high(t, v(b)), Nat.double(w)), WI.high_add_shift(t, v(b), Nat.double(w)))
@@ -144,7 +142,7 @@ def clamp_top_okb(+n: Nat, +xs: List<&2, U32>, +e: {LM.okb(1n+n, xs, 255n) == Tr
     case _ Nil{}:
       Empty.absurd({LM.okb(1n+n, Nil{}, 255n) == True{} : Bool}, L.false_true(e))
     case 0n Con{+x, Nil{}}:
-      +a = HH.and_le32(x, 127)
+      +a = SR.and_le32(x, 127)
       +o = or_le32(U32.and(x, 127), 64)
       +b = N.le_trans(v(U32.or(U32.and(x, 127), 64)), Nat.add(v(U32.and(x, 127)), 64n), 255n, o, N.le_trans(Nat.add(v(U32.and(x, 127)), 64n), Nat.add(127n, 64n), 255n, M.le_add_r(v(U32.and(x, 127)), 127n, 64n, a), {==}))
       L.and_intro(Nat.is_le(v(U32.or(U32.and(x, 127), 64)), 255n), True{}, b, {==})
@@ -160,7 +158,7 @@ def clamp_okb(+k: List<&2, U32>, +e: {LM.okb(32n, k, 255n) == True{} : Bool}) ->
     case Nil{}:
       Empty.absurd({LM.okb(32n, Nil{}, 255n) == True{} : Bool}, L.false_true(e))
     case Con{+b, +bt}:
-      +ha = N.le_trans(v(U32.and(b, 248)), 248n, 255n, HH.and_le32(b, 248), {==})
+      +ha = N.le_trans(v(U32.and(b, 248)), 248n, 255n, SR.and_le32(b, 248), {==})
       clamp_top_okb(31n, Con{U32.and(b, 248), bt}, L.and_intro(Nat.is_le(v(U32.and(b, 248)), 255n), LM.okb(31n, bt, 255n), ha, LM.okb_tail(31n, b, bt, 255n, e)))
 
 # ---- the swap bit ----
@@ -246,7 +244,7 @@ def mask_okb(+n: Nat, +xs: List<&2, U32>, +e: {LM.okb(1n+n, xs, 255n) == True{} 
     case _ Nil{}:
       Empty.absurd({LM.okb(1n+n, Nil{}, 255n) == True{} : Bool}, L.false_true(e))
     case 0n Con{+x, Nil{}}:
-      L.and_intro(Nat.is_le(v(U32.and(x, 127)), 255n), True{}, N.le_trans(v(U32.and(x, 127)), 127n, 255n, HH.and_le32(x, 127), {==}), {==})
+      L.and_intro(Nat.is_le(v(U32.and(x, 127)), 255n), True{}, N.le_trans(v(U32.and(x, 127)), 127n, 255n, SR.and_le32(x, 127), {==}), {==})
     case 0n Con{x, Con{y, yt}}:
       Empty.absurd({LM.okb(1n, F.mask_top(Con{x, Con{y, yt}}), 255n) == True{} : Bool}, L.false_true(LM.okb_tail(0n, x, Con{y, yt}, 255n, e)))
     case 1n+m Con{x, Nil{}}:

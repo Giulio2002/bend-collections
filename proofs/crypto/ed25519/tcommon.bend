@@ -29,14 +29,14 @@ def bits_eq(+one: Nat, +h1: {one == 1n : Nat}, +k: List<&2, U32>, +hk: {LM.okb(3
 # spec over 2^8 one
 
 def mul_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +k: List<&2, U32>, +hk: {LM.okb(32n, k, 255n) == True{} : Bool}, +p: PT.Pt, +sp: SE.EPt, +hp: PR.Rp(one, pp, p, sp)) -> PR.Rp(one, pp, PT.mul(cs, k, p), SE.mul(one, 1n+pp, D, FS.value(k), sp)):
-  %Equal.sym(Nat, X.bitlen(k), C.shift(8n, one), bits_eq(one, h1, k, hk)) : PR.Rp(one, pp, PT.smul(_, cs, k, p, PT.identity()), SE.mul(one, 1n+pp, D, FS.value(k), sp))
-  PR.smul_rel(one, h1, pp, hP, C.shift(8n, one), cs, hR, D, rd2, k, LM.okb_lea(32n, k, 255n, hk), p, sp, hp, PT.identity(), SE.identity(), PD.identity_rel(one, h1, pp))
+  %Equal.sym(Nat, X.bitlen(k), C.shift(8n, one), bits_eq(one, h1, k, hk)) : PR.Rp(one, pp, PT.smul(p, _, cs, k, PT.identity()), SE.mul(one, 1n+pp, D, FS.value(k), sp))
+  PR.smul_rel(one, h1, pp, hP, p, C.shift(8n, one), cs, hR, D, rd2, k, LM.okb_lea(32n, k, 255n, hk), sp, hp, PT.identity(), SE.identity(), PD.identity_rel(one, h1, pp))
 
 # the same for the branching multiplication (public scalars)
 
 def mul_vt_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +k: List<&2, U32>, +hk: {LM.okb(32n, k, 255n) == True{} : Bool}, +p: PT.Pt, +sp: SE.EPt, +hp: PR.Rp(one, pp, p, sp)) -> PR.Rp(one, pp, PT.mul_vt(cs, k, p), SE.mul(one, 1n+pp, D, FS.value(k), sp)):
-  %Equal.sym(Nat, X.bitlen(k), C.shift(8n, one), bits_eq(one, h1, k, hk)) : PR.Rp(one, pp, PT.smul_vt(_, cs, k, p, PT.identity()), SE.mul(one, 1n+pp, D, FS.value(k), sp))
-  PR.smul_vt_rel(one, h1, pp, hP, C.shift(8n, one), cs, hR, D, rd2, k, LM.okb_lea(32n, k, 255n, hk), p, sp, hp, PT.identity(), SE.identity(), PD.identity_rel(one, h1, pp))
+  %Equal.sym(Nat, X.bitlen(k), C.shift(8n, one), bits_eq(one, h1, k, hk)) : PR.Rp(one, pp, PT.smul_vt(p, _, cs, k, PT.identity()), SE.mul(one, 1n+pp, D, FS.value(k), sp))
+  PR.smul_vt_rel(one, h1, pp, hP, p, C.shift(8n, one), cs, hR, D, rd2, k, LM.okb_lea(32n, k, 255n, hk), sp, hp, PT.identity(), SE.identity(), PD.identity_rel(one, h1, pp))
 
 # encode, the spec's byte count 2^5 one
 
