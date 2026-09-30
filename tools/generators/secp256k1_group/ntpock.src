@@ -1,0 +1,222 @@
+import Base
+import ../../../../spec/math/number.bend as SN
+import ../../../math/natural/arith.bend as NR
+import ../../../lib/arith.bend as AR
+import ../../../lib/nat.bend as N
+import ../../../lib/logic.bend as Lg
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../semiring.bend as SR
+import ./prime.bend as PM
+import ./ntmf.bend as MF
+import ./ntord.bend as OR
+
+# Pocklington's criterion with a squarefree factored part (Pocklington 1914;
+# Brillhart, Lehmer and Selfridge 1975, Theorem 4 with F squarefree).
+#
+# A certificate for N is a list of entries PE{q, m, a, b, u, v}, one per
+# prime q of the factored part F = the product of the q's, each saying
+#   q is prime,  N == q m + 1,  a^(q m) mod N == 1,  a^m mod N == b,
+#   u (b - 1) == v N + 1  (so gcd(a^((N-1)/q) - 1, N) == 1),
+#   q does not divide the product of the entries after it (the q's are
+#   distinct primes).
+# Then every prime factor r of N is 1 mod F (ntord.bend's step for each q,
+# and distinct primes dividing r - 1 divide it together), so r > F; with
+# N <= F F, N has no factor d in [2, N): the smaller of d and N / d is at
+# most F and has a prime factor (ntmf.bend), which is a prime factor of N.
+#
+# Cert(N, es) is one Bool equation (Data, so it can be used many times);
+# cert_nil and cert_cons build it from the equations, which a closed
+# computation can supply; nothing here evaluates a power.
+
+type PE is Data:
+  PE{q: Nat, m: Nat, a: Nat, b: Nat, u: Nat, v: Nat}
+
+def c2(+n: Nat, +q: Nat, +m: Nat) -> Bool:
+  Nat.is_eq(n, Nat.add(Nat.mul(q, m), 1n))
+
+def c3(+n: Nat, +q: Nat, +m: Nat, +a: Nat) -> Bool:
+  Nat.is_eq(Nat.mod(Nat.pow(a, Nat.mul(q, m)), n), 1n)
+
+def c4(+n: Nat, +m: Nat, +a: Nat, +b: Nat) -> Bool:
+  Nat.is_eq(Nat.mod(Nat.pow(a, m), n), b)
+
+def c5(+n: Nat, +b: Nat, +u: Nat, +v: Nat) -> Bool:
+  Nat.is_eq(Nat.mul(u, Nat.sub(b, 1n)), Nat.add(Nat.mul(v, n), 1n))
+
+def c6(+f0: Nat, +q: Nat) -> Bool:
+  Bool.not(Nat.is_eq(Nat.mod(f0, q), 0n))
+
+def ent_ok(+n: Nat, e: PE, +f0: Nat) -> Bool:
+  match e:
+    case PE{+q, +m, +a, +b, +u, +v}:
+      Bool.and(SN.prime(q), Bool.and(c2(n, q, m), Bool.and(c3(n, q, m, a), Bool.and(c4(n, m, a, b), Bool.and(c5(n, b, u, v), c6(f0, q))))))
+
+# the factored part: the product of the q's
+def fprod(es: List<&2, PE>) -> Nat:
+  match es:
+    case Nil{}:
+      1n
+    case PE{q, m, a, b, u, v} <> t:
+      Nat.mul(q, fprod(t))
+
+def cert_ok(+n: Nat, es: List<&2, PE>) -> Bool:
+  match es:
+    case Nil{}:
+      True{}
+    case +e <> +t:
+      Bool.and(ent_ok(n, e, fprod(t)), cert_ok(n, t))
+
+def Cert(+n: Nat, +es: List<&2, PE>) -> Data:
+  {cert_ok(n, es) == True{} : Bool}
+
+# ---- building a certificate ----
+
+def iseq(+x: Nat, +y: Nat, +e: {x == y : Nat}) -> {Nat.is_eq(x, y) == True{} : Bool}:
+  Equal.trans(Bool, Nat.is_eq(x, y), Nat.is_eq(x, x), True{}, Equal.cong(Nat, Bool, z => Nat.is_eq(x, z), y, x, Equal.sym(Nat, x, y, e)), N.is_eq_refl(x))
+
+def cert_nil(+n: Nat) -> Cert(n, Nil{}):
+  {==}
+
+def cert_cons(+n: Nat, +q: Nat, +m: Nat, +a: Nat, +b: Nat, +u: Nat, +v: Nat, +t: List<&2, PE>, +hq: PM.Prime(q), +e2: {n == Nat.add(Nat.mul(q, m), 1n) : Nat}, +e3: {Nat.mod(Nat.pow(a, Nat.mul(q, m)), n) == 1n : Nat}, +e4: {Nat.mod(Nat.pow(a, m), n) == b : Nat}, +e5: {Nat.mul(u, Nat.sub(b, 1n)) == Nat.add(Nat.mul(v, n), 1n) : Nat}, +e6: {Nat.is_eq(Nat.mod(fprod(t), q), 0n) == False{} : Bool}, +ht: Cert(n, t)) -> Cert(n, PE{q, m, a, b, u, v} <> t):
+  Lg.and_intro(ent_ok(n, PE{q, m, a, b, u, v}, fprod(t)), cert_ok(n, t),
+    Lg.and_intro(SN.prime(q), Bool.and(c2(n, q, m), Bool.and(c3(n, q, m, a), Bool.and(c4(n, m, a, b), Bool.and(c5(n, b, u, v), c6(fprod(t), q))))), hq,
+      Lg.and_intro(c2(n, q, m), Bool.and(c3(n, q, m, a), Bool.and(c4(n, m, a, b), Bool.and(c5(n, b, u, v), c6(fprod(t), q)))), iseq(n, Nat.add(Nat.mul(q, m), 1n), e2),
+        Lg.and_intro(c3(n, q, m, a), Bool.and(c4(n, m, a, b), Bool.and(c5(n, b, u, v), c6(fprod(t), q))), iseq(Nat.mod(Nat.pow(a, Nat.mul(q, m)), n), 1n, e3),
+          Lg.and_intro(c4(n, m, a, b), Bool.and(c5(n, b, u, v), c6(fprod(t), q)), iseq(Nat.mod(Nat.pow(a, m), n), b, e4),
+            Lg.and_intro(c5(n, b, u, v), c6(fprod(t), q), iseq(Nat.mul(u, Nat.sub(b, 1n)), Nat.add(Nat.mul(v, n), 1n), e5), Lg.not_false(Nat.is_eq(Nat.mod(fprod(t), q), 0n), e6)))))),
+    ht)
+
+# ---- reading a certificate ----
+
+def s1(+t1: Bool, +t2: Bool, +t3: Bool, +t4: Bool, +t5: Bool, +t6: Bool, +h: {Bool.and(t1, Bool.and(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6))))) == True{} : Bool}) -> {t1 == True{} : Bool}:
+  Lg.and_left(t1, Bool.and(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6)))), h)
+
+def s2(+t1: Bool, +t2: Bool, +t3: Bool, +t4: Bool, +t5: Bool, +t6: Bool, +h: {Bool.and(t1, Bool.and(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6))))) == True{} : Bool}) -> {t2 == True{} : Bool}:
+  Lg.and_left(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6))), Lg.and_right(t1, Bool.and(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6)))), h))
+
+def s3(+t1: Bool, +t2: Bool, +t3: Bool, +t4: Bool, +t5: Bool, +t6: Bool, +h: {Bool.and(t1, Bool.and(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6))))) == True{} : Bool}) -> {t3 == True{} : Bool}:
+  Lg.and_left(t3, Bool.and(t4, Bool.and(t5, t6)), Lg.and_right(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6))), Lg.and_right(t1, Bool.and(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6)))), h)))
+
+def s4(+t1: Bool, +t2: Bool, +t3: Bool, +t4: Bool, +t5: Bool, +t6: Bool, +h: {Bool.and(t1, Bool.and(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6))))) == True{} : Bool}) -> {t4 == True{} : Bool}:
+  Lg.and_left(t4, Bool.and(t5, t6), Lg.and_right(t3, Bool.and(t4, Bool.and(t5, t6)), Lg.and_right(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6))), Lg.and_right(t1, Bool.and(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6)))), h))))
+
+def s5(+t1: Bool, +t2: Bool, +t3: Bool, +t4: Bool, +t5: Bool, +t6: Bool, +h: {Bool.and(t1, Bool.and(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6))))) == True{} : Bool}) -> {t5 == True{} : Bool}:
+  Lg.and_left(t5, t6, Lg.and_right(t4, Bool.and(t5, t6), Lg.and_right(t3, Bool.and(t4, Bool.and(t5, t6)), Lg.and_right(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6))), Lg.and_right(t1, Bool.and(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6)))), h)))))
+
+def s6(+t1: Bool, +t2: Bool, +t3: Bool, +t4: Bool, +t5: Bool, +t6: Bool, +h: {Bool.and(t1, Bool.and(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6))))) == True{} : Bool}) -> {t6 == True{} : Bool}:
+  Lg.and_right(t5, t6, Lg.and_right(t4, Bool.and(t5, t6), Lg.and_right(t3, Bool.and(t4, Bool.and(t5, t6)), Lg.and_right(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6))), Lg.and_right(t1, Bool.and(t2, Bool.and(t3, Bool.and(t4, Bool.and(t5, t6)))), h)))))
+
+# ---- every prime factor r of N is 1 mod F ----
+
+# the quotient (r - 1) / F
+def dw(es: List<&2, PE>, +y: Nat) -> Nat:
+  match es:
+    case Nil{}:
+      y
+    case PE{q, m, a, b, u, v} <> t:
+      Nat.div(dw(t, y), q)
+
+def cert_dvd(es: List<&2, PE>, +nq: Nat, +hc: Cert(2n+nq, es), +rr: Nat, +k: Nat, +hr: PM.Prime(2n+rr), +e: {2n+nq == Nat.mul(k, 2n+rr) : Nat}) -> {1n+rr == Nat.mul(dw(es, 1n+rr), fprod(es)) : Nat}:
+  match es:
+    case Nil{}:
+      Equal.sym(Nat, Nat.mul(1n+rr, 1n), 1n+rr, NA.mul_one(1n+rr))
+    case PE{+q, +m, +a, +b, +u, +v} <> +t:
+      +he = Lg.and_left(ent_ok(2n+nq, PE{q, m, a, b, u, v}, fprod(t)), cert_ok(2n+nq, t), hc)
+      +ht = Lg.and_right(ent_ok(2n+nq, PE{q, m, a, b, u, v}, fprod(t)), cert_ok(2n+nq, t), hc)
+      +hq = s1(SN.prime(q), c2(2n+nq, q, m), c3(2n+nq, q, m, a), c4(2n+nq, m, a, b), c5(2n+nq, b, u, v), c6(fprod(t), q), he)
+      +en = N.eq_from_is_eq(2n+nq, Nat.add(Nat.mul(q, m), 1n), s2(SN.prime(q), c2(2n+nq, q, m), c3(2n+nq, q, m, a), c4(2n+nq, m, a, b), c5(2n+nq, b, u, v), c6(fprod(t), q), he))
+      +h1 = N.eq_from_is_eq(Nat.mod(Nat.pow(a, Nat.mul(q, m)), 2n+nq), 1n, s3(SN.prime(q), c2(2n+nq, q, m), c3(2n+nq, q, m, a), c4(2n+nq, m, a, b), c5(2n+nq, b, u, v), c6(fprod(t), q), he))
+      +hb = N.eq_from_is_eq(Nat.mod(Nat.pow(a, m), 2n+nq), b, s4(SN.prime(q), c2(2n+nq, q, m), c3(2n+nq, q, m, a), c4(2n+nq, m, a, b), c5(2n+nq, b, u, v), c6(fprod(t), q), he))
+      +hz = N.eq_from_is_eq(Nat.mul(u, Nat.sub(b, 1n)), Nat.add(Nat.mul(v, 2n+nq), 1n), s5(SN.prime(q), c2(2n+nq, q, m), c3(2n+nq, q, m, a), c4(2n+nq, m, a, b), c5(2n+nq, b, u, v), c6(fprod(t), q), he))
+      +h6 = Lg.not_true(Nat.is_eq(Nat.mod(fprod(t), q), 0n), s6(SN.prime(q), c2(2n+nq, q, m), c3(2n+nq, q, m, a), c4(2n+nq, m, a, b), c5(2n+nq, b, u, v), c6(fprod(t), q), he))
+      +hqy = OR.step(1n+nq, rr, k, q, m, a, b, u, v, hr, e, hq, en, h1, hb, hz)
+      +s = dw(t, 1n+rr)
+      +f0 = fprod(t)
+      +ih = cert_dvd(t, nq, ht, rr, k, hr, e)
+      +hfs = Equal.trans(Nat, Nat.mod(Nat.mul(f0, s), q), Nat.mod(1n+rr, q), 0n, Equal.cong(Nat, Nat, z => Nat.mod(z, q), Nat.mul(f0, s), 1n+rr, Equal.trans(Nat, Nat.mul(f0, s), Nat.mul(s, f0), 1n+rr, NA.mul_comm(f0, s), Equal.sym(Nat, 1n+rr, Nat.mul(s, f0), ih))), hqy)
+      +es2 = MF.pmod0(q, hq, s, PM.euclid(q, hq, f0, s, hfs, h6))
+      Equal.trans(Nat, 1n+rr, Nat.mul(s, f0), Nat.mul(Nat.div(s, q), Nat.mul(q, f0)), ih, Equal.trans(Nat, Nat.mul(s, f0), Nat.mul(Nat.mul(Nat.div(s, q), q), f0), Nat.mul(Nat.div(s, q), Nat.mul(q, f0)), Equal.cong(Nat, Nat, z => Nat.mul(z, f0), s, Nat.mul(Nat.div(s, q), q), es2), NA.mul_assoc(Nat.div(s, q), q, f0)))
+
+# F <= r - 1
+def fbound(+es: List<&2, PE>, +nq: Nat, +hc: Cert(2n+nq, es), +rr: Nat, +k: Nat, +hr: PM.Prime(2n+rr), +e: {2n+nq == Nat.mul(k, 2n+rr) : Nat}) -> {Nat.is_le(fprod(es), 1n+rr) == True{} : Bool}:
+  PM.dvd_le(1n+rr, dw(es, 1n+rr), fprod(es), cert_dvd(es, nq, hc, rr, k, hr, e), {==})
+
+# ---- no factor x of N with 2 <= x <= F ----
+
+def core2(r: Nat, +hr: PM.Prime(r), +c: Nat, +xq: Nat, +y: Nat, +nq: Nat, +es: List<&2, PE>, +hc: Cert(2n+nq, es), +ex: {2n+xq == Nat.mul(c, r) : Nat}, +e: {2n+nq == Nat.mul(y, 2n+xq) : Nat}, +hx: {Nat.is_le(2n+xq, fprod(es)) == True{} : Bool}) -> Empty:
+  match r:
+    case 0n:
+      Lg.false_true(hr)
+    case 1n:
+      Lg.false_true(hr)
+    case 2n+ +rr:
+      +en = Equal.trans(Nat, 2n+nq, Nat.mul(y, 2n+xq), Nat.mul(Nat.mul(y, c), 2n+rr), e, Equal.trans(Nat, Nat.mul(y, 2n+xq), Nat.mul(y, Nat.mul(c, 2n+rr)), Nat.mul(Nat.mul(y, c), 2n+rr), Equal.cong(Nat, Nat, z => Nat.mul(y, z), 2n+xq, Nat.mul(c, 2n+rr), ex), MF.tr_s(y, c, 2n+rr)))
+      +hb = fbound(es, nq, hc, rr, Nat.mul(y, c), hr, en)
+      +hrx = PM.dvd_le(2n+xq, c, 2n+rr, ex, {==})
+      +le = N.le_trans(2n+rr, 2n+xq, 1n+rr, hrx, N.le_trans(2n+xq, fprod(es), 1n+rr, hx, hb))
+      Lg.true_false(Equal.trans(Bool, True{}, Nat.is_le(2n+rr, 1n+rr), False{}, Equal.sym(Bool, Nat.is_le(2n+rr, 1n+rr), True{}, le), N.lt_not_le(1n+rr, 2n+rr, N.lt_succ(1n+rr))))
+
+def core(+xq: Nat, +y: Nat, +nq: Nat, +es: List<&2, PE>, +hc: Cert(2n+nq, es), +e: {2n+nq == Nat.mul(y, 2n+xq) : Nat}, +hx: {Nat.is_le(2n+xq, fprod(es)) == True{} : Bool}) -> Empty:
+  core2(MF.mf(2n+xq), MF.mf_prime(xq), Nat.div(2n+xq, MF.mf(2n+xq)), xq, y, nq, es, hc, MF.pmod0(MF.mf(2n+xq), MF.mf_prime(xq), 2n+xq, MF.mf_dvd(xq)), e, hx)
+
+# f < k and f < d give f f < k d
+def sq_lt(+f: Nat, +k: Nat, +dp: Nat, +hk: {Nat.is_lt(f, k) == True{} : Bool}, +hd: {Nat.is_lt(f, 1n+dp) == True{} : Bool}) -> {Nat.is_lt(Nat.mul(f, f), Nat.mul(k, 1n+dp)) == True{} : Bool}:
+  +x = Nat.mul(f, 1n+dp)
+  +la = Equal.trans(Bool, Nat.is_le(Nat.mul(f, f), x), Nat.is_le(Nat.mul(f, f), Nat.mul(1n+dp, f)), True{}, Equal.cong(Nat, Bool, z => Nat.is_le(Nat.mul(f, f), z), x, Nat.mul(1n+dp, f), NA.mul_comm(f, 1n+dp)), AR.mul_le(f, 1n+dp, f, N.lt_le(f, 1n+dp, hd)))
+  +l0 = Equal.trans(Bool, Nat.is_le(x, Nat.add(dp, x)), Nat.is_le(x, Nat.add(x, dp)), True{}, Equal.cong(Nat, Bool, z => Nat.is_le(x, z), Nat.add(dp, x), Nat.add(x, dp), NA.add_comm(dp, x)), N.le_add_right(x, dp))
+  +lb = N.le_lt_succ(x, Nat.add(dp, x), l0)
+  +lc = AR.mul_le(1n+f, k, 1n+dp, N.lt_succ_le_succ(f, k, hk))
+  N.lt_le_trans(Nat.mul(f, f), Nat.mul(1n+f, 1n+dp), Nat.mul(k, 1n+dp), N.le_lt_trans(Nat.mul(f, f), x, Nat.mul(1n+f, 1n+dp), la, lb), lc)
+
+def big(+nq: Nat, +es: List<&2, PE>, +hc: Cert(2n+nq, es), +hf: {Nat.is_le(2n+nq, Nat.mul(fprod(es), fprod(es))) == True{} : Bool}, +dq: Nat, +kq: Nat, +e: {2n+nq == Nat.mul(2n+kq, 2n+dq) : Nat}, +hd: {Nat.is_le(2n+dq, fprod(es)) == False{} : Bool}, c: Bool, +h3: {Nat.is_le(2n+kq, fprod(es)) == c : Bool}) -> Empty:
+  match c:
+    case True{}:
+      core(kq, 2n+dq, nq, es, hc, Equal.trans(Nat, 2n+nq, Nat.mul(2n+kq, 2n+dq), Nat.mul(2n+dq, 2n+kq), e, NA.mul_comm(2n+kq, 2n+dq)), h3)
+    case False{}:
+      +f = fprod(es)
+      +hl = sq_lt(f, 2n+kq, 1n+dq, N.not_le_lt(2n+kq, f, h3), N.not_le_lt(2n+dq, f, hd))
+      +hl2 = Equal.trans(Bool, Nat.is_lt(Nat.mul(f, f), 2n+nq), Nat.is_lt(Nat.mul(f, f), Nat.mul(2n+kq, 2n+dq)), True{}, Equal.cong(Nat, Bool, z => Nat.is_lt(Nat.mul(f, f), z), 2n+nq, Nat.mul(2n+kq, 2n+dq), e), hl)
+      Lg.true_false(Equal.trans(Bool, True{}, Nat.is_le(2n+nq, Nat.mul(f, f)), False{}, Equal.sym(Bool, Nat.is_le(2n+nq, Nat.mul(f, f)), True{}, hf), N.lt_not_le(Nat.mul(f, f), 2n+nq, hl2)))
+
+def kcase(+nq: Nat, +es: List<&2, PE>, +hc: Cert(2n+nq, es), +hf: {Nat.is_le(2n+nq, Nat.mul(fprod(es), fprod(es))) == True{} : Bool}, +dq: Nat, k: Nat, +e: {2n+nq == Nat.mul(k, 2n+dq) : Nat}, +hlt: {Nat.is_lt(2n+dq, 2n+nq) == True{} : Bool}, +hd: {Nat.is_le(2n+dq, fprod(es)) == False{} : Bool}) -> Empty:
+  match k:
+    case 0n:
+      N.succ_zero(1n+nq, e)
+    case 1n:
+      N.lt_ne(2n+dq, 2n+nq, hlt, Equal.sym(Nat, 2n+nq, 2n+dq, Equal.trans(Nat, 2n+nq, Nat.mul(1n, 2n+dq), 2n+dq, e, SR.one_mul(2n+dq))))
+    case 2n+ +kq:
+      big(nq, es, hc, hf, dq, kq, e, hd, Nat.is_le(2n+kq, fprod(es)), {==})
+
+def dcase(+nq: Nat, +es: List<&2, PE>, +hc: Cert(2n+nq, es), +hf: {Nat.is_le(2n+nq, Nat.mul(fprod(es), fprod(es))) == True{} : Bool}, +dq: Nat, +hlt: {Nat.is_lt(2n+dq, 2n+nq) == True{} : Bool}, +hdiv: {Nat.mod(2n+nq, 2n+dq) == 0n : Nat}, c: Bool, +h2: {Nat.is_le(2n+dq, fprod(es)) == c : Bool}) -> Empty:
+  match c:
+    case True{}:
+      core(dq, Nat.div(2n+nq, 2n+dq), nq, es, hc, PM.mod0_eq(1n+dq, 2n+nq, hdiv), h2)
+    case False{}:
+      kcase(nq, es, hc, hf, dq, Nat.div(2n+nq, 2n+dq), PM.mod0_eq(1n+dq, 2n+nq, hdiv), hlt, h2)
+
+def ndiv(+nq: Nat, +es: List<&2, PE>, +hc: Cert(2n+nq, es), +hf: {Nat.is_le(2n+nq, Nat.mul(fprod(es), fprod(es))) == True{} : Bool}, +dq: Nat, +hlt: {Nat.is_lt(2n+dq, 2n+nq) == True{} : Bool}, c: Bool, +hcc: {Nat.is_eq(Nat.mod(2n+nq, 2n+dq), 0n) == c : Bool}) -> {Nat.is_eq(Nat.mod(2n+nq, 2n+dq), 0n) == False{} : Bool}:
+  match c:
+    case False{}:
+      hcc
+    case True{}:
+      Empty.absurd({Nat.is_eq(Nat.mod(2n+nq, 2n+dq), 0n) == False{} : Bool}, dcase(nq, es, hc, hf, dq, hlt, N.eq_from_is_eq(Nat.mod(2n+nq, 2n+dq), 0n, hcc), Nat.is_le(2n+dq, fprod(es)), {==}))
+
+def nd_all(cnt: Nat, +nq: Nat, +es: List<&2, PE>, +hc: Cert(2n+nq, es), +hf: {Nat.is_le(2n+nq, Nat.mul(fprod(es), fprod(es))) == True{} : Bool}, +dq: Nat, +hb: {Nat.add(cnt, dq) == nq : Nat}) -> {SN.nodiv(cnt, 2n+nq, 2n+dq) == True{} : Bool}:
+  match cnt:
+    case 0n:
+      {==}
+    case 1n+ +i:
+      +eqn = Equal.trans(Nat, 1n+Nat.add(dq, i), 1n+Nat.add(i, dq), nq, Equal.cong(Nat, Nat, z => 1n+z, Nat.add(dq, i), Nat.add(i, dq), NA.add_comm(dq, i)), hb)
+      +hlt = Equal.trans(Bool, Nat.is_lt(dq, nq), Nat.is_lt(dq, 1n+Nat.add(dq, i)), True{}, Equal.cong(Nat, Bool, z => Nat.is_lt(dq, z), nq, 1n+Nat.add(dq, i), Equal.sym(Nat, 1n+Nat.add(dq, i), nq, eqn)), N.le_lt_succ(dq, Nat.add(dq, i), N.le_add_right(dq, i)))
+      Lg.and_intro(Bool.not(Nat.is_eq(Nat.mod(2n+nq, 2n+dq), 0n)), SN.nodiv(i, 2n+nq, 3n+dq), Lg.not_false(Nat.is_eq(Nat.mod(2n+nq, 2n+dq), 0n), ndiv(nq, es, hc, hf, dq, hlt, Nat.is_eq(Nat.mod(2n+nq, 2n+dq), 0n), {==})), nd_all(i, nq, es, hc, hf, 1n+dq, Equal.trans(Nat, Nat.add(i, 1n+dq), 1n+Nat.add(i, dq), nq, NA.add_succ(i, dq), hb)))
+
+def pock_s(+nq: Nat, +es: List<&2, PE>, +hc: Cert(2n+nq, es), +hf: {Nat.is_le(2n+nq, Nat.mul(fprod(es), fprod(es))) == True{} : Bool}) -> PM.Prime(2n+nq):
+  nd_all(nq, nq, es, hc, hf, 0n, NA.add_zero(nq))
+
+# Pocklington: a certificate for N = 2 + nq with N <= F F makes N prime
+def pocklington(+n: Nat, +nq: Nat, +hn: {n == 2n+nq : Nat}, +es: List<&2, PE>, +hc: Cert(n, es), +hf: {Nat.is_le(n, Nat.mul(fprod(es), fprod(es))) == True{} : Bool}) -> PM.Prime(n):
+  Equal.trans(Bool, SN.prime(n), SN.prime(2n+nq), True{}, Equal.cong(Nat, Bool, z => SN.prime(z), n, 2n+nq, hn),
+    pock_s(nq, es,
+      Equal.trans(Bool, cert_ok(2n+nq, es), cert_ok(n, es), True{}, Equal.cong(Nat, Bool, z => cert_ok(z, es), 2n+nq, n, Equal.sym(Nat, n, 2n+nq, hn)), hc),
+      Equal.trans(Bool, Nat.is_le(2n+nq, Nat.mul(fprod(es), fprod(es))), Nat.is_le(n, Nat.mul(fprod(es), fprod(es))), True{}, Equal.cong(Nat, Bool, z => Nat.is_le(z, Nat.mul(fprod(es), fprod(es))), 2n+nq, n, Equal.sym(Nat, n, 2n+nq, hn)), hf)))
