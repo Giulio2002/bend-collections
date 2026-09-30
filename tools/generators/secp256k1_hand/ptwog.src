@@ -1,0 +1,93 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../spec/crypto/secp256k1/curve.bend as CV
+import ../../../spec/crypto/secp256k1/group.bend as GS
+import ../../../src/crypto/secp256k1/limbs.bend as L
+import ../../../src/crypto/secp256k1/point.bend as P
+import ../../../src/crypto/secp256k1/pt.bend as PX
+import ../../lib/logic.bend as Lg
+import ./lite/math/number/nt_prime.bend as NP
+import ./lite/crypto/secp256k1/group/glawp.bend as GP
+import ./lite/crypto/secp256k1/group/glaw4.bend as G4
+import ../../../spec/crypto/secp256k1/encoding.bend as EN
+import ./lite/crypto/secp256k1/group/encv.bend as EV
+import ./lite/crypto/secp256k1/group/gfp.bend as GF
+import ./lite/crypto/secp256k1/group/certb.bend as CB
+import ./point.bend as PT
+import ./ptp.bend as PP
+import ./sel.bend as SL
+import ./paff.bend as PA
+import ./paq.bend as AQ
+import ./pmul.bend as PB
+import ./pmulg.bend as PG
+import ./pwin.bend as PW
+import ./ptwo.bend as TW
+
+# [u1] G + [u2] R by the Strauss multiplication (P.mul2) on the group of
+# spec/crypto/secp256k1/group.bend: a point of the group, the same
+# projective point as the specification's [u1] G + [u2] R, so the same
+# point at infinity and the same affine coordinates (hp, hc: the group law's
+# hypotheses).
+
+def vg2(+one: Nat, +h1: {one == 1n : Nat}) -> {GS.valid(FS.prime(one), PP.pv(one, P.to_pt(P.g()))) == True{} : Bool}:
+  %rw PT.tp_v(one, P.g(), PA.g_r(one, h1))
+  PG.g_vd(one, h1)
+
+def vq2(+one: Nat, +pr: P.Point, +hpr: {PT.pred(one, pr) == True{} : Bool}, +vq: {GS.valid(FS.prime(one), PT.pv(one, pr)) == True{} : Bool}) -> {GS.valid(FS.prime(one), PP.pv(one, P.to_pt(pr))) == True{} : Bool}:
+  %rw PT.tp_v(one, pr, hpr)
+  vq
+
+def mul2_vd(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +u1: List<&2, Nat>, +hu1: {FS.reduced(one, FS.order(one), u1) == True{} : Bool}, +u2: List<&2, Nat>, +hu2: {FS.reduced(one, FS.order(one), u2) == True{} : Bool}, +pr: P.Point, +hpr: {PT.pred(one, pr) == True{} : Bool}, +vq: {GS.valid(FS.prime(one), PT.pv(one, pr)) == True{} : Bool}) -> {GS.valid(FS.prime(one), PT.pv(one, P.mul2(u1, u2, pr))) == True{} : Bool}:
+  %goal {GS.valid(FS.prime(one), PT.pv(one, P.of_pt(PX.smul2(L.bitsf(u1), L.bitsf(u2), P.to_pt(P.g()), P.to_pt(pr))))) == True{} : Bool}
+  %rw PT.op_v(one, PX.smul2(L.bitsf(u1), L.bitsf(u2), P.to_pt(P.g()), P.to_pt(pr)))
+  PW.smul2_vd(one, h1, hp, hc, L.bitsf(u1), L.bitsf(u2), P.to_pt(P.g()), P.to_pt(pr), PT.tp_r(one, P.g(), PA.g_r(one, h1)), PT.tp_r(one, pr, hpr), vg2(one, h1), vq2(one, pr, hpr, vq))
+
+# [u1] G + [u2] R as the loop's J(u1, u2)
+def mul2_j(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +u1: List<&2, Nat>, +hu1: {FS.reduced(one, FS.order(one), u1) == True{} : Bool}, +u2: List<&2, Nat>, +hu2: {FS.reduced(one, FS.order(one), u2) == True{} : Bool}, +pr: P.Point, +hpr: {PT.pred(one, pr) == True{} : Bool}, +vq: {GS.valid(FS.prime(one), PT.pv(one, pr)) == True{} : Bool}) -> {GS.equiv(FS.prime(one), PT.pv(one, P.mul2(u1, u2, pr)), CV.padd(FS.prime(one), GS.smul(FS.prime(one), FS.value(one, u1), CV.g(one)), GS.smul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr)))) == True{} : Bool}:
+  +l1 = SL.sl16(one, u1, hu1)
+  +l2 = SL.sl16(one, u2, hu2)
+  %goal {GS.equiv(FS.prime(one), PT.pv(one, P.of_pt(PX.smul2(L.bitsf(u1), L.bitsf(u2), P.to_pt(P.g()), P.to_pt(pr)))), CV.padd(FS.prime(one), GS.smul(FS.prime(one), FS.value(one, u1), CV.g(one)), GS.smul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr)))) == True{} : Bool}
+  %rw PT.op_v(one, PX.smul2(L.bitsf(u1), L.bitsf(u2), P.to_pt(P.g()), P.to_pt(pr)))
+  %rw <- PG.bvl_v(one, h1, u1, l1)
+  %rw <- PG.bvl_v(one, h1, u2, l2)
+  %rw <- PA.g_v(one, h1)
+  %rw <- PT.tp_v(one, P.g(), PA.g_r(one, h1))
+  %rw <- PT.tp_v(one, pr, hpr)
+  PW.smul2_e(one, h1, hp, hc, L.bitsf(u1), L.bitsf(u2), P.to_pt(P.g()), P.to_pt(pr), PT.tp_r(one, P.g(), PA.g_r(one, h1)), PT.tp_r(one, pr, hpr), vg2(one, h1), vq2(one, pr, hpr, vq), PB.lbits01(one, h1, u1, l1), PB.lbits01(one, h1, u2, l2), PB.ok44_f(one, u1, u2, l1, l2))
+
+# and the specification's [u1] G + [u2] R
+def mul2_q(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +u1: List<&2, Nat>, +hu1: {FS.reduced(one, FS.order(one), u1) == True{} : Bool}, +u2: List<&2, Nat>, +hu2: {FS.reduced(one, FS.order(one), u2) == True{} : Bool}, +pr: P.Point, +hpr: {PT.pred(one, pr) == True{} : Bool}, +vq: {GS.valid(FS.prime(one), PT.pv(one, pr)) == True{} : Bool}) -> {GS.equiv(FS.prime(one), PT.pv(one, P.mul2(u1, u2, pr)), CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, u1), CV.g(one)), CV.pmul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr)))) == True{} : Bool}:
+  +l1 = SL.sl16(one, u1, hu1)
+  +l2 = SL.sl16(one, u2, hu2)
+  +s1 = GS.smul(FS.prime(one), FS.value(one, u1), CV.g(one))
+  +s2 = GS.smul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr))
+  +m1 = CV.pmul(FS.prime(one), FS.value(one, u1), CV.g(one))
+  +m2 = CV.pmul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr))
+  +vs1 = GP.scalar_closed(one, h1, hp, hc, FS.value(one, u1), CV.g(one), AQ.g_valid(one, h1))
+  +vs2 = GP.scalar_closed(one, h1, hp, hc, FS.value(one, u2), PT.pv(one, pr), vq)
+  +vm1 = GP.scalar_pmul_closed(one, h1, hp, hc, FS.value(one, u1), CV.g(one), AQ.g_valid(one, h1))
+  +vm2 = GP.scalar_pmul_closed(one, h1, hp, hc, FS.value(one, u2), PT.pv(one, pr), vq)
+  +e1 = GP.equiv_sym(one, h1, hp, hc, m1, s1, GP.scalar_pmul(one, h1, hp, hc, FS.value(one, u1), CV.g(one), AQ.g_valid(one, h1), PG.fits_v(one, h1, u1, l1)))
+  +e2 = GP.equiv_sym(one, h1, hp, hc, m2, s2, GP.scalar_pmul(one, h1, hp, hc, FS.value(one, u2), PT.pv(one, pr), vq, PG.fits_v(one, h1, u2, l2)))
+  GP.equiv_trans(one, h1, hp, hc, PT.pv(one, P.mul2(u1, u2, pr)), CV.padd(FS.prime(one), s1, s2), CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, u1), CV.g(one)), CV.pmul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr))), GP.group_closed(one, h1, hp, hc, s1, s2, vs1, vs2), mul2_j(one, h1, hp, hc, u1, hu1, u2, hu2, pr, hpr, vq), GP.equiv_trans(one, h1, hp, hc, CV.padd(FS.prime(one), s1, s2), CV.padd(FS.prime(one), m1, s2), CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, u1), CV.g(one)), CV.pmul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr))), GP.group_closed(one, h1, hp, hc, m1, s2, vm1, vs2), GP.equiv_add_left(one, h1, hp, hc, s1, m1, s2, vs1, vm1, e1), GP.equiv_add_right(one, h1, hp, hc, m1, s2, m2, vs2, vm2, e2)))
+
+def spec_vd(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +u1: List<&2, Nat>, +hu1: {FS.reduced(one, FS.order(one), u1) == True{} : Bool}, +u2: List<&2, Nat>, +hu2: {FS.reduced(one, FS.order(one), u2) == True{} : Bool}, +pr: P.Point, +hpr: {PT.pred(one, pr) == True{} : Bool}, +vq: {GS.valid(FS.prime(one), PT.pv(one, pr)) == True{} : Bool}) -> {GS.valid(FS.prime(one), CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, u1), CV.g(one)), CV.pmul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr)))) == True{} : Bool}:
+  GP.group_closed(one, h1, hp, hc, CV.pmul(FS.prime(one), FS.value(one, u1), CV.g(one)), CV.pmul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr)), GP.scalar_pmul_closed(one, h1, hp, hc, FS.value(one, u1), CV.g(one), AQ.g_valid(one, h1)), GP.scalar_pmul_closed(one, h1, hp, hc, FS.value(one, u2), PT.pv(one, pr), vq))
+
+# the same point at infinity
+def two_inf(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +u1: List<&2, Nat>, +hu1: {FS.reduced(one, FS.order(one), u1) == True{} : Bool}, +u2: List<&2, Nat>, +hu2: {FS.reduced(one, FS.order(one), u2) == True{} : Bool}, +pr: P.Point, +hpr: {PT.pred(one, pr) == True{} : Bool}, +vq: {GS.valid(FS.prime(one), PT.pv(one, pr)) == True{} : Bool}) -> {CV.is_inf(PT.pv(one, P.mul2(u1, u2, pr))) == CV.is_inf(CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, u1), CV.g(one)), CV.pmul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr)))) : Bool}:
+  +ho = TW.two_r(one, h1, u1, hu1, u2, hu2, pr, hpr)
+  +eo = TW.two_v(one, h1, u1, hu1, u2, hu2, pr, hpr)
+  +vo = Lg.subst(CV.SPoint, t => {GS.valid(FS.prime(one), t) == True{} : Bool}, CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, u1), CV.g(one)), CV.pmul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr))), PT.pv(one, P.add(P.mul_pub(u1, P.g()), P.mul_pub(u2, pr))), Equal.sym(CV.SPoint, PT.pv(one, P.add(P.mul_pub(u1, P.g()), P.mul_pub(u2, pr))), CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, u1), CV.g(one)), CV.pmul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr))), eo), spec_vd(one, h1, hp, hc, u1, hu1, u2, hu2, pr, hpr, vq))
+  +hq = Lg.subst(CV.SPoint, t => {GS.equiv(FS.prime(one), PT.pv(one, P.mul2(u1, u2, pr)), t) == True{} : Bool}, CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, u1), CV.g(one)), CV.pmul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr))), PT.pv(one, P.add(P.mul_pub(u1, P.g()), P.mul_pub(u2, pr))), Equal.sym(CV.SPoint, PT.pv(one, P.add(P.mul_pub(u1, P.g()), P.mul_pub(u2, pr))), CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, u1), CV.g(one)), CV.pmul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr))), eo), mul2_q(one, h1, hp, hc, u1, hu1, u2, hu2, pr, hpr, vq))
+  %rw <- TW.two_v(one, h1, u1, hu1, u2, hu2, pr, hpr)
+  AQ.inf_q(one, h1, hp, P.mul2(u1, u2, pr), P.add(P.mul_pub(u1, P.g()), P.mul_pub(u2, pr)), TW.mul2_r(one, h1, u1, hu1, u2, hu2, pr, hpr), ho, mul2_vd(one, h1, hp, hc, u1, hu1, u2, hu2, pr, hpr, vq), vo, hq)
+
+# the same affine coordinates
+def two_aff(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +u1: List<&2, Nat>, +hu1: {FS.reduced(one, FS.order(one), u1) == True{} : Bool}, +u2: List<&2, Nat>, +hu2: {FS.reduced(one, FS.order(one), u2) == True{} : Bool}, +pr: P.Point, +hpr: {PT.pred(one, pr) == True{} : Bool}, +vq: {GS.valid(FS.prime(one), PT.pv(one, pr)) == True{} : Bool}) -> {CV.to_affine(FS.prime(one), PT.pv(one, P.mul2(u1, u2, pr))) == CV.to_affine(FS.prime(one), CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, u1), CV.g(one)), CV.pmul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr)))) : CV.SAffine}:
+  AQ.ta_q(one, h1, hp, PT.pv(one, P.mul2(u1, u2, pr)), CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, u1), CV.g(one)), CV.pmul(FS.prime(one), FS.value(one, u2), PT.pv(one, pr))), mul2_vd(one, h1, hp, hc, u1, hu1, u2, hu2, pr, hpr, vq), spec_vd(one, h1, hp, hc, u1, hu1, u2, hu2, pr, hpr, vq), mul2_q(one, h1, hp, hc, u1, hu1, u2, hu2, pr, hpr, vq))
+
+# a decompressed point is a point of the group
+def dec_vd(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +x: Nat, +par: Nat, +hx: {Nat.is_lt(x, FS.prime(one)) == True{} : Bool}) -> {EN.decoded_ok(FS.prime(one), CV.decompress(FS.prime(one), x, par)) == True{} : Bool}:
+  Lg.subst(Nat, p => {EN.decoded_ok(p, CV.decompress(p, x, par)) == True{} : Bool}, 1n+GF.pm(one), FS.prime(one), Equal.sym(Nat, FS.prime(one), 1n+GF.pm(one), CB.p_suc(one, h1)), EV.dy_ok(GF.pm(one), GF.hp_m(one, h1, hp), CB.p_mod3(one, h1), GF.hc_m(one, h1, hc), GF.h21_m(one, h1), x, par, Lg.subst(Nat, p => {Nat.is_lt(x, p) == True{} : Bool}, FS.prime(one), 1n+GF.pm(one), CB.p_suc(one, h1), hx)))

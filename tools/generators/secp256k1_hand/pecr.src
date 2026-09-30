@@ -1,4 +1,6 @@
 import Base
+import ./lite/math/number/nt_prime.bend as NP
+import ../../../spec/crypto/secp256k1/field.bend as FS
 import ../../../spec/crypto/secp256k1/curve.bend as CV
 import ../../../spec/crypto/secp256k1/ecdsa.bend as ES
 import ../../../src/crypto/secp256k1/bytes.bend as B
@@ -34,16 +36,16 @@ def aw_v(m: Maybe<&2, List<&2, U32>>) -> {E.addr_word(m) == ES.addr_word(m) : Ma
       %rwh PET.eth_address_v(pk) : {E.eth_address(pk) == ES.eth_address(pk) : Maybe<&2, List<&2, U32>>}
       ew_v(ES.eth_address(pk))
 
-def ecv(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +rs: List<&2, U32>, +v: U32, ok: Bool) -> {E.ecrecover_v(h, rs, v, ok) == ES.ecrecover_v(one, h, rs, v, ok) : Maybe<&2, List<&2, U32>>}:
+def ecv(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +h: List<&2, U32>, +rs: List<&2, U32>, +v: U32, ok: Bool) -> {E.ecrecover_v(h, rs, v, ok) == ES.ecrecover_v(one, h, rs, v, ok) : Maybe<&2, List<&2, U32>>}:
   match ok:
     case True{}:
       %goal {E.addr_word(E.recover(h, List.append(&2, U32, rs, [U32.sub(v, 27)]))) == ES.addr_word(ES.recover(one, h, List.append(&2, U32, rs, [U32.sub(v, 27)]))) : Maybe<&2, List<&2, U32>>}
-      %rw PR.recover_v(one, h1, h, List.append(&2, U32, rs, [U32.sub(v, 27)]))
+      %rw PR.recover_v(one, h1, gp, gc, h, List.append(&2, U32, rs, [U32.sub(v, 27)]))
       aw_v(ES.recover(one, h, List.append(&2, U32, rs, [U32.sub(v, 27)])))
     case False{}:
       {==}
 
-def ecin(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, U32>) -> {E.ecrecover_in(x) == ES.ecrecover_in(one, x) : Maybe<&2, List<&2, U32>>}:
+def ecin(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +x: List<&2, U32>) -> {E.ecrecover_in(x) == ES.ecrecover_in(one, x) : Maybe<&2, List<&2, U32>>}:
   %goal {E.ecrecover_v(B.prefix(32n, x), B.suffix(64n, x), B.head(B.suffix(31n, B.prefix(32n, B.suffix(32n, x)))), Bool.and(E.zeros_ok(B.prefix(31n, B.prefix(32n, B.suffix(32n, x)))), Bool.or(U32.is_eq(B.head(B.suffix(31n, B.prefix(32n, B.suffix(32n, x)))), 27), U32.is_eq(B.head(B.suffix(31n, B.prefix(32n, B.suffix(32n, x)))), 28)))) == ES.ecrecover_v(one, CV.first(32n, x), CV.after(64n, x), CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), Bool.and(ES.all_zero(CV.first(31n, CV.first(32n, CV.after(32n, x)))), Bool.or(U32.is_eq(CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), 27), U32.is_eq(CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), 28)))) : Maybe<&2, List<&2, U32>>}
   %rw BL.suffix_after(32n, x)
   %rw BL.suffix_after(32n, x)
@@ -63,10 +65,10 @@ def ecin(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, U32>) -> {E.ecrecover_i
   %rw zeros_v(CV.first(31n, CV.first(32n, CV.after(32n, x))))
   %rw BL.prefix_first(32n, x)
   %rw BL.suffix_after(64n, x)
-  ecv(one, h1, CV.first(32n, x), CV.after(64n, x), CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), Bool.and(ES.all_zero(CV.first(31n, CV.first(32n, CV.after(32n, x)))), Bool.or(U32.is_eq(CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), 27), U32.is_eq(CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), 28))))
+  ecv(one, h1, gp, gc, CV.first(32n, x), CV.after(64n, x), CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), Bool.and(ES.all_zero(CV.first(31n, CV.first(32n, CV.after(32n, x)))), Bool.or(U32.is_eq(CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), 27), U32.is_eq(CV.head(CV.after(31n, CV.first(32n, CV.after(32n, x)))), 28))))
 
 # the ECRECOVER precompile
-def ecrecover_v(+one: Nat, +h1: {one == 1n : Nat}, +input: List<&2, U32>) -> {E.ecrecover(input) == ES.ecrecover(one, input) : Maybe<&2, List<&2, U32>>}:
+def ecrecover_v(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +input: List<&2, U32>) -> {E.ecrecover(input) == ES.ecrecover(one, input) : Maybe<&2, List<&2, U32>>}:
   %goal {E.ecrecover_in(B.prefix(128n, List.append(&2, U32, input, List.replicate(U32, 128n, 0)))) == ES.ecrecover_in(one, CV.first(128n, List.append(&2, U32, input, List.replicate(U32, 128n, 0)))) : Maybe<&2, List<&2, U32>>}
   %rw BL.prefix_first(128n, List.append(&2, U32, input, List.replicate(U32, 128n, 0)))
-  ecin(one, h1, CV.first(128n, List.append(&2, U32, input, List.replicate(U32, 128n, 0))))
+  ecin(one, h1, gp, gc, CV.first(128n, List.append(&2, U32, input, List.replicate(U32, 128n, 0))))

@@ -1,4 +1,7 @@
 import Base
+import ../../../src/crypto/secp256k1/pt.bend as PX
+import ./pwr.bend as WR
+import ../../../src/crypto/secp256k1/limbs.bend as L
 import ../../../spec/crypto/secp256k1/field.bend as FS
 import ../../../spec/crypto/secp256k1/curve.bend as CV
 import ../../../src/crypto/secp256k1/point.bend as P
@@ -21,3 +24,7 @@ def two_v(+one: Nat, +h1: {one == 1n : Nat}, +u1: List<&2, Nat>, +hu1: {FS.reduc
   %rw PM.mul_pub_v(one, h1, u2, pr, SL.sl16(one, u2, hu2), hpr)
   %rw PA.g_v(one, h1)
   %close
+
+# the Strauss multiplication (P.mul2) is a point of the representation
+def mul2_r(+one: Nat, +h1: {one == 1n : Nat}, +u1: List<&2, Nat>, +hu1: {FS.reduced(one, FS.order(one), u1) == True{} : Bool}, +u2: List<&2, Nat>, +hu2: {FS.reduced(one, FS.order(one), u2) == True{} : Bool}, +pr: P.Point, +hpr: {PT.pred(one, pr) == True{} : Bool}) -> {PT.pred(one, P.mul2(u1, u2, pr)) == True{} : Bool}:
+  PT.op_r(one, PX.smul2(L.bitsf(u1), L.bitsf(u2), P.to_pt(P.g()), P.to_pt(pr)), WR.smul2_r(one, h1, L.bitsf(u1), L.bitsf(u2), P.to_pt(P.g()), P.to_pt(pr), PT.tp_r(one, P.g(), PA.g_r(one, h1)), PT.tp_r(one, pr, hpr)))

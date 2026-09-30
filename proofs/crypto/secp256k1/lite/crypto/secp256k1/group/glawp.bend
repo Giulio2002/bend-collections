@@ -10,6 +10,7 @@ import ../../../math/number/nt_prime.bend as PM
 import ./gfp.bend as GF
 import ./glaw1.bend as G1
 import ./glaw2.bend as G2
+import ./glaw3.bend as G3
 import ./glaw4.bend as G4
 import ./certb.bend as CB
 
@@ -34,6 +35,16 @@ def group_infinity(+one: Nat, +h1: {one == 1n : Nat}, +hp: PM.Prime(FS.prime(one
 # A + B = B + A, as triples
 def group_commutative(+one: Nat, +h1: {one == 1n : Nat}, +hp: PM.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +a: CS.SPoint, +b: CS.SPoint) -> {CS.padd(FS.prime(one), a, b) == CS.padd(FS.prime(one), b, a) : CS.SPoint}:
   Lg.subst(Nat, p => {CS.padd(p, a, b) == CS.padd(p, b, a) : CS.SPoint}, 1n+GF.pm(one), FS.prime(one), Equal.sym(Nat, FS.prime(one), 1n+GF.pm(one), CB.p_suc(one, h1)), G1.add_comm(GF.pm(one), a, b))
+
+
+# (A + B) + C and A + (B + C) are the same projective point
+def group_associative(+one: Nat, +h1: {one == 1n : Nat}, +hp: PM.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +a: CS.SPoint, +b: CS.SPoint, +c: CS.SPoint, +va: {GS.valid(FS.prime(one), a) == True{} : Bool}, +vb: {GS.valid(FS.prime(one), b) == True{} : Bool}, +vc: {GS.valid(FS.prime(one), c) == True{} : Bool}) -> {GS.equiv(FS.prime(one), CS.padd(FS.prime(one), CS.padd(FS.prime(one), a, b), c), CS.padd(FS.prime(one), a, CS.padd(FS.prime(one), b, c))) == True{} : Bool}:
+  Lg.subst(Nat, p => {GS.equiv(p, CS.padd(p, CS.padd(p, a, b), c), CS.padd(p, a, CS.padd(p, b, c))) == True{} : Bool}, 1n+GF.pm(one), FS.prime(one), Equal.sym(Nat, FS.prime(one), 1n+GF.pm(one), CB.p_suc(one, h1)), G3.assoc(GF.pm(one), a, b, c, Lg.subst(Nat, p => {GS.valid(p, a) == True{} : Bool}, FS.prime(one), 1n+GF.pm(one), CB.p_suc(one, h1), va), Lg.subst(Nat, p => {GS.valid(p, b) == True{} : Bool}, FS.prime(one), 1n+GF.pm(one), CB.p_suc(one, h1), vb), Lg.subst(Nat, p => {GS.valid(p, c) == True{} : Bool}, FS.prime(one), 1n+GF.pm(one), CB.p_suc(one, h1), vc)))
+
+
+# A + O is A
+def group_identity(+one: Nat, +h1: {one == 1n : Nat}, +hp: PM.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +a: CS.SPoint) -> {GS.equiv(FS.prime(one), CS.padd(FS.prime(one), a, CS.infinity()), a) == True{} : Bool}:
+  Lg.subst(Nat, p => {GS.equiv(p, CS.padd(p, a, CS.infinity()), a) == True{} : Bool}, 1n+GF.pm(one), FS.prime(one), Equal.sym(Nat, FS.prime(one), 1n+GF.pm(one), CB.p_suc(one, h1)), G2.unit(GF.pm(one), a))
 
 
 # the doubling program is A + A, as triples

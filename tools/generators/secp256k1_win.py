@@ -179,12 +179,8 @@ def tabp_vd(%(H)s, +i: Nat, +a: PX.PT, +ha: %(pa)s, +va: %(vpa)s) -> %(vt)s:
   %%rw tabp_v(one, h1, i, a, ha)
   GP.scalar_closed(%(A)s, i, PP.pv(one, a), va)
 
-# ---- the selection: a tree of picks ----
-
-def pick(b: Nat, +x: PX.PT, +y: PX.PT) -> PX.PT:
-  match b:
-    case 0n: y
-    case 1n+k: x
+# ---- the selection: a tree of picks (PX.pick, the branch the public
+# selection of pt.bend uses) ----
 
 def sel_pick(+one: Nat, +h1: {one == 1n : Nat}, b: Nat, +x: PX.PT, +y: PX.PT, +hb: {Nat.is_lt(b, 2n) == True{} : Bool}, +hx: %(px)s, +hy: %(py)s) -> {PX.select(b, x, y) == pick(b, x, y) : PX.PT}:
   match b:
@@ -421,12 +417,394 @@ def wmul_e(%(H)s, bs: List<&2, Nat>, +a: PX.PT, +ha: %(pa)s, +va: %(vpa)s, +hb: 
            cr=pd('PX.wmul(bs, a)'), cv=vd('PP.pv(one, PX.wmul(bs, a))'),
            ce=eq('PP.pv(one, PX.wmul(bs, a))', smul('G4.bvl(bs, 0n)', 'PP.pv(one, a)'))))
 
+# ---- two scalars on one chain of doublings (pt.bend tpick, sgo, smul2) ----
+#
+# The invariant of the loop: r is [v] A + [w] B (J(v, w) below) for the
+# numbers v and w the bits read so far spell.
+
+def J(v, w, A='A', B='B'):
+    return padd(smul(v, A), smul(w, B))
+
+
+def trans(a, b, c, vb, hab, hbc):
+    return 'GP.equiv_trans(%s, %s, %s, %s, %s, %s, %s)' % (ARG, a, b, c, vb, hab, hbc)
+
+
+def cl(a, b, va, vb):
+    return 'GP.group_closed(%s, %s, %s, %s, %s)' % (ARG, a, b, va, vb)
+
+
+def sc(k, a, va):
+    return 'GP.scalar_closed(%s, %s, %s, %s)' % (ARG, k, a, va)
+
+
+def asc(a, b, c, va, vb, vc):
+    return 'GP.group_associative(%s, %s, %s, %s, %s, %s, %s)' % (ARG, a, b, c, va, vb, vc)
+
+
+def esym(a, b, h):
+    return 'GP.equiv_sym(%s, %s, %s, %s)' % (ARG, a, b, h)
+
+
+def eal(a, a2, b, va, va2, h):
+    return 'GP.equiv_add_left(%s, %s, %s, %s, %s, %s, %s)' % (ARG, a, a2, b, va, va2, h)
+
+
+def ear(a, b, b2, vb, vb2, h):
+    return 'GP.equiv_add_right(%s, %s, %s, %s, %s, %s, %s)' % (ARG, a, b, b2, vb, vb2, h)
+
+
+def comm_sub(a, b, c, lhs, rhs_of):
+    """equiv(lhs, rhs_of(padd(c, b))) from lhs = rhs_of(padd(b, c)): the
+    commutativity of the group (an equation) under a context"""
+    return 'Lg.subst(CV.SPoint, t => %s, %s, %s, GP.group_commutative(%s, %s, %s), GP.equiv_refl(%s, %s))' % (
+        eq(lhs, rhs_of('t')), padd(b, c), padd(c, b), ARG, b, c, ARG, lhs)
+
+
+PT4 = '+a: CV.SPoint, +b: CV.SPoint, +c: CV.SPoint, +d: CV.SPoint, +va: %s, +vb: %s, +vc: %s, +vd: %s' % (vd('a'), vd('b'), vd('c'), vd('d'))
+L0 = padd(padd('a', 'b'), padd('c', 'd'))
+L1 = padd('a', padd('b', padd('c', 'd')))
+L2 = padd('a', padd(padd('b', 'c'), 'd'))
+L3 = padd('a', padd(padd('c', 'b'), 'd'))
+L4 = padd('a', padd('c', padd('b', 'd')))
+L5 = padd(padd('a', 'c'), padd('b', 'd'))
+vcd = cl('c', 'd', 'vc', 'vd')
+vbd = cl('b', 'd', 'vb', 'vd')
+vbc = cl('b', 'c', 'vb', 'vc')
+vcb = cl('c', 'b', 'vc', 'vb')
+vL1 = cl('a', padd('b', padd('c', 'd')), 'va', cl('b', padd('c', 'd'), 'vb', vcd))
+vL2 = cl('a', padd(padd('b', 'c'), 'd'), 'va', cl(padd('b', 'c'), 'd', vbc, 'vd'))
+vL3 = cl('a', padd(padd('c', 'b'), 'd'), 'va', cl(padd('c', 'b'), 'd', vcb, 'vd'))
+vL4 = cl('a', padd('c', padd('b', 'd')), 'va', cl('c', padd('b', 'd'), 'vc', vbd))
+e01 = asc('a', 'b', padd('c', 'd'), 'va', 'vb', vcd)
+e12 = ear('a', padd('b', padd('c', 'd')), padd(padd('b', 'c'), 'd'), cl('b', padd('c', 'd'), 'vb', vcd), cl(padd('b', 'c'), 'd', vbc, 'vd'),
+          esym(padd(padd('b', 'c'), 'd'), padd('b', padd('c', 'd')), asc('b', 'c', 'd', 'vb', 'vc', 'vd')))
+e23 = comm_sub('a', 'b', 'c', L2, lambda t: padd('a', padd(t, 'd')))
+e34 = ear('a', padd(padd('c', 'b'), 'd'), padd('c', padd('b', 'd')), cl(padd('c', 'b'), 'd', vcb, 'vd'), cl('c', padd('b', 'd'), 'vc', vbd), asc('c', 'b', 'd', 'vc', 'vb', 'vd'))
+e45 = esym(L5, L4, asc('a', 'c', padd('b', 'd'), 'va', 'vc', vbd))
+a('''# ---- two scalars on one chain of doublings: [v] A + [w] B ----
+
+# (a + b) + (c + d) = (a + c) + (b + d)
+def x4(%s, %s) -> %s:
+  %s
+''' % (HYP, PT4, eq(L0, L5), trans(L0, L1, L5, vL1, e01, trans(L1, L2, L5, vL2, e12, trans(L2, L3, L5, vL3, e23, trans(L3, L4, L5, vL4, e34, e45))))))
+
+AB = '+A: CV.SPoint, +B: CV.SPoint, +vA: %s, +vB: %s' % (vd('A'), vd('B'))
+ABA = 'A, B, vA, vB'
+sv, sw = smul('v', 'A'), smul('w', 'B')
+vsv, vsw = sc('v', 'A', 'vA'), sc('w', 'B', 'vB')
+vJ = cl(sv, sw, vsv, vsw)
+a('''def jv(%s, %s, +v: Nat, +w: Nat) -> %s:
+  %s
+''' % (HYP, AB, vd(J('v', 'w')), vJ))
+
+XH = '+x: CV.SPoint, +v: Nat, +w: Nat, +vx: %s, +hx: %s' % (vd('x'), eq('x', J('v', 'w')))
+# x + [k] A: J(k + v, w)
+sk = smul('k', 'A')
+vsk = sc('k', 'A', 'vA')
+M0 = padd('x', sk)
+M1 = padd(J('v', 'w'), sk)
+M2 = padd(sv, padd(sw, sk))
+M3 = padd(sv, padd(sk, sw))
+M4 = padd(padd(sv, sk), sw)
+M5 = J('Nat.add(k, v)', 'w')
+vM1 = cl(J('v', 'w'), sk, vJ, vsk)
+vM2 = cl(sv, padd(sw, sk), vsv, cl(sw, sk, vsw, vsk))
+vM3 = cl(sv, padd(sk, sw), vsv, cl(sk, sw, vsk, vsw))
+vM4 = cl(padd(sv, sk), sw, cl(sv, sk, vsv, vsk), vsw)
+f01 = eal('x', J('v', 'w'), sk, 'vx', vJ, 'hx')
+f12 = asc(sv, sw, sk, vsv, vsw, vsk)
+f23 = comm_sub(sv, sw, sk, M2, lambda t: padd(sv, t))
+f34 = esym(M4, M3, asc(sv, sk, sw, vsv, vsk, vsw))
+f45 = eal(padd(sv, sk), smul('Nat.add(k, v)', 'A'), sw, cl(sv, sk, vsv, vsk), sc('Nat.add(k, v)', 'A', 'vA'), 'comm_e(%s, A, k, v, vA)' % ARG)
+a('''# x = J(v, w): x + [k] A = J(k + v, w)
+def jl(%s, %s, %s, +k: Nat) -> %s:
+  %s
+''' % (HYP, AB, XH, eq(M0, M5), trans(M0, M1, M5, vM1, f01, trans(M1, M2, M5, vM2, f12, trans(M2, M3, M5, vM3, f23, trans(M3, M4, M5, vM4, f34, f45))))))
+
+# x + [k] B: J(v, k + w)
+skb = smul('k', 'B')
+vskb = sc('k', 'B', 'vB')
+N0 = padd('x', skb)
+N1 = padd(J('v', 'w'), skb)
+N2 = padd(sv, padd(sw, skb))
+N3 = J('v', 'Nat.add(k, w)')
+vN1 = cl(J('v', 'w'), skb, vJ, vskb)
+vN2 = cl(sv, padd(sw, skb), vsv, cl(sw, skb, vsw, vskb))
+g01 = eal('x', J('v', 'w'), skb, 'vx', vJ, 'hx')
+g12 = asc(sv, sw, skb, vsv, vsw, vskb)
+g23 = ear(sv, padd(sw, skb), smul('Nat.add(k, w)', 'B'), cl(sw, skb, vsw, vskb), sc('Nat.add(k, w)', 'B', 'vB'), 'comm_e(%s, B, k, w, vB)' % ARG)
+a('''# x = J(v, w): x + [k] B = J(v, k + w)
+def jr(%s, %s, %s, +k: Nat) -> %s:
+  %s
+''' % (HYP, AB, XH, eq(N0, N3), trans(N0, N1, N3, vN1, g01, trans(N1, N2, N3, vN2, g12, g23))))
+
+# 2 x: J(2 v, 2 w)
+Jvw = J('v', 'w')
+D0 = padd('x', 'x')
+D1 = padd(Jvw, 'x')
+D2 = padd(Jvw, Jvw)
+D3 = padd(padd(sv, sv), padd(sw, sw))
+D4 = padd(smul('Nat.add(v, v)', 'A'), padd(sw, sw))
+D5 = J('Nat.add(v, v)', 'Nat.add(w, w)')
+vD1 = cl(Jvw, 'x', vJ, 'vx')
+vD2 = cl(Jvw, Jvw, vJ, vJ)
+vD3 = cl(padd(sv, sv), padd(sw, sw), cl(sv, sv, vsv, vsv), cl(sw, sw, vsw, vsw))
+vD4 = cl(smul('Nat.add(v, v)', 'A'), padd(sw, sw), sc('Nat.add(v, v)', 'A', 'vA'), cl(sw, sw, vsw, vsw))
+d01 = eal('x', Jvw, 'x', 'vx', vJ, 'hx')
+d12 = ear(Jvw, 'x', Jvw, 'vx', vJ, 'hx')
+d23 = 'x4(%s, %s, %s, %s, %s, %s, %s, %s, %s)' % (ARG, sv, sw, sv, sw, vsv, vsw, vsv, vsw)
+d34 = eal(padd(sv, sv), smul('Nat.add(v, v)', 'A'), padd(sw, sw), cl(sv, sv, vsv, vsv), sc('Nat.add(v, v)', 'A', 'vA'),
+          esym(smul('Nat.add(v, v)', 'A'), padd(sv, sv), 'GP.scalar_add(%s, v, v, A, vA)' % ARG))
+d45 = ear(smul('Nat.add(v, v)', 'A'), padd(sw, sw), smul('Nat.add(w, w)', 'B'), cl(sw, sw, vsw, vsw), sc('Nat.add(w, w)', 'B', 'vB'),
+          esym(smul('Nat.add(w, w)', 'B'), padd(sw, sw), 'GP.scalar_add(%s, w, w, B, vB)' % ARG))
+a('''# x = J(v, w): 2 x = J(2 v, 2 w)
+def jdbl(%s, %s, %s) -> %s:
+  %%rw GP.group_double(%s, x, vx)
+  %%rw NA.double_self(v)
+  %%rw NA.double_self(w)
+  %s
+
+def j4(%s, %s, %s) -> %s:
+  +v1 = dbl_vd(%s, x, vx)
+  +v2 = dbl_vd(%s, %s, v1)
+  +v3 = dbl_vd(%s, %s, v2)
+  +e1 = jdbl(%s, %s, x, v, w, vx, hx)
+  +e2 = jdbl(%s, %s, %s, Nat.double(v), Nat.double(w), v1, e1)
+  +e3 = jdbl(%s, %s, %s, %s, %s, v2, e2)
+  jdbl(%s, %s, %s, %s, %s, v3, e3)
+''' % (HYP, AB, XH, eq(pdbl('x'), J('Nat.double(v)', 'Nat.double(w)')), ARG,
+       trans(D0, D1, D5, vD1, d01, trans(D1, D2, D5, vD2, d12, trans(D2, D3, D5, vD3, d23, trans(D3, D4, D5, vD4, d34, d45)))),
+       HYP, AB, XH, eq(pdbl('x', 4), J(ndbl('v', 4), ndbl('w', 4))),
+       ARG, ARG, pdbl('x', 1), ARG, pdbl('x', 2),
+       ARG, ABA, ARG, ABA, pdbl('x', 1), ARG, ABA, pdbl('x', 2), ndbl('v', 2), ndbl('w', 2),
+       ARG, ABA, pdbl('x', 3), ndbl('v', 3), ndbl('w', 3)))
+
+# ---- the code's steps ----
+TPa = lambda bs: 'PX.tpick(%s, PX.tab(a))' % bs
+TPb = lambda bs: 'PX.tpick(%s, PX.tab(b))' % bs
+PAV, PBV = 'PP.pv(one, a)', 'PP.pv(one, b)'
+JP = lambda v, w: J(v, w, PAV, PBV)
+ABH = '+a: PX.PT, +b: PX.PT, +ha: %s, +hb: %s, +va: %s, +vb: %s' % (pd('a'), pd('b'), vd(PAV), vd(PBV))
+ABHA = 'a, b, ha, hb, va, vb'
+ABS = '%s, %s, va, vb' % (PAV, PBV)
+RH = '+r: PX.PT, +v: Nat, +w: Nat, +hr: %s, +vr: %s, +he: %s' % (pd('r'), vd('PP.pv(one, r)'), eq('PP.pv(one, r)', JP('v', 'w')))
+RHA = 'r, v, w, hr, vr, he'
+a('''# the public selection is the proofs' pick tree (tpk)
+def tpk_q(+b1: Nat, +b2: Nat, +b3: Nat, +b4: Nat, +a: PX.PT) -> {%s == tpk(b1, b2, b3, b4, a) : PX.PT}:
+  {==}
+
+def tpick_r(+one: Nat, +h1: {one == 1n : Nat}, +b1: Nat, +b2: Nat, +b3: Nat, +b4: Nat, +a: PX.PT, +ha: %s) -> %s:
+  %%rw tpk_q(b1, b2, b3, b4, a)
+  tpk_r(one, h1, b1, b2, b3, b4, a, ha)
+
+def tpick_vd(%s, +b1: Nat, +b2: Nat, +b3: Nat, +b4: Nat, +a: PX.PT, +ha: %s, +va: %s) -> %s:
+  %%rw tpk_q(b1, b2, b3, b4, a)
+  tpk_vd(%s, b1, b2, b3, b4, a, ha, va)
+
+# 16 r + [k] a
+def sk_a(%s, %s, %s, +k: Nat) -> %s:
+  %%rw PP.padd_v(one, h1, %s, tabp(k, a), d4_r(one, h1, r, hr), tabp_r(one, h1, k, a, ha))
+  %%rw d4_v(one, h1, r, hr)
+  %%rw tabp_v(one, h1, k, a, ha)
+  jl(%s, %s, %s, %s, %s, dbl4_vd(%s, PP.pv(one, r), vr), j4(%s, %s, PP.pv(one, r), v, w, vr, he), k)
+
+# s + [k] b
+def sk_b(%s, %s, +s: PX.PT, +v: Nat, +w: Nat, +hs: %s, +vs: %s, +hq: %s, +k: Nat) -> %s:
+  %%rw PP.padd_v(one, h1, s, tabp(k, b), hs, tabp_r(one, h1, k, b, hb))
+  %%rw tabp_v(one, h1, k, b, hb)
+  jr(%s, %s, PP.pv(one, s), v, w, vs, hq, k)
+''' % (TPa('b1, b2, b3, b4'), pd('a'), pd(TPa('b1, b2, b3, b4')),
+       HYP, pd('a'), vd(PAV), vd('PP.pv(one, %s)' % TPa('b1, b2, b3, b4')), ARG,
+       HYP, ABH, RH, eq('PP.pv(one, PX.add(%s, tabp(k, a)))' % D4R, JP('Nat.add(k, %s)' % ndbl('v', 4), ndbl('w', 4))),
+       D4R, ARG, ABS, pdbl('PP.pv(one, r)', 4), ndbl('v', 4), ndbl('w', 4), ARG, ARG, ABS,
+       HYP, ABH, pd('s'), vd('PP.pv(one, s)'), eq('PP.pv(one, s)', JP('v', 'w')), eq('PP.pv(one, PX.add(s, tabp(k, b)))', JP('v', 'Nat.add(k, w)')),
+       ARG, ABS))
+
+# case trees over the bits: of a (after the doublings), then of b
+S1 = lambda bs: 'PX.add(%s, %s)' % (D4R, TPa(bs))
+for which in ('a', 'b'):
+    for depth in (3, 2, 1, 0):
+        for pre in range(1 << depth):
+            pb = [(pre >> (depth - 1 - i)) & 1 for i in range(depth)]
+            rest = ['b%d' % (i + 1) for i in range(depth, 4)]
+            allb = pb + rest
+            name = 's%s' % which + ''.join(map(str, pb))
+            bparams = ', '.join('%s: Nat, +h%s: {Nat.is_lt(%s, 2n) == True{} : Bool}' % (b, b, b) for b in rest)
+            if which == 'a':
+                hyps, hargs = '%s, %s' % (ABH, RH), '%s, %s' % (ABHA, RHA)
+                ty = lambda bs: eq('PP.pv(one, %s)' % S1(', '.join(lit(b) for b in bs)), JP(nxt4([lit(b) for b in bs]), ndbl('w', 4)))
+            else:
+                hyps = '%s, +s: PX.PT, +v: Nat, +w: Nat, +hs: %s, +vs: %s, +hq: %s' % (ABH, pd('s'), vd('PP.pv(one, s)'), eq('PP.pv(one, s)', JP('v', ndbl('w', 4))))
+                hargs = '%s, s, v, w, hs, vs, hq' % ABHA
+                ty = lambda bs: eq('PP.pv(one, PX.add(s, %s))' % TPb(', '.join(lit(b) for b in bs)), JP('v', nxt4([lit(b) for b in bs], 'w')))
+            b0 = rest[0]
+            ls = ['def %s(%s, %s, %s) -> %s:' % (name, HYP, hyps, bparams, ty(allb)), '  match %s:' % b0]
+            for val in (0, 1):
+                child = pb + [val]
+                cargs = ', '.join('%s, h%s' % (b, b) for b in rest[1:])
+                if len(child) == 4:
+                    k = child[0] * 8 + child[1] * 4 + child[2] * 2 + child[3]
+                    if which == 'a':
+                        call = 'sk_a(%s, %s, %dn)' % (ARG, hargs, k)
+                    else:
+                        call = 'sk_b(%s, %s, s, v, %s, hs, vs, hq, %dn)' % (ARG, ABHA, ndbl('w', 4), k)
+                else:
+                    call = 's%s%s(%s, %s%s)' % (which, ''.join(map(str, child)), ARG, hargs, ', ' + cargs if cargs else '')
+                ls += ['    case %dn:' % val, '      ' + call]
+            bad = [('2n+k' if b == b0 else b) for b in allb]
+            ls += ['    case 2n+ +k:', '      Empty.absurd(%s, N.lt_zero_absurd(k, h%s))' % (ty(bad), b0)]
+            a('\n'.join(ls) + '\n')
+
+# the step of the code
+BB4 = lambda p: ', '.join('+%s%d: Nat' % (p, i) for i in (1, 2, 3, 4))
+HB4 = lambda p: ', '.join('+h%s%d: {Nat.is_lt(%s%d, 2n) == True{} : Bool}' % (p, i, p, i) for i in (1, 2, 3, 4))
+BI4 = lambda p: ', '.join('+%s%d: Nat, +h%s%d: {Nat.is_lt(%s%d, 2n) == True{} : Bool}' % (p, i, p, i, p, i) for i in (1, 2, 3, 4))
+ARGB = lambda p: ', '.join('%s%d, h%s%d' % (p, i, p, i) for i in (1, 2, 3, 4))
+BL = lambda p: '%s1, %s2, %s3, %s4' % (p, p, p, p)
+ST1 = S1(BL('b'))
+ST2 = 'PX.add(%s, %s)' % (ST1, TPb(BL('c')))
+a('''def st_r(+one: Nat, +h1: {one == 1n : Nat}, +a: PX.PT, +b: PX.PT, +r: PX.PT, +ha: %(pa)s, +hb: %(pb)s, +hr: %(pr)s, %(bb)s, %(cc)s) -> %(pst)s:
+  PP.padd_r(one, h1, %(st1)s, %(tpc)s, PP.padd_r(one, h1, %(x4)s, %(tpb)s, d4_r(one, h1, r, hr), tpick_r(one, h1, b1, b2, b3, b4, a, ha)), tpick_r(one, h1, c1, c2, c3, c4, b, hb))
+
+def st_vd(%(H)s, %(abh)s, +r: PX.PT, +hr: %(pr)s, +vr: %(vpr)s, %(bb)s, %(cc)s) -> %(vst)s:
+  +h1r = PP.padd_r(one, h1, %(x4)s, %(tpb)s, d4_r(one, h1, r, hr), tpick_r(one, h1, b1, b2, b3, b4, a, ha))
+  %%rw PP.padd_v(one, h1, %(st1)s, %(tpc)s, h1r, tpick_r(one, h1, c1, c2, c3, c4, b, hb))
+  %%rw PP.padd_v(one, h1, %(x4)s, %(tpb)s, d4_r(one, h1, r, hr), tpick_r(one, h1, b1, b2, b3, b4, a, ha))
+  %%rw d4_v(one, h1, r, hr)
+  GP.group_closed(%(A)s, %(p1)s, PP.pv(one, %(tpc)s), GP.group_closed(%(A)s, %(s4)s, PP.pv(one, %(tpb)s), dbl4_vd(%(A)s, PP.pv(one, r), vr), tpick_vd(%(A)s, b1, b2, b3, b4, a, ha, va)), tpick_vd(%(A)s, c1, c2, c3, c4, b, hb, vb))
+
+def st_e(%(H)s, %(abh)s, %(rh)s, %(bi)s, %(ci)s) -> %(est)s:
+  +h1r = PP.padd_r(one, h1, %(x4)s, %(tpb)s, d4_r(one, h1, r, hr), tpick_r(one, h1, b1, b2, b3, b4, a, ha))
+  +v1r = GP.group_closed(%(A)s, %(s4)s, PP.pv(one, %(tpb)s), dbl4_vd(%(A)s, PP.pv(one, r), vr), tpick_vd(%(A)s, b1, b2, b3, b4, a, ha, va))
+  +v1 = Lg.subst(CV.SPoint, t => %(vt)s, %(p1)s, PP.pv(one, %(st1)s), Equal.sym(CV.SPoint, PP.pv(one, %(st1)s), %(p1)s, Equal.trans(CV.SPoint, PP.pv(one, %(st1)s), CV.padd(FS.prime(one), PP.pv(one, %(x4)s), PP.pv(one, %(tpb)s)), %(p1)s, PP.padd_v(one, h1, %(x4)s, %(tpb)s, d4_r(one, h1, r, hr), tpick_r(one, h1, b1, b2, b3, b4, a, ha)), Equal.cong(CV.SPoint, CV.SPoint, t => CV.padd(FS.prime(one), t, PP.pv(one, %(tpb)s)), PP.pv(one, %(x4)s), %(s4)s, d4_v(one, h1, r, hr)))), v1r)
+  +e1 = sa(%(A)s, %(abha)s, %(rha)s, %(abb)s)
+  sb(%(A)s, %(abha)s, %(st1)s, %(nb)s, w, h1r, v1, e1, %(acc)s)
+''' % dict(H=HYP, A=ARG, pa=pd('a'), pb=pd('b'), pr=pd('r'), vpr=vd('PP.pv(one, r)'), bb=BB4('b'), cc=BB4('c'), hbb=HB4('b'), hcc=HB4('c'),
+           abh=ABH, rh=RH, abha=ABHA, rha=RHA, abb=ARGB('b'), acc=ARGB('c'), bi=BI4('b'), ci=BI4('c'),
+           pst=pd(ST2), vst=vd('PP.pv(one, %s)' % ST2), st1=ST1, x4=D4R, tpb=TPa(BL('b')), tpc=TPb(BL('c')),
+           s4=pdbl('PP.pv(one, r)', 4), p1=padd(pdbl('PP.pv(one, r)', 4), 'PP.pv(one, %s)' % TPa(BL('b'))),
+           vt=vd('t'), nb=nxt4(['b1', 'b2', 'b3', 'b4']), w4=ndbl('w', 4),
+           est=eq('PP.pv(one, %s)' % ST2, JP(nxt4(['b1', 'b2', 'b3', 'b4']), nxt4(['c1', 'c2', 'c3', 'c4'], 'w')))))
+
+# ---- the loop ----
+a('''# two bit lists of the same multiple of 4 bits
+def ok44(bs: List<&2, Nat>, cs: List<&2, Nat>) -> Bool:
+  match bs:
+    case Nil{}:
+      match cs:
+        case Nil{}: True{}
+        case c <> t: False{}
+    case b1 <> Nil{}: False{}
+    case b1 <> b2 <> Nil{}: False{}
+    case b1 <> b2 <> b3 <> Nil{}: False{}
+    case b1 <> b2 <> b3 <> b4 <> rb:
+      match cs:
+        case Nil{}: False{}
+        case c1 <> Nil{}: False{}
+        case c1 <> c2 <> Nil{}: False{}
+        case c1 <> c2 <> c3 <> Nil{}: False{}
+        case c1 <> c2 <> c3 <> c4 <> rc: ok44(rb, rc)
+''')
+
+SG = lambda bs, cs, r: 'PX.sgo(%s, %s, PX.tab(a), PX.tab(b), %s)' % (bs, cs, r)
+STC = ST2.replace('PX.add(PX.add(PX.dbl', 'PX.add(PX.add(PX.dbl')
+
+
+def cases_b(name, hdr, concl, base_nil, rec, extra_split=''):
+    """the loop's case split: bs, then cs"""
+    ls = [hdr, '  match bs:', '    case Nil{}:', base_nil]
+    for pat, lst in (('+b1 <> Nil{}', '[b1]'), ('+b1 <> +b2 <> Nil{}', '[b1, b2]'), ('+b1 <> +b2 <> +b3 <> Nil{}', '[b1, b2, b3]')):
+        ls += ['    case %s:' % pat, '      ' + concl(lst, 'cs')]
+    ls += ['    case +b1 <> +b2 <> +b3 <> +b4 <> +rb:', '      match cs:']
+    for pat, lst in (('Nil{}', 'Nil{}'), ('+c1 <> Nil{}', '[c1]'), ('+c1 <> +c2 <> Nil{}', '[c1, c2]'), ('+c1 <> +c2 <> +c3 <> Nil{}', '[c1, c2, c3]')):
+        ls += ['        case %s:' % pat, '          ' + concl('b1 <> b2 <> b3 <> b4 <> rb', lst)]
+    ls += ['        case +c1 <> +c2 <> +c3 <> +c4 <> +rc:'] + [('    ' + l if l.strip() else l) for l in extra_split.split('\n') if l] + ['          ' + rec]
+    return '\n'.join(ls) + '\n'
+
+
+RR = '+r: PX.PT, +hr: %s' % pd('r')
+STR = 'PX.add(PX.add(%s, %s), %s)' % (D4R, TPa(BL('b')), TPb(BL('c')))
+# pred: no hypotheses on the bits
+hdr = 'def sgo_r(+one: Nat, +h1: {one == 1n : Nat}, bs: List<&2, Nat>, cs: List<&2, Nat>, +a: PX.PT, +b: PX.PT, +ha: %s, +hb: %s, %s) -> %s:' % (pd('a'), pd('b'), RR, pd(SG('bs', 'cs', 'r')))
+a(cases_b('sgo_r', hdr, lambda bs, cs: 'hr', '      hr',
+          'sgo_r(one, h1, rb, rc, a, b, ha, hb, %s, st_r(one, h1, a, b, r, ha, hb, hr, b1, b2, b3, b4, c1, c2, c3, c4))' % STR))
+hdr = 'def sgo_vd(%s, bs: List<&2, Nat>, cs: List<&2, Nat>, %s, %s, +vr: %s) -> %s:' % (HYP, ABH, RR, vd('PP.pv(one, r)'), vd('PP.pv(one, %s)' % SG('bs', 'cs', 'r')))
+a(cases_b('sgo_vd', hdr, lambda bs, cs: 'vr', '      vr',
+          'sgo_vd(%s, rb, rc, %s, %s, st_r(one, h1, a, b, r, ha, hb, hr, b1, b2, b3, b4, c1, c2, c3, c4), st_vd(%s, %s, r, hr, vr, b1, b2, b3, b4, c1, c2, c3, c4))' % (ARG, ABHA, STR, ARG, ABHA)))
+SPLITBC = '''      +q1 = Lg.and_right(Nat.is_lt(b1, 2n), BV.all01(b2 <> b3 <> b4 <> rb), hbb)
+      +q2 = Lg.and_right(Nat.is_lt(b2, 2n), BV.all01(b3 <> b4 <> rb), q1)
+      +q3 = Lg.and_right(Nat.is_lt(b3, 2n), BV.all01(b4 <> rb), q2)
+      +hb1 = Lg.and_left(Nat.is_lt(b1, 2n), BV.all01(b2 <> b3 <> b4 <> rb), hbb)
+      +hb2 = Lg.and_left(Nat.is_lt(b2, 2n), BV.all01(b3 <> b4 <> rb), q1)
+      +hb3 = Lg.and_left(Nat.is_lt(b3, 2n), BV.all01(b4 <> rb), q2)
+      +hb4 = Lg.and_left(Nat.is_lt(b4, 2n), BV.all01(rb), q3)
+      +hbt = Lg.and_right(Nat.is_lt(b4, 2n), BV.all01(rb), q3)
+      +d1 = Lg.and_right(Nat.is_lt(c1, 2n), BV.all01(c2 <> c3 <> c4 <> rc), hcc)
+      +d2 = Lg.and_right(Nat.is_lt(c2, 2n), BV.all01(c3 <> c4 <> rc), d1)
+      +d3 = Lg.and_right(Nat.is_lt(c3, 2n), BV.all01(c4 <> rc), d2)
+      +hc1 = Lg.and_left(Nat.is_lt(c1, 2n), BV.all01(c2 <> c3 <> c4 <> rc), hcc)
+      +hc2 = Lg.and_left(Nat.is_lt(c2, 2n), BV.all01(c3 <> c4 <> rc), d1)
+      +hc3 = Lg.and_left(Nat.is_lt(c3, 2n), BV.all01(c4 <> rc), d2)
+      +hc4 = Lg.and_left(Nat.is_lt(c4, 2n), BV.all01(rc), d3)
+      +hct = Lg.and_right(Nat.is_lt(c4, 2n), BV.all01(rc), d3)'''
+CE = lambda bs, cs: eq('PP.pv(one, %s)' % SG(bs, cs, 'r'), JP('G4.bvl(%s, v)' % bs, 'G4.bvl(%s, w)' % cs))
+hdr = 'def sgo_e(%s, bs: List<&2, Nat>, cs: List<&2, Nat>, %s, %s, +hbb: {BV.all01(bs) == True{} : Bool}, +hcc: {BV.all01(cs) == True{} : Bool}, +hq: {ok44(bs, cs) == True{} : Bool}) -> %s:' % (HYP, ABH, RH, CE('bs', 'cs'))
+absurd = lambda bs, cs: 'Empty.absurd(%s, Lg.false_true(hq))' % CE(bs, cs)
+base = '''      match cs:
+        case Nil{}:
+          he
+        case +c <> +t:
+          %s''' % absurd('Nil{}', 'c <> t')
+a(cases_b('sgo_e', hdr, absurd, base,
+          'sgo_e(%s, rb, rc, %s, %s, %s, %s, st_r(one, h1, a, b, r, ha, hb, hr, b1, b2, b3, b4, c1, c2, c3, c4), st_vd(%s, %s, r, hr, vr, b1, b2, b3, b4, c1, c2, c3, c4), st_e(%s, %s, %s, %s, %s), hbt, hct, hq)'
+          % (ARG, ABHA, STR, nxt4(['b1', 'b2', 'b3', 'b4']), nxt4(['c1', 'c2', 'c3', 'c4'], 'w'), ARG, ABHA, ARG, ABHA, RHA, ARGB('b'), ARGB('c')),
+          extra_split=SPLITBC))
+
+# ---- smul2 ----
+SM2 = 'PX.smul2(bs, cs, a, b)'
+J00 = JP('0n', '0n')
+a('''# the point at infinity is J(0, 0)
+def j00(%(H)s, %(abh)s) -> %(e00)s:
+  %%rw PM.pinf_v(one, h1)
+  GP.equiv_sym(%(A)s, %(j00)s, CV.infinity(), GP.group_identity(%(A)s, CV.infinity()))
+
+def smul2_r(+one: Nat, +h1: {one == 1n : Nat}, bs: List<&2, Nat>, +cs: List<&2, Nat>, +a: PX.PT, +b: PX.PT, +ha: %(pa)s, +hb: %(pb)s) -> %(psm)s:
+  match bs:
+    case Nil{}:
+      PM.pinf_r(one, h1)
+    case +x <> +t:
+      sgo_r(one, h1, x <> t, cs, a, b, ha, hb, PX.infinity(), PM.pinf_r(one, h1))
+
+def smul2_vd(%(H)s, bs: List<&2, Nat>, +cs: List<&2, Nat>, %(abh)s) -> %(vsm)s:
+  match bs:
+    case Nil{}:
+      inf_vd(%(A)s)
+    case +x <> +t:
+      sgo_vd(%(A)s, x <> t, cs, %(abha)s, PX.infinity(), PM.pinf_r(one, h1), inf_vd(%(A)s))
+
+# smul2(bits j, bits k, a, b) is [j] a + [k] b
+def smul2_e(%(H)s, bs: List<&2, Nat>, +cs: List<&2, Nat>, %(abh)s, +hbb: {BV.all01(bs) == True{} : Bool}, +hcc: {BV.all01(cs) == True{} : Bool}, +hq: {ok44(bs, cs) == True{} : Bool}) -> %(esm)s:
+  match bs:
+    case Nil{}:
+      match cs:
+        case Nil{}:
+          j00(%(A)s, %(abha)s)
+        case +c <> +t:
+          Empty.absurd(%(abs)s, Lg.false_true(hq))
+    case +x <> +t:
+      sgo_e(%(A)s, x <> t, cs, %(abha)s, PX.infinity(), 0n, 0n, PM.pinf_r(one, h1), inf_vd(%(A)s), j00(%(A)s, %(abha)s), hbb, hcc, hq)
+''' % dict(H=HYP, A=ARG, abh=ABH, abha=ABHA, pa=pd('a'), pb=pd('b'), e00=eq('PP.pv(one, PX.infinity())', J00), j00=J00,
+           psm=pd(SM2), vsm=vd('PP.pv(one, %s)' % SM2),
+           esm=eq('PP.pv(one, %s)' % SM2, JP('G4.bvl(bs, 0n)', 'G4.bvl(cs, 0n)')),
+           abs=eq('PP.pv(one, PX.smul2(Nil{}, c <> t, a, b))', JP('G4.bvl(Nil{}, 0n)', 'G4.bvl(c <> t, 0n)'))))
+
 # ---- two files: pwr.src, the definitions without the group law (the
 # code's points: tab, pick, tsel and wmul are points of the curve's
 # representation), for the roots that do not use the group law; pwin.src
 # the rest, importing pwr.bend as WR ----
 import re
-text = '\n'.join(o)
+text = re.sub(r'(?<![\w.])pick\(', 'PX.pick(', '\n'.join(o))
 head, _, body = text.partition('\n# ---- on the specification')
 body = '# ---- on the specification' + body
 blocks = re.split(r'(?m)^(?=def |# ----)', body)

@@ -1,4 +1,5 @@
 import Base
+import ./lite/crypto/secp256k1/group/certpc.bend as PC
 import ./laws_recover.bend as Laws
 import ./prec.bend as PR
 import ./pecr.bend as PEC
@@ -8,7 +9,7 @@ import ./pecr.bend as PEC
 # `bend proofs/crypto/secp256k1/proof_recover.bend`.
 
 def Laws.Recover.correct(one, h1, h, sig):
-  PR.recover_v(one, h1, h, sig)
+  PR.recover_v(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1), h, sig)
 
 def Laws.Ecrecover.correct(one, h1, input):
-  PEC.ecrecover_v(one, h1, input)
+  PEC.ecrecover_v(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1), input)

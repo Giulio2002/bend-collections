@@ -62,8 +62,9 @@ def select(+b: Nat, p: Point, q: Point) -> Point:
       Point{F.select(b, x1, x2), F.select(b, y1, y2), F.select(b, z1, z2)}
 
 # [k] p for a scalar k given by its 16 limbs (any value below 2^256), for a
-# secret k: double-and-add over the 256 bits, adding in every step and
-# selecting with an arithmetic mask (no branch and no table index on k)
+# secret k: fixed windows of 4 bits over a table of [0] p .. [15] p, 4
+# doublings and one addition per window, the entry chosen with arithmetic
+# masks (no branch and no table index on k)
 def mul(k: List<&2, Nat>, +p: Point) -> Point:
   of_pt(PX.wmul(L.bitsf(k), to_pt(p)))
 
@@ -83,6 +84,11 @@ def gy() -> List<&2, Nat>:
 # the generator G of SEC 2
 def g() -> Point:
   Point{gx(), gy(), F.one()}
+
+# [j] G + [k] q for public j and k (verification, recovery): 4-bit windows
+# of both scalars on one chain of doublings (Strauss)
+def mul2(j: List<&2, Nat>, k: List<&2, Nat>, +q: Point) -> Point:
+  of_pt(PX.smul2(L.bitsf(j), L.bitsf(k), to_pt(g()), to_pt(q)))
 
 def is_inf(p: Point) -> Bool:
   match p:

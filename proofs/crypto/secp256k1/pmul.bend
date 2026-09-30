@@ -140,3 +140,54 @@ def mul_pub_v(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +pp: P.Poin
   %Equal.sym(CV.SPoint, PP.pv(one, P.to_pt(pp)), PT.pv(one, pp), PT.tp_v(one, pp, hp)) : {CV.lmul(FS.prime(one), L.bitsf(ks), _, CV.infinity()) == CV.lmul(FS.prime(one), CV.bits(256n, FS.value(one, ks)), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
   %Equal.sym(List<&2, Nat>, L.bitsf(ks), CV.bits(256n, FS.value(one, ks)), lbits(one, h1, ks, hk)) : {CV.lmul(FS.prime(one), _, PT.pv(one, pp), CV.infinity()) == CV.lmul(FS.prime(one), CV.bits(256n, FS.value(one, ks)), PT.pv(one, pp), CV.infinity()) : CV.SPoint}
   {==}
+
+# ---- two bit lists of the same length (the Strauss multiplication, pwr.bend ok44) ----
+
+# 16 more bits on both keep them aligned
+def ok44_app(u: List<&2, Nat>, v: List<&2, Nat>, +c1: Nat, +c2: Nat, +c3: Nat, +c4: Nat, +c5: Nat, +c6: Nat, +c7: Nat, +c8: Nat, +c9: Nat, +c10: Nat, +c11: Nat, +c12: Nat, +c13: Nat, +c14: Nat, +c15: Nat, +c16: Nat, +d1: Nat, +d2: Nat, +d3: Nat, +d4: Nat, +d5: Nat, +d6: Nat, +d7: Nat, +d8: Nat, +d9: Nat, +d10: Nat, +d11: Nat, +d12: Nat, +d13: Nat, +d14: Nat, +d15: Nat, +d16: Nat, +h: {WR.ok44(u, v) == True{} : Bool}) -> {WR.ok44(List.append(&2, Nat, u, [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16]), List.append(&2, Nat, v, [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16])) == True{} : Bool}:
+  match u:
+    case Nil{}:
+      match v:
+        case Nil{}:
+          {==}
+        case +y <> +t:
+          Empty.absurd({WR.ok44(List.append(&2, Nat, Nil{}, [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16]), List.append(&2, Nat, y <> t, [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16])) == True{} : Bool}, Lg.false_true(h))
+    case +x1 <> Nil{}:
+      Empty.absurd({WR.ok44(List.append(&2, Nat, [x1], [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16]), List.append(&2, Nat, v, [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16])) == True{} : Bool}, Lg.false_true(h))
+    case +x1 <> +x2 <> Nil{}:
+      Empty.absurd({WR.ok44(List.append(&2, Nat, [x1, x2], [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16]), List.append(&2, Nat, v, [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16])) == True{} : Bool}, Lg.false_true(h))
+    case +x1 <> +x2 <> +x3 <> Nil{}:
+      Empty.absurd({WR.ok44(List.append(&2, Nat, [x1, x2, x3], [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16]), List.append(&2, Nat, v, [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16])) == True{} : Bool}, Lg.false_true(h))
+    case +x1 <> +x2 <> +x3 <> +x4 <> +ru:
+      match v:
+        case Nil{}:
+          Empty.absurd({WR.ok44(List.append(&2, Nat, x1 <> x2 <> x3 <> x4 <> ru, [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16]), List.append(&2, Nat, Nil{}, [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16])) == True{} : Bool}, Lg.false_true(h))
+        case +y1 <> Nil{}:
+          Empty.absurd({WR.ok44(List.append(&2, Nat, x1 <> x2 <> x3 <> x4 <> ru, [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16]), List.append(&2, Nat, [y1], [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16])) == True{} : Bool}, Lg.false_true(h))
+        case +y1 <> +y2 <> Nil{}:
+          Empty.absurd({WR.ok44(List.append(&2, Nat, x1 <> x2 <> x3 <> x4 <> ru, [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16]), List.append(&2, Nat, [y1, y2], [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16])) == True{} : Bool}, Lg.false_true(h))
+        case +y1 <> +y2 <> +y3 <> Nil{}:
+          Empty.absurd({WR.ok44(List.append(&2, Nat, x1 <> x2 <> x3 <> x4 <> ru, [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16]), List.append(&2, Nat, [y1, y2, y3], [d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16])) == True{} : Bool}, Lg.false_true(h))
+        case +y1 <> +y2 <> +y3 <> +y4 <> +rv:
+          ok44_app(ru, rv, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, d16, h)
+
+# the bits of two lists of n limbs
+def ok44_bits(+one: Nat, n: Nat, xs: List<&2, Nat>, ys: List<&2, Nat>, +hx: {FS.limbs16(one, n, xs) == True{} : Bool}, +hy: {FS.limbs16(one, n, ys) == True{} : Bool}) -> {WR.ok44(L.bits(xs), L.bits(ys)) == True{} : Bool}:
+  match n xs ys:
+    case 0n Nil{} Nil{}:
+      {==}
+    case 0n Nil{} +y <> +t:
+      Empty.absurd({WR.ok44(L.bits(Nil{}), L.bits(y <> t)) == True{} : Bool}, Lg.false_true(hy))
+    case 0n +x <> +t ys:
+      Empty.absurd({WR.ok44(L.bits(x <> t), L.bits(ys)) == True{} : Bool}, Lg.false_true(hx))
+    case 1n+ +k Nil{} ys:
+      Empty.absurd({WR.ok44(L.bits(Nil{}), L.bits(ys)) == True{} : Bool}, Lg.false_true(hx))
+    case 1n+ +k +x <> +t Nil{}:
+      Empty.absurd({WR.ok44(L.bits(x <> t), L.bits(Nil{})) == True{} : Bool}, Lg.false_true(hy))
+    case 1n+ +k +x <> +t +y <> +s:
+      ok44_app(L.bits(t), L.bits(s), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(x, 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(x, 2n), 2n), 2n), Nat.mod(Nat.div(x, 2n), 2n), Nat.mod(x, 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(y, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(y, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(y, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(y, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(y, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(y, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(y, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(y, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(y, 2n), 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(y, 2n), 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(Nat.div(y, 2n), 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(Nat.div(y, 2n), 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(Nat.div(y, 2n), 2n), 2n), 2n), Nat.mod(Nat.div(Nat.div(y, 2n), 2n), 2n), Nat.mod(Nat.div(y, 2n), 2n), Nat.mod(y, 2n), ok44_bits(one, k, t, s, Lg.and_right(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, k, t), hx), Lg.and_right(Nat.is_lt(y, C.shift(16n, one)), FS.limbs16(one, k, s), hy)))
+
+def ok44_f(+one: Nat, +xs: List<&2, Nat>, +ys: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, xs) == True{} : Bool}, +hy: {FS.limbs16(one, 16n, ys) == True{} : Bool}) -> {WR.ok44(L.bitsf(xs), L.bitsf(ys)) == True{} : Bool}:
+  %Equal.sym(List<&2, Nat>, L.bitsf(xs), L.bits(xs), bitsf_is(xs)) : {WR.ok44(_, L.bitsf(ys)) == True{} : Bool}
+  %Equal.sym(List<&2, Nat>, L.bitsf(ys), L.bits(ys), bitsf_is(ys)) : {WR.ok44(L.bits(xs), _) == True{} : Bool}
+  ok44_bits(one, 16n, xs, ys, hx, hy)

@@ -18,7 +18,7 @@ def Laws.SchnorrSign.correct(one, h1, sk, msg, aux):
   PSC.sign_v(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1), sk, msg, aux)
 
 def Laws.SchnorrVerify.correct(one, h1, pk, msg, sig):
-  PSC.verify_v(one, h1, pk, msg, sig)
+  PSC.verify_v(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1), pk, msg, sig)
 
 def Laws.SchnorrKeypairPubkey.correct(one, h1, sk):
   Equal.trans(Maybe<&2, List<&2, U32>>, K.schnorr_keypair_pubkey(K.schnorr_keypair(sk)), K.schnorr_pubkey(sk), SS.pubkey(one, sk), PK.pub_kp_v(sk), PSC.pubkey_v(one, h1, PC.prime_p(one, h1), PC.cube_spec(one, h1), sk))

@@ -98,6 +98,10 @@ def z_mod(+mp: Nat, +u: Nat, +h: {Nat.mod(u, 1n+mp) == 0n : Nat}) -> {Nat.mod(Na
   Equal.trans(Nat, Nat.mod(Nat.mod(u, 1n+mp), 1n+mp), Nat.mod(u, 1n+mp), 0n, NR.mod_mod(mp, u), h)
 
 
+def z_mmul_l(+mp: Nat, +a: Nat, +b: Nat, +ha: {Nat.mod(a, 1n+mp) == 0n : Nat}) -> {Nat.mod(FS.mmul(1n+mp, a, b), 1n+mp) == 0n : Nat}:
+  z_mod(mp, Nat.mul(a, b), z_mul_l(mp, a, b, ha))
+
+
 def z_mmul_r(+mp: Nat, +a: Nat, +b: Nat, +hb: {Nat.mod(b, 1n+mp) == 0n : Nat}) -> {Nat.mod(FS.mmul(1n+mp, a, b), 1n+mp) == 0n : Nat}:
   z_mod(mp, Nat.mul(a, b), z_mul_r(mp, a, b, hb))
 

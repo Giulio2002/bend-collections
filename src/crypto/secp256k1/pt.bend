@@ -178,3 +178,39 @@ def wmul(bits: List<&2, Nat>, +a: PT) -> PT:
   match bits:
     case Nil{}: infinity()
     case b <> t: wgo(b <> t, tab(a), infinity())
+
+# ---- two public scalars (verification, recovery) ----
+
+# x for b = 1, y for b = 0: a branch, for public bits only
+def pick(b: Nat, +x: PT, +y: PT) -> PT:
+  match b:
+    case 0n: y
+    case 1n+k: x
+
+# the entry of 4 public bits (b1 the highest), the same tree as tsel
+def tpick(+b1: Nat, +b2: Nat, +b3: Nat, +b4: Nat, t: T16) -> PT:
+  match t:
+    case T16{+t0, +t1, +t2, +t3, +t4, +t5, +t6, +t7, +t8, +t9, +t10, +t11, +t12, +t13, +t14, +t15}:
+      pick(b1, pick(b2, pick(b3, pick(b4, t15, t14), pick(b4, t13, t12)), pick(b3, pick(b4, t11, t10), pick(b4, t9, t8))), pick(b2, pick(b3, pick(b4, t7, t6), pick(b4, t5, t4)), pick(b3, pick(b4, t3, t2), pick(b4, t1, t0))))
+
+# [j] a + [k] b for the bits of public j and k (Strauss: one chain of
+# doublings, then the entries of 4 bits of j and of k, for bit lists of the
+# same multiple of 4 bits)
+def sgo(bs: List<&2, Nat>, cs: List<&2, Nat>, +ta: T16, +tb: T16, r: PT) -> PT:
+  match bs:
+    case Nil{}: r
+    case b1 <> Nil{}: r
+    case b1 <> b2 <> Nil{}: r
+    case b1 <> b2 <> b3 <> Nil{}: r
+    case b1 <> b2 <> b3 <> b4 <> rb:
+      match cs:
+        case Nil{}: r
+        case c1 <> Nil{}: r
+        case c1 <> c2 <> Nil{}: r
+        case c1 <> c2 <> c3 <> Nil{}: r
+        case c1 <> c2 <> c3 <> c4 <> rc: sgo(rb, rc, ta, tb, add(add(dbl(dbl(dbl(dbl(r)))), tpick(b1, b2, b3, b4, ta)), tpick(c1, c2, c3, c4, tb)))
+
+def smul2(bs: List<&2, Nat>, cs: List<&2, Nat>, +a: PT, +b: PT) -> PT:
+  match bs:
+    case Nil{}: infinity()
+    case x <> t: sgo(x <> t, cs, tab(a), tab(b), infinity())

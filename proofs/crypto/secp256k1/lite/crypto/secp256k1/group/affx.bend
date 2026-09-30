@@ -2,6 +2,7 @@
 # secp256k1 proofs reach, unchanged); edit the library, then run the tool.
 import Base
 import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
 import ../../../../../../../spec/crypto/secp256k1/field.bend as FS
 import ../../../../../../../spec/crypto/secp256k1/curve.bend as CS
 import ../../../../../../../spec/crypto/secp256k1/group.bend as GS
@@ -41,6 +42,11 @@ def nz_eqv(+mp: Nat, +hp: PM.Prime(1n+mp), +x1: Nat, +y1: Nat, +z1: Nat, +x2: Na
   nz_eqv_c(mp, hp, x1, y1, z1, x2, y2, z2, G1.v_nz(mp, x2, y2, z2, vb), n1, h, Nat.is_eq(Nat.mod(z2, 1n+mp), 0n), {==})
 
 
+# a point at infinity as a number (z == 0) is equiv to O
+def is_inf_eqv(+mp: Nat, +hp: PM.Prime(1n+mp), +x: Nat, +y: Nat, +z: Nat, +va: {GS.valid(1n+mp, CS.SPoint{x, y, z}) == True{} : Bool}, +hi: {CS.is_inf(CS.SPoint{x, y, z}) == True{} : Bool}) -> {GS.equiv(1n+mp, CS.SPoint{x, y, z}, CS.infinity()) == True{} : Bool}:
+  A1.inf_eqv(mp, hp, x, y, z, G1.v_onc(mp, x, y, z, va), Equal.cong(Nat, Nat, k => Nat.mod(k, 1n+mp), z, 0n, N.eq_from_is_eq(z, 0n, hi)))
+
+
 # z == 0 (mod m) is equiv to O, both ways
 def z0_eqv(+mp: Nat, +hp: PM.Prime(1n+mp), +x: Nat, +y: Nat, +z: Nat, +va: {GS.valid(1n+mp, CS.SPoint{x, y, z}) == True{} : Bool}, +hz: {Nat.mod(z, 1n+mp) == 0n : Nat}) -> {GS.equiv(1n+mp, CS.SPoint{x, y, z}, CS.infinity()) == True{} : Bool}:
   A1.inf_eqv(mp, hp, x, y, z, G1.v_onc(mp, x, y, z, va), hz)
@@ -48,3 +54,8 @@ def z0_eqv(+mp: Nat, +hp: PM.Prime(1n+mp), +x: Nat, +y: Nat, +z: Nat, +va: {GS.v
 
 def eqv_z0(+mp: Nat, +x: Nat, +y: Nat, +z: Nat, +h: {GS.equiv(1n+mp, CS.SPoint{x, y, z}, CS.infinity()) == True{} : Bool}) -> {Nat.mod(z, 1n+mp) == 0n : Nat}:
   A1.eqv_inf_z(mp, x, y, z, h)
+
+
+# with z below m: equiv to O is infinity as a number
+def eqv_is_inf(+mp: Nat, +x: Nat, +y: Nat, +z: Nat, +h: {GS.equiv(1n+mp, CS.SPoint{x, y, z}, CS.infinity()) == True{} : Bool}, +hl: {Nat.is_lt(z, 1n+mp) == True{} : Bool}) -> {CS.is_inf(CS.SPoint{x, y, z}) == True{} : Bool}:
+  G1.is_eq_of(z, 0n, Equal.trans(Nat, z, Nat.mod(z, 1n+mp), 0n, Equal.sym(Nat, Nat.mod(z, 1n+mp), z, NR.mod_of(0n, mp, z, hl)), A1.eqv_inf_z(mp, x, y, z, h)))

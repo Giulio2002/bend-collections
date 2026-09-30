@@ -1,4 +1,8 @@
 import Base
+import ./ptwog.bend as TG
+import ./lite/math/number/nt_prime.bend as NP
+import ../../../spec/crypto/secp256k1/encoding.bend as EN
+import ../../../spec/crypto/secp256k1/group.bend as GS
 import ../../../spec/crypto/secp256k1/field.bend as FS
 import ../../../spec/crypto/secp256k1/curve.bend as CV
 import ../../../spec/crypto/secp256k1/ecdsa.bend as ES
@@ -53,7 +57,23 @@ def rq_v(+one: Nat, +h1: {one == 1n : Nat}, +q: P.Point, +hq: {PT.pred(one, q) =
   %rw PA.is_inf_v(one, h1, q)
   rq_b(one, h1, q, hq, CV.is_inf(PT.pv(one, q)))
 
-def rr(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}, m: Maybe<&2, P.Point>, +hm: {PE.mpred(one, m) == True{} : Bool}) -> {E.recover_r(z, r, s, m) == ES.recover_r(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), PE.mpv(one, m)) : Maybe<&2, List<&2, U32>>}:
+# the recovered key depends only on whether the point is infinity and its
+# affine coordinates
+def rq_c(+one: Nat, +a: CV.SPoint, +b: CV.SPoint, +ha: {CV.to_affine(FS.prime(one), a) == CV.to_affine(FS.prime(one), b) : CV.SAffine}, c: Bool) -> {ES.recover_q_if(one, a, c) == ES.recover_q_if(one, b, c) : Maybe<&2, List<&2, U32>>}:
+  match c:
+    case True{}:
+      {==}
+    case False{}:
+      %goal {Some{CV.enc_u(CV.to_affine(FS.prime(one), a))} == Some{CV.enc_u(CV.to_affine(FS.prime(one), b))} : Maybe<&2, List<&2, U32>>}
+      %rwh ha : {CV.to_affine(FS.prime(one), a) == CV.to_affine(FS.prime(one), b) : CV.SAffine}
+      %close
+
+def rq_eq(+one: Nat, +a: CV.SPoint, +b: CV.SPoint, +hi: {CV.is_inf(a) == CV.is_inf(b) : Bool}, +ha: {CV.to_affine(FS.prime(one), a) == CV.to_affine(FS.prime(one), b) : CV.SAffine}) -> {ES.recover_q(one, a) == ES.recover_q(one, b) : Maybe<&2, List<&2, U32>>}:
+  %goal {ES.recover_q_if(one, a, CV.is_inf(a)) == ES.recover_q_if(one, b, CV.is_inf(b)) : Maybe<&2, List<&2, U32>>}
+  %rwh hi : {CV.is_inf(a) == CV.is_inf(b) : Bool}
+  rq_c(one, a, b, ha, CV.is_inf(b))
+
+def rr(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}, m: Maybe<&2, P.Point>, +hm: {PE.mpred(one, m) == True{} : Bool}, +hv: {EN.decoded_ok(FS.prime(one), PE.mpv(one, m)) == True{} : Bool}) -> {E.recover_r(z, r, s, m) == ES.recover_r(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), PE.mpv(one, m)) : Maybe<&2, List<&2, U32>>}:
   match m:
     case None{}:
       {==}
@@ -62,10 +82,11 @@ def rr(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(on
       +hn = SO.neg_r(one, h1, z, hz)
       +hu1 = SO.mul_r(one, h1, S.neg(z), S.inv(r), hn, hi)
       +hu2 = SO.mul_r(one, h1, s, S.inv(r), hs, hi)
-      +q = P.add(P.mul_pub(S.mul(S.neg(z), S.inv(r)), P.g()), P.mul_pub(S.mul(s, S.inv(r)), pr))
-      %goal {E.recover_q(P.add(P.mul_pub(S.mul(S.neg(z), S.inv(r)), P.g()), P.mul_pub(S.mul(s, S.inv(r)), pr)), P.is_inf(P.add(P.mul_pub(S.mul(S.neg(z), S.inv(r)), P.g()), P.mul_pub(S.mul(s, S.inv(r)), pr)))) == ES.recover_q(one, CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.mmul(FS.order(one), FS.mneg(FS.order(one), FS.value(one, z)), FS.minv(FS.order(one), FS.value(one, r))), CV.g(one)), CV.pmul(FS.prime(one), FS.mmul(FS.order(one), FS.value(one, s), FS.minv(FS.order(one), FS.value(one, r))), PT.pv(one, pr)))) : Maybe<&2, List<&2, U32>>}
-      %rw rq_v(one, h1, P.add(P.mul_pub(S.mul(S.neg(z), S.inv(r)), P.g()), P.mul_pub(S.mul(s, S.inv(r)), pr)), TW.two_r(one, h1, S.mul(S.neg(z), S.inv(r)), hu1, S.mul(s, S.inv(r)), hu2, pr, hm))
-      %rw TW.two_v(one, h1, S.mul(S.neg(z), S.inv(r)), hu1, S.mul(s, S.inv(r)), hu2, pr, hm)
+      +q = P.mul2(S.mul(S.neg(z), S.inv(r)), S.mul(s, S.inv(r)), pr)
+      +vq = Lg.and_left(GS.valid(FS.prime(one), PT.pv(one, pr)), EN.normal(FS.prime(one), PT.pv(one, pr)), hv)
+      %goal {E.recover_q(P.mul2(S.mul(S.neg(z), S.inv(r)), S.mul(s, S.inv(r)), pr), P.is_inf(P.mul2(S.mul(S.neg(z), S.inv(r)), S.mul(s, S.inv(r)), pr))) == ES.recover_q(one, CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.mmul(FS.order(one), FS.mneg(FS.order(one), FS.value(one, z)), FS.minv(FS.order(one), FS.value(one, r))), CV.g(one)), CV.pmul(FS.prime(one), FS.mmul(FS.order(one), FS.value(one, s), FS.minv(FS.order(one), FS.value(one, r))), PT.pv(one, pr)))) : Maybe<&2, List<&2, U32>>}
+      %rw rq_v(one, h1, P.mul2(S.mul(S.neg(z), S.inv(r)), S.mul(s, S.inv(r)), pr), TW.mul2_r(one, h1, S.mul(S.neg(z), S.inv(r)), hu1, S.mul(s, S.inv(r)), hu2, pr, hm))
+      %rw rq_eq(one, PT.pv(one, P.mul2(S.mul(S.neg(z), S.inv(r)), S.mul(s, S.inv(r)), pr)), CV.padd(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, S.mul(S.neg(z), S.inv(r))), CV.g(one)), CV.pmul(FS.prime(one), FS.value(one, S.mul(s, S.inv(r))), PT.pv(one, pr))), TG.two_inf(one, h1, gp, gc, S.mul(S.neg(z), S.inv(r)), hu1, S.mul(s, S.inv(r)), hu2, pr, hm, vq), TG.two_aff(one, h1, gp, gc, S.mul(S.neg(z), S.inv(r)), hu1, S.mul(s, S.inv(r)), hu2, pr, hm, vq))
       %rw SO.mul_v(one, h1, S.neg(z), S.inv(r), hn, hi)
       %rw SO.mul_v(one, h1, s, S.inv(r), hs, hi)
       %rw SO.neg_v(one, h1, z, hz)
@@ -75,14 +96,14 @@ def rr(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(on
 
 # ---- the point R of x-coordinate x ----
 
-def rxg(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}, +id: Nat, +x: List<&2, Nat>, +hx: {PT.red(one, x) == True{} : Bool}, +xv: Nat, +hxv: {FS.value(one, x) == Nat.mod(xv, 1n+K.pp(one)) : Nat}, c: Bool, +hc: {Nat.is_lt(xv, 1n+K.pp(one)) == c : Bool}) -> {E.recover_x(z, r, s, id, x, c) == ES.recover_x_if(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), id, xv, c) : Maybe<&2, List<&2, U32>>}:
+def rxg(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}, +id: Nat, +x: List<&2, Nat>, +hx: {PT.red(one, x) == True{} : Bool}, +xv: Nat, +hxv: {FS.value(one, x) == Nat.mod(xv, 1n+K.pp(one)) : Nat}, c: Bool, +hc: {Nat.is_lt(xv, 1n+K.pp(one)) == c : Bool}) -> {E.recover_x(z, r, s, id, x, c) == ES.recover_x_if(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), id, xv, c) : Maybe<&2, List<&2, U32>>}:
   match c:
     case True{}:
       +e = Equal.trans(Nat, FS.value(one, x), Nat.mod(xv, 1n+K.pp(one)), xv, hxv, RC.mod_small(K.pp(one), xv, hc))
       %goal {E.recover_r(z, r, s, P.decompress(x, Nat.mod(id, 2n))) == ES.recover_r(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), CV.decompress(FS.prime(one), xv, Nat.mod(id, 2n))) : Maybe<&2, List<&2, U32>>}
       %rwh <- e : {FS.value(one, x) == xv : Nat}
       %rw <- PE.decompress_v(one, h1, x, Nat.mod(id, 2n), hx, PE.mod2_lt(id))
-      rr(one, h1, z, hz, r, hr, s, hs, P.decompress(x, Nat.mod(id, 2n)), PE.decompress_r(one, h1, x, Nat.mod(id, 2n), hx, PE.mod2_lt(id)))
+      rr(one, h1, gp, gc, z, hz, r, hr, s, hs, P.decompress(x, Nat.mod(id, 2n)), PE.decompress_r(one, h1, x, Nat.mod(id, 2n), hx, PE.mod2_lt(id)), Lg.subst(Maybe<&2, CV.SPoint>, t => {EN.decoded_ok(FS.prime(one), t) == True{} : Bool}, CV.decompress(FS.prime(one), FS.value(one, x), Nat.mod(id, 2n)), PE.mpv(one, P.decompress(x, Nat.mod(id, 2n))), Equal.sym(Maybe<&2, CV.SPoint>, PE.mpv(one, P.decompress(x, Nat.mod(id, 2n))), CV.decompress(FS.prime(one), FS.value(one, x), Nat.mod(id, 2n)), PE.decompress_v(one, h1, x, Nat.mod(id, 2n), hx, PE.mod2_lt(id))), TG.dec_vd(one, h1, gp, gc, FS.value(one, x), Nat.mod(id, 2n), Lg.and_right(FS.limbs16(one, 16n, x), Nat.is_lt(FS.value(one, x), FS.prime(one)), hx))))
     case False{}:
       {==}
 
@@ -138,7 +159,7 @@ def rfl_b(+b: Bool) -> {b == b : Bool}:
 def zmul(+x: Nat) -> {Nat.mul(0n, x) == 0n : Nat}:
   {==}
 
-def rc0(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}) -> {E.recover_ok(z, r, s, 0n, True{}) == ES.recover_ok(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), 0n, True{}) : Maybe<&2, List<&2, U32>>}:
+def rc0(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}) -> {E.recover_ok(z, r, s, 0n, True{}) == ES.recover_ok(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), 0n, True{}) : Maybe<&2, List<&2, U32>>}:
   %goal {E.recover_x(z, r, s, 0n, L.select(0n, E.rn_fe(r), r), True{}) == ES.recover_x_if(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), 0n, Nat.add(FS.value(one, r), Nat.mul(0n, FS.order(one))), Nat.is_lt(Nat.add(FS.value(one, r), Nat.mul(0n, FS.order(one))), FS.prime(one))) : Maybe<&2, List<&2, U32>>}
   %rw SL.sel0(one, 16n, E.rn_fe(r), r, SL.l16(one, E.rn_fe(r), x1_r(one, h1, r, hr)), SL.sl16(one, r, hr))
   %rw zmul(FS.order(one))
@@ -147,9 +168,9 @@ def rc0(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(o
   %rw N.add_zero(FS.value(one, r))
   %rw K.prime_eq(one, h1)
   %rw r_lt_pp(one, h1, r, hr)
-  rxg(one, h1, z, hz, r, hr, s, hs, 0n, r, rp_red(one, h1, r, hr), FS.value(one, r), Equal.sym(Nat, Nat.mod(FS.value(one, r), 1n+K.pp(one)), FS.value(one, r), RC.mod_small(K.pp(one), FS.value(one, r), r_lt_pp(one, h1, r, hr))), True{}, r_lt_pp(one, h1, r, hr))
+  rxg(one, h1, gp, gc, z, hz, r, hr, s, hs, 0n, r, rp_red(one, h1, r, hr), FS.value(one, r), Equal.sym(Nat, Nat.mod(FS.value(one, r), 1n+K.pp(one)), FS.value(one, r), RC.mod_small(K.pp(one), FS.value(one, r), r_lt_pp(one, h1, r, hr))), True{}, r_lt_pp(one, h1, r, hr))
 
-def rc1(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}) -> {E.recover_ok(z, r, s, 1n, True{}) == ES.recover_ok(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), 1n, True{}) : Maybe<&2, List<&2, U32>>}:
+def rc1(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}) -> {E.recover_ok(z, r, s, 1n, True{}) == ES.recover_ok(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), 1n, True{}) : Maybe<&2, List<&2, U32>>}:
   %goal {E.recover_x(z, r, s, 1n, L.select(0n, E.rn_fe(r), r), True{}) == ES.recover_x_if(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), 1n, Nat.add(FS.value(one, r), Nat.mul(0n, FS.order(one))), Nat.is_lt(Nat.add(FS.value(one, r), Nat.mul(0n, FS.order(one))), FS.prime(one))) : Maybe<&2, List<&2, U32>>}
   %rw SL.sel0(one, 16n, E.rn_fe(r), r, SL.l16(one, E.rn_fe(r), x1_r(one, h1, r, hr)), SL.sl16(one, r, hr))
   %rw zmul(FS.order(one))
@@ -158,9 +179,9 @@ def rc1(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(o
   %rw N.add_zero(FS.value(one, r))
   %rw K.prime_eq(one, h1)
   %rw r_lt_pp(one, h1, r, hr)
-  rxg(one, h1, z, hz, r, hr, s, hs, 1n, r, rp_red(one, h1, r, hr), FS.value(one, r), Equal.sym(Nat, Nat.mod(FS.value(one, r), 1n+K.pp(one)), FS.value(one, r), RC.mod_small(K.pp(one), FS.value(one, r), r_lt_pp(one, h1, r, hr))), True{}, r_lt_pp(one, h1, r, hr))
+  rxg(one, h1, gp, gc, z, hz, r, hr, s, hs, 1n, r, rp_red(one, h1, r, hr), FS.value(one, r), Equal.sym(Nat, Nat.mod(FS.value(one, r), 1n+K.pp(one)), FS.value(one, r), RC.mod_small(K.pp(one), FS.value(one, r), r_lt_pp(one, h1, r, hr))), True{}, r_lt_pp(one, h1, r, hr))
 
-def rc2(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}) -> {E.recover_ok(z, r, s, 2n, True{}) == ES.recover_ok(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), 2n, True{}) : Maybe<&2, List<&2, U32>>}:
+def rc2(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}) -> {E.recover_ok(z, r, s, 2n, True{}) == ES.recover_ok(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), 2n, True{}) : Maybe<&2, List<&2, U32>>}:
   %goal {E.recover_x(z, r, s, 2n, L.select(1n, E.rn_fe(r), r), Bool.not(S.lt_n(E.rn_fe(r)))) == ES.recover_x_if(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), 2n, Nat.add(FS.value(one, r), Nat.mul(1n, FS.order(one))), Nat.is_lt(Nat.add(FS.value(one, r), Nat.mul(1n, FS.order(one))), FS.prime(one))) : Maybe<&2, List<&2, U32>>}
   %rw SL.sel1(one, 16n, E.rn_fe(r), r, SL.l16(one, E.rn_fe(r), x1_r(one, h1, r, hr)), SL.sl16(one, r, hr))
   %rw FW.lt_n_s(one, h1, E.rn_fe(r))
@@ -172,9 +193,9 @@ def rc2(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(o
   %rw K.order_eq(one, h1)
   %rw K.prime_eq(one, h1)
   %rw RC.rn_cond(FS.value(one, r), 1n+K.np(one), K.pp(one), r_lt_n(one, h1, r, hr), RC.n_lt_p(one, h1), Nat.is_lt(Nat.add(FS.value(one, r), 1n+K.np(one)), 1n+K.pp(one)), rfl_b(Nat.is_lt(Nat.add(FS.value(one, r), 1n+K.np(one)), 1n+K.pp(one))))
-  rxg(one, h1, z, hz, r, hr, s, hs, 2n, E.rn_fe(r), x1_r(one, h1, r, hr), Nat.add(FS.value(one, r), 1n+K.np(one)), x1_v(one, h1, r, hr), Nat.is_lt(Nat.add(FS.value(one, r), 1n+K.np(one)), 1n+K.pp(one)), {==})
+  rxg(one, h1, gp, gc, z, hz, r, hr, s, hs, 2n, E.rn_fe(r), x1_r(one, h1, r, hr), Nat.add(FS.value(one, r), 1n+K.np(one)), x1_v(one, h1, r, hr), Nat.is_lt(Nat.add(FS.value(one, r), 1n+K.np(one)), 1n+K.pp(one)), {==})
 
-def rc3(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}) -> {E.recover_ok(z, r, s, 3n, True{}) == ES.recover_ok(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), 3n, True{}) : Maybe<&2, List<&2, U32>>}:
+def rc3(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}) -> {E.recover_ok(z, r, s, 3n, True{}) == ES.recover_ok(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), 3n, True{}) : Maybe<&2, List<&2, U32>>}:
   %goal {E.recover_x(z, r, s, 3n, L.select(1n, E.rn_fe(r), r), Bool.not(S.lt_n(E.rn_fe(r)))) == ES.recover_x_if(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), 3n, Nat.add(FS.value(one, r), Nat.mul(1n, FS.order(one))), Nat.is_lt(Nat.add(FS.value(one, r), Nat.mul(1n, FS.order(one))), FS.prime(one))) : Maybe<&2, List<&2, U32>>}
   %rw SL.sel1(one, 16n, E.rn_fe(r), r, SL.l16(one, E.rn_fe(r), x1_r(one, h1, r, hr)), SL.sl16(one, r, hr))
   %rw FW.lt_n_s(one, h1, E.rn_fe(r))
@@ -186,25 +207,25 @@ def rc3(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(o
   %rw K.order_eq(one, h1)
   %rw K.prime_eq(one, h1)
   %rw RC.rn_cond(FS.value(one, r), 1n+K.np(one), K.pp(one), r_lt_n(one, h1, r, hr), RC.n_lt_p(one, h1), Nat.is_lt(Nat.add(FS.value(one, r), 1n+K.np(one)), 1n+K.pp(one)), rfl_b(Nat.is_lt(Nat.add(FS.value(one, r), 1n+K.np(one)), 1n+K.pp(one))))
-  rxg(one, h1, z, hz, r, hr, s, hs, 3n, E.rn_fe(r), x1_r(one, h1, r, hr), Nat.add(FS.value(one, r), 1n+K.np(one)), x1_v(one, h1, r, hr), Nat.is_lt(Nat.add(FS.value(one, r), 1n+K.np(one)), 1n+K.pp(one)), {==})
+  rxg(one, h1, gp, gc, z, hz, r, hr, s, hs, 3n, E.rn_fe(r), x1_r(one, h1, r, hr), Nat.add(FS.value(one, r), 1n+K.np(one)), x1_v(one, h1, r, hr), Nat.is_lt(Nat.add(FS.value(one, r), 1n+K.np(one)), 1n+K.pp(one)), {==})
 
-def rid(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}, id: Nat, +hid: {Nat.is_lt(id, 4n) == True{} : Bool}) -> {E.recover_ok(z, r, s, id, True{}) == ES.recover_ok(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), id, True{}) : Maybe<&2, List<&2, U32>>}:
+def rid(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hr: {FS.reduced(one, FS.order(one), r) == True{} : Bool}, +s: List<&2, Nat>, +hs: {FS.reduced(one, FS.order(one), s) == True{} : Bool}, id: Nat, +hid: {Nat.is_lt(id, 4n) == True{} : Bool}) -> {E.recover_ok(z, r, s, id, True{}) == ES.recover_ok(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), id, True{}) : Maybe<&2, List<&2, U32>>}:
   match id:
     case 0n:
-      rc0(one, h1, z, hz, r, hr, s, hs)
+      rc0(one, h1, gp, gc, z, hz, r, hr, s, hs)
     case 1n:
-      rc1(one, h1, z, hz, r, hr, s, hs)
+      rc1(one, h1, gp, gc, z, hz, r, hr, s, hs)
     case 2n:
-      rc2(one, h1, z, hz, r, hr, s, hs)
+      rc2(one, h1, gp, gc, z, hz, r, hr, s, hs)
     case 3n:
-      rc3(one, h1, z, hz, r, hr, s, hs)
+      rc3(one, h1, gp, gc, z, hz, r, hr, s, hs)
     case 4n+ +c:
       Empty.absurd({E.recover_ok(z, r, s, 4n+c, True{}) == ES.recover_ok(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), 4n+c, True{}) : Maybe<&2, List<&2, U32>>}, not4(c, hid))
 
-def rok(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hlr: {FS.limbs16(one, 16n, r) == True{} : Bool}, +s: List<&2, Nat>, +hls: {FS.limbs16(one, 16n, s) == True{} : Bool}, +id: Nat, a: Bool, b: Bool, c: Bool, +ha: {ES.scalar_ok(one, FS.value(one, r)) == a : Bool}, +hb: {ES.scalar_ok(one, FS.value(one, s)) == b : Bool}, +hc: {Nat.is_lt(id, 4n) == c : Bool}) -> {E.recover_ok(z, r, s, id, Bool.and(Bool.and(a, b), c)) == ES.recover_ok(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), id, Bool.and(Bool.and(a, b), c)) : Maybe<&2, List<&2, U32>>}:
+def rok(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +z: List<&2, Nat>, +hz: {FS.reduced(one, FS.order(one), z) == True{} : Bool}, +r: List<&2, Nat>, +hlr: {FS.limbs16(one, 16n, r) == True{} : Bool}, +s: List<&2, Nat>, +hls: {FS.limbs16(one, 16n, s) == True{} : Bool}, +id: Nat, a: Bool, b: Bool, c: Bool, +ha: {ES.scalar_ok(one, FS.value(one, r)) == a : Bool}, +hb: {ES.scalar_ok(one, FS.value(one, s)) == b : Bool}, +hc: {Nat.is_lt(id, 4n) == c : Bool}) -> {E.recover_ok(z, r, s, id, Bool.and(Bool.and(a, b), c)) == ES.recover_ok(one, FS.value(one, z), FS.value(one, r), FS.value(one, s), id, Bool.and(Bool.and(a, b), c)) : Maybe<&2, List<&2, U32>>}:
   match a b c:
     case True{} True{} True{}:
-      rid(one, h1, z, hz, r, SQ.ok_red(one, r, hlr, ha), s, SQ.ok_red(one, s, hls, hb), id, hc)
+      rid(one, h1, gp, gc, z, hz, r, SQ.ok_red(one, r, hlr, ha), s, SQ.ok_red(one, s, hls, hb), id, hc)
     case True{} True{} False{}:
       {==}
     case True{} False{} _:
@@ -212,7 +233,7 @@ def rok(+one: Nat, +h1: {one == 1n : Nat}, +z: List<&2, Nat>, +hz: {FS.reduced(o
     case False{} _ _:
       {==}
 
-def rsig(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +hh: {B.has_len(32n, h) == True{} : Bool}, +sig: List<&2, U32>, +hsig: {B.has_len(65n, sig) == True{} : Bool}) -> {E.recover_sig(h, sig) == ES.recover_len(one, h, sig, True{}) : Maybe<&2, List<&2, U32>>}:
+def rsig(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +h: List<&2, U32>, +hh: {B.has_len(32n, h) == True{} : Bool}, +sig: List<&2, U32>, +hsig: {B.has_len(65n, sig) == True{} : Bool}) -> {E.recover_sig(h, sig) == ES.recover_len(one, h, sig, True{}) : Maybe<&2, List<&2, U32>>}:
   +hlr = BY.of_be_limbs(one, h1, B.prefix(32n, sig), pl1(sig, hsig))
   +hls = BY.of_be_limbs(one, h1, B.prefix(32n, B.suffix(32n, sig)), pl2(sig, hsig))
   %goal {E.recover_ok(E.hash_scalar(h), B.of_be(B.prefix(32n, sig)), B.of_be(B.prefix(32n, B.suffix(32n, sig))), U32.to_nat(B.head(B.suffix(64n, sig))), Bool.and(Bool.and(E.scalar_ok(B.of_be(B.prefix(32n, sig))), E.scalar_ok(B.of_be(B.prefix(32n, B.suffix(32n, sig))))), Nat.is_lt(U32.to_nat(B.head(B.suffix(64n, sig))), 4n))) == ES.recover_ok(one, ES.hash_scalar(one, h), CV.os2ip(CV.first(32n, sig)), CV.os2ip(CV.first(32n, CV.after(32n, sig))), U32.to_nat(CV.head(CV.after(64n, sig))), Bool.and(Bool.and(ES.scalar_ok(one, CV.os2ip(CV.first(32n, sig))), ES.scalar_ok(one, CV.os2ip(CV.first(32n, CV.after(32n, sig))))), Nat.is_lt(U32.to_nat(CV.head(CV.after(64n, sig))), 4n))) : Maybe<&2, List<&2, U32>>}
@@ -233,20 +254,20 @@ def rsig(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +hh: {B.has_len(3
   %rw <- BY.of_be_value(one, h1, B.prefix(32n, sig))
   %rw <- BY.of_be_value(one, h1, B.prefix(32n, B.suffix(32n, sig)))
   %rw <- BY.of_be_value(one, h1, B.prefix(32n, B.suffix(32n, sig)))
-  rok(one, h1, E.hash_scalar(h), SQ.hash_r(one, h1, h, hh), B.of_be(B.prefix(32n, sig)), hlr, B.of_be(B.prefix(32n, B.suffix(32n, sig))), hls, U32.to_nat(B.head(B.suffix(64n, sig))), ES.scalar_ok(one, FS.value(one, B.of_be(B.prefix(32n, sig)))), ES.scalar_ok(one, FS.value(one, B.of_be(B.prefix(32n, B.suffix(32n, sig))))), Nat.is_lt(U32.to_nat(B.head(B.suffix(64n, sig))), 4n), {==}, {==}, {==})
+  rok(one, h1, gp, gc, E.hash_scalar(h), SQ.hash_r(one, h1, h, hh), B.of_be(B.prefix(32n, sig)), hlr, B.of_be(B.prefix(32n, B.suffix(32n, sig))), hls, U32.to_nat(B.head(B.suffix(64n, sig))), ES.scalar_ok(one, FS.value(one, B.of_be(B.prefix(32n, sig)))), ES.scalar_ok(one, FS.value(one, B.of_be(B.prefix(32n, B.suffix(32n, sig))))), Nat.is_lt(U32.to_nat(B.head(B.suffix(64n, sig))), 4n), {==}, {==}, {==})
 
-def rlen(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +sig: List<&2, U32>, a: Bool, b: Bool, +ha: {B.has_len(32n, h) == a : Bool}, +hb: {B.has_len(65n, sig) == b : Bool}) -> {E.recover_len(h, sig, Bool.and(a, b)) == ES.recover_len(one, h, sig, Bool.and(a, b)) : Maybe<&2, List<&2, U32>>}:
+def rlen(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +h: List<&2, U32>, +sig: List<&2, U32>, a: Bool, b: Bool, +ha: {B.has_len(32n, h) == a : Bool}, +hb: {B.has_len(65n, sig) == b : Bool}) -> {E.recover_len(h, sig, Bool.and(a, b)) == ES.recover_len(one, h, sig, Bool.and(a, b)) : Maybe<&2, List<&2, U32>>}:
   match a b:
     case True{} True{}:
-      rsig(one, h1, h, ha, sig, hb)
+      rsig(one, h1, gp, gc, h, ha, sig, hb)
     case True{} False{}:
       {==}
     case False{} _:
       {==}
 
 # the key recovered from a 32-byte hash and a 65-byte r || s || id
-def recover_v(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +sig: List<&2, U32>) -> {E.recover(h, sig) == ES.recover(one, h, sig) : Maybe<&2, List<&2, U32>>}:
+def recover_v(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +h: List<&2, U32>, +sig: List<&2, U32>) -> {E.recover(h, sig) == ES.recover(one, h, sig) : Maybe<&2, List<&2, U32>>}:
   %goal {E.recover_len(h, sig, Bool.and(B.has_len(32n, h), B.has_len(65n, sig))) == ES.recover_len(one, h, sig, Bool.and(CV.length_is(32n, h), CV.length_is(65n, sig))) : Maybe<&2, List<&2, U32>>}
   %rw BL.hl_is(32n, h)
   %rw BL.hl_is(65n, sig)
-  rlen(one, h1, h, sig, CV.length_is(32n, h), CV.length_is(65n, sig), BL.hl_is(32n, h), BL.hl_is(65n, sig))
+  rlen(one, h1, gp, gc, h, sig, CV.length_is(32n, h), CV.length_is(65n, sig), BL.hl_is(32n, h), BL.hl_is(65n, sig))
