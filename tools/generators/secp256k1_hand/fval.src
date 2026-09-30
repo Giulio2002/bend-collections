@@ -3,14 +3,14 @@ import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/secp256k1/field.bend as FS
 import ../../../src/crypto/secp256k1/limbs.bend as L
 import ../../../src/crypto/secp256k1/fe.bend as FE
-import ../../lib/nat.bend as N
+import ./lite/lib/nat.bend as N
 import ../../lib/logic.bend as Lg
-import ../../lib/u32.bend as U
-import ../../lib/word.bend as WD
-import ../../lib/lemmas/spec/numeric.bend as S
-import ../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../math/natural/arith.bend as NR
-import ../../math/typed/width.bend as WW
+import ./lite/lib/u32.bend as U
+import ./lite/lib/word.bend as WD
+import ./lite/lib/lemmas/spec/numeric.bend as S
+import ./lite/lib/lemmas/proofs/nat_algebra.bend as NA
+import ./lite/math/natural/arith.bend as NR
+import ./lite/math/typed/width.bend as WW
 import ./semiring.bend as SR
 import ./limbs.bend as LV
 import ./ineq.bend as I
@@ -20,7 +20,7 @@ import ./u32and.bend as UA
 import ./fbase.bend as FO
 import ./fmod.bend as M
 import ./reduce.bend as R
-import ../../lib/arith.bend as AR
+import ./lite/lib/arith.bend as AR
 
 # The values of the list models of proofs/crypto/secp256k1/fmod.bend (the
 # stages of the record field src/crypto/secp256k1/fe.bend): products of

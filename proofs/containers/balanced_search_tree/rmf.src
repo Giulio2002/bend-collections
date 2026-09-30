@@ -34,7 +34,7 @@ import ../../lib/nat_list.bend as NL
 %def T_OKS {EN.oks(~K, ~V, $I0, fn, pl) == True{} : Bool}
 %def T_FLL {ST.fll(~K, fn, $FXU) == True{} : Bool}
 %def T_LEN {SC.length($ND, fn) == SC.length($ND, nl) : Nat}
-%def RH +k: K, +es0: $ES, +fv: $MV, +hdel: {$E0 == $D : $ES}, +hord: {ST.ordered($AK, $D) == True{} : Bool}, +hnd: $NDL($APP($I0, $FXU)), +hin: $ALLIN($APP($I0, $FXU), SC.length($ND, nl)), +hln: {Nat.is_eq($LEN($APP($I0, $FXU)), SC.length($ND, nl)) == True{} : Bool}, +hsz: {Nat.is_eq(Nat.sub(n, 1n), $LEN($I0)) == True{} : Bool}, +hcl: {Nat.is_le(l, 31n) == True{} : Bool}, +hcd: {Nat.is_le(d, l) == True{} : Bool}, +hcap: {Nat.is_le(SC.length($ND, nl), SC.pow2(d)) == True{} : Bool}, +hcpl: {Nat.is_eq(SC.length($MV, pl), SC.length($ND, nl)) == True{} : Bool}
+%def RH +k: K, +es0: $ES, +fv: $MV, +hdel: {$E0 == $D : $ES}, +hord: {ST.ordered($AK, $D) == True{} : Bool}, +hnd: $NDL($APP($I0, $FXU)), +hin: $ALLIN($APP($I0, $FXU), SC.length($ND, nl)), +hln: {Nat.is_eq($LEN($APP($I0, $FXU)), SC.length($ND, nl)) == True{} : Bool}, +hsz: {Nat.is_eq(Nat.sub(n, 1n), $LEN($I0)) == True{} : Bool}, +hcl: {Nat.is_le(l, 29n) == True{} : Bool}, +hcd: {Nat.is_le(d, l) == True{} : Bool}, +hcap: {Nat.is_le(SC.length($ND, nl), SC.pow2(d)) == True{} : Bool}, +hcpl: {Nat.is_eq(SC.length($MV, pl), SC.length($ND, nl)) == True{} : Bool}
 %def RA k, es0, fv, hdel, hord, hnd, hin, hln, hsz, hcl, hcd, hcap, hcpl
 %def RESH ST.SH{Nat.sub(n, 1n), ST.rid(ft), ST.fst0($IDS(ft)), ST.last0($IDS(ft)), $U, l, d, fn, pl, ft, $FXU}
 %def IE(xs) L.subst($LN, z => xs, $I0, $IDS(ft), Equal.sym($LN, $IDS(ft), $I0, hids)

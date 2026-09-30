@@ -69,15 +69,24 @@ def th_r(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +x: List<&2, U32>
   %rw tagged_v(h, x)
   SQ.hash_r(one, h1, SS.tagged_h(h, x), tagged_len(h, x))
 
-# the tag hashes: SHA-256 (FIPS 180-4) of the tags, evaluated once
-def tha() -> {SC.th_aux() == FIPS.sha256_bytes(SS.tag_aux()) : List<&2, U32>}:
-  {==}
+# the hash of a tag: the code's (behind its probe) is the specification's
+# (behind `one`), with no evaluation
+def thq(+one: Nat, p: List<&2, U32>, +tag: List<&2, U32>) -> {SC.tagh(p, tag) == FIPS.sha256_bytes(tag) : List<&2, U32>}:
+  match p:
+    case Nil{}:
+      SHL.sha256_bytes_correct(tag)
+    case b <> t:
+      SHL.sha256_bytes_correct(tag)
 
-def thn() -> {SC.th_nonce() == FIPS.sha256_bytes(SS.tag_nonce()) : List<&2, U32>}:
-  {==}
+def ths(one: Nat, +tag: List<&2, U32>) -> {SS.th(one, tag) == FIPS.sha256_bytes(tag) : List<&2, U32>}:
+  match one:
+    case 0n:
+      {==}
+    case 1n+k:
+      {==}
 
-def thc() -> {SC.th_challenge() == FIPS.sha256_bytes(SS.tag_challenge()) : List<&2, U32>}:
-  {==}
+def tht(+one: Nat, +p: List<&2, U32>, +tag: List<&2, U32>) -> {SC.tagh(p, tag) == SS.th(one, tag) : List<&2, U32>}:
+  Equal.trans(List<&2, U32>, SC.tagh(p, tag), FIPS.sha256_bytes(tag), SS.th(one, tag), thq(one, p, tag), Equal.sym(List<&2, U32>, SS.th(one, tag), FIPS.sha256_bytes(tag), ths(one, tag)))
 
 # ---- the even-y key or nonce: x or n - x ----
 
@@ -224,9 +233,9 @@ def verify_hv(+one: Nat, +h1: {one == 1n : Nat}, +hc: List<&2, U32>, +pk: List<&
 
 # BIP-340 verification
 def verify_v(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> {SC.verify(pk, m, sig) == SS.verify(one, pk, m, sig) : Bool}:
-  %goal {SC.verify_h(SC.th_challenge(), pk, m, sig) == SS.verify_h(one, FIPS.sha256_bytes(SS.tag_challenge()), pk, m, sig) : Bool}
-  %rw thc()
-  verify_hv(one, h1, FIPS.sha256_bytes(SS.tag_challenge()), pk, m, sig)
+  %goal {SC.verify_h(SC.tagh(pk, SS.tag_challenge()), pk, m, sig) == SS.verify_h(one, SS.th(one, SS.tag_challenge()), pk, m, sig) : Bool}
+  %rw tht(one, pk, SS.tag_challenge())
+  verify_hv(one, h1, SS.th(one, SS.tag_challenge()), pk, m, sig)
 
 # ---- signing ----
 
@@ -303,11 +312,11 @@ def spk_h(+one: Nat, +h1: {one == 1n : Nat}, +xa: List<&2, U32>, +hn: List<&2, U
       sk2(one, h1, hc, S.select(SC.is_odd(py), S.neg(d0), d0), hd, CV.i2osp(32n, FS.value(one, px)), m, S.reduce(B.of_be(SC.tagged_h(hn, List.append(&2, U32, SS.xor_bytes(CV.i2osp(32n, FS.value(one, S.select(SC.is_odd(py), S.neg(d0), d0))), SS.tagged_h(xa, aux)), List.append(&2, U32, CV.i2osp(32n, FS.value(one, px)), m))))), th_r(one, h1, hn, List.append(&2, U32, SS.xor_bytes(CV.i2osp(32n, FS.value(one, S.select(SC.is_odd(py), S.neg(d0), d0))), SS.tagged_h(xa, aux)), List.append(&2, U32, CV.i2osp(32n, FS.value(one, px)), m))))
 
 def spk(+one: Nat, +h1: {one == 1n : Nat}, +d0: List<&2, Nat>, +hd0: {FS.reduced(one, FS.order(one), d0) == True{} : Bool}, +m: List<&2, U32>, +aux: List<&2, U32>, +a: P.Affine, +ha: {PA.ared(one, a) == True{} : Bool}) -> {SC.sign_p(d0, m, aux, a) == SS.sign_p(one, FS.value(one, d0), m, aux, PA.av(one, a)) : Maybe<&2, List<&2, U32>>}:
-  %goal {SC.sign_ph(SC.th_aux(), SC.th_nonce(), SC.th_challenge(), d0, m, aux, a) == SS.sign_ph(one, FIPS.sha256_bytes(SS.tag_aux()), FIPS.sha256_bytes(SS.tag_nonce()), FIPS.sha256_bytes(SS.tag_challenge()), FS.value(one, d0), m, aux, PA.av(one, a)) : Maybe<&2, List<&2, U32>>}
-  %rw tha()
-  %rw thn()
-  %rw thc()
-  spk_h(one, h1, FIPS.sha256_bytes(SS.tag_aux()), FIPS.sha256_bytes(SS.tag_nonce()), FIPS.sha256_bytes(SS.tag_challenge()), d0, hd0, m, aux, a, ha)
+  %goal {SC.sign_ph(SC.tagh(m, SS.tag_aux()), SC.tagh(m, SS.tag_nonce()), SC.tagh(m, SS.tag_challenge()), d0, m, aux, a) == SS.sign_ph(one, SS.th(one, SS.tag_aux()), SS.th(one, SS.tag_nonce()), SS.th(one, SS.tag_challenge()), FS.value(one, d0), m, aux, PA.av(one, a)) : Maybe<&2, List<&2, U32>>}
+  %rw tht(one, m, SS.tag_aux())
+  %rw tht(one, m, SS.tag_nonce())
+  %rw tht(one, m, SS.tag_challenge())
+  spk_h(one, h1, SS.th(one, SS.tag_aux()), SS.th(one, SS.tag_nonce()), SS.th(one, SS.tag_challenge()), d0, hd0, m, aux, a, ha)
 
 def s3(+one: Nat, +h1: {one == 1n : Nat}, +sk: List<&2, U32>, +hl: {B.has_len(32n, sk) == True{} : Bool}, +m: List<&2, U32>, +aux: List<&2, U32>, c: Bool, +hc: {Bool.and(Bool.not(Nat.is_eq(CV.os2ip(sk), 0n)), Nat.is_lt(CV.os2ip(sk), FS.order(one))) == c : Bool}) -> {SC.sign_d(m, aux, SC.secret_if(B.of_be(sk), c)) == SS.sign_ok(one, sk, m, aux, c) : Maybe<&2, List<&2, U32>>}:
   match c:

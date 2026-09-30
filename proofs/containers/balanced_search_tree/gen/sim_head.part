@@ -32,7 +32,7 @@ import ./mirror.bend as MI
 %def F n, root, lo, hi, free, l, d, nl, pl, t, fl
 %def FP +n, +root, +lo, +hi, +free, +l, +d, +nl, +pl, +t, +fl
 %def SH0 ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl}
-%def B1 Nat.is_le(l, 31n)
+%def B1 Nat.is_le(l, 29n)
 %def B2 Nat.is_le(d, l)
 %def B3 Nat.is_le(SC.length($ND, nl), SC.pow2(d))
 %def B4 Nat.is_eq(SC.length($MV, pl), SC.length($ND, nl))

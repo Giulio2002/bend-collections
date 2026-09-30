@@ -35,9 +35,16 @@ def hash_scalar(+h: List<&2, U32>) -> List<&2, Nat>:
 type Drbg is Data:
   Drbg{k: List<&2, U32>, v: List<&2, U32>}
 
-# HMAC-SHA256 (src/crypto/mac.bend)
-def hmac(key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
-  MAC.sign(key, msg)
+# HMAC-SHA256 (src/crypto/mac.bend). The key is looked at first (probe),
+# so that the proof checker keeps the HMAC of an unknown key folded; both
+# cases are MAC.sign(key, msg).
+def hmac_go(probe: List<&2, U32>, key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
+  match probe:
+    case Nil{}: MAC.sign(key, msg)
+    case b <> t: MAC.sign(key, msg)
+
+def hmac(+key: List<&2, U32>, msg: List<&2, U32>) -> List<&2, U32>:
+  hmac_go(key, key, msg)
 
 def cat(xs: List<&2, U32>, ys: List<&2, U32>) -> List<&2, U32>:
   List.append(&2, U32, xs, ys)
@@ -57,8 +64,8 @@ def drbg_second(d: Drbg, +seed: List<&2, U32>) -> Drbg:
   match d:
     case Drbg{k, v}: drbg_step(k, v, 1, seed)
 
-def drbg_init(+seed: List<&2, U32>) -> Drbg:
-  drbg_second(drbg_step(fill(32n, 0), fill(32n, 1), 0, seed), seed)
+def drbg_init(+k0: List<&2, U32>, +v0: List<&2, U32>, +seed: List<&2, U32>) -> Drbg:
+  drbg_second(drbg_step(k0, v0, 0, seed), seed)
 
 # step h.3: K = HMAC_K(V || 0x00), V = HMAC_K(V)
 def drbg_next(+k: List<&2, U32>, +v: List<&2, U32>) -> Drbg:
@@ -136,16 +143,17 @@ def secret(+sk: List<&2, U32>) -> Maybe<&2, List<&2, Nat>>:
 
 # sign with a valid secret scalar d: x = int2octets(d),
 # h1' = bits2octets(h) = int2octets(bits2int(h) mod n)
-def sign_d(+h: List<&2, U32>, m: Maybe<&2, List<&2, Nat>>) -> Maybe<&2, Signature>:
+# (k0 = 0x00...00 and v0 = 0x01...01, the DRBG's initial K and V)
+def sign_d(+k0: List<&2, U32>, +v0: List<&2, U32>, +h: List<&2, U32>, m: Maybe<&2, List<&2, Nat>>) -> Maybe<&2, Signature>:
   match m:
     case None{}: None{}
     case Some{+d}:
       +z = hash_scalar(h)
-      sign_drbg(z, d, drbg_init(cat(B.to_be(d), B.to_be(z))))
+      sign_drbg(z, d, drbg_init(k0, v0, cat(B.to_be(d), B.to_be(z))))
 
 def sign_h(+sk: List<&2, U32>, +h: List<&2, U32>, ok: Bool) -> Maybe<&2, Signature>:
   match ok:
-    case True{}: sign_d(h, secret(sk))
+    case True{}: sign_d(fill(32n, 0), fill(32n, 1), h, secret(sk))
     case False{}: None{}
 
 # the low-S signature of a 32-byte hash under a 32-byte secret key

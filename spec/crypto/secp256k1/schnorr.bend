@@ -28,6 +28,14 @@ def tagged_h(+th: List<&2, U32>, x: List<&2, U32>) -> List<&2, U32>:
 def tagged(tag: List<&2, U32>, x: List<&2, U32>) -> List<&2, U32>:
   tagged_h(FIPS.sha256_bytes(tag), x)
 
+# SHA256(tag), looking at `one` first (both cases are the same hash): the
+# hash of a tag name is then never expanded by the checker, like the other
+# constants written with `one`
+def th(one: Nat, tag: List<&2, U32>) -> List<&2, U32>:
+  match one:
+    case 0n: FIPS.sha256_bytes(tag)
+    case 1n+k: FIPS.sha256_bytes(tag)
+
 # "BIP0340/aux", "BIP0340/nonce", "BIP0340/challenge"
 def tag_aux() -> List<&2, U32>:
   [66, 73, 80, 48, 51, 52, 48, 47, 97, 117, 120]
@@ -100,7 +108,7 @@ def verify_h(+one: Nat, +hc: List<&2, U32>, +pk: List<&2, U32>, +m: List<&2, U32
 
 # Verify(pk, m, sig): pk 32 bytes, sig 64 bytes, m any length
 def verify(+one: Nat, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
-  verify_h(one, FIPS.sha256_bytes(tag_challenge()), pk, m, sig)
+  verify_h(one, th(one, tag_challenge()), pk, m, sig)
 
 # ---- signing ----
 
@@ -162,7 +170,7 @@ def sign_ph(+one: Nat, +ha: List<&2, U32>, +hn: List<&2, U32>, +hc: List<&2, U32
       sign_k(one, hc, d, pb, m, Nat.mod(CV.os2ip(tagged_h(hn, cat(t, cat(pb, m)))), n(one)))
 
 def sign_p(+one: Nat, +d0: Nat, +m: List<&2, U32>, +aux: List<&2, U32>, pa: CV.SAffine) -> Maybe<&2, List<&2, U32>>:
-  sign_ph(one, FIPS.sha256_bytes(tag_aux()), FIPS.sha256_bytes(tag_nonce()), FIPS.sha256_bytes(tag_challenge()), d0, m, aux, pa)
+  sign_ph(one, th(one, tag_aux()), th(one, tag_nonce()), th(one, tag_challenge()), d0, m, aux, pa)
 
 def sign_ok(+one: Nat, +sk: List<&2, U32>, +m: List<&2, U32>, +aux: List<&2, U32>, ok: Bool) -> Maybe<&2, List<&2, U32>>:
   match ok:

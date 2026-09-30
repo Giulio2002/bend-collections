@@ -7,20 +7,18 @@ import ../../../spec/crypto/secp256k1/ecdsa.bend as ES
 import ../../../src/crypto/secp256k1/scalar.bend as S
 import ../../../src/crypto/secp256k1/bytes.bend as B
 import ../../../src/crypto/secp256k1/ecdsa.bend as E
-import ../../lib/nat.bend as N
+import ./lite/lib/nat.bend as N
+import ../../lib/logic.bend as Lg
+import ./lite/math/natural/arith.bend as NR
 import ./limbs.bend as LV
 import ./fprot.bend as FR
 import ./scalarops.bend as SO
 import ./fwrap.bend as FW
 import ./bytes.bend as BY
+import ./pok.bend as OK
 
 # Scalars from bytes: x mod n for 16 limbs, the hash of a message as a
 # scalar, and 1 <= x < n.
-
-def scalar_ok_v(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>) -> {E.scalar_ok(x) == ES.scalar_ok(one, FS.value(one, x)) : Bool}:
-  %Equal.sym(Bool, S.is_zero(x), Nat.is_eq(FS.value(one, x), 0n), FW.is_zero_s(one, h1, x)) : {Bool.and(Bool.not(_), S.lt_n(x)) == Bool.and(Bool.not(Nat.is_eq(FS.value(one, x), 0n)), Nat.is_lt(FS.value(one, x), FS.order(one))) : Bool}
-  %Equal.sym(Bool, S.lt_n(x), Nat.is_lt(FS.value(one, x), FS.order(one)), FW.lt_n_s(one, h1, x)) : {Bool.and(Bool.not(Nat.is_eq(FS.value(one, x), 0n)), _) == Bool.and(Bool.not(Nat.is_eq(FS.value(one, x), 0n)), Nat.is_lt(FS.value(one, x), FS.order(one))) : Bool}
-  {==}
 
 # x mod n for a 16-limb x
 def sred_v(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, x) == True{} : Bool}) -> {FS.value(one, S.reduce(x)) == Nat.mod(FS.value(one, x), FS.order(one)) : Nat}:
@@ -38,3 +36,14 @@ def hash_r(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +hl: {B.has_len
   sred_r(one, h1, B.of_be(h), BY.of_be_limbs(one, h1, h, hl))
 
 # ---- public keys ----
+
+# a limb list of value 1 <= x < n is a reduced scalar
+
+def scalar_ok_v(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>) -> {E.scalar_ok(x) == ES.scalar_ok(one, FS.value(one, x)) : Bool}:
+  OK.scalar_ok_v(one, h1, x)
+
+def ok_red(+one: Nat, +x: List<&2, Nat>, +hl: {FS.limbs16(one, 16n, x) == True{} : Bool}, +h: {ES.scalar_ok(one, FS.value(one, x)) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), x) == True{} : Bool}:
+  OK.ok_red(one, x, hl, h)
+
+def mod2_lt(+v: Nat) -> {Nat.is_lt(Nat.mod(v, 2n), 2n) == True{} : Bool}:
+  OK.mod2_lt(v)

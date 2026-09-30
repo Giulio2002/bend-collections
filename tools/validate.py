@@ -285,15 +285,19 @@ def main():
         if name == 'balanced_search_tree':
             # The production module is the indexed TreeMap: its tests, the
             # oracle comparison, the component laws, and the universal
-            # refinement proof proofs/tree_map.bend (every operation, every
-            # good shadow, cursor and view, every lawful comparator).
+            # refinement proof proofs/containers/balanced_search_tree/proof.bend
+            # (every operation, every good shadow, cursor and view, every
+            # lawful comparator), and the semantic mutants of
+            # tools/check_tree_map_mutations.py, each of which the proofs
+            # must reject.
             (ROOT/'build/tree-map').mkdir(parents=True, exist_ok=True)
             checks = []
             for command, limit in [([BEND, 'tests/tree_map/main.bend', '-o', 'build/tree-map/test'], 120),
                                    ([sys.executable, 'tools/check_tree_map.py'], 120),
                                    ([BEND, 'proofs/containers/balanced_search_tree/components.bend'], 120),
                                    ([BEND, 'proofs/containers/balanced_search_tree/range.bend'], 120),
-                                   ([BEND, 'proofs/containers/balanced_search_tree/proof.bend'], 21600)]:
+                                   ([BEND, 'proofs/containers/balanced_search_tree/proof.bend'], 21600),
+                                   ([sys.executable, 'tools/check_tree_map_mutations.py'], 7200)]:
                 result = run(command, timeout=limit)
                 passed = result.returncode == 0 and (command[1] != 'proofs/containers/balanced_search_tree/proof.bend' or proved(result.stdout))
                 checks.append({'command': command, 'passed': passed,
@@ -301,11 +305,16 @@ def main():
                 if not passed:
                     fail(name, 'TreeMap check failed: ' + repr(command))
                     break
-            good = len(checks) == 5 and all(x['passed'] for x in checks)
+            good = len(checks) == 6 and all(x['passed'] for x in checks)
+            mutated = len(checks) == 6 and checks[5]['passed']
+            mutation_file = ROOT / 'build/tree-map/mutations.json'
+            mutants = json.loads(mutation_file.read_text()) if mutated and mutation_file.exists() else None
             rows.append({'id': name, 'implementation': 'indexed TreeMap',
                          'runtime': 'passed' if good else 'failed',
                          'component_proof': 'passed' if good else 'failed',
-                         'trace_proof': 'passed' if good else 'failed', 'checks': checks})
+                         'trace_proof': 'passed' if good else 'failed',
+                         'mutations': 'passed' if mutated else 'failed',
+                         'mutants': mutants, 'checks': checks})
             (LOGDIR / (name + '.log')).write_text('\n'.join(x['output'] for x in checks))
             print('%-22s runtime=%s refinement_proof=%s' % (name, rows[-1]['runtime'], rows[-1]['trace_proof']), flush=True)
             continue
