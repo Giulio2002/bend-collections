@@ -24,6 +24,7 @@ WORDS = {
     'OD': '+one: Nat, +h1: {one == 1n : Nat}, +hn256: {Nat.is_le(1n+nm, C.shift(256n, one)) == True{} : Bool}', 'OA': 'one, h1, hn256',
     'ED': '+s4: Nat, +he: {Nat.add(1n+mp, 1n) == Nat.mul(s4, 4n) : Nat}, +hodd: {Nat.mod(1n+mp, 2n) == 1n : Nat}, +h256: {Nat.is_le(1n+mp, C.shift(256n, one)) == True{} : Bool}', 'EA': 's4, he, hodd, h256',
     'SS': 'FS.mmul(1n+nm, FS.minv(1n+nm, k), FS.madd(1n+nm, e, FS.mmul(1n+nm, r, d)))',
+    'RV': 'Nat.mod(CS.aff_x(CS.to_affine(1n+mp, kp)), 1n+nm)',
     'INF': 'CS.infinity()', 'TT': 'True{}', 'FF': 'False{}',
 }
 FUNCS = {
@@ -31,6 +32,9 @@ FUNCS = {
     'AN': lambda a, b: 'FS.madd(1n+nm, %s, %s)' % (a, b),
     'SN': lambda a, b: 'FS.msub(1n+nm, %s, %s)' % (a, b),
     'IN': lambda a: 'FS.minv(1n+nm, %s)' % a,
+    'SSF': lambda r: 'FS.mmul(1n+nm, FS.minv(1n+nm, k), FS.madd(1n+nm, e, FS.mmul(1n+nm, %s, d)))' % r,
+    'RRH': lambda sl: 'CS.padd(1n+mp, CS.pmul(1n+mp, FS.mmul(1n+nm, e, FS.minv(1n+nm, %s)), g), CS.pmul(1n+mp, FS.mmul(1n+nm, RV, FS.minv(1n+nm, %s)), EG.nrm(1n+mp, qp)))' % (sl, sl),
+    'QRH': lambda sl, pr: 'CS.padd(1n+mp, CS.pmul(1n+mp, FS.mmul(1n+nm, FS.msub(1n+nm, 0n, e), FS.minv(1n+nm, RV)), g), CS.pmul(1n+mp, FS.mmul(1n+nm, %s, FS.minv(1n+nm, RV)), %s))' % (sl, pr),
     'NN': lambda a: 'FS.msub(1n+nm, 0n, %s)' % a,
     'DN': lambda a: 'Nat.mod(%s, 1n+nm)' % a,
     'MP': lambda a, b: 'FS.mmul(1n+mp, %s, %s)' % (a, b),
