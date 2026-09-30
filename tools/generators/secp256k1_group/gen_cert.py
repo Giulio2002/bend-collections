@@ -80,6 +80,51 @@ def chunks(nm, a, e, n, defs):
     return last, x
 
 
+def fold_for(n):
+    """a multiple mm = 2^k - c of n with a sparse c (bnf.bend's fold), if any"""
+    # p; p - 1 = 564522 q1; p - 564523 = 564522 (q1 - 1), a multiple of the factor r2 of q1 - 1
+    for mm, k in ((P, 256), (P - 1, 256), (P - 564523, 256)):
+        if mm % n == 0:
+            return mm, k, 2**k - mm
+    return None
+
+
+def fsim(e, a, k, c):
+    """F.fexp(e, a, k, c), exactly"""
+    x = 1
+    for b in bin(e)[2:]:
+        t = x * x * (a if b == '1' else 1)
+        for _ in range(2):
+            t = (t & ((1 << k) - 1)) + c * (t >> k)
+        x = t
+    return x
+
+
+def powinv(nm, a, e, n, defs):
+    """a def proving CL.Inv(one, a, n, a^e mod n, e); returns its name and the residue"""
+    fo = fold_for(n)
+    if not fo or a >= 2**20:
+        return chunks(nm, a, e, n, defs)
+    mm, k, c = fo
+    r = pow(a, e, n)
+    j, r2 = divmod(fsim(e, a, k, c), n)
+    assert r2 == r
+    defs.append('def %s(+one: Nat, +h1: {one == 1n : Nat}) -> CL.Inv(one, %s, %s, %s, %s):\n  CL.fexp_o(one, h1, %s, %s, %s, %dn, %s, %s, %s, %s, %s, %s, %s, {==}, {==}, {==}, {==}, {==})\n' % (
+        nm, lit(a), lit(n), lit(r), lit(e), lit(a), lit(mm), lit(mm - 1), k, lit(c), lit(e), lit(n), lit(n - 1), lit(mm // n), lit(j), lit(r)))
+    return nm, r
+
+
+def mulinv(nm, a, n, x, e, px, y, f, py, defs):
+    """from Inv(x, e) and Inv(y, f) (defs px, py): a def proving Inv(x y mod n, e + f)"""
+    q, z = divmod(x * y, n)
+    defs.append('def %s(+one: Nat, +h1: {one == 1n : Nat}) -> CL.Inv(one, %s, %s, %s, %s):\n  CL.mul_i(one, h1, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, {==}, %s(one, h1), %s(one, h1), {==}, {==})\n' % (
+        nm, lit(a), lit(n), lit(z), lit(e + f), lit(a), lit(n), lit(n - 1), lit(x), lit(e), lit(y), lit(f), lit(q), lit(z), lit(e + f), px, py))
+    return nm, z
+
+
+PBASE = 49      # the base at level p: 49^((p-1)/6) is also (p - 7)^((p-1)/3), the cube fact
+
+
 def plan(n):
     """the primes q of the factored part (exponent 1 in n - 1, largest first) and a base"""
     f = factorint(n - 1)
@@ -90,7 +135,7 @@ def plan(n):
         if F * F >= n:
             break
     assert F * F >= n, n
-    a = 2
+    a = PBASE if n == P else 2
     while not (pow(a, n - 1, n) == 1 and all(gcd(pow(a, (n - 1) // q, n) - 1, n) == 1 and pow(a, (n - 1) // q, n) > 1 for q in qs)):
         a += 1
     return qs, a
@@ -113,7 +158,15 @@ def level(n, defs, done):
     qs, a = plan(n)
     subs = [level(q, defs, done) for q in qs]
     out = ['# %d = 1 + %s m, base %d' % (n, ' * '.join(str(q) for q in qs), a)]
-    l3, x = chunks(nm + '_a', a, n - 1, n, out)
+    if n == P:
+        # a^((p-1)/6) = c (shared with the cube fact), then c^6 by three products
+        e6 = (P - 1) // 6
+        _, c = powinv('sh_c', a, e6, n, out)
+        _, c2 = mulinv('sh_2', a, n, c, e6, 'sh_c', c, e6, 'sh_c', out)
+        _, c3 = mulinv('sh_3', a, n, c2, 2 * e6, 'sh_2', c, e6, 'sh_c', out)
+        l3, x = mulinv('sh_6', a, n, c3, 3 * e6, 'sh_3', c3, 3 * e6, 'sh_3', out)
+    else:
+        l3, x = powinv(nm + '_a', a, n - 1, n, out)
     assert x == 1
     cert = 'PK.cert_nil(X.bvalo(one, %s))' % lit(n)
     tail = 'Nil{}'
@@ -125,7 +178,7 @@ def level(n, defs, done):
         b = pow(a, m, n)
         u = pow(b - 1, -1, n)
         v = (u * (b - 1) - 1) // n
-        l4, x = chunks('%s_b%d' % (nm, i), a, m, n, out)
+        l4, x = powinv('%s_b%d' % (nm, i), a, m, n, out)
         assert x == b
         hq = '%s(one, h1)' % subs[i]
         e2 = 'X.e2_o(one, h1, %s, %s, %s, {==})' % (lit(n), lit(q), lit(m))
@@ -162,9 +215,11 @@ import ../../../math/number/nt_prime.bend as PM
 import ../../../math/number/nt_pock.bend as PK
 
 # Pocklington certificate: %s
-# Every literal below (quotients and remainders of each squaring, bases,
-# Bezout witnesses) is checked by closed computation on bn.bend's binary
-# numbers; the numbers are X.bvalo(one, literal), never expanded.
+# Every literal below (residues, quotients, bases, Bezout witnesses) is
+# checked by closed computation on bn.bend's binary numbers: powers modulo
+# p and modulo the factor q1 of p - 1 by bnf.bend's fold exponentiation
+# (no quotients), the others by bnx.bend's quotient steps; the numbers are
+# X.bvalo(one, literal), never expanded.
 '''
 
 
@@ -179,17 +234,24 @@ def write(fn, what, n):
     return nm
 
 
-def write_pow(fn, what, a, e, n):
-    """a^e mod n as a chain of checked chunks: def pw proves CL.Inv(one, ca(), cn(), cc(), ce())"""
+def write_cube(fn):
+    """(p - 7)^((p-1)/3) mod p: (p - 7)^2 == 49 and cert_p.bend's 49^((p-1)/6).
+    def pw proves CL.Inv(one, ca(), cn(), cc(), ce())"""
     defs = []
     CONSTS.clear()
     del CDEFS[:]
-    last, x = chunks('c', a, e, n, defs)
-    for nm, v in (('ca', a), ('cn', n), ('cc', x), ('ce', e)):
+    e6, e3 = (P - 1) // 6, (P - 1) // 3
+    c = pow(PBASE, e6, P)
+    last, x = chunks('c', P - 7, 2, P, defs)
+    assert x == PBASE and c == pow(P - 7, e3, P)
+    for nm, v in (('ca', P - 7), ('cn', P), ('cc', c), ('ce', e3)):
         defs.append('def %s() -> B.Bn:\n  %s\n' % (nm, lit(v)))
-    defs.append('def pw(+one: Nat, +h1: {one == 1n : Nat}) -> CL.Inv(one, ca(), cn(), cc(), ce()):\n  %s(one, h1)\n' % last)
-    open(os.path.join(OUT, fn), 'w').write(HEAD % what + '\n' + '\n'.join(CDEFS) + '\n' + '\n'.join(defs))
-    return x
+    defs.append('def pw(+one: Nat, +h1: {one == 1n : Nat}) -> CL.Inv(one, ca(), cn(), cc(), ce()):\n  CL.reb_i(one, h1, %s, %s, %s, %s, %s, %s, %s, %s, {==}, %s(one, h1), CP.sh_c(one, h1), {==})\n' % (
+        lit(P - 7), lit(P), lit(P - 1), lit(PBASE), lit(2), lit(c), lit(e6), lit(e3), last))
+    head = HEAD % '(p - 7)^((p - 1) / 3) mod p'
+    head = head.replace('import ./certl.bend as CL\n', 'import ./certl.bend as CL\nimport ./cert_p.bend as CP\n')
+    open(os.path.join(OUT, fn), 'w').write(head + '\n' + '\n'.join(CDEFS) + '\n' + '\n'.join(defs))
+    return c
 
 
 if __name__ == '__main__':
@@ -199,7 +261,7 @@ if __name__ == '__main__':
     if 'n' in which:
         print(write('cert_n.bend', 'the group order n is prime', N))
     if 'c' in which:
-        c = write_pow('cert_c.bend', '(p - 7)^((p - 1) / 3) mod p', P - 7, (P - 1) // 3, P)
+        c = write_cube('cert_c.bend')
         assert c != 1
         print('cube', c)
     for w in which:
