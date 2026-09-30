@@ -347,11 +347,207 @@ def proof_blamka():
     return s
 
 
+# ---------------------------------------------------------------- block access (memory)
+
+W32 = 32
+
+
+def row_state(xs):
+    """T.V of sixteen lanes from 32 word terms (lane n is words 2n, 2n+1)."""
+    return 'T.V{' + ', '.join('T.W{%s, %s}' % (xs[2 * k], xs[2 * k + 1]) for k in range(16)) + '}'
+
+
+def access():
+    """src/crypto/argon2/access.bend: blocks read and written word by word
+    with Base's O(1) Array.get / Array.set, no intermediate lists."""
+    s = (HEADER + 'import Base\nimport ../blake/blake2b/types.bend as T\nimport ./types.bend as A\n\n'
+         '# Block b of the memory is words 256 b .. 256 b + 255, row after row (lane n\n'
+         '# of a row at words 2n, low half, and 2n + 1, high half).\n\n'
+         '# ---------------------------------------------------------------- reading\n\n'
+         '# rr_k: words i .. i + k - 1 read (w0 ..), pair holds the memory and word i + k.\n')
+    for k in reversed(range(W32)):
+        ws = ''.join('w%d: U32, ' % j for j in range(k))
+        s += 'def rr%d(+i: Nat, %spair: Array<U32> & U32) -> Array<U32> & T.State:\n' % (k, ws)
+        s += '  (a, w%d) = pair\n' % k
+        if k == W32 - 1:
+            s += '  (a, %s)\n\n' % row_state(['w%d' % j for j in range(W32)])
+        else:
+            s += '  rr%d(i, %sArray.get(U32, a, U32.from_nat(Nat.add(%dn, i))))\n\n' % (k + 1, ''.join('w%d, ' % j for j in range(k + 1)), k + 1)
+    s += ('# The row of words i .. i + 31; the memory is handed back.\n'
+          'def row(+i: Nat, a: Array<U32>) -> Array<U32> & T.State:\n'
+          '  rr0(i, Array.get(U32, a, U32.from_nat(i)))\n\n'
+          '# rd_r: rows 0 .. r - 1 read, p holds the memory and row r (words i + 32 r ..).\n')
+    for r in reversed(range(8)):
+        rs = ''.join('r%d: T.State, ' % j for j in range(r))
+        s += 'def rd%d(+i: Nat, %sp: Array<U32> & T.State) -> Array<U32> & A.Block:\n' % (r, rs)
+        s += '  (a, r%d) = p\n' % r
+        if r == 7:
+            s += '  (a, A.B{%s})\n\n' % ', '.join('r%d' % j for j in range(8))
+        else:
+            s += '  rd%d(i, %srow(Nat.add(%dn, i), a))\n\n' % (r + 1, ''.join('r%d, ' % j for j in range(r + 1)), 32 * (r + 1))
+    s += ('# Block b; the memory is handed back.\n'
+          'def get(+b: Nat, a: Array<U32>) -> Array<U32> & A.Block:\n'
+          '  +i = Nat.mul(b, 256n)\n'
+          '  rd0(i, row(i, a))\n\n'
+          '# ---------------------------------------------------------------- writing\n\n'
+          '# The row v stored at words i .. i + 31.\n'
+          'def wrow(v: T.State, +i: Nat, a: Array<U32>) -> Array<U32>:\n'
+          '  match v:\n'
+          '    case %s:\n' % row_state(['w%d' % j for j in range(W32)]))
+    for k in range(1, W32):
+        s += '      +i%d = Nat.add(%s, 1n)\n' % (k, 'i' if k == 1 else 'i%d' % (k - 1))
+    e = 'a'
+    for k in range(W32):
+        e = 'Array.set(U32, %s, U32.from_nat(%s), w%d)' % (e, 'i' if k == 0 else 'i%d' % k, k)
+    s += '      ' + e + '\n\n'
+    nx = 'i'
+    for k in range(W32):
+        nx = 'Nat.add(%s, 1n)' % nx
+    s += ('# i + 32, as 32 steps of one.\n'
+          'def nx(+i: Nat) -> Nat:\n'
+          '  ' + nx + '\n\n'
+          '# The memory with block b replaced by v.\n'
+          'def put(+b: Nat, v: A.Block, a: Array<U32>) -> Array<U32>:\n'
+          '  match v:\n'
+          '    case A.B{r0, r1, r2, r3, r4, r5, r6, r7}:\n'
+          '      +i0 = Nat.mul(b, 256n)\n')
+    for r in range(1, 8):
+        s += '      +i%d = nx(i%d)\n' % (r, r - 1)
+    e = 'a'
+    for r in range(8):
+        e = 'wrow(r%d, i%d, %s)' % (r, r, e)
+    s += '      ' + e + '\n'
+    return s
+
+
+def proof_access():
+    """proofs/crypto/argon2/access.bend: access.bend's reads on the mirror tree
+    of a word list, and its writes against memory.bend's word-by-word wr."""
+    AR_ = 'AR.thaw(U32, MEM.tree(d, ws))'
+    D = 'SC.drop(U32, ws, i)'
+    s = (HEADER + 'import Base\n'
+         'import ../../../spec/lib/common.bend as SC\n'
+         'import ../../lib/array.bend as AR\n'
+         'import ../../lib/nat.bend as N\n'
+         'import ../../lib/logic.bend as L\n'
+         'import ../../../src/crypto/blake/blake2b/types.bend as T\n'
+         'import ../../../src/crypto/argon2/types.bend as A\n'
+         'import ../../../src/crypto/argon2/sub.bend as SB\n'
+         'import ../../../src/crypto/argon2/access.bend as X\n'
+         'import ./memory.bend as MEM\n\n'
+         '# ---------------------------------------------------------------- reading\n\n'
+         '# Word k + i of the tree of ws is word k of ws from i on.\n'
+         'def get_word_drop(+d: Nat, +ws: List<&2, U32>, +i: Nat, +k: Nat, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hl: {SC.length(U32, ws) == SC.pow2(d) : Nat}, +h: {Nat.is_lt(Nat.add(k, i), SC.pow2(d)) == True{} : Bool}) -> {Array.get(U32, %(AR)s, U32.from_nat(Nat.add(k, i))) == (%(AR)s, MEM.nthv(%(D)s, k)) : Array<U32> & U32}:\n'
+         '  -ar = %(AR)s\n'
+         '  +e = Equal.trans(U32, MEM.nthv(ws, Nat.add(k, i)), MEM.nthv(ws, Nat.add(i, k)), MEM.nthv(%(D)s, k),\n'
+         '    Equal.cong(Nat, U32, z => MEM.nthv(ws, z), Nat.add(k, i), Nat.add(i, k), N.add_comm(k, i)),\n'
+         '    Equal.sym(U32, MEM.nthv(%(D)s, k), MEM.nthv(ws, Nat.add(i, k)), MEM.nth_drop(ws, i, k)))\n'
+         '  Equal.trans(Array<U32> & U32, Array.get(U32, ar, U32.from_nat(Nat.add(k, i))), (ar, MEM.nthv(ws, Nat.add(k, i))), (ar, MEM.nthv(%(D)s, k)),\n'
+         '    MEM.get_word(d, ws, Nat.add(k, i), hd, hl, h),\n'
+         '    Equal.cong(U32, Array<U32> & U32, z => (ar, z), MEM.nthv(ws, Nat.add(k, i)), MEM.nthv(%(D)s, k), e))\n\n'
+         '# k + i < n from k < m and m + i <= n.\n'
+         'def lt_k(+k: Nat, +m: Nat, +i: Nat, +n: Nat, +hk: {Nat.is_lt(k, m) == True{} : Bool}, +h: {Nat.is_le(Nat.add(m, i), n) == True{} : Bool}) -> {Nat.is_lt(Nat.add(k, i), n) == True{} : Bool}:\n'
+         '  N.lt_le_trans(Nat.add(k, i), Nat.add(m, i), n, N.lt_add_r2(k, m, i, hk), h)\n\n'
+         '# The row of words 0 .. 31 of ys.\n'
+         'def rowl(+ys: List<&2, U32>) -> T.State:\n'
+         '  %(ROWL)s\n\n') % {'AR': AR_, 'D': D, 'ROWL': row_state(['MEM.nthv(ys, %dn)' % j for j in range(W32)])}
+    hyp = '+d: Nat, +ws: List<&2, U32>, +i: Nat, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hl: {SC.length(U32, ws) == SC.pow2(d) : Nat}, +h: {Nat.is_le(Nat.add(32n, i), SC.pow2(d)) == True{} : Bool}'
+    for k in reversed(range(W32)):
+        ws = ''.join(', +w%d: U32' % j for j in range(k))
+        xs = ['w%d' % j if j < k else 'MEM.nthv(%s, %dn)' % (D, j) for j in range(W32)]
+        rhs = '(%s, %s)' % (AR_, row_state(xs))
+        args = ''.join('w%d, ' % j for j in range(k))
+        s += 'def rr%d_eq(%s%s) -> {X.rr%d(i, %s(%s, MEM.nthv(%s, %dn))) == %s : Array<U32> & T.State}:\n' % (k, hyp, ws, k, args, AR_, D, k, rhs)
+        if k == W32 - 1:
+            s += '  {==}\n\n'
+        else:
+            nxt = 'MEM.nthv(%s, %dn)' % (D, k)
+            s += ('  %%Equal.sym(Array<U32> & U32, Array.get(U32, %(AR)s, U32.from_nat(Nat.add(%(k1)dn, i))), (%(AR)s, MEM.nthv(%(D)s, %(k1)dn)), get_word_drop(d, ws, i, %(k1)dn, hd, hl, lt_k(%(k1)dn, 32n, i, SC.pow2(d), {==}, h))) : {X.rr%(k1)d(i, %(args)s%(nxt)s, _) == %(rhs)s : Array<U32> & T.State}\n'
+                  '  rr%(k1)d_eq(d, ws, i, hd, hl, h, %(args)s%(nxt)s)\n\n') % {'AR': AR_, 'D': D, 'k1': k + 1, 'args': args, 'nxt': nxt, 'rhs': rhs}
+    s += ('# X.row reads the row of words i .. i + 31 of the tree of ws.\n'
+          'def row_eq(%s) -> {X.row(i, %s) == (%s, rowl(%s)) : Array<U32> & T.State}:\n'
+          '  %%Equal.sym(Array<U32> & U32, Array.get(U32, %s, U32.from_nat(Nat.add(0n, i))), (%s, MEM.nthv(%s, 0n)), get_word_drop(d, ws, i, 0n, hd, hl, lt_k(0n, 32n, i, SC.pow2(d), {==}, h))) : {X.rr0(i, _) == (%s, rowl(%s)) : Array<U32> & T.State}\n'
+          '  rr0_eq(d, ws, i, hd, hl, h)\n\n') % (hyp, AR_, AR_, D, AR_, AR_, D, AR_, D)
+    # rows
+    hypb = '+d: Nat, +ws: List<&2, U32>, +i: Nat, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hl: {SC.length(U32, ws) == SC.pow2(d) : Nat}, +h: {Nat.is_le(Nat.add(256n, i), SC.pow2(d)) == True{} : Bool}'
+    def base(r):
+        return 'i' if r == 0 else 'Nat.add(%dn, i)' % (32 * r)
+    def rowd(r):
+        return 'rowl(SC.drop(U32, ws, %s))' % base(r)
+    s += ('# m + i <= n from m <= 256 and 256 + i <= n.\n'
+          'def le_k(+m: Nat, +i: Nat, +n: Nat, +hm: {Nat.is_lt(m, 256n) == True{} : Bool}, +h: {Nat.is_le(Nat.add(256n, i), n) == True{} : Bool}) -> {Nat.is_le(Nat.add(m, i), n) == True{} : Bool}:\n'
+          '  N.lt_le(Nat.add(m, i), n, lt_k(m, 256n, i, n, hm, h))\n\n')
+    for r in reversed(range(8)):
+        rs = ''.join(', +r%d: T.State' % j for j in range(r))
+        args = ''.join('r%d, ' % j for j in range(r))
+        rhs = '(%s, A.B{%s})' % (AR_, ', '.join(['r%d' % j for j in range(r)] + [rowd(j) for j in range(r, 8)]))
+        s += 'def rd%d_eq(%s%s) -> {X.rd%d(i, %s(%s, %s)) == %s : Array<U32> & A.Block}:\n' % (r, hypb, rs, r, args, AR_, rowd(r), rhs)
+        if r == 7:
+            s += '  {==}\n\n'
+        else:
+            hle = 'h' if r == 6 else 'le_k(%dn, i, SC.pow2(d), {==}, h)' % (32 * (r + 2))
+            s += ('  %%Equal.sym(Array<U32> & T.State, X.row(%(b1)s, %(AR)s), (%(AR)s, %(row1)s), row_eq(d, ws, %(b1)s, hd, hl, %(hle)s)) : {X.rd%(r1)d(i, %(args)s%(rowr)s, _) == %(rhs)s : Array<U32> & A.Block}\n'
+                  '  rd%(r1)d_eq(d, ws, i, hd, hl, h, %(args)s%(rowr)s)\n\n') % {
+                      'b1': base(r + 1), 'AR': AR_, 'row1': rowd(r + 1), 'hle': hle, 'r1': r + 1, 'args': args, 'rowr': rowd(r), 'rhs': rhs}
+    rhs = '(%s, A.B{%s})' % (AR_, ', '.join(rowd(j) for j in range(8)))
+    s += ('# X.get reads the eight rows of block b of the tree of ws.\n'
+          'def get_eq(+d: Nat, +ws: List<&2, U32>, +b: Nat, +hd: {Nat.is_lt(d, 32n) == True{} : Bool}, +hl: {SC.length(U32, ws) == SC.pow2(d) : Nat}, +h: {Nat.is_le(Nat.add(256n, Nat.mul(b, 256n)), SC.pow2(d)) == True{} : Bool}) -> {X.get(b, %(AR)s) == %(rhs)s : Array<U32> & A.Block}:\n'
+          '  +i = Nat.mul(b, 256n)\n'
+          '  %%Equal.sym(Array<U32> & T.State, X.row(i, %(AR)s), (%(AR)s, %(row0)s), row_eq(d, ws, i, hd, hl, le_k(32n, i, SC.pow2(d), {==}, h))) : {X.rd0(i, _) == %(rhs)s : Array<U32> & A.Block}\n'
+          '  rd0_eq(d, ws, i, hd, hl, h)\n\n') % {'AR': AR_, 'rhs': rhs.replace('i)', 'Nat.mul(b, 256n))').replace('ws, i)', 'ws, Nat.mul(b, 256n))'), 'row0': rowd(0)}
+    # rows of a block's words
+    ls = ['l%d' % j for j in range(W32)]
+    pat = row_state(ls)
+    s += ('# ---------------------------------------------------------------- a block\'s words\n\n'
+          'def rowl_app(+r: T.State, +x: List<&2, U32>, +e: List<&2, U32>) -> {rowl(SC.append(U32, SB.app(SB.row_words(r), x), e)) == r : T.State}:\n'
+          '  match r:\n'
+          '    case %s:\n'
+          '      {==}\n\n'
+          'def drop_row(+r: T.State, +x: List<&2, U32>, +e: List<&2, U32>) -> {SC.drop(U32, SC.append(U32, SB.app(SB.row_words(r), x), e), 32n) == SC.append(U32, x, e) : List<&2, U32>}:\n'
+          '  match r:\n'
+          '    case %s:\n'
+          '      Equal.trans(List<&2, U32>, SC.drop(U32, SC.append(U32, SB.app(SB.row_words(%s), x), e), 32n), SC.drop(U32, SC.append(U32, x, e), 0n), SC.append(U32, x, e), {==}, MEM.drop_zero(SC.append(U32, x, e)))\n\n') % (pat, pat, pat)
+    # writing
+    s += ('# ---------------------------------------------------------------- writing\n\n'
+          '# Storing a row with MEM.wr is X.wrow, and wr goes on at i + 32.\n'
+          'def wr_row(+r: T.State, +x: List<&2, U32>, +i: Nat, -a: Array<U32>) -> {MEM.wr(SB.app(SB.row_words(r), x), i, a) == MEM.wr(x, X.nx(i), X.wrow(r, i, a)) : Array<U32>}:\n'
+          '  match r:\n'
+          '    case %s:\n'
+          '      {==}\n\n') % pat
+    def tail(r):
+        e = 'Nil{}'
+        for j in reversed(range(r, 8)):
+            e = 'SB.app(SB.row_words(r%d), %s)' % (j, e)
+        return e
+    def idx(r):
+        e = 'Nat.mul(b, 256n)'
+        for _ in range(r):
+            e = 'X.nx(%s)' % e
+        return e
+    def arr(r):
+        e = 'a'
+        for j in range(r):
+            e = 'X.wrow(r%d, %s, %s)' % (j, idx(j), e)
+        return e
+    s += ('# X.put is MEM.wr of the block\'s words.\n'
+          'def put_eq(+b: Nat, +v: A.Block, -a: Array<U32>) -> {X.put(b, v, a) == MEM.wr(SB.words(v), Nat.mul(b, 256n), a) : Array<U32>}:\n'
+          '  match v:\n'
+          '    case A.B{+r0, +r1, +r2, +r3, +r4, +r5, +r6, +r7}:\n'
+          '      -goal = X.put(b, A.B{r0, r1, r2, r3, r4, r5, r6, r7}, a)\n')
+    for r in range(8):
+        s += ('      %%Equal.sym(Array<U32>, MEM.wr(%s, %s, %s), MEM.wr(%s, %s, %s), wr_row(r%d, %s, %s, %s)) : {goal == _ : Array<U32>}\n'
+              % (tail(r), idx(r), arr(r), tail(r + 1), idx(r + 1), arr(r + 1), r, tail(r + 1), idx(r), arr(r)))
+    s += '      {==}\n'
+    return s
+
+
 def main():
     write(os.path.join(SRC, 'types.bend'), types())
     write(os.path.join(SRC, 'blamka.bend'), blamka())
     write(os.path.join(SRC, 'sub.bend'), sub())
     write(os.path.join(PRF, 'blamka.bend'), proof_blamka())
+    write(os.path.join(SRC, 'access.bend'), access())
+    write(os.path.join(PRF, 'access.bend'), proof_access())
 
 
 if __name__ == '__main__':

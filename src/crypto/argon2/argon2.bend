@@ -53,6 +53,38 @@ def hprime(+tl: Nat, a: List<&2, U32>) -> List<&2, U32>:
 def h0(+p: Nat, +tl: Nat, +m: Nat, +t: Nat, +pw: List<&2, U32>, +salt: List<&2, U32>, +key: List<&2, U32>, +ad: List<&2, U32>) -> List<&2, U32>:
   H.hash(64n, cat(le32(p), cat(le32(tl), cat(le32(m), cat(le32(t), cat(le32(19n), cat(le32(2n), cat(le32(len(pw)), cat(pw, cat(le32(len(salt)), cat(salt, cat(le32(len(key)), cat(key, cat(le32(len(ad)), ad))))))))))))))
 
+# ---------------------------------------------------------------- H'^1024 on words
+
+# The same values as H.words of the digest bytes, computed without the byte
+# lists: the words of the first 32 bytes of the digest c, and the packed
+# array of all 64 (H.pack of them).
+def half(c: T.Chain) -> List<&2, U32>:
+  match c:
+    case T.H{T.W{+l0, +h0}, T.W{+l1, +h1}, T.W{+l2, +h2}, T.W{+l3, +h3}, T.W{+l4, +h4}, T.W{+l5, +h5}, T.W{+l6, +h6}, T.W{+l7, +h7}}:
+      [H.word(U32.and(l0, 255), U32.and(U32.shrn(l0, 8n), 255), U32.and(U32.shrn(l0, 16n), 255), U32.shrn(l0, 24n)), H.word(U32.and(h0, 255), U32.and(U32.shrn(h0, 8n), 255), U32.and(U32.shrn(h0, 16n), 255), U32.shrn(h0, 24n)), H.word(U32.and(l1, 255), U32.and(U32.shrn(l1, 8n), 255), U32.and(U32.shrn(l1, 16n), 255), U32.shrn(l1, 24n)), H.word(U32.and(h1, 255), U32.and(U32.shrn(h1, 8n), 255), U32.and(U32.shrn(h1, 16n), 255), U32.shrn(h1, 24n)), H.word(U32.and(l2, 255), U32.and(U32.shrn(l2, 8n), 255), U32.and(U32.shrn(l2, 16n), 255), U32.shrn(l2, 24n)), H.word(U32.and(h2, 255), U32.and(U32.shrn(h2, 8n), 255), U32.and(U32.shrn(h2, 16n), 255), U32.shrn(h2, 24n)), H.word(U32.and(l3, 255), U32.and(U32.shrn(l3, 8n), 255), U32.and(U32.shrn(l3, 16n), 255), U32.shrn(l3, 24n)), H.word(U32.and(h3, 255), U32.and(U32.shrn(h3, 8n), 255), U32.and(U32.shrn(h3, 16n), 255), U32.shrn(h3, 24n))]
+
+def pack_c(c: T.Chain) -> Array<U32>:
+  match c:
+    case T.H{T.W{+l0, +h0}, T.W{+l1, +h1}, T.W{+l2, +h2}, T.W{+l3, +h3}, T.W{+l4, +h4}, T.W{+l5, +h5}, T.W{+l6, +h6}, T.W{+l7, +h7}}:
+      Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.set(U32, Array.new(U32, 4n, 0), 0, H.word(U32.and(l0, 255), U32.and(U32.shrn(l0, 8n), 255), U32.and(U32.shrn(l0, 16n), 255), U32.shrn(l0, 24n))), 1, H.word(U32.and(h0, 255), U32.and(U32.shrn(h0, 8n), 255), U32.and(U32.shrn(h0, 16n), 255), U32.shrn(h0, 24n))), 2, H.word(U32.and(l1, 255), U32.and(U32.shrn(l1, 8n), 255), U32.and(U32.shrn(l1, 16n), 255), U32.shrn(l1, 24n))), 3, H.word(U32.and(h1, 255), U32.and(U32.shrn(h1, 8n), 255), U32.and(U32.shrn(h1, 16n), 255), U32.shrn(h1, 24n))), 4, H.word(U32.and(l2, 255), U32.and(U32.shrn(l2, 8n), 255), U32.and(U32.shrn(l2, 16n), 255), U32.shrn(l2, 24n))), 5, H.word(U32.and(h2, 255), U32.and(U32.shrn(h2, 8n), 255), U32.and(U32.shrn(h2, 16n), 255), U32.shrn(h2, 24n))), 6, H.word(U32.and(l3, 255), U32.and(U32.shrn(l3, 8n), 255), U32.and(U32.shrn(l3, 16n), 255), U32.shrn(l3, 24n))), 7, H.word(U32.and(h3, 255), U32.and(U32.shrn(h3, 8n), 255), U32.and(U32.shrn(h3, 16n), 255), U32.shrn(h3, 24n))), 8, H.word(U32.and(l4, 255), U32.and(U32.shrn(l4, 8n), 255), U32.and(U32.shrn(l4, 16n), 255), U32.shrn(l4, 24n))), 9, H.word(U32.and(h4, 255), U32.and(U32.shrn(h4, 8n), 255), U32.and(U32.shrn(h4, 16n), 255), U32.shrn(h4, 24n))), 10, H.word(U32.and(l5, 255), U32.and(U32.shrn(l5, 8n), 255), U32.and(U32.shrn(l5, 16n), 255), U32.shrn(l5, 24n))), 11, H.word(U32.and(h5, 255), U32.and(U32.shrn(h5, 8n), 255), U32.and(U32.shrn(h5, 16n), 255), U32.shrn(h5, 24n))), 12, H.word(U32.and(l6, 255), U32.and(U32.shrn(l6, 8n), 255), U32.and(U32.shrn(l6, 16n), 255), U32.shrn(l6, 24n))), 13, H.word(U32.and(h6, 255), U32.and(U32.shrn(h6, 8n), 255), U32.and(U32.shrn(h6, 16n), 255), U32.shrn(h6, 24n))), 14, H.word(U32.and(l7, 255), U32.and(U32.shrn(l7, 8n), 255), U32.and(U32.shrn(l7, 16n), 255), U32.shrn(l7, 24n))), 15, H.word(U32.and(h7, 255), U32.and(U32.shrn(h7, 8n), 255), U32.and(U32.shrn(h7, 16n), 255), U32.shrn(h7, 24n)))
+
+# The digest H^64 of the 64 digest bytes of c.
+def chain64(c: T.Chain) -> T.Chain:
+  H.chain(64n, pack_c(c), 64n)
+
+# H.words(hp_go(n, bytes of c, last)).
+def hpw_go(n: Nat, +c: T.Chain, +last: Nat) -> List<&2, U32>:
+  match n:
+    case 0n:
+      SB.app(half(c), H.words(H.hash(last, H.chain_bytes(c))))
+    case 1n+p:
+      SB.app(half(c), hpw_go(p, chain64(c), last))
+
+# block_of(hprime(1024n, x)): the first blocks of the lanes.
+def init_block(+x: List<&2, U32>) -> A.Block:
+  +y = cat(le32(1024n), x)
+  SB.rows8(hpw_go(29n, H.chain(64n, H.pack(y), len(y)), 64n))
+
 # ---------------------------------------------------------------- blocks and bytes
 
 # A block from its 1024 little-endian bytes.
@@ -310,8 +342,8 @@ def init_go(n: Nat, +l: Nat, +q: Nat, +hh: List<&2, U32>, a: Array<U32>) -> Arra
     case 0n:
       a
     case 1n+rest:
-      +b0 = block_of(hprime(1024n, cat(hh, cat(le32(0n), le32(l)))))
-      +b1 = block_of(hprime(1024n, cat(hh, cat(le32(1n), le32(l)))))
+      +b0 = init_block(cat(hh, cat(le32(0n), le32(l))))
+      +b1 = init_block(cat(hh, cat(le32(1n), le32(l))))
       init_go(rest, Nat.add(l, 1n), q, hh, M.set(Nat.add(Nat.mul(l, q), 1n), b1, M.set(Nat.mul(l, q), b0, a)))
 
 # C = B[0][q-1] XOR .. XOR B[p-1][q-1]: pair holds the memory and B[l][q-1],

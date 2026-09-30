@@ -16,6 +16,7 @@ import ../../../spec/crypto/argon2/blamka.bend as SG
 import ../../../spec/crypto/argon2/argon2.bend as SA
 import ./blamka.bend as BL
 import ./memory.bend as MEM
+import ./blocks.bend as BK
 import ./index.bend as IX
 
 # Filling the memory: every segment, slice, lane and pass of the
@@ -79,12 +80,12 @@ def store_eq(+d: Nat, +mem: List<&2, A.Block>, +r0: Bool, +cur: Nat, +prev: A.Bl
   match r0:
     case True{}:
       %Equal.sym(A.Block, G.compress(prev, refb), SG.G(prev, refb), BL.compress_correct(prev, refb)) : {M.set(cur, _, AR.thaw(U32, MEM.mt(d, mem))) == AR.thaw(U32, MEM.mt(d, SA.set(mem, cur, SG.G(prev, refb)))) : Array<U32>}
-      MEM.set_block(d, mem, cur, SG.G(prev, refb), hd, hc, hcur)
+      BK.set_block(d, mem, cur, SG.G(prev, refb), hd, hc, hcur)
     case False{}:
       +old = SA.get(mem, cur)
-      %Equal.sym(Array<U32> & A.Block, M.get(cur, AR.thaw(U32, MEM.mt(d, mem))), (AR.thaw(U32, MEM.mt(d, mem)), old), MEM.get_block(d, mem, cur, hd, hc, hcur)) : {I.store_xor(cur, prev, refb, _) == AR.thaw(U32, MEM.mt(d, SA.set(mem, cur, SG.xor(SG.G(prev, refb), old)))) : Array<U32>}
+      %Equal.sym(Array<U32> & A.Block, M.get(cur, AR.thaw(U32, MEM.mt(d, mem))), (AR.thaw(U32, MEM.mt(d, mem)), old), BK.get_block(d, mem, cur, hd, hc, hcur)) : {I.store_xor(cur, prev, refb, _) == AR.thaw(U32, MEM.mt(d, SA.set(mem, cur, SG.xor(SG.G(prev, refb), old)))) : Array<U32>}
       %Equal.sym(A.Block, G.compress_xor(prev, refb, old), SG.xor(SG.G(prev, refb), old), BL.compress_xor_correct(prev, refb, old)) : {M.set(cur, _, AR.thaw(U32, MEM.mt(d, mem))) == AR.thaw(U32, MEM.mt(d, SA.set(mem, cur, SG.xor(SG.G(prev, refb), old)))) : Array<U32>}
-      MEM.set_block(d, mem, cur, SG.xor(SG.G(prev, refb), old), hd, hc, hcur)
+      BK.set_block(d, mem, cur, SG.xor(SG.G(prev, refb), old), hd, hc, hcur)
 
 def store_len(+r0: Bool, +cur: Nat, +prev: A.Block, +refb: A.Block, +mem: List<&2, A.Block>) -> {SC.length(A.Block, SA.store(r0, cur, prev, refb, mem)) == SC.length(A.Block, mem) : Nat}:
   match r0:
@@ -186,7 +187,7 @@ def step_eq(+d: Nat, +mem: List<&2, A.Block>, +r: Nat, +l: Nat, +s: Nat, +idx: N
   +ix = ixs(r0, s, l, idx, p, q, sl, prs)
   +hix = L.subst(Nat, z => {Nat.is_lt(ix, z) == True{} : Bool}, Nat.mul(p, q), n, Equal.sym(Nat, n, Nat.mul(p, q), hlen), ix_lt(r0, s, l, idx, p, q, sl, prs, hl, hp, hq1))
   %Equal.sym(Nat, ixi(r0, s, l, idx, p, q, sl, pri), ix, ei) : {I.with_ref(r0, cur, pb, M.get(_, AR.thaw(U32, MEM.mt(d, mem)))) == AR.thaw(U32, MEM.mt(d, SA.store(r0, cur, pb, SA.get(mem, ix), mem))) : Array<U32>}
-  %Equal.sym(Array<U32> & A.Block, M.get(ix, AR.thaw(U32, MEM.mt(d, mem))), (AR.thaw(U32, MEM.mt(d, mem)), SA.get(mem, ix)), MEM.get_block(d, mem, ix, hd, hc, hix)) : {I.with_ref(r0, cur, pb, _) == AR.thaw(U32, MEM.mt(d, SA.store(r0, cur, pb, SA.get(mem, ix), mem))) : Array<U32>}
+  %Equal.sym(Array<U32> & A.Block, M.get(ix, AR.thaw(U32, MEM.mt(d, mem))), (AR.thaw(U32, MEM.mt(d, mem)), SA.get(mem, ix)), BK.get_block(d, mem, ix, hd, hc, hix)) : {I.with_ref(r0, cur, pb, _) == AR.thaw(U32, MEM.mt(d, SA.store(r0, cur, pb, SA.get(mem, ix), mem))) : Array<U32>}
   store_eq(d, mem, r0, cur, pb, SA.get(mem, ix), hd, hc, hcur)
 
 # ---------------------------------------------------------------- segments
@@ -263,7 +264,7 @@ def seg_eq(+d: Nat, +n: Nat, +idx: Nat, +first: Bool, +addr: A.Block, +mem: List
       -goal = AR.thaw(U32, MEM.mt(d, SA.seg_go(rest, Nat.add(idx, 1n), False{}, a2s, m2, r, l, s, p, q, sl, mm, t, indep)))
       %Equal.sym(A.Block, a2i, a2s, IX.regen_eq(need, addr, r, l, s, mm, t, idx)) : {I.seg_go(rest, Nat.add(idx, 1n), False{}, _, I.step(r, l, s, idx, p, q, sl, cur, indep, _, M.get(pvi, ar)), r, l, s, p, q, sl, mm, t, indep) == goal : Array<U32>}
       %Equal.sym(Nat, pvi, pvs, IX.prev_index_eq(l, q, j, b0)) : {I.seg_go(rest, Nat.add(idx, 1n), False{}, a2s, I.step(r, l, s, idx, p, q, sl, cur, indep, a2s, M.get(_, ar)), r, l, s, p, q, sl, mm, t, indep) == goal : Array<U32>}
-      %Equal.sym(Array<U32> & A.Block, M.get(pvs, ar), (ar, pb), MEM.get_block(d, mem, pvs, hd, hc, hpv)) : {I.seg_go(rest, Nat.add(idx, 1n), False{}, a2s, I.step(r, l, s, idx, p, q, sl, cur, indep, a2s, _), r, l, s, p, q, sl, mm, t, indep) == goal : Array<U32>}
+      %Equal.sym(Array<U32> & A.Block, M.get(pvs, ar), (ar, pb), BK.get_block(d, mem, pvs, hd, hc, hpv)) : {I.seg_go(rest, Nat.add(idx, 1n), False{}, a2s, I.step(r, l, s, idx, p, q, sl, cur, indep, a2s, _), r, l, s, p, q, sl, mm, t, indep) == goal : Array<U32>}
       %Equal.sym(Array<U32>, I.step(r, l, s, idx, p, q, sl, cur, indep, a2s, (ar, pb)), AR.thaw(U32, MEM.mt(d, m2)), step_eq(d, mem, r, l, s, idx, p, q, sl, cur, indep, a2s, pb, hd, hc, hlen, hq, hp, hsl, hl, hs, hi, hcur)) : {I.seg_go(rest, Nat.add(idx, 1n), False{}, a2s, _, r, l, s, p, q, sl, mm, t, indep) == goal : Array<U32>}
       seg_eq(d, rest, Nat.add(idx, 1n), False{}, a2s, m2, r, l, s, p, q, sl, mm, t, indep, hd, hc2, hlen2, hq, hp, hsl, hl, hs, le_shift(idx, rest, sl, hidx))
 
