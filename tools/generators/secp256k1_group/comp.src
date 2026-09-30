@@ -7,7 +7,7 @@ import ../../../lib/nat.bend as N
 import ../../../math/natural/arith.bend as NR
 import ../../../../spec/crypto/secp256k1/field.bend as FS
 import ../../../../spec/crypto/secp256k1/curve.bend as CS
-import ./prime.bend as PM
+import ../../../math/number/nt_prime.bend as PM
 import ./zm.bend as Z
 import ./fld.bend as F
 import ./nc.bend as NC

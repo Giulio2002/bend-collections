@@ -7,8 +7,8 @@ import ../../../lib/logic.bend as Lg
 import ../../../lib/nat.bend as N
 import ../../../math/natural/arith.bend as NR
 import ../../../../spec/crypto/secp256k1/field.bend as FS
-import ./prime.bend as PM
-import ./ntfld.bend as FD
+import ../../../math/number/nt_prime.bend as PM
+import ../../../math/number/nt_fld.bend as FD
 import ./zm.bend as Z
 
 # Zero and nonzero residues modulo a prime m = 1 + mp, in the shapes the

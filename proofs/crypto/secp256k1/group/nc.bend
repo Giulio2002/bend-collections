@@ -8,8 +8,8 @@ import ../../../lib/nat.bend as N
 import ../../../math/natural/arith.bend as NR
 import ../../../math/natural/modpow.bend as MP
 import ../../../../spec/crypto/secp256k1/field.bend as FS
-import ./prime.bend as PM
-import ./ntfld.bend as FD
+import ../../../math/number/nt_prime.bend as PM
+import ../../../math/number/nt_fld.bend as FD
 import ./zm.bend as Z
 import ./ident.bend as I
 import ./fld.bend as F
@@ -91,7 +91,7 @@ def nc_c(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hn
       +w = FS.minv(1n+mp, v)
       +t = FS.mmul(1n+mp, u, w)
       Empty.absurd({Nat.mod(v, 1n+mp) == 0n : Nat}, contra_c(mp, hp, h3, hnc, h21, t,
-        F.z_red(mp, Nat.add(FS.mmul(1n+mp, FS.mmul(1n+mp, t, t), t), 7n), A3.cube_t(mp, u, v, w, h, Equal.sym(Nat, FS.mmul(1n+mp, v, w), 1n, FD.minv_ok(1n+mp, hp, v, hc)))),
+        F.z_red(mp, Nat.add(FS.mmul(1n+mp, FS.mmul(1n+mp, t, t), t), 7n), A3.cube_t(mp, u, v, w, h, Equal.sym(Nat, FS.mmul(1n+mp, v, w), 1n, FD.inv_mod(1n+mp, hp, v, hc)))),
         Nat.is_eq(Nat.mod(t, 1n+mp), 0n), {==}))
 
 # u^3 + 7 v^3 == 0 (mod m) gives v == 0
