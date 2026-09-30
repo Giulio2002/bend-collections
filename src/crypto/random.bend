@@ -19,6 +19,9 @@ import ../math/random/chacha8/block.bend as B
 #                       generator; Go's (*ChaCha8).Read: the little-endian
 #                       bytes of successive 64-bit outputs, a partly used
 #                       output's remaining bytes served first by the next call
+#   read_words(g, a, j, k)  the bytes of the next k outputs (8k bytes)
+#                       packed little-endian into slots j .. j + 2k - 1 of an
+#                       Array<U32>, in place (Go's Read into a buffer)
 #   uint64(g)           a uniform 64-bit word
 #   uint_below(g, n)    uniform in [0, n) for n > 0 (Lemire, unbiased)
 #   shuffle(g, items)   a uniform permutation of items (Fisher-Yates)
@@ -156,6 +159,36 @@ def bytes(g: Gen, n: Nat) -> List<&2, U32> & Gen:
   match g:
     case G{c, p}:
       done(fill_fast(n, FS{[], c, p}))
+
+# ---- bytes into a packed word array ----
+
+# output x as its low and high words at slots j and j + 1
+def put2(a: Array<U32>, +j: Nat, +x: W.U64) -> Array<U32>:
+  Array.set(U32, Array.set(U32, a, U32.from_nat(j), X.lo(x)), U32.from_nat(1n+j), X.hi(x))
+
+# the output in r, then k more, at slots j, j + 1, ...
+def rw(k: Nat, +j: Nat, a: Array<U32>, r: W.U64 & C8.ChaCha8) -> Array<U32> & C8.ChaCha8:
+  match k r:
+    case 0n Tuple{+x, c}:
+      (put2(a, j, x), c)
+    case 1n+m Tuple{+x, c}:
+      rw(m, 2n+j, put2(a, j, x), C8.next(c))
+
+def rw_fin(+p: List<&2, U32>, r: Array<U32> & C8.ChaCha8) -> Array<U32> & Gen:
+  (a, c) = r
+  (a, G{c, p})
+
+# the next k 64-bit outputs written into slots j .. j + 2k - 1 of a, low word
+# first: the 8k bytes Go's Read returns (when no bytes are pending), packed
+# little-endian four to a U32; pending bytes are kept for bytes. For an
+# array of 2^d slots, d < 32, and j + 2k <= 2^d. In place: no list cell per
+# byte (bytes builds one).
+def read_words(g: Gen, a: Array<U32>, +j: Nat, k: Nat) -> Array<U32> & Gen:
+  match g k:
+    case G{c, p} 0n:
+      (a, G{c, p})
+    case G{c, +p} 1n+m:
+      rw_fin(p, rw(m, j, a, C8.next(c)))
 
 def uint64(g: Gen) -> W.U64 & Gen:
   next(g)

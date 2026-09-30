@@ -106,7 +106,8 @@ SUITE = OrderedDict([
         ('uint_below', '`uint_below` (ChaCha8)', "Go's `uint64n` (Lemire) transcribed", 'Bound', 'ns'),
         ('float64', '`float64` (ChaCha8)', "Go's `Float64` transcribed", 'Draws', 'ns'),
         ('shuffle', '`shuffle` (ChaCha8)', "Go's Fisher-Yates `Shuffle` on a C array; Bend's `shuffle_array` on an `Array<U32>`, in place", 'Items', 'us'),
-        ('crypto_random_bytes', '`crypto.random.bytes`', "Go's `ChaCha8.Read` transcribed", 'Request', 'us'),
+        ('crypto_random_bytes', '`crypto.random.bytes`', "Go's `ChaCha8.Read` transcribed; Bend returns a list of bytes", 'Request', 'us'),
+        ('crypto_random_read', '`crypto.random.read_words`', "Go's `ChaCha8.Read` transcribed; Bend writes the bytes packed into an `Array<U32>`, in place", 'Request', 'us'),
     ])),
 ])
 TODO_ROWS = {}   # case -> text, for a module that could not be measured

@@ -45,7 +45,7 @@ benchmarked against optimized C implementations of the same algorithms.
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 | Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |
 | Random numbers | `src/math/random.bend` (`src/math/random/`) | Go's `math/rand/v2` bit for bit: a Source interface for any seeded generator, ChaCha8 (C2SP chacha8rand) and PCG-DXSM sources, unbiased bounded integers (Lemire), floats, Fisher-Yates shuffles; see below |
-| Secure random | `src/crypto/random.bend` | ChaCha8Rand generator: seeded or OS-seeded (`IO.random_u32`), `bytes`, `uint_below`, `shuffle`; [contract and caveats](docs/CRYPTO_CONTRACTS.md) |
+| Secure random | `src/crypto/random.bend` | ChaCha8Rand generator: seeded or OS-seeded (`IO.random_u32`), `bytes`, `read_words` (bytes into a packed `Array<U32>`), `uint_below`, `shuffle`; [contract and caveats](docs/CRYPTO_CONTRACTS.md) |
 
 The hash map and the LRU follow Base's conventions: signatures are
 quantity-polymorphic (`a, -V: Kind(a)`, as `Base.Map` uses), and reads that

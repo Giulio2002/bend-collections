@@ -184,6 +184,8 @@ RANDOM = [
                                    dict(size=100000, count=20, label='100000 items')], py_shuffle),
     case('crypto_random_bytes', 'crandom', 5, [dict(size=s, count=c) for s, c in
                                                [(64, 65536), (1024, 4096), (65536, 64), (1048576, 4)]], py_bytes),
+    case('crypto_random_read', 'cread', 5, [dict(size=s, count=c) for s, c in
+                                             [(64, 65536), (1024, 4096), (65536, 64), (1048576, 4)]], py_bytes),
 ]
 
 GROUPS = {'random': RANDOM}

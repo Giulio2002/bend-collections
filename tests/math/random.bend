@@ -28,6 +28,9 @@ import ../support/text.bend as X
 #   f                   float64 (the binary64 bits, "hi_lo")
 #   p:N                 perm(N)       s:N   shuffle of [100, 101, ..., 99 + N]
 #   b:N                 N bytes (crypto/random only)
+#   w:K:J               read_words of K outputs at slot J of a fresh array,
+#                       printed as the bytes of slots J .. J + 2K - 1
+#                       (crypto/random only)
 #   c:N:K               chi-square counts: K draws of uint64n(N), N counts
 #
 # or the single argument "os": 32 bytes of a generator keyed by the OS.
@@ -166,12 +169,44 @@ def bytes_op(+parts: List<&2, String>, st: Acc<CR.Gen>) -> Acc<CR.Gen>:
     case A{acc, g}:
       emit(~List<&2, U32>, ~CR.Gen, ~X.join_u32, acc, CR.bytes(g, X.nat_field(parts, 1n)))
 
+def b4(+x: U32, acc: List<&2, U32>) -> List<&2, U32>:
+  Con{U32.and(x, 255), Con{U32.and(U32.shrn(x, 8n), 255), Con{U32.and(U32.shrn(x, 16n), 255), Con{U32.shrn(x, 24n), acc}}}}
+
+# r holds slot j + m: the bytes of slots j .. j + m before acc
+def slot_bytes(m: Nat, +j: Nat, acc: List<&2, U32>, r: Array<U32> & U32) -> List<&2, U32>:
+  match m r:
+    case 0n Tuple{a, +x}:
+      b4(x, acc)
+    case 1n+ +p Tuple{a, +x}:
+      slot_bytes(p, j, b4(x, acc), Array.get(U32, a, U32.from_nat(Nat.add(j, p))))
+
+def words_out(+j: Nat, +w: Nat, r: Array<U32> & CR.Gen) -> List<&2, U32> & CR.Gen:
+  match w r:
+    case 0n Tuple{a, g}:
+      ([], g)
+    case 1n+ +q Tuple{a, g}:
+      (slot_bytes(q, j, [], Array.get(U32, a, U32.from_nat(Nat.add(j, q)))), g)
+
+def words_op(+parts: List<&2, String>, st: Acc<CR.Gen>) -> Acc<CR.Gen>:
+  +k = X.nat_field(parts, 1n)
+  +j = X.nat_field(parts, 2n)
+  match st:
+    case A{acc, g}:
+      emit(~List<&2, U32>, ~CR.Gen, ~X.join_u32, acc, words_out(j, Nat.double(k), CR.read_words(g, Array.new(U32, RR.depth(Nat.add(j, Nat.double(k))), 0), j, k)))
+
+def apply_cr_w(+parts: List<&2, String>, tok: String, st: Acc<CR.Gen>, w: Bool) -> Acc<CR.Gen>:
+  match w:
+    case True{}:
+      words_op(parts, st)
+    case False{}:
+      apply(~CR.Gen, ~CR.next, tok, st)
+
 def apply_cr_b(+parts: List<&2, String>, tok: String, st: Acc<CR.Gen>, b: Bool) -> Acc<CR.Gen>:
   match b:
     case True{}:
       bytes_op(parts, st)
     case False{}:
-      apply(~CR.Gen, ~CR.next, tok, st)
+      apply_cr_w(parts, tok, st, String.eq(X.field(parts, 0n), "w"))
 
 def apply_cr(+tok: String, st: Acc<CR.Gen>) -> Acc<CR.Gen>:
   +parts = X.fields(tok)
