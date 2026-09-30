@@ -124,3 +124,53 @@ def evp(FPD, SQD, GD, a: CS.SPoint, +j: Nat, +hj0: {Nat.is_eq(j, 0n) == False{} 
   match a:
     case CS.SPoint{+x, +y, +z}:
       evp_c(FPA, SQA, GA, x, y, z, j, va, ha, nzz(FPA, GA, x, y, z, j, hj0, hjn, va, ha), Nat.mod(AYV, 2n), {==})
+
+# ---- the verification equation ----
+
+def inf_c(+mp: Nat, +z: Nat, +nz: F.NZ(mp, z), c: Bool, +hc: {Nat.is_eq(z, 0n) == c : Bool}) -> {Nat.is_eq(z, 0n) == False{} : Bool}:
+  match c:
+    case False{}:
+      hc
+    case True{}:
+      Empty.absurd({Nat.is_eq(z, 0n) == False{} : Bool}, F.nz_absurd(mp, z, nz, Equal.cong(Nat, Nat, t => Nat.mod(t, 1n+mp), z, 0n, N.eq_from_is_eq(z, 0n, hc))))
+
+def chk(+rx: Nat, +ey: Nat, +hev: {Nat.mod(ey, 2n) == 0n : Nat}) -> {SS.check_r(rx, False{}, CS.SAffine{rx, ey}) == True{} : Bool}:
+  %Equal.sym(Nat, Nat.mod(ey, 2n), 0n, hev) : {Bool.and(True{}, Bool.and(Nat.is_eq(_, 0n), Nat.is_eq(rx, rx))) == True{} : Bool}
+  %Equal.sym(Bool, Nat.is_eq(rx, rx), True{}, N.is_eq_refl(rx)) : {Bool.and(True{}, Bool.and(True{}, _)) == True{} : Bool}
+  {==}
+
+# a point equiv (rx : ey : 1) with ey even passes BIP-340's check of R
+def fin(+mp: Nat, +hp: PM.Prime(1n+mp), +h21: LT(21n, 1n+mp), rr: CS.SPoint, +rx: Nat, +ey: Nat, +vr: V(rr), +ve: V(CS.SPoint{rx, ey, 1n}), +h: E(rr, CS.SPoint{rx, ey, 1n}), +hrx: LT(rx, 1n+mp), +hey: LT(ey, 1n+mp), +hev: {Nat.mod(ey, 2n) == 0n : Nat}) -> {SS.check_r(rx, CS.is_inf(rr), CS.to_affine(1n+mp, rr)) == True{} : Bool}:
+  match rr:
+    case CS.SPoint{+x, +y, +z}:
+      +nzr = AX.nz_eqv(mp, hp, rx, ey, 1n, x, y, z, vr, AF.one_nz(mp, h21), SY(PXYZ, CS.SPoint{rx, ey, 1n}, h))
+      %Equal.sym(Bool, Nat.is_eq(z, 0n), False{}, inf_c(mp, z, nzr, Nat.is_eq(z, 0n), {==})) : {SS.check_r(rx, _, CS.to_affine(1n+mp, PXYZ)) == True{} : Bool}
+      %Equal.sym(CS.SAffine, CS.to_affine(1n+mp, PXYZ), CS.SAffine{rx, ey}, Equal.trans(CS.SAffine, CS.to_affine(1n+mp, PXYZ), CS.to_affine(1n+mp, CS.SPoint{rx, ey, 1n}), CS.SAffine{rx, ey}, AX.ta_eqv(mp, hp, x, y, z, rx, ey, 1n, vr, ve, nzr, AF.one_nz(mp, h21), h), EC.aff_one(mp, hp, rx, ey, hrx, hey))) : {SS.check_r(rx, False{}, _) == True{} : Bool}
+      chk(rx, ey, hev)
+
+def sk_eq(+nq: Nat, +k: Nat, +e: Nat, +d: Nat, +hk: LT(k, 1n+nq)) -> {AN(AN(k, MN(e, d)), MN(FS.mneg(1n+nq, e), d)) == k : Nat}:
+  Equal.trans(Nat, AN(AN(k, MN(e, d)), MN(FS.mneg(1n+nq, e), d)), Nat.mod(k, 1n+nq), k, I.both_red(nq, Nat.add(AN(k, MN(e, d)), MN(FS.mneg(1n+nq, e), d)), k, Equal.trans(Nat, Nat.mod(AN(AN(k, MN(e, d)), MN(FS.mneg(1n+nq, e), d)), 1n+nq), Nat.mod(k, 1n+nq), Nat.mod(Nat.mod(k, 1n+nq), 1n+nq), SI.sc_k(nq, k, e, d), Equal.sym(Nat, Nat.mod(Nat.mod(k, 1n+nq), 1n+nq), Nat.mod(k, 1n+nq), NR.mod_mod(nq, k)))), SQ.mred(nq, k, hk))
+
+# R' = [s] g + [n - e] P' with s = k + e d (mod n), P' equiv [d] g, and
+# (rx : ey : 1) equiv [k] g with ey even: BIP-340's check of R' passes
+def vrf(FPD, +one: Nat, +h1: {one == 1n : Nat}, +nq: Nat, +hn256: {Nat.is_le(1n+nq, C.shift(256n, one)) == True{} : Bool}, +g: CS.SPoint, +vg: V(g), +hng: E(SM(1n+nq, g), INF), +d: Nat, +k: Nat, +e: Nat, +pp: CS.SPoint, +rx: Nat, +ey: Nat, +hk: LT(k, 1n+nq), +vp: V(pp), +hpp: E(pp, SM(d, g)), +ve: V(CS.SPoint{rx, ey, 1n}), +hre: E(CS.SPoint{rx, ey, 1n}, SM(k, g)), +hrx: LT(rx, 1n+mp), +hey: LT(ey, 1n+mp), +hev: {Nat.mod(ey, 2n) == 0n : Nat}) -> {SS.check_r(rx, CS.is_inf(PA(PMU(AN(k, MN(e, d)), g), PMU(FS.mneg(1n+nq, e), pp))), CS.to_affine(1n+mp, PA(PMU(AN(k, MN(e, d)), g), PMU(FS.mneg(1n+nq, e), pp)))) == True{} : Bool}:
+  +sv = AN(k, MN(e, d))
+  +ne = FS.mneg(1n+nq, e)
+  +u1 = PMU(sv, g)
+  +u2 = PMU(ne, pp)
+  +vu1 = G4.pmul_valid(FPA, sv, g, vg)
+  +vu2 = G4.pmul_valid(FPA, ne, pp, vp)
+  +vs1 = G4.v_smul(FPA, sv, g, vg)
+  +w2 = SM(MN(ne, d), g)
+  +vw2 = G4.v_smul(FPA, MN(ne, d), g, vg)
+  +vdg = G4.v_smul(FPA, d, g, vg)
+  +t1 = G4.pmul_smul(FPA, sv, g, vg, EC.fit(one, h1, nq, hn256, sv, NR.dm_lt(nq, Nat.add(k, MN(e, d)))))
+  +t2a = G4.pmul_smul(FPA, ne, pp, vp, EC.fit(one, h1, nq, hn256, ne, NR.dm_lt(nq, Nat.sub(Nat.add(0n, 1n+nq), Nat.mod(e, 1n+nq)))))
+  +t2b = G4.smul_eqv(FPA, ne, pp, SM(d, g), vp, vdg, hpp)
+  +t2c = PO.mul_mod(FPA, ne, d, nq, g, vg, hng)
+  +t2 = TR(u2, SM(ne, pp), w2, G4.v_smul(FPA, ne, pp, vp), t2a, TR(SM(ne, pp), SM(ne, SM(d, g)), w2, G4.v_smul(FPA, ne, SM(d, g), vdg), t2b, t2c))
+  +t3 = TR(PA(u1, u2), PA(SM(sv, g), u2), PA(SM(sv, g), w2), G1.v_add(FPA, SM(sv, g), u2, vs1, vu2), G2.e_add_l(mp, hp, u1, SM(sv, g), u2, vu1, vs1, t1), G2.e_add_r(mp, hp, SM(sv, g), u2, w2, vu2, vw2, t2))
+  +t4 = Lg.subst(Nat, t => E(PA(SM(sv, g), w2), SM(t, g)), AN(sv, MN(ne, d)), k, sk_eq(nq, k, e, d, hk), PO.add_mod(FPA, sv, MN(ne, d), nq, g, vg, hng))
+  +vkg = G4.v_smul(FPA, k, g, vg)
+  +t5 = TR(PA(u1, u2), PA(SM(sv, g), w2), SM(k, g), G1.v_add(FPA, SM(sv, g), w2, vs1, vw2), t3, t4)
+  fin(mp, hp, h21, PA(u1, u2), rx, ey, G1.v_add(FPA, u1, u2, vu1, vu2), ve, TR(PA(u1, u2), SM(k, g), CS.SPoint{rx, ey, 1n}, vkg, t5, SY(CS.SPoint{rx, ey, 1n}, SM(k, g), hre)), hrx, hey, hev)
