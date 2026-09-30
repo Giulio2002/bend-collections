@@ -7,6 +7,9 @@ the generator writes each component, the conjunction goodF, one accessor
 g_<c> per component, and good_intro, which builds goodF from the components.
 """
 import pathlib
+import sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from conj import Conj
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 STATE = ROOT / "proofs/containers/lru/state.bend"
@@ -63,55 +66,33 @@ def call(c, pre="", args=A):
     return f"{pre}{c}(~V, {args})"
 
 
-def rest(i, pre="", args=A):
-    """The conjunction of the components from i on: a named def per suffix
-    (gr_<i>), so no statement repeats the whole chain."""
-    if i == len(NAMES) - 1:
-        return call(NAMES[i], pre, args)
-    return call(f"gr{i}", pre, args)
 
 
-def rest_body(i):
-    if i == len(NAMES) - 1:
-        return call(NAMES[i])
-    return f"Bool.and({call(NAMES[i])}, {rest(i + 1)})"
 
 
 def T(x):
     return "{" + x + " == True{} : Bool}"
 
 
-def intro(i, pre="", args=A, hs=None):
-    hs = hs or [f"h_{c}" for c in NAMES]
-    if i == len(NAMES) - 1:
-        return hs[i]
-    return f"L.and_intro({call(NAMES[i], pre, args)}, {rest(i + 1, pre, args)}, {hs[i]}, {intro(i + 1, pre, args, hs)})"
+
+
+C = Conj(NAMES, lambda c, pre="", args=None: call(c, pre, A if args is None else args), f"~V: Data, {P}")
 
 
 def block():
     out = [MARK, "# (tools/generators/lru_state.py)", ""]
     for c, body in COMPS:
         out.append(f"def {c}(~V: Data, {P}) -> Bool:\n  {body}\n")
-    # the suffixes of the conjunction, last first (no forward references)
-    for i in range(len(NAMES) - 2, 0, -1):
-        out.append(f"def gr{i}(~V: Data, {P}) -> Bool:\n  {rest_body(i)}\n")
-    out.append(f"def goodF(~V: Data, {P}) -> Bool:\n  {rest_body(0)}\n")
+    out += C.suffixes()
     out.append('''def good(~V: Data, sh: Sh<V>) -> Bool:
   match sh:
     case LS{+cap, +n, +head, +tail, +free, +mT, +k, +sd, +tabT, +ksT, +eT, +lkT, +sl, +fl}:
       goodF(~V, cap, n, head, tail, free, W32.nth0(AR.slots(U32, mT), 0n), W32.nth0(AR.slots(U32, mT), 1n), W32.nth0(AR.slots(U32, mT), 2n), W32.nth0(AR.slots(U32, mT), 6n), W32.nth0(AR.slots(U32, mT), 7n), AR.perfect(U32, 5n, mT), k, sd, tabT, AR.slots(String, ksT), AR.perfect(String, sd, ksT), eT, lkT, sl, fl)
 ''')
-    # gp<i>: the invariant gives the suffix from i on, one step at a time
-    for i in range(1, len(NAMES)):
-        prev = "g" if i == 1 else f"gp{i - 1}(~V, {A}, g)"
-        out.append(f"def gp{i}(~V: Data, {P}, +g: {T(call('goodF'))}) -> {T(rest(i))}:\n  L.and_right({call(NAMES[i - 1])}, {rest(i)}, {prev})\n")
-    for i, c in enumerate(NAMES):
-        pr = "g" if i == 0 else f"gp{i}(~V, {A}, g)"
-        body = f"L.and_left({call(c)}, {rest(i + 1)}, {pr})" if i < len(NAMES) - 1 else pr
-        out.append(f"def g_{c}(~V: Data, {P}, +g: {T(call('goodF'))}) -> {T(call(c))}:\n  {body}\n")
+    out += C.projections(A)
     hs = ", ".join(f"+h_{c}: {T(call(c))}" for c in NAMES)
     out.append("# the invariant from its components\n"
-               f"def good_intro(~V: Data, {P}, {hs}) -> {T(call('goodF'))}:\n  {intro(0)}\n")
+               f"def good_intro(~V: Data, {P}, {hs}) -> {T(call('goodF'))}:\n  {C.intro()}\n")
     return "\n".join(out)
 
 
