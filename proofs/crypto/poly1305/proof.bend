@@ -12,9 +12,12 @@ import ./laws.bend as Laws
 import ./poly.bend as PY
 
 # Entry point: `bend proofs/crypto/poly1305/proof.bend` checks every clause of
-# laws.bend. The work is in value.bend (limb values), step.bend (one block),
-# modp.bend (the spec's reduction), final.bend (freeze, tag bytes) and
-# mac.bend (the accumulator against the spec, block by block).
+# laws.bend. The work is in vals.bend (the value of the radix-2^26 limbs and
+# of each limb operation, mod p), bnd.bend (27-bit limbs between blocks),
+# fin.bend (the final reduction and the tag bytes), modp.bend (the spec's
+# reduction) and mac.bend (the accumulator against the spec, block by
+# block, and the tag); tools/generators/poly1305_hand/*.src are their
+# sources (tools/generators/rw.py expands the rewrite steps).
 
 def Laws.mac_correct(key, msg): M.mac_correct(key, msg)
 
@@ -24,13 +27,9 @@ def Laws.modp_mod(one, h1, x):
   Equal.trans(Nat, R.modp(x), Nat.mod(x, 1n+M.bpv(one)), Nat.mod(x, Nat.sub(C.shift(130n, one), 5n)), MP.modp_mod(one, h1, M.bpv(one), M.bp5(one, h1), x),
     Equal.cong(Nat, Nat, z => Nat.mod(x, z), 1n+M.bpv(one), Nat.sub(C.shift(130n, one), 5n), Equal.sym(Nat, Nat.sub(C.shift(130n, one), 5n), 1n+M.bpv(one), M.pp_eq(one, h1, M.bpv(one), M.bp5(one, h1)))))
 
-def Laws.poly1305_valid(key, msg, h):
-  Equal.trans(Maybe<&2, List<&2, U32>>, P.poly1305(key, msg), Some{P.mac(key, msg)}, Some{R.mac(key, msg)},
-    Equal.cong(Bool, Maybe<&2, List<&2, U32>>, b => P.when(b, P.mac(key, msg)), P.has_key(key), True{}, h),
-    Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, t => Some{t}, P.mac(key, msg), R.mac(key, msg), M.mac_correct(key, msg)))
+def Laws.poly1305_valid(key, msg, h): M.poly1305_valid(key, msg, h)
 
-def Laws.poly1305_invalid(key, msg, h):
-  Equal.cong(Bool, Maybe<&2, List<&2, U32>>, b => P.when(b, P.mac(key, msg)), P.has_key(key), False{}, h)
+def Laws.poly1305_invalid(key, msg, h): M.poly1305_invalid(key, msg, h)
 
 # ---- constant-time equality (after proofs/crypto/subtle/proof.bend) ----
 

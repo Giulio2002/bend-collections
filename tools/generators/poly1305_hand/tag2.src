@@ -1,0 +1,225 @@
+import Base
+import ../../../spec/crypto/poly1305.bend as R
+import ../../../spec/crypto/chacha20poly1305.bend as RA
+import ../../../src/crypto/poly1305/limbs.bend as L
+import ../../../src/crypto/poly1305/poly1305.bend as P
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../math/natural/arith.bend as NR
+import ./mac.bend as M
+
+# The RFC 8439 2.8 tag without its message list: mac_aead(key, aad, ct)
+# absorbs aad | pad16(aad), then ct | pad16(ct), then the two lengths, as
+# the Poly1305 of mac_data = aad | pad16(aad) | ct | pad16(ct) | le64(len
+# aad) | le64(len ct) would; so it is the spec's tag of mac_data (through
+# mac_correct).
+
+law app_assoc:
+  for +xs: List<&2, U32>
+  for +ys: List<&2, U32>
+  for +zs: List<&2, U32>
+  {List.append(&2, U32, List.append(&2, U32, xs, ys), zs) == List.append(&2, U32, xs, List.append(&2, U32, ys, zs)) : List<&2, U32>}
+
+def app_assoc(xs, ys, zs):
+  match xs:
+    case Nil{}: {==}
+    case x <> t: Equal.cong(List<&2, U32>, List<&2, U32>, l => x <> l, List.append(&2, U32, List.append(&2, U32, t, ys), zs), List.append(&2, U32, t, List.append(&2, U32, ys, zs)), app_assoc(t, ys, zs))
+
+# 16 more bytes do not change pad16
+def pad_cons16(+x0: U32, +x1: U32, +x2: U32, +x3: U32, +x4: U32, +x5: U32, +x6: U32, +x7: U32, +x8: U32, +x9: U32, +x10: U32, +x11: U32, +x12: U32, +x13: U32, +x14: U32, +x15: U32, +rest: List<&2, U32>) -> {P.pad16(x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest) == P.pad16(rest) : List<&2, U32>}:
+  Equal.cong(Nat, List<&2, U32>, z => List.replicate(U32, Nat.mod(Nat.sub(16n, z), 16n), 0), Nat.mod(16n+List.length(&2, U32, rest), 16n), Nat.mod(List.length(&2, U32, rest), 16n), NR.absorb(15n, 1n, List.length(&2, U32, rest)))
+
+# absorb_pad is absorb over msg | pad16(msg), with the byte count
+law apad:
+  for +pone: Nat
+  for +k: L.K
+  for +xs: List<&2, U32>
+  for +h: L.F
+  for +n: Nat
+  {P.absorb_pad(pone, xs, k, h, n) == P.A{P.absorb(pone, List.append(&2, U32, xs, P.pad16(xs)), k, h), Nat.add(n, List.length(&2, U32, xs))} : P.A}
+
+def apad(pone, k, xs, h, n):
+  match xs:
+    case Nil{}: Equal.cong(Nat, P.A, z => P.A{h, z}, n, Nat.add(n, 0n), Equal.sym(Nat, Nat.add(n, 0n), n, NA.add_zero(n)))
+    case +x0 <> +t0:
+      match t0:
+        case Nil{}:
+          {==}
+        case +x1 <> +t1:
+          match t1:
+            case Nil{}:
+              {==}
+            case +x2 <> +t2:
+              match t2:
+                case Nil{}:
+                  {==}
+                case +x3 <> +t3:
+                  match t3:
+                    case Nil{}:
+                      {==}
+                    case +x4 <> +t4:
+                      match t4:
+                        case Nil{}:
+                          {==}
+                        case +x5 <> +t5:
+                          match t5:
+                            case Nil{}:
+                              {==}
+                            case +x6 <> +t6:
+                              match t6:
+                                case Nil{}:
+                                  {==}
+                                case +x7 <> +t7:
+                                  match t7:
+                                    case Nil{}:
+                                      {==}
+                                    case +x8 <> +t8:
+                                      match t8:
+                                        case Nil{}:
+                                          {==}
+                                        case +x9 <> +t9:
+                                          match t9:
+                                            case Nil{}:
+                                              {==}
+                                            case +x10 <> +t10:
+                                              match t10:
+                                                case Nil{}:
+                                                  {==}
+                                                case +x11 <> +t11:
+                                                  match t11:
+                                                    case Nil{}:
+                                                      {==}
+                                                    case +x12 <> +t12:
+                                                      match t12:
+                                                        case Nil{}:
+                                                          {==}
+                                                        case +x13 <> +t13:
+                                                          match t13:
+                                                            case Nil{}:
+                                                              {==}
+                                                            case +x14 <> +t14:
+                                                              match t14:
+                                                                case Nil{}:
+                                                                  {==}
+                                                                case +x15 <> +rest:
+                                                                  +h2 = L.block(k, h, L.load(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), pone))
+                                                                  +ih = apad(pone, k, rest, h2, Nat.add(n, 16n))
+                                                                  Equal.trans(P.A, P.absorb_pad(pone, rest, k, h2, Nat.add(n, 16n)), P.A{P.absorb(pone, List.append(&2, U32, rest, P.pad16(rest)), k, h2), Nat.add(Nat.add(n, 16n), List.length(&2, U32, rest))}, P.A{P.absorb(pone, List.append(&2, U32, rest, P.pad16(x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest)), k, h2), Nat.add(n, 16n+List.length(&2, U32, rest))}, ih,
+                                                                    Equal.trans(P.A, P.A{P.absorb(pone, List.append(&2, U32, rest, P.pad16(rest)), k, h2), Nat.add(Nat.add(n, 16n), List.length(&2, U32, rest))}, P.A{P.absorb(pone, List.append(&2, U32, rest, P.pad16(x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest)), k, h2), Nat.add(Nat.add(n, 16n), List.length(&2, U32, rest))}, P.A{P.absorb(pone, List.append(&2, U32, rest, P.pad16(x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest)), k, h2), Nat.add(n, 16n+List.length(&2, U32, rest))},
+                                                                      Equal.cong(List<&2, U32>, P.A, l => P.A{P.absorb(pone, List.append(&2, U32, rest, l), k, h2), Nat.add(Nat.add(n, 16n), List.length(&2, U32, rest))}, P.pad16(rest), P.pad16(x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest), Equal.sym(List<&2, U32>, P.pad16(x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest), P.pad16(rest), pad_cons16(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, rest))),
+                                                                      Equal.cong(Nat, P.A, z => P.A{P.absorb(pone, List.append(&2, U32, rest, P.pad16(x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest)), k, h2), z}, Nat.add(Nat.add(n, 16n), List.length(&2, U32, rest)), Nat.add(n, 16n+List.length(&2, U32, rest)), NA.add_assoc(n, 16n, List.length(&2, U32, rest)))))
+
+# absorbing (xs | pad16(xs)) | z is absorbing z after xs | pad16(xs)
+law comp:
+  for +pone: Nat
+  for +k: L.K
+  for +xs: List<&2, U32>
+  for +z: List<&2, U32>
+  for +h: L.F
+  {P.absorb(pone, List.append(&2, U32, List.append(&2, U32, xs, P.pad16(xs)), z), k, h) == P.absorb(pone, z, k, P.absorb(pone, List.append(&2, U32, xs, P.pad16(xs)), k, h)) : L.F}
+
+def comp(pone, k, xs, z, h):
+  match xs:
+    case Nil{}: {==}
+    case +x0 <> +t0:
+      match t0:
+        case Nil{}:
+          {==}
+        case +x1 <> +t1:
+          match t1:
+            case Nil{}:
+              {==}
+            case +x2 <> +t2:
+              match t2:
+                case Nil{}:
+                  {==}
+                case +x3 <> +t3:
+                  match t3:
+                    case Nil{}:
+                      {==}
+                    case +x4 <> +t4:
+                      match t4:
+                        case Nil{}:
+                          {==}
+                        case +x5 <> +t5:
+                          match t5:
+                            case Nil{}:
+                              {==}
+                            case +x6 <> +t6:
+                              match t6:
+                                case Nil{}:
+                                  {==}
+                                case +x7 <> +t7:
+                                  match t7:
+                                    case Nil{}:
+                                      {==}
+                                    case +x8 <> +t8:
+                                      match t8:
+                                        case Nil{}:
+                                          {==}
+                                        case +x9 <> +t9:
+                                          match t9:
+                                            case Nil{}:
+                                              {==}
+                                            case +x10 <> +t10:
+                                              match t10:
+                                                case Nil{}:
+                                                  {==}
+                                                case +x11 <> +t11:
+                                                  match t11:
+                                                    case Nil{}:
+                                                      {==}
+                                                    case +x12 <> +t12:
+                                                      match t12:
+                                                        case Nil{}:
+                                                          {==}
+                                                        case +x13 <> +t13:
+                                                          match t13:
+                                                            case Nil{}:
+                                                              {==}
+                                                            case +x14 <> +t14:
+                                                              match t14:
+                                                                case Nil{}:
+                                                                  {==}
+                                                                case +x15 <> +rest:
+                                                                  +h2 = L.block(k, h, L.load(L.byte(x0), L.byte(x1), L.byte(x2), L.byte(x3), L.byte(x4), L.byte(x5), L.byte(x6), L.byte(x7), L.byte(x8), L.byte(x9), L.byte(x10), L.byte(x11), L.byte(x12), L.byte(x13), L.byte(x14), L.byte(x15), pone))
+                                                                  +e1 = Equal.cong(List<&2, U32>, L.F, l => P.absorb(pone, List.append(&2, U32, List.append(&2, U32, rest, l), z), k, h2), P.pad16(x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest), P.pad16(rest), pad_cons16(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, rest))
+                                                                  +e2 = Equal.cong(List<&2, U32>, L.F, l => P.absorb(pone, z, k, P.absorb(pone, List.append(&2, U32, rest, l), k, h2)), P.pad16(x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest), P.pad16(rest), pad_cons16(x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15, rest))
+                                                                  Equal.trans(L.F, P.absorb(pone, List.append(&2, U32, List.append(&2, U32, rest, P.pad16(x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest)), z), k, h2), P.absorb(pone, List.append(&2, U32, List.append(&2, U32, rest, P.pad16(rest)), z), k, h2), P.absorb(pone, z, k, P.absorb(pone, List.append(&2, U32, rest, P.pad16(x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest)), k, h2)), e1,
+                                                                    Equal.trans(L.F, P.absorb(pone, List.append(&2, U32, List.append(&2, U32, rest, P.pad16(rest)), z), k, h2), P.absorb(pone, z, k, P.absorb(pone, List.append(&2, U32, rest, P.pad16(rest)), k, h2)), P.absorb(pone, z, k, P.absorb(pone, List.append(&2, U32, rest, P.pad16(x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest)), k, h2)), comp(pone, k, rest, z, h2),
+                                                                      Equal.sym(L.F, P.absorb(pone, z, k, P.absorb(pone, List.append(&2, U32, rest, P.pad16(x0 <> x1 <> x2 <> x3 <> x4 <> x5 <> x6 <> x7 <> x8 <> x9 <> x10 <> x11 <> x12 <> x13 <> x14 <> x15 <> rest)), k, h2)), P.absorb(pone, z, k, P.absorb(pone, List.append(&2, U32, rest, P.pad16(rest)), k, h2)), e2)))
+
+def tag2_eq(+pone: Nat, +k0: U32, +k1: U32, +k2: U32, +k3: U32, +k4: U32, +k5: U32, +k6: U32, +k7: U32, +k8: U32, +k9: U32, +k10: U32, +k11: U32, +k12: U32, +k13: U32, +k14: U32, +k15: U32, +k16: U32, +k17: U32, +k18: U32, +k19: U32, +k20: U32, +k21: U32, +k22: U32, +k23: U32, +k24: U32, +k25: U32, +k26: U32, +k27: U32, +k28: U32, +k29: U32, +k30: U32, +k31: U32, +aad: List<&2, U32>, +ct: List<&2, U32>) -> {P.tag2(pone, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, aad, ct) == P.tag(pone, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, List.append(&2, U32, List.append(&2, U32, aad, P.pad16(aad)), List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct)))))) : List<&2, U32>}:
+  +k = L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15))
+  +s = P.s_of(k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31)
+  +a1 = apad(pone, k, aad, L.zero(), 0n)
+  +e1 = Equal.cong(P.A, List<&2, U32>, a => P.tag_ct(pone, k, s, a, ct), P.absorb_pad(pone, aad, k, L.zero(), 0n), P.A{P.absorb(pone, List.append(&2, U32, aad, P.pad16(aad)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), L.zero()), Nat.add(0n, List.length(&2, U32, aad))}, a1)
+  +a2 = apad(pone, k, ct, P.absorb(pone, List.append(&2, U32, aad, P.pad16(aad)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), L.zero()), 0n)
+  +e2 = Equal.cong(P.A, List<&2, U32>, a => P.tag_len(pone, k, s, List.length(&2, U32, aad), a), P.absorb_pad(pone, ct, k, P.absorb(pone, List.append(&2, U32, aad, P.pad16(aad)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), L.zero()), 0n), P.A{P.absorb(pone, List.append(&2, U32, ct, P.pad16(ct)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), P.absorb(pone, List.append(&2, U32, aad, P.pad16(aad)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), L.zero())), Nat.add(0n, List.length(&2, U32, ct))}, a2)
+  +c1 = comp(pone, k, aad, List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct)))), L.zero())
+  +c2 = comp(pone, k, ct, List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct))), P.absorb(pone, List.append(&2, U32, aad, P.pad16(aad)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), L.zero()))
+  +e3 = Equal.sym(L.F, P.absorb(pone, List.append(&2, U32, List.append(&2, U32, aad, P.pad16(aad)), List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct))))), k, L.zero()), P.absorb(pone, List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct))), k, P.absorb(pone, List.append(&2, U32, ct, P.pad16(ct)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), P.absorb(pone, List.append(&2, U32, aad, P.pad16(aad)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), L.zero()))), Equal.trans(L.F, P.absorb(pone, List.append(&2, U32, List.append(&2, U32, aad, P.pad16(aad)), List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct))))), k, L.zero()), P.absorb(pone, List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct)))), k, P.absorb(pone, List.append(&2, U32, aad, P.pad16(aad)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), L.zero())), P.absorb(pone, List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct))), k, P.absorb(pone, List.append(&2, U32, ct, P.pad16(ct)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), P.absorb(pone, List.append(&2, U32, aad, P.pad16(aad)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), L.zero()))), c1, c2))
+  Equal.trans(List<&2, U32>, P.tag2(pone, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, aad, ct), P.tag_len(pone, k, s, List.length(&2, U32, aad), P.absorb_pad(pone, ct, k, P.absorb(pone, List.append(&2, U32, aad, P.pad16(aad)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), L.zero()), 0n)), P.tag(pone, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, List.append(&2, U32, List.append(&2, U32, aad, P.pad16(aad)), List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct)))))), e1,
+    Equal.trans(List<&2, U32>, P.tag_len(pone, k, s, List.length(&2, U32, aad), P.absorb_pad(pone, ct, k, P.absorb(pone, List.append(&2, U32, aad, P.pad16(aad)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), L.zero()), 0n)), L.fin(P.absorb(pone, List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct))), k, P.absorb(pone, List.append(&2, U32, ct, P.pad16(ct)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), P.absorb(pone, List.append(&2, U32, aad, P.pad16(aad)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), L.zero()))), s), P.tag(pone, k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15, k16, k17, k18, k19, k20, k21, k22, k23, k24, k25, k26, k27, k28, k29, k30, k31, List.append(&2, U32, List.append(&2, U32, aad, P.pad16(aad)), List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct)))))), e2,
+      Equal.cong(L.F, List<&2, U32>, h => L.fin(h, s), P.absorb(pone, List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct))), k, P.absorb(pone, List.append(&2, U32, ct, P.pad16(ct)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), P.absorb(pone, List.append(&2, U32, aad, P.pad16(aad)), L.key(P.r_of(k0, k1, k2, k3, k4, k5, k6, k7, k8, k9, k10, k11, k12, k13, k14, k15)), L.zero()))), P.absorb(pone, List.append(&2, U32, List.append(&2, U32, aad, P.pad16(aad)), List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct))))), k, L.zero()), e3)))
+
+def mac_aead_eq(+key: List<&2, U32>, +aad: List<&2, U32>, +ct: List<&2, U32>) -> {P.mac_aead(key, aad, ct) == P.mac(key, List.append(&2, U32, List.append(&2, U32, aad, P.pad16(aad)), List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct)))))) : List<&2, U32>}:
+  tag2_eq(1n, P.kh(key), P.kh(P.tl(key)), P.kh(P.tl(P.tl(key))), P.kh(P.tl(P.tl(P.tl(key)))), P.kh(P.tl(P.tl(P.tl(P.tl(key))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key))))))))))))))))))))))))))))))), P.kh(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(P.tl(key)))))))))))))))))))))))))))))))), aad, ct)
+
+def data_eq(+aad: List<&2, U32>, +ct: List<&2, U32>) -> {List.append(&2, U32, List.append(&2, U32, aad, P.pad16(aad)), List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct))))) == RA.mac_data(aad, ct) : List<&2, U32>}:
+  +l8 = List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct)))
+  Equal.trans(List<&2, U32>, List.append(&2, U32, List.append(&2, U32, aad, P.pad16(aad)), List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct))))), List.append(&2, U32, aad, List.append(&2, U32, P.pad16(aad), List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), l8))), RA.mac_data(aad, ct),
+    app_assoc(aad, P.pad16(aad), List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), l8)),
+    Equal.cong(List<&2, U32>, List<&2, U32>, l => List.append(&2, U32, aad, List.append(&2, U32, P.pad16(aad), l)), List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), l8), List.append(&2, U32, ct, List.append(&2, U32, P.pad16(ct), l8)), app_assoc(ct, P.pad16(ct), l8)))
+
+# The AEAD tag is the RFC 8439 Poly1305 tag of mac_data.
+law mac_aead_correct:
+  for +key: List<&2, U32>
+  for +aad: List<&2, U32>
+  for +ct: List<&2, U32>
+  {P.mac_aead(key, aad, ct) == R.mac(key, RA.mac_data(aad, ct)) : List<&2, U32>}
+
+def mac_aead_correct(key, aad, ct):
+  +d = List.append(&2, U32, List.append(&2, U32, aad, P.pad16(aad)), List.append(&2, U32, List.append(&2, U32, ct, P.pad16(ct)), List.append(&2, U32, P.le8(8n, List.length(&2, U32, aad)), P.le8(8n, List.length(&2, U32, ct)))))
+  Equal.trans(List<&2, U32>, P.mac_aead(key, aad, ct), P.mac(key, d), R.mac(key, RA.mac_data(aad, ct)), mac_aead_eq(key, aad, ct),
+    Equal.trans(List<&2, U32>, P.mac(key, d), R.mac(key, d), R.mac(key, RA.mac_data(aad, ct)), M.mac_correct(key, d),
+      Equal.cong(List<&2, U32>, List<&2, U32>, l => R.mac(key, l), d, RA.mac_data(aad, ct), data_eq(aad, ct))))
