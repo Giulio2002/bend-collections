@@ -8,7 +8,7 @@ module's clauses and whose `proof.bend` proves them. `python3
 proofs/prove.py <pkg>` checks a package; the evidence is one of
 
 - **proved**: the clause holds for every input, checked by stock Bend
-  (2.0.32, bendlang/bend main b2111cf4). No holes, no axioms, no `@unsafe`.
+  (the 2.0.34 release). No holes, no axioms, no `@unsafe`.
 - **tested**: the clause is exercised, not proved (the table says why).
 
 Every module below is also tested against an independent implementation:

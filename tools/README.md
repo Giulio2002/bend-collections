@@ -7,8 +7,9 @@ committed `.bend` proofs check without it.
 
 ## Toolchain
 
-`toolchain.json` pins the Bend build the project is checked with (2.0.32, main
-at b2111cf4, installed under `~/.bend/main`) by path and SHA-256, and `toolchain.py` exposes it to the scripts. Paths may start
+`toolchain.json` pins the Bend build the project is checked with (the 2.0.34
+release, installed under `~/.bend/v2.0.34/bend`) by path and SHA-256 (one
+binary hash per platform, one Base hash), and `toolchain.py` exposes it to the scripts. Paths may start
 with `~`. To use a private copy of the pinned release, set `BEND_HOME` to a
 directory holding `.bend/bin/bend` and `.bend/bend2`. To use another compiler
 (a development build, say), set `BEND` to it, a path or a name on the PATH, and

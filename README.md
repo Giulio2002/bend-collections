@@ -407,8 +407,8 @@ tools/            proof generators (mac.py expands the .src proof sources),
 
 ## Requirements
 
-Bend 2.0.32, built from bendlang/bend main at b2111cf4 (pinned in
-`tools/toolchain.json`), clang and Python 3.
+Bend 2.0.34 (the release; pinned in `tools/toolchain.json`), clang and
+Python 3.
 
 ## Test
 

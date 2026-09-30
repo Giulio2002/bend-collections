@@ -251,7 +251,8 @@ def main():
 
     if not PINNED:
         print('unpinned toolchain (BEND=%s): the report records it as such' % BEND, file=sys.stderr)
-    elif sha(BEND) != LOCK['binary_sha256'] or sha(BASE) != LOCK['base_sha256']:
+    elif (sha(BEND) not in set(LOCK.get('binary_sha256_by_platform', {}).values()) | {LOCK['binary_sha256']}
+          or sha(BASE) != LOCK['base_sha256']):
         print('pinned toolchain changed', file=sys.stderr)
         return 1
 
