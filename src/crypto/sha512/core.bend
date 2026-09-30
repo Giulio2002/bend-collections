@@ -230,3 +230,569 @@ def hash_padded(bytes: List<&2, U32>) -> List<&2, U32>:
 
 def sha512(+bytes: List<&2, U32>) -> List<&2, U32>:
   hash_padded(List.append(&2, U32, bytes, suffix(List.length(&2, U32, bytes))))
+
+# ---------------------------------------------------------------- FIPS-specialized rounds
+
+# Round t (16 <= t < 80) with its constant as a literal: derive the schedule
+# word from the window, step, continue with round t+1. q bounds the rounds
+# left (64 for SHA-512), as in window_rounds. Defined last-to-first.
+def kr80(q: Nat, win: Sched, s: T.State) -> T.State:
+  s
+
+def kr79(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr80(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1816402316, 1246189591}, w))
+
+def kr78(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr79(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1607167915, 987167468}, w))
+
+def kr77(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr78(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1501505948, 4234509866}, w))
+
+def kr76(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr77(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1288033470, 3409855158}, w))
+
+def kr75(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr76(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1126000580, 2618297676}, w))
+
+def kr74(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr75(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1017036298, 365543100}, w))
+
+def kr73(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr74(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{852142971, 1086792851}, w))
+
+def kr72(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr73(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{685471733, 587496836}, w))
+
+def kr71(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr72(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{460393269, 320620315}, w))
+
+def kr70(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr71(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{289380356, 3203993006}, w))
+
+def kr69(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr70(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{174292421, 2731055270}, w))
+
+def kr68(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr69(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{116418474, 1914138554}, w))
+
+def kr67(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr68(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{4118630271, 4000239992}, w))
+
+def kr66(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr67(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{3940187606, 3454069534}, w))
+
+def kr65(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr66(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{3515267271, 566280711}, w))
+
+def kr64(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr65(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{3391569614, 3928383900}, w))
+
+def kr63(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr64(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{3329325298, 3815920427}, w))
+
+def kr62(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr63(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{3204031479, 2999351573}, w))
+
+def kr61(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr62(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{2756734187, 3733110249}, w))
+
+def kr60(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr61(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{2428436474, 593698344}, w))
+
+def kr59(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr60(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{2361852424, 442776044}, w))
+
+def kr58(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr59(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{2227730452, 2716904306}, w))
+
+def kr57(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr58(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{2024104815, 1125592928}, w))
+
+def kr56(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr57(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1955562222, 1575990012}, w))
+
+def kr55(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr56(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1747873779, 3602036899}, w))
+
+def kr54(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr55(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1537002063, 2003034995}, w))
+
+def kr53(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr54(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1322822218, 3812723403}, w))
+
+def kr52(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr53(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{958139571, 3318307427}, w))
+
+def kr51(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr52(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{883997877, 3785050280}, w))
+
+def kr50(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr51(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{659060556, 3750685593}, w))
+
+def kr49(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr50(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{506948616, 1363258195}, w))
+
+def kr48(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr49(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{430227734, 3100823752}, w))
+
+def kr47(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr48(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{275423344, 851169720}, w))
+
+def kr46(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr47(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{4094571909, 1467031594}, w))
+
+def kr45(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr46(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{3600352804, 1432725776}, w))
+
+def kr44(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr45(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{3516065817, 3606008344}, w))
+
+def kr43(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr44(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{3345764771, 106217008}, w))
+
+def kr42(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr43(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{3259730800, 3505952657}, w))
+
+def kr41(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr42(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{2820302411, 3158454273}, w))
+
+def kr40(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr41(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{2730485921, 1290863460}, w))
+
+def kr39(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr40(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{2456956037, 344077627}, w))
+
+def kr38(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr39(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{2177026350, 1206759142}, w))
+
+def kr37(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr38(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1986661051, 1014477480}, w))
+
+def kr36(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr37(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1695183700, 2343527390}, w))
+
+def kr35(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr36(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1396182291, 2643833823}, w))
+
+def kr34(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr35(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1294757372, 1522805485}, w))
+
+def kr33(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr34(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{773529912, 1546045734}, w))
+
+def kr32(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr33(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{666307205, 1188179964}, w))
+
+def kr31(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr32(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{338241895, 168717936}, w))
+
+def kr30(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr31(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{113926993, 3758326383}, w))
+
+def kr29(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr30(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{3584528711, 2466948901}, w))
+
+def kr28(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr29(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{3336571891, 1034457026}, w))
+
+def kr27(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr28(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{3210313671, 3203337956}, w))
+
+def kr26(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr27(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{2952996808, 2566594879}, w))
+
+def kr25(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr26(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{2821834349, 766784016}, w))
+
+def kr24(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr25(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{2554220882, 3999719339}, w))
+
+def kr23(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr24(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1996064986, 2198950837}, w))
+
+def kr22(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr23(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1555081692, 3175218132}, w))
+
+def kr21(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr22(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{1249150122, 1856431235}, w))
+
+def kr20(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr21(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{770255983, 1495990901}, w))
+
+def kr19(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr20(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{604807628, 2007800933}, w))
+
+def kr18(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr19(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{264347078, 2341262773}, w))
+
+def kr17(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr18(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{4022224774, 944711139}, w))
+
+def kr16(q: Nat, win: Sched, s: T.State) -> T.State:
+  match q win:
+    case 0n _:
+      s
+    case 1n+r Win{a, +b, c, d, e, f, +g, h, i, j, k, l, m, n, +o, +p}:
+      +w = next(b, g, o, p)
+      kr17(r, Win{w, a, b, c, d, e, f, g, h, i, j, k, l, m, n, o}, step(s, T.W{3835390401, 2666613458}, w))
+
+# compress16 with the FIPS table: the block's sixteen rounds, then kr16.
+def fips16(+a: T.Lane, +b: T.Lane, +c: T.Lane, +d: T.Lane,
+  +e: T.Lane, +f: T.Lane, +g: T.Lane, +h: T.Lane,
+  +i: T.Lane, +j: T.Lane, +k: T.Lane, +l: T.Lane,
+  +m: T.Lane, +n: T.Lane, +o: T.Lane, +p: T.Lane, +q: Nat, +s: T.State) -> T.State:
+  s1 = step(s, T.W{1116352408, 3609767458}, a)
+  s2 = step(s1, T.W{1899447441, 602891725}, b)
+  s3 = step(s2, T.W{3049323471, 3964484399}, c)
+  s4 = step(s3, T.W{3921009573, 2173295548}, d)
+  s5 = step(s4, T.W{961987163, 4081628472}, e)
+  s6 = step(s5, T.W{1508970993, 3053834265}, f)
+  s7 = step(s6, T.W{2453635748, 2937671579}, g)
+  s8 = step(s7, T.W{2870763221, 3664609560}, h)
+  s9 = step(s8, T.W{3624381080, 2734883394}, i)
+  s10 = step(s9, T.W{310598401, 1164996542}, j)
+  s11 = step(s10, T.W{607225278, 1323610764}, k)
+  s12 = step(s11, T.W{1426881987, 3590304994}, l)
+  s13 = step(s12, T.W{1925078388, 4068182383}, m)
+  s14 = step(s13, T.W{2162078206, 991336113}, n)
+  s15 = step(s14, T.W{2614888103, 633803317}, o)
+  s16 = step(s15, T.W{3248222580, 3479774868}, p)
+  feedforward(s, kr16(q, Win{p, o, n, m, l, k, j, i, h, g, f, e, d, c, b, a}, s16))
+
+# ---------------------------------------------------------------- padding without appends
+
+# base256(width, n) ++ acc, most significant digit first, built from the end.
+def base256_onto(width: Nat, +n: Nat, acc: List<&2, U32>) -> List<&2, U32>:
+  match width:
+    case 0n:
+      acc
+    case 1n+p:
+      base256_onto(p, Nat.div(n, 256n), U32.from_nat(Nat.mod(n, 256n)) <> acc)
+
+# k zero bytes onto acc.
+def zeros_onto(k: Nat, acc: List<&2, U32>) -> List<&2, U32>:
+  match k:
+    case 0n:
+      acc
+    case 1n+p:
+      0 <> zeros_onto(p, acc)
+
+# suffix(n), with no list appended.
+def suffix_fast(+n: Nat) -> List<&2, U32>:
+  128 <> zeros_onto(zeros(Nat.mod(n, 128n)),
+    base256_onto(15n, Nat.div(n, 32n), [U32.shln(U32.from_nat(Nat.mod(n, 32n)), 3n)]))
