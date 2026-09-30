@@ -1,4 +1,5 @@
 import Base
+import ./f64light.bend as FL
 import ../../../spec/lib/common.bend as C
 import ../../../spec/math/f64.bend as SF
 import ../../../spec/math/w64.bend as SW
@@ -65,9 +66,7 @@ def sub_le0(+a: Nat, +b: Nat) -> {Nat.is_le(Nat.sub(a, b), a) == True{} : Bool}:
       N.le_trans(Nat.sub(ap, bp), ap, 1n+ap, sub_le0(ap, bp), N.le_succ(ap))
 
 def add_lt2(+a: Nat, +b: Nat, +h: {Nat.is_lt(a, b) == True{} : Bool}) -> {Nat.is_lt(Nat.add(a, a), Nat.add(b, b)) == True{} : Bool}:
-  +l1 = Equal.trans(Bool, Nat.is_lt(Nat.add(a, a), Nat.add(a, b)), Nat.is_lt(a, b), True{}, WW.lt_cancel_l(a, a, b), h)
-  +l2 = Equal.trans(Bool, Nat.is_lt(Nat.add(a, b), Nat.add(b, b)), Nat.is_lt(a, b), True{}, WW.lt_cancel_r(a, b, b), h)
-  N.lt_trans(Nat.add(a, a), Nat.add(a, b), Nat.add(b, b), l1, l2)
+  FL.add_lt2(a, b, h)
 
 # a normalized significand is in [2^52, 2^53)
 def lo52(+one: Nat, +h1: {one == 1n : Nat}, +n: Nat, +h: {C.fits(52n, n) == False{} : Bool}) -> {Nat.is_le(C.shift(52n, one), n) == True{} : Bool}:

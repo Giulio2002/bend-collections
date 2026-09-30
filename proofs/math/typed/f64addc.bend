@@ -1,4 +1,5 @@
 import Base
+import ./f64light.bend as FL
 import ../../../spec/lib/common.bend as C
 import ../../../spec/math/f64.bend as SF
 import ../../../spec/math/w64.bend as SW
@@ -70,9 +71,7 @@ def addv2(+fa: WU.U64, +fb: WU.U64, +Fa: Nat, +Fb: Nat, +hfa: {SW.value(fa) == F
   Equal.trans(Nat, SW.value(X.add(fa, fb)), C.low(64n, Nat.add(SW.value(fa), SW.value(fb))), Nat.add(Fa, Fb), a1, Equal.trans(Nat, C.low(64n, Nat.add(SW.value(fa), SW.value(fb))), C.low(64n, Nat.add(Fa, Fb)), Nat.add(Fa, Fb), Equal.cong(Nat, Nat, z => C.low(64n, z), Nat.add(SW.value(fa), SW.value(fb)), Nat.add(Fa, Fb), Equal.trans(Nat, Nat.add(SW.value(fa), SW.value(fb)), Nat.add(Fa, SW.value(fb)), Nat.add(Fa, Fb), Equal.cong(Nat, Nat, z => Nat.add(z, SW.value(fb)), SW.value(fa), Fa, hfa), Equal.cong(Nat, Nat, z => Nat.add(Fa, z), SW.value(fb), Fb, hfb))), WW.low_fit(64n, Nat.add(Fa, Fb), SH.fits_mono(53n, 64n, Nat.add(Fa, Fb), {==}, f53))))
 
 def shl_v(+a: WU.U64, +k: Nat, +j: Nat, +hk: {Nat.is_lt(k, 64n) == True{} : Bool}, +hj: {Nat.is_le(Nat.add(k, j), 64n) == True{} : Bool}, +ha: {C.fits(j, SW.value(a)) == True{} : Bool}) -> {SW.value(X.shl(a, k)) == C.shift(k, SW.value(a)) : Nat}:
-  sv = SH.shl_value(a, k, hk)
-  +f = SH.fits_mono(Nat.add(k, j), 64n, C.shift(k, SW.value(a)), hj, Equal.trans(Bool, C.fits(Nat.add(k, j), C.shift(k, SW.value(a))), C.fits(j, SW.value(a)), True{}, RT.fits_sh(k, j, SW.value(a)), ha))
-  Equal.trans(Nat, SW.value(X.shl(a, k)), C.low(64n, C.shift(k, SW.value(a))), C.shift(k, SW.value(a)), sv, WW.low_fit(64n, C.shift(k, SW.value(a)), f))
+  FL.shl_v(a, k, j, hk, hj, ha)
 
 def f53(+one: Nat, +h1: {one == 1n : Nat}, +Fr: Nat, +hF: {C.fits(52n, Fr) == True{} : Bool}) -> {C.fits(53n, Nat.add(Fr, C.shift(52n, one))) == True{} : Bool}:
   WW.limbs_fit(52n, 1n, Fr, one, hF, L.subst(Nat, z => {C.fits(1n, z) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), {==}))

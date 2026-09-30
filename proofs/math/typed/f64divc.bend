@@ -1,4 +1,5 @@
 import Base
+import ./f64light.bend as FL
 import ../../../spec/lib/common.bend as C
 import ../../../spec/math/f64.bend as SF
 import ../../../spec/math/w64.bend as SW
@@ -25,13 +26,13 @@ def v(+x: U32) -> Nat:
   U32.to_nat(x)
 
 def hea(+xl: U32, +xh: U32) -> {F.exp_field(F.Bits{xl, xh}) == SF.efield(F.Bits{xl, xh}) : Nat}:
-  FB.ef_g(1n, {==}, xh, 1048576, {==}, 2047, {==})
+  FL.hea(xl, xh)
 
 def fval_g(+xl: U32, +xh: U32, +m: U32, +hm: {m == U32{WD.mask(32n, 20n)} : U32}) -> {SW.value(WU.U64{xl, U32.and(xh, m)}) == SF.frac(F.Bits{xl, xh}) : Nat}:
-  Equal.cong(Nat, Nat, z => Nat.add(v(xl), C.shift(32n, z)), v(U32.and(xh, m)), C.low(20n, v(xh)), FB.andm(xh, 20n, m, hm))
+  FL.fval_g(xl, xh, m, hm)
 
 def hfr(+xl: U32, +xh: U32) -> {SW.value(F.frac(F.Bits{xl, xh})) == SF.frac(F.Bits{xl, xh}) : Nat}:
-  fval_g(xl, xh, 1048575, {==})
+  FL.hfr(xl, xh)
 
 def ltf(+xl: U32, +xh: U32, +h: {Nat.is_eq(SF.efield(F.Bits{xl, xh}), 2047n) == False{} : Bool}) -> {Nat.is_lt(SF.efield(F.Bits{xl, xh}), 2047n) == True{} : Bool}:
   Equal.trans(Bool, Nat.is_lt(SF.efield(F.Bits{xl, xh}), 2047n), Bool.not(Nat.is_eq(SF.efield(F.Bits{xl, xh}), 2047n)), True{}, FB.lt_ne(SF.efield(F.Bits{xl, xh}), 2047n, WW.low_lt(11n, C.high(20n, v(xh)))), Equal.cong(Bool, Bool, t => Bool.not(t), Nat.is_eq(SF.efield(F.Bits{xl, xh}), 2047n), False{}, h))
@@ -116,11 +117,7 @@ def ion(+s: Bool, +b: Bool) -> {F.inf_or_nan(s, b) == SF.pick(F.F64, b, F.nan(),
       {==}
 
 def non(+x: F.F64, +b: Bool) -> {F.nan_or(x, b) == SF.pick(F.F64, b, F.nan(), x) : F.F64}:
-  match b:
-    case True{}:
-      {==}
-    case False{}:
-      {==}
+  FL.non(x, b)
 
 def dsh4(+s: Bool, +ea: Nat, +fa: WU.U64, +eb: Nat, +fb: WU.U64, +z: Bool) -> {F.div_za(s, ea, fa, eb, fb, z) == SF.pick(F.F64, z, F.zero(s), F.div_n(s, F.norm_e(ea, fa), F.norm_f(ea, fa), F.norm_e(eb, fb), F.norm_f(eb, fb))) : F.F64}:
   match z:
