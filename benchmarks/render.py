@@ -84,7 +84,7 @@ SUITE = OrderedDict([
     ])),
     ('cipher', ('Ciphers and AEADs', 'build/bench/suite-cipher.json', [
         ('chacha20', 'ChaCha20', 'Monocypher 4.0.2 `crypto_chacha20_ietf` (portable C)', 'Message', 'us'),
-        ('poly1305', 'Poly1305', 'Monocypher 4.0.2 `crypto_poly1305` (portable C, 64-bit limbs)', 'Message', 'us'),
+        ('poly1305', 'Poly1305', 'Monocypher 4.0.2 `crypto_poly1305` (portable C)', 'Message', 'us'),
         ('chacha20poly1305', 'ChaCha20-Poly1305', 'Monocypher 4.0.2 `crypto_aead_init_ietf` + `crypto_aead_write`/`_read`', 'Message', 'us'),
         ('xchacha20poly1305', 'XChaCha20-Poly1305', 'Monocypher 4.0.2 `crypto_aead_lock`/`_unlock`', 'Message', 'us'),
         ('aes128gcm', 'AES-128-GCM', 'BearSSL `br_gcm` with the constant-time bitsliced `br_aes_ct64` and `br_ghash_ctmul64` '
@@ -98,8 +98,7 @@ SUITE = OrderedDict([
         ('ed25519_verify', 'Ed25519 verify', 'Monocypher 4.0.2 `crypto_ed25519_check`', 'Message', 'us'),
         ('argon2id', 'Argon2id', 'the official P-H-C reference (`ref.c`, portable, no SSE), one thread', 'Parameters', 'us'),
         ('secp256k1', 'secp256k1 (ECDSA, recovery, BIP-340)', 'libsecp256k1 v0.6.0 (precomputed tables, 5x52 field, no assembly; '
-         'recovery, extrakeys and schnorrsig modules). The Bend side is `src/crypto/secp256k1.bend` from branch '
-         '`crypto-secp256k1` at 5c8590b, not yet merged; the case runs only when that file exists', 'Operation', 'us'),
+         'recovery, extrakeys and schnorrsig modules); the Bend side is `src/crypto/secp256k1.bend` (#26)', 'Operation', 'us'),
     ])),
     ('random', ('Random', 'build/bench/suite-random.json', [
         ('chacha8_uint64', 'ChaCha8 `uint64`', 'a C transcription of Go 1.23 `internal/chacha8rand` (portable block function)', 'Draws', 'ns'),
@@ -174,7 +173,7 @@ def references_section():
             '| BLAKE3 C, portable only (`benchmarks/native/blake/`) | commit 6aab490a | CC0 / Apache-2.0 | BLAKE3 | constant-time |',
             '| Monocypher (`benchmarks/native/monocypher/`) | 4.0.2 (commit 0d85f98c) | BSD-2-Clause / CC0 | SHA-512, ChaCha20, Poly1305, (X)ChaCha20-Poly1305, X25519, Ed25519 | constant-time |',
             '| BearSSL (`benchmarks/native/bearssl/`) | commit 7bea48e5 (2026-04-06) | MIT | AES-GCM: `aes_ct64` + `ghash_ctmul64` (C ct), `aes_big` (C table) | ct64/ctmul64 constant-time (bitsliced, 4 blocks at a time); `aes_big` table lookups, **not** constant-time |',
-            '| Argon2 reference (`benchmarks/native/argon2/`) | P-H-C phc-winner-argon2 commit f57e61e1 (20190702 release line) | CC0 / Apache-2.0 | Argon2id | `ref.c`, portable; data-independent addressing in the first half-pass as the RFC specifies |',
+            '| Argon2 reference (`benchmarks/native/argon2/`) | P-H-C phc-winner-argon2 commit f57e61e1 (2021-06-25) | CC0 / Apache-2.0 | Argon2id | `ref.c`, portable; data-independent addressing in the first half-pass as the RFC specifies |',
             '| libsecp256k1 (`benchmarks/native/secp256k1/`) | v0.6.0 (commit 0cdc758a) | MIT | secp256k1 | constant-time signing |',
             '| `benchmarks/native/gorand.h` | transcription of Go 1.23 `internal/chacha8rand` and `math/rand/v2` (pcg.go, rand.go, chacha8.go) | BSD-3-Clause (Go) | ChaCha8, PCG, `uint_below`, `float64`, shuffle, `crypto.random.bytes` | portable block function (Go itself uses SIMD) |',
             '| `suite_subtle_eq.c` | written for this repo | repo licence | `subtle.eq` | constant-time loop |',
