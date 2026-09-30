@@ -136,10 +136,15 @@ def do_peek(st: St, +size: U32) -> St:
   +r = B.lcg(r0)
   fin_val(r, c, o, L.peek(U32, f, key(draw(r, size)), now()))
 
+# contains' own finisher (a def with several callers is not inlined).
+def fin_ct(+r: U32, c: U32, +o: U32, p: L.LRU<&2, U32> & Bool) -> St:
+  (f, b) = p
+  S{r, B.mix(c, bit(b)), o, f}
+
 def do_contains(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st
   +r = B.lcg(r0)
-  fin_bit(r, c, o, L.contains(&2, U32, f, key(draw(r, size)), now()))
+  fin_ct(r, c, o, L.contains_char(&2, U32, f, U32.add(draw(r, size), 65536), now()))
 
 def do_remove(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st

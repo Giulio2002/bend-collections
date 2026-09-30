@@ -147,7 +147,8 @@ with the RFC 8439 ChaCha block at 8 rounds), `pcg.bend` (the 128-bit LCG and
 DXSM on naturals), `rand.bend` (Go's `uint64n` decision, Lemire's
 acceptance, the bounded draw, occurrence counts) and `source.bend` (a
 source's output sequence). Gates, every clause under its name, for every
-input: `proofs/math/random/proof.bend` (ChaCha8, Lemire, shuffle, perm),
+input: `proofs/math/random/proof.bend` (ChaCha8, Lemire, shuffle, perm,
+shuffle_array),
 `proof_draws.bend` (uint64n and the fixed-width and bounded wrappers),
 `proof_pcg.bend` (PCG) and `proof_float.bend` (float64); each root checks
 only the lemma files its clauses need, in under 25 s each on bend-local.
@@ -162,8 +163,9 @@ only the lemma files its clauses need, in under 25 s each on bend-local.
 | `uint64n` | `Uint64n.value` | for every source, state and bound, the value of `uint64n(n)` is the specification's bounded draw: the first of at most 128 draws Go's `uint64n` accepts (n = 0 read as 2^64, powers of two masked, else Lemire) | Go `rand.go` `uint64n`; Lemire 2019 Algorithm 5 | P (`uint64n.bend`, `bits.bend`) |
 | `uint64n` | `Uint64n.lt` | `uint64n(n) < n` for n > 0, every source | Go `Uint64N` | P (`below.bend`) |
 | Lemire's rejection | `Lemire.unbiased` | for every width w, 0 < n < 2^w and k < n, exactly floor(2^w / n) of the 2^w outputs x draw k (both branches: the mask and the multiply-and-reject), so a uniform source gives an exactly uniform result | Lemire 2019, section 4 (the count of accepted x per k) | P (`lemire.bend`) |
-| `shuffle` | `Shuffle.permutation` | for every relation `rel` and value v, the result has as many elements related to v as the input, for every source: with an equality this is Mathlib's `List.Perm` through `List.perm_iff_count` (`l₁ ~ l₂ ↔ ∀ a, count a l₁ = count a l₂`); the argument is the one of Isabelle's verified Fisher-Yates (each step is a swap, and a swap keeps every count) | Go `Shuffle`; Mathlib `List.Perm`; Isabelle AFP Fisher-Yates (Eberl) | P (`shuffle.bend`) |
-| `perm` | `Perm.permutation` | `perm(n)` holds every i < n exactly once and nothing else | Go `Perm` | P (`shuffle.bend`) |
+| `shuffle` | `Shuffle.permutation` | for every relation `rel` and value v, the result has as many elements related to v as the input, for every source and every list: with an equality this is Mathlib's `List.Perm` through `List.perm_iff_count` (`l₁ ~ l₂ ↔ ∀ a, count a l₁ = count a l₂`); the argument is the one of Isabelle's verified Fisher-Yates (each step is an exchange, and an exchange keeps every count). Below 2^31 elements the list goes through a fresh `Array` of `Maybe` slots (written with `Array.swap`, shuffled by `shuffle_array`, read back with `Array.get`): the count is taken over the slots with `rel` lifted to `Maybe`, and every value an `Array.swap` takes out is kept, so the statement holds for every list without assuming what a fresh array holds; from 2^31 elements on it is the list-walking shuffle | Go `Shuffle`; Mathlib `List.Perm`; Isabelle AFP Fisher-Yates (Eberl) | P (`lshuffle.bend`, `ashuffle.bend`, `shuffle.bend`) |
+| `perm` | `Perm.permutation` | `perm(n)` holds every i < n exactly once and nothing else | Go `Perm` | P (`lshuffle.bend`) |
+| `shuffle_array` | `Shuffle.array_permutation` | for an array of 2^d slots (d < 32; the array is `thaw(t)` of its mirror tree `t`, `proofs/lib/array.bend`, whose leaves are its slots in index order) and n <= 2^d, shuffling the first n slots in place keeps every count of the array's slots, for every source, relation and value (Mathlib's `List.Perm` of the slot lists). Each exchange is Base's `Array.get`, `Array.swap`, `Array.set`, proved on `thaw(t)` by `proofs/lib/array.bend`; the indices are in range because `uint64n(i + 1) < i + 1` (`Uint64n.lt`) | Go `Shuffle(n, swap)` on a slice | P (`ashuffle.bend`) |
 | `uint32`, `int64`, `int32` | `Uint32.value`, `Int64.value`, `Int32.value` | the top 32, low 63 and top 31 bits of the source output | Go `Uint32`, `Int64`, `Int32` | P (`wrappers.bend`) |
 | `uint32n` | `Uint32n.lt` | `uint32n(n) < n` for n > 0 | Go `Uint32N` | P (`wrappers.bend`) |
 | `intn` | `Intn.lt` | `intn(n) < n` for 0 < n < 2^64 (its U64 is `nat64(n)`, proved to denote n) | Go `IntN` | P (`wrappers.bend`) |

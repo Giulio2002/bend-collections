@@ -5,7 +5,6 @@ import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/word.bend as WD
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../math/natural/arith.bend as NR
 import ../curve25519/num.bend as M
 import ../curve25519/limbs.bend as LM
 import ../curve25519/poly.bend as PL

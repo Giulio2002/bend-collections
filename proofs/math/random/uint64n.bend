@@ -147,6 +147,17 @@ def fixpoint(~S: Data, ~next: S -> WU.U64 & S, +f: Nat, +n: WU.U64, +t: WU.U64, 
       %Equal.sym(Bool, X.lt(lo, t), False{}, h) : {R.retry(~S, ~next, g, n, t, R.again(~S, ~next, n, hi, lo, s, _)) == R.D{hi, lo, s} : R.Draw<S>}
       fixpoint(~S, ~next, g, n, t, hi, lo, s, h)
 
+# retry_fast (the early exit) is retry
+def fast_c(~S: Data, ~next: S -> WU.U64 & S, +f: Nat, +n: WU.U64, +t: WU.U64, +d: R.Draw<S>, +c: Bool, +hc: {R.rejects(S, t, d) == c : Bool}) -> {R.retry_fast(~S, ~next, f, n, t, d, c) == R.retry(~S, ~next, f, n, t, d) : R.Draw<S>}:
+  match f d c:
+    case _ R.D{+hi, +lo, +s} False{}:
+      Equal.sym(R.Draw<S>, R.retry(~S, ~next, f, n, t, R.D{hi, lo, s}), R.D{hi, lo, s}, fixpoint(~S, ~next, f, n, t, hi, lo, s, hc))
+    case 0n R.D{+hi, +lo, +s} True{}:
+      {==}
+    case 1n+g R.D{+hi, +lo, +s} True{}:
+      %Equal.sym(Bool, X.lt(lo, t), True{}, hc) : {R.retry_fast(~S, ~next, 1n+g, n, t, R.D{hi, lo, s}, True{}) == R.retry(~S, ~next, g, n, t, R.again(~S, ~next, n, hi, lo, s, _)) : R.Draw<S>}
+      fast_c(~S, ~next, g, n, t, R.draw(S, n, next(s)), R.rejects(S, t, R.draw(S, n, next(s))), {==})
+
 # Lemire's decision of the specification: accept unless lo < 2^64 mod n
 def dec(+x: Nat, +m: Nat, +hp: {Nat.is_eq(SR.and_bits(64n, 1n+m, m), 0n) == False{} : Bool}, +htn: {Nat.is_lt(SR.pow2mod(64n, 1n+m), 1n+m) == True{} : Bool}, +c: Bool, +hc: {Nat.is_lt(C.low(64n, Nat.mul(x, 1n+m)), SR.pow2mod(64n, 1n+m)) == c : Bool}) -> {SR.draw(64n, x, 1n+m) == SR.accept(C.high(64n, Nat.mul(x, 1n+m)), Bool.not(c)) : Maybe<&2, Nat>}:
   %Equal.sym(Maybe<&2, Nat>, SR.draw(64n, x, 1n+m), SR.lemire(64n, 1n+m, C.high(64n, Nat.mul(x, 1n+m)), C.low(64n, Nat.mul(x, 1n+m))), LE.draw_lemire(64n, m, x, hp)) : {_ == SR.accept(C.high(64n, Nat.mul(x, 1n+m)), Bool.not(c)) : Maybe<&2, Nat>}
@@ -240,7 +251,12 @@ def first_false(~S: Data, ~next: S -> WU.U64 & S, +n: WU.U64, +m: Nat, +x: WU.U6
 def first_case(~S: Data, ~next: S -> WU.U64 & S, +one: Nat, +h1: {one == 1n : Nat}, +n: WU.U64, +m: Nat, +x: WU.U64, +s1: S, +hv: {SW.value(n) == 1n+m : Nat}, +hz: {X.is_zero(n) == False{} : Bool}, +hp: {Nat.is_eq(SR.and_bits(64n, 1n+m, m), 0n) == False{} : Bool}, +htn: {Nat.is_lt(SR.pow2mod(64n, 1n+m), 1n+m) == True{} : Bool}, +c: Bool, +hc: {X.lt(X.pfst(X.mul128(x, n)), n) == c : Bool}) -> {SRM.val_pair(S, R.lemire_small(~S, ~next, n, X.psnd(X.mul128(x, n)), X.pfst(X.mul128(x, n)), s1, c)) == cont(~S, ~next, 127n, 1n+m, SW.value(x), s1) : Nat & S}:
   match c:
     case True{}:
-      loop(~S, ~next, 127n, n, m, R.thresh(n), (x, s1), hv, hp, htn, thresh_m(one, h1, n, m, hv, hz))
+      +t = R.thresh(n)
+      +hi = X.psnd(X.mul128(x, n))
+      +lo = X.pfst(X.mul128(x, n))
+      Equal.trans(Nat & S, SRM.val_pair(S, R.result(S, R.retry_fast(~S, ~next, 127n, n, t, R.D{hi, lo, s1}, X.lt(lo, t)))), SRM.val_pair(S, R.result(S, R.retry(~S, ~next, 127n, n, t, R.D{hi, lo, s1}))), cont(~S, ~next, 127n, 1n+m, SW.value(x), s1),
+        Equal.cong(R.Draw<S>, Nat & S, z => SRM.val_pair(S, R.result(S, z)), R.retry_fast(~S, ~next, 127n, n, t, R.D{hi, lo, s1}, X.lt(lo, t)), R.retry(~S, ~next, 127n, n, t, R.D{hi, lo, s1}), fast_c(~S, ~next, 127n, n, t, R.D{hi, lo, s1}, X.lt(lo, t), {==})),
+        loop(~S, ~next, 127n, n, m, t, (x, s1), hv, hp, htn, thresh_m(one, h1, n, m, hv, hz)))
     case False{}:
       first_false(~S, ~next, n, m, x, s1, hv, hp, htn, hc)
 

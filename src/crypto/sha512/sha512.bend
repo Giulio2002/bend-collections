@@ -1,13 +1,15 @@
 import Base
 import ./types.bend as T
 import ./core.bend as Core
+import ./stream.bend as Stream
 
 # SHA-512 (FIPS 180-4). Bytes are U32 values, each < 256; the digest is the
 # 64 bytes of H0..H7, most significant first. Proved equal to the executable
 # specification spec/crypto/sha512.bend for every input:
-# proofs/crypto/sha512/laws.bend.
+# proofs/crypto/sha512/laws.bend. Streaming: each byte is read once
+# (src/crypto/sha512/stream.bend).
 def sha512(bytes: List<&2, U32>) -> List<&2, U32>:
-  Core.sha512(bytes)
+  Stream.hash(bytes)
 
 def ascii(s: String) -> List<&2, U32>:
   match s:

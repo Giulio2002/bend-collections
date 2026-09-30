@@ -1,156 +1,97 @@
 import Base
-import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/curve25519/field.bend as FS
+import ../../../spec/crypto/curve25519/fe.bend as FV
 import ../../../spec/crypto/curve25519/x25519.bend as S
-import ../../../src/crypto/curve25519/field.bend as F
+import ../../../src/crypto/curve25519/fe.bend as FE
 import ../../../src/crypto/curve25519/x25519.bend as X
-import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/word.bend as WD
 import ./limbs.bend as LM
-import ./consts.bend as K
-import ./fieldops.bend as FO
-import ./canon.bend as CN
 import ./cong.bend as G
-import ./rel.bend as RL
-import ./mulw.bend as MW
-import ./pow.bend as PW
 import ./xbits.bend as XB
 import ./prime.bend as PR
+import ../fe/pw.bend as PW
+import ../fe/rel.bend as RE
+import ../fe/conv.bend as CV
+import ../fe/cst.bend as CS
+import ./xlem.bend as XL
 
-# X25519 == RFC 7748 (spec/crypto/curve25519/x25519.bend): the ladder state
-# of the implementation is related to the specification's state field by
-# field (RL.R), the swap bit is equal; every rung keeps the relation; the
-# final cswap, inversion, product and encoding give the same bytes.
+# X25519 == RFC 7748 (spec/crypto/curve25519/x25519.bend) over the fast
+# field: the ladder state of the implementation is related to the
+# specification's state field by field (RE.Rel: ok limbs, value congruent
+# mod p), the swap bit is equal; every rung keeps the relation; the final
+# cswap, inversion, product and encoding give the same bytes.
 
 def v(+x: U32) -> Nat:
   U32.to_nat(x)
 
+def tr(+a: Nat, +b: Nat, +c: Nat, +e1: {a == b : Nat}, +e2: {b == c : Nat}) -> {a == c : Nat}:
+  Equal.trans(Nat, a, b, c, e1, e2)
+
+def sy(+a: Nat, +b: Nat, +e: {a == b : Nat}) -> {b == a : Nat}:
+  Equal.sym(Nat, a, b, e)
+
 def DP(-A: Data, -B: Data) -> Data:
   Sigma<&2, &2, A, _ => B>
 
-def Rst(+pp: Nat, st: X.St, sst: S.LSt) -> Data:
+def Rst(+one: Nat, +pp: Nat, st: X.St, sst: S.LSt) -> Data:
   match st sst:
     case X.St{x2, z2, x3, z3, sw} S.LSt{a2, b2, a3, b3, sws}:
-      DP(RL.R(pp, x2, a2), DP(RL.R(pp, z2, b2), DP(RL.R(pp, x3, a3), DP(RL.R(pp, z3, b3), DP({U32.to_nat(sw) == sws : Nat}, {Nat.is_le(sws, 1n) == True{} : Bool})))))
-
-# ---- conditional swaps ----
-
-def o_sel(+one: Nat, +h1: {one == 1n : Nat}, +sw: U32, +s: Nat, +hs: {v(sw) == s : Nat}, +hb: {Nat.is_le(s, 1n) == True{} : Bool}, +a: List<&2, U32>, +b: List<&2, U32>, +oa: {LM.okb(32n, a, 255n) == True{} : Bool}, +ob: {LM.okb(32n, b, 255n) == True{} : Bool}) -> {LM.okb(32n, F.select(sw, a, b), 255n) == True{} : Bool}:
-  match s:
-    case 0n:
-      %Equal.sym(U32, sw, 0, XB.u0(sw, hs)) : {LM.okb(32n, F.select(_, a, b), 255n) == True{} : Bool}
-      %Equal.sym(List<&2, U32>, F.select(0, a, b), a, FO.select0(one, h1, 32n, a, b, oa, ob)) : {LM.okb(32n, _, 255n) == True{} : Bool}
-      oa
-    case 1n:
-      %Equal.sym(U32, sw, 1, XB.u1(sw, hs)) : {LM.okb(32n, F.select(_, a, b), 255n) == True{} : Bool}
-      %Equal.sym(List<&2, U32>, F.select(1, a, b), b, FO.select1(one, h1, 32n, a, b, oa, ob)) : {LM.okb(32n, _, 255n) == True{} : Bool}
-      ob
-    case 2n+q:
-      Empty.absurd({LM.okb(32n, F.select(sw, a, b), 255n) == True{} : Bool}, L.false_true(hb))
-
-def c_fst(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +sw: U32, +s: Nat, +hs: {v(sw) == s : Nat}, +hb: {Nat.is_le(s, 1n) == True{} : Bool}, +a: List<&2, U32>, +b: List<&2, U32>, +A: Nat, +B: Nat, +oa: {LM.okb(32n, a, 255n) == True{} : Bool}, +ca: G.ceq(pp, FS.value(a), A), +ob: {LM.okb(32n, b, 255n) == True{} : Bool}, +cb: G.ceq(pp, FS.value(b), B)) -> G.ceq(pp, FS.value(F.select(sw, a, b)), S.cs_fst(s, A, B)):
-  match s:
-    case 0n:
-      %Equal.sym(U32, sw, 0, XB.u0(sw, hs)) : G.ceq(pp, FS.value(F.select(_, a, b)), A)
-      %Equal.sym(List<&2, U32>, F.select(0, a, b), a, FO.select0(one, h1, 32n, a, b, oa, ob)) : G.ceq(pp, FS.value(_), A)
-      ca
-    case 1n:
-      %Equal.sym(U32, sw, 1, XB.u1(sw, hs)) : G.ceq(pp, FS.value(F.select(_, a, b)), B)
-      %Equal.sym(List<&2, U32>, F.select(1, a, b), b, FO.select1(one, h1, 32n, a, b, oa, ob)) : G.ceq(pp, FS.value(_), B)
-      cb
-    case 2n+q:
-      Empty.absurd(G.ceq(pp, FS.value(F.select(sw, a, b)), B), L.false_true(hb))
-
-def c_snd(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +sw: U32, +s: Nat, +hs: {v(sw) == s : Nat}, +hb: {Nat.is_le(s, 1n) == True{} : Bool}, +a: List<&2, U32>, +b: List<&2, U32>, +A: Nat, +B: Nat, +oa: {LM.okb(32n, a, 255n) == True{} : Bool}, +ca: G.ceq(pp, FS.value(a), A), +ob: {LM.okb(32n, b, 255n) == True{} : Bool}, +cb: G.ceq(pp, FS.value(b), B)) -> G.ceq(pp, FS.value(F.select(sw, b, a)), S.cs_snd(s, A, B)):
-  match s:
-    case 0n:
-      %Equal.sym(U32, sw, 0, XB.u0(sw, hs)) : G.ceq(pp, FS.value(F.select(_, b, a)), B)
-      %Equal.sym(List<&2, U32>, F.select(0, b, a), b, FO.select0(one, h1, 32n, b, a, ob, oa)) : G.ceq(pp, FS.value(_), B)
-      cb
-    case 1n:
-      %Equal.sym(U32, sw, 1, XB.u1(sw, hs)) : G.ceq(pp, FS.value(F.select(_, b, a)), A)
-      %Equal.sym(List<&2, U32>, F.select(1, b, a), a, FO.select1(one, h1, 32n, b, a, ob, oa)) : G.ceq(pp, FS.value(_), A)
-      ca
-    case 2n+q:
-      Empty.absurd(G.ceq(pp, FS.value(F.select(sw, b, a)), A), L.false_true(hb))
+      DP(RE.Rel(one, pp, x2, a2), DP(RE.Rel(one, pp, z2, b2), DP(RE.Rel(one, pp, x3, a3), DP(RE.Rel(one, pp, z3, b3), DP({U32.to_nat(sw) == sws : Nat}, {Nat.is_le(sws, 1n) == True{} : Bool})))))
 
 # ---- one step ----
 
-def a24_c(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +c24: List<&2, U32>, +hv: {K.valo(one, c24) == S.a24(one) : Nat}) -> G.ceq(pp, FS.value(c24), S.a24(one)):
-  G.c_eq(pp, FS.value(c24), S.a24(one), Equal.trans(Nat, FS.value(c24), K.valo(one, c24), S.a24(one), Equal.sym(Nat, K.valo(one, c24), FS.value(c24), K.valo_value(one, h1, c24)), hv))
-
-def step_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +c24: List<&2, U32>, +oc: {LM.okb(32n, c24, 255n) == True{} : Bool}, +hv: {K.valo(one, c24) == S.a24(one) : Nat}, +x1: List<&2, U32>, +X1: Nat, +o1: {LM.okb(32n, x1, 255n) == True{} : Bool}, +c1: G.ceq(pp, FS.value(x1), X1), +x2: List<&2, U32>, +X2: Nat, +o2: {LM.okb(32n, x2, 255n) == True{} : Bool}, +c2: G.ceq(pp, FS.value(x2), X2), +z2: List<&2, U32>, +Z2: Nat, +oz2: {LM.okb(32n, z2, 255n) == True{} : Bool}, +cz2: G.ceq(pp, FS.value(z2), Z2), +x3: List<&2, U32>, +X3: Nat, +o3: {LM.okb(32n, x3, 255n) == True{} : Bool}, +c3: G.ceq(pp, FS.value(x3), X3), +z3: List<&2, U32>, +Z3: Nat, +oz3: {LM.okb(32n, z3, 255n) == True{} : Bool}, +cz3: G.ceq(pp, FS.value(z3), Z3), +kt: U32, +KT: Nat, +hk: {v(kt) == KT : Nat}, +hkb: {Nat.is_le(KT, 1n) == True{} : Bool}) -> Rst(pp, X.step(c24, x1, x2, z2, x3, z3, kt), S.step(one, 1n+pp, X1, X2, Z2, X3, Z3, KT)):
+def step_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +c24: Nat, +hc24: {c24 == S.a24(one) : Nat}, +hcl: {Nat.is_lt(c24, WD.sc(17n, one)) == True{} : Bool}, +x1: FE.Fe, +X1: Nat, +r1: RE.Rel(one, pp, x1, X1), +x2: FE.Fe, +X2: Nat, +r2: RE.Rel(one, pp, x2, X2), +z2: FE.Fe, +Z2: Nat, +rz2: RE.Rel(one, pp, z2, Z2), +x3: FE.Fe, +X3: Nat, +r3: RE.Rel(one, pp, x3, X3), +z3: FE.Fe, +Z3: Nat, +rz3: RE.Rel(one, pp, z3, Z3), +kt: U32, +KT: Nat, +hk: {v(kt) == KT : Nat}, +hkb: {Nat.is_le(KT, 1n) == True{} : Bool}) -> Rst(one, pp, X.step(R, c24, x1, x2, z2, x3, z3, kt), S.step(one, 1n+pp, X1, X2, Z2, X3, Z3, KT)):
   +P = {1n+pp : Nat}
-  +A24 = S.a24(one)
-  +cc = a24_c(one, h1, pp, c24, hv)
-  +a = F.add(x2, z2)
+  +a = FE.add(R, x2, z2)
   +A = FS.fadd(P, X2, Z2)
-  +oa = FO.add_okb(one, h1, x2, z2, o2, oz2)
-  +ca = RL.rc_add(one, h1, pp, hP, x2, z2, X2, Z2, o2, c2, oz2, cz2)
-  +aa = F.sq(a)
+  +ra = RE.r_add(one, h1, pp, hP, R, hR, x2, z2, X2, Z2, r2, rz2)
+  +aa = FE.sq(R, a)
   +AA = FS.fmul(P, A, A)
-  +oaa = MW.sq_okb(one, h1, a, oa)
-  +caa = RL.rc_sq(one, h1, pp, hP, a, A, oa, ca)
-  +b = F.sub(x2, z2)
+  +raa = RE.r_sq(one, h1, pp, hP, R, hR, a, A, ra)
+  +b = FE.sub(R, x2, z2)
   +B = FS.fsub(P, X2, Z2)
-  +ob = FO.sub_okb(one, h1, x2, z2, o2, oz2)
-  +cb = RL.rc_sub(one, h1, pp, hP, x2, z2, X2, Z2, o2, c2, oz2, cz2)
-  +bb = F.sq(b)
+  +rb = RE.r_sub(one, h1, pp, hP, R, hR, x2, z2, X2, Z2, r2, rz2)
+  +bb = FE.sq(R, b)
   +BB = FS.fmul(P, B, B)
-  +obb = MW.sq_okb(one, h1, b, ob)
-  +cbb = RL.rc_sq(one, h1, pp, hP, b, B, ob, cb)
-  +e = F.sub(aa, bb)
+  +rbb = RE.r_sq(one, h1, pp, hP, R, hR, b, B, rb)
+  +e = FE.sub(R, aa, bb)
   +E = FS.fsub(P, AA, BB)
-  +oe = FO.sub_okb(one, h1, aa, bb, oaa, obb)
-  +ce = RL.rc_sub(one, h1, pp, hP, aa, bb, AA, BB, oaa, caa, obb, cbb)
-  +c = F.add(x3, z3)
+  +re = RE.r_sub(one, h1, pp, hP, R, hR, aa, bb, AA, BB, raa, rbb)
+  +c = FE.add(R, x3, z3)
   +CC = FS.fadd(P, X3, Z3)
-  +occ = FO.add_okb(one, h1, x3, z3, o3, oz3)
-  +ccc = RL.rc_add(one, h1, pp, hP, x3, z3, X3, Z3, o3, c3, oz3, cz3)
-  +d = F.sub(x3, z3)
+  +rc = RE.r_add(one, h1, pp, hP, R, hR, x3, z3, X3, Z3, r3, rz3)
+  +d = FE.sub(R, x3, z3)
   +D = FS.fsub(P, X3, Z3)
-  +od = FO.sub_okb(one, h1, x3, z3, o3, oz3)
-  +cd = RL.rc_sub(one, h1, pp, hP, x3, z3, X3, Z3, o3, c3, oz3, cz3)
-  +da = F.mul(d, a)
+  +rd = RE.r_sub(one, h1, pp, hP, R, hR, x3, z3, X3, Z3, r3, rz3)
+  +da = FE.mul(R, d, a)
   +DA = FS.fmul(P, D, A)
-  +oda = MW.mul_okb(one, h1, d, a, od, oa)
-  +cda = RL.rc_mul(one, h1, pp, hP, d, a, D, A, od, cd, oa, ca)
-  +cb2 = F.mul(c, b)
+  +rda = RE.r_mul(one, h1, pp, hP, R, hR, d, a, D, A, rd, ra)
+  +cb = FE.mul(R, c, b)
   +CB = FS.fmul(P, CC, B)
-  +ocb = MW.mul_okb(one, h1, c, b, occ, ob)
-  +ccb = RL.rc_mul(one, h1, pp, hP, c, b, CC, B, occ, ccc, ob, cb)
-  +oo1 = MW.mul_okb(one, h1, aa, bb, oaa, obb)
-  +co1 = RL.rc_mul(one, h1, pp, hP, aa, bb, AA, BB, oaa, caa, obb, cbb)
-  +ec = F.mul(e, c24)
-  +EC = FS.fmul(P, E, A24)
-  +oec = MW.mul_okb(one, h1, e, c24, oe, oc)
-  +cec = RL.rc_mul(one, h1, pp, hP, e, c24, E, A24, oe, ce, oc, cc)
-  +sm = F.add(aa, ec)
+  +rcb = RE.r_mul(one, h1, pp, hP, R, hR, c, b, CC, B, rc, rb)
+  +o1 = RE.r_mul(one, h1, pp, hP, R, hR, aa, bb, AA, BB, raa, rbb)
+  +ec = FE.mul_small(R, e, c24)
+  +EC = FS.fmul(P, E, S.a24(one))
+  +rec = L.subst(Nat, t => RE.Rel(one, pp, ec, FS.fmul(P, E, t)), c24, S.a24(one), hc24, RE.r_mul_small(one, h1, pp, hP, R, hR, e, E, c24, hcl, re))
+  +sm = FE.add(R, aa, ec)
   +SM = FS.fadd(P, AA, EC)
-  +osm = FO.add_okb(one, h1, aa, ec, oaa, oec)
-  +csm = RL.rc_add(one, h1, pp, hP, aa, ec, AA, EC, oaa, caa, oec, cec)
-  +oo2 = MW.mul_okb(one, h1, e, sm, oe, osm)
-  +co2 = RL.rc_mul(one, h1, pp, hP, e, sm, E, SM, oe, ce, osm, csm)
-  +sg = F.add(da, cb2)
+  +rsm = RE.r_add(one, h1, pp, hP, R, hR, aa, ec, AA, EC, raa, rec)
+  +o2 = RE.r_mul(one, h1, pp, hP, R, hR, e, sm, E, SM, re, rsm)
+  +sg = FE.add(R, da, cb)
   +SG = FS.fadd(P, DA, CB)
-  +osg = FO.add_okb(one, h1, da, cb2, oda, ocb)
-  +csg = RL.rc_add(one, h1, pp, hP, da, cb2, DA, CB, oda, cda, ocb, ccb)
-  +oo3 = MW.sq_okb(one, h1, sg, osg)
-  +co3 = RL.rc_sq(one, h1, pp, hP, sg, SG, osg, csg)
-  +t = F.sub(da, cb2)
+  +rsg = RE.r_add(one, h1, pp, hP, R, hR, da, cb, DA, CB, rda, rcb)
+  +o3 = RE.r_sq(one, h1, pp, hP, R, hR, sg, SG, rsg)
+  +t = FE.sub(R, da, cb)
   +T = FS.fsub(P, DA, CB)
-  +ot = FO.sub_okb(one, h1, da, cb2, oda, ocb)
-  +ct = RL.rc_sub(one, h1, pp, hP, da, cb2, DA, CB, oda, cda, ocb, ccb)
-  +ott = MW.sq_okb(one, h1, t, ot)
-  +ctt = RL.rc_sq(one, h1, pp, hP, t, T, ot, ct)
-  +oo4 = MW.mul_okb(one, h1, x1, F.sq(t), o1, ott)
-  +co4 = RL.rc_mul(one, h1, pp, hP, x1, F.sq(t), X1, FS.fmul(P, T, T), o1, c1, ott, ctt)
-  ((oo1, co1), ((oo2, co2), ((oo3, co3), ((oo4, co4), (hk, hkb)))))
+  +rt = RE.r_sub(one, h1, pp, hP, R, hR, da, cb, DA, CB, rda, rcb)
+  +rtt = RE.r_sq(one, h1, pp, hP, R, hR, t, T, rt)
+  +o4 = RE.r_mul(one, h1, pp, hP, R, hR, x1, FE.sq(R, t), X1, FS.fmul(P, T, T), r1, rtt)
+  (o1, (o2, (o3, (o4, (hk, hkb)))))
 
 # ---- one rung: swap ^= k_t, cswap, step ----
 
-def rung_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +c24: List<&2, U32>, +oc: {LM.okb(32n, c24, 255n) == True{} : Bool}, +hv: {K.valo(one, c24) == S.a24(one) : Nat}, +x1: List<&2, U32>, +X1: Nat, +o1: {LM.okb(32n, x1, 255n) == True{} : Bool}, +c1: G.ceq(pp, FS.value(x1), X1), +st: X.St, +sst: S.LSt, +h: Rst(pp, st, sst), +kt: U32, +KT: Nat, +hk: {v(kt) == KT : Nat}, +hkb: {Nat.is_le(KT, 1n) == True{} : Bool}) -> Rst(pp, X.rung(c24, x1, st, kt), S.rung(one, 1n+pp, X1, sst, KT)):
+def rung_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +c24: Nat, +hc24: {c24 == S.a24(one) : Nat}, +hcl: {Nat.is_lt(c24, WD.sc(17n, one)) == True{} : Bool}, +x1: FE.Fe, +X1: Nat, +r1: RE.Rel(one, pp, x1, X1), +st: X.St, +sst: S.LSt, +h: Rst(one, pp, st, sst), +kt: U32, +KT: Nat, +hk: {v(kt) == KT : Nat}, +hkb: {Nat.is_le(KT, 1n) == True{} : Bool}) -> Rst(one, pp, X.rung(R, c24, x1, st, kt), S.rung(one, 1n+pp, X1, sst, KT)):
   match st sst:
     case X.St{+x2, +z2, +x3, +z3, +sw} S.LSt{+a2, +b2, +a3, +b3, +sws}:
       (+r2, +h2) = h
@@ -158,34 +99,26 @@ def rung_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 1
       (+r3, +h4) = h3
       (+rz3, +h5) = h4
       (+hs, +hsb) = h5
-      +o2 = RL.r_o(pp, x2, a2, r2)
-      +c2 = RL.r_c(pp, x2, a2, r2)
-      +oz2 = RL.r_o(pp, z2, b2, rz2)
-      +cz2 = RL.r_c(pp, z2, b2, rz2)
-      +o3 = RL.r_o(pp, x3, a3, r3)
-      +c3 = RL.r_c(pp, x3, a3, r3)
-      +oz3 = RL.r_o(pp, z3, b3, rz3)
-      +cz3 = RL.r_c(pp, z3, b3, rz3)
       +w = U32.xor(sw, kt)
       +W = S.bxor(sws, KT)
       +hw = XB.xor_bits(sw, kt, sws, KT, hs, hk, hsb, hkb)
       +hwb = XB.bxor_le(sws, KT, hkb)
-      step_rel(one, h1, pp, hP, c24, oc, hv, x1, X1, o1, c1, F.select(w, x2, x3), S.cs_fst(W, a2, a3), o_sel(one, h1, w, W, hw, hwb, x2, x3, o2, o3), c_fst(one, h1, pp, w, W, hw, hwb, x2, x3, a2, a3, o2, c2, o3, c3), F.select(w, z2, z3), S.cs_fst(W, b2, b3), o_sel(one, h1, w, W, hw, hwb, z2, z3, oz2, oz3), c_fst(one, h1, pp, w, W, hw, hwb, z2, z3, b2, b3, oz2, cz2, oz3, cz3), F.select(w, x3, x2), S.cs_snd(W, a2, a3), o_sel(one, h1, w, W, hw, hwb, x3, x2, o3, o2), c_snd(one, h1, pp, w, W, hw, hwb, x2, x3, a2, a3, o2, c2, o3, c3), F.select(w, z3, z2), S.cs_snd(W, b2, b3), o_sel(one, h1, w, W, hw, hwb, z3, z2, oz3, oz2), c_snd(one, h1, pp, w, W, hw, hwb, z2, z3, b2, b3, oz2, cz2, oz3, cz3), kt, KT, hk, hkb)
+      step_rel(one, h1, pp, hP, R, hR, c24, hc24, hcl, x1, X1, r1, FE.select(w, x2, x3), S.cs_fst(W, a2, a3), XL.sel_fst(one, pp, w, W, hw, hwb, x2, x3, a2, a3, r2, r3), FE.select(w, z2, z3), S.cs_fst(W, b2, b3), XL.sel_fst(one, pp, w, W, hw, hwb, z2, z3, b2, b3, rz2, rz3), FE.select(w, x3, x2), S.cs_snd(W, a2, a3), XL.sel_snd(one, pp, w, W, hw, hwb, x2, x3, a2, a3, r2, r3), FE.select(w, z3, z2), S.cs_snd(W, b2, b3), XL.sel_snd(one, pp, w, W, hw, hwb, z2, z3, b2, b3, rz2, rz3), kt, KT, hk, hkb)
 
 # ---- the ladder ----
 
-def ladder_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +n: Nat, +c24: List<&2, U32>, +oc: {LM.okb(32n, c24, 255n) == True{} : Bool}, +hv: {K.valo(one, c24) == S.a24(one) : Nat}, +kc: List<&2, U32>, +hkc: {LM.lea(kc, 255n) == True{} : Bool}, +x1: List<&2, U32>, +X1: Nat, +o1: {LM.okb(32n, x1, 255n) == True{} : Bool}, +c1: G.ceq(pp, FS.value(x1), X1), +st: X.St, +sst: S.LSt, +h: Rst(pp, st, sst)) -> Rst(pp, X.ladder(n, c24, kc, x1, st), S.ladder(one, 1n+pp, n, FS.value(kc), X1, sst)):
+def ladder_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +n: Nat, +c24: Nat, +hc24: {c24 == S.a24(one) : Nat}, +hcl: {Nat.is_lt(c24, WD.sc(17n, one)) == True{} : Bool}, +kc: List<&2, U32>, +hkc: {LM.lea(kc, 255n) == True{} : Bool}, +x1: FE.Fe, +X1: Nat, +r1: RE.Rel(one, pp, x1, X1), +st: X.St, +sst: S.LSt, +h: Rst(one, pp, st, sst)) -> Rst(one, pp, X.ladder(n, R, c24, kc, x1, st), S.ladder(one, 1n+pp, n, FS.value(kc), X1, sst)):
   match n:
     case 0n:
       h
     case 1n+ +t:
       +kt = X.kbit(kc, t)
       +KT = S.kbit(FS.value(kc), t)
-      ladder_rel(one, h1, pp, hP, t, c24, oc, hv, kc, hkc, x1, X1, o1, c1, X.rung(c24, x1, st, kt), S.rung(one, 1n+pp, X1, sst, KT), rung_rel(one, h1, pp, hP, c24, oc, hv, x1, X1, o1, c1, st, sst, h, kt, KT, XB.kbit_val(kc, t, hkc), XB.kbit_le(kc, t, hkc)))
+      ladder_rel(one, h1, pp, hP, R, hR, t, c24, hc24, hcl, kc, hkc, x1, X1, r1, X.rung(R, c24, x1, st, kt), S.rung(one, 1n+pp, X1, sst, KT), rung_rel(one, h1, pp, hP, R, hR, c24, hc24, hcl, x1, X1, r1, st, sst, h, kt, KT, XB.kbit_val(kc, t, hkc), XB.kbit_le(kc, t, hkc)))
 
 # ---- the end: cswap, x2 / z2, encode ----
 
-def finish_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +st: X.St, +sst: S.LSt, +h: Rst(pp, st, sst)) -> {X.finish(st) == S.finish(1n+pp, sst) : List<&2, U32>}:
+def finish_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +st: X.St, +sst: S.LSt, +h: Rst(one, pp, st, sst)) -> {X.finish(R, st) == S.finish(1n+pp, sst) : List<&2, U32>}:
   match st sst:
     case X.St{+x2, +z2, +x3, +z3, +sw} S.LSt{+a2, +b2, +a3, +b3, +sws}:
       (+r2, +h2) = h
@@ -193,55 +126,48 @@ def finish_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp,
       (+r3, +h4) = h3
       (+rz3, +h5) = h4
       (+hs, +hsb) = h5
-      +o2 = RL.r_o(pp, x2, a2, r2)
-      +c2 = RL.r_c(pp, x2, a2, r2)
-      +oz2 = RL.r_o(pp, z2, b2, rz2)
-      +cz2 = RL.r_c(pp, z2, b2, rz2)
-      +o3 = RL.r_o(pp, x3, a3, r3)
-      +c3 = RL.r_c(pp, x3, a3, r3)
-      +oz3 = RL.r_o(pp, z3, b3, rz3)
-      +cz3 = RL.r_c(pp, z3, b3, rz3)
       +P = {1n+pp : Nat}
-      +xs = F.select(sw, x2, x3)
+      +xs = FE.select(sw, x2, x3)
       +XS = S.cs_fst(sws, a2, a3)
-      +zs = F.select(sw, z2, z3)
+      +zs = FE.select(sw, z2, z3)
       +ZS = S.cs_fst(sws, b2, b3)
-      +ox = o_sel(one, h1, sw, sws, hs, hsb, x2, x3, o2, o3)
-      +cx = c_fst(one, h1, pp, sw, sws, hs, hsb, x2, x3, a2, a3, o2, c2, o3, c3)
-      +oz = o_sel(one, h1, sw, sws, hs, hsb, z2, z3, oz2, oz3)
-      +cz = c_fst(one, h1, pp, sw, sws, hs, hsb, z2, z3, b2, b3, oz2, cz2, oz3, cz3)
-      +oi = PW.inv_okb(one, h1, zs, oz)
-      +ci = RL.rc_inv(one, h1, pp, hP, zs, ZS, oz, cz)
-      +m = F.mul(xs, F.inv(zs))
+      +rxs = XL.sel_fst(one, pp, sw, sws, hs, hsb, x2, x3, a2, a3, r2, r3)
+      +rzs = XL.sel_fst(one, pp, sw, sws, hs, hsb, z2, z3, b2, b3, rz2, rz3)
+      +ri = RE.r_inv(one, h1, pp, hP, R, hR, zs, ZS, rzs)
+      +m = FE.mul(R, xs, FE.inv(R, zs))
       +MM = FS.fmul(P, XS, FS.finv(P, ZS))
-      +om = MW.mul_okb(one, h1, xs, F.inv(zs), ox, oi)
-      +cm = RL.rc_mul(one, h1, pp, hP, xs, F.inv(zs), XS, FS.finv(P, ZS), ox, cx, oi, ci)
-      +y = F.freeze(m)
-      +oy = CN.freeze_okb(one, h1, pp, hP, m, om)
-      +ey = Equal.trans(Nat, FS.value(y), Nat.mod(FS.value(m), P), Nat.mod(MM, P), CN.freeze_val(one, h1, pp, hP, m, om), cm)
-      +e1 = Equal.sym(List<&2, U32>, S.le_bytes(32n, FS.value(y)), y, XB.bytes_le(32n, y, oy))
+      +rm = RE.r_mul(one, h1, pp, hP, R, hR, xs, FE.inv(R, zs), XS, FS.finv(P, ZS), rxs, ri)
+      +om = RE.o(one, pp, m, MM, rm)
+      +y = FE.to_bytes(R, m)
+      +ey = Equal.trans(Nat, FS.value(y), Nat.mod(FV.value(m), P), Nat.mod(MM, P), CV.to_bytes_value(one, h1, pp, hP, R, hR, m, om), RE.c(one, pp, m, MM, rm))
+      +e1 = Equal.sym(List<&2, U32>, S.le_bytes(32n, FS.value(y)), y, XB.bytes_le(32n, y, LM.bytes_okb(32n, y, CV.to_bytes_tight(one, h1, R, m))))
       Equal.trans(List<&2, U32>, y, S.le_bytes(32n, FS.value(y)), S.le_bytes(32n, Nat.mod(MM, P)), e1, Equal.cong(Nat, List<&2, U32>, z => S.le_bytes(32n, z), FS.value(y), Nat.mod(MM, P), ey))
 
 # ---- X25519 ----
 
-def a24_shape() -> {X.a24() == Con{65, Con{219, Con{1, K.rep(29n, 0, Nil{})}}} : List<&2, U32>}:
-  {==}
-
-def a24_valo(+one: Nat) -> {K.valo(one, X.a24()) == S.a24(one) : Nat}:
-  %Equal.sym(List<&2, U32>, X.a24(), Con{65, Con{219, Con{1, K.rep(29n, 0, Nil{})}}}, a24_shape()) : {K.valo(one, _) == S.a24(one) : Nat}
-  %Equal.sym(Nat, K.valo(one, K.rep(29n, 0, Nil{})), 0n, K.run0(one, 29n, Nil{})) : {Nat.add(Nat.mul(one, v(65)), C.shift(8n, Nat.add(Nat.mul(one, v(219)), C.shift(8n, Nat.add(Nat.mul(one, v(1)), C.shift(8n, _)))))) == S.a24(one) : Nat}
-  {==}
-
-def x25519_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +k: List<&2, U32>, +u: List<&2, U32>, +hk: {LM.okb(32n, k, 255n) == True{} : Bool}, +hu: {LM.okb(32n, u, 255n) == True{} : Bool}) -> {X.x25519_raw(k, u) == S.finish(1n+pp, S.ladder(one, 1n+pp, X.nbits(k), FS.value(X.clamp(k)), Nat.mod(S.decode_u(u), 1n+pp), S.LSt{1n, 0n, Nat.mod(S.decode_u(u), 1n+pp), 1n, 0n})) : List<&2, U32>}:
+def x25519_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +c24: Nat, +hc24: {c24 == S.a24(one) : Nat}, +hcl: {Nat.is_lt(c24, WD.sc(17n, one)) == True{} : Bool}, +k: List<&2, U32>, +u: List<&2, U32>, +hk: {FS.tight(k) == True{} : Bool}, +hu: {FS.tight(u) == True{} : Bool}) -> {X.x25519_g(R, c24, k, u) == S.finish(1n+pp, S.ladder(one, 1n+pp, X.nbits(k), FS.value(X.clamp(k)), Nat.mod(S.decode_u(u), 1n+pp), S.LSt{1n, 0n, Nat.mod(S.decode_u(u), 1n+pp), 1n, 0n})) : List<&2, U32>}:
   +P = {1n+pp : Nat}
-  +x1 = F.of_bytes(u)
+  +x1 = FE.of_bytes(u)
   +X1 = Nat.mod(S.decode_u(u), P)
-  +o1 = XB.mask_okb(31n, u, hu)
-  +c1 = G.c_trans(pp, FS.value(F.mask_top(u)), FS.value(S.mask_last(u)), X1, G.c_eq(pp, FS.value(F.mask_top(u)), FS.value(S.mask_last(u)), Equal.cong(List<&2, U32>, Nat, z => FS.value(z), F.mask_top(u), S.mask_last(u), XB.mask_eq(u))), G.c_sym(pp, X1, FS.value(S.mask_last(u)), G.c_mod(pp, FS.value(S.mask_last(u)))))
+  +c1 = G.c_trans(pp, FV.value(x1), S.decode_u(u), X1, G.c_eq(pp, FV.value(x1), S.decode_u(u), XL.decode_u_fe(one, h1, u, hu)), G.c_sym(pp, X1, S.decode_u(u), G.c_mod(pp, S.decode_u(u))))
+  +r1 = RE.mk(one, pp, x1, X1, CV.of_bytes_ok(one, h1, u), c1)
   +kc = X.clamp(k)
-  +hkc = LM.okb_lea(32n, kc, 255n, XB.clamp_okb(k, hk))
-  +hl = ladder_rel(one, h1, pp, hP, X.nbits(k), X.a24(), {==}, a24_valo(one), kc, hkc, x1, X1, o1, c1, X.St{F.one(), F.zero(), x1, F.one(), 0}, S.LSt{1n, 0n, X1, 1n, 0n}, (({==}, G.c_eq(pp, FS.value(F.one()), 1n, {==})), (({==}, G.c_eq(pp, FS.value(F.zero()), 0n, {==})), ((o1, c1), (({==}, G.c_eq(pp, FS.value(F.one()), 1n, {==})), ({==}, {==}))))))
-  finish_rel(one, h1, pp, hP, X.ladder(X.nbits(k), X.a24(), kc, x1, X.St{F.one(), F.zero(), x1, F.one(), 0}), S.ladder(one, P, X.nbits(k), FS.value(kc), X1, S.LSt{1n, 0n, X1, 1n, 0n}), hl)
+  +hkc = LM.okb_lea(32n, kc, 255n, XB.clamp_okb(k, LM.bytes_okb(32n, k, hk)))
+  +oone = XL.small_ok(one, h1, 1n, XL.one_lt19(one, h1))
+  +ozero = XL.small_ok(one, h1, 0n, PW.sc_pos(19n, one, h1))
+  +rone = RE.mk(one, pp, FE.one(), 1n, oone, G.c_eq(pp, FV.value(FE.one()), 1n, {==}))
+  +rzero = RE.mk(one, pp, FE.zero(), 0n, ozero, G.c_eq(pp, FV.value(FE.zero()), 0n, {==}))
+  +st0 = {X.St{FE.one(), FE.zero(), x1, FE.one(), 0} : X.St}
+  +sst0 = {S.LSt{1n, 0n, X1, 1n, 0n} : S.LSt}
+  +hl = ladder_rel(one, h1, pp, hP, R, hR, X.nbits(k), c24, hc24, hcl, kc, hkc, x1, X1, r1, st0, sst0, (rone, (rzero, (r1, (rone, ({==}, {==}))))))
+  finish_rel(one, h1, pp, hP, R, hR, X.ladder(X.nbits(k), R, c24, kc, x1, st0), S.ladder(one, P, X.nbits(k), FS.value(kc), X1, sst0), hl)
+
+# the constants of x25519_raw (the radix: ../fe/cst.bend)
+def a24_of_eq(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>) -> {X.a24_of(xs) == S.a24(one) : Nat}:
+  Equal.trans(Nat, X.a24(X.one_of(xs)), X.a24(one), S.a24(one), Equal.cong(Nat, Nat, t => X.a24(t), X.one_of(xs), one, CS.one_of_eq(one, h1, xs)), XL.a24_eq(one))
+
+def a24_of_lt(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>) -> {Nat.is_lt(X.a24_of(xs), WD.sc(17n, one)) == True{} : Bool}:
+  L.subst(Nat, t => {Nat.is_lt(t, WD.sc(17n, one)) == True{} : Bool}, X.a24(one), X.a24_of(xs), Equal.trans(Nat, X.a24(one), S.a24(one), X.a24_of(xs), XL.a24_eq(one), Equal.sym(Nat, X.a24_of(xs), S.a24(one), a24_of_eq(one, h1, xs))), XL.a24_lt(one, h1))
 
 def x25519_value(+one: Nat, +h1: {one == 1n : Nat}, +k: List<&2, U32>, +u: List<&2, U32>, +hk: {FS.tight(k) == True{} : Bool}, +hu: {FS.tight(u) == True{} : Bool}) -> S.X25519.value(one, h1, k, u, hk, hu):
   +pp = PR.pp_of(one)
@@ -251,4 +177,4 @@ def x25519_value(+one: Nat, +h1: {one == 1n : Nat}, +k: List<&2, U32>, +u: List<
   %Equal.sym(Nat, FS.prime(one), P, PR.prime_eq(one, h1)) : {X.x25519_raw(k, u) == S.x25519_p(one, _, k, u) : List<&2, U32>}
   %XB.nbits_eq(k) : {X.x25519_raw(k, u) == S.finish(P, S.ladder(one, P, _, S.decode_scalar(k), X1, st0)) : List<&2, U32>}
   %Equal.cong(List<&2, U32>, Nat, z => FS.value(z), X.clamp(k), S.clamp(k), XB.clamp_eq(k)) : {X.x25519_raw(k, u) == S.finish(P, S.ladder(one, P, X.nbits(k), _, X1, st0)) : List<&2, U32>}
-  x25519_rel(one, h1, pp, PR.hP(one, h1), k, u, LM.bytes_okb(32n, k, hk), LM.bytes_okb(32n, u, hu))
+  x25519_rel(one, h1, pp, PR.hP(one, h1), X.radix_of(k), CS.radix_of_eq(one, h1, k), X.a24_of(k), a24_of_eq(one, h1, k), a24_of_lt(one, h1, k), k, u, hk, hu)
