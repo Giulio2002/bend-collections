@@ -16,6 +16,7 @@ import ../chacha/stream.bend as T
 import ../chacha/xchacha.bend as X
 import ../chacha/involution.bend as V
 import ./subtle_eq.bend as SE
+import ./fused.bend as FU
 
 # ChaCha20-Poly1305 and XChaCha20-Poly1305 of src/crypto/aead/ against
 # spec/crypto/chacha20poly1305.bend (for every key, nonce, aad and message
@@ -64,9 +65,10 @@ law seal_eq:
 def seal_eq(key, nonce, aad, pt):
   +ci = CH.encrypt_rounds(10n, key, 1, nonce, pt)
   +cr = RC.encrypt(key, 1, nonce, pt)
-  Equal.trans(List<&2, U32>, iseal(key, nonce, aad, ci), iseal(key, nonce, aad, cr), R.seal(key, nonce, aad, pt),
-    Equal.cong(List<&2, U32>, List<&2, U32>, l => iseal(key, nonce, aad, l), ci, cr, T.encrypt_correct(10n, key, 1, nonce, pt)),
-    Equal.cong(List<&2, U32>, List<&2, U32>, l => List.append(&2, U32, cr, l), I.tag(key, nonce, aad, cr), R.tag(key, nonce, aad, cr), tag_eq(key, nonce, aad, cr)))
+  Equal.trans(List<&2, U32>, I.seal(key, nonce, aad, pt), iseal(key, nonce, aad, ci), R.seal(key, nonce, aad, pt), FU.seal_fused(key, nonce, aad, pt),
+    Equal.trans(List<&2, U32>, iseal(key, nonce, aad, ci), iseal(key, nonce, aad, cr), R.seal(key, nonce, aad, pt),
+      Equal.cong(List<&2, U32>, List<&2, U32>, l => iseal(key, nonce, aad, l), ci, cr, T.encrypt_correct(10n, key, 1, nonce, pt)),
+      Equal.cong(List<&2, U32>, List<&2, U32>, l => List.append(&2, U32, cr, l), I.tag(key, nonce, aad, cr), R.tag(key, nonce, aad, cr), tag_eq(key, nonce, aad, cr))))
 
 law open_tag_eq:
   for +ok: Bool
