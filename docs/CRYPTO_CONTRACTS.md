@@ -770,6 +770,122 @@ ciphertexts, tags and AADs, and wrong key and nonce lengths against
 `cryptography`'s `AESGCM`. `tests/crypto/aes/main.bend` prints the FIPS 197
 vectors.
 
+## secp256k1: `src/crypto/secp256k1.bend`, `src/crypto/secp256k1/`
+
+ECDSA over secp256k1 (SEC 1 v2 section 4.1, curve from SEC 2 section
+2.4.1) with RFC 6979 deterministic nonces (HMAC_DRBG over the verified
+HMAC-SHA256) and low-S output, public key recovery (SEC 1 section 4.1.6),
+Ethereum addresses and the ECRECOVER precompile (Keccak-256 of
+`src/crypto/keccak`), BIP-340 Schnorr signatures (tagged SHA-256), SEC 1
+compressed/uncompressed key encodings and key generation.
+
+Specifications (`spec/crypto/secp256k1/`, over the natural numbers; nothing
+of the implementation is used; HACL*'s `Spec.K256` is the model):
+
+- `field.bend`: p = 2^256 - 2^32 - 977 and n written by their SEC 2 digits,
+  `madd`/`msub`/`mneg`/`mmul`/`mpow`, `minv` (exponent m - 2), `fsqrt`
+  (exponent (p + 1) / 4). Every function takes `one`, the number 1 kept
+  symbolic: a closed 256-bit constant would be expanded by the checker, so
+  the clauses hold for `one` with `h1: one == 1`.
+- `curve.bend`: homogeneous projective points (0 : 1 : 0 is infinity), the
+  complete addition and doubling of Renes, Costello and Batina (EUROCRYPT
+  2016, Algorithms 7 and 9 for a = 0, b3 = 21) transcribed line by line as
+  register programs, [k] A as left-to-right double-and-add over the 256 bits
+  of k, affine conversion, OS2IP/I2OSP and the SEC 1 section 2.3.3/2.3.4
+  encodings and decoding (with decompression by y = (x^3 + 7)^((p+1)/4)).
+- `ecdsa.bend`: SEC 1 signing (with the RFC 6979 section 3.2 DRBG and its
+  retry loop, at most 16 candidates), verification (optionally rejecting
+  high s), recovery, `eth_address` (the last 20 bytes of Keccak-256 of
+  x || y; the hash is named by a value `Keccak256{}`), ECRECOVER (the 128-
+  byte input hash || v || r || s, v in {27, 28}).
+- `schnorr.bend`: BIP-340 `lift_x`, `Verify`, `Sign` (with the final
+  self-verification) and `PubKey`, tagged hashes over FIPS 180-4 SHA-256.
+
+Implementation choices the proofs cover: field elements and scalars are 16
+limbs of radix 2^16 held in `Nat` (the proofs show every result limb
+below 2^16; intermediates stay below 2^37, a sum of 16 products of two
+limbs, which is by construction and not a stated clause); products
+are reduced by folding the high half with c = 2^256 - m (3 folds for p, 4
+for n) and one conditional subtraction; inversion and square root are
+square-and-multiply over the bits of the public exponents; the point
+formulas are the same register programs run by an interpreter over field
+elements; scalar multiplication computes both branches of every step and
+selects with an arithmetic mask (`L.select`), with no branch or index on
+the scalar; RFC 6979 candidates, low-S (`s > n / 2` becomes `n - s`, the
+recovery id's parity flipped) and the recovery x = r + n (computed as
+(r - c_n + c_p) mod p, valid when not below n) are computed on limbs.
+Operations look at their arguments first (`add`, `mul`, `eq`, `L.reduce`,
+`i2osp`, HMAC by its key, addresses by the key), which changes nothing at
+run time and keeps unknown values folded in the checker.
+
+| Clause (`proofs/crypto/secp256k1/laws*.bend`) | Statement (for every input) | Evidence |
+|---|---|---|
+| `PublicKey.correct` | `public_key(sk, c) == ES.public_key(one, sk, c)` | proved (`proof.bend`) |
+| `GenerateKeypair.correct` | `generate_keypair(seed) == keypair_of(seed, ES.public_key(one, seed, True))` | proved (`proof.bend`) |
+| `EthAddress.correct` | `eth_address(pk) == ES.eth_address(pk)` | proved (`proof.bend`, through the Keccak law `ethereum_keccak256`) |
+| `Sign.correct` | `sign_compact(sk, h) == ES.sign(one, sk, h)` (r, s, v and the DRBG) | proved (`proof_sign.bend`, through the HMAC law `Sign.correct`) |
+| `Verify.correct` | `verify(pk, h, sig) == ES.verify(one, pk, h, sig, False)` | proved (`proof_verify.bend`) |
+| `VerifyStrict.correct` | `verify_strict(pk, h, sig) == ES.verify(one, pk, h, sig, True)` | proved (`proof_verify.bend`) |
+| `Recover.correct` | `recover(h, sig) == ES.recover(one, h, sig)` | proved (`proof_recover.bend`) |
+| `Ecrecover.correct` | `ecrecover(input) == ES.ecrecover(one, input)` | proved (`proof_recover.bend`) |
+| `SchnorrPubkey.correct` | `schnorr_pubkey(sk) == SS.pubkey(one, sk)` | proved (`proof_schnorr.bend`) |
+| `SchnorrSign.correct` | `schnorr_sign(sk, msg, aux) == SS.sign(one, sk, msg, aux)` | proved (`proof_schnorr.bend`, through the SHA-256 law) |
+| `SchnorrVerify.correct` | `schnorr_verify(pk, msg, sig) == SS.verify(one, pk, msg, sig)` | proved (`proof_schnorr.bend`) |
+
+Each laws file has its own root, so that each checks alone (Bend 2.0.34,
+`bend-local`, one at a time on the development machine): `proof.bend` 14 s
+and 649 MB, `proof_sign.bend` 42 s and 898 MB, `proof_verify.bend` 14 s
+and 686 MB, `proof_recover.bend` 16 s and 735 MB, `proof_schnorr.bend`
+39 s and 904 MB.
+
+The lemmas underneath (`proofs/crypto/secp256k1/`, generated from
+`tools/generators/secp256k1_hand/*.src` by `tools/generators/rw.py`, whose
+directives only spell out the rewriting steps the checker verifies):
+
+- limbs: carries, bounds (every result limb below 2^16), the fold reduction's value mod m (`reduce`, `reducek`), the
+  complement and negation, comparisons, the bits of a scalar (`bitsv`,
+  `bitsrel`); field and scalar `add`, `sub`, `neg`, `mul` equal `madd`,
+  `msub`, `mneg`, `mmul` on values and return reduced elements
+  (`fieldops`, `scalarops`); `inv` and `sqrt` equal `minv` and `fsqrt`
+  (`fieldpow`, `scalarpow`: the exponent bits' value is p - 2, n - 2,
+  (p + 1) / 4 by a complement argument on the literal bit list).
+- points: the register interpreter runs each program register by register
+  as the specification's (`point`: `padd`, `pdbl`), selection, and [k] P by
+  induction over the bit list (`pmul`), affine conversion, the generator
+  (its limbs checked by literal comparisons, `lits`), encodings and
+  decompression (`paff`, `penc`, `pdec`).
+- protocols: `ppub`, `pscal`, `pver`, `psign` (the DRBG loop by induction on
+  the fuel), `rconst`/`prec` (c_p < c_n, n < p, (r - c_n + c_p) mod p =
+  (r + n) mod p and the wrap test), `peth`/`pecr`, `pschn`.
+
+Not proved:
+
+- The group law: that the complete formulas compute the textbook affine
+  addition (SEC 1 section 2.2.1), that points of the curve form a group of
+  order n, and so that `verify(pk(sk), h, sign(sk, h)) == True`, that
+  `recover` returns the signer's key, or that decompression inverts
+  compression. These need the primality of p and n (a certificate) and the
+  field law in the projective model; the clauses above are equalities with
+  the standards' algorithms, not statements about the group. The test
+  vectors and the differential test exercise these properties.
+- Constant time: Bend has no timing model. Secret-dependent arithmetic is
+  branch-free by construction (masked selection, complete formulas, fixed
+  exponent ladders); RFC 6979's retry loop and the checks on public inputs
+  branch.
+- That the specifications transcribe the standards: by reading, the
+  standards' test vectors and the differential test.
+
+Tests: `tools/check_secp256k1.py` builds `tests/crypto/secp256k1/diff.bend`
+and runs the RFC 6979 vectors (bitcoinjs), the 19 BIP-340 vectors
+(`bip340_vectors.csv`), Wycheproof ECDSA secp256k1/SHA-256 (plain and
+Bitcoin low-S sets, DER cases decoded to r || s; non-DER encodings
+skipped), go-ethereum ecrecover vectors, malformed inputs, and a
+differential test (random keys and messages: sign, verify, tampered
+signatures, recovery, addresses, public keys, Schnorr sign/verify) against
+the `cryptography` package, a pure-Python reference and the BIP-340
+reference code (`tools/bip340_reference.py`); `tools/validate.py --only
+secp256k1` runs it and the five proof roots.
+
 ## Random numbers: `src/crypto/random.bend`
 
 A cryptographically secure generator: ChaCha8Rand (C2SP chacha8rand), the
