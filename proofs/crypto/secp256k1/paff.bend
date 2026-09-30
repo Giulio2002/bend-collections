@@ -11,6 +11,12 @@ import ./fwrap.bend as FW
 import ./point.bend as PT
 import ./sel.bend as PM
 import ./lits.bend as LT
+import ./bounds.bend as B
+import ./consts.bend as K
+import ./ineq.bend as I
+import ./limbs.bend as LV
+import ../../lib/nat.bend as N
+import ../../../spec/lib/common.bend as C
 
 # Affine coordinates, the point-at-infinity test and the generator of
 # src/crypto/secp256k1/point.bend against spec/crypto/secp256k1/curve.bend.
@@ -62,6 +68,38 @@ def is_inf_v(+one: Nat, +h1: {one == 1n : Nat}, a: P.Point) -> {P.is_inf(a) == C
     case P.Point{+x, +y, +z}:
       FW.is_zero_f(one, h1, z)
 
+# limbs lo and a top limb below b: the value is below b 2^(16 k)
+def top_v(+one: Nat, +h1: {one == 1n : Nat}, k: Nat, lo: List<&2, Nat>, +top: Nat, +b: Nat, +hl: {FS.limbs16(one, k, lo) == True{} : Bool}, +ht: {Nat.is_lt(top, b) == True{} : Bool}) -> {Nat.is_lt(FS.value(one, List.append(&2, Nat, lo, [top])), LV.pos(k, b)) == True{} : Bool}:
+  match k lo:
+    case 0n Nil{}:
+      %Equal.sym(Nat, Nat.mul(one, top), top, LV.mul_one_l(one, h1, top)) : {Nat.is_lt(Nat.add(_, 0n), b) == True{} : Bool}
+      %Equal.sym(Nat, Nat.add(top, 0n), top, N.add_zero(top)) : {Nat.is_lt(_, b) == True{} : Bool}
+      ht
+    case 0n +x <> +t:
+      Empty.absurd({Nat.is_lt(FS.value(one, List.append(&2, Nat, x <> t, [top])), LV.pos(0n, b)) == True{} : Bool}, Lg.false_true(hl))
+    case 1n+ +j Nil{}:
+      Empty.absurd({Nat.is_lt(FS.value(one, List.append(&2, Nat, [], [top])), LV.pos(1n+j, b)) == True{} : Bool}, Lg.false_true(hl))
+    case 1n+ +j +x <> +t:
+      +hx = Lg.and_left(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, j, t), hl)
+      +ih = top_v(one, h1, j, t, top, b, Lg.and_right(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, j, t), hl), ht)
+      %Equal.sym(Nat, Nat.mul(one, x), x, LV.mul_one_l(one, h1, x)) : {Nat.is_lt(Nat.add(_, C.shift(16n, FS.value(one, List.append(&2, Nat, t, [top])))), C.shift(16n, LV.pos(j, b))) == True{} : Bool}
+      I.digit_lt(16n, one, h1, x, FS.value(one, List.append(&2, Nat, t, [top])), LV.pos(j, b), hx, ih)
+
+# 2^255 <= p
+def half_le(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_le(C.shift(255n, one), FS.prime(one)) == True{} : Bool}:
+  +h = C.shift(255n, one)
+  +e = Equal.trans(Nat, Nat.add(1n+K.pp(one), FS.cp(one)), C.shift(256n, one), Nat.add(h, h), K.hm_p(one, h1), Equal.sym(Nat, Nat.add(h, h), C.shift(256n, one), K.shift_twice(255n, one)))
+  +hc = N.le_trans(FS.cp(one), C.shift(33n, one), h, K.cp_le(one, h1), K.shift_le_k(33n, 255n, one, 222n, {==}))
+  %Equal.sym(Nat, FS.prime(one), 1n+K.pp(one), K.prime_eq(one, h1)) : {Nat.is_le(C.shift(255n, one), _) == True{} : Bool}
+  FO.lt_p_half(h, 1n+K.pp(one), FS.cp(one), e, hc)
+
+# 15 limbs and a top limb below 2^15: a value below p
+def top_red(+one: Nat, +h1: {one == 1n : Nat}, +lo: List<&2, Nat>, +top: Nat, +hl: {FS.limbs16(one, 15n, lo) == True{} : Bool}, +ht: {Nat.is_le(1n+top, C.shift(15n, one)) == True{} : Bool}) -> {Nat.is_lt(FS.value(one, List.append(&2, Nat, lo, [top])), FS.prime(one)) == True{} : Bool}:
+  +v = FS.value(one, List.append(&2, Nat, lo, [top]))
+  +l1 = top_v(one, h1, 15n, lo, top, C.shift(15n, one), hl, N.succ_le_lt(top, C.shift(15n, one), ht))
+  +l2 = I.lt_subst_r(v, LV.pos(15n, C.shift(15n, one)), C.shift(255n, one), B.pos_shift(15n, C.shift(15n, one)), l1)
+  N.lt_le_trans(v, C.shift(255n, one), FS.prime(one), l2, half_le(one, h1))
+
 # ---- the generator ----
 
 def gx_l(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.limbs16(one, 16n, P.gx()) == True{} : Bool}:
@@ -70,12 +108,14 @@ def gx_l(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.limbs16(one, 16n, P.gx()) == 
 def gy_l(+one: Nat, +h1: {one == 1n : Nat}) -> {FS.limbs16(one, 16n, P.gy()) == True{} : Bool}:
   LT.lits16(one, h1, 16n, P.gy(), {==})
 
-def lt_p_red(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hl: {FS.limbs16(one, 16n, x) == True{} : Bool}, +h: {F.lt_p(x) == True{} : Bool}) -> {PT.red(one, x) == True{} : Bool}:
-  +hv = Equal.trans(Bool, Nat.is_lt(FS.value(one, x), FS.prime(one)), F.lt_p(x), True{}, Equal.sym(Bool, F.lt_p(x), Nat.is_lt(FS.value(one, x), FS.prime(one)), FW.lt_p_f(one, h1, x)), h)
-  Lg.and_intro(FS.limbs16(one, 16n, x), Nat.is_lt(FS.value(one, x), FS.prime(one)), hl, hv)
+def gx_p(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(FS.value(one, P.gx()), FS.prime(one)) == True{} : Bool}:
+  top_red(one, h1, [6040n, 5880n, 33115n, 23026n, 10457n, 11726n, 64731n, 667n, 2823n, 52871n, 25237n, 21920n, 48044n, 63964n, 26238n], 31166n, LT.lits16(one, h1, 15n, [6040n, 5880n, 33115n, 23026n, 10457n, 11726n, 64731n, 667n, 2823n, 52871n, 25237n, 21920n, 48044n, 63964n, 26238n], {==}), K.small_le(one, h1, 15n, 31167n, {==}))
+
+def gy_p(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(FS.value(one, P.gy()), FS.prime(one)) == True{} : Bool}:
+  top_red(one, h1, [54456n, 64272n, 53391n, 40007n, 21529n, 42629n, 46152n, 64791n, 2216n, 3601n, 64508n, 23972n, 50277n, 9891n, 55927n], 18490n, LT.lits16(one, h1, 15n, [54456n, 64272n, 53391n, 40007n, 21529n, 42629n, 46152n, 64791n, 2216n, 3601n, 64508n, 23972n, 50277n, 9891n, 55927n], {==}), K.small_le(one, h1, 15n, 18491n, {==}))
 
 def g_r(+one: Nat, +h1: {one == 1n : Nat}) -> {PT.pred(one, P.g()) == True{} : Bool}:
-  PT.pr3(one, P.gx(), P.gy(), F.one(), lt_p_red(one, h1, P.gx(), gx_l(one, h1), {==}), lt_p_red(one, h1, P.gy(), gy_l(one, h1), {==}), FO.small_r(one, h1, 1n, PM.one_lt(one, h1)))
+  PT.pr3(one, P.gx(), P.gy(), F.one(), Lg.and_intro(FS.limbs16(one, 16n, P.gx()), Nat.is_lt(FS.value(one, P.gx()), FS.prime(one)), gx_l(one, h1), gx_p(one, h1)), Lg.and_intro(FS.limbs16(one, 16n, P.gy()), Nat.is_lt(FS.value(one, P.gy()), FS.prime(one)), gy_l(one, h1), gy_p(one, h1)), FO.small_r(one, h1, 1n, PM.one_lt(one, h1)))
 
 def g_v(+one: Nat, +h1: {one == 1n : Nat}) -> {PT.pv(one, P.g()) == CV.g(one) : CV.SPoint}:
   %Equal.sym(Nat, FS.value(one, F.small(1n)), 1n, FO.small_val(one, h1, 1n, PM.one_lt(one, h1))) : {CV.SPoint{FS.value(one, P.gx()), FS.value(one, P.gy()), _} == CV.g(one) : CV.SPoint}
