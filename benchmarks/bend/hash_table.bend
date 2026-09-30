@@ -47,10 +47,14 @@ def op_set(st: St, +size: U32) -> St:
   +r = B.lcg(r0)
   fin_num(r, c, H.size(&2, U32, H.set(&2, U32, t, key(draw(r, size)), r)))
 
+def fin_get(+r: U32, c: U32, p: H.HashMap<&2, U32> & U32) -> St:
+  (t, x) = p
+  S{r, B.mix(c, x), t}
+
 def op_get(st: St, +size: U32) -> St:
   S{r0, c, t} = st
   +r = B.lcg(r0)
-  fin_num(r, c, H.get(U32, 4294967295, t, key(draw(r, size))))
+  fin_get(r, c, H.get(U32, 4294967295, t, key(draw(r, size))))
 
 def op_has(st: St, +size: U32) -> St:
   S{r0, c, t} = st
@@ -203,12 +207,23 @@ def drain_fin(st: St) -> U32:
   S{r, c, t} = st
   drain_end(H.size(&2, U32, t), c)
 
+# The drain's own copy of get (a def with two callers is not inlined into
+# either, which would charge the measured get loop a call per operation).
+def drain_num(+r: U32, c: U32, p: H.HashMap<&2, U32> & U32) -> St:
+  (t, x) = p
+  S{r, B.mix(c, x), t}
+
+def drain_get(st: St, +size: U32) -> St:
+  S{r0, c, t} = st
+  +r = B.lcg(r0)
+  drain_num(r, c, H.get(U32, 4294967295, t, key(draw(r, size))))
+
 def drain_loop(k: Nat, +n: U32, st: St) -> St:
   match k:
     case 0n:
       st
     case 1n+p:
-      drain_loop(p, n, op_get(st, n))
+      drain_loop(p, n, drain_get(st, n))
 
 def drain(+size: U32, st: St) -> U32:
   S{+r, c, t} = st

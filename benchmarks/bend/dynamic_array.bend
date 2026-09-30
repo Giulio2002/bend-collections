@@ -289,6 +289,19 @@ def measured(+op: U32, +k: Nat, +n: Nat, st: St) -> St:
     case _:
       loop_new(k, st)
 
+# The drain's own copy of get (a def with two callers is not inlined into
+# either, which would charge the measured get loop a call per operation).
+def drain_fin(r: U32, c: U32, p: DA.DynArray<&2, U32> & Result<&2, &2, E.Error, U32>) -> St:
+  (a, x) = p
+  S{r, B.mix(c, item_code(x)), a}
+
+def drain_with(+r: U32, c: U32, a: DA.DynArray<&2, U32>, +n: Nat) -> St:
+  drain_fin(r, c, DA.get_at(~U32, a, U32.to_nat(U32.mod(r, U32.from_nat(1n+n)))))
+
+def drain_get(st: St, +n: Nat) -> St:
+  S{r, c, a} = st
+  drain_with(B.lcg(r), c, a, n)
+
 # The drain is deliberately independent of how many elements the measured
 # operation added or removed: it reads the length and then a fixed 64 slots
 # chosen from the same value stream, so region A and region B pay the same
@@ -298,7 +311,7 @@ def drain_loop(k: Nat, +n: Nat, st: St) -> St:
     case 0n:
       st
     case 1n+p:
-      drain_loop(p, n, do_get(st, n))
+      drain_loop(p, n, drain_get(st, n))
 
 def keep_chk(c: U32, p: DA.DynArray<&2, U32> & Nat) -> U32:
   (a, n) = p
