@@ -69,7 +69,7 @@ def sq(+a: List<&2, Nat>) -> List<&2, Nat>:
 
 # a^e for the exponent e given by its bits (a looked at first)
 def powl_u(a: List<&2, Nat>, bits: List<&2, Nat>) -> List<&2, Nat>:
-  R.to_list(R.pow(R.of_list(a), bits, R.one()))
+  R.to_list(R.pw(R.of_list(a), bits, R.one()))
 
 def powl(a: List<&2, Nat>, +bits: List<&2, Nat>) -> List<&2, Nat>:
   match a:

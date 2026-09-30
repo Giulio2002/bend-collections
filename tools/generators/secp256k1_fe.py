@@ -326,6 +326,11 @@ def of_list_body(i, ind):
 OUT.extend(of_list_body(0, '  '))
 w('')
 
+import importlib.util as _ilu
+_pws = _ilu.spec_from_file_location('pwgen', str(Path(__file__).resolve().parent / 'secp256k1_pw.py'))
+PW = _ilu.module_from_spec(_pws)
+_pws.loader.exec_module(PW)
+OUT.append(PW.code('FE', 'T16', 'g', 'FE', True))
 (ROOT / 'src/crypto/secp256k1/fe.bend').write_text('\n'.join(OUT) + '\n')
 print('wrote src/crypto/secp256k1/fe.bend')
 

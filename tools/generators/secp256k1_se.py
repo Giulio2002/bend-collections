@@ -219,6 +219,11 @@ def neg(a: FE.FE) -> FE.FE:
 def red16(a: FE.FE) -> FE.FE:
   finn(FE.carry16(a), cn())
 ''')
+import importlib.util as _ilu
+_pws = _ilu.spec_from_file_location('pwgen', str(Path(__file__).resolve().parent / 'secp256k1_pw.py'))
+PW = _ilu.module_from_spec(_pws)
+_pws.loader.exec_module(PW)
+OUT.append(PW.code('FE.FE', 'FE.T16', 'FE.g', 'FE.FE', False))
 (ROOT / 'src/crypto/secp256k1/se.bend').write_text('\n'.join(OUT) + '\n')
 
 BR = []
