@@ -197,12 +197,14 @@ def gen_curve():
     p, q, b7, b3 = point(c, 0), point(c, 1), c.var(6), c.cmul(3, 6, 21)
     cv = [c.rule_curve(0, 1, 2, 6, 'h1'), c.rule_curve(3, 4, 5, 6, 'h2')]
     s = padd(c, p, q, b3)
-    a, b = curve_val(c, s, b7)
-    c.ident('add_curve', a, b, cv, 'P and Q on the curve X^3 = Y^2 Z - 7 Z^3: so is P + Q')
+    s = [c.specdef('aX', s[0]), s[1], c.specdef('aZ', s[2])]
     # completeness: c2 Y3 == N^3 + 7 D^3 with N / D the x-coordinate a 2-torsion point P - Q would have
     x1, y1, z1 = p
     x2, y2, z2 = q
     ay = c.specdef('aY', s[1])
+    s[1] = ay
+    a, b = curve_val(c, s, b7)
+    c.ident('add_curve', a, b, cv, 'P and Q on the curve X^3 = Y^2 Z - 7 Z^3: so is P + Q')
     zz = c.specdef('cZ', c.mul(z1, z2))
     sh = c.specdef('cS', c.add(c.mul(x1, z2), c.mul(x2, z1)))
     pi = c.mul(x1, x2)
@@ -234,6 +236,14 @@ def gen_dbl():
     for k, nm in enumerate('xyz'):
         c.ident('unit_' + nm, u[k], c.mul(p[k], y), (), 'P + (0, 1, 0) == y P, coordinate %s' % nm.upper())
     ng = padd(c, p, [x, c.sub(c.zero(), y), z], b3)
+    c.ident('unit_ex', c.mul(u[0], y), c.mul(x, u[1]), (), 'P + (0, 1, 0) and P: cross product x, y')
+    c.ident('unit_ez', c.mul(u[2], y), c.mul(z, u[1]), (), 'P + (0, 1, 0) and P: cross product z, y')
+    ny = c.sub(c.zero(), y)
+    c.ident('neg_curve', cube(c, x), c.sub(c.mul(c.mul(ny, ny), z), c.mul(b7, cube(c, z))), cv, '(x, -y, z) is on the curve when (x, y, z) is')
+    c.ident('inf_curve', cube(c, c.zero()), c.sub(c.mul(c.mul(c.const(1), c.const(1)), c.zero()), c.mul(b7, cube(c, c.zero()))), (), '(0, 1, 0) is on the curve')
+    x3, y2z, sz = cube(c, x), c.mul(c.mul(y, y), z), c.mul(b7, cube(c, z))
+    c.conseq('to_x', c.sub(x3, c.sub(y2z, sz)), [(c.add(x3, sz), y2z, c.const(1))], (), 'X^3 + 7 Z^3 == Y^2 Z gives X^3 == Y^2 Z - 7 Z^3')
+    c.conseq('to_y', c.sub(y2z, c.add(x3, sz)), [(c.sub(y2z, sz), x3, c.const(1))], (), 'and conversely')
     c.ident('neg_x', ng[0], c.zero(), (), 'P + (x, -y, z) has X == 0')
     c.ident('neg_z', ng[2], c.zero(), (), 'P + (x, -y, z) has Z == 0')
     c.write('id_dbl.bend', '# Doubling is adding a point to itself; (0, 1, 0) is the identity and\n# (x, -y, z) the inverse, up to scaling.\n')
