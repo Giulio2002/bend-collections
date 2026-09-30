@@ -22,6 +22,7 @@ import ./bytes.bend as BY
 import ./point.bend as PT
 import ./sel.bend as SL
 import ./pmul.bend as PM
+import ./pmulg.bend as PG
 import ./paff.bend as PA
 import ./penc.bend as PE
 import ./blist.bend as BL
@@ -283,7 +284,7 @@ def snz(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {N
       +hm = PM.mul_r(one, h1, k0, P.g(), SL.sl16(one, k0, hk0), hg)
       %goal {SC.sign_k(hc, d, pb, m, k0, P.to_affine(P.mul(k0, P.g()))) == SS.sign_r(one, hc, FS.value(one, d), pb, m, FS.value(one, k0), CV.to_affine(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, k0), CV.g(one)))) : Maybe<&2, List<&2, U32>>}
       %rw <- PA.g_v(one, h1)
-      %rw PM.mul_aff(one, h1, gp, gc, k0, P.g(), SL.sl16(one, k0, hk0), hg, PM.g_vd(one, h1))
+      %rw PG.mul_aff(one, h1, gp, gc, k0, P.g(), SL.sl16(one, k0, hk0), hg, PG.g_vd(one, h1))
       %rw <- PA.aff_v(one, h1, P.mul(k0, P.g()), hm)
       sk_v(one, h1, hc, d, hd, pb, m, k0, hk0, P.to_affine(P.mul(k0, P.g())), PA.aff_r(one, h1, P.mul(k0, P.g()), hm))
 
@@ -331,7 +332,7 @@ def s3(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Na
       %rw <- BY.of_be_value(one, h1, sk)
       %rw <- BY.of_be_value(one, h1, sk)
       %rw <- PA.g_v(one, h1)
-      %rw PM.mul_aff(one, h1, gp, gc, B.of_be(sk), P.g(), hdl, hg, PM.g_vd(one, h1))
+      %rw PG.mul_aff(one, h1, gp, gc, B.of_be(sk), P.g(), hdl, hg, PG.g_vd(one, h1))
       %rw <- PA.aff_v(one, h1, P.mul(B.of_be(sk), P.g()), hm)
       spk(one, h1, gp, gc, B.of_be(sk), hd0, m, aux, P.to_affine(P.mul(B.of_be(sk), P.g())), PA.aff_r(one, h1, P.mul(B.of_be(sk), P.g()), hm))
     case False{}:
@@ -379,7 +380,7 @@ def pk3(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {N
       %goal {Some{SC.pubkey_aff(P.to_affine(P.mul(B.of_be(sk), P.g())))} == Some{SS.pub_of(CV.to_affine(FS.prime(one), CV.pmul(FS.prime(one), CV.os2ip(sk), CV.g(one))))} : Maybe<&2, List<&2, U32>>}
       %rw <- BY.of_be_value(one, h1, sk)
       %rw <- PA.g_v(one, h1)
-      %rw PM.mul_aff(one, h1, gp, gc, B.of_be(sk), P.g(), hdl, hg, PM.g_vd(one, h1))
+      %rw PG.mul_aff(one, h1, gp, gc, B.of_be(sk), P.g(), hdl, hg, PG.g_vd(one, h1))
       %rw <- PA.aff_v(one, h1, P.mul(B.of_be(sk), P.g()), hm)
       %rw paff(one, h1, P.to_affine(P.mul(B.of_be(sk), P.g())), PA.aff_r(one, h1, P.mul(B.of_be(sk), P.g()), hm))
       %close

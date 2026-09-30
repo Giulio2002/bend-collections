@@ -8,6 +8,7 @@ import ../../../src/crypto/secp256k1/ecdsa.bend as E
 import ./bytes.bend as BY
 import ./point.bend as PT
 import ./pmul.bend as PM
+import ./pmulg.bend as PG
 import ./paff.bend as PA
 import ./penc.bend as PE
 import ./blist.bend as BL
@@ -33,10 +34,10 @@ def pk_v(+one: Nat, +h1: {one == 1n : Nat}, c: Bool, +q: P.Point, +hq: {PT.pred(
 def pubpt_q(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +d: List<&2, Nat>, +hd: {FS.limbs16(one, 16n, d) == True{} : Bool}) -> {GS.equiv(FS.prime(one), PT.pv(one, E.public_point(d)), CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one))) == True{} : Bool}:
   %goal {GS.equiv(FS.prime(one), PT.pv(one, P.mul(d, P.g())), CV.pmul(FS.prime(one), FS.value(one, d), CV.g(one))) == True{} : Bool}
   %rw <- PA.g_v(one, h1)
-  PM.mul_q(one, h1, gp, gc, d, P.g(), hd, PA.g_r(one, h1), PM.g_vd(one, h1))
+  PG.mul_q(one, h1, gp, gc, d, P.g(), hd, PA.g_r(one, h1), PG.g_vd(one, h1))
 
 def pubpt_vd(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +d: List<&2, Nat>, +hd: {FS.limbs16(one, 16n, d) == True{} : Bool}) -> {GS.valid(FS.prime(one), PT.pv(one, E.public_point(d))) == True{} : Bool}:
-  PM.mul_vd(one, h1, gp, gc, d, P.g(), hd, PA.g_r(one, h1), PM.g_vd(one, h1))
+  PG.mul_vd(one, h1, gp, gc, d, P.g(), hd, PA.g_r(one, h1), PG.g_vd(one, h1))
 
 # the encoding depends only on the projective point
 def pk_q(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), c: Bool, +q: P.Point, +hq: {PT.pred(one, q) == True{} : Bool}, +y: CV.SPoint, +vx: {GS.valid(FS.prime(one), PT.pv(one, q)) == True{} : Bool}, +vy: {GS.valid(FS.prime(one), y) == True{} : Bool}, +h: {GS.equiv(FS.prime(one), PT.pv(one, q), y) == True{} : Bool}) -> {E.pk_of(c, q) == ES.pk_of(one, c, y) : List<&2, U32>}:

@@ -128,7 +128,7 @@ def pk_c(+one: Nat, +c: Bool, +d: Nat, +pk: List<&2, U32>, ok: Bool, +h: {ES.pub
 def pk_eq(+one: Nat, +sk: List<&2, U32>, +c: Bool, +pk: List<&2, U32>, +h: {ES.public_key(one, sk, c) == Some{pk} : Maybe<&2, List<&2, U32>>}) -> {ES.pk_of(one, c, CS.pmul(ES.p(one), CS.os2ip(sk), CS.g(one))) == pk : List<&2, U32>}:
   pk_c(one, c, CS.os2ip(sk), pk, Bool.and(CS.length_is(32n, sk), ES.scalar_ok(one, CS.os2ip(sk))), h)
 
-def sign_c(+one: Nat, +h: List<&2, U32>, +d: Nat, +sig: List<&2, U32>, ok: Bool, +hs: {ES.sign_d(one, h, d, ok) == Some{sig} : Maybe<&2, List<&2, U32>>}) -> {ok == True{} : Bool}:
+def sign_c(+one: Nat, +k0: List<&2, U32>, +v0: List<&2, U32>, +h: List<&2, U32>, +d: Nat, +sig: List<&2, U32>, ok: Bool, +hs: {ES.sign_d(one, k0, v0, h, d, ok) == Some{sig} : Maybe<&2, List<&2, U32>>}) -> {ok == True{} : Bool}:
   match ok:
     case True{}:
       {==}
@@ -137,4 +137,4 @@ def sign_c(+one: Nat, +h: List<&2, U32>, +d: Nat, +sig: List<&2, U32>, ok: Bool,
 
 # a successful sign had a 32-byte hash and a 32-byte key in [1, n - 1]
 def sign_ok(+one: Nat, +sk: List<&2, U32>, +h: List<&2, U32>, +sig: List<&2, U32>, +hs: {ES.sign(one, sk, h) == Some{sig} : Maybe<&2, List<&2, U32>>}) -> {Bool.and(CS.length_is(32n, h), Bool.and(CS.length_is(32n, sk), ES.scalar_ok(one, CS.os2ip(sk)))) == True{} : Bool}:
-  sign_c(one, h, CS.os2ip(sk), sig, Bool.and(CS.length_is(32n, h), Bool.and(CS.length_is(32n, sk), ES.scalar_ok(one, CS.os2ip(sk)))), hs)
+  sign_c(one, ES.fill(32n, 0), ES.fill(32n, 1), h, CS.os2ip(sk), sig, Bool.and(CS.length_is(32n, h), Bool.and(CS.length_is(32n, sk), ES.scalar_ok(one, CS.os2ip(sk)))), hs)

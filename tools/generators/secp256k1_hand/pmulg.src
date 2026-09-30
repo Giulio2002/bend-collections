@@ -1,0 +1,70 @@
+import Base
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../spec/crypto/secp256k1/curve.bend as CV
+import ../../../src/crypto/secp256k1/limbs.bend as L
+import ../../../src/crypto/secp256k1/field.bend as F
+import ../../../src/crypto/secp256k1/point.bend as P
+import ../../lib/logic.bend as Lg
+import ./limbs.bend as LV
+import ./fieldops.bend as FO
+import ./bitsv.bend as BV
+import ./bitsrel.bend as BR
+import ./point.bend as PT
+import ./sel.bend as SL
+import ./ptm.bend as PM
+import ./ptp.bend as PP
+import ./paq.bend as AQ
+import ./paff.bend as PA
+import ./ineq.bend as I
+import ./bytes.bend as BY
+import ./pwin.bend as PW
+import ./lite/crypto/secp256k1/group/glaw4.bend as G4
+import ./lite/crypto/secp256k1/group/glawp.bend as GP
+import ./lite/math/number/nt_prime.bend as NP
+import ../../../spec/crypto/secp256k1/group.bend as GS
+import ../../../spec/lib/common.bend as C
+import ../../../src/crypto/secp256k1/pt.bend as PX
+import ./pmul.bend as PB
+
+# [k] P by the window multiplication on the group of
+# spec/crypto/secp256k1/group.bend: a point of the group, the same
+# projective point as the specification's double-and-add, with the same
+# affine coordinates (hp, hc: the group law's hypotheses).
+
+# the number the bits of a scalar spell is its value
+def bvl_v(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}) -> {G4.bvl(L.bitsf(ks), 0n) == FS.value(one, ks) : Nat}:
+  +hf = BY.fits_one(256n, one, h1, FS.value(one, ks), I.lt_subst_l(LV.ev(ks), FS.value(one, ks), C.shift(256n, one), Equal.sym(Nat, FS.value(one, ks), LV.ev(ks), LV.ev_value(one, h1, ks)), FO.tt_lt(one, h1, ks, hk)))
+  %rw PB.lbits(one, h1, ks, hk)
+  %rw G4.bits_v(256n, FS.value(one, ks))
+  G4.low_fit(256n, FS.value(one, ks), hf)
+
+def fits_v(+one: Nat, +h1: {one == 1n : Nat}, +ks: List<&2, Nat>, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}) -> {C.fits(256n, FS.value(one, ks)) == True{} : Bool}:
+  BY.fits_one(256n, one, h1, FS.value(one, ks), I.lt_subst_l(LV.ev(ks), FS.value(one, ks), C.shift(256n, one), Equal.sym(Nat, FS.value(one, ks), LV.ev(ks), LV.ev_value(one, h1, ks)), FO.tt_lt(one, h1, ks, hk)))
+
+# [k] P is a point of the group
+def mul_vd(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hq: {PT.pred(one, pp) == True{} : Bool}, +vq: {GS.valid(FS.prime(one), PT.pv(one, pp)) == True{} : Bool}) -> {GS.valid(FS.prime(one), PT.pv(one, P.mul(ks, pp))) == True{} : Bool}:
+  +va = Lg.subst(CV.SPoint, z => {GS.valid(FS.prime(one), z) == True{} : Bool}, PT.pv(one, pp), PP.pv(one, P.to_pt(pp)), Equal.sym(CV.SPoint, PP.pv(one, P.to_pt(pp)), PT.pv(one, pp), PT.tp_v(one, pp, hq)), vq)
+  %goal {GS.valid(FS.prime(one), PT.pv(one, P.of_pt(PX.wmul(L.bitsf(ks), P.to_pt(pp))))) == True{} : Bool}
+  %rw PT.op_v(one, PX.wmul(L.bitsf(ks), P.to_pt(pp)))
+  PW.wmul_vd(one, h1, hp, hc, L.bitsf(ks), P.to_pt(pp), PT.tp_r(one, pp, hq), va, PB.lbits01(one, h1, ks, hk), PB.ok4_f(ks))
+
+# and the same projective point as the specification's double-and-add
+def mul_q(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hq: {PT.pred(one, pp) == True{} : Bool}, +vq: {GS.valid(FS.prime(one), PT.pv(one, pp)) == True{} : Bool}) -> {GS.equiv(FS.prime(one), PT.pv(one, P.mul(ks, pp)), CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp))) == True{} : Bool}:
+  +va = Lg.subst(CV.SPoint, z => {GS.valid(FS.prime(one), z) == True{} : Bool}, PT.pv(one, pp), PP.pv(one, P.to_pt(pp)), Equal.sym(CV.SPoint, PP.pv(one, P.to_pt(pp)), PT.pv(one, pp), PT.tp_v(one, pp, hq)), vq)
+  +e1 = PW.wmul_e(one, h1, hp, hc, L.bitsf(ks), P.to_pt(pp), PT.tp_r(one, pp, hq), va, PB.lbits01(one, h1, ks, hk), PB.ok4_f(ks))
+  +k = FS.value(one, ks)
+  +a = PT.pv(one, pp)
+  +e2 = Lg.subst(Nat, z => {GS.equiv(FS.prime(one), PP.pv(one, PX.wmul(L.bitsf(ks), P.to_pt(pp))), GS.smul(FS.prime(one), z, PP.pv(one, P.to_pt(pp)))) == True{} : Bool}, G4.bvl(L.bitsf(ks), 0n), k, bvl_v(one, h1, ks, hk), e1)
+  +e3 = Lg.subst(CV.SPoint, z => {GS.equiv(FS.prime(one), PP.pv(one, PX.wmul(L.bitsf(ks), P.to_pt(pp))), GS.smul(FS.prime(one), k, z)) == True{} : Bool}, PP.pv(one, P.to_pt(pp)), a, PT.tp_v(one, pp, hq), e2)
+  %goal {GS.equiv(FS.prime(one), PT.pv(one, P.of_pt(PX.wmul(L.bitsf(ks), P.to_pt(pp)))), CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp))) == True{} : Bool}
+  %rw PT.op_v(one, PX.wmul(L.bitsf(ks), P.to_pt(pp)))
+  GP.equiv_trans(one, h1, hp, hc, PP.pv(one, PX.wmul(L.bitsf(ks), P.to_pt(pp))), GS.smul(FS.prime(one), k, a), CV.pmul(FS.prime(one), k, a), GP.scalar_closed(one, h1, hp, hc, k, a, vq), e3, GP.equiv_sym(one, h1, hp, hc, CV.pmul(FS.prime(one), k, a), GS.smul(FS.prime(one), k, a), GP.scalar_pmul(one, h1, hp, hc, k, a, vq, fits_v(one, h1, ks, hk))))
+
+# G is a point of the group
+def g_vd(+one: Nat, +h1: {one == 1n : Nat}) -> {GS.valid(FS.prime(one), PT.pv(one, P.g())) == True{} : Bool}:
+  %rw PA.g_v(one, h1)
+  AQ.g_valid(one, h1)
+
+# the affine coordinates of [k] P are the specification's
+def mul_aff(+one: Nat, +h1: {one == 1n : Nat}, +hp: NP.Prime(FS.prime(one)), +hc: {Nat.is_eq(FS.mpow(FS.prime(one), Nat.sub(FS.prime(one), 7n), Nat.div(Nat.sub(FS.prime(one), 1n), 3n)), 1n) == False{} : Bool}, +ks: List<&2, Nat>, +pp: P.Point, +hk: {FS.limbs16(one, 16n, ks) == True{} : Bool}, +hq: {PT.pred(one, pp) == True{} : Bool}, +vq: {GS.valid(FS.prime(one), PT.pv(one, pp)) == True{} : Bool}) -> {CV.to_affine(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp))) == CV.to_affine(FS.prime(one), PT.pv(one, P.mul(ks, pp))) : CV.SAffine}:
+  AQ.ta_q(one, h1, hp, CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp)), PT.pv(one, P.mul(ks, pp)), GP.scalar_pmul_closed(one, h1, hp, hc, FS.value(one, ks), PT.pv(one, pp), vq), mul_vd(one, h1, hp, hc, ks, pp, hk, hq, vq), GP.equiv_sym(one, h1, hp, hc, PT.pv(one, P.mul(ks, pp)), CV.pmul(FS.prime(one), FS.value(one, ks), PT.pv(one, pp)), mul_q(one, h1, hp, hc, ks, pp, hk, hq, vq)))

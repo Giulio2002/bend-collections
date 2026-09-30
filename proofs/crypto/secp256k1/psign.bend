@@ -22,6 +22,7 @@ import ./bytes.bend as BY
 import ./point.bend as PT
 import ./sel.bend as SL
 import ./pmul.bend as PM
+import ./pmulg.bend as PG
 import ./paff.bend as PA
 import ./blist.bend as BL
 import ./pscal.bend as SQ
@@ -147,7 +148,7 @@ def aok(+one: Nat, +h1: {one == 1n : Nat}, +gp: NP.Prime(FS.prime(one)), +gc: {N
       +hg = PA.g_r(one, h1)
       +hm = PM.mul_r(one, h1, k, P.g(), hl, hg)
       %Equal.sym(CV.SPoint, CV.g(one), PT.pv(one, P.g()), Equal.sym(CV.SPoint, PT.pv(one, P.g()), CV.g(one), PA.g_v(one, h1))) : {matt(E.attempt_aff(z, d, k, P.to_affine(P.mul(k, P.g())))) == ES.finish(one, FS.value(one, z), FS.value(one, d), FS.value(one, k), CV.to_affine(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, k), _))) : ES.Attempt}
-      %Equal.sym(CV.SAffine, CV.to_affine(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, k), PT.pv(one, P.g()))), CV.to_affine(FS.prime(one), PT.pv(one, P.mul(k, P.g()))), PM.mul_aff(one, h1, gp, gc, k, P.g(), hl, hg, PM.g_vd(one, h1))) : {matt(E.attempt_aff(z, d, k, P.to_affine(P.mul(k, P.g())))) == ES.finish(one, FS.value(one, z), FS.value(one, d), FS.value(one, k), _) : ES.Attempt}
+      %Equal.sym(CV.SAffine, CV.to_affine(FS.prime(one), CV.pmul(FS.prime(one), FS.value(one, k), PT.pv(one, P.g()))), CV.to_affine(FS.prime(one), PT.pv(one, P.mul(k, P.g()))), PG.mul_aff(one, h1, gp, gc, k, P.g(), hl, hg, PG.g_vd(one, h1))) : {matt(E.attempt_aff(z, d, k, P.to_affine(P.mul(k, P.g())))) == ES.finish(one, FS.value(one, z), FS.value(one, d), FS.value(one, k), _) : ES.Attempt}
       %Equal.sym(CV.SAffine, CV.to_affine(FS.prime(one), PT.pv(one, P.mul(k, P.g()))), PA.av(one, P.to_affine(P.mul(k, P.g()))), Equal.sym(CV.SAffine, PA.av(one, P.to_affine(P.mul(k, P.g()))), CV.to_affine(FS.prime(one), PT.pv(one, P.mul(k, P.g()))), PA.aff_v(one, h1, P.mul(k, P.g()), hm))) : {matt(E.attempt_aff(z, d, k, P.to_affine(P.mul(k, P.g())))) == ES.finish(one, FS.value(one, z), FS.value(one, d), FS.value(one, k), _) : ES.Attempt}
       aff_fin(one, h1, z, hz, d, hd, k, SQ.ok_red(one, k, hl, hb), P.to_affine(P.mul(k, P.g())), PA.aff_r(one, h1, P.mul(k, P.g()), hm))
     case False{}:
