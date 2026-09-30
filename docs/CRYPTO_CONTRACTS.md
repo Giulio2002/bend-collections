@@ -380,7 +380,9 @@ nonce of another length, or a decryption input shorter than a tag, gives
   S-box defined as in 5.1.1, the multiplicative inverse (`a^254`, which is
   `a^-1` in the 255-element group GF(2^8)*, and `{00}` to itself; proved to
   be the multiplicative inverse, clauses `Inverse.unit` / `Inverse.zero`) followed by the affine
-  map of equation (5.1); ShiftRows, MixColumns (5.6) as the field products
+  map of equation (5.1), applied to the low byte of a U32 (entered through
+  `sbox_at`, a match on bit 7 whose two arms are the same, which keeps a
+  proof about an unknown byte from expanding the field arithmetic); ShiftRows, MixColumns (5.6) as the field products
   by `{02}` and `{03}`, AddRoundKey, the Cipher of Figure 5 and the
   KeyExpansion of Figure 11 with `Rcon[j] = [x^(j-1), 0, 0, 0]`, all for any
   `Nk`, `Nr` (AES-128: 4, 10; AES-192: 6, 12; AES-256: 8, 14). No table: the
