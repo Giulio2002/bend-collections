@@ -10,6 +10,7 @@ import ../../../../spec/crypto/secp256k1/curve.bend as CS
 import ./bn.bend as B
 import ./bnx.bend as X
 import ./certb.bend as CB
+import ./bnf.bend as F
 import ./sym.bend as S
 
 # The specification's point formulas on binary numbers (bn.bend), for
@@ -131,7 +132,18 @@ def pand(k: Bool, r: X.PR) -> X.PR:
       X.PR{x, Bool.and(k, ok)}
 
 def bsuby(+c: B.Bn, +p: B.Bn, +s: B.Bn, +b: B.Bn, +t: B.Bn) -> X.PR:
-  pand(B.beq(s, B.badd(t, b)), redp(c, p, t))
+  pand(B.beq(s, B.badd(t, b)), red1(t, p))
+
+# a square by F.bsq (half the work of the product)
+def msel(c: Bool, +a: B.Bn, +b: B.Bn) -> B.Bn:
+  match c:
+    case True{}:
+      F.bsq(a)
+    case False{}:
+      B.bmul(a, b)
+
+def pmq(+i: Nat, +j: Nat, +regs: List<&2, B.Bn>) -> B.Bn:
+  msel(Nat.is_eq(i, j), bnth(i, regs), bnth(j, regs))
 
 def bsubx(+c: B.Bn, +p: B.Bn, +s: B.Bn, +b: B.Bn) -> X.PR:
   bsuby(c, p, s, b, X.bsubu(s, b))
@@ -139,11 +151,11 @@ def bsubx(+c: B.Bn, +p: B.Bn, +s: B.Bn, +b: B.Bn) -> X.PR:
 def bexec(op: CS.SOp, +c: B.Bn, +p: B.Bn, +regs: List<&2, B.Bn>) -> X.PR:
   match op:
     case CS.SAdd{i, j}:
-      redp(c, p, B.badd(bnth(i, regs), bnth(j, regs)))
+      red1(B.badd(bnth(i, regs), bnth(j, regs)), p)
     case CS.SSub{i, j}:
       bsubx(c, p, B.badd(bnth(i, regs), p), bnth(j, regs))
     case CS.SMul{i, j}:
-      redp(c, p, B.bmul(bnth(i, regs), bnth(j, regs)))
+      redp(c, p, pmq(i, j, regs))
 
 type RR is Data:
   RR{regs: List<&2, B.Bn>, ok: Bool}
@@ -428,12 +440,22 @@ def pand_p(+k: Bool, r: X.PR, +h: {X.prk(pand(k, r)) == True{} : Bool}) -> {X.pr
 def bexec_lt(op: CS.SOp, +c: B.Bn, +p: B.Bn, +regs: List<&2, B.Bn>, +h: {X.prk(bexec(op, c, p, regs)) == True{} : Bool}) -> {ltk(X.prr(bexec(op, c, p, regs)), p) == True{} : Bool}:
   match op:
     case CS.SAdd{+i, +j}:
-      redp_lt(c, p, B.badd(bnth(i, regs), bnth(j, regs)), h)
+      red1c_lt(is_ge(bcmp(B.badd(bnth(i, regs), bnth(j, regs)), p)), B.badd(bnth(i, regs), bnth(j, regs)), p, h)
     case CS.SSub{+i, +j}:
-      %Equal.sym(B.Bn, X.prr(pand(B.beq(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))), redp(c, p, X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs))))), X.prr(redp(c, p, X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)))), pand_r(B.beq(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))), redp(c, p, X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs))))) : {ltk(_, p) == True{} : Bool}
-      redp_lt(c, p, X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), pand_p(B.beq(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))), redp(c, p, X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs))), h))
+      %Equal.sym(B.Bn, X.prr(pand(B.beq(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))), red1(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), p))), X.prr(red1(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), p)), pand_r(B.beq(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))), red1(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), p))) : {ltk(_, p) == True{} : Bool}
+      red1c_lt(is_ge(bcmp(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), p)), X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), p, pand_p(B.beq(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))), red1(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), p), h))
     case CS.SMul{+i, +j}:
-      redp_lt(c, p, B.bmul(bnth(i, regs), bnth(j, regs)), h)
+      redp_lt(c, p, pmq(i, j, regs), h)
+
+def msel_v(c: Bool, +i: Nat, +j: Nat, +regs: List<&2, B.Bn>, +hc: {Nat.is_eq(i, j) == c : Bool}) -> {B.bval(msel(c, bnth(i, regs), bnth(j, regs))) == Nat.mul(B.bval(bnth(i, regs)), B.bval(bnth(j, regs))) : Nat}:
+  match c:
+    case True{}:
+      Lg.subst(Nat, v => {B.bval(F.bsq(bnth(i, regs))) == Nat.mul(B.bval(bnth(i, regs)), B.bval(bnth(v, regs))) : Nat}, i, j, N.eq_from_is_eq(i, j, hc), F.bsq_v(bnth(i, regs)))
+    case False{}:
+      B.bmul_v(bnth(i, regs), bnth(j, regs))
+
+def pmq_v(+i: Nat, +j: Nat, +regs: List<&2, B.Bn>) -> {B.bval(pmq(i, j, regs)) == Nat.mul(B.bval(bnth(i, regs)), B.bval(bnth(j, regs))) : Nat}:
+  msel_v(Nat.is_eq(i, j), i, j, regs, {==})
 
 def sub_s(+t: Nat, +b: Nat) -> {Nat.sub(Nat.add(t, b), b) == t : Nat}:
   %rw NA.add_comm(t, b)
@@ -443,29 +465,29 @@ def sub_s(+t: Nat, +b: Nat) -> {Nat.sub(Nat.add(t, b), b) == t : Nat}:
 def bexec_v(op: CS.SOp, +c: B.Bn, +p: B.Bn, +mp: Nat, +regs: List<&2, B.Bn>, +hm: {B.bval(p) == 1n+mp : Nat}, +hw: {B.bval(CB.bshl(256n, B.B1{B.BZ{}})) == Nat.add(B.bval(p), B.bval(c)) : Nat}, +hall: {allok(p, regs) == True{} : Bool}, +h: {X.prk(bexec(op, c, p, regs)) == True{} : Bool}) -> {CS.exec(1n+mp, op, vals(regs)) == B.bval(X.prr(bexec(op, c, p, regs))) : Nat}:
   match op:
     case CS.SAdd{+i, +j}:
-      %goal {Nat.mod(Nat.add(CS.nth(i, vals(regs)), CS.nth(j, vals(regs))), 1n+mp) == B.bval(X.prr(redp(c, p, B.badd(bnth(i, regs), bnth(j, regs))))) : Nat}
+      %goal {Nat.mod(Nat.add(CS.nth(i, vals(regs)), CS.nth(j, vals(regs))), 1n+mp) == B.bval(X.prr(red1(B.badd(bnth(i, regs), bnth(j, regs)), p))) : Nat}
       %rw nth_vals(i, regs)
       %rw nth_vals(j, regs)
       %rw <- B.badd_v(bnth(i, regs), bnth(j, regs))
-      redp_v(c, p, mp, B.badd(bnth(i, regs), bnth(j, regs)), hm, hw, h)
+      red1c_v(is_ge(bcmp(B.badd(bnth(i, regs), bnth(j, regs)), p)), B.badd(bnth(i, regs), bnth(j, regs)), p, mp, hm, h)
     case CS.SSub{+i, +j}:
-      %goal {Nat.mod(Nat.sub(Nat.add(CS.nth(i, vals(regs)), 1n+mp), Nat.mod(CS.nth(j, vals(regs)), 1n+mp)), 1n+mp) == B.bval(X.prr(pand(B.beq(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))), redp(c, p, X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)))))) : Nat}
+      %goal {Nat.mod(Nat.sub(Nat.add(CS.nth(i, vals(regs)), 1n+mp), Nat.mod(CS.nth(j, vals(regs)), 1n+mp)), 1n+mp) == B.bval(X.prr(pand(B.beq(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))), red1(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), p)))) : Nat}
       %rw nth_vals(i, regs)
       %rw nth_vals(j, regs)
       %rwh NR.mod_of(0n, mp, B.bval(bnth(j, regs)), all_lt(p, mp, j, regs, hm, hall)) : {Nat.mod(B.bval(bnth(j, regs)), 1n+mp) == B.bval(bnth(j, regs)) : Nat}
       %rwh Equal.sym(Nat, B.bval(p), 1n+mp, hm) : {1n+mp == B.bval(p) : Nat}
       %rw <- B.badd_v(bnth(i, regs), p)
-      %rwh B.beq_v(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs)), pand_k(B.beq(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))), redp(c, p, X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs))), h)) : {B.bval(B.badd(bnth(i, regs), p)) == B.bval(B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))) : Nat}
+      %rwh B.beq_v(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs)), pand_k(B.beq(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))), red1(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), p), h)) : {B.bval(B.badd(bnth(i, regs), p)) == B.bval(B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))) : Nat}
       %rw B.badd_v(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))
       %rw sub_s(B.bval(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs))), B.bval(bnth(j, regs)))
-      %rw pand_r(B.beq(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))), redp(c, p, X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs))))
-      redp_v(c, p, mp, X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), hm, hw, pand_p(B.beq(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))), redp(c, p, X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs))), h))
+      %rw pand_r(B.beq(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))), red1(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), p))
+      red1c_v(is_ge(bcmp(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), p)), X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), p, mp, hm, pand_p(B.beq(B.badd(bnth(i, regs), p), B.badd(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), bnth(j, regs))), red1(X.bsubu(B.badd(bnth(i, regs), p), bnth(j, regs)), p), h))
     case CS.SMul{+i, +j}:
-      %goal {Nat.mod(Nat.mul(CS.nth(i, vals(regs)), CS.nth(j, vals(regs))), 1n+mp) == B.bval(X.prr(redp(c, p, B.bmul(bnth(i, regs), bnth(j, regs))))) : Nat}
+      %goal {Nat.mod(Nat.mul(CS.nth(i, vals(regs)), CS.nth(j, vals(regs))), 1n+mp) == B.bval(X.prr(redp(c, p, pmq(i, j, regs)))) : Nat}
       %rw nth_vals(i, regs)
       %rw nth_vals(j, regs)
-      %rw <- B.bmul_v(bnth(i, regs), bnth(j, regs))
-      redp_v(c, p, mp, B.bmul(bnth(i, regs), bnth(j, regs)), hm, hw, h)
+      %rw <- pmq_v(i, j, regs)
+      redp_v(c, p, mp, pmq(i, j, regs), hm, hw, h)
 
 # ---- a run ----
 
