@@ -43,12 +43,12 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | BLAKE2s | 1.14 |
 | BLAKE2b | 2.70 |
 | BLAKE3 | 1.58 |
-| SHA-512 | 9.44 |
-| SHA3-256 | 11.68 |
-| Incremental hashing (`Hasher`) | 37.89 |
+| SHA-512 | 4.77 |
+| SHA3-256 | 7.27 |
+| Incremental hashing (`Hasher`) | 7.83 |
 | `subtle.eq` | 213.33 |
-| HMAC-SHA256 | 5.84 |
-| HKDF-SHA256 | 8.97 |
+| HMAC-SHA256 | 5.83 |
+| HKDF-SHA256 | 9.08 |
 | ChaCha20 | 26.28 |
 | Poly1305 | 1135.42 |
 | ChaCha20-Poly1305 | 366.20 |
@@ -160,52 +160,52 @@ Same method as the hashes above (`benchmarks/crypto_suite.py --group hash`).
 
 ### SHA-512
 
-C reference: Monocypher 4.0.2 `crypto_sha512` (portable C). Worst ratio 9.44.
+C reference: Monocypher 4.0.2 `crypto_sha512` (portable C). Worst ratio 4.77.
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 1.98 | 0.23 | 8.70 |
-| 1 KiB | 14.2 | 1.50 | 9.44 |
-| 16 KiB | 184 | 20.6 | 8.91 |
-| 64 KiB | 734 | 81.8 | 8.98 |
-| 1 MiB | 12250 | 1306 | 9.38 |
+| 64 B | 0.93 | 0.23 | 4.07 |
+| 1 KiB | 6.59 | 1.51 | 4.38 |
+| 16 KiB | 97.7 | 20.7 | 4.72 |
+| 64 KiB | 375 | 81.9 | 4.58 |
+| 1 MiB | 6250 | 1309 | 4.77 |
 
 ### SHA3-256
 
-C reference: XKCP `plain-64bits` Keccak-p[1600] with the FIPS 202 padding. Worst ratio 11.68.
+C reference: XKCP `plain-64bits` Keccak-p[1600] with the FIPS 202 padding. Worst ratio 7.27.
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 1.59 | 0.14 | 11.68 |
-| 1 KiB | 11.0 | 1.08 | 10.19 |
-| 16 KiB | 152 | 16.3 | 9.36 |
-| 64 KiB | 594 | 64.9 | 9.15 |
-| 1 MiB | 10000 | 1041 | 9.60 |
+| 64 B | 0.99 | 0.14 | 7.27 |
+| 1 KiB | 6.10 | 1.09 | 5.59 |
+| 16 KiB | 93.8 | 16.3 | 5.75 |
+| 64 KiB | 375 | 65.5 | 5.73 |
+| 1 MiB | 6000 | 1040 | 5.77 |
 
 ### Incremental hashing (`Hasher`)
 
-C reference: the same C as the one-shot rows through init/update/final (`sha256_ctx.h`, Monocypher `crypto_sha512_*`, `sha3_ctx.h` over XKCP), fed the same chunks. "one-shot" is `hash.sha256`/`sha512`/`sha3_256` of the whole message; "64 B chunks" is `new_*`, `update_all` over 64-byte pieces cut before the timed region, then `digest`. Worst ratio 37.89.
+C reference: the same C as the one-shot rows through init/update/final (`sha256_ctx.h`, Monocypher `crypto_sha512_*`, `sha3_ctx.h` over XKCP), fed the same chunks. "one-shot" is `hash.sha256`/`sha512`/`sha3_256` of the whole message; "64 B chunks" is `new_*`, `update_all` over 64-byte pieces cut before the timed region, then `digest`. Worst ratio 7.83.
 
 | Hash, message, feed | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| SHA-256 1 KiB one-shot | 8.30 | 2.52 | 3.30 |
-| SHA-256 1 KiB 64 B chunks | 26.9 | 2.58 | 10.41 |
-| SHA-256 64 KiB one-shot | 531 | 148 | 3.59 |
-| SHA-256 64 KiB 64 B chunks | 1625 | 149 | 10.87 |
-| SHA-256 1 MiB one-shot | 8500 | 2368 | 3.59 |
-| SHA-256 1 MiB 64 B chunks | 26500 | 2382 | 11.13 |
-| SHA-512 1 KiB one-shot | 23.9 | 1.50 | 15.96 |
-| SHA-512 1 KiB 64 B chunks | 43.0 | 1.50 | 28.59 |
-| SHA-512 64 KiB one-shot | 1281 | 82.0 | 15.62 |
-| SHA-512 64 KiB 64 B chunks | 2469 | 81.8 | 30.20 |
-| SHA-512 1 MiB one-shot | 21000 | 1308 | 16.06 |
-| SHA-512 1 MiB 64 B chunks | 40500 | 1302 | 31.11 |
-| SHA3-256 1 KiB one-shot | 19.0 | 1.08 | 17.61 |
-| SHA3-256 1 KiB 64 B chunks | 45.9 | 1.30 | 35.27 |
-| SHA3-256 64 KiB one-shot | 1125 | 65.0 | 17.30 |
-| SHA3-256 64 KiB 64 B chunks | 2969 | 78.3 | 37.89 |
-| SHA3-256 1 MiB one-shot | 18500 | 1040 | 17.78 |
-| SHA3-256 1 MiB 64 B chunks | 47000 | 1264 | 37.20 |
+| SHA-256 1 KiB one-shot | 6.35 | 2.60 | 2.44 |
+| SHA-256 1 KiB 64 B chunks | 4.39 | 2.61 | 1.69 |
+| SHA-256 64 KiB one-shot | 375 | 148 | 2.53 |
+| SHA-256 64 KiB 64 B chunks | 281 | 151 | 1.87 |
+| SHA-256 1 MiB one-shot | 6000 | 2372 | 2.53 |
+| SHA-256 1 MiB 64 B chunks | 4500 | 2388 | 1.88 |
+| SHA-512 1 KiB one-shot | 6.35 | 1.51 | 4.20 |
+| SHA-512 1 KiB 64 B chunks | 8.30 | 1.52 | 5.46 |
+| SHA-512 64 KiB one-shot | 375 | 82.6 | 4.54 |
+| SHA-512 64 KiB 64 B chunks | 500 | 81.9 | 6.10 |
+| SHA-512 1 MiB one-shot | 6500 | 1314 | 4.94 |
+| SHA-512 1 MiB 64 B chunks | 8000 | 1312 | 6.10 |
+| SHA3-256 1 KiB one-shot | 6.35 | 1.09 | 5.83 |
+| SHA3-256 1 KiB 64 B chunks | 10.3 | 1.31 | 7.81 |
+| SHA3-256 64 KiB one-shot | 406 | 65.6 | 6.20 |
+| SHA3-256 64 KiB 64 B chunks | 594 | 80.7 | 7.36 |
+| SHA3-256 1 MiB one-shot | 7000 | 1070 | 6.54 |
+| SHA3-256 1 MiB 64 B chunks | 10000 | 1278 | 7.83 |
 
 ### `subtle.eq`
 
@@ -213,32 +213,32 @@ C reference: constant-time loop (lengths, then OR of the XOR of every byte pair,
 
 | Length | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 32 B | 0.14 | 0.00 | 128.38 |
+| 32 B | 0.14 | 0.00 | 120.81 |
 | 1 KiB | 3.91 | 0.02 | 213.33 |
-| 64 KiB | 219 | 1.16 | 189.19 |
+| 64 KiB | 219 | 1.17 | 186.67 |
 
 ### HMAC-SHA256
 
-C reference: RFC 2104 over the portable FIPS 180-4 SHA-256 (`benchmarks/native/sha256_ctx.h`), 32-byte key. Worst ratio 5.84.
+C reference: RFC 2104 over the portable FIPS 180-4 SHA-256 (`benchmarks/native/sha256_ctx.h`), 32-byte key. Worst ratio 5.83.
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 4.43 | 0.76 | 5.84 |
-| 1 KiB | 13.2 | 2.98 | 4.43 |
-| 16 KiB | 141 | 37.7 | 3.73 |
-| 64 KiB | 531 | 149 | 3.56 |
-| 1 MiB | 8500 | 2371 | 3.58 |
+| 64 B | 4.47 | 0.77 | 5.83 |
+| 1 KiB | 13.4 | 3.05 | 4.40 |
+| 16 KiB | 141 | 37.8 | 3.72 |
+| 64 KiB | 547 | 150 | 3.65 |
+| 1 MiB | 8500 | 2381 | 3.57 |
 
 ### HKDF-SHA256
 
-C reference: RFC 5869 over the same C HMAC; 32-byte input keying material, 32-byte salt, 16-byte info. Worst ratio 8.97.
+C reference: RFC 5869 over the same C HMAC; 32-byte input keying material, 32-byte salt, 16-byte info. Worst ratio 9.08.
 
 | Output | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 32 B out | 9.28 | 1.24 | 7.51 |
-| 128 B out | 25.9 | 3.12 | 8.29 |
-| 1024 B out | 180 | 20.5 | 8.78 |
-| 8160 B out | 1406 | 157 | 8.97 |
+| 32 B out | 9.28 | 1.25 | 7.41 |
+| 128 B out | 25.9 | 3.16 | 8.19 |
+| 1024 B out | 180 | 20.6 | 8.74 |
+| 8160 B out | 1438 | 158 | 9.08 |
 
 ## Ciphers and AEADs
 
