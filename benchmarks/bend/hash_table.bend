@@ -6,13 +6,19 @@ import ../../src/containers/hash_table.bend as H
 # reps, seed, order]; benchmarks/native/hash_table.c performs the identical
 # work and folds the identical checksum (selectors documented there).
 #
-# Key i is the one-character String Chr{65536 + i}.
+# Key i is the one-character String Chr{65536 + i}; the keyed operations
+# (set, get, has, pop) take it by its code through the *_char API, as C
+# takes the integer.
 
 type St is Type:
   S{rng: U32, chk: U32, t: H.HashMap<&2, U32>}
 
 def key(+i: U32) -> String:
   SCon{Chr{U32.add(i, 65536)}, SNil{}}
+
+# the code of key i, for the one-character key API (no String is built)
+def code(+i: U32) -> U32:
+  U32.add(i, 65536)
 
 def bit(b: Bool) -> U32:
   match b:
@@ -45,17 +51,21 @@ def fin_bit(+r: U32, c: U32, p: H.HashMap<&2, U32> & Bool) -> St:
 def op_set(st: St, +size: U32) -> St:
   S{r0, c, t} = st
   +r = B.lcg(r0)
-  fin_num(r, c, H.size(&2, U32, H.set(&2, U32, t, key(draw(r, size)), r)))
+  fin_num(r, c, H.size(&2, U32, H.set_char(&2, U32, t, code(draw(r, size)), r)))
+
+def fin_get(+r: U32, c: U32, p: H.HashMap<&2, U32> & U32) -> St:
+  (t, x) = p
+  S{r, B.mix(c, x), t}
 
 def op_get(st: St, +size: U32) -> St:
   S{r0, c, t} = st
   +r = B.lcg(r0)
-  fin_num(r, c, H.get(U32, 4294967295, t, key(draw(r, size))))
+  fin_get(r, c, H.get_char(U32, 4294967295, t, code(draw(r, size))))
 
 def op_has(st: St, +size: U32) -> St:
   S{r0, c, t} = st
   +r = B.lcg(r0)
-  fin_bit(r, c, H.has(&2, U32, t, key(draw(r, size))))
+  fin_bit(r, c, H.has_char(&2, U32, t, code(draw(r, size))))
 
 def val_or0(m: Maybe<&2, U32>) -> U32:
   match m:
@@ -66,13 +76,13 @@ def val_or0(m: Maybe<&2, U32>) -> U32:
 
 def ps_fin(+r: U32, c: U32, +i: U32, p: H.HashMap<&2, U32> & Maybe<&2, U32>) -> St:
   (t, m) = p
-  S{r, B.mix(c, val_or0(m)), H.set(&2, U32, t, key(i), U32.inc(i))}
+  S{r, B.mix(c, val_or0(m)), H.set_char(&2, U32, t, code(i), U32.inc(i))}
 
 def op_pop_set(st: St, +size: U32) -> St:
   S{r0, c, t} = st
   +r = B.lcg(r0)
   +i = draw(r, size)
-  ps_fin(r, c, i, H.pop(&2, U32, t, key(i)))
+  ps_fin(r, c, i, H.pop_char(&2, U32, t, code(i)))
 
 def op_size(st: St) -> St:
   S{r0, c, t} = st
@@ -203,12 +213,23 @@ def drain_fin(st: St) -> U32:
   S{r, c, t} = st
   drain_end(H.size(&2, U32, t), c)
 
+# The drain's own copy of get (a def with two callers is not inlined into
+# either, which would charge the measured get loop a call per operation).
+def drain_num(+r: U32, c: U32, p: H.HashMap<&2, U32> & U32) -> St:
+  (t, x) = p
+  S{r, B.mix(c, x), t}
+
+def drain_get(st: St, +size: U32) -> St:
+  S{r0, c, t} = st
+  +r = B.lcg(r0)
+  drain_num(r, c, H.get_char(U32, 4294967295, t, code(draw(r, size))))
+
 def drain_loop(k: Nat, +n: U32, st: St) -> St:
   match k:
     case 0n:
       st
     case 1n+p:
-      drain_loop(p, n, op_get(st, n))
+      drain_loop(p, n, drain_get(st, n))
 
 def drain(+size: U32, st: St) -> U32:
   S{+r, c, t} = st

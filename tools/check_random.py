@@ -300,6 +300,11 @@ class Rand:
             return ','.join(map(str, self.shuffle(list(range(100, 100 + int(p[1]))))))
         if op == 'b':
             return ','.join(map(str, self.read(int(p[1]))))
+        if op == 'w':
+            out = []
+            for _ in range(int(p[1])):
+                out += list(self.uint64().to_bytes(8, 'little'))
+            return ','.join(map(str, out))
         if op == 'c':
             cs = [0] * int(p[1])
             for _ in range(int(p[2])):
@@ -380,6 +385,11 @@ def go_vectors():
     # crypto/random bytes: Go's TestChaCha8Read transcripts
     got = run(source_token('crb', seed=list(SEED)), ['b:2976'])
     check('go ChaCha8.Read one read', hashlib.sha256(bytes(map(int, got[0].split(',')))).hexdigest(), CHACHA8_HASH)
+    got = run(source_token('crb', seed=list(SEED)), ['w:372:0'])
+    check('go ChaCha8.Read as read_words', hashlib.sha256(bytes(map(int, got[0].split(',')))).hexdigest(), CHACHA8_HASH)
+    got = run(source_token('crb', seed=list(SEED)), ['w:100:5', 'w:0:3', 'w:272:1'])
+    data = bytes(int(b) for line in got for b in line.split(',') if b != '')
+    check('go ChaCha8.Read as read_words in chunks', hashlib.sha256(data).hexdigest(), CHACHA8_HASH)
     chunks, n, rng = [], 0, random.Random(5)
     while n < 2976:
         k = min(rng.randrange(100), 2976 - n)
@@ -461,7 +471,7 @@ def differentials(seed):
     differential('pcg zero', 'pcg', random_toks(rng, 300), s1=0, s2=0)
     for t in range(4):
         key = [rng.randrange(1 << 32) for _ in range(8)]
-        toks = [rng.choice(['b:%d' % rng.randrange(0, 20), 'u64', 'n:' + u64s(rng.choice(EDGE))]) for _ in range(300)]
+        toks = [rng.choice(['b:%d' % rng.randrange(0, 20), 'w:%d:%d' % (rng.randrange(0, 40), rng.randrange(0, 9)), 'u64', 'n:' + u64s(rng.choice(EDGE))]) for _ in range(300)]
         differential('crypto key %d' % t, 'cr', toks, key=key)
     # a long ChaCha8 run through many key erasures
     key = [rng.randrange(1 << 32) for _ in range(8)]

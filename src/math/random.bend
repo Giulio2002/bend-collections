@@ -36,13 +36,15 @@ import ./random/pcg.bend as P
 #   uint64n / uint_below, uint32n, intn, int_range
 #                                 uniform bounded integers (Lemire, unbiased)
 #   float64                       uniform in [0, 1), 53 random bits
-#   shuffle, perm                 Fisher-Yates
+#   shuffle, perm                 Fisher-Yates on a list (through an array)
+#   shuffle_array                 Fisher-Yates in place on the first n slots
+#                                 of an Array (Go's Shuffle on a slice)
 #
 # Laws (spec/math/random/, proved in proofs/math/random/): the ChaCha8
 # stream is C2SP's for every seed, one PCG step is the 128-bit LCG and DXSM
 # on naturals, uint64n(n) < n, Lemire's acceptance is exactly unbiased
 # (every k < n has floor(2^64 / n) accepted inputs), shuffle and perm return
-# permutations, float64 < 1.
+# permutations (shuffle_array: of the array's slots), float64 < 1.
 
 def chacha8(+seed: List<&2, U32>) -> Maybe<&2, C8.ChaCha8>:
   C8.new(seed)
@@ -91,3 +93,6 @@ def shuffle(~A: Data, ~S: Data, ~next: S -> W.U64 & S, s: S, +xs: List<&2, A>) -
 
 def perm(~S: Data, ~next: S -> W.U64 & S, s: S, +n: Nat) -> List<&2, Nat> & S:
   R.perm(~S, ~next, s, n)
+
+def shuffle_array(~A: Data, ~S: Data, ~next: S -> W.U64 & S, s: S, a: Array<A>, +n: Nat) -> Array<A> & S:
+  R.shuffle_array(~A, ~S, ~next, s, a, n)

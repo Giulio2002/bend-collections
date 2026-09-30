@@ -1,6 +1,6 @@
 import Base
 import ./types.bend as A
-import ./sub.bend as SB
+import ./access.bend as X
 
 # The Argon2 memory: a packed Array<U32> of 2^(8 + k) words, block b at words
 # 256 b .. 256 b + 255 (lane n of the block at words 256 b + 2 n, low half,
@@ -8,35 +8,13 @@ import ./sub.bend as SB
 # with Base's Array.get and Array.set, which the compiler turns into O(1)
 # accesses of the packed buffer.
 
-# Words i - n .. i, prepended to acc: pair holds the memory and word i.
-def rd(n: Nat, +i: Nat, acc: List<&2, U32>, pair: Array<U32> & U32) -> Array<U32> & List<&2, U32>:
-  match n pair:
-    case 0n Tuple{a, w}:
-      (a, w <> acc)
-    case 1n+p Tuple{a, w}:
-      +j = Nat.sub(i, 1n)
-      rd(p, j, w <> acc, Array.get(U32, a, U32.from_nat(j)))
-
-def read_fin(pair: Array<U32> & List<&2, U32>) -> Array<U32> & A.Block:
-  (a, ws) = pair
-  (a, SB.rows8(ws))
-
-# Block b; the memory is handed back.
+# Block b; the memory is handed back (access.bend: 256 Array.get, row by row).
 def get(+b: Nat, a: Array<U32>) -> Array<U32> & A.Block:
-  +last = Nat.add(Nat.mul(b, 256n), 255n)
-  read_fin(rd(255n, last, Nil{}, Array.get(U32, a, U32.from_nat(last))))
+  X.get(b, a)
 
-# The words stored from word i on.
-def wr(ws: List<&2, U32>, +i: Nat, a: Array<U32>) -> Array<U32>:
-  match ws:
-    case Nil{}:
-      a
-    case w <> rest:
-      wr(rest, Nat.add(i, 1n), Array.set(U32, a, U32.from_nat(i), w))
-
-# The memory with block b replaced by v.
+# The memory with block b replaced by v (access.bend: 256 Array.set).
 def set(+b: Nat, v: A.Block, a: Array<U32>) -> Array<U32>:
-  wr(SB.words(v), Nat.mul(b, 256n), a)
+  X.put(b, v, a)
 
 def pw(k: Nat) -> Nat:
   match k:

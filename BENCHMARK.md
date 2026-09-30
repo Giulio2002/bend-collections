@@ -43,12 +43,12 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | BLAKE2s | 1.14 |
 | BLAKE2b | 2.70 |
 | BLAKE3 | 1.58 |
-| SHA-512 | 9.44 |
-| SHA3-256 | 11.68 |
-| Incremental hashing (`Hasher`) | 37.89 |
+| SHA-512 | 4.77 |
+| SHA3-256 | 7.27 |
+| Incremental hashing (`Hasher`) | 7.83 |
 | `subtle.eq` | 213.33 |
-| HMAC-SHA256 | 5.84 |
-| HKDF-SHA256 | 8.97 |
+| HMAC-SHA256 | 5.83 |
+| HKDF-SHA256 | 9.08 |
 | ChaCha20 | 26.28 |
 | Poly1305 | 1135.42 |
 | ChaCha20-Poly1305 | 366.20 |
@@ -59,31 +59,32 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | Ed25519 key generation | 25.84 |
 | Ed25519 sign | 33.41 |
 | Ed25519 verify | 13.02 |
-| Argon2id | 42.94 |
+| Argon2id | 9.09 |
 | secp256k1 (ECDSA, recovery, BIP-340) | 47560.98 |
-| ChaCha8 `uint64` | 7.42 |
-| PCG `uint64` | 6.63 |
-| `uint_below` (ChaCha8) | 15.92 |
-| `float64` (ChaCha8) | 9.30 |
-| `shuffle` (ChaCha8) | 238135.47 |
-| `crypto.random.bytes` | 34.41 |
+| ChaCha8 `uint64` | 7.26 |
+| PCG `uint64` | 6.47 |
+| `uint_below` (ChaCha8) | 6.05 |
+| `float64` (ChaCha8) | 9.28 |
+| `shuffle` (ChaCha8) | 6.38 |
+| `crypto.random.bytes` | 23.17 |
+| `crypto.random.read_words` | 4.34 |
 | Math (natural) | 5.35 |
 | Math per type | 7.68 |
 | Intrusive doubly linked list | 1.63 |
-| Dynamic array | 13.49 |
+| Dynamic array | 3.24 |
 | Deque | 1.15 |
 | FIFO queue | 1.44 |
 | Stack | 19.67 |
 | Simple queue | 1.40 |
 | Priority queue | 5.54 |
 | Binary heap | 5.56 |
-| Doubly linked list | 12.40 |
+| Doubly linked list | 5.95 |
 | List iterator | 3.86 |
 | Tree map | 26.52 |
 | Bitset | 3.32 |
 | Bit list | 5.66 |
-| Hash map | 21.75 |
-| LRU cache | 10.74 |
+| Hash map | 9.64 |
+| LRU cache | 8.75 |
 
 ## Hashes
 
@@ -160,52 +161,52 @@ Same method as the hashes above (`benchmarks/crypto_suite.py --group hash`).
 
 ### SHA-512
 
-C reference: Monocypher 4.0.2 `crypto_sha512` (portable C). Worst ratio 9.44.
+C reference: Monocypher 4.0.2 `crypto_sha512` (portable C). Worst ratio 4.77.
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 1.98 | 0.23 | 8.70 |
-| 1 KiB | 14.2 | 1.50 | 9.44 |
-| 16 KiB | 184 | 20.6 | 8.91 |
-| 64 KiB | 734 | 81.8 | 8.98 |
-| 1 MiB | 12250 | 1306 | 9.38 |
+| 64 B | 0.93 | 0.23 | 4.07 |
+| 1 KiB | 6.59 | 1.51 | 4.38 |
+| 16 KiB | 97.7 | 20.7 | 4.72 |
+| 64 KiB | 375 | 81.9 | 4.58 |
+| 1 MiB | 6250 | 1309 | 4.77 |
 
 ### SHA3-256
 
-C reference: XKCP `plain-64bits` Keccak-p[1600] with the FIPS 202 padding. Worst ratio 11.68.
+C reference: XKCP `plain-64bits` Keccak-p[1600] with the FIPS 202 padding. Worst ratio 7.27.
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 1.59 | 0.14 | 11.68 |
-| 1 KiB | 11.0 | 1.08 | 10.19 |
-| 16 KiB | 152 | 16.3 | 9.36 |
-| 64 KiB | 594 | 64.9 | 9.15 |
-| 1 MiB | 10000 | 1041 | 9.60 |
+| 64 B | 0.99 | 0.14 | 7.27 |
+| 1 KiB | 6.10 | 1.09 | 5.59 |
+| 16 KiB | 93.8 | 16.3 | 5.75 |
+| 64 KiB | 375 | 65.5 | 5.73 |
+| 1 MiB | 6000 | 1040 | 5.77 |
 
 ### Incremental hashing (`Hasher`)
 
-C reference: the same C as the one-shot rows through init/update/final (`sha256_ctx.h`, Monocypher `crypto_sha512_*`, `sha3_ctx.h` over XKCP), fed the same chunks. "one-shot" is `hash.sha256`/`sha512`/`sha3_256` of the whole message; "64 B chunks" is `new_*`, `update_all` over 64-byte pieces cut before the timed region, then `digest`. Worst ratio 37.89.
+C reference: the same C as the one-shot rows through init/update/final (`sha256_ctx.h`, Monocypher `crypto_sha512_*`, `sha3_ctx.h` over XKCP), fed the same chunks. "one-shot" is `hash.sha256`/`sha512`/`sha3_256` of the whole message; "64 B chunks" is `new_*`, `update_all` over 64-byte pieces cut before the timed region, then `digest`. Worst ratio 7.83.
 
 | Hash, message, feed | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| SHA-256 1 KiB one-shot | 8.30 | 2.52 | 3.30 |
-| SHA-256 1 KiB 64 B chunks | 26.9 | 2.58 | 10.41 |
-| SHA-256 64 KiB one-shot | 531 | 148 | 3.59 |
-| SHA-256 64 KiB 64 B chunks | 1625 | 149 | 10.87 |
-| SHA-256 1 MiB one-shot | 8500 | 2368 | 3.59 |
-| SHA-256 1 MiB 64 B chunks | 26500 | 2382 | 11.13 |
-| SHA-512 1 KiB one-shot | 23.9 | 1.50 | 15.96 |
-| SHA-512 1 KiB 64 B chunks | 43.0 | 1.50 | 28.59 |
-| SHA-512 64 KiB one-shot | 1281 | 82.0 | 15.62 |
-| SHA-512 64 KiB 64 B chunks | 2469 | 81.8 | 30.20 |
-| SHA-512 1 MiB one-shot | 21000 | 1308 | 16.06 |
-| SHA-512 1 MiB 64 B chunks | 40500 | 1302 | 31.11 |
-| SHA3-256 1 KiB one-shot | 19.0 | 1.08 | 17.61 |
-| SHA3-256 1 KiB 64 B chunks | 45.9 | 1.30 | 35.27 |
-| SHA3-256 64 KiB one-shot | 1125 | 65.0 | 17.30 |
-| SHA3-256 64 KiB 64 B chunks | 2969 | 78.3 | 37.89 |
-| SHA3-256 1 MiB one-shot | 18500 | 1040 | 17.78 |
-| SHA3-256 1 MiB 64 B chunks | 47000 | 1264 | 37.20 |
+| SHA-256 1 KiB one-shot | 6.35 | 2.60 | 2.44 |
+| SHA-256 1 KiB 64 B chunks | 4.39 | 2.61 | 1.69 |
+| SHA-256 64 KiB one-shot | 375 | 148 | 2.53 |
+| SHA-256 64 KiB 64 B chunks | 281 | 151 | 1.87 |
+| SHA-256 1 MiB one-shot | 6000 | 2372 | 2.53 |
+| SHA-256 1 MiB 64 B chunks | 4500 | 2388 | 1.88 |
+| SHA-512 1 KiB one-shot | 6.35 | 1.51 | 4.20 |
+| SHA-512 1 KiB 64 B chunks | 8.30 | 1.52 | 5.46 |
+| SHA-512 64 KiB one-shot | 375 | 82.6 | 4.54 |
+| SHA-512 64 KiB 64 B chunks | 500 | 81.9 | 6.10 |
+| SHA-512 1 MiB one-shot | 6500 | 1314 | 4.94 |
+| SHA-512 1 MiB 64 B chunks | 8000 | 1312 | 6.10 |
+| SHA3-256 1 KiB one-shot | 6.35 | 1.09 | 5.83 |
+| SHA3-256 1 KiB 64 B chunks | 10.3 | 1.31 | 7.81 |
+| SHA3-256 64 KiB one-shot | 406 | 65.6 | 6.20 |
+| SHA3-256 64 KiB 64 B chunks | 594 | 80.7 | 7.36 |
+| SHA3-256 1 MiB one-shot | 7000 | 1070 | 6.54 |
+| SHA3-256 1 MiB 64 B chunks | 10000 | 1278 | 7.83 |
 
 ### `subtle.eq`
 
@@ -213,32 +214,32 @@ C reference: constant-time loop (lengths, then OR of the XOR of every byte pair,
 
 | Length | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 32 B | 0.14 | 0.00 | 128.38 |
+| 32 B | 0.14 | 0.00 | 120.81 |
 | 1 KiB | 3.91 | 0.02 | 213.33 |
-| 64 KiB | 219 | 1.16 | 189.19 |
+| 64 KiB | 219 | 1.17 | 186.67 |
 
 ### HMAC-SHA256
 
-C reference: RFC 2104 over the portable FIPS 180-4 SHA-256 (`benchmarks/native/sha256_ctx.h`), 32-byte key. Worst ratio 5.84.
+C reference: RFC 2104 over the portable FIPS 180-4 SHA-256 (`benchmarks/native/sha256_ctx.h`), 32-byte key. Worst ratio 5.83.
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 4.43 | 0.76 | 5.84 |
-| 1 KiB | 13.2 | 2.98 | 4.43 |
-| 16 KiB | 141 | 37.7 | 3.73 |
-| 64 KiB | 531 | 149 | 3.56 |
-| 1 MiB | 8500 | 2371 | 3.58 |
+| 64 B | 4.47 | 0.77 | 5.83 |
+| 1 KiB | 13.4 | 3.05 | 4.40 |
+| 16 KiB | 141 | 37.8 | 3.72 |
+| 64 KiB | 547 | 150 | 3.65 |
+| 1 MiB | 8500 | 2381 | 3.57 |
 
 ### HKDF-SHA256
 
-C reference: RFC 5869 over the same C HMAC; 32-byte input keying material, 32-byte salt, 16-byte info. Worst ratio 8.97.
+C reference: RFC 5869 over the same C HMAC; 32-byte input keying material, 32-byte salt, 16-byte info. Worst ratio 9.08.
 
 | Output | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 32 B out | 9.28 | 1.24 | 7.51 |
-| 128 B out | 25.9 | 3.12 | 8.29 |
-| 1024 B out | 180 | 20.5 | 8.78 |
-| 8160 B out | 1406 | 157 | 8.97 |
+| 32 B out | 9.28 | 1.25 | 7.41 |
+| 128 B out | 25.9 | 3.16 | 8.19 |
+| 1024 B out | 180 | 20.6 | 8.74 |
+| 8160 B out | 1438 | 158 | 9.08 |
 
 ## Ciphers and AEADs
 
@@ -365,12 +366,12 @@ C reference: Monocypher 4.0.2 `crypto_ed25519_check`. Worst ratio 13.02 (4449.20
 
 ### Argon2id
 
-C reference: the official P-H-C reference (`ref.c`, portable, no SSE), one thread. Worst ratio 42.94.
+C reference: the official P-H-C reference (`ref.c`, portable, no SSE), one thread. Worst ratio 9.09.
 
 | Parameters | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| m=64 KiB t=3 p=1 | 2547 | 59.3 | 42.94 |
-| m=19 MiB t=2 p=1 | 462000 | 12954 | 35.66 |
+| m=64 KiB t=3 p=1 | 562 | 61.9 | 9.09 |
+| m=19 MiB t=2 p=1 | 99000 | 13340 | 7.42 |
 
 ### secp256k1 (ECDSA, recovery, BIP-340)
 
@@ -392,57 +393,68 @@ microseconds per shuffle / per request.
 
 ### ChaCha8 `uint64`
 
-C reference: a C transcription of Go 1.23 `internal/chacha8rand` (portable block function). Worst ratio 7.42.
+C reference: a C transcription of Go 1.23 `internal/chacha8rand` (portable block function). Worst ratio 7.26.
 
 | Draws | Bend (ns) | C (ns) | Ratio |
 |---:|---:|---:|---:|
-| 2097152 draws | 30.0 | 4.05 | 7.42 |
+| 2097152 draws | 32.9 | 4.53 | 7.26 |
 
 ### PCG `uint64`
 
-C reference: a C transcription of Go 1.23 `math/rand/v2` PCG-DXSM. Worst ratio 6.63.
+C reference: a C transcription of Go 1.23 `math/rand/v2` PCG-DXSM. Worst ratio 6.47.
 
 | Draws | Bend (ns) | C (ns) | Ratio |
 |---:|---:|---:|---:|
-| 4194304 draws | 10.3 | 1.55 | 6.63 |
+| 4194304 draws | 11.2 | 1.73 | 6.47 |
 
 ### `uint_below` (ChaCha8)
 
-C reference: Go's `uint64n` (Lemire) transcribed. Worst ratio 15.92.
+C reference: Go's `uint64n` (Lemire) transcribed. Worst ratio 6.05.
 
 | Bound | Bend (ns) | C (ns) | Ratio |
 |---:|---:|---:|---:|
-| n = 1000000007 | 33.9 | 5.29 | 6.40 |
-| n = 2^63 + 1 | 260 | 16.4 | 15.92 |
+| n = 1000000007 | 35.8 | 5.91 | 6.05 |
+| n = 2^63 + 1 | 98.2 | 17.2 | 5.71 |
 
 ### `float64` (ChaCha8)
 
-C reference: Go's `Float64` transcribed. Worst ratio 9.30.
+C reference: Go's `Float64` transcribed. Worst ratio 9.28.
 
 | Draws | Bend (ns) | C (ns) | Ratio |
 |---:|---:|---:|---:|
-| 2097152 draws | 38.6 | 4.15 | 9.30 |
+| 2097152 draws | 41.5 | 4.47 | 9.28 |
 
 ### `shuffle` (ChaCha8)
 
-C reference: Go's Fisher-Yates `Shuffle` on a C array; Bend shuffles a list. Worst ratio 238135.47.
+C reference: Go's Fisher-Yates `Shuffle` on a C array; Bend's `shuffle_array` on an `Array<U32>`, in place. Worst ratio 6.38.
 
 | Items | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 1000 items | 9050 | 4.20 | 2154.76 |
-| 10000 items | 957000 | 41.0 | 23341.46 |
-| 100000 items | 96683000 | 406 | 238135.47 |
+| 1000 items | 27.5 | 4.44 | 6.19 |
+| 10000 items | 270 | 43.3 | 6.23 |
+| 100000 items | 3150 | 494 | 6.38 |
 
 ### `crypto.random.bytes`
 
-C reference: Go's `ChaCha8.Read` transcribed. Worst ratio 34.41.
+C reference: Go's `ChaCha8.Read` transcribed; Bend returns a list of bytes. Worst ratio 23.17.
 
 | Request | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| 64 B | 1.05 | 0.03 | 31.58 |
-| 1 KiB | 16.4 | 0.53 | 30.69 |
-| 64 KiB | 1203 | 35.0 | 34.41 |
-| 1 MiB | 17750 | 547 | 32.46 |
+| 64 B | 0.79 | 0.04 | 22.37 |
+| 1 KiB | 12.2 | 0.57 | 21.52 |
+| 64 KiB | 797 | 35.6 | 22.36 |
+| 1 MiB | 13250 | 572 | 23.17 |
+
+### `crypto.random.read_words`
+
+C reference: Go's `ChaCha8.Read` transcribed; Bend writes the bytes packed into an `Array<U32>`, in place. Worst ratio 4.34.
+
+| Request | Bend (us) | C (us) | Ratio |
+|---:|---:|---:|---:|
+| 64 B | 0.15 | 0.04 | 4.29 |
+| 1 KiB | 2.44 | 0.59 | 4.17 |
+| 64 KiB | 156 | 36.0 | 4.34 |
+| 1 MiB | 2500 | 578 | 4.33 |
 
 ## C references
 
@@ -492,8 +504,15 @@ Fairness notes:
   accepts high s). Bend's BIP-340 sign derives the public key on every call.
   No Python check (Bend and C must agree; RFC 6979 and fixed BIP-340 aux make
   both deterministic).
-- Shuffle: the Bend API shuffles a list (each swap walks the list), C an array;
-  the 100000-item row is one sample without a warm-up.
+- Shuffle: both sides shuffle the first n slots of an array in place (Bend:
+  `shuffle_array` on an `Array<U32>` of 2^d >= n slots, filled before the timed
+  region; the list `shuffle` writes the list into such an array and reads it
+  back, two more linear passes).
+- `crypto.random.bytes` returns a list with one heap cell per byte (and
+  reverses its accumulator), so it stays about 20x the C buffer write; the
+  ChaCha8 stream alone is about 7x. `crypto.random.read_words` writes the same
+  bytes packed four to a U32 into an `Array<U32>` allocated before the timed
+  region, which is what the C side does with its byte buffer.
 
 ## Math
 
@@ -605,16 +624,16 @@ those ratios; the unmarked rows use the full method.
 
 ### Dynamic array
 
-Worst ratio 13.49.
+Worst ratio 3.24.
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
 | push | small | 8.24 | 2.94 | 2.80 |
 | push | medium | 8.20 | 2.92 | 2.81 |
 | push | large | 10.9 | 3.66 | 2.97 |
-| get | small | 10.9 | 1.28 | 8.51 |
-| get | medium | 10.7 | 1.16 | 9.23 |
-| get | large | 16.1 | 1.20 | 13.49 |
+| get | small | 2.01 | 1.29 | 1.56 |
+| get | medium | 1.93 | 1.17 | 1.65 |
+| get | large | 2.28 | 1.18 | 1.93 |
 | set | small | 1.70 | 1.27 | 1.34 |
 | set | medium | 1.61 | 1.14 | 1.41 |
 | set | large | 1.94 | 1.14 | 1.71 |
@@ -807,7 +826,7 @@ Worst ratio 5.56.
 
 ### Doubly linked list
 
-Worst ratio 12.40.
+Worst ratio 5.95.
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
@@ -823,9 +842,9 @@ Worst ratio 12.40.
 | insert_after | small | 17.4 | 3.74 | 4.66 |
 | insert_after | medium | 17.4 | 4.77 | 3.64 |
 | insert_after | large | 21.1 | 5.23 | 4.03 |
-| get | small | 10.9 | 1.30 | 8.40 |
-| get | medium | 10.7 | 1.21 | 8.90 |
-| get | large | 15.4 | 1.24 | 12.40 |
+| get | small | 2.10 | 1.32 | 1.59 |
+| get | medium | 1.99 | 1.21 | 1.64 |
+| get | large | 2.23 | 1.24 | 1.80 |
 | set | small | 1.72 | 1.29 | 1.34 |
 | set | medium | 1.58 | 1.17 | 1.35 |
 | set | large | 1.62 | 1.19 | 1.36 |
@@ -1001,22 +1020,27 @@ Worst ratio 5.66.
 
 ### Hash map
 
-Worst ratio 21.75.
+Worst ratio 9.64.
+
+
+The keyed rows (set, get, has, pop) use the one-character key API
+(`set_char`, `get_char`, `has_char`, `pop_char`: the key by its code, as C
+takes the integer; each is proved equal to its String-keyed operation).
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| set | small | 9.57 | 2.24 | 4.27 |
-| set | medium | 10.5 | 2.26 | 4.63 |
-| set | large | 13.3 | 2.75 | 4.86 |
-| get | small | 22.7 | 1.51 | 15.04 |
-| get | medium | 22.0 | 1.36 | 16.16 |
-| get | large | 34.6 | 1.59 | 21.75 |
-| has | small | 9.92 | 1.26 | 7.86 |
-| has | medium | 8.82 | 1.27 | 6.97 |
-| has | large | 10.8 | 1.46 | 7.42 |
-| pop | small | 25.1 | 2.75 | 9.14 |
-| pop | medium | 29.7 | 2.71 | 10.94 |
-| pop | large | 36.3 | 3.40 | 10.68 |
+| set | small | 8.30 | 2.27 | 3.66 |
+| set | medium | 9.10 | 2.63 | 3.46 |
+| set | large | 11.6 | 2.69 | 4.32 |
+| get | small | 10.7 | 1.51 | 7.09 |
+| get | medium | 9.80 | 1.36 | 7.21 |
+| get | large | 13.1 | 1.55 | 8.42 |
+| has | small | 8.24 | 1.28 | 6.44 |
+| has | medium | 7.25 | 1.27 | 5.71 |
+| has | large | 8.75 | 1.46 | 5.99 |
+| pop | small | 22.6 | 2.78 | 8.11 |
+| pop | medium | 26.8 | 2.78 | 9.64 |
+| pop | large | 32.5 | 3.82 | 8.52 |
 | size | small | 1.00 | 2.41 | 0.41 |
 | size | medium | 1.00 | 2.47 | 0.40 |
 | size | large | 1.01 | 2.46 | 0.41 |
@@ -1029,7 +1053,11 @@ Worst ratio 21.75.
 
 ### LRU cache
 
-Worst ratio 10.74.
+Worst ratio 8.75.
+
+
+The contains row uses `contains_char` (the key by its code; proved equal to
+`contains` at the one-character key).
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
@@ -1042,9 +1070,9 @@ Worst ratio 10.74.
 | peek | small | 25.0 | 9.76 | 2.56 |
 | peek | medium | 26.5 | 9.73 | 2.72 |
 | peek | large | 42.9 | 22.1 | 1.94 |
-| contains | small | 14.2 | 1.41 | 10.06 |
-| contains | medium | 13.4 | 1.25 | 10.74 |
-| contains | large | 18.3 | 1.99 | 9.20 |
+| contains | small | 12.1 | 1.42 | 8.50 |
+| contains | medium | 11.0 | 1.26 | 8.75 |
+| contains | large | 13.6 | 2.00 | 6.79 |
 | remove | small | 36.4 | 12.4 | 2.94 |
 | remove | medium | 41.7 | 11.4 | 3.67 |
 | remove | large | 90.4 | 25.8 | 3.51 |

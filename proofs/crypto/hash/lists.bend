@@ -90,3 +90,63 @@ def add_length(n, xs, ys):
     Nat.add(List.length(&2, U32, xs), List.length(&2, U32, ys)), length_append(xs, ys)) :
     {Nat.add(Nat.add(n, List.length(&2, U32, xs)), List.length(&2, U32, ys)) == Nat.add(n, _) : Nat}
   add_assoc(n, List.length(&2, U32, xs), List.length(&2, U32, ys))
+
+law add_succ:
+  for +n: Nat
+  for +m: Nat
+  {Nat.add(n, 1n+m) == 1n+Nat.add(n, m) : Nat}
+
+def add_succ(n, m):
+  match n:
+    case 0n:
+      {==}
+    case 1n+p:
+      %add_succ(p, m) : {1n+Nat.add(p, 1n+m) == 1n+_ : Nat}
+      {==}
+
+# n + (k + m) == k + (n + m)
+law add_swap:
+  for +n: Nat
+  for +k: Nat
+  for +m: Nat
+  {Nat.add(n, Nat.add(k, m)) == Nat.add(k, Nat.add(n, m)) : Nat}
+
+def add_swap(n, k, m):
+  match k:
+    case 0n:
+      {==}
+    case 1n+p:
+      Equal.trans(Nat, Nat.add(n, 1n+Nat.add(p, m)),
+        1n+Nat.add(n, Nat.add(p, m)), 1n+Nat.add(p, Nat.add(n, m)),
+        add_succ(n, Nat.add(p, m)),
+        Equal.cong(Nat, Nat, x => 1n+x, Nat.add(n, Nat.add(p, m)),
+          Nat.add(p, Nat.add(n, m)), add_swap(n, p, m)))
+
+# (a + (b + r)) + (c + m) == (a + (b + (r + c))) + m: both are a + (b + (r + (c + m))).
+law add_regroup:
+  for +a: Nat
+  for +b: Nat
+  for +r: Nat
+  for +c: Nat
+  for +m: Nat
+  {Nat.add(Nat.add(a, Nat.add(b, r)), Nat.add(c, m)) == Nat.add(Nat.add(a, Nat.add(b, Nat.add(r, c))), m) : Nat}
+
+def add_regroup(a, b, r, c, m):
+  +flat = Nat.add(a, Nat.add(b, Nat.add(r, Nat.add(c, m))))
+  +left = Equal.trans(Nat, Nat.add(Nat.add(a, Nat.add(b, r)), Nat.add(c, m)),
+    Nat.add(a, Nat.add(Nat.add(b, r), Nat.add(c, m))), flat,
+    add_assoc(a, Nat.add(b, r), Nat.add(c, m)),
+    Equal.cong(Nat, Nat, x => Nat.add(a, x), Nat.add(Nat.add(b, r), Nat.add(c, m)),
+      Nat.add(b, Nat.add(r, Nat.add(c, m))), add_assoc(b, r, Nat.add(c, m))))
+  +right = Equal.trans(Nat, Nat.add(Nat.add(a, Nat.add(b, Nat.add(r, c))), m),
+    Nat.add(a, Nat.add(Nat.add(b, Nat.add(r, c)), m)), flat,
+    add_assoc(a, Nat.add(b, Nat.add(r, c)), m),
+    Equal.cong(Nat, Nat, x => Nat.add(a, x), Nat.add(Nat.add(b, Nat.add(r, c)), m),
+      Nat.add(b, Nat.add(r, Nat.add(c, m))),
+      Equal.trans(Nat, Nat.add(Nat.add(b, Nat.add(r, c)), m), Nat.add(b, Nat.add(Nat.add(r, c), m)),
+        Nat.add(b, Nat.add(r, Nat.add(c, m))), add_assoc(b, Nat.add(r, c), m),
+        Equal.cong(Nat, Nat, x => Nat.add(b, x), Nat.add(Nat.add(r, c), m), Nat.add(r, Nat.add(c, m)),
+          add_assoc(r, c, m)))))
+  Equal.trans(Nat, Nat.add(Nat.add(a, Nat.add(b, r)), Nat.add(c, m)), flat,
+    Nat.add(Nat.add(a, Nat.add(b, Nat.add(r, c))), m), left,
+    Equal.sym(Nat, Nat.add(Nat.add(a, Nat.add(b, Nat.add(r, c))), m), flat, right))

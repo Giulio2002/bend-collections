@@ -45,7 +45,7 @@ benchmarked against optimized C implementations of the same algorithms.
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 | Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |
 | Random numbers | `src/math/random.bend` (`src/math/random/`) | Go's `math/rand/v2` bit for bit: a Source interface for any seeded generator, ChaCha8 (C2SP chacha8rand) and PCG-DXSM sources, unbiased bounded integers (Lemire), floats, Fisher-Yates shuffles; see below |
-| Secure random | `src/crypto/random.bend` | ChaCha8Rand generator: seeded or OS-seeded (`IO.random_u32`), `bytes`, `uint_below`, `shuffle`; [contract and caveats](docs/CRYPTO_CONTRACTS.md) |
+| Secure random | `src/crypto/random.bend` | ChaCha8Rand generator: seeded or OS-seeded (`IO.random_u32`), `bytes`, `read_words` (bytes into a packed `Array<U32>`), `uint_below`, `shuffle`; [contract and caveats](docs/CRYPTO_CONTRACTS.md) |
 
 The hash map and the LRU follow Base's conventions: signatures are
 quantity-polymorphic (`a, -V: Kind(a)`, as `Base.Map` uses), and reads that
@@ -283,12 +283,16 @@ def roll(g: PCG.PCG) -> W.U64 & PCG.PCG:
 
 def deal(g: PCG.PCG, +cards: List<&2, U32>) -> List<&2, U32> & PCG.PCG:
   R.shuffle(~U32, ~PCG.PCG, ~R.pcg_next, g, cards)    # Go: r.Shuffle
+
+# shuffle the first n slots of an array in place    # Go: r.Shuffle on a slice
+def deal_array(g: PCG.PCG, a: Array<U32>, +n: Nat) -> Array<U32> & PCG.PCG:
+  R.shuffle_array(~U32, ~PCG.PCG, ~R.pcg_next, g, a, n)
 ```
 
 A source is any state type `S` with `~next: S -> U64 & S`, passed as
 templates like `src/math/num.bend`'s `~op`: every function of
 `src/math/random/rand.bend` (`uint64 uint32 int64 int32 uint64n/uint_below
-uint32n intn int_range float64 shuffle perm`) is written once for all
+uint32n intn int_range float64 shuffle shuffle_array perm`) is written once for all
 sources, and so will math/statistics be (a `normal(~S, ~next, s)` on top of
 `float64`). Sources: `R.chacha8(seed)` (Go's `ChaCha8`, C2SP chacha8rand,
 a 32-byte seed) and `R.pcg(seed1, seed2)` (Go's `PCG`, 128-bit LCG with the
@@ -304,7 +308,8 @@ naturals; `uint64n` computes the specification's draw and is below n for
 every source; Lemire's rejection is exactly unbiased (for every width, bound
 and k < n, exactly floor(2^w / n) source outputs draw k); `shuffle` and
 `perm` return permutations for every source (Mathlib's `List.Perm`, by
-counts); `float64` is m 2^-53 exactly and below 1; the word slices and the
+counts), and `shuffle_array` permutes the array's slots (`shuffle` itself
+goes through an array: linear time, not quadratic); `float64` is m 2^-53 exactly and below 1; the word slices and the
 bounded wrappers (`uint32n`, `intn`, `int_range`) are what they say. Tested: Go's vectors and a Python mirror of Go on random seeds
 and call sequences, plus a chi-square smoke test (`tools/check_random.py`).
 
@@ -342,9 +347,17 @@ model, so constant time is a property of the code's shape, not a theorem.
 
 ## Install
 
-The library is published on the Bend hub as `bend-collections`, and every
-proved law as `bend-collections-laws` (MIT). Import any module by its path in
-the package:
+The library and its laws are published on BendHub (MIT):
+
+| Package | Hash | Contents |
+|---|---|---|
+| `bend-collections@1.0.0.0` | `0xd9a2fae439ac7ff9e21e0853948f94fe` | the library (`main.bend`: every public module) |
+| `bend-collections-laws@1.0.0.0` | `0x993b989cb899a5e5c6facb3d6fbccf8f` | every law: imports the three parts below by name |
+| `bend-collections-laws-containers@1.0.0.0` | `0x5c489f5d9646d7cc9aa3dd8137e9dc07` | containers, the shared proof library, END_TO_END, PROOF |
+| `bend-collections-laws-math@1.0.0.0` | `0xf86f5f1d9a594d5a5cff999100e01d03` | math |
+| `bend-collections-laws-crypto@1.0.0.0` | `0xa7e654f9780078ca65bf9e187da99d3e` | crypto and random |
+
+Import any module by its path in the package:
 
 ```python
 import bend-collections@1.0.0.0/src/containers/hash_table.bend as HashMap
@@ -352,19 +365,21 @@ import bend-collections@1.0.0.0/src/crypto/aead.bend as AEAD
 import bend-collections@1.0.0.0/src/math/random.bend as Rand
 ```
 
-and the laws the same way, all at once (`laws.bend` imports every proof root,
-so importing it checks every clause) or one package's root at a time:
+and the laws the same way, one package's proof root at a time or all at once:
 
 ```python
-import bend-collections-laws@1.0.0.0/proofs/crypto/aead/proof.bend as AeadLaws
+import bend-collections-laws-crypto@1.0.0.0/proofs/crypto/aead/proof.bend as AeadLaws
+import bend-collections-laws@1.0.0.0/laws.bend as Laws
 ```
 
-A name resolves to a content hash (each release lists it), and every fetched
-file is checked against that hash, so an import never changes under you.
-`main.bend` (every public module) is published as `bend-collections`
-(`bend main.bend --publish bend-collections@<version>`), and `laws.bend` as
-`bend-collections-laws`. Checking all the laws together takes about 12 GB of
-memory; check a single package's root when you need only its laws.
+BendHub caps a package at 16 MiB, so the laws are published in three parts
+(`laws_containers.bend`, `laws_math.bend`, `laws_crypto.bend`, one proof root
+each, 62 in total) and `laws.bend` imports the three by name. A name resolves to
+a content hash, and every fetched file is checked against it, so an import never
+changes under you. Checking all the laws at once takes about 12 GB of memory
+and a large stack (`ulimit -s unlimited` plus
+`BUN_JSC_maxPerThreadStackUsage=1073741824`); checking one part or one root does
+not. Version 1.0.0.0 was published from commit 8e660ee.
 
 ## Layout
 

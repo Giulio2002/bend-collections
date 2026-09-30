@@ -19,6 +19,9 @@ import ../math/random/chacha8/block.bend as B
 #                       generator; Go's (*ChaCha8).Read: the little-endian
 #                       bytes of successive 64-bit outputs, a partly used
 #                       output's remaining bytes served first by the next call
+#   read_words(g, a, j, k)  the bytes of the next k outputs (8k bytes)
+#                       packed little-endian into slots j .. j + 2k - 1 of an
+#                       Array<U32>, in place (Go's Read into a buffer)
 #   uint64(g)           a uniform 64-bit word
 #   uint_below(g, n)    uniform in [0, n) for n > 0 (Lemire, unbiased)
 #   shuffle(g, items)   a uniform permutation of items (Fisher-Yates)
@@ -118,12 +121,34 @@ def take1(f: Fill) -> Fill:
         case Nil{}:
           split(acc, C8.next(c))
 
+# n bytes, one at a time (the definition bytes is proved against)
 def fill(n: Nat, f: Fill) -> Fill:
   match n:
     case 0n:
       f
     case 1n+k:
       fill(k, take1(f))
+
+# the eight bytes of a fresh word at once (what split and seven take1 give)
+def word(acc: List<&2, U32>, r: W.U64 & C8.ChaCha8) -> Fill:
+  (+x, c) = r
+  +l = X.lo(x)
+  +h = X.hi(x)
+  FS{Con{U32.and(U32.shrn(h, 24n), 255), Con{U32.and(U32.shrn(h, 16n), 255), Con{U32.and(U32.shrn(h, 8n), 255), Con{U32.and(h, 255), Con{U32.and(U32.shrn(l, 24n), 255), Con{U32.and(U32.shrn(l, 16n), 255), Con{U32.and(U32.shrn(l, 8n), 255), Con{U32.and(l, 255), acc}}}}}}}}, c, []}
+
+# fill, a whole word at a time while no bytes are pending (same bytes)
+def fill_fast(n: Nat, f: Fill) -> Fill:
+  match n f:
+    case 8n+k FS{acc, c, p}:
+      match p:
+        case Nil{}:
+          fill_fast(k, word(acc, C8.next(c)))
+        case Con{b, rest}:
+          fill_fast(7n+k, FS{Con{b, acc}, c, rest})
+    case 1n+k g:
+      fill_fast(k, take1(g))
+    case 0n g:
+      g
 
 def done(f: Fill) -> List<&2, U32> & Gen:
   match f:
@@ -133,7 +158,37 @@ def done(f: Fill) -> List<&2, U32> & Gen:
 def bytes(g: Gen, n: Nat) -> List<&2, U32> & Gen:
   match g:
     case G{c, p}:
-      done(fill(n, FS{[], c, p}))
+      done(fill_fast(n, FS{[], c, p}))
+
+# ---- bytes into a packed word array ----
+
+# output x as its low and high words at slots j and j + 1
+def put2(a: Array<U32>, +j: Nat, +x: W.U64) -> Array<U32>:
+  Array.set(U32, Array.set(U32, a, U32.from_nat(j), X.lo(x)), U32.from_nat(1n+j), X.hi(x))
+
+# the output in r, then k more, at slots j, j + 1, ...
+def rw(k: Nat, +j: Nat, a: Array<U32>, r: W.U64 & C8.ChaCha8) -> Array<U32> & C8.ChaCha8:
+  match k r:
+    case 0n Tuple{+x, c}:
+      (put2(a, j, x), c)
+    case 1n+m Tuple{+x, c}:
+      rw(m, 2n+j, put2(a, j, x), C8.next(c))
+
+def rw_fin(+p: List<&2, U32>, r: Array<U32> & C8.ChaCha8) -> Array<U32> & Gen:
+  (a, c) = r
+  (a, G{c, p})
+
+# the next k 64-bit outputs written into slots j .. j + 2k - 1 of a, low word
+# first: the 8k bytes Go's Read returns (when no bytes are pending), packed
+# little-endian four to a U32; pending bytes are kept for bytes. For an
+# array of 2^d slots, d < 32, and j + 2k <= 2^d. In place: no list cell per
+# byte (bytes builds one).
+def read_words(g: Gen, a: Array<U32>, +j: Nat, k: Nat) -> Array<U32> & Gen:
+  match g k:
+    case G{c, p} 0n:
+      (a, G{c, p})
+    case G{c, +p} 1n+m:
+      rw_fin(p, rw(m, j, a, C8.next(c)))
 
 def uint64(g: Gen) -> W.U64 & Gen:
   next(g)

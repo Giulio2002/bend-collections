@@ -7,9 +7,10 @@ import ../../lib/logic.bend as L
 import ../../lib/nat.bend as N
 import ../../lib/u32alg.bend as A
 
-# Fisher-Yates (src/math/random/rand.bend shuffle and perm, Go's Shuffle and
-# Perm) returns a permutation of its input, for every source and every draw
-# (the indices j need not be in range: an out-of-range swap is the identity):
+# Fisher-Yates on a list (src/math/random/rand.bend shuffle_list, the path of
+# shuffle for 2^31 elements or more) returns a permutation of its input, for
+# every source and every draw (the indices j need not be in range: an
+# out-of-range swap is the identity):
 # every swap keeps the number of elements related to any v (the multiset,
 # for an equality), as in the Coq/Isabelle proofs that Fisher-Yates permutes.
 
@@ -111,8 +112,8 @@ def go_occ(~A: Data, ~V: Data, ~rel: A -> V -> Bool, ~S: Data, ~next: S -> W.U64
         go_occ(~A, ~V, ~rel, ~S, ~next, v, p, X.sub(n, W.U64{1, 0}), R.shuffle_step(~A, ~S, ~next, 1n+p, n, (xs, s))),
         swap_at_occ(~A, ~V, ~rel, S, v, xs, 1n+p, R.uint64n(~S, ~next, s, n)))
 
-# THEOREM (Shuffle.permutation)
-def shuffle_perm(~A: Data, ~V: Data, ~rel: A -> V -> Bool, ~S: Data, ~next: S -> W.U64 & S, +s: S, +xs: List<&2, A>, +v: V) -> {SR.occurrences(~A, ~V, ~rel, v, R.fst(List<&2, A>, S, R.shuffle(~A, ~S, ~next, s, xs))) == SR.occurrences(~A, ~V, ~rel, v, xs) : Nat}:
+# the list shuffle (R.shuffle_list, for 2^31 elements or more) permutes
+def shuffle_list_perm(~A: Data, ~V: Data, ~rel: A -> V -> Bool, ~S: Data, ~next: S -> W.U64 & S, +s: S, +xs: List<&2, A>, +v: V) -> {SR.occurrences(~A, ~V, ~rel, v, R.fst(List<&2, A>, S, R.shuffle_list(~A, ~S, ~next, s, xs))) == SR.occurrences(~A, ~V, ~rel, v, xs) : Nat}:
   go_occ(~A, ~V, ~rel, ~S, ~next, v, Nat.sub(List.length(&2, A, xs), 1n), R.len64(A, xs), (xs, s))
 
 # [p == v] + [v < p] == [v < p + 1]
@@ -146,9 +147,3 @@ def range_occ(+n: Nat, +acc: List<&2, Nat>, +v: Nat) -> {SR.occurrences(~Nat, ~N
             Equal.cong(Nat, Nat, t => Nat.add(t, l), Nat.add(e, o), Nat.add(o, e), N.add_comm(e, o)),
             N.add_assoc(o, e, l)),
           Equal.cong(Nat, Nat, t => Nat.add(o, t), Nat.add(e, l), SR.b2n(Nat.is_lt(v, 1n+p)), lt_succ_split(v, p))))
-
-# THEOREM (Perm.permutation)
-def perm_perm(~S: Data, ~next: S -> W.U64 & S, +s: S, +n: Nat, +i: Nat) -> {SR.occurrences(~Nat, ~Nat, ~Nat.is_eq, i, R.fst(List<&2, Nat>, S, R.perm(~S, ~next, s, n))) == SR.b2n(Nat.is_lt(i, n)) : Nat}:
-  Equal.trans(Nat, SR.occurrences(~Nat, ~Nat, ~Nat.is_eq, i, R.fst(List<&2, Nat>, S, R.shuffle(~Nat, ~S, ~next, s, R.range(n)))), SR.occurrences(~Nat, ~Nat, ~Nat.is_eq, i, R.range_go(n, [])), SR.b2n(Nat.is_lt(i, n)),
-    shuffle_perm(~Nat, ~Nat, ~Nat.is_eq, ~S, ~next, s, R.range(n), i),
-    range_occ(n, [], i))

@@ -633,6 +633,16 @@ def ct_long(a, -V: Kind(a), f: LRU<a, V>, key: String, now: W.U64) -> LRU<a, V> 
 def contains(a, -V: Kind(a), f: LRU<a, V>, key: String, now: W.U64) -> LRU<a, V> & Bool:
   ct_long(a, V, f, key, now)
 
+# contains at the one-character key SCon{Chr{c}, SNil{}}, given by its code
+# (no String is built); equal to contains at that key.
+def ct_c(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, tab: Array<U32>, ks: Array<String>, ents: Array<Maybe<a, V>>, lk: Array<U32>, +c: U32, now: W.U64, r: Array<U32> & U32) -> LRU<a, V> & Bool:
+  (m, +mask) = r
+  ct_found(a, V, cap, n, head, tail, free, m, ents, lk, now, H.probe_char(tab, ks, mask, c))
+
+def contains_char(a, -V: Kind(a), f: LRU<a, V>, +c: U32, now: W.U64) -> LRU<a, V> & Bool:
+  F{+cap, +n, +head, +tail, +free, m, tab, ks, ents, lk} = f
+  ct_c(a, V, cap, n, head, tail, free, tab, ks, ents, lk, c, now, Array.get(U32, m, 6))
+
 def rm_hit(a, -V: Kind(a), +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, tab: Array<U32>, ks: Array<String>, ents: Array<Maybe<a, V>>, lk: Array<U32>, +at: U32, +l: U32, r: Array<U32> & U32) -> LRU<a, V> & Maybe<a, V>:
   (m, +mask) = r
   drop_slot(a, V, F{cap, n, head, tail, free, m, H.del_at(tab, mask, at), ks, ents, lk}, H.slot(l), 2)

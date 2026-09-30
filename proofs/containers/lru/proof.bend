@@ -241,3 +241,21 @@ def purge_value(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.En
 
 def keys_fin_value(~V: Data, +cap: U32, +on: U32, +life: W.U64, +es: List<&2, SP.Ent<V>>, +c: SP.Ctr) -> SP.Iter_Model.keys_fin_value(~V, cap, on, life, es, c):
   {==}
+
+# ---- contains at a one-character key ----
+# contains_char at code c is contains at the key SCon{Chr{c}, SNil{}}, on
+# every cache; so it inherits contains' theorem (contains_char_ok).
+
+def ct_c_is_ct_m(~V: Data, +cap: U32, +n: U32, +head: U32, +tail: U32, +free: U32, tab: Array<U32>, ks: Array<String>, ents: Array<Maybe<&2, V>>, lk: Array<U32>, +c: U32, +now: W.U64, r: Array<U32> & U32) -> {LR.ct_c(&2, V, cap, n, head, tail, free, tab, ks, ents, lk, c, now, r) == LR.ct_m(&2, V, cap, n, head, tail, free, tab, ks, ents, lk, SCon{Chr{c}, SNil{}}, now, r) : LR.LRU<&2, V> & Bool}:
+  match r:
+    case Tuple{m, mask}:
+      {==}
+
+def contains_char_is_contains(~V: Data, f: LR.LRU<&2, V>, +c: U32, +now: W.U64) -> {LR.contains_char(&2, V, f, c, now) == LR.contains(&2, V, f, SCon{Chr{c}, SNil{}}, now) : LR.LRU<&2, V> & Bool}:
+  match f:
+    case LR.F{+cap, +n, +head, +tail, +free, m, tab, ks, ents, lk}:
+      ct_c_is_ct_m(~V, cap, n, head, tail, free, tab, ks, ents, lk, c, now, Array.get(U32, m, 6))
+
+def contains_char_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +c: U32, +now: W.U64) -> RM.POK(~V, Bool, SP.contains(~V, ST.model(~V, sh), SCon{Chr{c}, SNil{}}, now), LR.contains_char(&2, V, ST.real(~V, sh), c, now)):
+  %Equal.sym(LR.LRU<&2, V> & Bool, LR.contains_char(&2, V, ST.real(~V, sh), c, now), LR.contains(&2, V, ST.real(~V, sh), SCon{Chr{c}, SNil{}}, now), contains_char_is_contains(~V, ST.real(~V, sh), c, now)) : RM.POK(~V, Bool, SP.contains(~V, ST.model(~V, sh), SCon{Chr{c}, SNil{}}, now), _)
+  contains_ok(~V, sh, hg, SCon{Chr{c}, SNil{}}, now)
