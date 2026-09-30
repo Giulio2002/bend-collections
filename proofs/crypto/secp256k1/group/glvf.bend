@@ -14,7 +14,7 @@ import ./ptm.bend as M
 import ./ptc.bend as PC
 import ./ptv.bend as PV
 import ./pto.bend as PO
-import ./glvp.bend as GLV
+import ../../../../spec/crypto/secp256k1/glv.bend as GLV
 import ./glvc.bend as GC
 import ./ptl_g.bend as L
 import ./ptg.bend as PG
