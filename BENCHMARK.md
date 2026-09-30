@@ -55,10 +55,10 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | XChaCha20-Poly1305 | 347.95 |
 | AES-128-GCM | 31.60 |
 | AES-256-GCM | 30.60 |
-| X25519 shared secret | 1677.75 |
-| Ed25519 key generation | 7064.08 |
-| Ed25519 sign | 13116.15 |
-| Ed25519 verify | 4449.20 |
+| X25519 shared secret | 8.09 |
+| Ed25519 key generation | 24.13 |
+| Ed25519 sign | 32.89 |
+| Ed25519 verify | 12.89 |
 | Argon2id | 9.09 |
 | secp256k1 (ECDSA, recovery, BIP-340) | 47560.98 |
 | ChaCha8 `uint64` | 7.26 |
@@ -325,44 +325,44 @@ C reference: as AES-128-GCM, with a 32-byte key. Worst ratio 30.60.
 
 ## Public-key and password hashing
 
-A curve operation takes Bend 0.1-1 s, so these rows time a few operations
-per sample (Argon2id: 64 hashes at 64 KiB, one at 19 MiB). The curve C
+A curve operation takes Bend 0.25-0.7 ms, so these rows time 64 to 256
+operations per sample (Argon2id: 64 hashes at 64 KiB, one at 19 MiB). The curve C
 references repeat their timed pass until 50 ms have passed and report the
 mean pass. Microseconds per operation.
 
 ### X25519 shared secret
 
-C reference: Monocypher 4.0.2 `crypto_x25519`. Worst ratio 1677.75.
+C reference: Monocypher 4.0.2 `crypto_x25519`. Worst ratio 8.09 (1677.75 before the fast field).
 
 | Operation | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| shared secret | 53625 | 32.0 | 1677.75 |
+| shared secret | 262 | 32.3 | 8.09 |
 
 ### Ed25519 key generation
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_key_pair` (SHA-512). Worst ratio 7064.08.
+C reference: Monocypher 4.0.2 `crypto_ed25519_key_pair` (SHA-512). Worst ratio 24.13 (7064.08 before).
 
 | Operation | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| keygen | 118500 | 16.8 | 7064.08 |
+| keygen | 422 | 17.5 | 24.13 |
 
 ### Ed25519 sign
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_sign`. Worst ratio 13116.15.
+C reference: Monocypher 4.0.2 `crypto_ed25519_sign`. Worst ratio 32.89 (13116.15 before).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| sign 64 B | 231500 | 17.6 | 13116.15 |
-| sign 1 KiB | 232000 | 20.1 | 11542.29 |
+| sign 64 B | 609 | 18.5 | 32.89 |
+| sign 1 KiB | 641 | 21.6 | 29.70 |
 
 ### Ed25519 verify
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_check`. Worst ratio 4449.20.
+C reference: Monocypher 4.0.2 `crypto_ed25519_check`. Worst ratio 12.89 (4449.20 before).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| verify 64 B | 208000 | 46.8 | 4449.20 |
-| verify 1 KiB | 210500 | 47.8 | 4403.77 |
+| verify 64 B | 641 | 50.2 | 12.75 |
+| verify 1 KiB | 672 | 52.1 | 12.89 |
 
 ### Argon2id
 
@@ -486,10 +486,18 @@ Fairness notes:
   column shows what a non-constant-time C costs.
 - AES-GCM and the AEADs set up the key for every message on both sides (the
   Bend API takes the key bytes per call).
-- Ed25519 sign: the Bend API takes the 32-byte seed and derives the public key
-  inside every call; Monocypher's `crypto_ed25519_sign` takes the 64-byte
-  expanded secret key (seed || public key), so it skips one fixed-base
-  scalar multiplication per signature.
+- Ed25519: the rows use the expanded-key and context APIs of
+  `src/crypto/sign.bend`, made before the timed region: sign signs with
+  `signing_key_ctx(context, seed)` (curve constants, base point, s mod L,
+  prefix and public key), as Monocypher's `crypto_ed25519_sign` takes the
+  64-byte secret key made once; key generation and verification take the
+  context (`generate_keypair_ctx`, `verify_ctx`: the curve constants and
+  base point, which C keeps in static tables); verification decodes the
+  public key in every call, as C does. The Bend scalar multiplications are
+  the specification's double-and-add over 256 bits (256 doublings and 256
+  selected additions for a secret scalar); Monocypher's fixed-base and
+  double-scalar multiplications use precomputed tables and windows, which
+  the proofs would need the group law for.
 - secp256k1: libsecp256k1 is production code with precomputed multiplication
   tables, not a plain reference; its verify parses the key and signature inside
   the timed region (the Bend API takes bytes) and normalises s (Bend's verify
