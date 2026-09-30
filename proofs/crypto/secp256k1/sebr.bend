@@ -45,6 +45,16 @@ def take16_b(r: S.W33) -> {FE.to_list(S.take16(r)) == L.take(16n, l33(r)) : List
     case S.W33{+r_0, +r_1, +r_2, +r_3, +r_4, +r_5, +r_6, +r_7, +r_8, +r_9, +r_10, +r_11, +r_12, +r_13, +r_14, +r_15, +r_16, +r_17, +r_18, +r_19, +r_20, +r_21, +r_22, +r_23, +r_24, +r_25, +r_26, +r_27, +r_28, +r_29, +r_30, +r_31, +r_32}:
       {==}
 
+def finn_b(u: FE.W17, c: S.W9) -> {FE.to_list(S.finn(u, c)) == M.finc(l9(c), FB.l17(u)) : List<&2, Nat>}:
+  match u c:
+    case FE.W17{+u_0, +u_1, +u_2, +u_3, +u_4, +u_5, +u_6, +u_7, +u_8, +u_9, +u_10, +u_11, +u_12, +u_13, +u_14, +u_15, +u_16} S.W9{+c_0, +c_1, +c_2, +c_3, +c_4, +c_5, +c_6, +c_7, +c_8}:
+      {==}
+
+def negrn_b(x: FE.FE, c: S.W9) -> {FE.to_list(S.negrn(x, c)) == L.neg_raw(l9(c), FE.to_list(x)) : List<&2, Nat>}:
+  match x c:
+    case FE.FE{+x_0, +x_1, +x_2, +x_3, +x_4, +x_5, +x_6, +x_7, +x_8, +x_9, +x_10, +x_11, +x_12, +x_13, +x_14, +x_15} S.W9{+c_0, +c_1, +c_2, +c_3, +c_4, +c_5, +c_6, +c_7, +c_8}:
+      {==}
+
 def canonu_b(t: FE.FE, c: S.W9) -> {FE.to_list(S.canonu(t, c)) == SM.canonu(l9(c), FE.to_list(t)) : List<&2, Nat>}:
   match t c:
     case FE.FE{+t_0, +t_1, +t_2, +t_3, +t_4, +t_5, +t_6, +t_7, +t_8, +t_9, +t_10, +t_11, +t_12, +t_13, +t_14, +t_15} S.W9{+c_0, +c_1, +c_2, +c_3, +c_4, +c_5, +c_6, +c_7, +c_8}:

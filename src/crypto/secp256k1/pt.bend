@@ -9,7 +9,8 @@ import ./fe.bend as F
 # curves" (EUROCRYPT 2016), Algorithms 7 and 9 for a = 0 with b3 = 3 b = 21:
 # the register programs of spec/crypto/secp256k1/curve.bend, written out
 # register by register (rN is register N of the program; squares are
-# F.sq). One formula for every pair of inputs, so no branch.
+# F.sq, products by the register b3 are F.mul21). One formula for every
+# pair of inputs, so no branch.
 #
 # Scalar multiplication is the specification's left-to-right double-and-add:
 # mul_go adds in every step and selects with an arithmetic mask (secret
@@ -46,10 +47,10 @@ def add(p: PT, q: PT) -> PT:
       +r24 = F.sub(r22, r23)
       +r25 = F.add(r7, r7)
       +r26 = F.add(r25, r7)
-      +r27 = F.mul(b3(), r9)
+      +r27 = F.mul21(r9)
       +r28 = F.add(r8, r27)
       +r29 = F.sub(r8, r27)
-      +r30 = F.mul(b3(), r24)
+      +r30 = F.mul21(r24)
       +r31 = F.mul(r19, r30)
       +r32 = F.mul(r14, r29)
       +r33 = F.sub(r32, r31)
@@ -71,7 +72,7 @@ def dbl(p: PT) -> PT:
       +r7 = F.add(r6, r6)
       +r8 = F.mul(y, z)
       +r9 = F.sq(z)
-      +r10 = F.mul(b3(), r9)
+      +r10 = F.mul21(r9)
       +r11 = F.mul(r10, r7)
       +r12 = F.add(r4, r10)
       +r13 = F.mul(r8, r7)

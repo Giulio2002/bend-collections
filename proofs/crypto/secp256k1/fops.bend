@@ -21,6 +21,7 @@ import ./fbase.bend as FO
 import ./fmod.bend as M
 import ./febr.bend as BR
 import ./fval.bend as V
+import ./fcol.bend as CB
 
 # GF(p) on the records of src/crypto/secp256k1/fe.bend against
 # spec/crypto/secp256k1/field.bend: on reduced inputs (16 limbs below 2^16,
@@ -37,24 +38,22 @@ def val(+one: Nat, +a: F.FE) -> Nat:
 
 # ---- the operations as their list models ----
 
-def mul_l(+a: F.FE, +b: F.FE) -> {F.to_list(F.mul(a, b)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n)) : List<&2, Nat>}:
-  %Equal.sym(List<&2, Nat>, F.to_list(F.fin(F.carry16(F.foldt(F.carry17(F.fold1(F.carryp16(F.cols(a, b)))))))), M.fin(BR.l17(F.carry16(F.foldt(F.carry17(F.fold1(F.carryp16(F.cols(a, b)))))))), BR.fin_b(F.carry16(F.foldt(F.carry17(F.fold1(F.carryp16(F.cols(a, b)))))))) : {_ == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n)) : List<&2, Nat>}
-  %Equal.sym(List<&2, Nat>, BR.l17(F.carry16(F.foldt(F.carry17(F.fold1(F.carryp16(F.cols(a, b))))))), L.carry(16n, F.to_list(F.foldt(F.carry17(F.fold1(F.carryp16(F.cols(a, b)))))), 0n), BR.carry16_b(F.foldt(F.carry17(F.fold1(F.carryp16(F.cols(a, b))))))) : {M.fin(_) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n)) : List<&2, Nat>}
-  %Equal.sym(List<&2, Nat>, F.to_list(F.foldt(F.carry17(F.fold1(F.carryp16(F.cols(a, b)))))), M.foldt(BR.l17(F.carry17(F.fold1(F.carryp16(F.cols(a, b)))))), BR.foldt_b(F.carry17(F.fold1(F.carryp16(F.cols(a, b)))))) : {M.fin(L.carry(16n, _, 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n)) : List<&2, Nat>}
-  %Equal.sym(List<&2, Nat>, BR.l17(F.carry17(F.fold1(F.carryp16(F.cols(a, b))))), L.carry(16n, BR.l17(F.fold1(F.carryp16(F.cols(a, b)))), 0n), BR.carry17_b(F.fold1(F.carryp16(F.cols(a, b))))) : {M.fin(L.carry(16n, M.foldt(_), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n)) : List<&2, Nat>}
-  %Equal.sym(List<&2, Nat>, BR.l17(F.fold1(F.carryp16(F.cols(a, b)))), M.fold1(BR.l31(F.carryp16(F.cols(a, b)))), BR.fold1_b(F.carryp16(F.cols(a, b)))) : {M.fin(L.carry(16n, M.foldt(L.carry(16n, _, 0n)), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n)) : List<&2, Nat>}
-  %Equal.sym(List<&2, Nat>, BR.l31(F.carryp16(F.cols(a, b))), M.carryp(16n, BR.l31(F.cols(a, b)), 0n), BR.carryp16_b(F.cols(a, b))) : {M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(_), 0n)), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n)) : List<&2, Nat>}
-  %Equal.sym(List<&2, Nat>, BR.l31(F.cols(a, b)), M.convu(F.to_list(a), F.to_list(b)), BR.cols_b(a, b)) : {M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, _, 0n)), 0n)), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n)) : List<&2, Nat>}
+def mul_l(+a: F.FE, +b: F.FE) -> {F.to_list(F.mul(a, b)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n)) : List<&2, Nat>}:
+  %Equal.sym(List<&2, Nat>, F.to_list(F.fin(F.carry16(F.foldt(F.carry17(F.fold1(F.cols(a, b))))))), M.fin(BR.l17(F.carry16(F.foldt(F.carry17(F.fold1(F.cols(a, b))))))), BR.fin_b(F.carry16(F.foldt(F.carry17(F.fold1(F.cols(a, b))))))) : {_ == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, BR.l17(F.carry16(F.foldt(F.carry17(F.fold1(F.cols(a, b)))))), L.carry(16n, F.to_list(F.foldt(F.carry17(F.fold1(F.cols(a, b))))), 0n), BR.carry16_b(F.foldt(F.carry17(F.fold1(F.cols(a, b)))))) : {M.fin(_) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, F.to_list(F.foldt(F.carry17(F.fold1(F.cols(a, b))))), M.foldt(BR.l17(F.carry17(F.fold1(F.cols(a, b))))), BR.foldt_b(F.carry17(F.fold1(F.cols(a, b))))) : {M.fin(L.carry(16n, _, 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, BR.l17(F.carry17(F.fold1(F.cols(a, b)))), L.carry(16n, BR.l17(F.fold1(F.cols(a, b))), 0n), BR.carry17_b(F.fold1(F.cols(a, b)))) : {M.fin(L.carry(16n, M.foldt(_), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, BR.l17(F.fold1(F.cols(a, b))), M.fold1(BR.l31(F.cols(a, b))), BR.fold1_b(F.cols(a, b))) : {M.fin(L.carry(16n, M.foldt(L.carry(16n, _, 0n)), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, BR.l31(F.cols(a, b)), M.convu(F.to_list(a), F.to_list(b)), BR.cols_b(a, b)) : {M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(_), 0n)), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n)) : List<&2, Nat>}
   {==}
 
-def sq_l(+a: F.FE) -> {F.to_list(F.sq(a)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n)) : List<&2, Nat>}:
-  %Equal.sym(List<&2, Nat>, F.to_list(F.fin(F.carry16(F.foldt(F.carry17(F.fold1(F.carryp16(F.sqcols(a)))))))), M.fin(BR.l17(F.carry16(F.foldt(F.carry17(F.fold1(F.carryp16(F.sqcols(a)))))))), BR.fin_b(F.carry16(F.foldt(F.carry17(F.fold1(F.carryp16(F.sqcols(a)))))))) : {_ == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n)) : List<&2, Nat>}
-  %Equal.sym(List<&2, Nat>, BR.l17(F.carry16(F.foldt(F.carry17(F.fold1(F.carryp16(F.sqcols(a))))))), L.carry(16n, F.to_list(F.foldt(F.carry17(F.fold1(F.carryp16(F.sqcols(a)))))), 0n), BR.carry16_b(F.foldt(F.carry17(F.fold1(F.carryp16(F.sqcols(a))))))) : {M.fin(_) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n)) : List<&2, Nat>}
-  %Equal.sym(List<&2, Nat>, F.to_list(F.foldt(F.carry17(F.fold1(F.carryp16(F.sqcols(a)))))), M.foldt(BR.l17(F.carry17(F.fold1(F.carryp16(F.sqcols(a)))))), BR.foldt_b(F.carry17(F.fold1(F.carryp16(F.sqcols(a)))))) : {M.fin(L.carry(16n, _, 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n)) : List<&2, Nat>}
-  %Equal.sym(List<&2, Nat>, BR.l17(F.carry17(F.fold1(F.carryp16(F.sqcols(a))))), L.carry(16n, BR.l17(F.fold1(F.carryp16(F.sqcols(a)))), 0n), BR.carry17_b(F.fold1(F.carryp16(F.sqcols(a))))) : {M.fin(L.carry(16n, M.foldt(_), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n)) : List<&2, Nat>}
-  %Equal.sym(List<&2, Nat>, BR.l17(F.fold1(F.carryp16(F.sqcols(a)))), M.fold1(BR.l31(F.carryp16(F.sqcols(a)))), BR.fold1_b(F.carryp16(F.sqcols(a)))) : {M.fin(L.carry(16n, M.foldt(L.carry(16n, _, 0n)), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n)) : List<&2, Nat>}
-  %Equal.sym(List<&2, Nat>, BR.l31(F.carryp16(F.sqcols(a))), M.carryp(16n, BR.l31(F.sqcols(a)), 0n), BR.carryp16_b(F.sqcols(a))) : {M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(_), 0n)), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n)) : List<&2, Nat>}
-  %Equal.sym(List<&2, Nat>, BR.l31(F.sqcols(a)), M.sqru(F.to_list(a)), BR.sqcols_b(a)) : {M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, _, 0n)), 0n)), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n)) : List<&2, Nat>}
+def sq_l(+a: F.FE) -> {F.to_list(F.sq(a)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n)) : List<&2, Nat>}:
+  %Equal.sym(List<&2, Nat>, F.to_list(F.fin(F.carry16(F.foldt(F.carry17(F.fold1(F.sqcols(a))))))), M.fin(BR.l17(F.carry16(F.foldt(F.carry17(F.fold1(F.sqcols(a))))))), BR.fin_b(F.carry16(F.foldt(F.carry17(F.fold1(F.sqcols(a))))))) : {_ == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, BR.l17(F.carry16(F.foldt(F.carry17(F.fold1(F.sqcols(a)))))), L.carry(16n, F.to_list(F.foldt(F.carry17(F.fold1(F.sqcols(a))))), 0n), BR.carry16_b(F.foldt(F.carry17(F.fold1(F.sqcols(a)))))) : {M.fin(_) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, F.to_list(F.foldt(F.carry17(F.fold1(F.sqcols(a))))), M.foldt(BR.l17(F.carry17(F.fold1(F.sqcols(a))))), BR.foldt_b(F.carry17(F.fold1(F.sqcols(a))))) : {M.fin(L.carry(16n, _, 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, BR.l17(F.carry17(F.fold1(F.sqcols(a)))), L.carry(16n, BR.l17(F.fold1(F.sqcols(a))), 0n), BR.carry17_b(F.fold1(F.sqcols(a)))) : {M.fin(L.carry(16n, M.foldt(_), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, BR.l17(F.fold1(F.sqcols(a))), M.fold1(BR.l31(F.sqcols(a))), BR.fold1_b(F.sqcols(a))) : {M.fin(L.carry(16n, M.foldt(L.carry(16n, _, 0n)), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, BR.l31(F.sqcols(a)), M.sqru(F.to_list(a)), BR.sqcols_b(a)) : {M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(_), 0n)), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n)) : List<&2, Nat>}
   {==}
 
 def add_l(+a: F.FE, +b: F.FE) -> {F.to_list(F.add(a, b)) == M.fin(L.carry(16n, L.add(F.to_list(a), F.to_list(b)), 0n)) : List<&2, Nat>}:
@@ -233,29 +232,108 @@ def mch2_mod(+one: Nat, +h1: {one == 1n : Nat}, +f1: List<&2, Nat>) -> {Nat.mod(
   %Equal.sym(Nat, LV.ev(f1), LV.ev(L.carry(16n, f1, 0n)), Equal.sym(Nat, LV.ev(L.carry(16n, f1, 0n)), LV.ev(f1), V.carry0_v(16n, f1))) : {Nat.mod(LV.ev(M.foldt(L.carry(16n, f1, 0n))), 1n+K.pp(one)) == Nat.mod(_, 1n+K.pp(one)) : Nat}
   fmod_g(K.pp(one), FS.cp(one), C.shift(256n, one), K.hm_p(one, h1), LV.ev(L.take(16n, u)), L.hd0(L.drop(16n, u)), LV.ev(u), V.split17(one, h1, u, V.carry_top(16n, f1, 0n)), LV.ev(M.foldt(u)), V.foldt_v(one, h1, u))
 
-# the first fold: below (1 + c) T, and congruent
-def mch1_lt(+one: Nat, +h1: {one == 1n : Nat}, +cs: List<&2, Nat>, +hc: {Nat.is_lt(LV.ev(cs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {Nat.is_lt(LV.ev(M.fold1(M.carryp(16n, cs, 0n))), Nat.mul(1n+FS.cp(one), C.shift(256n, one))) == True{} : Bool}:
-  +w = M.carryp(16n, cs, 0n)
-  +hw = I.lt_subst_l(LV.ev(cs), LV.ev(w), Nat.mul(C.shift(256n, one), C.shift(256n, one)), Equal.sym(Nat, LV.ev(w), LV.ev(cs), carryp0_v(16n, cs)), hc)
-  %Equal.sym(Nat, LV.ev(M.fold1(M.carryp(16n, cs, 0n))), Nat.add(LV.ev(L.take(16n, M.carryp(16n, cs, 0n))), Nat.mul(LV.ev(L.drop(16n, M.carryp(16n, cs, 0n))), FS.cp(one))), V.fold1_v(one, h1, M.carryp(16n, cs, 0n))) : {Nat.is_lt(_, Nat.mul(1n+FS.cp(one), C.shift(256n, one))) == True{} : Bool}
-  f1_lt(one, h1, LV.ev(L.take(16n, w)), LV.ev(L.drop(16n, w)), V.lo_lt(one, h1, w, V.carryp_limbs(one, h1, 16n, cs, 0n)), R.hi_lt(one, h1, w, C.shift(256n, one), hw))
+# ---- the columns folded before any carry ----
 
-def mch1_mod(+one: Nat, +h1: {one == 1n : Nat}, +cs: List<&2, Nat>) -> {Nat.mod(LV.ev(M.fold1(M.carryp(16n, cs, 0n))), 1n+K.pp(one)) == Nat.mod(LV.ev(cs), 1n+K.pp(one)) : Nat}:
-  +w = M.carryp(16n, cs, 0n)
-  %Equal.sym(Nat, LV.ev(cs), LV.ev(M.carryp(16n, cs, 0n)), Equal.sym(Nat, LV.ev(M.carryp(16n, cs, 0n)), LV.ev(cs), carryp0_v(16n, cs))) : {Nat.mod(LV.ev(M.fold1(M.carryp(16n, cs, 0n))), 1n+K.pp(one)) == Nat.mod(_, 1n+K.pp(one)) : Nat}
-  fmod_g(K.pp(one), FS.cp(one), C.shift(256n, one), K.hm_p(one, h1), LV.ev(L.take(16n, w)), LV.ev(L.drop(16n, w)), LV.ev(w), R.split256(one, h1, w), LV.ev(M.fold1(w)), V.fold1_v(one, h1, w))
+# 2^256 + 2^40 c <= 2 p
+def big_ok(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_le(Nat.add(C.shift(256n, one), Nat.mul(C.shift(40n, one), FS.cp(one))), Nat.add(1n+K.pp(one), 1n+K.pp(one))) == True{} : Bool}:
+  +m = {1n+K.pp(one) : Nat}
+  +cv = FS.cp(one)
+  +tt = C.shift(256n, one)
+  +x = Nat.mul(C.shift(40n, one), cv)
+  +s73 = C.shift(73n, one)
+  +x1 = I.le_subst_r(x, Nat.mul(C.shift(40n, one), C.shift(33n, one)), s73, K.shift_mul2(one, h1, 40n, 33n), I.le_mul_r(C.shift(40n, one), cv, C.shift(33n, one), K.cp_le(one, h1)))
+  +c73 = N.le_trans(cv, C.shift(33n, one), s73, K.cp_le(one, h1), K.shift_le_k(33n, 73n, one, 40n, {==}))
+  +y1 = I.le_add2(Nat.add(cv, x), cv, Nat.add(s73, s73), s73, I.le_add2(cv, x, s73, s73, c73, x1), c73)
+  +e74 = Equal.sym(Nat, Nat.double(s73), Nat.add(s73, s73), NA.double_self(s73))
+  +y2 = I.le_subst_r(Nat.add(Nat.add(cv, x), cv), Nat.add(Nat.add(s73, s73), s73), Nat.add(C.shift(74n, one), s73), Equal.cong(Nat, Nat, z => Nat.add(z, s73), Nat.add(s73, s73), C.shift(74n, one), e74), y1)
+  +y3 = N.le_trans(Nat.add(Nat.add(cv, x), cv), Nat.add(C.shift(74n, one), s73), Nat.add(C.shift(74n, one), C.shift(74n, one)), y2, N.le_add_left(s73, C.shift(74n, one), C.shift(74n, one), K.shift_le_k(73n, 74n, one, 1n, {==})))
+  +e75 = Equal.sym(Nat, Nat.double(C.shift(74n, one)), Nat.add(C.shift(74n, one), C.shift(74n, one)), NA.double_self(C.shift(74n, one)))
+  +y4 = I.le_subst_r(Nat.add(Nat.add(cv, x), cv), Nat.add(C.shift(74n, one), C.shift(74n, one)), C.shift(75n, one), e75, y3)
+  +y5 = N.le_trans(Nat.add(Nat.add(cv, x), cv), C.shift(75n, one), tt, y4, K.shift_le_k(75n, 256n, one, 181n, {==}))
+  +y6 = I.le_subst_r(Nat.add(Nat.add(cv, x), cv), tt, Nat.add(m, cv), Equal.sym(Nat, Nat.add(m, cv), tt, K.hm_p(one, h1)), y5)
+  +y7 = Equal.trans(Bool, Nat.is_le(Nat.add(cv, x), m), Nat.is_le(Nat.add(Nat.add(cv, x), cv), Nat.add(m, cv)), True{}, Equal.sym(Bool, Nat.is_le(Nat.add(Nat.add(cv, x), cv), Nat.add(m, cv)), Nat.is_le(Nat.add(cv, x), m), FO.le_cancel_r(Nat.add(cv, x), m, cv)), y6)
+  +y8 = N.le_add_left(Nat.add(cv, x), m, m, y7)
+  +e1 = Equal.trans(Nat, Nat.add(m, Nat.add(cv, x)), Nat.add(Nat.add(m, cv), x), Nat.add(tt, x), Equal.sym(Nat, Nat.add(Nat.add(m, cv), x), Nat.add(m, Nat.add(cv, x)), NA.add_assoc(m, cv, x)), Equal.cong(Nat, Nat, z => Nat.add(z, x), Nat.add(m, cv), tt, K.hm_p(one, h1)))
+  I.le_subst_l(Nat.add(m, Nat.add(cv, x)), Nat.add(tt, x), Nat.add(m, m), e1, y8)
 
-# a product x < T T reduced: x mod p
-def mch_v(+one: Nat, +h1: {one == 1n : Nat}, +cs: List<&2, Nat>, +hc: {Nat.is_lt(LV.ev(cs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, cs, 0n)), 0n)), 0n))) == Nat.mod(LV.ev(cs), 1n+K.pp(one)) : Nat}:
-  +f1 = M.fold1(M.carryp(16n, cs, 0n))
-  %Equal.sym(Nat, LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, cs, 0n)), 0n)), 0n))), Nat.mod(LV.ev(M.foldt(L.carry(16n, M.fold1(M.carryp(16n, cs, 0n)), 0n))), 1n+K.pp(one)), fin_v(one, h1, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, cs, 0n)), 0n)), mch2_lt(one, h1, f1, mch1_lt(one, h1, cs, hc)))) : {_ == Nat.mod(LV.ev(cs), 1n+K.pp(one)) : Nat}
-  %Equal.sym(Nat, Nat.mod(LV.ev(M.foldt(L.carry(16n, M.fold1(M.carryp(16n, cs, 0n)), 0n))), 1n+K.pp(one)), Nat.mod(LV.ev(M.fold1(M.carryp(16n, cs, 0n))), 1n+K.pp(one)), mch2_mod(one, h1, M.fold1(M.carryp(16n, cs, 0n)))) : {_ == Nat.mod(LV.ev(cs), 1n+K.pp(one)) : Nat}
-  %Equal.sym(Nat, Nat.mod(LV.ev(M.fold1(M.carryp(16n, cs, 0n))), 1n+K.pp(one)), Nat.mod(LV.ev(cs), 1n+K.pp(one)), mch1_mod(one, h1, cs)) : {_ == Nat.mod(LV.ev(cs), 1n+K.pp(one)) : Nat}
+# the folded columns (each column below 2^38) carried and folded again: below 2 p
+def mchb_lt(+one: Nat, +h1: {one == 1n : Nat}, +cs: List<&2, Nat>, +hc: {Nat.is_lt(LV.ev(cs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}, +hb: {CB.allb(C.shift(38n, one), cs) == True{} : Bool}) -> {Nat.is_lt(LV.ev(M.foldt(L.carry(16n, M.fold1(cs), 0n))), Nat.add(1n+K.pp(one), 1n+K.pp(one))) == True{} : Bool}:
+  +cv = FS.cp(one)
+  +tt = C.shift(256n, one)
+  +f1 = M.fold1(cs)
+  +u = L.carry(16n, f1, 0n)
+  +lo = LV.ev(L.take(16n, cs))
+  +hi = LV.ev(L.drop(16n, cs))
+  +hl = CB.lo16_lt(one, h1, cs, hb)
+  +hh = R.hi_lt(one, h1, cs, tt, hc)
+  +hic = I.le_subst_r(Nat.mul(hi, cv), Nat.mul(tt, C.shift(33n, one)), C.shift(289n, one), K.shift_mul2(one, h1, 256n, 33n), I.le_mul2(hi, cv, tt, C.shift(33n, one), N.lt_le(hi, tt, hh), K.cp_le(one, h1)))
+  +s1 = I.lt_le_add(lo, Nat.mul(hi, cv), C.shift(295n, one), C.shift(289n, one), hl, hic)
+  +s2 = N.lt_le_trans(Nat.add(lo, Nat.mul(hi, cv)), Nat.add(C.shift(295n, one), C.shift(289n, one)), Nat.add(C.shift(295n, one), C.shift(295n, one)), s1, N.le_add_left(C.shift(289n, one), C.shift(295n, one), C.shift(295n, one), K.shift_le_k(289n, 295n, one, 6n, {==})))
+  +e296 = Equal.trans(Nat, Nat.add(C.shift(295n, one), C.shift(295n, one)), C.shift(296n, one), Nat.mul(C.shift(40n, one), tt), Equal.sym(Nat, Nat.double(C.shift(295n, one)), Nat.add(C.shift(295n, one), C.shift(295n, one)), NA.double_self(C.shift(295n, one))), Equal.sym(Nat, Nat.mul(C.shift(40n, one), tt), C.shift(296n, one), K.shift_mul2(one, h1, 40n, 256n)))
+  +s3 = I.lt_subst_r(Nat.add(lo, Nat.mul(hi, cv)), Nat.add(C.shift(295n, one), C.shift(295n, one)), Nat.mul(C.shift(40n, one), tt), e296, s2)
+  +s4 = I.lt_subst_l(Nat.add(lo, Nat.mul(hi, cv)), LV.ev(f1), Nat.mul(C.shift(40n, one), tt), Equal.sym(Nat, LV.ev(f1), Nat.add(lo, Nat.mul(hi, cv)), V.fold1_v(one, h1, cs)), s3)
+  +hu = I.lt_subst_l(LV.ev(f1), LV.ev(u), Nat.mul(C.shift(40n, one), tt), Equal.sym(Nat, LV.ev(u), LV.ev(f1), V.carry0_v(16n, f1)), s4)
+  +top = L.hd0(L.drop(16n, u))
+  +ht = top_lt(one, h1, u, V.carry_top(16n, f1, 0n), C.shift(40n, one), hu)
+  +hl2 = V.lo_lt(one, h1, u, B.carry_limbs(one, h1, 16n, 16n, f1, 0n, {==}))
+  +z1 = I.lt_le_add(LV.ev(L.take(16n, u)), Nat.mul(top, cv), tt, Nat.mul(C.shift(40n, one), cv), hl2, AR.mul_le(top, C.shift(40n, one), cv, N.lt_le(top, C.shift(40n, one), ht)))
+  %Equal.sym(Nat, LV.ev(M.foldt(L.carry(16n, M.fold1(cs), 0n))), Nat.add(LV.ev(L.take(16n, L.carry(16n, M.fold1(cs), 0n))), Nat.mul(L.hd0(L.drop(16n, L.carry(16n, M.fold1(cs), 0n))), FS.cp(one))), V.foldt_v(one, h1, L.carry(16n, M.fold1(cs), 0n))) : {Nat.is_lt(_, Nat.add(1n+K.pp(one), 1n+K.pp(one))) == True{} : Bool}
+  N.lt_le_trans(Nat.add(LV.ev(L.take(16n, u)), Nat.mul(top, cv)), Nat.add(tt, Nat.mul(C.shift(40n, one), cv)), Nat.add(1n+K.pp(one), 1n+K.pp(one)), z1, big_ok(one, h1))
+
+def mchb_mod(+one: Nat, +h1: {one == 1n : Nat}, +cs: List<&2, Nat>) -> {Nat.mod(LV.ev(M.fold1(cs)), 1n+K.pp(one)) == Nat.mod(LV.ev(cs), 1n+K.pp(one)) : Nat}:
+  fmod_g(K.pp(one), FS.cp(one), C.shift(256n, one), K.hm_p(one, h1), LV.ev(L.take(16n, cs)), LV.ev(L.drop(16n, cs)), LV.ev(cs), R.split256(one, h1, cs), LV.ev(M.fold1(cs)), V.fold1_v(one, h1, cs))
+
+# a product x < T T of columns below 2^38 reduced: x mod p
+def mch_v(+one: Nat, +h1: {one == 1n : Nat}, +cs: List<&2, Nat>, +hc: {Nat.is_lt(LV.ev(cs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}, +hb: {CB.allb(C.shift(38n, one), cs) == True{} : Bool}) -> {LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(cs), 0n)), 0n))) == Nat.mod(LV.ev(cs), 1n+K.pp(one)) : Nat}:
+  %Equal.sym(Nat, LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(cs), 0n)), 0n))), Nat.mod(LV.ev(M.foldt(L.carry(16n, M.fold1(cs), 0n))), 1n+K.pp(one)), fin_v(one, h1, M.foldt(L.carry(16n, M.fold1(cs), 0n)), mchb_lt(one, h1, cs, hc, hb))) : {_ == Nat.mod(LV.ev(cs), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.mod(LV.ev(M.foldt(L.carry(16n, M.fold1(cs), 0n))), 1n+K.pp(one)), Nat.mod(LV.ev(M.fold1(cs)), 1n+K.pp(one)), mch2_mod(one, h1, M.fold1(cs))) : {_ == Nat.mod(LV.ev(cs), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, Nat.mod(LV.ev(M.fold1(cs)), 1n+K.pp(one)), Nat.mod(LV.ev(cs), 1n+K.pp(one)), mchb_mod(one, h1, cs)) : {_ == Nat.mod(LV.ev(cs), 1n+K.pp(one)) : Nat}
   {==}
 
-def mch_r(+one: Nat, +h1: {one == 1n : Nat}, +cs: List<&2, Nat>, +hc: {Nat.is_lt(LV.ev(cs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}) -> {FS.reduced(one, FS.prime(one), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, cs, 0n)), 0n)), 0n))) == True{} : Bool}:
-  +f1 = M.fold1(M.carryp(16n, cs, 0n))
-  fin_r(one, h1, M.foldt(L.carry(16n, f1, 0n)), mch2_lt(one, h1, f1, mch1_lt(one, h1, cs, hc)))
+def mch_r(+one: Nat, +h1: {one == 1n : Nat}, +cs: List<&2, Nat>, +hc: {Nat.is_lt(LV.ev(cs), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}, +hb: {CB.allb(C.shift(38n, one), cs) == True{} : Bool}) -> {FS.reduced(one, FS.prime(one), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(cs), 0n)), 0n))) == True{} : Bool}:
+  fin_r(one, h1, M.foldt(L.carry(16n, M.fold1(cs), 0n)), mchb_lt(one, h1, cs, hc, hb))
+
+# ---- 21 a (the doubling and addition constant 3 b) ----
+
+def mul21_l(+a: F.FE) -> {F.to_list(F.mul21(a)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n)), 0n)) : List<&2, Nat>}:
+  %Equal.sym(List<&2, Nat>, F.to_list(F.fin(F.carry16(F.foldt(F.carry16(F.mul21r(a)))))), M.fin(BR.l17(F.carry16(F.foldt(F.carry16(F.mul21r(a)))))), BR.fin_b(F.carry16(F.foldt(F.carry16(F.mul21r(a)))))) : {_ == M.fin(L.carry(16n, M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, BR.l17(F.carry16(F.foldt(F.carry16(F.mul21r(a))))), L.carry(16n, F.to_list(F.foldt(F.carry16(F.mul21r(a)))), 0n), BR.carry16_b(F.foldt(F.carry16(F.mul21r(a))))) : {M.fin(_) == M.fin(L.carry(16n, M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, F.to_list(F.foldt(F.carry16(F.mul21r(a)))), M.foldt(BR.l17(F.carry16(F.mul21r(a)))), BR.foldt_b(F.carry16(F.mul21r(a)))) : {M.fin(L.carry(16n, _, 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, BR.l17(F.carry16(F.mul21r(a))), L.carry(16n, F.to_list(F.mul21r(a)), 0n), BR.carry16_b(F.mul21r(a))) : {M.fin(L.carry(16n, M.foldt(_), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, F.to_list(F.mul21r(a)), L.scal(21n, F.to_list(a)), BR.mul21r_b(a)) : {M.fin(L.carry(16n, M.foldt(L.carry(16n, _, 0n)), 0n)) == M.fin(L.carry(16n, M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n)), 0n)) : List<&2, Nat>}
+  {==}
+
+def c21_le(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_le(21n, FS.cp(one)) == True{} : Bool}:
+  +s = C.shift(32n, one)
+  +h = I.le_subst_r(977n, Nat.add(977n, s), Nat.add(s, 977n), N.add_comm(977n, s), N.le_add_right(977n, s))
+  +h2 = I.le_subst_r(977n, Nat.add(s, 977n), FS.cp(one), Equal.sym(Nat, FS.cp(one), Nat.add(s, 977n), K.cp_eq(one, h1)), h)
+  N.le_trans(21n, 977n, FS.cp(one), {==}, h2)
+
+def mul21_hx(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +ha: {red(one, a) == True{} : Bool}) -> {Nat.is_lt(LV.ev(L.scal(21n, F.to_list(a))), Nat.mul(1n+FS.cp(one), C.shift(256n, one))) == True{} : Bool}:
+  +t = C.shift(256n, one)
+  +x = LV.ev(F.to_list(a))
+  +s1 = AR.mul_le(x, t, 21n, N.lt_le(x, t, FO.rtt(one, h1, F.to_list(a), ha)))
+  +s2 = I.le_subst_r(Nat.mul(x, 21n), Nat.mul(t, 21n), Nat.mul(21n, t), NA.mul_comm(t, 21n), s1)
+  +s3 = AR.mul_le(21n, FS.cp(one), t, c21_le(one, h1))
+  +s4 = N.le_trans(Nat.mul(x, 21n), Nat.mul(21n, t), Nat.mul(FS.cp(one), t), s2, s3)
+  %Equal.sym(Nat, LV.ev(L.scal(21n, F.to_list(a))), Nat.mul(LV.ev(F.to_list(a)), 21n), LV.scal_v(21n, F.to_list(a))) : {Nat.is_lt(_, Nat.mul(1n+FS.cp(one), C.shift(256n, one))) == True{} : Bool}
+  I.lt_le_add(0n, Nat.mul(x, 21n), t, Nat.mul(FS.cp(one), t), K.shift_pos(one, h1, 256n), s4)
+
+def mul21_v(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +ha: {red(one, a) == True{} : Bool}) -> {val(one, F.mul21(a)) == FS.mmul(FS.prime(one), 21n, val(one, a)) : Nat}:
+  +f1 = L.scal(21n, F.to_list(a))
+  %Equal.sym(List<&2, Nat>, F.to_list(F.mul21(a)), M.fin(L.carry(16n, M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n)), 0n)), mul21_l(a)) : {FS.value(one, _) == Nat.mod(Nat.mul(21n, FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
+  %Equal.sym(Nat, FS.value(one, M.fin(L.carry(16n, M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n)), 0n))), LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n)), 0n))), LV.ev_value(one, h1, M.fin(L.carry(16n, M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n)), 0n)))) : {_ == Nat.mod(Nat.mul(21n, FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n)), 0n))), Nat.mod(LV.ev(M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n))), 1n+K.pp(one)), fin_v(one, h1, M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n)), mch2_lt(one, h1, f1, mul21_hx(one, h1, a, ha)))) : {_ == Nat.mod(Nat.mul(21n, FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
+  %Equal.sym(Nat, Nat.mod(LV.ev(M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n))), 1n+K.pp(one)), Nat.mod(LV.ev(L.scal(21n, F.to_list(a))), 1n+K.pp(one)), mch2_mod(one, h1, L.scal(21n, F.to_list(a)))) : {_ == Nat.mod(Nat.mul(21n, FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(L.scal(21n, F.to_list(a))), Nat.mul(LV.ev(F.to_list(a)), 21n), LV.scal_v(21n, F.to_list(a))) : {Nat.mod(_, 1n+K.pp(one)) == Nat.mod(Nat.mul(21n, FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(F.to_list(a)), FS.value(one, F.to_list(a)), Equal.sym(Nat, FS.value(one, F.to_list(a)), LV.ev(F.to_list(a)), LV.ev_value(one, h1, F.to_list(a)))) : {Nat.mod(Nat.mul(_, 21n), 1n+K.pp(one)) == Nat.mod(Nat.mul(21n, FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
+  %Equal.sym(Nat, 1n+K.pp(one), FS.prime(one), Equal.sym(Nat, FS.prime(one), 1n+K.pp(one), K.prime_eq(one, h1))) : {Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), 21n), _) == Nat.mod(Nat.mul(21n, FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
+  %Equal.sym(Nat, Nat.mul(FS.value(one, F.to_list(a)), 21n), Nat.mul(21n, FS.value(one, F.to_list(a))), NA.mul_comm(FS.value(one, F.to_list(a)), 21n)) : {Nat.mod(_, FS.prime(one)) == Nat.mod(Nat.mul(21n, FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
+  {==}
+
+def mul21_r(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +ha: {red(one, a) == True{} : Bool}) -> {red(one, F.mul21(a)) == True{} : Bool}:
+  %Equal.sym(List<&2, Nat>, F.to_list(F.mul21(a)), M.fin(L.carry(16n, M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n)), 0n)), mul21_l(a)) : {FS.reduced(one, FS.prime(one), _) == True{} : Bool}
+  fin_r(one, h1, M.foldt(L.carry(16n, L.scal(21n, F.to_list(a)), 0n)), mch2_lt(one, h1, L.scal(21n, F.to_list(a)), mul21_hx(one, h1, a, ha)))
 
 # ---- mul, sq ----
 
@@ -264,9 +342,9 @@ def mul_hx(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +b: F.FE, +ha: {red(one,
   FO.mul_lt(LV.ev(F.to_list(a)), LV.ev(F.to_list(b)), C.shift(256n, one), FO.rtt(one, h1, F.to_list(a), ha), FO.rtt(one, h1, F.to_list(b), hb))
 
 def mul_v(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +b: F.FE, +ha: {red(one, a) == True{} : Bool}, +hb: {red(one, b) == True{} : Bool}) -> {val(one, F.mul(a, b)) == FS.mmul(FS.prime(one), val(one, a), val(one, b)) : Nat}:
-  %Equal.sym(List<&2, Nat>, F.to_list(F.mul(a, b)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n)), mul_l(a, b)) : {FS.value(one, _) == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(b))), FS.prime(one)) : Nat}
-  %Equal.sym(Nat, FS.value(one, M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n))), LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n))), LV.ev_value(one, h1, M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n)))) : {_ == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(b))), FS.prime(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n))), Nat.mod(LV.ev(M.convu(F.to_list(a), F.to_list(b))), 1n+K.pp(one)), mch_v(one, h1, M.convu(F.to_list(a), F.to_list(b)), mul_hx(one, h1, a, b, ha, hb))) : {_ == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(b))), FS.prime(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, F.to_list(F.mul(a, b)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n)), mul_l(a, b)) : {FS.value(one, _) == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(b))), FS.prime(one)) : Nat}
+  %Equal.sym(Nat, FS.value(one, M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n))), LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n))), LV.ev_value(one, h1, M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n)))) : {_ == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(b))), FS.prime(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n))), Nat.mod(LV.ev(M.convu(F.to_list(a), F.to_list(b))), 1n+K.pp(one)), mch_v(one, h1, M.convu(F.to_list(a), F.to_list(b)), mul_hx(one, h1, a, b, ha, hb), CB.conv16_b(one, h1, F.to_list(a), FO.r16(one, F.to_list(a), ha), F.to_list(b), FO.r16(one, F.to_list(b), hb)))) : {_ == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(b))), FS.prime(one)) : Nat}
   %Equal.sym(Nat, LV.ev(M.convu(F.to_list(a), F.to_list(b))), Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(b))), V.convu_v(one, h1, 16n, F.to_list(a), FO.r16(one, F.to_list(a), ha), 16n, F.to_list(b), FO.r16(one, F.to_list(b), hb))) : {Nat.mod(_, 1n+K.pp(one)) == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(b))), FS.prime(one)) : Nat}
   %Equal.sym(Nat, LV.ev(F.to_list(a)), FS.value(one, F.to_list(a)), Equal.sym(Nat, FS.value(one, F.to_list(a)), LV.ev(F.to_list(a)), LV.ev_value(one, h1, F.to_list(a)))) : {Nat.mod(Nat.mul(_, LV.ev(F.to_list(b))), 1n+K.pp(one)) == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(b))), FS.prime(one)) : Nat}
   %Equal.sym(Nat, LV.ev(F.to_list(b)), FS.value(one, F.to_list(b)), Equal.sym(Nat, FS.value(one, F.to_list(b)), LV.ev(F.to_list(b)), LV.ev_value(one, h1, F.to_list(b)))) : {Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), _), 1n+K.pp(one)) == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(b))), FS.prime(one)) : Nat}
@@ -274,17 +352,17 @@ def mul_v(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +b: F.FE, +ha: {red(one, 
   {==}
 
 def mul_r(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +b: F.FE, +ha: {red(one, a) == True{} : Bool}, +hb: {red(one, b) == True{} : Bool}) -> {red(one, F.mul(a, b)) == True{} : Bool}:
-  %Equal.sym(List<&2, Nat>, F.to_list(F.mul(a, b)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n)), mul_l(a, b)) : {FS.reduced(one, FS.prime(one), _) == True{} : Bool}
-  mch_r(one, h1, M.convu(F.to_list(a), F.to_list(b)), mul_hx(one, h1, a, b, ha, hb))
+  %Equal.sym(List<&2, Nat>, F.to_list(F.mul(a, b)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n)), mul_l(a, b)) : {FS.reduced(one, FS.prime(one), _) == True{} : Bool}
+  mch_r(one, h1, M.convu(F.to_list(a), F.to_list(b)), mul_hx(one, h1, a, b, ha, hb), CB.conv16_b(one, h1, F.to_list(a), FO.r16(one, F.to_list(a), ha), F.to_list(b), FO.r16(one, F.to_list(b), hb)))
 
 def sq_hx(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +ha: {red(one, a) == True{} : Bool}) -> {Nat.is_lt(LV.ev(M.sqru(F.to_list(a))), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}:
   %Equal.sym(Nat, LV.ev(M.sqru(F.to_list(a))), Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(a))), V.sqru_v(one, h1, 16n, F.to_list(a), FO.r16(one, F.to_list(a), ha))) : {Nat.is_lt(_, Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}
   FO.mul_lt(LV.ev(F.to_list(a)), LV.ev(F.to_list(a)), C.shift(256n, one), FO.rtt(one, h1, F.to_list(a), ha), FO.rtt(one, h1, F.to_list(a), ha))
 
 def sq_v(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +ha: {red(one, a) == True{} : Bool}) -> {val(one, F.sq(a)) == FS.mmul(FS.prime(one), val(one, a), val(one, a)) : Nat}:
-  %Equal.sym(List<&2, Nat>, F.to_list(F.sq(a)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n)), sq_l(a)) : {FS.value(one, _) == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
-  %Equal.sym(Nat, FS.value(one, M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n))), LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n))), LV.ev_value(one, h1, M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n)))) : {_ == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n))), Nat.mod(LV.ev(M.sqru(F.to_list(a))), 1n+K.pp(one)), mch_v(one, h1, M.sqru(F.to_list(a)), sq_hx(one, h1, a, ha))) : {_ == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, F.to_list(F.sq(a)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n)), sq_l(a)) : {FS.value(one, _) == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
+  %Equal.sym(Nat, FS.value(one, M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n))), LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n))), LV.ev_value(one, h1, M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n)))) : {_ == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n))), Nat.mod(LV.ev(M.sqru(F.to_list(a))), 1n+K.pp(one)), mch_v(one, h1, M.sqru(F.to_list(a)), sq_hx(one, h1, a, ha), CB.sq16_b(one, h1, F.to_list(a), FO.r16(one, F.to_list(a), ha)))) : {_ == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
   %Equal.sym(Nat, LV.ev(M.sqru(F.to_list(a))), Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(a))), V.sqru_v(one, h1, 16n, F.to_list(a), FO.r16(one, F.to_list(a), ha))) : {Nat.mod(_, 1n+K.pp(one)) == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
   %Equal.sym(Nat, LV.ev(F.to_list(a)), FS.value(one, F.to_list(a)), Equal.sym(Nat, FS.value(one, F.to_list(a)), LV.ev(F.to_list(a)), LV.ev_value(one, h1, F.to_list(a)))) : {Nat.mod(Nat.mul(_, LV.ev(F.to_list(a))), 1n+K.pp(one)) == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
   %Equal.sym(Nat, LV.ev(F.to_list(a)), FS.value(one, F.to_list(a)), Equal.sym(Nat, FS.value(one, F.to_list(a)), LV.ev(F.to_list(a)), LV.ev_value(one, h1, F.to_list(a)))) : {Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), _), 1n+K.pp(one)) == Nat.mod(Nat.mul(FS.value(one, F.to_list(a)), FS.value(one, F.to_list(a))), FS.prime(one)) : Nat}
@@ -292,20 +370,20 @@ def sq_v(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +ha: {red(one, a) == True{
   {==}
 
 def sq_r(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +ha: {red(one, a) == True{} : Bool}) -> {red(one, F.sq(a)) == True{} : Bool}:
-  %Equal.sym(List<&2, Nat>, F.to_list(F.sq(a)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n)), sq_l(a)) : {FS.reduced(one, FS.prime(one), _) == True{} : Bool}
-  mch_r(one, h1, M.sqru(F.to_list(a)), sq_hx(one, h1, a, ha))
+  %Equal.sym(List<&2, Nat>, F.to_list(F.sq(a)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n)), sq_l(a)) : {FS.reduced(one, FS.prime(one), _) == True{} : Bool}
+  mch_r(one, h1, M.sqru(F.to_list(a)), sq_hx(one, h1, a, ha), CB.sq16_b(one, h1, F.to_list(a), FO.r16(one, F.to_list(a), ha)))
 
 # ---- in the limb value ----
 
 def mul_e(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +b: F.FE, +ha: {red(one, a) == True{} : Bool}, +hb: {red(one, b) == True{} : Bool}) -> {LV.ev(F.to_list(F.mul(a, b))) == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(b))), 1n+K.pp(one)) : Nat}:
-  %Equal.sym(List<&2, Nat>, F.to_list(F.mul(a, b)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n)), mul_l(a, b)) : {LV.ev(_) == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(b))), 1n+K.pp(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.convu(F.to_list(a), F.to_list(b)), 0n)), 0n)), 0n))), Nat.mod(LV.ev(M.convu(F.to_list(a), F.to_list(b))), 1n+K.pp(one)), mch_v(one, h1, M.convu(F.to_list(a), F.to_list(b)), mul_hx(one, h1, a, b, ha, hb))) : {_ == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(b))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, F.to_list(F.mul(a, b)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n)), mul_l(a, b)) : {LV.ev(_) == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(b))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.convu(F.to_list(a), F.to_list(b))), 0n)), 0n))), Nat.mod(LV.ev(M.convu(F.to_list(a), F.to_list(b))), 1n+K.pp(one)), mch_v(one, h1, M.convu(F.to_list(a), F.to_list(b)), mul_hx(one, h1, a, b, ha, hb), CB.conv16_b(one, h1, F.to_list(a), FO.r16(one, F.to_list(a), ha), F.to_list(b), FO.r16(one, F.to_list(b), hb)))) : {_ == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(b))), 1n+K.pp(one)) : Nat}
   %Equal.sym(Nat, LV.ev(M.convu(F.to_list(a), F.to_list(b))), Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(b))), V.convu_v(one, h1, 16n, F.to_list(a), FO.r16(one, F.to_list(a), ha), 16n, F.to_list(b), FO.r16(one, F.to_list(b), hb))) : {Nat.mod(_, 1n+K.pp(one)) == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(b))), 1n+K.pp(one)) : Nat}
   {==}
 
 def sq_e(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +ha: {red(one, a) == True{} : Bool}) -> {LV.ev(F.to_list(F.sq(a))) == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(a))), 1n+K.pp(one)) : Nat}:
-  %Equal.sym(List<&2, Nat>, F.to_list(F.sq(a)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n)), sq_l(a)) : {LV.ev(_) == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(a))), 1n+K.pp(one)) : Nat}
-  %Equal.sym(Nat, LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.carryp(16n, M.sqru(F.to_list(a)), 0n)), 0n)), 0n))), Nat.mod(LV.ev(M.sqru(F.to_list(a))), 1n+K.pp(one)), mch_v(one, h1, M.sqru(F.to_list(a)), sq_hx(one, h1, a, ha))) : {_ == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(a))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, F.to_list(F.sq(a)), M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n)), sq_l(a)) : {LV.ev(_) == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(a))), 1n+K.pp(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(M.fin(L.carry(16n, M.foldt(L.carry(16n, M.fold1(M.sqru(F.to_list(a))), 0n)), 0n))), Nat.mod(LV.ev(M.sqru(F.to_list(a))), 1n+K.pp(one)), mch_v(one, h1, M.sqru(F.to_list(a)), sq_hx(one, h1, a, ha), CB.sq16_b(one, h1, F.to_list(a), FO.r16(one, F.to_list(a), ha)))) : {_ == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(a))), 1n+K.pp(one)) : Nat}
   %Equal.sym(Nat, LV.ev(M.sqru(F.to_list(a))), Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(a))), V.sqru_v(one, h1, 16n, F.to_list(a), FO.r16(one, F.to_list(a), ha))) : {Nat.mod(_, 1n+K.pp(one)) == Nat.mod(Nat.mul(LV.ev(F.to_list(a)), LV.ev(F.to_list(a))), 1n+K.pp(one)) : Nat}
   {==}
 

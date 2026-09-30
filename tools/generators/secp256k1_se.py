@@ -153,6 +153,25 @@ def canonu(e, ts, cs):
 
 stage('canonu', 't mod n for t below 2^256: t + c has bit 256 set exactly when t >= n (smod.canonu)', [('t', 'FE.FE', 16), ('c', 'W9', 9)], 'FE.FE', canonu)
 
+
+
+def finn(e, us, cs):
+    lo, t = us[:16], us[16]
+    v = carry(e, ladd(lo, cs), 16)
+    f = e.let('f', add(t, v[16]))
+    return ['Nat.add(%s, %s)' % (nmul(v[i], f), nmul(lo[i], 'Nat.sub(1n, %s)' % f)) for i in range(16)]
+
+
+stage('finn', 'x mod n for x = lo + 2^256 t below 2 n: lo + c - 2^256 when t = 1 or lo + c reaches 2^256 (fmod.finc)', [('u', 'FE.W17', 17), ('c', 'W9', 9)], 'FE.FE', finn)
+
+
+def negrn(e, xs, cs):
+    t = carry(e, ladd(xs, cs), 16)[:16]
+    return ladd(['L.comp1(%s)' % x for x in t], ['1n'])
+
+
+stage('negrn', 'n - b for b below n: (2^256 - 1 - (b + c)) + 1 (L.neg_raw(c, b))', [('x', 'FE.FE', 16), ('c', 'W9', 9)], 'FE.FE', negrn)
+
 w('''# one fold of the high half and its carry pass (L.rounds' step)
 def round(r: W33, +c: W9) -> W33:
   carry32f(foldu(r, c))
@@ -189,6 +208,16 @@ def pow(x: FE.FE, bits: List<&2, Nat>, acc: FE.FE) -> FE.FE:
 
 def one() -> FE.FE:
   FE.one()
+
+def add(a: FE.FE, b: FE.FE) -> FE.FE:
+  finn(FE.carry16(FE.addr(a, b)), cn())
+
+def neg(a: FE.FE) -> FE.FE:
+  finn(FE.carry16(negrn(a, cn())), cn())
+
+# x mod n for 16 limbs of value below 2^256 (< 2 n)
+def red16(a: FE.FE) -> FE.FE:
+  finn(FE.carry16(a), cn())
 ''')
 (ROOT / 'src/crypto/secp256k1/se.bend').write_text('\n'.join(OUT) + '\n')
 
@@ -212,7 +241,7 @@ for ty, n in (('W9', 9), ('W25', 25), ('W33', 33)):
     b('    case S.%s{%s}:' % (ty, fields('x', n, False)))
     b('      [%s]' % fields('x', n, False))
     b('')
-NS = {'FE.FE': 16, 'FE.W31': 31, 'S.W9': 9, 'S.W25': 25, 'S.W33': 33}
+NS = {'FE.FE': 16, 'FE.W17': 17, 'FE.W31': 31, 'S.W9': 9, 'S.W25': 25, 'S.W33': 33}
 
 
 def bridge(name, args, lhs, rhs):
@@ -227,6 +256,8 @@ bridge('carry32c_b', [('r', 'FE.W31')], 'l33(S.carry32c(r))', 'L.carry(32n, FB.l
 bridge('foldu_b', [('r', 'S.W33'), ('c', 'S.W9')], 'l25(S.foldu(r, c))', 'SM.foldu(l9(c), l33(r))')
 bridge('carry32f_b', [('r', 'S.W25')], 'l33(S.carry32f(r))', 'L.carry(32n, l25(r), 0n)')
 bridge('take16_b', [('r', 'S.W33')], 'FE.to_list(S.take16(r))', 'L.take(16n, l33(r))')
+bridge('finn_b', [('u', 'FE.W17'), ('c', 'S.W9')], 'FE.to_list(S.finn(u, c))', 'M.finc(l9(c), FB.l17(u))')
+bridge('negrn_b', [('x', 'FE.FE'), ('c', 'S.W9')], 'FE.to_list(S.negrn(x, c))', 'L.neg_raw(l9(c), FE.to_list(x))')
 bridge('canonu_b', [('t', 'FE.FE'), ('c', 'S.W9')], 'FE.to_list(S.canonu(t, c))', 'SM.canonu(l9(c), FE.to_list(t))')
 b('def round_b(+r: S.W33, +c: S.W9) -> {l33(S.round(r, c)) == L.carry(32n, SM.foldu(l9(c), l33(r)), 0n) : List<&2, Nat>}:')
 b('  Equal.trans(List<&2, Nat>, l33(S.carry32f(S.foldu(r, c))), L.carry(32n, l25(S.foldu(r, c)), 0n), L.carry(32n, SM.foldu(l9(c), l33(r)), 0n), carry32f_b(S.foldu(r, c)), Equal.cong(List<&2, Nat>, List<&2, Nat>, z => L.carry(32n, z, 0n), l25(S.foldu(r, c)), SM.foldu(l9(c), l33(r)), foldu_b(r, c)))')

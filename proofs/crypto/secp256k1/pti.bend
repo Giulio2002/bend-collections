@@ -3,7 +3,8 @@ import ../../../src/crypto/secp256k1/fe.bend as F
 import ../../../src/crypto/secp256k1/pt.bend as PX
 
 # The register programs of the RCB formulas on field records (proof only):
-# registers 0.. are the inputs, each instruction appends one register. The
+# registers 0.. are the inputs, each instruction appends one register;
+# RMulB{i, j} is the product by the register i holding b3 = 21 (F.mul21). The
 # straight-line formulas of src/crypto/secp256k1/pt.bend are these programs
 # run (ptbr.bend); ptp.bend follows the values register by register.
 
@@ -12,6 +13,7 @@ type ROp is Data:
   RSub{i: Nat, j: Nat}
   RMul{i: Nat, j: Nat}
   RSq{i: Nat}
+  RMulB{i: Nat, j: Nat}
 
 def rnth(i: Nat, regs: List<&2, F.FE>) -> F.FE:
   match i regs:
@@ -25,6 +27,7 @@ def rexec(op: ROp, +regs: List<&2, F.FE>) -> F.FE:
     case RSub{i, j}: F.sub(rnth(i, regs), rnth(j, regs))
     case RMul{i, j}: F.mul(rnth(i, regs), rnth(j, regs))
     case RSq{i}: F.sq(rnth(i, regs))
+    case RMulB{i, j}: F.mul21(rnth(j, regs))
 
 def rrun_go(prog: List<&2, ROp>, +regs: List<&2, F.FE>) -> List<&2, F.FE>:
   match prog:
@@ -45,7 +48,7 @@ def radd_prog() -> List<&2, ROp>:
    RMul{10n, 11n}, RAdd{7n, 8n}, RSub{12n, 13n}, RAdd{1n, 2n}, RAdd{4n, 5n},
    RMul{15n, 16n}, RAdd{8n, 9n}, RSub{17n, 18n}, RAdd{0n, 2n}, RAdd{3n, 5n},
    RMul{20n, 21n}, RAdd{7n, 9n}, RSub{22n, 23n}, RAdd{7n, 7n}, RAdd{25n, 7n},
-   RMul{6n, 9n}, RAdd{8n, 27n}, RSub{8n, 27n}, RMul{6n, 24n}, RMul{19n, 30n},
+   RMulB{6n, 9n}, RAdd{8n, 27n}, RSub{8n, 27n}, RMulB{6n, 24n}, RMul{19n, 30n},
    RMul{14n, 29n}, RSub{32n, 31n}, RMul{30n, 26n}, RMul{29n, 28n}, RAdd{35n, 34n},
    RMul{26n, 14n}, RMul{28n, 19n}, RAdd{38n, 37n}]
 
@@ -53,7 +56,7 @@ def radd_prog() -> List<&2, ROp>:
 # X3 Y3 Z3 = registers 21, 18, 13 (Y Y and Z Z are squares)
 def rdbl_prog() -> List<&2, ROp>:
   [RSq{1n}, RAdd{4n, 4n}, RAdd{5n, 5n}, RAdd{6n, 6n}, RMul{1n, 2n},
-   RSq{2n}, RMul{3n, 9n}, RMul{10n, 7n}, RAdd{4n, 10n}, RMul{8n, 7n},
+   RSq{2n}, RMulB{3n, 9n}, RMul{10n, 7n}, RAdd{4n, 10n}, RMul{8n, 7n},
    RAdd{10n, 10n}, RAdd{14n, 10n}, RSub{4n, 15n}, RMul{16n, 12n}, RAdd{11n, 17n},
    RMul{0n, 1n}, RMul{16n, 19n}, RAdd{20n, 20n}]
 

@@ -44,60 +44,6 @@ def sqcols(a: FE) -> W31:
     case FE{+a0, +a1, +a2, +a3, +a4, +a5, +a6, +a7, +a8, +a9, +a10, +a11, +a12, +a13, +a14, +a15}:
       W31{Nat.add(nmul(a0, a0), 0n), Nat.add(Nat.mul(nmul(a1, a0), 2n), 0n), Nat.add(Nat.mul(nmul(a2, a0), 2n), Nat.add(nmul(a1, a1), 0n)), Nat.add(Nat.mul(nmul(a3, a0), 2n), Nat.add(Nat.mul(nmul(a2, a1), 2n), 0n)), Nat.add(Nat.mul(nmul(a4, a0), 2n), Nat.add(Nat.mul(nmul(a3, a1), 2n), Nat.add(nmul(a2, a2), 0n))), Nat.add(Nat.mul(nmul(a5, a0), 2n), Nat.add(Nat.mul(nmul(a4, a1), 2n), Nat.add(Nat.mul(nmul(a3, a2), 2n), 0n))), Nat.add(Nat.mul(nmul(a6, a0), 2n), Nat.add(Nat.mul(nmul(a5, a1), 2n), Nat.add(Nat.mul(nmul(a4, a2), 2n), Nat.add(nmul(a3, a3), 0n)))), Nat.add(Nat.mul(nmul(a7, a0), 2n), Nat.add(Nat.mul(nmul(a6, a1), 2n), Nat.add(Nat.mul(nmul(a5, a2), 2n), Nat.add(Nat.mul(nmul(a4, a3), 2n), 0n)))), Nat.add(Nat.mul(nmul(a8, a0), 2n), Nat.add(Nat.mul(nmul(a7, a1), 2n), Nat.add(Nat.mul(nmul(a6, a2), 2n), Nat.add(Nat.mul(nmul(a5, a3), 2n), Nat.add(nmul(a4, a4), 0n))))), Nat.add(Nat.mul(nmul(a9, a0), 2n), Nat.add(Nat.mul(nmul(a8, a1), 2n), Nat.add(Nat.mul(nmul(a7, a2), 2n), Nat.add(Nat.mul(nmul(a6, a3), 2n), Nat.add(Nat.mul(nmul(a5, a4), 2n), 0n))))), Nat.add(Nat.mul(nmul(a10, a0), 2n), Nat.add(Nat.mul(nmul(a9, a1), 2n), Nat.add(Nat.mul(nmul(a8, a2), 2n), Nat.add(Nat.mul(nmul(a7, a3), 2n), Nat.add(Nat.mul(nmul(a6, a4), 2n), Nat.add(nmul(a5, a5), 0n)))))), Nat.add(Nat.mul(nmul(a11, a0), 2n), Nat.add(Nat.mul(nmul(a10, a1), 2n), Nat.add(Nat.mul(nmul(a9, a2), 2n), Nat.add(Nat.mul(nmul(a8, a3), 2n), Nat.add(Nat.mul(nmul(a7, a4), 2n), Nat.add(Nat.mul(nmul(a6, a5), 2n), 0n)))))), Nat.add(Nat.mul(nmul(a12, a0), 2n), Nat.add(Nat.mul(nmul(a11, a1), 2n), Nat.add(Nat.mul(nmul(a10, a2), 2n), Nat.add(Nat.mul(nmul(a9, a3), 2n), Nat.add(Nat.mul(nmul(a8, a4), 2n), Nat.add(Nat.mul(nmul(a7, a5), 2n), Nat.add(nmul(a6, a6), 0n))))))), Nat.add(Nat.mul(nmul(a13, a0), 2n), Nat.add(Nat.mul(nmul(a12, a1), 2n), Nat.add(Nat.mul(nmul(a11, a2), 2n), Nat.add(Nat.mul(nmul(a10, a3), 2n), Nat.add(Nat.mul(nmul(a9, a4), 2n), Nat.add(Nat.mul(nmul(a8, a5), 2n), Nat.add(Nat.mul(nmul(a7, a6), 2n), 0n))))))), Nat.add(Nat.mul(nmul(a14, a0), 2n), Nat.add(Nat.mul(nmul(a13, a1), 2n), Nat.add(Nat.mul(nmul(a12, a2), 2n), Nat.add(Nat.mul(nmul(a11, a3), 2n), Nat.add(Nat.mul(nmul(a10, a4), 2n), Nat.add(Nat.mul(nmul(a9, a5), 2n), Nat.add(Nat.mul(nmul(a8, a6), 2n), Nat.add(nmul(a7, a7), 0n)))))))), Nat.add(Nat.mul(nmul(a15, a0), 2n), Nat.add(Nat.mul(nmul(a14, a1), 2n), Nat.add(Nat.mul(nmul(a13, a2), 2n), Nat.add(Nat.mul(nmul(a12, a3), 2n), Nat.add(Nat.mul(nmul(a11, a4), 2n), Nat.add(Nat.mul(nmul(a10, a5), 2n), Nat.add(Nat.mul(nmul(a9, a6), 2n), Nat.add(Nat.mul(nmul(a8, a7), 2n), 0n)))))))), Nat.add(Nat.mul(nmul(a15, a1), 2n), Nat.add(Nat.mul(nmul(a14, a2), 2n), Nat.add(Nat.mul(nmul(a13, a3), 2n), Nat.add(Nat.mul(nmul(a12, a4), 2n), Nat.add(Nat.mul(nmul(a11, a5), 2n), Nat.add(Nat.mul(nmul(a10, a6), 2n), Nat.add(Nat.mul(nmul(a9, a7), 2n), Nat.add(nmul(a8, a8), 0n)))))))), Nat.add(Nat.mul(nmul(a15, a2), 2n), Nat.add(Nat.mul(nmul(a14, a3), 2n), Nat.add(Nat.mul(nmul(a13, a4), 2n), Nat.add(Nat.mul(nmul(a12, a5), 2n), Nat.add(Nat.mul(nmul(a11, a6), 2n), Nat.add(Nat.mul(nmul(a10, a7), 2n), Nat.add(Nat.mul(nmul(a9, a8), 2n), 0n))))))), Nat.add(Nat.mul(nmul(a15, a3), 2n), Nat.add(Nat.mul(nmul(a14, a4), 2n), Nat.add(Nat.mul(nmul(a13, a5), 2n), Nat.add(Nat.mul(nmul(a12, a6), 2n), Nat.add(Nat.mul(nmul(a11, a7), 2n), Nat.add(Nat.mul(nmul(a10, a8), 2n), Nat.add(nmul(a9, a9), 0n))))))), Nat.add(Nat.mul(nmul(a15, a4), 2n), Nat.add(Nat.mul(nmul(a14, a5), 2n), Nat.add(Nat.mul(nmul(a13, a6), 2n), Nat.add(Nat.mul(nmul(a12, a7), 2n), Nat.add(Nat.mul(nmul(a11, a8), 2n), Nat.add(Nat.mul(nmul(a10, a9), 2n), 0n)))))), Nat.add(Nat.mul(nmul(a15, a5), 2n), Nat.add(Nat.mul(nmul(a14, a6), 2n), Nat.add(Nat.mul(nmul(a13, a7), 2n), Nat.add(Nat.mul(nmul(a12, a8), 2n), Nat.add(Nat.mul(nmul(a11, a9), 2n), Nat.add(nmul(a10, a10), 0n)))))), Nat.add(Nat.mul(nmul(a15, a6), 2n), Nat.add(Nat.mul(nmul(a14, a7), 2n), Nat.add(Nat.mul(nmul(a13, a8), 2n), Nat.add(Nat.mul(nmul(a12, a9), 2n), Nat.add(Nat.mul(nmul(a11, a10), 2n), 0n))))), Nat.add(Nat.mul(nmul(a15, a7), 2n), Nat.add(Nat.mul(nmul(a14, a8), 2n), Nat.add(Nat.mul(nmul(a13, a9), 2n), Nat.add(Nat.mul(nmul(a12, a10), 2n), Nat.add(nmul(a11, a11), 0n))))), Nat.add(Nat.mul(nmul(a15, a8), 2n), Nat.add(Nat.mul(nmul(a14, a9), 2n), Nat.add(Nat.mul(nmul(a13, a10), 2n), Nat.add(Nat.mul(nmul(a12, a11), 2n), 0n)))), Nat.add(Nat.mul(nmul(a15, a9), 2n), Nat.add(Nat.mul(nmul(a14, a10), 2n), Nat.add(Nat.mul(nmul(a13, a11), 2n), Nat.add(nmul(a12, a12), 0n)))), Nat.add(Nat.mul(nmul(a15, a10), 2n), Nat.add(Nat.mul(nmul(a14, a11), 2n), Nat.add(Nat.mul(nmul(a13, a12), 2n), 0n))), Nat.add(Nat.mul(nmul(a15, a11), 2n), Nat.add(Nat.mul(nmul(a14, a12), 2n), Nat.add(nmul(a13, a13), 0n))), Nat.add(Nat.mul(nmul(a15, a12), 2n), Nat.add(Nat.mul(nmul(a14, a13), 2n), 0n)), Nat.add(Nat.mul(nmul(a15, a13), 2n), Nat.add(nmul(a14, a14), 0n)), Nat.add(Nat.mul(nmul(a15, a14), 2n), 0n), nmul(a15, a15)}
 
-# fmod.carryp(16n, xs, 0n) of the 31 columns: 16 limbs, then the high columns
-def carryp16(r: W31) -> W31:
-  match r:
-    case W31{+x0, +x1, +x2, +x3, +x4, +x5, +x6, +x7, +x8, +x9, +x10, +x11, +x12, +x13, +x14, +x15, +x16, +x17, +x18, +x19, +x20, +x21, +x22, +x23, +x24, +x25, +x26, +x27, +x28, +x29, +x30}:
-      +s1 = x0
-      +l2 = L.lo16(s1)
-      +h3 = L.hi16(s1)
-      +s4 = Nat.add(h3, x1)
-      +l5 = L.lo16(s4)
-      +h6 = L.hi16(s4)
-      +s7 = Nat.add(h6, x2)
-      +l8 = L.lo16(s7)
-      +h9 = L.hi16(s7)
-      +s10 = Nat.add(h9, x3)
-      +l11 = L.lo16(s10)
-      +h12 = L.hi16(s10)
-      +s13 = Nat.add(h12, x4)
-      +l14 = L.lo16(s13)
-      +h15 = L.hi16(s13)
-      +s16 = Nat.add(h15, x5)
-      +l17 = L.lo16(s16)
-      +h18 = L.hi16(s16)
-      +s19 = Nat.add(h18, x6)
-      +l20 = L.lo16(s19)
-      +h21 = L.hi16(s19)
-      +s22 = Nat.add(h21, x7)
-      +l23 = L.lo16(s22)
-      +h24 = L.hi16(s22)
-      +s25 = Nat.add(h24, x8)
-      +l26 = L.lo16(s25)
-      +h27 = L.hi16(s25)
-      +s28 = Nat.add(h27, x9)
-      +l29 = L.lo16(s28)
-      +h30 = L.hi16(s28)
-      +s31 = Nat.add(h30, x10)
-      +l32 = L.lo16(s31)
-      +h33 = L.hi16(s31)
-      +s34 = Nat.add(h33, x11)
-      +l35 = L.lo16(s34)
-      +h36 = L.hi16(s34)
-      +s37 = Nat.add(h36, x12)
-      +l38 = L.lo16(s37)
-      +h39 = L.hi16(s37)
-      +s40 = Nat.add(h39, x13)
-      +l41 = L.lo16(s40)
-      +h42 = L.hi16(s40)
-      +s43 = Nat.add(h42, x14)
-      +l44 = L.lo16(s43)
-      +h45 = L.hi16(s43)
-      +s46 = Nat.add(h45, x15)
-      +l47 = L.lo16(s46)
-      +h48 = L.hi16(s46)
-      W31{l2, l5, l8, l11, l14, l17, l20, l23, l26, l29, l32, l35, l38, l41, l44, l47, Nat.add(h48, x16), x17, x18, x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29, x30}
-
 # L.carry(16n, xs, 0n) of 17 limbs: 16 limbs and the rest
 def carry17(r: W17) -> W17:
   match r:
@@ -352,10 +298,11 @@ def sub(a: FE, b: FE) -> FE:
 def neg(a: FE) -> FE:
   fin(carry16(negr(a)))
 
-# the reduction of a product: the columns carried to 16 limbs, the high
-# columns folded, twice more the carry out folded, and the final subtraction
+# the reduction of a product: the high columns folded onto the low ones
+# before any carry (every column is below 2^38: proofs fcol.bend), the sum
+# carried, its carry out folded, carried again, and the final subtraction
 def mred(c: W31) -> FE:
-  fin(carry16(foldt(carry17(fold1(carryp16(c))))))
+  fin(carry16(foldt(carry17(fold1(c)))))
 
 def mul(a: FE, b: FE) -> FE:
   mred(cols(a, b))

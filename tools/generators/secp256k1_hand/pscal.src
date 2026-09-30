@@ -22,21 +22,12 @@ def scalar_ok_v(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>) -> {E.scal
   %rw FW.lt_n_s(one, h1, x)
   %close
 
-# a 16-limb value is below 2^512
-def ev512(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, x) == True{} : Bool}) -> {Nat.is_lt(LV.ev(x), Nat.mul(C.shift(256n, one), C.shift(256n, one))) == True{} : Bool}:
-  +t = C.shift(256n, one)
-  SO.lt3(one, h1, LV.ev(x), N.lt_le_trans(LV.ev(x), t, Nat.add(t, Nat.add(t, t)), SO.tt_lt(one, h1, x, hx), N.le_add_right(t, Nat.add(t, t))))
-
 # x mod n for a 16-limb x
 def sred_v(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, x) == True{} : Bool}) -> {FS.value(one, S.reduce(x)) == Nat.mod(FS.value(one, x), FS.order(one)) : Nat}:
-  %rw FR.s_reduce(x)
-  %rw SO.red_v(one, h1, x, ev512(one, h1, x, hx))
-  %rw LV.ev_value(one, h1, x)
-  %close
+  SO.red_v(one, h1, x, hx)
 
 def sred_r(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, x) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), S.reduce(x)) == True{} : Bool}:
-  %rw FR.s_reduce(x)
-  SO.red_r(one, h1, x, ev512(one, h1, x, hx))
+  SO.red_r(one, h1, x, hx)
 
 def hash_v(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +hl: {B.has_len(32n, h) == True{} : Bool}) -> {FS.value(one, E.hash_scalar(h)) == ES.hash_scalar(one, h) : Nat}:
   %goal {FS.value(one, S.reduce(B.of_be(h))) == Nat.mod(CV.os2ip(h), FS.order(one)) : Nat}

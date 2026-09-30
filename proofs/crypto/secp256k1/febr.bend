@@ -31,11 +31,6 @@ def sqcols_b(a: F.FE) -> {l31(F.sqcols(a)) == M.sqru(F.to_list(a)) : List<&2, Na
     case F.FE{+a_0, +a_1, +a_2, +a_3, +a_4, +a_5, +a_6, +a_7, +a_8, +a_9, +a_10, +a_11, +a_12, +a_13, +a_14, +a_15}:
       {==}
 
-def carryp16_b(r: F.W31) -> {l31(F.carryp16(r)) == M.carryp(16n, l31(r), 0n) : List<&2, Nat>}:
-  match r:
-    case F.W31{+r_0, +r_1, +r_2, +r_3, +r_4, +r_5, +r_6, +r_7, +r_8, +r_9, +r_10, +r_11, +r_12, +r_13, +r_14, +r_15, +r_16, +r_17, +r_18, +r_19, +r_20, +r_21, +r_22, +r_23, +r_24, +r_25, +r_26, +r_27, +r_28, +r_29, +r_30}:
-      {==}
-
 def carry17_b(r: F.W17) -> {l17(F.carry17(r)) == L.carry(16n, l17(r), 0n) : List<&2, Nat>}:
   match r:
     case F.W17{+r_0, +r_1, +r_2, +r_3, +r_4, +r_5, +r_6, +r_7, +r_8, +r_9, +r_10, +r_11, +r_12, +r_13, +r_14, +r_15, +r_16}:

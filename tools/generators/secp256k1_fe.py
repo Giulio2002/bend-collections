@@ -185,7 +185,6 @@ def carryp(e, xs, n):
     return out + [add(u, rest[0])] + rest[1:]
 
 
-stage('carryp16', 'fmod.carryp(16n, xs, 0n) of the 31 columns: 16 limbs, then the high columns', 'W31', 31, 'W31', lambda e, xs: carryp(e, xs, 16))
 stage('carry17', 'L.carry(16n, xs, 0n) of 17 limbs: 16 limbs and the rest', 'W17', 17, 'W17', lambda e, xs: carry(e, xs, 16))
 stage('carry16', 'L.carry(16n, xs, 0n) of 16 limbs: 16 limbs and the carry', 'FE', 16, 'W17', lambda e, xs: carry(e, xs, 16))
 
@@ -250,10 +249,11 @@ def sub(a: FE, b: FE) -> FE:
 def neg(a: FE) -> FE:
   fin(carry16(negr(a)))
 
-# the reduction of a product: the columns carried to 16 limbs, the high
-# columns folded, twice more the carry out folded, and the final subtraction
+# the reduction of a product: the high columns folded onto the low ones
+# before any carry (every column is below 2^38: proofs fcol.bend), the sum
+# carried, its carry out folded, carried again, and the final subtraction
 def mred(c: W31) -> FE:
-  fin(carry16(foldt(carry17(fold1(carryp16(c))))))
+  fin(carry16(foldt(carry17(fold1(c)))))
 
 def mul(a: FE, b: FE) -> FE:
   mred(cols(a, b))
@@ -364,7 +364,6 @@ def bridge(name, args, lhs, rhs):
 
 bridge('cols_b', [('a', 'FE'), ('c', 'FE')], 'l31(F.cols(a, c))', 'M.convu(F.to_list(a), F.to_list(c))')
 bridge('sqcols_b', [('a', 'FE')], 'l31(F.sqcols(a))', 'M.sqru(F.to_list(a))')
-bridge('carryp16_b', [('r', 'W31')], 'l31(F.carryp16(r))', 'M.carryp(16n, l31(r), 0n)')
 bridge('carry17_b', [('r', 'W17')], 'l17(F.carry17(r))', 'L.carry(16n, l17(r), 0n)')
 bridge('carry16_b', [('r', 'FE')], 'l17(F.carry16(r))', 'L.carry(16n, F.to_list(r), 0n)')
 bridge('fold1_b', [('r', 'W31')], 'l17(F.fold1(r))', 'M.fold1(l31(r))')

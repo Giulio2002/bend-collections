@@ -14,6 +14,9 @@ import ./consts.bend as K
 import ./lits.bend as LT
 import ./reducek.bend as RK
 import ./fbase.bend as FO
+import ../../math/typed/width.bend as WW
+import ./bounds.bend as B
+import ./negate.bend as NG
 import ./fmod.bend as M
 import ./febr.bend as FB
 import ./fval.bend as V
@@ -130,3 +133,112 @@ def rec_l(+one: Nat, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.order(one), x) 
 def rec_r(+one: Nat, +x: List<&2, Nat>, +hx: {FS.reduced(one, FS.order(one), x) == True{} : Bool}) -> {sred(one, FE.of_list(x)) == True{} : Bool}:
   %Equal.sym(List<&2, Nat>, FE.to_list(FE.of_list(x)), x, rec_l(one, x, hx)) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
   hx
+
+# ---- add, neg, reduce: the final subtraction modulo n ----
+
+def add_l(+a: FE.FE, +b: FE.FE) -> {FE.to_list(SE.add(a, b)) == M.finc(cl(), L.carry(16n, L.add(FE.to_list(a), FE.to_list(b)), 0n)) : List<&2, Nat>}:
+  %Equal.sym(List<&2, Nat>, FE.to_list(SE.finn(FE.carry16(FE.addr(a, b)), SE.cn())), M.finc(SB.l9(SE.cn()), FB.l17(FE.carry16(FE.addr(a, b)))), SB.finn_b(FE.carry16(FE.addr(a, b)), SE.cn())) : {_ == M.finc(SB.l9(SE.cn()), L.carry(16n, L.add(FE.to_list(a), FE.to_list(b)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, FB.l17(FE.carry16(FE.addr(a, b))), L.carry(16n, FE.to_list(FE.addr(a, b)), 0n), FB.carry16_b(FE.addr(a, b))) : {M.finc(SB.l9(SE.cn()), _) == M.finc(SB.l9(SE.cn()), L.carry(16n, L.add(FE.to_list(a), FE.to_list(b)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, FE.to_list(FE.addr(a, b)), L.add(FE.to_list(a), FE.to_list(b)), FB.addr_b(a, b)) : {M.finc(SB.l9(SE.cn()), L.carry(16n, _, 0n)) == M.finc(SB.l9(SE.cn()), L.carry(16n, L.add(FE.to_list(a), FE.to_list(b)), 0n)) : List<&2, Nat>}
+  {==}
+
+def neg_l(+b: FE.FE) -> {FE.to_list(SE.neg(b)) == M.finc(cl(), L.carry(16n, L.neg_raw(cl(), FE.to_list(b)), 0n)) : List<&2, Nat>}:
+  %Equal.sym(List<&2, Nat>, FE.to_list(SE.finn(FE.carry16(SE.negrn(b, SE.cn())), SE.cn())), M.finc(SB.l9(SE.cn()), FB.l17(FE.carry16(SE.negrn(b, SE.cn())))), SB.finn_b(FE.carry16(SE.negrn(b, SE.cn())), SE.cn())) : {_ == M.finc(SB.l9(SE.cn()), L.carry(16n, L.neg_raw(SB.l9(SE.cn()), FE.to_list(b)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, FB.l17(FE.carry16(SE.negrn(b, SE.cn()))), L.carry(16n, FE.to_list(SE.negrn(b, SE.cn())), 0n), FB.carry16_b(SE.negrn(b, SE.cn()))) : {M.finc(SB.l9(SE.cn()), _) == M.finc(SB.l9(SE.cn()), L.carry(16n, L.neg_raw(SB.l9(SE.cn()), FE.to_list(b)), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, FE.to_list(SE.negrn(b, SE.cn())), L.neg_raw(SB.l9(SE.cn()), FE.to_list(b)), SB.negrn_b(b, SE.cn())) : {M.finc(SB.l9(SE.cn()), L.carry(16n, _, 0n)) == M.finc(SB.l9(SE.cn()), L.carry(16n, L.neg_raw(SB.l9(SE.cn()), FE.to_list(b)), 0n)) : List<&2, Nat>}
+  {==}
+
+def red16_l(+a: FE.FE) -> {FE.to_list(SE.red16(a)) == M.finc(cl(), L.carry(16n, FE.to_list(a), 0n)) : List<&2, Nat>}:
+  %Equal.sym(List<&2, Nat>, FE.to_list(SE.finn(FE.carry16(a), SE.cn())), M.finc(SB.l9(SE.cn()), FB.l17(FE.carry16(a))), SB.finn_b(FE.carry16(a), SE.cn())) : {_ == M.finc(SB.l9(SE.cn()), L.carry(16n, FE.to_list(a), 0n)) : List<&2, Nat>}
+  %Equal.sym(List<&2, Nat>, FB.l17(FE.carry16(a)), L.carry(16n, FE.to_list(a), 0n), FB.carry16_b(a)) : {M.finc(SB.l9(SE.cn()), _) == M.finc(SB.l9(SE.cn()), L.carry(16n, FE.to_list(a), 0n)) : List<&2, Nat>}
+  {==}
+
+def nfin_v(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.add(1n+K.np(one), 1n+K.np(one))) == True{} : Bool}) -> {LV.ev(M.finc(cl(), L.carry(16n, xs, 0n))) == Nat.mod(LV.ev(xs), 1n+K.np(one)) : Nat}:
+  +hu = I.lt_subst_l(LV.ev(xs), LV.ev(L.carry(16n, xs, 0n)), Nat.add(1n+K.np(one), 1n+K.np(one)), Equal.sym(Nat, LV.ev(L.carry(16n, xs, 0n)), LV.ev(xs), V.carry0_v(16n, xs)), hx)
+  +hl = B.carry_limbs(one, h1, 16n, 16n, xs, 0n, {==})
+  %Equal.sym(Nat, LV.ev(M.finc(cl(), L.carry(16n, xs, 0n))), Nat.mod(LV.ev(L.carry(16n, xs, 0n)), 1n+K.np(one)), V.finc_v(one, h1, K.np(one), cl(), K.hm_n(one, h1), K.cn_cc(one, h1), L.carry(16n, xs, 0n), hl, V.carry_top(16n, xs, 0n), hu)) : {_ == Nat.mod(LV.ev(xs), 1n+K.np(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(L.carry(16n, xs, 0n)), LV.ev(xs), V.carry0_v(16n, xs)) : {Nat.mod(_, 1n+K.np(one)) == Nat.mod(LV.ev(xs), 1n+K.np(one)) : Nat}
+  {==}
+
+def nfin_r(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, Nat>, +hx: {Nat.is_lt(LV.ev(xs), Nat.add(1n+K.np(one), 1n+K.np(one))) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), M.finc(cl(), L.carry(16n, xs, 0n))) == True{} : Bool}:
+  +r = M.finc(cl(), L.carry(16n, xs, 0n))
+  +hu = I.lt_subst_l(LV.ev(xs), LV.ev(L.carry(16n, xs, 0n)), Nat.add(1n+K.np(one), 1n+K.np(one)), Equal.sym(Nat, LV.ev(L.carry(16n, xs, 0n)), LV.ev(xs), V.carry0_v(16n, xs)), hx)
+  +hl = B.carry_limbs(one, h1, 16n, 16n, xs, 0n, {==})
+  +lim = V.finc_l(one, h1, K.np(one), cl(), K.hm_n(one, h1), K.cn_cc(one, h1), L.carry(16n, xs, 0n), hl, V.carry_top(16n, xs, 0n), hu)
+  +lt = I.lt_subst_l(Nat.mod(LV.ev(xs), 1n+K.np(one)), LV.ev(r), 1n+K.np(one), Equal.sym(Nat, LV.ev(r), Nat.mod(LV.ev(xs), 1n+K.np(one)), nfin_v(one, h1, xs, hx)), NR.dm_lt(K.np(one), LV.ev(xs)))
+  +lt2 = I.lt_subst_l(LV.ev(r), FS.value(one, r), 1n+K.np(one), Equal.sym(Nat, FS.value(one, r), LV.ev(r), LV.ev_value(one, h1, r)), lt)
+  +lt3 = I.lt_subst_r(FS.value(one, r), 1n+K.np(one), FS.order(one), Equal.sym(Nat, FS.order(one), 1n+K.np(one), K.order_eq(one, h1)), lt2)
+  Lg.and_intro(FS.limbs16(one, 16n, r), Nat.is_lt(FS.value(one, r), FS.order(one)), lim, lt3)
+
+def rlt(+one: Nat, +h1: {one == 1n : Nat}, +x: FE.FE, +h: {sred(one, x) == True{} : Bool}) -> {Nat.is_lt(LV.ev(FE.to_list(x)), 1n+K.np(one)) == True{} : Bool}:
+  +l = Lg.and_right(FS.limbs16(one, 16n, FE.to_list(x)), Nat.is_lt(FS.value(one, FE.to_list(x)), FS.order(one)), h)
+  +l2 = I.lt_subst_l(FS.value(one, FE.to_list(x)), LV.ev(FE.to_list(x)), FS.order(one), LV.ev_value(one, h1, FE.to_list(x)), l)
+  I.lt_subst_r(LV.ev(FE.to_list(x)), FS.order(one), 1n+K.np(one), K.order_eq(one, h1), l2)
+
+def add_hx(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.FE, +b: FE.FE, +ha: {sred(one, a) == True{} : Bool}, +hb: {sred(one, b) == True{} : Bool}) -> {Nat.is_lt(LV.ev(L.add(FE.to_list(a), FE.to_list(b))), Nat.add(1n+K.np(one), 1n+K.np(one))) == True{} : Bool}:
+  %Equal.sym(Nat, LV.ev(L.add(FE.to_list(a), FE.to_list(b))), Nat.add(LV.ev(FE.to_list(a)), LV.ev(FE.to_list(b))), LV.add_v(FE.to_list(a), FE.to_list(b))) : {Nat.is_lt(_, Nat.add(1n+K.np(one), 1n+K.np(one))) == True{} : Bool}
+  I.lt_le_add(LV.ev(FE.to_list(a)), LV.ev(FE.to_list(b)), 1n+K.np(one), 1n+K.np(one), rlt(one, h1, a, ha), N.lt_le(LV.ev(FE.to_list(b)), 1n+K.np(one), rlt(one, h1, b, hb)))
+
+def add_v(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.FE, +b: FE.FE, +ha: {sred(one, a) == True{} : Bool}, +hb: {sred(one, b) == True{} : Bool}) -> {sval(one, SE.add(a, b)) == FS.madd(FS.order(one), sval(one, a), sval(one, b)) : Nat}:
+  %Equal.sym(List<&2, Nat>, FE.to_list(SE.add(a, b)), M.finc(cl(), L.carry(16n, L.add(FE.to_list(a), FE.to_list(b)), 0n)), add_l(a, b)) : {FS.value(one, _) == Nat.mod(Nat.add(FS.value(one, FE.to_list(a)), FS.value(one, FE.to_list(b))), FS.order(one)) : Nat}
+  %Equal.sym(Nat, FS.value(one, M.finc(cl(), L.carry(16n, L.add(FE.to_list(a), FE.to_list(b)), 0n))), LV.ev(M.finc(cl(), L.carry(16n, L.add(FE.to_list(a), FE.to_list(b)), 0n))), LV.ev_value(one, h1, M.finc(cl(), L.carry(16n, L.add(FE.to_list(a), FE.to_list(b)), 0n)))) : {_ == Nat.mod(Nat.add(FS.value(one, FE.to_list(a)), FS.value(one, FE.to_list(b))), FS.order(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(M.finc(cl(), L.carry(16n, L.add(FE.to_list(a), FE.to_list(b)), 0n))), Nat.mod(LV.ev(L.add(FE.to_list(a), FE.to_list(b))), 1n+K.np(one)), nfin_v(one, h1, L.add(FE.to_list(a), FE.to_list(b)), add_hx(one, h1, a, b, ha, hb))) : {_ == Nat.mod(Nat.add(FS.value(one, FE.to_list(a)), FS.value(one, FE.to_list(b))), FS.order(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(L.add(FE.to_list(a), FE.to_list(b))), Nat.add(LV.ev(FE.to_list(a)), LV.ev(FE.to_list(b))), LV.add_v(FE.to_list(a), FE.to_list(b))) : {Nat.mod(_, 1n+K.np(one)) == Nat.mod(Nat.add(FS.value(one, FE.to_list(a)), FS.value(one, FE.to_list(b))), FS.order(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(FE.to_list(a)), FS.value(one, FE.to_list(a)), Equal.sym(Nat, FS.value(one, FE.to_list(a)), LV.ev(FE.to_list(a)), LV.ev_value(one, h1, FE.to_list(a)))) : {Nat.mod(Nat.add(_, LV.ev(FE.to_list(b))), 1n+K.np(one)) == Nat.mod(Nat.add(FS.value(one, FE.to_list(a)), FS.value(one, FE.to_list(b))), FS.order(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(FE.to_list(b)), FS.value(one, FE.to_list(b)), Equal.sym(Nat, FS.value(one, FE.to_list(b)), LV.ev(FE.to_list(b)), LV.ev_value(one, h1, FE.to_list(b)))) : {Nat.mod(Nat.add(FS.value(one, FE.to_list(a)), _), 1n+K.np(one)) == Nat.mod(Nat.add(FS.value(one, FE.to_list(a)), FS.value(one, FE.to_list(b))), FS.order(one)) : Nat}
+  %Equal.sym(Nat, 1n+K.np(one), FS.order(one), Equal.sym(Nat, FS.order(one), 1n+K.np(one), K.order_eq(one, h1))) : {Nat.mod(Nat.add(FS.value(one, FE.to_list(a)), FS.value(one, FE.to_list(b))), _) == Nat.mod(Nat.add(FS.value(one, FE.to_list(a)), FS.value(one, FE.to_list(b))), FS.order(one)) : Nat}
+  {==}
+
+def add_r(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.FE, +b: FE.FE, +ha: {sred(one, a) == True{} : Bool}, +hb: {sred(one, b) == True{} : Bool}) -> {sred(one, SE.add(a, b)) == True{} : Bool}:
+  %Equal.sym(List<&2, Nat>, FE.to_list(SE.add(a, b)), M.finc(cl(), L.carry(16n, L.add(FE.to_list(a), FE.to_list(b)), 0n)), add_l(a, b)) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
+  nfin_r(one, h1, L.add(FE.to_list(a), FE.to_list(b)), add_hx(one, h1, a, b, ha, hb))
+
+def negr_e(+one: Nat, +h1: {one == 1n : Nat}, +b: FE.FE, +hb: {sred(one, b) == True{} : Bool}) -> {Nat.add(LV.ev(L.neg_raw(cl(), FE.to_list(b))), LV.ev(FE.to_list(b))) == 1n+K.np(one) : Nat}:
+  NG.neg_vv(one, h1, K.np(one), cl(), K.hm_n(one, h1), FE.to_list(b), rlt(one, h1, b, hb))
+
+def neg_hx(+one: Nat, +h1: {one == 1n : Nat}, +b: FE.FE, +hb: {sred(one, b) == True{} : Bool}) -> {Nat.is_lt(LV.ev(L.neg_raw(cl(), FE.to_list(b))), Nat.add(1n+K.np(one), 1n+K.np(one))) == True{} : Bool}:
+  +m = {1n+K.np(one) : Nat}
+  +nb = LV.ev(L.neg_raw(cl(), FE.to_list(b)))
+  +le = I.le_subst_r(nb, Nat.add(nb, LV.ev(FE.to_list(b))), m, negr_e(one, h1, b, hb), N.le_add_right(nb, LV.ev(FE.to_list(b))))
+  N.le_lt_trans(nb, m, Nat.add(m, m), le, I.lt_add_pos(m, m, {==}))
+
+def neg_v(+one: Nat, +h1: {one == 1n : Nat}, +b: FE.FE, +hb: {sred(one, b) == True{} : Bool}) -> {sval(one, SE.neg(b)) == FS.mneg(FS.order(one), sval(one, b)) : Nat}:
+  %Equal.sym(List<&2, Nat>, FE.to_list(SE.neg(b)), M.finc(cl(), L.carry(16n, L.neg_raw(cl(), FE.to_list(b)), 0n)), neg_l(b)) : {FS.value(one, _) == Nat.mod(Nat.sub(Nat.add(0n, FS.order(one)), Nat.mod(FS.value(one, FE.to_list(b)), FS.order(one))), FS.order(one)) : Nat}
+  %Equal.sym(Nat, FS.value(one, M.finc(cl(), L.carry(16n, L.neg_raw(cl(), FE.to_list(b)), 0n))), LV.ev(M.finc(cl(), L.carry(16n, L.neg_raw(cl(), FE.to_list(b)), 0n))), LV.ev_value(one, h1, M.finc(cl(), L.carry(16n, L.neg_raw(cl(), FE.to_list(b)), 0n)))) : {_ == Nat.mod(Nat.sub(Nat.add(0n, FS.order(one)), Nat.mod(FS.value(one, FE.to_list(b)), FS.order(one))), FS.order(one)) : Nat}
+  %Equal.sym(Nat, LV.ev(M.finc(cl(), L.carry(16n, L.neg_raw(cl(), FE.to_list(b)), 0n))), Nat.mod(LV.ev(L.neg_raw(cl(), FE.to_list(b))), 1n+K.np(one)), nfin_v(one, h1, L.neg_raw(cl(), FE.to_list(b)), neg_hx(one, h1, b, hb))) : {_ == Nat.mod(Nat.sub(Nat.add(0n, FS.order(one)), Nat.mod(FS.value(one, FE.to_list(b)), FS.order(one))), FS.order(one)) : Nat}
+  %Equal.sym(Nat, FS.value(one, FE.to_list(b)), LV.ev(FE.to_list(b)), LV.ev_value(one, h1, FE.to_list(b))) : {Nat.mod(LV.ev(L.neg_raw(cl(), FE.to_list(b))), 1n+K.np(one)) == Nat.mod(Nat.sub(Nat.add(0n, FS.order(one)), Nat.mod(_, FS.order(one))), FS.order(one)) : Nat}
+  %Equal.sym(Nat, FS.order(one), 1n+K.np(one), K.order_eq(one, h1)) : {Nat.mod(LV.ev(L.neg_raw(cl(), FE.to_list(b))), 1n+K.np(one)) == Nat.mod(Nat.sub(Nat.add(0n, _), Nat.mod(LV.ev(FE.to_list(b)), FS.order(one))), FS.order(one)) : Nat}
+  %Equal.sym(Nat, FS.order(one), 1n+K.np(one), K.order_eq(one, h1)) : {Nat.mod(LV.ev(L.neg_raw(cl(), FE.to_list(b))), 1n+K.np(one)) == Nat.mod(Nat.sub(Nat.add(0n, 1n+K.np(one)), Nat.mod(LV.ev(FE.to_list(b)), _)), FS.order(one)) : Nat}
+  %Equal.sym(Nat, FS.order(one), 1n+K.np(one), K.order_eq(one, h1)) : {Nat.mod(LV.ev(L.neg_raw(cl(), FE.to_list(b))), 1n+K.np(one)) == Nat.mod(Nat.sub(Nat.add(0n, 1n+K.np(one)), Nat.mod(LV.ev(FE.to_list(b)), 1n+K.np(one))), _) : Nat}
+  NG.sub_mod(K.np(one), 0n, LV.ev(FE.to_list(b)), LV.ev(L.neg_raw(cl(), FE.to_list(b))), rlt(one, h1, b, hb), negr_e(one, h1, b, hb))
+
+def neg_r(+one: Nat, +h1: {one == 1n : Nat}, +b: FE.FE, +hb: {sred(one, b) == True{} : Bool}) -> {sred(one, SE.neg(b)) == True{} : Bool}:
+  %Equal.sym(List<&2, Nat>, FE.to_list(SE.neg(b)), M.finc(cl(), L.carry(16n, L.neg_raw(cl(), FE.to_list(b)), 0n)), neg_l(b)) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
+  nfin_r(one, h1, L.neg_raw(cl(), FE.to_list(b)), neg_hx(one, h1, b, hb))
+
+# 2^256 < 2 n
+def t_2n(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(C.shift(256n, one), Nat.add(1n+K.np(one), 1n+K.np(one))) == True{} : Bool}:
+  +m = {1n+K.np(one) : Nat}
+  +cv = FS.cn(one)
+  # c + c < T = m + c: c < m
+  +h = I.lt_subst_r(Nat.add(cv, cv), C.shift(256n, one), Nat.add(m, cv), Equal.sym(Nat, Nat.add(m, cv), C.shift(256n, one), K.hm_n(one, h1)), K.cn_cc(one, h1))
+  +hc = Equal.trans(Bool, Nat.is_lt(cv, m), Nat.is_lt(Nat.add(cv, cv), Nat.add(m, cv)), True{}, Equal.sym(Bool, Nat.is_lt(Nat.add(cv, cv), Nat.add(m, cv)), Nat.is_lt(cv, m), WW.lt_cancel_r(cv, m, cv)), h)
+  +s = N.lt_add_left(cv, m, m, hc)
+  I.lt_subst_l(Nat.add(m, cv), C.shift(256n, one), Nat.add(m, m), K.hm_n(one, h1), s)
+
+def red16_hx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, xs) == True{} : Bool}) -> {Nat.is_lt(LV.ev(xs), Nat.add(1n+K.np(one), 1n+K.np(one))) == True{} : Bool}:
+  N.lt_trans(LV.ev(xs), C.shift(256n, one), Nat.add(1n+K.np(one), 1n+K.np(one)), FO.tt_lt(one, h1, xs, hx), t_2n(one, h1))
+
+# x mod n of the record of a 16-limb list
+def red16_e(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, xs) == True{} : Bool}) -> {LV.ev(FE.to_list(SE.red16(FE.of_list(xs)))) == Nat.mod(LV.ev(xs), 1n+K.np(one)) : Nat}:
+  %Equal.sym(List<&2, Nat>, FE.to_list(SE.red16(FE.of_list(xs))), M.finc(cl(), L.carry(16n, FE.to_list(FE.of_list(xs)), 0n)), red16_l(FE.of_list(xs))) : {LV.ev(_) == Nat.mod(LV.ev(xs), 1n+K.np(one)) : Nat}
+  %Equal.sym(List<&2, Nat>, FE.to_list(FE.of_list(xs)), xs, FB.shape(one, xs, hx)) : {LV.ev(M.finc(cl(), L.carry(16n, _, 0n))) == Nat.mod(LV.ev(xs), 1n+K.np(one)) : Nat}
+  nfin_v(one, h1, xs, red16_hx(one, h1, xs, hx))
+
+def red16_r(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, xs) == True{} : Bool}) -> {FS.reduced(one, FS.order(one), FE.to_list(SE.red16(FE.of_list(xs)))) == True{} : Bool}:
+  %Equal.sym(List<&2, Nat>, FE.to_list(SE.red16(FE.of_list(xs))), M.finc(cl(), L.carry(16n, FE.to_list(FE.of_list(xs)), 0n)), red16_l(FE.of_list(xs))) : {FS.reduced(one, FS.order(one), _) == True{} : Bool}
+  %Equal.sym(List<&2, Nat>, FE.to_list(FE.of_list(xs)), xs, FB.shape(one, xs, hx)) : {FS.reduced(one, FS.order(one), M.finc(cl(), L.carry(16n, _, 0n))) == True{} : Bool}
+  nfin_r(one, h1, xs, red16_hx(one, h1, xs, hx))
+
+def rec16_l(+one: Nat, +x: List<&2, Nat>, +hx: {FS.limbs16(one, 16n, x) == True{} : Bool}) -> {FE.to_list(FE.of_list(x)) == x : List<&2, Nat>}:
+  FB.shape(one, x, hx)

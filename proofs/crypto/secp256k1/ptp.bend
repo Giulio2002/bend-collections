@@ -5,6 +5,7 @@ import ../../../spec/crypto/secp256k1/curve.bend as CV
 import ../../../src/crypto/secp256k1/fe.bend as F
 import ../../../src/crypto/secp256k1/pt.bend as PX
 import ../../lib/logic.bend as Lg
+import ../../lib/nat.bend as N
 import ./fieldops.bend as FO
 import ./fops.bend as OP
 import ./pti.bend as I
@@ -35,11 +36,26 @@ def cop(op: I.ROp) -> CV.SOp:
     case I.RSub{i, j}: CV.SSub{i, j}
     case I.RMul{i, j}: CV.SMul{i, j}
     case I.RSq{+i}: CV.SMul{i, i}
+    case I.RMulB{i, j}: CV.SMul{i, j}
 
 def cprog(ops: List<&2, I.ROp>) -> List<&2, CV.SOp>:
   match ops:
     case Nil{}: Nil{}
     case o <> t: cop(o) <> cprog(t)
+
+# RMulB{i, j} multiplies by 21: register i must hold 21
+def bok(op: I.ROp, vs: List<&2, Nat>) -> Bool:
+  match op:
+    case I.RAdd{i, j}: True{}
+    case I.RSub{i, j}: True{}
+    case I.RMul{i, j}: True{}
+    case I.RSq{i}: True{}
+    case I.RMulB{i, j}: Nat.is_eq(CV.nth(i, vs), 21n)
+
+def pok(prog: List<&2, I.ROp>, +vs: List<&2, Nat>) -> Bool:
+  match prog:
+    case Nil{}: True{}
+    case o <> t: Bool.and(bok(o, vs), pok(t, vs))
 
 # ---- registers ----
 
@@ -93,8 +109,10 @@ def exec_r(+one: Nat, +h1: {one == 1n : Nat}, op: I.ROp, +rs: List<&2, F.FE>, +h
       OP.mul_r(one, h1, I.rnth(i, rs), I.rnth(j, rs), nth_r(one, h1, i, rs, h), nth_r(one, h1, j, rs, h))
     case I.RSq{+i}:
       OP.sq_r(one, h1, I.rnth(i, rs), nth_r(one, h1, i, rs, h))
+    case I.RMulB{i, +j}:
+      OP.mul21_r(one, h1, I.rnth(j, rs), nth_r(one, h1, j, rs, h))
 
-def exec_v(+one: Nat, +h1: {one == 1n : Nat}, op: I.ROp, +rs: List<&2, F.FE>, +h: {allred(one, rs) == True{} : Bool}) -> {OP.val(one, I.rexec(op, rs)) == CV.exec(FS.prime(one), cop(op), vals(one, rs)) : Nat}:
+def exec_v(+one: Nat, +h1: {one == 1n : Nat}, op: I.ROp, +rs: List<&2, F.FE>, +h: {allred(one, rs) == True{} : Bool}, +hb: {bok(op, vals(one, rs)) == True{} : Bool}) -> {OP.val(one, I.rexec(op, rs)) == CV.exec(FS.prime(one), cop(op), vals(one, rs)) : Nat}:
   match op:
     case I.RAdd{+i, +j}:
       %Equal.sym(Nat, OP.val(one, F.add(I.rnth(i, rs), I.rnth(j, rs))), FS.madd(FS.prime(one), OP.val(one, I.rnth(i, rs)), OP.val(one, I.rnth(j, rs))), OP.add_v(one, h1, I.rnth(i, rs), I.rnth(j, rs), nth_r(one, h1, i, rs, h), nth_r(one, h1, j, rs, h))) : {_ == FS.madd(FS.prime(one), CV.nth(i, vals(one, rs)), CV.nth(j, vals(one, rs))) : Nat}
@@ -116,6 +134,43 @@ def exec_v(+one: Nat, +h1: {one == 1n : Nat}, op: I.ROp, +rs: List<&2, F.FE>, +h
       %Equal.sym(Nat, OP.val(one, I.rnth(i, rs)), CV.nth(i, vals(one, rs)), nth_v(one, h1, i, rs)) : {FS.mmul(FS.prime(one), _, OP.val(one, I.rnth(i, rs))) == FS.mmul(FS.prime(one), CV.nth(i, vals(one, rs)), CV.nth(i, vals(one, rs))) : Nat}
       %Equal.sym(Nat, OP.val(one, I.rnth(i, rs)), CV.nth(i, vals(one, rs)), nth_v(one, h1, i, rs)) : {FS.mmul(FS.prime(one), CV.nth(i, vals(one, rs)), _) == FS.mmul(FS.prime(one), CV.nth(i, vals(one, rs)), CV.nth(i, vals(one, rs))) : Nat}
       {==}
+    case I.RMulB{+i, +j}:
+      %Equal.sym(Nat, OP.val(one, F.mul21(I.rnth(j, rs))), FS.mmul(FS.prime(one), 21n, OP.val(one, I.rnth(j, rs))), OP.mul21_v(one, h1, I.rnth(j, rs), nth_r(one, h1, j, rs, h))) : {_ == FS.mmul(FS.prime(one), CV.nth(i, vals(one, rs)), CV.nth(j, vals(one, rs))) : Nat}
+      %Equal.sym(Nat, OP.val(one, I.rnth(j, rs)), CV.nth(j, vals(one, rs)), nth_v(one, h1, j, rs)) : {FS.mmul(FS.prime(one), 21n, _) == FS.mmul(FS.prime(one), CV.nth(i, vals(one, rs)), CV.nth(j, vals(one, rs))) : Nat}
+      %Equal.sym(Nat, CV.nth(i, vals(one, rs)), 21n, N.eq_from_is_eq(CV.nth(i, vals(one, rs)), 21n, hb)) : {FS.mmul(FS.prime(one), 21n, CV.nth(j, vals(one, rs))) == FS.mmul(FS.prime(one), _, CV.nth(j, vals(one, rs))) : Nat}
+      {==}
+
+# a register holding 21 keeps it when a register is appended
+def nth21_app(i: Nat, vs: List<&2, Nat>, +x: Nat, +h: {Nat.is_eq(CV.nth(i, vs), 21n) == True{} : Bool}) -> {Nat.is_eq(CV.nth(i, List.append(&2, Nat, vs, [x])), 21n) == True{} : Bool}:
+  match i vs:
+    case 0n Nil{}:
+      Empty.absurd({Nat.is_eq(CV.nth(0n, [x]), 21n) == True{} : Bool}, Lg.false_true(h))
+    case 1n+k Nil{}:
+      Empty.absurd({Nat.is_eq(CV.nth(1n+k, [x]), 21n) == True{} : Bool}, Lg.false_true(h))
+    case 0n +r <> t:
+      h
+    case 1n+ +k r <> +t:
+      nth21_app(k, t, x, h)
+
+def bok_app(op: I.ROp, +vs: List<&2, Nat>, +x: Nat, +h: {bok(op, vs) == True{} : Bool}) -> {bok(op, List.append(&2, Nat, vs, [x])) == True{} : Bool}:
+  match op:
+    case I.RAdd{i, j}:
+      {==}
+    case I.RSub{i, j}:
+      {==}
+    case I.RMul{i, j}:
+      {==}
+    case I.RSq{i}:
+      {==}
+    case I.RMulB{+i, j}:
+      nth21_app(i, vs, x, h)
+
+def pok_app(prog: List<&2, I.ROp>, +vs: List<&2, Nat>, +x: Nat, +h: {pok(prog, vs) == True{} : Bool}) -> {pok(prog, List.append(&2, Nat, vs, [x])) == True{} : Bool}:
+  match prog:
+    case Nil{}:
+      {==}
+    case +o <> +t:
+      Lg.and_intro(bok(o, List.append(&2, Nat, vs, [x])), pok(t, List.append(&2, Nat, vs, [x])), bok_app(o, vs, x, Lg.and_left(bok(o, vs), pok(t, vs), h)), pok_app(t, vs, x, Lg.and_right(bok(o, vs), pok(t, vs), h)))
 
 def vals_app(+one: Nat, rs: List<&2, F.FE>, +x: F.FE) -> {vals(one, List.append(&2, F.FE, rs, [x])) == List.append(&2, Nat, vals(one, rs), [OP.val(one, x)]) : List<&2, Nat>}:
   match rs:
@@ -123,6 +178,10 @@ def vals_app(+one: Nat, rs: List<&2, F.FE>, +x: F.FE) -> {vals(one, List.append(
       {==}
     case +r <> +t:
       Equal.cong(List<&2, Nat>, List<&2, Nat>, l => OP.val(one, r) <> l, vals(one, List.append(&2, F.FE, t, [x])), List.append(&2, Nat, vals(one, t), [OP.val(one, x)]), vals_app(one, t, x))
+
+def pok_vapp(+one: Nat, +prog: List<&2, I.ROp>, +rs: List<&2, F.FE>, +x: F.FE, +h: {pok(prog, vals(one, rs)) == True{} : Bool}) -> {pok(prog, vals(one, List.append(&2, F.FE, rs, [x]))) == True{} : Bool}:
+  %Equal.sym(List<&2, Nat>, vals(one, List.append(&2, F.FE, rs, [x])), List.append(&2, Nat, vals(one, rs), [OP.val(one, x)]), vals_app(one, rs, x)) : {pok(prog, _) == True{} : Bool}
+  pok_app(prog, vals(one, rs), OP.val(one, x), h)
 
 def allred_app(+one: Nat, rs: List<&2, F.FE>, +x: F.FE, +h: {allred(one, rs) == True{} : Bool}, +hx: {red(one, x) == True{} : Bool}) -> {allred(one, List.append(&2, F.FE, rs, [x])) == True{} : Bool}:
   match rs:
@@ -138,15 +197,16 @@ def run_go_r(+one: Nat, +h1: {one == 1n : Nat}, prog: List<&2, I.ROp>, +rs: List
     case +op <> +t:
       run_go_r(one, h1, t, List.append(&2, F.FE, rs, [I.rexec(op, rs)]), allred_app(one, rs, I.rexec(op, rs), h, exec_r(one, h1, op, rs, h)))
 
-def run_go_v(+one: Nat, +h1: {one == 1n : Nat}, prog: List<&2, I.ROp>, +rs: List<&2, F.FE>, +h: {allred(one, rs) == True{} : Bool}) -> {vals(one, I.rrun_go(prog, rs)) == CV.run_go(FS.prime(one), cprog(prog), vals(one, rs)) : List<&2, Nat>}:
+def run_go_v(+one: Nat, +h1: {one == 1n : Nat}, prog: List<&2, I.ROp>, +rs: List<&2, F.FE>, +h: {allred(one, rs) == True{} : Bool}, +hp: {pok(prog, vals(one, rs)) == True{} : Bool}) -> {vals(one, I.rrun_go(prog, rs)) == CV.run_go(FS.prime(one), cprog(prog), vals(one, rs)) : List<&2, Nat>}:
   match prog:
     case Nil{}:
       {==}
     case +op <> +t:
       +h2 = allred_app(one, rs, I.rexec(op, rs), h, exec_r(one, h1, op, rs, h))
-      %Equal.sym(List<&2, Nat>, vals(one, I.rrun_go(t, List.append(&2, F.FE, rs, [I.rexec(op, rs)]))), CV.run_go(FS.prime(one), cprog(t), vals(one, List.append(&2, F.FE, rs, [I.rexec(op, rs)]))), run_go_v(one, h1, t, List.append(&2, F.FE, rs, [I.rexec(op, rs)]), h2)) : {_ == CV.run_go(FS.prime(one), cprog(t), List.append(&2, Nat, vals(one, rs), [CV.exec(FS.prime(one), cop(op), vals(one, rs))])) : List<&2, Nat>}
+      +hq = pok_vapp(one, t, rs, I.rexec(op, rs), Lg.and_right(bok(op, vals(one, rs)), pok(t, vals(one, rs)), hp))
+      %Equal.sym(List<&2, Nat>, vals(one, I.rrun_go(t, List.append(&2, F.FE, rs, [I.rexec(op, rs)]))), CV.run_go(FS.prime(one), cprog(t), vals(one, List.append(&2, F.FE, rs, [I.rexec(op, rs)]))), run_go_v(one, h1, t, List.append(&2, F.FE, rs, [I.rexec(op, rs)]), h2, hq)) : {_ == CV.run_go(FS.prime(one), cprog(t), List.append(&2, Nat, vals(one, rs), [CV.exec(FS.prime(one), cop(op), vals(one, rs))])) : List<&2, Nat>}
       %Equal.sym(List<&2, Nat>, vals(one, List.append(&2, F.FE, rs, [I.rexec(op, rs)])), List.append(&2, Nat, vals(one, rs), [OP.val(one, I.rexec(op, rs))]), vals_app(one, rs, I.rexec(op, rs))) : {CV.run_go(FS.prime(one), cprog(t), _) == CV.run_go(FS.prime(one), cprog(t), List.append(&2, Nat, vals(one, rs), [CV.exec(FS.prime(one), cop(op), vals(one, rs))])) : List<&2, Nat>}
-      %Equal.sym(Nat, OP.val(one, I.rexec(op, rs)), CV.exec(FS.prime(one), cop(op), vals(one, rs)), exec_v(one, h1, op, rs, h)) : {CV.run_go(FS.prime(one), cprog(t), List.append(&2, Nat, vals(one, rs), [_])) == CV.run_go(FS.prime(one), cprog(t), List.append(&2, Nat, vals(one, rs), [CV.exec(FS.prime(one), cop(op), vals(one, rs))])) : List<&2, Nat>}
+      %Equal.sym(Nat, OP.val(one, I.rexec(op, rs)), CV.exec(FS.prime(one), cop(op), vals(one, rs)), exec_v(one, h1, op, rs, h, Lg.and_left(bok(op, vals(one, rs)), pok(t, vals(one, rs)), hp))) : {CV.run_go(FS.prime(one), cprog(t), List.append(&2, Nat, vals(one, rs), [_])) == CV.run_go(FS.prime(one), cprog(t), List.append(&2, Nat, vals(one, rs), [CV.exec(FS.prime(one), cop(op), vals(one, rs))])) : List<&2, Nat>}
       {==}
 
 def srun_is(+p: Nat, prog: List<&2, CV.SOp>, rs: List<&2, Nat>) -> {CV.run(p, prog, rs) == CV.run_go(p, prog, rs) : List<&2, Nat>}:
@@ -211,10 +271,24 @@ def run_r(+one: Nat, +h1: {one == 1n : Nat}, +prog: List<&2, I.ROp>, +rs: List<&
   %Equal.sym(List<&2, F.FE>, I.rrun(prog, rs), I.rrun_go(prog, rs), run_is(prog, rs)) : {allred(one, _) == True{} : Bool}
   run_go_r(one, h1, prog, rs, h)
 
-def run_v(+one: Nat, +h1: {one == 1n : Nat}, +prog: List<&2, I.ROp>, +rs: List<&2, F.FE>, +h: {allred(one, rs) == True{} : Bool}) -> {vals(one, I.rrun(prog, rs)) == CV.run(FS.prime(one), cprog(prog), vals(one, rs)) : List<&2, Nat>}:
+def run_v(+one: Nat, +h1: {one == 1n : Nat}, +prog: List<&2, I.ROp>, +rs: List<&2, F.FE>, +h: {allred(one, rs) == True{} : Bool}, +hp: {pok(prog, vals(one, rs)) == True{} : Bool}) -> {vals(one, I.rrun(prog, rs)) == CV.run(FS.prime(one), cprog(prog), vals(one, rs)) : List<&2, Nat>}:
   %Equal.sym(List<&2, F.FE>, I.rrun(prog, rs), I.rrun_go(prog, rs), run_is(prog, rs)) : {vals(one, _) == CV.run(FS.prime(one), cprog(prog), vals(one, rs)) : List<&2, Nat>}
   %Equal.sym(List<&2, Nat>, CV.run(FS.prime(one), cprog(prog), vals(one, rs)), CV.run_go(FS.prime(one), cprog(prog), vals(one, rs)), srun_is(FS.prime(one), cprog(prog), vals(one, rs))) : {vals(one, I.rrun_go(prog, rs)) == _ : List<&2, Nat>}
-  run_go_v(one, h1, prog, rs, h)
+  run_go_v(one, h1, prog, rs, h, hp)
+
+# the programs' products by b3 read a register holding 21
+def b3_eq(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_eq(OP.val(one, PX.b3()), 21n) == True{} : Bool}:
+  %Equal.sym(Nat, OP.val(one, PX.b3()), 21n, b3_v(one, h1)) : {Nat.is_eq(_, 21n) == True{} : Bool}
+  {==}
+
+def add_ok(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +b: F.FE, +c: F.FE, +d: F.FE, +e: F.FE, +f: F.FE) -> {pok(I.radd_prog(), vals(one, [a, b, c, d, e, f, PX.b3()])) == True{} : Bool}:
+  %Equal.sym(Nat, OP.val(one, PX.b3()), 21n, N.eq_from_is_eq(OP.val(one, PX.b3()), 21n, b3_eq(one, h1))) : {Bool.and(Nat.is_eq(_, 21n), Bool.and(Nat.is_eq(OP.val(one, PX.b3()), 21n), True{})) == True{} : Bool}
+  %Equal.sym(Nat, OP.val(one, PX.b3()), 21n, N.eq_from_is_eq(OP.val(one, PX.b3()), 21n, b3_eq(one, h1))) : {Bool.and(Nat.is_eq(21n, 21n), Bool.and(Nat.is_eq(_, 21n), True{})) == True{} : Bool}
+  {==}
+
+def dbl_ok(+one: Nat, +h1: {one == 1n : Nat}, +a: F.FE, +b: F.FE, +c: F.FE) -> {pok(I.rdbl_prog(), vals(one, [a, b, c, PX.b3()])) == True{} : Bool}:
+  %Equal.sym(Nat, OP.val(one, PX.b3()), 21n, N.eq_from_is_eq(OP.val(one, PX.b3()), 21n, b3_eq(one, h1))) : {Bool.and(Nat.is_eq(_, 21n), True{}) == True{} : Bool}
+  {==}
 
 def vals7(+one: Nat, +a: F.FE, +b: F.FE, +c: F.FE, +d: F.FE, +e: F.FE, +f: F.FE, +g: F.FE) -> {vals(one, [a, b, c, d, e, f, g]) == [OP.val(one, a), OP.val(one, b), OP.val(one, c), OP.val(one, d), OP.val(one, e), OP.val(one, f), OP.val(one, g)] : List<&2, Nat>}:
   {==}
@@ -231,9 +305,9 @@ def padd_v(+one: Nat, +h1: {one == 1n : Nat}, a: PX.PT, b: PX.PT, +ha: {pred(one
       %Equal.sym(Nat, OP.val(one, I.rnth(33n, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(33n, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))), nth_v(one, h1, 33n, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))) : {CV.SPoint{_, OP.val(one, I.rnth(36n, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))), OP.val(one, I.rnth(39n, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()])))} == CV.add_out(CV.run(FS.prime(one), CV.add_prog(), [OP.val(one, x1), OP.val(one, y1), OP.val(one, z1), OP.val(one, x2), OP.val(one, y2), OP.val(one, z2), CV.b3()])) : CV.SPoint}
       %Equal.sym(Nat, OP.val(one, I.rnth(36n, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(36n, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))), nth_v(one, h1, 36n, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))) : {CV.SPoint{CV.nth(33n, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))), _, OP.val(one, I.rnth(39n, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()])))} == CV.add_out(CV.run(FS.prime(one), CV.add_prog(), [OP.val(one, x1), OP.val(one, y1), OP.val(one, z1), OP.val(one, x2), OP.val(one, y2), OP.val(one, z2), CV.b3()])) : CV.SPoint}
       %Equal.sym(Nat, OP.val(one, I.rnth(39n, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(39n, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))), nth_v(one, h1, 39n, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))) : {CV.SPoint{CV.nth(33n, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(36n, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))), _} == CV.add_out(CV.run(FS.prime(one), CV.add_prog(), [OP.val(one, x1), OP.val(one, y1), OP.val(one, z1), OP.val(one, x2), OP.val(one, y2), OP.val(one, z2), CV.b3()])) : CV.SPoint}
-      %Equal.sym(List<&2, Nat>, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()])), CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()])), run_v(one, h1, I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()], hr)) : {CV.SPoint{CV.nth(33n, _), CV.nth(36n, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(39n, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()])))} == CV.add_out(CV.run(FS.prime(one), CV.add_prog(), [OP.val(one, x1), OP.val(one, y1), OP.val(one, z1), OP.val(one, x2), OP.val(one, y2), OP.val(one, z2), CV.b3()])) : CV.SPoint}
-      %Equal.sym(List<&2, Nat>, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()])), CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()])), run_v(one, h1, I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()], hr)) : {CV.SPoint{CV.nth(33n, CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(36n, _), CV.nth(39n, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()])))} == CV.add_out(CV.run(FS.prime(one), CV.add_prog(), [OP.val(one, x1), OP.val(one, y1), OP.val(one, z1), OP.val(one, x2), OP.val(one, y2), OP.val(one, z2), CV.b3()])) : CV.SPoint}
-      %Equal.sym(List<&2, Nat>, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()])), CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()])), run_v(one, h1, I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()], hr)) : {CV.SPoint{CV.nth(33n, CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(36n, CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(39n, _)} == CV.add_out(CV.run(FS.prime(one), CV.add_prog(), [OP.val(one, x1), OP.val(one, y1), OP.val(one, z1), OP.val(one, x2), OP.val(one, y2), OP.val(one, z2), CV.b3()])) : CV.SPoint}
+      %Equal.sym(List<&2, Nat>, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()])), CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()])), run_v(one, h1, I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()], hr, add_ok(one, h1, x1, y1, z1, x2, y2, z2))) : {CV.SPoint{CV.nth(33n, _), CV.nth(36n, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(39n, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()])))} == CV.add_out(CV.run(FS.prime(one), CV.add_prog(), [OP.val(one, x1), OP.val(one, y1), OP.val(one, z1), OP.val(one, x2), OP.val(one, y2), OP.val(one, z2), CV.b3()])) : CV.SPoint}
+      %Equal.sym(List<&2, Nat>, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()])), CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()])), run_v(one, h1, I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()], hr, add_ok(one, h1, x1, y1, z1, x2, y2, z2))) : {CV.SPoint{CV.nth(33n, CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(36n, _), CV.nth(39n, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()])))} == CV.add_out(CV.run(FS.prime(one), CV.add_prog(), [OP.val(one, x1), OP.val(one, y1), OP.val(one, z1), OP.val(one, x2), OP.val(one, y2), OP.val(one, z2), CV.b3()])) : CV.SPoint}
+      %Equal.sym(List<&2, Nat>, vals(one, I.rrun(I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()])), CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()])), run_v(one, h1, I.radd_prog(), [x1, y1, z1, x2, y2, z2, PX.b3()], hr, add_ok(one, h1, x1, y1, z1, x2, y2, z2))) : {CV.SPoint{CV.nth(33n, CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(36n, CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(39n, _)} == CV.add_out(CV.run(FS.prime(one), CV.add_prog(), [OP.val(one, x1), OP.val(one, y1), OP.val(one, z1), OP.val(one, x2), OP.val(one, y2), OP.val(one, z2), CV.b3()])) : CV.SPoint}
       %Equal.sym(List<&2, CV.SOp>, cprog(I.radd_prog()), CV.add_prog(), add_prog_eq()) : {CV.SPoint{CV.nth(33n, CV.run(FS.prime(one), _, vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(36n, CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(39n, CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()])))} == CV.add_out(CV.run(FS.prime(one), CV.add_prog(), [OP.val(one, x1), OP.val(one, y1), OP.val(one, z1), OP.val(one, x2), OP.val(one, y2), OP.val(one, z2), CV.b3()])) : CV.SPoint}
       %Equal.sym(List<&2, CV.SOp>, cprog(I.radd_prog()), CV.add_prog(), add_prog_eq()) : {CV.SPoint{CV.nth(33n, CV.run(FS.prime(one), CV.add_prog(), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(36n, CV.run(FS.prime(one), _, vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(39n, CV.run(FS.prime(one), cprog(I.radd_prog()), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()])))} == CV.add_out(CV.run(FS.prime(one), CV.add_prog(), [OP.val(one, x1), OP.val(one, y1), OP.val(one, z1), OP.val(one, x2), OP.val(one, y2), OP.val(one, z2), CV.b3()])) : CV.SPoint}
       %Equal.sym(List<&2, CV.SOp>, cprog(I.radd_prog()), CV.add_prog(), add_prog_eq()) : {CV.SPoint{CV.nth(33n, CV.run(FS.prime(one), CV.add_prog(), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(36n, CV.run(FS.prime(one), CV.add_prog(), vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()]))), CV.nth(39n, CV.run(FS.prime(one), _, vals(one, [x1, y1, z1, x2, y2, z2, PX.b3()])))} == CV.add_out(CV.run(FS.prime(one), CV.add_prog(), [OP.val(one, x1), OP.val(one, y1), OP.val(one, z1), OP.val(one, x2), OP.val(one, y2), OP.val(one, z2), CV.b3()])) : CV.SPoint}
@@ -254,9 +328,9 @@ def pdbl_v(+one: Nat, +h1: {one == 1n : Nat}, a: PX.PT, +ha: {pred(one, a) == Tr
       %Equal.sym(Nat, OP.val(one, I.rnth(21n, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))), CV.nth(21n, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))), nth_v(one, h1, 21n, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))) : {CV.SPoint{_, OP.val(one, I.rnth(18n, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))), OP.val(one, I.rnth(13n, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()])))} == CV.dbl_out(CV.run(FS.prime(one), CV.dbl_prog(), [OP.val(one, x), OP.val(one, y), OP.val(one, z), CV.b3()])) : CV.SPoint}
       %Equal.sym(Nat, OP.val(one, I.rnth(18n, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))), CV.nth(18n, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))), nth_v(one, h1, 18n, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))) : {CV.SPoint{CV.nth(21n, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))), _, OP.val(one, I.rnth(13n, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()])))} == CV.dbl_out(CV.run(FS.prime(one), CV.dbl_prog(), [OP.val(one, x), OP.val(one, y), OP.val(one, z), CV.b3()])) : CV.SPoint}
       %Equal.sym(Nat, OP.val(one, I.rnth(13n, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))), CV.nth(13n, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))), nth_v(one, h1, 13n, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))) : {CV.SPoint{CV.nth(21n, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))), CV.nth(18n, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))), _} == CV.dbl_out(CV.run(FS.prime(one), CV.dbl_prog(), [OP.val(one, x), OP.val(one, y), OP.val(one, z), CV.b3()])) : CV.SPoint}
-      %Equal.sym(List<&2, Nat>, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()])), CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()])), run_v(one, h1, I.rdbl_prog(), [x, y, z, PX.b3()], hr)) : {CV.SPoint{CV.nth(21n, _), CV.nth(18n, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))), CV.nth(13n, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()])))} == CV.dbl_out(CV.run(FS.prime(one), CV.dbl_prog(), [OP.val(one, x), OP.val(one, y), OP.val(one, z), CV.b3()])) : CV.SPoint}
-      %Equal.sym(List<&2, Nat>, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()])), CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()])), run_v(one, h1, I.rdbl_prog(), [x, y, z, PX.b3()], hr)) : {CV.SPoint{CV.nth(21n, CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()]))), CV.nth(18n, _), CV.nth(13n, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()])))} == CV.dbl_out(CV.run(FS.prime(one), CV.dbl_prog(), [OP.val(one, x), OP.val(one, y), OP.val(one, z), CV.b3()])) : CV.SPoint}
-      %Equal.sym(List<&2, Nat>, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()])), CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()])), run_v(one, h1, I.rdbl_prog(), [x, y, z, PX.b3()], hr)) : {CV.SPoint{CV.nth(21n, CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()]))), CV.nth(18n, CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()]))), CV.nth(13n, _)} == CV.dbl_out(CV.run(FS.prime(one), CV.dbl_prog(), [OP.val(one, x), OP.val(one, y), OP.val(one, z), CV.b3()])) : CV.SPoint}
+      %Equal.sym(List<&2, Nat>, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()])), CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()])), run_v(one, h1, I.rdbl_prog(), [x, y, z, PX.b3()], hr, dbl_ok(one, h1, x, y, z))) : {CV.SPoint{CV.nth(21n, _), CV.nth(18n, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()]))), CV.nth(13n, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()])))} == CV.dbl_out(CV.run(FS.prime(one), CV.dbl_prog(), [OP.val(one, x), OP.val(one, y), OP.val(one, z), CV.b3()])) : CV.SPoint}
+      %Equal.sym(List<&2, Nat>, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()])), CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()])), run_v(one, h1, I.rdbl_prog(), [x, y, z, PX.b3()], hr, dbl_ok(one, h1, x, y, z))) : {CV.SPoint{CV.nth(21n, CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()]))), CV.nth(18n, _), CV.nth(13n, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()])))} == CV.dbl_out(CV.run(FS.prime(one), CV.dbl_prog(), [OP.val(one, x), OP.val(one, y), OP.val(one, z), CV.b3()])) : CV.SPoint}
+      %Equal.sym(List<&2, Nat>, vals(one, I.rrun(I.rdbl_prog(), [x, y, z, PX.b3()])), CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()])), run_v(one, h1, I.rdbl_prog(), [x, y, z, PX.b3()], hr, dbl_ok(one, h1, x, y, z))) : {CV.SPoint{CV.nth(21n, CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()]))), CV.nth(18n, CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()]))), CV.nth(13n, _)} == CV.dbl_out(CV.run(FS.prime(one), CV.dbl_prog(), [OP.val(one, x), OP.val(one, y), OP.val(one, z), CV.b3()])) : CV.SPoint}
       %Equal.sym(List<&2, CV.SOp>, cprog(I.rdbl_prog()), CV.dbl_prog(), dbl_prog_eq()) : {CV.SPoint{CV.nth(21n, CV.run(FS.prime(one), _, vals(one, [x, y, z, PX.b3()]))), CV.nth(18n, CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()]))), CV.nth(13n, CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()])))} == CV.dbl_out(CV.run(FS.prime(one), CV.dbl_prog(), [OP.val(one, x), OP.val(one, y), OP.val(one, z), CV.b3()])) : CV.SPoint}
       %Equal.sym(List<&2, CV.SOp>, cprog(I.rdbl_prog()), CV.dbl_prog(), dbl_prog_eq()) : {CV.SPoint{CV.nth(21n, CV.run(FS.prime(one), CV.dbl_prog(), vals(one, [x, y, z, PX.b3()]))), CV.nth(18n, CV.run(FS.prime(one), _, vals(one, [x, y, z, PX.b3()]))), CV.nth(13n, CV.run(FS.prime(one), cprog(I.rdbl_prog()), vals(one, [x, y, z, PX.b3()])))} == CV.dbl_out(CV.run(FS.prime(one), CV.dbl_prog(), [OP.val(one, x), OP.val(one, y), OP.val(one, z), CV.b3()])) : CV.SPoint}
       %Equal.sym(List<&2, CV.SOp>, cprog(I.rdbl_prog()), CV.dbl_prog(), dbl_prog_eq()) : {CV.SPoint{CV.nth(21n, CV.run(FS.prime(one), CV.dbl_prog(), vals(one, [x, y, z, PX.b3()]))), CV.nth(18n, CV.run(FS.prime(one), CV.dbl_prog(), vals(one, [x, y, z, PX.b3()]))), CV.nth(13n, CV.run(FS.prime(one), _, vals(one, [x, y, z, PX.b3()])))} == CV.dbl_out(CV.run(FS.prime(one), CV.dbl_prog(), [OP.val(one, x), OP.val(one, y), OP.val(one, z), CV.b3()])) : CV.SPoint}

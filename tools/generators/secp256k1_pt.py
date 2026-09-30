@@ -26,19 +26,25 @@ ADD_IN, ADD_OUT = ['x1', 'y1', 'z1', 'x2', 'y2', 'z2', 'b3()'], (33, 36, 39)
 DBL_IN, DBL_OUT = ['x', 'y', 'z', 'b3()'], (21, 18, 13)
 
 
-def rop(op, i, j):
-    """the record interpreter's instruction (squares as RSq)"""
+def rop(op, i, j, b3):
+    """the record interpreter's instruction (squares as RSq, products by
+    the register b3 as RMulB)"""
     if op == 'M':
+        if i == b3:
+            return 'I.RMulB{%dn, %dn}' % (i, j)
         return 'I.RSq{%dn}' % i if i == j else 'I.RMul{%dn, %dn}' % (i, j)
     return 'I.%s{%dn, %dn}' % ('RAdd' if op == 'A' else 'RSub', i, j)
 
 
 def straight(prog, inputs, outs):
     regs, lines = list(inputs), []
+    b3 = inputs.index('b3()')
     for op, i, j in prog:
         name = 'r%d' % len(regs)
         a, b = regs[i], regs[j]
-        if op == 'M':
+        if op == 'M' and i == b3:
+            e = 'F.mul21(%s)' % b
+        elif op == 'M':
             e = 'F.sq(%s)' % a if i == j else 'F.mul(%s, %s)' % (a, b)
         else:
             e = 'F.%s(%s, %s)' % ('add' if op == 'A' else 'sub', a, b)
@@ -59,7 +65,8 @@ import ./fe.bend as F
 # curves" (EUROCRYPT 2016), Algorithms 7 and 9 for a = 0 with b3 = 3 b = 21:
 # the register programs of spec/crypto/secp256k1/curve.bend, written out
 # register by register (rN is register N of the program; squares are
-# F.sq). One formula for every pair of inputs, so no branch.
+# F.sq, products by the register b3 are F.mul21). One formula for every
+# pair of inputs, so no branch.
 #
 # Scalar multiplication is the specification's left-to-right double-and-add:
 # mul_go adds in every step and selects with an arithmetic mask (secret
@@ -141,9 +148,9 @@ def dbl_b(p: PX.PT) -> {PX.dbl(p) == I.dbl_out(I.rrun_go(I.rdbl_prog(), I.regs4(
   match p:
     case PX.PT{+x, +y, +z}:
       {==}
-''' % (', '.join(rop(*o) for o in ADD), ', '.join(rop(*o) for o in DBL))
+''' % (', '.join(rop(*o, 6) for o in ADD), ', '.join(rop(*o, 3) for o in DBL))
 (ROOT / 'proofs/crypto/secp256k1/ptbr.bend').write_text(br)
-PROGS = (', '.join(rop(*o) for o in ADD), ', '.join(rop(*o) for o in DBL))
+PROGS = (', '.join(rop(*o, 6) for o in ADD), ', '.join(rop(*o, 3) for o in DBL))
 print('wrote src/crypto/secp256k1/pt.bend, proofs/crypto/secp256k1/ptbr.bend')
 print('ADD', PROGS[0].replace('I.', ''))
 print('DBL', PROGS[1].replace('I.', ''))

@@ -13,11 +13,15 @@ import ./se.bend as SE
 def c() -> List<&2, Nat>:
   [48831n, 12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n]
 
+# x mod n for 16 limbs (value below 2^256 < 2 n): one conditional
+# subtraction of n on records (se.bend); x looked at first
 def reduce_u(xs: List<&2, Nat>) -> List<&2, Nat>:
-  L.reduce(c(), 4n, xs)
+  R.to_list(SE.red16(R.of_list(xs)))
 
 def reduce(xs: List<&2, Nat>) -> List<&2, Nat>:
-  reduce_u(xs)
+  match xs:
+    case Nil{}: reduce_u(Nil{})
+    case x <> t: reduce_u(x <> t)
 
 def zero() -> List<&2, Nat>:
   L.norm16([])
@@ -28,25 +32,23 @@ def small(+k: Nat) -> List<&2, Nat>:
 def one() -> List<&2, Nat>:
   small(1n)
 
+# a + b and -a on records (se.bend: one conditional subtraction of n);
+# the first argument is looked at first
 def add_u(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
-  reduce_u(L.add(a, b))
-
-def add_b(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
-  match b:
-    case Nil{}: add_u(a, Nil{})
-    case y <> u: add_u(a, y <> u)
+  R.to_list(SE.add(R.of_list(a), R.of_list(b)))
 
 def add(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
   match a:
-    case Nil{}: add_b(Nil{}, b)
-    case x <> t: add_b(x <> t, b)
+    case Nil{}: add_u(Nil{}, b)
+    case x <> t: add_u(x <> t, b)
 
 def neg_u(a: List<&2, Nat>) -> List<&2, Nat>:
-  reduce_u(L.neg_raw(c(), a))
+  R.to_list(SE.neg(R.of_list(a)))
 
-# (one argument: nothing to look at first)
 def neg(a: List<&2, Nat>) -> List<&2, Nat>:
-  neg_u(a)
+  match a:
+    case Nil{}: neg_u(Nil{})
+    case x <> t: neg_u(x <> t)
 
 # The product runs on records (se.bend, reduction as L.reduce(c, 4n, xs)),
 # whose fields the compiled code keeps in registers; a reduced list is the
