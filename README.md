@@ -338,18 +338,29 @@ model, so constant time is a property of the code's shape, not a theorem.
 
 ## Install
 
-The library is published on the Bend hub. Import any module by its path in
+The library is published on the Bend hub as `bend-collections`, and every
+proved law as `bend-collections-laws` (MIT). Import any module by its path in
 the package:
 
 ```python
-import 0x9ee2e9a299991dcc089fe22c7f3ceb5f/src/containers/hash_table.bend as HashMap
-import 0x9ee2e9a299991dcc089fe22c7f3ceb5f/src/crypto/sha/sha256.bend as SHA256
+import bend-collections@1.0.0.0/src/containers/hash_table.bend as HashMap
+import bend-collections@1.0.0.0/src/crypto/aead.bend as AEAD
+import bend-collections@1.0.0.0/src/math/random.bend as Rand
 ```
 
-The hash names the exact content (every file is checked against it when
-fetched), so an import never changes under you; each release lists its hash.
-`main.bend` imports every public module and is what gets published
-(`bend main.bend --publish`).
+and the laws the same way, all at once (`laws.bend` imports every proof root,
+so importing it checks every clause) or one package's root at a time:
+
+```python
+import bend-collections-laws@1.0.0.0/proofs/crypto/aead/proof.bend as AeadLaws
+```
+
+A name resolves to a content hash (each release lists it), and every fetched
+file is checked against that hash, so an import never changes under you.
+`main.bend` (every public module) is published as `bend-collections`
+(`bend main.bend --publish bend-collections@<version>`), and `laws.bend` as
+`bend-collections-laws`. Checking all the laws together takes about 12 GB of
+memory; check a single package's root when you need only its laws.
 
 ## Layout
 
