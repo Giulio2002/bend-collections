@@ -7,6 +7,9 @@ the generator writes each component, the conjunction goodF, one accessor
 g_<c> per component, and good_intro, which builds goodF from the components.
 """
 import pathlib
+import sys
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from conj import Conj
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 STATE = ROOT / "proofs/containers/doubly_linked_list/state.bend"
@@ -146,41 +149,31 @@ def call(c, pre="", args=A):
     return f"{pre}{c}(~T, {args})"
 
 
-def rest(i, pre="", args=A):
-    if i == len(NAMES) - 1:
-        return call(NAMES[i], pre, args)
-    return f"Bool.and({call(NAMES[i], pre, args)}, {rest(i + 1, pre, args)})"
 
 
 def T_(x):
     return "{" + x + " == True{} : Bool}"
 
 
-def intro(i, hs):
-    if i == len(NAMES) - 1:
-        return hs[i]
-    return f"L.and_intro({call(NAMES[i])}, {rest(i + 1)}, {hs[i]}, {intro(i + 1, hs)})"
+
+
+C = Conj(NAMES, lambda c, pre="", args=None: call(c, pre, A if args is None else args), f"~T: Data, {P}")
 
 
 def block():
     out = [BASE]
     for c, body in COMPS:
         out.append(f"def {c}(~T: Data, {P}) -> Bool:\n  {body}\n")
-    out.append(f"def goodF(~T: Data, {P}) -> Bool:\n  {rest(0)}\n")
+    out += C.suffixes()
     out.append('''def good(~T: Data, sh: Sh<T>) -> Bool:
   match sh:
     case LS{+tag, +cap, +fresh, +free, +head, +tail, +depth, +vT, +pT, +nT, +gT, +sl, +fl}:
       goodF(~T, tag, cap, fresh, free, head, tail, depth, vT, pT, nT, gT, sl, fl)
 ''')
-    prs = ["g"]
-    for i in range(len(NAMES) - 1):
-        prs.append(f"L.and_right({call(NAMES[i])}, {rest(i + 1)}, {prs[i]})")
-    for i, c in enumerate(NAMES):
-        body = f"L.and_left({call(c)}, {rest(i + 1)}, {prs[i]})" if i < len(NAMES) - 1 else prs[i]
-        out.append(f"def g_{c}(~T: Data, {P}, +g: {T_(call('goodF'))}) -> {T_(call(c))}:\n  {body}\n")
+    out += C.projections(A)
     hs = ", ".join(f"+h_{c}: {T_(call(c))}" for c in NAMES)
     out.append("# the invariant from its components\n"
-               f"def good_intro(~T: Data, {P}, {hs}) -> {T_(call('goodF'))}:\n  {intro(0, ['h_' + c for c in NAMES])}\n")
+               f"def good_intro(~T: Data, {P}, {hs}) -> {T_(call('goodF'))}:\n  {C.intro()}\n")
     return "\n".join(out)
 
 

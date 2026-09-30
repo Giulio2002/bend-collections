@@ -25,12 +25,27 @@ benchmarked against optimized C implementations of the same algorithms.
 | BLAKE2s | `src/crypto/blake/blake2s/blake2s.bend` | RFC 7693, 32-byte digest |
 | BLAKE2b | `src/crypto/blake/blake2b/blake2b.bend` | RFC 7693, 64-byte digest |
 | BLAKE3 | `src/crypto/blake/blake3/blake3.bend` | hash mode, 32-byte digest |
+| SHA-512 | `src/crypto/sha512/sha512.bend` | FIPS 180-4, 64-byte digest; proved equal to `spec/crypto/sha512.bend` for every input |
+| SHA3-256 | `src/crypto/sha3/sha3_256.bend` | FIPS 202 on the Keccak-f[1600] of `keccak/`; proved equal to `spec/crypto/sha3.bend` |
+| Hashing facade | `src/crypto/hash.bend` | one-shot `sha256`/`sha512`/`sha3_256` and an incremental `Hasher` (`new_*`, `update`, `digest`); see below |
+| Constant-time compare | `src/crypto/subtle.bend` | `eq(a, b)` on byte lists, proved `True` exactly when `a == b` |
 | HMAC-SHA256 | `src/crypto/mac.bend` | RFC 2104: `sign(key, msg)`, `verify(key, msg, tag)` (constant-time `subtle.eq`); proved equal to the RFC/FIPS 198-1 spec `spec/crypto/hmac.bend` for every input, `verify(k, m, sign(k, m))` and rejection of every other tag; RFC 4231 vectors; [contracts](docs/CRYPTO_CONTRACTS.md) |
 | HKDF-SHA256 | `src/crypto/kdf.bend` | RFC 5869: `extract`, `expand`, `hkdf`, lengths above 255 * 32 are the value `LengthTooLarge`; proved equal to `spec/crypto/hkdf.bend` for every input, output length and prefix laws; RFC 5869 vectors |
+| AES | `src/crypto/aes/aes.bend` | FIPS 197 block cipher, 128/192/256-bit keys; S-box as a constant-time Boyar-Peralta circuit (no table); proved equal to the FIPS 197 specification for every key and block, see [docs/CRYPTO_CONTRACTS.md](docs/CRYPTO_CONTRACTS.md) |
+| AES-GCM | `src/crypto/aesgcm.bend` | SP 800-38D AES-128-GCM and AES-256-GCM, 12-byte nonces, 16-byte tags appended, tag checked with `subtle.eq`; proved equal to the SP 800-38D specification, `decrypt(encrypt(x)) == Some(x)`, a wrong tag gives `None` |
+| Argon2id | `src/crypto/argon2/argon2.bend` | RFC 9106 (v0x13), with secret and associated data; proved equal to `spec/crypto/argon2/` for every input that fits (m' <= 2^23 blocks) |
+| Password hashing | `src/crypto/password.bend` | Argon2id PHC strings: `hash_password`, `hash_password_os`, `verify_password`, `needs_rehash`; see below |
+| ChaCha20 | `src/crypto/chacha/chacha20.bend` | RFC 8439: `chacha20_block`, `chacha20(key, counter, nonce, bytes)`, HChaCha20 and XChaCha20 (draft-irtf-cfrg-xchacha-03); the core `src/crypto/chacha/core.bend` takes the number of double rounds (ChaCha8/12 reuse it); proved equal to the RFC spec `spec/crypto/chacha.bend` for every input and round count, decryption is encryption; RFC 8439 / XChaCha vectors; [contracts](docs/CRYPTO_CONTRACTS.md) |
+| Poly1305 | `src/crypto/poly1305/poly1305.bend` | RFC 8439: `poly1305(key, msg)`, `verify` (constant-time `subtle.eq`); arithmetic mod 2^130-5 on 17 radix-2^8 U32 limbs, proved equal to the Nat spec `spec/crypto/poly1305.bend` for every input; RFC 8439 vectors |
+| AEAD | `src/crypto/aead.bend` | `encrypt(alg, key, nonce, aad, pt)`, `decrypt(alg, key, nonce, aad, ct)` for `CHACHA20_POLY1305` (RFC 8439), `XCHACHA20_POLY1305`, `AES_128_GCM` and `AES_256_GCM` (SP 800-38D); proved: each algorithm equals its spec, `decrypt(encrypt(x)) == Some(x)`, every tag other than the expected one is rejected; RFC 8439 / XChaCha / GCM vectors, Wycheproof, differential test against `cryptography` |
+| X25519 key exchange | `src/crypto/kex.bend` | RFC 7748: `generate_keypair(seed)`, `generate_keypair_os()`, `shared_secret(sk, pk)` (all-zero result rejected); field arithmetic mod 2^255 - 19 in `src/crypto/curve25519/`; proved equal to `spec/crypto/curve25519/x25519.bend` |
+| Ed25519 signatures | `src/crypto/sign.bend` | RFC 8032 section 5.1: `generate_keypair`, `sign`, `verify` (cofactorless, S < L enforced); proved equal to `spec/crypto/ed25519.bend` |
 | secp256k1 | `src/crypto/secp256k1.bend` | SEC 1/SEC 2 ECDSA with RFC 6979 deterministic nonces and low-S output (`sign`, `sign_compact`, `verify`, `verify_strict`), public key recovery (`recover`), Ethereum `eth_address` and the ECRECOVER precompile (`ecrecover`), BIP-340 Schnorr (`schnorr_pubkey`, `schnorr_sign`, `schnorr_verify`), SEC 1 key encodings, `generate_keypair(seed)` / `generate_keypair_os()`; complete (Renes-Costello-Batina) point formulas and masked double-and-add; every function proved equal to its specification `spec/crypto/secp256k1/` (over the natural numbers) for every input; RFC 6979, BIP-340 (19), Wycheproof and ecrecover vectors plus a differential test against `cryptography` and the BIP-340 reference code; [contracts](docs/CRYPTO_CONTRACTS.md) |
 | Integer math | `src/math/natural.bend` | Python-style `math` integer functions, see below |
 | Math per type | `src/math/generic.bend`, `src/math/f64.bend` | the same functions for U32, U64, F32 and a software F64, see below |
 | Fixed-width integers | `src/math/fixed.bend`, `src/math/number.bend` | Rust's `checked_`/`wrapping_`/`saturating_`/`overflowing_` families for U32 and U64, bit counts, primality, bytes, extended gcd, see below |
+| Random numbers | `src/math/random.bend` (`src/math/random/`) | Go's `math/rand/v2` bit for bit: a Source interface for any seeded generator, ChaCha8 (C2SP chacha8rand) and PCG-DXSM sources, unbiased bounded integers (Lemire), floats, Fisher-Yates shuffles; see below |
+| Secure random | `src/crypto/random.bend` | ChaCha8Rand generator: seeded or OS-seeded (`IO.random_u32`), `bytes`, `uint_below`, `shuffle`; [contract and caveats](docs/CRYPTO_CONTRACTS.md) |
 
 The hash map and the LRU follow Base's conventions: signatures are
 quantity-polymorphic (`a, -V: Kind(a)`, as `Base.Map` uses), and reads that
@@ -187,6 +202,130 @@ wrapping ones that result modulo 2^w, a wrapping difference plus b is a plus
 of the value). `tools/check_fixed.py` compares every function with Python
 integers under Rust's semantics, naming the clause of each case.
 
+## Hashing
+
+`src/crypto/hash.bend` is the entry point for hashing byte lists
+(`List<&2, U32>`, each value < 256):
+
+```python
+import ./src/crypto/hash.bend as Hash
+
+Hash.sha256(bytes)                       # 32 bytes (FIPS 180-4)
+Hash.sha512(bytes)                       # 64 bytes (FIPS 180-4)
+Hash.sha3_256(bytes)                     # 32 bytes (FIPS 202)
+h = Hash.update(Hash.update(Hash.new_sha512(), part1), part2)
+Hash.digest(h)                           # == Hash.sha512(part1 ++ part2)
+```
+
+Every function is proved against its standard's executable specification
+(`spec/crypto/sha.bend`, `sha512.bend`, `sha3.bend`), and the incremental
+`Hasher` is proved equal to the one-shot hash for every split of the input
+(`proofs/crypto/hash/laws.bend`); `src/crypto/subtle.bend`'s `eq` compares
+digests and tags without an early exit, proved to return `True` exactly on
+equal lists. `docs/CRYPTO_CONTRACTS.md` lists the clauses and their evidence;
+`tools/check_crypto_hash.py` tests all of it against Python's `hashlib`.
+
+## Password hashing
+
+`src/crypto/password.bend` stores Argon2id hashes as PHC strings
+(`$argon2id$v=19$m=..,t=..,p=..$salt$hash`, unpadded base64), as the
+reference implementation and argon2-cffi write them:
+
+```python
+import ./src/crypto/password.bend as PW
+
+PW.hash_password(pw, salt, PW.owasp())   # Some{"$argon2id$v=19$m=19456,t=2,p=1$..."}, None if out of range
+PW.hash_password_os(pw, PW.rfc9106())    # IO: the same with a fresh 16-byte salt (IO.random_u32)
+PW.verify_password(pw, encoded)          # recompute and compare with subtle.eq
+PW.needs_rehash(encoded, PW.owasp())     # not Argon2id v=19 with exactly these parameters
+```
+
+`owasp()` is m = 19 MiB, t = 2, p = 1; `rfc9106()` is RFC 9106 section 4's
+second recommendation (m = 64 MiB, t = 3, p = 4); both use 16-byte salts and
+32-byte tags, and any `PW.Params{m, t, p, tag, salt}` works. The core,
+`src/crypto/argon2/argon2.bend`'s `argon2id(pw, salt, key, ad, t, m, p, T)`,
+also takes a secret and associated data. Proved: the implementation equals
+the RFC 9106 specification (`spec/crypto/argon2/`, on the BLAKE2b
+specification) for every input whose memory fits (m' <= 2^23 KiB), a hash
+returned by `hash_password` verifies with its password and needs no rehash
+with its parameters, and `parse(format(x)) == Some{x}` for PHC strings
+(`docs/CRYPTO_CONTRACTS.md`). `tools/check_argon2.py` tests the RFC 9106
+section 5.3 vector and compares tags and PHC strings with argon2-cffi.
+
+## Random numbers
+
+`src/math/random.bend` follows Go's `math/rand/v2`: a generator is a value
+built from a seed the caller chooses, and every call returns its value next
+to the advanced generator (Bend is pure). The same seed gives Go's exact
+sequence (Go's test vectors pass).
+
+```python
+import ./src/math/random.bend as R
+import ./src/math/random/pcg.bend as PCG
+import ./src/math/u64.bend as W
+
+def gen() -> PCG.PCG:
+  R.pcg(W.U64{1, 0}, W.U64{2, 0})                     # Go: rand.New(rand.NewPCG(1, 2))
+
+# a die roll and the advanced generator              # Go: r.Uint64N(6)
+def roll(g: PCG.PCG) -> W.U64 & PCG.PCG:
+  R.uint64n(~PCG.PCG, ~R.pcg_next, g, W.U64{6, 0})
+
+def deal(g: PCG.PCG, +cards: List<&2, U32>) -> List<&2, U32> & PCG.PCG:
+  R.shuffle(~U32, ~PCG.PCG, ~R.pcg_next, g, cards)    # Go: r.Shuffle
+```
+
+A source is any state type `S` with `~next: S -> U64 & S`, passed as
+templates like `src/math/num.bend`'s `~op`: every function of
+`src/math/random/rand.bend` (`uint64 uint32 int64 int32 uint64n/uint_below
+uint32n intn int_range float64 shuffle perm`) is written once for all
+sources, and so will math/statistics be (a `normal(~S, ~next, s)` on top of
+`float64`). Sources: `R.chacha8(seed)` (Go's `ChaCha8`, C2SP chacha8rand,
+a 32-byte seed) and `R.pcg(seed1, seed2)` (Go's `PCG`, 128-bit LCG with the
+DXSM output). `uint64n` is Lemire's nearly divisionless method exactly as
+Go's (a power of two masks, otherwise multiply and reject while the low half
+is below 2^64 mod n), with at most 128 draws where Go loops forever.
+
+Proved for every input (`proofs/math/random/proof.bend`,
+`proof_draws.bend`, `proof_pcg.bend`, `proof_float.bend`;
+`docs/MATH_CONTRACTS.md`): the ChaCha8 generator outputs C2SP's stream for
+every key and seed; a PCG step is the 128-bit LCG and the output DXSM on
+naturals; `uint64n` computes the specification's draw and is below n for
+every source; Lemire's rejection is exactly unbiased (for every width, bound
+and k < n, exactly floor(2^w / n) source outputs draw k); `shuffle` and
+`perm` return permutations for every source (Mathlib's `List.Perm`, by
+counts); `float64` is m 2^-53 exactly and below 1; the word slices and the
+bounded wrappers (`uint32n`, `intn`, `int_range`) are what they say. Tested: Go's vectors and a Python mirror of Go on random seeds
+and call sequences, plus a chi-square smoke test (`tools/check_random.py`).
+
+`src/crypto/random.bend` is the secure generator: ChaCha8Rand keyed from
+the OS (`from_os()`, eight `IO.random_u32`) or from a secret seed (`new`),
+with `bytes` (Go's `ChaCha8.Read`), `uint_below` and `shuffle`; proofs and
+security caveats in [docs/CRYPTO_CONTRACTS.md](docs/CRYPTO_CONTRACTS.md).
+
+## Key exchange and signatures
+
+```python
+import ./src/crypto/kex.bend as Kex
+import ./src/crypto/sign.bend as Sign
+
+Kex.generate_keypair(seed)               # Some{Keypair{secret, public}} for 32 bytes
+Kex.shared_secret(sk, pk)                # X25519(sk, pk), None if all zero or malformed
+Sign.generate_keypair(seed)              # Ed25519 key pair from a 32-byte seed
+Sign.sign(sk, msg)                       # Some{64-byte signature}
+Sign.verify(pk, msg, sig)                # True iff valid (S >= L rejected)
+```
+
+X25519 (RFC 7748) and Ed25519 (RFC 8032) run on one field implementation
+(`src/crypto/curve25519/field.bend`, 32 limbs of 8 bits, every operation
+proved to compute its value mod p with bounded limbs). Each facade is proved
+equal to a transcription of its RFC (`spec/crypto/curve25519/x25519.bend`,
+`spec/crypto/ed25519.bend`) for every input, with SHA-512 proved equal to
+FIPS 180-4; `tools/check_curve25519.py` runs the RFC vectors and a
+differential test against Python's `cryptography`. Secret-dependent steps are
+branch-free (selection by arithmetic, fixed bit counts); Bend has no timing
+model, so constant time is a property of the code's shape, not a theorem.
+
 ## Install
 
 The library is published on the Bend hub. Import any module by its path in
@@ -208,16 +347,28 @@ fetched), so an import never changes under you; each release lists its hash.
 src/containers/   the collections, their internals (internal/) and API types (types/)
 src/math/         integer math (natural.bend), the same per type (num, generic, instances),
                   software binary64 (f64), 64-bit words (u64, w64), fixed-width U32/U64
-                  families and number theory (fixed, number), hashing, powers of two
-src/crypto/       SHA-256 (sha/), Keccak-256 (keccak/), BLAKE2s, BLAKE2b and BLAKE3 (blake/)
+                  families and number theory (fixed, number), hashing, powers of two,
+                  random numbers (random.bend, random/: Go's math/rand/v2)
+src/crypto/       SHA-256 (sha/), SHA-512 (sha512/), Keccak-256 (keccak/), SHA3-256 (sha3/),
+                  BLAKE2s, BLAKE2b and BLAKE3 (blake/), the hashing facade (hash.bend),
+                  constant-time comparison (subtle.bend), HMAC and HKDF (mac.bend, kdf.bend),
+                  AES and GCM (aes/, aesgcm.bend), ChaCha20 (chacha/), Poly1305 (poly1305/)
+                  and the AEAD facade (aead.bend, aead/), Argon2id (argon2/) and password
+                  hashing (password.bend), X25519 and Ed25519 (curve25519/, ed25519/,
+                  kex.bend, sign.bend), the secure random generator (random.bend)
 spec/             the specifications, mirroring src/: what each module does,
                   independent of how
   containers/<pkg>.bend  the abstract model and its contract: every SPARK
                       formal-container Post clause as a `<Subprogram>.<clause>`
                       proposition (docs/SPARK_CONTRACTS.md); a spec spanning
                       several files is a directory with a main.bend
-  crypto/             FIPS 180-4 SHA-256, the Keccak sponge, RFC 7693 BLAKE2,
-                      BLAKE3
+  crypto/             FIPS 180-4 SHA-256 and SHA-512, the Keccak sponge, FIPS 202
+                      SHA3-256, RFC 7693 BLAKE2, BLAKE3, list equality (subtle),
+                      FIPS 198-1 HMAC and RFC 5869 HKDF, FIPS 197 AES and SP 800-38D
+                      GCM (aes/: GF(2) polynomials, the cipher, GHASH/GCTR/GCM),
+                      RFC 8439 ChaCha20, Poly1305 and ChaCha20-Poly1305,
+                      XChaCha20(-Poly1305), RFC 9106 Argon2id (argon2/), RFC 7748
+                      X25519 and RFC 8032 Ed25519 (curve25519/, ed25519.bend)
   math/<module>.bend  each src/math module's contract as `<Function>.<clause>`
                       propositions (docs/MATH_CONTRACTS.md): proved for
                       natural, u64, hash and pow2; stated and tested for the
@@ -238,7 +389,13 @@ proofs/           only proofs: one package per src package, mirroring src/,
   crypto/<pkg>/       the same for src/crypto: sha/ proves SHA-256 equal to its
                       executable FIPS 180-4 specification for every input,
                       keccak/ the packed API equal to the independent sponge
-                      specification (padding, absorption, rejection, all words)
+                      specification (padding, absorption, rejection, all words),
+                      sha512/ and sha3/ likewise, hash/ the facade and the
+                      incremental hasher, subtle/ eq, mac/ and kdf/ HMAC and
+                      HKDF, aes/ AES and AES-GCM, chacha/, poly1305/, aead/
+                      equal to RFC 8439 and the AEAD laws, argon2/ Argon2id and
+                      the password facade, curve25519/ and ed25519/ X25519 and
+                      Ed25519, random/ the secure generator; docs/CRYPTO_CONTRACTS.md
   lib/                proof library shared by the packages (logic, Nat, lists,
                       U32 words, arrays, order laws)
   PROOF.bend          the whole library; END_TO_END.bend the public laws
@@ -251,14 +408,22 @@ tools/            proof generators (mac.py expands the .src proof sources),
 
 ## Requirements
 
-Bend 2.0.32, built from bendlang/bend main at b2111cf4 (pinned in
-`tools/toolchain.json`), clang and Python 3.
+Bend 2.0.34 (the release; pinned in `tools/toolchain.json`), clang and
+Python 3.
 
 ## Test
 
 ```sh
 bend tests/<container>/main.bend    # each container's test driver
 bend tests/math/natural.bend -o build/math/natural && python3 tools/check_math.py   # math vs CPython
+python3 tools/check_crypto_hash.py      # subtle, SHA-512, SHA3-256, the hash facade vs hashlib
+python3 tools/check_mac.py              # HMAC-SHA256 / HKDF-SHA256: RFC 4231 / RFC 5869, hmac, `cryptography`
+python3 tools/check_aes.py           # AES / AES-GCM: FIPS 197, NIST CAVP GCM vectors, `cryptography`
+python3 tools/check_argon2.py           # Argon2id (RFC 9106 vector) and PHC strings vs argon2-cffi
+python3 tools/check_chacha.py        # ChaCha20/XChaCha20/AEADs vs `cryptography`, Wycheproof
+python3 tools/check_poly1305.py      # Poly1305 and its spec mirror vs `cryptography`
+python3 tools/check_curve25519.py    # X25519 / Ed25519: RFC 7748 / RFC 8032 vectors, `cryptography`
+bend tests/math/random.bend -o build/math/random && python3 tools/check_random.py   # random vs Go
 ```
 
 ## Benchmark

@@ -121,10 +121,14 @@ def new(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp) -> ST.Sh<K, V>:
   ST.SH{0n, 0n, 0n, 0n, 0n, 31n, 0n, Nil{}, Nil{}, ST.TE{}, Nil{}}
 
 def read(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat) -> ST.Sh<K, V> & M.Node<K>:
-  (m, ST.nd(K, nl_of(K, V, m), id))
+  match m:
+    case ST.SH{n, root, lo, hi, free, l, d, +nl, pl, t, fl}:
+      (ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl}, ST.nd(K, nl, id))
 
 def get_id(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, +m: ST.Sh<K, V>, +id: Nat) -> ST.Sh<K, V> & Maybe<&2, V>:
-  (m, ST.pv(V, pl_of(K, V, m), id))
+  match m:
+    case ST.SH{n, root, lo, hi, free, l, d, nl, +pl, t, fl}:
+      (ST.SH{n, root, lo, hi, free, l, d, nl, pl, t, fl}, ST.pv(V, pl, id))
 
 def write(~K: Data, ~V: Data, ~cmp: K -> K -> Cmp, m: ST.Sh<K, V>, +id: Nat, +node: M.Node<K>) -> ST.Sh<K, V>:
   match m:

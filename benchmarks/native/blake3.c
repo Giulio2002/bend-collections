@@ -6,6 +6,9 @@
    The reference for benchmarks/bend/blake3.bend: same input words, same
    per-hash copy of the input, same checksum (sum of the first little-endian
    digest word). */
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L  /* clock_gettime under -std=c11 on glibc */
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
