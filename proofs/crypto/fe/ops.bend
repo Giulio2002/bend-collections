@@ -13,6 +13,7 @@ import ./nl.bend as NL
 import ./pw.bend as PW
 import ./pass.bend as PS
 import ./bridge.bend as BR
+import ./prod.bend as PD
 
 # add, sub, mul, mul_small and select of src/crypto/curve25519/fe.bend: the
 # value mod p and the limb bounds (ok: below 2^19), through their reference
@@ -98,11 +99,17 @@ def fold_c(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n
   +e3 = G.c_add(pp, T, T, Nat.mul(D, 19n), WD.sc(255n, D), G.c_refl(pp, T), G.c_sym(pp, WD.sc(255n, D), Nat.mul(D, 19n), PS.c19(one, h1, pp, hP, D)))
   G.c_trans(pp, FV.lv(LS.fold(zs)), Nat.add(T, Nat.mul(D, 19n)), FV.lv(zs), G.c_eq(pp, FV.lv(LS.fold(zs)), Nat.add(T, Nat.mul(D, 19n)), e1), G.c_trans(pp, Nat.add(T, Nat.mul(D, 19n)), Nat.add(T, WD.sc(255n, D)), FV.lv(zs), e3, G.c_eq(pp, Nat.add(T, WD.sc(255n, D)), FV.lv(zs), sy(FV.lv(zs), Nat.add(T, WD.sc(255n, D)), e2))))
 
-def mul_c(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +a: FE.Fe, +b: FE.Fe) -> G.ceq(pp, FV.value(FE.mul(R, a, b)), Nat.mul(FV.value(a), FV.value(b))):
+# the flat product is pass(fold(conv)) (convp is conv on ok limbs)
+def mul_list(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +a: FE.Fe, +b: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}, +hb: {FV.ok(one, b) == True{} : Bool}) -> {FE.to_list(FE.mul(R, a, b)) == LS.pass(R, LS.fold(LS.conv(FE.to_list(a), FE.to_list(b)))) : List<&2, Nat>}:
+  +A = FE.to_list(a)
+  +B = FE.to_list(b)
+  Equal.trans(List<&2, Nat>, FE.to_list(FE.mul(R, a, b)), LS.mul_l(R, A, B), LS.pass(R, LS.fold(LS.conv(A, B))), BR.mul_b(R, a, b), Equal.cong(List<&2, Nat>, List<&2, Nat>, z => LS.pass(R, LS.fold(z)), LS.convp(A, B), LS.conv(A, B), PD.convp_eq(one, h1, A, B, ha, hb)))
+
+def mul_c(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}, +hb: {FV.ok(one, b) == True{} : Bool}) -> G.ceq(pp, FV.value(FE.mul(R, a, b)), Nat.mul(FV.value(a), FV.value(b))):
   +A = FE.to_list(a)
   +B = FE.to_list(b)
   +Z = LS.fold(LS.conv(A, B))
-  +e0 = lv_eq(FE.to_list(FE.mul(R, a, b)), LS.mul_l(R, A, B), BR.mul_b(R, a, b))
+  +e0 = lv_eq(FE.to_list(FE.mul(R, a, b)), LS.pass(R, Z), mul_list(one, h1, R, a, b, ha, hb))
   G.c_trans(pp, FV.value(FE.mul(R, a, b)), FV.lv(LS.pass(R, Z)), Nat.mul(FV.lv(A), FV.lv(B)), G.c_eq(pp, FV.value(FE.mul(R, a, b)), FV.lv(LS.pass(R, Z)), e0),
     G.c_trans(pp, FV.lv(LS.pass(R, Z)), FV.lv(Z), Nat.mul(FV.lv(A), FV.lv(B)), PS.pass_c(one, h1, pp, hP, R, hR, Z, fold_len(a, b)),
       G.c_trans(pp, FV.lv(Z), FV.lv(LS.conv(A, B)), Nat.mul(FV.lv(A), FV.lv(B)), fold_c(one, h1, pp, hP, LS.conv(A, B)), G.c_eq(pp, FV.lv(LS.conv(A, B)), Nat.mul(FV.lv(A), FV.lv(B)), NL.lv_conv(A, B)))))
@@ -137,7 +144,7 @@ def cols_below(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {FV
 
 def mul_ok(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}, +hb: {FV.ok(one, b) == True{} : Bool}) -> {FV.ok(one, FE.mul(R, a, b)) == True{} : Bool}:
   +Z = LS.fold(LS.conv(FE.to_list(a), FE.to_list(b)))
-  below_eq(FE.to_list(FE.mul(R, a, b)), LS.pass(R, Z), WD.sc(19n, one), BR.mul_b(R, a, b), PS.pass_ok(one, h1, R, hR, Z, fold_len(a, b), cols_below(one, h1, a, b, ha, hb)))
+  below_eq(FE.to_list(FE.mul(R, a, b)), LS.pass(R, Z), WD.sc(19n, one), mul_list(one, h1, R, a, b, ha, hb), PS.pass_ok(one, h1, R, hR, Z, fold_len(a, b), cols_below(one, h1, a, b, ha, hb)))
 
 # ---- select ----
 

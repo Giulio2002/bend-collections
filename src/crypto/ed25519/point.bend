@@ -24,7 +24,7 @@ def c121666(+one: Nat) -> Nat:
 
 # 2^((p - 1) / 4), (p - 1) / 4 = 2^253 - 5: 250 one bits, then 0 1 1
 def pow_p14(+R: Nat, +x: FE.Fe) -> FE.Fe:
-  FE.pow_bits(R, x, [False{}, True{}, True{}], FE.pow_ones(R, x, 249n, x))
+  FE.pow_bits(R, x, [False{}, True{}, True{}], FE.p250(R, x))
 
 def cs_r(c: Cs) -> Nat:
   match c:

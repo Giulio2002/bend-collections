@@ -10,6 +10,7 @@ import ./hex.bend as H
 #   x:<k>:<u>   X25519(k, u)             (hex)
 #   iter:<n>    RFC 7748 5.2 iterations, k = u = 9
 #   ksig:<seed>:<msg>  Ed25519 signature with the expanded key
+#   cpk, cver, cksig   epk, ever, ksig with a precomputed context
 
 def opt(m: Maybe<&2, List<&2, U32>>) -> String:
   match m:
@@ -75,45 +76,31 @@ def run(op: Nat, +parts: List<&2, String>) -> String:
       opt(SG.sign(f(parts, 1n), f(parts, 2n)))
     case 7n:
       opt(ksig(SG.signing_key(f(parts, 1n)), f(parts, 2n)))
+    case 8n:
+      pub(SG.generate_keypair_ctx(SG.context(Nil{}), f(parts, 1n)))
+    case 9n:
+      bool(SG.verify_ctx(SG.context(Nil{}), f(parts, 1n), f(parts, 2n), f(parts, 3n)))
+    case 10n:
+      opt(ksig(SG.signing_key_ctx(SG.context(Nil{}), f(parts, 1n)), f(parts, 2n)))
     case _:
       bool(SG.verify(f(parts, 1n), f(parts, 2n), f(parts, 3n)))
 
-def op_pick(a: Bool, b: Bool, c: Bool, d: Bool, e: Bool, g: Bool) -> Nat:
-  match a:
+def op_hit(hit: Bool, +i: Nat, rest: Nat) -> Nat:
+  match hit:
     case True{}:
-      0n
+      i
     case False{}:
-      match b:
-        case True{}:
-          1n
-        case False{}:
-          match c:
-            case True{}:
-              2n
-            case False{}:
-              match d:
-                case True{}:
-                  3n
-                case False{}:
-                  match e:
-                    case True{}:
-                      4n
-                    case False{}:
-                      match g:
-                        case True{}:
-                          5n
-                        case False{}:
-                          6n
+      rest
 
-def op_k(k: Bool, +s: String) -> Nat:
-  match k:
-    case True{}:
-      7n
-    case False{}:
-      op_pick(String.eq(s, "x"), String.eq(s, "iter"), String.eq(s, "kpk"), String.eq(s, "ss"), String.eq(s, "epk"), String.eq(s, "esig"))
+def op_idx(+s: String, names: List<&2, String>, +i: Nat) -> Nat:
+  match names:
+    case Nil{}:
+      6n
+    case Con{+n, nt}:
+      op_hit(String.eq(s, n), i, op_idx(s, nt, 1n+i))
 
 def op_of(+s: String) -> Nat:
-  op_k(String.eq(s, "ksig"), s)
+  op_idx(s, ["x", "iter", "kpk", "ss", "epk", "esig", "ever", "ksig", "cpk", "cver", "cksig"], 0n)
 
 def line(s: String) -> String:
   +parts = T.fields(s)

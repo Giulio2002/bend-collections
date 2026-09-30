@@ -109,11 +109,11 @@ def rs_gen(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n
   +ex = Nat.add(Nat.mul(PO.Fo(one, 250n), WD.sc(PO.blen(p14_bits()), one)), PO.eb(one, p14_bits()))
   +k = Nat.div(Nat.sub(P, 1n), 4n)
   +o2 = RE.o(one, pp, two, 2n, r2)
-  +c1 = PO.chain_val(one, h1, pp, hP, R, hR, 249n, p14_bits(), two, o2)
+  +c1 = PO.chain_val(one, h1, pp, hP, R, hR, p14_bits(), two, o2)
   +c1b = G.c_trans(pp, FV.value(PT.pow_p14(R, two)), Nat.pow(FV.value(two), ex), Nat.pow(2n, ex), c1, G.c_pow(pp, FV.value(two), 2n, ex, RE.c(one, pp, two, 2n, r2)))
   +c2 = G.c_eq(pp, Nat.pow(2n, ex), Nat.pow(2n, k), Equal.cong(Nat, Nat, t => Nat.pow(2n, t), ex, k, p14_exp(one, h1, pp, hP)))
   +c3 = G.c_sym(pp, FS.fpow(P, 2n, k), Nat.pow(2n, k), G.c_mod(pp, Nat.pow(2n, k)))
-  RE.mk(one, pp, PT.pow_p14(R, two), SE.sqm1(P), PO.pbs_okb(one, h1, R, hR, p14_bits(), two, FE.pow_ones(R, two, 249n, two), o2, PO.po_okb(one, h1, R, hR, 249n, two, two, o2, o2)), G.c_trans(pp, FV.value(PT.pow_p14(R, two)), Nat.pow(2n, ex), FS.fpow(P, 2n, k), c1b, G.c_trans(pp, Nat.pow(2n, ex), Nat.pow(2n, k), FS.fpow(P, 2n, k), c2, c3)))
+  RE.mk(one, pp, PT.pow_p14(R, two), SE.sqm1(P), PO.pbs_okb(one, h1, R, hR, p14_bits(), two, FE.p250(R, two), o2, PO.p250_ok(one, h1, R, hR, two, o2)), G.c_trans(pp, FV.value(PT.pow_p14(R, two)), Nat.pow(2n, ex), FS.fpow(P, 2n, k), c1b, G.c_trans(pp, Nat.pow(2n, ex), Nat.pow(2n, k), FS.fpow(P, 2n, k), c2, c3)))
 
 # ---- the constants of an input list ----
 

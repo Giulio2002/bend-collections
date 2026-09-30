@@ -49,3 +49,19 @@ def sign_reject_signing_key(+seed: List<&2, U32>, +h: {FS.tight(seed) == False{}
   %Equal.sym(Bool, X.valid_bytes(32n, seed), FS.bytes_ok(32n, seed), PB.valid_eq(32n, seed)) : {SG.key_if(seed, _) == None{} : Maybe<&2, E.Key>}
   %Equal.sym(Bool, FS.tight(seed), False{}, h) : {SG.key_if(seed, _) == None{} : Maybe<&2, E.Key>}
   {==}
+
+def sign_reject_seed_ctx(+xs: List<&2, U32>, +seed: List<&2, U32>, +h: {FS.tight(seed) == False{} : Bool}) -> SS.Sign.reject_seed_ctx(xs, seed, h):
+  %Equal.sym(Bool, X.valid_bytes(32n, seed), FS.bytes_ok(32n, seed), PB.valid_eq(32n, seed)) : {SG.keypair_ctx_if(SG.context(xs), seed, _) == None{} : Maybe<&2, SG.Keypair>}
+  %Equal.sym(Bool, FS.tight(seed), False{}, h) : {SG.keypair_ctx_if(SG.context(xs), seed, _) == None{} : Maybe<&2, SG.Keypair>}
+  {==}
+
+def sign_reject_signing_key_ctx(+xs: List<&2, U32>, +seed: List<&2, U32>, +h: {FS.tight(seed) == False{} : Bool}) -> SS.Sign.reject_signing_key_ctx(xs, seed, h):
+  %Equal.sym(Bool, X.valid_bytes(32n, seed), FS.bytes_ok(32n, seed), PB.valid_eq(32n, seed)) : {SG.key_ctx_if(SG.context(xs), seed, _) == None{} : Maybe<&2, E.Key>}
+  %Equal.sym(Bool, FS.tight(seed), False{}, h) : {SG.key_ctx_if(SG.context(xs), seed, _) == None{} : Maybe<&2, E.Key>}
+  {==}
+
+def sign_reject_ctx(+xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +h: {Bool.and(FS.tight(pk), FS.bytes_ok(64n, sig)) == False{} : Bool}) -> SS.Sign.reject_ctx(xs, pk, msg, sig, h):
+  %Equal.sym(Bool, X.valid_bytes(32n, pk), FS.bytes_ok(32n, pk), PB.valid_eq(32n, pk)) : {SG.verify_ctx_if(SG.context(xs), pk, msg, sig, Bool.and(_, X.valid_bytes(64n, sig))) == False{} : Bool}
+  %Equal.sym(Bool, X.valid_bytes(64n, sig), FS.bytes_ok(64n, sig), PB.valid_eq(64n, sig)) : {SG.verify_ctx_if(SG.context(xs), pk, msg, sig, Bool.and(FS.bytes_ok(32n, pk), _)) == False{} : Bool}
+  %Equal.sym(Bool, Bool.and(FS.tight(pk), FS.bytes_ok(64n, sig)), False{}, h) : {SG.verify_ctx_if(SG.context(xs), pk, msg, sig, _) == False{} : Bool}
+  {==}

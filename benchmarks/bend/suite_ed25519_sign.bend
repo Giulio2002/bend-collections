@@ -26,7 +26,7 @@ def key(m: Maybe<&2, ED.Key>) -> ED.Key:
 def main() -> IO(Unit):
   do IO<Unit>:
     inputs : List<&2, List<&2, U32>> <- S.messages()
-    +k : ED.Key = key(E.signing_key(S.pattern(32n, 13, 7)))
+    +k : ED.Key = key(E.signing_key_ctx(E.context(Nil{}), S.pattern(32n, 13, 7)))
     start : Nat <- IO.now()
     outs : List<&2, List<&2, U32>> = run(inputs, k, Nil{})
     stop : Nat <- IO.now()

@@ -81,3 +81,31 @@ def key_sig_eq(+seed: List<&2, U32>, +msg: List<&2, U32>, +ok: Bool, +S: List<&2
       Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, z => Some{z}, E.sign_key(E.expand(seed), msg), S, e)
     case False{}:
       Empty.absurd({SS.key_sig(SG.key_if(seed, False{}), msg) == Some{S} : Maybe<&2, List<&2, U32>>}, L.true_false(Equal.sym(Bool, False{}, True{}, hok)))
+
+def keypair_ctx_if_eq(+ctx: E.Ctx, +seed: List<&2, U32>, +ok: Bool, +pk: List<&2, U32>, +hok: {ok == True{} : Bool}, +e: {E.public_key_ctx(ctx, seed) == pk : List<&2, U32>}) -> {SG.keypair_ctx_if(ctx, seed, ok) == Some{SG.Keypair{seed, pk}} : Maybe<&2, SG.Keypair>}:
+  match ok:
+    case True{}:
+      Equal.cong(List<&2, U32>, Maybe<&2, SG.Keypair>, z => Some{SG.Keypair{seed, z}}, E.public_key_ctx(ctx, seed), pk, e)
+    case False{}:
+      Empty.absurd({SG.keypair_ctx_if(ctx, seed, False{}) == Some{SG.Keypair{seed, pk}} : Maybe<&2, SG.Keypair>}, L.true_false(Equal.sym(Bool, False{}, True{}, hok)))
+
+def key_pub_ctx_eq(+ctx: E.Ctx, +seed: List<&2, U32>, +ok: Bool, +V: List<&2, U32>, +hok: {ok == True{} : Bool}, +e: {E.key_public(E.expand_ctx(ctx, seed)) == V : List<&2, U32>}) -> {SS.key_pub(SG.key_ctx_if(ctx, seed, ok)) == Some{V} : Maybe<&2, List<&2, U32>>}:
+  match ok:
+    case True{}:
+      Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, z => Some{z}, E.key_public(E.expand_ctx(ctx, seed)), V, e)
+    case False{}:
+      Empty.absurd({SS.key_pub(SG.key_ctx_if(ctx, seed, False{})) == Some{V} : Maybe<&2, List<&2, U32>>}, L.true_false(Equal.sym(Bool, False{}, True{}, hok)))
+
+def key_sig_ctx_eq(+ctx: E.Ctx, +seed: List<&2, U32>, +msg: List<&2, U32>, +ok: Bool, +S: List<&2, U32>, +hok: {ok == True{} : Bool}, +e: {E.sign_key(E.expand_ctx(ctx, seed), msg) == S : List<&2, U32>}) -> {SS.key_sig(SG.key_ctx_if(ctx, seed, ok), msg) == Some{S} : Maybe<&2, List<&2, U32>>}:
+  match ok:
+    case True{}:
+      Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, z => Some{z}, E.sign_key(E.expand_ctx(ctx, seed), msg), S, e)
+    case False{}:
+      Empty.absurd({SS.key_sig(SG.key_ctx_if(ctx, seed, False{}), msg) == Some{S} : Maybe<&2, List<&2, U32>>}, L.true_false(Equal.sym(Bool, False{}, True{}, hok)))
+
+def verify_ctx_if_eq(+ctx: E.Ctx, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +ok: Bool, +V: Bool, +hok: {ok == True{} : Bool}, +e: {E.verify_ctx(ctx, pk, msg, sig) == V : Bool}) -> {SG.verify_ctx_if(ctx, pk, msg, sig, ok) == V : Bool}:
+  match ok:
+    case True{}:
+      e
+    case False{}:
+      Empty.absurd({SG.verify_ctx_if(ctx, pk, msg, sig, False{}) == V : Bool}, L.true_false(Equal.sym(Bool, False{}, True{}, hok)))

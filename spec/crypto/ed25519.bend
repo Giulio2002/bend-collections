@@ -27,6 +27,8 @@ import ../../src/crypto/ed25519/scalar.bend as ESC
 #   Ed25519.key_public the expanded key of a seed carries public_key(seed)
 #   Ed25519.sign_key   signing with the expanded key of a seed is
 #                      sign(seed, msg)
+#   Ed25519.*_ctx      public, sign_key and verify with the constants of
+#                      E.context(xs), for every list xs
 
 # ---- scalars ----
 
@@ -334,3 +336,12 @@ def Ed25519.key_public(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, 
 
 def Ed25519.sign_key(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +msg: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> Type:
   {E.sign_key(E.expand(seed), msg) == sign(one, seed, msg) : List<&2, U32>}
+
+def Ed25519.public_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +seed: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> Type:
+  {E.public_key_ctx(E.context(xs), seed) == public_key(one, seed) : List<&2, U32>}
+
+def Ed25519.sign_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +seed: List<&2, U32>, +msg: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> Type:
+  {E.sign_key(E.expand_ctx(E.context(xs), seed), msg) == sign(one, seed, msg) : List<&2, U32>}
+
+def Ed25519.verify_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}) -> Type:
+  {E.verify_ctx(E.context(xs), pk, msg, sig) == verify(one, pk, msg, sig) : Bool}

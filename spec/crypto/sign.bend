@@ -18,6 +18,8 @@ import ../../src/crypto/ed25519/ed25519.bend as E
 #   Sign.key_sign   signing_key(seed) is a key under which sign_with_key(k,
 #                   msg) is the RFC 8032 signature sign(seed, msg)
 #   Sign.reject_signing_key  a malformed seed gives no signing key
+#   Sign.*_ctx      the same for the variants taking context(xs), for
+#                   every list xs
 
 # the public key and a signature of an optional expanded key
 def key_pub(m: Maybe<&2, E.Key>) -> Maybe<&2, List<&2, U32>>:
@@ -60,3 +62,24 @@ def Sign.key_sign(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +msg:
 
 def Sign.reject_signing_key(+seed: List<&2, U32>, +h: {FS.tight(seed) == False{} : Bool}) -> Type:
   {SG.signing_key(seed) == None{} : Maybe<&2, E.Key>}
+
+def Sign.keypair_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +seed: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> Type:
+  {SG.generate_keypair_ctx(SG.context(xs), seed) == Some{SG.Keypair{seed, SE.public_key(one, seed)}} : Maybe<&2, SG.Keypair>}
+
+def Sign.key_public_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +seed: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> Type:
+  {key_pub(SG.signing_key_ctx(SG.context(xs), seed)) == Some{SE.public_key(one, seed)} : Maybe<&2, List<&2, U32>>}
+
+def Sign.key_sign_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +seed: List<&2, U32>, +msg: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> Type:
+  {key_sig(SG.signing_key_ctx(SG.context(xs), seed), msg) == Some{SE.sign(one, seed, msg)} : Maybe<&2, List<&2, U32>>}
+
+def Sign.verify_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}) -> Type:
+  {SG.verify_ctx(SG.context(xs), pk, msg, sig) == SE.verify(one, pk, msg, sig) : Bool}
+
+def Sign.reject_seed_ctx(+xs: List<&2, U32>, +seed: List<&2, U32>, +h: {FS.tight(seed) == False{} : Bool}) -> Type:
+  {SG.generate_keypair_ctx(SG.context(xs), seed) == None{} : Maybe<&2, SG.Keypair>}
+
+def Sign.reject_signing_key_ctx(+xs: List<&2, U32>, +seed: List<&2, U32>, +h: {FS.tight(seed) == False{} : Bool}) -> Type:
+  {SG.signing_key_ctx(SG.context(xs), seed) == None{} : Maybe<&2, E.Key>}
+
+def Sign.reject_ctx(+xs: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +h: {Bool.and(FS.tight(pk), FS.bytes_ok(64n, sig)) == False{} : Bool}) -> Type:
+  {SG.verify_ctx(SG.context(xs), pk, msg, sig) == False{} : Bool}

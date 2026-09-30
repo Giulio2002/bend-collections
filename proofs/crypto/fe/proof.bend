@@ -3,6 +3,7 @@ import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/curve25519/field.bend as FS
 import ../../../spec/crypto/curve25519/fe.bend as FV
 import ../../../src/crypto/curve25519/fe.bend as FE
+import ../../../src/crypto/curve25519/limbs.bend as LS
 import ../../lib/logic.bend as L
 import ../../lib/word.bend as WD
 import ../curve25519/prime.bend as PR
@@ -10,6 +11,7 @@ import ./pw.bend as PW
 import ./carry.bend as CA
 import ./pass.bend as PS
 import ./ops.bend as OP
+import ./prod.bend as PD
 import ./sub.bend as SB
 import ./pow.bend as PO
 import ./conv.bend as CV
@@ -48,13 +50,15 @@ def sub_ok(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {FV.ok(
   SB.sub_ok(one, h1, FE.radix(one), hR(one), a, b, ha)
 
 def mul_value(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}, +hb: {FV.ok(one, b) == True{} : Bool}) -> FV.Mul.value(one, h1, a, b, ha, hb):
-  at_p(one, h1, z => {Nat.mod(FV.value(FE.mul(FE.radix(one), a, b)), z) == FS.fmul(z, FV.value(a), FV.value(b)) : Nat}, OP.mul_c(one, h1, pp1(one), PR.hP(one, h1), FE.radix(one), hR(one), a, b))
+  at_p(one, h1, z => {Nat.mod(FV.value(FE.mul(FE.radix(one), a, b)), z) == FS.fmul(z, FV.value(a), FV.value(b)) : Nat}, OP.mul_c(one, h1, pp1(one), PR.hP(one, h1), FE.radix(one), hR(one), a, b, ha, hb))
 
 def mul_ok(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}, +hb: {FV.ok(one, b) == True{} : Bool}) -> FV.Mul.ok(one, h1, a, b, ha, hb):
   OP.mul_ok(one, h1, FE.radix(one), hR(one), a, b, ha, hb)
 
 def mul_fits(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}, +hb: {FV.ok(one, b) == True{} : Bool}) -> FV.Mul.fits(one, h1, a, b, ha, hb):
-  OP.cols_below(one, h1, a, b, ha, hb)
+  +A = FE.to_list(a)
+  +B = FE.to_list(b)
+  L.subst(List<&2, Nat>, z => {FV.below(LS.fold(z), WD.sc(47n, one)) == True{} : Bool}, LS.conv(A, B), LS.convp(A, B), Equal.sym(List<&2, Nat>, LS.convp(A, B), LS.conv(A, B), PD.convp_eq(one, h1, A, B, ha, hb)), OP.cols_below(one, h1, a, b, ha, hb))
 
 def sq_value(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}) -> FV.Sq.value(one, h1, a, ha):
   mul_value(one, h1, a, a, ha, ha)

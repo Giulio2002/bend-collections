@@ -54,6 +54,34 @@ def conv(xs: List<&2, Nat>, +ys: List<&2, Nat>) -> List<&2, Nat>:
         case Con{+y, +yt}:
           Con{Nat.mul(x, y), addl(scal(x, yt), conv(xt, Con{y, yt}))}
 
+# a b through the native 32-bit multiplier (exact when a b < 2^32): a Nat
+# product checks the 48-bit bound with a division, a U32 product does not
+def pu(+a: Nat, +b: Nat) -> Nat:
+  U32.to_nat(U32.mul(U32.from_nat(a), U32.from_nat(b)))
+
+# a b for a, b < 2^19: b split at bit 9, both half products below 2^29
+def pm(+a: Nat, +b: Nat) -> Nat:
+  Nat.add(pu(a, Nat.mod(b, 512n)), Nat.mul(pu(a, Nat.div(b, 512n)), 512n))
+
+# scal and conv with pm
+def scalp(+a: Nat, ys: List<&2, Nat>) -> List<&2, Nat>:
+  match ys:
+    case Nil{}:
+      Nil{}
+    case Con{y, yt}:
+      Con{pm(a, y), scalp(a, yt)}
+
+def convp(xs: List<&2, Nat>, +ys: List<&2, Nat>) -> List<&2, Nat>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, xt}:
+      match ys:
+        case Nil{}:
+          Nil{}
+        case Con{+y, +yt}:
+          Con{pm(x, y), addl(scalp(x, yt), convp(xt, Con{y, yt}))}
+
 def take(n: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
   match n:
     case 0n:
@@ -185,7 +213,7 @@ def sub_l(+R: Nat, xs: List<&2, Nat>, ys: List<&2, Nat>) -> List<&2, Nat>:
   pass(R, subl(xs, ys, kp8(R)))
 
 def mul_l(+R: Nat, xs: List<&2, Nat>, ys: List<&2, Nat>) -> List<&2, Nat>:
-  pass(R, fold(conv(xs, ys)))
+  pass(R, fold(convp(xs, ys)))
 
 def mul_small_l(+R: Nat, xs: List<&2, Nat>, +k: Nat) -> List<&2, Nat>:
   pass(R, scal_r(xs, k))

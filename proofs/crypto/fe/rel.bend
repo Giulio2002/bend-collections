@@ -58,7 +58,7 @@ def r_sub(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n)
 def r_mul(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +x: FE.Fe, +y: FE.Fe, +a: Nat, +b: Nat, +rx: Rel(one, pp, x, a), +ry: Rel(one, pp, y, b)) -> Rel(one, pp, FE.mul(R, x, y), FS.fmul(1n+pp, a, b)):
   +ox = o(one, pp, x, a, rx)
   +oy = o(one, pp, y, b, ry)
-  +e = G.c_trans(pp, FV.value(FE.mul(R, x, y)), Nat.mul(FV.value(x), FV.value(y)), FS.fmul(1n+pp, a, b), OP.mul_c(one, h1, pp, hP, R, hR, x, y), G.c_trans(pp, Nat.mul(FV.value(x), FV.value(y)), Nat.mul(a, b), FS.fmul(1n+pp, a, b), G.c_mul(pp, FV.value(x), a, FV.value(y), b, c(one, pp, x, a, rx), c(one, pp, y, b, ry)), G.c_sym(pp, Nat.mod(Nat.mul(a, b), 1n+pp), Nat.mul(a, b), G.c_mod(pp, Nat.mul(a, b)))))
+  +e = G.c_trans(pp, FV.value(FE.mul(R, x, y)), Nat.mul(FV.value(x), FV.value(y)), FS.fmul(1n+pp, a, b), OP.mul_c(one, h1, pp, hP, R, hR, x, y, ox, oy), G.c_trans(pp, Nat.mul(FV.value(x), FV.value(y)), Nat.mul(a, b), FS.fmul(1n+pp, a, b), G.c_mul(pp, FV.value(x), a, FV.value(y), b, c(one, pp, x, a, rx), c(one, pp, y, b, ry)), G.c_sym(pp, Nat.mod(Nat.mul(a, b), 1n+pp), Nat.mul(a, b), G.c_mod(pp, Nat.mul(a, b)))))
   (OP.mul_ok(one, h1, R, hR, x, y, ox, oy), e)
 
 def r_sq(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +x: FE.Fe, +a: Nat, +rx: Rel(one, pp, x, a)) -> Rel(one, pp, FE.sq(R, x), FS.fmul(1n+pp, a, a)):

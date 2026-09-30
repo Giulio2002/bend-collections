@@ -10,12 +10,15 @@ import ./point.bend as PT
 # on byte strings (U32 values below 256); SHA-512 is ../hash.bend's (proved
 # equal to FIPS 180-4).
 #
-# expand(seed) computes once what every signature under the seed needs:
-# the curve constants and the base point, the secret scalar s (and s mod
-# L), the prefix and the public key A = [s]B; sign_key(key, msg) then does
-# one base-point multiplication per signature, as a C signer given the
-# expanded secret key does. sign_raw(seed, msg) is sign_key(expand(seed),
-# msg).
+# context(xs) computes the curve constants and the base point, which a C
+# implementation keeps as static tables (xs is any list: it only keeps the
+# proof checker from running the computation); the _ctx functions take it
+# instead of computing it per call. expand(seed) computes once what every
+# signature under the seed needs: the constants and the base point, the
+# secret scalar s (and s mod L), the prefix and the public key A = [s]B;
+# sign_key(key, msg) then does one base-point multiplication per
+# signature, as a C signer given the expanded secret key does.
+# sign_raw(seed, msg) is sign_key(expand(seed), msg).
 
 def cat(xs: List<&2, U32>, ys: List<&2, U32>) -> List<&2, U32>:
   match xs:
@@ -50,9 +53,21 @@ type Key is Data:
 def key_of(+c: PT.Cs, +b: PT.Pt, +h: List<&2, U32>) -> Key:
   EdKey{c, b, SC.reduce(secret(h)), prefix(h), public_of(c, b, h)}
 
+# the curve constants and the base point
+type Ctx is Data:
+  Ctx{c: PT.Cs, b: PT.Pt}
+
+def context(+xs: List<&2, U32>) -> Ctx:
+  +c = PT.consts(xs)
+  Ctx{c, PT.base(c)}
+
+def expand_ctx(ctx: Ctx, +seed: List<&2, U32>) -> Key:
+  match ctx:
+    case Ctx{+c, +b}:
+      key_of(c, b, H.sha512(seed))
+
 def expand(+seed: List<&2, U32>) -> Key:
-  +c = PT.consts(seed)
-  key_of(c, PT.base(c), H.sha512(seed))
+  expand_ctx(context(seed), seed)
 
 def key_public(k: Key) -> List<&2, U32>:
   match k:
@@ -60,9 +75,13 @@ def key_public(k: Key) -> List<&2, U32>:
       a
 
 # A = [s]B, encoded
+def public_key_ctx(ctx: Ctx, +seed: List<&2, U32>) -> List<&2, U32>:
+  match ctx:
+    case Ctx{+c, +b}:
+      public_of(c, b, H.sha512(seed))
+
 def public_key(+seed: List<&2, U32>) -> List<&2, U32>:
-  +c = PT.consts(seed)
-  public_of(c, PT.base(c), H.sha512(seed))
+  public_key_ctx(context(seed), seed)
 
 # RFC 8032 5.1.6 with the expanded key: r = SHA-512(prefix || M) mod L,
 # R = [r]B, k = SHA-512(R || A || M) mod L, S = (r + k s) mod L
@@ -82,21 +101,26 @@ def sign_raw(+seed: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
 
 # verification: the scalars S and k are public, so the multiplications
 # add only on one bits (PT.mul_vt, the same results as PT.mul)
-def check(+c: PT.Cs, +sb: List<&2, U32>, +rb: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, ra: Maybe<&2, PT.Pt>, aa: Maybe<&2, PT.Pt>) -> Bool:
+def check(+c: PT.Cs, +b: PT.Pt, +sb: List<&2, U32>, +rb: List<&2, U32>, +pk: List<&2, U32>, +msg: List<&2, U32>, ra: Maybe<&2, PT.Pt>, aa: Maybe<&2, PT.Pt>) -> Bool:
   match ra aa:
     case Some{r} Some{+a}:
       +k = hram(rb, pk, msg)
-      PT.equal(PT.cs_r(c), PT.mul_vt(c, sb, PT.base(c)), PT.add(c, r, PT.mul_vt(c, k, a)))
+      PT.equal(PT.cs_r(c), PT.mul_vt(c, sb, b), PT.add(c, r, PT.mul_vt(c, k, a)))
     case _ _:
       False{}
 
-def verify_with(+c: PT.Cs, +pk: List<&2, U32>, +msg: List<&2, U32>, +rb: List<&2, U32>, +sb: List<&2, U32>, s_ok: Bool) -> Bool:
+def verify_with(+c: PT.Cs, +b: PT.Pt, +pk: List<&2, U32>, +msg: List<&2, U32>, +rb: List<&2, U32>, +sb: List<&2, U32>, s_ok: Bool) -> Bool:
   match s_ok:
     case True{}:
-      check(c, sb, rb, pk, msg, PT.decode(c, rb), PT.decode(c, pk))
+      check(c, b, sb, rb, pk, msg, PT.decode(c, rb), PT.decode(c, pk))
     case False{}:
       False{}
 
+def verify_ctx(ctx: Ctx, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
+  match ctx:
+    case Ctx{+c, +b}:
+      +sb = F.drop(32n, sig)
+      verify_with(c, b, pk, msg, F.take(32n, sig), sb, SC.lt_l(sb))
+
 def verify_raw(+pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
-  +sb = F.drop(32n, sig)
-  verify_with(PT.consts(pk), pk, msg, F.take(32n, sig), sb, SC.lt_l(sb))
+  verify_ctx(context(pk), pk, msg, sig)

@@ -15,6 +15,10 @@ import ./ed25519/ed25519.bend as E
 #   sign_with_key(k, msg)    the signature under an expanded key: one
 #                            base-point multiplication per message
 #   key_public(k)            the public key of an expanded key
+#   context(xs)              the curve constants and base point, computed
+#                            once (xs: any list); the _ctx variants of
+#                            generate_keypair, signing_key and verify take
+#                            it instead of computing it per call
 #   verify(pk, msg, sig)     True iff sig is valid (cofactorless check,
 #                            non-canonical S >= L rejected)
 #
@@ -89,3 +93,38 @@ def verify_if(+pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, ok: 
 
 def verify(+pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
   verify_if(pk, msg, sig, Bool.and(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig)))
+
+# ---- with a precomputed context ----
+
+def context(+xs: List<&2, U32>) -> E.Ctx:
+  E.context(xs)
+
+def keypair_ctx_if(ctx: E.Ctx, +seed: List<&2, U32>, ok: Bool) -> Maybe<&2, Keypair>:
+  match ok:
+    case True{}:
+      Some{Keypair{seed, E.public_key_ctx(ctx, seed)}}
+    case False{}:
+      None{}
+
+def generate_keypair_ctx(ctx: E.Ctx, +seed: List<&2, U32>) -> Maybe<&2, Keypair>:
+  keypair_ctx_if(ctx, seed, X.valid_bytes(32n, seed))
+
+def key_ctx_if(ctx: E.Ctx, +seed: List<&2, U32>, ok: Bool) -> Maybe<&2, E.Key>:
+  match ok:
+    case True{}:
+      Some{E.expand_ctx(ctx, seed)}
+    case False{}:
+      None{}
+
+def signing_key_ctx(ctx: E.Ctx, +seed: List<&2, U32>) -> Maybe<&2, E.Key>:
+  key_ctx_if(ctx, seed, X.valid_bytes(32n, seed))
+
+def verify_ctx_if(ctx: E.Ctx, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, ok: Bool) -> Bool:
+  match ok:
+    case True{}:
+      E.verify_ctx(ctx, pk, msg, sig)
+    case False{}:
+      False{}
+
+def verify_ctx(ctx: E.Ctx, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
+  verify_ctx_if(ctx, pk, msg, sig, Bool.and(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig)))

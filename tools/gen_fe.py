@@ -57,6 +57,24 @@ def conv(xs, ys):
     return [op('Nat.mul', xs[0], ys[0])] + addl(scal(xs[0], ys[1:]), conv(xs[1:], ys))
 
 
+def pu(a, b):
+    return op('U32.to_nat', op('U32.mul', op('U32.from_nat', a), op('U32.from_nat', b)))
+
+
+def pm(a, b):
+    return op('Nat.add', pu(a, op('Nat.mod', b, lit('512n'))), op('Nat.mul', pu(a, op('Nat.div', b, lit('512n'))), lit('512n')))
+
+
+def scalp(a, ys):
+    return [pm(a, y) for y in ys]
+
+
+def convp(xs, ys):
+    if not xs or not ys:
+        return []
+    return [pm(xs[0], ys[0])] + addl(scalp(xs[0], ys[1:]), convp(xs[1:], ys))
+
+
 def fold(zs):
     return addl(zs[:15], scal_r(zs[15:], lit('19n')))
 
@@ -252,15 +270,35 @@ def neg(+R: Nat, a: Fe) -> Fe:
 # The loops take the base x first and inspect it before their counter, so
 # the proof checker never unfolds a fixed-count loop over an unknown base.
 
-# acc^(2^n) * x^(2^n - 1): n steps of acc = acc^2 * x
-def pow_ones(+R: Nat, +x: Fe, n: Nat, acc: Fe) -> Fe:
-  match x:
+# y^(2^n): n squarings. g is the chain's base, passed unchanged and
+# inspected first, so the proof checker never unfolds the loop over an
+# unknown base.
+def sqn(+R: Nat, +g: Fe, n: Nat, y: Fe) -> Fe:
+  match g:
     case Fe{l0, l1, l2, l3, l4, l5, l6, l7, l8, l9, l10, l11, l12, l13, l14}:
       match n:
         case 0n:
-          acc
+          y
         case 1n+m:
-          pow_ones(R, x, m, mul(R, sq(R, acc), x))
+          sqn(R, g, m, sq(R, y))
+
+# y^(2^m) z: with y = x^(2^n - 1) and z = x^(2^m - 1), x^(2^(n + m) - 1)
+def cat(+R: Nat, +g: Fe, y: Fe, z: Fe, m: Nat) -> Fe:
+  mul(R, sqn(R, g, m, y), z)
+
+# x^(2^250 - 1): the addition chain of ref10's fe_invert (249 squarings,
+# 10 multiplications)
+def p250(+R: Nat, +x: Fe) -> Fe:
+  +z2 = cat(R, x, x, x, 1n)
+  +z4 = cat(R, x, z2, z2, 2n)
+  +z5 = cat(R, x, z4, x, 1n)
+  +z10 = cat(R, x, z5, z5, 5n)
+  +z20 = cat(R, x, z10, z10, 10n)
+  +z40 = cat(R, x, z20, z20, 20n)
+  +z50 = cat(R, x, z40, z10, 10n)
+  +z100 = cat(R, x, z50, z50, 50n)
+  +z200 = cat(R, x, z100, z100, 100n)
+  cat(R, x, z200, z50, 50n)
 
 # one bit of a public exponent, most significant first: acc^2 (* x)
 def pow_bit(+R: Nat, b: Bool, +x: Fe, acc: Fe) -> Fe:
@@ -279,13 +317,13 @@ def pow_bits(+R: Nat, +x: Fe, bs: List<&2, Bool>, acc: Fe) -> Fe:
         case Con{b, bt}:
           pow_bits(R, x, bt, pow_bit(R, b, x, acc))
 
-# x^(p - 2) = x^(2^255 - 21): 250 one bits (x, then 249 steps), then 0 1 0 1 1
+# x^(p - 2) = x^(2^255 - 21): 250 one bits, then 0 1 0 1 1
 def inv(+R: Nat, +x: Fe) -> Fe:
-  pow_bits(R, x, [False{}, True{}, False{}, True{}, True{}], pow_ones(R, x, 249n, x))
+  pow_bits(R, x, [False{}, True{}, False{}, True{}, True{}], p250(R, x))
 
 # x^((p - 5) / 8) = x^(2^252 - 3): 250 one bits, then 0 1
 def pow_p58(+R: Nat, +x: Fe) -> Fe:
-  pow_bits(R, x, [False{}, True{}], pow_ones(R, x, 249n, x))
+  pow_bits(R, x, [False{}, True{}], p250(R, x))
 
 # ---- canonical form and bytes (list form, limbs.bend) ----
 
@@ -322,7 +360,7 @@ def generate():
     parts.append(flat('sub', 'sub(+R: Nat, a: Fe, b: Fe)', [('a', pat(A)), ('b', pat(B))],
                       pass_(R, subl(A, B, kp8(R))), ['a + 8 p - b: LS.sub_l']))
     parts.append(flat('mul', 'mul(+R: Nat, a: Fe, b: Fe)', [('a', pat(A)), ('b', pat(B))],
-                      pass_(R, fold(conv(A, B))), ['a b: LS.mul_l']))
+                      pass_(R, fold(convp(A, B))), ['a b: LS.mul_l']))
     K = V('k')
     parts.append(flat('mul_small', 'mul_small(+R: Nat, a: Fe, +k: Nat)', [('a', pat(A))],
                       pass_(R, scal_r(A, K)), ['a k for k < 2^17: LS.mul_small_l']))

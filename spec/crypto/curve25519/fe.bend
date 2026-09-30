@@ -31,7 +31,10 @@ import ../../../src/crypto/curve25519/limbs.bend as LS
 # Fits: the native backend keeps a Nat in one machine word below 2^48 (a
 # larger value is a run-time error, never a wrong result); Mul.fits and
 # Carry.fits bound the largest intermediates (the product's folded columns
-# below 2^47, every carry-chain sum below 2^48).
+# below 2^47, every carry-chain sum below 2^48). The limb products run on
+# the native 32-bit multiplier (a limb below 2^19 times 9 or 10 bits of the
+# other, below 2^29), where a Nat product would check its bound with a
+# division.
 
 # the value: sum of l_i 2^(17 i)
 def lv(xs: List<&2, Nat>) -> Nat:
@@ -86,9 +89,10 @@ def Mul.value(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {ok(
 def Mul.ok(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {ok(one, a) == True{} : Bool}, +hb: {ok(one, b) == True{} : Bool}) -> Type:
   {ok(one, FE.mul(FE.radix(one), a, b)) == True{} : Bool}
 
-# the columns the product's carry pass takes are below 2^47
+# the columns the product's carry pass takes (limb products through the
+# 32-bit multiplier, LS.convp) are below 2^47
 def Mul.fits(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {ok(one, a) == True{} : Bool}, +hb: {ok(one, b) == True{} : Bool}) -> Type:
-  {below(LS.fold(LS.conv(FE.to_list(a), FE.to_list(b))), C.shift(47n, one)) == True{} : Bool}
+  {below(LS.fold(LS.convp(FE.to_list(a), FE.to_list(b))), C.shift(47n, one)) == True{} : Bool}
 
 def Sq.value(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +ha: {ok(one, a) == True{} : Bool}) -> Type:
   {Nat.mod(value(FE.sq(FE.radix(one), a)), FS.prime(one)) == FS.fmul(FS.prime(one), value(a), value(a)) : Nat}

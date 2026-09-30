@@ -65,6 +65,9 @@ def cases(rng):
         yield 'epk:%s' % sk, pk
         yield 'esig:%s:%s' % (sk, m), sig
         yield 'ksig:%s:%s' % (sk, m), sig
+        yield 'cpk:%s' % sk, pk
+        yield 'cksig:%s:%s' % (sk, m), sig
+        yield 'cver:%s:%s:%s' % (pk, m, sig), 'true'
         yield 'ever:%s:%s:%s' % (pk, m, sig), 'true'
     for i in range(24):
         a, b = rng.randbytes(32), rng.randbytes(32)
@@ -89,6 +92,9 @@ def cases(rng):
         yield 'epk:%s' % seed.hex(), pk.hex()
         yield 'esig:%s:%s' % (seed.hex(), msg.hex()), sig.hex()
         yield 'ksig:%s:%s' % (seed.hex(), msg.hex()), sig.hex()
+        yield 'cpk:%s' % seed.hex(), pk.hex()
+        yield 'cksig:%s:%s' % (seed.hex(), msg.hex()), sig.hex()
+        yield 'cver:%s:%s:%s' % (pk.hex(), msg.hex(), sig.hex()), 'true'
         yield 'ever:%s:%s:%s' % (pk.hex(), msg.hex(), sig.hex()), 'true'
         bad = bytearray(sig); bad[rng.randrange(64)] ^= 1 << rng.randrange(8)
         ok = True
@@ -98,6 +104,7 @@ def cases(rng):
             ok = False
         yield 'ever:%s:%s:%s' % (pk.hex(), msg.hex(), bytes(bad).hex()), 'true' if ok else 'false'
         yield 'ever:%s:%s:%s' % (pk.hex(), (msg + b'x').hex(), sig.hex()), 'false'
+        yield 'cver:%s:%s:%s' % (pk.hex(), msg.hex(), bytes(bad).hex()), 'true' if ok else 'false'
         s = int.from_bytes(sig[32:], 'little') + L
         if s < 2 ** 256:
             yield 'ever:%s:%s:%s' % (pk.hex(), msg.hex(), (sig[:32] + s.to_bytes(32, 'little')).hex()), 'false'
@@ -107,6 +114,9 @@ def cases(rng):
     yield 'epk:%s' % ('11' * 31), 'None'
     yield 'esig:%s:00' % ('11' * 33), 'None'
     yield 'ksig:%s:00' % ('11' * 33), 'None'
+    yield 'cksig:%s:00' % ('11' * 33), 'None'
+    yield 'cpk:%s' % ('11' * 31), 'None'
+    yield 'cver:%s:00:%s' % (RFC8032[0][1], '00' * 63), 'false'
     yield 'ever:%s:00:%s' % (RFC8032[0][1], '00' * 63), 'false'
     yield 'ever:%s:00:%s' % ('00' * 31, RFC8032[0][3]), 'false'
 
