@@ -324,11 +324,15 @@ Kex.shared_secret(sk, pk)                # X25519(sk, pk), None if all zero or m
 Sign.generate_keypair(seed)              # Ed25519 key pair from a 32-byte seed
 Sign.sign(sk, msg)                       # Some{64-byte signature}
 Sign.verify(pk, msg, sig)                # True iff valid (S >= L rejected)
+Sign.signing_key(seed)                   # Some{expanded key}: sign_with_key(k, msg) per message
+Sign.context(xs)                         # curve constants and base point, computed once;
+                                         # generate_keypair_ctx, signing_key_ctx, verify_ctx take it
 ```
 
 X25519 (RFC 7748) and Ed25519 (RFC 8032) run on one field implementation
-(`src/crypto/curve25519/field.bend`, 32 limbs of 8 bits, every operation
-proved to compute its value mod p with bounded limbs). Each facade is proved
+(`src/crypto/curve25519/fe.bend`, 15 limbs of 17 bits with products on the
+32-bit multiplier, every operation proved to compute its value mod p with
+bounded limbs). Each facade is proved
 equal to a transcription of its RFC (`spec/crypto/curve25519/x25519.bend`,
 `spec/crypto/ed25519.bend`) for every input, with SHA-512 proved equal to
 FIPS 180-4; `tools/check_curve25519.py` runs the RFC vectors and a

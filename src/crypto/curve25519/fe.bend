@@ -4,18 +4,25 @@ import ./limbs.bend as LS
 # GF(p), p = 2^255 - 19, for X25519 and Ed25519: 15 limbs of 17 bits,
 # value(x) = l0 + 2^17 l1 + ... + 2^238 l14 (spec/crypto/curve25519/fe.bend).
 # The limbs are Nat: the native backend keeps a Nat below 2^48 in one
-# machine word, and every intermediate here stays below 2^47 (proved: an
+# machine word, and every intermediate here stays below 2^48 (proved: an
 # element is "ok" when its limbs are below 2^19; the schoolbook product of
 # two ok elements has columns below 15 * 2^38, the fold by 19 keeps them
 # below 2^47, and a carry pass brings them back to ok). This is the
 # unsaturated-limb field of Fiat-Crypto (Erbsen et al. 2019) and HACL*'s
 # Field51, with 17-bit limbs so that products and sums fit the 48-bit Nat.
 #
-# add, sub, mul, mul_small and select are straight-line code, written by
-# tools/gen_fe.py from the list algorithms of limbs.bend (do not edit them
-# by hand; rerun the script). Every operation takes the radix R = 2^17,
-# which the callers compute once from their symbolic one (radix(one)), so
-# the proofs never meet a closed 2^17.
+# Limb products run on the native 32-bit multiplier (LS.pm: one factor
+# split at bit 9, both half products below 2^29): a Nat product checks its
+# 48-bit bound with a division. The square computes each cross product once
+# (LS.sqp). add and sub move every carry one limb up at once, with no carry
+# chain (LS.pc); mul and sq end with one chained carry pass, mul_small with
+# two rounds of LS.pc.
+#
+# add, sub, mul, sq, mul_small and select are straight-line code, written
+# by tools/gen_fe.py from the list algorithms of limbs.bend (do not edit
+# them by hand; rerun the script). Every operation takes the radix
+# R = 2^17, which the callers compute once from their symbolic one
+# (radix(one)), so the proofs never meet a closed 2^17.
 #
 # No operation branches on a limb: selection is arithmetic, the exponents
 # of inv and pow_p58 are public, and freeze's subtraction is a selection.

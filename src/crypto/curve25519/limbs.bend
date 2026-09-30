@@ -10,7 +10,8 @@ import Base
 #
 # Radix R = 2^17 (a parameter: the callers compute it once from their
 # symbolic one, see fe.bend); every Nat stays below 2^48, the native
-# backend's Nat bound (proved: spec/crypto/curve25519/fe.bend, Fe.fits).
+# backend's Nat bound (proved: spec/crypto/curve25519/fe.bend, Mul.fits,
+# Sq.fits, Carry.fits).
 
 # ---- polynomial operations ----
 
