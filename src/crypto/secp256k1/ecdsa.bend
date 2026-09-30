@@ -302,23 +302,31 @@ def digest_bytes(m: Maybe<&1, Array<U32>>) -> List<&2, U32>:
     case None{}: Nil{}
     case Some{a}: unpack(Array.to_list(~U32, a))
 
-# Keccak-256 of 64 bytes, by the hash function kf (Keccak-256 below; the
-# proofs take it as a parameter)
-def keccak64(kf: Array<U32> -> Nat -> Maybe<&1, Array<U32>>, +bs: List<&2, U32>) -> List<&2, U32>:
-  digest_bytes(kf(pack(words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n))
+# The hash of addresses, as a value (only Keccak-256 exists), so that the
+# proofs can keep it folded
+type Hash is Data:
+  Keccak256{}
+
+def hash(+h: Hash, a: Array<U32>, length: Nat) -> Maybe<&1, Array<U32>>:
+  match h:
+    case Keccak256{}: K.keccak256(a, length)
+
+# the hash of 64 bytes
+def keccak64(+h: Hash, +bs: List<&2, U32>) -> List<&2, U32>:
+  digest_bytes(hash(h, pack(words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n))
 
 def eth_if(ok: Bool, +dg: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
   match ok:
     case True{}: Some{B.suffix(12n, dg)}
     case False{}: None{}
 
-def eth_with(kf: Array<U32> -> Nat -> Maybe<&1, Array<U32>>, +pk: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  eth_if(Bool.and(B.has_len(65n, pk), U32.is_eq(B.head(pk), 4)), keccak64(kf, B.tail(pk)))
+def eth_with(+h: Hash, +pk: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  eth_if(Bool.and(B.has_len(65n, pk), U32.is_eq(B.head(pk), 4)), keccak64(h, B.tail(pk)))
 
 # the 20-byte Ethereum address of a 65-byte uncompressed public key:
 # the last 20 bytes of Keccak-256 of its 64 coordinate bytes
 def eth_address(+pk: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  eth_with(K.keccak256, pk)
+  eth_with(Keccak256{}, pk)
 
 # ---- Ethereum's ECRECOVER precompile (address 0x01) ----
 

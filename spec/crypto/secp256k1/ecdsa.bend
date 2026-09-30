@@ -269,13 +269,17 @@ def digest_bytes(m: Maybe<&1, Array<U32>>) -> List<&2, U32>:
     case None{}: Nil{}
     case Some{a}: unpack(Array.to_list(~U32, a))
 
-# Keccak-256 (spec/crypto/keccak/main.bend, 24 rounds)
-def keccak_f(a: Array<U32>, length: Nat) -> Maybe<&1, Array<U32>>:
-  KS.keccak256_rounds(24n, a, length)
+# The hash of addresses: Keccak-256 (spec/crypto/keccak/main.bend, 24
+# rounds), named by a value so that the proofs can keep it folded
+type Hash is Data:
+  Keccak256{}
 
-# the digest of 64 bytes by the hash function kf
-def keccak64(kf: Array<U32> -> Nat -> Maybe<&1, Array<U32>>, +bs: List<&2, U32>) -> List<&2, U32>:
-  digest_bytes(kf(pack(words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n))
+def hash(+h: Hash, a: Array<U32>, length: Nat) -> Maybe<&1, Array<U32>>:
+  match h:
+    case Keccak256{}: KS.keccak256_rounds(24n, a, length)
+
+def keccak64(+h: Hash, +bs: List<&2, U32>) -> List<&2, U32>:
+  digest_bytes(hash(h, pack(words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n))
 
 # address = the last 20 bytes of Keccak-256(x || y) of an uncompressed key
 def eth_if(ok: Bool, +dg: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
@@ -283,11 +287,11 @@ def eth_if(ok: Bool, +dg: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
     case True{}: Some{CV.after(12n, dg)}
     case False{}: None{}
 
-def eth_with(kf: Array<U32> -> Nat -> Maybe<&1, Array<U32>>, +pk: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), keccak64(kf, CV.after(1n, pk)))
+def eth_with(+h: Hash, +pk: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), keccak64(h, CV.after(1n, pk)))
 
 def eth_address(+pk: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
-  eth_with(keccak_f, pk)
+  eth_with(Keccak256{}, pk)
 
 def word_of(m: Maybe<&2, List<&2, U32>>) -> Maybe<&2, List<&2, U32>>:
   match m:

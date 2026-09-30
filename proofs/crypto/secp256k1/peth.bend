@@ -2,7 +2,6 @@
 import Base
 import ../../../spec/crypto/secp256k1/curve.bend as CV
 import ../../../spec/crypto/secp256k1/ecdsa.bend as ES
-import ../../../src/crypto/keccak/keccak.bend as K
 import ../../../src/crypto/secp256k1/bytes.bend as B
 import ../../../src/crypto/secp256k1/ecdsa.bend as E
 import ../keccak/laws.bend as KL
@@ -53,11 +52,11 @@ def digest_v(m: Maybe<&1, Array<U32>>) -> {E.digest_bytes(m) == ES.digest_bytes(
     case Some{a}:
       unpack_v(Array.to_list(~U32, a))
 
-def k64_v(f: Array<U32> -> Nat -> Maybe<&1, Array<U32>>, g: Array<U32> -> Nat -> Maybe<&1, Array<U32>>, e: @a:Array<U32> -> @l:Nat -> {f(a, l) == g(a, l) : Maybe<&1, Array<U32>>}, +bs: List<&2, U32>) -> {E.keccak64(f, bs) == ES.keccak64(g, bs) : List<&2, U32>}:
-  %Equal.sym(List<&2, U32>, E.words(16n, bs), ES.words(16n, bs), words_v(16n, bs)) : {E.digest_bytes(f(E.pack(_, 0, Array.new(U32, 4n, 0)), 64n)) == ES.digest_bytes(g(ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n)) : List<&2, U32>}
-  %Equal.sym(Array<U32>, E.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), pack_v(ES.words(16n, bs), 0, Array.new(U32, 4n, 0))) : {E.digest_bytes(f(_, 64n)) == ES.digest_bytes(g(ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n)) : List<&2, U32>}
-  %Equal.sym(Maybe<&1, Array<U32>>, f(ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n), g(ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n), e(ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n)) : {E.digest_bytes(_) == ES.digest_bytes(g(ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n)) : List<&2, U32>}
-  digest_v(g(ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n))
+def k64_v(+h1: E.Hash, +h2: ES.Hash, e: @a:Array<U32> -> @l:Nat -> {E.hash(h1, a, l) == ES.hash(h2, a, l) : Maybe<&1, Array<U32>>}, +bs: List<&2, U32>) -> {E.keccak64(h1, bs) == ES.keccak64(h2, bs) : List<&2, U32>}:
+  %Equal.sym(List<&2, U32>, E.words(16n, bs), ES.words(16n, bs), words_v(16n, bs)) : {E.digest_bytes(E.hash(h1, E.pack(_, 0, Array.new(U32, 4n, 0)), 64n)) == ES.digest_bytes(ES.hash(h2, ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n)) : List<&2, U32>}
+  %Equal.sym(Array<U32>, E.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), pack_v(ES.words(16n, bs), 0, Array.new(U32, 4n, 0))) : {E.digest_bytes(E.hash(h1, _, 64n)) == ES.digest_bytes(ES.hash(h2, ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n)) : List<&2, U32>}
+  %Equal.sym(Maybe<&1, Array<U32>>, E.hash(h1, ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n), ES.hash(h2, ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n), e(ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n)) : {E.digest_bytes(_) == ES.digest_bytes(ES.hash(h2, ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n)) : List<&2, U32>}
+  digest_v(ES.hash(h2, ES.pack(ES.words(16n, bs), 0, Array.new(U32, 4n, 0)), 64n))
 
 def eth_if_v(b: Bool, +dg: List<&2, U32>) -> {E.eth_if(b, dg) == ES.eth_if(b, dg) : Maybe<&2, List<&2, U32>>}:
   match b:
@@ -66,19 +65,19 @@ def eth_if_v(b: Bool, +dg: List<&2, U32>) -> {E.eth_if(b, dg) == ES.eth_if(b, dg
     case False{}:
       {==}
 
-def eth_with_v(f: Array<U32> -> Nat -> Maybe<&1, Array<U32>>, g: Array<U32> -> Nat -> Maybe<&1, Array<U32>>, e: @a:Array<U32> -> @l:Nat -> {f(a, l) == g(a, l) : Maybe<&1, Array<U32>>}, +pk: List<&2, U32>) -> {E.eth_with(f, pk) == ES.eth_with(g, pk) : Maybe<&2, List<&2, U32>>}:
-  %Equal.sym(Bool, B.has_len(65n, pk), CV.length_is(65n, pk), PD.hl_is(65n, pk)) : {E.eth_if(Bool.and(_, U32.is_eq(B.head(pk), 4)), E.keccak64(f, B.tail(pk))) == ES.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(g, CV.after(1n, pk))) : Maybe<&2, List<&2, U32>>}
-  %Equal.sym(U32, B.head(pk), CV.head(pk), PD.head_eq(pk)) : {E.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(_, 4)), E.keccak64(f, B.tail(pk))) == ES.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(g, CV.after(1n, pk))) : Maybe<&2, List<&2, U32>>}
-  %Equal.sym(List<&2, U32>, B.tail(pk), CV.after(1n, pk), PD.tail_after(pk)) : {E.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), E.keccak64(f, _)) == ES.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(g, CV.after(1n, pk))) : Maybe<&2, List<&2, U32>>}
-  %Equal.sym(List<&2, U32>, E.keccak64(f, CV.after(1n, pk)), ES.keccak64(g, CV.after(1n, pk)), k64_v(f, g, e, CV.after(1n, pk))) : {E.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), _) == ES.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(g, CV.after(1n, pk))) : Maybe<&2, List<&2, U32>>}
-  eth_if_v(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(g, CV.after(1n, pk)))
+def eth_with_v(+h1: E.Hash, +h2: ES.Hash, e: @a:Array<U32> -> @l:Nat -> {E.hash(h1, a, l) == ES.hash(h2, a, l) : Maybe<&1, Array<U32>>}, +pk: List<&2, U32>) -> {E.eth_with(h1, pk) == ES.eth_with(h2, pk) : Maybe<&2, List<&2, U32>>}:
+  %Equal.sym(Bool, B.has_len(65n, pk), CV.length_is(65n, pk), PD.hl_is(65n, pk)) : {E.eth_if(Bool.and(_, U32.is_eq(B.head(pk), 4)), E.keccak64(h1, B.tail(pk))) == ES.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(h2, CV.after(1n, pk))) : Maybe<&2, List<&2, U32>>}
+  %Equal.sym(U32, B.head(pk), CV.head(pk), PD.head_eq(pk)) : {E.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(_, 4)), E.keccak64(h1, B.tail(pk))) == ES.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(h2, CV.after(1n, pk))) : Maybe<&2, List<&2, U32>>}
+  %Equal.sym(List<&2, U32>, B.tail(pk), CV.after(1n, pk), PD.tail_after(pk)) : {E.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), E.keccak64(h1, _)) == ES.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(h2, CV.after(1n, pk))) : Maybe<&2, List<&2, U32>>}
+  %Equal.sym(List<&2, U32>, E.keccak64(h1, CV.after(1n, pk)), ES.keccak64(h2, CV.after(1n, pk)), k64_v(h1, h2, e, CV.after(1n, pk))) : {E.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), _) == ES.eth_if(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(h2, CV.after(1n, pk))) : Maybe<&2, List<&2, U32>>}
+  eth_if_v(Bool.and(CV.length_is(65n, pk), U32.is_eq(CV.head(pk), 4)), ES.keccak64(h2, CV.after(1n, pk)))
 
 # the Keccak-256 implementation is its specification
-def kk(a: Array<U32>, +l: Nat) -> {K.keccak256(a, l) == ES.keccak_f(a, l) : Maybe<&1, Array<U32>>}:
+def kk(a: Array<U32>, +l: Nat) -> {E.hash(E.Keccak256{}, a, l) == ES.hash(ES.Keccak256{}, a, l) : Maybe<&1, Array<U32>>}:
   KL.ethereum_keccak256(a, l)
 
 def eth_address_v(+pk: List<&2, U32>) -> {E.eth_address(pk) == ES.eth_address(pk) : Maybe<&2, List<&2, U32>>}:
-  eth_with_v(K.keccak256, ES.keccak_f, a => l => kk(a, l), pk)
+  eth_with_v(E.Keccak256{}, ES.Keccak256{}, a => l => kk(a, l), pk)
 
 # ---- ECRECOVER ----
 
