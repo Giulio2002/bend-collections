@@ -70,20 +70,20 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | Math (natural) | 5.35 |
 | Math per type | 7.68 |
 | Intrusive doubly linked list | 1.63 |
-| Dynamic array | 13.49 |
+| Dynamic array | 3.24 |
 | Deque | 1.15 |
 | FIFO queue | 1.44 |
 | Stack | 19.67 |
 | Simple queue | 1.40 |
 | Priority queue | 5.54 |
 | Binary heap | 5.56 |
-| Doubly linked list | 12.40 |
+| Doubly linked list | 5.95 |
 | List iterator | 3.86 |
 | Tree map | 26.52 |
 | Bitset | 3.32 |
 | Bit list | 5.66 |
-| Hash map | 21.75 |
-| LRU cache | 10.74 |
+| Hash map | 13.02 |
+| LRU cache | 10.65 |
 
 ## Hashes
 
@@ -599,16 +599,16 @@ those ratios; the unmarked rows use the full method.
 
 ### Dynamic array
 
-Worst ratio 13.49.
+Worst ratio 3.24.
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
 | push | small | 8.24 | 2.94 | 2.80 |
 | push | medium | 8.20 | 2.92 | 2.81 |
 | push | large | 10.9 | 3.66 | 2.97 |
-| get | small | 10.9 | 1.28 | 8.51 |
-| get | medium | 10.7 | 1.16 | 9.23 |
-| get | large | 16.1 | 1.20 | 13.49 |
+| get | small | 2.01 | 1.29 | 1.56 |
+| get | medium | 1.93 | 1.17 | 1.65 |
+| get | large | 2.28 | 1.18 | 1.93 |
 | set | small | 1.70 | 1.27 | 1.34 |
 | set | medium | 1.61 | 1.14 | 1.41 |
 | set | large | 1.94 | 1.14 | 1.71 |
@@ -801,7 +801,7 @@ Worst ratio 5.56.
 
 ### Doubly linked list
 
-Worst ratio 12.40.
+Worst ratio 5.95.
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
@@ -817,9 +817,9 @@ Worst ratio 12.40.
 | insert_after | small | 17.4 | 3.74 | 4.66 |
 | insert_after | medium | 17.4 | 4.77 | 3.64 |
 | insert_after | large | 21.1 | 5.23 | 4.03 |
-| get | small | 10.9 | 1.30 | 8.40 |
-| get | medium | 10.7 | 1.21 | 8.90 |
-| get | large | 15.4 | 1.24 | 12.40 |
+| get | small | 2.10 | 1.32 | 1.59 |
+| get | medium | 1.99 | 1.21 | 1.64 |
+| get | large | 2.23 | 1.24 | 1.80 |
 | set | small | 1.72 | 1.29 | 1.34 |
 | set | medium | 1.58 | 1.17 | 1.35 |
 | set | large | 1.62 | 1.19 | 1.36 |
@@ -995,16 +995,16 @@ Worst ratio 5.66.
 
 ### Hash map
 
-Worst ratio 21.75.
+Worst ratio 13.02.
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
 | set | small | 9.57 | 2.24 | 4.27 |
 | set | medium | 10.5 | 2.26 | 4.63 |
 | set | large | 13.3 | 2.75 | 4.86 |
-| get | small | 22.7 | 1.51 | 15.04 |
-| get | medium | 22.0 | 1.36 | 16.16 |
-| get | large | 34.6 | 1.59 | 21.75 |
+| get | small | 14.8 | 1.54 | 9.59 |
+| get | medium | 14.1 | 1.35 | 10.41 |
+| get | large | 20.8 | 1.60 | 13.02 |
 | has | small | 9.92 | 1.26 | 7.86 |
 | has | medium | 8.82 | 1.27 | 6.97 |
 | has | large | 10.8 | 1.46 | 7.42 |
@@ -1023,7 +1023,7 @@ Worst ratio 21.75.
 
 ### LRU cache
 
-Worst ratio 10.74.
+Worst ratio 10.65.
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
@@ -1036,9 +1036,9 @@ Worst ratio 10.74.
 | peek | small | 25.0 | 9.76 | 2.56 |
 | peek | medium | 26.5 | 9.73 | 2.72 |
 | peek | large | 42.9 | 22.1 | 1.94 |
-| contains | small | 14.2 | 1.41 | 10.06 |
-| contains | medium | 13.4 | 1.25 | 10.74 |
-| contains | large | 18.3 | 1.99 | 9.20 |
+| contains | small | 15.4 | 1.55 | 9.95 |
+| contains | medium | 14.3 | 1.34 | 10.65 |
+| contains | large | 20.4 | 2.25 | 9.06 |
 | remove | small | 36.4 | 12.4 | 2.94 |
 | remove | medium | 41.7 | 11.4 | 3.67 |
 | remove | large | 90.4 | 25.8 | 3.51 |
