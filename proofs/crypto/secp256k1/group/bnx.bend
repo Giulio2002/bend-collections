@@ -84,3 +84,142 @@ def chk_v(steps: List<&2, St>, +a: B.Bn, +m: B.Bn, +mp: Nat, +x: B.Bn, +e: B.Bn,
       +hs = step_eq(x, a, q, m, r, mp, hm, Lg.and_left(B.beq(B.bmul(x, a), B.badd(B.bmul(q, m), r)), chk(t, a, m, r), hc))
       +h2 = mu_cong(mp, B.bval(x), B.bval(a), B.bval(q), B.bval(r), Nat.pow(B.bval(a), B.bval(e)), hx, hs)
       chk_v(t, a, m, mp, r, B.binc(e), hm, Equal.trans(Nat, Nat.mod(B.bval(r), 1n+mp), Nat.mod(Nat.pow(B.bval(a), 1n+B.bval(e)), 1n+mp), Nat.mod(Nat.pow(B.bval(a), B.bval(B.binc(e))), 1n+mp), h2, Equal.cong(Nat, Nat, z => Nat.mod(Nat.pow(B.bval(a), z), 1n+mp), 1n+B.bval(e), B.bval(B.binc(e)), Equal.sym(Nat, B.bval(B.binc(e)), 1n+B.bval(e), B.binc_v(e)))), Lg.and_right(B.beq(B.bmul(x, a), B.badd(B.bmul(q, m), r)), chk(t, a, m, r), hc))
+
+# ---- values that the checker never expands ----
+
+# bval with the unit kept symbolic: for one == 1 it is bval, and on a
+# literal it is a term stuck on `one` (no unary number is ever built)
+def bvalo(+one: Nat, a: B.Bn) -> Nat:
+  match a:
+    case B.BZ{}:
+      0n
+    case B.B0{t}:
+      Nat.double(bvalo(one, t))
+    case B.B1{t}:
+      Nat.add(one, Nat.double(bvalo(one, t)))
+
+def bo(+one: Nat, +h1: {one == 1n : Nat}, a: B.Bn) -> {bvalo(one, a) == B.bval(a) : Nat}:
+  match a:
+    case B.BZ{}:
+      {==}
+    case B.B0{+t}:
+      %Equal.sym(Nat, bvalo(one, t), B.bval(t), bo(one, h1, t)) : {Nat.double(_) == Nat.add(B.bval(t), B.bval(t)) : Nat}
+      NA.double_self(B.bval(t))
+    case B.B1{+t}:
+      %Equal.sym(Nat, bvalo(one, t), B.bval(t), bo(one, h1, t)) : {Nat.add(one, Nat.double(_)) == 1n+Nat.add(B.bval(t), B.bval(t)) : Nat}
+      %Equal.sym(Nat, one, 1n, h1) : {Nat.add(_, Nat.double(B.bval(t))) == 1n+Nat.add(B.bval(t), B.bval(t)) : Nat}
+      %Equal.sym(Nat, Nat.double(B.bval(t)), Nat.add(B.bval(t), B.bval(t)), NA.double_self(B.bval(t))) : {Nat.add(1n, _) == 1n+Nat.add(B.bval(t), B.bval(t)) : Nat}
+      {==}
+
+def eq_o(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +b: B.Bn, +h: {B.beq(a, b) == True{} : Bool}) -> {bvalo(one, a) == bvalo(one, b) : Nat}:
+  %Equal.sym(Nat, bvalo(one, a), B.bval(a), bo(one, h1, a)) : {_ == bvalo(one, b) : Nat}
+  %Equal.sym(Nat, bvalo(one, b), B.bval(b), bo(one, h1, b)) : {B.bval(a) == _ : Nat}
+  B.beq_v(a, b, h)
+
+def mul_o(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +b: B.Bn) -> {bvalo(one, B.bmul(a, b)) == Nat.mul(bvalo(one, a), bvalo(one, b)) : Nat}:
+  %Equal.sym(Nat, bvalo(one, B.bmul(a, b)), B.bval(B.bmul(a, b)), bo(one, h1, B.bmul(a, b))) : {_ == Nat.mul(bvalo(one, a), bvalo(one, b)) : Nat}
+  %Equal.sym(Nat, bvalo(one, a), B.bval(a), bo(one, h1, a)) : {B.bval(B.bmul(a, b)) == Nat.mul(_, bvalo(one, b)) : Nat}
+  %Equal.sym(Nat, bvalo(one, b), B.bval(b), bo(one, h1, b)) : {B.bval(B.bmul(a, b)) == Nat.mul(B.bval(a), _) : Nat}
+  B.bmul_v(a, b)
+
+def add_o(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +b: B.Bn) -> {bvalo(one, B.badd(a, b)) == Nat.add(bvalo(one, a), bvalo(one, b)) : Nat}:
+  %Equal.sym(Nat, bvalo(one, B.badd(a, b)), B.bval(B.badd(a, b)), bo(one, h1, B.badd(a, b))) : {_ == Nat.add(bvalo(one, a), bvalo(one, b)) : Nat}
+  %Equal.sym(Nat, bvalo(one, a), B.bval(a), bo(one, h1, a)) : {B.bval(B.badd(a, b)) == Nat.add(_, bvalo(one, b)) : Nat}
+  %Equal.sym(Nat, bvalo(one, b), B.bval(b), bo(one, h1, b)) : {B.bval(B.badd(a, b)) == Nat.add(B.bval(a), _) : Nat}
+  B.badd_v(a, b)
+
+def inc_o(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn) -> {bvalo(one, B.binc(a)) == 1n+bvalo(one, a) : Nat}:
+  %Equal.sym(Nat, bvalo(one, B.binc(a)), B.bval(B.binc(a)), bo(one, h1, B.binc(a))) : {_ == 1n+bvalo(one, a) : Nat}
+  %Equal.sym(Nat, bvalo(one, a), B.bval(a), bo(one, h1, a)) : {B.bval(B.binc(a)) == 1n+_ : Nat}
+  B.binc_v(a)
+
+def one_o(+one: Nat, +h1: {one == 1n : Nat}) -> {bvalo(one, B.B1{B.BZ{}}) == 1n : Nat}:
+  bo(one, h1, B.B1{B.BZ{}})
+
+# a small literal: its value as a unary number
+def lit_o(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +k: Nat, +h: {B.bval(a) == k : Nat}) -> {bvalo(one, a) == k : Nat}:
+  Equal.trans(Nat, bvalo(one, a), B.bval(a), k, bo(one, h1, a), h)
+
+# n == binc(n1): n == 1 + n1
+def suc_o(+one: Nat, +h1: {one == 1n : Nat}, +n: B.Bn, +n1: B.Bn, +h: {B.beq(n, B.binc(n1)) == True{} : Bool}) -> {bvalo(one, n) == 1n+bvalo(one, n1) : Nat}:
+  Equal.trans(Nat, bvalo(one, n), bvalo(one, B.binc(n1)), 1n+bvalo(one, n1), eq_o(one, h1, n, B.binc(n1), h), inc_o(one, h1, n1))
+
+def suc2_o(+one: Nat, +h1: {one == 1n : Nat}, +n: B.Bn, +n2: B.Bn, +h: {B.beq(n, B.binc(B.binc(n2))) == True{} : Bool}) -> {bvalo(one, n) == 2n+bvalo(one, n2) : Nat}:
+  Equal.trans(Nat, bvalo(one, n), 1n+bvalo(one, B.binc(n2)), 2n+bvalo(one, n2), suc_o(one, h1, n, B.binc(n2), h), Equal.cong(Nat, Nat, z => 1n+z, bvalo(one, B.binc(n2)), 1n+bvalo(one, n2), inc_o(one, h1, n2)))
+
+# n == r + 1 + d: r < n
+def lt_o(+one: Nat, +h1: {one == 1n : Nat}, +r: B.Bn, +n: B.Bn, +d: B.Bn, +h: {B.beq(n, B.badd(B.binc(r), d)) == True{} : Bool}) -> {Nat.is_lt(bvalo(one, r), bvalo(one, n)) == True{} : Bool}:
+  %Equal.sym(Nat, bvalo(one, n), bvalo(one, B.badd(B.binc(r), d)), eq_o(one, h1, n, B.badd(B.binc(r), d), h)) : {Nat.is_lt(bvalo(one, r), _) == True{} : Bool}
+  %Equal.sym(Nat, bvalo(one, B.badd(B.binc(r), d)), Nat.add(bvalo(one, B.binc(r)), bvalo(one, d)), add_o(one, h1, B.binc(r), d)) : {Nat.is_lt(bvalo(one, r), _) == True{} : Bool}
+  %Equal.sym(Nat, bvalo(one, B.binc(r)), 1n+bvalo(one, r), inc_o(one, h1, r)) : {Nat.is_lt(bvalo(one, r), Nat.add(_, bvalo(one, d))) == True{} : Bool}
+  N.le_lt_succ(bvalo(one, r), Nat.add(bvalo(one, r), bvalo(one, d)), N.le_add_right(bvalo(one, r), bvalo(one, d)))
+
+# ---- the equations of a Pocklington certificate (ntpock.bend) ----
+
+def e2_o(+one: Nat, +h1: {one == 1n : Nat}, +n: B.Bn, +q: B.Bn, +m: B.Bn, +h: {B.beq(n, B.binc(B.bmul(q, m))) == True{} : Bool}) -> {bvalo(one, n) == Nat.add(Nat.mul(bvalo(one, q), bvalo(one, m)), 1n) : Nat}:
+  %Equal.sym(Nat, Nat.mul(bvalo(one, q), bvalo(one, m)), bvalo(one, B.bmul(q, m)), Equal.sym(Nat, bvalo(one, B.bmul(q, m)), Nat.mul(bvalo(one, q), bvalo(one, m)), mul_o(one, h1, q, m))) : {bvalo(one, n) == Nat.add(_, 1n) : Nat}
+  %Equal.sym(Nat, Nat.add(bvalo(one, B.bmul(q, m)), 1n), Nat.add(1n, bvalo(one, B.bmul(q, m))), NA.add_comm(bvalo(one, B.bmul(q, m)), 1n)) : {bvalo(one, n) == _ : Nat}
+  suc_o(one, h1, n, B.bmul(q, m), h)
+
+def pw1_s(+x: Nat) -> {x == Nat.mul(x, 1n) : Nat}:
+  Equal.sym(Nat, Nat.mul(x, 1n), x, NA.mul_one(x))
+
+# a checked step list: a^e mod n == r
+def pw_o(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +n: B.Bn, +n1: B.Bn, +steps: List<&2, St>, +e: B.Bn, +r: B.Bn, +d: B.Bn, +hn: {B.beq(n, B.binc(n1)) == True{} : Bool}, +hc: {chk(steps, a, n, a) == True{} : Bool}, +he: {B.beq(eb(steps, B.B1{B.BZ{}}), e) == True{} : Bool}, +hr: {B.beq(fin(steps, a), r) == True{} : Bool}, +hlt: {B.beq(n, B.badd(B.binc(r), d)) == True{} : Bool}) -> {Nat.mod(Nat.pow(bvalo(one, a), bvalo(one, e)), bvalo(one, n)) == bvalo(one, r) : Nat}:
+  +hm = Equal.trans(Nat, B.bval(n), B.bval(B.binc(n1)), 1n+B.bval(n1), B.beq_v(n, B.binc(n1), hn), B.binc_v(n1))
+  +h0 = chk_v(steps, a, n, B.bval(n1), a, B.B1{B.BZ{}}, hm, Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+B.bval(n1)), B.bval(a), Nat.mul(B.bval(a), 1n), pw1_s(B.bval(a))), hc)
+  +hl = lt_o(one, h1, r, n, d, hlt)
+  %Equal.sym(Nat, bvalo(one, a), B.bval(a), bo(one, h1, a)) : {Nat.mod(Nat.pow(_, bvalo(one, e)), bvalo(one, n)) == bvalo(one, r) : Nat}
+  %Equal.sym(Nat, bvalo(one, e), B.bval(e), bo(one, h1, e)) : {Nat.mod(Nat.pow(B.bval(a), _), bvalo(one, n)) == bvalo(one, r) : Nat}
+  %Equal.sym(Nat, B.bval(e), B.bval(eb(steps, B.B1{B.BZ{}})), Equal.sym(Nat, B.bval(eb(steps, B.B1{B.BZ{}})), B.bval(e), B.beq_v(eb(steps, B.B1{B.BZ{}}), e, he))) : {Nat.mod(Nat.pow(B.bval(a), _), bvalo(one, n)) == bvalo(one, r) : Nat}
+  %Equal.sym(Nat, bvalo(one, n), 1n+bvalo(one, n1), suc_o(one, h1, n, n1, hn)) : {Nat.mod(Nat.pow(B.bval(a), B.bval(eb(steps, B.B1{B.BZ{}}))), _) == bvalo(one, r) : Nat}
+  %Equal.sym(Nat, bvalo(one, n1), B.bval(n1), bo(one, h1, n1)) : {Nat.mod(Nat.pow(B.bval(a), B.bval(eb(steps, B.B1{B.BZ{}}))), 1n+_) == bvalo(one, r) : Nat}
+  %Equal.sym(Nat, Nat.mod(Nat.pow(B.bval(a), B.bval(eb(steps, B.B1{B.BZ{}}))), 1n+B.bval(n1)), Nat.mod(B.bval(fin(steps, a)), 1n+B.bval(n1)), Equal.sym(Nat, Nat.mod(B.bval(fin(steps, a)), 1n+B.bval(n1)), Nat.mod(Nat.pow(B.bval(a), B.bval(eb(steps, B.B1{B.BZ{}}))), 1n+B.bval(n1)), h0)) : {_ == bvalo(one, r) : Nat}
+  %Equal.sym(Nat, B.bval(fin(steps, a)), B.bval(r), B.beq_v(fin(steps, a), r, hr)) : {Nat.mod(_, 1n+B.bval(n1)) == bvalo(one, r) : Nat}
+  %Equal.sym(Nat, B.bval(r), bvalo(one, r), Equal.sym(Nat, bvalo(one, r), B.bval(r), bo(one, h1, r))) : {Nat.mod(_, 1n+B.bval(n1)) == bvalo(one, r) : Nat}
+  %Equal.sym(Nat, B.bval(n1), bvalo(one, n1), Equal.sym(Nat, bvalo(one, n1), B.bval(n1), bo(one, h1, n1))) : {Nat.mod(bvalo(one, r), 1n+_) == bvalo(one, r) : Nat}
+  NR.mod_of(0n, bvalo(one, n1), bvalo(one, r), Equal.trans(Bool, Nat.is_lt(bvalo(one, r), 1n+bvalo(one, n1)), Nat.is_lt(bvalo(one, r), bvalo(one, n)), True{}, Equal.cong(Nat, Bool, z => Nat.is_lt(bvalo(one, r), z), 1n+bvalo(one, n1), bvalo(one, n), Equal.sym(Nat, bvalo(one, n), 1n+bvalo(one, n1), suc_o(one, h1, n, n1, hn))), hl))
+
+def e5_o(+one: Nat, +h1: {one == 1n : Nat}, +u: B.Bn, +b: B.Bn, +b1: B.Bn, +v: B.Bn, +n: B.Bn, +hb: {B.beq(b, B.binc(b1)) == True{} : Bool}, +h: {B.beq(B.bmul(u, b1), B.binc(B.bmul(v, n))) == True{} : Bool}) -> {Nat.mul(bvalo(one, u), Nat.sub(bvalo(one, b), 1n)) == Nat.add(Nat.mul(bvalo(one, v), bvalo(one, n)), 1n) : Nat}:
+  %Equal.sym(Nat, bvalo(one, b), 1n+bvalo(one, b1), suc_o(one, h1, b, b1, hb)) : {Nat.mul(bvalo(one, u), Nat.sub(_, 1n)) == Nat.add(Nat.mul(bvalo(one, v), bvalo(one, n)), 1n) : Nat}
+  %Equal.sym(Nat, Nat.sub(bvalo(one, b1), 0n), bvalo(one, b1), N.sub_zero(bvalo(one, b1))) : {Nat.mul(bvalo(one, u), _) == Nat.add(Nat.mul(bvalo(one, v), bvalo(one, n)), 1n) : Nat}
+  %Equal.sym(Nat, Nat.mul(bvalo(one, u), bvalo(one, b1)), bvalo(one, B.bmul(u, b1)), Equal.sym(Nat, bvalo(one, B.bmul(u, b1)), Nat.mul(bvalo(one, u), bvalo(one, b1)), mul_o(one, h1, u, b1))) : {_ == Nat.add(Nat.mul(bvalo(one, v), bvalo(one, n)), 1n) : Nat}
+  %Equal.sym(Nat, Nat.mul(bvalo(one, v), bvalo(one, n)), bvalo(one, B.bmul(v, n)), Equal.sym(Nat, bvalo(one, B.bmul(v, n)), Nat.mul(bvalo(one, v), bvalo(one, n)), mul_o(one, h1, v, n))) : {bvalo(one, B.bmul(u, b1)) == Nat.add(_, 1n) : Nat}
+  %Equal.sym(Nat, Nat.add(bvalo(one, B.bmul(v, n)), 1n), Nat.add(1n, bvalo(one, B.bmul(v, n))), NA.add_comm(bvalo(one, B.bmul(v, n)), 1n)) : {bvalo(one, B.bmul(u, b1)) == _ : Nat}
+  suc_o(one, h1, B.bmul(u, b1), B.bmul(v, n), h)
+
+# f == k q + (1 + r1) with 1 + r1 < q: q does not divide f
+def e6_o(+one: Nat, +h1: {one == 1n : Nat}, +f: B.Bn, +ff: Nat, +hf: {bvalo(one, f) == ff : Nat}, +q: B.Bn, +k: B.Bn, +r1: B.Bn, +d: B.Bn, +h: {B.beq(f, B.badd(B.bmul(k, q), B.binc(r1))) == True{} : Bool}, +hl: {B.beq(q, B.badd(B.binc(B.binc(r1)), d)) == True{} : Bool}) -> {Nat.is_eq(Nat.mod(ff, bvalo(one, q)), 0n) == False{} : Bool}:
+  +qp = Nat.add(bvalo(one, B.binc(r1)), bvalo(one, d))
+  +hq = Equal.trans(Nat, bvalo(one, q), bvalo(one, B.badd(B.binc(B.binc(r1)), d)), 1n+qp, eq_o(one, h1, q, B.badd(B.binc(B.binc(r1)), d), hl), Equal.trans(Nat, bvalo(one, B.badd(B.binc(B.binc(r1)), d)), Nat.add(bvalo(one, B.binc(B.binc(r1))), bvalo(one, d)), 1n+qp, add_o(one, h1, B.binc(B.binc(r1)), d), Equal.cong(Nat, Nat, z => Nat.add(z, bvalo(one, d)), bvalo(one, B.binc(B.binc(r1))), 1n+bvalo(one, B.binc(r1)), inc_o(one, h1, B.binc(r1)))))
+  %Equal.sym(Nat, ff, bvalo(one, f), Equal.sym(Nat, bvalo(one, f), ff, hf)) : {Nat.is_eq(Nat.mod(_, bvalo(one, q)), 0n) == False{} : Bool}
+  %Equal.sym(Nat, bvalo(one, f), bvalo(one, B.badd(B.bmul(k, q), B.binc(r1))), eq_o(one, h1, f, B.badd(B.bmul(k, q), B.binc(r1)), h)) : {Nat.is_eq(Nat.mod(_, bvalo(one, q)), 0n) == False{} : Bool}
+  %Equal.sym(Nat, bvalo(one, B.badd(B.bmul(k, q), B.binc(r1))), Nat.add(bvalo(one, B.bmul(k, q)), bvalo(one, B.binc(r1))), add_o(one, h1, B.bmul(k, q), B.binc(r1))) : {Nat.is_eq(Nat.mod(_, bvalo(one, q)), 0n) == False{} : Bool}
+  %Equal.sym(Nat, bvalo(one, B.bmul(k, q)), Nat.mul(bvalo(one, k), bvalo(one, q)), mul_o(one, h1, k, q)) : {Nat.is_eq(Nat.mod(Nat.add(_, bvalo(one, B.binc(r1))), bvalo(one, q)), 0n) == False{} : Bool}
+  %Equal.sym(Nat, bvalo(one, q), 1n+qp, hq) : {Nat.is_eq(Nat.mod(Nat.add(Nat.mul(bvalo(one, k), _), bvalo(one, B.binc(r1))), bvalo(one, q)), 0n) == False{} : Bool}
+  %Equal.sym(Nat, bvalo(one, q), 1n+qp, hq) : {Nat.is_eq(Nat.mod(Nat.add(Nat.mul(bvalo(one, k), 1n+qp), bvalo(one, B.binc(r1))), _), 0n) == False{} : Bool}
+  %Equal.sym(Nat, Nat.mod(Nat.add(Nat.mul(bvalo(one, k), 1n+qp), bvalo(one, B.binc(r1))), 1n+qp), bvalo(one, B.binc(r1)), NR.mod_of(bvalo(one, k), qp, bvalo(one, B.binc(r1)), N.le_lt_succ(bvalo(one, B.binc(r1)), qp, N.le_add_right(bvalo(one, B.binc(r1)), bvalo(one, d))))) : {Nat.is_eq(_, 0n) == False{} : Bool}
+  %Equal.sym(Nat, bvalo(one, B.binc(r1)), 1n+bvalo(one, r1), inc_o(one, h1, r1)) : {Nat.is_eq(_, 0n) == False{} : Bool}
+  {==}
+
+def one_lt(+x: Nat) -> {Nat.is_lt(1n, 2n+x) == True{} : Bool}:
+  {==}
+
+# q >= 2: q does not divide 1
+def e6_1(+one: Nat, +h1: {one == 1n : Nat}, +q: B.Bn, +q2: B.Bn, +h: {B.beq(q, B.binc(B.binc(q2))) == True{} : Bool}) -> {Nat.is_eq(Nat.mod(1n, bvalo(one, q)), 0n) == False{} : Bool}:
+  %Equal.sym(Nat, bvalo(one, q), 2n+bvalo(one, q2), suc2_o(one, h1, q, q2, h)) : {Nat.is_eq(Nat.mod(1n, _), 0n) == False{} : Bool}
+  %Equal.sym(Nat, Nat.mod(Nat.add(Nat.mul(0n, 2n+bvalo(one, q2)), 1n), 2n+bvalo(one, q2)), 1n, NR.mod_of(0n, 1n+bvalo(one, q2), 1n, one_lt(bvalo(one, q2)))) : {Nat.is_eq(_, 0n) == False{} : Bool}
+  {==}
+
+def fp_o(+one: Nat, +h1: {one == 1n : Nat}, +q: B.Bn, +f: B.Bn, +ff: Nat, +hf: {bvalo(one, f) == ff : Nat}) -> {bvalo(one, B.bmul(q, f)) == Nat.mul(bvalo(one, q), ff) : Nat}:
+  %Equal.sym(Nat, ff, bvalo(one, f), Equal.sym(Nat, bvalo(one, f), ff, hf)) : {bvalo(one, B.bmul(q, f)) == Nat.mul(bvalo(one, q), _) : Nat}
+  mul_o(one, h1, q, f)
+
+# f f == n + d: n <= F F
+def hf_o(+one: Nat, +h1: {one == 1n : Nat}, +n: B.Bn, +f: B.Bn, +ff: Nat, +hf: {bvalo(one, f) == ff : Nat}, +d: B.Bn, +h: {B.beq(B.bmul(f, f), B.badd(n, d)) == True{} : Bool}) -> {Nat.is_le(bvalo(one, n), Nat.mul(ff, ff)) == True{} : Bool}:
+  %Equal.sym(Nat, ff, bvalo(one, f), Equal.sym(Nat, bvalo(one, f), ff, hf)) : {Nat.is_le(bvalo(one, n), Nat.mul(_, ff)) == True{} : Bool}
+  %Equal.sym(Nat, ff, bvalo(one, f), Equal.sym(Nat, bvalo(one, f), ff, hf)) : {Nat.is_le(bvalo(one, n), Nat.mul(bvalo(one, f), _)) == True{} : Bool}
+  %Equal.sym(Nat, Nat.mul(bvalo(one, f), bvalo(one, f)), bvalo(one, B.bmul(f, f)), Equal.sym(Nat, bvalo(one, B.bmul(f, f)), Nat.mul(bvalo(one, f), bvalo(one, f)), mul_o(one, h1, f, f))) : {Nat.is_le(bvalo(one, n), _) == True{} : Bool}
+  %Equal.sym(Nat, bvalo(one, B.bmul(f, f)), bvalo(one, B.badd(n, d)), eq_o(one, h1, B.bmul(f, f), B.badd(n, d), h)) : {Nat.is_le(bvalo(one, n), _) == True{} : Bool}
+  %Equal.sym(Nat, bvalo(one, B.badd(n, d)), Nat.add(bvalo(one, n), bvalo(one, d)), add_o(one, h1, n, d)) : {Nat.is_le(bvalo(one, n), _) == True{} : Bool}
+  N.le_add_right(bvalo(one, n), bvalo(one, d))
