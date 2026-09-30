@@ -90,11 +90,13 @@ def run(binary, env, bend):
     return float(kv['BENCH_MS']), kv['SUM']
 
 
-def measure(sides, env, samples):
-    """sides: [(label, binary, is_bend)]; one warm-up, then samples rotating the order"""
+def measure(sides, env, samples, warmup=True):
+    """sides: [(label, binary, is_bend)]; one warm-up (unless the row is too slow
+    for one), then samples rotating the order"""
     sums = {}
-    for label, b, isb in sides:
-        sums[label] = run(b, env, isb)[1]
+    if warmup:
+        for label, b, isb in sides:
+            sums[label] = run(b, env, isb)[1]
     t = {label: [] for label, _, _ in sides}
     for i in range(samples):
         order = sides[i % len(sides):] + sides[:i % len(sides)]
@@ -102,7 +104,7 @@ def measure(sides, env, samples):
             order = order[::-1]
         for label, b, isb in order:
             ms, s = run(b, env, isb)
-            assert s == sums[label], '%s checksum changed between runs' % label
+            assert sums.setdefault(label, s) == s, '%s checksum changed between runs' % label
             t[label].append(ms)
     return {k: statistics.median(v) for k, v in t.items()}, t, sums
 
@@ -127,7 +129,7 @@ def bench_case(case, samples):
             sides = [('bend', 'bend_' + case['bend'], True), ('c', 'c_' + case['c'], False)]
             if case.get('c_alt'):
                 sides.append(('c_alt', 'c_' + case['c_alt'], False))
-            med, raw, sums = measure(sides, env, spec.get('samples', samples))
+            med, raw, sums = measure(sides, env, spec.get('samples', samples), spec.get('warmup', True))
         finally:
             if tmp:
                 os.unlink(tmp)

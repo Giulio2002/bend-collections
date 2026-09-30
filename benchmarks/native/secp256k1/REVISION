@@ -1,0 +1,7 @@
+libsecp256k1 v0.6.0 (https://github.com/bitcoin-core/secp256k1, tag v0.6.0, commit 0cdc758a56360bf58a851fe91085a327ec97685a, 2024-11-04)
+The library sources (src/*.h, src/secp256k1.c, src/precomputed_ecmult{,_gen}.c), the recovery, extrakeys and schnorrsig
+modules and their public headers, unmodified; tests, benchmarks and the build system left out.
+Built as one translation unit plus the two precomputed tables with -DENABLE_MODULE_RECOVERY=1
+-DENABLE_MODULE_EXTRAKEYS=1 -DENABLE_MODULE_SCHNORRSIG=1 and the default ECMULT_WINDOW_SIZE=15 /
+COMB_BLOCKS=11 / COMB_TEETH=6; no assembly (USE_ASM_X86_64 not defined), 5x52 field and 4x64 scalar
+with __int128 on 64-bit targets. MIT licence (COPYING).
