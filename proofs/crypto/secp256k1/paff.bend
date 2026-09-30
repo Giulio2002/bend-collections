@@ -15,7 +15,7 @@ import ./bounds.bend as B
 import ./consts.bend as K
 import ./ineq.bend as I
 import ./limbs.bend as LV
-import ../../lib/nat.bend as N
+import ./lite/lib/nat.bend as N
 import ../../../spec/lib/common.bend as C
 
 # Affine coordinates, the point-at-infinity test and the generator of

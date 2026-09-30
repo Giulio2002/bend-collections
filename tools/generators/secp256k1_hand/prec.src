@@ -8,7 +8,7 @@ import ../../../src/crypto/secp256k1/scalar.bend as S
 import ../../../src/crypto/secp256k1/bytes.bend as B
 import ../../../src/crypto/secp256k1/point.bend as P
 import ../../../src/crypto/secp256k1/ecdsa.bend as E
-import ../../lib/nat.bend as N
+import ./lite/lib/nat.bend as N
 import ../../lib/logic.bend as Lg
 import ./consts.bend as K
 import ./ineq.bend as I

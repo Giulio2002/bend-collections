@@ -5,7 +5,7 @@ import ../../../spec/crypto/secp256k1/ecdsa.bend as ES
 import ../../../src/crypto/secp256k1/scalar.bend as S
 import ../../../src/crypto/secp256k1/ecdsa.bend as E
 import ../../lib/logic.bend as Lg
-import ../../math/natural/arith.bend as NR
+import ./lite/math/natural/arith.bend as NR
 import ./fwrap.bend as FW
 
 # The scalar range test 1 <= x < n (no scalar arithmetic is needed here, so
