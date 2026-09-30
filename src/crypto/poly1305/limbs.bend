@@ -11,8 +11,8 @@ import Base
 # reach. The multiplier r is therefore split into 13-bit halves,
 # r = e + 2^13 o (e and o are five limbs each, below 2^13): the block
 # product (h + m) r is (h + m) e + 2^13 (h + m) o, two schoolbook products
-# whose terms stay below 2^43 and whose five-term sums stay below 2^46
-# (docs/CRYPTO_CONTRACTS.md has the bound table).
+# whose terms stay below 2^44 and whose five-term sums stay below 2^46
+# (proofs/crypto/poly1305/sops.bend has the bound table).
 #
 # The only radix literal is 2^13 = 8192: x div 2^26 and x mod 2^26 are two
 # steps of 2^13 (dw and mw below). A division by a literal power of two
@@ -22,8 +22,9 @@ import Base
 # What is proved (proofs/crypto/poly1305/): every function below computes
 # its value exactly as a natural number, or congruent mod p where limbs at
 # 2^130 fold back; between blocks every limb has at most 27 bits (bnd.bend),
-# which the final reduction relies on. Staying below the runtime's 2^48 is
-# the bound table's arithmetic on those limb bounds (tested, not a clause).
+# which the final reduction relies on; and every Nat computed stays below
+# the runtime's 2^48, for every key and message (sops.bend per function,
+# safe.bend for mac, poly1305 and mac_aead).
 #
 # Constant time: every loop runs over public lengths and no branch depends
 # on a limb; the final conditional subtraction of p is arithmetic (a limb

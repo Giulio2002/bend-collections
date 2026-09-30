@@ -20,7 +20,9 @@ import ./poly.bend as PY
 # fin.bend (the final reduction and the tag bytes), modp.bend (the spec's
 # reduction) and mac.bend (the accumulator against the spec, block by
 # block, and the tag); tools/generators/poly1305_hand/*.src are their
-# sources (tools/generators/rw.py expands the rewrite steps).
+# sources (tools/generators/rw.py expands the rewrite steps). The run-time
+# bound (every Nat computed below 2^48) is its own root, safe.bend
+# (generated with sops.bend by tools/generators/poly1305_safe.py).
 
 def Laws.mac_correct(key, msg): M.mac_correct(key, msg)
 

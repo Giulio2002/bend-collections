@@ -17,8 +17,8 @@ import ./nat.bend as K
 # limbs 26, the multiplier's halves 13. One block keeps the accumulator's
 # limbs at 27 bits (the column sums have 48 bits, the combined columns 49);
 # the final reduction relies on it. The run-time bound (every intermediate
-# below 2^48, the native Nat's range) is the tighter table of
-# docs/CRYPTO_CONTRACTS.md.
+# below 2^48, the native Nat's range) is proved in sops.bend and safe.bend
+# (tools/generators/poly1305_safe.py), on top of these limb bounds.
 
 def lim(+k: Nat, f: L.F) -> Bool:
   match f:
