@@ -103,6 +103,9 @@ def gen_alg():
     c.conseq('div_x', c.sub(c.mul(x1, i1), c.mul(x2, i2)),
              [(one, c.mul(z2, i2), c.mul(x1, i1)), (c.mul(x1, z2), c.mul(x2, z1), c.mul(i1, i2)), (c.mul(z1, i1), one, c.mul(x2, i2))], (),
              'x1 z2 == x2 z1 with inverses i1, i2 of z1, z2: x1 i1 == x2 i2')
+    c.conseq('mul_x', c.sub(c.mul(x1, z2), c.mul(x2, z1)),
+             [(c.mul(x1, i1), c.mul(x2, i2), c.mul(z1, z2)), (one, c.mul(z1, i1), c.mul(x1, z2)), (c.mul(z2, i2), one, c.mul(x2, z1))], (),
+             'x1 i1 == x2 i2 with inverses i1, i2 of z1, z2: x1 z2 == x2 z1')
     c.write('aff_id7.bend', '# Equal quotients.\n')
     c = Ctx(['x1', 'y1', 'z1', 'x2', 'y2', 'z2'], ['7n'])
     x1, y1, z1, x2, y2, z2, b7 = [c.var(k) for k in range(7)]
@@ -121,10 +124,24 @@ def gen_alg():
     proj = c.sub(c.mul(c.mul(y, y), one), c.mul(c7, cube(c, one)))
     c.conseq('on_a2p', c.sub(cube(c, x), proj), [(c.add(cube(c, x), c7), c.mul(y, y), one)], (), 'y^2 == x^3 + 7 gives (x, y, 1) on the projective curve')
     c.conseq('on_p2a', c.sub(c.mul(y, y), c.add(cube(c, x), c7)), [(proj, cube(c, x), one)], (), 'and conversely')
+    c.conseq('nz_y', c.add(cube(c, x), c.mul(c7, cube(c, one))), [(c.add(cube(c, x), c7), c.mul(y, y), one), (c.mul(y, y), c.zero(), one)], (),
+             'y^2 == x^3 + 7 and y^2 == 0 give x^3 + 7 1^3 == 0')
     c.write('aff_id9.bend', '# The affine and the projective curve equation at z = 1.\n')
 
 
+def gen_neg():
+    c = Ctx(['x1', 'y1', 'z1', 'x2', 'y2', 'z2'])
+    x1, y1, z1, x2, y2, z2 = [c.var(k) for k in range(6)]
+    p, q = c.mul(y1, z2), c.mul(y2, z1)
+    ny2 = c.sub(c.zero(), y2)
+    c.conseq('neg_z', c.sub(c.mul(z1, ny2), c.mul(z2, y1)), [(c.zero(), c.add(p, q), c.const(1))], (), 'y1 z2 + y2 z1 == 0: z1 (-y2) == z2 y1')
+    c.conseq('neg_x', c.mul(c.sub(c.mul(x1, ny2), c.mul(x2, y1)), z2), [(c.zero(), c.add(p, q), x2), (c.mul(x2, z1), c.mul(x1, z2), y2)], (),
+             'and with x1 z2 == x2 z1: (x1 (-y2) - x2 y1) z2 == 0')
+    c.write('aff_id10.bend', '# Opposite points.\n')
+
+
 if __name__ == '__main__':
+    gen_neg()
     gen_chord()
     gen_tangent()
     gen_alg()
