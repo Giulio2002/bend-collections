@@ -1,0 +1,34 @@
+import Base
+import ../../../lib/logic.bend as Lg
+import ../../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../../spec/crypto/secp256k1/curve.bend as CS
+import ../../../../spec/crypto/secp256k1/group.bend as GS
+import ../../../../spec/crypto/secp256k1/glv.bend as GV
+import ../../../math/number/nt_prime.bend as PM
+import ./glaw1.bend as G1
+import ./glaw2.bend as G2
+import ./glaw4.bend as G4
+import ./glv.bend as GLV
+import ./pto.bend as PO
+
+# The GLV decomposition on the multiples of a point G of order n = 1 + nq
+# with phi(G) equiv [la] G: for k == k1 + k2 la (mod n),
+# [k] G equiv [k1] G + [k2] phi(G) (what a GLV scalar multiplication
+# computes: two half-length scalars on G and phi(G)).
+
+def split_main(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +be: Nat, +hb: {FS.mmul(1n+mp, FS.mmul(1n+mp, be, be), be) == 1n : Nat}, +la: Nat, +g: CS.SPoint, +vg: {GS.valid(1n+mp, g) == True{} : Bool}, +hf: {GS.equiv(1n+mp, GV.phi(1n+mp, be, g), GS.smul(1n+mp, la, g)) == True{} : Bool}, +nq: Nat, +hn: {GS.equiv(1n+mp, GS.smul(1n+mp, 1n+nq, g), CS.infinity()) == True{} : Bool}, +k: Nat, +k1: Nat, +k2: Nat, +hk: {Nat.mod(k, 1n+nq) == Nat.mod(Nat.add(k1, Nat.mul(k2, la)), 1n+nq) : Nat}) -> {GS.equiv(1n+mp, GS.smul(1n+mp, k, g), CS.padd(1n+mp, GS.smul(1n+mp, k1, g), GS.smul(1n+mp, k2, GV.phi(1n+mp, be, g)))) == True{} : Bool}:
+  +vpg = GLV.phi_valid(mp, be, hb, g, vg)
+  +vlg = G4.v_smul(mp, hp, h3, hnc, h21, la, g, vg)
+  +va = G4.v_smul(mp, hp, h3, hnc, h21, k1, g, vg)
+  +vb = G4.v_smul(mp, hp, h3, hnc, h21, k2, GV.phi(1n+mp, be, g), vpg)
+  +vc = G4.v_smul(mp, hp, h3, hnc, h21, k2, GS.smul(1n+mp, la, g), vlg)
+  +vd = G4.v_smul(mp, hp, h3, hnc, h21, Nat.mul(k2, la), g, vg)
+  +t1 = Lg.subst(Nat, v => {GS.equiv(1n+mp, GS.smul(1n+mp, k, g), GS.smul(1n+mp, v, g)) == True{} : Bool}, Nat.mod(k, 1n+nq), Nat.mod(Nat.add(k1, Nat.mul(k2, la)), 1n+nq), hk, PO.smul_mod(mp, hp, h3, hnc, h21, k, nq, g, vg, hn))
+  +t2 = G2.e_sym(mp, GS.smul(1n+mp, Nat.add(k1, Nat.mul(k2, la)), g), GS.smul(1n+mp, Nat.mod(Nat.add(k1, Nat.mul(k2, la)), 1n+nq), g), PO.smul_mod(mp, hp, h3, hnc, h21, Nat.add(k1, Nat.mul(k2, la)), nq, g, vg, hn))
+  +t3 = G4.smul_add(mp, hp, h3, hnc, h21, k1, Nat.mul(k2, la), g, vg)
+  +t4 = G2.e_add_r(mp, hp, GS.smul(1n+mp, k1, g), GS.smul(1n+mp, Nat.mul(k2, la), g), GS.smul(1n+mp, k2, GS.smul(1n+mp, la, g)), vd, vc, G4.smul_mul(mp, hp, h3, hnc, h21, k2, la, g, vg))
+  +t5 = G2.e_add_r(mp, hp, GS.smul(1n+mp, k1, g), GS.smul(1n+mp, k2, GS.smul(1n+mp, la, g)), GS.smul(1n+mp, k2, GV.phi(1n+mp, be, g)), vc, vb, G2.e_sym(mp, GS.smul(1n+mp, k2, GV.phi(1n+mp, be, g)), GS.smul(1n+mp, k2, GS.smul(1n+mp, la, g)), G4.smul_eqv(mp, hp, h3, hnc, h21, k2, GV.phi(1n+mp, be, g), GS.smul(1n+mp, la, g), vpg, vlg, hf)))
+  G2.e_trans(mp, hp, GS.smul(1n+mp, k, g), GS.smul(1n+mp, Nat.mod(Nat.add(k1, Nat.mul(k2, la)), 1n+nq), g), CS.padd(1n+mp, GS.smul(1n+mp, k1, g), GS.smul(1n+mp, k2, GV.phi(1n+mp, be, g))), G4.v_smul(mp, hp, h3, hnc, h21, Nat.mod(Nat.add(k1, Nat.mul(k2, la)), 1n+nq), g, vg), t1,
+    G2.e_trans(mp, hp, GS.smul(1n+mp, Nat.mod(Nat.add(k1, Nat.mul(k2, la)), 1n+nq), g), GS.smul(1n+mp, Nat.add(k1, Nat.mul(k2, la)), g), CS.padd(1n+mp, GS.smul(1n+mp, k1, g), GS.smul(1n+mp, k2, GV.phi(1n+mp, be, g))), G4.v_smul(mp, hp, h3, hnc, h21, Nat.add(k1, Nat.mul(k2, la)), g, vg), t2,
+      G2.e_trans(mp, hp, GS.smul(1n+mp, Nat.add(k1, Nat.mul(k2, la)), g), CS.padd(1n+mp, GS.smul(1n+mp, k1, g), GS.smul(1n+mp, Nat.mul(k2, la), g)), CS.padd(1n+mp, GS.smul(1n+mp, k1, g), GS.smul(1n+mp, k2, GV.phi(1n+mp, be, g))), G1.v_add(mp, hp, h3, hnc, h21, GS.smul(1n+mp, k1, g), GS.smul(1n+mp, Nat.mul(k2, la), g), va, vd), t3,
+        G2.e_trans(mp, hp, CS.padd(1n+mp, GS.smul(1n+mp, k1, g), GS.smul(1n+mp, Nat.mul(k2, la), g)), CS.padd(1n+mp, GS.smul(1n+mp, k1, g), GS.smul(1n+mp, k2, GS.smul(1n+mp, la, g))), CS.padd(1n+mp, GS.smul(1n+mp, k1, g), GS.smul(1n+mp, k2, GV.phi(1n+mp, be, g))), G1.v_add(mp, hp, h3, hnc, h21, GS.smul(1n+mp, k1, g), GS.smul(1n+mp, k2, GS.smul(1n+mp, la, g)), va, vc), t4, t5))))
