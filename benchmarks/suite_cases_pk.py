@@ -1,7 +1,7 @@
 """The pk group of benchmarks/crypto_suite.py: X25519, Ed25519, Argon2id and,
 when src/crypto/secp256k1.bend is present, secp256k1. Case format:
-suite_cases.py. Counts are small: one X25519 or Ed25519 operation takes
-0.1-0.6 s in Bend."""
+suite_cases.py. One X25519 or Ed25519 operation takes 0.5-1.5 ms in Bend;
+the counts keep each Bend sample well above the runtime's millisecond clock."""
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -40,17 +40,17 @@ def argon2id(m, r):
 
 PK = [
     dict(name='x25519', bend='x25519', c='x25519', c_build={'x25519': ([N + 'suite_x25519.c'] + MONO_SRC, [MONO])},
-         rows=[dict(size=32, count=8, label='shared secret')], py=per_message(x25519)),
+         rows=[dict(size=32, count=256, label='shared secret')], py=per_message(x25519)),
     dict(name='ed25519_keygen', bend='ed25519_keygen', c='ed25519_keygen',
          c_build={'ed25519_keygen': ([N + 'suite_ed25519_keygen.c'] + MONO_SRC, [MONO])},
-         rows=[dict(size=32, count=4, label='keygen')], py=per_message(ed_public)),
+         rows=[dict(size=32, count=128, label='keygen')], py=per_message(ed_public)),
     dict(name='ed25519_sign', bend='ed25519_sign', c='ed25519_sign',
          c_build={'ed25519_sign': ([N + 'suite_ed25519_sign.c'] + MONO_SRC, [MONO])},
-         rows=[dict(size=64, count=2, label='sign 64 B'), dict(size=1024, count=2, label='sign 1 KiB')],
+         rows=[dict(size=64, count=128, label='sign 64 B'), dict(size=1024, count=128, label='sign 1 KiB')],
          py=per_message(ed_sign)),
     dict(name='ed25519_verify', bend='ed25519_verify', c='ed25519_verify',
          c_build={'ed25519_verify': ([N + 'suite_ed25519_verify.c'] + MONO_SRC, [MONO])},
-         rows=[dict(size=64, count=2, label='verify 64 B'), dict(size=1024, count=2, label='verify 1 KiB')],
+         rows=[dict(size=64, count=64, label='verify 64 B'), dict(size=1024, count=64, label='verify 1 KiB')],
          py=per_message(lambda m, r: b'\x01')),
     dict(name='argon2id', bend='argon2id', c='argon2id',
          c_build={'argon2id': ([N + 'suite_argon2id.c'] + A2_SRC, [A2], ['-DARGON2_NO_THREADS'])},

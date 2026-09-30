@@ -24,6 +24,9 @@ import ../../src/crypto/ed25519/scalar.bend as ESC
 #   Ed25519.public     the implementation's public key is public_key(seed)
 #   Ed25519.sign       the implementation's signature is sign(seed, msg)
 #   Ed25519.verify     the implementation's verdict is verify(pk, msg, sig)
+#   Ed25519.key_public the expanded key of a seed carries public_key(seed)
+#   Ed25519.sign_key   signing with the expanded key of a seed is
+#                      sign(seed, msg)
 
 # ---- scalars ----
 
@@ -325,3 +328,9 @@ def Ed25519.sign(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +msg: 
 
 def Ed25519.verify(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}) -> Type:
   {E.verify_raw(pk, msg, sig) == verify(one, pk, msg, sig) : Bool}
+
+def Ed25519.key_public(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> Type:
+  {E.key_public(E.expand(seed)) == public_key(one, seed) : List<&2, U32>}
+
+def Ed25519.sign_key(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +msg: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> Type:
+  {E.sign_key(E.expand(seed), msg) == sign(one, seed, msg) : List<&2, U32>}

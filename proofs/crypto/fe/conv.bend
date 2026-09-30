@@ -15,7 +15,6 @@ import ../curve25519/num.bend as M
 import ../curve25519/cong.bend as G
 import ./nl.bend as NL
 import ./pw.bend as PW
-import ./carry.bend as CA
 import ./pass.bend as PS
 import ./ops.bend as OP
 import ./sub.bend as SB
@@ -325,6 +324,3 @@ def ob_value(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>, +hb: {FS.tig
 
 def ob_below(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>) -> {FV.below(LS.of_bytes_l(bs), WD.sc(17n, one)) == True{} : Bool}:
   group_below(one, h1, 17n, 15n, ob_bits(bs), NL.take_below(255n, LS.bits_all(8n, LS.nat_of(bs)), 2n, BY.bits_all_lt(8n, LS.nat_of(bs))))
-
-def ob_len(+bs: List<&2, U32>) -> {PS.ln(LS.of_bytes_l(bs)) == 15n : Nat}:
-  group_len(17n, 15n, ob_bits(bs))

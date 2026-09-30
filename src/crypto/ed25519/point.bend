@@ -49,15 +49,33 @@ def cs_s(c: Cs) -> FE.Fe:
 def cs_of(+R: Nat, +d: FE.Fe, s: FE.Fe) -> Cs:
   Cs{R, d, FE.add(R, d, d), s}
 
-# the constants from the symbolic one (1n at run time)
-def consts_one(+one: Nat) -> Cs:
-  +R = FE.radix(one)
-  cs_of(R, FE.mul(R, FE.neg(R, FE.small(X.a24(one))), FE.inv(R, FE.small(c121666(one)))), pow_p14(R, FE.small(2n)))
+# x, kept behind the input list xs: the proof checker never runs the
+# constant computations while xs is unknown
+def lit(+xs: List<&2, U32>, x: FE.Fe) -> FE.Fe:
+  match xs:
+    case Nil{}:
+      x
+    case Con{h, t}:
+      x
 
-# the constants; taking an input list xs keeps the proof checker from
-# evaluating them while xs is unknown (X.one_of)
+# the constants (X.one_of(xs) is 1)
 def consts(+xs: List<&2, U32>) -> Cs:
-  consts_one(X.one_of(xs))
+  +one = X.one_of(xs)
+  +R = FE.radix(one)
+  cs_of(R, FE.mul(R, FE.neg(R, lit(xs, FE.small(X.a24(one)))), FE.inv(R, lit(xs, FE.small(c121666(one))))), pow_p14(R, lit(xs, FE.small(2n))))
+
+# the small constant k, kept behind the radix of c the same way
+def small_r(r: Nat, +k: Nat) -> FE.Fe:
+  match r:
+    case 0n:
+      FE.small(k)
+    case 1n+q:
+      FE.small(k)
+
+def cs_small(c: Cs, +k: Nat) -> FE.Fe:
+  match c:
+    case Cs{r, d, d2, s}:
+      small_r(r, k)
 
 def identity() -> Pt:
   Pt{FE.zero(), FE.one(), FE.one(), FE.zero()}
@@ -209,4 +227,4 @@ def base_of(m: Maybe<&2, Pt>) -> Pt:
 
 def base(+c: Cs) -> Pt:
   +R = cs_r(c)
-  base_of(decode(c, FE.to_bytes(R, FE.mul(R, FE.small(4n), FE.inv(R, FE.small(5n))))))
+  base_of(decode(c, FE.to_bytes(R, FE.mul(R, cs_small(c, 4n), FE.inv(R, cs_small(c, 5n))))))

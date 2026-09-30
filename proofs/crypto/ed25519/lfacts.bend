@@ -11,11 +11,10 @@ import ../../lib/logic.bend as L
 import ../../lib/word.bend as WD
 import ../../lib/arith.bend as AR
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../math/natural/arith.bend as NR
 import ../curve25519/num.bend as M
 import ../curve25519/limbs.bend as LM
 import ../curve25519/consts.bend as K
-import ../curve25519/ladder.bend as LD
+import ../curve25519/xlem.bend as LD
 import ../fe/nl.bend as NL
 import ../fe/pw.bend as PW
 import ../fe/pass.bend as PS

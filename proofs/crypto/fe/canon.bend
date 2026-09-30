@@ -1,7 +1,6 @@
 import Base
 import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/curve25519/fe.bend as FV
-import ../../../src/crypto/curve25519/fe.bend as FE
 import ../../../src/crypto/curve25519/limbs.bend as LS
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
@@ -154,12 +153,6 @@ def div0(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) 
   +hb = CA.r_succ(one, h1, R, hR)
   +h2 = L.subst(Nat, z => {Nat.is_lt(t, z) == True{} : Bool}, R, 1n+b, sy(1n+b, R, hb), h)
   L.subst(Nat, z => {Nat.div(t, z) == 0n : Nat}, 1n+b, R, hb, NR.div_of(0n, b, t, h2))
-
-def mod_id(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +t: Nat, +h: {Nat.is_lt(t, R) == True{} : Bool}) -> {Nat.mod(t, R) == t : Nat}:
-  +b = Nat.sub(R, 1n)
-  +hb = CA.r_succ(one, h1, R, hR)
-  +h2 = L.subst(Nat, z => {Nat.is_lt(t, z) == True{} : Bool}, R, 1n+b, sy(1n+b, R, hb), h)
-  L.subst(Nat, z => {Nat.mod(t, z) == t : Nat}, 1n+b, R, hb, NR.mod_of(0n, b, t, h2))
 
 # the new limb 0 of the second pass stays below R
 def t2_lt(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +c: Nat, +m0: Nat, +Lv: Nat, +V: Nat, +hc: {Nat.is_lt(c, 2n) == True{} : Bool}, +hm: {Nat.is_le(m0, Lv) == True{} : Bool}, +hm0: {Nat.is_lt(m0, R) == True{} : Bool}, +hs: {Nat.add(Lv, WD.sc(255n, c)) == V : Nat}, +hV: {Nat.is_lt(V, Nat.add(WD.sc(255n, one), 95n)) == True{} : Bool}) -> {Nat.is_lt(Nat.add(m0, Nat.mul(c, 19n)), R) == True{} : Bool}:

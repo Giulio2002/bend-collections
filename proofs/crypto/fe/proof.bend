@@ -3,11 +3,9 @@ import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/curve25519/field.bend as FS
 import ../../../spec/crypto/curve25519/fe.bend as FV
 import ../../../src/crypto/curve25519/fe.bend as FE
-import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/word.bend as WD
 import ../curve25519/prime.bend as PR
-import ../curve25519/cong.bend as G
 import ./pw.bend as PW
 import ./carry.bend as CA
 import ./pass.bend as PS

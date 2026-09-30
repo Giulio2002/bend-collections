@@ -1,0 +1,39 @@
+import Base
+import ../../../spec/crypto/curve25519/field.bend as FS
+import ../../../spec/crypto/ed25519.bend as SE
+import ../../../spec/crypto/sha512.bend as SHA
+import ../../../src/crypto/hash.bend as H
+import ../../../src/crypto/curve25519/x25519.bend as X
+import ../../../src/crypto/ed25519/point.bend as PT
+import ../../../src/crypto/ed25519/ed25519.bend as E
+import ../../lib/logic.bend as L
+import ./pcodec.bend as PC
+import ./bytes.bend as BY
+import ../../../spec/crypto/sign.bend as SS
+import ../curve25519/prime.bend as PRM
+import ./tcommon.bend as TC
+import ./pbase.bend as PB
+
+# Gate: Ed25519.public, Ed25519.key_public (spec/crypto/ed25519.bend) and
+# Sign.keypair, Sign.key_public (spec/crypto/sign.bend), for every seed.
+
+def ed_public(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> SE.Ed25519.public(one, h1, seed, hs):
+  +pp = PB.pp1(one)
+  +P = {1n+pp : Nat}
+  +D = SE.dconst(one, P)
+  +h = H.sha512(seed)
+  +sh = SHA.sha512_bytes(seed)
+  +cs = PT.consts(seed)
+  +e1 = TC.public_rel(one, h1, pp, PRM.hP(one, h1), cs, PC.cr(one, h1, seed), D, PC.rd2(one, h1, pp, PRM.hP(one, h1), seed), PT.base(cs), TC.base_of(one, h1, seed), h, BY.sha_okb(seed))
+  +e2 = Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.public_of(one, P, D, z), h, sh, BY.sha_eq(seed))
+  +e12 = Equal.trans(List<&2, U32>, E.public_key(seed), SE.public_of(one, P, D, h), SE.public_key_at(one, P, seed), e1, e2)
+  L.subst(Nat, z => {E.public_key(seed) == SE.public_key_at(one, z, seed) : List<&2, U32>}, P, FS.prime(one), Equal.sym(Nat, FS.prime(one), P, PRM.prime_eq(one, h1)), e12)
+
+def ed_key_public(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> SE.Ed25519.key_public(one, h1, seed, hs):
+  ed_public(one, h1, seed, hs)
+
+def sign_keypair(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> SS.Sign.keypair(one, h1, seed, hs):
+  PB.keypair_if_eq(seed, X.valid_bytes(32n, seed), SE.public_key(one, seed), PB.valid_ok(32n, seed, hs), ed_public(one, h1, seed, hs))
+
+def sign_key_public(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> SS.Sign.key_public(one, h1, seed, hs):
+  PB.key_pub_eq(seed, X.valid_bytes(32n, seed), SE.public_key(one, seed), PB.valid_ok(32n, seed, hs), ed_key_public(one, h1, seed, hs))

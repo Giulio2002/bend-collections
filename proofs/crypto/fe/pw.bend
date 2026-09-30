@@ -2,17 +2,11 @@ import Base
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/word.bend as WD
-import ../../lib/arith.bend as AR
-import ../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../math/natural/arith.bend as NR
 import ../curve25519/num.bend as M
 
 # Powers of two with the symbolic one (2^k = WD.sc(k, one), one == 1n)
 # and the few closed inequalities the limb bounds of the field need, each
 # derived from doublings (the checker never forms a closed 2^k).
-
-def P(+k: Nat, +one: Nat) -> Nat:
-  WD.sc(k, one)
 
 def sc_pos(+k: Nat, +one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(0n, WD.sc(k, one)) == True{} : Bool}:
   L.subst(Nat, o => {Nat.is_lt(0n, WD.sc(k, o)) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), WD.sc_pos(k))

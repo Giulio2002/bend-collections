@@ -2,12 +2,14 @@ import Base
 import ../../../src/crypto/curve25519/x25519.bend as X
 import ../../../src/crypto/kex.bend as KX
 import ../../../src/crypto/sign.bend as SG
+import ../../../src/crypto/ed25519/ed25519.bend as E
 import ../../support/text.bend as T
 import ./hex.bend as H
 
 # Test driver: every argv token prints one line.
 #   x:<k>:<u>   X25519(k, u)             (hex)
 #   iter:<n>    RFC 7748 5.2 iterations, k = u = 9
+#   ksig:<seed>:<msg>  Ed25519 signature with the expanded key
 
 def opt(m: Maybe<&2, List<&2, U32>>) -> String:
   match m:
@@ -47,6 +49,14 @@ def kpub(m: Maybe<&2, KX.Keypair>) -> String:
 def f(+parts: List<&2, String>, i: Nat) -> List<&2, U32>:
   H.bytes(T.field(parts, i))
 
+# the signature under the expanded key (signing_key, then sign_with_key)
+def ksig(m: Maybe<&2, E.Key>, +msg: List<&2, U32>) -> Maybe<&2, List<&2, U32>>:
+  match m:
+    case None{}:
+      None{}
+    case Some{k}:
+      Some{SG.sign_with_key(k, msg)}
+
 # ops: x (X25519), iter, kpk (kex public), ss (shared secret), epk (Ed25519
 # public), esig (sign), ever (verify)
 def run(op: Nat, +parts: List<&2, String>) -> String:
@@ -63,6 +73,8 @@ def run(op: Nat, +parts: List<&2, String>) -> String:
       pub(SG.generate_keypair(f(parts, 1n)))
     case 5n:
       opt(SG.sign(f(parts, 1n), f(parts, 2n)))
+    case 7n:
+      opt(ksig(SG.signing_key(f(parts, 1n)), f(parts, 2n)))
     case _:
       bool(SG.verify(f(parts, 1n), f(parts, 2n), f(parts, 3n)))
 
@@ -93,8 +105,15 @@ def op_pick(a: Bool, b: Bool, c: Bool, d: Bool, e: Bool, g: Bool) -> Nat:
                         case False{}:
                           6n
 
+def op_k(k: Bool, +s: String) -> Nat:
+  match k:
+    case True{}:
+      7n
+    case False{}:
+      op_pick(String.eq(s, "x"), String.eq(s, "iter"), String.eq(s, "kpk"), String.eq(s, "ss"), String.eq(s, "epk"), String.eq(s, "esig"))
+
 def op_of(+s: String) -> Nat:
-  op_pick(String.eq(s, "x"), String.eq(s, "iter"), String.eq(s, "kpk"), String.eq(s, "ss"), String.eq(s, "epk"), String.eq(s, "esig"))
+  op_k(String.eq(s, "ksig"), s)
 
 def line(s: String) -> String:
   +parts = T.fields(s)

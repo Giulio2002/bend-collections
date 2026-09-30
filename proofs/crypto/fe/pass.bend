@@ -129,9 +129,6 @@ def mul_lt_r(+x: Nat, +y: Nat, +k: Nat, +hk: {Nat.is_lt(0n, k) == True{} : Bool}
   +b2 = L.subst(Nat, z => {Nat.is_lt(xk, z) == True{} : Bool}, Nat.add(xk, k), Nat.add(k, xk), NA.add_comm(xk, k), b1)
   N.lt_le_trans(xk, Nat.add(k, xk), Nat.mul(y, k), b2, a)
 
-def s17(+one: Nat) -> Nat:
-  WD.sc(17n, one)
-
 # a statement about 2^17, restated about R
 def at_r(+one: Nat, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, -M: Nat -> Type, pf: M(WD.sc(17n, one))) -> M(R):
   L.subst(Nat, M, WD.sc(17n, one), R, Equal.sym(Nat, R, WD.sc(17n, one), hR), pf)

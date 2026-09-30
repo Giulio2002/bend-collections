@@ -2,13 +2,10 @@ import Base
 import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/curve25519/field.bend as FS
 import ../../../spec/crypto/curve25519/fe.bend as FV
-import ../../../src/crypto/curve25519/fe.bend as FE
 import ../../../src/crypto/curve25519/limbs.bend as LS
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/word.bend as WD
-import ../../lib/arith.bend as AR
-import ../../lib/u32.bend as U
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/natural/arith.bend as NR
 import ../curve25519/num.bend as M
@@ -64,9 +61,6 @@ def sc_zero(+k: Nat) -> {WD.sc(k, 0n) == 0n : Nat}:
       {==}
     case 1n+ +m:
       Equal.cong(Nat, Nat, t => Nat.double(t), WD.sc(m, 0n), 0n, sc_zero(m))
-
-def dbl_sc(+x: Nat) -> {Nat.double(x) == WD.sc(1n, x) : Nat}:
-  {==}
 
 # ---- bits of a number ----
 

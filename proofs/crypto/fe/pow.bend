@@ -1,5 +1,4 @@
 import Base
-import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/curve25519/fe.bend as FV
 import ../../../src/crypto/curve25519/fe.bend as FE
 import ../../lib/nat.bend as N

@@ -1,5 +1,4 @@
 import Base
-import ../../../spec/crypto/curve25519/field.bend as FS
 import ../../../spec/crypto/ed25519.bend as SE
 import ../../../spec/crypto/sha512.bend as SHA
 import ../../../src/crypto/hash.bend as H

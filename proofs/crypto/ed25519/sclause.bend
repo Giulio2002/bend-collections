@@ -1,5 +1,4 @@
 import Base
-import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/curve25519/field.bend as FS
 import ../../../spec/crypto/curve25519/fe.bend as FV
 import ../../../spec/crypto/ed25519.bend as SE
@@ -10,12 +9,10 @@ import ../../../src/crypto/ed25519/scalar.bend as ESC
 import ../../lib/nat.bend as N
 import ../../lib/logic.bend as L
 import ../../lib/word.bend as WD
-import ../../lib/arith.bend as AR
 import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/natural/arith.bend as NR
 import ../curve25519/num.bend as M
 import ../curve25519/limbs.bend as LM
-import ../curve25519/cong.bend as G
 import ../fe/nl.bend as NL
 import ../fe/pw.bend as PW
 import ../fe/carry.bend as CA

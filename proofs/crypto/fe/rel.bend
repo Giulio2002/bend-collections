@@ -1,5 +1,4 @@
 import Base
-import ../../../spec/lib/common.bend as C
 import ../../../spec/crypto/curve25519/field.bend as FS
 import ../../../spec/crypto/curve25519/fe.bend as FV
 import ../../../src/crypto/curve25519/fe.bend as FE
@@ -12,7 +11,6 @@ import ../curve25519/cong.bend as G
 import ./ops.bend as OP
 import ./sub.bend as SB
 import ./pow.bend as PO
-import ./conv.bend as CV
 
 # The representation relation of the curve proofs over the fast field:
 # R(one, pp, x, a) is "x is ok (limbs below 2^19) and its value is a mod p".
