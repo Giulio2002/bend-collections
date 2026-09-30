@@ -11,6 +11,8 @@ import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/natural/arith.bend as NR
 import ../../math/typed/width.bend as WW
 import ../curve25519/num.bend as M
+import ./w32.bend as W3
+import ../../lib/arith.bend as AR
 import ./pw.bend as PW
 import ./nl.bend as NL
 
@@ -91,8 +93,33 @@ def hi_lt(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {Nat.is_lt(b, WD.sc(1
   +nle = N.lt_not_le(b, Nat.mul(E, 512n), L.subst(Nat, z => {Nat.is_lt(b, z) == True{} : Bool}, WD.sc(19n, one), Nat.mul(E, 512n), sy(Nat.mul(E, 512n), WD.sc(19n, one), e19), hb))
   N.not_le_lt(E, Nat.div(b, 512n), Equal.trans(Bool, Nat.is_le(E, Nat.div(b, 512n)), Nat.is_le(Nat.mul(E, 512n), b), False{}, e0, nle))
 
+# the 32-bit mask and shift of b are b mod 512 and b div 512, for b < 2^32
+def and511(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {Nat.is_lt(b, WD.sc(32n, one)) == True{} : Bool}) -> {U32.and(U32.from_nat(b), 511) == U32.from_nat(Nat.mod(b, 512n)) : U32}:
+  +x = U32.from_nat(b)
+  +l = U32.and(x, 511)
+  +hp = W3.hp32(9n, x)
+  +a = W3.and32(9n, x, 511, {==})
+  +c = L.subst(Nat, o => {Nat.is_lt(v(l), WD.sc(9n, o)) == True{} : Bool}, one, 1n, h1, W3.and32_lt(9n, one, h1, x, 511, {==}))
+  +eb = tnfn(one, h1, b, hb)
+  +e1 = tr(b, v(x), Nat.add(Nat.mul(hp, 512n), v(l)), sy(v(x), b, eb), tr(v(x), Nat.add(v(l), WD.sc(9n, hp)), Nat.add(Nat.mul(hp, 512n), v(l)), a, tr(Nat.add(v(l), WD.sc(9n, hp)), Nat.add(WD.sc(9n, hp), v(l)), Nat.add(Nat.mul(hp, 512n), v(l)), NA.add_comm(v(l), WD.sc(9n, hp)), M.cong_l(WD.sc(9n, hp), Nat.mul(hp, 512n), v(l), sy(Nat.mul(hp, 512n), WD.sc(9n, hp), AR.mul_sc(9n, hp))))))
+  +em = tr(Nat.mod(b, 512n), Nat.mod(Nat.add(Nat.mul(hp, 512n), v(l)), 512n), v(l), M.cong_mod(512n, b, Nat.add(Nat.mul(hp, 512n), v(l)), e1), NR.mod_of(hp, 511n, v(l), c))
+  +hm = lt32(one, h1, Nat.mod(b, 512n), 9n, 22n, {==}, L.subst(Nat, z => {Nat.is_lt(Nat.mod(b, 512n), z) == True{} : Bool}, 512n, WD.sc(9n, one), sy(WD.sc(9n, one), 512n, k512(one, h1)), NR.dm_lt(511n, b)))
+  U.injective(l, U32.from_nat(Nat.mod(b, 512n)), tr(v(l), Nat.mod(b, 512n), v(U32.from_nat(Nat.mod(b, 512n))), sy(Nat.mod(b, 512n), v(l), em), sy(v(U32.from_nat(Nat.mod(b, 512n))), Nat.mod(b, 512n), tnfn(one, h1, Nat.mod(b, 512n), hm))))
+
+def shr9(+one: Nat, +h1: {one == 1n : Nat}, +b: Nat, +hb: {Nat.is_lt(b, WD.sc(32n, one)) == True{} : Bool}, +hd: {Nat.is_lt(Nat.div(b, 512n), WD.sc(32n, one)) == True{} : Bool}) -> {U32.shrn(U32.from_nat(b), 9n) == U32.from_nat(Nat.div(b, 512n)) : U32}:
+  +x = U32.from_nat(b)
+  +e1 = tr(v(U32.shrn(x, 9n)), SC2.high(9n, v(x)), Nat.div(b, 512n), W3.shrn_high(x, 9n), tr(SC2.high(9n, v(x)), SC2.high(9n, b), Nat.div(b, 512n), Equal.cong(Nat, Nat, z => SC2.high(9n, z), v(x), b, tnfn(one, h1, b, hb)), WW.high_div(9n, b, 511n, {==})))
+  U.injective(U32.shrn(x, 9n), U32.from_nat(Nat.div(b, 512n)), tr(v(U32.shrn(x, 9n)), Nat.div(b, 512n), v(U32.from_nat(Nat.div(b, 512n))), e1, sy(v(U32.from_nat(Nat.div(b, 512n))), Nat.div(b, 512n), tnfn(one, h1, Nat.div(b, 512n), hd))))
+
+# the word split is the natural split
+def pm_split(+one: Nat, +h1: {one == 1n : Nat}, +a: Nat, +b: Nat, +hb: {Nat.is_lt(b, WD.sc(32n, one)) == True{} : Bool}, +hd: {Nat.is_lt(Nat.div(b, 512n), WD.sc(32n, one)) == True{} : Bool}) -> {LS.pm(a, b) == LS.pmr(a, b) : Nat}:
+  +ua = U32.from_nat(a)
+  +e1 = Equal.cong(U32, Nat, z => U32.to_nat(U32.mul(ua, z)), U32.and(U32.from_nat(b), 511), U32.from_nat(Nat.mod(b, 512n)), and511(one, h1, b, hb))
+  +e2 = Equal.cong(U32, Nat, z => Nat.mul(U32.to_nat(U32.mul(ua, z)), 512n), U32.shrn(U32.from_nat(b), 9n), U32.from_nat(Nat.div(b, 512n)), shr9(one, h1, b, hb, hd))
+  M.cong_add(U32.to_nat(U32.mul(ua, U32.and(U32.from_nat(b), 511))), LS.pu(a, Nat.mod(b, 512n)), Nat.mul(U32.to_nat(U32.mul(ua, U32.shrn(U32.from_nat(b), 9n))), 512n), Nat.mul(LS.pu(a, Nat.div(b, 512n)), 512n), e1, e2)
+
 # pm(a, b) == a b for a, b < 2^19
-def pm_eq(+one: Nat, +h1: {one == 1n : Nat}, +a: Nat, +b: Nat, +ha: {Nat.is_lt(a, WD.sc(19n, one)) == True{} : Bool}, +hb: {Nat.is_lt(b, WD.sc(19n, one)) == True{} : Bool}) -> {LS.pm(a, b) == Nat.mul(a, b) : Nat}:
+def pm_eqr(+one: Nat, +h1: {one == 1n : Nat}, +a: Nat, +b: Nat, +ha: {Nat.is_lt(a, WD.sc(19n, one)) == True{} : Bool}, +hb: {Nat.is_lt(b, WD.sc(19n, one)) == True{} : Bool}) -> {LS.pmr(a, b) == Nat.mul(a, b) : Nat}:
   +lo = Nat.mod(b, 512n)
   +hi = Nat.div(b, 512n)
   +hlo = L.subst(Nat, z => {Nat.is_lt(lo, z) == True{} : Bool}, 512n, WD.sc(9n, one), sy(WD.sc(9n, one), 512n, k512(one, h1)), NR.dm_lt(511n, b))
@@ -104,7 +131,10 @@ def pm_eq(+one: Nat, +h1: {one == 1n : Nat}, +a: Nat, +b: Nat, +ha: {Nat.is_lt(a
   +eb = NR.dm_eq(511n, b)
   +e4 = tr(Nat.mul(a, b), Nat.mul(a, Nat.add(Nat.mul(hi, 512n), lo)), Nat.add(Nat.mul(a, Nat.mul(hi, 512n)), Nat.mul(a, lo)), mr(a, b, Nat.add(Nat.mul(hi, 512n), lo), eb), NA.mul_add_left(a, Nat.mul(hi, 512n), lo))
   +e5 = tr(Nat.add(Nat.mul(a, Nat.mul(hi, 512n)), Nat.mul(a, lo)), Nat.add(Nat.mul(a, lo), Nat.mul(a, Nat.mul(hi, 512n))), Nat.add(Nat.mul(a, lo), Nat.mul(Nat.mul(a, hi), 512n)), NA.add_comm(Nat.mul(a, Nat.mul(hi, 512n)), Nat.mul(a, lo)), M.cong_r(Nat.mul(a, lo), Nat.mul(a, Nat.mul(hi, 512n)), Nat.mul(Nat.mul(a, hi), 512n), sy(Nat.mul(Nat.mul(a, hi), 512n), Nat.mul(a, Nat.mul(hi, 512n)), NA.mul_assoc(a, hi, 512n))))
-  tr(LS.pm(a, b), Nat.add(Nat.mul(a, lo), Nat.mul(Nat.mul(a, hi), 512n)), Nat.mul(a, b), e3, sy(Nat.mul(a, b), Nat.add(Nat.mul(a, lo), Nat.mul(Nat.mul(a, hi), 512n)), tr(Nat.mul(a, b), Nat.add(Nat.mul(a, Nat.mul(hi, 512n)), Nat.mul(a, lo)), Nat.add(Nat.mul(a, lo), Nat.mul(Nat.mul(a, hi), 512n)), e4, e5)))
+  tr(LS.pmr(a, b), Nat.add(Nat.mul(a, lo), Nat.mul(Nat.mul(a, hi), 512n)), Nat.mul(a, b), e3, sy(Nat.mul(a, b), Nat.add(Nat.mul(a, lo), Nat.mul(Nat.mul(a, hi), 512n)), tr(Nat.mul(a, b), Nat.add(Nat.mul(a, Nat.mul(hi, 512n)), Nat.mul(a, lo)), Nat.add(Nat.mul(a, lo), Nat.mul(Nat.mul(a, hi), 512n)), e4, e5)))
+
+def pm_eq(+one: Nat, +h1: {one == 1n : Nat}, +a: Nat, +b: Nat, +ha: {Nat.is_lt(a, WD.sc(19n, one)) == True{} : Bool}, +hb: {Nat.is_lt(b, WD.sc(19n, one)) == True{} : Bool}) -> {LS.pm(a, b) == Nat.mul(a, b) : Nat}:
+  Equal.trans(Nat, LS.pm(a, b), LS.pmr(a, b), Nat.mul(a, b), pm_split(one, h1, a, b, lt32(one, h1, b, 19n, 12n, {==}, hb), lt32(one, h1, Nat.div(b, 512n), 10n, 21n, {==}, hi_lt(one, h1, b, hb))), pm_eqr(one, h1, a, b, ha, hb))
 
 def scalp_eq(+one: Nat, +h1: {one == 1n : Nat}, +a: Nat, +ys: List<&2, Nat>, +ha: {Nat.is_lt(a, WD.sc(19n, one)) == True{} : Bool}, +hy: {FV.below(ys, WD.sc(19n, one)) == True{} : Bool}) -> {LS.scalp(a, ys) == LS.scal(a, ys) : List<&2, Nat>}:
   match ys:

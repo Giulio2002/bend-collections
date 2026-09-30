@@ -255,7 +255,7 @@ generated body against its list form by one evaluation, then reasons about
 the list form):
 
 - products: the 15 × 15 schoolbook columns with every limb product on the
-  native 32-bit multiplier (`pm`: one factor split at bit 9, both half
+  native 32-bit multiplier (`pm`: one factor split at bit 9 by a mask and a shift of its 32-bit word, both half
   products below 2^29, so the U32 product is exact; a `Nat` product checks
   its 48-bit bound with a division), the upper columns folded by 19
   (2^255 = 19 mod p), then one carry pass;
@@ -349,19 +349,36 @@ sqrt(-1) and the base point are computed from small integers by the proved
 field operations; `ed25519.bend` gathers them in a context,
 `E.context(xs)` (xs is any list: it keeps the proof checker from running
 the computation), which the `_ctx` functions take, as a C implementation
-keeps them in static tables. Scalar multiplication by a secret scalar is
-double-and-add with the addition always computed and selected (`mul`); by
-a public scalar (verification) it adds only on one bits (`mul_vt`, proved
-to give the specification's point). Scalars mod L (`scalar.bend`) are
+keeps them in static tables. Without a context, scalar multiplication by
+a secret scalar is double-and-add with the addition always computed and
+selected (`mul`); by a public scalar (verification) it adds only on one
+bits (`mul_vt`, proved to give the specification's point). The context
+also carries a table of the base point: 64 rows [0 P, 1 P, ..., 15 P] for
+P = 16^j B, each entry prepared for additions (`Cp`: Y + X, Y - X, 2 d T,
+2 Z). With it [k] B is the sum over the 64 hexadecimal digits of k of one
+entry per row (`mul_base`: 64 additions, no doubling). A secret digit
+selects its entry by masks over the whole row (`look`, `pick.bend`
+`sel16`, written by `tools/gen_pick.py`: every entry is read and no branch
+depends on the digit); a public digit indexes it (`mul_base_vt`). In
+verification [k]A is by 4-bit windows (`mul_win`: the row [0 A, ..., 15 A],
+then per digit, most significant first, four doublings and one addition of
+the indexed entry; the doublings and additions whose result is doubled
+next skip T, `winf`, proved the same point by `pwinf.bend`). Scalars mod L (`scalar.bend`) are
 17-bit limbs reduced by Horner's rule: each step estimates the quotient
 from the top limbs (the true quotient or one more), subtracts that
-multiple of L and then L by selection; `reduce` (a 64-byte digest mod L)
-and `mul_add` ((r + k s) mod L). `ed25519.bend`: key generation (the
+multiple of L and then L by selection (`step.bend`: the step on 15 limbs
+as straight-line code, written by `tools/gen_scalar.py`); `reduce` (a
+64-byte digest mod L) and `mul_add` ((r + k s) mod L). Bytes and 17-bit
+limbs are regrouped through a bit buffer (`limbs.bend` `pk`, `up`,
+written by `tools/gen_pack.py`), for field elements and scalars alike. `ed25519.bend`: key generation (the
 secret scalar is the clamped lower half of SHA-512(seed)), the expanded
-key (`expand`, `expand_ctx`: constants, base point, s mod L, prefix and
+key (`expand`, `expand_ctx`: constants, the table, s mod L, prefix and
 public key, computed once), signing with it (`sign_key`: one base-point
-multiplication per signature), and cofactorless verification
-[S]B == R + [k]A, with S ≥ L rejected and both points decoded strictly.
+multiplication by the table per signature), and cofactorless verification
+[S]B == R + [k]A, with S ≥ L rejected and both points decoded strictly
+(`verify_ctx`: [S]B by the table, [k]A by windows). `public_key(seed)`, `sign_raw(seed,
+msg)` and `verify_raw(pk, msg, sig)` take no context and build no table
+(the table costs about 1 ms): they use double-and-add.
 `sign.bend` is the facade: `generate_keypair(seed)`,
 `generate_keypair_os()`, `sign(sk, msg)`, `signing_key(seed)`,
 `sign_with_key(k, msg)`, `key_public(k)`, `verify(pk, msg, sig)`, and the
@@ -385,11 +402,13 @@ compares two terms that contain them.
 | `Ed25519.public` | `public_key(seed)` equals the RFC's (5.1.5) | proved |
 | `Ed25519.sign` | `sign_raw(seed, msg)` equals the RFC's signature (5.1.6), for every message | proved |
 | `Ed25519.verify` | for a 32-byte key and a 64-byte signature, the verdict equals the RFC's (5.1.7, cofactorless, S < L required) | proved |
-| `Ed25519.key_public`, `Ed25519.sign_key` | the expanded key of a seed carries `public_key(seed)`; signing with it is `sign(seed, msg)` | proved |
-| `Ed25519.public_ctx`, `Ed25519.sign_ctx`, `Ed25519.verify_ctx` | the same with the constants of `context(xs)`, for every list xs | proved |
+| `Ed25519.key_public`, `Ed25519.sign_key` | the expanded key of a seed carries `public_key(seed)`; signing with it is `sign(seed, msg)` | proved from `LawE` (below) |
+| `Ed25519.public_ctx`, `Ed25519.sign_ctx`, `Ed25519.verify_ctx` | the same with the constants of `context(xs)`, for every list xs | proved from `LawE` / `LawQ` / `LawW` / `LawV` |
 | `Sign.keypair`, `Sign.sign`, `Sign.verify` | the facade on well-formed input is the specification | proved |
-| `Sign.key_public`, `Sign.key_sign` | `signing_key(seed)` is a key whose public key and signatures are the seed's | proved |
-| `Sign.keypair_ctx`, `Sign.key_public_ctx`, `Sign.key_sign_ctx`, `Sign.verify_ctx` | the same with `context(xs)`, for every xs | proved |
+| `Sign.key_public`, `Sign.key_sign` | `signing_key(seed)` is a key whose public key and signatures are the seed's | proved from `LawE` |
+| `Sign.keypair_ctx`, `Sign.key_public_ctx`, `Sign.key_sign_ctx`, `Sign.verify_ctx` | the same with `context(xs)`, for every xs | proved from `LawE` / `LawQ` / `LawW` / `LawV` |
+| `LawE`, `LawQ` (`proofs/crypto/ed25519/fbspec.bend`) | the table form of [k] B over the specification's points encodes as, and compares with any point as, the specification's double-and-add [k] B, for 32 bytes k | proved from `G.Curve` (`proof_law.bend`) |
+| `LawW`, `LawV` (`fbspec.bend`) | for valid R and A, R + (the window form of [k] A) compares with any point as R + [k] A; every decoding (or the identity) is valid | proved from `G.Curve` (`proof_law.bend`) |
 | `Sign.reject_seed`, `Sign.reject_key`, `Sign.reject`, `Sign.reject_signing_key`, `Sign.reject_*_ctx` | malformed seed, key or signature: `None` / `False` | proved |
 
 Proof (`proofs/crypto/ed25519/`, roots `proof.bend` (scalars and
@@ -402,7 +421,9 @@ equality (`pcodec.bend`) and decoding (`pdec.bend`: each branch, both
 square-root cases and the failures) are related through canonical values;
 the Horner reduction mod L (`lfacts.bend`: L in 17-bit limbs; `subb.bend`:
 subtraction with borrows; `horner.bend`: one step keeps the value mod L
-and the bound below L; `sclause.bend`: `reduce`, `mul_add`); SHA-512
+and the bound below L; `stepb.bend`: the straight-line step is the list
+one, by evaluation; `sclause.bend`: `reduce`, `mul_add`); the byte and
+limb regrouping keeps the value (`proofs/crypto/fe/pack.bend`); SHA-512
 digests are 64 bytes below 256 and equal FIPS 180-4 (`bytes.bend`, reusing
 `proofs/crypto/sha512/`); `tcommon.bend`, `tscal.bend`, `tsign.bend`,
 `tverify.bend` compose key generation, signing and verification. The
@@ -413,6 +434,33 @@ byte-field library of `proofs/crypto/curve25519/`; with the entry points
 (`expand_ctx`, `public_key_ctx`, `sign_key`, `verify_ctx`), `smul` and
 `base` each matching first on an argument the proofs keep symbolic, every
 Ed25519 root checks in under 600 MB.
+
+The table multiplication is proved in two steps. First, against a mirror
+of itself over the specification's points (`fbspec.bend` `smulb`: the same
+rows, by the specification's additions and doublings, and the same sum):
+prepared points and `add_c` (`ptab.bend`: the relation `Rc`, and `add_c`
+is the specification's addition), the selection by masks (`pickb.bend`:
+`sel16` is its list form, by evaluation; `pickp.bend`: with the masks of
+digit i the list form returns entry i; `pickr.bend`: entry i of the row
+built from a related point is the specification row's entry), and the sum
+over rows and digits (`pfb.bend`), all point by point as for
+double-and-add. Second, that the mirror is the specification's [k] B,
+which is the group law: every point the mirror builds is a valid point
+whose affine point is the multiple its digits say (`fbgrp.bend`, on the
+affine group of `proofs/crypto/ed25519/group/`), the decoded base point is
+a valid point (`pbvalid.bend`: the decoder's test v x^2 == ±u is the
+curve equation), and the encoding of a valid point and its comparison
+with any point depend only on its affine point (`fblaw.bend`). The clause
+proofs with a context take these two statements (`LawE`, `LawQ`) as
+hypotheses, so their roots stay under 600 MB. The windows are proved the
+same way (`pfb.bend` `win_rel` against the mirror `swin`, `fbgrp.bend`
+`va_win`: the mirror is [value] A), and `fblaw.bend` `law_w` turns that
+into `LawW` (a comparison with a valid point depends only on its affine
+point); `pbvalid.bend` gives `LawV`; `proof_law.bend` proves both
+from the curve parameters `G.Curve` (p prime, d not a square, a square
+root of -1), which `group/cpar.bend` derives from the certificate roots.
+`proof_law.bend` imports the group law and checks in about 30 s and
+1.3 GB.
 
 The proof checker compares two terms by pointer or by reducing both and
 walking them, so the proofs keep every compared term either a variable or a
@@ -426,24 +474,36 @@ in the clauses (d, p, R). Each such match returns the same expression in
 every case, so the specification is unchanged; the proofs unfold it once,
 in lemmas over variables.
 
-What is not claimed: that the specification's points lie on the curve or
-form a group (the clauses are implementation == RFC transcription, the
-HACL* notion of functional correctness, not the mathematical security of
-Ed25519), and constant time (below). Because the group law is not proved,
-the implementation keeps the specification's double-and-add chain: no
-precomputed multiples of the base point, windows or joint (Strauss)
-multiplication, whose results are other representatives of the same
-points.
+### The group law
+
+The specification's points form a group: `spec/crypto/curve25519/edwards.bend`
+defines the affine twisted Edwards addition and states the abelian group
+laws (`Group.*`: closure, identity, inverse, commutativity, associativity,
+scalar multiples), and `spec/crypto/ed25519_group.bend` states that RFC
+8032's addition, doubling and double-and-add in extended coordinates
+compute them (`Ed25519.add_affine`, `Ed25519.double_affine`,
+`Ed25519.mul_affine`: `affine(mul(k, a)) == [k mod 2^256] affine(a)`, and
+validity is preserved), for every input: the law is complete. The proofs
+are in `proofs/crypto/ed25519/group/`; `docs/ED25519_GROUP_LAW.md` has the
+method (identities by reflection, completeness from Euler's criterion for
+d, Pocklington certificates for p and L) and the list of roots. The
+base-point table of the context is proved equal to the specification's
+[k] B through them (`fbgrp.bend`, `fblaw.bend` above).
+
+What is not claimed: the mathematical security of Ed25519 beyond these
+laws, and constant time (below).
 
 ### Constant time
 
 Every secret-dependent step is branch-free: the ladder swaps and the
 double-and-add selections are arithmetic (`select(s, a, b)` computes
-`a (1 - s) + b s` limb-wise), loop counts come from public lengths, the
-conditional subtractions of p and L are selections, and nothing matches on
-secret data. Bend has no timing model, so this is a property of the code's
-shape, not a proved clause. Verification works on public data only (its
-multiplications branch on the public scalars' bits).
+`a (1 - s) + b s` limb-wise), a table entry for a secret digit is the sum
+over the whole row of mask times entry (`look`), loop counts come from
+public lengths, the conditional subtractions of p and L are selections,
+and nothing matches on secret data. Bend has no timing model, so this is a
+property of the code's shape, not a proved clause. Verification works on
+public data only (its multiplications branch on the public scalars' bits
+and index the table by their digits).
 
 ### Tests
 
@@ -1011,9 +1071,8 @@ over the records (`pti`, `ptp`: register by register, products by b3 through
 the 256 bits (linear-time bit lists): for a secret scalar both branches of
 every step are computed and selected with an arithmetic mask, with no branch
 or index on the scalar; for a public scalar (verification, recovery) only the
-set bits add. BIP-340 functions take the tag hashes as arguments, the code's
-precomputed and the specification's SHA-256 of the tag names, equal by
-evaluation once. RFC 6979 candidates, low-S (`s > n / 2` becomes `n - s`, the
+set bits add. BIP-340 functions take the tag hashes as arguments (SHA-256 of
+the tag names, computed per call). RFC 6979 candidates, low-S (`s > n / 2` becomes `n - s`, the
 recovery id's parity flipped) and the recovery x = r + n (computed as
 (r - c_n + c_p) mod p, valid when not below n) are computed on limbs.
 Operations look at their arguments first where that keeps unknown values
@@ -1036,14 +1095,19 @@ key), which changes nothing at run time.
 | `SchnorrKeypairPubkey.correct` | `schnorr_keypair_pubkey(schnorr_keypair(sk)) == SS.pubkey(one, sk)` | proved (`proof_schnorr.bend`) |
 | `SchnorrSignKeypair.correct` | `schnorr_sign_keypair(schnorr_keypair(sk), msg, aux) == SS.sign(one, sk, msg, aux)` | proved (`proof_schnorr.bend`) |
 
-Each laws file has its own root, so that each checks alone (Bend 2.0.34):
-on the development machine (`bend-local`) `proof.bend` 18 s and 797 MB,
-`proof_sign.bend` 44-50 s and 1027-1146 MB, `proof_schnorr.bend` 34 s and
-1026 MB; on the shared server (`rcheck`, one after another) `proof.bend`
-33 s and 1085 MB, `proof_sign.bend` 76 s and 1770 MB, `proof_verify.bend`
-36 s and 1079 MB, `proof_recover.bend` 39 s and 1198 MB,
-`proof_schnorr.bend` 66 s and 1751 MB. The sign and Schnorr roots include
-the SHA-256 conformance proof (about 11 s and 500 MB alone).
+Each laws file has its own root, so that each checks alone (Bend 2.0.34,
+on the shared server with `rcheck`, one after another): `proof.bend` 27-44 s
+and 710 MB, `proof_sign.bend` 42-55 s and 933 MB, `proof_verify.bend` 32 s
+and 792 MB, `proof_recover.bend` 32 s and 800 MB, `proof_schnorr.bend` 41 s
+and 877 MB (the times move with the server's load). What keeps them there:
+the proofs import pruned copies of the proof libraries
+(`proofs/crypto/secp256k1/lite/`, written by `tools/generators/shake.py`: the
+251 definitions reached, unchanged, of 842); literal limbs are compared with
+2^16 once (`lits`), and the generator is reduced by its top limb, with no
+arithmetic on its coordinates; HMAC stays folded on an unknown key, and the
+DRBG's initial K and V, like the BIP-340 tag hashes, are arguments named once
+at the top, behind a test the proofs keep unknown, so that the checker never
+expands a hash of constants.
 
 The lemmas underneath (`proofs/crypto/secp256k1/`, generated from
 `tools/generators/secp256k1_hand/*.src` by `tools/generators/rw.py`, whose
@@ -1068,16 +1132,106 @@ directives only spell out the rewriting steps the checker verifies):
   the fuel), `rconst`/`prec` (c_p < c_n, n < p, (r - c_n + c_p) mod p =
   (r + n) mod p and the wrap test), `peth`/`pecr`, `pschn`.
 
+### The group law (`proofs/crypto/secp256k1/laws_group.bend`)
+
+The points of the specification are projective triples; the group is
+stated on them (`spec/crypto/secp256k1/group.bend`): `valid(p, A)` (on the
+curve Y^2 Z = X^3 + 7 Z^3 and Y != 0: on this curve a triple with Y = 0 is
+(0, 0, 0)), `equiv(p, A, B)` (the same projective point: X1 Y2 = X2 Y1 and
+Z1 Y2 = Z2 Y1), `neg`, and `smul(p, k, A)` ([k] A as k additions). Every
+clause is for every input, with p = `FS.prime(one)`:
+
+| Clause | Statement |
+|---|---|
+| `Group.closed`, `Group.infinity`, `Group.neg_closed` | `valid(A + B)` for valid A, B; `valid(O)`; `valid(-A)` |
+| `Group.commutative` | `padd(A, B) == padd(B, A)` (as triples, any A, B) |
+| `Group.associative` | `equiv((A + B) + C, A + (B + C))` for valid A, B, C |
+| `Group.identity`, `Group.inverse` | `equiv(A + O, A)`, `equiv(A + (-A), O)` |
+| `Group.double` | `pdbl(A) == padd(A, A)` (as triples) for valid A |
+| `Equiv.refl`, `Equiv.sym`, `Equiv.trans`, `Equiv.add_left`, `Equiv.add_right` | `equiv` is an equivalence on the points of the group and the addition respects it |
+| `Scalar.closed`, `Scalar.add`, `Scalar.mul`, `Scalar.equiv` | `valid([k] A)`; `equiv([j + k] A, [j] A + [k] A)`; `equiv([j k] A, [j] ([k] A))`; `equiv([k] A, [k] A')` for `equiv(A, A')` |
+| `Scalar.pmul`, `Scalar.pmul_low`, `Scalar.pmul_closed` | the specification's double-and-add: `equiv(pmul(k, A), [k] A)` for k < 2^256, `equiv(pmul(k, A), [k mod 2^256] A)` for any k, and it is valid |
+
+How they are proved (`proofs/crypto/secp256k1/group/`,
+`docs/SECP256K1_GROUP_LAW.md`):
+
+- p is prime (`certa.bend`) and n is prime (`certn.bend`): Pocklington
+  chains (p - 1 = 2 3 7 13441 q1, ...), each step a closed computation on
+  binary numbers (`bn.bend`, `bnx.bend`) checked by the proof checker, the
+  criterion itself proved from Fermat's little theorem
+  (`proofs/math/number/nt_*.bend`: primes, Euclid's lemma, Fermat, field
+  facts, Pocklington; nothing there is specific to secp256k1). -7 is not
+  a cube modulo p (`certd.bend`, `nc.bend`: (-7)^((p-1)/3) != 1 and
+  Fermat), so the curve has no point of order 2.
+- Polynomial identities by reflection: a normalizer for sparse
+  polynomials written in Bend (`poly.bend`), proved to compute the sum,
+  difference, product and the reduction by x^d = f of the values for every
+  input (`pev.bend`, `zm.bend`, `red.bend`); the specification's register
+  programs run on polynomials and agree with the specification's runs
+  (`sym.bend`); an identity is then a `{==}` check that a polynomial
+  computes to `[]` (`ident.bend`, instances `id_*.bend` written by
+  `tools/generators/secp256k1_group/gen_ids.py`). This gives, for any
+  modulus: commutativity, the sum of curve points is on the curve, the two
+  cross products of (A + B) + C and A + (B + C) modulo the three curve
+  equations (one uniform identity: the formulas are complete, so there is
+  no case analysis), doubling is A + A, homogeneity.
+- Completeness (`comp.bend`): W Y3 = N^3 + 7 D^3 for explicit W, N, D, so
+  a sum with Y3 = 0 gives a cube root of -7.
+- The group on points (`glaw1.bend` .. `glaw5.bend`), the scalar laws by
+  induction, the specification's ladder by induction over its bits.
+
+### Protocol correctness and the other group facts
+
+All unconditional, for every input (each family has its laws file and a
+closing root that applies the certificates; the same clauses with the
+certificate facts as hypotheses are in `group/<family>p.bend`, for proofs
+that build on them):
+
+| Clauses (file) | Statement |
+|---|---|
+| `Field.prime`, `Field.not_cube` (`laws_field.bend`), `Field.order_prime` (`laws_field_n.bend`) | p and n are prime (`SN.prime`); (-7)^((p-1)/3) != 1 in GF(p) |
+| `Generator.valid`, `.order`, `.mod`, `.add_mod`, `.mul_mod`, `.not_infinity` (`laws_order.bend`) | G is a point of the group, [n] G = O, [k] G depends on k mod n, [j] G + [k] G = [(j+k) mod n] G, [j]([k] G) = [jk mod n] G, [k] G != O for 0 < k < n |
+| `Affine.*` (`laws_affine.bend`) | the chord-and-tangent law of SEC 1 2.2.1 (`spec/crypto/secp256k1/affine.bend`): the projective addition computes it in every case, equiv points have the same affine point and conversely, closure, identity, inverse, commutativity, associativity |
+| `Sqrt.square`, `Sqrt.parity`, `Encoding.*` (`laws_encoding.bend`) | fsqrt of a square squares to it (p = 3 mod 4); decode(encode(A)) is (X/Z : Y/Z : 1), compressed and uncompressed; decode returns None or a point of the group in normal form |
+| `Ecdsa.sign_verify`, `Ecdsa.sign_recover` (`laws_ecdsa.bend`) | a signature returned by `sign` verifies under the signer's key (compressed or not, strict or not); `recover` of it returns the signer's uncompressed key |
+| `Schnorr.pubkey`, `.sign`, `.verify`, `.sign_verify`, `.sign_none`, `.tagged` (`laws_schnorr_group.bend`) | BIP-340 signing succeeds whenever the nonce k' is nonzero (the final self-check never fails) and its signature verifies under the signer's key; it fails only when k' = 0 |
+| `Glv.beta_cube`, `.beta_nontrivial`, `.lambda`, `.phi_valid`, `.phi_add`, `.generator`, `.multiples` (`laws_glv.bend`), `Glv.split` (`laws_glvsplit.bend`) | beta^3 = 1 != beta, lambda^2 + lambda + 1 = 0 mod n, phi(X : Y : Z) = (beta X : Y : Z) is a homomorphism of the group, phi(G) = [lambda] G, phi([k] G) = [lambda]([k] G), and [k] G = [k1] G + [k2] phi(G) for k = k1 + k2 lambda mod n |
+
+[n] G = O and phi(G) = [lambda] G are closed computations: addition chains
+on G in affine coordinates with slope witnesses (`group/pta*.bend`), each
+step checked by the proof checker.
+
+Check times of the roots (`bend-local`, Bend 2.0.34, on a loaded machine):
+
+| Root | Time | Peak RSS |
+|---|---|---|
+| `proof_group.bend` | 26 s | 896 MB |
+| `proof_affine.bend` | 27 s | 993 MB |
+| `proof_encoding.bend` | 18 s | 745 MB |
+| `proof_field.bend` | 17 s | 562 MB |
+| `proof_field_n.bend` | 24 s | 954 MB |
+| `proof_order.bend` | 76 s | 1480 MB |
+| `proof_glv.bend` | 60 s | 1366 MB |
+| `proof_glvsplit.bend` | 83 s | 1330 MB |
+| `proof_ecdsa.bend` | 87 s | 1685 MB |
+| `proof_schnorr_group.bend` | 99 s | 1630 MB |
+| `proofs/math/number/proof_nt.bend` | 1 s | 316 MB |
+
+The last five closing roots exceed the 60 s / 1000 MB target: each has to
+re-check the certificates and the [n] G chain next to the protocol proof
+(the checker has no way to reuse a checked root). Their lemma files with
+the facts as hypotheses (`group/ecdsap.bend`, ...) are within about
+20-35 s and 1 GB.
+
 Not proved:
 
-- The group law: that the complete formulas compute the textbook affine
-  addition (SEC 1 section 2.2.1), that points of the curve form a group of
-  order n, and so that `verify(pk(sk), h, sign(sk, h)) == True`, that
-  `recover` returns the signer's key, or that decompression inverts
-  compression. These need the primality of p and n (a certificate) and the
-  field law in the projective model; the clauses above are equalities with
-  the standards' algorithms, not statements about the group. The test
-  vectors and the differential test exercise these properties.
+- That the group has exactly n points (every point of the curve is a
+  multiple of G): this needs the number of points of the curve (point
+  counting) and is out of reach. Consequently phi(A) = [lambda] A is proved
+  only for multiples of G, not for an arbitrary point.
+- ECRECOVER on signatures from `sign`: `sign` may emit a recovery id 2 or 3
+  (x(R) >= n), which ECRECOVER does not accept; the clause would need that
+  case excluded.
 - Constant time: Bend has no timing model. Secret-dependent arithmetic is
   branch-free by construction (masked selection, complete formulas, fixed
   exponent ladders); RFC 6979's retry loop and the checks on public inputs

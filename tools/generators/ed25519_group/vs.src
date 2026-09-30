@@ -1,0 +1,65 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../../secp256k1/semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ../../../math/number/nt_pock.bend as PK
+import ../../../math/number/nt_prime.bend as PM
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../../../spec/crypto/curve25519/edwards.bend as G
+import ../../../../spec/crypto/ed25519.bend as ED
+import ../../../../spec/crypto/ed25519_group.bend as GE
+import ../../secp256k1/group/fld.bend as F
+import ./fq.bend as FQ
+import ./gpt.bend as GP
+import ./ext.bend as EX
+import ./id_cross.bend as IX
+
+# The group equation of Ed25519 verification: for a point b of order
+# dividing l ([l] b == (0, 1)),
+#   [(r + k s) mod l] b == [r] b + [k] ([s] b),
+# and the specification's projective comparison ED.equal of two valid
+# points with the same affine point.
+
+# [q l] b == (0, 1)
+def ord_mul(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +b: G.APt, +hb: G.OnCurve(1n+mp, d, b), +l: Nat, +hl: {G.nmul(1n+mp, d, l, b) == G.azero() : G.APt}, +q: Nat) -> {G.nmul(1n+mp, d, Nat.mul(q, l), b) == G.azero() : G.APt}:
+  %rw GP.nmul_mul(mp, d, hc, q, l, b, hb)
+  %rwh hl : {G.nmul(1n+mp, d, l, b) == G.azero() : G.APt}
+  GP.nmul_zero(mp, d, hc, q)
+
+# [t mod l] b == [t] b
+def ord_mod(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +b: G.APt, +hb: G.OnCurve(1n+mp, d, b), +lp: Nat, +hl: {G.nmul(1n+mp, d, 1n+lp, b) == G.azero() : G.APt}, +t: Nat) -> {G.nmul(1n+mp, d, t, b) == G.nmul(1n+mp, d, Nat.mod(t, 1n+lp), b) : G.APt}:
+  %rwh NR.dm_eq(lp, t) : {t == Nat.add(Nat.mul(Nat.div(t, 1n+lp), 1n+lp), Nat.mod(t, 1n+lp)) : Nat}
+  %rw GP.nmul_add(mp, d, hc, Nat.mul(Nat.div(t, 1n+lp), 1n+lp), Nat.mod(t, 1n+lp), b, hb)
+  %rw ord_mul(mp, d, hc, b, hb, 1n+lp, hl, Nat.div(t, 1n+lp))
+  GP.add_zero_l(mp, d, hc, G.nmul(1n+mp, d, Nat.mod(t, 1n+lp), b), GP.nmul_on(mp, d, hc, Nat.mod(t, 1n+lp), b, hb))
+
+# the verification equation in the group
+def veq(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +b: G.APt, +hb: G.OnCurve(1n+mp, d, b), +lp: Nat, +hl: {G.nmul(1n+mp, d, 1n+lp, b) == G.azero() : G.APt}, +r: Nat, +k: Nat, +s: Nat) -> {G.nmul(1n+mp, d, Nat.mod(Nat.add(r, Nat.mul(k, s)), 1n+lp), b) == G.aadd(1n+mp, d, G.nmul(1n+mp, d, r, b), G.nmul(1n+mp, d, k, G.nmul(1n+mp, d, s, b))) : G.APt}:
+  %rw <- ord_mod(mp, d, hc, b, hb, lp, hl, Nat.add(r, Nat.mul(k, s)))
+  %rw GP.nmul_add(mp, d, hc, r, Nat.mul(k, s), b, hb)
+  %rw GP.nmul_mul(mp, d, hc, k, s, b, hb)
+  %close
+
+# ---- ED.equal ----
+
+def cross_s(+mp: Nat, +hp: PM.Prime(1n+mp), +x1: Nat, +z1: Nat, +x2: Nat, +z2: Nat, +hz2: F.NZ(mp, z2), +h: {EX.qd(mp, x1, z1) == EX.qd(mp, x2, z2) : Nat}) -> {Nat.mod(x2, 1n+mp) == Nat.mod(FS.fmul(1n+mp, EX.qd(mp, x1, z1), z2), 1n+mp) : Nat}:
+  %rwh h : {EX.qd(mp, x1, z1) == EX.qd(mp, x2, z2) : Nat}
+  EX.rx(mp, hp, x2, z2, hz2)
+
+def cross(+mp: Nat, +hp: PM.Prime(1n+mp), +x1: Nat, +z1: Nat, +x2: Nat, +z2: Nat, +hz1: F.NZ(mp, z1), +hz2: F.NZ(mp, z2), +h: {EX.qd(mp, x1, z1) == EX.qd(mp, x2, z2) : Nat}) -> {FS.fmul(1n+mp, x1, z2) == FS.fmul(1n+mp, x2, z1) : Nat}:
+  FQ.red_eq(mp, FS.fmul(1n+mp, x1, z2), FS.fmul(1n+mp, x2, z1), FQ.fmul_red(mp, x1, z2), FQ.fmul_red(mp, x2, z1),
+    F.msub_z(mp, FS.fmul(1n+mp, x1, z2), FS.fmul(1n+mp, x2, z1), IX.cross(mp, x1, z1, x2, z2, EX.qd(mp, x1, z1), EX.rx(mp, hp, x1, z1, hz1), cross_s(mp, hp, x1, z1, x2, z2, hz2, h))))
+
+# two valid points with the same affine point are ED.equal
+def equal_aff(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), a: ED.EPt, b: ED.EPt, +ha: GE.Valid(1n+mp, d, a), +hb: GE.Valid(1n+mp, d, b), +h: {GE.affine(1n+mp, a) == GE.affine(1n+mp, b) : G.APt}) -> {ED.equal(1n+mp, a, b) == True{} : Bool}:
+  match a b:
+    case ED.EPt{+x1, +y1, +z1, +t1} ED.EPt{+x2, +y2, +z2, +t2}:
+      +hp = FQ.cv_prime(mp, d, hc)
+      +hz1 = EX.v_z(mp, d, x1, y1, z1, t1, ha)
+      +hz2 = EX.v_z(mp, d, x2, y2, z2, t2, hb)
+      Lg.and_intro(Nat.is_eq(FS.fmul(1n+mp, x1, z2), FS.fmul(1n+mp, x2, z1)), Nat.is_eq(FS.fmul(1n+mp, y1, z2), FS.fmul(1n+mp, y2, z1)),
+        PK.iseq(FS.fmul(1n+mp, x1, z2), FS.fmul(1n+mp, x2, z1), cross(mp, hp, x1, z1, x2, z2, hz1, hz2, Equal.cong(G.APt, Nat, w => G.ax(w), G.APt{EX.qd(mp, x1, z1), EX.qd(mp, y1, z1)}, G.APt{EX.qd(mp, x2, z2), EX.qd(mp, y2, z2)}, h))),
+        PK.iseq(FS.fmul(1n+mp, y1, z2), FS.fmul(1n+mp, y2, z1), cross(mp, hp, y1, z1, y2, z2, hz1, hz2, Equal.cong(G.APt, Nat, w => G.ay(w), G.APt{EX.qd(mp, x1, z1), EX.qd(mp, y1, z1)}, G.APt{EX.qd(mp, x2, z2), EX.qd(mp, y2, z2)}, h))))

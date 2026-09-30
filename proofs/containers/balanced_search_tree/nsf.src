@@ -10,13 +10,17 @@ import ../dynamic_array/state.bend as DAS
 import ./bk.bend as BK
 import ./nsr.bend as NR
 
-# One field of the TreeMap's node store: the field list of a node list
-# (length, reads, updates, appends, dropping the last) and the field's block
-# under Array.get / Array.set / doubling, for every node list of length at
-# most the capacity 2^d, d <= l <= 31.
+# The TreeMap's node store by field: the key list of a node list (length,
+# reads, updates, appends, dropping the last) and its block under Array.get /
+# Array.set / doubling, and the two pair lists of the links array (two fields
+# of every node side by side), for every node list of length at most the
+# capacity 2^d, d <= l <= 29.
 
 %def ND M.Node<K>
-%def GP +l: Nat, +d: Nat, +xs: List<&2, $ND>, +hl: {Nat.is_le(l, 31n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length($ND, xs), SC.pow2(d)) == True{} : Bool}
+%def GP +l: Nat, +d: Nat, +xs: List<&2, $ND>, +hl: {Nat.is_le(l, 29n) == True{} : Bool}, +hd: {Nat.is_le(d, l) == True{} : Bool}, +hc: {Nat.is_le(SC.length($ND, xs), SC.pow2(d)) == True{} : Bool}
+
+def l31(+l: Nat, +hl: {Nat.is_le(l, 29n) == True{} : Bool}) -> {Nat.is_le(l, 31n) == True{} : Bool}:
+  N.le_trans(l, 29n, 31n, hl, {==})
 
 # Some{x} gives x
 def unsome(~K: Data, m: Maybe<&2, $ND>, +dv: $ND) -> $ND:
@@ -99,13 +103,13 @@ def QN##_get(~K: Data, $GP, +i: Nat, +y: $ND, +hy: {SC.nth($ND, xs, i) == Some{y
   +hlen = QN##s_len(~K, xs)
   +hi = LL.nth_lt_length($ND, xs, i, y, hy)
   +hip = N.lt_le_trans(i, SC.length($ND, xs), SC.pow2(d), hi, hc)
-  +eu = U.to_nat_from_nat(i, d, DAS.le32(d, l, hd, hl), hip)
+  +eu = U.to_nat_from_nat(i, d, DAS.le32(d, l, hd, l31(l, hl)), hip)
   +hiF = L.subst(Nat, z => {Nat.is_lt(i, z) == True{} : Bool}, SC.length($ND, xs), SC.length(QT, fl), Equal.sym(Nat, SC.length(QT, fl), SC.length($ND, xs), hlen), hi)
   +hcF = L.subst(Nat, z => {Nat.is_le(z, SC.pow2(d)) == True{} : Bool}, SC.length($ND, xs), SC.length(QT, fl), Equal.sym(Nat, SC.length(QT, fl), SC.length($ND, xs), hlen), hc)
   +hx0 = Equal.trans(Maybe<&2, QT>, SC.nth(QT, AR.slots(QT, t), i), SC.nth(QT, BK.fillv(QT, SC.pow2(d), fl, QV), i), Some{QF(~K, y)}, Equal.cong(List<&2, QT>, Maybe<&2, QT>, z => SC.nth(QT, z, i), AR.slots(QT, t), BK.fillv(QT, SC.pow2(d), fl, QV), BK.bk_slots(QT, d, fl, QV)), Equal.trans(Maybe<&2, QT>, SC.nth(QT, BK.fillv(QT, SC.pow2(d), fl, QV), i), SC.nth(QT, fl, i), Some{QF(~K, y)}, BK.fill_nth(QT, SC.pow2(d), fl, QV, i, hiF, hcF), QN##s_nth(~K, xs, i, y, hy)))
   +hx = L.subst(Nat, z => {SC.nth(QT, AR.slots(QT, t), z) == Some{QF(~K, y)} : Maybe<&2, QT>}, i, U32.to_nat(U32.from_nat(i)), Equal.sym(Nat, U32.to_nat(U32.from_nat(i)), i, eu), hx0)
   +hiu = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(d)) == True{} : Bool}, i, U32.to_nat(U32.from_nat(i)), Equal.sym(Nat, U32.to_nat(U32.from_nat(i)), i, eu), hip)
-  AR.get(QT, d, t, U32.from_nat(i), QF(~K, y), DAS.lt32(d, l, hd, hl), hiu, hx, BK.bk_perfect(QT, d, fl, QV))
+  AR.get(QT, d, t, U32.from_nat(i), QF(~K, y), DAS.lt32(d, l, hd, l31(l, hl)), hiu, hx, BK.bk_perfect(QT, d, fl, QV))
 
 # a slot below the length written with a node's field
 def QN##_set(~K: Data, $GP, +i: Nat, +y0: $ND, +hy0: {SC.nth($ND, xs, i) == Some{y0} : Maybe<&2, $ND>}, +y: $ND) -> {Array.set(QT, AR.thaw(QT, BK.bk(QT, d, NR.QN##s(~K, xs), QV)), U32.from_nat(i), QF(~K, y)) == AR.thaw(QT, BK.bk(QT, d, NR.QN##s(~K, SC.update($ND, xs, i, y)), QV)) : Array<QT>}:
@@ -114,13 +118,13 @@ def QN##_set(~K: Data, $GP, +i: Nat, +y0: $ND, +hy0: {SC.nth($ND, xs, i) == Some
   +hlen = QN##s_len(~K, xs)
   +hi = LL.nth_lt_length($ND, xs, i, y0, hy0)
   +hip = N.lt_le_trans(i, SC.length($ND, xs), SC.pow2(d), hi, hc)
-  +eu = U.to_nat_from_nat(i, d, DAS.le32(d, l, hd, hl), hip)
+  +eu = U.to_nat_from_nat(i, d, DAS.le32(d, l, hd, l31(l, hl)), hip)
   +hiF = L.subst(Nat, z => {Nat.is_lt(i, z) == True{} : Bool}, SC.length($ND, xs), SC.length(QT, fl), Equal.sym(Nat, SC.length(QT, fl), SC.length($ND, xs), hlen), hi)
   +hcF = L.subst(Nat, z => {Nat.is_le(z, SC.pow2(d)) == True{} : Bool}, SC.length($ND, xs), SC.length(QT, fl), Equal.sym(Nat, SC.length(QT, fl), SC.length($ND, xs), hlen), hc)
   +hx0 = Equal.trans(Maybe<&2, QT>, SC.nth(QT, AR.slots(QT, t), i), SC.nth(QT, BK.fillv(QT, SC.pow2(d), fl, QV), i), Some{QF(~K, y0)}, Equal.cong(List<&2, QT>, Maybe<&2, QT>, z => SC.nth(QT, z, i), AR.slots(QT, t), BK.fillv(QT, SC.pow2(d), fl, QV), BK.bk_slots(QT, d, fl, QV)), Equal.trans(Maybe<&2, QT>, SC.nth(QT, BK.fillv(QT, SC.pow2(d), fl, QV), i), SC.nth(QT, fl, i), Some{QF(~K, y0)}, BK.fill_nth(QT, SC.pow2(d), fl, QV, i, hiF, hcF), QN##s_nth(~K, xs, i, y0, hy0)))
   +hx = L.subst(Nat, z => {SC.nth(QT, AR.slots(QT, t), z) == Some{QF(~K, y0)} : Maybe<&2, QT>}, i, U32.to_nat(U32.from_nat(i)), Equal.sym(Nat, U32.to_nat(U32.from_nat(i)), i, eu), hx0)
   +hiu = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(d)) == True{} : Bool}, i, U32.to_nat(U32.from_nat(i)), Equal.sym(Nat, U32.to_nat(U32.from_nat(i)), i, eu), hip)
-  %Equal.sym(Array<QT>, Array.set(QT, AR.thaw(QT, t), U32.from_nat(i), QF(~K, y)), AR.thaw(QT, AR.upd(QT, d, t, U32.to_nat(U32.from_nat(i)), QF(~K, y))), AR.set(QT, d, t, U32.from_nat(i), QF(~K, y), QF(~K, y0), DAS.lt32(d, l, hd, hl), hiu, hx, BK.bk_perfect(QT, d, fl, QV))) : {_ == AR.thaw(QT, BK.bk(QT, d, NR.QN##s(~K, SC.update($ND, xs, i, y)), QV)) : Array<QT>}
+  %Equal.sym(Array<QT>, Array.set(QT, AR.thaw(QT, t), U32.from_nat(i), QF(~K, y)), AR.thaw(QT, AR.upd(QT, d, t, U32.to_nat(U32.from_nat(i)), QF(~K, y))), AR.set(QT, d, t, U32.from_nat(i), QF(~K, y), QF(~K, y0), DAS.lt32(d, l, hd, l31(l, hl)), hiu, hx, BK.bk_perfect(QT, d, fl, QV))) : {_ == AR.thaw(QT, BK.bk(QT, d, NR.QN##s(~K, SC.update($ND, xs, i, y)), QV)) : Array<QT>}
   %Equal.sym(Nat, U32.to_nat(U32.from_nat(i)), i, eu) : {AR.thaw(QT, AR.upd(QT, d, t, _, QF(~K, y))) == AR.thaw(QT, BK.bk(QT, d, NR.QN##s(~K, SC.update($ND, xs, i, y)), QV)) : Array<QT>}
   Equal.cong(AR.Tree<QT>, Array<QT>, z => AR.thaw(QT, z), AR.upd(QT, d, t, i, QF(~K, y)), BK.bk(QT, d, NR.QN##s(~K, SC.update($ND, xs, i, y)), QV), Equal.trans(AR.Tree<QT>, AR.upd(QT, d, t, i, QF(~K, y)), BK.bk(QT, d, SC.update(QT, fl, i, QF(~K, y)), QV), BK.bk(QT, d, NR.QN##s(~K, SC.update($ND, xs, i, y)), QV), BK.bk_set(QT, d, fl, QV, i, QF(~K, y), hiF, hcF), Equal.cong(List<&2, QT>, AR.Tree<QT>, z => BK.bk(QT, d, z, QV), SC.update(QT, fl, i, QF(~K, y)), NR.QN##s(~K, SC.update($ND, xs, i, y)), QN##s_upd(~K, xs, i, y))))
 
@@ -130,13 +134,13 @@ def QN##_push(~K: Data, $GP, +y: $ND, +hn: {Nat.is_lt(SC.length($ND, xs), SC.pow
   +t = BK.bk(QT, d, fl, QV)
   +n = SC.length($ND, xs)
   +hlen = QN##s_len(~K, xs)
-  +eu = U.to_nat_from_nat(n, d, DAS.le32(d, l, hd, hl), hn)
+  +eu = U.to_nat_from_nat(n, d, DAS.le32(d, l, hd, l31(l, hl)), hn)
   +hnF = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(d)) == True{} : Bool}, n, SC.length(QT, fl), Equal.sym(Nat, SC.length(QT, fl), n, hlen), hn)
   +hx0 = Equal.trans(Maybe<&2, QT>, SC.nth(QT, AR.slots(QT, t), SC.length(QT, fl)), SC.nth(QT, BK.fillv(QT, SC.pow2(d), fl, QV), SC.length(QT, fl)), Some{QV}, Equal.cong(List<&2, QT>, Maybe<&2, QT>, z => SC.nth(QT, z, SC.length(QT, fl)), AR.slots(QT, t), BK.fillv(QT, SC.pow2(d), fl, QV), BK.bk_slots(QT, d, fl, QV)), BK.fill_at_len(QT, SC.pow2(d), fl, QV, hnF))
   +hx1 = L.subst(Nat, z => {SC.nth(QT, AR.slots(QT, t), z) == Some{QV} : Maybe<&2, QT>}, SC.length(QT, fl), n, hlen, hx0)
   +hx = L.subst(Nat, z => {SC.nth(QT, AR.slots(QT, t), z) == Some{QV} : Maybe<&2, QT>}, n, U32.to_nat(U32.from_nat(n)), Equal.sym(Nat, U32.to_nat(U32.from_nat(n)), n, eu), hx1)
   +hiu = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(d)) == True{} : Bool}, n, U32.to_nat(U32.from_nat(n)), Equal.sym(Nat, U32.to_nat(U32.from_nat(n)), n, eu), hn)
-  %Equal.sym(Array<QT>, Array.set(QT, AR.thaw(QT, t), U32.from_nat(n), QF(~K, y)), AR.thaw(QT, AR.upd(QT, d, t, U32.to_nat(U32.from_nat(n)), QF(~K, y))), AR.set(QT, d, t, U32.from_nat(n), QF(~K, y), QV, DAS.lt32(d, l, hd, hl), hiu, hx, BK.bk_perfect(QT, d, fl, QV))) : {_ == AR.thaw(QT, BK.bk(QT, d, NR.QN##s(~K, SC.snoc($ND, xs, y)), QV)) : Array<QT>}
+  %Equal.sym(Array<QT>, Array.set(QT, AR.thaw(QT, t), U32.from_nat(n), QF(~K, y)), AR.thaw(QT, AR.upd(QT, d, t, U32.to_nat(U32.from_nat(n)), QF(~K, y))), AR.set(QT, d, t, U32.from_nat(n), QF(~K, y), QV, DAS.lt32(d, l, hd, l31(l, hl)), hiu, hx, BK.bk_perfect(QT, d, fl, QV))) : {_ == AR.thaw(QT, BK.bk(QT, d, NR.QN##s(~K, SC.snoc($ND, xs, y)), QV)) : Array<QT>}
   %Equal.sym(Nat, U32.to_nat(U32.from_nat(n)), n, eu) : {AR.thaw(QT, AR.upd(QT, d, t, _, QF(~K, y))) == AR.thaw(QT, BK.bk(QT, d, NR.QN##s(~K, SC.snoc($ND, xs, y)), QV)) : Array<QT>}
   %hlen : {AR.thaw(QT, AR.upd(QT, d, t, _, QF(~K, y))) == AR.thaw(QT, BK.bk(QT, d, NR.QN##s(~K, SC.snoc($ND, xs, y)), QV)) : Array<QT>}
   Equal.cong(AR.Tree<QT>, Array<QT>, z => AR.thaw(QT, z), AR.upd(QT, d, t, SC.length(QT, fl), QF(~K, y)), BK.bk(QT, d, NR.QN##s(~K, SC.snoc($ND, xs, y)), QV), Equal.trans(AR.Tree<QT>, AR.upd(QT, d, t, SC.length(QT, fl), QF(~K, y)), BK.bk(QT, d, SC.snoc(QT, fl, QF(~K, y)), QV), BK.bk(QT, d, NR.QN##s(~K, SC.snoc($ND, xs, y)), QV), BK.bk_push(QT, d, fl, QV, QF(~K, y), hnF), Equal.cong(List<&2, QT>, AR.Tree<QT>, z => BK.bk(QT, d, z, QV), SC.snoc(QT, fl, QF(~K, y)), NR.QN##s(~K, SC.snoc($ND, xs, y)), QN##s_snoc(~K, xs, y))))
@@ -155,14 +159,14 @@ def QN##_drop(~K: Data, $GP, +m: Nat, +hm: {SC.length($ND, xs) == 1n+m : Nat}, +
   +hlen = QN##s_len(~K, xs)
   +hi = LL.nth_lt_length($ND, xs, m, y0, hy0)
   +hip = N.lt_le_trans(m, SC.length($ND, xs), SC.pow2(d), hi, hc)
-  +eu = U.to_nat_from_nat(m, d, DAS.le32(d, l, hd, hl), hip)
+  +eu = U.to_nat_from_nat(m, d, DAS.le32(d, l, hd, l31(l, hl)), hip)
   +hiF = L.subst(Nat, z => {Nat.is_lt(m, z) == True{} : Bool}, SC.length($ND, xs), SC.length(QT, fl), Equal.sym(Nat, SC.length(QT, fl), SC.length($ND, xs), hlen), hi)
   +hcF = L.subst(Nat, z => {Nat.is_le(z, SC.pow2(d)) == True{} : Bool}, SC.length($ND, xs), SC.length(QT, fl), Equal.sym(Nat, SC.length(QT, fl), SC.length($ND, xs), hlen), hc)
   +hmF = Equal.trans(Nat, SC.length(QT, fl), SC.length($ND, xs), 1n+m, hlen, hm)
   +hx0 = Equal.trans(Maybe<&2, QT>, SC.nth(QT, AR.slots(QT, t), m), SC.nth(QT, BK.fillv(QT, SC.pow2(d), fl, QV), m), Some{QF(~K, y0)}, Equal.cong(List<&2, QT>, Maybe<&2, QT>, z => SC.nth(QT, z, m), AR.slots(QT, t), BK.fillv(QT, SC.pow2(d), fl, QV), BK.bk_slots(QT, d, fl, QV)), Equal.trans(Maybe<&2, QT>, SC.nth(QT, BK.fillv(QT, SC.pow2(d), fl, QV), m), SC.nth(QT, fl, m), Some{QF(~K, y0)}, BK.fill_nth(QT, SC.pow2(d), fl, QV, m, hiF, hcF), QN##s_nth(~K, xs, m, y0, hy0)))
   +hx = L.subst(Nat, z => {SC.nth(QT, AR.slots(QT, t), z) == Some{QF(~K, y0)} : Maybe<&2, QT>}, m, U32.to_nat(U32.from_nat(m)), Equal.sym(Nat, U32.to_nat(U32.from_nat(m)), m, eu), hx0)
   +hiu = L.subst(Nat, z => {Nat.is_lt(z, SC.pow2(d)) == True{} : Bool}, m, U32.to_nat(U32.from_nat(m)), Equal.sym(Nat, U32.to_nat(U32.from_nat(m)), m, eu), hip)
-  %Equal.sym(Array<QT>, Array.set(QT, AR.thaw(QT, t), U32.from_nat(m), QV), AR.thaw(QT, AR.upd(QT, d, t, U32.to_nat(U32.from_nat(m)), QV)), AR.set(QT, d, t, U32.from_nat(m), QV, QF(~K, y0), DAS.lt32(d, l, hd, hl), hiu, hx, BK.bk_perfect(QT, d, fl, QV))) : {_ == AR.thaw(QT, BK.bk(QT, d, NR.QN##s(~K, SC.init($ND, xs)), QV)) : Array<QT>}
+  %Equal.sym(Array<QT>, Array.set(QT, AR.thaw(QT, t), U32.from_nat(m), QV), AR.thaw(QT, AR.upd(QT, d, t, U32.to_nat(U32.from_nat(m)), QV)), AR.set(QT, d, t, U32.from_nat(m), QV, QF(~K, y0), DAS.lt32(d, l, hd, l31(l, hl)), hiu, hx, BK.bk_perfect(QT, d, fl, QV))) : {_ == AR.thaw(QT, BK.bk(QT, d, NR.QN##s(~K, SC.init($ND, xs)), QV)) : Array<QT>}
   %Equal.sym(Nat, U32.to_nat(U32.from_nat(m)), m, eu) : {AR.thaw(QT, AR.upd(QT, d, t, _, QV)) == AR.thaw(QT, BK.bk(QT, d, NR.QN##s(~K, SC.init($ND, xs)), QV)) : Array<QT>}
   Equal.cong(AR.Tree<QT>, Array<QT>, z => AR.thaw(QT, z), AR.upd(QT, d, t, m, QV), BK.bk(QT, d, NR.QN##s(~K, SC.init($ND, xs)), QV), Equal.trans(AR.Tree<QT>, AR.upd(QT, d, t, m, QV), BK.bk(QT, d, SC.init(QT, fl), QV), BK.bk(QT, d, NR.QN##s(~K, SC.init($ND, xs)), QV), BK.bk_pop(QT, d, fl, QV, m, hmF, hcF), Equal.cong(List<&2, QT>, AR.Tree<QT>, z => BK.bk(QT, d, z, QV), SC.init(QT, fl), NR.QN##s(~K, SC.init($ND, xs)), QN##s_init(~K, xs))))
 
@@ -173,8 +177,102 @@ def QN##s_keep(~K: Data, +xs: List<&2, $ND>, +i: Nat, +y: $ND, +x: $ND, +hy: {SC
   upd_same(QT, NR.QN##s(~K, xs), i, QF(~K, y), QN##s_nth(~K, xs, i, y, hy))
 
 %end
-%use FLD(tag, Nat, M.ntag, 0n)
-%use FLD(left, Nat, M.nleft, 0n)
-%use FLD(right, Nat, M.nright, 0n)
-%use FLD(parent, Nat, M.nparent, 0n)
 %use FLD(key, <|Maybe<&2, K>|>, M.nkey, None{})
+
+# ---- the pair lists of the links array ----
+
+def some_inj(~K: Data, +x: $ND, +y: $ND, +h: {Some{x} == Some{y} : Maybe<&2, $ND>}) -> {x == y : $ND}:
+  Equal.cong(Maybe<&2, $ND>, $ND, z => unsome(~K, z, x), Some{x}, Some{y}, h)
+
+%tmpl PR(QN, QA, QB)
+def QN##_len(~K: Data, +xs: List<&2, $ND>) -> {SC.length(Nat, NR.QN(~K, xs)) == Nat.double(SC.length($ND, xs)) : Nat}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{x, +r}:
+      N.succ_cong(1n+SC.length(Nat, NR.QN(~K, r)), 1n+Nat.double(SC.length($ND, r)), N.succ_cong(SC.length(Nat, NR.QN(~K, r)), Nat.double(SC.length($ND, r)), QN##_len(~K, r)))
+
+# slot 2i holds the first field of node i, slot 2i+1 the second
+def QN##_nth0(~K: Data, +xs: List<&2, $ND>, +i: Nat, +y: $ND, +h: {SC.nth($ND, xs, i) == Some{y} : Maybe<&2, $ND>}) -> {SC.nth(Nat, NR.QN(~K, xs), Nat.double(i)) == Some{QA(~K, y)} : Maybe<&2, Nat>}:
+  match xs i:
+    case Nil{} _:
+      Empty.absurd({SC.nth(Nat, Nil{}, Nat.double(i)) == Some{QA(~K, y)} : Maybe<&2, Nat>}, L.false_true(Equal.cong(Maybe<&2, $ND>, Bool, z => mb(~K, z), None{}, Some{y}, h)))
+    case Con{+x, r} 0n:
+      Equal.cong(Maybe<&2, $ND>, Maybe<&2, Nat>, z => Some{QA(~K, unsome(~K, z, x))}, Some{x}, Some{y}, h)
+    case Con{x, +r} 1n+q:
+      QN##_nth0(~K, r, q, y, h)
+
+def QN##_nth1(~K: Data, +xs: List<&2, $ND>, +i: Nat, +y: $ND, +h: {SC.nth($ND, xs, i) == Some{y} : Maybe<&2, $ND>}) -> {SC.nth(Nat, NR.QN(~K, xs), 1n+Nat.double(i)) == Some{QB(~K, y)} : Maybe<&2, Nat>}:
+  match xs i:
+    case Nil{} _:
+      Empty.absurd({SC.nth(Nat, Nil{}, 1n+Nat.double(i)) == Some{QB(~K, y)} : Maybe<&2, Nat>}, L.false_true(Equal.cong(Maybe<&2, $ND>, Bool, z => mb(~K, z), None{}, Some{y}, h)))
+    case Con{+x, r} 0n:
+      Equal.cong(Maybe<&2, $ND>, Maybe<&2, Nat>, z => Some{QB(~K, unsome(~K, z, x))}, Some{x}, Some{y}, h)
+    case Con{x, +r} 1n+q:
+      QN##_nth1(~K, r, q, y, h)
+
+# one field of node i written, the node's other field of the pair kept
+def QN##_upd0(~K: Data, +xs: List<&2, $ND>, +i: Nat, +y0: $ND, +y: $ND, +h: {SC.nth($ND, xs, i) == Some{y0} : Maybe<&2, $ND>}, +he: {QB(~K, y0) == QB(~K, y) : Nat}) -> {SC.update(Nat, NR.QN(~K, xs), Nat.double(i), QA(~K, y)) == NR.QN(~K, SC.update($ND, xs, i, y)) : List<&2, Nat>}:
+  match xs i:
+    case Nil{} _:
+      {==}
+    case Con{+x, +r} 0n:
+      Equal.cong(Nat, List<&2, Nat>, z => Con{QA(~K, y), Con{z, NR.QN(~K, r)}}, QB(~K, x), QB(~K, y), Equal.trans(Nat, QB(~K, x), QB(~K, y0), QB(~K, y), Equal.cong($ND, Nat, z => QB(~K, z), x, y0, some_inj(~K, x, y0, h)), he))
+    case Con{+x, +r} 1n+q:
+      LL.cons_cong(Nat, QA(~K, x), Con{QB(~K, x), SC.update(Nat, NR.QN(~K, r), Nat.double(q), QA(~K, y))}, Con{QB(~K, x), NR.QN(~K, SC.update($ND, r, q, y))}, LL.cons_cong(Nat, QB(~K, x), SC.update(Nat, NR.QN(~K, r), Nat.double(q), QA(~K, y)), NR.QN(~K, SC.update($ND, r, q, y)), QN##_upd0(~K, r, q, y0, y, h, he)))
+
+def QN##_upd1(~K: Data, +xs: List<&2, $ND>, +i: Nat, +y0: $ND, +y: $ND, +h: {SC.nth($ND, xs, i) == Some{y0} : Maybe<&2, $ND>}, +he: {QA(~K, y0) == QA(~K, y) : Nat}) -> {SC.update(Nat, NR.QN(~K, xs), 1n+Nat.double(i), QB(~K, y)) == NR.QN(~K, SC.update($ND, xs, i, y)) : List<&2, Nat>}:
+  match xs i:
+    case Nil{} _:
+      {==}
+    case Con{+x, +r} 0n:
+      Equal.cong(Nat, List<&2, Nat>, z => Con{z, Con{QB(~K, y), NR.QN(~K, r)}}, QA(~K, x), QA(~K, y), Equal.trans(Nat, QA(~K, x), QA(~K, y0), QA(~K, y), Equal.cong($ND, Nat, z => QA(~K, z), x, y0, some_inj(~K, x, y0, h)), he))
+    case Con{+x, +r} 1n+q:
+      LL.cons_cong(Nat, QA(~K, x), Con{QB(~K, x), SC.update(Nat, NR.QN(~K, r), 1n+Nat.double(q), QB(~K, y))}, Con{QB(~K, x), NR.QN(~K, SC.update($ND, r, q, y))}, LL.cons_cong(Nat, QB(~K, x), SC.update(Nat, NR.QN(~K, r), 1n+Nat.double(q), QB(~K, y)), NR.QN(~K, SC.update($ND, r, q, y)), QN##_upd1(~K, r, q, y0, y, h, he)))
+
+# both fields of node i written
+def QN##_put(~K: Data, +xs: List<&2, $ND>, +i: Nat, +y: $ND) -> {SC.update(Nat, SC.update(Nat, NR.QN(~K, xs), Nat.double(i), QA(~K, y)), 1n+Nat.double(i), QB(~K, y)) == NR.QN(~K, SC.update($ND, xs, i, y)) : List<&2, Nat>}:
+  match xs i:
+    case Nil{} _:
+      {==}
+    case Con{x, r} 0n:
+      {==}
+    case Con{+x, +r} 1n+q:
+      LL.cons_cong(Nat, QA(~K, x), Con{QB(~K, x), SC.update(Nat, SC.update(Nat, NR.QN(~K, r), Nat.double(q), QA(~K, y)), 1n+Nat.double(q), QB(~K, y))}, Con{QB(~K, x), NR.QN(~K, SC.update($ND, r, q, y))}, LL.cons_cong(Nat, QB(~K, x), SC.update(Nat, SC.update(Nat, NR.QN(~K, r), Nat.double(q), QA(~K, y)), 1n+Nat.double(q), QB(~K, y)), NR.QN(~K, SC.update($ND, r, q, y)), QN##_put(~K, r, q, y)))
+
+# a node that keeps both fields leaves the pair list
+def QN##_keep(~K: Data, +xs: List<&2, $ND>, +i: Nat, +y0: $ND, +y: $ND, +h: {SC.nth($ND, xs, i) == Some{y0} : Maybe<&2, $ND>}, +ha: {QA(~K, y0) == QA(~K, y) : Nat}, +hb: {QB(~K, y0) == QB(~K, y) : Nat}) -> {NR.QN(~K, SC.update($ND, xs, i, y)) == NR.QN(~K, xs) : List<&2, Nat>}:
+  match xs i:
+    case Nil{} _:
+      {==}
+    case Con{+x, +r} 0n:
+      +ea = Equal.trans(Nat, QA(~K, y), QA(~K, y0), QA(~K, x), Equal.sym(Nat, QA(~K, y0), QA(~K, y), ha), Equal.cong($ND, Nat, z => QA(~K, z), y0, x, Equal.sym($ND, x, y0, some_inj(~K, x, y0, h))))
+      +eb = Equal.trans(Nat, QB(~K, y), QB(~K, y0), QB(~K, x), Equal.sym(Nat, QB(~K, y0), QB(~K, y), hb), Equal.cong($ND, Nat, z => QB(~K, z), y0, x, Equal.sym($ND, x, y0, some_inj(~K, x, y0, h))))
+      Equal.trans(List<&2, Nat>, Con{QA(~K, y), Con{QB(~K, y), NR.QN(~K, r)}}, Con{QA(~K, x), Con{QB(~K, y), NR.QN(~K, r)}}, Con{QA(~K, x), Con{QB(~K, x), NR.QN(~K, r)}}, Equal.cong(Nat, List<&2, Nat>, z => Con{z, Con{QB(~K, y), NR.QN(~K, r)}}, QA(~K, y), QA(~K, x), ea), Equal.cong(Nat, List<&2, Nat>, z => Con{QA(~K, x), Con{z, NR.QN(~K, r)}}, QB(~K, y), QB(~K, x), eb))
+    case Con{+x, +r} 1n+q:
+      LL.cons_cong(Nat, QA(~K, x), Con{QB(~K, x), NR.QN(~K, SC.update($ND, r, q, y))}, Con{QB(~K, x), NR.QN(~K, r)}, LL.cons_cong(Nat, QB(~K, x), NR.QN(~K, SC.update($ND, r, q, y)), NR.QN(~K, r), QN##_keep(~K, r, q, y0, y, h, ha, hb)))
+
+def QN##_snoc(~K: Data, +xs: List<&2, $ND>, +y: $ND) -> {SC.snoc(Nat, SC.snoc(Nat, NR.QN(~K, xs), QA(~K, y)), QB(~K, y)) == NR.QN(~K, SC.snoc($ND, xs, y)) : List<&2, Nat>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{+x, +r}:
+      LL.cons_cong(Nat, QA(~K, x), Con{QB(~K, x), SC.snoc(Nat, SC.snoc(Nat, NR.QN(~K, r), QA(~K, y)), QB(~K, y))}, Con{QB(~K, x), NR.QN(~K, SC.snoc($ND, r, y))}, LL.cons_cong(Nat, QB(~K, x), SC.snoc(Nat, SC.snoc(Nat, NR.QN(~K, r), QA(~K, y)), QB(~K, y)), NR.QN(~K, SC.snoc($ND, r, y)), QN##_snoc(~K, r, y)))
+
+def QN##_init(~K: Data, +xs: List<&2, $ND>) -> {SC.init(Nat, SC.init(Nat, NR.QN(~K, xs))) == NR.QN(~K, SC.init($ND, xs)) : List<&2, Nat>}:
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{x, Nil{}}:
+      {==}
+    case Con{+x, Con{+y, +t}}:
+      LL.cons_cong(Nat, QA(~K, x), Con{QB(~K, x), SC.init(Nat, SC.init(Nat, NR.QN(~K, Con{y, t})))}, Con{QB(~K, x), NR.QN(~K, SC.init($ND, Con{y, t}))}, LL.cons_cong(Nat, QB(~K, x), SC.init(Nat, SC.init(Nat, NR.QN(~K, Con{y, t}))), NR.QN(~K, SC.init($ND, Con{y, t})), QN##_init(~K, Con{y, t})))
+
+# the pair list fits its block of depth 1 + d
+def QN##_cap(~K: Data, +d: Nat, +xs: List<&2, $ND>, +hc: {Nat.is_le(SC.length($ND, xs), SC.pow2(d)) == True{} : Bool}) -> {Nat.is_le(SC.length(Nat, NR.QN(~K, xs)), SC.pow2(1n+d)) == True{} : Bool}:
+  %Equal.sym(Nat, SC.length(Nat, NR.QN(~K, xs)), Nat.double(SC.length($ND, xs)), QN##_len(~K, xs)) : {Nat.is_le(_, SC.pow2(1n+d)) == True{} : Bool}
+  N.double_le(SC.length($ND, xs), SC.pow2(d), hc)
+
+%end
+%use PR(lrs, M.nleft, M.nright)
+%use PR(tps, M.ntag, M.nparent)

@@ -1,0 +1,28 @@
+import Base
+import ../../../../spec/math/number.bend as SN
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../secp256k1/group/bn.bend as B
+import ../../secp256k1/group/bnx.bend as X
+import ../../secp256k1/group/certl.bend as CL
+import ../../../math/number/nt_prime.bend as PM
+import ./pfacts.bend as PF
+import ./cert_d.bend as CD
+
+# d^((p - 1) / 2) == p - 1 (mod p), for d = -121665 / 121666: d is not a
+# square modulo p (Euler), from the closed computation of cert_d.bend, given
+# its first half (cert_d0.bend's pw, a separate root).
+
+def h_n() -> {B.beq(PF.pl(), B.binc(PF.p1l())) == True{} : Bool}:
+  {==}
+
+def h_lt() -> {B.beq(PF.pl(), B.badd(B.binc(PF.p1l()), B.BZ{})) == True{} : Bool}:
+  {==}
+
+def d_euler(+one: Nat, +h1: {one == 1n : Nat}, +hd: CL.Inv(one, PF.dl(), PF.pl(), PF.dml(), PF.dme())) -> {Nat.mod(Nat.pow(X.bvalo(one, PF.dl()), X.bvalo(one, PF.hl())), FS.prime(one)) == X.bvalo(one, PF.p1l()) : Nat}:
+  %rw <- PF.p_is(one, h1)
+  CL.fin_o(one, h1, PF.dl(), PF.pl(), PF.p1l(), PF.p1l(), PF.hl(), B.BZ{}, h_n(), CD.pw(one, h1, hd), h_lt())
+
+# the same with the exponent written (p - 1) / 2
+def d_euler_div(+one: Nat, +h1: {one == 1n : Nat}, +hd: CL.Inv(one, PF.dl(), PF.pl(), PF.dml(), PF.dme())) -> {Nat.mod(Nat.pow(X.bvalo(one, PF.dl()), Nat.div(X.bvalo(one, PF.p1l()), 2n)), FS.prime(one)) == X.bvalo(one, PF.p1l()) : Nat}:
+  %rw PF.p_half(one, h1)
+  d_euler(one, h1, hd)

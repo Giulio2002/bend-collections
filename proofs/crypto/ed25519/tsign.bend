@@ -22,6 +22,8 @@ import ./prel.bend as PR
 import ./bytes.bend as BY
 import ./tcommon.bend as TC
 import ./tscal.bend as TH
+import ./pfb.bend as PFB
+import ./fbspec.bend as FB
 
 # Signing (RFC 8032 5.1.6) with the parts of the expanded key against
 # spec/crypto/ed25519.bend.
@@ -76,13 +78,20 @@ def sig_eq(+one: Nat, +h1: {one == 1n : Nat}, +RB: List<&2, U32>, +SRB: List<&2,
 def prefix_eq(+h: List<&2, U32>, +msg: List<&2, U32>) -> {E.cat(F.drop(32n, h), msg) == SE.cat(SE.rest(32n, h), msg) : List<&2, U32>}:
   Equal.trans(List<&2, U32>, E.cat(F.drop(32n, h), msg), SE.cat(F.drop(32n, h), msg), SE.cat(SE.rest(32n, h), msg), BY.cat_eq(F.drop(32n, h), msg), Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.cat(z, msg), F.drop(32n, h), SE.rest(32n, h), BY.drop_eq(32n, h)))
 
-# the signature from the parts of the expanded key
+def sign_guard(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>, +msg: List<&2, U32>, +x: List<&2, U32>, +e: {x == SE.sign_body(one, p, d, h, msg) : List<&2, U32>}) -> {x == SE.sign_with(one, p, d, h, msg) : List<&2, U32>}:
+  match d:
+    case 0n:
+      e
+    case 1n+ +q:
+      e
 
-def sign_body_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +B: PT.Pt, +hB: PR.Rp(one, pp, B, SE.base(1n+pp, D)), +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}, +msg: List<&2, U32>) -> {E.sign_parts(cs, B, ESC.reduce(E.secret(h)), E.prefix(h), E.public_of(cs, B, h), msg) == SE.sign_body(one, 1n+pp, D, h, msg) : List<&2, U32>}:
+# the signature from R = [r]B encoded (RB) and the public key (A), however
+# they were computed
+
+def sign_core(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +D: Nat, +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}, +msg: List<&2, U32>, +RB: List<&2, U32>, +A: List<&2, U32>, +eRB: {RB == SE.encode(one, 1n+pp, SE.mul(one, 1n+pp, D, Nat.mod(FS.value(SHA.sha512_bytes(SE.cat(SE.rest(32n, h), msg))), SE.ell(one)), SE.base(1n+pp, D))) : List<&2, U32>}, +eA: {A == SE.public_of(one, 1n+pp, D, h) : List<&2, U32>}) -> {E.sign_fin(RB, ESC.reduce(E.secret(h)), ESC.reduce(HS.hash(E.cat(F.drop(32n, h), msg))), A, msg) == SE.sign_body(one, 1n+pp, D, h, msg) : List<&2, U32>}:
   +P = {1n+pp : Nat}
   +el = SE.ell(one)
   +SB = SE.base(P, D)
-  +A = E.public_of(cs, B, h)
   +SA = SE.public_of(one, P, D, h)
   +RH = E.cat(F.drop(32n, h), msg)
   +SRH = SE.cat(SE.rest(32n, h), msg)
@@ -90,22 +99,55 @@ def sign_body_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+
   +Rs = Nat.mod(FS.value(SHA.sha512_bytes(SRH)), el)
   +eR = TH.rh_eq(one, h1, RH, SRH, prefix_eq(h, msg))
   +okr = SL.reduce_okb(one, h1, HS.hash(RH))
-  +RB = PT.encode(PT.cs_r(cs), PT.mul(cs, r, B))
   +SRB = SE.encode(one, P, SE.mul(one, P, D, Rs, SB))
-  +eRB = rb_eq(one, h1, pp, hP, cs, hR, D, rd2, B, SB, hB, r, okr, Rs, eR)
   +k = E.hram(RB, A, msg)
   +Ks = SE.hram(one, SRB, SA, msg)
-  +eK = TH.hk_val(one, h1, RB, SRB, eRB, A, SA, TC.public_rel(one, h1, pp, hP, cs, hR, D, rd2, B, hB, h, hh), msg)
+  +eK = TH.hk_val(one, h1, RB, SRB, eRB, A, SA, eA, msg)
   +sk = X.clamp(F.take(32n, h))
   +hsk = XB.clamp_okb(F.take(32n, h), BY.take_okb(32n, 32n, h, 255n, hh))
   sig_eq(one, h1, RB, SRB, eRB, k, TH.hk_okb(one, h1, RB, A, msg), Ks, eK, r, okr, SL.reduce_lt(one, h1, HS.hash(RH), BY.sha_lea(RH)), Rs, eR, sk, hsk, SE.secret(h), TC.secret_eq(h))
 
-def sign_guard(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>, +msg: List<&2, U32>, +x: List<&2, U32>, +e: {x == SE.sign_body(one, p, d, h, msg) : List<&2, U32>}) -> {x == SE.sign_with(one, p, d, h, msg) : List<&2, U32>}:
-  match d:
-    case 0n:
-      e
-    case 1n+ +q:
-      e
+# the scalar r of a signature and its specification value
+def rs_val(+one: Nat, +h1: {one == 1n : Nat}, +h: List<&2, U32>, +msg: List<&2, U32>) -> {FS.value(ESC.reduce(HS.hash(E.cat(F.drop(32n, h), msg)))) == Nat.mod(FS.value(SHA.sha512_bytes(SE.cat(SE.rest(32n, h), msg))), SE.ell(one)) : Nat}:
+  TH.rh_eq(one, h1, E.cat(F.drop(32n, h), msg), SE.cat(SE.rest(32n, h), msg), prefix_eq(h, msg))
+
+# with double-and-add (no table)
+
+def sign_body_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +B: PT.Pt, +hB: PR.Rp(one, pp, B, SE.base(1n+pp, D)), +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}, +msg: List<&2, U32>) -> {E.sign_parts(cs, B, ESC.reduce(E.secret(h)), E.prefix(h), E.public_of(cs, B, h), msg) == SE.sign_body(one, 1n+pp, D, h, msg) : List<&2, U32>}:
+  +P = {1n+pp : Nat}
+  +RH = E.cat(F.drop(32n, h), msg)
+  +r = ESC.reduce(HS.hash(RH))
+  +Rs = Nat.mod(FS.value(SHA.sha512_bytes(SE.cat(SE.rest(32n, h), msg))), SE.ell(one))
+  +okr = SL.reduce_okb(one, h1, HS.hash(RH))
+  +eRB = rb_eq(one, h1, pp, hP, cs, hR, D, rd2, B, SE.base(P, D), hB, r, okr, Rs, rs_val(one, h1, h, msg))
+  sign_core(one, h1, pp, D, h, hh, msg, PT.encode(PT.cs_r(cs), PT.mul(cs, r, B)), E.public_of(cs, B, h), eRB, TC.public_rel(one, h1, pp, hP, cs, hR, D, rd2, B, hB, h, hh))
+
+# with the table of the base point: [r]B and the public key by the table
+# form and the group law (FB.LawE, once for each)
+
+def rb_t_eq(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, SE.dconst(one, 1n+pp), SE.dconst(one, 1n+pp))), +B: PT.Pt, +hB: PR.Rp(one, pp, B, SE.base(1n+pp, SE.dconst(one, 1n+pp))), +r: List<&2, U32>, +okr: {LM.okb(32n, r, 255n) == True{} : Bool}, +Rs: Nat, +eR: {FS.value(r) == Rs : Nat}, lw: FB.LawE(one, pp)) -> {PT.encode(PT.cs_r(cs), PT.mul_base(PT.cs_r(cs), PT.base_table(cs, B), r)) == SE.encode(one, 1n+pp, SE.mul(one, 1n+pp, SE.dconst(one, 1n+pp), Rs, SE.base(1n+pp, SE.dconst(one, 1n+pp)))) : List<&2, U32>}:
+  +P = {1n+pp : Nat}
+  +D = SE.dconst(one, P)
+  +R = PT.cs_r(cs)
+  +SB = SE.base(P, D)
+  +hr = LM.okb_bytes(32n, r, okr)
+  +X0 = PT.mul_base(R, PT.base_table(cs, B), r)
+  +e1 = TC.enc_rel(one, h1, pp, hP, R, hR, X0, FB.smulb(one, P, D, r), PFB.mul_base_rel(one, h1, pp, hP, cs, hR, rd2, B, hB, r, hr))
+  +e2 = lw(r, hr)
+  +e3 = Equal.cong(Nat, List<&2, U32>, z => SE.encode(one, P, SE.mul(one, P, D, z, SB)), FS.value(r), Rs, eR)
+  Equal.trans(List<&2, U32>, PT.encode(R, X0), SE.encode(one, P, FB.smulb(one, P, D, r)), SE.encode(one, P, SE.mul(one, P, D, Rs, SB)), e1, Equal.trans(List<&2, U32>, SE.encode(one, P, FB.smulb(one, P, D, r)), SE.encode(one, P, SE.mul(one, P, D, FS.value(r), SB)), SE.encode(one, P, SE.mul(one, P, D, Rs, SB)), e2, e3))
+
+def sign_t_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, SE.dconst(one, 1n+pp), SE.dconst(one, 1n+pp))), +B: PT.Pt, +hB: PR.Rp(one, pp, B, SE.base(1n+pp, SE.dconst(one, 1n+pp))), +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}, +msg: List<&2, U32>, lw1: FB.LawE(one, pp), lw2: FB.LawE(one, pp)) -> {E.sign_parts_t(cs, PT.base_table(cs, B), ESC.reduce(E.secret(h)), E.prefix(h), E.public_of_t(cs, PT.base_table(cs, B), h), msg) == SE.sign_with(one, 1n+pp, SE.dconst(one, 1n+pp), h, msg) : List<&2, U32>}:
+  +P = {1n+pp : Nat}
+  +D = SE.dconst(one, P)
+  +tab = PT.base_table(cs, B)
+  +RH = E.cat(F.drop(32n, h), msg)
+  +r = ESC.reduce(HS.hash(RH))
+  +Rs = Nat.mod(FS.value(SHA.sha512_bytes(SE.cat(SE.rest(32n, h), msg))), SE.ell(one))
+  +okr = SL.reduce_okb(one, h1, HS.hash(RH))
+  +eRB = rb_t_eq(one, h1, pp, hP, cs, hR, rd2, B, hB, r, okr, Rs, rs_val(one, h1, h, msg), lw1)
+  +A = E.public_of_t(cs, tab, h)
+  sign_guard(one, P, D, h, msg, E.sign_parts_t(cs, tab, ESC.reduce(E.secret(h)), E.prefix(h), A, msg), sign_core(one, h1, pp, D, h, hh, msg, PT.encode(PT.cs_r(cs), PT.mul_base(PT.cs_r(cs), tab, r)), A, eRB, TC.public_t_rel(one, h1, pp, hP, cs, hR, rd2, B, hB, h, hh, lw2)))
 
 def sign_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +cs: PT.Cs, +hR: {PT.cs_r(cs) == WD.sc(17n, one) : Nat}, +D: Nat, +rd2: RE.Rel(one, pp, PT.cs_d2(cs), FS.fadd(1n+pp, D, D)), +B: PT.Pt, +hB: PR.Rp(one, pp, B, SE.base(1n+pp, D)), +h: List<&2, U32>, +hh: {LM.okb(64n, h, 255n) == True{} : Bool}, +msg: List<&2, U32>) -> {E.sign_parts(cs, B, ESC.reduce(E.secret(h)), E.prefix(h), E.public_of(cs, B, h), msg) == SE.sign_with(one, 1n+pp, D, h, msg) : List<&2, U32>}:
   sign_guard(one, 1n+pp, D, h, msg, E.sign_parts(cs, B, ESC.reduce(E.secret(h)), E.prefix(h), E.public_of(cs, B, h), msg), sign_body_rel(one, h1, pp, hP, cs, hR, D, rd2, B, hB, h, hh, msg))

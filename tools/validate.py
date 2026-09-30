@@ -285,15 +285,19 @@ def main():
         if name == 'balanced_search_tree':
             # The production module is the indexed TreeMap: its tests, the
             # oracle comparison, the component laws, and the universal
-            # refinement proof proofs/tree_map.bend (every operation, every
-            # good shadow, cursor and view, every lawful comparator).
+            # refinement proof proofs/containers/balanced_search_tree/proof.bend
+            # (every operation, every good shadow, cursor and view, every
+            # lawful comparator), and the semantic mutants of
+            # tools/check_tree_map_mutations.py, each of which the proofs
+            # must reject.
             (ROOT/'build/tree-map').mkdir(parents=True, exist_ok=True)
             checks = []
             for command, limit in [([BEND, 'tests/tree_map/main.bend', '-o', 'build/tree-map/test'], 120),
                                    ([sys.executable, 'tools/check_tree_map.py'], 120),
                                    ([BEND, 'proofs/containers/balanced_search_tree/components.bend'], 120),
                                    ([BEND, 'proofs/containers/balanced_search_tree/range.bend'], 120),
-                                   ([BEND, 'proofs/containers/balanced_search_tree/proof.bend'], 21600)]:
+                                   ([BEND, 'proofs/containers/balanced_search_tree/proof.bend'], 21600),
+                                   ([sys.executable, 'tools/check_tree_map_mutations.py'], 7200)]:
                 result = run(command, timeout=limit)
                 passed = result.returncode == 0 and (command[1] != 'proofs/containers/balanced_search_tree/proof.bend' or proved(result.stdout))
                 checks.append({'command': command, 'passed': passed,
@@ -301,11 +305,16 @@ def main():
                 if not passed:
                     fail(name, 'TreeMap check failed: ' + repr(command))
                     break
-            good = len(checks) == 5 and all(x['passed'] for x in checks)
+            good = len(checks) == 6 and all(x['passed'] for x in checks)
+            mutated = len(checks) == 6 and checks[5]['passed']
+            mutation_file = ROOT / 'build/tree-map/mutations.json'
+            mutants = json.loads(mutation_file.read_text()) if mutated and mutation_file.exists() else None
             rows.append({'id': name, 'implementation': 'indexed TreeMap',
                          'runtime': 'passed' if good else 'failed',
                          'component_proof': 'passed' if good else 'failed',
-                         'trace_proof': 'passed' if good else 'failed', 'checks': checks})
+                         'trace_proof': 'passed' if good else 'failed',
+                         'mutations': 'passed' if mutated else 'failed',
+                         'mutants': mutants, 'checks': checks})
             (LOGDIR / (name + '.log')).write_text('\n'.join(x['output'] for x in checks))
             print('%-22s runtime=%s refinement_proof=%s' % (name, rows[-1]['runtime'], rows[-1]['trace_proof']), flush=True)
             continue
@@ -623,6 +632,41 @@ def main():
         (LOGDIR / 'secp256k1.log').write_text('\n'.join(x['output'] for x in checks))
         print('%-22s differential=%s proof=%s' % ('secp256k1', secp_row['differential'], secp_row['proof']), flush=True)
 
+    # Bend against itself (tools/backend_diff.py): every public module on
+    # identical seeded random and edge-case inputs through the three execution
+    # paths of the toolchain (`bend file.bend args`, the native C backend,
+    # the JavaScript backend under node); any differing output line fails.
+    # The proofs are about the source; this is the test of the unverified
+    # compiler underneath them (see docs/BACKEND_BUGS.md).
+    backend_row = None
+    if not args.only or args.only == 'backend_diff':
+        # BACKEND_DIFF_ARGS adds options (say --quick while developing the gate)
+        result = run([sys.executable, 'tools/backend_diff.py', '-j', '4',
+                      '--report', 'build/backend_diff/report.json']
+                     + os.environ.get('BACKEND_DIFF_ARGS', '').split(), timeout=21600)
+        detail = {}
+        try:
+            detail = json.loads((ROOT / 'build/backend_diff/report.json').read_text())
+        except (OSError, ValueError):
+            pass
+        good = result.returncode == 0 and detail.get('passed') is True
+        if not good:
+            fail('backend_diff', 'execution paths disagree or a driver failed: %s'
+                 % (result.stdout + result.stderr)[-600:])
+        backend_row = {'id': 'backend_diff', 'implementation': 'every public module of main.bend',
+                       'differential': 'passed' if good else 'failed',
+                       'paths': detail.get('paths'), 'seed': detail.get('seed'),
+                       'cases': detail.get('cases'), 'lines': detail.get('lines'),
+                       'disagreements': detail.get('disagreements'),
+                       'resource_limit': detail.get('resource_limit'), 'all_fail': detail.get('all_fail'),
+                       'known': detail.get('known'), 'quick': detail.get('quick'),
+                       'modules': [{k: m.get(k) for k in ('module', 'cases', 'lines', 'agree', 'seconds')}
+                                   for m in detail.get('modules', [])],
+                       'seconds': detail.get('seconds')}
+        (LOGDIR / 'backend_diff.log').write_text(result.stdout + result.stderr)
+        print('%-22s differential=%s cases=%s lines=%s' % ('backend_diff', backend_row['differential'],
+                                                           backend_row['cases'], backend_row['lines']), flush=True)
+
     lru_log = []
     lru_ok, lru_detail = check_lru(lru_log)
     (LOGDIR / 'lru.log').write_text('\n'.join(lru_log))
@@ -645,6 +689,7 @@ def main():
         'chacha': chacha_row,
         'aes': aes_row,
         'random': random_row,
+        'backend_diff': backend_row,
         'lru_reuse': 'passed' if lru_ok else 'failed',
         'lru_detail': lru_detail,
         'complete': bool(complete),

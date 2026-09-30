@@ -1,0 +1,234 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+
+# Binary natural numbers for closed computation in the proof checker.
+#
+# The checker keeps Nat in unary and U32 as a list of 32 bits, so neither
+# multiplies big closed numbers in reasonable time. Bn is a little-endian
+# list of bits (B0{t} = 2 t, B1{t} = 2 t + 1, BZ{} = 0; leading zeros are
+# allowed), with addition, product and equality defined here by structural
+# recursion; the lemmas give their values (bval) in Nat, for every input,
+# so a closed Bn computation checked by {==} proves a Nat fact.
+
+type Bn is Data:
+  BZ{}
+  B0{t: Bn}
+  B1{t: Bn}
+
+def bval(a: Bn) -> Nat:
+  match a:
+    case BZ{}:
+      0n
+    case B0{+t}:
+      Nat.add(bval(t), bval(t))
+    case B1{+t}:
+      1n+Nat.add(bval(t), bval(t))
+
+def binc(a: Bn) -> Bn:
+  match a:
+    case BZ{}:
+      B1{BZ{}}
+    case B0{t}:
+      B1{t}
+    case B1{t}:
+      B0{binc(t)}
+
+def badd(a: Bn, b: Bn) -> Bn:
+  match a b:
+    case BZ{} y:
+      y
+    case B0{x} BZ{}:
+      B0{x}
+    case B1{x} BZ{}:
+      B1{x}
+    case B0{x} B0{y}:
+      B0{badd(x, y)}
+    case B0{x} B1{y}:
+      B1{badd(x, y)}
+    case B1{x} B0{y}:
+      B1{badd(x, y)}
+    case B1{x} B1{y}:
+      B0{binc(badd(x, y))}
+
+def bmul_go(a: Bn, +b: Bn) -> Bn:
+  match a:
+    case BZ{}:
+      BZ{}
+    case B0{t}:
+      B0{bmul_go(t, b)}
+    case B1{t}:
+      badd(b, B0{bmul_go(t, b)})
+
+# the product; a zero factor is answered at once (so that no string of
+# zero bits is built)
+def bmul(+a: Bn, +b: Bn) -> Bn:
+  match a b:
+    case BZ{} _:
+      BZ{}
+    case B0{t} BZ{}:
+      BZ{}
+    case B1{t} BZ{}:
+      BZ{}
+    case B0{t} B0{u}:
+      bmul_go(a, b)
+    case B0{t} B1{u}:
+      bmul_go(a, b)
+    case B1{t} B0{u}:
+      bmul_go(a, b)
+    case B1{t} B1{u}:
+      bmul_go(a, b)
+
+# equal values (leading zeros ignored)
+def beq(a: Bn, b: Bn) -> Bool:
+  match a b:
+    case BZ{} BZ{}:
+      True{}
+    case BZ{} B0{y}:
+      beq(BZ{}, y)
+    case BZ{} B1{y}:
+      False{}
+    case B0{x} BZ{}:
+      beq(x, BZ{})
+    case B1{x} BZ{}:
+      False{}
+    case B0{x} B0{y}:
+      beq(x, y)
+    case B1{x} B1{y}:
+      beq(x, y)
+    case B0{x} B1{y}:
+      False{}
+    case B1{x} B0{y}:
+      False{}
+
+# the binary form of a (small) unary number
+def nbin(n: Nat) -> Bn:
+  match n:
+    case 0n:
+      BZ{}
+    case 1n+k:
+      binc(nbin(k))
+
+# ---- values ----
+
+def binc_v(a: Bn) -> {bval(binc(a)) == 1n+bval(a) : Nat}:
+  match a:
+    case BZ{}:
+      {==}
+    case B0{t}:
+      {==}
+    case B1{+t}:
+      %goal {Nat.add(bval(binc(t)), bval(binc(t))) == 1n+1n+Nat.add(bval(t), bval(t)) : Nat}
+      %rw binc_v(t)
+      %rw binc_v(t)
+      %norm
+
+def badd_v(a: Bn, b: Bn) -> {bval(badd(a, b)) == Nat.add(bval(a), bval(b)) : Nat}:
+  match a b:
+    case BZ{} y:
+      {==}
+    case B0{+x} BZ{}:
+      Equal.sym(Nat, Nat.add(Nat.add(bval(x), bval(x)), 0n), Nat.add(bval(x), bval(x)), NA.add_zero(Nat.add(bval(x), bval(x))))
+    case B1{+x} BZ{}:
+      Equal.sym(Nat, Nat.add(1n+Nat.add(bval(x), bval(x)), 0n), 1n+Nat.add(bval(x), bval(x)), NA.add_zero(1n+Nat.add(bval(x), bval(x))))
+    case B0{+x} B0{+y}:
+      %goal {Nat.add(bval(badd(x, y)), bval(badd(x, y))) == Nat.add(Nat.add(bval(x), bval(x)), Nat.add(bval(y), bval(y))) : Nat}
+      %rw badd_v(x, y)
+      %rw badd_v(x, y)
+      %norm
+    case B0{+x} B1{+y}:
+      %goal {1n+Nat.add(bval(badd(x, y)), bval(badd(x, y))) == Nat.add(Nat.add(bval(x), bval(x)), 1n+Nat.add(bval(y), bval(y))) : Nat}
+      %rw badd_v(x, y)
+      %rw badd_v(x, y)
+      %norm
+    case B1{+x} B0{+y}:
+      %goal {1n+Nat.add(bval(badd(x, y)), bval(badd(x, y))) == Nat.add(1n+Nat.add(bval(x), bval(x)), Nat.add(bval(y), bval(y))) : Nat}
+      %rw badd_v(x, y)
+      %rw badd_v(x, y)
+      %norm
+    case B1{+x} B1{+y}:
+      %goal {Nat.add(bval(binc(badd(x, y))), bval(binc(badd(x, y)))) == Nat.add(1n+Nat.add(bval(x), bval(x)), 1n+Nat.add(bval(y), bval(y))) : Nat}
+      %rw binc_v(badd(x, y))
+      %rw binc_v(badd(x, y))
+      %rw badd_v(x, y)
+      %rw badd_v(x, y)
+      %norm
+
+def bmul_go_v(a: Bn, +b: Bn) -> {bval(bmul_go(a, b)) == Nat.mul(bval(a), bval(b)) : Nat}:
+  match a:
+    case BZ{}:
+      {==}
+    case B0{+t}:
+      %goal {Nat.add(bval(bmul_go(t, b)), bval(bmul_go(t, b))) == Nat.mul(Nat.add(bval(t), bval(t)), bval(b)) : Nat}
+      %rw bmul_go_v(t, b)
+      %rw bmul_go_v(t, b)
+      %norm
+    case B1{+t}:
+      %goal {bval(badd(b, B0{bmul_go(t, b)})) == Nat.mul(1n+Nat.add(bval(t), bval(t)), bval(b)) : Nat}
+      %rw badd_v(b, B0{bmul_go(t, b)})
+      %goal {Nat.add(bval(b), Nat.add(bval(bmul_go(t, b)), bval(bmul_go(t, b)))) == Nat.mul(1n+Nat.add(bval(t), bval(t)), bval(b)) : Nat}
+      %rw bmul_go_v(t, b)
+      %rw bmul_go_v(t, b)
+      %norm
+
+def bmul_v(+a: Bn, +b: Bn) -> {bval(bmul(a, b)) == Nat.mul(bval(a), bval(b)) : Nat}:
+  match a b:
+    case BZ{} _:
+      {==}
+    case B0{+t} BZ{}:
+      Equal.sym(Nat, Nat.mul(Nat.add(bval(t), bval(t)), 0n), 0n, NA.mul_zero(Nat.add(bval(t), bval(t))))
+    case B1{+t} BZ{}:
+      Equal.sym(Nat, Nat.mul(1n+Nat.add(bval(t), bval(t)), 0n), 0n, NA.mul_zero(1n+Nat.add(bval(t), bval(t))))
+    case B0{+t} B0{+u}:
+      bmul_go_v(B0{t}, B0{u})
+    case B0{+t} B1{+u}:
+      bmul_go_v(B0{t}, B1{u})
+    case B1{+t} B0{+u}:
+      bmul_go_v(B1{t}, B0{u})
+    case B1{+t} B1{+u}:
+      bmul_go_v(B1{t}, B1{u})
+
+def beq_v(a: Bn, b: Bn, +h: {beq(a, b) == True{} : Bool}) -> {bval(a) == bval(b) : Nat}:
+  match a b:
+    case BZ{} BZ{}:
+      {==}
+    case BZ{} B0{+y}:
+      %goal {0n == Nat.add(bval(y), bval(y)) : Nat}
+      %rw <- beq_v(BZ{}, y, h)
+      %rw <- beq_v(BZ{}, y, h)
+      %close
+    case BZ{} B1{y}:
+      Empty.absurd({0n == 1n+Nat.add(bval(y), bval(y)) : Nat}, Lg.false_true(h))
+    case B0{+x} BZ{}:
+      %goal {Nat.add(bval(x), bval(x)) == 0n : Nat}
+      %rw beq_v(x, BZ{}, h)
+      %rw beq_v(x, BZ{}, h)
+      %close
+    case B1{x} BZ{}:
+      Empty.absurd({1n+Nat.add(bval(x), bval(x)) == 0n : Nat}, Lg.false_true(h))
+    case B0{+x} B0{+y}:
+      %goal {Nat.add(bval(x), bval(x)) == Nat.add(bval(y), bval(y)) : Nat}
+      %rw beq_v(x, y, h)
+      %rw beq_v(x, y, h)
+      %close
+    case B1{+x} B1{+y}:
+      %goal {1n+Nat.add(bval(x), bval(x)) == 1n+Nat.add(bval(y), bval(y)) : Nat}
+      %rw beq_v(x, y, h)
+      %rw beq_v(x, y, h)
+      %close
+    case B0{x} B1{y}:
+      Empty.absurd({Nat.add(bval(x), bval(x)) == 1n+Nat.add(bval(y), bval(y)) : Nat}, Lg.false_true(h))
+    case B1{x} B0{y}:
+      Empty.absurd({1n+Nat.add(bval(x), bval(x)) == Nat.add(bval(y), bval(y)) : Nat}, Lg.false_true(h))
+
+def nbin_v(n: Nat) -> {bval(nbin(n)) == n : Nat}:
+  match n:
+    case 0n:
+      {==}
+    case 1n+ +k:
+      %goal {bval(binc(nbin(k))) == 1n+k : Nat}
+      %rw binc_v(nbin(k))
+      %rw nbin_v(k)
+      %close

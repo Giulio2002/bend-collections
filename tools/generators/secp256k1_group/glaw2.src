@@ -1,0 +1,163 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ../../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../../spec/crypto/secp256k1/curve.bend as CS
+import ../../../../spec/crypto/secp256k1/group.bend as GS
+import ../../../math/number/nt_prime.bend as PM
+import ./zm.bend as Z
+import ./ident.bend as I
+import ./fld.bend as F
+import ./nc.bend as NC
+import ./glaw1.bend as G1
+import ./id_alg1.bend as A1
+import ./id_alg2.bend as A2
+import ./id_hom.bend as H
+import ./id_dbl.bend as D
+
+# The group of secp256k1 on the specification's projective points, part 2:
+# equiv is an equivalence on the points of the group, the complete addition
+# respects it, (0 : 1 : 0) is the identity and (X : -Y : Z) the inverse,
+# and the doubling program is the addition of a point to itself.
+# (Associativity is in glaw3.bend.) m = 1 + mp is prime (hp).
+
+# ---- equal ratios ----
+
+# a1 b2 == a2 b1, a2 b3 == a3 b2, b2 != 0: a1 b3 == a3 b1
+def ratio(+mp: Nat, +hp: PM.Prime(1n+mp), +a1: Nat, +b1: Nat, +a2: Nat, +b2: Nat, +a3: Nat, +b3: Nat, +nz: F.NZ(mp, b2), +e1: {FS.mmul(1n+mp, a1, b2) == FS.mmul(1n+mp, a2, b1) : Nat}, +e2: {FS.mmul(1n+mp, a2, b3) == FS.mmul(1n+mp, a3, b2) : Nat}) -> {FS.mmul(1n+mp, a1, b3) == FS.mmul(1n+mp, a3, b1) : Nat}:
+  I.both_red(mp, Nat.mul(a1, b3), Nat.mul(a3, b1), F.eq_of_factor(mp, hp, FS.mmul(1n+mp, a1, b3), FS.mmul(1n+mp, a3, b1), b2, nz, F.z_red(mp, Nat.mul(FS.msub(1n+mp, FS.mmul(1n+mp, a1, b3), FS.mmul(1n+mp, a3, b1)), b2), A1.ratio_trans(mp, a1, b1, a2, b2, a3, b3, e1, e2))))
+
+# a S == b T in the coordinates x and y, a and b nonzero: sx ty == tx sy
+def prop(+mp: Nat, +hp: PM.Prime(1n+mp), +a: Nat, +b: Nat, +sx: Nat, +sy: Nat, +tx: Nat, +ty: Nat, +na: F.NZ(mp, a), +nb: F.NZ(mp, b), +e1: {FS.mmul(1n+mp, a, sx) == FS.mmul(1n+mp, b, tx) : Nat}, +e2: {FS.mmul(1n+mp, b, ty) == FS.mmul(1n+mp, a, sy) : Nat}) -> {FS.mmul(1n+mp, sx, ty) == FS.mmul(1n+mp, tx, sy) : Nat}:
+  I.both_red(mp, Nat.mul(sx, ty), Nat.mul(tx, sy), F.eq_of_factor(mp, hp, FS.mmul(1n+mp, sx, ty), FS.mmul(1n+mp, tx, sy), FS.mmul(1n+mp, a, b), F.nz_mmul(mp, hp, a, b, na, nb), F.z_red(mp, Nat.mul(FS.msub(1n+mp, FS.mmul(1n+mp, sx, ty), FS.mmul(1n+mp, tx, sy)), FS.mmul(1n+mp, a, b)), A2.scale_eqv(mp, a, b, sx, sy, tx, ty, e1, e2))))
+
+# ---- equiv is an equivalence ----
+
+def e_refl(+mp: Nat, a: CS.SPoint) -> {GS.equiv(1n+mp, a, a) == True{} : Bool}:
+  match a:
+    case CS.SPoint{+x, +y, +z}:
+      G1.e_pack(mp, x, y, z, x, y, z, {==}, {==})
+
+def e_sym(+mp: Nat, a: CS.SPoint, b: CS.SPoint, +h: {GS.equiv(1n+mp, a, b) == True{} : Bool}) -> {GS.equiv(1n+mp, b, a) == True{} : Bool}:
+  match a b:
+    case CS.SPoint{+x1, +y1, +z1} CS.SPoint{+x2, +y2, +z2}:
+      G1.e_pack(mp, x2, y2, z2, x1, y1, z1, Equal.sym(Nat, FS.mmul(1n+mp, x1, y2), FS.mmul(1n+mp, x2, y1), G1.e_x(mp, x1, y1, z1, x2, y2, z2, h)), Equal.sym(Nat, FS.mmul(1n+mp, z1, y2), FS.mmul(1n+mp, z2, y1), G1.e_z(mp, x1, y1, z1, x2, y2, z2, h)))
+
+# transitivity, through a point of the group
+def e_trans(+mp: Nat, +hp: PM.Prime(1n+mp), a: CS.SPoint, b: CS.SPoint, c: CS.SPoint, +vb: {GS.valid(1n+mp, b) == True{} : Bool}, +hab: {GS.equiv(1n+mp, a, b) == True{} : Bool}, +hbc: {GS.equiv(1n+mp, b, c) == True{} : Bool}) -> {GS.equiv(1n+mp, a, c) == True{} : Bool}:
+  match a b c:
+    case CS.SPoint{+x1, +y1, +z1} CS.SPoint{+x2, +y2, +z2} CS.SPoint{+x3, +y3, +z3}:
+      +nz = G1.v_nz(mp, x2, y2, z2, vb)
+      G1.e_pack(mp, x1, y1, z1, x3, y3, z3,
+        ratio(mp, hp, x1, y1, x2, y2, x3, y3, nz, G1.e_x(mp, x1, y1, z1, x2, y2, z2, hab), G1.e_x(mp, x2, y2, z2, x3, y3, z3, hbc)),
+        ratio(mp, hp, z1, y1, z2, y2, z3, y3, nz, G1.e_z(mp, x1, y1, z1, x2, y2, z2, hab), G1.e_z(mp, x2, y2, z2, x3, y3, z3, hbc)))
+
+# ---- the addition respects equiv ----
+
+def run_eq(+mp: Nat, +k: Nat, +p1: Nat, +p2: Nat, +p3: Nat, +q1: Nat, +q2: Nat, +q3: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +h1: {p1 == q1 : Nat}, +h2: {p2 == q2 : Nat}, +h3: {p3 == q3 : Nat}) -> {CS.nth(k, CS.run(1n+mp, CS.add_prog(), [p1, p2, p3, x2, y2, z2, 21n])) == CS.nth(k, CS.run(1n+mp, CS.add_prog(), [q1, q2, q3, x2, y2, z2, 21n])) : Nat}:
+  %h1 : {CS.nth(k, CS.run(1n+mp, CS.add_prog(), [p1, p2, p3, x2, y2, z2, 21n])) == CS.nth(k, CS.run(1n+mp, CS.add_prog(), [_, q2, q3, x2, y2, z2, 21n])) : Nat}
+  %h2 : {CS.nth(k, CS.run(1n+mp, CS.add_prog(), [p1, p2, p3, x2, y2, z2, 21n])) == CS.nth(k, CS.run(1n+mp, CS.add_prog(), [p1, _, q3, x2, y2, z2, 21n])) : Nat}
+  %h3 : {CS.nth(k, CS.run(1n+mp, CS.add_prog(), [p1, p2, p3, x2, y2, z2, 21n])) == CS.nth(k, CS.run(1n+mp, CS.add_prog(), [p1, p2, _, x2, y2, z2, 21n])) : Nat}
+  {==}
+
+def xy_swap(+mp: Nat, +x1: Nat, +v1: Nat, +u1: Nat, +y1: Nat, +h: {FS.mmul(1n+mp, x1, v1) == FS.mmul(1n+mp, u1, y1) : Nat}) -> {FS.mmul(1n+mp, v1, x1) == FS.mmul(1n+mp, y1, u1) : Nat}:
+  %F.mmul_comm(mp, x1, v1) : {_ == FS.mmul(1n+mp, y1, u1) : Nat}
+  %F.mmul_comm(mp, u1, y1) : {FS.mmul(1n+mp, x1, v1) == _ : Nat}
+  h
+
+
+# (v1^2) (P + Q).X == (y1^2) (P2 + Q).X for P = (x1, y1, z1) equiv P2 = (u1, v1, w1)
+def sc_x(+mp: Nat, +x1: Nat, +y1: Nat, +z1: Nat, +u1: Nat, +v1: Nat, +w1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +ex: {FS.mmul(1n+mp, x1, v1) == FS.mmul(1n+mp, u1, y1) : Nat}, +ez: {FS.mmul(1n+mp, z1, v1) == FS.mmul(1n+mp, w1, y1) : Nat}) -> {FS.mmul(1n+mp, FS.mmul(1n+mp, v1, v1), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n]))) == FS.mmul(1n+mp, FS.mmul(1n+mp, y1, y1), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n]))) : Nat}:
+  I.both_red(mp, Nat.mul(FS.mmul(1n+mp, v1, v1), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n]))), Nat.mul(FS.mmul(1n+mp, y1, y1), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n]))), Equal.trans(Nat, Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, v1, v1), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n]))), 1n+mp), Nat.mod(CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), x2, y2, z2, 21n])), 1n+mp), Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, y1, y1), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n]))), 1n+mp), Equal.sym(Nat, Nat.mod(CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), x2, y2, z2, 21n])), 1n+mp), Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, v1, v1), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n]))), 1n+mp), H.hom_x(mp, x1, y1, z1, x2, y2, z2, v1, 21n)), Equal.trans(Nat, Nat.mod(CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), x2, y2, z2, 21n])), 1n+mp), Nat.mod(CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, y1, u1), FS.mmul(1n+mp, y1, v1), FS.mmul(1n+mp, y1, w1), x2, y2, z2, 21n])), 1n+mp), Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, y1, y1), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n]))), 1n+mp), Equal.cong(Nat, Nat, t => Nat.mod(t, 1n+mp), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), x2, y2, z2, 21n])), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, y1, u1), FS.mmul(1n+mp, y1, v1), FS.mmul(1n+mp, y1, w1), x2, y2, z2, 21n])), run_eq(mp, 33n, FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), FS.mmul(1n+mp, y1, u1), FS.mmul(1n+mp, y1, v1), FS.mmul(1n+mp, y1, w1), x2, y2, z2, xy_swap(mp, x1, v1, u1, y1, ex), F.mmul_comm(mp, v1, y1), xy_swap(mp, z1, v1, w1, y1, ez))), H.hom_x(mp, u1, v1, w1, x2, y2, z2, y1, 21n))))
+
+# (v1^2) (P + Q).Y == (y1^2) (P2 + Q).Y for P = (x1, y1, z1) equiv P2 = (u1, v1, w1)
+def sc_y(+mp: Nat, +x1: Nat, +y1: Nat, +z1: Nat, +u1: Nat, +v1: Nat, +w1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +ex: {FS.mmul(1n+mp, x1, v1) == FS.mmul(1n+mp, u1, y1) : Nat}, +ez: {FS.mmul(1n+mp, z1, v1) == FS.mmul(1n+mp, w1, y1) : Nat}) -> {FS.mmul(1n+mp, FS.mmul(1n+mp, v1, v1), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n]))) == FS.mmul(1n+mp, FS.mmul(1n+mp, y1, y1), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n]))) : Nat}:
+  I.both_red(mp, Nat.mul(FS.mmul(1n+mp, v1, v1), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n]))), Nat.mul(FS.mmul(1n+mp, y1, y1), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n]))), Equal.trans(Nat, Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, v1, v1), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n]))), 1n+mp), Nat.mod(CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), x2, y2, z2, 21n])), 1n+mp), Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, y1, y1), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n]))), 1n+mp), Equal.sym(Nat, Nat.mod(CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), x2, y2, z2, 21n])), 1n+mp), Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, v1, v1), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n]))), 1n+mp), H.hom_y(mp, x1, y1, z1, x2, y2, z2, v1, 21n)), Equal.trans(Nat, Nat.mod(CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), x2, y2, z2, 21n])), 1n+mp), Nat.mod(CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, y1, u1), FS.mmul(1n+mp, y1, v1), FS.mmul(1n+mp, y1, w1), x2, y2, z2, 21n])), 1n+mp), Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, y1, y1), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n]))), 1n+mp), Equal.cong(Nat, Nat, t => Nat.mod(t, 1n+mp), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), x2, y2, z2, 21n])), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, y1, u1), FS.mmul(1n+mp, y1, v1), FS.mmul(1n+mp, y1, w1), x2, y2, z2, 21n])), run_eq(mp, 36n, FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), FS.mmul(1n+mp, y1, u1), FS.mmul(1n+mp, y1, v1), FS.mmul(1n+mp, y1, w1), x2, y2, z2, xy_swap(mp, x1, v1, u1, y1, ex), F.mmul_comm(mp, v1, y1), xy_swap(mp, z1, v1, w1, y1, ez))), H.hom_y(mp, u1, v1, w1, x2, y2, z2, y1, 21n))))
+
+# (v1^2) (P + Q).Z == (y1^2) (P2 + Q).Z for P = (x1, y1, z1) equiv P2 = (u1, v1, w1)
+def sc_z(+mp: Nat, +x1: Nat, +y1: Nat, +z1: Nat, +u1: Nat, +v1: Nat, +w1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +ex: {FS.mmul(1n+mp, x1, v1) == FS.mmul(1n+mp, u1, y1) : Nat}, +ez: {FS.mmul(1n+mp, z1, v1) == FS.mmul(1n+mp, w1, y1) : Nat}) -> {FS.mmul(1n+mp, FS.mmul(1n+mp, v1, v1), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n]))) == FS.mmul(1n+mp, FS.mmul(1n+mp, y1, y1), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n]))) : Nat}:
+  I.both_red(mp, Nat.mul(FS.mmul(1n+mp, v1, v1), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n]))), Nat.mul(FS.mmul(1n+mp, y1, y1), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n]))), Equal.trans(Nat, Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, v1, v1), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n]))), 1n+mp), Nat.mod(CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), x2, y2, z2, 21n])), 1n+mp), Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, y1, y1), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n]))), 1n+mp), Equal.sym(Nat, Nat.mod(CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), x2, y2, z2, 21n])), 1n+mp), Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, v1, v1), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n]))), 1n+mp), H.hom_z(mp, x1, y1, z1, x2, y2, z2, v1, 21n)), Equal.trans(Nat, Nat.mod(CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), x2, y2, z2, 21n])), 1n+mp), Nat.mod(CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, y1, u1), FS.mmul(1n+mp, y1, v1), FS.mmul(1n+mp, y1, w1), x2, y2, z2, 21n])), 1n+mp), Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, y1, y1), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n]))), 1n+mp), Equal.cong(Nat, Nat, t => Nat.mod(t, 1n+mp), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), x2, y2, z2, 21n])), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [FS.mmul(1n+mp, y1, u1), FS.mmul(1n+mp, y1, v1), FS.mmul(1n+mp, y1, w1), x2, y2, z2, 21n])), run_eq(mp, 39n, FS.mmul(1n+mp, v1, x1), FS.mmul(1n+mp, v1, y1), FS.mmul(1n+mp, v1, z1), FS.mmul(1n+mp, y1, u1), FS.mmul(1n+mp, y1, v1), FS.mmul(1n+mp, y1, w1), x2, y2, z2, xy_swap(mp, x1, v1, u1, y1, ex), F.mmul_comm(mp, v1, y1), xy_swap(mp, z1, v1, w1, y1, ez))), H.hom_z(mp, u1, v1, w1, x2, y2, z2, y1, 21n))))
+
+# P equiv P2 (points of the group): P + Q equiv P2 + Q
+def e_add_l(+mp: Nat, +hp: PM.Prime(1n+mp), a: CS.SPoint, a2: CS.SPoint, b: CS.SPoint, +va: {GS.valid(1n+mp, a) == True{} : Bool}, +va2: {GS.valid(1n+mp, a2) == True{} : Bool}, +h: {GS.equiv(1n+mp, a, a2) == True{} : Bool}) -> {GS.equiv(1n+mp, CS.padd(1n+mp, a, b), CS.padd(1n+mp, a2, b)) == True{} : Bool}:
+  match a a2 b:
+    case CS.SPoint{+x1, +y1, +z1} CS.SPoint{+u1, +v1, +w1} CS.SPoint{+x2, +y2, +z2}:
+      +ex = G1.e_x(mp, x1, y1, z1, u1, v1, w1, h)
+      +ez = G1.e_z(mp, x1, y1, z1, u1, v1, w1, h)
+      +n1 = G1.v_nz(mp, x1, y1, z1, va)
+      +n2 = G1.v_nz(mp, u1, v1, w1, va2)
+      +nv = F.nz_mmul(mp, hp, v1, v1, n2, n2)
+      +ny = F.nz_mmul(mp, hp, y1, y1, n1, n1)
+      +sy = sc_y(mp, x1, y1, z1, u1, v1, w1, x2, y2, z2, ex, ez)
+      G1.e_pack(mp, CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n])), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n])), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n])), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n])), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n])), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n])),
+        prop(mp, hp, FS.mmul(1n+mp, v1, v1), FS.mmul(1n+mp, y1, y1), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n])), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n])), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n])), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n])), nv, ny, sc_x(mp, x1, y1, z1, u1, v1, w1, x2, y2, z2, ex, ez), Equal.sym(Nat, FS.mmul(1n+mp, FS.mmul(1n+mp, v1, v1), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n]))), FS.mmul(1n+mp, FS.mmul(1n+mp, y1, y1), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n]))), sy)),
+        prop(mp, hp, FS.mmul(1n+mp, v1, v1), FS.mmul(1n+mp, y1, y1), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n])), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n])), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n])), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n])), nv, ny, sc_z(mp, x1, y1, z1, u1, v1, w1, x2, y2, z2, ex, ez), Equal.sym(Nat, FS.mmul(1n+mp, FS.mmul(1n+mp, v1, v1), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x1, y1, z1, x2, y2, z2, 21n]))), FS.mmul(1n+mp, FS.mmul(1n+mp, y1, y1), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [u1, v1, w1, x2, y2, z2, 21n]))), sy)))
+
+# Q equiv Q2: P + Q equiv P + Q2
+def e_add_r(+mp: Nat, +hp: PM.Prime(1n+mp), +a: CS.SPoint, +b: CS.SPoint, +b2: CS.SPoint, +vb: {GS.valid(1n+mp, b) == True{} : Bool}, +vb2: {GS.valid(1n+mp, b2) == True{} : Bool}, +h: {GS.equiv(1n+mp, b, b2) == True{} : Bool}) -> {GS.equiv(1n+mp, CS.padd(1n+mp, a, b), CS.padd(1n+mp, a, b2)) == True{} : Bool}:
+  %G1.add_comm(mp, b, a) : {GS.equiv(1n+mp, _, CS.padd(1n+mp, a, b2)) == True{} : Bool}
+  %G1.add_comm(mp, b2, a) : {GS.equiv(1n+mp, CS.padd(1n+mp, b, a), _) == True{} : Bool}
+  e_add_l(mp, hp, b, b2, a, vb, vb2, h)
+
+# ---- identity, inverse, doubling ----
+
+def lt1(+mp: Nat, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}) -> {Nat.is_lt(1n, 1n+mp) == True{} : Bool}:
+  N.lt_trans(1n, 21n, 1n+mp, {==}, h21)
+
+# O = (0 : 1 : 0) is a point of the group
+def v_inf(+mp: Nat, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}) -> {GS.valid(1n+mp, CS.infinity()) == True{} : Bool}:
+  G1.v_pack(mp, 0n, 1n, 0n, I.both_red(mp, Nat.mul(FS.mmul(1n+mp, 0n, 0n), 0n), Nat.sub(Nat.add(FS.mmul(1n+mp, FS.mmul(1n+mp, 1n, 1n), 0n), 1n+mp), Nat.mod(FS.mmul(1n+mp, 7n, FS.mmul(1n+mp, FS.mmul(1n+mp, 0n, 0n), 0n)), 1n+mp)), D.inf_curve(mp, 0n, 0n, 0n)), NC.nz_small(mp, 0n, lt1(mp, h21)))
+
+# P + O equiv P
+def unit(+mp: Nat, a: CS.SPoint) -> {GS.equiv(1n+mp, CS.padd(1n+mp, a, CS.infinity()), a) == True{} : Bool}:
+  match a:
+    case CS.SPoint{+x, +y, +z}:
+      G1.e_pack(mp, CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [x, y, z, 0n, 1n, 0n, 21n])), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x, y, z, 0n, 1n, 0n, 21n])), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [x, y, z, 0n, 1n, 0n, 21n])), x, y, z,
+        I.both_red(mp, Nat.mul(CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [x, y, z, 0n, 1n, 0n, 21n])), y), Nat.mul(x, CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x, y, z, 0n, 1n, 0n, 21n]))), D.unit_ex(mp, x, y, z)),
+        I.both_red(mp, Nat.mul(CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [x, y, z, 0n, 1n, 0n, 21n])), y), Nat.mul(z, CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x, y, z, 0n, 1n, 0n, 21n]))), D.unit_ez(mp, x, y, z)))
+
+def neg_nz_c(+mp: Nat, +y: Nat, +n: F.NZ(mp, y), c: Bool, +hc: {Nat.is_eq(Nat.mod(FS.msub(1n+mp, 0n, y), 1n+mp), 0n) == c : Bool}) -> F.NZ(mp, FS.msub(1n+mp, 0n, y)):
+  match c:
+    case False{}:
+      hc
+    case True{}:
+      Empty.absurd(F.NZ(mp, FS.msub(1n+mp, 0n, y)), F.nz_absurd(mp, y, n, Equal.sym(Nat, 0n, Nat.mod(y, 1n+mp), F.msub_z(mp, 0n, y, N.eq_from_is_eq(Nat.mod(FS.msub(1n+mp, 0n, y), 1n+mp), 0n, hc)))))
+
+# -P is a point of the group
+def v_neg(+mp: Nat, a: CS.SPoint, +va: {GS.valid(1n+mp, a) == True{} : Bool}) -> {GS.valid(1n+mp, GS.neg(1n+mp, a)) == True{} : Bool}:
+  match a:
+    case CS.SPoint{+x, +y, +z}:
+      G1.v_pack(mp, x, FS.msub(1n+mp, 0n, y), z,
+        I.both_red(mp, Nat.mul(FS.mmul(1n+mp, x, x), x), Nat.sub(Nat.add(FS.mmul(1n+mp, FS.mmul(1n+mp, FS.msub(1n+mp, 0n, y), FS.msub(1n+mp, 0n, y)), z), 1n+mp), Nat.mod(FS.mmul(1n+mp, 7n, FS.mmul(1n+mp, FS.mmul(1n+mp, z, z), z)), 1n+mp)), D.neg_curve(mp, x, y, z, G1.v_onc(mp, x, y, z, va))),
+        neg_nz_c(mp, y, G1.v_nz(mp, x, y, z, va), Nat.is_eq(Nat.mod(FS.msub(1n+mp, 0n, y), 1n+mp), 0n), {==}))
+
+# P + (-P) equiv O
+def inv(+mp: Nat, a: CS.SPoint) -> {GS.equiv(1n+mp, CS.padd(1n+mp, a, GS.neg(1n+mp, a)), CS.infinity()) == True{} : Bool}:
+  match a:
+    case CS.SPoint{+x, +y, +z}:
+      G1.e_pack(mp, CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [x, y, z, x, FS.msub(1n+mp, 0n, y), z, 21n])), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x, y, z, x, FS.msub(1n+mp, 0n, y), z, 21n])), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [x, y, z, x, FS.msub(1n+mp, 0n, y), z, 21n])), 0n, 1n, 0n,
+        F.z_mul_l(mp, CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [x, y, z, x, FS.msub(1n+mp, 0n, y), z, 21n])), 1n, D.neg_x(mp, x, y, z)),
+        F.z_mul_l(mp, CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [x, y, z, x, FS.msub(1n+mp, 0n, y), z, 21n])), 1n, D.neg_z(mp, x, y, z)))
+
+def dx_red(+mp: Nat, +a: Nat, +b: Nat, +c: Nat) -> {Nat.mod(CS.nth(21n, CS.run(1n+mp, CS.dbl_prog(), [a, b, c, 21n])), 1n+mp) == CS.nth(21n, CS.run(1n+mp, CS.dbl_prog(), [a, b, c, 21n])) : Nat}:
+  G1.reg_red(mp, CS.dbl_prog(), [a, b, c, 21n], 21n, CS.SAdd{20n, 20n}, {==})
+
+def dy_red(+mp: Nat, +a: Nat, +b: Nat, +c: Nat) -> {Nat.mod(CS.nth(18n, CS.run(1n+mp, CS.dbl_prog(), [a, b, c, 21n])), 1n+mp) == CS.nth(18n, CS.run(1n+mp, CS.dbl_prog(), [a, b, c, 21n])) : Nat}:
+  G1.reg_red(mp, CS.dbl_prog(), [a, b, c, 21n], 18n, CS.SAdd{11n, 17n}, {==})
+
+def dz_red(+mp: Nat, +a: Nat, +b: Nat, +c: Nat) -> {Nat.mod(CS.nth(13n, CS.run(1n+mp, CS.dbl_prog(), [a, b, c, 21n])), 1n+mp) == CS.nth(13n, CS.run(1n+mp, CS.dbl_prog(), [a, b, c, 21n])) : Nat}:
+  G1.reg_red(mp, CS.dbl_prog(), [a, b, c, 21n], 13n, CS.SMul{8n, 7n}, {==})
+
+# 2 P (the doubling program) is P + P, as triples, for P on the curve
+def dbl(+mp: Nat, a: CS.SPoint, +va: {GS.valid(1n+mp, a) == True{} : Bool}) -> {CS.pdbl(1n+mp, a) == CS.padd(1n+mp, a, a) : CS.SPoint}:
+  match a:
+    case CS.SPoint{+x, +y, +z}:
+      +c = G1.v_onc(mp, x, y, z, va)
+      G1.sp_eq(CS.nth(21n, CS.run(1n+mp, CS.dbl_prog(), [x, y, z, 21n])), CS.nth(18n, CS.run(1n+mp, CS.dbl_prog(), [x, y, z, 21n])), CS.nth(13n, CS.run(1n+mp, CS.dbl_prog(), [x, y, z, 21n])), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [x, y, z, x, y, z, 21n])), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x, y, z, x, y, z, 21n])), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [x, y, z, x, y, z, 21n])),
+        G1.reg_eq(mp, CS.nth(21n, CS.run(1n+mp, CS.dbl_prog(), [x, y, z, 21n])), CS.nth(33n, CS.run(1n+mp, CS.add_prog(), [x, y, z, x, y, z, 21n])), dx_red(mp, x, y, z), G1.ax_red(mp, x, y, z, x, y, z), D.dbl_x(mp, x, y, z, c)),
+        G1.reg_eq(mp, CS.nth(18n, CS.run(1n+mp, CS.dbl_prog(), [x, y, z, 21n])), CS.nth(36n, CS.run(1n+mp, CS.add_prog(), [x, y, z, x, y, z, 21n])), dy_red(mp, x, y, z), G1.ay_red(mp, x, y, z, x, y, z), D.dbl_y(mp, x, y, z, c)),
+        G1.reg_eq(mp, CS.nth(13n, CS.run(1n+mp, CS.dbl_prog(), [x, y, z, 21n])), CS.nth(39n, CS.run(1n+mp, CS.add_prog(), [x, y, z, x, y, z, 21n])), dz_red(mp, x, y, z), G1.az_red(mp, x, y, z, x, y, z), D.dbl_z(mp, x, y, z, c)))

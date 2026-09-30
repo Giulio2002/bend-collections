@@ -4,9 +4,9 @@ import ../../../spec/crypto/secp256k1/field.bend as FS
 import ../../../src/crypto/secp256k1/limbs.bend as L
 import ../../../src/crypto/secp256k1/field.bend as F
 import ../../../src/crypto/secp256k1/scalar.bend as S
-import ../../lib/nat.bend as N
-import ../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../math/typed/width.bend as WW
+import ./lite/lib/nat.bend as N
+import ./lite/lib/lemmas/proofs/nat_algebra.bend as NA
+import ./lite/math/typed/width.bend as WW
 import ./semiring.bend as SR
 import ./limbs.bend as LV
 import ./fprot.bend as FR

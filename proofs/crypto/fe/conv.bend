@@ -19,7 +19,7 @@ import ./pass.bend as PS
 import ./ops.bend as OP
 import ./sub.bend as SB
 import ./canon.bend as CN
-import ./bytes.bend as BY
+import ./pack.bend as PK
 import ./eqarith.bend as EA
 import ./bridge.bend as BR
 
@@ -83,74 +83,15 @@ def freeze_canon(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+p
   +hl = L.subst(List<&2, Nat>, t => {Nat.is_lt(FV.lv(t), 1n+pp) == True{} : Bool}, fz(R, a), FE.to_list(FE.freeze(R, a)), el, fz_lt(one, h1, pp, hP, R, hR, a, ha))
   L.and_intro(FV.below(FE.to_list(FE.freeze(R, a)), WD.sc(17n, one)), Nat.is_lt(FV.value(FE.freeze(R, a)), 1n+pp), hb, hl)
 
-# ---- bytes out ----
+# ---- the conversions on limb lists (pack.bend) ----
 
-def bits_all_len(+w: Nat, +xs: List<&2, Nat>) -> {PS.ln(LS.bits_all(w, xs)) == Nat.mul(PS.ln(xs), w) : Nat}:
-  match xs:
-    case Nil{}:
-      {==}
-    case Con{+x, +xt}:
-      tr(PS.ln(LS.app(LS.bits(w, x), LS.bits_all(w, xt))), Nat.add(PS.ln(LS.bits(w, x)), PS.ln(LS.bits_all(w, xt))), Nat.add(w, Nat.mul(PS.ln(xt), w)), BY.app_len(LS.bits(w, x), LS.bits_all(w, xt)), M.cong_add(PS.ln(LS.bits(w, x)), w, PS.ln(LS.bits_all(w, xt)), Nat.mul(PS.ln(xt), w), BY.bits_len(w, x), bits_all_len(w, xt)))
+# 15 limbs below 2^17 to 32 bytes: the value
+def tb_value(+one: Nat, +h1: {one == 1n : Nat}, +zs: List<&2, Nat>, +hz: {FV.below(zs, WD.sc(17n, one)) == True{} : Bool}, +hl: {PS.ln(zs) == 15n : Nat}) -> {FS.value(LS.to_bytes_l(zs)) == FV.lv(zs) : Nat}:
+  PK.up_val(one, h1, zs, 0n, 0n, hz, PW.sc_pos(0n, one, h1), {==})
 
-def group_len(+w: Nat, +n: Nat, +bs: List<&2, Nat>) -> {PS.ln(LS.group(w, n, bs)) == n : Nat}:
-  match n:
-    case 0n:
-      {==}
-    case 1n+ +m:
-      Equal.cong(Nat, Nat, t => 1n+t, PS.ln(LS.group(w, m, LS.drop(w, bs))), m, group_len(w, m, LS.drop(w, bs)))
-
-def group_below(+one: Nat, +h1: {one == 1n : Nat}, +w: Nat, +n: Nat, +bs: List<&2, Nat>, +h: {FV.below(bs, 2n) == True{} : Bool}) -> {FV.below(LS.group(w, n, bs), WD.sc(w, one)) == True{} : Bool}:
-  match n:
-    case 0n:
-      {==}
-    case 1n+ +m:
-      NL.below_con(LS.unbits(w, bs), LS.group(w, m, LS.drop(w, bs)), WD.sc(w, one), BY.unbits_lt(one, h1, w, bs, h), group_below(one, h1, w, m, LS.drop(w, bs), BY.drop_lt2(w, bs, h)))
-
-def u32_val(+xs: List<&2, Nat>, +h: {FV.below(xs, 256n) == True{} : Bool}) -> {FS.value(LS.u32_of(xs)) == BY.lvw(8n, xs) : Nat}:
-  match xs:
-    case Nil{}:
-      {==}
-    case Con{+x, +xt}:
-      M.cong_add(U32.to_nat(U32.from_nat(x)), x, C.shift(8n, FS.value(LS.u32_of(xt))), WD.sc(8n, BY.lvw(8n, xt)), U.to_nat_from_nat(x, 8n, {==}, NL.below_head(x, xt, 256n, h)), M.cong_sc(8n, FS.value(LS.u32_of(xt)), BY.lvw(8n, xt), u32_val(xt, NL.below_tail(x, xt, 256n, h))))
-
-def u32_bytes(+n: Nat, +xs: List<&2, Nat>, +hl: {PS.ln(xs) == n : Nat}, +h: {FV.below(xs, 256n) == True{} : Bool}) -> {FS.bytes_ok(n, LS.u32_of(xs)) == True{} : Bool}:
-  match n xs:
-    case 0n Nil{}:
-      {==}
-    case 0n Con{x, xt}:
-      Empty.absurd({FS.bytes_ok(0n, LS.u32_of(Con{x, xt})) == True{} : Bool}, N.succ_zero(PS.ln(xt), hl))
-    case 1n+m Nil{}:
-      Empty.absurd({FS.bytes_ok(1n+m, Nil{}) == True{} : Bool}, N.zero_succ(m, hl))
-    case 1n+ +m Con{+x, +xt}:
-      +hx = L.subst(Nat, t => {Nat.is_lt(t, 256n) == True{} : Bool}, x, U32.to_nat(U32.from_nat(x)), sy(U32.to_nat(U32.from_nat(x)), x, U.to_nat_from_nat(x, 8n, {==}, NL.below_head(x, xt, 256n, h))), NL.below_head(x, xt, 256n, h))
-      L.and_intro(Nat.is_lt(U32.to_nat(U32.from_nat(x)), 256n), FS.bytes_ok(m, LS.u32_of(xt)), hx, u32_bytes(m, xt, N.succ_inj(PS.ln(xt), m, hl), NL.below_tail(x, xt, 256n, h)))
-
-def bits17(+R: Nat, +a: FE.Fe) -> List<&2, Nat>:
-  LS.bits_all(17n, fz(R, a))
-
-def g8(+R: Nat, +a: FE.Fe) -> List<&2, Nat>:
-  LS.group(8n, 32n, bits17(R, a))
-
-def g8_below(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +a: FE.Fe) -> {FV.below(g8(R, a), 256n) == True{} : Bool}:
-  L.subst(Nat, o => {FV.below(g8(R, a), WD.sc(8n, o)) == True{} : Bool}, one, 1n, h1, group_below(one, h1, 8n, 32n, bits17(R, a), BY.bits_all_lt(17n, fz(R, a))))
-
-def to_bytes_value(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +a: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}) -> {FS.value(FE.to_bytes(R, a)) == Nat.mod(FV.value(a), 1n+pp) : Nat}:
-  +Z = fz(R, a)
-  +B = bits17(R, a)
-  +hlZ = freeze_len(R, FE.to_list(a), OP.L15(a))
-  +hlB = tr(PS.ln(B), Nat.mul(PS.ln(Z), 17n), 255n, bits_all_len(17n, Z), Equal.cong(Nat, Nat, t => Nat.mul(t, 17n), PS.ln(Z), 15n, hlZ))
-  +hfit = BY.fits_len(8n, 32n, B, L.subst(Nat, t => {Nat.is_le(t, 256n) == True{} : Bool}, 255n, PS.ln(B), sy(PS.ln(B), 255n, hlB), {==}))
-  +hZb = L.subst(Nat, t => {FV.below(Z, t) == True{} : Bool}, R, WD.sc(17n, one), hR, fz_below(one, h1, pp, hP, R, hR, a, ha))
-  +e1 = u32_val(g8(R, a), g8_below(one, h1, R, a))
-  +e2 = BY.group_val(8n, 32n, B, hfit)
-  +e3 = BY.bits_all_val(one, h1, 17n, Z, hZb)
-  +e4 = BY.lvw17(Z)
-  tr(FS.value(LS.u32_of(g8(R, a))), BY.lvw(8n, g8(R, a)), Nat.mod(FV.value(a), 1n+pp), e1, tr(BY.lvw(8n, g8(R, a)), BY.bv(B), Nat.mod(FV.value(a), 1n+pp), e2, tr(BY.bv(B), BY.lvw(17n, Z), Nat.mod(FV.value(a), 1n+pp), e3, tr(BY.lvw(17n, Z), FV.lv(Z), Nat.mod(FV.value(a), 1n+pp), e4, fz_val(one, h1, pp, hP, R, hR, a, ha)))))
-
-def to_bytes_tight(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +a: FE.Fe) -> {FS.tight(FE.to_bytes(R, a)) == True{} : Bool}:
-  u32_bytes(32n, g8(R, a), group_len(8n, 32n, bits17(R, a)), g8_below(one, h1, R, a))
-
-# ---- bytes in ----
+# 15 limbs to 32 bytes below 256
+def tb_tight(+one: Nat, +h1: {one == 1n : Nat}, +zs: List<&2, Nat>, +hl: {PS.ln(zs) == 15n : Nat}) -> {FS.tight(LS.to_bytes_l(zs)) == True{} : Bool}:
+  PK.bytes_of(32n, LS.to_bytes_l(zs), tr(PS.ln(LS.nat_of(LS.to_bytes_l(zs))), PK.upn(PS.ln(zs), 0n), 32n, PK.up_len(zs, 0n, 0n), Equal.cong(Nat, Nat, z => PK.upn(z, 0n), PS.ln(zs), 15n, hl)), PK.up_below(zs, 0n, 0n))
 
 def nat_below(+n: Nat, +bs: List<&2, U32>, +h: {FS.bytes_ok(n, bs) == True{} : Bool}) -> {FV.below(LS.nat_of(bs), 256n) == True{} : Bool}:
   match n bs:
@@ -163,54 +104,61 @@ def nat_below(+n: Nat, +bs: List<&2, U32>, +h: {FS.bytes_ok(n, bs) == True{} : B
     case 1n+ +m Con{+x, +xt}:
       NL.below_con(U32.to_nat(x), LS.nat_of(xt), 256n, L.and_left(Nat.is_lt(U32.to_nat(x), 256n), FS.bytes_ok(m, xt), h), nat_below(m, xt, L.and_right(Nat.is_lt(U32.to_nat(x), 256n), FS.bytes_ok(m, xt), h)))
 
-def unbits_take(+n: Nat, +bs: List<&2, Nat>) -> {LS.unbits(n, bs) == BY.bv(LS.take(n, bs)) : Nat}:
-  match n bs:
-    case 0n _:
-      {==}
-    case 1n+m Nil{}:
-      {==}
-    case 1n+ +m Con{+b, +bt}:
-      M.cong_r(b, Nat.double(LS.unbits(m, bt)), Nat.double(BY.bv(LS.take(m, bt))), Equal.cong(Nat, Nat, t => Nat.double(t), LS.unbits(m, bt), BY.bv(LS.take(m, bt)), unbits_take(m, bt)))
+# every 17-bit limb of bytes below 256: the value, limbs below 2^17
+def l17_value(+bs: List<&2, U32>, +hb: {FV.below(LS.nat_of(bs), 256n) == True{} : Bool}) -> {FV.lv(LS.limbs17(bs)) == FS.value(bs) : Nat}:
+  PK.pk_val(bs, 0n, 0n, hb, {==})
 
-# the low n bits: value mod 2^n
-def take_mod(+one: Nat, +h1: {one == 1n : Nat}, +n: Nat, +bs: List<&2, Nat>, +h: {FV.below(bs, 2n) == True{} : Bool}) -> {BY.bv(LS.take(n, bs)) == Nat.mod(BY.bv(bs), WD.sc(n, one)) : Nat}:
-  +T = BY.bv(LS.take(n, bs))
-  +D = BY.bv(LS.drop(n, bs))
-  +Mo = WD.sc(n, one)
+def l17_below(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>) -> {FV.below(LS.limbs17(bs), WD.sc(17n, one)) == True{} : Bool}:
+  PK.pk_below(one, h1, bs, 0n, 0n, PW.sc_pos(0n, one, h1), {==})
+
+# n bytes have pkn(n, 0) limbs
+def l17_len(+n: Nat, +bs: List<&2, U32>, +h: {FS.bytes_ok(n, bs) == True{} : Bool}) -> {PS.ln(LS.limbs17(bs)) == PK.pkn(n, 0n) : Nat}:
+  tr(PS.ln(LS.limbs17(bs)), PK.pkn(PS.ln(LS.nat_of(bs)), 0n), PK.pkn(n, 0n), PK.pk_len(bs, 0n, 0n), Equal.cong(Nat, Nat, z => PK.pkn(z, 0n), PS.ln(LS.nat_of(bs)), n, PK.bytes_len(n, bs, h)))
+
+def ob_len(+bs: List<&2, U32>) -> {PS.ln(LS.of_bytes_l(bs)) == 15n : Nat}:
+  PK.fit_len(15n, LS.limbs17(bs))
+
+def ob_below(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>) -> {FV.below(LS.of_bytes_l(bs), WD.sc(17n, one)) == True{} : Bool}:
+  PK.fit_below(15n, LS.limbs17(bs), WD.sc(17n, one), PW.sc_pos(17n, one, h1), l17_below(one, h1, bs))
+
+# 32 bytes to 15 limbs of 17 bits: the value mod 2^255
+def ob_value(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>, +hb: {FS.tight(bs) == True{} : Bool}) -> {FV.lv(LS.of_bytes_l(bs)) == Nat.mod(FS.value(bs), WD.sc(255n, one)) : Nat}:
+  +P = LS.limbs17(bs)
+  +T = FV.lv(LS.of_bytes_l(bs))
+  +D = FV.lv(LS.drop(15n, P))
+  +Mo = WD.sc(255n, one)
   +b = Nat.sub(Mo, 1n)
-  +hb = N.sub_add(Mo, 1n, N.lt_succ_le_succ(0n, Mo, PW.sc_pos(n, one, h1)))
-  +hT = L.subst(Nat, t => {Nat.is_lt(t, Mo) == True{} : Bool}, LS.unbits(n, bs), T, unbits_take(n, bs), BY.unbits_lt(one, h1, n, bs, h))
-  +e1 = tr(BY.bv(bs), Nat.add(T, WD.sc(n, D)), Nat.add(Nat.mul(D, Mo), T), tr(BY.bv(bs), Nat.add(LS.unbits(n, bs), WD.sc(n, D)), Nat.add(T, WD.sc(n, D)), BY.split_val(n, bs), M.cong_l(LS.unbits(n, bs), T, WD.sc(n, D), unbits_take(n, bs))), tr(Nat.add(T, WD.sc(n, D)), Nat.add(WD.sc(n, D), T), Nat.add(Nat.mul(D, Mo), T), NA.add_comm(T, WD.sc(n, D)), M.cong_l(WD.sc(n, D), Nat.mul(D, Mo), T, sy(Nat.mul(D, Mo), WD.sc(n, D), AR.mul_sc1(n, one, h1, D)))))
-  +hT2 = L.subst(Nat, t => {Nat.is_lt(T, t) == True{} : Bool}, Mo, 1n+b, sy(1n+b, Mo, hb), hT)
-  +e2 = L.subst(Nat, t => {Nat.mod(Nat.add(Nat.mul(D, t), T), t) == T : Nat}, 1n+b, Mo, hb, NR.mod_of(D, b, T, hT2))
-  sy(Nat.mod(BY.bv(bs), Mo), T, tr(Nat.mod(BY.bv(bs), Mo), Nat.mod(Nat.add(Nat.mul(D, Mo), T), Mo), T, Equal.cong(Nat, Nat, t => Nat.mod(t, Mo), BY.bv(bs), Nat.add(Nat.mul(D, Mo), T), e1), e2))
+  +hb1 = PW.pos_succ(one, h1, 255n)
+  +hT = CN.lv_lt15(one, h1, WD.sc(17n, one), {==}, LS.of_bytes_l(bs), ob_len(bs), ob_below(one, h1, bs))
+  +e0 = tr(FS.value(bs), FV.lv(P), Nat.add(FV.lv(LS.take(15n, P)), NL.sh(15n, D)), sy(FV.lv(P), FS.value(bs), l17_value(bs, nat_below(32n, bs, hb))), NL.lv_split(15n, P))
+  +e1 = tr(FS.value(bs), Nat.add(FV.lv(LS.take(15n, P)), NL.sh(15n, D)), Nat.add(T, WD.sc(255n, D)), e0, M.cong_add(FV.lv(LS.take(15n, P)), T, NL.sh(15n, D), WD.sc(255n, D), sy(T, FV.lv(LS.take(15n, P)), PK.fit_val(15n, P)), NL.sh15(D)))
+  +e2 = tr(FS.value(bs), Nat.add(T, WD.sc(255n, D)), Nat.add(Nat.mul(D, Mo), T), e1, tr(Nat.add(T, WD.sc(255n, D)), Nat.add(WD.sc(255n, D), T), Nat.add(Nat.mul(D, Mo), T), NA.add_comm(T, WD.sc(255n, D)), M.cong_l(WD.sc(255n, D), Nat.mul(D, Mo), T, sy(Nat.mul(D, Mo), WD.sc(255n, D), AR.mul_sc1(255n, one, h1, D)))))
+  +hT2 = L.subst(Nat, t => {Nat.is_lt(T, t) == True{} : Bool}, Mo, 1n+b, sy(1n+b, Mo, hb1), hT)
+  +e3 = L.subst(Nat, t => {Nat.mod(Nat.add(Nat.mul(D, t), T), t) == T : Nat}, 1n+b, Mo, hb1, NR.mod_of(D, b, T, hT2))
+  sy(Nat.mod(FS.value(bs), Mo), T, tr(Nat.mod(FS.value(bs), Mo), Nat.mod(Nat.add(Nat.mul(D, Mo), T), Mo), T, Equal.cong(Nat, Nat, t => Nat.mod(t, Mo), FS.value(bs), Nat.add(Nat.mul(D, Mo), T), e2), e3))
 
-def ob_bits(+bs: List<&2, U32>) -> List<&2, Nat>:
-  LS.take(255n, LS.bits_all(8n, LS.nat_of(bs)))
+# ---- bytes out ----
 
-def ob_group(+bs: List<&2, U32>) -> List<&2, Nat>:
-  LS.group(17n, 15n, ob_bits(bs))
+def to_bytes_value(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +a: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}) -> {FS.value(FE.to_bytes(R, a)) == Nat.mod(FV.value(a), 1n+pp) : Nat}:
+  +Z = fz(R, a)
+  +hlZ = freeze_len(R, FE.to_list(a), OP.L15(a))
+  +hZb = L.subst(Nat, t => {FV.below(Z, t) == True{} : Bool}, R, WD.sc(17n, one), hR, fz_below(one, h1, pp, hP, R, hR, a, ha))
+  tr(FS.value(LS.to_bytes_l(Z)), FV.lv(Z), Nat.mod(FV.value(a), 1n+pp), tb_value(one, h1, Z, hZb, hlZ), fz_val(one, h1, pp, hP, R, hR, a, ha))
 
-def ob_list(+bs: List<&2, U32>) -> {FE.to_list(FE.of_bytes(bs)) == ob_group(bs) : List<&2, Nat>}:
-  BR.to_of(ob_group(bs), group_len(17n, 15n, ob_bits(bs)))
+def to_bytes_tight(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +a: FE.Fe) -> {FS.tight(FE.to_bytes(R, a)) == True{} : Bool}:
+  tb_tight(one, h1, fz(R, a), freeze_len(R, FE.to_list(a), OP.L15(a)))
+
+# ---- bytes in ----
+
+def ob_list(+bs: List<&2, U32>) -> {FE.to_list(FE.of_bytes(bs)) == LS.of_bytes_l(bs) : List<&2, Nat>}:
+  BR.to_of(LS.of_bytes_l(bs), ob_len(bs))
 
 def of_bytes_value(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>, +hb: {FS.tight(bs) == True{} : Bool}) -> {FV.value(FE.of_bytes(bs)) == Nat.mod(FS.value(bs), WD.sc(255n, one)) : Nat}:
-  +B = LS.bits_all(8n, LS.nat_of(bs))
-  +T = ob_bits(bs)
-  +e0 = Equal.cong(List<&2, Nat>, Nat, t => FV.lv(t), FE.to_list(FE.of_bytes(bs)), ob_group(bs), ob_list(bs))
-  +e1 = sy(BY.lvw(17n, ob_group(bs)), FV.lv(ob_group(bs)), BY.lvw17(ob_group(bs)))
-  +hfit = BY.fits_len(17n, 15n, T, BY.take_len(255n, B))
-  +e2 = BY.group_val(17n, 15n, T, hfit)
-  +e3 = take_mod(one, h1, 255n, B, BY.bits_all_lt(8n, LS.nat_of(bs)))
-  +hn = L.subst(Nat, o => {FV.below(LS.nat_of(bs), WD.sc(8n, o)) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), nat_below(32n, bs, hb))
-  +e4 = tr(BY.bv(B), BY.lvw(8n, LS.nat_of(bs)), FS.value(bs), BY.bits_all_val(one, h1, 8n, LS.nat_of(bs), hn), BY.lvw8(bs))
-  tr(FV.value(FE.of_bytes(bs)), FV.lv(ob_group(bs)), Nat.mod(FS.value(bs), WD.sc(255n, one)), e0, tr(FV.lv(ob_group(bs)), BY.lvw(17n, ob_group(bs)), Nat.mod(FS.value(bs), WD.sc(255n, one)), e1, tr(BY.lvw(17n, ob_group(bs)), BY.bv(T), Nat.mod(FS.value(bs), WD.sc(255n, one)), e2, tr(BY.bv(T), Nat.mod(BY.bv(B), WD.sc(255n, one)), Nat.mod(FS.value(bs), WD.sc(255n, one)), e3, Equal.cong(Nat, Nat, t => Nat.mod(t, WD.sc(255n, one)), BY.bv(B), FS.value(bs), e4)))))
+  tr(FV.value(FE.of_bytes(bs)), FV.lv(LS.of_bytes_l(bs)), Nat.mod(FS.value(bs), WD.sc(255n, one)), Equal.cong(List<&2, Nat>, Nat, t => FV.lv(t), FE.to_list(FE.of_bytes(bs)), LS.of_bytes_l(bs), ob_list(bs)), ob_value(one, h1, bs, hb))
 
 def of_bytes_ok(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>) -> {FV.ok(one, FE.of_bytes(bs)) == True{} : Bool}:
-  +B = LS.bits_all(8n, LS.nat_of(bs))
-  +h17 = group_below(one, h1, 17n, 15n, ob_bits(bs), NL.take_below(255n, B, 2n, BY.bits_all_lt(8n, LS.nat_of(bs))))
-  +h19 = NL.below_mono(ob_group(bs), WD.sc(17n, one), WD.sc(19n, one), PW.le_sc(2n, 17n, one), h17)
-  L.subst(List<&2, Nat>, t => {FV.below(t, WD.sc(19n, one)) == True{} : Bool}, ob_group(bs), FE.to_list(FE.of_bytes(bs)), Equal.sym(List<&2, Nat>, FE.to_list(FE.of_bytes(bs)), ob_group(bs), ob_list(bs)), h19)
+  +h19 = NL.below_mono(LS.of_bytes_l(bs), WD.sc(17n, one), WD.sc(19n, one), PW.le_sc(2n, 17n, one), ob_below(one, h1, bs))
+  L.subst(List<&2, Nat>, t => {FV.below(t, WD.sc(19n, one)) == True{} : Bool}, LS.of_bytes_l(bs), FE.to_list(FE.of_bytes(bs)), Equal.sym(List<&2, Nat>, FE.to_list(FE.of_bytes(bs)), LS.of_bytes_l(bs), ob_list(bs)), h19)
 
 # ---- is_zero, eq, parity ----
 
@@ -292,35 +240,3 @@ def parity_val(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp,
   +m = Nat.mod(h0, 2n)
   +e1 = U.to_nat_from_nat(m, 1n, {==}, NR.dm_lt(1n, h0))
   tr(U32.to_nat(U32.from_nat(m)), m, Nat.mod(Nat.mod(FV.value(a), 1n+pp), 2n), e1, tr(m, Nat.mod(FV.lv(fz(R, a)), 2n), Nat.mod(Nat.mod(FV.value(a), 1n+pp), 2n), head_mod2(fz(R, a)), Equal.cong(Nat, Nat, u => Nat.mod(u, 2n), FV.lv(fz(R, a)), Nat.mod(FV.value(a), 1n+pp), fz_val(one, h1, pp, hP, R, hR, a, ha))))
-
-# ---- the conversions on limb lists ----
-
-# 15 limbs below 2^17 to 32 bytes: the value
-def tb_value(+one: Nat, +h1: {one == 1n : Nat}, +zs: List<&2, Nat>, +hz: {FV.below(zs, WD.sc(17n, one)) == True{} : Bool}, +hl: {PS.ln(zs) == 15n : Nat}) -> {FS.value(LS.to_bytes_l(zs)) == FV.lv(zs) : Nat}:
-  +B = LS.bits_all(17n, zs)
-  +G8 = LS.group(8n, 32n, B)
-  +hlB = tr(PS.ln(B), Nat.mul(PS.ln(zs), 17n), 255n, bits_all_len(17n, zs), Equal.cong(Nat, Nat, z => Nat.mul(z, 17n), PS.ln(zs), 15n, hl))
-  +hfit = BY.fits_len(8n, 32n, B, L.subst(Nat, t => {Nat.is_le(t, 256n) == True{} : Bool}, 255n, PS.ln(B), sy(PS.ln(B), 255n, hlB), {==}))
-  +hg = L.subst(Nat, o => {FV.below(G8, WD.sc(8n, o)) == True{} : Bool}, one, 1n, h1, group_below(one, h1, 8n, 32n, B, BY.bits_all_lt(17n, zs)))
-  tr(FS.value(LS.u32_of(G8)), BY.lvw(8n, G8), FV.lv(zs), u32_val(G8, hg), tr(BY.lvw(8n, G8), BY.bv(B), FV.lv(zs), BY.group_val(8n, 32n, B, hfit), tr(BY.bv(B), BY.lvw(17n, zs), FV.lv(zs), BY.bits_all_val(one, h1, 17n, zs, hz), BY.lvw17(zs))))
-
-def tb_tight(+one: Nat, +h1: {one == 1n : Nat}, +zs: List<&2, Nat>) -> {FS.tight(LS.to_bytes_l(zs)) == True{} : Bool}:
-  +B = LS.bits_all(17n, zs)
-  +G8 = LS.group(8n, 32n, B)
-  +hg = L.subst(Nat, o => {FV.below(G8, WD.sc(8n, o)) == True{} : Bool}, one, 1n, h1, group_below(one, h1, 8n, 32n, B, BY.bits_all_lt(17n, zs)))
-  u32_bytes(32n, G8, group_len(8n, 32n, B), hg)
-
-# 32 bytes to 15 limbs of 17 bits: the value mod 2^255, limbs below 2^17
-def ob_value(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>, +hb: {FS.tight(bs) == True{} : Bool}) -> {FV.lv(LS.of_bytes_l(bs)) == Nat.mod(FS.value(bs), WD.sc(255n, one)) : Nat}:
-  +B = LS.bits_all(8n, LS.nat_of(bs))
-  +T = ob_bits(bs)
-  +e1 = sy(BY.lvw(17n, ob_group(bs)), FV.lv(ob_group(bs)), BY.lvw17(ob_group(bs)))
-  +hfit = BY.fits_len(17n, 15n, T, BY.take_len(255n, B))
-  +e2 = BY.group_val(17n, 15n, T, hfit)
-  +e3 = take_mod(one, h1, 255n, B, BY.bits_all_lt(8n, LS.nat_of(bs)))
-  +hn = L.subst(Nat, o => {FV.below(LS.nat_of(bs), WD.sc(8n, o)) == True{} : Bool}, 1n, one, Equal.sym(Nat, one, 1n, h1), nat_below(32n, bs, hb))
-  +e4 = tr(BY.bv(B), BY.lvw(8n, LS.nat_of(bs)), FS.value(bs), BY.bits_all_val(one, h1, 8n, LS.nat_of(bs), hn), BY.lvw8(bs))
-  tr(FV.lv(ob_group(bs)), BY.lvw(17n, ob_group(bs)), Nat.mod(FS.value(bs), WD.sc(255n, one)), e1, tr(BY.lvw(17n, ob_group(bs)), BY.bv(T), Nat.mod(FS.value(bs), WD.sc(255n, one)), e2, tr(BY.bv(T), Nat.mod(BY.bv(B), WD.sc(255n, one)), Nat.mod(FS.value(bs), WD.sc(255n, one)), e3, Equal.cong(Nat, Nat, t => Nat.mod(t, WD.sc(255n, one)), BY.bv(B), FS.value(bs), e4))))
-
-def ob_below(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>) -> {FV.below(LS.of_bytes_l(bs), WD.sc(17n, one)) == True{} : Bool}:
-  group_below(one, h1, 17n, 15n, ob_bits(bs), NL.take_below(255n, LS.bits_all(8n, LS.nat_of(bs)), 2n, BY.bits_all_lt(8n, LS.nat_of(bs))))

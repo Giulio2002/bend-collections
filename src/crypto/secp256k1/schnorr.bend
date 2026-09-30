@@ -28,16 +28,13 @@ def tag_nonce() -> List<&2, U32>:
 def tag_challenge() -> List<&2, U32>:
   tag_prefix([99, 104, 97, 108, 108, 101, 110, 103, 101])
 
-# SHA256(tag) of the three tags, precomputed (proofs: pschn.bend, by
-# evaluating the FIPS 180-4 specification on the tag once)
-def th_aux() -> List<&2, U32>:
-  [241, 239, 78, 94, 192, 99, 202, 218, 109, 148, 202, 250, 157, 152, 126, 160, 105, 38, 88, 57, 236, 193, 31, 151, 45, 119, 165, 46, 216, 193, 204, 144]
-
-def th_nonce() -> List<&2, U32>:
-  [7, 73, 119, 52, 167, 155, 203, 53, 91, 155, 140, 125, 3, 79, 18, 28, 244, 52, 215, 62, 247, 45, 218, 25, 135, 0, 97, 251, 82, 191, 235, 47]
-
-def th_challenge() -> List<&2, U32>:
-  [123, 181, 45, 122, 159, 239, 88, 50, 62, 177, 191, 122, 64, 125, 179, 130, 210, 243, 242, 216, 27, 177, 34, 79, 73, 254, 81, 143, 109, 72, 211, 124]
+# SHA256(tag). An argument the proofs keep unknown is looked at first
+# (probe), so that the proof checker never evaluates the hash of a tag; both
+# cases are the same hash.
+def tagh(probe: List<&2, U32>, tag: List<&2, U32>) -> List<&2, U32>:
+  match probe:
+    case Nil{}: SHA.sha256_bytes(tag)
+    case b <> t: SHA.sha256_bytes(tag)
 
 # hash_tag(x) = SHA256(SHA256(tag) || SHA256(tag) || x)
 def tagged_h(+th: List<&2, U32>, x: List<&2, U32>) -> List<&2, U32>:
@@ -99,7 +96,7 @@ def verify_h(+hc: List<&2, U32>, +pk: List<&2, U32>, +m: List<&2, U32>, +sig: Li
 
 # BIP-340 Verify(pk, m, sig) for a 32-byte x-only key and a 64-byte signature
 def verify(+pk: List<&2, U32>, +m: List<&2, U32>, +sig: List<&2, U32>) -> Bool:
-  verify_h(th_challenge(), pk, m, sig)
+  verify_h(tagh(pk, tag_challenge()), pk, m, sig)
 
 # ---- signing ----
 
@@ -160,7 +157,7 @@ def sign_ph(+ha: List<&2, U32>, +hn: List<&2, U32>, +hc: List<&2, U32>, +d0: Lis
       sign_nz(hc, d, pb, m, k0, Bool.not(S.is_zero(k0)))
 
 def sign_p(+d0: List<&2, Nat>, +m: List<&2, U32>, +aux: List<&2, U32>, pa: P.Affine) -> Maybe<&2, List<&2, U32>>:
-  sign_ph(th_aux(), th_nonce(), th_challenge(), d0, m, aux, pa)
+  sign_ph(tagh(m, tag_aux()), tagh(m, tag_nonce()), tagh(m, tag_challenge()), d0, m, aux, pa)
 
 def sign_d(+m: List<&2, U32>, +aux: List<&2, U32>, md: Maybe<&2, List<&2, Nat>>) -> Maybe<&2, List<&2, U32>>:
   match md:

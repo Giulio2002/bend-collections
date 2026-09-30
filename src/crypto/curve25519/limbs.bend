@@ -60,9 +60,55 @@ def conv(xs: List<&2, Nat>, +ys: List<&2, Nat>) -> List<&2, Nat>:
 def pu(+a: Nat, +b: Nat) -> Nat:
   U32.to_nat(U32.mul(U32.from_nat(a), U32.from_nat(b)))
 
-# a b for a, b < 2^19: b split at bit 9, both half products below 2^29
+# a b for a, b < 2^19: b split at bit 9 (on the 32-bit word: a mask and a
+# shift), both half products below 2^29
 def pm(+a: Nat, +b: Nat) -> Nat:
+  Nat.add(U32.to_nat(U32.mul(U32.from_nat(a), U32.and(U32.from_nat(b), 511))), Nat.mul(U32.to_nat(U32.mul(U32.from_nat(a), U32.shrn(U32.from_nat(b), 9n))), 512n))
+
+# the same split on the natural number
+def pmr(+a: Nat, +b: Nat) -> Nat:
   Nat.add(pu(a, Nat.mod(b, 512n)), Nat.mul(pu(a, Nat.div(b, 512n)), 512n))
+
+# every limb times m through the 32-bit multiplier
+def scalu(ys: List<&2, Nat>, +m: Nat) -> List<&2, Nat>:
+  match ys:
+    case Nil{}:
+      Nil{}
+    case Con{y, yt}:
+      Con{pu(y, m), scalu(yt, m)}
+
+def zeros(n: Nat) -> List<&2, Nat>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n+k:
+      Con{0n, zeros(k)}
+
+# m0 f0 + m1 f1 + ... limbwise, for lists f of w limbs: with one m equal
+# to 1 and the others 0, the f at that place (a selection without a
+# branch)
+def pick(+w: Nat, ms: List<&2, Nat>, fs: List<&2, List<&2, Nat>>) -> List<&2, Nat>:
+  match ms:
+    case Nil{}:
+      zeros(w)
+    case Con{+m, mt}:
+      match fs:
+        case Nil{}:
+          zeros(w)
+        case Con{f, ft}:
+          addl(scalu(f, m), pick(w, mt, ft))
+
+# n masks: 1 at place d, 0 elsewhere (all 0 for d >= n)
+def ohl(n: Nat, d: Nat) -> List<&2, Nat>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n+k:
+      match d:
+        case 0n:
+          Con{1n, zeros(k)}
+        case 1n+e:
+          Con{0n, ohl(k, e)}
 
 # scal and conv with pm
 def scalp(+a: Nat, ys: List<&2, Nat>) -> List<&2, Nat>:
@@ -284,15 +330,7 @@ def csub(+R: Nat, +xs: List<&2, Nat>) -> List<&2, Nat>:
 def freeze_l(+R: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
   csub(R, pass(R, pass(R, xs)))
 
-# ---- bits and bytes ----
-
-# the low w bits of x, least significant first
-def bits(w: Nat, +x: Nat) -> List<&2, Nat>:
-  match w:
-    case 0n:
-      Nil{}
-    case 1n+m:
-      Con{Nat.mod(x, 2n), bits(m, Nat.div(x, 2n))}
+# ---- lists and bytes ----
 
 def app(xs: List<&2, Nat>, ys: List<&2, Nat>) -> List<&2, Nat>:
   match xs:
@@ -300,34 +338,6 @@ def app(xs: List<&2, Nat>, ys: List<&2, Nat>) -> List<&2, Nat>:
       ys
     case Con{x, xt}:
       Con{x, app(xt, ys)}
-
-# the low w bits of every limb, in order
-def bits_all(+w: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
-  match xs:
-    case Nil{}:
-      Nil{}
-    case Con{x, xt}:
-      app(bits(w, x), bits_all(w, xt))
-
-# the number whose bits (least significant first) are the first w of bs
-def unbits(w: Nat, bs: List<&2, Nat>) -> Nat:
-  match w:
-    case 0n:
-      0n
-    case 1n+m:
-      match bs:
-        case Nil{}:
-          0n
-        case Con{b, bt}:
-          Nat.add(b, Nat.double(unbits(m, bt)))
-
-# n limbs of w bits each from the bit list (missing bits are 0)
-def group(+w: Nat, n: Nat, +bs: List<&2, Nat>) -> List<&2, Nat>:
-  match n:
-    case 0n:
-      Nil{}
-    case 1n+m:
-      Con{unbits(w, bs), group(w, m, drop(w, bs))}
 
 def nat_of(xs: List<&2, U32>) -> List<&2, Nat>:
   match xs:
@@ -343,20 +353,122 @@ def u32_of(xs: List<&2, Nat>) -> List<&2, U32>:
     case Con{x, xt}:
       Con{U32.from_nat(x), u32_of(xt)}
 
-# 15 limbs of 17 bits from 32 bytes, bit 255 dropped (RFC 7748 decodeUCoordinate)
-def of_bytes_l(bs: List<&2, U32>) -> List<&2, Nat>:
-  group(17n, 15n, take(255n, bits_all(8n, nat_of(bs))))
+# ---- bytes and 17-bit limbs, regrouped through a bit buffer ----
+# ---- GEN-PACK begin (tools/gen_pack.py) ----
 
-# 32 bytes from 15 limbs of 17 bits (a value below 2^255)
-def to_bytes_l(xs: List<&2, Nat>) -> List<&2, U32>:
-  u32_of(group(8n, 32n, bits_all(17n, xs)))
+# 2^n x
+def shl(n: Nat, +x: Nat) -> Nat:
+  match n:
+    case 0n:
+      x
+    case 1n+m:
+      Nat.double(shl(m, x))
 
-def sum(xs: List<&2, Nat>, acc: Nat) -> Nat:
+# a byte as a Nat (below 256 whatever the U32 holds)
+def b8(b: U32) -> Nat:
+  Nat.mod(U32.to_nat(b), 256n)
+
+# the 17-bit limbs of a byte string, least significant first: acc holds
+# the nb low bits not yet written (nb <= 16). A byte enters above them;
+# once 17 bits are there, a limb leaves (the buffer and the byte's low
+# 17 - nb bits) and the byte's other bits stay. The last limb holds the
+# bits left over.
+def pk(bs: List<&2, U32>, acc: Nat, +nb: Nat) -> List<&2, Nat>:
+  match bs:
+    case Nil{}:
+      Con{acc, Nil{}}
+    case Con{b, bt}:
+      match nb:
+        case 0n:
+          pk(bt, Nat.add(acc, shl(0n, b8(b))), 8n)
+        case 1n:
+          pk(bt, Nat.add(acc, shl(1n, b8(b))), 9n)
+        case 2n:
+          pk(bt, Nat.add(acc, shl(2n, b8(b))), 10n)
+        case 3n:
+          pk(bt, Nat.add(acc, shl(3n, b8(b))), 11n)
+        case 4n:
+          pk(bt, Nat.add(acc, shl(4n, b8(b))), 12n)
+        case 5n:
+          pk(bt, Nat.add(acc, shl(5n, b8(b))), 13n)
+        case 6n:
+          pk(bt, Nat.add(acc, shl(6n, b8(b))), 14n)
+        case 7n:
+          pk(bt, Nat.add(acc, shl(7n, b8(b))), 15n)
+        case 8n:
+          pk(bt, Nat.add(acc, shl(8n, b8(b))), 16n)
+        case 9n:
+          +B = b8(b)
+          Con{Nat.add(acc, shl(9n, Nat.mod(B, 256n))), pk(bt, Nat.div(B, 256n), 0n)}
+        case 10n:
+          +B = b8(b)
+          Con{Nat.add(acc, shl(10n, Nat.mod(B, 128n))), pk(bt, Nat.div(B, 128n), 1n)}
+        case 11n:
+          +B = b8(b)
+          Con{Nat.add(acc, shl(11n, Nat.mod(B, 64n))), pk(bt, Nat.div(B, 64n), 2n)}
+        case 12n:
+          +B = b8(b)
+          Con{Nat.add(acc, shl(12n, Nat.mod(B, 32n))), pk(bt, Nat.div(B, 32n), 3n)}
+        case 13n:
+          +B = b8(b)
+          Con{Nat.add(acc, shl(13n, Nat.mod(B, 16n))), pk(bt, Nat.div(B, 16n), 4n)}
+        case 14n:
+          +B = b8(b)
+          Con{Nat.add(acc, shl(14n, Nat.mod(B, 8n))), pk(bt, Nat.div(B, 8n), 5n)}
+        case 15n:
+          +B = b8(b)
+          Con{Nat.add(acc, shl(15n, Nat.mod(B, 4n))), pk(bt, Nat.div(B, 4n), 6n)}
+        case 16n:
+          +B = b8(b)
+          Con{Nat.add(acc, shl(16n, Nat.mod(B, 2n))), pk(bt, Nat.div(B, 2n), 7n)}
+        case 17n+m:
+          Con{acc, pk(bt, b8(b), 8n)}
+
+def byte(+a: Nat) -> U32:
+  U32.from_nat(Nat.mod(a, 256n))
+
+# the bytes of 17-bit limbs, least significant first: acc holds the nb low
+# bits not yet written (nb <= 7). The limb's low 8 - nb bits complete a
+# byte, its next 8 bits are a byte, and the rest stays (nb + 1 bits; at
+# nb = 7 they are a third byte). The last byte holds the bits left over.
+def up(xs: List<&2, Nat>, acc: Nat, +nb: Nat) -> List<&2, U32>:
   match xs:
     case Nil{}:
-      acc
-    case Con{x, xt}:
-      sum(xt, Nat.add(acc, x))
+      Con{byte(acc), Nil{}}
+    case Con{+x, xt}:
+      match nb:
+        case 0n:
+          +x1 = Nat.div(x, 256n)
+          Con{byte(Nat.add(acc, shl(0n, Nat.mod(x, 256n)))), Con{byte(x1), up(xt, Nat.div(x1, 256n), 1n)}}
+        case 1n:
+          +x1 = Nat.div(x, 128n)
+          Con{byte(Nat.add(acc, shl(1n, Nat.mod(x, 128n)))), Con{byte(x1), up(xt, Nat.div(x1, 256n), 2n)}}
+        case 2n:
+          +x1 = Nat.div(x, 64n)
+          Con{byte(Nat.add(acc, shl(2n, Nat.mod(x, 64n)))), Con{byte(x1), up(xt, Nat.div(x1, 256n), 3n)}}
+        case 3n:
+          +x1 = Nat.div(x, 32n)
+          Con{byte(Nat.add(acc, shl(3n, Nat.mod(x, 32n)))), Con{byte(x1), up(xt, Nat.div(x1, 256n), 4n)}}
+        case 4n:
+          +x1 = Nat.div(x, 16n)
+          Con{byte(Nat.add(acc, shl(4n, Nat.mod(x, 16n)))), Con{byte(x1), up(xt, Nat.div(x1, 256n), 5n)}}
+        case 5n:
+          +x1 = Nat.div(x, 8n)
+          Con{byte(Nat.add(acc, shl(5n, Nat.mod(x, 8n)))), Con{byte(x1), up(xt, Nat.div(x1, 256n), 6n)}}
+        case 6n:
+          +x1 = Nat.div(x, 4n)
+          Con{byte(Nat.add(acc, shl(6n, Nat.mod(x, 4n)))), Con{byte(x1), up(xt, Nat.div(x1, 256n), 7n)}}
+        case 7n:
+          +x1 = Nat.div(x, 2n)
+          Con{byte(Nat.add(acc, shl(7n, Nat.mod(x, 2n)))), Con{byte(x1), Con{byte(Nat.div(x1, 256n)), up(xt, 0n, 0n)}}}
+        case 8n+m:
+          Con{byte(acc), up(xt, x, 0n)}
+
+# ---- GEN-PACK end ----
+# every 17-bit limb of a byte string: ceil(8 n / 17) of them for the
+# lengths used here (32 and 64 bytes: 16 and 31 limbs)
+def limbs17(bs: List<&2, U32>) -> List<&2, Nat>:
+  pk(bs, 0n, 0n)
 
 def head(xs: List<&2, Nat>) -> Nat:
   match xs:
@@ -364,3 +476,34 @@ def head(xs: List<&2, Nat>) -> Nat:
       0n
     case Con{x, xt}:
       x
+
+def ltl(xs: List<&2, Nat>) -> List<&2, Nat>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{x, xt}:
+      xt
+
+# the first n limbs (missing limbs are 0); n alone decides the shape, so
+# the result of fit(15n, xs) is 15 limbs whatever xs is
+def fit(n: Nat, +xs: List<&2, Nat>) -> List<&2, Nat>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n+m:
+      Con{head(xs), fit(m, ltl(xs))}
+
+# 15 limbs of 17 bits from 32 bytes, bit 255 dropped (RFC 7748 decodeUCoordinate)
+def of_bytes_l(bs: List<&2, U32>) -> List<&2, Nat>:
+  fit(15n, limbs17(bs))
+
+# 32 bytes from 15 limbs of 17 bits (a value below 2^255)
+def to_bytes_l(xs: List<&2, Nat>) -> List<&2, U32>:
+  up(xs, 0n, 0n)
+
+def sum(xs: List<&2, Nat>, acc: Nat) -> Nat:
+  match xs:
+    case Nil{}:
+      acc
+    case Con{x, xt}:
+      sum(xt, Nat.add(acc, x))
