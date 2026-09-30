@@ -833,10 +833,10 @@ run time and keeps unknown values folded in the checker.
 | `SchnorrVerify.correct` | `schnorr_verify(pk, msg, sig) == SS.verify(one, pk, msg, sig)` | proved (`proof_schnorr.bend`) |
 
 Each laws file has its own root, so that each checks alone (Bend 2.0.34,
-`bend-local`, one at a time on the development machine): `proof.bend` 14 s
-and 649 MB, `proof_sign.bend` 42 s and 898 MB, `proof_verify.bend` 14 s
-and 686 MB, `proof_recover.bend` 16 s and 735 MB, `proof_schnorr.bend`
-39 s and 904 MB.
+`bend-local`, one at a time on the development machine):
+`proof.bend` 13 s and 716 MB, `proof_sign.bend` 40 s and 906 MB,
+`proof_verify.bend` 14 s and 741 MB, `proof_recover.bend` 15 s and 713
+MB, `proof_schnorr.bend` 39 s and 946 MB.
 
 The lemmas underneath (`proofs/crypto/secp256k1/`, generated from
 `tools/generators/secp256k1_hand/*.src` by `tools/generators/rw.py`, whose
