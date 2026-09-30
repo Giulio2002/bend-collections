@@ -1,0 +1,66 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ../../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../../spec/crypto/secp256k1/curve.bend as CS
+import ../../../math/number/nt_prime.bend as PM
+import ./zm.bend as Z
+import ./fld.bend as F
+import ./nc.bend as NC
+import ./id_curve.bend as C
+import ./id_comm.bend as CM
+
+# Completeness of the Renes-Costello-Batina addition on secp256k1: for P and
+# Q on the curve with y1 and y2 nonzero (on this curve a point is (0, 0, 0)
+# exactly when its y is 0: a point with y == 0 has x^3 == -7 z^3, and -7 is
+# not a cube), the Y of P + Q is nonzero. The proof: W Y3 == N^3 + 7 D^3
+# (C.compl_y), so Y3 == 0 forces D == 0 and N == 0, then
+# s^3 + 7 (2 z1 z2)^3 == 0 (C.compl_s) forces z1 z2 == 0; and with P (or Q)
+# at infinity Y3 == y1^2 y2^2 (C.inf_y).
+#
+# The hypotheses on the modulus m = 1 + mp: m is prime (hp), 3 divides
+# m - 1 (h3), (-7)^((m-1)/3) != 1 (hnc), 21 < m (h21).
+
+def lt2(+mp: Nat, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}) -> {Nat.is_lt(2n, 1n+mp) == True{} : Bool}:
+  N.lt_trans(2n, 21n, 1n+mp, {==}, h21)
+
+# P at infinity (z1 == 0) and Y(P + Q) == 0: impossible
+def inf_contra(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +x1: Nat, +y1: Nat, +z1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +c1: F.OnC(mp, x1, y1, z1), +n1: F.NZ(mp, y1), +n2: F.NZ(mp, y2), +hz: {Nat.mod(z1, 1n+mp) == 0n : Nat}, +h0: {Nat.mod(C.aY(mp, x1, y1, z1, x2, y2, z2), 1n+mp) == 0n : Nat}) -> Empty:
+  +hx = NC.cube_z(mp, hp, x1, F.z_red(mp, Nat.mul(FS.mmul(1n+mp, x1, x1), x1), C.inf_x(mp, x1, y1, z1, x2, y2, z2, c1, hz)))
+  F.nz_absurd(mp, FS.mmul(1n+mp, FS.mmul(1n+mp, y1, y1), FS.mmul(1n+mp, y2, y2)), F.nz_mmul(mp, hp, FS.mmul(1n+mp, y1, y1), FS.mmul(1n+mp, y2, y2), F.nz_mmul(mp, hp, y1, y1, n1, n1), F.nz_mmul(mp, hp, y2, y2, n2, n2)),
+    Equal.trans(Nat, Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, y1, y1), FS.mmul(1n+mp, y2, y2)), 1n+mp), Nat.mod(C.aY(mp, x1, y1, z1, x2, y2, z2), 1n+mp), 0n, Equal.sym(Nat, Nat.mod(C.aY(mp, x1, y1, z1, x2, y2, z2), 1n+mp), Nat.mod(FS.mmul(1n+mp, FS.mmul(1n+mp, y1, y1), FS.mmul(1n+mp, y2, y2)), 1n+mp), C.inf_y(mp, x1, y1, z1, x2, y2, z2, hx, hz)), h0))
+
+def zz_c(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +x1: Nat, +y1: Nat, +z1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +c1: F.OnC(mp, x1, y1, z1), +c2: F.OnC(mp, x2, y2, z2), +n1: F.NZ(mp, y1), +n2: F.NZ(mp, y2), +h0: {Nat.mod(C.aY(mp, x1, y1, z1, x2, y2, z2), 1n+mp) == 0n : Nat}, +hzz: {Nat.mod(Nat.mul(z1, z2), 1n+mp) == 0n : Nat}, c: Bool, +hc: {Nat.is_eq(Nat.mod(z1, 1n+mp), 0n) == c : Bool}) -> Empty:
+  match c:
+    case True{}:
+      inf_contra(mp, hp, h3, hnc, h21, x1, y1, z1, x2, y2, z2, c1, n1, n2, N.eq_from_is_eq(Nat.mod(z1, 1n+mp), 0n, hc), h0)
+    case False{}:
+      inf_contra(mp, hp, h3, hnc, h21, x2, y2, z2, x1, y1, z1, c2, n2, n1, F.zprod(mp, hp, z1, z2, hzz, hc), Equal.trans(Nat, Nat.mod(C.aY(mp, x2, y2, z2, x1, y1, z1), 1n+mp), Nat.mod(C.aY(mp, x1, y1, z1, x2, y2, z2), 1n+mp), 0n, Equal.sym(Nat, Nat.mod(C.aY(mp, x1, y1, z1, x2, y2, z2), 1n+mp), Nat.mod(C.aY(mp, x2, y2, z2, x1, y1, z1), 1n+mp), CM.comm_y(mp, x1, y1, z1, x2, y2, z2, 21n)), h0))
+
+def y_contra(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +x1: Nat, +y1: Nat, +z1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +c1: F.OnC(mp, x1, y1, z1), +c2: F.OnC(mp, x2, y2, z2), +n1: F.NZ(mp, y1), +n2: F.NZ(mp, y2), +h0: {Nat.mod(C.aY(mp, x1, y1, z1, x2, y2, z2), 1n+mp) == 0n : Nat}) -> Empty:
+  +n = C.cN(mp, x1, y1, z1, x2, y2, z2)
+  +d = C.cD(mp, x1, y1, z1, x2, y2, z2)
+  +s = C.cS(mp, x1, y1, z1, x2, y2, z2)
+  +z = C.cZ(mp, x1, y1, z1, x2, y2, z2)
+  +e1 = F.z_red(mp, Nat.add(FS.mmul(1n+mp, FS.mmul(1n+mp, n, n), n), FS.mmul(1n+mp, 7n, FS.mmul(1n+mp, FS.mmul(1n+mp, d, d), d))), Equal.trans(Nat, Nat.mod(FS.madd(1n+mp, FS.mmul(1n+mp, FS.mmul(1n+mp, n, n), n), FS.mmul(1n+mp, 7n, FS.mmul(1n+mp, FS.mmul(1n+mp, d, d), d))), 1n+mp), Nat.mod(FS.mmul(1n+mp, C.cW(mp, x1, y1, z1, x2, y2, z2), C.aY(mp, x1, y1, z1, x2, y2, z2)), 1n+mp), 0n, Equal.sym(Nat, Nat.mod(FS.mmul(1n+mp, C.cW(mp, x1, y1, z1, x2, y2, z2), C.aY(mp, x1, y1, z1, x2, y2, z2)), 1n+mp), Nat.mod(FS.madd(1n+mp, FS.mmul(1n+mp, FS.mmul(1n+mp, n, n), n), FS.mmul(1n+mp, 7n, FS.mmul(1n+mp, FS.mmul(1n+mp, d, d), d))), 1n+mp), C.compl_y(mp, x1, y1, z1, x2, y2, z2, c1, c2)), F.z_mmul_r(mp, C.cW(mp, x1, y1, z1, x2, y2, z2), C.aY(mp, x1, y1, z1, x2, y2, z2), h0)))
+  +hd = NC.nc_hom(mp, hp, h3, hnc, h21, n, d, e1)
+  +hn = NC.cube_z(mp, hp, n, F.z_red(mp, Nat.mul(FS.mmul(1n+mp, n, n), n), F.z_add_l(mp, FS.mmul(1n+mp, FS.mmul(1n+mp, n, n), n), FS.mmul(1n+mp, 7n, FS.mmul(1n+mp, FS.mmul(1n+mp, d, d), d)), e1, F.z_mmul_r(mp, 7n, FS.mmul(1n+mp, FS.mmul(1n+mp, d, d), d), F.z_cube(mp, d, hd)))))
+  +e2 = F.z_red(mp, Nat.add(FS.mmul(1n+mp, FS.mmul(1n+mp, s, s), s), FS.mmul(1n+mp, 7n, FS.mmul(1n+mp, FS.mmul(1n+mp, FS.mmul(1n+mp, 2n, z), FS.mmul(1n+mp, 2n, z)), FS.mmul(1n+mp, 2n, z)))), Equal.trans(Nat, Nat.mod(FS.madd(1n+mp, FS.mmul(1n+mp, FS.mmul(1n+mp, s, s), s), FS.mmul(1n+mp, 7n, FS.mmul(1n+mp, FS.mmul(1n+mp, FS.mmul(1n+mp, 2n, z), FS.mmul(1n+mp, 2n, z)), FS.mmul(1n+mp, 2n, z)))), 1n+mp), Nat.mod(FS.msub(1n+mp, FS.mmul(1n+mp, s, d), FS.mmul(1n+mp, FS.mmul(1n+mp, 2n, z), n)), 1n+mp), 0n, C.compl_s(mp, x1, y1, z1, x2, y2, z2), F.z_msub(mp, FS.mmul(1n+mp, s, d), FS.mmul(1n+mp, FS.mmul(1n+mp, 2n, z), n), F.z_mmul_r(mp, s, d, hd), F.z_mmul_r(mp, FS.mmul(1n+mp, 2n, z), n, hn))))
+  +h2z = F.z_red(mp, Nat.mul(2n, z), NC.nc_hom(mp, hp, h3, hnc, h21, s, FS.mmul(1n+mp, 2n, z), e2))
+  +hzz = F.z_red(mp, Nat.mul(z1, z2), F.zprod(mp, hp, 2n, z, h2z, NC.nz_small(mp, 1n, lt2(mp, h21))))
+  zz_c(mp, hp, h3, hnc, h21, x1, y1, z1, x2, y2, z2, c1, c2, n1, n2, h0, hzz, Nat.is_eq(Nat.mod(z1, 1n+mp), 0n), {==})
+
+def y_nz_c(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +x1: Nat, +y1: Nat, +z1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +c1: F.OnC(mp, x1, y1, z1), +c2: F.OnC(mp, x2, y2, z2), +n1: F.NZ(mp, y1), +n2: F.NZ(mp, y2), c: Bool, +hc: {Nat.is_eq(Nat.mod(C.aY(mp, x1, y1, z1, x2, y2, z2), 1n+mp), 0n) == c : Bool}) -> F.NZ(mp, C.aY(mp, x1, y1, z1, x2, y2, z2)):
+  match c:
+    case False{}:
+      hc
+    case True{}:
+      Empty.absurd(F.NZ(mp, C.aY(mp, x1, y1, z1, x2, y2, z2)), y_contra(mp, hp, h3, hnc, h21, x1, y1, z1, x2, y2, z2, c1, c2, n1, n2, N.eq_from_is_eq(Nat.mod(C.aY(mp, x1, y1, z1, x2, y2, z2), 1n+mp), 0n, hc)))
+
+# P, Q on the curve with nonzero y: the Y of P + Q is nonzero
+def y_nz(+mp: Nat, +hp: PM.Prime(1n+mp), +h3: {Nat.mod(mp, 3n) == 0n : Nat}, +hnc: {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(1n+mp, 7n), Nat.div(mp, 3n)), 1n+mp), 1n) == False{} : Bool}, +h21: {Nat.is_lt(21n, 1n+mp) == True{} : Bool}, +x1: Nat, +y1: Nat, +z1: Nat, +x2: Nat, +y2: Nat, +z2: Nat, +c1: F.OnC(mp, x1, y1, z1), +c2: F.OnC(mp, x2, y2, z2), +n1: F.NZ(mp, y1), +n2: F.NZ(mp, y2)) -> F.NZ(mp, C.aY(mp, x1, y1, z1, x2, y2, z2)):
+  y_nz_c(mp, hp, h3, hnc, h21, x1, y1, z1, x2, y2, z2, c1, c2, n1, n2, Nat.is_eq(Nat.mod(C.aY(mp, x1, y1, z1, x2, y2, z2), 1n+mp), 0n), {==})

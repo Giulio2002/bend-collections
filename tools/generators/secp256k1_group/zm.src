@@ -1,0 +1,136 @@
+import Base
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../semiring.bend as SR
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ../../../../spec/crypto/secp256k1/field.bend as FS
+
+# Congruences modulo m = 1 + mp, and the relation between a residue r and
+# a difference P - N of natural numbers: Rel(mp, r, P, N) says
+# r + N == P (mod m). The spec's madd, msub and mmul of residues are the
+# sum, difference and product of the differences.
+
+def Rel(+mp: Nat, +r: Nat, +p: Nat, +n: Nat) -> Data:
+  {Nat.mod(Nat.add(r, n), 1n+mp) == Nat.mod(p, 1n+mp) : Nat}
+
+# a - b == c - d (mod m)
+def SameM(+mp: Nat, +a: Nat, +b: Nat, +c: Nat, +d: Nat) -> Data:
+  {Nat.mod(Nat.add(a, d), 1n+mp) == Nat.mod(Nat.add(c, b), 1n+mp) : Nat}
+
+def cg_add_l(+mp: Nat, +a: Nat, +a2: Nat, +b: Nat, +h: {Nat.mod(a, 1n+mp) == Nat.mod(a2, 1n+mp) : Nat}) -> {Nat.mod(Nat.add(a, b), 1n+mp) == Nat.mod(Nat.add(a2, b), 1n+mp) : Nat}:
+  %rw <- NR.mod_add_l(mp, a, b)
+  %rw <- NR.mod_add_l(mp, a2, b)
+  %rwh h : {Nat.mod(a, 1n+mp) == Nat.mod(a2, 1n+mp) : Nat}
+  %close
+
+def cg_add_r(+mp: Nat, +a: Nat, +b: Nat, +b2: Nat, +h: {Nat.mod(b, 1n+mp) == Nat.mod(b2, 1n+mp) : Nat}) -> {Nat.mod(Nat.add(a, b), 1n+mp) == Nat.mod(Nat.add(a, b2), 1n+mp) : Nat}:
+  %rw <- NR.mod_add_r(mp, a, b)
+  %rw <- NR.mod_add_r(mp, a, b2)
+  %rwh h : {Nat.mod(b, 1n+mp) == Nat.mod(b2, 1n+mp) : Nat}
+  %close
+
+def cg_mul_l(+mp: Nat, +a: Nat, +a2: Nat, +b: Nat, +h: {Nat.mod(a, 1n+mp) == Nat.mod(a2, 1n+mp) : Nat}) -> {Nat.mod(Nat.mul(a, b), 1n+mp) == Nat.mod(Nat.mul(a2, b), 1n+mp) : Nat}:
+  %rw <- NR.mod_mul_l(mp, a, b)
+  %rw <- NR.mod_mul_l(mp, a2, b)
+  %rwh h : {Nat.mod(a, 1n+mp) == Nat.mod(a2, 1n+mp) : Nat}
+  %close
+
+def cg_mul_r(+mp: Nat, +a: Nat, +b: Nat, +b2: Nat, +h: {Nat.mod(b, 1n+mp) == Nat.mod(b2, 1n+mp) : Nat}) -> {Nat.mod(Nat.mul(a, b), 1n+mp) == Nat.mod(Nat.mul(a, b2), 1n+mp) : Nat}:
+  %rw <- NR.mod_mul_r(mp, a, b)
+  %rw <- NR.mod_mul_r(mp, a, b2)
+  %rwh h : {Nat.mod(b, 1n+mp) == Nat.mod(b2, 1n+mp) : Nat}
+  %close
+
+def mc_s(+mp: Nat, +x: Nat, +c: Nat) -> {Nat.add(Nat.mul(c, 1n+mp), x) == Nat.add(Nat.add(x, c), Nat.mul(c, mp)) : Nat}:
+  %norm
+
+# x + c == y + c (mod m) gives x == y (mod m)
+def mcancel(+mp: Nat, +x: Nat, +y: Nat, +c: Nat, +h: {Nat.mod(Nat.add(x, c), 1n+mp) == Nat.mod(Nat.add(y, c), 1n+mp) : Nat}) -> {Nat.mod(x, 1n+mp) == Nat.mod(y, 1n+mp) : Nat}:
+  %rw <- NR.absorb(mp, c, x)
+  %rw <- NR.absorb(mp, c, y)
+  %rw mc_s(mp, x, c)
+  %rw mc_s(mp, y, c)
+  cg_add_l(mp, Nat.add(x, c), Nat.add(y, c), Nat.mul(c, mp), h)
+
+def sw_s(+r: Nat, +a: Nat, +b: Nat) -> {Nat.add(Nat.add(r, a), b) == Nat.add(Nat.add(r, b), a) : Nat}:
+  %norm
+
+def rel_sameM(+mp: Nat, +r: Nat, +p: Nat, +n: Nat, +p2: Nat, +n2: Nat, +h: SameM(mp, p, n, p2, n2), +hr: Rel(mp, r, p, n)) -> Rel(mp, r, p2, n2):
+  mcancel(mp, Nat.add(r, n2), p2, n, Equal.trans(Nat, Nat.mod(Nat.add(Nat.add(r, n2), n), 1n+mp), Nat.mod(Nat.add(Nat.add(r, n), n2), 1n+mp), Nat.mod(Nat.add(p2, n), 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(Nat.add(r, n2), n), Nat.add(Nat.add(r, n), n2), sw_s(r, n2, n)), Equal.trans(Nat, Nat.mod(Nat.add(Nat.add(r, n), n2), 1n+mp), Nat.mod(Nat.add(p, n2), 1n+mp), Nat.mod(Nat.add(p2, n), 1n+mp), cg_add_l(mp, Nat.add(r, n), p, n2, hr), h)))
+
+def rel_same(+mp: Nat, +r: Nat, +p: Nat, +n: Nat, +p2: Nat, +n2: Nat, +h: {Nat.add(p, n2) == Nat.add(p2, n) : Nat}, +hr: Rel(mp, r, p, n)) -> Rel(mp, r, p2, n2):
+  rel_sameM(mp, r, p, n, p2, n2, Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(p, n2), Nat.add(p2, n), h), hr)
+
+def ra_s(+r1: Nat, +n1: Nat, +r2: Nat, +n2: Nat) -> {Nat.add(Nat.add(r1, r2), Nat.add(n1, n2)) == Nat.add(Nat.add(r1, n1), Nat.add(r2, n2)) : Nat}:
+  %norm
+
+def rel_add(+mp: Nat, +r1: Nat, +p1: Nat, +n1: Nat, +r2: Nat, +p2: Nat, +n2: Nat, +h1: Rel(mp, r1, p1, n1), +h2: Rel(mp, r2, p2, n2)) -> Rel(mp, FS.madd(1n+mp, r1, r2), Nat.add(p1, p2), Nat.add(n1, n2)):
+  Equal.trans(Nat, Nat.mod(Nat.add(Nat.mod(Nat.add(r1, r2), 1n+mp), Nat.add(n1, n2)), 1n+mp), Nat.mod(Nat.add(Nat.add(r1, r2), Nat.add(n1, n2)), 1n+mp), Nat.mod(Nat.add(p1, p2), 1n+mp), NR.mod_add_l(mp, Nat.add(r1, r2), Nat.add(n1, n2)), Equal.trans(Nat, Nat.mod(Nat.add(Nat.add(r1, r2), Nat.add(n1, n2)), 1n+mp), Nat.mod(Nat.add(Nat.add(r1, n1), Nat.add(r2, n2)), 1n+mp), Nat.mod(Nat.add(p1, p2), 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(Nat.add(r1, r2), Nat.add(n1, n2)), Nat.add(Nat.add(r1, n1), Nat.add(r2, n2)), ra_s(r1, n1, r2, n2)), Equal.trans(Nat, Nat.mod(Nat.add(Nat.add(r1, n1), Nat.add(r2, n2)), 1n+mp), Nat.mod(Nat.add(p1, Nat.add(r2, n2)), 1n+mp), Nat.mod(Nat.add(p1, p2), 1n+mp), cg_add_l(mp, Nat.add(r1, n1), p1, Nat.add(r2, n2), h1), cg_add_r(mp, p1, Nat.add(r2, n2), p2, h2))))
+
+def rm_a(+r1: Nat, +p1: Nat, +n1: Nat, +r2: Nat, +p2: Nat, +n2: Nat) -> {Nat.add(Nat.mul(r1, r2), Nat.add(Nat.mul(p1, n2), Nat.mul(n1, p2))) == Nat.add(Nat.mul(p1, n2), Nat.add(Nat.mul(n1, p2), Nat.mul(r1, r2))) : Nat}:
+  %norm
+
+def rm_b(+r1: Nat, +p1: Nat, +n1: Nat, +r2: Nat, +p2: Nat, +n2: Nat) -> {Nat.add(Nat.mul(Nat.add(r1, n1), n2), Nat.add(Nat.mul(n1, p2), Nat.mul(r1, r2))) == Nat.add(Nat.mul(n1, p2), Nat.add(Nat.mul(Nat.add(r1, n1), n2), Nat.mul(r1, r2))) : Nat}:
+  %norm
+
+def rm_c(+r1: Nat, +p1: Nat, +n1: Nat, +r2: Nat, +p2: Nat, +n2: Nat) -> {Nat.add(Nat.mul(n1, Nat.add(r2, n2)), Nat.add(Nat.mul(Nat.add(r1, n1), n2), Nat.mul(r1, r2))) == Nat.add(Nat.mul(Nat.add(r1, n1), Nat.add(r2, n2)), Nat.mul(n1, n2)) : Nat}:
+  %norm
+
+def rel_mul_raw(+mp: Nat, +r1: Nat, +p1: Nat, +n1: Nat, +r2: Nat, +p2: Nat, +n2: Nat, +h1: Rel(mp, r1, p1, n1), +h2: Rel(mp, r2, p2, n2)) -> Rel(mp, Nat.mul(r1, r2), Nat.add(Nat.mul(p1, p2), Nat.mul(n1, n2)), Nat.add(Nat.mul(p1, n2), Nat.mul(n1, p2))):
+  Equal.trans(Nat, Nat.mod(Nat.add(Nat.mul(r1, r2), Nat.add(Nat.mul(p1, n2), Nat.mul(n1, p2))), 1n+mp), Nat.mod(Nat.add(Nat.mul(p1, n2), Nat.add(Nat.mul(n1, p2), Nat.mul(r1, r2))), 1n+mp), Nat.mod(Nat.add(Nat.mul(p1, p2), Nat.mul(n1, n2)), 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(Nat.mul(r1, r2), Nat.add(Nat.mul(p1, n2), Nat.mul(n1, p2))), Nat.add(Nat.mul(p1, n2), Nat.add(Nat.mul(n1, p2), Nat.mul(r1, r2))), rm_a(r1, p1, n1, r2, p2, n2)), Equal.trans(Nat, Nat.mod(Nat.add(Nat.mul(p1, n2), Nat.add(Nat.mul(n1, p2), Nat.mul(r1, r2))), 1n+mp), Nat.mod(Nat.add(Nat.mul(Nat.add(r1, n1), n2), Nat.add(Nat.mul(n1, p2), Nat.mul(r1, r2))), 1n+mp), Nat.mod(Nat.add(Nat.mul(p1, p2), Nat.mul(n1, n2)), 1n+mp), cg_add_l(mp, Nat.mul(p1, n2), Nat.mul(Nat.add(r1, n1), n2), Nat.add(Nat.mul(n1, p2), Nat.mul(r1, r2)), cg_mul_l(mp, p1, Nat.add(r1, n1), n2, Equal.sym(Nat, Nat.mod(Nat.add(r1, n1), 1n+mp), Nat.mod(p1, 1n+mp), h1))), Equal.trans(Nat, Nat.mod(Nat.add(Nat.mul(Nat.add(r1, n1), n2), Nat.add(Nat.mul(n1, p2), Nat.mul(r1, r2))), 1n+mp), Nat.mod(Nat.add(Nat.mul(n1, p2), Nat.add(Nat.mul(Nat.add(r1, n1), n2), Nat.mul(r1, r2))), 1n+mp), Nat.mod(Nat.add(Nat.mul(p1, p2), Nat.mul(n1, n2)), 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(Nat.mul(Nat.add(r1, n1), n2), Nat.add(Nat.mul(n1, p2), Nat.mul(r1, r2))), Nat.add(Nat.mul(n1, p2), Nat.add(Nat.mul(Nat.add(r1, n1), n2), Nat.mul(r1, r2))), rm_b(r1, p1, n1, r2, p2, n2)), Equal.trans(Nat, Nat.mod(Nat.add(Nat.mul(n1, p2), Nat.add(Nat.mul(Nat.add(r1, n1), n2), Nat.mul(r1, r2))), 1n+mp), Nat.mod(Nat.add(Nat.mul(n1, Nat.add(r2, n2)), Nat.add(Nat.mul(Nat.add(r1, n1), n2), Nat.mul(r1, r2))), 1n+mp), Nat.mod(Nat.add(Nat.mul(p1, p2), Nat.mul(n1, n2)), 1n+mp), cg_add_l(mp, Nat.mul(n1, p2), Nat.mul(n1, Nat.add(r2, n2)), Nat.add(Nat.mul(Nat.add(r1, n1), n2), Nat.mul(r1, r2)), cg_mul_r(mp, n1, p2, Nat.add(r2, n2), Equal.sym(Nat, Nat.mod(Nat.add(r2, n2), 1n+mp), Nat.mod(p2, 1n+mp), h2))), Equal.trans(Nat, Nat.mod(Nat.add(Nat.mul(n1, Nat.add(r2, n2)), Nat.add(Nat.mul(Nat.add(r1, n1), n2), Nat.mul(r1, r2))), 1n+mp), Nat.mod(Nat.add(Nat.mul(Nat.add(r1, n1), Nat.add(r2, n2)), Nat.mul(n1, n2)), 1n+mp), Nat.mod(Nat.add(Nat.mul(p1, p2), Nat.mul(n1, n2)), 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(Nat.mul(n1, Nat.add(r2, n2)), Nat.add(Nat.mul(Nat.add(r1, n1), n2), Nat.mul(r1, r2))), Nat.add(Nat.mul(Nat.add(r1, n1), Nat.add(r2, n2)), Nat.mul(n1, n2)), rm_c(r1, p1, n1, r2, p2, n2)), Equal.trans(Nat, Nat.mod(Nat.add(Nat.mul(Nat.add(r1, n1), Nat.add(r2, n2)), Nat.mul(n1, n2)), 1n+mp), Nat.mod(Nat.add(Nat.mul(Nat.add(r1, n1), p2), Nat.mul(n1, n2)), 1n+mp), Nat.mod(Nat.add(Nat.mul(p1, p2), Nat.mul(n1, n2)), 1n+mp), cg_add_l(mp, Nat.mul(Nat.add(r1, n1), Nat.add(r2, n2)), Nat.mul(Nat.add(r1, n1), p2), Nat.mul(n1, n2), cg_mul_r(mp, Nat.add(r1, n1), Nat.add(r2, n2), p2, h2)), cg_add_l(mp, Nat.mul(Nat.add(r1, n1), p2), Nat.mul(p1, p2), Nat.mul(n1, n2), cg_mul_l(mp, Nat.add(r1, n1), p1, p2, h1))))))))
+
+def rel_mul(+mp: Nat, +r1: Nat, +p1: Nat, +n1: Nat, +r2: Nat, +p2: Nat, +n2: Nat, +h1: Rel(mp, r1, p1, n1), +h2: Rel(mp, r2, p2, n2)) -> Rel(mp, FS.mmul(1n+mp, r1, r2), Nat.add(Nat.mul(p1, p2), Nat.mul(n1, n2)), Nat.add(Nat.mul(p1, n2), Nat.mul(n1, p2))):
+  Equal.trans(Nat, Nat.mod(Nat.add(Nat.mod(Nat.mul(r1, r2), 1n+mp), Nat.add(Nat.mul(p1, n2), Nat.mul(n1, p2))), 1n+mp), Nat.mod(Nat.add(Nat.mul(r1, r2), Nat.add(Nat.mul(p1, n2), Nat.mul(n1, p2))), 1n+mp), Nat.mod(Nat.add(Nat.mul(p1, p2), Nat.mul(n1, n2)), 1n+mp), NR.mod_add_l(mp, Nat.mul(r1, r2), Nat.add(Nat.mul(p1, n2), Nat.mul(n1, p2))), rel_mul_raw(mp, r1, p1, n1, r2, p2, n2, h1, h2))
+
+def ms_s(+mp: Nat, +a: Nat) -> {Nat.add(Nat.mul(1n, 1n+mp), a) == Nat.add(a, 1n+mp) : Nat}:
+  %norm
+
+def ms_le(+mp: Nat, +a: Nat, +b: Nat) -> {Nat.is_le(Nat.mod(b, 1n+mp), Nat.add(a, 1n+mp)) == True{} : Bool}:
+  %NA.add_comm(1n+mp, a) : {Nat.is_le(Nat.mod(b, 1n+mp), _) == True{} : Bool}
+  N.le_trans(Nat.mod(b, 1n+mp), 1n+mp, Nat.add(1n+mp, a), N.lt_le(Nat.mod(b, 1n+mp), 1n+mp, NR.dm_lt(mp, b)), N.le_add_right(1n+mp, a))
+
+# (a - b) + b == a (mod m)
+def msub_add(+mp: Nat, +a: Nat, +b: Nat) -> {Nat.mod(Nat.add(FS.msub(1n+mp, a, b), b), 1n+mp) == Nat.mod(a, 1n+mp) : Nat}:
+  Equal.trans(Nat, Nat.mod(Nat.add(Nat.mod(Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), 1n+mp), b), 1n+mp), Nat.mod(Nat.add(Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), b), 1n+mp), Nat.mod(a, 1n+mp), NR.mod_add_l(mp, Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), b), Equal.trans(Nat, Nat.mod(Nat.add(Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), b), 1n+mp), Nat.mod(Nat.add(Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), Nat.mod(b, 1n+mp)), 1n+mp), Nat.mod(a, 1n+mp), Equal.sym(Nat, Nat.mod(Nat.add(Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), Nat.mod(b, 1n+mp)), 1n+mp), Nat.mod(Nat.add(Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), b), 1n+mp), NR.mod_add_r(mp, Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), b)), Equal.trans(Nat, Nat.mod(Nat.add(Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), Nat.mod(b, 1n+mp)), 1n+mp), Nat.mod(Nat.add(Nat.mod(b, 1n+mp), Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp))), 1n+mp), Nat.mod(a, 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), Nat.mod(b, 1n+mp)), Nat.add(Nat.mod(b, 1n+mp), Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp))), NA.add_comm(Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp)), Nat.mod(b, 1n+mp))), Equal.trans(Nat, Nat.mod(Nat.add(Nat.mod(b, 1n+mp), Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp))), 1n+mp), Nat.mod(Nat.add(a, 1n+mp), 1n+mp), Nat.mod(a, 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(Nat.mod(b, 1n+mp), Nat.sub(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp))), Nat.add(a, 1n+mp), N.sub_add(Nat.add(a, 1n+mp), Nat.mod(b, 1n+mp), ms_le(mp, a, b))), Equal.trans(Nat, Nat.mod(Nat.add(a, 1n+mp), 1n+mp), Nat.mod(Nat.add(Nat.mul(1n, 1n+mp), a), 1n+mp), Nat.mod(a, 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(a, 1n+mp), Nat.add(Nat.mul(1n, 1n+mp), a), Equal.sym(Nat, Nat.add(Nat.mul(1n, 1n+mp), a), Nat.add(a, 1n+mp), ms_s(mp, a))), NR.absorb(mp, 1n, a))))))
+
+def rs_a(+t: Nat, +n1: Nat, +r2: Nat, +n2: Nat) -> {Nat.add(t, Nat.add(n1, Nat.add(r2, n2))) == Nat.add(Nat.add(t, r2), Nat.add(n1, n2)) : Nat}:
+  %norm
+
+def rs_b(+r1: Nat, +n1: Nat, +n2: Nat) -> {Nat.add(r1, Nat.add(n1, n2)) == Nat.add(Nat.add(r1, n1), n2) : Nat}:
+  %norm
+
+def rel_sub(+mp: Nat, +r1: Nat, +p1: Nat, +n1: Nat, +r2: Nat, +p2: Nat, +n2: Nat, +h1: Rel(mp, r1, p1, n1), +h2: Rel(mp, r2, p2, n2)) -> Rel(mp, FS.msub(1n+mp, r1, r2), Nat.add(p1, n2), Nat.add(n1, p2)):
+  Equal.trans(Nat, Nat.mod(Nat.add(FS.msub(1n+mp, r1, r2), Nat.add(n1, p2)), 1n+mp), Nat.mod(Nat.add(FS.msub(1n+mp, r1, r2), Nat.add(n1, Nat.add(r2, n2))), 1n+mp), Nat.mod(Nat.add(p1, n2), 1n+mp), cg_add_r(mp, FS.msub(1n+mp, r1, r2), Nat.add(n1, p2), Nat.add(n1, Nat.add(r2, n2)), cg_add_r(mp, n1, p2, Nat.add(r2, n2), Equal.sym(Nat, Nat.mod(Nat.add(r2, n2), 1n+mp), Nat.mod(p2, 1n+mp), h2))), Equal.trans(Nat, Nat.mod(Nat.add(FS.msub(1n+mp, r1, r2), Nat.add(n1, Nat.add(r2, n2))), 1n+mp), Nat.mod(Nat.add(Nat.add(FS.msub(1n+mp, r1, r2), r2), Nat.add(n1, n2)), 1n+mp), Nat.mod(Nat.add(p1, n2), 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(FS.msub(1n+mp, r1, r2), Nat.add(n1, Nat.add(r2, n2))), Nat.add(Nat.add(FS.msub(1n+mp, r1, r2), r2), Nat.add(n1, n2)), rs_a(FS.msub(1n+mp, r1, r2), n1, r2, n2)), Equal.trans(Nat, Nat.mod(Nat.add(Nat.add(FS.msub(1n+mp, r1, r2), r2), Nat.add(n1, n2)), 1n+mp), Nat.mod(Nat.add(r1, Nat.add(n1, n2)), 1n+mp), Nat.mod(Nat.add(p1, n2), 1n+mp), cg_add_l(mp, Nat.add(FS.msub(1n+mp, r1, r2), r2), r1, Nat.add(n1, n2), msub_add(mp, r1, r2)), Equal.trans(Nat, Nat.mod(Nat.add(r1, Nat.add(n1, n2)), 1n+mp), Nat.mod(Nat.add(Nat.add(r1, n1), n2), 1n+mp), Nat.mod(Nat.add(p1, n2), 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(r1, Nat.add(n1, n2)), Nat.add(Nat.add(r1, n1), n2), rs_b(r1, n1, n2)), cg_add_l(mp, Nat.add(r1, n1), p1, n2, h1)))))
+
+# r == P - N and P - N == 0 give r == 0 (mod m)
+def zero_rel(+mp: Nat, +r: Nat, +p: Nat, +n: Nat, +hr: Rel(mp, r, p, n), +hz: SameM(mp, p, n, 0n, 0n)) -> {Nat.mod(r, 1n+mp) == 0n : Nat}:
+  mcancel(mp, r, 0n, n, Equal.trans(Nat, Nat.mod(Nat.add(r, n), 1n+mp), Nat.mod(p, 1n+mp), Nat.mod(n, 1n+mp), hr, Equal.trans(Nat, Nat.mod(p, 1n+mp), Nat.mod(Nat.add(p, 0n), 1n+mp), Nat.mod(n, 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), p, Nat.add(p, 0n), Equal.sym(Nat, Nat.add(p, 0n), p, NA.add_zero(p))), hz)))
+
+def msub_zero(+mp: Nat, +a: Nat, +b: Nat, +h: {FS.msub(1n+mp, a, b) == 0n : Nat}) -> {Nat.mod(a, 1n+mp) == Nat.mod(b, 1n+mp) : Nat}:
+  %h : {Nat.mod(a, 1n+mp) == Nat.mod(Nat.add(_, b), 1n+mp) : Nat}
+  Equal.sym(Nat, Nat.mod(Nat.add(FS.msub(1n+mp, a, b), b), 1n+mp), Nat.mod(a, 1n+mp), msub_add(mp, a, b))
+
+def st_a(+a: Nat, +d: Nat, +c: Nat, +f: Nat) -> {Nat.add(Nat.add(a, f), Nat.add(c, d)) == Nat.add(Nat.add(a, d), Nat.add(c, f)) : Nat}:
+  %norm
+
+def st_b(+c: Nat, +b: Nat, +e: Nat, +d: Nat) -> {Nat.add(Nat.add(c, b), Nat.add(e, d)) == Nat.add(Nat.add(e, b), Nat.add(c, d)) : Nat}:
+  %norm
+
+def sameM_trans(+mp: Nat, +a: Nat, +b: Nat, +c: Nat, +d: Nat, +e: Nat, +f: Nat, +h1: SameM(mp, a, b, c, d), +h2: SameM(mp, c, d, e, f)) -> SameM(mp, a, b, e, f):
+  mcancel(mp, Nat.add(a, f), Nat.add(e, b), Nat.add(c, d), Equal.trans(Nat, Nat.mod(Nat.add(Nat.add(a, f), Nat.add(c, d)), 1n+mp), Nat.mod(Nat.add(Nat.add(a, d), Nat.add(c, f)), 1n+mp), Nat.mod(Nat.add(Nat.add(e, b), Nat.add(c, d)), 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(Nat.add(a, f), Nat.add(c, d)), Nat.add(Nat.add(a, d), Nat.add(c, f)), st_a(a, d, c, f)), Equal.trans(Nat, Nat.mod(Nat.add(Nat.add(a, d), Nat.add(c, f)), 1n+mp), Nat.mod(Nat.add(Nat.add(c, b), Nat.add(c, f)), 1n+mp), Nat.mod(Nat.add(Nat.add(e, b), Nat.add(c, d)), 1n+mp), cg_add_l(mp, Nat.add(a, d), Nat.add(c, b), Nat.add(c, f), h1), Equal.trans(Nat, Nat.mod(Nat.add(Nat.add(c, b), Nat.add(c, f)), 1n+mp), Nat.mod(Nat.add(Nat.add(c, b), Nat.add(e, d)), 1n+mp), Nat.mod(Nat.add(Nat.add(e, b), Nat.add(c, d)), 1n+mp), cg_add_r(mp, Nat.add(c, b), Nat.add(c, f), Nat.add(e, d), h2), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(Nat.add(c, b), Nat.add(e, d)), Nat.add(Nat.add(e, b), Nat.add(c, d)), st_b(c, b, e, d))))))
+
+def sa_a(+a: Nat, +u: Nat, +d: Nat, +x: Nat) -> {Nat.add(Nat.add(a, u), Nat.add(d, x)) == Nat.add(Nat.add(a, d), Nat.add(u, x)) : Nat}:
+  %norm
+
+def sa_b(+c: Nat, +b: Nat, +w: Nat, +v: Nat) -> {Nat.add(Nat.add(c, b), Nat.add(w, v)) == Nat.add(Nat.add(c, w), Nat.add(b, v)) : Nat}:
+  %norm
+
+def sameM_add(+mp: Nat, +a: Nat, +b: Nat, +c: Nat, +d: Nat, +u: Nat, +v: Nat, +w: Nat, +x: Nat, +h1: SameM(mp, a, b, c, d), +h2: SameM(mp, u, v, w, x)) -> SameM(mp, Nat.add(a, u), Nat.add(b, v), Nat.add(c, w), Nat.add(d, x)):
+  Equal.trans(Nat, Nat.mod(Nat.add(Nat.add(a, u), Nat.add(d, x)), 1n+mp), Nat.mod(Nat.add(Nat.add(a, d), Nat.add(u, x)), 1n+mp), Nat.mod(Nat.add(Nat.add(c, w), Nat.add(b, v)), 1n+mp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(Nat.add(a, u), Nat.add(d, x)), Nat.add(Nat.add(a, d), Nat.add(u, x)), sa_a(a, u, d, x)), Equal.trans(Nat, Nat.mod(Nat.add(Nat.add(a, d), Nat.add(u, x)), 1n+mp), Nat.mod(Nat.add(Nat.add(c, b), Nat.add(u, x)), 1n+mp), Nat.mod(Nat.add(Nat.add(c, w), Nat.add(b, v)), 1n+mp), cg_add_l(mp, Nat.add(a, d), Nat.add(c, b), Nat.add(u, x), h1), Equal.trans(Nat, Nat.mod(Nat.add(Nat.add(c, b), Nat.add(u, x)), 1n+mp), Nat.mod(Nat.add(Nat.add(c, b), Nat.add(w, v)), 1n+mp), Nat.mod(Nat.add(Nat.add(c, w), Nat.add(b, v)), 1n+mp), cg_add_r(mp, Nat.add(c, b), Nat.add(u, x), Nat.add(w, v), h2), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(Nat.add(c, b), Nat.add(w, v)), Nat.add(Nat.add(c, w), Nat.add(b, v)), sa_b(c, b, w, v)))))
+
+def sameM_of(+mp: Nat, +a: Nat, +b: Nat, +c: Nat, +d: Nat, +h: {Nat.add(a, d) == Nat.add(c, b) : Nat}) -> SameM(mp, a, b, c, d):
+  Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+mp), Nat.add(a, d), Nat.add(c, b), h)
+
+def sameM_refl(+mp: Nat, +a: Nat, +b: Nat) -> SameM(mp, a, b, a, b):
+  {==}

@@ -1,0 +1,43 @@
+import Base
+import ../../../../spec/math/number.bend as SN
+import ../../../../spec/crypto/secp256k1/field.bend as FS
+import ./bn.bend as B
+import ./bnx.bend as X
+import ./certl.bend as CL
+import ./certb.bend as CB
+import ./cert_c.bend as CC
+
+# (-7)^((p - 1) / 3) is not 1 modulo p (so -7 is not a cube: a cube root x
+# would give x^(p - 1) == 1 by Fermat), from the closed computation of
+# cert_c.bend.
+
+def cl() -> B.Bn:
+  B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+
+def c2l() -> B.Bn:
+  B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+
+def dl() -> B.Bn:
+  B.B0{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B1{B.B0{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.BZ{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+
+def h_n() -> {B.beq(CB.pl(), B.binc(CB.p1l())) == True{} : Bool}:
+  {==}
+
+def h_lt() -> {B.beq(CB.pl(), B.badd(B.binc(cl()), dl())) == True{} : Bool}:
+  {==}
+
+def h_c() -> {B.beq(cl(), B.binc(B.binc(c2l()))) == True{} : Bool}:
+  {==}
+
+# (p - 7)^e mod p != 1, with e = (p - 1) / 3 = X.bvalo(one, CB.e3l())
+def cube_ne(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(FS.prime(one), 7n), X.bvalo(one, CB.e3l())), FS.prime(one)), 1n) == False{} : Bool}:
+  %rw CB.p_m7(one, h1)
+  %rw <- CB.p_is(one, h1)
+  %rw CL.fin_o(one, h1, CB.p7l(), CB.pl(), CB.p1l(), cl(), CB.e3l(), dl(), h_n(), CC.pw(one, h1), h_lt())
+  %rw X.suc2_o(one, h1, cl(), c2l(), h_c())
+  %close
+
+# the same with the exponent written (p - 1) / 3
+def cube_ne_div(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_eq(Nat.mod(Nat.pow(Nat.sub(FS.prime(one), 7n), Nat.div(X.bvalo(one, CB.p1l()), 3n)), FS.prime(one)), 1n) == False{} : Bool}:
+  %rw CB.p_div3(one, h1)
+  cube_ne(one, h1)
