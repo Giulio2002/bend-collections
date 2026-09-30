@@ -70,8 +70,8 @@ def sm_nil(+mp: Nat, +a: List<&2, P.Tm>, +env: List<&2, Nat>, +h: {P.pnull(a) ==
   {==}
 
 # one reduction step back
-def sm_red(+mp: Nat, +n: Nat, +i: Nat, +f: List<&2, P.Tm>, +a: List<&2, P.Tm>, +env: List<&2, Nat>, +hi: {Nat.is_lt(i, n) == True{} : Bool}, +h: Z.Rel(mp, Nat.pow(E.venv(i, env), 3n), E.eP(f, env), E.eN(f, env)), +hz: Z.SameM(mp, 0n, 0n, E.eP(P.red(n, i, f, a), env), E.eN(P.red(n, i, f, a), env))) -> Z.SameM(mp, 0n, 0n, E.eP(a, env), E.eN(a, env)):
-  Z.sameM_trans(mp, 0n, 0n, E.eP(P.red(n, i, f, a), env), E.eN(P.red(n, i, f, a), env), E.eP(a, env), E.eN(a, env), hz, R.red_v(mp, n, i, f, a, env, hi, h))
+def sm_red(+mp: Nat, +n: Nat, +i: Nat, +dp: Nat, +f: List<&2, P.Tm>, +a: List<&2, P.Tm>, +env: List<&2, Nat>, +hi: {Nat.is_lt(i, n) == True{} : Bool}, +h: Z.Rel(mp, Nat.pow(E.venv(i, env), 1n+dp), E.eP(f, env), E.eN(f, env)), +hz: Z.SameM(mp, 0n, 0n, E.eP(P.red(n, i, dp, f, a), env), E.eN(P.red(n, i, dp, f, a), env))) -> Z.SameM(mp, 0n, 0n, E.eP(a, env), E.eN(a, env)):
+  Z.sameM_trans(mp, 0n, 0n, E.eP(P.red(n, i, dp, f, a), env), E.eN(P.red(n, i, dp, f, a), env), E.eP(a, env), E.eN(a, env), hz, R.red_v(mp, n, i, dp, f, a, env, hi, h))
 
 # a and b are equal modulo m when sa - sb is zero
 def ident(+mp: Nat, +a: Nat, +b: Nat, +sa: List<&2, P.Tm>, +sb: List<&2, P.Tm>, +env: List<&2, Nat>, +ha: Z.Rel(mp, a, E.eP(sa, env), E.eN(sa, env)), +hb: Z.Rel(mp, b, E.eP(sb, env), E.eN(sb, env)), +hz: Z.SameM(mp, 0n, 0n, E.eP(P.psub(sa, sb), env), E.eN(P.psub(sa, sb), env))) -> {Nat.mod(a, 1n+mp) == Nat.mod(b, 1n+mp) : Nat}:
@@ -120,4 +120,10 @@ def cur_rel(+mp: Nat, +x: Nat, +f: Nat, +p: Nat, +n: Nat, +hc: {FS.mmul(1n+mp, F
 def both_red(+mp: Nat, +u: Nat, +v: Nat, +h: {Nat.mod(Nat.mod(u, 1n+mp), 1n+mp) == Nat.mod(Nat.mod(v, 1n+mp), 1n+mp) : Nat}) -> {Nat.mod(u, 1n+mp) == Nat.mod(v, 1n+mp) : Nat}:
   %Equal.sym(Nat, Nat.mod(u, 1n+mp), Nat.mod(Nat.mod(u, 1n+mp), 1n+mp), Equal.sym(Nat, Nat.mod(Nat.mod(u, 1n+mp), 1n+mp), Nat.mod(u, 1n+mp), NR.mod_mod(mp, u))) : {_ == Nat.mod(v, 1n+mp) : Nat}
   %Equal.sym(Nat, Nat.mod(v, 1n+mp), Nat.mod(Nat.mod(v, 1n+mp), 1n+mp), Equal.sym(Nat, Nat.mod(Nat.mod(v, 1n+mp), 1n+mp), Nat.mod(v, 1n+mp), NR.mod_mod(mp, v))) : {Nat.mod(Nat.mod(u, 1n+mp), 1n+mp) == _ : Nat}
+  h
+
+# x == 0 (mod m): the rule x -> 0
+def lin_rel(+mp: Nat, +x: Nat, +h: {Nat.mod(x, 1n+mp) == 0n : Nat}) -> Z.Rel(mp, Nat.pow(x, 1n), 0n, 0n):
+  %Equal.sym(Nat, Nat.add(Nat.mul(x, 1n), 0n), Nat.mul(x, 1n), NA.add_zero(Nat.mul(x, 1n))) : {Nat.mod(_, 1n+mp) == 0n : Nat}
+  %Equal.sym(Nat, Nat.mul(x, 1n), x, NA.mul_one(x)) : {Nat.mod(_, 1n+mp) == 0n : Nat}
   h

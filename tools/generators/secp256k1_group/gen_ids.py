@@ -90,24 +90,29 @@ class Ctx:
                          % (name, self.params, v.spec, name, self.env, name, self.env, v.rel))
         return V(v.spec, '%s_p()' % name, '%s_r(%s)' % (name, self.args))
 
-    def curve(self, ix, iy, iz, ib):
-        """the value Y^2 Z - b Z^3 for the point at (ix, iy, iz): what X^3 is replaced by"""
+    def rule_curve(self, ix, iy, iz, ib, h):
+        """hypothesis h: X^3 == Y^2 Z - b Z^3 (as residues) for the point at (ix, iy, iz); the rule X^3 -> that"""
         y, z, b = self.var(iy), self.var(iz), self.var(ib)
-        return self.sub(self.mul(self.mul(y, y), z), self.mul(b, self.mul(self.mul(z, z), z)))
+        F = self.sub(self.mul(self.mul(y, y), z), self.mul(b, self.mul(self.mul(z, z), z)))
+        x = self.vals[ix]
+        rel = 'I.cur_rel(mp, %s, %s, E.eP(%s, %s), E.eN(%s, %s), %s, %s)' % (x, F.spec, F.poly, self.env, F.poly, self.env, h, F.rel)
+        return (ix, 2, F.poly, rel, '+%s: {FS.mmul(%s, FS.mmul(%s, %s, %s), %s) == %s : Nat}' % (h, M, M, x, x, x, F.spec))
 
-    def ident(self, name, a, b, curves=(), comment=''):
-        """curves: list of (ix, F, hyp name): hypothesis x^3 == F.spec"""
-        hyp_params = ''.join(', +%s: {FS.mmul(%s, FS.mmul(%s, %s, %s), %s) == %s : Nat}'
-                             % (h, M, M, self.vals[ix], self.vals[ix], self.vals[ix], F.spec) for ix, F, h in curves)
+    def rule_zero(self, ix, h):
+        """hypothesis h: x == 0 (mod m); the rule x -> 0"""
+        x = self.vals[ix]
+        return (ix, 0, 'Nil{}', 'I.lin_rel(mp, %s, %s)' % (x, h), '+%s: {Nat.mod(%s, %s) == 0n : Nat}' % (h, x, M))
+
+    def ident(self, name, a, b, rules=(), comment=''):
+        hyp_params = ''.join(', ' + r[4] for r in rules)
         d = 'P.psub(%s, %s)' % (a.poly, b.poly)
         polys = [d]
-        for ix, F, h in curves:
-            polys.append('P.red(%dn, %dn, %s, %s)' % (self.n, ix, F.poly, polys[-1]))
+        for ix, dp, fp, rel, hd in rules:
+            polys.append('P.red(%dn, %dn, %dn, %s, %s)' % (self.n, ix, dp, fp, polys[-1]))
         hz = 'I.sm_nil(mp, %s, %s, {==})' % (polys[-1], self.env)
-        for j in range(len(curves) - 1, -1, -1):
-            ix, F, h = curves[j]
-            cur = 'I.cur_rel(mp, %s, %s, E.eP(%s, %s), E.eN(%s, %s), %s, %s)' % (self.vals[ix], F.spec, F.poly, self.env, F.poly, self.env, h, F.rel)
-            hz = 'I.sm_red(mp, %dn, %dn, %s, %s, %s, {==}, %s, %s)' % (self.n, ix, F.poly, polys[j], self.env, cur, hz)
+        for j in range(len(rules) - 1, -1, -1):
+            ix, dp, fp, rel, hd = rules[j]
+            hz = 'I.sm_red(mp, %dn, %dn, %dn, %s, %s, %s, {==}, %s, %s)' % (self.n, ix, dp, fp, polys[j], self.env, rel, hz)
         self.defs.append('%sdef %s(%s%s) -> {Nat.mod(%s, %s) == Nat.mod(%s, %s) : Nat}:\n  I.ident(mp, %s, %s, %s, %s, %s, %s, %s, %s)\n'
                          % (('# ' + comment + '\n') if comment else '', name, self.params, hyp_params, a.spec, M, b.spec, M,
                             a.spec, b.spec, a.poly, b.poly, self.env, a.rel, b.rel, hz))
@@ -141,27 +146,74 @@ def gen_comm():
     c.write('id_comm.bend', '# The complete addition is commutative, coordinate by coordinate.\n')
 
 
+def cube(c, v):
+    return c.mul(c.mul(v, v), v)
+
+
 def curve_val(c, v, b7):
     """X^3 and Y^2 Z - b Z^3 of the point v"""
     x, y, z = v
-    return c.mul(c.mul(x, x), x), c.sub(c.mul(c.mul(y, y), z), c.mul(b7, c.mul(c.mul(z, z), z)))
+    return cube(c, x), c.sub(c.mul(c.mul(y, y), z), c.mul(b7, cube(c, z)))
 
 
 def gen_curve():
     c = Ctx(['x1', 'y1', 'z1', 'x2', 'y2', 'z2'], ['7n'])
     p, q, b7, b3 = point(c, 0), point(c, 1), c.var(6), c.cmul(3, 6, 21)
-    cv = [(0, c.curve(0, 1, 2, 6), 'h1'), (3, c.curve(3, 4, 5, 6), 'h2')]
+    cv = [c.rule_curve(0, 1, 2, 6, 'h1'), c.rule_curve(3, 4, 5, 6, 'h2')]
     s = padd(c, p, q, b3)
     a, b = curve_val(c, s, b7)
     c.ident('add_curve', a, b, cv, 'P and Q on the curve X^3 = Y^2 Z - 7 Z^3: so is P + Q')
-    c.write('id_curve.bend', '# The sum of two points of the curve is on the curve.\n')
+    # completeness: c2 Y3 == N^3 + 7 D^3 with N / D the x-coordinate a 2-torsion point P - Q would have
+    x1, y1, z1 = p
+    x2, y2, z2 = q
+    sh = c.add(c.mul(x1, z2), c.mul(x2, z1))
+    pi, zz = c.mul(x1, x2), c.mul(z1, z2)
+    n = c.sub(c.mul(sh, pi), c.mul(c.cmul(4, 6, 28), c.mul(zz, zz)))
+    d = c.add(c.mul(sh, sh), c.mul(c.const(2), c.mul(pi, zz)))
+    k = c.add(c.add(c.mul(c.const(3), c.mul(c.mul(x1, x1), c.mul(x2, z2))), c.mul(c.const(3), c.mul(c.mul(x1, z1), c.mul(x2, x2)))),
+              c.add(c.add(c.mul(c.mul(y1, y1), c.mul(z2, z2)), c.mul(c.mul(z1, z1), c.mul(y2, y2))), c.mul(c.cmul(6, 6, 42), c.mul(zz, zz))))
+    c.ident('compl_y', c.mul(c.mul(c.mul(zz, zz), k), s[1]), c.add(cube(c, n), c.mul(b7, cube(c, d))), cv,
+            '(z1 z2)^2 K Y3 == N^3 + 7 D^3: the Y of P + Q vanishes only with a cube root N / D of -7')
+    c.ident('compl_s', c.add(cube(c, sh), c.mul(b7, cube(c, c.mul(c.const(2), zz)))), c.sub(c.mul(sh, d), c.mul(c.mul(c.const(2), zz), n)), (),
+            's^3 + 7 (2 z1 z2)^3 == s D - 2 z1 z2 N')
+    c.ident('inf_y', s[1], c.mul(c.mul(y1, y1), c.mul(y2, y2)), [c.rule_zero(0, 'hx'), c.rule_zero(2, 'hz')],
+            'P at infinity (x1 == z1 == 0): the Y of P + Q is y1^2 y2^2')
+    c.ident('inf_x', cube(c, x1), c.zero(), [cv[0], c.rule_zero(2, 'hz')], 'a point of the curve with z == 0 has x^3 == 0')
+    c.write('id_curve.bend', '# The sum of two points of the curve is on the curve, and it is not\n# (0, 0, 0): the identities behind completeness.\n')
+
+
+def gen_dbl():
+    c = Ctx(['x', 'y', 'z'], ['7n'])
+    p, b7, b3 = point(c, 0), c.var(3), c.cmul(3, 3, 21)
+    cv = [c.rule_curve(0, 1, 2, 3, 'h')]
+    d, a = pdbl(c, p, b3), padd(c, p, p, b3)
+    for k, nm in enumerate('xyz'):
+        c.ident('dbl_' + nm, d[k], a[k], cv, 'coordinate %s of 2 P (the doubling program) and of P + P, for P on the curve' % nm.upper())
+    x, y, z = p
+    o = [c.zero(), c.const(1), c.zero()]
+    u = padd(c, p, o, b3)
+    for k, nm in enumerate('xyz'):
+        c.ident('unit_' + nm, u[k], c.mul(p[k], y), (), 'P + (0, 1, 0) == y P, coordinate %s' % nm.upper())
+    ng = padd(c, p, [x, c.sub(c.zero(), y), z], b3)
+    c.ident('neg_x', ng[0], c.zero(), (), 'P + (x, -y, z) has X == 0')
+    c.ident('neg_z', ng[2], c.zero(), (), 'P + (x, -y, z) has Z == 0')
+    c.write('id_dbl.bend', '# Doubling is adding a point to itself; (0, 1, 0) is the identity and\n# (x, -y, z) the inverse, up to scaling.\n')
+
+
+def gen_hom():
+    c = Ctx(['x1', 'y1', 'z1', 'x2', 'y2', 'z2', 'l', 'w'])
+    p, q, l, w = point(c, 0), point(c, 1), c.var(6), c.var(7)
+    s, t = padd(c, p, q, w), padd(c, [c.mul(l, v) for v in p], q, w)
+    for k, nm in enumerate('xyz'):
+        c.ident('hom_' + nm, t[k], c.mul(c.mul(l, l), s[k]), (), '(l P) + Q == l^2 (P + Q), coordinate %s' % nm.upper())
+    c.write('id_hom.bend', '# The complete addition is homogeneous of degree 2 in its first argument.\n')
 
 
 def gen_assoc(i, j):
     nm = 'xyz'[i] + 'xyz'[j]
     c = Ctx(['x1', 'y1', 'z1', 'x2', 'y2', 'z2', 'x3', 'y3', 'z3'], ['7n'])
     p, q, r, b3 = point(c, 0), point(c, 1), point(c, 2), c.cmul(3, 9, 21)
-    cv = [(0, c.curve(0, 1, 2, 9), 'h1'), (3, c.curve(3, 4, 5, 9), 'h2'), (6, c.curve(6, 7, 8, 9), 'h3')]
+    cv = [c.rule_curve(0, 1, 2, 9, 'h1'), c.rule_curve(3, 4, 5, 9, 'h2'), c.rule_curve(6, 7, 8, 9, 'h3')]
     l = padd(c, padd(c, p, q, b3), r, b3)
     rr = padd(c, p, padd(c, q, r, b3), b3)
     li, lj = c.named('l' + 'xyz'[i], l[i]), c.named('l' + 'xyz'[j], l[j])
@@ -174,5 +226,7 @@ def gen_assoc(i, j):
 if __name__ == '__main__':
     gen_comm()
     gen_curve()
-    for i, j in ((0, 1), (0, 2), (1, 2)):
+    gen_dbl()
+    gen_hom()
+    for i, j in ((0, 1), (1, 2)):
         gen_assoc(i, j)

@@ -201,23 +201,23 @@ def pconst(+n: Nat, k: Nat) -> List<&2, Tm>:
 def pvar(+n: Nat, +i: Nat) -> List<&2, Tm>:
   [Tm{zc(1n), unit(n, i, 1n)}]
 
-# ---- the reduction x_i^3 -> f ----
+# ---- the reduction x_i^d -> f (d = 1 + dp) ----
 
-# a term c x^(3k + r) m becomes c x^r m f^k (k = e_i / 3)
-def red_k(+n: Nat, +i: Nat, +f: List<&2, Tm>, c: Zc, +e: List<&2, Nat>, +k: Nat) -> List<&2, Tm>:
-  tmul(Tm{c, esub(e, unit(n, i, Nat.mul(k, 3n)))}, ppow(f, n, k))
+# a term c x^(d k + r) m becomes c x^r m f^k (k = e_i / d)
+def red_k(+n: Nat, +i: Nat, +dp: Nat, +f: List<&2, Tm>, c: Zc, +e: List<&2, Nat>, +k: Nat) -> List<&2, Tm>:
+  tmul(Tm{c, esub(e, unit(n, i, Nat.mul(k, 1n+dp)))}, ppow(f, n, k))
 
-def red_t(+n: Nat, +i: Nat, +f: List<&2, Tm>, t: Tm) -> List<&2, Tm>:
+def red_t(+n: Nat, +i: Nat, +dp: Nat, +f: List<&2, Tm>, t: Tm) -> List<&2, Tm>:
   match t:
     case Tm{c, +e}:
-      red_k(n, i, f, c, e, Nat.div(nth(i, e), 3n))
+      red_k(n, i, dp, f, c, e, Nat.div(nth(i, e), 1n+dp))
 
-def red(+n: Nat, +i: Nat, +f: List<&2, Tm>, a: List<&2, Tm>) -> List<&2, Tm>:
+def red(+n: Nat, +i: Nat, +dp: Nat, +f: List<&2, Tm>, a: List<&2, Tm>) -> List<&2, Tm>:
   match a:
     case Nil{}:
       Nil{}
     case x <> xs:
-      padd(red_t(n, i, f, x), red(n, i, f, xs))
+      padd(red_t(n, i, dp, f, x), red(n, i, dp, f, xs))
 
 def pnull(a: List<&2, Tm>) -> Bool:
   match a:
