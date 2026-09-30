@@ -488,6 +488,21 @@ def bytes_le(n, ds, u, k, j, hj, hd, hu):
             Equal.cong(Nat, List<&2, U32>, z => U32.from_nat(C.low(8n, y2)) <> R.le_bytes(m, z), Nat.add(Nat.add(V.v(u2), et), pk), C.high(8n, y2), A.sy(C.high(8n, y2), Nat.add(Nat.add(V.v(u2), et), pk), ehi)))),
         Equal.cong(Nat, List<&2, U32>, z => R.le_bytes(1n+m, z), y2, y, A.sy(y, y2, ey)))
 
+# bytes_le with the target value rewritten, for any n (so that the
+# rewrite does not unfold le_bytes n levels on both sides).
+law bytes_le_to:
+  for +n: Nat
+  for +ds: List<&2, U32>
+  for +k: Nat
+  for +t: Nat
+  for +hb: {Li.bytes(n, ds, 0) == R.le_bytes(n, Nat.add(Nat.add(V.v(0), V.ev(ds)), V.pos(n, k))) : List<&2, U32>}
+  for +ht: {Nat.add(V.ev(ds), V.pos(n, k)) == t : Nat}
+  {Li.bytes(n, ds, 0) == R.le_bytes(n, t) : List<&2, U32>}
+
+def bytes_le_to(n, ds, k, t, hb, ht):
+  Equal.trans(List<&2, U32>, Li.bytes(n, ds, 0), R.le_bytes(n, Nat.add(V.ev(ds), V.pos(n, k))), R.le_bytes(n, t), hb,
+    Equal.cong(Nat, List<&2, U32>, z => R.le_bytes(n, z), Nat.add(V.ev(ds), V.pos(n, k)), t, ht))
+
 # the tag: (h mod p + s) mod 2^128 as 16 bytes
 law tag_eq:
   for +one: Nat
@@ -520,8 +535,7 @@ def tag_eq(one, h1, bp, h5, h, hh, s, hs):
     A.tr(Nat.add(Nat.add(lo, V.ev(s)), V.pos(16n, kk)), Nat.add(Nat.add(lo, V.pos(16n, kk)), V.ev(s)), Nat.add(a, V.ev(s)),
       A.tr(Nat.add(Nat.add(lo, V.ev(s)), V.pos(16n, kk)), Nat.add(lo, Nat.add(V.ev(s), V.pos(16n, kk))), Nat.add(Nat.add(lo, V.pos(16n, kk)), V.ev(s)), N.add_assoc(lo, V.ev(s), V.pos(16n, kk)), ST.rot(lo, V.ev(s), V.pos(16n, kk))),
       WM.cong_l(Nat.add(lo, V.pos(16n, kk)), a, V.ev(s), A.sy(a, Nat.add(lo, V.pos(16n, kk)), WW.low_high(128n, a)))))
-  Equal.trans(List<&2, U32>, Li.bytes(16n, ds, 0), R.le_bytes(16n, Nat.add(V.ev(ds), V.pos(16n, kk))), R.le_bytes(16n, Nat.add(a, V.ev(s))), bl,
-    Equal.cong(Nat, List<&2, U32>, z => R.le_bytes(16n, z), Nat.add(V.ev(ds), V.pos(16n, kk)), Nat.add(a, V.ev(s)), e1))
+  bytes_le_to(16n, ds, kk, Nat.add(a, V.ev(s)), bl, e1)
 
 # tag_eq through Li.fin (the implementation's entry point).
 law fin_eq:
