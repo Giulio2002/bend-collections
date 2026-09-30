@@ -10,6 +10,7 @@ import ./prel.bend as PR
 import ./pcodec.bend as PC
 import ./pdec.bend as PD
 import ./tcommon.bend as TC
+import ./tscal.bend as TH
 
 # Verification (RFC 8032 5.1.7) against spec/crypto/ed25519.bend.
 
@@ -25,8 +26,8 @@ def check_some(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp,
   +rd2 = PC.rd2(one, h1, pp, hP, xs)
   +k = E.hram(rb, pk, msg)
   +Ks = SE.hram(one, rb, pk, msg)
-  +eK = TC.hk_val(one, h1, rb, rb, {==}, pk, pk, {==}, msg)
-  +okk = TC.hk_okb(one, h1, rb, pk, msg)
+  +eK = TH.hk_val(one, h1, rb, rb, {==}, pk, pk, {==}, msg)
+  +okk = TH.hk_okb(one, h1, rb, pk, msg)
   +ka = PT.mul_vt(cs, k, a)
   +ska = SE.mul(one, P, D, FS.value(k), sa)
   +m1 = TC.mul_vt_rel(one, h1, pp, hP, cs, hR, D, rd2, sb, hsb, B, SB, hB)

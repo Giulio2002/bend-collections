@@ -1,11 +1,9 @@
 import Base
 import ../../../spec/crypto/curve25519/field.bend as FS
-import ../../../spec/crypto/ed25519.bend as SE
 import ../../../src/crypto/curve25519/x25519.bend as X
 import ../../../src/crypto/ed25519/ed25519.bend as E
 import ../../lib/logic.bend as L
 import ../curve25519/limbs.bend as LM
-import ./scalar3.bend as S3
 import ../../../src/crypto/sign.bend as SG
 import ../../../spec/crypto/sign.bend as SS
 import ../../lib/u32.bend as U
@@ -22,14 +20,6 @@ def pp1(+one: Nat) -> Nat:
 
 def ok(+n: Nat, +a: List<&2, U32>, +h: {FS.bytes_ok(n, a) == True{} : Bool}) -> {LM.okb(n, a, 255n) == True{} : Bool}:
   LM.bytes_okb(n, a, h)
-
-def ell_m(+one: Nat, +h1: {one == 1n : Nat}) -> {1n+S3.mmL(one) == SE.ell(one) : Nat}:
-  S3.ell_eq(one, h1)
-
-# ---- scalars ----
-
-def below(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +h: {Nat.is_lt(x, SE.ell(one)) == True{} : Bool}) -> {Nat.is_lt(x, 1n+S3.mmL(one)) == True{} : Bool}:
-  L.subst(Nat, z => {Nat.is_lt(x, z) == True{} : Bool}, SE.ell(one), 1n+S3.mmL(one), Equal.sym(Nat, 1n+S3.mmL(one), SE.ell(one), ell_m(one, h1)), h)
 
 def valid_eq(+n: Nat, +xs: List<&2, U32>) -> {X.valid_bytes(n, xs) == FS.bytes_ok(n, xs) : Bool}:
   match n xs:

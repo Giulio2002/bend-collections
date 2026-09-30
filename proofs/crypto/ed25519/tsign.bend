@@ -21,6 +21,7 @@ import ./sclause.bend as SL
 import ./prel.bend as PR
 import ./bytes.bend as BY
 import ./tcommon.bend as TC
+import ./tscal.bend as TH
 
 # Signing (RFC 8032 5.1.6) with the parts of the expanded key against
 # spec/crypto/ed25519.bend.
@@ -87,17 +88,17 @@ def sign_body_rel(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+
   +SRH = SE.cat(SE.rest(32n, h), msg)
   +r = ESC.reduce(H.sha512(RH))
   +Rs = Nat.mod(FS.value(SHA.sha512_bytes(SRH)), el)
-  +eR = TC.rh_eq(one, h1, RH, SRH, prefix_eq(h, msg))
+  +eR = TH.rh_eq(one, h1, RH, SRH, prefix_eq(h, msg))
   +okr = SL.reduce_okb(one, h1, H.sha512(RH))
   +RB = PT.encode(PT.cs_r(cs), PT.mul(cs, r, B))
   +SRB = SE.encode(one, P, SE.mul(one, P, D, Rs, SB))
   +eRB = rb_eq(one, h1, pp, hP, cs, hR, D, rd2, B, SB, hB, r, okr, Rs, eR)
   +k = E.hram(RB, A, msg)
   +Ks = SE.hram(one, SRB, SA, msg)
-  +eK = TC.hk_val(one, h1, RB, SRB, eRB, A, SA, TC.public_rel(one, h1, pp, hP, cs, hR, D, rd2, B, hB, h, hh), msg)
+  +eK = TH.hk_val(one, h1, RB, SRB, eRB, A, SA, TC.public_rel(one, h1, pp, hP, cs, hR, D, rd2, B, hB, h, hh), msg)
   +sk = X.clamp(F.take(32n, h))
   +hsk = XB.clamp_okb(F.take(32n, h), BY.take_okb(32n, 32n, h, 255n, hh))
-  sig_eq(one, h1, RB, SRB, eRB, k, TC.hk_okb(one, h1, RB, A, msg), Ks, eK, r, okr, SL.reduce_lt(one, h1, H.sha512(RH), BY.sha_lea(RH)), Rs, eR, sk, hsk, SE.secret(h), TC.secret_eq(h))
+  sig_eq(one, h1, RB, SRB, eRB, k, TH.hk_okb(one, h1, RB, A, msg), Ks, eK, r, okr, SL.reduce_lt(one, h1, H.sha512(RH), BY.sha_lea(RH)), Rs, eR, sk, hsk, SE.secret(h), TC.secret_eq(h))
 
 def sign_guard(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>, +msg: List<&2, U32>, +x: List<&2, U32>, +e: {x == SE.sign_body(one, p, d, h, msg) : List<&2, U32>}) -> {x == SE.sign_with(one, p, d, h, msg) : List<&2, U32>}:
   match d:

@@ -13,6 +13,7 @@ import ../../../spec/crypto/sign.bend as SS
 import ../curve25519/prime.bend as PRM
 import ./tverify.bend as TV
 import ./pbase.bend as PB
+import ./tscal.bend as TH
 
 # Gate: Ed25519.verify and Sign.verify, for every key, message and
 # signature.
@@ -33,7 +34,7 @@ def ed_verify_ctx(+one: Nat, +h1: {one == 1n : Nat}, +xs: List<&2, U32>, +pk: Li
   +hsb = BY.drop_okb(32n, 32n, sig, 255n, hsig)
   +lt = Nat.is_lt(FS.value(sb), el)
   +slt = Nat.is_lt(FS.value(ssb), el)
-  +e0 = Equal.trans(Bool, ESC.lt_l(sb), Nat.is_lt(FS.value(sb), 1n+S3.mmL(one)), lt, S3.lt_l_m(one, h1, sb, hsb), Equal.cong(Nat, Bool, z => Nat.is_lt(FS.value(sb), z), 1n+S3.mmL(one), el, PB.ell_m(one, h1)))
+  +e0 = Equal.trans(Bool, ESC.lt_l(sb), Nat.is_lt(FS.value(sb), 1n+S3.mmL(one)), lt, S3.lt_l_m(one, h1, sb, hsb), Equal.cong(Nat, Bool, z => Nat.is_lt(FS.value(sb), z), 1n+S3.mmL(one), el, TH.ell_m(one, h1)))
   +e1 = Equal.cong(Bool, Bool, z => E.verify_with(cs, B, pk, msg, rb, sb, z), ESC.lt_l(sb), lt, e0)
   +e2 = TV.verify_with_rel(one, h1, pp, PRM.hP(one, h1), xs, pk, PB.ok(32n, pk, hp), msg, rb, hrb, sb, hsb, lt)
   +e3 = Equal.cong(List<&2, U32>, Bool, z => SE.verify_with(one, P, D, pk, msg, z, FS.value(sb), lt), rb, srb, BY.take_eq(32n, sig))

@@ -10,6 +10,7 @@ import ./sclause.bend as SL
 import ../../../src/crypto/sign.bend as SG
 import ../../../spec/crypto/sign.bend as SS
 import ./pbase.bend as PB
+import ./tscal.bend as TH
 
 # Gate for Ed25519 (with proof_keys.bend, proof_sign.bend and
 # proof_verify.bend, split so each root stays small): the scalar clauses of
@@ -17,13 +18,13 @@ import ./pbase.bend as PB
 
 def scalar_reduce(+one: Nat, +h1: {one == 1n : Nat}, +bs: List<&2, U32>, +hb: {FS.bytes_ok(64n, bs) == True{} : Bool}) -> SE.Scalar.reduce(one, h1, bs, hb):
   +M = {1n+S3.mmL(one) : Nat}
-  Equal.trans(Nat, FS.value(ESC.reduce(bs)), Nat.mod(FS.value(bs), M), Nat.mod(FS.value(bs), SE.ell(one)), SL.reduce_m(one, h1, bs, LM.okb_lea(64n, bs, 255n, PB.ok(64n, bs, hb))), Equal.cong(Nat, Nat, z => Nat.mod(FS.value(bs), z), M, SE.ell(one), PB.ell_m(one, h1)))
+  Equal.trans(Nat, FS.value(ESC.reduce(bs)), Nat.mod(FS.value(bs), M), Nat.mod(FS.value(bs), SE.ell(one)), SL.reduce_m(one, h1, bs, LM.okb_lea(64n, bs, 255n, PB.ok(64n, bs, hb))), Equal.cong(Nat, Nat, z => Nat.mod(FS.value(bs), z), M, SE.ell(one), TH.ell_m(one, h1)))
 
 def scalar_mul_add(+one: Nat, +h1: {one == 1n : Nat}, +k: List<&2, U32>, +s: List<&2, U32>, +r: List<&2, U32>, +hk: {FS.tight(k) == True{} : Bool}, +hs: {FS.tight(s) == True{} : Bool}, +hr: {FS.tight(r) == True{} : Bool}, +hsl: {Nat.is_lt(FS.value(s), SE.ell(one)) == True{} : Bool}, +hrl: {Nat.is_lt(FS.value(r), SE.ell(one)) == True{} : Bool}) -> SE.Scalar.mul_add(one, h1, k, s, r, hk, hs, hr, hsl, hrl):
   +M = {1n+S3.mmL(one) : Nat}
   +X = Nat.add(FS.value(r), Nat.mul(FS.value(k), FS.value(s)))
-  +e = SL.mul_add_m(one, h1, k, s, r, PB.ok(32n, k, hk), PB.ok(32n, s, hs), PB.ok(32n, r, hr), PB.below(one, h1, FS.value(s), hsl), PB.below(one, h1, FS.value(r), hrl))
-  Equal.trans(Nat, FS.value(ESC.mul_add(k, s, r)), Nat.mod(X, M), Nat.mod(X, SE.ell(one)), e, Equal.cong(Nat, Nat, z => Nat.mod(X, z), M, SE.ell(one), PB.ell_m(one, h1)))
+  +e = SL.mul_add_m(one, h1, k, s, r, PB.ok(32n, k, hk), PB.ok(32n, s, hs), PB.ok(32n, r, hr), TH.below(one, h1, FS.value(s), hsl), TH.below(one, h1, FS.value(r), hrl))
+  Equal.trans(Nat, FS.value(ESC.mul_add(k, s, r)), Nat.mod(X, M), Nat.mod(X, SE.ell(one)), e, Equal.cong(Nat, Nat, z => Nat.mod(X, z), M, SE.ell(one), TH.ell_m(one, h1)))
 
 # ---- Ed25519 ----
 
