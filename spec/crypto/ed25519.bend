@@ -239,9 +239,17 @@ def secret(+h: List<&2, U32>) -> Nat:
 def public_of(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>) -> List<&2, U32>:
   encode(one, p, mul(one, p, d, secret(h), base(p, d)))
 
+# at p = prime(one); a function of p first, so the checker keeps it a call
+# (p is symbolic) instead of expanding it whenever it compares two of them
+def public_key_at(+one: Nat, p: Nat, +seed: List<&2, U32>) -> List<&2, U32>:
+  match p:
+    case 0n:
+      public_of(one, 0n, dconst(one, 0n), SHA.sha512_bytes(seed))
+    case 1n+ +q:
+      public_of(one, 1n+q, dconst(one, 1n+q), SHA.sha512_bytes(seed))
+
 def public_key(+one: Nat, +seed: List<&2, U32>) -> List<&2, U32>:
-  +p = FS.prime(one)
-  public_of(one, p, dconst(one, p), SHA.sha512_bytes(seed))
+  public_key_at(one, FS.prime(one), seed)
 
 # ---- 5.1.6 signing ----
 
@@ -253,9 +261,15 @@ def sign_with(+one: Nat, +p: Nat, +d: Nat, +h: List<&2, U32>, +msg: List<&2, U32
   +k = hram(one, rb, a, msg)
   cat(rb, SX.le_bytes(C.shift(5n, one), Nat.mod(Nat.add(r, Nat.mul(k, secret(h))), el)))
 
+def sign_at(+one: Nat, p: Nat, +seed: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
+  match p:
+    case 0n:
+      sign_with(one, 0n, dconst(one, 0n), SHA.sha512_bytes(seed), msg)
+    case 1n+ +q:
+      sign_with(one, 1n+q, dconst(one, 1n+q), SHA.sha512_bytes(seed), msg)
+
 def sign(+one: Nat, +seed: List<&2, U32>, +msg: List<&2, U32>) -> List<&2, U32>:
-  +p = FS.prime(one)
-  sign_with(one, p, dconst(one, p), SHA.sha512_bytes(seed), msg)
+  sign_at(one, FS.prime(one), seed, msg)
 
 # ---- 5.1.7 verification (cofactorless) ----
 

@@ -56,22 +56,24 @@ def scalar_mul_add(+one: Nat, +h1: {one == 1n : Nat}, +k: List<&2, U32>, +s: Lis
 def ed_public(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> SE.Ed25519.public(one, h1, seed, hs):
   +pp = pp1(one)
   +P = {1n+pp : Nat}
+  +D = SE.dconst(one, P)
   +h = H.sha512(seed)
   +sh = SHA.sha512_bytes(seed)
   +e1 = TP.public_rel(one, h1, pp, PRM.hP(one, h1), seed, h, BY.sha_okb(seed))
-  +e2 = Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.public_of(one, P, SE.dconst(one, P), z), h, sh, BY.sha_eq(seed))
-  +e3 = Equal.cong(Nat, List<&2, U32>, z => SE.public_of(one, z, SE.dconst(one, z), sh), P, FS.prime(one), Equal.sym(Nat, FS.prime(one), P, PRM.prime_eq(one, h1)))
-  Equal.trans(List<&2, U32>, E.public_of(PT.consts(seed), seed, h), SE.public_of(one, P, SE.dconst(one, P), h), SE.public_of(one, FS.prime(one), SE.dconst(one, FS.prime(one)), sh), e1, Equal.trans(List<&2, U32>, SE.public_of(one, P, SE.dconst(one, P), h), SE.public_of(one, P, SE.dconst(one, P), sh), SE.public_of(one, FS.prime(one), SE.dconst(one, FS.prime(one)), sh), e2, e3))
+  +e2 = Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.public_of(one, P, D, z), h, sh, BY.sha_eq(seed))
+  +e12 = Equal.trans(List<&2, U32>, E.public_key(seed), SE.public_of(one, P, D, h), SE.public_key_at(one, P, seed), e1, e2)
+  L.subst(Nat, z => {E.public_key(seed) == SE.public_key_at(one, z, seed) : List<&2, U32>}, P, FS.prime(one), Equal.sym(Nat, FS.prime(one), P, PRM.prime_eq(one, h1)), e12)
 
 def ed_sign(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +msg: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> SE.Ed25519.sign(one, h1, seed, msg, hs):
   +pp = pp1(one)
   +P = {1n+pp : Nat}
+  +D = SE.dconst(one, P)
   +h = H.sha512(seed)
   +sh = SHA.sha512_bytes(seed)
   +e1 = TP.sign_rel(one, h1, pp, PRM.hP(one, h1), seed, h, BY.sha_okb(seed), msg)
-  +e2 = Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.sign_with(one, P, SE.dconst(one, P), z, msg), h, sh, BY.sha_eq(seed))
-  +e3 = Equal.cong(Nat, List<&2, U32>, z => SE.sign_with(one, z, SE.dconst(one, z), sh, msg), P, FS.prime(one), Equal.sym(Nat, FS.prime(one), P, PRM.prime_eq(one, h1)))
-  Equal.trans(List<&2, U32>, E.sign_with(PT.consts(seed), seed, h, msg), SE.sign_with(one, P, SE.dconst(one, P), h, msg), SE.sign_with(one, FS.prime(one), SE.dconst(one, FS.prime(one)), sh, msg), e1, Equal.trans(List<&2, U32>, SE.sign_with(one, P, SE.dconst(one, P), h, msg), SE.sign_with(one, P, SE.dconst(one, P), sh, msg), SE.sign_with(one, FS.prime(one), SE.dconst(one, FS.prime(one)), sh, msg), e2, e3))
+  +e2 = Equal.cong(List<&2, U32>, List<&2, U32>, z => SE.sign_with(one, P, D, z, msg), h, sh, BY.sha_eq(seed))
+  +e12 = Equal.trans(List<&2, U32>, E.sign_raw(seed, msg), SE.sign_with(one, P, D, h, msg), SE.sign_at(one, P, seed, msg), e1, e2)
+  L.subst(Nat, z => {E.sign_raw(seed, msg) == SE.sign_at(one, z, seed, msg) : List<&2, U32>}, P, FS.prime(one), Equal.sym(Nat, FS.prime(one), P, PRM.prime_eq(one, h1)), e12)
 
 def ed_verify(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}) -> SE.Ed25519.verify(one, h1, pk, msg, sig, hp, hg):
   +pp = pp1(one)
@@ -117,22 +119,38 @@ def valid_eq(+n: Nat, +xs: List<&2, U32>) -> {X.valid_bytes(n, xs) == FS.bytes_o
       +e2 = valid_eq(m, yt)
       Equal.trans(Bool, Bool.and(U32.is_lt(y, 256), X.valid_bytes(m, yt)), Bool.and(Nat.is_lt(v(y), 256n), X.valid_bytes(m, yt)), Bool.and(Nat.is_lt(v(y), 256n), FS.bytes_ok(m, yt)), Equal.cong(Bool, Bool, z => Bool.and(z, X.valid_bytes(m, yt)), U32.is_lt(y, 256), Nat.is_lt(v(y), 256n), e1), Equal.cong(Bool, Bool, z => Bool.and(Nat.is_lt(v(y), 256n), z), X.valid_bytes(m, yt), FS.bytes_ok(m, yt), e2))
 
+def keypair_if_eq(+seed: List<&2, U32>, +ok: Bool, +pk: List<&2, U32>, +hok: {ok == True{} : Bool}, +e: {E.public_key(seed) == pk : List<&2, U32>}) -> {SG.keypair_if(seed, ok) == Some{SG.Keypair{seed, pk}} : Maybe<&2, SG.Keypair>}:
+  match ok:
+    case True{}:
+      Equal.cong(List<&2, U32>, Maybe<&2, SG.Keypair>, z => Some{SG.Keypair{seed, z}}, E.public_key(seed), pk, e)
+    case False{}:
+      Empty.absurd({SG.keypair_if(seed, False{}) == Some{SG.Keypair{seed, pk}} : Maybe<&2, SG.Keypair>}, L.true_false(Equal.sym(Bool, False{}, True{}, hok)))
+
+def sign_if_eq(+sk: List<&2, U32>, +msg: List<&2, U32>, +ok: Bool, +S: List<&2, U32>, +hok: {ok == True{} : Bool}, +e: {E.sign_raw(sk, msg) == S : List<&2, U32>}) -> {SG.sign_if(sk, msg, ok) == Some{S} : Maybe<&2, List<&2, U32>>}:
+  match ok:
+    case True{}:
+      Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, z => Some{z}, E.sign_raw(sk, msg), S, e)
+    case False{}:
+      Empty.absurd({SG.sign_if(sk, msg, False{}) == Some{S} : Maybe<&2, List<&2, U32>>}, L.true_false(Equal.sym(Bool, False{}, True{}, hok)))
+
+def verify_if_eq(+pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +ok: Bool, +V: Bool, +hok: {ok == True{} : Bool}, +e: {E.verify_raw(pk, msg, sig) == V : Bool}) -> {SG.verify_if(pk, msg, sig, ok) == V : Bool}:
+  match ok:
+    case True{}:
+      e
+    case False{}:
+      Empty.absurd({SG.verify_if(pk, msg, sig, False{}) == V : Bool}, L.true_false(Equal.sym(Bool, False{}, True{}, hok)))
+
+def valid_ok(+n: Nat, +xs: List<&2, U32>, +h: {FS.bytes_ok(n, xs) == True{} : Bool}) -> {X.valid_bytes(n, xs) == True{} : Bool}:
+  Equal.trans(Bool, X.valid_bytes(n, xs), FS.bytes_ok(n, xs), True{}, valid_eq(n, xs), h)
+
 def sign_keypair(+one: Nat, +h1: {one == 1n : Nat}, +seed: List<&2, U32>, +hs: {FS.tight(seed) == True{} : Bool}) -> SS.Sign.keypair(one, h1, seed, hs):
-  %Equal.sym(Bool, X.valid_bytes(32n, seed), FS.bytes_ok(32n, seed), valid_eq(32n, seed)) : {SG.keypair_if(seed, _) == Some{SG.Keypair{seed, SE.public_key(one, seed)}} : Maybe<&2, SG.Keypair>}
-  %Equal.sym(Bool, FS.tight(seed), True{}, hs) : {SG.keypair_if(seed, _) == Some{SG.Keypair{seed, SE.public_key(one, seed)}} : Maybe<&2, SG.Keypair>}
-  Equal.cong(List<&2, U32>, Maybe<&2, SG.Keypair>, z => Some{SG.Keypair{seed, z}}, E.public_key(seed), SE.public_key(one, seed), ed_public(one, h1, seed, hs))
+  keypair_if_eq(seed, X.valid_bytes(32n, seed), SE.public_key(one, seed), valid_ok(32n, seed, hs), ed_public(one, h1, seed, hs))
 
 def sign_sign(+one: Nat, +h1: {one == 1n : Nat}, +sk: List<&2, U32>, +msg: List<&2, U32>, +hs: {FS.tight(sk) == True{} : Bool}) -> SS.Sign.sign(one, h1, sk, msg, hs):
-  %Equal.sym(Bool, X.valid_bytes(32n, sk), FS.bytes_ok(32n, sk), valid_eq(32n, sk)) : {SG.sign_if(sk, msg, _) == Some{SE.sign(one, sk, msg)} : Maybe<&2, List<&2, U32>>}
-  %Equal.sym(Bool, FS.tight(sk), True{}, hs) : {SG.sign_if(sk, msg, _) == Some{SE.sign(one, sk, msg)} : Maybe<&2, List<&2, U32>>}
-  Equal.cong(List<&2, U32>, Maybe<&2, List<&2, U32>>, z => Some{z}, E.sign_raw(sk, msg), SE.sign(one, sk, msg), ed_sign(one, h1, sk, msg, hs))
+  sign_if_eq(sk, msg, X.valid_bytes(32n, sk), SE.sign(one, sk, msg), valid_ok(32n, sk, hs), ed_sign(one, h1, sk, msg, hs))
 
 def sign_verify(+one: Nat, +h1: {one == 1n : Nat}, +pk: List<&2, U32>, +msg: List<&2, U32>, +sig: List<&2, U32>, +hp: {FS.tight(pk) == True{} : Bool}, +hg: {FS.bytes_ok(64n, sig) == True{} : Bool}) -> SS.Sign.verify(one, h1, pk, msg, sig, hp, hg):
-  %Equal.sym(Bool, X.valid_bytes(32n, pk), FS.bytes_ok(32n, pk), valid_eq(32n, pk)) : {SG.verify_if(pk, msg, sig, Bool.and(_, X.valid_bytes(64n, sig))) == SE.verify(one, pk, msg, sig) : Bool}
-  %Equal.sym(Bool, X.valid_bytes(64n, sig), FS.bytes_ok(64n, sig), valid_eq(64n, sig)) : {SG.verify_if(pk, msg, sig, Bool.and(FS.bytes_ok(32n, pk), _)) == SE.verify(one, pk, msg, sig) : Bool}
-  %Equal.sym(Bool, FS.tight(pk), True{}, hp) : {SG.verify_if(pk, msg, sig, Bool.and(_, FS.bytes_ok(64n, sig))) == SE.verify(one, pk, msg, sig) : Bool}
-  %Equal.sym(Bool, FS.bytes_ok(64n, sig), True{}, hg) : {SG.verify_if(pk, msg, sig, Bool.and(True{}, _)) == SE.verify(one, pk, msg, sig) : Bool}
-  ed_verify(one, h1, pk, msg, sig, hp, hg)
+  verify_if_eq(pk, msg, sig, Bool.and(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig)), SE.verify(one, pk, msg, sig), L.and_intro(X.valid_bytes(32n, pk), X.valid_bytes(64n, sig), valid_ok(32n, pk, hp), valid_ok(64n, sig, hg)), ed_verify(one, h1, pk, msg, sig, hp, hg))
 
 def sign_reject_seed(+seed: List<&2, U32>, +h: {FS.tight(seed) == False{} : Bool}) -> SS.Sign.reject_seed(seed, h):
   %Equal.sym(Bool, X.valid_bytes(32n, seed), FS.bytes_ok(32n, seed), valid_eq(32n, seed)) : {SG.keypair_if(seed, _) == None{} : Maybe<&2, SG.Keypair>}
