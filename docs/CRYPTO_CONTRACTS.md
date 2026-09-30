@@ -27,8 +27,10 @@ generator behind Go's runtime, `math/rand/v2` top-level functions and its
 | `next(g)` | the Source step: every function of `src/math/random/rand.bend` runs on it (`R.float64(~CR.Gen, ~CR.next, g)`) |
 
 The contract is `spec/crypto/random.bend`; gate
-`proofs/crypto/random/proof.bend` (it builds on
-`proofs/math/random/proof.bend`).
+`proofs/crypto/random/proof.bend` (it imports the lemma files of
+`proofs/math/random/` it needs: the ChaCha8 stream and seed, the bound of
+`uint64n` and the shuffle permutation; it does not re-check the other math
+roots).
 
 | Clause | Statement | Evidence |
 |---|---|---|

@@ -16,7 +16,8 @@ import ./random/rand.bend as SR
 
 # The contract of src/math/random.bend (Go's math/rand/v2): one
 # <Function>.<clause> proposition per guarantee, each proved for every
-# input in proofs/math/random/proof.bend under its name. The executable
+# input under its name in proofs/math/random/proof.bend, proof_draws.bend,
+# proof_pcg.bend or proof_float.bend. The executable
 # specifications are spec/math/random/{chacha8rand,pcg,rand,source}.bend;
 # docs/MATH_CONTRACTS.md has the table.
 #

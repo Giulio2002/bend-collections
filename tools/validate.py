@@ -437,7 +437,7 @@ def main():
     # src/math/random.bend and src/crypto/random.bend (Go's math/rand/v2 and
     # C2SP chacha8rand): Go's published vectors, a Python mirror of Go on
     # random keys and call sequences, a chi-square smoke test of uint64n
-    # (tools/check_random.py), the two proof roots and the specs.
+    # (tools/check_random.py), the five proof roots and the specs.
     random_row = None
     if not args.only or args.only == 'random':
         (ROOT / 'build/math').mkdir(parents=True, exist_ok=True)
@@ -445,8 +445,11 @@ def main():
         random_checks = [([BEND, 'tests/math/random.bend', '-o', 'build/math/random'], 1800),
                          ([sys.executable, 'tools/check_random.py', '2026'], 1800),
                          ([sys.executable, 'tools/check_random.py', '7'], 1800),
-                         ([BEND, 'proofs/math/random/proof.bend'], 7200),
-                         ([BEND, 'proofs/crypto/random/proof.bend'], 7200)] + \
+                         ([BEND, 'proofs/math/random/proof.bend'], 1800),
+                         ([BEND, 'proofs/math/random/proof_draws.bend'], 1800),
+                         ([BEND, 'proofs/math/random/proof_pcg.bend'], 1800),
+                         ([BEND, 'proofs/math/random/proof_float.bend'], 1800),
+                         ([BEND, 'proofs/crypto/random/proof.bend'], 1800)] + \
                         [([BEND, str(f.relative_to(ROOT))], 1800) for f in sorted((ROOT / 'spec/math/random').glob('*.bend'))] + \
                         [([BEND, 'spec/math/random.bend'], 1800), ([BEND, 'spec/crypto/random.bend'], 1800)]
         for command, limit in random_checks:

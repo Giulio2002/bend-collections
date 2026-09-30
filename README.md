@@ -221,6 +221,7 @@ Go's (a power of two masks, otherwise multiply and reject while the low half
 is below 2^64 mod n), with at most 128 draws where Go loops forever.
 
 Proved for every input (`proofs/math/random/proof.bend`,
+`proof_draws.bend`, `proof_pcg.bend`, `proof_float.bend`;
 `docs/MATH_CONTRACTS.md`): the ChaCha8 generator outputs C2SP's stream for
 every key and seed; a PCG step is the 128-bit LCG and the output DXSM on
 naturals; `uint64n` computes the specification's draw and is below n for

@@ -18,8 +18,7 @@ import ../typed/w64sh.bend as SH
 import ../typed/w64clz.bend as WC
 import ../typed/w64add.bend as WA
 import ../typed/f64bits.bend as FB
-import ../typed/f64round.bend as FR
-import ../typed/f64rtools.bend as RT
+import ./fround.bend as FR
 
 # Float64.value and Float64.lt_one of spec/math/random.bend: Go's Float64,
 # float64(x << 11 >> 11) / 2^53, built by src/math/random/rand.bend's
@@ -273,11 +272,11 @@ def main_g(+one: Nat, +h1: {one == 1n : Nat}, +xv: Nat, +hx: {Nat.sub(SF.zb(), 5
   +r = Nat.sub(52n, j)
   +q = C.shift(r, 1n+np)
   +e1 = N.sub_add(52n, j, hj)
-  +bq = Equal.trans(Nat, M.bit_length(q), Nat.add(M.bit_length(1n+np), r), 53n, RT.bl_shift(r, 1n+np, {==}),
+  +bq = Equal.trans(Nat, M.bit_length(q), Nat.add(M.bit_length(1n+np), r), 53n, FR.bl_shift(r, 1n+np, {==}),
     Equal.trans(Nat, Nat.add(M.bit_length(1n+np), r), Nat.add(1n+j, r), 53n, Equal.cong(Nat, Nat, z => Nat.add(z, r), M.bit_length(1n+np), 1n+j, hbl), Equal.cong(Nat, Nat, z => 1n+z, Nat.add(j, r), 52n, e1)))
   +hzq = WW.shift_eq0(r, 1n+np)
-  +f53 = L.subst(Nat, z => {C.fits(z, q) == True{} : Bool}, M.bit_length(q), 53n, bq, RT.bl_fit(q))
-  +n52 = L.subst(Nat, z => {C.fits(z, q) == False{} : Bool}, Nat.sub(M.bit_length(q), 1n), 52n, Equal.cong(Nat, Nat, z => Nat.sub(z, 1n), M.bit_length(q), 53n, bq), RT.bl_nfit(q, hzq))
+  +f53 = L.subst(Nat, z => {C.fits(z, q) == True{} : Bool}, M.bit_length(q), 53n, bq, FR.bl_fit(q))
+  +n52 = L.subst(Nat, z => {C.fits(z, q) == False{} : Bool}, Nat.sub(M.bit_length(q), 1n), 52n, Equal.cong(Nat, Nat, z => Nat.sub(z, 1n), M.bit_length(q), 53n, bq), FR.bl_nfit(q, hzq))
   sv = SH.shl_value(m, r, r52(j, hj))
   +hq = Equal.trans(Nat, SW.value(X.shl(m, r)), C.low(64n, C.shift(r, SW.value(m))), q, sv,
     Equal.trans(Nat, C.low(64n, C.shift(r, SW.value(m))), C.low(64n, q), q, Equal.cong(Nat, Nat, z => C.low(64n, C.shift(r, z)), SW.value(m), 1n+np, hM), WW.low_fit(64n, q, fits_up(53n, 11n, q, f53))))
@@ -286,7 +285,7 @@ def main_g(+one: Nat, +h1: {one == 1n : Nat}, +xv: Nat, +hx: {Nat.sub(SF.zb(), 5
   +c1 = enc(one, h1, X.shl(m, r), Nat.add(j, 970n), he, q, hq, f53)
   +c2 = pack_q(one, h1, q, j, hj, f53, n52)
   +c3 = round_q(q, j, bq, hzq)
-  +c4 = RT.round_shift(False{}, r, 1n+np, Nat.add(j, 2895n))
+  +c4 = FR.round_shift(False{}, r, 1n+np, Nat.add(j, 2895n))
   +c5 = Equal.cong(Nat, F.F64, z => SF.round(False{}, 1n+np, z), Nat.add(Nat.add(j, 2895n), r), xv, Equal.trans(Nat, Nat.add(Nat.add(j, 2895n), r), x0(), xv, ex(j, hj), hx))
   +s3 = Equal.trans(F.F64, SF.round(False{}, q, Nat.add(j, 2895n)), SF.pack(False{}, q, Nat.add(j, 2895n)), SF.encode(False{}, Nat.add(j, 970n), l52), c3, c2)
   +s4 = Equal.trans(F.F64, SF.round(False{}, 1n+np, Nat.add(Nat.add(j, 2895n), r)), SF.round(False{}, q, Nat.add(j, 2895n)), SF.encode(False{}, Nat.add(j, 970n), l52), Equal.sym(F.F64, SF.round(False{}, q, Nat.add(j, 2895n)), SF.round(False{}, 1n+np, Nat.add(Nat.add(j, 2895n), r)), c4), s3)
