@@ -132,6 +132,21 @@ def c6cl() -> B.Bn:
 def c4l() -> B.Bn:
   PL.c4l()
 
+def bxl() -> B.Bn:
+  PL.bxl()
+
+def byl() -> B.Bn:
+  PL.byl()
+
+def bxcl() -> B.Bn:
+  PL.bxcl()
+
+def bycl() -> B.Bn:
+  PL.bycl()
+
+def bxhl() -> B.Bn:
+  PL.bxhl()
+
 def v2() -> {B.bval(l2()) == 2n : Nat}:
   {==}
 

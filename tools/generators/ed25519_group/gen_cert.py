@@ -61,6 +61,13 @@ Q1 = 74058212732561358302231226437062788676166966415465897661863160754340907   #
 Q116 = 75445702479781427272750846543864801          # Q1 - 1 = 2 * 3 * 353 * 57467 * Q116 * Q55 ...
 Q55 = 31757755568855353
 L88 = 172054593956031949258510691                   # in L's chain: L - 1 <- 276602624281642239937218680557139826668747 <- 19757330305831588566944191468367130476339 <- L88
+BX = 15112221349535400772501151409588531511454012693041857206046113283949847762202
+BY = 46316835694926478169428394003475163141307993866256225615783033603165251855960
+BU, BW = BY * BY % P, BX * BX % P
+BE = (BU + P - BW) % P
+BWU = BW * BU % P
+BV = D * BWU % P
+assert BE == BV + 1 and 5 * BY % P == 4 and BX % 2 == 0
 assert (P - 1) % Q1 == 0 and (Q1 - 1) % (Q116 * Q55) == 0 and I * I % P == P - 1
 
 # n -> the factorization of n - 1, where sympy is slow
@@ -125,9 +132,33 @@ LITS = [
     ('c5cl', P - 121666, 'p - 1 - 121665'),
     ('c6cl', P - 121667, 'p - 1 - 121666'),
     ('c4l', 121664, None),
+    ('bxl', BX, 'the base point B = (bx, by), by = 4 / 5 and bx even:\n# %d' % BX),
+    ('byl', BY, '%d' % BY),
+    ('bxcl', P - 1 - BX, 'p - 1 - bx, p - 1 - by, bx / 2, (5 by - 4) / p'),
+    ('bycl', P - 1 - BY, None),
+    ('bxhl', BX // 2, None),
+    ('b5kl', (5 * BY - 4) // P, None),
+    ('bul', BU, 'B is on the curve (lbt.bend): u = by^2 mod p, w = bx^2 mod p, z = u + p - w, e = z mod p = 1 + v, v = d (w u mod p) mod p;\n# for each residue r its quotient (rk) and p - 1 - r (rc)'),
+    ('bukl', BY * BY // P, None),
+    ('bucl', P - 1 - BU, None),
+    ('bwl', BW, None),
+    ('bwkl', BX * BX // P, None),
+    ('bwcl', P - 1 - BW, None),
+    ('bzl', BU + P - BW, None),
+    ('bzkl', (BU + P - BW) // P, None),
+    ('bel', BE, None),
+    ('becl', P - 1 - BE, None),
+    ('bwul', BWU, None),
+    ('bwukl', BW * BU // P, None),
+    ('bwucl', P - 1 - BWU, None),
+    ('bvl', BV, None),
+    ('bvkl', D * BWU // P, None),
+    ('bvcl', P - 1 - BV, None),
 ]
-NAMES = {v: nm for nm, v, _ in LITS if v >= 2**20}
-assert len(NAMES) == len([1 for _, v, _ in LITS if v >= 2**20])
+NAMES = {}           # value -> its (first) name
+for _nm, _v, _ in LITS:
+    if _v >= 2**20:
+        NAMES.setdefault(_v, _nm)
 
 
 def lit(v):

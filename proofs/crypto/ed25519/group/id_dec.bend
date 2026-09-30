@@ -90,7 +90,7 @@ def dec_nn(+mp: Nat, +x: Nat, +y: Nat, +d: Nat, +w: Nat, +r: Nat) -> {Nat.mod(FS
   I.ident(mp, FS.fsub(1n+mp, 0n, FS.fsub(1n+mp, 0n, x)), x, X.pl(5n, dec_nn_a()), X.pl(5n, dec_nn_b()), [x, y, d, w, r], X.sound(mp, 5n, [x, y, d, w, r], dec_nn_a(), {==}), X.sound(mp, 5n, [x, y, d, w, r], dec_nn_b(), {==}), I.sm_nil(mp, dec_nn_d0(), [x, y, d, w, r], {==}))
 
 def dec_pm_a() -> X.Ex:
-  X.M{X.M{X.S{X.V{4n}, X.V{0n}}, X.A{X.V{4n}, X.V{0n}}}, X.A{X.M{X.V{2n}, X.M{X.V{1n}, X.V{1n}}}, X.K{1n}}}
+  X.M{X.A{X.M{X.V{2n}, X.M{X.V{1n}, X.V{1n}}}, X.K{1n}}, X.M{X.S{X.V{4n}, X.V{0n}}, X.A{X.V{4n}, X.V{0n}}}}
 
 def dec_pm_b() -> X.Ex:
   X.A{X.M{X.S{X.M{X.A{X.M{X.V{2n}, X.M{X.V{1n}, X.V{1n}}}, X.K{1n}}, X.M{X.V{4n}, X.V{4n}}}, X.S{X.M{X.V{1n}, X.V{1n}}, X.K{1n}}}, X.K{1n}}, X.M{X.S{X.S{X.M{X.V{1n}, X.V{1n}}, X.K{1n}}, X.M{X.A{X.M{X.V{2n}, X.M{X.V{1n}, X.V{1n}}}, X.K{1n}}, X.M{X.V{0n}, X.V{0n}}}}, X.K{1n}}}
@@ -98,11 +98,41 @@ def dec_pm_b() -> X.Ex:
 def dec_pm_d0() -> List<&2, P.Tm>:
   P.psub(X.pl(5n, dec_pm_a()), X.pl(5n, dec_pm_b()))
 
-# v r^2 == u == v x^2: (r - x) (r + x) v == 0
-def dec_pm(+mp: Nat, +x: Nat, +y: Nat, +d: Nat, +w: Nat, +r: Nat, +e1: {Nat.mod(FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), 1n+mp) == Nat.mod(du(mp, x, y, d, w, r), 1n+mp) : Nat}, +e2: {Nat.mod(du(mp, x, y, d, w, r), 1n+mp) == Nat.mod(FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, x, x)), 1n+mp) : Nat}) -> {Nat.mod(FS.fmul(1n+mp, FS.fmul(1n+mp, FS.fsub(1n+mp, r, x), FS.fadd(1n+mp, r, x)), dv(mp, x, y, d, w, r)), 1n+mp) == 0n : Nat}:
-  %IM.fsub_eq0(mp, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), du(mp, x, y, d, w, r), e1) : {Nat.mod(FS.fmul(1n+mp, FS.fmul(1n+mp, FS.fsub(1n+mp, r, x), FS.fadd(1n+mp, r, x)), dv(mp, x, y, d, w, r)), 1n+mp) == Nat.mod(FS.fadd(1n+mp, FS.fmul(1n+mp, _, 1n), FS.fmul(1n+mp, 0n, 1n)), 1n+mp) : Nat}
-  %IM.fsub_eq0(mp, du(mp, x, y, d, w, r), FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, x, x)), e2) : {Nat.mod(FS.fmul(1n+mp, FS.fmul(1n+mp, FS.fsub(1n+mp, r, x), FS.fadd(1n+mp, r, x)), dv(mp, x, y, d, w, r)), 1n+mp) == Nat.mod(FS.fadd(1n+mp, FS.fmul(1n+mp, FS.fsub(1n+mp, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), du(mp, x, y, d, w, r)), 1n), FS.fmul(1n+mp, _, 1n)), 1n+mp) : Nat}
-  I.ident(mp, FS.fmul(1n+mp, FS.fmul(1n+mp, FS.fsub(1n+mp, r, x), FS.fadd(1n+mp, r, x)), dv(mp, x, y, d, w, r)), FS.fadd(1n+mp, FS.fmul(1n+mp, FS.fsub(1n+mp, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), du(mp, x, y, d, w, r)), 1n), FS.fmul(1n+mp, FS.fsub(1n+mp, du(mp, x, y, d, w, r), FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, x, x))), 1n)), X.pl(5n, dec_pm_a()), X.pl(5n, dec_pm_b()), [x, y, d, w, r], X.sound(mp, 5n, [x, y, d, w, r], dec_pm_a(), {==}), X.sound(mp, 5n, [x, y, d, w, r], dec_pm_b(), {==}), I.sm_nil(mp, dec_pm_d0(), [x, y, d, w, r], {==}))
+# v r^2 == u == v x^2: v ((r - x) (r + x)) == 0
+def dec_pm(+mp: Nat, +x: Nat, +y: Nat, +d: Nat, +w: Nat, +r: Nat, +e1: {Nat.mod(FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), 1n+mp) == Nat.mod(du(mp, x, y, d, w, r), 1n+mp) : Nat}, +e2: {Nat.mod(du(mp, x, y, d, w, r), 1n+mp) == Nat.mod(FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, x, x)), 1n+mp) : Nat}) -> {Nat.mod(FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, FS.fsub(1n+mp, r, x), FS.fadd(1n+mp, r, x))), 1n+mp) == 0n : Nat}:
+  %IM.fsub_eq0(mp, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), du(mp, x, y, d, w, r), e1) : {Nat.mod(FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, FS.fsub(1n+mp, r, x), FS.fadd(1n+mp, r, x))), 1n+mp) == Nat.mod(FS.fadd(1n+mp, FS.fmul(1n+mp, _, 1n), FS.fmul(1n+mp, 0n, 1n)), 1n+mp) : Nat}
+  %IM.fsub_eq0(mp, du(mp, x, y, d, w, r), FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, x, x)), e2) : {Nat.mod(FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, FS.fsub(1n+mp, r, x), FS.fadd(1n+mp, r, x))), 1n+mp) == Nat.mod(FS.fadd(1n+mp, FS.fmul(1n+mp, FS.fsub(1n+mp, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), du(mp, x, y, d, w, r)), 1n), FS.fmul(1n+mp, _, 1n)), 1n+mp) : Nat}
+  I.ident(mp, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, FS.fsub(1n+mp, r, x), FS.fadd(1n+mp, r, x))), FS.fadd(1n+mp, FS.fmul(1n+mp, FS.fsub(1n+mp, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), du(mp, x, y, d, w, r)), 1n), FS.fmul(1n+mp, FS.fsub(1n+mp, du(mp, x, y, d, w, r), FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, x, x))), 1n)), X.pl(5n, dec_pm_a()), X.pl(5n, dec_pm_b()), [x, y, d, w, r], X.sound(mp, 5n, [x, y, d, w, r], dec_pm_a(), {==}), X.sound(mp, 5n, [x, y, d, w, r], dec_pm_b(), {==}), I.sm_nil(mp, dec_pm_d0(), [x, y, d, w, r], {==}))
+
+def dec_sq0_a() -> X.Ex:
+  X.M{X.A{X.M{X.V{2n}, X.M{X.V{1n}, X.V{1n}}}, X.K{1n}}, X.M{X.V{4n}, X.V{4n}}}
+
+def dec_sq0_b() -> X.Ex:
+  X.A{X.A{X.M{X.S{X.M{X.A{X.M{X.V{2n}, X.M{X.V{1n}, X.V{1n}}}, X.K{1n}}, X.M{X.V{4n}, X.V{4n}}}, X.S{X.M{X.V{1n}, X.V{1n}}, X.K{1n}}}, X.K{1n}}, X.M{X.S{X.S{X.M{X.V{1n}, X.V{1n}}, X.K{1n}}, X.M{X.A{X.M{X.V{2n}, X.M{X.V{1n}, X.V{1n}}}, X.K{1n}}, X.M{X.V{0n}, X.V{0n}}}}, X.K{1n}}}, X.M{X.S{X.V{0n}, X.Z{}}, X.M{X.A{X.M{X.V{2n}, X.M{X.V{1n}, X.V{1n}}}, X.K{1n}}, X.V{0n}}}}
+
+def dec_sq0_d0() -> List<&2, P.Tm>:
+  P.psub(X.pl(5n, dec_sq0_a()), X.pl(5n, dec_sq0_b()))
+
+# v r^2 == u == v x^2 and x == 0: v (r r) == 0
+def dec_sq0(+mp: Nat, +x: Nat, +y: Nat, +d: Nat, +w: Nat, +r: Nat, +e1: {Nat.mod(FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), 1n+mp) == Nat.mod(du(mp, x, y, d, w, r), 1n+mp) : Nat}, +e2: {Nat.mod(du(mp, x, y, d, w, r), 1n+mp) == Nat.mod(FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, x, x)), 1n+mp) : Nat}, +e3: {Nat.mod(x, 1n+mp) == Nat.mod(0n, 1n+mp) : Nat}) -> {Nat.mod(FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), 1n+mp) == 0n : Nat}:
+  %IM.fsub_eq0(mp, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), du(mp, x, y, d, w, r), e1) : {Nat.mod(FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), 1n+mp) == Nat.mod(FS.fadd(1n+mp, FS.fadd(1n+mp, FS.fmul(1n+mp, _, 1n), FS.fmul(1n+mp, 0n, 1n)), FS.fmul(1n+mp, 0n, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), x))), 1n+mp) : Nat}
+  %IM.fsub_eq0(mp, du(mp, x, y, d, w, r), FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, x, x)), e2) : {Nat.mod(FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), 1n+mp) == Nat.mod(FS.fadd(1n+mp, FS.fadd(1n+mp, FS.fmul(1n+mp, FS.fsub(1n+mp, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), du(mp, x, y, d, w, r)), 1n), FS.fmul(1n+mp, _, 1n)), FS.fmul(1n+mp, 0n, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), x))), 1n+mp) : Nat}
+  %IM.fsub_eq0(mp, x, 0n, e3) : {Nat.mod(FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), 1n+mp) == Nat.mod(FS.fadd(1n+mp, FS.fadd(1n+mp, FS.fmul(1n+mp, FS.fsub(1n+mp, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), du(mp, x, y, d, w, r)), 1n), FS.fmul(1n+mp, FS.fsub(1n+mp, du(mp, x, y, d, w, r), FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, x, x))), 1n)), FS.fmul(1n+mp, _, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), x))), 1n+mp) : Nat}
+  I.ident(mp, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), FS.fadd(1n+mp, FS.fadd(1n+mp, FS.fmul(1n+mp, FS.fsub(1n+mp, FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, r, r)), du(mp, x, y, d, w, r)), 1n), FS.fmul(1n+mp, FS.fsub(1n+mp, du(mp, x, y, d, w, r), FS.fmul(1n+mp, dv(mp, x, y, d, w, r), FS.fmul(1n+mp, x, x))), 1n)), FS.fmul(1n+mp, FS.fsub(1n+mp, x, 0n), FS.fmul(1n+mp, dv(mp, x, y, d, w, r), x))), X.pl(5n, dec_sq0_a()), X.pl(5n, dec_sq0_b()), [x, y, d, w, r], X.sound(mp, 5n, [x, y, d, w, r], dec_sq0_a(), {==}), X.sound(mp, 5n, [x, y, d, w, r], dec_sq0_b(), {==}), I.sm_nil(mp, dec_sq0_d0(), [x, y, d, w, r], {==}))
+
+def dec_rneg_a() -> X.Ex:
+  X.S{X.V{4n}, X.S{X.Z{}, X.V{0n}}}
+
+def dec_rneg_b() -> X.Ex:
+  X.M{X.S{X.A{X.V{4n}, X.V{0n}}, X.Z{}}, X.K{1n}}
+
+def dec_rneg_d0() -> List<&2, P.Tm>:
+  P.psub(X.pl(5n, dec_rneg_a()), X.pl(5n, dec_rneg_b()))
+
+# r + x == 0: r == -x
+def dec_rneg(+mp: Nat, +x: Nat, +y: Nat, +d: Nat, +w: Nat, +r: Nat, +e1: {Nat.mod(FS.fadd(1n+mp, r, x), 1n+mp) == Nat.mod(0n, 1n+mp) : Nat}) -> {Nat.mod(FS.fsub(1n+mp, r, FS.fsub(1n+mp, 0n, x)), 1n+mp) == 0n : Nat}:
+  %IM.fsub_eq0(mp, FS.fadd(1n+mp, r, x), 0n, e1) : {Nat.mod(FS.fsub(1n+mp, r, FS.fsub(1n+mp, 0n, x)), 1n+mp) == Nat.mod(FS.fmul(1n+mp, _, 1n), 1n+mp) : Nat}
+  I.ident(mp, FS.fsub(1n+mp, r, FS.fsub(1n+mp, 0n, x)), FS.fmul(1n+mp, FS.fsub(1n+mp, FS.fadd(1n+mp, r, x), 0n), 1n), X.pl(5n, dec_rneg_a()), X.pl(5n, dec_rneg_b()), [x, y, d, w, r], X.sound(mp, 5n, [x, y, d, w, r], dec_rneg_a(), {==}), X.sound(mp, 5n, [x, y, d, w, r], dec_rneg_b(), {==}), I.sm_nil(mp, dec_rneg_d0(), [x, y, d, w, r], {==}))
 
 def dec_x0_a() -> X.Ex:
   X.S{X.Z{}, X.V{0n}}
