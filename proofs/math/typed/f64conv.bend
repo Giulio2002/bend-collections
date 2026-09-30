@@ -123,6 +123,11 @@ def big_nat(+s: Bool, +w: WU.U64, +k: Nat, +hz: {Nat.is_eq(SW.value(w), 0n) == F
 # ---- the finite case ----
 
 # a double with scale at least Z is normal, so its significand is not zero
+# the significand at an abstract exponent-is-zero bit b: instantiated at
+# False, the hidden bit 2^52 is never evaluated
+def mz(+x: F.F64, +b: Bool, +hb: {Nat.is_eq(SF.efield(x), 0n) == b : Bool}) -> {Nat.is_eq(SF.mant(x), 0n) == Nat.is_eq(Nat.add(SF.frac(x), C.shift(52n, SF.b2n(Bool.not(b)))), 0n) : Bool}:
+  Equal.cong(Bool, Bool, t => Nat.is_eq(Nat.add(SF.frac(x), C.shift(52n, SF.b2n(Bool.not(t)))), 0n), Nat.is_eq(SF.efield(x), 0n), b, hb)
+
 def bnz_c(+x: F.F64, +z: Bool, +hz: {Nat.is_eq(F.exp_field(x), 0n) == z : Bool}, +h: {Nat.is_le(3000n, F.dexp_z(F.exp_field(x), z)) == True{} : Bool}) -> {Nat.is_eq(SF.mant(x), 0n) == False{} : Bool}:
   match z:
     case True{}:
@@ -130,9 +135,12 @@ def bnz_c(+x: F.F64, +z: Bool, +hz: {Nat.is_eq(F.exp_field(x), 0n) == z : Bool},
     case False{}:
       +hz2 = L.subst(Nat, t => {Nat.is_eq(t, 0n) == False{} : Bool}, F.exp_field(x), SF.efield(x), T.ea(x), hz)
       +Fr = SF.frac(x)
-      +e1 = Equal.cong(Bool, Bool, b => Nat.is_eq(Nat.add(Fr, C.shift(52n, SF.b2n(Bool.not(b)))), 0n), Nat.is_eq(SF.efield(x), 0n), False{}, hz2)
-      +e2 = FB.z2(Fr, 52n, 1n)
-      Equal.trans(Bool, Nat.is_eq(SF.mant(x), 0n), Nat.is_eq(Nat.add(Fr, C.shift(52n, 1n)), 0n), False{}, e1, Equal.trans(Bool, Nat.is_eq(Nat.add(Fr, C.shift(52n, 1n)), 0n), Bool.and(Nat.is_eq(Fr, 0n), False{}), False{}, e2, FR.and_f(Nat.is_eq(Fr, 0n))))
+      +e1 = mz(x, False{}, hz2)
+      # the hidden bit stays b2n(not False): no closed 2^52
+      +H = SF.b2n(Bool.not(False{}))
+      +e2 = FB.z2(Fr, 52n, H)
+      +e3 = Equal.cong(Bool, Bool, t => Bool.and(Nat.is_eq(Fr, 0n), t), Nat.is_eq(H, 0n), False{}, {==})
+      Equal.trans(Bool, Nat.is_eq(SF.mant(x), 0n), Nat.is_eq(Nat.add(Fr, C.shift(52n, H)), 0n), False{}, e1, Equal.trans(Bool, Nat.is_eq(Nat.add(Fr, C.shift(52n, H)), 0n), Bool.and(Nat.is_eq(Fr, 0n), Nat.is_eq(H, 0n)), False{}, e2, Equal.trans(Bool, Bool.and(Nat.is_eq(Fr, 0n), Nat.is_eq(H, 0n)), Bool.and(Nat.is_eq(Fr, 0n), False{}), False{}, e3, FR.and_f(Nat.is_eq(Fr, 0n)))))
 
 def big_nz(+x: F.F64, +h: {Nat.is_le(3000n, F.dexp(x)) == True{} : Bool}) -> {Nat.is_eq(SW.value(F.dmant(x)), 0n) == False{} : Bool}:
   L.subst(Nat, t => {Nat.is_eq(t, 0n) == False{} : Bool}, SF.mant(x), SW.value(F.dmant(x)), Equal.sym(Nat, SW.value(F.dmant(x)), SF.mant(x), T.dmant_value(x)), bnz_c(x, Nat.is_eq(F.exp_field(x), 0n), {==}, h))

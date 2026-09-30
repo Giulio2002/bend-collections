@@ -211,6 +211,23 @@ def dec(+x: F.F64) -> {x == SF.encode(SF.sign(x), SF.efield(x), SF.frac(x)) : F.
       +a3 = Nat.add(C.low(20n, H), C.shift(20n, Nat.add(C.low(11n, H20), C.shift(11n, SF.b2n(SF.sign(F.Bits{l, h}))))))
       FB.enc_g(l, h, SF.sign(F.Bits{l, h}), h, Equal.trans(Nat, H, a1, a3, e1, Equal.trans(Nat, a1, a2, a3, e2, e4)))
 
+# a significand of at most 52 bits at its own ulp u encodes as a subnormal;
+# u stays abstract, so pack's exponent arithmetic is never evaluated on a
+# literal (rt_sub instantiates u = 1926)
+def ru_self(+s: Bool, +Fr: Nat, +u: Nat, +hF: {C.fits(52n, Fr) == True{} : Bool}) -> {SF.round_u(s, Fr, u, u) == SF.encode(s, 0n, Fr) : F.F64}:
+  +f53 = SH.fits_mono(52n, 53n, Fr, {==}, hF)
+  +l1 = EX.ru(s, Fr, u, u)
+  +l2 = Equal.cong(Bool, F.F64, b => SF.pack(s, SF.pick(Nat, b, SF.rne(Fr, Nat.sub(u, u)), C.shift(Nat.sub(u, u), Fr)), u), Nat.is_le(u, u), True{}, N.le_refl(u))
+  +l3 = Equal.cong(Nat, F.F64, t => SF.pack(s, SF.rne(Fr, t), u), Nat.sub(u, u), 0n, N.sub_self(u))
+  +l4 = Equal.cong(Bool, F.F64, b => SF.pick(F.F64, b, SF.pack_n(s, Fr, u), SF.pack_e(s, Nat.sub(Nat.add(1n+u, 1075n), SF.zb()), 0n)), C.fits(53n, Fr), True{}, f53)
+  +l5 = Equal.cong(Bool, F.F64, b => SF.pick(F.F64, b, SF.encode(s, 0n, Fr), SF.pack_e(s, Nat.sub(Nat.add(u, 1075n), SF.zb()), C.low(52n, Fr))), C.fits(52n, Fr), True{}, hF)
+  +p1 = SF.pack(s, SF.pick(Nat, Nat.is_le(u, u), SF.rne(Fr, Nat.sub(u, u)), C.shift(Nat.sub(u, u), Fr)), u)
+  +p2 = SF.pack(s, SF.rne(Fr, Nat.sub(u, u)), u)
+  +p3 = SF.pack(s, Fr, u)
+  +p4 = SF.pack_n(s, Fr, u)
+  +G = SF.encode(s, 0n, Fr)
+  Equal.trans(F.F64, SF.round_u(s, Fr, u, u), p1, G, l1, Equal.trans(F.F64, p1, p2, G, l2, Equal.trans(F.F64, p2, p3, G, l3, Equal.trans(F.F64, p3, p4, G, l4, l5))))
+
 def rt_sub(+s: Bool, +Fr: Nat, +hF: {C.fits(52n, Fr) == True{} : Bool}, +z: Bool, +hz: {Nat.is_eq(Fr, 0n) == z : Bool}) -> {SF.round(s, Fr, 1926n) == SF.encode(s, 0n, Fr) : F.F64}:
   match z:
     case True{}:
@@ -226,13 +243,9 @@ def rt_sub(+s: Bool, +Fr: Nat, +hF: {C.fits(52n, Fr) == True{} : Bool}, +z: Bool
       +emax = EX.max_le(A, 1926n, N.le_trans(B, 52n, 53n, hB, {==}))
       +e1 = Equal.cong(Bool, F.F64, b => SF.pick(F.F64, b, SF.zero(s), SF.round_u(s, Fr, 1926n, Nat.max(A, Nat.sub(SF.zb(), 1074n)))), Nat.is_eq(Fr, 0n), False{}, hz)
       +e2 = Equal.cong(Nat, F.F64, u => SF.round_u(s, Fr, 1926n, u), Nat.max(A, 1926n), 1926n, emax)
-      +f53 = SH.fits_mono(52n, 53n, Fr, {==}, hF)
-      +e3 = Equal.cong(Bool, F.F64, b => SF.pick(F.F64, b, SF.pack_n(s, Fr, 1926n), SF.pack_e(s, Nat.sub(Nat.add(1n+1926n, 1075n), SF.zb()), 0n)), C.fits(53n, Fr), True{}, f53)
-      +e4 = Equal.cong(Bool, F.F64, b => SF.pick(F.F64, b, SF.encode(s, 0n, Fr), SF.pack_e(s, Nat.sub(Nat.add(1926n, 1075n), SF.zb()), C.low(52n, Fr))), C.fits(52n, Fr), True{}, hF)
       +r1 = SF.round_u(s, Fr, 1926n, Nat.max(A, 1926n))
       +r2 = SF.round_u(s, Fr, 1926n, 1926n)
-      +r3 = SF.pack_n(s, Fr, 1926n)
-      Equal.trans(F.F64, SF.round(s, Fr, 1926n), r1, SF.encode(s, 0n, Fr), e1, Equal.trans(F.F64, r1, r2, SF.encode(s, 0n, Fr), e2, Equal.trans(F.F64, r2, r3, SF.encode(s, 0n, Fr), e3, e4)))
+      Equal.trans(F.F64, SF.round(s, Fr, 1926n), r1, SF.encode(s, 0n, Fr), e1, Equal.trans(F.F64, r1, r2, SF.encode(s, 0n, Fr), e2, ru_self(s, Fr, 1926n, hF)))
 
 def rt_norm(+s: Bool, +E: Nat, +Fr: Nat, +one: Nat, +h1: {one == 1n : Nat}, +hE0: {Nat.is_eq(E, 0n) == False{} : Bool}, +hE: {Nat.is_lt(E, 2047n) == True{} : Bool}, +hF: {C.fits(52n, Fr) == True{} : Bool}) -> {SF.round(s, Nat.add(Fr, C.shift(52n, one)), Nat.add(1925n, E)) == SF.encode(s, E, Fr) : F.F64}:
   +Mn = Nat.add(Fr, C.shift(52n, one))

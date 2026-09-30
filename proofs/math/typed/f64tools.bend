@@ -49,6 +49,9 @@ def dexp_value(+x: F.F64) -> {F.dexp(x) == SF.xexp(x) : Nat}:
       +e1 = Equal.cong(Nat, Nat, t => F.dexp_z(t, Nat.is_eq(t, 0n)), F.exp_field(F.Bits{xl, xh}), SF.efield(F.Bits{xl, xh}), AF.hea(xl, xh))
       Equal.trans(Nat, F.dexp(F.Bits{xl, xh}), F.dexp_z(SF.efield(F.Bits{xl, xh}), Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n)), SF.xexp(F.Bits{xl, xh}), e1, dz(SF.efield(F.Bits{xl, xh}), Nat.is_eq(SF.efield(F.Bits{xl, xh}), 0n)))
 
+def dmf(+f: WU.U64) -> {SW.value(F.dmant_z(f, False{})) == SW.value(X.add(f, WU.U64{0, 1048576})) : Nat}:
+  {==}
+
 def dm(+one: Nat, +h1: {one == 1n : Nat}, +f: WU.U64, +Fr: Nat, +hf: {SW.value(f) == Fr : Nat}, +hF: {C.fits(52n, Fr) == True{} : Bool}, +z: Bool) -> {SW.value(F.dmant_z(f, z)) == Nat.add(Fr, C.shift(52n, SF.b2n(Bool.not(z)))) : Nat}:
   match z:
     case True{}:
@@ -58,8 +61,15 @@ def dm(+one: Nat, +h1: {one == 1n : Nat}, +f: WU.U64, +Fr: Nat, +hf: {SW.value(f
       +hFf = L.subst(Nat, t => {C.fits(52n, t) == True{} : Bool}, Fr, SW.value(f), Equal.sym(Nat, SW.value(f), Fr, hf), hF)
       +e1 = NM.hid(one, h1, f, hFf, 1048576, {==})
       +e2 = Equal.cong(Nat, Nat, t => Nat.add(t, C.shift(52n, one)), SW.value(f), Fr, hf)
-      +e3 = Equal.cong(Nat, Nat, t => Nat.add(Fr, C.shift(52n, t)), one, 1n, h1)
-      Equal.trans(Nat, SW.value(X.add(f, WU.U64{0, 1048576})), Nat.add(SW.value(f), C.shift(52n, one)), Nat.add(Fr, C.shift(52n, 1n)), e1, Equal.trans(Nat, Nat.add(SW.value(f), C.shift(52n, one)), Nat.add(Fr, C.shift(52n, one)), Nat.add(Fr, C.shift(52n, 1n)), e2, e3))
+      # the hidden bit stays `one` / `b2n(not False)`: the checker never
+      # meets the closed 2^52
+      +eo = Equal.trans(Nat, one, 1n, SF.b2n(Bool.not(False{})), h1, {==})
+      +e3 = Equal.cong(Nat, Nat, t => Nat.add(Fr, C.shift(52n, t)), one, SF.b2n(Bool.not(False{})), eo)
+      # the implementation's side unfolds on its own (dmant_z), the spec's
+      # side is the goal's term as written, so the conversion is syntactic
+      +e4 = Equal.trans(Nat, SW.value(X.add(f, WU.U64{0, 1048576})), Nat.add(SW.value(f), C.shift(52n, one)), Nat.add(Fr, C.shift(52n, SF.b2n(Bool.not(False{})))), e1, Equal.trans(Nat, Nat.add(SW.value(f), C.shift(52n, one)), Nat.add(Fr, C.shift(52n, one)), Nat.add(Fr, C.shift(52n, SF.b2n(Bool.not(False{})))), e2, e3))
+      +e5 = dmf(f)
+      Equal.trans(Nat, SW.value(F.dmant_z(f, False{})), SW.value(X.add(f, WU.U64{0, 1048576})), Nat.add(Fr, C.shift(52n, SF.b2n(Bool.not(False{})))), e5, e4)
 
 def dmant_value(+x: F.F64) -> {SW.value(F.dmant(x)) == SF.mant(x) : Nat}:
   match x:
