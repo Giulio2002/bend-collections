@@ -55,10 +55,10 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | XChaCha20-Poly1305 | 347.95 |
 | AES-128-GCM | 7.97 |
 | AES-256-GCM | 6.48 |
-| X25519 shared secret | 8.09 |
-| Ed25519 key generation | 24.13 |
-| Ed25519 sign | 32.89 |
-| Ed25519 verify | 12.89 |
+| X25519 shared secret | 7.77 |
+| Ed25519 key generation | 22.72 |
+| Ed25519 sign | 22.80 |
+| Ed25519 verify | 11.49 |
 | Argon2id | 9.09 |
 | secp256k1 (ECDSA, recovery, BIP-340) | 201.83 |
 | ChaCha8 `uint64` | 7.26 |
@@ -332,37 +332,37 @@ mean pass. Microseconds per operation.
 
 ### X25519 shared secret
 
-C reference: Monocypher 4.0.2 `crypto_x25519`. Worst ratio 8.09 (1677.75 before the fast field).
+C reference: Monocypher 4.0.2 `crypto_x25519`. Worst ratio 7.77 (1677.75 before the fast field).
 
 | Operation | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| shared secret | 262 | 32.3 | 8.09 |
+| shared secret | 250 | 32.2 | 7.77 |
 
 ### Ed25519 key generation
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_key_pair` (SHA-512). Worst ratio 24.13 (7064.08 before).
+C reference: Monocypher 4.0.2 `crypto_ed25519_key_pair` (SHA-512). Worst ratio 22.72 (7064.08 before).
 
 | Operation | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| keygen | 422 | 17.5 | 24.13 |
+| keygen | 383 | 16.9 | 22.72 |
 
 ### Ed25519 sign
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_sign`. Worst ratio 32.89 (13116.15 before).
+C reference: Monocypher 4.0.2 `crypto_ed25519_sign`. Worst ratio 22.80 (13116.15 before).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| sign 64 B | 609 | 18.5 | 32.89 |
-| sign 1 KiB | 641 | 21.6 | 29.70 |
+| sign 64 B | 406 | 17.8 | 22.80 |
+| sign 1 KiB | 430 | 20.1 | 21.34 |
 
 ### Ed25519 verify
 
-C reference: Monocypher 4.0.2 `crypto_ed25519_check`. Worst ratio 12.89 (4449.20 before).
+C reference: Monocypher 4.0.2 `crypto_ed25519_check`. Worst ratio 11.49 (4449.20 before).
 
 | Message | Bend (us) | C (us) | Ratio |
 |---:|---:|---:|---:|
-| verify 64 B | 641 | 50.2 | 12.75 |
-| verify 1 KiB | 672 | 52.1 | 12.89 |
+| verify 64 B | 563 | 48.9 | 11.49 |
+| verify 1 KiB | 563 | 49.1 | 11.45 |
 
 ### Argon2id
 

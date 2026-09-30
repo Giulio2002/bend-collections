@@ -350,8 +350,11 @@ a public scalar (verification) it adds only on one bits (`mul_vt`, proved
 to give the specification's point). Scalars mod L (`scalar.bend`) are
 17-bit limbs reduced by Horner's rule: each step estimates the quotient
 from the top limbs (the true quotient or one more), subtracts that
-multiple of L and then L by selection; `reduce` (a 64-byte digest mod L)
-and `mul_add` ((r + k s) mod L). `ed25519.bend`: key generation (the
+multiple of L and then L by selection (`step.bend`: the step on 15 limbs
+as straight-line code, written by `tools/gen_scalar.py`); `reduce` (a
+64-byte digest mod L) and `mul_add` ((r + k s) mod L). Bytes and 17-bit
+limbs are regrouped through a bit buffer (`limbs.bend` `pk`, `up`,
+written by `tools/gen_pack.py`), for field elements and scalars alike. `ed25519.bend`: key generation (the
 secret scalar is the clamped lower half of SHA-512(seed)), the expanded
 key (`expand`, `expand_ctx`: constants, base point, s mod L, prefix and
 public key, computed once), signing with it (`sign_key`: one base-point
@@ -397,7 +400,9 @@ equality (`pcodec.bend`) and decoding (`pdec.bend`: each branch, both
 square-root cases and the failures) are related through canonical values;
 the Horner reduction mod L (`lfacts.bend`: L in 17-bit limbs; `subb.bend`:
 subtraction with borrows; `horner.bend`: one step keeps the value mod L
-and the bound below L; `sclause.bend`: `reduce`, `mul_add`); SHA-512
+and the bound below L; `stepb.bend`: the straight-line step is the list
+one, by evaluation; `sclause.bend`: `reduce`, `mul_add`); the byte and
+limb regrouping keeps the value (`proofs/crypto/fe/pack.bend`); SHA-512
 digests are 64 bytes below 256 and equal FIPS 180-4 (`bytes.bend`, reusing
 `proofs/crypto/sha512/`); `tcommon.bend`, `tscal.bend`, `tsign.bend`,
 `tverify.bend` compose key generation, signing and verification. The
