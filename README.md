@@ -464,7 +464,16 @@ python3 tools/check_chacha.py        # ChaCha20/XChaCha20/AEADs vs `cryptography
 python3 tools/check_poly1305.py      # Poly1305 and its spec mirror vs `cryptography`
 python3 tools/check_curve25519.py    # X25519 / Ed25519: RFC 7748 / RFC 8032 vectors, `cryptography`
 bend tests/math/random.bend -o build/math/random && python3 tools/check_random.py   # random vs Go
+python3 tools/backend_diff.py --quick   # every module: `bend file.bend` vs the C build vs the JS build
 ```
+
+The proofs are about the Bend source; the compiler underneath them is not
+verified. `tools/backend_diff.py` runs every public module on the same seeded
+random and edge-case inputs through the three execution paths of the toolchain
+(`bend file.bend args`, the native C backend, the JavaScript backend) and fails
+on any differing line. What it has found is in
+[docs/BACKEND_BUGS.md](docs/BACKEND_BUGS.md); the coverage is in
+[tools/README.md](tools/README.md#backend-differential-harness).
 
 ## Benchmark
 

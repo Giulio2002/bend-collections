@@ -7,6 +7,8 @@ import ../../../math/typed/width.bend as WW
 import ../semiring.bend as SR
 import ./bn.bend as B
 import ./bnx.bend as X
+import ./bnf.bend as F
+import ../../../math/number/nt_ord.bend as OR
 import ../../../math/number/nt_prime.bend as PM
 import ../../../lib/nat.bend as N
 import ../../../math/natural/arith.bend as NR
@@ -66,3 +68,70 @@ def fin3_o(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +n: B.Bn, +n1: B.Bn, +e:
   %Equal.sym(Nat, X.bvalo(one, B.bmul(q, m)), X.bvalo(one, e), Equal.sym(Nat, X.bvalo(one, e), X.bvalo(one, B.bmul(q, m)), X.eq_o(one, h1, e, B.bmul(q, m), he))) : {Nat.mod(Nat.pow(X.bvalo(one, a), _), X.bvalo(one, n)) == 1n : Nat}
   %Equal.sym(Nat, 1n, X.bvalo(one, B.B1{B.BZ{}}), Equal.sym(Nat, X.bvalo(one, B.B1{B.BZ{}}), 1n, X.one_o(one, h1))) : {Nat.mod(Nat.pow(X.bvalo(one, a), X.bvalo(one, e)), X.bvalo(one, n)) == _ : Nat}
   fin_o(one, h1, a, n, n1, B.B1{B.BZ{}}, e, d, hn, hx, hlt)
+
+# ---- fold exponentiation (bnf.bend), products and changes of base ----
+
+def hmv(+m: B.Bn, +m1: B.Bn, +hn: {B.beq(m, B.binc(m1)) == True{} : Bool}) -> {B.bval(m) == 1n+B.bval(m1) : Nat}:
+  Equal.trans(Nat, B.bval(m), B.bval(B.binc(m1)), 1n+B.bval(m1), B.beq_v(m, B.binc(m1), hn), B.binc_v(m1))
+
+def inv_out(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +m: B.Bn, +m1: B.Bn, +x: B.Bn, +e: B.Bn, +hm: {B.bval(m) == 1n+B.bval(m1) : Nat}, +h: {Nat.mod(B.bval(x), 1n+B.bval(m1)) == Nat.mod(Nat.pow(B.bval(a), B.bval(e)), 1n+B.bval(m1)) : Nat}) -> Inv(one, a, m, x, e):
+  %Equal.sym(Nat, X.bvalo(one, x), B.bval(x), X.bo(one, h1, x)) : {Nat.mod(_, X.bvalo(one, m)) == Nat.mod(Nat.pow(X.bvalo(one, a), X.bvalo(one, e)), X.bvalo(one, m)) : Nat}
+  %Equal.sym(Nat, X.bvalo(one, m), B.bval(m), X.bo(one, h1, m)) : {Nat.mod(B.bval(x), _) == Nat.mod(Nat.pow(X.bvalo(one, a), X.bvalo(one, e)), X.bvalo(one, m)) : Nat}
+  %Equal.sym(Nat, X.bvalo(one, a), B.bval(a), X.bo(one, h1, a)) : {Nat.mod(B.bval(x), B.bval(m)) == Nat.mod(Nat.pow(_, X.bvalo(one, e)), X.bvalo(one, m)) : Nat}
+  %Equal.sym(Nat, X.bvalo(one, e), B.bval(e), X.bo(one, h1, e)) : {Nat.mod(B.bval(x), B.bval(m)) == Nat.mod(Nat.pow(B.bval(a), _), X.bvalo(one, m)) : Nat}
+  %Equal.sym(Nat, X.bvalo(one, m), B.bval(m), X.bo(one, h1, m)) : {Nat.mod(B.bval(x), B.bval(m)) == Nat.mod(Nat.pow(B.bval(a), B.bval(e)), _) : Nat}
+  %Equal.sym(Nat, B.bval(m), 1n+B.bval(m1), hm) : {Nat.mod(B.bval(x), _) == Nat.mod(Nat.pow(B.bval(a), B.bval(e)), B.bval(m)) : Nat}
+  %Equal.sym(Nat, B.bval(m), 1n+B.bval(m1), hm) : {Nat.mod(B.bval(x), 1n+B.bval(m1)) == Nat.mod(Nat.pow(B.bval(a), B.bval(e)), _) : Nat}
+  h
+
+# y == q n + r on values, n written 1 + n1
+def qr_v(+y: B.Bn, +q: B.Bn, +n: B.Bn, +n1: B.Bn, +r: B.Bn, +hm: {B.bval(n) == 1n+B.bval(n1) : Nat}, +h: {B.beq(y, B.badd(B.bmul(q, n), r)) == True{} : Bool}) -> {B.bval(y) == Nat.add(Nat.mul(B.bval(q), 1n+B.bval(n1)), B.bval(r)) : Nat}:
+  %Equal.sym(Nat, 1n+B.bval(n1), B.bval(n), Equal.sym(Nat, B.bval(n), 1n+B.bval(n1), hm)) : {B.bval(y) == Nat.add(Nat.mul(B.bval(q), _), B.bval(r)) : Nat}
+  %Equal.sym(Nat, Nat.mul(B.bval(q), B.bval(n)), B.bval(B.bmul(q, n)), Equal.sym(Nat, B.bval(B.bmul(q, n)), Nat.mul(B.bval(q), B.bval(n)), B.bmul_v(q, n))) : {B.bval(y) == Nat.add(_, B.bval(r)) : Nat}
+  %Equal.sym(Nat, Nat.add(B.bval(B.bmul(q, n)), B.bval(r)), B.bval(B.badd(B.bmul(q, n), r)), Equal.sym(Nat, B.bval(B.badd(B.bmul(q, n), r)), Nat.add(B.bval(B.bmul(q, n)), B.bval(r)), B.badd_v(B.bmul(q, n), r))) : {B.bval(y) == _ : Nat}
+  B.beq_v(y, B.badd(B.bmul(q, n), r), h)
+
+# a congruence modulo a multiple
+def wk(+np: Nat, +bp: Nat, +k: Nat, +x: Nat, +y: Nat, +e: {1n+np == Nat.mul(k, 1n+bp) : Nat}, +h: {Nat.mod(x, 1n+np) == Nat.mod(y, 1n+np) : Nat}) -> {Nat.mod(x, 1n+bp) == Nat.mod(y, 1n+bp) : Nat}:
+  Equal.trans(Nat, Nat.mod(x, 1n+bp), Nat.mod(Nat.mod(x, 1n+np), 1n+bp), Nat.mod(y, 1n+bp), Equal.sym(Nat, Nat.mod(Nat.mod(x, 1n+np), 1n+bp), Nat.mod(x, 1n+bp), OR.md(np, bp, k, x, e)), Equal.trans(Nat, Nat.mod(Nat.mod(x, 1n+np), 1n+bp), Nat.mod(Nat.mod(y, 1n+np), 1n+bp), Nat.mod(y, 1n+bp), Equal.cong(Nat, Nat, z => Nat.mod(z, 1n+bp), Nat.mod(x, 1n+np), Nat.mod(y, 1n+np), h), OR.md(np, bp, k, y, e)))
+
+def hk_v(+k: Nat, +mm: B.Bn, +mm1: B.Bn, +c: B.Bn, +hm: {B.bval(mm) == 1n+B.bval(mm1) : Nat}, +hk: {B.beq(F.fshl(k, B.B1{B.BZ{}}), B.badd(mm, c)) == True{} : Bool}) -> {B.bval(F.fshl(k, B.B1{B.BZ{}})) == Nat.add(1n+B.bval(mm1), B.bval(c)) : Nat}:
+  %Equal.sym(Nat, 1n+B.bval(mm1), B.bval(mm), Equal.sym(Nat, B.bval(mm), 1n+B.bval(mm1), hm)) : {B.bval(F.fshl(k, B.B1{B.BZ{}})) == Nat.add(_, B.bval(c)) : Nat}
+  %Equal.sym(Nat, Nat.add(B.bval(mm), B.bval(c)), B.bval(B.badd(mm, c)), Equal.sym(Nat, B.bval(B.badd(mm, c)), Nat.add(B.bval(mm), B.bval(c)), B.badd_v(mm, c))) : {B.bval(F.fshl(k, B.B1{B.BZ{}})) == _ : Nat}
+  B.beq_v(F.fshl(k, B.B1{B.BZ{}}), B.badd(mm, c), hk)
+
+def hd_v(+mm: B.Bn, +mm1: B.Bn, +kq: B.Bn, +n: B.Bn, +n1: B.Bn, +hm: {B.bval(mm) == 1n+B.bval(mm1) : Nat}, +hn: {B.bval(n) == 1n+B.bval(n1) : Nat}, +hd: {B.beq(mm, B.bmul(kq, n)) == True{} : Bool}) -> {1n+B.bval(mm1) == Nat.mul(B.bval(kq), 1n+B.bval(n1)) : Nat}:
+  %Equal.sym(Nat, 1n+B.bval(mm1), B.bval(mm), Equal.sym(Nat, B.bval(mm), 1n+B.bval(mm1), hm)) : {_ == Nat.mul(B.bval(kq), 1n+B.bval(n1)) : Nat}
+  %Equal.sym(Nat, 1n+B.bval(n1), B.bval(n), Equal.sym(Nat, B.bval(n), 1n+B.bval(n1), hn)) : {B.bval(mm) == Nat.mul(B.bval(kq), _) : Nat}
+  %Equal.sym(Nat, Nat.mul(B.bval(kq), B.bval(n)), B.bval(B.bmul(kq, n)), Equal.sym(Nat, B.bval(B.bmul(kq, n)), Nat.mul(B.bval(kq), B.bval(n)), B.bmul_v(kq, n))) : {B.bval(mm) == _ : Nat}
+  B.beq_v(mm, B.bmul(kq, n), hd)
+
+def ab_r(+mp: Nat, +x: Nat, +q: Nat, +r: Nat, +h: {x == Nat.add(Nat.mul(q, 1n+mp), r) : Nat}) -> {Nat.mod(r, 1n+mp) == Nat.mod(x, 1n+mp) : Nat}:
+  %Equal.sym(Nat, x, Nat.add(Nat.mul(q, 1n+mp), r), h) : {Nat.mod(r, 1n+mp) == Nat.mod(_, 1n+mp) : Nat}
+  %Equal.sym(Nat, Nat.mod(Nat.add(Nat.mul(q, 1n+mp), r), 1n+mp), Nat.mod(r, 1n+mp), NR.absorb(mp, q, r)) : {Nat.mod(r, 1n+mp) == _ : Nat}
+  {==}
+
+# a^e mod n == r by F.fexp modulo mm = 2^k - c, a multiple kq n of n;
+# the (not canonical) answer is j n + r
+def fexp_o(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +mm: B.Bn, +mm1: B.Bn, +k: Nat, +c: B.Bn, +e: B.Bn, +n: B.Bn, +n1: B.Bn, +kq: B.Bn, +j: B.Bn, +r: B.Bn, +hmm: {B.beq(mm, B.binc(mm1)) == True{} : Bool}, +hk: {B.beq(F.fshl(k, B.B1{B.BZ{}}), B.badd(mm, c)) == True{} : Bool}, +hd: {B.beq(mm, B.bmul(kq, n)) == True{} : Bool}, +hn: {B.beq(n, B.binc(n1)) == True{} : Bool}, +hc: {B.beq(F.fexp(e, a, k, c), B.badd(B.bmul(j, n), r)) == True{} : Bool}) -> Inv(one, a, n, r, e):
+  +f1 = F.fexp_v(e, a, k, c, B.bval(mm1), hk_v(k, mm, mm1, c, hmv(mm, mm1, hmm), hk))
+  +f2 = wk(B.bval(mm1), B.bval(n1), B.bval(kq), B.bval(F.fexp(e, a, k, c)), Nat.pow(B.bval(a), B.bval(e)), hd_v(mm, mm1, kq, n, n1, hmv(mm, mm1, hmm), hmv(n, n1, hn), hd), f1)
+  +f3 = ab_r(B.bval(n1), B.bval(F.fexp(e, a, k, c)), B.bval(j), B.bval(r), qr_v(F.fexp(e, a, k, c), j, n, n1, r, hmv(n, n1, hn), hc))
+  inv_out(one, h1, a, n, n1, r, e, hmv(n, n1, hn), Equal.trans(Nat, Nat.mod(B.bval(r), 1n+B.bval(n1)), Nat.mod(B.bval(F.fexp(e, a, k, c)), 1n+B.bval(n1)), Nat.mod(Nat.pow(B.bval(a), B.bval(e)), 1n+B.bval(n1)), f3, f2))
+
+def ex_s(+mp: Nat, +a: Nat, +z: Nat, +u: Nat, +v: Nat, +e: {u == v : Nat}, +h: {Nat.mod(z, 1n+mp) == Nat.mod(Nat.pow(a, u), 1n+mp) : Nat}) -> {Nat.mod(z, 1n+mp) == Nat.mod(Nat.pow(a, v), 1n+mp) : Nat}:
+  %Equal.sym(Nat, v, u, Equal.sym(Nat, u, v, e)) : {Nat.mod(z, 1n+mp) == Nat.mod(Nat.pow(a, _), 1n+mp) : Nat}
+  h
+
+# x == a^e, y == a^f, x y == q n + z: z == a^(e + f)
+def mul_i(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +n: B.Bn, +n1: B.Bn, +x: B.Bn, +e: B.Bn, +y: B.Bn, +f: B.Bn, +q: B.Bn, +z: B.Bn, +g: B.Bn, +hn: {B.beq(n, B.binc(n1)) == True{} : Bool}, +hx: Inv(one, a, n, x, e), +hy: Inv(one, a, n, y, f), +hs: {B.beq(B.bmul(x, y), B.badd(B.bmul(q, n), z)) == True{} : Bool}, +hg: {B.beq(B.badd(e, f), g) == True{} : Bool}) -> Inv(one, a, n, z, g):
+  +hm = hmv(n, n1, hn)
+  +hsv = Equal.trans(Nat, Nat.mul(B.bval(x), B.bval(y)), B.bval(B.bmul(x, y)), Nat.add(Nat.mul(B.bval(q), 1n+B.bval(n1)), B.bval(z)), Equal.sym(Nat, B.bval(B.bmul(x, y)), Nat.mul(B.bval(x), B.bval(y)), B.bmul_v(x, y)), qr_v(B.bmul(x, y), q, n, n1, z, hm, hs))
+  +core = F.mulc(B.bval(n1), B.bval(a), B.bval(e), B.bval(f), B.bval(x), B.bval(y), B.bval(q), B.bval(z), hxb(one, h1, a, n, n1, x, e, hm, hx), hxb(one, h1, a, n, n1, y, f, hm, hy), hsv)
+  inv_out(one, h1, a, n, n1, z, g, hm, ex_s(B.bval(n1), B.bval(a), B.bval(z), Nat.add(B.bval(e), B.bval(f)), B.bval(g), Equal.trans(Nat, Nat.add(B.bval(e), B.bval(f)), B.bval(B.badd(e, f)), B.bval(g), Equal.sym(Nat, B.bval(B.badd(e, f)), Nat.add(B.bval(e), B.bval(f)), B.badd_v(e, f)), B.beq_v(B.badd(e, f), g, hg)), core))
+
+# x == a^e and y == x^f: y == a^(f e)
+def reb_i(+one: Nat, +h1: {one == 1n : Nat}, +a: B.Bn, +n: B.Bn, +n1: B.Bn, +x: B.Bn, +e: B.Bn, +y: B.Bn, +f: B.Bn, +g: B.Bn, +hn: {B.beq(n, B.binc(n1)) == True{} : Bool}, +hx: Inv(one, a, n, x, e), +hy: Inv(one, x, n, y, f), +hg: {B.beq(B.bmul(f, e), g) == True{} : Bool}) -> Inv(one, a, n, y, g):
+  +hm = hmv(n, n1, hn)
+  +core = F.rebase(B.bval(n1), B.bval(a), B.bval(e), B.bval(x), B.bval(f), B.bval(y), hxb(one, h1, a, n, n1, x, e, hm, hx), hxb(one, h1, x, n, n1, y, f, hm, hy))
+  inv_out(one, h1, a, n, n1, y, g, hm, ex_s(B.bval(n1), B.bval(a), B.bval(y), Nat.mul(B.bval(f), B.bval(e)), B.bval(g), Equal.trans(Nat, Nat.mul(B.bval(f), B.bval(e)), B.bval(B.bmul(f, e)), B.bval(g), Equal.sym(Nat, B.bval(B.bmul(f, e)), Nat.mul(B.bval(f), B.bval(e)), B.bmul_v(f, e)), B.beq_v(B.bmul(f, e), g, hg)), core))
