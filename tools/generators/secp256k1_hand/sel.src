@@ -1,0 +1,153 @@
+import Base
+import ../../../spec/lib/common.bend as C
+import ../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../spec/crypto/secp256k1/curve.bend as CV
+import ../../../src/crypto/secp256k1/limbs.bend as L
+import ../../../src/crypto/secp256k1/field.bend as F
+import ../../../src/crypto/secp256k1/point.bend as P
+import ../../lib/nat.bend as N
+import ../../lib/logic.bend as Lg
+import ../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ./limbs.bend as LV
+import ./fieldops.bend as FO
+import ./bitsv.bend as BV
+import ./bitsrel.bend as BR
+import ./point.bend as PT
+import ./consts.bend as K
+import ./ineq.bend as I
+
+# Selection (b ? p : q, b in {0, 1}) and small facts for the point proofs.
+def bit01(n: Nat) -> {Nat.is_lt(C.bit(n), 2n) == True{} : Bool}:
+  match n:
+    case 0n:
+      {==}
+    case 1n:
+      {==}
+    case 2n+m:
+      bit01(m)
+
+def sb01(i: Nat, +off: Nat, +k: Nat) -> {BV.all01(BR.sb(i, off, k)) == True{} : Bool}:
+  match i:
+    case 0n:
+      {==}
+    case 1n+ +j:
+      Lg.and_intro(Nat.is_lt(CV.bit(Nat.add(off, j), k), 2n), BV.all01(BR.sb(j, off, k)), bit01(C.high(Nat.add(off, j), k)), sb01(j, off, k))
+
+def sel0(+one: Nat, n: Nat, xs: List<&2, Nat>, ys: List<&2, Nat>, +hx: {FS.limbs16(one, n, xs) == True{} : Bool}, +hy: {FS.limbs16(one, n, ys) == True{} : Bool}) -> {L.select(0n, xs, ys) == ys : List<&2, Nat>}:
+  match n xs:
+    case 0n Nil{}:
+      match ys:
+        case Nil{}:
+          {==}
+        case y <> t:
+          Empty.absurd({L.select(0n, [], y <> t) == y <> t : List<&2, Nat>}, Lg.false_true(hy))
+    case 0n x <> t:
+      Empty.absurd({L.select(0n, x <> t, ys) == ys : List<&2, Nat>}, Lg.false_true(hx))
+    case 1n+k Nil{}:
+      Empty.absurd({L.select(0n, [], ys) == ys : List<&2, Nat>}, Lg.false_true(hx))
+    case 1n+ +k +x <> +xt:
+      match ys:
+        case Nil{}:
+          Empty.absurd({L.select(0n, x <> xt, []) == [] : List<&2, Nat>}, Lg.false_true(hy))
+        case +y <> +yt:
+          +hxt = Lg.and_right(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, k, xt), hx)
+          +hyt = Lg.and_right(Nat.is_lt(y, C.shift(16n, one)), FS.limbs16(one, k, yt), hy)
+          %goal {Nat.add(Nat.mul(x, 0n), Nat.mul(y, 1n)) <> L.select(0n, xt, yt) == y <> yt : List<&2, Nat>}
+          %rw sel0(one, k, xt, yt, hxt, hyt)
+          %rw NA.mul_zero(x)
+          %rw NA.mul_one(y)
+          %close
+
+def sel1(+one: Nat, n: Nat, xs: List<&2, Nat>, ys: List<&2, Nat>, +hx: {FS.limbs16(one, n, xs) == True{} : Bool}, +hy: {FS.limbs16(one, n, ys) == True{} : Bool}) -> {L.select(1n, xs, ys) == xs : List<&2, Nat>}:
+  match n xs:
+    case 0n Nil{}:
+      match ys:
+        case Nil{}:
+          {==}
+        case y <> t:
+          Empty.absurd({L.select(1n, [], y <> t) == [] : List<&2, Nat>}, Lg.false_true(hy))
+    case 0n x <> t:
+      Empty.absurd({L.select(1n, x <> t, ys) == x <> t : List<&2, Nat>}, Lg.false_true(hx))
+    case 1n+k Nil{}:
+      Empty.absurd({L.select(1n, [], ys) == [] : List<&2, Nat>}, Lg.false_true(hx))
+    case 1n+ +k +x <> +xt:
+      match ys:
+        case Nil{}:
+          Empty.absurd({L.select(1n, x <> xt, []) == x <> xt : List<&2, Nat>}, Lg.false_true(hy))
+        case +y <> +yt:
+          +hxt = Lg.and_right(Nat.is_lt(x, C.shift(16n, one)), FS.limbs16(one, k, xt), hx)
+          +hyt = Lg.and_right(Nat.is_lt(y, C.shift(16n, one)), FS.limbs16(one, k, yt), hy)
+          %goal {Nat.add(Nat.mul(x, 1n), Nat.mul(y, 0n)) <> L.select(1n, xt, yt) == x <> xt : List<&2, Nat>}
+          %rw sel1(one, k, xt, yt, hxt, hyt)
+          %rw NA.mul_zero(y)
+          %rw NA.mul_one(x)
+          %rw NA.add_zero(x)
+          %close
+
+def l16(+one: Nat, +x: List<&2, Nat>, +h: {PT.red(one, x) == True{} : Bool}) -> {FS.limbs16(one, 16n, x) == True{} : Bool}:
+  Lg.and_left(FS.limbs16(one, 16n, x), Nat.is_lt(FS.value(one, x), FS.prime(one)), h)
+
+def rx(+one: Nat, +x: List<&2, Nat>, +y: List<&2, Nat>, +z: List<&2, Nat>, +h: {PT.pred(one, P.Point{x, y, z}) == True{} : Bool}) -> {FS.limbs16(one, 16n, x) == True{} : Bool}:
+  l16(one, x, Lg.and_left(PT.red(one, x), Bool.and(PT.red(one, y), PT.red(one, z)), h))
+
+def ry(+one: Nat, +x: List<&2, Nat>, +y: List<&2, Nat>, +z: List<&2, Nat>, +h: {PT.pred(one, P.Point{x, y, z}) == True{} : Bool}) -> {FS.limbs16(one, 16n, y) == True{} : Bool}:
+  l16(one, y, Lg.and_left(PT.red(one, y), PT.red(one, z), Lg.and_right(PT.red(one, x), Bool.and(PT.red(one, y), PT.red(one, z)), h)))
+
+def rz(+one: Nat, +x: List<&2, Nat>, +y: List<&2, Nat>, +z: List<&2, Nat>, +h: {PT.pred(one, P.Point{x, y, z}) == True{} : Bool}) -> {FS.limbs16(one, 16n, z) == True{} : Bool}:
+  l16(one, z, Lg.and_right(PT.red(one, y), PT.red(one, z), Lg.and_right(PT.red(one, x), Bool.and(PT.red(one, y), PT.red(one, z)), h)))
+
+# b = 0 picks the second point, b = 1 the first
+def psel0(+one: Nat, a: P.Point, b: P.Point, +ha: {PT.pred(one, a) == True{} : Bool}, +hb: {PT.pred(one, b) == True{} : Bool}) -> {P.select(0n, a, b) == b : P.Point}:
+  match a b:
+    case P.Point{+x1, +y1, +z1} P.Point{+x2, +y2, +z2}:
+      %goal {P.Point{L.select(0n, x1, x2), L.select(0n, y1, y2), L.select(0n, z1, z2)} == P.Point{x2, y2, z2} : P.Point}
+      %rw sel0(one, 16n, x1, x2, rx(one, x1, y1, z1, ha), rx(one, x2, y2, z2, hb))
+      %rw sel0(one, 16n, y1, y2, ry(one, x1, y1, z1, ha), ry(one, x2, y2, z2, hb))
+      %rw sel0(one, 16n, z1, z2, rz(one, x1, y1, z1, ha), rz(one, x2, y2, z2, hb))
+      %close
+
+def psel1(+one: Nat, a: P.Point, b: P.Point, +ha: {PT.pred(one, a) == True{} : Bool}, +hb: {PT.pred(one, b) == True{} : Bool}) -> {P.select(1n, a, b) == a : P.Point}:
+  match a b:
+    case P.Point{+x1, +y1, +z1} P.Point{+x2, +y2, +z2}:
+      %goal {P.Point{L.select(1n, x1, x2), L.select(1n, y1, y2), L.select(1n, z1, z2)} == P.Point{x1, y1, z1} : P.Point}
+      %rw sel1(one, 16n, x1, x2, rx(one, x1, y1, z1, ha), rx(one, x2, y2, z2, hb))
+      %rw sel1(one, 16n, y1, y2, ry(one, x1, y1, z1, ha), ry(one, x2, y2, z2, hb))
+      %rw sel1(one, 16n, z1, z2, rz(one, x1, y1, z1, ha), rz(one, x2, y2, z2, hb))
+      %close
+
+def one_lt(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.is_lt(1n, FS.prime(one)) == True{} : Bool}:
+  FO.small_lt_p(one, h1, 1n, {==})
+
+def lt2(c: Nat) -> {Nat.is_lt(2n+c, 2n) == False{} : Bool}:
+  match c:
+    case 0n:
+      {==}
+    case 1n+d:
+      {==}
+
+def not01(+c: Nat, +h: {Nat.is_lt(2n+c, 2n) == True{} : Bool}) -> Empty:
+  Lg.false_true(Equal.trans(Bool, False{}, Nat.is_lt(2n+c, 2n), True{}, Equal.sym(Bool, Nat.is_lt(2n+c, 2n), False{}, lt2(c)), h))
+
+
+# ---- 2^16 as a literal (literal additions evaluate natively, products do not) ----
+
+def shk(+k: Nat, +one: Nat, +v: Nat, +hv: {C.shift(k, one) == v : Nat}) -> {C.shift(1n+k, one) == Nat.add(v, v) : Nat}:
+  %rw <- K.shift_twice(k, one)
+  %rwh hv : {C.shift(k, one) == v : Nat}
+  %rwh hv : {C.shift(k, one) == v : Nat}
+  %close
+
+def sh14(+one: Nat, +h1: {one == 1n : Nat}) -> {C.shift(14n, one) == 16384n : Nat}:
+  shk(13n, one, 8192n, shk(12n, one, 4096n, shk(11n, one, 2048n, shk(10n, one, 1024n, shk(9n, one, 512n, shk(8n, one, 256n, shk(7n, one, 128n, shk(6n, one, 64n, shk(5n, one, 32n, shk(4n, one, 16n, shk(3n, one, 8n, shk(2n, one, 4n, shk(1n, one, 2n, shk(0n, one, 1n, h1))))))))))))))
+
+# a literal below 2^16 is a limb (2^16 is written 4 w with w = 2^14: literals
+# past 2^14 cannot be compared with unary terms)
+def lt16(+one: Nat, +h1: {one == 1n : Nat}, +x: Nat, +w: Nat, +hw: {C.shift(14n, one) == w : Nat}, +hx: {Nat.is_lt(x, Nat.add(Nat.add(w, w), Nat.add(w, w))) == True{} : Bool}) -> {Nat.is_lt(x, C.shift(16n, one)) == True{} : Bool}:
+  %rw <- K.shift_twice(15n, one)
+  %rw <- K.shift_twice(14n, one)
+  %rw <- K.shift_twice(14n, one)
+  %rwh hw : {C.shift(14n, one) == w : Nat}
+  %rwh hw : {C.shift(14n, one) == w : Nat}
+  %rwh hw : {C.shift(14n, one) == w : Nat}
+  %rwh hw : {C.shift(14n, one) == w : Nat}
+  hx

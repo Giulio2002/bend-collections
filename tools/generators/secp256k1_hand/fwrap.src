@@ -10,6 +10,7 @@ import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/typed/width.bend as WW
 import ./semiring.bend as SR
 import ./limbs.bend as LV
+import ./fprot.bend as FR
 import ./consts.bend as K
 import ./listops.bend as LO
 
@@ -26,6 +27,7 @@ def is_zero_f(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>) -> {F.is_zer
   %close
 
 def eq_f(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +b: List<&2, Nat>, +ha: {FS.limbs16(one, 16n, a) == True{} : Bool}, +hb: {FS.limbs16(one, 16n, b) == True{} : Bool}) -> {F.eq(a, b) == Nat.is_eq(FS.value(one, a), FS.value(one, b)) : Bool}:
+  %rw FR.f_eq(a, b)
   %goal {L.eq(a, b) == Nat.is_eq(FS.value(one, a), FS.value(one, b)) : Bool}
   %rw LO.eq_v(one, h1, a, b, ha, hb)
   %rw LV.ev_value(one, h1, a)
@@ -54,6 +56,7 @@ def is_zero_s(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>) -> {S.is_zer
   %close
 
 def eq_s(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +b: List<&2, Nat>, +ha: {FS.limbs16(one, 16n, a) == True{} : Bool}, +hb: {FS.limbs16(one, 16n, b) == True{} : Bool}) -> {S.eq(a, b) == Nat.is_eq(FS.value(one, a), FS.value(one, b)) : Bool}:
+  %rw FR.s_eq(a, b)
   %goal {L.eq(a, b) == Nat.is_eq(FS.value(one, a), FS.value(one, b)) : Bool}
   %rw LO.eq_v(one, h1, a, b, ha, hb)
   %rw LV.ev_value(one, h1, a)

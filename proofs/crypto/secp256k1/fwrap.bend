@@ -11,6 +11,7 @@ import ../../lib/lemmas/proofs/nat_algebra.bend as NA
 import ../../math/typed/width.bend as WW
 import ./semiring.bend as SR
 import ./limbs.bend as LV
+import ./fprot.bend as FR
 import ./consts.bend as K
 import ./listops.bend as LO
 
@@ -26,6 +27,7 @@ def is_zero_f(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>) -> {F.is_zer
   {==}
 
 def eq_f(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +b: List<&2, Nat>, +ha: {FS.limbs16(one, 16n, a) == True{} : Bool}, +hb: {FS.limbs16(one, 16n, b) == True{} : Bool}) -> {F.eq(a, b) == Nat.is_eq(FS.value(one, a), FS.value(one, b)) : Bool}:
+  %Equal.sym(Bool, F.eq(a, b), L.eq(a, b), FR.f_eq(a, b)) : {_ == Nat.is_eq(FS.value(one, a), FS.value(one, b)) : Bool}
   %Equal.sym(Bool, L.eq(a, b), Nat.is_eq(LV.ev(a), LV.ev(b)), LO.eq_v(one, h1, a, b, ha, hb)) : {_ == Nat.is_eq(FS.value(one, a), FS.value(one, b)) : Bool}
   %Equal.sym(Nat, FS.value(one, a), LV.ev(a), LV.ev_value(one, h1, a)) : {Nat.is_eq(LV.ev(a), LV.ev(b)) == Nat.is_eq(_, FS.value(one, b)) : Bool}
   %Equal.sym(Nat, FS.value(one, b), LV.ev(b), LV.ev_value(one, h1, b)) : {Nat.is_eq(LV.ev(a), LV.ev(b)) == Nat.is_eq(LV.ev(a), _) : Bool}
@@ -50,6 +52,7 @@ def is_zero_s(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>) -> {S.is_zer
   {==}
 
 def eq_s(+one: Nat, +h1: {one == 1n : Nat}, +a: List<&2, Nat>, +b: List<&2, Nat>, +ha: {FS.limbs16(one, 16n, a) == True{} : Bool}, +hb: {FS.limbs16(one, 16n, b) == True{} : Bool}) -> {S.eq(a, b) == Nat.is_eq(FS.value(one, a), FS.value(one, b)) : Bool}:
+  %Equal.sym(Bool, S.eq(a, b), L.eq(a, b), FR.s_eq(a, b)) : {_ == Nat.is_eq(FS.value(one, a), FS.value(one, b)) : Bool}
   %Equal.sym(Bool, L.eq(a, b), Nat.is_eq(LV.ev(a), LV.ev(b)), LO.eq_v(one, h1, a, b, ha, hb)) : {_ == Nat.is_eq(FS.value(one, a), FS.value(one, b)) : Bool}
   %Equal.sym(Nat, FS.value(one, a), LV.ev(a), LV.ev_value(one, h1, a)) : {Nat.is_eq(LV.ev(a), LV.ev(b)) == Nat.is_eq(_, FS.value(one, b)) : Bool}
   %Equal.sym(Nat, FS.value(one, b), LV.ev(b), LV.ev_value(one, h1, b)) : {Nat.is_eq(LV.ev(a), LV.ev(b)) == Nat.is_eq(LV.ev(a), _) : Bool}

@@ -698,11 +698,12 @@ if __name__ == '__main__' and sys.argv[1] == '--all':
     # until no more progress is made
     todo = sorted(n for n in os.listdir(d) if n.endswith('.src'))
     while todo:
+        lemmas_of.__defaults__[0].clear()
         failed = []
         for name in todo:
             try:
                 gen(os.path.join(d, name), os.path.join(od, name[:-4] + '.bend'))
-            except KeyError:
+            except (KeyError, FileNotFoundError):
                 failed.append(name)
         if len(failed) == len(todo):
             gen(os.path.join(d, failed[0]), os.path.join(od, failed[0][:-4] + '.bend'))

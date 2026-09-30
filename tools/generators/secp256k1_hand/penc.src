@@ -17,7 +17,7 @@ import ./fieldpow.bend as FP
 import ./fwrap.bend as FW
 import ./bytes.bend as BY
 import ./point.bend as PT
-import ./pmul.bend as PM
+import ./sel.bend as PM
 import ./paff.bend as PA
 import ../../math/natural/arith.bend as NR
 
@@ -127,23 +127,22 @@ def mod2_lt(+v: Nat) -> {Nat.is_lt(Nat.mod(v, 2n), 2n) == True{} : Bool}:
 
 # y or p - y by the parities q and par (both 0 or 1)
 def pick_v(+one: Nat, +h1: {one == 1n : Nat}, q: Nat, par: Nat, +y: List<&2, Nat>, +hq: {Nat.is_lt(q, 2n) == True{} : Bool}, +hp: {Nat.is_lt(par, 2n) == True{} : Bool}, +hy: {PT.red(one, y) == True{} : Bool}) -> {FS.value(one, F.select(Nat.sub(Nat.add(q, par), Nat.mul(Nat.mul(q, par), 2n)), F.neg(y), y)) == CV.pick_if(FS.prime(one), FS.value(one, y), Nat.is_eq(q, par)) : Nat}:
-  +hn = FO.neg_r(one, h1, y, hy)
   match q par:
     case 0n 0n:
       %goal {FS.value(one, L.select(0n, F.neg(y), y)) == FS.value(one, y) : Nat}
-      %rw PM.sel0(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), hn), PM.l16(one, y, hy))
+      %rw PM.sel0(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), FO.neg_r(one, h1, y, hy)), PM.l16(one, y, hy))
       %close
     case 0n 1n:
       %goal {FS.value(one, L.select(1n, F.neg(y), y)) == FS.mneg(FS.prime(one), FS.value(one, y)) : Nat}
-      %rw PM.sel1(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), hn), PM.l16(one, y, hy))
+      %rw PM.sel1(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), FO.neg_r(one, h1, y, hy)), PM.l16(one, y, hy))
       FO.neg_v(one, h1, y, hy)
     case 1n 0n:
       %goal {FS.value(one, L.select(1n, F.neg(y), y)) == FS.mneg(FS.prime(one), FS.value(one, y)) : Nat}
-      %rw PM.sel1(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), hn), PM.l16(one, y, hy))
+      %rw PM.sel1(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), FO.neg_r(one, h1, y, hy)), PM.l16(one, y, hy))
       FO.neg_v(one, h1, y, hy)
     case 1n 1n:
       %goal {FS.value(one, L.select(0n, F.neg(y), y)) == FS.value(one, y) : Nat}
-      %rw PM.sel0(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), hn), PM.l16(one, y, hy))
+      %rw PM.sel0(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), FO.neg_r(one, h1, y, hy)), PM.l16(one, y, hy))
       %close
     case 2n+ +c _:
       Empty.absurd({FS.value(one, F.select(Nat.sub(Nat.add(2n+c, par), Nat.mul(Nat.mul(2n+c, par), 2n)), F.neg(y), y)) == CV.pick_if(FS.prime(one), FS.value(one, y), Nat.is_eq(2n+c, par)) : Nat}, PM.not01(c, hq))
@@ -151,23 +150,22 @@ def pick_v(+one: Nat, +h1: {one == 1n : Nat}, q: Nat, par: Nat, +y: List<&2, Nat
       Empty.absurd({FS.value(one, F.select(Nat.sub(Nat.add(q, 2n+c), Nat.mul(Nat.mul(q, 2n+c), 2n)), F.neg(y), y)) == CV.pick_if(FS.prime(one), FS.value(one, y), Nat.is_eq(q, 2n+c)) : Nat}, PM.not01(c, hp))
 
 def pick_r(+one: Nat, +h1: {one == 1n : Nat}, q: Nat, par: Nat, +y: List<&2, Nat>, +hq: {Nat.is_lt(q, 2n) == True{} : Bool}, +hp: {Nat.is_lt(par, 2n) == True{} : Bool}, +hy: {PT.red(one, y) == True{} : Bool}) -> {PT.red(one, F.select(Nat.sub(Nat.add(q, par), Nat.mul(Nat.mul(q, par), 2n)), F.neg(y), y)) == True{} : Bool}:
-  +hn = FO.neg_r(one, h1, y, hy)
   match q par:
     case 0n 0n:
       %goal {PT.red(one, L.select(0n, F.neg(y), y)) == True{} : Bool}
-      %rw PM.sel0(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), hn), PM.l16(one, y, hy))
+      %rw PM.sel0(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), FO.neg_r(one, h1, y, hy)), PM.l16(one, y, hy))
       hy
     case 0n 1n:
       %goal {PT.red(one, L.select(1n, F.neg(y), y)) == True{} : Bool}
-      %rw PM.sel1(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), hn), PM.l16(one, y, hy))
-      hn
+      %rw PM.sel1(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), FO.neg_r(one, h1, y, hy)), PM.l16(one, y, hy))
+      FO.neg_r(one, h1, y, hy)
     case 1n 0n:
       %goal {PT.red(one, L.select(1n, F.neg(y), y)) == True{} : Bool}
-      %rw PM.sel1(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), hn), PM.l16(one, y, hy))
-      hn
+      %rw PM.sel1(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), FO.neg_r(one, h1, y, hy)), PM.l16(one, y, hy))
+      FO.neg_r(one, h1, y, hy)
     case 1n 1n:
       %goal {PT.red(one, L.select(0n, F.neg(y), y)) == True{} : Bool}
-      %rw PM.sel0(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), hn), PM.l16(one, y, hy))
+      %rw PM.sel0(one, 16n, F.neg(y), y, PM.l16(one, F.neg(y), FO.neg_r(one, h1, y, hy)), PM.l16(one, y, hy))
       hy
     case 2n+ +c _:
       Empty.absurd({PT.red(one, F.select(Nat.sub(Nat.add(2n+c, par), Nat.mul(Nat.mul(2n+c, par), 2n)), F.neg(y), y)) == True{} : Bool}, PM.not01(c, hq))
@@ -186,13 +184,17 @@ def lift_r(+one: Nat, +h1: {one == 1n : Nat}, +y: List<&2, Nat>, +par: Nat, +hy:
   %rw FW.parity_f(one, h1, y)
   pick_r(one, h1, Nat.mod(FS.value(one, y), 2n), par, y, mod2_lt(FS.value(one, y)), hp, hy)
 
+def dy(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +r: List<&2, Nat>, +y: List<&2, Nat>, +par: Nat, +hr: {PT.red(one, r) == True{} : Bool}, +hy: {PT.red(one, y) == True{} : Bool}, +hp: {Nat.is_lt(par, 2n) == True{} : Bool}) -> {mpv(one, P.decompress_if(x, P.lift_y(y, par), F.eq(F.mul(y, y), r))) == CV.decompress_if(FS.value(one, x), CV.pick_parity(FS.prime(one), FS.value(one, y), par), Nat.is_eq(FS.mmul(FS.prime(one), FS.value(one, y), FS.value(one, y)), FS.value(one, r))) : Maybe<&2, CV.SPoint>}:
+  +hs = FO.mul_r(one, h1, y, y, hy, hy)
+  %rw FW.eq_f(one, h1, F.mul(y, y), r, PM.l16(one, F.mul(y, y), hs), PM.l16(one, r, hr))
+  %rw FO.mul_v(one, h1, y, y, hy, hy)
+  %rw <- lift_v(one, h1, y, par, hy, hp)
+  dif_v(one, h1, x, P.lift_y(y, par), Nat.is_eq(FS.mmul(FS.prime(one), FS.value(one, y), FS.value(one, y)), FS.value(one, r)))
+
 def decompress_v(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +par: Nat, +hx: {PT.red(one, x) == True{} : Bool}, +hp: {Nat.is_lt(par, 2n) == True{} : Bool}) -> {mpv(one, P.decompress(x, par)) == CV.decompress(FS.prime(one), FS.value(one, x), par) : Maybe<&2, CV.SPoint>}:
   +hr = rhs_r(one, h1, x, hx)
   +hy = FP.sqrt_r(one, h1, P.rhs(x), hr)
-  +hs = FO.mul_r(one, h1, F.sqrt(P.rhs(x)), F.sqrt(P.rhs(x)), hy, hy)
   %goal {mpv(one, P.decompress_if(x, P.lift_y(F.sqrt(P.rhs(x)), par), F.eq(F.mul(F.sqrt(P.rhs(x)), F.sqrt(P.rhs(x))), P.rhs(x)))) == CV.decompress_if(FS.value(one, x), CV.pick_parity(FS.prime(one), FS.fsqrt(FS.prime(one), CV.rhs(FS.prime(one), FS.value(one, x))), par), Nat.is_eq(FS.mmul(FS.prime(one), FS.fsqrt(FS.prime(one), CV.rhs(FS.prime(one), FS.value(one, x))), FS.fsqrt(FS.prime(one), CV.rhs(FS.prime(one), FS.value(one, x)))), CV.rhs(FS.prime(one), FS.value(one, x)))) : Maybe<&2, CV.SPoint>}
-  %rw FW.eq_f(one, h1, F.mul(F.sqrt(P.rhs(x)), F.sqrt(P.rhs(x))), P.rhs(x), PM.l16(one, F.mul(F.sqrt(P.rhs(x)), F.sqrt(P.rhs(x))), hs), PM.l16(one, P.rhs(x), hr))
-  %rw FO.mul_v(one, h1, F.sqrt(P.rhs(x)), F.sqrt(P.rhs(x)), hy, hy)
   %rw <- rhs_v(one, h1, x, hx)
   %rw <- rhs_v(one, h1, x, hx)
   %rw <- rhs_v(one, h1, x, hx)
@@ -200,8 +202,7 @@ def decompress_v(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +par: Nat
   %rw <- FP.sqrt_v(one, h1, P.rhs(x), hr)
   %rw <- FP.sqrt_v(one, h1, P.rhs(x), hr)
   %rw <- FP.sqrt_v(one, h1, P.rhs(x), hr)
-  %rw <- lift_v(one, h1, F.sqrt(P.rhs(x)), par, hy, hp)
-  dif_v(one, h1, x, P.lift_y(F.sqrt(P.rhs(x)), par), Nat.is_eq(FS.mmul(FS.prime(one), FS.value(one, F.sqrt(P.rhs(x))), FS.value(one, F.sqrt(P.rhs(x)))), FS.value(one, P.rhs(x))))
+  dy(one, h1, x, P.rhs(x), F.sqrt(P.rhs(x)), par, hr, hy, hp)
 
 def decompress_r(+one: Nat, +h1: {one == 1n : Nat}, +x: List<&2, Nat>, +par: Nat, +hx: {PT.red(one, x) == True{} : Bool}, +hp: {Nat.is_lt(par, 2n) == True{} : Bool}) -> {mpred(one, P.decompress(x, par)) == True{} : Bool}:
   +hy = FP.sqrt_r(one, h1, P.rhs(x), rhs_r(one, h1, x, hx))

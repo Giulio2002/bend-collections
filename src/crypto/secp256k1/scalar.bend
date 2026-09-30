@@ -11,8 +11,11 @@ import ./limbs.bend as L
 def c() -> List<&2, Nat>:
   [48831n, 12233n, 41331n, 16429n, 24516n, 20663n, 8985n, 17745n, 1n]
 
-def reduce(xs: List<&2, Nat>) -> List<&2, Nat>:
+def reduce_u(xs: List<&2, Nat>) -> List<&2, Nat>:
   L.reduce(c(), 4n, xs)
+
+def reduce(xs: List<&2, Nat>) -> List<&2, Nat>:
+  reduce_u(xs)
 
 def zero() -> List<&2, Nat>:
   L.norm16([])
@@ -23,14 +26,38 @@ def small(+k: Nat) -> List<&2, Nat>:
 def one() -> List<&2, Nat>:
   small(1n)
 
+def add_u(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
+  reduce_u(L.add(a, b))
+
+def add_b(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
+  match b:
+    case Nil{}: add_u(a, Nil{})
+    case y <> u: add_u(a, y <> u)
+
 def add(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
-  reduce(L.add(a, b))
+  match a:
+    case Nil{}: add_b(Nil{}, b)
+    case x <> t: add_b(x <> t, b)
 
+def neg_u(a: List<&2, Nat>) -> List<&2, Nat>:
+  reduce_u(L.neg_raw(c(), a))
+
+# (one argument: nothing to look at first)
 def neg(a: List<&2, Nat>) -> List<&2, Nat>:
-  reduce(L.neg_raw(c(), a))
+  neg_u(a)
 
-def mul(a: List<&2, Nat>, +b: List<&2, Nat>) -> List<&2, Nat>:
-  reduce(L.conv(a, b))
+def mul_u(a: List<&2, Nat>, +b: List<&2, Nat>) -> List<&2, Nat>:
+  reduce_u(L.conv(a, b))
+
+def mul_b(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
+  match b:
+    case Nil{}: mul_u(a, Nil{})
+    case y <> u: mul_u(a, y <> u)
+
+def mul(a: List<&2, Nat>, b: List<&2, Nat>) -> List<&2, Nat>:
+  match a:
+    case Nil{}: mul_b(Nil{}, b)
+    case x <> t: mul_b(x <> t, b)
 
 def pow_step(b: Nat, +x: List<&2, Nat>, +s: List<&2, Nat>) -> List<&2, Nat>:
   match b:
@@ -59,8 +86,15 @@ def inv(+a: List<&2, Nat>) -> List<&2, Nat>:
 def is_zero(a: List<&2, Nat>) -> Bool:
   L.is_zero(a)
 
+def eq_b(a: List<&2, Nat>, b: List<&2, Nat>) -> Bool:
+  match b:
+    case Nil{}: L.eq(a, Nil{})
+    case y <> u: L.eq(a, y <> u)
+
 def eq(a: List<&2, Nat>, b: List<&2, Nat>) -> Bool:
-  L.eq(a, b)
+  match a:
+    case Nil{}: eq_b(Nil{}, b)
+    case x <> t: eq_b(x <> t, b)
 
 # a < n, for 16 limbs below 2^16
 def lt_n(a: List<&2, Nat>) -> Bool:
