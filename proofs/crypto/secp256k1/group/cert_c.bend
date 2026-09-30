@@ -3,8 +3,8 @@ import Base
 import ./bn.bend as B
 import ./bnx.bend as X
 import ./certl.bend as CL
-import ./prime.bend as PM
-import ./ntpock.bend as PK
+import ../../../math/number/nt_prime.bend as PM
+import ../../../math/number/nt_pock.bend as PK
 
 # Pocklington certificate: (p - 7)^((p - 1) / 3) mod p
 # Every literal below (quotients and remainders of each squaring, bases,
