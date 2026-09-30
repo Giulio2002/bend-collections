@@ -11,7 +11,7 @@ import ./pmul.bend as PM
 import ./paff.bend as PA
 import ./penc.bend as PE
 import ./blist.bend as BL
-import ./pscal.bend as SQ
+import ./pok.bend as SQ
 
 # Scalars from bytes and public keys of src/crypto/secp256k1/ecdsa.bend
 # against spec/crypto/secp256k1/ecdsa.bend.

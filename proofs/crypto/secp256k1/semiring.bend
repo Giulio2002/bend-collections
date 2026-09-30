@@ -1,7 +1,7 @@
 import Base
 import ../../../spec/lib/common.bend as C
-import ../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../math/typed/width.bend as WW
+import ./lite/lib/lemmas/proofs/nat_algebra.bend as NA
+import ./lite/math/typed/width.bend as WW
 
 # The few semiring facts the rewrite generator (tools/generators/rw.py,
 # %norm) uses besides nat_algebra and width.
