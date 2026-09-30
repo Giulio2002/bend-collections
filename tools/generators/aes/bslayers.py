@@ -113,7 +113,7 @@ def layer_lemmas():
     # ---- SubBytes
     Lw, Rw, Pw = [], [], []
     for i in range(8):
-        L = ['Y.sf%d(%s)' % (i, ', '.join(dbit(bytes_at(p), k) for k in range(8))) for p in N32]
+        L = ['Y.sb%d(%s)' % (i, bytes_at(p)) for p in N32]
         R = ['D.bit(SB.sbox(%s), %dn)' % (bytes_at(p), i) for p in N32]
         P = ['Y.sbox_bit%d(%s)' % (i, bytes_at(p)) for p in N32]
         Lw.append(word(L))
@@ -138,11 +138,8 @@ def layer_lemmas():
         for p in N32:
             blk, col, row = pos_byte(p)
             u = ['%s%d' % ('ab'[blk], 4 * col + r) for r in range(4)]
-            L.append(show(Mx[j][p]))
-            e = ROW_EXPR[row]
-            for r in range(4):
-                e = e.replace('u%d' % r, u[r])
-            R.append('D.bit(%s, %dn)' % (e, j))
+            L.append('M.mixL%d_%d(%s)' % (row, j, ', '.join(u)))
+            R.append('M.mixR%d_%d(%s)' % (row, j, ', '.join(u)))
             P.append('M.mix%d_%d(%s)' % (row, j, ', '.join(u)))
         Lw.append(word(L))
         Rw.append(word(R))
@@ -156,7 +153,7 @@ def layer_lemmas():
         for p in N32:
             blk, col, row = pos_byte(p)
             t, kk = bytes_at(p), 'k%d' % (4 * col + row)
-            L.append('Bool.xor(%s, %s)' % (dbit(t, i), dbit(kk, i)))
+            L.append('Y.xl%d(%s, %s)' % (i, t, kk))
             R.append('D.bit(U32.xor(%s, %s), %dn)' % (t, kk, i))
             P.append('Y.xor_bit%d(%s, %s)' % (i, t, kk))
         Lw.append(word(L))

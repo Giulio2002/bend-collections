@@ -150,49 +150,66 @@ def st(c):
     return 'A.encrypt_state(%s, G.counter(%s, %s))' % (S, Q, c)
 
 
+ARGS = 'nr, ks, q0, q1, q2'
+XARGS = 'nr, ks, q0, q1, q2, hh, lens, j0'
+HELP_T = '+nr: Nat, +ks: List<&2, T.State>, +q0: T.Quad, +q1: T.Quad, +q2: T.Quad'
+XHELP_T = HELP_T + ', ' + CTXP
+
+
+def helpers():
+    return ['# Shorthands (they unfold to the terms of fast.bend and gcm.bend).',
+            'def ks2(%s, +c: U32) -> %s:' % (HELP_T, LU), '  List.append(&2, U32, %s, %s)' % (KS('c'), KS('U32.inc(c)')), '',
+            'def gc(%s, +xs: %s, +c: U32) -> %s:' % (HELP_T, LU, LU), '  G.gctr(%s, xs, %s, c)' % (S, Q), '',
+            'def xc(%s) -> F.Ctx:' % XHELP_T, '  %s' % X, '',
+            'def fin(%s, +ct: %s, +y: G.Block) -> %s:' % (XHELP_T, LU, LU), '  F.finish(xc(%s), F.ghash(hh, ct, y))' % XARGS, '']
+
+
+def GCx(xs, c):
+    return 'gc(%s, %s, %s)' % (ARGS, xs, c)
+
+
+def FINx(ct, y):
+    return 'fin(%s, %s, %s)' % (XARGS, ct, y)
+
+
+HOX = '+ho: {F.stream(o) == ks2(%s, c) : %s}' % (ARGS, LU)
+
+
 def seal_body():
-    gc = lambda xs, c: 'G.gctr(%s, %s, %s, %s)' % (S, xs, Q, c)
-    fin = lambda ct, y: 'F.finish(%s, F.ghash(%s, %s, %s))' % (X, PW, ct, y)
     cc = 'U32.inc(U32.inc(c))'
-    HO = '+ho: {F.stream(o) == List.append(&2, U32, %s, %s) : %s}' % (KS('c'), KS('U32.inc(c)'), LU)
-    goal = lambda xs, oo='o': '{F.seal_body(%s, %s, c, y, %s) == List.append(&2, U32, %s, %s) : %s}' % (X, xs, oo, gc(xs, 'c'), fin(gc(xs, 'c'), 'y'), LU)
-    out = ['# The one-pass loop: ciphertext of the rest, then the tag.',
-           'def seal_body_ok(%s, %s, +xs: %s, +c: U32, +y: G.Block, +o: F.Out, %s) -> %s:' % (COMMON, CTXP, LU, HO, goal('xs')),
-           '  match xs:']
-    # 32+
-    E = ['U32.xor(%s, %s)' % (X32[t], ks_byte(t)) for t in range(32)]
-    R = gc('rest', cc)
-    y2 = 'F.absorb(%s, F.absorb(%s, y, %s), %s)' % (PW, PW, ', '.join(E[:16]), ', '.join(E[16:]))
+    out = ['# The last bytes of a message (fewer than 32).',
+           'def seal_tail_ok(%s, %s, +l: %s, +c: U32, +y: G.Block, +o: F.Out, %s, +hl: {Nat.is_lt(List.length(&2, U32, l), 32n) == True{} : Bool}) -> {F.seal_tail(xc(%s), F.xor_into(l, F.stream(o), Nil{}), y) == List.append(&2, U32, %s, %s) : %s}:' % (
+               COMMON, CTXP, LU, HOX, XARGS, GCx('l', 'c'), FINx(GCx('l', 'c'), 'y'), LU),
+           '  %%Equal.sym(%s, %s, F.xor_into(l, ks2(%s, c), Nil{}), short_gctr(%s, l, c, hl)) : {F.seal_tail(xc(%s), F.xor_into(l, F.stream(o), Nil{}), y) == List.append(&2, U32, _, %s) : %s}' % (
+               LU, GCx('l', 'c'), ARGS, COMMON_ARGS, XARGS, FINx('_', 'y'), LU),
+           '  %%ho : {F.seal_tail(xc(%s), F.xor_into(l, F.stream(o), Nil{}), y) == List.append(&2, U32, F.xor_into(l, _, Nil{}), %s) : %s}' % (
+               XARGS, FINx('F.xor_into(l, _, Nil{})', 'y'), LU),
+           '  {==}', '']
+    goal = lambda xs: '{F.seal_body(xc(%s), %s, c, y, o) == List.append(&2, U32, %s, %s) : %s}' % (XARGS, xs, GCx(xs, 'c'), FINx(GCx(xs, 'c'), 'y'), LU)
+    out += ['# The one-pass loop: ciphertext of the rest, then the tag.',
+            'def seal_body_ok(%s, %s, +xs: %s, +c: U32, +y: G.Block, +o: F.Out, %s) -> %s:' % (COMMON, CTXP, LU, HOX, goal('xs')),
+            '  match xs:']
+    R = GCx('rest', cc)
     xin = lambda K, r: 'F.xor_into(%s, %s, %s)' % (L(X32), K, r)
-    KK = 'List.append(&2, U32, %s, %s)' % (KS('c'), KS('U32.inc(c)'))
-    out += ['    case %s:' % cons(X32, 'rest'),
-            '      match o:', '        case %s:' % OUTPAT]
-    lhs_goal = 'F.seal_body(%s, %s, c, y, %s)' % (X, cons(X32, 'rest'), OUTPAT)
-    # rewrite old gctr (both occurrences) into xor_into with the keystream
+    E = ['U32.xor(%s, %s)' % (X32[t], ks_byte(t)) for t in range(32)]
+    y2 = 'F.absorb(hh, F.absorb(hh, y, %s), %s)' % (', '.join(E[:16]), ', '.join(E[16:]))
     old_ct = 'List.append(&2, U32, G.xor_bytes(%s, %s), List.append(&2, U32, G.xor_bytes(%s, %s), %s))' % (L(X32[:16]), KS('c'), L(X32[16:]), KS('U32.inc(c)'), R)
-    out.append('          %%Equal.sym(%s, %s, %s, og32(%s, %s, %s, %s)) : {%s == List.append(&2, U32, _, %s) : %s}' % (
-        LU, old_ct, xin(KK, R), ', '.join(X32), R, st('c'), st('U32.inc(c)'), lhs_goal, fin('_', 'y'), LU))
-    out.append('          %%ho : {%s == List.append(&2, U32, %s, %s) : %s}' % (lhs_goal, xin('_', R), fin(xin('_', R), 'y'), LU))
-    # now: e0 <> ... <> seal_body(rest ...) == e0 <> ... <> append(R, finish(ghash(R, y2)))
+    lhs_goal = 'F.seal_body(xc(%s), %s, c, y, %s)' % (XARGS, cons(X32, 'rest'), OUTPAT)
+    SO = 'F.stream(%s)' % OUTPAT
     ih = 'seal_body_ok(%s, hh, lens, j0, rest, %s, %s, F.ctr2(%s, %s, %s), ctr_ok(%s, %s))' % (COMMON_ARGS, cc, y2, KEYS, NON, cc, COMMON_ARGS, cc)
-    ih_l = 'F.seal_body(%s, rest, %s, %s, F.ctr2(%s, %s, %s))' % (X, cc, y2, KEYS, NON, cc)
-    ih_r = 'List.append(&2, U32, %s, %s)' % (R, fin(R, y2))
-    out.append('          %%Equal.sym(%s, %s, %s, %s) : {%s == %s : %s}' % (LU, ih_l, ih_r, ih, cons(E, '_'), cons(E, ih_r), LU))
-    out.append('          {==}')
-    out += ['    case Nil{}:', '      {==}']
+    ih_l = 'F.seal_body(xc(%s), rest, %s, %s, F.ctr2(%s, %s, %s))' % (XARGS, cc, y2, KEYS, NON, cc)
+    ih_r = 'List.append(&2, U32, %s, %s)' % (R, FINx(R, y2))
+    out += ['    case %s:' % cons(X32, 'rest'),
+            '      match o:', '        case %s:' % OUTPAT,
+            '          %%Equal.sym(%s, %s, %s, og32(%s, %s, %s, %s)) : {%s == List.append(&2, U32, _, %s) : %s}' % (
+                LU, old_ct, xin('ks2(%s, c)' % ARGS, R), ', '.join(X32), R, st('c'), st('U32.inc(c)'), lhs_goal, FINx('_', 'y'), LU),
+            '          %%ho : {%s == List.append(&2, U32, %s, %s) : %s}' % (lhs_goal, xin('_', R), FINx(xin('_', R), 'y'), LU),
+            '          %%Equal.sym(%s, %s, %s, %s) : {%s == %s : %s}' % (LU, ih_l, ih_r, ih, xin(SO, '_'), xin(SO, ih_r), LU),
+            '          {==}',
+            '    case Nil{}:', '      {==}']
     for k in range(1, 32):
-        xs = X32[:k]
-        if k < 16:
-            old = 'G.xor_bytes(%s, %s)' % (L(xs), KS('c'))
-        else:
-            old = 'List.append(&2, U32, G.xor_bytes(%s, %s), G.xor_bytes(%s, %s))' % (L(X32[:16]), KS('c'), L(X32[16:k]), KS('U32.inc(c)'))
-        new = lambda K: 'F.xor_into(%s, %s, Nil{})' % (L(xs), K)
-        g = 'F.seal_body(%s, %s, c, y, o)' % (X, cons(xs, 'Nil{}'))
-        out += ['    case %s:' % cons(xs, 'Nil{}'),
-                '      %%Equal.sym(%s, %s, %s, short%d(%s, %s, %s)) : {%s == List.append(&2, U32, _, %s) : %s}' % (
-                    LU, old, new(KK), k, ', '.join(xs), st('c'), st('U32.inc(c)'), g, fin('_', 'y'), LU),
-                '      %%ho : {%s == List.append(&2, U32, %s, %s) : %s}' % (g, new('_'), fin(new('_'), 'y'), LU),
-                '      {==}']
+        xs = cons(X32[:k], 'Nil{}')
+        out += ['    case %s:' % xs, '      seal_tail_ok(%s, hh, lens, j0, %s, c, y, o, ho, {==})' % (COMMON_ARGS, xs)]
     return out + ['']
 
 
@@ -263,7 +280,7 @@ def tag_lemmas():
     return out
 
 
-def open_lemmas():
+def open_short():
     out = []
     gc = lambda xs, c: 'G.gctr(%s, %s, %s, %s)' % (S, xs, Q, c)
     KK = 'List.append(&2, U32, %s, %s)' % (KS('c'), KS('U32.inc(c)'))
@@ -283,52 +300,52 @@ def open_lemmas():
             '    case Nil{} 1n+p:', '      Empty.absurd({0n == 1n+p : Nat}, LG.false_true(hk))',
             '    case x <> t 0n:', '      {==}',
             '    case x <> t 1n+p:', '      N.succ_cong(List.length(&2, U32, List.take(&2, U32, t, p)), p, take_len(t, p, hk))', '']
-    HO = '+ho: {F.stream(o) == %s : %s}' % (KK, LU)
-    fin = lambda tk, y: 'F.finish(%s, F.ghash(%s, %s, %s))' % (X, PW, tk, y)
-    rhs = lambda xs, m, y='y': 'F.Opened{%s, Subtle.eq(List.drop(&2, U32, %s, %s), %s)}' % (gc('List.take(&2, U32, %s, %s)' % (xs, m), 'c'), xs, m, fin('List.take(&2, U32, %s, %s)' % (xs, m), y))
-    goal = lambda m, xs, oo='o': '{F.open_body(%s, %s, %s, c, y, %s) == %s : F.Opened}' % (X, m, xs, oo, rhs(xs, m))
+    return out
+
+
+def open_lemmas():
+    out = []
+    out += ['# The last bytes of the ciphertext (fewer than 32) and the tag.',
+            'def open_tail_ok(%s, %s, +l: %s, +t: %s, +c: U32, +y: G.Block, +o: F.Out, %s, +hl: {Nat.is_lt(List.length(&2, U32, l), 32n) == True{} : Bool}) -> {F.open_tail(xc(%s), l, t, y, o) == F.Opened{%s, Subtle.eq(t, %s)} : F.Opened}:' % (
+                COMMON, CTXP, LU, LU, HOX, XARGS, GCx('l', 'c'), FINx('l', 'y')),
+            '  %%Equal.sym(%s, %s, F.xor_into(l, ks2(%s, c), Nil{}), short_gctr(%s, l, c, hl)) : {F.open_tail(xc(%s), l, t, y, o) == F.Opened{_, Subtle.eq(t, %s)} : F.Opened}' % (
+                LU, GCx('l', 'c'), ARGS, COMMON_ARGS, XARGS, FINx('l', 'y')),
+            '  %%ho : {F.open_tail(xc(%s), l, t, y, o) == F.Opened{F.xor_into(l, _, Nil{}), Subtle.eq(t, %s)} : F.Opened}' % (XARGS, FINx('l', 'y')),
+            '  {==}', '']
+    rhs = lambda xs, m: 'F.Opened{%s, Subtle.eq(List.drop(&2, U32, %s, %s), %s)}' % (GCx('List.take(&2, U32, %s, %s)' % (xs, m), 'c'), xs, m, FINx('List.take(&2, U32, %s, %s)' % (xs, m), 'y'))
     out += ['# The one-pass loop of decryption.',
-            'def open_body_ok(%s, %s, +m: Nat, +xs: %s, +c: U32, +y: G.Block, +o: F.Out, %s) -> %s:' % (COMMON, CTXP, LU, HO, goal('m', 'xs')),
+            'def open_body_ok(%s, %s, +m: Nat, +xs: %s, +c: U32, +y: G.Block, +o: F.Out, %s) -> {F.open_body(xc(%s), m, xs, c, y, o) == %s : F.Opened}:' % (
+                COMMON, CTXP, LU, HOX, XARGS, rhs('xs', 'm')),
             '  match m xs:']
-    # m < 32, any xs
     for k in range(32):
         tk = 'List.take(&2, U32, xs, %dn)' % k
-        g = 'F.open_body(%s, %dn, xs, c, y, o)' % (X, k)
         hl = 'N.le_lt_trans(List.length(&2, U32, %s), %dn, 32n, take_le(xs, %dn), {==})' % (tk, k, k)
         out += ['    case %dn _:' % k,
-                '      %%Equal.sym(%s, %s, F.xor_into(%s, %s, Nil{}), short_gctr(%s, %s, c, %s)) : {%s == F.Opened{_, Subtle.eq(List.drop(&2, U32, xs, %dn), %s)} : F.Opened}' % (LU, gc(tk, 'c'), tk, KK, COMMON_ARGS, tk, hl, g, k, fin(tk, 'y')),
-                '      %%ho : {%s == F.Opened{F.xor_into(%s, _, Nil{}), Subtle.eq(List.drop(&2, U32, xs, %dn), %s)} : F.Opened}' % (g, tk, k, fin(tk, 'y')),
-                '      {==}']
-    # m = 32 + p, short lists
+                '      open_tail_ok(%s, hh, lens, j0, %s, List.drop(&2, U32, xs, %dn), c, y, o, ho, %s)' % (COMMON_ARGS, tk, k, hl)]
     for k in range(32):
-        xs = X32[:k]
-        l = cons(xs, 'Nil{}')
-        g = 'F.open_body(%s, 32n+p, %s, c, y, o)' % (X, l)
+        l = cons(X32[:k], 'Nil{}')
         out += ['    case 32n+p %s:' % l,
-                '      %%Equal.sym(%s, %s, F.xor_into(%s, %s, Nil{}), short_gctr(%s, %s, c, {==})) : {%s == F.Opened{_, Subtle.eq(Nil{}, %s)} : F.Opened}' % (LU, gc(l, 'c'), l, KK, COMMON_ARGS, l, g, fin(l, 'y')),
-                '      %%ho : {%s == F.Opened{F.xor_into(%s, _, Nil{}), Subtle.eq(Nil{}, %s)} : F.Opened}' % (g, l, fin(l, 'y')),
-                '      {==}']
-    # main
-    E = ['U32.xor(%s, %s)' % (X32[t], ks_byte(t)) for t in range(32)]
+                '      open_tail_ok(%s, hh, lens, j0, %s, Nil{}, c, y, o, ho, {==})' % (COMMON_ARGS, l)]
     cc = 'U32.inc(U32.inc(c))'
     tr = 'List.take(&2, U32, rest, p)'
-    R = gc(tr, cc)
-    y2 = 'F.absorb(%s, F.absorb(%s, y, %s), %s)' % (PW, PW, ', '.join(X32[:16]), ', '.join(X32[16:]))
+    R = GCx(tr, cc)
+    E = ['U32.xor(%s, %s)' % (X32[t], ks_byte(t)) for t in range(32)]
+    y2 = 'F.absorb(hh, F.absorb(hh, y, %s), %s)' % (', '.join(X32[:16]), ', '.join(X32[16:]))
     old_ct = 'List.append(&2, U32, G.xor_bytes(%s, %s), List.append(&2, U32, G.xor_bytes(%s, %s), %s))' % (L(X32[:16]), KS('c'), L(X32[16:]), KS('U32.inc(c)'), R)
     xin = lambda K: 'F.xor_into(%s, %s, %s)' % (L(X32), K, R)
     xs_full = cons(X32, 'rest')
-    g = 'F.open_body(%s, 32n+p, %s, c, y, %s)' % (X, xs_full, OUTPAT)
-    tail_eq = 'Subtle.eq(List.drop(&2, U32, rest, p), %s)' % fin(tr, y2)
+    g = 'F.open_body(xc(%s), 32n+p, %s, c, y, %s)' % (XARGS, xs_full, OUTPAT)
+    tail_eq = 'Subtle.eq(List.drop(&2, U32, rest, p), %s)' % FINx(tr, y2)
     ih = 'open_body_ok(%s, hh, lens, j0, p, rest, %s, %s, F.ctr2(%s, %s, %s), ctr_ok(%s, %s))' % (COMMON_ARGS, cc, y2, KEYS, NON, cc, COMMON_ARGS, cc)
-    ih_l = 'F.open_body(%s, p, rest, %s, %s, F.ctr2(%s, %s, %s))' % (X, cc, y2, KEYS, NON, cc)
+    ih_l = 'F.open_body(xc(%s), p, rest, %s, %s, F.ctr2(%s, %s, %s))' % (XARGS, cc, y2, KEYS, NON, cc)
     ih_r = 'F.Opened{%s, %s}' % (R, tail_eq)
     out += ['    case 32n+p %s:' % xs_full,
             '      match o:', '        case %s:' % OUTPAT,
             '          %%Equal.sym(%s, %s, %s, og32(%s, %s, %s, %s)) : {%s == F.Opened{_, %s} : F.Opened}' % (
-                LU, old_ct, xin(KK), ', '.join(X32), R, st('c'), st('U32.inc(c)'), g, tail_eq),
+                LU, old_ct, xin('ks2(%s, c)' % ARGS), ', '.join(X32), R, st('c'), st('U32.inc(c)'), g, tail_eq),
             '          %%ho : {%s == F.Opened{%s, %s} : F.Opened}' % (g, xin('_'), tail_eq),
             '          %%Equal.sym(F.Opened, %s, %s, %s) : {F.prepend32(%s, _) == F.Opened{%s, %s} : F.Opened}' % (
-                ih_l, ih_r, ih, ', '.join(E), cons(E, R), tail_eq),
+                ih_l, ih_r, ih, ', '.join(E), xin('F.stream(%s)' % OUTPAT), tail_eq),
             '          {==}', '']
     return out
 
@@ -391,7 +408,7 @@ def top_lemmas():
 
 def main_all2():
     OUT.mkdir(parents=True, exist_ok=True)
-    out = head() + ghash_list() + small() + xor_lemmas() + seal_body() + tag_lemmas() + open_lemmas() + top_lemmas()
+    out = head() + helpers() + ghash_list() + small() + xor_lemmas() + open_short() + seal_body() + tag_lemmas() + open_lemmas() + top_lemmas()
     (OUT / 'gcm.bend').write_text('\n'.join(out))
 
 
