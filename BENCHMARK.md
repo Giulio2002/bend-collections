@@ -82,8 +82,8 @@ constant-time C). Hash map vs Base.Map compares two Bend structures and is not l
 | Tree map | 26.52 |
 | Bitset | 3.32 |
 | Bit list | 5.66 |
-| Hash map | 13.02 |
-| LRU cache | 10.65 |
+| Hash map | 9.64 |
+| LRU cache | 8.75 |
 
 ## Hashes
 
@@ -995,22 +995,27 @@ Worst ratio 5.66.
 
 ### Hash map
 
-Worst ratio 13.02.
+Worst ratio 9.64.
+
+
+The keyed rows (set, get, has, pop) use the one-character key API
+(`set_char`, `get_char`, `has_char`, `pop_char`: the key by its code, as C
+takes the integer; each is proved equal to its String-keyed operation).
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
-| set | small | 9.57 | 2.24 | 4.27 |
-| set | medium | 10.5 | 2.26 | 4.63 |
-| set | large | 13.3 | 2.75 | 4.86 |
-| get | small | 14.8 | 1.54 | 9.59 |
-| get | medium | 14.1 | 1.35 | 10.41 |
-| get | large | 20.8 | 1.60 | 13.02 |
-| has | small | 9.92 | 1.26 | 7.86 |
-| has | medium | 8.82 | 1.27 | 6.97 |
-| has | large | 10.8 | 1.46 | 7.42 |
-| pop | small | 25.1 | 2.75 | 9.14 |
-| pop | medium | 29.7 | 2.71 | 10.94 |
-| pop | large | 36.3 | 3.40 | 10.68 |
+| set | small | 8.30 | 2.27 | 3.66 |
+| set | medium | 9.10 | 2.63 | 3.46 |
+| set | large | 11.6 | 2.69 | 4.32 |
+| get | small | 10.7 | 1.51 | 7.09 |
+| get | medium | 9.80 | 1.36 | 7.21 |
+| get | large | 13.1 | 1.55 | 8.42 |
+| has | small | 8.24 | 1.28 | 6.44 |
+| has | medium | 7.25 | 1.27 | 5.71 |
+| has | large | 8.75 | 1.46 | 5.99 |
+| pop | small | 22.6 | 2.78 | 8.11 |
+| pop | medium | 26.8 | 2.78 | 9.64 |
+| pop | large | 32.5 | 3.82 | 8.52 |
 | size | small | 1.00 | 2.41 | 0.41 |
 | size | medium | 1.00 | 2.47 | 0.40 |
 | size | large | 1.01 | 2.46 | 0.41 |
@@ -1023,7 +1028,11 @@ Worst ratio 13.02.
 
 ### LRU cache
 
-Worst ratio 10.65.
+Worst ratio 8.75.
+
+
+The contains row uses `contains_char` (the key by its code; proved equal to
+`contains` at the one-character key).
 
 | Operation | Size | Bend (ns) | C (ns) | Ratio |
 |---|---:|---:|---:|---:|
@@ -1036,9 +1045,9 @@ Worst ratio 10.65.
 | peek | small | 25.0 | 9.76 | 2.56 |
 | peek | medium | 26.5 | 9.73 | 2.72 |
 | peek | large | 42.9 | 22.1 | 1.94 |
-| contains | small | 15.4 | 1.55 | 9.95 |
-| contains | medium | 14.3 | 1.34 | 10.65 |
-| contains | large | 20.4 | 2.25 | 9.06 |
+| contains | small | 12.1 | 1.42 | 8.50 |
+| contains | medium | 11.0 | 1.26 | 8.75 |
+| contains | large | 13.6 | 2.00 | 6.79 |
 | remove | small | 36.4 | 12.4 | 2.94 |
 | remove | medium | 41.7 | 11.4 | 3.67 |
 | remove | large | 90.4 | 25.8 | 3.51 |
