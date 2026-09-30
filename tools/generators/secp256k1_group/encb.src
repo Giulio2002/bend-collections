@@ -1,0 +1,69 @@
+import Base
+import ../../../../spec/lib/common.bend as C
+import ../../../../spec/crypto/secp256k1/field.bend as FS
+import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
+import ../../../math/typed/width.bend as WW
+import ../semiring.bend as SR
+import ../../../lib/nat.bend as N
+import ../../../math/natural/arith.bend as NR
+import ./bn.bend as B
+import ./bnx.bend as X
+import ./certb.bend as CB
+import ./sqrt.bend as SQ
+
+# Closed facts about p = FS.prime(one) for the SEC 1 encodings: p + 1 == 4 s
+# (so p == 3 mod 4 and the square-root exponent (p + 1) / 4 is s), p is odd,
+# p <= 2^256. As in certb.bend, no 256-bit number is expanded.
+
+# (p + 1) / 4
+def s4l() -> B.Bn:
+  B.B0{B.B0{B.B1{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+
+# (p - 1) / 2
+def h2l() -> B.Bn:
+  B.B1{B.B1{B.B1{B.B0{B.B1{B.B0{B.B0{B.B0{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B0{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.B1{B.BZ{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+
+def v4() -> {B.bval(B.B0{B.B0{B.B1{B.BZ{}}}}) == 4n : Nat}:
+  {==}
+
+def v2() -> {B.bval(B.B0{B.B1{B.BZ{}}}) == 2n : Nat}:
+  {==}
+
+def p_q4_c() -> {B.beq(B.binc(CB.pl()), B.bmul(s4l(), B.B0{B.B0{B.B1{B.BZ{}}}})) == True{} : Bool}:
+  {==}
+
+def p_h2_c() -> {B.beq(CB.p1l(), B.bmul(h2l(), B.B0{B.B1{B.BZ{}}})) == True{} : Bool}:
+  {==}
+
+def p_odd_c() -> {Nat.is_lt(1n, 2n) == True{} : Bool}:
+  {==}
+
+# p + 1 == 4 s
+def p_q4(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.add(FS.prime(one), 1n) == Nat.mul(X.bvalo(one, s4l()), 4n) : Nat}:
+  %rw <- CB.p_is(one, h1)
+  %rw NA.add_comm(X.bvalo(one, CB.pl()), 1n)
+  %goal {1n+X.bvalo(one, CB.pl()) == Nat.mul(X.bvalo(one, s4l()), 4n) : Nat}
+  %rw <- X.inc_o(one, h1, CB.pl())
+  %rw X.eq_o(one, h1, B.binc(CB.pl()), B.bmul(s4l(), B.B0{B.B0{B.B1{B.BZ{}}}}), p_q4_c())
+  %rw X.mul_o(one, h1, s4l(), B.B0{B.B0{B.B1{B.BZ{}}}})
+  %rw X.lit_o(one, h1, B.B0{B.B0{B.B1{B.BZ{}}}}, 4n, v4())
+  %close
+
+# p - 1 == 2 h
+def p_h2(+one: Nat, +h1: {one == 1n : Nat}) -> {X.bvalo(one, CB.p1l()) == Nat.mul(X.bvalo(one, h2l()), 2n) : Nat}:
+  %rw X.eq_o(one, h1, CB.p1l(), B.bmul(h2l(), B.B0{B.B1{B.BZ{}}}), p_h2_c())
+  %rw X.mul_o(one, h1, h2l(), B.B0{B.B1{B.BZ{}}})
+  %rw X.lit_o(one, h1, B.B0{B.B1{B.BZ{}}}, 2n, v2())
+  %close
+
+# p is odd
+def p_odd(+one: Nat, +h1: {one == 1n : Nat}) -> {Nat.mod(FS.prime(one), 2n) == 1n : Nat}:
+  %rw CB.p_suc(one, h1)
+  %rw p_h2(one, h1)
+  %goal {Nat.mod(Nat.add(1n, Nat.mul(X.bvalo(one, h2l()), 2n)), 2n) == 1n : Nat}
+  %rw NA.add_comm(1n, Nat.mul(X.bvalo(one, h2l()), 2n))
+  NR.mod_of(X.bvalo(one, h2l()), 1n, 1n, p_odd_c())
+
+# p <= 2^256
+def p_le(+one: Nat) -> {Nat.is_le(FS.prime(one), C.shift(256n, one)) == True{} : Bool}:
+  SQ.sub_le(C.shift(256n, one), FS.cp(one))
