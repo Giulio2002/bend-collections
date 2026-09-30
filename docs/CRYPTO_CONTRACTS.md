@@ -262,8 +262,8 @@ spec's value through `R(x, a) := tight(x) ∧ value(x) ≡ a (mod p)`, the shape
 of Fiat-Crypto's and HACL*'s `feval`); exponentiation chains by the binary
 expansion of the exponent (`pow.bend`); the canonical form (`freeze.bend`,
 `canon.bend`). The root `proofs/crypto/curve25519/proof.bend` (field, X25519
-and key-exchange clauses) checks in 11 s at 436 MB peak (`bend-local`, the
-repository's Bend 2.0.32).
+and key-exchange clauses) checks in 6.4 s at 487 MB peak (project server,
+Bend 2.0.34).
 
 ## X25519 and key exchange: `src/crypto/curve25519/x25519.bend`, `src/crypto/kex.bend`
 
