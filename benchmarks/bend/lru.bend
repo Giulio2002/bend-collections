@@ -144,7 +144,7 @@ def fin_ct(+r: U32, c: U32, +o: U32, p: L.LRU<&2, U32> & Bool) -> St:
 def do_contains(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st
   +r = B.lcg(r0)
-  fin_ct(r, c, o, L.contains(&2, U32, f, key(draw(r, size)), now()))
+  fin_ct(r, c, o, L.contains_char(&2, U32, f, U32.add(draw(r, size), 65536), now()))
 
 def do_remove(st: St, +size: U32) -> St:
   S{r0, c, +o, f} = st

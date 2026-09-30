@@ -12,6 +12,10 @@ import ../math/hash.bend as HS
 #   size(a, V, m)               -> HashMap<a, V> & U32
 #   keys(a, V, m)               -> HashMap<a, V> & List<&2, String>   (bucket order)
 #
+# and, for the one-character key SCon{Chr{c}, SNil{}} given by its code c
+# (no String is built): set_char, get_char, has_char, pop_char, each equal to
+# its String-keyed operation at that key.
+#
 # The table owns arrays, so it is a Type and is threaded through every call.
 #
 # Layout:
@@ -454,6 +458,39 @@ def set(a, -V: Kind(a), m: HashMap<a, V>, key: String, x: V) -> HashMap<a, V>:
   HM{+n, +mask, +td, +fresh, +sz, +sd, +free, tab, ks, vs, nx} = m
   set_f(a, V, n, mask, td, fresh, sz, sd, free, vs, nx, x, probe(tab, ks, mask, key))
 
+# The one-character key c: probe answers it as probe(tab, ks, mask,
+# SCon{Chr{c}, SNil{}}) does.
+def probe_char(tab: Array<U32>, ks: Array<String>, +mask: U32, +c: U32) -> Found & U32:
+  probe_short(tab, ks, mask, c, U32.is_lt(c, tag()))
+
+# set_char's own copy of the insertion chain (see pop_char).
+def ins_free_c(a, -V: Kind(a), +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, tab: Array<U32>, ks: Array<String>, vs: Array<Maybe<a, V>>, +s: U32, +at: U32, +w: U32, key: String, x: V, r: Array<U32> & U32) -> HashMap<a, V>:
+  (nx, +nf) = r
+  ins_slot(a, V, n, mask, td, fresh, sz, sd, nf, tab, ks, vs, nx, s, at, w, key, x, U32.is_gt(U32.shl(U32.inc(n)), U32.inc(mask)))
+
+def ins_new_c(a, -V: Kind(a), +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, +free: U32, tab: Array<U32>, ks: Array<String>, vs: Array<Maybe<a, V>>, nx: Array<U32>, +at: U32, +w: U32, key: String, x: V, none: Bool) -> HashMap<a, V>:
+  match none:
+    case True{}:
+      ins_fresh(a, V, n, mask, td, fresh, sz, sd, tab, ks, vs, nx, at, w, key, x, U32.is_lt(fresh, sz))
+    case False{}:
+      ins_free_c(a, V, n, mask, td, fresh, sz, sd, tab, ks, vs, slot(free), at, w, key, x, Array.get(U32, nx, slot(free)))
+
+def set_hit_c(a, -V: Kind(a), +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, +free: U32, tab: Array<U32>, ks: Array<String>, vs: Array<Maybe<a, V>>, nx: Array<U32>, +at: U32, +l: U32, +w: U32, key: String, x: V, absent: Bool) -> HashMap<a, V>:
+  match absent:
+    case False{}:
+      HM{n, mask, td, fresh, sz, sd, free, tab, ks, Array.set(Maybe<a, V>, vs, slot(l), Some{x}), nx}
+    case True{}:
+      ins_new_c(a, V, n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx, at, w, key, x, U32.is_eq(free, 0))
+
+def set_f_c(a, -V: Kind(a), +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, +free: U32, vs: Array<Maybe<a, V>>, nx: Array<U32>, x: V, r: Found & U32) -> HashMap<a, V>:
+  (fd, +w) = r
+  FD{tab, ks, key, +at, +l} = fd
+  set_hit_c(a, V, n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx, at, l, w, key, x, U32.is_eq(l, 0))
+
+def set_char(a, -V: Kind(a), m: HashMap<a, V>, +c: U32, x: V) -> HashMap<a, V>:
+  HM{+n, +mask, +td, +fresh, +sz, +sd, +free, tab, ks, vs, nx} = m
+  set_f_c(a, V, n, mask, td, fresh, sz, sd, free, vs, nx, x, probe_char(tab, ks, mask, c))
+
 # ---- get / has ----
 
 def get_v(-V: Data, dflt: V, r: Array<Maybe<&2, V>> & Maybe<&2, V>) -> Array<Maybe<&2, V>> & V:
@@ -494,6 +531,14 @@ def has(a, -V: Kind(a), m: HashMap<a, V>, key: String) -> HashMap<a, V> & Bool:
   HM{+n, +mask, +td, +fresh, +sz, +sd, +free, tab, ks, vs, nx} = m
   has_f(a, V, n, mask, td, fresh, sz, sd, free, vs, nx, probe(tab, ks, mask, key))
 
+def get_char(-V: Data, dflt: V, m: HashMap<&2, V>, +c: U32) -> HashMap<&2, V> & V:
+  HM{+n, +mask, +td, +fresh, +sz, +sd, +free, tab, ks, vs, nx} = m
+  get_f(V, n, mask, td, fresh, sz, sd, free, vs, nx, dflt, probe_char(tab, ks, mask, c))
+
+def has_char(a, -V: Kind(a), m: HashMap<a, V>, +c: U32) -> HashMap<a, V> & Bool:
+  HM{+n, +mask, +td, +fresh, +sz, +sd, +free, tab, ks, vs, nx} = m
+  has_f(a, V, n, mask, td, fresh, sz, sd, free, vs, nx, probe_char(tab, ks, mask, c))
+
 # ---- pop / del ----
 
 def drop_key(ks: Array<String>, +s: U32, short: Bool) -> Array<String>:
@@ -523,6 +568,28 @@ def pop_f(a, -V: Kind(a), +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, 
 def pop(a, -V: Kind(a), m: HashMap<a, V>, key: String) -> HashMap<a, V> & Maybe<a, V>:
   HM{+n, +mask, +td, +fresh, +sz, +sd, +free, tab, ks, vs, nx} = m
   pop_f(a, V, n, mask, td, fresh, sz, sd, free, vs, nx, probe(tab, ks, mask, key))
+
+# pop_char's own copy of the pop chain (a def with two callers is not
+# inlined into either, which costs the one-character path a call).
+def pop_v_c(a, -V: Kind(a), +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, +free: U32, tab: Array<U32>, ks: Array<String>, nx: Array<U32>, +at: U32, +s: U32, +w: U32, r: Array<Maybe<a, V>> & Maybe<a, V>) -> HashMap<a, V> & Maybe<a, V>:
+  (vs, v) = r
+  (HM{U32.sub(n, 1), mask, td, fresh, sz, sd, link(s), del_at(tab, mask, at), drop_key(ks, s, is_short(w)), vs, Array.set(U32, nx, s, free)}, v)
+
+def pop_hit_c(a, -V: Kind(a), +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, +free: U32, tab: Array<U32>, ks: Array<String>, vs: Array<Maybe<a, V>>, nx: Array<U32>, +at: U32, +l: U32, +w: U32, absent: Bool) -> HashMap<a, V> & Maybe<a, V>:
+  match absent:
+    case True{}:
+      (HM{n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx}, None{})
+    case False{}:
+      pop_v_c(a, V, n, mask, td, fresh, sz, sd, free, tab, ks, nx, at, slot(l), w, Array.swap(Maybe<a, V>, vs, slot(l), None{}))
+
+def pop_f_c(a, -V: Kind(a), +n: U32, +mask: U32, +td: U32, +fresh: U32, +sz: U32, +sd: U32, +free: U32, vs: Array<Maybe<a, V>>, nx: Array<U32>, r: Found & U32) -> HashMap<a, V> & Maybe<a, V>:
+  (fd, +w) = r
+  FD{tab, ks, key, +at, +l} = fd
+  pop_hit_c(a, V, n, mask, td, fresh, sz, sd, free, tab, ks, vs, nx, at, l, w, U32.is_eq(l, 0))
+
+def pop_char(a, -V: Kind(a), m: HashMap<a, V>, +c: U32) -> HashMap<a, V> & Maybe<a, V>:
+  HM{+n, +mask, +td, +fresh, +sz, +sd, +free, tab, ks, vs, nx} = m
+  pop_f_c(a, V, n, mask, td, fresh, sz, sd, free, vs, nx, probe_char(tab, ks, mask, c))
 
 def del_drop(a, -V: Kind(a), r: HashMap<a, V> & Maybe<a, V>) -> HashMap<a, V>:
   (m, v) = r
