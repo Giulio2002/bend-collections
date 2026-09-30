@@ -21,8 +21,9 @@ Two strengths of evidence:
   `Clamp.agrees`). No holes, no axioms.
 - **stated + tested**: the clause is stated in the spec and exercised, not
   proved: `tools/check_generic.py` (every typed function against Python,
-  naming the clause of each case), `tools/check_f64.py` (the software
-  binary64 against the machine's doubles), `tools/check_f64_spec.py` (the
+  naming the clause of each case), `tools/check_f64.py` and
+  `tools/check_f64x.py` (the software binary64 against the machine's
+  doubles and CPython's math module), `tools/check_f64_spec.py` (the
   binary64 specification itself against the machine's doubles), and
   `proofs/math/typed/examples.bend`, where the proof checker evaluates the
   integer clauses and the instance laws at concrete U32 inputs (U64 values,
@@ -40,7 +41,7 @@ Two strengths of evidence:
 | `spec/math/generic.bend` (the templated functions per type) | 30 | proved: the 22 integer clauses at U32 and U64 (`proofs/math/typed/u32int.bend`, `u64int.bend`), the 8 float clauses at F32 and F64 (`float.bend`) |
 | `spec/math/instances.bend` (what each instance operation computes) | 17 | proved at U32 and U64 (`proofs/math/typed/u32laws.bend`, `u64laws.bend`) |
 | `spec/math/w64.bend` (U64 arithmetic) | 24 | proved (`proofs/math/typed/w64*.bend`) |
-| `spec/math/f64.bend` (software binary64) | 17 | proved (bit fields, order, `OfNat`, `Add`, `Sub`, `Mul`, `Div`, `Sqrt`; `proofs/math/typed/f64*.bend`); the reference itself tested against the machine |
+| `spec/math/f64.bend` (software binary64) | 45 | proved (bit fields, order, `OfNat`, `Add`, `Sub`, `Mul`, `Div`, `Sqrt`, and the 28 rounding / conversion / exponent / neighbour / remainder / closeness / ratio clauses; `proofs/math/typed/f64*.bend`); the reference itself tested against the machine |
 | `spec/math/random.bend` (Go's math/rand/v2: ChaCha8, PCG, bounded draws, shuffles, floats) | 18 | proved (`proofs/math/random/proof.bend`, `proof_draws.bend`, `proof_pcg.bend`, `proof_float.bend`); see [Random numbers](#random-numbers) |
 
 `src/math/num.bend` is the numeric interface's types; its laws are the
@@ -93,6 +94,13 @@ right-to-left binary exponentiation, the selections through the type's IEEE
 | `f64.bend` | add, sub, mul, div, sqrt | `Add.value`, `Sub.value`, `Mul.value`, `Div.value`, `Sqrt.value`: equal to `spec/math/f64.bend`'s exact-then-round reference | P (`f64addv.bend`, `f64mulv.bend`, `f64divc.bend`, `f64sqc.bend`) |
 | | lt, le, eq | `Lt.value`, `Le.value`, `Eq.value`: the extended-real order, false on NaN, +0 == -0 | P (`f64cmp.bend`) |
 | | neg, abs, copysign, classification, of_nat | `Neg.value`, `Abs.value`, `Copysign.value`, `IsNan.value`, `IsInf.value`, `IsFinite.value`, `IsZero.value`, `Signbit.value`, `OfNat.value` | P (`f64bits.bend`, `f64ofnat.bend`) |
+| | trunc, floor, ceil, round (ties to even) | `Trunc.value`, `Floor.value`, `Ceil.value`, `Round.value`: IEEE roundToIntegral of m 2^-k (the integer part, plus one by the direction's rule) | P (`f64rint.bend`) |
+| | to_u64, to_u32, floor_u64, ceil_u64, round_u64, of_u64, of_u32 | `ToU64.value`, `ToU32.value`, `FloorU64.value`, `CeilU64.value`, `RoundU64.value`, `OfU64.value`, `OfU32.value`: truncation toward zero as a checked unsigned integer (`BadDomain` for NaN, `Overflow` outside [0, 2^w)), the double nearest to an integer | P (`f64conv.bend`, `f64misc.bend`) |
+| | frexp, ldexp, ulp | `Frexp.value`, `Ldexp.value`, `Ulp.value`: significand scaled into [1/2, 1), x 2^e rounded once (overflow, gradual underflow), the weight of the last bit | P (`f64exp.bend`, `f64misc.bend`) |
+| | nextafter, fmin, fmax | `Nextafter.value`, `Fmin.value`, `Fmax.value`: one step of the magnitude bits toward y; IEEE minimumNumber / maximumNumber (NaN ignored, -0 < +0) | P (`f64next.bend`) |
+| | is_normal, is_subnormal, to_bits, of_bits64, is_integer | `IsNormal.value`, `IsSubnormal.value`, `Bits.value`, `Bits.roundtrip`, `Bits.inverse`, `IsInteger.value` | P (`f64misc.bend`, `f64next.bend`) |
+| | modf, fmod, remainder | `Modf.value`, `Fmod.value`, `Remainder.value`: exact, the remainder of the significands at their common scale (ten-bit long division, invariant r = N mod B and the quotient's parity) | P (`f64modf.bend`, `f64fmod.bend`) |
+| | isclose, as_integer_ratio | `IsClose.value` (CPython's algorithm on the proved operations), `AsIntegerRatio.value` (lowest terms, the denominator as a power of two) | P (`f64close.bend`, `f64ratio.bend`) |
 | `w64.bend` | mul32, add, sub, mul, div32, quot/rem, mulmod, isqrt, shifts, clz, comparisons | 24 clauses: each the Nat operation on the values modulo 2^64 | P (`w64*.bend`) |
 | `u64.bend` | is_zero, le_signed, add, neg, div_small, div_small_signed | `IsZero.value`, `LeSigned.value`, `Add.bits`, `Add.modular`, `Neg.bits`, `DivSmall.quotient`, `DivSmallSigned.quotient` | P |
 

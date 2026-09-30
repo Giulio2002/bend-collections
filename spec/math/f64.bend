@@ -2,6 +2,9 @@ import Base
 import ../lib/common.bend as C
 import ../../src/math/f64.bend as F
 import ../../src/math/natural.bend as M
+import ../../src/math/u64.bend as WU
+import ../../src/math/num.bend as N
+import ./w64.bend as SW
 
 # Specification of src/math/f64.bend: IEEE 754-2019 binary64 with round to
 # nearest, ties to even, written as Flocq writes it (Boldo & Melquiond,
@@ -16,12 +19,13 @@ import ../../src/math/natural.bend as M
 # number are NaN, x / 0 is a signed infinity, sqrt(-0) is -0, comparisons
 # are false on NaN and +0 == -0.
 #
-# STATED, TESTED, NOT PROVED: tools/check_f64.py tests the implementation
-# (Berkeley SoftFloat 3e's algorithms) against the machine's IEEE doubles on
-# random bit patterns (zeros, subnormals, infinities, NaNs, rounding ties),
-# and tools/check_f64_spec.py tests this reference itself against them
-# through a line-by-line mirror; neither is a proof that the implementation
-# equals the reference.
+# PROVED: every clause below is proved for every input in
+# proofs/math/typed/f64*.bend (no holes, no axioms). TESTED as well:
+# tools/check_f64.py and tools/check_f64x.py test the implementation
+# against the machine's IEEE doubles and CPython's math module on random bit
+# patterns (zeros, subnormals, infinities, NaNs, rounding ties, appendix A's
+# special values), and tools/check_f64_spec.py tests the arithmetic part of
+# this reference itself against them through a line-by-line mirror.
 #
 #   function            clauses
 #   add, sub            Add.value, Sub.value
@@ -32,6 +36,28 @@ import ../../src/math/natural.bend as M
 #   is_finite, is_zero, IsZero.value, Signbit.value
 #   signbit
 #   of_nat              OfNat.value
+#
+# Rounding, conversions and the rest of the design reference's float
+# foundation (python_style_math_stdlib_design.pdf 3.1, 3.3, 4.3, 4.4, 10 and
+# appendix A; IEEE 754-2019 5.3.1, 5.3.3, 5.8, 9.6; C99 annex F):
+#
+#   trunc, floor, ceil, round   Trunc.value, Floor.value, Ceil.value,
+#                               Round.value (roundToIntegral, ties to even)
+#   to_u64, to_u32              ToU64.value, ToU32.value
+#   floor_u64, ceil_u64,        FloorU64.value, CeilU64.value,
+#   round_u64                   RoundU64.value
+#   of_u64, of_u32              OfU64.value, OfU32.value
+#   frexp, ldexp, ulp           Frexp.value, Ldexp.value, Ulp.value
+#   nextafter                   Nextafter.value
+#   fmin, fmax                  Fmin.value, Fmax.value (minimumNumber,
+#                               maximumNumber)
+#   is_normal, is_subnormal     IsNormal.value, IsSubnormal.value
+#   to_bits, of_bits64          Bits.value, Bits.roundtrip, Bits.inverse
+#   is_integer                  IsInteger.value
+#   modf                        Modf.value
+#   fmod, remainder             Fmod.value, Remainder.value (exact)
+#   isclose                     IsClose.value
+#   as_integer_ratio            AsIntegerRatio.value
 
 # ---- the encoding ----
 
@@ -70,6 +96,14 @@ def encode(+s: Bool, +ef: Nat, +f: Nat) -> F.F64:
   F.Bits{U32.from_nat(C.low(32n, f)), U32.from_nat(Nat.add(C.high(32n, f), C.shift(20n, Nat.add(ef, C.shift(11n, b2n(s))))))}
 
 def pick(-T: Data, c: Bool, +a: T, +b: T) -> T:
+  match c:
+    case True{}:
+      a
+    case False{}:
+      b
+
+# pick for pairs (a Sigma is Type-sorted)
+def pickt(-T: Type, c: Bool, a: T, b: T) -> T:
   match c:
     case True{}:
       a
@@ -285,3 +319,274 @@ def Signbit.value(+x: F.F64) -> Type:
 # exact below 2^53, rounded above (the runtime bounds Nat by 2^48)
 def OfNat.value(+n: Nat) -> Type:
   {F.of_nat(n) == round(False{}, n, zb()) : F.F64}
+
+# ---- rounding to an integral value (IEEE 754 roundToIntegral) ----
+
+# the integer magnitude of (-1)^s * m * 2^-k, k >= 1, in each direction: the
+# integer part high(k, m), plus one when the discarded low(k, m) is nonzero
+# and the direction is away from zero (floor of a negative, ceil of a
+# positive), or to nearest with ties to even (rne)
+def integral(m: F.RMode, +s: Bool, +n: Nat, +k: Nat) -> Nat:
+  match m:
+    case F.Trunc{}:
+      C.high(k, n)
+    case F.Floor{}:
+      Nat.add(C.high(k, n), b2n(Bool.and(s, Bool.not(Nat.is_eq(C.low(k, n), 0n)))))
+    case F.Ceil{}:
+      Nat.add(C.high(k, n), b2n(Bool.and(Bool.not(s), Bool.not(Nat.is_eq(C.low(k, n), 0n)))))
+    case F.Even{}:
+      rne(n, k)
+
+# NaN gives NaN, an infinity or a value of at least 2^52 is already integral,
+# anything else is its integer (with the sign of x, so -0.5 goes to -0 under
+# trunc, ceil and round)
+def to_integral(m: F.RMode, +x: F.F64) -> F.F64:
+  pick(F.F64, is_nan(x), qnan(), pick(F.F64, Bool.or(is_inf(x), Nat.is_le(zb(), xexp(x))), x, round(sign(x), integral(m, sign(x), mant(x), Nat.sub(zb(), xexp(x))), zb())))
+
+def Trunc.value(+x: F.F64) -> Type:
+  {F.trunc(x) == to_integral(F.Trunc{}, x) : F.F64}
+
+def Floor.value(+x: F.F64) -> Type:
+  {F.floor(x) == to_integral(F.Floor{}, x) : F.F64}
+
+def Ceil.value(+x: F.F64) -> Type:
+  {F.ceil(x) == to_integral(F.Ceil{}, x) : F.F64}
+
+def Round.value(+x: F.F64) -> Type:
+  {F.round(x) == to_integral(F.Even{}, x) : F.F64}
+
+# ---- conversions ----
+
+# the integer part of |x| (x finite)
+def int_part(+x: F.F64) -> Nat:
+  pick(Nat, Nat.is_le(zb(), xexp(x)), C.shift(Nat.sub(xexp(x), zb()), mant(x)), C.high(Nat.sub(zb(), xexp(x)), mant(x)))
+
+# x truncated toward zero as a w-bit unsigned integer: NaN is a domain error;
+# an infinity, a truncation below zero or one of 2^w or more an overflow
+# (3.1: int(x) truncates; 2.6: fixed widths raise instead of wrapping)
+def to_nat(+x: F.F64, +w: Nat) -> Result<&2, &2, N.NumError, Nat>:
+  pick(Result<&2, &2, N.NumError, Nat>, is_nan(x), Fail{N.BadDomain{}}, pick(Result<&2, &2, N.NumError, Nat>, Bool.or(is_inf(x), Bool.or(Bool.and(sign(x), Bool.not(Nat.is_eq(int_part(x), 0n))), Bool.not(C.fits(w, int_part(x))))), Fail{N.Overflow{}}, Done{int_part(x)}))
+
+def rv64(r: Result<&2, &2, N.NumError, WU.U64>) -> Result<&2, &2, N.NumError, Nat>:
+  match r:
+    case Fail{e}:
+      Fail{e}
+    case Done{w}:
+      Done{SW.value(w)}
+
+def rv32(r: Result<&2, &2, N.NumError, U32>) -> Result<&2, &2, N.NumError, Nat>:
+  match r:
+    case Fail{e}:
+      Fail{e}
+    case Done{u}:
+      Done{U32.to_nat(u)}
+
+def ToU64.value(+x: F.F64) -> Type:
+  {rv64(F.to_u64(x)) == to_nat(x, 64n) : Result<&2, &2, N.NumError, Nat>}
+
+def ToU32.value(+x: F.F64) -> Type:
+  {rv32(F.to_u32(x)) == to_nat(x, 32n) : Result<&2, &2, N.NumError, Nat>}
+
+def FloorU64.value(+x: F.F64) -> Type:
+  {rv64(F.floor_u64(x)) == to_nat(to_integral(F.Floor{}, x), 64n) : Result<&2, &2, N.NumError, Nat>}
+
+def CeilU64.value(+x: F.F64) -> Type:
+  {rv64(F.ceil_u64(x)) == to_nat(to_integral(F.Ceil{}, x), 64n) : Result<&2, &2, N.NumError, Nat>}
+
+def RoundU64.value(+x: F.F64) -> Type:
+  {rv64(F.round_u64(x)) == to_nat(to_integral(F.Even{}, x), 64n) : Result<&2, &2, N.NumError, Nat>}
+
+# the double nearest to an unsigned integer (exact below 2^53)
+def OfU64.value(+w: WU.U64) -> Type:
+  {F.of_u64(w) == round(False{}, SW.value(w), zb()) : F.F64}
+
+def OfU32.value(+u: U32) -> Type:
+  {F.of_u32(u) == round(False{}, U32.to_nat(u), zb()) : F.F64}
+
+# ---- exponents ----
+
+# t - Z as a signed exponent
+def exp_of(+t: Nat) -> F.Exp:
+  pick(F.Exp, Nat.is_le(zb(), t), F.Exp{False{}, Nat.sub(t, zb())}, F.Exp{True{}, Nat.sub(zb(), t)})
+
+# (m, e) with x = m 2^e and 1/2 <= |m| < 1: m is mant(x) scaled by
+# 2^-bit_length(mant(x)) (exact), e the rest of the scale; NaN gives (NaN, 0),
+# zeros and infinities (x, 0) (4.4)
+def frexp(+x: F.F64) -> F.F64 & F.Exp:
+  pickt(F.F64 & F.Exp, is_nan(x), (qnan(), F.Exp{False{}, 0n}), pickt(F.F64 & F.Exp, Bool.or(is_inf(x), is_zero(x)), (x, F.Exp{False{}, 0n}), (round(sign(x), mant(x), Nat.sub(zb(), M.bit_length(mant(x)))), exp_of(Nat.add(xexp(x), M.bit_length(mant(x)))))))
+
+def Frexp.value(+x: F.F64) -> Type:
+  {F.frexp(x) == frexp(x) : F.F64 & F.Exp}
+
+# x 2^e rounded once: overflow to infinity, gradual underflow (4.4); a
+# scale below 2^-Z is a product under 2^-2947, which rounds to a zero like
+# the scale 0 it is cut to
+def ldexp(+x: F.F64, +neg: Bool, +k: Nat) -> F.F64:
+  pick(F.F64, is_nan(x), qnan(), pick(F.F64, Bool.or(is_inf(x), is_zero(x)), x, round(sign(x), mant(x), pick(Nat, neg, Nat.sub(xexp(x), k), Nat.add(xexp(x), k)))))
+
+def Ldexp.value(+x: F.F64, +neg: Bool, +k: Nat) -> Type:
+  {F.ldexp(x, F.Exp{neg, k}) == ldexp(x, neg, k) : F.F64}
+
+# the weight of the last bit of x: 2^(xexp(x) - Z) (the smallest subnormal
+# for zeros), inf for infinities, NaN for NaN (4.4)
+def Ulp.value(+x: F.F64) -> Type:
+  {F.ulp(x) == pick(F.F64, is_nan(x), qnan(), pick(F.F64, is_inf(x), inf(False{}), round(False{}, 1n, xexp(x)))) : F.F64}
+
+# ---- neighbours and NaN-ignoring extrema ----
+
+# the magnitude bits: exponent field and fraction as one integer below 2^63
+def pat(+x: F.F64) -> Nat:
+  Nat.add(frac(x), C.shift(52n, efield(x)))
+
+def of_pat(+s: Bool, +p: Nat) -> F.F64:
+  encode(s, C.high(52n, p), C.low(52n, p))
+
+# the ordered-set neighbour (IEEE nextAfter, C99 annex F): NaN in, NaN out;
+# y when x == y; from a zero the smallest subnormal with y's sign; otherwise
+# one step of the magnitude bits, up when moving away from zero (the step past
+# the largest finite double is infinity, the step below the smallest
+# subnormal a zero of x's sign)
+def nextafter(+x: F.F64, +y: F.F64) -> F.F64:
+  pick(F.F64, Bool.not(ordered(x, y)), qnan(), pick(F.F64, Cmp.is_eq(ord(x, y)), y, pick(F.F64, is_zero(x), encode(sign(y), 0n, 1n), of_pat(sign(x), pick(Nat, Bool.xor(Cmp.is_lt(ord(x, y)), sign(x)), Nat.add(pat(x), 1n), Nat.sub(pat(x), 1n))))))
+
+def Nextafter.value(+x: F.F64, +y: F.F64) -> Type:
+  {F.nextafter(x, y) == nextafter(x, y) : F.F64}
+
+# IEEE 754-2019 minimumNumber / maximumNumber (10: fmin/fmax fix the
+# order dependence of min/max with NaN): a NaN operand is ignored, -0 < +0
+def fmin(+x: F.F64, +y: F.F64) -> F.F64:
+  pick(F.F64, is_nan(x), pick(F.F64, is_nan(y), qnan(), y), pick(F.F64, is_nan(y), x, pick(F.F64, Bool.and(is_zero(x), is_zero(y)), zero(Bool.or(sign(x), sign(y))), pick(F.F64, Cmp.is_lt(ord(x, y)), x, y))))
+
+def fmax(+x: F.F64, +y: F.F64) -> F.F64:
+  pick(F.F64, is_nan(x), pick(F.F64, is_nan(y), qnan(), y), pick(F.F64, is_nan(y), x, pick(F.F64, Bool.and(is_zero(x), is_zero(y)), zero(Bool.and(sign(x), sign(y))), pick(F.F64, Cmp.is_lt(ord(y, x)), x, y))))
+
+def Fmin.value(+x: F.F64, +y: F.F64) -> Type:
+  {F.fmin(x, y) == fmin(x, y) : F.F64}
+
+def Fmax.value(+x: F.F64, +y: F.F64) -> Type:
+  {F.fmax(x, y) == fmax(x, y) : F.F64}
+
+# ---- classification, bit casts, integrality ----
+
+def IsNormal.value(+x: F.F64) -> Type:
+  {F.is_normal(x) == Bool.and(Bool.not(Nat.is_eq(efield(x), 0n)), Nat.is_lt(efield(x), 2047n)) : Bool}
+
+def IsSubnormal.value(+x: F.F64) -> Type:
+  {F.is_subnormal(x) == Bool.and(Nat.is_eq(efield(x), 0n), Bool.not(Nat.is_eq(frac(x), 0n))) : Bool}
+
+# the 64-bit pattern: sign, exponent field, fraction
+def Bits.value(+x: F.F64) -> Type:
+  {SW.value(F.to_bits(x)) == Nat.add(pat(x), C.shift(63n, b2n(sign(x)))) : Nat}
+
+def Bits.roundtrip(+x: F.F64) -> Type:
+  {F.of_bits64(F.to_bits(x)) == x : F.F64}
+
+def Bits.inverse(+w: WU.U64) -> Type:
+  {F.to_bits(F.of_bits64(w)) == w : WU.U64}
+
+# finite with no fractional bits
+def IsInteger.value(+x: F.F64) -> Type:
+  {F.is_integer(x) == Bool.and(Nat.is_lt(efield(x), 2047n), Bool.or(Nat.is_le(zb(), xexp(x)), Nat.is_eq(C.low(Nat.sub(zb(), xexp(x)), mant(x)), 0n))) : Bool}
+
+# ---- the fractional part and the exact remainders ----
+
+# (fractional part, integral part), both with the sign of x, both exact:
+# modf(-2.0) = (-0.0, -2.0), modf(inf) = (0.0, inf) (4.3)
+def modf(+x: F.F64) -> F.F64 & F.F64:
+  pickt(F.F64 & F.F64, is_nan(x), (qnan(), qnan()), pickt(F.F64 & F.F64, Bool.or(is_inf(x), Nat.is_le(zb(), xexp(x))), (zero(sign(x)), x), (round(sign(x), C.low(Nat.sub(zb(), xexp(x)), mant(x)), xexp(x)), to_integral(F.Trunc{}, x))))
+
+def Modf.value(+x: F.F64) -> Type:
+  {F.modf(x) == modf(x) : F.F64 & F.F64}
+
+# the significands of x and y at their common scale
+def rsc(+x: F.F64, +y: F.F64) -> Nat:
+  Nat.min(xexp(x), xexp(y))
+
+def ra(+x: F.F64, +y: F.F64) -> Nat:
+  C.shift(Nat.sub(xexp(x), rsc(x, y)), mant(x))
+
+def rb(+x: F.F64, +y: F.F64) -> Nat:
+  C.shift(Nat.sub(xexp(y), rsc(x, y)), mant(y))
+
+def rbad(+x: F.F64, +y: F.F64) -> Bool:
+  Bool.or(Bool.or(Bool.not(ordered(x, y)), is_inf(x)), is_zero(y))
+
+# x - n y with n = trunc(x / y): the exact remainder of the scaled
+# significands, with the sign of x; NaN for NaN, an infinite x or a zero y;
+# x for an infinite y (4.3: fmod(x, inf) == x)
+def fmod(+x: F.F64, +y: F.F64) -> F.F64:
+  pick(F.F64, rbad(x, y), qnan(), pick(F.F64, is_inf(y), x, round(sign(x), Nat.mod(ra(x, y), rb(x, y)), rsc(x, y))))
+
+def Fmod.value(+x: F.F64, +y: F.F64) -> Type:
+  {F.fmod(x, y) == fmod(x, y) : F.F64}
+
+# IEEE remainder, x - n y with n = x / y rounded to nearest, ties to even:
+# from r = A mod B and q = A div B, n is q + 1 when r is past half of B (or
+# exactly half with q odd), which leaves B - r with the opposite sign; a zero
+# result has the sign of x (4.3)
+def rflip(+r: Nat, +b: Nat, +q: Nat) -> Bool:
+  Bool.or(Nat.is_lt(b, Nat.add(r, r)), Bool.and(Nat.is_eq(Nat.add(r, r), b), Nat.is_eq(Nat.mod(q, 2n), 1n)))
+
+def rnear(+s: Bool, +r: Nat, +b: Nat, +q: Nat, +u: Nat) -> F.F64:
+  pick(F.F64, rflip(r, b, q), round(Bool.not(s), Nat.sub(b, r), u), round(s, r, u))
+
+def remainder(+x: F.F64, +y: F.F64) -> F.F64:
+  pick(F.F64, rbad(x, y), qnan(), pick(F.F64, is_inf(y), x, rnear(sign(x), Nat.mod(ra(x, y), rb(x, y)), rb(x, y), Nat.div(ra(x, y), rb(x, y)), rsc(x, y))))
+
+def Remainder.value(+x: F.F64, +y: F.F64) -> Type:
+  {F.remainder(x, y) == remainder(x, y) : F.F64}
+
+# ---- closeness and exact ratios ----
+
+def lt_s(+x: F.F64, +y: F.F64) -> Bool:
+  Bool.and(ordered(x, y), Cmp.is_lt(ord(x, y)))
+
+def le_s(+x: F.F64, +y: F.F64) -> Bool:
+  Bool.and(ordered(x, y), Cmp.is_le(ord(x, y)))
+
+def eq_s(+x: F.F64, +y: F.F64) -> Bool:
+  Bool.and(ordered(x, y), Cmp.is_eq(ord(x, y)))
+
+def fabs(+x: F.F64) -> F.F64:
+  encode(False{}, efield(x), frac(x))
+
+# CPython's math.isclose, computed in binary64: a negative tolerance is a
+# domain error; a == b is close, an infinity is close only to itself, and
+# otherwise |b - a| <= max(|rel * b|, |rel * a|, abs_tol) (4.4)
+def ic_near(+a: F.F64, +b: F.F64, +rel: F.F64, +at: F.F64, +d: F.F64) -> Bool:
+  Bool.or(Bool.or(le_s(d, fabs(mul(rel, b))), le_s(d, fabs(mul(rel, a)))), le_s(d, at))
+
+def isclose(+a: F.F64, +b: F.F64, +rel: F.F64, +at: F.F64) -> Result<&2, &2, N.NumError, Bool>:
+  pick(Result<&2, &2, N.NumError, Bool>, Bool.or(lt_s(rel, zero(False{})), lt_s(at, zero(False{}))), Fail{N.BadDomain{}}, Done{pick(Bool, eq_s(a, b), True{}, pick(Bool, Bool.or(is_inf(a), is_inf(b)), False{}, ic_near(a, b, rel, at, fabs(add(b, neg(a))))))})
+
+def IsClose.value(+a: F.F64, +b: F.F64, +rel: F.F64, +at: F.F64) -> Type:
+  {F.isclose(a, b, rel, at) == isclose(a, b, rel, at) : Result<&2, &2, N.NumError, Bool>}
+
+# trailing zero bits of n (at most fuel)
+def tz(fuel: Nat, +n: Nat) -> Nat:
+  match fuel:
+    case 0n:
+      0n
+    case 1n+f:
+      pick(Nat, Nat.is_eq(Nat.mod(n, 2n), 1n), 0n, 1n+tz(f, Nat.div(n, 2n)))
+
+# (sign, numerator, exponent of the denominator)
+type Rat is Data:
+  Rat{neg: Bool, num: Nat, den: Nat}
+
+def rtriple(r: Result<&2, &2, N.NumError, F.Ratio>) -> Result<&2, &2, N.NumError, Rat>:
+  match r:
+    case Fail{e}:
+      Fail{e}
+    case Done{F.Ratio{neg, num, den}}:
+      Done{Rat{neg, SW.value(num), den}}
+
+# x = +-num / 2^den in lowest terms: the significand with as many of its
+# trailing zeros moved into the denominator as the scale allows; a zero is
+# 0/1 (Python's ints have no -0); NaN is a domain error, an infinity or an
+# integer of 2^64 or more an overflow (3.3)
+def as_ratio(+x: F.F64) -> Result<&2, &2, N.NumError, Rat>:
+  pick(Result<&2, &2, N.NumError, Rat>, is_nan(x), Fail{N.BadDomain{}}, pick(Result<&2, &2, N.NumError, Rat>, is_inf(x), Fail{N.Overflow{}}, pick(Result<&2, &2, N.NumError, Rat>, is_zero(x), Done{Rat{False{}, 0n, 0n}}, pick(Result<&2, &2, N.NumError, Rat>, Nat.is_le(zb(), xexp(x)), pick(Result<&2, &2, N.NumError, Rat>, C.fits(64n, int_part(x)), Done{Rat{sign(x), int_part(x), 0n}}, Fail{N.Overflow{}}), Done{Rat{sign(x), C.high(Nat.min(tz(64n, mant(x)), Nat.sub(zb(), xexp(x))), mant(x)), Nat.sub(Nat.sub(zb(), xexp(x)), Nat.min(tz(64n, mant(x)), Nat.sub(zb(), xexp(x))))}}))))
+
+def AsIntegerRatio.value(+x: F.F64) -> Type:
+  {rtriple(F.as_integer_ratio(x)) == as_ratio(x) : Result<&2, &2, N.NumError, Rat>}

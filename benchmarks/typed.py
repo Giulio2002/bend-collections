@@ -28,7 +28,10 @@ OPS = [('loop', 4000000), ('u32_gcd', 2000000), ('u32_isqrt', 20000000), ('u32_c
        ('f32_clamp', 30000000), ('f64_add', 3000000), ('f64_mul', 3000000), ('f64_div', 1500000),
        ('f64_sqrt', 1000000), ('f64_pow', 500000), ('u32_checked_mul', 4000000), ('u64_checked_mul', 4000000),
        ('u32_bit_count', 4000000), ('u64_bit_count', 2000000), ('u32_is_prime', 400000), ('u32_next_prime', 40000),
-       ('egcd', 700000)]
+       ('egcd', 700000),
+       ('f64_floor', 8000000), ('f64_round', 8000000),
+       ('f64_to_u64', 12000000), ('f64_fmod', 600000), ('f64_remainder', 600000), ('f64_frexp', 12000000),
+       ('f64_ldexp', 8000000), ('f64_nextafter', 12000000)]
 
 
 def sh(cmd, env=None, timeout=3600):
