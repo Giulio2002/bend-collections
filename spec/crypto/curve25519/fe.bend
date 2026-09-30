@@ -17,7 +17,8 @@ import ../../../src/crypto/curve25519/limbs.bend as LS
 #
 #   function            clauses
 #   add, sub            Add.value, Add.ok, Sub.value, Sub.ok
-#   mul, sq             Mul.value, Mul.ok, Sq.value, Sq.ok, Mul.fits
+#   mul, sq             Mul.value, Mul.ok, Sq.value, Sq.ok, Mul.fits,
+#                       Sq.fits
 #   mul_small           MulSmall.value, MulSmall.ok
 #   select              Select.zero, Select.one
 #   inv, pow_p58        Inv.value, Inv.ok, PowP58.value, PowP58.ok
@@ -99,6 +100,11 @@ def Sq.value(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +ha: {ok(one, a) == T
 
 def Sq.ok(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +ha: {ok(one, a) == True{} : Bool}) -> Type:
   {ok(one, FE.sq(FE.radix(one), a)) == True{} : Bool}
+
+# the columns the square's carry pass takes (each cross product once,
+# LS.sqp) are below 2^47
+def Sq.fits(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +ha: {ok(one, a) == True{} : Bool}) -> Type:
+  {below(LS.fold(LS.sqp(FE.to_list(a))), C.shift(47n, one)) == True{} : Bool}
 
 # k below 2^17
 def MulSmall.value(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +k: Nat, +ha: {ok(one, a) == True{} : Bool}, +hk: {Nat.is_lt(k, C.shift(17n, one)) == True{} : Bool}) -> Type:

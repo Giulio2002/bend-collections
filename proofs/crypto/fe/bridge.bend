@@ -25,6 +25,11 @@ def mul_b(+R: Nat, +a: FE.Fe, +b: FE.Fe) -> {FE.to_list(FE.mul(R, a, b)) == LS.m
     case FE.Fe{a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14} FE.Fe{b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14}:
       {==}
 
+def sq_b(+R: Nat, +a: FE.Fe) -> {FE.to_list(FE.sq(R, a)) == LS.sq_l(R, FE.to_list(a)) : List<&2, Nat>}:
+  match a:
+    case FE.Fe{a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14}:
+      {==}
+
 def mul_small_b(+R: Nat, +a: FE.Fe, +k: Nat) -> {FE.to_list(FE.mul_small(R, a, k)) == LS.mul_small_l(R, FE.to_list(a), k) : List<&2, Nat>}:
   match a:
     case FE.Fe{a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14}:

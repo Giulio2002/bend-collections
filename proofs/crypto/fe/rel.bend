@@ -62,7 +62,9 @@ def r_mul(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n)
   (OP.mul_ok(one, h1, R, hR, x, y, ox, oy), e)
 
 def r_sq(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +x: FE.Fe, +a: Nat, +rx: Rel(one, pp, x, a)) -> Rel(one, pp, FE.sq(R, x), FS.fmul(1n+pp, a, a)):
-  r_mul(one, h1, pp, hP, R, hR, x, x, a, a, rx, rx)
+  +ox = o(one, pp, x, a, rx)
+  +e = G.c_trans(pp, FV.value(FE.sq(R, x)), Nat.mul(FV.value(x), FV.value(x)), FS.fmul(1n+pp, a, a), OP.sq_c(one, h1, pp, hP, R, hR, x, ox), G.c_trans(pp, Nat.mul(FV.value(x), FV.value(x)), Nat.mul(a, a), FS.fmul(1n+pp, a, a), G.c_mul(pp, FV.value(x), a, FV.value(x), a, c(one, pp, x, a, rx), c(one, pp, x, a, rx)), G.c_sym(pp, Nat.mod(Nat.mul(a, a), 1n+pp), Nat.mul(a, a), G.c_mod(pp, Nat.mul(a, a)))))
+  (OP.sq_ok(one, h1, R, hR, x, ox), e)
 
 # k < 2^17 a constant with value K
 def r_mul_small(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +x: FE.Fe, +a: Nat, +k: Nat, +hk: {Nat.is_lt(k, WD.sc(17n, one)) == True{} : Bool}, +rx: Rel(one, pp, x, a)) -> Rel(one, pp, FE.mul_small(R, x, k), FS.fmul(1n+pp, a, k)):

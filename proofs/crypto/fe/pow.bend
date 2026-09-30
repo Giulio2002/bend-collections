@@ -23,7 +23,7 @@ def one_k(+one: Nat, +h1: {one == 1n : Nat}, +k: Nat) -> {Nat.mul(one, k) == k :
   L.subst(Nat, o => {Nat.mul(o, k) == k : Nat}, 1n, one, Equal.sym(Nat, one, 1n, h1), AR.one_mul(k))
 
 def sq_ok(+one: Nat, +h1: {one == 1n : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +a: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}) -> {FV.ok(one, FE.sq(R, a)) == True{} : Bool}:
-  OP.mul_ok(one, h1, R, hR, a, a, ha, ha)
+  OP.sq_ok(one, h1, R, hR, a, ha)
 
 # 2^n - 1
 def Fo(+one: Nat, +n: Nat) -> Nat:
@@ -95,7 +95,7 @@ def step_c(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n
   +A = FV.value(acc)
   +X = FV.value(x)
   +e1 = OP.mul_c(one, h1, pp, hP, R, hR, FE.sq(R, acc), x, sq_ok(one, h1, R, hR, acc, ha), hx)
-  +e2 = G.c_mul(pp, FV.value(FE.sq(R, acc)), Nat.mul(A, A), X, X, OP.mul_c(one, h1, pp, hP, R, hR, acc, acc, ha, ha), G.c_refl(pp, X))
+  +e2 = G.c_mul(pp, FV.value(FE.sq(R, acc)), Nat.mul(A, A), X, X, OP.sq_c(one, h1, pp, hP, R, hR, acc, ha), G.c_refl(pp, X))
   G.c_trans(pp, FV.value(FE.mul(R, FE.sq(R, acc), x)), Nat.mul(FV.value(FE.sq(R, acc)), X), Nat.mul(Nat.mul(A, A), X), e1, e2)
 
 # a^one * 1 == a
@@ -119,7 +119,7 @@ def pb_val(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n
       G.c_trans(pp, FV.value(FE.mul(R, FE.sq(R, acc), x)), Nat.mul(Nat.mul(A, A), X), Nat.mul(Nat.mul(A, A), Nat.pow(X, 1n)), step_c(one, h1, pp, hP, R, hR, acc, x, ha, hx), G.c_eq(pp, Nat.mul(Nat.mul(A, A), X), Nat.mul(Nat.mul(A, A), Nat.pow(X, 1n)), Equal.cong(Nat, Nat, t => Nat.mul(Nat.mul(A, A), t), X, Nat.pow(X, 1n), Equal.sym(Nat, Nat.mul(X, 1n), X, NA.mul_one(X)))))
     case False{}:
       +A = FV.value(acc)
-      G.c_trans(pp, FV.value(FE.sq(R, acc)), Nat.mul(A, A), Nat.mul(Nat.mul(A, A), 1n), OP.mul_c(one, h1, pp, hP, R, hR, acc, acc, ha, ha), G.c_eq(pp, Nat.mul(A, A), Nat.mul(Nat.mul(A, A), 1n), Equal.sym(Nat, Nat.mul(Nat.mul(A, A), 1n), Nat.mul(A, A), NA.mul_one(Nat.mul(A, A)))))
+      G.c_trans(pp, FV.value(FE.sq(R, acc)), Nat.mul(A, A), Nat.mul(Nat.mul(A, A), 1n), OP.sq_c(one, h1, pp, hP, R, hR, acc, ha), G.c_eq(pp, Nat.mul(A, A), Nat.mul(Nat.mul(A, A), 1n), Equal.sym(Nat, Nat.mul(Nat.mul(A, A), 1n), Nat.mul(A, A), NA.mul_one(Nat.mul(A, A)))))
 
 # (a^2 x^e)^s y == a^(2 s) x^(e s) y
 def bit_pow(+a: Nat, +x: Nat, +e: Nat, +s: Nat, +z: Nat, +s2: Nat, +hs: {Nat.add(s, s) == s2 : Nat}) -> {Nat.mul(Nat.pow(Nat.mul(Nat.mul(a, a), Nat.pow(x, e)), s), Nat.pow(x, z)) == Nat.mul(Nat.pow(a, s2), Nat.pow(x, Nat.add(Nat.mul(e, s), z))) : Nat}:
@@ -191,7 +191,7 @@ def sqn_val(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19
       +y2 = FE.sq(R, y)
       %Equal.sym(FE.Fe, FE.sqn(R, g, 1n+m, y), FE.sqn(R, g, m, y2), sqn_step(R, g, y, m)) : G.ceq(pp, FV.value(_), Nat.pow(Y, WD.sc(1n+m, one)))
       +ih = sqn_val(one, h1, pp, hP, R, hR, g, m, y2, sq_ok(one, h1, R, hR, y, hy))
-      +e1 = G.c_pow(pp, FV.value(y2), Nat.mul(Y, Y), S, OP.mul_c(one, h1, pp, hP, R, hR, y, y, hy, hy))
+      +e1 = G.c_pow(pp, FV.value(y2), Nat.mul(Y, Y), S, OP.sq_c(one, h1, pp, hP, R, hR, y, hy))
       +e2 = Equal.trans(Nat, Nat.pow(Nat.mul(Y, Y), S), Nat.pow(Y, Nat.add(S, S)), Nat.pow(Y, WD.sc(1n+m, one)), pow_sq(Y, S), Equal.cong(Nat, Nat, t => Nat.pow(Y, t), Nat.add(S, S), WD.sc(1n+m, one), M.sc_dbl(m, one)))
       G.c_trans(pp, FV.value(FE.sqn(R, g, m, y2)), Nat.pow(FV.value(y2), S), Nat.pow(Y, WD.sc(1n+m, one)), ih, G.c_trans(pp, Nat.pow(FV.value(y2), S), Nat.pow(Nat.mul(Y, Y), S), Nat.pow(Y, WD.sc(1n+m, one)), e1, G.c_eq(pp, Nat.pow(Nat.mul(Y, Y), S), Nat.pow(Y, WD.sc(1n+m, one)), e2)))
 

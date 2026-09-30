@@ -65,7 +65,7 @@ def rmul(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) 
   RE.r_mul(one, h1, pp, hP, R, hR, x, y, a, b, rx, ry)
 
 def rsq(+one: Nat, +h1: {one == 1n : Nat}, +pp: Nat, +hP: {Nat.add(1n+pp, 19n) == WD.sc(255n, one) : Nat}, +R: Nat, +hR: {R == WD.sc(17n, one) : Nat}, +x: FE.Fe, +a: Nat, +rx: RE.Rel(one, pp, x, a)) -> RE.Rel(one, pp, FE.sq(R, x), FS.fmul(1n+pp, a, a)):
-  RE.r_mul(one, h1, pp, hP, R, hR, x, x, a, a, rx, rx)
+  RE.r_sq(one, h1, pp, hP, R, hR, x, a, rx)
 
 # ---- addition ----
 

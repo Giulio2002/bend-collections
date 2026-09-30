@@ -191,6 +191,83 @@ def mul(+R: Nat, a: Fe, b: Fe) -> Fe:
       +w60 = Nat.add(Nat.mod(w45, R), Nat.mul(Nat.div(w59, R), 19n))
       Fe{Nat.mod(w60, R), Nat.add(Nat.mod(w46, R), Nat.div(w60, R)), Nat.mod(w47, R), Nat.mod(w48, R), Nat.mod(w49, R), Nat.mod(w50, R), Nat.mod(w51, R), Nat.mod(w52, R), Nat.mod(w53, R), Nat.mod(w54, R), Nat.mod(w55, R), Nat.mod(w56, R), Nat.mod(w57, R), Nat.mod(w58, R), Nat.mod(w59, R)}
 
+# a^2, each cross product once: LS.sq_l
+def sq(+R: Nat, a: Fe) -> Fe:
+  match a:
+    case Fe{+a0, +a1, +a2, +a3, +a4, +a5, +a6, +a7, +a8, +a9, +a10, +a11, +a12, +a13, +a14}:
+      +w0 = U32.from_nat(a0)
+      +w1 = U32.from_nat(a1)
+      +w2 = Nat.add(a14, a14)
+      +w3 = U32.from_nat(Nat.mod(w2, 512n))
+      +w4 = U32.from_nat(Nat.div(w2, 512n))
+      +w5 = U32.from_nat(a2)
+      +w6 = Nat.add(a13, a13)
+      +w7 = U32.from_nat(Nat.mod(w6, 512n))
+      +w8 = U32.from_nat(Nat.div(w6, 512n))
+      +w9 = U32.from_nat(a3)
+      +w10 = Nat.add(a12, a12)
+      +w11 = U32.from_nat(Nat.mod(w10, 512n))
+      +w12 = U32.from_nat(Nat.div(w10, 512n))
+      +w13 = U32.from_nat(a4)
+      +w14 = Nat.add(a11, a11)
+      +w15 = U32.from_nat(Nat.mod(w14, 512n))
+      +w16 = U32.from_nat(Nat.div(w14, 512n))
+      +w17 = U32.from_nat(a5)
+      +w18 = Nat.add(a10, a10)
+      +w19 = U32.from_nat(Nat.mod(w18, 512n))
+      +w20 = U32.from_nat(Nat.div(w18, 512n))
+      +w21 = U32.from_nat(a6)
+      +w22 = Nat.add(a9, a9)
+      +w23 = U32.from_nat(Nat.mod(w22, 512n))
+      +w24 = U32.from_nat(Nat.div(w22, 512n))
+      +w25 = U32.from_nat(a7)
+      +w26 = Nat.add(a8, a8)
+      +w27 = U32.from_nat(Nat.mod(w26, 512n))
+      +w28 = U32.from_nat(Nat.div(w26, 512n))
+      +w29 = Nat.add(Nat.add(U32.to_nat(U32.mul(w0, U32.from_nat(Nat.mod(a0, 512n)))), Nat.mul(U32.to_nat(U32.mul(w0, U32.from_nat(Nat.div(a0, 512n)))), 512n)), Nat.mul(Nat.add(Nat.add(U32.to_nat(U32.mul(w1, w3)), Nat.mul(U32.to_nat(U32.mul(w1, w4)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w5, w7)), Nat.mul(U32.to_nat(U32.mul(w5, w8)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w9, w11)), Nat.mul(U32.to_nat(U32.mul(w9, w12)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w13, w15)), Nat.mul(U32.to_nat(U32.mul(w13, w16)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w17, w19)), Nat.mul(U32.to_nat(U32.mul(w17, w20)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w21, w23)), Nat.mul(U32.to_nat(U32.mul(w21, w24)), 512n)), Nat.add(U32.to_nat(U32.mul(w25, w27)), Nat.mul(U32.to_nat(U32.mul(w25, w28)), 512n)))))))), 19n))
+      +w30 = Nat.add(a7, a7)
+      +w31 = U32.from_nat(Nat.mod(w30, 512n))
+      +w32 = U32.from_nat(Nat.div(w30, 512n))
+      +w33 = U32.from_nat(a14)
+      +w34 = U32.from_nat(a13)
+      +w35 = Nat.add(a6, a6)
+      +w36 = U32.from_nat(Nat.mod(w35, 512n))
+      +w37 = U32.from_nat(Nat.div(w35, 512n))
+      +w38 = U32.from_nat(a12)
+      +w39 = U32.from_nat(a11)
+      +w40 = Nat.add(a5, a5)
+      +w41 = U32.from_nat(Nat.mod(w40, 512n))
+      +w42 = U32.from_nat(Nat.div(w40, 512n))
+      +w43 = U32.from_nat(a10)
+      +w44 = U32.from_nat(a9)
+      +w45 = Nat.add(a4, a4)
+      +w46 = U32.from_nat(Nat.mod(w45, 512n))
+      +w47 = U32.from_nat(Nat.div(w45, 512n))
+      +w48 = U32.from_nat(a8)
+      +w49 = Nat.add(a3, a3)
+      +w50 = U32.from_nat(Nat.mod(w49, 512n))
+      +w51 = U32.from_nat(Nat.div(w49, 512n))
+      +w52 = Nat.add(a2, a2)
+      +w53 = U32.from_nat(Nat.mod(w52, 512n))
+      +w54 = U32.from_nat(Nat.div(w52, 512n))
+      +w55 = Nat.add(a1, a1)
+      +w56 = Nat.add(Nat.add(Nat.add(U32.to_nat(U32.mul(w0, U32.from_nat(Nat.mod(w55, 512n)))), Nat.mul(U32.to_nat(U32.mul(w0, U32.from_nat(Nat.div(w55, 512n)))), 512n)), Nat.mul(Nat.add(Nat.add(U32.to_nat(U32.mul(w5, w3)), Nat.mul(U32.to_nat(U32.mul(w5, w4)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w9, w7)), Nat.mul(U32.to_nat(U32.mul(w9, w8)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w13, w11)), Nat.mul(U32.to_nat(U32.mul(w13, w12)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w17, w15)), Nat.mul(U32.to_nat(U32.mul(w17, w16)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w21, w19)), Nat.mul(U32.to_nat(U32.mul(w21, w20)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w25, w23)), Nat.mul(U32.to_nat(U32.mul(w25, w24)), 512n)), Nat.add(U32.to_nat(U32.mul(w48, U32.from_nat(Nat.mod(a8, 512n)))), Nat.mul(U32.to_nat(U32.mul(w48, U32.from_nat(Nat.div(a8, 512n)))), 512n)))))))), 19n)), Nat.div(w29, R))
+      +w57 = Nat.add(Nat.add(Nat.add(Nat.add(U32.to_nat(U32.mul(w0, w53)), Nat.mul(U32.to_nat(U32.mul(w0, w54)), 512n)), Nat.add(U32.to_nat(U32.mul(w1, U32.from_nat(Nat.mod(a1, 512n)))), Nat.mul(U32.to_nat(U32.mul(w1, U32.from_nat(Nat.div(a1, 512n)))), 512n))), Nat.mul(Nat.add(Nat.add(U32.to_nat(U32.mul(w9, w3)), Nat.mul(U32.to_nat(U32.mul(w9, w4)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w13, w7)), Nat.mul(U32.to_nat(U32.mul(w13, w8)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w17, w11)), Nat.mul(U32.to_nat(U32.mul(w17, w12)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w21, w15)), Nat.mul(U32.to_nat(U32.mul(w21, w16)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w25, w19)), Nat.mul(U32.to_nat(U32.mul(w25, w20)), 512n)), Nat.add(U32.to_nat(U32.mul(w48, w23)), Nat.mul(U32.to_nat(U32.mul(w48, w24)), 512n))))))), 19n)), Nat.div(w56, R))
+      +w58 = Nat.add(Nat.add(Nat.add(Nat.add(U32.to_nat(U32.mul(w0, w50)), Nat.mul(U32.to_nat(U32.mul(w0, w51)), 512n)), Nat.add(U32.to_nat(U32.mul(w1, w53)), Nat.mul(U32.to_nat(U32.mul(w1, w54)), 512n))), Nat.mul(Nat.add(Nat.add(U32.to_nat(U32.mul(w13, w3)), Nat.mul(U32.to_nat(U32.mul(w13, w4)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w17, w7)), Nat.mul(U32.to_nat(U32.mul(w17, w8)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w21, w11)), Nat.mul(U32.to_nat(U32.mul(w21, w12)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w25, w15)), Nat.mul(U32.to_nat(U32.mul(w25, w16)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w48, w19)), Nat.mul(U32.to_nat(U32.mul(w48, w20)), 512n)), Nat.add(U32.to_nat(U32.mul(w44, U32.from_nat(Nat.mod(a9, 512n)))), Nat.mul(U32.to_nat(U32.mul(w44, U32.from_nat(Nat.div(a9, 512n)))), 512n))))))), 19n)), Nat.div(w57, R))
+      +w59 = Nat.add(Nat.add(Nat.add(Nat.add(U32.to_nat(U32.mul(w0, w46)), Nat.mul(U32.to_nat(U32.mul(w0, w47)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w1, w50)), Nat.mul(U32.to_nat(U32.mul(w1, w51)), 512n)), Nat.add(U32.to_nat(U32.mul(w5, U32.from_nat(Nat.mod(a2, 512n)))), Nat.mul(U32.to_nat(U32.mul(w5, U32.from_nat(Nat.div(a2, 512n)))), 512n)))), Nat.mul(Nat.add(Nat.add(U32.to_nat(U32.mul(w17, w3)), Nat.mul(U32.to_nat(U32.mul(w17, w4)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w21, w7)), Nat.mul(U32.to_nat(U32.mul(w21, w8)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w25, w11)), Nat.mul(U32.to_nat(U32.mul(w25, w12)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w48, w15)), Nat.mul(U32.to_nat(U32.mul(w48, w16)), 512n)), Nat.add(U32.to_nat(U32.mul(w44, w19)), Nat.mul(U32.to_nat(U32.mul(w44, w20)), 512n)))))), 19n)), Nat.div(w58, R))
+      +w60 = Nat.add(Nat.add(Nat.add(Nat.add(U32.to_nat(U32.mul(w0, w41)), Nat.mul(U32.to_nat(U32.mul(w0, w42)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w1, w46)), Nat.mul(U32.to_nat(U32.mul(w1, w47)), 512n)), Nat.add(U32.to_nat(U32.mul(w5, w50)), Nat.mul(U32.to_nat(U32.mul(w5, w51)), 512n)))), Nat.mul(Nat.add(Nat.add(U32.to_nat(U32.mul(w21, w3)), Nat.mul(U32.to_nat(U32.mul(w21, w4)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w25, w7)), Nat.mul(U32.to_nat(U32.mul(w25, w8)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w48, w11)), Nat.mul(U32.to_nat(U32.mul(w48, w12)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w44, w15)), Nat.mul(U32.to_nat(U32.mul(w44, w16)), 512n)), Nat.add(U32.to_nat(U32.mul(w43, U32.from_nat(Nat.mod(a10, 512n)))), Nat.mul(U32.to_nat(U32.mul(w43, U32.from_nat(Nat.div(a10, 512n)))), 512n)))))), 19n)), Nat.div(w59, R))
+      +w61 = Nat.add(Nat.add(Nat.add(Nat.add(U32.to_nat(U32.mul(w0, w36)), Nat.mul(U32.to_nat(U32.mul(w0, w37)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w1, w41)), Nat.mul(U32.to_nat(U32.mul(w1, w42)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w5, w46)), Nat.mul(U32.to_nat(U32.mul(w5, w47)), 512n)), Nat.add(U32.to_nat(U32.mul(w9, U32.from_nat(Nat.mod(a3, 512n)))), Nat.mul(U32.to_nat(U32.mul(w9, U32.from_nat(Nat.div(a3, 512n)))), 512n))))), Nat.mul(Nat.add(Nat.add(U32.to_nat(U32.mul(w25, w3)), Nat.mul(U32.to_nat(U32.mul(w25, w4)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w48, w7)), Nat.mul(U32.to_nat(U32.mul(w48, w8)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w44, w11)), Nat.mul(U32.to_nat(U32.mul(w44, w12)), 512n)), Nat.add(U32.to_nat(U32.mul(w43, w15)), Nat.mul(U32.to_nat(U32.mul(w43, w16)), 512n))))), 19n)), Nat.div(w60, R))
+      +w62 = Nat.add(Nat.add(Nat.add(Nat.add(U32.to_nat(U32.mul(w0, w31)), Nat.mul(U32.to_nat(U32.mul(w0, w32)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w1, w36)), Nat.mul(U32.to_nat(U32.mul(w1, w37)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w5, w41)), Nat.mul(U32.to_nat(U32.mul(w5, w42)), 512n)), Nat.add(U32.to_nat(U32.mul(w9, w46)), Nat.mul(U32.to_nat(U32.mul(w9, w47)), 512n))))), Nat.mul(Nat.add(Nat.add(U32.to_nat(U32.mul(w48, w3)), Nat.mul(U32.to_nat(U32.mul(w48, w4)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w44, w7)), Nat.mul(U32.to_nat(U32.mul(w44, w8)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w43, w11)), Nat.mul(U32.to_nat(U32.mul(w43, w12)), 512n)), Nat.add(U32.to_nat(U32.mul(w39, U32.from_nat(Nat.mod(a11, 512n)))), Nat.mul(U32.to_nat(U32.mul(w39, U32.from_nat(Nat.div(a11, 512n)))), 512n))))), 19n)), Nat.div(w61, R))
+      +w63 = Nat.add(Nat.add(Nat.add(Nat.add(U32.to_nat(U32.mul(w0, w27)), Nat.mul(U32.to_nat(U32.mul(w0, w28)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w1, w31)), Nat.mul(U32.to_nat(U32.mul(w1, w32)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w5, w36)), Nat.mul(U32.to_nat(U32.mul(w5, w37)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w9, w41)), Nat.mul(U32.to_nat(U32.mul(w9, w42)), 512n)), Nat.add(U32.to_nat(U32.mul(w13, U32.from_nat(Nat.mod(a4, 512n)))), Nat.mul(U32.to_nat(U32.mul(w13, U32.from_nat(Nat.div(a4, 512n)))), 512n)))))), Nat.mul(Nat.add(Nat.add(U32.to_nat(U32.mul(w44, w3)), Nat.mul(U32.to_nat(U32.mul(w44, w4)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w43, w7)), Nat.mul(U32.to_nat(U32.mul(w43, w8)), 512n)), Nat.add(U32.to_nat(U32.mul(w39, w11)), Nat.mul(U32.to_nat(U32.mul(w39, w12)), 512n)))), 19n)), Nat.div(w62, R))
+      +w64 = Nat.add(Nat.add(Nat.add(Nat.add(U32.to_nat(U32.mul(w0, w23)), Nat.mul(U32.to_nat(U32.mul(w0, w24)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w1, w27)), Nat.mul(U32.to_nat(U32.mul(w1, w28)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w5, w31)), Nat.mul(U32.to_nat(U32.mul(w5, w32)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w9, w36)), Nat.mul(U32.to_nat(U32.mul(w9, w37)), 512n)), Nat.add(U32.to_nat(U32.mul(w13, w41)), Nat.mul(U32.to_nat(U32.mul(w13, w42)), 512n)))))), Nat.mul(Nat.add(Nat.add(U32.to_nat(U32.mul(w43, w3)), Nat.mul(U32.to_nat(U32.mul(w43, w4)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w39, w7)), Nat.mul(U32.to_nat(U32.mul(w39, w8)), 512n)), Nat.add(U32.to_nat(U32.mul(w38, U32.from_nat(Nat.mod(a12, 512n)))), Nat.mul(U32.to_nat(U32.mul(w38, U32.from_nat(Nat.div(a12, 512n)))), 512n)))), 19n)), Nat.div(w63, R))
+      +w65 = Nat.add(Nat.add(Nat.add(Nat.add(U32.to_nat(U32.mul(w0, w19)), Nat.mul(U32.to_nat(U32.mul(w0, w20)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w1, w23)), Nat.mul(U32.to_nat(U32.mul(w1, w24)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w5, w27)), Nat.mul(U32.to_nat(U32.mul(w5, w28)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w9, w31)), Nat.mul(U32.to_nat(U32.mul(w9, w32)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w13, w36)), Nat.mul(U32.to_nat(U32.mul(w13, w37)), 512n)), Nat.add(U32.to_nat(U32.mul(w17, U32.from_nat(Nat.mod(a5, 512n)))), Nat.mul(U32.to_nat(U32.mul(w17, U32.from_nat(Nat.div(a5, 512n)))), 512n))))))), Nat.mul(Nat.add(Nat.add(U32.to_nat(U32.mul(w39, w3)), Nat.mul(U32.to_nat(U32.mul(w39, w4)), 512n)), Nat.add(U32.to_nat(U32.mul(w38, w7)), Nat.mul(U32.to_nat(U32.mul(w38, w8)), 512n))), 19n)), Nat.div(w64, R))
+      +w66 = Nat.add(Nat.add(Nat.add(Nat.add(U32.to_nat(U32.mul(w0, w15)), Nat.mul(U32.to_nat(U32.mul(w0, w16)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w1, w19)), Nat.mul(U32.to_nat(U32.mul(w1, w20)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w5, w23)), Nat.mul(U32.to_nat(U32.mul(w5, w24)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w9, w27)), Nat.mul(U32.to_nat(U32.mul(w9, w28)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w13, w31)), Nat.mul(U32.to_nat(U32.mul(w13, w32)), 512n)), Nat.add(U32.to_nat(U32.mul(w17, w36)), Nat.mul(U32.to_nat(U32.mul(w17, w37)), 512n))))))), Nat.mul(Nat.add(Nat.add(U32.to_nat(U32.mul(w38, w3)), Nat.mul(U32.to_nat(U32.mul(w38, w4)), 512n)), Nat.add(U32.to_nat(U32.mul(w34, U32.from_nat(Nat.mod(a13, 512n)))), Nat.mul(U32.to_nat(U32.mul(w34, U32.from_nat(Nat.div(a13, 512n)))), 512n))), 19n)), Nat.div(w65, R))
+      +w67 = Nat.add(Nat.add(Nat.add(Nat.add(U32.to_nat(U32.mul(w0, w11)), Nat.mul(U32.to_nat(U32.mul(w0, w12)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w1, w15)), Nat.mul(U32.to_nat(U32.mul(w1, w16)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w5, w19)), Nat.mul(U32.to_nat(U32.mul(w5, w20)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w9, w23)), Nat.mul(U32.to_nat(U32.mul(w9, w24)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w13, w27)), Nat.mul(U32.to_nat(U32.mul(w13, w28)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w17, w31)), Nat.mul(U32.to_nat(U32.mul(w17, w32)), 512n)), Nat.add(U32.to_nat(U32.mul(w21, U32.from_nat(Nat.mod(a6, 512n)))), Nat.mul(U32.to_nat(U32.mul(w21, U32.from_nat(Nat.div(a6, 512n)))), 512n)))))))), Nat.mul(Nat.add(U32.to_nat(U32.mul(w34, w3)), Nat.mul(U32.to_nat(U32.mul(w34, w4)), 512n)), 19n)), Nat.div(w66, R))
+      +w68 = Nat.add(Nat.add(Nat.add(Nat.add(U32.to_nat(U32.mul(w0, w7)), Nat.mul(U32.to_nat(U32.mul(w0, w8)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w1, w11)), Nat.mul(U32.to_nat(U32.mul(w1, w12)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w5, w15)), Nat.mul(U32.to_nat(U32.mul(w5, w16)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w9, w19)), Nat.mul(U32.to_nat(U32.mul(w9, w20)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w13, w23)), Nat.mul(U32.to_nat(U32.mul(w13, w24)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w17, w27)), Nat.mul(U32.to_nat(U32.mul(w17, w28)), 512n)), Nat.add(U32.to_nat(U32.mul(w21, w31)), Nat.mul(U32.to_nat(U32.mul(w21, w32)), 512n)))))))), Nat.mul(Nat.add(U32.to_nat(U32.mul(w33, U32.from_nat(Nat.mod(a14, 512n)))), Nat.mul(U32.to_nat(U32.mul(w33, U32.from_nat(Nat.div(a14, 512n)))), 512n)), 19n)), Nat.div(w67, R))
+      +w69 = Nat.add(Nat.add(Nat.add(U32.to_nat(U32.mul(w0, w3)), Nat.mul(U32.to_nat(U32.mul(w0, w4)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w1, w7)), Nat.mul(U32.to_nat(U32.mul(w1, w8)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w5, w11)), Nat.mul(U32.to_nat(U32.mul(w5, w12)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w9, w15)), Nat.mul(U32.to_nat(U32.mul(w9, w16)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w13, w19)), Nat.mul(U32.to_nat(U32.mul(w13, w20)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w17, w23)), Nat.mul(U32.to_nat(U32.mul(w17, w24)), 512n)), Nat.add(Nat.add(U32.to_nat(U32.mul(w21, w27)), Nat.mul(U32.to_nat(U32.mul(w21, w28)), 512n)), Nat.add(U32.to_nat(U32.mul(w25, U32.from_nat(Nat.mod(a7, 512n)))), Nat.mul(U32.to_nat(U32.mul(w25, U32.from_nat(Nat.div(a7, 512n)))), 512n))))))))), Nat.div(w68, R))
+      +w70 = Nat.add(Nat.mod(w29, R), Nat.mul(Nat.div(w69, R), 19n))
+      Fe{Nat.mod(w70, R), Nat.add(Nat.mod(w56, R), Nat.div(w70, R)), Nat.mod(w57, R), Nat.mod(w58, R), Nat.mod(w59, R), Nat.mod(w60, R), Nat.mod(w61, R), Nat.mod(w62, R), Nat.mod(w63, R), Nat.mod(w64, R), Nat.mod(w65, R), Nat.mod(w66, R), Nat.mod(w67, R), Nat.mod(w68, R), Nat.mod(w69, R)}
+
 # a k for k < 2^17: LS.mul_small_l
 def mul_small(+R: Nat, a: Fe, +k: Nat) -> Fe:
   match a:
@@ -220,9 +297,6 @@ def select(+s: U32, a: Fe, b: Fe) -> Fe:
       +sn = U32.to_nat(s)
       +w0 = Nat.sub(1n, sn)
       Fe{Nat.add(Nat.mul(a0, w0), Nat.mul(b0, sn)), Nat.add(Nat.mul(a1, w0), Nat.mul(b1, sn)), Nat.add(Nat.mul(a2, w0), Nat.mul(b2, sn)), Nat.add(Nat.mul(a3, w0), Nat.mul(b3, sn)), Nat.add(Nat.mul(a4, w0), Nat.mul(b4, sn)), Nat.add(Nat.mul(a5, w0), Nat.mul(b5, sn)), Nat.add(Nat.mul(a6, w0), Nat.mul(b6, sn)), Nat.add(Nat.mul(a7, w0), Nat.mul(b7, sn)), Nat.add(Nat.mul(a8, w0), Nat.mul(b8, sn)), Nat.add(Nat.mul(a9, w0), Nat.mul(b9, sn)), Nat.add(Nat.mul(a10, w0), Nat.mul(b10, sn)), Nat.add(Nat.mul(a11, w0), Nat.mul(b11, sn)), Nat.add(Nat.mul(a12, w0), Nat.mul(b12, sn)), Nat.add(Nat.mul(a13, w0), Nat.mul(b13, sn)), Nat.add(Nat.mul(a14, w0), Nat.mul(b14, sn))}
-
-def sq(+R: Nat, +a: Fe) -> Fe:
-  mul(R, a, a)
 
 def neg(+R: Nat, a: Fe) -> Fe:
   sub(R, zero(), a)

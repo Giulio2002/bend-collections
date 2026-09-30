@@ -82,6 +82,27 @@ def convp(xs: List<&2, Nat>, +ys: List<&2, Nat>) -> List<&2, Nat>:
         case Con{+y, +yt}:
           Con{pm(x, y), addl(scalp(x, yt), convp(xt, Con{y, yt}))}
 
+# every limb doubled
+def dbl(ys: List<&2, Nat>) -> List<&2, Nat>:
+  match ys:
+    case Nil{}:
+      Nil{}
+    case Con{+y, yt}:
+      Con{Nat.add(y, y), dbl(yt)}
+
+# the square: (x + R t)^2 = x^2 + R (2 x t0) + R^2 (2 x tt + t^2), each
+# cross product once (with the other factor doubled)
+def sqp(xs: List<&2, Nat>) -> List<&2, Nat>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{+x, +xt}:
+      match xt:
+        case Nil{}:
+          Con{pm(x, x), Nil{}}
+        case Con{+t0, +tt}:
+          Con{pm(x, x), Con{pm(x, Nat.add(t0, t0)), addl(scalp(x, dbl(tt)), sqp(xt))}}
+
 def take(n: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
   match n:
     case 0n:
@@ -214,6 +235,9 @@ def sub_l(+R: Nat, xs: List<&2, Nat>, ys: List<&2, Nat>) -> List<&2, Nat>:
 
 def mul_l(+R: Nat, xs: List<&2, Nat>, ys: List<&2, Nat>) -> List<&2, Nat>:
   pass(R, fold(convp(xs, ys)))
+
+def sq_l(+R: Nat, xs: List<&2, Nat>) -> List<&2, Nat>:
+  pass(R, fold(sqp(xs)))
 
 def mul_small_l(+R: Nat, xs: List<&2, Nat>, +k: Nat) -> List<&2, Nat>:
   pass(R, scal_r(xs, k))

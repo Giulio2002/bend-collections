@@ -75,6 +75,19 @@ def convp(xs, ys):
     return [pm(xs[0], ys[0])] + addl(scalp(xs[0], ys[1:]), convp(xs[1:], ys))
 
 
+def dbl(ys):
+    return [op('Nat.add', y, y) for y in ys]
+
+
+def sqp(xs):
+    if not xs:
+        return []
+    if len(xs) == 1:
+        return [pm(xs[0], xs[0])]
+    x, t0, tt = xs[0], xs[1], xs[2:]
+    return [pm(x, x), pm(x, op('Nat.add', t0, t0))] + addl(scalp(x, dbl(tt)), sqp(xs[1:]))
+
+
 def fold(zs):
     return addl(zs[:15], scal_r(zs[15:], lit('19n')))
 
@@ -259,9 +272,6 @@ def small(k: Nat) -> Fe:
 '''
 
 FOOTER = '''
-def sq(+R: Nat, +a: Fe) -> Fe:
-  mul(R, a, a)
-
 def neg(+R: Nat, a: Fe) -> Fe:
   sub(R, zero(), a)
 
@@ -361,6 +371,8 @@ def generate():
                       pass_(R, subl(A, B, kp8(R))), ['a + 8 p - b: LS.sub_l']))
     parts.append(flat('mul', 'mul(+R: Nat, a: Fe, b: Fe)', [('a', pat(A)), ('b', pat(B))],
                       pass_(R, fold(convp(A, B))), ['a b: LS.mul_l']))
+    parts.append(flat('sq', 'sq(+R: Nat, a: Fe)', [('a', pat(A))],
+                      pass_(R, fold(sqp(A))), ['a^2, each cross product once: LS.sq_l']))
     K = V('k')
     parts.append(flat('mul_small', 'mul_small(+R: Nat, a: Fe, +k: Nat)', [('a', pat(A))],
                       pass_(R, scal_r(A, K)), ['a k for k < 2^17: LS.mul_small_l']))
@@ -393,6 +405,7 @@ import ./pass.bend as PS
             ('add', 'R, a, b', '+R: Nat, +a: FE.Fe, +b: FE.Fe', 'LS.add_l(R, FE.to_list(a), FE.to_list(b))', True),
             ('sub', 'R, a, b', '+R: Nat, +a: FE.Fe, +b: FE.Fe', 'LS.sub_l(R, FE.to_list(a), FE.to_list(b))', True),
             ('mul', 'R, a, b', '+R: Nat, +a: FE.Fe, +b: FE.Fe', 'LS.mul_l(R, FE.to_list(a), FE.to_list(b))', True),
+            ('sq', 'R, a', '+R: Nat, +a: FE.Fe', 'LS.sq_l(R, FE.to_list(a))', False),
             ('mul_small', 'R, a, k', '+R: Nat, +a: FE.Fe, +k: Nat', 'LS.mul_small_l(R, FE.to_list(a), k)', False),
             ('select', 's, a, b', '+s: U32, +a: FE.Fe, +b: FE.Fe', 'LS.sel(U32.to_nat(s), FE.to_list(a), FE.to_list(b))', True)]:
         m = 'a b' if both else 'a'

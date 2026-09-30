@@ -12,6 +12,7 @@ import ./carry.bend as CA
 import ./pass.bend as PS
 import ./ops.bend as OP
 import ./prod.bend as PD
+import ./sqr.bend as SQ
 import ./sub.bend as SB
 import ./pow.bend as PO
 import ./conv.bend as CV
@@ -61,10 +62,14 @@ def mul_fits(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +b: FE.Fe, +ha: {FV.o
   L.subst(List<&2, Nat>, z => {FV.below(LS.fold(z), WD.sc(47n, one)) == True{} : Bool}, LS.conv(A, B), LS.convp(A, B), Equal.sym(List<&2, Nat>, LS.convp(A, B), LS.conv(A, B), PD.convp_eq(one, h1, A, B, ha, hb)), OP.cols_below(one, h1, a, b, ha, hb))
 
 def sq_value(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}) -> FV.Sq.value(one, h1, a, ha):
-  mul_value(one, h1, a, a, ha, ha)
+  at_p(one, h1, z => {Nat.mod(FV.value(FE.sq(FE.radix(one), a)), z) == FS.fmul(z, FV.value(a), FV.value(a)) : Nat}, OP.sq_c(one, h1, pp1(one), PR.hP(one, h1), FE.radix(one), hR(one), a, ha))
 
 def sq_ok(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}) -> FV.Sq.ok(one, h1, a, ha):
-  mul_ok(one, h1, a, a, ha, ha)
+  OP.sq_ok(one, h1, FE.radix(one), hR(one), a, ha)
+
+def sq_fits(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +ha: {FV.ok(one, a) == True{} : Bool}) -> FV.Sq.fits(one, h1, a, ha):
+  +A = FE.to_list(a)
+  L.subst(List<&2, Nat>, z => {FV.below(LS.fold(z), WD.sc(47n, one)) == True{} : Bool}, LS.conv(A, A), LS.sqp(A), Equal.sym(List<&2, Nat>, LS.sqp(A), LS.conv(A, A), SQ.sqp_conv(one, h1, A, ha)), OP.cols_below(one, h1, a, a, ha, ha))
 
 def mul_small_value(+one: Nat, +h1: {one == 1n : Nat}, +a: FE.Fe, +k: Nat, +ha: {FV.ok(one, a) == True{} : Bool}, +hk: {Nat.is_lt(k, C.shift(17n, one)) == True{} : Bool}) -> FV.MulSmall.value(one, h1, a, k, ha, hk):
   at_p(one, h1, z => {Nat.mod(FV.value(FE.mul_small(FE.radix(one), a, k)), z) == FS.fmul(z, FV.value(a), k) : Nat}, OP.mul_small_c(one, h1, pp1(one), PR.hP(one, h1), FE.radix(one), hR(one), a, k))
