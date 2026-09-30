@@ -1420,7 +1420,6 @@ def oH(b):
 
 
 def fused_open_safe():
-    XRN = ' <> '.join('x%d' % i for i in range(64, 81)) + ' <> rr'
     SIG = ('+pone: Nat, +hp: {pone == 1n : Nat}, %s, +sv: L.F, +hs: {B.lim(26n, sv) == True{} : Bool}, +la: Nat, +h: L.F, +hh: {B.lim(27n, h) == True{} : Bool}, +cnt: Nat' % KSIG)
     ARGS = 'pone, hp, %s, sv, hs, la, h, hh, cnt' % KP
     OA = 'pone, kk, sv, la, h, cnt'
@@ -1428,35 +1427,20 @@ def fused_open_safe():
     for b in range(4):
         at.append('O.ok_load(%s, pone)' % ', '.join(obytes(b)))
         at.append('O.ok_block(kk, %s, %s)' % (oH(b), oM(b)))
-    rec = 'ok_opoly(p, xrest, pone, kk, sv, la, %s, %s)' % (oH(4), FC4)
+    rec = 'ok_opoly(p, q, xrest, pone, kk, sv, la, %s, %s)' % (oH(4), FC4)
     out = []
-    fbk = 'ok_otag(xs, pone, kk, sv, la, h, cnt)'
-    OTAG = """
-# I.otag: the tag's end over the data xs (ciphertext || tag)
-def ok_otag(+xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, +h: L.F, +cnt: Nat) -> Bool:
-  ok_ftail(I.body(CH.skip(16n, xs), xs), pone, kk, sv, la, h, cnt)
-
-def otag_safe(+xs: List<&2, U32>, %s) -> {ok_otag(xs, %s) == True{} : Bool}:
-  ftail_safe(I.body(CH.skip(16n, xs), xs), pone, hp, %s, sv, hs, la, h, hh, cnt)
-""" % (SIG, OA, KP)
     out.append("""
 # ---- the tag pass of the one-pass ChaCha20-Poly1305 open (I.opoly)
-%s
+
 # I.opoly: each full 64-byte ciphertext block's four 16-byte pieces loaded
-# and absorbed (while 81 bytes of data remain), then the recursion or the
-# tag's end
-def ok_opoly(fuel: Nat, +xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, +h: L.F, +cnt: Nat) -> Bool:
-  match fuel:
-    case 0n: %s
-    case 1n+p:
-      match xs:
-        case %s <> +xrest:
-          match xrest:
-            case %s <> _:
-              %s
-            case _: %s
-        case _: %s
-""" % (OTAG, fbk, ' <> '.join('+' + x for x in FX), ' <> '.join(['_'] * 17), conj_expr(at + [rec]), fbk, fbk))
+# and absorbed, then the recursion or the tag's end
+def ok_opoly(fuel: Nat, nb: Nat, +xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F, +la: Nat, +h: L.F, +cnt: Nat) -> Bool:
+  match fuel nb xs:
+    case 1n+p 1n+q %s <> xrest:
+      %s
+    case _ _ _:
+      ok_ftail(I.body(CH.skip(16n, xs), xs), pone, kk, sv, la, h, cnt)
+""" % (' <> '.join('+' + x for x in FX), conj_expr(at + [rec])))
     # invariant helper and step
     Lp = []
     prev_inv = 'hh'
@@ -1476,48 +1460,39 @@ def ok_opoly(fuel: Nat, +xs: List<&2, U32>, +pone: Nat, +kk: L.K, +sv: L.F, +la:
 %s
   iv3
 
-def opstep(+p: Nat, %s, %s, +rr: List<&2, U32>, %s, +ih: {%s == True{} : Bool}) -> {ok_opoly(1n+p, %s <> %s, %s) == True{} : Bool}:
+def opstep(+p: Nat, +q: Nat, %s, +xrest: List<&2, U32>, %s, +ih: {%s == True{} : Bool}) -> {ok_opoly(1n+p, 1n+q, %s <> xrest, %s) == True{} : Bool}:
 %s
 %s
 """ % (FXs, SIG, oH(4), '\n'.join('  ' + l for l in Lp),
-       FXs, ', '.join('+x%d: U32' % i for i in range(64, 81)), SIG, rec.replace('xrest', XRN), cells, XRN, OA,
-       '\n'.join('  ' + l for l in Lp), '\n'.join('  ' + l for l in conj_lines(list(zip(at, pf)) + [(rec.replace('xrest', XRN), 'ih')], 'o'))))
+       FXs, SIG, rec, cells, OA,
+       '\n'.join('  ' + l for l in Lp), '\n'.join('  ' + l for l in conj_lines(list(zip(at, pf)) + [(rec, 'ih')], 'o'))))
     # the recursion
     def fb(cl):
-        return 'otag_safe(%s, %s)' % (cl, ARGS)
-    rbody = []
-    ind = '      '
-    rbody.append(ind + 'match xs:')
-    rbody.append(ind + '  case Nil{}: ' + fb('Nil{}'))
+        return 'ftail_safe(I.body(CH.skip(16n, %s), %s), pone, hp, %s, sv, hs, la, h, hh, cnt)' % (cl, cl, KP)
+    body = []
+    ind = '          '
+    body.append(ind + 'match xs:')
+    body.append(ind + '  case Nil{}: ' + fb('Nil{}'))
     cur = ind + '  '
     for j in range(64):
         t = 't%d' % j if j < 63 else 'xrest'
-        rbody.append(cur + 'case +x%d <> +%s:' % (j, t))
+        body.append(cur + 'case +x%d <> +%s:' % (j, t))
         if j < 63:
-            rbody.append(cur + '  match t%d:' % j)
-            rbody.append(cur + '    case Nil{}: ' + fb(lst(FX[:j + 1])))
+            body.append(cur + '  match t%d:' % j)
+            body.append(cur + '    case Nil{}: ' + fb(lst(FX[:j + 1])))
             cur += '    '
-    # xrest: 17 cells
-    rbody.append(cur + '  match xrest:')
-    rbody.append(cur + '    case Nil{}: ' + fb(lst(FX)))
-    cur2 = cur + '    '
-    XR = ['x%d' % i for i in range(64, 81)]
-    for j in range(17):
-        t = 'v%d' % j if j < 16 else 'rr'
-        rbody.append(cur2 + 'case +%s <> +%s:' % (XR[j], t))
-        if j < 16:
-            rbody.append(cur2 + '  match v%d:' % j)
-            rbody.append(cur2 + '    case Nil{}: ' + fb(lst(FX + XR[:j + 1])))
-            cur2 += '    '
         else:
-            rbody.append(cur2 + '  opstep(p, %s, %s, rr, %s, opoly_safe(p, %s, pone, hp, %s, sv, hs, la, %s, oinv4(%s, %s), %s))' % (
-                ', '.join(FX), ', '.join(XR), ARGS, XRN, KP, oH(4), ', '.join(FX), ARGS, FC4))
-    out.append("""def opoly_safe(fuel: Nat, +xs: List<&2, U32>, %s) -> {ok_opoly(fuel, xs, %s) == True{} : Bool}:
+            body.append(cur + '  opstep(p, q, %s, xrest, %s, opoly_safe(p, q, xrest, pone, hp, %s, sv, hs, la, %s, oinv4(%s, %s), %s))' % (
+                ', '.join(FX), ARGS, KP, oH(4), ', '.join(FX), ARGS, FC4))
+    out.append("""def opoly_safe(fuel: Nat, nb: Nat, +xs: List<&2, U32>, %s) -> {ok_opoly(fuel, nb, xs, %s) == True{} : Bool}:
   match fuel:
-    case 0n: otag_safe(xs, %s)
+    case 0n: ftail_safe(I.body(CH.skip(16n, xs), xs), pone, hp, %s, sv, hs, la, h, hh, cnt)
     case 1n++p:
+      match nb:
+        case 0n: ftail_safe(I.body(CH.skip(16n, xs), xs), pone, hp, %s, sv, hs, la, h, hh, cnt)
+        case 1n++q:
 %s
-""" % (SIG, OA, ARGS, '\n'.join(rbody)))
+""" % (SIG, OA, KP, KP, '\n'.join(body)))
     # entry points
     K = ['k%d' % i for i in range(32)]
     rb = rbytes(K[:16])
@@ -1536,12 +1511,12 @@ def opstep(+p: Nat, %s, %s, +rr: List<&2, U32>, %s, +ih: {%s == True{} : Bool}) 
 def ok_osela(+pone: Nat, +kk: L.K, +sv: L.F, a: P.A, lead: List<&2, U32>, +xs: List<&2, U32>, +k: CH.Key, +n: CH.Nonce) -> Bool:
   match a lead:
     case P.A{h, la} Nil{}: ok_tag_len(pone, kk, sv, la, P.absorb_pad(pone, Nil{}, kk, h, 0n))
-    case P.A{h, la} +l <> +lt: ok_opoly(List.length(&2, U32, l <> lt), xs, pone, kk, sv, la, h, 0n)
+    case P.A{h, la} +l <> +lt: ok_opoly(List.length(&2, U32, l <> lt), I.nblk(l <> lt), xs, pone, kk, sv, la, h, 0n)
 
 def osela_safe(+pone: Nat, +hp: {pone == 1n : Nat}, %s, +sv: L.F, +hs: {B.lim(26n, sv) == True{} : Bool}, a: P.A, +ha: {B.lim(27n, ah(a)) == True{} : Bool}, lead: List<&2, U32>, +xs: List<&2, U32>, +k: CH.Key, +n: CH.Nonce) -> {ok_osela(pone, kk, sv, a, lead, xs, k, n) == True{} : Bool}:
   match a lead:
     case P.A{+h, +la} Nil{}: tag_len_safe(pone, hp, %s, sv, hs, la, P.absorb_pad(pone, Nil{}, kk, h, 0n), pad_inv(pone, hp, %s, Nil{}, h, 0n, ha))
-    case P.A{+h, +la} +l <> +lt: opoly_safe(List.length(&2, U32, l <> lt), xs, pone, hp, %s, sv, hs, la, h, ha, 0n)
+    case P.A{+h, +la} +l <> +lt: opoly_safe(List.length(&2, U32, l <> lt), I.nblk(l <> lt), xs, pone, hp, %s, sv, hs, la, h, ha, 0n)
 
 # I.oselk
 def ok_oselk(%s, aad: List<&2, U32>, lead: List<&2, U32>, +xs: List<&2, U32>, +k: CH.Key, +n: CH.Nonce) -> Bool:
