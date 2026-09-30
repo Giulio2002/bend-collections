@@ -350,13 +350,18 @@ def mok_odd(+bp: Nat, +ml: U32, +mh: U32, +hM: {SW.value(WU.U64{ml, mh}) == 1n+b
   +h = Equal.trans(Bool, Nat.is_eq(Nat.mod(SW.value(WU.U64{ml, mh}), 2n), 1n), X.odd(WU.U64{ml, mh}), True{}, Equal.sym(Bool, X.odd(WU.U64{ml, mh}), Nat.is_eq(Nat.mod(SW.value(WU.U64{ml, mh}), 2n), 1n), WA.odd_value(WU.U64{ml, mh})), W64S.and_l(X.odd(WU.U64{ml, mh}), X.eq(X.mul(WU.U64{ml, mh}, X.minv(WU.U64{ml, mh})), WU.U64{4294967295, 4294967295}), mok_ab(ml, mh, hok)))
   Equal.trans(Nat, Nat.mod(1n+bp, 2n), Nat.mod(SW.value(WU.U64{ml, mh}), 2n), 1n, Equal.cong(Nat, Nat, z => Nat.mod(z, 2n), 1n+bp, SW.value(WU.U64{ml, mh}), Equal.sym(Nat, SW.value(WU.U64{ml, mh}), 1n+bp, hM)), N.eq_from_is_eq(Nat.mod(SW.value(WU.U64{ml, mh}), 2n), 1n, h))
 
-def mok_inv(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +ml: U32, +mh: U32, +hM: {SW.value(WU.U64{ml, mh}) == 1n+bp : Nat}, +hok: {X.mont_ok(WU.U64{ml, mh}) == True{} : Bool}) -> {1n+C.low(64n, Nat.mul(1n+bp, SW.value(X.minv(WU.U64{ml, mh})))) == C.shift(64n, one) : Nat}:
+# over an open all-ones word o: a literal 2^64 - 1 under SW.value would be
+# expanded in unary by any conversion that unfolds it
+def mok_inv_o(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +ml: U32, +mh: U32, +hM: {SW.value(WU.U64{ml, mh}) == 1n+bp : Nat}, +o: U32, +po: {o == U32{WD.mask(32n, 32n)} : U32}, +heq: {X.eq(X.mul(WU.U64{ml, mh}, X.minv(WU.U64{ml, mh})), WU.U64{o, o}) == True{} : Bool}) -> {1n+C.low(64n, Nat.mul(1n+bp, SW.value(X.minv(WU.U64{ml, mh})))) == C.shift(64n, one) : Nat}:
   +mp = X.minv(WU.U64{ml, mh})
   +w = X.mul(WU.U64{ml, mh}, mp)
-  +h = Equal.trans(Bool, Nat.is_eq(SW.value(w), SW.value(WU.U64{4294967295, 4294967295})), X.eq(X.mul(WU.U64{ml, mh}, X.minv(WU.U64{ml, mh})), WU.U64{4294967295, 4294967295}), True{}, Equal.sym(Bool, X.eq(X.mul(WU.U64{ml, mh}, X.minv(WU.U64{ml, mh})), WU.U64{4294967295, 4294967295}), Nat.is_eq(SW.value(w), SW.value(WU.U64{4294967295, 4294967295})), WA.eq_value(w, WU.U64{4294967295, 4294967295})), W64S.and_r(X.odd(WU.U64{ml, mh}), X.eq(X.mul(WU.U64{ml, mh}, X.minv(WU.U64{ml, mh})), WU.U64{4294967295, 4294967295}), mok_ab(ml, mh, hok)))
-  +e1 = N.eq_from_is_eq(SW.value(w), SW.value(WU.U64{4294967295, 4294967295}), h)
+  +h = Equal.trans(Bool, Nat.is_eq(SW.value(w), SW.value(WU.U64{o, o})), X.eq(w, WU.U64{o, o}), True{}, Equal.sym(Bool, X.eq(w, WU.U64{o, o}), Nat.is_eq(SW.value(w), SW.value(WU.U64{o, o})), WA.eq_value(w, WU.U64{o, o})), heq)
+  +e1 = N.eq_from_is_eq(SW.value(w), SW.value(WU.U64{o, o}), h)
   +e2 = Equal.trans(Nat, C.low(64n, Nat.mul(1n+bp, SW.value(mp))), C.low(64n, Nat.mul(SW.value(WU.U64{ml, mh}), SW.value(mp))), SW.value(w), Equal.cong(Nat, Nat, z => C.low(64n, Nat.mul(z, SW.value(mp))), 1n+bp, SW.value(WU.U64{ml, mh}), Equal.sym(Nat, SW.value(WU.U64{ml, mh}), 1n+bp, hM)), Equal.sym(Nat, SW.value(w), C.low(64n, Nat.mul(SW.value(WU.U64{ml, mh}), SW.value(mp))), WA.mul_value(WU.U64{ml, mh}, mp)))
-  Equal.trans(Nat, 1n+C.low(64n, Nat.mul(1n+bp, SW.value(mp))), 1n+SW.value(WU.U64{4294967295, 4294967295}), C.shift(64n, one), Equal.cong(Nat, Nat, z => 1n+z, C.low(64n, Nat.mul(1n+bp, SW.value(mp))), SW.value(WU.U64{4294967295, 4294967295}), Equal.trans(Nat, C.low(64n, Nat.mul(1n+bp, SW.value(mp))), SW.value(w), SW.value(WU.U64{4294967295, 4294967295}), e2, e1)), ones_v(one, h1, 4294967295, {==}))
+  Equal.trans(Nat, 1n+C.low(64n, Nat.mul(1n+bp, SW.value(mp))), 1n+SW.value(WU.U64{o, o}), C.shift(64n, one), Equal.cong(Nat, Nat, z => 1n+z, C.low(64n, Nat.mul(1n+bp, SW.value(mp))), SW.value(WU.U64{o, o}), Equal.trans(Nat, C.low(64n, Nat.mul(1n+bp, SW.value(mp))), SW.value(w), SW.value(WU.U64{o, o}), e2, e1)), ones_v(one, h1, o, po))
+
+def mok_inv(+one: Nat, +h1: {one == 1n : Nat}, +bp: Nat, +ml: U32, +mh: U32, +hM: {SW.value(WU.U64{ml, mh}) == 1n+bp : Nat}, +hok: {X.mont_ok(WU.U64{ml, mh}) == True{} : Bool}) -> {1n+C.low(64n, Nat.mul(1n+bp, SW.value(X.minv(WU.U64{ml, mh})))) == C.shift(64n, one) : Nat}:
+  mok_inv_o(one, h1, bp, ml, mh, hM, 4294967295, {==}, W64S.and_r(X.odd(WU.U64{ml, mh}), X.eq(X.mul(WU.U64{ml, mh}, X.minv(WU.U64{ml, mh})), WU.U64{4294967295, 4294967295}), mok_ab(ml, mh, hok)))
 
 def mok_hz(+ml: U32, +mh: U32, +hok: {X.mont_ok(WU.U64{ml, mh}) == True{} : Bool}) -> {U32.is_zero(mh) == False{} : Bool}:
   not_t(U32.is_zero(mh), W64S.and_l(Bool.not(U32.is_zero(mh)), U32.is_lt(mh, 2147483648), mok_cd(ml, mh, hok)))
