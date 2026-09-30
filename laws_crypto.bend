@@ -6,6 +6,8 @@ import Base
 # bend-collections-laws (laws.bend imports all three parts by name).
 
 import ./proofs/crypto/aead/proof.bend as CryptoAeadProof
+import ./proofs/crypto/aead/safe.bend as CryptoAeadSafe
+import ./proofs/crypto/aead/safe_open.bend as CryptoAeadSafeOpen
 import ./proofs/crypto/aes/proof.bend as CryptoAesProof
 import ./proofs/crypto/argon2/proof.bend as CryptoArgon2Proof
 import ./proofs/crypto/blake/proof.bend as CryptoBlakeProof
@@ -16,6 +18,7 @@ import ./proofs/crypto/hash/proof.bend as CryptoHashProof
 import ./proofs/crypto/kdf/proof.bend as CryptoKdfProof
 import ./proofs/crypto/mac/proof.bend as CryptoMacProof
 import ./proofs/crypto/poly1305/proof.bend as CryptoPoly1305Proof
+import ./proofs/crypto/poly1305/safe.bend as CryptoPoly1305Safe
 import ./proofs/crypto/random/proof.bend as CryptoRandomProof
 import ./proofs/crypto/secp256k1/proof.bend as CryptoSecp256k1Proof
 import ./proofs/crypto/secp256k1/proof_recover.bend as CryptoSecp256k1ProofRecover

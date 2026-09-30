@@ -374,7 +374,7 @@ import bend-collections-laws@1.0.0.0/laws.bend as Laws
 
 BendHub caps a package at 16 MiB, so the laws are published in three parts
 (`laws_containers.bend`, `laws_math.bend`, `laws_crypto.bend`, one proof root
-each, 62 in total) and `laws.bend` imports the three by name. A name resolves to
+each, 64 in total) and `laws.bend` imports the three by name. A name resolves to
 a content hash, and every fetched file is checked against it, so an import never
 changes under you. Checking all the laws at once takes about 12 GB of memory
 and a large stack (`ulimit -s unlimited` plus
