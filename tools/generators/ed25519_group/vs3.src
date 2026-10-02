@@ -1,0 +1,166 @@
+import Base
+import ./lite/lib/lemmas/proofs/nat_algebra.bend as NA
+import ./lite/math/typed/width.bend as WW
+import ../../secp256k1/semiring.bend as SR
+import ../../../lib/logic.bend as Lg
+import ./lite/lib/nat.bend as N
+import ./lite/math/natural/arith.bend as NR
+import ./lite/math/number/nt_prime.bend as PM
+import ./lite/math/number/nt_flt.bend as FL
+import ../../../../spec/lib/common.bend as C
+import ../../../../spec/crypto/curve25519/field.bend as FS
+import ../../../../spec/crypto/curve25519/x25519.bend as SX
+import ../../../../spec/crypto/curve25519/edwards.bend as G
+import ../../../../spec/crypto/ed25519.bend as ED
+import ../../../../spec/crypto/ed25519_group.bend as GE
+import ../../../../spec/crypto/sha512.bend as SHA
+import ./fq.bend as FQ
+import ./glaw.bend as GL
+import ./gpt.bend as GP
+import ./ext.bend as EX
+import ./smul.bend as SM
+import ./dec.bend as DC
+import ./dec2.bend as DD
+import ./vs2.bend as VS2
+import ./ebytes.bend as EB
+
+# Ed25519 correctness (RFC 8032 sections 5.1.5 to 5.1.7): the signature of
+# a message under the key of a seed verifies under the public key of that
+# seed, for every seed and message. Stated here for a modulus p = 1 + mp and
+# the facts of edwards25519 as hypotheses (p = 8 m + 5 below 2^255, the
+# order l of the base point below 2^256); inst2.bend states it for the
+# specification's verify, public_key and sign.
+
+# ---- point encoding: decode(encode(a)) ----
+
+def yfit(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +hp255: {Nat.is_le(1n+mp, C.shift(255n, one)) == True{} : Bool}, +y: Nat, +hy: {Nat.is_lt(y, 1n+mp) == True{} : Bool}) -> {C.fits(255n, y) == True{} : Bool}:
+  %rw <- FL.small_nz(mp, y, hy)
+  EB.mod_fits255(one, h1, y, mp, hp255)
+
+# the encoding of a point (x, y) of the curve decodes to (x : y : 1 : x y)
+def drt(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +m: Nat, +h58: {Nat.div(Nat.sub(1n+mp, 5n), 8n) == m : Nat}, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +hp255: {Nat.is_le(1n+mp, C.shift(255n, one)) == True{} : Bool}, +x: Nat, +y: Nat, +hx: {Nat.is_lt(x, 1n+mp) == True{} : Bool}, +hy: {Nat.is_lt(y, 1n+mp) == True{} : Bool}, +he: GL.Eq(mp, d, x, y)) -> {ED.decode(1n+mp, d, ED.set_msb(SX.le_bytes(C.shift(5n, one), y), U32.from_nat(Nat.mod(x, 2n)))) == Some{ED.EPt{x, y, 1n, FS.fmul(1n+mp, x, y)}} : Maybe<&2, ED.EPt>}:
+  +hf = yfit(one, h1, mp, hp255, y, hy)
+  %goal {ED.dec_y(1n+mp, d, FS.value(SX.mask_last(ED.set_msb(SX.le_bytes(C.shift(5n, one), y), U32.from_nat(Nat.mod(x, 2n))))), SX.kbit(FS.value(ED.set_msb(SX.le_bytes(C.shift(5n, one), y), U32.from_nat(Nat.mod(x, 2n)))), 255n), Bool.not(Nat.is_lt(FS.value(SX.mask_last(ED.set_msb(SX.le_bytes(C.shift(5n, one), y), U32.from_nat(Nat.mod(x, 2n))))), 1n+mp))) == Some{ED.EPt{x, y, 1n, FS.fmul(1n+mp, x, y)}} : Maybe<&2, ED.EPt>}
+  %rw EB.enc_y(one, h1, y, Nat.mod(x, 2n), hf, EB.mod2_le(x))
+  %rw EB.enc_y(one, h1, y, Nat.mod(x, 2n), hf, EB.mod2_le(x))
+  %rw EB.enc_bit(one, h1, y, Nat.mod(x, 2n), hf, EB.mod2_le(x))
+  %rwh hy : {Nat.is_lt(y, 1n+mp) == True{} : Bool}
+  DD.dec_rt(mp, d, hc, m, h58, hk, x, y, hx, he)
+
+def drt_a(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +m: Nat, +h58: {Nat.div(Nat.sub(1n+mp, 5n), 8n) == m : Nat}, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +hp255: {Nat.is_le(1n+mp, C.shift(255n, one)) == True{} : Bool}, a: G.APt, +ha: G.OnCurve(1n+mp, d, a)) -> {ED.decode(1n+mp, d, VS2.enc(one, a)) == Some{ED.EPt{G.ax(a), G.ay(a), 1n, FS.fmul(1n+mp, G.ax(a), G.ay(a))}} : Maybe<&2, ED.EPt>}:
+  match a:
+    case G.APt{+x, +y}:
+      drt(one, h1, mp, d, hc, m, h58, hk, hp255, x, y, GP.oc_x(mp, d, x, y, ha), GP.oc_y(mp, d, x, y, ha), GP.oc_e(mp, d, x, y, ha))
+
+def aff_a(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), a: G.APt, +ha: G.OnCurve(1n+mp, d, a)) -> {GE.affine(1n+mp, ED.EPt{G.ax(a), G.ay(a), 1n, FS.fmul(1n+mp, G.ax(a), G.ay(a))}) == a : G.APt}:
+  match a:
+    case G.APt{+x, +y}:
+      VS2.aff1(mp, FQ.cv_prime(mp, d, hc), x, y, FS.fmul(1n+mp, x, y), GP.oc_x(mp, d, x, y, ha), GP.oc_y(mp, d, x, y, ha))
+
+def first_a(+one: Nat, +h1: {one == 1n : Nat}, a: G.APt, +t: List<&2, U32>) -> {ED.first(32n, ED.cat(VS2.enc(one, a), t)) == VS2.enc(one, a) : List<&2, U32>}:
+  match a:
+    case G.APt{+x, +y}:
+      EB.first_enc(one, h1, y, Nat.mod(x, 2n), t)
+
+def rest_a(+one: Nat, +h1: {one == 1n : Nat}, a: G.APt, +t: List<&2, U32>) -> {ED.rest(32n, ED.cat(VS2.enc(one, a), t)) == t : List<&2, U32>}:
+  match a:
+    case G.APt{+x, +y}:
+      EB.rest_enc(one, h1, y, Nat.mod(x, 2n), t)
+
+# ---- the base point ----
+
+def base_is(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +m: Nat, +h58: {Nat.div(Nat.sub(1n+mp, 5n), 8n) == m : Nat}, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +hp255: {Nat.is_le(1n+mp, C.shift(255n, one)) == True{} : Bool}, +bx: Nat, +by: Nat, +hbx: {Nat.is_lt(bx, 1n+mp) == True{} : Bool}, +hby: {Nat.is_lt(by, 1n+mp) == True{} : Bool}, +hbe: GL.Eq(mp, d, bx, by), +hb2: {Nat.mod(bx, 2n) == 0n : Nat}, +hb45: {FS.fmul(1n+mp, 4n, FS.finv(1n+mp, 5n)) == by : Nat}) -> {ED.base(1n+mp, d) == ED.EPt{bx, by, 1n, FS.fmul(1n+mp, bx, by)} : ED.EPt}:
+  %goal {ED.base_of(ED.decode(1n+mp, d, SX.le_bytes(32n, FS.fmul(1n+mp, 4n, FS.finv(1n+mp, 5n))))) == ED.EPt{bx, by, 1n, FS.fmul(1n+mp, bx, by)} : ED.EPt}
+  %rwh hb45 : {FS.fmul(1n+mp, 4n, FS.finv(1n+mp, 5n)) == by : Nat}
+  %rw EB.le32(one, h1, by)
+  %rw <- EB.msb_zero(one, by)
+  %rwh Equal.sym(Nat, Nat.mod(bx, 2n), 0n, hb2) : {0n == Nat.mod(bx, 2n) : Nat}
+  %rw drt(one, h1, mp, d, hc, m, h58, hk, hp255, bx, by, hbx, hby, hbe)
+  %close
+
+# the affine base point
+def base_aff(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +m: Nat, +h58: {Nat.div(Nat.sub(1n+mp, 5n), 8n) == m : Nat}, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +hp255: {Nat.is_le(1n+mp, C.shift(255n, one)) == True{} : Bool}, +bx: Nat, +by: Nat, +hbx: {Nat.is_lt(bx, 1n+mp) == True{} : Bool}, +hby: {Nat.is_lt(by, 1n+mp) == True{} : Bool}, +hbe: GL.Eq(mp, d, bx, by), +hb2: {Nat.mod(bx, 2n) == 0n : Nat}, +hb45: {FS.fmul(1n+mp, 4n, FS.finv(1n+mp, 5n)) == by : Nat}) -> {GE.affine(1n+mp, ED.base(1n+mp, d)) == G.APt{bx, by} : G.APt}:
+  %rw base_is(one, h1, mp, d, hc, m, h58, hk, hp255, bx, by, hbx, hby, hbe, hb2, hb45)
+  VS2.aff1(mp, FQ.cv_prime(mp, d, hc), bx, by, FS.fmul(1n+mp, bx, by), hbx, hby)
+
+# ---- scalars ----
+
+def hram_eq(+one: Nat, rb: List<&2, U32>, +a: List<&2, U32>, +msg: List<&2, U32>) -> {ED.hram(one, rb, a, msg) == Nat.mod(FS.value(SHA.sha512_bytes(ED.cat(rb, ED.cat(a, msg)))), ED.ell(one)) : Nat}:
+  match rb:
+    case Nil{}:
+      {==}
+    case Con{x, xt}:
+      {==}
+
+def fit_l(+one: Nat, +h1: {one == 1n : Nat}, +lp: Nat, +hle: {ED.ell(one) == 1n+lp : Nat}, +hl: {Nat.is_le(1n+lp, C.shift(256n, one)) == True{} : Bool}, +x: Nat) -> {C.fits(C.shift(8n, one), Nat.mod(x, ED.ell(one))) == True{} : Bool}:
+  %rwh hle : {ED.ell(one) == 1n+lp : Nat}
+  EB.mod_fits(one, h1, x, lp, hl)
+
+def hram_fit(+one: Nat, +h1: {one == 1n : Nat}, +lp: Nat, +hle: {ED.ell(one) == 1n+lp : Nat}, +hl: {Nat.is_le(1n+lp, C.shift(256n, one)) == True{} : Bool}, +rb: List<&2, U32>, +a: List<&2, U32>, +msg: List<&2, U32>) -> {C.fits(C.shift(8n, one), ED.hram(one, rb, a, msg)) == True{} : Bool}:
+  %rw hram_eq(one, rb, a, msg)
+  fit_l(one, h1, lp, hle, hl, FS.value(SHA.sha512_bytes(ED.cat(rb, ED.cat(a, msg)))))
+
+# ---- signing, then verifying ----
+
+# r = SHA-512(prefix || M) mod L
+def rs(+one: Nat, +h: List<&2, U32>, +msg: List<&2, U32>) -> Nat:
+  Nat.mod(FS.value(SHA.sha512_bytes(ED.cat(ED.rest(32n, h), msg))), ED.ell(one))
+
+# S = (r + k s) mod el
+def ss(+one: Nat, +el: Nat, +h: List<&2, U32>, +msg: List<&2, U32>, +rb: List<&2, U32>, +a: List<&2, U32>) -> Nat:
+  Nat.mod(Nat.add(rs(one, h, msg), Nat.mul(ED.hram(one, rb, a, msg), ED.secret(h))), el)
+
+# the verification of the signature (rb, S) under the key a
+def vf(+one: Nat, +mp: Nat, +d: Nat, +el: Nat, +h: List<&2, U32>, +msg: List<&2, U32>, +rb: List<&2, U32>, +a: List<&2, U32>) -> Bool:
+  ED.verify_with(one, 1n+mp, d, a, msg, ED.first(32n, ED.cat(rb, SX.le_bytes(C.shift(5n, one), ss(one, el, h, msg, rb, a)))), FS.value(ED.rest(32n, ED.cat(rb, SX.le_bytes(C.shift(5n, one), ss(one, el, h, msg, rb, a))))), Nat.is_lt(FS.value(ED.rest(32n, ED.cat(rb, SX.le_bytes(C.shift(5n, one), ss(one, el, h, msg, rb, a))))), el))
+
+def vf_true(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +m: Nat, +h58: {Nat.div(Nat.sub(1n+mp, 5n), 8n) == m : Nat}, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +hp255: {Nat.is_le(1n+mp, C.shift(255n, one)) == True{} : Bool}, +lp: Nat, +hle: {ED.ell(one) == 1n+lp : Nat}, +hl256: {Nat.is_le(1n+lp, C.shift(256n, one)) == True{} : Bool}, +hlb: {G.nmul(1n+mp, d, 1n+lp, GE.affine(1n+mp, ED.base(1n+mp, d))) == G.azero() : G.APt}, +seed: List<&2, U32>, +msg: List<&2, U32>, +ar: G.APt, +aa: G.APt, +har: G.OnCurve(1n+mp, d, ar), +haa: G.OnCurve(1n+mp, d, aa), +hra: {ar == GE.affine(1n+mp, ED.mul(one, 1n+mp, d, rs(one, SHA.sha512_bytes(seed), msg), ED.base(1n+mp, d))) : G.APt}, +hsa: {aa == GE.affine(1n+mp, ED.mul(one, 1n+mp, d, ED.secret(SHA.sha512_bytes(seed)), ED.base(1n+mp, d))) : G.APt}) -> {vf(one, mp, d, 1n+lp, SHA.sha512_bytes(seed), msg, VS2.enc(one, ar), VS2.enc(one, aa)) == True{} : Bool}:
+  +h = SHA.sha512_bytes(seed)
+  +er = VS2.enc(one, ar)
+  +ea = VS2.enc(one, aa)
+  +sv = ss(one, 1n+lp, SHA.sha512_bytes(seed), msg, VS2.enc(one, ar), VS2.enc(one, aa))
+  +hfit = EB.mod_fits(one, h1, Nat.add(rs(one, h, msg), Nat.mul(ED.hram(one, er, ea, msg), ED.secret(h))), lp, hl256)
+  +hlt = NR.dm_lt(lp, Nat.add(rs(one, h, msg), Nat.mul(ED.hram(one, er, ea, msg), ED.secret(h))))
+  +rr = {ED.EPt{G.ax(ar), G.ay(ar), 1n, FS.fmul(1n+mp, G.ax(ar), G.ay(ar))} : ED.EPt}
+  +pa = {ED.EPt{G.ax(aa), G.ay(aa), 1n, FS.fmul(1n+mp, G.ax(aa), G.ay(aa))} : ED.EPt}
+  +dr = drt_a(one, h1, mp, d, hc, m, h58, hk, hp255, ar, har)
+  +da = drt_a(one, h1, mp, d, hc, m, h58, hk, hp255, aa, haa)
+  %goal {ED.verify_with(one, 1n+mp, d, VS2.enc(one, aa), msg, ED.first(32n, ED.cat(VS2.enc(one, ar), SX.le_bytes(C.shift(5n, one), ss(one, 1n+lp, SHA.sha512_bytes(seed), msg, VS2.enc(one, ar), VS2.enc(one, aa))))), FS.value(ED.rest(32n, ED.cat(VS2.enc(one, ar), SX.le_bytes(C.shift(5n, one), ss(one, 1n+lp, SHA.sha512_bytes(seed), msg, VS2.enc(one, ar), VS2.enc(one, aa)))))), Nat.is_lt(FS.value(ED.rest(32n, ED.cat(VS2.enc(one, ar), SX.le_bytes(C.shift(5n, one), ss(one, 1n+lp, SHA.sha512_bytes(seed), msg, VS2.enc(one, ar), VS2.enc(one, aa)))))), 1n+lp)) == True{} : Bool}
+  %rw first_a(one, h1, ar, SX.le_bytes(C.shift(5n, one), ss(one, 1n+lp, SHA.sha512_bytes(seed), msg, VS2.enc(one, ar), VS2.enc(one, aa))))
+  %rw rest_a(one, h1, ar, SX.le_bytes(C.shift(5n, one), ss(one, 1n+lp, SHA.sha512_bytes(seed), msg, VS2.enc(one, ar), VS2.enc(one, aa))))
+  %rw rest_a(one, h1, ar, SX.le_bytes(C.shift(5n, one), ss(one, 1n+lp, SHA.sha512_bytes(seed), msg, VS2.enc(one, ar), VS2.enc(one, aa))))
+  %rw EB.val_le(one, h1, ss(one, 1n+lp, SHA.sha512_bytes(seed), msg, VS2.enc(one, ar), VS2.enc(one, aa)), hfit)
+  %rw EB.val_le(one, h1, ss(one, 1n+lp, SHA.sha512_bytes(seed), msg, VS2.enc(one, ar), VS2.enc(one, aa)), hfit)
+  %rwh hlt : {Nat.is_lt(ss(one, 1n+lp, SHA.sha512_bytes(seed), msg, VS2.enc(one, ar), VS2.enc(one, aa)), 1n+lp) == True{} : Bool}
+  %goal {ED.check(one, 1n+mp, d, ss(one, 1n+lp, SHA.sha512_bytes(seed), msg, VS2.enc(one, ar), VS2.enc(one, aa)), VS2.enc(one, ar), VS2.enc(one, aa), msg, ED.decode(1n+mp, d, VS2.enc(one, ar)), ED.decode(1n+mp, d, VS2.enc(one, aa))) == True{} : Bool}
+  %rw drt_a(one, h1, mp, d, hc, m, h58, hk, hp255, ar, har)
+  %rw drt_a(one, h1, mp, d, hc, m, h58, hk, hp255, aa, haa)
+  VS2.check_eq(one, mp, d, hc, ED.base(1n+mp, d), DC.base_valid(mp, d, hc), lp, hlb, rs(one, h, msg), ED.hram(one, er, ea, msg), ED.secret(h),
+    fit_l(one, h1, lp, hle, hl256, FS.value(SHA.sha512_bytes(ED.cat(ED.rest(32n, h), msg)))), hram_fit(one, h1, lp, hle, hl256, er, ea, msg), EB.secret_sha_fits(one, h1, seed), hfit,
+    rr, pa, DC.some_valid(mp, d, hc, er, rr, dr), DC.some_valid(mp, d, hc, ea, pa, da),
+    Equal.trans(G.APt, GE.affine(1n+mp, rr), ar, GE.affine(1n+mp, ED.mul(one, 1n+mp, d, rs(one, h, msg), ED.base(1n+mp, d))), aff_a(mp, d, hc, ar, har), hra),
+    Equal.trans(G.APt, GE.affine(1n+mp, pa), aa, GE.affine(1n+mp, ED.mul(one, 1n+mp, d, ED.secret(h), ED.base(1n+mp, d))), aff_a(mp, d, hc, aa, haa), hsa))
+
+# the signature of sign_body verifies under public_of, at the modulus 1 + mp
+def sv_true(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +m: Nat, +h58: {Nat.div(Nat.sub(1n+mp, 5n), 8n) == m : Nat}, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +hp255: {Nat.is_le(1n+mp, C.shift(255n, one)) == True{} : Bool}, +lp: Nat, +hle: {ED.ell(one) == 1n+lp : Nat}, +hl256: {Nat.is_le(1n+lp, C.shift(256n, one)) == True{} : Bool}, +hlb: {G.nmul(1n+mp, d, 1n+lp, GE.affine(1n+mp, ED.base(1n+mp, d))) == G.azero() : G.APt}, +seed: List<&2, U32>, +msg: List<&2, U32>) -> {vf(one, mp, d, ED.ell(one), SHA.sha512_bytes(seed), msg, ED.encode(one, 1n+mp, ED.mul(one, 1n+mp, d, rs(one, SHA.sha512_bytes(seed), msg), ED.base(1n+mp, d))), ED.public_of(one, 1n+mp, d, SHA.sha512_bytes(seed))) == True{} : Bool}:
+  +h = SHA.sha512_bytes(seed)
+  +hbv = DC.base_valid(mp, d, hc)
+  +pr = ED.mul(one, 1n+mp, d, rs(one, SHA.sha512_bytes(seed), msg), ED.base(1n+mp, d))
+  +pa = ED.mul(one, 1n+mp, d, ED.secret(SHA.sha512_bytes(seed)), ED.base(1n+mp, d))
+  +hrv = SM.mul_valid(one, mp, d, hc, rs(one, SHA.sha512_bytes(seed), msg), ED.base(1n+mp, d), hbv)
+  +hav = SM.mul_valid(one, mp, d, hc, ED.secret(SHA.sha512_bytes(seed)), ED.base(1n+mp, d), hbv)
+  %Equal.sym(Nat, ED.ell(one), 1n+lp, hle) : {vf(one, mp, d, _, SHA.sha512_bytes(seed), msg, ED.encode(one, 1n+mp, ED.mul(one, 1n+mp, d, rs(one, SHA.sha512_bytes(seed), msg), ED.base(1n+mp, d))), ED.public_of(one, 1n+mp, d, SHA.sha512_bytes(seed))) == True{} : Bool}
+  %Equal.sym(List<&2, U32>, ED.encode(one, 1n+mp, pr), VS2.enc(one, GE.affine(1n+mp, pr)), VS2.encode_aff(one, 1n+mp, pr)) : {vf(one, mp, d, 1n+lp, SHA.sha512_bytes(seed), msg, _, ED.public_of(one, 1n+mp, d, SHA.sha512_bytes(seed))) == True{} : Bool}
+  %Equal.sym(List<&2, U32>, ED.public_of(one, 1n+mp, d, h), VS2.enc(one, GE.affine(1n+mp, pa)), Equal.trans(List<&2, U32>, ED.public_of(one, 1n+mp, d, h), ED.encode(one, 1n+mp, pa), VS2.enc(one, GE.affine(1n+mp, pa)), VS2.public_of_eq(one, 1n+mp, d, h), VS2.encode_aff(one, 1n+mp, pa))) : {vf(one, mp, d, 1n+lp, SHA.sha512_bytes(seed), msg, VS2.enc(one, GE.affine(1n+mp, pr)), _) == True{} : Bool}
+  vf_true(one, h1, mp, d, hc, m, h58, hk, hp255, lp, hle, hl256, hlb, seed, msg, GE.affine(1n+mp, pr), GE.affine(1n+mp, pa), EX.aff_on(mp, d, pr, hrv), EX.aff_on(mp, d, pa, hav), {==}, {==})
+
+# ---- the encoding round trip ----
+
+# decode(encode(a)) is (x : y : 1 : x y) for the affine point (x, y) of a valid a
+def dec_enc(+one: Nat, +h1: {one == 1n : Nat}, +mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +m: Nat, +h58: {Nat.div(Nat.sub(1n+mp, 5n), 8n) == m : Nat}, +hk: {Nat.div(mp, 2n) == Nat.add(Nat.add(1n, Nat.add(m, m)), Nat.add(1n, Nat.add(m, m))) : Nat}, +hp255: {Nat.is_le(1n+mp, C.shift(255n, one)) == True{} : Bool}, +a: ED.EPt, +ha: GE.Valid(1n+mp, d, a)) -> {ED.decode(1n+mp, d, ED.encode(one, 1n+mp, a)) == Some{ED.EPt{G.ax(GE.affine(1n+mp, a)), G.ay(GE.affine(1n+mp, a)), 1n, FS.fmul(1n+mp, G.ax(GE.affine(1n+mp, a)), G.ay(GE.affine(1n+mp, a)))}} : Maybe<&2, ED.EPt>}:
+  %rw VS2.encode_aff(one, 1n+mp, a)
+  drt_a(one, h1, mp, d, hc, m, h58, hk, hp255, GE.affine(1n+mp, a), EX.aff_on(mp, d, a, ha))
+
+# and that point has the same affine point as a (it is the same point)
+def dec_enc_aff(+mp: Nat, +d: Nat, +hc: G.Curve(mp, d), +a: ED.EPt, +ha: GE.Valid(1n+mp, d, a)) -> {GE.affine(1n+mp, ED.EPt{G.ax(GE.affine(1n+mp, a)), G.ay(GE.affine(1n+mp, a)), 1n, FS.fmul(1n+mp, G.ax(GE.affine(1n+mp, a)), G.ay(GE.affine(1n+mp, a)))}) == GE.affine(1n+mp, a) : G.APt}:
+  aff_a(mp, d, hc, GE.affine(1n+mp, a), EX.aff_on(mp, d, a, ha))

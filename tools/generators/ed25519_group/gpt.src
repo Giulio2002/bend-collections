@@ -1,10 +1,10 @@
 import Base
-import ../../../lib/lemmas/proofs/nat_algebra.bend as NA
-import ../../../math/typed/width.bend as WW
+import ./lite/lib/lemmas/proofs/nat_algebra.bend as NA
+import ./lite/math/typed/width.bend as WW
 import ../../secp256k1/semiring.bend as SR
 import ../../../lib/logic.bend as Lg
-import ../../../lib/nat.bend as N
-import ../../../math/number/nt_pock.bend as PK
+import ./lite/lib/nat.bend as N
+import ./lite/math/number/nt_pock.bend as PK
 import ../../../../spec/crypto/curve25519/field.bend as FS
 import ../../../../spec/crypto/curve25519/edwards.bend as G
 import ./fq.bend as FQ

@@ -107,5 +107,57 @@ their conclusions as hypotheses (`G.Curve(mp, d)`, `FS.prime(one) == 1 + mp`):
 the composition of a theorem with its certificates is an application, but
 no single root contains both.
 
-See the table in `docs/CRYPTO_CONTRACTS.md` (Ed25519 section) for the check
-times.
+The group files import pruned copies of the libraries they use
+(`proofs/crypto/ed25519/group/lite/`, written by
+`tools/generators/ed25519_group/shake_ed.py`, the secp256k1 `shake.py` for
+this tree): the number theory otherwise drags in the trial-division proof
+of small primes (about 300 MB per root).
+
+Every Ed25519 root, checked on the server (Bend 2.0.34, two at a time,
+each inside a 1000 MB memory limit, `BUN_JSC_forceRAMSize` = 1000 MB):
+
+| root | peak MB | s |
+|---|---|---|
+| `ed25519/group/cert_d0.bend` | 614 | 35 |
+| `ed25519/group/cert_l1.bend` | 631 | 24 |
+| `ed25519/group/cert_q.bend` | 625 | 24 |
+| `ed25519/group/cert_q1.bend` | 625 | 20 |
+| `ed25519/group/cert_q2.bend` | 490 | 6 |
+| `ed25519/group/certa.bend` | 665 | 27 |
+| `ed25519/group/certda.bend` | 686 | 33 |
+| `ed25519/group/certia.bend` | 690 | 25 |
+| `ed25519/group/certla.bend` | 729 | 19 |
+| `ed25519/group/id_madd.bend` | 405 | 6 |
+| `ed25519/group/id_mdbl.bend` | 394 | 7 |
+| `ed25519/group/id_mpu.bend` | 335 | 1 |
+| `ed25519/group/inst.bend` | 551 | 19 |
+| `ed25519/group/inst2.bend` | 639 | 25 |
+| `ed25519/group/laws.bend` | 520 | 20 |
+| `ed25519/group/lb_00.bend` | 359 | 31 |
+| `ed25519/group/lb_01.bend` | 377 | 27 |
+| `ed25519/group/lb_02.bend` | 387 | 29 |
+| `ed25519/group/lb_03.bend` | 361 | 31 |
+| `ed25519/group/lb_04.bend` | 365 | 33 |
+| `ed25519/group/lb_05.bend` | 364 | 32 |
+| `ed25519/group/lb_06.bend` | 342 | 31 |
+| `ed25519/group/lb_07.bend` | 379 | 31 |
+| `ed25519/group/lb_08.bend` | 351 | 32 |
+| `ed25519/group/lb_09.bend` | 362 | 33 |
+| `ed25519/group/lb_10.bend` | 368 | 37 |
+| `ed25519/group/lb_11.bend` | 364 | 43 |
+| `ed25519/group/lb_12.bend` | 342 | 49 |
+| `ed25519/group/lb_13.bend` | 378 | 50 |
+| `ed25519/group/lb_14.bend` | 358 | 51 |
+| `ed25519/group/lb_15.bend` | 360 | 50 |
+| `ed25519/group/lb_16.bend` | 356 | 50 |
+| `ed25519/group/lb_17.bend` | 347 | 48 |
+| `ed25519/group/lbs.bend` | 668 | 35 |
+| `ed25519/group/lbz.bend` | 655 | 22 |
+| `ed25519/group/scalar.bend` | 254 | 0 |
+| `ed25519/proof_keys.bend` | 505 | 7 |
+| `ed25519/proof_law.bend` | 839 | 23 |
+| `ed25519/proof_sign_facade.bend` | 568 | 11 |
+| `ed25519/proof_sign.bend` | 528 | 10 |
+| `ed25519/proof_verify.bend` | 518 | 10 |
+| `ed25519/proof.bend` | 460 | 6 |
+| `proofs/math/number/proof_nt.bend` | 287 | 2 |
