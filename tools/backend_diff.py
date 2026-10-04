@@ -1242,6 +1242,10 @@ def run_module(mod, args, pool, runner, built):
         lines = res[paths[-1]][1].count('\n')
         if case.expect == 'all-fail' and v == 'agree':
             v = 'differ-expect'
+        if v == 'timeout':
+            row['timeouts'] += 1
+            row['errors'].append('case %d: timeout %s' % (i, {p: res[p][0] for p in paths}))
+            continue
         if case.expect and case.expect.startswith('known:'):
             key = case.expect[6:]
             if v in ('differ', 'all-fail', 'resource-limit'):
@@ -1267,9 +1271,6 @@ def run_module(mod, args, pool, runner, built):
                 note['token'] = tok[:80]
                 note['token_len'] = len(tok)
             row['notes'].append(note)
-        elif v == 'timeout':
-            row['timeouts'] += 1
-            row['errors'].append('case %d: timeout %s' % (i, {p: res[p][0] for p in paths}))
         else:
             if v == 'differ-expect':
                 argv, small = case.argv, res
