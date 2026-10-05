@@ -24,6 +24,7 @@ benchmarked against optimized C implementations of the same algorithms.
 | Keccak-256 | `src/crypto/keccak/keccak.bend` | Ethereum Keccak-256 (MIT), from [bend-keccak](https://github.com/Giulio2002/bend-keccak) |
 | BLAKE2s | `src/crypto/blake/blake2s/blake2s.bend` | RFC 7693, 32-byte digest |
 | BLAKE2b | `src/crypto/blake/blake2b/blake2b.bend` | RFC 7693, 64-byte digest |
+| BLAKE2b, all parameters | `src/crypto/blake/blake2b/params.bend` | RFC 7693 parameter block in sequential mode: digest length 1..64, key 0..64 bytes, 16-byte salt and personalization (Zcash's personalized BLAKE2b); proved equal to `S.blake2b_params` of `spec/crypto/blake/blake2b.bend` for every input (law `blake2b_params_correct`); BLAKE2 reference keyed KATs and hashlib vectors in `tests/crypto/blake/blake2b/params.bend`; a C library and a `blake2b_simd` drop-in are in [bend-zcash-blake2b](https://github.com/Giulio2002/bend-zcash-blake2b) |
 | BLAKE3 | `src/crypto/blake/blake3/blake3.bend` | hash mode, 32-byte digest |
 | SHA-512 | `src/crypto/sha512/sha512.bend` | FIPS 180-4, 64-byte digest; proved equal to `spec/crypto/sha512.bend` for every input |
 | SHA3-256 | `src/crypto/sha3/sha3_256.bend` | FIPS 202 on the Keccak-f[1600] of `keccak/`; proved equal to `spec/crypto/sha3.bend` |

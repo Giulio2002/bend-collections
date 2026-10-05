@@ -20,3 +20,7 @@ type Quad is Data:
 # The 128-bit byte counter t as four little-endian 32-bit limbs.
 type Counter is Data:
   C{c0: U32, c1: U32, c2: U32, c3: U32}
+
+# Sixteen bytes (a salt or a personalization) as four little-endian words.
+type Words4 is Data:
+  X4{x0: U32, x1: U32, x2: U32, x3: U32}

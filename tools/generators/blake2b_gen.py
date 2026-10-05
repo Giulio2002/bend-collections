@@ -66,7 +66,9 @@ def types():
             '# The four words G returns: v[a], v[b], v[c], v[d].\n'
             'type Quad is Data:\n  Q{a: Lane, b: Lane, c: Lane, d: Lane}\n\n'
             '# The 128-bit byte counter t as four little-endian 32-bit limbs.\n'
-            'type Counter is Data:\n  C{c0: U32, c1: U32, c2: U32, c3: U32}\n')
+            'type Counter is Data:\n  C{c0: U32, c1: U32, c2: U32, c3: U32}\n'
+            + '\n# Sixteen bytes (a salt or a personalization) as four little-endian words.\n'
+            'type Words4 is Data:\n  X4{x0: U32, x1: U32, x2: U32, x3: U32}\n')
 
 
 def rot_small(n):
@@ -541,6 +543,312 @@ def blake2b_correct(words,byte_length):
     return s
 
 
+# ---------------------------------------------------------------- parameters (salt, personalization, key, nn)
+
+def params_src():
+    s = HEADER + ('import Base\nimport ./types.bend as T\nimport ./compress.bend as F\nimport ./blake2b.bend as B\n\n'
+                  '# BLAKE2b with the full sequential-mode parameter block of RFC 7693 section 2.5:\n'
+                  '# digest length nn (1..64 bytes), key length kk (0..64 bytes) and key, a 16-byte\n'
+                  '# salt and a 16-byte personalization (fanout = depth = 1). Every block is\n'
+                  '# compressed by the proved BLAKE2b-512 code of blake2b.bend; only the initial\n'
+                  '# chaining value, the key block and the output truncation are new here.\n\n')
+    s += ('# F on a block, the last one or not.\n'
+          'def kcompress(last: Bool, +h: T.Chain, t: T.Counter, %s) -> T.Chain:\n  match last:\n'
+          '    case True{}: F.compress_last(h,t,%s)\n    case False{}: F.compress(h,t,%s)\n\n') % (
+        ', '.join('%s: U32' % w for w in ws(NW)), csv(ws(NW)), csv(ws(NW)))
+    # key block reader: 32 words of the key array, each masked to the first kk bytes
+    for k in range(NW - 1, -1, -1):
+        prev = ''.join(', w%d: U32' % i for i in range(k))
+        s += 'def key%d(+kk: Nat, t: T.Counter, h: T.Chain, last: Bool%s, pair: Array<U32> & U32) -> T.Chain:\n' % (k, prev)
+        s += '  (a,w%d) = pair\n' % k
+        if k == NW - 1:
+            m = csv('B.mask(w%d,%dn,kk)' % (i, 4 * i) for i in range(NW))
+            s += '  kcompress(last,h,t,%s)\n\n' % m
+        else:
+            s += '  key%d(kk,t,h,last,%s,Array.get(U32,a,%d))\n\n' % (k + 1, csv(ws(k + 1)), k + 1)
+    s += ('# The key block: the kk key bytes padded with zeros to 128 bytes, counter t.\n'
+          'def key_block(key: Array<U32>, +kk: Nat, t: T.Counter, h: T.Chain, last: Bool) -> T.Chain:\n'
+          '  key0(kk,t,h,last,Array.get(U32,key,0))\n\n')
+    s += ('# h = IV xor the parameter block: word 0 is nn | kk << 8 | 1 << 16 | 1 << 24\n'
+          '# (fanout = depth = 1), words 1..7 are zero, salt at lanes 4..5, personalization at 6..7.\n'
+          'def init(+nn: U32, +kk: U32, salt: T.Words4, personal: T.Words4) -> T.Chain:\n'
+          '  match salt personal:\n    case T.X4{s0,s1,s2,s3} T.X4{p0,p1,p2,p3}:\n')
+    lo = lambda i: IV[i] & 0xffffffff
+    hi = lambda i: IV[i] >> 32
+    s += ('      T.H{T.W{U32.xor(%d,U32.add(U32.add(nn,U32.mul(kk,256)),16842752)),%d},%s,%s,%s,'
+          'T.W{U32.xor(%d,s0),U32.xor(%d,s1)},T.W{U32.xor(%d,s2),U32.xor(%d,s3)},'
+          'T.W{U32.xor(%d,p0),U32.xor(%d,p1)},T.W{U32.xor(%d,p2),U32.xor(%d,p3)}}\n\n') % (
+        lo(0), hi(0), lane(IV[1]), lane(IV[2]), lane(IV[3]), lo(4), hi(4), lo(5), hi(5), lo(6), hi(6), lo(7), hi(7))
+    s += '''# With a key the padded key is block 0 (t = 128), the last block when the message is empty.
+def keyed(key: Array<U32>, +kk: Nat, a: Array<U32>, +ll: Nat, h: T.Chain) -> T.Chain:
+  match ll:
+    case 0n: key_block(key,kk,T.C{128,0,0,0},h,True{})
+    case 1n+p:
+      +n = Nat.div(p,128n)
+      B.blocks(n,0,Nat.sub(1n+p,Nat.mul(n,128n)),T.C{128,0,0,0},(a,key_block(key,kk,T.C{128,0,0,0},h,False{})))
+
+def from_chain(key: Array<U32>, +kk: Nat, a: Array<U32>, +ll: Nat, h: T.Chain) -> T.Chain:
+  match kk:
+    case 0n:
+      +n = Nat.div(Nat.sub(ll,1n),128n)
+      B.blocks(n,0,Nat.sub(ll,Nat.mul(n,128n)),T.C{0,0,0,0},(a,h))
+    case 1n+q: keyed(key,1n+q,a,ll,h)
+
+# The final chaining value.
+def hash(+nn: Nat, key: Array<U32>, +kk: Nat, salt: T.Words4, personal: T.Words4, a: Array<U32>, +ll: Nat) -> T.Chain:
+  from_chain(key,kk,a,ll,init(U32.from_nat(nn),U32.from_nat(kk),salt,personal))
+
+def le(+w: U32) -> List<&2,U32>:
+  [U32.and(w,255),U32.and(U32.shrn(w,8n),255),U32.and(U32.shrn(w,16n),255),U32.shrn(w,24n)]
+
+# The first nn little-endian bytes of the chaining value (one byte per U32).
+def out(h: T.Chain, +nn: Nat) -> List<&2,U32>:
+  match h:
+    case T.H{T.W{l0,u0},T.W{l1,u1},T.W{l2,u2},T.W{l3,u3},T.W{l4,u4},T.W{l5,u5},T.W{l6,u6},T.W{l7,u7}}:
+      List.take(&2,U32,List.concat(&2,U32,[le(l0),le(u0),le(l1),le(u1),le(l2),le(u2),le(l3),le(u3),le(l4),le(u4),le(l5),le(u5),le(l6),le(u6),le(l7),le(u7)]),nn)
+
+def valid(+nn: Nat, +kk: Nat, +ll: Nat, +kcap: U32, +mcap: U32) -> Bool:
+  Bool.and(Bool.and(Nat.is_lt(0n,nn),Nat.is_le(nn,64n)),Bool.and(Bool.and(Nat.is_le(kk,64n),Nat.is_le(kk,Nat.mul(4n,U32.to_nat(kcap)))),Nat.is_le(ll,Nat.mul(4n,U32.to_nat(mcap)))))
+
+def checked(valid: Bool, +nn: Nat, key: Array<U32>, +kk: Nat, salt: T.Words4, personal: T.Words4, a: Array<U32>, +ll: Nat) -> Maybe<&1,List<&2,U32>>:
+  match valid:
+    case False{}: None{}
+    case True{}: Some{out(hash(nn,key,kk,salt,personal,a,ll),nn)}
+
+def sized(+nn: Nat, +kk: Nat, salt: T.Words4, personal: T.Words4, +ll: Nat, kpair: Array<U32> & U32, mpair: Array<U32> & U32) -> Maybe<&1,List<&2,U32>>:
+  (key,kcap) = kpair
+  (a,mcap) = mpair
+  checked(valid(nn,kk,ll,kcap,mcap),nn,key,kk,salt,personal,a,ll)
+
+# BLAKE2b with an nn-byte digest (1..64), a kk-byte key (0..64; the first kk bytes
+# of the packed key words), a 16-byte salt and a 16-byte personalization (four
+# little-endian words each), of the first ll bytes of the packed message words.
+# The nn digest bytes (one per U32), or None when nn, kk or ll is out of range or
+# the key or the message does not fit its array.
+def blake2b_params(+nn: Nat, key: Array<U32>, +kk: Nat, salt: T.Words4, personal: T.Words4, words: Array<U32>, +ll: Nat) -> Maybe<&1,List<&2,U32>>:
+  sized(nn,kk,salt,personal,ll,Array.size(U32,key),Array.size(U32,words))
+
+# ---- streaming steps (for an incremental hasher that keeps h, t and a partial block
+# outside): each is a composition of the proved pieces above (B.absorb, B.final, out).
+
+# n full blocks that are not the last, from word index on; t counts the bytes before them.
+def update(n: Nat, +index: U32, t: T.Counter, pair: Array<U32> & T.Chain) -> T.Chain:
+  match n pair:
+    case 0n Tuple{a,h}: h
+    case 1n+p Tuple{a,h}:
+      +t2 = F.bump(t,128)
+      update(p,U32.add(index,32),t2,B.absorb(a,index,t2,h))
+
+# The last block (remain bytes, 0..128, at word 0), then the first nn bytes.
+def finish(a: Array<U32>, +remain: Nat, t: T.Counter, h: T.Chain, +nn: Nat) -> List<&2,U32>:
+  out(B.final(a,0,remain,t,h),nn)
+'''
+    return s
+
+
+def params_proof():
+    s = HEADER + ('import Base\nimport ../../../../src/crypto/blake/blake2b/types.bend as T\n'
+                  'import ../../../../src/crypto/blake/blake2b/compress.bend as F\n'
+                  'import ../../../../src/crypto/blake/blake2b/blake2b.bend as I\n'
+                  'import ../../../../src/crypto/blake/blake2b/params.bend as P\n'
+                  'import ../../../../spec/crypto/blake/blake2b.bend as S\n'
+                  'import ./compress.bend as C\nimport ./blocks.bend as B\nimport ./array.bend as A\n\n'
+                  '# The parameterized BLAKE2b (src/crypto/blake/blake2b/params.bend) equals the\n'
+                  '# specification S.blake2b_params for every input. The compression proofs are\n'
+                  '# reused (compress.bend, blocks.bend); new: the key block, the initial chaining\n'
+                  '# value from the parameter block, the keyed block split and the truncation.\n\n')
+    wl = csv('T.W{w%d,w%d}' % (2 * i, 2 * i + 1) for i in range(16))
+    s += 'law kcompress_correct:\n  for +last: Bool\n  for +h: T.Chain\n  for +t: T.Counter\n' + ''.join('  for +%s: U32\n' % w for w in ws(NW))
+    s += '  {P.kcompress(last,h,t,%s) == S.compress(h,[%s],t,last) : T.Chain}\n\n' % (csv(ws(NW)), wl)
+    s += 'def kcompress_correct(last,h,t,%s):\n  match last:\n' % csv(ws(NW))
+    s += '    case True{}: C.compress_last_correct(h,t,%s)\n    case False{}: C.compress_correct(h,t,%s)\n\n' % (csv(ws(NW)), csv(ws(NW)))
+    im = ['I.mask(w%d,%dn,kk)' % (i, 4 * i) for i in range(NW)]
+    mlanes = csv('T.W{%s,%s}' % (im[2 * i], im[2 * i + 1]) for i in range(16))
+    for k in range(NW - 1, -1, -1):
+        prev = ws(k)
+        s += 'law key%d_correct:\n  for +kk: Nat\n  for +t: T.Counter\n  for +h: T.Chain\n  for +last: Bool\n' % k
+        s += ''.join('  for +%s: U32\n' % w for w in prev)
+        s += '  for pair: Array<U32> & U32\n'
+        acc = '[%s]' % csv(reversed(prev))
+        s += '  {P.key%d(kk,t,h,last,%spair) == S.compress(h,S.lanes(S.trim(S.read(%dn,%d,%s,pair),0n,kk)),t,last) : T.Chain}\n\n' % (
+            k, ''.join(w + ',' for w in prev), NW - 1 - k, k + 1, acc)
+        s += 'def key%d_correct(kk,t,h,last,%spair):\n' % (k, ''.join(w + ',' for w in prev))
+        s += '  (a,+w%d) = pair\n' % k
+        if k == NW - 1:
+            L = '[%s]' % csv(im)
+            R = 'S.trim([%s],0n,kk)' % csv(ws(NW))
+            s += '  Equal.trans(T.Chain,P.kcompress(last,h,t,%s),S.compress(h,[%s],t,last),S.compress(h,S.lanes(%s),t,last),\n' % (csv(im), mlanes, R)
+            s += '    kcompress_correct(last,h,t,%s),\n' % csv(im)
+            s += '    Equal.cong(List<&2,U32>,T.Chain,x => S.compress(h,S.lanes(x),t,last),%s,%s,B.masks_correct(kk,%s)))\n\n' % (L, R, csv(ws(NW)))
+        else:
+            s += '  key%d_correct(kk,t,h,last,%s,Array.get(U32,a,%d))\n\n' % (k + 1, csv(ws(k + 1)), k + 1)
+    s += '''law key_block_correct:
+  for key: Array<U32>
+  for +kk: Nat
+  for +t: T.Counter
+  for +h: T.Chain
+  for +last: Bool
+  {P.key_block(key,kk,t,h,last) == S.key_block(key,kk,t,h,last) : T.Chain}
+
+def key_block_correct(key,kk,t,h,last):
+  key0_correct(kk,t,h,last,Array.get(U32,key,0))
+
+law init_correct:
+  for +nn: Nat
+  for +kk: Nat
+  for +salt: T.Words4
+  for +personal: T.Words4
+  {P.init(U32.from_nat(nn),U32.from_nat(kk),salt,personal) == S.init_chain(nn,kk,salt,personal) : T.Chain}
+
+def init_correct(nn,kk,salt,personal):
+  match salt personal:
+    case T.X4{s0,s1,s2,s3} T.X4{p0,p1,p2,p3}: {==}
+
+law keyed_step:
+  for -key: Array<U32>
+  for +kk: Nat
+  for -a: Array<U32>
+  for +p: Nat
+  for +h: T.Chain
+  for kview: Sigma<&2,&1,A.Tree,z => {key == A.thaw(z) : Array<U32>}>
+  for view: Sigma<&2,&1,A.Tree,z => {a == A.thaw(z) : Array<U32>}>
+  {P.keyed(key,kk,a,1n+p,h) == S.keyed(key,kk,a,1n+p,h) : T.Chain}
+
+def keyed_step(key,kk,a,p,h,kview,view):
+  match kview view:
+    case Tuple{+kt,kpf} Tuple{+at,apf}:
+      %Equal.sym(Array<U32>,key,A.thaw(kt),kpf) : {P.keyed(_,kk,a,1n+p,h) == S.keyed(_,kk,a,1n+p,h) : T.Chain}
+      %Equal.sym(Array<U32>,a,A.thaw(at),apf) : {P.keyed(A.thaw(kt),kk,_,1n+p,h) == S.keyed(A.thaw(kt),kk,_,1n+p,h) : T.Chain}
+      Equal.trans(T.Chain,
+        I.blocks(@N,0,@R,T.C{128,0,0,0},(A.thaw(at),P.key_block(A.thaw(kt),kk,T.C{128,0,0,0},h,False{}))),
+        S.blocks(@N,0,@R,T.C{128,0,0,0},(A.thaw(at),P.key_block(A.thaw(kt),kk,T.C{128,0,0,0},h,False{}))),
+        S.blocks(@N,0,@R,T.C{128,0,0,0},(A.thaw(at),S.key_block(A.thaw(kt),kk,T.C{128,0,0,0},h,False{}))),
+        B.blocks_correct(@N,0,@R,T.C{128,0,0,0},(A.thaw(at),P.key_block(A.thaw(kt),kk,T.C{128,0,0,0},h,False{}))),
+        Equal.cong(T.Chain,T.Chain,x => S.blocks(@N,0,@R,T.C{128,0,0,0},(A.thaw(at),x)),
+          P.key_block(A.thaw(kt),kk,T.C{128,0,0,0},h,False{}),S.key_block(A.thaw(kt),kk,T.C{128,0,0,0},h,False{}),
+          key_block_correct(A.thaw(kt),kk,T.C{128,0,0,0},h,False{})))
+
+law keyed_correct:
+  for key: Array<U32>
+  for +kk: Nat
+  for a: Array<U32>
+  for +ll: Nat
+  for +h: T.Chain
+  {P.keyed(key,kk,a,ll,h) == S.keyed(key,kk,a,ll,h) : T.Chain}
+
+def keyed_correct(key,kk,a,ll,h):
+  match ll:
+    case 0n: key_block_correct(key,kk,T.C{128,0,0,0},h,True{})
+    case 1n+p: keyed_step(key,kk,a,p,h,A.reify(key),A.reify(a))
+
+law from_correct:
+  for key: Array<U32>
+  for +kk: Nat
+  for a: Array<U32>
+  for +ll: Nat
+  for +h: T.Chain
+  {P.from_chain(key,kk,a,ll,h) == S.from_chain(key,kk,a,ll,h) : T.Chain}
+
+def from_correct(key,kk,a,ll,h):
+  match kk:
+    case 0n: B.blocks_correct(Nat.div(Nat.sub(ll,1n),128n),0,Nat.sub(ll,Nat.mul(Nat.div(Nat.sub(ll,1n),128n),128n)),T.C{0,0,0,0},(a,h))
+    case 1n+q: keyed_correct(key,1n+q,a,ll,h)
+
+law hash_correct:
+  for +nn: Nat
+  for key: Array<U32>
+  for +kk: Nat
+  for +salt: T.Words4
+  for +personal: T.Words4
+  for a: Array<U32>
+  for +ll: Nat
+  {P.hash(nn,key,kk,salt,personal,a,ll) == S.param_hash(nn,key,kk,salt,personal,a,ll) : T.Chain}
+
+def hash_correct(nn,key,kk,salt,personal,a,ll):
+  %Equal.sym(T.Chain,P.init(U32.from_nat(nn),U32.from_nat(kk),salt,personal),S.init_chain(nn,kk,salt,personal),init_correct(nn,kk,salt,personal)) : {P.from_chain(key,kk,a,ll,_) == S.param_hash(nn,key,kk,salt,personal,a,ll) : T.Chain}
+  from_correct(key,kk,a,ll,S.init_chain(nn,kk,salt,personal))
+
+law out_correct:
+  for +h: T.Chain
+  for +nn: Nat
+  {P.out(h,nn) == S.out_bytes(h,nn) : List<&2,U32>}
+
+def out_correct(h,nn):
+  match h:
+    case T.H{T.W{l0,u0},T.W{l1,u1},T.W{l2,u2},T.W{l3,u3},T.W{l4,u4},T.W{l5,u5},T.W{l6,u6},T.W{l7,u7}}: {==}
+
+law checked_true:
+  for +nn: Nat
+  for -key: Array<U32>
+  for +kk: Nat
+  for +salt: T.Words4
+  for +personal: T.Words4
+  for -a: Array<U32>
+  for +ll: Nat
+  for kview: Sigma<&2,&1,A.Tree,z => {key == A.thaw(z) : Array<U32>}>
+  for view: Sigma<&2,&1,A.Tree,z => {a == A.thaw(z) : Array<U32>}>
+  {P.checked(True{},nn,key,kk,salt,personal,a,ll) == S.param_checked(True{},nn,key,kk,salt,personal,a,ll) : Maybe<&1,List<&2,U32>>}
+
+def checked_true(nn,key,kk,salt,personal,a,ll,kview,view):
+  match kview view:
+    case Tuple{+kt,kpf} Tuple{+at,apf}:
+      %Equal.sym(Array<U32>,key,A.thaw(kt),kpf) : {P.checked(True{},nn,_,kk,salt,personal,a,ll) == S.param_checked(True{},nn,_,kk,salt,personal,a,ll) : Maybe<&1,List<&2,U32>>}
+      %Equal.sym(Array<U32>,a,A.thaw(at),apf) : {P.checked(True{},nn,A.thaw(kt),kk,salt,personal,_,ll) == S.param_checked(True{},nn,A.thaw(kt),kk,salt,personal,_,ll) : Maybe<&1,List<&2,U32>>}
+      Equal.trans(Maybe<&1,List<&2,U32>>,
+        Some{P.out(P.hash(nn,A.thaw(kt),kk,salt,personal,A.thaw(at),ll),nn)},
+        Some{P.out(S.param_hash(nn,A.thaw(kt),kk,salt,personal,A.thaw(at),ll),nn)},
+        Some{S.out_bytes(S.param_hash(nn,A.thaw(kt),kk,salt,personal,A.thaw(at),ll),nn)},
+        Equal.cong(T.Chain,Maybe<&1,List<&2,U32>>,x => Some{P.out(x,nn)},P.hash(nn,A.thaw(kt),kk,salt,personal,A.thaw(at),ll),S.param_hash(nn,A.thaw(kt),kk,salt,personal,A.thaw(at),ll),hash_correct(nn,A.thaw(kt),kk,salt,personal,A.thaw(at),ll)),
+        Equal.cong(List<&2,U32>,Maybe<&1,List<&2,U32>>,x => Some{x},P.out(S.param_hash(nn,A.thaw(kt),kk,salt,personal,A.thaw(at),ll),nn),S.out_bytes(S.param_hash(nn,A.thaw(kt),kk,salt,personal,A.thaw(at),ll),nn),out_correct(S.param_hash(nn,A.thaw(kt),kk,salt,personal,A.thaw(at),ll),nn)))
+
+law checked_correct:
+  for +valid: Bool
+  for +nn: Nat
+  for key: Array<U32>
+  for +kk: Nat
+  for +salt: T.Words4
+  for +personal: T.Words4
+  for a: Array<U32>
+  for +ll: Nat
+  {P.checked(valid,nn,key,kk,salt,personal,a,ll) == S.param_checked(valid,nn,key,kk,salt,personal,a,ll) : Maybe<&1,List<&2,U32>>}
+
+def checked_correct(valid,nn,key,kk,salt,personal,a,ll):
+  match valid:
+    case False{}: {==}
+    case True{}: checked_true(nn,key,kk,salt,personal,a,ll,A.reify(key),A.reify(a))
+
+law sized_correct:
+  for +nn: Nat
+  for +kk: Nat
+  for +salt: T.Words4
+  for +personal: T.Words4
+  for +ll: Nat
+  for kpair: Array<U32> & U32
+  for mpair: Array<U32> & U32
+  {P.sized(nn,kk,salt,personal,ll,kpair,mpair) == S.param_sized(nn,kk,salt,personal,ll,kpair,mpair) : Maybe<&1,List<&2,U32>>}
+
+def sized_correct(nn,kk,salt,personal,ll,kpair,mpair):
+  (key,kcap) = kpair
+  (a,mcap) = mpair
+  checked_correct(P.valid(nn,kk,ll,kcap,mcap),nn,key,kk,salt,personal,a,ll)
+
+law blake2b_params_correct:
+  for +nn: Nat
+  for key: Array<U32>
+  for +kk: Nat
+  for +salt: T.Words4
+  for +personal: T.Words4
+  for words: Array<U32>
+  for +ll: Nat
+  {P.blake2b_params(nn,key,kk,salt,personal,words,ll) == S.blake2b_params(nn,key,kk,salt,personal,words,ll) : Maybe<&1,List<&2,U32>>}
+
+def blake2b_params_correct(nn,key,kk,salt,personal,words,ll):
+  sized_correct(nn,kk,salt,personal,ll,Array.size(U32,key),Array.size(U32,words))
+'''.replace('@N', 'Nat.div(p,128n)').replace('@R', 'Nat.sub(1n+p,Nat.mul(Nat.div(p,128n),128n))')
+    return s
+
+
+
 def main():
     write(os.path.join(SRC, 'types.bend'), types())
     write(os.path.join(SRC, 'lane.bend'), lane_ops())
@@ -548,7 +856,10 @@ def main():
     write(os.path.join(SRC, 'blake2b.bend'), api_src())
     write(os.path.join(PRF, 'compress.bend'), compress_proof())
     write(os.path.join(PRF, 'blocks.bend'), blocks_proof())
+    write(os.path.join(SRC, 'params.bend'), params_src())
+    write(os.path.join(PRF, 'params.bend'), params_proof())
     write_tests()
+    write_params_tests()
 
 
 
@@ -657,5 +968,214 @@ def write_tests():
 
 
 
-if __name__ == '__main__':
+# ---------------------------------------------------------------- parameter tests
+
+def kat_rows():
+    path = os.path.join(ROOT, 'tests/crypto/blake/blake2b/vectors/blake2b-kat.txt')
+    rows, cur = [], {}
+    for line in open(path):
+        line = line.strip()
+        if not line:
+            continue
+        k, v = line.split(':', 1)
+        cur[k] = bytes.fromhex(v.strip())
+        if k == 'hash':
+            rows.append((cur['in'], cur['key'], cur['hash']))
+            cur = {}
+    return rows
+
+
+def le_words(b, n=None):
+    b = b + bytes((-len(b)) % 4)
+    w = [int.from_bytes(b[i:i + 4], 'little') for i in range(0, len(b), 4)]
+    if n is not None:
+        w += [0] * (n - len(w))
+    return w or [0]
+
+
+def x4(b):
+    return 'T.X4{%s}' % csv(str(x) for x in le_words(b, 4))
+
+
+def params_tests_src():
+    import hashlib
+    import random
+    import struct
+    kat = kat_rows()
+    assert len(kat) == 256
+    for i, (m, k, h) in enumerate(kat):
+        assert m == bytes(range(i)) and k == bytes(range(64)), i
+        assert hashlib.blake2b(m, key=k).digest() == h, i
+    s = HEADER + '''import Base
+import ../../../../src/crypto/blake/blake2b/params.bend as P
+import ../../../../src/crypto/blake/blake2b/types.bend as T
+import ../../../../src/crypto/blake/blake2b/hex.bend as H
+import ../../../../spec/crypto/blake/blake2b.bend as S
+
+# BLAKE2b with digest length, key, salt and personalization (params.bend).
+# The keyed rows are the BLAKE2 reference known-answer tests
+# (vectors/blake2b-kat.txt, key 00..3f, input 00..n-1 for n = 0..255); the
+# other expected digests come from Python's hashlib.blake2b(digest_size=,
+# key=, salt=, person=), among them random messages under the Zcash
+# personalizations (ZIP-244 "ZcashTxHash_" + branch id, Equihash "ZcashPoW" +
+# n + k, "Zcash_ExpandSeed"). The published ZIP-244 transaction vectors are
+# checked through the C library (github.com/Giulio2002/bend-zcash-blake2b,
+# c/check_zip244.py).
+# Each line prints "ok" or "FAIL"; the last line counts the failures. The
+# spec rows run the executable specification S.blake2b_params.
+
+# Word j holds the bytes 4j, 4j+1, 4j+2, 4j+3 (j < 64).
+def ramp(n: Nat, +j: U32, a: Array<U32>) -> Array<U32>:
+  match n:
+    case 0n: a
+    case 1n+p: ramp(p,U32.inc(j),Array.set(U32,a,j,U32.add(U32.mul(j,67372036),50462976)))
+
+def fill(n: Nat, +i: U32, +seed: U32, a: Array<U32>) -> Array<U32>:
+  match n:
+    case 0n: a
+    case 1n+p: fill(p,U32.inc(i),seed,Array.set(U32,a,i,U32.add(U32.mul(i,2654435761),seed)))
+
+def pack(ws: List<&2,U32>, +i: U32, a: Array<U32>) -> Array<U32>:
+  match ws:
+    case Nil{}: a
+    case w <> rest: pack(rest,U32.inc(i),Array.set(U32,a,i,w))
+
+def hexl(bs: List<&2,U32>) -> String:
+  match bs:
+    case Nil{}: ""
+    case b <> rest: H.hex_byte(b) ++ hexl(rest)
+
+def show(r: Maybe<&1,List<&2,U32>>) -> String:
+  match r:
+    case None{}: "invalid"
+    case Some{bs}: hexl(bs)
+
+def report(name: String, got: String, want: String, same: Bool) -> IO(U32):
+  match same:
+    case True{}:
+      do IO<U32>:
+        IO.print("ok   " ++ name)
+        return 0
+    case False{}:
+      do IO<U32>:
+        IO.print("FAIL " ++ name ++ " got " ++ got ++ " want " ++ want)
+        return 1
+
+def verdict(name: String, +got: String, +want: String) -> IO(U32):
+  report(name,got,want,String.eq(got,want))
+
+def zero4() -> T.Words4:
+  T.X4{0,0,0,0}
+
+# The BLAKE2 keyed KAT: key 00..3f (64 bytes), input 00..len-1.
+# The list comes first: it is the argument that shrinks on every call.
+def kat(wants: List<&2,String>, +len: Nat) -> IO(U32):
+  match wants:
+    case Nil{}:
+      do IO<U32>:
+        return 0
+    case w <> rest:
+      do IO<U32>:
+        f : U32 <- verdict("kat keyed len " ++ Nat.show(len),show(P.blake2b_params(64n,ramp(16n,0,Array.new(U32,4n,0)),64n,zero4(),zero4(),ramp(64n,0,Array.new(U32,6n,0)),len)),w)
+        g : U32 <- kat(rest,1n+len)
+        return U32.add(f,g)
+
+# A row: digest length nn, key words (kk bytes, key array depth kd), salt,
+# personalization, message words (ll bytes, message array depth md).
+def row(name: String, +nn: Nat, ks: List<&2,U32>, +kk: Nat, +kd: Nat, salt: T.Words4, personal: T.Words4, ms: List<&2,U32>, +ll: Nat, +md: Nat, +want: String) -> IO(U32):
+  verdict(name,show(P.blake2b_params(nn,pack(ks,0,Array.new(U32,kd,0)),kk,salt,personal,pack(ms,0,Array.new(U32,md,0)),ll)),want)
+
+# A row with a long message: word i = i * 2654435761 + seed.
+def filled(name: String, +nn: Nat, ks: List<&2,U32>, +kk: Nat, +kd: Nat, salt: T.Words4, personal: T.Words4, +seed: U32, +ll: Nat, +md: Nat, +want: String) -> IO(U32):
+  verdict(name,show(P.blake2b_params(nn,pack(ks,0,Array.new(U32,kd,0)),kk,salt,personal,fill(Nat.pow(2n,md),0,seed,Array.new(U32,md,0)),ll)),want)
+
+def spec_row(name: String, +nn: Nat, ks: List<&2,U32>, +kk: Nat, +kd: Nat, salt: T.Words4, personal: T.Words4, ms: List<&2,U32>, +ll: Nat, +md: Nat, +want: String) -> IO(U32):
+  verdict(name,show(S.blake2b_params(nn,pack(ks,0,Array.new(U32,kd,0)),kk,salt,personal,pack(ms,0,Array.new(U32,md,0)),ll)),want)
+
+def main() -> IO(Unit):
+  do IO<Unit>:
+'''
+    rows = []
+    rows.append('kat([%s],0n)' % csv('"%s"' % h.hex() for (_, _, h) in kat))
+
+    def depth_for(nbytes):
+        return max(0, (((nbytes + 3) // 4) - 1).bit_length())
+
+    def row(kind, name, nn, key, salt, person, msg, md_extra=0, kd_extra=0):
+        want = hashlib.blake2b(msg, digest_size=nn, key=key, salt=salt, person=person).hexdigest()
+        kw = le_words(key) if key else [0]
+        kd = depth_for(len(key)) + kd_extra
+        md = depth_for(len(msg)) + md_extra
+        rows.append('%s("%s",%dn,[%s],%dn,%dn,%s,%s,[%s],%dn,%dn,"%s")' % (
+            kind, name, nn, csv(str(x) for x in kw), len(key), kd, x4(salt), x4(person),
+            csv(str(x) for x in le_words(msg)), len(msg), md, want))
+
+    rng = random.Random(0x2c45b)
+    rb = lambda n: bytes(rng.randrange(256) for _ in range(n))
+    z16 = bytes(16)
+    # Zcash personalizations
+    nu5 = struct.pack('<I', 0xc2d6d0b4)
+    row('row', 'personal ZcashTxHash_ nu5, 128 random bytes', 32, b'', z16, b'ZcashTxHash_' + nu5, rb(128))
+    row('row', 'personal ZTxIdHeadersHash, 20 random bytes', 32, b'', z16, b'ZTxIdHeadersHash', rb(20))
+    row('row', 'personal ZTxIdTranspaHash, empty', 32, b'', z16, b'ZTxIdTranspaHash', b'')
+    row('row', 'personal ZTxAuthHash_ nu5, 96 random bytes', 32, b'', z16, b'ZTxAuthHash_' + nu5, rb(96))
+    row('row', 'personal ZTxIdSOutC__Hash, 348 random bytes', 32, b'', z16, b'ZTxIdSOutC__Hash', rb(3 * 116))
+    for n, k in ((200, 9), (96, 5), (48, 5), (144, 5)):
+        nn = (512 // n) * n // 8
+        row('row', 'personal ZcashPoW n=%d k=%d, 144 random bytes' % (n, k), nn, b'', z16,
+            b'ZcashPoW' + struct.pack('<II', n, k), rb(140) + struct.pack('<I', 7))
+    row('row', 'personal Zcash_ExpandSeed, 33 random bytes', 64, b'', z16, b'Zcash_ExpandSeed', rb(33))
+    row('row', 'personal ZcashIP32Sapling, 32 random bytes', 64, b'', z16, b'ZcashIP32Sapling', rb(32))
+    row('row', 'personal Zcash_RedJubjubH, 96 random bytes', 64, b'', z16, b'Zcash_RedJubjubH', rb(96))
+    # salt, personalization, key lengths, digest lengths, block boundaries
+    for kk in (0, 1, 3, 16, 32, 63, 64):
+        for ll in (0, 1, 127, 128, 129, 256, 257):
+            nn = [1, 20, 32, 33, 48, 63, 64][(kk + ll) % 7]
+            row('row', 'nn %d kk %d ll %d salt person' % (nn, kk, ll), nn, rb(kk), rb(16), rb(16), rb(ll),
+                md_extra=(ll % 2), kd_extra=(kk % 2))
+    for nn in range(1, 65):
+        row('row', 'nn %d unkeyed ll 64' % nn, nn, b'', z16, z16, rb(64))
+    # long messages (fill pattern)
+    for ll, md in ((1000, 8), (4096, 10), (8193, 12), (65536, 14)):
+        seed = (ll * 13 + 5) & 0xffffffff
+        msg = filled(md, seed)[:ll]
+        for kk, person in ((0, b'ZcashTxHash_' + nu5), (32, b'ZcashPoW' + struct.pack('<II', 200, 9))):
+            key = rb(kk)
+            salt = rb(16)
+            want = hashlib.blake2b(msg, digest_size=32, key=key, salt=salt, person=person).hexdigest()
+            rows.append('filled("long ll %d kk %d",32n,[%s],%dn,%dn,%s,%s,%d,%dn,%dn,"%s")' % (
+                ll, kk, csv(str(x) for x in (le_words(key) if key else [0])), kk, depth_for(kk), x4(salt), x4(person),
+                seed, ll, md, want))
+    # the default parameters agree with plain BLAKE2b-512
+    m = rb(200)
+    assert hashlib.blake2b(m).hexdigest() == hashlib.blake2b(m, digest_size=64, key=b'', salt=z16, person=z16).hexdigest()
+    row('row', 'defaults equal BLAKE2b-512', 64, b'', z16, z16, m)
+    # invalid parameters
+    inv = lambda name, nn, kk, kd, ll, md: rows.append('row("%s",%dn,[0],%dn,%dn,zero4(),zero4(),[0],%dn,%dn,"invalid")' % (name, nn, kk, kd, ll, md))
+    inv('invalid nn 0', 0, 0, 0, 0, 0)
+    inv('invalid nn 65', 65, 0, 0, 0, 0)
+    inv('invalid kk 65', 32, 65, 5, 0, 0)
+    inv('invalid ll 5 over capacity 4', 32, 0, 0, 5, 0)
+    inv('invalid ll 1025 over capacity 1024', 32, 0, 0, 1025, 8)
+    inv('invalid kk 5 over key capacity 4', 32, 5, 0, 0, 0)
+    # the specification itself
+    for name, nn, key, salt, person, msg in (('spec keyed ll 0', 64, bytes(range(64)), z16, z16, b''),
+                                             ('spec keyed ll 129 salt person', 33, rb(17), rb(16), rb(16), rb(129)),
+                                             ('spec ZcashTxHash_ ll 128', 32, b'', z16, b'ZcashTxHash_' + nu5, rb(128)),
+                                             ('spec unkeyed ll 0', 20, b'', z16, z16, b'')):
+        row('spec_row', name, nn, key, salt, person, msg)
+    s += '    f0 : U32 <- %s\n' % rows[0]
+    for i, r in enumerate(rows[1:], 1):
+        s += '    f%d : U32 <- %s\n' % (i, r)
+    # sum in chunks (a long + chain is slow to check)
+    total = ' + '.join('f%d' % i for i in range(len(rows)))
+    s += '    IO.print("failures: " ++ U32.show((%s : U32)))\n' % total
+    return s
+
+
+def write_params_tests():
+    write(os.path.join(ROOT, 'tests/crypto/blake/blake2b/params.bend'), params_tests_src())
+
+
+if __name__ == "__main__":
     main()

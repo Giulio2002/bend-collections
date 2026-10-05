@@ -2,6 +2,7 @@ import Base
 import ../../../../src/crypto/blake/blake2b/types.bend as T
 import ../../../../src/crypto/blake/blake2b/compress.bend as F
 import ../../../../src/crypto/blake/blake2b/blake2b.bend as I
+import ../../../../src/crypto/blake/blake2b/params.bend as P
 import ../../../../spec/crypto/blake/blake2b.bend as S
 
 # The public BLAKE2b-512 API equals the RFC 7693 specification of spec/crypto/blake/blake2b.bend for
@@ -102,3 +103,18 @@ law capacity_rejection:
   for +capacity: U32
   for invalid: {Nat.is_le(n,Nat.mul(4n,U32.to_nat(capacity))) == False{} : Bool}
   {I.sized(n,(a,capacity)) == None{} : Maybe<&1,Array<U32>>}
+
+# BLAKE2b with the full sequential-mode parameter block (RFC 7693 section 2.5):
+# digest length nn, key length kk and key, 16-byte salt and personalization
+# (Zcash's personalized BLAKE2b), equals the specification S.blake2b_params for
+# every input: the same nn digest bytes, or None for both when a parameter is
+# out of range.
+law blake2b_params_correct:
+  for +nn: Nat
+  for key: Array<U32>
+  for +kk: Nat
+  for +salt: T.Words4
+  for +personal: T.Words4
+  for words: Array<U32>
+  for +ll: Nat
+  {P.blake2b_params(nn,key,kk,salt,personal,words,ll) == S.blake2b_params(nn,key,kk,salt,personal,words,ll) : Maybe<&1,List<&2,U32>>}

@@ -287,3 +287,102 @@ def sized(+length: Nat, pair: Array<U32> & U32) -> Maybe<&1,Array<U32>>:
 # byte_length exceeds the array's 4 * capacity bytes.
 def blake2b(words: Array<U32>, byte_length: Nat) -> Maybe<&1,Array<U32>>:
   sized(byte_length,Array.size(U32,words))
+
+# ---------------------------------------------------------------- the parameter block
+#
+# BLAKE2b with every sequential-mode parameter of RFC 7693 section 2.5 and the
+# BLAKE2 paper's parameter block (fanout = depth = 1, leaf length, node offset,
+# node depth and inner length zero): digest length nn (1..64 bytes), key length
+# kk (0..64 bytes) and key, a 16-byte salt and a 16-byte personalization. The
+# salt and the personalization are four little-endian words each (T.X4{..}),
+# the key is packed like the message (its first kk bytes are the key).
+
+# Four bytes as one little-endian word.
+def pack4(+b0: U32, +b1: U32, +b2: U32, +b3: U32) -> U32:
+  U32.add(U32.add(b0,U32.mul(b1,256)),U32.add(U32.mul(b2,65536),U32.mul(b3,16777216)))
+
+# The 64-byte parameter block as sixteen little-endian words:
+#   bytes  0..3   digest length nn, key length kk, fanout 1, depth 1
+#   bytes  4..7   leaf length 0
+#   bytes  8..15  node offset 0
+#   bytes 16..31  node depth 0, inner length 0, reserved zeros
+#   bytes 32..47  salt
+#   bytes 48..63  personalization
+def param_block(+nn: U32, +kk: U32, salt: T.Words4, personal: T.Words4) -> List<&2,U32>:
+  match salt personal:
+    case T.X4{s0,s1,s2,s3} T.X4{p0,p1,p2,p3}:
+      [pack4(nn,kk,1,1),0,0,0,0,0,0,0,s0,s1,s2,s3,p0,p1,p2,p3]
+
+def iv_xor(+i: Nat, +p: List<&2,T.Lane>) -> T.Lane:
+  xor(iv(i),nth(T.Lane,p,i,T.W{0,0}))
+
+# h[0..7] := IV[0..7] xor P[0..7], P the parameter block's eight 64-bit words.
+def param_chain(+p: List<&2,T.Lane>) -> T.Chain:
+  T.H{iv_xor(0n,p),iv_xor(1n,p),iv_xor(2n,p),iv_xor(3n,p),iv_xor(4n,p),iv_xor(5n,p),iv_xor(6n,p),iv_xor(7n,p)}
+
+def init_chain(+nn: Nat, +kk: Nat, salt: T.Words4, personal: T.Words4) -> T.Chain:
+  param_chain(lanes(param_block(U32.from_nat(nn),U32.from_nat(kk),salt,personal)))
+
+# Words next, next+1, .. of the array, n + 1 of them counting the one in pair.
+def read(n: Nat, +next: U32, acc: List<&2,U32>, pair: Array<U32> & U32) -> List<&2,U32>:
+  match n pair:
+    case 0n Tuple{a,w}: List.reverse(&2,U32,w <> acc)
+    case 1n+p Tuple{a,w}: read(p,U32.inc(next),w <> acc,Array.get(U32,a,next))
+
+# The key block (RFC 7693 section 3.3): the kk key bytes padded with zeros to
+# 128 bytes, compressed as block 0 with t = 128; it is the last block exactly
+# when the message is empty.
+def key_block(key: Array<U32>, +kk: Nat, t: T.Counter, +h: T.Chain, last: Bool) -> T.Chain:
+  compress(h,lanes(trim(read(31n,1,Nil{},Array.get(U32,key,0)),0n,kk)),t,last)
+
+# Keyed: the data is the key block followed by the ll message bytes; after the
+# key block the message is split as in `unchecked`, with t starting at 128.
+def keyed(key: Array<U32>, +kk: Nat, a: Array<U32>, +ll: Nat, h: T.Chain) -> T.Chain:
+  match ll:
+    case 0n: key_block(key,kk,T.C{128,0,0,0},h,True{})
+    case 1n+p:
+      +n = Nat.div(p,128n)
+      blocks(n,0,Nat.sub(1n+p,Nat.mul(n,128n)),T.C{128,0,0,0},(a,key_block(key,kk,T.C{128,0,0,0},h,False{})))
+
+# The chaining value after the last block, from the initial chaining value h
+# (RFC 7693 section 3.3): unkeyed, the message alone, split as in `unchecked`.
+def from_chain(key: Array<U32>, +kk: Nat, a: Array<U32>, +ll: Nat, h: T.Chain) -> T.Chain:
+  match kk:
+    case 0n:
+      +n = Nat.div(Nat.sub(ll,1n),128n)
+      blocks(n,0,Nat.sub(ll,Nat.mul(n,128n)),T.C{0,0,0,0},(a,h))
+    case 1n+q: keyed(key,1n+q,a,ll,h)
+
+def param_hash(+nn: Nat, key: Array<U32>, +kk: Nat, salt: T.Words4, personal: T.Words4, a: Array<U32>, +ll: Nat) -> T.Chain:
+  from_chain(key,kk,a,ll,init_chain(nn,kk,salt,personal))
+
+# The four little-endian bytes of a word, each a U32 below 256.
+def word_bytes(+w: U32) -> List<&2,U32>:
+  [U32.and(w,255),U32.and(U32.shrn(w,8n),255),U32.and(U32.shrn(w,16n),255),U32.shrn(w,24n)]
+
+# The first nn bytes of h[0..7] in little-endian order (RFC 7693 section 3.3).
+def out_bytes(h: T.Chain, +nn: Nat) -> List<&2,U32>:
+  match h:
+    case T.H{T.W{l0,u0},T.W{l1,u1},T.W{l2,u2},T.W{l3,u3},T.W{l4,u4},T.W{l5,u5},T.W{l6,u6},T.W{l7,u7}}:
+      List.take(&2,U32,List.concat(&2,U32,[word_bytes(l0),word_bytes(u0),word_bytes(l1),word_bytes(u1),word_bytes(l2),word_bytes(u2),word_bytes(l3),word_bytes(u3),word_bytes(l4),word_bytes(u4),word_bytes(l5),word_bytes(u5),word_bytes(l6),word_bytes(u6),word_bytes(l7),word_bytes(u7)]),nn)
+
+# Valid parameters: 1 <= nn <= 64, kk <= 64, and the key and the message fit
+# their arrays (kk <= 4 * key capacity, ll <= 4 * message capacity).
+def param_valid(+nn: Nat, +kk: Nat, +ll: Nat, +kcap: U32, +mcap: U32) -> Bool:
+  Bool.and(Bool.and(Nat.is_lt(0n,nn),Nat.is_le(nn,64n)),Bool.and(Bool.and(Nat.is_le(kk,64n),Nat.is_le(kk,Nat.mul(4n,U32.to_nat(kcap)))),Nat.is_le(ll,Nat.mul(4n,U32.to_nat(mcap)))))
+
+def param_checked(valid: Bool, +nn: Nat, key: Array<U32>, +kk: Nat, salt: T.Words4, personal: T.Words4, a: Array<U32>, +ll: Nat) -> Maybe<&1,List<&2,U32>>:
+  match valid:
+    case False{}: None{}
+    case True{}: Some{out_bytes(param_hash(nn,key,kk,salt,personal,a,ll),nn)}
+
+def param_sized(+nn: Nat, +kk: Nat, salt: T.Words4, personal: T.Words4, +ll: Nat, kpair: Array<U32> & U32, mpair: Array<U32> & U32) -> Maybe<&1,List<&2,U32>>:
+  (key,kcap) = kpair
+  (a,mcap) = mpair
+  param_checked(param_valid(nn,kk,ll,kcap,mcap),nn,key,kk,salt,personal,a,ll)
+
+# BLAKE2b with an nn-byte digest, a kk-byte key, a salt and a personalization,
+# of the first ll bytes of the packed message words: the nn digest bytes, or
+# None when a parameter is out of range.
+def blake2b_params(+nn: Nat, key: Array<U32>, +kk: Nat, salt: T.Words4, personal: T.Words4, words: Array<U32>, +ll: Nat) -> Maybe<&1,List<&2,U32>>:
+  param_sized(nn,kk,salt,personal,ll,Array.size(U32,key),Array.size(U32,words))
