@@ -408,3 +408,10 @@ def set_char_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}
 def pop_char_ok(~V: Data, +sh: ST.Sh<V>, +hg: {ST.good(~V, sh) == True{} : Bool}, +c: U32) -> PO.PopOK(~V, sh, SCon{Chr{c}, SNil{}}, H.pop_char(&2, V, ST.real(~V, sh), c)):
   %Equal.sym(H.HashMap<&2, V> & Maybe<&2, V>, H.pop_char(&2, V, ST.real(~V, sh), c), H.pop(&2, V, ST.real(~V, sh), SCon{Chr{c}, SNil{}}), pop_char_is_pop(~V, ST.real(~V, sh), c)) : PO.PopOK(~V, sh, SCon{Chr{c}, SNil{}}, _)
   pop_ok(~V, sh, hg, SCon{Chr{c}, SNil{}})
+
+# --verdict takes a ~ constant's model (here ~hp) from a call of its def at
+# concrete ~ arguments, and nothing called set_post at any. This call, on
+# the empty map with m2 = set(m, key, x), gives the kernel one; the law
+# still holds for every m, m2, key, x and hp.
+def set_post_instance(+hnd: {S.nodup(S.keys(~U32, S.set(~U32, Nil{}, "", 0))) == True{} : Bool}, hk: @+hq0: {S.has(~U32, Nil{}, "") == True{} : Bool} -> {S.keys(~U32, S.set(~U32, Nil{}, "", 0)) == S.keys(~U32, Nil{}) : List<&2, String>}) -> S.Include.set_post(~U32, ~Nil{}, ~S.set(~U32, Nil{}, "", 0), ~"", ~0, ~((q => {==}), {==}), hnd, hk):
+  set_post(~U32, ~Nil{}, ~S.set(~U32, Nil{}, "", 0), ~"", ~0, ~((q => {==}), {==}), hnd, hk)

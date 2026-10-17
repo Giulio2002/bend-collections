@@ -106,3 +106,46 @@ def cut_frame(~N: Data, ~R: Data, ~P: Data, +g: G.Graph<N,R,P>, +r: R, +n: N, +p
     case G.Graph{ns,ps,rs,f} None{} Some{x}: {==}
     case G.Graph{ns,ps,rs,f} Some{x} None{}: {==}
     case G.Graph{ns,ps,rs,f} Some{x} Some{y}: {==}
+
+# --verdict takes a ~ constant's model (here ~reflex) from a call of its def
+# at concrete ~ arguments, and nothing in this file called prepend_valid or
+# optional_suffix at any. These calls at Bool give the kernel both; the laws
+# still hold at every N, R, P and eq.
+def bool_eq(a: Bool, b: Bool) -> Bool:
+  match a b:
+    case False{} False{}:
+      True{}
+    case False{} True{}:
+      False{}
+    case True{} False{}:
+      False{}
+    case True{} True{}:
+      True{}
+
+def bool_reflex(+b: Bool) -> {bool_eq(b, b) == True{} : Bool}:
+  match b:
+    case False{}:
+      {==}
+    case True{}:
+      {==}
+
+def prepend_valid_bool(+g: G.Graph<Bool,Bool,Bool>, +r: Bool, +n: Bool, +xs: List<&2,Bool>, +rsame: {bool_eq(r,r) == True{} : Bool}, +un: G.unique(~Bool,~bool_eq,xs), +away: G.away(~Bool,~bool_eq,n,xs), +detached: {G.prev(~Bool, ~Bool, ~Bool, ~bool_eq,g,n) == None{} : Maybe<&2,Bool>}, good: G.segment(~Bool, ~Bool, ~Bool, ~bool_eq,g,None{},xs,None{})) -> G.valid(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq,G.attach(~Bool, ~Bool, ~Bool,g,r,n,G.first(~Bool,xs,None{})),r,Con{n,xs}):
+  prepend_valid(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq, ~(x => bool_reflex(x)), g, r, n, xs, rsame, un, away, detached, good)
+
+def optional_suffix_bool(+g: G.Graph<Bool,Bool,Bool>, +suffix: List<&2,Bool>, +p: Bool, +n: Bool, un: G.unique(~Bool,~bool_eq,suffix), good: G.segment(~Bool, ~Bool, ~Bool, ~bool_eq,g,Some{n},suffix,None{})) -> G.segment(~Bool, ~Bool, ~Bool, ~bool_eq,G.optional_prev(~Bool, ~Bool, ~Bool,g,G.first(~Bool,suffix,None{}),Some{p}),Some{p},suffix,None{}):
+  optional_suffix(~Bool, ~Bool, ~Bool, ~bool_eq, ~(x => bool_reflex(x)), g, suffix, p, n, un, good)
+
+def remove_head_valid_bool(+g: G.Graph<Bool,Bool,Bool>, +r: Bool, +n: Bool, +xs: List<&2,Bool>, +rsame: {bool_eq(r,r) == True{} : Bool}, +un: G.unique(~Bool,~bool_eq,xs), away: G.away(~Bool,~bool_eq,n,xs), good: G.segment(~Bool, ~Bool, ~Bool, ~bool_eq,g,Some{n},xs,None{})) -> G.valid(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq,G.cut(~Bool, ~Bool, ~Bool,g,r,n,None{},G.first(~Bool,xs,None{})),r,xs):
+  remove_head_valid(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq, ~(x => bool_reflex(x)), g, r, n, xs, rsame, un, away, good)
+
+def remove_nonhead_valid_bool(+g: G.Graph<Bool,Bool,Bool>, +r: Bool, +n: Bool, +a: List<&2,Bool>, +p: Bool, +b: List<&2,Bool>, +up: G.unique(~Bool,~bool_eq,G.append(~Bool,a,Con{p,Nil{}})), +ub: G.unique(~Bool,~bool_eq,b), +dis: G.disjoint(~Bool,~bool_eq,G.append(~Bool,a,Con{p,Nil{}}),b), +np: G.away(~Bool,~bool_eq,n,G.append(~Bool,a,Con{p,Nil{}})), +nb: G.away(~Bool,~bool_eq,n,b), root: {G.head(~Bool, ~Bool, ~Bool,~bool_eq,g,r) == G.first(~Bool,G.append(~Bool,a,Con{p,Nil{}}),None{}) : Maybe<&2,Bool>}, prefix: G.segment(~Bool, ~Bool, ~Bool, ~bool_eq,g,None{},G.append(~Bool,a,Con{p,Nil{}}),Some{n}), suffix: G.segment(~Bool, ~Bool, ~Bool, ~bool_eq,g,Some{n},b,None{})) -> G.valid(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq,G.cut(~Bool, ~Bool, ~Bool,g,r,n,Some{p},G.first(~Bool,b,None{})),r,G.append(~Bool,G.append(~Bool,a,Con{p,Nil{}}),b)):
+  remove_nonhead_valid(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq, ~(x => bool_reflex(x)), g, r, n, a, p, b, up, ub, dis, np, nb, root, prefix, suffix)
+
+def prepend_preserves_bool(+g: G.Graph<Bool,Bool,Bool>, +r: Bool, +n: Bool, +xs: List<&2,Bool>, rsame: {bool_eq(r,r) == True{} : Bool}, away: G.away(~Bool,~bool_eq,n,xs), detached: {G.prev(~Bool, ~Bool, ~Bool, ~bool_eq,g,n) == None{} : Maybe<&2,Bool>}, valid: G.valid(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq,g,r,xs)) -> G.valid(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq,G.prepend(~Bool, ~Bool, ~Bool,~bool_eq,g,r,n),r,Con{n,xs}):
+  prepend_preserves(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq, ~(x => bool_reflex(x)), g, r, n, xs, rsame, away, detached, valid)
+
+def remove_head_preserves_bool(+g: G.Graph<Bool,Bool,Bool>, +r: Bool, +n: Bool, +xs: List<&2,Bool>, rsame: {bool_eq(r,r) == True{} : Bool}, valid: G.valid(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq,g,r,Con{n,xs})) -> G.valid(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq,G.remove(~Bool, ~Bool, ~Bool, ~bool_eq,g,r,n),r,xs):
+  remove_head_preserves(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq, ~(x => bool_reflex(x)), g, r, n, xs, rsame, valid)
+
+def remove_nonhead_preserves_bool(+g: G.Graph<Bool,Bool,Bool>, +r: Bool, +n: Bool, +a: List<&2,Bool>, +p: Bool, +b: List<&2,Bool>, valid: G.valid(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq,g,r,G.append(~Bool,G.append(~Bool,a,Con{p,Nil{}}),Con{n,b}))) -> G.valid(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq,G.remove(~Bool, ~Bool, ~Bool, ~bool_eq,g,r,n),r,G.append(~Bool,G.append(~Bool,a,Con{p,Nil{}}),b)):
+  remove_nonhead_preserves(~Bool, ~Bool, ~Bool, ~bool_eq, ~bool_eq, ~(x => bool_reflex(x)), g, r, n, a, p, b, valid)
