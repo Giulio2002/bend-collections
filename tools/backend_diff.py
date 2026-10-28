@@ -1035,8 +1035,8 @@ class Runner:
                 out.unlink()
             p = subprocess.run([BEND, self.src, '-o', str(out)], cwd=ROOT, env=ENV, text=True,
                                capture_output=True, timeout=3600)
-            if not out.exists():
-                log.append('%s: %s' % (out.name, (p.stdout + p.stderr)[-600:]))
+            if p.returncode != 0 or not out.exists():
+                log.append('%s: exit %d: %s' % (out.name, p.returncode, (p.stdout + p.stderr)[-600:]))
         return log
 
     def cmd(self, path, argv):

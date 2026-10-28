@@ -1,13 +1,52 @@
 """Offline checks for backend differential harness outcome classification."""
 
 import sys
+import subprocess
+import tempfile
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 import backend_diff as diff
+
+
+class BuildOutcomeTests(unittest.TestCase):
+    def test_nonzero_build_with_partial_artifact_is_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            def failed_build(cmd, **kwargs):
+                Path(cmd[-1]).write_text("partial artifact")
+                return subprocess.CompletedProcess(cmd, 1, "", "compiler failed")
+
+            with patch.object(diff, "OUT", Path(tmp)), patch.object(diff.subprocess, "run", failed_build):
+                errors = diff.Runner(SimpleNamespace(name="probe", driver="unused.bend"), 1, 1).build()
+
+            self.assertEqual(len(errors), 2)
+            self.assertTrue(all("compiler failed" in error for error in errors))
+            self.assertTrue(all("exit 1" in error for error in errors))
+
+    def test_successful_build_with_artifact_has_no_errors(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            def successful_build(cmd, **kwargs):
+                Path(cmd[-1]).write_text("complete artifact")
+                return subprocess.CompletedProcess(cmd, 0, "", "")
+
+            with patch.object(diff, "OUT", Path(tmp)), patch.object(diff.subprocess, "run", successful_build):
+                errors = diff.Runner(SimpleNamespace(name="probe", driver="unused.bend"), 1, 1).build()
+
+            self.assertEqual(errors, [])
+
+    def test_zero_exit_without_artifact_is_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            def missing_artifact(cmd, **kwargs):
+                return subprocess.CompletedProcess(cmd, 0, "", "no output")
+
+            with patch.object(diff, "OUT", Path(tmp)), patch.object(diff.subprocess, "run", missing_artifact):
+                errors = diff.Runner(SimpleNamespace(name="probe", driver="unused.bend"), 1, 1).build()
+
+            self.assertEqual(len(errors), 2)
 
 
 class KnownDivergenceTests(unittest.TestCase):
