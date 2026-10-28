@@ -347,7 +347,18 @@ model, so constant time is a property of the code's shape, not a theorem.
 
 ## Install
 
-The library and its laws are published on BendHub (MIT):
+The API examples above describe the current source checkout. To use them,
+clone this repository and import modules by relative path from a Bend file in
+the repository root (for example, `import ./src/crypto/sign.bend as Sign`).
+With Bend 2.0.34 installed, `tools/check_consumer_api.sh` checks a small
+consumer of current source and of the published-version source offline.
+Set `BEND=/path/to/bend` if the pinned compiler is not at the path in
+`tools/toolchain.json`.
+
+The published 1.0.0.0 packages below were built from commit `8e660ee`, not
+current main. APIs added since then, such as `Sign.signing_key`, require the
+source checkout; they are not available from `bend-collections@1.0.0.0`.
+The library and its laws were published on BendHub (MIT):
 
 | Package | Hash | Contents |
 |---|---|---|
@@ -379,7 +390,8 @@ a content hash, and every fetched file is checked against it, so an import never
 changes under you. Checking all the laws at once takes about 12 GB of memory
 and a large stack (`ulimit -s unlimited` plus
 `BUN_JSC_maxPerThreadStackUsage=1073741824`); checking one part or one root does
-not. Version 1.0.0.0 was published from commit 8e660ee.
+not. The offline consumer check uses that commit's source; it does not fetch
+or verify the BendHub package itself.
 
 ## Layout
 
