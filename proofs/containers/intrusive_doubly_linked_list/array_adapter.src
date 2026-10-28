@@ -15,7 +15,7 @@ type Node is Data:
   D{}
 
 type Root is Data:
-  Ready{}
+  RootReady{}
   Waiting{}
 
 type Reader is Data:
@@ -37,7 +37,7 @@ def eq(a: Node, b: Node) -> Bool:
 
 def req(a: Root, b: Root) -> Bool:
   match a b:
-    case Ready{} Ready{}: True{}
+    case RootReady{} RootReady{}: True{}
     case Waiting{} Waiting{}: True{}
     case _ _: False{}
 
@@ -68,14 +68,14 @@ def pi(n: Node) -> U32:
 
 def ri(r: Root) -> U32:
   match r:
-    case Ready{}: 8
+    case RootReady{}: 8
     case Waiting{}: 9
 
 def real(~P: Data, +g: G.Graph<Node,Root,P>) -> Store<P>:
   Store{ANode{
     ANode{ANode{ANode{ALeaf{G.next(~Node,~Root,~P,~eq,g,A{})},ALeaf{G.next(~Node,~Root,~P,~eq,g,B{})}},ANode{ALeaf{G.next(~Node,~Root,~P,~eq,g,C{})},ALeaf{G.next(~Node,~Root,~P,~eq,g,D{})}}},
           ANode{ANode{ALeaf{G.prev(~Node,~Root,~P,~eq,g,A{})},ALeaf{G.prev(~Node,~Root,~P,~eq,g,B{})}},ANode{ALeaf{G.prev(~Node,~Root,~P,~eq,g,C{})},ALeaf{G.prev(~Node,~Root,~P,~eq,g,D{})}}}},
-    ANode{ANode{ANode{ALeaf{G.head(~Node,~Root,~P,~req,g,Ready{})},ALeaf{G.head(~Node,~Root,~P,~req,g,Waiting{})}},ANode{ALeaf{None{}},ALeaf{None{}}}},ANode{ANode{ALeaf{None{}},ALeaf{None{}}},ANode{ALeaf{None{}},ALeaf{None{}}}}}},G.frame(~Node,~Root,~P,g)}
+    ANode{ANode{ANode{ALeaf{G.head(~Node,~Root,~P,~req,g,RootReady{})},ALeaf{G.head(~Node,~Root,~P,~req,g,Waiting{})}},ANode{ALeaf{None{}},ALeaf{None{}}}},ANode{ANode{ALeaf{None{}},ALeaf{None{}}},ANode{ALeaf{None{}},ALeaf{None{}}}}}},G.frame(~Node,~Root,~P,g)}
 
 def read_result(~P: Data, f: P, r: Array<Maybe<&2,Node>> & Maybe<&2,Node>) -> Store<P> & Maybe<&2,Node>:
   (cells,n) = r
@@ -127,7 +127,7 @@ def prev_law(~P: Data, +g: G.Graph<Node,Root,P>, +n: Node) -> {prev(~P,real(~P,g
 
 def head_law(~P: Data, +g: G.Graph<Node,Root,P>, +r: Root) -> {head(~P,real(~P,g),Reader{r}) == (real(~P,g),G.head(~Node,~Root,~P,~req,g,r)) : Store<P> & Maybe<&2,Node>}:
   match r:
-    case Ready{}: {==}
+    case RootReady{}: {==}
     case Waiting{}: {==}
 
 def sn_law(~P: Data, +g: G.Graph<Node,Root,P>, +n: Node, +v: Maybe<&2,Node>) -> {sn(~P,real(~P,g),n,v) == real(~P,G.sn(~Node,~Root,~P,g,n,v)) : Store<P>}:
@@ -146,7 +146,7 @@ def sp_law(~P: Data, +g: G.Graph<Node,Root,P>, +n: Node, +v: Maybe<&2,Node>) -> 
 
 def sh_law(~P: Data, +g: G.Graph<Node,Root,P>, +i: Writer, +v: Maybe<&2,Node>) -> {sh(~P,real(~P,g),i,v) == real(~P,G.sh(~Node,~Root,~P,g,root(i),v)) : Store<P>}:
   match g i:
-    case G.Graph{ns,ps,rs,f} Writer{Ready{}}: {==}
+    case G.Graph{ns,ps,rs,f} Writer{RootReady{}}: {==}
     case G.Graph{ns,ps,rs,f} Writer{Waiting{}}: {==}
 
 
@@ -210,7 +210,7 @@ def run_refines(~P: Data, +ops: List<&2,H.Edit<Node>>, +g: $ST, +r: Root) -> {ru
 
 def root_reflex(+r: Root) -> {req(r,r) == True{} : Bool}:
   match r:
-    case Ready{}: {==}
+    case RootReady{}: {==}
     case Waiting{}: {==}
 
 # End-to-end corollary: the actual public functions return the represented
