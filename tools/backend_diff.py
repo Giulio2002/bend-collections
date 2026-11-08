@@ -1043,8 +1043,8 @@ class Runner:
         if path == 'run':
             return [BEND, self.src, '--'] + argv
         if path == 'c':
-            return [str(self.bin), '--threads', str(self.threads), '--'] + argv
-        return [NODE, '--stack-size=50000', str(self.js), '--'] + argv
+            return [str(self.bin), '+RTS', '--threads', str(self.threads), '-RTS'] + argv
+        return [NODE, '--stack-size=50000', str(self.js)] + argv
 
     def one(self, path, argv):
         """(status, stdout, stderr tail, seconds); status ok | fail | limit | timeout.

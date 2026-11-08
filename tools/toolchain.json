@@ -1,20 +1,25 @@
 {
-  "version": "2.0.34",
-  "commit": "Bend 2.0.34 release",
-  "binary": "~/.bend/v2.0.34/bend/bin/bend",
-  "binary_sha256": "766e4c0bd85e2d8df3babfb2180a882dfa351679cad9b45eb7b597b48279c834",
+  "version": "2.0.40",
+  "commit": "bendlang/bend v2.0.40 624dd9f4607cd29b0871a9b96d413bfb11e92f52",
+  "binary": "~/.bend/v2.0.40/bend/bin/bend",
+  "binary_sha256": "c362cdac355d84f51278db97cb29a3b2e0be084d59b76a5cff013199b3513539",
   "binary_sha256_by_platform": {
-    "darwin-arm64": "766e4c0bd85e2d8df3babfb2180a882dfa351679cad9b45eb7b597b48279c834",
-    "linux-x86_64": "7fafb749dd33df446a0cb5839c5694df237312a8e8048d2e9420480164ff5934"
+    "darwin-arm64": "c362cdac355d84f51278db97cb29a3b2e0be084d59b76a5cff013199b3513539",
+    "linux-x86_64": "983e306459db3e3a1bc6b8452f964440301d4ec4fb2d8fe4d399b14e5edc3bd4"
   },
-  "base": "~/.bend/v2.0.34/bend/bend2/base.bend",
-  "base_sha256": "c742fae9c49b14f0cc9128429a2c6109364c8a933a142f2c90b9f2e5fd976661",
+  "base": "~/.bend/v2.0.40/bend/bend2/base.bend",
+  "base_sha256": "ff90fb27ed19d5c7a6165170f28ad81562bf345b9a9e6134e5c2e326beff9de4",
   "previous": {
-    "version": "2.0.32",
-    "commit": "bendlang/bend main b2111cf43244e65f76ddc278ee695e669f720cbf (v2.0.32-3)",
-    "binary": "~/.bend/main/bin/bend",
-    "binary_sha256": "1d80c6ad85b99766aec4d9df38a37096e4cee281fc5d9f154533eff185455373",
-    "base_sha256": "00c751b6cd045361a80f214c9c36bd4ec637e9ec86109b194e55cd57ca63ab94",
-    "reason": "moved to the Bend 2.0.34 release 2026-09-30: its Base drops Nat.div.fin/Nat.mod.fin/String.eq.fin/String.order.fin (Nat.div/mod go through Nat.divmod, String.eq/order through String.cmp), rewrites Bool.full_add, U32.log2, Nat.sub and some Map internals, and its checker first tries each conversion with an empty book; every proof was ported and rechecked"
+    "version": "2.0.34",
+    "commit": "Bend 2.0.34 release",
+    "binary": "~/.bend/v2.0.34/bend/bin/bend",
+    "binary_sha256": "766e4c0bd85e2d8df3babfb2180a882dfa351679cad9b45eb7b597b48279c834",
+    "binary_sha256_by_platform": {
+      "darwin-arm64": "766e4c0bd85e2d8df3babfb2180a882dfa351679cad9b45eb7b597b48279c834",
+      "linux-x86_64": "7fafb749dd33df446a0cb5839c5694df237312a8e8048d2e9420480164ff5934"
+    },
+    "base": "~/.bend/v2.0.34/bend/bend2/base.bend",
+    "base_sha256": "c742fae9c49b14f0cc9128429a2c6109364c8a933a142f2c90b9f2e5fd976661",
+    "reason": "moved to the Bend 2.0.40 release (2026-11-06): Base's String.order now uses a tail-recursive String.order.go and String.eq uses String.order; the comparison, total-order and native-map proofs now connect the new walk to String.cmp without changing their contracts"
   }
 }

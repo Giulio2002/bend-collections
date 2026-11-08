@@ -293,7 +293,7 @@ def fuzz(algo, n, seed):
         expect_invalid.append(length > cap)
     inp = OUT / ('fuzz_%s.in' % algo)
     inp.write_bytes(b''.join(recs))
-    r = subprocess.run([str(binary), '--threads', '1'], env={**os.environ, 'FUZZ_INPUT': str(inp), 'FUZZ_COUNT': str(len(recs))},
+    r = subprocess.run([str(binary), '+RTS', '--threads', '1', '-RTS'], env={**os.environ, 'FUZZ_INPUT': str(inp), 'FUZZ_COUNT': str(len(recs))},
                        capture_output=True, text=True)
     got = r.stdout.split()
     if r.returncode or len(got) != len(recs):

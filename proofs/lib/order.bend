@@ -133,24 +133,19 @@ def lex(c: Cmp, r: Cmp) -> Cmp:
       GT{}
 
 def order_tag(+a: String, +b: String) -> {String.order(a, b) == NM.comparison_tag(String, String.cmp(a, b)) : Cmp}:
-  %Equal.sym((String & String) & Cmp, String.cmp(a, b), ((a, b), NM.comparison_tag(String, String.cmp(a, b))), NM.string_comparison_shape(a, b)) : {Pair.snd(String & String, Cmp, _) == NM.comparison_tag(String, _) : Cmp}
-  {==}
+  NM.string_order_comparison(a, b)
 
-def so_cons_c(+x: U32, +t1: String, +y: U32, +t2: String, +c: Cmp, +ec: {U32.cmp(x, y) == c : Cmp}) -> {String.order(SCon{Chr{x}, t1}, SCon{Chr{y}, t2}) == lex(c, String.order(t1, t2)) : Cmp}:
+def order_go_lex(+a: String, +b: String, c: Cmp) -> {String.order.go(a, b, c) == lex(c, String.order(a, b)) : Cmp}:
   match c:
     case LT{}:
-      %Equal.sym(Cmp, U32.cmp(x, y), LT{}, ec) : {Pair.snd(String & String, Cmp, String.cmp.fin(t1, t2, ((Chr{x}, Chr{y}), _))) == LT{} : Cmp}
-      {==}
+      NM.string_order_lt(a, b)
     case GT{}:
-      %Equal.sym(Cmp, U32.cmp(x, y), GT{}, ec) : {Pair.snd(String & String, Cmp, String.cmp.fin(t1, t2, ((Chr{x}, Chr{y}), _))) == GT{} : Cmp}
-      {==}
+      NM.string_order_gt(a, b)
     case EQ{}:
-      %Equal.sym(Cmp, U32.cmp(x, y), EQ{}, ec) : {Pair.snd(String & String, Cmp, String.cmp.fin(t1, t2, ((Chr{x}, Chr{y}), _))) == String.order(t1, t2) : Cmp}
-      %Equal.sym((String & String) & Cmp, String.cmp(t1, t2), ((t1, t2), NM.comparison_tag(String, String.cmp(t1, t2))), NM.string_comparison_shape(t1, t2)) : {Pair.snd(String & String, Cmp, String.cmp.rec(Chr{x}, Chr{y}, _)) == Pair.snd(String & String, Cmp, _) : Cmp}
       {==}
 
 def so_cons(+x: U32, +t1: String, +y: U32, +t2: String) -> {String.order(SCon{Chr{x}, t1}, SCon{Chr{y}, t2}) == lex(U32.cmp(x, y), String.order(t1, t2)) : Cmp}:
-  so_cons_c(x, t1, y, t2, U32.cmp(x, y), {==})
+  order_go_lex(t1, t2, U32.cmp(x, y))
 
 def flip_lex(+c: Cmp, +r: Cmp) -> {lex(flipc(c), flipc(r)) == flipc(lex(c, r)) : Cmp}:
   match c:
@@ -165,9 +160,9 @@ def s_flip(+a: String, +b: String) -> {String.order(b, a) == flipc(String.order(
   match a b:
     case SNil{} SNil{}:
       {==}
-    case SNil{} SCon{h, t}:
+    case SNil{} SCon{Chr{x}, t}:
       {==}
-    case SCon{h, t} SNil{}:
+    case SCon{Chr{x}, t} SNil{}:
       {==}
     case SCon{Chr{+x}, +t1} SCon{Chr{+y}, +t2}:
       %Equal.sym(Cmp, String.order(SCon{Chr{y}, t2}, SCon{Chr{x}, t1}), lex(U32.cmp(y, x), String.order(t2, t1)), so_cons(y, t2, x, t1)) : {_ == flipc(String.order(SCon{Chr{x}, t1}, SCon{Chr{y}, t2})) : Cmp}
@@ -221,12 +216,12 @@ def s_trans(+a: String, +b: String, +c: String, +ab: {Cmp.is_le(String.order(a, 
   match a b c:
     case SNil{} _ SNil{}:
       {==}
-    case SNil{} _ SCon{h, t}:
+    case SNil{} _ SCon{Chr{x}, t}:
       {==}
-    case SCon{h, t} SNil{} _:
-      Empty.absurd({Cmp.is_le(String.order(SCon{h, t}, c)) == True{} : Bool}, L.false_true(ab))
-    case SCon{h1, t1} SCon{h2, t2} SNil{}:
-      Empty.absurd({Cmp.is_le(String.order(SCon{h1, t1}, SNil{})) == True{} : Bool}, L.false_true(bc))
+    case SCon{Chr{x}, t} SNil{} _:
+      Empty.absurd({Cmp.is_le(String.order(SCon{Chr{x}, t}, c)) == True{} : Bool}, L.false_true(ab))
+    case SCon{Chr{x}, t1} SCon{Chr{y}, t2} SNil{}:
+      Empty.absurd({Cmp.is_le(String.order(SCon{Chr{x}, t1}, SNil{})) == True{} : Bool}, L.false_true(bc))
     case SCon{Chr{+x}, +t1} SCon{Chr{+y}, +t2} SCon{Chr{+z}, +t3}:
       %Equal.sym(Cmp, String.order(SCon{Chr{x}, t1}, SCon{Chr{z}, t3}), lex(U32.cmp(x, z), String.order(t1, t3)), so_cons(x, t1, z, t3)) : {Cmp.is_le(_) == True{} : Bool}
       s_trans_heads(x, y, z, String.order(t1, t2), String.order(t2, t3), String.order(t1, t3), U32.cmp(x, y), {==}, U32.cmp(y, z), {==},

@@ -329,7 +329,7 @@ COUNTS = {}
 
 
 def run(source, toks):
-    p = subprocess.run([str(BIN), '--threads', '1', '--', source] + list(toks),
+    p = subprocess.run([str(BIN), '+RTS', '--threads', '1', '-RTS', source] + list(toks),
                        capture_output=True, text=True, timeout=1800)
     if p.returncode != 0:
         raise RuntimeError('driver failed on %s: %s' % (source, p.stderr[-300:]))
@@ -489,7 +489,7 @@ def os_seeded():
     # probability 2^-256 for a working OS source)
     outs = []
     for _ in range(3):
-        p = subprocess.run([str(BIN), '--threads', '1', '--', 'os'], capture_output=True, text=True, timeout=600)
+        p = subprocess.run([str(BIN), '+RTS', '--threads', '1', '-RTS', 'os'], capture_output=True, text=True, timeout=600)
         if p.returncode != 0:
             raise RuntimeError('os run failed: ' + p.stderr[-300:])
         outs.append([int(x) for x in p.stdout.split()[0].split(',')])

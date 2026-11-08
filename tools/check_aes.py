@@ -211,7 +211,7 @@ def build():
 def run(binary, name, cases):
     inp = OUT / ('check_%s.in' % name)
     inp.write_bytes(b''.join(record(*c[:5]) for c in cases))
-    r = subprocess.run([str(binary), '--threads', '1'],
+    r = subprocess.run([str(binary), '+RTS', '--threads', '1', '-RTS'],
                        env={**os.environ, 'CHECK_INPUT': str(inp), 'CHECK_COUNT': str(len(cases))},
                        capture_output=True, text=True)
     got = r.stdout.splitlines()

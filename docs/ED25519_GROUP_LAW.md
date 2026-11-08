@@ -7,7 +7,7 @@ extended coordinates, double-and-add), so that faster scalar multiplications
 (base-point tables, fixed and signed windows, Strauss/Shamir) can be proved
 equal to the specification, and so that `verify(pk(sk), m, sign(sk, m))` can
 be proved. Everything below is proved for every input, with no holes, axioms
-or unsafe code, on stock Bend 2.0.34.
+or unsafe code, on stock Bend 2.0.40.
 
 ## Statements
 

@@ -130,7 +130,7 @@ def pk_c(+one: Nat, +c: Bool, +d: Nat, +pk: LU, ok: Bool, +h: {ES.public_d(one, 
 def pk_eq(+one: Nat, +sk: LU, +c: Bool, +pk: LU, +h: {ES.public_key(one, sk, c) == Some{pk} : Maybe<&2, LU>}) -> {ES.pk_of(one, c, CS.pmul(ES.p(one), CS.os2ip(sk), CS.g(one))) == pk : LU}:
   pk_c(one, c, CS.os2ip(sk), pk, Bool.and(CS.length_is(32n, sk), ES.scalar_ok(one, CS.os2ip(sk))), h)
 
-def sign_c(+one: Nat, +h: LU, +d: Nat, +sig: LU, ok: Bool, +hs: {ES.sign_d(one, h, d, ok) == Some{sig} : Maybe<&2, LU>}) -> {ok == True{} : Bool}:
+def sign_c(+one: Nat, +h: LU, +d: Nat, +sig: LU, ok: Bool, +hs: {ES.sign_d(one, ES.fill(32n, 0), ES.fill(32n, 1), h, d, ok) == Some{sig} : Maybe<&2, LU>}) -> {ok == True{} : Bool}:
   match ok:
     case True{}:
       {==}

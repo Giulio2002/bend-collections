@@ -191,12 +191,12 @@ def drbg_good(HD1, +c: Bool, +d: Nat, +h: LU, +strict: Bool, g: ES.Drbg, +sd: SO
     case ES.Drbg{+k, +v}:
       loop_good(16n, HA1, c, d, h, strict, k, ES.hmac(k, v), ES.attempt(one, HS, d, ES.hmac(k, v)), sd, hlen, att_good(HA1, c, d, h, strict, ES.hmac(k, v), sd, hlen))
 
-def sign_g(HD1, +c: Bool, +d: Nat, +h: LU, +strict: Bool, +b1: Bool, +b2: Bool, ok: Bool, +hok: {Bool.and(b1, Bool.and(b2, ES.scalar_ok(one, d))) == ok : Bool}, +hb1: {b1 == CS.length_is(32n, h) : Bool}) -> GoodM(one, c, d, h, strict, ES.sign_d(one, h, d, ok)):
+def sign_g(HD1, +c: Bool, +d: Nat, +h: LU, +strict: Bool, +b1: Bool, +b2: Bool, ok: Bool, +hok: {Bool.and(b1, Bool.and(b2, ES.scalar_ok(one, d))) == ok : Bool}, +hb1: {b1 == CS.length_is(32n, h) : Bool}) -> GoodM(one, c, d, h, strict, ES.sign_d(one, ES.fill(32n, 0), ES.fill(32n, 1), h, d, ok)):
   match ok:
     case False{}:
       Unit{}
     case True{}:
-      drbg_good(HA1, c, d, h, strict, ES.drbg_init(ES.cat(ES.i2osp32(d), ES.i2osp32(HS))), Lg.and_right(b2, ES.scalar_ok(one, d), Lg.and_right(b1, Bool.and(b2, ES.scalar_ok(one, d)), hok)), ETR(Bool, CS.length_is(32n, h), b1, True{}, ESYM(Bool, b1, CS.length_is(32n, h), hb1), Lg.and_left(b1, Bool.and(b2, ES.scalar_ok(one, d)), hok)))
+      drbg_good(HA1, c, d, h, strict, ES.drbg_init(ES.fill(32n, 0), ES.fill(32n, 1), ES.cat(ES.i2osp32(d), ES.i2osp32(HS))), Lg.and_right(b2, ES.scalar_ok(one, d), Lg.and_right(b1, Bool.and(b2, ES.scalar_ok(one, d)), hok)), ETR(Bool, CS.length_is(32n, h), b1, True{}, ESYM(Bool, b1, CS.length_is(32n, h), hb1), Lg.and_left(b1, Bool.and(b2, ES.scalar_ok(one, d)), hok)))
 
 # every signature ES.sign returns is good for the key of OS2IP(sk)
 def sign_good(HD1, +c: Bool, +sk: LU, +h: LU, +strict: Bool) -> GoodM(one, c, CS.os2ip(sk), h, strict, ES.sign(one, sk, h)):

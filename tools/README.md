@@ -7,8 +7,8 @@ committed `.bend` proofs check without it.
 
 ## Toolchain
 
-`toolchain.json` pins the Bend build the project is checked with (the 2.0.34
-release, installed under `~/.bend/v2.0.34/bend`) by path and SHA-256 (one
+`toolchain.json` pins the Bend build the project is checked with (the 2.0.40
+release, installed under `~/.bend/v2.0.40/bend`) by path and SHA-256 (one
 binary hash per platform, one Base hash), and `toolchain.py` exposes it to the scripts. Paths may start
 with `~`. To use a private copy of the pinned release, set `BEND_HOME` to a
 directory holding `.bend/bin/bend` and `.bend/bend2`. To use another compiler
@@ -17,6 +17,35 @@ optionally `BEND_BASE` to its `base.bend`: every script then uses it, the pin
 check warns instead of failing, and reports record the unpinned build. The
 benchmark and proof scripts outside `tools/` fall back to `$BEND` or `bend` on
 the PATH.
+
+Download the archive for your platform from the
+[Bend 2.0.40 release](https://github.com/bendlang/bend/releases/tag/v2.0.40)
+and extract its `bend/` directory under `~/.bend/v2.0.40/`.
+For the commands that invoke `bend` directly, select the same compiler:
+
+```sh
+export PATH="$HOME/.bend/v2.0.40/bend/bin:$PATH"
+bend version                         # bend 2.0.40
+bend proofs/PROOF.bend
+python3 proofs/prove.py
+python3 tools/check_backend_args.py
+python3 tools/backend_diff.py --quick
+```
+
+The upgrade from 2.0.34 connects Base's new tail-recursive `String.order.go`
+and `String.eq` to `String.cmp` in `proofs/lib/lemmas/proofs/string_compare.bend`.
+The total-order and native-map proofs use that connection. Their contracts
+are unchanged. Native test and benchmark runners put runtime options inside
+`+RTS ... -RTS`, as 2.0.40 requires. The 2.0.34 measurements below remain
+historical results.
+
+The ECDSA proof templates also pass the specification's initial DRBG key and
+value explicitly. Regenerate these proofs with
+`python3 tools/generators/secp256k1_group/gen_ecd.py ecdb ecds`.
+The Schnorr generator passes the tag hashes explicitly and proves that they
+match the original tagged hashes. Regenerate its lemmas without replacing
+the closed laws with
+`python3 tools/generators/secp256k1_group/gen_schs.py --proofs-only`.
 
 ## Proof sources: `.src` files and `generators/mac.py`
 
@@ -94,6 +123,7 @@ what it generates from.
 | `../benchmarks/intrusive.py --bend bend --cc clang` | warmed entity transfers and pooled lifecycles against the public DList API and C; independent oracle, generation-layer diagnostic, A/A control, separate timing/allocation/live-byte binaries, raw samples; [method and results](../benchmarks/INTRUSIVE_LIST.md) |
 | `check_random.py [seed]` | `src/math/random.bend` and `src/crypto/random.bend` (driver `build/math/random` from `tests/math/random.bend`): Go's published vectors (ChaCha8, the Read transcript hash, PCG, regressGolden), a Python mirror of Go's math/rand/v2 and C2SP chacha8rand on random keys, seeds and call sequences, the OS-keyed generator, and a chi-square smoke test of `uint64n` |
 | `backend_diff.py [--quick] [--only m]` | Bend against itself: every public module on identical seeded random and edge-case inputs through `bend file.bend args`, the C backend and the JavaScript backend; any differing line fails ([findings](../docs/BACKEND_BUGS.md)) |
+| `check_backend_args.py` | exact application arguments through the interpreter, C, and JavaScript runners, including empty strings, spaces, Unicode, and flag-shaped values |
 | `validate.py --report build/validation.json` | every container in `tests/structures.json`: builds `tests/<id>/main.bend`, compares its output with the Python oracle in `tests/support/oracles.py` on functional, boundary, differential and structural scenarios (`scenarios.py`), runs semantic mutants that must be caught (`mutants.py`), and checks the container's proof |
 | `check_hash_table.py` | the hash map against a Python dict on random histories (growth, backward-shift deletion, every key kind) |
 | `check_lru_spec.py` | the LRU against its executable specification, step by step with a moving clock |
@@ -119,8 +149,8 @@ be identical:
 | Path | Command |
 |---|---|
 | `run` | `bend driver.bend -- args` (check, then run in the bundled runtime) |
-| `c` | `bend driver.bend -o bin`, then `bin --threads 1 -- args` |
-| `js` | `bend driver.bend -o out.js`, then `node out.js -- args` |
+| `c` | `bend driver.bend -o bin`, then `bin +RTS --threads 1 -RTS args` |
+| `js` | `bend driver.bend -o out.js`, then `node out.js args` |
 
 ```sh
 python3 tools/backend_diff.py                     # every module, about 35 minutes at -j 4

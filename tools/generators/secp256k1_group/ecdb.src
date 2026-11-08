@@ -128,7 +128,7 @@ def pk_c(+one: Nat, +c: Bool, +d: Nat, +pk: List<&2, U32>, ok: Bool, +h: {ES.pub
 def pk_eq(+one: Nat, +sk: List<&2, U32>, +c: Bool, +pk: List<&2, U32>, +h: {ES.public_key(one, sk, c) == Some{pk} : Maybe<&2, List<&2, U32>>}) -> {ES.pk_of(one, c, CS.pmul(ES.p(one), CS.os2ip(sk), CS.g(one))) == pk : List<&2, U32>}:
   pk_c(one, c, CS.os2ip(sk), pk, Bool.and(CS.length_is(32n, sk), ES.scalar_ok(one, CS.os2ip(sk))), h)
 
-def sign_c(+one: Nat, +h: List<&2, U32>, +d: Nat, +sig: List<&2, U32>, ok: Bool, +hs: {ES.sign_d(one, h, d, ok) == Some{sig} : Maybe<&2, List<&2, U32>>}) -> {ok == True{} : Bool}:
+def sign_c(+one: Nat, +h: List<&2, U32>, +d: Nat, +sig: List<&2, U32>, ok: Bool, +hs: {ES.sign_d(one, ES.fill(32n, 0), ES.fill(32n, 1), h, d, ok) == Some{sig} : Maybe<&2, List<&2, U32>>}) -> {ok == True{} : Bool}:
   match ok:
     case True{}:
       {==}

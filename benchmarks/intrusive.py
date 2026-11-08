@@ -111,7 +111,7 @@ def sample(build, work, kind, size, count, seed, mode='time'):
         command = ['node', build / f'{work}_{kind}.js', *args]
     else:
         executable_kind = 'intrusive' if kind == 'intrusive_repeat' else kind
-        command = [build / f'{work}_{executable_kind}-{mode}', '--threads', '1', *args]
+        command = [build / f'{work}_{executable_kind}-{mode}', '+RTS', '--threads', '1', '-RTS', *args]
     r = run(command)
     expected = reference(work, size, count, seed)
     if r.stdout.strip() != expected:

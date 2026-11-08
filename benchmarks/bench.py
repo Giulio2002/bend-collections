@@ -34,7 +34,7 @@ def verify_build():
 def execute(path,row,count,reps,is_bend,deadline,order=0):
     remaining=deadline-time.monotonic()
     if remaining<=0:raise TimeoutError('time budget exhausted')
-    args=[str(path)]+(['--threads','1','--'] if is_bend else [])+list(map(str,[row['op'],row['size'],count,reps,row['seed'],order]))
+    args=[str(path)]+(['+RTS', '--threads', '1', '-RTS'] if is_bend else [])+list(map(str,[row['op'],row['size'],count,reps,row['seed'],order]))
     p=subprocess.run(args,capture_output=True,text=True,env=bench.ENV,timeout=remaining)
     if p.returncode:raise RuntimeError(p.stderr[-300:])
     match=bench.TIME_RE.search(p.stdout)

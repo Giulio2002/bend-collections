@@ -64,7 +64,7 @@ def main():
                 for seed in seeds:
                     for order in (0, 1):
                         args = [str(op), str(size), str(count), '2', str(seed), str(order)]
-                        b = sums([str(OUT / 'bend'), '--threads', '1', '--'] + args)
+                        b = sums([str(OUT / 'bend'), '+RTS', '--threads', '1', '-RTS'] + args)
                         if order:
                             b = b[::-1]
                         c = sums([str(OUT / 'c')] + args)

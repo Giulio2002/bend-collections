@@ -48,7 +48,7 @@ def build():
 
 
 def run(binary, env, bend):
-    cmd = [str(OUT / binary)] + (['--threads', '1'] if bend else [])
+    cmd = [str(OUT / binary)] + (['+RTS', '--threads', '1', '-RTS'] if bend else [])
     lines = sh(cmd, env={**os.environ, **env}).splitlines()
     return float(lines[0].split('=')[1]), lines[1]
 

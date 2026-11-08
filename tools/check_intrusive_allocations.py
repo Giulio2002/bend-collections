@@ -47,12 +47,12 @@ def main():
     measured.write_text(instrument(c.read_text()))
     exe = build / 'churn'
     run([args.cc, '-O3', '-std=gnu11', '-pthread', str(measured), '-lm', '-o', str(exe)])
-    r = run([str(exe), '--threads', '1'])
+    r = run([str(exe), '+RTS', '--threads', '1', '-RTS'])
     assert r.stdout.strip() == str(expected_checksum()), r.stdout
     assert re.fullmatch(r'IL_ALLOC 0 IL_NS [0-9]+\n', r.stderr), r.stderr
     times=[int(r.stderr.split()[-1])]
     for _ in range(6):
-        sample=run([str(exe), '--threads', '1'])
+        sample=run([str(exe), '+RTS', '--threads', '1', '-RTS'])
         assert sample.stdout.strip()==str(expected_checksum())
         assert re.fullmatch(r'IL_ALLOC 0 IL_NS [0-9]+\n',sample.stderr),sample.stderr
         times.append(int(sample.stderr.split()[-1]))
@@ -62,7 +62,7 @@ def main():
         'il_active = 1; heap_free(e, 0, heap_alloc(e, 0));')
     measured.write_text(control)
     run([args.cc, '-O3', '-std=gnu11', '-pthread', str(measured), '-lm', '-o', str(exe)])
-    positive = run([str(exe), '--threads', '1'])
+    positive = run([str(exe), '+RTS', '--threads', '1', '-RTS'])
     assert re.fullmatch(r'IL_ALLOC 1 IL_NS [0-9]+\n', positive.stderr), positive.stderr
     measured.write_text(instrument(c.read_text()))
     run([args.cc, '-O3', '-std=gnu11', '-pthread', str(measured), '-lm', '-o', str(exe)])
@@ -80,7 +80,7 @@ def main():
     pool_instrumented.write_text(instrument(pool_c.read_text()))
     pool_exe = build / 'pool'
     run([args.cc, '-O3', '-std=gnu11', '-pthread', str(pool_instrumented), '-lm', '-o', str(pool_exe)])
-    pool_result = run([str(pool_exe), '--threads', '1'])
+    pool_result = run([str(pool_exe), '+RTS', '--threads', '1', '-RTS'])
     assert pool_result.stdout.strip() == '4', pool_result.stdout
     assert re.fullmatch(r'IL_ALLOC 0 IL_NS [0-9]+\n', pool_result.stderr), pool_result.stderr
     report = {'platform': platform.platform(), 'compiler': run([args.bend, 'version']).stdout.strip(),

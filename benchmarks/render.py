@@ -181,7 +181,7 @@ def references_section():
             '| `suite_subtle_eq.c` | written for this repo | MIT (this repo) | `subtle.eq` | constant-time loop |',
             '',
             'Fairness notes:', '',
-            '- Bend runs single-threaded (`--threads 1`) on byte lists (one U32 per byte);',
+            '- Bend runs single-threaded (`+RTS --threads 1 -RTS`) on byte lists (one U32 per byte);',
             '  C works on byte arrays in place. Input parsing and message cutting happen',
             '  before the timed region on both sides; the checksum after it.',
             '- The Bend AES is constant-time (the Boyar-Peralta S-box circuit on one byte at',
