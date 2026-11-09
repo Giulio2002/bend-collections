@@ -246,7 +246,7 @@ def check_lru(log):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--report', required=True)
-    ap.add_argument('--only', default=None, help='validate a single structure')
+    ap.add_argument('--only', default=None, help='validate a single structure or suite')
     args = ap.parse_args()
 
     if not PINNED:
@@ -257,6 +257,10 @@ def main():
         return 1
 
     inventory = json.loads((ROOT / 'tests' / 'structures.json').read_text())['new_structures']
+    suites = {'math', 'crypto', 'mac', 'chacha', 'aes', 'random', 'secp256k1',
+              'backend_diff', 'lru'}
+    if args.only and args.only not in {item['id'] for item in inventory} | suites:
+        ap.error('unknown validation target: %s' % args.only)
     LOGDIR.mkdir(parents=True, exist_ok=True)
     started = time.time()
 
@@ -667,9 +671,11 @@ def main():
         print('%-22s differential=%s cases=%s lines=%s' % ('backend_diff', backend_row['differential'],
                                                            backend_row['cases'], backend_row['lines']), flush=True)
 
-    lru_log = []
-    lru_ok, lru_detail = check_lru(lru_log)
-    (LOGDIR / 'lru.log').write_text('\n'.join(lru_log))
+    lru_ok, lru_detail = True, {}
+    if not args.only or args.only == 'lru':
+        lru_log = []
+        lru_ok, lru_detail = check_lru(lru_log)
+        (LOGDIR / 'lru.log').write_text('\n'.join(lru_log))
 
     hashed = {}
     for folder in ['src', 'tests', 'tools']:
@@ -679,7 +685,9 @@ def main():
     for f in sorted(ROOT.glob('*.bend')):
         hashed[str(f.relative_to(ROOT))] = sha(f)
 
-    complete = (not FAILURES) and lru_ok and len(rows) == len(inventory)
+    selected_count = sum(not args.only or item['id'] == args.only for item in inventory)
+    selected_ok = (not FAILURES) and lru_ok and len(rows) == selected_count
+    complete = selected_ok and not args.only
     report = {
         'structures': rows,
         'math': math_row,
@@ -690,7 +698,8 @@ def main():
         'aes': aes_row,
         'random': random_row,
         'backend_diff': backend_row,
-        'lru_reuse': 'passed' if lru_ok else 'failed',
+        'lru_reuse': ('not_run' if args.only and args.only != 'lru'
+                      else 'passed' if lru_ok else 'failed'),
         'lru_detail': lru_detail,
         'complete': bool(complete),
         'failures': FAILURES,
@@ -712,7 +721,7 @@ def main():
     out.write_text(json.dumps(report, indent=1, sort_keys=True))
     print('report: %s (complete=%s, %d failures)'
           % (out, report['complete'], len(FAILURES)))
-    return 0 if complete else 1
+    return 0 if selected_ok else 1
 
 
 if __name__ == '__main__':
