@@ -211,6 +211,46 @@ def string_comparison_shape(a, b):
     case SCon{Chr{U32{+x}}, +t1} SCon{Chr{U32{+y}}, +t2}:
       string_comparison_shape_step(Chr{U32{x}}, Chr{U32{y}}, t1, t2, Word.cmp(32n, x, y), string_comparison_shape(t1, t2))
 
+# Base 2.0.40 orders strings with a tail-recursive walk; String.cmp still
+# returns the original strings beside their comparison for Map's callers.
+def string_order_lt(a: String, b: String) -> {String.order.go(a, b, LT{}) == LT{} : Cmp}:
+  match a b:
+    case SNil{} SNil{}: {==}
+    case SNil{} SCon{Chr{x}, t}: {==}
+    case SCon{Chr{x}, t} SNil{}: {==}
+    case SCon{Chr{x}, t1} SCon{Chr{y}, t2}: {==}
+
+def string_order_gt(a: String, b: String) -> {String.order.go(a, b, GT{}) == GT{} : Cmp}:
+  match a b:
+    case SNil{} SNil{}: {==}
+    case SNil{} SCon{Chr{x}, t}: {==}
+    case SCon{Chr{x}, t} SNil{}: {==}
+    case SCon{Chr{x}, t1} SCon{Chr{y}, t2}: {==}
+
+def string_order_comparison_step(+x: U32, +t1: String, +y: U32, +t2: String, c: Cmp, ih: {String.order(t1, t2) == comparison_tag(String, String.cmp(t1, t2)) : Cmp}) -> {String.order.go(t1, t2, c) == comparison_tag(String, String.cmp.fin(t1, t2, ((Chr{x}, Chr{y}), c))) : Cmp}:
+  match c:
+    case LT{}:
+      string_order_lt(t1, t2)
+    case GT{}:
+      string_order_gt(t1, t2)
+    case EQ{}:
+      %Equal.sym((String & String) & Cmp, String.cmp(t1, t2), ((t1, t2), comparison_tag(String, String.cmp(t1, t2))), string_comparison_shape(t1, t2)) : {String.order(t1, t2) == comparison_tag(String, String.cmp.rec(Chr{x}, Chr{y}, _)) : Cmp}
+      ih
+
+def string_order_comparison(+a: String, +b: String) -> {String.order(a, b) == comparison_tag(String, String.cmp(a, b)) : Cmp}:
+  match a b:
+    case SNil{} SNil{}:
+      {==}
+    case SNil{} SCon{h, t}:
+      {==}
+    case SCon{h, t} SNil{}:
+      {==}
+    case SCon{Chr{+x}, +t1} SCon{Chr{+y}, +t2}:
+      string_order_comparison_step(x, t1, y, t2, U32.cmp(x, y), string_order_comparison(t1, t2))
+
+def string_eq_comparison(+a: String, +b: String) -> {String.eq(a, b) == Cmp.is_eq(comparison_tag(String, String.cmp(a, b))) : Bool}:
+  Equal.cong(Cmp, Bool, Cmp.is_eq, String.order(a, b), comparison_tag(String, String.cmp(a, b)), string_order_comparison(a, b))
+
 law string_comparison_original_identity:
   for +a: String
   for +b: String
@@ -236,6 +276,11 @@ law string_equal_comparison:
 def string_equal_comparison(a, b, e):
   %e : {String.cmp(a, _) == ((a, _), EQ{}) : (String & String) & Cmp}
   string_compare_self(a)
+
+def string_eq_equal(+a: String, +b: String, same: {a == b : String}) -> {String.eq(a, b) == True{} : Bool}:
+  %Equal.sym(Bool, String.eq(a, b), Cmp.is_eq(comparison_tag(String, String.cmp(a, b))), string_eq_comparison(a, b)) : {_ == True{} : Bool}
+  %Equal.sym((String & String) & Cmp, String.cmp(a, b), ((a, b), EQ{}), string_equal_comparison(a, b, same)) : {Cmp.is_eq(comparison_tag(String, _)) == True{} : Bool}
+  {==}
 
 # First-difference base and common-prefix reduction laws for the existing
 law natural_add_associative:

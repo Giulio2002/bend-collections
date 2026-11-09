@@ -248,7 +248,7 @@ def build(name):
 def run(name, binary, recs):
     inp = OUT / ('check_%s.in' % name)
     inp.write_bytes(b''.join(recs))
-    r = subprocess.run([str(binary), '--threads', '1'],
+    r = subprocess.run([str(binary), '+RTS', '--threads', '1', '-RTS'],
                        env={**os.environ, 'CHECK_INPUT': str(inp), 'CHECK_COUNT': str(len(recs))},
                        capture_output=True, text=True)
     got = r.stdout.splitlines()

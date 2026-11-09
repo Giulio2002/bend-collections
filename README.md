@@ -350,7 +350,7 @@ model, so constant time is a property of the code's shape, not a theorem.
 The API examples above describe the current source checkout. To use them,
 clone this repository and import modules by relative path from a Bend file in
 the repository root (for example, `import ./src/crypto/sign.bend as Sign`).
-With Bend 2.0.34 installed, `tools/check_consumer_api.sh` checks a small
+With Bend 2.0.40 installed, `tools/check_consumer_api.sh` checks a small
 consumer of current source and of the published-version source offline.
 Set `BEND=/path/to/bend` if the pinned compiler is not at the path in
 `tools/toolchain.json`.
@@ -460,7 +460,7 @@ tools/            proof generators (mac.py expands the .src proof sources),
 
 ## Requirements
 
-Bend 2.0.34 (the release; pinned in `tools/toolchain.json`), clang and
+Bend 2.0.40 (the release; pinned in `tools/toolchain.json`), clang and
 Python 3.
 
 ## Test
@@ -477,6 +477,7 @@ python3 tools/check_poly1305.py      # Poly1305 and its spec mirror vs `cryptogr
 python3 tools/check_curve25519.py    # X25519 / Ed25519: RFC 7748 / RFC 8032 vectors, `cryptography`
 bend tests/math/random.bend -o build/math/random && python3 tools/check_random.py   # random vs Go
 python3 tools/backend_diff.py --quick   # every module: `bend file.bend` vs the C build vs the JS build
+python3 tools/check_backend_args.py     # all three runners forward the exact application arguments
 ```
 
 The proofs are about the Bend source; the compiler underneath them is not

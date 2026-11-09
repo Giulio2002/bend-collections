@@ -6,7 +6,7 @@
 It always rebuilds both sides in release mode (there is no skip-build flag):
 
   * every benchmarks/bend/<id>.bend is compiled with the pinned Bend compiler
-    to a native binary and run with `--threads 1` (one sequential thread),
+    to a native binary and run with `+RTS --threads 1 -RTS` (one sequential thread),
   * every benchmarks/native/<id>.c is compiled with the system C compiler at -O3.
 
 Each row measures one public operation. Both programs take the identical
@@ -101,7 +101,7 @@ LOGDIR = ROOT / 'build' / 'bench' / 'logs'
 
 CC = os.environ.get('CC', 'cc')
 CFLAGS = ['-O3', '-march=native', '-std=c11', '-fno-strict-aliasing']
-BEND_FLAGS = '-o <bin> (native C backend); run with --threads 1'
+BEND_FLAGS = '-o <bin> (native C backend); run with +RTS --threads 1 -RTS'
 
 # The Bend runtime only exposes a millisecond clock (IO.now), so the measured
 # difference has to span many of its ticks before the number means anything.
@@ -173,7 +173,7 @@ TIME_RE = re.compile(r'TA=(\d+)\s+TB=(\d+)\s+TC=(\d+)')
 
 
 def run_bend(binary, row, count, reps, order=0):
-    p = subprocess.run([str(binary), '--threads', '1', '--',
+    p = subprocess.run([str(binary), '+RTS', '--threads', '1', '-RTS',
                         str(row['op']), str(row['size']), str(count),
                         str(reps), str(row['seed']), str(order)],
                        env=ENV, text=True, capture_output=True, timeout=RUN_TIMEOUT_S)

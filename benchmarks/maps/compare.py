@@ -8,7 +8,7 @@ benchmarks/bend/hash_table.bend) and one adapter each (hash_table.head,
 base_map.head), so they run the identical operation sequence on the identical
 String keys and must print identical checksums. Timing is the A - B
 differential of benchmarks/run.py (calibration, six alternating samples);
-both binaries run with --threads 1. Ratio = HashMap time / Base.Map time.
+both binaries run with +RTS --threads 1 -RTS. Ratio = HashMap time / Base.Map time.
 
 Unlike the C comparison, set does not ask for the size afterwards and build
 probes one key instead of the size: Base.Map's size walks the whole tree.

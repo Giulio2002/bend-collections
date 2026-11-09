@@ -192,7 +192,7 @@ def run(tokens):
     out = []
     for i in range(0, len(tokens), BATCH):
         chunk = tokens[i:i + BATCH]
-        p = subprocess.run([str(BIN), '--threads', '1', '--'] + chunk, capture_output=True, text=True, timeout=1800)
+        p = subprocess.run([str(BIN), '+RTS', '--threads', '1', '-RTS'] + chunk, capture_output=True, text=True, timeout=1800)
         lines = p.stdout.strip().split('\n') if p.stdout.strip() else []
         if p.returncode != 0 or len(lines) != len(chunk):
             # a crash or a short answer is a failure, never a pass
