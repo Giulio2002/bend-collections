@@ -5,13 +5,13 @@ import ../../../../spec/crypto/curve25519/field.bend as FS
 import ../../../../spec/crypto/curve25519/edwards.bend as G
 import ../../../../spec/crypto/ed25519.bend as ED
 import ../../secp256k1/semiring.bend as SR
-import ../../../lib/nat.bend as N
-import ../../../math/natural/arith.bend as NR
-import ../../../math/number/nt_prime.bend as PM
-import ../../../math/number/nt_flt.bend as FL
+import ./lite/lib/nat.bend as N
+import ./lite/math/natural/arith.bend as NR
+import ./lite/math/number/nt_prime.bend as PM
+import ./lite/math/number/nt_flt.bend as FL
 import ../../secp256k1/group/bn.bend as B
 import ../../secp256k1/group/bnx.bend as X
-import ../../secp256k1/group/fld.bend as F
+import ./lite/crypto/secp256k1/group/fld.bend as F
 import ./pfacts.bend as PF
 import ./fq.bend as FQ
 
